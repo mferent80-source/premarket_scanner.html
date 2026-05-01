@@ -479,8 +479,41 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 .cd-ring circle{fill:none;stroke-width:3;stroke-linecap:round;}
 .cd-bg{stroke:var(--b1);}
 .cd-fill{stroke:var(--acc);transition:stroke-dashoffset .9s linear;transform-origin:center;transform:rotate(-90deg);}
-/* Portfolio tracker */
-.portfolio-panel{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-top:14px;box-shadow:var(--sh);}
+/* Trader Dashboard (înlocuiește Portfolio Tracker) */
+.trader-dashboard{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:12px;margin-top:14px;box-shadow:var(--sh);}
+.td-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+@media(min-width:980px){.td-grid{grid-template-columns:repeat(3,1fr);}}
+.td-section{background:var(--bg);border:1px solid var(--b1);border-radius:var(--rs);padding:11px;display:flex;flex-direction:column;gap:8px;min-height:180px;}
+.td-title{font-family:var(--head);font-weight:700;font-size:.65rem;color:var(--t3);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;justify-content:space-between;}
+.td-refresh-time{font-family:var(--mono);font-size:.55rem;color:var(--t3);font-weight:500;letter-spacing:0;text-transform:none;}
+.td-refresh-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:.85rem;padding:0;line-height:1;}
+.td-refresh-btn:hover{color:var(--acc);}
+.td-list{display:flex;flex-direction:column;gap:5px;flex:1;overflow-y:auto;max-height:220px;}
+.td-row{display:flex;align-items:center;gap:7px;padding:5px 8px;background:var(--bg2);border:1px solid var(--b1);border-radius:6px;font-size:.65rem;}
+.td-row .td-coin{font-weight:800;color:var(--acc);min-width:42px;}
+.td-row .td-price{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--t1);font-weight:600;flex:1;text-align:right;}
+.td-row .td-chg{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;min-width:48px;text-align:right;}
+.td-row .td-chg.pos{color:var(--green);}
+.td-row .td-chg.neg{color:var(--red);}
+.td-row .td-extra{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.58rem;color:var(--t3);min-width:38px;text-align:right;}
+.td-row .td-del{background:transparent;border:none;color:var(--t3);cursor:pointer;padding:0 3px;font-size:.85rem;line-height:1;}
+.td-row .td-del:hover{color:var(--red);}
+.td-add-row{display:flex;gap:5px;}
+.td-inp{padding:5px 8px;background:var(--bg2);border:1px solid var(--b1);border-radius:6px;font-size:.65rem;color:var(--t1);font-family:var(--mono);outline:none;}
+.td-inp:focus{border-color:var(--accb);}
+.td-btn{padding:5px 10px;background:var(--acc);color:#fff;border:none;border-radius:6px;font-size:.62rem;font-weight:700;cursor:pointer;}
+.td-btn:hover{background:#3730a3;}
+.td-empty{font-size:.62rem;color:var(--t3);font-style:italic;text-align:center;padding:14px 6px;}
+.td-hint{font-size:.55rem;color:var(--t3);line-height:1.4;font-style:italic;margin-top:auto;padding-top:6px;border-top:1px dashed var(--b1);}
+/* Calc */
+.td-calc{display:flex;flex-direction:column;gap:6px;}
+.td-calc-row{display:flex;align-items:center;gap:8px;}
+.td-calc-row label{font-size:.6rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;width:90px;}
+.td-calc-row input{flex:1;padding:5px 8px;background:var(--bg2);border:1px solid var(--b1);border-radius:6px;font-size:.7rem;color:var(--t1);font-family:var(--mono);outline:none;}
+.td-calc-row input:focus{border-color:var(--accb);}
+.td-calc-result{margin-top:6px;padding:8px 10px;background:var(--accl);border:1px solid var(--accb);border-radius:6px;font-size:.62rem;color:var(--t1);font-family:var(--mono);line-height:1.6;}
+.td-calc-result.err{background:var(--redl);border-color:var(--redb);color:var(--red);}
+.td-calc-result strong{font-weight:800;color:var(--acc);}
 .portfolio-title{font-family:var(--head);font-weight:700;font-size:.68rem;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
 .pf-row{display:flex;align-items:center;gap:7px;margin-bottom:6px;flex-wrap:wrap;}
 .pf-coin{font-family:var(--head);font-weight:800;font-size:.8rem;min-width:52px;}
@@ -713,13 +746,13 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
     align-items:start;
     padding:16px 16px 40px;
   }
-  /* Full-width items at top (news ticker + catalyst + macro + portfolio) */
+  /* Full-width items at top (news ticker + catalyst + macro + dashboard) */
   .app > .hdr,
   .app > .news-ticker,
   .app > .catalyst-panel,
   .app > .ai-sum-panel,
   .app > .macro-bar,
-  .app > .portfolio-panel{
+  .app > .trader-dashboard{
     grid-column:1 / -1;
     margin-bottom:0;
   }
@@ -860,22 +893,67 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
   <div class="macro-item"><div class="macro-val" id="mc-mkt" style="color:var(--t2)">—</div><div class="macro-lbl">Piață</div></div>
 </div>
 
-<!-- PORTFOLIO TRACKER (mutat sus pentru vizibilitate la prima vedere) -->
-<div class="portfolio-panel" id="portfolioPanel">
-  <div class="portfolio-title">
-    <span>💼 Portfolio Tracker</span>
-    <span style="display:inline-flex;align-items:center;gap:8px;">
-      <span id="pfLastRefresh" style="font-family:var(--mono);font-size:.55rem;color:var(--t3);font-weight:500;letter-spacing:0;text-transform:none;">—</span>
-      <button onclick="fetchPortfolioPrices()" title="Refresh prețuri acum" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:.85rem;padding:0;line-height:1;">↻</button>
-      <span id="pfTotalPnl" style="font-family:var(--head);font-weight:800;font-size:.85rem">—</span>
-    </span>
-  </div>
-  <div id="pfRows"></div>
-  <div class="pf-add-row">
-    <input class="pf-inp" id="pfCoin" placeholder="Coin (ex: BTC)" style="max-width:90px">
-    <input class="pf-inp" id="pfQty" type="number" placeholder="Cantitate" step="any">
-    <input class="pf-inp" id="pfEntry" type="number" placeholder="Preț entry $" step="any">
-    <button class="pf-btn" onclick="addPortfolioEntry()">+ Adaugă</button>
+<!-- TRADER DASHBOARD: Watchlist Live + Funding Rates + Position Size Calc -->
+<div class="trader-dashboard" id="traderDashboard">
+  <div class="td-grid">
+
+    <!-- SECȚIUNEA 1: Quick Watchlist Live (preț + 24h%) -->
+    <div class="td-section">
+      <div class="td-title">
+        <span>📡 Watchlist Live</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <span id="wlLastRefresh" class="td-refresh-time">—</span>
+          <button onclick="fetchWatchlistData()" title="Refresh acum" class="td-refresh-btn">↻</button>
+        </span>
+      </div>
+      <div id="wlRows" class="td-list"></div>
+      <div class="td-add-row">
+        <input class="td-inp" id="wlCoin" placeholder="Coin (BTC)" style="text-transform:uppercase;flex:1;min-width:80px;">
+        <button class="td-btn" onclick="addDashWatchlistCoin()">+ Adaugă</button>
+      </div>
+    </div>
+
+    <!-- SECȚIUNEA 2: Funding Rates Pionex/Binance Futures -->
+    <div class="td-section">
+      <div class="td-title">
+        <span>💰 Funding Rates Top 10</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;">
+          <span id="frLastRefresh" class="td-refresh-time">—</span>
+          <button onclick="fetchFundingRates()" title="Refresh acum" class="td-refresh-btn">↻</button>
+        </span>
+      </div>
+      <div id="frRows" class="td-list"></div>
+      <div class="td-hint">🔴 negativ = shorts plătesc longs · 🟢 pozitiv = longs plătesc shorts. Extreme = atenție pe grid bots.</div>
+    </div>
+
+    <!-- SECȚIUNEA 3: Position Size Calculator -->
+    <div class="td-section">
+      <div class="td-title"><span>🧮 Position Size Calc</span></div>
+      <div class="td-calc">
+        <div class="td-calc-row">
+          <label>Account ($)</label>
+          <input id="psAccount" type="number" step="any" oninput="calcPositionSize();_savePosCalc()">
+        </div>
+        <div class="td-calc-row">
+          <label>Risk %</label>
+          <input id="psRisk" type="number" step="0.1" min="0.1" max="10" oninput="calcPositionSize();_savePosCalc()">
+        </div>
+        <div class="td-calc-row">
+          <label>Entry $</label>
+          <input id="psEntry" type="number" step="any" oninput="calcPositionSize()">
+        </div>
+        <div class="td-calc-row">
+          <label>Stop Loss $</label>
+          <input id="psStop" type="number" step="any" oninput="calcPositionSize()">
+        </div>
+        <div class="td-calc-row">
+          <label>Take Profit $ (opt)</label>
+          <input id="psTP" type="number" step="any" oninput="calcPositionSize()">
+        </div>
+        <div id="psResult" class="td-calc-result">Completează câmpurile pentru calcul.</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1105,12 +1183,10 @@ let allCryptoOpportunities = [];
 let cryptoPriceAlerts = {};
 let sparkCache = {};
 let cryptoFgScore = 50;
-let portfolioEntries = []; // [{coin, qty, entry}]
 
 // Restore alerts from localStorage
 (function(){
   try{ cryptoPriceAlerts=JSON.parse(localStorage.getItem('crypto_alerts')||'{}'); }catch(e){ cryptoPriceAlerts={}; }
-  try{ portfolioEntries=JSON.parse(localStorage.getItem('pf_entries')||'[]'); }catch(e){ portfolioEntries=[]; }
   // Restore config
   try{
     const cfg=JSON.parse(localStorage.getItem('scanner_cfg')||'{}');
@@ -1294,142 +1370,240 @@ function renderConfluenceBadge(score){
 }
 
 
-// ── PORTFOLIO TRACKER ──
-function savePf(){ try{localStorage.setItem('pf_entries',JSON.stringify(portfolioEntries));}catch(e){} }
+// ═══════════════════════════════════════════════════════════════
+// TRADER DASHBOARD (înlocuiește Portfolio Tracker)
+// 3 secțiuni: Watchlist Live · Funding Rates · Position Size Calc
+// ═══════════════════════════════════════════════════════════════
 
-function addPortfolioEntry(){
-  const coin=(document.getElementById('pfCoin').value||'').trim().toUpperCase();
-  const qty=parseFloat(document.getElementById('pfQty').value);
-  const entry=parseFloat(document.getElementById('pfEntry').value);
-  if(!coin||isNaN(qty)||isNaN(entry)||qty<=0||entry<=0){showToast('Completează toate câmpurile corect','err');return;}
-  portfolioEntries=portfolioEntries.filter(e=>e.coin!==coin);
-  portfolioEntries.push({coin,qty,entry});
-  savePf();
-  // Detectează dacă era un edit (coin-ul deja existent) sau adăugare nouă
-  const wasEdit=document.getElementById('pfCoin').readOnly;
-  const cInp=document.getElementById('pfCoin');
-  const qInp=document.getElementById('pfQty');
-  const eInp=document.getElementById('pfEntry');
-  cInp.value='';qInp.value='';eInp.value='';
-  // Resetează stilul "edit mode" pe câmpul coin
-  cInp.readOnly=false;
-  cInp.style.background='';
-  cInp.style.opacity='';
-  // Resetează textul butonului
-  const addBtn=cInp.parentElement?.querySelector('.pf-btn');
-  if(addBtn){addBtn.textContent='+ Adaugă';addBtn.style.background='';}
-  renderPortfolio();
-  startPortfolioAutoRefresh(); // (re)pornește fetch-ul de prețuri live
-  showToast(wasEdit?`✏️ ${coin} actualizat`:`💼 ${coin} adăugat în portfolio`,'ok');
-}
+// ─── State global ───
+let dashWatchlist = [];           // [{coin}] coin-urile urmărite live
+let _wlData = {};                 // {coin: {price, change24h, high, low}} cache live
+let _wlLastRefresh = 0;
+let _wlTimer = null;
+let _frRows = [];                 // [{symbol, rate, mark, nextTime}] funding rates
+let _frLastRefresh = 0;
+let _frTimer = null;
 
-function removePortfolioEntry(coin){
-  portfolioEntries=portfolioEntries.filter(e=>e.coin!==coin);
-  delete _pfPriceMap[coin];
-  savePf();
-  renderPortfolio();
-  // Dacă mai există entries, re-pornim timer-ul; dacă nu, oprim
-  if (portfolioEntries.length > 0) startPortfolioAutoRefresh();
-  else if (_pfRefreshTimer) { clearInterval(_pfRefreshTimer); _pfRefreshTimer = null; }
-}
-
-// Pre-completează formul cu valorile coin-ului și marchează vizual modul "edit".
-// La save, addPortfolioEntry suprascrie automat entry-ul cu același coin (filter+push).
-function editPortfolioEntry(coin){
-  const entry=portfolioEntries.find(e=>e.coin===coin);
-  if(!entry) return;
-  const cInp=document.getElementById('pfCoin');
-  const qInp=document.getElementById('pfQty');
-  const eInp=document.getElementById('pfEntry');
-  if(!cInp||!qInp||!eInp) return;
-  cInp.value=entry.coin;
-  qInp.value=entry.qty;
-  eInp.value=entry.entry;
-  // Coin-ul nu se schimbă în edit (dacă vrei alt coin, șterge și adaugă altul)
-  cInp.readOnly=true;
-  cInp.style.background='var(--bg3)';
-  cInp.style.opacity='0.7';
-  // Schimbă textul butonului pentru claritate
-  const addBtn=cInp.parentElement?.querySelector('.pf-btn');
-  if(addBtn){addBtn.textContent='💾 Salvează';addBtn.style.background='var(--green)';}
-  qInp.focus();
-  qInp.select();
-  showToast(`✏️ Editezi ${coin} — modifică Cantitate / Entry și apasă Salvează`,'ok');
-}
-
-// Map de prețuri live pentru coin-urile din portfolio (refresh la 30s, independent de scanner)
-let _pfPriceMap = {};
-let _pfRefreshTimer = null;
-let _pfLastRefresh = 0;
-
-async function fetchPortfolioPrices() {
-  if (!portfolioEntries.length) return;
-  // Cerere paralelă pe Binance ticker pentru fiecare coin din portfolio
-  const results = await Promise.all(portfolioEntries.map(async e => {
-    try {
-      const r = await fetchBinanceSafe(`/api/v3/ticker/price?symbol=${e.coin}USDT`, 5000);
-      const d = await r.json();
-      return { coin: e.coin, price: parseFloat(d.price) };
-    } catch (err) {
-      return { coin: e.coin, price: null };
+// ─── Init / migrare din vechiul portofoliu ───
+try {
+  dashWatchlist = JSON.parse(localStorage.getItem('dash_watchlist') || '[]');
+  // Migrare: dacă lista e goală dar exista vechiul pf_entries, importăm coin-urile
+  if (dashWatchlist.length === 0) {
+    const oldPf = JSON.parse(localStorage.getItem('pf_entries') || '[]');
+    if (oldPf.length > 0) {
+      dashWatchlist = oldPf.map(e => ({ coin: e.coin })).slice(0, 10);
+      _saveDashWatchlist();
     }
+  }
+} catch(e) { dashWatchlist = []; }
+
+function _saveDashWatchlist(){ try{localStorage.setItem('dash_watchlist', JSON.stringify(dashWatchlist));}catch(e){} }
+
+// ═════════ SECȚIUNEA 1: WATCHLIST LIVE ═════════
+// Notă: numele funcțiilor au prefix "Dash" pentru a evita coliziuni cu watchlist-ul scanner-ului.
+function addDashWatchlistCoin() {
+  const inp = document.getElementById('wlCoin');
+  if (!inp) return;
+  const coin = (inp.value || '').trim().toUpperCase();
+  if (!coin) { showToast('Introdu un simbol coin','err'); return; }
+  if (dashWatchlist.find(e => e.coin === coin)) { showToast(`${coin} e deja în listă`,'err'); return; }
+  if (dashWatchlist.length >= 15) { showToast('Maxim 15 coin-uri în watchlist','err'); return; }
+  dashWatchlist.push({ coin });
+  _saveDashWatchlist();
+  inp.value = '';
+  fetchWatchlistData();
+  startDashRefresh();
+}
+
+function removeDashWatchlistCoin(coin) {
+  dashWatchlist = dashWatchlist.filter(e => e.coin !== coin);
+  delete _wlData[coin];
+  _saveDashWatchlist();
+  renderWatchlist();
+  if (dashWatchlist.length === 0 && _wlTimer) { clearInterval(_wlTimer); _wlTimer = null; }
+}
+
+async function fetchWatchlistData() {
+  if (!dashWatchlist.length) { renderWatchlist(); return; }
+  // Folosim /api/v3/ticker/24hr care dă preț + change 24h + high/low
+  const results = await Promise.all(dashWatchlist.map(async e => {
+    try {
+      const r = await fetchBinanceSafe(`/api/v3/ticker/24hr?symbol=${e.coin}USDT`, 6000);
+      const d = await r.json();
+      return {
+        coin: e.coin,
+        price: parseFloat(d.lastPrice),
+        change24h: parseFloat(d.priceChangePercent),
+        high: parseFloat(d.highPrice),
+        low: parseFloat(d.lowPrice)
+      };
+    } catch (err) { return { coin: e.coin, price: null }; }
   }));
-  results.forEach(r => { if (r.price && !isNaN(r.price)) _pfPriceMap[r.coin] = r.price; });
-  _pfLastRefresh = Date.now();
-  renderPortfolio();
+  results.forEach(r => { if (r.price) _wlData[r.coin] = r; });
+  _wlLastRefresh = Date.now();
+  renderWatchlist();
 }
 
-function startPortfolioAutoRefresh() {
-  if (_pfRefreshTimer) { clearInterval(_pfRefreshTimer); _pfRefreshTimer = null; }
-  if (portfolioEntries.length > 0) {
-    fetchPortfolioPrices();                                 // imediat
-    _pfRefreshTimer = setInterval(fetchPortfolioPrices, 30000); // apoi la 30s
+function renderWatchlist() {
+  const rows = document.getElementById('wlRows');
+  if (!rows) return;
+  if (!dashWatchlist.length) {
+    rows.innerHTML = '<div class="td-empty">Niciun coin urmărit. Adaugă mai jos (ex: BTC, ETH, SOL).</div>';
+    _setLastRefresh('wlLastRefresh', 0);
+    return;
   }
-}
-
-function renderPortfolio(){
-  const rows=document.getElementById('pfRows');
-  const totalEl=document.getElementById('pfTotalPnl');
-  if(!portfolioEntries.length){
-    rows.innerHTML='<div style="font-size:.62rem;color:var(--t3);margin-bottom:8px">Nicio poziție. Adaugă un coin de mai jos.</div>';
-    totalEl.textContent='—'; totalEl.style.color='var(--t3)'; return;
-  }
-  // Prețuri live: 1) Binance direct (proaspăt) 2) scanner ca fallback
-  const priceMap={..._pfPriceMap};
-  for(const o of allCryptoOpportunities) if(!priceMap[o.coin]) priceMap[o.coin]=o.price;
-  for(const s of allSignals) if(s.price&&!priceMap[s.coin]) priceMap[s.coin]=s.price;
-  let totalPnlUsd=0;
-  rows.innerHTML=portfolioEntries.map(e=>{
-    const lp=priceMap[e.coin]||null;
-    const pnlPct=lp?((lp-e.entry)/e.entry*100):null;
-    const pnlUsd=lp?(lp-e.entry)*e.qty:null;
-    if(pnlUsd!==null) totalPnlUsd+=pnlUsd;
-    const pnlStr=pnlPct!==null
-      ?`<span class="pf-val ${pnlPct>=0?'pf-pnl-pos':'pf-pnl-neg'}">${pnlPct>=0?'+':''}${pnlPct.toFixed(2)}% · ${pnlUsd>=0?'+':''}$${Math.abs(pnlUsd).toFixed(2)}</span>`
-      :`<span style="font-size:.6rem;color:var(--t3)">live după scan</span>`;
-    return `<div class="pf-row">
-      <span class="pf-coin">${e.coin}</span>
-      <span class="pf-val" style="color:var(--t2)">${e.qty} @ $${e.entry.toFixed(e.entry<1?6:2)}</span>
-      <span style="font-size:.6rem;color:var(--t3)">→ ${lp?formatP(lp):'-'}</span>
-      ${pnlStr}
-      <button class="pf-btn" onclick="editPortfolioEntry('${e.coin}')" title="Editează" style="background:transparent;border:1px solid var(--b1);color:var(--t2);padding:3px 7px;font-size:.65rem;">✏️</button>
-      <button class="pf-btn del" onclick="removePortfolioEntry('${e.coin}')" title="Șterge">✕</button>
+  rows.innerHTML = dashWatchlist.map(e => {
+    const d = _wlData[e.coin];
+    if (!d || !d.price) {
+      return `<div class="td-row"><span class="td-coin">${e.coin}</span><span class="td-price">—</span><span class="td-chg">—</span><button class="td-del" onclick="removeDashWatchlistCoin('${e.coin}')">✕</button></div>`;
+    }
+    const cls = d.change24h >= 0 ? 'pos' : 'neg';
+    const sign = d.change24h >= 0 ? '+' : '';
+    // Distanță față de high 24h (cât % sub max-ul zilei)
+    const distHigh = d.high && d.price ? ((d.price - d.high) / d.high) * 100 : 0;
+    const priceStr = d.price < 1 ? d.price.toFixed(6) : d.price.toFixed(d.price < 100 ? 4 : 2);
+    return `<div class="td-row">
+      <span class="td-coin">${e.coin}</span>
+      <span class="td-price">$${priceStr}</span>
+      <span class="td-chg ${cls}">${sign}${d.change24h.toFixed(2)}%</span>
+      <span class="td-extra" title="Distanță față de high 24h">${distHigh.toFixed(1)}%</span>
+      <button class="td-del" onclick="removeDashWatchlistCoin('${e.coin}')" title="Șterge">✕</button>
     </div>`;
   }).join('');
-  if(totalPnlUsd!==0){
-    totalEl.textContent=(totalPnlUsd>=0?'+':'')+'$'+Math.abs(totalPnlUsd).toFixed(2)+' P&L';
-    totalEl.style.color=totalPnlUsd>=0?'var(--green)':'var(--red)';
-  } else { totalEl.textContent='—'; totalEl.style.color='var(--t3)'; }
-  // Actualizează timestamp-ul ultimului refresh
-  const lr=document.getElementById('pfLastRefresh');
-  if(lr){
-    if(_pfLastRefresh){
-      const t=new Date(_pfLastRefresh).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      lr.textContent=`live ${t}`;
-    } else {
-      lr.textContent='—';
-    }
+  _setLastRefresh('wlLastRefresh', _wlLastRefresh);
+}
+
+// ═════════ SECȚIUNEA 2: FUNDING RATES ═════════
+async function fetchFundingRates() {
+  try {
+    const r = await fetchSafe('https://fapi.binance.com/fapi/v1/premiumIndex', 8000);
+    const data = await r.json();
+    // Doar perpetuals USDT, sortat după valoare absolută a funding rate
+    _frRows = data
+      .filter(d => d.symbol.endsWith('USDT'))
+      .map(d => ({
+        symbol: d.symbol.replace('USDT',''),
+        rate: parseFloat(d.lastFundingRate) * 100,  // → procent
+        mark: parseFloat(d.markPrice),
+        nextTime: parseInt(d.nextFundingTime)
+      }))
+      .sort((a,b) => Math.abs(b.rate) - Math.abs(a.rate))
+      .slice(0, 10);
+    _frLastRefresh = Date.now();
+    renderFundingRates();
+  } catch (e) {
+    console.warn('Funding rates fetch failed:', e);
+    const rows = document.getElementById('frRows');
+    if (rows && _frRows.length === 0) rows.innerHTML = '<div class="td-empty">Eroare la fetch (API blocat?). Încearcă manual ↻</div>';
   }
+}
+
+function renderFundingRates() {
+  const rows = document.getElementById('frRows');
+  if (!rows) return;
+  if (!_frRows.length) {
+    rows.innerHTML = '<div class="td-empty">Se încarcă funding rates...</div>';
+    _setLastRefresh('frLastRefresh', 0);
+    return;
+  }
+  rows.innerHTML = _frRows.map(r => {
+    const cls = r.rate >= 0 ? 'pos' : 'neg';
+    const sign = r.rate >= 0 ? '+' : '';
+    return `<div class="td-row">
+      <span class="td-coin">${r.symbol}</span>
+      <span class="td-price">$${r.mark < 1 ? r.mark.toFixed(6) : r.mark.toFixed(2)}</span>
+      <span class="td-chg ${cls}">${sign}${r.rate.toFixed(4)}%</span>
+    </div>`;
+  }).join('');
+  _setLastRefresh('frLastRefresh', _frLastRefresh);
+}
+
+// ═════════ SECȚIUNEA 3: POSITION SIZE CALCULATOR ═════════
+function _savePosCalc() {
+  // Salvează doar account și risk (nu entry/SL care se schimbă per trade)
+  try {
+    const cfg = {
+      account: parseFloat(document.getElementById('psAccount').value) || 0,
+      risk: parseFloat(document.getElementById('psRisk').value) || 0
+    };
+    localStorage.setItem('pos_calc_cfg', JSON.stringify(cfg));
+  } catch(e) {}
+}
+
+function _loadPosCalc() {
+  try {
+    const cfg = JSON.parse(localStorage.getItem('pos_calc_cfg') || '{}');
+    if (cfg.account) document.getElementById('psAccount').value = cfg.account;
+    if (cfg.risk) document.getElementById('psRisk').value = cfg.risk;
+  } catch(e) {}
+}
+
+function calcPositionSize() {
+  const account = parseFloat(document.getElementById('psAccount').value);
+  const risk = parseFloat(document.getElementById('psRisk').value);
+  const entry = parseFloat(document.getElementById('psEntry').value);
+  const stop = parseFloat(document.getElementById('psStop').value);
+  const tp = parseFloat(document.getElementById('psTP').value);
+  const out = document.getElementById('psResult');
+
+  if (!account || !risk || !entry || !stop) {
+    out.className = 'td-calc-result';
+    out.innerHTML = 'Completează <strong>Account, Risk%, Entry, Stop Loss</strong> pentru calcul.';
+    return;
+  }
+  if (entry === stop) {
+    out.className = 'td-calc-result err';
+    out.textContent = 'Entry și Stop Loss nu pot fi egale.';
+    return;
+  }
+
+  const direction = entry > stop ? 'LONG' : 'SHORT';
+  const riskUsd = account * (risk / 100);
+  const riskPerUnit = Math.abs(entry - stop);
+  const stopPct = (riskPerUnit / entry) * 100;
+  const qty = riskUsd / riskPerUnit;
+  const positionUsd = qty * entry;
+  const leverage = positionUsd / account;
+
+  let rrLine = '';
+  if (tp && !isNaN(tp)) {
+    const profitPerUnit = direction === 'LONG' ? (tp - entry) : (entry - tp);
+    const rr = profitPerUnit / riskPerUnit;
+    const profitUsd = qty * profitPerUnit;
+    const rrCls = rr >= 2 ? 'var(--green)' : rr >= 1 ? 'var(--gold)' : 'var(--red)';
+    rrLine = `<br>R:R = <strong style="color:${rrCls}">${rr.toFixed(2)}</strong> · Profit țintă = <strong>$${profitUsd.toFixed(2)}</strong>`;
+  }
+
+  out.className = 'td-calc-result';
+  out.innerHTML = `
+    <strong>${direction}</strong> · Risc real = <strong>$${riskUsd.toFixed(2)}</strong> (${stopPct.toFixed(2)}% stop)<br>
+    Cantitate = <strong>${qty.toFixed(qty < 1 ? 4 : 2)}</strong> unități<br>
+    Position size = <strong>$${positionUsd.toFixed(2)}</strong>${leverage > 1 ? ' · Leverage = <strong>' + leverage.toFixed(1) + 'x</strong>' : ''}
+    ${rrLine}
+  `;
+}
+
+// ═════════ HELPERS COMUNI ═════════
+function _setLastRefresh(elId, ts) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!ts) { el.textContent = '—'; return; }
+  el.textContent = new Date(ts).toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+}
+
+// Pornește auto-refresh-ul (watchlist 30s, funding 5min)
+function startDashRefresh() {
+  if (_wlTimer) { clearInterval(_wlTimer); _wlTimer = null; }
+  if (_frTimer) { clearInterval(_frTimer); _frTimer = null; }
+  if (dashWatchlist.length > 0) {
+    fetchWatchlistData();
+    _wlTimer = setInterval(fetchWatchlistData, 30000);
+  } else {
+    renderWatchlist(); // empty state
+  }
+  // Funding rates refresh la 5 min (se updatează la fiecare 8h pe Binance, deci 5 min e suficient)
+  fetchFundingRates();
+  _frTimer = setInterval(fetchFundingRates, 5 * 60 * 1000);
 }
 
 function exportCsvSignals(){
@@ -2087,9 +2261,12 @@ updateNotifBtn();
 log('Scanner inițializat. Apasă ▶ Pornește.','info');
 fetchCryptoFearGreed();
 renderSignals();
-renderPortfolio();
-// Pornește auto-refresh-ul prețurilor pentru portfolio (independent de scanner)
-startPortfolioAutoRefresh();
+// Trader Dashboard: render + start auto-refresh (watchlist 30s, funding 5min)
+renderWatchlist();
+renderFundingRates();
+_loadPosCalc();
+calcPositionSize();
+startDashRefresh();
 
 // ── NOTIFICATIONS ──
 function updateNotifBtn(){
@@ -2635,8 +2812,7 @@ async function runScan(){
   
   // Yield between heavy DOM ops on APK
   if(isWebView) await new Promise(r=>setTimeout(r,50));
-  
-  renderPortfolio();
+
   setProgress(100,'Complet ✓');
   log(`✅ ${newSignals.length} semnale găsite | High:${highPrio.length} | Med:${medPrio.length}`,'ok');
 
