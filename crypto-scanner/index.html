@@ -864,7 +864,11 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 <div class="portfolio-panel" id="portfolioPanel">
   <div class="portfolio-title">
     <span>💼 Portfolio Tracker</span>
-    <span id="pfTotalPnl" style="font-family:var(--head);font-weight:800;font-size:.85rem">—</span>
+    <span style="display:inline-flex;align-items:center;gap:8px;">
+      <span id="pfLastRefresh" style="font-family:var(--mono);font-size:.55rem;color:var(--t3);font-weight:500;letter-spacing:0;text-transform:none;">—</span>
+      <button onclick="fetchPortfolioPrices()" title="Refresh prețuri acum" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:.85rem;padding:0;line-height:1;">↻</button>
+      <span id="pfTotalPnl" style="font-family:var(--head);font-weight:800;font-size:.85rem">—</span>
+    </span>
   </div>
   <div id="pfRows"></div>
   <div class="pf-add-row">
@@ -1305,13 +1309,48 @@ function addPortfolioEntry(){
   document.getElementById('pfQty').value='';
   document.getElementById('pfEntry').value='';
   renderPortfolio();
+  startPortfolioAutoRefresh(); // (re)pornește fetch-ul de prețuri live
   showToast(`💼 ${coin} adăugat în portfolio`,'ok');
 }
 
 function removePortfolioEntry(coin){
   portfolioEntries=portfolioEntries.filter(e=>e.coin!==coin);
+  delete _pfPriceMap[coin];
   savePf();
   renderPortfolio();
+  // Dacă mai există entries, re-pornim timer-ul; dacă nu, oprim
+  if (portfolioEntries.length > 0) startPortfolioAutoRefresh();
+  else if (_pfRefreshTimer) { clearInterval(_pfRefreshTimer); _pfRefreshTimer = null; }
+}
+
+// Map de prețuri live pentru coin-urile din portfolio (refresh la 30s, independent de scanner)
+let _pfPriceMap = {};
+let _pfRefreshTimer = null;
+let _pfLastRefresh = 0;
+
+async function fetchPortfolioPrices() {
+  if (!portfolioEntries.length) return;
+  // Cerere paralelă pe Binance ticker pentru fiecare coin din portfolio
+  const results = await Promise.all(portfolioEntries.map(async e => {
+    try {
+      const r = await fetchBinanceSafe(`/api/v3/ticker/price?symbol=${e.coin}USDT`, 5000);
+      const d = await r.json();
+      return { coin: e.coin, price: parseFloat(d.price) };
+    } catch (err) {
+      return { coin: e.coin, price: null };
+    }
+  }));
+  results.forEach(r => { if (r.price && !isNaN(r.price)) _pfPriceMap[r.coin] = r.price; });
+  _pfLastRefresh = Date.now();
+  renderPortfolio();
+}
+
+function startPortfolioAutoRefresh() {
+  if (_pfRefreshTimer) { clearInterval(_pfRefreshTimer); _pfRefreshTimer = null; }
+  if (portfolioEntries.length > 0) {
+    fetchPortfolioPrices();                                 // imediat
+    _pfRefreshTimer = setInterval(fetchPortfolioPrices, 30000); // apoi la 30s
+  }
 }
 
 function renderPortfolio(){
@@ -1321,8 +1360,9 @@ function renderPortfolio(){
     rows.innerHTML='<div style="font-size:.62rem;color:var(--t3);margin-bottom:8px">Nicio poziție. Adaugă un coin de mai jos.</div>';
     totalEl.textContent='—'; totalEl.style.color='var(--t3)'; return;
   }
-  const priceMap={};
-  for(const o of allCryptoOpportunities) priceMap[o.coin]=o.price;
+  // Prețuri live: 1) Binance direct (proaspăt) 2) scanner ca fallback
+  const priceMap={..._pfPriceMap};
+  for(const o of allCryptoOpportunities) if(!priceMap[o.coin]) priceMap[o.coin]=o.price;
   for(const s of allSignals) if(s.price&&!priceMap[s.coin]) priceMap[s.coin]=s.price;
   let totalPnlUsd=0;
   rows.innerHTML=portfolioEntries.map(e=>{
@@ -1345,6 +1385,16 @@ function renderPortfolio(){
     totalEl.textContent=(totalPnlUsd>=0?'+':'')+'$'+Math.abs(totalPnlUsd).toFixed(2)+' P&L';
     totalEl.style.color=totalPnlUsd>=0?'var(--green)':'var(--red)';
   } else { totalEl.textContent='—'; totalEl.style.color='var(--t3)'; }
+  // Actualizează timestamp-ul ultimului refresh
+  const lr=document.getElementById('pfLastRefresh');
+  if(lr){
+    if(_pfLastRefresh){
+      const t=new Date(_pfLastRefresh).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      lr.textContent=`live ${t}`;
+    } else {
+      lr.textContent='—';
+    }
+  }
 }
 
 function exportCsvSignals(){
@@ -2003,6 +2053,8 @@ log('Scanner inițializat. Apasă ▶ Pornește.','info');
 fetchCryptoFearGreed();
 renderSignals();
 renderPortfolio();
+// Pornește auto-refresh-ul prețurilor pentru portfolio (independent de scanner)
+startPortfolioAutoRefresh();
 
 // ── NOTIFICATIONS ──
 function updateNotifBtn(){
