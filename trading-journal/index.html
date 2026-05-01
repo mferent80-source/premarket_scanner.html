@@ -32,6 +32,9 @@
   --grid:#0e7490;
   --grid-bg:#cffafe;
   --grid-bd:#67e8f9;
+  --stock:#0369a1;
+  --stock-bg:#e0f2fe;
+  --stock-bd:#7dd3fc;
   --r:10px;
   --head:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
 }
@@ -91,6 +94,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);font-size:13px
 .badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:.55rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .badge.fut{background:var(--futures-bg);color:var(--futures);border:1px solid var(--futures-bd)}
 .badge.grid{background:var(--grid-bg);color:var(--grid);border:1px solid var(--grid-bd)}
+.badge.stock{background:var(--stock-bg);color:var(--stock);border:1px solid var(--stock-bd)}
 .badge.long{background:var(--success-bg);color:var(--success);border:1px solid var(--success-bd)}
 .badge.short{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-bd)}
 .badge.win{background:var(--success-bg);color:var(--success);border:1px solid var(--success-bd)}
@@ -152,8 +156,8 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);font-size:13px
 <div class="app">
   <div class="hdr" style="position:relative;">
     <a href="../" style="position:absolute;top:14px;right:18px;padding:5px 12px;border-radius:7px;font-size:.62rem;font-weight:700;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">← Hub</a>
-    <h1>📓 Trading Journal — Pionex Futures + Grid</h1>
-    <div class="sub" id="hdrSub">v1.1 · Local storage · Stats · Calendar · Equity · AI auto-trigger · Filters · Stale alert</div>
+    <h1>📓 Trading Journal — Pionex + Trade 212</h1>
+    <div class="sub" id="hdrSub">v1.2 · Crypto futures + grid + Nasdaq stocks · Local storage · Stats · Calendar · Equity</div>
   </div>
 
   <!-- STATS -->
@@ -380,7 +384,7 @@ function renderAllTrades() {
   
   // Type filter
   html += '<select onchange="filters.type=this.value;render()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.6rem;font-family:inherit">';
-  [['all','Toate tipuri'],['futures','Futures'],['grid','Grid Bot']].forEach(([v,l])=>{
+  [['all','Toate tipuri'],['futures','Futures'],['grid','Grid Bot'],['stock','Stocks (Nasdaq)']].forEach(([v,l])=>{
     html += `<option value="${v}" ${filters.type===v?'selected':''}>${l}</option>`;
   });
   html += '</select>';
@@ -433,14 +437,17 @@ function renderAllTrades() {
 }
 
 function renderTradeRow(t) {
-  const typeBadge = t.type === 'futures' 
-    ? '<span class="badge fut">FUTURES</span>' 
+  const typeBadge = t.type === 'futures'
+    ? '<span class="badge fut">FUTURES</span>'
+    : t.type === 'stock'
+    ? '<span class="badge stock">STOCK</span>'
     : '<span class="badge grid">GRID</span>';
-  
+
   let dirBadge = '';
-  if (t.type === 'futures') {
-    dirBadge = t.direction === 'long' 
-      ? '<span class="badge long">LONG</span>' 
+  // Atât pentru futures cât și pentru stocks (Trade 212 permite long și CFD short)
+  if (t.type === 'futures' || t.type === 'stock') {
+    dirBadge = t.direction === 'long'
+      ? '<span class="badge long">LONG</span>'
       : '<span class="badge short">SHORT</span>';
   }
   
@@ -495,12 +502,13 @@ function renderAddForm() {
         <div class="field">
           <label>Tip</label>
           <select id="f_type" onchange="toggleFuturesFields()">
-            <option value="futures">Futures (direcțional)</option>
-            <option value="grid">Grid Bot</option>
+            <option value="futures">Crypto Futures (Pionex)</option>
+            <option value="grid">Grid Bot (Pionex)</option>
+            <option value="stock">Stock Nasdaq (Trade 212)</option>
           </select>
         </div>
         <div class="field">
-          <label>Coin (ex: BTC, SOL)</label>
+          <label id="lbl_coin">Coin (ex: BTC, SOL)</label>
           <input type="text" id="f_coin" placeholder="BTC" style="text-transform:uppercase">
         </div>
       </div>
@@ -542,10 +550,10 @@ function renderAddForm() {
         
         <div class="form-row cols-2">
           <div class="field">
-            <label>Position Size ($)</label>
+            <label id="lbl_size">Position Size ($)</label>
             <input type="number" id="f_size" step="any" placeholder="500">
           </div>
-          <div class="field">
+          <div class="field" id="lev_field">
             <label>Leverage</label>
             <input type="number" id="f_lev" step="1" placeholder="3" value="1">
           </div>
@@ -600,8 +608,33 @@ function renderAddForm() {
 }
 
 function toggleFuturesFields() {
-  // For grid bot, we hide direction (always 2-way)
-  // For now keep it simple — user enters fewer fields for grid
+  // Adaptează form-ul în funcție de tipul de trade
+  const type = document.getElementById('f_type').value;
+  const coinLbl = document.getElementById('lbl_coin');
+  const coinInp = document.getElementById('f_coin');
+  const sizeLbl = document.getElementById('lbl_size');
+  const levField = document.getElementById('lev_field');
+  const levInp = document.getElementById('f_lev');
+
+  if (type === 'stock') {
+    // Stocks: simbol Nasdaq, fără leverage (Trade 212 cash account)
+    coinLbl.textContent = 'Simbol (ex: AAPL, TSLA)';
+    coinInp.placeholder = 'AAPL';
+    sizeLbl.textContent = 'Position Size ($) — shares × preț';
+    levField.style.display = 'none';
+    levInp.value = 1;
+  } else if (type === 'grid') {
+    coinLbl.textContent = 'Coin (ex: BTC, SOL)';
+    coinInp.placeholder = 'BTC';
+    sizeLbl.textContent = 'Capital alocat ($)';
+    levField.style.display = '';
+  } else {
+    // futures
+    coinLbl.textContent = 'Coin (ex: BTC, SOL)';
+    coinInp.placeholder = 'BTC';
+    sizeLbl.textContent = 'Position Size ($)';
+    levField.style.display = '';
+  }
 }
 
 function togglePnLFields() {
@@ -635,21 +668,22 @@ function addTrade() {
   const lev = parseFloat(document.getElementById('f_lev').value) || 1;
   let pnl = parseFloat(document.getElementById('f_pnl').value);
   
-  // Auto-compute PnL if entry+exit+size are present and pnl is empty
+  // Auto-calcul PnL dacă entry+exit+size există și pnl e gol
   if ((isNaN(pnl) || pnl === null) && entry && exit && size) {
     const dir = document.getElementById('f_dir').value;
     const priceMove = dir === 'long' ? (exit - entry) / entry : (entry - exit) / entry;
     pnl = priceMove * size * lev;
   }
-  
+
   let pnlPct = null;
   if (size && !isNaN(pnl)) pnlPct = (pnl / size) * 100;
-  
+
   const trade = {
     id: newId(),
     type,
     coin,
-    direction: type === 'futures' ? document.getElementById('f_dir').value : null,
+    // Direction se salvează și pentru stocks (long/short pe Trade 212 CFD)
+    direction: (type === 'futures' || type === 'stock') ? document.getElementById('f_dir').value : null,
     status,
     entry, sl, tp, exit, size, leverage: lev,
     pnl: !isNaN(pnl) ? pnl : null,
