@@ -186,6 +186,7 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
 .tabs::-webkit-scrollbar-thumb{background:var(--b1);border-radius:4px;}
 .tab{flex:1 0 auto;min-width:70px;padding:7px 10px;text-align:center;font-size:.6rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--t3);border-radius:7px;cursor:pointer;transition:all .15s;white-space:nowrap;}
 .tab.act{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(79,70,229,.3);}
+.tab-div{flex:0 0 1px;width:1px;height:22px;background:var(--b2);align-self:center;margin:0 4px;opacity:.6;}
 
 /* ── SIGNAL CARDS ── */
 .signals-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
@@ -712,11 +713,12 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
     align-items:start;
     padding:16px 16px 40px;
   }
-  /* Full-width items at top (news ticker + catalyst orizontal) */
+  /* Full-width items at top (news ticker + catalyst + macro + portfolio) */
   .app > .hdr,
   .app > .news-ticker,
   .app > .catalyst-panel,
   .app > .ai-sum-panel,
+  .app > .macro-bar,
   .app > .portfolio-panel{
     grid-column:1 / -1;
     margin-bottom:0;
@@ -856,6 +858,21 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
   <div class="macro-item"><div class="macro-val" id="mc-eth" style="color:var(--cyan)">—</div><div class="macro-lbl">ETH 24h</div></div>
   <div class="macro-divider"></div>
   <div class="macro-item"><div class="macro-val" id="mc-mkt" style="color:var(--t2)">—</div><div class="macro-lbl">Piață</div></div>
+</div>
+
+<!-- PORTFOLIO TRACKER (mutat sus pentru vizibilitate la prima vedere) -->
+<div class="portfolio-panel" id="portfolioPanel">
+  <div class="portfolio-title">
+    <span>💼 Portfolio Tracker</span>
+    <span id="pfTotalPnl" style="font-family:var(--head);font-weight:800;font-size:.85rem">—</span>
+  </div>
+  <div id="pfRows"></div>
+  <div class="pf-add-row">
+    <input class="pf-inp" id="pfCoin" placeholder="Coin (ex: BTC)" style="max-width:90px">
+    <input class="pf-inp" id="pfQty" type="number" placeholder="Cantitate" step="any">
+    <input class="pf-inp" id="pfEntry" type="number" placeholder="Preț entry $" step="any">
+    <button class="pf-btn" onclick="addPortfolioEntry()">+ Adaugă</button>
+  </div>
 </div>
 
 <!-- CONTROL PANEL -->
@@ -1006,23 +1023,32 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
   <div class="ftag" onclick="exportCsvSignals()" style="background:var(--greenl);border-color:var(--greenb);color:var(--green)">📥 Export CSV</div>
 </div>
 
-<!-- TABS -->
+<!-- TABS — grupate vizual: Live | Setup | Pionex tools | Macro | Istoric -->
 <div class="tabs">
+  <!-- GRUP 1: Live & lista de bază -->
   <div class="tab act" onclick="setTab('live',this)">🔴 Live</div>
   <div class="tab" onclick="setTab('all',this)">📋 Toate</div>
+  <div class="tab-div" aria-hidden="true"></div>
+  <!-- GRUP 2: Setup-uri / Oportunități -->
   <div class="tab" onclick="setTab('earlybuy',this)" style="color:var(--teal)">🌱 Early Buy</div>
   <div class="tab" onclick="setTab('reco',this)">💡 Oportun.</div>
   <div class="tab" onclick="setTab('multiscan',this)" style="color:var(--purple)">🎛️ Multi-Scan</div>
-  <div class="tab" onclick="setTab('heatmap',this)">🗺️ Heatmap</div>
+  <div class="tab" onclick="setTab('stlong',this)" style="color:#f97316">🚀 Smart Trade L</div>
+  <div class="tab" onclick="setTab('pumpradar',this)" style="color:#e11d48">🚨 Pump Radar</div>
+  <div class="tab-div" aria-hidden="true"></div>
+  <!-- GRUP 3: Pionex tools -->
   <div class="tab" onclick="setTab('grid',this)">⚙️ Grid</div>
+  <div class="tab" onclick="setTab('gridscan',this)" style="color:#10b981">🎯 Grid Scanner</div>
+  <div class="tab" onclick="setTab('smart',this)" style="color:#a855f7">📊 Smart Data</div>
+  <div class="tab" onclick="setTab('futures',this)" style="color:#0891b2">💎 Futures</div>
+  <div class="tab-div" aria-hidden="true"></div>
+  <!-- GRUP 4: Macro / context -->
+  <div class="tab" onclick="setTab('heatmap',this)">🗺️ Heatmap</div>
   <div class="tab" onclick="setTab('gap',this)">↕️ Gap</div>
   <div class="tab" onclick="setTab('correlation',this)">🔗 Corelații</div>
+  <div class="tab-div" aria-hidden="true"></div>
+  <!-- GRUP 5: Istoric -->
   <div class="tab" onclick="setTab('history',this)">📜 Istoric</div>
-  <div class="tab" onclick="setTab('pumpradar',this)" style="color:#e11d48">🚨 Pump Radar</div>
-  <div class="tab" onclick="setTab('futures',this)" style="color:#0891b2">💎 Futures</div>
-  <div class="tab" onclick="setTab('smart',this)" style="color:#a855f7">📊 Smart Data</div>
-  <div class="tab" onclick="setTab('gridscan',this)" style="color:#10b981">🎯 Grid Scanner</div>
-  <div class="tab" onclick="setTab('stlong',this)" style="color:#f97316">🚀 Smart Trade L</div>
 </div>
 
 <!-- SIGNALS -->
@@ -1038,21 +1064,6 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 </div>
 
 <div class="toast" id="toast"></div>
-
-<!-- PORTFOLIO TRACKER -->
-<div class="portfolio-panel" id="portfolioPanel">
-  <div class="portfolio-title">
-    <span>💼 Portfolio Tracker</span>
-    <span id="pfTotalPnl" style="font-family:var(--head);font-weight:800;font-size:.85rem">—</span>
-  </div>
-  <div id="pfRows"></div>
-  <div class="pf-add-row">
-    <input class="pf-inp" id="pfCoin" placeholder="Coin (ex: BTC)" style="max-width:90px">
-    <input class="pf-inp" id="pfQty" type="number" placeholder="Cantitate" step="any">
-    <input class="pf-inp" id="pfEntry" type="number" placeholder="Preț entry $" step="any">
-    <button class="pf-btn" onclick="addPortfolioEntry()">+ Adaugă</button>
-  </div>
-</div>
 
 </div>
 
