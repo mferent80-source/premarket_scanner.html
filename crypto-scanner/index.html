@@ -1305,12 +1305,22 @@ function addPortfolioEntry(){
   portfolioEntries=portfolioEntries.filter(e=>e.coin!==coin);
   portfolioEntries.push({coin,qty,entry});
   savePf();
-  document.getElementById('pfCoin').value='';
-  document.getElementById('pfQty').value='';
-  document.getElementById('pfEntry').value='';
+  // Detectează dacă era un edit (coin-ul deja existent) sau adăugare nouă
+  const wasEdit=document.getElementById('pfCoin').readOnly;
+  const cInp=document.getElementById('pfCoin');
+  const qInp=document.getElementById('pfQty');
+  const eInp=document.getElementById('pfEntry');
+  cInp.value='';qInp.value='';eInp.value='';
+  // Resetează stilul "edit mode" pe câmpul coin
+  cInp.readOnly=false;
+  cInp.style.background='';
+  cInp.style.opacity='';
+  // Resetează textul butonului
+  const addBtn=cInp.parentElement?.querySelector('.pf-btn');
+  if(addBtn){addBtn.textContent='+ Adaugă';addBtn.style.background='';}
   renderPortfolio();
   startPortfolioAutoRefresh(); // (re)pornește fetch-ul de prețuri live
-  showToast(`💼 ${coin} adăugat în portfolio`,'ok');
+  showToast(wasEdit?`✏️ ${coin} actualizat`:`💼 ${coin} adăugat în portfolio`,'ok');
 }
 
 function removePortfolioEntry(coin){
@@ -1321,6 +1331,30 @@ function removePortfolioEntry(coin){
   // Dacă mai există entries, re-pornim timer-ul; dacă nu, oprim
   if (portfolioEntries.length > 0) startPortfolioAutoRefresh();
   else if (_pfRefreshTimer) { clearInterval(_pfRefreshTimer); _pfRefreshTimer = null; }
+}
+
+// Pre-completează formul cu valorile coin-ului și marchează vizual modul "edit".
+// La save, addPortfolioEntry suprascrie automat entry-ul cu același coin (filter+push).
+function editPortfolioEntry(coin){
+  const entry=portfolioEntries.find(e=>e.coin===coin);
+  if(!entry) return;
+  const cInp=document.getElementById('pfCoin');
+  const qInp=document.getElementById('pfQty');
+  const eInp=document.getElementById('pfEntry');
+  if(!cInp||!qInp||!eInp) return;
+  cInp.value=entry.coin;
+  qInp.value=entry.qty;
+  eInp.value=entry.entry;
+  // Coin-ul nu se schimbă în edit (dacă vrei alt coin, șterge și adaugă altul)
+  cInp.readOnly=true;
+  cInp.style.background='var(--bg3)';
+  cInp.style.opacity='0.7';
+  // Schimbă textul butonului pentru claritate
+  const addBtn=cInp.parentElement?.querySelector('.pf-btn');
+  if(addBtn){addBtn.textContent='💾 Salvează';addBtn.style.background='var(--green)';}
+  qInp.focus();
+  qInp.select();
+  showToast(`✏️ Editezi ${coin} — modifică Cantitate / Entry și apasă Salvează`,'ok');
 }
 
 // Map de prețuri live pentru coin-urile din portfolio (refresh la 30s, independent de scanner)
@@ -1378,7 +1412,8 @@ function renderPortfolio(){
       <span class="pf-val" style="color:var(--t2)">${e.qty} @ $${e.entry.toFixed(e.entry<1?6:2)}</span>
       <span style="font-size:.6rem;color:var(--t3)">→ ${lp?formatP(lp):'-'}</span>
       ${pnlStr}
-      <button class="pf-btn del" onclick="removePortfolioEntry('${e.coin}')">✕</button>
+      <button class="pf-btn" onclick="editPortfolioEntry('${e.coin}')" title="Editează" style="background:transparent;border:1px solid var(--b1);color:var(--t2);padding:3px 7px;font-size:.65rem;">✏️</button>
+      <button class="pf-btn del" onclick="removePortfolioEntry('${e.coin}')" title="Șterge">✕</button>
     </div>`;
   }).join('');
   if(totalPnlUsd!==0){
