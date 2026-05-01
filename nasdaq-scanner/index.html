@@ -6992,6 +6992,21 @@ window.addEventListener('load',()=>setTimeout(initNewsTicker, 800));
 // ═══════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
+// FORCE EXTERNAL LINKS în fereastră nouă (TradingView / Pionex / Trade 212)
+// Pe PWA / webview, target="_blank" e uneori ignorat — forțăm window.open.
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('click', function(e) {
+  const a = e.target.closest('a[href]');
+  if (!a) return;
+  const href = a.getAttribute('href') || '';
+  if (/(?:tradingview\.com|pionex\.com|trading212\.com|trade212\.com)/i.test(href)) {
+    e.preventDefault();
+    window.open(a.href, '_blank', 'noopener,noreferrer');
+  }
+}, true);
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
 // TAB: TOP LOSERS + EARNINGS (integrat din top_losers_scanner_4.html)
 // Sursă: Yahoo screener (day_losers) + Nasdaq.com earnings calendar
 // Folosește un proxy CORS public configurabil din UI.
