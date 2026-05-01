@@ -1,4 +1,4 @@
-# Trading Tools — SC CIMINI SRL
+# Trading Tools
 
 Suite de instrumente web pentru analiză și trading multi-asset (crypto + Nasdaq), rulează 100% în browser, fără backend.
 
@@ -114,4 +114,4 @@ Apoi: `http://localhost:8080/`
 
 ---
 
-**SC CIMINI SRL** · Bacău, România
+Bacău, România
