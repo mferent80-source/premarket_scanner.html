@@ -206,6 +206,8 @@ let currentMonth = new Date();
 let filters = { coin: '', type: 'all', status: 'all', period: 'all' };
 // Filtru pentru panoul de stats: 'all' | 'crypto' | 'stock'
 let statsFilter = 'all';
+// ID-ul trade-ului în curs de editare (null = adăugare nouă)
+let editingTradeId = null;
 
 // Load from localStorage
 try {
@@ -330,10 +332,33 @@ function renderStats() {
 // TABS
 // ═══════════════════════════════════════════════════════
 function setTab(tab, el) {
+  // La schimbare manuală de tab, anulează edit-ul în curs
+  editingTradeId = null;
+  pendingScreenshot = null;
   currentTab = tab;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
   render();
+}
+
+function editTrade(id) {
+  const t = trades.find(x => x.id === id);
+  if (!t) return;
+  closeModal();
+  editingTradeId = id;
+  pendingScreenshot = t.screenshot || null;
+  // Activează manual tab-ul "Add" (al doilea, index 1) FĂRĂ să apelăm setTab (care ar reseta edit-ul)
+  currentTab = 'add';
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(b => b.classList.remove('active'));
+  if (tabs[1]) tabs[1].classList.add('active');
+  render();
+}
+
+function cancelEdit() {
+  editingTradeId = null;
+  pendingScreenshot = null;
+  setTab('all', document.querySelectorAll('.tab')[0]);
 }
 
 function render() {
@@ -341,12 +366,50 @@ function render() {
   renderStaleAlert();
   const c = document.getElementById('content');
   if (currentTab === 'all') c.innerHTML = renderAllTrades();
-  else if (currentTab === 'add') c.innerHTML = renderAddForm();
+  else if (currentTab === 'add') {
+    c.innerHTML = renderAddForm();
+    // Dacă suntem în mod editare, populează formul cu valorile trade-ului
+    if (editingTradeId) populateEditForm();
+  }
   else if (currentTab === 'calendar') c.innerHTML = renderCalendar();
   else if (currentTab === 'equity') c.innerHTML = renderEquity();
   else if (currentTab === 'settings') c.innerHTML = renderSettings();
-  
+
   if (currentTab === 'equity') setTimeout(drawEquityChart, 50);
+}
+
+// Umple formul de adăugare cu valorile trade-ului în curs de editare
+function populateEditForm() {
+  const t = trades.find(x => x.id === editingTradeId);
+  if (!t) return;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v === null || v === undefined) ? '' : v; };
+  set('f_type', t.type || 'futures');
+  set('f_coin', t.coin || '');
+  set('f_dir', t.direction || 'long');
+  set('f_status', t.status || 'open');
+  set('f_entry', t.entry);
+  set('f_sl', t.sl);
+  set('f_tp', t.tp);
+  set('f_size', t.size);
+  set('f_lev', t.leverage || 1);
+  set('f_exit', t.exit);
+  set('f_pnl', t.pnl);
+  set('f_setup', t.setup || '');
+  set('f_notes', t.notes || '');
+  // Aplică label-urile dinamice (Symbol vs Coin etc.)
+  toggleFuturesFields();
+  // Restaurează preview-ul screenshot-ului dacă există
+  if (t.screenshot) {
+    const prev = document.getElementById('screenshotPreview');
+    if (prev) prev.innerHTML = `<div class="screenshot"><img src="${t.screenshot}"></div>`;
+  }
+  // Modifică titlul cardului și textul butonului de save + adaugă buton "Anulează edit"
+  const cardT = document.querySelector('#content .card-t');
+  if (cardT) cardT.textContent = '✏️ Editează Trade';
+  const saveBtn = document.querySelector('#content .btn.primary');
+  if (saveBtn) saveBtn.textContent = '💾 Salvează modificările';
+  const cancelBtns = document.querySelectorAll('#content .btn');
+  cancelBtns.forEach(b => { if (b.textContent.trim() === 'Anulează') b.setAttribute('onclick', 'cancelEdit()'); });
 }
 
 function renderStaleAlert() {
@@ -718,8 +781,11 @@ function addTrade() {
   let pnlPct = null;
   if (size && !isNaN(pnl)) pnlPct = (pnl / size) * 100;
 
+  // Dacă suntem în mod editare, păstrăm id-ul, openTime și actualizăm în-place
+  const existing = editingTradeId ? trades.find(x => x.id === editingTradeId) : null;
+
   const trade = {
-    id: newId(),
+    id: existing ? existing.id : newId(),
     type,
     coin,
     // Direction se salvează și pentru stocks (long/short pe Trade 212 CFD)
@@ -731,11 +797,18 @@ function addTrade() {
     setup: document.getElementById('f_setup').value.trim(),
     notes: document.getElementById('f_notes').value.trim(),
     screenshot: pendingScreenshot,
-    openTime: Date.now(),
-    closeTime: status !== 'open' ? Date.now() : null
+    openTime: existing ? existing.openTime : Date.now(),
+    closeTime: status !== 'open' ? (existing && existing.closeTime ? existing.closeTime : Date.now()) : null
   };
-  
-  trades.push(trade);
+
+  if (existing) {
+    // Înlocuiește la aceeași poziție în array
+    const idx = trades.findIndex(x => x.id === existing.id);
+    if (idx >= 0) trades[idx] = trade;
+    editingTradeId = null;
+  } else {
+    trades.push(trade);
+  }
   saveTrades();
   pendingScreenshot = null;
   
@@ -780,6 +853,7 @@ function openTradeModal(id) {
   
   // Action buttons
   html += '<div style="display:flex;gap:6px;margin-top:14px;flex-wrap:wrap">';
+  html += `<button class="btn primary" onclick="editTrade('${t.id}')">✏️ Editează</button>`;
   if (t.status === 'open') {
     html += `<button class="btn success" onclick="closeTrade('${t.id}','win')">✅ Mark Win</button>`;
     html += `<button class="btn danger" onclick="closeTrade('${t.id}','loss')">❌ Mark Loss</button>`;
