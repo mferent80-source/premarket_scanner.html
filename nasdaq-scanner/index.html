@@ -667,6 +667,53 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
 @media(min-width:700px){.multiscan-wrap{grid-template-columns:repeat(2,1fr);}}
 @media(min-width:1100px){.multiscan-wrap{grid-template-columns:repeat(3,1fr);}}
 @media(min-width:1500px){.multiscan-wrap{grid-template-columns:repeat(4,1fr);}}
+
+/* ═══ TAB: TOP LOSERS + EARNINGS (light theme, integrat) ═══ */
+.lv-view{display:flex;flex-direction:column;gap:14px;}
+.lv-config{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px 12px;box-shadow:var(--sh);}
+.lv-config label{font-size:.6rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+.lv-config input[type=text]{flex:1;min-width:240px;padding:6px 10px;background:var(--bg);border:1px solid var(--b1);border-radius:var(--rs);font-family:var(--mono);font-size:.7rem;color:var(--t1);outline:none;}
+.lv-config input[type=text]:focus{border-color:var(--accb);}
+.lv-config .btn-refresh-all{padding:7px 14px;border:none;border-radius:var(--rs);font-size:.62rem;font-weight:800;cursor:pointer;background:var(--acc);color:#fff;letter-spacing:.6px;text-transform:uppercase;}
+.lv-config .btn-refresh-all:hover{background:#1d4ed8;}
+.lv-section{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rs);box-shadow:var(--sh);overflow:hidden;}
+.lv-sec-hdr{display:flex;align-items:center;gap:10px;padding:9px 13px;border-bottom:1px solid var(--b1);background:linear-gradient(135deg,var(--bg3),var(--bg2));}
+.lv-sec-title{display:flex;align-items:center;gap:7px;font-family:var(--head);font-weight:800;font-size:.78rem;letter-spacing:.3px;}
+.lv-sec-title.earn{color:var(--purple);}
+.lv-sec-title.loser{color:var(--red);}
+.lv-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.58rem;font-weight:700;background:var(--bg3);color:var(--t2);font-family:var(--mono);border:1px solid var(--b1);}
+.lv-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px;padding:10px 13px;background:var(--bg3);border-bottom:1px solid var(--b1);}
+.lv-ctrl{display:flex;flex-direction:column;gap:3px;}
+.lv-ctrl label{font-size:.54rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700;}
+.lv-ctrl input,.lv-ctrl select{padding:5px 7px;background:var(--bg2);border:1px solid var(--b1);border-radius:4px;font-size:.7rem;color:var(--t1);font-family:var(--mono);outline:none;}
+.lv-ctrl input:focus,.lv-ctrl select:focus{border-color:var(--accb);}
+.lv-ctrl button{padding:6px 10px;border:none;border-radius:4px;font-size:.62rem;font-weight:800;cursor:pointer;color:#fff;letter-spacing:.5px;text-transform:uppercase;}
+.lv-btn-earn{background:var(--purple);}
+.lv-btn-earn:hover{background:#6d28d9;}
+.lv-btn-loser{background:var(--red);}
+.lv-btn-loser:hover{background:#b91c1c;}
+.lv-ctrl button:disabled{background:var(--b2);cursor:not-allowed;color:var(--t3);}
+.lv-status{padding:7px 13px;font-size:.6rem;color:var(--t2);background:var(--bg2);border-bottom:1px solid var(--b1);border-left:3px solid var(--acc);font-family:var(--mono);}
+.lv-status.ok{border-left-color:var(--green);color:var(--green);}
+.lv-status.err{border-left-color:var(--red);color:var(--red);}
+.lv-table-wrap{max-height:540px;overflow:auto;}
+.lv-table{width:100%;border-collapse:collapse;font-size:.66rem;font-family:var(--mono);}
+.lv-table th,.lv-table td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--bg3);}
+.lv-table th{position:sticky;top:0;background:var(--bg3);font-family:var(--head);font-weight:700;font-size:.55rem;text-transform:uppercase;letter-spacing:.6px;color:var(--t3);white-space:nowrap;z-index:5;}
+.lv-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.lv-table tr:hover td{background:var(--accl);}
+.lv-table .sym{color:var(--acc);font-weight:800;}
+.lv-table .neg{color:var(--red);font-weight:700;}
+.lv-table .pos{color:var(--green);font-weight:700;}
+.lv-table .vol-hot{color:var(--orange);font-weight:700;}
+.lv-empty{padding:20px;text-align:center;color:var(--t3);font-style:italic;font-size:.7rem;}
+.lv-earn-hot{background:var(--redl);color:var(--red);font-weight:700;padding:2px 6px;border-radius:3px;border:1px solid var(--redb);}
+.lv-earn-warm{background:var(--purpll);color:var(--purple);font-weight:700;padding:2px 6px;border-radius:3px;border:1px solid var(--purplb);}
+.lv-earn-soon{color:var(--t2);}
+.lv-earn-far{color:var(--t3);font-size:.6rem;}
+.lv-time-bmo{background:var(--accl);color:var(--acc);padding:1px 5px;border-radius:3px;font-size:.55rem;font-weight:700;border:1px solid var(--accb);}
+.lv-time-amc{background:var(--orangl);color:var(--orange);padding:1px 5px;border-radius:3px;font-size:.55rem;font-weight:700;}
+.lv-time-unk{color:var(--t3);font-size:.55rem;}
 </style>
 </head>
 <body>
@@ -927,6 +974,7 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
   <div class="tab" onclick="setTab('heatmap',this)">🗺️ Heatmap</div>
   <div class="tab" onclick="setTab('rotation',this)" style="color:var(--cyan)">🌐 Sectoare</div>
   <div class="tab" onclick="setTab('extended',this)" style="color:#a855f7">🌅 Pre/After</div>
+  <div class="tab" onclick="setTab('losers',this)" style="color:var(--red)">📉 Top Losers</div>
   <div class="tab" onclick="setTab('insider',this)" style="color:#059669">👔 Insider</div>
   <div class="tab" onclick="setTab('squeeze',this)" style="color:#dc2626">🔥 Squeeze</div>
   <div class="tab" onclick="setTab('journal',this)" style="color:#0891b2">📓 Jurnal</div>
@@ -5489,6 +5537,7 @@ function setTab(t,el){
 }
 
 function renderSignals(){
+  if(currentTab==='losers'){ renderTopLosers(); return; }
   if(currentTab==='pumpradar'){ renderPumpRadar(); return; }
   if(currentTab==='earlybuy'){ renderEarlyBuy(); return; }
   if(currentTab==='reco'){ renderRecommendations(); return; }
@@ -6940,6 +6989,414 @@ function initNewsTicker(){
 }
 
 window.addEventListener('load',()=>setTimeout(initNewsTicker, 800));
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// TAB: TOP LOSERS + EARNINGS (integrat din top_losers_scanner_4.html)
+// Sursă: Yahoo screener (day_losers) + Nasdaq.com earnings calendar
+// Folosește un proxy CORS public configurabil din UI.
+// ═══════════════════════════════════════════════════════════════
+
+class NasdaqLosersScanner{
+  constructor(corsProxy=''){
+    this.corsProxy=corsProxy;
+    this.yahooScreener='https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved';
+    this.yahooSummary='https://query1.finance.yahoo.com/v10/finance/quoteSummary';
+    this.nasdaqEarnings='https://api.nasdaq.com/api/calendar/earnings';
+  }
+  // ── TOP LOSERS via Yahoo screener ──
+  async fetchTopLosers(opt={}){
+    const{minDropPct=5,minVolume=0,volumeMultiplier=0,minMarketCap=0,maxResults=100,exchange='NASDAQ'}=opt;
+    const yu=`${this.yahooScreener}?formatted=true&lang=en-US&region=US&scrIds=day_losers&count=${maxResults}`;
+    const url=this.corsProxy?this.corsProxy+encodeURIComponent(yu):yu;
+    const r=await fetch(url);
+    if(!r.ok)throw new Error(`HTTP ${r.status}`);
+    const d=await r.json();
+    const quotes=d?.finance?.result?.[0]?.quotes||[];
+    return quotes
+      .map(q=>this._parseYahooQuote(q))
+      .filter(s=>this._matchesLoserFilters(s,{minDropPct,minVolume,volumeMultiplier,minMarketCap,exchange}))
+      .sort((a,b)=>a.changePct-b.changePct);
+  }
+  // ── EARNINGS CALENDAR via Nasdaq.com (toată piața) ──
+  async fetchAllEarnings(opt={}){
+    const{maxDays=7,minMarketCap=1e9,maxResults=50,enrichWithPrice=true,sortBy='date'}=opt;
+    // Generează lista de zile lucrătoare
+    const dates=[];const today=new Date();
+    for(let i=0;i<=maxDays;i++){
+      const d=new Date(today);d.setDate(d.getDate()+i);
+      const dw=d.getDay();if(dw===0||dw===6)continue;
+      dates.push({str:d.toISOString().split('T')[0],dayOffset:i,dateObj:new Date(d)});
+    }
+    // Fetch în paralel
+    const calRes=await Promise.all(dates.map(d=>this._fetchNasdaqEarningsForDay(d.str)));
+    // Aggregare
+    const all=[];
+    for(let i=0;i<dates.length;i++){
+      const rows=calRes[i]||[];
+      for(const row of rows){
+        if(!row.symbol)continue;
+        const mcap=this._parseNasdaqMcap(row.marketCap);
+        const ts=Math.floor(dates[i].dateObj.getTime()/1000);
+        all.push({
+          symbol:row.symbol,
+          name:row.name||row.companyName||row.symbol,
+          marketCap:mcap,
+          earningsDate:dates[i].dateObj,
+          earningsTimestamp:ts,
+          daysToEarnings:dates[i].dayOffset,
+          time:row.time||'',
+          epsForecast:row.epsForecast||'',
+          price:null,changePct:null,intradayLowPct:null,sector:null
+        });
+      }
+    }
+    // Filter pe market cap, dedupe, top după mcap, limit
+    const seen=new Set();
+    let filtered=all.filter(e=>{
+      if(seen.has(e.symbol))return false;
+      seen.add(e.symbol);
+      return e.marketCap>=minMarketCap;
+    }).sort((a,b)=>b.marketCap-a.marketCap).slice(0,maxResults);
+    // Enrich cu preț Yahoo (în paralel)
+    if(enrichWithPrice&&filtered.length>0){
+      const pr=await Promise.all(filtered.map(e=>this._fetchSymbolDetail(e.symbol)));
+      filtered=filtered.map((e,i)=>{
+        const det=pr[i];if(!det)return e;
+        const p=this._parseYahooQuote(det);
+        const prev=det.regularMarketPreviousClose?.raw??det.regularMarketPreviousClose;
+        const lowPct=p.dayLow!=null&&prev!=null?((p.dayLow-prev)/prev)*100:null;
+        return{...e,price:p.price,changePct:p.changePct,intradayLowPct:lowPct,sector:p.sector||e.sector,volume:p.volume,avgVolume:p.avgVolume};
+      });
+    }
+    // Sort final
+    if(sortBy==='date')filtered.sort((a,b)=>a.daysToEarnings-b.daysToEarnings||b.marketCap-a.marketCap);
+    else if(sortBy==='mcap')filtered.sort((a,b)=>b.marketCap-a.marketCap);
+    else if(sortBy==='change')filtered.sort((a,b)=>(a.changePct??0)-(b.changePct??0));
+    return filtered;
+  }
+  async _fetchNasdaqEarningsForDay(dateStr){
+    const u=`${this.nasdaqEarnings}?date=${dateStr}`;
+    const fu=this.corsProxy?this.corsProxy+encodeURIComponent(u):u;
+    try{
+      const r=await fetch(fu);
+      if(!r.ok){console.warn(`Earnings ${dateStr}: HTTP ${r.status}`);return null;}
+      const d=await r.json();
+      return d?.data?.rows||[];
+    }catch(e){console.warn(`Earnings ${dateStr}:`,e.message);return null;}
+  }
+  _parseNasdaqMcap(s){if(!s||s==='N/A')return 0;return parseFloat(String(s).replace(/[$,]/g,''))||0;}
+  async _fetchSymbolDetail(sym){
+    const mods='price,calendarEvents,summaryDetail,assetProfile';
+    const yu=`${this.yahooSummary}/${sym}?modules=${mods}`;
+    const url=this.corsProxy?this.corsProxy+encodeURIComponent(yu):yu;
+    try{
+      const r=await fetch(url);if(!r.ok)return null;
+      const d=await r.json();
+      const res=d?.quoteSummary?.result?.[0];if(!res)return null;
+      const p=res.price||{},det=res.summaryDetail||{},pr=res.assetProfile||{};
+      return{
+        symbol:p.symbol||sym,shortName:p.shortName,longName:p.longName,
+        regularMarketPrice:p.regularMarketPrice,regularMarketChange:p.regularMarketChange,
+        regularMarketChangePercent:p.regularMarketChangePercent,regularMarketVolume:p.regularMarketVolume,
+        averageDailyVolume3Month:det.averageDailyVolume3Month,marketCap:p.marketCap,
+        regularMarketDayHigh:p.regularMarketDayHigh,regularMarketDayLow:p.regularMarketDayLow,
+        regularMarketPreviousClose:p.regularMarketPreviousClose,
+        sector:pr.sector,fullExchangeName:p.exchangeName
+      };
+    }catch(e){return null;}
+  }
+  _parseYahooQuote(q){
+    const g=(o,k)=>o?.[k]?.raw??o?.[k]??null;
+    let ets=g(q,'earningsTimestamp')||g(q,'earningsTimestampStart');
+    let dte=null;
+    if(ets)dte=Math.round((ets*1000-Date.now())/(1000*60*60*24));
+    return{
+      symbol:q.symbol,name:q.shortName||q.longName||q.symbol,
+      price:g(q,'regularMarketPrice'),change:g(q,'regularMarketChange'),
+      changePct:g(q,'regularMarketChangePercent'),volume:g(q,'regularMarketVolume'),
+      avgVolume:g(q,'averageDailyVolume3Month'),marketCap:g(q,'marketCap'),
+      exchange:q.fullExchangeName||q.exchange||'',sector:q.sector||'',
+      dayHigh:g(q,'regularMarketDayHigh'),dayLow:g(q,'regularMarketDayLow'),
+      yearHigh:g(q,'fiftyTwoWeekHigh'),yearLow:g(q,'fiftyTwoWeekLow'),
+      earningsTimestamp:ets,daysToEarnings:dte
+    };
+  }
+  _matchesLoserFilters(s,f){
+    if(s.changePct==null)return false;
+    const dp=Math.abs(s.changePct);
+    if(s.changePct>0||dp<f.minDropPct)return false;
+    if(f.exchange){
+      const ex=(s.exchange||'').toUpperCase();
+      if(f.exchange==='NASDAQ'&&!/NASDAQ|NMS|NGM|NCM/.test(ex))return false;
+      if(f.exchange==='NYSE'&&!ex.includes('NYSE'))return false;
+    }
+    if(f.minMarketCap&&(s.marketCap||0)<f.minMarketCap)return false;
+    if(f.minVolume&&(s.volume||0)<f.minVolume)return false;
+    if(f.volumeMultiplier&&s.avgVolume>0&&s.volume/s.avgVolume<f.volumeMultiplier)return false;
+    return true;
+  }
+  // ── Helpers afișaj ──
+  static formatVolume(v){
+    if(!v)return '-';
+    if(v>=1e9)return(v/1e9).toFixed(2)+'B';
+    if(v>=1e6)return(v/1e6).toFixed(2)+'M';
+    if(v>=1e3)return(v/1e3).toFixed(1)+'K';
+    return v.toString();
+  }
+  static formatMcap(m){
+    if(!m)return '-';
+    if(m>=1e12)return '$'+(m/1e12).toFixed(2)+'T';
+    if(m>=1e9)return '$'+(m/1e9).toFixed(2)+'B';
+    if(m>=1e6)return '$'+(m/1e6).toFixed(0)+'M';
+    return '$'+m.toLocaleString();
+  }
+  static formatEarnings(dte,ets){
+    if(dte==null)return{text:'-',cls:'lv-earn-far'};
+    if(dte<0)return{text:'trecut',cls:'lv-earn-far'};
+    const d=ets?new Date(ets*1000):null;
+    const ds=d?`${d.getDate()}/${d.getMonth()+1}`:'';
+    if(dte===0)return{text:`🔥 AZI (${ds})`,cls:'lv-earn-hot'};
+    if(dte<=7)return{text:`🔥 ${dte}z (${ds})`,cls:'lv-earn-hot'};
+    if(dte<=14)return{text:`⚡ ${dte}z (${ds})`,cls:'lv-earn-warm'};
+    if(dte<=30)return{text:`${dte}z (${ds})`,cls:'lv-earn-soon'};
+    return{text:`${dte}z`,cls:'lv-earn-far'};
+  }
+  static formatTime(t){
+    if(!t)return '<span class="lv-time-unk">-</span>';
+    const s=String(t).toLowerCase();
+    if(s.includes('pre-market')||s.includes('before')||s.includes('bmo'))return '<span class="lv-time-bmo">BMO ☀️</span>';
+    if(s.includes('after-hours')||s.includes('after')||s.includes('amc'))return '<span class="lv-time-amc">AMC 🌙</span>';
+    return `<span class="lv-time-unk">${t}</span>`;
+  }
+}
+
+// State persistent (păstrează rezultate între tab-switch-uri)
+const _LV={
+  results:{earnings:null,losers:null},
+  status:{earn:{msg:'Așteaptă scan automat...',type:''},loser:{msg:'Așteaptă scan automat...',type:''}},
+  initialScanDone:false
+};
+
+const _LV_HTML=`
+<div class="lv-view">
+  <div class="lv-config">
+    <label>Proxy CORS:</label>
+    <input id="lvProxy" type="text" value="https://cors-proxy-one-drab.vercel.app/api/proxy/?url=" />
+    <button class="btn-refresh-all" id="lvRefreshAllBtn">🔄 Refresh Amândouă</button>
+  </div>
+
+  <div class="lv-section">
+    <div class="lv-sec-hdr">
+      <div class="lv-sec-title earn">⚡ Earnings Coming Up — Toată Piața</div>
+      <span class="lv-badge" id="lvEarnBadge">-</span>
+    </div>
+    <div class="lv-controls">
+      <div class="lv-ctrl"><label>Max zile</label>
+        <select id="lvMaxDays">
+          <option value="3">≤ 3 zile</option>
+          <option value="7" selected>≤ 7 zile</option>
+          <option value="14">≤ 14 zile</option>
+          <option value="30">≤ 30 zile</option>
+        </select>
+      </div>
+      <div class="lv-ctrl"><label>Min Mcap ($M)</label><input id="lvMinEarnMcap" type="number" value="1000" min="0" step="100" /></div>
+      <div class="lv-ctrl"><label>Sortare</label>
+        <select id="lvEarnSort">
+          <option value="date">După dată</option>
+          <option value="mcap">După Mcap</option>
+          <option value="change">După Schimb %</option>
+        </select>
+      </div>
+      <div class="lv-ctrl"><label>Max stocks</label><input id="lvMaxEarn" type="number" value="50" min="10" max="200" /></div>
+      <div class="lv-ctrl"><label>Enrich preț</label>
+        <select id="lvEnrichPrice">
+          <option value="true" selected>Da (mai lent)</option>
+          <option value="false">Nu (doar calendar)</option>
+        </select>
+      </div>
+      <div class="lv-ctrl"><label>&nbsp;</label><button id="lvScanEarnBtn" class="lv-btn-earn">⚡ Scanează</button></div>
+    </div>
+    <div id="lvEarnStatus" class="lv-status">Așteaptă scan automat...</div>
+    <div class="lv-table-wrap">
+      <table class="lv-table" id="lvEarnTable">
+        <thead><tr>
+          <th>#</th><th>Simbol</th><th>Nume</th><th class="num">Earnings</th><th>BMO/AMC</th>
+          <th class="num">EPS Est.</th><th class="num">Preț</th><th class="num">Schimb %</th>
+          <th class="num">Low azi %</th><th class="num">Mcap</th><th>Sector</th>
+        </tr></thead>
+        <tbody id="lvEarnResults"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="lv-section">
+    <div class="lv-sec-hdr">
+      <div class="lv-sec-title loser">🔻 Top Losers Nasdaq</div>
+      <span class="lv-badge" id="lvLoserBadge">-</span>
+    </div>
+    <div class="lv-controls">
+      <div class="lv-ctrl"><label>Min scădere %</label><input id="lvMinDrop" type="number" value="5" min="1" step="0.5" /></div>
+      <div class="lv-ctrl"><label>Min Mcap ($M)</label><input id="lvMinMcap" type="number" value="300" min="0" step="50" /></div>
+      <div class="lv-ctrl"><label>Volume × Avg ≥</label><input id="lvVolMult" type="number" value="0" min="0" step="0.1" /></div>
+      <div class="lv-ctrl"><label>Exchange</label>
+        <select id="lvExchange">
+          <option value="NASDAQ">Nasdaq only</option>
+          <option value="">Toate (NYSE+Nasdaq)</option>
+        </select>
+      </div>
+      <div class="lv-ctrl"><label>Max rezultate</label><input id="lvMaxRes" type="number" value="100" min="10" max="250" /></div>
+      <div class="lv-ctrl"><label>&nbsp;</label><button id="lvScanLoserBtn" class="lv-btn-loser">🔻 Scanează</button></div>
+    </div>
+    <div id="lvLoserStatus" class="lv-status">Așteaptă scan automat...</div>
+    <div class="lv-table-wrap">
+      <table class="lv-table" id="lvLoserTable">
+        <thead><tr>
+          <th>#</th><th>Simbol</th><th>Nume</th><th class="num">Preț</th><th class="num">Schimb %</th>
+          <th class="num">Volum</th><th class="num">Vol/Avg</th><th class="num">Mcap</th>
+          <th class="num">Earnings</th><th>Sector</th>
+        </tr></thead>
+        <tbody id="lvLoserResults"></tbody>
+      </table>
+    </div>
+  </div>
+</div>`;
+
+function _lvSetStatus(id,msg,type){
+  const el=document.getElementById(id);if(!el)return;
+  el.textContent=msg;el.className='lv-status'+(type?' '+type:'');
+}
+function _lvGetScanner(){
+  return new NasdaqLosersScanner((document.getElementById('lvProxy')?.value||'').trim());
+}
+function _lvRenderEarnRows(results){
+  const tbody=document.getElementById('lvEarnResults');if(!tbody)return;
+  tbody.innerHTML='';
+  if(!results||results.length===0){
+    tbody.innerHTML='<tr><td colspan="11" class="lv-empty">Niciun earnings găsit cu filtrele curente.</td></tr>';
+    return;
+  }
+  results.forEach((s,i)=>{
+    const earn=NasdaqLosersScanner.formatEarnings(s.daysToEarnings,s.earningsTimestamp);
+    const lowPct=s.intradayLowPct!=null?`<span class="${s.intradayLowPct<=-5?'neg':''}">${s.intradayLowPct.toFixed(2)}%</span>`:'-';
+    const cc=s.changePct==null?'':(s.changePct<0?'neg':'pos');
+    const cs=s.changePct!=null?`${s.changePct.toFixed(2)}%`:'-';
+    const ps=s.price!=null?`$${s.price.toFixed(2)}`:'-';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td class="sym">${s.symbol}</td><td>${(s.name||'').slice(0,26)}</td>`
+      +`<td class="num"><span class="${earn.cls}">${earn.text}</span></td>`
+      +`<td>${NasdaqLosersScanner.formatTime(s.time)}</td><td class="num">${s.epsForecast||'-'}</td>`
+      +`<td class="num">${ps}</td><td class="num ${cc}">${cs}</td><td class="num">${lowPct}</td>`
+      +`<td class="num">${NasdaqLosersScanner.formatMcap(s.marketCap)}</td><td>${s.sector||'-'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+function _lvRenderLoserRows(results){
+  const tbody=document.getElementById('lvLoserResults');if(!tbody)return;
+  tbody.innerHTML='';
+  if(!results||results.length===0){
+    tbody.innerHTML='<tr><td colspan="10" class="lv-empty">Niciun loser cu filtrele curente.</td></tr>';
+    return;
+  }
+  results.forEach((s,i)=>{
+    const vr=s.avgVolume?(s.volume/s.avgVolume):0;
+    const earn=NasdaqLosersScanner.formatEarnings(s.daysToEarnings,s.earningsTimestamp);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i+1}</td><td class="sym">${s.symbol}</td><td>${(s.name||'').slice(0,28)}</td>`
+      +`<td class="num">$${s.price?.toFixed(2)||'-'}</td>`
+      +`<td class="num neg">${s.changePct?.toFixed(2)}%</td>`
+      +`<td class="num">${NasdaqLosersScanner.formatVolume(s.volume)}</td>`
+      +`<td class="num ${vr>=2?'vol-hot':''}">${vr?vr.toFixed(1)+'x':'-'}</td>`
+      +`<td class="num">${NasdaqLosersScanner.formatMcap(s.marketCap)}</td>`
+      +`<td class="num"><span class="${earn.cls}">${earn.text}</span></td><td>${s.sector||'-'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+async function _lvScanEarnings(){
+  const btn=document.getElementById('lvScanEarnBtn');if(!btn)return;
+  btn.disabled=true;
+  _lvSetStatus('lvEarnStatus','⏳ Fetch calendar earnings...');
+  document.getElementById('lvEarnResults').innerHTML='';
+  document.getElementById('lvEarnBadge').textContent='...';
+  const maxDays=parseInt(document.getElementById('lvMaxDays').value);
+  const enrich=document.getElementById('lvEnrichPrice').value==='true';
+  try{
+    if(enrich)_lvSetStatus('lvEarnStatus','⏳ Fetch calendar + prețuri (5-15 sec)...');
+    const res=await _lvGetScanner().fetchAllEarnings({
+      maxDays,
+      minMarketCap:parseFloat(document.getElementById('lvMinEarnMcap').value)*1e6,
+      maxResults:parseInt(document.getElementById('lvMaxEarn').value),
+      enrichWithPrice:enrich,
+      sortBy:document.getElementById('lvEarnSort').value
+    });
+    _LV.results.earnings=res;
+    _lvRenderEarnRows(res);
+    document.getElementById('lvEarnBadge').textContent=`${res.length}`;
+    const msg=`✅ ${res.length} stocks cu earnings ≤ ${maxDays}z — ${new Date().toLocaleTimeString('ro-RO')}`;
+    _lvSetStatus('lvEarnStatus',msg,'ok');
+    _LV.status.earn={msg,type:'ok'};
+  }catch(err){
+    const msg=`❌ ${err.message}`;
+    _lvSetStatus('lvEarnStatus',msg,'err');
+    document.getElementById('lvEarnBadge').textContent='eroare';
+    _LV.status.earn={msg,type:'err'};
+    console.error(err);
+  }finally{btn.disabled=false;}
+}
+async function _lvScanLosers(){
+  const btn=document.getElementById('lvScanLoserBtn');if(!btn)return;
+  btn.disabled=true;
+  _lvSetStatus('lvLoserStatus','⏳ Scanare top losers...');
+  document.getElementById('lvLoserResults').innerHTML='';
+  document.getElementById('lvLoserBadge').textContent='...';
+  try{
+    const res=await _lvGetScanner().fetchTopLosers({
+      minDropPct:parseFloat(document.getElementById('lvMinDrop').value),
+      minMarketCap:parseFloat(document.getElementById('lvMinMcap').value)*1e6,
+      volumeMultiplier:parseFloat(document.getElementById('lvVolMult').value),
+      maxResults:parseInt(document.getElementById('lvMaxRes').value),
+      exchange:document.getElementById('lvExchange').value
+    });
+    _LV.results.losers=res;
+    _lvRenderLoserRows(res);
+    document.getElementById('lvLoserBadge').textContent=`${res.length}`;
+    const msg=`✅ ${res.length} losers ≥ ${document.getElementById('lvMinDrop').value}% — ${new Date().toLocaleTimeString('ro-RO')}`;
+    _lvSetStatus('lvLoserStatus',msg,'ok');
+    _LV.status.loser={msg,type:'ok'};
+  }catch(err){
+    const msg=`❌ ${err.message}`;
+    _lvSetStatus('lvLoserStatus',msg,'err');
+    document.getElementById('lvLoserBadge').textContent='eroare';
+    _LV.status.loser={msg,type:'err'};
+    console.error(err);
+  }finally{btn.disabled=false;}
+}
+function _lvRunAll(){return Promise.all([_lvScanEarnings(),_lvScanLosers()]);}
+
+function renderTopLosers(){
+  const c=document.getElementById('signalsContainer');
+  c.innerHTML=_LV_HTML;
+  // Restaurează status-uri și rezultate din state-ul cached
+  _lvSetStatus('lvEarnStatus',_LV.status.earn.msg,_LV.status.earn.type);
+  _lvSetStatus('lvLoserStatus',_LV.status.loser.msg,_LV.status.loser.type);
+  if(_LV.results.earnings){
+    _lvRenderEarnRows(_LV.results.earnings);
+    document.getElementById('lvEarnBadge').textContent=`${_LV.results.earnings.length}`;
+  }
+  if(_LV.results.losers){
+    _lvRenderLoserRows(_LV.results.losers);
+    document.getElementById('lvLoserBadge').textContent=`${_LV.results.losers.length}`;
+  }
+  // Listeneri
+  document.getElementById('lvScanEarnBtn').onclick=_lvScanEarnings;
+  document.getElementById('lvScanLoserBtn').onclick=_lvScanLosers;
+  document.getElementById('lvRefreshAllBtn').onclick=_lvRunAll;
+  // Auto-scan o singură dată la prima accesare a tab-ului
+  if(!_LV.initialScanDone){
+    _LV.initialScanDone=true;
+    setTimeout(_lvRunAll,200);
+  }
+}
 // ═══════════════════════════════════════════════════════════════
 
 </script>
