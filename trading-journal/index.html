@@ -53,6 +53,14 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);font-size:13px
 .tab:hover{background:#f1f5f9}
 .tab.active{background:var(--primary);color:#fff}
 
+/* STATS SEGMENT (filtru categorie) */
+.stats-seg{display:inline-flex;gap:3px;margin-bottom:10px;background:#fff;padding:3px;border-radius:8px;border:1px solid var(--border);box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.stats-seg button{padding:5px 12px;border:none;background:transparent;color:var(--t2);font-size:.62rem;font-weight:700;cursor:pointer;border-radius:6px;font-family:var(--head);transition:all .15s}
+.stats-seg button:hover{background:#f1f5f9;color:var(--t1)}
+.stats-seg button.active{background:var(--primary);color:#fff}
+.stats-seg button.active.crypto{background:var(--futures)}
+.stats-seg button.active.stock{background:var(--stock)}
+
 /* STATS BAR */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:16px}
 .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px}
@@ -161,6 +169,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);font-size:13px
   </div>
 
   <!-- STATS -->
+  <div id="statsSeg"></div>
   <div class="stats" id="statsBar"></div>
 
   <!-- TABS -->
@@ -195,11 +204,14 @@ let settings = { aiKey: '', accountSize: 1000 };
 let currentTab = 'all';
 let currentMonth = new Date();
 let filters = { coin: '', type: 'all', status: 'all', period: 'all' };
+// Filtru pentru panoul de stats: 'all' | 'crypto' | 'stock'
+let statsFilter = 'all';
 
 // Load from localStorage
 try {
   trades = JSON.parse(localStorage.getItem('journal_trades') || '[]');
   settings = { ...settings, ...JSON.parse(localStorage.getItem('journal_settings') || '{}') };
+  statsFilter = localStorage.getItem('journal_statsFilter') || 'all';
 } catch(e) {}
 
 function saveTrades() {
@@ -233,9 +245,23 @@ function newId() {
 // ═══════════════════════════════════════════════════════
 // STATS CALCULATION
 // ═══════════════════════════════════════════════════════
+// Returnează doar trade-urile din categoria activă (all / crypto / stock)
+function _statsPool() {
+  if (statsFilter === 'crypto') return trades.filter(t => t.type === 'futures' || t.type === 'grid');
+  if (statsFilter === 'stock') return trades.filter(t => t.type === 'stock');
+  return trades;
+}
+
+function setStatsFilter(f) {
+  statsFilter = f;
+  try { localStorage.setItem('journal_statsFilter', f); } catch(e) {}
+  renderStats();
+}
+
 function computeStats() {
-  const closed = trades.filter(t => t.status === 'win' || t.status === 'loss');
-  const open = trades.filter(t => t.status === 'open');
+  const pool = _statsPool();
+  const closed = pool.filter(t => t.status === 'win' || t.status === 'loss');
+  const open = pool.filter(t => t.status === 'open');
   
   const totalPnL = closed.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
   const wins = closed.filter(t => t.status === 'win');
@@ -255,6 +281,20 @@ function computeStats() {
 }
 
 function renderStats() {
+  // Render segment toggle (Toate / Crypto / Nasdaq)
+  const seg = document.getElementById('statsSeg');
+  if (seg) {
+    // Numără trade-urile pe categorie pentru badge-uri
+    const nAll = trades.length;
+    const nCrypto = trades.filter(t => t.type === 'futures' || t.type === 'grid').length;
+    const nStock = trades.filter(t => t.type === 'stock').length;
+    seg.innerHTML = `<div class="stats-seg">
+      <button class="${statsFilter==='all'?'active':''}" onclick="setStatsFilter('all')">🌐 Toate <span style="opacity:.7;font-weight:600">(${nAll})</span></button>
+      <button class="crypto ${statsFilter==='crypto'?'active':''}" onclick="setStatsFilter('crypto')">🪙 Crypto <span style="opacity:.7;font-weight:600">(${nCrypto})</span></button>
+      <button class="stock ${statsFilter==='stock'?'active':''}" onclick="setStatsFilter('stock')">📈 Nasdaq <span style="opacity:.7;font-weight:600">(${nStock})</span></button>
+    </div>`;
+  }
+
   const s = computeStats();
   const c = document.getElementById('statsBar');
   c.innerHTML = `
