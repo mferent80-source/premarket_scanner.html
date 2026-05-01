@@ -704,6 +704,8 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
 .lv-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
 .lv-table tr:hover td{background:var(--accl);}
 .lv-table .sym{color:var(--acc);font-weight:800;}
+.lv-table .sym a{color:inherit;text-decoration:none;}
+.lv-table .sym a:hover{text-decoration:underline;}
 .lv-table .neg{color:var(--red);font-weight:700;}
 .lv-table .pos{color:var(--green);font-weight:700;}
 .lv-table .vol-hot{color:var(--orange);font-weight:700;}
@@ -715,6 +717,70 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
 .lv-time-bmo{background:var(--accl);color:var(--acc);padding:1px 5px;border-radius:3px;font-size:.55rem;font-weight:700;border:1px solid var(--accb);}
 .lv-time-amc{background:var(--orangl);color:var(--orange);padding:1px 5px;border-radius:3px;font-size:.55rem;font-weight:700;}
 .lv-time-unk{color:var(--t3);font-size:.55rem;}
+/* ── Buton + panou Analiză Claude inline pe rândurile Top Losers / Earnings ── */
+.lv-ai-btn{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;border-radius:5px;padding:3px 8px;font-size:.62rem;cursor:pointer;font-weight:700;transition:filter .15s;}
+.lv-ai-btn:hover{filter:brightness(1.15);}
+.lv-ai-btn.open{background:linear-gradient(135deg,#dc2626,#b91c1c);}
+.lv-ai-btn:disabled{opacity:.6;cursor:wait;}
+.lv-ai-row td{padding:0!important;background:var(--bg);border-top:0!important;}
+.lv-ai-cell-full{padding:10px 14px!important;}
+.lv-ai-loading{font-size:.68rem;color:var(--t2);font-style:italic;display:flex;align-items:center;gap:6px;padding:6px 0;}
+.lv-ai-loading::before{content:"";width:10px;height:10px;border:2px solid var(--t3);border-top-color:var(--acc);border-radius:50%;animation:lvSpin .8s linear infinite;}
+@keyframes lvSpin{to{transform:rotate(360deg);}}
+.lv-ai-result{font-size:.7rem;line-height:1.55;color:var(--t1);background:linear-gradient(180deg,rgba(124,58,237,.10),rgba(79,70,229,.05));border-left:3px solid #7c3aed;padding:9px 12px;border-radius:6px;white-space:pre-wrap;}
+.lv-ai-meta{font-size:.55rem;color:var(--t3);margin-top:4px;display:flex;justify-content:space-between;gap:8px;align-items:center;}
+.lv-ai-rerun{background:none;border:none;color:var(--acc);font-size:.6rem;cursor:pointer;padding:2px 6px;border-radius:4px;font-weight:700;}
+.lv-ai-rerun:hover{background:var(--accl);}
+.lv-ai-err{font-size:.68rem;color:var(--red);background:var(--redl);border:1px solid var(--redb);padding:8px 10px;border-radius:6px;}
+.lv-ai-need-key{font-size:.68rem;color:var(--t2);padding:6px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.lv-ai-need-key button{background:var(--acc);color:#fff;border:none;padding:5px 10px;border-radius:5px;font-size:.62rem;cursor:pointer;font-weight:700;}
+/* Bară butoane batch + compare (deasupra fiecărui tabel din Top Losers tab) */
+.lv-ai-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 8px;padding:6px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;}
+.lv-ai-batch,.lv-ai-compare{padding:6px 12px;border-radius:6px;border:none;font-size:.62rem;font-weight:700;cursor:pointer;color:#fff;}
+.lv-ai-batch{background:linear-gradient(135deg,#7c3aed,#4f46e5);}
+.lv-ai-compare{background:linear-gradient(135deg,#0891b2,#0e7490);}
+.lv-ai-compare:disabled{opacity:.45;cursor:not-allowed;background:var(--bg2);color:var(--t3);}
+.lv-ai-batch:hover,.lv-ai-compare:not(:disabled):hover{filter:brightness(1.15);}
+.lv-ai-batch-panel{margin:6px 0 10px;padding:12px 14px;background:linear-gradient(180deg,rgba(124,58,237,.10),rgba(79,70,229,.05));border-left:3px solid #7c3aed;border-radius:6px;font-size:.7rem;line-height:1.55;color:var(--t1);white-space:pre-wrap;}
+.lv-ai-batch-panel .lv-ai-meta{margin-top:8px;}
+/* Checkbox de comparare în celula AI */
+.lv-cmp-chk{margin-right:5px;cursor:pointer;accent-color:#0891b2;vertical-align:middle;}
+
+/* ═══════════ Asistent conversațional AI flotant ═══════════ */
+#aiChatFab{position:fixed;bottom:20px;right:20px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-size:1.4rem;border:none;cursor:pointer;box-shadow:0 6px 20px rgba(79,70,229,.45);z-index:9998;display:flex;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s;}
+#aiChatFab:hover{transform:scale(1.07);box-shadow:0 8px 28px rgba(79,70,229,.6);}
+#aiChatFab.open{transform:rotate(45deg);}
+#aiChatFab .chat-badge{position:absolute;top:-2px;right:-2px;background:#dc2626;color:#fff;font-size:.55rem;padding:2px 5px;border-radius:8px;font-weight:800;display:none;}
+#aiChatPanel{position:fixed;bottom:84px;right:20px;width:380px;max-width:calc(100vw - 30px);height:560px;max-height:calc(100vh - 110px);background:var(--bg);border:1px solid var(--b1);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.35);z-index:9998;display:none;flex-direction:column;overflow:hidden;}
+#aiChatPanel.open{display:flex;}
+.aichat-hdr{padding:10px 14px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.aichat-hdr-title{font-family:var(--head);font-weight:800;font-size:.78rem;display:flex;align-items:center;gap:6px;}
+.aichat-hdr-actions{display:flex;gap:4px;}
+.aichat-hdr-btn{background:rgba(255,255,255,.2);border:none;color:#fff;font-size:.6rem;padding:4px 8px;border-radius:5px;cursor:pointer;font-weight:700;}
+.aichat-hdr-btn:hover{background:rgba(255,255,255,.32);}
+.aichat-body{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--bg2);}
+.aichat-body::-webkit-scrollbar{width:5px;}
+.aichat-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px;}
+.aichat-msg{max-width:85%;padding:8px 11px;border-radius:11px;font-size:.7rem;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;}
+.aichat-msg.user{align-self:flex-end;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border-bottom-right-radius:3px;}
+.aichat-msg.assistant{align-self:flex-start;background:var(--bg3);color:var(--t1);border:1px solid var(--b1);border-bottom-left-radius:3px;}
+.aichat-msg.system{align-self:center;background:transparent;color:var(--t3);font-size:.6rem;font-style:italic;border:1px dashed var(--b1);padding:6px 10px;}
+.aichat-msg.error{align-self:center;background:var(--redl);color:var(--red);border:1px solid var(--redb);}
+.aichat-empty{text-align:center;color:var(--t3);font-size:.65rem;padding:20px 8px;line-height:1.6;}
+.aichat-empty kbd{background:var(--bg3);border:1px solid var(--b1);border-radius:4px;padding:1px 6px;font-family:var(--mono);font-size:.6rem;color:var(--t1);}
+.aichat-input-row{padding:10px;border-top:1px solid var(--b1);background:var(--bg);display:flex;gap:6px;align-items:flex-end;}
+.aichat-input{flex:1;border:1px solid var(--b1);border-radius:10px;padding:8px 10px;font-size:.7rem;font-family:var(--bd);background:var(--bg2);color:var(--t1);resize:none;min-height:36px;max-height:120px;outline:none;}
+.aichat-input:focus{border-color:var(--acc);}
+.aichat-send{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;border-radius:10px;padding:0 14px;height:36px;font-size:.72rem;font-weight:800;cursor:pointer;}
+.aichat-send:disabled{opacity:.5;cursor:not-allowed;}
+.aichat-cmds{padding:6px 10px;background:var(--bg);border-top:1px solid var(--b1);display:flex;gap:5px;flex-wrap:wrap;font-size:.55rem;}
+.aichat-cmd{background:var(--bg3);border:1px solid var(--b1);color:var(--t2);padding:3px 7px;border-radius:5px;cursor:pointer;font-family:var(--mono);font-weight:700;}
+.aichat-cmd:hover{background:var(--accl);color:var(--acc);border-color:var(--accb);}
+.aichat-typing{align-self:flex-start;color:var(--t3);font-size:.6rem;font-style:italic;padding:4px 0 4px 8px;}
+@media (max-width:480px){
+  #aiChatPanel{width:calc(100vw - 20px);right:10px;bottom:80px;height:70vh;}
+  #aiChatFab{bottom:15px;right:15px;}
+}
 </style>
 </head>
 <body>
@@ -1574,30 +1640,72 @@ function toggleAISummary(){
   if(aiSummaryOpen&&allSignals.length) generateAISummary();
 }
 
-function generateAISummary(){
-  var el=document.getElementById('aiSummaryContent');
-  if(!allSignals.length){el.innerHTML='<span style="color:var(--t3)">Porneste scanner-ul intai.</span>';return;}
-  var topBuys=(allOpportunities||[]).filter(function(o){return o.isBuy&&o.score>=60;}).sort(function(a,b){return b.score-a.score;}).slice(0,5);
-  var highPrio=allSignals.filter(function(s){return s.priority==='high';}).slice(0,5);
-  var gapUp=allSignals.filter(function(s){return s.type==='gap-up';}).slice(0,3);
-  var gapDown=allSignals.filter(function(s){return s.type==='gap-down';}).slice(0,3);
-  var p1='Esti analist Nasdaq. Genereaza rezumat piata azi in romana, max 150 cuvinte.';
-  var p2='CUMPARARE: '+topBuys.map(function(o){return o.symbol+' scor:'+o.score+' RSI:'+(o.rsi||50).toFixed(0)+' zi:'+(o.chg24>=0?'+':'')+o.chg24.toFixed(1)+'%';}).join(', ');
-  var p3='SEMNALE: '+highPrio.map(function(s){return s.coin+' '+s.title;}).join(', ');
-  var p4=gapUp.length?'GAP UP: '+gapUp.map(function(s){return s.coin;}).join(', '):'';
-  var p5=gapDown.length?'GAP DOWN: '+gapDown.map(function(s){return s.coin;}).join(', '):'';
-  var p6='Structura: sentiment general, sectoare active, 2-3 actiuni cu nivel pret, risc principal.';
-  var prompt=[p1,p2,p3,p4,p5,p6].filter(Boolean).join(' | ');
-  var ta=document.createElement('textarea');ta.value=prompt;ta.style.cssText='position:fixed;left:-9999px;opacity:0';
-  document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,99999);
-  var ok=false;try{ok=document.execCommand('copy');}catch(e){}
-  document.body.removeChild(ta);
-  if(ok){
-    el.innerHTML='<b style="color:var(--green)">Prompt copiat!</b> <a href="https://claude.ai/new" target="_blank" style="color:var(--acc);font-weight:700;text-decoration:none">Deschide Claude.ai</a>';
-    setTimeout(function(){window.open('https://claude.ai/new','_blank');},800);
-  } else {
-    el.innerHTML='<textarea style="width:100%;height:90px;font-size:.6rem;border:1px solid var(--b1);border-radius:6px;padding:8px;font-family:monospace">'+prompt+'</textarea>';
+// Briefing AI inline cu streaming, cache TTL și prompt caching.
+// La force=true: ignoră cache-ul. Fără cheie → modal inline.
+async function generateAISummary(force){
+  const el=document.getElementById('aiSummaryContent');
+  if(!allSignals.length){el.innerHTML='<span style="color:var(--t3)">Pornește scanner-ul întâi.</span>';return;}
+  const topBuys=(allOpportunities||[]).filter(o=>o.isBuy&&o.score>=60).sort((a,b)=>b.score-a.score).slice(0,5);
+  const highPrio=allSignals.filter(s=>s.priority==='high').slice(0,5);
+  const gapUp=allSignals.filter(s=>s.type==='gap-up').slice(0,3);
+  const gapDown=allSignals.filter(s=>s.type==='gap-down').slice(0,3);
+  const lines=[
+    'Generează rezumat piață Nasdaq azi, max 150 cuvinte.',
+    'CUMPĂRARE: '+topBuys.map(o=>o.symbol+' scor:'+o.score+' RSI:'+(o.rsi||50).toFixed(0)+' zi:'+(o.chg24>=0?'+':'')+o.chg24.toFixed(1)+'%').join(', '),
+    'SEMNALE: '+highPrio.map(s=>s.coin+' '+s.title).join(', '),
+    gapUp.length?'GAP UP: '+gapUp.map(s=>s.coin).join(', '):'',
+    gapDown.length?'GAP DOWN: '+gapDown.map(s=>s.coin).join(', '):'',
+    'Structură răspuns: sentiment general, sectoare active, 2-3 acțiuni cu nivel preț, risc principal.'
+  ].filter(Boolean);
+  const prompt=lines.join(' | ');
+
+  // Cache hit (key bazat pe simbolurile din topBuys ca să detecteze schimbări de scan)
+  const cacheKey='briefing:'+topBuys.map(o=>o.symbol).join(',');
+  if(!force){
+    const hit=aiCacheGet(cacheKey);
+    if(hit){
+      const age=Math.round((Date.now()-hit.ts)/60000);
+      _briefRender(el,hit.text,`cache · acum ${age} min`);
+      return;
+    }
   }
+  if(!getAnthropicKey()){
+    el.innerHTML='<div style="font-size:.65rem;color:var(--purple);font-weight:700;margin-bottom:6px">🔑 Lipsește cheia Anthropic</div>'+
+      '<div style="font-size:.6rem;color:var(--t2);margin-bottom:8px">Adaugă cheia o dată ca să primești briefing-ul inline.</div>'+
+      '<button id="aiSummAddKey" style="padding:8px 14px;border-radius:7px;border:none;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;font-size:.65rem;font-weight:700;cursor:pointer">🔑 Adaugă cheie</button>';
+    document.getElementById('aiSummAddKey').onclick=()=>showAnthropicKeyModal(()=>generateAISummary(true));
+    return;
+  }
+  el.innerHTML='<span style="color:var(--t3);font-style:italic">⏳ Claude generează briefing...</span>';
+  let resultDiv=null;
+  aiCallStream(prompt,{maxTokens:900},
+    (delta,full)=>{
+      if(!resultDiv){
+        el.innerHTML='<div class="ai-brief-stream" style="white-space:pre-wrap;line-height:1.55"></div>';
+        resultDiv=el.querySelector('.ai-brief-stream');
+      }
+      resultDiv.textContent=full;
+    },
+    (full)=>{
+      aiCacheSet(cacheKey,full);
+      _briefRender(el,full,'claude-haiku-4-5 · '+new Date().toLocaleTimeString('ro-RO'));
+    },
+    (err)=>{
+      el.innerHTML='<div style="color:var(--red);font-size:.7rem">❌ '+(err.message||'Eroare')+'</div>'+
+        '<button onclick="showAnthropicKeyModal(()=>generateAISummary(true))" style="margin-top:6px;padding:6px 10px;border-radius:6px;border:1px solid var(--b1);background:var(--bg3);font-size:.6rem;cursor:pointer">🔑 Schimbă cheie</button>';
+    }
+  );
+}
+function _briefRender(el,text,metaLabel){
+  const safe=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  el.innerHTML='<div style="white-space:pre-wrap;line-height:1.55">'+safe+'</div>'+
+    '<div style="font-size:.55rem;color:var(--t3);margin-top:6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">'+
+      '<span>⚡ '+metaLabel+'</span>'+
+      '<span style="display:flex;gap:8px">'+
+        '<button onclick="sendTelegramBriefing()" style="background:none;border:none;color:var(--acc);font-size:.6rem;cursor:pointer;font-weight:700;padding:0">📱 trimite Telegram</button>'+
+        '<button onclick="generateAISummary(true)" style="background:none;border:none;color:var(--acc);font-size:.6rem;cursor:pointer;font-weight:700;padding:0">↻ regenerează</button>'+
+      '</span>'+
+    '</div>';
 }
 
 // ── EXPORT CSV ──
@@ -1649,7 +1757,7 @@ function renderGapScanner(){
           <a class="btn-sig" href="${tvUrl}" target="_blank">📈 TradingView</a>
           <a class="btn-sig btn-t212" href="${t212}" target="_blank">📊 T212</a>
         </div>
-        ${renderAISection(s.coin,'signal','gap_'+s.coin+'_'+s.type)}
+        ${renderSignalAI(s,'gap')}
       </div>
     </div>`;
   }).join('')+'</div>';
@@ -2417,7 +2525,7 @@ const TAB_GUIDE = [
 ];
 
 const HEADER_GUIDE = [
-  {emoji:'🔑', name:'AI Key', desc:'Configurare cheie Anthropic API. Cu cheie → analiza AI apare inline sub card. Fără → fallback la claude.ai cu copy.'},
+  {emoji:'🔑', name:'AI Key', desc:'Configurare cheie Anthropic API. Cu cheie → analiza AI apare inline sub card / rând (peste tot în scanner). Fără cheie → buton „Adaugă cheie" în panoul AI.'},
   {emoji:'🌅', name:'AI Briefing', desc:'Raport zilnic generat de Claude pentru întregul watchlist: atenție primară, de ținut, de monitorizat, riscuri. Cache zilnic.'},
   {emoji:'🧠', name:'AI Summary', desc:'Rezumat al pieței după un scan complet (sector dominant, sentiment, top movers).'},
   {emoji:'🔔', name:'Notificări', desc:'Activează notificări browser pentru pump-uri și price alerts.'},
@@ -4206,25 +4314,30 @@ function renderExtendedHours(){
     const tvUrl='https://www.tradingview.com/chart/?symbol=NASDAQ:'+d.symbol;
     const yhUrl='https://finance.yahoo.com/quote/'+d.symbol;
     const isUp=d.extPct>=0;
-    return '<div style="display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;align-items:center;padding:9px 12px;background:var(--bg2);border:1px solid var(--b1);border-radius:8px;margin-bottom:6px">'+
-      (d.isWatchlist?'<span style="color:#f59e0b;font-size:.85rem">⭐</span>':'<span></span>')+
-      '<div>'+
-        '<div style="font-family:var(--head);font-weight:800;font-size:.85rem;color:var(--t1)">'+d.symbol+(d.earningsToday?' <span style="font-size:.5rem;background:var(--goldl);color:var(--gold);border:1px solid var(--goldb);border-radius:4px;padding:1px 5px;font-weight:700">📅 EARNINGS</span>':'')+'</div>'+
-        '<div style="font-size:.55rem;color:var(--t3);margin-top:1px">'+(SECTORS[d.symbol]||'US Equity')+'</div>'+
+    const aiCi='ext_'+d.symbol;
+    return '<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:8px;margin-bottom:6px;padding:9px 12px">'+
+      '<div style="display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;align-items:center">'+
+        (d.isWatchlist?'<span style="color:#f59e0b;font-size:.85rem">⭐</span>':'<span></span>')+
+        '<div>'+
+          '<div style="font-family:var(--head);font-weight:800;font-size:.85rem;color:var(--t1)">'+d.symbol+(d.earningsToday?' <span style="font-size:.5rem;background:var(--goldl);color:var(--gold);border:1px solid var(--goldb);border-radius:4px;padding:1px 5px;font-weight:700">📅 EARNINGS</span>':'')+'</div>'+
+          '<div style="font-size:.55rem;color:var(--t3);margin-top:1px">'+(SECTORS[d.symbol]||'US Equity')+'</div>'+
+        '</div>'+
+        '<div style="text-align:right">'+
+          '<div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">'+d.extLabel+'</div>'+
+          '<div style="font-family:var(--head);font-weight:800;font-size:.78rem;color:'+(isUp?'var(--green)':'var(--red)')+'">'+(isUp?'+':'')+d.extPct.toFixed(2)+'%</div>'+
+        '</div>'+
+        '<div style="text-align:right">'+
+          '<div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Preț</div>'+
+          '<div style="font-family:var(--mono);font-weight:700;font-size:.7rem;color:var(--t1)">$'+d.extPrice.toFixed(2)+'</div>'+
+          '<div style="font-size:.5rem;color:var(--t3)">de la $'+(d.extLabel.startsWith('Pre')?d.prevClose:d.regularPrice).toFixed(2)+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">'+
+          '<a href="'+tvUrl+'" target="_blank" style="text-decoration:none;font-size:.55rem;padding:5px 8px;border-radius:6px;border:1px solid var(--b1);background:var(--bg3);color:var(--t2);font-weight:600">📈 TV</a>'+
+          '<a href="'+yhUrl+'" target="_blank" style="text-decoration:none;font-size:.55rem;padding:5px 8px;border-radius:6px;border:1px solid var(--b1);background:var(--bg3);color:var(--t2);font-weight:600">Y!</a>'+
+          '<button class="ai-btn-c" onclick="analyzeWithAI(\''+d.symbol+'\',this,\'extended\',\''+aiCi+'\')" style="font-size:.55rem;padding:5px 8px">🤖 AI</button>'+
+        '</div>'+
       '</div>'+
-      '<div style="text-align:right">'+
-        '<div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">'+d.extLabel+'</div>'+
-        '<div style="font-family:var(--head);font-weight:800;font-size:.78rem;color:'+(isUp?'var(--green)':'var(--red)')+'">'+(isUp?'+':'')+d.extPct.toFixed(2)+'%</div>'+
-      '</div>'+
-      '<div style="text-align:right">'+
-        '<div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">Preț</div>'+
-        '<div style="font-family:var(--mono);font-weight:700;font-size:.7rem;color:var(--t1)">$'+d.extPrice.toFixed(2)+'</div>'+
-        '<div style="font-size:.5rem;color:var(--t3)">de la $'+(d.extLabel.startsWith('Pre')?d.prevClose:d.regularPrice).toFixed(2)+'</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:4px">'+
-        '<a href="'+tvUrl+'" target="_blank" style="text-decoration:none;font-size:.55rem;padding:5px 8px;border-radius:6px;border:1px solid var(--b1);background:var(--bg3);color:var(--t2);font-weight:600">📈 TV</a>'+
-        '<a href="'+yhUrl+'" target="_blank" style="text-decoration:none;font-size:.55rem;padding:5px 8px;border-radius:6px;border:1px solid var(--b1);background:var(--bg3);color:var(--t2);font-weight:600">Y!</a>'+
-      '</div>'+
+      '<div id="ai-result-'+aiCi+'" data-done="0" style="margin-top:6px"></div>'+
     '</div>';
   };
   
@@ -4312,14 +4425,6 @@ function exportSignals(){
 // ── AI ANALYSIS ──
 const aiCache={}; // symbol -> analysis text
 
-function copyAiPrompt(btn){
-  const ta=document.getElementById('aiPromptTa');
-  if(!ta) return;
-  ta.focus(); ta.select(); ta.setSelectionRange(0,99999);
-  try{ document.execCommand('copy'); }catch(e){}
-  btn.textContent='✅ Copiat!';
-  btn.style.background='#059669';
-}
 
 // ── ANTHROPIC API KEY MANAGEMENT ──
 function getAnthropicKey(){ return localStorage.getItem('anthropic_api_key')||''; }
@@ -4398,114 +4503,346 @@ function updateAnthropicBadge(){
 }
 setTimeout(updateAnthropicBadge, 200);
 
+// ═══════════════════════════════════════════════════════════════
+// FUNDAȚIE AI: cache TTL + system prompt cache-uit + streaming SSE
+// ═══════════════════════════════════════════════════════════════
+
+// System prompt fix — cache-uit pe API-ul Anthropic (cache_control ephemeral).
+// Costul input se reduce ~50% după primul apel din fiecare oră.
+const AI_SYSTEM=`Ești analist financiar concis pentru un trader român activ pe Nasdaq via Trade 212 și pe crypto via Pionex.
+Reguli stricte de stil:
+- Răspunde DOAR în română.
+- Maxim 5-6 rânduri pe analiză, fără introduceri de tipul "Iată...".
+- Recomandă entry / TP / SL cu niveluri $ specifice ori scrie clar "stay flat".
+- Identifică riscul principal într-o singură propoziție.
+- Fără markdown, fără emoji, fără bold. Text plat, scurt, direct.`;
+
+// ── Cache rezultate AI cu TTL în localStorage ──
+// v4: cache-ul nu mai stochează răspunsuri când datele de intrare sunt zero (anti-contaminare).
+const AI_CACHE_KEY='ai_cache_v4';
+try{ localStorage.removeItem('ai_cache_v1'); localStorage.removeItem('ai_cache_v2'); localStorage.removeItem('ai_cache_v3'); }catch(_){}
+// Helper: detectează dacă prompt-ul conține date inutile (toate zero / N/A) — atunci NU cache-uim
+function aiPromptIsBlank(prompt){
+  return /Preț \$0\.00.*RSI: 50.*Trend 7z: N\/A/.test(prompt) || /Preț \$0\.00.*Schimb 0\.00%/.test(prompt);
+}
+const AI_CACHE_TTL=30*60*1000; // 30 min
+function aiCacheGet(k){
+  try{
+    const raw=localStorage.getItem(AI_CACHE_KEY); if(!raw) return null;
+    const o=JSON.parse(raw); const e=o[k]; if(!e) return null;
+    if(Date.now()-e.ts>AI_CACHE_TTL){ delete o[k]; localStorage.setItem(AI_CACHE_KEY,JSON.stringify(o)); return null; }
+    return e;
+  }catch(_){ return null; }
+}
+function aiCacheSet(k,text){
+  try{
+    const raw=localStorage.getItem(AI_CACHE_KEY);
+    const o=raw?JSON.parse(raw):{};
+    o[k]={text,ts:Date.now()};
+    const cutoff=Date.now()-AI_CACHE_TTL;
+    Object.keys(o).forEach(kk=>{ if(o[kk].ts<cutoff) delete o[kk]; });
+    localStorage.setItem(AI_CACHE_KEY,JSON.stringify(o));
+  }catch(_){}
+}
+function aiCacheDel(k){
+  try{
+    const raw=localStorage.getItem(AI_CACHE_KEY); if(!raw) return;
+    const o=JSON.parse(raw); delete o[k];
+    localStorage.setItem(AI_CACHE_KEY,JSON.stringify(o));
+  }catch(_){}
+}
+
+// ── Apel Claude API cu streaming + prompt caching ──
+// prompt (string) sau opts.messages (array conversație) — exclusive.
+// opts.systemExtra → bloc adițional de system (cache-uit) după AI_SYSTEM.
+// onDelta(deltaText, fullSoFar) — text incremental. onDone(full) — la sfârșit. onError({type,message}).
+async function aiCallStream(prompt, opts, onDelta, onDone, onError){
+  opts=opts||{};
+  const key=getAnthropicKey();
+  if(!key){ onError({type:'no_key'}); return; }
+  const messages=opts.messages||[{role:'user', content:prompt}];
+  const system=[{type:'text', text:AI_SYSTEM, cache_control:{type:'ephemeral'}}];
+  if(opts.systemExtra) system.push({type:'text', text:opts.systemExtra, cache_control:{type:'ephemeral'}});
+  const body={
+    model:'claude-haiku-4-5-20251001',
+    max_tokens:opts.maxTokens||700,
+    stream:true,
+    system,
+    messages
+  };
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify(body)
+    });
+    if(!resp.ok){
+      const j=await resp.json().catch(()=>({error:{message:'HTTP '+resp.status}}));
+      onError({type:'api',message:j.error?.message||('HTTP '+resp.status)});
+      return;
+    }
+    const reader=resp.body.getReader();
+    const decoder=new TextDecoder();
+    let buffer='', full='';
+    while(true){
+      const {done,value}=await reader.read();
+      if(done) break;
+      buffer+=decoder.decode(value,{stream:true});
+      const lines=buffer.split('\n');
+      buffer=lines.pop();
+      for(const line of lines){
+        if(!line.startsWith('data: ')) continue;
+        const data=line.slice(6).trim();
+        if(!data) continue;
+        try{
+          const ev=JSON.parse(data);
+          if(ev.type==='content_block_delta'&&ev.delta?.text){
+            full+=ev.delta.text;
+            onDelta(ev.delta.text,full);
+          }
+        }catch(_){}
+      }
+    }
+    onDone(full);
+  }catch(e){
+    onError({type:'network',message:e.message});
+  }
+}
+
+// ── News context Finnhub: ultimele știri pentru un simbol, cache 15 min ──
+const AI_NEWS_CACHE={}; // {SYMBOL: {ts, items}}
+async function aiFetchNews(symbol,maxItems){
+  maxItems=maxItems||3;
+  const cached=AI_NEWS_CACHE[symbol];
+  if(cached && Date.now()-cached.ts<15*60*1000) return cached.items;
+  const fhKey=(typeof FH_KEY!=='undefined'?FH_KEY:null)||localStorage.getItem('fh_key');
+  if(!fhKey) return [];
+  try{
+    const to=new Date().toISOString().slice(0,10);
+    const from=new Date(Date.now()-7*24*60*60*1000).toISOString().slice(0,10);
+    const r=await fetch(`https://finnhub.io/api/v1/company-news?symbol=${symbol}&from=${from}&to=${to}&token=${fhKey}`);
+    if(!r.ok){ AI_NEWS_CACHE[symbol]={ts:Date.now(),items:[]}; return []; }
+    const arr=await r.json();
+    const items=(Array.isArray(arr)?arr:[]).slice(0,maxItems).map(n=>({
+      headline:(n.headline||'').slice(0,140),
+      summary:(n.summary||'').slice(0,180),
+      ts:n.datetime
+    }));
+    AI_NEWS_CACHE[symbol]={ts:Date.now(),items};
+    return items;
+  }catch(_){ return []; }
+}
+function aiNewsBlock(items){
+  if(!items||!items.length) return '';
+  return '\nȘTIRI RECENTE (Finnhub, ultimele 7 zile):\n'+items.map((n,i)=>`[${i+1}] ${n.headline}${n.summary?' — '+n.summary:''}`).join('\n');
+}
+
 // ── UNIVERSAL AI ANALYSIS ──
-async function analyzeWithAI(symbol, btn, contextType, contextId){
-  // contextType: 'opportunity' (default) | 'signal' | 'pump' | 'swing'
+// contextType: 'opportunity' (default) | 'signal' | 'pump' | 'swing' | 'extended'
+// Folosește streaming SSE, cache TTL în localStorage și news context Finnhub.
+async function analyzeWithAI(symbol, btn, contextType, contextId, force){
   const ctxId = contextId || symbol;
   const containerId='ai-result-'+ctxId;
   const container=document.getElementById(containerId);
   if(!container) return;
 
-  if(container.dataset.done==='1'){container.innerHTML='';container.dataset.done='0';btn.textContent='🤖 Analizează cu AI';return;}
+  // Helper: btn poate fi null (de ex. când e apelat de butonul ↻ din rezultatul afișat)
+  const setBtn=(text,disabled)=>{ if(!btn) return; btn.disabled=!!disabled; if(text!=null) btn.textContent=text; };
 
-  // Build context-specific prompt
-  let prompt='';
+  // Toggle: dacă deja afișat și nu e force-rerun, ascunde
+  if(container.dataset.done==='1' && !force){
+    container.innerHTML=''; container.dataset.done='0';
+    setBtn('🤖 Analizează cu AI',false);
+    return;
+  }
+
+  // Construiește contextul comun
   const sp=sparklineCache[symbol];
   const w7=sp&&sp.length>=2?((sp[sp.length-1]-sp[0])/sp[0]*100).toFixed(1)+'%':'N/A';
   const sector=(typeof SECTORS!=='undefined'&&SECTORS[symbol])||'US Equity';
   const earn=(typeof earningsSet!=='undefined'&&earningsSet.has(symbol))?'DA':'Nu';
 
+  // News context — fetch în paralel (poate fi gol dacă nu e cheie Finnhub).
+  // Folosit doar pentru contextele unde catalystul e cheia (signal/extended/opportunity).
+  const useNews=['opportunity','signal','extended','swing'].includes(contextType||'opportunity');
+  const newsP=useNews?aiFetchNews(symbol,3):Promise.resolve([]);
+
+  let prompt='';
   if(contextType==='signal'){
-    const sig=(allSignals||[]).find(s=>s.symbol===symbol && (!contextId||(symbol+'_'+s.type)===contextId.replace(/^sig_/,''))) || (allSignals||[]).find(s=>s.symbol===symbol) || {};
-    const m=sig.metrics||{};
-    prompt='Ești analist financiar concis. Analizează SEMNALUL pentru '+symbol+' ('+sector+').\n'+
-      'SEMNAL: '+(sig.title||'N/A')+' | Preț $'+(sig.price||0).toFixed(2)+' | Schimbare zi: '+((sig.chg||0)>=0?'+':'')+(sig.chg||0).toFixed(2)+'% | RSI: '+(m.rsi||50).toFixed(0)+' | Strength: '+(sig.strength||0)+'/100 | Earnings curând: '+earn+' | Trend 7z: '+w7+'\n'+
-      'Răspunde în română, max 5 rânduri: validitatea semnalului, scenariu 1-3 zile, entry/TP/SL specifice, risc principal.';
+    // 1. Caută în allSignals (signal-urile folosesc s.coin, nu s.symbol; contextId poate avea prefix sig_/gap_)
+    let sig=(allSignals||[]).find(s=>{
+      const sym=s.coin||s.symbol;
+      if(sym!==symbol) return false;
+      if(!contextId) return true;
+      const tail=contextId.replace(/^(sig_|gap_)/,'');
+      return (sym+'_'+s.type)===tail;
+    }) || (allSignals||[]).find(s=>(s.coin||s.symbol)===symbol);
+    // 2. Dacă semnalul a dispărut din scan, folosește snapshot-ul salvat la momentul randării
+    let sigData=null;
+    if(sig && sig.title){
+      const m=sig.metrics||{};
+      sigData={title:sig.title, price:sig.price, chg:sig.chg, rsi:m.rsi, strength:sig.strength};
+    } else {
+      sigData=(window._aiSignalSnap||{})[ctxId]||null;
+    }
+    if(sigData && sigData.title){
+      prompt='Analizează SEMNALUL pentru '+symbol+' ('+sector+').\n'+
+        'SEMNAL: '+sigData.title+' | Preț $'+(sigData.price||0).toFixed(2)+' | Schimbare zi: '+((sigData.chg||0)>=0?'+':'')+(sigData.chg||0).toFixed(2)+'% | RSI: '+(sigData.rsi!=null?sigData.rsi:50).toFixed(0)+' | Strength: '+(sigData.strength||0)+'/100 | Earnings curând: '+earn+' | Trend 7z: '+w7+'\n'+
+        'Cere: validitatea semnalului acum, scenariu 1-3 zile, entry/TP/SL specifice cu nivel $, risc principal.';
+    } else {
+      // 3. Ultim fallback: date live din opportunities/scanner
+      const opp=(allOpportunities||[]).find(o=>o.symbol===symbol)||{};
+      const last=(typeof lastQuotesData!=='undefined'?lastQuotesData:[]).find(q=>q.symbol===symbol);
+      const price=opp.price||last?.q?.c||0;
+      const chg=opp.chg24!=null?opp.chg24:0;
+      const rsi=opp.rsi||50;
+      prompt='Analizează '+symbol+' ('+sector+').\n'+
+        'DATE LIVE: Preț $'+price.toFixed(2)+' | Schimbare zi: '+(chg>=0?'+':'')+chg.toFixed(2)+'% | RSI: '+rsi.toFixed(0)+' | Earnings curând: '+earn+' | Trend 7z: '+w7+'\n'+
+        'Cere: stare tehnică actuală, scenariu 1-3 zile, entry/TP/SL specifice cu nivel $, risc principal.';
+    }
   } else if(contextType==='pump'){
     const alert=(typeof pumpHistory!=='undefined'?pumpHistory:[]).find(a=>(a.coin+'_'+a.time)===contextId.replace(/^pump_/,'')) || {};
     const d=alert.details||{};
-    prompt='Ești analist financiar concis. ALERTĂ REAL-TIME pentru '+symbol+' ('+sector+').\n'+
+    prompt='ALERTĂ REAL-TIME pentru '+symbol+' ('+sector+').\n'+
       'ALERTĂ: '+(alert.title||'PUMP')+' | Preț $'+(alert.price||0).toFixed(2)+' | Score: '+(alert.score||0)+'/100\n'+
       'DATE: 5m '+(d.chg5m||'N/A')+'% | 15m '+(d.chg15m||'N/A')+'% | Vol ratio '+(d.volRatio||'N/A')+'× | RSI '+(d.rsi||'N/A')+' | ATR '+(d.atrRatio||'N/A')+'×\n'+
-      'Răspunde în română, max 5 rânduri: pump real sau fakeout, momentum continuă sau revers, acțiune (long acum / așteaptă pullback / evită).';
+      'Cere: pump real sau fakeout, momentum continuă sau revers, acțiune (long acum / așteaptă pullback / evită).';
   } else if(contextType==='swing'){
     const opp=(allOpportunities||[]).find(o=>o.symbol===symbol)||{};
-    prompt='Ești analist financiar concis. Setup SWING pentru '+symbol+' ('+sector+').\n'+
+    prompt='Setup SWING pentru '+symbol+' ('+sector+').\n'+
       'DATE: Preț $'+(opp.price||0).toFixed(2)+' | Zi: '+((opp.chg24||0)>=0?'+':'')+(opp.chg24||0).toFixed(2)+'% | RSI: '+(opp.rsi||50).toFixed(0)+' | Trend 7z: '+w7+' | Earnings: '+earn+'\n'+
-      'Răspunde în română, max 5 rânduri: setup swing 5-15 zile, entry/TP/SL pentru holding, ce eveniment urmărim.';
+      'Cere: setup swing 5-15 zile, entry/TP/SL pentru holding, ce eveniment urmărim.';
+  } else if(contextType==='extended'){
+    const ext=(typeof extendedCache!=='undefined'?extendedCache.data:[]).find(e=>e.symbol===symbol)||{};
+    const ref=ext.extLabel&&ext.extLabel.startsWith('Pre')?ext.prevClose:ext.regularPrice;
+    prompt='Mișcare '+(ext.extLabel||'extended-hours')+' pentru '+symbol+' ('+sector+').\n'+
+      'DATE: Preț '+(ext.extLabel||'ext')+' $'+(ext.extPrice||0).toFixed(2)+' (de la $'+(ref||0).toFixed(2)+') | Schimb '+((ext.extPct||0)>=0?'+':'')+(ext.extPct||0).toFixed(2)+'% | Earnings azi: '+(ext.earningsToday?'DA':'Nu')+' | Trend 7z: '+w7+'\n'+
+      'Cere: catalyst probabil (știre/earnings/macro), gap-ul ține la deschidere sau fade, entry/TP/SL pentru open trade, risc principal.';
   } else {
-    // Default: opportunity (Reco/Early Buy)
     const opp=(allOpportunities||[]).find(o=>o.symbol===symbol)||{};
     const reasons=(opp.reasons||[]).map(r=>r.t).join(', ')||'RSI='+(opp.rsi||50).toFixed(0)+', Chg='+(opp.chg24||0).toFixed(2)+'%';
-    prompt='Ești analist financiar concis. Analizează '+symbol+' ('+sector+') pentru un trader român.\n'+
+    prompt='Analizează '+symbol+' ('+sector+').\n'+
       'DATE: Preț $'+(opp.price||0).toFixed(2)+' | Zi: '+((opp.chg24||0)>=0?'+':'')+(opp.chg24||0).toFixed(2)+'% | RSI: '+(opp.rsi||50).toFixed(0)+' | Range: '+(opp.range24pct||0).toFixed(1)+'% | Trend 7z: '+w7+' | Earnings curând: '+earn+' | Scor: '+(opp.score||0)+'/100 ('+(opp.isBuy?'BULLISH':'BEARISH')+') | Factori: '+reasons+'\n'+
-      'Răspunde în română, max 5 rânduri: stare tehnică actuală, scenariu 1-3 zile, acțiune concretă cu nivel $ specific, risc principal.';
+      'Cere: stare tehnică actuală, scenariu 1-3 zile, acțiune concretă cu nivel $ specific, risc principal.';
   }
 
-  const apiKey=getAnthropicKey();
+  // Cache hit? (cheia include contextul ca să nu confunde signal vs swing)
+  const cacheKey=(contextType||'opportunity')+':'+ctxId;
+  const renderResult=(text,metaLabel,newsCount)=>{
+    const safe=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const newsTag=newsCount?` · 📰 ${newsCount} știri`:'';
+    container.innerHTML='<div class="ai-inline-result">'+safe+'</div>'+
+      `<div style="font-size:.5rem;color:var(--t3);margin-top:4px;display:flex;justify-content:space-between"><span>⚡ ${metaLabel}${newsTag}</span>`+
+      `<button onclick="analyzeWithAI('${symbol}',null,'${contextType||''}','${ctxId}',true)" style="background:none;border:none;color:var(--acc);font-size:.55rem;cursor:pointer;font-weight:700;padding:0">↻ reanalizează</button></div>`;
+    container.dataset.done='1';
+    setBtn('🤖 Ascunde analiză',false);
+  };
+  if(!force){
+    const hit=aiCacheGet(cacheKey);
+    if(hit){
+      const age=Math.round((Date.now()-hit.ts)/60000);
+      renderResult(hit.text,`cache · acum ${age} min`,0);
+      return;
+    }
+  }
 
-  if(!apiKey){
-    openClaudeAiFallback(symbol, prompt, container, btn);
+  // Guard: dacă prompt-ul iese cu date toate 0/N/A, afișăm mesaj clar în loc să apelăm API-ul.
+  if(aiPromptIsBlank(prompt)){
+    container.innerHTML='<div class="ai-inline-result" style="background:rgba(217,119,6,.10);border-color:var(--goldb);color:var(--gold)">'+
+      '⚠️ <b>Datele live pentru '+symbol+' nu sunt disponibile.</b><br>'+
+      '<span style="font-size:.6rem;color:var(--t2);font-weight:400">Posibil ca scan-ul să nu fi rulat încă pe acest simbol, sau cache-ul de cotații să fie gol. Pornește un scan complet și încearcă din nou.</span>'+
+      '</div>';
+    container.dataset.done='1';
+    setBtn('🤖 Ascunde',false);
     return;
   }
 
-  btn.disabled=true;
-  btn.textContent='⏳ Se analizează...';
-  container.innerHTML='<div class="ai-loading"><div class="ai-loading-dot"></div><div class="ai-loading-dot"></div><div class="ai-loading-dot"></div><span style="margin-left:4px">Claude analizează '+symbol+'...</span></div>';
-
-  try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:600,messages:[{role:'user',content:prompt}]})
-    });
-    const data=await resp.json();
-    if(data.content?.[0]?.text){
-      container.innerHTML='<div class="ai-inline-result">'+data.content[0].text.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>'+
-        '<div style="font-size:.5rem;color:var(--t3);margin-top:4px;text-align:right">⚡ claude-haiku-4-5</div>';
-      container.dataset.done='1';
-      btn.textContent='🤖 Ascunde analiză';
-    } else {
-      const errMsg=data.error?.message||'';
-      container.innerHTML='';
-      openClaudeAiFallback(symbol, prompt, container, btn, errMsg);
-    }
-  }catch(e){
-    container.innerHTML='';
-    openClaudeAiFallback(symbol, prompt, container, btn, e.message);
+  if(!getAnthropicKey()){
+    openClaudeAiFallback(symbol, prompt, container, btn||{textContent:'',disabled:false,click:()=>analyzeWithAI(symbol,null,contextType,ctxId,true)});
+    return;
   }
-  btn.disabled=false;
-  if(container.dataset.done!=='1') btn.textContent='🤖 Analizează cu AI';
+
+  setBtn('⏳ Se analizează...',true);
+  container.innerHTML='<div class="ai-loading"><div class="ai-loading-dot"></div><div class="ai-loading-dot"></div><div class="ai-loading-dot"></div><span style="margin-left:4px">Claude analizează '+symbol+'...</span></div>';
+  container.dataset.done='1';
+
+  // Adăugăm știri în prompt dacă au sosit
+  const news=await newsP;
+  prompt+=aiNewsBlock(news);
+
+  let resultDiv=null;
+  aiCallStream(prompt,{maxTokens:700},
+    (delta,full)=>{
+      if(!resultDiv){
+        container.innerHTML='<div class="ai-inline-result"></div>';
+        resultDiv=container.querySelector('.ai-inline-result');
+      }
+      resultDiv.textContent=full;
+    },
+    (full)=>{
+      // Nu cache-uim răspunsuri generate cu date 0 — ar contamina viitoarele rulări.
+      if(!aiPromptIsBlank(prompt)) aiCacheSet(cacheKey,full);
+      renderResult(full,'claude-haiku-4-5',news.length);
+    },
+    (err)=>{
+      container.innerHTML=''; container.dataset.done='0';
+      setBtn('🤖 Analizează cu AI',false);
+      if(err.type==='no_key') openClaudeAiFallback(symbol, prompt, container, btn||{textContent:'',disabled:false,click:()=>analyzeWithAI(symbol,null,contextType,ctxId,true)});
+      else openClaudeAiFallback(symbol, prompt, container, btn||{textContent:'',disabled:false,click:()=>analyzeWithAI(symbol,null,contextType,ctxId,true)}, err.message);
+    }
+  );
 }
 
+// Fallback inline când lipsește cheia sau apare o eroare API.
+// NU mai deschide claude.ai într-un tab nou — totul rămâne în aceeași fereastră.
 function openClaudeAiFallback(symbol, prompt, container, btn, errMsg){
   errMsg=errMsg||'';
-  const copyOk=(()=>{
-    try{
-      const ta=document.createElement('textarea');
-      ta.value=prompt; ta.style.cssText='position:fixed;left:-9999px;opacity:0';
-      document.body.appendChild(ta); ta.focus(); ta.select();
-      const ok=document.execCommand('copy');
-      document.body.removeChild(ta); return ok;
-    }catch(e){return false;}
-  })();
-
-  container.innerHTML='<div class="ai-inline-result" style="background:rgba(124,58,237,.08);border-color:rgba(124,58,237,.22)">'+
-    (errMsg?'<div style="font-size:.58rem;color:var(--red);margin-bottom:6px">⚠️ API: '+errMsg.slice(0,80)+'</div>':'')+
-    '<div style="font-size:.63rem;color:var(--purple);font-weight:700;margin-bottom:4px">🤖 Analizează pe Claude.ai (gratuit cu Pro)</div>'+
-    '<div style="font-size:.6rem;color:var(--t2);margin-bottom:8px">'+(copyOk?'✅ Promptul a fost copiat în clipboard!':'📋 Copiază promptul de mai jos:')+'</div>'+
-    (!copyOk?'<textarea style="width:100%;height:80px;font-size:.55rem;font-family:monospace;border:1px solid var(--b1);border-radius:6px;padding:6px;resize:none;background:var(--bg2)">'+prompt+'</textarea>':'')+
-    '<a href="https://claude.ai/new" target="_blank" style="display:block;text-align:center;padding:8px;border-radius:8px;background:var(--purple);color:#fff;font-weight:700;font-size:.65rem;text-decoration:none;margin-top:6px">🚀 Deschide Claude.ai → Lipește (Ctrl+V)</a>'+
-  '</div>';
+  // Reia analiza re-apăsând butonul (resetează starea, apoi simulează click).
+  const reTry=()=>{
+    container.innerHTML='';
+    container.dataset.done='0';
+    btn.textContent='🤖 Analizează cu AI';
+    btn.click();
+  };
+  const btnStyle='padding:7px 12px;border-radius:7px;border:none;font-size:.65rem;font-weight:700;cursor:pointer;margin-right:6px;';
+  if(errMsg){
+    container.innerHTML='<div class="ai-inline-result" style="background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.25)">'+
+      '<div style="font-size:.65rem;color:var(--red);font-weight:700;margin-bottom:6px">⚠️ Eroare API Anthropic</div>'+
+      '<div style="font-size:.6rem;color:var(--t2);margin-bottom:10px;line-height:1.5">'+errMsg.replace(/</g,'&lt;').slice(0,200)+'</div>'+
+      '<button data-action="reTry" style="'+btnStyle+'background:var(--acc);color:#fff">↻ Reîncearcă</button>'+
+      '<button data-action="updateKey" style="'+btnStyle+'background:var(--bg3);color:var(--t1);border:1px solid var(--b1)">🔑 Schimbă cheie</button>'+
+    '</div>';
+  } else {
+    container.innerHTML='<div class="ai-inline-result" style="background:rgba(124,58,237,.10);border-color:rgba(124,58,237,.25)">'+
+      '<div style="font-size:.7rem;color:var(--purple);font-weight:700;margin-bottom:6px">🔑 Lipsește cheia Anthropic API</div>'+
+      '<div style="font-size:.6rem;color:var(--t2);margin-bottom:10px;line-height:1.5">Adaugă cheia o dată și analiza apare inline pentru toate simbolurile (claude-haiku-4-5 ≈ $0.001 / analiză).</div>'+
+      '<button data-action="addKey" style="'+btnStyle+'background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff">🔑 Adaugă cheie</button>'+
+    '</div>';
+  }
   container.dataset.done='1';
   btn.textContent='🤖 Ascunde';
-  if(copyOk) setTimeout(()=>window.open('https://claude.ai/new','_blank'),600);
+  container.querySelector('[data-action="addKey"],[data-action="updateKey"]')?.addEventListener('click',()=>{
+    showAnthropicKeyModal(reTry);
+  });
+  container.querySelector('[data-action="reTry"]')?.addEventListener('click',reTry);
 }
 
 function renderAISection(symbol, contextType, contextId){
   const ct=contextType||'opportunity';
   const ci=contextId||symbol;
   return '<div class="ai-inline"><button class="ai-btn-c" onclick="analyzeWithAI(\''+symbol+'\',this,\''+ct+'\',\''+ci+'\')">🤖 Analizează cu AI</button><div id="ai-result-'+ci+'" data-done="0"></div></div>';
+}
+
+// Snapshot al datelor de semnal la momentul randării — folosit ca fallback
+// dacă semnalul a dispărut din allSignals la următorul scan.
+window._aiSignalSnap=window._aiSignalSnap||{};
+function renderSignalAI(s, prefix){
+  const ctxId=prefix+'_'+(s.coin||s.symbol)+'_'+s.type;
+  window._aiSignalSnap[ctxId]={
+    title:s.title, price:s.price, chg:s.chg, type:s.type,
+    rsi:(s.metrics&&s.metrics.rsi), strength:s.strength
+  };
+  return renderAISection(s.coin||s.symbol,'signal',ctxId);
 }
 
 function renderSaveSetupBtn(symbol, contextType){
@@ -5656,7 +5993,7 @@ function renderSignals(){
           <a class="btn-sig btn-t212" href="https://app.trading212.com/" target="_blank" rel="noopener">📊 T212</a>
         </div>
         ${renderCorrelationSection(s.coin)}
-        ${renderAISection(s.coin,'signal','sig_'+s.coin+'_'+s.type)}
+        ${renderSignalAI(s,'sig')}
         ${renderSaveSetupBtn(s.coin,'signal')}
       </div>
     </div>`;
@@ -6605,6 +6942,7 @@ let telegramConfig = {
   pumpRadar: true,
   priceAlerts: true,
   mainScan: false,
+  dailyBriefing: true, // briefing AI auto la deschiderea pieței US (9:30 AM ET)
   minScore: 0
 };
 (function(){
@@ -6729,6 +7067,68 @@ async function testTelegram(){
   }
 }
 
+// ── Briefing AI -> Telegram ──
+// Trimite ultimul briefing AI (din cache, sau îl generează) ca mesaj Markdown.
+async function sendTelegramBriefing(){
+  if(!telegramConfig.token || !telegramConfig.chatId){
+    showToast('⚠️ Configurează Telegram întâi (token + chat ID)','error');
+    return;
+  }
+  // Caută briefing-ul în cache; dacă lipsește sau e vechi, regenerează.
+  const topBuys=(allOpportunities||[]).filter(o=>o.isBuy&&o.score>=60).sort((a,b)=>b.score-a.score).slice(0,5);
+  const cacheKey='briefing:'+topBuys.map(o=>o.symbol).join(',');
+  let briefing=null;
+  const hit=aiCacheGet(cacheKey);
+  if(hit) briefing=hit.text;
+  if(!briefing){
+    showToast('⏳ Generez briefing înainte de trimitere...','info');
+    generateAISummary(true);
+    // Așteaptă cache-ul (poll max 30s)
+    for(let i=0;i<30;i++){
+      await new Promise(r=>setTimeout(r,1000));
+      const h=aiCacheGet(cacheKey);
+      if(h){ briefing=h.text; break; }
+    }
+  }
+  if(!briefing){ showToast('❌ Briefing indisponibil. Pornește un scan întâi.','error'); return; }
+
+  // Telegram limitează la 4096 caractere; trunchiez dacă e nevoie.
+  const header=`🧠 *Briefing AI Nasdaq*\n_${new Date().toLocaleString('ro-RO')}_\n\n`;
+  let body=briefing;
+  const max=4000-header.length;
+  if(body.length>max) body=body.slice(0,max-3)+'...';
+  // Activăm temporar dacă e nevoie ca să trimitem chiar și când enabled=false
+  const wasEnabled=telegramConfig.enabled;
+  telegramConfig.enabled=true;
+  const r=await sendTelegram(header+body);
+  telegramConfig.enabled=wasEnabled;
+  if(r.ok){
+    showToast('✅ Briefing trimis pe Telegram','ok');
+    localStorage.setItem('telegram_briefing_sent_'+new Date().toISOString().slice(0,10),'1');
+  } else {
+    const reason=r.data?.description||r.reason||'eroare necunoscută';
+    showToast('❌ Telegram: '+reason,'error');
+  }
+}
+
+// Auto-schedule: la fiecare 5 min verifică dacă e 09:30 ET (= deschidere piață US) și
+// dacă briefing-ul de azi nu a fost încă trimis. Necesită tab-ul deschis.
+function _telegramBriefingAutoCheck(){
+  if(!telegramConfig.enabled || !telegramConfig.dailyBriefing) return;
+  if(!telegramConfig.token || !telegramConfig.chatId) return;
+  const today=new Date().toISOString().slice(0,10);
+  if(localStorage.getItem('telegram_briefing_sent_'+today)) return;
+  // Citește ora curentă în zona ET
+  const etStr=new Date().toLocaleString('en-US',{timeZone:'America/New_York', hour12:false, hour:'2-digit', minute:'2-digit'});
+  const [h,m]=etStr.split(':').map(Number);
+  // Fereastra: 09:30 - 09:40 ET (10 min toleranță pentru cazul în care tab-ul tocmai s-a deschis)
+  if(h===9 && m>=30 && m<=40){
+    sendTelegramBriefing();
+  }
+}
+setInterval(_telegramBriefingAutoCheck, 5*60*1000); // verifică la fiecare 5 minute
+setTimeout(_telegramBriefingAutoCheck, 15000); // și o verificare la încărcarea paginii
+
 function showTelegramModal(){
   const existing=document.getElementById('tgModal');
   if(existing){ existing.remove(); return; }
@@ -6785,7 +7185,13 @@ function showTelegramModal(){
           <input type="checkbox" id="tgOptMain" ${telegramConfig.mainScan?'checked':''}>
           <span>📊 Alerte scan principal <span style="color:#64748b;font-size:.65rem">(pot fi multe)</span></span>
         </label>
-        
+
+        <label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:.72rem">
+          <input type="checkbox" id="tgOptDailyBrief" ${telegramConfig.dailyBriefing?'checked':''}>
+          <span>🧠 <b>Briefing AI zilnic</b> <span style="color:#64748b;font-size:.65rem">(la 09:30 ET / 16:30 RO, deschidere piață)</span></span>
+        </label>
+        <button onclick="sendTelegramBriefing()" style="width:100%;padding:7px;margin-top:4px;border-radius:6px;border:none;background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff;font-size:.65rem;font-weight:700;cursor:pointer">🧠 Trimite briefing acum</button>
+
         <div style="margin-top:10px;padding-top:10px;border-top:1px solid #e2e8f0">
           <div style="font-size:.68rem;color:#475569;margin-bottom:4px">Filtru intensitate: <b id="tgMinScoreLbl">${telegramConfig.minScore}</b>/100</div>
           <input type="range" min="0" max="90" step="5" value="${telegramConfig.minScore}" id="tgMinScore"
@@ -6815,6 +7221,7 @@ function saveTelegramFromModal(){
   telegramConfig.pumpRadar=document.getElementById('tgOptPump').checked;
   telegramConfig.priceAlerts=document.getElementById('tgOptPrice').checked;
   telegramConfig.mainScan=document.getElementById('tgOptMain').checked;
+  telegramConfig.dailyBriefing=document.getElementById('tgOptDailyBrief').checked;
   telegramConfig.minScore=parseInt(document.getElementById('tgMinScore').value);
   telegramConfig.enabled=document.getElementById('tgEnabled').checked;
   saveTelegramConfig();
@@ -7275,12 +7682,18 @@ const _LV_HTML=`
       <div class="lv-ctrl"><label>&nbsp;</label><button id="lvScanEarnBtn" class="lv-btn-earn">⚡ Scanează</button></div>
     </div>
     <div id="lvEarnStatus" class="lv-status">Așteaptă scan automat...</div>
+    <div class="lv-ai-bar">
+      <button class="lv-ai-batch" onclick="_lvBatchAnalyze('earn')">🤖 Analizează top 5</button>
+      <button class="lv-ai-compare" onclick="_lvCompareAnalyze('earn')" disabled id="lvCmpBtn-earn">⚖️ Compară selectate (<span id="lvCmpCnt-earn">0</span>)</button>
+      <span id="lvCmpHint-earn" style="font-size:.55rem;color:var(--t3)">bifează 2-3 rânduri pentru comparare</span>
+    </div>
+    <div id="lvAiBatch-earn" class="lv-ai-batch-panel" style="display:none"></div>
     <div class="lv-table-wrap">
       <table class="lv-table" id="lvEarnTable">
         <thead><tr>
           <th>#</th><th>Simbol</th><th>Nume</th><th class="num">Earnings</th><th>BMO/AMC</th>
           <th class="num">EPS Est.</th><th class="num">Preț</th><th class="num">Schimb %</th>
-          <th class="num">Low azi %</th><th class="num">Mcap</th><th>Sector</th>
+          <th class="num">Low azi %</th><th class="num">Mcap</th><th>Sector</th><th>AI</th>
         </tr></thead>
         <tbody id="lvEarnResults"></tbody>
       </table>
@@ -7306,12 +7719,18 @@ const _LV_HTML=`
       <div class="lv-ctrl"><label>&nbsp;</label><button id="lvScanLoserBtn" class="lv-btn-loser">🔻 Scanează</button></div>
     </div>
     <div id="lvLoserStatus" class="lv-status">Așteaptă scan automat...</div>
+    <div class="lv-ai-bar">
+      <button class="lv-ai-batch" onclick="_lvBatchAnalyze('loser')">🤖 Analizează top 5</button>
+      <button class="lv-ai-compare" onclick="_lvCompareAnalyze('loser')" disabled id="lvCmpBtn-loser">⚖️ Compară selectate (<span id="lvCmpCnt-loser">0</span>)</button>
+      <span id="lvCmpHint-loser" style="font-size:.55rem;color:var(--t3)">bifează 2-3 rânduri pentru comparare</span>
+    </div>
+    <div id="lvAiBatch-loser" class="lv-ai-batch-panel" style="display:none"></div>
     <div class="lv-table-wrap">
       <table class="lv-table" id="lvLoserTable">
         <thead><tr>
           <th>#</th><th>Simbol</th><th>Nume</th><th class="num">Preț</th><th class="num">Schimb %</th>
           <th class="num">Volum</th><th class="num">Vol/Avg</th><th class="num">Mcap</th>
-          <th class="num">Earnings</th><th>Sector</th>
+          <th class="num">Earnings</th><th>Sector</th><th>AI</th>
         </tr></thead>
         <tbody id="lvLoserResults"></tbody>
       </table>
@@ -7326,48 +7745,291 @@ function _lvSetStatus(id,msg,type){
 function _lvGetScanner(){
   return new NasdaqLosersScanner((document.getElementById('lvProxy')?.value||'').trim());
 }
+// Construiește URL TradingView, alegând prefixul de exchange (NYSE/NASDAQ).
+function _lvTvUrl(s){
+  const ex=(s.exchange||'').toUpperCase();
+  const prefix=ex.includes('NYSE')?'NYSE':'NASDAQ';
+  return `https://www.tradingview.com/chart/?symbol=${prefix}:${encodeURIComponent(s.symbol)}`;
+}
+function _lvSymCell(s){
+  return `<td class="sym"><a href="${_lvTvUrl(s)}" target="_blank" rel="noopener" title="Deschide ${s.symbol} în TradingView">${s.symbol}</a></td>`;
+}
+// Cache pentru datele rândurilor (folosite la construirea promptului) și pentru rezultatele AI
+const _LV_ROW_DATA={earn:{},loser:{}};
+function _lvAiCell(symbol,kind){
+  return `<td style="white-space:nowrap"><input type="checkbox" class="lv-cmp-chk" data-cmp="${kind}" data-sym="${symbol}" onchange="_lvCmpToggle('${kind}')" title="Selectează pentru comparare">`+
+    `<button class="lv-ai-btn" id="lvAiBtn-${kind}-${symbol}" onclick="_lvAnalyze('${symbol}','${kind}',this)" title="Analiză Claude pentru ${symbol}">🤖 AI</button></td>`;
+}
+function _lvAiRow(symbol,kind,colspan){
+  return `<tr class="lv-ai-row" id="lvAiRow-${kind}-${symbol}" style="display:none"><td colspan="${colspan}" class="lv-ai-cell-full"></td></tr>`;
+}
 function _lvRenderEarnRows(results){
   const tbody=document.getElementById('lvEarnResults');if(!tbody)return;
   tbody.innerHTML='';
+  _LV_ROW_DATA.earn={};
   if(!results||results.length===0){
-    tbody.innerHTML='<tr><td colspan="11" class="lv-empty">Niciun earnings găsit cu filtrele curente.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="12" class="lv-empty">Niciun earnings găsit cu filtrele curente.</td></tr>';
     return;
   }
   results.forEach((s,i)=>{
+    _LV_ROW_DATA.earn[s.symbol]=s;
     const earn=NasdaqLosersScanner.formatEarnings(s.daysToEarnings,s.earningsTimestamp);
     const lowPct=s.intradayLowPct!=null?`<span class="${s.intradayLowPct<=-5?'neg':''}">${s.intradayLowPct.toFixed(2)}%</span>`:'-';
     const cc=s.changePct==null?'':(s.changePct<0?'neg':'pos');
     const cs=s.changePct!=null?`${s.changePct.toFixed(2)}%`:'-';
     const ps=s.price!=null?`$${s.price.toFixed(2)}`:'-';
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${i+1}</td><td class="sym">${s.symbol}</td><td>${(s.name||'').slice(0,26)}</td>`
+    tr.innerHTML=`<td>${i+1}</td>${_lvSymCell(s)}<td>${(s.name||'').slice(0,26)}</td>`
       +`<td class="num"><span class="${earn.cls}">${earn.text}</span></td>`
       +`<td>${NasdaqLosersScanner.formatTime(s.time)}</td><td class="num">${s.epsForecast||'-'}</td>`
       +`<td class="num">${ps}</td><td class="num ${cc}">${cs}</td><td class="num">${lowPct}</td>`
-      +`<td class="num">${NasdaqLosersScanner.formatMcap(s.marketCap)}</td><td>${s.sector||'-'}</td>`;
+      +`<td class="num">${NasdaqLosersScanner.formatMcap(s.marketCap)}</td><td>${s.sector||'-'}</td>`
+      +_lvAiCell(s.symbol,'earn');
     tbody.appendChild(tr);
+    tbody.insertAdjacentHTML('beforeend',_lvAiRow(s.symbol,'earn',12));
   });
 }
 function _lvRenderLoserRows(results){
   const tbody=document.getElementById('lvLoserResults');if(!tbody)return;
   tbody.innerHTML='';
+  _LV_ROW_DATA.loser={};
   if(!results||results.length===0){
-    tbody.innerHTML='<tr><td colspan="10" class="lv-empty">Niciun loser cu filtrele curente.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="11" class="lv-empty">Niciun loser cu filtrele curente.</td></tr>';
     return;
   }
   results.forEach((s,i)=>{
+    _LV_ROW_DATA.loser[s.symbol]=s;
     const vr=s.avgVolume?(s.volume/s.avgVolume):0;
     const earn=NasdaqLosersScanner.formatEarnings(s.daysToEarnings,s.earningsTimestamp);
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${i+1}</td><td class="sym">${s.symbol}</td><td>${(s.name||'').slice(0,28)}</td>`
+    tr.innerHTML=`<td>${i+1}</td>${_lvSymCell(s)}<td>${(s.name||'').slice(0,28)}</td>`
       +`<td class="num">$${s.price?.toFixed(2)||'-'}</td>`
       +`<td class="num neg">${s.changePct?.toFixed(2)}%</td>`
       +`<td class="num">${NasdaqLosersScanner.formatVolume(s.volume)}</td>`
       +`<td class="num ${vr>=2?'vol-hot':''}">${vr?vr.toFixed(1)+'x':'-'}</td>`
       +`<td class="num">${NasdaqLosersScanner.formatMcap(s.marketCap)}</td>`
-      +`<td class="num"><span class="${earn.cls}">${earn.text}</span></td><td>${s.sector||'-'}</td>`;
+      +`<td class="num"><span class="${earn.cls}">${earn.text}</span></td><td>${s.sector||'-'}</td>`
+      +_lvAiCell(s.symbol,'loser');
     tbody.appendChild(tr);
+    tbody.insertAdjacentHTML('beforeend',_lvAiRow(s.symbol,'loser',11));
   });
+}
+
+// ── Analiză Claude inline pentru un rând (Top Losers / Earnings) ──
+// Streaming + cache TTL global + news context + prompt caching (via aiCallStream).
+async function _lvAnalyze(symbol,kind,btn,force){
+  const row=document.getElementById(`lvAiRow-${kind}-${symbol}`);
+  if(!row) return;
+  const cell=row.querySelector('.lv-ai-cell-full');
+  // Toggle close
+  if(row.style.display!=='none' && !force){
+    row.style.display='none';
+    btn.classList.remove('open');
+    return;
+  }
+  row.style.display='';
+  btn.classList.add('open');
+  const cacheKey='lv:'+kind+':'+symbol;
+  // Cache hit (TTL 30 min, persistent)
+  if(!force){
+    const hit=aiCacheGet(cacheKey);
+    if(hit){
+      const age=Math.round((Date.now()-hit.ts)/60000);
+      cell.innerHTML=_lvFormatAiResult(hit.text,symbol,kind,`cache · acum ${age} min`,0);
+      return;
+    }
+  }
+  // Lipsă cheie
+  if(!getAnthropicKey()){
+    cell.innerHTML=`<div class="lv-ai-need-key">🔑 Lipsește cheia Anthropic API. <button onclick="showAnthropicKeyModal(()=>_lvAnalyze('${symbol}','${kind}',document.getElementById('lvAiBtn-${kind}-${symbol}'),true))">Adaugă cheie</button></div>`;
+    return;
+  }
+  // Loading + news fetch în paralel cu prompt build
+  cell.innerHTML='<div class="lv-ai-loading">Claude analizează '+symbol+'...</div>';
+  btn.disabled=true;
+  const data=_LV_ROW_DATA[kind][symbol]||{symbol};
+  let prompt=_lvBuildPrompt(symbol,kind,data);
+  const news=await aiFetchNews(symbol,3);
+  prompt+=aiNewsBlock(news);
+
+  let resultDiv=null;
+  aiCallStream(prompt,{maxTokens:700},
+    (delta,full)=>{
+      if(!resultDiv){
+        cell.innerHTML='<div class="lv-ai-result"></div>';
+        resultDiv=cell.querySelector('.lv-ai-result');
+      }
+      resultDiv.textContent=full;
+    },
+    (full)=>{
+      aiCacheSet(cacheKey,full);
+      cell.innerHTML=_lvFormatAiResult(full,symbol,kind,'claude-haiku-4-5 · '+new Date().toLocaleTimeString('ro-RO'),news.length);
+      btn.disabled=false;
+    },
+    (err)=>{
+      cell.innerHTML='<div class="lv-ai-err">❌ '+(err.message||'Eroare')+'</div>';
+      btn.disabled=false;
+    }
+  );
+}
+
+// Formatează rezultatul AI cu meta + buton reanalizează (folosit și pentru cache hit).
+function _lvFormatAiResult(text,symbol,kind,metaLabel,newsCount){
+  const safe=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const newsTag=newsCount?` · 📰 ${newsCount} știri`:'';
+  return '<div class="lv-ai-result">'+safe+'</div>'
+    +`<div class="lv-ai-meta"><span>⚡ ${metaLabel}${newsTag}</span>`
+    +`<button class="lv-ai-rerun" onclick="_lvAnalyze('${symbol}','${kind}',document.getElementById('lvAiBtn-${kind}-${symbol}'),true)">↻ reanalizează</button></div>`;
+}
+
+// ── Compare: gestionează checkbox-urile de selecție ──
+function _lvCmpToggle(kind){
+  const checked=document.querySelectorAll(`.lv-cmp-chk[data-cmp="${kind}"]:checked`);
+  // Limit max 3 selectate
+  if(checked.length>3){
+    // Dezactivează ultimul bifat
+    const last=checked[checked.length-1];
+    last.checked=false;
+    return _lvCmpToggle(kind);
+  }
+  const cnt=document.getElementById(`lvCmpCnt-${kind}`);
+  const btn=document.getElementById(`lvCmpBtn-${kind}`);
+  const hint=document.getElementById(`lvCmpHint-${kind}`);
+  if(cnt) cnt.textContent=checked.length;
+  if(btn) btn.disabled=checked.length<2;
+  if(hint) hint.textContent=checked.length<2?'bifează 2-3 rânduri pentru comparare':checked.length+' selectate';
+}
+
+// ── Batch: analizează top 5 din rezultatele curente într-un singur apel Claude ──
+async function _lvBatchAnalyze(kind){
+  const panel=document.getElementById('lvAiBatch-'+kind);
+  if(!panel) return;
+  const results=(_LV.results||{})[kind==='earn'?'earnings':'losers']||[];
+  const top5=results.slice(0,5);
+  if(top5.length<2){
+    panel.style.display='block';
+    panel.innerHTML='<div style="color:var(--red);font-size:.65rem">⚠️ Nu există suficiente rezultate (rulează scan-ul întâi).</div>';
+    return;
+  }
+  const cacheKey='lvbatch:'+kind+':'+top5.map(s=>s.symbol).join(',');
+  const cached=aiCacheGet(cacheKey);
+  panel.style.display='block';
+  if(cached){
+    const age=Math.round((Date.now()-cached.ts)/60000);
+    panel.innerHTML=_lvBatchFormat(cached.text,kind,`cache · acum ${age} min`,0);
+    return;
+  }
+  if(!getAnthropicKey()){
+    panel.innerHTML='<div style="font-size:.7rem;color:var(--t2)">🔑 Lipsește cheia Anthropic. <button onclick="showAnthropicKeyModal(()=>_lvBatchAnalyze(\''+kind+'\'))" style="margin-left:6px;padding:5px 10px;border-radius:5px;border:none;background:var(--acc);color:#fff;font-size:.6rem;font-weight:700;cursor:pointer">Adaugă cheie</button></div>';
+    return;
+  }
+  // Construiește prompt batch
+  const lines=top5.map((s,i)=>{
+    const earn=NasdaqLosersScanner.formatEarnings(s.daysToEarnings,s.earningsTimestamp).text;
+    if(kind==='earn'){
+      return `${i+1}. ${s.symbol} (${s.sector||'N/A'}) | preț $${s.price?.toFixed(2)||'N/A'} | schimb ${s.changePct?.toFixed(2)||'N/A'}% | EPS est ${s.epsForecast||'N/A'} | earnings: ${earn} | sesiune: ${NasdaqLosersScanner.formatTime(s.time)||'N/A'}`;
+    } else {
+      const vr=s.avgVolume?(s.volume/s.avgVolume).toFixed(1)+'x':'N/A';
+      return `${i+1}. ${s.symbol} (${s.sector||'N/A'}) | preț $${s.price?.toFixed(2)||'N/A'} | schimb ${s.changePct?.toFixed(2)||'N/A'}% | vol/avg ${vr} | mcap ${NasdaqLosersScanner.formatMcap(s.marketCap)} | earnings: ${earn}`;
+    }
+  }).join('\n');
+  const intro=kind==='earn'
+    ?'Triază pentru un trader român următoarele 5 stocks cu earnings iminente:'
+    :'Triază pentru un trader român următoarele 5 stocks care au scăzut azi:';
+  const cere=kind==='earn'
+    ?'Pentru fiecare în parte (formatare strict tabel text simplu, max 1 rând / stock): ticker | tradeable acum (Da/Nu/Așteaptă) | motiv (max 8 cuvinte) | acțiune (entry $ / SL $ / stay flat). La final 1 rând cu „TOP PICK: ticker — motiv".'
+    :'Pentru fiecare în parte (formatare strict tabel text simplu, max 1 rând / stock): ticker | dip-buy (Da/Nu/Evită) | motiv (max 8 cuvinte) | acțiune (entry $ / SL $ / stay flat). La final 1 rând cu „TOP PICK: ticker — motiv".';
+  const prompt=intro+'\n'+lines+'\n\n'+cere;
+
+  panel.innerHTML='<div class="lv-ai-loading">Claude triază top 5...</div>';
+  let div=null;
+  aiCallStream(prompt,{maxTokens:900},
+    (delta,full)=>{
+      if(!div){ panel.innerHTML='<div class="lv-ai-batch-stream" style="white-space:pre-wrap"></div>'; div=panel.querySelector('.lv-ai-batch-stream'); }
+      div.textContent=full;
+    },
+    (full)=>{
+      aiCacheSet(cacheKey,full);
+      panel.innerHTML=_lvBatchFormat(full,kind,'claude-haiku-4-5 · '+new Date().toLocaleTimeString('ro-RO'),0);
+    },
+    (err)=>{ panel.innerHTML='<div class="lv-ai-err">❌ '+(err.message||'Eroare')+'</div>'; }
+  );
+}
+function _lvBatchFormat(text,kind,metaLabel){
+  const safe=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return '<div style="font-family:var(--mono);font-size:.65rem;white-space:pre-wrap;line-height:1.6">'+safe+'</div>'
+    +`<div class="lv-ai-meta"><span>⚡ ${metaLabel} · top 5 ${kind==='earn'?'earnings':'losers'}</span>`
+    +`<button class="lv-ai-rerun" onclick="aiCacheDel('lvbatch:${kind}:'+(_LV.results.${kind==='earn'?'earnings':'losers'}||[]).slice(0,5).map(s=>s.symbol).join(','));_lvBatchAnalyze('${kind}')">↻ reanalizează</button></div>`;
+}
+
+// ── Compare: analizează 2-3 simboluri side-by-side ──
+async function _lvCompareAnalyze(kind){
+  const panel=document.getElementById('lvAiBatch-'+kind);
+  const checked=document.querySelectorAll(`.lv-cmp-chk[data-cmp="${kind}"]:checked`);
+  const symbols=Array.from(checked).map(c=>c.dataset.sym);
+  if(symbols.length<2){
+    panel.style.display='block';
+    panel.innerHTML='<div style="color:var(--red);font-size:.65rem">⚠️ Selectează minim 2 simboluri.</div>';
+    return;
+  }
+  panel.style.display='block';
+  if(!getAnthropicKey()){
+    panel.innerHTML='<div style="font-size:.7rem;color:var(--t2)">🔑 Lipsește cheia Anthropic. <button onclick="showAnthropicKeyModal(()=>_lvCompareAnalyze(\''+kind+'\'))" style="margin-left:6px;padding:5px 10px;border-radius:5px;border:none;background:var(--acc);color:#fff;font-size:.6rem;font-weight:700;cursor:pointer">Adaugă cheie</button></div>';
+    return;
+  }
+  // Construiește prompt cu side-by-side
+  const lines=symbols.map(sym=>{
+    const d=_LV_ROW_DATA[kind][sym]||{symbol:sym};
+    const earn=NasdaqLosersScanner.formatEarnings(d.daysToEarnings,d.earningsTimestamp).text;
+    if(kind==='earn'){
+      return `${sym} (${d.sector||'N/A'}): preț $${d.price?.toFixed(2)||'N/A'} | schimb ${d.changePct?.toFixed(2)||'N/A'}% | EPS est ${d.epsForecast||'N/A'} | earnings: ${earn}`;
+    } else {
+      const vr=d.avgVolume?(d.volume/d.avgVolume).toFixed(1)+'x':'N/A';
+      return `${sym} (${d.sector||'N/A'}): preț $${d.price?.toFixed(2)||'N/A'} | schimb ${d.changePct?.toFixed(2)||'N/A'}% | vol/avg ${vr} | mcap ${NasdaqLosersScanner.formatMcap(d.marketCap)} | earnings: ${earn}`;
+    }
+  }).join('\n');
+  const prompt='Compară pentru un trader român următoarele '+symbols.length+' stocks. Recomandă pe care merită să intri ACUM și de ce.\n'+lines+'\n\n'+
+    'Format strict: 1 paragraf scurt (3-4 rânduri) cu „CÂȘTIGĂ: <ticker>" pe primul rând, apoi motivul concret în comparație cu celelalte. La final un rând cu entry $ / SL $ pentru câștigător sau „stay flat" dacă niciuna nu e atrăgătoare.';
+
+  panel.innerHTML='<div class="lv-ai-loading">Claude compară '+symbols.join(' vs ')+'...</div>';
+  let div=null;
+  aiCallStream(prompt,{maxTokens:600},
+    (delta,full)=>{
+      if(!div){ panel.innerHTML='<div class="lv-ai-cmp-stream" style="white-space:pre-wrap;line-height:1.55"></div>'; div=panel.querySelector('.lv-ai-cmp-stream'); }
+      div.textContent=full;
+    },
+    (full)=>{
+      const safe=full.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      panel.innerHTML='<div style="font-size:.7rem;line-height:1.55;white-space:pre-wrap;color:var(--t1)">'+safe+'</div>'+
+        `<div class="lv-ai-meta"><span>⚖️ comparare ${symbols.length} stocks · ${new Date().toLocaleTimeString('ro-RO')}</span>`+
+        `<button class="lv-ai-rerun" onclick="_lvCompareAnalyze('${kind}')">↻ recompară</button></div>`;
+    },
+    (err)=>{ panel.innerHTML='<div class="lv-ai-err">❌ '+(err.message||'Eroare')+'</div>'; }
+  );
+}
+
+// Construiește prompt specific contextului (earnings vs loser).
+function _lvBuildPrompt(symbol,kind,d){
+  const sector=d.sector||'N/A';
+  const price=d.price!=null?'$'+d.price.toFixed(2):'N/A';
+  const chg=d.changePct!=null?(d.changePct>=0?'+':'')+d.changePct.toFixed(2)+'%':'N/A';
+  const mcap=d.marketCap?NasdaqLosersScanner.formatMcap(d.marketCap):'N/A';
+  if(kind==='earn'){
+    const earn=NasdaqLosersScanner.formatEarnings(d.daysToEarnings,d.earningsTimestamp).text;
+    const time=NasdaqLosersScanner.formatTime(d.time)||'N/A';
+    const eps=d.epsForecast||'N/A';
+    const lowPct=d.intradayLowPct!=null?d.intradayLowPct.toFixed(2)+'%':'N/A';
+    return 'Ești analist financiar concis. Analizează în română stocul '+symbol+' ('+sector+') ÎN CONTEXT EARNINGS.\n'+
+      'DATE: Preț '+price+' | Schimb azi '+chg+' | Low azi '+lowPct+' | Mcap '+mcap+' | Earnings: '+earn+' | Sesiune: '+time+' | EPS estimat: '+eps+'\n'+
+      'Răspunde în max 6 rânduri: 1) așteptări consens & guidance recent, 2) volatilitate implicită tipică pre-earnings, 3) scenariu BMO/AMC (beat vs miss), 4) entry/TP/SL pentru un play pre/post earnings sau "stay flat", 5) risc principal.';
+  } else {
+    const vr=d.avgVolume?(d.volume/d.avgVolume):0;
+    const vol=d.volume?NasdaqLosersScanner.formatVolume(d.volume):'N/A';
+    const earn=NasdaqLosersScanner.formatEarnings(d.daysToEarnings,d.earningsTimestamp).text;
+    return 'Ești analist financiar concis. Analizează în română stocul '+symbol+' ('+sector+') CARE A SCĂZUT AZI.\n'+
+      'DATE: Preț '+price+' | Schimb '+chg+' | Volum '+vol+' ('+(vr?vr.toFixed(1)+'x avg':'N/A')+') | Mcap '+mcap+' | Earnings: '+earn+'\n'+
+      'Răspunde în max 6 rânduri: 1) catalyst probabil al scăderii, 2) bounce vs continuare, 3) suport tehnic apropiat, 4) entry/TP/SL pentru un dip-buy sau "evită", 5) risc principal.';
+  }
 }
 async function _lvScanEarnings(){
   const btn=document.getElementById('lvScanEarnBtn');if(!btn)return;
@@ -7638,6 +8300,259 @@ function showBackupModalNasdaq() {
     </div>
   `;
 }
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// ASISTENT CONVERSAȚIONAL AI FLOTANT
+// FAB jos-dreapta → panou chat cu streaming + context scanner ca system message.
+// Comenzi /: /buy /compare /news /watchlist /clear
+// Persistent: ai_chat_history în localStorage (max 30 mesaje păstrate).
+// ═══════════════════════════════════════════════════════════════
+
+const AICHAT_KEY='ai_chat_history';
+const AICHAT_MAX_TURNS=12; // ultimele 12 mesaje (≈6 schimburi) trimise ca context
+const aiChat={
+  open:false,
+  busy:false,
+  messages:[], // {role:'user'|'assistant'|'system', content:string, ts:number}
+};
+
+function aiChatLoad(){
+  try{ aiChat.messages=JSON.parse(localStorage.getItem(AICHAT_KEY)||'[]'); }catch(_){ aiChat.messages=[]; }
+}
+function aiChatPersist(){
+  try{
+    // Păstrează doar ultimele 30 ca să nu umfle storage-ul
+    const slice=aiChat.messages.slice(-30);
+    localStorage.setItem(AICHAT_KEY, JSON.stringify(slice));
+  }catch(_){}
+}
+function aiChatToggle(){
+  aiChat.open=!aiChat.open;
+  document.getElementById('aiChatPanel').classList.toggle('open',aiChat.open);
+  document.getElementById('aiChatFab').classList.toggle('open',aiChat.open);
+  if(aiChat.open){
+    aiChatRender();
+    setTimeout(()=>document.getElementById('aiChatInput')?.focus(),100);
+  }
+}
+function aiChatClear(){
+  if(!confirm('Ștergi tot istoricul conversației?')) return;
+  aiChat.messages=[];
+  aiChatPersist();
+  aiChatRender();
+}
+function aiChatRender(){
+  const body=document.getElementById('aiChatBody');
+  if(!body) return;
+  if(!aiChat.messages.length){
+    body.innerHTML=`<div class="aichat-empty">
+      💬 <b>Asistent AI personal</b><br><br>
+      Întreabă orice despre piață sau folosește comenzi rapide:<br>
+      <kbd>/buy AAPL</kbd> <kbd>/compare NVDA AMD</kbd> <kbd>/news MSFT</kbd> <kbd>/watchlist</kbd> <kbd>/clear</kbd><br><br>
+      <span style="font-size:.58rem">Claude vede automat top buys, top losers, gainers extended și watchlist-ul tău.</span>
+    </div>`;
+    return;
+  }
+  body.innerHTML=aiChat.messages.map(m=>{
+    const cls=m.role==='user'?'user':(m.role==='system'?'system':(m.role==='error'?'error':'assistant'));
+    const safe=(m.content||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<div class="aichat-msg ${cls}">${safe}</div>`;
+  }).join('');
+  body.scrollTop=body.scrollHeight;
+}
+
+// Snapshot scanner ca system message — refacem la fiecare cerere ca să fie proaspăt.
+function aiChatBuildContext(){
+  const lines=['CONTEXT SCANNER (date live, '+new Date().toLocaleString('ro-RO')+'):'];
+  // Top 5 buys
+  const topBuys=(typeof allOpportunities!=='undefined'?allOpportunities:[]).filter(o=>o.isBuy&&o.score>=60).sort((a,b)=>b.score-a.score).slice(0,5);
+  if(topBuys.length){
+    lines.push('TOP BUYS: '+topBuys.map(o=>`${o.symbol} (scor ${o.score}, ${o.chg24>=0?'+':''}${o.chg24.toFixed(1)}%, RSI ${(o.rsi||50).toFixed(0)})`).join(', '));
+  }
+  // Top 5 losers din scan principal
+  const topLosers=(typeof allOpportunities!=='undefined'?allOpportunities:[]).filter(o=>!o.isBuy).sort((a,b)=>a.chg24-b.chg24).slice(0,5);
+  if(topLosers.length){
+    lines.push('TOP LOSERS scan: '+topLosers.map(o=>`${o.symbol} (${o.chg24.toFixed(1)}%)`).join(', '));
+  }
+  // Extended hours top movers
+  const ext=(typeof extendedCache!=='undefined'?extendedCache.data:[])||[];
+  if(ext.length){
+    const extG=ext.filter(d=>d.extPct>0.3).sort((a,b)=>b.extPct-a.extPct).slice(0,3);
+    const extL=ext.filter(d=>d.extPct<-0.3).sort((a,b)=>a.extPct-b.extPct).slice(0,3);
+    if(extG.length) lines.push('EXTENDED gainers: '+extG.map(d=>`${d.symbol} ${d.extPct>=0?'+':''}${d.extPct.toFixed(1)}%`).join(', '));
+    if(extL.length) lines.push('EXTENDED losers: '+extL.map(d=>`${d.symbol} ${d.extPct.toFixed(1)}%`).join(', '));
+  }
+  // Watchlist (max 10)
+  const wl=(typeof watchlist!=='undefined'?watchlist:[])||[];
+  if(wl.length){ lines.push('WATCHLIST ('+wl.length+'): '+wl.slice(0,10).join(', ')); }
+  // Earnings azi (count)
+  if(typeof earningsSet!=='undefined' && earningsSet.size){
+    lines.push('EARNINGS în 7z ('+earningsSet.size+'): '+Array.from(earningsSet).slice(0,10).join(', '));
+  }
+  // Top losers tab — dacă e populat
+  const lvL=(typeof _LV!=='undefined' && _LV.results?.losers)||[];
+  if(lvL.length){
+    lines.push('LOSERS tab (top 5): '+lvL.slice(0,5).map(s=>`${s.symbol} ${s.changePct?.toFixed(1)}% (${s.sector||'N/A'})`).join(', '));
+  }
+  return lines.join('\n');
+}
+
+// Procesează comenzile / înainte de a trimite la Claude.
+// Întoarce stringul ce va fi trimis (sau null dacă comanda a fost gestionată local).
+function aiChatHandleCommand(text){
+  const t=text.trim();
+  if(t==='/clear'){ aiChatClear(); return null; }
+  if(t.startsWith('/buy ')){
+    const sym=t.slice(5).trim().toUpperCase();
+    return `Analizează entry pentru ${sym} ACUM. Dă-mi: niveluri concrete entry/TP/SL în $, dimensiunea poziției pentru un cont de $1000 (max 2% risc), 1 risc principal. Max 5 rânduri.`;
+  }
+  if(t.startsWith('/compare ')){
+    const syms=t.slice(9).trim().split(/[,\s]+/).filter(Boolean).map(s=>s.toUpperCase());
+    if(syms.length<2) return `Format: /compare SYM1 SYM2 [SYM3]`;
+    return `Compară ${syms.join(', ')} pentru un trade azi. Format: 1 paragraf scurt + linia "CÂȘTIGĂ: <ticker>" cu motiv. Apoi entry/SL pentru câștigător sau "stay flat".`;
+  }
+  if(t.startsWith('/news ')){
+    const sym=t.slice(6).trim().toUpperCase();
+    return `__FETCH_NEWS__:${sym}`; // marker — handle below
+  }
+  if(t==='/watchlist'){
+    return `Analizează doar simbolurile din watchlist-ul meu. Pentru fiecare: stare tehnică în 1 rând. La final: "INTRĂ AZI: <ticker>" sau "EVITĂ TOATE — așteaptă". Max 10 rânduri total.`;
+  }
+  return text; // mesaj normal
+}
+
+async function aiChatSend(){
+  if(aiChat.busy) return;
+  const inp=document.getElementById('aiChatInput');
+  const text=(inp.value||'').trim();
+  if(!text) return;
+  if(!getAnthropicKey()){
+    showAnthropicKeyModal(()=>{}); return;
+  }
+  // Procesare comandă /
+  let promptText=aiChatHandleCommand(text);
+  if(promptText===null){ inp.value=''; return; } // ex /clear
+  // Adaugă user msg vizibil
+  aiChat.messages.push({role:'user',content:text,ts:Date.now()});
+  aiChatRender();
+  inp.value='';
+  inp.style.height='auto';
+
+  // Comandă specială /news → fetch știri și injectează în prompt
+  if(typeof promptText==='string' && promptText.startsWith('__FETCH_NEWS__:')){
+    const sym=promptText.split(':')[1];
+    aiChat.messages.push({role:'system',content:'⏳ Aduc știri pentru '+sym+'...',ts:Date.now()});
+    aiChatRender();
+    const news=await aiFetchNews(sym,5);
+    aiChat.messages.pop(); // scoatem mesajul system temporar
+    if(!news.length){
+      aiChat.messages.push({role:'error',content:'❌ Nu am găsit știri pentru '+sym+' (fie nu există cheie Finnhub, fie nicio știre în ultimele 7 zile).',ts:Date.now()});
+      aiChatPersist(); aiChatRender(); return;
+    }
+    promptText=`Interpretează aceste știri pentru ${sym}. Dă-mi: ce contează pentru trade pe termen scurt, sentiment net (bullish/bearish/mix), 1 acțiune concretă.\n\n`+aiNewsBlock(news);
+  }
+
+  // Construiește mesajele pentru API: ultimele AICHAT_MAX_TURNS din istoric
+  // Folosim doar user/assistant (sărim peste system/error care sunt UI-only)
+  const apiMessages=aiChat.messages
+    .filter(m=>m.role==='user'||m.role==='assistant')
+    .slice(-AICHAT_MAX_TURNS)
+    .map(m=>({role:m.role,content:m.content}));
+  // Înlocuiește ultimul user message cu promptText procesat (pentru comenzile /)
+  if(apiMessages.length && apiMessages[apiMessages.length-1].role==='user'){
+    apiMessages[apiMessages.length-1].content=promptText;
+  } else {
+    apiMessages.push({role:'user',content:promptText});
+  }
+
+  // Adaugă placeholder pentru răspuns assistant
+  aiChat.messages.push({role:'assistant',content:'',ts:Date.now()});
+  aiChatRender();
+  aiChat.busy=true;
+  document.getElementById('aiChatSendBtn').disabled=true;
+
+  const ctx=aiChatBuildContext();
+  const sysExtra='Acționezi ca asistent personal de tradat pentru Marius (cont Trade 212 + Pionex). Răspunde scurt și direct, în română. Folosește datele din contextul scanner-ului dacă sunt relevante. Pentru întrebări fără un ticker specific, sugerează ticker-uri din TOP BUYS sau WATCHLIST.\n\n'+ctx;
+
+  aiCallStream(null,{messages:apiMessages,systemExtra:sysExtra,maxTokens:700},
+    (delta,full)=>{
+      // Update ultimul mesaj assistant
+      const last=aiChat.messages[aiChat.messages.length-1];
+      if(last && last.role==='assistant'){ last.content=full; aiChatRender(); }
+    },
+    (full)=>{
+      const last=aiChat.messages[aiChat.messages.length-1];
+      if(last && last.role==='assistant'){ last.content=full; }
+      aiChatPersist(); aiChatRender();
+      aiChat.busy=false;
+      document.getElementById('aiChatSendBtn').disabled=false;
+      document.getElementById('aiChatInput')?.focus();
+    },
+    (err)=>{
+      aiChat.messages.pop(); // scoate placeholder gol
+      aiChat.messages.push({role:'error',content:'❌ '+(err.message||err.type||'Eroare necunoscută'),ts:Date.now()});
+      aiChatPersist(); aiChatRender();
+      aiChat.busy=false;
+      document.getElementById('aiChatSendBtn').disabled=false;
+    }
+  );
+}
+
+// Quick command pills: click → pune în input
+function aiChatQuickCmd(cmd){
+  const inp=document.getElementById('aiChatInput');
+  if(!inp) return;
+  inp.value=cmd+(cmd.endsWith(' ')?'':' ');
+  inp.focus();
+  // Mută cursorul la final
+  setTimeout(()=>{ inp.selectionStart=inp.selectionEnd=inp.value.length; },10);
+}
+
+// Injectează widget-ul în pagină
+(function aiChatInit(){
+  aiChatLoad();
+  const fab=document.createElement('button');
+  fab.id='aiChatFab';
+  fab.title='Asistent AI (chat conversațional)';
+  fab.innerHTML='💬';
+  fab.onclick=aiChatToggle;
+  document.body.appendChild(fab);
+
+  const panel=document.createElement('div');
+  panel.id='aiChatPanel';
+  panel.innerHTML=`
+    <div class="aichat-hdr">
+      <div class="aichat-hdr-title">💬 Asistent AI · scanner</div>
+      <div class="aichat-hdr-actions">
+        <button class="aichat-hdr-btn" onclick="aiChatClear()" title="Șterge istoric">🗑️</button>
+        <button class="aichat-hdr-btn" onclick="aiChatToggle()" title="Închide">✕</button>
+      </div>
+    </div>
+    <div class="aichat-body" id="aiChatBody"></div>
+    <div class="aichat-cmds">
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/buy ')">/buy</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/compare ')">/compare</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/news ')">/news</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/watchlist')">/watchlist</span>
+    </div>
+    <div class="aichat-input-row">
+      <textarea id="aiChatInput" class="aichat-input" placeholder="Întreabă orice... (Enter trimite, Shift+Enter linie nouă)" rows="1"></textarea>
+      <button id="aiChatSendBtn" class="aichat-send" onclick="aiChatSend()">▶</button>
+    </div>
+  `;
+  document.body.appendChild(panel);
+
+  // Auto-resize textarea + Enter trimite
+  const inp=document.getElementById('aiChatInput');
+  inp.addEventListener('input',()=>{
+    inp.style.height='auto';
+    inp.style.height=Math.min(120,inp.scrollHeight)+'px';
+  });
+  inp.addEventListener('keydown',(e)=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); aiChatSend(); }
+  });
+})();
 // ═══════════════════════════════════════════════════════════════
 
 </script>
