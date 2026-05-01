@@ -746,6 +746,7 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
     <div class="notif-btn" id="anthropicKeyBtn" onclick="showAnthropicKeyModal()" style="cursor:pointer" title="Configurează cheia Anthropic API pentru analiza AI inline">🔑 AI Key</div>
     <div class="notif-btn" id="aiBriefingBtn" onclick="showAIBriefing()" style="cursor:pointer;color:#a855f7;border-color:#c084fc" title="Analiza AI completă a întregii watchlist">🌅 AI Briefing</div>
     <div class="notif-btn" id="infoBtn" onclick="showInfoModal()" style="cursor:pointer" title="Ghid complet și changelog">ℹ️ Info</div>
+    <div class="notif-btn" onclick="showBackupModalNasdaq()" style="cursor:pointer" title="Backup config + watchlist + alerte (Export / Import / Restore)">💾 Backup</div>
     <div id="pwaInstallBtn" onclick="installPWA()" style="display:none;padding:6px 12px;border-radius:var(--rs);font-size:.62rem;font-weight:600;cursor:pointer;border:1px solid var(--accb);background:var(--accl);color:var(--acc);align-items:center;gap:5px;">📱 Instalează</div>
   </div>
 </div>
@@ -7497,6 +7498,147 @@ function renderTopLosers(){
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(e => console.warn('SW register failed:', e));
 }
+
+// ═══════════════════════════════════════════════════════════════
+// SISTEM BACKUP NASDAQ: Export / Import JSON + auto-snapshot rotativ
+// ═══════════════════════════════════════════════════════════════
+const _BKN_KEY = 'nasdaq_backups';
+const _BKN_LAST = 'nasdaq_lastBackup';
+const _BKN_MAX = 10;
+const _BKN_PATTERN = /^(wl_stocks|price_alerts|saved_setups|risk_config|nasdaq_pumpradar_cfg|nasdaq_pumpradar_history|telegram_cfg_nasdaq|nasdaqSortMode|lv_autoRefresh|last_seen_version|fh_key|ai_briefing_|anthropic_api_key|rsi_cache|rsi_cache_time)/;
+
+function _bknCapture() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && _BKN_PATTERN.test(k)) data[k] = localStorage.getItem(k);
+  }
+  return data;
+}
+
+function _bknAddSnapshot() {
+  try {
+    const list = JSON.parse(localStorage.getItem(_BKN_KEY) || '[]');
+    list.push({ ts: Date.now(), data: _bknCapture() });
+    while (list.length > _BKN_MAX) list.shift();
+    localStorage.setItem(_BKN_KEY, JSON.stringify(list));
+    localStorage.setItem(_BKN_LAST, String(Date.now()));
+  } catch(e) { console.warn('Snapshot failed:', e); }
+}
+
+// Auto-snapshot la load dacă a trecut >1h de la ultimul
+(function autoBkN() {
+  try {
+    const last = parseInt(localStorage.getItem(_BKN_LAST) || '0', 10);
+    if (!last || Date.now() - last > 3600000) _bknAddSnapshot();
+  } catch(e) {}
+})();
+
+function exportBackupNasdaq() {
+  const data = { app: 'nasdaq-scanner', version: 1, exportedAt: new Date().toISOString(), data: _bknCapture() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dt = new Date().toISOString().slice(0,19).replace(/:/g,'-');
+  a.href = url;
+  a.download = `nasdaq-scanner-backup_${dt}.json`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 100);
+  if (typeof showToast === 'function') showToast('💾 Backup descărcat','ok');
+}
+
+function importBackupNasdaq() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.json';
+  inp.onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const j = JSON.parse(ev.target.result);
+        const data = j.data || j;
+        if (typeof data !== 'object' || !Object.keys(data).length) throw new Error('Format invalid sau gol');
+        if (!confirm(`Import ${Object.keys(data).length} chei? Va înlocui datele curente.\n\nUn snapshot al stării curente se salvează automat ÎNAINTE.`)) return;
+        _bknAddSnapshot();
+        Object.entries(data).forEach(([k, v]) => { try { localStorage.setItem(k, v); } catch(e) {} });
+        alert('✅ Import reușit. Pagina se reîncarcă.');
+        location.reload();
+      } catch (err) { alert('❌ Eroare: ' + err.message); }
+    };
+    reader.readAsText(f);
+  };
+  inp.click();
+}
+
+function restoreBackupSnapshotNasdaq(idx) {
+  try {
+    const list = JSON.parse(localStorage.getItem(_BKN_KEY) || '[]');
+    const snap = list[idx]; if (!snap) return;
+    const dt = new Date(snap.ts).toLocaleString('ro-RO');
+    if (!confirm(`Restaurezi snapshot-ul de la ${dt}?\n\nVa înlocui datele curente.`)) return;
+    _bknAddSnapshot();
+    Object.entries(snap.data).forEach(([k, v]) => { try { localStorage.setItem(k, v); } catch(e) {} });
+    alert('✅ Restaurat. Pagina se reîncarcă.');
+    location.reload();
+  } catch(e) { alert('Eroare: ' + e.message); }
+}
+
+function showBackupModalNasdaq() {
+  let modal = document.getElementById('bknModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'bknModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;';
+    modal.onclick = e => { if (e.target === modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+  let backups = [];
+  try { backups = JSON.parse(localStorage.getItem(_BKN_KEY) || '[]'); } catch(e) {}
+  const lastTs = parseInt(localStorage.getItem(_BKN_LAST) || '0', 10);
+  const lastStr = lastTs ? new Date(lastTs).toLocaleString('ro-RO') : '—';
+
+  let snapHtml = '';
+  if (backups.length === 0) {
+    snapHtml = '<div style="font-size:.65rem;color:var(--t3);font-style:italic;padding:8px 0;">Niciun snapshot încă.</div>';
+  } else {
+    snapHtml = backups.slice().reverse().map((s, revIdx) => {
+      const idx = backups.length - 1 - revIdx;
+      const dt = new Date(s.ts).toLocaleString('ro-RO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+      const nKeys = Object.keys(s.data).length;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:6px;font-size:.62rem;margin-bottom:4px;">
+        <span style="color:var(--t2);font-family:var(--mono);">📦 ${dt}</span>
+        <span style="color:var(--t3);">·</span>
+        <span style="color:var(--t1);font-weight:700;">${nKeys} chei</span>
+        <button onclick="restoreBackupSnapshotNasdaq(${idx})" style="margin-left:auto;padding:4px 10px;border-radius:6px;background:var(--accl);color:var(--acc);border:1px solid var(--accb);font-size:.6rem;font-weight:700;cursor:pointer;">↩️ Restaurează</button>
+      </div>`;
+    }).join('');
+  }
+
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:18px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-family:var(--head);font-weight:800;font-size:.95rem;color:var(--t1);">💾 Backup & Restaurare</div>
+        <button onclick="document.getElementById('bknModal').remove()" style="background:none;border:none;color:var(--t3);font-size:1.4rem;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <div style="font-size:.65rem;color:var(--t2);line-height:1.5;margin-bottom:12px;">
+        Salvează / restaurează <strong>tot ce ține de scannerul tău Nasdaq</strong>: watchlist, alerte preț, setup-uri salvate, config Telegram, AI briefing, etc.<br>
+        <span style="color:var(--t3);font-size:.58rem;">Ultimul snapshot automat: ${lastStr}</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <button onclick="exportBackupNasdaq()" style="flex:1;padding:8px 12px;border-radius:8px;background:var(--acc);color:#fff;border:none;font-weight:700;font-size:.7rem;cursor:pointer;">📥 Export JSON (descarcă)</button>
+        <button onclick="importBackupNasdaq()" style="flex:1;padding:8px 12px;border-radius:8px;background:var(--bg3);color:var(--t1);border:1px solid var(--b1);font-weight:700;font-size:.7rem;cursor:pointer;">📤 Import JSON</button>
+      </div>
+      <div style="font-size:.6rem;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:6px;">Snapshot-uri locale (auto, ultimele ${_BKN_MAX}):</div>
+      ${snapHtml}
+      <div style="font-size:.55rem;color:var(--t3);margin-top:10px;padding-top:8px;border-top:1px dashed var(--b1);font-style:italic;">
+        ⚠️ Snapshot-urile locale dispar dacă ștergi cache-ul browser-ului. Pentru backup permanent: <strong>Export JSON</strong> și păstrează fișierul (Drive/email/USB).
+      </div>
+    </div>
+  `;
+}
+// ═══════════════════════════════════════════════════════════════
 
 </script>
 </body>
