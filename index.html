@@ -231,5 +231,11 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
 
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+<script>
+// Înregistrează service worker-ul (cache + offline)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW register failed:', e));
+}
+</script>
 </body>
 </html>

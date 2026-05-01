@@ -278,6 +278,7 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
 .tabs::-webkit-scrollbar-thumb{background:var(--b1);border-radius:4px;}
 .tab{flex:1 0 auto;min-width:70px;padding:7px 10px;text-align:center;font-size:.6rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--t3);border-radius:7px;cursor:pointer;transition:all .15s;white-space:nowrap;}
 .tab.act{background:var(--acc);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.3);}
+.tab-div{flex:0 0 1px;width:1px;height:22px;background:var(--b2);align-self:center;margin:0 4px;opacity:.6;}
 
 /* SIGNAL CARDS */
 .signals-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
@@ -964,25 +965,32 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
   <div class="ftag" onclick="exportCsvNasdaq()" style="background:var(--greenl);border-color:var(--greenb);color:var(--green)">📥 CSV</div>
 </div>
 
-<!-- TABS -->
+<!-- TABS — grupate vizual: Live | Setup | Macro | Istoric -->
 <div class="tabs">
+  <!-- GRUP 1: Live & lista de bază -->
   <div class="tab act" onclick="setTab('live',this)">🔴 Live</div>
   <div class="tab" onclick="setTab('all',this)">📋 Toate</div>
+  <div class="tab-div" aria-hidden="true"></div>
+  <!-- GRUP 2: Setup-uri / Oportunități -->
   <div class="tab" onclick="setTab('earlybuy',this)" style="color:var(--teal)">🌱 Early Buy</div>
   <div class="tab" onclick="setTab('reco',this)">💡 Oportunit.</div>
   <div class="tab" onclick="setTab('multiscan',this)" style="color:var(--purple)">🎛️ Multi-Scan</div>
+  <div class="tab" onclick="setTab('swing',this)">🎯 Swing</div>
+  <div class="tab" onclick="setTab('squeeze',this)" style="color:#dc2626">🔥 Squeeze</div>
+  <div class="tab" onclick="setTab('pumpradar',this)" style="color:#e11d48">🚨 Pump Radar</div>
+  <div class="tab-div" aria-hidden="true"></div>
+  <!-- GRUP 3: Macro / context piață -->
   <div class="tab" onclick="setTab('heatmap',this)">🗺️ Heatmap</div>
   <div class="tab" onclick="setTab('rotation',this)" style="color:var(--cyan)">🌐 Sectoare</div>
   <div class="tab" onclick="setTab('extended',this)" style="color:#a855f7">🌅 Pre/After</div>
   <div class="tab" onclick="setTab('losers',this)" style="color:var(--red)">📉 Top Losers</div>
   <div class="tab" onclick="setTab('insider',this)" style="color:#059669">👔 Insider</div>
-  <div class="tab" onclick="setTab('squeeze',this)" style="color:#dc2626">🔥 Squeeze</div>
-  <div class="tab" onclick="setTab('journal',this)" style="color:#0891b2">📓 Jurnal</div>
-  <div class="tab" onclick="setTab('swing',this)">🎯 Swing</div>
   <div class="tab" onclick="setTab('gap',this)">↕️ Gap</div>
   <div class="tab" onclick="setTab('correlation',this)">🔗 Corelații</div>
+  <div class="tab-div" aria-hidden="true"></div>
+  <!-- GRUP 4: Istoric / Jurnal -->
+  <div class="tab" onclick="setTab('journal',this)" style="color:#0891b2">📓 Jurnal</div>
   <div class="tab" onclick="setTab('history',this)">📜 Istoric</div>
-  <div class="tab" onclick="setTab('pumpradar',this)" style="color:#e11d48">🚨 Pump Radar</div>
 </div>
 
 <!-- SIGNALS -->
@@ -7212,7 +7220,10 @@ class NasdaqLosersScanner{
 const _LV={
   results:{earnings:null,losers:null},
   status:{earn:{msg:'Așteaptă scan automat...',type:''},loser:{msg:'Așteaptă scan automat...',type:''}},
-  initialScanDone:false
+  initialScanDone:false,
+  autoTimer:null,           // timer-ul setInterval activ (sau null)
+  autoSeconds:0,            // intervalul curent în secunde (0 = off)
+  lastRefreshTs:0           // timestamp ultim refresh reușit
 };
 
 const _LV_HTML=`
@@ -7220,6 +7231,14 @@ const _LV_HTML=`
   <div class="lv-config">
     <label>Proxy CORS:</label>
     <input id="lvProxy" type="text" value="https://cors-proxy-one-drab.vercel.app/api/proxy/?url=" />
+    <label style="margin-left:8px;">Auto-refresh:</label>
+    <select id="lvAutoRefresh" style="padding:5px 8px;border:1px solid var(--b1);border-radius:6px;font-size:.65rem;font-family:var(--mono);background:var(--bg);color:var(--t1);">
+      <option value="0" selected>Off</option>
+      <option value="300">5 min</option>
+      <option value="900">15 min</option>
+      <option value="1800">30 min</option>
+    </select>
+    <span id="lvLastRefresh" style="font-size:.55rem;color:var(--t3);margin-left:6px;"></span>
     <button class="btn-refresh-all" id="lvRefreshAllBtn">🔄 Refresh Amândouă</button>
   </div>
 
@@ -7408,7 +7427,37 @@ async function _lvScanLosers(){
     console.error(err);
   }finally{btn.disabled=false;}
 }
-function _lvRunAll(){return Promise.all([_lvScanEarnings(),_lvScanLosers()]);}
+async function _lvRunAll(){
+  await Promise.all([_lvScanEarnings(),_lvScanLosers()]);
+  _LV.lastRefreshTs=Date.now();
+  _lvUpdateLastRefresh();
+}
+
+function _lvUpdateLastRefresh(){
+  const el=document.getElementById('lvLastRefresh');
+  if(!el)return;
+  if(!_LV.lastRefreshTs){el.textContent='';return;}
+  const t=new Date(_LV.lastRefreshTs).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  el.textContent=`Ultim: ${t}`;
+}
+
+// Setează / oprește auto-refresh-ul. Persistă alegerea în localStorage.
+function _lvSetAutoRefresh(){
+  const sel=document.getElementById('lvAutoRefresh');
+  if(!sel)return;
+  const sec=parseInt(sel.value,10)||0;
+  _LV.autoSeconds=sec;
+  if(_LV.autoTimer){clearInterval(_LV.autoTimer);_LV.autoTimer=null;}
+  if(sec>0){
+    _LV.autoTimer=setInterval(()=>{
+      // Rulează doar dacă suntem încă pe tab-ul Top Losers (altfel evităm fetch-uri inutile)
+      if(currentTab==='losers')_lvRunAll();
+    },sec*1000);
+    try{localStorage.setItem('lv_autoRefresh',String(sec));}catch(e){}
+  }else{
+    try{localStorage.removeItem('lv_autoRefresh');}catch(e){}
+  }
+}
 
 function renderTopLosers(){
   const c=document.getElementById('signalsContainer');
@@ -7428,6 +7477,14 @@ function renderTopLosers(){
   document.getElementById('lvScanEarnBtn').onclick=_lvScanEarnings;
   document.getElementById('lvScanLoserBtn').onclick=_lvScanLosers;
   document.getElementById('lvRefreshAllBtn').onclick=_lvRunAll;
+  // Restaurează preferința de auto-refresh din localStorage
+  try{
+    const saved=localStorage.getItem('lv_autoRefresh');
+    if(saved)document.getElementById('lvAutoRefresh').value=saved;
+  }catch(e){}
+  document.getElementById('lvAutoRefresh').onchange=_lvSetAutoRefresh;
+  _lvSetAutoRefresh(); // (re)pornește timer-ul pe baza valorii curente
+  _lvUpdateLastRefresh();
   // Auto-scan o singură dată la prima accesare a tab-ului
   if(!_LV.initialScanDone){
     _LV.initialScanDone=true;
@@ -7435,6 +7492,11 @@ function renderTopLosers(){
   }
 }
 // ═══════════════════════════════════════════════════════════════
+
+// Înregistrează service worker-ul (cache + offline) — scope: ../
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(e => console.warn('SW register failed:', e));
+}
 
 </script>
 </body>

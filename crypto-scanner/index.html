@@ -7417,6 +7417,11 @@ document.addEventListener('click', function(e) {
 console.log('[ExtLink] interceptor v2 loaded');
 // ═══════════════════════════════════════════════════════════════
 
+// Înregistrează service worker-ul (cache + offline) — scope: ../
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(e => console.warn('SW register failed:', e));
+}
+
 </script>
 </body>
 </html>

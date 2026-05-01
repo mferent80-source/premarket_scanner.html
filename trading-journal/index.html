@@ -214,13 +214,53 @@ try {
   trades = JSON.parse(localStorage.getItem('journal_trades') || '[]');
   settings = { ...settings, ...JSON.parse(localStorage.getItem('journal_settings') || '{}') };
   statsFilter = localStorage.getItem('journal_statsFilter') || 'all';
+  // Restaurează filtrele aplicate pe lista de trade-uri (cross-session)
+  const savedFilters = JSON.parse(localStorage.getItem('journal_filters') || '{}');
+  filters = { ...filters, ...savedFilters };
 } catch(e) {}
+
+function _saveFilters() {
+  try { localStorage.setItem('journal_filters', JSON.stringify(filters)); } catch(e) {}
+}
 
 function saveTrades() {
   try { localStorage.setItem('journal_trades', JSON.stringify(trades)); } catch(e) {}
+  // După fiecare modificare a listei → snapshot automat în istoricul de backup-uri
+  _backupSnapshot();
 }
 function saveSettings() {
   try { localStorage.setItem('journal_settings', JSON.stringify(settings)); } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════
+// BACKUP AUTOMAT
+// La fiecare modificare a unui trade, salvăm un snapshot rotativ (ultimele 10)
+// în localStorage. În Setări, utilizatorul poate restaura, exporta sau importa.
+// ═══════════════════════════════════════════════════════
+function _backupSnapshot() {
+  try {
+    const list = JSON.parse(localStorage.getItem('journal_backups') || '[]');
+    list.push({ ts: Date.now(), trades: [...trades], settings: { ...settings } });
+    // Păstrăm doar ultimele 10 snapshot-uri (FIFO)
+    while (list.length > 10) list.shift();
+    localStorage.setItem('journal_backups', JSON.stringify(list));
+    localStorage.setItem('journal_lastBackup', String(Date.now()));
+  } catch(e) { console.warn('Backup snapshot failed:', e); }
+}
+
+function restoreSnapshot(idx) {
+  try {
+    const list = JSON.parse(localStorage.getItem('journal_backups') || '[]');
+    const snap = list[idx];
+    if (!snap) return;
+    if (!confirm(`Restaurezi snapshot-ul de la ${new Date(snap.ts).toLocaleString('ro-RO')}?\n\nVei avea ${snap.trades.length} trade-uri (acum ai ${trades.length}).`)) return;
+    _backupSnapshot(); // backup curent înainte de restaurare
+    trades = snap.trades;
+    if (snap.settings) settings = { ...settings, ...snap.settings };
+    saveTrades();
+    saveSettings();
+    render();
+  } catch(e) { alert('Eroare la restaurare: ' + e.message); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -478,37 +518,37 @@ function renderAllTrades() {
   html += '<span style="color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.04em">🔍 Filter:</span>';
   
   // Coin filter
-  html += '<select onchange="filters.coin=this.value;render()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.6rem;font-family:inherit">';
+  html += '<select onchange="filters.coin=this.value;_saveFilters();render()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.6rem;font-family:inherit">';
   html += '<option value="">Toate coins</option>';
   allCoins.forEach(c => {
     html += `<option value="${c}" ${filters.coin===c?'selected':''}>${c}</option>`;
   });
   html += '</select>';
-  
+
   // Type filter
-  html += '<select onchange="filters.type=this.value;render()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.6rem;font-family:inherit">';
+  html += '<select onchange="filters.type=this.value;_saveFilters();render()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.6rem;font-family:inherit">';
   [['all','Toate tipuri'],['futures','Futures'],['grid','Grid Bot'],['stock','Stocks (Nasdaq)']].forEach(([v,l])=>{
     html += `<option value="${v}" ${filters.type===v?'selected':''}>${l}</option>`;
   });
   html += '</select>';
-  
+
   // Status filter
-  html += '<select onchange="filters.status=this.value;render()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.6rem;font-family:inherit">';
+  html += '<select onchange="filters.status=this.value;_saveFilters();render()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.6rem;font-family:inherit">';
   [['all','Toate'],['open','Open'],['win','Wins'],['loss','Losses'],['partial','Partial']].forEach(([v,l])=>{
     html += `<option value="${v}" ${filters.status===v?'selected':''}>${l}</option>`;
   });
   html += '</select>';
-  
+
   // Period filter
-  html += '<select onchange="filters.period=this.value;render()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.6rem;font-family:inherit">';
+  html += '<select onchange="filters.period=this.value;_saveFilters();render()" style="padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.6rem;font-family:inherit">';
   [['all','Toate perioade'],['7d','Ultimele 7 zile'],['30d','30 zile'],['90d','90 zile']].forEach(([v,l])=>{
     html += `<option value="${v}" ${filters.period===v?'selected':''}>${l}</option>`;
   });
   html += '</select>';
-  
+
   // Reset button
   if (filters.coin || filters.type !== 'all' || filters.status !== 'all' || filters.period !== 'all') {
-    html += `<button class="btn sm" onclick="filters={coin:'',type:'all',status:'all',period:'all'};render()" style="margin-left:auto">✕ Reset</button>`;
+    html += `<button class="btn sm" onclick="filters={coin:'',type:'all',status:'all',period:'all'};_saveFilters();render()" style="margin-left:auto">✕ Reset</button>`;
   }
   
   html += `<span style="margin-left:auto;color:#94a3b8">${filtered.length} / ${trades.length}</span>`;
@@ -1235,17 +1275,40 @@ function drawEquityChart() {
 // SETTINGS TAB
 // ═══════════════════════════════════════════════════════
 function renderSettings() {
+  // Construiește lista de snapshot-uri (cele mai recente sus)
+  let backups = [];
+  try { backups = JSON.parse(localStorage.getItem('journal_backups') || '[]'); } catch(e) {}
+  const lastBkTs = parseInt(localStorage.getItem('journal_lastBackup') || '0', 10);
+  const lastBkStr = lastBkTs ? new Date(lastBkTs).toLocaleString('ro-RO') : '—';
+
+  let snapshotHtml = '';
+  if (backups.length === 0) {
+    snapshotHtml = '<div style="font-size:.65rem;color:#94a3b8;font-style:italic;padding:8px 0">Niciun snapshot încă. Se creează automat la fiecare modificare a unui trade.</div>';
+  } else {
+    snapshotHtml = '<div style="display:flex;flex-direction:column;gap:5px;margin-top:6px">' +
+      backups.slice().reverse().map((s, revIdx) => {
+        const idx = backups.length - 1 - revIdx;
+        const dateStr = new Date(s.ts).toLocaleString('ro-RO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 9px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:.62rem">
+          <span style="color:#64748b">📦 ${dateStr}</span>
+          <span style="color:#94a3b8">·</span>
+          <span style="color:#475569;font-weight:600">${s.trades.length} trade-uri</span>
+          <button class="btn sm" onclick="restoreSnapshot(${idx})" style="margin-left:auto">↩️ Restaurează</button>
+        </div>`;
+      }).join('') + '</div>';
+  }
+
   return `
     <div class="card">
       <div class="card-h"><div class="card-t">⚙️ Setări</div></div>
-      
+
       <div class="form-row">
         <div class="field">
           <label>💼 Cont start (USDT) — pentru equity curve</label>
           <input type="number" id="s_acc" value="${settings.accountSize}" min="10" step="100" onchange="updateSettings()">
         </div>
       </div>
-      
+
       <div class="form-row">
         <div class="field">
           <label>🤖 Anthropic API Key (pentru AI analysis pe trade-uri pierdute)</label>
@@ -1255,12 +1318,24 @@ function renderSettings() {
           </div>
         </div>
       </div>
-      
-      <div style="display:flex;gap:8px;margin-top:14px">
+
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
         <button class="btn primary" onclick="updateSettings();alert('Salvat!')">💾 Salvează</button>
-        <button class="btn" onclick="exportData()">📥 Export JSON Backup</button>
+        <button class="btn" onclick="exportData()">📥 Export JSON</button>
         <button class="btn" onclick="importData()">📤 Import JSON</button>
         <button class="btn danger" onclick="clearAll()" style="margin-left:auto">🗑 Șterge Tot</button>
+      </div>
+    </div>
+
+    <div class="card" style="background:#f0fdf4;border-color:#86efac">
+      <div class="card-h"><div class="card-t">📦 Backup automat (snapshot-uri locale)</div></div>
+      <div style="font-size:.65rem;color:#166534;line-height:1.6;margin-bottom:8px">
+        La fiecare adăugare / modificare / ștergere a unui trade se salvează automat un snapshot în memoria locală a browser-ului. Sunt păstrate <strong>ultimele 10 snapshot-uri</strong>.<br>
+        <strong>Ultimul snapshot:</strong> ${lastBkStr}
+      </div>
+      ${snapshotHtml}
+      <div style="font-size:.55rem;color:#15803d;margin-top:10px;padding-top:8px;border-top:1px solid #bbf7d0">
+        ⚠️ <strong>Important:</strong> snapshot-urile se păstrează în <code>localStorage</code> — dacă ștergi cache-ul browser-ului sau schimbi dispozitivul, se pierd. Pentru backup permanent, folosește <strong>📥 Export JSON</strong> și păstrează fișierul (Drive / email / USB).
       </div>
     </div>
     
@@ -1314,7 +1389,11 @@ function importData() {
     reader.onload = ev => {
       try {
         const data = JSON.parse(ev.target.result);
-        if (data.trades) trades = data.trades;
+        if (!data.trades || !Array.isArray(data.trades)) throw new Error('Format invalid: lipsește lista de trade-uri');
+        if (!confirm(`Import ${data.trades.length} trade-uri? Asta va ÎNLOCUI cele ${trades.length} existente.\n\nUn snapshot al stării curente se salvează automat (poți reveni din Setări).`)) return;
+        // Backup curent ÎNAINTE de import (separat de saveTrades care la rândul lui face snapshot pentru noua stare)
+        _backupSnapshot();
+        trades = data.trades;
         if (data.settings) settings = { ...settings, ...data.settings };
         saveTrades();
         saveSettings();
@@ -1405,6 +1484,11 @@ document.addEventListener('click', function(e) {
   }
 }, true);
 console.log('[ExtLink] interceptor v2 loaded');
+
+// Înregistrează service worker-ul (cache + offline) — scope: ../
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(e => console.warn('SW register failed:', e));
+}
 </script>
 
 </body>
