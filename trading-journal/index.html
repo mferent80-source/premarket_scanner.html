@@ -197,8 +197,52 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);font-size:13px
 <div class="app">
   <div class="hdr" style="position:relative;">
     <div style="position:absolute;top:14px;right:18px;display:flex;gap:6px;">
+      <button onclick="openQuickAddModal()" style="padding:5px 12px;border-radius:7px;font-size:.62rem;font-weight:700;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.25);color:#fff;cursor:pointer;" title="Quick log — coin + entry + size, restul completezi mai târziu">⚡ Quick log</button>
       <button id="darkModeBtn" onclick="toggleDarkMode()" style="padding:5px 10px;border-radius:7px;font-size:.7rem;font-weight:700;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;cursor:pointer;" title="Comută Dark / Light mode (shared cu scannerele)">🌙</button>
       <a href="../" style="padding:5px 12px;border-radius:7px;font-size:.62rem;font-weight:700;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">← Hub</a>
+    </div>
+
+    <!-- QUICK ADD MODAL -->
+    <div id="quickAddModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.72);z-index:9999;align-items:center;justify-content:center;padding:16px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;width:100%;max-width:420px;color:var(--t1)">
+        <div style="font-weight:800;font-size:1rem;margin-bottom:6px">⚡ Quick Log Trade</div>
+        <div style="font-size:.62rem;color:var(--t3);margin-bottom:14px;line-height:1.5">Doar minimum: tip + coin + entry + size. SL/TP/notes le completezi mai târziu prin edit.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label style="font-size:.6rem;color:var(--t2);font-weight:600">Tip</label>
+            <select id="qa_type" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--t1);font-size:.7rem;margin-top:3px">
+              <option value="futures">Crypto Futures</option>
+              <option value="grid">Grid Bot</option>
+              <option value="stock">Stock Nasdaq</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:.6rem;color:var(--t2);font-weight:600">Direcție</label>
+            <select id="qa_dir" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--t1);font-size:.7rem;margin-top:3px">
+              <option value="long">Long</option>
+              <option value="short">Short</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <label style="font-size:.6rem;color:var(--t2);font-weight:600">Coin / Simbol</label>
+          <input id="qa_coin" type="text" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--t1);font-size:.75rem;text-transform:uppercase;margin-top:3px" placeholder="BTC, NVDA, etc.">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div>
+            <label style="font-size:.6rem;color:var(--t2);font-weight:600">Entry $</label>
+            <input id="qa_entry" type="number" step="any" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--t1);font-size:.7rem;margin-top:3px" placeholder="0.00">
+          </div>
+          <div>
+            <label style="font-size:.6rem;color:var(--t2);font-weight:600">Size $</label>
+            <input id="qa_size" type="number" step="any" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--t1);font-size:.7rem;margin-top:3px" placeholder="500">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="saveQuickAdd()" style="flex:1;padding:10px;border-radius:8px;border:none;background:var(--primary);color:#fff;font-weight:700;font-size:.7rem;cursor:pointer">💾 Salvează (Open)</button>
+          <button onclick="closeQuickAddModal()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--t1);font-size:.7rem;cursor:pointer">Anulează</button>
+        </div>
+      </div>
     </div>
     <h1>📓 Trading Journal — Pionex + Trade 212</h1>
     <div class="sub" id="hdrSub">v1.2 · Crypto futures + grid + Nasdaq stocks · Local storage · Stats · Calendar · Equity</div>
@@ -207,6 +251,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);font-size:13px
   <!-- STATS -->
   <div id="statsSeg"></div>
   <div class="stats" id="statsBar"></div>
+  <div id="setupStatsHost"></div>
 
   <!-- TABS -->
   <div class="tabs">
@@ -408,6 +453,30 @@ function computeStats() {
   };
 }
 
+// Per-setup stats: grupează trade-uri închise după t.setup și calculează winRate + PnL + avgR.
+// Util pentru "ce setup câștigă mai des". Filtru: doar setup-uri cu >= 3 trade-uri.
+function computeSetupStats(){
+  const pool = _statsPool();
+  const closed = pool.filter(t => t.status === 'win' || t.status === 'loss');
+  const groups = {};
+  closed.forEach(t => {
+    const key = (t.setup || '').trim() || '— fără setup —';
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(t);
+  });
+  const out = [];
+  Object.entries(groups).forEach(([setup, trades]) => {
+    if(trades.length < 3) return;
+    const wins = trades.filter(t => t.status === 'win').length;
+    const winRate = wins / trades.length * 100;
+    const totalPnL = trades.reduce((s,t) => s + (Number(t.pnl)||0), 0);
+    const withR = trades.filter(t => typeof t.rMultiple === 'number' && isFinite(t.rMultiple));
+    const avgR = withR.length ? withR.reduce((s,t)=>s+t.rMultiple,0)/withR.length : null;
+    out.push({ setup, count: trades.length, winRate, totalPnL, avgR });
+  });
+  return out.sort((a,b) => b.totalPnL - a.totalPnL);
+}
+
 function renderStats() {
   // Render segment toggle (Toate / Crypto / Nasdaq)
   const seg = document.getElementById('statsSeg');
@@ -467,6 +536,47 @@ function renderStats() {
       <div class="sub">trade-uri active</div>
     </div>
   `;
+
+  // Per-setup breakdown (sub stats principale, doar dacă există minim un setup cu ≥3 trade-uri)
+  const setupStats = computeSetupStats();
+  const setupHost = document.getElementById('setupStatsHost');
+  if(setupHost){
+    if(!setupStats.length){
+      setupHost.innerHTML = '';
+    } else {
+      const rows = setupStats.map(g => {
+        const wrCol = g.winRate >= 60 ? 'var(--success)' : g.winRate >= 45 ? 'var(--warn)' : 'var(--danger)';
+        const pnlCol = g.totalPnL >= 0 ? 'var(--success)' : 'var(--danger)';
+        const rStr = g.avgR !== null ? `<span style="color:${g.avgR>=0.2?'var(--success)':g.avgR>=0?'var(--warn)':'var(--danger)'};font-weight:700">${g.avgR>=0?'+':''}${g.avgR.toFixed(2)}R</span>` : '<span style="color:var(--t3)">—</span>';
+        return `<tr style="border-top:1px solid var(--border)">
+          <td style="padding:8px 10px;font-weight:600;color:var(--t1);max-width:340px;overflow:hidden;text-overflow:ellipsis">${escHtml(g.setup)}</td>
+          <td style="padding:8px 10px;text-align:right;color:var(--t2);font-family:'Roboto Mono',monospace">${g.count}</td>
+          <td style="padding:8px 10px;text-align:right;color:${wrCol};font-weight:700;font-family:'Roboto Mono',monospace">${g.winRate.toFixed(0)}%</td>
+          <td style="padding:8px 10px;text-align:right;color:${pnlCol};font-weight:700;font-family:'Roboto Mono',monospace">${fmtUSD(g.totalPnL)}</td>
+          <td style="padding:8px 10px;text-align:right;font-family:'Roboto Mono',monospace">${rStr}</td>
+        </tr>`;
+      }).join('');
+      setupHost.innerHTML = `
+        <div class="card" style="padding:0;overflow:hidden;margin-bottom:14px">
+          <div style="padding:12px 14px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div style="font-weight:800;font-size:.85rem;color:var(--t1)">📊 Per-Setup Breakdown</div>
+            <div style="font-size:.6rem;color:var(--t3)">setup-uri cu ≥3 trade-uri · sortate după PnL</div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:.7rem">
+            <thead>
+              <tr style="background:var(--surface)">
+                <th style="padding:8px 10px;text-align:left;color:var(--t3);font-size:.55rem;text-transform:uppercase;letter-spacing:.05em">Setup</th>
+                <th style="padding:8px 10px;text-align:right;color:var(--t3);font-size:.55rem;text-transform:uppercase;letter-spacing:.05em">N</th>
+                <th style="padding:8px 10px;text-align:right;color:var(--t3);font-size:.55rem;text-transform:uppercase;letter-spacing:.05em">Win Rate</th>
+                <th style="padding:8px 10px;text-align:right;color:var(--t3);font-size:.55rem;text-transform:uppercase;letter-spacing:.05em">PnL</th>
+                <th style="padding:8px 10px;text-align:right;color:var(--t3);font-size:.55rem;text-transform:uppercase;letter-spacing:.05em">Avg R</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -918,6 +1028,62 @@ function loadScreenshot(input) {
 
 // Hook pe câmpul Risk pentru viitor preview de R; pentru moment doar no-op (evită eroare oninput)
 function _recalcRiskPreview(){ /* placeholder */ }
+
+// ── QUICK ADD ──
+// Modal compact: tip + direction + coin + entry + size. Salvează ca status='open'. Edit ulterior.
+function openQuickAddModal(){
+  const m = document.getElementById('quickAddModal');
+  if(!m) return;
+  m.style.display = 'flex';
+  ['qa_coin','qa_entry','qa_size'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  setTimeout(() => { const c = document.getElementById('qa_coin'); if(c) c.focus(); }, 50);
+}
+function closeQuickAddModal(){
+  const m = document.getElementById('quickAddModal');
+  if(m) m.style.display = 'none';
+}
+function saveQuickAdd(){
+  const type = document.getElementById('qa_type').value;
+  const direction = document.getElementById('qa_dir').value;
+  const coin = (document.getElementById('qa_coin').value || '').trim().toUpperCase();
+  const entry = parseFloat(document.getElementById('qa_entry').value);
+  const size = parseFloat(document.getElementById('qa_size').value);
+  if(!coin){ alert('Coin obligatoriu.'); return; }
+  if(!/^[A-Z0-9.\-]{1,15}$/.test(coin)){ alert('Coin invalid: doar A-Z, 0-9, "." sau "-".'); return; }
+  if(!entry || entry <= 0){ alert('Entry trebuie să fie > 0.'); return; }
+  if(!size || size <= 0){ alert('Size trebuie să fie > 0.'); return; }
+  const trade = {
+    id: newId(),
+    type, coin,
+    direction: (type === 'futures' || type === 'stock') ? direction : null,
+    status: 'open',
+    entry, sl: null, tp: null, exit: null,
+    size, leverage: 1,
+    fees: 0, funding: 0, risk: null,
+    pnl: null, pnlGross: null, pnlPct: null, rMultiple: null,
+    setup: '', notes: '',
+    screenshot: null,
+    openTime: Date.now(),
+    closeTime: null
+  };
+  trades.push(trade);
+  saveTrades();
+  closeQuickAddModal();
+  // Refresh UI
+  if(typeof render === 'function') render();
+  alert(`✅ ${coin} salvat (open). Edit din lista de trade-uri pentru SL/TP/notițe.`);
+}
+// Close pe click backdrop
+document.addEventListener('click', e => {
+  if(e.target && e.target.id === 'quickAddModal') closeQuickAddModal();
+});
+// Close pe Escape
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){
+    const m = document.getElementById('quickAddModal');
+    if(m && m.style.display === 'flex') closeQuickAddModal();
+  }
+});
 
 function addTrade() {
   const type = document.getElementById('f_type').value;
