@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#f8faff">
+<meta name="theme-color" content="#f4f6ff">
 <title>Nasdaq Opportunity Scanner</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%232563eb'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -25,6 +25,21 @@
   --r:12px;--rs:8px;
   --sh:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
   --shh:0 4px 16px rgba(0,0,0,.1);
+}
+body.dark{
+  --bg:#0b0f1a; --bg2:#131829; --bg3:#1a2035; --bg4:#222940;
+  --b1:#2a3150; --b2:#3a4268;
+  --t1:#e2e8f0; --t2:#94a3b8; --t3:#64748b;
+  --acc:#60a5fa; --accl:rgba(96,165,250,.1); --accb:rgba(96,165,250,.25);
+  --green:#34d399; --greenl:rgba(52,211,153,.1); --greenb:rgba(52,211,153,.25);
+  --red:#f87171; --redl:rgba(248,113,113,.1); --redb:rgba(248,113,113,.25);
+  --gold:#fbbf24; --goldl:rgba(251,191,36,.1); --goldb:rgba(251,191,36,.25);
+  --cyan:#22d3ee; --cyanl:rgba(34,211,238,.08);
+  --purple:#a78bfa; --purpll:rgba(167,139,250,.1); --purplb:rgba(167,139,250,.25);
+  --orange:#fb923c; --orangl:rgba(251,146,60,.1);
+  --teal:#2dd4bf; --teall:rgba(45,212,191,.1); --tealb:rgba(45,212,191,.25);
+  --sh:0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
+  --shh:0 4px 16px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{min-height:100vh;overflow-x:hidden}
@@ -806,6 +821,7 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
       <span id="statusTxt">OPRIT</span>
     </div>
     <a href="../" style="padding:5px 11px;border-radius:7px;font-size:.6rem;font-weight:600;border:1px solid var(--b1);background:var(--bg2);color:var(--t2);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;" onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t2)'">← Hub</a>
+    <button class="notif-btn" id="darkModeBtn" onclick="toggleDarkMode()" style="cursor:pointer" title="Comută Dark / Light mode (shared cu crypto-scanner)">🌙</button>
     <button class="ai-summary-btn" id="aiSummaryBtnHdr" onclick="toggleAISummary()">🧠 AI Summary</button>
     <div class="notif-btn" id="notifBtn" onclick="requestNotif()">🔔 Notificări</div>
     <div class="notif-btn" id="tgBtn" onclick="showTelegramModal()" style="cursor:pointer" title="Configurează Telegram pentru alerte">📱 Telegram</div>
@@ -4163,27 +4179,7 @@ function renderInsiderFeed(){
 }
 let extendedCache = { data:[], session:'unknown', ts:0, fetching:false };
 
-function getMarketSession(){
-  // ET timezone-aware
-  const now=new Date();
-  const utc=now.getUTCHours()*60+now.getUTCMinutes();
-  // ET = UTC-4 (EDT) sau UTC-5 (EST). Aproximare: UTC-4 în vară (mar-nov), UTC-5 iarnă
-  const month=now.getUTCMonth(); // 0-indexed
-  const isEDT=month>=2&&month<=10; // Mar-Nov rough
-  const etOffset=isEDT?-4:-5;
-  let etMin=utc+etOffset*60;
-  if(etMin<0) etMin+=1440;
-  if(etMin>=1440) etMin-=1440;
-  const day=now.getUTCDay(); // 0=Sun, 6=Sat
-  if(day===0||day===6) return {session:'closed',label:'🛌 Weekend'};
-  // Pre: 4:00 - 9:30 (240 - 570)
-  // Regular: 9:30 - 16:00 (570 - 960)
-  // After: 16:00 - 20:00 (960 - 1200)
-  if(etMin>=240&&etMin<570) return {session:'premarket',label:'🌅 Pre-Market'};
-  if(etMin>=570&&etMin<960) return {session:'regular',label:'🟢 Regular Hours'};
-  if(etMin>=960&&etMin<1200) return {session:'afterhours',label:'🌙 After-Hours'};
-  return {session:'closed',label:'🌑 Piață închisă'};
-}
+// (getMarketSession definită mai jos cu toLocaleString + timezone — DST-safe; aici declarația duplicată GREȘITĂ a fost ștearsă)
 
 // List of ~80 mega/large caps with high extended-hours volume
 const EXTENDED_WATCH=[
@@ -4246,21 +4242,28 @@ async function fetchExtendedHours(){
         }
         
         if(!extPrice||!isFinite(extPct)) return null;
-        
+
         // Volume during extended hours — sum of bars outside regular hours
         const timestamps=result.timestamp||[];
         const volumes=result.indicators?.quote?.[0]?.volume||[];
         const tradingPeriods=meta.tradingPeriods?.regular?.[0];
         const regStart=tradingPeriods?.start||0;
         const regEnd=tradingPeriods?.end||0;
-        
+
         let extVol=0;
         for(let j=0;j<timestamps.length;j++){
           if(timestamps[j]<regStart || timestamps[j]>=regEnd){
             extVol+=volumes[j]||0;
           }
         }
-        
+
+        // Sanity check: mișcări extended hours pe volum extrem de mic = trade unic la "ASK + 5%",
+        // nu semnal real. Filtrăm out symbol-urile cu volume < 10K shares în extended.
+        // Watchlist-ul e exempt (userul vrea să vadă oricum mișcările).
+        const MIN_EXT_VOL = 10000;
+        const isWl = wlSet.has(sym);
+        if(!isWl && extVol < MIN_EXT_VOL) return null;
+
         return {
           symbol:sym,
           regularPrice:regularPrice,
@@ -4269,8 +4272,9 @@ async function fetchExtendedHours(){
           extLabel:extLabel,
           extPct:extPct,
           extVol:extVol,
+          lowVolume: extVol < MIN_EXT_VOL, // marker pentru UI: arată warning
           regularChange:((regularPrice-prevClose)/prevClose)*100,
-          isWatchlist:wlSet.has(sym),
+          isWatchlist:isWl,
           earningsToday:earningsSet&&earningsSet.has(sym)
         };
       }catch(e){ return null; }
@@ -4520,7 +4524,6 @@ Reguli stricte de stil:
 // ── Cache rezultate AI cu TTL în localStorage ──
 // v4: cache-ul nu mai stochează răspunsuri când datele de intrare sunt zero (anti-contaminare).
 const AI_CACHE_KEY='ai_cache_v4';
-try{ localStorage.removeItem('ai_cache_v1'); localStorage.removeItem('ai_cache_v2'); localStorage.removeItem('ai_cache_v3'); }catch(_){}
 // Helper: detectează dacă prompt-ul conține date inutile (toate zero / N/A) — atunci NU cache-uim
 function aiPromptIsBlank(prompt){
   return /Preț \$0\.00.*RSI: 50.*Trend 7z: N\/A/.test(prompt) || /Preț \$0\.00.*Schimb 0\.00%/.test(prompt);
@@ -5421,20 +5424,62 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
     sellReasons.push({t:`Range extrem ${range24pct.toFixed(1)}% — zi de risc ridicat, evită levels vagi.`,c:'neg'});
   }
 
-  // ── Earnings risk ──
-  if(earningsSet.has(symbol)){
-    buyScore-=12;sellScore-=12; // reduce ambele — earnings = risc bidirecțional
-    const msg={t:'⚠️ Earnings în 7 zile — volatilitate imprevizibilă. Risc ridicat pentru orice direcție.',c:'neu'};
-    buyReasons.push(msg);sellReasons.push(msg);
+  // ── Volume sanity (lichiditate + falling knife protection) ──
+  // shortDataCache e populat pentru watchlist + top stocks scanate (vezi fetchShortInterest)
+  const _stockMetrics = (typeof shortDataCache!=='undefined' ? shortDataCache[symbol] : null) || {};
+  const avgVol10D = parseFloat(_stockMetrics.avgVol10D) || 0;
+  if(avgVol10D > 0 && avgVol10D < 100000){
+    // Stocks ilichide = slippage + manipulare — scoringul agresiv e periculos
+    buyScore -= 10; sellScore -= 6;
+    buyReasons.push({t:`Volume mediu redus (${(avgVol10D/1e3).toFixed(0)}K/zi) — risc slippage. Folosește limit orders, nu market.`,c:'neu'});
+  }
+  // Falling knife: RSI extrem low + scădere continuă pe ultimele 3 zile = NU reversal, ci downtrend persistent.
+  // Setup-ul "BUY oversold" e o capcană dacă cumpărătorii nu apar.
+  if(rsi <= 32 && chg24 <= -5 && spark && spark.length >= 4){
+    const w3 = ((spark[spark.length-1] - spark[spark.length-4]) / spark[spark.length-4]) * 100;
+    if(w3 <= -5){
+      buyScore -= 18;
+      buyReasons.push({t:`⚠️ Falling knife: RSI ${rsi.toFixed(0)} + ${w3.toFixed(1)}% în 3 zile fără bounce. Așteaptă confirmare reversal (close pozitiv 2+ zile).`,c:'neg'});
+    }
   }
 
-  // ── Calcul Entry / TP / SL ──
+  // ── Earnings risk: BLOCK BUY/SELL aggressive în <48h pre-earnings ──
+  // Verdict-uri "Cumpără Acum" pre-earnings = lottery. Mai bine WAIT decât a paria pe gap ±10-30%.
+  if(earningsSet.has(symbol)){
+    let earningsHoursAway = null;
+    const eCal = (typeof earningsCalendar !== 'undefined' ? earningsCalendar : null) || [];
+    const e = eCal.find(x => x.symbol === symbol);
+    if(e && e.date){
+      try {
+        const ts = new Date(e.date).getTime();
+        if(!isNaN(ts)) earningsHoursAway = (ts - Date.now()) / (1000 * 3600);
+      } catch(_){}
+    }
+    if(earningsHoursAway !== null && earningsHoursAway > 0 && earningsHoursAway < 48){
+      // Cap ambele scoruri sub pragul "BUY at pullback" (55) — forțează verdict NEUTRAL/MONITOR
+      buyScore = Math.min(buyScore, 35);
+      sellScore = Math.min(sellScore, 35);
+      const msg = {t:`🚫 EARNINGS în ~${Math.round(earningsHoursAway)}h — verdict agresiv BLOCAT. Gap post-rezultat ±10-30% imposibil de prezis. Așteaptă deschiderea post-earnings.`,c:'neg'};
+      buyReasons.push(msg); sellReasons.push(msg);
+    } else {
+      buyScore -= 12; sellScore -= 12;
+      const msg = {t:'⚠️ Earnings în 7 zile — volatilitate imprevizibilă. Risc ridicat pentru orice direcție.',c:'neu'};
+      buyReasons.push(msg); sellReasons.push(msg);
+    }
+  }
+
+  // ── Calcul Entry / TP / SL — ATR-based (volatility-adjusted) ──
+  // ATR proxy = range zilnic; pentru NVDA (atr 5%) TP-ul va fi mult mai larg decât pentru KO (atr 1%)
   const isBuyOpp=buyScore>sellScore;
   const finalScore=isBuyOpp?Math.min(100,Math.round(buyScore)):Math.min(100,Math.round(sellScore));
   const entry=price;
-  const tp=isBuyOpp?price*(1+(rsi<=35?0.10:rsi<=45?0.07:0.05)):price*(1-(rsi>=75?0.09:0.06));
-  const sl=isBuyOpp?price*(rsi<=30?0.94:0.96):price*(rsi>=75?1.05:1.04);
-  const rr=Math.abs(tp-entry)/Math.abs(sl-entry);
+  const atrProxy = Math.max((high24 - low24), price * 0.015); // floor 1.5% pentru low-vol stocks
+  // TP mai larg pentru reversal-uri tari (RSI extrem); SL mai larg pentru oversold (mai mult breathing room)
+  const tpMult = isBuyOpp ? (rsi<=35 ? 2.5 : rsi<=45 ? 2.0 : 1.5) : (rsi>=75 ? 2.5 : 2.0);
+  const slMult = isBuyOpp ? (rsi<=30 ? 1.5 : 1.2) : (rsi>=75 ? 1.5 : 1.2);
+  const tp = isBuyOpp ? entry + atrProxy*tpMult : entry - atrProxy*tpMult;
+  const sl = isBuyOpp ? entry - atrProxy*slMult : entry + atrProxy*slMult;
+  const rr = Math.abs(tp-entry)/Math.abs(sl-entry);
 
   return{
     symbol, price, chg24, rsi, range24pct,
@@ -5524,6 +5569,7 @@ function renderRecommendations(){
           <a class="btn-sig" href="${tvUrl}" target="_blank">📈 TradingView</a>
           <a class="btn-sig" href="${yhUrl}" target="_blank">📰 Yahoo</a>
           <a class="btn-sig btn-t212" href="https://app.trading212.com/" target="_blank">📊 T212</a>
+          <button class="btn-sig" onclick='saveToJournal(${JSON.stringify({symbol:o.symbol,coin:o.symbol,direction:isBuy?"long":"short",entry:o.entry,stopLoss:o.sl,takeProfit:o.tp,setup:"Oportunitate "+(isBuy?"BUY":"SELL"),scannerScore:o.score,notes:o.reasons.map(r=>r.t).slice(0,2).join(" · ")}).replace(/'/g,"&#39;")})' style="border:none;cursor:pointer">📓 Jurnal</button>
         </div>
         ${renderNewsSection(o.symbol)}
         ${renderAlertSection(o.symbol, o.price)}
@@ -6257,32 +6303,34 @@ function analyzeNasdaqFromCandles(symbol, candles, quote, prevSnapshot){
   const highs=candles.map(c=>c.high);
   const lows=candles.map(c=>c.low);
   
-  const lastClose=closes[closes.length-1];
-  const open5m=candles[candles.length-1].open;
-  const open15m=candles[candles.length-4]?candles[candles.length-4].open:closes[0];
-  
-  // Price changes
-  const chg5m=((lastClose-open5m)/open5m)*100;
-  const chg15m=((lastClose-open15m)/open15m)*100;
-  
+  const lastClose=closes[closes.length-1]; // preț curent (bara activă) — folosit doar la afișaj/BB instant
+  // ── BARA ÎNCHISĂ pentru detecție (anti-repaint): bara curentă e incompletă ──
+  const closedClose = closes[closes.length-2];
+  const closedOpen  = candles[candles.length-2].open;
+  const open15m=candles[candles.length-5]?candles[candles.length-5].open:closes[0]; // 3 bare 5m înainte de cea închisă ≈ 15m
+
+  // Price changes — măsurate pe bara închisă (5m completă), nu pe cea activă
+  const chg5m=((closedClose-closedOpen)/closedOpen)*100;
+  const chg15m=((closedClose-open15m)/open15m)*100;
+
   // Daily change (from Finnhub quote, more reliable for pre/post)
   const prevClose=quote?quote.pc:0;
   const dailyChg=prevClose>0?((lastClose-prevClose)/prevClose)*100:0;
-  
+
   // Gap
   const open=quote?quote.o:0;
   const gap=prevClose>0&&open>0?((open-prevClose)/prevClose)*100:0;
-  
-  // Volume spike (last bar vs avg of last 20)
-  const currentVol=volumes[volumes.length-1];
-  const volsSlice=volumes.slice(-21,-1).filter(v=>v>0);
+
+  // Volume spike — bara închisă vs media celor 20 anterioare ei
+  const currentVol=volumes[volumes.length-2];
+  const volsSlice=volumes.slice(-22,-2).filter(v=>v>0);
   const avgVol20=volsSlice.length>0?volsSlice.reduce((a,b)=>a+b,0)/volsSlice.length:0;
   const volRatio=avgVol20>0?currentVol/avgVol20:1;
-  
-  // RSI 14 on 5m
-  const rsi=calcRSIStock(closes, 14);
-  
-  // Bollinger Bands
+
+  // RSI 14 pe 5m — pe seria fără bara activă (anti-repaint)
+  const rsi=calcRSIStock(closes.slice(0,-1), 14);
+
+  // Bollinger Bands — instant pe lastClose (BB e indicator de moment, OK)
   const bb=calcBBStock(closes, 20, 2);
   const bbBreakUp=bb && lastClose>bb.upper;
   const bbBreakDown=bb && lastClose<bb.lower;
@@ -7296,6 +7344,47 @@ const NEWS_TICKER_SLOW_MS=6*60*1000; // then refresh every 6 min
 function escapeHtmlNT(s){
   return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
+
+// ── DARK MODE (shared cu crypto-scanner via localStorage['darkMode']) ──
+function toggleDarkMode(){
+  document.body.classList.toggle('dark');
+  const isDark = document.body.classList.contains('dark');
+  try{ localStorage.setItem('darkMode', isDark ? '1' : '0'); }catch(e){}
+  const btn = document.getElementById('darkModeBtn');
+  if(btn) btn.textContent = isDark ? '☀️' : '🌙';
+}
+// Aplică starea salvată la load (cross-app: același key 'darkMode')
+(function(){
+  try {
+    if(localStorage.getItem('darkMode') === '1'){
+      document.body.classList.add('dark');
+      setTimeout(() => { const b=document.getElementById('darkModeBtn'); if(b) b.textContent='☀️'; }, 0);
+    }
+  } catch(e){}
+})();
+
+// ── SCANNER → JOURNAL HOOK ──
+// Salvează un setup în localStorage['journal_pending_trade'] — trading-journal îl detectează
+// la load și deschide form-ul pre-completat. Cross-app pe același origin (GitHub Pages).
+function saveToJournal(payload){
+  try{
+    const trade = {
+      source: 'nasdaq-scanner',
+      type: 'stock', // pentru nasdaq = acțiuni Trade 212
+      direction: 'long',
+      ...payload,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('journal_pending_trade', JSON.stringify(trade));
+    const url = '../trading-journal/?prefill=1';
+    if(typeof showToast==='function'){
+      showToast(`📓 Setup ${trade.symbol||trade.coin} salvat — <a href="${url}" target="_blank" style="color:#fff;text-decoration:underline;font-weight:800">deschide Jurnal</a>`, 'ok');
+    }
+  }catch(e){
+    if(typeof showToast==='function') showToast('❌ Salvare jurnal: '+e.message, 'err');
+  }
+}
+window.saveToJournal = saveToJournal;
 
 function classifyNewsNT(headline){
   const h=(headline||'').toLowerCase();
