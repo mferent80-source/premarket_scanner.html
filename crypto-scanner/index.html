@@ -1126,11 +1126,14 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 
 <!-- TABS — grupate vizual: Live | Setup | Pionex tools | Macro | Istoric -->
 <div class="tabs">
+  <!-- NEW: Setups unified — combină Live + Early Buy + Oportunități + Multi-Scan -->
+  <div class="tab act" onclick="setTab('setups',this)" style="color:var(--acc);font-weight:800">🎯 Setups</div>
+  <div class="tab-div" aria-hidden="true"></div>
   <!-- GRUP 1: Live & lista de bază -->
-  <div class="tab act" onclick="setTab('live',this)">🔴 Live</div>
+  <div class="tab" onclick="setTab('live',this)">🔴 Live</div>
   <div class="tab" onclick="setTab('all',this)">📋 Toate</div>
   <div class="tab-div" aria-hidden="true"></div>
-  <!-- GRUP 2: Setup-uri / Oportunități -->
+  <!-- GRUP 2: Setup-uri / Oportunități (legacy — Setups le acoperă) -->
   <div class="tab" onclick="setTab('earlybuy',this)" style="color:var(--teal)">🌱 Early Buy</div>
   <div class="tab" onclick="setTab('reco',this)">💡 Oportun.</div>
   <div class="tab" onclick="setTab('multiscan',this)" style="color:var(--purple)">🎛️ Multi-Scan</div>
@@ -3418,7 +3421,185 @@ function setTab(t,el){
   renderSignals();
 }
 
+// ── CONVICTION SCORE — combină Opportunity + Early Buy + ST Long într-un scor unic 0-100 ──
+// Folosit în tab-ul Setups pentru a sorta semnalele după putere reală (anticipare + confirmare).
+function calcConvictionScore(o){
+  let s = 0;
+  // Opportunity score (40%) — primary signal strength
+  s += (o.score || 0) * 0.40;
+  // Early Buy score (30%) — bonus pentru entry-uri timpurii
+  if(typeof calcCryptoEarlyBuyScore === 'function'){
+    try { s += calcCryptoEarlyBuyScore(o) * 0.30; } catch(e){}
+  }
+  // ST Long verdict (30%) — confirmation power (cheia pentru "Pionex va confirma")
+  let stPts = 50; // neutral dacă lipsește
+  const stld = (typeof stlongCache !== 'undefined') ? stlongCache[o.coin + 'USDT'] : null;
+  if(stld && stld.verdict){
+    if(stld.verdict === '🚀 LONG READY') stPts = 100;
+    else if(stld.verdict === '🟢 LONG OK') stPts = 75;
+    else if(stld.verdict === '🟡 SETUP MIXT') stPts = 45;
+    else stPts = 10; // 🔴 NU LONG
+  }
+  s += stPts * 0.30;
+  return Math.round(Math.max(0, Math.min(100, s)));
+}
+
+// ── SETUPS — vizualizare unificată (înlocuiește Live + Early Buy + Oportunități + Multi-Scan) ──
+let setupsFilter = 'all'; // all | early | confirmed | hot | pump | breakout | oversold
+function setSetupsFilter(f){ setupsFilter = f; renderSetups(); }
+function renderSetups(){
+  const container = document.getElementById('signalsContainer');
+  if(!allCryptoOpportunities || !allCryptoOpportunities.length){
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🎯</div><div class="empty-title">Nicio scanare completă</div><div class="empty-sub">Pornește scanner-ul. Tab-ul Setups arată coin-urile sortate după Conviction Score (Opportunity + Early Buy + Smart Trade Long combinate).<br><br>Pentru confirmare ST Long: după primul scan, mergi în tab "🚀 Smart Trade L" → "Scanează tot".</div></div>';
+    return;
+  }
+
+  // Calculează conviction pentru toate
+  const enriched = allCryptoOpportunities
+    .filter(o => o.coin && (o.score || 0) >= 40)
+    .map(o => ({ ...o, convictionScore: calcConvictionScore(o), earlyScore: (typeof calcCryptoEarlyBuyScore === 'function' ? calcCryptoEarlyBuyScore(o) : 0) }));
+
+  // Aplică filtrul
+  let filtered = enriched;
+  if(setupsFilter === 'early')          filtered = enriched.filter(o => o.earlyScore >= 60 && o.chg24 >= 0);
+  else if(setupsFilter === 'confirmed') filtered = enriched.filter(o => {
+    const stld = (typeof stlongCache !== 'undefined') ? stlongCache[o.coin + 'USDT'] : null;
+    return stld && (stld.verdict === '🚀 LONG READY' || stld.verdict === '🟢 LONG OK');
+  });
+  else if(setupsFilter === 'hot')       filtered = enriched.filter(o => Math.abs(o.chg24) >= 5 && (o.volRatio || 1) >= 1.5);
+  else if(setupsFilter === 'pump')      filtered = enriched.filter(o => o.chg24 >= 3);
+  else if(setupsFilter === 'breakout')  filtered = enriched.filter(o => o.range24pct >= 8 && o.chg24 >= 2);
+  else if(setupsFilter === 'oversold')  filtered = enriched.filter(o => o.rsi <= 35);
+
+  // Sortare: convictionScore desc, watchlist priority
+  const wlCoins = (document.getElementById('watchlistInp')?.value || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+  filtered.sort((a, b) => {
+    const aWl = wlCoins.includes(a.coin) ? 1 : 0;
+    const bWl = wlCoins.includes(b.coin) ? 1 : 0;
+    if(aWl !== bWl) return bWl - aWl;
+    return b.convictionScore - a.convictionScore;
+  });
+
+  filtered = filtered.slice(0, 30);
+
+  // Counts pentru badge-uri
+  const cntAll = enriched.length;
+  const cntEarly = enriched.filter(o => o.earlyScore >= 60 && o.chg24 >= 0).length;
+  const cntConfirmed = enriched.filter(o => {
+    const stld = (typeof stlongCache !== 'undefined') ? stlongCache[o.coin + 'USDT'] : null;
+    return stld && (stld.verdict === '🚀 LONG READY' || stld.verdict === '🟢 LONG OK');
+  }).length;
+  const cntHot = enriched.filter(o => Math.abs(o.chg24) >= 5 && (o.volRatio || 1) >= 1.5).length;
+
+  // Header + filter buttons
+  let html = '<div>';
+  html += '<div style="background:linear-gradient(135deg,var(--accl),rgba(124,58,237,.04));border:1px solid var(--accb);border-radius:var(--r);padding:14px 16px;margin-bottom:12px">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">';
+  html += '<div><div style="font-family:var(--head);font-weight:800;font-size:1rem;color:var(--t1)">🎯 Setups — vizualizare unificată</div>';
+  html += '<div style="font-size:.6rem;color:var(--t2);margin-top:2px">Conviction = Opportunity 40% + Early 30% + ST Long 30%. Sortat după conviction. ⭐ watchlist primul.</div></div>';
+  html += '<div style="font-size:.55rem;color:var(--t3)">'+cntAll+' scanate</div>';
+  html += '</div>';
+  // Filter buttons
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+  const mkBtn = (id, lbl, count, color) => {
+    const active = setupsFilter === id;
+    return '<button onclick="setSetupsFilter(\''+id+'\')" style="padding:6px 12px;border-radius:7px;border:1px solid '+(active?color:'var(--b1)')+';background:'+(active?color:'var(--bg2)')+';color:'+(active?'#fff':'var(--t2)')+';font-size:.6rem;font-weight:700;cursor:pointer;font-family:var(--mono)">'+lbl+' <span style="opacity:.75">('+count+')</span></button>';
+  };
+  html += mkBtn('all', '🌐 All', cntAll, 'var(--acc)');
+  html += mkBtn('confirmed', '✓ Confirmed', cntConfirmed, '#15803d');
+  html += mkBtn('early', '🌱 Early', cntEarly, 'var(--teal)');
+  html += mkBtn('hot', '🔥 Hot', cntHot, '#dc2626');
+  html += mkBtn('pump', '🚀 Pump', enriched.filter(o => o.chg24 >= 3).length, '#f97316');
+  html += mkBtn('breakout', '💥 Breakout', enriched.filter(o => o.range24pct >= 8 && o.chg24 >= 2).length, '#a855f7');
+  html += mkBtn('oversold', '📉 Oversold', enriched.filter(o => o.rsi <= 35).length, '#0891b2');
+  html += '</div>';
+  html += '</div>';
+
+  if(!filtered.length){
+    html += '<div class="empty"><div class="empty-icon">🔭</div><div class="empty-title">Niciun setup în filtrul curent</div><div class="empty-sub">Schimbă filtrul sau așteaptă scan-ul următor.</div></div>';
+    container.innerHTML = html + '</div>';
+    return;
+  }
+
+  // Render carduri
+  filtered.forEach(o => {
+    const wl = wlCoins.includes(o.coin);
+    const tvUrl = 'https://www.tradingview.com/chart/?symbol=BINANCE:' + o.coin + 'USDT.P';
+    const pxUrl = 'https://www.pionex.com/en/futures-trade/' + o.coin + '_USDT.PERP';
+
+    // ST Long badge
+    const stld = (typeof stlongCache !== 'undefined') ? stlongCache[o.coin + 'USDT'] : null;
+    let stBadge = '<span style="font-size:.5rem;background:var(--bg3);color:var(--t3);border:1px solid var(--b1);border-radius:4px;padding:2px 6px">? ST</span>';
+    if(stld && stld.verdict){
+      if(stld.verdict === '🚀 LONG READY') stBadge = '<span title="Smart Trade Long READY — confirmat" style="font-size:.5rem;background:rgba(21,128,61,.14);color:#15803d;border:1px solid #86efac;border-radius:4px;padding:2px 6px;font-weight:800">✓ READY</span>';
+      else if(stld.verdict === '🟢 LONG OK') stBadge = '<span style="font-size:.5rem;background:rgba(8,145,178,.14);color:#0e7490;border:1px solid #67e8f9;border-radius:4px;padding:2px 6px;font-weight:800">✓ OK</span>';
+      else if(stld.verdict === '🟡 SETUP MIXT') stBadge = '<span style="font-size:.5rem;background:rgba(161,98,7,.14);color:#a16207;border:1px solid #fde68a;border-radius:4px;padding:2px 6px;font-weight:700">⚠ mixt</span>';
+      else stBadge = '<span title="ST Long NU confirmă — Pionex va arăta SELL/NEUTRAL" style="font-size:.5rem;background:rgba(185,28,28,.12);color:#b91c1c;border:1px solid #fca5a5;border-radius:4px;padding:2px 6px;font-weight:700">✗ nu</span>';
+    }
+
+    // Conviction bar color
+    const cs = o.convictionScore;
+    const csColor = cs >= 75 ? '#15803d' : cs >= 60 ? '#0891b2' : cs >= 45 ? '#a16207' : '#94a3b8';
+    const dirColor = o.chg24 >= 0 ? 'var(--green)' : 'var(--red)';
+
+    // jPayload pentru save to journal
+    const jPayload = JSON.stringify({
+      coin: o.coin, symbol: o.coin + 'USDT', direction: o.isBuy ? 'long' : 'short',
+      entry: o.price, stopLoss: o.sl, takeProfit: o.tp,
+      setup: 'Setups view (conviction ' + cs + ')',
+      scannerScore: cs,
+      notes: 'RSI ' + (o.rsi || 0).toFixed(0) + ' · chg24 ' + (o.chg24 || 0).toFixed(1) + '% · Early ' + (o.earlyScore || 0)
+    }).replace(/'/g, '&#39;');
+
+    html += '<div class="early-card" style="margin-bottom:8px">';
+    html += '<div class="early-stripe" style="background:'+csColor+'"></div>';
+    html += '<div class="early-body">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap">';
+    html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
+    if(wl) html += '<span style="color:#f59e0b">⭐</span>';
+    html += '<span style="font-family:var(--head);font-weight:800;font-size:1rem;color:var(--t1)">'+o.coin+'</span>';
+    html += stBadge;
+    if(o.earlyScore >= 60) html += '<span style="font-size:.5rem;background:var(--teall);color:var(--teal);border:1px solid var(--tealb);border-radius:4px;padding:2px 6px;font-weight:700">🌱 Early '+o.earlyScore+'</span>';
+    html += '<span style="font-size:.55rem;color:var(--t3)">'+(CRYPTO_CAT[o.coin]||'Crypto')+'</span>';
+    html += '</div>';
+    html += '<div style="text-align:right">';
+    html += '<div style="font-family:var(--head);font-weight:900;font-size:1.4rem;color:'+csColor+';line-height:1">'+cs+'</div>';
+    html += '<div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px">Conviction</div>';
+    html += '</div>';
+    html += '</div>';
+    // Stats row
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">';
+    html += '<div style="text-align:center;padding:5px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:'+dirColor+';font-size:.75rem">'+(o.chg24>=0?'+':'')+o.chg24.toFixed(2)+'%</div><div style="font-size:.5rem;color:var(--t3)">24h</div></div>';
+    html += '<div style="text-align:center;padding:5px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:'+(o.rsi<=35?'var(--acc)':o.rsi>=65?'var(--orange)':'var(--t1)')+';font-size:.75rem">'+(o.rsi||0).toFixed(0)+'</div><div style="font-size:.5rem;color:var(--t3)">RSI</div></div>';
+    html += '<div style="text-align:center;padding:5px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:var(--t1);font-size:.75rem">'+(o.range24pct||0).toFixed(1)+'%</div><div style="font-size:.5rem;color:var(--t3)">Range</div></div>';
+    html += '<div style="text-align:center;padding:5px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:var(--t1);font-size:.75rem">'+formatP(o.price)+'</div><div style="font-size:.5rem;color:var(--t3)">Preț</div></div>';
+    html += '</div>';
+    // Conviction breakdown bar
+    html += '<div style="display:flex;height:5px;border-radius:3px;overflow:hidden;margin-bottom:8px;background:var(--bg3)">';
+    const oppPct = (o.score || 0) * 0.40;
+    const earlyPct = (o.earlyScore || 0) * 0.30;
+    const stPct = stld ? (stld.verdict === '🚀 LONG READY' ? 30 : stld.verdict === '🟢 LONG OK' ? 22 : stld.verdict === '🟡 SETUP MIXT' ? 13 : 3) : 15;
+    html += '<div style="width:'+oppPct+'%;background:var(--acc)" title="Opportunity '+Math.round(oppPct)+'pts"></div>';
+    html += '<div style="width:'+earlyPct+'%;background:var(--teal)" title="Early '+Math.round(earlyPct)+'pts"></div>';
+    html += '<div style="width:'+stPct+'%;background:#15803d" title="ST Long '+Math.round(stPct)+'pts"></div>';
+    html += '</div>';
+    // Action buttons
+    html += '<div style="display:flex;gap:5px">';
+    html += '<a href="'+tvUrl+'" target="_blank" style="flex:1;text-align:center;background:var(--bg2);padding:7px;border-radius:6px;text-decoration:none;color:var(--acc);font-size:.6rem;font-weight:700;border:1px solid var(--accb)">📈 TV</a>';
+    html += '<a href="'+pxUrl+'" target="_blank" style="flex:1;text-align:center;background:var(--bg2);padding:7px;border-radius:6px;text-decoration:none;color:var(--purple);font-size:.6rem;font-weight:700;border:1px solid var(--purplb)">⚡ Pionex</a>';
+    if(o.entry || o.price){
+      html += '<button onclick=\'saveToJournal('+jPayload+')\' style="flex:1;background:var(--bg2);padding:7px;border-radius:6px;color:#7c3aed;font-size:.6rem;font-weight:700;border:1px solid var(--purplb);cursor:pointer">📓 Jurnal</button>';
+    }
+    html += '</div>';
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
+}
+
 function renderSignals(){
+  if(currentTab==='setups'){ renderSetups(); return; }
   if(currentTab==='multiscan'){ renderMultiScan(); return; }
   if(currentTab==='futures'){ renderFuturesPatterns(); return; }
   if(currentTab==='smart'){ renderSmartData(); return; }
