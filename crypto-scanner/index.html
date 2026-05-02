@@ -89,6 +89,7 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
 .sdot.scanning{background:var(--acc);box-shadow:0 0 6px var(--acc);animation:blink .8s infinite;}
 .sdot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:blink 1.5s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes shimmer{0%{background-position:0% 50%}100%{background-position:200% 50%}}
 
 .notif-btn{
   padding:6px 12px;border-radius:var(--rs);font-size:.62rem;font-weight:600;
@@ -1128,6 +1129,7 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 <div class="tabs">
   <!-- NEW: Setups unified — combină Live + Early Buy + Oportunități + Multi-Scan -->
   <div class="tab act" onclick="setTab('setups',this)" style="color:var(--acc);font-weight:800">🎯 Setups</div>
+  <div class="tab" onclick="setTab('premium',this)" style="color:#d97706;font-weight:800">💎 Premium <span id="premiumCountBadge" style="font-size:.5rem;background:rgba(217,119,6,.15);border:1px solid rgba(217,119,6,.35);border-radius:8px;padding:1px 6px;margin-left:3px;color:#92400e">0</span></div>
   <div class="tab-div" aria-hidden="true"></div>
   <!-- GRUP 1: Live & lista de bază -->
   <div class="tab" onclick="setTab('live',this)">🔴 Live</div>
@@ -3055,6 +3057,12 @@ async function runScan(){
 
   log(`💡 ${allCryptoOpportunities.filter(o=>o.score>=52).length} oportunități detectate (din ${allCryptoOpportunities.length} scanate)`, 'ok');
 
+  // Update Premium count badge instant (înainte de pre-scan ST Long)
+  updatePremiumCount();
+  // Auto-trigger pre-scan ST Long pentru top candidates → populează Premium tab fără click manual
+  // Nu await — rulează în background, scan-ul principal nu e blocat
+  setTimeout(() => { runPremiumPrescan(); }, 500);
+
   // Hub sync - wrapped in try/catch + skip on APK if many signals (saves memory)
   try{
     const signalsToSync = isWebView ? newSignals.slice(0,10) : newSignals.slice(0,20);
@@ -3448,29 +3456,222 @@ function calcConvictionScore(o){
 let setupsFilter = 'all'; // all | premium | early | confirmed | hot | pump | breakout | oversold
 function setSetupsFilter(f){ setupsFilter = f; renderSetups(); }
 
-// PREMIUM check — high-conviction setup unde TOATE criteriile aliniază.
-// Răspunde "ce trade să iau azi cu sanse mari de succes" — câteva pe săptămână, nu zilnic.
-function isPremiumSetup(o){
+// ── PREMIUM FILTERS — praguri configurabile pentru "high conviction" ──
+// Persistare în localStorage['premium_filters']. Default = standard "perfect storm" thresholds.
+let premiumFilters = {
+  minConviction: 75,
+  minVolRatio: 1.5,
+  minRR: 2.0,
+  rsiMin: 40, rsiMax: 65,
+  minTrend7d: 2.0,
+  fgMin: 30, fgMax: 75,
+  requireSTReady: true   // strict: doar 🚀 LONG READY (off → acceptă și 🟢 LONG OK)
+};
+try { Object.assign(premiumFilters, JSON.parse(localStorage.getItem('premium_filters')||'{}')); } catch(e){}
+function savePremiumFilters(){ try { localStorage.setItem('premium_filters', JSON.stringify(premiumFilters)); } catch(e){} }
+
+// Verifică dacă un setup e Premium conform filtrelor configurabile.
+function isPremiumWithFilters(o, f){
+  f = f || premiumFilters;
   const stld = (typeof stlongCache !== 'undefined') ? stlongCache[o.coin + 'USDT'] : null;
-  if(!stld || stld.verdict !== '🚀 LONG READY') return false;       // ST Long READY (3× medium MTF + structure + R:R)
-  if((o.convictionScore || 0) < 75) return false;                    // Conviction puternic
-  if((o.volRatio || 1) < 1.5) return false;                          // Volume confirmat
-  if(typeof o.rsi !== 'number' || o.rsi < 40 || o.rsi > 65) return false; // RSI sweet spot
-  // Trend 7 zile pozitiv (sparkline)
+  if(!stld || !stld.verdict) return false;
+  if(f.requireSTReady){
+    if(stld.verdict !== '🚀 LONG READY') return false;
+  } else {
+    if(stld.verdict !== '🚀 LONG READY' && stld.verdict !== '🟢 LONG OK') return false;
+  }
+  if((o.convictionScore || 0) < f.minConviction) return false;
+  if((o.volRatio || 1) < f.minVolRatio) return false;
+  if(typeof o.rsi !== 'number' || o.rsi < f.rsiMin || o.rsi > f.rsiMax) return false;
   const sp = (typeof sparkCache !== 'undefined') ? sparkCache[o.coin] : null;
   if(sp && sp.length >= 4){
     const wFull = (sp[sp.length - 1] - sp[0]) / sp[0] * 100;
-    if(wFull < 2) return false;
+    if(wFull < f.minTrend7d) return false;
   } else {
-    return false; // fără sparkline nu confirmăm trend → skip
+    return false;
   }
-  // R:R minim 2.0
-  if(stld.rr && stld.rr < 2.0) return false;
-  // Macro: F&G între 30 și 75 (nu panică, nu euforie)
-  if(typeof cryptoFgScore === 'number'){
-    if(cryptoFgScore < 30 || cryptoFgScore > 75) return false;
+  if(stld.rr && stld.rr < f.minRR) return false;
+  if(typeof cryptoFgScore === 'number' && cryptoFgScore > 0){
+    if(cryptoFgScore < f.fgMin || cryptoFgScore > f.fgMax) return false;
   }
   return true;
+}
+// Backwards compat
+function isPremiumSetup(o){ return isPremiumWithFilters(o, premiumFilters); }
+
+// Update badge count pe tab Premium (după fiecare scan / pre-scan ST Long)
+function updatePremiumCount(){
+  try {
+    const el = document.getElementById('premiumCountBadge');
+    if(!el) return;
+    const enriched = (allCryptoOpportunities || [])
+      .filter(o => o.coin && (o.score || 0) >= 40)
+      .map(o => ({ ...o, convictionScore: calcConvictionScore(o) }));
+    const cnt = enriched.filter(o => isPremiumWithFilters(o)).length;
+    el.textContent = cnt;
+    el.style.background = cnt > 0 ? 'rgba(217,119,6,.25)' : 'rgba(217,119,6,.08)';
+    el.style.color = cnt > 0 ? '#92400e' : '#a16207';
+  } catch(e){}
+}
+
+// ── PREMIUM PRE-SCAN — auto-rulează ST Long pe top 25 candidates după scan-ul principal ──
+// Asta înseamnă că Premium tab e gata fără ca Marius să trebuiască click pe "Scanează tot" în ST Long.
+let _premiumPrescanRunning = false;
+async function runPremiumPrescan(){
+  if(_premiumPrescanRunning) return;
+  if(!allCryptoOpportunities || !allCryptoOpportunities.length) return;
+  _premiumPrescanRunning = true;
+  try {
+    // Top 25 candidates după opportunity score (cele mai probabile a fi Premium)
+    const candidates = [...allCryptoOpportunities]
+      .filter(o => o.coin && o.isBuy && (o.score || 0) >= 50)
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 25);
+    log(`💎 Pre-scan Premium: verific ST Long pentru ${candidates.length} candidates...`, 'info');
+    let done = 0;
+    const batchSize = 3; // batch-uri mici ca să nu prelungim timpii
+    for(let i = 0; i < candidates.length; i += batchSize){
+      if(!running && i > 0) break; // oprește dacă scanner-ul s-a oprit
+      const batch = candidates.slice(i, i + batchSize);
+      await Promise.allSettled(batch.map(async c => {
+        const sym = c.coin + 'USDT';
+        // Skip dacă deja avem date proaspete (< 5 min)
+        const cached = (typeof stlongCache !== 'undefined') ? stlongCache[sym] : null;
+        if(cached && cached._ts && Date.now() - cached._ts < 5 * 60 * 1000) return;
+        try {
+          if(typeof stlongScanSymbol === 'function'){
+            const data = await stlongScanSymbol(sym);
+            if(data && typeof stlongScore === 'function'){
+              const result = stlongScore(data, stlongAccountSize, stlongRiskPct);
+              stlongCache[sym] = { ...data, ...result, _ts: Date.now() };
+              done++;
+            }
+          }
+        } catch(e){}
+      }));
+      // Update count progresiv ca să vadă utilizatorul rezultate live
+      updatePremiumCount();
+      if(currentTab === 'premium' && typeof renderPremium === 'function') renderPremium();
+      await new Promise(r => setTimeout(r, 100));
+    }
+    log(`💎 Premium pre-scan complet: ${done} coins procesate, ${(allCryptoOpportunities||[]).filter(o=>{ const c=calcConvictionScore(o); return isPremiumWithFilters({...o,convictionScore:c}); }).length} Premium găsite.`, 'ok');
+  } finally {
+    _premiumPrescanRunning = false;
+    updatePremiumCount();
+  }
+}
+
+// ── PREMIUM TAB RENDER — vizualizare dedicată cu sliders pentru praguri ──
+function renderPremium(){
+  const container = document.getElementById('signalsContainer');
+  if(!allCryptoOpportunities || !allCryptoOpportunities.length){
+    container.innerHTML = '<div class="empty"><div class="empty-icon">💎</div><div class="empty-title">Nicio scanare completă</div><div class="empty-sub">Pornește scanner-ul. Premium se populează automat după primul scan + pre-scan ST Long (background).</div></div>';
+    return;
+  }
+  const enriched = allCryptoOpportunities
+    .filter(o => o.coin && (o.score || 0) >= 40)
+    .map(o => ({ ...o, convictionScore: calcConvictionScore(o), earlyScore: calcCryptoEarlyBuyScore(o) }));
+  const premium = enriched.filter(o => isPremiumWithFilters(o)).sort((a, b) => b.convictionScore - a.convictionScore);
+
+  let html = '<div>';
+  // Filter panel cu sliders
+  html += '<div style="background:linear-gradient(135deg,rgba(217,119,6,.06),rgba(251,191,36,.04));border:2px solid #fbbf24;border-radius:var(--r);padding:14px 16px;margin-bottom:12px">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">';
+  html += '<div><div style="font-family:var(--head);font-weight:800;font-size:1rem;color:#92400e">💎 Premium Setups — high conviction</div>';
+  html += '<div style="font-size:.6rem;color:#a16207;margin-top:2px">Auto pre-scan ST Long pe top 25 candidates după fiecare scan principal. ' + (_premiumPrescanRunning ? '⏳ pre-scan în curs...' : '✓ idle') + '</div></div>';
+  html += '<div style="font-family:var(--head);font-weight:900;font-size:1.4rem;color:#d97706">' + premium.length + '</div>';
+  html += '</div>';
+  // Sliders
+  const slider = (id, lbl, val, min, max, step, suffix) => {
+    return '<div style="display:flex;flex-direction:column;gap:3px"><label style="font-size:.55rem;color:#92400e;font-weight:700">'+lbl+': <span id="pf_'+id+'_val">'+val+suffix+'</span></label>'+
+      '<input type="range" id="pf_'+id+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'" oninput="document.getElementById(\'pf_'+id+'_val\').textContent=this.value+\''+suffix+'\';premiumFilters.'+id+'=parseFloat(this.value);savePremiumFilters();updatePremiumCount();" onchange="renderPremium()" style="width:100%"></div>';
+  };
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">';
+  html += slider('minConviction', 'Min Conviction', premiumFilters.minConviction, 50, 95, 5, '');
+  html += slider('minVolRatio', 'Min Volume', premiumFilters.minVolRatio, 1.0, 5.0, 0.1, 'x');
+  html += slider('minRR', 'Min R:R', premiumFilters.minRR, 1.0, 5.0, 0.1, '');
+  html += slider('rsiMin', 'RSI min', premiumFilters.rsiMin, 20, 60, 5, '');
+  html += slider('rsiMax', 'RSI max', premiumFilters.rsiMax, 50, 90, 5, '');
+  html += slider('minTrend7d', 'Min trend 7d', premiumFilters.minTrend7d, -5, 20, 1, '%');
+  html += '</div>';
+  // Toggle ST READY only
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:10px">';
+  html += '<label style="display:flex;align-items:center;gap:8px;font-size:.6rem;color:#92400e;cursor:pointer">';
+  html += '<input type="checkbox" id="pf_strict" '+(premiumFilters.requireSTReady?'checked':'')+' onchange="premiumFilters.requireSTReady=this.checked;savePremiumFilters();updatePremiumCount();renderPremium()">';
+  html += '<span><strong>Strict mode:</strong> doar ST 🚀 READY (off → acceptă și 🟢 OK, mai relaxat)</span></label>';
+  html += '<button onclick="runPremiumPrescan()" style="padding:6px 12px;border-radius:7px;border:1px solid #d97706;background:#fef3c7;color:#92400e;font-size:.6rem;font-weight:700;cursor:pointer">🔄 Re-rulează pre-scan ST Long</button>';
+  html += '</div>';
+  html += '</div>';
+
+  if(!premium.length){
+    html += '<div class="empty"><div class="empty-icon">💎</div><div class="empty-title">Niciun Premium setup azi</div><div class="empty-sub">Toate criteriile aliniate simultan = câteva pe săptămână, nu zilnic.<br><br>Dacă ești prea selectiv, relaxează filtrele de mai sus (ex: Min Conviction 70 → 65, Strict mode off).<br><br>Sau așteaptă următorul scan — pre-scan ST Long rulează automat după fiecare runScan.</div></div>';
+    container.innerHTML = html + '</div>';
+    return;
+  }
+
+  // Render carduri Premium (border auriu, detalii complete)
+  premium.forEach(o => {
+    const stld = stlongCache[o.coin + 'USDT'] || {};
+    const tvUrl = 'https://www.tradingview.com/chart/?symbol=BINANCE:' + o.coin + 'USDT.P';
+    const pxUrl = 'https://www.pionex.com/en/futures-trade/' + o.coin + '_USDT.PERP';
+    const jPayload = JSON.stringify({
+      coin: o.coin, symbol: o.coin + 'USDT', direction: 'long',
+      entry: stld.entryPrice || o.price, stopLoss: stld.slPrice, takeProfit: stld.tp2Price,
+      positionUsd: stld.posSizeUSDT, riskUsd: stld.riskUSDT,
+      setup: '💎 Premium Setup', scannerScore: o.convictionScore,
+      notes: 'Conviction '+o.convictionScore+' · ST '+stld.verdict+' · RSI '+(o.rsi||0).toFixed(0)+' · Vol '+(o.volRatio||0).toFixed(1)+'x · R:R '+(stld.rr||0).toFixed(2)
+    }).replace(/'/g, '&#39;');
+
+    html += '<div style="margin-bottom:10px;border:2px solid #d97706;border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px rgba(217,119,6,.2),0 6px 20px rgba(217,119,6,.18);background:linear-gradient(180deg,rgba(217,119,6,.05),var(--bg2) 25%)">';
+    html += '<div style="height:4px;background:linear-gradient(90deg,#d97706,#fbbf24,#d97706,#fbbf24,#d97706);background-size:200% 100%;animation:shimmer 3s linear infinite"></div>';
+    html += '<div style="padding:14px 16px">';
+    // Header
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;flex-wrap:wrap">';
+    html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
+    html += '<span style="font-size:.95rem">💎</span>';
+    html += '<span style="font-family:var(--head);font-weight:800;font-size:1.1rem;color:var(--t1)">'+o.coin+'</span>';
+    html += '<span style="font-size:.55rem;background:rgba(21,128,61,.14);color:#15803d;border:1px solid #86efac;border-radius:4px;padding:2px 6px;font-weight:800">'+stld.verdict+'</span>';
+    html += '<span style="font-size:.55rem;color:var(--t3)">'+(CRYPTO_CAT[o.coin]||'Crypto')+'</span>';
+    html += '</div>';
+    html += '<div style="text-align:right">';
+    html += '<div style="font-family:var(--head);font-weight:900;font-size:1.6rem;color:#d97706;line-height:1">'+o.convictionScore+'</div>';
+    html += '<div style="font-size:.5rem;color:#a16207;text-transform:uppercase;letter-spacing:.7px;font-weight:700">CONVICTION</div>';
+    html += '</div>';
+    html += '</div>';
+    // Stats grid
+    html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px">';
+    html += '<div style="text-align:center;padding:6px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:var(--green);font-size:.75rem">+'+o.chg24.toFixed(2)+'%</div><div style="font-size:.5rem;color:var(--t3)">24h</div></div>';
+    html += '<div style="text-align:center;padding:6px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:var(--t1);font-size:.75rem">'+(o.rsi||0).toFixed(0)+'</div><div style="font-size:.5rem;color:var(--t3)">RSI</div></div>';
+    html += '<div style="text-align:center;padding:6px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:var(--purple);font-size:.75rem">'+(o.volRatio||0).toFixed(1)+'x</div><div style="font-size:.5rem;color:var(--t3)">Vol</div></div>';
+    html += '<div style="text-align:center;padding:6px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:var(--green);font-size:.75rem">'+(stld.rr||0).toFixed(2)+'</div><div style="font-size:.5rem;color:var(--t3)">R:R</div></div>';
+    html += '<div style="text-align:center;padding:6px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:var(--t1);font-size:.7rem">'+formatP(o.price)+'</div><div style="font-size:.5rem;color:var(--t3)">Preț</div></div>';
+    html += '</div>';
+    // Trade details (entry/SL/TP din ST Long)
+    if(stld.entryPrice && stld.slPrice && stld.tp2Price){
+      html += '<div style="background:var(--bg2);border:1px solid #fbbf24;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:.62rem">';
+      html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
+      html += '<div style="text-align:center"><div style="color:var(--t3);font-size:.5rem">ENTRY</div><div style="font-weight:800;color:#f97316">$'+formatP(stld.entryPrice).replace('$','')+'</div></div>';
+      html += '<div style="text-align:center"><div style="color:var(--t3);font-size:.5rem">SL</div><div style="font-weight:800;color:var(--red)">$'+formatP(stld.slPrice).replace('$','')+'</div></div>';
+      html += '<div style="text-align:center"><div style="color:var(--t3);font-size:.5rem">TP2 (R:R '+stld.rr.toFixed(2)+')</div><div style="font-weight:800;color:var(--green)">$'+formatP(stld.tp2Price).replace('$','')+'</div></div>';
+      html += '</div>';
+      if(stld.posSizeUSDT){
+        html += '<div style="display:flex;justify-content:space-between;border-top:1px solid #fde68a;padding-top:6px;margin-top:6px;font-size:.55rem;color:var(--t2)">';
+        html += '<span>💼 Position: <strong>$'+stld.posSizeUSDT.toFixed(2)+'</strong></span>';
+        html += '<span>⚠ Risk: <strong>$'+(stld.riskUSDT||0).toFixed(2)+'</strong></span>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    // Action buttons
+    html += '<div style="display:flex;gap:6px">';
+    html += '<a href="'+tvUrl+'" target="_blank" style="flex:1;text-align:center;background:var(--bg2);padding:8px;border-radius:7px;text-decoration:none;color:var(--acc);font-size:.62rem;font-weight:700;border:1px solid var(--accb)">📈 TradingView</a>';
+    html += '<a href="'+pxUrl+'" target="_blank" style="flex:1;text-align:center;background:var(--bg2);padding:8px;border-radius:7px;text-decoration:none;color:#7c3aed;font-size:.62rem;font-weight:700;border:1px solid var(--purplb)">⚡ Pionex Futures</a>';
+    html += '<button onclick=\'saveToJournal('+jPayload+')\' style="flex:1;background:#fef3c7;padding:8px;border-radius:7px;color:#92400e;font-size:.62rem;font-weight:800;border:2px solid #d97706;cursor:pointer">📓 Salvează în Jurnal</button>';
+    html += '</div>';
+    html += '</div></div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
 }
 function renderSetups(){
   const container = document.getElementById('signalsContainer');
@@ -3633,6 +3834,7 @@ function renderSetups(){
 
 function renderSignals(){
   if(currentTab==='setups'){ renderSetups(); return; }
+  if(currentTab==='premium'){ renderPremium(); return; }
   if(currentTab==='multiscan'){ renderMultiScan(); return; }
   if(currentTab==='futures'){ renderFuturesPatterns(); return; }
   if(currentTab==='smart'){ renderSmartData(); return; }
