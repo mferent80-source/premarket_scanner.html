@@ -251,6 +251,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);font-size:13px
   <!-- STATS -->
   <div id="statsSeg"></div>
   <div class="stats" id="statsBar"></div>
+  <div id="aiSessionHost"></div>
   <div id="setupStatsHost"></div>
 
   <!-- TABS -->
@@ -679,6 +680,23 @@ function renderStats() {
       <div class="sub">trade-uri active</div>
     </div>
   `;
+
+  // Buton Analiză AI sesiune (doar dacă există API key + min 5 trade-uri închise)
+  const aiSessionHost = document.getElementById('aiSessionHost');
+  if(aiSessionHost){
+    if(settings.aiKey){
+      const closedCount = trades.filter(t => t.status === 'win' || t.status === 'loss').length;
+      aiSessionHost.innerHTML = `<div style="margin-top:14px;padding:14px;background:linear-gradient(135deg,rgba(124,58,237,.05),rgba(79,70,229,.04));border:1px solid rgba(124,58,237,.25);border-radius:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+          <div><strong style="color:#7c3aed;font-size:.85rem">🤖 Analiză AI sesiune</strong><div style="font-size:.6rem;color:var(--t3);margin-top:2px">Ultimele 20 trade-uri închise → pattern detection + top greșeli + plan acțiune săptămâna viitoare</div></div>
+          <button class="btn primary" onclick="analyzeSession()" ${closedCount < 5 ? 'disabled style="opacity:.5;cursor:not-allowed"' : ''}>${closedCount < 5 ? `🔒 Min 5 trade-uri (ai ${closedCount})` : '🤖 Analizează sesiunea'}</button>
+        </div>
+        <div id="aiSessionResult"></div>
+      </div>`;
+    } else {
+      aiSessionHost.innerHTML = '';
+    }
+  }
 
   // Per-setup breakdown (sub stats principale, doar dacă există minim un setup cu ≥3 trade-uri)
   const setupStats = computeSetupStats();
@@ -1390,8 +1408,13 @@ function openTradeModal(id) {
     html += `<button class="btn success" onclick="closeTrade('${t.id}','win')">✅ Mark Win</button>`;
     html += `<button class="btn danger" onclick="closeTrade('${t.id}','loss')">❌ Mark Loss</button>`;
   }
-  if (t.status === 'loss' && settings.aiKey) {
-    html += `<button class="btn primary" onclick="analyzeLoss('${t.id}')">🤖 Analiză AI</button>`;
+  if (settings.aiKey) {
+    // Buton AI apare pe toate status-urile, cu prompt diferit per status
+    const aiLbl = t.status === 'loss' ? '🤖 Analiză pierdere' :
+                  t.status === 'win' ? '🤖 Replicabilitate' :
+                  t.status === 'partial' ? '🤖 Optimizare exit' :
+                  '🤖 Coaching mid-trade';
+    html += `<button class="btn primary" onclick="analyzeTrade('${t.id}')">${aiLbl}</button>`;
   }
   html += `<button class="btn" onclick="deleteTrade('${t.id}')" style="margin-left:auto;color:#b91c1c">🗑 Șterge</button>`;
   html += '</div>';
@@ -1440,7 +1463,7 @@ function closeTrade(id, outcome) {
     closeModal();
     setTimeout(() => {
       openTradeModal(id);
-      setTimeout(() => analyzeLoss(id), 200);
+      setTimeout(() => analyzeTrade(id), 200);
     }, 100);
   } else {
     closeModal();
@@ -1457,75 +1480,208 @@ function deleteTrade(id) {
 }
 
 // ═══════════════════════════════════════════════════════
-// AI LOSS ANALYSIS
+// AI ANALYSIS — multi-mode (loss / win / partial / open) + session-level
 // ═══════════════════════════════════════════════════════
-async function analyzeLoss(id) {
-  const t = trades.find(x => x.id === id);
-  if (!t || !settings.aiKey) return;
-  
-  const resDiv = document.getElementById('aiResult');
-  resDiv.innerHTML = '<div class="ai-loading">⏳ AI analizează trade-ul...</div>';
-  
-  // Get last 5 losses for pattern detection
-  const recentLosses = trades.filter(x => x.status === 'loss' && x.id !== id).slice(-5);
-  const winContext = trades.filter(x => x.status === 'win').slice(-3);
-  
-  const prompt = `Esti un trading coach. Analizezi un trade pierdut pentru un trader pe Pionex (futures + grid). Răspunde în română, scurt și direct, în maxim 200 cuvinte.
+
+// Helper: trade context summary pentru promptu-ri
+function _aiTradeContext(t){
+  const lines = [
+    `- Coin: ${t.coin}`,
+    `- Tip: ${t.type}`,
+    t.direction ? `- Direcție: ${t.direction}` : null,
+    t.entry ? `- Entry: ${t.entry}` : null,
+    t.sl ? `- SL: ${t.sl}` : null,
+    t.tp ? `- TP: ${t.tp}` : null,
+    t.exit ? `- Exit: ${t.exit}` : null,
+    t.size ? `- Size: $${t.size}` : null,
+    (t.leverage && t.leverage > 1) ? `- Leverage: ${t.leverage}x` : null,
+    (t.fees) ? `- Fees: $${t.fees}` : null,
+    (t.funding) ? `- Funding: $${t.funding}` : null,
+    (t.risk) ? `- Risk: $${t.risk}` : null,
+    (typeof t.rMultiple === 'number') ? `- R-multiple: ${t.rMultiple.toFixed(2)}R` : null,
+    (t.pnl !== null && t.pnl !== undefined) ? `- P&L: ${fmtUSD(t.pnl)}` : null,
+    `- Setup: ${t.setup || 'nu e specificat'}`,
+    `- Notițe trader: ${t.notes || 'fără notițe'}`
+  ];
+  return lines.filter(Boolean).join('\n');
+}
+
+// Prompt builder per status
+function _aiBuildPrompt(t){
+  const status = t.status;
+  const recentLosses = trades.filter(x => x.status === 'loss' && x.id !== t.id).slice(-5);
+  const recentWins = trades.filter(x => x.status === 'win' && x.id !== t.id).slice(-5);
+
+  const ctx = `CONTEXT recent:
+Ultimele 5 pierderi: ${recentLosses.map(l => `${l.coin} ${l.type} ${l.direction||''} ${fmtUSD(l.pnl)}`).join(' | ') || 'fără'}
+Ultimele 5 câștiguri: ${recentWins.map(w => `${w.coin} ${w.type} ${w.direction||''} ${fmtUSD(w.pnl)}`).join(' | ') || 'fără'}`;
+
+  const tradeBlock = _aiTradeContext(t);
+
+  if(status === 'loss'){
+    return `Ești un trading coach. Analizezi un trade PIERDUT pentru un trader pe Pionex Futures + Trade 212 stocks. Răspunde în română, max 200 cuvinte, bullet points scurte.
 
 TRADE PIERDUT:
-- Coin: ${t.coin}
-- Tip: ${t.type}
-${t.direction ? `- Direcție: ${t.direction}` : ''}
-${t.entry ? `- Entry: ${t.entry}` : ''}
-${t.sl ? `- SL: ${t.sl}` : ''}
-${t.tp ? `- TP: ${t.tp}` : ''}
-${t.exit ? `- Exit: ${t.exit}` : ''}
-${t.size ? `- Size: $${t.size}` : ''}
-${t.leverage > 1 ? `- Leverage: ${t.leverage}x` : ''}
-- P&L: ${fmtUSD(t.pnl)}
-- Setup: ${t.setup || 'nu e specificat'}
-- Notițe trader: ${t.notes || 'fără notițe'}
+${tradeBlock}
 
-CONTEXT (ultimele pierderi recent):
-${recentLosses.map(l => `- ${l.coin} ${l.type} ${l.direction || ''}: P&L ${fmtUSD(l.pnl)} | Notițe: ${l.notes || 'fără'}`).join('\n') || 'Fără pierderi anterioare.'}
-
-CONTEXT (ultimele câștiguri):
-${winContext.map(w => `- ${w.coin} ${w.type} ${w.direction || ''}: P&L ${fmtUSD(w.pnl)}`).join('\n') || 'Fără câștiguri.'}
+${ctx}
 
 Întrebări:
-1. Ce a mers prost în acest trade specific? (1-2 propoziții)
-2. Există un pattern cu pierderile anterioare? (1-2 propoziții — DACĂ există)
-3. O acțiune concretă pentru următorul trade similar? (1-2 propoziții)
+1. Ce a mers PROST în acest trade specific? (1-2 propoziții — diagnostic)
+2. Există un PATTERN cu pierderile anterioare? (DOAR dacă există tendință clară)
+3. O acțiune CONCRETĂ pentru următorul trade similar? (1 propoziție, executabilă)
 
-Fii direct, concret. Nu da generalități. Folosește bullet points scurte.`;
+Fii direct, concret. Nu da generalități, fără "depinde", fără "poate". Dacă nu vezi pattern, spune asta.`;
+  }
+
+  if(status === 'win'){
+    return `Ești un trading coach. Analizezi un trade CÂȘTIGAT pentru a identifica ce poate fi REPLICAT. Răspunde în română, max 200 cuvinte, bullet points.
+
+TRADE CÂȘTIGAT:
+${tradeBlock}
+
+${ctx}
+
+Întrebări:
+1. Ce a mers BINE în acest trade? (1-2 propoziții — element-cheie)
+2. Setup-ul ăsta e REPLICABIL? Care sunt condițiile minime de re-intrare? (2-3 puncte concrete)
+3. Vreo greșeală subtilă? (ex: ai luat profit prea devreme/târziu, sizing prea mic) (DOAR dacă există)
+
+Concret, executabil. Identifică template-ul, nu lăuda doar.`;
+  }
+
+  if(status === 'partial'){
+    return `Ești un trading coach. Analizezi un trade PARȚIAL închis (TP1 hit, runner activ sau exit partial). Răspunde în română, max 180 cuvinte.
+
+TRADE PARȚIAL:
+${tradeBlock}
+
+${ctx}
+
+Întrebări:
+1. Procentul închis vs runner — e calibrat corect pentru R:R-ul setup-ului? (1 propoziție)
+2. SL-ul pe runner — l-ai mutat la break-even? Ar trebui? (1 propoziție concretă)
+3. Următorul TP — la ce nivel + ce justifică acel target? (1-2 propoziții)
+
+Focus pe scaling exit-uri și risk management activ. Fără teoretizare.`;
+  }
+
+  // open
+  return `Ești un trading coach. Trade-ul e DESCHIS, mid-position. Trader-ul cere coaching ÎN TIMP REAL — să țină, să iasă, să ajusteze SL? Răspunde în română, max 180 cuvinte.
+
+TRADE OPEN:
+${tradeBlock}
+
+${ctx}
+
+Întrebări:
+1. Setup-ul rămâne VALID în baza datelor introduse? (sau s-a invalidat?)
+2. Acțiune ACUM: ține / mută SL la BE / ia profit parțial / închide complet?
+3. Care e singurul motiv obiectiv pentru care ai închide imediat?
+
+NU da analiză de chart (nu vezi prețul live). Răspunde DOAR în baza notelor + setup-ului introdus. Fii concret.`;
+}
+
+async function _aiCallAnthropic(prompt){
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': settings.aiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-7', // alias auto-update — cel mai recent Sonnet 4.x (capabil pentru analiză profundă)
+      max_tokens: 800,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if(!response.ok){
+    const err = await response.text();
+    throw new Error(`API ${response.status}: ${err.substring(0,200)}`);
+  }
+  const data = await response.json();
+  return data.content?.[0]?.text || 'Răspuns gol de la AI.';
+}
+
+async function analyzeTrade(id){
+  const t = trades.find(x => x.id === id);
+  if(!t || !settings.aiKey) return;
+  const resDiv = document.getElementById('aiResult');
+  if(!resDiv) return;
+  resDiv.innerHTML = '<div class="ai-loading">⏳ AI analizează trade-ul...</div>';
+  const lblByStatus = { loss:'Analiză pierdere', win:'Replicabilitate', partial:'Optimizare exit', open:'Coaching mid-trade' };
+  const lbl = lblByStatus[t.status] || 'Analiză';
+  try {
+    const prompt = _aiBuildPrompt(t);
+    const text = await _aiCallAnthropic(prompt);
+    // escape HTML pe răspunsul AI înainte de innerHTML (XSS guard — răspunsul vine din API extern)
+    resDiv.innerHTML = `<div class="ai-result"><strong>🤖 ${lbl}:</strong><br><br>${escHtml(text).replace(/\n/g,'<br>')}</div>`;
+  } catch(e){
+    resDiv.innerHTML = `<div class="ai-result" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c">❌ Eroare: ${escHtml(e.message)}</div>`;
+  }
+}
+
+// Backwards-compat alias (în cazul în care alte locuri îl mai apelează)
+const analyzeLoss = analyzeTrade;
+
+// Sesiune-level analysis: ultimele N trade-uri închise — pattern detection global
+async function analyzeSession(){
+  if(!settings.aiKey){ alert('❌ Pune AI Key în Settings înainte.'); return; }
+  const closed = trades.filter(t => t.status === 'win' || t.status === 'loss').slice(-20);
+  if(closed.length < 5){ alert('🤖 Ai nevoie de minim 5 trade-uri închise pentru analiză sesiune.'); return; }
+  const host = document.getElementById('aiSessionResult');
+  if(host) host.innerHTML = '<div class="ai-loading">⏳ AI analizează sesiunea...</div>';
+  // Stats agregate pentru context
+  const wins = closed.filter(t => t.status === 'win');
+  const losses = closed.filter(t => t.status === 'loss');
+  const totalPnL = closed.reduce((s,t) => s + (Number(t.pnl)||0), 0);
+  const winRate = (wins.length / closed.length * 100).toFixed(1);
+  const avgWin = wins.length ? wins.reduce((s,t) => s+(Number(t.pnl)||0), 0) / wins.length : 0;
+  const avgLoss = losses.length ? losses.reduce((s,t) => s+(Number(t.pnl)||0), 0) / losses.length : 0;
+  const tradesList = closed.map(t => `- ${t.coin} ${t.type} ${t.direction||''} ${t.status.toUpperCase()} ${fmtUSD(t.pnl)}${t.setup?` | setup: ${t.setup}`:''}${t.notes?` | nota: ${t.notes.slice(0,80)}`:''}`).join('\n');
+
+  const prompt = `Ești un trading coach senior. Analizezi ULTIMA SESIUNE de trading (${closed.length} trade-uri închise) pentru un trader Pionex Futures + Trade 212. Răspunde în română, max 350 cuvinte, structurat clar.
+
+STATS AGREGATE:
+- Trade-uri închise: ${closed.length} (${wins.length}W / ${losses.length}L)
+- Win rate: ${winRate}%
+- P&L total: ${fmtUSD(totalPnL)}
+- Avg win: ${fmtUSD(avgWin)}
+- Avg loss: ${fmtUSD(avgLoss)}
+
+TRADES (cronologic):
+${tradesList}
+
+Răspunde structurat:
+
+**🎯 Pattern dominant** (1-2 fraze): ce vezi că face trader-ul bine sau prost repetitiv?
+
+**🔴 TOP 3 greșeli** (bullet points concrete, cu dovadă din trade-uri):
+1. ...
+2. ...
+3. ...
+
+**✅ TOP 3 puncte forte** (bullet points concrete):
+1. ...
+2. ...
+3. ...
+
+**🎬 ACȚIUNI pentru săptămâna viitoare** (max 3, executabile, măsurabile):
+1. ...
+2. ...
+3. ...
+
+Fii direct și brutal. Trader-ul vrea să se îmbunătățească, nu vrea cuvinte goale.`;
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': settings.aiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 600,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    
-    if (!response.ok) {
-      const err = await response.text();
-      resDiv.innerHTML = `<div class="ai-result" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c">❌ Eroare API: ${response.status}<br><small>${err.substring(0,200)}</small></div>`;
-      return;
+    const text = await _aiCallAnthropic(prompt);
+    if(host){
+      host.innerHTML = `<div class="ai-result" style="margin-top:10px"><strong>🤖 Analiză sesiune (${closed.length} trade-uri):</strong><br><br>${escHtml(text).replace(/\n/g,'<br>')}</div>`;
     }
-    
-    const data = await response.json();
-    const text = data.content?.[0]?.text || 'Răspuns gol de la AI.';
-    resDiv.innerHTML = `<div class="ai-result"><strong>🤖 Analiză AI:</strong><br><br>${text.replace(/\n/g,'<br>')}</div>`;
-  } catch (e) {
-    resDiv.innerHTML = `<div class="ai-result" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c">❌ Eroare: ${e.message}</div>`;
+  } catch(e){
+    if(host) host.innerHTML = `<div class="ai-result" style="background:#fee2e2;border-color:#fca5a5;color:#b91c1c">❌ Eroare: ${escHtml(e.message)}</div>`;
   }
 }
 
