@@ -1219,6 +1219,8 @@ function saveRsiCache(){
   }catch(e){}
 }
 let earningsSet=new Set(); // symbols cu earnings în 7 zile
+let macroEventsUpcoming = []; // [{event, time, impact, country}] high-impact US events în următoarele 7 zile
+let macroBlockerActive = null; // {event, hoursAway} dacă există high-impact event în <24h, altfel null
 let earningsCalendar=[]; // [{symbol,date,hour,epsEst,revEst}] — for widget
 let sparklineCache={};
 let watchlist=[];
@@ -2033,6 +2035,50 @@ async function fetchEarnings(key){
     log(`📅 Earnings în 7 zile: ${earningsSet.size} stocks`,earningsSet.size>0?'warn':'ok');
     if(typeof renderEarningsCalendar==='function') renderEarningsCalendar();
   }catch(e){ log('⚠️ Earnings: '+e.message,'warn'); }
+}
+
+// Macro economic events (FOMC, CPI, NFP, PPI, ...) high-impact US — pentru blockare BUY/SELL pre-event.
+// Sursa: Finnhub /calendar/economic. Eveniment în <24h → cap verdict ca la earnings <48h.
+async function fetchMacroEvents(key){
+  if(!key) return;
+  try{
+    const today = new Date();
+    const from = today.toISOString().slice(0,10);
+    const toD = new Date(today); toD.setDate(toD.getDate()+7);
+    const to = toD.toISOString().slice(0,10);
+    const d = await fhGet(`${FINNHUB}/calendar/economic?from=${from}&to=${to}&token=${key}`);
+    const events = (d.economicCalendar || []);
+    // Filtru high-impact US (impact='high' sau '3' depending on API)
+    macroEventsUpcoming = events
+      .filter(e => {
+        const country = (e.country || '').toUpperCase();
+        const impact = String(e.impact || '').toLowerCase();
+        const isUS = country === 'US' || country === 'USA' || country === 'UNITED STATES';
+        const isHigh = impact === 'high' || impact === '3' || impact === 'h';
+        return isUS && isHigh;
+      })
+      .map(e => ({ event: e.event || e.name || 'event', time: e.time, impact: e.impact, country: e.country }))
+      .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    // Detect dacă există vreun high-impact în <24h
+    const now = Date.now();
+    const window24 = 24 * 3600 * 1000;
+    macroBlockerActive = null;
+    for(const e of macroEventsUpcoming){
+      if(!e.time) continue;
+      const ts = new Date(e.time).getTime();
+      if(isNaN(ts)) continue;
+      const diff = ts - now;
+      if(diff > 0 && diff <= window24){
+        macroBlockerActive = { event: e.event, hoursAway: diff / 3600000 };
+        break;
+      }
+    }
+    if(macroBlockerActive){
+      log(`🚫 Macro event în ${Math.round(macroBlockerActive.hoursAway)}h: ${macroBlockerActive.event} — verdict BUY/SELL agresiv blocat`, 'warn');
+    } else if(macroEventsUpcoming.length){
+      log(`📰 Macro events high-impact US în 7 zile: ${macroEventsUpcoming.length} (niciunul în <24h)`, 'info');
+    }
+  }catch(e){ log('⚠️ Macro events: '+e.message,'warn'); }
 }
 
 // ── EARNINGS CALENDAR WIDGET ──
@@ -5033,7 +5079,7 @@ async function runScan(){
 
   // ── PRE-FETCH: Earnings + VIX (paralel, nu blochează scan-ul) ──
   setProgress(5,'Fetch earnings + VIX...');
-  await Promise.allSettled([fetchEarnings(key), fetchVIX(key)]);
+  await Promise.allSettled([fetchEarnings(key), fetchVIX(key), fetchMacroEvents(key)]);
   await sleep(300); // mini-pauză după 2 extra calluri
 
   // ── FAZA 1: Quotes (1 call/stock, rapid) ──
@@ -5466,6 +5512,15 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
       const msg = {t:'⚠️ Earnings în 7 zile — volatilitate imprevizibilă. Risc ridicat pentru orice direcție.',c:'neu'};
       buyReasons.push(msg); sellReasons.push(msg);
     }
+  }
+
+  // ── MACRO EVENT BLOCKER — high-impact US event în <24h (FOMC/CPI/NFP/PPI) ──
+  // La fel ca pre-earnings: capping verdict sub threshold de "BUY/SELL aggressive" (55).
+  if(typeof macroBlockerActive !== 'undefined' && macroBlockerActive){
+    buyScore = Math.min(buyScore, 35);
+    sellScore = Math.min(sellScore, 35);
+    const msg = {t:`🚫 MACRO ${macroBlockerActive.event} în ~${Math.round(macroBlockerActive.hoursAway)}h — verdict agresiv BLOCAT. Volatilitate post-event imprevizibilă pe TOATĂ piața.`,c:'neg'};
+    buyReasons.push(msg); sellReasons.push(msg);
   }
 
   // ── Calcul Entry / TP / SL — ATR-based (volatility-adjusted) ──
