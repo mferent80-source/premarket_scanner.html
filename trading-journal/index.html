@@ -38,6 +38,39 @@
   --r:10px;
   --head:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
 }
+body.dark{
+  --bg:#0b0f1a;
+  --surface:#131829;
+  --border:#2a3150;
+  --t1:#e2e8f0;
+  --t2:#94a3b8;
+  --t3:#64748b;
+  --primary:#22d3ee;
+  --primary-dark:#0891b2;
+  --success:#34d399;
+  --success-bg:rgba(52,211,153,.12);
+  --success-bd:rgba(52,211,153,.35);
+  --danger:#f87171;
+  --danger-bg:rgba(248,113,113,.12);
+  --danger-bd:rgba(248,113,113,.35);
+  --warn:#fbbf24;
+  --warn-bg:rgba(251,191,36,.12);
+  --warn-bd:rgba(251,191,36,.35);
+  --info:#60a5fa;
+  --info-bg:rgba(96,165,250,.1);
+  --info-bd:rgba(96,165,250,.3);
+  --futures:#a78bfa;
+  --futures-bg:rgba(167,139,250,.1);
+  --futures-bd:rgba(167,139,250,.3);
+  --grid:#22d3ee;
+  --grid-bg:rgba(34,211,238,.1);
+  --grid-bd:rgba(34,211,238,.3);
+  --stock:#60a5fa;
+  --stock-bg:rgba(96,165,250,.1);
+  --stock-bd:rgba(96,165,250,.3);
+}
+body.dark .tabs, body.dark .stats-seg{ background:var(--surface); }
+body.dark .tab:hover{ background:#1a2035; }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--head);background:var(--bg);color:var(--t1);font-size:13px;line-height:1.5;min-height:100vh}
 .app{max-width:1400px;margin:0 auto;padding:18px}
@@ -163,7 +196,10 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);font-size:13px
 
 <div class="app">
   <div class="hdr" style="position:relative;">
-    <a href="../" style="position:absolute;top:14px;right:18px;padding:5px 12px;border-radius:7px;font-size:.62rem;font-weight:700;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">← Hub</a>
+    <div style="position:absolute;top:14px;right:18px;display:flex;gap:6px;">
+      <button id="darkModeBtn" onclick="toggleDarkMode()" style="padding:5px 10px;border-radius:7px;font-size:.7rem;font-weight:700;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;cursor:pointer;" title="Comută Dark / Light mode (shared cu scannerele)">🌙</button>
+      <a href="../" style="padding:5px 12px;border-radius:7px;font-size:.62rem;font-weight:700;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.28)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">← Hub</a>
+    </div>
     <h1>📓 Trading Journal — Pionex + Trade 212</h1>
     <div class="sub" id="hdrSub">v1.2 · Crypto futures + grid + Nasdaq stocks · Local storage · Stats · Calendar · Equity</div>
   </div>
@@ -222,6 +258,28 @@ try {
 function _saveFilters() {
   try { localStorage.setItem('journal_filters', JSON.stringify(filters)); } catch(e) {}
 }
+
+// Escape HTML pentru câmpuri user-typed (notes, setup, coin) — apărare XSS la render.
+function escHtml(s){
+  return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ── DARK MODE shared cross-app (același key 'darkMode' ca în crypto/nasdaq) ──
+function toggleDarkMode(){
+  document.body.classList.toggle('dark');
+  const isDark = document.body.classList.contains('dark');
+  try{ localStorage.setItem('darkMode', isDark ? '1' : '0'); }catch(e){}
+  const btn = document.getElementById('darkModeBtn');
+  if(btn) btn.textContent = isDark ? '☀️' : '🌙';
+}
+(function(){
+  try {
+    if(localStorage.getItem('darkMode') === '1'){
+      document.body.classList.add('dark');
+      setTimeout(() => { const b=document.getElementById('darkModeBtn'); if(b) b.textContent='☀️'; }, 0);
+    }
+  } catch(e){}
+})();
 
 function saveTrades() {
   try { localStorage.setItem('journal_trades', JSON.stringify(trades)); } catch(e) {}
@@ -304,22 +362,50 @@ function computeStats() {
   const pool = _statsPool();
   const closed = pool.filter(t => t.status === 'win' || t.status === 'loss');
   const open = pool.filter(t => t.status === 'open');
-  
+
   const totalPnL = closed.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
   const wins = closed.filter(t => t.status === 'win');
   const losses = closed.filter(t => t.status === 'loss');
   const winRate = closed.length ? (wins.length / closed.length * 100) : 0;
-  
+
   const avgWin = wins.length ? wins.reduce((s,t)=>s+(Number(t.pnl)||0),0)/wins.length : 0;
   const avgLoss = losses.length ? losses.reduce((s,t)=>s+(Number(t.pnl)||0),0)/losses.length : 0;
   const avgRR = avgLoss !== 0 ? Math.abs(avgWin / avgLoss) : 0;
-  
+
   // Profit factor
   const grossWin = wins.reduce((s,t)=>s+(Number(t.pnl)||0),0);
   const grossLoss = Math.abs(losses.reduce((s,t)=>s+(Number(t.pnl)||0),0));
   const profitFactor = grossLoss > 0 ? grossWin / grossLoss : 0;
-  
-  return { closed: closed.length, open: open.length, totalPnL, winRate, avgWin, avgLoss, avgRR, profitFactor, wins: wins.length, losses: losses.length };
+
+  // R-multiple stats — doar trade-uri cu risk completat
+  const withR = closed.filter(t => typeof t.rMultiple === 'number' && isFinite(t.rMultiple));
+  const avgR = withR.length ? withR.reduce((s,t)=>s+t.rMultiple,0)/withR.length : 0;
+  // Expectancy = avgR (în R-units, normalizate). >0 = sistem profitabil pe termen lung.
+  const expectancy = avgR;
+
+  // Max drawdown (peak-to-trough pe equity curve)
+  const sorted = [...closed].sort((a,b) => (a.closeTime||0) - (b.closeTime||0));
+  let equity = 0, peak = 0, maxDD = 0;
+  sorted.forEach(t => {
+    equity += (Number(t.pnl) || 0);
+    if(equity > peak) peak = equity;
+    const dd = peak - equity;
+    if(dd > maxDD) maxDD = dd;
+  });
+
+  // Streak max W / max L consecutiv
+  let curW = 0, curL = 0, maxW = 0, maxL = 0;
+  sorted.forEach(t => {
+    if(t.status === 'win'){ curW++; curL = 0; if(curW > maxW) maxW = curW; }
+    else if(t.status === 'loss'){ curL++; curW = 0; if(curL > maxL) maxL = curL; }
+  });
+
+  return {
+    closed: closed.length, open: open.length, totalPnL, winRate,
+    avgWin, avgLoss, avgRR, profitFactor,
+    avgR, expectancy, maxDD, maxW, maxL,
+    wins: wins.length, losses: losses.length
+  };
 }
 
 function renderStats() {
@@ -359,6 +445,21 @@ function renderStats() {
       <div class="lbl">Profit Factor</div>
       <div class="val">${s.profitFactor.toFixed(2)}</div>
       <div class="sub">>1.5 = profitabil</div>
+    </div>
+    <div class="stat ${s.expectancy >= 0 ? 'pos' : 'neg'}">
+      <div class="lbl">Expectancy (avg R)</div>
+      <div class="val">${s.expectancy >= 0 ? '+' : ''}${s.expectancy.toFixed(2)}R</div>
+      <div class="sub">${s.expectancy >= 0.2 ? 'sistem profitabil' : s.expectancy > 0 ? 'pozitiv slab' : 'sistem pierde'}</div>
+    </div>
+    <div class="stat ${s.maxDD > 0 ? 'neg' : ''}">
+      <div class="lbl">Max Drawdown</div>
+      <div class="val">${fmtUSD(-s.maxDD)}</div>
+      <div class="sub">peak-to-trough</div>
+    </div>
+    <div class="stat">
+      <div class="lbl">Streak max</div>
+      <div class="val">${s.maxW}W / ${s.maxL}L</div>
+      <div class="sub">consecutive</div>
     </div>
     <div class="stat">
       <div class="lbl">Open Trades</div>
@@ -433,7 +534,10 @@ function populateEditForm() {
   set('f_size', t.size);
   set('f_lev', t.leverage || 1);
   set('f_exit', t.exit);
-  set('f_pnl', t.pnl);
+  set('f_pnl', t.pnlGross !== undefined ? t.pnlGross : t.pnl); // afișează gross la edit; net se recalculează la save
+  set('f_risk', t.risk);
+  set('f_fees', t.fees);
+  set('f_funding', t.funding);
   set('f_setup', t.setup || '');
   set('f_notes', t.notes || '');
   // Aplică label-urile dinamice (Symbol vs Coin etc.)
@@ -477,7 +581,7 @@ function renderStaleAlert() {
       <div style="font-size:1.2rem">⚠️</div>
       <div style="flex:1;font-size:.7rem;color:#78350f;line-height:1.5">
         <strong>${stale.length} trade${stale.length>1?'-uri':''} deschise de peste 24h</strong>
-        <div style="font-size:.6rem;color:#92400e;margin-top:2px">Cel mai vechi: ${oldestStr}. Verifică dacă ai uitat să le închizi: ${stale.slice(0,3).map(t=>t.coin).join(', ')}${stale.length>3?'...':''}</div>
+        <div style="font-size:.6rem;color:#92400e;margin-top:2px">Cel mai vechi: ${escHtml(oldestStr)}. Verifică dacă ai uitat să le închizi: ${stale.slice(0,3).map(t=>escHtml(t.coin)).join(', ')}${stale.length>3?'...':''}</div>
       </div>
       <button class="btn sm" onclick="filters={coin:'',type:'all',status:'open',period:'all'};setTab('all',document.querySelectorAll('.tab')[0])" style="background:#f59e0b;color:#fff;border-color:#f59e0b">Vezi tot</button>
     </div>
@@ -615,17 +719,17 @@ function renderTradeRow(t) {
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${typeBadge}
           ${dirBadge}
-          <span style="font-weight:800;font-size:.85rem">${t.coin || '?'}</span>
+          <span style="font-weight:800;font-size:.85rem">${escHtml(t.coin || '?')}</span>
           ${statusBadge}
         </div>
-        <div style="font-size:.7rem">${pnlStr}${pnlPctStr}</div>
+        <div style="font-size:.7rem">${pnlStr}${pnlPctStr}${typeof t.rMultiple === 'number' && isFinite(t.rMultiple) ? ` <span style="color:${t.rMultiple>=1?'#15803d':t.rMultiple>=0?'#a16207':'#b91c1c'};font-weight:700">${t.rMultiple>=0?'+':''}${t.rMultiple.toFixed(2)}R</span>` : ''}</div>
       </div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:.6rem;color:#475569">
         ${t.openTime ? `<span>📅 ${fmtDate(t.openTime)}</span>` : ''}
         ${t.entry ? `<span>Entry: ${t.entry}</span>` : ''}
         ${t.exit ? `<span>Exit: ${t.exit}</span>` : ''}
         ${t.size ? `<span>Size: $${t.size}</span>` : ''}
-        ${t.notes ? `<span style="color:#64748b">📝 ${t.notes.substring(0,40)}${t.notes.length>40?'...':''}</span>` : ''}
+        ${t.notes ? `<span style="color:#64748b">📝 ${escHtml(t.notes.substring(0,40))}${t.notes.length>40?'...':''}</span>` : ''}
       </div>
     </div>
   `;
@@ -693,7 +797,7 @@ function renderAddForm() {
         
         <div class="form-row cols-2">
           <div class="field">
-            <label id="lbl_size">Position Size ($)</label>
+            <label id="lbl_size">Position Size ($) <span style="color:#94a3b8;font-size:.55rem">(notional / valoare poziție)</span></label>
             <input type="number" id="f_size" step="any" placeholder="500">
           </div>
           <div class="field" id="lev_field">
@@ -701,7 +805,22 @@ function renderAddForm() {
             <input type="number" id="f_lev" step="1" placeholder="3" value="1">
           </div>
         </div>
-        
+
+        <div class="form-row cols-3">
+          <div class="field">
+            <label>Risk ($) <span style="color:#94a3b8;font-size:.55rem">(pierdere la SL — pentru R-multiple)</span></label>
+            <input type="number" id="f_risk" step="any" placeholder="ex: 10" oninput="_recalcRiskPreview()">
+          </div>
+          <div class="field">
+            <label>Fees ($) <span style="color:#94a3b8;font-size:.55rem">(comision total round-trip)</span></label>
+            <input type="number" id="f_fees" step="any" placeholder="0">
+          </div>
+          <div class="field">
+            <label>Funding ($) <span style="color:#94a3b8;font-size:.55rem">(futures hold &gt;8h)</span></label>
+            <input type="number" id="f_funding" step="any" placeholder="0">
+          </div>
+        </div>
+
         <div class="form-row cols-2" id="closeFields">
           <div class="field">
             <label>Exit Price (la închidere)</label>
@@ -797,10 +916,34 @@ function loadScreenshot(input) {
   reader.readAsDataURL(file);
 }
 
+// Hook pe câmpul Risk pentru viitor preview de R; pentru moment doar no-op (evită eroare oninput)
+function _recalcRiskPreview(){ /* placeholder */ }
+
 function addTrade() {
   const type = document.getElementById('f_type').value;
   const coin = document.getElementById('f_coin').value.trim().toUpperCase();
+  // Validare input — previne XSS (chiar dacă render-ul e escaped) și data invalidă
   if (!coin) { alert('Introdu coin-ul!'); return; }
+  if (!/^[A-Z0-9.\-]{1,15}$/.test(coin)) {
+    alert('Coin/simbol invalid: doar A-Z, 0-9, "." sau "-", max 15 caractere.');
+    return;
+  }
+  // Validare semantică pe entry/SL/TP/exit — prevent data fără sens
+  const _e = parseFloat(document.getElementById('f_entry').value);
+  const _s = parseFloat(document.getElementById('f_sl').value);
+  const _t = parseFloat(document.getElementById('f_tp').value);
+  const _x = parseFloat(document.getElementById('f_exit').value);
+  const _dir = (document.getElementById('f_dir')||{}).value;
+  if(!isNaN(_e) && _e <= 0) { alert('Entry trebuie să fie > 0.'); return; }
+  if(!isNaN(_x) && _x <= 0) { alert('Exit trebuie să fie > 0.'); return; }
+  if(!isNaN(_e) && !isNaN(_s) && _e === _s){ alert('Entry și Stop Loss nu pot fi egale.'); return; }
+  if(_dir === 'long'){
+    if(!isNaN(_e) && !isNaN(_s) && _s >= _e){ alert('Pentru LONG: Stop Loss trebuie să fie SUB Entry.'); return; }
+    if(!isNaN(_e) && !isNaN(_t) && _t <= _e){ alert('Pentru LONG: Take Profit trebuie să fie PESTE Entry.'); return; }
+  } else if(_dir === 'short'){
+    if(!isNaN(_e) && !isNaN(_s) && _s <= _e){ alert('Pentru SHORT: Stop Loss trebuie să fie PESTE Entry.'); return; }
+    if(!isNaN(_e) && !isNaN(_t) && _t >= _e){ alert('Pentru SHORT: Take Profit trebuie să fie SUB Entry.'); return; }
+  }
   
   const status = document.getElementById('f_status').value;
   const entry = parseFloat(document.getElementById('f_entry').value) || null;
@@ -809,17 +952,54 @@ function addTrade() {
   const exit = parseFloat(document.getElementById('f_exit').value) || null;
   const size = parseFloat(document.getElementById('f_size').value) || null;
   const lev = parseFloat(document.getElementById('f_lev').value) || 1;
+  // Costuri & risc: noi câmpuri care fac PnL accurate și permit R-multiple
+  const fees = parseFloat(document.getElementById('f_fees')?.value) || 0;
+  const funding = parseFloat(document.getElementById('f_funding')?.value) || 0;
+  let risk = parseFloat(document.getElementById('f_risk')?.value);
+  // Auto-derive risk din entry/SL/size dacă nu e specificat
+  if((isNaN(risk) || risk <= 0) && entry && sl && size && entry !== sl){
+    if (type === 'stock') {
+      const shares = size / entry;
+      risk = Math.abs(entry - sl) * shares;
+    } else {
+      // Pentru futures/grid: pierderea la SL = (|entry-sl|/entry) × size [× lev pentru futures]
+      const slMovePct = Math.abs(entry - sl) / entry;
+      risk = type === 'futures' ? slMovePct * size * lev : slMovePct * size;
+    }
+  }
   let pnl = parseFloat(document.getElementById('f_pnl').value);
   
   // Auto-calcul PnL dacă entry+exit+size există și pnl e gol
   if ((isNaN(pnl) || pnl === null) && entry && exit && size) {
     const dir = document.getElementById('f_dir').value;
-    const priceMove = dir === 'long' ? (exit - entry) / entry : (entry - exit) / entry;
-    pnl = priceMove * size * lev;
+    if (type === 'stock') {
+      // Stocks (Trade 212): PnL = (exit - entry) × shares pentru long, invers pentru short.
+      // size aici = USD invest (notional). shares = size/entry. PnL nu folosește leverage.
+      const shares = size / entry;
+      pnl = dir === 'long'
+        ? (exit - entry) * shares
+        : (entry - exit) * shares;
+    } else if (type === 'futures') {
+      // Futures crypto (Pionex): size = margin (USD), leverage explicit. PnL = move% × notional.
+      const priceMove = dir === 'long' ? (exit - entry) / entry : (entry - exit) / entry;
+      pnl = priceMove * size * lev;
+    } else {
+      // grid și alte tipuri: PnL pe move × size (fără leverage)
+      const priceMove = dir === 'long' ? (exit - entry) / entry : (entry - exit) / entry;
+      pnl = priceMove * size;
+    }
   }
 
+  // PnL NET = PnL gross - fees - funding (real life cost)
+  let pnlNet = !isNaN(pnl) ? (pnl - fees - funding) : null;
+  // pnlPct e ROI pe MARGIN (futures cu lev) sau pe NOTIONAL (stocks/grid)
   let pnlPct = null;
-  if (size && !isNaN(pnl)) pnlPct = (pnl / size) * 100;
+  if (pnlNet !== null && size) {
+    const denom = type === 'futures' ? (size / lev) : size; // margin pentru futures
+    pnlPct = denom > 0 ? (pnlNet / denom) * 100 : null;
+  }
+  // R-multiple: cât din risk inițial = PnL net (>1 = profit peste risc, <-1 = pierdere mai mare ca risc)
+  const rMultiple = (risk && risk > 0 && pnlNet !== null) ? (pnlNet / risk) : null;
 
   // Dacă suntem în mod editare, păstrăm id-ul, openTime și actualizăm în-place
   const existing = editingTradeId ? trades.find(x => x.id === editingTradeId) : null;
@@ -832,8 +1012,11 @@ function addTrade() {
     direction: (type === 'futures' || type === 'stock') ? document.getElementById('f_dir').value : null,
     status,
     entry, sl, tp, exit, size, leverage: lev,
-    pnl: !isNaN(pnl) ? pnl : null,
+    fees, funding, risk: risk||null,
+    pnl: pnlNet,           // PnL salvat = NET (după fees + funding) — istoric corect
+    pnlGross: !isNaN(pnl) ? pnl : null, // păstrez gross pentru audit
     pnlPct,
+    rMultiple,
     setup: document.getElementById('f_setup').value.trim(),
     notes: document.getElementById('f_notes').value.trim(),
     screenshot: pendingScreenshot,
@@ -853,7 +1036,7 @@ function addTrade() {
   pendingScreenshot = null;
   
   // Reset form
-  ['f_coin','f_entry','f_sl','f_tp','f_exit','f_size','f_pnl','f_setup','f_notes'].forEach(id => {
+  ['f_coin','f_entry','f_sl','f_tp','f_exit','f_size','f_pnl','f_setup','f_notes','f_risk','f_fees','f_funding'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -873,7 +1056,7 @@ function openTradeModal(id) {
   const typeBadge = t.type === 'futures' ? '<span class="badge fut">FUTURES</span>' : '<span class="badge grid">GRID</span>';
   const dirBadge = t.direction === 'long' ? '<span class="badge long">LONG</span>' : t.direction === 'short' ? '<span class="badge short">SHORT</span>' : '';
   
-  document.getElementById('tradeModalTitle').innerHTML = `${typeBadge} ${dirBadge} ${t.coin}`;
+  document.getElementById('tradeModalTitle').innerHTML = `${typeBadge} ${dirBadge} ${escHtml(t.coin)}`;
   
   let html = '<div style="font-size:.7rem;color:#475569;line-height:1.7">';
   html += `<div><strong>Status:</strong> ${t.status}</div>`;
@@ -886,8 +1069,8 @@ function openTradeModal(id) {
   if (t.size) html += `<div><strong>Size:</strong> $${t.size}</div>`;
   if (t.leverage > 1) html += `<div><strong>Leverage:</strong> ${t.leverage}x</div>`;
   if (t.pnl !== null && t.pnl !== undefined && t.pnl !== '') html += `<div><strong>P&L:</strong> <span style="color:${Number(t.pnl)>=0?'#15803d':'#b91c1c'};font-weight:800">${fmtUSD(t.pnl)}</span></div>`;
-  if (t.setup) html += `<div style="margin-top:8px"><strong>Setup:</strong> ${t.setup}</div>`;
-  if (t.notes) html += `<div style="margin-top:8px"><strong>Notițe:</strong><br><em>${t.notes.replace(/\n/g,'<br>')}</em></div>`;
+  if (t.setup) html += `<div style="margin-top:8px"><strong>Setup:</strong> ${escHtml(t.setup)}</div>`;
+  if (t.notes) html += `<div style="margin-top:8px"><strong>Notițe:</strong><br><em>${escHtml(t.notes).replace(/\n/g,'<br>')}</em></div>`;
   if (t.screenshot) html += `<div class="screenshot" style="margin-top:10px"><img src="${t.screenshot}"></div>`;
   html += '</div>';
   
@@ -1489,6 +1672,56 @@ console.log('[ExtLink] interceptor v2 loaded');
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(e => console.warn('SW register failed:', e));
 }
+
+// ── PREFILL FROM SCANNER (crypto/nasdaq → journal hook) ──
+// Detectează un setup salvat în localStorage['journal_pending_trade'] și pre-populează formul Add Trade.
+function _checkPrefillFromScanner(){
+  let pending = null;
+  try { pending = JSON.parse(localStorage.getItem('journal_pending_trade') || 'null'); } catch(e) {}
+  if(!pending || typeof pending !== 'object') return;
+  // Sanity: payload nu mai vechi de 1 oră (evită prefill cu setup vechi din altă sesiune)
+  if(Date.now() - (pending.timestamp || 0) > 60*60*1000){
+    localStorage.removeItem('journal_pending_trade');
+    return;
+  }
+  const setVal = (id, v) => {
+    const el = document.getElementById(id);
+    if(el && v !== undefined && v !== null && v !== '') el.value = v;
+  };
+  setVal('f_coin', pending.coin || pending.symbol || '');
+  setVal('f_entry', pending.entry);
+  setVal('f_sl', pending.stopLoss);
+  setVal('f_tp', pending.takeProfit);
+  setVal('f_size', pending.positionUsd);
+  setVal('f_setup', pending.setup || '');
+  const noteParts = [];
+  if(pending.notes) noteParts.push(pending.notes);
+  if(pending.scannerScore) noteParts.push('Scanner score: ' + pending.scannerScore);
+  if(pending.riskUsd) noteParts.push('Risk: $' + parseFloat(pending.riskUsd).toFixed(2));
+  if(pending.source) noteParts.push('Sursă: ' + pending.source);
+  setVal('f_notes', noteParts.join(' · '));
+  if(pending.type){
+    const tEl = document.getElementById('f_type');
+    if(tEl) tEl.value = pending.type;
+  }
+  if(pending.direction){
+    const dEl = document.getElementById('f_dir');
+    if(dEl) dEl.value = pending.direction;
+  }
+  const sEl = document.getElementById('f_status');
+  if(sEl) sEl.value = 'open';
+  try {
+    const addTab = Array.from(document.querySelectorAll('.tab')).find(t => /Add Trade/i.test(t.textContent));
+    if(addTab) setTab('add', addTab);
+  } catch(e) {}
+  // Cleanup pending
+  localStorage.removeItem('journal_pending_trade');
+  // Notificare ușoară (timeout să fie sigur că DOM-ul a randat tab-ul)
+  setTimeout(() => {
+    alert(`📓 Setup pre-completat din ${pending.source || 'scanner'}: ${pending.coin || pending.symbol}\n\nVerifică/ajustează câmpurile, apoi Salvează.`);
+  }, 200);
+}
+setTimeout(_checkPrefillFromScanner, 150);
 </script>
 
 </body>

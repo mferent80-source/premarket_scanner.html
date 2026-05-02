@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#f8faff">
+<meta name="theme-color" content="#f4f6ff">
+<!-- Content Security Policy: connect-src whitelist endpoint-urile externe legitime, blochează data exfiltration prin XSS rezidual.
+     'unsafe-inline' la script/style nu poate fi eliminat fără refactor major (60+ onclick + 70+ stiluri inline). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.binance.com https://fapi.binance.com https://data-api.binance.vision https://api.anthropic.com https://api.telegram.org https://api.coinpaprika.com https://api.alternative.me; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
 <title>Crypto Opportunity Scanner</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%237c3aed'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -924,7 +927,7 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
         </span>
       </div>
       <div id="frRows" class="td-list"></div>
-      <div class="td-hint">🔴 negativ = shorts plătesc longs · 🟢 pozitiv = longs plătesc shorts. Extreme = atenție pe grid bots.</div>
+      <div class="td-hint">🔴 negativ = shorts plătesc longs · 🟢 pozitiv = longs plătesc shorts. Rate /8h × 1095 ≈ APR. Extreme = atenție pe grid bots.</div>
     </div>
 
     <!-- SECȚIUNEA 3: Position Size Calculator -->
@@ -950,6 +953,14 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
         <div class="td-calc-row">
           <label>Take Profit $ (opt)</label>
           <input id="psTP" type="number" step="any" oninput="calcPositionSize()">
+        </div>
+        <div class="td-calc-row">
+          <label>Leverage (x)</label>
+          <input id="psLev" type="number" step="0.5" min="1" max="125" value="1" oninput="calcPositionSize();_savePosCalc()">
+        </div>
+        <div class="td-calc-row">
+          <label>MM % <span class="td-hint" style="font-size:10px">(BTC/ETH≈0.5, alts≈1.5)</span></label>
+          <input id="psMM" type="number" step="0.1" min="0.1" max="10" value="1.5" oninput="calcPositionSize();_savePosCalc()">
         </div>
         <div id="psResult" class="td-calc-result">Completează câmpurile pentru calcul.</div>
       </div>
@@ -984,6 +995,13 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
         <option value="1000000" selected>1M</option>
         <option value="5000000">5M</option>
         <option value="10000000">10M</option>
+      </select>
+    </div>
+    <div class="cp-field">
+      <label title="Bara curentă (în desfășurare) e incompletă — folosirea ei produce repaint">Mod bară</label>
+      <select class="cp-inp" id="barMode">
+        <option value="closed" selected>🔒 Bară închisă (recomandat)</option>
+        <option value="live">⚡ Live (poate repaint)</option>
       </select>
     </div>
   </div>
@@ -1152,12 +1170,40 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 
 <script>
 // ── SAFE FETCH: timeout via Promise.race (WebView compatible) ──
-function fetchSafe(url, ms=3000){
-  return Promise.race([
-    fetch(url).then(r=>{if(!r.ok)throw new Error(r.status);return r;}),
-    new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))
-  ]);
+// State global pentru rate-limit backoff per host (Binance bate IP-ul la 429/418)
+const _rlState = new Map(); // host -> { backoffUntil:ts }
+function _rlHost(url){ try { return new URL(url).host; } catch(e) { return url; } }
+function _rlIsBlocked(url){
+  const s = _rlState.get(_rlHost(url));
+  return s && s.backoffUntil > Date.now() ? Math.ceil((s.backoffUntil - Date.now())/1000) : 0;
 }
+function _rlMark(url, retryAfterSec){
+  const ms = (retryAfterSec || 60) * 1000;
+  _rlState.set(_rlHost(url), { backoffUntil: Date.now() + ms });
+}
+
+// fetchSafe cu AbortController real (anulează request-ul, nu doar Promise) + backoff la 429/418
+async function fetchSafe(url, ms=3000){
+  const blockedFor = _rlIsBlocked(url);
+  if (blockedFor) throw new Error('rate-limited (' + blockedFor + 's)');
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    if (!r.ok) {
+      // 429 = rate limit, 418 = IP ban (Binance "I'm a teapot" pentru abuzeri repeti)
+      if (r.status === 429 || r.status === 418) {
+        const ra = parseInt(r.headers.get('Retry-After') || '60', 10);
+        _rlMark(url, ra);
+      }
+      throw new Error(r.status);
+    }
+    return r;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 // Binance dual-endpoint fetch: tries primary, falls back to vision mirror
 async function fetchBinanceSafe(path, ms=8000){
   const mirrors=['https://api.binance.com','https://data-api.binance.vision'];
@@ -1195,11 +1241,63 @@ let cryptoFgScore = 50;
     if(cfg.scanInterval) document.getElementById('scanInterval').value=cfg.scanInterval;
     if(cfg.minVol) document.getElementById('minVol').value=cfg.minVol;
     if(cfg.watchlist) document.getElementById('watchlistInp').value=cfg.watchlist;
+    if(cfg.barMode){ const el=document.getElementById('barMode'); if(el) el.value=cfg.barMode; }
     if(cfg.sigs) cfg.sigs.forEach(s=>{ const el=document.getElementById('tog-'+s); if(el){activeSigs.add(s);el.classList.add('on');} });
   }catch(e){}
 })();
 let prevPrices = {}; // coin -> price (for breakout detection)
 let prevVolumes = {}; // coin -> volume
+
+// Apărare XSS la sursă: validează simbolurile Binance înainte ca ele să intre în pipeline.
+// Orice simbol cu HTML/scripting e respins. coin trece în template literals (s.desc, modale, etc.)
+function _safeSymbol(sym){
+  return /^[A-Z0-9]{2,20}USDT$/.test(sym||'') ? sym : null;
+}
+function _safeCoin(c){
+  return /^[A-Z0-9]{1,15}$/.test(c||'') ? c : '';
+}
+
+// Cache singleton pentru scanner_cfg — evită JSON.parse repetat și race conditions la save.
+// Operațiile read-modify-write din UI handlers folosesc acum patch-ul atomic.
+let _scfgCache = null;
+function getScannerCfg(){
+  if(_scfgCache) return _scfgCache;
+  try{ _scfgCache = JSON.parse(localStorage.getItem('scanner_cfg')||'{}'); }
+  catch(e){ _scfgCache = {}; }
+  return _scfgCache;
+}
+function patchScannerCfg(patch){
+  const merged = { ...getScannerCfg(), ...patch };
+  _scfgCache = merged;
+  try{ localStorage.setItem('scanner_cfg', JSON.stringify(merged)); }catch(e){}
+}
+
+// Bar mode: "closed" (default, anti-repaint) sau "live" (include bara curentă, poate produce repaint).
+// Aplicat în VWAP, gridScanSymbol, fetchMTFScoreLong, stlongScanSymbol, fetchMTFRange.
+function _useClosedBars(){
+  try{
+    const el = document.getElementById('barMode');
+    if(el) return el.value !== 'live';
+    const cfg = JSON.parse(localStorage.getItem('scanner_cfg')||'{}');
+    return cfg.barMode !== 'live';
+  }catch(e){ return true; }
+}
+function _trimLiveBar(klines){
+  if(!Array.isArray(klines) || klines.length < 2) return klines;
+  return _useClosedBars() ? klines.slice(0, -1) : klines;
+}
+
+// Cache partajat /ticker/24hr (Binance spot) — folosit de runScan, pump radar, news ticker, catalyst.
+// Evită 2-3 fetch-uri paralele de ~5MB JSON când scannerele rulează simultan.
+async function getTicker24hr(maxAgeMs = 20000){
+  const cache = window.__binance24hrCache;
+  if (cache && cache.data && (Date.now() - cache.ts) < maxAgeMs) return cache.data;
+  const res = await fetchSafe('https://api.binance.com/api/v3/ticker/24hr', 10000);
+  const all = await res.json();
+  if (!Array.isArray(all)) throw new Error('ticker schema invalid');
+  window.__binance24hrCache = { data: all, ts: Date.now() };
+  return all;
+}
 let rsiCache = {}; // coin -> rsi value
 let currentTab = 'live';
 let currentFilter = 'all';
@@ -1507,13 +1605,33 @@ function renderFundingRates() {
     _setLastRefresh('frLastRefresh', 0);
     return;
   }
+  // Pentru cost USD/8h ne raportăm la position size din Position Calc (dacă există)
+  let posUsd = 0;
+  try {
+    const cfg = JSON.parse(localStorage.getItem('pos_calc_cfg') || '{}');
+    if (cfg.account) posUsd = cfg.account; // fallback: account ca proxy de poziție
+    const psEntry = parseFloat((document.getElementById('psEntry')||{}).value) || 0;
+    const psStop  = parseFloat((document.getElementById('psStop') ||{}).value) || 0;
+    if (cfg.account && cfg.risk && psEntry && psStop && psEntry !== psStop) {
+      const riskUsd = cfg.account * (cfg.risk / 100);
+      const qty = riskUsd / Math.abs(psEntry - psStop);
+      posUsd = qty * psEntry; // mărimea poziției reale
+    }
+  } catch(e) {}
+
   rows.innerHTML = _frRows.map(r => {
     const cls = r.rate >= 0 ? 'pos' : 'neg';
     const sign = r.rate >= 0 ? '+' : '';
-    return `<div class="td-row">
+    // Funding rate Binance e pe 8h → APR = rate × 3 × 365
+    const apr = r.rate * 3 * 365;
+    const aprSign = apr >= 0 ? '+' : '';
+    const cost8h = posUsd * (r.rate / 100); // long plătește când rate > 0
+    const costStr = posUsd > 0 ? ` · ${cost8h >= 0 ? '−' : '+'}$${Math.abs(cost8h).toFixed(2)}/8h` : '';
+    const tooltip = `${sign}${r.rate.toFixed(4)}% pe 8h ≈ ${aprSign}${apr.toFixed(1)}% APR${posUsd>0?` · long pe $${posUsd.toFixed(0)}: ${cost8h>=0?'−':'+'}$${Math.abs(cost8h).toFixed(2)}/8h`:''}`;
+    return `<div class="td-row" title="${tooltip}">
       <span class="td-coin">${r.symbol}</span>
       <span class="td-price">$${r.mark < 1 ? r.mark.toFixed(6) : r.mark.toFixed(2)}</span>
-      <span class="td-chg ${cls}">${sign}${r.rate.toFixed(4)}%</span>
+      <span class="td-chg ${cls}">${sign}${r.rate.toFixed(4)}%/8h<br><span style="font-size:10px;opacity:.75">${aprSign}${apr.toFixed(0)}% APR${costStr}</span></span>
     </div>`;
   }).join('');
   _setLastRefresh('frLastRefresh', _frLastRefresh);
@@ -1521,11 +1639,13 @@ function renderFundingRates() {
 
 // ═════════ SECȚIUNEA 3: POSITION SIZE CALCULATOR ═════════
 function _savePosCalc() {
-  // Salvează doar account și risk (nu entry/SL care se schimbă per trade)
+  // Salvează account, risk, leverage, MM (nu entry/SL care se schimbă per trade)
   try {
     const cfg = {
       account: parseFloat(document.getElementById('psAccount').value) || 0,
-      risk: parseFloat(document.getElementById('psRisk').value) || 0
+      risk: parseFloat(document.getElementById('psRisk').value) || 0,
+      lev: parseFloat(document.getElementById('psLev').value) || 1,
+      mm: parseFloat(document.getElementById('psMM').value) || 1.5
     };
     localStorage.setItem('pos_calc_cfg', JSON.stringify(cfg));
   } catch(e) {}
@@ -1536,6 +1656,8 @@ function _loadPosCalc() {
     const cfg = JSON.parse(localStorage.getItem('pos_calc_cfg') || '{}');
     if (cfg.account) document.getElementById('psAccount').value = cfg.account;
     if (cfg.risk) document.getElementById('psRisk').value = cfg.risk;
+    if (cfg.lev) document.getElementById('psLev').value = cfg.lev;
+    if (cfg.mm) document.getElementById('psMM').value = cfg.mm;
   } catch(e) {}
 }
 
@@ -1545,6 +1667,9 @@ function calcPositionSize() {
   const entry = parseFloat(document.getElementById('psEntry').value);
   const stop = parseFloat(document.getElementById('psStop').value);
   const tp = parseFloat(document.getElementById('psTP').value);
+  // Leverage explicit + maintenance margin (default conservator 1.5% pentru alts; BTC/ETH ~0.5%)
+  const leverage = Math.max(1, parseFloat(document.getElementById('psLev').value) || 1);
+  const mmPct = Math.max(0.1, parseFloat(document.getElementById('psMM').value) || 1.5);
   const out = document.getElementById('psResult');
 
   if (!account || !risk || !entry || !stop) {
@@ -1564,7 +1689,17 @@ function calcPositionSize() {
   const stopPct = (riskPerUnit / entry) * 100;
   const qty = riskUsd / riskPerUnit;
   const positionUsd = qty * entry;
-  const leverage = positionUsd / account;
+  const marginUsd = positionUsd / leverage; // margin real necesar pe Pionex/Binance Futures
+  const lossOnMarginPct = marginUsd > 0 ? (riskUsd / marginUsd) * 100 : 0;
+
+  // Liquidation price (formulă cu MM real, ignoră fees → buffer conservator)
+  const mm = mmPct / 100;
+  const liqPrice = direction === 'LONG'
+    ? entry * (1 - 1 / leverage + mm)
+    : entry * (1 + 1 / leverage - mm);
+  const liqDistPct = Math.abs((liqPrice - entry) / entry) * 100;
+  // PERICOL: stop dincolo de liq → lichidare ÎNAINTE de SL
+  const stopBeyondLiq = direction === 'LONG' ? (stop <= liqPrice) : (stop >= liqPrice);
 
   let rrLine = '';
   if (tp && !isNaN(tp)) {
@@ -1575,12 +1710,24 @@ function calcPositionSize() {
     rrLine = `<br>R:R = <strong style="color:${rrCls}">${rr.toFixed(2)}</strong> · Profit țintă = <strong>$${profitUsd.toFixed(2)}</strong>`;
   }
 
-  out.className = 'td-calc-result';
+  // Warning-uri pentru utilizator
+  let warn = '';
+  if (marginUsd > account) {
+    warn += `<br><span style="color:var(--red)">⚠️ Margin necesar ($${marginUsd.toFixed(2)}) > Account ($${account.toFixed(2)}). Mărește leverage sau redu poziția.</span>`;
+  }
+  if (stopBeyondLiq) {
+    warn += `<br><span style="color:var(--red)">🚨 LIQUIDATION ($${liqPrice.toFixed(entry < 1 ? 6 : 2)}) e mai aproape decât Stop Loss. Vei fi lichidat ÎNAINTE de SL. Redu leverage.</span>`;
+  } else if (lossOnMarginPct > 80) {
+    warn += `<br><span style="color:var(--gold)">⚠️ La SL pierzi ${lossOnMarginPct.toFixed(0)}% din margin. Aproape de liquidation.</span>`;
+  }
+
+  const liqDecimals = entry < 1 ? 6 : 2;
+  out.className = 'td-calc-result' + (stopBeyondLiq || marginUsd > account ? ' err' : '');
   out.innerHTML = `
     <strong>${direction}</strong> · Risc real = <strong>$${riskUsd.toFixed(2)}</strong> (${stopPct.toFixed(2)}% stop)<br>
-    Cantitate = <strong>${qty.toFixed(qty < 1 ? 4 : 2)}</strong> unități<br>
-    Position size = <strong>$${positionUsd.toFixed(2)}</strong>${leverage > 1 ? ' · Leverage = <strong>' + leverage.toFixed(1) + 'x</strong>' : ''}
-    ${rrLine}
+    Cantitate = <strong>${qty.toFixed(qty < 1 ? 4 : 2)}</strong> unități · Position = <strong>$${positionUsd.toFixed(2)}</strong><br>
+    Margin (${leverage}x) = <strong>$${marginUsd.toFixed(2)}</strong> · Liq ≈ <strong>$${liqPrice.toFixed(liqDecimals)}</strong> (${liqDistPct.toFixed(1)}%)
+    ${rrLine}${warn}
   `;
 }
 
@@ -1662,34 +1809,58 @@ function calcBB(closes, period=20, mult=2){
 }
 
 // ── RSI DIVERGENCE DETECTION ──
+// Divergență RSI cu swing-point detection real (pivoturi confirmate cu fereastră P=2 fiecare parte)
+// — versiunea anterioară lua doar cele mai mici/mari valori sortate, ceea ce dădea semnale false pe trend-uri.
+// Cere minim 5 bare separare între pivoturi ca să nu detecteze același swing de 2 ori.
 function detectRSIDivergence(closes, period=14){
-  if(closes.length<period+6) return null;
-  // Find recent swing lows/highs in last ~10 candles
-  const len=closes.length;
-  const rsiArr=[];
-  // Calculate RSI for last 10 candles
-  for(let i=len-10;i<len;i++){
-    const sub=closes.slice(0,i+1);
-    rsiArr.push({price:closes[i],rsi:calcRSI(sub,period),idx:i});
+  if(closes.length < period + 30) return null;
+  const len = closes.length;
+
+  // Serie RSI pe ultimele ~40 candele (suficient pentru a găsi 2 pivoturi reale)
+  const LOOKBACK = 40;
+  const startI = Math.max(period + 1, len - LOOKBACK);
+  const series = [];
+  for(let i = startI; i < len; i++){
+    const r = calcRSI(closes.slice(0, i+1), period);
+    if(typeof r === 'number' && !isNaN(r)){
+      series.push({ idx: i, price: closes[i], rsi: r });
+    }
   }
-  // Find two lowest prices and two highest prices
-  const sorted=[...rsiArr].sort((a,b)=>a.price-b.price);
-  const lo1=sorted[0], lo2=sorted[1];
-  const sorted2=[...rsiArr].sort((a,b)=>b.price-a.price);
-  const hi1=sorted2[0], hi2=sorted2[1];
-  
-  // Bullish divergence: price makes lower low, RSI makes higher low
-  let bullish=false;
-  if(lo1.idx>lo2.idx && lo1.price<lo2.price && lo1.rsi>lo2.rsi) bullish=true;
-  if(lo2.idx>lo1.idx && lo2.price<lo1.price && lo2.rsi>lo1.rsi) bullish=true;
-  
-  // Bearish divergence: price makes higher high, RSI makes lower high
-  let bearish=false;
-  if(hi1.idx>hi2.idx && hi1.price>hi2.price && hi1.rsi<hi2.rsi) bearish=true;
-  if(hi2.idx>hi1.idx && hi2.price>hi1.price && hi2.rsi<hi1.rsi) bearish=true;
-  
-  if(!bullish&&!bearish) return null;
-  return{bullish,bearish};
+  if(series.length < 12) return null;
+
+  // Pivot detection: P bare la stânga și la dreapta cu preț strict mai mare/mai mic
+  const P = 2;
+  const swingLows = [], swingHighs = [];
+  for(let i = P; i < series.length - P; i++){
+    const c = series[i];
+    let isLow = true, isHigh = true;
+    for(let j = -P; j <= P; j++){
+      if(j === 0) continue;
+      if(series[i+j].price < c.price) isLow  = false;
+      if(series[i+j].price > c.price) isHigh = false;
+    }
+    if(isLow)  swingLows.push(c);
+    if(isHigh) swingHighs.push(c);
+  }
+
+  const MIN_SEP = 5; // distanță minimă între pivoturi (bare)
+  let bullish = false;
+  if(swingLows.length >= 2){
+    const a = swingLows[swingLows.length-2];
+    const b = swingLows[swingLows.length-1];
+    // Bullish divergence: lower low pe preț, higher low pe RSI
+    if(b.idx - a.idx >= MIN_SEP && b.price < a.price && b.rsi > a.rsi) bullish = true;
+  }
+  let bearish = false;
+  if(swingHighs.length >= 2){
+    const a = swingHighs[swingHighs.length-2];
+    const b = swingHighs[swingHighs.length-1];
+    // Bearish divergence: higher high pe preț, lower high pe RSI
+    if(b.idx - a.idx >= MIN_SEP && b.price > a.price && b.rsi < a.rsi) bearish = true;
+  }
+
+  if(!bullish && !bearish) return null;
+  return { bullish, bearish };
 }
 
 // ── DARK MODE ──
@@ -1789,7 +1960,7 @@ function showApiKeyModal(onSuccess){
     <div style="font-size:.65rem;color:#64748b;margin-bottom:14px;line-height:1.6">
       Obții cheia de la: <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#4f46e5;font-weight:700">console.anthropic.com/settings/keys</a>
     </div>
-    <input id="apiKeyInp" type="text" placeholder="sk-ant-api03-..." value="${existing}"
+    <input id="apiKeyInp" type="text" placeholder="sk-ant-api03-..." value="${escapeHtmlNT(existing)}"
       style="width:100%;padding:10px 12px;border:1px solid #dde2f5;border-radius:8px;font-size:.7rem;font-family:monospace;outline:none;margin-bottom:8px">
     <div id="apiTestResult" style="font-size:.62rem;margin-bottom:10px;min-height:18px;padding:0 2px"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1829,7 +2000,7 @@ function showApiKeyModal(onSuccess){
           'anthropic-dangerous-direct-browser-access':'true'
         },
         body:JSON.stringify({
-          model:'claude-haiku-4-5-20251001',
+          model:'claude-haiku-4-5',
           max_tokens:20,
           messages:[{role:'user',content:'Spune doar: OK'}]
         })
@@ -1926,7 +2097,7 @@ Răspunde în română, max 5 rânduri: stare tehnică actuală, scenariu 24-72h
         'anthropic-dangerous-direct-browser-access':'true'
       },
       body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',
+        model:'claude-haiku-4-5',
         max_tokens:600,
         messages:[{role:'user',content:prompt}]
       })
@@ -2294,26 +2465,65 @@ async function acquireWakeLock(){
   if(!('wakeLock' in navigator))return;
   try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
 }
+// Pause/resume tuturor timer-elor de fetch când tabul e ascuns
+// — economisește baterie, traffic 4G și evită rate-limit Binance pe APK în background.
+function _bgPauseTimers(){
+  if(_wlTimer){ clearInterval(_wlTimer); _wlTimer=null; }
+  if(_frTimer){ clearInterval(_frTimer); _frTimer=null; }
+  if(typeof pumpRadarTimer!=='undefined' && pumpRadarTimer){ clearInterval(pumpRadarTimer); pumpRadarTimer=null; }
+  if(typeof futuresTimer!=='undefined' && futuresTimer){ clearInterval(futuresTimer); futuresTimer=null; }
+  if(typeof newsTickerInterval!=='undefined' && newsTickerInterval){ clearInterval(newsTickerInterval); newsTickerInterval=null; }
+  if(typeof catalystInterval!=='undefined' && catalystInterval){ clearInterval(catalystInterval); catalystInterval=null; }
+  // Countdown-urile UI rămân (sunt ușoare, doar scriu text)
+}
+function _bgResumeTimers(){
+  // Watchlist + funding (Trader Dashboard)
+  if(dashWatchlist && dashWatchlist.length>0 && typeof startDashRefresh==='function'){
+    try{ startDashRefresh(); }catch(e){}
+  }
+  // Pump radar
+  if(typeof pumpRadarRunning!=='undefined' && pumpRadarRunning && !pumpRadarTimer){
+    try{ runPumpRadarScan(); pumpRadarTimer=setInterval(()=>runPumpRadarScan(), (pumpConfig.scanIntervalSec||30)*1000); }catch(e){}
+  }
+  // Futures
+  if(typeof futuresRunning!=='undefined' && futuresRunning && !futuresTimer){
+    try{ runFuturesScan(); futuresTimer=setInterval(()=>runFuturesScan(), (futuresConfig.scanIntervalSec||30)*1000); }catch(e){}
+  }
+  // News ticker + catalyst feed (lazy resume — doar dacă funcțiile există)
+  if(typeof updateNewsTicker==='function' && !newsTickerInterval){
+    try{ updateNewsTicker(); newsTickerInterval=setInterval(updateNewsTicker, NEWS_TICKER_FAST_MS||45000); }catch(e){}
+  }
+  if(typeof updateCatalystFeed==='function' && !catalystInterval){
+    try{ updateCatalystFeed(); catalystInterval=setInterval(updateCatalystFeed, (typeof CATALYST_REFRESH_MS!=='undefined'?CATALYST_REFRESH_MS:240000)); }catch(e){}
+  }
+}
 document.addEventListener('visibilitychange',async()=>{
-  if(running&&document.visibilityState==='visible'&&(!wakeLock||wakeLock.released))
-    await acquireWakeLock();
+  if(document.visibilityState==='hidden'){
+    _bgPauseTimers();
+  } else {
+    _bgResumeTimers();
+    if(running && (!wakeLock||wakeLock.released)) await acquireWakeLock();
+  }
 });
 
 // ── CONFIG SAVE ──
 function saveConfig(){
   try{
-    localStorage.setItem('scanner_cfg',JSON.stringify({
+    const cfg = {
       topN:document.getElementById('topN').value,
       scanInterval:document.getElementById('scanInterval').value,
       minVol:document.getElementById('minVol').value,
       watchlist:document.getElementById('watchlistInp').value,
+      barMode:(document.getElementById('barMode')||{}).value||'closed',
       sortMode: window.currentSortMode||'volume',
       sigs:[...activeSigs]
-    }));
+    };
+    _scfgCache = cfg; // invalidează & populează cache
+    localStorage.setItem('scanner_cfg', JSON.stringify(cfg));
   }catch(e){}
 }
 // Auto-save config on input change
-['topN','scanInterval','minVol','watchlistInp'].forEach(id=>{
+['topN','scanInterval','minVol','watchlistInp','barMode'].forEach(id=>{
   const el=document.getElementById(id);
   if(el) el.addEventListener('change',saveConfig);
 });
@@ -2387,6 +2597,79 @@ const IS_WEBVIEW = (function(){
       || window.location.protocol==='file:';
 })();
 
+// Construiește universul de coin-uri pe baza filtrelor user (sortMode + minVol + watchlist).
+// Extras din runScan ca să poată fi reutilizat, testat și înlocuit independent.
+async function fetchUniverse(){
+  const all = await getTicker24hr(0); // ciclul scan-ului dictează data freshness
+  try{ if(typeof updateNewsTicker==='function') updateNewsTicker(); }catch(e){}
+  try{ if(typeof updateCatalystFeed==='function') updateCatalystFeed(); }catch(e){}
+
+  const minVol=parseFloat(document.getElementById('minVol').value)||1000000;
+  const topN=parseInt(document.getElementById('topN').value)||50;
+
+  // Filter base (validare strictă pe simbol — apărare XSS la sursă)
+  const base = all.filter(t=>_safeSymbol(t.symbol)&&!t.symbol.includes('DOWN')&&!t.symbol.includes('UP')&&!t.symbol.includes('BEAR')&&!t.symbol.includes('BULL'));
+
+  let tickers=[];
+  const sortMode = window.currentSortMode || 'volume';
+  if(sortMode==='gainers'){
+    tickers=base.filter(t=>parseFloat(t.quoteVolume)>=100000)
+      .sort((a,b)=>parseFloat(b.priceChangePercent)-parseFloat(a.priceChangePercent)).slice(0,topN);
+    log(`📊 Mod: Top ${topN} câștigători 24h`,'info');
+  } else if(sortMode==='losers'){
+    tickers=base.filter(t=>parseFloat(t.quoteVolume)>=100000)
+      .sort((a,b)=>parseFloat(a.priceChangePercent)-parseFloat(b.priceChangePercent)).slice(0,topN);
+    log(`📊 Mod: Top ${topN} perdanți 24h`,'info');
+  } else if(sortMode==='volatile'){
+    tickers=base.filter(t=>parseFloat(t.quoteVolume)>=100000).sort((a,b)=>{
+      const rangeA=(parseFloat(a.highPrice)-parseFloat(a.lowPrice))/parseFloat(a.lowPrice);
+      const rangeB=(parseFloat(b.highPrice)-parseFloat(b.lowPrice))/parseFloat(b.lowPrice);
+      return rangeB-rangeA;
+    }).slice(0,topN);
+    log(`📊 Mod: Top ${topN} volatilitate`,'info');
+  } else if(sortMode==='both'){
+    const byVol=base.filter(t=>parseFloat(t.quoteVolume)>=minVol)
+      .sort((a,b)=>parseFloat(b.quoteVolume)-parseFloat(a.quoteVolume)).slice(0,Math.round(topN*0.6));
+    const byGain=base.filter(t=>parseFloat(t.quoteVolume)>=100000)
+      .sort((a,b)=>parseFloat(b.priceChangePercent)-parseFloat(a.priceChangePercent)).slice(0,Math.round(topN*0.4));
+    const seen=new Set();
+    tickers=[...byVol,...byGain].filter(t=>seen.has(t.symbol)?false:seen.add(t.symbol));
+    log(`📊 Mod: Mixt — ${byVol.length} volum + ${byGain.length} câștigători`,'info');
+  } else {
+    tickers=base.filter(t=>parseFloat(t.quoteVolume)>=minVol)
+      .sort((a,b)=>parseFloat(b.quoteVolume)-parseFloat(a.quoteVolume)).slice(0,topN);
+  }
+
+  // Watchlist forced-include + validare strictă pe ticker (XSS guard la coin user-typed)
+  const wlRaw=document.getElementById('watchlistInp').value||'';
+  const wlCoins=wlRaw.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean).filter(c=>_safeCoin(c));
+  const notFound=[];
+  for(const wc of wlCoins){
+    const sym=wc+'USDT';
+    if(!tickers.find(t=>t.symbol===sym)){
+      const extra=all.find(t=>t.symbol===sym);
+      if(extra){
+        tickers.push(extra);
+        log(`📌 Watchlist: ${wc} adăugat (vol: $${(parseFloat(extra.quoteVolume)/1e6).toFixed(1)}M)`,'ok');
+      } else {
+        notFound.push(wc);
+      }
+    }
+  }
+
+  const warnEl=document.getElementById('watchlistWarnings');
+  if(warnEl){
+    if(notFound.length){
+      warnEl.innerHTML=notFound.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);border-radius:6px;padding:3px 8px;font-size:.58rem;color:#dc2626;margin:2px;">⚠️ ${escapeHtmlNT(c)} — negăsit pe Binance</span>`).join('');
+      log(`⚠️ Negăsit pe Binance: ${notFound.join(', ')} — poate fi doar pe Pionex/alt exchange`,'warn');
+    } else {
+      warnEl.innerHTML='';
+    }
+  }
+
+  return { tickers, allTickers: all, notFound };
+}
+
 async function runScan(){
   if(!running)return;
   document.getElementById('sdot').className='sdot scanning';
@@ -2394,98 +2677,11 @@ async function runScan(){
   setProgress(0);
   log(`🔍 Scanare #${totalScans+1} — top ${document.getElementById('topN').value} coinuri...`,'info');
 
-  // Step 1: Fetch all tickers
   setProgress(10,'Fetch tickers...');
   let tickers=[];
   try{
-    const res=await fetchSafe('https://api.binance.com/api/v3/ticker/24hr',10000);
-    if(!res)throw new Error();
-    const all=await res.json();
-    // Share with news ticker + catalyst feed (avoid duplicate requests)
-    window.__binance24hrCache = { data:all, ts:Date.now() };
-    // Auto-populate ticker and catalyst from fresh cache
-    try{ if(typeof updateNewsTicker==='function') updateNewsTicker(); }catch(e){}
-    try{ if(typeof updateCatalystFeed==='function') updateCatalystFeed(); }catch(e){}
-    const minVol=parseFloat(document.getElementById('minVol').value)||1000000;
-    const topN=parseInt(document.getElementById('topN').value)||50;
-
-    // Filter base list
-    let base=all
-      .filter(t=>t.symbol.endsWith('USDT')&&!t.symbol.includes('DOWN')&&!t.symbol.includes('UP')&&!t.symbol.includes('BEAR')&&!t.symbol.includes('BULL'));
-
-    // ── SORT MODE ──
-    const sortMode = window.currentSortMode || 'volume';
-    if(sortMode==='gainers'){
-      tickers=base
-        .filter(t=>parseFloat(t.quoteVolume)>=100000)
-        .sort((a,b)=>parseFloat(b.priceChangePercent)-parseFloat(a.priceChangePercent))
-        .slice(0,topN);
-      log(`📊 Mod: Top ${topN} câștigători 24h`,'info');
-    } else if(sortMode==='losers'){
-      tickers=base
-        .filter(t=>parseFloat(t.quoteVolume)>=100000)
-        .sort((a,b)=>parseFloat(a.priceChangePercent)-parseFloat(b.priceChangePercent))
-        .slice(0,topN);
-      log(`📊 Mod: Top ${topN} perdanți 24h`,'info');
-    } else if(sortMode==='volatile'){
-      tickers=base
-        .filter(t=>parseFloat(t.quoteVolume)>=100000)
-        .sort((a,b)=>{
-          const rangeA=(parseFloat(a.highPrice)-parseFloat(a.lowPrice))/parseFloat(a.lowPrice);
-          const rangeB=(parseFloat(b.highPrice)-parseFloat(b.lowPrice))/parseFloat(b.lowPrice);
-          return rangeB-rangeA;
-        })
-        .slice(0,topN);
-      log(`📊 Mod: Top ${topN} volatilitate`,'info');
-    } else if(sortMode==='both'){
-      // Mixt: 50% volum + 50% câștig
-      const byVol=base
-        .filter(t=>parseFloat(t.quoteVolume)>=minVol)
-        .sort((a,b)=>parseFloat(b.quoteVolume)-parseFloat(a.quoteVolume))
-        .slice(0,Math.round(topN*0.6));
-      const byGain=base
-        .filter(t=>parseFloat(t.quoteVolume)>=100000)
-        .sort((a,b)=>parseFloat(b.priceChangePercent)-parseFloat(a.priceChangePercent))
-        .slice(0,Math.round(topN*0.4));
-      const seen=new Set();
-      tickers=[...byVol,...byGain].filter(t=>seen.has(t.symbol)?false:seen.add(t.symbol));
-      log(`📊 Mod: Mixt — ${byVol.length} volum + ${byGain.length} câștigători`,'info');
-    } else {
-      // Default: volum
-      tickers=base
-        .filter(t=>parseFloat(t.quoteVolume)>=minVol)
-        .sort((a,b)=>parseFloat(b.quoteVolume)-parseFloat(a.quoteVolume))
-        .slice(0,topN);
-    }
-
-    // ── WATCHLIST — forțat inclus indiferent de volum ──
-    const wlRaw=document.getElementById('watchlistInp').value||'';
-    const wlCoins=wlRaw.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
-    const notFound=[];
-    for(const wc of wlCoins){
-      const sym=wc+'USDT';
-      if(!tickers.find(t=>t.symbol===sym)){
-        const extra=all.find(t=>t.symbol===sym);
-        if(extra){
-          tickers.push(extra);
-          log(`📌 Watchlist: ${wc} adăugat (vol: $${(parseFloat(extra.quoteVolume)/1e6).toFixed(1)}M)`,'ok');
-        } else {
-          notFound.push(wc);
-        }
-      }
-    }
-
-    // Afișează warning pentru coinuri negăsite pe Binance
-    const warnEl=document.getElementById('watchlistWarnings');
-    if(warnEl){
-      if(notFound.length){
-        warnEl.innerHTML=notFound.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);border-radius:6px;padding:3px 8px;font-size:.58rem;color:#dc2626;margin:2px;">⚠️ ${c} — negăsit pe Binance</span>`).join('');
-        log(`⚠️ Negăsit pe Binance: ${notFound.join(', ')} — poate fi doar pe Pionex/alt exchange`,'warn');
-      } else {
-        warnEl.innerHTML='';
-      }
-    }
-
+    const universe = await fetchUniverse();
+    tickers = universe.tickers;
   }catch(e){
     log('❌ Eroare fetch tickers: '+e.message,'err');
     document.getElementById('sdot').className='sdot live';
@@ -3435,17 +3631,21 @@ function renderWatchlistTags(){
 function addWatchlistCoin(){
   const inp=document.getElementById('watchlistInp');
   const raw=inp.value||'';
-  const coins=raw.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
-  // Prompt
+  const coins=raw.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean).filter(c=>_safeCoin(c));
   const newCoin=prompt('Adaugă coin în watchlist (ex: RAVE):','');
   if(!newCoin) return;
   const cleaned=newCoin.trim().toUpperCase().replace('USDT','');
+  // Validare strictă: doar litere mari + cifre, 1-15 caractere — blochează HTML/XSS prin watchlist
+  if(!_safeCoin(cleaned)){
+    showToast('⚠️ Ticker invalid (doar A-Z, 0-9, max 15)','err');
+    return;
+  }
   if(cleaned && !coins.includes(cleaned)){
     coins.push(cleaned);
     inp.value=coins.join(',');
     renderWatchlistTags();
     showToast(`📌 ${cleaned} adăugat în watchlist`,'ok');
-    try{ localStorage.setItem('scanner_cfg', JSON.stringify({...JSON.parse(localStorage.getItem('scanner_cfg')||'{}'), watchlist:inp.value})); }catch(e){}
+    patchScannerCfg({ watchlist: inp.value });
   }
 }
 
@@ -3454,7 +3654,7 @@ function removeWatchlistCoin(coin){
   const coins=(inp.value||'').split(',').map(s=>s.trim().toUpperCase()).filter(Boolean).filter(c=>c!==coin);
   inp.value=coins.join(',');
   renderWatchlistTags();
-  try{ localStorage.setItem('scanner_cfg', JSON.stringify({...JSON.parse(localStorage.getItem('scanner_cfg')||'{}'), watchlist:inp.value})); }catch(e){}
+  patchScannerCfg({ watchlist: inp.value });
 }
 
 // Init tags
@@ -3536,17 +3736,19 @@ async function analyzePumpCandidate(symbol, coin, currentPrice, vol24){
 
     const closes=klines.map(k=>parseFloat(k[4]));
     const volumes=klines.map(k=>parseFloat(k[5]));
-    const lastClose=closes[closes.length-1];
-    const open5m=klines[klines.length-1][1] ? parseFloat(klines[klines.length-1][1]) : closes[closes.length-2];
-    const open15m=closes[closes.length-4] || closes[0];
-    
-    // Price changes
-    const chg5m=((lastClose-open5m)/open5m)*100;
-    const chg15m=((lastClose-open15m)/open15m)*100;
+    const lastClose=closes[closes.length-1]; // preț curent (bara activă) — folosit doar pentru afișaj și BB instant
+    // ── BARA ÎNCHISĂ pentru detecție (anti-repaint): bara curentă e incompletă, măsurătorile pe ea dau false negatives ──
+    const closedClose=closes[closes.length-2];
+    const closedOpen=parseFloat(klines[klines.length-2][1]);
+    const open15m=closes[closes.length-5] || closes[0]; // 3 bare 5m înainte de bara închisă ≈ 15m
 
-    // Volume spike
-    const currentVol=volumes[volumes.length-1];
-    const avgVol20=volumes.slice(-21,-1).reduce((a,b)=>a+b,0)/20;
+    // Price changes — pe bara închisă (5m completă), nu pe cea activă
+    const chg5m=((closedClose-closedOpen)/closedOpen)*100;
+    const chg15m=((closedClose-open15m)/open15m)*100;
+
+    // Volume spike — comparăm volumul barei închise cu media celor 20 bare anterioare ei
+    const currentVol=volumes[volumes.length-2];
+    const avgVol20=volumes.slice(-22,-2).reduce((a,b)=>a+b,0)/20;
     const volRatio=avgVol20>0 ? currentVol/avgVol20 : 1;
 
     // RSI 14
@@ -3633,14 +3835,12 @@ async function runPumpRadarScan(){
   if(!pumpRadarRunning) return;
   
   try{
-    // Get 24h tickers
-    const r=await fetchSafe('https://api.binance.com/api/v3/ticker/24hr',5000);
-    if(!r.ok) throw new Error('ticker fetch failed');
-    const all=await r.json();
-    
-    // Filter USDT pairs, exclude leverage/stables
+    // Reuse cache-ul dacă scan principal a luat date în ultimele 20s (evită 2× fetch ~5MB)
+    const all = await getTicker24hr(20000);
+
+    // Filter USDT pairs, exclude leverage/stables (validare strictă pe simbol — apărare XSS la sursă)
     let usdtPairs=all.filter(t=>
-      t.symbol.endsWith('USDT') &&
+      _safeSymbol(t.symbol) &&
       !t.symbol.includes('UP') && !t.symbol.includes('DOWN') &&
       !t.symbol.includes('BULL') && !t.symbol.includes('BEAR') &&
       !['USDCUSDT','TUSDUSDT','BUSDUSDT','FDUSDUSDT','DAIUSDT'].includes(t.symbol)
@@ -5185,10 +5385,11 @@ async function fetchVWAPForSymbol(symbol){
   try{
     // 24h of 15-min candles = 96 candles
     const url='https://api.binance.com/api/v3/klines?symbol='+symbol+'&interval=15m&limit=96';
-    const r=await fetch(url);
+    const r=await fetchSafe(url, 8000);
     if(!r.ok) return null;
-    const data=await r.json();
+    let data=await r.json();
     if(!data || !data.length) return null;
+    data = _trimLiveBar(data); // exclude bara curentă (incompletă) dacă e activ mode "closed"
     
     // Klines format: [openTime, open, high, low, close, volume, ...]
     let totalVolPrice=0, totalVol=0;
@@ -5900,20 +6101,21 @@ setTimeout(updateInfoBadge, 300);
 // ═══════════════════════════════════════════════════════
 // Used by Grid Scanner + Smart Trade Long + Smart Data
 // to filter out coins not available on Pionex (futures grid + spot)
-// Source: Pionex Futures Grid supported pairs + verified Apr 2026 listings
+// Source: Pionex Futures Grid supported pairs + verified May 2026 listings
+// Note rebrandings: MATIC→POL (Polygon), RNDR→RENDER (Render). HARMONY nu e ticker (e ONE).
 // Update this list periodically as Pionex adds/removes pairs
 const PIONEX_WHITELIST=new Set([
   // Major caps (top 30)
-  'BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','LINK','MATIC',
+  'BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','LINK','POL','MATIC',
   'DOT','ATOM','UNI','LTC','TRX','BCH','NEAR','APT','ARB','OP',
   'SUI','TIA','SEI','INJ','FIL','ICP','PEPE','SHIB','HBAR','VET',
   // Mid caps liquid on Pionex
   'XLM','ALGO','FTM','SAND','MANA','GRT','AAVE','MKR','CRV','LDO',
-  'COMP','SUSHI','SNX','GMX','ENS','RNDR','IMX','FET','OCEAN','AGIX',
+  'COMP','SUSHI','SNX','GMX','ENS','RENDER','RNDR','IMX','FET','OCEAN','AGIX',
   'WLD','JUP','PYTH','JTO','WIF','BONK','FLOKI','BOME','ORDI','SATS',
   'STX','RUNE','THETA','XTZ','EOS','MINA','FLOW','EGLD','ZEC','DASH',
   'KAVA','ROSE','CELO','GALA','APE','AXS','ZIL','CHZ','ENJ','HOT',
-  'ONE','HARMONY','RVN','BAT','OMG','LRC','BAL','YFI','UMA','REN',
+  'ONE','RVN','BAT','OMG','LRC','BAL','YFI','UMA','REN',
   'KNC','BAND','REEF','ANKR','CTSI','STORJ','DGB','SC','ZEN','XEM',
   'WAVES','ICX','ONT','QTUM','LSK','NANO','KAS','TON','MNT','BLUR',
   // Memecoins on Pionex
@@ -6031,10 +6233,11 @@ function calcATR_arr(highs, lows, closes, period=14){
 async function fetchMTFRange(symbol, interval){
   try{
     const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=50`;
-    const r=await fetch(url);
+    const r=await fetchSafe(url, 8000);
     if(!r.ok) return null;
-    const d=await r.json();
+    let d=await r.json();
     if(!d || d.length<25) return null;
+    d = _trimLiveBar(d);
     const closes=d.map(k=>parseFloat(k[4]));
     const ema9=calcEMA_arr(closes,9);
     const ema21=calcEMA_arr(closes,21);
@@ -6055,10 +6258,11 @@ async function gridScanSymbol(symbol){
   try{
     // Pull 1h kline 100 bars for ADX, RSI, range, buffer
     const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`;
-    const r=await fetch(url);
+    const r=await fetchSafe(url, 8000);
     if(!r.ok) return null;
-    const d=await r.json();
+    let d=await r.json();
     if(!d || d.length<50) return null;
+    d = _trimLiveBar(d);
     
     const highs=d.map(k=>parseFloat(k[2]));
     const lows=d.map(k=>parseFloat(k[3]));
@@ -6405,10 +6609,11 @@ let stlongRiskPct=1.0;
 async function fetchMTFScoreLong(symbol, interval){
   try{
     const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=60`;
-    const r=await fetch(url);
+    const r=await fetchSafe(url, 8000);
     if(!r.ok) return null;
-    const d=await r.json();
+    let d=await r.json();
     if(!d || d.length<50) return null;
+    d = _trimLiveBar(d);
     const closes=d.map(k=>parseFloat(k[4]));
     const highs=d.map(k=>parseFloat(k[2]));
     const lows=d.map(k=>parseFloat(k[3]));
@@ -6456,10 +6661,11 @@ async function stlongScanSymbol(symbol){
   try{
     // Pull 1h kline for ADX/RSI/structure/volume/ATR
     const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`;
-    const r=await fetch(url);
+    const r=await fetchSafe(url, 8000);
     if(!r.ok) return null;
-    const d=await r.json();
+    let d=await r.json();
     if(!d || d.length<50) return null;
+    d = _trimLiveBar(d);
     
     const highs=d.map(k=>parseFloat(k[2]));
     const lows=d.map(k=>parseFloat(k[3]));
@@ -6511,18 +6717,24 @@ function stlongScore(d, accountSize, riskPct){
   const reasons=[];
   const checks={mtf:false, vol:false, adx:false, struct:false, rr:false};
   
-  // 1. MTF aligned bullish (max 35 pts) — Pionex requires all 3 ≥40
-  let mtfBullCount=0;
+  // 1. MTF aligned bullish (max 35 pts) — tier-uri: weak ≥20, medium ≥40, strong ≥60
+  // LONG READY (mtf=true) cere fie 3× medium, fie 2× strong + 1× medium — NU 3× weak.
+  let mtfWeak=0, mtfMed=0, mtfStrong=0;
   let mtfMin=Infinity;
   [d.score15, d.score1h, d.score4h].forEach(s=>{
     if(s!==null){
-      if(s>=30) mtfBullCount++;  // v3.5.1: relaxed from 40 to 30 (more realistic for intraday)
+      if(s>=60) mtfStrong++;
+      if(s>=40) mtfMed++;
+      if(s>=20) mtfWeak++;
       if(s<mtfMin) mtfMin=s;
     }
   });
-  if(mtfBullCount===3){ score+=35; checks.mtf=true; }
-  else if(mtfBullCount===2){ score+=20; reasons.push('MTF '+mtfBullCount+'/3 aliniat'); }
-  else if(mtfBullCount===1){ score+=8; reasons.push('MTF '+mtfBullCount+'/3 aliniat'); }
+  // strict: toate 3 medium SAU 2 strong + 1 medium (≥60+≥60+≥40)
+  const mtfStrict = (mtfMed===3) || (mtfStrong>=2 && mtfMed===3);
+  if(mtfStrict){ score+=35; checks.mtf=true; }
+  else if(mtfMed>=2){ score+=22; reasons.push('MTF '+mtfMed+'/3 medium'); }
+  else if(mtfWeak>=2){ score+=10; reasons.push('MTF doar '+mtfWeak+'/3 weak'); }
+  else if(mtfWeak===1){ score+=2; reasons.push('MTF '+mtfWeak+'/3 weak'); }
   else { score-=10; reasons.push('MTF nu confirmă bull'); }
   
   // 2. Volume (max 15 pts) — need >= 1.2x
@@ -6801,9 +7013,13 @@ function renderSmartTradeLong(){
       return '<div style="background:'+bg+';border:1px solid '+bd+';padding:4px 5px;border-radius:5px;text-align:center"><div style="font-size:.7rem;color:'+col+'">'+(pass?'✓':'✗')+'</div><div style="font-size:.5rem;color:var(--t2);font-weight:600;margin-top:2px">'+label+'</div><div style="font-size:.48rem;color:var(--t3)">'+detail+'</div></div>';
     };
     
-    let mtfBullCount=0;
-    [d.score15,d.score1h,d.score4h].forEach(s=>{ if(s!==null && s>=30) mtfBullCount++; });
-    html+=mkCheck(c.mtf, 'MTF', mtfBullCount+'/3');
+    // Tier display: medium (≥40) = aliniat realist; weak (≥20) = doar marginal
+    let mtfMed=0, mtfWeak=0;
+    [d.score15,d.score1h,d.score4h].forEach(s=>{
+      if(s!==null){ if(s>=40) mtfMed++; if(s>=20) mtfWeak++; }
+    });
+    const mtfLabel = mtfMed===3 ? '3/3 ✓' : (mtfMed>0 ? mtfMed+'M+'+(mtfWeak-mtfMed)+'W' : mtfWeak+'/3 weak');
+    html+=mkCheck(c.mtf, 'MTF', mtfLabel);
     html+=mkCheck(c.vol, 'Vol', (d.volRel||0).toFixed(1)+'x');
     html+=mkCheck(c.adx, 'ADX', (d.adx||0).toFixed(0));
     html+=mkCheck(c.struct, 'Break', d.structBreak?'✓high20':'sub');
@@ -6851,8 +7067,19 @@ function renderSmartTradeLong(){
     html+='<div style="display:flex;gap:5px">';
     html+='<a href="'+tvUrl+'" target="_blank" style="flex:1;text-align:center;background:#fff;padding:6px;border-radius:6px;text-decoration:none;color:'+d.verdictColor+';font-size:.6rem;font-weight:700;border:1px solid '+d.verdictBorder+'">📈 TradingView</a>';
     html+='<a href="https://www.coinglass.com/symbol/'+d.coin+'" target="_blank" style="flex:1;text-align:center;background:#fff;padding:6px;border-radius:6px;text-decoration:none;color:#475569;font-size:.6rem;font-weight:700;border:1px solid '+d.verdictBorder+'">🔥 Coinglass</a>';
+    if(d.score>=45 && d.entryPrice){
+      // Salvează în Jurnal cu entry/SL/TP/sizing pre-calculate
+      const jPayload = JSON.stringify({
+        coin: d.coin, symbol: d.symbol, direction: 'long',
+        entry: d.entryPrice, stopLoss: d.slPrice, takeProfit: d.tp2Price,
+        positionUsd: d.posSizeUSDT, riskUsd: d.riskUSDT,
+        setup: 'Smart Trade Long', scannerScore: d.score,
+        notes: 'MTF '+mtfLabel+' · ADX '+(d.adx||0).toFixed(0)+' · Vol '+(d.volRel||0).toFixed(1)+'x · '+(d.structBreak?'struct break':'no break')
+      }).replace(/'/g, '&#39;');
+      html+='<button onclick=\'saveToJournal('+jPayload+')\' style="flex:1;background:#fff;padding:6px;border-radius:6px;color:#7c3aed;font-size:.6rem;font-weight:700;border:1px solid '+d.verdictBorder+';cursor:pointer">📓 Jurnal</button>';
+    }
     html+='</div>';
-    
+
     html+='</div>';
   });
   
@@ -7065,13 +7292,13 @@ function showTelegramModal(){
       
       <label style="display:block;margin-bottom:10px">
         <div style="font-size:.7rem;font-weight:600;margin-bottom:4px;color:#475569">🔑 Bot Token</div>
-        <input id="tgTokenInp" type="text" value="${telegramConfig.token.replace(/"/g,'&quot;')}" placeholder="1234567:AAHxxxx..." 
+        <input id="tgTokenInp" type="text" value="${escapeHtmlNT(telegramConfig.token)}" placeholder="1234567:AAHxxxx..."
           style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.7rem;font-family:monospace;box-sizing:border-box">
       </label>
       
       <label style="display:block;margin-bottom:14px">
         <div style="font-size:.7rem;font-weight:600;margin-bottom:4px;color:#475569">💬 Chat ID</div>
-        <input id="tgChatInp" type="text" value="${telegramConfig.chatId.replace(/"/g,'&quot;')}" placeholder="123456789" 
+        <input id="tgChatInp" type="text" value="${escapeHtmlNT(telegramConfig.chatId)}" placeholder="123456789"
           style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:.75rem;font-family:monospace;box-sizing:border-box">
       </label>
       
@@ -7150,6 +7377,27 @@ const NEWS_TICKER_SLOW_MS=6*60*1000;
 function escapeHtmlNT(s){
   return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
+
+// ── SCANNER → JOURNAL HOOK ──
+// Salvează un setup în localStorage['journal_pending_trade'] — trading-journal îl detectează
+// la load și deschide form-ul pre-completat. Cross-app pe același origin (GitHub Pages).
+function saveToJournal(payload){
+  try{
+    const trade = {
+      source: 'crypto-scanner',
+      type: 'futures', // default crypto = futures pe Pionex
+      direction: 'long',
+      ...payload,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('journal_pending_trade', JSON.stringify(trade));
+    const url = '../trading-journal/?prefill=1';
+    showToast(`📓 Setup ${trade.coin} salvat — <a href="${url}" target="_blank" style="color:#fff;text-decoration:underline;font-weight:800">deschide Jurnal</a>`, 'ok');
+  }catch(e){
+    showToast('❌ Salvare jurnal: '+e.message, 'err');
+  }
+}
+window.saveToJournal = saveToJournal;
 
 function classifyCryptoNews(categoriesArr, description){
   const d=(description||'').toLowerCase();
@@ -7748,22 +7996,60 @@ function exportBackupCrypto() {
   showToast('💾 Backup descărcat','ok');
 }
 
+// Schema validator pentru backup import — blochează poison/XSS prin fișier import.
+// Per cheie: doar whitelist (_BK_PATTERN) + size limit + format strict pentru chei sensibile
+// + blacklist pe conținut periculos.
+const _BK_MAX_VAL_BYTES = 200000; // 200KB per cheie e suficient pentru orice config sau istoric realist
+const _BK_DANGER_RE = /<script\b|javascript:|on(?:error|load|click|mouseover|focus)\s*=|<iframe\b|<embed\b|<object\b/i;
+function _bkValidateEntry(k, v) {
+  if (typeof k !== 'string' || typeof v !== 'string') return 'tip invalid';
+  if (!_BK_PATTERN.test(k)) return 'cheie necunoscută';
+  if (v.length > _BK_MAX_VAL_BYTES) return 'valoare prea mare';
+  if (_BK_DANGER_RE.test(v)) return 'conținut periculos (HTML injection)';
+  if (k === 'anthropic_api_key' && v && !/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(v)) return 'cheie API invalidă';
+  // chei JSON: trebuie să parse corect
+  if (/_cfg$|^crypto_alerts$|^pumpradar_history$|^futures_alerts$|^dash_watchlist$|^pos_calc_cfg$/.test(k)) {
+    try { JSON.parse(v); } catch(e) { return 'JSON invalid'; }
+  }
+  return null; // OK
+}
+
+// Aplică un set de date (key→value) după validare. Returnează {applied, rejected:[{k,reason}]}
+function _bkApplyValidated(data) {
+  const rejected = [];
+  let applied = 0;
+  Object.entries(data).forEach(([k, v]) => {
+    const reason = _bkValidateEntry(k, v);
+    if (reason) { rejected.push({ k, reason }); return; }
+    try { localStorage.setItem(k, v); applied++; } catch(e) { rejected.push({ k, reason: 'quota/error' }); }
+  });
+  return { applied, rejected };
+}
+
 function importBackupCrypto() {
   const inp = document.createElement('input');
   inp.type = 'file';
   inp.accept = '.json';
   inp.onchange = e => {
     const f = e.target.files[0]; if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { alert('❌ Fișier prea mare (>5MB).'); return; }
     const reader = new FileReader();
     reader.onload = ev => {
       try {
         const j = JSON.parse(ev.target.result);
         const data = j.data || j;
-        if (typeof data !== 'object' || !Object.keys(data).length) throw new Error('Format invalid sau gol');
-        if (!confirm(`Import ${Object.keys(data).length} chei? Va înlocui datele curente.\n\nUn snapshot al stării curente se salvează automat ÎNAINTE (poți reveni).`)) return;
+        if (typeof data !== 'object' || !data || !Object.keys(data).length) throw new Error('Format invalid sau gol');
+        const keyCount = Object.keys(data).length;
+        if (keyCount > 100) throw new Error('Prea multe chei (max 100)');
+        if (!confirm(`Import ${keyCount} chei? Va înlocui datele curente.\n\nUn snapshot al stării curente se salvează automat ÎNAINTE (poți reveni).`)) return;
         _bkAddSnapshot(); // backup current ÎNAINTE de import
-        Object.entries(data).forEach(([k, v]) => { try { localStorage.setItem(k, v); } catch(e) {} });
-        alert('✅ Import reușit. Pagina se reîncarcă pentru a aplica datele.');
+        const { applied, rejected } = _bkApplyValidated(data);
+        if (rejected.length) {
+          const rejList = rejected.slice(0, 5).map(r => `• ${r.k}: ${r.reason}`).join('\n');
+          alert(`⚠️ Import parțial: ${applied} aplicate, ${rejected.length} respinse.\n\n${rejList}${rejected.length>5?'\n…':''}\n\nPagina se reîncarcă.`);
+        } else {
+          alert(`✅ Import reușit (${applied} chei). Pagina se reîncarcă.`);
+        }
         location.reload();
       } catch (err) { alert('❌ Eroare: ' + err.message); }
     };
@@ -7779,7 +8065,8 @@ function restoreBackupSnapshot(idx) {
     const dt = new Date(snap.ts).toLocaleString('ro-RO');
     if (!confirm(`Restaurezi snapshot-ul de la ${dt}?\n\nVa înlocui datele curente. Un snapshot al stării de acum se salvează ÎNAINTE.`)) return;
     _bkAddSnapshot();
-    Object.entries(snap.data).forEach(([k, v]) => { try { localStorage.setItem(k, v); } catch(e) {} });
+    // Snapshot-urile interne sunt deja capturate prin _bkCapture (pattern whitelist), dar trec totuși prin validator
+    _bkApplyValidated(snap.data);
     alert('✅ Restaurat. Pagina se reîncarcă.');
     location.reload();
   } catch(e) { alert('Eroare: ' + e.message); }
