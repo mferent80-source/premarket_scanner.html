@@ -3445,8 +3445,33 @@ function calcConvictionScore(o){
 }
 
 // ── SETUPS — vizualizare unificată (înlocuiește Live + Early Buy + Oportunități + Multi-Scan) ──
-let setupsFilter = 'all'; // all | early | confirmed | hot | pump | breakout | oversold
+let setupsFilter = 'all'; // all | premium | early | confirmed | hot | pump | breakout | oversold
 function setSetupsFilter(f){ setupsFilter = f; renderSetups(); }
+
+// PREMIUM check — high-conviction setup unde TOATE criteriile aliniază.
+// Răspunde "ce trade să iau azi cu sanse mari de succes" — câteva pe săptămână, nu zilnic.
+function isPremiumSetup(o){
+  const stld = (typeof stlongCache !== 'undefined') ? stlongCache[o.coin + 'USDT'] : null;
+  if(!stld || stld.verdict !== '🚀 LONG READY') return false;       // ST Long READY (3× medium MTF + structure + R:R)
+  if((o.convictionScore || 0) < 75) return false;                    // Conviction puternic
+  if((o.volRatio || 1) < 1.5) return false;                          // Volume confirmat
+  if(typeof o.rsi !== 'number' || o.rsi < 40 || o.rsi > 65) return false; // RSI sweet spot
+  // Trend 7 zile pozitiv (sparkline)
+  const sp = (typeof sparkCache !== 'undefined') ? sparkCache[o.coin] : null;
+  if(sp && sp.length >= 4){
+    const wFull = (sp[sp.length - 1] - sp[0]) / sp[0] * 100;
+    if(wFull < 2) return false;
+  } else {
+    return false; // fără sparkline nu confirmăm trend → skip
+  }
+  // R:R minim 2.0
+  if(stld.rr && stld.rr < 2.0) return false;
+  // Macro: F&G între 30 și 75 (nu panică, nu euforie)
+  if(typeof cryptoFgScore === 'number'){
+    if(cryptoFgScore < 30 || cryptoFgScore > 75) return false;
+  }
+  return true;
+}
 function renderSetups(){
   const container = document.getElementById('signalsContainer');
   if(!allCryptoOpportunities || !allCryptoOpportunities.length){
@@ -3461,7 +3486,8 @@ function renderSetups(){
 
   // Aplică filtrul
   let filtered = enriched;
-  if(setupsFilter === 'early')          filtered = enriched.filter(o => o.earlyScore >= 60 && o.chg24 >= 0);
+  if(setupsFilter === 'premium')        filtered = enriched.filter(o => isPremiumSetup(o));
+  else if(setupsFilter === 'early')     filtered = enriched.filter(o => o.earlyScore >= 60 && o.chg24 >= 0);
   else if(setupsFilter === 'confirmed') filtered = enriched.filter(o => {
     const stld = (typeof stlongCache !== 'undefined') ? stlongCache[o.coin + 'USDT'] : null;
     return stld && (stld.verdict === '🚀 LONG READY' || stld.verdict === '🟢 LONG OK');
@@ -3484,6 +3510,7 @@ function renderSetups(){
 
   // Counts pentru badge-uri
   const cntAll = enriched.length;
+  const cntPremium = enriched.filter(o => isPremiumSetup(o)).length;
   const cntEarly = enriched.filter(o => o.earlyScore >= 60 && o.chg24 >= 0).length;
   const cntConfirmed = enriched.filter(o => {
     const stld = (typeof stlongCache !== 'undefined') ? stlongCache[o.coin + 'USDT'] : null;
@@ -3505,6 +3532,7 @@ function renderSetups(){
     const active = setupsFilter === id;
     return '<button onclick="setSetupsFilter(\''+id+'\')" style="padding:6px 12px;border-radius:7px;border:1px solid '+(active?color:'var(--b1)')+';background:'+(active?color:'var(--bg2)')+';color:'+(active?'#fff':'var(--t2)')+';font-size:.6rem;font-weight:700;cursor:pointer;font-family:var(--mono)">'+lbl+' <span style="opacity:.75">('+count+')</span></button>';
   };
+  html += mkBtn('premium', '💎 Premium', cntPremium, '#d97706');
   html += mkBtn('all', '🌐 All', cntAll, 'var(--acc)');
   html += mkBtn('confirmed', '✓ Confirmed', cntConfirmed, '#15803d');
   html += mkBtn('early', '🌱 Early', cntEarly, 'var(--teal)');
@@ -3524,6 +3552,7 @@ function renderSetups(){
   // Render carduri
   filtered.forEach(o => {
     const wl = wlCoins.includes(o.coin);
+    const isPremium = isPremiumSetup(o);
     const tvUrl = 'https://www.tradingview.com/chart/?symbol=BINANCE:' + o.coin + 'USDT.P';
     const pxUrl = 'https://www.pionex.com/en/futures-trade/' + o.coin + '_USDT.PERP';
 
@@ -3551,12 +3580,16 @@ function renderSetups(){
       notes: 'RSI ' + (o.rsi || 0).toFixed(0) + ' · chg24 ' + (o.chg24 || 0).toFixed(1) + '% · Early ' + (o.earlyScore || 0)
     }).replace(/'/g, '&#39;');
 
-    html += '<div class="early-card" style="margin-bottom:8px">';
-    html += '<div class="early-stripe" style="background:'+csColor+'"></div>';
+    const cardStyle = isPremium
+      ? 'margin-bottom:8px;border:2px solid #d97706;box-shadow:0 0 0 1px rgba(217,119,6,.2),0 4px 14px rgba(217,119,6,.18);background:linear-gradient(180deg,rgba(217,119,6,.04),var(--bg2) 30%)'
+      : 'margin-bottom:8px';
+    html += '<div class="early-card" style="'+cardStyle+'">';
+    html += '<div class="early-stripe" style="background:'+(isPremium?'linear-gradient(90deg,#d97706,#fbbf24,#d97706)':csColor)+'"></div>';
     html += '<div class="early-body">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap">';
     html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
     if(wl) html += '<span style="color:#f59e0b">⭐</span>';
+    if(isPremium) html += '<span title="Premium setup: ST READY + Conviction ≥75 + Vol ≥1.5x + RSI 40-65 + uptrend 7d + R:R ≥2 + macro OK" style="color:#d97706;font-size:.85rem">💎</span>';
     html += '<span style="font-family:var(--head);font-weight:800;font-size:1rem;color:var(--t1)">'+o.coin+'</span>';
     html += stBadge;
     if(o.earlyScore >= 60) html += '<span style="font-size:.5rem;background:var(--teall);color:var(--teal);border:1px solid var(--tealb);border-radius:4px;padding:2px 6px;font-weight:700">🌱 Early '+o.earlyScore+'</span>';
