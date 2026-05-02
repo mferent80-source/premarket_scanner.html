@@ -138,6 +138,25 @@ footer a{color:var(--t2);text-decoration:none;border-bottom:1px dotted var(--b2)
 footer a:hover{color:var(--indigo);border-color:var(--indigo)}
 .foot-row{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:8px}
 
+/* DASHBOARD WIDGETS */
+.dash{
+  display:grid;gap:12px;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  margin-top:32px;margin-bottom:8px;
+}
+.widget{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rs);
+  padding:14px 16px;display:flex;flex-direction:column;gap:6px;
+  font-family:var(--mono);box-shadow:var(--sh);
+  transition:border-color .15s ease, transform .15s ease;
+}
+.widget:hover{border-color:var(--b2);transform:translateY(-1px)}
+.w-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.w-val{font-size:22px;font-weight:800;color:var(--t1);font-family:var(--head);letter-spacing:-0.01em}
+.w-sub{font-size:11px;color:var(--t2);font-weight:500}
+.w-pos{color:var(--green)}
+.w-neg{color:#dc2626}
+
 @media (max-width:560px){
   body{padding:16px 12px 60px}
   .hero{padding:32px 0 24px}
@@ -157,6 +176,35 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
     <p class="lead">Scannere multi-asset, jurnal de tranzacții și instrumente de decizie —
       construite local, fără backend, rulează direct în browser.</p>
   </header>
+
+  <!-- DASHBOARD: F&G + BTC + ETH + Watchlist count + Open trades -->
+  <section class="dash" id="dashWidgets">
+    <div class="widget" id="wFG">
+      <div class="w-lbl">😨/😋 Fear &amp; Greed</div>
+      <div class="w-val" id="fgVal">—</div>
+      <div class="w-sub" id="fgSub">se încarcă…</div>
+    </div>
+    <div class="widget" id="wBTC">
+      <div class="w-lbl">BTC / USDT</div>
+      <div class="w-val" id="btcVal">—</div>
+      <div class="w-sub" id="btcSub">se încarcă…</div>
+    </div>
+    <div class="widget" id="wETH">
+      <div class="w-lbl">ETH / USDT</div>
+      <div class="w-val" id="ethVal">—</div>
+      <div class="w-sub" id="ethSub">se încarcă…</div>
+    </div>
+    <div class="widget" id="wWL">
+      <div class="w-lbl">Watchlist agregat</div>
+      <div class="w-val" id="wlVal">—</div>
+      <div class="w-sub" id="wlSub">crypto + stocks</div>
+    </div>
+    <div class="widget" id="wOpen">
+      <div class="w-lbl">Trade-uri open</div>
+      <div class="w-val" id="openVal">—</div>
+      <div class="w-sub" id="openSub">din jurnal</div>
+    </div>
+  </section>
 
   <main class="grid">
 
@@ -232,6 +280,61 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <script>
+// ── DASHBOARD WIDGETS ──
+// Hub-ul afișează context macro (F&G + BTC/ETH) + counts agregate (watchlist, open trades).
+// Citește localStorage pentru data scrisă de scannere/journal pe același origin.
+(function(){
+  const $ = id => document.getElementById(id);
+
+  // 1. Fear & Greed crypto (alternative.me — public, no key)
+  fetch('https://api.alternative.me/fng/?limit=1').then(r => r.json()).then(d => {
+    const v = d && d.data && d.data[0];
+    if(!v) return;
+    const val = parseInt(v.value, 10);
+    const cls = v.value_classification || '';
+    $('fgVal').textContent = val;
+    $('fgSub').textContent = cls;
+    $('fgVal').classList.add(val >= 50 ? 'w-pos' : 'w-neg');
+  }).catch(() => { $('fgSub').textContent = 'indisponibil'; });
+
+  // 2. BTC + ETH preț + 24h (Binance public)
+  const fmtP = p => p >= 1000 ? '$' + p.toLocaleString('en', {maximumFractionDigits: 0}) : '$' + p.toFixed(2);
+  const renderTicker = (sym, valEl, subEl) => {
+    fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=' + sym + 'USDT').then(r => r.json()).then(d => {
+      const price = parseFloat(d.lastPrice);
+      const chg = parseFloat(d.priceChangePercent);
+      if(isNaN(price)) return;
+      $(valEl).textContent = fmtP(price);
+      $(subEl).innerHTML = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '% 24h';
+      $(subEl).className = 'w-sub ' + (chg >= 0 ? 'w-pos' : 'w-neg');
+    }).catch(() => { $(subEl).textContent = 'indisponibil'; });
+  };
+  renderTicker('BTC', 'btcVal', 'btcSub');
+  renderTicker('ETH', 'ethVal', 'ethSub');
+
+  // 3. Watchlist agregat (crypto dash_watchlist + nasdaq wl_stocks)
+  let cryptoWL = [], stockWL = [];
+  try { cryptoWL = JSON.parse(localStorage.getItem('dash_watchlist') || '[]') || []; } catch(e) {}
+  try { stockWL = JSON.parse(localStorage.getItem('wl_stocks') || '[]') || []; } catch(e) {}
+  const totalWL = cryptoWL.length + stockWL.length;
+  $('wlVal').textContent = totalWL;
+  $('wlSub').textContent = cryptoWL.length + ' crypto · ' + stockWL.length + ' stocks';
+
+  // 4. Trade-uri open din journal
+  try {
+    const trades = JSON.parse(localStorage.getItem('journal_trades') || '[]') || [];
+    const open = trades.filter(t => t.status === 'open').length;
+    const totalPnL = trades.filter(t => t.status === 'win' || t.status === 'loss')
+      .reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+    $('openVal').textContent = open;
+    $('openSub').textContent = (totalPnL >= 0 ? '+' : '') + '$' + totalPnL.toFixed(2) + ' total PnL';
+    $('openSub').className = 'w-sub ' + (totalPnL >= 0 ? 'w-pos' : 'w-neg');
+  } catch(e) {
+    $('openVal').textContent = '—';
+    $('openSub').textContent = 'indisponibil';
+  }
+})();
+
 // Înregistrează service worker-ul (cache + offline)
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW register failed:', e));

@@ -1,6 +1,9 @@
 // Service Worker — cache + offline pentru Trading Tools
 // Strategie: network-first cu fallback la cache (nu blochează update-urile)
-const CACHE_VERSION = 'tt-v1';
+//
+// IMPORTANT: bump CACHE_VERSION manual la fiecare release semnificativ — invalidare automată în clienți.
+// SW are scope `/` (rădăcina repo-ului), deci controlează hub + crypto-scanner + nasdaq-scanner + trading-journal.
+const CACHE_VERSION = 'tt-v2-2026-05-02';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 // Resurse statice pre-cache-uite la instalare
@@ -45,11 +48,21 @@ self.addEventListener('fetch', e => {
   // Strategie network-first: încearcă rețeaua, salvează în cache, fallback la cache offline
   e.respondWith(
     fetch(req).then(res => {
+      // Cache doar răspunsuri valide (status 200 + same-origin via res.type 'basic') — protejează împotriva
+      // cache-poisoning pe WiFi public unde MITM ar putea injecta răspunsuri arbitrare cu opaque type.
       if (res && res.status === 200 && res.type === 'basic') {
         const copy = res.clone();
         caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(() => {});
       }
       return res;
-    }).catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
+    }).catch(() => caches.match(req).then(r => {
+      if (r) return r;
+      // Fallback la index doar pentru navigare HTML (nu pentru fișiere absente arbitrare)
+      if (req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html')) {
+        return caches.match('./index.html');
+      }
+      // Pentru asset-uri lipsă întoarce un 504 simplu — evită returnarea HTML-ului hub la /missing.css etc.
+      return new Response('', { status: 504, statusText: 'offline' });
+    }))
   );
 });
