@@ -2600,8 +2600,13 @@ async function fetchUniverse(){
   const minVol=parseFloat(document.getElementById('minVol').value)||1000000;
   const topN=parseInt(document.getElementById('topN').value)||50;
 
-  // Filter base (validare strictă pe simbol — apărare XSS la sursă)
-  const base = all.filter(t=>_safeSymbol(t.symbol)&&!t.symbol.includes('DOWN')&&!t.symbol.includes('UP')&&!t.symbol.includes('BEAR')&&!t.symbol.includes('BULL'));
+  // Filter base (validare strictă pe simbol — apărare XSS la sursă) +
+  // restricție Pionex: doar coin-uri pe care Marius le poate tranzacționa pe Pionex Futures.
+  // Watchlist forced-include de mai jos rămâne exempt (poți forța orice coin via watchlist).
+  const base = all.filter(t => _safeSymbol(t.symbol)
+    && !t.symbol.includes('DOWN') && !t.symbol.includes('UP')
+    && !t.symbol.includes('BEAR') && !t.symbol.includes('BULL')
+    && isOnPionex(t.symbol.replace('USDT','')));
 
   let tickers=[];
   const sortMode = window.currentSortMode || 'volume';
