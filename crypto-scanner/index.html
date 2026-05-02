@@ -3228,6 +3228,26 @@ function renderCryptoEarlyBuy(){
     const pxUrl='https://www.pionex.com/en/futures-trade/'+o.coin+'_USDT.PERP';
     const isWl=wlCoins.includes(o.coin);
 
+    // Smart Trade Long confirmation badge — verifică cache-ul stlongCache.
+    // Dacă coin-ul a fost scanat și are verdict READY/OK → confirmare puternică (cumpără).
+    // Dacă verdict NU LONG → semnal "așteaptă" (Early Buy fără confirmare MTF).
+    // Dacă lipsește din cache → "scanează ST Long pentru confirmare".
+    let stLongBadge='';
+    const stld = (typeof stlongCache!=='undefined') ? stlongCache[o.coin+'USDT'] : null;
+    if(stld && stld.verdict){
+      if(stld.verdict==='🚀 LONG READY'){
+        stLongBadge = '<span title="Confirmat de Smart Trade Long: MTF aliniat + Volume + ADX + Structure break + R:R OK" style="font-size:.5rem;background:rgba(21,128,61,.14);color:#15803d;border:1px solid #86efac;border-radius:4px;padding:2px 6px;font-weight:800">✓ ST READY</span>';
+      } else if(stld.verdict==='🟢 LONG OK'){
+        stLongBadge = '<span title="Smart Trade Long: condiții OK pentru long" style="font-size:.5rem;background:rgba(8,145,178,.14);color:#0e7490;border:1px solid #67e8f9;border-radius:4px;padding:2px 6px;font-weight:800">✓ ST OK</span>';
+      } else if(stld.verdict==='🟡 SETUP MIXT'){
+        stLongBadge = '<span title="Smart Trade Long: setup mixt — așteaptă confirmare" style="font-size:.5rem;background:rgba(161,98,7,.14);color:#a16207;border:1px solid #fde68a;border-radius:4px;padding:2px 6px;font-weight:700">⚠ ST mixt</span>';
+      } else {
+        stLongBadge = '<span title="Smart Trade Long: NU confirmă long. Pionex va arăta probabil SELL/NEUTRAL pe indicatori clasici. Așteaptă confirmare." style="font-size:.5rem;background:rgba(185,28,28,.12);color:#b91c1c;border:1px solid #fca5a5;border-radius:4px;padding:2px 6px;font-weight:700">✗ ST nu</span>';
+      }
+    } else {
+      stLongBadge = '<span title="Nu există date Smart Trade Long pentru acest coin. Mergi în tab-ul Smart Trade L și apasă Scanează tot pentru confirmare." style="font-size:.5rem;background:var(--bg3);color:var(--t3);border:1px solid var(--b1);border-radius:4px;padding:2px 6px">? ST n/a</span>';
+    }
+
     return '<div class="early-card '+(isTop?'top-pick':'')+'">'+
       '<div class="early-stripe"></div>'+
       '<div class="early-body">'+
@@ -3236,6 +3256,7 @@ function renderCryptoEarlyBuy(){
             '<div class="early-header">'+
               '<span class="early-ticker">'+o.coin+'</span>'+
               '<span class="early-badge '+stage.cls+'">'+stage.txt+'</span>'+
+              stLongBadge+
               (isWl?'<span style="color:#f59e0b;font-size:.75rem">⭐</span>':'')+
               '<span style="font-size:.5rem;background:var(--bg3);border:1px solid var(--b1);border-radius:4px;padding:1px 6px;color:var(--t3)">'+(CRYPTO_CAT[o.coin]||'Crypto')+'</span>'+
             '</div>'+
