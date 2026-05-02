@@ -309,6 +309,144 @@ function escHtml(s){
   return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// GITHUB GIST SYNC — cross-device journal sync prin Gist privat
+// ═══════════════════════════════════════════════════════════════════
+// Config stocat în localStorage['gist_config']: {token, gistId, deviceId, lastSyncTs}
+// Token: PAT cu scope "gist" only (creat la github.com/settings/tokens)
+// Schema gist file "trading_journal.json": {version, last_modified, device_id, trades, settings}
+// Auto-push debounced 5s după save. Manual sync (push/pull) din Settings.
+
+function _gistConfig(){
+  try { return JSON.parse(localStorage.getItem('gist_config') || '{}'); } catch(e) { return {}; }
+}
+function _gistSaveConfig(cfg){
+  try { localStorage.setItem('gist_config', JSON.stringify(cfg)); } catch(e) {}
+}
+function _gistDeviceId(){
+  let cfg = _gistConfig();
+  if(!cfg.deviceId){
+    cfg.deviceId = 'd_' + Math.random().toString(36).slice(2,10) + '_' + Date.now().toString(36);
+    _gistSaveConfig(cfg);
+  }
+  return cfg.deviceId;
+}
+
+async function _gistApi(method, path, body, token){
+  const url = 'https://api.github.com' + path;
+  const opts = {
+    method,
+    headers: {
+      'Authorization': 'token ' + token,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  };
+  if(body){ opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
+  const r = await fetch(url, opts);
+  if(!r.ok) throw new Error('Gist API ' + r.status + ': ' + (await r.text()).slice(0,200));
+  return r.json();
+}
+
+function _gistPayload(){
+  return {
+    version: 1,
+    last_modified: Date.now(),
+    device_id: _gistDeviceId(),
+    trades: trades || [],
+    settings: settings || {}
+  };
+}
+
+// Creează gist privat la prima utilizare. Salvează gistId în config.
+async function gistInit(){
+  const cfg = _gistConfig();
+  if(!cfg.token){ alert('❌ Lipsește token-ul GitHub. Generează unul la github.com/settings/tokens (scope: gist) și pune-l în câmpul Token de mai sus.'); return; }
+  if(cfg.gistId){
+    if(!confirm('Există deja un gist configurat (' + cfg.gistId.slice(0,8) + '...). Vrei să creezi unul NOU? Vechi va rămâne dar nu va mai fi folosit.')) return;
+  }
+  try {
+    const payload = _gistPayload();
+    const r = await _gistApi('POST', '/gists', {
+      description: 'Trading Journal — cross-device sync (private)',
+      public: false,
+      files: { 'trading_journal.json': { content: JSON.stringify(payload, null, 2) } }
+    }, cfg.token);
+    cfg.gistId = r.id;
+    cfg.lastSyncTs = Date.now();
+    _gistSaveConfig(cfg);
+    alert('✅ Gist creat cu ID: ' + r.id + '\n\nPe alt device: pune ACEST gist ID + același token, apoi click "Pull from gist" pentru sincronizare.');
+    if(typeof render === 'function') render();
+  } catch(e){ alert('❌ Eroare creare gist: ' + e.message); }
+}
+
+// Push trades + settings la gist. Silent = fără alert (pentru auto-sync).
+async function gistPush(silent){
+  const cfg = _gistConfig();
+  if(!cfg.token || !cfg.gistId) return;
+  try {
+    const payload = _gistPayload();
+    await _gistApi('PATCH', '/gists/' + cfg.gistId, {
+      files: { 'trading_journal.json': { content: JSON.stringify(payload, null, 2) } }
+    }, cfg.token);
+    cfg.lastSyncTs = payload.last_modified;
+    _gistSaveConfig(cfg);
+    if(!silent) alert('✅ Push reușit. ' + payload.trades.length + ' trade-uri sincronizate la gist ' + cfg.gistId.slice(0,8) + '...');
+    return true;
+  } catch(e){ if(!silent) alert('❌ Eroare push: ' + e.message); return false; }
+}
+
+// Pull trades + settings din gist. Suprascrie local DUPĂ confirmare.
+async function gistPull(silent){
+  const cfg = _gistConfig();
+  if(!cfg.token || !cfg.gistId){ if(!silent) alert('❌ Configurează token + gistId întâi.'); return; }
+  try {
+    const r = await _gistApi('GET', '/gists/' + cfg.gistId, null, cfg.token);
+    const file = r.files && r.files['trading_journal.json'];
+    if(!file || !file.content) throw new Error('gist nu conține trading_journal.json');
+    const data = JSON.parse(file.content);
+    if(!data.trades || !Array.isArray(data.trades)) throw new Error('schema gist invalidă (lipsește trades)');
+    // Detect conflict: dacă local last_modified > remote, avertizează
+    const localLastMod = parseInt(localStorage.getItem('journal_last_modified') || '0', 10);
+    if(localLastMod > (data.last_modified || 0) + 5000){
+      if(!confirm(`⚠️ CONFLICT: ai modificări locale (${trades.length} trade-uri) MAI NOI decât gist-ul (${data.trades.length} trade-uri).\n\nPull va SUPRASCRIE modificările locale cu cele din gist. Continui?\n\n(Tip: dacă vrei să păstrezi local, click Anulează și fă Push în loc.)`)) return;
+    } else if(!silent){
+      if(!confirm(`Pull ${data.trades.length} trade-uri din gist? Local (${trades.length}) va fi suprascris.`)) return;
+    }
+    trades = data.trades;
+    if(data.settings){ settings = { ...settings, ...data.settings }; localStorage.setItem('journal_settings', JSON.stringify(settings)); }
+    localStorage.setItem('journal_trades', JSON.stringify(trades));
+    localStorage.setItem('journal_last_modified', String(data.last_modified || Date.now()));
+    cfg.lastSyncTs = Date.now();
+    _gistSaveConfig(cfg);
+    if(!silent) alert('✅ Pull reușit. ' + trades.length + ' trade-uri descărcate.');
+    if(typeof render === 'function') render();
+    return true;
+  } catch(e){ if(!silent) alert('❌ Eroare pull: ' + e.message); return false; }
+}
+
+// Auto-sync debounced după modificări locale (chemat din saveTrades + updateSettings).
+let _gistAutoTimer = null;
+function gistAutoPush(){
+  const cfg = _gistConfig();
+  if(!cfg.token || !cfg.gistId || !cfg.autoSync) return;
+  if(_gistAutoTimer) clearTimeout(_gistAutoTimer);
+  _gistAutoTimer = setTimeout(() => { gistPush(true); }, 5000); // 5s debounce
+}
+
+// Salvare token + gistId din UI Settings
+function saveGistConfig(){
+  const t = document.getElementById('s_gistToken').value.trim();
+  const id = document.getElementById('s_gistId').value.trim();
+  const auto = document.getElementById('s_gistAuto').checked;
+  const cfg = _gistConfig();
+  cfg.token = t || null;
+  cfg.gistId = id || null;
+  cfg.autoSync = auto;
+  _gistSaveConfig(cfg);
+  if(typeof render === 'function') render();
+}
+
 // ── DARK MODE shared cross-app (același key 'darkMode' ca în crypto/nasdaq) ──
 function toggleDarkMode(){
   document.body.classList.toggle('dark');
@@ -327,9 +465,14 @@ function toggleDarkMode(){
 })();
 
 function saveTrades() {
-  try { localStorage.setItem('journal_trades', JSON.stringify(trades)); } catch(e) {}
+  try {
+    localStorage.setItem('journal_trades', JSON.stringify(trades));
+    localStorage.setItem('journal_last_modified', String(Date.now()));
+  } catch(e) {}
   // După fiecare modificare a listei → snapshot automat în istoricul de backup-uri
   _backupSnapshot();
+  // Auto-push la gist dacă e configurat
+  if(typeof gistAutoPush === 'function') gistAutoPush();
 }
 function saveSettings() {
   try { localStorage.setItem('journal_settings', JSON.stringify(settings)); } catch(e) {}
@@ -1673,6 +1816,47 @@ function renderSettings() {
         <button class="btn" onclick="exportData()">📥 Export JSON</button>
         <button class="btn" onclick="importData()">📤 Import JSON</button>
         <button class="btn danger" onclick="clearAll()" style="margin-left:auto">🗑 Șterge Tot</button>
+      </div>
+    </div>
+
+    <div class="card" style="background:#eef2ff;border-color:#a5b4fc">
+      <div class="card-h"><div class="card-t">☁️ GitHub Gist Sync (cross-device)</div></div>
+      <div style="font-size:.65rem;color:#3730a3;line-height:1.6;margin-bottom:10px">
+        Sincronizează trade-urile între device-uri (PC, telefon, tabletă) prin <strong>Gist privat</strong>.
+        Datele rămân pe contul tău GitHub, doar tu le vezi.<br>
+        <strong>Setup:</strong> generezi un Personal Access Token cu scope <code>gist</code> la
+        <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:#4f46e5;font-weight:700">github.com/settings/tokens</a>,
+        îl pui mai jos, apoi click <strong>Setup Sync</strong> (creează gist nou).
+        Pe alt device: pui același token + gist ID, click <strong>Pull din gist</strong>.
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>🔑 GitHub Personal Access Token (scope: gist)</label>
+          <input type="password" id="s_gistToken" value="${(_gistConfig().token||'').replace(/"/g,'&quot;')}" placeholder="ghp_xxxxxxxxxxxx" onchange="saveGistConfig()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>🆔 Gist ID (auto-completat după Setup Sync, sau pus manual pe alt device)</label>
+          <input type="text" id="s_gistId" value="${(_gistConfig().gistId||'').replace(/"/g,'&quot;')}" placeholder="ex: 1a2b3c4d5e6f..." onchange="saveGistConfig()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="s_gistAuto" ${_gistConfig().autoSync?'checked':''} onchange="saveGistConfig()">
+            <span>🔄 Auto-push după fiecare modificare (debounced 5s)</span>
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn primary" onclick="gistInit()">🆕 Setup Sync (creează gist nou)</button>
+        <button class="btn" onclick="gistPush(false)">⬆️ Push în gist</button>
+        <button class="btn" onclick="gistPull(false)">⬇️ Pull din gist</button>
+        ${_gistConfig().lastSyncTs ? `<span style="margin-left:auto;font-size:.6rem;color:#475569;align-self:center">Ultimul sync: ${new Date(_gistConfig().lastSyncTs).toLocaleString('ro-RO')}</span>` : ''}
+      </div>
+      <div style="font-size:.55rem;color:#3730a3;margin-top:10px;padding-top:8px;border-top:1px solid #c7d2fe;line-height:1.5">
+        ⚠️ <strong>Conflict handling:</strong> dacă editezi pe 2 device-uri în același timp, primul Push câștigă; al doilea va trebui să facă Pull (cu confirmare) ca să primească ultima versiune. Pentru paranoia, oprește auto-sync și folosește manual.
       </div>
     </div>
 
