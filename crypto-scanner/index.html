@@ -4578,7 +4578,7 @@ async function telegramNotifyFutures(alert){
   if(alert.score < telegramConfig.minScore) return;
   const d=alert.details||{};
   const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${alert.symbol}.P`;
-  const pionexUrl=`https://www.pionex.com/en/trade/${alert.coin}_USDT/Futures_Grid`;
+  const pionexUrl=`https://www.pionex.com/en/futures-trade/${alert.coin}_USDT.PERP`;
   
   let msg=`*${alert.title}* \`${alert.coin}\`\n`;
   msg+=`💰 Preț: *$${alert.price.toFixed(alert.price<1?6:2)}*\n`;
@@ -4725,7 +4725,7 @@ function renderFuturesPatterns(){
       const ago=timeAgo(a.time);
       const d=a.details||{};
       const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${a.symbol}.P`;
-      const pionexUrl=`https://www.pionex.com/en/trade/${a.coin}_USDT/Futures_Grid`;
+      const pionexUrl=`https://www.pionex.com/en/futures-trade/${a.coin}_USDT.PERP`;
       
       html+=`
         <div style="background:${col.bg};border:1px solid ${col.border};border-radius:12px;padding:11px">
@@ -4979,7 +4979,7 @@ function gridParamsToText(p){
   RSI: ${p.reasoning.rsi}
   ATR: ${p.reasoning.atrRatio}x
 
-🔗 Pionex: pionex.com/en/trade/${p.coin}_USDT/Futures_Grid`;
+🔗 Pionex: pionex.com/en/futures-trade/${p.coin}_USDT.PERP`;
 }
 
 // ── Show grid setup modal ──
@@ -5225,7 +5225,7 @@ function showGridSetup(alertId){
       
       <div style="display:flex;gap:8px">
         <button onclick="copyGridSetup('${alertId}')" style="flex:1;padding:11px;background:#64748b;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:.78rem;cursor:pointer">📋 Copy tot rezumat</button>
-        <a href="https://www.pionex.com/en/trade/${p.coin}_USDT/Futures_Grid" target="_blank" style="flex:1;padding:11px;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:.78rem;cursor:pointer;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center">⚙️ Deschide Pionex</a>
+        <a href="https://www.pionex.com/en/futures-trade/${p.coin}_USDT.PERP" target="_blank" style="flex:1;padding:11px;background:#4f46e5;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:.78rem;cursor:pointer;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center">⚙️ Deschide Pionex</a>
       </div>
     </div>`;
   document.body.appendChild(ov);
@@ -5500,7 +5500,7 @@ function renderPumpRadar(){
       const ago=timeAgo(a.time);
       const d=a.details||{};
       const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${(a.symbol||a.coin+'USDT')}.P`;
-      const pionexUrl=`https://www.pionex.com/en/trade/${a.coin}_USDT/Futures_Grid`;
+      const pionexUrl=`https://www.pionex.com/en/futures-trade/${a.coin}_USDT.PERP`;
       
       html+=`
         <div style="background:${col.bg};border:1px solid ${col.border};border-radius:12px;padding:11px">
@@ -7367,7 +7367,7 @@ async function telegramNotifyPump(alert){
   if(alert.score < telegramConfig.minScore) return;
   const d=alert.details||{};
   const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${(alert.symbol||alert.coin+'USDT')}.P`;
-  const pionexUrl=`https://www.pionex.com/en/trade/${alert.coin}_USDT/Futures_Grid`;
+  const pionexUrl=`https://www.pionex.com/en/futures-trade/${alert.coin}_USDT.PERP`;
   
   let msg=`*${alert.title}* \`${alert.coin}\`\n`;
   msg+=`💰 Preț: *$${alert.price.toFixed(alert.price<1?6:2)}*\n`;
