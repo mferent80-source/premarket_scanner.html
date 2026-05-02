@@ -1204,17 +1204,10 @@ async function fetchSafe(url, ms=3000){
   }
 }
 
-// Binance dual-endpoint fetch: tries primary, falls back to vision mirror
+// Binance Futures fetch — fapi.binance.com nu are mirror oficial, folosim direct.
+// Path-ul așteptat are forma /fapi/v1/ticker/24hr?... pentru perpetual.
 async function fetchBinanceSafe(path, ms=8000){
-  const mirrors=['https://api.binance.com','https://data-api.binance.vision'];
-  let lastErr=null;
-  for(const base of mirrors){
-    try{
-      const r=await fetchSafe(base+path, ms);
-      return r;
-    }catch(e){ lastErr=e; }
-  }
-  throw lastErr||new Error('all binance mirrors failed');
+  return fetchSafe('https://fapi.binance.com' + path, ms);
 }
 // ── STATE ──
 let running = false;
@@ -1292,7 +1285,7 @@ function _trimLiveBar(klines){
 async function getTicker24hr(maxAgeMs = 20000){
   const cache = window.__binance24hrCache;
   if (cache && cache.data && (Date.now() - cache.ts) < maxAgeMs) return cache.data;
-  const res = await fetchSafe('https://api.binance.com/api/v3/ticker/24hr', 10000);
+  const res = await fetchSafe('https://fapi.binance.com/fapi/v1/ticker/24hr', 10000);
   const all = await res.json();
   if (!Array.isArray(all)) throw new Error('ticker schema invalid');
   window.__binance24hrCache = { data: all, ts: Date.now() };
@@ -1527,7 +1520,7 @@ async function fetchWatchlistData() {
   // Folosim /api/v3/ticker/24hr care dă preț + change 24h + high/low
   const results = await Promise.all(dashWatchlist.map(async e => {
     try {
-      const r = await fetchBinanceSafe(`/api/v3/ticker/24hr?symbol=${e.coin}USDT`, 6000);
+      const r = await fetchBinanceSafe(`/fapi/v1/ticker/24hr?symbol=${e.coin}USDT`, 6000);
       const d = await r.json();
       return {
         coin: e.coin,
@@ -1877,12 +1870,12 @@ try{if(localStorage.getItem('darkMode')==='1'){document.body.classList.add('dark
 async function fetchMTFRsi(symbol){
   let rsi1h=null, rsi4h=null;
   try{
-    const r1h=await fetchSafe(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=20`,3000);
+    const r1h=await fetchSafe(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&limit=20`,3000);
     const k1h=await r1h.json();
     rsi1h=calcRSI(k1h.map(k=>parseFloat(k[4])),14);
   }catch(e){}
   try{
-    const r4h=await fetchSafe(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=4h&limit=20`,3000);
+    const r4h=await fetchSafe(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=4h&limit=20`,3000);
     const k4h=await r4h.json();
     rsi4h=calcRSI(k4h.map(k=>parseFloat(k[4])),14);
   }catch(e){}
@@ -2254,8 +2247,8 @@ function renderCryptoRecommendations(){
       +'<div><div style="font-size:.5rem;color:var(--t3);text-transform:uppercase">🛡️ Stop</div><div style="font-size:.66rem;font-weight:700;color:var(--red)">$'+o.sl.toFixed(o.price<1?6:2)+' <span style="font-size:.46rem;font-weight:800">R:R '+o.rr+':1</span></div></div>'
       +'</div>';
     const reasonsH=o.reasons.map(r=>'<div class="reco-reason"><div class="rdot '+r.c+'"></div><span>'+r.t+'</span></div>').join('');
-    const tvUrl='https://www.tradingview.com/chart/?symbol=BINANCE:'+o.coin+'USDT';
-    const pxUrl='https://www.pionex.com/en/trade/'+o.coin+'_USDT';
+    const tvUrl='https://www.tradingview.com/chart/?symbol=BINANCE:'+o.coin+'USDT.P';
+    const pxUrl='https://www.pionex.com/en/futures-trade/'+o.coin+'_USDT.PERP';
     return '<div class="reco-card '+(strong?(isBuy?'buy-s':'sell-s'):'')+'"><div class="'+(isBuy?'reco-stripe-b':'reco-stripe-s')+'"></div><div class="reco-body">'
       +'<div class="reco-top"><div class="reco-info"><div class="reco-ticker">'+o.coin+(cryptoPriceAlerts[o.coin]?'<span style="font-size:.55rem;color:var(--gold);margin-left:4px">⏰</span>':'')+'<span style="font-size:.5rem;font-weight:600;background:var(--bg3);border:1px solid var(--b1);border-radius:4px;padding:1px 6px;margin-left:6px;color:var(--t3)">'+(CRYPTO_CAT[o.coin]||'Crypto')+'</span></div>'
       +'<div class="reco-price">$'+o.price.toFixed(o.price<1?6:o.price<100?4:2)+' <span style="font-size:.62rem;font-weight:700;color:'+(o.chg24>=0?'var(--green)':'var(--red)')+';">'+(o.chg24>=0?'+':'')+o.chg24.toFixed(2)+'%</span></div></div>'
@@ -2368,8 +2361,8 @@ function renderGapTab(){
       +'<div class="sig-price">$'+s.price.toFixed(s.price<1?6:2)+'</div></div>'
       +'<div class="sig-right"><div class="sig-chg '+(isUp?'up':'down')+'">'+(s.chg>=0?'+':'')+s.chg.toFixed(2)+'%</div></div></div>'
       +'<div class="sig-desc">'+s.desc+'</div>'
-      +'<div class="sig-actions"><a class="btn-sig" href="https://www.tradingview.com/chart/?symbol=BINANCE:'+s.coin+'USDT" target="_blank">📈 TV</a>'
-      +'<a class="btn-sig" href="https://www.pionex.com/en/trade/'+s.coin+'_USDT" target="_blank">⚡ Pionex</a>'
+      +'<div class="sig-actions"><a class="btn-sig" href="https://www.tradingview.com/chart/?symbol=BINANCE:'+s.coin+'USDT.P" target="_blank">📈 TV</a>'
+      +'<a class="btn-sig" href="https://www.pionex.com/en/futures-trade/'+s.coin+'_USDT.PERP" target="_blank">⚡ Pionex</a>'
       +'<a class="btn-sig" href="https://app.trading212.com/" target="_blank">📊 T212</a>'
       +'</div></div></div>';
   }).join('')+'</div>';
@@ -2727,7 +2720,7 @@ async function runScan(){
     let macdData=null;
     if(looksInteresting){
       try{
-        const kr=await fetchSafe(`https://api.binance.com/api/v3/klines?symbol=${t.symbol}&interval=15m&limit=20`,3000);
+        const kr=await fetchSafe(`https://fapi.binance.com/fapi/v1/klines?symbol=${t.symbol}&interval=15m&limit=20`,3000);
         klines=await kr.json();
         const closes=klines.map(k=>parseFloat(k[4]));
         rsi=calcRSI(closes,14);
@@ -3226,8 +3219,8 @@ function renderCryptoEarlyBuy(){
 
     const reasonsHtml=o.reasons.slice(0,2).map(r=>'<div class="reco-reason"><div class="rdot '+r.c+'"></div><span>'+r.t+'</span></div>').join('');
     const sparkHtml=renderSparklineCrypto(o.coin);
-    const tvUrl='https://www.tradingview.com/chart/?symbol=BINANCE:'+o.coin+'USDT';
-    const pxUrl='https://www.pionex.com/en/trade/'+o.coin+'_USDT';
+    const tvUrl='https://www.tradingview.com/chart/?symbol=BINANCE:'+o.coin+'USDT.P';
+    const pxUrl='https://www.pionex.com/en/futures-trade/'+o.coin+'_USDT.PERP';
     const isWl=wlCoins.includes(o.coin);
 
     return '<div class="early-card '+(isTop?'top-pick':'')+'">'+
@@ -3363,7 +3356,7 @@ function renderMultiScan(){
       if(s.strength) metaParts.push('💪 '+Math.round(s.strength));
       if(s.vol24) metaParts.push('V $'+(s.vol24/1e6).toFixed(1)+'M');
       const meta=metaParts.join(' · ');
-      const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${s.coin}USDT`;
+      const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${s.coin}USDT.P`;
       const priceStr=s.price?'$'+(s.price<1?s.price.toFixed(6):s.price.toFixed(2)):'';
       return `<a href="${tvUrl}" target="_blank" class="ms-row">
         <div class="ms-ticker">${s.coin}</div>
@@ -3469,8 +3462,8 @@ function renderSignals(){
     const chgStr=(s.chg>=0?'+':'')+s.chg.toFixed(2)+'%';
     const m=s.metrics||{};
     const ago=timeAgo(s.time);
-    const pionexUrl=`https://www.pionex.com/en/trade/${s.coin}_USDT`;
-    const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${s.coin}USDT`;
+    const pionexUrl=`https://www.pionex.com/en/futures-trade/${s.coin}_USDT.PERP`;
+    const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${s.coin}USDT.P`;
     const t212Url=`https://app.trading212.com/`;
     const suggHtml=s.suggestion?`<div class="trade-action ${suggClass[s.suggestion]||'ta-wait'}">${suggLabels[s.suggestion]||s.suggestion}</div>`:'';
     const tdHtml=s.tradeDetail?`<div class="trade-detail">
@@ -3729,7 +3722,7 @@ function calcATR(klines, period=14){
 async function analyzePumpCandidate(symbol, coin, currentPrice, vol24){
   try{
     // fetch 5m klines, 30 bars (covers ~2.5h for ATR + volume avg)
-    const kr=await fetchSafe(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=5m&limit=30`,3500);
+    const kr=await fetchSafe(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=5m&limit=30`,3500);
     if(!kr.ok) return null;
     const klines=await kr.json();
     if(!Array.isArray(klines) || klines.length<22) return null;
@@ -5299,7 +5292,7 @@ function renderPumpRadar(){
       const col=typeColor[a.type]||typeColor.pump;
       const ago=timeAgo(a.time);
       const d=a.details||{};
-      const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${a.symbol||a.coin+'USDT'}`;
+      const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${(a.symbol||a.coin+'USDT')}.P`;
       const pionexUrl=`https://www.pionex.com/en/trade/${a.coin}_USDT/Futures_Grid`;
       
       html+=`
@@ -5384,7 +5377,7 @@ let smartDataFetching=false;
 async function fetchVWAPForSymbol(symbol){
   try{
     // 24h of 15-min candles = 96 candles
-    const url='https://api.binance.com/api/v3/klines?symbol='+symbol+'&interval=15m&limit=96';
+    const url='https://fapi.binance.com/fapi/v1/klines?symbol='+symbol+'&interval=15m&limit=96';
     const r=await fetchSafe(url, 8000);
     if(!r.ok) return null;
     let data=await r.json();
@@ -5534,7 +5527,7 @@ function renderSmartData(){
   }
   
   const renderRow=d=>{
-    const tvUrl='https://www.tradingview.com/chart/?symbol=BINANCE:'+d.symbol;
+    const tvUrl='https://www.tradingview.com/chart/?symbol=BINANCE:'+d.symbol+'.P';
     let wlStr='';
     try{
       const cfg=JSON.parse(localStorage.getItem('scanner_cfg')||'{}');
@@ -6100,42 +6093,54 @@ setTimeout(updateInfoBadge, 300);
 // 🎯 PIONEX-VERIFIED COIN WHITELIST
 // ═══════════════════════════════════════════════════════
 // Used by Grid Scanner + Smart Trade Long + Smart Data
-// Pionex ∩ Binance — 306 ticker-uri active pe AMÂNDOUĂ exchange-uri (sincronizat 2026-05-02).
-// Filtrate prin Binance /api/v3/exchangeInfo (status=TRADING, fără leverage tokens UP/DOWN/BULL/BEAR).
-// Excluse: tokenized stocks (AAPLX, NVDAX, etc.), commodities (XAU, NATGAS), forex — nu sunt pe Binance.
-// Update list: re-export Pionex watchlist din TradingView + intersect cu Binance USDT trading.
+// Pionex ∩ Binance USDT-M PERPETUAL — 422 ticker-uri active pe AMÂNDOUĂ (sincronizat 2026-05-02).
+// Sursa: Pionex watchlist (USDT.P) + Binance /fapi/v1/exchangeInfo (status=TRADING, contractType=PERPETUAL).
+// Scanner-ul folosește acum Binance Futures (fapi.binance.com) ca sursă de preț + klines pentru
+// consistență cu funding rate, open interest și real perpetual basis.
 const PIONEX_WHITELIST=new Set([
-  '1INCH','A','AAVE','ACE','ACH','ACT','ADA','AEVO','AGLD','AIXBT',
-  'ALGO','ALLO','ALPINE','ALT','ANIME','ANKR','APE','API3','APT','AR',
-  'ARB','ARK','ARKM','ARPA','ASR','ASTER','ASTR','AT','ATOM','AUCTION',
-  'AVAX','AVNT','AWE','AXL','AXS','BABY','BANANA','BANANAS31','BAND','BANK',
-  'BARD','BAT','BB','BCH','BEAMX','BEL','BERA','BICO','BIGTIME','BIO',
-  'BLUR','BNB','BOME','BONK','BREV','BTC','C98','CAKE','CATI','CETUS',
-  'CFG','CFX','CHIP','CHZ','CKB','COMP','COOKIE','COTI','COW','CRV',
-  'CVX','CYBER','DASH','DIA','DODO','DOGE','DOGS','DOLO','DOT','DUSK',
-  'DYM','EDU','EGLD','EIGEN','ENA','ENJ','ENS','ENSO','ESP','ETC',
-  'ETH','ETHFI','EUL','F','FET','FF','FIL','FLOKI','FOGO','FRAX',
-  'GALA','GAS','GIGGLE','GMT','GMX','GPS','GRT','GUN','HAEDAL','HBAR',
-  'HEMI','HFT','HIGH','HMSTR','HOLO','HOME','HUMA','ICP','ILV','IMX',
-  'INIT','INJ','IO','IOST','IOTA','JASMY','JTO','KAIA','KAITO','KAT',
-  'KAVA','KERNEL','KITE','KMNO','KNC','LA','LAYER','LDO','LINEA','LINK',
-  'LISTA','LPT','LQTY','LSK','LTC','LUNC','MAGIC','MANA','MANTA','MANTRA',
-  'MASK','MAV','MBOX','ME','MEGA','MEME','MET','METIS','MINA','MITO',
-  'MLN','MMT','MOVE','MOVR','MTL','MUBARAK','NEAR','NEO','NFP','NIGHT',
-  'NIL','NMR','NOM','NOT','NXPC','OG','OGN','ONDO','ONG','ONT',
-  'OP','OPEN','OPN','ORCA','ORDI','PARTI','PAXG','PENDLE','PENGU','PEOPLE',
-  'PEPE','PHA','PHB','PIXEL','PLUME','PNUT','POL','POLYX','PORTAL','POWR',
-  'PROVE','PYTH','QNT','QTUM','RARE','RAY','RENDER','RESOLV','REZ','RIF',
-  'RLC','ROBO','ROSE','RPL','RSR','RUNE','RVN','S','SAGA','SAHARA',
-  'SAND','SAPIEN','SCR','SCRT','SEI','SENT','SFP','SHELL','SHIB','SKL',
-  'SKY','SLP','SNX','SOL','SOLV','SOMI','SOPH','SPELL','SPK','SSV',
-  'STG','STO','STORJ','STRK','STX','SUI','SUN','SUPER','SUSHI','SXT',
-  'SYS','T','TAO','THE','THETA','TIA','TLM','TNSR','TON','TOWNS',
-  'TRB','TREE','TRUMP','TRX','TST','TURBO','TURTLE','TUT','TWT','UMA',
-  'UNI','USDC','USTC','USUAL','VANRY','VELODROME','VET','VIRTUAL','W','WAL',
-  'WCT','WIF','WLD','WLFI','WOO','XAI','XAUT','XEC','XLM','XPL',
-  'XRP','XTZ','XVG','XVS','YB','YFI','YGG','ZAMA','ZBT','ZEC',
-  'ZEN','ZIL','ZKC','ZKP','ZRO','ZRX'
+  '1INCH','A','AAVE','ACE','ACH','ACT','ACU','ADA','AERO','AEVO',
+  'AGLD','AGT','AIN','AIO','AIXBT','AKE','AKT','ALCH','ALGO','ALL',
+  'ALLO','ALPINE','ALT','ANIME','ANKR','APE','API3','APR','APT','AR',
+  'ARB','ARC','ARIA','ARK','ARKM','ARPA','ASR','ASTER','ASTR','AT',
+  'ATH','ATOM','AUCTION','AVAX','AVNT','AWE','AXL','AXS','AZTEC','B',
+  'BABY','BAN','BANANA','BANANAS31','BAND','BANK','BARD','BAS','BASED','BAT',
+  'BB','BCH','BEAMX','BEAT','BEL','BERA','BICO','BIGTIME','BIO','BIRB',
+  'BLESS','BLUAI','BLUR','BNB','BOME','BR','BRETT','BREV','BSB','BSV',
+  'BTC','BTR','BULLA','C98','CAKE','CATI','CC','CETUS','CFG','CFX',
+  'CHIP','CHZ','CKB','CLANKER','CLO','COAI','COLLECT','COMP','COOKIE','COTI',
+  'COW','CROSS','CRV','CVX','CYBER','CYS','DASH','DIA','DOGE','DOGS',
+  'DOLO','DOT','DRIFT','DUSK','DYM','EDGE','EDU','EGLD','EIGEN','ELSA',
+  'ENA','ENJ','ENS','ENSO','ESP','ESPORTS','ETC','ETH','ETHFI','EUL',
+  'EVAA','F','FARTCOIN','FET','FF','FHE','FIGHT','FIL','FLOCK','FLUID',
+  'FOGO','FOLKS','FRAX','GALA','GAS','GENIUS','GIGGLE','GMT','GMX','GOAT',
+  'GPS','GRASS','GRIFFAIN','GRT','GUA','GUN','GWEI','H','HAEDAL','HANA',
+  'HBAR','HEMI','HFT','HIGH','HMSTR','HOLO','HOME','HUMA','HYPE','ICNT',
+  'ICP','IDOL','ILV','IMX','IN','INIT','INJ','INX','IO','IOST',
+  'IOTA','IP','IRYS','JASMY','JELLYJELLY','JTO','JUP','KAIA','KAITO','KAS',
+  'KAT','KAVA','KERNEL','KGEN','KITE','KMNO','KNC','LA','LAB','LAYER',
+  'LDO','LIGHT','LINEA','LINK','LISTA','LPT','LQTY','LSK','LTC','LUNA2',
+  'LYN','MAGIC','MAGMA','MANA','MANTA','MANTRA','MASK','MAV','MBOX','ME',
+  'MEGA','MELANIA','MEME','MERL','MET','METIS','MEW','MINA','MITO','MLN',
+  'MMT','MON','MOODENG','MOVE','MOVR','MTL','MUBARAK','MYX','NAORIS','NEAR',
+  'NEO','NFP','NIGHT','NIL','NMR','NOM','NOT','NXPC','OG','OGN',
+  'ON','ONDO','ONG','ONT','OP','OPEN','OPG','OPN','ORCA','ORDER',
+  'ORDI','PARTI','PAXG','PENDLE','PENGU','PEOPLE','PHA','PHB','PIEVERSE','PIPPIN',
+  'PIXEL','PLAY','PLUME','PNUT','POL','POLYX','POPCAT','PORTAL','POWER','POWR',
+  'PRL','PROMPT','PROVE','PTB','PYTH','Q','QNT','QTUM','RARE','RAVE',
+  'RECALL','RENDER','RESOLV','REZ','RIF','RIVER','RLC','ROBO','ROSE','RPL',
+  'RSR','RUNE','RVN','S','SAGA','SAHARA','SAND','SAPIEN','SCR','SCRT',
+  'SEI','SENT','SFP','SHELL','SIREN','SKL','SKR','SKY','SKYAI','SLP',
+  'SNX','SOL','SOLV','SOMI','SOON','SOPH','SPACE','SPELL','SPK','SPORTFUN',
+  'SPX','SQD','SSV','STABLE','STBL','STG','STO','STORJ','STRK','STX',
+  'SUI','SUN','SUPER','SUSHI','SXT','SYRUP','SYS','T','TA','TAC',
+  'TAIKO','TAKE','TAO','THE','THETA','TIA','TLM','TNSR','TON','TOSHI',
+  'TOWNS','TRADOOR','TRB','TREE','TRIA','TRUMP','TRUST','TRUTH','TRX','TST',
+  'TURBO','TURTLE','TUT','TWT','UAI','UB','UMA','UNI','US','USDC',
+  'USELESS','USTC','USUAL','VANRY','VELODROME','VET','VIRTUAL','VVV','W','WAL',
+  'WCT','WIF','WLD','WLFI','WOO','XAI','XAN','XAUT','XLM','XMR',
+  'XNY','XPIN','XPL','XRP','XTZ','XVG','XVS','YB','YFI','YGG',
+  'ZAMA','ZBT','ZEC','ZEN','ZEREBRO','ZETA','ZIL','ZKC','ZKP','ZORA',
+  'ZRO','ZRX'
 ]);
 
 function isOnPionex(coin){
@@ -6246,7 +6251,7 @@ function calcATR_arr(highs, lows, closes, period=14){
 // === MTF check on a single TF: returns 1 if range, -1 if trending, 0 if mixed ===
 async function fetchMTFRange(symbol, interval){
   try{
-    const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=50`;
+    const url=`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=50`;
     const r=await fetchSafe(url, 8000);
     if(!r.ok) return null;
     let d=await r.json();
@@ -6271,7 +6276,7 @@ async function fetchMTFRange(symbol, interval){
 async function gridScanSymbol(symbol){
   try{
     // Pull 1h kline 100 bars for ADX, RSI, range, buffer
-    const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`;
+    const url=`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&limit=100`;
     const r=await fetchSafe(url, 8000);
     if(!r.ok) return null;
     let d=await r.json();
@@ -6525,7 +6530,7 @@ function renderGridScanner(){
   
   // Render rows
   filtered.forEach(d=>{
-    const tvUrl='https://www.tradingview.com/chart/?symbol=BINANCE:'+d.symbol+'&interval=60';
+    const tvUrl='https://www.tradingview.com/chart/?symbol=BINANCE:'+d.symbol+'.P&interval=60';
     const fmtP=v=>v<1?v.toFixed(6):v<100?v.toFixed(3):v.toFixed(2);
     
     html+='<div style="background:'+d.verdictBg+';border:1px solid '+d.verdictBorder+';border-radius:10px;padding:11px 13px;margin-bottom:7px">';
@@ -6622,7 +6627,7 @@ let stlongRiskPct=1.0;
 // === MTF score for one TF (trend + momentum + structure) ===
 async function fetchMTFScoreLong(symbol, interval){
   try{
-    const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=60`;
+    const url=`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=60`;
     const r=await fetchSafe(url, 8000);
     if(!r.ok) return null;
     let d=await r.json();
@@ -6674,7 +6679,7 @@ async function fetchMTFScoreLong(symbol, interval){
 async function stlongScanSymbol(symbol){
   try{
     // Pull 1h kline for ADX/RSI/structure/volume/ATR
-    const url=`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`;
+    const url=`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&limit=100`;
     const r=await fetchSafe(url, 8000);
     if(!r.ok) return null;
     let d=await r.json();
@@ -6996,7 +7001,7 @@ function renderSmartTradeLong(){
   
   // Render rows
   filtered.forEach(d=>{
-    const tvUrl='https://www.tradingview.com/chart/?symbol=BINANCE:'+d.symbol+'&interval=60';
+    const tvUrl='https://www.tradingview.com/chart/?symbol=BINANCE:'+d.symbol+'.P&interval=60';
     const fmtP=v=>v<1?v.toFixed(6):v<100?v.toFixed(3):v.toFixed(2);
     const c=d.checks||{};
     
@@ -7154,7 +7159,7 @@ async function telegramNotifyPump(alert){
   if(!telegramConfig.enabled || !telegramConfig.pumpRadar) return;
   if(alert.score < telegramConfig.minScore) return;
   const d=alert.details||{};
-  const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${alert.symbol||alert.coin+'USDT'}`;
+  const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${(alert.symbol||alert.coin+'USDT')}.P`;
   const pionexUrl=`https://www.pionex.com/en/trade/${alert.coin}_USDT/Futures_Grid`;
   
   let msg=`*${alert.title}* \`${alert.coin}\`\n`;
@@ -7177,7 +7182,7 @@ async function telegramNotifyPump(alert){
 // Price alert -> Telegram
 async function telegramNotifyPriceAlert(coin, price, target, dir){
   if(!telegramConfig.enabled || !telegramConfig.priceAlerts) return;
-  const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${coin}USDT`;
+  const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${coin}USDT.P`;
   let msg=`⏰ *PRICE ALERT* \`${coin}\`\n`;
   msg+=`💰 Preț atins: *$${price.toFixed(price<1?6:2)}*\n`;
   msg+=`🎯 Target: \`$${target.toFixed(target<1?6:2)}\` (${dir==='above'?'peste':'sub'})\n`;
@@ -7189,7 +7194,7 @@ async function telegramNotifyPriceAlert(coin, price, target, dir){
 async function telegramNotifyMainSignal(signal){
   if(!telegramConfig.enabled || !telegramConfig.mainScan) return;
   if(signal.strength < telegramConfig.minScore) return;
-  const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${signal.coin}USDT`;
+  const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${signal.coin}USDT.P`;
   const cleanDesc=(signal.desc||'').replace(/<[^>]+>/g,'').substring(0,200);
   
   let msg=`${signal.title}\n`;
@@ -7805,7 +7810,7 @@ function renderCatalystList(items, kind){
   }
   return items.map(t=>{
     let ico, iconCls, tag, tagCls, desc;
-    const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${t.symbol}`;
+    const tvUrl=`https://www.tradingview.com/chart/?symbol=BINANCE:${t.symbol}.P`;
 
     if(kind==='new'){
       ico='🆕'; iconCls='k-new'; tag='LISTING NOU'; tagCls='cat-tag-new';
