@@ -837,6 +837,7 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
     <div class="notif-btn" id="tgBtn" onclick="showTelegramModal()" style="cursor:pointer" title="Configurează Telegram pentru alerte">📱 Telegram</div>
     <div class="notif-btn" onclick="showApiKeyModal()" style="cursor:pointer" title="Configurează cheia Anthropic API pentru analiza AI">🔑 API Key</div>
     <div class="notif-btn" id="infoBtn" onclick="showInfoModal()" style="cursor:pointer" title="Ghid + Tips + Changelog">ℹ️ Info</div>
+    <div class="notif-btn" id="gistSyncBtn" onclick="showGistModal()" style="cursor:pointer" title="GitHub Gist sync — sincronizează watchlist + setări + API key cross-device">🔄 Sync</div>
     <div class="notif-btn" onclick="showBackupModal()" style="cursor:pointer" title="Backup config + watchlist + alerte (Export / Import / Restore)">💾 Backup</div>
     <div class="dark-toggle" id="darkToggle" onclick="toggleDarkMode()" title="Dark Mode"></div>
   </div>
@@ -8794,6 +8795,256 @@ function _copyGridRange(lower, upper, grids){
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// GITHUB GIST SYNC — cross-device pentru watchlist + setări + API key
+// ═══════════════════════════════════════════════════════════════
+// Config în localStorage['gist_config_crypto']: {token, gistId, deviceId, autoSync, lastSyncTs}
+// Token: PAT cu scope "gist" only (github.com/settings/tokens)
+// Schema gist file "crypto_scanner.json": {version, last_modified, device_id, settings: {key: value, ...}}
+// Auto-push debounced 5s la orice modificare localStorage (cheile din SYNC_KEYS / SYNC_PREFIXES).
+// Auto-pull la load dacă autoSync e activ și remote e mai nou ca local.
+
+const SYNC_KEYS = [
+  'dash_watchlist', 'crypto_alerts', 'scanner_cfg', 'pumpradar_cfg',
+  'pumpradar_history', 'futures_cfg', 'futures_alerts', 'grid_copy_cfg',
+  'telegram_cfg_crypto', 'stlong_cfg', 'darkMode', 'sortMode',
+  'crypto_last_seen_version', 'anthropic_api_key', 'possizer_last',
+  'premium_filters'
+];
+const SYNC_PREFIXES = ['catalyst_'];
+// `gist_config_crypto` e EXCLUS din sync ca să nu se suprascrie token-ul cross-device.
+
+function _shouldSyncKey(k){
+  if(!k) return false;
+  if(SYNC_KEYS.indexOf(k) >= 0) return true;
+  return SYNC_PREFIXES.some(p => k.indexOf(p) === 0);
+}
+
+function _gistCollect(){
+  const data = {};
+  SYNC_KEYS.forEach(k => {
+    const v = localStorage.getItem(k);
+    if(v !== null) data[k] = v;
+  });
+  for(let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k && SYNC_PREFIXES.some(p => k.indexOf(p) === 0)) data[k] = localStorage.getItem(k);
+  }
+  return data;
+}
+
+// Aplică datele venite din gist. Returnează count chei modificate.
+function _gistApply(data){
+  let changed = 0;
+  Object.keys(data || {}).forEach(k => {
+    if(!_shouldSyncKey(k)) return; // safety: ignoră chei străine
+    try{
+      const cur = localStorage.getItem(k);
+      if(cur !== data[k]){
+        localStorage.setItem(k, data[k]);
+        changed++;
+      }
+    }catch(e){}
+  });
+  return changed;
+}
+
+function _gistConfig(){
+  try { return JSON.parse(localStorage.getItem('gist_config_crypto') || '{}'); } catch(e) { return {}; }
+}
+function _gistSaveConfig(cfg){
+  try { localStorage.setItem('gist_config_crypto', JSON.stringify(cfg)); } catch(e) {}
+}
+function _gistDeviceId(){
+  let cfg = _gistConfig();
+  if(!cfg.deviceId){
+    cfg.deviceId = 'd_' + Math.random().toString(36).slice(2,10) + '_' + Date.now().toString(36);
+    _gistSaveConfig(cfg);
+  }
+  return cfg.deviceId;
+}
+
+async function _gistApi(method, path, body, token){
+  const url = 'https://api.github.com' + path;
+  const opts = {
+    method,
+    headers: {
+      'Authorization': 'token ' + token,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  };
+  if(body){ opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
+  const r = await fetch(url, opts);
+  if(!r.ok) throw new Error('Gist API ' + r.status + ': ' + (await r.text()).slice(0,200));
+  return r.json();
+}
+
+function _gistPayload(){
+  return {
+    version: 1,
+    app: 'crypto-scanner',
+    last_modified: Date.now(),
+    device_id: _gistDeviceId(),
+    settings: _gistCollect()
+  };
+}
+
+async function gistInit(){
+  const cfg = _gistConfig();
+  if(!cfg.token){ alert('❌ Lipsește token-ul GitHub. Salvează un Personal Access Token (scope: gist) creat la github.com/settings/tokens.'); return; }
+  if(cfg.gistId){
+    if(!confirm('Există deja un gist configurat (' + cfg.gistId.slice(0,8) + '...). Vrei să creezi unul NOU? Cel vechi rămâne dar nu va mai fi folosit.')) return;
+  }
+  try{
+    const payload = _gistPayload();
+    const r = await _gistApi('POST', '/gists', {
+      description: 'Crypto Scanner — cross-device sync (private)',
+      public: false,
+      files: { 'crypto_scanner.json': { content: JSON.stringify(payload, null, 2) } }
+    }, cfg.token);
+    cfg.gistId = r.id;
+    cfg.lastSyncTs = Date.now();
+    _gistSaveConfig(cfg);
+    alert('✅ Gist creat cu ID:\n' + r.id + '\n\nPe alt device: introdu ACEST gist ID + același token, apoi click "⬇ Pull" pentru sync.');
+    _updateGistStatus();
+  }catch(e){ alert('❌ Eroare creare gist: ' + e.message); }
+}
+
+async function gistPush(silent){
+  const cfg = _gistConfig();
+  if(!cfg.token || !cfg.gistId){ if(!silent) alert('❌ Configurează token + gistId întâi.'); return false; }
+  try{
+    const payload = _gistPayload();
+    await _gistApi('PATCH', '/gists/' + cfg.gistId, {
+      files: { 'crypto_scanner.json': { content: JSON.stringify(payload, null, 2) } }
+    }, cfg.token);
+    cfg.lastSyncTs = payload.last_modified;
+    _gistSaveConfig(cfg);
+    if(!silent) alert('✅ Push reușit. ' + Object.keys(payload.settings).length + ' chei sincronizate la gist ' + cfg.gistId.slice(0,8) + '...');
+    _updateGistStatus();
+    return true;
+  }catch(e){ if(!silent) alert('❌ Eroare push: ' + e.message); return false; }
+}
+
+async function gistPull(silent){
+  const cfg = _gistConfig();
+  if(!cfg.token || !cfg.gistId){ if(!silent) alert('❌ Configurează token + gistId întâi.'); return false; }
+  try{
+    const r = await _gistApi('GET', '/gists/' + cfg.gistId, null, cfg.token);
+    const file = r.files && r.files['crypto_scanner.json'];
+    if(!file || !file.content) throw new Error('gist nu conține crypto_scanner.json');
+    const data = JSON.parse(file.content);
+    if(!data.settings || typeof data.settings !== 'object') throw new Error('schema gist invalidă (lipsește settings)');
+    // Conflict detection: dacă local lastSyncTs > remote.last_modified, avertizează (alt device a făcut push?)
+    const localLast = cfg.lastSyncTs || 0;
+    const remoteLast = data.last_modified || 0;
+    if(!silent && localLast > remoteLast + 5000){
+      if(!confirm('⚠️ CONFLICT: ai făcut sync local mai recent decât gist-ul.\n\nLocal: ' + new Date(localLast).toLocaleString() + '\nGist: ' + new Date(remoteLast).toLocaleString() + '\n\nPull va SUPRASCRIE setările locale. Continui?')) return false;
+    } else if(!silent){
+      const cnt = Object.keys(data.settings).length;
+      if(!confirm('Pull ' + cnt + ' setări (watchlist, alerte, config, API key) din gist?\nLocal va fi suprascris cu cele din gist.')) return false;
+    }
+    const changed = _gistApply(data.settings);
+    cfg.lastSyncTs = Date.now();
+    _gistSaveConfig(cfg);
+    if(!silent) alert('✅ Pull reușit. ' + changed + ' chei actualizate.\n\nReîncarc pagina pentru aplicare.');
+    _updateGistStatus();
+    if(!silent && changed > 0) location.reload();
+    return changed > 0;
+  }catch(e){ if(!silent) alert('❌ Eroare pull: ' + e.message); return false; }
+}
+
+// Auto-push debounced 5s la orice modificare localStorage relevantă
+let _gistAutoTimer = null;
+function gistAutoPush(){
+  const cfg = _gistConfig();
+  if(!cfg.token || !cfg.gistId || !cfg.autoSync) return;
+  if(_gistAutoTimer) clearTimeout(_gistAutoTimer);
+  _gistAutoTimer = setTimeout(() => { gistPush(true); }, 5000);
+}
+
+// Monkey-patch localStorage.setItem ca să prind toate modificările fără să intervin în save-functions
+(function(){
+  if(window.__cryptoLsHooked) return;
+  window.__cryptoLsHooked = true;
+  const orig = Storage.prototype.setItem;
+  Storage.prototype.setItem = function(k, v){
+    orig.call(this, k, v);
+    try{
+      if(this === window.localStorage && _shouldSyncKey(k)) gistAutoPush();
+    }catch(e){}
+  };
+})();
+
+function showGistModal(){
+  const dlg = document.getElementById('gistSyncModal');
+  if(!dlg) return;
+  const cfg = _gistConfig();
+  document.getElementById('gs_token').value = cfg.token || '';
+  document.getElementById('gs_gistId').value = cfg.gistId || '';
+  document.getElementById('gs_auto').checked = !!cfg.autoSync;
+  _updateGistStatus();
+  dlg.showModal();
+}
+
+function saveGistConfig(){
+  const cfg = _gistConfig();
+  cfg.token = (document.getElementById('gs_token').value || '').trim() || null;
+  cfg.gistId = (document.getElementById('gs_gistId').value || '').trim() || null;
+  cfg.autoSync = document.getElementById('gs_auto').checked;
+  _gistSaveConfig(cfg);
+  _updateGistStatus();
+  showToast('✅ Configurație Sync salvată','ok');
+}
+
+function _updateGistStatus(){
+  const cfg = _gistConfig();
+  const el = document.getElementById('gs_status');
+  if(!el) return;
+  if(!cfg.token){ el.innerHTML = '<span style="color:var(--t3)">⚪ Neconfigurat — adaugă token + gist ID</span>'; }
+  else if(!cfg.gistId){ el.innerHTML = '<span style="color:var(--gold)">🟡 Token ok, dar lipsește gist ID — creează unul nou sau introdu unul existent</span>'; }
+  else {
+    const last = cfg.lastSyncTs ? new Date(cfg.lastSyncTs).toLocaleString() : 'niciodată';
+    el.innerHTML = '<span style="color:var(--green)">🟢 Activ</span> · gist <code style="font-size:.55rem">' + cfg.gistId.slice(0,8) + '...</code> · last sync: <strong>' + last + '</strong> · auto: <strong>' + (cfg.autoSync?'ON':'OFF') + '</strong>';
+  }
+  // Update buton topbar cu indicator vizual
+  const btn = document.getElementById('gistSyncBtn');
+  if(btn){
+    if(cfg.token && cfg.gistId){ btn.style.color = 'var(--green)'; btn.style.borderColor = 'var(--greenb)'; }
+    else { btn.style.color = ''; btn.style.borderColor = ''; }
+  }
+}
+
+// La load: dacă autoSync e activ, pull silent (NU suprascrie dacă local e mai nou)
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const cfg = _gistConfig();
+    if(!cfg.token || !cfg.gistId || !cfg.autoSync) { _updateGistStatus(); return; }
+    // Pull silent — funcția va abandona dacă apare conflict (silent mode = nu suprascrie fără confirm)
+    _gistApi('GET', '/gists/' + cfg.gistId, null, cfg.token).then(r => {
+      const file = r.files && r.files['crypto_scanner.json'];
+      if(!file || !file.content) return;
+      const data = JSON.parse(file.content);
+      if(!data.settings) return;
+      const remoteLast = data.last_modified || 0;
+      const localLast = cfg.lastSyncTs || 0;
+      // Pull silent doar dacă remote e CLAR mai nou (>5s tolerance) ca să nu apară ping-pong
+      if(remoteLast > localLast + 5000){
+        const changed = _gistApply(data.settings);
+        cfg.lastSyncTs = Date.now();
+        _gistSaveConfig(cfg);
+        _updateGistStatus();
+        if(changed > 0){
+          showToast('🔄 Sincronizat din gist (' + changed + ' chei) — refresh pagină pentru full effect','ok');
+        }
+      } else {
+        _updateGistStatus();
+      }
+    }).catch(e => { console.warn('Auto-pull failed:', e); _updateGistStatus(); });
+  }, 1500);
+});
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════
@@ -8858,6 +9109,53 @@ function _copyGridRange(lower, upper, grids){
     <button onclick="document.getElementById('gridSuggesterModal').close()" style="background:none;border:none;color:var(--t3);font-size:1.3rem;cursor:pointer;line-height:1;padding:0 4px">✕</button>
   </div>
   <div id="gsBody" style="padding:14px 16px"></div>
+</dialog>
+
+<!-- ═══════════════════════════════════════════════════════
+     GIST SYNC MODAL — config token + gistId + auto-sync
+     ═══════════════════════════════════════════════════════ -->
+<dialog id="gistSyncModal" style="border:none;border-radius:14px;padding:0;max-width:520px;width:calc(100% - 32px);background:var(--bg2);color:var(--t1);box-shadow:0 20px 60px rgba(0,0,0,.4)">
+  <div style="padding:14px 16px 12px;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+    <div>
+      <div style="font-family:var(--head);font-weight:800;font-size:1rem">🔄 GitHub Gist Sync</div>
+      <div style="font-size:.55rem;color:var(--t3);margin-top:2px">Sincronizează cross-device: watchlist + alerte + config + API key. Folosește un Gist privat ca storage.</div>
+    </div>
+    <button onclick="document.getElementById('gistSyncModal').close()" style="background:none;border:none;color:var(--t3);font-size:1.3rem;cursor:pointer;line-height:1;padding:0 4px">✕</button>
+  </div>
+  <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+    <div id="gs_status" style="padding:8px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:7px;font-size:.62rem"></div>
+
+    <div>
+      <div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:3px">GitHub Personal Access Token (scope: gist)</div>
+      <input id="gs_token" type="password" placeholder="ghp_..." autocomplete="off" style="padding:7px 9px;border-radius:7px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-family:var(--mono);font-size:.7rem;width:100%;box-sizing:border-box">
+      <div style="font-size:.52rem;color:var(--t3);margin-top:3px">Generează la <code>github.com/settings/tokens</code> → Tokens (classic) sau Fine-grained → scope/permission <strong>"gist"</strong> only.</div>
+    </div>
+
+    <div>
+      <div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:3px">Gist ID (gol = creează unul nou)</div>
+      <input id="gs_gistId" type="text" placeholder="ex: a1b2c3d4..." autocomplete="off" style="padding:7px 9px;border-radius:7px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-family:var(--mono);font-size:.7rem;width:100%;box-sizing:border-box">
+      <div style="font-size:.52rem;color:var(--t3);margin-top:3px">Pe <strong>device 1</strong>: lasă gol, click "🆕 Creează gist". Pe <strong>device 2</strong>: copiază ID-ul de pe device 1 aici, apoi click "⬇ Pull".</div>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:8px;font-size:.62rem;color:var(--t2);cursor:pointer;padding:8px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:7px">
+      <input id="gs_auto" type="checkbox" style="cursor:pointer">
+      <span><strong>Auto-sync</strong> — push automat (5s debounce) la orice modificare locală + pull silent la fiecare load dacă remote e mai nou</span>
+    </label>
+
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button onclick="saveGistConfig()" style="flex:1;min-width:120px;padding:9px;border-radius:8px;border:1px solid var(--accb);background:var(--accl);color:var(--acc);font-weight:700;font-size:.62rem;cursor:pointer">💾 Salvează config</button>
+      <button onclick="gistInit()" style="flex:1;min-width:120px;padding:9px;border-radius:8px;border:1px solid var(--purplb);background:rgba(124,58,237,.1);color:#7c3aed;font-weight:700;font-size:.62rem;cursor:pointer">🆕 Creează gist nou</button>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button onclick="gistPush(false)" style="flex:1;padding:9px;border-radius:8px;border:1px solid #86efac;background:#dcfce7;color:#15803d;font-weight:700;font-size:.62rem;cursor:pointer">⬆ Push (local → gist)</button>
+      <button onclick="gistPull(false)" style="flex:1;padding:9px;border-radius:8px;border:1px solid #fde68a;background:#fef3c7;color:#92400e;font-weight:700;font-size:.62rem;cursor:pointer">⬇ Pull (gist → local)</button>
+    </div>
+
+    <div style="font-size:.52rem;color:var(--t3);padding:8px 10px;background:var(--bg1);border-radius:7px;border:1px dashed var(--b1);line-height:1.5">
+      <strong>Ce se sincronizează:</strong> watchlist live, alerte preț, scanner config, filtre Premium, Pump Radar, Smart Trade Long, Telegram config, API key Anthropic, dark mode, sortare, catalyst dismissals.<br>
+      <strong>Ce NU se sincronizează:</strong> token-ul + gistId (rămân local pe fiecare device), istoric semnale, snapshot-uri backup local.
+    </div>
+  </div>
 </dialog>
 
 </body>
