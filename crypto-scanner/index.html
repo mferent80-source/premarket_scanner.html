@@ -834,6 +834,40 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
   .app{max-width:2040px;}
   .signals-grid{grid-template-columns:repeat(auto-fill,minmax(360px,1fr))!important;}
 }
+
+/* ─── AI CHAT ASSISTANT (FAB jos-dreapta + panou) ─── */
+#aiChatFab{position:fixed;bottom:20px;right:20px;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-size:1.4rem;border:none;cursor:pointer;box-shadow:0 6px 20px rgba(79,70,229,.45);z-index:9998;display:flex;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s;}
+#aiChatFab:hover{transform:scale(1.07);box-shadow:0 8px 28px rgba(79,70,229,.6);}
+#aiChatFab.open{transform:rotate(45deg);}
+#aiChatPanel{position:fixed;bottom:84px;right:20px;width:380px;max-width:calc(100vw - 30px);height:560px;max-height:calc(100vh - 110px);background:var(--bg);border:1px solid var(--b1);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,.35);z-index:9998;display:none;flex-direction:column;overflow:hidden;}
+#aiChatPanel.open{display:flex;}
+.aichat-hdr{padding:10px 14px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.aichat-hdr-title{font-family:var(--head);font-weight:800;font-size:.78rem;display:flex;align-items:center;gap:6px;}
+.aichat-hdr-actions{display:flex;gap:4px;}
+.aichat-hdr-btn{background:rgba(255,255,255,.2);border:none;color:#fff;font-size:.6rem;padding:4px 8px;border-radius:5px;cursor:pointer;font-weight:700;}
+.aichat-hdr-btn:hover{background:rgba(255,255,255,.32);}
+.aichat-body{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--bg2);}
+.aichat-body::-webkit-scrollbar{width:5px;}
+.aichat-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px;}
+.aichat-msg{max-width:85%;padding:8px 11px;border-radius:11px;font-size:.7rem;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;}
+.aichat-msg.user{align-self:flex-end;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border-bottom-right-radius:3px;}
+.aichat-msg.assistant{align-self:flex-start;background:var(--bg3);color:var(--t1);border:1px solid var(--b1);border-bottom-left-radius:3px;}
+.aichat-msg.system{align-self:center;background:transparent;color:var(--t3);font-size:.6rem;font-style:italic;border:1px dashed var(--b1);padding:6px 10px;}
+.aichat-msg.error{align-self:center;background:var(--redl);color:var(--red);border:1px solid var(--redb);}
+.aichat-empty{text-align:center;color:var(--t3);font-size:.65rem;padding:20px 8px;line-height:1.6;}
+.aichat-empty kbd{background:var(--bg3);border:1px solid var(--b1);border-radius:4px;padding:1px 6px;font-family:var(--mono);font-size:.6rem;color:var(--t1);}
+.aichat-input-row{padding:10px;border-top:1px solid var(--b1);background:var(--bg);display:flex;gap:6px;align-items:flex-end;}
+.aichat-input{flex:1;border:1px solid var(--b1);border-radius:10px;padding:8px 10px;font-size:.7rem;font-family:var(--bd);background:var(--bg2);color:var(--t1);resize:none;min-height:36px;max-height:120px;outline:none;}
+.aichat-input:focus{border-color:var(--acc);}
+.aichat-send{background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;border:none;border-radius:10px;padding:0 14px;height:36px;font-size:.72rem;font-weight:800;cursor:pointer;}
+.aichat-send:disabled{opacity:.5;cursor:not-allowed;}
+.aichat-cmds{padding:6px 10px;background:var(--bg);border-top:1px solid var(--b1);display:flex;gap:5px;flex-wrap:wrap;font-size:.55rem;}
+.aichat-cmd{background:var(--bg3);border:1px solid var(--b1);color:var(--t2);padding:3px 7px;border-radius:5px;cursor:pointer;font-family:var(--mono);font-weight:700;}
+.aichat-cmd:hover{background:var(--accl);color:var(--acc);border-color:var(--accb);}
+@media(max-width:480px){
+  #aiChatPanel{width:calc(100vw - 20px);right:10px;bottom:80px;height:70vh;}
+  #aiChatFab{bottom:15px;right:15px;}
+}
 </style>
 </head>
 <body>
@@ -9263,6 +9297,312 @@ window.addEventListener('load', () => {
     }).catch(e => { console.warn('Auto-pull failed:', e); _updateGistStatus(); });
   }, 1500);
 });
+
+// ═══════════════════════════════════════════════════════════════
+// ASISTENT CONVERSAȚIONAL AI FLOTANT (crypto)
+// FAB jos-dreapta → panou chat cu streaming + context scanner ca system message.
+// Comenzi /: /buy /compare /watchlist /premium /st /clear
+// Persistent: ai_chat_history_crypto în localStorage (max 30 mesaje păstrate).
+// ═══════════════════════════════════════════════════════════════
+
+const AI_SYSTEM_C = `Ești analist crypto concis pentru un trader român activ pe Pionex (futures + spot grid) și uneori Binance.
+Reguli stricte de stil:
+- Răspunde DOAR în română.
+- Maxim 5-6 rânduri pe analiză, fără introduceri de tipul "Iată...".
+- Recomandă entry / TP / SL cu niveluri $ specifice ori scrie clar "stay flat".
+- Identifică riscul principal într-o singură propoziție.
+- Fără markdown, fără emoji, fără bold. Text plat, scurt, direct.
+- Coin-urile sunt perpetual futures pe Pionex (sufix _USDT.PERP) — gândește în context futures (funding, leverage).`;
+
+async function aiCallStreamCrypto(opts, onDelta, onDone, onError){
+  opts = opts || {};
+  const key = getApiKey();
+  if(!key){ onError({type:'no_key',message:'Lipsește cheia API Anthropic'}); return; }
+  const messages = opts.messages || [];
+  const system = [{type:'text', text:AI_SYSTEM_C, cache_control:{type:'ephemeral'}}];
+  if(opts.systemExtra) system.push({type:'text', text:opts.systemExtra, cache_control:{type:'ephemeral'}});
+  const body = {
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: opts.maxTokens || 700,
+    stream: true,
+    system,
+    messages
+  };
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify(body)
+    });
+    if(!resp.ok){
+      const j = await resp.json().catch(()=>({error:{message:'HTTP '+resp.status}}));
+      onError({type:'api', message: j.error?.message || ('HTTP '+resp.status)});
+      return;
+    }
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '', full = '';
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buffer += decoder.decode(value, {stream:true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for(const line of lines){
+        if(!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if(!data) continue;
+        try{
+          const ev = JSON.parse(data);
+          if(ev.type === 'content_block_delta' && ev.delta?.text){
+            full += ev.delta.text;
+            onDelta(ev.delta.text, full);
+          }
+        }catch(_){}
+      }
+    }
+    onDone(full);
+  }catch(e){
+    onError({type:'network', message: e.message});
+  }
+}
+
+const AICHAT_KEY_C = 'ai_chat_history_crypto';
+const AICHAT_MAX_TURNS_C = 12;
+const aiChat = {
+  open: false,
+  busy: false,
+  messages: []
+};
+
+function aiChatLoadC(){
+  try{ aiChat.messages = JSON.parse(localStorage.getItem(AICHAT_KEY_C) || '[]'); }catch(_){ aiChat.messages = []; }
+}
+function aiChatPersistC(){
+  try{
+    const slice = aiChat.messages.slice(-30);
+    localStorage.setItem(AICHAT_KEY_C, JSON.stringify(slice));
+  }catch(_){}
+}
+function aiChatToggleC(){
+  aiChat.open = !aiChat.open;
+  document.getElementById('aiChatPanel').classList.toggle('open', aiChat.open);
+  document.getElementById('aiChatFab').classList.toggle('open', aiChat.open);
+  if(aiChat.open){
+    aiChatRenderC();
+    setTimeout(()=>document.getElementById('aiChatInput')?.focus(), 100);
+  }
+}
+function aiChatClearC(){
+  if(!confirm('Ștergi tot istoricul conversației?')) return;
+  aiChat.messages = [];
+  aiChatPersistC();
+  aiChatRenderC();
+}
+function aiChatRenderC(){
+  const body = document.getElementById('aiChatBody');
+  if(!body) return;
+  if(!aiChat.messages.length){
+    body.innerHTML = `<div class="aichat-empty">
+      💬 <b>Asistent AI crypto</b><br><br>
+      Întreabă orice despre coin-uri sau folosește comenzi rapide:<br>
+      <kbd>/buy BTC</kbd> <kbd>/compare ETH SOL</kbd> <kbd>/watchlist</kbd> <kbd>/premium</kbd> <kbd>/st</kbd> <kbd>/clear</kbd><br><br>
+      <span style="font-size:.58rem">Claude vede automat top oportunități, watchlist, F&G, semnale ST Long și Premium setups.</span>
+    </div>`;
+    return;
+  }
+  body.innerHTML = aiChat.messages.map(m => {
+    const cls = m.role === 'user' ? 'user' : (m.role === 'system' ? 'system' : (m.role === 'error' ? 'error' : 'assistant'));
+    const safe = (m.content || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<div class="aichat-msg ${cls}">${safe}</div>`;
+  }).join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+// Snapshot scanner crypto ca system message — proaspăt la fiecare cerere.
+function aiChatBuildContextC(){
+  const lines = ['CONTEXT SCANNER CRYPTO (date live, ' + new Date().toLocaleString('ro-RO') + '):'];
+  if(typeof cryptoFgScore !== 'undefined') lines.push('FEAR & GREED: ' + cryptoFgScore + '/100');
+
+  const opps = (typeof allCryptoOpportunities !== 'undefined' ? allCryptoOpportunities : []) || [];
+  // Top 5 buys
+  const topBuys = opps.filter(o => o.isBuy && o.score >= 60).sort((a,b) => b.score - a.score).slice(0,5);
+  if(topBuys.length){
+    lines.push('TOP BUYS: ' + topBuys.map(o => `${o.coin} (scor ${o.score}, ${o.chg24>=0?'+':''}${(o.chg24||0).toFixed(1)}%, RSI ${(o.rsi||50).toFixed(0)})`).join(', '));
+  }
+  // Top 5 losers
+  const topLosers = opps.slice().sort((a,b) => (a.chg24||0) - (b.chg24||0)).slice(0,5);
+  if(topLosers.length){
+    lines.push('TOP LOSERS: ' + topLosers.map(o => `${o.coin} ${(o.chg24||0).toFixed(1)}%`).join(', '));
+  }
+  // Premium setups
+  if(typeof isPremiumSetup === 'function' && typeof calcConvictionScore === 'function'){
+    const prem = opps
+      .map(o => ({ ...o, convictionScore: calcConvictionScore(o) }))
+      .filter(o => isPremiumSetup(o))
+      .sort((a,b) => b.convictionScore - a.convictionScore)
+      .slice(0,5);
+    if(prem.length) lines.push('PREMIUM SETUPS (' + prem.length + '): ' + prem.map(o => `${o.coin} (conv ${o.convictionScore})`).join(', '));
+  }
+  // Smart Trade Long READY/OK
+  if(typeof stlongCache !== 'undefined'){
+    const stReady = Object.entries(stlongCache)
+      .filter(([k,v]) => v && (v.verdict === '🚀 LONG READY' || v.verdict === '🟢 LONG OK'))
+      .map(([k,v]) => k.replace('USDT','') + (v.verdict === '🚀 LONG READY' ? ' READY' : ' OK'))
+      .slice(0,8);
+    if(stReady.length) lines.push('SMART TRADE LONG: ' + stReady.join(', '));
+  }
+  // Watchlist (max 10)
+  const wl = (typeof dashWatchlist !== 'undefined' ? dashWatchlist : []) || [];
+  if(wl.length) lines.push('WATCHLIST (' + wl.length + '): ' + wl.slice(0,10).join(', '));
+  // Pump radar — ultimele evenimente
+  if(typeof pumpHistory !== 'undefined' && pumpHistory.length){
+    const recent = pumpHistory.slice(-5).reverse().map(p => `${p.coin} ${p.type} (${p.score||0})`);
+    if(recent.length) lines.push('PUMP RADAR recent: ' + recent.join(', '));
+  }
+  return lines.join('\n');
+}
+
+function aiChatHandleCommandC(text){
+  const t = text.trim();
+  if(t === '/clear'){ aiChatClearC(); return null; }
+  if(t.startsWith('/buy ')){
+    const sym = t.slice(5).trim().toUpperCase();
+    return `Analizează entry pentru ${sym} ACUM (perpetual futures pe Pionex). Dă-mi: niveluri concrete entry/TP/SL în $, leverage sugerat (max 5x dacă e scalp, 3x altfel), 1 risc principal. Max 5 rânduri.`;
+  }
+  if(t.startsWith('/compare ')){
+    const syms = t.slice(9).trim().split(/[,\s]+/).filter(Boolean).map(s => s.toUpperCase());
+    if(syms.length < 2) return `Format: /compare COIN1 COIN2 [COIN3]`;
+    return `Compară ${syms.join(', ')} pentru un trade futures azi. Format: 1 paragraf scurt + linia "CÂȘTIGĂ: <coin>" cu motiv. Apoi entry/SL pentru câștigător sau "stay flat".`;
+  }
+  if(t === '/watchlist'){
+    return `Analizează doar coin-urile din watchlist-ul meu. Pentru fiecare: stare tehnică în 1 rând. La final: "INTRĂ AZI: <coin>" sau "EVITĂ TOATE — așteaptă". Max 10 rânduri total.`;
+  }
+  if(t === '/premium'){
+    return `Pe baza listei PREMIUM SETUPS din context, recomandă MAX 1 coin pentru long azi (sau "skip toate"). Justifică în 2 rânduri și dă entry/TP/SL concret + leverage max 3x.`;
+  }
+  if(t === '/st'){
+    return `Pe baza listei SMART TRADE LONG din context (READY/OK), recomandă top 1-2 coin-uri pentru long. Format: <coin>: entry $X, TP $Y, SL $Z, motiv 1 rând.`;
+  }
+  return text;
+}
+
+async function aiChatSendC(){
+  if(aiChat.busy) return;
+  const inp = document.getElementById('aiChatInput');
+  const text = (inp.value || '').trim();
+  if(!text) return;
+  if(!getApiKey()){ showApiKeyModal(()=>{}); return; }
+
+  let promptText = aiChatHandleCommandC(text);
+  if(promptText === null){ inp.value = ''; return; }
+
+  aiChat.messages.push({role:'user', content:text, ts:Date.now()});
+  aiChatRenderC();
+  inp.value = '';
+  inp.style.height = 'auto';
+
+  // Construiește mesajele pentru API: ultimele AICHAT_MAX_TURNS din istoric
+  const apiMessages = aiChat.messages
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .slice(-AICHAT_MAX_TURNS_C)
+    .map(m => ({role:m.role, content:m.content}));
+  if(apiMessages.length && apiMessages[apiMessages.length-1].role === 'user'){
+    apiMessages[apiMessages.length-1].content = promptText;
+  } else {
+    apiMessages.push({role:'user', content:promptText});
+  }
+
+  // Placeholder assistant
+  aiChat.messages.push({role:'assistant', content:'', ts:Date.now()});
+  aiChatRenderC();
+  aiChat.busy = true;
+  document.getElementById('aiChatSendBtn').disabled = true;
+
+  const ctx = aiChatBuildContextC();
+  const sysExtra = 'Acționezi ca asistent personal de trading crypto pentru Marius (Pionex futures + spot grid). Răspunde scurt și direct, în română. Folosește datele din contextul scanner-ului dacă sunt relevante. Pentru întrebări fără un coin specific, sugerează coin-uri din TOP BUYS / PREMIUM / WATCHLIST.\n\n' + ctx;
+
+  aiCallStreamCrypto(
+    {messages:apiMessages, systemExtra:sysExtra, maxTokens:700},
+    (delta, full) => {
+      const last = aiChat.messages[aiChat.messages.length-1];
+      if(last && last.role === 'assistant'){ last.content = full; aiChatRenderC(); }
+    },
+    (full) => {
+      const last = aiChat.messages[aiChat.messages.length-1];
+      if(last && last.role === 'assistant'){ last.content = full; }
+      aiChatPersistC(); aiChatRenderC();
+      aiChat.busy = false;
+      document.getElementById('aiChatSendBtn').disabled = false;
+      document.getElementById('aiChatInput')?.focus();
+    },
+    (err) => {
+      aiChat.messages.pop();
+      aiChat.messages.push({role:'error', content:'❌ ' + (err.message || err.type || 'Eroare necunoscută'), ts:Date.now()});
+      aiChatPersistC(); aiChatRenderC();
+      aiChat.busy = false;
+      document.getElementById('aiChatSendBtn').disabled = false;
+    }
+  );
+}
+
+function aiChatQuickCmdC(cmd){
+  const inp = document.getElementById('aiChatInput');
+  if(!inp) return;
+  inp.value = cmd + (cmd.endsWith(' ') ? '' : ' ');
+  inp.focus();
+  setTimeout(() => { inp.selectionStart = inp.selectionEnd = inp.value.length; }, 10);
+}
+
+(function aiChatInitC(){
+  aiChatLoadC();
+  const fab = document.createElement('button');
+  fab.id = 'aiChatFab';
+  fab.title = 'Asistent AI crypto (chat conversațional)';
+  fab.innerHTML = '💬';
+  fab.onclick = aiChatToggleC;
+  document.body.appendChild(fab);
+
+  const panel = document.createElement('div');
+  panel.id = 'aiChatPanel';
+  panel.innerHTML = `
+    <div class="aichat-hdr">
+      <div class="aichat-hdr-title">💬 Asistent AI · crypto</div>
+      <div class="aichat-hdr-actions">
+        <button class="aichat-hdr-btn" onclick="aiChatClearC()" title="Șterge istoric">🗑️</button>
+        <button class="aichat-hdr-btn" onclick="aiChatToggleC()" title="Închide">✕</button>
+      </div>
+    </div>
+    <div class="aichat-body" id="aiChatBody"></div>
+    <div class="aichat-cmds">
+      <span class="aichat-cmd" onclick="aiChatQuickCmdC('/buy ')">/buy</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmdC('/compare ')">/compare</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmdC('/watchlist')">/watchlist</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmdC('/premium')">/premium</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmdC('/st')">/st</span>
+    </div>
+    <div class="aichat-input-row">
+      <textarea id="aiChatInput" class="aichat-input" placeholder="Întreabă orice despre crypto... (Enter trimite, Shift+Enter linie nouă)" rows="1"></textarea>
+      <button id="aiChatSendBtn" class="aichat-send" onclick="aiChatSendC()">▶</button>
+    </div>
+  `;
+  document.body.appendChild(panel);
+
+  const inp = document.getElementById('aiChatInput');
+  inp.addEventListener('input', () => {
+    inp.style.height = 'auto';
+    inp.style.height = Math.min(120, inp.scrollHeight) + 'px';
+  });
+  inp.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); aiChatSendC(); }
+  });
+})();
+// ═══════════════════════════════════════════════════════════════
 
 </script>
 
