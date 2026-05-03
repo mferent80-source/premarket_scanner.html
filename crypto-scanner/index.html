@@ -3133,6 +3133,11 @@ async function runScan(){
 
   log(`💡 ${allCryptoOpportunities.filter(o=>o.score>=52).length} oportunități detectate (din ${allCryptoOpportunities.length} scanate)`, 'ok');
 
+  // Re-render după ce allCryptoOpportunities a fost populat — altfel tab-urile dependente
+  // (Setups, Reco, Early Buy, Premium, Volatility, Smart Data) afișează date vechi/goale
+  // până când utilizatorul comută manual tab-ul.
+  renderSignals();
+
   // Update Premium count badge instant (înainte de pre-scan ST Long)
   updatePremiumCount();
   // Auto-trigger pre-scan ST Long pentru top candidates → populează Premium tab fără click manual
@@ -3627,7 +3632,9 @@ async function runPremiumPrescan(){
       }));
       // Update count progresiv ca să vadă utilizatorul rezultate live
       updatePremiumCount();
-      if(currentTab === 'premium' && typeof renderPremium === 'function') renderPremium();
+      // Re-render tab-ul curent — multe tab-uri (premium/setups/reco/earlybuy) folosesc
+      // stlongCache pentru badge-uri ST, deci se actualizează vizual progresiv.
+      if(typeof renderSignals === 'function') renderSignals();
       await new Promise(r => setTimeout(r, 100));
     }
     log(`💎 Premium pre-scan complet: ${done} coins procesate, ${(allCryptoOpportunities||[]).filter(o=>{ const c=calcConvictionScore(o); return isPremiumWithFilters({...o,convictionScore:c}); }).length} Premium găsite.`, 'ok');
