@@ -829,6 +829,7 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
     <div class="notif-btn" id="aiBriefingBtn" onclick="showAIBriefing()" style="cursor:pointer;color:#a855f7;border-color:#c084fc" title="Analiza AI completă a întregii watchlist">🌅 AI Briefing</div>
     <div class="notif-btn" id="infoBtn" onclick="showInfoModal()" style="cursor:pointer" title="Ghid complet și changelog">ℹ️ Info</div>
     <div class="notif-btn" onclick="showBackupModalNasdaq()" style="cursor:pointer" title="Backup config + watchlist + alerte (Export / Import / Restore)">💾 Backup</div>
+    <div class="notif-btn" id="gistSyncBtnNasdaq" onclick="showGistModalNasdaq()" style="cursor:pointer" title="Sincronizează watchlist + setări cross-device prin GitHub Gist">🔄 Sync</div>
     <div id="pwaInstallBtn" onclick="installPWA()" style="display:none;padding:6px 12px;border-radius:var(--rs);font-size:.62rem;font-weight:600;cursor:pointer;border:1px solid var(--accb);background:var(--accl);color:var(--acc);align-items:center;gap:5px;">📱 Instalează</div>
   </div>
 </div>
@@ -8712,6 +8713,311 @@ function aiChatQuickCmd(cmd){
     if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); aiChatSend(); }
   });
 })();
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// GITHUB GIST SYNC — cross-device pentru watchlist + setări (Nasdaq)
+// ═══════════════════════════════════════════════════════════════
+// Config în localStorage['gist_config_nasdaq']: {token, gistId, deviceId, autoSync, lastSyncTs}
+// Token: PAT cu scope "gist" only (github.com/settings/tokens)
+// Schema gist file "nasdaq_scanner.json": {version, last_modified, device_id, settings: {key:value,...}}
+// Auto-push debounced 5s la orice modificare localStorage relevantă.
+// Auto-pull la load dacă autoSync e activ și remote e mai nou ca local.
+
+// `anthropic_api_key` și `fh_key` NU se sincronizează: GitHub Secret Scanning ridică
+// gist-urile (chiar și "secret"/unlisted) și poate notifica providerii să revoce cheile.
+// Strict device-local — utilizatorul reintroduce cheile pe fiecare device.
+const SYNC_KEYS_N = [
+  'wl_stocks', 'price_alerts', 'saved_setups', 'risk_config',
+  'nasdaq_pumpradar_cfg', 'nasdaq_pumpradar_history',
+  'telegram_cfg_nasdaq', 'nasdaqSortMode', 'lv_autoRefresh',
+  'last_seen_version', 'darkMode'
+];
+const SYNC_PREFIXES_N = ['ai_briefing_'];
+// `gist_config_nasdaq`, `fh_key`, `anthropic_api_key` EXCLUSE din sync (secrete + per-device).
+
+function _shouldSyncKeyN(k){
+  if(!k) return false;
+  if(SYNC_KEYS_N.indexOf(k) >= 0) return true;
+  return SYNC_PREFIXES_N.some(p => k.indexOf(p) === 0);
+}
+
+function _gistCollectN(){
+  const data = {};
+  SYNC_KEYS_N.forEach(k => {
+    const v = localStorage.getItem(k);
+    if(v !== null) data[k] = v;
+  });
+  for(let i = 0; i < localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k && SYNC_PREFIXES_N.some(p => k.indexOf(p) === 0)) data[k] = localStorage.getItem(k);
+  }
+  return data;
+}
+
+function _gistApplyN(data){
+  let changed = 0;
+  Object.keys(data || {}).forEach(k => {
+    if(!_shouldSyncKeyN(k)) return;
+    try{
+      const cur = localStorage.getItem(k);
+      if(cur !== data[k]){
+        localStorage.setItem(k, data[k]);
+        changed++;
+      }
+    }catch(e){}
+  });
+  return changed;
+}
+
+function _gistConfigN(){
+  try { return JSON.parse(localStorage.getItem('gist_config_nasdaq') || '{}'); } catch(e) { return {}; }
+}
+function _gistSaveConfigN(cfg){
+  try { localStorage.setItem('gist_config_nasdaq', JSON.stringify(cfg)); } catch(e) {}
+}
+function _gistDeviceIdN(){
+  let cfg = _gistConfigN();
+  if(!cfg.deviceId){
+    cfg.deviceId = 'd_' + Math.random().toString(36).slice(2,10) + '_' + Date.now().toString(36);
+    _gistSaveConfigN(cfg);
+  }
+  return cfg.deviceId;
+}
+
+async function _gistApiN(method, path, body, token){
+  const url = 'https://api.github.com' + path;
+  const opts = {
+    method,
+    headers: {
+      'Authorization': 'token ' + token,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    }
+  };
+  if(body){ opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
+  const r = await fetch(url, opts);
+  if(!r.ok) throw new Error('Gist API ' + r.status + ': ' + (await r.text()).slice(0,200));
+  return r.json();
+}
+
+function _gistPayloadN(){
+  return {
+    version: 1,
+    app: 'nasdaq-scanner',
+    last_modified: Date.now(),
+    device_id: _gistDeviceIdN(),
+    settings: _gistCollectN()
+  };
+}
+
+async function gistInitNasdaq(){
+  const cfg = _gistConfigN();
+  const tokInp = document.getElementById('gsn_token');
+  if(!cfg.token && tokInp){
+    const t = (tokInp.value || '').trim();
+    if(t){
+      cfg.token = t;
+      cfg.autoSync = !!(document.getElementById('gsn_auto') && document.getElementById('gsn_auto').checked);
+      _gistSaveConfigN(cfg);
+    }
+  }
+  if(!cfg.token){ alert('❌ Lipsește token-ul GitHub. Lipește un Personal Access Token (scope: gist) în câmpul Token sau creează unul la github.com/settings/tokens.'); return; }
+  if(cfg.gistId){
+    if(!confirm('Există deja un gist configurat (' + cfg.gistId.slice(0,8) + '...). Vrei să creezi unul NOU? Cel vechi rămâne dar nu va mai fi folosit.')) return;
+  }
+  try{
+    const payload = _gistPayloadN();
+    const r = await _gistApiN('POST', '/gists', {
+      description: 'Nasdaq Scanner — cross-device sync (private)',
+      public: false,
+      files: { 'nasdaq_scanner.json': { content: JSON.stringify(payload, null, 2) } }
+    }, cfg.token);
+    cfg.gistId = r.id;
+    cfg.lastSyncTs = Date.now();
+    _gistSaveConfigN(cfg);
+    const idInp = document.getElementById('gsn_gistId');
+    if(idInp) idInp.value = r.id;
+    alert('✅ Gist creat cu ID:\n\n' + r.id + '\n\nID-ul a fost completat în câmpul Gist ID — copiază-l de acolo pe alt device.');
+    _updateGistStatusN();
+  }catch(e){ alert('❌ Eroare creare gist: ' + e.message); }
+}
+
+async function gistPushNasdaq(silent){
+  const cfg = _gistConfigN();
+  if(!cfg.token || !cfg.gistId){ if(!silent) alert('❌ Configurează token + gistId întâi.'); return false; }
+  try{
+    const payload = _gistPayloadN();
+    await _gistApiN('PATCH', '/gists/' + cfg.gistId, {
+      files: { 'nasdaq_scanner.json': { content: JSON.stringify(payload, null, 2) } }
+    }, cfg.token);
+    cfg.lastSyncTs = payload.last_modified;
+    _gistSaveConfigN(cfg);
+    if(!silent) alert('✅ Push reușit. ' + Object.keys(payload.settings).length + ' chei sincronizate la gist ' + cfg.gistId.slice(0,8) + '...');
+    _updateGistStatusN();
+    return true;
+  }catch(e){ if(!silent) alert('❌ Eroare push: ' + e.message); return false; }
+}
+
+async function gistPullNasdaq(silent){
+  const cfg = _gistConfigN();
+  if(!cfg.token || !cfg.gistId){ if(!silent) alert('❌ Configurează token + gistId întâi.'); return false; }
+  try{
+    const r = await _gistApiN('GET', '/gists/' + cfg.gistId, null, cfg.token);
+    const file = r.files && r.files['nasdaq_scanner.json'];
+    if(!file || !file.content) throw new Error('gist nu conține nasdaq_scanner.json');
+    const data = JSON.parse(file.content);
+    if(!data.settings || typeof data.settings !== 'object') throw new Error('schema gist invalidă (lipsește settings)');
+    const localLast = cfg.lastSyncTs || 0;
+    const remoteLast = data.last_modified || 0;
+    if(!silent && localLast > remoteLast + 5000){
+      if(!confirm('⚠️ CONFLICT: ai făcut sync local mai recent decât gist-ul.\n\nLocal: ' + new Date(localLast).toLocaleString() + '\nGist: ' + new Date(remoteLast).toLocaleString() + '\n\nPull va SUPRASCRIE setările locale. Continui?')) return false;
+    } else if(!silent){
+      const cnt = Object.keys(data.settings).length;
+      if(!confirm('Pull ' + cnt + ' setări (watchlist, alerte, config) din gist?\nLocal va fi suprascris cu cele din gist.')) return false;
+    }
+    const changed = _gistApplyN(data.settings);
+    cfg.lastSyncTs = Date.now();
+    _gistSaveConfigN(cfg);
+    if(!silent) alert('✅ Pull reușit. ' + changed + ' chei actualizate.\n\nReîncarc pagina pentru aplicare.');
+    _updateGistStatusN();
+    if(!silent && changed > 0) location.reload();
+    return changed > 0;
+  }catch(e){ if(!silent) alert('❌ Eroare pull: ' + e.message); return false; }
+}
+
+let _gistAutoTimerN = null;
+function gistAutoPushN(){
+  const cfg = _gistConfigN();
+  if(!cfg.token || !cfg.gistId || !cfg.autoSync) return;
+  if(_gistAutoTimerN) clearTimeout(_gistAutoTimerN);
+  _gistAutoTimerN = setTimeout(() => { gistPushNasdaq(true); }, 5000);
+}
+
+(function(){
+  if(window.__nasdaqLsHooked) return;
+  window.__nasdaqLsHooked = true;
+  const orig = Storage.prototype.setItem;
+  Storage.prototype.setItem = function(k, v){
+    orig.call(this, k, v);
+    try{
+      if(this === window.localStorage && _shouldSyncKeyN(k)) gistAutoPushN();
+    }catch(e){}
+  };
+})();
+
+function showGistModalNasdaq(){
+  let modal = document.getElementById('gistSyncModalNasdaq');
+  if(modal) modal.remove();
+  modal = document.createElement('div');
+  modal.id = 'gistSyncModalNasdaq';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;';
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  const cfg = _gistConfigN();
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:18px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2);color:var(--t1);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div>
+          <div style="font-family:var(--head);font-weight:800;font-size:.95rem">🔄 GitHub Gist Sync</div>
+          <div style="font-size:.55rem;color:var(--t3);margin-top:2px">Sincronizează cross-device: watchlist + alerte + config Nasdaq. Folosește un Gist privat ca storage.</div>
+        </div>
+        <button onclick="document.getElementById('gistSyncModalNasdaq').remove()" style="background:none;border:none;color:var(--t3);font-size:1.4rem;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div id="gsn_status" style="padding:8px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:7px;font-size:.62rem"></div>
+
+        <div>
+          <div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:3px">GitHub Personal Access Token (scope: gist)</div>
+          <input id="gsn_token" type="password" placeholder="ghp_..." autocomplete="off" value="${(cfg.token||'').replace(/"/g,'&quot;')}" style="padding:7px 9px;border-radius:7px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-family:var(--mono);font-size:.7rem;width:100%;box-sizing:border-box">
+          <div style="font-size:.52rem;color:var(--t3);margin-top:3px">Generează la <code>github.com/settings/tokens</code> → Tokens (classic) sau Fine-grained → scope/permission <strong>"gist"</strong> only.</div>
+        </div>
+
+        <div>
+          <div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:3px">Gist ID (gol = creează unul nou)</div>
+          <input id="gsn_gistId" type="text" placeholder="ex: a1b2c3d4..." autocomplete="off" value="${(cfg.gistId||'').replace(/"/g,'&quot;')}" style="padding:7px 9px;border-radius:7px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-family:var(--mono);font-size:.7rem;width:100%;box-sizing:border-box">
+          <div style="font-size:.52rem;color:var(--t3);margin-top:3px">Pe <strong>device 1</strong>: lasă gol, click "🆕 Creează gist". Pe <strong>device 2</strong>: copiază ID-ul de pe device 1 aici, apoi click "⬇ Pull".<br>💡 Poți reutiliza același gist ca pentru crypto-scanner — fișierele coexistă în același gist (file name diferă).</div>
+        </div>
+
+        <label style="display:flex;align-items:center;gap:8px;font-size:.62rem;color:var(--t2);cursor:pointer;padding:8px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:7px">
+          <input id="gsn_auto" type="checkbox" ${cfg.autoSync?'checked':''} style="cursor:pointer">
+          <span><strong>Auto-sync</strong> — push automat (5s debounce) la orice modificare locală + pull silent la fiecare load dacă remote e mai nou</span>
+        </label>
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick="saveGistConfigNasdaq()" style="flex:1;min-width:120px;padding:9px;border-radius:8px;border:1px solid var(--accb);background:var(--accl);color:var(--acc);font-weight:700;font-size:.62rem;cursor:pointer">💾 Salvează config</button>
+          <button onclick="gistInitNasdaq()" style="flex:1;min-width:120px;padding:9px;border-radius:8px;border:1px solid #c084fc;background:rgba(168,85,247,.1);color:#a855f7;font-weight:700;font-size:.62rem;cursor:pointer">🆕 Creează gist nou</button>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="gistPushNasdaq(false)" style="flex:1;padding:9px;border-radius:8px;border:1px solid #86efac;background:#dcfce7;color:#15803d;font-weight:700;font-size:.62rem;cursor:pointer">⬆ Push (local → gist)</button>
+          <button onclick="gistPullNasdaq(false)" style="flex:1;padding:9px;border-radius:8px;border:1px solid #fde68a;background:#fef3c7;color:#92400e;font-weight:700;font-size:.62rem;cursor:pointer">⬇ Pull (gist → local)</button>
+        </div>
+
+        <div style="font-size:.52rem;color:var(--t3);padding:8px 10px;background:var(--bg1);border-radius:7px;border:1px dashed var(--b1);line-height:1.5">
+          <strong>Ce se sincronizează:</strong> watchlist Nasdaq, alerte preț, setup-uri salvate, risk config, Pump Radar (config + history), Telegram config, sortMode, autoRefresh, dark mode, AI briefings cache.<br>
+          <strong>Ce NU se sincronizează:</strong> cheia API Anthropic + cheia Finnhub (strict device-local — GitHub Secret Scanning ar putea revoca-le), token-ul + gistId, snapshot-uri backup local, RSI cache (ephemeral), ultimul scan.
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  _updateGistStatusN();
+}
+
+function saveGistConfigNasdaq(){
+  const cfg = _gistConfigN();
+  cfg.token = (document.getElementById('gsn_token').value || '').trim() || null;
+  cfg.gistId = (document.getElementById('gsn_gistId').value || '').trim() || null;
+  cfg.autoSync = document.getElementById('gsn_auto').checked;
+  _gistSaveConfigN(cfg);
+  _updateGistStatusN();
+  if(typeof showToast === 'function') showToast('✅ Configurație Sync salvată','ok');
+  else alert('✅ Configurație Sync salvată');
+}
+
+function _updateGistStatusN(){
+  const cfg = _gistConfigN();
+  const el = document.getElementById('gsn_status');
+  if(el){
+    if(!cfg.token){ el.innerHTML = '<span style="color:var(--t3)">⚪ Neconfigurat — adaugă token + gist ID</span>'; }
+    else if(!cfg.gistId){ el.innerHTML = '<span style="color:#d97706">🟡 Token ok, dar lipsește gist ID — creează unul nou sau introdu unul existent</span>'; }
+    else {
+      const last = cfg.lastSyncTs ? new Date(cfg.lastSyncTs).toLocaleString() : 'niciodată';
+      el.innerHTML = '<span style="color:#15803d">🟢 Activ</span> · gist <code style="font-size:.55rem">' + cfg.gistId.slice(0,8) + '...</code> · last sync: <strong>' + last + '</strong> · auto: <strong>' + (cfg.autoSync?'ON':'OFF') + '</strong>';
+    }
+  }
+  const btn = document.getElementById('gistSyncBtnNasdaq');
+  if(btn){
+    if(cfg.token && cfg.gistId){ btn.classList.add('granted'); }
+    else { btn.classList.remove('granted'); }
+  }
+}
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const cfg = _gistConfigN();
+    if(!cfg.token || !cfg.gistId || !cfg.autoSync) { _updateGistStatusN(); return; }
+    _gistApiN('GET', '/gists/' + cfg.gistId, null, cfg.token).then(r => {
+      const file = r.files && r.files['nasdaq_scanner.json'];
+      if(!file || !file.content) return;
+      const data = JSON.parse(file.content);
+      if(!data.settings) return;
+      const remoteLast = data.last_modified || 0;
+      const localLast = cfg.lastSyncTs || 0;
+      if(remoteLast > localLast + 5000){
+        const changed = _gistApplyN(data.settings);
+        cfg.lastSyncTs = Date.now();
+        _gistSaveConfigN(cfg);
+        _updateGistStatusN();
+        if(changed > 0 && typeof showToast === 'function'){
+          showToast('🔄 Sincronizat din gist (' + changed + ' chei) — refresh pentru full effect','ok');
+        }
+      } else {
+        _updateGistStatusN();
+      }
+    }).catch(e => { console.warn('Auto-pull failed:', e); _updateGistStatusN(); });
+  }, 1500);
+});
+setTimeout(_updateGistStatusN, 500);
 // ═══════════════════════════════════════════════════════════════
 
 </script>
