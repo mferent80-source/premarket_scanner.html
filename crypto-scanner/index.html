@@ -8906,7 +8906,10 @@ async function gistInit(){
     cfg.gistId = r.id;
     cfg.lastSyncTs = Date.now();
     _gistSaveConfig(cfg);
-    alert('✅ Gist creat cu ID:\n' + r.id + '\n\nPe alt device: introdu ACEST gist ID + același token, apoi click "⬇ Pull" pentru sync.');
+    // Populează câmpul UI ca să poată fi copiat pe alt device
+    const idInp = document.getElementById('gs_gistId');
+    if(idInp) idInp.value = r.id;
+    alert('✅ Gist creat cu ID:\n\n' + r.id + '\n\nID-ul a fost completat în câmpul Gist ID — copiază-l de acolo pe alt device.');
     _updateGistStatus();
   }catch(e){ alert('❌ Eroare creare gist: ' + e.message); }
 }
