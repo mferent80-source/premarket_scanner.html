@@ -3884,84 +3884,141 @@ function renderSetups(){
     return;
   }
 
-  // Render carduri
+  // Render carduri — layout complet (prezentare coin + sparkline + reasons + trade detail + AI + alert)
   filtered.forEach(o => {
     const wl = wlCoins.includes(o.coin);
     const isPremium = isPremiumSetup(o);
     const tvUrl = 'https://www.tradingview.com/chart/?symbol=BINANCE:' + o.coin + 'USDT.P';
     const pxUrl = 'https://www.pionex.com/en/futures-trade/' + o.coin + '_USDT.PERP';
+    const dirColor = o.chg24 >= 0 ? 'var(--green)' : 'var(--red)';
+    const isBuy = !!o.isBuy;
 
     // ST Long badge
     const stld = (typeof stlongCache !== 'undefined') ? stlongCache[o.coin + 'USDT'] : null;
-    let stBadge = '<span style="font-size:.5rem;background:var(--bg3);color:var(--t3);border:1px solid var(--b1);border-radius:4px;padding:2px 6px">? ST</span>';
+    let stBadge = '<span title="Nu există date Smart Trade Long. Mergi în 🚀 Smart Trade L → Scanează tot." style="font-size:.5rem;background:var(--bg3);color:var(--t3);border:1px solid var(--b1);border-radius:4px;padding:2px 6px">? ST</span>';
     if(stld && stld.verdict){
-      if(stld.verdict === '🚀 LONG READY') stBadge = '<span title="Smart Trade Long READY — confirmat" style="font-size:.5rem;background:rgba(21,128,61,.14);color:#15803d;border:1px solid #86efac;border-radius:4px;padding:2px 6px;font-weight:800">✓ READY</span>';
-      else if(stld.verdict === '🟢 LONG OK') stBadge = '<span style="font-size:.5rem;background:rgba(8,145,178,.14);color:#0e7490;border:1px solid #67e8f9;border-radius:4px;padding:2px 6px;font-weight:800">✓ OK</span>';
-      else if(stld.verdict === '🟡 SETUP MIXT') stBadge = '<span style="font-size:.5rem;background:rgba(161,98,7,.14);color:#a16207;border:1px solid #fde68a;border-radius:4px;padding:2px 6px;font-weight:700">⚠ mixt</span>';
-      else stBadge = '<span title="ST Long NU confirmă — Pionex va arăta SELL/NEUTRAL" style="font-size:.5rem;background:rgba(185,28,28,.12);color:#b91c1c;border:1px solid #fca5a5;border-radius:4px;padding:2px 6px;font-weight:700">✗ nu</span>';
+      if(stld.verdict === '🚀 LONG READY')      stBadge = '<span title="Smart Trade Long READY — MTF aliniat + Vol + ADX + Structure" style="font-size:.5rem;background:rgba(21,128,61,.14);color:#15803d;border:1px solid #86efac;border-radius:4px;padding:2px 6px;font-weight:800">✓ READY</span>';
+      else if(stld.verdict === '🟢 LONG OK')    stBadge = '<span title="Smart Trade Long: condiții OK pentru long" style="font-size:.5rem;background:rgba(8,145,178,.14);color:#0e7490;border:1px solid #67e8f9;border-radius:4px;padding:2px 6px;font-weight:800">✓ OK</span>';
+      else if(stld.verdict === '🟡 SETUP MIXT') stBadge = '<span title="Smart Trade Long: setup mixt — așteaptă confirmare" style="font-size:.5rem;background:rgba(161,98,7,.14);color:#a16207;border:1px solid #fde68a;border-radius:4px;padding:2px 6px;font-weight:700">⚠ mixt</span>';
+      else                                       stBadge = '<span title="ST Long NU confirmă long" style="font-size:.5rem;background:rgba(185,28,28,.12);color:#b91c1c;border:1px solid #fca5a5;border-radius:4px;padding:2px 6px;font-weight:700">✗ nu</span>';
     }
 
-    // Conviction bar color
+    // Trend & accel din sparkline
+    const sp = (typeof sparkCache !== 'undefined') ? sparkCache[o.coin] : null;
+    let wFullVal=0, w3Val=0, wFullTxt='—', w3Txt='—';
+    if(sp && sp.length >= 4){
+      const len = sp.length;
+      wFullVal = (sp[len-1] - sp[0]) / sp[0] * 100;
+      w3Val    = (sp[len-1] - sp[Math.max(0,len-4)]) / sp[Math.max(0,len-4)] * 100;
+      wFullTxt = (wFullVal>=0?'+':'') + wFullVal.toFixed(1) + '%';
+      w3Txt    = (w3Val>=0?'+':'') + w3Val.toFixed(1) + '%';
+    }
+
+    // Conviction
     const cs = o.convictionScore;
     const csColor = cs >= 75 ? '#15803d' : cs >= 60 ? '#0891b2' : cs >= 45 ? '#a16207' : '#94a3b8';
-    const dirColor = o.chg24 >= 0 ? 'var(--green)' : 'var(--red)';
+    const oppPct   = (o.score || 0) * 0.40;
+    const earlyPct = (o.earlyScore || 0) * 0.30;
+    const stPct    = stld ? (stld.verdict === '🚀 LONG READY' ? 30 : stld.verdict === '🟢 LONG OK' ? 22 : stld.verdict === '🟡 SETUP MIXT' ? 13 : 3) : 15;
+
+    // Reasons (max 3) + sparkline + AI/alert (cu contextId unic ca să nu colidze cu alte tab-uri)
+    const reasonsHtml = (o.reasons || []).slice(0,3).map(r =>
+      '<div class="reco-reason"><div class="rdot '+r.c+'"></div><span>'+r.t+'</span></div>'
+    ).join('');
+    const sparkHtml = renderSparklineCrypto(o.coin);
+    const aiHtml    = renderAISectionCrypto(o.coin, 'setups', 'setups-' + o.coin);
+    const alertHtml = renderAlertSectionCrypto(o.coin, o.price);
 
     // jPayload pentru save to journal
     const jPayload = JSON.stringify({
-      coin: o.coin, symbol: o.coin + 'USDT', direction: o.isBuy ? 'long' : 'short',
-      entry: o.price, stopLoss: o.sl, takeProfit: o.tp,
+      coin: o.coin, symbol: o.coin + 'USDT', direction: isBuy ? 'long' : 'short',
+      entry: o.entry || o.price, stopLoss: o.sl, takeProfit: o.tp,
       setup: 'Setups view (conviction ' + cs + ')',
       scannerScore: cs,
-      notes: 'RSI ' + (o.rsi || 0).toFixed(0) + ' · chg24 ' + (o.chg24 || 0).toFixed(1) + '% · Early ' + (o.earlyScore || 0)
+      notes: 'RSI ' + (o.rsi||0).toFixed(0) + ' · chg24 ' + (o.chg24||0).toFixed(1) + '% · Early ' + (o.earlyScore||0)
     }).replace(/'/g, '&#39;');
 
+    // Card style — premium ramane evidențiat
     const cardStyle = isPremium
-      ? 'margin-bottom:8px;border:2px solid #d97706;box-shadow:0 0 0 1px rgba(217,119,6,.2),0 4px 14px rgba(217,119,6,.18);background:linear-gradient(180deg,rgba(217,119,6,.04),var(--bg2) 30%)'
-      : 'margin-bottom:8px';
-    html += '<div class="early-card" style="'+cardStyle+'">';
-    html += '<div class="early-stripe" style="background:'+(isPremium?'linear-gradient(90deg,#d97706,#fbbf24,#d97706)':csColor)+'"></div>';
-    html += '<div class="early-body">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap">';
-    html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
-    if(wl) html += '<span style="color:#f59e0b">⭐</span>';
-    if(isPremium) html += '<span title="Premium setup: ST READY + Conviction ≥75 + Vol ≥1.5x + RSI 40-65 + uptrend 7d + R:R ≥2 + macro OK" style="color:#d97706;font-size:.85rem">💎</span>';
-    html += '<span style="font-family:var(--head);font-weight:800;font-size:1rem;color:var(--t1)">'+o.coin+'</span>';
-    html += stBadge;
-    html += getFundingBadge(o.coin);
-    if(o.earlyScore >= 60) html += '<span style="font-size:.5rem;background:var(--teall);color:var(--teal);border:1px solid var(--tealb);border-radius:4px;padding:2px 6px;font-weight:700">🌱 Early '+o.earlyScore+'</span>';
-    html += '<span style="font-size:.55rem;color:var(--t3)">'+(CRYPTO_CAT[o.coin]||'Crypto')+'</span>';
-    html += '</div>';
-    html += '<div style="text-align:right">';
-    html += '<div style="font-family:var(--head);font-weight:900;font-size:1.4rem;color:'+csColor+';line-height:1">'+cs+'</div>';
-    html += '<div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px">Conviction</div>';
-    html += '</div>';
-    html += '</div>';
-    // Stats row
-    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">';
-    html += '<div style="text-align:center;padding:5px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:'+dirColor+';font-size:.75rem">'+(o.chg24>=0?'+':'')+o.chg24.toFixed(2)+'%</div><div style="font-size:.5rem;color:var(--t3)">24h</div></div>';
-    html += '<div style="text-align:center;padding:5px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:'+(o.rsi<=35?'var(--acc)':o.rsi>=65?'var(--orange)':'var(--t1)')+';font-size:.75rem">'+(o.rsi||0).toFixed(0)+'</div><div style="font-size:.5rem;color:var(--t3)">RSI</div></div>';
-    html += '<div style="text-align:center;padding:5px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:var(--t1);font-size:.75rem">'+(o.range24pct||0).toFixed(1)+'%</div><div style="font-size:.5rem;color:var(--t3)">Range</div></div>';
-    html += '<div style="text-align:center;padding:5px;background:var(--bg3);border-radius:6px"><div style="font-weight:700;color:var(--t1);font-size:.75rem">'+formatP(o.price)+'</div><div style="font-size:.5rem;color:var(--t3)">Preț</div></div>';
-    html += '</div>';
-    // Conviction breakdown bar
-    html += '<div style="display:flex;height:5px;border-radius:3px;overflow:hidden;margin-bottom:8px;background:var(--bg3)">';
-    const oppPct = (o.score || 0) * 0.40;
-    const earlyPct = (o.earlyScore || 0) * 0.30;
-    const stPct = stld ? (stld.verdict === '🚀 LONG READY' ? 30 : stld.verdict === '🟢 LONG OK' ? 22 : stld.verdict === '🟡 SETUP MIXT' ? 13 : 3) : 15;
-    html += '<div style="width:'+oppPct+'%;background:var(--acc)" title="Opportunity '+Math.round(oppPct)+'pts"></div>';
-    html += '<div style="width:'+earlyPct+'%;background:var(--teal)" title="Early '+Math.round(earlyPct)+'pts"></div>';
-    html += '<div style="width:'+stPct+'%;background:#15803d" title="ST Long '+Math.round(stPct)+'pts"></div>';
-    html += '</div>';
-    // Action buttons
-    html += '<div style="display:flex;gap:5px">';
-    html += '<a href="'+tvUrl+'" target="_blank" style="flex:1;text-align:center;background:var(--bg2);padding:7px;border-radius:6px;text-decoration:none;color:var(--acc);font-size:.6rem;font-weight:700;border:1px solid var(--accb)">📈 TV</a>';
-    html += '<a href="'+pxUrl+'" target="_blank" style="flex:1;text-align:center;background:var(--bg2);padding:7px;border-radius:6px;text-decoration:none;color:var(--purple);font-size:.6rem;font-weight:700;border:1px solid var(--purplb)">⚡ Pionex</a>';
-    html += '<button onclick="quickAddToWatchlist(\''+o.coin+'\')" title="Adaugă în Watchlist Live" style="background:var(--bg2);padding:7px 9px;border-radius:6px;color:#0891b2;font-size:.7rem;font-weight:800;border:1px solid #67e8f9;cursor:pointer">➕</button>';
-    if(o.entry || o.price){
-      html += '<button onclick=\'saveToJournal('+jPayload+')\' style="flex:1;background:var(--bg2);padding:7px;border-radius:6px;color:#7c3aed;font-size:.6rem;font-weight:700;border:1px solid var(--purplb);cursor:pointer">📓 Jurnal</button>';
-    }
-    html += '</div>';
-    html += '</div></div>';
+      ? 'margin-bottom:10px;border:2px solid #d97706;box-shadow:0 0 0 1px rgba(217,119,6,.2),0 4px 14px rgba(217,119,6,.18);background:linear-gradient(180deg,rgba(217,119,6,.04),var(--bg2) 30%)'
+      : 'margin-bottom:10px';
+
+    html += '<div class="early-card" style="'+cardStyle+'">'+
+      '<div class="early-stripe" style="background:'+(isPremium?'linear-gradient(90deg,#d97706,#fbbf24,#d97706)':csColor)+'"></div>'+
+      '<div class="early-body">'+
+
+        // Top: prezentare coin + Conviction score
+        '<div class="early-top-label">'+
+          '<div>'+
+            '<div class="early-header" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">'+
+              (wl?'<span style="color:#f59e0b;font-size:.9rem" title="În Watchlist Live">⭐</span>':'')+
+              (isPremium?'<span title="Premium setup: ST READY + Conviction ≥75 + Vol + RSI 40-65 + uptrend + R:R ≥2 + macro OK" style="color:#d97706;font-size:.95rem">💎</span>':'')+
+              '<span class="early-ticker">'+o.coin+'</span>'+
+              stBadge+
+              getFundingBadge(o.coin)+
+              ((o.earlyScore||0)>=60 ? '<span style="font-size:.5rem;background:var(--teall);color:var(--teal);border:1px solid var(--tealb);border-radius:4px;padding:2px 6px;font-weight:700">🌱 Early '+o.earlyScore+'</span>' : '')+
+              '<span style="font-size:.5rem;background:var(--bg3);border:1px solid var(--b1);border-radius:4px;padding:1px 6px;color:var(--t3)">'+(CRYPTO_CAT[o.coin]||'Crypto')+'</span>'+
+            '</div>'+
+            '<div class="early-sector">'+(CRYPTO_CAT[o.coin]||'Cryptocurrency')+'</div>'+
+            '<div style="display:flex;align-items:center;gap:10px;margin-top:4px">'+
+              '<span style="font-size:.88rem;font-weight:700;color:var(--t2)">'+formatP(o.price)+'</span>'+
+              '<span style="font-family:var(--head);font-weight:800;font-size:.95rem;color:'+dirColor+'">'+(o.chg24>=0?'+':'')+o.chg24.toFixed(2)+'%</span>'+
+            '</div>'+
+          '</div>'+
+          '<div style="text-align:right;flex-shrink:0">'+
+            '<div class="early-momentum-score" style="color:'+csColor+'">'+cs+'</div>'+
+            '<div class="early-momentum-score-lbl">Conviction</div>'+
+          '</div>'+
+        '</div>'+
+
+        // Conviction breakdown bar (Opp + Early + ST)
+        '<div style="margin:6px 0 8px">'+
+          '<div style="display:flex;justify-content:space-between;font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:3px">'+
+            '<span>Conviction breakdown</span>'+
+            '<span>Opp '+Math.round(oppPct)+' · Early '+Math.round(earlyPct)+' · ST '+Math.round(stPct)+'</span>'+
+          '</div>'+
+          '<div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--bg3)">'+
+            '<div style="width:'+oppPct+'%;background:var(--acc)" title="Opportunity '+Math.round(oppPct)+'pts"></div>'+
+            '<div style="width:'+earlyPct+'%;background:var(--teal)" title="Early '+Math.round(earlyPct)+'pts"></div>'+
+            '<div style="width:'+stPct+'%;background:#15803d" title="ST Long '+Math.round(stPct)+'pts"></div>'+
+          '</div>'+
+        '</div>'+
+
+        // Stats grid (RSI / 24h / Trend / Accel)
+        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px">'+
+          '<div class="reco-stat"><div class="reco-stat-val" style="color:'+(o.rsi<=35?'var(--acc)':o.rsi>=65?'var(--orange)':'var(--t1)')+'">'+(o.rsi||0).toFixed(0)+'</div><div class="reco-stat-lbl">RSI 15m</div></div>'+
+          '<div class="reco-stat"><div class="reco-stat-val" style="color:'+dirColor+'">'+(o.chg24>=0?'+':'')+o.chg24.toFixed(2)+'%</div><div class="reco-stat-lbl">24h</div></div>'+
+          '<div class="reco-stat"><div class="reco-stat-val" style="color:'+(wFullVal>=0?'var(--green)':'var(--red)')+'">'+wFullTxt+'</div><div class="reco-stat-lbl">Trend</div></div>'+
+          '<div class="reco-stat"><div class="reco-stat-val" style="color:'+(w3Val>=0?'var(--green)':'var(--red)')+'">'+w3Txt+'</div><div class="reco-stat-lbl">Accel</div></div>'+
+        '</div>'+
+
+        // Sparkline (visual)
+        sparkHtml+
+
+        // Reasons
+        (reasonsHtml ? '<div class="reco-reasons" style="margin:6px 0 8px">'+reasonsHtml+'</div>' : '')+
+
+        // Trade detail (Entry / TP / SL / R:R)
+        ((o.entry || o.price) ? '<div class="trade-detail" style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:8px 10px;margin-bottom:8px">'+
+          '<div><div style="font-size:.5rem;color:var(--t3);text-transform:uppercase">📍 Entry</div><div style="font-size:.66rem;font-weight:700">'+formatP(o.entry||o.price)+'</div></div>'+
+          '<div><div style="font-size:.5rem;color:var(--t3);text-transform:uppercase">🎯 Target</div><div style="font-size:.66rem;font-weight:700;color:var(--green)">'+formatP(o.tp)+'</div></div>'+
+          '<div><div style="font-size:.5rem;color:var(--t3);text-transform:uppercase">🛡️ Stop</div><div style="font-size:.66rem;font-weight:700;color:var(--red)">'+formatP(o.sl)+' <span style="font-size:.46rem;font-weight:800">R:R '+o.rr+':1</span></div></div>'+
+        '</div>' : '')+
+
+        // Action buttons row (TV / Pionex / T212 / ➕ Watchlist / 📓 Jurnal)
+        '<div class="sig-actions" style="flex-wrap:wrap">'+
+          '<a class="btn-sig primary" href="'+tvUrl+'" target="_blank" rel="noopener">📈 TradingView</a>'+
+          '<a class="btn-sig" href="'+pxUrl+'" target="_blank" rel="noopener">⚡ Pionex</a>'+
+          '<a class="btn-sig" href="https://app.trading212.com/" target="_blank" rel="noopener">📊 T212</a>'+
+          '<button class="btn-sig" onclick="quickAddToWatchlist(\''+o.coin+'\')" title="Adaugă în Watchlist Live" style="cursor:pointer;border:1px solid #67e8f9;color:#0891b2;background:rgba(8,145,178,.08)">➕ Watchlist</button>'+
+          ((o.entry||o.price) ? '<button class="btn-sig" onclick=\'saveToJournal('+jPayload+')\' title="Trimite în Jurnal" style="cursor:pointer;border:1px solid var(--purplb);color:#7c3aed;background:rgba(124,58,237,.08)">📓 Jurnal</button>' : '')+
+        '</div>'+
+
+        // AI inline + Price alert
+        aiHtml+
+        alertHtml+
+
+      '</div></div>';
   });
 
   html += '</div>';
