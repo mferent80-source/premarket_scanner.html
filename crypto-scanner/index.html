@@ -489,8 +489,22 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 /* Pe desktop watchlist-ul ocupă 2/3 din lățime (folosește spațiul gol rămas), funding 1/3. */
 @media(min-width:980px){.td-grid{grid-template-columns:2fr 1fr;}}
 .td-section{background:var(--bg);border:1px solid var(--b1);border-radius:var(--rs);padding:11px;display:flex;flex-direction:column;gap:8px;min-height:180px;}
-/* Watchlist Live: listă mai înaltă pe desktop (avem spațiu) */
-@media(min-width:980px){.td-list-lg{max-height:560px;}}
+/* Watchlist Live pe desktop: grid auto-fill (≈3 coloane la viewport tipic 2/3 din dashboard).
+   Drop la max-height/scroll — vrem să se vadă toate cele până la 30 coin-uri odată. */
+@media(min-width:980px){
+  .td-list-lg{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));
+    gap:5px;
+    max-height:none;
+    overflow-y:visible;
+  }
+  /* Compactare ușoară a rândurilor în grid pentru a permite 3 coloane fără overflow. */
+  .td-list-lg .td-row{padding:4px 7px;font-size:.62rem;gap:5px;}
+  .td-list-lg .td-row .td-coin{min-width:36px;}
+  .td-list-lg .td-row .td-chg{min-width:44px;}
+  .td-list-lg .td-row .td-extra{min-width:32px;font-size:.55rem;}
+}
 .td-filter-bar{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
 .td-filter-bar .td-inp{padding:4px 7px;font-size:.6rem;}
 .td-filter-bar select.td-inp{cursor:pointer;background-color:var(--bg2);}
