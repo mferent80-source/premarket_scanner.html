@@ -486,8 +486,14 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 /* Trader Dashboard (înlocuiește Portfolio Tracker) */
 .trader-dashboard{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:12px;margin-top:14px;box-shadow:var(--sh);}
 .td-grid{display:grid;grid-template-columns:1fr;gap:12px;}
-@media(min-width:980px){.td-grid{grid-template-columns:repeat(3,1fr);}}
+/* Pe desktop watchlist-ul ocupă 2/3 din lățime (folosește spațiul gol rămas), funding 1/3. */
+@media(min-width:980px){.td-grid{grid-template-columns:2fr 1fr;}}
 .td-section{background:var(--bg);border:1px solid var(--b1);border-radius:var(--rs);padding:11px;display:flex;flex-direction:column;gap:8px;min-height:180px;}
+/* Watchlist Live: listă mai înaltă pe desktop (avem spațiu) */
+@media(min-width:980px){.td-list-lg{max-height:560px;}}
+.td-filter-bar{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.td-filter-bar .td-inp{padding:4px 7px;font-size:.6rem;}
+.td-filter-bar select.td-inp{cursor:pointer;background-color:var(--bg2);}
 .td-title{font-family:var(--head);font-weight:700;font-size:.65rem;color:var(--t3);text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;justify-content:space-between;}
 .td-refresh-time{font-family:var(--mono);font-size:.55rem;color:var(--t3);font-weight:500;letter-spacing:0;text-transform:none;}
 .td-refresh-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:.85rem;padding:0;line-height:1;}
@@ -908,13 +914,34 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
     <!-- SECȚIUNEA 1: Quick Watchlist Live (preț + 24h%) -->
     <div class="td-section">
       <div class="td-title">
-        <span>📡 Watchlist Live</span>
+        <span>📡 Watchlist Live <span id="wlCounter" style="color:var(--t3);font-weight:500;font-size:.6rem;text-transform:none;letter-spacing:0;margin-left:4px"></span></span>
         <span style="display:inline-flex;align-items:center;gap:6px;">
           <span id="wlLastRefresh" class="td-refresh-time">—</span>
           <button onclick="fetchWatchlistData()" title="Refresh acum" class="td-refresh-btn">↻</button>
         </span>
       </div>
-      <div id="wlRows" class="td-list"></div>
+      <!-- Filtru + sortare watchlist (persistat în localStorage 'wl_view_cfg', sincronizat Gist) -->
+      <div class="td-filter-bar">
+        <select class="td-inp" id="wlSortSel" onchange="setWlView()" title="Sortează coin-urile" style="flex:1;min-width:110px">
+          <option value="default">📋 Implicit</option>
+          <option value="chg-desc">📈 % 24h ↓ (top câștig)</option>
+          <option value="chg-asc">📉 % 24h ↑ (top pierd)</option>
+          <option value="abs-desc">⚡ |%| 24h ↓ (volatile)</option>
+          <option value="dist-asc">🎯 Aproape de high 24h</option>
+          <option value="price-desc">💵 Preț ↓</option>
+          <option value="coin-asc">🔤 Coin A-Z</option>
+        </select>
+        <select class="td-inp" id="wlFilterSel" onchange="setWlView()" title="Filtrează după % 24h" style="flex:1;min-width:100px">
+          <option value="all">🌐 Toate</option>
+          <option value="pos">🟢 Doar pozitive</option>
+          <option value="neg">🔴 Doar negative</option>
+          <option value="abs3">|%| ≥ 3</option>
+          <option value="abs5">|%| ≥ 5</option>
+          <option value="abs10">|%| ≥ 10</option>
+        </select>
+        <input class="td-inp" id="wlSearch" placeholder="🔍 caută..." oninput="setWlView()" style="text-transform:uppercase;width:80px;flex:0 0 80px">
+      </div>
+      <div id="wlRows" class="td-list td-list-lg"></div>
       <div class="td-add-row">
         <input class="td-inp" id="wlCoin" placeholder="Coin (BTC)" style="text-transform:uppercase;flex:1;min-width:80px;">
         <button class="td-btn" onclick="addDashWatchlistCoin()">+ Adaugă</button>
@@ -1445,6 +1472,12 @@ let dashWatchlist = [];           // [{coin}] coin-urile urmărite live
 let _wlData = {};                 // {coin: {price, change24h, high, low}} cache live
 let _wlLastRefresh = 0;
 let _wlTimer = null;
+// View state pentru watchlist: sort + filter + search. Persistat în 'wl_view_cfg' și sincronizat prin Gist.
+let _wlView = { sort: 'default', filter: 'all', search: '' };
+try {
+  const _saved = JSON.parse(localStorage.getItem('wl_view_cfg') || '{}');
+  if (_saved && typeof _saved === 'object') Object.assign(_wlView, _saved);
+} catch(e) {}
 let _frRows = [];                 // [{symbol, rate, mark, nextTime}] funding rates
 let _frLastRefresh = 0;
 let _frTimer = null;
@@ -1472,7 +1505,7 @@ function addDashWatchlistCoin() {
   const coin = (inp.value || '').trim().toUpperCase();
   if (!coin) { showToast('Introdu un simbol coin','err'); return; }
   if (dashWatchlist.find(e => e.coin === coin)) { showToast(`${coin} e deja în listă`,'err'); return; }
-  if (dashWatchlist.length >= 15) { showToast('Maxim 15 coin-uri în watchlist','err'); return; }
+  if (dashWatchlist.length >= 30) { showToast('Maxim 30 coin-uri în watchlist','err'); return; }
   dashWatchlist.push({ coin });
   _saveDashWatchlist();
   inp.value = '';
@@ -1485,7 +1518,7 @@ function quickAddToWatchlist(coin) {
   coin = (coin || '').trim().toUpperCase();
   if (!coin) return;
   if (dashWatchlist.find(e => e.coin === coin)) { showToast(`${coin} e deja în Watchlist Live`,'err'); return; }
-  if (dashWatchlist.length >= 15) { showToast('Watchlist Live e plin (max 15) — șterge unul întâi','err'); return; }
+  if (dashWatchlist.length >= 30) { showToast('Watchlist Live e plin (max 30) — șterge unul întâi','err'); return; }
   dashWatchlist.push({ coin });
   _saveDashWatchlist();
   fetchWatchlistData();
@@ -1522,19 +1555,101 @@ async function fetchWatchlistData() {
   renderWatchlist();
 }
 
+// Restaurează valorile salvate ale filtrelor în controale (apelat la prima randare)
+function _wlSyncControls() {
+  const s = document.getElementById('wlSortSel');
+  const f = document.getElementById('wlFilterSel');
+  const q = document.getElementById('wlSearch');
+  if (s && s.value !== _wlView.sort) s.value = _wlView.sort;
+  if (f && f.value !== _wlView.filter) f.value = _wlView.filter;
+  if (q && q.value !== _wlView.search) q.value = _wlView.search;
+}
+
+// Apelat din onchange/oninput pe controalele de filtru/sort/search
+function setWlView() {
+  const s = document.getElementById('wlSortSel');
+  const f = document.getElementById('wlFilterSel');
+  const q = document.getElementById('wlSearch');
+  if (s) _wlView.sort = s.value;
+  if (f) _wlView.filter = f.value;
+  if (q) _wlView.search = (q.value || '').trim().toUpperCase();
+  try { localStorage.setItem('wl_view_cfg', JSON.stringify(_wlView)); } catch(e) {}
+  renderWatchlist();
+}
+
+// Aplică filtru + sort pe lista de coin-uri. Întoarce array sortat de items {coin, data}.
+function _wlApplyView(items) {
+  let arr = items.slice();
+  // FILTRU: search după nume + after-conditions pe % 24h
+  arr = arr.filter(it => {
+    if (_wlView.search && it.coin.indexOf(_wlView.search) === -1) return false;
+    const d = it.data;
+    // rândurile fără date apar doar pe filtrul "Toate" (altfel n-avem cum să decidem)
+    if (!d || d.change24h == null || isNaN(d.change24h)) return _wlView.filter === 'all';
+    const chg = d.change24h, abs = Math.abs(chg);
+    switch(_wlView.filter) {
+      case 'pos': return chg >= 0;
+      case 'neg': return chg < 0;
+      case 'abs3': return abs >= 3;
+      case 'abs5': return abs >= 5;
+      case 'abs10': return abs >= 10;
+      default: return true;
+    }
+  });
+  // SORT: rândurile fără date sunt împinse la coadă pentru orice sort ≠ default
+  if (_wlView.sort !== 'default') {
+    arr.sort((a, b) => {
+      const da = a.data, db = b.data;
+      const hasA = da && da.change24h != null && !isNaN(da.change24h);
+      const hasB = db && db.change24h != null && !isNaN(db.change24h);
+      if (!hasA && !hasB) return 0;
+      if (!hasA) return 1;
+      if (!hasB) return -1;
+      switch(_wlView.sort) {
+        case 'chg-desc': return db.change24h - da.change24h;
+        case 'chg-asc':  return da.change24h - db.change24h;
+        case 'abs-desc': return Math.abs(db.change24h) - Math.abs(da.change24h);
+        case 'dist-asc': {
+          // |distanță față de high|: 0 = fix la high, mai mare = mai departe
+          const dha = (da.high && da.price) ? Math.abs((da.price - da.high) / da.high) : 1;
+          const dhb = (db.high && db.price) ? Math.abs((db.price - db.high) / db.high) : 1;
+          return dha - dhb;
+        }
+        case 'price-desc': return (db.price || 0) - (da.price || 0);
+        case 'coin-asc':   return a.coin.localeCompare(b.coin);
+        default: return 0;
+      }
+    });
+  }
+  return arr;
+}
+
 function renderWatchlist() {
   const rows = document.getElementById('wlRows');
   if (!rows) return;
+  _wlSyncControls();
+  const counter = document.getElementById('wlCounter');
   if (!dashWatchlist.length) {
     rows.innerHTML = '<div class="td-empty">Niciun coin urmărit. Adaugă mai jos (ex: BTC, ETH, SOL).</div>';
+    if (counter) counter.textContent = '';
     _setLastRefresh('wlLastRefresh', 0);
     return;
   }
-  rows.innerHTML = dashWatchlist.map(e => {
-    const tvUrl = `https://www.tradingview.com/chart/?symbol=BINANCE:${e.coin}USDT.P`;
-    const d = _wlData[e.coin];
+  // Construim lista cu data atașată, apoi aplicăm filtru + sort
+  const items = dashWatchlist.map(e => ({ coin: e.coin, data: _wlData[e.coin] }));
+  const visible = _wlApplyView(items);
+  if (counter) counter.textContent = visible.length === items.length ? `(${items.length})` : `(${visible.length}/${items.length})`;
+  if (!visible.length) {
+    rows.innerHTML = '<div class="td-empty">Niciun coin nu corespunde filtrului curent.</div>';
+    _setLastRefresh('wlLastRefresh', _wlLastRefresh);
+    return;
+  }
+  rows.innerHTML = visible.map(it => {
+    const coin = it.coin;
+    const tvUrl = `https://www.tradingview.com/chart/?symbol=BINANCE:${coin}USDT.P`;
+    const d = it.data;
     if (!d || !d.price) {
-      return `<div class="td-row"><span class="td-coin">${e.coin}</span><span class="td-price">—</span><span class="td-chg">—</span><a class="td-tv" href="${tvUrl}" target="_blank" rel="noopener" title="Deschide pe TradingView">📈</a><button class="td-del" onclick="removeDashWatchlistCoin('${e.coin}')" title="Șterge">✕</button></div>`;
+      return `<div class="td-row"><span class="td-coin">${coin}</span><span class="td-price">—</span><span class="td-chg">—</span><a class="td-tv" href="${tvUrl}" target="_blank" rel="noopener" title="Deschide pe TradingView">📈</a><button class="td-del" onclick="removeDashWatchlistCoin('${coin}')" title="Șterge">✕</button></div>`;
     }
     const cls = d.change24h >= 0 ? 'pos' : 'neg';
     const sign = d.change24h >= 0 ? '+' : '';
@@ -1542,12 +1657,12 @@ function renderWatchlist() {
     const distHigh = d.high && d.price ? ((d.price - d.high) / d.high) * 100 : 0;
     const priceStr = d.price < 1 ? d.price.toFixed(6) : d.price.toFixed(d.price < 100 ? 4 : 2);
     return `<div class="td-row">
-      <span class="td-coin">${e.coin}</span>
+      <span class="td-coin">${coin}</span>
       <span class="td-price">$${priceStr}</span>
       <span class="td-chg ${cls}">${sign}${d.change24h.toFixed(2)}%</span>
       <span class="td-extra" title="Distanță față de high 24h">${distHigh.toFixed(1)}%</span>
       <a class="td-tv" href="${tvUrl}" target="_blank" rel="noopener" title="Deschide pe TradingView">📈</a>
-      <button class="td-del" onclick="removeDashWatchlistCoin('${e.coin}')" title="Șterge">✕</button>
+      <button class="td-del" onclick="removeDashWatchlistCoin('${coin}')" title="Șterge">✕</button>
     </div>`;
   }).join('');
   _setLastRefresh('wlLastRefresh', _wlLastRefresh);
@@ -8809,7 +8924,7 @@ const SYNC_KEYS = [
   'pumpradar_history', 'futures_cfg', 'futures_alerts', 'grid_copy_cfg',
   'telegram_cfg_crypto', 'stlong_cfg', 'darkMode', 'sortMode',
   'crypto_last_seen_version', 'anthropic_api_key', 'possizer_last',
-  'premium_filters'
+  'premium_filters', 'wl_view_cfg'
 ];
 const SYNC_PREFIXES = ['catalyst_'];
 // `gist_config_crypto` e EXCLUS din sync ca să nu se suprascrie token-ul cross-device.
@@ -9165,7 +9280,7 @@ window.addEventListener('load', () => {
     </div>
 
     <div style="font-size:.52rem;color:var(--t3);padding:8px 10px;background:var(--bg1);border-radius:7px;border:1px dashed var(--b1);line-height:1.5">
-      <strong>Ce se sincronizează:</strong> watchlist live, alerte preț, scanner config, filtre Premium, Pump Radar, Smart Trade Long, Telegram config, API key Anthropic, dark mode, sortare, catalyst dismissals.<br>
+      <strong>Ce se sincronizează:</strong> watchlist live (+ filtre/sortare), alerte preț, scanner config, filtre Premium, Pump Radar, Smart Trade Long, Telegram config, API key Anthropic, dark mode, sortare, catalyst dismissals.<br>
       <strong>Ce NU se sincronizează:</strong> token-ul + gistId (rămân local pe fiecare device), istoric semnale, snapshot-uri backup local.
     </div>
   </div>
