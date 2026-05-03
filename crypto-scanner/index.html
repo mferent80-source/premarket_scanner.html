@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#f4f6ff">
 <!-- Content Security Policy: connect-src whitelist endpoint-urile externe legitime, blochează data exfiltration prin XSS rezidual.
      'unsafe-inline' la script/style nu poate fi eliminat fără refactor major (60+ onclick + 70+ stiluri inline). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.binance.com https://fapi.binance.com https://data-api.binance.vision https://api.anthropic.com https://api.telegram.org https://api.coinpaprika.com https://api.alternative.me; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.binance.com https://fapi.binance.com https://data-api.binance.vision https://api.anthropic.com https://api.telegram.org https://api.coinpaprika.com https://api.alternative.me https://api.github.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
 <title>Crypto Opportunity Scanner</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%237c3aed'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -8892,7 +8892,17 @@ function _gistPayload(){
 
 async function gistInit(){
   const cfg = _gistConfig();
-  if(!cfg.token){ alert('❌ Lipsește token-ul GitHub. Salvează un Personal Access Token (scope: gist) creat la github.com/settings/tokens.'); return; }
+  // Permite crearea direct din modal: dacă token-ul e doar în input (încă nesalvat), îl preluăm și-l persistăm
+  const tokInp = document.getElementById('gs_token');
+  if(!cfg.token && tokInp){
+    const t = (tokInp.value || '').trim();
+    if(t){
+      cfg.token = t;
+      cfg.autoSync = !!(document.getElementById('gs_auto') && document.getElementById('gs_auto').checked);
+      _gistSaveConfig(cfg);
+    }
+  }
+  if(!cfg.token){ alert('❌ Lipsește token-ul GitHub. Lipește un Personal Access Token (scope: gist) în câmpul Token sau creează unul la github.com/settings/tokens.'); return; }
   if(cfg.gistId){
     if(!confirm('Există deja un gist configurat (' + cfg.gistId.slice(0,8) + '...). Vrei să creezi unul NOU? Cel vechi rămâne dar nu va mai fi folosit.')) return;
   }
