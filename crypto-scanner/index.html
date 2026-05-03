@@ -8509,28 +8509,31 @@ window.addEventListener('load',()=>setTimeout(initCatalystFeed,5000));
 function _openExternalNewTab(url) {
   let opened = null;
   try { opened = window.open(url, '_blank', 'noopener,noreferrer'); } catch(e) {}
-  if (opened) { console.log('[ExtLink] window.open OK:', url); return; }
+  if (opened) return;
   try {
     const tmp = document.createElement('a');
     tmp.href = url; tmp.target = '_blank'; tmp.rel = 'noopener noreferrer';
+    tmp.dataset.extSynthetic = '1';
     tmp.style.display = 'none';
     document.body.appendChild(tmp); tmp.click();
     setTimeout(() => tmp.remove(), 100);
-    console.log('[ExtLink] temp-anchor click OK:', url);
     return;
   } catch(e) {}
   location.href = url;
 }
+let _extLinkBusy = false;
 document.addEventListener('click', function(e) {
+  if (_extLinkBusy) return;
   const a = e.target.closest('a[href]');
-  if (!a) return;
+  if (!a || a.dataset.extSynthetic === '1') return;
   const href = a.getAttribute('href') || '';
-  if (/(?:tradingview\.com|pionex\.com|trading212\.com|trade212\.com)/i.test(href)) {
-    e.preventDefault();
-    _openExternalNewTab(a.href);
-  }
+  if (!/(?:tradingview\.com|pionex\.com|trading212\.com|trade212\.com)/i.test(href)) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  _extLinkBusy = true;
+  try { _openExternalNewTab(a.href); }
+  finally { setTimeout(() => { _extLinkBusy = false; }, 300); }
 }, true);
-console.log('[ExtLink] interceptor v2 loaded');
 // ═══════════════════════════════════════════════════════════════
 
 // Înregistrează service worker-ul (cache + offline) — scope: ../
