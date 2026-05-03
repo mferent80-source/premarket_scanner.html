@@ -3918,6 +3918,10 @@ function renderSetups(){
     return;
   }
 
+  // Grid responsive: 1 col mobile (<500px), 2 cols tablet, auto-fill minmax(300px,1fr) desktop ≥1280px.
+  // Cardurile sunt sortate descrescător după Conviction Score, premium/best top-left.
+  html += '<div class="early-grid" style="align-items:start">';
+
   // Render carduri — layout complet (prezentare coin + sparkline + reasons + trade detail + AI + alert)
   filtered.forEach(o => {
     const wl = wlCoins.includes(o.coin);
@@ -3972,10 +3976,10 @@ function renderSetups(){
       notes: 'RSI ' + (o.rsi||0).toFixed(0) + ' · chg24 ' + (o.chg24||0).toFixed(1) + '% · Early ' + (o.earlyScore||0)
     }).replace(/'/g, '&#39;');
 
-    // Card style — premium ramane evidențiat
+    // Card style — premium ramane evidențiat. Margin-bottom 0 pentru că grid-ul folosește gap.
     const cardStyle = isPremium
-      ? 'margin-bottom:10px;border:2px solid #d97706;box-shadow:0 0 0 1px rgba(217,119,6,.2),0 4px 14px rgba(217,119,6,.18);background:linear-gradient(180deg,rgba(217,119,6,.04),var(--bg2) 30%)'
-      : 'margin-bottom:10px';
+      ? 'border:2px solid #d97706;box-shadow:0 0 0 1px rgba(217,119,6,.2),0 4px 14px rgba(217,119,6,.18);background:linear-gradient(180deg,rgba(217,119,6,.04),var(--bg2) 30%)'
+      : '';
 
     html += '<div class="early-card" style="'+cardStyle+'">'+
       '<div class="early-stripe" style="background:'+(isPremium?'linear-gradient(90deg,#d97706,#fbbf24,#d97706)':csColor)+'"></div>'+
@@ -4055,7 +4059,8 @@ function renderSetups(){
       '</div></div>';
   });
 
-  html += '</div>';
+  html += '</div>';   // close .early-grid
+  html += '</div>';   // close outer wrapper
   container.innerHTML = html;
 }
 
