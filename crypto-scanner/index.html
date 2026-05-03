@@ -502,6 +502,8 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 .td-row .td-extra{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.58rem;color:var(--t3);min-width:38px;text-align:right;}
 .td-row .td-del{background:transparent;border:none;color:var(--t3);cursor:pointer;padding:0 3px;font-size:.85rem;line-height:1;}
 .td-row .td-del:hover{color:var(--red);}
+.td-row .td-tv{background:transparent;border:none;color:var(--t3);cursor:pointer;padding:0 3px;font-size:.85rem;line-height:1;text-decoration:none;}
+.td-row .td-tv:hover{color:var(--acc);}
 .td-add-row{display:flex;gap:5px;}
 .td-inp{padding:5px 8px;background:var(--bg2);border:1px solid var(--b1);border-radius:6px;font-size:.65rem;color:var(--t1);font-family:var(--mono);outline:none;}
 .td-inp:focus{border-color:var(--accb);}
@@ -931,42 +933,6 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
       <div class="td-hint">🔴 negativ = shorts plătesc longs · 🟢 pozitiv = longs plătesc shorts. Rate /8h × 1095 ≈ APR. Extreme = atenție pe grid bots.</div>
     </div>
 
-    <!-- SECȚIUNEA 3: Position Size Calculator -->
-    <div class="td-section">
-      <div class="td-title"><span>🧮 Position Size Calc</span></div>
-      <div class="td-calc">
-        <div class="td-calc-row">
-          <label>Account ($)</label>
-          <input id="psAccount" type="number" step="any" oninput="calcPositionSize();_savePosCalc()">
-        </div>
-        <div class="td-calc-row">
-          <label>Risk %</label>
-          <input id="psRisk" type="number" step="0.1" min="0.1" max="10" oninput="calcPositionSize();_savePosCalc()">
-        </div>
-        <div class="td-calc-row">
-          <label>Entry $</label>
-          <input id="psEntry" type="number" step="any" oninput="calcPositionSize()">
-        </div>
-        <div class="td-calc-row">
-          <label>Stop Loss $</label>
-          <input id="psStop" type="number" step="any" oninput="calcPositionSize()">
-        </div>
-        <div class="td-calc-row">
-          <label>Take Profit $ (opt)</label>
-          <input id="psTP" type="number" step="any" oninput="calcPositionSize()">
-        </div>
-        <div class="td-calc-row">
-          <label>Leverage (x)</label>
-          <input id="psLev" type="number" step="0.5" min="1" max="125" value="1" oninput="calcPositionSize();_savePosCalc()">
-        </div>
-        <div class="td-calc-row">
-          <label>MM % <span class="td-hint" style="font-size:10px">(BTC/ETH≈0.5, alts≈1.5)</span></label>
-          <input id="psMM" type="number" step="0.1" min="0.1" max="10" value="1.5" oninput="calcPositionSize();_savePosCalc()">
-        </div>
-        <div id="psResult" class="td-calc-result">Completează câmpurile pentru calcul.</div>
-      </div>
-    </div>
-
   </div>
 </div>
 
@@ -1143,6 +1109,7 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
   <div class="tab" onclick="setTab('pumpradar',this)" style="color:#e11d48">🚨 Pump Radar</div>
   <div class="tab-div" aria-hidden="true"></div>
   <!-- GRUP 3: Pionex tools -->
+  <div class="tab" onclick="setTab('volatility',this)" style="color:var(--gold)">⚡ Volatilitate</div>
   <div class="tab" onclick="setTab('grid',this)">⚙️ Grid</div>
   <div class="tab" onclick="setTab('gridscan',this)" style="color:#10b981">🎯 Grid Scanner</div>
   <div class="tab" onclick="setTab('smart',this)" style="color:#a855f7">📊 Smart Data</div>
@@ -1512,6 +1479,19 @@ function addDashWatchlistCoin() {
   startDashRefresh();
 }
 
+// Apelat din butoanele ➕ din carduri (oriunde apare un coin)
+function quickAddToWatchlist(coin) {
+  coin = (coin || '').trim().toUpperCase();
+  if (!coin) return;
+  if (dashWatchlist.find(e => e.coin === coin)) { showToast(`${coin} e deja în Watchlist Live`,'err'); return; }
+  if (dashWatchlist.length >= 15) { showToast('Watchlist Live e plin (max 15) — șterge unul întâi','err'); return; }
+  dashWatchlist.push({ coin });
+  _saveDashWatchlist();
+  fetchWatchlistData();
+  startDashRefresh();
+  showToast(`✓ ${coin} adăugat în Watchlist Live`,'ok');
+}
+
 function removeDashWatchlistCoin(coin) {
   dashWatchlist = dashWatchlist.filter(e => e.coin !== coin);
   delete _wlData[coin];
@@ -1550,9 +1530,10 @@ function renderWatchlist() {
     return;
   }
   rows.innerHTML = dashWatchlist.map(e => {
+    const tvUrl = `https://www.tradingview.com/chart/?symbol=BINANCE:${e.coin}USDT.P`;
     const d = _wlData[e.coin];
     if (!d || !d.price) {
-      return `<div class="td-row"><span class="td-coin">${e.coin}</span><span class="td-price">—</span><span class="td-chg">—</span><button class="td-del" onclick="removeDashWatchlistCoin('${e.coin}')">✕</button></div>`;
+      return `<div class="td-row"><span class="td-coin">${e.coin}</span><span class="td-price">—</span><span class="td-chg">—</span><a class="td-tv" href="${tvUrl}" target="_blank" rel="noopener" title="Deschide pe TradingView">📈</a><button class="td-del" onclick="removeDashWatchlistCoin('${e.coin}')" title="Șterge">✕</button></div>`;
     }
     const cls = d.change24h >= 0 ? 'pos' : 'neg';
     const sign = d.change24h >= 0 ? '+' : '';
@@ -1564,6 +1545,7 @@ function renderWatchlist() {
       <span class="td-price">$${priceStr}</span>
       <span class="td-chg ${cls}">${sign}${d.change24h.toFixed(2)}%</span>
       <span class="td-extra" title="Distanță față de high 24h">${distHigh.toFixed(1)}%</span>
+      <a class="td-tv" href="${tvUrl}" target="_blank" rel="noopener" title="Deschide pe TradingView">📈</a>
       <button class="td-del" onclick="removeDashWatchlistCoin('${e.coin}')" title="Șterge">✕</button>
     </div>`;
   }).join('');
@@ -1575,17 +1557,26 @@ async function fetchFundingRates() {
   try {
     const r = await fetchSafe('https://fapi.binance.com/fapi/v1/premiumIndex', 8000);
     const data = await r.json();
-    // Doar perpetuals USDT, sortat după valoare absolută a funding rate
-    _frRows = data
+    // Doar perpetuals USDT
+    const all = data
       .filter(d => d.symbol.endsWith('USDT'))
       .map(d => ({
         symbol: d.symbol.replace('USDT',''),
-        rate: parseFloat(d.lastFundingRate) * 100,  // → procent
+        rate: parseFloat(d.lastFundingRate) * 100,  // → procent pe 8h
         mark: parseFloat(d.markPrice),
         nextTime: parseInt(d.nextFundingTime)
-      }))
-      .sort((a,b) => Math.abs(b.rate) - Math.abs(a.rate))
-      .slice(0, 10);
+      }));
+    // Cache complet (TOATE simbolurile) pentru highlight în cardurile scanner-ului
+    window.__fundingCache = {};
+    all.forEach(rr => {
+      window.__fundingCache[rr.symbol] = {
+        rate: rr.rate,            // %/8h
+        apr: rr.rate * 3 * 365,   // % anualizat (3 funding-uri pe zi × 365)
+        nextTime: rr.nextTime
+      };
+    });
+    // _frRows = top 10 după magnitudine, pentru panoul lateral
+    _frRows = all.sort((a,b) => Math.abs(b.rate) - Math.abs(a.rate)).slice(0, 10);
     _frLastRefresh = Date.now();
     renderFundingRates();
   } catch (e) {
@@ -1603,130 +1594,38 @@ function renderFundingRates() {
     _setLastRefresh('frLastRefresh', 0);
     return;
   }
-  // Pentru cost USD/8h ne raportăm la position size din Position Calc (dacă există)
-  let posUsd = 0;
-  try {
-    const cfg = JSON.parse(localStorage.getItem('pos_calc_cfg') || '{}');
-    if (cfg.account) posUsd = cfg.account; // fallback: account ca proxy de poziție
-    const psEntry = parseFloat((document.getElementById('psEntry')||{}).value) || 0;
-    const psStop  = parseFloat((document.getElementById('psStop') ||{}).value) || 0;
-    if (cfg.account && cfg.risk && psEntry && psStop && psEntry !== psStop) {
-      const riskUsd = cfg.account * (cfg.risk / 100);
-      const qty = riskUsd / Math.abs(psEntry - psStop);
-      posUsd = qty * psEntry; // mărimea poziției reale
-    }
-  } catch(e) {}
-
   rows.innerHTML = _frRows.map(r => {
     const cls = r.rate >= 0 ? 'pos' : 'neg';
     const sign = r.rate >= 0 ? '+' : '';
     // Funding rate Binance e pe 8h → APR = rate × 3 × 365
     const apr = r.rate * 3 * 365;
     const aprSign = apr >= 0 ? '+' : '';
-    const cost8h = posUsd * (r.rate / 100); // long plătește când rate > 0
-    const costStr = posUsd > 0 ? ` · ${cost8h >= 0 ? '−' : '+'}$${Math.abs(cost8h).toFixed(2)}/8h` : '';
-    const tooltip = `${sign}${r.rate.toFixed(4)}% pe 8h ≈ ${aprSign}${apr.toFixed(1)}% APR${posUsd>0?` · long pe $${posUsd.toFixed(0)}: ${cost8h>=0?'−':'+'}$${Math.abs(cost8h).toFixed(2)}/8h`:''}`;
+    const tooltip = `${sign}${r.rate.toFixed(4)}% pe 8h ≈ ${aprSign}${apr.toFixed(1)}% APR`;
     return `<div class="td-row" title="${tooltip}">
       <span class="td-coin">${r.symbol}</span>
       <span class="td-price">$${r.mark < 1 ? r.mark.toFixed(6) : r.mark.toFixed(2)}</span>
-      <span class="td-chg ${cls}">${sign}${r.rate.toFixed(4)}%/8h<br><span style="font-size:10px;opacity:.75">${aprSign}${apr.toFixed(0)}% APR${costStr}</span></span>
+      <span class="td-chg ${cls}">${sign}${r.rate.toFixed(4)}%/8h<br><span style="font-size:10px;opacity:.75">${aprSign}${apr.toFixed(0)}% APR</span></span>
     </div>`;
   }).join('');
   _setLastRefresh('frLastRefresh', _frLastRefresh);
 }
 
-// ═════════ SECȚIUNEA 3: POSITION SIZE CALCULATOR ═════════
-function _savePosCalc() {
-  // Salvează account, risk, leverage, MM (nu entry/SL care se schimbă per trade)
-  try {
-    const cfg = {
-      account: parseFloat(document.getElementById('psAccount').value) || 0,
-      risk: parseFloat(document.getElementById('psRisk').value) || 0,
-      lev: parseFloat(document.getElementById('psLev').value) || 1,
-      mm: parseFloat(document.getElementById('psMM').value) || 1.5
-    };
-    localStorage.setItem('pos_calc_cfg', JSON.stringify(cfg));
-  } catch(e) {}
-}
+// Praguri funding extreme (configurabile)
+const FUNDING_HIGH_APR = 50;   // long crowded → squeeze short risk
+const FUNDING_LOW_APR  = -30;  // short crowded → squeeze long potential
 
-function _loadPosCalc() {
-  try {
-    const cfg = JSON.parse(localStorage.getItem('pos_calc_cfg') || '{}');
-    if (cfg.account) document.getElementById('psAccount').value = cfg.account;
-    if (cfg.risk) document.getElementById('psRisk').value = cfg.risk;
-    if (cfg.lev) document.getElementById('psLev').value = cfg.lev;
-    if (cfg.mm) document.getElementById('psMM').value = cfg.mm;
-  } catch(e) {}
-}
-
-function calcPositionSize() {
-  const account = parseFloat(document.getElementById('psAccount').value);
-  const risk = parseFloat(document.getElementById('psRisk').value);
-  const entry = parseFloat(document.getElementById('psEntry').value);
-  const stop = parseFloat(document.getElementById('psStop').value);
-  const tp = parseFloat(document.getElementById('psTP').value);
-  // Leverage explicit + maintenance margin (default conservator 1.5% pentru alts; BTC/ETH ~0.5%)
-  const leverage = Math.max(1, parseFloat(document.getElementById('psLev').value) || 1);
-  const mmPct = Math.max(0.1, parseFloat(document.getElementById('psMM').value) || 1.5);
-  const out = document.getElementById('psResult');
-
-  if (!account || !risk || !entry || !stop) {
-    out.className = 'td-calc-result';
-    out.innerHTML = 'Completează <strong>Account, Risk%, Entry, Stop Loss</strong> pentru calcul.';
-    return;
+// Badge pentru carduri scanner: highlight când APR funding e extrem
+function getFundingBadge(coin){
+  const c = (window.__fundingCache || {})[coin];
+  if(!c) return '';
+  const apr = c.apr;
+  if(apr >= FUNDING_HIGH_APR){
+    return '<span title="Funding APR +'+apr.toFixed(0)+'% — long crowded, atenție la squeeze short. Rate: '+c.rate.toFixed(4)+'%/8h" style="font-size:.5rem;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:4px;padding:2px 6px;font-weight:800;cursor:help">🔥 +'+apr.toFixed(0)+'%</span>';
   }
-  if (entry === stop) {
-    out.className = 'td-calc-result err';
-    out.textContent = 'Entry și Stop Loss nu pot fi egale.';
-    return;
+  if(apr <= FUNDING_LOW_APR){
+    return '<span title="Funding APR '+apr.toFixed(0)+'% — short crowded, posibil squeeze long. Rate: '+c.rate.toFixed(4)+'%/8h" style="font-size:.5rem;background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:4px;padding:2px 6px;font-weight:800;cursor:help">🚀 '+apr.toFixed(0)+'%</span>';
   }
-
-  const direction = entry > stop ? 'LONG' : 'SHORT';
-  const riskUsd = account * (risk / 100);
-  const riskPerUnit = Math.abs(entry - stop);
-  const stopPct = (riskPerUnit / entry) * 100;
-  const qty = riskUsd / riskPerUnit;
-  const positionUsd = qty * entry;
-  const marginUsd = positionUsd / leverage; // margin real necesar pe Pionex/Binance Futures
-  const lossOnMarginPct = marginUsd > 0 ? (riskUsd / marginUsd) * 100 : 0;
-
-  // Liquidation price (formulă cu MM real, ignoră fees → buffer conservator)
-  const mm = mmPct / 100;
-  const liqPrice = direction === 'LONG'
-    ? entry * (1 - 1 / leverage + mm)
-    : entry * (1 + 1 / leverage - mm);
-  const liqDistPct = Math.abs((liqPrice - entry) / entry) * 100;
-  // PERICOL: stop dincolo de liq → lichidare ÎNAINTE de SL
-  const stopBeyondLiq = direction === 'LONG' ? (stop <= liqPrice) : (stop >= liqPrice);
-
-  let rrLine = '';
-  if (tp && !isNaN(tp)) {
-    const profitPerUnit = direction === 'LONG' ? (tp - entry) : (entry - tp);
-    const rr = profitPerUnit / riskPerUnit;
-    const profitUsd = qty * profitPerUnit;
-    const rrCls = rr >= 2 ? 'var(--green)' : rr >= 1 ? 'var(--gold)' : 'var(--red)';
-    rrLine = `<br>R:R = <strong style="color:${rrCls}">${rr.toFixed(2)}</strong> · Profit țintă = <strong>$${profitUsd.toFixed(2)}</strong>`;
-  }
-
-  // Warning-uri pentru utilizator
-  let warn = '';
-  if (marginUsd > account) {
-    warn += `<br><span style="color:var(--red)">⚠️ Margin necesar ($${marginUsd.toFixed(2)}) > Account ($${account.toFixed(2)}). Mărește leverage sau redu poziția.</span>`;
-  }
-  if (stopBeyondLiq) {
-    warn += `<br><span style="color:var(--red)">🚨 LIQUIDATION ($${liqPrice.toFixed(entry < 1 ? 6 : 2)}) e mai aproape decât Stop Loss. Vei fi lichidat ÎNAINTE de SL. Redu leverage.</span>`;
-  } else if (lossOnMarginPct > 80) {
-    warn += `<br><span style="color:var(--gold)">⚠️ La SL pierzi ${lossOnMarginPct.toFixed(0)}% din margin. Aproape de liquidation.</span>`;
-  }
-
-  const liqDecimals = entry < 1 ? 6 : 2;
-  out.className = 'td-calc-result' + (stopBeyondLiq || marginUsd > account ? ' err' : '');
-  out.innerHTML = `
-    <strong>${direction}</strong> · Risc real = <strong>$${riskUsd.toFixed(2)}</strong> (${stopPct.toFixed(2)}% stop)<br>
-    Cantitate = <strong>${qty.toFixed(qty < 1 ? 4 : 2)}</strong> unități · Position = <strong>$${positionUsd.toFixed(2)}</strong><br>
-    Margin (${leverage}x) = <strong>$${marginUsd.toFixed(2)}</strong> · Liq ≈ <strong>$${liqPrice.toFixed(liqDecimals)}</strong> (${liqDistPct.toFixed(1)}%)
-    ${rrLine}${warn}
-  `;
+  return '';
 }
 
 // ═════════ HELPERS COMUNI ═════════
@@ -2434,8 +2333,6 @@ renderSignals();
 // Trader Dashboard: render + start auto-refresh (watchlist 30s, funding 5min)
 renderWatchlist();
 renderFundingRates();
-_loadPosCalc();
-calcPositionSize();
 startDashRefresh();
 
 // ── NOTIFICATIONS ──
@@ -3555,6 +3452,32 @@ async function runPremiumPrescan(){
       await new Promise(r => setTimeout(r, 100));
     }
     log(`💎 Premium pre-scan complet: ${done} coins procesate, ${(allCryptoOpportunities||[]).filter(o=>{ const c=calcConvictionScore(o); return isPremiumWithFilters({...o,convictionScore:c}); }).length} Premium găsite.`, 'ok');
+
+    // Browser push notifications pentru Premium nou apărute (silențios la primul scan)
+    try {
+      if(typeof Notification !== 'undefined' && Notification.permission === 'granted'){
+        const isFirstRun = !window.__premiumNotified;
+        if(isFirstRun) window.__premiumNotified = new Set();
+        const currentPremium = (allCryptoOpportunities || [])
+          .map(o => ({ ...o, convictionScore: calcConvictionScore(o) }))
+          .filter(o => isPremiumWithFilters(o, premiumFilters));
+        currentPremium.forEach(o => {
+          if(!window.__premiumNotified.has(o.coin)){
+            window.__premiumNotified.add(o.coin);
+            if(isFirstRun) return; // primul run: populez fără spam
+            const stld = (stlongCache || {})[o.coin + 'USDT'] || {};
+            const body = `Conviction ${o.convictionScore} · ${stld.verdict||'?'} · RSI ${(o.rsi||0).toFixed(0)} · Vol ${(o.volRatio||1).toFixed(1)}x`;
+            sendNotif(`💎 Premium: ${o.coin}`, body);
+          }
+        });
+        // Curăță setul: coin-urile care au ieșit din Premium pot fi re-notificate la reintrare
+        const currentSet = new Set(currentPremium.map(o => o.coin));
+        Array.from(window.__premiumNotified).forEach(c => {
+          if(!currentSet.has(c)) window.__premiumNotified.delete(c);
+        });
+      }
+    } catch(e){ console.warn('Premium notify failed:', e); }
+
   } finally {
     _premiumPrescanRunning = false;
     updatePremiumCount();
@@ -3631,6 +3554,7 @@ function renderPremium(){
     html += '<span style="font-size:.95rem">💎</span>';
     html += '<span style="font-family:var(--head);font-weight:800;font-size:1.1rem;color:var(--t1)">'+o.coin+'</span>';
     html += '<span style="font-size:.55rem;background:rgba(21,128,61,.14);color:#15803d;border:1px solid #86efac;border-radius:4px;padding:2px 6px;font-weight:800">'+stld.verdict+'</span>';
+    html += getFundingBadge(o.coin);
     html += '<span style="font-size:.55rem;color:var(--t3)">'+(CRYPTO_CAT[o.coin]||'Crypto')+'</span>';
     html += '</div>';
     html += '<div style="text-align:right">';
@@ -3666,6 +3590,10 @@ function renderPremium(){
     html += '<div style="display:flex;gap:6px">';
     html += '<a href="'+tvUrl+'" target="_blank" style="flex:1;text-align:center;background:var(--bg2);padding:8px;border-radius:7px;text-decoration:none;color:var(--acc);font-size:.62rem;font-weight:700;border:1px solid var(--accb)">📈 TradingView</a>';
     html += '<a href="'+pxUrl+'" target="_blank" style="flex:1;text-align:center;background:var(--bg2);padding:8px;border-radius:7px;text-decoration:none;color:#7c3aed;font-size:.62rem;font-weight:700;border:1px solid var(--purplb)">⚡ Pionex Futures</a>';
+    html += '<button onclick="quickAddToWatchlist(\''+o.coin+'\')" title="Adaugă în Watchlist Live" style="background:var(--bg2);padding:8px 11px;border-radius:7px;color:#0891b2;font-size:.7rem;font-weight:800;border:1px solid #67e8f9;cursor:pointer">➕</button>';
+    if(stld.entryPrice && stld.slPrice){
+      html += '<button onclick="openPositionSizer(\''+o.coin+'\','+stld.entryPrice+','+stld.slPrice+',\'long\')" title="Calculează size pentru balance/risk personalizat" style="background:var(--bg2);padding:8px 11px;border-radius:7px;color:#15803d;font-size:.7rem;font-weight:800;border:1px solid #86efac;cursor:pointer">💰</button>';
+    }
     html += '<button onclick=\'saveToJournal('+jPayload+')\' style="flex:1;background:#fef3c7;padding:8px;border-radius:7px;color:#92400e;font-size:.62rem;font-weight:800;border:2px solid #d97706;cursor:pointer">📓 Salvează în Jurnal</button>';
     html += '</div>';
     html += '</div></div>';
@@ -3673,6 +3601,68 @@ function renderPremium(){
   html += '</div>';
   container.innerHTML = html;
 }
+// ── VOLATILITY TAB RENDER — top după range 24h, util pentru grid bot setup ──
+function renderVolatility(){
+  const container = document.getElementById('signalsContainer');
+  if(!allCryptoOpportunities || !allCryptoOpportunities.length){
+    container.innerHTML = '<div class="empty"><div class="empty-icon">⚡</div><div class="empty-title">Nicio scanare completă</div><div class="empty-sub">Pornește scanner-ul. Tab Volatilitate sortează coin-urile după range 24h — util pentru setarea grid bot-urilor Pionex.</div></div>';
+    return;
+  }
+  const sorted = [...allCryptoOpportunities]
+    .filter(o => o.coin && (o.range24pct || 0) > 0)
+    .sort((a, b) => (b.range24pct || 0) - (a.range24pct || 0))
+    .slice(0, 30);
+
+  let html = '<div style="background:linear-gradient(180deg,rgba(245,158,11,.08),rgba(245,158,11,.02));border:1px solid var(--goldb);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.62rem;color:var(--t2)">';
+  html += '<div style="font-weight:700;color:var(--gold);margin-bottom:4px">⚡ Top 30 după volatilitate (range 24h)</div>';
+  html += 'Pionex grid bot-urile mănâncă volatilitate, nu trend. Range <strong>15–50%</strong> = sweet spot grid. RSI 40–60 = preferabil (consolidare, nu trend extrem). Range >50% = volatilitate riscantă, monitorizează atent.';
+  html += '</div>';
+
+  if(!sorted.length){
+    html += '<div class="empty"><div class="empty-icon">⚡</div><div class="empty-title">Nicio dată disponibilă</div><div class="empty-sub">Așteaptă să se finalizeze primul scan complet.</div></div>';
+    container.innerHTML = html;
+    return;
+  }
+
+  html += '<div style="display:flex;flex-direction:column;gap:6px">';
+  sorted.forEach((o, idx) => {
+    const tvUrl = 'https://www.tradingview.com/chart/?symbol=BINANCE:' + o.coin + 'USDT.P';
+    const pxFut = 'https://www.pionex.com/en/futures-trade/' + o.coin + '_USDT.PERP';
+    const pxSpotBot = 'https://www.pionex.com/en/trade/' + o.coin + '_USDT';
+    const range = o.range24pct || 0;
+    let rangeBadge;
+    if(range >= 30) rangeBadge = '<span title="Volatilitate extremă — atenție la slippage" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;padding:1px 6px;border-radius:4px;font-size:.5rem;font-weight:800">EXTREMĂ</span>';
+    else if(range >= 15) rangeBadge = '<span title="Sweet spot pentru grid bot" style="background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:1px 6px;border-radius:4px;font-size:.5rem;font-weight:800">GRID OK</span>';
+    else if(range >= 8) rangeBadge = '<span title="Volatilitate moderată" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;padding:1px 6px;border-radius:4px;font-size:.5rem;font-weight:800">MEDIE</span>';
+    else rangeBadge = '<span title="Range mic — grid puțin profitabil" style="background:var(--bg3);color:var(--t3);border:1px solid var(--b1);padding:1px 6px;border-radius:4px;font-size:.5rem;font-weight:700">JOASĂ</span>';
+    const rsiCol = (o.rsi >= 40 && o.rsi <= 60) ? 'var(--green)' : (o.rsi <= 35 || o.rsi >= 70) ? 'var(--orange)' : 'var(--t1)';
+
+    html += '<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:8px;padding:8px 10px;display:grid;grid-template-columns:32px 1fr auto auto;gap:8px;align-items:center">';
+    html += '<div style="font-family:var(--mono);font-size:.65rem;color:var(--t3);text-align:center;font-weight:700">#'+(idx+1)+'</div>';
+    html += '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0">';
+    html += '<span style="font-family:var(--head);font-weight:800;font-size:.85rem;color:var(--t1)">'+o.coin+'</span>';
+    html += rangeBadge;
+    html += getFundingBadge(o.coin);
+    html += '<span style="font-size:.55rem;color:var(--t3);font-family:var(--mono)">'+formatP(o.price)+'</span>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:10px;align-items:center">';
+    html += '<div style="text-align:right"><div style="font-weight:800;color:var(--gold);font-family:var(--mono);font-size:.85rem;line-height:1">'+range.toFixed(1)+'%</div><div style="font-size:.45rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">range 24h</div></div>';
+    html += '<div style="text-align:right"><div style="font-weight:700;color:'+(o.chg24>=0?'var(--green)':'var(--red)')+';font-family:var(--mono);font-size:.7rem;line-height:1">'+(o.chg24>=0?'+':'')+o.chg24.toFixed(1)+'%</div><div style="font-size:.45rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">chg</div></div>';
+    html += '<div style="text-align:right"><div style="font-weight:700;color:'+rsiCol+';font-family:var(--mono);font-size:.7rem;line-height:1">'+(o.rsi||0).toFixed(0)+'</div><div style="font-size:.45rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">rsi</div></div>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:4px">';
+    html += '<button onclick="quickAddToWatchlist(\''+o.coin+'\')" title="Adaugă în Watchlist Live" style="padding:5px 8px;background:var(--bg3);border-radius:5px;color:#0891b2;font-size:.7rem;border:1px solid #67e8f9;cursor:pointer">➕</button>';
+    html += '<button onclick="openGridSuggester(\''+o.coin+'\')" title="Calculează range grid (Bollinger 7d + ATR 14d)" style="padding:5px 8px;background:var(--bg3);border-radius:5px;color:#0891b2;font-size:.7rem;border:1px solid #67e8f9;cursor:pointer">🎯</button>';
+    html += '<a href="'+tvUrl+'" target="_blank" title="TradingView" style="padding:5px 8px;background:var(--bg3);border-radius:5px;text-decoration:none;color:var(--acc);font-size:.7rem;border:1px solid var(--accb)">📈</a>';
+    html += '<a href="'+pxSpotBot+'" target="_blank" title="Pionex Spot Grid Bot" style="padding:5px 8px;background:var(--bg3);border-radius:5px;text-decoration:none;color:#10b981;font-size:.7rem;border:1px solid #86efac">⚙️</a>';
+    html += '<a href="'+pxFut+'" target="_blank" title="Pionex Futures" style="padding:5px 8px;background:var(--bg3);border-radius:5px;text-decoration:none;color:#7c3aed;font-size:.7rem;border:1px solid var(--purplb)">⚡</a>';
+    html += '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
 function renderSetups(){
   const container = document.getElementById('signalsContainer');
   if(!allCryptoOpportunities || !allCryptoOpportunities.length){
@@ -3793,6 +3783,7 @@ function renderSetups(){
     if(isPremium) html += '<span title="Premium setup: ST READY + Conviction ≥75 + Vol ≥1.5x + RSI 40-65 + uptrend 7d + R:R ≥2 + macro OK" style="color:#d97706;font-size:.85rem">💎</span>';
     html += '<span style="font-family:var(--head);font-weight:800;font-size:1rem;color:var(--t1)">'+o.coin+'</span>';
     html += stBadge;
+    html += getFundingBadge(o.coin);
     if(o.earlyScore >= 60) html += '<span style="font-size:.5rem;background:var(--teall);color:var(--teal);border:1px solid var(--tealb);border-radius:4px;padding:2px 6px;font-weight:700">🌱 Early '+o.earlyScore+'</span>';
     html += '<span style="font-size:.55rem;color:var(--t3)">'+(CRYPTO_CAT[o.coin]||'Crypto')+'</span>';
     html += '</div>';
@@ -3821,6 +3812,7 @@ function renderSetups(){
     html += '<div style="display:flex;gap:5px">';
     html += '<a href="'+tvUrl+'" target="_blank" style="flex:1;text-align:center;background:var(--bg2);padding:7px;border-radius:6px;text-decoration:none;color:var(--acc);font-size:.6rem;font-weight:700;border:1px solid var(--accb)">📈 TV</a>';
     html += '<a href="'+pxUrl+'" target="_blank" style="flex:1;text-align:center;background:var(--bg2);padding:7px;border-radius:6px;text-decoration:none;color:var(--purple);font-size:.6rem;font-weight:700;border:1px solid var(--purplb)">⚡ Pionex</a>';
+    html += '<button onclick="quickAddToWatchlist(\''+o.coin+'\')" title="Adaugă în Watchlist Live" style="background:var(--bg2);padding:7px 9px;border-radius:6px;color:#0891b2;font-size:.7rem;font-weight:800;border:1px solid #67e8f9;cursor:pointer">➕</button>';
     if(o.entry || o.price){
       html += '<button onclick=\'saveToJournal('+jPayload+')\' style="flex:1;background:var(--bg2);padding:7px;border-radius:6px;color:#7c3aed;font-size:.6rem;font-weight:700;border:1px solid var(--purplb);cursor:pointer">📓 Jurnal</button>';
     }
@@ -3835,6 +3827,7 @@ function renderSetups(){
 function renderSignals(){
   if(currentTab==='setups'){ renderSetups(); return; }
   if(currentTab==='premium'){ renderPremium(); return; }
+  if(currentTab==='volatility'){ renderVolatility(); return; }
   if(currentTab==='multiscan'){ renderMultiScan(); return; }
   if(currentTab==='futures'){ renderFuturesPatterns(); return; }
   if(currentTab==='smart'){ renderSmartData(); return; }
@@ -3956,6 +3949,7 @@ function renderSignals(){
           <a class="btn-sig" href="${tvUrl}" target="_blank" rel="noopener">📈 TradingView</a>
           <a class="btn-sig" href="${pionexUrl}" target="_blank" rel="noopener">⚡ Pionex</a>
           <a class="btn-sig" href="${t212Url}" target="_blank" rel="noopener">📊 T212</a>
+          <button class="btn-sig" onclick="quickAddToWatchlist('${s.coin}')" title="Adaugă în Watchlist Live" style="cursor:pointer;border:none">➕ Watchlist</button>
           ${s.type==='grid'&&m.sugLow?`<a class="btn-sig primary" href="grid-calculator.html?coin=${s.coin}&low=${m.sugLow.toFixed(4)}&high=${m.sugHigh.toFixed(4)}" target="_blank">⚙️ Grid Calc</a>`:''}
         </div>
         ${renderAISectionCrypto(s.coin,'signal','sig_'+s.coin+'_'+s.type)}
@@ -6982,6 +6976,7 @@ function renderGridScanner(){
     html+='<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">';
     if(d.isWatchlist) html+='<span style="color:#f59e0b">⭐</span>';
     html+='<span style="font-family:var(--head);font-weight:800;font-size:.95rem;color:var(--t1)">'+d.coin+'</span>';
+    html+=getFundingBadge(d.coin);
     html+='<span style="font-size:.55rem;color:var(--t3)">$'+fmtP(d.currentPrice)+'</span>';
     html+='</div>';
     html+='<div style="display:flex;align-items:center;gap:7px">';
@@ -7454,6 +7449,7 @@ function renderSmartTradeLong(){
     html+='<div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">';
     if(d.isWatchlist) html+='<span style="color:#f59e0b">⭐</span>';
     html+='<span style="font-family:var(--head);font-weight:800;font-size:.95rem;color:var(--t1)">'+d.coin+'</span>';
+    html+=getFundingBadge(d.coin);
     html+='<span style="font-size:.55rem;color:var(--t3)">$'+fmtP(d.currentPrice)+'</span>';
     html+='</div>';
     html+='<div style="display:flex;align-items:center;gap:7px">';
@@ -7528,6 +7524,10 @@ function renderSmartTradeLong(){
     html+='<div style="display:flex;gap:5px">';
     html+='<a href="'+tvUrl+'" target="_blank" style="flex:1;text-align:center;background:#fff;padding:6px;border-radius:6px;text-decoration:none;color:'+d.verdictColor+';font-size:.6rem;font-weight:700;border:1px solid '+d.verdictBorder+'">📈 TradingView</a>';
     html+='<a href="https://www.coinglass.com/symbol/'+d.coin+'" target="_blank" style="flex:1;text-align:center;background:#fff;padding:6px;border-radius:6px;text-decoration:none;color:#475569;font-size:.6rem;font-weight:700;border:1px solid '+d.verdictBorder+'">🔥 Coinglass</a>';
+    html+='<button onclick="quickAddToWatchlist(\''+d.coin+'\')" title="Adaugă în Watchlist Live" style="background:#fff;padding:6px 9px;border-radius:6px;color:#0891b2;font-size:.7rem;font-weight:800;border:1px solid #67e8f9;cursor:pointer">➕</button>';
+    if(d.score>=45 && d.entryPrice && d.slPrice){
+      html+='<button onclick="openPositionSizer(\''+d.coin+'\','+d.entryPrice+','+d.slPrice+',\'long\')" title="Calculează size pentru balance/risk personalizat" style="background:#fff;padding:6px 9px;border-radius:6px;color:#15803d;font-size:.7rem;font-weight:800;border:1px solid #86efac;cursor:pointer">💰</button>';
+    }
     if(d.score>=45 && d.entryPrice){
       // Salvează în Jurnal cu entry/SL/TP/sizing pre-calculate
       const jPayload = JSON.stringify({
@@ -8588,6 +8588,277 @@ function showBackupModal() {
 }
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════
+// POSITION SIZER (per-card quick calculator)
+// ═══════════════════════════════════════════════════════════════
+let _psCtx = { coin: '', entry: 0, sl: 0, side: 'long' };
+
+function openPositionSizer(coin, entry, sl, side){
+  entry = +entry; sl = +sl;
+  if(!entry || !sl || !isFinite(entry) || !isFinite(sl)){ showToast('Entry sau SL invalid','err'); return; }
+  side = side || 'long';
+  _psCtx = { coin: coin, entry: entry, sl: sl, side: side };
+  const dlg = document.getElementById('posSizerModal');
+  if(!dlg){ showToast('Modal lipsește','err'); return; }
+  document.getElementById('pszrTitle').textContent = '💰 Position Sizer — ' + coin;
+  document.getElementById('pszrSubtitle').textContent = side.toUpperCase() + ' · entry/SL din semnal · modifică balance/risk pentru recalc live';
+  const fmtP = (n) => '$' + n.toFixed(n < 1 ? 6 : n < 100 ? 4 : 2);
+  document.getElementById('pszrEntry').value = fmtP(entry);
+  document.getElementById('pszrSL').value = fmtP(sl);
+  // Defaults: ultima sesiune > stlong_cfg > fallback
+  let bal = (typeof stlongAccountSize !== 'undefined' && stlongAccountSize) ? stlongAccountSize : 1000;
+  let risk = (typeof stlongRiskPct !== 'undefined' && stlongRiskPct) ? stlongRiskPct : 1.0;
+  try{
+    const saved = JSON.parse(localStorage.getItem('possizer_last') || '{}');
+    if(saved.balance) bal = saved.balance;
+    if(saved.riskPct) risk = saved.riskPct;
+  }catch(e){}
+  document.getElementById('pszrBalance').value = bal;
+  document.getElementById('pszrRiskPct').value = risk;
+  _recalcPosSizer();
+  dlg.showModal();
+}
+
+function _recalcPosSizer(){
+  const e = _psCtx.entry, s = _psCtx.sl, side = _psCtx.side;
+  if(!e || !s) return;
+  const bal = parseFloat(document.getElementById('pszrBalance').value) || 0;
+  const risk = parseFloat(document.getElementById('pszrRiskPct').value) || 0;
+  try{ localStorage.setItem('possizer_last', JSON.stringify({balance: bal, riskPct: risk})); }catch(err){}
+  const slDist = Math.abs(e - s);
+  const slPct = (slDist / e) * 100;
+  const riskUsd = bal * risk / 100;
+  const qty = slDist > 0 ? riskUsd / slDist : 0;
+  const posUsd = qty * e;
+  const fmtQty = (n) => n >= 1000 ? n.toFixed(2) : n >= 1 ? n.toFixed(4) : n.toFixed(6);
+  document.getElementById('pszrSlPct').textContent = slPct.toFixed(2) + '%';
+  document.getElementById('pszrRiskUsd').textContent = '$' + riskUsd.toFixed(2);
+  document.getElementById('pszrPosUsd').textContent = '$' + posUsd.toFixed(2);
+  document.getElementById('pszrQty').textContent = fmtQty(qty) + ' ' + _psCtx.coin;
+  // Leverage / margine necesară
+  const levs = [1, 3, 5, 10];
+  const levHtml = levs.map(L => {
+    const margin = posUsd / L;
+    const overBal = margin > bal;
+    return '<div style="text-align:center;padding:5px;background:var(--bg2);border-radius:5px;border:1px solid '+(overBal?'#fca5a5':'var(--b1)')+'"><div style="font-weight:700;color:'+(overBal?'var(--red)':'var(--t1)')+';font-size:.7rem">'+L+'x</div><div style="font-size:.55rem;color:'+(overBal?'var(--red)':'var(--t3)')+';font-family:var(--mono)">$'+margin.toFixed(2)+'</div></div>';
+  }).join('');
+  document.getElementById('pszrLeverage').innerHTML = levHtml;
+}
+
+function _copyPosSizer(what){
+  // qty afișat sub forma "0.0083 BTC" → extrage doar numărul
+  const qtyTxt = document.getElementById('pszrQty').textContent.trim().split(/\s+/)[0];
+  const usdTxt = document.getElementById('pszrPosUsd').textContent.replace('$', '').trim();
+  const val = what === 'qty' ? qtyTxt : usdTxt;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(val).then(() => {
+      showToast('📋 Copiat: ' + val, 'ok');
+    }).catch(() => showToast('Nu s-a putut copia','err'));
+  } else {
+    // Fallback pentru file://
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = val; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      showToast('📋 Copiat: ' + val, 'ok');
+    }catch(e){ showToast('Clipboard indisponibil','err'); }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GRID BOT RANGE SUGGESTER (3 niveluri: BB / 7d / agresiv)
+// ═══════════════════════════════════════════════════════════════
+let _gsCtx = { coin: '' };
+const _gsKlinesCache = {}; // coin → { ts, klines }
+
+async function openGridSuggester(coin){
+  const dlg = document.getElementById('gridSuggesterModal');
+  if(!dlg){ showToast('Modal lipsește','err'); return; }
+  _gsCtx.coin = coin;
+  document.getElementById('gsTitle').textContent = '🎯 Grid Range — ' + coin;
+  document.getElementById('gsBody').innerHTML = '<div style="text-align:center;padding:30px;color:var(--t3);font-size:.7rem">⏳ Fetch klines 14d daily...</div>';
+  dlg.showModal();
+  try{
+    let klines;
+    const cached = _gsKlinesCache[coin];
+    // Cache 10 min — klines daily se schimbă rar oricum
+    if(cached && Date.now() - cached.ts < 10*60*1000){
+      klines = cached.klines;
+    } else {
+      const r = await fetchSafe('https://fapi.binance.com/fapi/v1/klines?symbol='+coin+'USDT&interval=1d&limit=14', 8000);
+      klines = await r.json();
+      if(!Array.isArray(klines) || klines.length < 7){
+        document.getElementById('gsBody').innerHTML = '<div style="text-align:center;padding:30px;color:var(--red);font-size:.7rem">Date insuficiente pentru '+coin+' (minim 7 zile necesare)</div>';
+        return;
+      }
+      _gsKlinesCache[coin] = { ts: Date.now(), klines: klines };
+    }
+    _gsRender(coin, klines);
+  }catch(e){
+    document.getElementById('gsBody').innerHTML = '<div style="text-align:center;padding:20px;color:var(--red);font-size:.7rem">Eroare la fetch: '+(e.message||e)+'</div>';
+  }
+}
+
+function _gsRender(coin, klines){
+  // Klines Binance: [openTime, open, high, low, close, volume, ...]
+  const last7 = klines.slice(-7);
+  const closes7 = last7.map(k => parseFloat(k[4]));
+  const lows7 = Math.min(...last7.map(k => parseFloat(k[3])));
+  const highs7 = Math.max(...last7.map(k => parseFloat(k[2])));
+  const sma7 = closes7.reduce((a,b) => a+b, 0) / closes7.length;
+  const variance = closes7.reduce((a,b) => a + (b-sma7)*(b-sma7), 0) / closes7.length;
+  const stdev = Math.sqrt(variance);
+  const bbLow = sma7 - 2*stdev;
+  const bbHigh = sma7 + 2*stdev;
+  // ATR 14d (sau câte există) — true range = max(h-l, |h-pc|, |l-pc|)
+  let atrSum = 0, atrCount = 0;
+  for(let i = 1; i < klines.length; i++){
+    const h = parseFloat(klines[i][2]);
+    const l = parseFloat(klines[i][3]);
+    const pc = parseFloat(klines[i-1][4]);
+    const tr = Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc));
+    atrSum += tr; atrCount++;
+  }
+  const atr = atrCount > 0 ? atrSum / atrCount : 0;
+  const currentPrice = parseFloat(klines[klines.length-1][4]);
+  const atrPct = currentPrice > 0 ? atr / currentPrice * 100 : 0;
+  const range7Pct = lows7 > 0 ? (highs7 - lows7) / lows7 * 100 : 0;
+
+  const fmt = (n) => '$' + (n < 1 ? n.toFixed(6) : n < 100 ? n.toFixed(4) : n.toFixed(2));
+  const fmtRaw = (n) => n < 1 ? n.toFixed(6) : n < 100 ? n.toFixed(4) : n.toFixed(2);
+
+  const buildSug = (label, desc, lower, upper, grids, color, bgCol) => {
+    if(lower <= 0 || upper <= lower) return '';
+    const spacing = (upper - lower) / grids;
+    const profitPerGrid = lower > 0 ? spacing / lower * 100 : 0;
+    const inRange = currentPrice >= lower && currentPrice <= upper;
+    const inRangeBadge = inRange
+      ? '<span style="font-size:.5rem;background:#dcfce7;color:#15803d;padding:1px 5px;border-radius:3px;margin-left:6px;font-weight:700">✓ preț în range</span>'
+      : '<span title="Prețul curent e în afara range-ului propus" style="font-size:.5rem;background:#fee2e2;color:#b91c1c;padding:1px 5px;border-radius:3px;margin-left:6px;font-weight:700">⚠ preț în afară</span>';
+    return '<div style="background:'+bgCol+';border:1px solid '+color+';border-radius:8px;padding:10px;margin-bottom:8px">'
+      + '<div style="display:flex;align-items:center;flex-wrap:wrap;margin-bottom:4px"><span style="font-weight:800;color:'+color+';font-size:.7rem">'+label+'</span>'+inRangeBadge+'</div>'
+      + '<div style="font-size:.55rem;color:var(--t3);margin-bottom:8px;font-style:italic">'+desc+'</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:.62rem">'
+      + '<div><span style="color:var(--t3)">Lower:</span> <strong style="font-family:var(--mono);color:var(--t1)">'+fmt(lower)+'</strong></div>'
+      + '<div><span style="color:var(--t3)">Upper:</span> <strong style="font-family:var(--mono);color:var(--t1)">'+fmt(upper)+'</strong></div>'
+      + '<div><span style="color:var(--t3)">Grids:</span> <strong style="font-family:var(--mono);color:var(--t1)">'+grids+'</strong></div>'
+      + '<div><span style="color:var(--t3)">Profit/grid:</span> <strong style="font-family:var(--mono);color:'+color+'">'+profitPerGrid.toFixed(2)+'%</strong></div>'
+      + '</div>'
+      + '<button onclick="_copyGridRange(\''+fmtRaw(lower)+'\',\''+fmtRaw(upper)+'\','+grids+')" style="margin-top:8px;padding:5px 12px;font-size:.55rem;border-radius:5px;border:1px solid '+color+';background:transparent;color:'+color+';cursor:pointer;font-weight:700">📋 Copiază lower / upper / grids</button>'
+      + '</div>';
+  };
+
+  // 3 niveluri:
+  // Conservator: BB ±2σ, dar tăiat la 7d range pentru siguranță
+  const consLow = Math.max(bbLow, lows7 * 1.02);
+  const consHigh = Math.min(bbHigh, highs7 * 0.98);
+  // Moderat: 7d high/low cu 2% buffer
+  const modLow = lows7 * 1.02;
+  const modHigh = highs7 * 0.98;
+  // Agresiv: 7d full range
+  const agrLow = lows7;
+  const agrHigh = highs7;
+  // Number of grids: ~spacing = ATR/4 (păstrează profit/grid relativ stabil)
+  const calcGrids = (lower, upper) => {
+    if(atr <= 0 || upper <= lower) return 30;
+    const n = Math.round((upper - lower) / (atr / 4));
+    return Math.max(20, Math.min(120, n));
+  };
+
+  let html = '<div style="background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:10px;margin-bottom:10px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:.6rem;text-align:center">'
+    + '<div><div style="color:var(--t3);font-size:.5rem;text-transform:uppercase;letter-spacing:.5px">Preț curent</div><strong style="font-family:var(--mono);color:var(--t1)">'+fmt(currentPrice)+'</strong></div>'
+    + '<div><div style="color:var(--t3);font-size:.5rem;text-transform:uppercase;letter-spacing:.5px">Range 7d</div><strong style="font-family:var(--mono);color:var(--t1)">'+range7Pct.toFixed(1)+'%</strong></div>'
+    + '<div><div style="color:var(--t3);font-size:.5rem;text-transform:uppercase;letter-spacing:.5px">ATR 14d</div><strong style="font-family:var(--mono);color:var(--t1)">'+atrPct.toFixed(2)+'%</strong></div>'
+    + '<div><div style="color:var(--t3);font-size:.5rem;text-transform:uppercase;letter-spacing:.5px">SMA 7d</div><strong style="font-family:var(--mono);color:var(--t1)">'+fmt(sma7)+'</strong></div>'
+    + '</div>';
+  html += buildSug('🛡️ Conservator', 'Bollinger ±2σ în interiorul range-ului 7d. Profit mai mic, risc redus de a ieși din range.', consLow, consHigh, calcGrids(consLow, consHigh), '#0891b2', 'rgba(8,145,178,.06)');
+  html += buildSug('⚖️ Moderat', '7d high/low cu buffer de 2%. Echilibru între acoperire și profit per grid.', modLow, modHigh, calcGrids(modLow, modHigh), '#15803d', 'rgba(21,128,61,.06)');
+  html += buildSug('🔥 Agresiv', '7d high/low complet. Profit maxim per grid, dar dacă prețul iese din range bot-ul e suspendat.', agrLow, agrHigh, calcGrids(agrLow, agrHigh), '#d97706', 'rgba(217,119,6,.06)');
+
+  html += '<div style="font-size:.5rem;color:var(--t3);margin-top:6px;padding-top:8px;border-top:1px dashed var(--b1);font-style:italic">Numărul de grids = (upper − lower) / (ATR ÷ 4), limitat 20–120. Verifică pe Pionex investiția minimă pe grid + commission.</div>';
+
+  document.getElementById('gsBody').innerHTML = html;
+}
+
+function _copyGridRange(lower, upper, grids){
+  const txt = 'Lower: ' + lower + '\nUpper: ' + upper + '\nGrids: ' + grids;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(() => showToast('📋 Range grid copiat','ok')).catch(() => showToast('Clipboard fail','err'));
+  } else {
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = txt; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      showToast('📋 Range grid copiat','ok');
+    }catch(e){ showToast('Clipboard indisponibil','err'); }
+  }
+}
+
 </script>
+
+<!-- ═══════════════════════════════════════════════════════
+     POSITION SIZER MODAL (deschis de butonul 💰 din carduri)
+     ═══════════════════════════════════════════════════════ -->
+<dialog id="posSizerModal" style="border:none;border-radius:14px;padding:0;max-width:460px;width:calc(100% - 32px);background:var(--bg2);color:var(--t1);box-shadow:0 20px 60px rgba(0,0,0,.4)">
+  <div style="padding:14px 16px 12px;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+    <div>
+      <div id="pszrTitle" style="font-family:var(--head);font-weight:800;font-size:1rem">💰 Position Sizer</div>
+      <div id="pszrSubtitle" style="font-size:.55rem;color:var(--t3);margin-top:2px"></div>
+    </div>
+    <button onclick="document.getElementById('posSizerModal').close()" style="background:none;border:none;color:var(--t3);font-size:1.3rem;cursor:pointer;line-height:1;padding:0 4px">✕</button>
+  </div>
+  <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:3px">Entry</div>
+        <input id="pszrEntry" readonly style="padding:7px 9px;border-radius:7px;border:1px solid var(--b2);background:var(--bg1);color:var(--t2);font-family:var(--mono);font-size:.78rem;width:100%;box-sizing:border-box">
+      </div>
+      <div>
+        <div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:3px">Stop Loss</div>
+        <input id="pszrSL" readonly style="padding:7px 9px;border-radius:7px;border:1px solid var(--b2);background:var(--bg1);color:var(--t2);font-family:var(--mono);font-size:.78rem;width:100%;box-sizing:border-box">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:3px">Balance USDT</div>
+        <input id="pszrBalance" type="number" min="10" step="10" oninput="_recalcPosSizer()" style="padding:7px 9px;border-radius:7px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-family:var(--mono);font-size:.78rem;width:100%;box-sizing:border-box">
+      </div>
+      <div>
+        <div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:3px">Risk %</div>
+        <input id="pszrRiskPct" type="number" min="0.1" max="10" step="0.1" oninput="_recalcPosSizer()" style="padding:7px 9px;border-radius:7px;border:1px solid var(--b2);background:var(--bg3);color:var(--t1);font-family:var(--mono);font-size:.78rem;width:100%;box-sizing:border-box">
+      </div>
+    </div>
+    <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:10px;display:grid;grid-template-columns:repeat(2,1fr);gap:6px;font-size:.65rem">
+      <div style="display:flex;justify-content:space-between;gap:6px"><span style="color:var(--t3)">SL distance:</span><strong id="pszrSlPct" style="font-family:var(--mono);color:var(--red)">—</strong></div>
+      <div style="display:flex;justify-content:space-between;gap:6px"><span style="color:var(--t3)">Risk:</span><strong id="pszrRiskUsd" style="font-family:var(--mono);color:var(--red)">—</strong></div>
+      <div style="display:flex;justify-content:space-between;gap:6px"><span style="color:var(--t3)">Position:</span><strong id="pszrPosUsd" style="font-family:var(--mono);color:var(--t1)">—</strong></div>
+      <div style="display:flex;justify-content:space-between;gap:6px"><span style="color:var(--t3)">Qty:</span><strong id="pszrQty" style="font-family:var(--mono);color:var(--t1)">—</strong></div>
+    </div>
+    <div style="background:var(--bg1);border:1px solid var(--b1);border-radius:8px;padding:8px 10px;font-size:.6rem">
+      <div style="font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:6px">Margine necesară (Pionex futures)</div>
+      <div id="pszrLeverage" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div>
+      <div style="font-size:.5rem;color:var(--t3);margin-top:6px;font-style:italic">Roșu = margine peste balance disponibil</div>
+    </div>
+  </div>
+  <div style="padding:10px 16px 14px;border-top:1px solid var(--b1);display:flex;gap:8px">
+    <button onclick="_copyPosSizer('qty')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--accb);background:var(--accl);color:var(--acc);font-weight:700;font-size:.65rem;cursor:pointer">📋 Copiază qty</button>
+    <button onclick="_copyPosSizer('usd')" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--purplb);background:rgba(124,58,237,.1);color:#7c3aed;font-weight:700;font-size:.65rem;cursor:pointer">📋 Copiază $ amount</button>
+  </div>
+</dialog>
+
+<!-- ═══════════════════════════════════════════════════════
+     GRID BOT RANGE SUGGESTER MODAL
+     ═══════════════════════════════════════════════════════ -->
+<dialog id="gridSuggesterModal" style="border:none;border-radius:14px;padding:0;max-width:520px;width:calc(100% - 32px);background:var(--bg2);color:var(--t1);box-shadow:0 20px 60px rgba(0,0,0,.4)">
+  <div style="padding:14px 16px 12px;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+    <div>
+      <div id="gsTitle" style="font-family:var(--head);font-weight:800;font-size:1rem">🎯 Grid Range</div>
+      <div style="font-size:.55rem;color:var(--t3);margin-top:2px">3 sugestii: BB ±2σ / 7d high-low / agresiv · klines daily Binance</div>
+    </div>
+    <button onclick="document.getElementById('gridSuggesterModal').close()" style="background:none;border:none;color:var(--t3);font-size:1.3rem;cursor:pointer;line-height:1;padding:0 4px">✕</button>
+  </div>
+  <div id="gsBody" style="padding:14px 16px"></div>
+</dialog>
+
 </body>
 </html>
