@@ -2221,6 +2221,11 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(e => console.warn('SW register failed:', e));
 }
 
+// În PWA standalone, ascunde butonul "← Hub" (fallback JS robust peste CSS)
+if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+  document.querySelectorAll('a[href="../"]').forEach(el => { el.style.display = 'none'; });
+}
+
 // ── PREFILL FROM SCANNER (crypto/nasdaq → journal hook) ──
 // Detectează un setup salvat în localStorage['journal_pending_trade'] și pre-populează formul Add Trade.
 function _checkPrefillFromScanner(){

@@ -1502,6 +1502,11 @@ async function runAll() {
 
 $('scanEarnBtn').addEventListener('click', scanEarnings);
 $('scanLoserBtn').addEventListener('click', scanLosers);
+
+// În PWA standalone, ascunde butonul "← Hub" (fallback JS robust peste CSS)
+if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+  document.querySelectorAll('a[href="../"]').forEach(el => { el.style.display = 'none'; });
+}
 $('refreshAllBtn').addEventListener('click', runAll);
 
 window.addEventListener('DOMContentLoaded', () => {

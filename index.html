@@ -403,6 +403,13 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW register failed:', e));
 }
+
+// În PWA standalone, ascunde footer-ul cu link-uri externe (GitHub + README)
+// Fallback JS robust peste CSS, pentru cazuri când CSS-ul cache-uit nu are regula display:none
+if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+  const f = document.querySelector('footer');
+  if (f) f.style.display = 'none';
+}
 </script>
 </body>
 </html>

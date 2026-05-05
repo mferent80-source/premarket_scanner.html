@@ -8703,6 +8703,12 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(e => console.warn('SW register failed:', e));
 }
 
+// În PWA standalone, ascunde butonul "← Hub" (fallback JS robust peste CSS,
+// pentru cazuri când CSS-ul cache-uit nu are regula de display:none)
+if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+  document.querySelectorAll('a[href="../"]').forEach(el => { el.style.display = 'none'; });
+}
+
 // ═══════════════════════════════════════════════════════════════
 // SISTEM BACKUP: Export / Import JSON + auto-snapshot rotativ
 // Salvează toate config-urile, watchlist-ul, alertele etc. în localStorage.

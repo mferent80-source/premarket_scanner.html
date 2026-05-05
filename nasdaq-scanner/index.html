@@ -8323,6 +8323,11 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(e => console.warn('SW register failed:', e));
 }
 
+// În PWA standalone, ascunde butonul "← Hub" (fallback JS robust peste CSS)
+if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+  document.querySelectorAll('a[href="../"]').forEach(el => { el.style.display = 'none'; });
+}
+
 // ═══════════════════════════════════════════════════════════════
 // SISTEM BACKUP NASDAQ: Export / Import JSON + auto-snapshot rotativ
 // ═══════════════════════════════════════════════════════════════
