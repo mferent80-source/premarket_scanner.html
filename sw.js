@@ -3,7 +3,7 @@
 //
 // IMPORTANT: bump CACHE_VERSION manual la fiecare release semnificativ — invalidare automată în clienți.
 // SW are scope `/` (rădăcina repo-ului), deci controlează hub + crypto-scanner + nasdaq-scanner + trading-journal + market-events.
-const CACHE_VERSION = 'tt-v22-2026-05-05';
+const CACHE_VERSION = 'tt-v23-2026-05-05';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 // Resurse statice pre-cache-uite la instalare
