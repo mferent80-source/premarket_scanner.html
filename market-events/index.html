@@ -326,7 +326,8 @@ class NasdaqScanner {
   constructor(corsProxy = '') {
     this.corsProxy = corsProxy;
     this.yahooScreener = 'https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved';
-    this.yahooSummary = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary';
+    // v10 quoteSummary necesită cookie crumb din 2024 (proxy CORS nu transmite cookie-uri) → switch la v8 chart (fără crumb)
+    this.yahooChart = 'https://query1.finance.yahoo.com/v8/finance/chart';
     this.nasdaqEarnings = 'https://api.nasdaq.com/api/calendar/earnings';
   }
 
@@ -485,36 +486,36 @@ class NasdaqScanner {
   // Fetch detalii pentru un simbol via Yahoo quoteSummary
   // ============================================================
   async _fetchSymbolDetail(symbol) {
-    const modules = 'price,calendarEvents,summaryDetail,assetProfile';
-    const yahooUrl = `${this.yahooSummary}/${symbol}?modules=${modules}`;
+    // v8 chart endpoint — fără crumb, returnează preț + low/high zilnic + volum în .meta
+    const yahooUrl = `${this.yahooChart}/${symbol}?interval=1d&range=2d`;
     const url = this.corsProxy ? this.corsProxy + encodeURIComponent(yahooUrl) : yahooUrl;
-    
+
     try {
       const r = await fetch(url);
       if (!r.ok) return null;
       const data = await r.json();
-      const result = data?.quoteSummary?.result?.[0];
+      const result = data?.chart?.result?.[0];
       if (!result) return null;
-      
-      const price = result.price || {};
-      const detail = result.summaryDetail || {};
-      const profile = result.assetProfile || {};
-      
+
+      const meta = result.meta || {};
+      const price = meta.regularMarketPrice ?? null;
+      const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? null;
+      const change = (price != null && prevClose != null) ? (price - prevClose) : null;
+      const changePct = (price != null && prevClose != null && prevClose !== 0)
+        ? ((price - prevClose) / prevClose) * 100 : null;
+
+      // Note: chart endpoint NU returnează shortName/sector/marketCap/avgVolume3M.
+      // Cele lipsa rămân pe valorile venite din Nasdaq earnings calendar (sector, marketCap).
       return {
-        symbol: price.symbol || symbol,
-        shortName: price.shortName,
-        longName: price.longName,
-        regularMarketPrice: price.regularMarketPrice,
-        regularMarketChange: price.regularMarketChange,
-        regularMarketChangePercent: price.regularMarketChangePercent,
-        regularMarketVolume: price.regularMarketVolume,
-        averageDailyVolume3Month: detail.averageDailyVolume3Month,
-        marketCap: price.marketCap,
-        regularMarketDayHigh: price.regularMarketDayHigh,
-        regularMarketDayLow: price.regularMarketDayLow,
-        regularMarketPreviousClose: price.regularMarketPreviousClose,
-        sector: profile.sector,
-        fullExchangeName: price.exchangeName
+        symbol: meta.symbol || symbol,
+        regularMarketPrice: price,
+        regularMarketChange: change,
+        regularMarketChangePercent: changePct,
+        regularMarketVolume: meta.regularMarketVolume ?? null,
+        regularMarketDayHigh: meta.regularMarketDayHigh ?? null,
+        regularMarketDayLow: meta.regularMarketDayLow ?? null,
+        regularMarketPreviousClose: prevClose,
+        fullExchangeName: meta.exchangeName || meta.fullExchangeName
       };
     } catch (e) {
       return null;
