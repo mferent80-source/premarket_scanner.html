@@ -284,47 +284,94 @@
   margin-bottom:24px;padding:16px;
 }
 .section-watchlist h2{color:#79c0ff;font-size:14px;margin-bottom:10px}
-.wl-add-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.wl-add-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
 .wl-add-row input{
   flex:1;min-width:140px;padding:8px 11px;background:#0d1117;border:1px solid #30363d;
   border-radius:7px;color:#e6edf3;font-size:13px;font-family:monospace;outline:none;
   text-transform:uppercase;
 }
 .wl-add-row input:focus{border-color:#1f6feb}
-.wl-add-btn{
-  padding:8px 14px;background:#238636;border:none;color:#fff;
-  border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;
-}
+.wl-add-btn{padding:8px 14px;background:#238636;border:none;color:#fff;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer}
 .wl-add-btn:hover{background:#2ea043}
-.wl-refresh-btn{
-  padding:8px 12px;background:#1f6feb;border:none;color:#fff;
-  border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;
-}
+.wl-refresh-btn{padding:8px 12px;background:#1f6feb;border:none;color:#fff;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer}
 .wl-refresh-btn:hover{background:#388bfd}
-.wl-list{display:flex;flex-direction:column;gap:6px}
+
+/* Toolbar: filtre + sortare */
+.wl-toolbar{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:12px;flex-wrap:wrap;
+  margin-bottom:10px;padding:8px 0;
+  border-top:1px solid #21262d;border-bottom:1px solid #21262d;
+}
+.wl-filters{display:flex;gap:4px;flex-wrap:wrap}
+.wl-fbtn{
+  padding:5px 10px;background:#0d1117;border:1px solid #30363d;color:#8b949e;
+  border-radius:14px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s;
+}
+.wl-fbtn:hover{color:#e6edf3;border-color:#388bfd}
+.wl-fbtn.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.wl-sort{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.wl-sort label{font-size:11px;color:#8b949e;font-weight:600}
+.wl-sort select{
+  padding:5px 8px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;
+  border-radius:6px;font-size:11px;cursor:pointer;outline:none;
+}
+.wl-sort select:focus{border-color:#1f6feb}
+.wl-group-toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#8b949e}
+.wl-group-toggle input[type=checkbox]{cursor:pointer;accent-color:#1f6feb}
+
+/* Header coloane sticky */
+.wl-thead{
+  display:grid;
+  grid-template-columns:90px 90px 130px 100px 80px 60px 70px;
+  gap:10px;padding:6px 12px;
+  font-size:9px;font-weight:700;color:#6e7681;
+  text-transform:uppercase;letter-spacing:.6px;
+  border-bottom:1px solid #30363d;margin-bottom:6px;
+}
+
+/* Group headers (când wlGroup e ON) */
+.wl-group-hdr{
+  font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+  padding:8px 10px;margin:8px 0 4px;border-radius:6px;
+}
+.wl-group-gainers{background:rgba(63,185,80,.10);color:#3fb950;border-left:3px solid #3fb950}
+.wl-group-losers{background:rgba(255,107,107,.10);color:#ff6b6b;border-left:3px solid #ff6b6b}
+.wl-group-flat{background:rgba(139,148,158,.08);color:#8b949e;border-left:3px solid #6e7681}
+
+/* Lista + items */
+.wl-list{display:flex;flex-direction:column;gap:5px}
 .wl-item{
   display:grid;
-  grid-template-columns:80px 1fr 80px 80px auto auto;
+  grid-template-columns:90px 90px 130px 100px 80px 60px 70px;
   gap:10px;align-items:center;
-  padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;
+  padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;
   font-size:12px;
 }
-.wl-item .wl-sym{font-weight:700;color:#58a6ff;font-family:monospace;font-size:13px}
-.wl-item .wl-name{color:#8b949e;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wl-item .wl-price{font-family:monospace;font-variant-numeric:tabular-nums;text-align:right;font-weight:700;color:#e6edf3}
-.wl-item .wl-change{font-family:monospace;font-variant-numeric:tabular-nums;text-align:right;font-weight:700}
+.wl-item:hover{border-color:#388bfd;background:#0f141c}
+.wl-sym-block{display:flex;flex-direction:column;gap:1px;min-width:0}
+.wl-sym-block .wl-sym{font-weight:700;color:#58a6ff;font-family:monospace;font-size:13px}
+.wl-sym-block .wl-exch{color:#6e7681;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wl-item .wl-price{font-family:monospace;font-variant-numeric:tabular-nums;text-align:right;font-weight:700;color:#e6edf3;font-size:13px}
+.wl-item .wl-range{font-family:monospace;font-variant-numeric:tabular-nums;color:#8b949e;font-size:10px;text-align:center}
+.wl-item .wl-change{font-family:monospace;font-variant-numeric:tabular-nums;text-align:right;font-weight:800;font-size:13px}
 .wl-item .wl-change.pos{color:#3fb950}
 .wl-item .wl-change.neg{color:#ff6b6b}
-.wl-item .wl-time{font-size:9px;color:#6e7681;font-family:monospace}
-.wl-item button{padding:5px 9px;border-radius:5px;border:1px solid #30363d;background:#21262d;color:#e6edf3;font-size:11px;cursor:pointer;font-weight:700}
+.wl-item .wl-vol{font-family:monospace;text-align:right;color:#8b949e;font-size:10px}
+.wl-item .wl-time{font-size:9px;color:#6e7681;font-family:monospace;text-align:center}
+.wl-item .wl-actions{display:flex;gap:3px;justify-content:flex-end}
+.wl-item button{padding:4px 7px;border-radius:5px;border:1px solid #30363d;background:#21262d;color:#e6edf3;font-size:11px;cursor:pointer;font-weight:700}
 .wl-item button.wl-ai{color:#d2a8ff}
 .wl-item button.wl-ai:hover{background:#8957e520;border-color:#8957e5}
 .wl-item button.wl-del{color:#ff6b6b}
 .wl-item button.wl-del:hover{background:#3d1418;border-color:#5c1d23}
 .wl-empty{padding:14px;text-align:center;color:#6e7681;font-size:11px;font-style:italic;background:#0d1117;border:1px dashed #30363d;border-radius:8px}
-@media (max-width:560px){
-  .wl-item{grid-template-columns:60px 1fr 60px;gap:6px}
-  .wl-item .wl-name,.wl-item .wl-time{display:none}
+
+/* Mobile: stack columns, ascunde header + coloane secundare */
+@media (max-width:760px){
+  .wl-thead{display:none}
+  .wl-item{grid-template-columns:80px 1fr 90px 60px;gap:6px;font-size:11px;padding:8px 10px}
+  .wl-item .wl-range,.wl-item .wl-vol,.wl-item .wl-time{display:none}
 }
 
 /* Chat AI flotant (FAB + panel) */
@@ -398,6 +445,44 @@
     <button class="wl-add-btn" onclick="wlAdd()">+ Adaugă</button>
     <button class="wl-refresh-btn" onclick="wlRefresh()" title="Reîmprospătează prețurile">🔄 Refresh</button>
   </div>
+
+  <!-- Bara de filtre + sortare + grupare -->
+  <div class="wl-toolbar">
+    <div class="wl-filters">
+      <button class="wl-fbtn active" data-filter="all" onclick="wlSetFilter('all')">Toate</button>
+      <button class="wl-fbtn" data-filter="gainers" onclick="wlSetFilter('gainers')">📈 Câștigători</button>
+      <button class="wl-fbtn" data-filter="losers" onclick="wlSetFilter('losers')">📉 Pierdători</button>
+      <button class="wl-fbtn" data-filter="movers" onclick="wlSetFilter('movers')">🔥 Movers (±3%)</button>
+      <button class="wl-fbtn" data-filter="flat" onclick="wlSetFilter('flat')">➖ Stabili</button>
+    </div>
+    <div class="wl-sort">
+      <label>Sortare:</label>
+      <select id="wlSortSel" onchange="wlSetSort(this.value)">
+        <option value="change-desc">Schimbare % ↓</option>
+        <option value="change-asc">Schimbare % ↑</option>
+        <option value="alpha">Alfabetic</option>
+        <option value="price-desc">Preț ↓</option>
+        <option value="volume-desc">Volum ↓</option>
+        <option value="recent">Adăugat recent</option>
+      </select>
+      <label class="wl-group-toggle">
+        <input type="checkbox" id="wlGroupChk" onchange="wlSetGroup(this.checked)">
+        <span>Grupează pe performanță</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Header coloane (sticky) -->
+  <div class="wl-thead">
+    <div>Simbol</div>
+    <div>Preț</div>
+    <div>Range Azi</div>
+    <div>Schimb %</div>
+    <div>Volum</div>
+    <div>Update</div>
+    <div>Acțiuni</div>
+  </div>
+
   <div id="wlList" class="wl-list"></div>
 </section>
 
@@ -1255,36 +1340,108 @@ async function wlRefresh(){
   if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh'; }
 }
 
+// State pentru filter/sort/group (persistent)
+let wlFilter = localStorage.getItem('me_wl_filter') || 'all';
+let wlSort = localStorage.getItem('me_wl_sort') || 'change-desc';
+let wlGroup = localStorage.getItem('me_wl_group') === '1';
+
+function wlSetFilter(f){ wlFilter = f; localStorage.setItem('me_wl_filter', f); wlRender(); }
+function wlSetSort(s){ wlSort = s; localStorage.setItem('me_wl_sort', s); wlRender(); }
+function wlSetGroup(g){ wlGroup = !!g; localStorage.setItem('me_wl_group', g ? '1' : '0'); wlRender(); }
+
+function wlMatchesFilter(w){
+  if (wlFilter === 'all') return true;
+  if (w.changePct == null) return wlFilter === 'all';
+  const p = w.changePct;
+  if (wlFilter === 'gainers') return p > 0;
+  if (wlFilter === 'losers') return p < 0;
+  if (wlFilter === 'movers') return Math.abs(p) >= 3;
+  if (wlFilter === 'flat') return Math.abs(p) < 0.5;
+  return true;
+}
+
+function wlSorted(arr){
+  const sorted = [...arr];
+  switch (wlSort) {
+    case 'alpha': return sorted.sort((a,b) => a.symbol.localeCompare(b.symbol));
+    case 'price-desc': return sorted.sort((a,b) => (b.price ?? -1) - (a.price ?? -1));
+    case 'volume-desc': return sorted.sort((a,b) => (b.volume ?? 0) - (a.volume ?? 0));
+    case 'change-asc': return sorted.sort((a,b) => (a.changePct ?? 0) - (b.changePct ?? 0));
+    case 'change-desc': return sorted.sort((a,b) => (b.changePct ?? 0) - (a.changePct ?? 0));
+    case 'recent': return sorted; // ordinea inserării e ordinea în array
+    default: return sorted;
+  }
+}
+
+function _wlRowHtml(w){
+  const priceStr = w.price != null ? '$' + w.price.toFixed(2) : '...';
+  const pct = w.changePct;
+  const pctStr = pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : '-';
+  const pctCls = pct == null ? '' : (pct >= 0 ? 'pos' : 'neg');
+  const arrow = pct == null ? '' : (pct >= 0 ? '▲' : '▼');
+  const rangeStr = (w.low != null && w.high != null)
+    ? '$' + w.low.toFixed(2) + ' – $' + w.high.toFixed(2)
+    : '—';
+  const volStr = w.volume ? NasdaqScanner.formatVolume(w.volume) : '—';
+  const time = w.fetchedAt ? new Date(w.fetchedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '—';
+  const aiData = JSON.stringify({
+    symbol: w.symbol, name: w.symbol, price: w.price, changePct: w.changePct,
+    marketCap: 0, sector: w.exchange || 'N/A', volume: w.volume,
+    regularMarketDayHigh: w.high, regularMarketDayLow: w.low
+  }).replace(/'/g, "&apos;");
+  return `<div class="wl-item">
+    <div class="wl-sym-block">
+      <div class="wl-sym">${w.symbol}</div>
+      <div class="wl-exch">${w.exchange || ''}</div>
+    </div>
+    <div class="wl-price">${priceStr}</div>
+    <div class="wl-range">${rangeStr}</div>
+    <div class="wl-change ${pctCls}">${arrow} ${pctStr}</div>
+    <div class="wl-vol">${volStr}</div>
+    <div class="wl-time">${time}</div>
+    <div class="wl-actions">
+      <button class="wl-ai" onclick='aiAnalyzeRow("watchlist", ${aiData})' title="Analiză AI">🤖</button>
+      <button class="wl-del" onclick='wlRemove("${w.symbol}")' title="Șterge">✕</button>
+    </div>
+  </div>`;
+}
+
 function wlRender(){
   const list = document.getElementById('wlList');
   const badge = document.getElementById('wlBadge');
   if (!list) return;
   if (badge) badge.textContent = watchlist.length;
+
+  // Sync UI cu state-ul
+  document.querySelectorAll('.wl-fbtn').forEach(b => b.classList.toggle('active', b.dataset.filter === wlFilter));
+  const ss = document.getElementById('wlSortSel'); if (ss) ss.value = wlSort;
+  const gc = document.getElementById('wlGroupChk'); if (gc) gc.checked = wlGroup;
+
   if (!watchlist.length) {
-    list.innerHTML = '<div class="wl-empty">📋 Niciun simbol în watchlist. Adaugă ticker-uri (ex: AAPL, MSFT) pentru tracking live + AI.</div>';
+    list.innerHTML = '<div class="wl-empty">📋 Niciun simbol în watchlist. Adaugă ticker-uri (ex: AAPL, MSFT) sau apasă 👁️ în tabelele Earnings / Top Losers.</div>';
     return;
   }
-  list.innerHTML = watchlist.map(w => {
-    const priceStr = w.price != null ? '$' + w.price.toFixed(2) : '...';
-    const pct = w.changePct;
-    const pctStr = pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : '-';
-    const pctCls = pct == null ? '' : (pct >= 0 ? 'pos' : 'neg');
-    const time = w.fetchedAt ? new Date(w.fetchedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '-';
-    // Pentru aiAnalyzeRow: pasăm un obiect compatibil cu prompt-ul (type='loser' pt analiză tehnică generică)
-    const aiData = JSON.stringify({
-      symbol: w.symbol, name: w.symbol, price: w.price, changePct: w.changePct,
-      marketCap: 0, sector: w.exchange || 'N/A', volume: w.volume,
-      regularMarketDayHigh: w.high, regularMarketDayLow: w.low
-    }).replace(/'/g, "&apos;");
-    return `<div class="wl-item">
-      <div class="wl-sym">${w.symbol}</div>
-      <div class="wl-name">${w.exchange || ''}</div>
-      <div class="wl-price">${priceStr}</div>
-      <div class="wl-change ${pctCls}">${pctStr}</div>
-      <button class="wl-ai" onclick='aiAnalyzeRow("watchlist", ${aiData})' title="Analiză AI">🤖</button>
-      <button class="wl-del" onclick='wlRemove("${w.symbol}")' title="Șterge">✕</button>
-    </div>`;
-  }).join('');
+
+  // Filtru
+  const filtered = watchlist.filter(wlMatchesFilter);
+  if (!filtered.length) {
+    list.innerHTML = '<div class="wl-empty">🔍 Niciun simbol nu se potrivește filtrului „' + wlFilter + '".</div>';
+    return;
+  }
+
+  // Grupare opțională
+  if (wlGroup) {
+    const gainers = wlSorted(filtered.filter(w => (w.changePct ?? 0) > 0.5));
+    const flat = wlSorted(filtered.filter(w => Math.abs(w.changePct ?? 0) <= 0.5));
+    const losers = wlSorted(filtered.filter(w => (w.changePct ?? 0) < -0.5));
+    let html = '';
+    if (gainers.length) html += `<div class="wl-group-hdr wl-group-gainers">📈 Câștigători (${gainers.length})</div>` + gainers.map(_wlRowHtml).join('');
+    if (flat.length)    html += `<div class="wl-group-hdr wl-group-flat">➖ Stabili (${flat.length})</div>` + flat.map(_wlRowHtml).join('');
+    if (losers.length)  html += `<div class="wl-group-hdr wl-group-losers">📉 Pierdători (${losers.length})</div>` + losers.map(_wlRowHtml).join('');
+    list.innerHTML = html;
+  } else {
+    list.innerHTML = wlSorted(filtered).map(_wlRowHtml).join('');
+  }
 }
 // Adapt aiAnalyzeRow să accepte și 'watchlist' ca tip
 const _origBuildPrompt = _buildAiPrompt;
