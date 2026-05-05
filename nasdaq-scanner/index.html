@@ -1707,7 +1707,7 @@ async function generateAISummary(force){
     },
     (full)=>{
       aiCacheSet(cacheKey,full);
-      _briefRender(el,full,'claude-haiku-4-5 · '+new Date().toLocaleTimeString('ro-RO'));
+      _briefRender(el,full,'claude-opus-4-7 · '+new Date().toLocaleTimeString('ro-RO'));
     },
     (err)=>{
       el.innerHTML='<div style="color:var(--red);font-size:.7rem">❌ '+(err.message||'Eroare')+'</div>'+
@@ -2808,7 +2808,7 @@ function showInfoModal(){
       content:'• <strong>Buton AI pe card individual</strong>: când vrei opinie pe un setup specific (validitate, entry/SL/TP)<br>'+
         '• <strong>🌅 AI Briefing</strong>: dimineața, o singură dată — privire de ansamblu pe tot watchlist-ul<br>'+
         '• <strong>🧠 AI Summary</strong>: după un scan complet — context macro al pieței<br>'+
-        '<em>Costuri: claude-haiku-4-5 ≈ $0.001 per analiză inline. AI Briefing ≈ $0.005. Practic gratuit.</em>'},
+        '<em>Costuri: claude-opus-4-7 ≈ $0.05–0.10 per analiză inline. AI Briefing ≈ $0.10–0.15. Model maxim — raționament profund, mai puține greșeli pe setup-uri.</em>'},
     
     {cat:'ai', bg:'#dcfce7', border:'#86efac', titleColor:'#166534', textColor:'#14532d', emoji:'⚡', title:'AI ca confirmation, nu decision',
       content:'AI-ul e <strong>tool de confirmare</strong>, nu oracol. Folosește-l așa:<br>'+
@@ -3166,7 +3166,7 @@ async function showAIBriefing(){
       const resp=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
         headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+        body:JSON.stringify({model:'claude-opus-4-7',max_tokens:1500,messages:[{role:'user',content:prompt}]})
       });
       const data=await resp.json();
       if(data.content?.[0]?.text){
@@ -4627,8 +4627,8 @@ async function aiCallStream(prompt, opts, onDelta, onDone, onError){
   const system=[{type:'text', text:AI_SYSTEM, cache_control:{type:'ephemeral'}}];
   if(opts.systemExtra) system.push({type:'text', text:opts.systemExtra, cache_control:{type:'ephemeral'}});
   const body={
-    model:'claude-haiku-4-5-20251001',
-    max_tokens:opts.maxTokens||700,
+    model:'claude-opus-4-7',
+    max_tokens:opts.maxTokens||1024,
     stream:true,
     system,
     messages
@@ -4845,7 +4845,7 @@ async function analyzeWithAI(symbol, btn, contextType, contextId, force){
     (full)=>{
       // Nu cache-uim răspunsuri generate cu date 0 — ar contamina viitoarele rulări.
       if(!aiPromptIsBlank(prompt)) aiCacheSet(cacheKey,full);
-      renderResult(full,'claude-haiku-4-5',news.length);
+      renderResult(full,'claude-opus-4-7',news.length);
     },
     (err)=>{
       container.innerHTML=''; container.dataset.done='0';
@@ -4878,7 +4878,7 @@ function openClaudeAiFallback(symbol, prompt, container, btn, errMsg){
   } else {
     container.innerHTML='<div class="ai-inline-result" style="background:rgba(124,58,237,.10);border-color:rgba(124,58,237,.25)">'+
       '<div style="font-size:.7rem;color:var(--purple);font-weight:700;margin-bottom:6px">🔑 Lipsește cheia Anthropic API</div>'+
-      '<div style="font-size:.6rem;color:var(--t2);margin-bottom:10px;line-height:1.5">Adaugă cheia o dată și analiza apare inline pentru toate simbolurile (claude-haiku-4-5 ≈ $0.001 / analiză).</div>'+
+      '<div style="font-size:.6rem;color:var(--t2);margin-bottom:10px;line-height:1.5">Adaugă cheia o dată și analiza apare inline pentru toate simbolurile (claude-opus-4-7 ≈ $0.05–0.10 / analiză — model maxim).</div>'+
       '<button data-action="addKey" style="'+btnStyle+'background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff">🔑 Adaugă cheie</button>'+
     '</div>';
   }
@@ -8021,7 +8021,7 @@ async function _lvAnalyze(symbol,kind,btn,force){
     },
     (full)=>{
       aiCacheSet(cacheKey,full);
-      cell.innerHTML=_lvFormatAiResult(full,symbol,kind,'claude-haiku-4-5 · '+new Date().toLocaleTimeString('ro-RO'),news.length);
+      cell.innerHTML=_lvFormatAiResult(full,symbol,kind,'claude-opus-4-7 · '+new Date().toLocaleTimeString('ro-RO'),news.length);
       btn.disabled=false;
     },
     (err)=>{
@@ -8108,7 +8108,7 @@ async function _lvBatchAnalyze(kind){
     },
     (full)=>{
       aiCacheSet(cacheKey,full);
-      panel.innerHTML=_lvBatchFormat(full,kind,'claude-haiku-4-5 · '+new Date().toLocaleTimeString('ro-RO'),0);
+      panel.innerHTML=_lvBatchFormat(full,kind,'claude-opus-4-7 · '+new Date().toLocaleTimeString('ro-RO'),0);
     },
     (err)=>{ panel.innerHTML='<div class="lv-ai-err">❌ '+(err.message||'Eroare')+'</div>'; }
   );
