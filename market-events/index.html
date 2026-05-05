@@ -386,27 +386,33 @@
 }
 @media (max-width:1280px){ .wl-list{grid-template-columns:repeat(3, 1fr)} }
 @media (max-width:900px){ .wl-list{grid-template-columns:repeat(2, 1fr); gap:6px} }
-/* Mobile: 2 carduri pe rând, layout minimalist (doar simbol + preț + change + acțiuni) */
+/* Mobile: 1 rând orizontal per simbol (listă densă, toate pe o linie) */
 @media (max-width:560px){
-  .wl-list{grid-template-columns:repeat(2, 1fr); gap:5px}
-  .wl-card{padding:7px 8px;gap:4px;border-radius:7px}
-  .wl-card-hdr{gap:4px}
-  .wl-chk-wrap{width:18px;height:18px}
-  .wl-chk{width:14px;height:14px}
+  .wl-list{grid-template-columns:1fr; gap:4px}
+  /* Cardul devine row orizontal — padding redus, items aliniați la centru */
+  .wl-card{
+    flex-direction:row;align-items:center;
+    padding:7px 9px;gap:8px;border-radius:7px;
+  }
+  /* "Spread" copiii din hdr și mid direct în card (single row pentru tot) */
+  .wl-card-hdr,.wl-card-mid{display:contents}
+  /* Simbol block compact (lăsăm spațiul liber în mijloc, actions împins cu margin:auto) */
+  .wl-sym-block{display:flex;flex-direction:row;align-items:baseline;gap:6px;min-width:0}
   .wl-sym-block .wl-sym{font-size:13px}
   .wl-sym-block .wl-exch{display:none}
-  .wl-card .wl-change{font-size:11px}
-  .wl-card-mid{flex-direction:row;align-items:baseline}
-  .wl-card .wl-price{font-size:13px}
+  .wl-card .wl-change{font-size:11px;white-space:nowrap}
+  .wl-card .wl-price{font-size:13px;white-space:nowrap}
   .wl-card .wl-time{display:none}
-  /* Ascunde info row (range/vol) — doar esențial pe mobil */
   .wl-card-info{display:none}
-  /* Acțiuni icon-only, mai mici */
-  .wl-actions{gap:3px}
+  /* Checkbox compact */
+  .wl-chk-wrap{width:18px;height:18px;flex-shrink:0}
+  .wl-chk{width:14px;height:14px}
+  /* Acțiuni icon-only, lipite la final */
+  .wl-actions{gap:3px;flex-shrink:0;margin-left:auto}
   .wl-actions button{padding:3px 6px;font-size:10px}
-  .wl-actions button.wl-ai{font-size:0}
+  .wl-actions button.wl-ai{font-size:0;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
   .wl-actions button.wl-ai::before{content:'🤖';font-size:11px}
-  .wl-actions button.wl-del{padding:3px 7px}
+  .wl-actions button.wl-del{padding:3px 8px}
 }
 
 /* Card individual */
