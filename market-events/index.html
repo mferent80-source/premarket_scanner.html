@@ -245,6 +245,107 @@
 .ai-key-modal .ai-test-result{
   font-size:11px;margin-bottom:10px;min-height:18px;color:#8b949e;
 }
+
+/* Earnings collapse */
+.section h2{cursor:pointer;user-select:none}
+.section h2 .collapse-arrow{display:inline-block;transition:transform .2s;font-size:11px;color:#6e7681;margin-right:4px}
+.section.collapsed h2 .collapse-arrow{transform:rotate(-90deg)}
+.section.collapsed .controls,
+.section.collapsed .status,
+.section.collapsed .table-wrap{display:none}
+
+/* Watchlist section */
+.section-watchlist{
+  background:#161b22;border:1px solid #30363d;border-radius:10px;
+  margin-bottom:24px;padding:16px;
+}
+.section-watchlist h2{color:#79c0ff;font-size:14px;margin-bottom:10px}
+.wl-add-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.wl-add-row input{
+  flex:1;min-width:140px;padding:8px 11px;background:#0d1117;border:1px solid #30363d;
+  border-radius:7px;color:#e6edf3;font-size:13px;font-family:monospace;outline:none;
+  text-transform:uppercase;
+}
+.wl-add-row input:focus{border-color:#1f6feb}
+.wl-add-btn{
+  padding:8px 14px;background:#238636;border:none;color:#fff;
+  border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;
+}
+.wl-add-btn:hover{background:#2ea043}
+.wl-refresh-btn{
+  padding:8px 12px;background:#1f6feb;border:none;color:#fff;
+  border-radius:7px;font-weight:700;font-size:12px;cursor:pointer;
+}
+.wl-refresh-btn:hover{background:#388bfd}
+.wl-list{display:flex;flex-direction:column;gap:6px}
+.wl-item{
+  display:grid;
+  grid-template-columns:80px 1fr 80px 80px auto auto;
+  gap:10px;align-items:center;
+  padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;
+  font-size:12px;
+}
+.wl-item .wl-sym{font-weight:700;color:#58a6ff;font-family:monospace;font-size:13px}
+.wl-item .wl-name{color:#8b949e;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wl-item .wl-price{font-family:monospace;font-variant-numeric:tabular-nums;text-align:right;font-weight:700;color:#e6edf3}
+.wl-item .wl-change{font-family:monospace;font-variant-numeric:tabular-nums;text-align:right;font-weight:700}
+.wl-item .wl-change.pos{color:#3fb950}
+.wl-item .wl-change.neg{color:#ff6b6b}
+.wl-item .wl-time{font-size:9px;color:#6e7681;font-family:monospace}
+.wl-item button{padding:5px 9px;border-radius:5px;border:1px solid #30363d;background:#21262d;color:#e6edf3;font-size:11px;cursor:pointer;font-weight:700}
+.wl-item button.wl-ai{color:#d2a8ff}
+.wl-item button.wl-ai:hover{background:#8957e520;border-color:#8957e5}
+.wl-item button.wl-del{color:#ff6b6b}
+.wl-item button.wl-del:hover{background:#3d1418;border-color:#5c1d23}
+.wl-empty{padding:14px;text-align:center;color:#6e7681;font-size:11px;font-style:italic;background:#0d1117;border:1px dashed #30363d;border-radius:8px}
+@media (max-width:560px){
+  .wl-item{grid-template-columns:60px 1fr 60px;gap:6px}
+  .wl-item .wl-name,.wl-item .wl-time{display:none}
+}
+
+/* Chat AI flotant (FAB + panel) */
+#aiChatFab{
+  position:fixed;bottom:20px;right:20px;width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;font-size:1.4rem;
+  border:none;cursor:pointer;box-shadow:0 6px 20px rgba(79,70,229,.45);z-index:9998;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .2s,box-shadow .2s;
+}
+#aiChatFab:hover{transform:scale(1.07);box-shadow:0 8px 28px rgba(79,70,229,.6)}
+#aiChatFab.open{transform:rotate(45deg)}
+#aiChatPanel{
+  position:fixed;bottom:84px;right:20px;width:380px;max-width:calc(100vw - 30px);
+  height:560px;max-height:calc(100vh - 110px);
+  background:#161b22;border:1px solid #30363d;border-radius:14px;
+  box-shadow:0 16px 48px rgba(0,0,0,.55);z-index:9998;
+  display:none;flex-direction:column;overflow:hidden;
+}
+#aiChatPanel.open{display:flex}
+.aichat-hdr{padding:10px 14px;background:linear-gradient(135deg,#7c3aed,#4f46e5);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.aichat-hdr-title{font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px}
+.aichat-hdr-actions{display:flex;gap:4px}
+.aichat-hdr-btn{background:rgba(255,255,255,.2);border:none;color:#fff;font-size:11px;padding:4px 8px;border-radius:5px;cursor:pointer;font-weight:700}
+.aichat-hdr-btn:hover{background:rgba(255,255,255,.32)}
+.aichat-body{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:#0d1117}
+.aichat-msg{max-width:85%;padding:8px 11px;border-radius:11px;font-size:12px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+.aichat-msg.user{align-self:flex-end;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border-bottom-right-radius:3px}
+.aichat-msg.assistant{align-self:flex-start;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-bottom-left-radius:3px}
+.aichat-msg.system{align-self:center;background:transparent;color:#6e7681;font-size:10px;font-style:italic;border:1px dashed #30363d;padding:6px 10px}
+.aichat-msg.error{align-self:center;background:#3d1418;color:#ff6b6b;border:1px solid #5c1d23}
+.aichat-empty{text-align:center;color:#6e7681;font-size:11px;padding:20px 8px;line-height:1.6}
+.aichat-empty kbd{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:1px 6px;font-family:monospace;font-size:10px;color:#79c0ff}
+.aichat-cmds{padding:6px 10px;background:#161b22;border-top:1px solid #30363d;display:flex;gap:5px;flex-wrap:wrap;font-size:10px}
+.aichat-cmd{background:#21262d;border:1px solid #30363d;color:#8b949e;padding:3px 7px;border-radius:5px;cursor:pointer;font-family:monospace;font-weight:700}
+.aichat-cmd:hover{background:#1f6feb20;color:#79c0ff;border-color:#388bfd}
+.aichat-input-row{padding:10px;border-top:1px solid #30363d;background:#161b22;display:flex;gap:6px;align-items:flex-end}
+.aichat-input{flex:1;border:1px solid #30363d;border-radius:10px;padding:8px 10px;font-size:12px;background:#0d1117;color:#e6edf3;resize:none;min-height:36px;max-height:120px;outline:none;font-family:inherit}
+.aichat-input:focus{border-color:#1f6feb}
+.aichat-send{padding:8px 14px;background:#1f6feb;border:none;color:#fff;border-radius:10px;font-weight:700;cursor:pointer}
+.aichat-send:disabled{opacity:.5;cursor:wait}
+@media (max-width:480px){
+  #aiChatPanel{width:calc(100vw - 20px);right:10px;bottom:80px;height:70vh}
+  #aiChatFab{bottom:15px;right:15px}
+}
 </style>
 </head>
 <body>
@@ -263,10 +364,24 @@
 </div>
 
 <!-- ============================================== -->
+<!-- WATCHLIST PERSONAL — preț live + AI per simbol  -->
+<!-- ============================================== -->
+<section class="section-watchlist">
+  <h2>👁️ WATCHLIST <span id="wlBadge" class="badge">-</span></h2>
+  <div class="wl-add-row">
+    <input id="wlAddInp" type="text" placeholder="Adaugă simbol (ex: AAPL, MSFT, NVDA)" maxlength="6"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();wlAdd();}" />
+    <button class="wl-add-btn" onclick="wlAdd()">+ Adaugă</button>
+    <button class="wl-refresh-btn" onclick="wlRefresh()" title="Reîmprospătează prețurile">🔄 Refresh</button>
+  </div>
+  <div id="wlList" class="wl-list"></div>
+</section>
+
+<!-- ============================================== -->
 <!-- TABEL 1: EARNINGS COMING UP - DIN TOATĂ PIAȚA  -->
 <!-- ============================================== -->
-<section class="section-earnings">
-  <h2>⚡ EARNINGS COMING UP — TOATĂ PIAȚA <span id="earnBadge" class="badge">-</span></h2>
+<section class="section-earnings section" id="earnSection">
+  <h2 onclick="toggleSection('earnSection')"><span class="collapse-arrow">▼</span> ⚡ EARNINGS COMING UP — TOATĂ PIAȚA <span id="earnBadge" class="badge">-</span></h2>
   
   <div class="controls">
     <div class="ctrl">
@@ -335,8 +450,8 @@
 <!-- ============================================== -->
 <!-- TABEL 2: TOP LOSERS NASDAQ                     -->
 <!-- ============================================== -->
-<section class="section-losers">
-  <h2>🔻 TOP LOSERS NASDAQ <span id="loserBadge" class="badge">-</span></h2>
+<section class="section-losers section" id="loserSection">
+  <h2 onclick="toggleSection('loserSection')"><span class="collapse-arrow">▼</span> 🔻 TOP LOSERS NASDAQ <span id="loserBadge" class="badge">-</span></h2>
   
   <div class="controls">
     <div class="ctrl">
@@ -1001,6 +1116,330 @@ async function aiAnalyzeRow(type, s) {
 
 // Init buton AI key (badge) la load
 updateAiKeyBadge();
+
+// ============================================================
+// COLLAPSE/EXPAND secțiuni (earnings + losers)
+// ============================================================
+function toggleSection(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('collapsed');
+  // Persistă starea
+  const collapsed = el.classList.contains('collapsed');
+  localStorage.setItem('me_'+id+'_collapsed', collapsed ? '1' : '0');
+}
+// Restaurează starea la load
+['earnSection','loserSection'].forEach(id => {
+  if (localStorage.getItem('me_'+id+'_collapsed') === '1') {
+    document.getElementById(id)?.classList.add('collapsed');
+  }
+});
+
+// ============================================================
+// WATCHLIST — listă de simboluri cu preț live (Yahoo chart v8)
+// ============================================================
+const WL_KEY = 'me_watchlist';
+let watchlist = [];
+try { watchlist = JSON.parse(localStorage.getItem(WL_KEY) || '[]'); } catch(_) { watchlist = []; }
+function wlSave(){ localStorage.setItem(WL_KEY, JSON.stringify(watchlist)); }
+
+async function wlFetchSymbol(sym){
+  // Folosim aceeași clasă scanner cu același proxy + chart endpoint
+  const det = await getScanner()._fetchSymbolDetail(sym);
+  if (!det) return null;
+  return {
+    symbol: sym,
+    price: det.regularMarketPrice,
+    change: det.regularMarketChange,
+    changePct: det.regularMarketChangePercent,
+    prevClose: det.regularMarketPreviousClose,
+    high: det.regularMarketDayHigh,
+    low: det.regularMarketDayLow,
+    volume: det.regularMarketVolume,
+    exchange: det.fullExchangeName,
+    fetchedAt: Date.now()
+  };
+}
+
+async function wlAdd(){
+  const inp = document.getElementById('wlAddInp');
+  const sym = (inp.value || '').trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
+  if (!sym) { inp.focus(); return; }
+  if (watchlist.find(w => w.symbol === sym)) {
+    inp.value = '';
+    setStatus('wlBadge', sym + ' deja în listă');
+    return;
+  }
+  inp.value = '';
+  // Adaugă imediat ca placeholder, apoi fetch
+  watchlist.push({ symbol: sym, price: null, fetchedAt: 0 });
+  wlSave(); wlRender();
+  const data = await wlFetchSymbol(sym);
+  if (!data) {
+    // Eșec fetch — îl lăsăm cu '?' ca user să-l șteargă
+    watchlist = watchlist.filter(w => w.symbol !== sym);
+    wlSave(); wlRender();
+    alert('Nu am putut găsi date pentru ' + sym + '. Verifică simbolul (Yahoo notation: AAPL, MSFT, BRK-B etc.)');
+    return;
+  }
+  const idx = watchlist.findIndex(w => w.symbol === sym);
+  if (idx >= 0) watchlist[idx] = data;
+  wlSave(); wlRender();
+}
+
+function wlRemove(sym){
+  watchlist = watchlist.filter(w => w.symbol !== sym);
+  wlSave(); wlRender();
+}
+
+async function wlRefresh(){
+  if (!watchlist.length) return;
+  const btn = document.querySelector('.wl-refresh-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Refresh...'; }
+  // Fetch în paralel pentru toate
+  const results = await Promise.all(watchlist.map(w => wlFetchSymbol(w.symbol)));
+  watchlist = watchlist.map((w, i) => results[i] || w);
+  wlSave(); wlRender();
+  if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh'; }
+}
+
+function wlRender(){
+  const list = document.getElementById('wlList');
+  const badge = document.getElementById('wlBadge');
+  if (!list) return;
+  if (badge) badge.textContent = watchlist.length;
+  if (!watchlist.length) {
+    list.innerHTML = '<div class="wl-empty">📋 Niciun simbol în watchlist. Adaugă ticker-uri (ex: AAPL, MSFT) pentru tracking live + AI.</div>';
+    return;
+  }
+  list.innerHTML = watchlist.map(w => {
+    const priceStr = w.price != null ? '$' + w.price.toFixed(2) : '...';
+    const pct = w.changePct;
+    const pctStr = pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : '-';
+    const pctCls = pct == null ? '' : (pct >= 0 ? 'pos' : 'neg');
+    const time = w.fetchedAt ? new Date(w.fetchedAt).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '-';
+    // Pentru aiAnalyzeRow: pasăm un obiect compatibil cu prompt-ul (type='loser' pt analiză tehnică generică)
+    const aiData = JSON.stringify({
+      symbol: w.symbol, name: w.symbol, price: w.price, changePct: w.changePct,
+      marketCap: 0, sector: w.exchange || 'N/A', volume: w.volume,
+      regularMarketDayHigh: w.high, regularMarketDayLow: w.low
+    }).replace(/'/g, "&apos;");
+    return `<div class="wl-item">
+      <div class="wl-sym">${w.symbol}</div>
+      <div class="wl-name">${w.exchange || ''}</div>
+      <div class="wl-price">${priceStr}</div>
+      <div class="wl-change ${pctCls}">${pctStr}</div>
+      <button class="wl-ai" onclick='aiAnalyzeRow("watchlist", ${aiData})' title="Analiză AI">🤖</button>
+      <button class="wl-del" onclick='wlRemove("${w.symbol}")' title="Șterge">✕</button>
+    </div>`;
+  }).join('');
+}
+// Adapt aiAnalyzeRow să accepte și 'watchlist' ca tip
+const _origBuildPrompt = _buildAiPrompt;
+_buildAiPrompt = function(type, s) {
+  if (type === 'watchlist') {
+    const priceLine = s.price != null ? `Preț curent: $${s.price.toFixed(2)}` : 'Preț: necunoscut';
+    const changeLine = s.changePct != null ? `Schimbare azi: ${s.changePct.toFixed(2)}%` : '';
+    const hlLine = s.regularMarketDayHigh && s.regularMarketDayLow
+      ? `Range azi: $${s.regularMarketDayLow.toFixed(2)} - $${s.regularMarketDayHigh.toFixed(2)}` : '';
+    const ctx = [priceLine, changeLine, hlLine].filter(Boolean).join('\n');
+    return `Analizează rapid simbolul ${s.symbol} ca trader pe Trade 212 (Nasdaq):\n\n${ctx}\n\nDă-mi în 6-8 puncte concise (max 350 cuvinte, română):\n1. Status tehnic curent (trend H1/D1, RSI estimativ)\n2. Suport/rezistență relevante (vizuale, fără chart la îndemână — calculează cu logica price action)\n3. Catalysti recenți (earnings recente, news potențiale)\n4. Setup-uri active (pullback, breakout, range)\n5. Risk/reward pentru long și short pe setup-ul prezent\n6. Verdict: long / short / wait, cu trigger concret\n\nFormat: bullet points, fără introducere lungă. Concret.`;
+  }
+  return _origBuildPrompt(type, s);
+};
+
+// Render watchlist la load + refresh la 60s dacă pagina e vizibilă
+wlRender();
+if (watchlist.length) wlRefresh(); // refresh imediat la load
+setInterval(() => { if (!document.hidden && watchlist.length) wlRefresh(); }, 60000);
+
+// ============================================================
+// CHAT AI FLOTANT (port din nasdaq-scanner, simplificat)
+// ============================================================
+const AICHAT_KEY = 'me_chat_history';
+const AICHAT_MAX_TURNS = 12;
+const aiChat = { open: false, busy: false, messages: [] };
+
+function aiChatLoad(){ try{ aiChat.messages = JSON.parse(localStorage.getItem(AICHAT_KEY) || '[]'); }catch(_){ aiChat.messages = []; } }
+function aiChatPersist(){ try{ localStorage.setItem(AICHAT_KEY, JSON.stringify(aiChat.messages.slice(-30))); }catch(_){} }
+
+function aiChatToggle(){
+  aiChat.open = !aiChat.open;
+  document.getElementById('aiChatPanel').classList.toggle('open', aiChat.open);
+  document.getElementById('aiChatFab').classList.toggle('open', aiChat.open);
+  if (aiChat.open) { aiChatRender(); setTimeout(()=>document.getElementById('aiChatInput')?.focus(), 100); }
+}
+
+function aiChatClear(){
+  if (!confirm('Ștergi tot istoricul conversației?')) return;
+  aiChat.messages = []; aiChatPersist(); aiChatRender();
+}
+
+function aiChatRender(){
+  const body = document.getElementById('aiChatBody');
+  if (!body) return;
+  if (!aiChat.messages.length){
+    body.innerHTML = `<div class="aichat-empty">
+      💬 <b>Asistent AI · market events</b><br><br>
+      Întreabă orice despre piață sau folosește comenzi:<br>
+      <kbd>/wl</kbd> <kbd>/buy AAPL</kbd> <kbd>/earnings</kbd> <kbd>/losers</kbd> <kbd>/clear</kbd><br><br>
+      <span style="font-size:10px">Vede automat earnings calendar, top losers și watchlist-ul tău.</span>
+    </div>`;
+    return;
+  }
+  body.innerHTML = aiChat.messages.map(m => {
+    const cls = m.role === 'user' ? 'user' : (m.role === 'system' ? 'system' : (m.role === 'error' ? 'error' : 'assistant'));
+    const safe = (m.content || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `<div class="aichat-msg ${cls}">${safe}</div>`;
+  }).join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+function aiChatBuildContext(){
+  const lines = ['CONTEXT MARKET EVENTS (' + new Date().toLocaleString('ro-RO') + '):'];
+  if (watchlist.length) {
+    const wlSnap = watchlist.slice(0, 8).map(w => `${w.symbol}${w.price != null ? ' $' + w.price.toFixed(2) : ''}${w.changePct != null ? ' (' + (w.changePct >= 0 ? '+' : '') + w.changePct.toFixed(1) + '%)' : ''}`).join(', ');
+    lines.push('WATCHLIST (' + watchlist.length + '): ' + wlSnap);
+  }
+  // Earnings + Losers din DOM (parse rapid din tabele)
+  const earnRows = document.querySelectorAll('#earnResults tr');
+  if (earnRows.length) {
+    const top = Array.from(earnRows).slice(0, 5).map(tr => tr.querySelector('.sym')?.textContent?.trim()).filter(Boolean);
+    if (top.length) lines.push('EARNINGS în curând: ' + top.join(', '));
+  }
+  const loserRows = document.querySelectorAll('#loserResults tr');
+  if (loserRows.length) {
+    const top = Array.from(loserRows).slice(0, 5).map(tr => tr.querySelector('.sym')?.textContent?.trim()).filter(Boolean);
+    if (top.length) lines.push('TOP LOSERS: ' + top.join(', '));
+  }
+  return lines.join('\n');
+}
+
+function aiChatHandleCommand(text){
+  const t = text.trim();
+  if (t === '/clear') { aiChatClear(); return null; }
+  if (t === '/wl' || t === '/watchlist') {
+    if (!watchlist.length) return 'Watchlist-ul e gol — nu am ce analiza.';
+    return `Analizează simbolurile din watchlist-ul meu (${watchlist.map(w=>w.symbol).join(', ')}). Pentru fiecare: stare tehnică în 1 rând. La final: "INTRĂ AZI: <ticker>" sau "EVITĂ TOATE — așteaptă". Max 10 rânduri total.`;
+  }
+  if (t === '/earnings') {
+    return `Pe baza listei EARNINGS din context, dă-mi top 3 candidați pentru trade pre-earnings (long sau short). Pentru fiecare: ticker + reason scurt + entry/target/stop. Max 8 rânduri.`;
+  }
+  if (t === '/losers') {
+    return `Pe baza listei TOP LOSERS din context, dă-mi top 3 candidați pentru oversold bounce trade. Pentru fiecare: ticker + suport tehnic + entry/target/stop. Max 8 rânduri.`;
+  }
+  if (t.startsWith('/buy ')) {
+    const sym = t.slice(5).trim().toUpperCase();
+    return `Analizează entry pentru ${sym} ACUM. Niveluri concrete entry/TP/SL în $, dimensiunea poziției pentru un cont de $1000 (max 2% risc), 1 risc principal. Max 5 rânduri.`;
+  }
+  return text;
+}
+
+async function aiChatSend(){
+  if (aiChat.busy) return;
+  const inp = document.getElementById('aiChatInput');
+  const text = (inp.value || '').trim();
+  if (!text) return;
+  if (!getAnthropicKey()) { showAiKeyModal(()=>{}); return; }
+  let promptText = aiChatHandleCommand(text);
+  if (promptText === null) { inp.value = ''; return; }
+  aiChat.messages.push({ role: 'user', content: text, ts: Date.now() });
+  aiChatRender();
+  inp.value = '';
+  inp.style.height = 'auto';
+
+  const apiMessages = aiChat.messages
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .slice(-AICHAT_MAX_TURNS)
+    .map(m => ({ role: m.role, content: m.content }));
+  if (apiMessages.length && apiMessages[apiMessages.length-1].role === 'user') {
+    apiMessages[apiMessages.length-1].content = promptText;
+  }
+
+  aiChat.messages.push({ role: 'assistant', content: '⏳ Analiză...', ts: Date.now() });
+  aiChatRender();
+  aiChat.busy = true;
+  document.getElementById('aiChatSendBtn').disabled = true;
+
+  const ctx = aiChatBuildContext();
+  const sysExtra = 'Acționezi ca asistent personal de tradat pentru Marius (cont Trade 212 + Pionex). Răspunde scurt și direct, în română. Folosește datele din contextul market-events dacă sunt relevante.\n\n' + ctx;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getAnthropicKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: AI_MODEL, max_tokens: 800, system: sysExtra, messages: apiMessages })
+    });
+    const data = await resp.json();
+    const last = aiChat.messages[aiChat.messages.length - 1];
+    if (data.content?.[0]?.text) {
+      last.content = data.content[0].text;
+    } else if (data.error) {
+      last.role = 'error';
+      last.content = '❌ ' + data.error.message;
+    } else {
+      last.role = 'error';
+      last.content = '❌ Răspuns gol';
+    }
+    aiChatPersist(); aiChatRender();
+  } catch (e) {
+    const last = aiChat.messages[aiChat.messages.length - 1];
+    last.role = 'error';
+    last.content = '❌ ' + e.message;
+    aiChatPersist(); aiChatRender();
+  } finally {
+    aiChat.busy = false;
+    document.getElementById('aiChatSendBtn').disabled = false;
+  }
+}
+
+function aiChatQuickCmd(cmd){
+  const inp = document.getElementById('aiChatInput');
+  if (!inp) return;
+  inp.value = cmd + (cmd.endsWith(' ') ? '' : ' ');
+  inp.focus();
+  setTimeout(()=>{ inp.selectionStart = inp.selectionEnd = inp.value.length; }, 10);
+}
+
+// Init chat widget
+(function aiChatInit(){
+  aiChatLoad();
+  const fab = document.createElement('button');
+  fab.id = 'aiChatFab';
+  fab.title = 'Asistent AI (chat conversațional)';
+  fab.innerHTML = '💬';
+  fab.onclick = aiChatToggle;
+  document.body.appendChild(fab);
+
+  const panel = document.createElement('div');
+  panel.id = 'aiChatPanel';
+  panel.innerHTML = `
+    <div class="aichat-hdr">
+      <div class="aichat-hdr-title">💬 Asistent AI · market events</div>
+      <div class="aichat-hdr-actions">
+        <button class="aichat-hdr-btn" onclick="aiChatClear()" title="Șterge istoric">🗑️</button>
+        <button class="aichat-hdr-btn" onclick="aiChatToggle()" title="Închide">✕</button>
+      </div>
+    </div>
+    <div class="aichat-body" id="aiChatBody"></div>
+    <div class="aichat-cmds">
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/wl')">/wl</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/earnings')">/earnings</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/losers')">/losers</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/buy ')">/buy</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/clear')">/clear</span>
+    </div>
+    <div class="aichat-input-row">
+      <textarea id="aiChatInput" class="aichat-input" placeholder="Întreabă orice... (Enter trimite, Shift+Enter linie nouă)" rows="1"></textarea>
+      <button id="aiChatSendBtn" class="aichat-send" onclick="aiChatSend()">▶</button>
+    </div>
+  `;
+  document.body.appendChild(panel);
+
+  const inp = document.getElementById('aiChatInput');
+  inp.addEventListener('input', () => { inp.style.height = 'auto'; inp.style.height = Math.min(120, inp.scrollHeight) + 'px'; });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiChatSend(); } });
+})();
 
 // ============================================================
 // AUTO-RUN AMÂNDOUĂ LA START
