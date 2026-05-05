@@ -295,6 +295,43 @@
 .wl-add-btn:hover{background:#2ea043}
 .wl-refresh-btn{padding:8px 12px;background:#1f6feb;border:none;color:#fff;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer}
 .wl-refresh-btn:hover{background:#388bfd}
+.wl-sync-btn{padding:8px 12px;background:#8957e5;border:none;color:#fff;border-radius:7px;font-weight:700;font-size:12px;cursor:pointer}
+.wl-sync-btn:hover{background:#a371f7}
+
+/* Checkbox pentru selecție comparație */
+.wl-chk-wrap{
+  display:flex;align-items:center;justify-content:center;
+  width:24px;height:24px;flex-shrink:0;cursor:pointer;
+}
+.wl-chk{
+  width:16px;height:16px;cursor:pointer;
+  accent-color:#8957e5;
+}
+.wl-card.card-selected{
+  background:#1c1530;border-color:#8957e5;
+  box-shadow:0 0 0 1px rgba(137,87,229,.3);
+}
+
+/* Bara floating de comparație (apare când sunt 2+ selectate) */
+.wl-compare-bar{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:#161b22;border:1px solid #8957e5;
+  padding:10px 16px;border-radius:14px;
+  box-shadow:0 12px 40px rgba(137,87,229,.3),0 4px 12px rgba(0,0,0,.4);
+  z-index:9990;display:none;align-items:center;gap:10px;
+  font-size:12px;color:#e6edf3;font-weight:600;
+  max-width:calc(100vw - 30px);flex-wrap:wrap;justify-content:center;
+}
+.wl-compare-bar.show{display:flex}
+.wl-compare-bar .wl-cmp-count{color:#d2a8ff;font-weight:800}
+.wl-compare-bar button{
+  padding:7px 14px;border-radius:8px;border:none;font-weight:700;font-size:11px;cursor:pointer;
+}
+.wl-compare-bar .btn-cmp-go{background:#8957e5;color:#fff}
+.wl-compare-bar .btn-cmp-go:hover{background:#a371f7}
+.wl-compare-bar .btn-cmp-go:disabled{opacity:.5;cursor:wait}
+.wl-compare-bar .btn-cmp-clear{background:#21262d;color:#8b949e;border:1px solid #30363d}
+.wl-compare-bar .btn-cmp-clear:hover{background:#30363d;color:#e6edf3}
 
 /* Toolbar: filtre + sortare */
 .wl-toolbar{
@@ -455,6 +492,7 @@
       onkeydown="if(event.key==='Enter'){event.preventDefault();wlAdd();}" />
     <button class="wl-add-btn" onclick="wlAdd()">+ Adaugă</button>
     <button class="wl-refresh-btn" onclick="wlRefresh()" title="Reîmprospătează prețurile">🔄 Refresh</button>
+    <button class="wl-sync-btn" onclick="wlSyncModal()" title="Sincronizează watchlist între device-uri (GitHub Gist)">☁️ Sync</button>
   </div>
 
   <!-- Bara de filtre + sortare + grupare -->
@@ -1345,6 +1383,218 @@ let wlFilter = localStorage.getItem('me_wl_filter') || 'all';
 let wlSort = localStorage.getItem('me_wl_sort') || 'change-desc';
 let wlGroup = localStorage.getItem('me_wl_group') === '1';
 
+// Selecție pentru comparație AI (sesiune, nu persistent)
+const wlSelected = new Set();
+function wlToggleSelect(sym){
+  if (wlSelected.has(sym)) wlSelected.delete(sym);
+  else wlSelected.add(sym);
+  wlRender();
+  wlUpdateCompareBar();
+}
+function wlClearSelection(){ wlSelected.clear(); wlRender(); wlUpdateCompareBar(); }
+function wlUpdateCompareBar(){
+  let bar = document.getElementById('wlCompareBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'wlCompareBar';
+    bar.className = 'wl-compare-bar';
+    document.body.appendChild(bar);
+  }
+  if (wlSelected.size < 2) { bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+  bar.innerHTML = `
+    <span><span class="wl-cmp-count">${wlSelected.size}</span> simboluri: ${Array.from(wlSelected).join(', ')}</span>
+    <button class="btn-cmp-go" id="wlCmpGoBtn" onclick="aiCompare()">🤖 Compară AI</button>
+    <button class="btn-cmp-clear" onclick="wlClearSelection()">✕ Anulează</button>
+  `;
+}
+
+// Comparație AI între 2+ simboluri selectate
+async function aiCompare(){
+  if (wlSelected.size < 2) return;
+  const key = getAnthropicKey();
+  if (!key) { showAiKeyModal(() => aiCompare()); return; }
+  const symbols = Array.from(wlSelected);
+  const data = symbols.map(s => watchlist.find(w => w.symbol === s)).filter(Boolean);
+
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:700px">
+      <div class="ai-modal-title">🤖 Comparație AI: ${symbols.join(' vs ')}</div>
+      <div class="ai-modal-sub">${symbols.length} simboluri · ${AI_MODEL}</div>
+      <div class="ai-modal-result" id="aiCmpResult">⏳ Construiesc comparația...</div>
+      <div class="ai-modal-meta" id="aiCmpMeta"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="aiCmpCopyBtn">📋 Copiază</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const result = document.getElementById('aiCmpResult');
+  const meta = document.getElementById('aiCmpMeta');
+
+  // Build prompt
+  const ctx = data.map(w => {
+    const parts = [`${w.symbol}`];
+    if (w.price != null) parts.push(`preț $${w.price.toFixed(2)}`);
+    if (w.changePct != null) parts.push(`${(w.changePct >= 0 ? '+' : '') + w.changePct.toFixed(2)}% azi`);
+    if (w.low != null && w.high != null) parts.push(`range $${w.low.toFixed(2)}-$${w.high.toFixed(2)}`);
+    if (w.volume) parts.push(`vol ${NasdaqScanner.formatVolume(w.volume)}`);
+    return `- ${parts.join(', ')}`;
+  }).join('\n');
+
+  const prompt = `Compară următoarele ${symbols.length} simboluri pentru un trade pe termen scurt (Trade 212, Nasdaq):\n\n${ctx}\n\nDă-mi:\n1. Tabel cu rating tehnic (1-10) per simbol pentru: trend, momentum, R/R bun la entry actual\n2. Care simbol are cel mai bun setup ACUM (long sau short) și de ce, cu entry/TP/SL concret\n3. Care simbol e cel mai riscant și de ce\n4. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + un mini tabel ASCII pentru rating. Maximum 400 cuvinte. Concret, fără fluff.`;
+
+  const t0 = performance.now();
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: AI_MODEL, max_tokens: 1800, messages: [{ role: 'user', content: prompt }] })
+    });
+    const dataResp = await resp.json();
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    if (dataResp.content?.[0]?.text) {
+      result.textContent = dataResp.content[0].text;
+      const usage = dataResp.usage ? ` · ${dataResp.usage.input_tokens}+${dataResp.usage.output_tokens} tok` : '';
+      meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${usage}`;
+    } else if (dataResp.error) {
+      result.textContent = '❌ ' + dataResp.error.message;
+    } else {
+      result.textContent = '❌ Răspuns gol';
+    }
+  } catch (e) {
+    result.textContent = '❌ ' + e.message;
+  }
+
+  document.getElementById('aiCmpCopyBtn').onclick = () => {
+    navigator.clipboard.writeText(result.textContent).then(() => {
+      const b = document.getElementById('aiCmpCopyBtn');
+      const old = b.textContent;
+      b.textContent = '✓ Copiat!';
+      setTimeout(() => b.textContent = old, 1500);
+    });
+  };
+}
+
+// ============================================================
+// SYNC WATCHLIST CROSS-DEVICE prin GitHub Gist
+// ============================================================
+const GIST_KEY = 'me_gist_config'; // {token, gistId}
+function _getGistCfg(){ try{ return JSON.parse(localStorage.getItem(GIST_KEY)||'{}'); }catch(_){ return {}; } }
+function _saveGistCfg(c){ localStorage.setItem(GIST_KEY, JSON.stringify(c)); }
+
+async function _gistApi(method, path, body, token){
+  const r = await fetch('https://api.github.com' + path, {
+    method,
+    headers: { 'Accept':'application/vnd.github+json', 'Authorization':'Bearer '+token, 'X-GitHub-Api-Version':'2022-11-28', 'Content-Type':'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error('GitHub ' + r.status + ': ' + t.slice(0,200));
+  }
+  return r.json();
+}
+
+async function wlGistPush(){
+  const cfg = _getGistCfg();
+  if (!cfg.token) { showToastMsg('❌ Lipsește token GitHub','err'); return; }
+  if (!cfg.gistId) { showToastMsg('❌ Lipsește gist ID','err'); return; }
+  try {
+    await _gistApi('PATCH', '/gists/' + cfg.gistId, {
+      description: 'Quantum Market Events — watchlist sync',
+      files: { 'me_watchlist.json': { content: JSON.stringify({ watchlist, updatedAt: Date.now() }, null, 2) } }
+    }, cfg.token);
+    cfg.lastSyncTs = Date.now();
+    _saveGistCfg(cfg);
+    showToastMsg('✅ Push reușit (' + watchlist.length + ' simboluri)');
+  } catch (e) { showToastMsg('❌ Push: ' + e.message,'err'); }
+}
+
+async function wlGistPull(){
+  const cfg = _getGistCfg();
+  if (!cfg.token || !cfg.gistId) { showToastMsg('❌ Configurează token + gist ID','err'); return; }
+  try {
+    const g = await _gistApi('GET', '/gists/' + cfg.gistId, null, cfg.token);
+    const file = g.files?.['me_watchlist.json'];
+    if (!file?.content) throw new Error('Gist nu conține me_watchlist.json');
+    const data = JSON.parse(file.content);
+    if (!Array.isArray(data.watchlist)) throw new Error('Format invalid');
+    if (!confirm('Restaurez ' + data.watchlist.length + ' simboluri din Gist? (înlocuiește watchlist-ul curent cu ' + watchlist.length + ' simboluri)')) return;
+    watchlist = data.watchlist;
+    wlSave(); wlRender(); wlRefresh();
+    showToastMsg('✅ Pull reușit (' + data.watchlist.length + ' simboluri)');
+  } catch (e) { showToastMsg('❌ Pull: ' + e.message,'err'); }
+}
+
+async function wlGistCreate(){
+  const cfg = _getGistCfg();
+  if (!cfg.token) { showToastMsg('❌ Introdu token-ul GitHub întâi','err'); return; }
+  try {
+    const r = await _gistApi('POST', '/gists', {
+      description: 'Quantum Market Events — watchlist sync',
+      public: false,
+      files: { 'me_watchlist.json': { content: JSON.stringify({ watchlist, updatedAt: Date.now() }, null, 2) } }
+    }, cfg.token);
+    cfg.gistId = r.id;
+    _saveGistCfg(cfg);
+    document.getElementById('meGistIdInp').value = r.id;
+    showToastMsg('✅ Gist creat: ' + r.id.slice(0,8) + '...');
+  } catch (e) { showToastMsg('❌ Creare: ' + e.message,'err'); }
+}
+
+function wlSyncModal(){
+  // Detectează token-ul existent din alte scannere (gist_config_nasdaq sau gist_config_crypto)
+  let cfg = _getGistCfg();
+  if (!cfg.token) {
+    try {
+      const fb = JSON.parse(localStorage.getItem('gist_config_nasdaq') || localStorage.getItem('gist_config_crypto') || '{}');
+      if (fb.token) { cfg.token = fb.token; cfg.gistId = cfg.gistId || ''; _saveGistCfg(cfg); }
+    } catch(_) {}
+  }
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  const lastSync = cfg.lastSyncTs ? new Date(cfg.lastSyncTs).toLocaleString('ro-RO') : '—';
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:520px">
+      <div class="ai-modal-title">☁️ Sync Watchlist (GitHub Gist)</div>
+      <div class="ai-modal-sub">Token + Gist ID privat — partajat între device-uri. Ultim sync: ${lastSync}</div>
+
+      <div style="font-size:11px;color:#8b949e;margin-bottom:6px">GitHub Personal Access Token (scope: <strong>gist</strong>)</div>
+      <input id="meTokenInp" type="password" placeholder="ghp_..." value="${(cfg.token||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 11px;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;font-size:12px;font-family:monospace;outline:none;margin-bottom:10px" />
+
+      <div style="font-size:11px;color:#8b949e;margin-bottom:6px">Gist ID (gol = creează unul nou)</div>
+      <input id="meGistIdInp" type="text" placeholder="ex: a1b2c3d4..." value="${(cfg.gistId||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 11px;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;font-size:12px;font-family:monospace;outline:none;margin-bottom:10px" />
+
+      <div style="font-size:10px;color:#6e7681;margin-bottom:14px;line-height:1.5">💡 Generează token la <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:#79c0ff">github.com/settings/tokens</a> (scope: <strong>gist</strong> only). Pe device 1 lasă Gist ID gol → 🆕 Creează. Pe device 2 lipești ID-ul + 🔽 Pull.</div>
+
+      <div class="ai-modal-actions">
+        <button id="meSaveBtn" class="primary">💾 Salvează</button>
+        <button id="meCreateBtn">🆕 Creează gist nou</button>
+        <button id="mePushBtn">⬆️ Push (trimite)</button>
+        <button id="mePullBtn">⬇️ Pull (primește)</button>
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const saveCfg = () => {
+    const c = _getGistCfg();
+    c.token = document.getElementById('meTokenInp').value.trim();
+    c.gistId = document.getElementById('meGistIdInp').value.trim();
+    _saveGistCfg(c);
+  };
+  document.getElementById('meSaveBtn').onclick = () => { saveCfg(); showToastMsg('✅ Salvat'); };
+  document.getElementById('meCreateBtn').onclick = async () => { saveCfg(); await wlGistCreate(); };
+  document.getElementById('mePushBtn').onclick = async () => { saveCfg(); await wlGistPush(); };
+  document.getElementById('mePullBtn').onclick = async () => { saveCfg(); await wlGistPull(); ov.remove(); };
+}
+
 function wlSetFilter(f){ wlFilter = f; localStorage.setItem('me_wl_filter', f); wlRender(); }
 function wlSetSort(s){ wlSort = s; localStorage.setItem('me_wl_sort', s); wlRender(); }
 function wlSetGroup(g){ wlGroup = !!g; localStorage.setItem('me_wl_group', g ? '1' : '0'); wlRender(); }
@@ -1391,8 +1641,13 @@ function _wlRowHtml(w){
   }).replace(/'/g, "&apos;");
   // Accent culoare pe border-left bazat pe direcție
   const accent = pct == null ? '' : (pct >= 0 ? 'card-pos' : 'card-neg');
-  return `<div class="wl-card ${accent}">
+  const checked = wlSelected.has(w.symbol) ? 'checked' : '';
+  const selCls = wlSelected.has(w.symbol) ? ' card-selected' : '';
+  return `<div class="wl-card ${accent}${selCls}">
     <div class="wl-card-hdr">
+      <label class="wl-chk-wrap" title="Selectează pentru comparație AI">
+        <input type="checkbox" class="wl-chk" ${checked} onchange="wlToggleSelect('${w.symbol}')">
+      </label>
       <div class="wl-sym-block">
         <div class="wl-sym">${w.symbol}</div>
         <div class="wl-exch">${w.exchange || ''}</div>
@@ -1467,6 +1722,7 @@ _buildAiPrompt = function(type, s) {
 
 // Render watchlist la load + refresh la 60s dacă pagina e vizibilă
 wlRender();
+wlUpdateCompareBar(); // creează DOM-ul barei (ascuns until 2+ selectate)
 if (watchlist.length) wlRefresh(); // refresh imediat la load
 setInterval(() => { if (!document.hidden && watchlist.length) wlRefresh(); }, 60000);
 
