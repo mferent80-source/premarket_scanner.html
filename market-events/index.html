@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nasdaq Scanner — Earnings + Top Losers</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    padding: 16px;
+    font-size: 14px;
+  }
+  h1 { font-size: 20px; margin-bottom: 4px; color: #f0883e; }
+  .subtitle { font-size: 12px; color: #8b949e; margin-bottom: 16px; }
+  
+  .global-config {
+    background: #161b22;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    border: 1px solid #30363d;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .global-config label { font-size: 11px; color: #8b949e; text-transform: uppercase; }
+  .global-config input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    color: #e6edf3;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    flex: 1;
+    min-width: 250px;
+  }
+  
+  section {
+    background: #161b22;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 16px;
+    border: 1px solid #30363d;
+  }
+  h2 {
+    font-size: 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-earnings h2 { color: #d2a8ff; }
+  .section-losers h2 { color: #ff7b72; }
+  
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    background: #0d1117;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  .ctrl { display: flex; flex-direction: column; gap: 3px; }
+  label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+  input, select {
+    background: #161b22;
+    border: 1px solid #30363d;
+    color: #e6edf3;
+    padding: 5px 7px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  input:focus, select:focus { outline: none; border-color: #58a6ff; }
+  
+  button {
+    color: white;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .btn-earnings { background: #8957e5; }
+  .btn-earnings:hover { background: #a371f7; }
+  .btn-losers { background: #da3633; }
+  .btn-losers:hover { background: #f85149; }
+  button:disabled { background: #484f58; cursor: not-allowed; }
+  
+  .status {
+    padding: 6px 10px;
+    background: #0d1117;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: #8b949e;
+    border-left: 3px solid #58a6ff;
+  }
+  .status.error { border-left-color: #f85149; color: #ff7b72; }
+  .status.success { border-left-color: #3fb950; color: #56d364; }
+  
+  .table-wrap { overflow-x: auto; max-height: 600px; overflow-y: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #0d1117;
+    border-radius: 4px;
+    overflow: hidden;
+    font-size: 12px;
+  }
+  th, td {
+    padding: 7px 9px;
+    text-align: left;
+    border-bottom: 1px solid #21262d;
+  }
+  th {
+    background: #21262d;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .section-earnings th { color: #d2a8ff; }
+  .section-losers th { color: #ff7b72; }
+  tr:hover td { background: #1c2128; }
+  
+  .neg { color: #ff6b6b; font-weight: 700; }
+  .pos { color: #3fb950; font-weight: 700; }
+  .sym { color: #58a6ff; font-weight: 700; }
+  .sym a { color: inherit; text-decoration: none; }
+  .sym a:hover { text-decoration: underline; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .vol-hot { color: #f0883e; font-weight: 600; }
+  
+  .earn-hot { background: #f8514920; color: #ff7b72; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
+  .earn-warm { background: #d2a8ff20; color: #d2a8ff; font-weight: 600; padding: 2px 6px; border-radius: 3px; }
+  .earn-soon { color: #8b949e; }
+  .earn-far { color: #484f58; font-size: 11px; }
+  
+  .time-bmo { background: #1f6feb20; color: #79c0ff; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+  .time-amc { background: #f0883e20; color: #f0883e; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 600; }
+  .time-unk { color: #6e7681; font-size: 10px; }
+  
+  .empty {
+    padding: 20px;
+    text-align: center;
+    color: #8b949e;
+    font-style: italic;
+  }
+  
+  .badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    background: #30363d;
+    color: #e6edf3;
+    margin-left: 6px;
+  }
+.hub-back{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:600;color:#8b949e;text-decoration:none;
+  padding:6px 12px;border:1px solid #30363d;border-radius:8px;
+  background:#161b22;margin-bottom:14px;
+  transition:all .15s;
+}
+.hub-back:hover{color:#f97316;border-color:#f97316;background:#1c2128}
+</style>
+</head>
+<body>
+
+<a href="../" class="hub-back">← Hub</a>
+<h1>📊 NASDAQ SCANNER PRO</h1>
+<div class="subtitle">Earnings Calendar (toată piața) + Top Losers — Pornesc automat la încărcare</div>
+
+<!-- CONFIG GLOBAL -->
+<div class="global-config">
+  <label>Proxy CORS:</label>
+  <input id="proxyUrl" value="https://cors-proxy-one-drab.vercel.app/api/proxy/?url=" />
+  <button id="refreshAllBtn" style="background: #1f6feb;">🔄 REFRESH AMÂNDOUĂ</button>
+</div>
+
+<!-- ============================================== -->
+<!-- TABEL 1: EARNINGS COMING UP - DIN TOATĂ PIAȚA  -->
+<!-- ============================================== -->
+<section class="section-earnings">
+  <h2>⚡ EARNINGS COMING UP — TOATĂ PIAȚA <span id="earnBadge" class="badge">-</span></h2>
+  
+  <div class="controls">
+    <div class="ctrl">
+      <label>Max zile</label>
+      <select id="maxDaysEarn">
+        <option value="3">≤ 3 zile</option>
+        <option value="7" selected>≤ 7 zile</option>
+        <option value="14">≤ 14 zile</option>
+        <option value="30">≤ 30 zile</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>Min Market Cap ($M)</label>
+      <input id="minEarnMcap" type="number" value="1000" min="0" step="100" />
+    </div>
+    <div class="ctrl">
+      <label>Sortare</label>
+      <select id="earnSort">
+        <option value="date">După dată (apropiere)</option>
+        <option value="mcap">După Market Cap</option>
+        <option value="change">După Schimb %</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>Max stocks</label>
+      <input id="maxEarnResults" type="number" value="50" min="10" max="200" />
+    </div>
+    <div class="ctrl">
+      <label>Enrich preț (mai lent)</label>
+      <select id="enrichPrice">
+        <option value="true" selected>Da (cu preț + low azi)</option>
+        <option value="false">Nu (doar earnings calendar)</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>&nbsp;</label>
+      <button id="scanEarnBtn" class="btn-earnings">⚡ Scanează</button>
+    </div>
+  </div>
+  
+  <div id="earnStatus" class="status">Așteaptă scan automat...</div>
+  
+  <div class="table-wrap">
+    <table id="earnTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Simbol</th>
+          <th>Nume</th>
+          <th class="num">Earnings</th>
+          <th>BMO/AMC</th>
+          <th class="num">EPS Est.</th>
+          <th class="num">Preț</th>
+          <th class="num">Schimb %</th>
+          <th class="num">Low azi %</th>
+          <th class="num">Mcap</th>
+          <th>Sector</th>
+        </tr>
+      </thead>
+      <tbody id="earnResults"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<!-- TABEL 2: TOP LOSERS NASDAQ                     -->
+<!-- ============================================== -->
+<section class="section-losers">
+  <h2>🔻 TOP LOSERS NASDAQ <span id="loserBadge" class="badge">-</span></h2>
+  
+  <div class="controls">
+    <div class="ctrl">
+      <label>Min scădere %</label>
+      <input id="minDrop" type="number" value="5" min="1" step="0.5" />
+    </div>
+    <div class="ctrl">
+      <label>Min Market Cap ($M)</label>
+      <input id="minMcap" type="number" value="300" min="0" step="50" />
+    </div>
+    <div class="ctrl">
+      <label>Volume × Avg ≥</label>
+      <input id="volMult" type="number" value="0" min="0" step="0.1" />
+    </div>
+    <div class="ctrl">
+      <label>Exchange</label>
+      <select id="exchange">
+        <option value="NASDAQ">Nasdaq only</option>
+        <option value="">Toate (NYSE+Nasdaq)</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>Max rezultate</label>
+      <input id="maxRes" type="number" value="100" min="10" max="250" />
+    </div>
+    <div class="ctrl">
+      <label>&nbsp;</label>
+      <button id="scanLoserBtn" class="btn-losers">🔻 Scanează</button>
+    </div>
+  </div>
+  
+  <div id="loserStatus" class="status">Așteaptă scan automat...</div>
+  
+  <div class="table-wrap">
+    <table id="loserTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Simbol</th>
+          <th>Nume</th>
+          <th class="num">Preț</th>
+          <th class="num">Schimb %</th>
+          <th class="num">Volum</th>
+          <th class="num">Vol/Avg</th>
+          <th class="num">Mcap</th>
+          <th class="num">Earnings</th>
+          <th>Sector</th>
+        </tr>
+      </thead>
+      <tbody id="loserResults"></tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+// ============================================================
+// CLASA NasdaqScanner
+// ============================================================
+class NasdaqScanner {
+  constructor(corsProxy = '') {
+    this.corsProxy = corsProxy;
+    this.yahooScreener = 'https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved';
+    this.yahooSummary = 'https://query1.finance.yahoo.com/v10/finance/quoteSummary';
+    this.nasdaqEarnings = 'https://api.nasdaq.com/api/calendar/earnings';
+  }
+
+  // ============================================================
+  // TOP LOSERS — folosește Yahoo screener (funcționează fără auth)
+  // ============================================================
+  async fetchTopLosers(options = {}) {
+    const {
+      minDropPct = 5, minVolume = 0, volumeMultiplier = 0,
+      minMarketCap = 0, maxResults = 100, exchange = 'NASDAQ'
+    } = options;
+
+    const yahooUrl = `${this.yahooScreener}?formatted=true&lang=en-US&region=US&scrIds=day_losers&count=${maxResults}`;
+    const url = this.corsProxy ? this.corsProxy + encodeURIComponent(yahooUrl) : yahooUrl;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    
+    const quotes = data?.finance?.result?.[0]?.quotes || [];
+    return quotes
+      .map(q => this._parseYahooQuote(q))
+      .filter(s => this._matchesLoserFilters(s, { minDropPct, minVolume, volumeMultiplier, minMarketCap, exchange }))
+      .sort((a, b) => a.changePct - b.changePct);
+  }
+
+  // ============================================================
+  // EARNINGS CALENDAR — fetch din toată piața via Nasdaq.com API
+  // ============================================================
+  async fetchAllEarnings(options = {}) {
+    const {
+      maxDays = 7,
+      minMarketCap = 1_000_000_000,
+      maxResults = 50,
+      enrichWithPrice = true,
+      sortBy = 'date'
+    } = options;
+
+    // 1. Generează lista de date (skip weekends — earnings doar zile lucrătoare)
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i <= maxDays; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      const dayOfWeek = d.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) continue; // skip Sun/Sat
+      dates.push({
+        str: d.toISOString().split('T')[0],
+        dayOffset: i,
+        dateObj: new Date(d)
+      });
+    }
+
+    // 2. Fetch în paralel pentru toate datele
+    const calendarResults = await Promise.all(
+      dates.map(d => this._fetchNasdaqEarningsForDay(d.str))
+    );
+
+    // 3. Aggregate într-o listă
+    const allEarnings = [];
+    for (let i = 0; i < dates.length; i++) {
+      const dayRows = calendarResults[i] || [];
+      for (const row of dayRows) {
+        if (!row.symbol) continue;
+        const mcap = this._parseNasdaqMcap(row.marketCap);
+        const ts = Math.floor(dates[i].dateObj.getTime() / 1000);
+        allEarnings.push({
+          symbol: row.symbol,
+          name: row.name || row.companyName || row.symbol,
+          marketCap: mcap,
+          earningsDate: dates[i].dateObj,
+          earningsTimestamp: ts,
+          daysToEarnings: dates[i].dayOffset,
+          time: row.time || '',
+          epsForecast: row.epsForecast || '',
+          // placeholder-e pentru enrichment
+          price: null,
+          changePct: null,
+          intradayLowPct: null,
+          sector: null
+        });
+      }
+    }
+
+    // 4. Filter după market cap, dedupe, sortează după mcap, apoi limitează
+    const seen = new Set();
+    let filtered = allEarnings
+      .filter(e => {
+        if (seen.has(e.symbol)) return false;
+        seen.add(e.symbol);
+        return e.marketCap >= minMarketCap;
+      })
+      .sort((a, b) => b.marketCap - a.marketCap) // top by mcap
+      .slice(0, maxResults);
+
+    // 5. Enrich cu preț din Yahoo (în paralel)
+    if (enrichWithPrice && filtered.length > 0) {
+      const priceResults = await Promise.all(
+        filtered.map(e => this._fetchSymbolDetail(e.symbol))
+      );
+      
+      filtered = filtered.map((e, i) => {
+        const detail = priceResults[i];
+        if (!detail) return e;
+        const parsed = this._parseYahooQuote(detail);
+        const prevClose = detail.regularMarketPreviousClose?.raw ?? detail.regularMarketPreviousClose;
+        const intradayLowPct = parsed.dayLow != null && prevClose != null
+          ? ((parsed.dayLow - prevClose) / prevClose) * 100
+          : null;
+        return {
+          ...e,
+          price: parsed.price,
+          changePct: parsed.changePct,
+          intradayLowPct: intradayLowPct,
+          sector: parsed.sector || e.sector,
+          volume: parsed.volume,
+          avgVolume: parsed.avgVolume
+        };
+      });
+    }
+
+    // 6. Sortare finală
+    if (sortBy === 'date') {
+      filtered.sort((a, b) => a.daysToEarnings - b.daysToEarnings || b.marketCap - a.marketCap);
+    } else if (sortBy === 'mcap') {
+      filtered.sort((a, b) => b.marketCap - a.marketCap);
+    } else if (sortBy === 'change') {
+      filtered.sort((a, b) => (a.changePct ?? 0) - (b.changePct ?? 0));
+    }
+    
+    return filtered;
+  }
+
+  async _fetchNasdaqEarningsForDay(dateStr) {
+    const url = `${this.nasdaqEarnings}?date=${dateStr}`;
+    const fullUrl = this.corsProxy ? this.corsProxy + encodeURIComponent(url) : url;
+    try {
+      const r = await fetch(fullUrl);
+      if (!r.ok) {
+        console.warn(`Nasdaq earnings ${dateStr}: HTTP ${r.status}`);
+        return null;
+      }
+      const data = await r.json();
+      return data?.data?.rows || [];
+    } catch (e) {
+      console.warn(`Nasdaq earnings ${dateStr} failed:`, e.message);
+      return null;
+    }
+  }
+
+  _parseNasdaqMcap(str) {
+    if (!str || str === 'N/A') return 0;
+    return parseFloat(String(str).replace(/[$,]/g, '')) || 0;
+  }
+
+  // ============================================================
+  // Fetch detalii pentru un simbol via Yahoo quoteSummary
+  // ============================================================
+  async _fetchSymbolDetail(symbol) {
+    const modules = 'price,calendarEvents,summaryDetail,assetProfile';
+    const yahooUrl = `${this.yahooSummary}/${symbol}?modules=${modules}`;
+    const url = this.corsProxy ? this.corsProxy + encodeURIComponent(yahooUrl) : yahooUrl;
+    
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      const data = await r.json();
+      const result = data?.quoteSummary?.result?.[0];
+      if (!result) return null;
+      
+      const price = result.price || {};
+      const detail = result.summaryDetail || {};
+      const profile = result.assetProfile || {};
+      
+      return {
+        symbol: price.symbol || symbol,
+        shortName: price.shortName,
+        longName: price.longName,
+        regularMarketPrice: price.regularMarketPrice,
+        regularMarketChange: price.regularMarketChange,
+        regularMarketChangePercent: price.regularMarketChangePercent,
+        regularMarketVolume: price.regularMarketVolume,
+        averageDailyVolume3Month: detail.averageDailyVolume3Month,
+        marketCap: price.marketCap,
+        regularMarketDayHigh: price.regularMarketDayHigh,
+        regularMarketDayLow: price.regularMarketDayLow,
+        regularMarketPreviousClose: price.regularMarketPreviousClose,
+        sector: profile.sector,
+        fullExchangeName: price.exchangeName
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ============================================================
+  // Parser comun pentru cotații Yahoo
+  // ============================================================
+  _parseYahooQuote(q) {
+    const get = (obj, key) => obj?.[key]?.raw ?? obj?.[key] ?? null;
+    let earningsTs = get(q, 'earningsTimestamp') || get(q, 'earningsTimestampStart');
+    let daysToEarnings = null;
+    if (earningsTs) {
+      daysToEarnings = Math.round((earningsTs * 1000 - Date.now()) / (1000 * 60 * 60 * 24));
+    }
+    return {
+      symbol: q.symbol,
+      name: q.shortName || q.longName || q.symbol,
+      price: get(q, 'regularMarketPrice'),
+      change: get(q, 'regularMarketChange'),
+      changePct: get(q, 'regularMarketChangePercent'),
+      volume: get(q, 'regularMarketVolume'),
+      avgVolume: get(q, 'averageDailyVolume3Month'),
+      marketCap: get(q, 'marketCap'),
+      exchange: q.fullExchangeName || q.exchange || '',
+      sector: q.sector || '',
+      dayHigh: get(q, 'regularMarketDayHigh'),
+      dayLow: get(q, 'regularMarketDayLow'),
+      yearHigh: get(q, 'fiftyTwoWeekHigh'),
+      yearLow: get(q, 'fiftyTwoWeekLow'),
+      earningsTimestamp: earningsTs,
+      daysToEarnings: daysToEarnings,
+    };
+  }
+
+  _matchesLoserFilters(s, f) {
+    if (s.changePct == null) return false;
+    const dropPct = Math.abs(s.changePct);
+    if (s.changePct > 0 || dropPct < f.minDropPct) return false;
+    if (f.exchange) {
+      const ex = (s.exchange || '').toUpperCase();
+      if (f.exchange === 'NASDAQ' && !/NASDAQ|NMS|NGM|NCM/.test(ex)) return false;
+      if (f.exchange === 'NYSE' && !ex.includes('NYSE')) return false;
+    }
+    if (f.minMarketCap && (s.marketCap || 0) < f.minMarketCap) return false;
+    if (f.minVolume && (s.volume || 0) < f.minVolume) return false;
+    if (f.volumeMultiplier && s.avgVolume > 0 && s.volume / s.avgVolume < f.volumeMultiplier) return false;
+    return true;
+  }
+
+  // ============================================================
+  // Helpers static pentru afișaj
+  // ============================================================
+  static formatVolume(v) {
+    if (!v) return '-';
+    if (v >= 1e9) return (v/1e9).toFixed(2) + 'B';
+    if (v >= 1e6) return (v/1e6).toFixed(2) + 'M';
+    if (v >= 1e3) return (v/1e3).toFixed(1) + 'K';
+    return v.toString();
+  }
+  
+  static formatMcap(m) {
+    if (!m) return '-';
+    if (m >= 1e12) return '$' + (m/1e12).toFixed(2) + 'T';
+    if (m >= 1e9) return '$' + (m/1e9).toFixed(2) + 'B';
+    if (m >= 1e6) return '$' + (m/1e6).toFixed(0) + 'M';
+    return '$' + m.toLocaleString();
+  }
+  
+  static formatEarnings(daysToEarnings, earningsTs) {
+    if (daysToEarnings == null) return { text: '-', cls: 'earn-far' };
+    if (daysToEarnings < 0) return { text: 'trecut', cls: 'earn-far' };
+    const date = earningsTs ? new Date(earningsTs * 1000) : null;
+    const dateStr = date ? `${date.getDate()}/${date.getMonth()+1}` : '';
+    if (daysToEarnings === 0) return { text: `🔥 AZI (${dateStr})`, cls: 'earn-hot' };
+    if (daysToEarnings <= 7) return { text: `🔥 ${daysToEarnings}z (${dateStr})`, cls: 'earn-hot' };
+    if (daysToEarnings <= 14) return { text: `⚡ ${daysToEarnings}z (${dateStr})`, cls: 'earn-warm' };
+    if (daysToEarnings <= 30) return { text: `${daysToEarnings}z (${dateStr})`, cls: 'earn-soon' };
+    return { text: `${daysToEarnings}z`, cls: 'earn-far' };
+  }
+  
+  static formatTime(time) {
+    if (!time) return '<span class="time-unk">-</span>';
+    const t = String(time).toLowerCase();
+    if (t.includes('pre-market') || t.includes('before') || t.includes('bmo')) {
+      return '<span class="time-bmo">BMO ☀️</span>';
+    }
+    if (t.includes('after-hours') || t.includes('after') || t.includes('amc')) {
+      return '<span class="time-amc">AMC 🌙</span>';
+    }
+    return `<span class="time-unk">${time}</span>`;
+  }
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+const $ = id => document.getElementById(id);
+
+function setStatus(id, msg, type = '') {
+  const s = $(id);
+  s.textContent = msg;
+  s.className = 'status ' + type;
+}
+
+function getScanner() {
+  return new NasdaqScanner($('proxyUrl').value.trim());
+}
+
+// Construiește URL TradingView, alegând prefixul de exchange (NYSE/NASDAQ).
+function tvUrl(s) {
+  const ex = (s.exchange || '').toUpperCase();
+  const prefix = ex.includes('NYSE') ? 'NYSE' : 'NASDAQ';
+  return `https://www.tradingview.com/chart/?symbol=${prefix}:${encodeURIComponent(s.symbol)}`;
+}
+function symCell(s) {
+  return `<td class="sym"><a href="${tvUrl(s)}" target="_blank" rel="noopener" title="Deschide ${s.symbol} în TradingView">${s.symbol}</a></td>`;
+}
+
+// ============================================================
+// SCAN 1: EARNINGS COMING UP (toată piața)
+// ============================================================
+async function scanEarnings() {
+  const btn = $('scanEarnBtn');
+  btn.disabled = true;
+  setStatus('earnStatus', '⏳ Fetch calendar earnings de pe Nasdaq.com (1-2 sec)...');
+  $('earnResults').innerHTML = '';
+  $('earnBadge').textContent = '...';
+  
+  const maxDays = parseInt($('maxDaysEarn').value);
+  const enrichPrice = $('enrichPrice').value === 'true';
+  
+  try {
+    if (enrichPrice) {
+      setStatus('earnStatus', '⏳ Fetch calendar + prețuri (poate dura 5-15 sec)...');
+    }
+    
+    const results = await getScanner().fetchAllEarnings({
+      maxDays: maxDays,
+      minMarketCap: parseFloat($('minEarnMcap').value) * 1e6,
+      maxResults: parseInt($('maxEarnResults').value),
+      enrichWithPrice: enrichPrice,
+      sortBy: $('earnSort').value
+    });
+    
+    const tbody = $('earnResults');
+    if (results.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="11" class="empty">Niciun earnings în ${maxDays} zile cu Mcap ≥ $${$('minEarnMcap').value}M.<br>Verifică dacă proxy-ul permite api.nasdaq.com (nu doar Yahoo).</td></tr>`;
+    } else {
+      results.forEach((s, i) => {
+        const earn = NasdaqScanner.formatEarnings(s.daysToEarnings, s.earningsTimestamp);
+        const intradayLow = s.intradayLowPct != null 
+          ? `<span class="${s.intradayLowPct <= -5 ? 'neg' : ''}">${s.intradayLowPct.toFixed(2)}%</span>` 
+          : '-';
+        const changeClass = s.changePct == null ? '' : (s.changePct < 0 ? 'neg' : 'pos');
+        const changeStr = s.changePct != null ? `${s.changePct.toFixed(2)}%` : '-';
+        const priceStr = s.price != null ? `$${s.price.toFixed(2)}` : '-';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          ${symCell(s)}
+          <td>${(s.name || '').slice(0, 26)}</td>
+          <td class="num"><span class="${earn.cls}">${earn.text}</span></td>
+          <td>${NasdaqScanner.formatTime(s.time)}</td>
+          <td class="num">${s.epsForecast || '-'}</td>
+          <td class="num">${priceStr}</td>
+          <td class="num ${changeClass}">${changeStr}</td>
+          <td class="num">${intradayLow}</td>
+          <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
+          <td>${s.sector || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    
+    $('earnBadge').textContent = `${results.length}`;
+    setStatus('earnStatus', `✅ ${results.length} stocks cu earnings ≤ ${maxDays} zile (Mcap ≥ $${$('minEarnMcap').value}M) — ${new Date().toLocaleTimeString('ro-RO')}`, 'success');
+  } catch (err) {
+    setStatus('earnStatus', `❌ ${err.message}`, 'error');
+    $('earnBadge').textContent = 'eroare';
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// SCAN 2: TOP LOSERS NASDAQ
+// ============================================================
+async function scanLosers() {
+  const btn = $('scanLoserBtn');
+  btn.disabled = true;
+  setStatus('loserStatus', '⏳ Scanare top losers...');
+  $('loserResults').innerHTML = '';
+  $('loserBadge').textContent = '...';
+  
+  try {
+    const losers = await getScanner().fetchTopLosers({
+      minDropPct: parseFloat($('minDrop').value),
+      minMarketCap: parseFloat($('minMcap').value) * 1e6,
+      volumeMultiplier: parseFloat($('volMult').value),
+      maxResults: parseInt($('maxRes').value),
+      exchange: $('exchange').value
+    });
+    
+    const tbody = $('loserResults');
+    if (losers.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="10" class="empty">Niciun loser care îndeplinește filtrele.</td></tr>`;
+    } else {
+      losers.forEach((s, i) => {
+        const volRatio = s.avgVolume ? (s.volume / s.avgVolume) : 0;
+        const earn = NasdaqScanner.formatEarnings(s.daysToEarnings, s.earningsTimestamp);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i + 1}</td>
+          ${symCell(s)}
+          <td>${(s.name || '').slice(0, 28)}</td>
+          <td class="num">$${s.price?.toFixed(2) || '-'}</td>
+          <td class="num neg">${s.changePct?.toFixed(2)}%</td>
+          <td class="num">${NasdaqScanner.formatVolume(s.volume)}</td>
+          <td class="num ${volRatio >= 2 ? 'vol-hot' : ''}">${volRatio ? volRatio.toFixed(1) + 'x' : '-'}</td>
+          <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
+          <td class="num"><span class="${earn.cls}">${earn.text}</span></td>
+          <td>${s.sector || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    
+    $('loserBadge').textContent = `${losers.length}`;
+    setStatus('loserStatus', `✅ ${losers.length} losers ≥ ${$('minDrop').value}% — ${new Date().toLocaleTimeString('ro-RO')}`, 'success');
+  } catch (err) {
+    setStatus('loserStatus', `❌ ${err.message}`, 'error');
+    $('loserBadge').textContent = 'eroare';
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// AUTO-RUN AMÂNDOUĂ LA START
+// ============================================================
+async function runAll() {
+  await Promise.all([scanEarnings(), scanLosers()]);
+}
+
+$('scanEarnBtn').addEventListener('click', scanEarnings);
+$('scanLoserBtn').addEventListener('click', scanLosers);
+$('refreshAllBtn').addEventListener('click', runAll);
+
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(runAll, 200);
+});
+</script>
+
+</body>
+</html>

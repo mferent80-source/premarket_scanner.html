@@ -2,8 +2,8 @@
 // Strategie: network-first cu fallback la cache (nu blochează update-urile)
 //
 // IMPORTANT: bump CACHE_VERSION manual la fiecare release semnificativ — invalidare automată în clienți.
-// SW are scope `/` (rădăcina repo-ului), deci controlează hub + crypto-scanner + nasdaq-scanner + trading-journal.
-const CACHE_VERSION = 'tt-v8-2026-05-05';
+// SW are scope `/` (rădăcina repo-ului), deci controlează hub + crypto-scanner + nasdaq-scanner + trading-journal + market-events.
+const CACHE_VERSION = 'tt-v9-2026-05-05';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 // Resurse statice pre-cache-uite la instalare
@@ -16,6 +16,8 @@ const PRECACHE = [
   './nasdaq-scanner/index.html',
   './trading-journal/',
   './trading-journal/index.html',
+  './market-events/',
+  './market-events/index.html',
   './404.html'
 ];
 
