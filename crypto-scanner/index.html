@@ -2173,15 +2173,15 @@ Răspunde în română, max 5 rânduri: stare tehnică actuală, scenariu 24-72h
         'anthropic-dangerous-direct-browser-access':'true'
       },
       body:JSON.stringify({
-        model:'claude-haiku-4-5',
-        max_tokens:600,
+        model:'claude-opus-4-7',
+        max_tokens:1024,
         messages:[{role:'user',content:prompt}]
       })
     });
     const data=await resp.json();
     if(data.content?.[0]?.text){
       container.innerHTML=`<div class="ai-inline-result">${data.content[0].text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-        <div style="font-size:.5rem;color:var(--t3);margin-top:4px;text-align:right">⚡ claude-haiku-4-5</div>`;
+        <div style="font-size:.5rem;color:var(--t3);margin-top:4px;text-align:right">🧠 claude-opus-4-7</div>`;
       container.dataset.done='1';
       btn.textContent='🤖 Ascunde analiză';
     } else {
@@ -6521,7 +6521,7 @@ const TIPS_DATA_CRYPTO=[
       '• <strong>OK pentru</strong>: BTC/ETH/top 50 (date suficiente), analiza tehnică, validare setup-uri tehnice<br>'+
       '• <strong>NU pentru</strong>: noi launch-uri, narrative shifts (gen "pump.fun season"), prediction de gem-uri<br>'+
       '• <strong>Bun la</strong>: "validează acest setup pe X funding+OI+RSI" → răspunde concret<br>'+
-      '<strong>Costuri</strong>: ~$0.001/analiză inline cu haiku. Nu te cost.'},
+      '<strong>Costuri</strong>: ~$0.05–0.10/analiză inline cu Opus 4.7 (model maxim — raționament profund, mai puține greșeli pe setup-uri tehnice).'},
   
   // ─── WORKFLOW ───
   {cat:'workflow',bg:'#ffedd5',border:'#fdba74',titleColor:'#9a3412',textColor:'#7c2d12',emoji:'🚀',title:'Smart Trade vs Grid — când folosești fiecare',
@@ -9377,8 +9377,8 @@ async function aiCallStreamCrypto(opts, onDelta, onDone, onError){
   const system = [{type:'text', text:AI_SYSTEM_C, cache_control:{type:'ephemeral'}}];
   if(opts.systemExtra) system.push({type:'text', text:opts.systemExtra, cache_control:{type:'ephemeral'}});
   const body = {
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: opts.maxTokens || 700,
+    model: 'claude-opus-4-7',
+    max_tokens: opts.maxTokens || 1024,
     stream: true,
     system,
     messages
