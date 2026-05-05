@@ -246,6 +246,13 @@
   font-size:11px;margin-bottom:10px;min-height:18px;color:#8b949e;
 }
 
+/* Grid 2 coloane: Earnings + Top Losers side-by-side */
+.events-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
+.events-grid > section{margin-bottom:0}
+@media (max-width:1100px){
+  .events-grid{grid-template-columns:1fr}
+}
+
 /* Earnings collapse */
 .section h2{cursor:pointer;user-select:none}
 .section h2 .collapse-arrow{display:inline-block;transition:transform .2s;font-size:11px;color:#6e7681;margin-right:4px}
@@ -253,6 +260,23 @@
 .section.collapsed .controls,
 .section.collapsed .status,
 .section.collapsed .table-wrap{display:none}
+
+/* Tabele compacte (când sunt side-by-side, font-size mai mic, padding redus, scroll orizontal pentru coloane multe) */
+.compact-table{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.compact-table table{font-size:10.5px;width:100%;min-width:540px}
+.compact-table th,.compact-table td{padding:5px 6px}
+.compact-table .num{font-size:10.5px}
+.compact-table .badge,.compact-table .earn-hot,.compact-table .earn-warm{font-size:9px;padding:1px 4px}
+.compact-table .time-bmo,.compact-table .time-amc{font-size:9px;padding:1px 3px}
+
+/* Butoane pe row (👁️ watchlist add + 🤖 AI) — compacte */
+.btn-row{
+  background:#21262d;border:1px solid #30363d;color:#79c0ff;
+  padding:2px 7px;border-radius:5px;font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .12s;
+}
+.btn-row-wl:hover{background:#1f6feb20;border-color:#388bfd;color:#79c0ff}
+.btn-row:disabled{opacity:.5;cursor:wait}
 
 /* Watchlist section */
 .section-watchlist{
@@ -377,11 +401,14 @@
   <div id="wlList" class="wl-list"></div>
 </section>
 
+<!-- Grid 2 coloane: Earnings + Top Losers side-by-side (stack pe mobile) -->
+<div class="events-grid">
+
 <!-- ============================================== -->
 <!-- TABEL 1: EARNINGS COMING UP - DIN TOATĂ PIAȚA  -->
 <!-- ============================================== -->
 <section class="section-earnings section" id="earnSection">
-  <h2 onclick="toggleSection('earnSection')"><span class="collapse-arrow">▼</span> ⚡ EARNINGS COMING UP — TOATĂ PIAȚA <span id="earnBadge" class="badge">-</span></h2>
+  <h2 onclick="toggleSection('earnSection')"><span class="collapse-arrow">▼</span> ⚡ EARNINGS <span id="earnBadge" class="badge">-</span></h2>
   
   <div class="controls">
     <div class="ctrl">
@@ -423,8 +450,8 @@
   </div>
   
   <div id="earnStatus" class="status">Așteaptă scan automat...</div>
-  
-  <div class="table-wrap">
+
+  <div class="table-wrap compact-table">
     <table id="earnTable">
       <thead>
         <tr>
@@ -451,7 +478,7 @@
 <!-- TABEL 2: TOP LOSERS NASDAQ                     -->
 <!-- ============================================== -->
 <section class="section-losers section" id="loserSection">
-  <h2 onclick="toggleSection('loserSection')"><span class="collapse-arrow">▼</span> 🔻 TOP LOSERS NASDAQ <span id="loserBadge" class="badge">-</span></h2>
+  <h2 onclick="toggleSection('loserSection')"><span class="collapse-arrow">▼</span> 🔻 TOP LOSERS <span id="loserBadge" class="badge">-</span></h2>
   
   <div class="controls">
     <div class="ctrl">
@@ -484,8 +511,8 @@
   </div>
   
   <div id="loserStatus" class="status">Așteaptă scan automat...</div>
-  
-  <div class="table-wrap">
+
+  <div class="table-wrap compact-table">
     <table id="loserTable">
       <thead>
         <tr>
@@ -506,6 +533,8 @@
     </table>
   </div>
 </section>
+
+</div><!-- /events-grid -->
 
 <script>
 // ============================================================
@@ -876,7 +905,7 @@ async function scanEarnings() {
           <td class="num">${intradayLow}</td>
           <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
           <td>${s.sector || '-'}</td>
-          <td><button class="btn-ai-row" onclick='aiAnalyzeRow("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})'>🤖</button></td>
+          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -931,7 +960,7 @@ async function scanLosers() {
           <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
           <td class="num"><span class="${earn.cls}">${earn.text}</span></td>
           <td>${s.sector || '-'}</td>
-          <td><button class="btn-ai-row" onclick='aiAnalyzeRow("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})'>🤖</button></td>
+          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -1165,26 +1194,49 @@ async function wlAdd(){
   const inp = document.getElementById('wlAddInp');
   const sym = (inp.value || '').trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
   if (!sym) { inp.focus(); return; }
+  inp.value = '';
+  await wlAddSymbol(sym);
+}
+
+// Funcție publică pentru add direct (fără input) — apelată de butonul 👁️ din earnings/losers
+async function wlAddSymbol(rawSym){
+  const sym = String(rawSym || '').trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
+  if (!sym) return;
   if (watchlist.find(w => w.symbol === sym)) {
-    inp.value = '';
-    setStatus('wlBadge', sym + ' deja în listă');
+    showToastMsg('👁️ ' + sym + ' deja în watchlist');
     return;
   }
-  inp.value = '';
   // Adaugă imediat ca placeholder, apoi fetch
   watchlist.push({ symbol: sym, price: null, fetchedAt: 0 });
   wlSave(); wlRender();
+  showToastMsg('➕ Adăugat: ' + sym);
   const data = await wlFetchSymbol(sym);
   if (!data) {
-    // Eșec fetch — îl lăsăm cu '?' ca user să-l șteargă
     watchlist = watchlist.filter(w => w.symbol !== sym);
     wlSave(); wlRender();
-    alert('Nu am putut găsi date pentru ' + sym + '. Verifică simbolul (Yahoo notation: AAPL, MSFT, BRK-B etc.)');
+    showToastMsg('❌ Nu am putut găsi date pentru ' + sym, 'err');
     return;
   }
   const idx = watchlist.findIndex(w => w.symbol === sym);
   if (idx >= 0) watchlist[idx] = data;
   wlSave(); wlRender();
+}
+
+// Mini-toast (pentru feedback rapid la add din tabel)
+function showToastMsg(msg, type){
+  let t = document.getElementById('_meToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = '_meToast';
+    t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#161b22;border:1px solid #30363d;color:#e6edf3;padding:10px 18px;border-radius:10px;font-size:12px;font-weight:600;z-index:9997;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:opacity .25s';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.borderColor = type === 'err' ? '#5c1d23' : '#30363d';
+  t.style.color = type === 'err' ? '#ff6b6b' : '#e6edf3';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.style.opacity = '0'; }, 2200);
 }
 
 function wlRemove(sym){
