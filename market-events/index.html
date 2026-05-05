@@ -320,58 +320,69 @@
 .wl-group-toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:#8b949e}
 .wl-group-toggle input[type=checkbox]{cursor:pointer;accent-color:#1f6feb}
 
-/* Header coloane sticky */
-.wl-thead{
-  display:grid;
-  grid-template-columns:90px 90px 130px 100px 80px 60px 70px;
-  gap:10px;padding:6px 12px;
-  font-size:9px;font-weight:700;color:#6e7681;
-  text-transform:uppercase;letter-spacing:.6px;
-  border-bottom:1px solid #30363d;margin-bottom:6px;
-}
-
-/* Group headers (când wlGroup e ON) */
+/* Group headers (când wlGroup e ON) — au full-width în grid */
 .wl-group-hdr{
+  grid-column:1 / -1;
   font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
-  padding:8px 10px;margin:8px 0 4px;border-radius:6px;
+  padding:8px 10px;margin:8px 0 0;border-radius:6px;
 }
 .wl-group-gainers{background:rgba(63,185,80,.10);color:#3fb950;border-left:3px solid #3fb950}
 .wl-group-losers{background:rgba(255,107,107,.10);color:#ff6b6b;border-left:3px solid #ff6b6b}
 .wl-group-flat{background:rgba(139,148,158,.08);color:#8b949e;border-left:3px solid #6e7681}
 
-/* Lista + items */
-.wl-list{display:flex;flex-direction:column;gap:5px}
-.wl-item{
+/* Grid carduri: 4 pe rând desktop wide → expandabil pe verticală cu numărul adăugat */
+.wl-list{
   display:grid;
-  grid-template-columns:90px 90px 130px 100px 80px 60px 70px;
-  gap:10px;align-items:center;
-  padding:8px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;
-  font-size:12px;
+  grid-template-columns:repeat(4, 1fr);
+  gap:8px;
 }
-.wl-item:hover{border-color:#388bfd;background:#0f141c}
-.wl-sym-block{display:flex;flex-direction:column;gap:1px;min-width:0}
-.wl-sym-block .wl-sym{font-weight:700;color:#58a6ff;font-family:monospace;font-size:13px}
-.wl-sym-block .wl-exch{color:#6e7681;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wl-item .wl-price{font-family:monospace;font-variant-numeric:tabular-nums;text-align:right;font-weight:700;color:#e6edf3;font-size:13px}
-.wl-item .wl-range{font-family:monospace;font-variant-numeric:tabular-nums;color:#8b949e;font-size:10px;text-align:center}
-.wl-item .wl-change{font-family:monospace;font-variant-numeric:tabular-nums;text-align:right;font-weight:800;font-size:13px}
-.wl-item .wl-change.pos{color:#3fb950}
-.wl-item .wl-change.neg{color:#ff6b6b}
-.wl-item .wl-vol{font-family:monospace;text-align:right;color:#8b949e;font-size:10px}
-.wl-item .wl-time{font-size:9px;color:#6e7681;font-family:monospace;text-align:center}
-.wl-item .wl-actions{display:flex;gap:3px;justify-content:flex-end}
-.wl-item button{padding:4px 7px;border-radius:5px;border:1px solid #30363d;background:#21262d;color:#e6edf3;font-size:11px;cursor:pointer;font-weight:700}
-.wl-item button.wl-ai{color:#d2a8ff}
-.wl-item button.wl-ai:hover{background:#8957e520;border-color:#8957e5}
-.wl-item button.wl-del{color:#ff6b6b}
-.wl-item button.wl-del:hover{background:#3d1418;border-color:#5c1d23}
-.wl-empty{padding:14px;text-align:center;color:#6e7681;font-size:11px;font-style:italic;background:#0d1117;border:1px dashed #30363d;border-radius:8px}
+@media (max-width:1280px){ .wl-list{grid-template-columns:repeat(3, 1fr)} }
+@media (max-width:900px){ .wl-list{grid-template-columns:repeat(2, 1fr)} }
+@media (max-width:560px){ .wl-list{grid-template-columns:1fr} }
 
-/* Mobile: stack columns, ascunde header + coloane secundare */
-@media (max-width:760px){
-  .wl-thead{display:none}
-  .wl-item{grid-template-columns:80px 1fr 90px 60px;gap:6px;font-size:11px;padding:8px 10px}
-  .wl-item .wl-range,.wl-item .wl-vol,.wl-item .wl-time{display:none}
+/* Card individual */
+.wl-card{
+  display:flex;flex-direction:column;gap:6px;
+  padding:10px 11px;background:#0d1117;
+  border:1px solid #30363d;border-left:3px solid #30363d;border-radius:8px;
+  font-size:12px;transition:all .12s;
+}
+.wl-card:hover{border-color:#388bfd;background:#0f141c}
+.wl-card.card-pos{border-left-color:#3fb950}
+.wl-card.card-neg{border-left-color:#ff6b6b}
+
+.wl-card-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.wl-card-mid{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.wl-card-info{
+  display:flex;flex-direction:column;gap:2px;
+  padding:4px 0 2px;border-top:1px dashed #21262d;
+  font-size:10px;
+}
+.wl-info-row{display:flex;justify-content:space-between;gap:6px}
+.wl-info-lbl{color:#6e7681;font-weight:600}
+.wl-info-val{color:#8b949e;font-family:monospace;font-variant-numeric:tabular-nums}
+
+.wl-sym-block{display:flex;flex-direction:column;gap:1px;min-width:0}
+.wl-sym-block .wl-sym{font-weight:800;color:#58a6ff;font-family:monospace;font-size:15px;letter-spacing:-.2px}
+.wl-sym-block .wl-exch{color:#6e7681;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.wl-card .wl-price{font-family:monospace;font-variant-numeric:tabular-nums;font-weight:700;color:#e6edf3;font-size:16px}
+.wl-card .wl-time{font-size:9px;color:#6e7681;font-family:monospace;white-space:nowrap}
+.wl-card .wl-change{font-family:monospace;font-variant-numeric:tabular-nums;font-weight:800;font-size:13px;white-space:nowrap}
+.wl-card .wl-change.pos{color:#3fb950}
+.wl-card .wl-change.neg{color:#ff6b6b}
+
+.wl-actions{display:flex;gap:4px;justify-content:space-between}
+.wl-actions button{flex:1;padding:5px 8px;border-radius:6px;border:1px solid #30363d;background:#21262d;color:#e6edf3;font-size:11px;cursor:pointer;font-weight:700}
+.wl-actions button.wl-ai{color:#d2a8ff}
+.wl-actions button.wl-ai:hover{background:#8957e520;border-color:#8957e5}
+.wl-actions button.wl-del{color:#ff6b6b;flex:0 0 auto;padding:5px 10px}
+.wl-actions button.wl-del:hover{background:#3d1418;border-color:#5c1d23}
+
+.wl-empty{
+  grid-column:1 / -1;
+  padding:14px;text-align:center;color:#6e7681;font-size:11px;font-style:italic;
+  background:#0d1117;border:1px dashed #30363d;border-radius:8px;
 }
 
 /* Chat AI flotant (FAB + panel) */
@@ -470,17 +481,6 @@
         <span>Grupează pe performanță</span>
       </label>
     </div>
-  </div>
-
-  <!-- Header coloane (sticky) -->
-  <div class="wl-thead">
-    <div>Simbol</div>
-    <div>Preț</div>
-    <div>Range Azi</div>
-    <div>Schimb %</div>
-    <div>Volum</div>
-    <div>Update</div>
-    <div>Acțiuni</div>
   </div>
 
   <div id="wlList" class="wl-list"></div>
@@ -1389,18 +1389,26 @@ function _wlRowHtml(w){
     marketCap: 0, sector: w.exchange || 'N/A', volume: w.volume,
     regularMarketDayHigh: w.high, regularMarketDayLow: w.low
   }).replace(/'/g, "&apos;");
-  return `<div class="wl-item">
-    <div class="wl-sym-block">
-      <div class="wl-sym">${w.symbol}</div>
-      <div class="wl-exch">${w.exchange || ''}</div>
+  // Accent culoare pe border-left bazat pe direcție
+  const accent = pct == null ? '' : (pct >= 0 ? 'card-pos' : 'card-neg');
+  return `<div class="wl-card ${accent}">
+    <div class="wl-card-hdr">
+      <div class="wl-sym-block">
+        <div class="wl-sym">${w.symbol}</div>
+        <div class="wl-exch">${w.exchange || ''}</div>
+      </div>
+      <div class="wl-change ${pctCls}">${arrow} ${pctStr}</div>
     </div>
-    <div class="wl-price">${priceStr}</div>
-    <div class="wl-range">${rangeStr}</div>
-    <div class="wl-change ${pctCls}">${arrow} ${pctStr}</div>
-    <div class="wl-vol">${volStr}</div>
-    <div class="wl-time">${time}</div>
+    <div class="wl-card-mid">
+      <div class="wl-price">${priceStr}</div>
+      <div class="wl-time">${time}</div>
+    </div>
+    <div class="wl-card-info">
+      <div class="wl-info-row"><span class="wl-info-lbl">Range:</span> <span class="wl-info-val">${rangeStr}</span></div>
+      <div class="wl-info-row"><span class="wl-info-lbl">Vol:</span> <span class="wl-info-val">${volStr}</span></div>
+    </div>
     <div class="wl-actions">
-      <button class="wl-ai" onclick='aiAnalyzeRow("watchlist", ${aiData})' title="Analiză AI">🤖</button>
+      <button class="wl-ai" onclick='aiAnalyzeRow("watchlist", ${aiData})' title="Analiză AI">🤖 AI</button>
       <button class="wl-del" onclick='wlRemove("${w.symbol}")' title="Șterge">✕</button>
     </div>
   </div>`;
