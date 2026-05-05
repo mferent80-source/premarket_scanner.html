@@ -347,6 +347,17 @@
 }
 .wl-fbtn:hover{color:#e6edf3;border-color:#388bfd}
 .wl-fbtn.active{background:#1f6feb;border-color:#1f6feb;color:#fff}
+@media (max-width:560px){
+  .wl-toolbar{padding:6px 0;gap:6px;flex-direction:column;align-items:stretch}
+  .wl-filters{justify-content:center}
+  .wl-fbtn{padding:4px 8px;font-size:10px}
+  .wl-sort{justify-content:space-between;font-size:10px}
+  .wl-sort label{font-size:10px}
+  .wl-sort select{font-size:10px;padding:4px 6px}
+  .wl-add-row{gap:4px}
+  .wl-add-row input{font-size:12px;padding:7px 9px;min-width:0}
+  .wl-add-btn,.wl-refresh-btn,.wl-sync-btn{padding:7px 10px;font-size:11px}
+}
 .wl-sort{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .wl-sort label{font-size:11px;color:#8b949e;font-weight:600}
 .wl-sort select{
@@ -374,8 +385,29 @@
   gap:8px;
 }
 @media (max-width:1280px){ .wl-list{grid-template-columns:repeat(3, 1fr)} }
-@media (max-width:900px){ .wl-list{grid-template-columns:repeat(2, 1fr)} }
-@media (max-width:560px){ .wl-list{grid-template-columns:1fr} }
+@media (max-width:900px){ .wl-list{grid-template-columns:repeat(2, 1fr); gap:6px} }
+/* Mobile: 2 carduri pe rând, layout minimalist (doar simbol + preț + change + acțiuni) */
+@media (max-width:560px){
+  .wl-list{grid-template-columns:repeat(2, 1fr); gap:5px}
+  .wl-card{padding:7px 8px;gap:4px;border-radius:7px}
+  .wl-card-hdr{gap:4px}
+  .wl-chk-wrap{width:18px;height:18px}
+  .wl-chk{width:14px;height:14px}
+  .wl-sym-block .wl-sym{font-size:13px}
+  .wl-sym-block .wl-exch{display:none}
+  .wl-card .wl-change{font-size:11px}
+  .wl-card-mid{flex-direction:row;align-items:baseline}
+  .wl-card .wl-price{font-size:13px}
+  .wl-card .wl-time{display:none}
+  /* Ascunde info row (range/vol) — doar esențial pe mobil */
+  .wl-card-info{display:none}
+  /* Acțiuni icon-only, mai mici */
+  .wl-actions{gap:3px}
+  .wl-actions button{padding:3px 6px;font-size:10px}
+  .wl-actions button.wl-ai{font-size:0}
+  .wl-actions button.wl-ai::before{content:'🤖';font-size:11px}
+  .wl-actions button.wl-del{padding:3px 7px}
+}
 
 /* Card individual */
 .wl-card{
