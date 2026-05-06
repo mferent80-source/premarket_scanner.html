@@ -56,15 +56,28 @@ body.dark{
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{min-height:100vh;overflow-x:hidden}
-body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100vh;}
+body{
+  font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100vh;
+  font-variant-numeric:tabular-nums;
+}
 
 .app{max-width:960px;margin:0 auto;padding:14px 14px 100px;}
 
-/* ── HEADER ── */
+/* ── HEADER (sticky topbar — model events) ── */
 .hdr{
   display:flex;align-items:center;justify-content:space-between;
-  padding-bottom:14px;border-bottom:1px solid var(--b1);
-  margin-bottom:18px;gap:10px;flex-wrap:wrap;
+  padding:11px 14px;
+  margin-bottom:14px;gap:10px;flex-wrap:wrap;
+  position:sticky;top:8px;z-index:50;
+  background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(244,246,255,.85));
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid var(--b1);border-radius:14px;
+  box-shadow:0 4px 14px rgba(0,0,0,.06);
+}
+body.dark .hdr{
+  background:linear-gradient(180deg,rgba(30,38,57,.85),rgba(20,26,40,.92));
+  border-color:var(--b1);
+  box-shadow:0 4px 14px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.2);
 }
 .brand{display:flex;align-items:center;gap:11px;}
 .brand-icon{
@@ -1193,7 +1206,6 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
   <div class="tab-div" aria-hidden="true"></div>
   <!-- GRUP 3: Pionex tools -->
   <div class="tab" onclick="setTab('volatility',this)" style="color:var(--gold)">⚡ Volatilitate</div>
-  <div class="tab" onclick="setTab('grid',this)">⚙️ Grid</div>
   <div class="tab" onclick="setTab('gridscan',this)" style="color:#10b981">🎯 Grid Scanner</div>
   <div class="tab" onclick="setTab('smart',this)" style="color:#a855f7">📊 Smart Data</div>
   <div class="tab" onclick="setTab('futures',this)" style="color:#0891b2">💎 Futures</div>
@@ -1941,7 +1953,17 @@ function toggleDarkMode(){
   if(meta) meta.content=isDark?'#0b0f1a':'#f8faff';
 }
 // Restore dark mode
-try{if(localStorage.getItem('darkMode')==='1'){document.body.classList.add('dark');const m=document.querySelector('meta[name="theme-color"]');if(m)m.content='#0b0f1a';}}catch(e){}
+// Dark mode: dacă utilizatorul n-a setat o preferință explicită, default la DARK (model events).
+// Cei care preferă light pot toggle-ui și preferința lor persistă în localStorage.
+try{
+  const saved = localStorage.getItem('darkMode');
+  const wantDark = saved === null ? true : saved === '1';
+  if(wantDark){
+    document.body.classList.add('dark');
+    const m=document.querySelector('meta[name="theme-color"]');
+    if(m)m.content='#0b0f1a';
+  }
+}catch(e){}
 async function fetchMTFRsi(symbol){
   let rsi1h=null, rsi4h=null;
   try{
@@ -4098,7 +4120,6 @@ function renderSignals(){
 
   // Tab filter
   if(currentTab==='live') source=source.filter(s=>Date.now()-s.time<120000);
-  else if(currentTab==='grid') source=source.filter(s=>s.type==='grid');
 
   // Type filter
   if(currentFilter==='pump') source=source.filter(s=>s.type==='pump');
