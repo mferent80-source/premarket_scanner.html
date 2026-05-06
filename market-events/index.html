@@ -357,11 +357,11 @@
   #earnTable th:nth-child(5),#earnTable td:nth-child(5),
   #earnTable th:nth-child(6),#earnTable td:nth-child(6),
   #earnTable th:nth-child(11),#earnTable td:nth-child(11){display:none}
-  /* Top Losers: ascunde Volume, Vol/Avg, Sector, Mcap, Earnings */
-  #loserTable th:nth-child(6),#loserTable td:nth-child(6),
+  /* Top Losers: ascunde Volume, Vol/Avg, Sector, Mcap, Earnings (decalat cu 1 — coloană checkbox la start) */
   #loserTable th:nth-child(7),#loserTable td:nth-child(7),
   #loserTable th:nth-child(8),#loserTable td:nth-child(8),
-  #loserTable th:nth-child(10),#loserTable td:nth-child(10){display:none}
+  #loserTable th:nth-child(9),#loserTable td:nth-child(9),
+  #loserTable th:nth-child(11),#loserTable td:nth-child(11){display:none}
   /* Watchlist: ascunde Volum */
   #wlTable th:nth-child(5),#wlTable td:nth-child(5){display:none}
 }
@@ -430,6 +430,43 @@
 .wl-compare-bar .btn-cmp-go:disabled{opacity:.5;cursor:wait}
 .wl-compare-bar .btn-cmp-clear{background:#21262d;color:#8b949e;border:1px solid #30363d}
 .wl-compare-bar .btn-cmp-clear:hover{background:#30363d;color:#e6edf3}
+
+/* === Bara floating pentru comparație Top Losers (similar cu wl, dar roșu) === */
+/* Poziționată mai sus ca să nu se suprapună cu wl-compare-bar dacă apar amândouă */
+.loser-compare-bar{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+  background:var(--panel);border:1px solid var(--bear-s);
+  padding:10px 16px;border-radius:14px;
+  box-shadow:0 12px 40px rgba(255,77,77,.25),0 4px 12px rgba(0,0,0,.4);
+  z-index:9990;display:none;align-items:center;gap:10px;
+  font-size:12px;color:var(--text);font-weight:600;
+  max-width:calc(100vw - 30px);flex-wrap:wrap;justify-content:center;
+}
+.loser-compare-bar.show{display:flex}
+.loser-compare-bar .loser-cmp-count{color:var(--bear-s);font-weight:800}
+.loser-compare-bar button{
+  padding:7px 14px;border-radius:8px;border:none;font-weight:700;font-size:11px;cursor:pointer;
+}
+.loser-compare-bar .btn-cmp-go{background:var(--bear-s);color:#fff}
+.loser-compare-bar .btn-cmp-go:hover{filter:brightness(1.1)}
+.loser-compare-bar .btn-cmp-go:disabled{opacity:.5;cursor:wait}
+.loser-compare-bar .btn-cmp-clear{background:var(--panel2);color:var(--muted);border:1px solid var(--border)}
+.loser-compare-bar .btn-cmp-clear:hover{background:var(--border);color:var(--text)}
+
+/* Checkbox în tabel losers + highlight pentru rândul selectat */
+.loser-chk{
+  width:14px;height:14px;cursor:pointer;
+  accent-color:var(--bear-s);
+}
+#loserResults tr.loser-tr-selected td{background:rgba(255,77,77,.10)}
+.btn-select-all{
+  background:var(--panel2);border:1px solid var(--border);color:var(--muted);
+  padding:5px 10px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;
+  cursor:pointer;font-family:inherit;
+  transition:all .15s var(--ease);
+}
+.btn-select-all:hover{border-color:var(--bear-s);color:var(--bear-s)}
+.btn-select-all.active{background:var(--bear-s);border-color:var(--bear-s);color:#fff}
 
 /* Toolbar: filtre + sortare compact */
 .wl-toolbar{
@@ -722,13 +759,20 @@
       <button id="scanLoserBtn" class="btn-losers">🔻 Scanează</button>
     </div>
   </div>
-  
+
+  <!-- Toolbar selecție multiplă pentru comparație AI între losers -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+    <button class="btn-select-all" id="loserSelectAllBtn" onclick="loserToggleAll()" title="Selectează / deselectează toate rândurile vizibile pentru comparație AI">☑ Selectează tot</button>
+    <span style="font-size:10.5px;color:var(--muted);">Bifează 2+ losers → bara apare jos cu „🤖 Compară AI"</span>
+  </div>
+
   <div id="loserStatus" class="status">Așteaptă scan automat...</div>
 
   <div class="table-wrap compact-table">
     <table id="loserTable">
       <thead>
         <tr>
+          <th style="width:24px"></th>
           <th>#</th>
           <th>Simbol</th>
           <th>Nume</th>
@@ -1155,14 +1199,23 @@ async function scanLosers() {
     });
     
     const tbody = $('loserResults');
+    // Cache lista pentru re-render după toggle selecție și pentru comparația AI
+    lastLosers = losers;
+    // La rescan, păstrăm doar selecțiile ale căror simboluri sunt încă în listă
+    const visible = new Set(losers.map(s => s.symbol));
+    [...loserSelected].forEach(sym => { if (!visible.has(sym)) loserSelected.delete(sym); });
+
     if (losers.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="10" class="empty">Niciun loser care îndeplinește filtrele.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="12" class="empty">Niciun loser care îndeplinește filtrele.</td></tr>`;
     } else {
       losers.forEach((s, i) => {
         const volRatio = s.avgVolume ? (s.volume / s.avgVolume) : 0;
         const earn = NasdaqScanner.formatEarnings(s.daysToEarnings, s.earningsTimestamp);
+        const isSel = loserSelected.has(s.symbol);
         const tr = document.createElement('tr');
+        if (isSel) tr.className = 'loser-tr-selected';
         tr.innerHTML = `
+          <td><input type="checkbox" class="loser-chk" ${isSel ? 'checked' : ''} onchange="loserToggleSelect('${s.symbol}')" title="Selectează pentru comparație AI"></td>
           <td>${i + 1}</td>
           ${symCell(s)}
           <td>${(s.name || '').slice(0, 28)}</td>
@@ -1178,7 +1231,8 @@ async function scanLosers() {
         tbody.appendChild(tr);
       });
     }
-    
+    loserUpdateCompareBar();
+
     $('loserBadge').textContent = `${losers.length}`;
     setStatus('loserStatus', `✅ ${losers.length} losers ≥ ${$('minDrop').value}% — ${new Date().toLocaleTimeString('ro-RO')}`, 'success');
   } catch (err) {
@@ -1473,7 +1527,73 @@ let wlFilter = localStorage.getItem('me_wl_filter') || 'all';
 let wlSort = localStorage.getItem('me_wl_sort') || 'change-desc';
 let wlGroup = localStorage.getItem('me_wl_group') === '1';
 
-// Selecție pentru comparație AI (sesiune, nu persistent)
+// === Selecție multiplă pentru comparație AI între Top Losers ===
+// Cache global cu ultima listă de losers (pentru re-render după toggle + lookup la compare)
+let lastLosers = [];
+const loserSelected = new Set();
+
+function loserToggleSelect(sym){
+  if (loserSelected.has(sym)) loserSelected.delete(sym);
+  else loserSelected.add(sym);
+  // Update vizual fără re-render complet — doar clasa rândului
+  const row = document.querySelector(`#loserResults tr input[onchange*="loserToggleSelect('${sym}')"]`)?.closest('tr');
+  if (row) row.classList.toggle('loser-tr-selected', loserSelected.has(sym));
+  loserUpdateCompareBar();
+  loserUpdateSelectAllBtn();
+}
+
+function loserClearSelection(){
+  loserSelected.clear();
+  document.querySelectorAll('#loserResults tr.loser-tr-selected').forEach(r => r.classList.remove('loser-tr-selected'));
+  document.querySelectorAll('#loserResults input.loser-chk').forEach(c => { c.checked = false; });
+  loserUpdateCompareBar();
+  loserUpdateSelectAllBtn();
+}
+
+function loserToggleAll(){
+  if (!lastLosers.length) return;
+  // Dacă tot ce e vizibil e deja selectat → deselect; altfel selectează tot
+  const allSelected = lastLosers.every(l => loserSelected.has(l.symbol));
+  if (allSelected) {
+    loserClearSelection();
+  } else {
+    lastLosers.forEach(l => loserSelected.add(l.symbol));
+    document.querySelectorAll('#loserResults tr').forEach(r => r.classList.add('loser-tr-selected'));
+    document.querySelectorAll('#loserResults input.loser-chk').forEach(c => { c.checked = true; });
+    loserUpdateCompareBar();
+    loserUpdateSelectAllBtn();
+  }
+}
+
+function loserUpdateSelectAllBtn(){
+  const btn = document.getElementById('loserSelectAllBtn');
+  if (!btn) return;
+  const allSel = lastLosers.length > 0 && lastLosers.every(l => loserSelected.has(l.symbol));
+  btn.classList.toggle('active', allSel && lastLosers.length > 0);
+  btn.textContent = allSel && lastLosers.length > 0 ? '☒ Deselectează tot' : '☑ Selectează tot';
+}
+
+function loserUpdateCompareBar(){
+  let bar = document.getElementById('loserCompareBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'loserCompareBar';
+    bar.className = 'loser-compare-bar';
+    document.body.appendChild(bar);
+  }
+  if (loserSelected.size < 2) { bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+  const list = Array.from(loserSelected);
+  // Truncăm dacă sunt prea multe ca să nu lățim bara peste tot
+  const display = list.length > 6 ? list.slice(0, 6).join(', ') + ` +${list.length - 6}` : list.join(', ');
+  bar.innerHTML = `
+    <span><span class="loser-cmp-count">${loserSelected.size}</span> losers: ${display}</span>
+    <button class="btn-cmp-go" id="loserCmpGoBtn" onclick="aiCompare('loser')">🤖 Compară AI</button>
+    <button class="btn-cmp-clear" onclick="loserClearSelection()">✕ Anulează</button>
+  `;
+}
+
+// === Selecție pentru comparație AI (watchlist) ===
 const wlSelected = new Set();
 function wlToggleSelect(sym){
   if (wlSelected.has(sym)) wlSelected.delete(sym);
@@ -1500,12 +1620,17 @@ function wlUpdateCompareBar(){
 }
 
 // Comparație AI între 2+ simboluri selectate
-async function aiCompare(){
-  if (wlSelected.size < 2) return;
+// source: 'wl' (default) folosește watchlist[] · 'loser' folosește lastLosers[]
+async function aiCompare(source = 'wl'){
+  const isLoser = source === 'loser';
+  const selected = isLoser ? loserSelected : wlSelected;
+  const dataSource = isLoser ? lastLosers : watchlist;
+
+  if (selected.size < 2) return;
   const key = getAnthropicKey();
-  if (!key) { showAiKeyModal(() => aiCompare()); return; }
-  const symbols = Array.from(wlSelected);
-  const data = symbols.map(s => watchlist.find(w => w.symbol === s)).filter(Boolean);
+  if (!key) { showAiKeyModal(() => aiCompare(source)); return; }
+  const symbols = Array.from(selected);
+  const data = symbols.map(s => dataSource.find(w => w.symbol === s)).filter(Boolean);
 
   const ov = document.createElement('div');
   ov.className = 'ai-modal-bg';
@@ -1526,17 +1651,26 @@ async function aiCompare(){
   const result = document.getElementById('aiCmpResult');
   const meta = document.getElementById('aiCmpMeta');
 
-  // Build prompt
+  // Build prompt — câmpurile diferă între wl (low/high) și losers (dayLow/dayHigh + sector/mcap)
   const ctx = data.map(w => {
     const parts = [`${w.symbol}`];
     if (w.price != null) parts.push(`preț $${w.price.toFixed(2)}`);
     if (w.changePct != null) parts.push(`${(w.changePct >= 0 ? '+' : '') + w.changePct.toFixed(2)}% azi`);
-    if (w.low != null && w.high != null) parts.push(`range $${w.low.toFixed(2)}-$${w.high.toFixed(2)}`);
+    const lo = w.low ?? w.dayLow;
+    const hi = w.high ?? w.dayHigh;
+    if (lo != null && hi != null) parts.push(`range $${lo.toFixed(2)}-$${hi.toFixed(2)}`);
     if (w.volume) parts.push(`vol ${NasdaqScanner.formatVolume(w.volume)}`);
+    if (w.marketCap) parts.push(`mcap ${NasdaqScanner.formatMcap(w.marketCap)}`);
+    if (w.sector) parts.push(`sector ${w.sector}`);
     return `- ${parts.join(', ')}`;
   }).join('\n');
 
-  const prompt = `Compară următoarele ${symbols.length} simboluri pentru un trade pe termen scurt (Trade 212, Nasdaq):\n\n${ctx}\n\nDă-mi:\n1. Tabel cu rating tehnic (1-10) per simbol pentru: trend, momentum, R/R bun la entry actual\n2. Care simbol are cel mai bun setup ACUM (long sau short) și de ce, cu entry/TP/SL concret\n3. Care simbol e cel mai riscant și de ce\n4. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + un mini tabel ASCII pentru rating. Maximum 400 cuvinte. Concret, fără fluff.`;
+  // Promptul se adaptează ușor pentru losers (deja au căzut → căutăm buy-the-dip)
+  const intro = isLoser
+    ? `Compară ${symbols.length} stocks care au căzut azi pe Nasdaq — caut buy-the-dip pentru rebound short-term (Trade 212):`
+    : `Compară următoarele ${symbols.length} simboluri pentru un trade pe termen scurt (Trade 212, Nasdaq):`;
+
+  const prompt = `${intro}\n\n${ctx}\n\nDă-mi:\n1. Tabel cu rating tehnic (1-10) per simbol pentru: trend, momentum, R/R bun la entry actual\n2. Care simbol are cel mai bun setup ACUM (long sau short) și de ce, cu entry/TP/SL concret\n3. Care simbol e cel mai riscant și de ce\n4. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + un mini tabel ASCII pentru rating. Maximum 400 cuvinte. Concret, fără fluff.`;
 
   const t0 = performance.now();
   try {
