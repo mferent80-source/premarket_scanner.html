@@ -330,7 +330,16 @@
   }
   tr.crypto-tr-selected td{background:rgba(139,111,255,.10)}
   thead th.col-chk{width:24px}
-  thead th.col-ai{width:36px}
+  thead th.col-ai{width:62px}
+
+  /* Buton 👁️ Add-to-watchlist (în coloana AI, lângă 🤖) */
+  .btn-cw-add{
+    background:var(--panel2); border:1px solid var(--border); color:var(--accent);
+    padding:2px 6px; border-radius:5px; font-size:10.5px; font-weight:700;
+    cursor:pointer; transition:all .12s var(--ease); font-family:inherit;
+  }
+  .btn-cw-add:hover{background:rgba(91,176,255,.15); border-color:var(--accent); color:var(--accent)}
+  .btn-cw-add.in-watchlist{background:rgba(34,214,107,.15); border-color:var(--bull-s); color:var(--bull-s)}
 
   /* Mini-buton "Select All" în panel-head, lângă panel-sub */
   .btn-select-all-mini{
@@ -1129,9 +1138,13 @@ function renderMoversTable(bodyId, coins, opts) {
       <td class="num">${fmtUSD(c.price)}</td>
       <td class="num">${col3}</td>
       <td class="num">${col4}</td>
-      <td><button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-mover', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button></td>
+      <td>
+        <button class="btn-cw-add" data-sym="${sym}" onclick="cwAddSymbol('${sym}')" title="Adaugă în watchlist">👁️</button>
+        <button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-mover', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button>
+      </td>
     </tr>`;
   }).join('');
+  refreshAllCwAddButtons();
 }
 
 function renderMovers(coins) {
@@ -1196,10 +1209,14 @@ function renderVolume(coins) {
       <td class="num">${fmtUSD(c.price)}</td>
       <td class="num"><strong>${fmtCompact(c.volume_24h)}</strong></td>
       <td class="num"><span class="pct ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span></td>
-      <td><button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-volume', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button></td>
+      <td>
+        <button class="btn-cw-add" data-sym="${sym}" onclick="cwAddSymbol('${sym}')" title="Adaugă în watchlist">👁️</button>
+        <button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-volume', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button>
+      </td>
     </tr>`;
   }).join('');
   updateSelectAllBtnFor('volume');
+  refreshAllCwAddButtons();
 }
 
 // === Render: funding === //
@@ -1240,10 +1257,14 @@ function renderFunding(funding) {
       <td class="num">${fmtUSD(d.mark_price)}</td>
       <td class="num">${fmtFunding(d.funding_rate)}</td>
       <td class="num">${fmtApr(d.funding_rate)}</td>
-      <td><button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-funding', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button></td>
+      <td>
+        <button class="btn-cw-add" data-sym="${sym}" onclick="cwAddSymbol('${sym}')" title="Adaugă în watchlist">👁️</button>
+        <button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-funding', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button>
+      </td>
     </tr>`;
   }).join('');
   updateSelectAllBtnFor('funding');
+  refreshAllCwAddButtons();
 }
 
 // === Render: trending === //
@@ -1288,10 +1309,14 @@ function renderOI(rows) {
       <td class="num">${fmtUSD(r.mark_price)}</td>
       <td class="num"><strong>${fmtCompact(r.oi_usd)}</strong></td>
       <td class="num">${r.oi_contracts.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
-      <td><button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-oi', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button></td>
+      <td>
+        <button class="btn-cw-add" data-sym="${sym}" onclick="cwAddSymbol('${sym}')" title="Adaugă în watchlist">👁️</button>
+        <button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-oi', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button>
+      </td>
     </tr>`;
   }).join('');
   updateSelectAllBtnFor('oi');
+  refreshAllCwAddButtons();
 }
 
 // === Render: Unlocks === //
@@ -1869,6 +1894,46 @@ function cwRemove(sym) {
   cryptoWatchlist = cryptoWatchlist.filter(w => w.symbol !== sym);
   cwSave();
   cwRender();
+  refreshAllCwAddButtons();
+}
+
+// Adăugare directă prin simbol (fără input). Apelată din butoanele 👁️ pe rândurile tabelelor.
+function cwAddSymbol(sym) {
+  const s = String(sym || '').trim().toUpperCase();
+  if (!s) return;
+  if (cryptoWatchlist.some(w => w.symbol === s)) return;   // deja în watchlist, ignorăm silent
+  const found = cwFindCoinBySymbol(s);
+  if (!found) {
+    console.warn('Coin nu e în top 100 CoinGecko, nu pot adăuga:', s);
+    return;
+  }
+  cryptoWatchlist.push({
+    symbol: s, id: found.id, name: found.name, image: found.image,
+    price: found.price, chg_24h: found.chg_24h, chg_1h: found.chg_1h,
+    market_cap: found.market_cap, volume_24h: found.volume_24h,
+    addedAt: Date.now(),
+  });
+  cwSave();
+  cwRender();
+  // Feedback vizual subtil: scurt flash verde pe panoul watchlist
+  const sec = document.getElementById('cwSection');
+  if (sec) {
+    sec.style.transition = 'box-shadow .4s';
+    sec.style.boxShadow = '0 0 0 2px var(--bull-s)';
+    setTimeout(() => { sec.style.boxShadow = ''; }, 700);
+  }
+  refreshAllCwAddButtons();
+}
+
+// Update vizual pe TOATE butoanele 👁️ din tabele: cele cu simboluri deja în watchlist
+// primesc clasa .in-watchlist (verde) ca utilizatorul să știe instant ce e adăugat
+function refreshAllCwAddButtons() {
+  const inWatchlist = new Set(cryptoWatchlist.map(w => w.symbol));
+  document.querySelectorAll('button.btn-cw-add').forEach(btn => {
+    const sym = btn.dataset.sym;
+    if (!sym) return;
+    btn.classList.toggle('in-watchlist', inWatchlist.has(sym));
+  });
 }
 
 // Refresh prețuri prin CoinGecko `/coins/markets` cu ids specifice
