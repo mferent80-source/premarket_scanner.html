@@ -300,6 +300,32 @@
   font-size:11px;margin-bottom:10px;min-height:18px;color:#8b949e;
 }
 
+/* === Sentiment row (stare de piață: Session + SPY + QQQ + VIX) === */
+/* Identic ca layout cu crypto-events, dar adaptat pentru indicii stocks */
+.sentiment {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;
+}
+@media (max-width: 720px) { .sentiment { grid-template-columns: repeat(2, 1fr); } }
+.sent-card {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px;
+  box-shadow: var(--shadow-sm);
+  position: relative; overflow: hidden;
+}
+.sent-card::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--bar-color, var(--accent));
+}
+.sent-card.session::before { background: var(--bar-color, var(--accent)); }
+.sent-card.spy::before { background: #5bb0ff; }
+.sent-card.qqq::before { background: #8b6fff; }
+.sent-card.vix::before { background: var(--bar-color, var(--warn)); }
+.sent-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+.sent-value { font-size: 22px; font-weight: 700; letter-spacing: -.5px; }
+.sent-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.sent-sub.up { color: var(--bull-s); font-weight: 700; }
+.sent-sub.down { color: var(--bear-s); font-weight: 700; }
+
 /* Grid 3 coloane: Watchlist + Earnings + Top Losers side-by-side */
 .events-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px}
 .events-grid > section{margin-bottom:0;min-width:0}
@@ -507,6 +533,30 @@
 </div>
 
 <div class="subtitle">Earnings Calendar (toată piața) + Top Losers — pornesc automat la încărcare</div>
+
+<!-- === Sentiment / Stare de piață: Session + SPY + QQQ + VIX === -->
+<section class="sentiment">
+  <div class="sent-card session" id="senti-card-session">
+    <div class="sent-label">Market Session</div>
+    <div class="sent-value" id="senti-session">—</div>
+    <div class="sent-sub" id="senti-session-sub">se încarcă…</div>
+  </div>
+  <div class="sent-card spy">
+    <div class="sent-label">SPY · S&amp;P 500</div>
+    <div class="sent-value" id="senti-spy-price">—</div>
+    <div class="sent-sub" id="senti-spy-chg">—</div>
+  </div>
+  <div class="sent-card qqq">
+    <div class="sent-label">QQQ · Nasdaq 100</div>
+    <div class="sent-value" id="senti-qqq-price">—</div>
+    <div class="sent-sub" id="senti-qqq-chg">—</div>
+  </div>
+  <div class="sent-card vix" id="senti-card-vix">
+    <div class="sent-label">VIX · Volatility</div>
+    <div class="sent-value" id="senti-vix-price">—</div>
+    <div class="sent-sub" id="senti-vix-chg">—</div>
+  </div>
+</section>
 
 <!-- Grid 3 coloane: Watchlist + Earnings + Top Losers side-by-side (stack pe mobile) -->
 <div class="events-grid">
@@ -1934,10 +1984,92 @@ function aiChatQuickCmd(cmd){
 })();
 
 // ============================================================
+// SENTIMENT / STARE DE PIAȚĂ — SPY + QQQ + VIX + Market Session via Yahoo Finance
+// Folosim chart endpoint v8 (fără crumb) prin proxy-ul deja existent.
+// ============================================================
+async function fetchMarketSentiment() {
+  const proxy = ($('proxyUrl').value || '').trim();
+  const symbols = ['SPY', 'QQQ', '^VIX'];
+  const requests = symbols.map(sym => {
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1d&interval=1d`;
+    const url = proxy ? proxy + encodeURIComponent(yahooUrl) : yahooUrl;
+    return fetch(url).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status} on ${sym}`)));
+  });
+
+  const results = await Promise.allSettled(requests);
+
+  // Parse rezultate; ignorăm cele picate (afișăm "—" pe carduri)
+  const data = {};
+  results.forEach((r, i) => {
+    if (r.status !== 'fulfilled') { console.warn('sentiment', symbols[i], r.reason); return; }
+    const meta = r.value?.chart?.result?.[0]?.meta;
+    if (!meta) return;
+    const price = meta.regularMarketPrice;
+    const prev  = meta.chartPreviousClose ?? meta.previousClose;
+    const chgPct = (price != null && prev) ? ((price - prev) / prev) * 100 : null;
+    data[symbols[i]] = { price, chgPct, marketState: meta.marketState };
+  });
+
+  // Render SPY
+  renderSentCard('spy', data.SPY);
+  // Render QQQ
+  renderSentCard('qqq', data.QQQ);
+  // Render VIX (semnul invers al schimbării contează diferit — VIX sus = teamă)
+  renderSentCard('vix', data['^VIX'], { invert: true });
+
+  // Market Session: Yahoo dă PRE / REGULAR / POST / CLOSED în meta.marketState
+  const state = data.SPY?.marketState || data.QQQ?.marketState || data['^VIX']?.marketState;
+  renderMarketSession(state);
+}
+
+function renderSentCard(key, d, opts = {}) {
+  const $price = $('senti-' + key + '-price');
+  const $chg   = $('senti-' + key + '-chg');
+  if (!d || d.price == null) {
+    $price.textContent = '—';
+    $chg.textContent = 'indisponibil';
+    $chg.className = 'sent-sub';
+    return;
+  }
+  // Format preț: 2 zecimale standard
+  $price.textContent = '$' + d.price.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  if (d.chgPct == null || isNaN(d.chgPct)) {
+    $chg.textContent = '—';
+    $chg.className = 'sent-sub';
+    return;
+  }
+  const sign = d.chgPct >= 0 ? '+' : '';
+  $chg.textContent = `${sign}${d.chgPct.toFixed(2)}% azi`;
+  // Pentru VIX inversăm semantica: VIX în sus = piață fricoasă (rău), în jos = calmă (bine)
+  const isPositive = opts.invert ? d.chgPct < 0 : d.chgPct >= 0;
+  $chg.className = 'sent-sub ' + (isPositive ? 'up' : 'down');
+}
+
+function renderMarketSession(state) {
+  const $val = $('senti-session');
+  const $sub = $('senti-session-sub');
+  // Mapare state-uri Yahoo → label uman + bară colorată
+  const map = {
+    PRE:        { label: 'PRE-MARKET',  color: '#d4892c', sub: 'tranzacționare 4-9:30 ET'      },
+    REGULAR:    { label: 'OPEN',        color: '#22d66b', sub: '9:30-16:00 ET (sesiune normală)'},
+    POST:       { label: 'AFTER-HOURS', color: '#8b6fff', sub: 'tranzacționare 16-20 ET'        },
+    POSTPOST:   { label: 'CLOSED',      color: '#8892a6', sub: 'piață închisă'                  },
+    PREPRE:     { label: 'CLOSED',      color: '#8892a6', sub: 'piață închisă (înainte de pre)' },
+    CLOSED:     { label: 'CLOSED',      color: '#8892a6', sub: 'piață închisă'                  },
+  };
+  const m = map[state] || map.CLOSED;
+  $val.textContent = m.label;
+  $sub.textContent = m.sub;
+  // Schimbăm bara verticală a cardului în funcție de session
+  $('senti-card-session').style.setProperty('--bar-color', m.color);
+}
+
+// ============================================================
 // AUTO-RUN AMÂNDOUĂ LA START
 // ============================================================
 async function runAll() {
-  await Promise.all([scanEarnings(), scanLosers()]);
+  // Sentiment-ul rulează în paralel cu earnings/losers; nu blocăm restul dacă pică
+  await Promise.all([fetchMarketSentiment().catch(e => console.warn('sentiment failed', e)), scanEarnings(), scanLosers()]);
 }
 
 $('scanEarnBtn').addEventListener('click', scanEarnings);
