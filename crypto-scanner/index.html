@@ -1353,7 +1353,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v60</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v61</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -10629,13 +10629,17 @@ document.querySelectorAll('.tab').forEach(tabEl => {
 });
 
 // Hook pe renderSignals (apelat după fiecare scan finalizat) ca să refresh pinned cards
+// IMPORTANT: debounced 1.5s ca să nu se ruleze de zeci de ori în timpul unui scan.
+let _pinRefreshTimer = null;
 (function hookRenderSignals(){
   if (typeof renderSignals !== 'function') return;
   const _orig = renderSignals;
   renderSignals = function() {
     _orig.apply(this, arguments);
-    // Update pinned section data preview
-    if (pinnedTabs.length) renderPinnedSection();
+    if (pinnedTabs.length) {
+      clearTimeout(_pinRefreshTimer);
+      _pinRefreshTimer = setTimeout(renderPinnedSection, 1500);
+    }
   };
 })();
 
@@ -10881,15 +10885,22 @@ function attachSparklines() {
 }
 
 // Hook pe renderSignals pentru a atașa sparklines la noile cards
+// IMPORTANT: debounced 2000ms ca să NU rulăm pe fiecare render în timpul scan-ului
+// (altfel hammeruim Binance kline API și freeze browser-ul pe primul coin).
+let _sparkAttachTimer = null;
 (function hookForSparklines(){
   if (typeof renderSignals !== 'function') return;
   const _orig = renderSignals;
   renderSignals = function() {
     _orig.apply(this, arguments);
-    setTimeout(attachSparklines, 100);   // așteaptă DOM să se actualizeze
+    clearTimeout(_sparkAttachTimer);
+    // Așteaptă 2s de IDLE (fără alt render) înainte să atașăm — în timpul
+    // scan-ului fluxul de render e des (la fiecare coin), așa că nu se va
+    // declanșa nimic până când scan-ul nu se liniștește.
+    _sparkAttachTimer = setTimeout(attachSparklines, 2000);
   };
-  // Și la load inițial
-  setTimeout(attachSparklines, 1500);
+  // Și la load inițial (după ce scan-ul inițial a avut timp)
+  setTimeout(attachSparklines, 3000);
 })();
 
 // ════════════════════════════════════════════════════════════════
