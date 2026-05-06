@@ -1037,6 +1037,59 @@ body.dark .empty-icon{opacity: .6}
 
 /* Subtitle în brand zone — ca panel-sub events */
 body.dark .brand{gap:8px !important}
+
+/* === Stats row (model events sentiment) === */
+.stats-row{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;
+}
+@media (max-width:720px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stats-card{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:12px;
+  padding:10px 12px;box-shadow:var(--sh);
+  position:relative;overflow:hidden;
+}
+.stats-card::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--bar-color,var(--acc));
+}
+.stats-card.btc::before{background:#f7931a}
+.stats-card.signals::before{background:var(--green)}
+.stats-card.premium::before{background:var(--gold)}
+.stats-card.scan::before{background:var(--purple)}
+.stats-card .stats-label{
+  font-size:9.5px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;
+}
+.stats-card .stats-val{
+  font-size:18px;font-weight:800;letter-spacing:-.4px;color:var(--t1);
+  font-variant-numeric:tabular-nums;
+}
+.stats-card .stats-sub{font-size:10.5px;color:var(--t3);margin-top:1px}
+.stats-card .stats-sub.up{color:var(--green);font-weight:700}
+.stats-card .stats-sub.down{color:var(--red);font-weight:700}
+
+/* === Panel wrapper pe signalsContainer (model events panel-box) === */
+.signal-panel{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:12px;
+  box-shadow:var(--sh);overflow:hidden;margin-top:6px;
+}
+.signal-panel-head{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px;border-bottom:1px solid var(--b1);
+  background:linear-gradient(180deg,rgba(29,37,55,.6),rgba(20,26,40,.4));
+}
+body:not(.dark) .signal-panel-head{
+  background:linear-gradient(180deg,var(--bg3),var(--bg2));
+}
+.signal-panel-head .icon{font-size:14px}
+.signal-panel-head h3{
+  font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;
+  color:var(--accent-tab,var(--acc));margin:0;font-family:inherit;
+}
+.signal-panel-head .panel-sub{
+  font-size:10.5px;color:var(--t3);margin-left:auto;
+}
+.signal-panel-body{padding:12px;}
+body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
 </style>
 </head>
 <body>
@@ -1339,6 +1392,30 @@ body.dark .brand{gap:8px !important}
   <div class="ftag" onclick="exportCsvSignals()" style="background:var(--greenl);border-color:var(--greenb);color:var(--green)">📥 Export CSV</div>
 </div>
 
+<!-- STATS ROW (model crypto-events sentiment cards) -->
+<section class="stats-row" id="statsRow">
+  <div class="stats-card btc">
+    <div class="stats-label">BTC · USDT</div>
+    <div class="stats-val" id="statsBtcPrice">—</div>
+    <div class="stats-sub" id="statsBtcChg">—</div>
+  </div>
+  <div class="stats-card signals">
+    <div class="stats-label">Signals total</div>
+    <div class="stats-val" id="statsSignals">0</div>
+    <div class="stats-sub" id="statsLive">— live</div>
+  </div>
+  <div class="stats-card premium">
+    <div class="stats-label">Premium</div>
+    <div class="stats-val" id="statsPremium">0</div>
+    <div class="stats-sub" id="statsHotness">—</div>
+  </div>
+  <div class="stats-card scan">
+    <div class="stats-label">Scan status</div>
+    <div class="stats-val" id="statsScanStatus">—</div>
+    <div class="stats-sub" id="statsLastUpdate">—</div>
+  </div>
+</section>
+
 <!-- TABS — grupate vizual: Live | Setup | Pionex tools | Macro | Istoric -->
 <div class="tabs">
   <!-- NEW: Setups unified — combină Live + Early Buy + Oportunități + Multi-Scan -->
@@ -1371,8 +1448,17 @@ body.dark .brand{gap:8px !important}
   <div class="tab" onclick="setTab('history',this)">📜 Istoric</div>
 </div>
 
-<!-- SIGNALS -->
-<div id="signalsContainer"></div>
+<!-- SIGNALS — panel-box wrapper cu panel-head color-coded după tabul activ -->
+<div class="signal-panel" id="signalPanel">
+  <div class="signal-panel-head" id="signalPanelHead">
+    <span class="icon" id="spIcon">🎯</span>
+    <h3 id="spTitle">Setups</h3>
+    <span class="panel-sub" id="spSub">scan unificat: oportunități + early buy + ST long</span>
+  </div>
+  <div class="signal-panel-body">
+    <div id="signalsContainer"></div>
+  </div>
+</div>
 
 <!-- LOG -->
 <div class="log-panel">
@@ -3685,8 +3771,106 @@ function setTab(t,el){
   currentTab=t;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('act'));
   el.classList.add('act');
+  updateSignalPanelHead(t);   // updatează panel-head color-coded
   renderSignals();
 }
+
+// === Panel-head dinamic în funcție de tabul activ (model events panel-head) ===
+const TAB_META = {
+  'setups':      { icon:'🎯', title:'Setups',          sub:'scan unificat (Opp + Early + ST Long)', color:'#5bb0ff' },
+  'premium':     { icon:'💎', title:'Premium',         sub:'high conviction, scoring agregat',         color:'#d4892c' },
+  'live':        { icon:'🔴', title:'Live',            sub:'semnale din ultimele 2 minute',           color:'#ff4d4d' },
+  'all':         { icon:'📋', title:'Toate signals',   sub:'lista completă din scan curent',          color:'#8892a6' },
+  'earlybuy':    { icon:'🌱', title:'Early Buy',       sub:'pullback timpuriu pe trend',              color:'#5bdcb0' },
+  'reco':        { icon:'💡', title:'Oportunități',    sub:'recomandări scoring multi-factor',        color:'#5bb0ff' },
+  'multiscan':   { icon:'🎛️', title:'Multi-Scan',     sub:'side-by-side multi-symbol',               color:'#8b6fff' },
+  'stlong':      { icon:'🚀', title:'Smart Trade Long', sub:'verdict confirmare pre-entry',           color:'#f0883e' },
+  'pumpradar':   { icon:'🚨', title:'Pump Radar',      sub:'detecție pump-uri în desfășurare',        color:'#ff4d4d' },
+  'volatility':  { icon:'⚡', title:'Volatilitate',    sub:'top range 24h (grid candidates)',         color:'#d4892c' },
+  'gridscan':    { icon:'🎯', title:'Grid Scanner',    sub:'coins cu range stabil pentru bot',        color:'#22d66b' },
+  'smart':       { icon:'📊', title:'Smart Data',      sub:'metrici on-chain + market structure',     color:'#8b6fff' },
+  'futures':     { icon:'💎', title:'Futures Patterns', sub:'funding extreme, OI surge, whale flows',  color:'#5bb0ff' },
+  'heatmap':     { icon:'🗺️', title:'Heatmap categorii', sub:'Layer 1, DeFi, Memecoin etc.',         color:'#8892a6' },
+  'gap':         { icon:'↕️', title:'Gap',              sub:'gap-uri între candele consecutive',       color:'#5bb0ff' },
+  'correlation': { icon:'🔗', title:'Corelații',        sub:'matricea coin-urilor vs BTC/ETH',        color:'#5bdcb0' },
+  'history':     { icon:'📜', title:'Istoric',          sub:'semnale arhivate, sortabile',            color:'#8892a6' },
+};
+
+function updateSignalPanelHead(tab) {
+  const meta = TAB_META[tab] || TAB_META['setups'];
+  const $ = (id) => document.getElementById(id);
+  if ($('spIcon')) $('spIcon').textContent = meta.icon;
+  if ($('spTitle')) {
+    $('spTitle').textContent = meta.title;
+    $('spTitle').style.setProperty('--accent-tab', meta.color);
+    $('spTitle').style.color = meta.color;
+  }
+  if ($('spSub')) $('spSub').textContent = meta.sub;
+  // Border-bottom color al panel-head reflectă culoarea tabului
+  const head = $('signalPanelHead');
+  if (head) head.style.borderBottomColor = meta.color + '40';   // opacity 25%
+}
+
+// === Stats row — updater periodic ===
+function updateStatsRow() {
+  const $ = (id) => document.getElementById(id);
+
+  // 1. BTC price + chg din allSignals (caut entry cu coin='BTC')
+  const btc = (typeof allSignals !== 'undefined' && allSignals)
+    ? allSignals.find(s => s.coin === 'BTC' || s.symbol === 'BTCUSDT')
+    : null;
+  if (btc && btc.price) {
+    const p = btc.price;
+    if ($('statsBtcPrice')) $('statsBtcPrice').textContent = '$' + p.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    const c = btc.chg24 ?? btc.chg ?? null;
+    if (c != null && $('statsBtcChg')) {
+      const sign = c >= 0 ? '+' : '';
+      $('statsBtcChg').textContent = `${sign}${c.toFixed(2)}% 24h`;
+      $('statsBtcChg').className = 'stats-sub ' + (c >= 0 ? 'up' : 'down');
+    }
+  }
+
+  // 2. Total signals
+  const total = (typeof allSignals !== 'undefined' && allSignals) ? allSignals.length : 0;
+  if ($('statsSignals')) $('statsSignals').textContent = total;
+  // count live (last 2 min)
+  const liveCount = (typeof allSignals !== 'undefined' && allSignals)
+    ? allSignals.filter(s => s.time && (Date.now() - s.time) < 120000).length
+    : 0;
+  if ($('statsLive')) $('statsLive').textContent = liveCount + ' live';
+
+  // 3. Premium count — din badge existent
+  const premBadge = document.getElementById('premiumCountBadge');
+  if (premBadge && $('statsPremium')) $('statsPremium').textContent = premBadge.textContent.trim() || '0';
+  // Hotness: % din total ca premium
+  if ($('statsHotness') && total > 0) {
+    const pCount = parseInt(premBadge?.textContent || '0', 10);
+    const pct = (pCount / total) * 100;
+    $('statsHotness').textContent = pct.toFixed(0) + '% din total';
+  }
+
+  // 4. Scan status — din .sdot class state
+  const sdot = document.querySelector('.sdot');
+  let status = 'idle';
+  if (sdot) {
+    if (sdot.classList.contains('scanning')) status = 'SCANNING';
+    else if (sdot.classList.contains('live')) status = 'LIVE';
+  }
+  if ($('statsScanStatus')) {
+    $('statsScanStatus').textContent = status;
+    $('statsScanStatus').style.color = status === 'SCANNING' ? '#5bb0ff' : (status === 'LIVE' ? '#22d66b' : '#8892a6');
+  }
+  // Last update — caut elementul de status existent
+  const lastUpdEl = document.querySelector('.status-pill') || document.querySelector('#status');
+  if ($('statsLastUpdate')) {
+    $('statsLastUpdate').textContent = new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+}
+
+// Init: actualizează la load + interval 5s (suficient pentru dashboard, fără overhead)
+updateSignalPanelHead('setups');
+updateStatsRow();
+setInterval(updateStatsRow, 5000);
 
 // ── CONVICTION SCORE — combină Opportunity + Early Buy + ST Long într-un scor unic 0-100 ──
 // Folosit în tab-ul Setups pentru a sorta semnalele după putere reală (anticipare + confirmare).
