@@ -533,6 +533,111 @@
   }
   .cw-grp-row.cw-grp-gainers{color:var(--bull-s)}
   .cw-grp-row.cw-grp-losers{color:var(--bear-s)}
+
+  /* === Toast notifications (stack la dreapta-jos, slide-in din dreapta) === */
+  #toastContainer{
+    position:fixed; bottom:90px; right:20px; z-index:10000;
+    display:flex; flex-direction:column; gap:8px; pointer-events:none;
+    max-width:340px;
+  }
+  .toast-msg{
+    background:var(--panel); border:1px solid var(--border);
+    border-left:4px solid var(--accent);
+    padding:10px 14px; border-radius:var(--radius-sm);
+    box-shadow:0 8px 24px rgba(0,0,0,.45);
+    color:var(--text); font-size:12px; line-height:1.4;
+    pointer-events:auto;
+    animation:toastSlide .25s var(--ease);
+    max-width:100%;
+  }
+  .toast-msg.success{border-left-color:var(--bull-s)}
+  .toast-msg.error  {border-left-color:var(--bear-s)}
+  .toast-msg.warn   {border-left-color:var(--warn)}
+  .toast-msg.fade-out{animation:toastFade .3s var(--ease) forwards}
+  @keyframes toastSlide{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+  @keyframes toastFade {to{transform:translateX(120%);opacity:0}}
+
+  /* === Sticky selection counter în topbar === */
+  .selection-counter{
+    display:none; align-items:center; gap:5px;
+    background:rgba(139,111,255,.15); border:1px solid var(--accent2);
+    color:var(--accent2); padding:5px 10px; border-radius:var(--radius-sm);
+    font-size:11px; font-weight:700; cursor:pointer;
+    transition:all .15s var(--ease);
+  }
+  .selection-counter.show{display:inline-flex}
+  .selection-counter:hover{background:var(--accent2); color:#fff}
+
+  /* === Sparkline mini-chart inline (60x14px SVG în cell-uri) === */
+  .sparkline{
+    display:inline-block; vertical-align:middle;
+    width:60px; height:14px; flex-shrink:0;
+  }
+  .sparkline path{fill:none; stroke-width:1.3; stroke-linecap:round; stroke-linejoin:round}
+  .sparkline.up   path{stroke:var(--bull-s)}
+  .sparkline.down path{stroke:var(--bear-s)}
+  .sparkline.flat path{stroke:var(--muted)}
+
+  /* === AI auto-scan widget în topbar === */
+  .ai-autoscan-wrap{
+    display:inline-flex; align-items:center; gap:5px;
+    background:var(--panel2); border:1px solid var(--border);
+    padding:4px 8px; border-radius:var(--radius-sm); font-size:10.5px;
+    color:var(--muted);
+  }
+  .ai-autoscan-wrap.active{border-color:var(--accent2); color:var(--accent2)}
+  .ai-autoscan-wrap select{
+    background:transparent; border:none; color:inherit;
+    font-size:11px; font-weight:700; cursor:pointer; padding:1px 2px;
+    font-family:inherit; outline:none;
+  }
+  .ai-autoscan-wrap select option{background:var(--panel); color:var(--text)}
+  .ai-autoscan-wrap .as-dot{
+    width:7px; height:7px; border-radius:50%;
+    background:var(--muted); flex-shrink:0;
+  }
+  .ai-autoscan-wrap.active .as-dot{
+    background:var(--accent2); box-shadow:0 0 6px var(--accent2);
+    animation:asPulse 2s infinite;
+  }
+  @keyframes asPulse{50%{opacity:.4}}
+
+  /* Panou rezultate AI auto-scan (bottom-left, persistent) */
+  #aiAutoScanPanel{
+    position:fixed; bottom:20px; left:20px; width:340px; max-width:calc(100vw - 40px);
+    max-height:380px; overflow-y:auto;
+    background:var(--panel); border:1px solid var(--accent2); border-radius:var(--radius);
+    box-shadow:0 12px 32px rgba(139,111,255,.25);
+    padding:12px 14px; z-index:9985;
+    display:none; font-size:11.5px;
+  }
+  #aiAutoScanPanel.show{display:block}
+  #aiAutoScanPanel .as-hdr{
+    display:flex; align-items:center; gap:6px; margin-bottom:8px;
+    padding-bottom:7px; border-bottom:1px solid var(--border);
+  }
+  #aiAutoScanPanel .as-title{font-weight:800; color:var(--accent2); font-size:12px}
+  #aiAutoScanPanel .as-meta{font-size:9.5px; color:var(--muted); margin-left:auto}
+  #aiAutoScanPanel .as-close{
+    background:transparent; border:none; color:var(--muted); cursor:pointer;
+    font-size:14px; padding:0 4px; font-family:inherit;
+  }
+  #aiAutoScanPanel .as-close:hover{color:var(--bear-s)}
+  #aiAutoScanPanel .as-content{
+    white-space:pre-wrap; line-height:1.55; color:#c9d1d9;
+  }
+
+  /* === Watchlist alert highlight: cell pulsant când coin-ul mișcă >5% în 1h === */
+  .cw-cell.cw-alert-up{
+    animation:cwPulseUp 1.6s infinite;
+    background:rgba(34,214,107,.10) !important;
+  }
+  .cw-cell.cw-alert-down{
+    animation:cwPulseDown 1.6s infinite;
+    background:rgba(255,77,77,.12) !important;
+  }
+  @keyframes cwPulseUp  {50%{box-shadow:inset 0 0 0 1px var(--bull-s)}}
+  @keyframes cwPulseDown{50%{box-shadow:inset 0 0 0 1px var(--bear-s)}}
 </style>
 </head>
 <body>
@@ -543,6 +648,18 @@
   <a href="../crypto-scanner/" class="nav-link">⚡ Crypto Scanner</a>
   <a href="../market-events/" class="nav-link">📉 Market Events</a>
   <span class="status"><span id="status-dot" class="status-dot"></span><span id="status-text">pornire…</span></span>
+  <span class="selection-counter" id="selCounter" onclick="aiCompareCrypto()" title="Click pentru Compară AI"><span>🎯</span><span id="selCounterNum">0</span></span>
+  <span class="ai-autoscan-wrap" id="autoScanWrap" title="AI auto-scan: rulează periodic /movers /funding /oi și pune rezultatul în panoul jos-stânga">
+    <span class="as-dot"></span>
+    <select id="autoScanSel">
+      <option value="0" selected>AI scan: off</option>
+      <option value="5">5 min</option>
+      <option value="10">10 min</option>
+      <option value="15">15 min</option>
+      <option value="30">30 min</option>
+      <option value="60">60 min</option>
+    </select>
+  </span>
   <button id="aiKeyBtn" class="btn-ai-key" onclick="showAiKeyModal()" title="Configurează cheia Anthropic API pentru analize AI per simbol">🔑 AI Key</button>
   <button id="pause-btn" title="Pune pe pauză auto-refresh">⏸ Pauză</button>
   <button id="refresh-btn" class="primary">↻ Refresh</button>
@@ -807,7 +924,15 @@ let cachedOI = null;             // cache lista OI top (folosit la lookup pentru
 // Folosim un singur Set cu simboluri base UPPERCASE (BTC, ETH, ...). Astfel utilizatorul
 // poate combina rânduri din tabele diferite (un coin selectat în Movers + același în
 // Funding ⇒ un singur element în Set, dar comparația va include ambele perspective).
-const cryptoSelected = new Set();
+// Persistăm în localStorage ca să supraviețuiască refresh-ului de pagină.
+const CE_SEL_KEY = 'ce_selection';
+const cryptoSelected = (() => {
+  try { return new Set(JSON.parse(localStorage.getItem(CE_SEL_KEY) || '[]')); }
+  catch (_) { return new Set(); }
+})();
+function saveCryptoSelection() {
+  try { localStorage.setItem(CE_SEL_KEY, JSON.stringify(Array.from(cryptoSelected))); } catch (_) {}
+}
 // Memorăm ultima listă randată pe fiecare tabel ca "Select All" să știe ce să bifeze
 const TABLE_LAST_RENDERED = {
   'gainers-1h': [], 'losers-1h': [], 'gainers-24h': [], 'losers-24h': [],
@@ -860,6 +985,26 @@ function coinCell(c) {
   return `<span class="coin">${img}<span class="sym">${sym}</span><span class="name">${name}</span></span>`;
 }
 
+// === Sparkline mini-chart inline (SVG) ===
+// Primește un array de prețuri, întoarce un mic SVG path care arată trendul.
+// Direcția (up/down/flat) e dată de comparația preț[ultim] vs preț[0] și colorează linia.
+function sparklineSvg(prices, w = 60, h = 14) {
+  if (!Array.isArray(prices) || prices.length < 2) return '';
+  let min = Infinity, max = -Infinity;
+  for (const p of prices) { if (p < min) min = p; if (p > max) max = p; }
+  const range = max - min || 1;
+  const step = w / (prices.length - 1);
+  let d = '';
+  for (let i = 0; i < prices.length; i++) {
+    const x = i * step;
+    const y = h - ((prices[i] - min) / range) * h;
+    d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1) + ' ';
+  }
+  const last = prices[prices.length - 1], first = prices[0];
+  const dir = last > first ? 'up' : (last < first ? 'down' : 'flat');
+  return `<svg class="sparkline ${dir}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path d="${d.trim()}"/></svg>`;
+}
+
 // === Fetch cu timeout ===
 async function fetchJson(url, timeoutMs = 12_000) {
   const ctrl = new AbortController();
@@ -875,7 +1020,7 @@ async function fetchJson(url, timeoutMs = 12_000) {
 
 // === CoinGecko: top 100 cu schimbări 1h + 24h ===
 async function fetchMarkets() {
-  const url = `${CG_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=1h%2C24h&sparkline=false`;
+  const url = `${CG_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=1h%2C24h&sparkline=true`;
   const data = await fetchJson(url);
   // Normalizează numele câmpurilor de % pentru consum mai ușor
   return data.map(c => ({
@@ -888,6 +1033,7 @@ async function fetchMarkets() {
     volume_24h: c.total_volume,
     chg_1h: c.price_change_percentage_1h_in_currency,
     chg_24h: c.price_change_percentage_24h_in_currency ?? c.price_change_percentage_24h,
+    spark_7d: c.sparkline_in_7d?.price,    // array ~168 prețuri orare (7 zile)
   }));
 }
 
@@ -1135,7 +1281,7 @@ function renderMoversTable(bodyId, coins, opts) {
     return `<tr class="${isSel ? 'crypto-tr-selected' : ''}" data-sym="${sym}">
       <td><input type="checkbox" class="crypto-chk" ${isSel?'checked':''} onchange="cryptoToggleSelect('${sym}')" title="Selectează pentru comparație AI"></td>
       <td>${coinCell(c)}</td>
-      <td class="num">${fmtUSD(c.price)}</td>
+      <td class="num">${fmtUSD(c.price)}<br>${sparklineSvg(c.spark_7d)}</td>
       <td class="num">${col3}</td>
       <td class="num">${col4}</td>
       <td>
@@ -1206,7 +1352,7 @@ function renderVolume(coins) {
     return `<tr class="${isSel ? 'crypto-tr-selected' : ''}" data-sym="${sym}">
       <td><input type="checkbox" class="crypto-chk" ${isSel?'checked':''} onchange="cryptoToggleSelect('${sym}')" title="Selectează pentru comparație AI"></td>
       <td>${coinCell(c)}</td>
-      <td class="num">${fmtUSD(c.price)}</td>
+      <td class="num">${fmtUSD(c.price)}<br>${sparklineSvg(c.spark_7d)}</td>
       <td class="num"><strong>${fmtCompact(c.volume_24h)}</strong></td>
       <td class="num"><span class="pct ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span></td>
       <td>
@@ -1503,11 +1649,13 @@ function cryptoToggleSelect(sym) {
 }
 
 function cryptoClearSelection() {
+  const had = cryptoSelected.size;
   cryptoSelected.clear();
-  document.querySelectorAll('tr.crypto-tr-selected').forEach(tr => tr.classList.remove('crypto-tr-selected'));
+  document.querySelectorAll('tr.crypto-tr-selected, .cw-cell.crypto-tr-selected').forEach(el => el.classList.remove('crypto-tr-selected'));
   document.querySelectorAll('input.crypto-chk:checked').forEach(c => { c.checked = false; });
   cryptoUpdateCompareBar();
   Object.keys(TABLE_LAST_RENDERED).forEach(updateSelectAllBtnFor);
+  if (had > 0) showToast(`✕ Selecție golită (${had} simboluri)`, 'warn');
 }
 
 // Selectează / deselectează toate simbolurile randate din tabelul `tableId`
@@ -1542,6 +1690,16 @@ function updateSelectAllBtnFor(tableId) {
 }
 
 function cryptoUpdateCompareBar() {
+  // Update sticky counter în topbar (vizibil de la 1+ selecții)
+  const cnt = document.getElementById('selCounter');
+  const cntNum = document.getElementById('selCounterNum');
+  if (cnt && cntNum) {
+    cntNum.textContent = cryptoSelected.size;
+    cnt.classList.toggle('show', cryptoSelected.size > 0);
+  }
+  // Salvăm pe disk de fiecare dată când se schimbă selecția
+  saveCryptoSelection();
+
   let bar = document.getElementById('cryptoCompareBar');
   if (!bar) {
     bar = document.createElement('div');
@@ -1721,27 +1879,19 @@ async function aiAnalyzeRow(type, sym) {
   } else {
     const prompt = _buildCryptoPrompt(type, sym);
     const t0 = performance.now();
+    result.textContent = '';   // streamingul îl populează caracter-cu-caracter
     try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: AI_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+      const { text, usage } = await callAnthropicStream({
+        prompt, maxTokens: 1500,
+        onChunk: (full) => {
+          result.textContent = full;
+          result.scrollTop = result.scrollHeight;
+        },
       });
-      const data = await resp.json();
       const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
-      if (data.content?.[0]?.text) {
-        const text = data.content[0].text;
-        aiCache[cacheKey] = text;
-        result.textContent = text;
-        const usage = data.usage ? ` · ${data.usage.input_tokens}+${data.usage.output_tokens} tok` : '';
-        meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${usage}`;
-      } else if (data.error) {
-        result.textContent = '❌ ' + data.error.message;
-        meta.textContent = 'eroare API';
-      } else {
-        result.textContent = '❌ Răspuns gol';
-        meta.textContent = '';
-      }
+      aiCache[cacheKey] = text;
+      const tokStr = usage ? ` · ${usage.input_tokens || '?'}+${usage.output_tokens || '?'} tok` : '';
+      meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${tokStr}`;
     } catch (e) {
       result.textContent = '❌ ' + e.message;
       meta.textContent = '';
@@ -1793,25 +1943,18 @@ async function aiCompareCrypto() {
   const prompt = `Compară următoarele ${symbols.length} coin-uri crypto pentru un trade pe termen scurt (Pionex futures + grid bots, Binance):\n\n${ctx}\n\nDă-mi:\n1. Mini tabel ASCII cu rating (1-10) per coin pentru: trend tehnic, momentum, R/R bun la entry actual\n2. Care coin are cel mai bun setup ACUM (long sau short) — entry/TP/SL concret\n3. Care e cel mai riscant și de ce (funding extrem, OI prea mare, mover pump and dump)\n4. Sugestie grid bot Pionex pe coin-ul cu cel mai stabil range\n5. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + tabel. Maximum 450 cuvinte. Concret, fără fluff.`;
 
   const t0 = performance.now();
+  result.textContent = '';   // streaming
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({ model: AI_MODEL, max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+    const { usage } = await callAnthropicStream({
+      prompt, maxTokens: 2000,
+      onChunk: (full) => {
+        result.textContent = full;
+        result.scrollTop = result.scrollHeight;
+      },
     });
-    const data = await resp.json();
     const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
-    if (data.content?.[0]?.text) {
-      result.textContent = data.content[0].text;
-      const usage = data.usage ? ` · ${data.usage.input_tokens}+${data.usage.output_tokens} tok` : '';
-      meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${usage}`;
-    } else if (data.error) {
-      result.textContent = '❌ ' + data.error.message;
-      meta.textContent = 'eroare API';
-    } else {
-      result.textContent = '❌ Răspuns gol';
-      meta.textContent = '';
-    }
+    const tokStr = usage ? ` · ${usage.input_tokens || '?'}+${usage.output_tokens || '?'} tok` : '';
+    meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${tokStr}`;
   } catch (e) {
     result.textContent = '❌ ' + e.message;
     meta.textContent = '';
@@ -1827,9 +1970,176 @@ async function aiCompareCrypto() {
   };
 }
 
+// ============================================================
+// TOAST notifications (stack jos-dreapta)
+// ============================================================
+function showToast(msg, type) {
+  let cnt = document.getElementById('toastContainer');
+  if (!cnt) {
+    cnt = document.createElement('div');
+    cnt.id = 'toastContainer';
+    document.body.appendChild(cnt);
+  }
+  const t = document.createElement('div');
+  t.className = 'toast-msg' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  cnt.appendChild(t);
+  setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// ============================================================
+// STREAMING AI helper — folosit de aiAnalyzeRow + aiCompareCrypto + autoScan
+// ============================================================
+// Anthropic API cu stream:true → server-sent events. Parsăm chunk-uri și
+// chemăm onChunk(fullTextSoFar, deltaText) pe fiecare bucată primită.
+async function callAnthropicStream({ prompt, system, messages, model, maxTokens, onChunk }) {
+  const key = getAnthropicKey();
+  if (!key) throw new Error('Lipsește cheia API Anthropic');
+  const body = {
+    model: model || AI_MODEL,
+    max_tokens: maxTokens || 1500,
+    stream: true,
+  };
+  if (system) body.system = system;
+  body.messages = messages || [{ role: 'user', content: prompt }];
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    let errMsg = `HTTP ${resp.status}`;
+    try { const j = await resp.json(); if (j?.error?.message) errMsg = j.error.message; } catch(_) {}
+    throw new Error(errMsg);
+  }
+  if (!resp.body) throw new Error('Răspuns fără stream body');
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  let usage = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const dataStr = line.slice(6).trim();
+      if (dataStr === '[DONE]') continue;
+      try {
+        const evt = JSON.parse(dataStr);
+        if (evt.type === 'content_block_delta' && evt.delta?.text) {
+          fullText += evt.delta.text;
+          if (onChunk) onChunk(fullText, evt.delta.text);
+        } else if (evt.type === 'message_start' && evt.message?.usage) {
+          usage = evt.message.usage;
+        } else if (evt.type === 'message_delta' && evt.usage) {
+          usage = { ...usage, ...evt.usage };
+        }
+      } catch (_) { /* ignore partial-chunk parse errors */ }
+    }
+  }
+  return { text: fullText, usage };
+}
+
+// ============================================================
+// AI auto-scan — rulează periodic /movers /funding /oi și pune raportul
+// într-un panou bottom-left. Interval configurabil din topbar.
+// ============================================================
+let autoScanInterval = parseInt(localStorage.getItem('ce_autoscan_min') || '0', 10);
+let autoScanTimer = null;
+
+function autoScanApply() {
+  const wrap = document.getElementById('autoScanWrap');
+  if (autoScanTimer) { clearInterval(autoScanTimer); autoScanTimer = null; }
+  if (autoScanInterval > 0) {
+    if (wrap) wrap.classList.add('active');
+    autoScanTimer = setInterval(runAutoScan, autoScanInterval * 60_000);
+    showToast(`✓ AI auto-scan activ la ${autoScanInterval} min`, 'success');
+    // Și un scan inițial după 2s ca utilizatorul să vadă rezultatul imediat
+    setTimeout(runAutoScan, 2000);
+  } else {
+    if (wrap) wrap.classList.remove('active');
+    const panel = document.getElementById('aiAutoScanPanel');
+    if (panel) panel.classList.remove('show');
+  }
+}
+
+async function runAutoScan() {
+  const key = getAnthropicKey();
+  if (!key) { showToast('⚠ Lipsește cheia AI pentru auto-scan', 'warn'); return; }
+  let panel = document.getElementById('aiAutoScanPanel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'aiAutoScanPanel';
+    panel.innerHTML = `
+      <div class="as-hdr">
+        <span class="as-title">🔁 AI auto-scan</span>
+        <span class="as-meta" id="asMeta">⏳</span>
+        <button class="as-close" onclick="document.getElementById('aiAutoScanPanel').classList.remove('show')">✕</button>
+      </div>
+      <div class="as-content" id="asContent"></div>
+    `;
+    document.body.appendChild(panel);
+  }
+  panel.classList.add('show');
+  const meta = document.getElementById('asMeta');
+  const content = document.getElementById('asContent');
+  meta.textContent = '⏳ analizez...';
+  content.textContent = '';
+
+  const ctx = aiChatBuildContext();
+  const system = 'Asistent crypto pentru Marius (Pionex futures + grid bots, Binance). Răspunde scurt, concret, în română.\n\n' + ctx;
+  const prompt = `Pe baza datelor LIVE din panou, dă-mi un raport scurt (5-7 rânduri max):
+1. O observație cheie despre piață (BTC.D, F&G) într-un singur rând
+2. Top 3 oportunități CONCRETE acum (LONG sau SHORT, cu ticker + zona entry)
+3. Risc principal acum (funding overheated, OI prea mare, etc)
+4. Dacă e cazul: sugestie grid bot Pionex pe coin-ul cu range stabil
+
+Format: bullet points scurți, fără introducere. Concret, actionable.`;
+
+  const t0 = performance.now();
+  try {
+    const { text, usage } = await callAnthropicStream({
+      prompt, system, maxTokens: 700,
+      onChunk: (full) => { content.textContent = full; },
+    });
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    const tokStr = usage ? ` · ${usage.input_tokens || '?'}+${usage.output_tokens || '?'} tok` : '';
+    meta.textContent = `${new Date().toLocaleTimeString('ro-RO')} · ${elapsed}s${tokStr}`;
+  } catch (e) {
+    content.textContent = '❌ ' + e.message;
+    meta.textContent = 'eroare';
+  }
+}
+
 // Init buton AI key (badge) la load
 updateAiKeyBadge();
 cryptoUpdateCompareBar();   // creează DOM-ul barei (ascuns until 2+ selectate)
+
+// Wire up auto-scan select
+(function autoScanInit(){
+  const sel = document.getElementById('autoScanSel');
+  if (!sel) return;
+  sel.value = String(autoScanInterval);
+  sel.addEventListener('change', () => {
+    autoScanInterval = parseInt(sel.value, 10);
+    localStorage.setItem('ce_autoscan_min', String(autoScanInterval));
+    autoScanApply();
+  });
+  // Dacă a fost setat anterior la o valoare > 0, repornim timer-ul automat
+  if (autoScanInterval > 0) autoScanApply();
+})();
 
 // ============================================================
 // WATCHLIST CRYPTO — coin-uri urmărite, refresh prețuri CoinGecko
@@ -1870,13 +2180,12 @@ async function cwAdd() {
   const sym = (inp.value || '').trim().toUpperCase();
   if (!sym) return;
   if (cryptoWatchlist.some(w => w.symbol === sym)) {
-    alert(`${sym} e deja în watchlist.`);
+    showToast(`👁 ${sym} e deja în watchlist`, 'warn');
     return;
   }
-  // Lookup în top 100 CoinGecko
   const found = cwFindCoinBySymbol(sym);
   if (!found) {
-    alert(`${sym} nu a fost găsit în top 100 după market cap.\nPentru a-l urmări, asigură-te că e listat pe CoinGecko și că datele s-au încărcat (refresh global).`);
+    showToast(`❌ ${sym} nu e în top 100 CoinGecko`, 'error');
     return;
   }
   cryptoWatchlist.push({
@@ -1887,7 +2196,9 @@ async function cwAdd() {
   });
   cwSave();
   cwRender();
+  refreshAllCwAddButtons();
   inp.value = '';
+  showToast(`✓ ${sym} adăugat în watchlist`, 'success');
 }
 
 function cwRemove(sym) {
@@ -1895,6 +2206,7 @@ function cwRemove(sym) {
   cwSave();
   cwRender();
   refreshAllCwAddButtons();
+  showToast('🗑 ' + sym + ' eliminat din watchlist', 'warn');
 }
 
 // Adăugare directă prin simbol (fără input). Apelată din butoanele 👁️ pe rândurile tabelelor.
@@ -1923,6 +2235,7 @@ function cwAddSymbol(sym) {
     setTimeout(() => { sec.style.boxShadow = ''; }, 700);
   }
   refreshAllCwAddButtons();
+  showToast('✓ ' + s + ' adăugat în watchlist', 'success');
 }
 
 // Update vizual pe TOATE butoanele 👁️ din tabele: cele cu simboluri deja în watchlist
@@ -1995,7 +2308,13 @@ function _cwCellHtml(w) {
   const pct = w.chg_24h;
   const pctStr = pct != null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : '—';
   const pctCls = pct == null ? '' : (pct >= 0 ? 'up' : 'down');
-  return `<div class="cw-cell ${isSel ? 'crypto-tr-selected' : ''}" data-sym="${sym}">
+  // Watchlist alert: dacă coin-ul a mișcat >5% în 1h, evidențiem cell-ul cu pulsul colorat
+  let alertCls = '';
+  if (w.chg_1h != null) {
+    if (w.chg_1h >= 5)  alertCls = ' cw-alert-up';
+    if (w.chg_1h <= -5) alertCls = ' cw-alert-down';
+  }
+  return `<div class="cw-cell ${isSel ? 'crypto-tr-selected' : ''}${alertCls}" data-sym="${sym}">
     <input type="checkbox" class="crypto-chk" ${isSel ? 'checked' : ''} onchange="cryptoToggleSelect('${sym}')" title="Selectează pentru comparație AI">
     <span class="sym">${sym}</span>
     <span class="num">${priceStr}</span>
