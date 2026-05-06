@@ -1246,7 +1246,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v51</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v52</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -1261,6 +1261,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
     <div class="notif-btn" id="notifBtn" onclick="requestNotif()">🔔 Notificări</div>
     <div class="notif-btn" id="tgBtn" onclick="showTelegramModal()" style="cursor:pointer" title="Configurează Telegram pentru alerte">📱 Telegram</div>
     <div class="notif-btn" onclick="showApiKeyModal()" style="cursor:pointer" title="Configurează cheia Anthropic API pentru analiza AI">🔑 API Key</div>
+    <div class="notif-btn" onclick="showMultiTabSummary()" title="Multi-tab AI summary: Claude citește semnale din TOATE tab-urile și ranchează top 5 oportunități">🤖 Cross-AI</div>
     <div class="notif-btn" id="notifLogBtn" onclick="showNotifLog()" title="Istoric notificări (toast/Telegram/sound)">📜 Log<span id="notifLogBadge" style="display:none;background:var(--purple);color:#fff;padding:0 5px;border-radius:8px;font-size:9px;margin-left:3px">0</span></div>
     <div class="notif-btn" id="voiceBtn" onclick="toggleVoiceAlerts()" title="Voice alerts: TTS pentru semnale Premium/Hot">🔊 Voice</div>
     <div class="notif-btn" id="compactBtn" onclick="toggleCompactMode()" title="Compact mode: padding redus + font mic">⚙️ Compact</div>
@@ -10505,6 +10506,199 @@ if (!localStorage.getItem('cs_pin_hint_seen') && pinnedTabs.length === 0) {
     if (typeof showToast === 'function') showToast('💡 Tab pinning: right-click pe tab pentru a-l pin (max 3 — apar deasupra signals)', 'ok');
     try { localStorage.setItem('cs_pin_hint_seen', '1'); } catch(_) {}
   }, 3000);
+}
+
+// ════════════════════════════════════════════════════════════════
+// PACHET F3 — Multi-tab AI summary (cross-tab digest cu streaming Anthropic)
+// ════════════════════════════════════════════════════════════════
+async function showMultiTabSummary() {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    if (typeof showApiKeyModal === 'function') showApiKeyModal();
+    return;
+  }
+
+  // Construiește context din TOATE sursele disponibile (allSignals + tabs specifice)
+  const ctx = buildCrossTabContext();
+  if (!ctx) {
+    if (typeof showToast === 'function') showToast('Nu există date pentru analiză. Pornește un scan mai întâi.', 'warn');
+    return;
+  }
+
+  // Modal cu rezultat streaming
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:720px">
+      <div class="ai-modal-title">🤖 Multi-tab AI Summary</div>
+      <div class="ai-modal-sub">Claude citește semnalele din TOATE tab-urile active și ranchează top oportunități cu confidence rating.</div>
+      <div class="ai-modal-result" id="mtsResult">⏳ Analiză cross-tab în curs...</div>
+      <div class="ai-modal-meta" id="mtsMeta"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="mtsCopyBtn">📋 Copiază</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const result = document.getElementById('mtsResult');
+  const meta = document.getElementById('mtsMeta');
+  result.textContent = '';
+
+  const prompt = `Sunt trader Pionex (futures + grid bots) + Binance. Pe baza semnalelor mele LIVE din scanner (multiple tab-uri), dă-mi top 5 OPORTUNITĂȚI AGREGATE (cele mai puternice combinând semnale din mai multe surse simultan):
+
+${ctx}
+
+Format obligatoriu pentru fiecare din top 5:
+1. **TICKER · SETUP TYPE** (ex: SOL · long pullback, BTC · short squeeze)
+2. **Entry / TP / SL** (zone aproximate)
+3. **Confidence: X/10** (cât de sigur ești)
+4. **Sursă cross-tab**: care tab-uri îl confirmă (Setups + Premium + Pump etc)
+5. **De ce ACUM**: 1 frază scurtă
+
+La final, secțiune **"⚠ Watch out"** cu 1-2 coin-uri suspecte (high funding, OI build-up periculos, pump epuizat).
+
+Concret, fără introducere. Maximum 600 cuvinte. Răspunde în română.`;
+
+  const t0 = performance.now();
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-7',
+        max_tokens: 2200,
+        stream: true,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!resp.ok) {
+      let err = `HTTP ${resp.status}`;
+      try { const j = await resp.json(); if (j?.error?.message) err = j.error.message; } catch(_){}
+      throw new Error(err);
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+    let usage = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const dataStr = line.slice(6).trim();
+        if (dataStr === '[DONE]') continue;
+        try {
+          const evt = JSON.parse(dataStr);
+          if (evt.type === 'content_block_delta' && evt.delta?.text) {
+            fullText += evt.delta.text;
+            result.textContent = fullText;
+            result.scrollTop = result.scrollHeight;
+          } else if (evt.type === 'message_start' && evt.message?.usage) {
+            usage = evt.message.usage;
+          } else if (evt.type === 'message_delta' && evt.usage) {
+            usage = { ...usage, ...evt.usage };
+          }
+        } catch (_) {}
+      }
+    }
+
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    const tok = usage ? ` · ${usage.input_tokens||'?'}+${usage.output_tokens||'?'} tok` : '';
+    meta.textContent = `✓ claude-opus-4-7 · ${elapsed}s${tok}`;
+
+    // Salvează în saved analyses dacă există hook
+    try { logNotification('success', 'Multi-tab AI summary generat', 'cross-ai'); } catch(_){}
+
+  } catch (e) {
+    result.textContent = '❌ ' + e.message;
+    meta.textContent = '';
+  }
+
+  document.getElementById('mtsCopyBtn').onclick = () => {
+    navigator.clipboard.writeText(result.textContent).then(() => {
+      const b = document.getElementById('mtsCopyBtn');
+      const old = b.textContent;
+      b.textContent = '✓ Copiat!';
+      setTimeout(() => b.textContent = old, 1500);
+    });
+  };
+}
+
+// Construiește context concis cross-tab
+function buildCrossTabContext() {
+  const lines = [];
+  lines.push(`Timestamp: ${new Date().toLocaleString('ro-RO')}`);
+
+  // Macro context: F&G + BTC chg + ETH chg
+  const fgVal = document.getElementById('mc-fg-val')?.textContent || '—';
+  const fgTxt = document.getElementById('mc-fg-txt')?.textContent || '';
+  const btcChg = document.getElementById('mc-btc')?.textContent || '—';
+  const ethChg = document.getElementById('mc-eth')?.textContent || '—';
+  const mktSent = document.getElementById('mc-mkt')?.textContent || '—';
+  lines.push(`MACRO: F&G ${fgVal} (${fgTxt}) · BTC 24h ${btcChg} · ETH 24h ${ethChg} · Sentiment piață: ${mktSent}`);
+
+  if (typeof allSignals === 'undefined' || !allSignals || !allSignals.length) {
+    lines.push('Niciun semnal din scan. Rulează scan și încearcă din nou.');
+    return lines.join('\n');
+  }
+
+  // Top 8 după score (Premium)
+  const premium = [...allSignals].sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 8);
+  lines.push(`\nPREMIUM (top 8 după score):`);
+  premium.forEach(s => {
+    const parts = [`${s.coin || s.symbol || '?'}`];
+    if (s.score) parts.push(`score ${s.score}`);
+    if (s.type) parts.push(s.type);
+    if (s.chg24 != null) parts.push(`${s.chg24 >= 0 ? '+' : ''}${s.chg24.toFixed(2)}% 24h`);
+    if (s.range24) parts.push(`range ${s.range24.toFixed(1)}%`);
+    if (s.verdict) parts.push(s.verdict);
+    lines.push(`- ${parts.join(' · ')}`);
+  });
+
+  // Top 5 active 1h (live)
+  const live = allSignals.filter(s => s.time && Date.now() - s.time < 3600000)
+    .sort((a,b) => (b.score||0) - (a.score||0)).slice(0, 5);
+  if (live.length) {
+    lines.push(`\nLIVE (1h, top 5):`);
+    live.forEach(s => {
+      const parts = [`${s.coin || s.symbol || '?'}`];
+      if (s.type) parts.push(s.type);
+      if (s.chg5m) parts.push(`5m ${s.chg5m.toFixed(1)}%`);
+      lines.push(`- ${parts.join(' · ')}`);
+    });
+  }
+
+  // Funding rates extreme (din DOM dacă există)
+  const frRows = document.querySelectorAll('#frRows .td-row');
+  if (frRows.length) {
+    const frTop = Array.from(frRows).slice(0, 5).map(r => r.textContent.trim().replace(/\s+/g, ' ')).join(' | ');
+    if (frTop) lines.push(`\nFUNDING RATES TOP: ${frTop}`);
+  }
+
+  // Watchlist
+  const wlRows = document.querySelectorAll('#dashWlContent .td-row');
+  if (wlRows.length) {
+    const wlSyms = Array.from(wlRows).slice(0, 8)
+      .map(r => r.querySelector('.td-coin')?.textContent?.trim())
+      .filter(Boolean);
+    if (wlSyms.length) lines.push(`\nWATCHLIST: ${wlSyms.join(', ')}`);
+  }
+
+  return lines.join('\n');
 }
 
 </script>
