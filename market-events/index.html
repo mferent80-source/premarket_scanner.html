@@ -6,76 +6,125 @@
 <title>Nasdaq Scanner — Earnings + Top Losers</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* === Paleta unificată cu crypto-events === */
+  :root {
+    --bg:#0b0f17; --panel:#141a28; --panel2:#1d2537; --border:#2a3247; --border-soft:#1f2638;
+    --text:#e8eef5; --muted:#8892a6;
+    --bull-s:#22d66b; --bear-s:#ff4d4d; --warn:#d4892c;
+    --accent:#5bb0ff; --accent2:#8b6fff;
+    --radius:12px; --radius-sm:8px;
+    --ease:cubic-bezier(.4,0,.2,1);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+    --shadow:0 4px 14px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.2);
+  }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #0d1117;
-    color: #e6edf3;
-    padding: 16px;
-    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(1200px 600px at 50% -200px, #141c2e 0%, #0b0f17 55%);
+    background-attachment: fixed;
+    color: var(--text);
+    padding: 12px;
+    font-size: 13px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
   }
-  h1 { font-size: 20px; margin-bottom: 4px; color: #f0883e; }
-  .subtitle { font-size: 12px; color: #8b949e; margin-bottom: 16px; }
-  
-  .global-config {
-    background: #161b22;
-    padding: 10px 12px;
-    border-radius: 6px;
-    margin-bottom: 16px;
-    border: 1px solid #30363d;
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    flex-wrap: wrap;
+
+  /* === Sticky header bar (înlocuiește h1 + subtitle + global-config) === */
+  .topbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    background: linear-gradient(180deg, rgba(30,38,57,.85), rgba(20,26,40,.92));
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    padding: 11px 16px; border-radius: var(--radius);
+    border: 1px solid var(--border); margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    position: sticky; top: 8px; z-index: 50;
   }
-  .global-config label { font-size: 11px; color: #8b949e; text-transform: uppercase; }
-  .global-config input {
-    background: #0d1117;
-    border: 1px solid #30363d;
-    color: #e6edf3;
-    padding: 5px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    flex: 1;
-    min-width: 250px;
+  .topbar h1 {
+    font-size: 15px; font-weight: 700; letter-spacing: -.2px;
+    background: linear-gradient(90deg, #f0883e 0%, #d2a8ff 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-right: auto;
   }
-  
+  .topbar .nav-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--panel2); border: 1px solid var(--border);
+    padding: 6px 11px; border-radius: var(--radius-sm);
+    color: var(--text); text-decoration: none; font-size: 11px; font-weight: 600;
+    transition: all .15s var(--ease);
+  }
+  .topbar .nav-link:hover { background: var(--accent); border-color: var(--accent); color: #000; transform: translateY(-1px); }
+  .topbar .proxy-input {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 10px; border-radius: var(--radius-sm); font-size: 11px;
+    min-width: 220px; max-width: 320px; flex: 1; font-family: inherit;
+  }
+  .topbar .proxy-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,176,255,.15); }
+  .topbar button {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 11px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: all .15s var(--ease);
+  }
+  .topbar button:hover { background: var(--accent); border-color: var(--accent); color: #000; transform: translateY(-1px); }
+  .topbar button.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-color: transparent; color: #fff;
+    box-shadow: 0 2px 8px rgba(91,176,255,.3);
+  }
+  .topbar button.primary:hover { filter: brightness(1.08); color: #fff; }
+
+  /* === Backward compat — vechiul subtitle e folosit pe mobile (afișăm inline-block doar dacă apare) === */
+  .subtitle { font-size: 11px; color: var(--muted); margin-bottom: 10px; padding: 0 4px; }
+
   section {
-    background: #161b22;
-    border-radius: 8px;
+    background: var(--panel);
+    border-radius: var(--radius);
     padding: 14px;
-    margin-bottom: 16px;
-    border: 1px solid #30363d;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
   }
+  /* === Panel-head styling (h2 ca header colorat sus în secțiune) === */
   h2 {
-    font-size: 16px;
-    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    margin: -14px -14px 12px -14px;
+    padding: 10px 14px;
     display: flex;
     align-items: center;
     gap: 8px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(29,37,55,.6), rgba(20,26,40,.4));
   }
-  .section-earnings h2 { color: #d2a8ff; }
-  .section-losers h2 { color: #ff7b72; }
-  
+  .section-earnings h2 { color: #d2a8ff; border-bottom-color: rgba(210,168,255,.3); }
+  .section-losers h2 { color: var(--bear-s); border-bottom-color: rgba(255,77,77,.3); }
+  .section-watchlist h2 { color: var(--accent); border-bottom-color: rgba(91,176,255,.3); }
+
   .controls {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 8px;
-    background: #0d1117;
+    background: var(--bg);
     padding: 10px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     margin-bottom: 10px;
+    border: 1px solid var(--border-soft);
   }
   .ctrl { display: flex; flex-direction: column; gap: 3px; }
-  label { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+  label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
   input, select {
-    background: #161b22;
-    border: 1px solid #30363d;
-    color: #e6edf3;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
     padding: 5px 7px;
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
     font-size: 12px;
+    font-family: inherit;
   }
-  input:focus, select:focus { outline: none; border-color: #58a6ff; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,176,255,.15); }
   
   button {
     color: white;
@@ -94,44 +143,49 @@
   
   .status {
     padding: 6px 10px;
-    background: #0d1117;
-    border-radius: 4px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
     margin-bottom: 8px;
     font-size: 11px;
-    color: #8b949e;
-    border-left: 3px solid #58a6ff;
+    color: var(--muted);
+    border-left: 3px solid var(--accent);
+    border-top: 1px solid var(--border-soft);
+    border-right: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border-soft);
   }
-  .status.error { border-left-color: #f85149; color: #ff7b72; }
-  .status.success { border-left-color: #3fb950; color: #56d364; }
-  
+  .status.error { border-left-color: var(--bear-s); color: var(--bear-s); }
+  .status.success { border-left-color: var(--bull-s); color: var(--bull-s); }
+
   .table-wrap { overflow-x: auto; max-height: 600px; overflow-y: auto; }
   table {
     width: 100%;
     border-collapse: collapse;
-    background: #0d1117;
-    border-radius: 4px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
     overflow: hidden;
     font-size: 12px;
   }
   th, td {
     padding: 7px 9px;
     text-align: left;
-    border-bottom: 1px solid #21262d;
+    border-bottom: 1px solid var(--border-soft);
   }
   th {
-    background: #21262d;
-    font-weight: 600;
+    background: rgba(20,26,40,.6);
+    font-weight: 700;
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
     white-space: nowrap;
+    color: var(--muted);
     position: sticky;
     top: 0;
     z-index: 10;
   }
   .section-earnings th { color: #d2a8ff; }
-  .section-losers th { color: #ff7b72; }
-  tr:hover td { background: #1c2128; }
+  .section-losers th { color: var(--bear-s); }
+  .section-watchlist th { color: var(--accent); }
+  tr:hover td { background: rgba(91,176,255,.04); }
   
   .neg { color: #ff6b6b; font-weight: 700; }
   .pos { color: #3fb950; font-weight: 700; }
@@ -442,18 +496,17 @@
 </head>
 <body>
 
-<a href="../" class="hub-back">← Hub</a>
-<h1>📊 NASDAQ SCANNER PRO</h1>
-<div class="subtitle">Earnings Calendar (toată piața) + Top Losers — Pornesc automat la încărcare</div>
-
-<!-- CONFIG GLOBAL -->
-<div class="global-config">
-  <label>Proxy CORS:</label>
-  <input id="proxyUrl" value="https://cors-proxy-one-drab.vercel.app/api/proxy/?url=" />
-  <button id="refreshAllBtn" style="background: #1f6feb;">🔄 REFRESH AMÂNDOUĂ</button>
-  <!-- AI key config (analize Claude inline) -->
-  <button id="aiKeyBtn" class="btn-ai-key" onclick="showAiKeyModal()" title="Configurează cheia Anthropic API pentru analize AI per simbol">🔑 AI Key</button>
+<!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
+<div class="topbar">
+  <h1>📊 Nasdaq Scanner Pro</h1>
+  <a href="../" class="nav-link hub-back">← Hub</a>
+  <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
+  <input id="proxyUrl" class="proxy-input" value="https://cors-proxy-one-drab.vercel.app/api/proxy/?url=" placeholder="Proxy CORS..." />
+  <button id="aiKeyBtn" class="btn-ai-key" onclick="showAiKeyModal()" title="Configurează cheia Anthropic API pentru analize AI per simbol">🔑 AI</button>
+  <button id="refreshAllBtn" class="primary">🔄 Refresh</button>
 </div>
+
+<div class="subtitle">Earnings Calendar (toată piața) + Top Losers — pornesc automat la încărcare</div>
 
 <!-- Grid 3 coloane: Watchlist + Earnings + Top Losers side-by-side (stack pe mobile) -->
 <div class="events-grid">
