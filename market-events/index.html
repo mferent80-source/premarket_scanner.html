@@ -1333,6 +1333,7 @@ class NasdaqScanner {
       marketCap: get(q, 'marketCap'),
       exchange: q.fullExchangeName || q.exchange || '',
       sector: q.sector || '',
+      industry: q.industry || '',
       dayHigh: get(q, 'regularMarketDayHigh'),
       dayLow: get(q, 'regularMarketDayLow'),
       yearHigh: get(q, 'fiftyTwoWeekHigh'),
@@ -3654,39 +3655,50 @@ function renderVolumeHeatmap() {
   }).join('');
 }
 
-// === SECTOR HEATMAP — losers grupați pe sector ===
+// === SECTOR HEATMAP — losers grupați pe sector cu fallback pe industry / exchange ===
+// Yahoo screener day_losers de obicei NU returnează sector → fallback pe industry,
+// apoi pe exchange (NYSE/Nasdaq). Astfel întotdeauna apare ceva.
 function renderSectorHeatmap() {
   const wrap = document.getElementById('sectorHeatmap');
   if (!wrap) return;
   const losers = (typeof lastLosers !== 'undefined' && lastLosers) ? lastLosers : [];
   if (!losers.length) { wrap.innerHTML = '<div class="heat-empty">fără date — apasă „🔻 Scanează" în Top Losers</div>'; return; }
 
-  // Grupare pe sector
-  const sectors = new Map();
+  // Determinăm key-ul de grupare: prefer sector, apoi industry, apoi exchange
+  const groupKey = (s) => s.sector || s.industry || s.exchange || 'Necunoscut';
+  const labelInfo = losers.some(s => s.sector) ? 'sector'
+                  : losers.some(s => s.industry) ? 'industry (Yahoo nu returnează sector)'
+                  : 'exchange (Yahoo nu returnează sector/industry)';
+
+  const groups = new Map();
   for (const s of losers) {
-    if (!s.sector) continue;
-    const a = sectors.get(s.sector) || { sector: s.sector, count: 0, sumChg: 0, mcap: 0 };
+    const key = groupKey(s);
+    const a = groups.get(key) || { name: key, count: 0, sumChg: 0, mcap: 0 };
     a.count += 1;
     a.sumChg += (s.changePct || 0);
     a.mcap += (s.marketCap || 0);
-    sectors.set(s.sector, a);
+    groups.set(key, a);
   }
-  const arr = Array.from(sectors.values()).map(a => ({ ...a, avgChg: a.sumChg / a.count }));
-  arr.sort((a, b) => a.avgChg - b.avgChg);   // cele mai rele primele
-  if (!arr.length) { wrap.innerHTML = '<div class="heat-empty">fără sectoare disponibile</div>'; return; }
+  const arr = Array.from(groups.values()).map(a => ({ ...a, avgChg: a.sumChg / a.count }));
+  arr.sort((a, b) => a.avgChg - b.avgChg);
+  if (!arr.length) { wrap.innerHTML = '<div class="heat-empty">fără date de grupare</div>'; return; }
 
-  const worstChg = Math.abs(arr[0].avgChg);
-  wrap.innerHTML = arr.slice(0, 10).map(a => {
+  const worstChg = Math.abs(arr[0].avgChg) || 1;
+  // Header info despre ce key folosim (ca utilizatorul să știe)
+  const headerNote = `<div style="font-size:9.5px;color:#6e7681;margin-bottom:6px;font-style:italic">grupare: ${labelInfo}</div>`;
+  const rowsHtml = arr.slice(0, 10).map(a => {
     const widthPct = Math.min(100, (Math.abs(a.avgChg) / worstChg) * 100);
-    const sectorShort = a.sector.length > 18 ? a.sector.slice(0, 17) + '…' : a.sector;
+    const labelShort = a.name.length > 18 ? a.name.slice(0, 17) + '…' : a.name;
+    const sym = labelShort.split(' ')[0].toUpperCase().slice(0, 8);
     return `<div class="heat-row">
-      <span class="sym" title="${a.sector}">${sectorShort.split(' ')[0].toUpperCase().slice(0, 6)}</span>
+      <span class="sym" title="${a.name}">${sym}</span>
       <div class="bar" style="width:${widthPct.toFixed(1)}%">
         <span class="meta">${a.count} stocks · ${a.avgChg.toFixed(2)}% avg</span>
       </div>
       <span class="val">${NasdaqScanner.formatMcap(a.mcap)}</span>
     </div>`;
   }).join('');
+  wrap.innerHTML = headerNote + rowsHtml;
 }
 
 // Hook pe scanLosers ca să rendăm heatmap-urile după ce avem date
