@@ -2464,15 +2464,16 @@ function renderSentCard(key, d, opts = {}) {
   const $chg   = $('senti-' + key + '-chg');
   if (!d || d.price == null) {
     $price.textContent = '—';
+    $price.style.color = '';
     $chg.textContent = 'indisponibil';
     $chg.className = 'sent-sub';
     return;
   }
-  // Format preț: 2 zecimale standard
   $price.textContent = '$' + d.price.toLocaleString('en-US', { maximumFractionDigits: 2 });
   if (d.chgPct == null || isNaN(d.chgPct)) {
     $chg.textContent = '—';
     $chg.className = 'sent-sub';
+    $price.style.color = '';
     return;
   }
   const sign = d.chgPct >= 0 ? '+' : '';
@@ -2480,6 +2481,8 @@ function renderSentCard(key, d, opts = {}) {
   // Pentru VIX inversăm semantica: VIX în sus = piață fricoasă (rău), în jos = calmă (bine)
   const isPositive = opts.invert ? d.chgPct < 0 : d.chgPct >= 0;
   $chg.className = 'sent-sub ' + (isPositive ? 'up' : 'down');
+  // Și valoarea (preț) capătă culoarea direcției — verde dacă pozitiv, roșu dacă negativ
+  $price.style.color = isPositive ? '#3fb950' : '#ff6b6b';
 }
 
 function renderMarketSession(state) {
@@ -2497,8 +2500,9 @@ function renderMarketSession(state) {
   const m = map[state] || map.CLOSED;
   $val.textContent = m.label;
   $sub.textContent = m.sub;
-  // Schimbăm bara verticală a cardului în funcție de session
+  // Schimbăm bara verticală + valoarea text → ambele culori după session
   $('senti-card-session').style.setProperty('--bar-color', m.color);
+  $val.style.color = m.color;
 }
 
 // ============================================================

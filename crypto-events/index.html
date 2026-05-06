@@ -1296,18 +1296,19 @@ async function fetchLiquidations() {
 
 // === Render: sentiment === //
 function renderSentiment(fng, glob) {
-  // Fear & Greed
+  // Fear & Greed — valoarea + label colorate după clasificare (red=fear, green=greed)
   if (fng) {
     $('fng-value').textContent = fng.value;
     $('fng-label').textContent = fng.label;
-    // Barul colorat în stânga, pe scală 0-100
-    let color;
-    if (fng.value <= 24)      color = '#ff4d4d';        // Extreme Fear
-    else if (fng.value <= 49) color = '#d4892c';        // Fear
-    else if (fng.value <= 54) color = '#8892a6';        // Neutral
-    else if (fng.value <= 74) color = '#5bdcb0';        // Greed
-    else                      color = '#22d66b';        // Extreme Greed
+    let color, valColor;
+    if (fng.value <= 24)      { color = '#ff4d4d'; valColor = 'var(--bear-s)'; }   // Extreme Fear → roșu
+    else if (fng.value <= 49) { color = '#d4892c'; valColor = 'var(--bear-s)'; }   // Fear → roșu
+    else if (fng.value <= 54) { color = '#8892a6'; valColor = 'var(--muted)'; }    // Neutral → gri
+    else if (fng.value <= 74) { color = '#5bdcb0'; valColor = 'var(--bull-s)'; }   // Greed → verde
+    else                      { color = '#22d66b'; valColor = 'var(--bull-s)'; }   // Extreme Greed → verde
     $('card-fng').style.setProperty('--bar-color', color);
+    $('fng-value').style.color = valColor;
+    $('fng-label').style.color = valColor;
   } else {
     $('fng-value').textContent = '—';
     $('fng-label').textContent = 'indisponibil';
@@ -1321,6 +1322,8 @@ function renderSentiment(fng, glob) {
     const chg = glob.mcap_chg_24h;
     if (chg != null) {
       const cls = chg >= 0 ? 'up' : 'down';
+      // Total Market Cap: VALOAREA mare colorată după direcția 24h
+      $('mcap').style.color = chg >= 0 ? 'var(--bull-s)' : 'var(--bear-s)';
       $('mcap-chg').innerHTML = `<span class="pct ${cls}">${fmtPct(chg)}</span> 24h`;
       $('mcap-chg-sub').innerHTML = `${glob.btc_d != null ? glob.btc_d.toFixed(1) + '% din total' : '—'}`;
     }
