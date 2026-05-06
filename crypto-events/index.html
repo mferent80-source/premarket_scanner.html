@@ -638,6 +638,70 @@
   }
   @keyframes cwPulseUp  {50%{box-shadow:inset 0 0 0 1px var(--bull-s)}}
   @keyframes cwPulseDown{50%{box-shadow:inset 0 0 0 1px var(--bear-s)}}
+
+  /* === Position Sizer modal — form grid + result tile === */
+  .sizer-form{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-bottom:14px}
+  .sizer-form label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px; display:block}
+  .sizer-form input, .sizer-form select{
+    width:100%; padding:7px 9px; background:var(--bg); border:1px solid var(--border);
+    color:var(--text); border-radius:6px; font-size:12px; font-family:monospace; outline:none;
+  }
+  .sizer-form input:focus, .sizer-form select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,176,255,.15)}
+  .sizer-form .full{grid-column:1 / -1}
+  .sizer-side{display:flex; gap:5px}
+  .sizer-side button{
+    flex:1; padding:7px; border-radius:6px; border:1px solid var(--border);
+    background:var(--panel2); color:var(--muted); font-weight:700; cursor:pointer;
+    font-size:11px; font-family:inherit;
+  }
+  .sizer-side button.active.long {background:rgba(34,214,107,.20); border-color:var(--bull-s); color:var(--bull-s)}
+  .sizer-side button.active.short{background:rgba(255,77,77,.20); border-color:var(--bear-s); color:var(--bear-s)}
+  .sizer-results{
+    background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    padding:12px 14px; display:grid; grid-template-columns:1fr 1fr; gap:8px 16px;
+    font-size:12px;
+  }
+  .sizer-results .row{display:flex; justify-content:space-between; align-items:center; gap:8px}
+  .sizer-results .label{color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.3px}
+  .sizer-results .val{font-weight:800; font-variant-numeric:tabular-nums}
+  .sizer-results .val.up{color:var(--bull-s)}
+  .sizer-results .val.down{color:var(--bear-s)}
+  .sizer-warn{font-size:10.5px; color:var(--warn); margin-top:8px; padding:6px 10px; background:rgba(212,137,44,.10); border-left:3px solid var(--warn); border-radius:5px}
+
+  /* === Smart Alerts list === */
+  .alerts-list{display:flex; flex-direction:column; gap:6px; margin-bottom:12px; max-height:300px; overflow-y:auto}
+  .alert-row{
+    display:flex; align-items:center; gap:8px; padding:7px 10px;
+    background:var(--bg); border:1px solid var(--border); border-radius:6px;
+    font-size:11.5px; flex-wrap:wrap;
+  }
+  .alert-row .alert-summary{flex:1; min-width:140px; font-family:monospace; color:var(--text)}
+  .alert-row .alert-toggle{
+    background:var(--panel2); border:1px solid var(--border); color:var(--muted);
+    padding:3px 8px; border-radius:4px; font-size:10px; font-weight:700;
+    cursor:pointer; font-family:inherit;
+  }
+  .alert-row .alert-toggle.on{background:var(--bull-s); border-color:var(--bull-s); color:#000}
+  .alert-row .alert-del{
+    background:rgba(255,77,77,.10); border:1px solid rgba(255,77,77,.4); color:var(--bear-s);
+    padding:3px 8px; border-radius:4px; font-size:10px; cursor:pointer; font-family:inherit;
+  }
+  .alert-row .alert-del:hover{background:rgba(255,77,77,.20)}
+  .alert-form{
+    display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto; gap:6px;
+    background:var(--bg); padding:8px; border-radius:6px; border:1px solid var(--border-soft);
+    margin-bottom:10px;
+  }
+  .alert-form input, .alert-form select{
+    padding:5px 7px; background:var(--panel); border:1px solid var(--border);
+    color:var(--text); border-radius:4px; font-size:11px; font-family:inherit;
+  }
+  .alert-form button{
+    background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#fff;
+    border:none; padding:5px 11px; border-radius:4px; font-size:11px; font-weight:700;
+    cursor:pointer; font-family:inherit;
+  }
+  .alerts-empty{padding:14px; text-align:center; color:var(--muted); font-size:11px; font-style:italic}
 </style>
 </head>
 <body>
@@ -660,6 +724,9 @@
       <option value="60">60 min</option>
     </select>
   </span>
+  <button class="nav-link" onclick="showPositionSizer()" title="Position sizer pentru Pionex futures: calculează poziție, leverage, R/R">🧮 Sizer</button>
+  <button class="nav-link" onclick="showAlertsModal()" title="Smart alerts: notificări custom pe schimb % / funding / OI">🔔 Alerte<span id="alertsBadge" style="display:none; margin-left:4px; background:var(--accent2); color:#fff; padding:0 5px; border-radius:8px; font-size:9px;">0</span></button>
+  <button class="nav-link" onclick="showSyncModal()" title="Sync watchlist + alerte cross-device prin GitHub Gist">☁ Sync</button>
   <button id="aiKeyBtn" class="btn-ai-key" onclick="showAiKeyModal()" title="Configurează cheia Anthropic API pentru analize AI per simbol">🔑 AI Key</button>
   <button id="pause-btn" title="Pune pe pauză auto-refresh">⏸ Pauză</button>
   <button id="refresh-btn" class="primary">↻ Refresh</button>
@@ -2583,6 +2650,489 @@ function aiChatQuickCmd(cmd){
   inp.addEventListener('input', () => { inp.style.height = 'auto'; inp.style.height = Math.min(120, inp.scrollHeight) + 'px'; });
   inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiChatSend(); } });
 })();
+
+// ============================================================
+// POSITION SIZER (Pionex futures) — calc poziție / leverage / R/R
+// ============================================================
+const SIZER_PREFS_KEY = 'ce_sizer_prefs';
+function loadSizerPrefs() {
+  try { return JSON.parse(localStorage.getItem(SIZER_PREFS_KEY) || '{}'); } catch (_) { return {}; }
+}
+function saveSizerPrefs(prefs) {
+  try { localStorage.setItem(SIZER_PREFS_KEY, JSON.stringify(prefs)); } catch (_) {}
+}
+
+function showPositionSizer(prefillSym) {
+  const prefs = loadSizerPrefs();
+  const sym = (prefillSym || prefs.symbol || 'BTC').toUpperCase();
+  // Auto-fill entry price din cache dacă există
+  const found = cwFindCoinBySymbol(sym);
+  const autoPrice = found?.price ?? prefs.entry ?? '';
+
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:560px">
+      <div class="ai-modal-title">🧮 Position Sizer · Pionex Futures</div>
+      <div class="ai-modal-sub">Calculează poziția și marja necesară pentru un risc fix per trade.</div>
+      <div class="sizer-form">
+        <div>
+          <label>Simbol</label>
+          <input id="szSym" type="text" value="${sym}" maxlength="10" style="text-transform:uppercase">
+        </div>
+        <div>
+          <label>Side</label>
+          <div class="sizer-side">
+            <button id="szSideLong" class="active long" onclick="this.classList.add('active');document.getElementById('szSideShort').classList.remove('active');document.getElementById('szSide').value='long';sizerCalc()">📈 LONG</button>
+            <button id="szSideShort" onclick="this.classList.add('active','short');document.getElementById('szSideLong').classList.remove('active');document.getElementById('szSide').value='short';sizerCalc()">📉 SHORT</button>
+          </div>
+          <input id="szSide" type="hidden" value="long">
+        </div>
+        <div>
+          <label>Entry ($)</label>
+          <input id="szEntry" type="number" step="any" value="${autoPrice}">
+        </div>
+        <div>
+          <label>Stop Loss ($)</label>
+          <input id="szSL" type="number" step="any" value="${prefs.sl ?? ''}">
+        </div>
+        <div>
+          <label>Take Profit ($)</label>
+          <input id="szTP" type="number" step="any" value="${prefs.tp ?? ''}">
+        </div>
+        <div>
+          <label>Leverage</label>
+          <select id="szLev">
+            ${[1,2,3,5,10,20,50].map(l => `<option value="${l}" ${l === (prefs.lev || 3) ? 'selected' : ''}>${l}×</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>Cont total ($)</label>
+          <input id="szAcct" type="number" step="any" value="${prefs.acct ?? 1000}">
+        </div>
+        <div>
+          <label>Risc per trade (%)</label>
+          <input id="szRisk" type="number" step="any" value="${prefs.risk ?? 2}" min="0.1" max="100">
+        </div>
+      </div>
+      <div class="sizer-results" id="szResults"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="szCopyBtn">📋 Copy plan</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  // Bind input listeners pentru recalc live
+  ['szSym','szEntry','szSL','szTP','szLev','szAcct','szRisk'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', sizerCalc);
+    if (el && el.tagName === 'SELECT') el.addEventListener('change', sizerCalc);
+  });
+  // Auto-fill entry price când se schimbă simbolul (din cachedMarkets)
+  document.getElementById('szSym').addEventListener('input', (e) => {
+    const newSym = e.target.value.trim().toUpperCase();
+    const f = cwFindCoinBySymbol(newSym);
+    if (f) document.getElementById('szEntry').value = f.price;
+    sizerCalc();
+  });
+  document.getElementById('szCopyBtn').onclick = () => {
+    const md = sizerBuildMarkdown();
+    navigator.clipboard.writeText(md).then(() => {
+      const b = document.getElementById('szCopyBtn');
+      const old = b.textContent;
+      b.textContent = '✓ Copiat!';
+      setTimeout(() => b.textContent = old, 1500);
+    });
+  };
+  sizerCalc();
+}
+
+function sizerCalc() {
+  const sym = document.getElementById('szSym').value.trim().toUpperCase();
+  const side = document.getElementById('szSide').value;
+  const entry = parseFloat(document.getElementById('szEntry').value);
+  const sl = parseFloat(document.getElementById('szSL').value);
+  const tp = parseFloat(document.getElementById('szTP').value);
+  const lev = parseFloat(document.getElementById('szLev').value);
+  const acct = parseFloat(document.getElementById('szAcct').value);
+  const riskPct = parseFloat(document.getElementById('szRisk').value);
+
+  saveSizerPrefs({ symbol: sym, sl, tp, lev, acct, risk: riskPct });
+
+  const out = document.getElementById('szResults');
+  if (!entry || !sl || !acct || !riskPct) {
+    out.innerHTML = '<div class="row" style="grid-column:1 / -1; color:var(--muted); font-style:italic;">Completează entry, SL, cont și risc.</div>';
+    return;
+  }
+
+  // Validare logica side vs SL
+  let warn = '';
+  if (side === 'long' && sl >= entry)       warn = '⚠ SL trebuie să fie SUB entry pentru LONG.';
+  if (side === 'short' && sl <= entry)      warn = '⚠ SL trebuie să fie PESTE entry pentru SHORT.';
+  if (tp && side === 'long' && tp <= entry) warn += ' ⚠ TP trebuie să fie peste entry pentru LONG.';
+  if (tp && side === 'short' && tp >= entry)warn += ' ⚠ TP trebuie să fie sub entry pentru SHORT.';
+
+  const riskUsd = acct * (riskPct / 100);
+  const slDist = Math.abs(entry - sl);
+  const slDistPct = (slDist / entry) * 100;
+  const positionCoin = riskUsd / slDist;
+  const positionUsd = positionCoin * entry;
+  const margin = positionUsd / lev;
+  const marginPctOfAcct = (margin / acct) * 100;
+
+  let rrText = '—', rrPctTp = '—', tpProfitUsd = '—';
+  if (tp) {
+    const tpDist = side === 'long' ? (tp - entry) : (entry - tp);
+    const rr = tpDist / slDist;
+    rrText = rr.toFixed(2) + ':1';
+    rrPctTp = ((tpDist / entry) * 100).toFixed(2) + '%';
+    tpProfitUsd = '$' + (tpDist * positionCoin).toFixed(2);
+  }
+
+  // Sanity check: dacă marja > cont (caz cu leverage prea mic + SL prea departe)
+  if (margin > acct) warn += ' ⚠ Marja cerută depășește contul — leverage mai mare sau SL mai aproape.';
+
+  out.innerHTML = `
+    <div class="row"><span class="label">Risc absolut</span><span class="val down">$${riskUsd.toFixed(2)} (${riskPct}%)</span></div>
+    <div class="row"><span class="label">SL distanță</span><span class="val">${slDistPct.toFixed(2)}%</span></div>
+    <div class="row"><span class="label">Poziție (${sym})</span><span class="val">${positionCoin.toFixed(positionCoin < 1 ? 6 : 4)}</span></div>
+    <div class="row"><span class="label">Poziție notional</span><span class="val">$${positionUsd.toFixed(2)}</span></div>
+    <div class="row"><span class="label">Marjă necesară (${lev}×)</span><span class="val ${margin > acct ? 'down' : ''}">$${margin.toFixed(2)}</span></div>
+    <div class="row"><span class="label">% din cont</span><span class="val">${marginPctOfAcct.toFixed(1)}%</span></div>
+    <div class="row"><span class="label">R/R (TP/SL)</span><span class="val ${tp ? 'up' : ''}">${rrText}</span></div>
+    <div class="row"><span class="label">TP distanță / profit</span><span class="val up">${rrPctTp} / ${tpProfitUsd}</span></div>
+  `;
+  if (warn) out.insertAdjacentHTML('beforeend', `<div class="sizer-warn" style="grid-column:1 / -1">${warn}</div>`);
+}
+
+function sizerBuildMarkdown() {
+  const sym = document.getElementById('szSym').value.trim().toUpperCase();
+  const side = document.getElementById('szSide').value.toUpperCase();
+  const entry = parseFloat(document.getElementById('szEntry').value);
+  const sl = parseFloat(document.getElementById('szSL').value);
+  const tp = parseFloat(document.getElementById('szTP').value);
+  const lev = document.getElementById('szLev').value;
+  const acct = parseFloat(document.getElementById('szAcct').value);
+  const riskPct = parseFloat(document.getElementById('szRisk').value);
+  const riskUsd = acct * (riskPct / 100);
+  const slDist = Math.abs(entry - sl);
+  const positionCoin = riskUsd / slDist;
+  const positionUsd = positionCoin * entry;
+  const margin = positionUsd / parseFloat(lev);
+  return `📊 ${sym} ${side} · Entry $${entry} · SL $${sl}${tp ? ' · TP $' + tp : ''}\nLev ${lev}× · Poziție ${positionCoin.toFixed(4)} ${sym} ($${positionUsd.toFixed(2)})\nMarjă $${margin.toFixed(2)} · Risc $${riskUsd.toFixed(2)} (${riskPct}% din $${acct})`;
+}
+
+// ============================================================
+// SMART ALERTS — reguli custom evaluate la fiecare refresh
+// ============================================================
+const ALERTS_KEY = 'ce_alerts';
+let ceAlerts = [];        // [{ id, symbol, metric, op, value, enabled, triggered }]
+let alertsTriggeredThisCycle = new Set();   // dedup: nu spam toast pentru aceeași regulă în același ciclu
+
+function loadAlerts() {
+  try { ceAlerts = JSON.parse(localStorage.getItem(ALERTS_KEY) || '[]'); } catch (_) { ceAlerts = []; }
+}
+function saveAlerts() {
+  try { localStorage.setItem(ALERTS_KEY, JSON.stringify(ceAlerts)); } catch (_) {}
+  updateAlertsBadge();
+}
+function updateAlertsBadge() {
+  const b = document.getElementById('alertsBadge');
+  if (!b) return;
+  const active = ceAlerts.filter(a => a.enabled).length;
+  if (active > 0) { b.textContent = active; b.style.display = 'inline-block'; }
+  else b.style.display = 'none';
+}
+
+function showAlertsModal() {
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:620px">
+      <div class="ai-modal-title">🔔 Smart Alerts</div>
+      <div class="ai-modal-sub">Definește reguli — sunt evaluate la fiecare refresh (60s). Notificări browser opționale (cere permisiune).</div>
+      <div class="alert-form">
+        <input id="alSym" type="text" placeholder="BTC sau * (orice)" maxlength="12" style="text-transform:uppercase">
+        <select id="alMetric">
+          <option value="chg_1h">Schimb 1h (%)</option>
+          <option value="chg_24h">Schimb 24h (%)</option>
+          <option value="funding_rate_pct">Funding 8h (%)</option>
+          <option value="oi_usd_b">OI ($B)</option>
+        </select>
+        <select id="alOp">
+          <option value=">">≥ peste</option>
+          <option value="<">≤ sub</option>
+        </select>
+        <input id="alVal" type="number" step="any" placeholder="ex: 5">
+        <button onclick="alertsAdd()">+ Adaugă</button>
+      </div>
+      <div class="alerts-list" id="alertsList"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="alPermBtn" onclick="alertsRequestPerm()">🔔 Permisiune browser</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  alertsRenderList();
+  // Update perm button state
+  if ('Notification' in window && Notification.permission === 'granted') {
+    document.getElementById('alPermBtn').textContent = '✓ Notificări active';
+  }
+}
+
+function alertsRenderList() {
+  const list = document.getElementById('alertsList');
+  if (!list) return;
+  if (!ceAlerts.length) {
+    list.innerHTML = '<div class="alerts-empty">Nicio regulă încă. Adaugă mai sus.</div>';
+    return;
+  }
+  list.innerHTML = ceAlerts.map(a => {
+    const metricLabel = { chg_1h: '1h%', chg_24h: '24h%', funding_rate_pct: 'fund 8h%', oi_usd_b: 'OI $B' }[a.metric] || a.metric;
+    return `<div class="alert-row">
+      <span class="alert-summary">${a.symbol === '*' ? '🌐 ANY' : '🪙 ' + a.symbol} · ${metricLabel} ${a.op} ${a.value}</span>
+      <button class="alert-toggle ${a.enabled ? 'on' : ''}" onclick="alertsToggle('${a.id}')">${a.enabled ? '● ON' : '○ OFF'}</button>
+      <button class="alert-del" onclick="alertsRemove('${a.id}')">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function alertsAdd() {
+  const sym = (document.getElementById('alSym').value || '').trim().toUpperCase() || '*';
+  const metric = document.getElementById('alMetric').value;
+  const op = document.getElementById('alOp').value;
+  const value = parseFloat(document.getElementById('alVal').value);
+  if (isNaN(value)) { showToast('⚠ Introdu o valoare numerică', 'warn'); return; }
+  const id = Math.random().toString(36).slice(2, 9);
+  ceAlerts.push({ id, symbol: sym, metric, op, value, enabled: true });
+  saveAlerts();
+  alertsRenderList();
+  document.getElementById('alSym').value = '';
+  document.getElementById('alVal').value = '';
+  showToast(`✓ Alertă adăugată`, 'success');
+}
+
+function alertsToggle(id) {
+  const a = ceAlerts.find(x => x.id === id);
+  if (!a) return;
+  a.enabled = !a.enabled;
+  saveAlerts();
+  alertsRenderList();
+}
+function alertsRemove(id) {
+  ceAlerts = ceAlerts.filter(x => x.id !== id);
+  saveAlerts();
+  alertsRenderList();
+}
+
+function alertsRequestPerm() {
+  if (!('Notification' in window)) { showToast('Browser-ul nu suportă notificări', 'error'); return; }
+  Notification.requestPermission().then(p => {
+    if (p === 'granted') {
+      showToast('✓ Notificări browser active', 'success');
+      const b = document.getElementById('alPermBtn');
+      if (b) b.textContent = '✓ Notificări active';
+    } else {
+      showToast('Notificări refuzate', 'warn');
+    }
+  });
+}
+
+// Evaluator: extrage o valoare din date pentru un simbol și un metric
+function alertsExtractValue(sym, metric) {
+  if (metric === 'chg_1h' || metric === 'chg_24h') {
+    const m = (cachedMarkets || []).find(c => (c.symbol || '').toUpperCase() === sym);
+    return m ? m[metric] : null;
+  }
+  if (metric === 'funding_rate_pct') {
+    const all = cachedFunding ? [...(cachedFunding.pos||[]), ...(cachedFunding.neg||[])] : [];
+    const f = all.find(x => x.base === sym);
+    return f ? f.funding_rate * 100 : null;
+  }
+  if (metric === 'oi_usd_b') {
+    const o = (cachedOI || []).find(x => x.base === sym);
+    return o ? o.oi_usd / 1e9 : null;
+  }
+  return null;
+}
+
+function alertsEvaluate() {
+  if (!ceAlerts.length) return;
+  const triggered = [];
+  for (const a of ceAlerts) {
+    if (!a.enabled) continue;
+    let symbols = [];
+    if (a.symbol === '*') {
+      // Pentru "any" iterăm pe toate simbolurile relevante
+      if (a.metric === 'chg_1h' || a.metric === 'chg_24h') {
+        symbols = (cachedMarkets || []).map(c => (c.symbol || '').toUpperCase());
+      } else if (a.metric === 'funding_rate_pct') {
+        symbols = cachedFunding ? [...(cachedFunding.pos||[]), ...(cachedFunding.neg||[])].map(x => x.base) : [];
+      } else if (a.metric === 'oi_usd_b') {
+        symbols = (cachedOI || []).map(x => x.base);
+      }
+    } else {
+      symbols = [a.symbol];
+    }
+    for (const sym of symbols) {
+      const v = alertsExtractValue(sym, a.metric);
+      if (v == null || isNaN(v)) continue;
+      const hits = a.op === '>' ? v >= a.value : v <= a.value;
+      if (hits) {
+        const dedupKey = `${a.id}:${sym}`;
+        if (alertsTriggeredThisCycle.has(dedupKey)) continue;
+        alertsTriggeredThisCycle.add(dedupKey);
+        triggered.push({ alert: a, symbol: sym, value: v });
+      }
+    }
+  }
+  // Curățăm cache-ul de dedup la fiecare ciclu (set new)
+  if (triggered.length === 0) alertsTriggeredThisCycle.clear();
+
+  for (const t of triggered) {
+    const metricLabel = { chg_1h: '1h%', chg_24h: '24h%', funding_rate_pct: 'fund 8h%', oi_usd_b: 'OI $B' }[t.alert.metric] || t.alert.metric;
+    const msg = `🔔 ${t.symbol} · ${metricLabel} ${t.alert.op} ${t.alert.value} (acum: ${t.value.toFixed(2)})`;
+    showToast(msg, 'success');
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try { new Notification('Crypto Events Alert', { body: msg, icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%230b0f17"/><text x="32" y="44" font-size="40" text-anchor="middle" fill="%238b6fff">⚡</text></svg>' }); } catch (_) {}
+    }
+  }
+}
+
+// Wire up: după refreshAll global → evalAlerts (cu mic delay pentru renders să termine)
+const _origRefreshAll = refreshAll;
+refreshAll = async function() {
+  await _origRefreshAll();
+  alertsTriggeredThisCycle.clear();   // permite re-trigger între cicluri
+  setTimeout(alertsEvaluate, 200);
+};
+
+loadAlerts();
+updateAlertsBadge();
+
+// ============================================================
+// GIST SYNC — watchlist + alerts cross-device prin GitHub Gist privat
+// ============================================================
+const GIST_TOKEN_KEY = 'ce_gist_token';
+const GIST_ID_KEY = 'ce_gist_id';
+
+function showSyncModal() {
+  const token = localStorage.getItem(GIST_TOKEN_KEY) || '';
+  const gistId = localStorage.getItem(GIST_ID_KEY) || '';
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal ai-key-modal" style="max-width:560px">
+      <div class="ai-modal-title">☁ Sync prin GitHub Gist</div>
+      <div class="ai-modal-sub">
+        Sincronizează watchlist + alerte între dispozitive (PC ↔ telefon) printr-un Gist privat.<br>
+        Token-ul are nevoie de scope <code style="background:var(--panel2);padding:1px 4px;border-radius:3px">gist</code>.
+        Generează la <a href="https://github.com/settings/tokens/new?scopes=gist&description=crypto-events-sync" target="_blank" style="color:var(--accent);font-weight:700">github.com/settings/tokens/new</a>.
+      </div>
+      <label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">GitHub Personal Access Token</label>
+      <input id="gistTokenInp" type="text" placeholder="ghp_..." value="${token.replace(/"/g,'&quot;')}" />
+      <label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Gist ID (opțional, gol = creează unul nou la primul push)</label>
+      <input id="gistIdInp" type="text" placeholder="Lasă gol pentru creare automată" value="${gistId}" />
+      <div id="gistStatus" class="ai-test-result"></div>
+      <div class="ai-modal-actions">
+        <button id="gistSaveBtn">💾 Salvează token</button>
+        <button class="primary" id="gistPushBtn">⬆ Push (local → cloud)</button>
+        <button class="primary" id="gistPullBtn">⬇ Pull (cloud → local)</button>
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:var(--muted);line-height:1.5">💡 Pe alt dispozitiv, intră în același Gist ID (vezi URL după primul push) și apasă Pull.</div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  document.getElementById('gistSaveBtn').onclick = () => {
+    const t = document.getElementById('gistTokenInp').value.trim();
+    const i = document.getElementById('gistIdInp').value.trim();
+    localStorage.setItem(GIST_TOKEN_KEY, t);
+    if (i) localStorage.setItem(GIST_ID_KEY, i);
+    showToast('✓ Token Gist salvat', 'success');
+  };
+  document.getElementById('gistPushBtn').onclick = gistPush;
+  document.getElementById('gistPullBtn').onclick = gistPull;
+}
+
+async function gistPush() {
+  const token = (document.getElementById('gistTokenInp')?.value || localStorage.getItem(GIST_TOKEN_KEY) || '').trim();
+  const status = document.getElementById('gistStatus');
+  if (!token) { status.innerHTML = '<span style="color:var(--bear-s)">Lipsește tokenul.</span>'; return; }
+  let gistId = (document.getElementById('gistIdInp')?.value || localStorage.getItem(GIST_ID_KEY) || '').trim();
+  status.innerHTML = '<span style="color:var(--muted)">⏳ Push...</span>';
+  const payload = JSON.stringify({
+    watchlist: cryptoWatchlist,
+    alerts: ceAlerts,
+    selection: Array.from(cryptoSelected),
+    syncedAt: Date.now(),
+  }, null, 2);
+  const body = { description: 'Crypto Events sync', files: { 'crypto-events-sync.json': { content: payload } } };
+  try {
+    const url = gistId ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists';
+    const method = gistId ? 'PATCH' : 'POST';
+    if (!gistId) body.public = false;
+    const resp = await fetch(url, {
+      method,
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+    if (data.id) {
+      localStorage.setItem(GIST_ID_KEY, data.id);
+      localStorage.setItem(GIST_TOKEN_KEY, token);
+      const idInp = document.getElementById('gistIdInp');
+      if (idInp) idInp.value = data.id;
+      status.innerHTML = `<span style="color:var(--bull-s)">✓ Push OK la <code>${data.id}</code></span>`;
+      showToast('☁ Watchlist sincronizat în cloud', 'success');
+    } else {
+      throw new Error(data.message || 'Eroare necunoscută');
+    }
+  } catch (e) {
+    status.innerHTML = '<span style="color:var(--bear-s)">❌ ' + e.message + '</span>';
+  }
+}
+
+async function gistPull() {
+  const token = (document.getElementById('gistTokenInp')?.value || localStorage.getItem(GIST_TOKEN_KEY) || '').trim();
+  const gistId = (document.getElementById('gistIdInp')?.value || localStorage.getItem(GIST_ID_KEY) || '').trim();
+  const status = document.getElementById('gistStatus');
+  if (!token || !gistId) { status.innerHTML = '<span style="color:var(--bear-s)">Token + Gist ID necesare.</span>'; return; }
+  status.innerHTML = '<span style="color:var(--muted)">⏳ Pull...</span>';
+  try {
+    const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' },
+    });
+    const data = await resp.json();
+    if (!data.files || !data.files['crypto-events-sync.json']) throw new Error('Gist gol sau lipsește fișierul');
+    const payload = JSON.parse(data.files['crypto-events-sync.json'].content);
+    if (Array.isArray(payload.watchlist)) {
+      cryptoWatchlist = payload.watchlist;
+      cwSave();
+      cwRender();
+    }
+    if (Array.isArray(payload.alerts)) {
+      ceAlerts = payload.alerts;
+      saveAlerts();
+    }
+    if (Array.isArray(payload.selection)) {
+      cryptoSelected.clear();
+      payload.selection.forEach(s => cryptoSelected.add(s));
+      saveCryptoSelection();
+      cryptoUpdateCompareBar();
+      // Re-render rândurile vizibile ca să apară bifate
+      Object.keys(TABLE_LAST_RENDERED).forEach(updateSelectAllBtnFor);
+    }
+    status.innerHTML = `<span style="color:var(--bull-s)">✓ Pull OK · ${cryptoWatchlist.length} coins, ${ceAlerts.length} alerte</span>`;
+    showToast('☁ Watchlist + alerte preluate din cloud', 'success');
+  } catch (e) {
+    status.innerHTML = '<span style="color:var(--bear-s)">❌ ' + e.message + '</span>';
+  }
+}
 
 // Pornire
 (async () => {
