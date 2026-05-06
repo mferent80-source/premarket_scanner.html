@@ -1038,7 +1038,69 @@ body.dark .empty-icon{opacity: .6}
 /* Subtitle în brand zone — ca panel-sub events */
 body.dark .brand{gap:8px !important}
 
-/* === Stats row (model events sentiment) === */
+/* === Macro bar transform → events sentiment row (grid 4 cards) === */
+body.dark .macro-bar{
+  display:grid !important;
+  grid-template-columns:repeat(4, 1fr) !important;
+  background:transparent !important;
+  border:none !important;
+  padding:0 !important;
+  gap:10px !important;
+  box-shadow:none !important;
+}
+@media (max-width:720px){body.dark .macro-bar{grid-template-columns:repeat(2,1fr) !important}}
+body.dark .macro-divider{display:none !important}
+body.dark .macro-item{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:12px;
+  padding:12px 14px;box-shadow:var(--sh);position:relative;overflow:hidden;
+  align-items:flex-start !important;text-align:left !important;
+}
+body.dark .macro-item::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--bar-color,var(--acc));
+}
+body.dark .macro-item:nth-child(1)::before{background:var(--gold)}
+body.dark .macro-item:nth-child(3)::before{background:#f7931a}
+body.dark .macro-item:nth-child(5)::before{background:var(--cyan)}
+body.dark .macro-item:nth-child(7)::before{background:var(--purple)}
+body.dark .macro-val{
+  font-size:22px !important;font-weight:700 !important;letter-spacing:-.5px !important;
+  color:var(--t1) !important;
+}
+body.dark .macro-lbl{
+  font-size:10.5px !important;color:var(--t3) !important;
+  text-transform:uppercase;letter-spacing:.4px;
+  order:-1;margin-bottom:2px;
+}
+/* F&G needle inline — facem-o mai mică ca să încapă cu bar/text */
+body.dark .macro-fg{order:99 !important;width:100% !important;margin-top:6px}
+
+/* === td-section transform → events panel-box style === */
+body.dark .trader-dashboard{margin-bottom:14px}
+body.dark .td-grid{gap:10px !important}
+body.dark .td-section{
+  background:var(--bg2) !important;
+  border:1px solid var(--b1) !important;
+  border-radius:12px !important;
+  padding:0 !important;
+  box-shadow:var(--sh) !important;
+  overflow:hidden;
+}
+body.dark .td-title{
+  padding:10px 14px !important;
+  border-bottom:1px solid var(--b1);
+  background:linear-gradient(180deg,rgba(29,37,55,.6),rgba(20,26,40,.4));
+  font-size:12px !important;font-weight:700 !important;letter-spacing:.3px !important;
+  text-transform:uppercase;color:var(--acc) !important;
+  margin:0 !important;
+}
+body.dark .td-list,
+body.dark .td-filter-bar{padding:8px 12px !important}
+body.dark .td-section > *:not(.td-title){padding-left:12px;padding-right:12px}
+body.dark .td-hint{padding:6px 12px 10px !important;font-size:10px !important;color:var(--t3) !important}
+
+/* === Stats row — ascunsă pe dark mode (macro-bar are deja sentiment cards) === */
+body.dark .stats-row{display:none !important}
 .stats-row{
   display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;
 }
