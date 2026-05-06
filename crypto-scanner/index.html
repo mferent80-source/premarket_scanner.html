@@ -1067,6 +1067,43 @@ body.dark .empty-icon{opacity: .6}
 /* Subtitle în brand zone — ca panel-sub events */
 body.dark .brand{gap:8px !important}
 
+/* === Tab pinning: pinned-views section deasupra signal-panel === */
+.pinned-views{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:12px;
+}
+.pinned-card{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:0;
+  box-shadow:var(--sh);overflow:hidden;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+}
+.pinned-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.pinned-head{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 10px;border-bottom:1px solid var(--b1);
+  background:linear-gradient(180deg,rgba(29,37,55,.6),rgba(20,26,40,.4));
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;
+}
+body:not(.dark) .pinned-head{
+  background:linear-gradient(180deg,var(--bg3),var(--bg2));
+}
+.pinned-cnt{font-size:9px;background:var(--bg);padding:1px 5px;border-radius:8px;color:var(--t2);font-weight:700}
+.pinned-unpin{
+  margin-left:auto;background:transparent;border:none;color:var(--t3);
+  cursor:pointer;font-size:11px;padding:0 4px;font-family:inherit;
+}
+.pinned-unpin:hover{color:var(--red)}
+.pinned-list{padding:8px 10px;display:flex;flex-direction:column;gap:3px;font-size:11px}
+.pinned-item{
+  font-family:monospace;font-weight:700;color:var(--acc);
+  padding:3px 6px;background:var(--bg);border-radius:4px;
+  display:flex;justify-content:space-between;
+}
+.pinned-item .pi-chg{font-size:10px}
+.pinned-item .pi-chg.pos{color:var(--green)}
+.pinned-item .pi-chg.neg{color:var(--red)}
+.pinned-empty{color:var(--t3);font-style:italic;font-size:10px;text-align:center;padding:6px}
+.tab .pin-mark{font-size:8px;margin-left:3px;opacity:.85}
+
 /* === Compact mode (toggle global) === */
 body.compact .macro-item{padding:8px 10px !important}
 body.compact .macro-val{font-size:18px !important}
@@ -1209,7 +1246,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v50</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v51</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -10319,6 +10356,155 @@ function exportPionexConfig(coin, type, opts) {
   }).catch(() => {
     if (typeof showToast === 'function') showToast('❌ Clipboard blocat', 'err');
   });
+}
+
+// ════════════════════════════════════════════════════════════════
+// PACHET F2 — Tab pinning (max 3, right-click pe tab pentru toggle)
+// ════════════════════════════════════════════════════════════════
+const PINNABLE_TABS = ['setups','premium','live','all','earlybuy','reco','stlong','pumpradar','volatility','gridscan','futures','heatmap','smart'];
+const PIN_MAX = 3;
+let pinnedTabs = [];
+try { pinnedTabs = JSON.parse(localStorage.getItem('cs_pinned_tabs') || '[]'); } catch (_) {}
+
+function togglePinTab(tabId, ev) {
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  if (!PINNABLE_TABS.includes(tabId)) {
+    if (typeof showToast === 'function') showToast(`Tab "${tabId}" nu poate fi pinned`, 'warn');
+    return;
+  }
+  const idx = pinnedTabs.indexOf(tabId);
+  if (idx >= 0) {
+    pinnedTabs.splice(idx, 1);
+    if (typeof showToast === 'function') showToast(`📌 Unpin: ${tabId}`, 'warn');
+  } else {
+    if (pinnedTabs.length >= PIN_MAX) {
+      if (typeof showToast === 'function') showToast(`Max ${PIN_MAX} pin-uri. Unpin unul prima.`, 'warn');
+      return;
+    }
+    pinnedTabs.push(tabId);
+    if (typeof showToast === 'function') showToast(`📌 Pinned: ${tabId}`, 'ok');
+  }
+  try { localStorage.setItem('cs_pinned_tabs', JSON.stringify(pinnedTabs)); } catch (_) {}
+  renderPinnedSection();
+  updateTabPinIndicators();
+}
+
+function updateTabPinIndicators() {
+  document.querySelectorAll('.tab').forEach(tabEl => {
+    const onclick = tabEl.getAttribute('onclick') || '';
+    const m = onclick.match(/setTab\('([^']+)'/);
+    if (!m) return;
+    const tabId = m[1];
+    tabEl.querySelector('.pin-mark')?.remove();
+    if (pinnedTabs.includes(tabId)) {
+      const pin = document.createElement('span');
+      pin.className = 'pin-mark';
+      pin.textContent = '📌';
+      tabEl.appendChild(pin);
+    }
+  });
+}
+
+// Mini-extractor de date pentru un tab — întoarce top 3 entries (best effort)
+function getPinnedPreview(tabId) {
+  const src = (typeof allSignals !== 'undefined' && allSignals) ? allSignals : [];
+  // Filtre simplificate per tab pentru preview
+  let filtered = src;
+  if (tabId === 'live')      filtered = src.filter(s => Date.now() - s.time < 120000);
+  else if (tabId === 'premium') filtered = src.filter(s => (s.score || 0) >= 75);
+  else if (tabId === 'earlybuy') filtered = src.filter(s => s.type === 'earlybuy' || (s.score || 0) >= 70);
+  else if (tabId === 'pumpradar') filtered = src.filter(s => s.type === 'pump' || s.type === 'breakout');
+  else if (tabId === 'volatility') filtered = [...src].sort((a,b) => (b.range24||0) - (a.range24||0));
+  else if (tabId === 'stlong') filtered = src.filter(s => s.type === 'stlong' || s.verdict);
+  // Sortăm după score apoi limităm la 3
+  return [...filtered]
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .slice(0, 3);
+}
+
+function renderPinnedSection() {
+  let section = document.getElementById('pinnedSection');
+  if (!pinnedTabs.length) {
+    if (section) section.remove();
+    return;
+  }
+  if (!section) {
+    section = document.createElement('section');
+    section.id = 'pinnedSection';
+    section.className = 'pinned-views';
+    const sp = document.getElementById('signalPanel');
+    if (sp && sp.parentNode) sp.parentNode.insertBefore(section, sp);
+    // Click delegation pentru card → switch tab; X button → unpin
+    section.addEventListener('click', (ev) => {
+      const unpinBtn = ev.target.closest('.pinned-unpin');
+      if (unpinBtn) {
+        ev.stopPropagation();
+        togglePinTab(unpinBtn.dataset.tab, ev);
+        return;
+      }
+      const card = ev.target.closest('.pinned-card');
+      if (!card) return;
+      const tabId = card.dataset.tab;
+      if (!tabId) return;
+      // Find tab in DOM by onclick attribute and trigger click
+      document.querySelectorAll('.tab').forEach(t => {
+        const oc = t.getAttribute('onclick') || '';
+        if (oc.includes(`setTab('${tabId}'`)) t.click();
+      });
+    });
+  }
+  section.innerHTML = pinnedTabs.map(tabId => {
+    const meta = (typeof TAB_META !== 'undefined' ? TAB_META[tabId] : null) || { icon: '📌', title: tabId, color: '#5bb0ff' };
+    const preview = getPinnedPreview(tabId);
+    const itemsHtml = preview.length
+      ? preview.map(s => {
+          const sym = s.coin || s.symbol || '—';
+          const chg = s.chg24 ?? s.chg ?? null;
+          const chgStr = chg != null ? `<span class="pi-chg ${chg >= 0 ? 'pos' : 'neg'}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%</span>` : '';
+          return `<div class="pinned-item"><span>${sym}</span>${chgStr}</div>`;
+        }).join('')
+      : '<div class="pinned-empty">se așteaptă scan...</div>';
+    return `<div class="pinned-card" data-tab="${tabId}" style="border-color:${meta.color}40">
+      <div class="pinned-head" style="color:${meta.color};border-bottom-color:${meta.color}40">
+        <span>${meta.icon}</span>
+        <span class="pinned-title">${meta.title}</span>
+        <span class="pinned-cnt">${preview.length}</span>
+        <button class="pinned-unpin" data-tab="${tabId}" title="Unpin">✕</button>
+      </div>
+      <div class="pinned-list">${itemsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+// Right-click pe taburi → toggle pin
+document.querySelectorAll('.tab').forEach(tabEl => {
+  tabEl.addEventListener('contextmenu', (ev) => {
+    const oc = tabEl.getAttribute('onclick') || '';
+    const m = oc.match(/setTab\('([^']+)'/);
+    if (m) togglePinTab(m[1], ev);
+  });
+});
+
+// Hook pe renderSignals (apelat după fiecare scan finalizat) ca să refresh pinned cards
+(function hookRenderSignals(){
+  if (typeof renderSignals !== 'function') return;
+  const _orig = renderSignals;
+  renderSignals = function() {
+    _orig.apply(this, arguments);
+    // Update pinned section data preview
+    if (pinnedTabs.length) renderPinnedSection();
+  };
+})();
+
+renderPinnedSection();
+updateTabPinIndicators();
+
+// Anunț user despre feature dacă e prima oară
+if (!localStorage.getItem('cs_pin_hint_seen') && pinnedTabs.length === 0) {
+  setTimeout(() => {
+    if (typeof showToast === 'function') showToast('💡 Tab pinning: right-click pe tab pentru a-l pin (max 3 — apar deasupra signals)', 'ok');
+    try { localStorage.setItem('cs_pin_hint_seen', '1'); } catch(_) {}
+  }, 3000);
 }
 
 </script>
