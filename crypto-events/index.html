@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto Events — Movers &amp; Sentiment</title>
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f7931a'/><stop offset='1' stop-color='%23ffd86b'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='%230b0f17'/><path d='M32 10 L54 32 L32 54 L10 32 Z' fill='none' stroke='url(%23g)' stroke-width='5' stroke-linejoin='round'/><circle cx='32' cy='32' r='6' fill='%23ffd86b'/></svg>">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0b0f17; --bg-grad:radial-gradient(1200px 600px at 50% -200px, #141c2e 0%, #0b0f17 55%);
+    --panel:#141a28; --panel2:#1d2537; --border:#2a3247; --border-soft:#1f2638;
+    --text:#e8eef5; --muted:#8892a6;
+    --bull-s:#22d66b; --bull-bg:rgba(34,214,107,.12);
+    --bear-s:#ff4d4d; --bear-bg:rgba(255,77,77,.12);
+    --warn:#d4892c;
+    --accent:#5bb0ff; --accent2:#8b6fff;
+    --crypto-1:#f7931a; --crypto-2:#ffd86b;
+    --radius: 12px; --radius-sm: 8px;
+    --ease: cubic-bezier(.4,0,.2,1);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+    --shadow: 0 4px 14px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.2);
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); background-image: var(--bg-grad);
+    background-attachment: fixed;
+    color: var(--text); padding: 12px;
+    font-size: 13px; min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* === Header === */
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    background: linear-gradient(180deg, rgba(30,38,57,.85), rgba(20,26,40,.92));
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    padding: 11px 16px; border-radius: var(--radius);
+    border: 1px solid var(--border); margin-bottom: 10px;
+    box-shadow: var(--shadow);
+    position: sticky; top: 8px; z-index: 50;
+  }
+  header h1 {
+    font-size: 15px; font-weight: 700; letter-spacing: -.2px;
+    background: linear-gradient(90deg, var(--crypto-1) 0%, var(--crypto-2) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-right: auto;
+  }
+  .nav-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--panel2); border: 1px solid var(--border);
+    padding: 6px 11px; border-radius: var(--radius-sm);
+    color: var(--text); text-decoration: none; font-size: 11px; font-weight: 600;
+    transition: all .15s var(--ease);
+  }
+  .nav-link:hover { background: var(--accent); border-color: var(--accent); color: #000; transform: translateY(-1px); }
+
+  button {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 11px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: all .15s var(--ease);
+  }
+  button:hover { background: var(--accent); border-color: var(--accent); color: #000; transform: translateY(-1px); }
+  button.primary {
+    background: linear-gradient(135deg, var(--crypto-1), var(--crypto-2));
+    border-color: transparent; color: #1a1a1a;
+    box-shadow: 0 2px 8px rgba(247,147,26,.3);
+  }
+  button.primary:hover { filter: brightness(1.08); color: #1a1a1a; }
+  button:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  .status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .status-dot.ok { background: var(--bull-s); box-shadow: 0 0 6px var(--bull-s); }
+  .status-dot.load { background: var(--warn); animation: pulse 1s infinite; }
+  .status-dot.err { background: var(--bear-s); }
+  @keyframes pulse { 50% { opacity: .3; } }
+
+  /* === Panel base === */
+  .panel-box {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(29,37,55,.6), rgba(20,26,40,.4));
+  }
+  .panel-head h3 {
+    font-size: 12px; font-weight: 700; letter-spacing: .3px;
+    text-transform: uppercase; color: var(--text);
+  }
+  .panel-head .panel-sub { font-size: 10.5px; color: var(--muted); margin-left: auto; }
+  .panel-head .icon { font-size: 14px; }
+  .panel-head.bull { border-bottom-color: rgba(34,214,107,.3); }
+  .panel-head.bull h3 { color: var(--bull-s); }
+  .panel-head.bear { border-bottom-color: rgba(255,77,77,.3); }
+  .panel-head.bear h3 { color: var(--bear-s); }
+
+  /* === Sentiment row === */
+  .sentiment {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px;
+  }
+  @media (max-width: 720px) { .sentiment { grid-template-columns: repeat(2, 1fr); } }
+  .sent-card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+    box-shadow: var(--shadow-sm);
+    position: relative; overflow: hidden;
+  }
+  .sent-card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent);
+  }
+  .sent-card.fng::before { background: var(--bar-color, var(--accent)); }
+  .sent-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+  .sent-value { font-size: 22px; font-weight: 700; letter-spacing: -.5px; }
+  .sent-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* === Movers grid (2x2) === */
+  .movers-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;
+  }
+  @media (max-width: 880px) { .movers-grid { grid-template-columns: 1fr; } }
+
+  /* === Volume + Funding grid === */
+  .vf-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;
+  }
+  @media (max-width: 880px) { .vf-grid { grid-template-columns: 1fr; } }
+
+  /* === Tabel === */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th {
+    text-align: left; font-size: 10px; font-weight: 700; letter-spacing: .4px;
+    text-transform: uppercase; color: var(--muted);
+    padding: 7px 12px; border-bottom: 1px solid var(--border-soft);
+    background: rgba(20,26,40,.4);
+  }
+  thead th.num { text-align: right; }
+  tbody td {
+    padding: 7px 12px; border-bottom: 1px solid var(--border-soft);
+    vertical-align: middle;
+  }
+  tbody td.num { text-align: right; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: rgba(91,176,255,.04); }
+
+  .coin {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-weight: 600;
+  }
+  .coin img { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; background: var(--panel2); }
+  .coin .sym { color: var(--text); font-weight: 700; }
+  .coin .name { color: var(--muted); font-weight: 500; font-size: 11px; }
+
+  .pct { font-weight: 700; }
+  .pct.up { color: var(--bull-s); }
+  .pct.down { color: var(--bear-s); }
+  .pct-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  }
+  .pct-pill.up { background: var(--bull-bg); color: var(--bull-s); }
+  .pct-pill.down { background: var(--bear-bg); color: var(--bear-s); }
+
+  /* === Trending === */
+  .trending-list {
+    display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px;
+  }
+  .trend-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--panel2); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    transition: all .15s var(--ease);
+    cursor: default;
+  }
+  .trend-chip:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .trend-chip img { width: 16px; height: 16px; border-radius: 50%; }
+  .trend-chip .rank {
+    color: var(--muted); font-size: 10px; font-weight: 700;
+    background: var(--panel); padding: 1px 5px; border-radius: 4px;
+  }
+
+  /* === Empty / loading === */
+  .empty {
+    padding: 24px; text-align: center; color: var(--muted); font-size: 12px;
+  }
+  .skeleton-row td {
+    height: 32px; opacity: .35;
+  }
+  .skeleton-bar {
+    display: inline-block; height: 10px; width: 60px; background: var(--panel2);
+    border-radius: 4px; animation: pulse 1.4s infinite;
+  }
+
+  /* === Filtru market cap === */
+  .filter-bar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 9px 14px; margin-bottom: 10px;
+    box-shadow: var(--shadow-sm);
+  }
+  .filter-label {
+    font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px;
+    font-weight: 700; margin-right: 4px;
+  }
+  .filter-chip {
+    background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    padding: 4px 12px; border-radius: 999px; font-size: 11px; cursor: pointer;
+    font-weight: 700; font-family: inherit;
+    transition: all .15s var(--ease);
+  }
+  .filter-chip:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .filter-chip.active {
+    background: linear-gradient(135deg, var(--crypto-1), var(--crypto-2));
+    color: #1a1a1a; border-color: transparent;
+    box-shadow: 0 2px 8px rgba(247,147,26,.3);
+  }
+  .filter-chip.active:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+  /* === Grid 3-coloane pentru Volum / Funding / Open Interest === */
+  .vfo-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;
+  }
+  @media (max-width: 1100px) { .vfo-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 720px)  { .vfo-grid { grid-template-columns: 1fr; } }
+
+  /* === Grid Unlocks + Liquidations === */
+  .ul-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;
+  }
+  @media (max-width: 880px) { .ul-grid { grid-template-columns: 1fr; } }
+
+  /* Stil specific pentru rândurile de unlocks (data + bara de urgență) */
+  .unlock-time {
+    display: inline-block; padding: 2px 8px; border-radius: 6px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: .2px;
+    background: var(--panel2); color: var(--muted);
+  }
+  .unlock-time.soon { background: rgba(212,137,44,.15); color: var(--warn); }
+  .unlock-time.imminent { background: rgba(255,77,77,.15); color: var(--bear-s); }
+
+  .liq-side {
+    display: inline-block; padding: 1px 7px; border-radius: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  }
+  .liq-side.long  { background: var(--bear-bg); color: var(--bear-s); }
+  .liq-side.short { background: var(--bull-bg); color: var(--bull-s); }
+
+  /* === Footer === */
+  footer {
+    margin-top: 14px; padding: 14px; text-align: center;
+    color: var(--muted); font-size: 10.5px;
+    border-top: 1px solid var(--border-soft);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ Crypto Events</h1>
+  <a href="../" class="nav-link">← Hub</a>
+  <a href="../crypto-scanner/" class="nav-link">⚡ Crypto Scanner</a>
+  <a href="../market-events/" class="nav-link">📉 Market Events</a>
+  <span class="status"><span id="status-dot" class="status-dot"></span><span id="status-text">pornire…</span></span>
+  <button id="pause-btn" title="Pune pe pauză auto-refresh">⏸ Pauză</button>
+  <button id="refresh-btn" class="primary">↻ Refresh</button>
+</header>
+
+<!-- === Sentiment === -->
+<section class="sentiment">
+  <div class="sent-card fng" id="card-fng">
+    <div class="sent-label">Fear &amp; Greed</div>
+    <div class="sent-value" id="fng-value">—</div>
+    <div class="sent-sub" id="fng-label">se încarcă…</div>
+  </div>
+  <div class="sent-card">
+    <div class="sent-label">BTC Dominance</div>
+    <div class="sent-value" id="btc-d">—</div>
+    <div class="sent-sub" id="mcap-chg-sub">—</div>
+  </div>
+  <div class="sent-card">
+    <div class="sent-label">Total Market Cap</div>
+    <div class="sent-value" id="mcap">—</div>
+    <div class="sent-sub" id="mcap-chg">—</div>
+  </div>
+  <div class="sent-card">
+    <div class="sent-label">ETH Dominance</div>
+    <div class="sent-value" id="eth-d">—</div>
+    <div class="sent-sub" id="active-coins">—</div>
+  </div>
+</section>
+
+<!-- === Filtru market cap (aplicat pe movers + volum) === -->
+<section class="filter-bar">
+  <span class="filter-label">Market cap min:</span>
+  <button class="filter-chip" data-mcap="0">Toate</button>
+  <button class="filter-chip active" data-mcap="100000000">&gt; $100M</button>
+  <button class="filter-chip" data-mcap="1000000000">&gt; $1B</button>
+  <button class="filter-chip" data-mcap="10000000000">&gt; $10B</button>
+  <span class="filter-label" style="margin-left:auto;" id="filter-count">—</span>
+</section>
+
+<!-- === Movers 2x2: 1h Gainers/Losers + 24h Gainers/Losers === -->
+<section class="movers-grid">
+  <div class="panel-box">
+    <div class="panel-head bull">
+      <span class="icon">🚀</span><h3>Top Gainers 1h</h3>
+      <span class="panel-sub" id="gainers-1h-sub">top 100 după mcap</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Coin</th><th class="num">Preț</th><th class="num">1h</th><th class="num">24h</th>
+      </tr></thead>
+      <tbody id="gainers-1h-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="panel-box">
+    <div class="panel-head bear">
+      <span class="icon">📉</span><h3>Top Losers 1h</h3>
+      <span class="panel-sub">top 100 după mcap</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Coin</th><th class="num">Preț</th><th class="num">1h</th><th class="num">24h</th>
+      </tr></thead>
+      <tbody id="losers-1h-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="panel-box">
+    <div class="panel-head bull">
+      <span class="icon">📈</span><h3>Top Gainers 24h</h3>
+      <span class="panel-sub">top 100 după mcap</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Coin</th><th class="num">Preț</th><th class="num">24h</th><th class="num">Volum</th>
+      </tr></thead>
+      <tbody id="gainers-24h-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="panel-box">
+    <div class="panel-head bear">
+      <span class="icon">🩸</span><h3>Top Losers 24h</h3>
+      <span class="panel-sub">top 100 după mcap</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Coin</th><th class="num">Preț</th><th class="num">24h</th><th class="num">Volum</th>
+      </tr></thead>
+      <tbody id="losers-24h-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- === Volum + Funding + Open Interest === -->
+<section class="vfo-grid">
+  <div class="panel-box">
+    <div class="panel-head">
+      <span class="icon">🔊</span><h3>Most Active by Volume 24h</h3>
+      <span class="panel-sub">CoinGecko</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Coin</th><th class="num">Preț</th><th class="num">Volum 24h</th><th class="num">24h</th>
+      </tr></thead>
+      <tbody id="volume-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="panel-box">
+    <div class="panel-head">
+      <span class="icon">💸</span><h3>Funding Rates extreme</h3>
+      <span class="panel-sub">Binance Futures · 8h</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Symbol</th><th class="num">Mark Price</th><th class="num">Funding 8h</th><th class="num">APR estim.</th>
+      </tr></thead>
+      <tbody id="funding-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="panel-box">
+    <div class="panel-head">
+      <span class="icon">📊</span><h3>Open Interest top 10</h3>
+      <span class="panel-sub">Binance Futures</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Symbol</th><th class="num">Mark Price</th><th class="num">OI ($)</th><th class="num">OI (cont)</th>
+      </tr></thead>
+      <tbody id="oi-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- === Unlocks + Liquidations === -->
+<section class="ul-grid">
+  <div class="panel-box">
+    <div class="panel-head">
+      <span class="icon">🔓</span><h3>Token Unlocks (60 zile)</h3>
+      <span class="panel-sub" id="unlocks-sub">DefiLlama</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Project</th><th class="num">Când</th><th class="num">% Circ</th><th class="num">Valoare</th>
+      </tr></thead>
+      <tbody id="unlocks-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="panel-box">
+    <div class="panel-head">
+      <span class="icon">💥</span><h3>Liquidations recente</h3>
+      <span class="panel-sub">OKX SWAP · top 12 după valoare</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Symbol</th><th>Side</th><th class="num">Preț</th><th class="num">Valoare</th>
+      </tr></thead>
+      <tbody id="liq-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- === Trending === -->
+<section class="panel-box" style="margin-bottom:10px;">
+  <div class="panel-head">
+    <span class="icon">🔥</span><h3>Trending pe CoinGecko</h3>
+    <span class="panel-sub">cele mai căutate în ultimele ore</span>
+  </div>
+  <div class="trending-list" id="trending-body">
+    <span class="empty">se încarcă…</span>
+  </div>
+</section>
+
+<footer>
+  Surse: <a href="https://www.coingecko.com" target="_blank" rel="noopener">CoinGecko</a> ·
+  <a href="https://www.binance.com" target="_blank" rel="noopener">Binance Futures</a> ·
+  <a href="https://alternative.me/crypto/fear-and-greed-index/" target="_blank" rel="noopener">alternative.me</a> ·
+  <a href="https://defillama.com/unlocks" target="_blank" rel="noopener">DefiLlama</a> ·
+  <a href="https://www.okx.com" target="_blank" rel="noopener">OKX</a>
+  · auto-refresh la 60 secunde · datele pot avea întârziere de câteva minute
+</footer>
+
+<script>
+"use strict";
+
+// === Configurare ===
+const CG_API     = 'https://api.coingecko.com/api/v3';
+const FNG_API    = 'https://api.alternative.me/fng/?limit=1';
+const BIN_FUT    = 'https://fapi.binance.com/fapi/v1';
+const LLAMA_API  = 'https://api.llama.fi';
+const OKX_API    = 'https://www.okx.com/api/v5';
+const REFRESH_MS = 60_000;
+const MOVERS_LIMIT = 8;          // câte rânduri arătăm per panou movers
+const VOLUME_LIMIT = 10;         // top volum
+const FUNDING_LIMIT = 5;         // câte extreme pe fiecare parte (poz/neg)
+const OI_LIMIT = 10;             // top OI perpetuale
+const UNLOCKS_LIMIT = 10;        // câte unlocks viitoare arătăm
+const UNLOCKS_DAYS = 60;         // fereastra în zile pentru unlocks
+const LIQ_LIMIT = 12;            // câte liquidations afișăm
+
+// === State ===
+let paused = false;
+let refreshTimer = null;
+let lastFetchTs = 0;
+let mcapFilter = 100_000_000;    // filtru market cap minim ($)
+let cachedMarkets = null;        // cache pentru re-render local când schimbăm filtrul
+let cachedUnlocks = null;        // cache unlocks (DefiLlama returnează MB de date, n-are sens să refacem la 60s)
+let cachedUnlocksTs = 0;
+const UNLOCKS_CACHE_MS = 5 * 60_000;
+
+// === Helpers ===
+const $ = (id) => document.getElementById(id);
+
+const fmtUSD = (n) => {
+  if (n == null || isNaN(n)) return '—';
+  if (n >= 1)        return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  if (n >= 0.01)     return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+  if (n >= 0.0001)   return '$' + n.toLocaleString('en-US', { maximumFractionDigits: 6 });
+  return '$' + n.toExponential(2);
+};
+
+const fmtCompact = (n) => {
+  if (n == null || isNaN(n)) return '—';
+  if (n >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
+  if (n >= 1e9)  return '$' + (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6)  return '$' + (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3)  return '$' + (n / 1e3).toFixed(2) + 'K';
+  return '$' + n.toFixed(0);
+};
+
+const fmtPct = (n, withSign = true) => {
+  if (n == null || isNaN(n)) return '—';
+  const sign = withSign && n > 0 ? '+' : '';
+  return sign + n.toFixed(2) + '%';
+};
+
+const pctClass = (n) => (n == null || isNaN(n)) ? '' : (n >= 0 ? 'up' : 'down');
+
+function setStatus(state, text) {
+  const dot = $('status-dot');
+  dot.className = 'status-dot' + (state ? ' ' + state : '');
+  $('status-text').textContent = text;
+}
+
+// Renderează celula coin (icon + simbol + nume)
+function coinCell(c) {
+  const img = c.image ? `<img src="${c.image}" alt="" loading="lazy">` : '<span style="width:18px"></span>';
+  const sym = (c.symbol || '').toUpperCase();
+  const name = c.name || '';
+  return `<span class="coin">${img}<span class="sym">${sym}</span><span class="name">${name}</span></span>`;
+}
+
+// === Fetch cu timeout ===
+async function fetchJson(url, timeoutMs = 12_000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status} on ${url}`);
+    return await res.json();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+// === CoinGecko: top 100 cu schimbări 1h + 24h ===
+async function fetchMarkets() {
+  const url = `${CG_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=1h%2C24h&sparkline=false`;
+  const data = await fetchJson(url);
+  // Normalizează numele câmpurilor de % pentru consum mai ușor
+  return data.map(c => ({
+    id: c.id,
+    symbol: c.symbol,
+    name: c.name,
+    image: c.image,
+    price: c.current_price,
+    market_cap: c.market_cap,
+    volume_24h: c.total_volume,
+    chg_1h: c.price_change_percentage_1h_in_currency,
+    chg_24h: c.price_change_percentage_24h_in_currency ?? c.price_change_percentage_24h,
+  }));
+}
+
+// === alternative.me: Fear & Greed ===
+async function fetchFng() {
+  const data = await fetchJson(FNG_API);
+  const last = data?.data?.[0];
+  if (!last) return null;
+  return {
+    value: parseInt(last.value, 10),
+    label: last.value_classification, // e.g. "Greed", "Fear"
+  };
+}
+
+// === CoinGecko: global (BTC.D, ETH.D, total mcap) ===
+async function fetchGlobal() {
+  const data = await fetchJson(`${CG_API}/global`);
+  const d = data?.data;
+  if (!d) return null;
+  return {
+    btc_d: d.market_cap_percentage?.btc,
+    eth_d: d.market_cap_percentage?.eth,
+    total_mcap_usd: d.total_market_cap?.usd,
+    mcap_chg_24h: d.market_cap_change_percentage_24h_usd,
+    active_coins: d.active_cryptocurrencies,
+  };
+}
+
+// === CoinGecko: trending ===
+async function fetchTrending() {
+  const data = await fetchJson(`${CG_API}/search/trending`);
+  return (data?.coins || []).slice(0, 12).map(x => x.item);
+}
+
+// === Binance Futures: funding rates extreme ===
+async function fetchFunding() {
+  const data = await fetchJson(`${BIN_FUT}/premiumIndex`);
+  // Filtrează doar perpetualele USDT (fără BUSD/USDC)
+  const usdt = data
+    .filter(d => d.symbol.endsWith('USDT'))
+    .map(d => ({
+      symbol: d.symbol,
+      base: d.symbol.replace(/USDT$/, ''),
+      mark_price: parseFloat(d.markPrice),
+      funding_rate: parseFloat(d.lastFundingRate),
+    }))
+    .filter(d => !isNaN(d.funding_rate) && !isNaN(d.mark_price));
+
+  // Top pozitive (longs plătesc shorts) și top negative (shorts plătesc longs)
+  const pos = [...usdt].sort((a, b) => b.funding_rate - a.funding_rate).slice(0, FUNDING_LIMIT);
+  const neg = [...usdt].sort((a, b) => a.funding_rate - b.funding_rate).slice(0, FUNDING_LIMIT);
+  return { pos, neg };
+}
+
+// === Binance Futures: Open Interest top perpetuale ===
+// Strategie: luăm volumul 24h pentru toate perpetualele, alegem top 25 după volum,
+// apoi fetch OI individual și sortăm după OI în USD (= openInterest × markPrice).
+async function fetchOpenInterest() {
+  // 1) Toate perpetualele USDT cu volum și mark price
+  const [ticker24, premium] = await Promise.all([
+    fetchJson(`${BIN_FUT}/ticker/24hr`),
+    fetchJson(`${BIN_FUT}/premiumIndex`),
+  ]);
+  const markBySym = new Map(premium.map(p => [p.symbol, parseFloat(p.markPrice)]));
+
+  // Filtrăm doar USDT, sortăm după volum, luăm primele 25 pentru OI fetch
+  const candidates = ticker24
+    .filter(t => t.symbol.endsWith('USDT'))
+    .map(t => ({
+      symbol: t.symbol,
+      base: t.symbol.replace(/USDT$/, ''),
+      quote_volume: parseFloat(t.quoteVolume),
+      mark_price: markBySym.get(t.symbol),
+    }))
+    .filter(t => !isNaN(t.quote_volume) && t.mark_price)
+    .sort((a, b) => b.quote_volume - a.quote_volume)
+    .slice(0, 25);
+
+  // 2) Fetch OI pentru fiecare candidat în paralel
+  const oiResults = await Promise.allSettled(
+    candidates.map(c => fetchJson(`${BIN_FUT}/openInterest?symbol=${c.symbol}`))
+  );
+
+  const enriched = [];
+  candidates.forEach((c, i) => {
+    const r = oiResults[i];
+    if (r.status !== 'fulfilled') return;
+    const oiContracts = parseFloat(r.value?.openInterest);
+    if (isNaN(oiContracts)) return;
+    enriched.push({
+      ...c,
+      oi_contracts: oiContracts,
+      oi_usd: oiContracts * c.mark_price,
+    });
+  });
+
+  // 3) Top după OI în USD
+  return enriched.sort((a, b) => b.oi_usd - a.oi_usd).slice(0, OI_LIMIT);
+}
+
+// === DefiLlama: token unlocks viitoare ===
+// Endpoint-ul /emissions returnează lista de proiecte cu evenimente de unlock.
+// Pentru fiecare proiect identificăm primul eveniment în viitor în fereastra UNLOCKS_DAYS.
+// Cache 5 min: răspunsul e câțiva MB și schedule-ul de unlocks nu se schimbă des.
+async function fetchUnlocks() {
+  if (cachedUnlocks && (Date.now() - cachedUnlocksTs) < UNLOCKS_CACHE_MS) {
+    return cachedUnlocks;
+  }
+  const data = await fetchJson(`${LLAMA_API}/emissions`);
+  if (!Array.isArray(data)) return [];
+
+  const now = Math.floor(Date.now() / 1000);
+  const horizon = now + UNLOCKS_DAYS * 86_400;
+
+  const upcoming = [];
+  for (const proto of data) {
+    if (!Array.isArray(proto.events)) continue;
+    // Folosim ultimul preț disponibil ca să estimăm valoarea unlock-ului în USD
+    const priceArr = Array.isArray(proto.tokenPrice) ? proto.tokenPrice : [];
+    const lastPrice = priceArr.length ? parseFloat(priceArr[priceArr.length - 1]?.[1]) : null;
+    const circ = parseFloat(proto.circSupply);
+
+    // Primul eveniment în viitor (events vine sortat cronologic în general; sortăm defensiv)
+    const futureEvents = proto.events
+      .filter(e => e.timestamp > now && e.timestamp <= horizon)
+      .sort((a, b) => a.timestamp - b.timestamp);
+    if (!futureEvents.length) continue;
+    const ev = futureEvents[0];
+
+    // Suma totală unlocked în acel eveniment
+    const tokensUnlocked = Array.isArray(ev.noOfTokens)
+      ? ev.noOfTokens.reduce((s, x) => s + (parseFloat(x) || 0), 0)
+      : (parseFloat(ev.noOfTokens) || 0);
+    if (tokensUnlocked <= 0) continue;
+
+    const usdValue   = lastPrice ? tokensUnlocked * lastPrice : null;
+    const pctOfCirc  = (circ && circ > 0) ? (tokensUnlocked / circ) * 100 : null;
+
+    upcoming.push({
+      name: proto.name || proto.token || '?',
+      symbol: (proto.token || '').toUpperCase(),
+      timestamp: ev.timestamp,
+      tokens: tokensUnlocked,
+      usd_value: usdValue,
+      pct_circ: pctOfCirc,
+      category: ev.category || '',
+    });
+  }
+
+  // Sortăm după valoarea USD descrescător (cele mai impactante întâi)
+  const result = upcoming
+    .filter(u => u.usd_value && u.usd_value > 1_000_000)   // ignorăm sub $1M, sunt doar zgomot
+    .sort((a, b) => (b.usd_value || 0) - (a.usd_value || 0))
+    .slice(0, UNLOCKS_LIMIT);
+
+  cachedUnlocks = result;
+  cachedUnlocksTs = Date.now();
+  return result;
+}
+
+// === OKX: liquidations recente pe SWAP ===
+async function fetchLiquidations() {
+  // OKX cere instType obligatoriu; alegem SWAP (perpetuale) ca să acoperim cele mai active piețe
+  const url = `${OKX_API}/public/liquidation-orders?instType=SWAP&limit=100`;
+  const data = await fetchJson(url);
+  if (data?.code && data.code !== '0') throw new Error(`OKX code ${data.code}: ${data.msg || ''}`);
+
+  // Răspunsul OKX vine ca data: [{ instId, details: [{ side, sz, bkPx, ts, ... }] }]
+  // unde "side" e direcția poziției lichidate: "long" / "short"
+  const flat = [];
+  for (const inst of (data?.data || [])) {
+    for (const d of (inst.details || [])) {
+      const px = parseFloat(d.bkPx);
+      const sz = parseFloat(d.sz);
+      if (isNaN(px) || isNaN(sz) || sz <= 0) continue;
+      flat.push({
+        symbol: inst.instId,                                 // ex: BTC-USDT-SWAP
+        base: inst.instId.split('-')[0] || inst.instId,
+        side: d.side,                                        // "long" sau "short"
+        price: px,
+        size: sz,
+        usd_value: px * sz,
+        ts: parseInt(d.ts, 10),
+      });
+    }
+  }
+
+  // Top după valoare USD
+  return flat
+    .sort((a, b) => b.usd_value - a.usd_value)
+    .slice(0, LIQ_LIMIT);
+}
+
+// === Render: sentiment === //
+function renderSentiment(fng, glob) {
+  // Fear & Greed
+  if (fng) {
+    $('fng-value').textContent = fng.value;
+    $('fng-label').textContent = fng.label;
+    // Barul colorat în stânga, pe scală 0-100
+    let color;
+    if (fng.value <= 24)      color = '#ff4d4d';        // Extreme Fear
+    else if (fng.value <= 49) color = '#d4892c';        // Fear
+    else if (fng.value <= 54) color = '#8892a6';        // Neutral
+    else if (fng.value <= 74) color = '#5bdcb0';        // Greed
+    else                      color = '#22d66b';        // Extreme Greed
+    $('card-fng').style.setProperty('--bar-color', color);
+  } else {
+    $('fng-value').textContent = '—';
+    $('fng-label').textContent = 'indisponibil';
+  }
+
+  if (glob) {
+    $('btc-d').textContent = glob.btc_d != null ? glob.btc_d.toFixed(2) + '%' : '—';
+    $('eth-d').textContent = glob.eth_d != null ? glob.eth_d.toFixed(2) + '%' : '—';
+    $('mcap').textContent  = fmtCompact(glob.total_mcap_usd);
+
+    const chg = glob.mcap_chg_24h;
+    if (chg != null) {
+      const cls = chg >= 0 ? 'up' : 'down';
+      $('mcap-chg').innerHTML = `<span class="pct ${cls}">${fmtPct(chg)}</span> 24h`;
+      $('mcap-chg-sub').innerHTML = `${glob.btc_d != null ? glob.btc_d.toFixed(1) + '% din total' : '—'}`;
+    }
+    $('active-coins').textContent = glob.active_coins ? glob.active_coins.toLocaleString('en-US') + ' active coins' : '—';
+  }
+}
+
+// === Render: tabele movers === //
+function renderMoversTable(bodyId, coins, opts) {
+  const body = $(bodyId);
+  if (!coins || !coins.length) {
+    body.innerHTML = `<tr><td colspan="4" class="empty">fără date</td></tr>`;
+    return;
+  }
+  body.innerHTML = coins.map(c => {
+    // Cele 2 coloane numerice variază în funcție de panou
+    const col3 = opts.col3(c);   // ex: chg_1h
+    const col4 = opts.col4(c);   // ex: chg_24h sau volume
+    return `<tr>
+      <td>${coinCell(c)}</td>
+      <td class="num">${fmtUSD(c.price)}</td>
+      <td class="num">${col3}</td>
+      <td class="num">${col4}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderMovers(coins) {
+  // Aplicăm filtrul de market cap înainte de orice altceva
+  const filtered = coins.filter(c => (c.market_cap || 0) >= mcapFilter);
+
+  // Update label cu numărul de coin-uri rămase după filtru
+  $('filter-count').textContent = `${filtered.length}/${coins.length} coins după filtru`;
+
+  // 1h gainers/losers (filtrăm out NaN ca să nu apară gol)
+  const has1h = filtered.filter(c => c.chg_1h != null && !isNaN(c.chg_1h));
+  const top1h    = [...has1h].sort((a, b) => b.chg_1h - a.chg_1h).slice(0, MOVERS_LIMIT);
+  const bot1h    = [...has1h].sort((a, b) => a.chg_1h - b.chg_1h).slice(0, MOVERS_LIMIT);
+
+  // 24h gainers/losers
+  const has24h = filtered.filter(c => c.chg_24h != null && !isNaN(c.chg_24h));
+  const top24h   = [...has24h].sort((a, b) => b.chg_24h - a.chg_24h).slice(0, MOVERS_LIMIT);
+  const bot24h   = [...has24h].sort((a, b) => a.chg_24h - b.chg_24h).slice(0, MOVERS_LIMIT);
+
+  renderMoversTable('gainers-1h-body', top1h, {
+    col3: c => `<span class="pct-pill ${pctClass(c.chg_1h)}">${fmtPct(c.chg_1h)}</span>`,
+    col4: c => `<span class="pct ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span>`,
+  });
+  renderMoversTable('losers-1h-body', bot1h, {
+    col3: c => `<span class="pct-pill ${pctClass(c.chg_1h)}">${fmtPct(c.chg_1h)}</span>`,
+    col4: c => `<span class="pct ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span>`,
+  });
+  renderMoversTable('gainers-24h-body', top24h, {
+    col3: c => `<span class="pct-pill ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span>`,
+    col4: c => fmtCompact(c.volume_24h),
+  });
+  renderMoversTable('losers-24h-body', bot24h, {
+    col3: c => `<span class="pct-pill ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span>`,
+    col4: c => fmtCompact(c.volume_24h),
+  });
+}
+
+// === Render: volum === //
+function renderVolume(coins) {
+  const filtered = coins.filter(c => (c.market_cap || 0) >= mcapFilter);
+  const top = [...filtered].sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0)).slice(0, VOLUME_LIMIT);
+  const body = $('volume-body');
+  if (!top.length) {
+    body.innerHTML = `<tr><td colspan="4" class="empty">fără date</td></tr>`;
+    return;
+  }
+  body.innerHTML = top.map(c => `
+    <tr>
+      <td>${coinCell(c)}</td>
+      <td class="num">${fmtUSD(c.price)}</td>
+      <td class="num"><strong>${fmtCompact(c.volume_24h)}</strong></td>
+      <td class="num"><span class="pct ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span></td>
+    </tr>
+  `).join('');
+}
+
+// === Render: funding === //
+function renderFunding(funding) {
+  const body = $('funding-body');
+  if (!funding || (!funding.pos.length && !funding.neg.length)) {
+    body.innerHTML = `<tr><td colspan="4" class="empty">fără date</td></tr>`;
+    return;
+  }
+
+  // Format: rata afișată în % (rata e fracție: 0.0001 = 0.01%); APR ≈ rate * 3 funding/zi * 365
+  const fmtFunding = (rate) => {
+    const pct = rate * 100;
+    const cls = rate >= 0 ? 'up' : 'down';
+    return `<span class="pct ${cls}">${pct >= 0 ? '+' : ''}${pct.toFixed(4)}%</span>`;
+  };
+  const fmtApr = (rate) => {
+    const apr = rate * 3 * 365 * 100;
+    const cls = rate >= 0 ? 'up' : 'down';
+    return `<span class="pct ${cls}">${apr >= 0 ? '+' : ''}${apr.toFixed(1)}%</span>`;
+  };
+
+  // Combinăm: prima jumătate pozitive (descendent), apoi negative (ascendent — cele mai negative sus)
+  const rows = [];
+  funding.pos.forEach(d => rows.push(d));
+  funding.neg.forEach(d => rows.push(d));
+
+  body.innerHTML = rows.map(d => `
+    <tr>
+      <td><span class="coin"><span class="sym">${d.base}</span><span class="name">${d.symbol}</span></span></td>
+      <td class="num">${fmtUSD(d.mark_price)}</td>
+      <td class="num">${fmtFunding(d.funding_rate)}</td>
+      <td class="num">${fmtApr(d.funding_rate)}</td>
+    </tr>
+  `).join('');
+}
+
+// === Render: trending === //
+function renderTrending(items) {
+  const body = $('trending-body');
+  if (!items || !items.length) {
+    body.innerHTML = `<span class="empty">fără date</span>`;
+    return;
+  }
+  body.innerHTML = items.map((it, i) => {
+    const img = it.thumb ? `<img src="${it.thumb}" alt="" loading="lazy">` : '';
+    const chg = it.data?.price_change_percentage_24h?.usd;
+    const chgHtml = (chg != null && !isNaN(chg))
+      ? `<span class="pct ${pctClass(chg)}" style="font-size:11px;">${fmtPct(chg)}</span>`
+      : '';
+    return `<span class="trend-chip">
+      <span class="rank">#${i + 1}</span>
+      ${img}
+      <strong>${it.symbol?.toUpperCase() || ''}</strong>
+      <span style="color:var(--muted); font-weight:500;">${it.name || ''}</span>
+      ${chgHtml}
+    </span>`;
+  }).join('');
+}
+
+// === Render: Open Interest === //
+function renderOI(rows) {
+  const body = $('oi-body');
+  if (!rows || !rows.length) {
+    body.innerHTML = `<tr><td colspan="4" class="empty">fără date</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="coin"><span class="sym">${r.base}</span><span class="name">${r.symbol}</span></span></td>
+      <td class="num">${fmtUSD(r.mark_price)}</td>
+      <td class="num"><strong>${fmtCompact(r.oi_usd)}</strong></td>
+      <td class="num">${r.oi_contracts.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+    </tr>
+  `).join('');
+}
+
+// === Render: Unlocks === //
+// Format dată relativ ("în 3z", "în 12h"); marcăm cu culoare cele iminente
+function fmtUnlockWhen(ts) {
+  const now = Math.floor(Date.now() / 1000);
+  const diff = ts - now;
+  if (diff <= 0) return { text: 'acum', cls: 'imminent' };
+  const hours = Math.floor(diff / 3600);
+  const days  = Math.floor(diff / 86_400);
+  let text, cls = '';
+  if (days >= 7)      { text = `în ${days}z`; cls = ''; }
+  else if (days >= 1) { text = `în ${days}z`; cls = 'soon'; }
+  else                { text = `în ${hours}h`; cls = 'imminent'; }
+  return { text, cls };
+}
+
+function renderUnlocks(rows) {
+  const body = $('unlocks-body');
+  if (!rows || !rows.length) {
+    body.innerHTML = `<tr><td colspan="4" class="empty">niciun unlock major în ${UNLOCKS_DAYS} de zile</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map(u => {
+    const when = fmtUnlockWhen(u.timestamp);
+    const pctTxt = u.pct_circ != null ? u.pct_circ.toFixed(2) + '%' : '—';
+    // Subliniem cu roșu când unlock-ul depășește 1% din supply circulant
+    const pctCls = (u.pct_circ != null && u.pct_circ >= 1) ? 'down' : '';
+    return `<tr>
+      <td>
+        <span class="coin">
+          <span class="sym">${u.symbol || u.name}</span>
+          <span class="name">${u.name}</span>
+        </span>
+      </td>
+      <td class="num"><span class="unlock-time ${when.cls}">${when.text}</span></td>
+      <td class="num"><span class="pct ${pctCls}">${pctTxt}</span></td>
+      <td class="num"><strong>${fmtCompact(u.usd_value)}</strong></td>
+    </tr>`;
+  }).join('');
+  $('unlocks-sub').textContent = `DefiLlama · ${rows.length} proiecte`;
+}
+
+// === Render: Liquidations === //
+function renderLiquidations(rows) {
+  const body = $('liq-body');
+  if (!rows || !rows.length) {
+    body.innerHTML = `<tr><td colspan="4" class="empty">fără date</td></tr>`;
+    return;
+  }
+  body.innerHTML = rows.map(l => `
+    <tr>
+      <td><span class="coin"><span class="sym">${l.base}</span></span></td>
+      <td><span class="liq-side ${l.side}">${l.side.toUpperCase()}</span></td>
+      <td class="num">${fmtUSD(l.price)}</td>
+      <td class="num"><strong>${fmtCompact(l.usd_value)}</strong></td>
+    </tr>
+  `).join('');
+}
+
+// === Refresh global === //
+async function refreshAll() {
+  setStatus('load', 'încarc date…');
+  // Lansăm toate fetch-urile în paralel; le tratăm individual ca să nu pice tot
+  // dacă o singură sursă eșuează (de ex. Binance blocat regional)
+  const tasks = await Promise.allSettled([
+    fetchMarkets(),         // 0
+    fetchFng(),             // 1
+    fetchGlobal(),          // 2
+    fetchTrending(),        // 3
+    fetchFunding(),         // 4
+    fetchOpenInterest(),    // 5
+    fetchUnlocks(),         // 6
+    fetchLiquidations(),    // 7
+  ]);
+
+  const [markets, fng, glob, trending, funding, oi, unlocks, liq] = tasks;
+
+  let okCount = 0;
+  const total = tasks.length;
+
+  if (markets.status === 'fulfilled') {
+    cachedMarkets = markets.value;          // cache pentru re-render local când utilizatorul schimbă filtrul
+    renderMovers(markets.value);
+    renderVolume(markets.value);
+    okCount++;
+  } else {
+    console.warn('markets failed', markets.reason);
+  }
+
+  if (fng.status === 'fulfilled' || glob.status === 'fulfilled') {
+    renderSentiment(
+      fng.status === 'fulfilled'  ? fng.value  : null,
+      glob.status === 'fulfilled' ? glob.value : null
+    );
+    if (fng.status === 'fulfilled')  okCount++;
+    if (glob.status === 'fulfilled') okCount++;
+  }
+
+  if (trending.status === 'fulfilled') { renderTrending(trending.value); okCount++; }
+  else                                 { console.warn('trending failed', trending.reason); }
+
+  if (funding.status === 'fulfilled')  { renderFunding(funding.value); okCount++; }
+  else                                 { console.warn('funding failed', funding.reason); $('funding-body').innerHTML = `<tr><td colspan="4" class="empty">Binance blocat sau indisponibil</td></tr>`; }
+
+  if (oi.status === 'fulfilled')       { renderOI(oi.value); okCount++; }
+  else                                 { console.warn('OI failed', oi.reason); $('oi-body').innerHTML = `<tr><td colspan="4" class="empty">Binance blocat sau indisponibil</td></tr>`; }
+
+  if (unlocks.status === 'fulfilled')  { renderUnlocks(unlocks.value); okCount++; }
+  else                                 { console.warn('unlocks failed', unlocks.reason); $('unlocks-body').innerHTML = `<tr><td colspan="4" class="empty">DefiLlama indisponibil</td></tr>`; }
+
+  if (liq.status === 'fulfilled')      { renderLiquidations(liq.value); okCount++; }
+  else                                 { console.warn('liquidations failed', liq.reason); $('liq-body').innerHTML = `<tr><td colspan="4" class="empty">OKX indisponibil sau blocat</td></tr>`; }
+
+  lastFetchTs = Date.now();
+  if (okCount === total) {
+    setStatus('ok', 'actualizat ' + new Date().toLocaleTimeString('ro-RO'));
+  } else if (okCount > 0) {
+    setStatus('load', `parțial (${okCount}/${total}) · ${new Date().toLocaleTimeString('ro-RO')}`);
+  } else {
+    setStatus('err', 'eroare la toate sursele');
+  }
+}
+
+// === Auto-refresh === //
+function scheduleRefresh() {
+  clearTimeout(refreshTimer);
+  if (paused) return;
+  refreshTimer = setTimeout(async () => {
+    await refreshAll();
+    scheduleRefresh();
+  }, REFRESH_MS);
+}
+
+function togglePause() {
+  paused = !paused;
+  $('pause-btn').textContent = paused ? '▶ Reia' : '⏸ Pauză';
+  if (paused) {
+    clearTimeout(refreshTimer);
+    setStatus('', 'pe pauză');
+  } else {
+    setStatus('ok', 'reluat');
+    scheduleRefresh();
+  }
+}
+
+// === Wire up === //
+$('refresh-btn').addEventListener('click', async () => {
+  await refreshAll();
+  scheduleRefresh();
+});
+$('pause-btn').addEventListener('click', togglePause);
+
+// Filter chips: schimbă mcapFilter și re-randează din cache (fără fetch nou)
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    mcapFilter = parseFloat(chip.dataset.mcap) || 0;
+    if (cachedMarkets) {
+      renderMovers(cachedMarkets);
+      renderVolume(cachedMarkets);
+    }
+  });
+});
+
+// Pornire
+(async () => {
+  await refreshAll();
+  scheduleRefresh();
+})();
+
+</script>
+</body>
+</html>
