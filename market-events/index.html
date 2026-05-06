@@ -812,6 +812,41 @@
 }
 .saved-row .saved-del:hover{color:#ff6b6b}
 .saved-empty{padding:18px;text-align:center;color:#8b949e;font-size:11px;font-style:italic}
+
+/* === Pseudo-live indicator în topbar (când Market Session = OPEN) === */
+.live-indicator{
+  display:none; align-items:center; gap:5px;
+  background:rgba(63,185,80,.12); border:1px solid #3fb950;
+  color:#3fb950; padding:4px 9px; border-radius:6px;
+  font-size:10.5px; font-weight:700;
+}
+.live-indicator.show{display:inline-flex}
+.live-indicator .live-dot{
+  width:6px; height:6px; border-radius:50%; background:#3fb950;
+  box-shadow:0 0 5px #3fb950; animation:livePulseME 1.5s infinite;
+}
+@keyframes livePulseME{50%{opacity:.4}}
+
+/* Volume / Sector heatmap — bare orizontale agregate */
+.heat-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;
+}
+@media (max-width:760px){.heat-grid{grid-template-columns:1fr}}
+.heat-section{background:#161b22; border:1px solid #30363d; border-radius:10px; padding:14px}
+.heat-section h2{font-size:13px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; margin:-14px -14px 10px; padding:10px 14px; border-bottom:1px solid #30363d; background:linear-gradient(180deg,rgba(29,37,55,.6),rgba(20,26,40,.4)); display:flex; align-items:center; gap:6px; color:#79c0ff}
+.heat-section.section-vol h2{color:#f0883e}
+.heat-section.section-sector h2{color:#d2a8ff}
+.heat-list{display:flex; flex-direction:column; gap:4px}
+.heat-row{display:grid; grid-template-columns:62px 1fr auto; gap:8px; align-items:center; font-size:11px}
+.heat-row .sym{font-weight:700; font-family:monospace; color:#79c0ff}
+.heat-row .bar{
+  height:14px; border-radius:3px; position:relative;
+  background:linear-gradient(90deg,#ff4d4d 0%, #f0883e 100%);
+}
+.heat-row.cool .bar{background:linear-gradient(90deg,#3fb950 0%, #56d364 100%)}
+.heat-row .val{font-variant-numeric:tabular-nums; color:#e6edf3; font-weight:700; text-align:right; min-width:60px}
+.heat-row .meta{font-size:9.5px; color:#fff; position:absolute; left:6px; top:50%; transform:translateY(-50%); text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.heat-empty{padding:14px; text-align:center; color:#8b949e; font-size:11px; font-style:italic}
 </style>
 </head>
 <body>
@@ -824,6 +859,7 @@
   <input id="proxyUrl" class="proxy-input" value="https://cors-proxy-one-drab.vercel.app/api/proxy/?url=" placeholder="Proxy CORS..." />
   <span class="selection-counter" id="selCounter" onclick="showSelectionMenu()" title="Click pentru opțiuni Compară AI"><span>🎯</span><span id="selCounterNum">0</span></span>
   <button class="nav-link" onclick="showPositionSizer()" title="Position sizer Trade 212: calculează poziție pentru risc fix per trade">🧮 Sizer</button>
+  <span class="live-indicator" id="liveIndicator" title="Market Session = OPEN — watchlist refresh la 15s în loc de 60s"><span class="live-dot"></span><span>LIVE</span></span>
   <button class="nav-link" onclick="showAlertsModal()" title="Smart alerts: notificări custom pe schimb % / low azi % / vol/avg / days-to-earnings">🔔 Alerte<span id="alertsBadge" style="display:none;margin-left:4px;background:#8957e5;color:#fff;padding:0 5px;border-radius:8px;font-size:9px;">0</span></button>
   <button class="nav-link" onclick="showSavedAnalyses()" title="Analize AI salvate (📌)">📚 <span id="savedBadge" style="display:none;background:#8957e5;color:#fff;padding:0 5px;border-radius:8px;font-size:9px;margin-left:3px">0</span></button>
   <input class="global-search" id="globalSearch" type="search" placeholder="🔍 Caută AAPL, NVDA..." title="Filtrează cross-tabel (Esc clear, / focus chat)">
@@ -1059,6 +1095,18 @@
 </section>
 
 </div><!-- /events-grid -->
+
+<!-- === Heatmaps: Volume + Sector (sub Earnings + Top Losers) === -->
+<section class="heat-grid">
+  <div class="heat-section section-vol">
+    <h2>📊 Volume Heatmap (losers)</h2>
+    <div class="heat-list" id="volHeatmap"><div class="heat-empty">se încarcă…</div></div>
+  </div>
+  <div class="heat-section section-sector">
+    <h2>🏭 Sector Heatmap (losers)</h2>
+    <div class="heat-list" id="sectorHeatmap"><div class="heat-empty">se încarcă…</div></div>
+  </div>
+</section>
 
 <script>
 // ============================================================
@@ -3535,6 +3583,119 @@ function deleteSaved(id) {
 
 meLoadSaved();
 updateSavedBadge();
+
+// ============================================================
+// PACHET E adaptat — pseudo-live polling + Volume/Sector heatmaps
+// ============================================================
+
+// === Pseudo-live: când Market Session = REGULAR (OPEN), watchlist refresh la 15s ===
+let liveIntervalHandle = null;
+let currentSession = null;
+
+function applyLiveMode() {
+  if (liveIntervalHandle) { clearInterval(liveIntervalHandle); liveIntervalHandle = null; }
+  const ind = document.getElementById('liveIndicator');
+  if (currentSession === 'REGULAR') {
+    if (ind) ind.classList.add('show');
+    // Refresh watchlist la 15s + updatează prețurile vizuale fără să rezbatem tot scan-ul
+    liveIntervalHandle = setInterval(() => {
+      if (!document.hidden && typeof watchlist !== 'undefined' && watchlist?.length) {
+        wlRefresh();
+      }
+    }, 15000);
+  } else {
+    if (ind) ind.classList.remove('show');
+  }
+}
+
+// Hook pe renderMarketSession ca să detectăm tranzițiile (PRE→OPEN, OPEN→POST, etc)
+const _origRenderMarketSession = renderMarketSession;
+renderMarketSession = function(state) {
+  _origRenderMarketSession(state);
+  if (state !== currentSession) {
+    const wasRegular = currentSession === 'REGULAR';
+    currentSession = state;
+    applyLiveMode();
+    // Anunț toast dacă tocmai s-a deschis sau s-a închis sesiunea
+    if (state === 'REGULAR' && !wasRegular) showToast('🔌 Market OPEN — watchlist live (15s refresh)', 'success');
+    if (state !== 'REGULAR' && wasRegular)  showToast('Market closed — watchlist 60s refresh', 'warn');
+  }
+};
+
+// === VOLUME HEATMAP — vol/avg per loser, bare orizontale colorate ===
+function renderVolumeHeatmap() {
+  const wrap = document.getElementById('volHeatmap');
+  if (!wrap) return;
+  const losers = (typeof lastLosers !== 'undefined' && lastLosers) ? lastLosers : [];
+  if (!losers.length) { wrap.innerHTML = '<div class="heat-empty">fără date — apasă „🔻 Scanează" în Top Losers</div>'; return; }
+
+  // Calc vol/avg pentru fiecare, sortăm desc, top 10
+  const enriched = losers
+    .filter(s => s.volume && s.avgVolume)
+    .map(s => ({ sym: s.symbol, ratio: s.volume / s.avgVolume, vol: s.volume, chgPct: s.changePct, sector: s.sector }))
+    .sort((a, b) => b.ratio - a.ratio)
+    .slice(0, 10);
+
+  if (!enriched.length) { wrap.innerHTML = '<div class="heat-empty">vol/avg indisponibil</div>'; return; }
+  const maxRatio = enriched[0].ratio;
+
+  wrap.innerHTML = enriched.map(e => {
+    const widthPct = Math.min(100, (e.ratio / maxRatio) * 100);
+    // Cool class pentru ratio < 1 (low conviction sell-off)
+    const isCool = e.ratio < 1;
+    const ratioStr = e.ratio.toFixed(1) + 'x';
+    return `<div class="heat-row ${isCool ? 'cool' : ''}">
+      <span class="sym">${e.sym}</span>
+      <div class="bar" style="width:${widthPct.toFixed(1)}%">
+        <span class="meta">${ratioStr} · ${e.chgPct?.toFixed(2)}%</span>
+      </div>
+      <span class="val">${NasdaqScanner.formatVolume(e.vol)}</span>
+    </div>`;
+  }).join('');
+}
+
+// === SECTOR HEATMAP — losers grupați pe sector ===
+function renderSectorHeatmap() {
+  const wrap = document.getElementById('sectorHeatmap');
+  if (!wrap) return;
+  const losers = (typeof lastLosers !== 'undefined' && lastLosers) ? lastLosers : [];
+  if (!losers.length) { wrap.innerHTML = '<div class="heat-empty">fără date — apasă „🔻 Scanează" în Top Losers</div>'; return; }
+
+  // Grupare pe sector
+  const sectors = new Map();
+  for (const s of losers) {
+    if (!s.sector) continue;
+    const a = sectors.get(s.sector) || { sector: s.sector, count: 0, sumChg: 0, mcap: 0 };
+    a.count += 1;
+    a.sumChg += (s.changePct || 0);
+    a.mcap += (s.marketCap || 0);
+    sectors.set(s.sector, a);
+  }
+  const arr = Array.from(sectors.values()).map(a => ({ ...a, avgChg: a.sumChg / a.count }));
+  arr.sort((a, b) => a.avgChg - b.avgChg);   // cele mai rele primele
+  if (!arr.length) { wrap.innerHTML = '<div class="heat-empty">fără sectoare disponibile</div>'; return; }
+
+  const worstChg = Math.abs(arr[0].avgChg);
+  wrap.innerHTML = arr.slice(0, 10).map(a => {
+    const widthPct = Math.min(100, (Math.abs(a.avgChg) / worstChg) * 100);
+    const sectorShort = a.sector.length > 18 ? a.sector.slice(0, 17) + '…' : a.sector;
+    return `<div class="heat-row">
+      <span class="sym" title="${a.sector}">${sectorShort.split(' ')[0].toUpperCase().slice(0, 6)}</span>
+      <div class="bar" style="width:${widthPct.toFixed(1)}%">
+        <span class="meta">${a.count} stocks · ${a.avgChg.toFixed(2)}% avg</span>
+      </div>
+      <span class="val">${NasdaqScanner.formatMcap(a.mcap)}</span>
+    </div>`;
+  }).join('');
+}
+
+// Hook pe scanLosers ca să rendăm heatmap-urile după ce avem date
+const _origScanLosers = scanLosers;
+scanLosers = async function() {
+  await _origScanLosers();
+  renderVolumeHeatmap();
+  renderSectorHeatmap();
+};
 </script>
 
 </body>
