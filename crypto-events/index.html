@@ -259,6 +259,114 @@
   }
   footer a { color: var(--accent); text-decoration: none; }
   footer a:hover { text-decoration: underline; }
+
+  /* === AI infrastructure (port din market-events, paletă crypto-events) === */
+  .btn-ai-key{
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color:#fff; border:1px solid transparent;
+    padding:6px 11px; border-radius:var(--radius-sm); font-size:11px; font-weight:700;
+    cursor:pointer; transition:all .15s var(--ease); font-family:inherit;
+  }
+  .btn-ai-key.active{background:linear-gradient(135deg, var(--bull-s), #5bdcb0); color:#000}
+  .btn-ai-key:hover{filter:brightness(1.12); transform:translateY(-1px)}
+
+  .btn-ai-row{
+    background:var(--panel2); border:1px solid var(--border); color:var(--accent2);
+    padding:2px 6px; border-radius:5px; font-size:10.5px; font-weight:700;
+    cursor:pointer; transition:all .12s var(--ease); font-family:inherit;
+  }
+  .btn-ai-row:hover{background:rgba(139,111,255,.15); border-color:var(--accent2); color:var(--accent2)}
+  .btn-ai-row:disabled{opacity:.5; cursor:wait}
+
+  /* AI modal (pop-up rezultat analiză) */
+  .ai-modal-bg{
+    position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:9999;
+    display:flex; align-items:center; justify-content:center; padding:16px;
+    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
+  }
+  .ai-modal{
+    background:var(--panel); border:1px solid var(--border); border-radius:14px;
+    width:100%; max-width:600px; max-height:85vh; overflow-y:auto;
+    padding:22px; color:var(--text);
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .ai-modal-title{
+    font-size:14px; font-weight:800; margin-bottom:6px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .ai-modal-sub{font-size:11px; color:var(--muted); margin-bottom:14px; line-height:1.6}
+  .ai-modal-result{
+    background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    padding:14px; font-size:13px; line-height:1.7; color:#c9d1d9;
+    white-space:pre-wrap; min-height:80px; max-height:60vh; overflow-y:auto;
+  }
+  .ai-modal-meta{font-size:10px; color:var(--muted); margin-top:10px; font-family:monospace}
+  .ai-modal-actions{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap}
+  .ai-modal-actions button{
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    padding:9px 14px; border-radius:8px; font-size:12px; font-weight:600;
+    cursor:pointer; transition:all .12s var(--ease); font-family:inherit;
+  }
+  .ai-modal-actions button:hover{background:var(--border)}
+  .ai-modal-actions button.primary{
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    border-color:transparent; color:#fff;
+  }
+  .ai-modal-actions button.primary:hover{filter:brightness(1.1)}
+
+  .ai-key-modal input[type=text]{
+    width:100%; padding:10px 12px;
+    background:var(--bg); border:1px solid var(--border);
+    border-radius:8px; color:var(--text); font-size:12px; font-family:monospace;
+    outline:none; margin-bottom:10px;
+  }
+  .ai-key-modal input[type=text]:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,176,255,.15)}
+  .ai-key-modal .ai-test-result{font-size:11px; margin-bottom:10px; min-height:18px; color:var(--muted)}
+
+  /* === Per-row checkbox + selecție crypto === */
+  .crypto-chk{
+    width:13px; height:13px; cursor:pointer;
+    accent-color:var(--accent2); margin:0;
+  }
+  tr.crypto-tr-selected td{background:rgba(139,111,255,.10)}
+  thead th.col-chk{width:24px}
+  thead th.col-ai{width:36px}
+
+  /* Mini-buton "Select All" în panel-head, lângă panel-sub */
+  .btn-select-all-mini{
+    background:var(--panel2); border:1px solid var(--border); color:var(--muted);
+    padding:2px 8px; border-radius:5px; font-size:10px; font-weight:700;
+    cursor:pointer; font-family:inherit; letter-spacing:.3px;
+    transition:all .15s var(--ease); margin-left:8px;
+  }
+  .btn-select-all-mini:hover{border-color:var(--accent2); color:var(--accent2)}
+  .btn-select-all-mini.active{background:var(--accent2); border-color:var(--accent2); color:#fff}
+
+  /* === Bara floating de comparație AI (apare când sunt 2+ selectate global) === */
+  .crypto-compare-bar{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--panel); border:1px solid var(--accent2);
+    padding:10px 16px; border-radius:14px;
+    box-shadow:0 12px 40px rgba(139,111,255,.30), 0 4px 12px rgba(0,0,0,.4);
+    z-index:9990; display:none; align-items:center; gap:10px;
+    font-size:12px; color:var(--text); font-weight:600;
+    max-width:calc(100vw - 30px); flex-wrap:wrap; justify-content:center;
+  }
+  .crypto-compare-bar.show{display:flex}
+  .crypto-compare-bar .crypto-cmp-count{color:var(--accent2); font-weight:800}
+  .crypto-compare-bar button{
+    padding:7px 14px; border-radius:8px; border:none; font-weight:700;
+    font-size:11px; cursor:pointer; font-family:inherit;
+  }
+  .crypto-compare-bar .btn-cmp-go{
+    background:linear-gradient(135deg, var(--accent), var(--accent2)); color:#fff;
+  }
+  .crypto-compare-bar .btn-cmp-go:hover{filter:brightness(1.1)}
+  .crypto-compare-bar .btn-cmp-go:disabled{opacity:.5; cursor:wait}
+  .crypto-compare-bar .btn-cmp-clear{
+    background:var(--panel2); color:var(--muted); border:1px solid var(--border);
+  }
+  .crypto-compare-bar .btn-cmp-clear:hover{background:var(--border); color:var(--text)}
 </style>
 </head>
 <body>
@@ -269,6 +377,7 @@
   <a href="../crypto-scanner/" class="nav-link">⚡ Crypto Scanner</a>
   <a href="../market-events/" class="nav-link">📉 Market Events</a>
   <span class="status"><span id="status-dot" class="status-dot"></span><span id="status-text">pornire…</span></span>
+  <button id="aiKeyBtn" class="btn-ai-key" onclick="showAiKeyModal()" title="Configurează cheia Anthropic API pentru analize AI per simbol">🔑 AI Key</button>
   <button id="pause-btn" title="Pune pe pauză auto-refresh">⏸ Pauză</button>
   <button id="refresh-btn" class="primary">↻ Refresh</button>
 </header>
@@ -313,12 +422,13 @@
     <div class="panel-head bull">
       <span class="icon">🚀</span><h3>Top Gainers 1h</h3>
       <span class="panel-sub" id="gainers-1h-sub">top 100 după mcap</span>
+      <button class="btn-select-all-mini" id="sa-gainers-1h" onclick="cryptoSelectAllInTable('gainers-1h')" title="Selectează / deselectează toate simbolurile din acest tabel">☑ tot</button>
     </div>
     <table>
       <thead><tr>
-        <th>Coin</th><th class="num">Preț</th><th class="num">1h</th><th class="num">24h</th>
+        <th class="col-chk"></th><th>Coin</th><th class="num">Preț</th><th class="num">1h</th><th class="num">24h</th><th class="col-ai">AI</th>
       </tr></thead>
-      <tbody id="gainers-1h-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+      <tbody id="gainers-1h-body"><tr class="skeleton-row"><td colspan="6"><span class="skeleton-bar"></span></td></tr></tbody>
     </table>
   </div>
 
@@ -326,12 +436,13 @@
     <div class="panel-head bear">
       <span class="icon">📉</span><h3>Top Losers 1h</h3>
       <span class="panel-sub">top 100 după mcap</span>
+      <button class="btn-select-all-mini" id="sa-losers-1h" onclick="cryptoSelectAllInTable('losers-1h')" title="Selectează / deselectează toate simbolurile din acest tabel">☑ tot</button>
     </div>
     <table>
       <thead><tr>
-        <th>Coin</th><th class="num">Preț</th><th class="num">1h</th><th class="num">24h</th>
+        <th class="col-chk"></th><th>Coin</th><th class="num">Preț</th><th class="num">1h</th><th class="num">24h</th><th class="col-ai">AI</th>
       </tr></thead>
-      <tbody id="losers-1h-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+      <tbody id="losers-1h-body"><tr class="skeleton-row"><td colspan="6"><span class="skeleton-bar"></span></td></tr></tbody>
     </table>
   </div>
 
@@ -339,12 +450,13 @@
     <div class="panel-head bull">
       <span class="icon">📈</span><h3>Top Gainers 24h</h3>
       <span class="panel-sub">top 100 după mcap</span>
+      <button class="btn-select-all-mini" id="sa-gainers-24h" onclick="cryptoSelectAllInTable('gainers-24h')" title="Selectează / deselectează toate simbolurile din acest tabel">☑ tot</button>
     </div>
     <table>
       <thead><tr>
-        <th>Coin</th><th class="num">Preț</th><th class="num">24h</th><th class="num">Volum</th>
+        <th class="col-chk"></th><th>Coin</th><th class="num">Preț</th><th class="num">24h</th><th class="num">Volum</th><th class="col-ai">AI</th>
       </tr></thead>
-      <tbody id="gainers-24h-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+      <tbody id="gainers-24h-body"><tr class="skeleton-row"><td colspan="6"><span class="skeleton-bar"></span></td></tr></tbody>
     </table>
   </div>
 
@@ -352,12 +464,13 @@
     <div class="panel-head bear">
       <span class="icon">🩸</span><h3>Top Losers 24h</h3>
       <span class="panel-sub">top 100 după mcap</span>
+      <button class="btn-select-all-mini" id="sa-losers-24h" onclick="cryptoSelectAllInTable('losers-24h')" title="Selectează / deselectează toate simbolurile din acest tabel">☑ tot</button>
     </div>
     <table>
       <thead><tr>
-        <th>Coin</th><th class="num">Preț</th><th class="num">24h</th><th class="num">Volum</th>
+        <th class="col-chk"></th><th>Coin</th><th class="num">Preț</th><th class="num">24h</th><th class="num">Volum</th><th class="col-ai">AI</th>
       </tr></thead>
-      <tbody id="losers-24h-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+      <tbody id="losers-24h-body"><tr class="skeleton-row"><td colspan="6"><span class="skeleton-bar"></span></td></tr></tbody>
     </table>
   </div>
 </section>
@@ -368,12 +481,13 @@
     <div class="panel-head">
       <span class="icon">🔊</span><h3>Most Active by Volume 24h</h3>
       <span class="panel-sub">CoinGecko</span>
+      <button class="btn-select-all-mini" id="sa-volume" onclick="cryptoSelectAllInTable('volume')" title="Selectează / deselectează toate simbolurile din acest tabel">☑ tot</button>
     </div>
     <table>
       <thead><tr>
-        <th>Coin</th><th class="num">Preț</th><th class="num">Volum 24h</th><th class="num">24h</th>
+        <th class="col-chk"></th><th>Coin</th><th class="num">Preț</th><th class="num">Volum 24h</th><th class="num">24h</th><th class="col-ai">AI</th>
       </tr></thead>
-      <tbody id="volume-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+      <tbody id="volume-body"><tr class="skeleton-row"><td colspan="6"><span class="skeleton-bar"></span></td></tr></tbody>
     </table>
   </div>
 
@@ -381,12 +495,13 @@
     <div class="panel-head">
       <span class="icon">💸</span><h3>Funding Rates extreme</h3>
       <span class="panel-sub">Binance Futures · 8h</span>
+      <button class="btn-select-all-mini" id="sa-funding" onclick="cryptoSelectAllInTable('funding')" title="Selectează / deselectează toate simbolurile din acest tabel">☑ tot</button>
     </div>
     <table>
       <thead><tr>
-        <th>Symbol</th><th class="num">Mark Price</th><th class="num">Funding 8h</th><th class="num">APR estim.</th>
+        <th class="col-chk"></th><th>Symbol</th><th class="num">Mark Price</th><th class="num">Funding 8h</th><th class="num">APR estim.</th><th class="col-ai">AI</th>
       </tr></thead>
-      <tbody id="funding-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+      <tbody id="funding-body"><tr class="skeleton-row"><td colspan="6"><span class="skeleton-bar"></span></td></tr></tbody>
     </table>
   </div>
 
@@ -394,12 +509,13 @@
     <div class="panel-head">
       <span class="icon">📊</span><h3>Open Interest top 10</h3>
       <span class="panel-sub">Binance Futures</span>
+      <button class="btn-select-all-mini" id="sa-oi" onclick="cryptoSelectAllInTable('oi')" title="Selectează / deselectează toate simbolurile din acest tabel">☑ tot</button>
     </div>
     <table>
       <thead><tr>
-        <th>Symbol</th><th class="num">Mark Price</th><th class="num">OI ($)</th><th class="num">OI (cont)</th>
+        <th class="col-chk"></th><th>Symbol</th><th class="num">Mark Price</th><th class="num">OI ($)</th><th class="num">OI (cont)</th><th class="col-ai">AI</th>
       </tr></thead>
-      <tbody id="oi-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
+      <tbody id="oi-body"><tr class="skeleton-row"><td colspan="6"><span class="skeleton-bar"></span></td></tr></tbody>
     </table>
   </div>
 </section>
@@ -480,6 +596,23 @@ let cachedMarkets = null;        // cache pentru re-render local când schimbăm
 let cachedUnlocks = null;        // cache unlocks (DefiLlama returnează MB de date, n-are sens să refacem la 60s)
 let cachedUnlocksTs = 0;
 const UNLOCKS_CACHE_MS = 5 * 60_000;
+let cachedFunding = null;        // cache rezultatul funding rates (folosit la lookup pentru aiCompare)
+let cachedOI = null;             // cache lista OI top (folosit la lookup pentru aiCompare)
+
+// === Selecție multiplă unificată cross-tabel pentru comparație AI ===
+// Folosim un singur Set cu simboluri base UPPERCASE (BTC, ETH, ...). Astfel utilizatorul
+// poate combina rânduri din tabele diferite (un coin selectat în Movers + același în
+// Funding ⇒ un singur element în Set, dar comparația va include ambele perspective).
+const cryptoSelected = new Set();
+// Memorăm ultima listă randată pe fiecare tabel ca "Select All" să știe ce să bifeze
+const TABLE_LAST_RENDERED = {
+  'gainers-1h': [], 'losers-1h': [], 'gainers-24h': [], 'losers-24h': [],
+  'volume': [], 'funding': [], 'oi': []
+};
+
+// === AI infrastructure ===
+const AI_MODEL = 'claude-opus-4-7';
+const aiCache = {};               // cacheKey → text (răspunsuri cached pe sesiune ca să nu re-apelăm Claude)
 
 // === Helpers ===
 const $ = (id) => document.getElementById(id);
@@ -782,18 +915,26 @@ function renderSentiment(fng, glob) {
 function renderMoversTable(bodyId, coins, opts) {
   const body = $(bodyId);
   if (!coins || !coins.length) {
-    body.innerHTML = `<tr><td colspan="4" class="empty">fără date</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="empty">fără date</td></tr>`;
+    // Și actualizăm cache-ul tabelului ca să poată Select-All să știe că nu e nimic
+    if (opts.tableId) TABLE_LAST_RENDERED[opts.tableId] = [];
     return;
   }
+  // Memorăm simbolurile randate ca să poată "Select All" să le adauge bulk
+  if (opts.tableId) TABLE_LAST_RENDERED[opts.tableId] = coins.map(c => (c.symbol || '').toUpperCase());
+
   body.innerHTML = coins.map(c => {
-    // Cele 2 coloane numerice variază în funcție de panou
-    const col3 = opts.col3(c);   // ex: chg_1h
-    const col4 = opts.col4(c);   // ex: chg_24h sau volume
-    return `<tr>
+    const sym  = (c.symbol || '').toUpperCase();
+    const isSel = cryptoSelected.has(sym);
+    const col3 = opts.col3(c);
+    const col4 = opts.col4(c);
+    return `<tr class="${isSel ? 'crypto-tr-selected' : ''}" data-sym="${sym}">
+      <td><input type="checkbox" class="crypto-chk" ${isSel?'checked':''} onchange="cryptoToggleSelect('${sym}')" title="Selectează pentru comparație AI"></td>
       <td>${coinCell(c)}</td>
       <td class="num">${fmtUSD(c.price)}</td>
       <td class="num">${col3}</td>
       <td class="num">${col4}</td>
+      <td><button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-mover', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button></td>
     </tr>`;
   }).join('');
 }
@@ -816,21 +957,27 @@ function renderMovers(coins) {
   const bot24h   = [...has24h].sort((a, b) => a.chg_24h - b.chg_24h).slice(0, MOVERS_LIMIT);
 
   renderMoversTable('gainers-1h-body', top1h, {
+    tableId: 'gainers-1h',
     col3: c => `<span class="pct-pill ${pctClass(c.chg_1h)}">${fmtPct(c.chg_1h)}</span>`,
     col4: c => `<span class="pct ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span>`,
   });
   renderMoversTable('losers-1h-body', bot1h, {
+    tableId: 'losers-1h',
     col3: c => `<span class="pct-pill ${pctClass(c.chg_1h)}">${fmtPct(c.chg_1h)}</span>`,
     col4: c => `<span class="pct ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span>`,
   });
   renderMoversTable('gainers-24h-body', top24h, {
+    tableId: 'gainers-24h',
     col3: c => `<span class="pct-pill ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span>`,
     col4: c => fmtCompact(c.volume_24h),
   });
   renderMoversTable('losers-24h-body', bot24h, {
+    tableId: 'losers-24h',
     col3: c => `<span class="pct-pill ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span>`,
     col4: c => fmtCompact(c.volume_24h),
   });
+  // Refresh starea butoanelor "Select all" pentru cele 4 tabele de movers
+  ['gainers-1h','losers-1h','gainers-24h','losers-24h'].forEach(updateSelectAllBtnFor);
 }
 
 // === Render: volum === //
@@ -839,24 +986,34 @@ function renderVolume(coins) {
   const top = [...filtered].sort((a, b) => (b.volume_24h || 0) - (a.volume_24h || 0)).slice(0, VOLUME_LIMIT);
   const body = $('volume-body');
   if (!top.length) {
-    body.innerHTML = `<tr><td colspan="4" class="empty">fără date</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="empty">fără date</td></tr>`;
+    TABLE_LAST_RENDERED['volume'] = [];
+    updateSelectAllBtnFor('volume');
     return;
   }
-  body.innerHTML = top.map(c => `
-    <tr>
+  TABLE_LAST_RENDERED['volume'] = top.map(c => (c.symbol || '').toUpperCase());
+  body.innerHTML = top.map(c => {
+    const sym = (c.symbol || '').toUpperCase();
+    const isSel = cryptoSelected.has(sym);
+    return `<tr class="${isSel ? 'crypto-tr-selected' : ''}" data-sym="${sym}">
+      <td><input type="checkbox" class="crypto-chk" ${isSel?'checked':''} onchange="cryptoToggleSelect('${sym}')" title="Selectează pentru comparație AI"></td>
       <td>${coinCell(c)}</td>
       <td class="num">${fmtUSD(c.price)}</td>
       <td class="num"><strong>${fmtCompact(c.volume_24h)}</strong></td>
       <td class="num"><span class="pct ${pctClass(c.chg_24h)}">${fmtPct(c.chg_24h)}</span></td>
-    </tr>
-  `).join('');
+      <td><button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-volume', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button></td>
+    </tr>`;
+  }).join('');
+  updateSelectAllBtnFor('volume');
 }
 
 // === Render: funding === //
 function renderFunding(funding) {
   const body = $('funding-body');
   if (!funding || (!funding.pos.length && !funding.neg.length)) {
-    body.innerHTML = `<tr><td colspan="4" class="empty">fără date</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="empty">fără date</td></tr>`;
+    TABLE_LAST_RENDERED['funding'] = [];
+    updateSelectAllBtnFor('funding');
     return;
   }
 
@@ -877,14 +1034,21 @@ function renderFunding(funding) {
   funding.pos.forEach(d => rows.push(d));
   funding.neg.forEach(d => rows.push(d));
 
-  body.innerHTML = rows.map(d => `
-    <tr>
+  TABLE_LAST_RENDERED['funding'] = rows.map(d => d.base);
+
+  body.innerHTML = rows.map(d => {
+    const sym = d.base;
+    const isSel = cryptoSelected.has(sym);
+    return `<tr class="${isSel ? 'crypto-tr-selected' : ''}" data-sym="${sym}">
+      <td><input type="checkbox" class="crypto-chk" ${isSel?'checked':''} onchange="cryptoToggleSelect('${sym}')" title="Selectează pentru comparație AI"></td>
       <td><span class="coin"><span class="sym">${d.base}</span><span class="name">${d.symbol}</span></span></td>
       <td class="num">${fmtUSD(d.mark_price)}</td>
       <td class="num">${fmtFunding(d.funding_rate)}</td>
       <td class="num">${fmtApr(d.funding_rate)}</td>
-    </tr>
-  `).join('');
+      <td><button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-funding', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button></td>
+    </tr>`;
+  }).join('');
+  updateSelectAllBtnFor('funding');
 }
 
 // === Render: trending === //
@@ -914,17 +1078,25 @@ function renderTrending(items) {
 function renderOI(rows) {
   const body = $('oi-body');
   if (!rows || !rows.length) {
-    body.innerHTML = `<tr><td colspan="4" class="empty">fără date</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="empty">fără date</td></tr>`;
+    TABLE_LAST_RENDERED['oi'] = [];
+    updateSelectAllBtnFor('oi');
     return;
   }
-  body.innerHTML = rows.map(r => `
-    <tr>
+  TABLE_LAST_RENDERED['oi'] = rows.map(r => r.base);
+  body.innerHTML = rows.map(r => {
+    const sym = r.base;
+    const isSel = cryptoSelected.has(sym);
+    return `<tr class="${isSel ? 'crypto-tr-selected' : ''}" data-sym="${sym}">
+      <td><input type="checkbox" class="crypto-chk" ${isSel?'checked':''} onchange="cryptoToggleSelect('${sym}')" title="Selectează pentru comparație AI"></td>
       <td><span class="coin"><span class="sym">${r.base}</span><span class="name">${r.symbol}</span></span></td>
       <td class="num">${fmtUSD(r.mark_price)}</td>
       <td class="num"><strong>${fmtCompact(r.oi_usd)}</strong></td>
       <td class="num">${r.oi_contracts.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
-    </tr>
-  `).join('');
+      <td><button class="btn-ai-row" onclick="aiAnalyzeRow('crypto-oi', '${sym}')" title="Analiză AI pentru ${sym}">🤖</button></td>
+    </tr>`;
+  }).join('');
+  updateSelectAllBtnFor('oi');
 }
 
 // === Render: Unlocks === //
@@ -1027,11 +1199,11 @@ async function refreshAll() {
   if (trending.status === 'fulfilled') { renderTrending(trending.value); okCount++; }
   else                                 { console.warn('trending failed', trending.reason); }
 
-  if (funding.status === 'fulfilled')  { renderFunding(funding.value); okCount++; }
-  else                                 { console.warn('funding failed', funding.reason); $('funding-body').innerHTML = `<tr><td colspan="4" class="empty">Binance blocat sau indisponibil</td></tr>`; }
+  if (funding.status === 'fulfilled')  { cachedFunding = funding.value; renderFunding(funding.value); okCount++; }
+  else                                 { console.warn('funding failed', funding.reason); $('funding-body').innerHTML = `<tr><td colspan="6" class="empty">Binance blocat sau indisponibil</td></tr>`; }
 
-  if (oi.status === 'fulfilled')       { renderOI(oi.value); okCount++; }
-  else                                 { console.warn('OI failed', oi.reason); $('oi-body').innerHTML = `<tr><td colspan="4" class="empty">Binance blocat sau indisponibil</td></tr>`; }
+  if (oi.status === 'fulfilled')       { cachedOI = oi.value; renderOI(oi.value); okCount++; }
+  else                                 { console.warn('OI failed', oi.reason); $('oi-body').innerHTML = `<tr><td colspan="6" class="empty">Binance blocat sau indisponibil</td></tr>`; }
 
   if (unlocks.status === 'fulfilled')  { renderUnlocks(unlocks.value); okCount++; }
   else                                 { console.warn('unlocks failed', unlocks.reason); $('unlocks-body').innerHTML = `<tr><td colspan="4" class="empty">DefiLlama indisponibil</td></tr>`; }
@@ -1090,6 +1262,354 @@ document.querySelectorAll('.filter-chip').forEach(chip => {
     }
   });
 });
+
+// ============================================================
+// SELECȚIE MULTI-TABEL UNIFICATĂ + AI INTEGRATION
+// ============================================================
+
+// Toggle selecție pentru un simbol (apelat din onchange pe checkbox)
+function cryptoToggleSelect(sym) {
+  if (cryptoSelected.has(sym)) cryptoSelected.delete(sym);
+  else cryptoSelected.add(sym);
+  // Update vizual: actualizăm TOATE rândurile data-sym (poate apărea în mai multe tabele)
+  document.querySelectorAll(`tr[data-sym="${sym}"]`).forEach(tr => {
+    tr.classList.toggle('crypto-tr-selected', cryptoSelected.has(sym));
+    const chk = tr.querySelector('.crypto-chk');
+    if (chk) chk.checked = cryptoSelected.has(sym);
+  });
+  cryptoUpdateCompareBar();
+  // Refresh starea butoanelor "Select all" pe toate tabelele
+  Object.keys(TABLE_LAST_RENDERED).forEach(updateSelectAllBtnFor);
+}
+
+function cryptoClearSelection() {
+  cryptoSelected.clear();
+  document.querySelectorAll('tr.crypto-tr-selected').forEach(tr => tr.classList.remove('crypto-tr-selected'));
+  document.querySelectorAll('input.crypto-chk:checked').forEach(c => { c.checked = false; });
+  cryptoUpdateCompareBar();
+  Object.keys(TABLE_LAST_RENDERED).forEach(updateSelectAllBtnFor);
+}
+
+// Selectează / deselectează toate simbolurile randate din tabelul `tableId`
+function cryptoSelectAllInTable(tableId) {
+  const symbols = TABLE_LAST_RENDERED[tableId] || [];
+  if (!symbols.length) return;
+  const allSelected = symbols.every(s => cryptoSelected.has(s));
+  if (allSelected) {
+    symbols.forEach(s => cryptoSelected.delete(s));
+  } else {
+    symbols.forEach(s => cryptoSelected.add(s));
+  }
+  // Update vizual pentru rândurile afectate
+  symbols.forEach(s => {
+    document.querySelectorAll(`tr[data-sym="${s}"]`).forEach(tr => {
+      tr.classList.toggle('crypto-tr-selected', cryptoSelected.has(s));
+      const chk = tr.querySelector('.crypto-chk');
+      if (chk) chk.checked = cryptoSelected.has(s);
+    });
+  });
+  cryptoUpdateCompareBar();
+  Object.keys(TABLE_LAST_RENDERED).forEach(updateSelectAllBtnFor);
+}
+
+function updateSelectAllBtnFor(tableId) {
+  const btn = document.getElementById('sa-' + tableId);
+  if (!btn) return;
+  const symbols = TABLE_LAST_RENDERED[tableId] || [];
+  const allSel = symbols.length > 0 && symbols.every(s => cryptoSelected.has(s));
+  btn.classList.toggle('active', allSel);
+  btn.textContent = allSel ? '☒ tot' : '☑ tot';
+}
+
+function cryptoUpdateCompareBar() {
+  let bar = document.getElementById('cryptoCompareBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'cryptoCompareBar';
+    bar.className = 'crypto-compare-bar';
+    document.body.appendChild(bar);
+  }
+  if (cryptoSelected.size < 2) { bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+  const list = Array.from(cryptoSelected);
+  const display = list.length > 8 ? list.slice(0, 8).join(', ') + ` +${list.length - 8}` : list.join(', ');
+  bar.innerHTML = `
+    <span><span class="crypto-cmp-count">${cryptoSelected.size}</span> simboluri: ${display}</span>
+    <button class="btn-cmp-go" id="cryptoCmpGoBtn" onclick="aiCompareCrypto()">🤖 Compară AI</button>
+    <button class="btn-cmp-clear" onclick="cryptoClearSelection()">✕ Anulează</button>
+  `;
+}
+
+// Lookup pentru un simbol în toate sursele de date cache-uite
+// Întoarce un obiect agregat cu câmpurile disponibile (market, funding, oi)
+function findCryptoData(sym) {
+  const symLower = sym.toLowerCase();
+  const symUpper = sym.toUpperCase();
+  const market = (cachedMarkets || []).find(c => (c.symbol || '').toLowerCase() === symLower);
+  const fundingAll = cachedFunding ? [...(cachedFunding.pos || []), ...(cachedFunding.neg || [])] : [];
+  const funding = fundingAll.find(f => f.base === symUpper);
+  const oi = (cachedOI || []).find(o => o.base === symUpper);
+  return { sym: symUpper, market, funding, oi };
+}
+
+// === AI: gestionare cheie Anthropic API ===
+function getAnthropicKey(){ return localStorage.getItem('anthropic_api_key') || ''; }
+function saveAnthropicKey(k){ localStorage.setItem('anthropic_api_key', k.trim()); }
+function updateAiKeyBadge(){
+  const b = document.getElementById('aiKeyBtn');
+  if (!b) return;
+  if (getAnthropicKey()) { b.textContent = '🔑 AI Active'; b.classList.add('active'); }
+  else { b.textContent = '🔑 AI Key'; b.classList.remove('active'); }
+}
+
+function showAiKeyModal(onSuccess) {
+  const existing = getAnthropicKey();
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal ai-key-modal">
+      <div class="ai-modal-title">🔑 Cheie Anthropic API</div>
+      <div class="ai-modal-sub">Obții cheia de la <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent);font-weight:700">console.anthropic.com/settings/keys</a><br>Cu ea, analiza AI per simbol și comparația între simboluri apar direct în pop-up. Fără cheie, butonul AI e inactiv.</div>
+      <input id="anthKeyInp" type="text" placeholder="sk-ant-api03-..." value="${existing.replace(/"/g,'&quot;')}" />
+      <div id="anthTestRes" class="ai-test-result"></div>
+      <div class="ai-modal-actions">
+        <button id="anthTestBtn">🧪 Testează</button>
+        <button id="anthSaveBtn" class="primary">✅ Salvează</button>
+        <button id="anthCancelBtn">✕ Anulează</button>
+      </div>
+      ${existing ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:flex-end"><button id="anthDeleteBtn" style="background:rgba(255,77,77,.15);border-color:rgba(255,77,77,.4);color:var(--bear-s)">🗑️ Șterge cheia</button></div>' : ''}
+      <div style="margin-top:10px;font-size:10px;color:var(--muted);line-height:1.5">💡 Cheia se salvează doar local (localStorage), nu se trimite la GitHub. Costuri: claude-opus-4-7 ≈ $0.05–0.10 per analiză.</div>
+    </div>`;
+  document.body.appendChild(ov);
+  setTimeout(() => document.getElementById('anthKeyInp')?.focus(), 100);
+
+  document.getElementById('anthCancelBtn').onclick = () => ov.remove();
+  document.getElementById('anthSaveBtn').onclick = () => {
+    const k = document.getElementById('anthKeyInp').value.trim();
+    const r = document.getElementById('anthTestRes');
+    if (!k.startsWith('sk-')) { r.innerHTML = '<span style="color:var(--bear-s)">⚠️ Cheia trebuie să înceapă cu sk-ant-...</span>'; return; }
+    saveAnthropicKey(k);
+    updateAiKeyBadge();
+    ov.remove();
+    if (onSuccess) onSuccess();
+  };
+  const delBtn = document.getElementById('anthDeleteBtn');
+  if (delBtn) delBtn.onclick = () => {
+    if (!confirm('Ștergi cheia API salvată local?')) return;
+    localStorage.removeItem('anthropic_api_key');
+    updateAiKeyBadge();
+    ov.remove();
+  };
+  document.getElementById('anthTestBtn').onclick = async () => {
+    const k = document.getElementById('anthKeyInp').value.trim();
+    const r = document.getElementById('anthTestRes');
+    const b = document.getElementById('anthTestBtn');
+    if (!k) { r.innerHTML = '<span style="color:var(--bear-s)">Introdu cheia mai întâi.</span>'; return; }
+    b.textContent = '⏳ Testez...'; b.disabled = true;
+    r.innerHTML = '<span style="color:var(--muted)">Conectare la Anthropic...</span>';
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': k, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 20, messages: [{ role: 'user', content: 'Spune doar: OK' }] })
+      });
+      const d = await resp.json();
+      if (d.content?.[0]?.text) { r.innerHTML = '<span style="color:var(--bull-s);font-weight:700">✅ Conexiune OK!</span>'; saveAnthropicKey(k); updateAiKeyBadge(); }
+      else if (d.error) { r.innerHTML = '<span style="color:var(--bear-s)">❌ ' + d.error.message + '</span>'; }
+    } catch (e) { r.innerHTML = '<span style="color:var(--bear-s)">❌ ' + e.message + '</span>'; }
+    b.textContent = '🧪 Testează din nou'; b.disabled = false;
+  };
+}
+
+// === Construcție context pentru AI: agregă datele dintre toate sursele cache-uite ===
+function _buildCryptoContext(sym) {
+  const d = findCryptoData(sym);
+  const parts = [];
+  if (d.market) {
+    const m = d.market;
+    if (m.price != null) parts.push(`Preț: $${m.price < 1 ? m.price.toFixed(6) : m.price.toFixed(2)}`);
+    if (m.chg_1h != null)  parts.push(`Schimb 1h: ${(m.chg_1h >= 0 ? '+' : '') + m.chg_1h.toFixed(2)}%`);
+    if (m.chg_24h != null) parts.push(`Schimb 24h: ${(m.chg_24h >= 0 ? '+' : '') + m.chg_24h.toFixed(2)}%`);
+    if (m.market_cap)  parts.push(`Market Cap: $${(m.market_cap / 1e9).toFixed(2)}B`);
+    if (m.volume_24h)  parts.push(`Volum 24h: $${(m.volume_24h / 1e9).toFixed(2)}B`);
+    if (m.name) parts.push(`Nume: ${m.name}`);
+  }
+  if (d.funding) {
+    const f = d.funding;
+    const fpct = f.funding_rate * 100;
+    const apr  = f.funding_rate * 3 * 365 * 100;
+    parts.push(`Funding 8h: ${(fpct >= 0 ? '+' : '') + fpct.toFixed(4)}% (APR estim. ${(apr >= 0 ? '+' : '') + apr.toFixed(1)}%)`);
+    if (f.mark_price) parts.push(`Mark Price (Binance Fut.): $${f.mark_price < 1 ? f.mark_price.toFixed(6) : f.mark_price.toFixed(2)}`);
+  }
+  if (d.oi) {
+    parts.push(`Open Interest: $${(d.oi.oi_usd / 1e9).toFixed(2)}B (${d.oi.oi_contracts.toLocaleString('en-US', { maximumFractionDigits: 0 })} contracts)`);
+  }
+  return { sym: d.sym, ctx: parts.join('\n'), hasData: parts.length > 0 };
+}
+
+// === Prompt pentru analiza AI a unui singur simbol ===
+function _buildCryptoPrompt(type, sym) {
+  const { ctx, hasData } = _buildCryptoContext(sym);
+  if (!hasData) {
+    return `Analizează rapid coin-ul crypto ${sym} ca trader pe Pionex (futures + grid bots) și Binance, fără date concrete în acest moment. Dă-mi în 5-7 puncte: status tehnic (BTC corelat?), use case + ecosystem, catalysti recenți (news/upgrade), risc principal, setup pentru long/short scurt, verdict (long/short/wait). Maximum 350 cuvinte, română, concret, fără introducere lungă.`;
+  }
+  const flavorMap = {
+    'crypto-mover':  'Coin-ul apare printre top movers (1h/24h) — caut momentum trade scurt.',
+    'crypto-volume': 'Coin-ul are volum 24h ridicat — caut interes instituțional / breakout pe lichiditate.',
+    'crypto-funding':'Coin-ul are funding rate extrem pe Binance Futures — atenție la posibil long/short squeeze.',
+    'crypto-oi':     'Coin-ul are OI mare pe Binance Futures — leverage concentrat, mișcări rapide posibile.',
+  };
+  const flavor = flavorMap[type] || '';
+  return `Analizează rapid coin-ul crypto ${sym} ca trader pe Pionex (futures + grid bots) și Binance.${flavor ? ' ' + flavor : ''}\n\nDate la momentul analizei:\n${ctx}\n\nDă-mi în 6-8 puncte concise (max 350 cuvinte, română):\n1. Status tehnic curent (trend H4/D, RSI estimativ, BTC corelat?)\n2. Catalysti recenți / news / upgrade\n3. Suporturi / rezistențe relevante (zone tehnice, nu cifre exacte)\n4. Risc principal (sentiment, funding, deluviu OI)\n5. Setup pentru LONG (entry/TP/SL approximate)\n6. Setup pentru SHORT (entry/TP/SL approximate)\n7. Recomandare grid bot pe Pionex (range + step) DACĂ pare side-ways\n8. Verdict: LONG / SHORT / WAIT cu trigger concret\n\nFormat: bullet points, fără introducere lungă. Concret, fără fluff.`;
+}
+
+// === Apelează Claude pentru un rând specific ===
+async function aiAnalyzeRow(type, sym) {
+  const key = getAnthropicKey();
+  if (!key) { showAiKeyModal(() => aiAnalyzeRow(type, sym)); return; }
+
+  const cacheKey = `${type}:${sym}`;
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  const titleIcon = {
+    'crypto-mover': '🚀 Movers',
+    'crypto-volume': '🔊 Volum',
+    'crypto-funding': '💸 Funding',
+    'crypto-oi': '📊 Open Interest',
+  }[type] || '⚡';
+  ov.innerHTML = `
+    <div class="ai-modal">
+      <div class="ai-modal-title">🤖 ${titleIcon}: ${sym}</div>
+      <div class="ai-modal-sub">Crypto · Pionex/Binance · ${AI_MODEL}</div>
+      <div class="ai-modal-result" id="aiResultArea">⏳ Generez analiza cu ${AI_MODEL}...</div>
+      <div class="ai-modal-meta" id="aiMeta"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="aiCopyBtn">📋 Copiază</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const result = document.getElementById('aiResultArea');
+  const meta = document.getElementById('aiMeta');
+
+  if (aiCache[cacheKey]) {
+    result.textContent = aiCache[cacheKey];
+    meta.textContent = `✓ ${AI_MODEL} · cached`;
+  } else {
+    const prompt = _buildCryptoPrompt(type, sym);
+    const t0 = performance.now();
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: AI_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+      });
+      const data = await resp.json();
+      const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+      if (data.content?.[0]?.text) {
+        const text = data.content[0].text;
+        aiCache[cacheKey] = text;
+        result.textContent = text;
+        const usage = data.usage ? ` · ${data.usage.input_tokens}+${data.usage.output_tokens} tok` : '';
+        meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${usage}`;
+      } else if (data.error) {
+        result.textContent = '❌ ' + data.error.message;
+        meta.textContent = 'eroare API';
+      } else {
+        result.textContent = '❌ Răspuns gol';
+        meta.textContent = '';
+      }
+    } catch (e) {
+      result.textContent = '❌ ' + e.message;
+      meta.textContent = '';
+    }
+  }
+
+  document.getElementById('aiCopyBtn').onclick = () => {
+    navigator.clipboard.writeText(result.textContent).then(() => {
+      const b = document.getElementById('aiCopyBtn');
+      const old = b.textContent;
+      b.textContent = '✓ Copiat!';
+      setTimeout(() => b.textContent = old, 1500);
+    });
+  };
+}
+
+// === Comparație AI între 2+ simboluri selectate (din toate tabelele) ===
+async function aiCompareCrypto() {
+  if (cryptoSelected.size < 2) return;
+  const key = getAnthropicKey();
+  if (!key) { showAiKeyModal(() => aiCompareCrypto()); return; }
+  const symbols = Array.from(cryptoSelected);
+
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:700px">
+      <div class="ai-modal-title">🤖 Comparație AI: ${symbols.join(' vs ')}</div>
+      <div class="ai-modal-sub">${symbols.length} simboluri · ${AI_MODEL} · Pionex/Binance</div>
+      <div class="ai-modal-result" id="aiCmpResult">⏳ Construiesc comparația...</div>
+      <div class="ai-modal-meta" id="aiCmpMeta"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="aiCmpCopyBtn">📋 Copiază</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const result = document.getElementById('aiCmpResult');
+  const meta   = document.getElementById('aiCmpMeta');
+
+  // Construim contextul pentru fiecare simbol agregând date din toate sursele
+  const ctx = symbols.map(sym => {
+    const c = _buildCryptoContext(sym);
+    return c.hasData ? `${sym}:\n${c.ctx}` : `${sym}: (date insuficiente în sesiunea curentă)`;
+  }).join('\n\n');
+
+  const prompt = `Compară următoarele ${symbols.length} coin-uri crypto pentru un trade pe termen scurt (Pionex futures + grid bots, Binance):\n\n${ctx}\n\nDă-mi:\n1. Mini tabel ASCII cu rating (1-10) per coin pentru: trend tehnic, momentum, R/R bun la entry actual\n2. Care coin are cel mai bun setup ACUM (long sau short) — entry/TP/SL concret\n3. Care e cel mai riscant și de ce (funding extrem, OI prea mare, mover pump and dump)\n4. Sugestie grid bot Pionex pe coin-ul cu cel mai stabil range\n5. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + tabel. Maximum 450 cuvinte. Concret, fără fluff.`;
+
+  const t0 = performance.now();
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: AI_MODEL, max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await resp.json();
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    if (data.content?.[0]?.text) {
+      result.textContent = data.content[0].text;
+      const usage = data.usage ? ` · ${data.usage.input_tokens}+${data.usage.output_tokens} tok` : '';
+      meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${usage}`;
+    } else if (data.error) {
+      result.textContent = '❌ ' + data.error.message;
+      meta.textContent = 'eroare API';
+    } else {
+      result.textContent = '❌ Răspuns gol';
+      meta.textContent = '';
+    }
+  } catch (e) {
+    result.textContent = '❌ ' + e.message;
+    meta.textContent = '';
+  }
+
+  document.getElementById('aiCmpCopyBtn').onclick = () => {
+    navigator.clipboard.writeText(result.textContent).then(() => {
+      const b = document.getElementById('aiCmpCopyBtn');
+      const old = b.textContent;
+      b.textContent = '✓ Copiat!';
+      setTimeout(() => b.textContent = old, 1500);
+    });
+  };
+}
+
+// Init buton AI key (badge) la load
+updateAiKeyBadge();
+cryptoUpdateCompareBar();   // creează DOM-ul barei (ascuns until 2+ selectate)
 
 // Pornire
 (async () => {
