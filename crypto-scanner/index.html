@@ -1353,7 +1353,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v62</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v63</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -10989,8 +10989,8 @@ async function runBacktest() {
 
   // Calc indicatori per candle (RSI 14, Bollinger 20)
   const closes = candles.map(c => c.c);
-  const rsi = calcRSI(closes, 14);
-  const { upper, mid, lower } = calcBollinger(closes, 20, 2);
+  const rsi = btCalcRSIArr(closes, 14);
+  const { upper, mid, lower } = btCalcBollinger(closes, 20, 2);
 
   // Simulare: scan candele, intră long când strategy match, ieșire la TP/SL hit
   const trades = [];
@@ -11062,7 +11062,8 @@ async function runBacktest() {
   if (typeof showToast === 'function') showToast(`✓ Backtest ${sym}: ${total} trades, ${winRate.toFixed(0)}% WR`, 'ok');
 }
 
-function calcRSI(prices, period) {
+// Backtester-only — întoarce ARRAY de RSI per candle (diferit de calcRSI scanner care returnează ultimul value)
+function btCalcRSIArr(prices, period) {
   const out = new Array(prices.length).fill(null);
   if (prices.length < period + 1) return out;
   let gains = 0, losses = 0;
@@ -11082,7 +11083,7 @@ function calcRSI(prices, period) {
   return out;
 }
 
-function calcBollinger(prices, period, stdDevs) {
+function btCalcBollinger(prices, period, stdDevs) {
   const upper = new Array(prices.length).fill(null);
   const mid   = new Array(prices.length).fill(null);
   const lower = new Array(prices.length).fill(null);
