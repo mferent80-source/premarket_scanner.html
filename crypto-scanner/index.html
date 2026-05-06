@@ -386,9 +386,38 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 .ftag.act{border-color:var(--accb);background:var(--accl);color:var(--acc);}
 
 /* ── MACRO BAR ── */
-.macro-bar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:14px;flex-wrap:wrap;box-shadow:var(--sh);}
-.macro-item{display:flex;flex-direction:column;align-items:center;gap:1px;min-width:60px;}
-.macro-val{font-family:var(--head);font-weight:800;font-size:.82rem;}
+/* MACRO BAR — sentiment row events-style 4 cards */
+.macro-bar{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  padding:0;background:transparent;border:none;
+  margin-bottom:14px;box-shadow:none;
+}
+@media(max-width:720px){.macro-bar{grid-template-columns:repeat(2,1fr)}}
+.macro-item{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:12px;
+  padding:12px 14px;box-shadow:var(--sh);
+  position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:3px;
+  text-align:left;align-items:flex-start;
+  min-width:0;
+}
+.macro-item::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--bar-color,var(--acc));
+}
+.macro-item:nth-child(1)::before{background:var(--gold)}        /* F&G */
+.macro-item:nth-child(2)::before{background:#f7931a}             /* BTC */
+.macro-item:nth-child(3)::before{background:var(--cyan)}         /* ETH */
+.macro-item:nth-child(4)::before{background:var(--purple)}       /* Piață */
+.macro-lbl{
+  font-size:10.5px;color:var(--t3);
+  text-transform:uppercase;letter-spacing:.4px;
+  font-family:var(--head);font-weight:700;
+}
+.macro-val{
+  font-family:var(--head);font-weight:700;font-size:22px;letter-spacing:-.5px;
+}
+.macro-divider{display:none}    /* old separators no longer in HTML */
 .macro-lbl{font-size:.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:.6px;}
 .macro-divider{width:1px;height:28px;background:var(--b1);flex-shrink:0;}
 .macro-fg{display:flex;align-items:center;gap:6px;flex:1;}
@@ -1047,42 +1076,9 @@ body.dark .brand{gap:8px !important}
   -webkit-text-fill-color:#000 !important;
 }
 
-/* === Macro bar transform → events sentiment row (grid 4 cards) === */
-body.dark .macro-bar{
-  display:grid !important;
-  grid-template-columns:repeat(4, 1fr) !important;
-  background:transparent !important;
-  border:none !important;
-  padding:0 !important;
-  gap:10px !important;
-  box-shadow:none !important;
-}
-@media (max-width:720px){body.dark .macro-bar{grid-template-columns:repeat(2,1fr) !important}}
-body.dark .macro-divider{display:none !important}
-body.dark .macro-item{
-  background:var(--bg2);border:1px solid var(--b1);border-radius:12px;
-  padding:12px 14px;box-shadow:var(--sh);position:relative;overflow:hidden;
-  align-items:flex-start !important;text-align:left !important;
-}
-body.dark .macro-item::before{
-  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
-  background:var(--bar-color,var(--acc));
-}
-body.dark .macro-item:nth-child(1)::before{background:var(--gold)}
-body.dark .macro-item:nth-child(3)::before{background:#f7931a}
-body.dark .macro-item:nth-child(5)::before{background:var(--cyan)}
-body.dark .macro-item:nth-child(7)::before{background:var(--purple)}
-body.dark .macro-val{
-  font-size:22px !important;font-weight:700 !important;letter-spacing:-.5px !important;
-  color:var(--t1) !important;
-}
-body.dark .macro-lbl{
-  font-size:10.5px !important;color:var(--t3) !important;
-  text-transform:uppercase;letter-spacing:.4px;
-  order:-1;margin-bottom:2px;
-}
-/* F&G needle inline — facem-o mai mică ca să încapă cu bar/text */
-body.dark .macro-fg{order:99 !important;width:100% !important;margin-top:6px}
+/* (macro-bar override removed — base CSS now handles panel-box style for both modes) */
+/* F&G needle inline în primul card */
+.macro-fg{margin-top:4px;display:flex;flex-direction:column;gap:2px;width:100%}
 
 /* === td-section transform → events panel-box style === */
 body.dark .trader-dashboard{margin-bottom:14px}
@@ -1171,7 +1167,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v48</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v49</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -1235,20 +1231,28 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   </div>
   <div class="ai-sum-content" id="cryptoSumContent">Apasa dupa un scan complet.</div>
 </div>
-<!-- MACRO BAR -->
+<!-- MACRO BAR — sentiment row 4-card style events -->
 <div class="macro-bar" id="macroBar">
-  <div class="macro-item"><div class="macro-val" id="mc-fg-val" style="color:var(--gold)">—</div><div class="macro-lbl">Fear&Greed</div></div>
-  <div class="macro-divider"></div>
-  <div class="macro-fg">
-    <div class="fg-track"><div class="fg-needle" id="mc-fg-needle" style="left:50%"></div></div>
-    <div style="font-size:.58rem;color:var(--t3)" id="mc-fg-txt">—</div>
+  <div class="macro-item">
+    <div class="macro-lbl">Fear &amp; Greed</div>
+    <div class="macro-val" id="mc-fg-val" style="color:var(--gold)">—</div>
+    <div class="macro-fg">
+      <div class="fg-track"><div class="fg-needle" id="mc-fg-needle" style="left:50%"></div></div>
+      <div style="font-size:.58rem;color:var(--t3)" id="mc-fg-txt">—</div>
+    </div>
   </div>
-  <div class="macro-divider"></div>
-  <div class="macro-item"><div class="macro-val" id="mc-btc" style="color:var(--gold)">—</div><div class="macro-lbl">BTC 24h</div></div>
-  <div class="macro-divider"></div>
-  <div class="macro-item"><div class="macro-val" id="mc-eth" style="color:var(--cyan)">—</div><div class="macro-lbl">ETH 24h</div></div>
-  <div class="macro-divider"></div>
-  <div class="macro-item"><div class="macro-val" id="mc-mkt" style="color:var(--t2)">—</div><div class="macro-lbl">Piață</div></div>
+  <div class="macro-item">
+    <div class="macro-lbl">BTC 24h</div>
+    <div class="macro-val" id="mc-btc" style="color:var(--gold)">—</div>
+  </div>
+  <div class="macro-item">
+    <div class="macro-lbl">ETH 24h</div>
+    <div class="macro-val" id="mc-eth" style="color:var(--cyan)">—</div>
+  </div>
+  <div class="macro-item">
+    <div class="macro-lbl">Piață</div>
+    <div class="macro-val" id="mc-mkt" style="color:var(--t2)">—</div>
+  </div>
 </div>
 
 <!-- TRADER DASHBOARD: Watchlist Live + Funding Rates + Position Size Calc -->
