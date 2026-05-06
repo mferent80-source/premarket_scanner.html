@@ -664,6 +664,106 @@
 }
 @keyframes wlPulseUp  {50%{box-shadow:inset 0 0 0 1px #3fb950}}
 @keyframes wlPulseDown{50%{box-shadow:inset 0 0 0 1px #ff6b6b}}
+
+/* === AI auto-scan widget în topbar === */
+.ai-autoscan-wrap{
+  display:inline-flex;align-items:center;gap:5px;
+  background:#21262d;border:1px solid #30363d;
+  padding:4px 8px;border-radius:8px;font-size:10.5px;
+  color:#8b949e;
+}
+.ai-autoscan-wrap.active{border-color:#8957e5;color:#d2a8ff}
+.ai-autoscan-wrap select{
+  background:transparent;border:none;color:inherit;
+  font-size:11px;font-weight:700;cursor:pointer;padding:1px 2px;
+  font-family:inherit;outline:none;
+}
+.ai-autoscan-wrap select option{background:#161b22;color:#e6edf3}
+.ai-autoscan-wrap .as-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:#6e7681;flex-shrink:0;
+}
+.ai-autoscan-wrap.active .as-dot{
+  background:#8957e5;box-shadow:0 0 6px #8957e5;
+  animation:asPulseME 2s infinite;
+}
+@keyframes asPulseME{50%{opacity:.4}}
+
+#aiAutoScanPanel{
+  position:fixed;bottom:20px;left:20px;width:340px;max-width:calc(100vw - 40px);
+  max-height:380px;overflow-y:auto;
+  background:#161b22;border:1px solid #8957e5;border-radius:12px;
+  box-shadow:0 12px 32px rgba(137,87,229,.25);
+  padding:12px 14px;z-index:9985;
+  display:none;font-size:11.5px;
+}
+#aiAutoScanPanel.show{display:block}
+#aiAutoScanPanel .as-hdr{display:flex;align-items:center;gap:6px;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid #30363d}
+#aiAutoScanPanel .as-title{font-weight:800;color:#d2a8ff;font-size:12px}
+#aiAutoScanPanel .as-meta{font-size:9.5px;color:#6e7681;margin-left:auto}
+#aiAutoScanPanel .as-close{background:transparent;border:none;color:#6e7681;cursor:pointer;font-size:14px;padding:0 4px;font-family:inherit}
+#aiAutoScanPanel .as-close:hover{color:#ff6b6b}
+#aiAutoScanPanel .as-content{white-space:pre-wrap;line-height:1.55;color:#c9d1d9}
+
+/* Position Sizer Trade 212 — form grid */
+.sizer-form{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-bottom:14px}
+.sizer-form label{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;display:block}
+.sizer-form input{
+  width:100%;padding:7px 9px;background:#0d1117;border:1px solid #30363d;
+  color:#e6edf3;border-radius:6px;font-size:12px;font-family:monospace;outline:none;
+}
+.sizer-form input:focus{border-color:#1f6feb;box-shadow:0 0 0 3px rgba(31,111,235,.18)}
+.sizer-form .full{grid-column:1 / -1}
+.sizer-side{display:flex;gap:5px}
+.sizer-side button{
+  flex:1;padding:7px;border-radius:6px;border:1px solid #30363d;
+  background:#21262d;color:#8b949e;font-weight:700;cursor:pointer;
+  font-size:11px;font-family:inherit;
+}
+.sizer-side button.active.long {background:rgba(63,185,80,.20);border-color:#3fb950;color:#3fb950}
+.sizer-side button.active.short{background:rgba(255,77,77,.20);border-color:#ff6b6b;color:#ff6b6b}
+.sizer-results{
+  background:#0d1117;border:1px solid #30363d;border-radius:8px;
+  padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:12px;
+}
+.sizer-results .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sizer-results .label{color:#8b949e;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px}
+.sizer-results .val{font-weight:800;font-variant-numeric:tabular-nums}
+.sizer-results .val.up{color:#3fb950}
+.sizer-results .val.down{color:#ff6b6b}
+.sizer-warn{font-size:10.5px;color:#d29922;margin-top:8px;padding:6px 10px;background:rgba(210,153,34,.10);border-left:3px solid #d29922;border-radius:5px}
+
+/* Smart Alerts UI */
+.alerts-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:300px;overflow-y:auto}
+.alert-row{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  background:#0d1117;border:1px solid #30363d;border-radius:6px;
+  font-size:11.5px;flex-wrap:wrap;
+}
+.alert-row .alert-summary{flex:1;min-width:140px;font-family:monospace;color:#e6edf3}
+.alert-row .alert-toggle{
+  background:#21262d;border:1px solid #30363d;color:#8b949e;
+  padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.alert-row .alert-toggle.on{background:#3fb950;border-color:#3fb950;color:#000}
+.alert-row .alert-del{
+  background:rgba(255,77,77,.10);border:1px solid rgba(255,77,77,.4);color:#ff6b6b;
+  padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-family:inherit;
+}
+.alert-form{
+  display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:6px;
+  background:#0d1117;padding:8px;border-radius:6px;border:1px solid #21262d;
+  margin-bottom:10px;
+}
+.alert-form input,.alert-form select{
+  padding:5px 7px;background:#161b22;border:1px solid #30363d;color:#e6edf3;
+  border-radius:4px;font-size:11px;font-family:inherit;
+}
+.alert-form button{
+  background:linear-gradient(135deg,#1f6feb,#8957e5);color:#fff;
+  border:none;padding:5px 11px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.alerts-empty{padding:14px;text-align:center;color:#8b949e;font-size:11px;font-style:italic}
 </style>
 </head>
 <body>
@@ -675,6 +775,19 @@
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
   <input id="proxyUrl" class="proxy-input" value="https://cors-proxy-one-drab.vercel.app/api/proxy/?url=" placeholder="Proxy CORS..." />
   <span class="selection-counter" id="selCounter" onclick="showSelectionMenu()" title="Click pentru opțiuni Compară AI"><span>🎯</span><span id="selCounterNum">0</span></span>
+  <button class="nav-link" onclick="showPositionSizer()" title="Position sizer Trade 212: calculează poziție pentru risc fix per trade">🧮 Sizer</button>
+  <button class="nav-link" onclick="showAlertsModal()" title="Smart alerts: notificări custom pe schimb % / low azi % / vol/avg / days-to-earnings">🔔 Alerte<span id="alertsBadge" style="display:none;margin-left:4px;background:#8957e5;color:#fff;padding:0 5px;border-radius:8px;font-size:9px;">0</span></button>
+  <span class="ai-autoscan-wrap" id="autoScanWrap" title="AI auto-scan: rulează periodic context cu earnings + losers și pune raportul în panoul jos-stânga">
+    <span class="as-dot"></span>
+    <select id="autoScanSel">
+      <option value="0" selected>AI scan: off</option>
+      <option value="5">5 min</option>
+      <option value="10">10 min</option>
+      <option value="15">15 min</option>
+      <option value="30">30 min</option>
+      <option value="60">60 min</option>
+    </select>
+  </span>
   <button id="aiKeyBtn" class="btn-ai-key" onclick="showAiKeyModal()" title="Configurează cheia Anthropic API pentru analize AI per simbol">🔑 AI</button>
   <button id="refreshAllBtn" class="primary">🔄 Refresh</button>
 </div>
@@ -2778,6 +2891,373 @@ aiChatSend = async function() {
 
 // Toast feedback pentru wlAddSymbol (deja exista showToastMsg, dar ne aliniem la API-ul nou)
 // — păstrăm ambele active fără probleme.
+
+// ============================================================
+// PORT din crypto-events: AI auto-scan + Smart Alerts + Position Sizer
+// ============================================================
+
+// === AI AUTO-SCAN: rulează periodic un raport scurt (earnings + losers context) ===
+let autoScanInterval = parseInt(localStorage.getItem('me_autoscan_min') || '0', 10);
+let autoScanTimer = null;
+
+function autoScanApply() {
+  const wrap = document.getElementById('autoScanWrap');
+  if (autoScanTimer) { clearInterval(autoScanTimer); autoScanTimer = null; }
+  if (autoScanInterval > 0) {
+    if (wrap) wrap.classList.add('active');
+    autoScanTimer = setInterval(runAutoScan, autoScanInterval * 60_000);
+    showToast(`✓ AI auto-scan activ la ${autoScanInterval} min`, 'success');
+    setTimeout(runAutoScan, 2000);
+  } else {
+    if (wrap) wrap.classList.remove('active');
+    document.getElementById('aiAutoScanPanel')?.classList.remove('show');
+  }
+}
+
+async function runAutoScan() {
+  const key = getAnthropicKey();
+  if (!key) { showToast('⚠ Lipsește cheia AI pentru auto-scan', 'warn'); return; }
+  let panel = document.getElementById('aiAutoScanPanel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'aiAutoScanPanel';
+    panel.innerHTML = `
+      <div class="as-hdr">
+        <span class="as-title">🔁 AI auto-scan</span>
+        <span class="as-meta" id="asMeta">⏳</span>
+        <button class="as-close" onclick="document.getElementById('aiAutoScanPanel').classList.remove('show')">✕</button>
+      </div>
+      <div class="as-content" id="asContent"></div>
+    `;
+    document.body.appendChild(panel);
+  }
+  panel.classList.add('show');
+  const meta = document.getElementById('asMeta');
+  const content = document.getElementById('asContent');
+  meta.textContent = '⏳ analizez...';
+  content.textContent = '';
+
+  const ctx = aiChatBuildContext();
+  const system = 'Asistent stock trading pentru Marius (Trade 212, Nasdaq). Răspunde scurt, concret, în română.\n\n' + ctx;
+  const prompt = `Pe baza datelor LIVE din panou (Watchlist + Earnings + Top Losers), dă-mi un raport scurt (5-7 rânduri max):
+1. O observație cheie despre piață în 1 rând (SPY/QQQ trend, VIX nivel)
+2. Top 3 oportunități CONCRETE acum (long sau short, cu ticker + zona entry)
+3. Risc principal acum (earnings hot, sector sell-off, etc)
+4. Verdict: ce trade-uiesc primul azi
+
+Format: bullet points scurți, fără introducere. Concret, actionable.`;
+
+  const t0 = performance.now();
+  try {
+    const { usage } = await callAnthropicStream({
+      prompt, system, maxTokens: 700,
+      onChunk: (full) => { content.textContent = full; },
+    });
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    const tokStr = usage ? ` · ${usage.input_tokens || '?'}+${usage.output_tokens || '?'} tok` : '';
+    meta.textContent = `${new Date().toLocaleTimeString('ro-RO')} · ${elapsed}s${tokStr}`;
+  } catch (e) {
+    content.textContent = '❌ ' + e.message;
+    meta.textContent = 'eroare';
+  }
+}
+
+(function autoScanInit(){
+  const sel = document.getElementById('autoScanSel');
+  if (!sel) return;
+  sel.value = String(autoScanInterval);
+  sel.addEventListener('change', () => {
+    autoScanInterval = parseInt(sel.value, 10);
+    localStorage.setItem('me_autoscan_min', String(autoScanInterval));
+    autoScanApply();
+  });
+  if (autoScanInterval > 0) autoScanApply();
+})();
+
+// === SMART ALERTS: reguli custom pe stocks ===
+const ME_ALERTS_KEY = 'me_alerts';
+let meAlerts = [];
+let meAlertsTriggeredCycle = new Set();
+
+function meLoadAlerts(){ try { meAlerts = JSON.parse(localStorage.getItem(ME_ALERTS_KEY) || '[]'); } catch(_) { meAlerts = []; } }
+function meSaveAlerts(){ try { localStorage.setItem(ME_ALERTS_KEY, JSON.stringify(meAlerts)); } catch(_) {} updateAlertsBadge(); }
+function updateAlertsBadge(){
+  const b = document.getElementById('alertsBadge');
+  if (!b) return;
+  const active = meAlerts.filter(a => a.enabled).length;
+  if (active > 0) { b.textContent = active; b.style.display = 'inline-block'; }
+  else b.style.display = 'none';
+}
+
+function showAlertsModal(){
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:660px">
+      <div class="ai-modal-title">🔔 Smart Alerts</div>
+      <div class="ai-modal-sub">Reguli evaluate la fiecare refresh. Notificări browser opționale.</div>
+      <div class="alert-form">
+        <input id="alSym" type="text" placeholder="AAPL sau * (orice)" maxlength="8" style="text-transform:uppercase">
+        <select id="alMetric">
+          <option value="changePct">Schimb azi (%)</option>
+          <option value="intradayLowPct">Low azi (%)</option>
+          <option value="volRatio">Vol / Avg (×)</option>
+          <option value="daysToEarnings">Zile până la earnings</option>
+        </select>
+        <select id="alOp">
+          <option value=">">≥ peste</option>
+          <option value="<">≤ sub</option>
+        </select>
+        <input id="alVal" type="number" step="any" placeholder="ex: -5">
+        <button onclick="meAlertsAdd()">+ Adaugă</button>
+      </div>
+      <div class="alerts-list" id="alertsList"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="alPermBtn" onclick="meAlertsRequestPerm()">🔔 Permisiune browser</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  meAlertsRenderList();
+  if ('Notification' in window && Notification.permission === 'granted') {
+    document.getElementById('alPermBtn').textContent = '✓ Notificări active';
+  }
+}
+
+function meAlertsRenderList(){
+  const list = document.getElementById('alertsList');
+  if (!list) return;
+  if (!meAlerts.length){ list.innerHTML = '<div class="alerts-empty">Nicio regulă încă. Adaugă mai sus.</div>'; return; }
+  const labels = { changePct: 'chg %', intradayLowPct: 'low azi %', volRatio: 'vol/avg', daysToEarnings: 'zile-earn' };
+  list.innerHTML = meAlerts.map(a => `<div class="alert-row">
+      <span class="alert-summary">${a.symbol === '*' ? '🌐 ANY' : '📊 ' + a.symbol} · ${labels[a.metric] || a.metric} ${a.op} ${a.value}</span>
+      <button class="alert-toggle ${a.enabled ? 'on' : ''}" onclick="meAlertsToggle('${a.id}')">${a.enabled ? '● ON' : '○ OFF'}</button>
+      <button class="alert-del" onclick="meAlertsRemove('${a.id}')">🗑</button>
+    </div>`).join('');
+}
+
+function meAlertsAdd(){
+  const sym = (document.getElementById('alSym').value || '').trim().toUpperCase() || '*';
+  const metric = document.getElementById('alMetric').value;
+  const op = document.getElementById('alOp').value;
+  const value = parseFloat(document.getElementById('alVal').value);
+  if (isNaN(value)) { showToast('⚠ Introdu o valoare numerică', 'warn'); return; }
+  const id = Math.random().toString(36).slice(2, 9);
+  meAlerts.push({ id, symbol: sym, metric, op, value, enabled: true });
+  meSaveAlerts();
+  meAlertsRenderList();
+  document.getElementById('alSym').value = '';
+  document.getElementById('alVal').value = '';
+  showToast('✓ Alertă adăugată', 'success');
+}
+function meAlertsToggle(id){ const a = meAlerts.find(x => x.id === id); if (a){ a.enabled = !a.enabled; meSaveAlerts(); meAlertsRenderList(); } }
+function meAlertsRemove(id){ meAlerts = meAlerts.filter(x => x.id !== id); meSaveAlerts(); meAlertsRenderList(); }
+
+function meAlertsRequestPerm(){
+  if (!('Notification' in window)){ showToast('Browser-ul nu suportă notificări', 'error'); return; }
+  Notification.requestPermission().then(p => {
+    if (p === 'granted'){ showToast('✓ Notificări browser active', 'success'); document.getElementById('alPermBtn').textContent = '✓ Notificări active'; }
+    else showToast('Notificări refuzate', 'warn');
+  });
+}
+
+// Extract value pentru un (symbol, metric) din lastEarnings + lastLosers + watchlist
+function meAlertsExtractValue(sym, metric){
+  const sources = [
+    ...(typeof lastEarnings !== 'undefined' && lastEarnings ? lastEarnings : []),
+    ...(typeof lastLosers !== 'undefined' && lastLosers ? lastLosers : []),
+    ...(typeof watchlist !== 'undefined' && watchlist ? watchlist : []),
+  ];
+  const item = sources.find(s => s && s.symbol === sym);
+  if (!item) return null;
+  if (metric === 'changePct') return item.changePct;
+  if (metric === 'intradayLowPct') return item.intradayLowPct;
+  if (metric === 'volRatio') return (item.volume && item.avgVolume) ? item.volume / item.avgVolume : null;
+  if (metric === 'daysToEarnings') return item.daysToEarnings;
+  return null;
+}
+
+function meAlertsEvaluate(){
+  if (!meAlerts.length) return;
+  const allSyms = new Set();
+  if (typeof lastEarnings !== 'undefined' && lastEarnings) lastEarnings.forEach(s => allSyms.add(s.symbol));
+  if (typeof lastLosers   !== 'undefined' && lastLosers)   lastLosers.forEach(s => allSyms.add(s.symbol));
+  if (typeof watchlist    !== 'undefined' && watchlist)    watchlist.forEach(s => allSyms.add(s.symbol));
+
+  const triggered = [];
+  for (const a of meAlerts) {
+    if (!a.enabled) continue;
+    const symbols = a.symbol === '*' ? Array.from(allSyms) : [a.symbol];
+    for (const sym of symbols) {
+      const v = meAlertsExtractValue(sym, a.metric);
+      if (v == null || isNaN(v)) continue;
+      const hits = a.op === '>' ? v >= a.value : v <= a.value;
+      if (hits) {
+        const dedup = `${a.id}:${sym}`;
+        if (meAlertsTriggeredCycle.has(dedup)) continue;
+        meAlertsTriggeredCycle.add(dedup);
+        triggered.push({ alert: a, symbol: sym, value: v });
+      }
+    }
+  }
+  if (triggered.length === 0) meAlertsTriggeredCycle.clear();
+
+  const labels = { changePct: 'chg', intradayLowPct: 'low azi', volRatio: 'vol/avg', daysToEarnings: 'zile-earn' };
+  for (const t of triggered) {
+    const msg = `🔔 ${t.symbol} · ${labels[t.alert.metric]} ${t.alert.op} ${t.alert.value} (acum: ${(+t.value).toFixed(2)})`;
+    showToast(msg, 'success');
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try { new Notification('Market Events Alert', { body: msg }); } catch (_) {}
+    }
+  }
+}
+
+// Wire up evaluator după runAll
+const _origRunAll = runAll;
+runAll = async function(){
+  await _origRunAll();
+  meAlertsTriggeredCycle.clear();
+  setTimeout(meAlertsEvaluate, 200);
+};
+
+meLoadAlerts();
+updateAlertsBadge();
+
+// === POSITION SIZER (Trade 212) — fără leverage de obicei, simplu și clar ===
+const ME_SIZER_KEY = 'me_sizer_prefs';
+function meLoadSizerPrefs(){ try { return JSON.parse(localStorage.getItem(ME_SIZER_KEY) || '{}'); } catch(_) { return {}; } }
+function meSaveSizerPrefs(p){ try { localStorage.setItem(ME_SIZER_KEY, JSON.stringify(p)); } catch(_) {} }
+
+function showPositionSizer(prefillSym){
+  const prefs = meLoadSizerPrefs();
+  const sym = (prefillSym || prefs.symbol || 'AAPL').toUpperCase();
+  // Auto-fill din watchlist sau lastEarnings/lastLosers
+  let autoPrice = prefs.entry ?? '';
+  const from = (typeof watchlist !== 'undefined' && watchlist?.find(w => w.symbol === sym)) ||
+               (typeof lastEarnings !== 'undefined' && lastEarnings?.find(s => s.symbol === sym)) ||
+               (typeof lastLosers !== 'undefined' && lastLosers?.find(s => s.symbol === sym));
+  if (from?.price) autoPrice = from.price;
+
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:540px">
+      <div class="ai-modal-title">🧮 Position Sizer · Trade 212</div>
+      <div class="ai-modal-sub">Calc poziție pentru un risc fix per trade (stocks fără leverage). Tip + invest amount = ce introduci în Trade 212.</div>
+      <div class="sizer-form">
+        <div>
+          <label>Simbol</label>
+          <input id="szSym" type="text" value="${sym}" maxlength="8" style="text-transform:uppercase">
+        </div>
+        <div>
+          <label>Side</label>
+          <div class="sizer-side">
+            <button id="szSideLong" class="active long" onclick="this.classList.add('active');document.getElementById('szSideShort').classList.remove('active');document.getElementById('szSide').value='long';meSizerCalc()">📈 LONG</button>
+            <button id="szSideShort" onclick="this.classList.add('active','short');document.getElementById('szSideLong').classList.remove('active');document.getElementById('szSide').value='short';meSizerCalc()">📉 SHORT</button>
+          </div>
+          <input id="szSide" type="hidden" value="long">
+        </div>
+        <div><label>Entry ($)</label><input id="szEntry" type="number" step="any" value="${autoPrice}"></div>
+        <div><label>Stop Loss ($)</label><input id="szSL" type="number" step="any" value="${prefs.sl ?? ''}"></div>
+        <div><label>Take Profit ($)</label><input id="szTP" type="number" step="any" value="${prefs.tp ?? ''}"></div>
+        <div><label>Cont total ($)</label><input id="szAcct" type="number" step="any" value="${prefs.acct ?? 1000}"></div>
+        <div><label>Risc per trade (%)</label><input id="szRisk" type="number" step="any" value="${prefs.risk ?? 1}" min="0.1" max="100"></div>
+      </div>
+      <div class="sizer-results" id="szResults"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="szCopyBtn">📋 Copy plan</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  ['szSym','szEntry','szSL','szTP','szAcct','szRisk'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', meSizerCalc);
+  });
+  document.getElementById('szSym').addEventListener('input', (e) => {
+    const newSym = e.target.value.trim().toUpperCase();
+    const f = (watchlist?.find(w => w.symbol === newSym)) ||
+              (typeof lastEarnings !== 'undefined' && lastEarnings?.find(s => s.symbol === newSym)) ||
+              (typeof lastLosers !== 'undefined' && lastLosers?.find(s => s.symbol === newSym));
+    if (f?.price) document.getElementById('szEntry').value = f.price;
+    meSizerCalc();
+  });
+  document.getElementById('szCopyBtn').onclick = () => {
+    const md = meSizerBuildMarkdown();
+    navigator.clipboard.writeText(md).then(() => {
+      const b = document.getElementById('szCopyBtn');
+      const old = b.textContent;
+      b.textContent = '✓ Copiat!';
+      setTimeout(() => b.textContent = old, 1500);
+    });
+  };
+  meSizerCalc();
+}
+
+function meSizerCalc(){
+  const sym = document.getElementById('szSym').value.trim().toUpperCase();
+  const side = document.getElementById('szSide').value;
+  const entry = parseFloat(document.getElementById('szEntry').value);
+  const sl = parseFloat(document.getElementById('szSL').value);
+  const tp = parseFloat(document.getElementById('szTP').value);
+  const acct = parseFloat(document.getElementById('szAcct').value);
+  const riskPct = parseFloat(document.getElementById('szRisk').value);
+  meSaveSizerPrefs({ symbol: sym, sl, tp, acct, risk: riskPct });
+  const out = document.getElementById('szResults');
+  if (!entry || !sl || !acct || !riskPct) {
+    out.innerHTML = '<div class="row" style="grid-column:1 / -1; color:#8b949e; font-style:italic;">Completează entry, SL, cont și risc.</div>';
+    return;
+  }
+  let warn = '';
+  if (side === 'long' && sl >= entry)          warn = '⚠ SL trebuie SUB entry pentru LONG.';
+  if (side === 'short' && sl <= entry)         warn = '⚠ SL trebuie PESTE entry pentru SHORT.';
+  if (tp && side === 'long' && tp <= entry)    warn += ' ⚠ TP trebuie peste entry pentru LONG.';
+  if (tp && side === 'short' && tp >= entry)   warn += ' ⚠ TP trebuie sub entry pentru SHORT.';
+
+  const riskUsd = acct * (riskPct / 100);
+  const slDist = Math.abs(entry - sl);
+  const slDistPct = (slDist / entry) * 100;
+  const shares = riskUsd / slDist;
+  const investUsd = shares * entry;
+
+  let rrText = '—', tpProfit = '—';
+  if (tp) {
+    const tpDist = side === 'long' ? (tp - entry) : (entry - tp);
+    const rr = tpDist / slDist;
+    rrText = rr.toFixed(2) + ':1';
+    tpProfit = '$' + (tpDist * shares).toFixed(2);
+  }
+  if (investUsd > acct) warn += ' ⚠ Invest > cont — SL prea aproape sau risc prea mare.';
+
+  out.innerHTML = `
+    <div class="row"><span class="label">Risc absolut</span><span class="val down">$${riskUsd.toFixed(2)} (${riskPct}%)</span></div>
+    <div class="row"><span class="label">SL distanță</span><span class="val">${slDistPct.toFixed(2)}%</span></div>
+    <div class="row"><span class="label">Shares (${sym})</span><span class="val">${shares.toFixed(4)}</span></div>
+    <div class="row"><span class="label">Invest amount</span><span class="val ${investUsd > acct ? 'down' : ''}">$${investUsd.toFixed(2)}</span></div>
+    <div class="row"><span class="label">% din cont</span><span class="val">${(investUsd/acct*100).toFixed(1)}%</span></div>
+    <div class="row"><span class="label">R/R (TP/SL)</span><span class="val ${tp ? 'up' : ''}">${rrText}</span></div>
+    <div class="row" style="grid-column:1 / -1"><span class="label">Profit la TP</span><span class="val up">${tpProfit}</span></div>
+  `;
+  if (warn) out.insertAdjacentHTML('beforeend', `<div class="sizer-warn" style="grid-column:1 / -1">${warn}</div>`);
+}
+
+function meSizerBuildMarkdown(){
+  const sym = document.getElementById('szSym').value.trim().toUpperCase();
+  const side = document.getElementById('szSide').value.toUpperCase();
+  const entry = parseFloat(document.getElementById('szEntry').value);
+  const sl = parseFloat(document.getElementById('szSL').value);
+  const tp = parseFloat(document.getElementById('szTP').value);
+  const acct = parseFloat(document.getElementById('szAcct').value);
+  const riskPct = parseFloat(document.getElementById('szRisk').value);
+  const riskUsd = acct * (riskPct / 100);
+  const slDist = Math.abs(entry - sl);
+  const shares = riskUsd / slDist;
+  const investUsd = shares * entry;
+  return `📊 ${sym} ${side} (Trade 212)\nEntry $${entry} · SL $${sl}${tp ? ' · TP $' + tp : ''}\nShares ${shares.toFixed(4)} · Invest $${investUsd.toFixed(2)}\nRisc $${riskUsd.toFixed(2)} (${riskPct}% din $${acct})`;
+}
 </script>
 
 </body>
