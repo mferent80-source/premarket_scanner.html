@@ -1353,7 +1353,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v56</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v57</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -1463,20 +1463,15 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
       <div class="td-filter-bar">
         <select class="td-inp" id="wlSortSel" onchange="setWlView()" title="Sortează coin-urile" style="flex:1;min-width:110px">
           <option value="default">📋 Implicit</option>
-          <option value="chg-desc">📈 % 24h ↓ (top câștig)</option>
-          <option value="chg-asc">📉 % 24h ↑ (top pierd)</option>
-          <option value="abs-desc">⚡ |%| 24h ↓ (volatile)</option>
-          <option value="dist-asc">🎯 Aproape de high 24h</option>
-          <option value="price-desc">💵 Preț ↓</option>
-          <option value="coin-asc">🔤 Coin A-Z</option>
+          <option value="chg-desc">📈 % 24h ↓</option>
+          <option value="chg-asc">📉 % 24h ↑</option>
+          <option value="coin-asc">🔤 A-Z</option>
         </select>
         <select class="td-inp" id="wlFilterSel" onchange="setWlView()" title="Filtrează după % 24h" style="flex:1;min-width:100px">
           <option value="all">🌐 Toate</option>
-          <option value="pos">🟢 Doar pozitive</option>
-          <option value="neg">🔴 Doar negative</option>
-          <option value="abs3">|%| ≥ 3</option>
+          <option value="pos">🟢 Pozitive</option>
+          <option value="neg">🔴 Negative</option>
           <option value="abs5">|%| ≥ 5</option>
-          <option value="abs10">|%| ≥ 10</option>
         </select>
         <input class="td-inp" id="wlSearch" placeholder="🔍 caută..." oninput="setWlView()" style="text-transform:uppercase;width:80px;flex:0 0 80px">
       </div>
@@ -1485,19 +1480,6 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
         <input class="td-inp" id="wlCoin" placeholder="Coin (BTC)" style="text-transform:uppercase;flex:1;min-width:80px;">
         <button class="td-btn" onclick="addDashWatchlistCoin()">+ Adaugă</button>
       </div>
-    </div>
-
-    <!-- SECȚIUNEA 2: Funding Rates Pionex/Binance Futures -->
-    <div class="td-section">
-      <div class="td-title">
-        <span>💰 Funding Rates Top 10</span>
-        <span style="display:inline-flex;align-items:center;gap:6px;">
-          <span id="frLastRefresh" class="td-refresh-time">—</span>
-          <button onclick="fetchFundingRates()" title="Refresh acum" class="td-refresh-btn">↻</button>
-        </span>
-      </div>
-      <div id="frRows" class="td-list"></div>
-      <div class="td-hint">🔴 negativ = shorts plătesc longs · 🟢 pozitiv = longs plătesc shorts. Rate /8h × 1095 ≈ APR. Extreme = atenție pe grid bots.</div>
     </div>
 
   </div>
