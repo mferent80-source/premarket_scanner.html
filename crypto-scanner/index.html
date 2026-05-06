@@ -1353,7 +1353,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v57</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v58</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -1664,35 +1664,25 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   </div>
 </section>
 
-<!-- TABS — grupate vizual: Live | Setup | Pionex tools | Macro | Istoric -->
+<!-- TABS — curățate de duplicate (Setups unifică Live/Early Buy/Oport/Multi-Scan) -->
 <div class="tabs">
-  <!-- NEW: Setups unified — combină Live + Early Buy + Oportunități + Multi-Scan -->
+  <!-- Setups unified + Premium high-conviction -->
   <div class="tab act" onclick="setTab('setups',this)" style="color:var(--acc);font-weight:800">🎯 Setups</div>
   <div class="tab" onclick="setTab('premium',this)" style="color:#d97706;font-weight:800">💎 Premium <span id="premiumCountBadge" style="font-size:.5rem;background:rgba(217,119,6,.15);border:1px solid rgba(217,119,6,.35);border-radius:8px;padding:1px 6px;margin-left:3px;color:#92400e">0</span></div>
-  <div class="tab-div" aria-hidden="true"></div>
-  <!-- GRUP 1: Live & lista de bază -->
-  <div class="tab" onclick="setTab('live',this)">🔴 Live</div>
   <div class="tab" onclick="setTab('all',this)">📋 Toate</div>
   <div class="tab-div" aria-hidden="true"></div>
-  <!-- GRUP 2: Setup-uri / Oportunități (legacy — Setups le acoperă) -->
-  <div class="tab" onclick="setTab('earlybuy',this)" style="color:var(--teal)">🌱 Early Buy</div>
-  <div class="tab" onclick="setTab('reco',this)">💡 Oportun.</div>
-  <div class="tab" onclick="setTab('multiscan',this)" style="color:var(--purple)">🎛️ Multi-Scan</div>
+  <!-- Pionex tools (Smart Trade Long + Pump Radar + Grid + Volatility + Smart Data + Futures) -->
   <div class="tab" onclick="setTab('stlong',this)" style="color:#f97316">🚀 Smart Trade L</div>
   <div class="tab" onclick="setTab('pumpradar',this)" style="color:#e11d48">🚨 Pump Radar</div>
-  <div class="tab-div" aria-hidden="true"></div>
-  <!-- GRUP 3: Pionex tools -->
   <div class="tab" onclick="setTab('volatility',this)" style="color:var(--gold)">⚡ Volatilitate</div>
   <div class="tab" onclick="setTab('gridscan',this)" style="color:#10b981">🎯 Grid Scanner</div>
   <div class="tab" onclick="setTab('smart',this)" style="color:#a855f7">📊 Smart Data</div>
   <div class="tab" onclick="setTab('futures',this)" style="color:#0891b2">💎 Futures</div>
   <div class="tab-div" aria-hidden="true"></div>
-  <!-- GRUP 4: Macro / context -->
+  <!-- Macro / analiză context -->
   <div class="tab" onclick="setTab('heatmap',this)">🗺️ Heatmap</div>
   <div class="tab" onclick="setTab('gap',this)">↕️ Gap</div>
   <div class="tab" onclick="setTab('correlation',this)">🔗 Corelații</div>
-  <div class="tab-div" aria-hidden="true"></div>
-  <!-- GRUP 5: Istoric -->
   <div class="tab" onclick="setTab('history',this)">📜 Istoric</div>
 </div>
 
@@ -10452,10 +10442,16 @@ function exportPionexConfig(coin, type, opts) {
 // ════════════════════════════════════════════════════════════════
 // PACHET F2 — Tab pinning (max 3, right-click pe tab pentru toggle)
 // ════════════════════════════════════════════════════════════════
-const PINNABLE_TABS = ['setups','premium','live','all','earlybuy','reco','stlong','pumpradar','volatility','gridscan','futures','heatmap','smart'];
+const PINNABLE_TABS = ['setups','premium','all','stlong','pumpradar','volatility','gridscan','futures','heatmap','smart','gap','correlation'];
 const PIN_MAX = 3;
 let pinnedTabs = [];
 try { pinnedTabs = JSON.parse(localStorage.getItem('cs_pinned_tabs') || '[]'); } catch (_) {}
+// Curățăm pinned vechi care se referă la tab-uri eliminate (live/earlybuy/reco/multiscan)
+const _prevPinLen = pinnedTabs.length;
+pinnedTabs = pinnedTabs.filter(t => PINNABLE_TABS.includes(t));
+if (pinnedTabs.length !== _prevPinLen) {
+  try { localStorage.setItem('cs_pinned_tabs', JSON.stringify(pinnedTabs)); } catch (_) {}
+}
 
 function togglePinTab(tabId, ev) {
   if (ev) { ev.preventDefault(); ev.stopPropagation(); }
