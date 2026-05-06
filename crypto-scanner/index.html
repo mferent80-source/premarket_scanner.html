@@ -885,6 +885,158 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 @media all and (display-mode: standalone){
   a[href="../"]{display:none !important}
 }
+
+/* =============================================================== */
+/* === MIGRATION VISUAL la modelul crypto-events === */
+/* Override pe body.dark — paleta + topbar + panel-box style identic   */
+/* =============================================================== */
+body.dark{
+  /* Paletă events: bg foarte închis cu radial gradient + panele violet-bleumarin */
+  --bg: #0b0f17 !important;
+  --bg2: #141a28 !important;
+  --bg3: #1d2537 !important;
+  --bg4: #2a3247 !important;
+  --b1: #2a3247 !important;
+  --b2: #1f2638 !important;
+  --t1: #e8eef5 !important;
+  --t2: #8892a6 !important;
+  --t3: #6e7681 !important;
+  --acc: #5bb0ff !important;     /* events --accent */
+  --accl: rgba(91,176,255,.10) !important;
+  --accb: rgba(91,176,255,.30) !important;
+  --green: #22d66b !important;   /* events --bull-s */
+  --greenl: rgba(34,214,107,.10) !important;
+  --greenb: rgba(34,214,107,.30) !important;
+  --red: #ff4d4d !important;     /* events --bear-s */
+  --redl: rgba(255,77,77,.10) !important;
+  --redb: rgba(255,77,77,.30) !important;
+  --gold: #d4892c !important;
+  --goldl: rgba(212,137,44,.10) !important;
+  --goldb: rgba(212,137,44,.30) !important;
+  --purple: #8b6fff !important;  /* events --accent2 */
+  --purpll: rgba(139,111,255,.10) !important;
+  --purplb: rgba(139,111,255,.30) !important;
+  --teal: #5bdcb0 !important;
+  --teall: rgba(91,220,176,.10) !important;
+  --tealb: rgba(91,220,176,.30) !important;
+  --orange: #f0883e !important;
+  --orangl: rgba(240,136,62,.10) !important;
+  --cyan: #5bb0ff !important;
+  --cyanl: rgba(91,176,255,.07) !important;
+  --sh: 0 1px 2px rgba(0,0,0,.3) !important;
+  --shh: 0 4px 14px rgba(0,0,0,.35), 0 1px 2px rgba(0,0,0,.2) !important;
+}
+
+/* Background cu radial gradient identic events (doar dark) */
+body.dark{
+  background: var(--bg) !important;
+  background-image: radial-gradient(1200px 600px at 50% -200px, #141c2e 0%, #0b0f17 55%) !important;
+  background-attachment: fixed !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Topbar exact ca events */
+body.dark .hdr{
+  background: linear-gradient(180deg, rgba(30,38,57,.85), rgba(20,26,40,.92)) !important;
+  border: 1px solid var(--b1) !important;
+  border-radius: 12px !important;
+  padding: 11px 16px !important;
+  box-shadow: var(--shh) !important;
+}
+
+/* Brand name cu gradient text ca în events (h1) */
+body.dark .brand-name{
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: -.2px !important;
+  background: linear-gradient(90deg, var(--acc) 0%, var(--purple) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent !important;
+}
+body.dark .brand-name span{
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+body.dark .brand-icon{
+  width: 32px !important; height: 32px !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  background: linear-gradient(135deg, var(--acc), var(--purple)) !important;
+  box-shadow: 0 4px 14px rgba(91,176,255,.25) !important;
+}
+body.dark .brand-sub{display:none}
+
+/* Status pill ca în events (compact, rotunjit, panel2 bg) */
+body.dark .status-pill{
+  background: var(--bg3) !important;
+  border: 1px solid var(--b1) !important;
+  color: var(--t2) !important;
+  border-radius: 8px !important;
+  padding: 6px 11px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+}
+
+/* Tab strip mai curat — chips cu panel2 bg + accent border on active */
+body.dark .tabs{
+  background: transparent !important;
+  border: none !important;
+  padding: 6px 0 !important;
+}
+body.dark .tab{
+  background: var(--bg3) !important;
+  border: 1px solid var(--b1) !important;
+  border-radius: 8px !important;
+  padding: 6px 11px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--t1) !important;
+  margin-right: 4px !important;
+  transition: all .15s ease;
+}
+body.dark .tab:hover{
+  border-color: var(--acc) !important;
+  background: var(--bg4) !important;
+  transform: translateY(-1px);
+}
+body.dark .tab.act{
+  background: linear-gradient(135deg, var(--acc), var(--purple)) !important;
+  border-color: transparent !important;
+  color: #000 !important;
+  box-shadow: 0 2px 8px rgba(91,176,255,.30) !important;
+}
+
+/* signalsContainer cards — panel-box style */
+body.dark .card,
+body.dark .signal-card,
+body.dark #signalsContainer > div{
+  background: var(--bg2) !important;
+  border: 1px solid var(--b1) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--sh) !important;
+}
+
+/* Buttons primary look ca events */
+body.dark button.primary,
+body.dark .btn-primary{
+  background: linear-gradient(135deg, var(--acc), var(--purple)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(91,176,255,.30) !important;
+}
+
+/* Empty states — gri muted ca events */
+body.dark .empty,
+body.dark .empty-title{color: var(--t2) !important}
+body.dark .empty-icon{opacity: .6}
+
+/* Subtitle în brand zone — ca panel-sub events */
+body.dark .brand{gap:8px !important}
 </style>
 </head>
 <body>
