@@ -367,6 +367,163 @@
     background:var(--panel2); color:var(--muted); border:1px solid var(--border);
   }
   .crypto-compare-bar .btn-cmp-clear:hover{background:var(--border); color:var(--text)}
+
+  /* ===================================================================== */
+  /* === Chat AI flotant (FAB + panel) — port adaptat din market-events === */
+  /* ===================================================================== */
+  #aiChatFab{
+    position:fixed;bottom:20px;right:20px;width:54px;height:54px;border-radius:50%;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    color:#fff;font-size:1.4rem;
+    border:none;cursor:pointer;box-shadow:0 6px 20px rgba(91,176,255,.45);z-index:9998;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .2s, box-shadow .2s;
+  }
+  #aiChatFab:hover{transform:scale(1.07);box-shadow:0 8px 28px rgba(139,111,255,.6)}
+  #aiChatFab.open{transform:rotate(45deg)}
+  #aiChatPanel{
+    position:fixed;bottom:84px;right:20px;width:380px;max-width:calc(100vw - 30px);
+    height:560px;max-height:calc(100vh - 110px);
+    background:var(--panel);border:1px solid var(--border);border-radius:14px;
+    box-shadow:0 16px 48px rgba(0,0,0,.55);z-index:9998;
+    display:none;flex-direction:column;overflow:hidden;
+  }
+  #aiChatPanel.open{display:flex}
+  .aichat-hdr{padding:10px 14px;background:linear-gradient(135deg, var(--accent), var(--accent2));color:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .aichat-hdr-title{font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px}
+  .aichat-hdr-actions{display:flex;gap:4px}
+  .aichat-hdr-btn{background:rgba(255,255,255,.2);border:none;color:#fff;font-size:11px;padding:4px 8px;border-radius:5px;cursor:pointer;font-weight:700}
+  .aichat-hdr-btn:hover{background:rgba(255,255,255,.32)}
+  .aichat-body{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+  .aichat-msg{max-width:85%;padding:8px 11px;border-radius:11px;font-size:12px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+  .aichat-msg.user{align-self:flex-end;background:linear-gradient(135deg, var(--accent), var(--accent2));color:#fff;border-bottom-right-radius:3px}
+  .aichat-msg.assistant{align-self:flex-start;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-bottom-left-radius:3px}
+  .aichat-msg.system{align-self:center;background:transparent;color:var(--muted);font-size:10px;font-style:italic;border:1px dashed var(--border);padding:6px 10px}
+  .aichat-msg.error{align-self:center;background:rgba(255,77,77,.10);color:var(--bear-s);border:1px solid rgba(255,77,77,.4)}
+  .aichat-empty{text-align:center;color:var(--muted);font-size:11px;padding:20px 8px;line-height:1.6}
+  .aichat-empty kbd{background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:monospace;font-size:10px;color:var(--accent)}
+  .aichat-cmds{padding:6px 10px;background:var(--panel);border-top:1px solid var(--border);display:flex;gap:5px;flex-wrap:wrap;font-size:10px}
+  .aichat-cmd{background:var(--panel2);border:1px solid var(--border);color:var(--muted);padding:3px 7px;border-radius:5px;cursor:pointer;font-family:monospace;font-weight:700}
+  .aichat-cmd:hover{background:rgba(91,176,255,.15);color:var(--accent);border-color:var(--accent)}
+  .aichat-input-row{padding:10px;border-top:1px solid var(--border);background:var(--panel);display:flex;gap:6px;align-items:flex-end}
+  .aichat-input{flex:1;border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px;background:var(--bg);color:var(--text);resize:none;min-height:36px;max-height:120px;outline:none;font-family:inherit}
+  .aichat-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,176,255,.15)}
+  .aichat-send{padding:8px 14px;background:linear-gradient(135deg, var(--accent), var(--accent2));border:none;color:#fff;border-radius:10px;font-weight:700;cursor:pointer}
+  .aichat-send:disabled{opacity:.5;cursor:wait}
+  @media (max-width:480px){
+    #aiChatPanel{width:calc(100vw - 20px);right:10px;bottom:80px;height:70vh}
+    #aiChatFab{bottom:15px;right:15px}
+  }
+
+  /* ===================================================================== */
+  /* === Watchlist crypto (deasupra paginii)                            === */
+  /* ===================================================================== */
+  .cw-section{
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:var(--radius); padding:12px 14px; margin-bottom:12px;
+    box-shadow:var(--shadow-sm);
+  }
+  .cw-head{
+    display:flex; align-items:center; gap:10px; margin-bottom:10px;
+    cursor:pointer; user-select:none;
+  }
+  .cw-head h3{
+    font-size:13px; font-weight:700; letter-spacing:.3px; text-transform:uppercase;
+    color:var(--accent); display:flex; align-items:center; gap:6px;
+  }
+  .cw-head .badge{
+    display:inline-block; padding:1px 7px; border-radius:10px; font-size:10px;
+    font-weight:700; background:var(--panel2); color:var(--text);
+    border:1px solid var(--border);
+  }
+  .cw-head .arrow{font-size:10px; color:var(--muted); transition:transform .2s}
+  .cw-section.collapsed .arrow{transform:rotate(-90deg)}
+  .cw-section.collapsed .cw-controls,
+  .cw-section.collapsed .cw-grid,
+  .cw-section.collapsed .cw-toolbar{display:none}
+
+  .cw-controls{
+    display:flex; gap:5px; margin-bottom:8px; align-items:center;
+  }
+  .cw-controls input{
+    flex:1; min-width:0; padding:6px 9px;
+    background:var(--bg); border:1px solid var(--border);
+    border-radius:6px; color:var(--text); font-size:12px;
+    font-family:monospace; outline:none; text-transform:uppercase;
+  }
+  .cw-controls input:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,176,255,.15)}
+  .cw-add-btn, .cw-refresh-btn{
+    padding:6px 9px; border:none; color:#fff; border-radius:6px;
+    font-weight:700; font-size:12px; cursor:pointer; flex-shrink:0;
+    font-family:inherit; transition:filter .15s var(--ease);
+  }
+  .cw-add-btn{background:var(--bull-s); color:#000}
+  .cw-add-btn:hover{filter:brightness(1.1)}
+  .cw-refresh-btn{background:var(--accent)}
+  .cw-refresh-btn:hover{filter:brightness(1.1)}
+
+  .cw-toolbar{
+    display:flex; justify-content:space-between; align-items:center; gap:6px;
+    flex-wrap:wrap; margin-bottom:8px; padding:6px 0;
+    border-top:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);
+  }
+  .cw-filters{display:flex; gap:4px; flex-wrap:wrap}
+  .cw-fbtn{
+    background:var(--panel2); border:1px solid var(--border); color:var(--muted);
+    padding:3px 9px; border-radius:5px; font-size:10.5px; font-weight:700;
+    cursor:pointer; font-family:inherit;
+    transition:all .15s var(--ease);
+  }
+  .cw-fbtn:hover{color:var(--text); border-color:var(--accent)}
+  .cw-fbtn.active{background:var(--accent); border-color:var(--accent); color:#000}
+  .cw-sort select{
+    padding:3px 7px; background:var(--bg); border:1px solid var(--border);
+    color:var(--text); border-radius:5px; font-size:10.5px; cursor:pointer;
+    outline:none; font-family:inherit;
+  }
+  .cw-sort select:focus{border-color:var(--accent)}
+
+  /* Grid 10 cells/rând pe desktop, fallback responsive (matching market-events) */
+  .cw-grid{
+    display:grid; grid-template-columns:repeat(10, minmax(0, 1fr));
+    gap:0; background:var(--bg); border-radius:var(--radius-sm);
+    border:1px solid var(--border-soft); overflow:hidden;
+    max-height:600px; overflow-y:auto;
+  }
+  @media (max-width:1100px){ .cw-grid{grid-template-columns:repeat(5, minmax(0, 1fr))} }
+  @media (max-width:600px){  .cw-grid{grid-template-columns:repeat(3, minmax(0, 1fr))} }
+  @media (max-width:380px){  .cw-grid{grid-template-columns:repeat(2, minmax(0, 1fr))} }
+
+  .cw-cell{
+    display:grid; grid-template-columns:auto auto 1fr auto auto;
+    gap:5px; align-items:center; padding:5px 7px;
+    border-right:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);
+    font-size:11px; white-space:nowrap; min-width:0; overflow:hidden;
+  }
+  .cw-cell:hover{background:rgba(91,176,255,.04)}
+  .cw-cell.crypto-tr-selected{background:rgba(139,111,255,.10)}
+  .cw-cell .sym{color:var(--accent); font-weight:700; font-family:monospace; font-size:12px; letter-spacing:.3px}
+  .cw-cell .num{font-variant-numeric:tabular-nums; text-align:right; font-size:11px}
+  .cw-cell .pct.up{color:var(--bull-s); font-weight:700}
+  .cw-cell .pct.down{color:var(--bear-s); font-weight:700}
+  .cw-cell .cw-actions{display:flex; gap:3px}
+  .cw-cell .btn-row{padding:1px 5px; font-size:10px; line-height:1.4; background:var(--panel2); border:1px solid var(--border); color:var(--accent2); border-radius:4px; cursor:pointer; font-family:inherit; font-weight:700}
+  .cw-cell .btn-row.del{color:var(--bear-s)}
+  .cw-cell .btn-row:hover{filter:brightness(1.2)}
+  .cw-cell .crypto-chk{margin:0; width:13px; height:13px}
+
+  .cw-grid-empty{
+    grid-column:1 / -1; padding:20px; text-align:center;
+    color:var(--muted); font-size:11.5px; font-style:italic;
+  }
+  .cw-grp-row{
+    grid-column:1 / -1; padding:5px 10px;
+    font-size:10.5px; font-weight:700; letter-spacing:.3px; text-transform:uppercase;
+    background:rgba(20,26,40,.6); border-bottom:1px solid var(--border);
+    color:var(--muted);
+  }
+  .cw-grp-row.cw-grp-gainers{color:var(--bull-s)}
+  .cw-grp-row.cw-grp-losers{color:var(--bear-s)}
 </style>
 </head>
 <body>
@@ -404,6 +561,44 @@
     <div class="sent-value" id="eth-d">—</div>
     <div class="sent-sub" id="active-coins">—</div>
   </div>
+</section>
+
+<!-- === Watchlist crypto (deasupra) — adaugă coin-uri urmărite cu refresh prețuri din CoinGecko === -->
+<section class="cw-section" id="cwSection">
+  <div class="cw-head" onclick="cwToggleSection()">
+    <span class="arrow">▼</span>
+    <h3>👁️ Watchlist Crypto</h3>
+    <span class="badge" id="cwBadge">0</span>
+    <span style="margin-left:auto; font-size:10.5px; color:var(--muted);">Click pe header ca să restrângi · refresh automat la 60s</span>
+  </div>
+  <div class="cw-controls">
+    <input id="cwAddInp" type="text" placeholder="Simbol coin (BTC, ETH, SOL...)" maxlength="10"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();cwAdd();}" />
+    <button class="cw-add-btn" onclick="cwAdd()">+</button>
+    <button class="cw-refresh-btn" onclick="cwRefresh()" title="Refresh manual prețuri">🔄</button>
+  </div>
+  <div class="cw-toolbar">
+    <div class="cw-filters">
+      <button class="cw-fbtn active" data-filter="all" onclick="cwSetFilter('all')">Toate</button>
+      <button class="cw-fbtn" data-filter="gainers" onclick="cwSetFilter('gainers')">📈 Gainers</button>
+      <button class="cw-fbtn" data-filter="losers" onclick="cwSetFilter('losers')">📉 Losers</button>
+      <button class="cw-fbtn" data-filter="movers" onclick="cwSetFilter('movers')">🔥 |3%+|</button>
+    </div>
+    <div class="cw-sort">
+      <select id="cwSortSel" onchange="cwSetSort(this.value)">
+        <option value="change-desc">24h ↓</option>
+        <option value="change-asc">24h ↑</option>
+        <option value="alpha">A-Z</option>
+        <option value="price-desc">Preț ↓</option>
+        <option value="recent">Recent adăugate</option>
+      </select>
+      <label style="display:inline-flex; align-items:center; gap:4px; cursor:pointer; font-size:10.5px; color:var(--muted); margin-left:8px;">
+        <input type="checkbox" id="cwGroupChk" onchange="cwSetGroup(this.checked)" style="cursor:pointer; accent-color:var(--accent); width:12px; height:12px;">
+        <span>Grupează</span>
+      </label>
+    </div>
+  </div>
+  <div id="cwGrid" class="cw-grid"></div>
 </section>
 
 <!-- === Filtru market cap (aplicat pe movers + volum) === -->
@@ -1610,6 +1805,400 @@ async function aiCompareCrypto() {
 // Init buton AI key (badge) la load
 updateAiKeyBadge();
 cryptoUpdateCompareBar();   // creează DOM-ul barei (ascuns until 2+ selectate)
+
+// ============================================================
+// WATCHLIST CRYPTO — coin-uri urmărite, refresh prețuri CoinGecko
+// ============================================================
+const CW_KEY = 'ce_watchlist';
+const CW_FILTER_KEY = 'ce_wl_filter';
+const CW_SORT_KEY = 'ce_wl_sort';
+const CW_GROUP_KEY = 'ce_wl_group';
+
+let cryptoWatchlist = [];      // [{ symbol:"BTC", id:"bitcoin", name, image, price, chg_24h, addedAt }]
+let cwFilter = localStorage.getItem(CW_FILTER_KEY) || 'all';
+let cwSort = localStorage.getItem(CW_SORT_KEY) || 'change-desc';
+let cwGroup = localStorage.getItem(CW_GROUP_KEY) === '1';
+
+function cwLoad() {
+  try {
+    const raw = localStorage.getItem(CW_KEY);
+    cryptoWatchlist = raw ? JSON.parse(raw) : [];
+  } catch (_) { cryptoWatchlist = []; }
+}
+function cwSave() {
+  try { localStorage.setItem(CW_KEY, JSON.stringify(cryptoWatchlist)); } catch (_) {}
+}
+
+function cwToggleSection() {
+  document.getElementById('cwSection').classList.toggle('collapsed');
+}
+
+// Lookup în cachedMarkets după simbol (case-insensitive); întoarce datele complete sau null
+function cwFindCoinBySymbol(sym) {
+  if (!cachedMarkets) return null;
+  const s = sym.toLowerCase();
+  return cachedMarkets.find(c => (c.symbol || '').toLowerCase() === s) || null;
+}
+
+async function cwAdd() {
+  const inp = document.getElementById('cwAddInp');
+  const sym = (inp.value || '').trim().toUpperCase();
+  if (!sym) return;
+  if (cryptoWatchlist.some(w => w.symbol === sym)) {
+    alert(`${sym} e deja în watchlist.`);
+    return;
+  }
+  // Lookup în top 100 CoinGecko
+  const found = cwFindCoinBySymbol(sym);
+  if (!found) {
+    alert(`${sym} nu a fost găsit în top 100 după market cap.\nPentru a-l urmări, asigură-te că e listat pe CoinGecko și că datele s-au încărcat (refresh global).`);
+    return;
+  }
+  cryptoWatchlist.push({
+    symbol: sym, id: found.id, name: found.name, image: found.image,
+    price: found.price, chg_24h: found.chg_24h, chg_1h: found.chg_1h,
+    market_cap: found.market_cap, volume_24h: found.volume_24h,
+    addedAt: Date.now(),
+  });
+  cwSave();
+  cwRender();
+  inp.value = '';
+}
+
+function cwRemove(sym) {
+  cryptoWatchlist = cryptoWatchlist.filter(w => w.symbol !== sym);
+  cwSave();
+  cwRender();
+}
+
+// Refresh prețuri prin CoinGecko `/coins/markets` cu ids specifice
+async function cwRefresh() {
+  if (!cryptoWatchlist.length) { cwRender(); return; }
+  const ids = cryptoWatchlist.map(w => w.id).join(',');
+  try {
+    const url = `${CG_API}/coins/markets?vs_currency=usd&ids=${encodeURIComponent(ids)}&price_change_percentage=1h%2C24h&sparkline=false`;
+    const data = await fetchJson(url);
+    const byId = new Map(data.map(c => [c.id, c]));
+    cryptoWatchlist.forEach(w => {
+      const fresh = byId.get(w.id);
+      if (!fresh) return;
+      w.price = fresh.current_price;
+      w.chg_24h = fresh.price_change_percentage_24h_in_currency ?? fresh.price_change_percentage_24h;
+      w.chg_1h = fresh.price_change_percentage_1h_in_currency;
+      w.market_cap = fresh.market_cap;
+      w.volume_24h = fresh.total_volume;
+      w.image = fresh.image;
+    });
+    cwSave();
+    cwRender();
+  } catch (e) {
+    console.warn('cwRefresh failed', e);
+  }
+}
+
+function cwMatchesFilter(w) {
+  const c = w.chg_24h ?? 0;
+  if (cwFilter === 'gainers') return c > 0;
+  if (cwFilter === 'losers')  return c < 0;
+  if (cwFilter === 'movers')  return Math.abs(c) >= 3;
+  return true;
+}
+
+function cwSorted(arr) {
+  const a = [...arr];
+  switch (cwSort) {
+    case 'change-asc':  a.sort((x, y) => (x.chg_24h ?? 0) - (y.chg_24h ?? 0)); break;
+    case 'alpha':       a.sort((x, y) => x.symbol.localeCompare(y.symbol)); break;
+    case 'price-desc':  a.sort((x, y) => (y.price ?? 0) - (x.price ?? 0)); break;
+    case 'recent':      a.sort((x, y) => (y.addedAt ?? 0) - (x.addedAt ?? 0)); break;
+    case 'change-desc':
+    default:            a.sort((x, y) => (y.chg_24h ?? 0) - (x.chg_24h ?? 0));
+  }
+  return a;
+}
+
+function cwSetFilter(f) { cwFilter = f; localStorage.setItem(CW_FILTER_KEY, f); cwRender(); }
+function cwSetSort(s)   { cwSort = s; localStorage.setItem(CW_SORT_KEY, s); cwRender(); }
+function cwSetGroup(g)  { cwGroup = !!g; localStorage.setItem(CW_GROUP_KEY, g ? '1' : '0'); cwRender(); }
+
+function _cwCellHtml(w) {
+  const sym = w.symbol;
+  const isSel = cryptoSelected.has(sym);
+  const priceStr = w.price != null
+    ? (w.price < 1 ? '$' + w.price.toFixed(4) : '$' + w.price.toLocaleString('en-US', { maximumFractionDigits: 2 }))
+    : '—';
+  const pct = w.chg_24h;
+  const pctStr = pct != null ? `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%` : '—';
+  const pctCls = pct == null ? '' : (pct >= 0 ? 'up' : 'down');
+  return `<div class="cw-cell ${isSel ? 'crypto-tr-selected' : ''}" data-sym="${sym}">
+    <input type="checkbox" class="crypto-chk" ${isSel ? 'checked' : ''} onchange="cryptoToggleSelect('${sym}')" title="Selectează pentru comparație AI">
+    <span class="sym">${sym}</span>
+    <span class="num">${priceStr}</span>
+    <span class="num pct ${pctCls}">${pctStr}</span>
+    <span class="cw-actions">
+      <button class="btn-row" onclick="aiAnalyzeRow('crypto-mover', '${sym}')" title="Analiză AI">🤖</button>
+      <button class="btn-row del" onclick="cwRemove('${sym}')" title="Șterge">✕</button>
+    </span>
+  </div>`;
+}
+
+function cwRender() {
+  const grid = document.getElementById('cwGrid');
+  const badge = document.getElementById('cwBadge');
+  if (!grid) return;
+  if (badge) badge.textContent = cryptoWatchlist.length;
+
+  // Sync UI cu state-ul (chips active, sort selected)
+  document.querySelectorAll('.cw-fbtn').forEach(b => b.classList.toggle('active', b.dataset.filter === cwFilter));
+  const ss = document.getElementById('cwSortSel'); if (ss) ss.value = cwSort;
+  const gc = document.getElementById('cwGroupChk'); if (gc) gc.checked = cwGroup;
+
+  if (!cryptoWatchlist.length) {
+    grid.innerHTML = '<div class="cw-grid-empty">📋 Niciun coin. Adaugă cu input-ul de mai sus (BTC, ETH, SOL...).</div>';
+    return;
+  }
+  const filtered = cryptoWatchlist.filter(cwMatchesFilter);
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="cw-grid-empty">🔍 Niciun coin nu corespunde filtrului „${cwFilter}".</div>`;
+    return;
+  }
+  if (cwGroup) {
+    const gainers = cwSorted(filtered.filter(w => (w.chg_24h ?? 0) > 0.5));
+    const flat    = cwSorted(filtered.filter(w => Math.abs(w.chg_24h ?? 0) <= 0.5));
+    const losers  = cwSorted(filtered.filter(w => (w.chg_24h ?? 0) < -0.5));
+    let html = '';
+    const grpRow = (cls, label, count) => `<div class="cw-grp-row ${cls}">${label} (${count})</div>`;
+    if (gainers.length) html += grpRow('cw-grp-gainers', '📈 Gainers', gainers.length) + gainers.map(_cwCellHtml).join('');
+    if (flat.length)    html += grpRow('cw-grp-flat',    '➖ Stabili', flat.length) + flat.map(_cwCellHtml).join('');
+    if (losers.length)  html += grpRow('cw-grp-losers',  '📉 Losers', losers.length) + losers.map(_cwCellHtml).join('');
+    grid.innerHTML = html;
+  } else {
+    grid.innerHTML = cwSorted(filtered).map(_cwCellHtml).join('');
+  }
+}
+
+// Init watchlist + auto-refresh la 60s dacă pagina e vizibilă
+cwLoad();
+cwRender();
+// La fiecare refreshAll global, după ce cachedMarkets se updatează, refresh și prețurile watchlist
+// (folosim un MutationObserver pe filter-count ca proxy — el se updatează doar când renderMovers rulează)
+const _origRenderMovers = renderMovers;
+renderMovers = function(coins) {
+  _origRenderMovers(coins);
+  // După ce avem cachedMarkets, lansăm cwRefresh în background (nu blochează)
+  if (cryptoWatchlist.length) cwRefresh().catch(()=>{});
+};
+
+// ============================================================
+// CHAT AI FAB + PANEL — port adaptat pentru crypto-events
+// ============================================================
+const AICHAT_KEY = 'ce_chat_history';     // namespace separat de market-events
+const AICHAT_MAX_TURNS = 12;
+const aiChat = { open: false, busy: false, messages: [] };
+
+function aiChatLoad(){ try { aiChat.messages = JSON.parse(localStorage.getItem(AICHAT_KEY) || '[]'); } catch(_) { aiChat.messages = []; } }
+function aiChatPersist(){ try { localStorage.setItem(AICHAT_KEY, JSON.stringify(aiChat.messages.slice(-30))); } catch(_) {} }
+
+function aiChatToggle(){
+  aiChat.open = !aiChat.open;
+  document.getElementById('aiChatPanel').classList.toggle('open', aiChat.open);
+  document.getElementById('aiChatFab').classList.toggle('open', aiChat.open);
+  if (aiChat.open) { aiChatRender(); setTimeout(() => document.getElementById('aiChatInput')?.focus(), 100); }
+}
+
+function aiChatClear(){
+  if (!confirm('Ștergi tot istoricul conversației?')) return;
+  aiChat.messages = []; aiChatPersist(); aiChatRender();
+}
+
+function aiChatRender(){
+  const body = document.getElementById('aiChatBody');
+  if (!body) return;
+  if (!aiChat.messages.length) {
+    body.innerHTML = `<div class="aichat-empty">
+      💬 <b>Asistent AI · crypto events</b><br><br>
+      Întreabă orice despre piață crypto sau folosește comenzi:<br>
+      <kbd>/wl</kbd> <kbd>/sel</kbd> <kbd>/movers</kbd> <kbd>/funding</kbd> <kbd>/oi</kbd> <kbd>/buy BTC</kbd> <kbd>/clear</kbd><br><br>
+      <span style="font-size:10px">Vede automat watchlist-ul, simbolurile selectate, top movers, funding și OI.</span>
+    </div>`;
+    return;
+  }
+  body.innerHTML = aiChat.messages.map(m => {
+    const cls = m.role === 'user' ? 'user' : (m.role === 'system' ? 'system' : (m.role === 'error' ? 'error' : 'assistant'));
+    const safe = (m.content || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `<div class="aichat-msg ${cls}">${safe}</div>`;
+  }).join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+// Construiește contextul automat: watchlist + selectate + top movers + funding/OI extreme
+function aiChatBuildContext(){
+  const lines = ['CONTEXT CRYPTO EVENTS (' + new Date().toLocaleString('ro-RO') + '):'];
+  if (cryptoWatchlist.length) {
+    const wlSnap = cryptoWatchlist.slice(0, 10).map(w => {
+      const p = w.price != null ? (w.price < 1 ? '$' + w.price.toFixed(4) : '$' + w.price.toFixed(2)) : '';
+      const c = w.chg_24h != null ? ` (${w.chg_24h >= 0 ? '+' : ''}${w.chg_24h.toFixed(1)}%)` : '';
+      return `${w.symbol}${p ? ' ' + p : ''}${c}`;
+    }).join(', ');
+    lines.push(`WATCHLIST (${cryptoWatchlist.length}): ${wlSnap}`);
+  }
+  if (cryptoSelected.size) {
+    lines.push(`SELECTATE acum: ${Array.from(cryptoSelected).join(', ')}`);
+  }
+  // Top movers 1h și 24h (din cachedMarkets dacă există)
+  if (cachedMarkets) {
+    const top1h = [...cachedMarkets].filter(c => c.chg_1h != null).sort((a,b) => b.chg_1h - a.chg_1h).slice(0, 5);
+    if (top1h.length) lines.push('TOP GAINERS 1h: ' + top1h.map(c => `${(c.symbol||'').toUpperCase()} ${c.chg_1h.toFixed(1)}%`).join(', '));
+    const bot1h = [...cachedMarkets].filter(c => c.chg_1h != null).sort((a,b) => a.chg_1h - b.chg_1h).slice(0, 5);
+    if (bot1h.length) lines.push('TOP LOSERS 1h: ' + bot1h.map(c => `${(c.symbol||'').toUpperCase()} ${c.chg_1h.toFixed(1)}%`).join(', '));
+  }
+  // Funding extreme
+  if (cachedFunding && (cachedFunding.pos.length || cachedFunding.neg.length)) {
+    const ext = [...(cachedFunding.pos||[]).slice(0,3), ...(cachedFunding.neg||[]).slice(0,3)];
+    lines.push('FUNDING extreme: ' + ext.map(d => `${d.base} ${(d.funding_rate*100).toFixed(3)}%`).join(', '));
+  }
+  // OI top
+  if (cachedOI && cachedOI.length) {
+    lines.push('OI top: ' + cachedOI.slice(0, 5).map(d => `${d.base} $${(d.oi_usd/1e9).toFixed(1)}B`).join(', '));
+  }
+  return lines.join('\n');
+}
+
+function aiChatHandleCommand(text){
+  const t = text.trim();
+  if (t === '/clear') { aiChatClear(); return null; }
+  if (t === '/wl' || t === '/watchlist') {
+    if (!cryptoWatchlist.length) return 'Watchlist crypto e gol — nu am ce analiza.';
+    return `Analizează simbolurile crypto din watchlist-ul meu (${cryptoWatchlist.map(w=>w.symbol).join(', ')}). Pentru fiecare: status tehnic în 1 rând. La final: "TRADE ACUM: <ticker>" sau "STAY FLAT — așteaptă". Max 10 rânduri total.`;
+  }
+  if (t === '/sel' || t === '/selected') {
+    if (cryptoSelected.size < 1) return 'Niciun simbol selectat. Bifează cele care te interesează în tabele și încearcă din nou.';
+    return `Pe baza coin-urilor selectate (${Array.from(cryptoSelected).join(', ')}), dă-mi un mini raport: pentru fiecare 1 rând status, apoi top pick pentru long și top pick pentru short, cu entry/TP/SL aproximative. Max 12 rânduri.`;
+  }
+  if (t === '/movers') {
+    return `Pe baza listei TOP GAINERS / LOSERS 1h din context, dă-mi top 3 candidați pentru momentum trade ACUM (long sau short). Pentru fiecare: ticker + de ce + entry/target/stop. Max 8 rânduri.`;
+  }
+  if (t === '/funding') {
+    return `Pe baza FUNDING extreme din context, identifică oportunități: cele cu funding pozitiv extrem (overheated long, posibil short squeeze) vs negative extrem (capitulare longs). Top 3 setup-uri concrete. Max 8 rânduri.`;
+  }
+  if (t === '/oi') {
+    return `Pe baza OI top din context, comentează ce coin-uri au cea mai mare expunere leveraged și care prezintă risc / oportunitate (squeeze, deluviu, OI build-up). Top 3 observații. Max 8 rânduri.`;
+  }
+  if (t.startsWith('/buy ')) {
+    const sym = t.slice(5).trim().toUpperCase();
+    if (!sym) return 'Format: /buy SIMBOL (ex: /buy BTC)';
+    return `Analizează entry pentru ${sym} ACUM (Pionex futures sau Binance). Niveluri concrete entry/TP/SL în USD, leverage recomandat (1x/3x/5x), dimensiunea poziției pentru un cont $1000 la 2% risc, 1 risc principal. Max 6 rânduri.`;
+  }
+  return text;
+}
+
+async function aiChatSend(){
+  if (aiChat.busy) return;
+  const inp = document.getElementById('aiChatInput');
+  const text = (inp.value || '').trim();
+  if (!text) return;
+  if (!getAnthropicKey()) { showAiKeyModal(()=>{}); return; }
+  let promptText = aiChatHandleCommand(text);
+  if (promptText === null) { inp.value = ''; return; }
+  aiChat.messages.push({ role: 'user', content: text, ts: Date.now() });
+  aiChatRender();
+  inp.value = '';
+  inp.style.height = 'auto';
+
+  const apiMessages = aiChat.messages
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .slice(-AICHAT_MAX_TURNS)
+    .map(m => ({ role: m.role, content: m.content }));
+  if (apiMessages.length && apiMessages[apiMessages.length-1].role === 'user') {
+    apiMessages[apiMessages.length-1].content = promptText;
+  }
+
+  aiChat.messages.push({ role: 'assistant', content: '⏳ Analiză...', ts: Date.now() });
+  aiChatRender();
+  aiChat.busy = true;
+  document.getElementById('aiChatSendBtn').disabled = true;
+
+  const ctx = aiChatBuildContext();
+  const sysExtra = 'Acționezi ca asistent personal de tradat crypto pentru Marius (cont Pionex futures + grid bots, Binance). Răspunde scurt și direct, în română. Folosește datele din contextul crypto events dacă sunt relevante.\n\n' + ctx;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': getAnthropicKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: AI_MODEL, max_tokens: 800, system: sysExtra, messages: apiMessages })
+    });
+    const data = await resp.json();
+    const last = aiChat.messages[aiChat.messages.length - 1];
+    if (data.content?.[0]?.text) {
+      last.content = data.content[0].text;
+    } else if (data.error) {
+      last.role = 'error';
+      last.content = '❌ ' + data.error.message;
+    } else {
+      last.role = 'error';
+      last.content = '❌ Răspuns gol';
+    }
+    aiChatPersist(); aiChatRender();
+  } catch (e) {
+    const last = aiChat.messages[aiChat.messages.length - 1];
+    last.role = 'error';
+    last.content = '❌ ' + e.message;
+    aiChatPersist(); aiChatRender();
+  } finally {
+    aiChat.busy = false;
+    document.getElementById('aiChatSendBtn').disabled = false;
+  }
+}
+
+function aiChatQuickCmd(cmd){
+  const inp = document.getElementById('aiChatInput');
+  if (!inp) return;
+  inp.value = cmd + (cmd.endsWith(' ') ? '' : ' ');
+  inp.focus();
+  setTimeout(() => { inp.selectionStart = inp.selectionEnd = inp.value.length; }, 10);
+}
+
+// Init chat widget (creează FAB + panel în DOM)
+(function aiChatInit(){
+  aiChatLoad();
+  const fab = document.createElement('button');
+  fab.id = 'aiChatFab';
+  fab.title = 'Asistent AI (chat conversațional)';
+  fab.innerHTML = '💬';
+  fab.onclick = aiChatToggle;
+  document.body.appendChild(fab);
+
+  const panel = document.createElement('div');
+  panel.id = 'aiChatPanel';
+  panel.innerHTML = `
+    <div class="aichat-hdr">
+      <div class="aichat-hdr-title">💬 Asistent AI · crypto events</div>
+      <div class="aichat-hdr-actions">
+        <button class="aichat-hdr-btn" onclick="aiChatClear()" title="Șterge istoric">🗑️</button>
+        <button class="aichat-hdr-btn" onclick="aiChatToggle()" title="Închide">✕</button>
+      </div>
+    </div>
+    <div class="aichat-body" id="aiChatBody"></div>
+    <div class="aichat-cmds">
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/wl')">/wl</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/sel')">/sel</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/movers')">/movers</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/funding')">/funding</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/oi')">/oi</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/buy ')">/buy</span>
+      <span class="aichat-cmd" onclick="aiChatQuickCmd('/clear')">/clear</span>
+    </div>
+    <div class="aichat-input-row">
+      <textarea id="aiChatInput" class="aichat-input" placeholder="Întreabă orice... (Enter trimite, Shift+Enter linie nouă)" rows="1"></textarea>
+      <button id="aiChatSendBtn" class="aichat-send" onclick="aiChatSend()">▶</button>
+    </div>
+  `;
+  document.body.appendChild(panel);
+
+  const inp = document.getElementById('aiChatInput');
+  inp.addEventListener('input', () => { inp.style.height = 'auto'; inp.style.height = Math.min(120, inp.scrollHeight) + 'px'; });
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiChatSend(); } });
+})();
 
 // Pornire
 (async () => {
