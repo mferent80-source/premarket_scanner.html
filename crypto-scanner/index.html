@@ -1353,7 +1353,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v61</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v62</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -4148,7 +4148,7 @@ function setSetupsFilter(f){ setupsFilter = f; renderSetups(); }
 // ── PREMIUM FILTERS — praguri configurabile pentru "high conviction" ──
 // Persistare în localStorage['premium_filters']. Default = standard "perfect storm" thresholds.
 let premiumFilters = {
-  minConviction: 85,    // bump 75 → 85 (high conviction de elită)
+  minConviction: 75,    // revertit din 85 la 75 (default original) — investigare freeze
   minVolRatio: 1.5,
   minRR: 2.0,
   rsiMin: 40, rsiMax: 65,
@@ -4518,9 +4518,9 @@ function renderSetups(){
   else if(setupsFilter === 'breakout')  filtered = enriched.filter(o => o.range24pct >= 8 && o.chg24 >= 2);
   else if(setupsFilter === 'oversold')  filtered = enriched.filter(o => o.rsi <= 35);
 
-  // Min Score filter (din Control Panel — default 65)
-  const minScore = getMinScore();
-  filtered = filtered.filter(o => (o.convictionScore || 0) >= minScore);
+  // (Min Score filter dezactivat temporar — cauza freeze pe scan, investigare în curs)
+  // const minScore = getMinScore();
+  // filtered = filtered.filter(o => (o.convictionScore || 0) >= minScore);
 
   // Sortare: convictionScore desc, watchlist priority
   const wlCoins = (document.getElementById('watchlistInp')?.value || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
@@ -4531,8 +4531,8 @@ function renderSetups(){
     return b.convictionScore - a.convictionScore;
   });
 
-  // Max signals limit (din Control Panel — default 15)
-  filtered = filtered.slice(0, getMaxSignals());
+  // (Max signals temporar revertit la 30 — investigare freeze)
+  filtered = filtered.slice(0, 30);
 
   // Counts pentru badge-uri
   const cntAll = enriched.length;
@@ -4762,12 +4762,11 @@ function renderSignals(){
   // Confluence scores
   const confScores=calcConfluenceScores(source);
 
-  // Min Score filter (din Control Panel — default 65). Aplicăm pe strength (signal score 0-100).
-  // Skip pentru istoric ca să rămâne complet logul.
-  if (currentTab !== 'history') {
-    const _minScore = getMinScore();
-    if (_minScore > 0) source = source.filter(s => (s.strength || 0) >= _minScore);
-  }
+  // (Min Score filter dezactivat temporar — cauza freeze pe scan)
+  // if (currentTab !== 'history') {
+  //   const _minScore = getMinScore();
+  //   if (_minScore > 0) source = source.filter(s => (s.strength || 0) >= _minScore);
+  // }
 
   // Sort default = strength desc (cel mai bun scor primul)
   const sortVal=(document.getElementById('sortSelect')||{}).value||'strength';
@@ -4796,7 +4795,7 @@ function renderSignals(){
   const strengthColor=s=>s>=80?'#059669':s>=60?'#d97706':'#64748b';
   const priorityClass=p=>p==='high'?'priority-high':p==='med'?'priority-med':'';
 
-  container.innerHTML=`<div class="signals-grid">${source.slice(0, currentTab === 'history' ? 40 : getMaxSignals()).map(s=>{
+  container.innerHTML=`<div class="signals-grid">${source.slice(0,40).map(s=>{
     const chgStr=(s.chg>=0?'+':'')+s.chg.toFixed(2)+'%';
     const m=s.metrics||{};
     const ago=timeAgo(s.time);
