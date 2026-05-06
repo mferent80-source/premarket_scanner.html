@@ -326,12 +326,59 @@
 .sent-sub.up { color: var(--bull-s); font-weight: 700; }
 .sent-sub.down { color: var(--bear-s); font-weight: 700; }
 
-/* Grid 3 coloane: Watchlist + Earnings + Top Losers side-by-side */
-.events-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px}
+/* === Watchlist ABOVE, Earnings + Top Losers side-by-side === */
+.events-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
 .events-grid > section{margin-bottom:0;min-width:0}
-/* Pe desktop normal (1024-1280px) păstrăm 3 coloane cu tabele și mai compacte */
 @media (max-width:760px){
   .events-grid{grid-template-columns:1fr;gap:14px}
+}
+
+/* === Watchlist grid horizontal: simboluri în celule mici, ~4 rânduri pe desktop === */
+.wl-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(170px, 1fr));
+  gap:0;
+  background:var(--bg);
+  border-radius:var(--radius-sm);
+  border:1px solid var(--border-soft);
+  overflow:hidden;
+  max-height:600px;overflow-y:auto;
+}
+.wl-cell{
+  display:grid;
+  grid-template-columns:auto auto 1fr auto auto;
+  gap:6px;
+  align-items:center;
+  padding:5px 8px;
+  border-right:1px solid var(--border-soft);
+  border-bottom:1px solid var(--border-soft);
+  font-size:11.5px;
+  white-space:nowrap;
+  min-width:0;
+}
+.wl-cell:hover{background:rgba(91,176,255,.04)}
+.wl-cell.wl-tr-selected{background:rgba(137,87,229,.12)}
+.wl-cell .sym{color:var(--accent);font-weight:700;font-family:monospace;font-size:12px;letter-spacing:.3px}
+.wl-cell .num{font-variant-numeric:tabular-nums;text-align:right;font-size:11px}
+.wl-cell .num.pos{color:var(--bull-s);font-weight:700}
+.wl-cell .num.neg{color:var(--bear-s);font-weight:700}
+.wl-cell .wl-actions{display:flex;gap:3px}
+.wl-cell .btn-row{padding:1px 5px;font-size:10px;line-height:1.4}
+.wl-cell .wl-chk{margin:0}
+/* Group headers ca rânduri pline care întrerup gridul */
+.wl-grp-row{
+  grid-column:1 / -1;
+  padding:5px 10px;
+  font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;
+  background:rgba(20,26,40,.6);border-bottom:1px solid var(--border);
+  color:var(--muted);
+}
+.wl-grp-row.wl-grp-gainers{color:var(--bull-s)}
+.wl-grp-row.wl-grp-losers{color:var(--bear-s)}
+.wl-grp-row.wl-grp-flat{color:var(--muted)}
+.wl-grid-empty{
+  grid-column:1 / -1;
+  padding:24px;text-align:center;color:var(--muted);font-size:12px;font-style:italic;
 }
 
 /* Earnings collapse */
@@ -362,8 +409,6 @@
   #loserTable th:nth-child(8),#loserTable td:nth-child(8),
   #loserTable th:nth-child(9),#loserTable td:nth-child(9),
   #loserTable th:nth-child(11),#loserTable td:nth-child(11){display:none}
-  /* Watchlist: ascunde Volum */
-  #wlTable th:nth-child(5),#wlTable td:nth-child(5){display:none}
 }
 
 /* Butoane pe row (👁️ watchlist add + 🤖 AI) — compacte */
@@ -520,27 +565,12 @@
 .wl-group-toggle{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:10px;color:#8b949e}
 .wl-group-toggle input[type=checkbox]{cursor:pointer;accent-color:#1f6feb;width:12px;height:12px}
 
-/* Tabel watchlist (în loc de carduri) — same compact-table styling ca earnings/losers */
-#wlTable .sym{color:#58a6ff;font-weight:700;font-family:monospace;font-size:11.5px}
-#wlTable .num.pos{color:#3fb950;font-weight:700}
-#wlTable .num.neg{color:#ff6b6b;font-weight:700}
-#wlTable td{vertical-align:middle}
+/* Watchlist row hover/selected (selectoarele specifice celulelor sunt definite mai sus în .wl-cell) */
 .wl-chk{width:14px;height:14px;cursor:pointer;accent-color:#8957e5;margin:0}
-.wl-tr:hover td{background:#1c2128}
-.wl-tr-selected td{background:rgba(137,87,229,.12)}
 .btn-row-wl-ai{color:#d2a8ff}
 .btn-row-wl-ai:hover{background:#8957e520;border-color:#8957e5}
 .btn-row-wl-del{color:#ff6b6b}
 .btn-row-wl-del:hover{background:#3d1418;border-color:#5c1d23}
-
-/* Group rows in tabel (când wlGroup e ON) */
-.wl-grp-row td{
-  font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
-  padding:6px 8px !important;
-}
-.wl-grp-gainers td{background:rgba(63,185,80,.10);color:#3fb950;border-left:3px solid #3fb950}
-.wl-grp-losers td{background:rgba(255,107,107,.10);color:#ff6b6b;border-left:3px solid #ff6b6b}
-.wl-grp-flat td{background:rgba(139,148,158,.08);color:#8b949e;border-left:3px solid #6e7681}
 
 /* Chat AI flotant (FAB + panel) */
 #aiChatFab{
@@ -625,13 +655,10 @@
   </div>
 </section>
 
-<!-- Grid 3 coloane: Watchlist + Earnings + Top Losers side-by-side (stack pe mobile) -->
-<div class="events-grid">
-
 <!-- ============================================== -->
-<!-- WATCHLIST PERSONAL — tabel similar cu earnings/losers -->
+<!-- WATCHLIST PERSONAL — full-width deasupra, simboluri în grid orizontal -->
 <!-- ============================================== -->
-<section class="section-watchlist section" id="wlSection">
+<section class="section-watchlist section" id="wlSection" style="margin-bottom:12px;">
   <h2 onclick="toggleSection('wlSection')"><span class="collapse-arrow">▼</span> 👁️ WATCHLIST <span id="wlBadge" class="badge">-</span></h2>
   <div class="wl-add-row">
     <input id="wlAddInp" type="text" placeholder="Simbol..." maxlength="6"
@@ -667,22 +694,12 @@
 
   <div id="wlStatus" class="status" style="display:none">—</div>
 
-  <div class="table-wrap compact-table">
-    <table id="wlTable">
-      <thead>
-        <tr>
-          <th style="width:24px"></th>
-          <th>Simbol</th>
-          <th class="num">Preț</th>
-          <th class="num">Schimb %</th>
-          <th class="num">Vol</th>
-          <th>Acț.</th>
-        </tr>
-      </thead>
-      <tbody id="wlTbody"></tbody>
-    </table>
-  </div>
+  <!-- Container grid orizontal cu celule de simboluri (auto-fill ~170px → ~6-8 col pe desktop, ~4 rânduri pentru 30 simboluri) -->
+  <div id="wlTbody" class="wl-grid"></div>
 </section>
+
+<!-- Grid 2 coloane: Earnings + Top Losers side-by-side (stack pe mobile) -->
+<div class="events-grid">
 
 <!-- ============================================== -->
 <!-- TABEL 1: EARNINGS COMING UP - DIN TOATĂ PIAȚA  -->
@@ -1982,17 +1999,18 @@ function _wlRowHtml(w){
   }).replace(/'/g, "&apos;");
   const checked = wlSelected.has(w.symbol) ? 'checked' : '';
   const trCls = wlSelected.has(w.symbol) ? ' wl-tr-selected' : '';
-  return `<tr class="wl-tr${trCls}">
-    <td><input type="checkbox" class="wl-chk" ${checked} onchange="wlToggleSelect('${w.symbol}')" title="Comparație AI"></td>
-    <td><span class="sym">${w.symbol}</span></td>
-    <td class="num">${priceStr}</td>
-    <td class="num ${pctCls}">${pctStr}</td>
-    <td class="num">${volStr}</td>
-    <td>
+  // Grid cell layout: chk · SYM · price · %change · [AI][✕]
+  // Volumul a fost scos pentru compactare (rămâne disponibil în refresh background)
+  return `<div class="wl-cell wl-tr${trCls}" data-sym="${w.symbol}">
+    <input type="checkbox" class="wl-chk" ${checked} onchange="wlToggleSelect('${w.symbol}')" title="Comparație AI">
+    <span class="sym">${w.symbol}</span>
+    <span class="num">${priceStr}</span>
+    <span class="num ${pctCls}">${pctStr}</span>
+    <span class="wl-actions">
       <button class="btn-row btn-row-wl-ai" onclick='aiAnalyzeRow("watchlist", ${aiData})' title="AI">🤖</button>
       <button class="btn-row btn-row-wl-del" onclick='wlRemove("${w.symbol}")' title="Șterge">✕</button>
-    </td>
-  </tr>`;
+    </span>
+  </div>`;
 }
 
 function wlRender(){
@@ -2007,22 +2025,22 @@ function wlRender(){
   const gc = document.getElementById('wlGroupChk'); if (gc) gc.checked = wlGroup;
 
   if (!watchlist.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">📋 Niciun simbol. Adaugă manual sau apasă 👁️ în Earnings / Top Losers.</td></tr>';
+    tbody.innerHTML = '<div class="wl-grid-empty">📋 Niciun simbol. Adaugă manual sau apasă 👁️ în Earnings / Top Losers.</div>';
     return;
   }
 
   const filtered = watchlist.filter(wlMatchesFilter);
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty">🔍 Niciun simbol nu corespunde filtrului „' + wlFilter + '".</td></tr>';
+    tbody.innerHTML = '<div class="wl-grid-empty">🔍 Niciun simbol nu corespunde filtrului „' + wlFilter + '".</div>';
     return;
   }
 
   if (wlGroup) {
     const gainers = wlSorted(filtered.filter(w => (w.changePct ?? 0) > 0.5));
-    const flat = wlSorted(filtered.filter(w => Math.abs(w.changePct ?? 0) <= 0.5));
-    const losers = wlSorted(filtered.filter(w => (w.changePct ?? 0) < -0.5));
+    const flat    = wlSorted(filtered.filter(w => Math.abs(w.changePct ?? 0) <= 0.5));
+    const losers  = wlSorted(filtered.filter(w => (w.changePct ?? 0) < -0.5));
     let html = '';
-    const grpRow = (cls, label, count) => `<tr class="wl-grp-row ${cls}"><td colspan="6">${label} (${count})</td></tr>`;
+    const grpRow = (cls, label, count) => `<div class="wl-grp-row ${cls}">${label} (${count})</div>`;
     if (gainers.length) html += grpRow('wl-grp-gainers', '📈 Câștigători', gainers.length) + gainers.map(_wlRowHtml).join('');
     if (flat.length)    html += grpRow('wl-grp-flat', '➖ Stabili', flat.length) + flat.map(_wlRowHtml).join('');
     if (losers.length)  html += grpRow('wl-grp-losers', '📉 Pierdători', losers.length) + losers.map(_wlRowHtml).join('');
