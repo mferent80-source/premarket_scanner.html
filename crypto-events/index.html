@@ -639,6 +639,58 @@
   @keyframes cwPulseUp  {50%{box-shadow:inset 0 0 0 1px var(--bull-s)}}
   @keyframes cwPulseDown{50%{box-shadow:inset 0 0 0 1px var(--bear-s)}}
 
+  /* === Global search bar (în topbar) === */
+  .global-search{
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    padding:5px 10px; border-radius:var(--radius-sm); font-size:11px;
+    min-width:140px; max-width:220px; outline:none; font-family:inherit;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .global-search:focus{border-color:var(--accent2); box-shadow:0 0 0 3px rgba(139,111,255,.18)}
+  .global-search::placeholder{color:var(--muted)}
+
+  /* Cheatsheet keyboard shortcuts (modal compact) */
+  .shortcuts-grid{display:grid; grid-template-columns:auto 1fr; gap:6px 14px; font-size:12px}
+  .shortcuts-grid kbd{
+    background:var(--panel2); border:1px solid var(--border); border-radius:4px;
+    padding:2px 7px; font-family:monospace; font-size:10.5px; color:var(--accent);
+    min-width:28px; text-align:center; display:inline-block;
+  }
+  .shortcuts-grid .desc{color:var(--text); font-size:11.5px}
+
+  /* AI presets — chips în chat panel */
+  .ai-presets{
+    padding:6px 10px; background:var(--panel); border-top:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+    display:flex; gap:5px; flex-wrap:wrap;
+  }
+  .ai-preset-btn{
+    background:linear-gradient(135deg, rgba(91,176,255,.15), rgba(139,111,255,.15));
+    border:1px solid var(--border); color:var(--accent);
+    padding:3px 9px; border-radius:12px; font-size:10.5px; font-weight:700;
+    cursor:pointer; font-family:inherit;
+    transition:all .12s var(--ease);
+  }
+  .ai-preset-btn:hover{filter:brightness(1.2); border-color:var(--accent2)}
+
+  /* Saved analyses list */
+  .saved-list{display:flex; flex-direction:column; gap:5px; max-height:380px; overflow-y:auto; margin-bottom:10px}
+  .saved-row{
+    background:var(--bg); border:1px solid var(--border-soft); border-left:3px solid var(--accent2);
+    border-radius:5px; padding:8px 11px; font-size:11px;
+    cursor:pointer; transition:background .12s;
+  }
+  .saved-row:hover{background:var(--panel2)}
+  .saved-row .saved-meta{display:flex; gap:8px; align-items:center; font-size:10px; color:var(--muted); margin-bottom:3px}
+  .saved-row .saved-sym{color:var(--accent); font-weight:800; font-family:monospace}
+  .saved-row .saved-preview{color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .saved-row .saved-del{
+    float:right; background:transparent; border:none; color:var(--muted);
+    cursor:pointer; padding:0 5px; font-size:13px; font-family:inherit;
+  }
+  .saved-row .saved-del:hover{color:var(--bear-s)}
+  .saved-empty{padding:18px; text-align:center; color:var(--muted); font-size:11px; font-style:italic}
+
   /* === Position Sizer modal — form grid + result tile === */
   .sizer-form{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-bottom:14px}
   .sizer-form label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px; display:block}
@@ -727,6 +779,8 @@
   <button class="nav-link" onclick="showPositionSizer()" title="Position sizer pentru Pionex futures: calculează poziție, leverage, R/R">🧮 Sizer</button>
   <button class="nav-link" onclick="showAlertsModal()" title="Smart alerts: notificări custom pe schimb % / funding / OI">🔔 Alerte<span id="alertsBadge" style="display:none; margin-left:4px; background:var(--accent2); color:#fff; padding:0 5px; border-radius:8px; font-size:9px;">0</span></button>
   <button class="nav-link" onclick="showSyncModal()" title="Sync watchlist + alerte cross-device prin GitHub Gist">☁ Sync</button>
+  <button class="nav-link" onclick="showSavedAnalyses()" title="Analize AI salvate (📌)">📚 <span id="savedBadge" style="display:none;background:var(--accent2);color:#fff;padding:0 5px;border-radius:8px;font-size:9px;margin-left:3px">0</span></button>
+  <input class="global-search" id="globalSearch" type="search" placeholder="🔍 Caută BTC, ETH..." title="Filtrează cross-tabel (Esc clear, / focus chat)">
   <button id="aiKeyBtn" class="btn-ai-key" onclick="showAiKeyModal()" title="Configurează cheia Anthropic API pentru analize AI per simbol">🔑 AI Key</button>
   <button id="pause-btn" title="Pune pe pauză auto-refresh">⏸ Pauză</button>
   <button id="refresh-btn" class="primary">↻ Refresh</button>
@@ -3136,6 +3190,274 @@ async function gistPull() {
     status.innerHTML = '<span style="color:var(--bear-s)">❌ ' + e.message + '</span>';
   }
 }
+
+// ============================================================
+// PACHET D — UX polish: keyboard shortcuts + search + AI presets + saved
+// ============================================================
+
+// === Global search bar — filtrează rândurile vizibile cross-tabel ===
+function applyGlobalSearch(query) {
+  const q = (query || '').trim().toLowerCase();
+  // Selectăm toate rândurile potențiale: <tr> din tabele + .cw-cell din watchlist
+  const rows = document.querySelectorAll('tbody tr, .cw-cell');
+  rows.forEach(row => {
+    if (!q) { row.style.display = ''; return; }
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+(function searchInit(){
+  const inp = document.getElementById('globalSearch');
+  if (!inp) return;
+  inp.addEventListener('input', () => applyGlobalSearch(inp.value));
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { inp.value = ''; applyGlobalSearch(''); inp.blur(); }
+  });
+})();
+
+// === Keyboard shortcuts globale ===
+function showShortcutsCheatsheet() {
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:460px">
+      <div class="ai-modal-title">⌨️ Keyboard shortcuts</div>
+      <div class="ai-modal-sub">Funcționează când nu tastezi într-un input. Tastele single-key (fără Ctrl/Cmd).</div>
+      <div class="shortcuts-grid">
+        <kbd>/</kbd><span class="desc">Deschide chat AI și focus pe input</span>
+        <kbd>f</kbd><span class="desc">Focus pe search bar global</span>
+        <kbd>r</kbd><span class="desc">Refresh manual</span>
+        <kbd>p</kbd><span class="desc">Pause / Resume auto-refresh</span>
+        <kbd>c</kbd><span class="desc">Clear selecție (toate cele bifate)</span>
+        <kbd>s</kbd><span class="desc">Position Sizer</span>
+        <kbd>a</kbd><span class="desc">Smart Alerts</span>
+        <kbd>k</kbd><span class="desc">Configurare cheie AI</span>
+        <kbd>w</kbd><span class="desc">Toggle Watchlist (collapse/expand)</span>
+        <kbd>?</kbd><span class="desc">Acest cheatsheet</span>
+        <kbd>Esc</kbd><span class="desc">Închide modal / clear search</span>
+      </div>
+      <div class="ai-modal-actions">
+        <button class="primary" onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+
+document.addEventListener('keydown', (e) => {
+  // Skip dacă utilizatorul tastează într-un input/textarea/select sau țit Ctrl/Meta/Alt
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+  if (e.target.isContentEditable) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  // Și dacă e deschis un modal cu input focusat — Esc oricum funcționează nativ
+  switch (e.key) {
+    case '/':
+      e.preventDefault();
+      aiChatToggle();
+      setTimeout(() => document.getElementById('aiChatInput')?.focus(), 50);
+      break;
+    case 'f': case 'F':
+      e.preventDefault();
+      document.getElementById('globalSearch')?.focus();
+      break;
+    case 'r': case 'R':
+      e.preventDefault();
+      document.getElementById('refresh-btn')?.click();
+      break;
+    case 'p': case 'P':
+      e.preventDefault();
+      document.getElementById('pause-btn')?.click();
+      break;
+    case 'c': case 'C':
+      e.preventDefault();
+      cryptoClearSelection();
+      break;
+    case 's': case 'S':
+      e.preventDefault();
+      showPositionSizer();
+      break;
+    case 'a': case 'A':
+      e.preventDefault();
+      showAlertsModal();
+      break;
+    case 'k': case 'K':
+      e.preventDefault();
+      showAiKeyModal();
+      break;
+    case 'w': case 'W':
+      e.preventDefault();
+      cwToggleSection();
+      break;
+    case '?':
+      e.preventDefault();
+      showShortcutsCheatsheet();
+      break;
+    case 'Escape':
+      // Închide TOP modal vizibil (e suficient un querySelector pentru ultimul .ai-modal-bg)
+      const modals = document.querySelectorAll('.ai-modal-bg');
+      if (modals.length) modals[modals.length - 1].remove();
+      break;
+  }
+});
+
+// === AI Presets — chips în chat panel cu queries comune ===
+const CRYPTO_PRESETS = [
+  { label: '🚀 Top setups', q: 'Pe baza datelor LIVE (movers + funding + OI), dă-mi top 3 setup-uri pentru următoarele 4-12 ore (long sau short, cu ticker + entry/SL/TP). Fără introducere lungă, max 8 rânduri.' },
+  { label: '⚠ Funding warnings', q: 'Pe baza FUNDING extreme din context, identifică coin-urile cu cel mai mare risc de squeeze (long sau short) în 24h. Top 3 cu motivație concretă. Max 6 rânduri.' },
+  { label: '👁 WL health', q: 'Analizează rapid coin-urile din watchlist-ul meu. Pentru fiecare 1 rând: HOLD / TRIM / EXIT cu motivație scurtă. La final 1 rând recomandare globală.' },
+  { label: '🤖 Grid bot ideas', q: 'Pe baza coin-urilor cu range stabil din top 20 (volatil mediu, fără pump puternic recent), sugerează 2-3 grid bot configurații pentru Pionex: range low/high, step %, budget recomandat. Max 8 rânduri.' },
+  { label: '📊 Market vibe', q: 'Sintetizează în 4 rânduri starea pieței crypto ACUM (BTC.D direcție, F&G, total mcap trend, momentum 1h vs 24h). La final: "Bias: long / short / neutral".' },
+];
+
+function aiChatInsertPreset(text) {
+  const inp = document.getElementById('aiChatInput');
+  if (!inp) return;
+  inp.value = text;
+  // Trimitem direct
+  aiChatSend();
+}
+
+// Injectează preset chips în chat panel (între cmds și input)
+(function injectPresets(){
+  // Așteptăm ca panel-ul să fie creat de aiChatInit
+  setTimeout(() => {
+    const panel = document.getElementById('aiChatPanel');
+    if (!panel) return;
+    const cmdsRow = panel.querySelector('.aichat-cmds');
+    if (!cmdsRow) return;
+    const presets = document.createElement('div');
+    presets.className = 'ai-presets';
+    presets.innerHTML = CRYPTO_PRESETS.map(p =>
+      `<button class="ai-preset-btn" onclick='aiChatInsertPreset(${JSON.stringify(p.q)})'>${p.label}</button>`
+    ).join('');
+    // Inserăm înainte de cmds (deasupra slash-urilor)
+    cmdsRow.parentNode.insertBefore(presets, cmdsRow);
+  }, 100);
+})();
+
+// === Saved analyses — bookmark răspunsuri AI ===
+const SAVED_KEY = 'ce_saved_analyses';
+let savedAnalyses = [];
+
+function loadSaved(){ try { savedAnalyses = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch(_) { savedAnalyses = []; } }
+function saveSaved(){ try { localStorage.setItem(SAVED_KEY, JSON.stringify(savedAnalyses.slice(-100))); } catch(_) {} updateSavedBadge(); }
+function updateSavedBadge(){
+  const b = document.getElementById('savedBadge');
+  if (!b) return;
+  if (savedAnalyses.length > 0) { b.textContent = savedAnalyses.length; b.style.display = 'inline-block'; }
+  else b.style.display = 'none';
+}
+
+function saveAnalysis(meta) {
+  // meta = { type, sym, text, prompt }
+  savedAnalyses.unshift({ ...meta, ts: Date.now(), id: Math.random().toString(36).slice(2, 9) });
+  saveSaved();
+  showToast('📌 Analiză salvată', 'success');
+}
+
+function showSavedAnalyses() {
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:680px">
+      <div class="ai-modal-title">📚 Analize AI salvate</div>
+      <div class="ai-modal-sub">${savedAnalyses.length} salvate. Click pe o entry pentru detalii. Limita: 100.</div>
+      <div class="saved-list" id="savedList"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button onclick="if(confirm('Ștergi tot istoricul?')){savedAnalyses=[];saveSaved();showSavedAnalyses();this.closest('.ai-modal-bg').remove();}">🗑 Șterge tot</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  renderSavedList();
+}
+
+function renderSavedList() {
+  const list = document.getElementById('savedList');
+  if (!list) return;
+  if (!savedAnalyses.length) {
+    list.innerHTML = '<div class="saved-empty">📌 Nicio analiză salvată. Apasă „📌 Salvează" în pop-up-ul AI după o analiză.</div>';
+    return;
+  }
+  list.innerHTML = savedAnalyses.map(s => {
+    const date = new Date(s.ts).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const preview = (s.text || '').slice(0, 90).replace(/\n/g, ' ');
+    return `<div class="saved-row" onclick="viewSaved('${s.id}')">
+      <button class="saved-del" onclick="event.stopPropagation();deleteSaved('${s.id}')">✕</button>
+      <div class="saved-meta">
+        <span class="saved-sym">${s.sym || '—'}</span>
+        <span>${s.type || ''}</span>
+        <span>${date}</span>
+      </div>
+      <div class="saved-preview">${preview}${s.text && s.text.length > 90 ? '...' : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function viewSaved(id) {
+  const s = savedAnalyses.find(x => x.id === id);
+  if (!s) return;
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  const date = new Date(s.ts).toLocaleString('ro-RO');
+  ov.innerHTML = `
+    <div class="ai-modal">
+      <div class="ai-modal-title">📌 ${s.sym || 'Saved'} · ${s.type || ''}</div>
+      <div class="ai-modal-sub">${date}</div>
+      <div class="ai-modal-result">${(s.text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" onclick="navigator.clipboard.writeText(${JSON.stringify(s.text || '')}).then(()=>{this.textContent='✓ Copiat!';setTimeout(()=>this.textContent='📋 Copiază',1500)})">📋 Copiază</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+
+function deleteSaved(id) {
+  savedAnalyses = savedAnalyses.filter(s => s.id !== id);
+  saveSaved();
+  renderSavedList();
+}
+
+// Hook pe modal-urile AI (aiAnalyzeRow + aiCompareCrypto + autoScan): inserează un buton "📌 Salvează"
+// după ce rezultatul e populat. Folosim MutationObserver ca să detectăm când apare conținutul.
+(function hookAiSaveButton(){
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (!(node instanceof HTMLElement)) continue;
+        // Detectăm overlay-ul AI (.ai-modal-bg)
+        const modal = node.classList?.contains('ai-modal-bg') ? node : node.querySelector?.('.ai-modal-bg');
+        if (!modal) continue;
+        // Skip key modal + alerts modal + sizer modal — doar cele cu rezultat AI
+        const result = modal.querySelector('#aiResultArea, #aiCmpResult');
+        if (!result) continue;
+        const actionsRow = modal.querySelector('.ai-modal-actions');
+        if (!actionsRow || actionsRow.querySelector('.btn-save-analysis')) continue;
+        // Inserăm buton "📌 Salvează"
+        const titleEl = modal.querySelector('.ai-modal-title');
+        const symMatch = titleEl?.textContent.match(/[A-Z]{2,8}/);
+        const sym = symMatch?.[0] || '';
+        const typeText = titleEl?.textContent.replace(/🤖|📌|⚡|🚀|🔊|💸|📊/g, '').trim().slice(0, 40);
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn-save-analysis';
+        saveBtn.textContent = '📌 Salvează';
+        saveBtn.onclick = () => {
+          saveAnalysis({ type: typeText, sym, text: result.textContent });
+          saveBtn.textContent = '✓ Salvat';
+          saveBtn.disabled = true;
+        };
+        actionsRow.insertBefore(saveBtn, actionsRow.firstChild);
+      }
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: false });
+})();
+
+loadSaved();
+updateSavedBadge();
 
 // Pornire
 (async () => {
