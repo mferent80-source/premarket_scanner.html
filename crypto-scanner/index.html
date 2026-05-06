@@ -1067,6 +1067,48 @@ body.dark .empty-icon{opacity: .6}
 /* Subtitle în brand zone — ca panel-sub events */
 body.dark .brand{gap:8px !important}
 
+/* === Compact mode (toggle global) === */
+body.compact .macro-item{padding:8px 10px !important}
+body.compact .macro-val{font-size:18px !important}
+body.compact .td-section{padding:0 !important}
+body.compact .td-title{padding:7px 10px !important;font-size:11px !important}
+body.compact .td-list{padding:5px 9px !important}
+body.compact .signal-panel-body{padding:7px !important}
+body.compact .stats-card{padding:7px 10px !important}
+body.compact .stats-val{font-size:15px !important}
+body.compact .tab{padding:4px 8px !important;font-size:10px !important;margin-right:2px !important}
+body.compact .signal-panel-head{padding:7px 11px !important}
+
+/* === Notification log + voice + compact buttons */
+.notif-log-list{max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.notif-log-row{
+  background:var(--bg);border:1px solid var(--b1);border-left:3px solid var(--acc);
+  border-radius:5px;padding:7px 11px;font-size:11px;
+}
+.notif-log-row.success{border-left-color:var(--green)}
+.notif-log-row.warn{border-left-color:var(--gold)}
+.notif-log-row.error{border-left-color:var(--red)}
+.notif-log-row.tg{border-left-color:#0891b2}
+.notif-log-row .nl-meta{display:flex;gap:8px;font-size:9.5px;color:var(--t3);margin-bottom:3px}
+.notif-log-row .nl-type{font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.notif-log-row .nl-text{color:var(--t1);word-break:break-word}
+.notif-log-empty{padding:18px;text-align:center;color:var(--t3);font-size:11px;font-style:italic}
+
+/* Status state (active) pentru voice/compact buttons */
+body.dark .notif-btn.active{
+  background:linear-gradient(135deg,var(--green),var(--teal)) !important;
+  color:#000 !important;border-color:transparent !important;
+}
+
+/* === Smart Trade Pionex exporter button (per row) === */
+.btn-pionex-export{
+  background:rgba(8,145,178,.12);border:1px solid rgba(8,145,178,.4);color:#0891b2;
+  padding:3px 9px;border-radius:5px;font-size:10px;font-weight:700;
+  cursor:pointer;transition:all .12s;font-family:inherit;
+}
+.btn-pionex-export:hover{background:rgba(8,145,178,.20);border-color:#0891b2}
+body.dark .btn-pionex-export{color:#22d3ee;border-color:rgba(34,211,238,.35)}
+
 /* === Ver-badge: număr de versiune lângă logo (manual bump la fiecare commit) === */
 .ver-badge{
   display:inline-block;font-size:.55rem;font-weight:700;letter-spacing:.5px;
@@ -1167,7 +1209,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v49</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v50</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -1182,6 +1224,9 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
     <div class="notif-btn" id="notifBtn" onclick="requestNotif()">🔔 Notificări</div>
     <div class="notif-btn" id="tgBtn" onclick="showTelegramModal()" style="cursor:pointer" title="Configurează Telegram pentru alerte">📱 Telegram</div>
     <div class="notif-btn" onclick="showApiKeyModal()" style="cursor:pointer" title="Configurează cheia Anthropic API pentru analiza AI">🔑 API Key</div>
+    <div class="notif-btn" id="notifLogBtn" onclick="showNotifLog()" title="Istoric notificări (toast/Telegram/sound)">📜 Log<span id="notifLogBadge" style="display:none;background:var(--purple);color:#fff;padding:0 5px;border-radius:8px;font-size:9px;margin-left:3px">0</span></div>
+    <div class="notif-btn" id="voiceBtn" onclick="toggleVoiceAlerts()" title="Voice alerts: TTS pentru semnale Premium/Hot">🔊 Voice</div>
+    <div class="notif-btn" id="compactBtn" onclick="toggleCompactMode()" title="Compact mode: padding redus + font mic">⚙️ Compact</div>
     <div class="notif-btn" id="infoBtn" onclick="showInfoModal()" style="cursor:pointer" title="Ghid + Tips + Changelog">ℹ️ Info</div>
     <div class="notif-btn" id="gistSyncBtn" onclick="showGistModal()" style="cursor:pointer" title="GitHub Gist sync — sincronizează watchlist + setări + API key cross-device">🔄 Sync</div>
     <div class="notif-btn" onclick="showBackupModal()" style="cursor:pointer" title="Backup config + watchlist + alerte (Export / Import / Restore)">💾 Backup</div>
@@ -10100,6 +10145,181 @@ function aiChatQuickCmdC(cmd){
   });
 })();
 // ═══════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════
+// PACHET F1 — Compact mode + Voice alerts + Notification log + Pionex exporter
+// ════════════════════════════════════════════════════════════════
+
+// === COMPACT MODE: toggle global (padding/font redus) ===
+function toggleCompactMode() {
+  const isCompact = document.body.classList.toggle('compact');
+  try { localStorage.setItem('cs_compact', isCompact ? '1' : '0'); } catch(_) {}
+  const b = document.getElementById('compactBtn');
+  if (b) b.classList.toggle('active', isCompact);
+  if (typeof showToast === 'function') showToast(isCompact ? '✓ Compact mode ON' : '✓ Mod normal', 'ok');
+}
+// Restaurează preferință la load
+(function initCompact(){
+  try { if (localStorage.getItem('cs_compact') === '1') {
+    document.body.classList.add('compact');
+    const b = document.getElementById('compactBtn');
+    if (b) b.classList.add('active');
+  } } catch(_) {}
+})();
+
+// === VOICE ALERTS (Web Speech API) ===
+let voiceAlertsEnabled = false;
+try { voiceAlertsEnabled = localStorage.getItem('cs_voice') === '1'; } catch(_) {}
+
+function toggleVoiceAlerts() {
+  voiceAlertsEnabled = !voiceAlertsEnabled;
+  try { localStorage.setItem('cs_voice', voiceAlertsEnabled ? '1' : '0'); } catch(_) {}
+  const b = document.getElementById('voiceBtn');
+  if (b) b.classList.toggle('active', voiceAlertsEnabled);
+  if (voiceAlertsEnabled) {
+    speakAlert('Alerte voce active');
+    if (typeof showToast === 'function') showToast('🔊 Voice alerts ON', 'ok');
+  } else {
+    if (typeof showToast === 'function') showToast('🔊 Voice alerts OFF', 'warn');
+  }
+}
+
+function speakAlert(text) {
+  if (!voiceAlertsEnabled) return;
+  if (!('speechSynthesis' in window)) return;
+  try {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ro-RO';
+    u.rate = 1.05;
+    u.pitch = 1;
+    u.volume = 0.85;
+    window.speechSynthesis.cancel();   // anulează utterance-uri în coadă
+    window.speechSynthesis.speak(u);
+  } catch (_) {}
+}
+
+// Init buton voice cu starea persistată
+(function initVoice(){
+  const b = document.getElementById('voiceBtn');
+  if (b && voiceAlertsEnabled) b.classList.add('active');
+})();
+
+// === NOTIFICATION LOG ===
+const NOTIF_LOG_KEY = 'cs_notif_log';
+const NOTIF_LOG_MAX = 200;
+let notifLog = [];
+try { notifLog = JSON.parse(localStorage.getItem(NOTIF_LOG_KEY) || '[]'); } catch(_) {}
+
+function logNotification(type, text, source) {
+  notifLog.unshift({ type, text, source: source || 'app', ts: Date.now() });
+  notifLog = notifLog.slice(0, NOTIF_LOG_MAX);
+  try { localStorage.setItem(NOTIF_LOG_KEY, JSON.stringify(notifLog)); } catch(_) {}
+  updateNotifLogBadge();
+  // Voice pentru tipuri high-priority
+  if (voiceAlertsEnabled && (type === 'success' || type === 'premium' || type === 'hot' || source === 'tg')) {
+    // Speak prima parte a textului ca să nu fie prea lung
+    const short = text.replace(/[🚀🟢🟡🔴⚡🔥💎📊🎯]/g, '').trim().slice(0, 80);
+    if (short) speakAlert(short);
+  }
+}
+
+function updateNotifLogBadge() {
+  const b = document.getElementById('notifLogBadge');
+  if (!b) return;
+  const recent = notifLog.filter(n => Date.now() - n.ts < 30 * 60_000).length;
+  if (recent > 0) { b.textContent = recent; b.style.display = 'inline-block'; }
+  else b.style.display = 'none';
+}
+
+function showNotifLog() {
+  let modal = document.querySelector('.notif-log-modal-bg');
+  if (modal) modal.remove();
+  modal = document.createElement('div');
+  modal.className = 'ai-modal-bg notif-log-modal-bg';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  modal.innerHTML = `
+    <div class="ai-modal" style="max-width:680px">
+      <div class="ai-modal-title">📜 Istoric notificări</div>
+      <div class="ai-modal-sub">${notifLog.length} entries (max ${NOTIF_LOG_MAX}). Cele <30 min apar în badge sus.</div>
+      <div class="notif-log-list" id="notifLogList"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button onclick="if(confirm('Ștergi tot logul?')){notifLog=[];localStorage.removeItem('cs_notif_log');updateNotifLogBadge();this.closest('.ai-modal-bg').remove();}">🗑 Clear all</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  renderNotifLogList();
+}
+
+function renderNotifLogList() {
+  const list = document.getElementById('notifLogList');
+  if (!list) return;
+  if (!notifLog.length) {
+    list.innerHTML = '<div class="notif-log-empty">📭 Niciun notif încă. Toast-uri și alerte Telegram vor apărea aici.</div>';
+    return;
+  }
+  list.innerHTML = notifLog.map(n => {
+    const date = new Date(n.ts).toLocaleString('ro-RO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    const cls = (n.type === 'success' || n.type === 'ok') ? 'success'
+              : (n.type === 'warn') ? 'warn'
+              : (n.type === 'error' || n.type === 'err') ? 'error'
+              : (n.source === 'tg') ? 'tg' : '';
+    const safe = String(n.text || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<div class="notif-log-row ${cls}">
+      <div class="nl-meta">
+        <span class="nl-type">${n.source || 'app'} · ${n.type}</span>
+        <span>${date}</span>
+      </div>
+      <div class="nl-text">${safe}</div>
+    </div>`;
+  }).join('');
+}
+
+// === Hook pe showToast pentru a loga AUTOMAT toate toast-urile ===
+(function hookShowToast(){
+  if (typeof showToast !== 'function') return;
+  const _origShowToast = showToast;
+  // Reasignment: function declaration in strict-ish mode this works
+  showToast = function(msg, type) {
+    _origShowToast(msg, type);
+    try { logNotification(type || 'info', msg, 'toast'); } catch(_) {}
+  };
+})();
+
+updateNotifLogBadge();
+// Refresh badge la fiecare minut (entries devin "old" trecând de 30 min)
+setInterval(updateNotifLogBadge, 60_000);
+
+// === SMART TRADE / GRID PIONEX EXPORTER ===
+// Generează un text formatat pentru paste în Pionex Smart Trade sau Grid Bot
+function exportPionexConfig(coin, type, opts) {
+  // opts: {entry, tp1, tp2, tp3, sl, leverage, side, range_low, range_high, grids, budget}
+  let cfg = '';
+  const stamp = new Date().toLocaleString('ro-RO');
+  if (type === 'smart-trade' || type === 'st') {
+    cfg = `📊 PIONEX SMART TRADE · ${coin} ${(opts.side||'LONG').toUpperCase()}\n`
+        + `Generat: ${stamp}\n`
+        + (opts.entry ? `Entry: $${(+opts.entry).toFixed(opts.entry < 1 ? 6 : 2)}\n` : '')
+        + (opts.tp1   ? `TP1:   $${(+opts.tp1).toFixed(opts.tp1 < 1 ? 6 : 2)}\n` : '')
+        + (opts.tp2   ? `TP2:   $${(+opts.tp2).toFixed(opts.tp2 < 1 ? 6 : 2)}\n` : '')
+        + (opts.tp3   ? `TP3:   $${(+opts.tp3).toFixed(opts.tp3 < 1 ? 6 : 2)}\n` : '')
+        + (opts.sl    ? `SL:    $${(+opts.sl).toFixed(opts.sl < 1 ? 6 : 2)}\n` : '')
+        + (opts.leverage ? `Lev:   ${opts.leverage}×\n` : '')
+        + (opts.position ? `Size:  ${opts.position}` : '');
+  } else if (type === 'grid') {
+    cfg = `🤖 PIONEX GRID BOT · ${coin}\n`
+        + `Generat: ${stamp}\n`
+        + (opts.range_low  ? `Range LOW:  $${opts.range_low}\n` : '')
+        + (opts.range_high ? `Range HIGH: $${opts.range_high}\n` : '')
+        + (opts.grids      ? `Grids:      ${opts.grids}\n` : '')
+        + (opts.budget     ? `Budget:     $${opts.budget}` : '');
+  }
+  navigator.clipboard.writeText(cfg).then(() => {
+    if (typeof showToast === 'function') showToast(`📋 Config Pionex copiat (${coin})`, 'ok');
+  }).catch(() => {
+    if (typeof showToast === 'function') showToast('❌ Clipboard blocat', 'err');
+  });
+}
 
 </script>
 
