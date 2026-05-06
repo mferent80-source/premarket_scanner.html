@@ -691,6 +691,41 @@
   .saved-row .saved-del:hover{color:var(--bear-s)}
   .saved-empty{padding:18px; text-align:center; color:var(--muted); font-size:11px; font-style:italic}
 
+  /* WebSocket live indicator în topbar (când e conectat) */
+  .ws-indicator{
+    display:none; align-items:center; gap:5px;
+    background:rgba(34,214,107,.12); border:1px solid var(--bull-s);
+    color:var(--bull-s); padding:4px 9px; border-radius:6px;
+    font-size:10.5px; font-weight:700;
+  }
+  .ws-indicator.show{display:inline-flex}
+  .ws-indicator .ws-dot{
+    width:6px; height:6px; border-radius:50%; background:var(--bull-s);
+    box-shadow:0 0 5px var(--bull-s); animation:wsPulse 1.5s infinite;
+  }
+  @keyframes wsPulse{50%{opacity:.4}}
+
+  /* Liquidations heatmap — bară orizontală agregată per coin */
+  .liq-heatmap{padding:8px 12px; display:flex; flex-direction:column; gap:4px}
+  .liq-heat-row{display:grid; grid-template-columns:50px 1fr auto; gap:8px; align-items:center; font-size:11px}
+  .liq-heat-row .sym{font-weight:700; font-family:monospace; color:var(--accent)}
+  .liq-heat-row .bar{
+    height:14px; border-radius:3px;
+    background:linear-gradient(90deg, var(--bear-s) 0%, var(--warn) 100%);
+    position:relative;
+  }
+  .liq-heat-row .val{font-variant-numeric:tabular-nums; color:var(--text); font-weight:700; text-align:right; min-width:60px}
+  .liq-heat-row .meta{font-size:9.5px; color:var(--muted); position:absolute; left:6px; top:50%; transform:translateY(-50%)}
+
+  /* Grid bot calculator (modal compact) */
+  .gridbot-form{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-bottom:14px}
+  .gridbot-form label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px; display:block}
+  .gridbot-form input, .gridbot-form select{
+    width:100%; padding:7px 9px; background:var(--bg); border:1px solid var(--border);
+    color:var(--text); border-radius:6px; font-size:12px; font-family:monospace; outline:none;
+  }
+  .gridbot-form input:focus, .gridbot-form select:focus{border-color:var(--accent); box-shadow:0 0 0 3px rgba(91,176,255,.15)}
+
   /* === Position Sizer modal — form grid + result tile === */
   .sizer-form{display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; margin-bottom:14px}
   .sizer-form label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px; display:block}
@@ -777,6 +812,8 @@
     </select>
   </span>
   <button class="nav-link" onclick="showPositionSizer()" title="Position sizer pentru Pionex futures: calculează poziție, leverage, R/R">🧮 Sizer</button>
+  <button class="nav-link" onclick="showGridBotCalc()" title="Grid Bot calculator Pionex: estimează ROI bazat pe range + step + budget">🤖 Grid</button>
+  <span class="ws-indicator" id="wsIndicator"><span class="ws-dot"></span><span>LIVE</span></span>
   <button class="nav-link" onclick="showAlertsModal()" title="Smart alerts: notificări custom pe schimb % / funding / OI">🔔 Alerte<span id="alertsBadge" style="display:none; margin-left:4px; background:var(--accent2); color:#fff; padding:0 5px; border-radius:8px; font-size:9px;">0</span></button>
   <button class="nav-link" onclick="showSyncModal()" title="Sync watchlist + alerte cross-device prin GitHub Gist">☁ Sync</button>
   <button class="nav-link" onclick="showSavedAnalyses()" title="Analize AI salvate (📌)">📚 <span id="savedBadge" style="display:none;background:var(--accent2);color:#fff;padding:0 5px;border-radius:8px;font-size:9px;margin-left:3px">0</span></button>
@@ -988,6 +1025,17 @@
       </tr></thead>
       <tbody id="liq-body"><tr class="skeleton-row"><td colspan="4"><span class="skeleton-bar"></span></td></tr></tbody>
     </table>
+  </div>
+</section>
+
+<!-- === Liquidations heatmap (agregat per coin din lista de liquidations) === -->
+<section class="panel-box" style="margin-bottom:10px;">
+  <div class="panel-head">
+    <span class="icon">🔥</span><h3>Liquidations heatmap</h3>
+    <span class="panel-sub">agregare USD per coin din top 12 (OKX SWAP)</span>
+  </div>
+  <div id="liq-heatmap" class="liq-heatmap">
+    <div class="empty">se încarcă…</div>
   </div>
 </section>
 
@@ -1635,6 +1683,7 @@ function renderLiquidations(rows) {
   const body = $('liq-body');
   if (!rows || !rows.length) {
     body.innerHTML = `<tr><td colspan="4" class="empty">fără date</td></tr>`;
+    renderLiqHeatmap([]);
     return;
   }
   body.innerHTML = rows.map(l => `
@@ -1645,6 +1694,47 @@ function renderLiquidations(rows) {
       <td class="num"><strong>${fmtCompact(l.usd_value)}</strong></td>
     </tr>
   `).join('');
+  renderLiqHeatmap(rows);
+}
+
+// Heatmap agregat per coin: total USD + count, bară de lățime relativă la max.
+function renderLiqHeatmap(rows) {
+  const wrap = document.getElementById('liq-heatmap');
+  if (!wrap) return;
+  if (!rows || !rows.length) { wrap.innerHTML = '<div class="empty">fără date</div>'; return; }
+
+  // Agregare per base symbol
+  const agg = new Map();   // base → { total, count, longs, shorts }
+  for (const r of rows) {
+    const a = agg.get(r.base) || { total: 0, count: 0, longs: 0, shorts: 0 };
+    a.total += r.usd_value;
+    a.count += 1;
+    if (r.side === 'long')  a.longs  += r.usd_value;
+    if (r.side === 'short') a.shorts += r.usd_value;
+    agg.set(r.base, a);
+  }
+
+  // Sort descrescător după total + max ca să normalizăm bara
+  const sorted = Array.from(agg.entries()).sort((a, b) => b[1].total - a[1].total);
+  const maxTotal = sorted[0][1].total;
+
+  wrap.innerHTML = sorted.map(([base, a]) => {
+    const widthPct = (a.total / maxTotal) * 100;
+    const longsPct  = a.total > 0 ? (a.longs / a.total) * 100 : 0;
+    const shortsPct = a.total > 0 ? (a.shorts / a.total) * 100 : 0;
+    // Color bias: more longs liquidated = redder; more shorts = greener
+    const dominantSide = a.longs > a.shorts ? 'long' : (a.shorts > a.longs ? 'short' : 'mixed');
+    const barBg = dominantSide === 'long'
+      ? 'linear-gradient(90deg, #ff4d4d, #d4892c)'
+      : (dominantSide === 'short' ? 'linear-gradient(90deg, #22d66b, #5bdcb0)' : 'linear-gradient(90deg, #8892a6, #2a3247)');
+    return `<div class="liq-heat-row">
+      <span class="sym">${base}</span>
+      <div class="bar" style="width:${widthPct.toFixed(1)}%; background:${barBg}">
+        <span class="meta">${a.count} lqd · ${longsPct.toFixed(0)}% L / ${shortsPct.toFixed(0)}% S</span>
+      </div>
+      <span class="val">${fmtCompact(a.total)}</span>
+    </div>`;
+  }).join('');
 }
 
 // === Refresh global === //
@@ -3458,6 +3548,200 @@ function deleteSaved(id) {
 
 loadSaved();
 updateSavedBadge();
+
+// ============================================================
+// PACHET E — WebSocket Binance live prices (throttled la 2s)
+// ============================================================
+let ws = null;
+let wsUpdateTimer = null;
+let wsLastUpdate = 0;
+
+function startBinanceWS() {
+  if (ws) try { ws.close(); } catch(_) {}
+  // Stream agregat cu TOATE ticker-urile spot (un singur connection vs 100 stream-uri)
+  // Documentație: https://binance-docs.github.io/apidocs/spot/en/#all-market-tickers-stream
+  try {
+    ws = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr');
+  } catch (e) {
+    console.warn('WebSocket nu poate fi inițializat', e);
+    return;
+  }
+  const ind = document.getElementById('wsIndicator');
+  ws.onopen = () => {
+    if (ind) ind.classList.add('show');
+    showToast('🔌 Live prices conectate (Binance WS)', 'success');
+  };
+  ws.onerror = () => {
+    if (ind) ind.classList.remove('show');
+  };
+  ws.onclose = () => {
+    if (ind) ind.classList.remove('show');
+    // Reconnect automat în 5s
+    setTimeout(startBinanceWS, 5000);
+  };
+  ws.onmessage = (event) => {
+    if (!cachedMarkets) return;
+    let tickers;
+    try { tickers = JSON.parse(event.data); } catch (_) { return; }
+    if (!Array.isArray(tickers)) return;
+
+    // Construim map de update-uri pentru perechile USDT
+    const updates = new Map();
+    for (const t of tickers) {
+      if (typeof t.s !== 'string' || !t.s.endsWith('USDT')) continue;
+      const base = t.s.replace(/USDT$/, '').toLowerCase();
+      const price = parseFloat(t.c);
+      const chg24 = parseFloat(t.P);
+      const vol   = parseFloat(t.q);   // quote volume (USDT)
+      if (!isNaN(price)) updates.set(base, { price, chg_24h: chg24, volume_24h: vol });
+    }
+
+    let any = false;
+    for (const c of cachedMarkets) {
+      const u = updates.get((c.symbol || '').toLowerCase());
+      if (u) {
+        c.price = u.price;
+        if (!isNaN(u.chg_24h))      c.chg_24h = u.chg_24h;
+        if (!isNaN(u.volume_24h))   c.volume_24h = u.volume_24h;
+        any = true;
+      }
+    }
+    if (!any) return;
+
+    // Throttle re-render: nu refacem DOM-ul mai des de o dată la 2 secunde
+    if (wsUpdateTimer) return;
+    const sinceLast = Date.now() - wsLastUpdate;
+    const delay = Math.max(2000 - sinceLast, 200);
+    wsUpdateTimer = setTimeout(() => {
+      renderMovers(cachedMarkets);
+      renderVolume(cachedMarkets);
+      wsLastUpdate = Date.now();
+      wsUpdateTimer = null;
+    }, delay);
+  };
+}
+
+// Start WS după ce avem cachedMarkets (după primul refreshAll)
+function maybeStartWS() {
+  if (ws || !cachedMarkets) return;
+  startBinanceWS();
+}
+
+// Hook pe renderMovers ca după primul render să pornim WS
+const _origRenderMoversForWS = renderMovers;
+renderMovers = function(coins) {
+  _origRenderMoversForWS(coins);
+  maybeStartWS();
+};
+
+// ============================================================
+// PACHET E — Grid Bot calculator (Pionex)
+// ============================================================
+function showGridBotCalc(prefillSym) {
+  const sym = (prefillSym || 'BTC').toUpperCase();
+  const f = cwFindCoinBySymbol(sym);
+  const currentPrice = f?.price ?? 0;
+  // Default range ±10% în jurul prețului curent
+  const defaultLow  = currentPrice ? (currentPrice * 0.90).toFixed(currentPrice < 1 ? 6 : 2) : '';
+  const defaultHigh = currentPrice ? (currentPrice * 1.10).toFixed(currentPrice < 1 ? 6 : 2) : '';
+
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:560px">
+      <div class="ai-modal-title">🤖 Grid Bot Calculator · Pionex</div>
+      <div class="ai-modal-sub">Estimează ROI-ul unui grid bot bazat pe range, număr de griduri și volatilitatea ta zilnică așteptată.</div>
+      <div class="gridbot-form">
+        <div><label>Simbol</label><input id="gbSym" type="text" value="${sym}" maxlength="10" style="text-transform:uppercase"></div>
+        <div><label>Preț curent ($)</label><input id="gbPrice" type="number" step="any" value="${currentPrice || ''}"></div>
+        <div><label>Range LOW ($)</label><input id="gbLow" type="number" step="any" value="${defaultLow}"></div>
+        <div><label>Range HIGH ($)</label><input id="gbHigh" type="number" step="any" value="${defaultHigh}"></div>
+        <div><label>Număr grids</label><input id="gbGrids" type="number" value="20" min="3" max="200"></div>
+        <div><label>Buget total ($)</label><input id="gbBudget" type="number" step="any" value="500"></div>
+        <div><label>Volat. zilnică așteptată (%)</label><input id="gbVol" type="number" step="any" value="3" min="0.1" max="50" title="Cât oscilează coin-ul mediu pe zi (high-low % din preț)"></div>
+        <div><label>Fees (%) round-trip</label><input id="gbFees" type="number" step="any" value="0.1" min="0" max="2"></div>
+      </div>
+      <div class="sizer-results" id="gbResults"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="gbCopyBtn">📋 Copy config</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  ['gbPrice','gbLow','gbHigh','gbGrids','gbBudget','gbVol','gbFees'].forEach(id => {
+    document.getElementById(id).addEventListener('input', gridBotCalc);
+  });
+  document.getElementById('gbCopyBtn').onclick = () => {
+    const md = gridBotMarkdown();
+    navigator.clipboard.writeText(md).then(() => {
+      const b = document.getElementById('gbCopyBtn');
+      b.textContent = '✓ Copiat!';
+      setTimeout(() => b.textContent = '📋 Copy config', 1500);
+    });
+  };
+  gridBotCalc();
+}
+
+function gridBotCalc() {
+  const price = parseFloat(document.getElementById('gbPrice').value);
+  const low = parseFloat(document.getElementById('gbLow').value);
+  const high = parseFloat(document.getElementById('gbHigh').value);
+  const grids = parseInt(document.getElementById('gbGrids').value);
+  const budget = parseFloat(document.getElementById('gbBudget').value);
+  const dailyVolPct = parseFloat(document.getElementById('gbVol').value);
+  const feesPct = parseFloat(document.getElementById('gbFees').value);
+  const out = document.getElementById('gbResults');
+
+  if (!price || !low || !high || !grids || !budget) {
+    out.innerHTML = '<div class="row" style="grid-column:1 / -1; color:var(--muted); font-style:italic;">Completează toate câmpurile.</div>';
+    return;
+  }
+  if (low >= high) { out.innerHTML = '<div class="sizer-warn" style="grid-column:1 / -1">⚠ LOW trebuie < HIGH</div>'; return; }
+  if (price < low || price > high) {
+    out.innerHTML = '<div class="sizer-warn" style="grid-column:1 / -1">⚠ Prețul curent e în afara range-ului — bot-ul nu va trada până nu intră în range</div>';
+  }
+
+  const rangePct = ((high - low) / low) * 100;
+  // Step % între griduri (pe scară aritmetică simplificată)
+  const stepPct = rangePct / grids;
+  // Profit per grid trade (round-trip) = step% - fees%
+  const profitPerGridPct = stepPct - feesPct;
+  // Câte trade-uri estimăm pe zi: oscilația zilnică / step% * 2 (down+up = 1 cycle complet)
+  const tradesPerDay = Math.max(0, (dailyVolPct / stepPct) * 1.5);   // factor 1.5 ca aproximare
+  // Profit zilnic (% din capital alocat per grid)
+  const capPerGrid = budget / grids;
+  const dailyProfitUsd = tradesPerDay * profitPerGridPct / 100 * capPerGrid * grids * 0.5;   // 0.5 pentru că nu toate grid-urile sunt active mereu
+  const dailyROI = (dailyProfitUsd / budget) * 100;
+  const monthlyROI = dailyROI * 30;
+  const yearlyROI = dailyROI * 365;
+
+  let warn = '';
+  if (profitPerGridPct <= 0) warn = '⚠ Step% < Fees% — pierzi bani! Crește range-ul sau redu numărul de grid-uri.';
+  if (stepPct < 0.15) warn += ' ⚠ Step% sub 0.15% — fee-urile mănâncă profitul. Mai puține grid-uri sau range mai larg.';
+
+  out.innerHTML = `
+    <div class="row"><span class="label">Range total</span><span class="val">${rangePct.toFixed(2)}%</span></div>
+    <div class="row"><span class="label">Step per grid</span><span class="val">${stepPct.toFixed(3)}%</span></div>
+    <div class="row"><span class="label">Profit / grid (net)</span><span class="val ${profitPerGridPct > 0 ? 'up' : 'down'}">${profitPerGridPct.toFixed(3)}%</span></div>
+    <div class="row"><span class="label">Capital / grid</span><span class="val">$${capPerGrid.toFixed(2)}</span></div>
+    <div class="row"><span class="label">Trade-uri estim. / zi</span><span class="val">${tradesPerDay.toFixed(1)}</span></div>
+    <div class="row"><span class="label">Profit estim. / zi</span><span class="val up">$${dailyProfitUsd.toFixed(2)} (${dailyROI.toFixed(2)}%)</span></div>
+    <div class="row"><span class="label">ROI / lună</span><span class="val up">${monthlyROI.toFixed(1)}%</span></div>
+    <div class="row"><span class="label">ROI / an (extrapolat)</span><span class="val up">${yearlyROI.toFixed(0)}%</span></div>
+  `;
+  if (warn) out.insertAdjacentHTML('beforeend', `<div class="sizer-warn" style="grid-column:1 / -1">${warn}</div>`);
+}
+
+function gridBotMarkdown() {
+  const sym = document.getElementById('gbSym').value.trim().toUpperCase();
+  const low = document.getElementById('gbLow').value;
+  const high = document.getElementById('gbHigh').value;
+  const grids = document.getElementById('gbGrids').value;
+  const budget = document.getElementById('gbBudget').value;
+  return `🤖 Grid Bot ${sym} (Pionex)\nRange $${low}–$${high} · ${grids} griduri\nBuget $${budget}`;
+}
 
 // Pornire
 (async () => {
