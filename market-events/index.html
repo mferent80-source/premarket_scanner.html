@@ -353,10 +353,10 @@
 .compact-table .btn-row{padding:1px 5px;font-size:10px}
 /* Pe ecrane înguste medium (760-1100px) ascundem coloane secundare ca să nu fie scroll */
 @media (min-width:761px) and (max-width:1100px){
-  /* Earnings: ascunde EPS Est, BMO/AMC, Sector, Mcap (păstrează doar esențial) */
-  #earnTable th:nth-child(5),#earnTable td:nth-child(5),
+  /* Earnings: ascunde EPS Est, BMO/AMC, Sector, Mcap (decalat cu 1 — coloană checkbox la start) */
   #earnTable th:nth-child(6),#earnTable td:nth-child(6),
-  #earnTable th:nth-child(11),#earnTable td:nth-child(11){display:none}
+  #earnTable th:nth-child(7),#earnTable td:nth-child(7),
+  #earnTable th:nth-child(12),#earnTable td:nth-child(12){display:none}
   /* Top Losers: ascunde Volume, Vol/Avg, Sector, Mcap, Earnings (decalat cu 1 — coloană checkbox la start) */
   #loserTable th:nth-child(7),#loserTable td:nth-child(7),
   #loserTable th:nth-child(8),#loserTable td:nth-child(8),
@@ -467,6 +467,36 @@
 }
 .btn-select-all:hover{border-color:var(--bear-s);color:var(--bear-s)}
 .btn-select-all.active{background:var(--bear-s);border-color:var(--bear-s);color:#fff}
+/* Variantă pentru Earnings — accent violet (#d2a8ff) ca să se distingă */
+.btn-select-all.earn:hover{border-color:#d2a8ff;color:#d2a8ff}
+.btn-select-all.earn.active{background:#8957e5;border-color:#8957e5;color:#fff}
+
+/* === Bara floating pentru comparație Earnings (violet ca să se potrivească cu tema earnings) === */
+/* Poziționată la bottom:140px, deasupra loser-bar (80px) și wl-bar (20px) */
+.earn-compare-bar{
+  position:fixed;bottom:140px;left:50%;transform:translateX(-50%);
+  background:var(--panel);border:1px solid #d2a8ff;
+  padding:10px 16px;border-radius:14px;
+  box-shadow:0 12px 40px rgba(210,168,255,.25),0 4px 12px rgba(0,0,0,.4);
+  z-index:9990;display:none;align-items:center;gap:10px;
+  font-size:12px;color:var(--text);font-weight:600;
+  max-width:calc(100vw - 30px);flex-wrap:wrap;justify-content:center;
+}
+.earn-compare-bar.show{display:flex}
+.earn-compare-bar .earn-cmp-count{color:#d2a8ff;font-weight:800}
+.earn-compare-bar button{padding:7px 14px;border-radius:8px;border:none;font-weight:700;font-size:11px;cursor:pointer}
+.earn-compare-bar .btn-cmp-go{background:#8957e5;color:#fff}
+.earn-compare-bar .btn-cmp-go:hover{filter:brightness(1.1)}
+.earn-compare-bar .btn-cmp-go:disabled{opacity:.5;cursor:wait}
+.earn-compare-bar .btn-cmp-clear{background:var(--panel2);color:var(--muted);border:1px solid var(--border)}
+.earn-compare-bar .btn-cmp-clear:hover{background:var(--border);color:var(--text)}
+
+/* Checkbox în tabel earnings + highlight pentru rândul selectat */
+.earn-chk{
+  width:14px;height:14px;cursor:pointer;
+  accent-color:#8957e5;
+}
+#earnResults tr.earn-tr-selected td{background:rgba(137,87,229,.10)}
 
 /* Toolbar: filtre + sortare compact */
 .wl-toolbar{
@@ -699,12 +729,19 @@
     </div>
   </div>
   
+  <!-- Toolbar selecție multiplă pentru comparație AI între stocks cu earnings apropiate -->
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+    <button class="btn-select-all earn" id="earnSelectAllBtn" onclick="earnToggleAll()" title="Selectează / deselectează toate rândurile vizibile pentru comparație AI">☑ Selectează tot</button>
+    <span style="font-size:10.5px;color:var(--muted);">Bifează 2+ stocks → bara apare jos cu „🤖 Compară AI"</span>
+  </div>
+
   <div id="earnStatus" class="status">Așteaptă scan automat...</div>
 
   <div class="table-wrap compact-table">
     <table id="earnTable">
       <thead>
         <tr>
+          <th style="width:24px"></th>
           <th>#</th>
           <th>Simbol</th>
           <th>Nume</th>
@@ -1138,8 +1175,14 @@ async function scanEarnings() {
     });
     
     const tbody = $('earnResults');
+    // Cache lista pentru re-render după toggle selecție și pentru comparația AI
+    lastEarnings = results;
+    // La rescan, păstrăm doar selecțiile ale căror simboluri sunt încă în listă
+    const visible = new Set(results.map(s => s.symbol));
+    [...earnSelected].forEach(sym => { if (!visible.has(sym)) earnSelected.delete(sym); });
+
     if (results.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="12" class="empty">Niciun earnings în ${maxDays} zile cu Mcap ≥ $${$('minEarnMcap').value}M.<br>Verifică dacă proxy-ul permite api.nasdaq.com (nu doar Yahoo).</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="13" class="empty">Niciun earnings în ${maxDays} zile cu Mcap ≥ $${$('minEarnMcap').value}M.<br>Verifică dacă proxy-ul permite api.nasdaq.com (nu doar Yahoo).</td></tr>`;
     } else {
       results.forEach((s, i) => {
         const earn = NasdaqScanner.formatEarnings(s.daysToEarnings, s.earningsTimestamp);
@@ -1149,8 +1192,11 @@ async function scanEarnings() {
         const changeClass = s.changePct == null ? '' : (s.changePct < 0 ? 'neg' : 'pos');
         const changeStr = s.changePct != null ? `${s.changePct.toFixed(2)}%` : '-';
         const priceStr = s.price != null ? `$${s.price.toFixed(2)}` : '-';
+        const isSel = earnSelected.has(s.symbol);
         const tr = document.createElement('tr');
+        if (isSel) tr.className = 'earn-tr-selected';
         tr.innerHTML = `
+          <td><input type="checkbox" class="earn-chk" ${isSel ? 'checked' : ''} onchange="earnToggleSelect('${s.symbol}')" title="Selectează pentru comparație AI"></td>
           <td>${i + 1}</td>
           ${symCell(s)}
           <td>${(s.name || '').slice(0, 26)}</td>
@@ -1167,7 +1213,8 @@ async function scanEarnings() {
         tbody.appendChild(tr);
       });
     }
-    
+    earnUpdateCompareBar();
+
     $('earnBadge').textContent = `${results.length}`;
     setStatus('earnStatus', `✅ ${results.length} stocks cu earnings ≤ ${maxDays} zile (Mcap ≥ $${$('minEarnMcap').value}M) — ${new Date().toLocaleTimeString('ro-RO')}`, 'success');
   } catch (err) {
@@ -1527,6 +1574,68 @@ let wlFilter = localStorage.getItem('me_wl_filter') || 'all';
 let wlSort = localStorage.getItem('me_wl_sort') || 'change-desc';
 let wlGroup = localStorage.getItem('me_wl_group') === '1';
 
+// === Selecție multiplă pentru comparație AI între Earnings ===
+let lastEarnings = [];
+const earnSelected = new Set();
+
+function earnToggleSelect(sym){
+  if (earnSelected.has(sym)) earnSelected.delete(sym);
+  else earnSelected.add(sym);
+  const row = document.querySelector(`#earnResults tr input[onchange*="earnToggleSelect('${sym}')"]`)?.closest('tr');
+  if (row) row.classList.toggle('earn-tr-selected', earnSelected.has(sym));
+  earnUpdateCompareBar();
+  earnUpdateSelectAllBtn();
+}
+
+function earnClearSelection(){
+  earnSelected.clear();
+  document.querySelectorAll('#earnResults tr.earn-tr-selected').forEach(r => r.classList.remove('earn-tr-selected'));
+  document.querySelectorAll('#earnResults input.earn-chk').forEach(c => { c.checked = false; });
+  earnUpdateCompareBar();
+  earnUpdateSelectAllBtn();
+}
+
+function earnToggleAll(){
+  if (!lastEarnings.length) return;
+  const allSelected = lastEarnings.every(e => earnSelected.has(e.symbol));
+  if (allSelected) {
+    earnClearSelection();
+  } else {
+    lastEarnings.forEach(e => earnSelected.add(e.symbol));
+    document.querySelectorAll('#earnResults tr').forEach(r => r.classList.add('earn-tr-selected'));
+    document.querySelectorAll('#earnResults input.earn-chk').forEach(c => { c.checked = true; });
+    earnUpdateCompareBar();
+    earnUpdateSelectAllBtn();
+  }
+}
+
+function earnUpdateSelectAllBtn(){
+  const btn = document.getElementById('earnSelectAllBtn');
+  if (!btn) return;
+  const allSel = lastEarnings.length > 0 && lastEarnings.every(e => earnSelected.has(e.symbol));
+  btn.classList.toggle('active', allSel && lastEarnings.length > 0);
+  btn.textContent = allSel && lastEarnings.length > 0 ? '☒ Deselectează tot' : '☑ Selectează tot';
+}
+
+function earnUpdateCompareBar(){
+  let bar = document.getElementById('earnCompareBar');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'earnCompareBar';
+    bar.className = 'earn-compare-bar';
+    document.body.appendChild(bar);
+  }
+  if (earnSelected.size < 2) { bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+  const list = Array.from(earnSelected);
+  const display = list.length > 6 ? list.slice(0, 6).join(', ') + ` +${list.length - 6}` : list.join(', ');
+  bar.innerHTML = `
+    <span><span class="earn-cmp-count">${earnSelected.size}</span> earnings: ${display}</span>
+    <button class="btn-cmp-go" id="earnCmpGoBtn" onclick="aiCompare('earn')">🤖 Compară AI</button>
+    <button class="btn-cmp-clear" onclick="earnClearSelection()">✕ Anulează</button>
+  `;
+}
+
 // === Selecție multiplă pentru comparație AI între Top Losers ===
 // Cache global cu ultima listă de losers (pentru re-render după toggle + lookup la compare)
 let lastLosers = [];
@@ -1620,11 +1729,14 @@ function wlUpdateCompareBar(){
 }
 
 // Comparație AI între 2+ simboluri selectate
-// source: 'wl' (default) folosește watchlist[] · 'loser' folosește lastLosers[]
+// source: 'wl' (default) → watchlist[] · 'loser' → lastLosers[] · 'earn' → lastEarnings[]
 async function aiCompare(source = 'wl'){
   const isLoser = source === 'loser';
-  const selected = isLoser ? loserSelected : wlSelected;
-  const dataSource = isLoser ? lastLosers : watchlist;
+  const isEarn  = source === 'earn';
+  let selected, dataSource;
+  if (isLoser)      { selected = loserSelected; dataSource = lastLosers; }
+  else if (isEarn)  { selected = earnSelected;  dataSource = lastEarnings; }
+  else              { selected = wlSelected;    dataSource = watchlist; }
 
   if (selected.size < 2) return;
   const key = getAnthropicKey();
@@ -1651,7 +1763,7 @@ async function aiCompare(source = 'wl'){
   const result = document.getElementById('aiCmpResult');
   const meta = document.getElementById('aiCmpMeta');
 
-  // Build prompt — câmpurile diferă între wl (low/high) și losers (dayLow/dayHigh + sector/mcap)
+  // Build prompt — câmpurile diferă între wl (low/high) și losers/earnings (dayLow/dayHigh + sector/mcap)
   const ctx = data.map(w => {
     const parts = [`${w.symbol}`];
     if (w.price != null) parts.push(`preț $${w.price.toFixed(2)}`);
@@ -1659,16 +1771,26 @@ async function aiCompare(source = 'wl'){
     const lo = w.low ?? w.dayLow;
     const hi = w.high ?? w.dayHigh;
     if (lo != null && hi != null) parts.push(`range $${lo.toFixed(2)}-$${hi.toFixed(2)}`);
+    if (w.intradayLowPct != null) parts.push(`low azi ${w.intradayLowPct.toFixed(2)}%`);
     if (w.volume) parts.push(`vol ${NasdaqScanner.formatVolume(w.volume)}`);
     if (w.marketCap) parts.push(`mcap ${NasdaqScanner.formatMcap(w.marketCap)}`);
     if (w.sector) parts.push(`sector ${w.sector}`);
+    // Câmpuri specifice earnings:
+    if (w.daysToEarnings != null) parts.push(`earnings în ${w.daysToEarnings}z`);
+    if (w.epsForecast) parts.push(`EPS est. ${w.epsForecast}`);
+    if (w.time) parts.push(`${w.time}`);   // BMO / AMC
     return `- ${parts.join(', ')}`;
   }).join('\n');
 
-  // Promptul se adaptează ușor pentru losers (deja au căzut → căutăm buy-the-dip)
-  const intro = isLoser
-    ? `Compară ${symbols.length} stocks care au căzut azi pe Nasdaq — caut buy-the-dip pentru rebound short-term (Trade 212):`
-    : `Compară următoarele ${symbols.length} simboluri pentru un trade pe termen scurt (Trade 212, Nasdaq):`;
+  // Promptul se adaptează după sursă: losers → buy-the-dip · earnings → earnings play · wl → trade scurt generic
+  let intro;
+  if (isLoser) {
+    intro = `Compară ${symbols.length} stocks care au căzut azi pe Nasdaq — caut buy-the-dip pentru rebound short-term (Trade 212):`;
+  } else if (isEarn) {
+    intro = `Compară ${symbols.length} stocks care raportează earnings curând (Nasdaq, Trade 212) — caut earnings play (long pre-raport sau short post-fade):`;
+  } else {
+    intro = `Compară următoarele ${symbols.length} simboluri pentru un trade pe termen scurt (Trade 212, Nasdaq):`;
+  }
 
   const prompt = `${intro}\n\n${ctx}\n\nDă-mi:\n1. Tabel cu rating tehnic (1-10) per simbol pentru: trend, momentum, R/R bun la entry actual\n2. Care simbol are cel mai bun setup ACUM (long sau short) și de ce, cu entry/TP/SL concret\n3. Care simbol e cel mai riscant și de ce\n4. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + un mini tabel ASCII pentru rating. Maximum 400 cuvinte. Concret, fără fluff.`;
 
