@@ -528,8 +528,9 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 /* Trader Dashboard (înlocuiește Portfolio Tracker) */
 .trader-dashboard{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:12px;margin-top:14px;box-shadow:var(--sh);}
 .td-grid{display:grid;grid-template-columns:1fr;gap:12px;}
+/* Stack vertical TODĂT (Watchlist sus full-width, Funding jos full-width) ca să avem loc pentru 10 cells/rând */
 /* Pe desktop watchlist-ul ocupă 2/3 din lățime (folosește spațiul gol rămas), funding 1/3. */
-@media(min-width:980px){.td-grid{grid-template-columns:2fr 1fr;}}
+/* (vechiul split 2fr 1fr eliminat — watchlist + funding stack vertical pentru a folosi întreaga lățime) */
 .td-section{background:var(--bg);border:1px solid var(--b1);border-radius:var(--rs);padding:11px;display:flex;flex-direction:column;gap:8px;min-height:180px;}
 /* Watchlist Live pe desktop: grid auto-fill (≈3 coloane la viewport tipic 2/3 din dashboard).
    Drop la max-height/scroll — vrem să se vadă toate cele până la 30 coin-uri odată.
@@ -1087,37 +1088,37 @@ body.dark .brand{gap:8px !important}
 #wlRows .td-row{
   display:grid !important;
   grid-template-columns:auto 1fr auto auto auto !important;
-  gap:4px !important;
-  padding:5px 7px !important;
+  gap:8px !important;
+  padding:5px 8px !important;
   background:transparent !important;
   border:none !important;
   border-right:1px solid var(--b1) !important;
   border-bottom:1px solid var(--b1) !important;
   border-radius:0 !important;
-  font-size:11px !important;
+  font-size:11.5px !important;
   white-space:nowrap;min-width:0;overflow:hidden;
   align-items:center;
 }
 #wlRows .td-row:hover{background:rgba(91,176,255,.05) !important}
 #wlRows .td-coin{
-  min-width:0 !important;font-size:11.5px !important;
+  min-width:0 !important;font-size:12px !important;
   font-family:monospace;font-weight:700;color:var(--acc);
   letter-spacing:.3px;
 }
 #wlRows .td-price{
-  font-size:10px !important;text-align:right !important;
+  font-size:11px !important;text-align:right !important;
   font-variant-numeric:tabular-nums !important;
   color:var(--t1) !important;
   overflow:hidden;text-overflow:ellipsis;
   flex:none !important;min-width:0 !important;
 }
 #wlRows .td-chg{
-  font-size:10.5px !important;text-align:left !important;
+  font-size:11px !important;text-align:left !important;
   min-width:0 !important;font-variant-numeric:tabular-nums;font-weight:700;
 }
 #wlRows .td-extra{display:none !important}
-#wlRows .td-tv{padding:0 1px !important;font-size:.85rem !important;line-height:1 !important;flex-shrink:0}
-#wlRows .td-del{padding:0 1px !important;font-size:.85rem !important;line-height:1 !important;flex-shrink:0}
+#wlRows .td-tv{padding:0 1px !important;font-size:.9rem !important;line-height:1 !important;flex-shrink:0}
+#wlRows .td-del{padding:0 1px !important;font-size:.9rem !important;line-height:1 !important;flex-shrink:0}
 #wlRows .td-empty{
   grid-column:1 / -1;
   padding:18px;text-align:center;color:var(--t3);font-size:11px;font-style:italic;
@@ -1352,7 +1353,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v55</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v56</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
