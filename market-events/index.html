@@ -619,6 +619,51 @@
   #aiChatPanel{width:calc(100vw - 20px);right:10px;bottom:80px;height:70vh}
   #aiChatFab{bottom:15px;right:15px}
 }
+
+/* === Toast notifications (port din crypto-events) === */
+#toastContainer{
+  position:fixed; bottom:90px; right:20px; z-index:10000;
+  display:flex; flex-direction:column; gap:8px; pointer-events:none;
+  max-width:340px;
+}
+.toast-msg{
+  background:#161b22; border:1px solid #30363d; border-left:4px solid #58a6ff;
+  padding:10px 14px; border-radius:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.45);
+  color:#e6edf3; font-size:12px; line-height:1.4;
+  pointer-events:auto;
+  animation:toastSlideME .25s ease;
+  max-width:100%;
+}
+.toast-msg.success{border-left-color:#3fb950}
+.toast-msg.error  {border-left-color:#f85149}
+.toast-msg.warn   {border-left-color:#d29922}
+.toast-msg.fade-out{animation:toastFadeME .3s ease forwards}
+@keyframes toastSlideME{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes toastFadeME {to{transform:translateX(120%);opacity:0}}
+
+/* Sticky selection counter în topbar (suma wl+earn+loser) */
+.selection-counter{
+  display:none; align-items:center; gap:5px;
+  background:rgba(137,87,229,.18); border:1px solid #8957e5;
+  color:#d2a8ff; padding:5px 10px; border-radius:8px;
+  font-size:11px; font-weight:700; cursor:pointer;
+  transition:all .15s; font-family:inherit;
+}
+.selection-counter.show{display:inline-flex}
+.selection-counter:hover{background:#8957e5; color:#fff}
+
+/* Watchlist alerts: cell-ul pulsant când coin-ul mișcă >5% în 24h */
+.wl-cell.wl-alert-up{
+  animation:wlPulseUp 1.6s infinite;
+  background:rgba(63,185,80,.10) !important;
+}
+.wl-cell.wl-alert-down{
+  animation:wlPulseDown 1.6s infinite;
+  background:rgba(255,77,77,.12) !important;
+}
+@keyframes wlPulseUp  {50%{box-shadow:inset 0 0 0 1px #3fb950}}
+@keyframes wlPulseDown{50%{box-shadow:inset 0 0 0 1px #ff6b6b}}
 </style>
 </head>
 <body>
@@ -629,6 +674,7 @@
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
   <input id="proxyUrl" class="proxy-input" value="https://cors-proxy-one-drab.vercel.app/api/proxy/?url=" placeholder="Proxy CORS..." />
+  <span class="selection-counter" id="selCounter" onclick="showSelectionMenu()" title="Click pentru opțiuni Compară AI"><span>🎯</span><span id="selCounterNum">0</span></span>
   <button id="aiKeyBtn" class="btn-ai-key" onclick="showAiKeyModal()" title="Configurează cheia Anthropic API pentru analize AI per simbol">🔑 AI</button>
   <button id="refreshAllBtn" class="primary">🔄 Refresh</button>
 </div>
@@ -2362,6 +2408,376 @@ $('refreshAllBtn').addEventListener('click', runAll);
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(runAll, 200);
 });
+
+// ============================================================
+// PORT din crypto-events: Toast + Streaming AI + Sticky counter +
+// Persist selection + Watchlist alerts
+// ============================================================
+
+// === Toast notifications ===
+function showToast(msg, type) {
+  let cnt = document.getElementById('toastContainer');
+  if (!cnt) {
+    cnt = document.createElement('div');
+    cnt.id = 'toastContainer';
+    document.body.appendChild(cnt);
+  }
+  const t = document.createElement('div');
+  t.className = 'toast-msg' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  cnt.appendChild(t);
+  setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// === Streaming AI helper (Anthropic SSE) ===
+async function callAnthropicStream({ prompt, system, messages, model, maxTokens, onChunk }) {
+  const key = getAnthropicKey();
+  if (!key) throw new Error('Lipsește cheia API Anthropic');
+  const body = {
+    model: model || AI_MODEL,
+    max_tokens: maxTokens || 1500,
+    stream: true,
+  };
+  if (system) body.system = system;
+  body.messages = messages || [{ role: 'user', content: prompt }];
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) {
+    let errMsg = `HTTP ${resp.status}`;
+    try { const j = await resp.json(); if (j?.error?.message) errMsg = j.error.message; } catch(_) {}
+    throw new Error(errMsg);
+  }
+  if (!resp.body) throw new Error('Răspuns fără stream body');
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+  let usage = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const dataStr = line.slice(6).trim();
+      if (dataStr === '[DONE]') continue;
+      try {
+        const evt = JSON.parse(dataStr);
+        if (evt.type === 'content_block_delta' && evt.delta?.text) {
+          fullText += evt.delta.text;
+          if (onChunk) onChunk(fullText, evt.delta.text);
+        } else if (evt.type === 'message_start' && evt.message?.usage) {
+          usage = evt.message.usage;
+        } else if (evt.type === 'message_delta' && evt.usage) {
+          usage = { ...usage, ...evt.usage };
+        }
+      } catch (_) {}
+    }
+  }
+  return { text: fullText, usage };
+}
+
+// === Sticky selection counter (uniunea wl+earn+loser) ===
+function updateSelectionCounter() {
+  const total = wlSelected.size + earnSelected.size + loserSelected.size;
+  const el = document.getElementById('selCounter');
+  const num = document.getElementById('selCounterNum');
+  if (!el || !num) return;
+  num.textContent = total;
+  el.classList.toggle('show', total > 0);
+}
+
+// La click pe counter — dacă există un singur tip de selecție 2+, deschide direct compară.
+// Altfel scroll la prima secțiune cu selecție.
+function showSelectionMenu() {
+  const sources = [];
+  if (wlSelected.size >= 2) sources.push({ label: 'Watchlist', src: 'wl', count: wlSelected.size });
+  if (earnSelected.size >= 2) sources.push({ label: 'Earnings', src: 'earn', count: earnSelected.size });
+  if (loserSelected.size >= 2) sources.push({ label: 'Top Losers', src: 'loser', count: loserSelected.size });
+  if (sources.length === 1) {
+    aiCompare(sources[0].src);
+    return;
+  }
+  if (sources.length > 1) {
+    const choice = prompt(
+      `Ai selecții în mai multe secțiuni:\n${sources.map((s, i) => `${i + 1}. ${s.label} (${s.count})`).join('\n')}\n\nIntrodu numărul:`,
+      '1'
+    );
+    const idx = parseInt(choice, 10) - 1;
+    if (sources[idx]) aiCompare(sources[idx].src);
+    return;
+  }
+  showToast('Bifează 2+ rânduri în orice secțiune pentru Compară AI', 'warn');
+}
+
+// === Persistă selecțiile (localStorage) — restaurăm la load ===
+const ME_SEL_WL = 'me_sel_wl';
+const ME_SEL_EARN = 'me_sel_earn';
+const ME_SEL_LOSER = 'me_sel_loser';
+
+function loadSelInto(set, key) {
+  try { JSON.parse(localStorage.getItem(key) || '[]').forEach(s => set.add(s)); } catch (_) {}
+}
+function saveSel(set, key) {
+  try { localStorage.setItem(key, JSON.stringify(Array.from(set))); } catch (_) {}
+}
+
+// Restaurăm imediat (dacă există) — Set-urile sunt deja create de cod-ul de mai sus
+loadSelInto(wlSelected, ME_SEL_WL);
+loadSelInto(earnSelected, ME_SEL_EARN);
+loadSelInto(loserSelected, ME_SEL_LOSER);
+updateSelectionCounter();
+
+// Patch pe cele 3 toggleSelect / clearSelection / toggleAll ca să persiste + update counter
+const _origWlToggleSelect    = wlToggleSelect;
+const _origWlClearSelection  = wlClearSelection;
+wlToggleSelect = function(sym) { _origWlToggleSelect(sym); saveSel(wlSelected, ME_SEL_WL); updateSelectionCounter(); };
+wlClearSelection = function() { _origWlClearSelection(); saveSel(wlSelected, ME_SEL_WL); updateSelectionCounter(); };
+
+const _origEarnToggleSelect   = earnToggleSelect;
+const _origEarnClearSelection = earnClearSelection;
+const _origEarnToggleAll      = earnToggleAll;
+earnToggleSelect   = function(sym) { _origEarnToggleSelect(sym); saveSel(earnSelected, ME_SEL_EARN); updateSelectionCounter(); };
+earnClearSelection = function() { _origEarnClearSelection(); saveSel(earnSelected, ME_SEL_EARN); updateSelectionCounter(); };
+earnToggleAll      = function() { _origEarnToggleAll(); saveSel(earnSelected, ME_SEL_EARN); updateSelectionCounter(); };
+
+const _origLoserToggleSelect   = loserToggleSelect;
+const _origLoserClearSelection = loserClearSelection;
+const _origLoserToggleAll      = loserToggleAll;
+loserToggleSelect   = function(sym) { _origLoserToggleSelect(sym); saveSel(loserSelected, ME_SEL_LOSER); updateSelectionCounter(); };
+loserClearSelection = function() { _origLoserClearSelection(); saveSel(loserSelected, ME_SEL_LOSER); updateSelectionCounter(); };
+loserToggleAll      = function() { _origLoserToggleAll(); saveSel(loserSelected, ME_SEL_LOSER); updateSelectionCounter(); };
+
+// === Watchlist alerts: pulsanți cell-urile cu |chg| >= 5% ===
+const _origWlRowHtml = _wlRowHtml;
+_wlRowHtml = function(w) {
+  let html = _origWlRowHtml(w);
+  if (w.changePct != null && Math.abs(w.changePct) >= 5) {
+    const cls = w.changePct >= 5 ? 'wl-alert-up' : 'wl-alert-down';
+    // Inject CSS class pe div-ul wl-cell (e primul element returnat)
+    html = html.replace(/^<div class="wl-cell([^"]*)"/, `<div class="wl-cell$1 ${cls}"`);
+  }
+  return html;
+};
+
+// === Streaming AI: înlocuim fetch în aiAnalyzeRow / aiCompare / aiChatSend ===
+// Strategy: monkey-patch după ce funcțiile originale sunt definite. Folosim
+// callAnthropicStream cu onChunk care updatează DOM-ul live (caracter-cu-caracter).
+
+// Override aiAnalyzeRow → versiune streaming
+aiAnalyzeRow = async function(type, s) {
+  const key = getAnthropicKey();
+  if (!key) { showAiKeyModal(() => aiAnalyzeRow(type, s)); return; }
+
+  const cacheKey = `${type}:${s.symbol}`;
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  const titleIcon = type === 'earnings' ? '⚡ Earnings' : (type === 'watchlist' ? '👁️ Watchlist' : '🔻 Top Loser');
+  ov.innerHTML = `
+    <div class="ai-modal">
+      <div class="ai-modal-title">🤖 ${titleIcon}: ${s.symbol}</div>
+      <div class="ai-modal-sub">${(s.name || '').slice(0, 60)} · ${s.sector || 'N/A'} · ${NasdaqScanner.formatMcap(s.marketCap || 0)}</div>
+      <div class="ai-modal-result" id="aiResultArea">⏳ Generez analiza cu ${AI_MODEL}...</div>
+      <div class="ai-modal-meta" id="aiMeta"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="aiCopyBtn">📋 Copiază</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const result = document.getElementById('aiResultArea');
+  const meta = document.getElementById('aiMeta');
+
+  if (aiCache[cacheKey]) {
+    result.textContent = aiCache[cacheKey];
+    meta.textContent = `✓ ${AI_MODEL} · cached`;
+  } else {
+    const prompt = _buildAiPrompt(type, s);
+    const t0 = performance.now();
+    result.textContent = '';
+    try {
+      const { text, usage } = await callAnthropicStream({
+        prompt, maxTokens: 1500,
+        onChunk: (full) => { result.textContent = full; result.scrollTop = result.scrollHeight; },
+      });
+      const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+      aiCache[cacheKey] = text;
+      const tokStr = usage ? ` · ${usage.input_tokens || '?'}+${usage.output_tokens || '?'} tok` : '';
+      meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${tokStr}`;
+    } catch (e) {
+      result.textContent = '❌ ' + e.message;
+      meta.textContent = '';
+    }
+  }
+
+  document.getElementById('aiCopyBtn').onclick = () => {
+    navigator.clipboard.writeText(result.textContent).then(() => {
+      const b = document.getElementById('aiCopyBtn');
+      const old = b.textContent;
+      b.textContent = '✓ Copiat!';
+      setTimeout(() => b.textContent = old, 1500);
+    });
+  };
+};
+
+// Pentru aiCompare → tot streaming. Salvăm prompt builder-ul existent și modificăm doar partea de fetch.
+const _origAiCompare = aiCompare;
+aiCompare = async function(source = 'wl') {
+  // Reluăm logica originală până la prompt build, apoi streaming.
+  const isLoser = source === 'loser';
+  const isEarn  = source === 'earn';
+  let selected, dataSource;
+  if (isLoser)      { selected = loserSelected; dataSource = lastLosers; }
+  else if (isEarn)  { selected = earnSelected;  dataSource = lastEarnings; }
+  else              { selected = wlSelected;    dataSource = watchlist; }
+
+  if (selected.size < 2) return;
+  const key = getAnthropicKey();
+  if (!key) { showAiKeyModal(() => aiCompare(source)); return; }
+  const symbols = Array.from(selected);
+  const data = symbols.map(s => dataSource.find(w => w.symbol === s)).filter(Boolean);
+
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:700px">
+      <div class="ai-modal-title">🤖 Comparație AI: ${symbols.join(' vs ')}</div>
+      <div class="ai-modal-sub">${symbols.length} simboluri · ${AI_MODEL}</div>
+      <div class="ai-modal-result" id="aiCmpResult">⏳ Construiesc comparația...</div>
+      <div class="ai-modal-meta" id="aiCmpMeta"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="aiCmpCopyBtn">📋 Copiază</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  const result = document.getElementById('aiCmpResult');
+  const meta   = document.getElementById('aiCmpMeta');
+
+  // Construim contextul (același cod ca în original)
+  const ctx = data.map(w => {
+    const parts = [`${w.symbol}`];
+    if (w.price != null) parts.push(`preț $${w.price.toFixed(2)}`);
+    if (w.changePct != null) parts.push(`${(w.changePct >= 0 ? '+' : '') + w.changePct.toFixed(2)}% azi`);
+    const lo = w.low ?? w.dayLow;
+    const hi = w.high ?? w.dayHigh;
+    if (lo != null && hi != null) parts.push(`range $${lo.toFixed(2)}-$${hi.toFixed(2)}`);
+    if (w.intradayLowPct != null) parts.push(`low azi ${w.intradayLowPct.toFixed(2)}%`);
+    if (w.volume) parts.push(`vol ${NasdaqScanner.formatVolume(w.volume)}`);
+    if (w.marketCap) parts.push(`mcap ${NasdaqScanner.formatMcap(w.marketCap)}`);
+    if (w.sector) parts.push(`sector ${w.sector}`);
+    if (w.daysToEarnings != null) parts.push(`earnings în ${w.daysToEarnings}z`);
+    if (w.epsForecast) parts.push(`EPS est. ${w.epsForecast}`);
+    if (w.time) parts.push(`${w.time}`);
+    return `- ${parts.join(', ')}`;
+  }).join('\n');
+
+  let intro;
+  if (isLoser) {
+    intro = `Compară ${symbols.length} stocks care au căzut azi pe Nasdaq — caut buy-the-dip pentru rebound short-term (Trade 212):`;
+  } else if (isEarn) {
+    intro = `Compară ${symbols.length} stocks care raportează earnings curând (Nasdaq, Trade 212) — caut earnings play (long pre-raport sau short post-fade):`;
+  } else {
+    intro = `Compară următoarele ${symbols.length} simboluri pentru un trade pe termen scurt (Trade 212, Nasdaq):`;
+  }
+  const prompt = `${intro}\n\n${ctx}\n\nDă-mi:\n1. Tabel cu rating tehnic (1-10) per simbol pentru: trend, momentum, R/R bun la entry actual\n2. Care simbol are cel mai bun setup ACUM (long sau short) și de ce, cu entry/TP/SL concret\n3. Care simbol e cel mai riscant și de ce\n4. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + un mini tabel ASCII pentru rating. Maximum 400 cuvinte. Concret, fără fluff.`;
+
+  const t0 = performance.now();
+  result.textContent = '';
+  try {
+    const { usage } = await callAnthropicStream({
+      prompt, maxTokens: 2000,
+      onChunk: (full) => { result.textContent = full; result.scrollTop = result.scrollHeight; },
+    });
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    const tokStr = usage ? ` · ${usage.input_tokens || '?'}+${usage.output_tokens || '?'} tok` : '';
+    meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${tokStr}`;
+  } catch (e) {
+    result.textContent = '❌ ' + e.message;
+    meta.textContent = '';
+  }
+
+  document.getElementById('aiCmpCopyBtn').onclick = () => {
+    navigator.clipboard.writeText(result.textContent).then(() => {
+      const b = document.getElementById('aiCmpCopyBtn');
+      const old = b.textContent;
+      b.textContent = '✓ Copiat!';
+      setTimeout(() => b.textContent = old, 1500);
+    });
+  };
+};
+
+// Override aiChatSend → folosește streaming în loc să aștepte tot răspunsul
+const _origAiChatSend = aiChatSend;
+aiChatSend = async function() {
+  if (aiChat.busy) return;
+  const inp = document.getElementById('aiChatInput');
+  const text = (inp.value || '').trim();
+  if (!text) return;
+  if (!getAnthropicKey()) { showAiKeyModal(()=>{}); return; }
+  let promptText = aiChatHandleCommand(text);
+  if (promptText === null) { inp.value = ''; return; }
+  aiChat.messages.push({ role: 'user', content: text, ts: Date.now() });
+  aiChatRender();
+  inp.value = '';
+  inp.style.height = 'auto';
+
+  const apiMessages = aiChat.messages
+    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .slice(-AICHAT_MAX_TURNS)
+    .map(m => ({ role: m.role, content: m.content }));
+  if (apiMessages.length && apiMessages[apiMessages.length-1].role === 'user') {
+    apiMessages[apiMessages.length-1].content = promptText;
+  }
+
+  aiChat.messages.push({ role: 'assistant', content: '', ts: Date.now() });
+  aiChatRender();
+  aiChat.busy = true;
+  document.getElementById('aiChatSendBtn').disabled = true;
+
+  const ctx = aiChatBuildContext();
+  const sysExtra = 'Acționezi ca asistent personal de tradat pentru Marius (cont Trade 212 + Pionex). Răspunde scurt și direct, în română. Folosește datele din contextul market-events dacă sunt relevante.\n\n' + ctx;
+
+  try {
+    await callAnthropicStream({
+      messages: apiMessages, system: sysExtra, maxTokens: 800,
+      onChunk: (full) => {
+        const last = aiChat.messages[aiChat.messages.length - 1];
+        last.content = full;
+        aiChatRender();
+      },
+    });
+    aiChatPersist();
+  } catch (e) {
+    const last = aiChat.messages[aiChat.messages.length - 1];
+    last.role = 'error';
+    last.content = '❌ ' + e.message;
+    aiChatPersist(); aiChatRender();
+  } finally {
+    aiChat.busy = false;
+    document.getElementById('aiChatSendBtn').disabled = false;
+  }
+};
+
+// Toast feedback pentru wlAddSymbol (deja exista showToastMsg, dar ne aliniem la API-ul nou)
+// — păstrăm ambele active fără probleme.
 </script>
 
 </body>
