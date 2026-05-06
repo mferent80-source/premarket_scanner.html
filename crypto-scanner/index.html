@@ -1067,6 +1067,34 @@ body.dark .empty-icon{opacity: .6}
 /* Subtitle în brand zone — ca panel-sub events */
 body.dark .brand{gap:8px !important}
 
+/* === Backtester modal === */
+.bt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-bottom:14px}
+.bt-grid label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;display:block}
+.bt-grid input,.bt-grid select{
+  width:100%;padding:7px 9px;background:var(--bg);border:1px solid var(--b1);
+  color:var(--t1);border-radius:6px;font-size:12px;font-family:monospace;outline:none;
+}
+.bt-grid input:focus,.bt-grid select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(91,176,255,.15)}
+.bt-results{
+  background:var(--bg);border:1px solid var(--b1);border-radius:8px;
+  padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;
+  font-size:12px;
+}
+.bt-results .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bt-results .label{color:var(--t3);font-size:10.5px;text-transform:uppercase;letter-spacing:.3px}
+.bt-results .val{font-weight:800;font-variant-numeric:tabular-nums}
+.bt-results .val.up{color:var(--green)}
+.bt-results .val.down{color:var(--red)}
+
+/* === Performance tracker per tab — badge cu hit rate pe tab === */
+.tab .hit-badge{
+  display:inline-block;font-size:8px;font-weight:700;
+  background:rgba(34,214,107,.20);color:var(--green);
+  padding:1px 5px;border-radius:6px;margin-left:3px;
+}
+.tab .hit-badge.warn{background:rgba(212,137,44,.20);color:var(--gold)}
+.tab .hit-badge.bad{background:rgba(255,77,77,.20);color:var(--red)}
+
 /* === Sparklines + Order flow (lazy-loaded pe signal cards) === */
 .spark-slot{
   display:flex;align-items:center;gap:8px;margin-top:5px;
@@ -1267,7 +1295,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v53</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v54</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -1283,6 +1311,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
     <div class="notif-btn" id="tgBtn" onclick="showTelegramModal()" style="cursor:pointer" title="Configurează Telegram pentru alerte">📱 Telegram</div>
     <div class="notif-btn" onclick="showApiKeyModal()" style="cursor:pointer" title="Configurează cheia Anthropic API pentru analiza AI">🔑 API Key</div>
     <div class="notif-btn" onclick="showMultiTabSummary()" title="Multi-tab AI summary: Claude citește semnale din TOATE tab-urile și ranchează top 5 oportunități">🤖 Cross-AI</div>
+    <div class="notif-btn" onclick="showBacktester()" title="Backtester rapid: simulează strategia pe ultimele 30/60 zile via klines Binance">🧪 Backtest</div>
     <div class="notif-btn" id="notifLogBtn" onclick="showNotifLog()" title="Istoric notificări (toast/Telegram/sound)">📜 Log<span id="notifLogBadge" style="display:none;background:var(--purple);color:#fff;padding:0 5px;border-radius:8px;font-size:9px;margin-left:3px">0</span></div>
     <div class="notif-btn" id="voiceBtn" onclick="toggleVoiceAlerts()" title="Voice alerts: TTS pentru semnale Premium/Hot">🔊 Voice</div>
     <div class="notif-btn" id="compactBtn" onclick="toggleCompactMode()" title="Compact mode: padding redus + font mic">⚙️ Compact</div>
@@ -10770,6 +10799,279 @@ function attachSparklines() {
   // Și la load inițial
   setTimeout(attachSparklines, 1500);
 })();
+
+// ════════════════════════════════════════════════════════════════
+// PACHET F5 — Backtester rapid + Performance tracker per tab
+// ════════════════════════════════════════════════════════════════
+
+// === BACKTESTER: rulează strategie pe klines historice și calc statistici ===
+function showBacktester(prefillCoin) {
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:580px">
+      <div class="ai-modal-title">🧪 Backtester rapid</div>
+      <div class="ai-modal-sub">Simulează strategia pe klines Binance. Strategy: cumpără la pullback (RSI&lt;30), vinde la TP/SL fix. Stats win rate + drawdown + profit factor.</div>
+      <div class="bt-grid">
+        <div><label>Simbol</label><input id="btSym" type="text" value="${(prefillCoin||'BTC').toUpperCase()}" maxlength="10" style="text-transform:uppercase"></div>
+        <div><label>Strategie</label>
+          <select id="btStrategy">
+            <option value="rsi_oversold">RSI Oversold (long &lt; 30)</option>
+            <option value="bb_lower">Bollinger Lower (mean reversion)</option>
+            <option value="breakout">Breakout din range 24h</option>
+          </select>
+        </div>
+        <div><label>Interval candle</label>
+          <select id="btInterval">
+            <option value="15m">15 min</option>
+            <option value="1h" selected>1 oră</option>
+            <option value="4h">4 ore</option>
+          </select>
+        </div>
+        <div><label>Zile lookback</label>
+          <select id="btDays">
+            <option value="30" selected>30 zile</option>
+            <option value="60">60 zile</option>
+            <option value="90">90 zile</option>
+          </select>
+        </div>
+        <div><label>TP%</label><input id="btTp" type="number" value="3" step="0.5" min="0.5" max="20"></div>
+        <div><label>SL%</label><input id="btSl" type="number" value="2" step="0.5" min="0.5" max="20"></div>
+      </div>
+      <div class="bt-results" id="btResults"><div class="row" style="grid-column:1/-1;color:var(--t3);font-style:italic">Apasă „🚀 Run" pentru a rula simularea.</div></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="btRunBtn" onclick="runBacktest()">🚀 Run backtest</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+
+async function runBacktest() {
+  const btn = document.getElementById('btRunBtn');
+  const sym = document.getElementById('btSym').value.trim().toUpperCase();
+  const strategy = document.getElementById('btStrategy').value;
+  const interval = document.getElementById('btInterval').value;
+  const days = parseInt(document.getElementById('btDays').value, 10);
+  const tpPct = parseFloat(document.getElementById('btTp').value) / 100;
+  const slPct = parseFloat(document.getElementById('btSl').value) / 100;
+  const results = document.getElementById('btResults');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Fetching klines...';
+  results.innerHTML = '<div class="row" style="grid-column:1/-1;color:var(--t3)">⏳ Se descarcă klines...</div>';
+
+  // Câte candele = days × (24h/interval)
+  const candlesPerDay = { '15m': 96, '1h': 24, '4h': 6 }[interval] || 24;
+  const totalCandles = Math.min(1000, days * candlesPerDay);
+
+  let klines;
+  try {
+    const url = `https://api.binance.com/api/v3/klines?symbol=${sym}USDT&interval=${interval}&limit=${totalCandles}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    klines = await r.json();
+  } catch (e) {
+    results.innerHTML = `<div class="row" style="grid-column:1/-1;color:var(--red)">❌ ${e.message}</div>`;
+    btn.disabled = false; btn.textContent = '🚀 Run backtest';
+    return;
+  }
+
+  // Parse klines: [t, o, h, l, c, v, ...]
+  const candles = klines.map(k => ({
+    t: k[0], o: parseFloat(k[1]), h: parseFloat(k[2]), l: parseFloat(k[3]), c: parseFloat(k[4]), v: parseFloat(k[5])
+  }));
+
+  btn.textContent = '⏳ Simulating...';
+
+  // Calc indicatori per candle (RSI 14, Bollinger 20)
+  const closes = candles.map(c => c.c);
+  const rsi = calcRSI(closes, 14);
+  const { upper, mid, lower } = calcBollinger(closes, 20, 2);
+
+  // Simulare: scan candele, intră long când strategy match, ieșire la TP/SL hit
+  const trades = [];
+  let openTrade = null;
+
+  for (let i = 30; i < candles.length; i++) {
+    const c = candles[i];
+    if (openTrade) {
+      // Check exit
+      const tpPrice = openTrade.entry * (1 + tpPct);
+      const slPrice = openTrade.entry * (1 - slPct);
+      if (c.h >= tpPrice) {
+        // TP hit
+        trades.push({ ...openTrade, exit: tpPrice, exitTime: c.t, win: true, pnlPct: tpPct * 100 });
+        openTrade = null;
+      } else if (c.l <= slPrice) {
+        // SL hit
+        trades.push({ ...openTrade, exit: slPrice, exitTime: c.t, win: false, pnlPct: -slPct * 100 });
+        openTrade = null;
+      }
+    }
+    if (!openTrade) {
+      // Check entry
+      let entry = false;
+      if (strategy === 'rsi_oversold' && rsi[i] != null && rsi[i] < 30) entry = true;
+      else if (strategy === 'bb_lower' && lower[i] != null && c.c < lower[i]) entry = true;
+      else if (strategy === 'breakout' && i >= 24) {
+        const last24h = candles.slice(i - 24, i);
+        const prevHigh = Math.max(...last24h.map(x => x.h));
+        if (c.c > prevHigh) entry = true;
+      }
+      if (entry) {
+        openTrade = { entry: c.c, entryTime: c.t, idx: i };
+      }
+    }
+  }
+
+  // Stats
+  const total = trades.length;
+  const wins = trades.filter(t => t.win).length;
+  const losses = total - wins;
+  const winRate = total > 0 ? (wins / total) * 100 : 0;
+  const totalPnl = trades.reduce((s, t) => s + t.pnlPct, 0);
+  const avgWin = wins > 0 ? trades.filter(t => t.win).reduce((s, t) => s + t.pnlPct, 0) / wins : 0;
+  const avgLoss = losses > 0 ? Math.abs(trades.filter(t => !t.win).reduce((s, t) => s + t.pnlPct, 0) / losses) : 0;
+  const profitFactor = avgLoss > 0 ? (avgWin * wins) / (avgLoss * losses) : (wins > 0 ? Infinity : 0);
+  // Max drawdown: simulare equity curve
+  let equity = 0, peak = 0, maxDD = 0;
+  for (const t of trades) {
+    equity += t.pnlPct;
+    if (equity > peak) peak = equity;
+    if (peak - equity > maxDD) maxDD = peak - equity;
+  }
+
+  const wrCls = winRate >= 55 ? 'up' : (winRate >= 45 ? '' : 'down');
+  const pfCls = profitFactor >= 1.5 ? 'up' : (profitFactor >= 1 ? '' : 'down');
+  const pnlCls = totalPnl >= 0 ? 'up' : 'down';
+
+  results.innerHTML = `
+    <div class="row"><span class="label">Trades total</span><span class="val">${total}</span></div>
+    <div class="row"><span class="label">Win rate</span><span class="val ${wrCls}">${winRate.toFixed(1)}% (${wins}W/${losses}L)</span></div>
+    <div class="row"><span class="label">Total PnL</span><span class="val ${pnlCls}">${totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}%</span></div>
+    <div class="row"><span class="label">Avg win / loss</span><span class="val">+${avgWin.toFixed(2)}% / -${avgLoss.toFixed(2)}%</span></div>
+    <div class="row"><span class="label">Profit factor</span><span class="val ${pfCls}">${profitFactor === Infinity ? '∞' : profitFactor.toFixed(2)}</span></div>
+    <div class="row"><span class="label">Max drawdown</span><span class="val down">-${maxDD.toFixed(2)}%</span></div>
+    <div class="row" style="grid-column:1/-1;font-size:10px;color:var(--t3);margin-top:6px;font-style:italic">${total === 0 ? '⚠ Niciun trade — ajustează strategia/TP/SL.' : (winRate >= 55 && profitFactor >= 1.5 ? '✅ Strategie profitabilă în perioada testată.' : '⚠ Strategie marginală — testează alți parametri.')}</div>
+  `;
+  btn.disabled = false; btn.textContent = '🚀 Run backtest';
+  if (typeof showToast === 'function') showToast(`✓ Backtest ${sym}: ${total} trades, ${winRate.toFixed(0)}% WR`, 'ok');
+}
+
+function calcRSI(prices, period) {
+  const out = new Array(prices.length).fill(null);
+  if (prices.length < period + 1) return out;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = prices[i] - prices[i-1];
+    if (d > 0) gains += d; else losses -= d;
+  }
+  let avgGain = gains / period, avgLoss = losses / period;
+  for (let i = period; i < prices.length; i++) {
+    const d = prices[i] - prices[i-1];
+    const g = d > 0 ? d : 0, l = d < 0 ? -d : 0;
+    avgGain = (avgGain * (period - 1) + g) / period;
+    avgLoss = (avgLoss * (period - 1) + l) / period;
+    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    out[i] = 100 - (100 / (1 + rs));
+  }
+  return out;
+}
+
+function calcBollinger(prices, period, stdDevs) {
+  const upper = new Array(prices.length).fill(null);
+  const mid   = new Array(prices.length).fill(null);
+  const lower = new Array(prices.length).fill(null);
+  for (let i = period - 1; i < prices.length; i++) {
+    const slice = prices.slice(i - period + 1, i + 1);
+    const m = slice.reduce((a, b) => a + b, 0) / period;
+    const variance = slice.reduce((a, b) => a + (b - m) * (b - m), 0) / period;
+    const sd = Math.sqrt(variance);
+    mid[i] = m;
+    upper[i] = m + stdDevs * sd;
+    lower[i] = m - stdDevs * sd;
+  }
+  return { upper, mid, lower };
+}
+
+// === PERFORMANCE TRACKER PER TAB ===
+// Salvează în localStorage când utilizatorul dă click pe un signal,
+// după 24h verifică prețul și marchează HIT/MISS.
+const PERF_KEY = 'cs_tab_perf';
+let tabPerf = {};
+try { tabPerf = JSON.parse(localStorage.getItem(PERF_KEY) || '{}'); } catch(_) {}
+
+function trackSignalClick(tabId, coin, currentPrice, predicted) {
+  // predicted: 'long' or 'short' — indică direcția semnalului
+  if (!tabId || !coin || !currentPrice) return;
+  if (!tabPerf[tabId]) tabPerf[tabId] = { tracked: [], wins: 0, total: 0 };
+  tabPerf[tabId].tracked.push({
+    coin, entry: currentPrice, predicted: predicted || 'long', t: Date.now(), checked: false,
+  });
+  // Limit per tab la ultimele 50 entries
+  if (tabPerf[tabId].tracked.length > 50) tabPerf[tabId].tracked = tabPerf[tabId].tracked.slice(-50);
+  try { localStorage.setItem(PERF_KEY, JSON.stringify(tabPerf)); } catch(_){}
+}
+
+// Verifică tracked entries: dacă au trecut 24h, fetch preț curent și marchează
+async function checkPerfTracked() {
+  const now = Date.now();
+  const ONE_DAY = 24 * 3600 * 1000;
+  let changed = false;
+  for (const tabId of Object.keys(tabPerf)) {
+    const tab = tabPerf[tabId];
+    for (const entry of tab.tracked) {
+      if (entry.checked) continue;
+      if (now - entry.t < ONE_DAY) continue;
+      // Fetch preț curent
+      try {
+        const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${entry.coin}USDT`);
+        if (!r.ok) continue;
+        const d = await r.json();
+        const currentPrice = parseFloat(d.price);
+        const change = ((currentPrice - entry.entry) / entry.entry) * 100;
+        const isWin = entry.predicted === 'long' ? change > 0.5 : change < -0.5;
+        entry.checked = true;
+        entry.exit = currentPrice;
+        entry.changePct = change;
+        entry.win = isWin;
+        tab.total += 1;
+        if (isWin) tab.wins += 1;
+        changed = true;
+      } catch(_) {}
+    }
+  }
+  if (changed) {
+    try { localStorage.setItem(PERF_KEY, JSON.stringify(tabPerf)); } catch(_){}
+    updateTabPerfBadges();
+  }
+}
+
+function updateTabPerfBadges() {
+  document.querySelectorAll('.tab').forEach(tabEl => {
+    const oc = tabEl.getAttribute('onclick') || '';
+    const m = oc.match(/setTab\('([^']+)'/);
+    if (!m) return;
+    const tabId = m[1];
+    tabEl.querySelector('.hit-badge')?.remove();
+    const perf = tabPerf[tabId];
+    if (!perf || perf.total < 5) return;   // necesită minim 5 entries pentru badge
+    const wr = (perf.wins / perf.total) * 100;
+    const cls = wr >= 60 ? '' : wr >= 45 ? 'warn' : 'bad';
+    const badge = document.createElement('span');
+    badge.className = 'hit-badge ' + cls;
+    badge.textContent = wr.toFixed(0) + '%';
+    badge.title = `Win rate: ${wr.toFixed(1)}% (${perf.wins}/${perf.total} verificate la 24h)`;
+    tabEl.appendChild(badge);
+  });
+}
+
+// Inițializare: check pending după 30s, apoi la fiecare 30 min
+setTimeout(checkPerfTracked, 30000);
+setInterval(checkPerfTracked, 30 * 60_000);
+updateTabPerfBadges();
 
 // Construiește context concis cross-tab
 function buildCrossTabContext() {
