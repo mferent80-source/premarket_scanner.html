@@ -6,8 +6,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#f4f6ff">
-<title>Trading Tools</title>
-<meta name="description" content="Suite de instrumente trading: Crypto Scanner, Nasdaq Scanner, Trading Journal">
+<title>Stocks Trading Tools — Nasdaq + Journal</title>
+<meta name="description" content="Suite stocks trading: Nasdaq Scanner, Trading Journal, Market Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -182,32 +182,33 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
     </div>
-    <h1>Suite de <span class="accent">analiză & trading</span><br>pentru crypto și acțiuni</h1>
-    <p class="lead">Scannere multi-asset, jurnal de tranzacții și instrumente de decizie —
-      construite local, fără backend, rulează direct în browser.</p>
+    <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Journal + Events</h1>
+    <p class="lead">Hub dedicat acțiunilor (Nasdaq + ETF-uri). Scanner pre-market, jurnal cross-asset
+      și calendar de evenimente — toate construite local, rulează în browser.</p>
+    <p style="margin-top:14px;font-size:13px;color:var(--t2)">🪙 Pentru crypto → <a href="https://mferent80-source.github.io/scanner/" target="_blank" rel="noopener" style="color:var(--indigo);font-weight:600;text-decoration:none;border-bottom:1px dotted var(--indigo)">Scanner Hub crypto</a></p>
   </header>
 
-  <!-- DASHBOARD: F&G + BTC + ETH + Watchlist count + Open trades -->
+  <!-- DASHBOARD: SPY + QQQ + VIX + Watchlist stocks + Open trades -->
   <section class="dash" id="dashWidgets">
-    <div class="widget" id="wFG">
-      <div class="w-lbl">😨/😋 Fear &amp; Greed</div>
-      <div class="w-val" id="fgVal">—</div>
-      <div class="w-sub" id="fgSub">se încarcă…</div>
+    <div class="widget" id="wSPY">
+      <div class="w-lbl">SPY (S&amp;P 500)</div>
+      <div class="w-val" id="spyVal">—</div>
+      <div class="w-sub" id="spySub">se încarcă…</div>
     </div>
-    <div class="widget" id="wBTC">
-      <div class="w-lbl">BTC / USDT</div>
-      <div class="w-val" id="btcVal">—</div>
-      <div class="w-sub" id="btcSub">se încarcă…</div>
+    <div class="widget" id="wQQQ">
+      <div class="w-lbl">QQQ (Nasdaq 100)</div>
+      <div class="w-val" id="qqqVal">—</div>
+      <div class="w-sub" id="qqqSub">se încarcă…</div>
     </div>
-    <div class="widget" id="wETH">
-      <div class="w-lbl">ETH / USDT</div>
-      <div class="w-val" id="ethVal">—</div>
-      <div class="w-sub" id="ethSub">se încarcă…</div>
+    <div class="widget" id="wVIX">
+      <div class="w-lbl">VIX (volatilitate)</div>
+      <div class="w-val" id="vixVal">—</div>
+      <div class="w-sub" id="vixSub">se încarcă…</div>
     </div>
     <div class="widget" id="wWL">
-      <div class="w-lbl">Watchlist agregat</div>
+      <div class="w-lbl">Watchlist stocks</div>
       <div class="w-val" id="wlVal">—</div>
-      <div class="w-sub" id="wlSub">crypto + stocks</div>
+      <div class="w-sub" id="wlSub">salvat local</div>
     </div>
     <div class="widget" id="wOpen">
       <div class="w-lbl">Trade-uri open</div>
@@ -217,25 +218,6 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
   </section>
 
   <main class="grid">
-
-    <a href="./crypto-scanner/" target="_blank" rel="noopener" class="card crypto">
-      <div class="card-icon">⚡</div>
-      <span class="card-tag">Crypto · v3.5.3</span>
-      <h2 class="card-title">Crypto Opportunity Scanner</h2>
-      <p class="card-desc">Scaner multi-symbol pentru Pionex/Binance, cu confluență MTF, scoring,
-        management de risc bazat pe ATR și log de semnale cu tracking de outcome.</p>
-      <div class="features">
-        <span class="feat">10 symbols</span>
-        <span class="feat">MTF confluence</span>
-        <span class="feat">ATR risk</span>
-        <span class="feat">Heatmap</span>
-        <span class="feat">News + Calendar</span>
-      </div>
-      <div class="card-cta">
-        <span>Deschide scanner</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
 
     <a href="./nasdaq-scanner/" target="_blank" rel="noopener" class="card nasdaq">
       <div class="card-icon">📈</div>
@@ -292,24 +274,6 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
       </div>
     </a>
 
-    <a href="./crypto-events/" target="_blank" rel="noopener" class="card cryptoevents">
-      <div class="card-icon">⚡</div>
-      <span class="card-tag">Crypto · v1.0</span>
-      <h2 class="card-title">Crypto Events</h2>
-      <p class="card-desc">Movers și sentiment pe piața crypto — top gainers/losers la 1h și 24h,
-        funding rates, open interest, token unlocks și liquidations recente.</p>
-      <div class="features">
-        <span class="feat">Movers 1h/24h</span>
-        <span class="feat">Funding + OI</span>
-        <span class="feat">Unlocks DefiLlama</span>
-        <span class="feat">Liquidations OKX</span>
-      </div>
-      <div class="card-cta">
-        <span>Deschide crypto events</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
   </main>
 
   <footer>
@@ -327,46 +291,61 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <script>
 // ── DASHBOARD WIDGETS ──
-// Hub-ul afișează context macro (F&G + BTC/ETH) + counts agregate (watchlist, open trades).
-// Citește localStorage pentru data scrisă de scannere/journal pe același origin.
+// Hub-ul afișează context macro stocks (SPY + QQQ + VIX) + counts (watchlist, open trades).
+// Citește localStorage pentru data scrisă de nasdaq-scanner / journal pe același origin.
 (function(){
   const $ = id => document.getElementById(id);
 
-  // 1. Fear & Greed crypto (alternative.me — public, no key)
-  fetch('https://api.alternative.me/fng/?limit=1').then(r => r.json()).then(d => {
-    const v = d && d.data && d.data[0];
-    if(!v) return;
-    const val = parseInt(v.value, 10);
-    const cls = v.value_classification || '';
-    $('fgVal').textContent = val;
-    $('fgSub').textContent = cls;
-    $('fgVal').classList.add(val >= 50 ? 'w-pos' : 'w-neg');
-  }).catch(() => { $('fgSub').textContent = 'indisponibil'; });
-
-  // 2. BTC + ETH preț + 24h (Binance public)
+  // Yahoo Finance via CORS proxy (same approach as nasdaq-scanner) — quote endpoint pentru SPY/QQQ/VIX
+  // Folosesc API-ul public quote care nu necesită cheie. Fallback la chart endpoint dacă quote eșuează.
   const fmtP = p => p >= 1000 ? '$' + p.toLocaleString('en', {maximumFractionDigits: 0}) : '$' + p.toFixed(2);
-  const renderTicker = (sym, valEl, subEl) => {
-    fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=' + sym + 'USDT').then(r => r.json()).then(d => {
-      const price = parseFloat(d.lastPrice);
-      const chg = parseFloat(d.priceChangePercent);
-      if(isNaN(price)) return;
-      $(valEl).textContent = fmtP(price);
-      $(subEl).innerHTML = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '% 24h';
-      $(subEl).className = 'w-sub ' + (chg >= 0 ? 'w-pos' : 'w-neg');
-    }).catch(() => { $(subEl).textContent = 'indisponibil'; });
+  const fmtVix = p => p.toFixed(2);
+  const CORS = (u) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u);
+  const fetchQuote = async (sym) => {
+    // chart endpoint: returnează ultimul quote + prevClose
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
+    const r = await fetch(CORS(url));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (!meta) throw new Error('no meta');
+    const price = meta.regularMarketPrice;
+    const prev = meta.chartPreviousClose;
+    if (!price || !prev) throw new Error('no price');
+    return { price, chgPct: ((price - prev) / prev) * 100 };
   };
-  renderTicker('BTC', 'btcVal', 'btcSub');
-  renderTicker('ETH', 'ethVal', 'ethSub');
+  const renderTicker = async (sym, valEl, subEl, fmt) => {
+    try {
+      const q = await fetchQuote(sym);
+      $(valEl).textContent = fmt(q.price);
+      $(subEl).innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + '% azi';
+      $(subEl).className = 'w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
+    } catch (e) {
+      $(subEl).textContent = 'indisponibil';
+    }
+  };
+  renderTicker('SPY', 'spyVal', 'spySub', fmtP);
+  renderTicker('QQQ', 'qqqVal', 'qqqSub', fmtP);
+  // VIX = volatility index (^VIX); inversat ca semantică (VIX sus = teamă = "neg" pentru portofoliu)
+  (async () => {
+    try {
+      const q = await fetchQuote('%5EVIX'); // ^VIX URL-encoded
+      $('vixVal').textContent = fmtVix(q.price);
+      const cls = q.price >= 25 ? 'w-neg' : q.price >= 18 ? '' : 'w-pos';
+      $('vixSub').innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + '% azi';
+      $('vixVal').classList.add(cls);
+    } catch (e) {
+      $('vixSub').textContent = 'indisponibil';
+    }
+  })();
 
-  // 3. Watchlist agregat (crypto dash_watchlist + nasdaq wl_stocks)
-  let cryptoWL = [], stockWL = [];
-  try { cryptoWL = JSON.parse(localStorage.getItem('dash_watchlist') || '[]') || []; } catch(e) {}
+  // Watchlist stocks doar (premarket folosește wl_stocks pentru nasdaq scanner)
+  let stockWL = [];
   try { stockWL = JSON.parse(localStorage.getItem('wl_stocks') || '[]') || []; } catch(e) {}
-  const totalWL = cryptoWL.length + stockWL.length;
-  $('wlVal').textContent = totalWL;
-  $('wlSub').textContent = cryptoWL.length + ' crypto · ' + stockWL.length + ' stocks';
+  $('wlVal').textContent = stockWL.length;
+  $('wlSub').textContent = stockWL.length === 1 ? '1 simbol' : stockWL.length + ' simboluri';
 
-  // 4. Trade-uri open din journal
+  // Trade-uri open din journal (cross-asset, rămâne ca atare)
   try {
     const trades = JSON.parse(localStorage.getItem('journal_trades') || '[]') || [];
     const open = trades.filter(t => t.status === 'open').length;
