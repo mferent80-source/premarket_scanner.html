@@ -4403,23 +4403,43 @@ async function fetchExtendedHours(){
   if(currentTab==='extended') renderExtendedHours();
 }
 
+// Pas 4: filtru "doar gappers stricti" (≥3%) — toggle persistent
+let _pmGappersOnly = false;
+try { _pmGappersOnly = localStorage.getItem('pm_gappers_only') === '1'; } catch(e){}
+window._togglePmGappers = function(){
+  _pmGappersOnly = !_pmGappersOnly;
+  try { localStorage.setItem('pm_gappers_only', _pmGappersOnly ? '1' : '0'); } catch(e){}
+  if (currentTab === 'extended') renderExtendedHours();
+};
+// Auto-refresh 60s pe tabul extended când e pre-market session (cache invalidare automată)
+setInterval(() => {
+  if (currentTab === 'extended' && typeof getMarketSession === 'function' && getMarketSession().session === 'premarket'){
+    extendedCache.ts = 0; // forțează stale → fetch în renderExtendedHours
+    renderExtendedHours();
+  }
+}, 60_000);
+
 function renderExtendedHours(){
   const container=document.getElementById('signalsContainer');
   const session=getMarketSession();
   const cacheAge=Date.now()-extendedCache.ts;
-  const isStale=cacheAge>3*60*1000; // 3 min freshness
-  
+  // Pas 4: refresh agresiv 60s în pre-market (era 3min mereu) — gap-urile se mișcă rapid pre-open
+  const isPm = session.session === 'premarket';
+  const freshness = isPm ? 60_000 : 3*60*1000;
+  const isStale=cacheAge>freshness;
+
   // Trigger fetch if no data or stale
   if(!extendedCache.data.length || (isStale && !extendedCache.fetching)){
     fetchExtendedHours();
   }
-  
+
   const data=extendedCache.data;
   const fetching=extendedCache.fetching;
-  
-  // Sort: gainers desc
-  const gainers=[...data].filter(d=>d.extPct>0.3).sort((a,b)=>b.extPct-a.extPct).slice(0,15);
-  const losers=[...data].filter(d=>d.extPct<-0.3).sort((a,b)=>a.extPct-b.extPct).slice(0,15);
+
+  // Sort: gainers desc · threshold = 3% în mode strict (pas 4), 0.3% normal
+  const minPct = _pmGappersOnly ? 3 : 0.3;
+  const gainers=[...data].filter(d=>d.extPct>minPct).sort((a,b)=>b.extPct-a.extPct).slice(0,15);
+  const losers=[...data].filter(d=>d.extPct<-minPct).sort((a,b)=>a.extPct-b.extPct).slice(0,15);
   
   const sessionBg = session.session==='premarket' ? 'linear-gradient(135deg,rgba(217,119,6,.1),rgba(217,119,6,.02))'
     : session.session==='afterhours' ? 'linear-gradient(135deg,rgba(124,58,237,.1),rgba(124,58,237,.02))'
@@ -4472,6 +4492,15 @@ function renderExtendedHours(){
       (fetching?'<div style="margin-top:10px;font-size:.62rem;color:var(--acc)">⏳ Se încarcă... '+data.length+'/'+(EXTENDED_WATCH.length+(watchlist||[]).length)+'</div>':'')+
     '</div>';
   
+  // Pas 4: filter chip „doar gappers stricti" (≥3%) + indicator refresh 1min
+  html+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:.62rem">';
+  html+='<button onclick="window._togglePmGappers()" style="padding:5px 12px;border-radius:20px;border:1px solid '+(_pmGappersOnly?'var(--goldb)':'var(--b1)')+';background:'+(_pmGappersOnly?'var(--goldl)':'var(--bg2)')+';color:'+(_pmGappersOnly?'var(--gold)':'var(--t2)')+';cursor:pointer;font-weight:700;font-family:inherit">'+(_pmGappersOnly?'✓ ':'')+'🌅 Doar gappers ≥3%</button>';
+  if (isPm){
+    html+='<span style="padding:4px 10px;background:var(--greenl);color:var(--green);border-radius:20px;font-weight:700">⚡ Auto-refresh 60s (pre-market)</span>';
+  }
+  html+='<span style="margin-left:auto;color:var(--t3)">'+gainers.length+'↑ · '+losers.length+'↓ · cache '+Math.round(cacheAge/1000)+'s</span>';
+  html+='</div>';
+
   if(session.session==='regular'){
     html+='<div style="background:var(--accl);border:1px solid var(--accb);border-radius:8px;padding:10px 13px;margin-bottom:14px;font-size:.65rem;color:var(--acc)">💡 În timpul orelor regulare. Preview-uri rămase din pre/after market sunt afișate dacă există mișcări semnificative.</div>';
   } else if(session.session==='closed'){
