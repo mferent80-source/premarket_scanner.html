@@ -3,23 +3,29 @@
 //
 // IMPORTANT: bump CACHE_VERSION manual la fiecare release semnificativ — invalidare automată în clienți.
 // SW are scope `/` (rădăcina repo-ului), deci controlează hub + crypto-scanner + nasdaq-scanner + market-events + crypto-events + watchlist-monitor.
-const CACHE_VERSION = 'tt-v81-2026-05-09';
+const CACHE_VERSION = 'tt-v82-2026-05-09';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 // Resurse statice pre-cache-uite la instalare
 const PRECACHE = [
   './',
   './index.html',
-  './crypto-scanner/',
-  './crypto-scanner/index.html',
   './nasdaq-scanner/',
   './nasdaq-scanner/index.html',
   './market-events/',
   './market-events/index.html',
-  './crypto-events/',
-  './crypto-events/index.html',
   './watchlist-monitor/',
   './watchlist-monitor/index.html',
+  './smart-trade-long/',
+  './smart-trade-long/index.html',
+  './pump-radar/',
+  './pump-radar/index.html',
+  './earnings-hub/',
+  './earnings-hub/index.html',
+  './sector-rotation/',
+  './sector-rotation/index.html',
+  './macro-dashboard/',
+  './macro-dashboard/index.html',
   './404.html'
 ];
 

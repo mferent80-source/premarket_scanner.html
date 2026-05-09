@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Smart Trade Long Stocks · Trading Tools</title>
+<meta name="description" content="Scoring 5-filter cu Entry/SL/TP auto + position sizer + insider activity widget pentru stocks">
+<style>
+:root{
+  --bg:#0b0f17; --bg2:#11161f; --panel:#161b26; --br:#262e3d; --br-l:#1f2632;
+  --txt:#e8edf5; --txt-d:#94a3b8; --txt-dd:#64748b;
+  --acc:#3b82f6; --gold:#f7931a; --green:#22c55e; --red:#ef4444; --yellow:#facc15;
+  --crypto-1:#f7931a; --crypto-2:#ffd86b;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+  --shadow:0 4px 14px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:radial-gradient(1200px 600px at 70% -10%, rgba(247,147,26,.07), transparent 60%),
+  radial-gradient(1000px 500px at 0% 100%, rgba(34,197,94,.04), transparent 60%),
+  var(--bg);
+  color:var(--txt);font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,sans-serif;
+  min-height:100vh;font-variant-numeric:tabular-nums;
+}
+
+/* HEADER */
+.hdr{background:linear-gradient(180deg, rgba(22,27,38,.7), rgba(11,15,23,0));
+  border-bottom:1px solid var(--br-l);backdrop-filter:blur(8px);position:sticky;top:0;z-index:50}
+.hdr-inner{max-width:1280px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--txt);text-decoration:none}
+.brand .badge{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));
+  width:28px;height:28px;border-radius:8px;display:grid;place-items:center;color:#0b0f17;font-size:14px;font-weight:800;
+  box-shadow:0 4px 14px rgba(247,147,26,.3)}
+.brand small{color:var(--txt-d);font-weight:500;margin-left:6px;font-size:12px}
+.spacer{flex:1}
+.btn{background:var(--panel);color:var(--txt);border:1px solid var(--br);padding:8px 12px;border-radius:8px;
+  cursor:pointer;font:inherit;font-size:13px;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn:hover{background:#1d2433;border-color:#324158}
+.btn.pri{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));color:#0b0f17;border-color:transparent;font-weight:700;
+  box-shadow:0 4px 14px rgba(247,147,26,.25)}
+.btn.pri:hover{filter:brightness(1.05)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 10px;font-size:12.5px}
+
+/* MAIN */
+main{max-width:1280px;margin:0 auto;padding:20px}
+h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1),var(--crypto-2));
+  -webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700;letter-spacing:-.5px}
+.lead{color:var(--txt-d);margin:0 0 18px;font-size:14px}
+
+/* SCAN BAR */
+.scan-bar{background:var(--panel);border:1px solid var(--br);border-radius:14px;padding:18px;
+  display:grid;grid-template-columns:1.4fr 1fr 1fr auto auto;gap:12px;align-items:end;margin-bottom:18px;box-shadow:var(--shadow)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;font-weight:600;color:var(--txt-d);text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select{background:var(--bg2);border:1px solid var(--br);color:var(--txt);
+  padding:10px 12px;border-radius:8px;font:inherit;font-size:14px;outline:none;transition:border .15s,box-shadow .15s}
+.field input:focus,.field select:focus{border-color:var(--crypto-1);box-shadow:0 0 0 3px rgba(247,147,26,.15)}
+.field input[type=number]{font-variant-numeric:tabular-nums}
+.scan-btn{padding:10px 22px;font-size:15px;font-weight:700;border-radius:10px}
+.scan-bar .auto-toggle{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;color:var(--txt-d);font-weight:600}
+.toggle{position:relative;display:inline-block;width:44px;height:22px}
+.toggle input{display:none}
+.toggle .slider{position:absolute;inset:0;background:var(--br);border-radius:99px;cursor:pointer;transition:.2s}
+.toggle .slider:before{content:'';position:absolute;height:18px;width:18px;left:2px;top:2px;background:var(--txt);border-radius:50%;transition:.2s}
+.toggle input:checked + .slider{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2))}
+.toggle input:checked + .slider:before{transform:translateX(22px);background:#0b0f17}
+
+@media(max-width:780px){.scan-bar{grid-template-columns:1fr 1fr;gap:10px}.scan-btn,.auto-toggle{grid-column:span 2}}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:980px){.grid{grid-template-columns:1fr}}
+
+.card{background:var(--panel);border:1px solid var(--br);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+.card h2{font-size:13px;margin:0 0 14px;color:var(--txt-d);text-transform:uppercase;letter-spacing:.8px;font-weight:700;
+  display:flex;align-items:center;gap:8px}
+.card h2 .ico{font-size:16px}
+
+/* VERDICT */
+.verdict-card{background:linear-gradient(135deg, var(--panel), #131823);position:relative;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 20px;min-height:280px}
+.verdict-card::before{content:'';position:absolute;inset:0;background:radial-gradient(400px 200px at 50% 0%, rgba(247,147,26,.1), transparent 70%);pointer-events:none}
+.verdict-icon{font-size:64px;margin-bottom:8px}
+.verdict-tier{font-size:32px;font-weight:800;letter-spacing:-1px;margin:0 0 4px}
+.verdict-desc{color:var(--txt-d);font-size:14px;margin:0 0 20px}
+.score-bar{width:100%;max-width:320px;margin:0 auto;height:14px;background:var(--bg2);border-radius:99px;overflow:hidden;border:1px solid var(--br)}
+.score-fill{height:100%;background:linear-gradient(90deg,var(--red),var(--yellow),var(--green));
+  border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1);position:relative;box-shadow:0 0 12px rgba(247,147,26,.35)}
+.score-num{font-size:48px;font-weight:800;margin:18px 0 0;font-variant-numeric:tabular-nums;line-height:1}
+.score-num small{font-size:18px;color:var(--txt-d);font-weight:500;margin-left:4px}
+.tier-r{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff}
+.tier-o{background:linear-gradient(135deg,#22c55e,#84cc16);color:#fff}
+.tier-m{background:linear-gradient(135deg,#facc15,#fb923c);color:#1a1a1a}
+.tier-n{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff}
+.tier-tag{display:inline-block;padding:4px 14px;border-radius:99px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
+
+/* FILTERS */
+.filters{list-style:none;padding:0;margin:0}
+.filter{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border-radius:8px;
+  background:var(--bg2);border:1px solid var(--br);margin-bottom:8px;font-size:13.5px}
+.filter:last-child{margin-bottom:0}
+.filter .nm{display:flex;align-items:center;gap:10px}
+.filter .ico{font-size:18px;width:24px;text-align:center}
+.filter .desc{color:var(--txt-d);font-size:11.5px;display:block;margin-top:2px}
+.filter .pts{font-weight:700;font-variant-numeric:tabular-nums;font-size:13px}
+.filter.ok{border-left:3px solid var(--green)}
+.filter.partial{border-left:3px solid var(--yellow)}
+.filter.fail{border-left:3px solid var(--red)}
+.filter.ok .pts{color:var(--green)}
+.filter.partial .pts{color:var(--yellow)}
+.filter.fail .pts{color:var(--red)}
+
+/* LEVELS */
+.levels{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.level{padding:12px;background:var(--bg2);border:1px solid var(--br);border-radius:10px;text-align:center}
+.level .lbl{font-size:11px;color:var(--txt-d);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:4px}
+.level .val{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.level .delta{font-size:11px;color:var(--txt-dd);margin-top:2px}
+.level.entry{border-color:rgba(247,147,26,.4)}
+.level.entry .val{color:var(--crypto-1)}
+.level.sl{border-color:rgba(239,68,68,.4)}
+.level.sl .val{color:var(--red)}
+.level.tp1,.level.tp2,.level.tp3{border-color:rgba(34,197,94,.3)}
+.level.tp1 .val,.level.tp2 .val,.level.tp3 .val{color:var(--green)}
+
+/* SIZER */
+.sizer-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.sizer-row input{background:var(--bg2);border:1px solid var(--br);color:var(--txt);
+  padding:8px 10px;border-radius:8px;font:inherit;font-size:13px;width:100%;outline:none}
+.sizer-out{background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+.sizer-out .o-item .lbl{font-size:11px;color:var(--txt-d);font-weight:600}
+.sizer-out .o-item .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--crypto-1);margin-top:2px}
+
+/* INSIDER */
+.insider-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.ins-stat{background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:12px;text-align:center}
+.ins-stat .lbl{font-size:11px;color:var(--txt-d);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:4px}
+.ins-stat .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+.ins-stat.bull .v{color:var(--green)}
+.ins-stat.bear .v{color:var(--red)}
+.ins-stat.neu .v{color:var(--txt)}
+
+.ins-verdict{padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px}
+.ins-verdict.bull{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.ins-verdict.bear{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.ins-verdict.neu{background:var(--bg2);color:var(--txt-d);border:1px solid var(--br)}
+
+.ins-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto}
+.ins-item{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;padding:8px 10px;
+  background:var(--bg2);border:1px solid var(--br);border-radius:8px;font-size:12.5px}
+.ins-item .code{font-size:14px;font-weight:700;width:24px;text-align:center}
+.ins-item .nm{font-size:12px;color:var(--txt-d);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ins-item .nm strong{display:block;color:var(--txt);font-size:12.5px;font-weight:600}
+.ins-item .qty{font-variant-numeric:tabular-nums;font-weight:600;font-size:12px}
+.ins-item .qty.pos{color:var(--green)}
+.ins-item .qty.neg{color:var(--red)}
+.ins-item .dt{font-size:11px;color:var(--txt-dd);font-variant-numeric:tabular-nums}
+
+/* META */
+.meta-card{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.meta{background:var(--bg2);border:1px solid var(--br);border-radius:10px;padding:10px;text-align:center}
+.meta .lbl{font-size:10.5px;color:var(--txt-d);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.meta .v{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:3px}
+.meta.up .v{color:var(--green)}
+.meta.dn .v{color:var(--red)}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:60px 20px;color:var(--txt-d)}
+.empty-state .ico{font-size:64px;margin-bottom:14px;opacity:.5}
+.empty-state h3{margin:0 0 6px;color:var(--txt);font-size:18px}
+
+/* LOADING */
+.loading{text-align:center;padding:50px 20px;color:var(--txt-d)}
+.spinner{width:36px;height:36px;border:3px solid var(--br);border-top-color:var(--crypto-1);border-radius:50%;
+  animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel);
+  border:1px solid var(--br);padding:10px 18px;border-radius:99px;font-size:13.5px;font-weight:600;
+  box-shadow:var(--shadow);z-index:200;opacity:0;transition:opacity .2s}
+.toast.show{opacity:1}
+.toast.err{border-color:rgba(239,68,68,.5);color:var(--red)}
+.toast.ok{border-color:rgba(34,197,94,.5);color:var(--green)}
+
+/* SETTINGS MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:300;
+  display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--br);border-radius:14px;padding:24px;max-width:480px;width:100%;box-shadow:var(--shadow)}
+.modal h3{margin:0 0 4px;font-size:18px}
+.modal p{color:var(--txt-d);margin:0 0 18px;font-size:13.5px;line-height:1.5}
+.modal .field{margin-bottom:12px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+
+/* WL CHIP */
+.wl-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(247,147,26,.12);
+  color:var(--crypto-1);border:1px solid rgba(247,147,26,.3);border-radius:99px;font-size:11.5px;font-weight:600;cursor:pointer;transition:all .15s}
+.wl-chip:hover{background:rgba(247,147,26,.2)}
+.wl-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;align-items:center}
+.wl-bar .lbl{font-size:11px;color:var(--txt-dd);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-right:4px}
+</style>
+</head>
+<body class="dark">
+
+<header class="hdr">
+  <div class="hdr-inner">
+    <a href="../" class="brand">
+      <span class="badge">T</span>
+      <span>Smart Trade Long</span>
+      <small>Stocks</small>
+    </a>
+    <div class="spacer"></div>
+    <button class="btn ghost sm" id="settingsBtn" title="Setări API">⚙ Settings</button>
+    <a class="btn ghost sm" href="../">← Hub</a>
+  </div>
+</header>
+
+<main>
+  <h1>🎯 Smart Trade Long</h1>
+  <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
+    Dă verdict clar înainte de fiecare trade.</p>
+
+  <div class="wl-bar" id="wlBar"></div>
+
+  <div class="scan-bar">
+    <div class="field">
+      <label for="symInput">Symbol</label>
+      <input type="text" id="symInput" placeholder="ex: AAPL, MSFT, TSLA" autocomplete="off" maxlength="8">
+    </div>
+    <div class="field">
+      <label for="acctSize">Account size ($)</label>
+      <input type="number" id="acctSize" value="10000" min="100" step="100">
+    </div>
+    <div class="field">
+      <label for="riskPct">Risc per trade (%)</label>
+      <input type="number" id="riskPct" value="1" min="0.1" max="5" step="0.1">
+    </div>
+    <button class="btn pri scan-btn" id="scanBtn">🚀 Scanează</button>
+    <div class="auto-toggle">
+      <span>Auto 5min</span>
+      <label class="toggle">
+        <input type="checkbox" id="autoScan">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div id="resultArea">
+    <div class="empty-state">
+      <div class="ico">🎯</div>
+      <h3>Începe o analiză</h3>
+      <p>Introdu un simbol (sau selectează din watchlist) și apasă <strong>Scanează</strong> pentru verdict + niveluri auto.</p>
+    </div>
+  </div>
+</main>
+
+<!-- Settings modal -->
+<div class="modal-bg" id="settingsModal">
+  <div class="modal">
+    <h3>⚙ Setări API</h3>
+    <p>Cheia Finnhub e folosită pentru insider transactions. Dacă <strong>nu</strong> setezi cheie, widget-ul insider va fi gol.
+      Generează gratis pe <a href="https://finnhub.io/" target="_blank" rel="noopener" style="color:var(--crypto-1)">finnhub.io</a>.</p>
+    <div class="field">
+      <label for="finnhubKey">Finnhub API key</label>
+      <input type="text" id="finnhubKey" placeholder="d7bsmo9r01quh9fbktq0d7bsmo9r01quh9fbktqg" autocomplete="off">
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="cancelSettings">Anulează</button>
+      <button class="btn pri" id="saveSettings">Salvează</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ─────────────────────── CONFIG ───────────────────────
+const PROXY = 'https://api.codetabs.com/v1/proxy?quest=';
+const YAHOO_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+const FINNHUB_BASE = 'https://finnhub.io/api/v1';
+const LS_KEY = 'finnhub_api_key';
+const LS_AUTO = 'smart_trade_auto';
+const LS_LAST = 'smart_trade_last_sym';
+const LS_ACCT = 'smart_trade_acct';
+const LS_RISK = 'smart_trade_risk';
+const WL_KEY = 'wl_stocks';
+const AUTO_INTERVAL_MS = 5 * 60 * 1000;
+
+// ─────────────────────── STATE ───────────────────────
+const state = {
+  finnhubKey: localStorage.getItem(LS_KEY) || 'd7bsmo9r01quh9fbktq0d7bsmo9r01quh9fbktqg',
+  autoTimer: null,
+  lastSymbol: null,
+  lastResult: null,
+};
+
+// ─────────────────────── DOM ───────────────────────
+const $ = id => document.getElementById(id);
+const symInput = $('symInput');
+const scanBtn = $('scanBtn');
+const acctSizeEl = $('acctSize');
+const riskPctEl = $('riskPct');
+const resultArea = $('resultArea');
+const autoScan = $('autoScan');
+const toastEl = $('toast');
+const settingsBtn = $('settingsBtn');
+const settingsModal = $('settingsModal');
+const finnhubKeyEl = $('finnhubKey');
+const wlBar = $('wlBar');
+
+// ─────────────────────── UTILS ───────────────────────
+function toast(msg, type = '') {
+  toastEl.textContent = msg;
+  toastEl.className = 'toast show ' + type;
+  setTimeout(() => toastEl.classList.remove('show'), 2500);
+}
+function fmt$(n, d = 2) { return n == null || isNaN(n) ? '—' : '$' + Number(n).toFixed(d); }
+function fmtPct(n, d = 2) { return n == null || isNaN(n) ? '—' : (n >= 0 ? '+' : '') + Number(n).toFixed(d) + '%'; }
+function fmtNum(n, d = 0) { return n == null || isNaN(n) ? '—' : Number(n).toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d }); }
+function isoDaysAgo(d) { const t = new Date(); t.setDate(t.getDate() - d); return t.toISOString().slice(0, 10); }
+
+// ─────────────────────── INDICATORI ───────────────────────
+// SMA simplu
+function sma(arr, period) {
+  if (arr.length < period) return null;
+  const slice = arr.slice(-period);
+  return slice.reduce((a, b) => a + b, 0) / period;
+}
+
+// True Range pe array OHLC
+function trueRange(highs, lows, closes) {
+  const tr = [];
+  for (let i = 1; i < highs.length; i++) {
+    tr.push(Math.max(
+      highs[i] - lows[i],
+      Math.abs(highs[i] - closes[i - 1]),
+      Math.abs(lows[i] - closes[i - 1])
+    ));
+  }
+  return tr;
+}
+
+// ATR(14) Wilder
+function atr(highs, lows, closes, period = 14) {
+  const tr = trueRange(highs, lows, closes);
+  if (tr.length < period) return null;
+  let avg = tr.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < tr.length; i++) avg = (avg * (period - 1) + tr[i]) / period;
+  return avg;
+}
+
+// RSI(14) Wilder
+function rsi(closes, period = 14) {
+  if (closes.length <= period) return null;
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1];
+    if (d >= 0) gains += d; else losses -= d;
+  }
+  let avgG = gains / period, avgL = losses / period;
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1];
+    avgG = (avgG * (period - 1) + Math.max(d, 0)) / period;
+    avgL = (avgL * (period - 1) + Math.max(-d, 0)) / period;
+  }
+  if (avgL === 0) return 100;
+  const rs = avgG / avgL;
+  return 100 - 100 / (1 + rs);
+}
+
+// ADX(14) Wilder
+function adx(highs, lows, closes, period = 14) {
+  if (highs.length < period * 2) return null;
+  const tr = [], plusDM = [], minusDM = [];
+  for (let i = 1; i < highs.length; i++) {
+    const upMove = highs[i] - highs[i - 1];
+    const dnMove = lows[i - 1] - lows[i];
+    plusDM.push(upMove > dnMove && upMove > 0 ? upMove : 0);
+    minusDM.push(dnMove > upMove && dnMove > 0 ? dnMove : 0);
+    tr.push(Math.max(highs[i] - lows[i], Math.abs(highs[i] - closes[i - 1]), Math.abs(lows[i] - closes[i - 1])));
+  }
+  if (tr.length < period) return null;
+  let smTR = tr.slice(0, period).reduce((a, b) => a + b, 0);
+  let smPlusDM = plusDM.slice(0, period).reduce((a, b) => a + b, 0);
+  let smMinusDM = minusDM.slice(0, period).reduce((a, b) => a + b, 0);
+  const dxArr = [];
+  for (let i = period; i < tr.length; i++) {
+    smTR = smTR - smTR / period + tr[i];
+    smPlusDM = smPlusDM - smPlusDM / period + plusDM[i];
+    smMinusDM = smMinusDM - smMinusDM / period + minusDM[i];
+    const plusDI = 100 * smPlusDM / smTR;
+    const minusDI = 100 * smMinusDM / smTR;
+    const dx = 100 * Math.abs(plusDI - minusDI) / (plusDI + minusDI || 1);
+    dxArr.push(dx);
+  }
+  if (dxArr.length < period) return null;
+  let avgDX = dxArr.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < dxArr.length; i++) avgDX = (avgDX * (period - 1) + dxArr[i]) / period;
+  return avgDX;
+}
+
+// ─────────────────────── DATA FETCH ───────────────────────
+async function fetchYahoo(sym) {
+  const url = `${YAHOO_BASE}${sym}?interval=1d&range=6mo`;
+  const res = await fetch(PROXY + encodeURIComponent(url));
+  if (!res.ok) throw new Error(`Yahoo ${res.status}`);
+  const j = await res.json();
+  const r = j?.chart?.result?.[0];
+  if (!r) throw new Error('Symbol invalid sau fără date');
+  const q = r.indicators?.quote?.[0];
+  if (!q) throw new Error('Lipsesc OHLC');
+  // Yahoo returnează uneori null pe weekend / holiday — filtrare
+  const N = r.timestamp.length;
+  const ts = [], opens = [], highs = [], lows = [], closes = [], volumes = [];
+  for (let i = 0; i < N; i++) {
+    if (q.close[i] == null) continue;
+    ts.push(r.timestamp[i] * 1000);
+    opens.push(q.open[i]);
+    highs.push(q.high[i]);
+    lows.push(q.low[i]);
+    closes.push(q.close[i]);
+    volumes.push(q.volume[i] || 0);
+  }
+  return { ts, opens, highs, lows, closes, volumes, meta: r.meta };
+}
+
+async function fetchInsiders(sym) {
+  if (!state.finnhubKey) return { ok: false, reason: 'no-key' };
+  const from = isoDaysAgo(90);
+  const to = isoDaysAgo(0);
+  const url = `${FINNHUB_BASE}/stock/insider-transactions?symbol=${sym}&from=${from}&to=${to}&token=${state.finnhubKey}`;
+  try {
+    const res = await fetch(url);
+    if (res.status === 401 || res.status === 403) return { ok: false, reason: 'auth' };
+    if (!res.ok) return { ok: false, reason: 'http-' + res.status };
+    const j = await res.json();
+    return { ok: true, data: j.data || [] };
+  } catch (e) {
+    return { ok: false, reason: 'network' };
+  }
+}
+
+// ─────────────────────── SCORING ───────────────────────
+function computeScore(d) {
+  const { closes, volumes, highs, lows } = d;
+  const last = closes[closes.length - 1];
+  const ma50 = sma(closes, 50);
+  const ma200 = sma(closes, 200) ?? sma(closes, Math.min(closes.length - 1, 150));
+  const atrV = atr(highs, lows, closes, 14);
+  const rsiV = rsi(closes, 14);
+  const adxV = adx(highs, lows, closes, 14);
+  const volAvg20 = sma(volumes, 20);
+  const volToday = volumes[volumes.length - 1];
+
+  const filters = [];
+  let score = 0;
+
+  // 1. MA structure: price > MA50 > MA200
+  let f1 = { name: 'MA Structure', desc: 'Preț > MA50 > MA200', ico: '📈', max: 25 };
+  if (ma50 && ma200) {
+    if (last > ma50 && ma50 > ma200) { f1.pts = 25; f1.status = 'ok'; }
+    else if (last > ma50 || last > ma200) { f1.pts = 12; f1.status = 'partial'; f1.desc += ' (parțial)'; }
+    else { f1.pts = 0; f1.status = 'fail'; f1.desc = `Preț ${fmt$(last)} < MA50 ${fmt$(ma50)}`; }
+  } else { f1.pts = 0; f1.status = 'fail'; f1.desc = 'Date insuficiente'; }
+  score += f1.pts; filters.push(f1);
+
+  // 2. Volume confirm
+  let f2 = { name: 'Volume', desc: 'Vol > 1.2× media 20d', ico: '📊', max: 15 };
+  if (volAvg20 && volToday) {
+    const ratio = volToday / volAvg20;
+    if (ratio >= 1.5) { f2.pts = 15; f2.status = 'ok'; f2.desc = `Vol ${ratio.toFixed(2)}× media`; }
+    else if (ratio >= 1.0) { f2.pts = 8; f2.status = 'partial'; f2.desc = `Vol ${ratio.toFixed(2)}× media`; }
+    else { f2.pts = 0; f2.status = 'fail'; f2.desc = `Vol slab ${ratio.toFixed(2)}×`; }
+  } else { f2.pts = 0; f2.status = 'fail'; }
+  score += f2.pts; filters.push(f2);
+
+  // 3. RSI sweet spot 40-65
+  let f3 = { name: 'RSI Sweet Spot', desc: 'RSI 40-65 (uptrend sănătos)', ico: '🎚️', max: 20 };
+  if (rsiV != null) {
+    if (rsiV >= 40 && rsiV <= 65) { f3.pts = 20; f3.status = 'ok'; f3.desc = `RSI ${rsiV.toFixed(1)}`; }
+    else if (rsiV > 65 && rsiV <= 75) { f3.pts = 10; f3.status = 'partial'; f3.desc = `RSI ${rsiV.toFixed(1)} (overbought ușor)`; }
+    else if (rsiV >= 30 && rsiV < 40) { f3.pts = 8; f3.status = 'partial'; f3.desc = `RSI ${rsiV.toFixed(1)} (slab)`; }
+    else { f3.pts = 0; f3.status = 'fail'; f3.desc = `RSI ${rsiV.toFixed(1)} (extrem)`; }
+  } else { f3.pts = 0; f3.status = 'fail'; }
+  score += f3.pts; filters.push(f3);
+
+  // 4. ADX trend strength
+  let f4 = { name: 'ADX Trend', desc: 'ADX > 25 (trend puternic)', ico: '⚡', max: 20 };
+  if (adxV != null) {
+    if (adxV >= 25) { f4.pts = 20; f4.status = 'ok'; f4.desc = `ADX ${adxV.toFixed(1)}`; }
+    else if (adxV >= 20) { f4.pts = 10; f4.status = 'partial'; f4.desc = `ADX ${adxV.toFixed(1)} (slab)`; }
+    else { f4.pts = 0; f4.status = 'fail'; f4.desc = `ADX ${adxV.toFixed(1)} (sideway)`; }
+  } else { f4.pts = 0; f4.status = 'fail'; }
+  score += f4.pts; filters.push(f4);
+
+  // 5. R:R ≥ 1:2 (calc bazat pe ATR)
+  let f5 = { name: 'R:R Ratio', desc: 'Min 1:2 din nivel ATR', ico: '⚖️', max: 20 };
+  if (atrV) {
+    // SL = entry - 1.5*ATR, TP2 = entry + 3*ATR → R:R = 2 (mereu OK dacă avem ATR valid)
+    f5.pts = 20; f5.status = 'ok'; f5.desc = `R:R ≥ 1:2 din ATR ${atrV.toFixed(2)}`;
+  } else { f5.pts = 0; f5.status = 'fail'; f5.desc = 'ATR indisponibil'; }
+  score += f5.pts; filters.push(f5);
+
+  return { score, filters, last, ma50, ma200, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null };
+}
+
+function tier(score) {
+  if (score >= 90) return { cls: 'tier-r', icon: '🚀', label: 'READY', desc: 'Setup complet — execută conform plan' };
+  if (score >= 70) return { cls: 'tier-o', icon: '🟢', label: 'OK', desc: 'Setup bun — poate fi executat cu prudență' };
+  if (score >= 50) return { cls: 'tier-m', icon: '🟡', label: 'MIXT', desc: 'Setup nesigur — așteaptă confirmare' };
+  return { cls: 'tier-n', icon: '🔴', label: 'NU', desc: 'Setup slab — renunță' };
+}
+
+// ─────────────────────── INSIDER ANALYSIS ───────────────────────
+function analyzeInsiders(transactions) {
+  // Doar buy real (P) vs sell real (S, no T) — filter conform Finnhub transactionCode
+  const buys = [], sells = [];
+  for (const t of transactions) {
+    const code = (t.transactionCode || '').toUpperCase();
+    const change = Number(t.change || 0);
+    const price = Number(t.transactionPrice || 0);
+    const value = Math.abs(change) * price;
+    const item = { ...t, value };
+    if (code === 'P' || (code === 'A' && change > 0)) buys.push(item);
+    else if (code === 'S' || (code === 'D' && change < 0)) sells.push(item);
+  }
+  const buyVal = buys.reduce((a, b) => a + b.value, 0);
+  const sellVal = sells.reduce((a, b) => a + b.value, 0);
+  const net = buyVal - sellVal;
+  let verdict = 'neu', verdictTxt = 'Activitate insider neutră';
+  if (buys.length >= 3 && buyVal > sellVal * 2) { verdict = 'bull'; verdictTxt = `Bullish: ${buys.length} cumpărări (${fmt$(buyVal, 0)}) vs ${sells.length} vânzări`; }
+  else if (sells.length >= 3 && sellVal > buyVal * 2) { verdict = 'bear'; verdictTxt = `Bearish: ${sells.length} vânzări (${fmt$(sellVal, 0)}) vs ${buys.length} cumpărări`; }
+  else if (buys.length === 0 && sells.length === 0) { verdictTxt = 'Niciun insider activ în 90 zile'; }
+  else if (buyVal > sellVal) { verdict = 'bull'; verdictTxt = `Cumpărări nete moderate (${fmt$(net, 0)})`; }
+  else if (sellVal > buyVal) { verdict = 'bear'; verdictTxt = `Vânzări nete moderate (${fmt$(-net, 0)})`; }
+
+  // top 5 sortat după valoare
+  const recent = [...buys, ...sells].sort((a, b) => new Date(b.transactionDate) - new Date(a.transactionDate)).slice(0, 8);
+  return { buys, sells, buyVal, sellVal, net, verdict, verdictTxt, recent };
+}
+
+// ─────────────────────── RENDER ───────────────────────
+function render(sym, scoreData, insiderData) {
+  const t = tier(scoreData.score);
+  const last = scoreData.last;
+  const atrV = scoreData.atr || 0;
+  const entry = last;
+  const sl = entry - 1.5 * atrV;
+  const tp1 = entry + 1 * atrV;
+  const tp2 = entry + 2 * atrV;
+  const tp3 = entry + 3 * atrV;
+  const acct = parseFloat(acctSizeEl.value) || 10000;
+  const riskPct = parseFloat(riskPctEl.value) || 1;
+  const riskUSD = acct * riskPct / 100;
+  const riskShare = entry - sl;
+  const shares = riskShare > 0 ? Math.floor(riskUSD / riskShare) : 0;
+  const positionValue = shares * entry;
+  const positionPct = positionValue / acct * 100;
+
+  const filtersHTML = scoreData.filters.map(f => `
+    <li class="filter ${f.status}">
+      <div class="nm">
+        <span class="ico">${f.ico}</span>
+        <div>
+          <strong>${f.name}</strong>
+          <span class="desc">${f.desc}</span>
+        </div>
+      </div>
+      <span class="pts">${f.pts}/${f.max}</span>
+    </li>
+  `).join('');
+
+  let insiderHTML = '';
+  if (insiderData.ok === false && insiderData.reason === 'no-key') {
+    insiderHTML = `<div class="ins-verdict neu">⚙ Setează Finnhub API key în Settings pentru insider widget</div>`;
+  } else if (insiderData.ok === false && insiderData.reason === 'auth') {
+    insiderHTML = `<div class="ins-verdict bear">🔑 Finnhub key invalid/revoked — regenerează în <a href="https://finnhub.io/dashboard" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">dashboard</a></div>`;
+  } else if (insiderData.ok === false) {
+    insiderHTML = `<div class="ins-verdict neu">⚠ Insider unavailable (${insiderData.reason})</div>`;
+  } else {
+    const a = analyzeInsiders(insiderData.data);
+    const recentItems = a.recent.length === 0
+      ? '<div style="color:var(--txt-dd);font-size:12.5px;text-align:center;padding:12px">Niciun insider activ în 90 zile</div>'
+      : a.recent.map(t => {
+        const code = (t.transactionCode || '').toUpperCase();
+        const isBuy = code === 'P' || (code === 'A' && t.change > 0);
+        const sign = isBuy ? '+' : '−';
+        return `
+          <div class="ins-item">
+            <div class="code" title="${code}">${isBuy ? '🟢' : '🔴'}</div>
+            <div class="nm"><strong>${t.name || '—'}</strong>${code} · ${fmt$(t.transactionPrice || 0)}</div>
+            <div class="qty ${isBuy ? 'pos' : 'neg'}">${sign}${fmtNum(Math.abs(t.change || 0))}</div>
+            <div class="dt">${(t.transactionDate || '').slice(5) || '—'}</div>
+          </div>
+        `;
+      }).join('');
+    insiderHTML = `
+      <div class="insider-summary">
+        <div class="ins-stat bull"><div class="lbl">Cumpărări</div><div class="v">${a.buys.length}</div></div>
+        <div class="ins-stat ${a.net >= 0 ? 'bull' : 'bear'}"><div class="lbl">Net 90d</div><div class="v">${a.net >= 0 ? '+' : '−'}${fmt$(Math.abs(a.net), 0)}</div></div>
+        <div class="ins-stat bear"><div class="lbl">Vânzări</div><div class="v">${a.sells.length}</div></div>
+      </div>
+      <div class="ins-verdict ${a.verdict}">${a.verdict === 'bull' ? '🟢' : a.verdict === 'bear' ? '🔴' : '⚪'} ${a.verdictTxt}</div>
+      <div class="ins-list">${recentItems}</div>
+    `;
+  }
+
+  resultArea.innerHTML = `
+    <div class="grid">
+      <div class="card verdict-card">
+        <div class="verdict-icon">${t.icon}</div>
+        <span class="tier-tag ${t.cls}">${t.label}</span>
+        <div class="verdict-tier" style="font-size:24px">${sym}</div>
+        <div class="verdict-desc">${t.desc}</div>
+        <div class="score-bar"><div class="score-fill" style="width:${scoreData.score}%"></div></div>
+        <div class="score-num">${scoreData.score}<small>/100</small></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="ico">📊</span> Indicatori cheie</h2>
+        <div class="meta-card">
+          <div class="meta"><div class="lbl">Preț</div><div class="v">${fmt$(scoreData.last)}</div></div>
+          <div class="meta"><div class="lbl">RSI(14)</div><div class="v">${scoreData.rsi != null ? scoreData.rsi.toFixed(1) : '—'}</div></div>
+          <div class="meta"><div class="lbl">ADX(14)</div><div class="v">${scoreData.adx != null ? scoreData.adx.toFixed(1) : '—'}</div></div>
+          <div class="meta"><div class="lbl">ATR(14)</div><div class="v">${scoreData.atr != null ? scoreData.atr.toFixed(2) : '—'}</div></div>
+          <div class="meta"><div class="lbl">MA50</div><div class="v">${scoreData.ma50 != null ? fmt$(scoreData.ma50) : '—'}</div></div>
+          <div class="meta"><div class="lbl">MA200</div><div class="v">${scoreData.ma200 != null ? fmt$(scoreData.ma200) : '—'}</div></div>
+          <div class="meta ${scoreData.volRatio >= 1 ? 'up' : 'dn'}"><div class="lbl">Vol Ratio</div><div class="v">${scoreData.volRatio != null ? scoreData.volRatio.toFixed(2) + '×' : '—'}</div></div>
+          <div class="meta ${last > scoreData.ma50 ? 'up' : 'dn'}"><div class="lbl">vs MA50</div><div class="v">${scoreData.ma50 ? ((last / scoreData.ma50 - 1) * 100).toFixed(1) + '%' : '—'}</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="ico">🎯</span> Filtre scoring</h2>
+        <ul class="filters">${filtersHTML}</ul>
+      </div>
+
+      <div class="card">
+        <h2><span class="ico">📐</span> Niveluri din ATR</h2>
+        <div class="levels">
+          <div class="level entry">
+            <div class="lbl">Entry</div>
+            <div class="val">${fmt$(entry)}</div>
+            <div class="delta">preț curent</div>
+          </div>
+          <div class="level sl">
+            <div class="lbl">Stop Loss</div>
+            <div class="val">${fmt$(sl)}</div>
+            <div class="delta">−1.5 ATR (−${((entry - sl) / entry * 100).toFixed(2)}%)</div>
+          </div>
+          <div class="level tp1">
+            <div class="lbl">TP1</div>
+            <div class="val">${fmt$(tp1)}</div>
+            <div class="delta">+1 ATR (+${((tp1 - entry) / entry * 100).toFixed(2)}%)</div>
+          </div>
+          <div class="level tp2">
+            <div class="lbl">TP2</div>
+            <div class="val">${fmt$(tp2)}</div>
+            <div class="delta">+2 ATR (+${((tp2 - entry) / entry * 100).toFixed(2)}%)</div>
+          </div>
+          <div class="level tp3" style="grid-column:span 2">
+            <div class="lbl">TP3 (runner)</div>
+            <div class="val">${fmt$(tp3)}</div>
+            <div class="delta">+3 ATR — R:R 1:2</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="ico">💰</span> Position Sizer</h2>
+        <div style="margin-bottom:12px;font-size:13px;color:var(--txt-d)">
+          Risc max: <strong style="color:var(--red)">${fmt$(riskUSD)}</strong> · Risc/share: <strong>${fmt$(riskShare)}</strong>
+        </div>
+        <div class="sizer-out">
+          <div class="o-item"><div class="lbl">Shares</div><div class="v">${fmtNum(shares)}</div></div>
+          <div class="o-item"><div class="lbl">Position $</div><div class="v">${fmt$(positionValue, 0)}</div></div>
+          <div class="o-item"><div class="lbl">% Account</div><div class="v">${positionPct.toFixed(1)}%</div></div>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--txt-dd);line-height:1.5">
+          Calcul: <code>shares = floor(${fmt$(riskUSD)} / ${fmt$(riskShare)}) = ${shares}</code><br>
+          La TP2 (+2 ATR) profit așteptat: <strong style="color:var(--green)">${fmt$(shares * 2 * atrV)}</strong>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="ico">👔</span> Insider Activity (90 zile)</h2>
+        ${insiderHTML}
+      </div>
+    </div>
+  `;
+
+  state.lastResult = { sym, scoreData, insiderData };
+  localStorage.setItem(LS_LAST, sym);
+}
+
+// ─────────────────────── SCAN ───────────────────────
+async function scan(sym) {
+  sym = (sym || symInput.value || '').trim().toUpperCase();
+  if (!sym) { toast('Introdu un simbol', 'err'); return; }
+  if (!/^[A-Z][A-Z0-9.\-]{0,7}$/.test(sym)) { toast('Simbol invalid', 'err'); return; }
+
+  symInput.value = sym;
+  state.lastSymbol = sym;
+  scanBtn.disabled = true;
+  scanBtn.textContent = '⏳ Se scanează…';
+  resultArea.innerHTML = `<div class="loading"><div class="spinner"></div><div>Fetch Yahoo + Finnhub pentru <strong>${sym}</strong>…</div></div>`;
+
+  try {
+    const [yahoo, ins] = await Promise.all([fetchYahoo(sym), fetchInsiders(sym)]);
+    if (yahoo.closes.length < 50) throw new Error(`Doar ${yahoo.closes.length} bare disponibile (min 50)`);
+    const scoreData = computeScore(yahoo);
+    render(sym, scoreData, ins);
+    toast(`✓ ${sym} · Score ${scoreData.score}/100`, 'ok');
+  } catch (e) {
+    resultArea.innerHTML = `
+      <div class="empty-state">
+        <div class="ico">⚠</div>
+        <h3>Eroare la scan</h3>
+        <p>${e.message || e}</p>
+      </div>
+    `;
+    toast('Eroare: ' + (e.message || e), 'err');
+  } finally {
+    scanBtn.disabled = false;
+    scanBtn.textContent = '🚀 Scanează';
+  }
+}
+
+// ─────────────────────── WATCHLIST ───────────────────────
+function loadWL() {
+  let items = [];
+  try { items = JSON.parse(localStorage.getItem(WL_KEY) || '[]'); } catch (e) {}
+  if (!Array.isArray(items)) items = [];
+  // suportă atât format vechi (string-uri) cât și obiecte {symbol}
+  return items.map(x => typeof x === 'string' ? x : (x.symbol || x.sym || '')).filter(Boolean);
+}
+function renderWL() {
+  const wl = loadWL();
+  if (wl.length === 0) {
+    wlBar.innerHTML = '<span class="lbl">Watchlist:</span><span style="color:var(--txt-dd);font-size:12px">gol — adaugă din Watchlist Monitor</span>';
+    return;
+  }
+  wlBar.innerHTML = '<span class="lbl">Watchlist:</span>' + wl.slice(0, 12).map(s =>
+    `<span class="wl-chip" data-sym="${s}">⭐ ${s}</span>`
+  ).join('') + (wl.length > 12 ? `<span style="color:var(--txt-dd);font-size:11.5px">+${wl.length - 12}</span>` : '');
+  wlBar.querySelectorAll('.wl-chip').forEach(el => {
+    el.addEventListener('click', () => scan(el.dataset.sym));
+  });
+}
+
+// ─────────────────────── AUTO-SCAN ───────────────────────
+function startAuto() {
+  stopAuto();
+  state.autoTimer = setInterval(() => {
+    if (state.lastSymbol) scan(state.lastSymbol);
+  }, AUTO_INTERVAL_MS);
+}
+function stopAuto() {
+  if (state.autoTimer) { clearInterval(state.autoTimer); state.autoTimer = null; }
+}
+
+// ─────────────────────── SETTINGS MODAL ───────────────────────
+settingsBtn.addEventListener('click', () => {
+  finnhubKeyEl.value = state.finnhubKey || '';
+  settingsModal.classList.add('show');
+});
+$('cancelSettings').addEventListener('click', () => settingsModal.classList.remove('show'));
+$('saveSettings').addEventListener('click', () => {
+  const k = finnhubKeyEl.value.trim();
+  state.finnhubKey = k;
+  localStorage.setItem(LS_KEY, k);
+  settingsModal.classList.remove('show');
+  toast('Setări salvate', 'ok');
+  if (state.lastSymbol) scan(state.lastSymbol);
+});
+settingsModal.addEventListener('click', e => {
+  if (e.target === settingsModal) settingsModal.classList.remove('show');
+});
+
+// ─────────────────────── EVENTS ───────────────────────
+scanBtn.addEventListener('click', () => scan());
+symInput.addEventListener('keydown', e => { if (e.key === 'Enter') scan(); });
+acctSizeEl.addEventListener('change', () => {
+  localStorage.setItem(LS_ACCT, acctSizeEl.value);
+  if (state.lastResult) render(state.lastResult.sym, state.lastResult.scoreData, state.lastResult.insiderData);
+});
+riskPctEl.addEventListener('change', () => {
+  localStorage.setItem(LS_RISK, riskPctEl.value);
+  if (state.lastResult) render(state.lastResult.sym, state.lastResult.scoreData, state.lastResult.insiderData);
+});
+autoScan.addEventListener('change', () => {
+  localStorage.setItem(LS_AUTO, autoScan.checked ? '1' : '0');
+  if (autoScan.checked) { startAuto(); toast('Auto-scan activat (5min)', 'ok'); }
+  else { stopAuto(); toast('Auto-scan oprit'); }
+});
+
+// ─────────────────────── INIT ───────────────────────
+(function init() {
+  // Force dark
+  document.body.classList.add('dark');
+  try { localStorage.setItem('darkMode', '1'); } catch (e) {}
+  // Restore
+  const savedAcct = localStorage.getItem(LS_ACCT); if (savedAcct) acctSizeEl.value = savedAcct;
+  const savedRisk = localStorage.getItem(LS_RISK); if (savedRisk) riskPctEl.value = savedRisk;
+  const savedAuto = localStorage.getItem(LS_AUTO) === '1';
+  autoScan.checked = savedAuto; if (savedAuto) startAuto();
+  const savedSym = localStorage.getItem(LS_LAST);
+  if (savedSym) { symInput.value = savedSym; }
+  renderWL();
+  // Re-render WL când se schimbă în alt tab
+  window.addEventListener('storage', e => {
+    if (e.key === WL_KEY) renderWL();
+  });
+})();
+</script>
+</body>
+</html>
