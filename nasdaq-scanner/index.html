@@ -884,6 +884,7 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
     <div class="notif-btn" id="anthropicKeyBtn" onclick="showAnthropicKeyModal()" style="cursor:pointer" title="Configurează cheia Anthropic API pentru analiza AI inline">🔑 AI Key</div>
     <div class="notif-btn" id="aiBriefingBtn" onclick="showAIBriefing()" style="cursor:pointer;color:#a855f7;border-color:#c084fc" title="Analiza AI completă a întregii watchlist">🌅 AI Briefing</div>
     <div class="notif-btn" id="infoBtn" onclick="showInfoModal()" style="cursor:pointer" title="Ghid complet și changelog">ℹ️ Info</div>
+    <div class="notif-btn" onclick="window.openCustomScreener()" style="cursor:pointer;color:var(--gold);border-color:var(--goldb)" title="Custom Screener — 5 reguli AND combinate (chg/RSI/strength/price)">🎯 Screener</div>
     <div class="notif-btn" onclick="showBackupModalNasdaq()" style="cursor:pointer" title="Backup config + watchlist + alerte (Export / Import / Restore)">💾 Backup</div>
     <div class="notif-btn" id="gistSyncBtnNasdaq" onclick="showGistModalNasdaq()" style="cursor:pointer" title="Sincronizează watchlist + setări cross-device prin GitHub Gist">🔄 Sync</div>
     <div id="pwaInstallBtn" onclick="installPWA()" style="display:none;padding:6px 12px;border-radius:var(--rs);font-size:.62rem;font-weight:600;cursor:pointer;border:1px solid var(--accb);background:var(--accl);color:var(--acc);align-items:center;gap:5px;">📱 Instalează</div>
@@ -6381,6 +6382,10 @@ function renderSignals(){
   let source=currentTab==='history'?historySignals:allSignals;
   if(currentTab==='live') source=source.filter(s=>Date.now()-s.time<120000);
   else if(currentTab==='swing') source=source.filter(s=>s.type==='swing');
+  // Pas 7: Custom screener filter aplicat înaintea filterului per tip
+  if(typeof csfMatches==='function' && _customFilter && _customFilter.on){
+    source=source.filter(s=>csfMatches(s));
+  }
   if(currentFilter==='pump') source=source.filter(s=>s.type==='pump');
   else if(currentFilter==='dump') source=source.filter(s=>s.type==='dump');
   else if(currentFilter==='swing') source=source.filter(s=>s.type==='swing');
@@ -7818,6 +7823,113 @@ const NEWS_TICKER_SLOW_MS=6*60*1000; // then refresh every 6 min
 function escapeHtmlNT(s){
   return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  CUSTOM SCREENER (pas 7) — 3-rule builder cu AND combine
+//  Active filter: _customFilter = { rules: [{field, op, value}], on: bool }
+//  Storage: `nasdaq_custom_filter_v1`
+// ═══════════════════════════════════════════════════════════════
+const CSF_KEY = 'nasdaq_custom_filter_v1';
+const CSF_FIELDS = [
+  { key: 'chg', label: 'Chg 24h %', getter: s => s.chg },
+  { key: 'rsi', label: 'RSI 14', getter: s => s.metrics?.rsi },
+  { key: 'strength', label: 'Strength', getter: s => s.strength },
+  { key: 'price', label: 'Price $', getter: s => s.price },
+];
+const CSF_OPS = [
+  { key: 'gte', label: '≥', test: (a, b) => a >= b },
+  { key: 'lte', label: '≤', test: (a, b) => a <= b },
+  { key: 'gt', label: '>', test: (a, b) => a > b },
+  { key: 'lt', label: '<', test: (a, b) => a < b },
+  { key: 'eq', label: '=', test: (a, b) => Math.abs(a - b) < 0.01 },
+];
+let _customFilter = { rules: [], on: false };
+try { Object.assign(_customFilter, JSON.parse(localStorage.getItem(CSF_KEY) || '{}')); } catch(e){}
+
+function _csfSave(){
+  try { localStorage.setItem(CSF_KEY, JSON.stringify(_customFilter)); } catch(e){}
+}
+function csfMatches(s){
+  if (!_customFilter.on || !_customFilter.rules.length) return true;
+  for (const r of _customFilter.rules){
+    if (!r.field || !r.op || r.value === '' || r.value == null) continue;
+    const fld = CSF_FIELDS.find(f => f.key === r.field);
+    const op = CSF_OPS.find(o => o.key === r.op);
+    if (!fld || !op) continue;
+    const v = fld.getter(s);
+    if (v == null || isNaN(v)) return false; // strict — null nu trece
+    if (!op.test(v, parseFloat(r.value))) return false;
+  }
+  return true;
+}
+window.openCustomScreener = function(){
+  document.getElementById('csfOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'csfOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(5,8,15,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  // Init rules dacă goale
+  if (!_customFilter.rules.length){
+    _customFilter.rules = [{ field: 'strength', op: 'gte', value: '70' }];
+  }
+  const ruleHtml = (r, i) => `<div style="display:grid;grid-template-columns:1fr 80px 1fr auto;gap:6px;align-items:center;margin-bottom:6px">
+    <select id="csfField${i}" style="padding:6px;background:var(--bg);color:var(--t1);border:1px solid var(--b1);border-radius:5px;font-size:.65rem;font-family:inherit">
+      ${CSF_FIELDS.map(f => `<option value="${f.key}" ${f.key===r.field?'selected':''}>${f.label}</option>`).join('')}
+    </select>
+    <select id="csfOp${i}" style="padding:6px;background:var(--bg);color:var(--t1);border:1px solid var(--b1);border-radius:5px;font-size:.7rem;font-family:inherit;text-align:center">
+      ${CSF_OPS.map(o => `<option value="${o.key}" ${o.key===r.op?'selected':''}>${o.label}</option>`).join('')}
+    </select>
+    <input id="csfVal${i}" type="number" step="any" value="${r.value || ''}" placeholder="value" style="padding:6px 9px;background:var(--bg);color:var(--t1);border:1px solid var(--b1);border-radius:5px;font-size:.65rem;font-family:var(--mono)">
+    <button onclick="window._csfRemoveRule(${i})" style="padding:5px 9px;background:rgba(255,77,77,.1);border:1px solid rgba(255,77,77,.4);color:#ff4d4d;border-radius:5px;cursor:pointer;font-family:inherit;font-size:.7rem">×</button>
+  </div>`;
+
+  ov.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:18px;width:100%;max-width:540px;color:var(--t1);font-family:var(--mono)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div>
+          <div style="font-family:var(--head);font-weight:800;font-size:.95rem;background:linear-gradient(135deg,var(--gold),var(--orange));-webkit-background-clip:text;color:transparent">🎯 Custom Screener</div>
+          <div style="font-size:.6rem;color:var(--t3);margin-top:3px">Toate regulile combinate cu <b>AND</b></div>
+        </div>
+        <button onclick="document.getElementById('csfOverlay').remove()" style="background:none;border:none;color:var(--t3);font-size:22px;cursor:pointer">×</button>
+      </div>
+      <div id="csfRules">${_customFilter.rules.map(ruleHtml).join('')}</div>
+      <button onclick="window._csfAddRule()" ${_customFilter.rules.length >= 5 ? 'disabled' : ''} style="width:100%;padding:8px;background:var(--bg3);border:1px dashed var(--b2);color:var(--t2);border-radius:6px;cursor:pointer;font-family:inherit;font-size:.65rem;margin-bottom:12px">+ Adaugă regulă (max 5)</button>
+      <div style="display:flex;gap:8px">
+        <button onclick="window._csfApply(true)" style="flex:1;padding:9px;background:linear-gradient(135deg,var(--green),#5bdcb0);color:#000;border:none;border-radius:7px;font-weight:800;cursor:pointer;font-family:var(--head);font-size:.7rem">✓ Aplică ${_customFilter.on ? '(activ)' : ''}</button>
+        <button onclick="window._csfApply(false)" style="padding:9px 14px;background:var(--bg3);border:1px solid var(--b1);color:var(--t2);border-radius:7px;cursor:pointer;font-family:inherit;font-size:.7rem">Dezactivează</button>
+      </div>
+      <div style="margin-top:10px;font-size:.55rem;color:var(--t3);line-height:1.5">Filter custom se aplică peste lista de semnale curente. Combine cu chip-urile existente (Toate/Pump/Dump/etc.) pentru rezultate ultra-țintite.</div>
+    </div>`;
+  document.body.appendChild(ov);
+};
+window._csfAddRule = function(){
+  if (_customFilter.rules.length >= 5) return;
+  _csfReadRules();
+  _customFilter.rules.push({ field: 'rsi', op: 'lte', value: '30' });
+  openCustomScreener();
+};
+window._csfRemoveRule = function(i){
+  _csfReadRules();
+  _customFilter.rules.splice(i, 1);
+  openCustomScreener();
+};
+function _csfReadRules(){
+  _customFilter.rules.forEach((r, i) => {
+    const f = document.getElementById('csfField' + i)?.value;
+    const o = document.getElementById('csfOp' + i)?.value;
+    const v = document.getElementById('csfVal' + i)?.value;
+    if (f) r.field = f;
+    if (o) r.op = o;
+    if (v !== undefined) r.value = v;
+  });
+}
+window._csfApply = function(on){
+  _csfReadRules();
+  _customFilter.on = on;
+  _csfSave();
+  document.getElementById('csfOverlay')?.remove();
+  if (typeof renderSignals === 'function') renderSignals();
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  COMPARE MODE (pas 5) — selectie multipla 2-3 stocks side-by-side
