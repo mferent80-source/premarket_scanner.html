@@ -256,6 +256,11 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       <div class="w-val" id="wlBreakdownVal" style="font-size:14px;line-height:1.4;font-weight:700">—</div>
       <div class="w-sub" id="wlBreakdownSub">click → spre pagina respectivă</div>
     </div>
+    <div class="widget" id="wSession">
+      <div class="w-lbl" id="sessionLbl">Trading session</div>
+      <div class="w-val" id="sessionVal" style="font-size:18px">—</div>
+      <div class="w-sub" id="sessionSub">se calculează…</div>
+    </div>
   </section>
 
   <main class="grid">
@@ -413,6 +418,65 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   // Sample top simbol pentru sub-text (din ce există)
   const top = stockWL.slice(0, 3).concat(cryptoWL.slice(0, 3)).filter(Boolean);
   $('wlBreakdownSub').textContent = top.length ? 'Ex: ' + top.slice(0, 4).join(' · ') : 'click → spre pagina respectivă';
+
+  // ── Trading session timer (countdown live pre-market / regular / after / closed) ──
+  // NYSE/Nasdaq trading hours (ET): pre-market 04:00-09:30, regular 09:30-16:00, after 16:00-20:00
+  function getETNow() {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    });
+    const parts = fmt.formatToParts(new Date()).reduce((o, p) => { o[p.type] = p.value; return o; }, {});
+    return {
+      hour: parseInt(parts.hour, 10) % 24,
+      minute: parseInt(parts.minute, 10),
+      second: parseInt(parts.second, 10),
+      day: new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })).getDay(),
+    };
+  }
+  function fmtCountdown(ms) {
+    if (ms <= 0) return 'acum';
+    const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
+    return m + 'm ' + String(sec).padStart(2, '0') + 's';
+  }
+  function updateSessionTimer() {
+    const et = getETNow();
+    const isWeekend = et.day === 0 || et.day === 6;
+    const minutesNow = et.hour * 60 + et.minute;
+    const PRE_OPEN = 4 * 60, REG_OPEN = 9 * 60 + 30, REG_CLOSE = 16 * 60, AFTER_CLOSE = 20 * 60;
+
+    let label, value, sub, color = '';
+    if (isWeekend) {
+      label = '🛌 Weekend'; value = 'Closed';
+      sub = 'Markets reopen Monday 04:00 ET pre-market';
+    } else if (minutesNow < PRE_OPEN) {
+      label = '🌙 Overnight'; value = 'Closed';
+      sub = 'Pre-market in ' + fmtCountdown((PRE_OPEN - minutesNow) * 60000 - et.second * 1000);
+    } else if (minutesNow < REG_OPEN) {
+      label = '🌅 Pre-market'; value = 'OPEN';
+      sub = 'Regular open in ' + fmtCountdown((REG_OPEN - minutesNow) * 60000 - et.second * 1000);
+      color = 'var(--crypto-2)';
+    } else if (minutesNow < REG_CLOSE) {
+      label = '🟢 Regular session'; value = 'OPEN';
+      sub = 'Closes in ' + fmtCountdown((REG_CLOSE - minutesNow) * 60000 - et.second * 1000);
+      color = 'var(--green)';
+    } else if (minutesNow < AFTER_CLOSE) {
+      label = '🌆 After-hours'; value = 'OPEN';
+      sub = 'After closes in ' + fmtCountdown((AFTER_CLOSE - minutesNow) * 60000 - et.second * 1000);
+      color = 'var(--crypto-2)';
+    } else {
+      label = '🌙 Overnight'; value = 'Closed';
+      const minsUntilTomorrowPre = (24 * 60 - minutesNow) + PRE_OPEN;
+      sub = 'Pre-market in ' + Math.floor(minsUntilTomorrowPre / 60) + 'h';
+    }
+    $('sessionLbl').textContent = label;
+    $('sessionVal').textContent = value;
+    $('sessionVal').style.color = color || '';
+    $('sessionSub').textContent = sub;
+  }
+  updateSessionTimer();
+  setInterval(updateSessionTimer, 1000); // tick fiecare secundă
 })();
 
 // ── PWA: manifest inline + install prompt ──
