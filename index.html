@@ -247,9 +247,14 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       <div class="w-sub" id="vixSub">se încarcă…</div>
     </div>
     <div class="widget" id="wWL">
-      <div class="w-lbl">Watchlist stocks</div>
+      <div class="w-lbl">⭐ Watchlist total</div>
       <div class="w-val" id="wlVal">—</div>
       <div class="w-sub" id="wlSub">salvat local</div>
+    </div>
+    <div class="widget" id="wWLBreakdown">
+      <div class="w-lbl">Breakdown</div>
+      <div class="w-val" id="wlBreakdownVal" style="font-size:14px;line-height:1.4;font-weight:700">—</div>
+      <div class="w-sub" id="wlBreakdownSub">click → spre pagina respectivă</div>
     </div>
   </section>
 
@@ -377,13 +382,37 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     }
   })();
 
-  // Watchlist stocks doar (premarket folosește wl_stocks pentru nasdaq scanner)
-  let stockWL = [];
+  // ── Watchlist UNIFICAT (stocks + crypto) — cross-page aggregation ──
+  // Stocks: `wl_stocks` (din nasdaq-scanner)
+  // Crypto: `scanner_cfg.watchlist` (din crypto-scanner — comma-separated string)
+  //         + `dash_watchlist` (dashboard panel separat din crypto-scanner)
+  let stockWL = [], cryptoWL = [];
   try { stockWL = JSON.parse(localStorage.getItem('wl_stocks') || '[]') || []; } catch(e) {}
-  $('wlVal').textContent = stockWL.length;
-  $('wlSub').textContent = stockWL.length === 1 ? '1 simbol' : stockWL.length + ' simboluri';
+  try {
+    const scfg = JSON.parse(localStorage.getItem('scanner_cfg') || '{}');
+    if (typeof scfg.watchlist === 'string' && scfg.watchlist.trim()) {
+      cryptoWL = scfg.watchlist.split(/[,\s]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+    }
+    // Dedup cu dash_watchlist (unele coin-uri pot fi în ambele)
+    const dash = JSON.parse(localStorage.getItem('dash_watchlist') || '[]') || [];
+    const dashSet = new Set(cryptoWL);
+    dash.forEach(c => { if (c && typeof c === 'string') dashSet.add(c.toUpperCase()); });
+    cryptoWL = [...dashSet];
+  } catch(e) {}
 
-  // (Widgetul Trade-uri open eliminat odată cu trading-journal — pagina nu mai există)
+  const total = stockWL.length + cryptoWL.length;
+  $('wlVal').textContent = total;
+  $('wlSub').textContent = total === 0 ? 'gol — adaugă coin-uri în scanere'
+    : total === 1 ? '1 simbol urmărit' : total + ' simboluri urmărite';
+
+  // Breakdown pe categorii cu cross-link
+  const stocksLink = '<a href="./nasdaq-scanner/" target="_blank" style="color:var(--crypto-2);text-decoration:none">📈 ' + stockWL.length + ' stocks</a>';
+  const cryptoLink = '<a href="./crypto-scanner/" target="_blank" style="color:#5bb0ff;text-decoration:none">🪙 ' + cryptoWL.length + ' crypto</a>';
+  $('wlBreakdownVal').innerHTML = stocksLink + ' · ' + cryptoLink;
+
+  // Sample top simbol pentru sub-text (din ce există)
+  const top = stockWL.slice(0, 3).concat(cryptoWL.slice(0, 3)).filter(Boolean);
+  $('wlBreakdownSub').textContent = top.length ? 'Ex: ' + top.slice(0, 4).join(' · ') : 'click → spre pagina respectivă';
 })();
 
 // ── PWA: manifest inline + install prompt ──
