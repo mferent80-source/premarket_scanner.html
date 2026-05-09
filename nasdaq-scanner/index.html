@@ -865,7 +865,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v76</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v77</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -3277,7 +3277,9 @@ async function showAIBriefing(){
     document.getElementById('aiBriefGen').onclick=generateBriefing;
   }
 }
-let shortDataCache={}; // symbol -> {shortRatio, shortInterest, daysToCover, sharesShort}
+// FIX TDZ: var în loc de let ca să fie hoisted complet (calcOpportunityScore îl
+// folosește înainte ca această linie să fie executată, în anumite ordini de load)
+var shortDataCache = window.shortDataCache || {}; window.shortDataCache = shortDataCache; // symbol -> {shortRatio, shortInterest, daysToCover, sharesShort}
 let squeezeFetching=false;
 
 async function fetchShortMetrics(symbol, key){
@@ -5610,7 +5612,9 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
 
   // ── Volume sanity (lichiditate + falling knife protection) ──
   // shortDataCache e populat pentru watchlist + top stocks scanate (vezi fetchShortInterest)
-  const _stockMetrics = (typeof shortDataCache!=='undefined' ? shortDataCache[symbol] : null) || {};
+  // FIX TDZ: try/catch ca safety net dacă shortDataCache nu e încă inițializat la momentul apelului
+  let _stockMetrics = {};
+  try { _stockMetrics = (window.shortDataCache && window.shortDataCache[symbol]) || {}; } catch(e){}
   const avgVol10D = parseFloat(_stockMetrics.avgVol10D) || 0;
   if(avgVol10D > 0 && avgVol10D < 100000){
     // Stocks ilichide = slippage + manipulare — scoringul agresiv e periculos
@@ -6164,23 +6168,32 @@ window.openMiniChartNasdaq = async function(symbol){
   document.body.appendChild(ov);
   ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
 
-  // Fetch klines daily 30 zile
+  // Fetch klines daily 30 zile via Yahoo Finance (free, no key needed)
+  // NOTĂ: Finnhub /stock/candle a devenit premium-only în 2024 → 403 pe free tier.
+  // Yahoo Finance chart API e free + are same OHLCV format.
   try {
-    const fhKey = (typeof getFinnhubKey === 'function') ? getFinnhubKey() : (localStorage.getItem('fh_key') || '');
-    if (!fhKey) {
-      ov.querySelector('#mcContent').innerHTML = '<div style="color:var(--red)">❌ Finnhub key lipsă — configurează în meniu</div>';
-      return;
-    }
-    const to = Math.floor(Date.now() / 1000);
-    const from = to - 35 * 86400;
-    const r = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${to}&token=${fhKey}`);
-    const d = await r.json();
-    if (d.s !== 'ok' || !d.c?.length) {
+    const yhUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1mo`;
+    const corsProxy = 'https://api.codetabs.com/v1/proxy?quest=';
+    const r = await fetch(corsProxy + encodeURIComponent(yhUrl));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const yj = await r.json();
+    const result = yj?.chart?.result?.[0];
+    if (!result || !result.indicators?.quote?.[0]?.close) {
       ov.querySelector('#mcContent').innerHTML = '<div style="color:var(--t3)">Nu sunt date disponibile pentru ' + symbol + '</div>';
       return;
     }
-    // Render SVG candlestick (light theme — alb, contrast bun)
-    const closes = d.c.slice(-30), opens = d.o.slice(-30), highs = d.h.slice(-30), lows = d.l.slice(-30), vols = d.v.slice(-30);
+    const q = result.indicators.quote[0];
+    // Filter null entries (Yahoo poate returna null pentru zile cu market closed)
+    const validIndices = q.close.map((c, i) => c != null ? i : -1).filter(i => i >= 0);
+    const opens = validIndices.map(i => q.open[i]).slice(-30);
+    const highs = validIndices.map(i => q.high[i]).slice(-30);
+    const lows = validIndices.map(i => q.low[i]).slice(-30);
+    const closes = validIndices.map(i => q.close[i]).slice(-30);
+    const vols = validIndices.map(i => q.volume[i] || 0).slice(-30);
+    if (closes.length < 5){
+      ov.querySelector('#mcContent').innerHTML = '<div style="color:var(--t3)">Date insuficiente pentru ' + symbol + ' (Yahoo a returnat &lt; 5 zile)</div>';
+      return;
+    }
     const min = Math.min(...lows), max = Math.max(...highs);
     const range = max - min || 1;
     const W = 520, H = 220, padL = 50, padR = 10, padT = 10, padB = 25;
