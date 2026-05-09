@@ -865,7 +865,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v74</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v75</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -5687,14 +5687,23 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
 }
 
 // ── RENDER OPORTUNITĂȚI ──
+// Helper pentru aplicare custom screener (pas 7) pe orice listă de obiecte cu schema mixed
+function _csfApplyIfActive(arr){
+  if (typeof csfMatches === 'function' && _customFilter && _customFilter.on){
+    return arr.filter(s => csfMatches(s));
+  }
+  return arr;
+}
 function renderRecommendations(){
   const container=document.getElementById('signalsContainer');
   if(!allOpportunities.length){
     container.innerHTML=`<div class="empty"><div class="empty-icon">💡</div><div class="empty-title">Nicio scanare completă</div><div class="empty-sub">Pornește scanner-ul. Tab-ul Oportunități se populează automat după primul scan complet cu date de preț și RSI.</div></div>`;
     return;
   }
-  const buys=allOpportunities.filter(o=>o.isBuy&&o.score>=55).sort((a,b)=>b.score-a.score).slice(0,8);
-  const sells=allOpportunities.filter(o=>!o.isBuy&&o.score>=55).sort((a,b)=>b.score-a.score).slice(0,5);
+  // Pas 7: custom screener filter aplicat înainte de tier (buy/sell)
+  const filteredOpps = _csfApplyIfActive(allOpportunities);
+  const buys=filteredOpps.filter(o=>o.isBuy&&o.score>=55).sort((a,b)=>b.score-a.score).slice(0,8);
+  const sells=filteredOpps.filter(o=>!o.isBuy&&o.score>=55).sort((a,b)=>b.score-a.score).slice(0,5);
 
   const verdictInfo=o=>{
     if(o.isBuy){
@@ -5852,7 +5861,9 @@ function renderEarlyBuy(){
     return;
   }
 
-  const scored = allOpportunities
+  // Pas 7: custom screener filter pe lista raw opportunities înainte de calc Early
+  const baseOpps = _csfApplyIfActive(allOpportunities);
+  const scored = baseOpps
     .filter(o => o.isBuy && o.chg24 >= 0 && o.score >= 42)
     .map(o => ({...o, earlyScore: calcEarlyBuyScore(o)}))
     .filter(o => o.earlyScore >= 50)
@@ -7857,9 +7868,12 @@ function escapeHtmlNT(s){
 // ═══════════════════════════════════════════════════════════════
 const CSF_KEY = 'nasdaq_custom_filter_v1';
 const CSF_FIELDS = [
-  { key: 'chg', label: 'Chg 24h %', getter: s => s.chg },
-  { key: 'rsi', label: 'RSI 14', getter: s => s.metrics?.rsi },
-  { key: 'strength', label: 'Strength', getter: s => s.strength },
+  // Getters universale — încearcă ambele scheme: allSignals (chg/strength/metrics.rsi)
+  // și allOpportunities (chg24/score/rsi direct). Asta permite filter-ului să meargă
+  // pe TOATE tab-urile (Live, Reco, Early Buy, Pump Radar etc).
+  { key: 'chg', label: 'Chg 24h %', getter: s => s.chg ?? s.chg24 },
+  { key: 'rsi', label: 'RSI 14', getter: s => (s.metrics && s.metrics.rsi != null ? s.metrics.rsi : s.rsi) },
+  { key: 'strength', label: 'Strength/Score', getter: s => s.strength ?? s.score },
   { key: 'price', label: 'Price $', getter: s => s.price },
 ];
 const CSF_OPS = [
@@ -7954,8 +7968,26 @@ window._csfApply = function(on){
   _customFilter.on = on;
   _csfSave();
   document.getElementById('csfOverlay')?.remove();
+  _csfUpdateButtonIndicator();
   if (typeof renderSignals === 'function') renderSignals();
 };
+function _csfUpdateButtonIndicator(){
+  const btn = Array.from(document.querySelectorAll('.notif-btn')).find(b => b.onclick && b.textContent.includes('Screener'));
+  if (!btn) return;
+  if (_customFilter.on && _customFilter.rules.length){
+    btn.style.background = 'linear-gradient(135deg,var(--gold),var(--orange))';
+    btn.style.color = '#000';
+    btn.style.borderColor = 'transparent';
+    btn.textContent = '🎯 Screener (' + _customFilter.rules.length + ' active)';
+  } else {
+    btn.style.background = '';
+    btn.style.color = 'var(--gold)';
+    btn.style.borderColor = 'var(--goldb)';
+    btn.textContent = '🎯 Screener';
+  }
+}
+// Init indicator la load (după ce DOM e gata)
+window.addEventListener('load', () => setTimeout(_csfUpdateButtonIndicator, 200));
 
 // ═══════════════════════════════════════════════════════════════
 //  COMPARE MODE (pas 5) — selectie multipla 2-3 stocks side-by-side
