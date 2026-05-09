@@ -220,6 +220,21 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
 .mdot.scanning{background:var(--acc);box-shadow:0 0 6px var(--acc);animation:blink .8s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 
+/* F5: Mini-chart popup */
+.mc-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;animation:mcFade .2s ease}
+@keyframes mcFade{from{opacity:0}to{opacity:1}}
+.mc-box{background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.2)}
+.mc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:10px}
+.mc-head h3{font-size:1rem;font-weight:800;letter-spacing:-.2px;margin:0;background:linear-gradient(135deg,var(--acc),var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent}
+.mc-head .sub{font-size:.6rem;color:var(--t3);margin-top:3px}
+.mc-close{background:transparent;border:none;color:var(--t3);font-size:1.4rem;cursor:pointer;padding:0 4px;line-height:1}
+.mc-close:hover{color:var(--t1)}
+.mc-actions{display:flex;gap:8px;margin-top:10px}
+.mc-actions a,.mc-actions button{flex:1;padding:8px 12px;border-radius:7px;font-size:.62rem;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;font-family:inherit;border:1px solid var(--b2);background:var(--bg2);color:var(--t1);transition:all .12s}
+.mc-actions a:hover,.mc-actions button:hover{border-color:var(--acc)}
+.mc-actions .mc-primary{background:linear-gradient(135deg,var(--acc),var(--teal));border-color:transparent;color:#fff}
+.mc-loading{padding:40px;text-align:center;color:var(--t3);font-size:.7rem}
+
 .notif-btn{padding:6px 12px;border-radius:var(--rs);font-size:.62rem;font-weight:600;cursor:pointer;border:1px solid var(--b2);background:var(--bg2);color:var(--t2);transition:all .15s;box-shadow:var(--sh);}
 .notif-btn.granted{border-color:var(--greenb);background:var(--greenl);color:var(--green);}
 .notif-btn.denied{border-color:var(--redb);background:var(--redl);color:var(--red);}
@@ -5677,6 +5692,7 @@ function renderRecommendations(){
         ${(()=>{const pats=detectPatterns(sparklineCache[o.symbol]||[]);return pats.length?`<div style="margin-bottom:6px">${renderPatternBadges(pats)}</div>`:''})()}
         ${renderCorrelationSection(o.symbol)}
         <div class="sig-actions">
+          <button class="btn-sig" onclick="window.openMiniChartNasdaq('${o.symbol}')" style="border:none;cursor:pointer" title="Mini-chart 30d (candlestick + volume)">📊 Chart</button>
           <a class="btn-sig" href="${tvUrl}" target="_blank">📈 TradingView</a>
           <a class="btn-sig" href="${yhUrl}" target="_blank">📰 Yahoo</a>
           <a class="btn-sig btn-t212" href="https://app.trading212.com/" target="_blank">📊 T212</a>
@@ -6040,6 +6056,113 @@ function setTab(t,el){
   el.classList.add('act');renderSignals();
   saveNasdaqUiState(); // F2: persistence
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  F5 — MINI-CHART POPUP (candlestick + volume) cu fetch fresh Finnhub
+//  Resolution D × 30 zile = overview luna, suficient pentru screening rapid
+// ═══════════════════════════════════════════════════════════════
+window.openMiniChartNasdaq = async function(symbol){
+  document.getElementById('mcOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'mcOverlay';
+  ov.className = 'mc-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  ov.innerHTML = `
+    <div class="mc-box">
+      <div class="mc-head">
+        <div>
+          <h3>📊 ${symbol} — last 30 days</h3>
+          <div class="sub">Daily candles · sursa: Finnhub</div>
+        </div>
+        <button class="mc-close" type="button" data-close>×</button>
+      </div>
+      <div id="mcContent" class="mc-loading">⏳ Se încarcă klines (5-10s)…</div>
+      <div class="mc-actions">
+        <a class="mc-primary" href="https://www.tradingview.com/chart/?symbol=NASDAQ:${symbol}" target="_blank" rel="noopener">📈 TradingView</a>
+        <a href="https://finance.yahoo.com/quote/${symbol}" target="_blank" rel="noopener">📰 Yahoo Finance</a>
+        <button type="button" data-close>OK</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+
+  // Fetch klines daily 30 zile
+  try {
+    const fhKey = (typeof getFinnhubKey === 'function') ? getFinnhubKey() : (localStorage.getItem('fh_key') || '');
+    if (!fhKey) {
+      ov.querySelector('#mcContent').innerHTML = '<div style="color:var(--red)">❌ Finnhub key lipsă — configurează în meniu</div>';
+      return;
+    }
+    const to = Math.floor(Date.now() / 1000);
+    const from = to - 35 * 86400;
+    const r = await fetch(`https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${to}&token=${fhKey}`);
+    const d = await r.json();
+    if (d.s !== 'ok' || !d.c?.length) {
+      ov.querySelector('#mcContent').innerHTML = '<div style="color:var(--t3)">Nu sunt date disponibile pentru ' + symbol + '</div>';
+      return;
+    }
+    // Render SVG candlestick (light theme — alb, contrast bun)
+    const closes = d.c.slice(-30), opens = d.o.slice(-30), highs = d.h.slice(-30), lows = d.l.slice(-30), vols = d.v.slice(-30);
+    const min = Math.min(...lows), max = Math.max(...highs);
+    const range = max - min || 1;
+    const W = 520, H = 220, padL = 50, padR = 10, padT = 10, padB = 25;
+    const chartW = W - padL - padR, chartH = H - padT - padB;
+    const barW = chartW / closes.length;
+
+    let candles = '', wicks = '';
+    for (let i = 0; i < closes.length; i++) {
+      const open = opens[i], close = closes[i], high = highs[i], low = lows[i];
+      const x = padL + i * barW + barW * 0.15;
+      const w = barW * 0.7;
+      const isUp = close >= open;
+      const color = isUp ? '#059669' : '#dc2626';
+      const yOpen = padT + ((max - open) / range) * chartH;
+      const yClose = padT + ((max - close) / range) * chartH;
+      const yHigh = padT + ((max - high) / range) * chartH;
+      const yLow = padT + ((max - low) / range) * chartH;
+      const bodyTop = Math.min(yOpen, yClose);
+      const bodyH = Math.max(1, Math.abs(yOpen - yClose));
+      wicks += `<line x1="${x + w/2}" y1="${yHigh}" x2="${x + w/2}" y2="${yLow}" stroke="${color}" stroke-width="1"/>`;
+      candles += `<rect x="${x}" y="${bodyTop}" width="${w}" height="${bodyH}" fill="${color}" opacity="${isUp ? 1 : .9}"/>`;
+    }
+    // Y-axis labels
+    let yLabels = '';
+    for (let k = 0; k <= 4; k++) {
+      const v = max - (range * k / 4);
+      const y = padT + (chartH * k / 4);
+      yLabels += `<text x="${padL - 6}" y="${y + 3}" text-anchor="end" font-size="9" fill="#94a3b8">$${v.toFixed(2)}</text>`;
+      yLabels += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#e2e8f0" stroke-width="0.5" stroke-dasharray="2,3"/>`;
+    }
+    // Volume bars (semi-transparente jos)
+    let volBars = '';
+    const volMax = Math.max(...vols) || 1;
+    const volH = 32;
+    for (let i = 0; i < vols.length; i++) {
+      const x = padL + i * barW + barW * 0.15;
+      const w = barW * 0.7;
+      const h = (vols[i] / volMax) * volH;
+      const isUp = i > 0 && closes[i] >= closes[i - 1];
+      volBars += `<rect x="${x}" y="${H - padB - h}" width="${w}" height="${h}" fill="${isUp ? '#059669' : '#dc2626'}" opacity=".25"/>`;
+    }
+    const lastClose = closes[closes.length - 1];
+    const firstClose = closes[0];
+    const chgPct = ((lastClose - firstClose) / firstClose * 100).toFixed(2);
+    const chgCls = lastClose >= firstClose ? 'var(--green)' : 'var(--red)';
+
+    ov.querySelector('#mcContent').innerHTML = `
+      <div style="background:var(--bg3);border-radius:8px;padding:8px;border:1px solid var(--b1)">
+        <svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block">
+          ${yLabels}${volBars}${wicks}${candles}
+        </svg>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:.62rem;color:var(--t2)">
+        <span>30d range: <b>$${min.toFixed(2)} – $${max.toFixed(2)}</b></span>
+        <span>30d change: <b style="color:${chgCls}">${chgPct >= 0 ? '+' : ''}${chgPct}%</b></span>
+      </div>`;
+  } catch(e) {
+    ov.querySelector('#mcContent').innerHTML = '<div style="color:var(--red)">❌ Eroare: ' + (e.message || e) + '</div>';
+  }
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  F3 — FILTER PRESETS (default + user, salvate în localStorage)
