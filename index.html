@@ -46,8 +46,8 @@ body{
 }
 .wrap{max-width:1080px;margin:0 auto}
 
-/* Header */
-.hero{text-align:center;padding:48px 0 36px}
+/* Header — aerisit, similar scanner-hub crypto */
+.hero{text-align:center;padding:32px 0 28px}
 .brand{
   display:inline-flex;align-items:center;gap:10px;
   font-family:var(--mono);font-weight:500;font-size:12px;letter-spacing:.18em;
@@ -58,10 +58,11 @@ body{
 }
 .brand-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));box-shadow:0 0 8px rgba(247,147,26,.6)}
 h1{
-  font-size:clamp(34px,6vw,56px);font-weight:800;letter-spacing:-.025em;
-  line-height:1.1;margin-bottom:18px;
+  font-size:36px;font-weight:800;letter-spacing:-.5px;
+  line-height:1.15;margin-bottom:12px;
   color:var(--t1);
 }
+@media (min-width:1100px){ h1{ font-size:42px; } }
 h1 .accent{
   background:linear-gradient(135deg,var(--crypto-1) 0%,#ffb854 50%,var(--crypto-2) 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
@@ -70,18 +71,44 @@ h1 .accent{
   font-size:clamp(15px,2vw,18px);color:var(--t2);max-width:640px;margin:0 auto;
 }
 
+/* Search bar pe Hub (similar crypto Hub) */
+.hub-search{margin:18px auto 24px;max-width:480px;position:relative}
+.hub-search input{
+  width:100%;padding:11px 14px 11px 40px;
+  background:var(--bg2);border:1px solid var(--b1);border-radius:11px;
+  color:var(--t1);font-size:13px;font-family:inherit;
+  transition:all .15s var(--ease);
+}
+.hub-search input::placeholder{color:var(--t3)}
+.hub-search input:focus{outline:none;border-color:var(--crypto-1);box-shadow:0 4px 16px rgba(247,147,26,.18)}
+.hub-search::before{
+  content:"🔍";position:absolute;left:13px;top:50%;transform:translateY(-50%);
+  font-size:15px;opacity:.8;pointer-events:none;
+}
+.hub-search-clear{
+  position:absolute;right:9px;top:50%;transform:translateY(-50%);
+  background:var(--bg3);border:1px solid var(--b1);
+  color:var(--t3);padding:3px 8px;border-radius:6px;
+  font-size:10px;cursor:pointer;font-family:inherit;display:none;
+}
+.hub-search-clear:hover{color:var(--t1)}
+.hub-search.has-text .hub-search-clear{display:inline-block}
+.card.hidden-by-search{display:none}
+.hub-no-results{text-align:center;padding:36px 20px;color:var(--t3);font-size:13px;display:none}
+.hub-no-results.visible{display:block}
+
 /* Tools grid */
 .grid{
-  display:grid;gap:20px;
-  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-  margin-top:48px;
+  display:grid;gap:16px;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  margin-top:32px;
 }
 .card{
   background:linear-gradient(180deg, var(--bg2) 0%, rgba(20,26,40,.6) 100%);
-  border:1px solid var(--b1);border-radius:var(--r);
-  padding:28px;text-decoration:none;color:inherit;
+  border:1px solid var(--b1);border-radius:18px;
+  padding:24px 22px 22px;text-decoration:none;color:inherit;
   transition:transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
-  display:flex;flex-direction:column;gap:16px;
+  display:flex;flex-direction:column;gap:12px;
   position:relative;overflow:hidden;
   box-shadow:var(--sh);
 }
@@ -117,9 +144,9 @@ h1 .accent{
 }
 
 .card-icon{
-  width:48px;height:48px;border-radius:12px;
+  width:42px;height:42px;border-radius:11px;
   display:flex;align-items:center;justify-content:center;
-  font-size:24px;flex-shrink:0;
+  font-size:22px;flex-shrink:0;
   position:relative;z-index:1;
 }
 .crypto  .card-icon{background:linear-gradient(135deg,#5bb0ff,#8b6fff); box-shadow:0 4px 14px rgba(91,176,255,.25); color:#fff}
@@ -137,15 +164,15 @@ h1 .accent{
 .nasdaq  .card-tag{background:rgba(247,147,26,.12);color:var(--crypto-1);border:1px solid rgba(247,147,26,.35)}
 .events  .card-tag{background:rgba(255,77,77,.12);color:#ff4d4d;border:1px solid rgba(255,77,77,.3)}
 
-.card-title{font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.25;color:var(--t1);position:relative;z-index:1}
-.card-desc{font-size:14px;color:var(--t2);line-height:1.55;flex-grow:1;position:relative;z-index:1}
+.card-title{font-size:20px;font-weight:700;letter-spacing:-.3px;line-height:1.2;color:var(--t1);position:relative;z-index:1}
+.card-desc{font-size:13px;color:var(--t2);line-height:1.5;flex-grow:1;position:relative;z-index:1}
 
-.features{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;position:relative;z-index:1}
+.features{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;position:relative;z-index:1}
 .feat{
-  font-family:var(--mono);font-size:11px;font-weight:500;
+  font-family:var(--mono);font-size:10.5px;font-weight:500;
   background:var(--bg3);color:var(--t2);
-  padding:4px 9px;border-radius:6px;border:1px solid var(--b1);
-  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:5px;border:1px solid var(--b1);
+  display:inline-flex;align-items:center;gap:3px;
 }
 /* Categorii badge color-coded pe carduri:
    📊 data sources (blue) · 🛠️ tools (orange/gold) · 🔔 alerts (red) ·
@@ -362,7 +389,16 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     </div>
   </section>
 
-  <main class="grid">
+  <!-- Search bar live filter pe carduri -->
+  <div class="hub-search" id="hubSearchWrap">
+    <input type="text" id="hubSearch" placeholder="Caută rapid: nasdaq, watchlist, events, AI, gappers, screener..." autocomplete="off">
+    <button class="hub-search-clear" id="hubSearchClear" type="button">×</button>
+  </div>
+  <div class="hub-no-results" id="hubNoResults">
+    🤷 Nimic nu corespunde căutării. Încearcă „nasdaq", „watchlist", „events"…
+  </div>
+
+  <main class="grid" id="hubCards">
 
     <a href="./nasdaq-scanner/" target="_blank" rel="noopener" class="card nasdaq">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('nasdaq')" title="Vezi toate funcționalitățile">ℹ</button>
@@ -651,6 +687,39 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   }
   updateSessionTimer();
   setInterval(updateSessionTimer, 1000); // tick fiecare secundă
+})();
+
+// ═══════════════════════════════════════════════════════════════
+//  Search hub — filtru live pe carduri (similar scanner-hub crypto)
+// ═══════════════════════════════════════════════════════════════
+(function setupHubSearch() {
+  const input = document.getElementById('hubSearch');
+  const clearBtn = document.getElementById('hubSearchClear');
+  const wrap = document.getElementById('hubSearchWrap');
+  const cards = document.querySelectorAll('#hubCards .card');
+  const noResults = document.getElementById('hubNoResults');
+  if (!input) return;
+  // Pre-extract text searchable per card
+  const searchableCards = Array.from(cards).map(card => {
+    const heading = card.querySelector('.card-title')?.textContent || '';
+    const desc = card.querySelector('.card-desc')?.textContent || '';
+    const features = Array.from(card.querySelectorAll('.feat')).map(f => f.textContent).join(' ');
+    return { el: card, text: (heading + ' ' + desc + ' ' + features).toLowerCase() };
+  });
+  function applySearch() {
+    const q = input.value.trim().toLowerCase();
+    wrap.classList.toggle('has-text', !!q);
+    let visible = 0;
+    for (const sc of searchableCards) {
+      const match = !q || sc.text.includes(q);
+      sc.el.classList.toggle('hidden-by-search', !match);
+      if (match) visible++;
+    }
+    noResults.classList.toggle('visible', q && visible === 0);
+  }
+  input.addEventListener('input', applySearch);
+  clearBtn.addEventListener('click', () => { input.value = ''; applySearch(); input.focus(); });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { input.value = ''; applySearch(); } });
 })();
 
 // ═══════════════════════════════════════════════════════════════
