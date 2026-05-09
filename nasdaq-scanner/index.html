@@ -865,7 +865,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v75</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v76</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -886,7 +886,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
     <div class="notif-btn" id="anthropicKeyBtn" onclick="showAnthropicKeyModal()" style="cursor:pointer" title="Configurează cheia Anthropic API pentru analiza AI inline">🔑 AI Key</div>
     <div class="notif-btn" id="aiBriefingBtn" onclick="showAIBriefing()" style="cursor:pointer;color:#a855f7;border-color:#c084fc" title="Analiza AI completă a întregii watchlist">🌅 AI Briefing</div>
     <div class="notif-btn" id="infoBtn" onclick="showInfoModal()" style="cursor:pointer" title="Ghid complet și changelog">ℹ️ Info</div>
-    <div class="notif-btn" onclick="window.openCustomScreener()" style="cursor:pointer;color:var(--gold);border-color:var(--goldb)" title="Custom Screener — 5 reguli AND combinate (chg/RSI/strength/price)">🎯 Screener</div>
+    <div class="notif-btn" id="customScreenerBtn" style="cursor:pointer;color:var(--gold);border-color:var(--goldb)" title="Custom Screener — 5 reguli AND combinate (chg/RSI/strength/price)">🎯 Screener</div>
     <div class="notif-btn" onclick="showBackupModalNasdaq()" style="cursor:pointer" title="Backup config + watchlist + alerte (Export / Import / Restore)">💾 Backup</div>
     <div class="notif-btn" id="gistSyncBtnNasdaq" onclick="showGistModalNasdaq()" style="cursor:pointer" title="Sincronizează watchlist + setări cross-device prin GitHub Gist">🔄 Sync</div>
     <div id="pwaInstallBtn" onclick="installPWA()" style="display:none;padding:6px 12px;border-radius:var(--rs);font-size:.62rem;font-weight:600;cursor:pointer;border:1px solid var(--accb);background:var(--accl);color:var(--acc);align-items:center;gap:5px;">📱 Instalează</div>
@@ -7972,7 +7972,7 @@ window._csfApply = function(on){
   if (typeof renderSignals === 'function') renderSignals();
 };
 function _csfUpdateButtonIndicator(){
-  const btn = Array.from(document.querySelectorAll('.notif-btn')).find(b => b.onclick && b.textContent.includes('Screener'));
+  const btn = document.getElementById('customScreenerBtn');
   if (!btn) return;
   if (_customFilter.on && _customFilter.rules.length){
     btn.style.background = 'linear-gradient(135deg,var(--gold),var(--orange))';
@@ -7986,8 +7986,22 @@ function _csfUpdateButtonIndicator(){
     btn.textContent = '🎯 Screener';
   }
 }
-// Init indicator la load (după ce DOM e gata)
-window.addEventListener('load', () => setTimeout(_csfUpdateButtonIndicator, 200));
+// Init: wire click handler explicit + indicator la load (DOM e gata)
+window.addEventListener('load', () => setTimeout(() => {
+  const btn = document.getElementById('customScreenerBtn');
+  if (btn && !btn._csfWired){
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      try { window.openCustomScreener(); }
+      catch(err){
+        console.error('[csf] click err', err);
+        alert('Eroare la deschidere Custom Screener: ' + (err.message || err) + '\n\nÎncearcă hard refresh (Ctrl+Shift+R) ca să primești ultima versiune.');
+      }
+    });
+    btn._csfWired = true;
+  }
+  _csfUpdateButtonIndicator();
+}, 200));
 
 // ═══════════════════════════════════════════════════════════════
 //  COMPARE MODE (pas 5) — selectie multipla 2-3 stocks side-by-side
