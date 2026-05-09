@@ -863,9 +863,10 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Nasdaq Scanner Pro <span class="ver-badge" title="Versiune build (crește la fiecare push)">v73</span></h1>
+  <h1>📊 Nasdaq Scanner Pro <span class="ver-badge" title="Versiune build (crește la fiecare push)">v79</span></h1>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
+  <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
   <input id="proxyUrl" class="proxy-input" value="https://cors-proxy-one-drab.vercel.app/api/proxy/?url=" placeholder="Proxy CORS..." />
   <span class="selection-counter" id="selCounter" onclick="showSelectionMenu()" title="Click pentru opțiuni Compară AI"><span>🎯</span><span id="selCounterNum">0</span></span>
   <button class="nav-link" onclick="showPositionSizer()" title="Position sizer Trade 212: calculează poziție pentru risc fix per trade">🧮 Sizer</button>
@@ -1119,6 +1120,46 @@
 </section>
 
 <script>
+// Features modal pentru pagina market-events
+window.showMeFeatures = function(){
+  document.getElementById('flOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'flOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  const sections = [
+    { title: '📅 Earnings Calendar', items: [
+      ['📅', '<b>Earnings 7 zile</b> cu EPS Estimate + BMO/AMC + sector + market cap'],
+      ['📊', '<b>EPS history widget</b> per stock (ultimele 4 quarters)'],
+    ]},
+    { title: '📉 Movers & Heatmaps', items: [
+      ['📉', '<b>Top Losers Nasdaq</b> — scădere semnificativă cu volume sanity'],
+      ['🔥', '<b>Volume Heatmap</b> — concentrare volum per stock'],
+      ['🗺', '<b>Sector Heatmap</b> — performance sectoare'],
+    ]},
+    { title: '🤖 Automation', items: [
+      ['📡', '<b>Polling pseudo-live</b> când Market Session=OPEN'],
+      ['🤖', '<b>Cross-AI inline</b> per stock pentru analiză rapidă'],
+      ['🔔', '<b>Smart alerts</b> custom — chg% / low azi% / vol/avg / days-to-earnings'],
+      ['🧮', '<b>Position Sizer</b> Trade 212 cu risc fix per trade'],
+    ]},
+  ];
+  let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
+  html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v77 · Earnings + Top Losers + Heatmaps</div></div>';
+  html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
+  sections.forEach(s => {
+    html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
+    s.items.forEach(it => {
+      html += '<div style="display:flex;gap:7px;padding:6px 9px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;font-size:.7rem;line-height:1.4;margin-bottom:4px;border-left:3px solid var(--accent)"><span>'+it[0]+'</span><span style="color:var(--text-dim)">'+it[1]+'</span></div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+};
+
 // ============================================================
 // CLASA NasdaqScanner
 // ============================================================

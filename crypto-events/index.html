@@ -812,10 +812,11 @@
 </div>
 
 <header>
-  <h1>⚡ Crypto Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v73</span></h1>
+  <h1>⚡ Crypto Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v79</span></h1>
   <a href="../" class="nav-link">← Hub</a>
   <a href="../crypto-scanner/" class="nav-link">⚡ Crypto Scanner</a>
   <a href="../market-events/" class="nav-link">📉 Market Events</a>
+  <button class="nav-link" onclick="window.showCeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4);cursor:pointer;font-family:inherit" title="Listă completă funcționalități">ℹ Funcționalități</button>
   <span class="status"><span id="status-dot" class="status-dot"></span><span id="status-text">pornire…</span></span>
   <span class="selection-counter" id="selCounter" onclick="aiCompareCrypto()" title="Click pentru Compară AI"><span>🎯</span><span id="selCounterNum">0</span></span>
   <span class="ai-autoscan-wrap" id="autoScanWrap" title="AI auto-scan: rulează periodic /movers /funding /oi și pune rezultatul în panoul jos-stânga">
@@ -1079,6 +1080,46 @@
 
 <script>
 "use strict";
+
+window.showCeFeatures = function(){
+  document.getElementById('flOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'flOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  const data = [
+    ['📊 Movers & Sentiment', 'data', [
+      ['🚀','<b>Top Gainers/Losers</b> 1h și 24h (CoinGecko top 100)'],
+      ['😱','<b>Fear & Greed Index</b> + BTC.D + ETH.D + Total mcap'],
+      ['🔥','<b>Trending</b> CoinGecko (cele mai căutate)'],
+    ]],
+    ['💸 Futures data', 'data', [
+      ['💸','<b>Funding Rates extreme</b> Binance Futures + APR estimat'],
+      ['📈','<b>Open Interest</b> top 10 + OI Δ 1h whale flow'],
+      ['⚖','<b>Long/Short Ratio</b> top accounts (extreme detection)'],
+      ['💥','<b>Liquidations</b> recente OKX SWAP top 12'],
+    ]],
+    ['🔓 Special tools', 'tool', [
+      ['🔓','<b>Token Unlocks 60d</b> DefiLlama (cache 5 min)'],
+      ['🗺','<b>Heatmap categorii</b> narrative tracker (Layer1/L2/DeFi/Meme/AI)'],
+      ['🌐','<b>WebSocket Binance</b> live prices'],
+      ['🤖','<b>Grid bot calc</b> pentru Pionex'],
+    ]],
+  ];
+  let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
+  html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)"><div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">⚡ Crypto Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v77 · Movers + Sentiment + Funding + OI</div></div><button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
+  data.forEach(([title, cls, items]) => {
+    html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+title+'</div>';
+    items.forEach(([e,t]) => {
+      const accent = cls === 'data' ? 'var(--accent)' : 'var(--crypto-1)';
+      html += '<div style="display:flex;gap:7px;padding:6px 9px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;font-size:.7rem;line-height:1.4;margin-bottom:4px;border-left:3px solid '+accent+'"><span>'+e+'</span><span style="color:var(--muted)">'+t+'</span></div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+};
 
 // === Configurare ===
 const CG_API     = 'https://api.coingecko.com/api/v3';

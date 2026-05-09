@@ -1371,7 +1371,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v73</span></div>
+      <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v79</span></div>
       <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
     </div>
   </div>
@@ -1381,6 +1381,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
       <span id="statusTxt">OPRIT</span>
     </div>
     <a href="../" style="padding:5px 11px;border-radius:7px;font-size:.6rem;font-weight:600;border:1px solid var(--b1);background:var(--bg2);color:var(--t2);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;" onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t2)'">← Hub</a>
+    <button onclick="window.showCsFeatures()" style="padding:5px 11px;border-radius:7px;font-size:.6rem;font-weight:700;border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);color:#5bb0ff;cursor:pointer;font-family:inherit" title="Listă completă funcționalități">ℹ Funcționalități</button>
     <button class="ai-sum-btn" onclick="toggleCryptoSummary()">🧠 AI Summary</button>
     <div id="pwaInstallBtn" onclick="installPWA()" style="display:none;padding:6px 12px;border-radius:var(--rs);font-size:.62rem;font-weight:600;cursor:pointer;border:1px solid var(--accb);background:var(--accl);color:var(--acc);align-items:center;gap:5px;">📱 Instalează</div>
     <div class="notif-btn" id="notifBtn" onclick="requestNotif()">🔔 Notificări</div>
@@ -1738,6 +1739,50 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
 </div>
 
 <script>
+// Features modal pentru pagina crypto-scanner
+window.showCsFeatures = function(){
+  document.getElementById('flOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'flOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  const data = [
+    ['📡 Sursa', 'data', [
+      ['📡','<b>Binance Futures + Spot</b> — prețuri, volume, klines real-time'],
+    ]],
+    ['🛠 Tab-uri (13)', 'tool', [
+      ['🎯','<b>Setups</b> + 💎 <b>Premium</b> filtre configurabile'],
+      ['🚨','<b>Pump Radar</b> 5m, 🌪 <b>Volatilitate</b>, 🔥 <b>Squeeze</b>'],
+      ['👁','<b>Watchlist Live</b> grid 30 coin-uri full-width'],
+      ['💸','<b>Funding alerts</b>, 🤖 <b>Pionex grid</b>, 📊 <b>Order flow</b>'],
+      ['📓','<b>Tab pinning</b> right-click — max 3 mini-cards persistente'],
+    ]],
+    ['🤖 Automation & AI', 'auto', [
+      ['🔊','<b>Voice TTS</b> pentru semnale critice'],
+      ['🤖','<b>Cross-AI multi-tab</b> — agregare semnale'],
+      ['📈','<b>Backtester rapid</b> RSI/BB/Breakout'],
+      ['🎯','<b>Performance tracker</b> per tab (24h hit rate)'],
+    ]],
+    ['💾 Sync & Tools', 'auto', [
+      ['🔄','<b>Gist sync</b> watchlist + setări + API key cross-device'],
+      ['⚙','<b>Position sizer</b>, ⏰ <b>Volatility tab</b>'],
+    ]],
+  ];
+  let html = '<div style="background:var(--bg2,#141a28);border:1px solid var(--b1,#2a3247);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--t1,#e8eef5);font-family:inherit">';
+  html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--b1,#2a3247)"><div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1,#f7931a),var(--crypto-2,#ffd86b));-webkit-background-clip:text;color:transparent">🪙 Crypto Opportunity Scanner</h3><div style="font-size:.62rem;color:var(--t3,#8892a6);margin-top:3px">v77 · Binance Futures · 13 tab-uri</div></div><button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--t3,#8892a6);font-size:20px;cursor:pointer">×</button></div>';
+  data.forEach(([title, cls, items]) => {
+    html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t3,#8892a6);margin-bottom:7px">'+title+'</div>';
+    items.forEach(([e,t]) => {
+      const accent = cls === 'data' ? 'var(--acc,#5bb0ff)' : cls === 'tool' ? 'var(--crypto-1,#f7931a)' : 'var(--green,#22d66b)';
+      html += '<div style="display:flex;gap:7px;padding:6px 9px;background:var(--bg3,#1d2537);border:1px solid var(--b1,#2a3247);border-radius:5px;font-size:.7rem;line-height:1.4;margin-bottom:4px;border-left:3px solid '+accent+'"><span>'+e+'</span><span style="color:var(--t2,#c1c9d6)">'+t+'</span></div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+};
+
 // ── SAFE FETCH: timeout via Promise.race (WebView compatible) ──
 // State global pentru rate-limit backoff per host (Binance bate IP-ul la 429/418)
 const _rlState = new Map(); // host -> { backoffUntil:ts }

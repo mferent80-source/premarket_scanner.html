@@ -248,6 +248,27 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 .mc-actions .mc-primary{background:linear-gradient(135deg,var(--acc),var(--teal));border-color:transparent;color:#fff}
 .mc-loading{padding:40px;text-align:center;color:var(--t3);font-size:.7rem}
 
+/* Features modal (ℹ buton — listă funcționalități) */
+.fl-overlay{position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
+.fl-modal{background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--t1);font-family:var(--head)}
+.fl-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--b1)}
+.fl-head h3{font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1,var(--acc)),var(--crypto-2,var(--gold)));-webkit-background-clip:text;color:transparent}
+.fl-head .sub{font-size:.6rem;color:var(--t3);margin-top:3px;font-family:var(--mono)}
+.fl-close{background:transparent;border:none;color:var(--t3);font-size:20px;cursor:pointer;padding:0 4px}
+.fl-section{margin-bottom:12px}
+.fl-section-title{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:7px;font-family:var(--mono);display:flex;justify-content:space-between}
+.fl-list{display:flex;flex-direction:column;gap:5px}
+.fl-item{display:flex;gap:7px;padding:6px 9px;background:var(--bg3);border:1px solid var(--b1);border-radius:5px;font-size:.65rem;line-height:1.4}
+.fl-item .fl-emoji{flex-shrink:0;font-size:13px}
+.fl-item .fl-txt{color:var(--t2)}
+.fl-item .fl-txt b{color:var(--t1)}
+.fl-item.data{border-left:3px solid var(--acc)}
+.fl-item.tool{border-left:3px solid var(--gold)}
+.fl-item.alert{border-left:3px solid var(--red)}
+.fl-item.auto{border-left:3px solid var(--green)}
+.fl-item.ai{border-left:3px solid var(--purple)}
+.fl-item.viz{border-left:3px solid var(--gold)}
+
 .notif-btn{padding:6px 12px;border-radius:var(--rs);font-size:.62rem;font-weight:600;cursor:pointer;border:1px solid var(--b2);background:var(--bg2);color:var(--t2);transition:all .15s;box-shadow:var(--sh);}
 .notif-btn.granted{border-color:var(--greenb);background:var(--greenl);color:var(--green);}
 .notif-btn.denied{border-color:var(--redb);background:var(--redl);color:var(--red);}
@@ -865,7 +886,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v78</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v79</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -886,6 +907,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
     <div class="notif-btn" id="anthropicKeyBtn" onclick="showAnthropicKeyModal()" style="cursor:pointer" title="Configurează cheia Anthropic API pentru analiza AI inline">🔑 AI Key</div>
     <div class="notif-btn" id="aiBriefingBtn" onclick="showAIBriefing()" style="cursor:pointer;color:#a855f7;border-color:#c084fc" title="Analiza AI completă a întregii watchlist">🌅 AI Briefing</div>
     <div class="notif-btn" id="infoBtn" onclick="showInfoModal()" style="cursor:pointer" title="Ghid complet și changelog">ℹ️ Info</div>
+    <div class="notif-btn" onclick="window.showNasdaqFeatures()" style="cursor:pointer;color:var(--acc);border-color:var(--accb)" title="Listă completă funcționalități scanner">ℹ Funcționalități</div>
     <div class="notif-btn" id="customScreenerBtn" style="cursor:pointer;color:var(--gold);border-color:var(--goldb)" title="Custom Screener — 5 reguli AND combinate (chg/RSI/strength/price)">🎯 Screener</div>
     <div class="notif-btn" onclick="showBackupModalNasdaq()" style="cursor:pointer" title="Backup config + watchlist + alerte (Export / Import / Restore)">💾 Backup</div>
     <div class="notif-btn" id="gistSyncBtnNasdaq" onclick="showGistModalNasdaq()" style="cursor:pointer" title="Sincronizează watchlist + setări cross-device prin GitHub Gist">🔄 Sync</div>
@@ -8015,6 +8037,69 @@ window.addEventListener('load', () => setTimeout(() => {
   }
   _csfUpdateButtonIndicator();
 }, 200));
+
+// ═══════════════════════════════════════════════════════════════
+//  FEATURES MODAL (ℹ buton header) — listă completă funcționalități
+// ═══════════════════════════════════════════════════════════════
+window.showNasdaqFeatures = function(){
+  document.getElementById('flOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'flOverlay'; ov.className = 'fl-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  const sections = [
+    { title: '📡 Surse de date', cls: 'data', items: [
+      { e: '📡', t: '<b>Yahoo Finance</b> — quote endpoint free, fără cheie' },
+      { e: '🔑', t: '<b>Finnhub</b> — candle data, news ticker, insider transactions, earnings' },
+    ]},
+    { title: '🛠 Tab-uri scanare (18)', cls: 'tool', items: [
+      { e: '🔴', t: '<b>Live</b> + 📋 <b>Toate</b> + 📜 <b>History</b> — semnale curente + istoric' },
+      { e: '🌱', t: '<b>Early Buy</b> — scoring multi-factor pentru fază incipientă' },
+      { e: '💡', t: '<b>Oportunități</b> — top BUY/SELL cu Trade Plan' },
+      { e: '🎛', t: '<b>Multi-Scan Dashboard</b> — pump/dump/swing/RSI în coloane' },
+      { e: '🎯', t: '<b>Swing</b> — setup-uri multi-day' },
+      { e: '🔥', t: '<b>Squeeze Radar</b> — bollinger band squeeze' },
+      { e: '🚨', t: '<b>Pump Radar</b> — pump/dump/vol/mom 5m cu sliders' },
+      { e: '🗺', t: '<b>Heatmap sectoare</b> ETFs + 🌐 <b>Sector rotation</b>' },
+      { e: '🌅', t: '<b>Pre/After-hours</b> — gappers ≥3% cu refresh 60s' },
+      { e: '📉', t: '<b>Top Losers</b> + 👔 <b>Insider feed</b>' },
+      { e: '↕', t: '<b>Gap scanner</b> + 🔗 <b>Correlation</b>' },
+    ]},
+    { title: '🎯 Filtre & Tools', cls: 'tool', items: [
+      { e: '🎯', t: '<b>Custom Screener</b> — 5 reguli AND (chg/RSI/strength/price)' },
+      { e: '⚖', t: '<b>Compare mode</b> — 2-3 stocks side-by-side' },
+      { e: '📊', t: '<b>Mini-chart popup</b> — candlestick 30d (Yahoo)' },
+      { e: '⌨', t: '<b>Keyboard shortcuts</b> — `/` `1-9` `r` `t` Esc `?`' },
+      { e: '⭐', t: '<b>Watchlist persistent</b> — sync cross-page wl_stocks' },
+    ]},
+    { title: '🤖 Automation & alerts', cls: 'auto', items: [
+      { e: '🔄', t: '<b>Auto-scan</b> 60s/180s/300s/OFF' },
+      { e: '📱', t: '<b>Telegram smart batch</b> — agregat 60s pentru 2+ alerts' },
+      { e: '🔔', t: '<b>Browser notifications</b> + ⏰ <b>Price alerts</b>' },
+    ]},
+    { title: '🧠 AI integration', cls: 'ai', items: [
+      { e: '🌅', t: '<b>AI Briefing</b> watchlist (Opus 4.7)' },
+      { e: '🤖', t: '<b>AI inline</b> per stock pe oportunități/squeeze/pump' },
+      { e: '🧠', t: '<b>AI Market Summary</b> — context macro după scan' },
+    ]},
+    { title: '💾 Backup & Sync', cls: 'auto', items: [
+      { e: '💾', t: '<b>Backup JSON</b> — export/import config + watchlist + alerts' },
+      { e: '🔄', t: '<b>Gist Sync</b> — cross-device prin GitHub Gist privat' },
+    ]},
+  ];
+  let html = `<div class="fl-modal">
+    <div class="fl-head">
+      <div><h3>📈 Nasdaq Opportunity Scanner</h3>
+      <div class="sub">v77 · Stocks scanner · 18 tab-uri · click pe orice element pentru a-l folosi în pagină</div></div>
+      <button class="fl-close" type="button" data-close>×</button>
+    </div>`;
+  sections.forEach(sec => {
+    html += `<div class="fl-section"><div class="fl-section-title"><span>${sec.title}</span><span style="color:var(--t3);font-weight:500">(${sec.items.length})</span></div><div class="fl-list">${sec.items.map(it => `<div class="fl-item ${sec.cls}"><span class="fl-emoji">${it.e}</span><span class="fl-txt">${it.t}</span></div>`).join('')}</div></div>`;
+  });
+  html += `</div>`;
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  COMPARE MODE (pas 5) — selectie multipla 2-3 stocks side-by-side
