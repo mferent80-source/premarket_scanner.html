@@ -863,7 +863,7 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v71</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v72</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -5023,14 +5023,38 @@ function addToWatchlist(){
   const sym=inp.value.trim().toUpperCase().replace(/[^A-Z]/g,'');
   if(!sym||watchlist.includes(sym)){inp.value='';return;}
   watchlist.push(sym); localStorage.setItem('wl_stocks',JSON.stringify(watchlist));
+  syncWatchlistToShared(); // Pas 8: mirror în scanner_watchlist cross-page
   renderWatchlistChips(); inp.value='';
   showToast(`⭐ ${sym} adăugat în watchlist`,'ok');
 }
 function removeFromWatchlist(sym){
   watchlist=watchlist.filter(s=>s!==sym);
   localStorage.setItem('wl_stocks',JSON.stringify(watchlist));
+  syncWatchlistToShared(); // Pas 8: mirror în scanner_watchlist cross-page
   renderWatchlistChips();
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  PAS 8 — Watchlist cross-page sync
+//  Mirror automat wl_stocks (nasdaq, fără prefix) → scanner_watchlist
+//  (shared cross-page cu prefix NASDAQ:). Crypto-scanner-ul continuă să
+//  folosească propriul scanner_cfg.watchlist; Hub-ul agregator citește
+//  ambele surse + scanner_watchlist (vizibilitate unificată).
+// ═══════════════════════════════════════════════════════════════
+function syncWatchlistToShared(){
+  try {
+    const stocksWl = JSON.parse(localStorage.getItem('wl_stocks') || '[]');
+    let shared = [];
+    try { shared = JSON.parse(localStorage.getItem('scanner_watchlist') || '[]'); } catch(e){}
+    // Păstrăm entries non-NASDAQ (crypto, alte surse) intacte
+    const nonNasdaq = shared.filter(s => typeof s === 'string' && !s.startsWith('NASDAQ:'));
+    const nasdaqEntries = stocksWl.map(s => 'NASDAQ:' + s);
+    const merged = [...new Set([...nonNasdaq, ...nasdaqEntries])];
+    localStorage.setItem('scanner_watchlist', JSON.stringify(merged));
+  } catch(e){ console.warn('[wl-sync] failed', e); }
+}
+// Sync inițial la load (fix lazy populate scanner_watchlist din wl_stocks existent)
+window.addEventListener('load', () => setTimeout(syncWatchlistToShared, 500));
 
 // ── FETCH RSI CANDLES ──
 async function fetchCandlesForSignals(candidates, key){
