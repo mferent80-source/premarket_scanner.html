@@ -212,6 +212,53 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   .card{padding:18px}
   h1{font-size:28px}
 }
+
+/* === Trade Tracker Modal === */
+.tt-fab{position:fixed;bottom:20px;right:20px;width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));border:none;color:#1a1a1a;
+  font-size:24px;cursor:pointer;box-shadow:0 6px 20px rgba(247,147,26,.4);z-index:200;
+  display:flex;align-items:center;justify-content:center;transition:transform .15s var(--ease)}
+.tt-fab:hover{transform:scale(1.08)}
+.tt-overlay{position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;
+  display:flex;align-items:center;justify-content:center;padding:16px;animation:tt-fade .2s ease}
+@keyframes tt-fade{from{opacity:0}to{opacity:1}}
+.tt-modal{background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:18px;
+  width:100%;max-width:600px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--t1);font-family:var(--head)}
+.tt-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px}
+.tt-head h3{font-size:16px;font-weight:800;margin:0;
+  background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.tt-close{background:transparent;border:none;color:var(--t3);font-size:22px;cursor:pointer;line-height:1;padding:0 4px}
+.tt-close:hover{color:var(--t1)}
+.tt-form{background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tt-form input,.tt-form select{padding:7px 10px;background:var(--bg);color:var(--t1);
+  border:1px solid var(--b1);border-radius:6px;font-size:12px;font-family:var(--mono);width:100%}
+.tt-form input:focus,.tt-form select:focus{outline:none;border-color:var(--crypto-1)}
+.tt-form label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-bottom:3px;display:block}
+.tt-form .col-full{grid-column:1/-1}
+.tt-form button{padding:8px 14px;border-radius:7px;border:none;cursor:pointer;font-weight:700;font-size:12px;
+  background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));color:#1a1a1a;font-family:var(--head)}
+.tt-form button:hover{filter:brightness(1.08)}
+.tt-list{display:flex;flex-direction:column;gap:8px}
+.tt-empty{padding:30px;text-align:center;color:var(--t3);font-size:13px}
+.tt-row{background:var(--bg3);border:1px solid var(--b1);border-left:3px solid var(--t3);
+  border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:12px;font-family:var(--mono)}
+.tt-row.s-open{border-left-color:#fbbf24}
+.tt-row.s-win{border-left-color:var(--green)}
+.tt-row.s-loss{border-left-color:#ff4d4d}
+.tt-row .tt-tk{font-family:var(--head);font-size:14px;font-weight:800;color:var(--t1);min-width:60px}
+.tt-row .tt-meta{font-size:10.5px;color:var(--t2);line-height:1.4}
+.tt-row .tt-meta b{color:var(--t1)}
+.tt-row .tt-act{display:flex;gap:4px}
+.tt-row .tt-act button{padding:3px 8px;border-radius:4px;border:1px solid var(--b1);background:var(--bg);
+  color:var(--t2);cursor:pointer;font-size:10px;font-weight:700;font-family:inherit}
+.tt-row .tt-act button:hover{border-color:var(--crypto-1);color:var(--crypto-1)}
+.tt-row .tt-act .tt-win{color:var(--green);border-color:rgba(34,214,107,.4)}
+.tt-row .tt-act .tt-loss{color:#ff4d4d;border-color:rgba(255,77,77,.4)}
+.tt-stats{display:flex;gap:12px;padding:10px 12px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;margin-bottom:12px;font-size:12px;font-family:var(--mono);flex-wrap:wrap}
+.tt-stats span{color:var(--t2)}.tt-stats b{color:var(--t1);font-weight:800}
+@media (max-width:560px){.tt-form{grid-template-columns:1fr}.tt-row{grid-template-columns:1fr;gap:6px}.tt-row .tt-act{justify-content:flex-end}}
 </style>
 </head>
 <body>
@@ -323,6 +370,9 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     </a>
 
   </main>
+
+  <!-- F3 Trade tracker FAB — buton flotant pentru deschidere modal -->
+  <button class="tt-fab" onclick="openTradeTracker()" title="Trade Plans (entry/SL/TP/status)">📓</button>
 
   <footer>
     <div>Bacău, România</div>
@@ -478,6 +528,145 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   updateSessionTimer();
   setInterval(updateSessionTimer, 1000); // tick fiecare secundă
 })();
+
+// ═══════════════════════════════════════════════════════════════
+//  TRADE TRACKER — minim, replace pentru trading-journal eliminat
+//  Storage: `trade_plans_v1` = [{id, ticker, entry, sl, tp, size, status, opened, closed, pnl, notes}]
+//  Status: 'open' | 'win' | 'loss' (manual mark)
+// ═══════════════════════════════════════════════════════════════
+const TT_KEY = 'trade_plans_v1';
+function ttLoad(){
+  try { return JSON.parse(localStorage.getItem(TT_KEY) || '[]') || []; }
+  catch(e){ return []; }
+}
+function ttSave(arr){
+  try { localStorage.setItem(TT_KEY, JSON.stringify(arr)); } catch(e){}
+}
+function ttCalcPnL(t){
+  const e = parseFloat(t.entry), exit = parseFloat(t.exit), size = parseFloat(t.size) || 0;
+  if (!e || !exit || !size) return 0;
+  return (exit - e) * size; // long-only pentru stocks; pentru short, user inversează entry/exit manual
+}
+window.openTradeTracker = function(){
+  document.getElementById('ttOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'ttOverlay'; ov.className = 'tt-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+
+  const trades = ttLoad();
+  const open = trades.filter(t => t.status === 'open');
+  const closed = trades.filter(t => t.status === 'win' || t.status === 'loss');
+  const wins = closed.filter(t => t.status === 'win').length;
+  const winRate = closed.length ? Math.round(wins / closed.length * 100) : 0;
+  const totalPnL = closed.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+
+  ov.innerHTML = `
+    <div class="tt-modal">
+      <div class="tt-head">
+        <div>
+          <h3>📓 Trade Plans</h3>
+          <div style="font-size:11px;color:var(--t3);margin-top:3px">${open.length} open · ${closed.length} closed · win rate ${winRate}%</div>
+        </div>
+        <button class="tt-close" type="button" data-close>×</button>
+      </div>
+      <div class="tt-stats">
+        <span>Open: <b>${open.length}</b></span>
+        <span>Closed: <b>${closed.length}</b></span>
+        <span>Win rate: <b style="color:${winRate >= 50 ? 'var(--green)' : '#ff4d4d'}">${winRate}%</b></span>
+        <span>Total PnL: <b style="color:${totalPnL >= 0 ? 'var(--green)' : '#ff4d4d'}">${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)}</b></span>
+      </div>
+
+      <form class="tt-form" onsubmit="event.preventDefault();ttAddTrade();return false">
+        <div><label>Ticker</label><input id="ttTicker" placeholder="AAPL, NVDA…" required maxlength="10" style="text-transform:uppercase"></div>
+        <div><label>Size (shares)</label><input id="ttSize" type="number" step="any" placeholder="100" required></div>
+        <div><label>Entry $</label><input id="ttEntry" type="number" step="any" placeholder="150.50" required></div>
+        <div><label>Stop Loss $</label><input id="ttSL" type="number" step="any" placeholder="148.00"></div>
+        <div><label>Take Profit $</label><input id="ttTP" type="number" step="any" placeholder="155.00"></div>
+        <div><label>Direction</label>
+          <select id="ttDir">
+            <option value="long" selected>📈 Long</option>
+            <option value="short">📉 Short</option>
+          </select>
+        </div>
+        <div class="col-full"><label>Notes (opțional)</label><input id="ttNotes" placeholder="Setup descriere, motiv intrare…" maxlength="200"></div>
+        <div class="col-full"><button type="submit">+ Adaugă plan</button></div>
+      </form>
+
+      <div class="tt-list" id="ttList">
+        ${trades.length === 0 ? '<div class="tt-empty">📭 Niciun trade salvat. Adaugă primul plan din formularul de mai sus.</div>' : trades.map(t => ttRenderRow(t)).join('')}
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+  document.getElementById('ttTicker')?.focus();
+};
+
+function ttRenderRow(t){
+  const r = (t.tp && t.entry && t.sl && t.entry !== t.sl)
+    ? Math.abs((t.tp - t.entry) / (t.entry - t.sl)).toFixed(2) + 'R'
+    : '—';
+  const dirIcon = t.dir === 'short' ? '📉' : '📈';
+  const meta = t.status === 'open'
+    ? `<b>${dirIcon} $${parseFloat(t.entry).toFixed(2)}</b> · SL <b>$${t.sl ? parseFloat(t.sl).toFixed(2) : '—'}</b> · TP <b>$${t.tp ? parseFloat(t.tp).toFixed(2) : '—'}</b> · R:R ${r}<br>Size ${t.size} · ${new Date(t.opened).toLocaleDateString('ro-RO')}`
+    : `<b>${t.status === 'win' ? '✅ WIN' : '❌ LOSS'}</b> · Entry <b>$${parseFloat(t.entry).toFixed(2)}</b> → Exit <b>$${parseFloat(t.exit).toFixed(2)}</b> · PnL <b style="color:${t.pnl >= 0 ? 'var(--green)' : '#ff4d4d'}">${t.pnl >= 0 ? '+' : ''}$${parseFloat(t.pnl).toFixed(2)}</b><br>Size ${t.size} · ${new Date(t.closed || t.opened).toLocaleDateString('ro-RO')}`;
+  const actions = t.status === 'open'
+    ? `<button class="tt-win" onclick="ttCloseTrade('${t.id}','win')" title="Marcat WIN cu prețul TP">✅ Win</button>
+       <button class="tt-loss" onclick="ttCloseTrade('${t.id}','loss')" title="Marcat LOSS cu prețul SL">❌ Loss</button>
+       <button onclick="ttDeleteTrade('${t.id}')" title="Șterge">🗑</button>`
+    : `<button onclick="ttDeleteTrade('${t.id}')" title="Șterge">🗑</button>`;
+  return `<div class="tt-row s-${t.status}">
+    <div class="tt-tk">${t.ticker}</div>
+    <div class="tt-meta">${meta}${t.notes ? '<br><i style="color:var(--t3);font-size:10px">' + t.notes.replace(/[<>]/g,'') + '</i>' : ''}</div>
+    <div class="tt-act">${actions}</div>
+  </div>`;
+}
+
+window.ttAddTrade = function(){
+  const v = id => (document.getElementById(id)?.value || '').trim();
+  const ticker = v('ttTicker').toUpperCase();
+  const size = parseFloat(v('ttSize'));
+  const entry = parseFloat(v('ttEntry'));
+  if (!ticker || !size || !entry) { alert('Ticker, Size și Entry sunt obligatorii'); return; }
+  const t = {
+    id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    ticker, size, entry,
+    sl: parseFloat(v('ttSL')) || null,
+    tp: parseFloat(v('ttTP')) || null,
+    dir: v('ttDir') || 'long',
+    notes: v('ttNotes') || '',
+    status: 'open',
+    opened: Date.now(),
+  };
+  const arr = ttLoad();
+  arr.unshift(t);
+  ttSave(arr);
+  openTradeTracker(); // re-open ca să arate noul rând
+};
+
+window.ttCloseTrade = function(id, status){
+  const arr = ttLoad();
+  const t = arr.find(x => x.id === id);
+  if (!t) return;
+  // Auto-fill exit price din TP/SL conform status
+  const defaultExit = status === 'win' ? (t.tp || t.entry) : (t.sl || t.entry);
+  const exitStr = window.prompt('Exit price (default: $' + parseFloat(defaultExit).toFixed(2) + '):', defaultExit);
+  if (exitStr === null) return; // cancel
+  const exit = parseFloat(exitStr) || defaultExit;
+  t.exit = exit;
+  t.status = status;
+  t.closed = Date.now();
+  // PnL: long = (exit-entry)*size, short = (entry-exit)*size
+  t.pnl = t.dir === 'short' ? (t.entry - exit) * t.size : (exit - t.entry) * t.size;
+  ttSave(arr);
+  openTradeTracker();
+};
+
+window.ttDeleteTrade = function(id){
+  if (!window.confirm('Ștergi acest trade din istoric?')) return;
+  const arr = ttLoad().filter(t => t.id !== id);
+  ttSave(arr);
+  openTradeTracker();
+};
 
 // ── PWA: manifest inline + install prompt ──
 (function(){
