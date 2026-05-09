@@ -26,21 +26,32 @@
   --sh:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
   --shh:0 4px 16px rgba(0,0,0,.1);
 }
+/* === Reskin Dark — paleta scanner-hub crypto (orange/gold BTC) === */
 body.dark{
-  --bg:#0b0f1a; --bg2:#131829; --bg3:#1a2035; --bg4:#222940;
-  --b1:#2a3150; --b2:#3a4268;
-  --t1:#e2e8f0; --t2:#94a3b8; --t3:#64748b;
-  --acc:#60a5fa; --accl:rgba(96,165,250,.1); --accb:rgba(96,165,250,.25);
-  --green:#34d399; --greenl:rgba(52,211,153,.1); --greenb:rgba(52,211,153,.25);
-  --red:#f87171; --redl:rgba(248,113,113,.1); --redb:rgba(248,113,113,.25);
-  --gold:#fbbf24; --goldl:rgba(251,191,36,.1); --goldb:rgba(251,191,36,.25);
-  --cyan:#22d3ee; --cyanl:rgba(34,211,238,.08);
-  --purple:#a78bfa; --purpll:rgba(167,139,250,.1); --purplb:rgba(167,139,250,.25);
-  --orange:#fb923c; --orangl:rgba(251,146,60,.1);
-  --teal:#2dd4bf; --teall:rgba(45,212,191,.1); --tealb:rgba(45,212,191,.25);
-  --sh:0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
-  --shh:0 4px 16px rgba(0,0,0,.4);
+  --bg:#0b0f17; --bg2:#141a28; --bg3:#1d2537; --bg4:#222b40;
+  --b1:#2a3247; --b2:#3a4258;
+  --t1:#e8eef5; --t2:#c1c9d6; --t3:#8892a6;
+  /* Paleta BTC orange/gold — folosită pentru brand + accente principale */
+  --crypto-1:#f7931a; --crypto-2:#ffd86b;
+  --acc:#5bb0ff; --accl:rgba(91,176,255,.12); --accb:rgba(91,176,255,.4);
+  --green:#22d66b; --greenl:rgba(34,214,107,.12); --greenb:rgba(34,214,107,.4);
+  --red:#ff4d4d; --redl:rgba(255,77,77,.12); --redb:rgba(255,77,77,.4);
+  --gold:#ffd86b; --goldl:rgba(255,216,107,.12); --goldb:rgba(255,216,107,.4);
+  --cyan:#5bdcb0; --cyanl:rgba(91,220,176,.1);
+  --purple:#8b6fff; --purpll:rgba(139,111,255,.12); --purplb:rgba(139,111,255,.4);
+  --orange:#f7931a; --orangl:rgba(247,147,26,.12);
+  --teal:#22d66b; --teall:rgba(34,214,107,.12); --tealb:rgba(34,214,107,.4);
+  --sh:0 1px 2px rgba(0,0,0,.3);
+  --shh:0 8px 24px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.2);
+  background-image:radial-gradient(1200px 600px at 50% -200px, #141c2e 0%, #0b0f17 55%);
+  background-attachment:fixed;
 }
+/* Brand icon în dark mode = gradient orange/gold scanner-hub */
+body.dark .brand-icon{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));box-shadow:0 4px 14px rgba(247,147,26,.3);color:#1a1a1a;}
+body.dark .brand-name span{background:linear-gradient(90deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;}
+body.dark .ver-badge{background:rgba(91,176,255,.15);color:#5bb0ff;border-color:rgba(91,176,255,.4);-webkit-text-fill-color:#5bb0ff;}
+body.dark .wl-btn{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));color:#1a1a1a;}
+body.dark .wl-btn:hover{filter:brightness(1.08);background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{min-height:100vh;overflow-x:hidden}
 body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100vh;}
@@ -7748,13 +7759,20 @@ function toggleDarkMode(){
   if(btn) btn.textContent = isDark ? '☀️' : '🌙';
 }
 // Aplică starea salvată la load (cross-app: același key 'darkMode')
+// REVIZUIT: dark e DEFAULT acum (paleta scanner-hub orange/gold). Light rămâne accesibil prin toggle.
 (function(){
   try {
-    if(localStorage.getItem('darkMode') === '1'){
+    const saved = localStorage.getItem('darkMode');
+    // First visit (saved == null) sau '1' → activate dark.
+    // Doar dacă userul a setat explicit '0' (light) păstrăm light.
+    if (saved !== '0') {
       document.body.classList.add('dark');
       setTimeout(() => { const b=document.getElementById('darkModeBtn'); if(b) b.textContent='☀️'; }, 0);
     }
-  } catch(e){}
+  } catch(e){
+    // localStorage indisponibil (privacy mode) → fallback default dark
+    document.body.classList.add('dark');
+  }
 })();
 
 // ── SCANNER → JOURNAL HOOK ──
