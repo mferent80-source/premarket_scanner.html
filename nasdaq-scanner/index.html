@@ -5703,11 +5703,11 @@ function renderRecommendations(){
         ${(()=>{const pats=detectPatterns(sparklineCache[o.symbol]||[]);return pats.length?`<div style="margin-bottom:6px">${renderPatternBadges(pats)}</div>`:''})()}
         ${renderCorrelationSection(o.symbol)}
         <div class="sig-actions">
+          <button class="btn-sig" onclick="window.toggleCompare('${o.symbol}')" style="border:none;cursor:pointer" title="Adaugă/scoate din compare list (max 3)">⚖️ Compare</button>
           <button class="btn-sig" onclick="window.openMiniChartNasdaq('${o.symbol}')" style="border:none;cursor:pointer" title="Mini-chart 30d (candlestick + volume)">📊 Chart</button>
           <a class="btn-sig" href="${tvUrl}" target="_blank">📈 TradingView</a>
           <a class="btn-sig" href="${yhUrl}" target="_blank">📰 Yahoo</a>
           <a class="btn-sig btn-t212" href="https://app.trading212.com/" target="_blank">📊 T212</a>
-          <button class="btn-sig" onclick='saveToJournal(${JSON.stringify({symbol:o.symbol,coin:o.symbol,direction:isBuy?"long":"short",entry:o.entry,stopLoss:o.sl,takeProfit:o.tp,setup:"Oportunitate "+(isBuy?"BUY":"SELL"),scannerScore:o.score,notes:o.reasons.map(r=>r.t).slice(0,2).join(" · ")}).replace(/'/g,"&#39;")})' style="border:none;cursor:pointer">📓 Jurnal</button>
         </div>
         ${renderNewsSection(o.symbol)}
         ${renderAlertSection(o.symbol, o.price)}
@@ -7788,6 +7788,93 @@ const NEWS_TICKER_SLOW_MS=6*60*1000; // then refresh every 6 min
 
 function escapeHtmlNT(s){
   return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  COMPARE MODE (pas 5) — selectie multipla 2-3 stocks side-by-side
+// ═══════════════════════════════════════════════════════════════
+let compareList = []; // array de symbols selectate (max 3, in-memory only)
+window.toggleCompare = function(symbol){
+  const i = compareList.indexOf(symbol);
+  if (i >= 0) compareList.splice(i, 1);
+  else if (compareList.length < 3) compareList.push(symbol);
+  else { alert('Max 3 stocks pentru compare'); return; }
+  updateCompareBadge();
+};
+function updateCompareBadge(){
+  let badge = document.getElementById('cmpBadge');
+  if (compareList.length === 0){ badge?.remove(); return; }
+  if (!badge){
+    badge = document.createElement('div');
+    badge.id = 'cmpBadge';
+    badge.style.cssText = 'position:fixed;bottom:20px;left:20px;z-index:200;background:linear-gradient(135deg,var(--acc),var(--purple));color:#fff;padding:9px 16px;border-radius:24px;cursor:pointer;font-weight:700;font-size:.7rem;box-shadow:0 6px 20px rgba(0,0,0,.4);display:flex;align-items:center;gap:8px';
+    badge.onclick = openCompareModal;
+    document.body.appendChild(badge);
+  }
+  badge.innerHTML = `⚖️ Compare ${compareList.length}/3 · ${compareList.join(' · ')}`;
+}
+function openCompareModal(){
+  if (compareList.length < 2){ alert('Selectează minim 2 stocks pentru compare (click ⚖️ pe carduri).'); return; }
+  document.getElementById('cmpOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'cmpOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(5,8,15,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+
+  // Collect data per symbol din allSignals + sparklineCache + analystCache
+  const cards = compareList.map(sym => {
+    const s = allSignals.find(x => x.coin === sym);
+    const sp = sparklineCache[sym] || [];
+    const w7 = (sp.length >= 2) ? ((sp[sp.length-1] - sp[0]) / sp[0] * 100).toFixed(1) : null;
+    const an = analystCache[sym] || {};
+    const earn = earningsSet.has(sym);
+    const inWl = (typeof watchlist !== 'undefined' && watchlist.includes(sym));
+    return { sym, s, sp, w7, an, earn, inWl };
+  });
+
+  ov.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:18px;width:100%;max-width:900px;max-height:90vh;overflow-y:auto;color:var(--t1);font-family:var(--mono)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-family:var(--head);font-weight:800;font-size:1rem;background:linear-gradient(135deg,var(--acc),var(--purple));-webkit-background-clip:text;color:transparent">⚖️ Compare ${cards.length} stocks</div>
+        <button onclick="document.getElementById('cmpOverlay').remove()" style="background:none;border:none;color:var(--t3);font-size:22px;cursor:pointer">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(${cards.length},1fr);gap:10px">
+        ${cards.map(c => {
+          if (!c.s) return `<div style="padding:30px;text-align:center;color:var(--t3);font-size:.7rem;background:var(--bg3);border-radius:8px"><b>${c.sym}</b><br>nu e în allSignals<br>(scan first)</div>`;
+          const chgCls = c.s.chg >= 0 ? 'var(--green)' : 'var(--red)';
+          const rsi = c.s.metrics?.rsi;
+          const rsiCls = rsi == null ? 'var(--t3)' : rsi <= 30 ? 'var(--acc)' : rsi >= 70 ? 'var(--red)' : 'var(--gold)';
+          // Mini sparkline SVG
+          let sparkSvg = '';
+          if (c.sp.length >= 2){
+            const min = Math.min(...c.sp), max = Math.max(...c.sp), range = max - min || 1;
+            const W = 200, H = 50, pts = c.sp.map((p,i) => `${(i/(c.sp.length-1)*W).toFixed(1)},${(H - (p-min)/range*(H-4) - 2).toFixed(1)}`).join(' ');
+            const isUp = c.sp[c.sp.length-1] >= c.sp[0];
+            sparkSvg = `<svg width="100%" height="50" viewBox="0 0 200 50" style="display:block;margin:6px 0"><polyline points="${pts}" fill="none" stroke="${isUp?'#22d66b':'#ff4d4d'}" stroke-width="1.8"/></svg>`;
+          }
+          return `<div style="background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:14px;font-size:.65rem">
+            <div style="font-family:var(--head);font-size:1.2rem;font-weight:800;margin-bottom:4px">${c.sym} ${c.inWl?'⭐':''} ${c.earn?'📅':''}</div>
+            <div style="font-size:.55rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">${SECTORS[c.sym] || 'US Equity'}</div>
+            <div style="font-size:1.3rem;font-weight:800;font-family:var(--head);margin-top:8px">$${c.s.price.toFixed(2)} <span style="font-size:.75rem;color:${chgCls}">${c.s.chg>=0?'+':''}${c.s.chg.toFixed(2)}%</span></div>
+            ${sparkSvg}
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 10px;margin-top:8px">
+              <div style="color:var(--t3)">Type</div><div><b>${c.s.type}</b></div>
+              <div style="color:var(--t3)">Strength</div><div><b style="color:${c.s.strength>=70?'var(--green)':c.s.strength>=50?'var(--gold)':'var(--red)'}">${c.s.strength}/100</b></div>
+              <div style="color:var(--t3)">Priority</div><div><b>${c.s.priority || '—'}</b></div>
+              ${rsi != null ? `<div style="color:var(--t3)">RSI 14</div><div><b style="color:${rsiCls}">${rsi.toFixed(1)}</b></div>` : ''}
+              ${c.w7 ? `<div style="color:var(--t3)">7d trend</div><div><b style="color:${c.w7>=0?'var(--green)':'var(--red)'}">${c.w7>=0?'+':''}${c.w7}%</b></div>` : ''}
+              ${c.an?.targetMean ? `<div style="color:var(--t3)">Target med</div><div><b>$${parseFloat(c.an.targetMean).toFixed(2)}</b></div>` : ''}
+            </div>
+            <div style="display:flex;gap:5px;margin-top:10px">
+              <a href="https://www.tradingview.com/chart/?symbol=NASDAQ:${c.sym}" target="_blank" style="flex:1;padding:6px;background:var(--bg);border:1px solid var(--b1);border-radius:5px;color:var(--acc);text-decoration:none;text-align:center;font-size:.55rem">📈 TV</a>
+              <button onclick="window.toggleCompare('${c.sym}');document.getElementById('cmpOverlay').remove();openCompareModal()" style="flex:1;padding:6px;background:var(--bg);border:1px solid var(--b1);border-radius:5px;color:var(--red);font-size:.55rem;cursor:pointer">✕ Remove</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:12px;font-size:.6rem;color:var(--t3);text-align:center">Tip: click ⚖️ pe alte cards pentru a swap. Max 3 stocks. Esc pentru close.</div>
+    </div>`;
+  document.body.appendChild(ov);
 }
 
 // ═══════════════════════════════════════════════════════════════
