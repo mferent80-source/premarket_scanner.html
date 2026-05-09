@@ -145,7 +145,59 @@ h1 .accent{
   font-family:var(--mono);font-size:11px;font-weight:500;
   background:var(--bg3);color:var(--t2);
   padding:4px 9px;border-radius:6px;border:1px solid var(--b1);
+  display:inline-flex;align-items:center;gap:4px;
 }
+/* Categorii badge color-coded pe carduri:
+   📊 data sources (blue) · 🛠️ tools (orange/gold) · 🔔 alerts (red) ·
+   🤖 automation (green) · 🧠 AI (purple) */
+.feat.data { background:rgba(91,176,255,.12); color:#5bb0ff; border-color:rgba(91,176,255,.3); }
+.feat.tool { background:rgba(247,147,26,.12); color:var(--crypto-1); border-color:rgba(247,147,26,.35); }
+.feat.alert { background:rgba(255,77,77,.12); color:#ff4d4d; border-color:rgba(255,77,77,.3); }
+.feat.auto { background:rgba(34,214,107,.12); color:var(--green); border-color:rgba(34,214,107,.35); }
+.feat.ai { background:rgba(139,111,255,.12); color:#a78bfa; border-color:rgba(139,111,255,.3); }
+.feat.viz { background:rgba(255,216,107,.12); color:var(--crypto-2); border-color:rgba(255,216,107,.35); }
+
+/* Info button ℹ️ — top-right pe card, deschide modal cu lista completă */
+.card-info-btn{
+  position:absolute;top:14px;right:14px;z-index:3;
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(91,176,255,.12);border:1px solid rgba(91,176,255,.35);
+  color:#5bb0ff;cursor:pointer;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s var(--ease);
+}
+.card-info-btn:hover{background:rgba(91,176,255,.28);transform:scale(1.1)}
+.card.legacy .card-info-btn{display:none} /* legacy nu are info pentru că e link extern */
+
+/* Feature list modal */
+.fl-overlay{position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;
+  display:flex;align-items:center;justify-content:center;padding:16px;animation:fl-fade .2s ease}
+@keyframes fl-fade{from{opacity:0}to{opacity:1}}
+.fl-modal{background:var(--bg2);border:1px solid var(--b1);border-radius:14px;
+  padding:20px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--t1);font-family:var(--head)}
+.fl-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--b1)}
+.fl-head h3{font-size:18px;font-weight:800;margin:0}
+.fl-head .sub{font-size:11px;color:var(--t3);margin-top:4px;font-family:var(--mono)}
+.fl-close{background:transparent;border:none;color:var(--t3);font-size:22px;cursor:pointer;padding:0 4px;line-height:1}
+.fl-close:hover{color:var(--t1)}
+.fl-section{margin-bottom:14px}
+.fl-section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;gap:6px;font-family:var(--mono)}
+.fl-list{display:flex;flex-direction:column;gap:6px}
+.fl-item{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:6px;font-size:12px;line-height:1.4}
+.fl-item .fl-emoji{flex-shrink:0;font-size:14px;line-height:1.1}
+.fl-item .fl-txt b{color:var(--t1)}
+.fl-item .fl-txt{color:var(--t2)}
+.fl-item.data{border-left:3px solid #5bb0ff}
+.fl-item.tool{border-left:3px solid var(--crypto-1)}
+.fl-item.alert{border-left:3px solid #ff4d4d}
+.fl-item.auto{border-left:3px solid var(--green)}
+.fl-item.ai{border-left:3px solid #a78bfa}
+.fl-item.viz{border-left:3px solid var(--crypto-2)}
+.fl-cta{margin-top:14px;display:flex;gap:8px}
+.fl-cta a, .fl-cta button{flex:1;padding:10px 14px;border-radius:8px;font-weight:700;font-size:12px;text-align:center;text-decoration:none;cursor:pointer;border:1px solid var(--b1);background:var(--bg3);color:var(--t1);font-family:var(--head)}
+.fl-cta a.primary{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));border-color:transparent;color:#1a1a1a}
+.fl-cta a.primary:hover{filter:brightness(1.08)}
 
 .card-cta{
   display:flex;align-items:center;justify-content:space-between;
@@ -313,17 +365,21 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   <main class="grid">
 
     <a href="./nasdaq-scanner/" target="_blank" rel="noopener" class="card nasdaq">
+      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('nasdaq')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon">📈</div>
-      <span class="card-tag">Stocks · v2.9.1</span>
+      <span class="card-tag">Stocks · v77</span>
       <h2 class="card-title">Nasdaq Opportunity Scanner</h2>
-      <p class="card-desc">Scaner pentru top Nasdaq cu indicatori tehnici, multi-timeframe,
-        macro context, signal log și tab "Early Buy" cu motor de scoring multi-factor.</p>
+      <p class="card-desc">Scaner top Nasdaq + ETF-uri cu 18 tab-uri, AI Briefing, Pump Radar,
+        Multi-TF, Earnings Calendar, signal log + auto-scan.</p>
       <div class="features">
-        <span class="feat">Yahoo Finance</span>
-        <span class="feat">Multi-TF</span>
-        <span class="feat">Early Buy</span>
-        <span class="feat">Signal log</span>
-        <span class="feat">Macro panel</span>
+        <span class="feat data">📡 Yahoo + Finnhub</span>
+        <span class="feat tool">🎯 Custom Screener</span>
+        <span class="feat tool">⚖️ Compare 3 stocks</span>
+        <span class="feat auto">🚨 Pump Radar 5m</span>
+        <span class="feat ai">🧠 AI inline + Briefing</span>
+        <span class="feat alert">📱 Telegram smart batch</span>
+        <span class="feat viz">📊 Mini-chart 30d</span>
+        <span class="feat auto">🌅 PM gappers ≥3%</span>
       </div>
       <div class="card-cta">
         <span>Deschide scanner</span>
@@ -332,17 +388,19 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     </a>
 
     <a href="./watchlist-monitor/" target="_blank" rel="noopener" class="card journal" style="--accent:linear-gradient(90deg,var(--green),#5bdcb0); --glow:rgba(34,214,107,.18)">
+      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('watchlist')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon" style="background:linear-gradient(135deg,var(--green),#5bdcb0);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#000">👁️</div>
-      <span class="card-tag" style="background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)">Watchlist · v1.0</span>
+      <span class="card-tag" style="background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)">Watchlist · v77</span>
       <h2 class="card-title">Watchlist Monitor</h2>
-      <p class="card-desc">Auto-scan continuu (60s) pe stocks-urile tale cu verdict instant
-        BUY/SELL/HOLD din MA50/MA200, RSI, momentum. Notificare la 🚀 STRONG BUY nou.</p>
+      <p class="card-desc">Auto-scan 60s pe stocks-urile tale cu verdict instant 5-tier
+        STRONG BUY → AVOID din scoring multi-factor (MA50/MA200/RSI/momentum).</p>
       <div class="features">
-        <span class="feat">Auto-scan 60s</span>
-        <span class="feat">Verdict 5-tier</span>
-        <span class="feat">RSI · MA50 · MA200</span>
-        <span class="feat">Browser alerts</span>
-        <span class="feat">Sync wl_stocks</span>
+        <span class="feat auto">🔄 Auto-scan 60s</span>
+        <span class="feat tool">🎯 Verdict 5-tier</span>
+        <span class="feat data">📊 MA50/200 + RSI</span>
+        <span class="feat alert">🔔 Browser alerts STRONG BUY</span>
+        <span class="feat data">📡 Yahoo Finance free</span>
+        <span class="feat auto">🔗 Sync wl_stocks cu nasdaq</span>
       </div>
       <div class="card-cta" style="color:var(--green)">
         <span>Deschide watchlist</span>
@@ -350,17 +408,20 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       </div>
     </a>
 
-<a href="./market-events/" target="_blank" rel="noopener" class="card events">
+    <a href="./market-events/" target="_blank" rel="noopener" class="card events">
+      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('market-events')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon">📉</div>
-      <span class="card-tag">Events · v1.0</span>
+      <span class="card-tag">Events · v77</span>
       <h2 class="card-title">Market Events</h2>
-      <p class="card-desc">Earnings calendar pe toată piața + Top Losers Nasdaq —
-        evenimente cu impact pe preț, scanner pre-market pentru oportunități contra-trend.</p>
+      <p class="card-desc">Earnings calendar 7 zile + Top Losers Nasdaq + Volume Heatmap +
+        Sector Heatmap — evenimente cu impact pe preț.</p>
       <div class="features">
-        <span class="feat">Earnings calendar</span>
-        <span class="feat">Top Losers</span>
-        <span class="feat">Nasdaq API</span>
-        <span class="feat">Auto-scan</span>
+        <span class="feat data">📅 Earnings 7d EPS Est</span>
+        <span class="feat data">📉 Top Losers Nasdaq</span>
+        <span class="feat viz">🔥 Volume Heatmap</span>
+        <span class="feat viz">🗺️ Sector Heatmap</span>
+        <span class="feat auto">📡 Polling pseudo-live</span>
+        <span class="feat tool">🤖 Cross-AI inline</span>
       </div>
       <div class="card-cta">
         <span>Deschide events</span>
@@ -368,19 +429,63 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       </div>
     </a>
 
+    <a href="./crypto-events/" target="_blank" rel="noopener" class="card cryptoevents">
+      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('crypto-events')" title="Vezi toate funcționalitățile">ℹ</button>
+      <div class="card-icon" style="background:linear-gradient(135deg,#ec4899,#a855f7);box-shadow:0 4px 14px rgba(236,72,153,.25);color:#fff">⚡</div>
+      <span class="card-tag" style="background:rgba(236,72,153,.12);color:#ec4899;border:1px solid rgba(236,72,153,.3)">Crypto Events · v77</span>
+      <h2 class="card-title">Crypto Events</h2>
+      <p class="card-desc">Top movers, sentiment, BTC.D/ETH.D, funding rates, OI, liquidations,
+        token unlocks, sector heatmap categorii crypto.</p>
+      <div class="features">
+        <span class="feat data">📊 Movers 1h/24h</span>
+        <span class="feat viz">😱 Fear &amp; Greed</span>
+        <span class="feat data">💸 Funding extreme</span>
+        <span class="feat viz">📈 Open Interest top</span>
+        <span class="feat data">🔓 Token Unlocks 60d</span>
+        <span class="feat viz">🗺️ Sector heatmap</span>
+        <span class="feat tool">🌐 WebSocket live</span>
+      </div>
+      <div class="card-cta" style="color:#ec4899">
+        <span>Deschide crypto events</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a href="./crypto-scanner/" target="_blank" rel="noopener" class="card crypto">
+      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('crypto-scanner')" title="Vezi toate funcționalitățile">ℹ</button>
+      <div class="card-icon">🪙</div>
+      <span class="card-tag">Crypto · v77</span>
+      <h2 class="card-title">Crypto Opportunity Scanner</h2>
+      <p class="card-desc">Scaner crypto Binance Futures cu 13 tab-uri: Setups, Premium, Pump Radar,
+        Volatilitate, Watchlist live, Funding alerts.</p>
+      <div class="features">
+        <span class="feat data">📡 Binance Futures</span>
+        <span class="feat tool">💎 Premium filters</span>
+        <span class="feat tool">📓 Pinning right-click</span>
+        <span class="feat ai">🤖 Cross-AI multi-tab</span>
+        <span class="feat auto">🚨 Pump Radar 5m</span>
+        <span class="feat tool">🤖 Pionex grid suggester</span>
+        <span class="feat tool">🔄 Gist sync cross-device</span>
+      </div>
+      <div class="card-cta">
+        <span>Deschide crypto scanner</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
     <a href="https://mferent80-source.github.io/scanner/scanner-stocks.html" target="_blank" rel="noopener" class="card legacy">
       <span class="legacy-badge">LEGACY</span>
       <div class="card-icon">📊</div>
-      <span class="card-tag">Stocks · v15</span>
+      <span class="card-tag">Stocks · v50</span>
       <h2 class="card-title">Stocks Scanner Pro (Scanner Hub)</h2>
-      <p class="card-desc">Versiunea v15 din Scanner Hub cu detecții clasice de stock pattern —
+      <p class="card-desc">Versiunea v50 din Scanner Hub cu detecții clasice de stock pattern —
         feature-uri unice neportate încă în nasdaq-scanner.</p>
       <div class="features">
-        <span class="feat">💎 Wyckoff Spring</span>
-        <span class="feat">✅ Stage 2 (Weinstein)</span>
-        <span class="feat">🏗️ Acumulare 6w</span>
-        <span class="feat">MTF + divergențe</span>
-        <span class="feat">Auto-pick Top X</span>
+        <span class="feat tool">💎 Wyckoff Spring</span>
+        <span class="feat tool">✅ Stage 2 Weinstein</span>
+        <span class="feat tool">🏗️ Acumulare 6 săpt</span>
+        <span class="feat data">📊 MTF + divergențe</span>
+        <span class="feat auto">🎯 Auto-pick Top X</span>
       </div>
       <div class="card-cta">
         <span>Deschide scanner legacy</span>
@@ -547,6 +652,190 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   updateSessionTimer();
   setInterval(updateSessionTimer, 1000); // tick fiecare secundă
 })();
+
+// ═══════════════════════════════════════════════════════════════
+//  FEATURES MODAL — listă completă funcționalități per scanner
+//  Click ℹ pe orice card → modal cu toate features grupate pe categorii
+// ═══════════════════════════════════════════════════════════════
+const SCANNER_FEATURES = {
+  'nasdaq': {
+    title: '📈 Nasdaq Opportunity Scanner',
+    sub: 'v77 · Stocks scanner · 18 tab-uri · live `nasdaq-scanner/`',
+    url: './nasdaq-scanner/',
+    sections: [
+      { title: '📡 Surse de date', cls: 'data', items: [
+        { e: '📡', t: '<b>Yahoo Finance</b> — quote endpoint free, fără cheie' },
+        { e: '🔑', t: '<b>Finnhub</b> — candle data, news ticker, insider transactions, earnings calendar (necesită API key free)' },
+      ]},
+      { title: '🛠️ Tab-uri scanare (18)', cls: 'tool', items: [
+        { e: '🔴', t: '<b>Live</b> — semnale ultimele 2 minute' },
+        { e: '📋', t: '<b>Toate</b> — istoric semnale curente' },
+        { e: '🌱', t: '<b>Early Buy</b> — scoring multi-factor pentru fază incipientă' },
+        { e: '💡', t: '<b>Oportunități</b> — top BUY/SELL cu Trade Plan + jurnal' },
+        { e: '🎛️', t: '<b>Multi-Scan Dashboard</b> — pump/dump/swing/RSI/vol în coloane' },
+        { e: '🎯', t: '<b>Swing</b> — setup-uri multi-day' },
+        { e: '🔥', t: '<b>Squeeze Radar</b> — bollinger band squeeze detection' },
+        { e: '🚨', t: '<b>Pump Radar</b> — pump/dump/vol/mom 5m cu sliders praguri' },
+        { e: '🗺️', t: '<b>Heatmap</b> sectoare ETFs (XLK/XLF/XLV...)' },
+        { e: '🌐', t: '<b>Sector rotation</b> — momentum shifts hot/cold' },
+        { e: '🌅', t: '<b>Pre/After-hours</b> — gappers, refresh 60s în pre-market' },
+        { e: '📉', t: '<b>Top Losers</b> — Nasdaq scădere semnificativă' },
+        { e: '👔', t: '<b>Insider feed</b> — tranzacții insiders' },
+        { e: '↕️', t: '<b>Gap scanner</b> — gap up/down cu strength' },
+        { e: '🔗', t: '<b>Correlation</b> — corelații între stocks/ETFs' },
+        { e: '📜', t: '<b>History</b> — log semnale anterioare' },
+      ]},
+      { title: '🎯 Filtre & Tools', cls: 'tool', items: [
+        { e: '🎯', t: '<b>Custom Screener</b> — 5 reguli AND combinate (chg/RSI/strength/price)' },
+        { e: '⚖️', t: '<b>Compare mode</b> — 2-3 stocks side-by-side cu metrici complete' },
+        { e: '📊', t: '<b>Mini-chart popup</b> — candlestick 30d via Yahoo (free)' },
+        { e: '⌨️', t: '<b>Keyboard shortcuts</b> — `/` search, 1-9 tabs, r scan, t theme, ? help' },
+        { e: '⭐', t: '<b>Watchlist persistent</b> — sync cross-page cu wl_stocks' },
+      ]},
+      { title: '🤖 Automation & alerts', cls: 'auto', items: [
+        { e: '🔄', t: '<b>Auto-scan</b> configurabil 60s/180s/300s/OFF' },
+        { e: '📱', t: '<b>Telegram smart batch</b> — agregat 60s window pentru 2+ alerts' },
+        { e: '🔔', t: '<b>Browser notifications</b> — STRONG signals pe 4 categorii' },
+        { e: '⏰', t: '<b>Price alerts</b> per stock cu Telegram + browser' },
+      ]},
+      { title: '🧠 AI integration', cls: 'ai', items: [
+        { e: '🌅', t: '<b>AI Briefing</b> — analiză watchlist completă (Opus 4.7)' },
+        { e: '🤖', t: '<b>AI inline</b> per stock pe oportunități/squeeze/pump' },
+        { e: '🧠', t: '<b>AI Market Summary</b> — context macro după scan' },
+      ]},
+      { title: '💾 Backup & Sync', cls: 'auto', items: [
+        { e: '💾', t: '<b>Backup JSON</b> — export/import config + watchlist + alerts' },
+        { e: '🔄', t: '<b>Gist Sync</b> — cross-device prin GitHub Gist privat' },
+      ]},
+    ],
+  },
+  'watchlist': {
+    title: '👁️ Watchlist Monitor',
+    sub: 'v77 · Stocks dedicated watchlist · live `watchlist-monitor/`',
+    url: './watchlist-monitor/',
+    sections: [
+      { title: '📡 Date', cls: 'data', items: [
+        { e: '📡', t: '<b>Yahoo Finance</b> — fără cheie API, range 1y interval 1d' },
+        { e: '🔄', t: '<b>Storage shared</b> wl_stocks cu nasdaq-scanner — același watchlist ambele pagini' },
+      ]},
+      { title: '🎯 Scoring & Verdict', cls: 'tool', items: [
+        { e: '📊', t: '<b>MA50/MA200</b> distance + Golden Cross detection' },
+        { e: '📈', t: '<b>RSI 14</b> sweet spot 40-65 (+10 points), OB/OS penalty' },
+        { e: '⚡', t: '<b>Day momentum</b> — chg% scoring (+/-5 points)' },
+        { e: '🎯', t: '<b>Verdict 5-tier</b>: 🚀 STRONG BUY (≥75) / 📈 BUY (60-74) / 📊 HOLD / 📉 SELL / 🔴 AVOID' },
+      ]},
+      { title: '🤖 Automation', cls: 'auto', items: [
+        { e: '🔄', t: '<b>Auto-scan continuu</b> 60s/180s/300s/OFF' },
+        { e: '🔔', t: '<b>Browser notification</b> la STRONG BUY nou (last_seen tracking)' },
+        { e: '⚙️', t: '<b>Sortabil</b> pe orice coloană (ticker/preț/RSI/MA50/score/verdict)' },
+      ]},
+    ],
+  },
+  'market-events': {
+    title: '📉 Market Events',
+    sub: 'v77 · Earnings + Top Losers + Heatmaps · live `market-events/`',
+    url: './market-events/',
+    sections: [
+      { title: '📅 Earnings Calendar', cls: 'data', items: [
+        { e: '📅', t: '<b>Earnings 7 zile</b> cu EPS Estimate + BMO/AMC + sector + market cap' },
+        { e: '📊', t: '<b>EPS history widget</b> per stock (ultimele 4 quarters)' },
+      ]},
+      { title: '📉 Movers & Heatmaps', cls: 'viz', items: [
+        { e: '📉', t: '<b>Top Losers Nasdaq</b> — scădere semnificativă cu volume sanity' },
+        { e: '🔥', t: '<b>Volume Heatmap</b> — concentrare volum per stock' },
+        { e: '🗺️', t: '<b>Sector Heatmap</b> — performance sectoare (cu fallback industry/exchange)' },
+      ]},
+      { title: '🤖 Automation', cls: 'auto', items: [
+        { e: '📡', t: '<b>Polling pseudo-live</b> când Market Session=OPEN' },
+        { e: '🤖', t: '<b>Cross-AI inline</b> per stock pentru analiză rapidă' },
+      ]},
+    ],
+  },
+  'crypto-events': {
+    title: '⚡ Crypto Events',
+    sub: 'v77 · Movers + Sentiment + Funding + OI · live `crypto-events/`',
+    url: './crypto-events/',
+    sections: [
+      { title: '📊 Movers & Sentiment', cls: 'data', items: [
+        { e: '🚀', t: '<b>Top Gainers/Losers</b> 1h și 24h (CoinGecko top 100)' },
+        { e: '😱', t: '<b>Fear &amp; Greed Index</b> + BTC.D + ETH.D + Total mcap' },
+        { e: '🔥', t: '<b>Trending</b> CoinGecko (cele mai căutate)' },
+      ]},
+      { title: '💸 Futures data', cls: 'data', items: [
+        { e: '💸', t: '<b>Funding Rates extreme</b> Binance Futures + APR estimat' },
+        { e: '📈', t: '<b>Open Interest</b> top 10 + OI Δ 1h whale flow' },
+        { e: '⚖️', t: '<b>Long/Short Ratio</b> top accounts (extreme detection)' },
+        { e: '💥', t: '<b>Liquidations</b> recente OKX SWAP top 12' },
+      ]},
+      { title: '🔓 Special tools', cls: 'tool', items: [
+        { e: '🔓', t: '<b>Token Unlocks 60d</b> DefiLlama (cache 5 min)' },
+        { e: '🗺️', t: '<b>Heatmap categorii</b> narrative tracker (Layer1/L2/DeFi/Meme/AI/...)' },
+        { e: '🌐', t: '<b>WebSocket Binance</b> live prices' },
+        { e: '🤖', t: '<b>Grid bot calc</b> pentru Pionex' },
+      ]},
+    ],
+  },
+  'crypto-scanner': {
+    title: '🪙 Crypto Opportunity Scanner',
+    sub: 'v77 · Binance Futures · 13 tab-uri · live `crypto-scanner/`',
+    url: './crypto-scanner/',
+    sections: [
+      { title: '📡 Sursa', cls: 'data', items: [
+        { e: '📡', t: '<b>Binance Futures + Spot</b> — prețuri, volume, klines real-time' },
+      ]},
+      { title: '🛠️ Tab-uri (13)', cls: 'tool', items: [
+        { e: '🎯', t: '<b>Setups</b> + 💎 <b>Premium</b> filtre configurabile cu pre-scan ST Long' },
+        { e: '🚨', t: '<b>Pump Radar</b> 5m, 🌪 <b>Volatilitate</b>, 🔥 <b>Squeeze</b>' },
+        { e: '👁️', t: '<b>Watchlist Live</b> grid 30 coin-uri full-width' },
+        { e: '💸', t: '<b>Funding alerts</b>, 🤖 <b>Pionex grid suggester</b>, 📊 <b>Order flow</b>' },
+        { e: '📓', t: '<b>Tab pinning</b> right-click — max 3 mini-cards persistente' },
+      ]},
+      { title: '🤖 Automation & AI', cls: 'auto', items: [
+        { e: '🔊', t: '<b>Voice TTS</b> pentru semnale critice' },
+        { e: '🤖', t: '<b>Cross-AI multi-tab</b> — agregare semnale din mai multe tab-uri' },
+        { e: '📈', t: '<b>Backtester rapid</b> RSI/BB/Breakout' },
+        { e: '🎯', t: '<b>Performance tracker</b> per tab (24h hit rate)' },
+      ]},
+      { title: '💾 Sync & Tools', cls: 'auto', items: [
+        { e: '🔄', t: '<b>Gist sync</b> watchlist + setări + API key cross-device' },
+        { e: '⚙️', t: '<b>Position sizer</b>, ⏰ <b>Volatility tab</b>, ➕ <b>Watchlist quick-add</b>' },
+      ]},
+    ],
+  },
+};
+
+window.showFeaturesModal = function(scannerKey){
+  const data = SCANNER_FEATURES[scannerKey];
+  if (!data) return;
+  document.getElementById('flOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'flOverlay';
+  ov.className = 'fl-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  let html = `<div class="fl-modal">
+    <div class="fl-head">
+      <div>
+        <h3>${data.title}</h3>
+        <div class="sub">${data.sub}</div>
+      </div>
+      <button class="fl-close" type="button" data-close>×</button>
+    </div>`;
+  data.sections.forEach(sec => {
+    html += `<div class="fl-section">
+      <div class="fl-section-title">${sec.title} <span style="margin-left:auto;color:var(--t3);font-weight:500">(${sec.items.length})</span></div>
+      <div class="fl-list">
+        ${sec.items.map(it => `<div class="fl-item ${sec.cls}"><span class="fl-emoji">${it.e}</span><span class="fl-txt">${it.t}</span></div>`).join('')}
+      </div>
+    </div>`;
+  });
+  html += `<div class="fl-cta">
+    <a href="${data.url}" class="primary" target="_blank" rel="noopener">🚀 Deschide scanner</a>
+    <button type="button" data-close>Închide</button>
+  </div></div>`;
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  TRADE TRACKER — minim, replace pentru trading-journal eliminat
