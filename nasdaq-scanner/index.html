@@ -7790,6 +7790,96 @@ function escapeHtmlNT(s){
   return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS — power user (pas 6)
+//  / → focus search · 1-9 → tab switch · r → SCAN · t → toggle dark · ? → help
+// ═══════════════════════════════════════════════════════════════
+const KB_TABS = ['live','all','earlybuy','reco','multiscan','swing','squeeze','pumpradar','heatmap'];
+function isTypingInInput(e){
+  const t = e.target;
+  if (!t) return false;
+  if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT') return true;
+  if (t.isContentEditable) return true;
+  return false;
+}
+window.addEventListener('keydown', (e) => {
+  // Skip dacă e Ctrl/Alt/Meta (lasă browser shortcuts) sau utilizatorul tastează în input
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  if (isTypingInInput(e) && e.key !== 'Escape') return;
+
+  // / → focus search
+  if (e.key === '/' && !isTypingInInput(e)){
+    e.preventDefault();
+    document.getElementById('searchInp')?.focus();
+    return;
+  }
+  // Esc → blur input + clear search
+  if (e.key === 'Escape'){
+    if (document.activeElement?.tagName === 'INPUT'){
+      const inp = document.getElementById('searchInp');
+      if (inp && document.activeElement === inp){ inp.value = ''; if (typeof renderSignals === 'function') renderSignals(); inp.blur(); }
+      else document.activeElement?.blur();
+    }
+    document.querySelector('.tt-overlay,.modal-overlay,.mc-overlay')?.remove?.();
+    return;
+  }
+  // 1-9 → switch tab
+  if (e.key >= '1' && e.key <= '9'){
+    const idx = parseInt(e.key, 10) - 1;
+    const tabKey = KB_TABS[idx];
+    if (!tabKey) return;
+    const tabEl = Array.from(document.querySelectorAll('.tab')).find(el =>
+      el.getAttribute('onclick') && el.getAttribute('onclick').includes("'" + tabKey + "'"));
+    if (tabEl){ e.preventDefault(); tabEl.click(); }
+    return;
+  }
+  // r → start/stop SCAN
+  if (e.key.toLowerCase() === 'r'){
+    e.preventDefault();
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    if (btnStop && btnStop.style.display !== 'none') btnStop.click();
+    else if (btnStart) btnStart.click();
+    return;
+  }
+  // t → toggle dark/light
+  if (e.key.toLowerCase() === 't'){
+    e.preventDefault();
+    if (typeof toggleDarkMode === 'function') toggleDarkMode();
+    return;
+  }
+  // ? → help modal
+  if (e.key === '?'){
+    e.preventDefault();
+    showKeyboardHelp();
+    return;
+  }
+});
+function showKeyboardHelp(){
+  document.getElementById('kbHelpOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'kbHelpOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  ov.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:18px;max-width:420px;width:100%;color:var(--t1);font-family:var(--mono);font-size:.7rem">
+      <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+        <div style="font-family:var(--head);font-weight:800;font-size:.95rem;color:var(--acc)">⌨️ Keyboard Shortcuts</div>
+        <button onclick="this.closest('div[id=kbHelpOverlay]').remove()" style="background:none;border:none;color:var(--t3);font-size:18px;cursor:pointer">×</button>
+      </div>
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:.65rem">
+        <kbd style="background:var(--bg3);padding:2px 7px;border-radius:4px;border:1px solid var(--b1);font-family:var(--mono);text-align:center">/</kbd><span>Focus search</span>
+        <kbd style="background:var(--bg3);padding:2px 7px;border-radius:4px;border:1px solid var(--b1);font-family:var(--mono);text-align:center">1–9</kbd><span>Switch tab (Live, All, Early, Reco, Multi, Swing, Squeeze, Pump, Heatmap)</span>
+        <kbd style="background:var(--bg3);padding:2px 7px;border-radius:4px;border:1px solid var(--b1);font-family:var(--mono);text-align:center">r</kbd><span>Start/Stop scanner</span>
+        <kbd style="background:var(--bg3);padding:2px 7px;border-radius:4px;border:1px solid var(--b1);font-family:var(--mono);text-align:center">t</kbd><span>Toggle dark/light theme</span>
+        <kbd style="background:var(--bg3);padding:2px 7px;border-radius:4px;border:1px solid var(--b1);font-family:var(--mono);text-align:center">Esc</kbd><span>Clear search · Close modal</span>
+        <kbd style="background:var(--bg3);padding:2px 7px;border-radius:4px;border:1px solid var(--b1);font-family:var(--mono);text-align:center">?</kbd><span>Acest help</span>
+      </div>
+      <div style="margin-top:14px;font-size:.6rem;color:var(--t3);line-height:1.5">Shortcut-urile sunt active doar când nu tastezi într-un input. Esc în input clear-uiește valoarea.</div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+
 // ── DARK MODE (shared cu crypto-scanner via localStorage['darkMode']) ──
 function toggleDarkMode(){
   document.body.classList.toggle('dark');
