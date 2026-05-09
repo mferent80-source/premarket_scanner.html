@@ -5,37 +5,44 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#f4f6ff">
+<meta name="theme-color" content="#0b0f17">
 <title>Stocks Trading Tools — Nasdaq + Journal</title>
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Trading Journal, Market Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+/* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
-  --bg:#f4f6ff; --bg2:#ffffff; --bg3:#f0f2fc; --bg4:#e8ebf8;
-  --b1:#dde2f5; --b2:#c8d0ed;
-  --t1:#0f172a; --t2:#475569; --t3:#94a3b8;
-  --indigo:#4f46e5; --indigol:rgba(79,70,229,.08); --indigob:rgba(79,70,229,.22);
-  --blue:#2563eb; --bluel:rgba(37,99,235,.08); --blueb:rgba(37,99,235,.22);
-  --teal:#0d9488; --teall:rgba(13,148,136,.08); --tealb:rgba(13,148,136,.22);
-  --green:#059669;
+  --bg:#0b0f17;
+  --bg-grad:radial-gradient(1200px 600px at 50% -200px, #141c2e 0%, #0b0f17 55%);
+  --bg2:#141a28; --bg3:#1d2537; --bg4:#222b40;
+  --b1:#2a3247; --b2:#3a4257;
+  --t1:#e8eef5; --t2:#c1c9d6; --t3:#8892a6;
+  /* Paleta crypto BTC orange/gold */
+  --crypto-1:#f7931a; --crypto-2:#ffd86b;
+  --indigo:#5bb0ff; --indigol:rgba(91,176,255,.12); --indigob:rgba(91,176,255,.4);
+  --blue:#5bb0ff;   --bluel:rgba(91,176,255,.12);   --blueb:rgba(91,176,255,.4);
+  --teal:#22d66b;   --teall:rgba(34,214,107,.12);   --tealb:rgba(34,214,107,.4);
+  --green:#22d66b;
   --mono:'DM Mono',monospace; --head:'Sora',sans-serif;
   --r:14px; --rs:10px;
-  --sh:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
-  --shh:0 8px 24px rgba(0,0,0,.08);
+  --sh:0 1px 2px rgba(0,0,0,.3);
+  --shh:0 8px 24px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.2);
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{min-height:100vh}
 body{
   font-family:var(--head);
   color:var(--t1);
-  background:
-    radial-gradient(1000px 600px at 10% -10%, rgba(79,70,229,.10), transparent 60%),
-    radial-gradient(900px 600px at 110% 10%, rgba(13,148,136,.08), transparent 60%),
-    var(--bg);
+  background:var(--bg);
+  background-image:var(--bg-grad);
+  background-attachment:fixed;
   line-height:1.5;
   padding:24px 16px 80px;
   -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
 }
 .wrap{max-width:1080px;margin:0 auto}
 
@@ -49,13 +56,14 @@ body{
   padding:8px 16px;margin-bottom:24px;
   box-shadow:var(--sh);
 }
-.brand-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--teal))}
+.brand-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));box-shadow:0 0 8px rgba(247,147,26,.6)}
 h1{
   font-size:clamp(34px,6vw,56px);font-weight:800;letter-spacing:-.025em;
   line-height:1.1;margin-bottom:18px;
+  color:var(--t1);
 }
 h1 .accent{
-  background:linear-gradient(135deg,var(--indigo) 0%,var(--blue) 50%,var(--teal) 100%);
+  background:linear-gradient(135deg,var(--crypto-1) 0%,#ffb854 50%,var(--crypto-2) 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
 }
 .lead{
@@ -69,34 +77,42 @@ h1 .accent{
   margin-top:48px;
 }
 .card{
-  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
+  background:linear-gradient(180deg, var(--bg2) 0%, rgba(20,26,40,.6) 100%);
+  border:1px solid var(--b1);border-radius:var(--r);
   padding:28px;text-decoration:none;color:inherit;
-  transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  transition:transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
   display:flex;flex-direction:column;gap:16px;
   position:relative;overflow:hidden;
+  box-shadow:var(--sh);
 }
 .card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:var(--accent);
-  transform:scaleX(0);transform-origin:left;transition:transform .3s ease;
+  content:'';position:absolute;left:0;right:0;top:0;height:3px;
+  background:var(--accent,linear-gradient(90deg,var(--crypto-1),var(--crypto-2)));
+  transform:scaleX(0);transform-origin:left;transition:transform .3s var(--ease);
+}
+.card::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(400px 240px at 80% -80px,var(--glow,transparent),transparent 70%);
+  pointer-events:none;opacity:.6;
 }
 .card:hover{transform:translateY(-3px);box-shadow:var(--shh);border-color:var(--b2)}
 .card:hover::before{transform:scaleX(1)}
 
-.card.crypto{--accent:linear-gradient(90deg,var(--indigo),#7c3aed)}
-.card.nasdaq{--accent:linear-gradient(90deg,var(--blue),var(--teal))}
-.card.journal{--accent:linear-gradient(90deg,var(--teal),var(--green))}
-.card.events{--accent:linear-gradient(90deg,#f97316,#dc2626)}
-.card.cryptoevents{--accent:linear-gradient(90deg,#ec4899,#a855f7)}
-.card.legacy{--accent:linear-gradient(90deg,#a16207,#ca8a04);opacity:.92;position:relative}
+/* Accent gradient + glow per card type — paleta unificată dark cu accente bull/warm */
+.card.crypto  {--accent:linear-gradient(90deg,#5bb0ff,#8b6fff); --glow:rgba(91,176,255,.18)}
+.card.nasdaq  {--accent:linear-gradient(90deg,var(--crypto-1),var(--crypto-2)); --glow:rgba(247,147,26,.18)}
+.card.journal {--accent:linear-gradient(90deg,#22d66b,#5bdcb0); --glow:rgba(34,214,107,.18)}
+.card.events  {--accent:linear-gradient(90deg,#ff4d4d,#d4892c); --glow:rgba(255,77,77,.18)}
+.card.cryptoevents{--accent:linear-gradient(90deg,#ec4899,#a855f7); --glow:rgba(236,72,153,.18)}
+.card.legacy  {--accent:linear-gradient(90deg,#a16207,#ca8a04); --glow:rgba(202,138,4,.16); opacity:.92}
 .card.legacy:hover{opacity:1}
-.card.legacy .card-icon{background:rgba(202,138,4,.10);color:#a16207}
-.card.legacy .card-tag{background:rgba(202,138,4,.10);color:#a16207;border:1px solid rgba(202,138,4,.30)}
-.card.legacy .card-cta{color:#a16207}
+.card.legacy .card-icon{background:rgba(255,216,107,.10);color:var(--crypto-2)}
+.card.legacy .card-tag{background:rgba(255,216,107,.10);color:var(--crypto-2);border:1px solid rgba(255,216,107,.3)}
+.card.legacy .card-cta{color:var(--crypto-2)}
 .legacy-badge{
-  position:absolute;top:14px;right:14px;
-  background:rgba(202,138,4,.15);color:#a16207;
-  border:1px solid rgba(202,138,4,.45);
+  position:absolute;top:14px;right:14px;z-index:2;
+  background:rgba(255,216,107,.15);color:var(--crypto-2);
+  border:1px solid rgba(255,216,107,.45);
   padding:2px 8px;border-radius:4px;
   font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.6px;
 }
@@ -105,27 +121,29 @@ h1 .accent{
   width:48px;height:48px;border-radius:12px;
   display:flex;align-items:center;justify-content:center;
   font-size:24px;flex-shrink:0;
+  position:relative;z-index:1;
 }
-.crypto .card-icon{background:var(--indigol);color:var(--indigo)}
-.nasdaq .card-icon{background:var(--bluel);color:var(--blue)}
-.journal .card-icon{background:var(--teall);color:var(--teal)}
-.events .card-icon{background:rgba(249,115,22,.10);color:#f97316}
+.crypto  .card-icon{background:linear-gradient(135deg,#5bb0ff,#8b6fff); box-shadow:0 4px 14px rgba(91,176,255,.25); color:#fff}
+.nasdaq  .card-icon{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2)); box-shadow:0 4px 14px rgba(247,147,26,.3); color:#1a1a1a}
+.journal .card-icon{background:linear-gradient(135deg,#22d66b,#5bdcb0); box-shadow:0 4px 14px rgba(34,214,107,.3); color:#000}
+.events  .card-icon{background:linear-gradient(135deg,#ff4d4d,#d4892c); box-shadow:0 4px 14px rgba(255,77,77,.25); color:#fff}
 
 .card-tag{
   font-family:var(--mono);font-size:10px;font-weight:500;
   letter-spacing:.15em;text-transform:uppercase;
   padding:4px 10px;border-radius:999px;
   display:inline-block;width:fit-content;
+  position:relative;z-index:1;
 }
-.crypto .card-tag{background:var(--indigol);color:var(--indigo);border:1px solid var(--indigob)}
-.nasdaq .card-tag{background:var(--bluel);color:var(--blue);border:1px solid var(--blueb)}
-.journal .card-tag{background:var(--teall);color:var(--teal);border:1px solid var(--tealb)}
-.events .card-tag{background:rgba(249,115,22,.10);color:#f97316;border:1px solid rgba(249,115,22,.25)}
+.crypto  .card-tag{background:rgba(91,176,255,.12);color:#5bb0ff;border:1px solid rgba(91,176,255,.3)}
+.nasdaq  .card-tag{background:rgba(247,147,26,.12);color:var(--crypto-1);border:1px solid rgba(247,147,26,.35)}
+.journal .card-tag{background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)}
+.events  .card-tag{background:rgba(255,77,77,.12);color:#ff4d4d;border:1px solid rgba(255,77,77,.3)}
 
-.card-title{font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.25}
-.card-desc{font-size:14px;color:var(--t2);line-height:1.55;flex-grow:1}
+.card-title{font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.25;color:var(--t1);position:relative;z-index:1}
+.card-desc{font-size:14px;color:var(--t2);line-height:1.55;flex-grow:1;position:relative;z-index:1}
 
-.features{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.features{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;position:relative;z-index:1}
 .feat{
   font-family:var(--mono);font-size:11px;font-weight:500;
   background:var(--bg3);color:var(--t2);
@@ -137,12 +155,13 @@ h1 .accent{
   padding-top:14px;margin-top:4px;border-top:1px solid var(--b1);
   font-family:var(--mono);font-size:12px;font-weight:500;
   letter-spacing:.05em;text-transform:uppercase;
+  position:relative;z-index:1;
 }
-.crypto .card-cta{color:var(--indigo)}
-.nasdaq .card-cta{color:var(--blue)}
-.journal .card-cta{color:var(--teal)}
-.events .card-cta{color:#f97316}
-.card-cta .arrow{font-size:18px;transition:transform .2s ease}
+.crypto  .card-cta{color:#5bb0ff}
+.nasdaq  .card-cta{color:var(--crypto-2)}
+.journal .card-cta{color:var(--green)}
+.events  .card-cta{color:#ff7d6b}
+.card-cta .arrow{font-size:18px;transition:transform .2s var(--ease)}
 .card:hover .card-cta .arrow{transform:translateX(4px)}
 
 /* Footer */
@@ -152,7 +171,7 @@ footer{
   font-family:var(--mono);
 }
 footer a{color:var(--t2);text-decoration:none;border-bottom:1px dotted var(--b2)}
-footer a:hover{color:var(--indigo);border-color:var(--indigo)}
+footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .foot-row{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:8px}
 /* În PWA standalone (homescreen instalat), ascunde footer-ul cu link-uri externe (GitHub, README) — nu se vrea ieșirea din PWA */
 @media all and (display-mode: standalone){
@@ -169,14 +188,19 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
   background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rs);
   padding:14px 16px;display:flex;flex-direction:column;gap:6px;
   font-family:var(--mono);box-shadow:var(--sh);
-  transition:border-color .15s ease, transform .15s ease;
+  transition:border-color .15s var(--ease), transform .15s var(--ease);
+  position:relative;overflow:hidden;
+}
+.widget::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:linear-gradient(180deg,var(--crypto-1),var(--crypto-2));opacity:.7;
 }
 .widget:hover{border-color:var(--b2);transform:translateY(-1px)}
 .w-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
 .w-val{font-size:22px;font-weight:800;color:var(--t1);font-family:var(--head);letter-spacing:-0.01em}
 .w-sub{font-size:11px;color:var(--t2);font-weight:500}
 .w-pos{color:var(--green)}
-.w-neg{color:#dc2626}
+.w-neg{color:#ff4d4d}
 
 @media (max-width:560px){
   body{padding:16px 12px 60px}
@@ -198,7 +222,7 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
 <div class="wrap">
 
   <header class="hero" style="position:relative">
-    <button id="pwaInstallBtn" onclick="installPWA()" style="display:none;position:absolute;top:0;right:0;padding:7px 14px;border-radius:8px;font-size:.7rem;font-weight:700;border:1px solid rgba(79,70,229,.4);background:rgba(79,70,229,.12);color:#4f46e5;cursor:pointer;align-items:center;gap:5px;">📱 Instalează</button>
+    <button id="pwaInstallBtn" onclick="installPWA()" style="display:none;position:absolute;top:0;right:0;padding:7px 14px;border-radius:8px;font-size:.7rem;font-weight:700;border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);color:#f7931a;cursor:pointer;align-items:center;gap:5px;">📱 Instalează</button>
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
@@ -206,7 +230,7 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Journal + Events</h1>
     <p class="lead">Hub dedicat acțiunilor (Nasdaq + ETF-uri). Scanner pre-market, jurnal cross-asset
       și calendar de evenimente — toate construite local, rulează în browser.</p>
-    <p style="margin-top:14px;font-size:13px;color:var(--t2)">🪙 Pentru crypto → <a href="https://mferent80-source.github.io/scanner/" target="_blank" rel="noopener" style="color:var(--indigo);font-weight:600;text-decoration:none;border-bottom:1px dotted var(--indigo)">Scanner Hub crypto</a></p>
+    <p style="margin-top:14px;font-size:13px;color:var(--t2)">🪙 Pentru crypto → <a href="https://mferent80-source.github.io/scanner/" target="_blank" rel="noopener" style="color:var(--crypto-2);font-weight:600;text-decoration:none;border-bottom:1px dotted var(--crypto-2)">Scanner Hub crypto</a></p>
   </header>
 
   <!-- DASHBOARD: SPY + QQQ + VIX + Watchlist stocks + Open trades -->
@@ -407,11 +431,11 @@ footer a:hover{color:var(--indigo);border-color:var(--indigo)}
     name: 'Trading Tools', short_name: 'Tools',
     start_url: location.href.split('?')[0],
     display: 'standalone',
-    background_color: '#f4f6ff',
-    theme_color: '#4f46e5',
+    background_color: '#0b0f17',
+    theme_color: '#f7931a',
     icons: [
-      { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='38' fill='%234f46e5'/%3E%3Ctext y='128' x='96' text-anchor='middle' font-size='96'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E", sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-      { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='102' fill='%234f46e5'/%3E%3Ctext y='340' x='256' text-anchor='middle' font-size='256'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E", sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+      { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='38' fill='%23f7931a'/%3E%3Ctext y='128' x='96' text-anchor='middle' font-size='96'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E", sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+      { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='102' fill='%23f7931a'/%3E%3Ctext y='340' x='256' text-anchor='middle' font-size='256'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E", sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
     ]
   };
   const ml = document.createElement('link');
