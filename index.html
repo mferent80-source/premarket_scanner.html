@@ -6,8 +6,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0b0f17">
-<title>Stocks Trading Tools — Nasdaq + Journal</title>
-<meta name="description" content="Suite stocks trading: Nasdaq Scanner, Trading Journal, Market Events">
+<title>Stocks Trading Tools — Nasdaq + Events</title>
+<meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -101,7 +101,6 @@ h1 .accent{
 /* Accent gradient + glow per card type — paleta unificată dark cu accente bull/warm */
 .card.crypto  {--accent:linear-gradient(90deg,#5bb0ff,#8b6fff); --glow:rgba(91,176,255,.18)}
 .card.nasdaq  {--accent:linear-gradient(90deg,var(--crypto-1),var(--crypto-2)); --glow:rgba(247,147,26,.18)}
-.card.journal {--accent:linear-gradient(90deg,#22d66b,#5bdcb0); --glow:rgba(34,214,107,.18)}
 .card.events  {--accent:linear-gradient(90deg,#ff4d4d,#d4892c); --glow:rgba(255,77,77,.18)}
 .card.cryptoevents{--accent:linear-gradient(90deg,#ec4899,#a855f7); --glow:rgba(236,72,153,.18)}
 .card.legacy  {--accent:linear-gradient(90deg,#a16207,#ca8a04); --glow:rgba(202,138,4,.16); opacity:.92}
@@ -125,7 +124,6 @@ h1 .accent{
 }
 .crypto  .card-icon{background:linear-gradient(135deg,#5bb0ff,#8b6fff); box-shadow:0 4px 14px rgba(91,176,255,.25); color:#fff}
 .nasdaq  .card-icon{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2)); box-shadow:0 4px 14px rgba(247,147,26,.3); color:#1a1a1a}
-.journal .card-icon{background:linear-gradient(135deg,#22d66b,#5bdcb0); box-shadow:0 4px 14px rgba(34,214,107,.3); color:#000}
 .events  .card-icon{background:linear-gradient(135deg,#ff4d4d,#d4892c); box-shadow:0 4px 14px rgba(255,77,77,.25); color:#fff}
 
 .card-tag{
@@ -137,7 +135,6 @@ h1 .accent{
 }
 .crypto  .card-tag{background:rgba(91,176,255,.12);color:#5bb0ff;border:1px solid rgba(91,176,255,.3)}
 .nasdaq  .card-tag{background:rgba(247,147,26,.12);color:var(--crypto-1);border:1px solid rgba(247,147,26,.35)}
-.journal .card-tag{background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)}
 .events  .card-tag{background:rgba(255,77,77,.12);color:#ff4d4d;border:1px solid rgba(255,77,77,.3)}
 
 .card-title{font-size:22px;font-weight:700;letter-spacing:-.01em;line-height:1.25;color:var(--t1);position:relative;z-index:1}
@@ -159,7 +156,6 @@ h1 .accent{
 }
 .crypto  .card-cta{color:#5bb0ff}
 .nasdaq  .card-cta{color:var(--crypto-2)}
-.journal .card-cta{color:var(--green)}
 .events  .card-cta{color:#ff7d6b}
 .card-cta .arrow{font-size:18px;transition:transform .2s var(--ease)}
 .card:hover .card-cta .arrow{transform:translateX(4px)}
@@ -227,9 +223,9 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
     </div>
-    <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Journal + Events</h1>
-    <p class="lead">Hub dedicat acțiunilor (Nasdaq + ETF-uri). Scanner pre-market, jurnal cross-asset
-      și calendar de evenimente — toate construite local, rulează în browser.</p>
+    <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
+    <p class="lead">Hub dedicat acțiunilor (Nasdaq + ETF-uri). Scanner pre-market, calendar de
+      evenimente și paginile crypto support — toate construite local, rulează în browser.</p>
     <p style="margin-top:14px;font-size:13px;color:var(--t2)">🪙 Pentru crypto → <a href="https://mferent80-source.github.io/scanner/" target="_blank" rel="noopener" style="color:var(--crypto-2);font-weight:600;text-decoration:none;border-bottom:1px dotted var(--crypto-2)">Scanner Hub crypto</a></p>
   </header>
 
@@ -255,11 +251,6 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       <div class="w-val" id="wlVal">—</div>
       <div class="w-sub" id="wlSub">salvat local</div>
     </div>
-    <div class="widget" id="wOpen">
-      <div class="w-lbl">Trade-uri open</div>
-      <div class="w-val" id="openVal">—</div>
-      <div class="w-sub" id="openSub">din jurnal</div>
-    </div>
   </section>
 
   <main class="grid">
@@ -283,25 +274,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       </div>
     </a>
 
-    <a href="./trading-journal/" target="_blank" rel="noopener" class="card journal">
-      <div class="card-icon">📓</div>
-      <span class="card-tag">Journal · v1.1</span>
-      <h2 class="card-title">Trading Journal</h2>
-      <p class="card-desc">Jurnal pentru Pionex Futures + Grid Bots — tracking de PnL,
-        statistici per pereche, win rate, drawdown și export pentru analiză.</p>
-      <div class="features">
-        <span class="feat">Futures + Grid</span>
-        <span class="feat">PnL tracking</span>
-        <span class="feat">Win rate</span>
-        <span class="feat">Statistici</span>
-      </div>
-      <div class="card-cta">
-        <span>Deschide jurnal</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./market-events/" target="_blank" rel="noopener" class="card events">
+<a href="./market-events/" target="_blank" rel="noopener" class="card events">
       <div class="card-icon">📉</div>
       <span class="card-tag">Events · v1.0</span>
       <h2 class="card-title">Market Events</h2>
@@ -410,19 +383,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   $('wlVal').textContent = stockWL.length;
   $('wlSub').textContent = stockWL.length === 1 ? '1 simbol' : stockWL.length + ' simboluri';
 
-  // Trade-uri open din journal (cross-asset, rămâne ca atare)
-  try {
-    const trades = JSON.parse(localStorage.getItem('journal_trades') || '[]') || [];
-    const open = trades.filter(t => t.status === 'open').length;
-    const totalPnL = trades.filter(t => t.status === 'win' || t.status === 'loss')
-      .reduce((s, t) => s + (Number(t.pnl) || 0), 0);
-    $('openVal').textContent = open;
-    $('openSub').textContent = (totalPnL >= 0 ? '+' : '') + '$' + totalPnL.toFixed(2) + ' total PnL';
-    $('openSub').className = 'w-sub ' + (totalPnL >= 0 ? 'w-pos' : 'w-neg');
-  } catch(e) {
-    $('openVal').textContent = '—';
-    $('openSub').textContent = 'indisponibil';
-  }
+  // (Widgetul Trade-uri open eliminat odată cu trading-journal — pagina nu mai există)
 })();
 
 // ── PWA: manifest inline + install prompt ──
