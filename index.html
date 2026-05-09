@@ -400,7 +400,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
   <main class="grid" id="hubCards">
 
-    <a href="./nasdaq-scanner/" target="_blank" rel="noopener" class="card nasdaq">
+    <a href="./nasdaq-scanner/" target="ttools-nasdaq" rel="noopener" class="card nasdaq">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('nasdaq')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon">📈</div>
       <span class="card-tag">Stocks · v77</span>
@@ -423,7 +423,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       </div>
     </a>
 
-    <a href="./watchlist-monitor/" target="_blank" rel="noopener" class="card journal" style="--accent:linear-gradient(90deg,var(--green),#5bdcb0); --glow:rgba(34,214,107,.18)">
+    <a href="./watchlist-monitor/" target="ttools-watchlist" rel="noopener" class="card journal" style="--accent:linear-gradient(90deg,var(--green),#5bdcb0); --glow:rgba(34,214,107,.18)">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('watchlist')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon" style="background:linear-gradient(135deg,var(--green),#5bdcb0);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#000">👁️</div>
       <span class="card-tag" style="background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)">Watchlist · v77</span>
@@ -444,7 +444,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       </div>
     </a>
 
-    <a href="./market-events/" target="_blank" rel="noopener" class="card events">
+    <a href="./market-events/" target="ttools-events" rel="noopener" class="card events">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('market-events')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon">📉</div>
       <span class="card-tag">Events · v77</span>
@@ -465,7 +465,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       </div>
     </a>
 
-    <a href="./crypto-events/" target="_blank" rel="noopener" class="card cryptoevents">
+    <a href="./crypto-events/" target="ttools-cevents" rel="noopener" class="card cryptoevents">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('crypto-events')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon" style="background:linear-gradient(135deg,#ec4899,#a855f7);box-shadow:0 4px 14px rgba(236,72,153,.25);color:#fff">⚡</div>
       <span class="card-tag" style="background:rgba(236,72,153,.12);color:#ec4899;border:1px solid rgba(236,72,153,.3)">Crypto Events · v77</span>
@@ -487,7 +487,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       </div>
     </a>
 
-    <a href="./crypto-scanner/" target="_blank" rel="noopener" class="card crypto">
+    <a href="./crypto-scanner/" target="ttools-cscanner" rel="noopener" class="card crypto">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('crypto-scanner')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon">🪙</div>
       <span class="card-tag">Crypto · v77</span>
@@ -509,7 +509,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       </div>
     </a>
 
-    <a href="https://mferent80-source.github.io/scanner/scanner-stocks.html" target="_blank" rel="noopener" class="card legacy">
+    <a href="https://mferent80-source.github.io/scanner/scanner-stocks.html" target="ttools-legacy" rel="noopener" class="card legacy">
       <span class="legacy-badge">LEGACY</span>
       <div class="card-icon">📊</div>
       <span class="card-tag">Stocks · v50</span>
@@ -898,7 +898,7 @@ window.showFeaturesModal = function(scannerKey){
     </div>`;
   });
   html += `<div class="fl-cta">
-    <a href="${data.url}" class="primary" target="_blank" rel="noopener">🚀 Deschide scanner</a>
+    <a href="${data.url}" class="primary" target="${(data.url||'').replace(/[\\W_]/g,'_').replace(/_+$/,'')||'_blank'}" rel="noopener">🚀 Deschide scanner</a>
     <button type="button" data-close>Închide</button>
   </div></div>`;
   ov.innerHTML = html;

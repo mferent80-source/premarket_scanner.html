@@ -8286,21 +8286,17 @@ function toggleDarkMode(){
   const btn = document.getElementById('darkModeBtn');
   if(btn) btn.textContent = isDark ? '☀️' : '🌙';
 }
-// Aplică starea salvată la load (cross-app: același key 'darkMode')
-// REVIZUIT: dark e DEFAULT acum (paleta scanner-hub orange/gold). Light rămâne accesibil prin toggle.
+// REVIZUIT: dark FORȚAT PERMANENT (Marius cere consistency cu Hub-ul). Toggle-ul light rămâne în code dar
+// dark se reactivează automat la fiecare load — light este temporar într-o sesiune.
 (function(){
-  try {
-    const saved = localStorage.getItem('darkMode');
-    // First visit (saved == null) sau '1' → activate dark.
-    // Doar dacă userul a setat explicit '0' (light) păstrăm light.
-    if (saved !== '0') {
-      document.body.classList.add('dark');
-      setTimeout(() => { const b=document.getElementById('darkModeBtn'); if(b) b.textContent='☀️'; }, 0);
-    }
-  } catch(e){
-    // localStorage indisponibil (privacy mode) → fallback default dark
-    document.body.classList.add('dark');
-  }
+  document.body.classList.add('dark');
+  // Forțăm '1' în storage ca să nu mai apară comportament inconsistent dacă alt cod citește darkMode
+  try { localStorage.setItem('darkMode', '1'); } catch(e){}
+  // Ascund butonul de toggle (nu mai are sens dacă dark e mereu forțat la refresh)
+  setTimeout(() => {
+    const btn = document.getElementById('darkModeBtn');
+    if (btn) btn.style.display = 'none';
+  }, 0);
 })();
 
 // ── SCANNER → JOURNAL HOOK ──

@@ -2521,18 +2521,15 @@ function toggleDarkMode(){
   const meta=document.querySelector('meta[name="theme-color"]');
   if(meta) meta.content=isDark?'#0b0f17':'#f8faff';
 }
-// Restore dark mode
-// Dark mode: dacă utilizatorul n-a setat o preferință explicită, default la DARK (model events).
-// Cei care preferă light pot toggle-ui și preferința lor persistă în localStorage.
-try{
-  const saved = localStorage.getItem('darkMode');
-  const wantDark = saved === null ? true : saved === '1';
-  if(wantDark){
-    document.body.classList.add('dark');
-    const m=document.querySelector('meta[name="theme-color"]');
-    if(m)m.content='#0b0f1a';
-  }
-}catch(e){}
+// Dark forțat permanent (consistency cu Hub-ul premarket). Toggle ascuns.
+document.body.classList.add('dark');
+try { localStorage.setItem('darkMode', '1'); } catch(e){}
+const _mt = document.querySelector('meta[name="theme-color"]');
+if (_mt) _mt.content = '#0b0f17';
+setTimeout(() => {
+  const tog = document.getElementById('darkToggle');
+  if (tog) tog.style.display = 'none';
+}, 0);
 async function fetchMTFRsi(symbol){
   let rsi1h=null, rsi4h=null;
   try{
