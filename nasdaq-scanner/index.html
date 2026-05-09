@@ -5936,6 +5936,7 @@ function setFilter(f,el){
   currentFilter=f;
   document.querySelectorAll('.ftag').forEach(t=>t.classList.remove('act'));
   el.classList.add('act');renderSignals();
+  saveNasdaqUiState(); // F2: persistence
 }
 // ═══════════════════════════════════════════════════════════════
 // MULTI-SCAN DASHBOARD — separate columns per signal type
@@ -6025,6 +6026,58 @@ function setTab(t,el){
   currentTab=t;
   document.querySelectorAll('.tab').forEach(b=>b.classList.remove('act'));
   el.classList.add('act');renderSignals();
+  saveNasdaqUiState(); // F2: persistence
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  F2 — UI STATE PERSISTENCE (tab + filter + sort)
+//  Storage: `nasdaq_ui_v1` = { tab, filter, sort }. Search NU se persistă
+//  (e adhoc — userul nu vrea să-și amintească query-uri vechi).
+// ═══════════════════════════════════════════════════════════════
+const NASDAQ_UI_KEY = 'nasdaq_ui_v1';
+function saveNasdaqUiState(){
+  try{
+    const sortSel = document.getElementById('sortSelect');
+    localStorage.setItem(NASDAQ_UI_KEY, JSON.stringify({
+      tab: currentTab,
+      filter: currentFilter,
+      sort: sortSel ? sortSel.value : null,
+    }));
+  } catch(e){}
+}
+function loadNasdaqUiState(){
+  try{
+    const raw = localStorage.getItem(NASDAQ_UI_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    // Restore sort (e simplu — doar value pe select)
+    if (s.sort) {
+      const sel = document.getElementById('sortSelect');
+      if (sel) sel.value = s.sort;
+    }
+    // Restore filter (click programatic pe ftag activ)
+    if (s.filter && s.filter !== 'all') {
+      const ftag = Array.from(document.querySelectorAll('.ftag')).find(el =>
+        el.getAttribute('onclick') && el.getAttribute('onclick').includes(`'${s.filter}'`)
+      );
+      if (ftag) {
+        document.querySelectorAll('.ftag').forEach(t=>t.classList.remove('act'));
+        ftag.classList.add('act');
+        currentFilter = s.filter;
+      }
+    }
+    // Restore tab (click programatic pe tab activ — ultimul click va apela renderSignals)
+    if (s.tab && s.tab !== 'live') {
+      const tabEl = Array.from(document.querySelectorAll('.tab')).find(el =>
+        el.getAttribute('onclick') && el.getAttribute('onclick').includes(`'${s.tab}'`)
+      );
+      if (tabEl) {
+        document.querySelectorAll('.tab').forEach(b=>b.classList.remove('act'));
+        tabEl.classList.add('act');
+        currentTab = s.tab;
+      }
+    }
+  } catch(e){ console.warn('[nasdaq] loadNasdaqUiState failed', e); }
 }
 
 function renderSignals(){
@@ -7593,6 +7646,15 @@ function initNewsTicker(){
 }
 
 window.addEventListener('load',()=>setTimeout(initNewsTicker, 800));
+// F2: restore tab + filter + sort la load (după ce DOM-ul e gata)
+window.addEventListener('load', ()=>setTimeout(() => {
+  loadNasdaqUiState();
+  // Re-render după restore ca tab-ul/filter-ul nou să fie reflected
+  if (typeof renderSignals === 'function') renderSignals();
+  // Save și pe sortSelect change (renderSignals e called prin onchange existent)
+  const sortSel = document.getElementById('sortSelect');
+  if (sortSel) sortSel.addEventListener('change', saveNasdaqUiState);
+}, 100));
 // ═══════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
@@ -8362,7 +8424,7 @@ const _BKN_LAST = 'nasdaq_lastBackup';
 const _BKN_MAX = 10;
 // `anthropic_api_key` exclus intenționat: backup-ul exportat ca JSON poate ajunge în repo/cloud public,
 // iar GitHub Secret Scanning ar revoca cheia automat.
-const _BKN_PATTERN = /^(wl_stocks|price_alerts|saved_setups|risk_config|nasdaq_pumpradar_cfg|nasdaq_pumpradar_history|telegram_cfg_nasdaq|nasdaqSortMode|lv_autoRefresh|last_seen_version|fh_key|ai_briefing_|rsi_cache|rsi_cache_time)/;
+const _BKN_PATTERN = /^(wl_stocks|price_alerts|saved_setups|risk_config|nasdaq_pumpradar_cfg|nasdaq_pumpradar_history|telegram_cfg_nasdaq|nasdaqSortMode|lv_autoRefresh|last_seen_version|fh_key|ai_briefing_|rsi_cache|rsi_cache_time|nasdaq_ui_v1|nasdaq_filter_presets_v1)/;
 
 function _bknCapture() {
   const data = {};
@@ -8766,7 +8828,8 @@ const SYNC_KEYS_N = [
   'wl_stocks', 'price_alerts', 'saved_setups', 'risk_config',
   'nasdaq_pumpradar_cfg', 'nasdaq_pumpradar_history',
   'telegram_cfg_nasdaq', 'nasdaqSortMode', 'lv_autoRefresh',
-  'last_seen_version', 'darkMode'
+  'last_seen_version', 'darkMode',
+  'nasdaq_ui_v1', 'nasdaq_filter_presets_v1'
 ];
 const SYNC_PREFIXES_N = ['ai_briefing_'];
 // `gist_config_nasdaq`, `fh_key`, `anthropic_api_key` EXCLUSE din sync (secrete + per-device).
