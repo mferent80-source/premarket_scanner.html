@@ -7442,15 +7442,40 @@ async function sendTelegram(text, silent=false){
   }
 }
 
-// Pump Radar -> Telegram
-async function telegramNotifyPump(alert){
-  if(!telegramConfig.enabled || !telegramConfig.pumpRadar) return;
-  if(alert.score < telegramConfig.minScore) return;
+// ── Smart Telegram batching — agregare alerte similare în 60s window ──
+// Reduce zgomot Telegram: 5+ pump-uri în 1 min = 1 mesaj agregat.
+// Dacă singura alertă în window → trimite cu detalii complete (legacy).
+const _tgBatch = { pumpQueue: [], flushTimer: null };
+const TG_BATCH_WINDOW_MS = 60_000; // 60s — pieață rapidă, mai mult e prea lent
+
+function _tgFlushPumps(){
+  _tgBatch.flushTimer = null;
+  const queue = _tgBatch.pumpQueue.splice(0);
+  if (!queue.length) return;
+  if (queue.length === 1){
+    // Singură alertă → trimite cu detalii complete (legacy format)
+    _tgSendPumpDetailed(queue[0]);
+    return;
+  }
+  // 2+ alerte → agregate într-un singur mesaj compact
+  const titleEmoji = queue[0].title?.match(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u)?.[0] || '🚨';
+  let msg = `${titleEmoji} *${queue.length} ALERTS NOI* (ultimele ${Math.round(TG_BATCH_WINDOW_MS/1000)}s)\n`;
+  msg += `━━━━━━━━━━━━━\n`;
+  queue.slice(0, 12).forEach(a => {
+    const cleanTitle = (a.title || '').replace(/[*_`]/g, '').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim();
+    msg += `• \`${a.symbol}\` ${cleanTitle} $${a.price.toFixed(2)} ⭐${a.score}\n`;
+  });
+  if (queue.length > 12) msg += `…și *${queue.length - 12} mai multe* (vezi app).\n`;
+  msg += `━━━━━━━━━━━━━\nDeschide [Pump Radar](https://mferent80-source.github.io/premarket_scanner.html/nasdaq-scanner/#pumpradar) pentru detalii complete.`;
+  sendTelegram(msg);
+}
+
+function _tgSendPumpDetailed(alert){
+  // Format detaliat pentru o singură alertă (codul original)
   const d=alert.details||{};
   const tvUrl=`https://www.tradingview.com/chart/?symbol=NASDAQ:${alert.symbol}`;
   const finvizUrl=`https://finviz.com/quote.ashx?t=${alert.symbol}`;
   const sessionMap={premarket:'🌅 Pre-market',regular:'🟢 Regular',afterhours:'🌙 After-hours'};
-  
   let msg=`*${alert.title}* \`${alert.symbol}\`\n`;
   msg+=`💰 Preț: *$${alert.price.toFixed(2)}*\n`;
   msg+=`⭐ Score: *${alert.score}*/100\n`;
@@ -7464,8 +7489,23 @@ async function telegramNotifyPump(alert){
   if(d.low) msg+=`⬇️ Low: \`$${d.low}\`\n`;
   msg+=`━━━━━━━━━━━━━\n`;
   msg+=`[📊 TV](${tvUrl}) • [📈 Finviz](${finvizUrl})`;
-  
   sendTelegram(msg);
+}
+
+// Pump Radar -> Telegram (cu smart batching)
+async function telegramNotifyPump(alert){
+  if(!telegramConfig.enabled || !telegramConfig.pumpRadar) return;
+  if(alert.score < telegramConfig.minScore) return;
+  // Default: smart batching ON. Opt-out prin telegramConfig.batchMode === false.
+  if (telegramConfig.batchMode === false){
+    _tgSendPumpDetailed(alert); // mode legacy — 1 mesaj per alertă, instant
+    return;
+  }
+  // Push în queue + schedule flush
+  _tgBatch.pumpQueue.push(alert);
+  if (!_tgBatch.flushTimer){
+    _tgBatch.flushTimer = setTimeout(_tgFlushPumps, TG_BATCH_WINDOW_MS);
+  }
 }
 
 // Price alert -> Telegram
