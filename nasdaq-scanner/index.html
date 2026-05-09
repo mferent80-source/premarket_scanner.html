@@ -1055,6 +1055,18 @@ body{font-family:var(--mono);background:var(--bg);color:var(--t1);min-height:100
   <div class="stat s-teal"><div class="stat-val" id="st-top" style="color:var(--teal)">—</div><div class="stat-lbl">Top semnal</div></div>
 </div>
 
+<!-- F3: PRESET BAR — switching rapid între seturi de filtre pre-configurate -->
+<div class="filter-bar" id="presetBar" style="background:linear-gradient(135deg,rgba(13,148,136,.05),rgba(37,99,235,.03))">
+  <span style="font-size:.6rem;color:var(--t2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-right:4px">🎯 Preset:</span>
+  <select id="presetSelect" style="padding:5px 9px;border-radius:7px;border:1px solid var(--b1);background:var(--bg2);font-size:.62rem;font-family:inherit;color:var(--t1);min-width:240px">
+    <option value="">— Custom (manual) —</option>
+  </select>
+  <button class="ftag" onclick="applyNasdaqPreset(document.getElementById('presetSelect').value)" title="Aplică preset selectat (schimbă tab + filter + sort)">↪ Apply</button>
+  <button class="ftag" onclick="saveNasdaqPreset()" title="Salvează configurația curentă (tab+filter+sort) ca preset nou">💾 Save</button>
+  <button class="ftag" onclick="deleteNasdaqPreset()" title="Șterge preset user (default-urile sunt protejate)" style="opacity:.7">🗑️</button>
+  <span id="presetInfo" style="margin-left:auto;font-size:.55rem;color:var(--t3)">selectează un preset sau salvează unul nou</span>
+</div>
+
 <!-- FILTER -->
 <div class="filter-bar">
   <div class="search-wrap">
@@ -6030,6 +6042,113 @@ function setTab(t,el){
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  F3 — FILTER PRESETS (default + user, salvate în localStorage)
+//  Storage: `nasdaq_filter_presets_v1` = { name: { tab, filter, sort } }
+// ═══════════════════════════════════════════════════════════════
+const NASDAQ_PRESETS_KEY = 'nasdaq_filter_presets_v1';
+const DEFAULT_NASDAQ_PRESETS = {
+  '🌅 Pre-market gappers': { tab: 'extended', filter: 'high', sort: 'gap' },
+  '🚀 Strong rally (intraday)': { tab: 'all', filter: 'pump', sort: 'strength' },
+  '🎯 Swing setups (multi-day)': { tab: 'swing', filter: 'swing', sort: 'confluence' },
+  '🔥 Breakout / Squeeze': { tab: 'squeeze', filter: 'high', sort: 'strength' },
+  '🌱 Early Buy momentum': { tab: 'earlybuy', filter: 'all', sort: 'strength' },
+  '📉 Top losers (short bias)': { tab: 'losers', filter: 'dump', sort: 'chg_down' },
+  '🚨 Pump Radar prio.': { tab: 'pumpradar', filter: 'high', sort: 'recent' },
+};
+
+function loadNasdaqUserPresets(){
+  try{ return JSON.parse(localStorage.getItem(NASDAQ_PRESETS_KEY) || '{}'); }
+  catch(e){ return {}; }
+}
+function saveNasdaqUserPresets(presets){
+  try{ localStorage.setItem(NASDAQ_PRESETS_KEY, JSON.stringify(presets)); } catch(e){}
+}
+function rebuildNasdaqPresetSelect(){
+  const sel = document.getElementById('presetSelect');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Custom (manual) —</option>';
+  // Default group
+  const optD = document.createElement('optgroup');
+  optD.label = 'Default (read-only)';
+  Object.keys(DEFAULT_NASDAQ_PRESETS).forEach(n => {
+    const o = document.createElement('option');
+    o.value = 'default::' + n; o.textContent = n;
+    optD.appendChild(o);
+  });
+  sel.appendChild(optD);
+  // User group
+  const userP = loadNasdaqUserPresets();
+  if (Object.keys(userP).length){
+    const optU = document.createElement('optgroup');
+    optU.label = 'My presets';
+    Object.keys(userP).forEach(n => {
+      const o = document.createElement('option');
+      o.value = 'user::' + n; o.textContent = '⭐ ' + n;
+      optU.appendChild(o);
+    });
+    sel.appendChild(optU);
+  }
+  if (prev) sel.value = prev;
+}
+function applyNasdaqPreset(value){
+  if (!value){ document.getElementById('presetInfo').textContent = 'selectează un preset valid'; return; }
+  const [type, name] = value.split('::');
+  const preset = type === 'default' ? DEFAULT_NASDAQ_PRESETS[name] : loadNasdaqUserPresets()[name];
+  if (!preset){ document.getElementById('presetInfo').textContent = 'preset negăsit'; return; }
+  // 1. Switch tab (click programatic pe tab-ul țintă)
+  if (preset.tab){
+    const tabEl = Array.from(document.querySelectorAll('.tab')).find(el =>
+      el.getAttribute('onclick') && el.getAttribute('onclick').includes("'" + preset.tab + "'"));
+    if (tabEl) tabEl.click();
+  }
+  // 2. Switch filter (click programatic pe ftag activ)
+  if (preset.filter){
+    const ftag = Array.from(document.querySelectorAll('.ftag')).find(el =>
+      el.getAttribute('onclick') && el.getAttribute('onclick').includes("'" + preset.filter + "'"));
+    if (ftag) ftag.click();
+  }
+  // 3. Set sort
+  if (preset.sort){
+    const sel = document.getElementById('sortSelect');
+    if (sel){ sel.value = preset.sort; renderSignals(); }
+  }
+  saveNasdaqUiState();
+  document.getElementById('presetInfo').textContent = 'aplicat: ' + name;
+}
+function saveNasdaqPreset(){
+  const name = window.prompt('Numele preset-ului (max 60 caractere; nu folosi „::"):', '');
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim().slice(0, 60).replace(/::/g, ':');
+  if (DEFAULT_NASDAQ_PRESETS[trimmed]){ alert('Acest nume e folosit de un preset default. Alege altul.'); return; }
+  const sortSel = document.getElementById('sortSelect');
+  const preset = {
+    tab: currentTab,
+    filter: currentFilter,
+    sort: sortSel ? sortSel.value : 'strength',
+  };
+  const userP = loadNasdaqUserPresets();
+  userP[trimmed] = preset;
+  saveNasdaqUserPresets(userP);
+  rebuildNasdaqPresetSelect();
+  document.getElementById('presetSelect').value = 'user::' + trimmed;
+  document.getElementById('presetInfo').textContent = 'salvat: ' + trimmed;
+}
+function deleteNasdaqPreset(){
+  const value = document.getElementById('presetSelect').value;
+  if (!value){ alert('Niciun preset selectat'); return; }
+  const [type, name] = value.split('::');
+  if (type === 'default'){ alert('Default presets nu pot fi șterse.'); return; }
+  if (!window.confirm('Ștergi preset-ul „' + name + '"?')) return;
+  const userP = loadNasdaqUserPresets();
+  delete userP[name];
+  saveNasdaqUserPresets(userP);
+  rebuildNasdaqPresetSelect();
+  document.getElementById('presetSelect').value = '';
+  document.getElementById('presetInfo').textContent = 'șters: ' + name;
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  F2 — UI STATE PERSISTENCE (tab + filter + sort)
 //  Storage: `nasdaq_ui_v1` = { tab, filter, sort }. Search NU se persistă
 //  (e adhoc — userul nu vrea să-și amintească query-uri vechi).
@@ -7646,9 +7765,10 @@ function initNewsTicker(){
 }
 
 window.addEventListener('load',()=>setTimeout(initNewsTicker, 800));
-// F2: restore tab + filter + sort la load (după ce DOM-ul e gata)
+// F2 + F3: restore tab + filter + sort la load + populate preset select
 window.addEventListener('load', ()=>setTimeout(() => {
   loadNasdaqUiState();
+  rebuildNasdaqPresetSelect(); // F3
   // Re-render după restore ca tab-ul/filter-ul nou să fie reflected
   if (typeof renderSignals === 'function') renderSignals();
   // Save și pe sortSelect change (renderSignals e called prin onchange existent)
