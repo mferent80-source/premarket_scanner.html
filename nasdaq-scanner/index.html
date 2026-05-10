@@ -886,7 +886,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v79</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v83</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -2071,12 +2071,49 @@ async function fhQuote(symbol,key){
   return d;
 }
 
+// Yahoo daily closes prin proxy CORS — sursă primară pentru RSI + sparkline.
+// Finnhub free a deprecat /stock/candle din iunie 2024 (returnează 403), deci fără
+// fallback-ul ăsta rsiCache și sparklineCache rămân goale → calcOpportunityScore
+// nu mai diferențiază oversold/overbought și toate stocks rămân la baseline 50.
+async function fetchYahooDailyCloses(symbol, days){
+  if(typeof yahooDisabled !== 'undefined' && yahooDisabled) return [];
+  const range = (days && days <= 30) ? '1mo' : '3mo';
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=${range}`;
+  const proxyList = (typeof yahooProxies !== 'undefined' && yahooProxies.length) ? yahooProxies : ['https://corsproxy.io/?','https://api.allorigins.win/raw?url='];
+  const idx = (typeof yahooProxyIndex !== 'undefined') ? yahooProxyIndex : 0;
+  const proxy = proxyList[idx % proxyList.length];
+  const url = proxy + encodeURIComponent(yahooUrl);
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    if(!r.ok){
+      if(typeof yahooFailCount !== 'undefined') yahooFailCount++;
+      return [];
+    }
+    const data = await r.json();
+    const closes = data && data.chart && data.chart.result && data.chart.result[0]
+      && data.chart.result[0].indicators && data.chart.result[0].indicators.quote
+      && data.chart.result[0].indicators.quote[0] && data.chart.result[0].indicators.quote[0].close;
+    if(!Array.isArray(closes)) return [];
+    if(typeof yahooFailCount !== 'undefined') yahooFailCount = Math.max(0, yahooFailCount - 1);
+    return closes.filter(c => c != null && !isNaN(c));
+  } catch(e){
+    if(typeof yahooFailCount !== 'undefined') yahooFailCount++;
+    return [];
+  }
+}
+
 async function fhCandles(symbol,key){
-  // Folosim daily candles (mai puțin rate limit, suficient pentru RSI)
+  // Yahoo first (free, daily 3mo). Finnhub fallback pentru cazul în care Yahoo proxy pică.
+  try {
+    const yh = await fetchYahooDailyCloses(symbol, 90);
+    if(yh.length >= 15) return yh;
+  } catch(_){}
   const to=Math.floor(Date.now()/1000);
-  const from=to-90*24*3600; // 90 zile daily = 60+ candles garantat
-  const d=await fhGet(`${FINNHUB}/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${to}&token=${key}`);
-  if(d&&d.s==='ok'&&d.c&&d.c.length>=5) return d.c;
+  const from=to-90*24*3600;
+  try {
+    const d=await fhGet(`${FINNHUB}/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${to}&token=${key}`);
+    if(d&&d.s==='ok'&&d.c&&d.c.length>=5) return d.c;
+  } catch(_){}
   return [];
 }
 
@@ -2288,8 +2325,15 @@ async function fetchSparklines(symbols, key){
     if(!running) break;
     if(sparklineCache[sym]) continue;
     try{
-      const d=await fhGet(`${FINNHUB}/stock/candle?symbol=${sym}&resolution=D&from=${from}&to=${to}&token=${key}`);
-      if(d?.s==='ok'&&d.c?.length>=2) sparklineCache[sym]=d.c;
+      // Yahoo first (free, ~22 daily closes pe range=1mo, păstrăm ultimele 8 pt sparkline)
+      const yh=await fetchYahooDailyCloses(sym, 30);
+      if(yh.length>=2){
+        sparklineCache[sym]=yh.slice(-8);
+      } else {
+        // Finnhub fallback (paid tier)
+        const d=await fhGet(`${FINNHUB}/stock/candle?symbol=${sym}&resolution=D&from=${from}&to=${to}&token=${key}`);
+        if(d?.s==='ok'&&d.c?.length>=2) sparklineCache[sym]=d.c;
+      }
     }catch(e){}
     await sleep(130);
   }
@@ -5289,10 +5333,10 @@ async function runScan(){
 
   let newRsiCount=0;
   if(rsiCandidates.length>0){
-    // Timeout dur: daca RSI fetch nu termina in 8s, continuam fara el
+    // Timeout dur: 15s pt 8 stocks via Yahoo proxy (~700ms/call + 400ms sleep)
     try{
       const rsiPromise=fetchCandlesForSignals(rsiCandidates, key);
-      const timeoutPromise=new Promise(res=>setTimeout(()=>res({}),8000));
+      const timeoutPromise=new Promise(res=>setTimeout(()=>res({}),15000));
       const rsiMap=await Promise.race([rsiPromise, timeoutPromise]);
       for(const [sym,val] of Object.entries(rsiMap)){
         rsiCache[sym]=val;
@@ -5303,7 +5347,11 @@ async function runScan(){
     }catch(e){ log('⚠️ RSI fetch skip: '+e.message,'warn'); }
   }
   setProgress(75,'Analizez semnale...');
-  log(`✓ RSI: ${newRsiCount} noi + ${cachedCount} cached = ${Object.keys(rsiCache).length} total`,'ok');
+  const totalRsi=Object.keys(rsiCache).length;
+  log(`✓ RSI: ${newRsiCount} noi + ${cachedCount} cached = ${totalRsi} total`,'ok');
+  if(totalRsi===0 && quotesData.length>0){
+    log('⚠️ rsiCache GOL — Yahoo proxy + Finnhub candles ambele eșuate. Oportunitățile vor avea scoring degradat (RSI=50 fallback).','warn');
+  }
 
   // ── FAZA 3: Detecție semnale ──
   log(`🔎 Faza 3: Analizez ${quotesData.length} acțiuni...`,'info');
