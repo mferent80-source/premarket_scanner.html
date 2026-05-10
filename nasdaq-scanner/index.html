@@ -886,7 +886,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v85</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v86</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -8260,10 +8260,165 @@ function openCompareModal(){
           </div>`;
         }).join('')}
       </div>
-      <div style="margin-top:12px;font-size:.6rem;color:var(--t3);text-align:center">Tip: click ⚖️ pe alte cards pentru a swap. Max 3 stocks. Esc pentru close.</div>
+      <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
+        <button id="cmpAiBtn" onclick="window.compareWithAI()" style="flex:1;padding:10px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:.7rem;cursor:pointer;font-family:var(--head)">🤖 Compară cu AI (Opus 4.7)</button>
+        <div style="font-size:.55rem;color:var(--t3);max-width:240px;text-align:right">Verdict 🟢/🟡/🔴 + alocare 100% recomandată per stock</div>
+      </div>
+      <div id="cmpAiResult" style="margin-top:12px"></div>
+      <div style="margin-top:10px;font-size:.6rem;color:var(--t3);text-align:center">Tip: click ⚖️ pe alte cards pentru a swap. Max 3 stocks. Esc pentru close.</div>
     </div>`;
   document.body.appendChild(ov);
 }
+
+// ── COMPARE AI — analiză comparativă structurată via Claude Opus 4.7 ──
+window.compareWithAI = async function(){
+  const key = (typeof getAnthropicKey === 'function') ? getAnthropicKey() : (localStorage.getItem('anthropic_api_key')||'');
+  if(!key){
+    alert('Configurează întâi cheia Anthropic API (butonul 🔑 AI Key din header).');
+    return;
+  }
+  if(compareList.length < 2){ alert('Selectează minim 2 stocks.'); return; }
+
+  const btn = document.getElementById('cmpAiBtn');
+  const result = document.getElementById('cmpAiResult');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Claude analizează cele ' + compareList.length + ' stocks...'; }
+  if(result) result.innerHTML = '';
+
+  // Adun datele celor 2-3 stocks din state-ul curent
+  const stocksData = compareList.map(sym => {
+    const s = (allSignals||[]).find(x => x.coin === sym) || {};
+    const opp = (allOpportunities||[]).find(x => x.symbol === sym) || {};
+    const sp = sparklineCache[sym] || [];
+    const w7 = (sp.length >= 2) ? ((sp[sp.length-1] - sp[0]) / sp[0] * 100).toFixed(1) : null;
+    const an = analystCache[sym] || {};
+    const eps = epsCache[sym] || {};
+    const ins = insiderCache[sym] || {};
+    return {
+      symbol: sym,
+      sector: SECTORS[sym] || 'US Equity',
+      price: opp.price || s.price || null,
+      chg24: opp.chg24 != null ? opp.chg24 : (s.chg != null ? s.chg : null),
+      rsi: opp.rsi != null ? opp.rsi : (s.metrics && s.metrics.rsi != null ? s.metrics.rsi : null),
+      range24pct: opp.range24pct != null ? opp.range24pct : null,
+      trend7d: w7,
+      buyScore: opp.buyScore || null,
+      sellScore: opp.sellScore || null,
+      finalScore: opp.score || null,
+      verdict: opp.isBuy === true ? 'BUY-side' : (opp.isBuy === false ? 'SELL-side' : null),
+      signalType: s.type || null,
+      signalStrength: s.strength || null,
+      analystTarget: an.targetMean || null,
+      analystHigh: an.targetHigh || null,
+      analystLow: an.targetLow || null,
+      epsActual: eps.epsActual || null,
+      epsEstimate: eps.epsEstimate || null,
+      insiderDirection: ins.direction || null,
+      hasEarningsIn7d: earningsSet.has(sym),
+      reasons: (opp.reasons || []).slice(0, 3).map(r => r.t)
+    };
+  });
+
+  const macroLine = (typeof macroBlockerActive !== 'undefined' && macroBlockerActive)
+    ? `Macro blocker activ: ${macroBlockerActive.event} în ~${Math.round(macroBlockerActive.hoursAway)}h.`
+    : 'Niciun macro event high-impact în <24h.';
+
+  const prompt = `Ești un analist tehnic de stocks Nasdaq. Compară următoarele ${stocksData.length} stocks pentru poziție LONG pe orizont 1-5 zile (swing/scalp). Folosește exclusiv datele furnizate.
+
+${macroLine}
+
+DATE STOCKS:
+${JSON.stringify(stocksData, null, 2)}
+
+Răspunde STRICT în format JSON valid (fără markdown, fără text extra), exact această schemă:
+{
+  "stocks": [
+    {
+      "symbol": "AAPL",
+      "verdict": "buy_now" | "wait_pullback" | "skip",
+      "verdictEmoji": "🟢" | "🟡" | "🔴",
+      "verdictTitle": "scurt titlu (max 5 cuvinte) — ex: 'Best entry now', 'Wait for pullback', 'Skip — earnings risk'",
+      "reason": "1 frază (max 25 cuvinte) cu motivul principal pro/contra",
+      "allocationPct": 0-100,
+      "entryZone": "$X.XX–$Y.YY",
+      "tp1": "$X.XX",
+      "sl": "$X.XX",
+      "rrRatio": "X.X:1"
+    }
+  ],
+  "summary": "1-2 fraze concluzia generală — care e best pick și de ce, plus warning dacă există risc macro/earnings",
+  "totalAllocation": 100
+}
+
+Reguli:
+- Suma allocationPct DOAR pentru stocks cu verdict "buy_now" sau "wait_pullback" trebuie să fie 100. "skip" primește 0.
+- Dacă NICIUNUL nu merită buy → toate au "skip" și totalAllocation=0; summary explică de ce (overvalued, macro risk, earnings, etc).
+- entryZone/tp1/sl folosesc preț real (nu placeholders); R:R minim 1.5:1 pentru "buy_now", 2:1 pentru "wait_pullback".
+- Nu inventa fundamental data — folosește doar ce e în input.`;
+
+  try{
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-7',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    if(!data.content || !data.content[0] || !data.content[0].text){
+      throw new Error(data.error && data.error.message ? data.error.message : 'Răspuns gol');
+    }
+    const txt = data.content[0].text.trim();
+    // Strip ```json ... ``` dacă apare (Claude poate ignora instrucțiunea)
+    const jsonStr = txt.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```\s*$/, '');
+    let parsed;
+    try { parsed = JSON.parse(jsonStr); }
+    catch(_){
+      // Fallback — încercăm să extragem primul {...} din răspuns
+      const m = jsonStr.match(/\{[\s\S]*\}/);
+      if(m) parsed = JSON.parse(m[0]);
+      else throw new Error('Răspuns nu e JSON valid');
+    }
+
+    // Render verdict cards
+    const verdictCard = st => {
+      const colorMap = { buy_now: 'var(--green)', wait_pullback: 'var(--gold)', skip: 'var(--red)' };
+      const bgMap = { buy_now: 'rgba(34,214,107,.08)', wait_pullback: 'rgba(255,176,46,.08)', skip: 'rgba(255,77,77,.08)' };
+      const c = colorMap[st.verdict] || 'var(--t3)';
+      const bg = bgMap[st.verdict] || 'var(--bg3)';
+      return `<div style="background:${bg};border:1px solid ${c};border-radius:8px;padding:10px;font-size:.62rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="font-family:var(--head);font-weight:800;font-size:.85rem">${st.verdictEmoji||''} <span style="color:${c}">${st.symbol}</span></div>
+          <div style="background:${c};color:#fff;padding:3px 8px;border-radius:12px;font-size:.55rem;font-weight:700">${st.allocationPct||0}%</div>
+        </div>
+        <div style="font-weight:700;color:${c};margin-bottom:4px">${st.verdictTitle||''}</div>
+        <div style="color:var(--t2);line-height:1.4;margin-bottom:8px">${st.reason||''}</div>
+        ${st.verdict !== 'skip' ? `<div style="display:grid;grid-template-columns:auto 1fr;gap:3px 8px;font-size:.55rem;border-top:1px solid var(--b1);padding-top:6px;margin-top:6px">
+          <div style="color:var(--t3)">Entry</div><div><b>${st.entryZone||'—'}</b></div>
+          <div style="color:var(--t3)">TP1</div><div style="color:var(--green)"><b>${st.tp1||'—'}</b></div>
+          <div style="color:var(--t3)">SL</div><div style="color:var(--red)"><b>${st.sl||'—'}</b></div>
+          <div style="color:var(--t3)">R:R</div><div><b>${st.rrRatio||'—'}</b></div>
+        </div>` : ''}
+      </div>`;
+    };
+
+    const stocksHtml = (parsed.stocks || []).map(verdictCard).join('');
+    const summaryHtml = parsed.summary ? `<div style="margin-top:10px;padding:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;font-size:.65rem;line-height:1.5;color:var(--t2)"><b style="color:var(--acc)">📋 Concluzie:</b> ${parsed.summary}</div>` : '';
+    if(result){
+      result.innerHTML = `<div style="display:grid;grid-template-columns:repeat(${(parsed.stocks||[]).length||1},1fr);gap:8px">${stocksHtml}</div>${summaryHtml}`;
+    }
+    if(btn){ btn.disabled = false; btn.textContent = '🤖 Re-analizează cu AI'; }
+  } catch(e){
+    if(result) result.innerHTML = `<div style="background:rgba(255,77,77,.1);border:1px solid var(--red);border-radius:8px;padding:10px;font-size:.65rem;color:var(--red)">❌ ${e.message}</div>`;
+    if(btn){ btn.disabled = false; btn.textContent = '🤖 Reîncearcă'; }
+  }
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  KEYBOARD SHORTCUTS — power user (pas 6)
