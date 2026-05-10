@@ -886,7 +886,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v84</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v85</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -7566,14 +7566,16 @@ function renderPumpRadar(){
 // ═══════════════════════════════════════════════════════
 // ── TELEGRAM MODULE — alertele merg direct în chat ──
 // ═══════════════════════════════════════════════════════
-let telegramConfig = {
+// FIX TDZ: var (hoisted) — telegramNotifyMainSignal e apelat din runScan forEach
+// la linia 5562, care poate fi atins înainte ca parser-ul să ajungă aici.
+var telegramConfig = {
   enabled: false,
   token: '',
   chatId: '',
   pumpRadar: true,
   priceAlerts: true,
   mainScan: false,
-  dailyBriefing: true, // briefing AI auto la deschiderea pieței US (9:30 AM ET)
+  dailyBriefing: true,
   minScore: 0
 };
 (function(){
@@ -7990,7 +7992,10 @@ const CSF_OPS = [
   { key: 'lt', label: '<', test: (a, b) => a < b },
   { key: 'eq', label: '=', test: (a, b) => Math.abs(a - b) < 0.01 },
 ];
-let _customFilter = { rules: [], on: false };
+// FIX TDZ: var în loc de let — hoisted la top-of-script. Fără asta, oricine apelează
+// renderSignals înainte ca parser-ul să atingă această linie (ex: renderSignals la
+// init line 1947, sau setTab înainte de scan) primește ReferenceError.
+var _customFilter = { rules: [], on: false };
 try { Object.assign(_customFilter, JSON.parse(localStorage.getItem(CSF_KEY) || '{}')); } catch(e){}
 
 function _csfSave(){
