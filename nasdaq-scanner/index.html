@@ -106,6 +106,18 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 .earnings-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(217,119,6,.12);border:1px solid var(--goldb);border-radius:4px;padding:2px 7px;font-size:.52rem;font-weight:800;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-left:4px;}
 .watchlist-star{color:#f59e0b;font-size:.75rem;margin-left:3px;}
 
+/* INSIDER INLINE (emoji 🟢/🔴 cu tooltip pe rows compact) */
+.ins-inline{display:inline-block;font-size:.7rem;line-height:1;margin-left:3px;cursor:help;vertical-align:middle;}
+.ins-inline.buy{filter:drop-shadow(0 0 3px rgba(34,214,107,.5));}
+.ins-inline.sell{filter:drop-shadow(0 0 3px rgba(255,77,77,.5));}
+
+/* TABS — secondary collapsible row */
+.tabs-secondary{display:none;flex-wrap:wrap;gap:4px;margin-top:6px;padding-top:8px;border-top:1px dashed var(--b1);}
+.tabs-secondary.expanded{display:flex;}
+.tabs-toggle{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:var(--rs);font-size:.62rem;font-weight:700;background:var(--bg3);border:1px solid var(--b1);color:var(--t2);cursor:pointer;font-family:var(--mono);transition:all .15s;}
+.tabs-toggle:hover{background:var(--bg2);color:var(--t1);}
+.tabs-toggle.expanded{background:var(--accl);color:var(--acc);border-color:var(--accb);}
+
 /* SPARKLINE */
 .sparkline-wrap{margin-bottom:8px;display:flex;align-items:center;gap:8px;}
 .spark-chg{font-size:.6rem;font-weight:700;}
@@ -886,7 +898,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v87</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v88</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -1142,32 +1154,32 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="ftag" onclick="exportCsvNasdaq()" style="background:var(--greenl);border-color:var(--greenb);color:var(--green)">📥 CSV</div>
 </div>
 
-<!-- TABS — grupate vizual: Live | Setup | Macro | Istoric -->
-<div class="tabs">
-  <!-- GRUP 1: Live & lista de bază -->
-  <div class="tab act" onclick="setTab('live',this)">🔴 Live</div>
-  <div class="tab" onclick="setTab('all',this)">📋 Toate</div>
-  <div class="tab-div" aria-hidden="true"></div>
-  <!-- GRUP 2: Setup-uri / Oportunități -->
-  <div class="tab" onclick="setTab('earlybuy',this)" style="color:var(--teal)">🌱 Early Buy</div>
-  <div class="tab" onclick="setTab('reco',this)">💡 Oportunit.</div>
-  <div class="tab" onclick="setTab('multiscan',this)" style="color:var(--purple)">🎛️ Multi-Scan</div>
-  <div class="tab" onclick="setTab('swing',this)">🎯 Swing</div>
-  <div class="tab" onclick="setTab('squeeze',this)" style="color:#dc2626">🔥 Squeeze</div>
-  <div class="tab" onclick="setTab('pumpradar',this)" style="color:#e11d48">🚨 Pump Radar</div>
-  <div class="tab-div" aria-hidden="true"></div>
-  <!-- GRUP 3: Macro / context piață -->
-  <div class="tab" onclick="setTab('heatmap',this)">🗺️ Heatmap</div>
-  <div class="tab" onclick="setTab('rotation',this)" style="color:var(--cyan)">🌐 Sectoare</div>
-  <div class="tab" onclick="setTab('extended',this)" style="color:#a855f7">🌅 Pre/After</div>
-  <div class="tab" onclick="setTab('losers',this)" style="color:var(--red)">📉 Top Losers</div>
-  <div class="tab" onclick="setTab('insider',this)" style="color:#059669">👔 Insider</div>
-  <div class="tab" onclick="setTab('gap',this)">↕️ Gap</div>
-  <div class="tab" onclick="setTab('correlation',this)">🔗 Corelații</div>
-  <div class="tab-div" aria-hidden="true"></div>
-  <!-- GRUP 4: Istoric / Jurnal -->
-  <div class="tab" onclick="setTab('journal',this)" style="color:#0891b2">📓 Jurnal</div>
-  <div class="tab" onclick="setTab('history',this)">📜 Istoric</div>
+<!-- TABS — Varianta A: 6 primary vizibile + secondary collapsible -->
+<div>
+  <div class="tabs">
+    <!-- PRIMARY: cele mai folosite -->
+    <div class="tab act" onclick="setTab('reco',this)">💡 Oportunit.</div>
+    <div class="tab" onclick="setTab('multiscan',this)" style="color:var(--purple)">🎛️ Multi-Scan</div>
+    <div class="tab" onclick="setTab('pumpradar',this)" style="color:#e11d48">🚨 Pump</div>
+    <div class="tab" onclick="setTab('extended',this)" style="color:#a855f7">🌅 Pre/After</div>
+    <div class="tab" onclick="setTab('macro',this)">🗺️ Macro</div>
+    <div class="tab" onclick="setTab('history',this)">📜 Istoric</div>
+    <div class="tab-div" aria-hidden="true"></div>
+    <div class="tabs-toggle" id="tabsToggle" onclick="toggleSecondaryTabs()">⋯ Mai multe ▾</div>
+  </div>
+  <!-- SECONDARY: ascunse default, expand cu butonul ⋯ -->
+  <div class="tabs-secondary" id="tabsSecondary">
+    <div class="tab" onclick="setTab('live',this)">🔴 Live</div>
+    <div class="tab" onclick="setTab('all',this)">📋 Toate</div>
+    <div class="tab" onclick="setTab('earlybuy',this)" style="color:var(--teal)">🌱 Early Buy</div>
+    <div class="tab" onclick="setTab('swing',this)">🎯 Swing</div>
+    <div class="tab" onclick="setTab('squeeze',this)" style="color:#dc2626">🔥 Squeeze</div>
+    <div class="tab" onclick="setTab('losers',this)" style="color:var(--red)">📉 Top Losers</div>
+    <div class="tab" onclick="setTab('insider',this)" style="color:#059669">👔 Insider Feed</div>
+    <div class="tab" onclick="setTab('gap',this)">↕️ Gap</div>
+    <div class="tab" onclick="setTab('correlation',this)">🔗 Corelații</div>
+    <div class="tab" onclick="setTab('journal',this)" style="color:#0891b2">📓 Jurnal</div>
+  </div>
 </div>
 
 <!-- SIGNALS -->
@@ -1331,7 +1343,7 @@ let newsCache={}; // symbol -> [{headline,url,source,datetime,sentiment}]
 let newsCacheTime={}; // symbol -> timestamp
 let priceAlerts={}; // symbol -> {target,dir,setPrice}
 let lastQuotesData=[]; // pentru heatmap + alerts
-let currentTab='live', currentFilter='all';
+let currentTab='reco', currentFilter='all';
 let activeSigs=new Set(['pump','dump','volatility','rsi-low','rsi-high','volume','swing','breakout']);
 let audioCtx=null;
 // Fundamentale cache
@@ -1525,6 +1537,20 @@ function renderInsiderBadge(symbol){
   const cls=ins.direction==='buy'?'fund-insider-buy':'fund-insider-sell';
   const icon=ins.direction==='buy'?'✅ Insider Buy':'⚠️ Insider Sell';
   return `<span class="fund-pill ${cls}">${icon}</span>`;
+}
+
+// Compact inline (emoji + tooltip) pentru rows mici (Multi-Scan, Top Losers, etc.)
+// Returnează '' silent dacă lipsesc date — graceful degradation.
+function renderInsiderInline(symbol){
+  const ins=insiderCache[symbol];
+  if(!ins) return '';
+  const shares=Math.abs(ins.netShares||0);
+  if(shares<1000) return '';
+  const isBuy=ins.direction==='buy';
+  const sharesK=shares>=1000000?(shares/1000000).toFixed(1)+'M':shares>=1000?(shares/1000).toFixed(0)+'K':shares;
+  const tip=isBuy?`Insider BUY ${sharesK} shares (90z) — semnal pozitiv`:`Insider SELL ${sharesK} shares (90z) — semnal negativ`;
+  const emoji=isBuy?'🟢':'🔴';
+  return `<span class="ins-inline ${isBuy?'buy':'sell'}" title="${tip}">${emoji}</span>`;
 }
 
 // ── EPS & REVENUE ──
@@ -2577,7 +2603,30 @@ async function fetchSectorPeriods(){
   }
   
   sectorPeriodCache={week,month,ts:Date.now()};
-  if(currentTab==='rotation') renderSectorRotation();
+  if(currentTab==='rotation' || currentTab==='macro') renderSignals();
+}
+
+// ── MACRO VIEW — combo Heatmap + Sectoare cu sub-tabs ──
+// renderHeatmap/renderSectorRotation scriu direct în #signalsContainer; pentru Macro
+// le apelăm în ordine: render sub-tab content first, apoi prepend bara de sub-tabs.
+var _macroSubTab = 'heatmap';
+window.setMacroSubTab = function(t){
+  _macroSubTab = t;
+  renderMacroView();
+};
+function renderMacroView(){
+  const isHeat = _macroSubTab === 'heatmap';
+  // Render content original în signalsContainer
+  if(isHeat) renderHeatmap(); else renderSectorRotation();
+  // Prepend bara de sub-tabs
+  const container = document.getElementById('signalsContainer');
+  const bar = document.createElement('div');
+  bar.style.cssText = 'display:flex;gap:6px;margin-bottom:14px;padding:6px;background:var(--bg2);border:1px solid var(--b1);border-radius:8px;width:fit-content';
+  bar.innerHTML = `
+    <button onclick="setMacroSubTab('heatmap')" style="padding:6px 14px;border-radius:6px;font-size:.65rem;font-weight:700;border:none;cursor:pointer;font-family:var(--head);background:${isHeat?'var(--accl)':'transparent'};color:${isHeat?'var(--acc)':'var(--t3)'}">🗺️ Heatmap ETFs</button>
+    <button onclick="setMacroSubTab('rotation')" style="padding:6px 14px;border-radius:6px;font-size:.65rem;font-weight:700;border:none;cursor:pointer;font-family:var(--head);background:${!isHeat?'var(--accl)':'transparent'};color:${!isHeat?'var(--acc)':'var(--t3)'}">🌐 Sector Rotation</button>
+  `;
+  container.insertBefore(bar, container.firstChild);
 }
 
 function renderSectorRotation(){
@@ -3551,6 +3600,7 @@ function renderSqueezeRadar(){
     html+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
     if(isWl) html+='<span style="color:#f59e0b">⭐</span>';
     html+='<span style="font-family:var(--head);font-weight:800;font-size:1.05rem;color:var(--t1)">'+c.symbol+'</span>';
+    html+=renderInsiderInline(c.symbol);
     html+='<span style="font-size:.55rem;font-weight:800;color:'+sc.t+';background:'+sc.bg+';padding:2px 8px;border-radius:5px">'+sc.l+'</span>';
     html+='<span style="font-family:var(--mono);font-size:.7rem;color:var(--t2)">$'+c.price.toFixed(2)+' ('+(c.chg24>=0?'+':'')+c.chg24.toFixed(2)+'%)</span>';
     html+='</div>';
@@ -4546,7 +4596,7 @@ function renderExtendedHours(){
       '<div style="display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;align-items:center">'+
         (d.isWatchlist?'<span style="color:#f59e0b;font-size:.85rem">⭐</span>':'<span></span>')+
         '<div>'+
-          '<div style="font-family:var(--head);font-weight:800;font-size:.85rem;color:var(--t1)">'+d.symbol+(d.earningsToday?' <span style="font-size:.5rem;background:var(--goldl);color:var(--gold);border:1px solid var(--goldb);border-radius:4px;padding:1px 5px;font-weight:700">📅 EARNINGS</span>':'')+'</div>'+
+          '<div style="font-family:var(--head);font-weight:800;font-size:.85rem;color:var(--t1)">'+d.symbol+renderInsiderInline(d.symbol)+(d.earningsToday?' <span style="font-size:.5rem;background:var(--goldl);color:var(--gold);border:1px solid var(--goldb);border-radius:4px;padding:1px 5px;font-weight:700">📅 EARNINGS</span>':'')+'</div>'+
           '<div style="font-size:.55rem;color:var(--t3);margin-top:1px">'+(SECTORS[d.symbol]||'US Equity')+'</div>'+
         '</div>'+
         '<div style="text-align:right">'+
@@ -5613,6 +5663,34 @@ async function runScan(){
       opportunities: allOpportunities.filter(o=>o.score>=65).slice(0,10).map(o=>({symbol:o.symbol,score:o.score,isBuy:o.isBuy,price:o.price,chg24:o.chg24,rsi:o.rsi})),
     }));
   }catch(e){}
+
+  // ── FAZA 6: Auto-fetch insider transactions pentru top 12 stocks (background, non-blocking) ──
+  // Insider badge 🟢/🔴 apare oriunde apare ticker-ul după ce datele se încarcă.
+  // /stock/insider-transactions e free pe Finnhub (spre deosebire de /candle).
+  setTimeout(async () => {
+    if(!running) return;
+    const topForInsider = [
+      ...new Set([
+        ...allOpportunities.filter(o => o.score >= 55).slice(0, 8).map(o => o.symbol),
+        ...newSignals.slice(0, 8).map(s => s.coin),
+        ...(watchlist || []).slice(0, 4)
+      ])
+    ].slice(0, 12);
+    let fetched = 0;
+    for(const sym of topForInsider){
+      if(!running) break;
+      if(insiderCache[sym]) continue;
+      try { await fetchInsider(sym, key); fetched++; } catch(_){}
+      await sleep(250);
+    }
+    if(fetched > 0){
+      log(`👔 Insider data: ${fetched} stocks noi (cache total: ${Object.keys(insiderCache).length})`, 'ok');
+      // Re-render dacă tab-ul curent afișează ticker-uri
+      if(['multiscan','reco','earlybuy','pumpradar','extended','squeeze','live','all','swing','losers'].includes(currentTab)){
+        renderSignals();
+      }
+    }
+  }, 1500);
 }
 
 // ── SIGNAL FACTORY ──
@@ -6198,8 +6276,9 @@ function renderMultiScan(){
       if(s.strength) metaParts.push('💪 '+Math.round(s.strength));
       const meta=metaParts.join(' · ');
       const tvUrl=`https://www.tradingview.com/chart/?symbol=NASDAQ:${s.coin}`;
+      const insIcon = renderInsiderInline(s.coin);
       return `<a href="${tvUrl}" target="_blank" class="ms-row">
-        <div class="ms-ticker">${s.coin}${isWL?' ⭐':''}${hasE?' 📅':''}</div>
+        <div class="ms-ticker">${s.coin}${isWL?' ⭐':''}${hasE?' 📅':''}${insIcon}</div>
         <div class="ms-info">
           <div class="ms-price">$${(s.price||0).toFixed(2)}</div>
           <div class="ms-meta">${meta}</div>
@@ -6231,6 +6310,16 @@ function setTab(t,el){
   el.classList.add('act');renderSignals();
   saveNasdaqUiState(); // F2: persistence
 }
+
+// Toggle pentru secondary tabs row (Varianta A — tabs cleanup)
+window.toggleSecondaryTabs = function(){
+  const sec = document.getElementById('tabsSecondary');
+  const btn = document.getElementById('tabsToggle');
+  if(!sec || !btn) return;
+  const expanded = sec.classList.toggle('expanded');
+  btn.classList.toggle('expanded', expanded);
+  btn.textContent = expanded ? '⋯ Mai puține ▴' : '⋯ Mai multe ▾';
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  F5 — MINI-CHART POPUP (candlestick + volume) cu fetch fresh Finnhub
@@ -6513,6 +6602,7 @@ function renderSignals(){
   if(currentTab==='reco'){ renderRecommendations(); return; }
   if(currentTab==='heatmap'){ renderHeatmap(); return; }
   if(currentTab==='rotation'){ renderSectorRotation(); return; }
+  if(currentTab==='macro'){ renderMacroView(); return; }
   if(currentTab==='extended'){ renderExtendedHours(); return; }
   if(currentTab==='insider'){ renderInsiderFeed(); return; }
   if(currentTab==='squeeze'){ renderSqueezeRadar(); return; }
@@ -7525,7 +7615,7 @@ function renderPumpRadar(){
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
             <div>
               <div style="font-family:var(--head);font-weight:800;font-size:.95rem;color:${col.text}">${a.title}${a.candleBased?' <span style="font-size:.55rem;background:#dbeafe;color:#1e40af;padding:1px 5px;border-radius:4px;font-weight:700;vertical-align:middle">📊 5m</span>':''}</div>
-              <div style="font-weight:800;font-size:1.05rem;margin-top:2px">${a.symbol}</div>
+              <div style="font-weight:800;font-size:1.05rem;margin-top:2px">${a.symbol}${renderInsiderInline(a.symbol)}</div>
             </div>
             <div style="text-align:right">
               <div style="font-family:var(--head);font-weight:800;font-size:.85rem">$${a.price.toFixed(2)}</div>
