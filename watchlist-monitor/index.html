@@ -266,6 +266,33 @@ tbody tr.flash-dn { animation:flashDn 1.5s var(--ease); }
 .hot-card .hc-chg { font-size:11px; }
 .hot-card .hc-verdict { font-size:9px; font-weight:800; font-family:var(--head); letter-spacing:.3px; margin-top:2px; }
 
+/* Detail expand (F4) */
+tbody tr.data-row { cursor:pointer; }
+tbody tr.data-row.is-open { background:rgba(91,176,255,.06); }
+.row-caret { display:inline-block; font-size:9px; color:var(--t3); transition:transform .15s var(--ease); margin-right:4px; }
+tbody tr.is-open .row-caret { transform:rotate(90deg); color:var(--accent); }
+tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !important; border-left:3px solid var(--accent) !important; cursor:default; }
+.detail-grid { display:grid; grid-template-columns:1.35fr 1fr; gap:18px; align-items:start; }
+.detail-spark-wrap { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--r); padding:8px 10px; }
+.detail-spark-wrap .dsw-head { font-size:9.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; display:flex; gap:8px; }
+.detail-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(102px,1fr)); gap:9px 14px; margin-top:11px; }
+.dm { display:flex; flex-direction:column; gap:1px; }
+.dm-l { font-size:9px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; }
+.dm-v { font-size:13px; font-weight:700; font-family:var(--mono); color:var(--t1); }
+.detail-bd-title, .detail-plan-title { font-size:9.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+.detail-bd { display:flex; flex-direction:column; gap:3px; }
+.bd-row { display:flex; align-items:center; gap:8px; font-size:10.5px; font-family:var(--mono); }
+.bd-bar { height:7px; border-radius:3px; flex:0 0 auto; min-width:2px; }
+.bd-bar.pos { background:var(--bull-s); } .bd-bar.neg { background:var(--bear-s); } .bd-bar.base { background:var(--b2); }
+.bd-l { color:var(--t2); flex:1; }
+.bd-p { font-weight:700; min-width:34px; text-align:right; }
+.bd-p.pos { color:var(--bull-s); } .bd-p.neg { color:var(--bear-s); } .bd-p.base { color:var(--t3); }
+.detail-plan { margin-top:11px; display:flex; flex-wrap:wrap; gap:8px; }
+.dp-tag { padding:4px 10px; border-radius:7px; background:var(--panel2); border:1px solid var(--b1); font-family:var(--mono); font-size:11px; font-weight:700; }
+.dp-tag span { color:var(--t3); font-weight:400; font-size:9px; display:block; text-transform:uppercase; letter-spacing:.3px; }
+.dp-tag.entry { border-color:var(--accent); } .dp-tag.sl { border-color:var(--bear-s); color:var(--bear-s); } .dp-tag.tp { border-color:var(--bull-s); color:var(--bull-s); }
+.detail-links { margin-top:12px; display:flex; gap:7px; flex-wrap:wrap; }
+
 /* Mobile */
 @media (max-width:760px) {
   body { padding:8px; font-size:12px; }
@@ -279,13 +306,15 @@ tbody tr.flash-dn { animation:flashDn 1.5s var(--ease); }
   .scanner-wrap { max-height:calc(100vh - 380px); }
   .spark { width:48px; height:18px; }
   .hot-strip { grid-template-columns:1fr; }
+  .detail-grid { grid-template-columns:1fr; gap:12px; }
+  tbody tr.detail-row > td { padding:11px 12px !important; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v94</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v95</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
   <a href="../market-events/" class="nav-link">📅 Events</a>
@@ -411,11 +440,12 @@ window.showWlFeatures = function(){
       { e: '💥', t: '<b>Flash rând</b> verde/roșu când score-ul se schimbă ±2 la re-scan' },
       { e: '🎨', t: '<b>Bară verdict</b> colorată în stânga fiecărui rând (5 nivele)' },
       { e: '🔥', t: '<b>Hot strip</b> — top 3 stocks cu score ≥55 ca card-uri sus, click → scroll la rând' },
+      { e: '🔎', t: '<b>Click pe rând → detalii</b>: sparkline 60z, MA50/MA200 abs, dist max/min 52s, ATR, compoziție score, plan long ref-ATR, link-uri TV/Yahoo/Finviz' },
     ]},
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v94 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v95 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -440,6 +470,7 @@ let scanRunning = false;
 let autoTimer = null;
 let notifEnabled = false;
 let sortKey = 'score', sortAsc = false;
+let openDetail = null; // simbolul cu rândul de detalii expandat (F4)
 
 function loadWatchlist(){
   try { watchlist = JSON.parse(localStorage.getItem(WL_KEY) || '[]'); }
@@ -549,7 +580,7 @@ function trendPct(closes, n = 30){
 //  Logică: BUY/STRONG BUY pentru uptrend cu RSI sănătos, SELL pentru downtrend
 // ═══════════════════════════════════════════════════════════════
 function scoreStock(d){
-  if (!d) return { score: 0, verdict: 'hold', verdictTxt: '⚠️ NO DATA' };
+  if (!d) return { score: 0, verdict: 'hold', verdictTxt: '⚠️ NO DATA', breakdown: [] };
   const closes = d.closes;
   const price = d.price;
   const prevClose = d.prevClose;
@@ -560,38 +591,50 @@ function scoreStock(d){
   const aboveMa50 = ma50 ? ((price - ma50) / ma50) * 100 : null;
   const aboveMa200 = ma200 ? ((price - ma200) / ma200) * 100 : null;
 
+  const bd = [];
   let score = 50;
-  // Trend MA50/MA200
+  bd.push({ l: 'Bază', p: 50, base: true });
+  // Trend MA50
   if (aboveMa50 != null) {
-    if (aboveMa50 >= 5) score += 12;
-    else if (aboveMa50 >= 0) score += 6;
-    else if (aboveMa50 >= -5) score -= 5;
-    else score -= 12;
+    const p = aboveMa50 >= 5 ? 12 : aboveMa50 >= 0 ? 6 : aboveMa50 >= -5 ? -5 : -12;
+    score += p; bd.push({ l: `Preț vs MA50 (${(aboveMa50 >= 0 ? '+' : '') + aboveMa50.toFixed(1)}%)`, p });
   }
+  // Trend MA200
   if (aboveMa200 != null) {
-    if (aboveMa200 >= 10) score += 18;
-    else if (aboveMa200 >= 0) score += 9;
-    else if (aboveMa200 >= -10) score -= 8;
-    else score -= 18;
+    const p = aboveMa200 >= 10 ? 18 : aboveMa200 >= 0 ? 9 : aboveMa200 >= -10 ? -8 : -18;
+    score += p; bd.push({ l: `Preț vs MA200 (${(aboveMa200 >= 0 ? '+' : '') + aboveMa200.toFixed(1)}%)`, p });
   }
   // Golden cross / death cross hint (MA50 > MA200 = bullish structural)
   if (ma50 && ma200) {
-    if (ma50 > ma200) score += 6;
-    else score -= 6;
+    const p = ma50 > ma200 ? 6 : -6;
+    score += p; bd.push({ l: ma50 > ma200 ? 'Golden cross (MA50 > MA200)' : 'Death cross (MA50 < MA200)', p });
   }
   // RSI: sweet 40-65, OB > 70 risc, OS < 30 bounce candidate
   if (rsi != null) {
-    if (rsi >= 40 && rsi <= 65) score += 10;
-    else if (rsi > 65 && rsi <= 75) score += 3;
-    else if (rsi > 75) score -= 8;
-    else if (rsi < 30) score += 4; // bounce candidate
-    else if (rsi < 40) score -= 3;
+    let p = 0, lbl = `RSI ${rsi.toFixed(0)} — neutru`;
+    if (rsi >= 40 && rsi <= 65) { p = 10; lbl = `RSI ${rsi.toFixed(0)} — sweet spot`; }
+    else if (rsi > 65 && rsi <= 75) { p = 3; lbl = `RSI ${rsi.toFixed(0)} — momentum`; }
+    else if (rsi > 75) { p = -8; lbl = `RSI ${rsi.toFixed(0)} — supracumpărat`; }
+    else if (rsi < 30) { p = 4; lbl = `RSI ${rsi.toFixed(0)} — bounce posibil`; }
+    else if (rsi < 40) { p = -3; lbl = `RSI ${rsi.toFixed(0)} — slab`; }
+    score += p; if (p !== 0) bd.push({ l: lbl, p });
   }
   // Day momentum
-  if (chg >= 2) score += 5;
-  else if (chg >= 0) score += 2;
-  else if (chg <= -3) score -= 5;
-  else if (chg < 0) score -= 2;
+  {
+    let p = 0;
+    if (chg >= 2) p = 5; else if (chg >= 0) p = 2; else if (chg <= -3) p = -5; else if (chg < 0) p = -2;
+    score += p; if (p !== 0) bd.push({ l: `Mișcare zi (${(chg >= 0 ? '+' : '') + chg.toFixed(2)}%)`, p });
+  }
+
+  // ATR% aproximat = media |Δ% zilnic| pe ultimele 14 zile
+  let atrPct = null;
+  if (closes.length >= 15) {
+    let sum = 0, cnt = 0;
+    for (let i = closes.length - 14; i < closes.length; i++) {
+      if (closes[i - 1]) { sum += Math.abs((closes[i] - closes[i - 1]) / closes[i - 1]) * 100; cnt++; }
+    }
+    if (cnt) atrPct = sum / cnt;
+  }
 
   score = Math.max(0, Math.min(100, Math.round(score)));
 
@@ -602,7 +645,7 @@ function scoreStock(d){
   else if (score >= 25) { verdict = 'sell'; verdictTxt = '📉 SELL'; }
   else { verdict = 'strong-sell'; verdictTxt = '🔴 AVOID'; }
 
-  return { score, verdict, verdictTxt, chg, rsi, ma50, ma200, aboveMa50, aboveMa200 };
+  return { score, verdict, verdictTxt, chg, rsi, ma50, ma200, aboveMa50, aboveMa200, atrPct, breakdown: bd };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -632,6 +675,10 @@ async function runScan(){
         ma200: sc.aboveMa200,
         ma50abs: sc.ma50,
         ma200abs: sc.ma200,
+        atrPct: sc.atrPct,
+        breakdown: sc.breakdown,
+        hi52: Math.max(...data.closes),
+        lo52: Math.min(...data.closes),
         score: sc.score,
         verdict: sc.verdict,
         verdictTxt: sc.verdictTxt,
@@ -642,7 +689,8 @@ async function runScan(){
     } else {
       newResults.push({
         symbol: sym, price: null, chg: null, vol: null, rsi: null,
-        ma50: null, ma200: null, ma50abs: null, ma200abs: null, score: 0,
+        ma50: null, ma200: null, ma50abs: null, ma200abs: null, atrPct: null, breakdown: [],
+        hi52: null, lo52: null, score: 0,
         verdict: 'hold', verdictTxt: '⚠️ N/A', spark: [], trend: null, ts: Date.now(),
       });
     }
@@ -746,6 +794,89 @@ window.scrollToRow = function(sym){
   el.classList.remove('flash-up'); void el.offsetWidth; el.classList.add('flash-up');
 };
 
+// ── Detail expand (F4) ─────────────────────────────────────────
+window.toggleDetail = function(sym){
+  openDetail = (openDetail === sym) ? null : sym;
+  render();
+  if (openDetail){
+    const el = $('wlrow-' + openDetail);
+    if (el && el.nextElementSibling) el.nextElementSibling.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+};
+
+function dmCell(label, value){
+  return `<div class="dm"><span class="dm-l">${label}</span><span class="dm-v">${value}</span></div>`;
+}
+
+function buildDetailRow(r){
+  const sym = r.symbol;
+  const tvUrl = `https://www.tradingview.com/chart/?symbol=NASDAQ:${sym}`;
+  const yhUrl = `https://finance.yahoo.com/quote/${sym}`;
+  const fvUrl = `https://finviz.com/quote.ashx?t=${sym}`;
+  const distHi = (r.hi52 && r.price) ? ((r.price - r.hi52) / r.hi52) * 100 : null;
+  const distLo = (r.lo52 && r.price) ? ((r.price - r.lo52) / r.lo52) * 100 : null;
+  const colP = v => v == null ? 'var(--t3)' : v >= 0 ? 'var(--bull-s)' : 'var(--bear-s)';
+
+  // Metrics
+  let metrics = '';
+  metrics += dmCell('Preț', fmtUSD(r.price));
+  metrics += dmCell('Δ Zi', `<span style="color:${colP(r.chg)}">${fmtPct(r.chg, 2)}</span>`);
+  metrics += dmCell('Trend 30z', `<span style="color:${colP(r.trend)}">${r.trend != null ? fmtPct(r.trend, 1) : '—'}</span>`);
+  metrics += dmCell('RSI 14', r.rsi != null ? r.rsi.toFixed(1) : '—');
+  metrics += dmCell('MA50', `${r.ma50abs != null ? fmtUSD(r.ma50abs) : '—'} <span style="font-size:9px;color:${colP(r.ma50)}">${r.ma50 != null ? fmtPct(r.ma50, 1) : ''}</span>`);
+  metrics += dmCell('MA200', `${r.ma200abs != null ? fmtUSD(r.ma200abs) : '—'} <span style="font-size:9px;color:${colP(r.ma200)}">${r.ma200 != null ? fmtPct(r.ma200, 1) : ''}</span>`);
+  metrics += dmCell('Volum', fmtVol(r.vol));
+  metrics += dmCell('ATR ≈', r.atrPct != null ? r.atrPct.toFixed(2) + '%/zi' : '—');
+  metrics += dmCell('vs max 52s', `<span style="color:${colP(distHi)}">${distHi != null ? fmtPct(distHi, 1) : '—'}</span>`);
+  metrics += dmCell('vs min 52s', `<span style="color:${colP(distLo)}">${distLo != null ? fmtPct(distLo, 1) : '—'}</span>`);
+
+  // Score breakdown
+  const bdMax = Math.max(...(r.breakdown || []).map(b => Math.abs(b.p)), 1);
+  const bdHtml = (r.breakdown || []).map(b => {
+    const cls = b.base ? 'base' : b.p >= 0 ? 'pos' : 'neg';
+    const w = Math.max(2, Math.round((Math.abs(b.p) / bdMax) * 90));
+    return `<div class="bd-row"><span class="bd-bar ${cls}" style="width:${w}px"></span><span class="bd-l">${b.l}</span><span class="bd-p ${cls}">${b.base ? b.p : (b.p >= 0 ? '+' : '') + b.p}</span></div>`;
+  }).join('') || '<div class="bd-row"><span class="bd-l" style="color:var(--t3)">fără date</span></div>';
+
+  // Plan ref ATR (long)
+  let planHtml = '';
+  if (r.atrPct != null && r.price != null){
+    const a = r.price * r.atrPct / 100;
+    const entry = r.price, sl = r.price - 1.5 * a, tp1 = r.price + 2 * a, tp2 = r.price + 3.5 * a;
+    const rr = ((tp1 - entry) / (entry - sl)).toFixed(1);
+    planHtml = `<div class="detail-plan-title">📐 Plan long (ref ATR ≈ ${r.atrPct.toFixed(2)}%/zi · R:R≈${rr})</div>
+      <div class="detail-plan">
+        <div class="dp-tag entry"><span>Entry</span>${fmtUSD(entry)}</div>
+        <div class="dp-tag sl"><span>SL −1.5 ATR</span>${fmtUSD(sl)}</div>
+        <div class="dp-tag tp"><span>TP1 +2 ATR</span>${fmtUSD(tp1)}</div>
+        <div class="dp-tag tp"><span>TP2 +3.5 ATR</span>${fmtUSD(tp2)}</div>
+      </div>
+      <div style="font-size:9px;color:var(--t3);margin-top:5px">Doar orientativ — bazat pe volatilitate medie. Confirmă cu structura graficului.</div>`;
+  }
+
+  return `<tr class="detail-row"><td colspan="11">
+    <div class="detail-grid">
+      <div>
+        <div class="detail-spark-wrap">
+          <div class="dsw-head"><span>📈 ${sym} · ultimele ${Math.min(60, (r.spark || []).length)} zile</span><span style="color:${colP(r.trend)}">${r.trend != null ? fmtPct(r.trend, 1) + ' (30z)' : ''}</span></div>
+          ${buildSparkline(r.spark, { n: 60, big: true }) || '<span style="color:var(--t3);font-size:11px">fără date istorice</span>'}
+        </div>
+        <div class="detail-metrics">${metrics}</div>
+        ${planHtml}
+        <div class="detail-links">
+          <a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener">📈 TradingView</a>
+          <a class="action-btn" href="${yhUrl}" target="_blank" rel="noopener">📰 Yahoo</a>
+          <a class="action-btn" href="${fvUrl}" target="_blank" rel="noopener">📊 Finviz</a>
+        </div>
+      </div>
+      <div>
+        <div class="detail-bd-title">🧮 Compoziție score → <b style="color:${scoreColor(r.score)}">${r.score}</b> · ${r.verdictTxt}</div>
+        <div class="detail-bd">${bdHtml}</div>
+      </div>
+    </div>
+  </td></tr>`;
+}
+
 function renderHotStrip(){
   const box = $('hotStrip');
   if (!box) return;
@@ -810,9 +941,10 @@ function render(){
     const ma200Cls = r.ma200 == null ? 'neut' : r.ma200 >= 0 ? 'up' : 'down';
     const trCls = r.trend == null ? '' : r.trend >= 0 ? 'up' : 'down';
     const flashCls = r.flashDir > 0 ? ' flash-up' : r.flashDir < 0 ? ' flash-dn' : '';
-    return `<tr id="wlrow-${r.symbol}" class="v-${r.verdict}${flashCls}">
+    const openCls = openDetail === r.symbol ? ' is-open' : '';
+    return `<tr id="wlrow-${r.symbol}" class="data-row v-${r.verdict}${flashCls}${openCls}" onclick="toggleDetail('${r.symbol}')">
       <td class="left">
-        <div class="sym-name">${r.symbol}</div>
+        <div class="sym-name"><span class="row-caret">▸</span>${r.symbol}</div>
         <div class="sym-sector">Stocks · NASDAQ</div>
       </td>
       <td>${fmtUSD(r.price)}</td>
@@ -824,7 +956,7 @@ function render(){
       <td class="hide-mobile"><span class="badge ${ma200Cls}">${fmtPct(r.ma200, 1)}</span></td>
       <td><b style="color:${scoreColor(r.score)}">${r.score}</b></td>
       <td><span class="verdict ${r.verdict}">${r.verdictTxt}</span></td>
-      <td>
+      <td onclick="event.stopPropagation()">
         <a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener">📈 TV</a>
         <a class="action-btn" href="${yhUrl}" target="_blank" rel="noopener">📰 YH</a>
         <button class="action-btn del" onclick="removeFromWl('${r.symbol}')">🗑</button>
@@ -842,6 +974,14 @@ function render(){
 
   tbody.innerHTML = html || '<tr><td colspan="11" class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Apasă SCAN pentru a popula datele</div></td></tr>';
 
+  // Detail row expandat (F4)
+  if (openDetail){
+    const r = results.find(x => x.symbol === openDetail);
+    const rowEl = $('wlrow-' + openDetail);
+    if (r && r.price != null && rowEl) rowEl.insertAdjacentHTML('afterend', buildDetailRow(r));
+    else openDetail = null;
+  }
+
   // Sort indicators
   document.querySelectorAll('th[data-sort]').forEach(th => {
     th.style.color = th.dataset.sort === sortKey ? 'var(--accent)' : '';
@@ -854,6 +994,7 @@ function render(){
 window.removeFromWl = function(sym){
   watchlist = watchlist.filter(s => s !== sym);
   results = results.filter(r => r.symbol !== sym);
+  if (openDetail === sym) openDetail = null;
   saveWatchlist();
   render();
 };
