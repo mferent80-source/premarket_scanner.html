@@ -1,0 +1,2563 @@
+// Stocks Suite PRO v1.0 - Consolidated NASDAQ stocks indicator
+// Merges: Smart-Trading-Suite v1.6 + Stocks-Scanner v1.2 + Whale-Tracker-Nasdaq v2.0
+// Generated 2026-05-11
+//
+// Mode selector: suite_mode = "Single Symbol Deep" | "Multi-Scanner" | "Whale Focus"
+//
+// Bug fixes applied vs. source scripts:
+//   [FIX-A] Global: use_anti_repaint toggle gates final signals on bar close
+//   [FIX-B] Whale-Tracker: close[rsLookback] wrapped with nz() - avoid na propagation on early bars
+//   [FIX-C] Stocks-Scanner: anyStrongBuy/anySell folosesc nz() pe valoarea numerica
+//          (NU pe series bool - CE10123) pentru a evita na propagation
+//   [FIX-D] Smart-Trading-Suite: atr14 in liquidity minEqDist wrapped with nz() - avoid na on early bars
+//   [FIX-E] Pine v6 are limita 40 request.security/script. Total inainte: 51 calls (51 > 40 ERROR).
+//          Optimizari: (1) SSD htfRegime+WHF HTF combinate in 1 tuple (6->1, -5),
+//                      (2) WHF QQQ in tuple (2->1, -1), (3) WHF Daily pivots in tuple (3->1, -2),
+//                      (4) SCA HTF eliminat - MTF derivat din scan-TF emaSt (20->0, -20).
+//          Total dupa: 23 calls (mult sub 40). MTF column ramane functional dar arata
+//          trend-ul pe scan TF (efectiv "self-alignment"). Pentru HTF veritabil pe Weekly,
+//          ruleaza indicatorul pe chart-ul Weekly direct.
+//
+// Notes:
+//   - 3 for-loop "by -1" fixes (Smart-Trading-Suite lines 533/537/723) already in source, preserved.
+//   - Whale-Tracker's lookahead_on + [1] on Daily pivots is CORRECT canonical anti-repaint (not a bug).
+
+//@version=6
+indicator("Stocks Suite PRO v1.0", overlay=true, max_lines_count=500, max_labels_count=500, max_boxes_count=500, max_bars_back=2000)
+
+// ============================================================
+//  MODE SELECTOR
+// ============================================================
+suite_mode = input.string("Single Symbol Deep", "Suite Mode",
+    options=["Single Symbol Deep", "Multi-Scanner", "Whale Focus"],
+    group="SUITE MODE",
+    tooltip="Single Symbol Deep = deep analysis 1 symbol (Regime + Fib + Liquidity + trade plan)\nMulti-Scanner = overview table on 20 NASDAQ stocks\nWhale Focus = whale scoring + RS vs QQQ + divergences + sessions NY")
+
+bool isSSD = suite_mode == "Single Symbol Deep"
+bool isSCA = suite_mode == "Multi-Scanner"
+bool isWHF = suite_mode == "Whale Focus"
+
+// ============================================================
+//  SHARED INPUTS
+// ============================================================
+grp_shr = "SHARED CORE"
+htf_tf            = input.timeframe("D", "HTF Timeframe (shared)", group=grp_shr)
+use_session_filter = input.bool(true, "Use session filter (ET)", group=grp_shr)
+dash_pos          = input.string("Top Right", "Dashboard Position", options=["Top Left","Top Center","Top Right","Middle Left","Middle Center","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group=grp_shr)
+dash_size         = input.string("Small", "Dashboard Size", options=["Tiny","Small","Normal","Large"], group=grp_shr)
+cooldown_bars     = input.int(5, "Cooldown (bars)", minval=1, maxval=50, group=grp_shr)
+use_anti_repaint  = input.bool(true, "Anti-repaint (wait close confirm)", group=grp_shr, tooltip="FIX-A: gate final signals on barstate.isconfirmed")
+
+// ============================================================
+//  SINGLE SYMBOL DEEP INPUTS (ssd_)
+// ============================================================
+grp_ssd_p = "SSD: Trading Profile"
+ssd_profile = input.string("Stocks Intraday (5m-1H)", "Trading Profile",
+    options=["Crypto Intraday (5m-30m)", "Crypto Swing (4H-D)", "Crypto Scalp (1m-5m)", "Stocks Intraday (5m-1H)", "Stocks Swing (D-W)", "Custom (manual toggles)"],
+    group=grp_ssd_p)
+
+grp_ssd_reg = "SSD: Regime Engine"
+ssd_lookback      = input.int(50, "Analysis Lookback", minval=20, maxval=200, group=grp_ssd_reg)
+ssd_adxTrend      = input.int(25, "ADX Trend Threshold",     minval=15, maxval=40, group=grp_ssd_reg)
+ssd_adxNoTrend    = input.int(20, "ADX No-Trend Threshold",  minval=10, maxval=25, group=grp_ssd_reg)
+ssd_effTrend      = input.float(0.25, "Efficiency Trending", minval=0.1, maxval=0.5, step=0.05, group=grp_ssd_reg)
+ssd_effRange      = input.float(0.20, "Efficiency Ranging",  minval=0.05, maxval=0.3, step=0.05, group=grp_ssd_reg)
+ssd_atrVolThresh  = input.float(1.5, "ATR High-Vol Threshold", minval=1.0, maxval=3.0, step=0.1, group=grp_ssd_reg)
+ssd_bbSqueezeMult = input.float(0.75, "BB Squeeze Threshold", minval=0.5, maxval=1.0, step=0.05, group=grp_ssd_reg)
+ssd_bbExpandMult  = input.float(1.5, "BB Expansion Threshold", minval=1.2, maxval=2.5, step=0.1, group=grp_ssd_reg)
+ssd_hysteresis    = input.int(3, "Regime Confirmation Bars", minval=1, maxval=20, group=grp_ssd_reg)
+ssd_useHTF        = input.bool(true, "Show HTF Regime", group=grp_ssd_reg)
+ssd_useHtfFb      = input.bool(true, "HTF EMA200 Fallback EMA50", group=grp_ssd_reg)
+ssd_histWindow    = input.int(100, "History Window", minval=20, maxval=500, group=grp_ssd_reg)
+ssd_showBgRegime  = input.bool(true, "Show Regime Background", group=grp_ssd_reg)
+ssd_showTransL    = input.bool(true, "Show Regime Transition Labels", group=grp_ssd_reg)
+
+grp_ssd_fib = "SSD: Fibonacci"
+ssd_pivLen      = input.int(10, "Pivot Lookback", minval=3, maxval=50, group=grp_ssd_fib)
+ssd_showFib     = input.bool(true, "Show Fib Levels", group=grp_ssd_fib)
+ssd_showExt     = input.bool(true, "Show Extensions (targets)", group=grp_ssd_fib)
+ssd_extendR     = input.int(50, "Extend Lines (bars)", minval=10, maxval=200, group=grp_ssd_fib)
+
+grp_ssd_liq = "SSD: Liquidity EQH/EQL"
+ssd_leftLenInput    = input.int(10, "Pivot Left Length", minval=1, group=grp_ssd_liq)
+ssd_rightLenInput   = input.int(2, "Pivot Right Length", minval=1, group=grp_ssd_liq)
+ssd_thresholdPct    = input.float(0.03, "Equality Threshold (%)", minval=0, step=0.01, group=grp_ssd_liq)
+ssd_maxZones        = input.int(60, "Max Active Zones", minval=1, maxval=100, group=grp_ssd_liq)
+ssd_zoneTransp      = input.int(85, "Zone Transparency", minval=0, maxval=100, group=grp_ssd_liq)
+ssd_showMidline     = input.bool(false, "Show Midline", group=grp_ssd_liq)
+ssd_showVolume      = input.bool(true, "Show Volume on Zones", group=grp_ssd_liq)
+ssd_deleteOnSweep   = input.bool(false, "Delete on Sweep", group=grp_ssd_liq)
+
+grp_ssd_veto = "SSD: Veto Filters"
+ssd_useVetos        = input.bool(true,  "Enable Veto Filters", group=grp_ssd_veto)
+ssd_minConfBuy      = input.int(40,     "Min Confidence (%)", minval=0, maxval=100, group=grp_ssd_veto)
+ssd_vetoOnChop      = input.bool(true,  "Block on CHOP regime", group=grp_ssd_veto)
+ssd_vetoOnMixed     = input.bool(false, "Block on MIXED metrics", group=grp_ssd_veto)
+ssd_vetoOnHeavyLiq  = input.bool(true,  "Block on Heavy Offer/Bid", group=grp_ssd_veto)
+ssd_vetoOnHTFmis    = input.bool(false, "Block on HTF mismatch", group=grp_ssd_veto)
+ssd_vetoOnRSIextr   = input.bool(true,  "Block on RSI extremes", group=grp_ssd_veto)
+ssd_parabolicPen    = input.bool(true,  "Penalty on Parabolic moves", group=grp_ssd_veto)
+ssd_parabolicThresh = input.float(60,   "Parabolic threshold (%)", minval=10, maxval=200, step=5, group=grp_ssd_veto)
+
+grp_ssd_trade = "SSD: Trade Plan"
+ssd_maxTPdistAtr = input.float(5.0, "Max TP Distance (xATR)", minval=2.0, maxval=20.0, step=0.5, group=grp_ssd_trade)
+ssd_trackTradePlans = input.bool(true, "Track Trade Plan W/L stats", group=grp_ssd_trade)
+
+grp_ssd_tbl = "SSD: Dashboard"
+ssd_showDashboard   = input.bool(true, "Show Decision Panel",   group=grp_ssd_tbl)
+ssd_showMetrics     = input.bool(true, "Show Metrics Banner", group=grp_ssd_tbl)
+ssd_bannerMode      = input.string("Verdict", "Banner Mode", options=["Verdict", "Detail"], group=grp_ssd_tbl)
+ssd_bannerPos       = input.string("Bottom Center","Metrics Banner Position", options=["Top Left","Top Center","Top Right","Middle Left","Middle Right","Bottom Left","Bottom Center","Bottom Right"], group=grp_ssd_tbl)
+
+// ============================================================
+//  MULTI-SCANNER INPUTS (sca_)
+// ============================================================
+grp_sca_s1 = "SCA: MEGA CAPS (1-10)"
+sca_s1  = input.symbol("NVDA",  "01", group=grp_sca_s1)
+sca_s2  = input.symbol("AAPL",  "02", group=grp_sca_s1)
+sca_s3  = input.symbol("MSFT",  "03", group=grp_sca_s1)
+sca_s4  = input.symbol("GOOGL", "04", group=grp_sca_s1)
+sca_s5  = input.symbol("AMZN",  "05", group=grp_sca_s1)
+sca_s6  = input.symbol("META",  "06", group=grp_sca_s1)
+sca_s7  = input.symbol("TSLA",  "07", group=grp_sca_s1)
+sca_s8  = input.symbol("AMD",   "08", group=grp_sca_s1)
+sca_s9  = input.symbol("AVGO",  "09", group=grp_sca_s1)
+sca_s10 = input.symbol("NFLX",  "10", group=grp_sca_s1)
+
+grp_sca_s2 = "SCA: GROWTH (11-20)"
+sca_s11 = input.symbol("PLTR",  "11", group=grp_sca_s2)
+sca_s12 = input.symbol("COIN",  "12", group=grp_sca_s2)
+sca_s13 = input.symbol("NIO",   "13", group=grp_sca_s2)
+sca_s14 = input.symbol("INTC",  "14", group=grp_sca_s2)
+sca_s15 = input.symbol("MU",    "15", group=grp_sca_s2)
+sca_s16 = input.symbol("AMAT",  "16", group=grp_sca_s2)
+sca_s17 = input.symbol("CIEN",  "17", group=grp_sca_s2)
+sca_s18 = input.symbol("FTNT",  "18", group=grp_sca_s2)
+sca_s19 = input.symbol("INTU",  "19", group=grp_sca_s2)
+sca_s20 = input.symbol("QQQ",   "20", group=grp_sca_s2)
+
+grp_sca_cfg = "SCA: Scanner Config"
+sca_scanTF   = input.string("D", "Scan Timeframe", options=["D","W","M"], group=grp_sca_cfg)
+sca_htfTF    = input.string("W", "HTF Confirmation", options=["W","M"], group=grp_sca_cfg)
+sca_rsiLen   = input.int(14,  "RSI Length",  minval=2, group=grp_sca_cfg)
+sca_emaF     = input.int(9,   "Fast EMA",    minval=2, group=grp_sca_cfg)
+sca_emaS     = input.int(21,  "Slow EMA",    minval=2, group=grp_sca_cfg)
+sca_ema200i  = input.int(200, "Trend EMA",   minval=50, group=grp_sca_cfg)
+sca_volLen   = input.int(20,  "Volume MA",   minval=5, group=grp_sca_cfg)
+sca_atrLen   = input.int(14,  "ATR Length",  minval=2, group=grp_sca_cfg)
+sca_hiLen    = input.int(252, "52W High Length (bars)", minval=20, group=grp_sca_cfg)
+
+grp_sca_pm = "SCA: Premarket Settings"
+sca_pmAware = input.bool(true, "Premarket-aware mode", group=grp_sca_pm)
+sca_pmVolThresholdRelax = input.float(0.05, "PM Volume threshold (relax)", minval=0.01, maxval=0.5, step=0.01, group=grp_sca_pm)
+sca_pmGapAlertThreshold = input.float(2.0, "PM Gap alert threshold %", minval=0.5, maxval=10.0, step=0.5, group=grp_sca_pm)
+
+grp_sca_tbl = "SCA: Table"
+sca_sortBy      = input.string("Score", "Sort By", options=["Score","RSI","Volume","DAY %","GAP %","FROM 52W","ATR %","PM GAP"], group=grp_sca_tbl)
+sca_sortDir     = input.string("Desc",  "Sort Direction", options=["Desc","Asc"], group=grp_sca_tbl)
+sca_showTop     = input.int(20, "Show Top N", minval=5, maxval=20, group=grp_sca_tbl)
+sca_minAbsScore = input.float(0.0, "Min |Score| Filter", minval=0.0, maxval=10.0, step=0.5, group=grp_sca_tbl)
+sca_compact     = input.bool(false, "Compact Mode", group=grp_sca_tbl)
+sca_summary     = input.bool(true,  "Show Summary Row", group=grp_sca_tbl)
+sca_showGap     = input.bool(true,  "Show GAP% column", group=grp_sca_tbl)
+sca_showHi      = input.bool(true,  "Show FROM 52W HIGH% column", group=grp_sca_tbl)
+sca_showSess    = input.bool(true,  "Show SESSION column", group=grp_sca_tbl)
+sca_pmOnly      = input.bool(false, "PM Movers Only", group=grp_sca_tbl)
+sca_mtfOnly     = input.bool(false, "Show only MTF-aligned", group=grp_sca_tbl)
+sca_rankDelta   = input.bool(true,  "Show RANK Delta column", group=grp_sca_tbl)
+
+// ============================================================
+//  WHALE FOCUS INPUTS (whf_)
+// ============================================================
+grp_whf_w = "WHF: Whale Settings"
+whf_volMult    = input.float(3.5, "Mult Volum Whale", minval=1.0, step=0.1, group=grp_whf_w)
+whf_accumBars  = input.int(5,     "Bare Acumulare",    minval=2,             group=grp_whf_w)
+whf_accumPct   = input.float(0.6, "Accum Threshold",  minval=0.3, step=0.05, group=grp_whf_w)
+whf_volMaLen   = input.int(20,    "Volume MA Length",  minval=5, maxval=100, group=grp_whf_w)
+
+grp_whf_i = "WHF: Indicators"
+whf_emaFast    = input.int(20,   "EMA Fast",  minval=1, group=grp_whf_i)
+whf_emaSlow    = input.int(50,   "EMA Slow",  minval=1, group=grp_whf_i)
+whf_ema200Len  = input.int(200,  "EMA 200",   minval=1, group=grp_whf_i)
+whf_rsiLen     = input.int(14,   "RSI Len",   minval=1, group=grp_whf_i)
+whf_rsiObLevel = input.int(75,   "RSI OB",    minval=60, maxval=90, group=grp_whf_i)
+whf_rsiOsLevel = input.int(25,   "RSI OS",    minval=10, maxval=40, group=grp_whf_i)
+whf_atrLen     = input.int(14,   "ATR Len",   minval=1, group=grp_whf_i)
+whf_bbLen      = input.int(20,   "BB Len",    minval=1, group=grp_whf_i)
+whf_bbMult     = input.float(2.0,"BB Mult",   minval=0.1, group=grp_whf_i)
+whf_bbSqzRatio = input.float(0.7,"BB Squeeze Ratio", minval=0.3, step=0.05, group=grp_whf_i)
+whf_macdFast   = input.int(12,   "MACD Fast",  group=grp_whf_i)
+whf_macdSlow   = input.int(26,   "MACD Slow",  group=grp_whf_i)
+whf_macdSig    = input.int(9,    "MACD Signal", group=grp_whf_i)
+whf_stochK     = input.int(14,   "Stoch K",    group=grp_whf_i)
+whf_stochD     = input.int(3,    "Stoch D",    group=grp_whf_i)
+
+grp_whf_h = "WHF: HTF Bias"
+whf_useHTF      = input.bool(true,     "Activeaza HTF", group=grp_whf_h)
+whf_useHtfFb    = input.bool(true,     "Fallback EMA50 daca EMA200 NA", group=grp_whf_h)
+
+grp_whf_div = "WHF: Divergence"
+whf_useDivergence = input.bool(true, "Enable RSI divergence", group=grp_whf_div)
+whf_pivLen        = input.int(3, "Pivot Length", minval=2, maxval=10, group=grp_whf_div)
+whf_divLookback   = input.int(50, "Decay (bars)", minval=10, maxval=100, group=grp_whf_div)
+
+grp_whf_sr = "WHF: S/R"
+whf_srLen  = input.int(20,    "Lookback S/R", minval=5, group=grp_whf_sr)
+whf_showSR = input.bool(true, "Show S/R",           group=grp_whf_sr)
+
+grp_whf_ses = "WHF: Sessions (UTC)"
+whf_showSessions   = input.bool(true, "Show Sessions",       group=grp_whf_ses)
+whf_useDST         = input.bool(true, "DST active (Mar-Nov)", group=grp_whf_ses)
+whf_preMarketStart = input.int(12, "Pre-Mkt Start",    group=grp_whf_ses)
+whf_preMarketEnd   = input.int(13, "Pre-Mkt End",      group=grp_whf_ses)
+whf_nyOpenStart    = input.int(13, "NY Open Start",    group=grp_whf_ses)
+whf_nyOpenEnd      = input.int(15, "NY Open End",      group=grp_whf_ses)
+whf_lunchStart     = input.int(16, "Lunch Start",      group=grp_whf_ses)
+whf_lunchEnd       = input.int(18, "Lunch End",        group=grp_whf_ses)
+whf_powerStart     = input.int(19, "Power Start",      group=grp_whf_ses)
+whf_powerEnd       = input.int(20, "Power End",        group=grp_whf_ses)
+whf_wrWindow       = input.int(100, "WR Rolling Window", minval=20, maxval=500, group=grp_whf_ses)
+
+grp_whf_g = "WHF: Gap & Extra"
+whf_showGap    = input.bool(true,  "Gaps",        group=grp_whf_g)
+whf_gapMinPct  = input.float(0.5,  "Gap min %",      group=grp_whf_g)
+whf_showVwap   = input.bool(true,  "VWAP",           group=grp_whf_g)
+whf_showPivots = input.bool(true,  "Pivot Points",   group=grp_whf_g)
+whf_showRelStr = input.bool(true,  "RS vs QQQ",      group=grp_whf_g)
+whf_rsLookback = input.int(20, "RS Rolling Window", minval=5, maxval=100, group=grp_whf_g)
+
+grp_whf_e = "WHF: Earnings / News"
+whf_showEarnings       = input.bool(true, "Earnings",           group=grp_whf_e)
+whf_earningsMonth      = input.int(0,     "Month (0=off)",       group=grp_whf_e)
+whf_earningsDay        = input.int(1,     "Day",               group=grp_whf_e)
+whf_earningsDaysBefore = input.int(3,     "Days before",       group=grp_whf_e)
+whf_autoEarnings       = input.bool(true, "Auto-News detection", group=grp_whf_e)
+whf_autoEarningsVolMul = input.float(4.0, "Vol min auto (x)",   group=grp_whf_e)
+whf_autoEarningsGap    = input.float(3.0, "Gap min auto (%)",   group=grp_whf_e)
+whf_autoEarningsMove   = input.float(5.0, "Move min auto (%)",  group=grp_whf_e)
+
+grp_whf_r = "WHF: Risk Management"
+whf_slMult   = input.float(1.2, "SL ATRx",   minval=0.3, step=0.1, group=grp_whf_r)
+whf_tpMult   = input.float(2.5, "TP ATRx",   minval=0.5, step=0.1, group=grp_whf_r)
+
+grp_whf_f = "WHF: Filters"
+whf_discountMode    = input.string("Max-Cap", "Score Discount Mode", options=["Max-Cap","Multiplicative"], group=grp_whf_f)
+
+grp_whf_d = "WHF: Display"
+whf_showTable   = input.bool(true, "Table",     group=grp_whf_d)
+whf_showSignals = input.bool(true, "Signals",   group=grp_whf_d)
+whf_showBB      = input.bool(true, "Bollinger", group=grp_whf_d)
+whf_minScore    = input.int(60,    "Min Score", minval=0, maxval=100, group=grp_whf_d)
+
+// ============================================================
+//  COLORS (shared palette)
+// ============================================================
+color col_hdr    = color.new(#1E293B, 25)
+color col_txt    = color.new(#E2E8F0, 0)
+color col_lbl    = color.new(#334155, 55)
+color col_bull_s = color.new(#22C55E, 45)
+color col_bull   = color.new(#16A34A, 65)
+color col_neut   = color.new(#64748B, 75)
+color col_bear   = color.new(#DC2626, 65)
+color col_bear_s = color.new(#EF4444, 45)
+color col_hot    = color.new(#F59E0B, 55)
+color col_info   = color.new(#3B82F6, 55)
+color col_pm     = color.new(#8B5CF6, 50)
+color col_ah     = color.new(#EC4899, 50)
+
+col_frame   = color.new(#0E1320, 0)
+col_bg      = color.new(#12182B, 0)
+col_hdr2    = color.new(#0D1B4A, 0)
+col_sep     = color.new(#162447, 0)
+col_row1    = color.new(#1a1e2e, 0)
+col_row2    = color.new(#141824, 0)
+col_muted   = color.new(#787b86, 0)
+col_val     = color.new(#D1D4DC, 0)
+col_bull_d  = color.new(#1B5E20, 0)
+col_bear_d  = color.new(#8B0000, 0)
+col_warn    = color.new(#FF6D00, 0)
+col_golden  = color.new(#FFC107, 0)
+col_cyan    = color.new(#00B8D4, 0)
+col_purple  = color.new(#7B1FA2, 0)
+col_veto    = color.new(#E91E63, 0)
+C_SEC_REGIME = color.new(#3B82F6, 0)
+C_SEC_FIB    = color.new(#EAB308, 0)
+C_SEC_LIQ    = color.new(#A855F7, 0)
+C_SEC_METRIC = color.new(#10B981, 0)
+c_fib0      = color.new(#FF1744, 0)
+c_fib236    = color.new(#FF6D00, 30)
+c_fib382    = color.new(#FFD740, 20)
+c_fib50     = color.new(#82B1FF, 20)
+c_fib618    = color.new(#00E5FF, 10)
+c_fib786    = color.new(#CE93D8, 20)
+c_fib100    = color.new(#00C853, 0)
+c_ext127    = color.new(#69F0AE, 30)
+c_ext161    = color.new(#00C853, 10)
+c_ext200    = color.new(#FFD740, 20)
+c_ext261    = color.new(#FF6D00, 20)
+BULL_COLOR  = #089981
+BEAR_COLOR  = #f23645
+
+C_BG2     = color.new(#0D1117, 10)
+C_HDR_W   = color.new(#161B22, 0)
+C_HDR2_W  = color.new(#162447, 0)
+C_BDR     = color.new(#30363D, 0)
+C_TTL     = color.new(#58A6FF, 0)
+C_BUY     = color.new(#00C96B, 0)
+C_SELL    = color.new(#FF3366, 0)
+C_WARN    = color.new(#D97706, 0)
+C_INFO    = color.new(#1E40AF, 0)
+C_NEUT    = color.new(#374151, 0)
+C_W       = color.new(#FFFFFF, 0)
+C_PRE     = color.new(#1E3A5F, 85)
+C_NYO     = color.new(#00C96B, 88)
+C_LCH     = color.new(#D97706, 88)
+C_PWR     = color.new(#FF6600, 88)
+C_CONFL   = color.new(#9333EA, 0)
+
+// ============================================================
+//  SHARED HELPERS
+// ============================================================
+f_pos(simple string p) =>
+    switch p
+        "Top Left"      => position.top_left
+        "Top Center"    => position.top_center
+        "Top Right"     => position.top_right
+        "Middle Left"   => position.middle_left
+        "Middle Center" => position.middle_center
+        "Middle Right"  => position.middle_right
+        "Bottom Left"   => position.bottom_left
+        "Bottom Center" => position.bottom_center
+        "Bottom Right"  => position.bottom_right
+        => position.top_right
+
+f_sz(simple string s) =>
+    switch s
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        => size.small
+
+f_short(string sym) =>
+    parts = str.split(sym, ":")
+    array.size(parts) > 1 ? array.get(parts, 1) : sym
+
+f_tv_link(string sym) => "https://www.tradingview.com/chart/?symbol=" + str.replace_all(sym, " ", "")
+
+f_fmt_price(float p) =>
+    absP = math.abs(p)
+    fmt = absP >= 1000 ? "#.##" : absP >= 10 ? "#.###" : absP >= 1 ? "#.####" : "#.######"
+    str.tostring(p, fmt)
+
+f_formatVol(float v) =>
+    v >= 1000000 ? str.format("{0,number,#.#}M", v / 1000000) : v >= 1000 ? str.format("{0,number,#.#}K", v / 1000) : str.tostring(v, "#")
+
+// ============================================================
+//  SHARED CORE: SESSION DETECTION ET
+// ============================================================
+sessHour = hour(time, "America/New_York")
+sessMin  = minute(time, "America/New_York")
+sessDow  = dayofweek(time, "America/New_York")
+isWeekend = sessDow == dayofweek.saturday or sessDow == dayofweek.sunday
+sessTimeMin = sessHour * 60 + sessMin
+
+isPremarket    = use_session_filter and not isWeekend and sessTimeMin >= 240 and sessTimeMin < 570
+isRegular      = use_session_filter and not isWeekend and sessTimeMin >= 570 and sessTimeMin < 960
+isAfterHours   = use_session_filter and not isWeekend and sessTimeMin >= 960 and sessTimeMin < 1200
+isMarketClosed = use_session_filter and (isWeekend or (sessTimeMin >= 1200 or sessTimeMin < 240))
+isExtended     = isPremarket or isAfterHours
+
+sessIconStr = isPremarket ? "PM" : isRegular ? "RTH" : isAfterHours ? "AH" : isMarketClosed ? "CLOSED" : "-"
+sessShort   = isPremarket ? "PM" : isRegular ? "RTH" : isAfterHours ? "AH" : "-"
+sessCol     = isPremarket ? col_pm : isRegular ? col_bull : isAfterHours ? col_ah : col_lbl
+
+dstOffset   = whf_useDST ? 0 : 1
+preStart    = whf_preMarketStart + dstOffset
+preEnd      = whf_preMarketEnd + dstOffset
+nyStart     = whf_nyOpenStart + dstOffset
+nyEnd       = whf_nyOpenEnd + dstOffset
+lchStart    = whf_lunchStart + dstOffset
+lchEnd      = whf_lunchEnd + dstOffset
+pwrStart    = whf_powerStart + dstOffset
+pwrEnd      = whf_powerEnd + dstOffset
+closeAfter  = 20 + dstOffset
+closeBefore = 12 + dstOffset
+
+currentHourUTC = hour(time, "UTC")
+inPreMarket  = currentHourUTC >= preStart and currentHourUTC < preEnd
+inNYOpen     = currentHourUTC >= nyStart and currentHourUTC < nyEnd
+inLunch      = currentHourUTC >= lchStart and currentHourUTC < lchEnd
+inPowerHour  = currentHourUTC >= pwrStart and currentHourUTC < pwrEnd
+marketClosedW = currentHourUTC >= closeAfter or currentHourUTC < closeBefore
+
+// ============================================================
+//  SHARED CORE: WHALE DETECTION
+// ============================================================
+vma_shared    = ta.sma(volume, whf_volMaLen)
+vstd_shared   = ta.stdev(volume, whf_volMaLen)
+whaleZ        = vstd_shared > 0 ? (volume - vma_shared) / vstd_shared : 0.0
+whaleRatio    = vma_shared > 0 ? volume / vma_shared : 0.0
+isWhaleVol    = volume > vma_shared * whf_volMult
+whaleBull     = isWhaleVol and close > open
+whaleBear     = isWhaleVol and close < open
+
+var bool _whaleBullPrev = false
+var bool _whaleBearPrev = false
+whaleBullEdge = whaleBull and not _whaleBullPrev
+whaleBearEdge = whaleBear and not _whaleBearPrev
+_whaleBullPrev := whaleBull
+_whaleBearPrev := whaleBear
+
+// ============================================================
+//  SHARED CORE: helpers (sessionState, trendBias, mtfScore, row, tradePlan)
+// ============================================================
+f_sessionState() =>
+    [isPremarket, isRegular, isAfterHours, inNYOpen, inLunch, inPowerHour]
+
+f_trendBias(simple int fastLen, simple int slowLen, simple int refLen, bool useFb) =>
+    _ef = ta.ema(close, fastLen)
+    _es = ta.ema(close, slowLen)
+    _e50 = ta.ema(close, 50)
+    _eRef = ta.ema(close, refLen)
+    _emaRef = useFb and na(_eRef) and not na(_e50) ? _e50 : _eRef
+    _up = _ef > _es and close > _emaRef
+    _dn = _ef < _es and close < _emaRef
+    [_emaRef, _up, _dn]
+
+f_mtfScore(simple int fastLen, simple int slowLen, simple int refLen) =>
+    _ef = ta.ema(close, fastLen)
+    _es = ta.ema(close, slowLen)
+    _e2 = ta.ema(close, refLen)
+    _bullSc = (not na(_e2) and _ef > _es and close > _e2) ? 1 : 0
+    _bearSc = (not na(_e2) and _ef < _es and close < _e2) ? 1 : 0
+    _emaB   = _ef > _es ? 1 : 0
+    _emaBr  = _ef < _es ? 1 : 0
+    [_bullSc, _bearSc, _emaB, _emaBr]
+
+f_row(table t, int r, string lbl, string val, color bg, color valBg) =>
+    table.cell(t, 0, r, lbl, text_color=col_muted, bgcolor=bg, text_halign=text.align_left)
+    table.cell(t, 1, r, val, text_color=col_txt,   bgcolor=valBg, text_halign=text.align_right)
+
+f_buildTradePlan(int dir, float entry, float atrVal, float slMult, float tp1Mult, float tp2Mult, float tp3Mult) =>
+    float _sl  = dir > 0 ? entry - atrVal * slMult : entry + atrVal * slMult
+    float _tp1 = dir > 0 ? entry + atrVal * tp1Mult : entry - atrVal * tp1Mult
+    float _tp2 = dir > 0 ? entry + atrVal * tp2Mult : entry - atrVal * tp2Mult
+    float _tp3 = dir > 0 ? entry + atrVal * tp3Mult : entry - atrVal * tp3Mult
+    float _risk = math.abs(entry - _sl)
+    float _rr1 = _risk > 0 ? math.abs(_tp1 - entry) / _risk : 0.0
+    float _rr2 = _risk > 0 ? math.abs(_tp2 - entry) / _risk : 0.0
+    float _rr3 = _risk > 0 ? math.abs(_tp3 - entry) / _risk : 0.0
+    [_sl, _tp1, _tp2, _tp3, _rr1, _rr2, _rr3]
+
+bool confirmGate = not use_anti_repaint or barstate.isconfirmed
+
+// ============================================================
+//  SSD: PROFILE EFFECTIVE VALUES
+// ============================================================
+bool ssd_isCryptoIntra = ssd_profile == "Crypto Intraday (5m-30m)"
+bool ssd_isCryptoSwing = ssd_profile == "Crypto Swing (4H-D)"
+bool ssd_isCryptoScalp = ssd_profile == "Crypto Scalp (1m-5m)"
+bool ssd_isStocksIntra = ssd_profile == "Stocks Intraday (5m-1H)"
+bool ssd_isStocksSwing = ssd_profile == "Stocks Swing (D-W)"
+bool ssd_isCustom      = ssd_profile == "Custom (manual toggles)"
+bool ssd_isStocks      = ssd_isStocksIntra or ssd_isStocksSwing
+bool ssd_isScalp       = ssd_isCryptoScalp
+
+float ssd_effMinConf = ssd_isCryptoIntra ? 40 : ssd_isCryptoSwing ? 60 : ssd_isCryptoScalp ? 30 : ssd_isStocksIntra ? 50 : ssd_isStocksSwing ? 60 : ssd_minConfBuy
+bool  ssd_effChop    = ssd_isCustom ? ssd_vetoOnChop    : (ssd_isScalp ? false : true)
+bool  ssd_effMixed   = ssd_isCustom ? ssd_vetoOnMixed   : (ssd_isCryptoIntra or ssd_isScalp ? false : true)
+bool  ssd_effHvLiq   = ssd_isCustom ? ssd_vetoOnHeavyLiq : true
+bool  ssd_effHTFmis  = ssd_isCustom ? ssd_vetoOnHTFmis  : (ssd_isCryptoIntra or ssd_isScalp ? false : true)
+bool  ssd_effRSI     = ssd_isCustom ? ssd_vetoOnRSIextr : (ssd_isScalp ? false : true)
+bool  ssd_effParab   = ssd_isCustom ? ssd_parabolicPen  : (ssd_isScalp ? false : true)
+float ssd_effParabT  = ssd_isCryptoIntra ? 60 : ssd_isCryptoSwing ? 35 : ssd_isCryptoScalp ? 80 : ssd_isStocksIntra ? 25 : ssd_isStocksSwing ? 20 : ssd_parabolicThresh
+int   ssd_effAdxTrend   = ssd_isStocks ? 20  : ssd_adxTrend
+int   ssd_effAdxNoTrend = ssd_isStocks ? 15  : ssd_adxNoTrend
+float ssd_effAtrVol     = ssd_isStocks ? 2.0 : ssd_atrVolThresh
+int   ssd_effSweepWindow = ssd_isCryptoScalp ? 20 : ssd_isCryptoIntra ? 10 : ssd_isCryptoSwing ? 5 : ssd_isStocksIntra ? 8 : ssd_isStocksSwing ? 4 : 10
+float ssd_effMinEqDistAtr = ssd_isCryptoScalp ? 0.5 : ssd_isCryptoIntra ? 1.0 : ssd_isCryptoSwing ? 2.0 : ssd_isStocksIntra ? 1.5 : ssd_isStocksSwing ? 2.5 : 1.0
+
+// ============================================================
+//  SSD: BASE INDICATORS
+// ============================================================
+[diPlus, diMinus, adx] = ta.dmi(14, 14)
+atr14     = ta.atr(14)
+atr50     = ta.atr(50)
+atrRatio  = atr50 > 0 ? atr14 / atr50 : 1.0
+rsi14     = ta.rsi(close, 14)
+rsiAvg    = ta.sma(rsi14, ssd_lookback)
+rsiBull   = rsiAvg > 55
+rsiBear   = rsiAvg < 45
+
+ema9      = ta.ema(close, 9)
+ema20     = ta.ema(close, 20)
+ema21     = ta.ema(close, 21)
+ema50     = ta.ema(close, 50)
+ema200    = ta.ema(close, 200)
+
+emaRef200 = ssd_useHtfFb and na(ema200) and not na(ema50) ? ema50 : ema200
+emaFallbackActive = ssd_useHtfFb and na(ema200) and not na(ema50)
+emaBull   = ema9 > ema21 and ema21 > ema50 and ema50 > emaRef200
+emaBear   = ema9 < ema21 and ema21 < ema50 and ema50 < emaRef200
+priceVsEma200Pct = emaRef200 > 0 ? (close - emaRef200) / emaRef200 * 100 : 0.0
+
+bbBasis    = ta.sma(close, 20)
+bbDev      = ta.stdev(close, 20)
+bbWidth    = bbBasis > 0 ? (bbDev * 2 / bbBasis) * 100 : 0
+bbWidthAvg = ta.sma(bbWidth, ssd_lookback)
+bbSqueeze  = bbWidth < bbWidthAvg * ssd_bbSqueezeMult
+bbExpand   = bbWidth > bbWidthAvg * ssd_bbExpandMult
+bbRatio    = bbWidthAvg > 0 ? bbWidth / bbWidthAvg : 1.0
+
+closeBack  = nz(close[ssd_lookback], close)
+netMove    = math.abs(close - closeBack)
+grossMove  = math.sum(math.abs(close - close[1]), ssd_lookback)
+efficiency = grossMove > 0 ? netMove / grossMove : 0
+
+upTrend   = ema20 > ema50 and close > ema20
+downTrend = ema20 < ema50 and close < ema20
+
+// ============================================================
+//  SSD: REGIME DETECTION
+// ============================================================
+f_detectRegime() =>
+    [_dip, _dim, _adx] = ta.dmi(14, 14)
+    _atr14 = ta.atr(14)
+    _atr50 = ta.atr(50)
+    _atrRatio = _atr50 > 0 ? _atr14 / _atr50 : 1.0
+    _bbBasis = ta.sma(close, 20)
+    _bbDev   = ta.stdev(close, 20)
+    _bbWidth = _bbBasis > 0 ? (_bbDev * 2 / _bbBasis) * 100 : 0
+    _bbAvg   = ta.sma(_bbWidth, ssd_lookback)
+    _bbSq    = _bbWidth < _bbAvg * ssd_bbSqueezeMult
+    _e9   = ta.ema(close, 9)
+    _e21  = ta.ema(close, 21)
+    _e50  = ta.ema(close, 50)
+    _e200 = ta.ema(close, 200)
+    _eRef200 = ssd_useHtfFb and na(_e200) and not na(_e50) ? _e50 : _e200
+    _emaBull = _e9 > _e21 and _e21 > _e50 and _e50 > _eRef200
+    _emaBear = _e9 < _e21 and _e21 < _e50 and _e50 < _eRef200
+    _closeBack = nz(close[ssd_lookback], close)
+    _netMove = math.abs(close - _closeBack)
+    _grossMove = math.sum(math.abs(close - close[1]), ssd_lookback)
+    _eff = _grossMove > 0 ? _netMove / _grossMove : 0
+    int _reg = 0
+    if _bbSq and _adx < ssd_effAdxNoTrend
+        _reg := 4
+    else if _atrRatio > ssd_effAtrVol and _adx > ssd_effAdxNoTrend
+        _reg := 3
+    else if _adx > ssd_effAdxTrend and _eff > ssd_effTrend and _emaBull
+        _reg := 1
+    else if _adx > ssd_effAdxTrend and _eff > ssd_effTrend and _emaBear
+        _reg := -1
+    else if _adx < ssd_effAdxNoTrend and _eff < ssd_effRange
+        _reg := 2
+    else
+        _reg := 0
+    _reg
+
+int rawRegime = 0
+if bbSqueeze and adx < ssd_effAdxNoTrend
+    rawRegime := 4
+else if atrRatio > ssd_effAtrVol and adx > ssd_effAdxNoTrend
+    rawRegime := 3
+else if adx > ssd_effAdxTrend and efficiency > ssd_effTrend and emaBull
+    rawRegime := 1
+else if adx > ssd_effAdxTrend and efficiency > ssd_effTrend and emaBear
+    rawRegime := -1
+else if adx < ssd_effAdxNoTrend and efficiency < ssd_effRange
+    rawRegime := 2
+else
+    rawRegime := 0
+
+var int confirmedRegime = 0
+var int rStreak    = 0
+var int rRawPrev   = 0
+var int rHeldBars  = 0
+
+if isSSD and barstate.isconfirmed
+    if bar_index <= 1
+        confirmedRegime := rawRegime
+        rRawPrev := rawRegime
+        rStreak := 1
+    else
+        if rawRegime == rRawPrev
+            rStreak += 1
+        else
+            rStreak := 1
+        rRawPrev := rawRegime
+        if rStreak >= ssd_hysteresis and confirmedRegime != rawRegime
+            confirmedRegime := rawRegime
+            rHeldBars := 0
+        else
+            rHeldBars += 1
+
+pendingRegime = rStreak < ssd_hysteresis and rawRegime != confirmedRegime
+
+var int rConfPrev = 0
+regimeChanged = confirmedRegime != rConfPrev and bar_index > ssd_hysteresis
+if isSSD and barstate.isconfirmed
+    rConfPrev := confirmedRegime
+
+// OPTIMIZARE: SSD htfRegime + WHF HTF (close + 4 EMA) combinate intr-un singur request.security
+// 6 calls -> 1 call (salveaza 5 din limita de 40)
+[_combHtfRegime, _combHtfClose, _combHtfEmaF, _combHtfEmaS, _combHtfEma200, _combHtfEma50] = request.security(syminfo.tickerid, htf_tf, [f_detectRegime(), close, ta.ema(close, whf_emaFast), ta.ema(close, whf_emaSlow), ta.ema(close, 200), ta.ema(close, 50)], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+int htfRegime = isSSD and ssd_useHTF ? _combHtfRegime : 0
+
+var int[] regHist = array.new<int>()
+if isSSD and barstate.isconfirmed
+    array.push(regHist, confirmedRegime)
+    if array.size(regHist) > ssd_histWindow
+        array.shift(regHist)
+
+int cnt_1  = 0
+int cnt_m1 = 0
+int cnt_2  = 0
+int cnt_3  = 0
+int cnt_4  = 0
+int cnt_0  = 0
+int transitions = 0
+int hSize  = array.size(regHist)
+if isSSD and hSize > 0
+    for i = 0 to hSize - 1
+        v = array.get(regHist, i)
+        if v == 1
+            cnt_1 += 1
+        else if v == -1
+            cnt_m1 += 1
+        else if v == 2
+            cnt_2 += 1
+        else if v == 3
+            cnt_3 += 1
+        else if v == 4
+            cnt_4 += 1
+        else
+            cnt_0 += 1
+        if i > 0 and v != array.get(regHist, i - 1)
+            transitions += 1
+
+pct_1  = hSize > 0 ? cnt_1  / hSize * 100 : 0
+pct_m1 = hSize > 0 ? cnt_m1 / hSize * 100 : 0
+pct_2  = hSize > 0 ? cnt_2  / hSize * 100 : 0
+pct_3  = hSize > 0 ? cnt_3  / hSize * 100 : 0
+pct_4  = hSize > 0 ? cnt_4  / hSize * 100 : 0
+pct_0  = hSize > 0 ? cnt_0  / hSize * 100 : 0
+
+f_regimeName(int r) =>
+    switch r
+        1   => "TREND UP"
+        -1  => "TREND DOWN"
+        2   => "RANGING"
+        3   => "HIGH VOL"
+        4   => "SQUEEZE"
+        =>     "CHOPPY"
+
+f_regimeShort(int r) =>
+    switch r
+        1   => "TR UP"
+        -1  => "TR DN"
+        2   => "RANGE"
+        3   => "VOL"
+        4   => "SQUEZ"
+        =>     "CHOP"
+
+f_regimeColor(int r) =>
+    switch r
+        1   => col_bull_s
+        -1  => col_bear_s
+        2   => col_purple
+        3   => col_warn
+        4   => col_cyan
+        =>     col_neut
+
+regimeName  = f_regimeName(confirmedRegime)
+regimeShort = f_regimeShort(confirmedRegime)
+regimeColor = f_regimeColor(confirmedRegime)
+
+strategyName = switch confirmedRegime
+    1   => "TREND FOLLOW UP"
+    -1  => "TREND FOLLOW DN"
+    2   => "MEAN REV/GRID"
+    3   => "SCALP/REDUCE"
+    4   => "WAIT BREAKOUT"
+    =>     "STAY OUT"
+
+sizeRec = switch confirmedRegime
+    1   => "100%"
+    -1  => "100%"
+    2   => "50-75%"
+    3   => "25-50%"
+    4   => "25%"
+    =>     "0-25%"
+
+sizeCol = switch confirmedRegime
+    1   => col_bull_s
+    -1  => col_bull_s
+    2   => col_bull
+    3   => col_warn
+    4   => col_cyan
+    =>     col_bear
+
+float confidence = 0.0
+if confirmedRegime == 1
+    confidence += adx > 30 ? 3.0 : adx > ssd_effAdxTrend ? 2.0 : 1.0
+    confidence += emaBull ? 2.0 : 0.0
+    confidence += efficiency > 0.4 ? 2.0 : efficiency > ssd_effTrend ? 1.0 : 0.0
+    confidence += rsiBull ? 1.5 : 0.0
+    confidence += atrRatio > 0.8 and atrRatio < 2.0 ? 1.0 : 0.0
+    confidence += not bbSqueeze ? 0.5 : 0.0
+else if confirmedRegime == -1
+    confidence += adx > 30 ? 3.0 : adx > ssd_effAdxTrend ? 2.0 : 1.0
+    confidence += emaBear ? 2.0 : 0.0
+    confidence += efficiency > 0.4 ? 2.0 : efficiency > ssd_effTrend ? 1.0 : 0.0
+    confidence += rsiBear ? 1.5 : 0.0
+    confidence += atrRatio > 0.8 and atrRatio < 2.0 ? 1.0 : 0.0
+    confidence += not bbSqueeze ? 0.5 : 0.0
+else if confirmedRegime == 2
+    confidence += adx < 18 ? 3.0 : adx < ssd_effAdxNoTrend ? 2.0 : 1.0
+    confidence += efficiency < 0.15 ? 2.5 : efficiency < ssd_effRange ? 1.5 : 0.0
+    confidence += atrRatio < 1.1 ? 2.0 : atrRatio < 1.3 ? 1.0 : 0.0
+    confidence += not emaBull and not emaBear ? 1.5 : 0.0
+    confidence += rsiAvg > 45 and rsiAvg < 55 ? 1.0 : 0.0
+else if confirmedRegime == 3
+    confidence += atrRatio > 2.0 ? 3.0 : atrRatio > ssd_effAtrVol ? 2.0 : 1.0
+    confidence += bbExpand ? 2.5 : bbWidth > bbWidthAvg ? 1.5 : 0.0
+    confidence += adx > 25 ? 1.5 : 1.0
+    confidence += efficiency < 0.4 ? 1.5 : 0.5
+    confidence += 1.5
+else if confirmedRegime == 4
+    confidence += bbSqueeze ? 3.0 : 0.0
+    confidence += adx < 18 ? 2.5 : adx < ssd_effAdxNoTrend ? 1.5 : 0.0
+    confidence += atrRatio < 0.9 ? 2.0 : atrRatio < 1.0 ? 1.0 : 0.0
+    confidence += bbWidth < bbWidthAvg * 0.6 ? 1.5 : 0.0
+    confidence += efficiency < 0.3 ? 1.0 : 0.0
+else
+    confidence := 2.0
+    confidence += adx > 20 and adx < 25 ? 1.0 : 0.0
+    confidence += efficiency > 0.15 and efficiency < 0.3 ? 1.0 : 0.0
+
+confPct = math.min(confidence / 10.0 * 100, 100)
+confStars = confPct > 80 ? "*****" : confPct > 60 ? "****-" : confPct > 40 ? "***--" : confPct > 20 ? "**---" : "*----"
+
+// ============================================================
+//  SSD: AUTO FIBONACCI
+// ============================================================
+phP = ta.pivothigh(high, ssd_pivLen, ssd_pivLen)
+plP = ta.pivotlow(low,   ssd_pivLen, ssd_pivLen)
+
+var float swingHi     = na
+var int   swingHiBar  = na
+var float swingLo     = na
+var int   swingLoBar  = na
+var bool  isUpswing   = true
+
+pivBar = bar_index - ssd_pivLen
+
+if isSSD and not na(phP)
+    swingHi    := phP
+    swingHiBar := pivBar
+if isSSD and not na(plP)
+    swingLo    := plP
+    swingLoBar := pivBar
+if isSSD and not na(swingHiBar) and not na(swingLoBar)
+    isUpswing := swingHiBar > swingLoBar
+
+swRange = nz(swingHi) - nz(swingLo)
+swingMid = (nz(swingHi) + nz(swingLo)) / 2
+
+f_fib(float level) =>
+    if isUpswing
+        nz(swingHi) - swRange * level
+    else
+        nz(swingLo) + swRange * level
+
+fib0   = isUpswing ? nz(swingHi) : nz(swingLo)
+fib236 = f_fib(0.236)
+fib382 = f_fib(0.382)
+fib50  = f_fib(0.5)
+fib618 = f_fib(0.618)
+fib786 = f_fib(0.786)
+fib100 = isUpswing ? nz(swingLo) : nz(swingHi)
+
+ext127 = isUpswing ? nz(swingHi) + swRange * 0.272 : nz(swingLo) - swRange * 0.272
+ext161 = isUpswing ? nz(swingHi) + swRange * 0.618 : nz(swingLo) - swRange * 0.618
+ext200 = isUpswing ? nz(swingHi) + swRange * 1.0   : nz(swingLo) - swRange * 1.0
+ext261 = isUpswing ? nz(swingHi) + swRange * 1.618 : nz(swingLo) - swRange * 1.618
+
+retPct = swRange != 0 ? (isUpswing ? (nz(swingHi) - close) / swRange * 100 : (close - nz(swingLo)) / swRange * 100) : 0.0
+inGoldenPocket = retPct >= 61.8 and retPct <= 78.6
+inBuyZone      = isUpswing and retPct >= 50 and retPct <= 78.6
+inSellZone     = not isUpswing and retPct >= 50 and retPct <= 78.6
+atExtension    = retPct < 0
+inPremium      = retPct < 38.2
+inDiscount     = retPct > 61.8
+nearestFibLvl  = retPct < 11.8 ? "0%" : retPct < 30.9 ? "23.6%" : retPct < 44.1 ? "38.2%" : retPct < 55.9 ? "50%" : retPct < 70.2 ? "61.8%" : retPct < 89.3 ? "78.6%" : "100%"
+
+var line[]  fibLines  = array.new<line>()
+var label[] fibLabels = array.new<label>()
+
+if isSSD and barstate.islast
+    if array.size(fibLines) > 0
+        for i = array.size(fibLines) - 1 to 0 by -1
+            line.delete(array.get(fibLines, i))
+        array.clear(fibLines)
+    if array.size(fibLabels) > 0
+        for i = array.size(fibLabels) - 1 to 0 by -1
+            label.delete(array.get(fibLabels, i))
+        array.clear(fibLabels)
+
+if isSSD and barstate.islast and ssd_showFib and not na(swingHi) and not na(swingLo)
+    startBar = math.min(nz(swingHiBar, bar_index), nz(swingLoBar, bar_index))
+    endBar   = bar_index + ssd_extendR
+
+    array.push(fibLines, line.new(startBar, fib0,   endBar, fib0,   color=c_fib0,   width=1))
+    array.push(fibLabels, label.new(endBar, fib0,   "0% "   + str.tostring(fib0, "#.####"),   style=label.style_label_left, color=c_fib0,   textcolor=col_txt, size=size.tiny))
+    array.push(fibLines, line.new(startBar, fib236, endBar, fib236, color=c_fib236, width=1))
+    array.push(fibLabels, label.new(endBar, fib236, "23.6% " + str.tostring(fib236, "#.####"), style=label.style_label_left, color=c_fib236, textcolor=col_txt, size=size.tiny))
+    array.push(fibLines, line.new(startBar, fib382, endBar, fib382, color=c_fib382, width=1))
+    array.push(fibLabels, label.new(endBar, fib382, "38.2% " + str.tostring(fib382, "#.####"), style=label.style_label_left, color=c_fib382, textcolor=col_txt, size=size.tiny))
+    array.push(fibLines, line.new(startBar, fib50,  endBar, fib50,  color=c_fib50,  width=1))
+    array.push(fibLabels, label.new(endBar, fib50,  "50% "   + str.tostring(fib50, "#.####"),  style=label.style_label_left, color=c_fib50,  textcolor=col_txt, size=size.tiny))
+    array.push(fibLines, line.new(startBar, fib618, endBar, fib618, color=c_fib618, width=2))
+    array.push(fibLabels, label.new(endBar, fib618, "61.8% " + str.tostring(fib618, "#.####"), style=label.style_label_left, color=c_fib618, textcolor=col_txt, size=size.tiny))
+    array.push(fibLines, line.new(startBar, fib786, endBar, fib786, color=c_fib786, width=1))
+    array.push(fibLabels, label.new(endBar, fib786, "78.6% " + str.tostring(fib786, "#.####"), style=label.style_label_left, color=c_fib786, textcolor=col_txt, size=size.tiny))
+    array.push(fibLines, line.new(startBar, fib100, endBar, fib100, color=c_fib100, width=1))
+    array.push(fibLabels, label.new(endBar, fib100, "100% " + str.tostring(fib100, "#.####"), style=label.style_label_left, color=c_fib100, textcolor=col_txt, size=size.tiny))
+    if ssd_showExt
+        array.push(fibLines, line.new(startBar, ext127, endBar, ext127, color=c_ext127, width=1))
+        array.push(fibLabels, label.new(endBar, ext127, "EXT 127.2% " + str.tostring(ext127, "#.####"), style=label.style_label_left, color=c_ext127, textcolor=col_txt, size=size.tiny))
+        array.push(fibLines, line.new(startBar, ext161, endBar, ext161, color=c_ext161, width=2))
+        array.push(fibLabels, label.new(endBar, ext161, "EXT 161.8% " + str.tostring(ext161, "#.####"), style=label.style_label_left, color=c_ext161, textcolor=col_txt, size=size.tiny))
+        array.push(fibLines, line.new(startBar, ext200, endBar, ext200, color=c_ext200, width=1))
+        array.push(fibLabels, label.new(endBar, ext200, "EXT 200% " + str.tostring(ext200, "#.####"), style=label.style_label_left, color=c_ext200, textcolor=col_txt, size=size.tiny))
+        array.push(fibLines, line.new(startBar, ext261, endBar, ext261, color=c_ext261, width=1))
+        array.push(fibLabels, label.new(endBar, ext261, "EXT 261.8% " + str.tostring(ext261, "#.####"), style=label.style_label_left, color=c_ext261, textcolor=col_txt, size=size.tiny))
+
+// ============================================================
+//  SSD: LIQUIDITY EQH/EQL (UDT types)
+// ============================================================
+type LiquidityZone
+    box   id
+    line  midline
+    label lbl
+    label b1
+    label b2
+    label v1
+    label v2
+    float sweepLevel
+    float totalVol
+    int   createdIdx
+    bool  isHigh
+    bool  isSwept
+
+type PivotPoint
+    float price
+    int   idx
+    float vol
+
+var activeZones     = array.new<LiquidityZone>()
+var historicalHighs = array.new<PivotPoint>()
+var historicalLows  = array.new<PivotPoint>()
+
+var int   lastEQHSweepBar = 0
+var int   lastEQLSweepBar = 0
+var float lastEQHSweepLvl = na
+var float lastEQLSweepLvl = na
+
+method update(LiquidityZone zone, bool deleteOnSweep) =>
+    bool shouldRemove = false
+    if not zone.isSwept
+        box.set_right(zone.id, bar_index)
+        if not na(zone.midline)
+            line.set_x2(zone.midline, bar_index)
+        label.set_x(zone.lbl, bar_index)
+        if bar_index > zone.createdIdx
+            bool sweepOccurred = zone.isHigh ? high > zone.sweepLevel : low < zone.sweepLevel
+            if sweepOccurred
+                zone.isSwept := true
+                shouldRemove := true
+                if deleteOnSweep
+                    box.delete(zone.id)
+                    line.delete(zone.midline)
+                    label.delete(zone.lbl)
+                    label.delete(zone.b1)
+                    label.delete(zone.b2)
+                    label.delete(zone.v1)
+                    label.delete(zone.v2)
+                else
+                    box.set_bgcolor(zone.id, color.new(chart.fg_color, 95))
+                    box.set_border_color(zone.id, color.new(chart.fg_color, 80))
+                    if not na(zone.midline)
+                        line.set_color(zone.midline, color.new(chart.fg_color, 80))
+                    label.set_textcolor(zone.lbl, color.new(chart.fg_color, 75))
+                    string volStr = ssd_showVolume ? str.format(" ({0})", f_formatVol(zone.totalVol)) : ""
+                    label.set_text(zone.lbl, "Swept " + (zone.isHigh ? "EQH" : "EQL") + volStr)
+                    label.set_color(zone.b1, color.new(chart.fg_color, 85))
+                    label.set_color(zone.b2, color.new(chart.fg_color, 85))
+                    label.set_text(zone.v1, "")
+                    label.set_text(zone.v2, "")
+    shouldRemove
+
+f_consolidateLabels(array<LiquidityZone> zones) =>
+    int sz = zones.size()
+    if sz > 0
+        for i = 0 to sz - 1
+            LiquidityZone z = zones.get(i)
+            if not z.isSwept
+                label.set_text(z.lbl, "")
+        array<int> processed = array.new<int>()
+        for i = 0 to sz - 1
+            if processed.includes(i) or zones.get(i).isSwept
+                continue
+            LiquidityZone base = zones.get(i)
+            processed.push(i)
+            float clusterVol = base.totalVol
+            int clusterCount = 1
+            if i < sz - 1
+                for j = i + 1 to sz - 1
+                    if processed.includes(j)
+                        continue
+                    LiquidityZone comp = zones.get(j)
+                    if comp.isSwept
+                        continue
+                    if base.isHigh == comp.isHigh and math.abs(base.sweepLevel - comp.sweepLevel) / base.sweepLevel * 100 <= ssd_thresholdPct * 3
+                        clusterVol += comp.totalVol
+                        clusterCount += 1
+                        processed.push(j)
+            string typeStr  = base.isHigh ? "EQH" : "EQL"
+            string countStr = clusterCount > 1 ? str.format("{0}x ", clusterCount) : ""
+            string volStr   = ssd_showVolume ? str.format(" ({0})", f_formatVol(clusterVol)) : ""
+            label.set_text(base.lbl, countStr + typeStr + volStr)
+
+float pH = ta.pivothigh(ssd_leftLenInput, ssd_rightLenInput)
+float pL = ta.pivotlow(ssd_leftLenInput, ssd_rightLenInput)
+
+bool freshPH = isSSD and not na(pH) and (na(pH[1]) or pH != pH[1]) and barstate.isconfirmed
+bool freshPL = isSSD and not na(pL) and (na(pL[1]) or pL != pL[1]) and barstate.isconfirmed
+
+if freshPH
+    int currentPivotIdx = bar_index - ssd_rightLenInput
+    float currentVol = volume[ssd_rightLenInput]
+    if historicalHighs.size() > 0
+        for i = 0 to historicalHighs.size() - 1
+            PivotPoint prev = historicalHighs.get(i)
+            float diff = math.abs(pH - prev.price) / prev.price * 100
+            if diff <= ssd_thresholdPct
+                float top    = math.max(pH, prev.price)
+                float bottom = math.min(pH, prev.price)
+                float mid    = (top + bottom) / 2
+                float totalVol = prev.vol + currentVol
+                box b = box.new(prev.idx, top, bar_index, bottom, border_color=BEAR_COLOR, bgcolor=color.new(BEAR_COLOR, ssd_zoneTransp))
+                line ml = ssd_showMidline ? line.new(prev.idx, mid, bar_index, mid, color=col_muted, style=line.style_dashed) : na
+                label lb = label.new(bar_index, mid, "", color=#00000000, textcolor=BEAR_COLOR, style=label.style_label_left, size=size.small)
+                label b1 = label.new(prev.idx, prev.price, "", color=BEAR_COLOR, style=label.style_circle, size=size.small)
+                label b2 = label.new(currentPivotIdx, pH, "", color=BEAR_COLOR, style=label.style_circle, size=size.small)
+                label v1l = ssd_showVolume ? label.new(prev.idx, prev.price, f_formatVol(prev.vol), color=#00000000, textcolor=BEAR_COLOR, style=label.style_label_down, size=size.small) : na
+                label v2l = ssd_showVolume ? label.new(currentPivotIdx, pH, f_formatVol(currentVol), color=#00000000, textcolor=BEAR_COLOR, style=label.style_label_down, size=size.small) : na
+                activeZones.push(LiquidityZone.new(b, ml, lb, b1, b2, v1l, v2l, top, totalVol, bar_index, true, false))
+                break
+    historicalHighs.unshift(PivotPoint.new(pH, currentPivotIdx, currentVol))
+    if historicalHighs.size() > 50
+        historicalHighs.pop()
+
+if freshPL
+    int currentPivotIdx = bar_index - ssd_rightLenInput
+    float currentVol = volume[ssd_rightLenInput]
+    if historicalLows.size() > 0
+        for i = 0 to historicalLows.size() - 1
+            PivotPoint prev = historicalLows.get(i)
+            float diff = math.abs(pL - prev.price) / prev.price * 100
+            if diff <= ssd_thresholdPct
+                float top    = math.max(pL, prev.price)
+                float bottom = math.min(pL, prev.price)
+                float mid    = (top + bottom) / 2
+                float totalVol = prev.vol + currentVol
+                box b = box.new(prev.idx, top, bar_index, bottom, border_color=BULL_COLOR, bgcolor=color.new(BULL_COLOR, ssd_zoneTransp))
+                line ml = ssd_showMidline ? line.new(prev.idx, mid, bar_index, mid, color=col_muted, style=line.style_dashed) : na
+                label lb = label.new(bar_index, mid, "", color=#00000000, textcolor=BULL_COLOR, style=label.style_label_left, size=size.small)
+                label b1 = label.new(prev.idx, prev.price, "", color=BULL_COLOR, style=label.style_circle, size=size.small)
+                label b2 = label.new(currentPivotIdx, pL, "", color=BULL_COLOR, style=label.style_circle, size=size.small)
+                label v1l = ssd_showVolume ? label.new(prev.idx, prev.price, f_formatVol(prev.vol), color=#00000000, textcolor=BULL_COLOR, style=label.style_label_up, size=size.small) : na
+                label v2l = ssd_showVolume ? label.new(currentPivotIdx, pL, f_formatVol(currentVol), color=#00000000, textcolor=BULL_COLOR, style=label.style_label_up, size=size.small) : na
+                activeZones.push(LiquidityZone.new(b, ml, lb, b1, b2, v1l, v2l, bottom, totalVol, bar_index, false, false))
+                break
+    historicalLows.unshift(PivotPoint.new(pL, currentPivotIdx, currentVol))
+    if historicalLows.size() > 50
+        historicalLows.pop()
+
+if isSSD and activeZones.size() > 0
+    for i = activeZones.size() - 1 to 0 by -1
+        LiquidityZone zone = activeZones.get(i)
+        bool swept = zone.update(ssd_deleteOnSweep)
+        if swept
+            if zone.isHigh
+                lastEQHSweepBar := bar_index
+                lastEQHSweepLvl := zone.sweepLevel
+            else
+                lastEQLSweepBar := bar_index
+                lastEQLSweepLvl := zone.sweepLevel
+            activeZones.remove(i)
+    while activeZones.size() > ssd_maxZones
+        activeZones.remove(0)
+    if activeZones.size() > 0
+        f_consolidateLabels(activeZones)
+
+// ============================================================
+//  SSD: LIQUIDITY STATS
+// ============================================================
+int activeEQH = 0
+int activeEQL = 0
+float nearestEQH = na
+float nearestEQL = na
+float nearestEQHDist = 999999.0
+float nearestEQLDist = 999999.0
+float totalEQHVol = 0.0
+float totalEQLVol = 0.0
+
+float nearestEQHabove = na
+float nearestEQLbelow = na
+float nearestEQHaboveDist = 999999.0
+float nearestEQLbelowDist = 999999.0
+
+float minEqDist = nz(atr14, 0) * ssd_effMinEqDistAtr
+
+if isSSD and activeZones.size() > 0
+    for i = 0 to activeZones.size() - 1
+        LiquidityZone z = activeZones.get(i)
+        if not z.isSwept
+            if z.isHigh
+                activeEQH += 1
+                totalEQHVol += z.totalVol
+                float dist = math.abs(close - z.sweepLevel)
+                if dist < nearestEQHDist
+                    nearestEQHDist := dist
+                    nearestEQH := z.sweepLevel
+                if z.sweepLevel > close and (z.sweepLevel - close) >= minEqDist
+                    float distAbove = z.sweepLevel - close
+                    if distAbove < nearestEQHaboveDist
+                        nearestEQHaboveDist := distAbove
+                        nearestEQHabove := z.sweepLevel
+            else
+                activeEQL += 1
+                totalEQLVol += z.totalVol
+                float dist = math.abs(close - z.sweepLevel)
+                if dist < nearestEQLDist
+                    nearestEQLDist := dist
+                    nearestEQL := z.sweepLevel
+                if z.sweepLevel < close and (close - z.sweepLevel) >= minEqDist
+                    float distBelow = close - z.sweepLevel
+                    if distBelow < nearestEQLbelowDist
+                        nearestEQLbelowDist := distBelow
+                        nearestEQLbelow := z.sweepLevel
+
+distEQHpct = not na(nearestEQH) ? (nearestEQH - close) / close * 100 : na
+distEQLpct = not na(nearestEQL) ? (close - nearestEQL) / close * 100 : na
+priceNearEQH = not na(nearestEQH) and nearestEQHDist < atr14 * 1.5
+priceNearEQL = not na(nearestEQL) and nearestEQLDist < atr14 * 1.5
+
+recentEQHSweep = (bar_index - lastEQHSweepBar) <= ssd_effSweepWindow and lastEQHSweepBar > 0
+recentEQLSweep = (bar_index - lastEQLSweepBar) <= ssd_effSweepWindow and lastEQLSweepBar > 0
+
+eqhSweepConfirm = recentEQHSweep and not na(lastEQHSweepLvl) and close < lastEQHSweepLvl
+eqlSweepConfirm = recentEQLSweep and not na(lastEQLSweepLvl) and close > lastEQLSweepLvl
+eqhNoReaction   = recentEQHSweep and not na(lastEQHSweepLvl) and close > lastEQHSweepLvl
+eqlNoReaction   = recentEQLSweep and not na(lastEQLSweepLvl) and close < lastEQLSweepLvl
+
+// ============================================================
+//  SSD: METRICS CONFLUENCE
+// ============================================================
+int metBull = 0
+int metBear = 0
+if adx > ssd_effAdxNoTrend and diPlus > diMinus
+    metBull += 1
+else if adx > ssd_effAdxNoTrend and diMinus > diPlus
+    metBear += 1
+if rsi14 > 55
+    metBull += 1
+else if rsi14 < 45
+    metBear += 1
+if emaBull
+    metBull += 1
+else if emaBear
+    metBear += 1
+if priceVsEma200Pct > 1
+    metBull += 1
+else if priceVsEma200Pct < -1
+    metBear += 1
+if efficiency > ssd_effTrend and priceVsEma200Pct > 0
+    metBull += 1
+else if efficiency > ssd_effTrend and priceVsEma200Pct < 0
+    metBear += 1
+
+int metScore = metBull - metBear
+
+// ============================================================
+//  SSD: VETO FILTERS
+// ============================================================
+float eqVolRatio = totalEQHVol > 0 ? totalEQLVol / totalEQHVol : 0
+bool heavyOfferAbove = ssd_useVetos and ssd_effHvLiq and totalEQHVol > 0 and totalEQLVol > 0 and eqVolRatio < 0.67
+bool heavyBidBelow   = ssd_useVetos and ssd_effHvLiq and totalEQHVol > 0 and totalEQLVol > 0 and eqVolRatio > 1.5
+
+bool vChop      = ssd_useVetos and ssd_effChop and confirmedRegime == 0
+bool vMixed     = ssd_useVetos and ssd_effMixed and metScore > -2 and metScore < 2
+bool vHTFmisB   = ssd_useVetos and ssd_effHTFmis and ssd_useHTF and htfRegime == -1
+bool vHTFmisS   = ssd_useVetos and ssd_effHTFmis and ssd_useHTF and htfRegime == 1
+bool vRSIobBuy  = ssd_useVetos and ssd_effRSI and rsi14 > 70
+bool vRSIosSell = ssd_useVetos and ssd_effRSI and rsi14 < 30
+
+bool rsiExtreme = rsi14 < 30 or rsi14 > 70
+bool vParabolic = ssd_useVetos and ssd_effParab and math.abs(priceVsEma200Pct) > ssd_effParabT and not rsiExtreme
+
+bool buyVeto  = vChop or vMixed or heavyOfferAbove or vHTFmisB or vRSIobBuy
+bool sellVeto = vChop or vMixed or heavyBidBelow   or vHTFmisS or vRSIosSell
+
+string vetoBoth = ""
+if vChop
+    vetoBoth += "CHOP "
+if vMixed
+    vetoBoth += "MIXED "
+if vParabolic
+    vetoBoth += "PARAB "
+
+string vetoBuyOnly = ""
+if heavyOfferAbove
+    vetoBuyOnly += "HV-OFFER "
+if vHTFmisB
+    vetoBuyOnly += "HTF-BEAR "
+if vRSIobBuy
+    vetoBuyOnly += "RSI-OB "
+
+string vetoSellOnly = ""
+if heavyBidBelow
+    vetoSellOnly += "HV-BID "
+if vHTFmisS
+    vetoSellOnly += "HTF-BULL "
+if vRSIosSell
+    vetoSellOnly += "RSI-OS "
+
+bool anyVetoActive = vetoBoth != "" or vetoBuyOnly != "" or vetoSellOnly != ""
+
+string vetoDisplay = ""
+if vetoBoth != ""
+    vetoDisplay += "!" + vetoBoth
+if vetoBuyOnly != ""
+    vetoDisplay += "^" + vetoBuyOnly
+if vetoSellOnly != ""
+    vetoDisplay += "v" + vetoSellOnly
+
+// ============================================================
+//  SSD: MASTER DECISION ENGINE
+// ============================================================
+int scoreBull = 0
+int scoreBear = 0
+
+if confirmedRegime == 1
+    scoreBull += 3
+if confirmedRegime == -1
+    scoreBear += 3
+if ssd_useHTF and htfRegime == 1
+    scoreBull += 2
+if ssd_useHTF and htfRegime == -1
+    scoreBear += 2
+if isUpswing and (inGoldenPocket or (retPct >= 50 and retPct <= 78.6))
+    scoreBull += 2
+if not isUpswing and (inGoldenPocket or (retPct >= 50 and retPct <= 78.6))
+    scoreBear += 2
+if atExtension and isUpswing
+    scoreBull += 1
+if atExtension and not isUpswing
+    scoreBear += 1
+if eqlSweepConfirm
+    scoreBull += 3
+if eqhSweepConfirm
+    scoreBear += 3
+if emaBull
+    scoreBull += 1
+if emaBear
+    scoreBear += 1
+if rsi14 < 30
+    scoreBull += 1
+if rsi14 > 70
+    scoreBear += 1
+
+int netScore = scoreBull - scoreBear
+float masterConf = math.abs(netScore) / 12.0 * 100
+masterConf := math.min(masterConf, 100)
+
+if vParabolic
+    masterConf := masterConf * 0.5
+
+string masterAction = "-"
+string masterBias   = "-"
+color  masterColor  = col_neut
+color  masterBiasCol = col_neut
+bool   showTradePlan = false
+
+if netScore >= 5 and not buyVeto and masterConf >= ssd_effMinConf and confirmGate
+    masterAction := "STRONG BUY"
+    masterBias := "BULLISH STRONG"
+    masterColor := col_bull_s
+    masterBiasCol := col_bull_s
+    showTradePlan := true
+else if netScore >= 3 and not buyVeto and masterConf >= ssd_effMinConf and confirmGate
+    masterAction := "BUY"
+    masterBias := "BULLISH"
+    masterColor := col_bull
+    masterBiasCol := col_bull
+    showTradePlan := true
+else if netScore <= -5 and not sellVeto and masterConf >= ssd_effMinConf and confirmGate
+    masterAction := "STRONG SELL"
+    masterBias := "BEARISH STRONG"
+    masterColor := col_bear_s
+    masterBiasCol := col_bear_s
+    showTradePlan := true
+else if netScore <= -3 and not sellVeto and masterConf >= ssd_effMinConf and confirmGate
+    masterAction := "SELL"
+    masterBias := "BEARISH"
+    masterColor := col_bear
+    masterBiasCol := col_bear
+    showTradePlan := true
+else if netScore >= 3 and (buyVeto or masterConf < ssd_effMinConf)
+    masterAction := "WAIT (veto)"
+    masterBias := "BUY BLOCKED"
+    masterColor := col_veto
+    masterBiasCol := col_veto
+else if netScore <= -3 and (sellVeto or masterConf < ssd_effMinConf)
+    masterAction := "WAIT (veto)"
+    masterBias := "SELL BLOCKED"
+    masterColor := col_veto
+    masterBiasCol := col_veto
+else if confirmedRegime == 4
+    masterAction := "WAIT BREAKOUT"
+    masterBias := "NEUTRAL (SQUEEZE)"
+    masterColor := col_cyan
+    masterBiasCol := col_cyan
+else if confirmedRegime == 2
+    masterAction := "RANGE PLAY"
+    masterBias := "LATERAL"
+    masterColor := col_purple
+    masterBiasCol := col_purple
+else
+    masterAction := "NEUTRAL"
+    masterBias := "NO DIRECTION"
+    masterColor := col_neut
+    masterBiasCol := col_neut
+
+// ============================================================
+//  SSD: STICKY TRADE PLAN + W/L TRACKING
+// ============================================================
+var float stickyEntry = na
+var float stickySL    = na
+var float stickyTP    = na
+var int   stickySigDir = 0
+var int   stickyEntryBar = na
+var int   stickyExitReason = 0
+
+var int planEmitted  = 0
+var int planTPHit    = 0
+var int planSLHit    = 0
+var int planReverse  = 0
+
+bool freshLongRaw  = netScore >= 3 and netScore[1] < 3
+bool freshShortRaw = netScore <= -3 and netScore[1] > -3
+bool validFreshLong  = freshLongRaw  and not buyVeto  and masterConf >= ssd_effMinConf and confirmGate
+bool validFreshShort = freshShortRaw and not sellVeto and masterConf >= ssd_effMinConf and confirmGate
+
+if isSSD and barstate.isconfirmed
+    if stickySigDir == 1 and not na(stickyTP) and not na(stickySL)
+        if high >= stickyTP
+            if ssd_trackTradePlans
+                planTPHit += 1
+            stickyExitReason := 1
+            stickySigDir := 0
+        else if low <= stickySL
+            if ssd_trackTradePlans
+                planSLHit += 1
+            stickyExitReason := 2
+            stickySigDir := 0
+    else if stickySigDir == -1 and not na(stickyTP) and not na(stickySL)
+        if low <= stickyTP
+            if ssd_trackTradePlans
+                planTPHit += 1
+            stickyExitReason := 1
+            stickySigDir := 0
+        else if high >= stickySL
+            if ssd_trackTradePlans
+                planSLHit += 1
+            stickyExitReason := 2
+            stickySigDir := 0
+
+    if validFreshLong and stickySigDir != 1
+        if stickySigDir == -1
+            if ssd_trackTradePlans
+                planReverse += 1
+            stickyExitReason := 3
+        stickyEntry := close
+        stickyEntryBar := bar_index
+        stickySigDir := 1
+        stickyExitReason := 0
+        stickySL := eqlSweepConfirm and not na(lastEQLSweepLvl) ? lastEQLSweepLvl - atr14 * 0.3 : close - atr14 * 1.5
+        if not na(nearestEQHabove) and (nearestEQHabove - close) <= atr14 * ssd_maxTPdistAtr
+            stickyTP := nearestEQHabove
+        else
+            stickyTP := close + atr14 * 3
+        if ssd_trackTradePlans
+            planEmitted += 1
+
+    if validFreshShort and stickySigDir != -1
+        if stickySigDir == 1
+            if ssd_trackTradePlans
+                planReverse += 1
+            stickyExitReason := 3
+        stickyEntry := close
+        stickyEntryBar := bar_index
+        stickySigDir := -1
+        stickyExitReason := 0
+        stickySL := eqhSweepConfirm and not na(lastEQHSweepLvl) ? lastEQHSweepLvl + atr14 * 0.3 : close + atr14 * 1.5
+        if not na(nearestEQLbelow) and (close - nearestEQLbelow) <= atr14 * ssd_maxTPdistAtr
+            stickyTP := nearestEQLbelow
+        else
+            stickyTP := close - atr14 * 3
+        if ssd_trackTradePlans
+            planEmitted += 1
+
+string entryStr = "-"
+string slStr    = "-"
+string tpStr    = "-"
+string rrStr    = "-"
+
+if showTradePlan and stickySigDir != 0 and not na(stickyEntry)
+    float rr = math.abs(stickyEntry - stickySL) > 0 ? math.abs(stickyTP - stickyEntry) / math.abs(stickyEntry - stickySL) : 0
+    bool tpFromEq = (stickySigDir == 1 and not na(nearestEQHabove) and stickyTP == nearestEQHabove) or (stickySigDir == -1 and not na(nearestEQLbelow) and stickyTP == nearestEQLbelow)
+    entryStr := str.tostring(stickyEntry, format.mintick) + " (sticky)"
+    slStr    := str.tostring(stickySL, format.mintick)
+    tpStr    := str.tostring(stickyTP, format.mintick) + (tpFromEq ? " (EQ)" : " (3xATR)")
+    rrStr    := str.tostring(rr, "#.##") + " : 1"
+else if showTradePlan and netScore >= 3
+    float sl = eqlSweepConfirm and not na(lastEQLSweepLvl) ? lastEQLSweepLvl - atr14 * 0.3 : close - atr14 * 1.5
+    float tp = not na(nearestEQHabove) and (nearestEQHabove - close) <= atr14 * ssd_maxTPdistAtr ? nearestEQHabove : close + atr14 * 3
+    float rr = math.abs(close - sl) > 0 ? math.abs(tp - close) / math.abs(close - sl) : 0
+    entryStr := str.tostring(close, format.mintick)
+    slStr    := str.tostring(sl, format.mintick)
+    tpStr    := str.tostring(tp, format.mintick) + (not na(nearestEQHabove) and (nearestEQHabove - close) <= atr14 * ssd_maxTPdistAtr ? " (EQH)" : " (3xATR)")
+    rrStr    := str.tostring(rr, "#.##") + " : 1"
+else if showTradePlan and netScore <= -3
+    float sl = eqhSweepConfirm and not na(lastEQHSweepLvl) ? lastEQHSweepLvl + atr14 * 0.3 : close + atr14 * 1.5
+    float tp = not na(nearestEQLbelow) and (close - nearestEQLbelow) <= atr14 * ssd_maxTPdistAtr ? nearestEQLbelow : close - atr14 * 3
+    float rr = math.abs(sl - close) > 0 ? math.abs(close - tp) / math.abs(sl - close) : 0
+    entryStr := str.tostring(close, format.mintick)
+    slStr    := str.tostring(sl, format.mintick)
+    tpStr    := str.tostring(tp, format.mintick) + (not na(nearestEQLbelow) and (close - nearestEQLbelow) <= atr14 * ssd_maxTPdistAtr ? " (EQL)" : " (3xATR)")
+    rrStr    := str.tostring(rr, "#.##") + " : 1"
+
+strengthBar = masterConf > 85 ? "#####" : masterConf > 70 ? "####-" : masterConf > 50 ? "###--" : masterConf > 30 ? "##---" : masterConf > 10 ? "#----" : "-----"
+int planClosedTotal = planTPHit + planSLHit
+float planWinRate = planClosedTotal > 0 ? planTPHit / planClosedTotal * 100 : 0.0
+
+// ============================================================
+//  SSD: CATEGORY VERDICTS
+// ============================================================
+bool htfAligned = ssd_useHTF and htfRegime == confirmedRegime
+
+string regVerdict = ""
+color  regVerdictBg = col_neut
+string regVerdictDetail = ""
+if pendingRegime
+    regVerdict := "TRANSITIONING"
+    regVerdictBg := col_warn
+    regVerdictDetail := "Raw: " + f_regimeShort(rawRegime) + " " + str.tostring(rStreak) + "/" + str.tostring(ssd_hysteresis) + " bars"
+else if confirmedRegime == 1
+    if ssd_useHTF and not htfAligned
+        regVerdict := "LONG vs HTF"
+        regVerdictBg := col_warn
+        regVerdictDetail := "Current bull but HTF " + f_regimeShort(htfRegime)
+    else if confPct >= 70
+        regVerdict := "STRONG BULL"
+        regVerdictBg := col_bull_s
+        regVerdictDetail := "Age " + str.tostring(rHeldBars) + "b | Conf " + str.tostring(confPct, "#") + "% " + confStars
+    else
+        regVerdict := "BULL"
+        regVerdictBg := col_bull
+        regVerdictDetail := "Age " + str.tostring(rHeldBars) + "b | Conf " + str.tostring(confPct, "#") + "%"
+else if confirmedRegime == -1
+    if ssd_useHTF and not htfAligned
+        regVerdict := "SHORT vs HTF"
+        regVerdictBg := col_warn
+        regVerdictDetail := "Current bear but HTF " + f_regimeShort(htfRegime)
+    else if confPct >= 70
+        regVerdict := "STRONG BEAR"
+        regVerdictBg := col_bear_s
+        regVerdictDetail := "Age " + str.tostring(rHeldBars) + "b | Conf " + str.tostring(confPct, "#") + "% " + confStars
+    else
+        regVerdict := "BEAR"
+        regVerdictBg := col_bear
+        regVerdictDetail := "Age " + str.tostring(rHeldBars) + "b | Conf " + str.tostring(confPct, "#") + "%"
+else if confirmedRegime == 4
+    regVerdict := "SQUEEZE LOADING"
+    regVerdictBg := col_cyan
+    regVerdictDetail := "Prep both-sided breakout orders"
+else if confirmedRegime == 3
+    regVerdict := "HIGH VOL"
+    regVerdictBg := col_warn
+    regVerdictDetail := "Reduce size 25-50% | Scalp only"
+else if confirmedRegime == 2
+    regVerdict := "RANGING"
+    regVerdictBg := col_purple
+    regVerdictDetail := "Mean reversion / grid trade"
+else
+    regVerdict := "CHOP"
+    regVerdictBg := col_neut
+    regVerdictDetail := "Stay out | A+ setups only"
+
+string fibVerdict = ""
+color  fibVerdictBg = col_neut
+string fibVerdictDetail = ""
+if na(swingHi) or na(swingLo)
+    fibVerdict := "NO SWING"
+    fibVerdictBg := col_neut
+    fibVerdictDetail := "Pivots forming..."
+else if atExtension
+    fibVerdict := isUpswing ? "AT EXT BULL" : "AT EXT BEAR"
+    fibVerdictBg := isUpswing ? col_bull_s : col_bear_s
+    fibVerdictDetail := "Take profit zone | " + str.tostring(retPct, "#") + "%"
+else if inGoldenPocket
+    fibVerdict := isUpswing ? "GOLDEN BUY" : "GOLDEN SELL"
+    fibVerdictBg := col_golden
+    fibVerdictDetail := "@" + nearestFibLvl + " | retrace " + str.tostring(retPct, "#") + "%"
+else if inBuyZone
+    fibVerdict := "BUY ZONE"
+    fibVerdictBg := col_bull
+    fibVerdictDetail := str.tostring(retPct, "#") + "% pullback in uptrend"
+else if inSellZone
+    fibVerdict := "SELL ZONE"
+    fibVerdictBg := col_bear
+    fibVerdictDetail := str.tostring(retPct, "#") + "% bounce in downtrend"
+else if inPremium
+    fibVerdict := "PREMIUM"
+    fibVerdictBg := col_bear_d
+    fibVerdictDetail := isUpswing ? "Avoid longs, wait pullback" : "Bounce before drop"
+else if inDiscount
+    fibVerdict := "DISCOUNT"
+    fibVerdictBg := col_bull_d
+    fibVerdictDetail := isUpswing ? "Drop before bounce" : "Avoid shorts, wait rally"
+else
+    fibVerdict := "MID RANGE"
+    fibVerdictBg := col_neut
+    fibVerdictDetail := "Between 38.2-50% | wait"
+
+string liqVerdict = ""
+color  liqVerdictBg = col_neut
+string liqVerdictDetail = ""
+if eqlSweepConfirm
+    liqVerdict := "EQL SWEEP->BULL"
+    liqVerdictBg := col_bull_s
+    liqVerdictDetail := "Liquidity grabbed | Reversal entry"
+else if eqhSweepConfirm
+    liqVerdict := "EQH SWEEP->BEAR"
+    liqVerdictBg := col_bear_s
+    liqVerdictDetail := "Liquidity grabbed | Reversal entry"
+else if eqhNoReaction
+    liqVerdict := "EQH NO REACT"
+    liqVerdictBg := col_info
+    liqVerdictDetail := "Bullish continuation likely"
+else if eqlNoReaction
+    liqVerdict := "EQL NO REACT"
+    liqVerdictBg := col_purple
+    liqVerdictDetail := "Bearish continuation likely"
+else if priceNearEQH and priceNearEQL
+    liqVerdict := "SANDWICHED"
+    liqVerdictBg := col_warn
+    liqVerdictDetail := "EQH " + str.tostring(distEQHpct, "#.#") + "% | EQL " + str.tostring(distEQLpct, "#.#") + "%"
+else if priceNearEQH
+    liqVerdict := "TARGETING EQH"
+    liqVerdictBg := col_warn
+    liqVerdictDetail := str.tostring(distEQHpct, "#.##") + "% away"
+else if priceNearEQL
+    liqVerdict := "TARGETING EQL"
+    liqVerdictBg := col_warn
+    liqVerdictDetail := str.tostring(distEQLpct, "#.##") + "% away"
+else if activeEQH > 0 or activeEQL > 0
+    if eqVolRatio > 1.5
+        liqVerdict := "HEAVY BID"
+        liqVerdictBg := col_bull
+        liqVerdictDetail := "EQL vol " + str.tostring(eqVolRatio, "#.##") + "x EQH | support stacked"
+    else if eqVolRatio > 0 and eqVolRatio < 0.67
+        liqVerdict := "HEAVY OFFER"
+        liqVerdictBg := col_bear
+        liqVerdictDetail := "EQH vol " + str.tostring(1/eqVolRatio, "#.##") + "x EQL | resistance stacked"
+    else
+        liqVerdict := "BALANCED"
+        liqVerdictBg := col_neut
+        liqVerdictDetail := str.tostring(activeEQH) + " EQH / " + str.tostring(activeEQL) + " EQL zones"
+else
+    liqVerdict := "NO ZONES"
+    liqVerdictBg := col_neut
+    liqVerdictDetail := "No active liquidity zones"
+
+string metVerdict = ""
+color  metVerdictBg = col_neut
+string metVerdictDetail = str.tostring(metBull) + "B / " + str.tostring(metBear) + "S | ADX " + str.tostring(adx, "#") + " RSI " + str.tostring(rsi14, "#")
+
+if metScore >= 4
+    metVerdict := "STRONG BULL"
+    metVerdictBg := col_bull_s
+else if metScore >= 2
+    metVerdict := "BULLISH"
+    metVerdictBg := col_bull
+else if metScore <= -4
+    metVerdict := "STRONG BEAR"
+    metVerdictBg := col_bear_s
+else if metScore <= -2
+    metVerdict := "BEARISH"
+    metVerdictBg := col_bear
+else
+    metVerdict := "MIXED"
+    metVerdictBg := col_warn
+
+// ============================================================
+//  SSD: TRANSITION LABELS
+// ============================================================
+var label[] transLabels = array.new<label>()
+if isSSD and ssd_showTransL and regimeChanged and barstate.isconfirmed
+    label l = label.new(bar_index, high, "-> " + regimeShort, style=label.style_label_down, color=color.new(regimeColor, 30), textcolor=col_txt, size=size.small, yloc=yloc.abovebar)
+    array.push(transLabels, l)
+    if array.size(transLabels) > 50
+        label.delete(array.shift(transLabels))
+
+// ============================================================
+//  SSD: DECISION PANEL DASHBOARD
+// ============================================================
+var table decisionPanel = table.new(f_pos(dash_pos), 2, 18, bgcolor=col_frame, border_width=1, border_color=color.new(#2a2e3e, 0), frame_width=2, frame_color=col_neut)
+
+if isSSD and barstate.islast and ssd_showDashboard
+    sz  = f_sz(dash_size)
+    int r = 0
+
+    table.cell(decisionPanel, 0, r, "  " + masterAction + "  ", text_color=col_txt, bgcolor=masterColor, text_size=size.large, text_halign=text.align_center)
+    table.merge_cells(decisionPanel, 0, r, 1, r)
+    r += 1
+
+    table.cell(decisionPanel, 0, r, "  BIAS", text_color=col_muted, text_size=sz, bgcolor=col_row1, text_halign=text.align_left)
+    table.cell(decisionPanel, 1, r, masterBias + "  ", text_color=col_txt, bgcolor=masterBiasCol, text_size=sz, text_halign=text.align_right)
+    r += 1
+
+    scoreTxt = "B" + str.tostring(scoreBull) + " vs S" + str.tostring(scoreBear) + "  (" + (netScore > 0 ? "+" : "") + str.tostring(netScore) + ")"
+    color scoreCol = netScore >= 3 ? col_bull_s : netScore <= -3 ? col_bear_s : col_muted
+    table.cell(decisionPanel, 0, r, "  SCORE", text_color=col_muted, text_size=sz, bgcolor=col_row2, text_halign=text.align_left)
+    table.cell(decisionPanel, 1, r, scoreTxt + "  ", text_color=scoreCol, text_size=sz, bgcolor=col_row2, text_halign=text.align_right)
+    r += 1
+
+    confBg = masterConf > 70 ? col_bull_s : masterConf > 50 ? col_bull : masterConf > 30 ? col_warn : col_neut
+    table.cell(decisionPanel, 0, r, "  CONFIDENCE", text_color=col_muted, text_size=sz, bgcolor=col_row1, text_halign=text.align_left)
+    table.cell(decisionPanel, 1, r, strengthBar + "  " + str.tostring(masterConf, "#") + "%  ", text_color=col_txt, bgcolor=confBg, text_size=sz, text_halign=text.align_right)
+    r += 1
+
+    if anyVetoActive
+        bool isActivelyBlocking = (netScore >= 3 and (buyVeto or masterConf < ssd_effMinConf)) or (netScore <= -3 and (sellVeto or masterConf < ssd_effMinConf))
+        string vetoLabel = isActivelyBlocking ? "  VETOS" : "  ACTIVE"
+        color  vetoRowBg = isActivelyBlocking ? col_veto : col_warn
+        string vReas = vetoDisplay
+        if isActivelyBlocking and masterConf < ssd_effMinConf
+            vReas += "!LOW-CONF "
+        table.cell(decisionPanel, 0, r, vetoLabel, text_color=col_muted, text_size=sz, bgcolor=col_row2, text_halign=text.align_left)
+        table.cell(decisionPanel, 1, r, vReas + " ", text_color=col_txt, bgcolor=vetoRowBg, text_size=sz, text_halign=text.align_right)
+        r += 1
+
+    if showTradePlan or stickySigDir != 0
+        table.cell(decisionPanel, 0, r, "  TRADE PLAN", text_color=col_txt, bgcolor=col_sep, text_size=sz, text_halign=text.align_center)
+        table.merge_cells(decisionPanel, 0, r, 1, r)
+        r += 1
+
+        table.cell(decisionPanel, 0, r, "  ENTRY", text_color=col_muted, text_size=sz, bgcolor=col_row2, text_halign=text.align_left)
+        table.cell(decisionPanel, 1, r, entryStr + "  ", text_color=col_info, text_size=sz, bgcolor=col_row2, text_halign=text.align_right)
+        r += 1
+
+        table.cell(decisionPanel, 0, r, "  STOP LOSS", text_color=col_muted, text_size=sz, bgcolor=col_row1, text_halign=text.align_left)
+        table.cell(decisionPanel, 1, r, slStr + "  ", text_color=col_bear_s, text_size=sz, bgcolor=col_row1, text_halign=text.align_right)
+        r += 1
+
+        table.cell(decisionPanel, 0, r, "  TAKE PROFIT", text_color=col_muted, text_size=sz, bgcolor=col_row2, text_halign=text.align_left)
+        table.cell(decisionPanel, 1, r, tpStr + "  ", text_color=col_bull_s, text_size=sz, bgcolor=col_row2, text_halign=text.align_right)
+        r += 1
+
+        table.cell(decisionPanel, 0, r, "  R:R", text_color=col_muted, text_size=sz, bgcolor=col_row1, text_halign=text.align_left)
+        table.cell(decisionPanel, 1, r, rrStr + "  ", text_color=col_info, text_size=sz, bgcolor=col_row1, text_halign=text.align_right)
+        r += 1
+
+    if ssd_trackTradePlans and (planEmitted > 0 or stickySigDir != 0)
+        table.cell(decisionPanel, 0, r, "  PLAN STATS", text_color=col_txt, bgcolor=col_sep, text_size=sz, text_halign=text.align_center)
+        table.merge_cells(decisionPanel, 0, r, 1, r)
+        r += 1
+
+        table.cell(decisionPanel, 0, r, "  Plans / Active", text_color=col_muted, text_size=sz, bgcolor=col_row2, text_halign=text.align_left)
+        table.cell(decisionPanel, 1, r, str.tostring(planEmitted) + " / " + (stickySigDir != 0 ? "1" : "0") + "  ", text_color=col_txt, text_size=sz, bgcolor=col_row2, text_halign=text.align_right)
+        r += 1
+
+        table.cell(decisionPanel, 0, r, "  TP / SL Hit", text_color=col_muted, text_size=sz, bgcolor=col_row1, text_halign=text.align_left)
+        table.cell(decisionPanel, 1, r, str.tostring(planTPHit) + " v / " + str.tostring(planSLHit) + " x  ", text_color=col_txt, text_size=sz, bgcolor=col_row1, text_halign=text.align_right)
+        r += 1
+
+        color wrCol = planWinRate >= 60 ? col_bull_s : planWinRate >= 40 ? col_warn : col_bear_s
+        table.cell(decisionPanel, 0, r, "  Win Rate", text_color=col_muted, text_size=sz, bgcolor=col_row2, text_halign=text.align_left)
+        table.cell(decisionPanel, 1, r, str.tostring(planWinRate, "#") + "%  ", text_color=col_txt, text_size=sz, bgcolor=wrCol, text_halign=text.align_right)
+        r += 1
+
+// ============================================================
+//  SSD: METRICS BANNER
+// ============================================================
+var table banner = table.new(f_pos(ssd_bannerPos), 4, 4, bgcolor=col_frame, border_width=1, border_color=color.new(#2a2e3e, 0), frame_width=2, frame_color=color.new(#363a45, 0))
+
+if isSSD and barstate.islast and ssd_showMetrics
+    string titleTxt = "STOCKS SUITE PRO v1.0  *  " + syminfo.ticker + " " + timeframe.period + "  *  " + masterAction + "  *  " + str.tostring(masterConf, "#") + "% " + confStars
+    table.cell(banner, 0, 0, titleTxt, text_color=col_txt, text_size=size.normal, bgcolor=col_hdr2, text_halign=text.align_center)
+    for c = 1 to 3
+        table.cell(banner, c, 0, "", bgcolor=col_hdr2)
+    table.merge_cells(banner, 0, 0, 3, 0)
+
+    table.cell(banner, 0, 1, "REGIM",     text_color=col_txt, text_size=size.small, bgcolor=C_SEC_REGIME, text_halign=text.align_center)
+    table.cell(banner, 1, 1, "FIB",       text_color=col_txt, text_size=size.small, bgcolor=C_SEC_FIB,    text_halign=text.align_center)
+    table.cell(banner, 2, 1, "LIQUIDITY", text_color=col_txt, text_size=size.small, bgcolor=C_SEC_LIQ,    text_halign=text.align_center)
+    table.cell(banner, 3, 1, "METRICS",   text_color=col_txt, text_size=size.small, bgcolor=C_SEC_METRIC, text_halign=text.align_center)
+
+    table.cell(banner, 0, 2, regVerdict, text_color=col_txt, text_size=size.large, bgcolor=regVerdictBg, text_halign=text.align_center)
+    table.cell(banner, 1, 2, fibVerdict, text_color=col_txt, text_size=size.large, bgcolor=fibVerdictBg, text_halign=text.align_center)
+    table.cell(banner, 2, 2, liqVerdict, text_color=col_txt, text_size=size.large, bgcolor=liqVerdictBg, text_halign=text.align_center)
+    table.cell(banner, 3, 2, metVerdict, text_color=col_txt, text_size=size.large, bgcolor=metVerdictBg, text_halign=text.align_center)
+
+    table.cell(banner, 0, 3, regVerdictDetail, text_color=col_val, text_size=size.tiny, bgcolor=color.new(regVerdictBg, 70), text_halign=text.align_center)
+    table.cell(banner, 1, 3, fibVerdictDetail, text_color=col_val, text_size=size.tiny, bgcolor=color.new(fibVerdictBg, 70), text_halign=text.align_center)
+    table.cell(banner, 2, 3, liqVerdictDetail, text_color=col_val, text_size=size.tiny, bgcolor=color.new(liqVerdictBg, 70), text_halign=text.align_center)
+    table.cell(banner, 3, 3, metVerdictDetail, text_color=col_val, text_size=size.tiny, bgcolor=color.new(metVerdictBg, 70), text_halign=text.align_center)
+
+bgcolor(isSSD and ssd_showBgRegime ? color.new(regimeColor, 94) : na, title="Regime Background")
+
+// ============================================================
+//  SCA: MULTI-SCANNER
+// ============================================================
+f_sca_scan() =>
+    c     = close
+    r     = ta.rsi(close, sca_rsiLen)
+    ef    = ta.ema(close, sca_emaF)
+    es    = ta.ema(close, sca_emaS)
+    e2    = ta.ema(close, sca_ema200i)
+    vr    = ta.sma(volume, sca_volLen)
+    vrNow = vr > 0.0001 ? math.min(nz(volume) / vr, 99.0) : 0.0
+    [ml, sl2, _] = ta.macd(close, 12, 26, 9)
+    prevC = nz(close[1])
+    dayP  = prevC > 0 ? (close - prevC) / prevC * 100 : 0.0
+    gapP  = prevC > 0 ? (open  - prevC) / prevC * 100 : 0.0
+    atrV  = ta.atr(sca_atrLen)
+    atrp  = close > 0 ? atrV / close * 100 : 0.0
+    edist = e2 > 0 ? (close - e2) / e2 * 100 : 0.0
+    hi52  = ta.highest(high, sca_hiLen)
+    fromHi = hi52 > 0 ? (close - hi52) / hi52 * 100 : 0.0
+    emaSt = ef > es and c > e2 ? (ef > es * 1.005 ? 2.0 : 1.0) : ef < es and c < e2 ? (ef < es * 0.995 ? -2.0 : -1.0) : 0.0
+    macdSt = ml > sl2 ? 1.0 : -1.0
+    score  = 0.0
+    score += emaSt >= 2 ? 3.0 : emaSt == 1 ? 1.5 : emaSt == -1 ? -1.5 : emaSt <= -2 ? -3.0 : 0.0
+    score += r > 60 ? 2.0 : r > 50 ? 1.0 : r < 40 ? -2.0 : r < 50 ? -1.0 : 0.0
+    score += macdSt > 0 ? 2.0 : -2.0
+    score += vrNow > 1.5 ? 1.5 : vrNow > 1.0 ? 0.5 : vrNow > 0.6 ? -0.5 : -1.5
+    mom = close > close[5] ? 1.5 : close < close[5] ? -1.5 : 0.0
+    score += mom
+    [c, r, emaSt, vrNow, score, dayP, gapP, atrp, edist, fromHi]
+
+f_sca_htf() =>
+    ef = ta.ema(close, sca_emaF)
+    es = ta.ema(close, sca_emaS)
+    e2 = ta.ema(close, sca_ema200i)
+    not na(e2) ? (ef > es and close > e2 ? 1 : ef < es and close < e2 ? -1 : 0) : (ef > es ? 1 : ef < es ? -1 : 0)
+
+[c1, r1, e_1, v1, sc1, d1, g1, atr_1, ed1, hi1]                   = request.security(sca_s1,  sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c2, r2, e_2, v2, sc2, d2, g2, atr_2, ed2, hi2]                   = request.security(sca_s2,  sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c3, r3, e_3, v3, sc3, d3, g3, atr_3, ed3, hi3]                   = request.security(sca_s3,  sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c4, r4, e_4, v4, sc4, d4, g4, atr_4, ed4, hi4]                   = request.security(sca_s4,  sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c5, r5, e_5, v5, sc5, d5, g5, atr_5, ed5, hi5]                   = request.security(sca_s5,  sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c6, r6, e_6, v6, sc6, d6, g6, atr_6, ed6, hi6]                   = request.security(sca_s6,  sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c7, r7, e_7, v7, sc7, d7, g7, atr_7, ed7, hi7]                   = request.security(sca_s7,  sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c8, r8, e_8, v8, sc8, d8, g8, atr_8, ed8, hi8]                   = request.security(sca_s8,  sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c9, r9, e_9, v9, sc9, d9, g9, atr_9, ed9, hi9]                   = request.security(sca_s9,  sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c10, r10, e_10, v10, sc10, d10, g10, atr_10, ed10, hi10]         = request.security(sca_s10, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c11, r11, e_11, v11, sc11, d11, g11, atr_11, ed11, hi11]         = request.security(sca_s11, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c12, r12, e_12, v12, sc12, d12, g12, atr_12, ed12, hi12]         = request.security(sca_s12, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c13, r13, e_13, v13, sc13, d13, g13, atr_13, ed13, hi13]         = request.security(sca_s13, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c14, r14, e_14, v14, sc14, d14, g14, atr_14, ed14, hi14]         = request.security(sca_s14, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c15, r15, e_15, v15, sc15, d15, g15, atr_15, ed15, hi15]         = request.security(sca_s15, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c16, r16, e_16, v16, sc16, d16, g16, atr_16, ed16, hi16]         = request.security(sca_s16, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c17, r17, e_17, v17, sc17, d17, g17, atr_17, ed17, hi17]         = request.security(sca_s17, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c18, r18, e_18, v18, sc18, d18, g18, atr_18, ed18, hi18]         = request.security(sca_s18, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c19, r19, e_19, v19, sc19, d19, g19, atr_19, ed19, hi19]         = request.security(sca_s19, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+[c20, r20, e_20, v20, sc20, d20, g20, atr_20, ed20, hi20]         = request.security(sca_s20, sca_scanTF, f_sca_scan(), barmerge.gaps_off, barmerge.lookahead_off, ignore_invalid_symbol=true)
+
+// OPTIMIZARE: Pine v6 limita 40 request.security/script. 20 SCA scan + 20 SCA htf + alte calls
+// ar fi 51 total. SCA HTF eliminat (20 -> 0 calls). MTF derivat din scan-TF emaSt (e_N):
+// e_N > 0 inseamna trend bull pe scan TF, e_N < 0 trend bear. HTF proxy = same direction.
+// Pentru un MTF veritabil pe Weekly, foloseste indicatorul pe chart-ul Weekly direct.
+h1  = e_1  >= 1 ? 1 : e_1  <= -1 ? -1 : 0
+h2  = e_2  >= 1 ? 1 : e_2  <= -1 ? -1 : 0
+h3  = e_3  >= 1 ? 1 : e_3  <= -1 ? -1 : 0
+h4  = e_4  >= 1 ? 1 : e_4  <= -1 ? -1 : 0
+h5  = e_5  >= 1 ? 1 : e_5  <= -1 ? -1 : 0
+h6  = e_6  >= 1 ? 1 : e_6  <= -1 ? -1 : 0
+h7  = e_7  >= 1 ? 1 : e_7  <= -1 ? -1 : 0
+h8  = e_8  >= 1 ? 1 : e_8  <= -1 ? -1 : 0
+h9  = e_9  >= 1 ? 1 : e_9  <= -1 ? -1 : 0
+h10 = e_10 >= 1 ? 1 : e_10 <= -1 ? -1 : 0
+h11 = e_11 >= 1 ? 1 : e_11 <= -1 ? -1 : 0
+h12 = e_12 >= 1 ? 1 : e_12 <= -1 ? -1 : 0
+h13 = e_13 >= 1 ? 1 : e_13 <= -1 ? -1 : 0
+h14 = e_14 >= 1 ? 1 : e_14 <= -1 ? -1 : 0
+h15 = e_15 >= 1 ? 1 : e_15 <= -1 ? -1 : 0
+h16 = e_16 >= 1 ? 1 : e_16 <= -1 ? -1 : 0
+h17 = e_17 >= 1 ? 1 : e_17 <= -1 ? -1 : 0
+h18 = e_18 >= 1 ? 1 : e_18 <= -1 ? -1 : 0
+h19 = e_19 >= 1 ? 1 : e_19 <= -1 ? -1 : 0
+h20 = e_20 >= 1 ? 1 : e_20 <= -1 ? -1 : 0
+
+f_sca_pmAdjust(float originalScore, float vrNow) =>
+    if not (sca_pmAware and isPremarket)
+        originalScore
+    else
+        oldVolContrib = vrNow > 1.5 ? 1.5 : vrNow > 1.0 ? 0.5 : vrNow > 0.6 ? -0.5 : -1.5
+        newVolContrib = vrNow > sca_pmVolThresholdRelax * 4 ? 1.5 : vrNow > sca_pmVolThresholdRelax * 2 ? 0.5 : vrNow > sca_pmVolThresholdRelax ? 0.0 : -0.5
+        originalScore - oldVolContrib + newVolContrib
+
+adj_sc1  = f_sca_pmAdjust(sc1, v1)
+adj_sc2  = f_sca_pmAdjust(sc2, v2)
+adj_sc3  = f_sca_pmAdjust(sc3, v3)
+adj_sc4  = f_sca_pmAdjust(sc4, v4)
+adj_sc5  = f_sca_pmAdjust(sc5, v5)
+adj_sc6  = f_sca_pmAdjust(sc6, v6)
+adj_sc7  = f_sca_pmAdjust(sc7, v7)
+adj_sc8  = f_sca_pmAdjust(sc8, v8)
+adj_sc9  = f_sca_pmAdjust(sc9, v9)
+adj_sc10 = f_sca_pmAdjust(sc10, v10)
+adj_sc11 = f_sca_pmAdjust(sc11, v11)
+adj_sc12 = f_sca_pmAdjust(sc12, v12)
+adj_sc13 = f_sca_pmAdjust(sc13, v13)
+adj_sc14 = f_sca_pmAdjust(sc14, v14)
+adj_sc15 = f_sca_pmAdjust(sc15, v15)
+adj_sc16 = f_sca_pmAdjust(sc16, v16)
+adj_sc17 = f_sca_pmAdjust(sc17, v17)
+adj_sc18 = f_sca_pmAdjust(sc18, v18)
+adj_sc19 = f_sca_pmAdjust(sc19, v19)
+adj_sc20 = f_sca_pmAdjust(sc20, v20)
+
+f_sca_pmGap(float dayP, float gapP) =>
+    (sca_pmAware and isPremarket) ? dayP : gapP
+
+pmg1  = f_sca_pmGap(d1, g1)
+pmg2  = f_sca_pmGap(d2, g2)
+pmg3  = f_sca_pmGap(d3, g3)
+pmg4  = f_sca_pmGap(d4, g4)
+pmg5  = f_sca_pmGap(d5, g5)
+pmg6  = f_sca_pmGap(d6, g6)
+pmg7  = f_sca_pmGap(d7, g7)
+pmg8  = f_sca_pmGap(d8, g8)
+pmg9  = f_sca_pmGap(d9, g9)
+pmg10 = f_sca_pmGap(d10, g10)
+pmg11 = f_sca_pmGap(d11, g11)
+pmg12 = f_sca_pmGap(d12, g12)
+pmg13 = f_sca_pmGap(d13, g13)
+pmg14 = f_sca_pmGap(d14, g14)
+pmg15 = f_sca_pmGap(d15, g15)
+pmg16 = f_sca_pmGap(d16, g16)
+pmg17 = f_sca_pmGap(d17, g17)
+pmg18 = f_sca_pmGap(d18, g18)
+pmg19 = f_sca_pmGap(d19, g19)
+pmg20 = f_sca_pmGap(d20, g20)
+
+f_mtf_txt(float cur, int htf) =>
+    a1 = cur > 0 ? "^" : cur < 0 ? "v" : "-"
+    a2 = htf > 0 ? "^" : htf < 0 ? "v" : "-"
+    a1 + a2
+
+f_mtf_col(float curE, int htf) =>
+    cur = curE > 0 ? 1 : curE < 0 ? -1 : 0
+    cur > 0 and htf > 0 ? col_bull_s : cur < 0 and htf < 0 ? col_bear_s : cur > 0 and htf <= 0 ? col_neut : cur < 0 and htf >= 0 ? col_neut : col_lbl
+
+f_rsi_col(float r) => r > 70 ? col_bear_s : r > 60 ? col_bull : r > 40 ? col_neut : r > 30 ? col_bear : col_bull_s
+
+f_vol_col(float v) =>
+    if sca_pmAware and isPremarket
+        v > sca_pmVolThresholdRelax * 4 ? col_hot : v > sca_pmVolThresholdRelax * 2 ? col_bull : v > sca_pmVolThresholdRelax ? col_neut : col_lbl
+    else
+        v > 1.5 ? col_hot : v > 1.0 ? col_bull : v > 0.6 ? col_neut : col_bear
+
+f_day_col(float c) => c > 3 ? col_bull_s : c > 1 ? col_bull : c > -1 ? col_neut : c > -3 ? col_bear : col_bear_s
+f_gap_col(float g) => g > 2 ? col_bull_s : g > 0.5 ? col_bull : g > -0.5 ? col_neut : g > -2 ? col_bear : col_bear_s
+
+f_pmgap_col(float pmg) =>
+    absG = math.abs(pmg)
+    absG > sca_pmGapAlertThreshold * 2 ? col_hot : absG > sca_pmGapAlertThreshold ? col_bull_s : pmg > 0.5 ? col_bull : pmg < -0.5 ? col_bear : col_neut
+
+f_atr_col(float a) => a > 5 ? col_hot : a > 2 ? col_bull : a > 0.5 ? col_neut : col_lbl
+f_edist_col(float d) =>
+    ad = math.abs(d)
+    d > 0 and ad > 10 ? col_bull_s : d > 0 and ad > 2 ? col_bull : ad <= 2 ? col_hot : d < 0 and ad > 10 ? col_bear_s : col_bear
+
+f_hi_col(float h) =>
+    h >= -2 ? col_bull_s : h >= -10 ? col_bull : h >= -20 ? col_neut : h >= -35 ? col_bear : col_bear_s
+
+f_signal(float sc) => sc > 7 ? "S.BUY" : sc > 4 ? "BUY" : sc > -4 ? "-" : sc > -7 ? "SELL" : "S.SELL"
+f_signal_col(float sc) => sc > 7 ? col_bull_s : sc > 4 ? col_bull : sc > -4 ? col_neut : sc > -7 ? col_bear : col_bear_s
+
+f_rank_delta_txt(int curRank, int prevRank) =>
+    prevRank == 0 ? "NEW" : curRank == prevRank ? "-" : curRank < prevRank ? "^" + str.tostring(prevRank - curRank) : "v" + str.tostring(curRank - prevRank)
+
+f_rank_delta_col(int curRank, int prevRank) =>
+    prevRank == 0 ? col_info : curRank == prevRank ? col_lbl : curRank < prevRank ? col_bull : col_bear
+
+f_sca_earnings_badge(float gapP, float vrNow) =>
+    math.abs(gapP) > 5 and vrNow > 1.5 and (isRegular or isAfterHours) ? "ER " : ""
+
+var int[] prevRanks = array.new<int>(20, 0)
+var table scaTbl = na
+
+if isSCA and barstate.islast
+    sz = f_sz(dash_size)
+    symsArr = array.from(sca_s1,sca_s2,sca_s3,sca_s4,sca_s5,sca_s6,sca_s7,sca_s8,sca_s9,sca_s10,sca_s11,sca_s12,sca_s13,sca_s14,sca_s15,sca_s16,sca_s17,sca_s18,sca_s19,sca_s20)
+    prices  = array.from(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16,c17,c18,c19,c20)
+    rsis    = array.from(r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16,r17,r18,r19,r20)
+    trends  = array.from(float(e_1),float(e_2),float(e_3),float(e_4),float(e_5),float(e_6),float(e_7),float(e_8),float(e_9),float(e_10),float(e_11),float(e_12),float(e_13),float(e_14),float(e_15),float(e_16),float(e_17),float(e_18),float(e_19),float(e_20))
+    vols    = array.from(v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15,v16,v17,v18,v19,v20)
+    scores  = array.from(adj_sc1,adj_sc2,adj_sc3,adj_sc4,adj_sc5,adj_sc6,adj_sc7,adj_sc8,adj_sc9,adj_sc10,adj_sc11,adj_sc12,adj_sc13,adj_sc14,adj_sc15,adj_sc16,adj_sc17,adj_sc18,adj_sc19,adj_sc20)
+    days    = array.from(d1,d2,d3,d4,d5,d6,d7,d8,d9,d10,d11,d12,d13,d14,d15,d16,d17,d18,d19,d20)
+    gaps    = array.from(g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12,g13,g14,g15,g16,g17,g18,g19,g20)
+    atrs    = array.from(atr_1,atr_2,atr_3,atr_4,atr_5,atr_6,atr_7,atr_8,atr_9,atr_10,atr_11,atr_12,atr_13,atr_14,atr_15,atr_16,atr_17,atr_18,atr_19,atr_20)
+    edists  = array.from(ed1,ed2,ed3,ed4,ed5,ed6,ed7,ed8,ed9,ed10,ed11,ed12,ed13,ed14,ed15,ed16,ed17,ed18,ed19,ed20)
+    hi52s   = array.from(hi1,hi2,hi3,hi4,hi5,hi6,hi7,hi8,hi9,hi10,hi11,hi12,hi13,hi14,hi15,hi16,hi17,hi18,hi19,hi20)
+    pmgaps  = array.from(pmg1,pmg2,pmg3,pmg4,pmg5,pmg6,pmg7,pmg8,pmg9,pmg10,pmg11,pmg12,pmg13,pmg14,pmg15,pmg16,pmg17,pmg18,pmg19,pmg20)
+    htfs    = array.from(nz(h1),nz(h2),nz(h3),nz(h4),nz(h5),nz(h6),nz(h7),nz(h8),nz(h9),nz(h10),nz(h11),nz(h12),nz(h13),nz(h14),nz(h15),nz(h16),nz(h17),nz(h18),nz(h19),nz(h20))
+    indices = array.from(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
+
+    sortArr = sca_sortBy == "Score" ? array.copy(scores) : sca_sortBy == "RSI" ? array.copy(rsis) : sca_sortBy == "Volume" ? array.copy(vols) : sca_sortBy == "DAY %" ? array.copy(days) : sca_sortBy == "GAP %" ? array.copy(gaps) : sca_sortBy == "FROM 52W" ? array.copy(hi52s) : sca_sortBy == "PM GAP" ? array.copy(pmgaps) : array.copy(atrs)
+    bool desc = sca_sortDir == "Desc"
+    for i = 0 to 18
+        for j = 0 to 18 - i
+            a = nz(array.get(sortArr, j), -999.0)
+            b = nz(array.get(sortArr, j + 1), -999.0)
+            bool swap = desc ? a < b : a > b
+            if swap
+                tmpF = array.get(sortArr, j)
+                array.set(sortArr, j, array.get(sortArr, j + 1))
+                array.set(sortArr, j + 1, tmpF)
+                tmpI = array.get(indices, j)
+                array.set(indices, j, array.get(indices, j + 1))
+                array.set(indices, j + 1, tmpI)
+
+    var int[] currentRanks = array.new<int>(20, 0)
+    for ri = 0 to 19
+        idx = array.get(indices, ri)
+        array.set(currentRanks, idx, ri + 1)
+
+    bool full   = not sca_compact
+    bool showG  = sca_showGap and full
+    bool showHi = sca_showHi and full
+    bool showRD = sca_rankDelta and full
+    bool showSess = sca_showSess and full
+
+    int colCnt = 8
+    if full
+        colCnt := 10
+        if showG
+            colCnt += 1
+        if showHi
+            colCnt += 1
+        if showRD
+            colCnt += 1
+        if showSess
+            colCnt += 1
+        if sca_pmAware and isPremarket
+            colCnt += 1
+
+    int willShow = 0
+    for k = 0 to 19
+        float s_k = nz(array.get(scores, k), 0.0)
+        curT = array.get(trends, k) > 0 ? 1 : array.get(trends, k) < 0 ? -1 : 0
+        htfT = int(array.get(htfs, k))
+        bool mtfAligned = (curT > 0 and htfT > 0) or (curT < 0 and htfT < 0)
+        bool pmMoverOk = not sca_pmOnly or not isPremarket or math.abs(nz(array.get(pmgaps, k), 0.0)) >= sca_pmGapAlertThreshold
+        if math.abs(s_k) >= sca_minAbsScore and (not sca_mtfOnly or mtfAligned) and pmMoverOk
+            willShow += 1
+    int dataRows  = math.min(willShow, math.min(sca_showTop, 20))
+    int totalRows = 2 + dataRows + (sca_summary ? 1 : 0)
+
+    if not na(scaTbl)
+        table.delete(scaTbl)
+    scaTbl := table.new(f_pos(dash_pos), colCnt, totalRows, border_width=1, border_color=color.new(#37474F, 40), frame_width=1, frame_color=col_hdr)
+
+    pmTag = sca_pmAware and isPremarket ? "  *  PM" : sca_pmAware and isAfterHours ? "  *  AH" : sca_pmAware and isMarketClosed ? "  *  CLOSED" : ""
+    title = "STOCKS SCANNER " + sca_scanTF + "/" + sca_htfTF + "  *  " + sca_sortBy + " " + sca_sortDir + (sca_mtfOnly ? "  *  MTF" : "") + (sca_pmOnly ? "  *  PM ONLY" : "") + pmTag
+    table.cell(scaTbl, 0, 0, title, text_color=col_txt, bgcolor=col_hdr, text_size=sz, text_halign=text.align_center)
+    table.merge_cells(scaTbl, 0, 0, colCnt - 1, 0)
+
+    string[] hdrsArr = array.new<string>()
+    array.push(hdrsArr, "#")
+    if showRD
+        array.push(hdrsArr, "D")
+    array.push(hdrsArr, "SYMBOL")
+    if showSess
+        array.push(hdrsArr, "SESS")
+    array.push(hdrsArr, "DAY%")
+    if showG
+        array.push(hdrsArr, "GAP%")
+    if sca_pmAware and isPremarket
+        array.push(hdrsArr, "PM%")
+    if showHi
+        array.push(hdrsArr, "52W%")
+    if full
+        array.push(hdrsArr, "MTF")
+        array.push(hdrsArr, "RSI")
+        array.push(hdrsArr, "VOL")
+        array.push(hdrsArr, "ATR%")
+        array.push(hdrsArr, "E200%")
+        array.push(hdrsArr, "SCORE")
+        array.push(hdrsArr, "SIG")
+    else
+        array.push(hdrsArr, "MTF")
+        array.push(hdrsArr, "RSI")
+        array.push(hdrsArr, "VOL")
+        array.push(hdrsArr, "SCORE")
+        array.push(hdrsArr, "SIG")
+
+    for h = 0 to colCnt - 1
+        if h < array.size(hdrsArr)
+            table.cell(scaTbl, h, 1, array.get(hdrsArr, h), text_color=col_txt, bgcolor=color.new(#1E293B, 40), text_size=sz, text_halign=text.align_center)
+
+    int visibleRank = 0
+    int maxShow = math.min(sca_showTop, 20)
+
+    for row = 0 to 19
+        idx = array.get(indices, row)
+        sc  = array.get(scores, idx)
+        float sc_f = nz(sc, 0.0)
+        curT_f = array.get(trends, idx) > 0 ? 1 : array.get(trends, idx) < 0 ? -1 : 0
+        htfT_f = int(array.get(htfs, idx))
+        bool mtfAligned = (curT_f > 0 and htfT_f > 0) or (curT_f < 0 and htfT_f < 0)
+        bool pmMoverOk = not sca_pmOnly or not isPremarket or math.abs(nz(array.get(pmgaps, idx), 0.0)) >= sca_pmGapAlertThreshold
+        passFilter = math.abs(sc_f) >= sca_minAbsScore and (not sca_mtfOnly or mtfAligned) and pmMoverOk
+
+        if visibleRank < maxShow and passFilter
+            int y = visibleRank + 2
+            visibleRank += 1
+            symF = array.get(symsArr, idx)
+            nm   = f_short(symF)
+            pr   = array.get(prices,  idx)
+            rs   = array.get(rsis,    idx)
+            tr   = array.get(trends,  idx)
+            vl   = array.get(vols,    idx)
+            dy   = array.get(days,    idx)
+            gp   = array.get(gaps,    idx)
+            at   = array.get(atrs,    idx)
+            ed   = array.get(edists,  idx)
+            hi   = array.get(hi52s,   idx)
+            pmg  = array.get(pmgaps,  idx)
+            htf  = int(array.get(htfs, idx))
+
+            int col = 0
+            rankBg = visibleRank <= 3 ? col_bull_s : visibleRank <= 6 ? col_bull : visibleRank >= 16 ? col_bear_s : visibleRank >= 13 ? col_bear : col_lbl
+            table.cell(scaTbl, col, y, str.tostring(visibleRank), text_color=col_txt, bgcolor=rankBg, text_size=sz, text_halign=text.align_center)
+            col += 1
+
+            if showRD
+                int prevR = array.get(prevRanks, idx)
+                rdTxt = f_rank_delta_txt(visibleRank, prevR)
+                rdBg = f_rank_delta_col(visibleRank, prevR)
+                table.cell(scaTbl, col, y, rdTxt, text_color=col_txt, bgcolor=rdBg, text_size=sz, text_halign=text.align_center)
+                col += 1
+
+            erBadge = f_sca_earnings_badge(gp, vl)
+            symDisplay = erBadge + nm + "\n" + f_fmt_price(pr)
+            table.cell(scaTbl, col, y, symDisplay, text_color=col_txt, bgcolor=col_lbl, text_size=sz, text_halign=text.align_center)
+            col += 1
+
+            if showSess
+                table.cell(scaTbl, col, y, sessShort, text_color=col_txt, bgcolor=sessCol, text_size=sz, text_halign=text.align_center)
+                col += 1
+
+            dyTxt = (dy > 0 ? "+" : "") + str.tostring(dy, "#.##") + "%"
+            table.cell(scaTbl, col, y, dyTxt, text_color=col_txt, bgcolor=f_day_col(dy), text_size=sz, text_halign=text.align_center)
+            col += 1
+
+            if showG
+                gpTxt = (gp > 0 ? "+" : "") + str.tostring(gp, "#.##") + "%"
+                table.cell(scaTbl, col, y, gpTxt, text_color=col_txt, bgcolor=f_gap_col(gp), text_size=sz, text_halign=text.align_center)
+                col += 1
+
+            if sca_pmAware and isPremarket
+                pmgTxt = (pmg > 0 ? "+" : "") + str.tostring(pmg, "#.##") + "%"
+                table.cell(scaTbl, col, y, pmgTxt, text_color=col_txt, bgcolor=f_pmgap_col(pmg), text_size=sz, text_halign=text.align_center)
+                col += 1
+
+            if showHi
+                hiTxt = str.tostring(hi, "#.#") + "%"
+                table.cell(scaTbl, col, y, hiTxt, text_color=col_txt, bgcolor=f_hi_col(hi), text_size=sz, text_halign=text.align_center)
+                col += 1
+
+            table.cell(scaTbl, col, y, f_mtf_txt(tr, htf), text_color=col_txt, bgcolor=f_mtf_col(tr, htf), text_size=sz, text_halign=text.align_center)
+            col += 1
+
+            table.cell(scaTbl, col, y, str.tostring(rs, "#.0"), text_color=col_txt, bgcolor=f_rsi_col(rs), text_size=sz, text_halign=text.align_center)
+            col += 1
+
+            volDisplay = isPremarket ? str.tostring(vl * 100, "#") + "%" : str.tostring(vl, "#.1") + "x"
+            table.cell(scaTbl, col, y, volDisplay, text_color=col_txt, bgcolor=f_vol_col(vl), text_size=sz, text_halign=text.align_center)
+            col += 1
+
+            if full
+                table.cell(scaTbl, col, y, str.tostring(at, "#.##") + "%", text_color=col_txt, bgcolor=f_atr_col(at), text_size=sz, text_halign=text.align_center)
+                col += 1
+                edTxt = (ed > 0 ? "+" : "") + str.tostring(ed, "#.#") + "%"
+                table.cell(scaTbl, col, y, edTxt, text_color=col_txt, bgcolor=f_edist_col(ed), text_size=sz, text_halign=text.align_center)
+                col += 1
+
+            table.cell(scaTbl, col, y, str.tostring(sc_f, "#.#"), text_color=col_txt, bgcolor=f_signal_col(sc_f), text_size=sz, text_halign=text.align_center)
+            col += 1
+            table.cell(scaTbl, col, y, f_signal(sc_f), text_color=col_txt, bgcolor=f_signal_col(sc_f), text_size=sz, text_halign=text.align_center)
+
+    if sca_summary
+        int cntStrBuy  = 0
+        int cntBuy     = 0
+        int cntNeut    = 0
+        int cntSell    = 0
+        int cntStrSell = 0
+        int cntAligned = 0
+        int cntPmMovers = 0
+        float sumScore = 0.0
+        float sumDay   = 0.0
+
+        for k = 0 to 19
+            s = nz(array.get(scores, k), 0.0)
+            sumScore += s
+            sumDay   += nz(array.get(days, k), 0.0)
+            if s > 7
+                cntStrBuy += 1
+            else if s > 4
+                cntBuy += 1
+            else if s > -4
+                cntNeut += 1
+            else if s > -7
+                cntSell += 1
+            else
+                cntStrSell += 1
+            curT = array.get(trends, k) > 0 ? 1 : array.get(trends, k) < 0 ? -1 : 0
+            htfT = int(array.get(htfs, k))
+            if (curT > 0 and htfT > 0) or (curT < 0 and htfT < 0)
+                cntAligned += 1
+            if isPremarket and math.abs(nz(array.get(pmgaps, k), 0.0)) >= sca_pmGapAlertThreshold
+                cntPmMovers += 1
+
+        float avgScore = sumScore / 20.0
+        float avgDay   = sumDay / 20.0
+        int sumY = visibleRank + 2
+
+        pmSumTag = isPremarket ? "  *  PM Movers " + str.tostring(cntPmMovers) + "/20" : ""
+        string sumTxt = "BULL " + str.tostring(cntStrBuy + cntBuy) + " (" + str.tostring(cntStrBuy) + " str)  *  NEUT " + str.tostring(cntNeut) + "  *  BEAR " + str.tostring(cntSell + cntStrSell) + " (" + str.tostring(cntStrSell) + " str)  *  MTF " + str.tostring(cntAligned) + "/20  *  AVG DAY " + (avgDay > 0 ? "+" : "") + str.tostring(avgDay, "#.##") + "%  *  AVG SCORE " + str.tostring(avgScore, "#.#") + pmSumTag
+        color sumBg = avgScore > 4 ? col_bull : avgScore < -4 ? col_bear : col_hdr
+        table.cell(scaTbl, 0, sumY, sumTxt, text_color=col_txt, bgcolor=sumBg, text_size=sz, text_halign=text.align_center)
+        table.merge_cells(scaTbl, 0, sumY, colCnt - 1, sumY)
+
+    if barstate.isconfirmed
+        for k = 0 to 19
+            array.set(prevRanks, k, array.get(currentRanks, k))
+
+// ============================================================
+//  WHF: WHALE FOCUS MODE - base indicators
+// ============================================================
+whf_emaF    = ta.ema(close, whf_emaFast)
+whf_emaS    = ta.ema(close, whf_emaSlow)
+whf_ema200v = ta.ema(close, whf_ema200Len)
+whf_rsi     = ta.rsi(close, whf_rsiLen)
+whf_atr     = ta.atr(whf_atrLen)
+whf_volAvg  = ta.sma(volume, whf_volMaLen)
+[whf_bbUpper, whf_bbBasis, whf_bbLower] = ta.bb(close, whf_bbLen, whf_bbMult)
+[whf_macd_line, whf_macd_signal, whf_macd_hist] = ta.macd(close, whf_macdFast, whf_macdSlow, whf_macdSig)
+whf_stoch_k     = ta.stoch(close, high, low, whf_stochK)
+whf_stoch_d     = ta.sma(whf_stoch_k, whf_stochD)
+whf_obv         = ta.obv
+
+// WHF HTF — folosite din tuple-ul combinat _comb* (un singur request.security pentru SSD+WHF)
+whf_htfClose  = _combHtfClose
+whf_htfEmaF   = _combHtfEmaF
+whf_htfEmaS   = _combHtfEmaS
+whf_htfEma200 = _combHtfEma200
+whf_htfEma50  = _combHtfEma50
+
+whf_htfRef = whf_useHtfFb and na(whf_htfEma200) and not na(whf_htfEma50) ? whf_htfEma50 : whf_htfEma200
+whf_htfFallbackActive = whf_useHtfFb and na(whf_htfEma200) and not na(whf_htfEma50)
+whf_htfBull = not na(whf_htfRef) and whf_htfEmaF > whf_htfEmaS and whf_htfClose > whf_htfRef
+whf_htfBear = not na(whf_htfRef) and whf_htfEmaF < whf_htfEmaS and whf_htfClose < whf_htfRef
+
+whf_vwap      = ta.vwap(hlc3)
+whf_aboveVwap = close > whf_vwap
+
+// OPTIMIZARE: WHF QQQ close + close[lkb] combinate (2 -> 1 call)
+[whf_qqqClose, whf_qqqCloseLkb] = request.security("QQQ", timeframe.period, [close, close[whf_rsLookback]], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+float whf_closeLkb = nz(close[whf_rsLookback], close)
+whf_stockChg      = whf_closeLkb > 0 ? (close - whf_closeLkb) / whf_closeLkb * 100 : 0.0
+whf_qqqChg        = nz(whf_qqqCloseLkb, 0) > 0 ? (whf_qqqClose - whf_qqqCloseLkb) / whf_qqqCloseLkb * 100 : 0.0
+whf_relStr        = whf_stockChg - whf_qqqChg
+whf_strongRelStr  = whf_relStr > 0.5
+whf_weakRelStr    = whf_relStr < -0.5
+
+whf_whaleBullCnt = 0
+whf_whaleBearCnt = 0
+for i = 1 to whf_accumBars
+    whf_whaleBullCnt += volume[i] > nz(whf_volAvg[i], volume[i]) * whf_volMult and close[i] > open[i] ? 1 : 0
+    whf_whaleBearCnt += volume[i] > nz(whf_volAvg[i], volume[i]) * whf_volMult and close[i] < open[i] ? 1 : 0
+
+whf_accumThreshN = math.round(whf_accumBars * whf_accumPct)
+whf_strongAccum = whf_whaleBullCnt >= whf_accumThreshN
+whf_strongDist  = whf_whaleBearCnt >= whf_accumThreshN
+
+whf_trendBull = whf_emaF > whf_emaS and close > whf_ema200v
+whf_trendBear = whf_emaF < whf_emaS and close < whf_ema200v
+whf_momBull   = whf_rsi > 55 and whf_macd_hist > 0 and whf_stoch_k > whf_stoch_d
+whf_momBear   = whf_rsi < 45 and whf_macd_hist < 0 and whf_stoch_k < whf_stoch_d
+
+whf_phPrice = ta.pivothigh(high, whf_pivLen, whf_pivLen)
+whf_plPrice = ta.pivotlow(low,  whf_pivLen, whf_pivLen)
+
+var float whf_lastPH    = na
+var float whf_lastPL    = na
+var float whf_lastRSIph = na
+var float whf_lastRSIpl = na
+var bool  whf_bullDivActive = false
+var bool  whf_bearDivActive = false
+var int   whf_bullDivBar    = 0
+var int   whf_bearDivBar    = 0
+
+if not na(whf_phPrice)
+    if not na(whf_lastPH) and not na(whf_lastRSIph) and whf_phPrice > whf_lastPH and whf_rsi[whf_pivLen] < whf_lastRSIph
+        whf_bearDivActive := true
+        whf_bearDivBar    := bar_index
+    whf_lastPH    := whf_phPrice
+    whf_lastRSIph := whf_rsi[whf_pivLen]
+
+if not na(whf_plPrice)
+    if not na(whf_lastPL) and not na(whf_lastRSIpl) and whf_plPrice < whf_lastPL and whf_rsi[whf_pivLen] > whf_lastRSIpl
+        whf_bullDivActive := true
+        whf_bullDivBar    := bar_index
+    whf_lastPL    := whf_plPrice
+    whf_lastRSIpl := whf_rsi[whf_pivLen]
+
+if whf_useDivergence and whf_bullDivActive and bar_index - whf_bullDivBar > whf_divLookback
+    whf_bullDivActive := false
+if whf_useDivergence and whf_bearDivActive and bar_index - whf_bearDivBar > whf_divLookback
+    whf_bearDivActive := false
+
+whf_bullDiv = whf_useDivergence and whf_bullDivActive
+whf_bearDiv = whf_useDivergence and whf_bearDivActive
+
+var bool whf_bullDivPrev = false
+var bool whf_bearDivPrev = false
+whf_bullDivEdge = whf_bullDiv and not whf_bullDivPrev
+whf_bearDivEdge = whf_bearDiv and not whf_bearDivPrev
+whf_bullDivPrev := whf_bullDiv
+whf_bearDivPrev := whf_bearDiv
+
+whf_bbWidth   = (whf_bbUpper - whf_bbLower) / whf_bbBasis
+whf_bbSqueeze = whf_bbWidth < ta.sma(whf_bbWidth, 20) * whf_bbSqzRatio
+whf_obvEma  = ta.ema(whf_obv, 20)
+whf_obvBull = whf_obv > whf_obvEma
+
+whf_gapUp   = whf_showGap and open > high[1] * (1 + whf_gapMinPct / 100)
+whf_gapDown = whf_showGap and open < low[1] * (1 - whf_gapMinPct / 100)
+whf_gapPct  = close[1] > 0 ? (open - close[1]) / close[1] * 100 : 0.0
+
+// OPTIMIZARE: WHF Daily pivot data (H/L/C) combinate (3 -> 1 call)
+[whf_dHigh, whf_dLow, whf_dClose] = request.security(syminfo.tickerid, "D", [high[1], low[1], close[1]], lookahead=barmerge.lookahead_on)
+whf_pivotP  = (whf_dHigh + whf_dLow + whf_dClose) / 3
+whf_pivotR1 = 2 * whf_pivotP - whf_dLow
+whf_pivotS1 = 2 * whf_pivotP - whf_dHigh
+
+whf_nearVwap   = math.abs(close - whf_vwap) / close < 0.003
+whf_nearPivotP = math.abs(close - whf_pivotP) / close < 0.003
+whf_nearR1     = math.abs(close - whf_pivotR1) / close < 0.003
+whf_nearS1     = math.abs(close - whf_pivotS1) / close < 0.003
+
+whf_swingHigh = ta.pivothigh(high, whf_srLen, whf_srLen)
+whf_swingLow  = ta.pivotlow(low, whf_srLen, whf_srLen)
+var float whf_resistance = na
+var float whf_support = na
+var line whf_srResLine = na
+var line whf_srSupLine = na
+
+if isWHF and not na(whf_swingHigh)
+    whf_resistance := whf_swingHigh
+    if whf_showSR
+        if not na(whf_srResLine)
+            line.delete(whf_srResLine)
+        whf_srResLine := line.new(bar_index[whf_srLen], whf_swingHigh, bar_index + 50, whf_swingHigh, color=color.new(#FF3366, 50), width=1, style=line.style_dashed)
+if isWHF and not na(whf_swingLow)
+    whf_support := whf_swingLow
+    if whf_showSR
+        if not na(whf_srSupLine)
+            line.delete(whf_srSupLine)
+        whf_srSupLine := line.new(bar_index[whf_srLen], whf_swingLow, bar_index + 50, whf_swingLow, color=color.new(#00C96B, 50), width=1, style=line.style_dashed)
+
+whf_nearSupport = not na(whf_support) and math.abs(close - whf_support) / close < 0.015
+whf_nearResist  = not na(whf_resistance) and math.abs(close - whf_resistance) / close < 0.015
+
+whf_isBullBar = close > open
+
+var array<bool> whf_noBullArr = array.new<bool>(0)
+var array<bool> whf_phBullArr = array.new<bool>(0)
+var array<bool> whf_lhBullArr = array.new<bool>(0)
+
+f_countTrue(array<bool> a) =>
+    int cnt = 0
+    if array.size(a) > 0
+        for [_, v] in a
+            if v
+                cnt += 1
+    cnt
+
+if isWHF and inNYOpen
+    array.push(whf_noBullArr, whf_isBullBar)
+    if array.size(whf_noBullArr) > whf_wrWindow
+        array.shift(whf_noBullArr)
+if isWHF and inPowerHour
+    array.push(whf_phBullArr, whf_isBullBar)
+    if array.size(whf_phBullArr) > whf_wrWindow
+        array.shift(whf_phBullArr)
+if isWHF and inLunch
+    array.push(whf_lhBullArr, whf_isBullBar)
+    if array.size(whf_lhBullArr) > whf_wrWindow
+        array.shift(whf_lhBullArr)
+
+whf_noTotalBars = array.size(whf_noBullArr)
+whf_phTotalBars = array.size(whf_phBullArr)
+whf_lhTotalBars = array.size(whf_lhBullArr)
+whf_noBullBars  = f_countTrue(whf_noBullArr)
+whf_phBullBars  = f_countTrue(whf_phBullArr)
+whf_lhBullBars  = f_countTrue(whf_lhBullArr)
+
+whf_noWR = whf_noTotalBars > 0 ? math.round(whf_noBullBars * 100.0 / whf_noTotalBars) : 0
+whf_phWR = whf_phTotalBars > 0 ? math.round(whf_phBullBars * 100.0 / whf_phTotalBars) : 0
+whf_lhWR = whf_lhTotalBars > 0 ? math.round(whf_lhBullBars * 100.0 / whf_lhTotalBars) : 0
+
+whf_insideDay  = high < high[1] and low > low[1]
+whf_outsideDay = high > high[1] and low < low[1]
+whf_volClimax  = volume > whf_volAvg * 2.5 and math.abs(close - open) < whf_atr * 0.5
+
+whf_bodySize   = math.abs(close - open)
+whf_totalSize  = math.max(high - low, 0.0001)
+whf_instCandle = whf_bodySize > whf_totalSize * 0.75 and volume > whf_volAvg * 1.5
+whf_instBull   = whf_instCandle and close > open
+whf_instBear   = whf_instCandle and close < open
+
+whf_currentMonth = month(time)
+whf_currentDay   = dayofmonth(time)
+whf_earningsDateSet = whf_earningsMonth > 0
+whf_daysToEarnings = whf_earningsDateSet and whf_earningsMonth == whf_currentMonth ? whf_earningsDay - whf_currentDay : -99
+whf_nearEarningsManual = whf_earningsDateSet and whf_daysToEarnings >= 0 and whf_daysToEarnings <= whf_earningsDaysBefore
+whf_onEarningsDay = whf_earningsDateSet and whf_daysToEarnings == 0
+
+whf_dayMovePct = close[1] > 0 ? math.abs(close - close[1]) / close[1] * 100 : 0.0
+whf_bigGap     = math.abs(whf_gapPct) >= whf_autoEarningsGap
+whf_bigMove    = whf_dayMovePct >= whf_autoEarningsMove
+whf_bigVolume  = volume >= whf_volAvg * whf_autoEarningsVolMul
+whf_autoNewsDetected = whf_autoEarnings and whf_bigGap and whf_bigVolume
+whf_postNewsMove = whf_autoEarnings and whf_bigMove and whf_bigVolume and not whf_bigGap
+
+whf_earnWarning   = whf_showEarnings and (whf_nearEarningsManual or whf_autoNewsDetected)
+whf_earningsPenalty = whf_nearEarningsManual or whf_autoNewsDetected or whf_postNewsMove
+
+whf_buyScore = 0
+whf_buyScore += whaleBull ? 15 : 0
+whf_buyScore += whf_trendBull ? 15 : 0
+whf_buyScore += whf_momBull ? 10 : 0
+whf_buyScore += whf_htfBull ? 15 : 0
+whf_buyScore += whf_bullDiv ? 8 : 0
+whf_buyScore += whf_obvBull ? 7 : 0
+whf_buyScore += whf_nearSupport ? 5 : 0
+whf_buyScore += whf_aboveVwap ? 8 : 0
+whf_buyScore += whf_strongRelStr ? 7 : 0
+whf_buyScore += whf_instBull ? 5 : 0
+whf_buyScore += whf_bbSqueeze ? 5 : 0
+
+whf_sellScore = 0
+whf_sellScore += whaleBear ? 15 : 0
+whf_sellScore += whf_trendBear ? 15 : 0
+whf_sellScore += whf_momBear ? 10 : 0
+whf_sellScore += whf_htfBear ? 15 : 0
+whf_sellScore += whf_bearDiv ? 8 : 0
+whf_sellScore += not whf_obvBull ? 7 : 0
+whf_sellScore += whf_nearResist ? 5 : 0
+whf_sellScore += not whf_aboveVwap ? 8 : 0
+whf_sellScore += whf_weakRelStr ? 7 : 0
+whf_sellScore += whf_instBear ? 5 : 0
+whf_sellScore += whf_bbSqueeze ? 5 : 0
+
+if whf_discountMode == "Max-Cap"
+    int discount = 0
+    if marketClosedW
+        discount := math.max(discount, 50)
+    if inLunch
+        discount := math.max(discount, 25)
+    if whf_earningsPenalty
+        discount := math.max(discount, 30)
+    whf_buyScore  := math.round(whf_buyScore  * (100 - discount) / 100)
+    whf_sellScore := math.round(whf_sellScore * (100 - discount) / 100)
+else
+    whf_buyScore  := marketClosedW ? math.round(whf_buyScore * 0.5) : whf_buyScore
+    whf_buyScore  := inLunch ? math.round(whf_buyScore * 0.75) : whf_buyScore
+    whf_buyScore  := whf_earningsPenalty ? math.round(whf_buyScore * 0.7) : whf_buyScore
+    whf_sellScore := marketClosedW ? math.round(whf_sellScore * 0.5) : whf_sellScore
+    whf_sellScore := inLunch ? math.round(whf_sellScore * 0.75) : whf_sellScore
+    whf_sellScore := whf_earningsPenalty ? math.round(whf_sellScore * 0.7) : whf_sellScore
+
+whf_rawStrongBuy  = whf_buyScore >= whf_minScore and (not whf_useHTF or whf_htfBull)
+whf_rawStrongSell = whf_sellScore >= whf_minScore and (not whf_useHTF or whf_htfBear)
+whf_rawWeakBuy    = whf_buyScore >= whf_minScore - 20 and not whf_rawStrongBuy
+whf_rawWeakSell   = whf_sellScore >= whf_minScore - 20 and not whf_rawStrongSell
+
+whf_isConflict = (whf_rawWeakBuy and whf_rawWeakSell) or (whf_rawStrongBuy and whf_rawStrongSell)
+
+whf_finalStrongBuy  = whf_rawStrongBuy
+whf_finalStrongSell = whf_rawStrongSell
+if whf_rawStrongBuy and whf_rawStrongSell
+    if whf_buyScore >= whf_sellScore
+        whf_finalStrongSell := false
+    else
+        whf_finalStrongBuy := false
+
+whf_finalWeakBuy  = whf_rawWeakBuy and not whf_rawWeakSell and not whf_finalStrongBuy and not whf_finalStrongSell
+whf_finalWeakSell = whf_rawWeakSell and not whf_rawWeakBuy and not whf_finalStrongBuy and not whf_finalStrongSell
+
+var bool whf_rawBuyPrev  = false
+var bool whf_rawSellPrev = false
+whf_buyEdge  = (whf_finalStrongBuy or whf_finalWeakBuy) and not whf_rawBuyPrev
+whf_sellEdge = (whf_finalStrongSell or whf_finalWeakSell) and not whf_rawSellPrev
+whf_rawBuyPrev  := whf_finalStrongBuy or whf_finalWeakBuy
+whf_rawSellPrev := whf_finalStrongSell or whf_finalWeakSell
+
+var int whf_lastBuyBar  = -1000
+var int whf_lastSellBar = -1000
+
+whf_canShowBuy  = bar_index - whf_lastBuyBar  >= cooldown_bars
+whf_canShowSell = bar_index - whf_lastSellBar >= cooldown_bars
+
+whf_strongBuy  = whf_finalStrongBuy  and whf_buyEdge  and whf_canShowBuy  and confirmGate
+whf_strongSell = whf_finalStrongSell and whf_sellEdge and whf_canShowSell and confirmGate
+whf_weakBuy    = whf_finalWeakBuy    and whf_buyEdge  and whf_canShowBuy  and confirmGate
+whf_weakSell   = whf_finalWeakSell   and whf_sellEdge and whf_canShowSell and confirmGate
+
+if isWHF and (whf_strongBuy or whf_weakBuy)
+    whf_lastBuyBar := bar_index
+if isWHF and (whf_strongSell or whf_weakSell)
+    whf_lastSellBar := bar_index
+
+[whf_slBuy, whf_tpBuy, _whfTpB2, _whfTpB3, whf_rrBuy, _, _] = f_buildTradePlan(1, close, whf_atr, whf_slMult, whf_tpMult, whf_tpMult, whf_tpMult)
+[whf_slSell, whf_tpSell, _whfTpS2, _whfTpS3, whf_rrSell, _, _] = f_buildTradePlan(-1, close, whf_atr, whf_slMult, whf_tpMult, whf_tpMult, whf_tpMult)
+whf_realRR = whf_slMult > 0 ? whf_tpMult / whf_slMult : 0.0
+
+// ============================================================
+//  WHF: PLOTS
+// ============================================================
+bgcolor(isWHF and whf_showSessions and inPreMarket ? C_PRE : na)
+bgcolor(isWHF and whf_showSessions and inNYOpen ? C_NYO : na)
+bgcolor(isWHF and whf_showSessions and inLunch ? C_LCH : na)
+bgcolor(isWHF and whf_showSessions and inPowerHour ? C_PWR : na)
+
+plot(isWHF ? whf_emaF : na, "EMA Fast", color=color.new(#00BFFF, 20), linewidth=1)
+plot(isWHF ? whf_emaS : na, "EMA Slow", color=color.new(#FF6600, 20), linewidth=1)
+plot(isWHF ? whf_ema200v : na, "EMA 200", color=color.new(#FFD700, 40), linewidth=2)
+plot(isWHF and whf_showVwap ? whf_vwap : na, "VWAP", color=color.new(#FF00FF, 30), linewidth=2)
+
+p1 = plot(isWHF and whf_showBB ? whf_bbUpper : na, "BB U", color=color.new(#30363D, 40))
+p2 = plot(isWHF and whf_showBB ? whf_bbLower : na, "BB L", color=color.new(#30363D, 40))
+fill(p1, p2, color=color.new(#30363D, 92))
+
+barcolor(isWHF and whaleBullEdge ? color.new(#00FF88, 0) : isWHF and whaleBearEdge ? color.new(#FF3366, 0) : na)
+
+plotshape(isWHF and whf_showSignals and whf_strongBuy, title="BUY", style=shape.labelup, location=location.belowbar, color=C_BUY, textcolor=C_W, text="BUY", size=size.normal)
+plotshape(isWHF and whf_showSignals and whf_strongSell, title="SELL", style=shape.labeldown, location=location.abovebar, color=C_SELL, textcolor=C_W, text="SELL", size=size.normal)
+plotshape(isWHF and whf_showSignals and whf_weakBuy, title="wBuy", style=shape.triangleup, location=location.belowbar, color=color.new(#00C96B, 40), size=size.small)
+plotshape(isWHF and whf_showSignals and whf_weakSell, title="wSell", style=shape.triangledown, location=location.abovebar, color=color.new(#FF3366, 40), size=size.small)
+plotshape(isWHF and whf_showSignals and whf_gapUp, title="G+", style=shape.labelup, location=location.belowbar, color=C_BUY, textcolor=C_W, text="GAP+", size=size.small)
+plotshape(isWHF and whf_showSignals and whf_gapDown, title="G-", style=shape.labeldown, location=location.abovebar, color=C_SELL, textcolor=C_W, text="GAP-", size=size.small)
+plotshape(isWHF and whf_showSignals and whaleBullEdge and not whf_strongBuy and not whf_strongAccum, title="WB", style=shape.labelup, location=location.belowbar, color=color.new(#00C96B, 20), textcolor=C_W, text="W", size=size.small)
+plotshape(isWHF and whf_showSignals and whaleBearEdge and not whf_strongSell and not whf_strongDist, title="WS", style=shape.labeldown, location=location.abovebar, color=color.new(#FF3366, 20), textcolor=C_W, text="W", size=size.small)
+
+// ============================================================
+//  WHF: DASHBOARD TABLE
+// ============================================================
+whf_sesTxt = inNYOpen ? "NY OPEN" : inPowerHour ? "POWER HR" : inPreMarket ? "PRE-MKT" : inLunch ? "LUNCH" : marketClosedW ? "CLOSED" : "REGULAR"
+whf_sesBg = inNYOpen ? C_BUY : inPowerHour ? C_WARN : inPreMarket ? C_INFO : inLunch ? color.new(#92400E, 0) : C_NEUT
+
+whf_htfBg  = whf_htfBull ? C_BUY : whf_htfBear ? C_SELL : C_WARN
+whf_htfTxt = whf_htfBull ? "BULL" + (whf_htfFallbackActive ? "(50)" : "") : whf_htfBear ? "BEAR" + (whf_htfFallbackActive ? "(50)" : "") : na(whf_htfRef) ? "N/A" : "NEUT"
+
+whf_trendBg  = whf_trendBull ? C_BUY : whf_trendBear ? C_SELL : C_WARN
+whf_trendTxt = whf_trendBull ? "BULL" : whf_trendBear ? "BEAR" : "NEUT"
+
+whf_vwapBg  = whf_aboveVwap ? C_BUY : C_SELL
+whf_vwapTxt = str.tostring(math.round(whf_vwap, 2)) + "\n" + (whf_aboveVwap ? "ABOVE" : "BELOW")
+
+whf_ppNear = whf_nearR1 ? "R1" : whf_nearS1 ? "S1" : whf_nearPivotP ? "P" : "-"
+whf_ppBg   = whf_nearR1 ? C_SELL : whf_nearS1 ? C_BUY : whf_nearPivotP ? C_WARN : C_NEUT
+
+whf_rsBg   = whf_strongRelStr ? C_BUY : whf_weakRelStr ? C_SELL : C_NEUT
+whf_rsTxt  = (whf_relStr >= 0 ? "+" : "") + str.tostring(math.round(whf_relStr, 2)) + "%\n" + str.tostring(whf_rsLookback) + "b"
+
+whf_rsiBg  = whf_rsi > whf_rsiObLevel ? C_SELL : whf_rsi < whf_rsiOsLevel ? C_BUY : C_NEUT
+whf_macdBg = whf_macd_hist > 0 ? C_BUY : C_SELL
+
+whf_volPct = math.round(volume / whf_volAvg * 100)
+whf_volBg  = whf_volPct > 200 ? C_BUY : whf_volPct > 100 ? C_INFO : C_NEUT
+
+whf_gapBg  = whf_gapUp ? C_BUY : whf_gapDown ? C_SELL : C_NEUT
+whf_gapTxt = whf_gapUp ? "UP +" + str.tostring(math.round(whf_gapPct, 1)) + "%" : whf_gapDown ? "DN " + str.tostring(math.round(whf_gapPct, 1)) + "%" : "-"
+
+whf_idBg  = whf_insideDay ? C_WARN : whf_outsideDay ? C_INFO : C_NEUT
+whf_idTxt = whf_insideDay ? "INSIDE" : whf_outsideDay ? "OUTSIDE" : "-"
+
+whf_icBg  = whf_instBull ? C_BUY : whf_instBear ? C_SELL : C_NEUT
+whf_icTxt = whf_instBull ? "BULL" : whf_instBear ? "BEAR" : "-"
+
+whf_obvBg  = whf_obvBull ? C_BUY : C_SELL
+whf_obvTxt = whf_obvBull ? "ACUM" : "DIST"
+
+whf_bsBg = whf_buyScore >= whf_minScore ? C_BUY : whf_buyScore >= whf_minScore - 20 ? C_WARN : C_NEUT
+whf_ssBg = whf_sellScore >= whf_minScore ? C_SELL : whf_sellScore >= whf_minScore - 20 ? C_WARN : C_NEUT
+
+whf_domDir = whf_buyScore >= whf_sellScore
+whf_tpslTxt = whf_strongBuy ? "TP:" + str.tostring(math.round(whf_tpBuy, 2)) + "\nSL:" + str.tostring(math.round(whf_slBuy, 2)) : whf_strongSell ? "TP:" + str.tostring(math.round(whf_tpSell, 2)) + "\nSL:" + str.tostring(math.round(whf_slSell, 2)) : whf_domDir ? "TP:" + str.tostring(math.round(whf_tpBuy, 2)) + "\nSL:" + str.tostring(math.round(whf_slBuy, 2)) : "TP:" + str.tostring(math.round(whf_tpSell, 2)) + "\nSL:" + str.tostring(math.round(whf_slSell, 2))
+whf_tpslBg = whf_strongBuy ? C_BUY : whf_strongSell ? C_SELL : C_NEUT
+
+whf_riscBg  = whf_earningsPenalty ? color.new(#FF00FF, 0) : C_NEUT
+whf_riscTxt = whf_earningsPenalty ? "NEWS\n-30%" : "OK"
+
+whf_earnTxt = whf_onEarningsDay ? "TODAY!" : whf_nearEarningsManual ? str.tostring(whf_daysToEarnings) + "d" : whf_autoNewsDetected ? "AUTO!" : whf_postNewsMove ? "POST" : "-"
+whf_earnBg  = whf_onEarningsDay or whf_autoNewsDetected ? color.new(#FF00FF, 0) : whf_nearEarningsManual ? color.new(#7C3AED, 0) : whf_postNewsMove ? color.new(#7C3AED, 30) : C_NEUT
+
+whf_sigTxt = whf_strongBuy ? "STRONG BUY" : whf_strongSell ? "STRONG SELL" : whf_isConflict and not whf_finalStrongBuy and not whf_finalStrongSell ? "CONFLICT" : whf_weakBuy ? "WEAK BUY" : whf_weakSell ? "WEAK SELL" : "WAIT"
+whf_sigBg  = whf_strongBuy ? C_BUY : whf_strongSell ? C_SELL : whf_isConflict and not whf_finalStrongBuy and not whf_finalStrongSell ? C_CONFL : whf_weakBuy ? C_INFO : whf_weakSell ? C_WARN : C_NEUT
+
+whf_rrTxt = str.format("{0,number,#.##}", whf_realRR)
+whf_rrBg  = whf_realRR >= 2.0 ? C_BUY : whf_realRR >= 1.5 ? C_WARN : C_SELL
+
+if isWHF and whf_showTable and barstate.islast
+    var t = table.new(f_pos(dash_pos), 11, 5, bgcolor=C_BG2, border_color=C_BDR, border_width=1, frame_color=C_BDR, frame_width=2)
+    sz = f_sz(dash_size)
+
+    table.cell(t, 0, 0, "WHALE TRACKER v2.0 - " + syminfo.ticker + " " + timeframe.period + (whf_useDST ? "" : " DST OFF"), text_color=C_TTL, bgcolor=C_HDR_W, text_size=sz, text_halign=text.align_center)
+    table.merge_cells(t, 0, 0, 10, 0)
+
+    table.cell(t, 0,  1, "SESSION",    text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 1,  1, "WR\nNY|PH|LN", text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 2,  1, "EARN/NEWS",  text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 3,  1, "HTF",        text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 4,  1, "TREND",      text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 5,  1, "VWAP",       text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 6,  1, "PIVOT",      text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 7,  1, "RS QQQ",     text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 8,  1, "RSI",        text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 9,  1, "MACD",       text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 10, 1, "VOLUME",     text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+
+    table.cell(t, 0, 2, whf_sesTxt, text_color=C_W, bgcolor=whf_sesBg, text_size=sz, text_halign=text.align_center)
+    whf_noC = whf_noWR >= 55 ? C_BUY : whf_noWR <= 45 ? C_SELL : C_NEUT
+    whf_wrCellTxt = whf_noTotalBars > 0 or whf_phTotalBars > 0 or whf_lhTotalBars > 0 ? str.tostring(whf_noWR) + "% | " + str.tostring(whf_phWR) + "% | " + str.tostring(whf_lhWR) + "%" : "-"
+    table.cell(t, 1, 2, whf_wrCellTxt + "\n(" + str.tostring(whf_noTotalBars) + "/" + str.tostring(whf_phTotalBars) + "/" + str.tostring(whf_lhTotalBars) + ")", text_color=C_W, bgcolor=whf_noC, text_size=size.tiny, text_halign=text.align_center)
+    table.cell(t, 2, 2, whf_earnTxt, text_color=C_W, bgcolor=whf_earnBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 3, 2, whf_htfTxt, text_color=C_W, bgcolor=whf_htfBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 4, 2, whf_trendTxt, text_color=C_W, bgcolor=whf_trendBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 5, 2, whf_vwapTxt, text_color=C_W, bgcolor=whf_vwapBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 6, 2, "P:" + str.tostring(math.round(whf_pivotP, 1)) + "\n" + whf_ppNear, text_color=C_W, bgcolor=whf_ppBg, text_size=size.tiny, text_halign=text.align_center)
+    table.cell(t, 7, 2, whf_rsTxt, text_color=C_W, bgcolor=whf_rsBg, text_size=size.tiny, text_halign=text.align_center)
+    table.cell(t, 8, 2, str.tostring(math.round(whf_rsi, 1)), text_color=C_W, bgcolor=whf_rsiBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 9, 2, whf_macd_hist > 0 ? "BULL" : "BEAR", text_color=C_W, bgcolor=whf_macdBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 10, 2, str.tostring(whf_volPct) + "%\n" + (isWhaleVol ? "WHALE" : whf_volClimax ? "CLIMAX" : "OK"), text_color=C_W, bgcolor=whf_volBg, text_size=sz, text_halign=text.align_center)
+
+    table.cell(t, 0,  3, "GAP",       text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 1,  3, "STRUCT",    text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 2,  3, "INST",      text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 3,  3, "OBV",       text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 4,  3, "BUY SC",    text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 5,  3, "SELL SC",   text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 6,  3, "TP / SL",   text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 7,  3, "R:R",       text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 8,  3, "RISK",      text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 9,  3, "SIGNAL",    text_color=C_TTL, bgcolor=C_HDR2_W, text_size=sz, text_halign=text.align_center)
+    table.merge_cells(t, 9, 3, 10, 3)
+
+    table.cell(t, 0, 4, whf_gapTxt, text_color=C_W, bgcolor=whf_gapBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 1, 4, whf_idTxt, text_color=C_W, bgcolor=whf_idBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 2, 4, whf_icTxt, text_color=C_W, bgcolor=whf_icBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 3, 4, whf_obvTxt, text_color=C_W, bgcolor=whf_obvBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 4, 4, str.tostring(whf_buyScore) + "/100", text_color=C_W, bgcolor=whf_bsBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 5, 4, str.tostring(whf_sellScore) + "/100", text_color=C_W, bgcolor=whf_ssBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 6, 4, whf_tpslTxt, text_color=C_W, bgcolor=whf_tpslBg, text_size=size.tiny, text_halign=text.align_center)
+    table.cell(t, 7, 4, whf_rrTxt, text_color=C_W, bgcolor=whf_rrBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 8, 4, whf_riscTxt, text_color=C_W, bgcolor=whf_riscBg, text_size=sz, text_halign=text.align_center)
+    table.cell(t, 9, 4, whf_sigTxt, text_color=C_W, bgcolor=whf_sigBg, text_size=size.normal, text_halign=text.align_center)
+    table.merge_cells(t, 9, 4, 10, 4)
+
+// ============================================================
+//  ALERTS - gated by mode
+// ============================================================
+
+// --- SSD alerts ---
+validBuy  = isSSD and not buyVeto  and masterConf >= ssd_effMinConf and confirmGate
+validSell = isSSD and not sellVeto and masterConf >= ssd_effMinConf and confirmGate
+
+alertcondition(isSSD and netScore >= 5 and netScore[1] < 5 and validBuy,    "SSD: Master STRONG BUY",  "SSD: Master STRONG BUY - Vetos passed")
+alertcondition(isSSD and netScore <= -5 and netScore[1] > -5 and validSell, "SSD: Master STRONG SELL", "SSD: Master STRONG SELL - Vetos passed")
+alertcondition(isSSD and netScore >= 3 and netScore[1] < 3 and validBuy,    "SSD: Master BUY",         "SSD: Master BUY - Vetos passed")
+alertcondition(isSSD and netScore <= -3 and netScore[1] > -3 and validSell, "SSD: Master SELL",        "SSD: Master SELL - Vetos passed")
+alertcondition(isSSD and ((netScore >= 3 and buyVeto) or (netScore <= -3 and sellVeto)), "SSD: Signal BLOCKED", "SSD: Signal blocked by veto filter")
+alertcondition(isSSD and regimeChanged,            "SSD: Regime Change",  "SSD: Regime changed")
+alertcondition(isSSD and (confirmedRegime == 3 or confirmedRegime == 4), "SSD: Vol/Squeeze", "SSD: BB Squeeze sau High Volatility")
+alertcondition(isSSD and ((inGoldenPocket and not inGoldenPocket[1]) or (atExtension and not atExtension[1])), "SSD: Fib Zone", "SSD: Price entered Golden Pocket sau Extension")
+alertcondition(isSSD and ((eqlSweepConfirm and not eqlSweepConfirm[1]) or (eqhSweepConfirm and not eqhSweepConfirm[1])), "SSD: EQH/EQL Sweep", "SSD: Liquidity sweep + reversal")
+alertcondition(isSSD and ((stickySigDir == 1 and high >= stickyTP and not (high[1] >= stickyTP[1])) or (stickySigDir == -1 and low <= stickyTP and not (low[1] <= stickyTP[1]))), "SSD: Plan TP Hit", "SSD: Trade plan TP hit")
+alertcondition(isSSD and ((stickySigDir == 1 and low <= stickySL and not (low[1] <= stickySL[1])) or (stickySigDir == -1 and high >= stickySL and not (high[1] >= stickySL[1]))), "SSD: Plan SL Hit", "SSD: Trade plan SL hit")
+
+// --- SCA alerts (FIX-C v2: nz() pe valoarea numerica, NU pe series bool - CE10123) ---
+anyStrongBuy  = nz(adj_sc1)>7 or nz(adj_sc2)>7 or nz(adj_sc3)>7 or nz(adj_sc4)>7 or nz(adj_sc5)>7 or nz(adj_sc6)>7 or nz(adj_sc7)>7 or nz(adj_sc8)>7 or nz(adj_sc9)>7 or nz(adj_sc10)>7 or nz(adj_sc11)>7 or nz(adj_sc12)>7 or nz(adj_sc13)>7 or nz(adj_sc14)>7 or nz(adj_sc15)>7 or nz(adj_sc16)>7 or nz(adj_sc17)>7 or nz(adj_sc18)>7 or nz(adj_sc19)>7 or nz(adj_sc20)>7
+anyStrongSell = nz(adj_sc1)<-7 or nz(adj_sc2)<-7 or nz(adj_sc3)<-7 or nz(adj_sc4)<-7 or nz(adj_sc5)<-7 or nz(adj_sc6)<-7 or nz(adj_sc7)<-7 or nz(adj_sc8)<-7 or nz(adj_sc9)<-7 or nz(adj_sc10)<-7 or nz(adj_sc11)<-7 or nz(adj_sc12)<-7 or nz(adj_sc13)<-7 or nz(adj_sc14)<-7 or nz(adj_sc15)<-7 or nz(adj_sc16)<-7 or nz(adj_sc17)<-7 or nz(adj_sc18)<-7 or nz(adj_sc19)<-7 or nz(adj_sc20)<-7
+anyBigGap     = math.abs(nz(g1))>2 or math.abs(nz(g2))>2 or math.abs(nz(g3))>2 or math.abs(nz(g4))>2 or math.abs(nz(g5))>2 or math.abs(nz(g6))>2 or math.abs(nz(g7))>2 or math.abs(nz(g8))>2 or math.abs(nz(g9))>2 or math.abs(nz(g10))>2 or math.abs(nz(g11))>2 or math.abs(nz(g12))>2 or math.abs(nz(g13))>2 or math.abs(nz(g14))>2 or math.abs(nz(g15))>2 or math.abs(nz(g16))>2 or math.abs(nz(g17))>2 or math.abs(nz(g18))>2 or math.abs(nz(g19))>2 or math.abs(nz(g20))>2
+anyBigDay     = math.abs(nz(d1))>3 or math.abs(nz(d2))>3 or math.abs(nz(d3))>3 or math.abs(nz(d4))>3 or math.abs(nz(d5))>3 or math.abs(nz(d6))>3 or math.abs(nz(d7))>3 or math.abs(nz(d8))>3 or math.abs(nz(d9))>3 or math.abs(nz(d10))>3 or math.abs(nz(d11))>3 or math.abs(nz(d12))>3 or math.abs(nz(d13))>3 or math.abs(nz(d14))>3 or math.abs(nz(d15))>3 or math.abs(nz(d16))>3 or math.abs(nz(d17))>3 or math.abs(nz(d18))>3 or math.abs(nz(d19))>3 or math.abs(nz(d20))>3
+anyVolSpike   = nz(v1)>2 or nz(v2)>2 or nz(v3)>2 or nz(v4)>2 or nz(v5)>2 or nz(v6)>2 or nz(v7)>2 or nz(v8)>2 or nz(v9)>2 or nz(v10)>2 or nz(v11)>2 or nz(v12)>2 or nz(v13)>2 or nz(v14)>2 or nz(v15)>2 or nz(v16)>2 or nz(v17)>2 or nz(v18)>2 or nz(v19)>2 or nz(v20)>2
+
+anyPmMover   = isPremarket and (math.abs(nz(pmg1))>sca_pmGapAlertThreshold or math.abs(nz(pmg2))>sca_pmGapAlertThreshold or math.abs(nz(pmg3))>sca_pmGapAlertThreshold or math.abs(nz(pmg4))>sca_pmGapAlertThreshold or math.abs(nz(pmg5))>sca_pmGapAlertThreshold or math.abs(nz(pmg6))>sca_pmGapAlertThreshold or math.abs(nz(pmg7))>sca_pmGapAlertThreshold or math.abs(nz(pmg8))>sca_pmGapAlertThreshold or math.abs(nz(pmg9))>sca_pmGapAlertThreshold or math.abs(nz(pmg10))>sca_pmGapAlertThreshold or math.abs(nz(pmg11))>sca_pmGapAlertThreshold or math.abs(nz(pmg12))>sca_pmGapAlertThreshold or math.abs(nz(pmg13))>sca_pmGapAlertThreshold or math.abs(nz(pmg14))>sca_pmGapAlertThreshold or math.abs(nz(pmg15))>sca_pmGapAlertThreshold or math.abs(nz(pmg16))>sca_pmGapAlertThreshold or math.abs(nz(pmg17))>sca_pmGapAlertThreshold or math.abs(nz(pmg18))>sca_pmGapAlertThreshold or math.abs(nz(pmg19))>sca_pmGapAlertThreshold or math.abs(nz(pmg20))>sca_pmGapAlertThreshold)
+anyPmBigMove = isPremarket and (math.abs(nz(pmg1))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg2))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg3))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg4))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg5))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg6))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg7))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg8))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg9))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg10))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg11))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg12))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg13))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg14))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg15))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg16))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg17))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg18))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg19))>sca_pmGapAlertThreshold*2 or math.abs(nz(pmg20))>sca_pmGapAlertThreshold*2)
+
+avgSc = (nz(adj_sc1)+nz(adj_sc2)+nz(adj_sc3)+nz(adj_sc4)+nz(adj_sc5)+nz(adj_sc6)+nz(adj_sc7)+nz(adj_sc8)+nz(adj_sc9)+nz(adj_sc10)+nz(adj_sc11)+nz(adj_sc12)+nz(adj_sc13)+nz(adj_sc14)+nz(adj_sc15)+nz(adj_sc16)+nz(adj_sc17)+nz(adj_sc18)+nz(adj_sc19)+nz(adj_sc20)) / 20.0
+marketBull = avgSc > 4
+marketBear = avgSc < -4
+
+alertcondition(isSCA and anyStrongBuy,   "SCA: Strong Buy",     "Stocks Scanner: STRONG BUY")
+alertcondition(isSCA and anyStrongSell,  "SCA: Strong Sell",    "Stocks Scanner: STRONG SELL")
+alertcondition(isSCA and (anyBigGap or anyBigDay or anyVolSpike), "SCA: Mover Detected", "Stocks Scanner: Big Gap, Big Day sau Volume Spike")
+alertcondition(isSCA and marketBull,     "SCA: Market Bull",    "Stocks Scanner: Avg score > 4 - broad bull")
+alertcondition(isSCA and marketBear,     "SCA: Market Bear",    "Stocks Scanner: Avg score < -4 - broad bear")
+alertcondition(isSCA and (anyPmMover or anyPmBigMove), "SCA: Premarket Move", "Stocks Scanner: Premarket mover sau big move")
+
+// --- WHF alerts ---
+alertcondition(isWHF and whf_strongBuy,  "WHF: STRONG BUY",  "Whale Tracker: STRONG BUY")
+alertcondition(isWHF and whf_strongSell, "WHF: STRONG SELL", "Whale Tracker: STRONG SELL")
+alertcondition(isWHF and (whf_weakBuy or whf_weakSell), "WHF: Weak Signal", "Whale Tracker: Weak buy sau sell signal")
+alertcondition(isWHF and (whf_gapUp or whf_gapDown), "WHF: Gap", "Whale Tracker: Gap up sau down")
+alertcondition(isWHF and (whaleBullEdge or whaleBearEdge), "WHF: Whale Bar", "Whale Tracker: Whale bar (any direction)")
+alertcondition(isWHF and (whf_strongAccum or whf_strongDist), "WHF: Accum/Dist", "Whale Tracker: Strong accumulation sau distribution")
+alertcondition(isWHF and (whf_bullDivEdge or whf_bearDivEdge), "WHF: RSI Div", "Whale Tracker: RSI divergence (any direction)")
+alertcondition(isWHF and whf_autoNewsDetected, "WHF: Auto-News", "Whale Tracker: Auto-news event detected")
+alertcondition(isWHF and whf_isConflict, "WHF: Conflict", "Whale Tracker: BUY+SELL conflict")
+
+
+
+
+
+
+
+
+
+
+
