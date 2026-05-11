@@ -320,6 +320,25 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 .cl-row .cl-arrow { color:var(--t3); }
 .cl-row .cl-time { margin-left:auto; color:var(--t3); font-size:9.5px; }
 
+/* Perf tracking (F9) */
+.perf-tag { font-size:9.5px; font-weight:700; font-family:var(--mono); margin-top:1px; line-height:1.2; }
+.perf-tag.pos { color:var(--bull-s); }
+.perf-tag.neg { color:var(--bear-s); }
+
+/* Quick-add empty state (F8) */
+.qa-wrap { margin-top:18px; }
+.qa-title { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; font-family:var(--mono); }
+.qa-btns { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:560px; margin:0 auto; }
+.qa-btn { background:var(--panel2); border:1px solid var(--b1); color:var(--t1); padding:5px 11px; border-radius:999px; font-size:11px; font-weight:700; font-family:var(--mono); }
+.qa-btn:hover { background:var(--accent); border-color:var(--accent); color:#000; }
+.qa-btn.scanner { background:rgba(91,176,255,.12); border-color:rgba(91,176,255,.4); color:var(--accent); }
+.qa-btn.scanner:hover { background:var(--accent); color:#000; }
+
+/* Telegram config (reuses fl-* modal) */
+.tg-field { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+.tg-field label { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:700; font-family:var(--mono); }
+.tg-field input { padding:7px 10px; font-size:12px; font-family:var(--mono); }
+
 /* Mobile */
 @media (max-width:760px) {
   body { padding:8px; font-size:12px; }
@@ -343,7 +362,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v96</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v97</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
   <a href="../market-events/" class="nav-link">📅 Events</a>
@@ -360,6 +379,8 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
   </div>
   <button class="primary" id="scanBtn">↻ SCAN</button>
   <button id="notifBtn" title="Notificări browser la STRONG BUY nou">🔔</button>
+  <button id="soundBtn" title="Sunet la STRONG BUY nou">🔊</button>
+  <button id="tgBtn" title="Alerte Telegram la STRONG BUY nou">📡</button>
   <button id="changesBtn" title="Jurnal schimbări de verdict" style="position:relative">📋<span id="changesBadge" class="changes-badge" style="display:none">0</span></button>
 </header>
 
@@ -368,6 +389,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
   <label>Adaugă ticker:</label>
   <input type="text" id="symInp" placeholder="AAPL, NVDA, TSLA…" maxlength="8">
   <button class="primary" id="addBtn">+ Add</button>
+  <button id="fromScannerBtn" title="Adaugă top picks buy-side din Nasdaq Scanner">📥 din Scanner</button>
   <span style="margin-left:auto;font-size:11px;color:var(--t3);font-family:var(--mono)" id="wlMeta">— stocks în watchlist</span>
 </div>
 
@@ -477,9 +499,11 @@ window.showWlFeatures = function(){
       { e: '⚡', t: '<b>Day momentum</b> chg% scoring' },
       { e: '🎯', t: '<b>Verdict 5-tier</b>: 🚀 STRONG BUY ≥75 / 📈 BUY 60-74 / 📊 HOLD / 📉 SELL / 🔴 AVOID' },
     ]},
-    { title: '🤖 Automation', cls: 'auto', items: [
+    { title: '🤖 Automation & Alerte', cls: 'auto', items: [
       { e: '🔄', t: '<b>Auto-scan</b> 60s/180s/300s/OFF' },
       { e: '🔔', t: '<b>Browser notification</b> la STRONG BUY nou' },
+      { e: '🔊', t: '<b>Sunet</b> (beep Web Audio) la STRONG BUY nou — toggle 🔊 în header' },
+      { e: '📡', t: '<b>Alerte Telegram</b> la STRONG BUY nou — config bot token + chat id (buton 📡), buton test inclus' },
       { e: '⚙', t: '<b>Sortabil</b> pe orice coloană' },
     ]},
     { title: '✨ Liveliness', cls: 'tool', items: [
@@ -491,11 +515,13 @@ window.showWlFeatures = function(){
       { e: '🧰', t: '<b>Filtre live</b> — chip-uri pe verdict, căutare ticker, „doar movers |Δ|≥2%", contor vizibile/total' },
       { e: '⏱', t: '<b>Countdown</b> până la următorul auto-scan în header' },
       { e: '📋', t: '<b>Jurnal + toast</b> la fiecare schimbare de verdict (orice nivel), badge cu schimbări necitite' },
+      { e: '⚡', t: '<b>Adăugare rapidă</b> — butoane tickere populare în empty-state + „📥 din Scanner" (top picks buy-side din nasdaq-scanner)' },
+      { e: '🚀', t: '<b>Performance tracking</b> — memorează prețul la primul BUY/STRONG BUY, arată „+X% · Nz" pe rând și în detalii (cu reset)' },
     ]},
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v96 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v97 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -513,12 +539,20 @@ window.showWlFeatures = function(){
 const WL_KEY = 'wl_stocks';
 const NOTIF_KEY = 'wl_monitor_notif';
 const LAST_SEEN_KEY = 'wl_monitor_last_seen';
+const SOUND_KEY = 'wl_sound';            // F7
+const TG_KEY = 'tt_tg_config';           // F7 — { token, chatId, enabled }
+const PERF_KEY = 'wl_perf';              // F9 — { SYMBOL: { entryPrice, entryTs, entryVerdict } }
+const SCANNER_LAST_KEY = 'nasdaq_last_scan'; // F8 — scris de nasdaq-scanner
+const POPULAR_TICKERS = ['AAPL','MSFT','NVDA','TSLA','AMZN','GOOGL','META','AMD','NFLX','PLTR','AVGO','COIN'];
 
 let watchlist = [];
-let results = []; // [{ symbol, price, chg, vol, rsi, ma50, ma200, ma50abs, ma200abs, score, verdict, verdictTxt, spark, trend, flashDir, ts }]
+let results = []; // [{ symbol, price, chg, vol, rsi, ma50, ma200, ma50abs, ma200abs, score, verdict, verdictTxt, spark, trend, flashDir, perf, ts }]
 let scanRunning = false;
 let autoTimer = null;
 let notifEnabled = false;
+let soundEnabled = false;                // F7
+let tgConfig = { token: '', chatId: '', enabled: false }; // F7
+let perfMap = {};                        // F9
 let sortKey = 'score', sortAsc = false;
 let openDetail = null; // simbolul cu rândul de detalii expandat (F4)
 let filterVerdict = 'all', filterText = '', filterMovers = false; // F5
@@ -593,6 +627,125 @@ window.showChangesLog = function(){
   ov.innerHTML = `<div class="fl-modal" style="max-width:480px"><div class="fl-head"><div><h3>📋 Jurnal schimbări verdict</h3><div class="sub">${verdictLog.length} schimbări · sesiunea curentă</div></div><button class="fl-close" type="button" data-close>×</button></div><div style="display:flex;flex-direction:column;gap:5px;max-height:60vh;overflow-y:auto">${body}</div></div>`;
   document.body.appendChild(ov);
   ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+};
+
+// ── Sunet (F7) ────────────────────────────────────────────────────
+let _audioCtx = null;
+function beep(){
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx, t = ctx.currentTime;
+    [880, 1320].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+      const st = t + i * 0.17;
+      g.gain.setValueAtTime(0.0001, st);
+      g.gain.exponentialRampToValueAtTime(0.18, st + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + 0.2);
+      o.start(st); o.stop(st + 0.22);
+    });
+  } catch(e){}
+}
+
+// ── Telegram (F7) ─────────────────────────────────────────────────
+async function sendTelegram(text){
+  if (!tgConfig.token || !tgConfig.chatId) return false;
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${tgConfig.token}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: tgConfig.chatId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
+    });
+    const j = await r.json().catch(() => ({}));
+    return !!j.ok;
+  } catch(e){ console.warn('[wl] telegram failed', e.message); return false; }
+}
+function updateAlertButtons(){
+  const sb = $('soundBtn'), tb = $('tgBtn');
+  if (sb) sb.style.opacity = soundEnabled ? '1' : '.4';
+  if (tb) tb.style.opacity = (tgConfig.enabled && tgConfig.token && tgConfig.chatId) ? '1' : '.4';
+}
+window.showTgConfig = function(){
+  document.getElementById('tgOverlay')?.remove();
+  const ov = document.createElement('div'); ov.id = 'tgOverlay'; ov.className = 'fl-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  ov.innerHTML = `<div class="fl-modal" style="max-width:440px">
+    <div class="fl-head"><div><h3>📡 Alerte Telegram</h3><div class="sub">Mesaj pe Telegram la fiecare STRONG BUY nou</div></div><button class="fl-close" type="button" data-close>×</button></div>
+    <div style="font-size:11px;color:var(--t3);line-height:1.55;margin-bottom:12px;font-family:var(--mono)">1. Creează un bot cu <b style="color:var(--t2)">@BotFather</b> → primești <i>token</i>.<br>2. Scrie-i botului orice mesaj, apoi deschide <span style="color:var(--accent);word-break:break-all">api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> → în răspuns vezi <i>chat.id</i>.</div>
+    <div class="tg-field"><label>Bot token</label><input type="text" id="tgToken" placeholder="123456789:ABC-DEF1234..." value="${(tgConfig.token || '').replace(/"/g, '&quot;')}"></div>
+    <div class="tg-field"><label>Chat ID</label><input type="text" id="tgChatId" placeholder="123456789" value="${(tgConfig.chatId || '').replace(/"/g, '&quot;')}"></div>
+    <label class="fb-toggle" style="margin-bottom:13px"><input type="checkbox" id="tgEnabled" ${tgConfig.enabled ? 'checked' : ''}> activează alertele Telegram</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="primary" id="tgSave">💾 Salvează</button><button type="button" id="tgTest">🧪 Trimite test</button><span id="tgMsg" style="font-size:11px;font-family:var(--mono)"></span></div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+  const save = () => {
+    tgConfig.token = document.getElementById('tgToken').value.trim();
+    tgConfig.chatId = document.getElementById('tgChatId').value.trim();
+    tgConfig.enabled = document.getElementById('tgEnabled').checked;
+    try { localStorage.setItem(TG_KEY, JSON.stringify(tgConfig)); } catch(e){}
+    updateAlertButtons();
+  };
+  document.getElementById('tgSave').addEventListener('click', () => {
+    save(); const m = document.getElementById('tgMsg'); m.textContent = '✓ salvat'; m.style.color = 'var(--bull-s)';
+  });
+  document.getElementById('tgTest').addEventListener('click', async () => {
+    save(); const m = document.getElementById('tgMsg');
+    if (!tgConfig.token || !tgConfig.chatId){ m.textContent = '✗ completează token + chat id'; m.style.color = 'var(--bear-s)'; return; }
+    m.textContent = '⏳ trimit…'; m.style.color = 'var(--t3)';
+    const ok = await sendTelegram('🧪 <b>Test Watchlist Monitor</b>\nAlertele Telegram funcționează ✅');
+    m.textContent = ok ? '✓ trimis — verifică Telegram!' : '✗ eșuat (token/chat id greșit sau CORS)';
+    m.style.color = ok ? 'var(--bull-s)' : 'var(--bear-s)';
+  });
+};
+
+// ── Quick-add (F8) ────────────────────────────────────────────────
+window.quickAdd = function(sym){
+  sym = String(sym || '').trim().toUpperCase().replace(/[^A-Z.]/g, '');
+  if (!sym) return;
+  if (watchlist.includes(sym)){ window.scrollToRow && window.scrollToRow(sym); return; }
+  if (watchlist.length >= 100){ alert('Maxim 100 stocks în watchlist'); return; }
+  watchlist.push(sym); saveWatchlist(); render();
+  if (watchlist.length <= 3) runScan(); else if (autoSec > 0) scheduleNextScan();
+};
+window.addFromScanner = function(){
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(SCANNER_LAST_KEY) || 'null'); } catch(e){}
+  const opps = (data && Array.isArray(data.opportunities)) ? data.opportunities : [];
+  const cand = opps.filter(o => o && o.symbol && o.isBuy !== false).map(o => o.symbol.toUpperCase());
+  const fresh = [...new Set(cand)].filter(s => !watchlist.includes(s)).slice(0, 10);
+  if (!opps.length){ alert('Nu există date de la Nasdaq Scanner încă.\nDeschide pagina „📈 Nasdaq Scanner", lasă-l să scaneze o dată, apoi revino.'); return; }
+  if (!fresh.length){ alert('Toate top-picks din Scanner sunt deja în watchlist (sau nu sunt buy-side).'); return; }
+  fresh.forEach(s => { if (watchlist.length < 100) watchlist.push(s); });
+  saveWatchlist(); render(); runScan();
+  setStatus('ok', `+${fresh.length} din Scanner: ${fresh.join(', ')}`);
+};
+
+// ── Performance tracking (F9) ─────────────────────────────────────
+function persistPerf(){ try { localStorage.setItem(PERF_KEY, JSON.stringify(perfMap)); } catch(e){} }
+function updatePerfTracking(newResults){
+  let changed = false;
+  // Curăță simbolurile scoase din watchlist
+  Object.keys(perfMap).forEach(s => { if (!watchlist.includes(s)){ delete perfMap[s]; changed = true; } });
+  newResults.forEach(r => {
+    if (r.price == null) return;
+    if ((r.verdict === 'strong-buy' || r.verdict === 'buy') && !perfMap[r.symbol]){
+      perfMap[r.symbol] = { entryPrice: r.price, entryTs: Date.now(), entryVerdict: r.verdict };
+      changed = true;
+    }
+    const e = perfMap[r.symbol];
+    if (e && e.entryPrice){
+      r.perf = {
+        gain: ((r.price - e.entryPrice) / e.entryPrice) * 100,
+        days: Math.max(0, Math.floor((Date.now() - e.entryTs) / 86400000)),
+        entryPrice: e.entryPrice,
+        entryVerdict: e.entryVerdict,
+      };
+    }
+  });
+  if (changed) persistPerf();
+}
+window.resetPerf = function(sym){
+  if (perfMap[sym]){ delete perfMap[sym]; persistPerf(); render(); }
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -832,7 +985,10 @@ async function runScan(){
     changes.slice(0, 3).forEach(showVerdictToast);
   }
 
-  // Detect noi STRONG BUY → notification
+  // Performance tracking (F9) — memorează prețul la primul BUY/STRONG BUY + calculează gain
+  updatePerfTracking(newResults);
+
+  // Detect noi STRONG BUY → notification + sunet + Telegram
   detectAndNotifyStrongBuys(newResults);
 
   results = newResults;
@@ -853,24 +1009,30 @@ function detectAndNotifyStrongBuys(newResults){
 
   const newStrong = [];
   newResults.forEach(r => {
-    if (r.verdict === 'strong-buy'){
-      const wasStrong = lastSeen[r.symbol] === 'strong-buy';
-      if (!wasStrong) newStrong.push(r);
-    }
+    if (r.price == null) return; // fetch eșuat — nu actualiza istoricul
+    if (r.verdict === 'strong-buy' && lastSeen[r.symbol] !== 'strong-buy') newStrong.push(r);
     lastSeen[r.symbol] = r.verdict;
   });
-
   try { localStorage.setItem(LAST_SEEN_KEY, JSON.stringify(lastSeen)); } catch(e){}
 
-  if (!newStrong.length || !notifEnabled) return;
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!newStrong.length) return;
 
-  const list = newStrong.slice(0, 5).map(r => `${r.symbol} ($${r.price.toFixed(2)} · ${r.score})`).join(', ');
-  const more = newStrong.length > 5 ? ` și ${newStrong.length - 5} mai multe` : '';
-  new Notification('🚀 STRONG BUY nou (' + newStrong.length + ')', {
-    body: list + more,
-    tag: 'wl-strong-buy',
-  });
+  // Sunet (F7)
+  if (soundEnabled) beep();
+
+  // Telegram (F7)
+  if (tgConfig.enabled && tgConfig.token && tgConfig.chatId){
+    const lines = newStrong.slice(0, 8).map(r => `🚀 <b>${r.symbol}</b> — $${r.price.toFixed(2)} · score ${r.score}${r.chg != null ? ' · zi ' + (r.chg >= 0 ? '+' : '') + r.chg.toFixed(2) + '%' : ''}`);
+    const more = newStrong.length > 8 ? `\n…și ${newStrong.length - 8} mai multe` : '';
+    sendTelegram(`<b>👁 Watchlist Monitor — STRONG BUY nou (${newStrong.length})</b>\n${lines.join('\n')}${more}`);
+  }
+
+  // Browser notification
+  if (notifEnabled && ('Notification' in window) && Notification.permission === 'granted'){
+    const list = newStrong.slice(0, 5).map(r => `${r.symbol} ($${r.price.toFixed(2)} · ${r.score})`).join(', ');
+    const more = newStrong.length > 5 ? ` și ${newStrong.length - 5} mai multe` : '';
+    new Notification('🚀 STRONG BUY nou (' + newStrong.length + ')', { body: list + more, tag: 'wl-strong-buy' });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -961,6 +1123,16 @@ function buildDetailRow(r){
     return `<div class="bd-row"><span class="bd-bar ${cls}" style="width:${w}px"></span><span class="bd-l">${b.l}</span><span class="bd-p ${cls}">${b.base ? b.p : (b.p >= 0 ? '+' : '') + b.p}</span></div>`;
   }).join('') || '<div class="bd-row"><span class="bd-l" style="color:var(--t3)">fără date</span></div>';
 
+  // Perf tracking (F9)
+  let perfHtml = '';
+  if (r.perf){
+    const gc = r.perf.gain >= 0 ? 'var(--bull-s)' : 'var(--bear-s)';
+    perfHtml = `<div style="margin-top:11px;padding:8px 11px;background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);font-size:11px;font-family:var(--mono);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span>${r.perf.entryVerdict === 'strong-buy' ? '🚀' : '📈'} <b>De la primul semnal ${r.perf.entryVerdict === 'strong-buy' ? 'STRONG BUY' : 'BUY'}</b> · acum ${r.perf.days} ${r.perf.days === 1 ? 'zi' : 'zile'} @ ${fmtUSD(r.perf.entryPrice)} → <b style="color:${gc}">${fmtPct(r.perf.gain, 1)}</b></span>
+      <button type="button" class="action-btn" style="font-size:9px;margin-left:auto" onclick="resetPerf('${sym}')">↺ resetează</button>
+    </div>`;
+  }
+
   // Plan ref ATR (long)
   let planHtml = '';
   if (r.atrPct != null && r.price != null){
@@ -985,6 +1157,7 @@ function buildDetailRow(r){
           ${buildSparkline(r.spark, { n: 60, big: true }) || '<span style="color:var(--t3);font-size:11px">fără date istorice</span>'}
         </div>
         <div class="detail-metrics">${metrics}</div>
+        ${perfHtml}
         ${planHtml}
         <div class="detail-links">
           <a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener">📈 TradingView</a>
@@ -1030,10 +1203,15 @@ function render(){
   renderHotStrip();
   const tbody = $('resultsBody');
   if (!watchlist.length){
+    const popBtns = POPULAR_TICKERS.map(t => `<button class="qa-btn" type="button" onclick="quickAdd('${t}')">+ ${t}</button>`).join('');
     tbody.innerHTML = `<tr><td colspan="11" class="empty">
       <div class="empty-icon">👁️</div>
       <div class="empty-title">Niciun stock în watchlist</div>
-      <div class="empty-sub">Adaugă tickere (AAPL, NVDA, TSLA…) prin formularul de sus + apasă SCAN.</div>
+      <div class="empty-sub">Adaugă tickere prin formularul de sus sau alege rapid mai jos. Auto-scan 60s verifică apoi continuu condițiile pentru BUY/STRONG BUY și te anunță (notificare/sunet/Telegram) la fiecare semnal nou.</div>
+      <div class="qa-wrap">
+        <div class="qa-title">⚡ Adăugare rapidă</div>
+        <div class="qa-btns">${popBtns}<button class="qa-btn scanner" type="button" onclick="addFromScanner()">📥 Top picks din Nasdaq Scanner</button></div>
+      </div>
     </td></tr>`;
     return;
   }
@@ -1087,10 +1265,12 @@ function render(){
     const trCls = r.trend == null ? '' : r.trend >= 0 ? 'up' : 'down';
     const flashCls = r.flashDir > 0 ? ' flash-up' : r.flashDir < 0 ? ' flash-dn' : '';
     const openCls = openDetail === r.symbol ? ' is-open' : '';
+    const perfTag = r.perf ? `<div class="perf-tag ${r.perf.gain >= 0 ? 'pos' : 'neg'}" title="de la primul semnal ${r.perf.entryVerdict === 'strong-buy' ? 'STRONG BUY' : 'BUY'}: intrare $${r.perf.entryPrice.toFixed(2)}">${r.perf.entryVerdict === 'strong-buy' ? '🚀' : '📈'} ${fmtPct(r.perf.gain, 1)} · ${r.perf.days}z</div>` : '';
     return `<tr id="wlrow-${r.symbol}" class="data-row v-${r.verdict}${flashCls}${openCls}" onclick="toggleDetail('${r.symbol}')">
       <td class="left">
         <div class="sym-name"><span class="row-caret">▸</span>${r.symbol}</div>
         <div class="sym-sector">Stocks · NASDAQ</div>
+        ${perfTag}
       </td>
       <td>${fmtUSD(r.price)}</td>
       <td><span class="badge ${chgCls}">${fmtPct(r.chg, 2)}</span></td>
@@ -1145,6 +1325,7 @@ window.removeFromWl = function(sym){
   watchlist = watchlist.filter(s => s !== sym);
   results = results.filter(r => r.symbol !== sym);
   if (openDetail === sym) openDetail = null;
+  if (perfMap[sym]){ delete perfMap[sym]; persistPerf(); }
   saveWatchlist();
   render();
 };
@@ -1164,6 +1345,7 @@ $('addBtn').addEventListener('click', () => {
 $('symInp').addEventListener('keydown', e => {
   if (e.key === 'Enter') $('addBtn').click();
 });
+$('fromScannerBtn').addEventListener('click', () => window.addFromScanner());
 
 $('scanBtn').addEventListener('click', () => runScan());
 
@@ -1189,6 +1371,16 @@ $('fbMovers').addEventListener('change', e => { filterMovers = e.target.checked;
 
 // Jurnal schimbări (F6)
 $('changesBtn').addEventListener('click', () => window.showChangesLog());
+
+// Sunet + Telegram (F7)
+$('soundBtn').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  try { localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0'); } catch(e){}
+  updateAlertButtons();
+  setStatus(soundEnabled ? 'ok' : '', soundEnabled ? 'Sunet ON' : 'Sunet OFF');
+  if (soundEnabled) beep(); // unlock AudioContext + preview
+});
+$('tgBtn').addEventListener('click', () => window.showTgConfig());
 
 $('notifBtn').addEventListener('click', async () => {
   if (!('Notification' in window)){ alert('Browserul nu suportă notificări'); return; }
@@ -1221,7 +1413,11 @@ document.querySelectorAll('th[data-sort]').forEach(th => {
 // ═══════════════════════════════════════════════════════════════
 loadWatchlist();
 try { notifEnabled = localStorage.getItem(NOTIF_KEY) === '1' && Notification.permission === 'granted'; } catch(e){}
+try { soundEnabled = localStorage.getItem(SOUND_KEY) === '1'; } catch(e){}
+try { tgConfig = Object.assign(tgConfig, JSON.parse(localStorage.getItem(TG_KEY) || '{}')); } catch(e){}
+try { perfMap = JSON.parse(localStorage.getItem(PERF_KEY) || '{}') || {}; } catch(e){ perfMap = {}; }
 $('notifBtn').style.opacity = notifEnabled ? '1' : '.5';
+updateAlertButtons();
 setStatus('', `${watchlist.length} stocks · auto-scan 60s`);
 updateChangesBadge();
 render();
