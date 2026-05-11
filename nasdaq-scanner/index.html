@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v92</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v93</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -5811,6 +5811,7 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
 
   // ── Earnings risk: BLOCK BUY/SELL aggressive în <48h pre-earnings ──
   // Verdict-uri "Cumpără Acum" pre-earnings = lottery. Mai bine WAIT decât a paria pe gap ±10-30%.
+  let _earnHard = false; // true = earnings <48h (block hard)
   if(earningsSet.has(symbol)){
     let earningsHoursAway = null;
     const eCal = (typeof earningsCalendar !== 'undefined' ? earningsCalendar : null) || [];
@@ -5822,38 +5823,44 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
       } catch(_){}
     }
     if(earningsHoursAway !== null && earningsHoursAway > 0 && earningsHoursAway < 48){
-      // Cap ambele scoruri sub pragul "BUY at pullback" (55) — forțează verdict NEUTRAL/MONITOR
-      buyScore = Math.min(buyScore, 35);
-      sellScore = Math.min(sellScore, 35);
+      _earnHard = true;
       const msg = {t:`🚫 EARNINGS în ~${Math.round(earningsHoursAway)}h — verdict agresiv BLOCAT. Gap post-rezultat ±10-30% imposibil de prezis. Așteaptă deschiderea post-earnings.`,c:'neg'};
       buyReasons.push(msg); sellReasons.push(msg);
     } else {
-      buyScore -= 12; sellScore -= 12;
+      buyScore -= 12; sellScore -= 12; // penalizare blândă — afectează și scorul "raw"
       const msg = {t:'⚠️ Earnings în 7 zile — volatilitate imprevizibilă. Risc ridicat pentru orice direcție.',c:'neu'};
       buyReasons.push(msg); sellReasons.push(msg);
     }
   }
+  const _macroBlk = (typeof macroBlockerActive !== 'undefined' && macroBlockerActive) ? macroBlockerActive : null;
 
-  // ── MACRO EVENT BLOCKER — high-impact US event în <24h (FOMC/CPI/NFP/PPI) ──
-  // La fel ca pre-earnings: capping verdict sub threshold de "BUY/SELL aggressive" (55).
-  if(typeof macroBlockerActive !== 'undefined' && macroBlockerActive){
+  // ── SNAPSHOT "raw" — scorurile + direcția ÎNAINTE de cap-urile hard (earnings <48h + macro event) ──
+  // Early Buy folosește astea ca să arate ce se coace (cu banner de avertizare), fără a pierde protecția.
+  const isBuyRaw   = buyScore > sellScore;
+  const buyScoreRaw = Math.min(100, Math.round(buyScore));
+  const sellScoreRaw = Math.min(100, Math.round(sellScore));
+  const scoreRaw   = isBuyRaw ? buyScoreRaw : sellScoreRaw;
+
+  // ── Cap-urile hard (BLOCK BUY/SELL aggressive) — pe versiunea "normală" folosită peste tot ──
+  if(_earnHard){ buyScore = Math.min(buyScore, 35); sellScore = Math.min(sellScore, 35); }
+  if(_macroBlk){
     buyScore = Math.min(buyScore, 35);
     sellScore = Math.min(sellScore, 35);
-    const msg = {t:`🚫 MACRO ${macroBlockerActive.event} în ~${Math.round(macroBlockerActive.hoursAway)}h — verdict agresiv BLOCAT. Volatilitate post-event imprevizibilă pe TOATĂ piața.`,c:'neg'};
+    const msg = {t:`🚫 MACRO ${_macroBlk.event} în ~${Math.round(_macroBlk.hoursAway)}h — verdict agresiv BLOCAT. Volatilitate post-event imprevizibilă pe TOATĂ piața.`,c:'neg'};
     buyReasons.push(msg); sellReasons.push(msg);
   }
 
-  // ── Calcul Entry / TP / SL — ATR-based (volatility-adjusted) ──
+  // ── Calcul Entry / TP / SL — ATR-based (volatility-adjusted), pe direcția REALĂ (raw, nu cea capată) ──
   // ATR proxy = range zilnic; pentru NVDA (atr 5%) TP-ul va fi mult mai larg decât pentru KO (atr 1%)
   const isBuyOpp=buyScore>sellScore;
   const finalScore=isBuyOpp?Math.min(100,Math.round(buyScore)):Math.min(100,Math.round(sellScore));
   const entry=price;
   const atrProxy = Math.max((high24 - low24), price * 0.015); // floor 1.5% pentru low-vol stocks
   // TP mai larg pentru reversal-uri tari (RSI extrem); SL mai larg pentru oversold (mai mult breathing room)
-  const tpMult = isBuyOpp ? (rsi<=35 ? 2.5 : rsi<=45 ? 2.0 : 1.5) : (rsi>=75 ? 2.5 : 2.0);
-  const slMult = isBuyOpp ? (rsi<=30 ? 1.5 : 1.2) : (rsi>=75 ? 1.5 : 1.2);
-  const tp = isBuyOpp ? entry + atrProxy*tpMult : entry - atrProxy*tpMult;
-  const sl = isBuyOpp ? entry - atrProxy*slMult : entry + atrProxy*slMult;
+  const tpMult = isBuyRaw ? (rsi<=35 ? 2.5 : rsi<=45 ? 2.0 : 1.5) : (rsi>=75 ? 2.5 : 2.0);
+  const slMult = isBuyRaw ? (rsi<=30 ? 1.5 : 1.2) : (rsi>=75 ? 1.5 : 1.2);
+  const tp = isBuyRaw ? entry + atrProxy*tpMult : entry - atrProxy*tpMult;
+  const sl = isBuyRaw ? entry - atrProxy*slMult : entry + atrProxy*slMult;
   const rr = Math.abs(tp-entry)/Math.abs(sl-entry);
 
   return{
@@ -5862,7 +5869,8 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
     score: finalScore,
     buyScore: Math.min(100,Math.round(buyScore)),
     sellScore: Math.min(100,Math.round(sellScore)),
-    reasons: isBuyOpp?buyReasons.slice(0,4):sellReasons.slice(0,4),
+    isBuyRaw, scoreRaw, buyScoreRaw, earnHard: _earnHard,
+    reasons: isBuyRaw?buyReasons.slice(0,4):sellReasons.slice(0,4),
     entry, tp, sl, rr: rr.toFixed(1),
     spark: spark||null,
   };
@@ -5983,10 +5991,12 @@ function renderRecommendations(){
 
 // ── EARLY BUY SCORE ENGINE ──
 function calcEarlyBuyScore(opp){
-  const {chg24, rsi, range24pct, symbol, buyScore} = opp;
+  const {chg24, rsi, range24pct, symbol, buyScore, buyScoreRaw} = opp;
   // Exclud zilele negative — trebuie zi pozitivă
   if(chg24 < 0) return 0;
-  let score = buyScore;
+  // Folosește scorul "raw" (ÎNAINTE de cap-urile macro/earnings-hard) — Early Buy arată ce se coace,
+  // banner-ul de avertizare semnalează că e blocat. Fallback la buyScore dacă raw lipsește (compat vechi).
+  let score = (typeof buyScoreRaw === 'number' ? buyScoreRaw : buyScore);
 
   // ── Factorul 1: Creștere zi — sweet spot = +0.3%…+3% (tocmai pornit)
   if(chg24>=0.3 && chg24<=2)       score += 18; // ideal early
@@ -6045,27 +6055,27 @@ function renderEarlyBuy(){
 
   // Pas 7: custom screener filter pe lista raw opportunities înainte de calc Early
   const csfActive = !!(typeof _customFilter !== 'undefined' && _customFilter && _customFilter.on);
+  const macroBlk  = (typeof macroBlockerActive !== 'undefined' && macroBlockerActive) ? macroBlockerActive : null;
   const baseOpps  = _csfApplyIfActive(allOpportunities);
-  // Funnel explicit ca să se vadă UNDE moare lista când e gol (debug Early Buy)
+  // Funnel explicit ca să se vadă UNDE moare lista când e gol. Folosim score-ul "raw" (ÎNAINTE de
+  // cap-urile macro/earnings-hard) ca Early Buy să arate ce se coace; banner-ul de mai jos avertizează.
   const fPos  = baseOpps.filter(o => o.chg24 >= 0);
-  const fBuy  = fPos.filter(o => o.isBuy && o.score >= 42);
+  const fBuy  = fPos.filter(o => (o.isBuyRaw ?? o.isBuy) && (o.scoreRaw ?? o.score) >= 42);
   const fEarl = fBuy.map(o => ({...o, earlyScore: calcEarlyBuyScore(o)})).filter(o => o.earlyScore >= 50);
   const scored = fEarl.sort((a,b) => b.earlyScore - a.earlyScore).slice(0, 14);
 
   if(!scored.length){
-    const funnel = `${allOpportunities.length} scanate${csfActive ? ` → ${baseOpps.length} după 🎯 Screener` : ''} → ${fPos.length} zi pozitivă → ${fBuy.length} buy-side & score≥42 → ${fEarl.length} earlyScore≥50`;
-    const macroBlk = (typeof macroBlockerActive !== 'undefined' && macroBlockerActive) ? macroBlockerActive : null;
+    const funnel = `${allOpportunities.length} scanate${csfActive ? ` → ${baseOpps.length} după 🎯 Screener` : ''} → ${fPos.length} zi pozitivă → ${fBuy.length} buy-side(raw) & score≥42 → ${fEarl.length} earlyScore≥50`;
     const posWithEarn = (typeof earningsSet !== 'undefined' && earningsSet) ? fPos.filter(o => earningsSet.has(o.symbol)).length : 0;
     let hint;
-    if(macroBlk){
-      hint = `🚫 <strong>${macroBlk.event} în ~${Math.round(macroBlk.hoursAway)}h</strong> — scanner-ul blochează INTENȚIONAT toate verdictele agresive (buyScore/sellScore capate la 35 < pragul 42). Nu e bug: Early Buy & Reco rămân goale până trece evenimentul macro. Vezi log-ul: "🚫 Macro event...".`;
-    } else if(fPos.length === 0){
+    if(fPos.length === 0){
       hint = 'Toate acțiunile scanate sunt în scădere/plate azi — piață roșie, nu e bug. Extinde lista de acțiuni sau revino într-o zi verde.';
     } else if(fBuy.length === 0){
-      hint = `${fPos.length} acțiuni pozitive azi, dar 0 buy-side & score≥42${posWithEarn > 0 ? ` (din care ${posWithEarn} cu earnings în 7 zile → score redus)` : ''}. Cauză probabilă: lipsesc RSI/sparkline de pe Yahoo (fără ele scoringul rămâne neutru 50/50). Verifică log-ul ("RSI: ... total", warning-uri Yahoo); fă hard-refresh (Ctrl+Shift+R) — ver-badge trebuie v92+.`;
+      hint = `${fPos.length} acțiuni pozitive azi, dar 0 cu scor buy-side (raw) ≥ 42${posWithEarn > 0 ? ` (din care ${posWithEarn} cu earnings în 7 zile → score redus)` : ''}. Cauză probabilă: lipsesc RSI/sparkline de pe Yahoo (fără ele scoringul rămâne neutru 50/50). Verifică log-ul ("RSI: ... total", warning-uri Yahoo); hard-refresh (Ctrl+Shift+R) — ver-badge trebuie v93+.`;
     } else {
       hint = `${fBuy.length} candidați buy-side, dar niciunul cu earlyScore ≥ 50 — momentum prea slab azi.`;
     }
+    if(macroBlk) hint += ` <span style="opacity:.7">(ℹ️ ${macroBlk.event} în ~${Math.round(macroBlk.hoursAway)}h — Early Buy folosește score-ul "raw" pre-cap, deci macro NU e cauza golirii aici.)</span>`;
     if(csfActive) hint += ' ⚠️ Custom Screener 🎯 e ACTIV — resetează-l dacă nu-l vrei.';
     container.innerHTML=`<div class="empty"><div class="empty-icon">🌱</div><div class="empty-title">Niciun setup Early Buy azi</div><div class="empty-sub">${hint}<br><span style="opacity:.55;font-size:.78rem">Funnel: ${funnel}</span></div></div>`;
     return;
@@ -6216,6 +6226,13 @@ function renderEarlyBuy(){
     </div>`;
   }).join('');
 
+  const macroBanner = macroBlk
+    ? `<div style="background:linear-gradient(135deg,rgba(220,38,38,.15),rgba(170,28,28,.10));border:1px solid rgba(220,38,38,.55);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:.62rem;color:#fca5a5;line-height:1.6;">🚫 <strong>${macroBlk.event} în ~${Math.round(macroBlk.hoursAway)}h</strong> — candidați INFORMATIVI (scor "raw", ÎNAINTE de cap-ul macro). <strong>NU deschide poziții înainte de eveniment</strong> — gap-uri impredictibile pe toată piața. După print, re-scanează pentru verdicte reale.</div>`
+    : '';
+  const earnHardCount = scored.filter(o => o.earnHard).length;
+  const earnBanner = earnHardCount > 0
+    ? `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:8px;padding:7px 11px;margin-bottom:10px;font-size:.6rem;color:#fcd34d;">📅 ${earnHardCount} din candidați au earnings în &lt;48h — verdict agresiv blocat pe acelea; afișate doar informativ (vezi 🚫 în motivele cardului).</div>`
+    : '';
   container.innerHTML=`<div>
     <div class="early-section-hdr">
       <div>
@@ -6224,6 +6241,7 @@ function renderEarlyBuy(){
       </div>
       <span class="early-count-pill">${scored.length} candidați</span>
     </div>
+    ${macroBanner}${earnBanner}
     <div class="early-info-box">
       <strong>Cum funcționează Early Buy?</strong> Algoritmul combină 6 factori: creștere zilnică +0.3–5% (pornit dar nu pompadour), RSI 38–65 (spațiu de creștere), accelerare pe sparkline 3/7 zile, sentiment știri pozitiv, scor de oportunitate și apropierea de watchlist.
       Acțiunile cu <strong>Early Score ≥ 72</strong> sunt marcate cu border verde (top pick).
