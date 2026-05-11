@@ -293,6 +293,33 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 .dp-tag.entry { border-color:var(--accent); } .dp-tag.sl { border-color:var(--bear-s); color:var(--bear-s); } .dp-tag.tp { border-color:var(--bull-s); color:var(--bull-s); }
 .detail-links { margin-top:12px; display:flex; gap:7px; flex-wrap:wrap; }
 
+/* Filter bar (F5) */
+.filter-bar { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:9px 12px; margin-bottom:10px; display:flex; gap:9px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow-sm); }
+.fb-chips { display:flex; gap:5px; flex-wrap:wrap; }
+.fb-chip { background:var(--panel2); border:1px solid var(--b1); color:var(--t2); padding:4px 10px; border-radius:999px; font-size:10.5px; font-weight:700; font-family:var(--head); }
+.fb-chip:hover { border-color:var(--accent); color:var(--accent); background:rgba(91,176,255,.06); transform:none; }
+.fb-chip.active { background:var(--accent); border-color:var(--accent); color:#000; }
+.filter-bar input[type=text] { width:140px; text-transform:uppercase; font-family:var(--mono); padding:5px 9px; }
+.fb-toggle { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; color:var(--t3); font-weight:600; cursor:pointer; user-select:none; }
+.fb-toggle input { width:auto; }
+.fb-count { margin-left:auto; font-size:10.5px; color:var(--t3); font-family:var(--mono); white-space:nowrap; }
+
+/* Countdown + changes log + toasts (F6) */
+#countdownPill { color:var(--t2); }
+.changes-badge { position:absolute; top:-6px; right:-6px; background:var(--bear-s); color:#fff; border-radius:999px; font-size:8.5px; font-weight:800; line-height:1; padding:2px 4px; min-width:14px; text-align:center; font-family:var(--mono); }
+.toast-wrap { position:fixed; right:14px; bottom:14px; z-index:9998; display:flex; flex-direction:column; gap:7px; max-width:300px; }
+.toast { background:var(--panel2); border:1px solid var(--b1); border-left:3px solid var(--accent); border-radius:var(--rs); padding:9px 12px; font-size:11px; font-family:var(--head); box-shadow:var(--shadow); cursor:pointer; animation:toastIn .25s var(--ease); }
+.toast.up { border-left-color:var(--bull-s); }
+.toast.dn { border-left-color:var(--bear-s); }
+.toast .tt-sym { font-weight:800; }
+.toast .tt-sub { color:var(--t3); font-size:10px; font-family:var(--mono); margin-top:1px; }
+@keyframes toastIn { from { opacity:0; transform:translateX(22px); } to { opacity:1; transform:translateX(0); } }
+.toast.fade-out { opacity:0; transition:opacity .4s var(--ease); }
+.cl-row { display:flex; align-items:center; gap:8px; padding:7px 10px; background:var(--panel2); border:1px solid var(--b1); border-radius:5px; font-size:11px; font-family:var(--mono); }
+.cl-row .cl-sym { font-weight:800; font-family:var(--head); min-width:54px; color:var(--accent); }
+.cl-row .cl-arrow { color:var(--t3); }
+.cl-row .cl-time { margin-left:auto; color:var(--t3); font-size:9.5px; }
+
 /* Mobile */
 @media (max-width:760px) {
   body { padding:8px; font-size:12px; }
@@ -308,18 +335,21 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
   .hot-strip { grid-template-columns:1fr; }
   .detail-grid { grid-template-columns:1fr; gap:12px; }
   tbody tr.detail-row > td { padding:11px 12px !important; }
+  .filter-bar { padding:8px 10px; gap:7px; }
+  .toast-wrap { right:8px; bottom:8px; left:8px; max-width:none; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v95</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v96</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
   <a href="../market-events/" class="nav-link">📅 Events</a>
   <button onclick="window.showWlFeatures()" class="nav-link" style="color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
   <span class="status-pill"><span class="status-dot" id="statusDot"></span><span id="statusTxt">Ready</span></span>
+  <span class="status-pill" id="countdownPill" style="display:none" title="Timp până la următorul auto-scan">⏱ <span id="countdownTxt">—</span></span>
   <div style="display:inline-flex;align-items:center;gap:5px"><label style="font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Auto:</label>
     <select id="autoRefresh" title="Auto-scan continuu pe watchlist">
       <option value="0">OFF</option>
@@ -330,6 +360,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
   </div>
   <button class="primary" id="scanBtn">↻ SCAN</button>
   <button id="notifBtn" title="Notificări browser la STRONG BUY nou">🔔</button>
+  <button id="changesBtn" title="Jurnal schimbări de verdict" style="position:relative">📋<span id="changesBadge" class="changes-badge" style="display:none">0</span></button>
 </header>
 
 <!-- Add bar -->
@@ -372,6 +403,20 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <!-- Hot strip (F3) -->
 <div class="hot-strip" id="hotStrip"></div>
 
+<!-- Filter bar (F5) -->
+<div class="filter-bar">
+  <div class="fb-chips">
+    <button type="button" class="fb-chip active" data-fv="all">Toate</button>
+    <button type="button" class="fb-chip" data-fv="strong-buy">🚀 Strong Buy</button>
+    <button type="button" class="fb-chip" data-fv="buy">📈 Buy</button>
+    <button type="button" class="fb-chip" data-fv="hold">📊 Hold</button>
+    <button type="button" class="fb-chip" data-fv="sell">📉 Sell/Avoid</button>
+  </div>
+  <input type="text" id="fbSearch" placeholder="🔎 ticker…" maxlength="8" autocomplete="off">
+  <label class="fb-toggle"><input type="checkbox" id="fbMovers"> doar movers |Δ| ≥ 2%</label>
+  <span class="fb-count" id="fbCount"></span>
+</div>
+
 <!-- Tabel -->
 <div class="panel-box scanner-wrap">
   <div class="panel-head">
@@ -409,6 +454,8 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
   <span><a href="../">← Înapoi la Hub</a></span>
 </footer>
 
+<div class="toast-wrap" id="toastWrap"></div>
+
 <script>
 "use strict";
 
@@ -441,11 +488,14 @@ window.showWlFeatures = function(){
       { e: '🎨', t: '<b>Bară verdict</b> colorată în stânga fiecărui rând (5 nivele)' },
       { e: '🔥', t: '<b>Hot strip</b> — top 3 stocks cu score ≥55 ca card-uri sus, click → scroll la rând' },
       { e: '🔎', t: '<b>Click pe rând → detalii</b>: sparkline 60z, MA50/MA200 abs, dist max/min 52s, ATR, compoziție score, plan long ref-ATR, link-uri TV/Yahoo/Finviz' },
+      { e: '🧰', t: '<b>Filtre live</b> — chip-uri pe verdict, căutare ticker, „doar movers |Δ|≥2%", contor vizibile/total' },
+      { e: '⏱', t: '<b>Countdown</b> până la următorul auto-scan în header' },
+      { e: '📋', t: '<b>Jurnal + toast</b> la fiecare schimbare de verdict (orice nivel), badge cu schimbări necitite' },
     ]},
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v95 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v96 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -471,6 +521,11 @@ let autoTimer = null;
 let notifEnabled = false;
 let sortKey = 'score', sortAsc = false;
 let openDetail = null; // simbolul cu rândul de detalii expandat (F4)
+let filterVerdict = 'all', filterText = '', filterMovers = false; // F5
+let autoSec = 60, nextScanAt = 0; // F6 countdown
+let verdictLog = [], unseenChanges = 0; // F6 jurnal schimbări [{sym,from,to,fromTxt,toTxt,dir,ts}]
+const VERDICT_RANK = { 'strong-buy': 4, 'buy': 3, 'hold': 2, 'sell': 1, 'strong-sell': 0 };
+const VERDICT_TXT  = { 'strong-buy': '🚀 STRONG BUY', 'buy': '📈 BUY', 'hold': '📊 HOLD', 'sell': '📉 SELL', 'strong-sell': '🔴 AVOID' };
 
 function loadWatchlist(){
   try { watchlist = JSON.parse(localStorage.getItem(WL_KEY) || '[]'); }
@@ -485,6 +540,60 @@ function setStatus(state, text){
   $('statusDot').className = 'status-dot' + (state ? ' ' + state : '');
   $('statusTxt').textContent = text;
 }
+
+// ── Auto-scan scheduler + countdown (F6) ──────────────────────────
+function clearAutoTimer(){ if (autoTimer){ clearTimeout(autoTimer); autoTimer = null; } }
+function scheduleNextScan(){
+  clearAutoTimer();
+  if (autoSec > 0){
+    nextScanAt = Date.now() + autoSec * 1000;
+    autoTimer = setTimeout(() => { if (!scanRunning) runScan(); else scheduleNextScan(); }, autoSec * 1000);
+  } else nextScanAt = 0;
+  updateCountdown();
+}
+function updateCountdown(){
+  const el = $('countdownPill'); if (!el) return;
+  if (autoSec > 0 && nextScanAt){
+    const left = Math.max(0, Math.round((nextScanAt - Date.now()) / 1000));
+    const m = Math.floor(left / 60), s = left % 60;
+    $('countdownTxt').textContent = scanRunning ? 'scanez…' : (m > 0 ? m + ':' + String(s).padStart(2, '0') : s + 's');
+    el.style.display = '';
+  } else el.style.display = 'none';
+}
+setInterval(updateCountdown, 1000);
+
+// ── Jurnal schimbări verdict + toasts (F6) ────────────────────────
+function updateChangesBadge(){
+  const b = $('changesBadge'); if (!b) return;
+  if (unseenChanges > 0){ b.textContent = unseenChanges > 99 ? '99+' : unseenChanges; b.style.display = ''; }
+  else b.style.display = 'none';
+}
+function showVerdictToast(c){
+  const wrap = $('toastWrap'); if (!wrap) return;
+  const el = document.createElement('div');
+  el.className = 'toast ' + (c.dir > 0 ? 'up' : 'dn');
+  el.innerHTML = `<div class="tt-sym">${c.dir > 0 ? '⬆' : '⬇'} ${c.sym}</div><div class="tt-sub">${c.fromTxt} → ${c.toTxt}</div>`;
+  el.addEventListener('click', () => { el.remove(); window.scrollToRow && window.scrollToRow(c.sym); });
+  wrap.appendChild(el);
+  while (wrap.children.length > 4) wrap.removeChild(wrap.firstChild);
+  setTimeout(() => { el.classList.add('fade-out'); setTimeout(() => el.remove(), 450); }, 6500);
+}
+window.showChangesLog = function(){
+  document.getElementById('clOverlay')?.remove();
+  unseenChanges = 0; updateChangesBadge();
+  const ov = document.createElement('div');
+  ov.id = 'clOverlay'; ov.className = 'fl-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  let body;
+  if (!verdictLog.length){
+    body = '<div style="color:var(--t3);font-size:11.5px;padding:14px;text-align:center;line-height:1.5;font-family:var(--mono)">Niciun verdict schimbat încă în sesiunea asta.<br>Apare aici când un stock trece de la un nivel la altul (ex. HOLD → 📈 BUY) între scan-uri.</div>';
+  } else {
+    body = verdictLog.map(c => `<div class="cl-row"><span class="cl-sym" style="cursor:pointer" onclick="document.getElementById('clOverlay')?.remove();scrollToRow('${c.sym}')">${c.sym}</span><span style="color:var(--t3)">${c.fromTxt}</span><span class="cl-arrow">→</span><span style="color:${c.dir > 0 ? 'var(--bull-s)' : 'var(--bear-s)'};font-weight:700">${c.toTxt}</span><span class="cl-time">${new Date(c.ts).toLocaleTimeString('ro-RO')}</span></div>`).join('');
+  }
+  ov.innerHTML = `<div class="fl-modal" style="max-width:480px"><div class="fl-head"><div><h3>📋 Jurnal schimbări verdict</h3><div class="sub">${verdictLog.length} schimbări · sesiunea curentă</div></div><button class="fl-close" type="button" data-close>×</button></div><div style="display:flex;flex-direction:column;gap:5px;max-height:60vh;overflow-y:auto">${body}</div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  DATA FETCH — Yahoo via CORS proxy (free, no key)
@@ -653,7 +762,7 @@ function scoreStock(d){
 // ═══════════════════════════════════════════════════════════════
 async function runScan(){
   if (scanRunning) return;
-  if (!watchlist.length){ setStatus('warn', 'watchlist gol — adaugă stocks'); return; }
+  if (!watchlist.length){ setStatus('warn', 'watchlist gol — adaugă stocks'); if (autoSec > 0) scheduleNextScan(); return; }
 
   scanRunning = true;
   $('scanBtn').disabled = true;
@@ -699,16 +808,29 @@ async function runScan(){
     await new Promise(r => setTimeout(r, 200));
   }
 
-  // Flash direction = schimbare de score față de scan-ul anterior (F2)
-  const prevMap = {};
-  results.forEach(r => { prevMap[r.symbol] = r.score; });
+  // Flash direction (F2) + detectare schimbări de verdict (F6) față de scan-ul anterior
+  const prevScore = {}, prevVerd = {};
+  results.forEach(r => { prevScore[r.symbol] = r.score; prevVerd[r.symbol] = r.verdict; });
+  const hadPrior = results.length > 0;
+  const changes = [];
   newResults.forEach(r => {
-    const ps = prevMap[r.symbol];
+    const ps = prevScore[r.symbol];
     if (typeof ps === 'number' && typeof r.score === 'number'){
       const d = r.score - ps;
       r.flashDir = d >= 2 ? 1 : d <= -2 ? -1 : 0;
     } else r.flashDir = 0;
+    const pv = prevVerd[r.symbol];
+    if (hadPrior && pv && pv !== r.verdict && r.price != null){
+      const dir = (VERDICT_RANK[r.verdict] ?? 2) - (VERDICT_RANK[pv] ?? 2);
+      changes.push({ sym: r.symbol, from: pv, to: r.verdict, fromTxt: VERDICT_TXT[pv] || pv, toTxt: r.verdictTxt, dir: dir >= 0 ? 1 : -1, ts: Date.now() });
+    }
   });
+  if (changes.length){
+    verdictLog = changes.concat(verdictLog).slice(0, 30);
+    unseenChanges += changes.length;
+    updateChangesBadge();
+    changes.slice(0, 3).forEach(showVerdictToast);
+  }
 
   // Detect noi STRONG BUY → notification
   detectAndNotifyStrongBuys(newResults);
@@ -719,6 +841,7 @@ async function runScan(){
   scanRunning = false;
   $('scanBtn').disabled = false;
   render();
+  if (autoSec > 0) scheduleNextScan();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -915,8 +1038,20 @@ function render(){
     return;
   }
 
+  // Filtre (F5)
+  const filtered = results.filter(r => {
+    if (filterText && !r.symbol.includes(filterText)) return false;
+    if (filterVerdict !== 'all'){
+      if (filterVerdict === 'sell'){ if (r.verdict !== 'sell' && r.verdict !== 'strong-sell') return false; }
+      else if (r.verdict !== filterVerdict) return false;
+    }
+    if (filterMovers && (r.chg == null || Math.abs(r.chg) < 2)) return false;
+    return true;
+  });
+  const filterActive = filterVerdict !== 'all' || filterMovers || !!filterText;
+
   // Sort
-  const sorted = [...results].sort((a, b) => {
+  const sorted = [...filtered].sort((a, b) => {
     let va = a[sortKey], vb = b[sortKey];
     if (sortKey === 'symbol') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
     if (sortKey === 'verdict'){
@@ -928,9 +1063,19 @@ function render(){
     return sortAsc ? va - vb : vb - va;
   });
 
-  // Show watchlist symbols nescanate ca rows placeholder
-  const scanned = new Set(sorted.map(r => r.symbol));
-  const unscanned = watchlist.filter(s => !scanned.has(s));
+  // Show watchlist symbols nescanate ca rows placeholder (doar dacă nu filtrăm pe verdict/movers)
+  const scanned = new Set(results.map(r => r.symbol));
+  const unscanned = (filterVerdict === 'all' && !filterMovers)
+    ? watchlist.filter(s => !scanned.has(s) && (!filterText || s.includes(filterText)))
+    : [];
+
+  // Counter vizibile (F5)
+  const fbCountEl = $('fbCount');
+  if (fbCountEl){
+    const vis = sorted.length + unscanned.length;
+    fbCountEl.textContent = filterActive ? `${vis} / ${watchlist.length} vizibile` : `${watchlist.length} stocks`;
+    fbCountEl.style.color = (filterActive && vis === 0) ? 'var(--warn)' : 'var(--t3)';
+  }
 
   let html = sorted.map(r => {
     const tvUrl = `https://www.tradingview.com/chart/?symbol=NASDAQ:${r.symbol}`;
@@ -972,7 +1117,12 @@ function render(){
     <td><button class="action-btn del" onclick="removeFromWl('${s}')">🗑</button></td>
   </tr>`).join('');
 
-  tbody.innerHTML = html || '<tr><td colspan="11" class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Apasă SCAN pentru a popula datele</div></td></tr>';
+  if (!html){
+    html = (filterActive && results.length)
+      ? '<tr><td colspan="11" class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Niciun stock nu se potrivește filtrului</div><div class="empty-sub">Schimbă chip-ul de verdict, golește căutarea sau dezactivează „doar movers".</div></td></tr>'
+      : '<tr><td colspan="11" class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Apasă SCAN pentru a popula datele</div></td></tr>';
+  }
+  tbody.innerHTML = html;
 
   // Detail row expandat (F4)
   if (openDetail){
@@ -1015,18 +1165,30 @@ $('symInp').addEventListener('keydown', e => {
   if (e.key === 'Enter') $('addBtn').click();
 });
 
-$('scanBtn').addEventListener('click', runScan);
+$('scanBtn').addEventListener('click', () => runScan());
 
 $('autoRefresh').addEventListener('change', e => {
-  const sec = parseInt(e.target.value, 10) || 0;
-  if (autoTimer) clearInterval(autoTimer);
-  if (sec > 0){
-    autoTimer = setInterval(() => { if (!scanRunning) runScan(); }, sec * 1000);
-    setStatus('ok', `auto-scan ${sec}s ON`);
-  } else {
-    setStatus('', 'auto-scan OFF');
-  }
+  autoSec = parseInt(e.target.value, 10) || 0;
+  scheduleNextScan();
+  setStatus(autoSec > 0 ? 'ok' : '', autoSec > 0 ? `auto-scan ${autoSec}s ON` : 'auto-scan OFF');
 });
+
+// Filter bar (F5)
+document.querySelectorAll('.fb-chip').forEach(ch => {
+  ch.addEventListener('click', () => {
+    filterVerdict = ch.dataset.fv;
+    document.querySelectorAll('.fb-chip').forEach(c => c.classList.toggle('active', c.dataset.fv === filterVerdict));
+    render();
+  });
+});
+$('fbSearch').addEventListener('input', e => {
+  filterText = e.target.value.trim().toUpperCase().replace(/[^A-Z.]/g, '');
+  render();
+});
+$('fbMovers').addEventListener('change', e => { filterMovers = e.target.checked; render(); });
+
+// Jurnal schimbări (F6)
+$('changesBtn').addEventListener('click', () => window.showChangesLog());
 
 $('notifBtn').addEventListener('click', async () => {
   if (!('Notification' in window)){ alert('Browserul nu suportă notificări'); return; }
@@ -1061,14 +1223,13 @@ loadWatchlist();
 try { notifEnabled = localStorage.getItem(NOTIF_KEY) === '1' && Notification.permission === 'granted'; } catch(e){}
 $('notifBtn').style.opacity = notifEnabled ? '1' : '.5';
 setStatus('', `${watchlist.length} stocks · auto-scan 60s`);
+updateChangesBadge();
 render();
 
-// Auto-start scan + auto-refresh la load (dacă sunt stocks)
-if (watchlist.length){
-  setTimeout(runScan, 800);
-  // Default auto-refresh 60s ON
-  autoTimer = setInterval(() => { if (!scanRunning) runScan(); }, 60_000);
-}
+// Auto-start scan + auto-refresh la load
+autoSec = parseInt($('autoRefresh').value, 10) || 60;
+if (watchlist.length) setTimeout(runScan, 800);
+scheduleNextScan();
 </script>
 </body>
 </html>
