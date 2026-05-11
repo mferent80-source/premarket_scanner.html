@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v89</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v90</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -5751,6 +5751,12 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
   else if(chg24>=5&&rsi<60){buyScore+=14;buyReasons.push({t:`Rally de +${chg24.toFixed(1)}% cu RSI încă sub zonă de risc — momentum confirmat.`,c:'pos'});}
   else if(chg24>=8&&rsi>=65){buyScore-=8;sellScore+=12;sellReasons.push({t:`Rally de +${chg24.toFixed(1)}% cu RSI ridicat — risc de „sell the news".`,c:'neg'});}
   else if(chg24<=-8){buyScore-=10;sellScore+=10;sellReasons.push({t:`Scădere abruptă ${chg24.toFixed(1)}% — trend bearish activ.`,c:'neg'});}
+
+  // ── Tilt direcțional pe ziua curentă (semnal de bază în zona moderată) ──
+  // ESENȚIAL când RSI/sparkline de pe Yahoo lipsesc (proxy CORS picat): fără asta toate acțiunile
+  // rămân 50 vs 50 → isBuy=false → Early Buy / Reco buy-side se golesc deși scan-ul a rulat.
+  if(chg24 > 0)       buyScore  += Math.min(8, chg24 * 3);
+  else if(chg24 < 0)  sellScore += Math.min(8, Math.abs(chg24) * 3);
 
   // ── Trend 7 zile din sparkline ──
   const spark=sparklineCache[symbol];
