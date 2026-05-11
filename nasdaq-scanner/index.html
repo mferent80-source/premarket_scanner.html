@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v91</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v92</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -6054,10 +6054,18 @@ function renderEarlyBuy(){
 
   if(!scored.length){
     const funnel = `${allOpportunities.length} scanate${csfActive ? ` → ${baseOpps.length} după 🎯 Screener` : ''} → ${fPos.length} zi pozitivă → ${fBuy.length} buy-side & score≥42 → ${fEarl.length} earlyScore≥50`;
+    const macroBlk = (typeof macroBlockerActive !== 'undefined' && macroBlockerActive) ? macroBlockerActive : null;
+    const posWithEarn = (typeof earningsSet !== 'undefined' && earningsSet) ? fPos.filter(o => earningsSet.has(o.symbol)).length : 0;
     let hint;
-    if(fPos.length === 0)      hint = 'Toate acțiunile scanate sunt în scădere/plate azi — piață roșie, nu e bug. Extinde lista de acțiuni sau revino într-o zi verde.';
-    else if(fBuy.length === 0) hint = `${fPos.length} acțiuni pozitive azi, dar niciuna clasificată buy-side — probabil lipsesc RSI/sparkline de pe Yahoo. Verifică log-ul scanner-ului; fă hard-refresh (Ctrl+Shift+R) — ver-badge trebuie v90+.`;
-    else                       hint = `${fBuy.length} candidați buy-side, dar niciunul cu earlyScore ≥ 50 — momentum prea slab azi.`;
+    if(macroBlk){
+      hint = `🚫 <strong>${macroBlk.event} în ~${Math.round(macroBlk.hoursAway)}h</strong> — scanner-ul blochează INTENȚIONAT toate verdictele agresive (buyScore/sellScore capate la 35 < pragul 42). Nu e bug: Early Buy & Reco rămân goale până trece evenimentul macro. Vezi log-ul: "🚫 Macro event...".`;
+    } else if(fPos.length === 0){
+      hint = 'Toate acțiunile scanate sunt în scădere/plate azi — piață roșie, nu e bug. Extinde lista de acțiuni sau revino într-o zi verde.';
+    } else if(fBuy.length === 0){
+      hint = `${fPos.length} acțiuni pozitive azi, dar 0 buy-side & score≥42${posWithEarn > 0 ? ` (din care ${posWithEarn} cu earnings în 7 zile → score redus)` : ''}. Cauză probabilă: lipsesc RSI/sparkline de pe Yahoo (fără ele scoringul rămâne neutru 50/50). Verifică log-ul ("RSI: ... total", warning-uri Yahoo); fă hard-refresh (Ctrl+Shift+R) — ver-badge trebuie v92+.`;
+    } else {
+      hint = `${fBuy.length} candidați buy-side, dar niciunul cu earlyScore ≥ 50 — momentum prea slab azi.`;
+    }
     if(csfActive) hint += ' ⚠️ Custom Screener 🎯 e ACTIV — resetează-l dacă nu-l vrei.';
     container.innerHTML=`<div class="empty"><div class="empty-icon">🌱</div><div class="empty-title">Niciun setup Early Buy azi</div><div class="empty-sub">${hint}<br><span style="opacity:.55;font-size:.78rem">Funnel: ${funnel}</span></div></div>`;
     return;
