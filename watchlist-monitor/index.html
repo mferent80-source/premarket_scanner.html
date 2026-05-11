@@ -229,6 +229,43 @@ footer a { color:var(--accent); text-decoration:none; }
 .fl-item.auto{border-left:3px solid var(--bull-s)}
 .fl-item .fl-txt b{color:var(--t1)}.fl-item .fl-txt{color:var(--t2)}
 
+/* Sparkline (F1) */
+.spark { width:64px; height:22px; display:block; margin:0 auto; }
+.spark path { fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.spark .area { stroke:none; opacity:.16; }
+.spark.up path { stroke:var(--bull-s); } .spark.up .area { fill:var(--bull-s); }
+.spark.dn path { stroke:var(--bear-s); } .spark.dn .area { fill:var(--bear-s); }
+.spark.flat path { stroke:var(--t3); } .spark.flat .area { fill:var(--t3); }
+.spark-big { width:100%; height:54px; }
+.spark-trend-pct { font-size:9px; color:var(--t3); display:block; margin-top:1px; font-family:var(--mono); }
+
+/* Row verdict border + flash (F2) */
+tbody tr { border-left:3px solid transparent; }
+tbody tr.v-strong-buy { border-left-color:var(--bull-s); }
+tbody tr.v-buy        { border-left-color:var(--bull); }
+tbody tr.v-hold       { border-left-color:var(--b2); }
+tbody tr.v-sell       { border-left-color:var(--bear); }
+tbody tr.v-strong-sell{ border-left-color:var(--bear-s); }
+@keyframes flashUp { from { background:rgba(34,214,107,.30); } to { background:transparent; } }
+@keyframes flashDn { from { background:rgba(255,77,77,.30); } to { background:transparent; } }
+tbody tr.flash-up { animation:flashUp 1.5s var(--ease); }
+tbody tr.flash-dn { animation:flashDn 1.5s var(--ease); }
+
+/* Hot strip (F3) */
+.hot-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:8px; margin-bottom:10px; }
+.hot-strip:empty { display:none; }
+.hot-card { background:linear-gradient(135deg,rgba(34,214,107,.13),rgba(20,26,40,.62)); border:1px solid rgba(34,214,107,.42); border-radius:var(--r); padding:10px 13px; display:flex; flex-direction:column; gap:3px; cursor:pointer; transition:transform .15s var(--ease),box-shadow .15s var(--ease); box-shadow:var(--shadow-sm); }
+.hot-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.hot-card.hc-buy { background:linear-gradient(135deg,rgba(34,214,107,.07),rgba(20,26,40,.6)); border-color:rgba(34,214,107,.25); }
+.hot-card .hc-top { display:flex; align-items:center; gap:6px; }
+.hot-card .hc-sym { font-family:var(--head); font-weight:800; font-size:14px; letter-spacing:-.2px; }
+.hot-card .hc-fire { font-size:13px; }
+.hot-card .hc-score { margin-left:auto; font-family:var(--mono); font-weight:700; font-size:13px; }
+.hot-card .hc-mid { display:flex; align-items:baseline; gap:8px; font-family:var(--mono); margin-top:1px; }
+.hot-card .hc-price { font-size:13px; font-weight:700; color:var(--t1); }
+.hot-card .hc-chg { font-size:11px; }
+.hot-card .hc-verdict { font-size:9px; font-weight:800; font-family:var(--head); letter-spacing:.3px; margin-top:2px; }
+
 /* Mobile */
 @media (max-width:760px) {
   body { padding:8px; font-size:12px; }
@@ -240,13 +277,15 @@ footer a { color:var(--accent); text-decoration:none; }
   .add-bar { padding:9px 11px; gap:6px; }
   .stats-strip { grid-template-columns:repeat(2,1fr); }
   .scanner-wrap { max-height:calc(100vh - 380px); }
+  .spark { width:48px; height:18px; }
+  .hot-strip { grid-template-columns:1fr; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v72</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v94</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
   <a href="../market-events/" class="nav-link">📅 Events</a>
@@ -301,6 +340,9 @@ footer a { color:var(--accent); text-decoration:none; }
   </div>
 </div>
 
+<!-- Hot strip (F3) -->
+<div class="hot-strip" id="hotStrip"></div>
+
 <!-- Tabel -->
 <div class="panel-box scanner-wrap">
   <div class="panel-head">
@@ -313,6 +355,7 @@ footer a { color:var(--accent); text-decoration:none; }
         <th data-sort="symbol" class="left">Ticker</th>
         <th data-sort="price">Preț</th>
         <th data-sort="chg">Δ Zi</th>
+        <th data-sort="trend">📈 30z</th>
         <th data-sort="vol" class="hide-mobile">Vol</th>
         <th data-sort="rsi">RSI</th>
         <th data-sort="ma50" class="hide-mobile">vs MA50</th>
@@ -323,7 +366,7 @@ footer a { color:var(--accent); text-decoration:none; }
       </tr>
     </thead>
     <tbody id="resultsBody">
-      <tr><td colspan="10" class="empty">
+      <tr><td colspan="11" class="empty">
         <div class="empty-icon">👁️</div>
         <div class="empty-title">Niciun stock în watchlist</div>
         <div class="empty-sub">Adaugă tickere (AAPL, NVDA, TSLA…) prin formularul de sus + apasă SCAN. Auto-refresh 60s va verifica continuu condițiile pentru BUY/STRONG BUY și te va notifica la fiecare semnal nou puternic.</div>
@@ -363,10 +406,16 @@ window.showWlFeatures = function(){
       { e: '🔔', t: '<b>Browser notification</b> la STRONG BUY nou' },
       { e: '⚙', t: '<b>Sortabil</b> pe orice coloană' },
     ]},
+    { title: '✨ Liveliness', cls: 'tool', items: [
+      { e: '📈', t: '<b>Sparkline 30 zile</b> per rând + trend % colorat (col. 📈 30z, sortabilă)' },
+      { e: '💥', t: '<b>Flash rând</b> verde/roșu când score-ul se schimbă ±2 la re-scan' },
+      { e: '🎨', t: '<b>Bară verdict</b> colorată în stânga fiecărui rând (5 nivele)' },
+      { e: '🔥', t: '<b>Hot strip</b> — top 3 stocks cu score ≥55 ca card-uri sus, click → scroll la rând' },
+    ]},
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v82 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v94 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -386,7 +435,7 @@ const NOTIF_KEY = 'wl_monitor_notif';
 const LAST_SEEN_KEY = 'wl_monitor_last_seen';
 
 let watchlist = [];
-let results = []; // [{ symbol, price, chg, vol, rsi, ma50, ma200, score, verdict, ts }]
+let results = []; // [{ symbol, price, chg, vol, rsi, ma50, ma200, ma50abs, ma200abs, score, verdict, verdictTxt, spark, trend, flashDir, ts }]
 let scanRunning = false;
 let autoTimer = null;
 let notifEnabled = false;
@@ -463,6 +512,36 @@ function calcMA(closes, period){
   if (!closes || closes.length < period) return null;
   const slice = closes.slice(-period);
   return slice.reduce((a, b) => a + b, 0) / period;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SPARKLINE — mini-grafic SVG din ultimele ~N închideri (F1)
+// ═══════════════════════════════════════════════════════════════
+function buildSparkline(closes, opts = {}){
+  const n = opts.n || 30;
+  const big = !!opts.big;
+  if (!closes || closes.length < 3) return '';
+  const arr = closes.slice(-n);
+  const lo = Math.min(...arr), hi = Math.max(...arr);
+  const rng = (hi - lo) || 1;
+  const w = 100, h = 30, pad = 2;
+  const pts = arr.map((v, i) => {
+    const x = pad + (i / (arr.length - 1)) * (w - pad * 2);
+    const y = pad + (1 - (v - lo) / rng) * (h - pad * 2);
+    return [x, y];
+  });
+  const line = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const last = pts[pts.length - 1], first = pts[0];
+  const area = line + ` L${last[0].toFixed(1)},${(h - pad)} L${first[0].toFixed(1)},${(h - pad)} Z`;
+  const dir = arr[arr.length - 1] > arr[0] ? 'up' : arr[arr.length - 1] < arr[0] ? 'dn' : 'flat';
+  return `<svg class="spark ${dir}${big ? ' spark-big' : ''}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path class="area" d="${area}"/><path d="${line}"/></svg>`;
+}
+function trendPct(closes, n = 30){
+  if (!closes || closes.length < 2) return null;
+  const arr = closes.slice(-n);
+  const f = arr[0], l = arr[arr.length - 1];
+  if (!f) return null;
+  return ((l - f) / f) * 100;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -551,21 +630,37 @@ async function runScan(){
         rsi: sc.rsi,
         ma50: sc.aboveMa50,
         ma200: sc.aboveMa200,
+        ma50abs: sc.ma50,
+        ma200abs: sc.ma200,
         score: sc.score,
         verdict: sc.verdict,
         verdictTxt: sc.verdictTxt,
+        spark: data.closes.slice(-60),
+        trend: trendPct(data.closes, 30),
         ts: Date.now(),
       });
     } else {
       newResults.push({
         symbol: sym, price: null, chg: null, vol: null, rsi: null,
-        ma50: null, ma200: null, score: 0, verdict: 'hold', verdictTxt: '⚠️ N/A', ts: Date.now(),
+        ma50: null, ma200: null, ma50abs: null, ma200abs: null, score: 0,
+        verdict: 'hold', verdictTxt: '⚠️ N/A', spark: [], trend: null, ts: Date.now(),
       });
     }
     setStatus('load', `scanez… ${i + 1}/${watchlist.length}`);
     // Rate limit safety: 200ms între request-uri
     await new Promise(r => setTimeout(r, 200));
   }
+
+  // Flash direction = schimbare de score față de scan-ul anterior (F2)
+  const prevMap = {};
+  results.forEach(r => { prevMap[r.symbol] = r.score; });
+  newResults.forEach(r => {
+    const ps = prevMap[r.symbol];
+    if (typeof ps === 'number' && typeof r.score === 'number'){
+      const d = r.score - ps;
+      r.flashDir = d >= 2 ? 1 : d <= -2 ? -1 : 0;
+    } else r.flashDir = 0;
+  });
 
   // Detect noi STRONG BUY → notification
   detectAndNotifyStrongBuys(newResults);
@@ -641,11 +736,47 @@ function updateStats(){
   $('wlMeta').textContent = watchlist.length + ' stocks în watchlist';
 }
 
+function scoreColor(s){
+  return s >= 75 ? 'var(--bull-s)' : s >= 60 ? 'var(--crypto-2)' : s >= 40 ? 'var(--warn)' : 'var(--bear-s)';
+}
+window.scrollToRow = function(sym){
+  const el = $('wlrow-' + sym);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.remove('flash-up'); void el.offsetWidth; el.classList.add('flash-up');
+};
+
+function renderHotStrip(){
+  const box = $('hotStrip');
+  if (!box) return;
+  const hot = results.filter(r => r.price != null && r.score >= 55)
+    .sort((a, b) => b.score - a.score).slice(0, 3);
+  if (!hot.length){ box.innerHTML = ''; return; }
+  box.innerHTML = hot.map(r => {
+    const sc = r.score, isStrong = sc >= 75;
+    const chgCls = (r.chg ?? 0) >= 0 ? 'up' : 'down';
+    return `<div class="hot-card ${isStrong ? '' : 'hc-buy'}" onclick="scrollToRow('${r.symbol}')" title="vezi în tabel">
+      <div class="hc-top">
+        <span class="hc-fire">${isStrong ? '🔥' : '⭐'}</span>
+        <span class="hc-sym">${r.symbol}</span>
+        <span class="hc-score" style="color:${scoreColor(sc)}">${sc}</span>
+      </div>
+      <div class="hc-mid">
+        <span class="hc-price">${fmtUSD(r.price)}</span>
+        <span class="hc-chg" style="color:${chgCls === 'up' ? 'var(--bull-s)' : 'var(--bear-s)'}">${fmtPct(r.chg, 2)}</span>
+      </div>
+      ${buildSparkline(r.spark)}
+      <div class="hc-verdict" style="color:${scoreColor(sc)}">${r.verdictTxt}</div>
+    </div>`;
+  }).join('');
+}
+
 function render(){
   updateStats();
+  renderHotStrip();
   const tbody = $('resultsBody');
   if (!watchlist.length){
-    tbody.innerHTML = `<tr><td colspan="10" class="empty">
+    tbody.innerHTML = `<tr><td colspan="11" class="empty">
       <div class="empty-icon">👁️</div>
       <div class="empty-title">Niciun stock în watchlist</div>
       <div class="empty-sub">Adaugă tickere (AAPL, NVDA, TSLA…) prin formularul de sus + apasă SCAN.</div>
@@ -677,18 +808,21 @@ function render(){
     const rsiCls = r.rsi == null ? 'neut' : r.rsi <= 30 ? 'down' : r.rsi >= 70 ? 'warn' : r.rsi >= 40 && r.rsi <= 65 ? 'up' : 'neut';
     const ma50Cls = r.ma50 == null ? 'neut' : r.ma50 >= 0 ? 'up' : 'down';
     const ma200Cls = r.ma200 == null ? 'neut' : r.ma200 >= 0 ? 'up' : 'down';
-    return `<tr>
+    const trCls = r.trend == null ? '' : r.trend >= 0 ? 'up' : 'down';
+    const flashCls = r.flashDir > 0 ? ' flash-up' : r.flashDir < 0 ? ' flash-dn' : '';
+    return `<tr id="wlrow-${r.symbol}" class="v-${r.verdict}${flashCls}">
       <td class="left">
         <div class="sym-name">${r.symbol}</div>
         <div class="sym-sector">Stocks · NASDAQ</div>
       </td>
       <td>${fmtUSD(r.price)}</td>
       <td><span class="badge ${chgCls}">${fmtPct(r.chg, 2)}</span></td>
+      <td title="${r.trend != null ? 'trend 30 zile: ' + fmtPct(r.trend, 1) : 'fără date'}">${buildSparkline(r.spark) || '<span style="color:var(--t3)">—</span>'}<span class="spark-trend-pct ${trCls}" style="color:${r.trend == null ? 'var(--t3)' : r.trend >= 0 ? 'var(--bull-s)' : 'var(--bear-s)'}">${r.trend != null ? fmtPct(r.trend, 1) : ''}</span></td>
       <td class="hide-mobile">${fmtVol(r.vol)}</td>
       <td><span class="badge ${rsiCls}">${r.rsi != null ? r.rsi.toFixed(0) : '—'}</span></td>
       <td class="hide-mobile"><span class="badge ${ma50Cls}">${fmtPct(r.ma50, 1)}</span></td>
       <td class="hide-mobile"><span class="badge ${ma200Cls}">${fmtPct(r.ma200, 1)}</span></td>
-      <td><b style="color:${r.score >= 75 ? 'var(--bull-s)' : r.score >= 60 ? 'var(--crypto-2)' : r.score >= 40 ? 'var(--warn)' : 'var(--bear-s)'}">${r.score}</b></td>
+      <td><b style="color:${scoreColor(r.score)}">${r.score}</b></td>
       <td><span class="verdict ${r.verdict}">${r.verdictTxt}</span></td>
       <td>
         <a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener">📈 TV</a>
@@ -701,12 +835,12 @@ function render(){
       <div class="sym-name">${s}</div>
       <div class="sym-sector">⏳ pending scan</div>
     </td>
-    <td colspan="7" style="color:var(--t3);font-style:italic">apasă SCAN ↻ pentru date</td>
+    <td colspan="8" style="color:var(--t3);font-style:italic">apasă SCAN ↻ pentru date</td>
     <td><span class="verdict hold">⏳ PENDING</span></td>
     <td><button class="action-btn del" onclick="removeFromWl('${s}')">🗑</button></td>
   </tr>`).join('');
 
-  tbody.innerHTML = html || '<tr><td colspan="10" class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Apasă SCAN pentru a popula datele</div></td></tr>';
+  tbody.innerHTML = html || '<tr><td colspan="11" class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Apasă SCAN pentru a popula datele</div></td></tr>';
 
   // Sort indicators
   document.querySelectorAll('th[data-sort]').forEach(th => {
