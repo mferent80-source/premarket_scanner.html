@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v90</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v91</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -6044,16 +6044,22 @@ function renderEarlyBuy(){
   }
 
   // Pas 7: custom screener filter pe lista raw opportunities înainte de calc Early
-  const baseOpps = _csfApplyIfActive(allOpportunities);
-  const scored = baseOpps
-    .filter(o => o.isBuy && o.chg24 >= 0 && o.score >= 42)
-    .map(o => ({...o, earlyScore: calcEarlyBuyScore(o)}))
-    .filter(o => o.earlyScore >= 50)
-    .sort((a,b) => b.earlyScore - a.earlyScore)
-    .slice(0, 14);
+  const csfActive = !!(typeof _customFilter !== 'undefined' && _customFilter && _customFilter.on);
+  const baseOpps  = _csfApplyIfActive(allOpportunities);
+  // Funnel explicit ca să se vadă UNDE moare lista când e gol (debug Early Buy)
+  const fPos  = baseOpps.filter(o => o.chg24 >= 0);
+  const fBuy  = fPos.filter(o => o.isBuy && o.score >= 42);
+  const fEarl = fBuy.map(o => ({...o, earlyScore: calcEarlyBuyScore(o)})).filter(o => o.earlyScore >= 50);
+  const scored = fEarl.sort((a,b) => b.earlyScore - a.earlyScore).slice(0, 14);
 
   if(!scored.length){
-    container.innerHTML=`<div class="empty"><div class="empty-icon">🌱</div><div class="empty-title">Niciun setup Early Buy azi</div><div class="empty-sub">Nu există acțiuni cu zi pozitivă, RSI neutru și accelerare de momentum în formare. Piața poate fi neutră sau în scădere. Revino după o nouă scanare sau extinde lista de acțiuni scanate.</div></div>`;
+    const funnel = `${allOpportunities.length} scanate${csfActive ? ` → ${baseOpps.length} după 🎯 Screener` : ''} → ${fPos.length} zi pozitivă → ${fBuy.length} buy-side & score≥42 → ${fEarl.length} earlyScore≥50`;
+    let hint;
+    if(fPos.length === 0)      hint = 'Toate acțiunile scanate sunt în scădere/plate azi — piață roșie, nu e bug. Extinde lista de acțiuni sau revino într-o zi verde.';
+    else if(fBuy.length === 0) hint = `${fPos.length} acțiuni pozitive azi, dar niciuna clasificată buy-side — probabil lipsesc RSI/sparkline de pe Yahoo. Verifică log-ul scanner-ului; fă hard-refresh (Ctrl+Shift+R) — ver-badge trebuie v90+.`;
+    else                       hint = `${fBuy.length} candidați buy-side, dar niciunul cu earlyScore ≥ 50 — momentum prea slab azi.`;
+    if(csfActive) hint += ' ⚠️ Custom Screener 🎯 e ACTIV — resetează-l dacă nu-l vrei.';
+    container.innerHTML=`<div class="empty"><div class="empty-icon">🌱</div><div class="empty-title">Niciun setup Early Buy azi</div><div class="empty-sub">${hint}<br><span style="opacity:.55;font-size:.78rem">Funnel: ${funnel}</span></div></div>`;
     return;
   }
 
