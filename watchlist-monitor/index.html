@@ -6,7 +6,6 @@
 <title>👁️ Watchlist Monitor — Stocks (Nasdaq)</title>
 <meta name="theme-color" content="#0b0f17">
 <meta name="description" content="Auto-scan stocks tale cu alerte la STRONG semnale noi">
-<link rel="manifest" href="../index.html">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f7931a'/><stop offset='1' stop-color='%23ffd86b'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='%230b0f17'/><circle cx='16' cy='16' r='9' fill='none' stroke='url(%23g)' stroke-width='2'/><circle cx='16' cy='16' r='3' fill='%23ffd86b'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -362,7 +361,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v97</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v98</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
   <a href="../market-events/" class="nav-link">📅 Events</a>
@@ -490,7 +489,7 @@ window.showWlFeatures = function(){
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   const sections = [
     { title: '📡 Date', cls: 'data', items: [
-      { e: '📡', t: '<b>Yahoo Finance</b> — fără cheie, range 1y interval 1d' },
+      { e: '📡', t: '<b>Yahoo Finance</b> — fără cheie, range 1y interval 1d; lanț de 4 proxy-uri CORS cu fallback automat (dacă unul e rate-limited, trece la următorul)' },
       { e: '🔄', t: '<b>Storage shared</b> wl_stocks cu nasdaq-scanner' },
     ]},
     { title: '🎯 Scoring & Verdict', cls: 'tool', items: [
@@ -521,7 +520,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v97 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v98 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -749,36 +748,59 @@ window.resetPerf = function(sym){
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  DATA FETCH — Yahoo via CORS proxy (free, no key)
+//  DATA FETCH — Yahoo via lanț de CORS proxy-uri (free, no key)
+//  codetabs are rate-limit agresiv ("Edge: Too Many Requests") — încercăm pe rând
 // ═══════════════════════════════════════════════════════════════
-const CORS_PROXY = 'https://api.codetabs.com/v1/proxy?quest=';
+const CORS_PROXIES = [
+  u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  u => 'https://thingproxy.freeboard.io/fetch/' + u,
+];
+let _proxyIdx = 0; // ținem minte care proxy a mers ultima dată → îl încercăm primul
+
+function _parseYahoo(symbol, d){
+  const result = d?.chart?.result?.[0];
+  if (!result) return null;
+  const meta = result.meta;
+  const closes = result.indicators?.quote?.[0]?.close || [];
+  const volumes = result.indicators?.quote?.[0]?.volume || [];
+  const validCloses = closes.filter(v => v != null);
+  if (validCloses.length < 50) return null;
+  return {
+    symbol,
+    price: meta.regularMarketPrice,
+    prevClose: meta.chartPreviousClose,
+    vol: volumes[volumes.length - 1] || 0,
+    closes: validCloses,
+    ts: Date.now(),
+  };
+}
 
 async function fetchYahooData(symbol){
-  // Folosim chart endpoint cu range 1y interval 1d ca să avem date pentru MA50, MA200, RSI
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1y`;
-    const r = await fetch(CORS_PROXY + encodeURIComponent(url));
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json();
-    const result = d?.chart?.result?.[0];
-    if (!result) throw new Error('no data');
-    const meta = result.meta;
-    const closes = result.indicators?.quote?.[0]?.close || [];
-    const volumes = result.indicators?.quote?.[0]?.volume || [];
-    const validCloses = closes.filter(v => v != null);
-    if (validCloses.length < 50) throw new Error('insufficient history');
-    return {
-      symbol,
-      price: meta.regularMarketPrice,
-      prevClose: meta.chartPreviousClose,
-      vol: volumes[volumes.length - 1] || 0,
-      closes: validCloses,
-      ts: Date.now(),
-    };
-  } catch(e){
-    console.warn('[wl] fetch failed', symbol, e.message);
-    return null;
+  const yurl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1y`;
+  const order = [];
+  for (let k = 0; k < CORS_PROXIES.length; k++) order.push(CORS_PROXIES[(_proxyIdx + k) % CORS_PROXIES.length]);
+  for (let i = 0; i < order.length; i++){
+    const wrap = order[i];
+    try {
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), 9000);
+      const r = await fetch(wrap(yurl), { signal: ctrl.signal });
+      clearTimeout(to);
+      if (!r.ok) continue;
+      const txt = await r.text();
+      let d;
+      try { d = JSON.parse(txt); } catch(_){ continue; } // proxy a întors o pagină de eroare (ex. "Edge: Too Many Requests")
+      const parsed = _parseYahoo(symbol, d);
+      if (parsed){
+        _proxyIdx = (_proxyIdx + i) % CORS_PROXIES.length; // promovează proxy-ul care a mers
+        return parsed;
+      }
+    } catch(e){ /* timeout / network — încearcă următorul proxy */ }
   }
+  console.warn('[wl] fetch failed (toate proxy-urile)', symbol);
+  return null;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -957,8 +979,8 @@ async function runScan(){
       });
     }
     setStatus('load', `scanez… ${i + 1}/${watchlist.length}`);
-    // Rate limit safety: 200ms între request-uri
-    await new Promise(r => setTimeout(r, 200));
+    // Rate limit safety — 350ms între request-uri (proxy-urile free se supără repede)
+    await new Promise(r => setTimeout(r, 350));
   }
 
   // Flash direction (F2) + detectare schimbări de verdict (F6) față de scan-ul anterior
@@ -992,7 +1014,11 @@ async function runScan(){
   detectAndNotifyStrongBuys(newResults);
 
   results = newResults;
-  setStatus('ok', `gata · ${watchlist.length} stocks`);
+  const okCount = newResults.filter(r => r.price != null).length;
+  const failCount = newResults.length - okCount;
+  if (failCount === 0) setStatus('ok', `gata · ${okCount} stocks`);
+  else if (okCount === 0) setStatus('err', `0/${newResults.length} — proxy-urile CORS sunt supraîncărcate, reîncearcă peste 1-2 min`);
+  else setStatus('warn', `gata · ${okCount}/${newResults.length} (${failCount} eșuate — proxy lent)`);
   $('lastScan').textContent = 'Ultim scan: ' + new Date().toLocaleTimeString('ro-RO');
   scanRunning = false;
   $('scanBtn').disabled = false;
