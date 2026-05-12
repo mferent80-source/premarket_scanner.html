@@ -348,16 +348,14 @@ footer a { color:var(--accent); text-decoration:none; }
 const $ = id => document.getElementById(id);
 
 // ═══════════════════════════════════════════════════════════════
-//  UNIVERSE — ~55 stocks lichide / "pumpy" (mega-caps + retail favorites + lideri sectoriali).
-//  Mic intenționat: scanul e secvențial prin proxy-uri CORS gratuite (rate-limit),
-//  ~55 simboluri la ~220ms delay ≈ 35s, încape confortabil în auto-scan 60s.
+//  UNIVERSE — ~24 stocks: cele mai lichide + cele care chiar "pump-uiesc".
+//  Mic intenționat: 24 ≤ 25 → încape într-UN SINGUR request batch `spark` pe scan.
+//  Proxy-urile CORS gratuite sunt fragile/rate-limited — cu cât mai puține request-uri, cu atât mai robust.
+//  (Editezi lista aici dacă vrei alte simboluri; >25 → se face în 2 chunk-uri = 2 request-uri.)
 // ═══════════════════════════════════════════════════════════════
 const UNIVERSE = [
-  'AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','AMD','AVGO','NFLX','ADBE','CRM','ORCL','INTC','QCOM','MU','AMAT',
-  'NOW','PANW','SNOW','PLTR','CRWD','NET','SHOP','UBER','ABNB','COIN','HOOD','SOFI','DKNG','RBLX','RIVN','LCID','MARA','RIOT','MSTR','SMCI','ARM','DELL',
-  'JPM','BAC','GS','V','MA','PYPL',
-  'UNH','LLY','PFE','MRK','ABBV','MRNA',
-  'XOM','CVX','WMT','COST','HD','NKE','SBUX','MCD','DIS','BA','CAT','UPS',
+  'AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','AMD','AVGO','NFLX','PLTR','SMCI','COIN','MSTR',
+  'HOOD','SOFI','RIVN','MARA','RIOT','ARM','UBER','SHOP','NET','CRWD',
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -444,32 +442,34 @@ setInterval(updateSessionPill, 30000);
 // ═══════════════════════════════════════════════════════════════
 //  DATA — Yahoo (spark batch + chart 5m), lanț de proxy-uri CORS cu fallback.
 //  NB: din file:// origin-ul e `null` → multe proxy-uri îl resping (CORS). Funcționează
-//  de pe un origin real (GitHub Pages / localhost). thingproxy.freeboard.io a fost scos — DNS mort.
+//  de pe un origin real (GitHub Pages / localhost). Fiecare proxy: { build(url)→proxyURL, extract(text)→jsonStr }.
+//  Scos: thingproxy.freeboard.io (DNS mort), corsproxy.io (400 Bad Request — necesită domeniu înregistrat).
 // ═══════════════════════════════════════════════════════════════
 const CORS_PROXIES = [
-  u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
-  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  { name:'codetabs',       build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: t => t },
+  { name:'allorigins/raw', build: u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),      extract: t => t },
+  { name:'allorigins/get', build: u => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u),      extract: t => { const w = JSON.parse(t); return w && typeof w.contents === 'string' ? w.contents : t; } },
 ];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let _proxyIdx = 0;            // proxy preferat (cel care a mers ultima dată)
 let _deadProxies = new Set(); // proxy-uri care au dat rate-limit/eroare în scanul curent — sărite
 
-// GET prin lanțul de proxy-uri; întoarce JSON parsat sau null. Marchează proxy-ul „mort" dacă întoarce non-JSON.
+// GET prin lanțul de proxy-uri; întoarce obiectul JSON parsat sau null. Marchează „mort" proxy-ul care întoarce non-JSON / 429 / 403.
 async function proxyGetJSON(targetUrl, startIdx, timeoutMs = 8000){
   const n = CORS_PROXIES.length;
   for (let k = 0; k < n; k++){
     const pi = ((startIdx == null ? _proxyIdx : startIdx) + k) % n;
     if (_deadProxies.has(pi) && _deadProxies.size < n) continue; // sari proxy-urile moarte (dacă nu sunt toate moarte)
+    const px = CORS_PROXIES[pi];
     try {
       const ctrl = new AbortController();
       const to = setTimeout(() => ctrl.abort(), timeoutMs);
-      const r = await fetch(CORS_PROXIES[pi](targetUrl), { signal: ctrl.signal });
+      const r = await fetch(px.build(targetUrl), { signal: ctrl.signal });
       clearTimeout(to);
-      if (!r.ok){ if (r.status === 429 || r.status === 403) _deadProxies.add(pi); continue; }
-      const txt = await r.text();
-      let d; try { d = JSON.parse(txt); } catch(_){ _deadProxies.add(pi); continue; } // pagină de eroare (rate-limit etc.)
+      if (!r.ok){ if (r.status === 429 || r.status === 403 || r.status === 400) _deadProxies.add(pi); continue; }
+      const raw = await r.text();
+      let d; try { d = JSON.parse(px.extract(raw)); } catch(_){ _deadProxies.add(pi); continue; } // pagină de eroare (rate-limit etc.)
       _proxyIdx = pi; // promovează proxy-ul care a mers
       return d;
     } catch(e){ /* timeout / network — încearcă următorul */ }
