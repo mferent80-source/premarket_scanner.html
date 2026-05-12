@@ -2,59 +2,1103 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Pump Radar Stocks · Trading Tools</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚨 Pump Radar Stocks — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Auto-scan stocks pentru pump/dump/vol-spike/momentum 5m cu alerte browser + Telegram">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23ef4444'/><stop offset='1' stop-color='%23facc15'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='%230b0f17'/><circle cx='16' cy='16' r='10' fill='none' stroke='url(%23g)' stroke-width='2' opacity='.55'/><circle cx='16' cy='16' r='5.5' fill='none' stroke='url(%23g)' stroke-width='2'/><circle cx='16' cy='16' r='2' fill='%23facc15'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0b0f17; --bg2:#11161f; --panel:#161b26; --br:#262e3d;
-  --txt:#e8edf5; --txt-d:#94a3b8; --txt-dd:#64748b;
-  --acc:#3b82f6; --gold:#f7931a; --green:#22c55e; --red:#ef4444;
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg:#0b0f17;
+  --bg-grad:radial-gradient(1200px 600px at 50% -200px, #1c1620 0%, #0b0f17 55%);
+  --panel:#141a28; --panel2:#1d2537; --panel3:#222b40;
+  --b1:#2a3247; --b2:#3a4258;
+  --t1:#e8eef5; --t2:#c1c9d6; --t3:#8892a6;
   --crypto-1:#f7931a; --crypto-2:#ffd86b;
+  --bull-s:#22d66b; --bull:#1ba858; --bull-bg:rgba(34,214,107,.12);
+  --bear-s:#ff4d4d; --bear:#cc3434; --bear-bg:rgba(255,77,77,.12);
+  --warn:#d4892c; --warn-bg:rgba(212,137,44,.15);
+  --vol:#a78bfa; --vol-bg:rgba(167,139,250,.15);
+  --mom:#5bb0ff; --mom-bg:rgba(91,176,255,.15);
+  --accent:#5bb0ff;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+  --shadow:0 4px 14px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.2);
+  --r:12px; --rs:8px;
+  --mono:'DM Mono',monospace; --head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
 }
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;font-variant-numeric:tabular-nums}
-.brand{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1a2233,#11161f);
-  border:1px solid var(--br);padding:8px 14px;border-radius:10px;margin-bottom:24px;font-size:13px;color:var(--txt-d)}
-.brand .dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#facc15)}
-.icon{font-size:64px;margin-bottom:16px;filter:drop-shadow(0 4px 14px rgba(239,68,68,.35))}
-h1{font-size:32px;margin:0 0 8px;background:linear-gradient(90deg,#ef4444,#facc15);
-  -webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700;letter-spacing:-.5px;text-align:center}
-.tag{display:inline-block;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.35);
-  padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600;margin-bottom:16px}
-.desc{color:var(--txt-d);max-width:560px;text-align:center;margin:0 0 28px;line-height:1.6}
-.feats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:560px;width:100%;margin-bottom:28px}
-.feat{background:var(--panel);border:1px solid var(--br);border-left:3px solid #ef4444;
-  padding:10px 14px;border-radius:8px;font-size:13px;color:var(--txt-d)}
-.feat strong{color:var(--txt);display:block;margin-bottom:2px;font-size:13.5px}
-.cta{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));
-  color:#0b0f17;padding:11px 22px;border-radius:10px;font-weight:700;text-decoration:none;font-size:14px;
-  box-shadow:0 4px 14px rgba(247,147,26,.3)}
-.cta:hover{transform:translateY(-1px)}
-.eta{font-size:12px;color:var(--txt-dd);margin-top:18px;font-style:italic}
-@media(max-width:560px){.feats{grid-template-columns:1fr}h1{font-size:26px}}
+html,body { min-height:100vh; }
+body {
+  font-family:var(--head);
+  background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
+  color:var(--t1); padding:12px; font-size:13px;
+  -webkit-font-smoothing:antialiased; font-variant-numeric:tabular-nums;
+}
+
+header {
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  background:linear-gradient(180deg,rgba(40,28,32,.85),rgba(20,26,40,.92));
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  padding:11px 14px; border-radius:var(--r);
+  border:1px solid var(--b1); margin-bottom:10px; box-shadow:var(--shadow);
+  position:sticky; top:8px; z-index:50;
+}
+header h1 {
+  font-size:14px; font-weight:700; letter-spacing:-.2px;
+  background:linear-gradient(90deg,#ef4444,#facc15);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  margin-right:auto; white-space:nowrap; font-family:var(--head);
+}
+.ver-badge {
+  display:inline-block; padding:2px 7px; margin-left:8px; border-radius:4px;
+  background:rgba(239,68,68,.15); color:#f87171; border:1px solid rgba(239,68,68,.4);
+  font-size:10px; font-weight:700; vertical-align:middle; letter-spacing:.3px;
+  -webkit-text-fill-color:#f87171; font-family:var(--mono);
+}
+.nav-link {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--panel2); border:1px solid var(--b1);
+  padding:6px 11px; border-radius:var(--rs);
+  color:var(--t1); text-decoration:none; font-size:11px; font-weight:600;
+  transition:all .15s var(--ease); font-family:var(--head);
+}
+.nav-link:hover { background:var(--accent); border-color:var(--accent); color:#000; transform:translateY(-1px); }
+
+button, input, select {
+  background:var(--panel2); color:var(--t1); border:1px solid var(--b1);
+  padding:5px 9px; border-radius:var(--rs); font-size:11px; font-family:inherit;
+  transition:all .15s var(--ease);
+}
+button { cursor:pointer; font-weight:600; }
+button:hover { background:var(--accent); border-color:var(--accent); color:#000; transform:translateY(-1px); }
+button.primary {
+  background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));
+  border-color:transparent; color:#1a1a1a; box-shadow:0 2px 8px rgba(247,147,26,.3);
+}
+button.primary:hover { filter:brightness(1.08); color:#1a1a1a; }
+button.danger { background:linear-gradient(135deg,#ef4444,#f97316); border-color:transparent; color:#fff; box-shadow:0 2px 8px rgba(239,68,68,.3); }
+button.danger:hover { filter:brightness(1.08); color:#fff; }
+button:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(91,176,255,.2); }
+
+.status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--t3); margin-right:5px; }
+.status-dot.ok { background:var(--bull-s); box-shadow:0 0 5px var(--bull-s); }
+.status-dot.load { background:var(--warn); animation:pulse 1s infinite; }
+.status-dot.err { background:var(--bear-s); }
+@keyframes pulse { 50% { opacity:.3; } }
+.status-pill { font-size:10px; padding:3px 8px; border-radius:999px; background:var(--panel2); border:1px solid var(--b1); color:var(--t2); font-family:var(--mono); }
+.status-pill.live { border-color:rgba(34,214,107,.4); color:var(--bull-s); }
+.status-pill.closed { border-color:rgba(212,137,44,.4); color:var(--warn); }
+
+/* Thresholds bar */
+.thr-bar { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:11px 16px; margin-bottom:10px; display:flex; gap:22px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow-sm); }
+.thr { display:flex; flex-direction:column; gap:4px; min-width:170px; }
+.thr label { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:700; font-family:var(--mono); display:flex; justify-content:space-between; gap:8px; }
+.thr label b { color:var(--t1); font-family:var(--head); }
+.thr input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:5px; border-radius:99px; background:var(--panel3); border:none; padding:0; cursor:pointer; }
+.thr input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2)); border:2px solid var(--panel); box-shadow:var(--shadow-sm); cursor:pointer; }
+.thr input[type=range]::-moz-range-thumb { width:15px; height:15px; border-radius:50%; background:var(--crypto-2); border:2px solid var(--panel); cursor:pointer; }
+.thr-reset { font-size:10px; color:var(--accent); background:transparent; border:1px solid rgba(91,176,255,.35); padding:4px 9px; margin-left:auto; }
+.thr-reset:hover { background:var(--accent); color:#000; }
+
+/* Stats strip */
+.stats-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(135px,1fr)); gap:8px; margin-bottom:10px; }
+.stat-tile { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:10px 14px; display:flex; flex-direction:column; gap:2px; position:relative; overflow:hidden; box-shadow:var(--shadow-sm); }
+.stat-tile::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); }
+.stat-tile.bull::before { background:var(--bull-s); } .stat-tile.bear::before { background:var(--bear-s); }
+.stat-tile.vol::before { background:var(--vol); } .stat-tile.mom::before { background:var(--mom); }
+.stat-label { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:600; font-family:var(--mono); }
+.stat-value { font-size:19px; font-weight:800; letter-spacing:-.3px; font-family:var(--head); }
+.stat-sub { font-size:10px; color:var(--t3); font-family:var(--mono); }
+
+/* Hot strip */
+.hot-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(195px,1fr)); gap:8px; margin-bottom:10px; }
+.hot-strip:empty { display:none; }
+.hot-card { background:linear-gradient(135deg,rgba(239,68,68,.13),rgba(20,26,40,.62)); border:1px solid rgba(239,68,68,.42); border-radius:var(--r); padding:10px 13px; display:flex; flex-direction:column; gap:3px; cursor:pointer; transition:transform .15s var(--ease),box-shadow .15s var(--ease); box-shadow:var(--shadow-sm); }
+.hot-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.hot-card.hc-up { background:linear-gradient(135deg,rgba(34,214,107,.13),rgba(20,26,40,.62)); border-color:rgba(34,214,107,.42); }
+.hot-card.hc-vol { background:linear-gradient(135deg,rgba(167,139,250,.13),rgba(20,26,40,.62)); border-color:rgba(167,139,250,.42); }
+.hot-card .hc-top { display:flex; align-items:center; gap:6px; }
+.hot-card .hc-sym { font-family:var(--head); font-weight:800; font-size:14px; letter-spacing:-.2px; }
+.hot-card .hc-tag { margin-left:auto; font-family:var(--mono); font-weight:700; font-size:11px; }
+.hot-card .hc-mid { display:flex; align-items:baseline; gap:8px; font-family:var(--mono); margin-top:1px; }
+.hot-card .hc-price { font-size:13px; font-weight:700; color:var(--t1); }
+.hot-card .hc-alerts { font-size:9.5px; font-weight:700; font-family:var(--head); letter-spacing:.2px; margin-top:2px; color:var(--t2); }
+
+/* Filter bar */
+.filter-bar { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:9px 12px; margin-bottom:10px; display:flex; gap:9px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow-sm); }
+.fb-chips { display:flex; gap:5px; flex-wrap:wrap; }
+.fb-chip { background:var(--panel2); border:1px solid var(--b1); color:var(--t2); padding:4px 10px; border-radius:999px; font-size:10.5px; font-weight:700; font-family:var(--head); }
+.fb-chip:hover { border-color:var(--accent); color:var(--accent); background:rgba(91,176,255,.06); transform:none; }
+.fb-chip.active { background:var(--accent); border-color:var(--accent); color:#000; }
+.filter-bar input[type=text] { width:140px; text-transform:uppercase; font-family:var(--mono); padding:5px 9px; }
+.fb-toggle { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; color:var(--t3); font-weight:600; cursor:pointer; user-select:none; }
+.fb-toggle input { width:auto; }
+.fb-count { margin-left:auto; font-size:10.5px; color:var(--t3); font-family:var(--mono); white-space:nowrap; }
+
+/* Panel + table */
+.panel-box { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:10px; }
+.panel-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--b1); background:linear-gradient(180deg,rgba(40,28,32,.5),rgba(20,26,40,.4)); }
+.panel-head h3 { font-size:12px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--t1); font-family:var(--head); }
+.panel-head .panel-sub { font-size:10.5px; color:var(--t3); margin-left:auto; }
+.scanner-wrap { overflow:auto; max-height:calc(100vh - 360px); min-height:280px; }
+table { width:100%; border-collapse:collapse; font-size:11px; }
+thead { position:sticky; top:0; z-index:5; }
+thead th { padding:8px 6px; text-align:center; font-weight:700; font-size:10px; letter-spacing:.4px; text-transform:uppercase; cursor:pointer; user-select:none; border-bottom:1px solid var(--b1); color:var(--t3); font-family:var(--head); background:rgba(20,26,40,.97); }
+thead th:hover { color:var(--t1); }
+thead th.left { text-align:left; padding-left:14px; }
+tbody tr { border-bottom:1px solid var(--b1); border-left:3px solid transparent; transition:background .12s var(--ease); }
+tbody tr:hover { background:rgba(91,176,255,.05); }
+tbody tr:nth-child(even) { background:rgba(255,255,255,.012); }
+tbody tr.a-up { border-left-color:var(--bull-s); } tbody tr.a-down { border-left-color:var(--bear-s); }
+tbody tr.a-vol { border-left-color:var(--vol); } tbody tr.a-mom { border-left-color:var(--mom); }
+@keyframes flashUp { from { background:rgba(34,214,107,.30); } to { background:transparent; } }
+@keyframes flashDn { from { background:rgba(255,77,77,.30); } to { background:transparent; } }
+tbody tr.flash-up { animation:flashUp 1.6s var(--ease); }
+tbody tr.flash-dn { animation:flashDn 1.6s var(--ease); }
+td { padding:7px 6px; text-align:center; vertical-align:middle; font-family:var(--mono); }
+td.left { text-align:left; padding-left:14px; }
+.sym-name { font-weight:800; font-size:12px; letter-spacing:-.2px; font-family:var(--head); }
+.sym-sector { color:var(--t3); font-size:10px; font-family:var(--mono); }
+
+.badge { display:inline-block; padding:2px 7px; border-radius:4px; font-weight:700; font-size:10px; letter-spacing:.2px; }
+.badge.up { background:var(--bull-bg); color:var(--bull-s); border:1px solid rgba(34,214,107,.35); }
+.badge.down { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.35); }
+.badge.warn { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.35); }
+.badge.vol { background:var(--vol-bg); color:var(--vol); border:1px solid rgba(167,139,250,.35); }
+.badge.mom { background:var(--mom-bg); color:var(--mom); border:1px solid rgba(91,176,255,.35); }
+.badge.neut { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
+.alerts-cell { display:flex; gap:3px; flex-wrap:wrap; justify-content:center; }
+.al { font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:4px; font-family:var(--head); letter-spacing:.2px; }
+.al.up { background:var(--bull-bg); color:var(--bull-s); } .al.down { background:var(--bear-bg); color:var(--bear-s); }
+.al.vol { background:var(--vol-bg); color:var(--vol); } .al.mom { background:var(--mom-bg); color:var(--mom); }
+.ins { font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:4px; font-family:var(--head); }
+.ins.bull { background:var(--bull-bg); color:var(--bull-s); } .ins.bear { background:var(--bear-bg); color:var(--bear-s); }
+.ins.neut { background:var(--panel2); color:var(--t3); } .ins.na { color:var(--t3); }
+
+.spark { width:62px; height:22px; display:block; margin:0 auto; }
+.spark path { fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.spark .area { stroke:none; opacity:.16; }
+.spark.up path { stroke:var(--bull-s); } .spark.up .area { fill:var(--bull-s); }
+.spark.dn path { stroke:var(--bear-s); } .spark.dn .area { fill:var(--bear-s); }
+.spark.flat path { stroke:var(--t3); } .spark.flat .area { fill:var(--t3); }
+
+.action-btn { background:transparent; border:1px solid var(--b1); color:var(--t2); padding:3px 9px; font-size:10px; font-weight:700; border-radius:4px; margin:0 2px; font-family:var(--head); text-decoration:none; display:inline-block; }
+.action-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(91,176,255,.06); }
+.star-btn { background:transparent; border:none; color:var(--t3); font-size:13px; padding:2px 4px; }
+.star-btn.on { color:var(--crypto-2); }
+.star-btn:hover { transform:scale(1.15); background:transparent; }
+
+.empty { padding:54px 20px; text-align:center; color:var(--t3); font-size:13px; font-family:var(--head); }
+.empty-icon { font-size:42px; margin-bottom:12px; opacity:.55; }
+.empty-title { font-size:15px; font-weight:700; color:var(--t2); margin-bottom:5px; }
+.empty-sub { font-size:11px; line-height:1.5; max-width:480px; margin:0 auto; font-family:var(--mono); }
+
+footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); font-size:11px; color:var(--t3); display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-family:var(--mono); }
+footer a { color:var(--accent); text-decoration:none; }
+
+/* Modals (shared fl-* + tg-*) */
+.fl-overlay { position:fixed; inset:0; background:rgba(5,8,15,.78); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px; }
+.fl-modal { background:var(--panel); border:1px solid var(--b1); border-radius:14px; padding:18px; width:100%; max-width:560px; max-height:85vh; overflow-y:auto; box-shadow:0 30px 80px rgba(0,0,0,.6); color:var(--t1); font-family:var(--head); }
+.fl-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; gap:10px; padding-bottom:10px; border-bottom:1px solid var(--b1); }
+.fl-head h3 { font-size:1rem; font-weight:800; margin:0; background:linear-gradient(135deg,#ef4444,#facc15); -webkit-background-clip:text; color:transparent; }
+.fl-head .sub { font-size:.62rem; color:var(--t3); margin-top:3px; font-family:var(--mono); }
+.fl-close { background:transparent; border:none; color:var(--t3); font-size:20px; cursor:pointer; padding:0 4px; }
+.fl-section { margin-bottom:12px; }
+.fl-section-title { font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--t3); margin-bottom:7px; font-family:var(--mono); }
+.fl-list { display:flex; flex-direction:column; gap:5px; }
+.fl-item { display:flex; gap:7px; padding:6px 9px; background:var(--panel2); border:1px solid var(--b1); border-radius:5px; font-size:.7rem; line-height:1.4; }
+.fl-item.data { border-left:3px solid var(--accent); } .fl-item.tool { border-left:3px solid var(--crypto-1); } .fl-item.auto { border-left:3px solid var(--bull-s); }
+.fl-item .fl-txt b { color:var(--t1); } .fl-item .fl-txt { color:var(--t2); }
+.tg-field { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+.tg-field label { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:700; font-family:var(--mono); }
+.tg-field input { padding:7px 10px; font-size:12px; font-family:var(--mono); }
+
+/* Toasts */
+.toast-wrap { position:fixed; right:14px; bottom:14px; z-index:9998; display:flex; flex-direction:column; gap:7px; max-width:300px; }
+.toast { background:var(--panel2); border:1px solid var(--b1); border-left:3px solid var(--accent); border-radius:var(--rs); padding:9px 12px; font-size:11px; font-family:var(--head); box-shadow:var(--shadow); cursor:pointer; animation:toastIn .25s var(--ease); }
+.toast.up { border-left-color:var(--bull-s); } .toast.dn { border-left-color:var(--bear-s); } .toast.vol { border-left-color:var(--vol); } .toast.mom { border-left-color:var(--mom); }
+.toast .tt-sym { font-weight:800; } .toast .tt-sub { color:var(--t3); font-size:10px; font-family:var(--mono); margin-top:1px; }
+@keyframes toastIn { from { opacity:0; transform:translateX(22px); } to { opacity:1; transform:translateX(0); } }
+.toast.fade-out { opacity:0; transition:opacity .4s var(--ease); }
+
+@media (max-width:760px) {
+  body { padding:8px; font-size:12px; }
+  header { padding:8px 11px; gap:6px; position:relative; top:0; }
+  header h1 { font-size:13px; width:100%; margin-right:0; }
+  .nav-link { font-size:10.5px; padding:4px 8px; }
+  th, td { padding:5px 4px; font-size:10px; }
+  .hide-mobile { display:none !important; }
+  .thr-bar { gap:14px; padding:9px 12px; } .thr { min-width:130px; }
+  .stats-strip { grid-template-columns:repeat(2,1fr); }
+  .hot-strip { grid-template-columns:1fr; }
+  .scanner-wrap { max-height:calc(100vh - 420px); }
+  .spark { width:46px; height:18px; }
+  .toast-wrap { right:8px; bottom:8px; left:8px; max-width:none; }
+}
 </style>
 </head>
 <body>
-<div class="brand"><span class="dot"></span> Trading Tools · Premarket Suite</div>
-<div class="icon">🚨</div>
-<span class="tag">În construcție</span>
-<h1>Pump Radar Stocks</h1>
-<p class="desc">Auto-scan agresiv 30 secunde pe top 80–100 stocks cu detecție pump/dump/vol/momentum 5m,
-  sliders configurabile pentru praguri și verificare insider activity la fiecare alertă.</p>
 
-<div class="feats">
-  <div class="feat"><strong>🚨 4 alerte 5 minute</strong>Pump up · Dump down · Vol spike · Momentum shift</div>
-  <div class="feat"><strong>🔄 Auto-scan 30s</strong>Watchdog continuu fără intervenție manuală</div>
-  <div class="feat"><strong>🎚️ Sliders praguri</strong>% schimbare, multiplu volum, RSI extrem</div>
-  <div class="feat"><strong>👔 Insider check on-alert</strong>Confirmă semnal cu ultimele tranzacții insideri</div>
-  <div class="feat"><strong>📱 Telegram + beep</strong>Notificare browser + bot integrare</div>
-  <div class="feat"><strong>📋 Top 100 dynamic</strong>Refresh universe S&amp;P 500 + top NASDAQ</div>
+<header>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v99</span></h1>
+  <a href="../" class="nav-link">🏠 Hub</a>
+  <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
+  <a href="../watchlist-monitor/" class="nav-link">👁️ Watchlist</a>
+  <button onclick="window.showFeatures()" class="nav-link" style="color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă funcționalități">ℹ</button>
+  <span class="status-pill"><span class="status-dot" id="statusDot"></span><span id="statusTxt">Ready</span></span>
+  <span class="status-pill" id="sessionPill" title="Sesiune piață NYSE/Nasdaq">⏳ —</span>
+  <span class="status-pill" id="countdownPill" style="display:none" title="Timp până la următorul auto-scan">⏱ <span id="countdownTxt">—</span></span>
+  <div style="display:inline-flex;align-items:center;gap:5px"><label style="font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Auto:</label>
+    <select id="autoSel" title="Auto-scan continuu">
+      <option value="0">OFF</option>
+      <option value="30">30s</option>
+      <option value="60" selected>60s</option>
+      <option value="120">120s</option>
+    </select>
+  </div>
+  <button class="danger" id="scanBtn">🚨 SCAN</button>
+  <button id="notifBtn" title="Notificări browser la alertă nouă">🔔</button>
+  <button id="soundBtn" title="Sunet la alertă nouă">🔊</button>
+  <button id="tgBtn" title="Alerte Telegram la alertă nouă">📡</button>
+</header>
+
+<!-- Thresholds -->
+<div class="thr-bar">
+  <div class="thr">
+    <label>🟢🔴 Prag pump/dump 5m <b><span id="thrMoveVal">1.5</span>%</b></label>
+    <input type="range" id="thrMove" min="0.5" max="6" step="0.1" value="1.5">
+  </div>
+  <div class="thr">
+    <label>📊 Vol spike (× medie volum) <b><span id="thrVolVal">3.0</span>×</b></label>
+    <input type="range" id="thrVol" min="1.5" max="8" step="0.5" value="3">
+  </div>
+  <div class="thr">
+    <label>💰 Preț minim <b>$<span id="thrPriceVal">3</span></b></label>
+    <input type="range" id="thrPrice" min="1" max="50" step="1" value="3">
+  </div>
+  <button class="thr-reset" type="button" id="thrReset">↺ default</button>
 </div>
 
-<a href="../" class="cta">← Înapoi la Hub</a>
-<div class="eta">⏰ ETA: sesiunea viitoare (după Smart Trade Long)</div>
+<!-- Stats -->
+<div class="stats-strip">
+  <div class="stat-tile"><div class="stat-label">Scanate</div><div class="stat-value" id="stScan">—</div><div class="stat-sub" id="stUniverse">/ — universe</div></div>
+  <div class="stat-tile bull"><div class="stat-label">🟢 Pump up</div><div class="stat-value" id="stUp">—</div><div class="stat-sub">≥ prag 5m</div></div>
+  <div class="stat-tile bear"><div class="stat-label">🔴 Dump down</div><div class="stat-value" id="stDown">—</div><div class="stat-sub">≤ −prag 5m</div></div>
+  <div class="stat-tile vol"><div class="stat-label">📊 Vol spike</div><div class="stat-value" id="stVol">—</div><div class="stat-sub">volum anormal</div></div>
+  <div class="stat-tile mom"><div class="stat-label">⚡ Momentum</div><div class="stat-value" id="stMom">—</div><div class="stat-sub">schimbare direcție</div></div>
+</div>
 
-<script>document.body.classList.add('dark');try{localStorage.setItem('darkMode','1')}catch(e){}</script>
+<!-- Hot strip -->
+<div class="hot-strip" id="hotStrip"></div>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <div class="fb-chips">
+    <button type="button" class="fb-chip active" data-f="all">Toate</button>
+    <button type="button" class="fb-chip" data-f="up">🟢 Pumps</button>
+    <button type="button" class="fb-chip" data-f="down">🔴 Dumps</button>
+    <button type="button" class="fb-chip" data-f="vol">📊 Vol spikes</button>
+    <button type="button" class="fb-chip" data-f="mom">⚡ Momentum</button>
+    <button type="button" class="fb-chip" data-f="alert">🚨 Cu alertă</button>
+    <button type="button" class="fb-chip" data-f="star">⭐ Watchlist</button>
+  </div>
+  <input type="text" id="fbSearch" placeholder="🔎 ticker…" maxlength="8" autocomplete="off">
+  <span class="fb-count" id="fbCount"></span>
+</div>
+
+<!-- Table -->
+<div class="panel-box scanner-wrap">
+  <div class="panel-head"><span style="font-size:14px">📡</span><h3>Radar live · barele de 5 minute (Yahoo)</h3><span class="panel-sub" id="lastScan">apasă SCAN</span></div>
+  <table>
+    <thead><tr>
+      <th data-sort="symbol" class="left">Ticker</th>
+      <th data-sort="price">Preț</th>
+      <th data-sort="m5">Δ 5m</th>
+      <th data-sort="chgDay">Δ Zi</th>
+      <th data-sort="volRatio">Vol ×avg</th>
+      <th data-sort="rsi" class="hide-mobile">RSI 5m</th>
+      <th class="hide-mobile">Intraday</th>
+      <th data-sort="heat">Alerte</th>
+      <th class="hide-mobile">Insider</th>
+      <th>·</th>
+    </tr></thead>
+    <tbody id="resultsBody">
+      <tr><td colspan="10" class="empty">
+        <div class="empty-icon">🚨</div>
+        <div class="empty-title">Apasă <b>🚨 SCAN</b> ca să pornești radarul</div>
+        <div class="empty-sub">Scanează ~90 stocks lichide pe barele de 5 minute și marchează pump-uri / dump-uri / spike-uri de volum / schimbări de momentum. Activează Auto 60s pentru watchdog continuu + notificări browser / sunet / Telegram la fiecare alertă nouă.</div>
+      </td></tr>
+    </tbody>
+  </table>
+</div>
+
+<footer>
+  <span>Sursa: Yahoo Finance (free, fără cheie) · insider: Finnhub (cheie opțională) · alertele 5m sunt relevante în sesiune regulară</span>
+  <span><a href="../">← Înapoi la Hub</a></span>
+</footer>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+// ═══════════════════════════════════════════════════════════════
+//  UNIVERSE — ~55 stocks lichide / "pumpy" (mega-caps + retail favorites + lideri sectoriali).
+//  Mic intenționat: scanul e secvențial prin proxy-uri CORS gratuite (rate-limit),
+//  ~55 simboluri la ~220ms delay ≈ 35s, încape confortabil în auto-scan 60s.
+// ═══════════════════════════════════════════════════════════════
+const UNIVERSE = [
+  'AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','AMD','AVGO','NFLX','ADBE','CRM','ORCL','INTC','QCOM','MU','AMAT',
+  'NOW','PANW','SNOW','PLTR','CRWD','NET','SHOP','UBER','ABNB','COIN','HOOD','SOFI','DKNG','RBLX','RIVN','LCID','MARA','RIOT','MSTR','SMCI','ARM','DELL',
+  'JPM','BAC','GS','V','MA','PYPL',
+  'UNH','LLY','PFE','MRK','ABBV','MRNA',
+  'XOM','CVX','WMT','COST','HD','NKE','SBUX','MCD','DIS','BA','CAT','UPS',
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE + STORAGE
+// ═══════════════════════════════════════════════════════════════
+const CFG_KEY = 'pump_radar_cfg';   // { thrMove, thrVol, thrPrice, autoSec, notif }
+const SEEN_KEY = 'pump_radar_seen';  // { "SYM|type": ts } — alerte deja notificate (TTL 30min)
+const TG_KEY = 'tt_tg_config';       // shared cu watchlist-monitor — { token, chatId, enabled }
+const SOUND_KEY = 'wl_sound';        // shared cu watchlist-monitor
+const WL_KEY = 'wl_stocks';          // shared watchlist (⭐)
+const FINNHUB_KEY = 'finnhub_api_key';
+const FINNHUB_BASE = 'https://finnhub.io/api/v1';
+
+const cfg = { thrMove: 1.5, thrVol: 3, thrPrice: 3, autoSec: 60 };
+let results = [];          // [{ symbol, price, m5, chgDay, vol, volRatio, rsi, closes, alerts:[], heat, insider, flashDir, ts }]
+let prevHeat = {};         // SYM -> heat anterior (pt flash)
+let seen = {};             // dedupe alerte notificate
+let scanRunning = false, autoTimer = null, nextScanAt = 0;
+let notifEnabled = false, soundEnabled = false;
+let tgConfig = { token: '', chatId: '', enabled: false };
+let watchlist = [];
+let sortKey = 'heat', sortAsc = false;
+let filterMode = 'all', filterText = '';
+let _scanSeq = 0;          // sequence guard — ignoră rezultate de la scan-uri suprascrise
+
+const ALERT_META = {
+  up:   { icon:'🟢', label:'PUMP',  cls:'up'   },
+  down: { icon:'🔴', label:'DUMP',  cls:'down' },
+  vol:  { icon:'📊', label:'VOL',   cls:'vol'  },
+  mom:  { icon:'⚡', label:'MOM',   cls:'mom'  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  CONFIG persist
+// ═══════════════════════════════════════════════════════════════
+function loadCfg(){
+  try {
+    const c = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+    if (typeof c.thrMove === 'number') cfg.thrMove = c.thrMove;
+    if (typeof c.thrVol === 'number') cfg.thrVol = c.thrVol;
+    if (typeof c.thrPrice === 'number') cfg.thrPrice = c.thrPrice;
+    if (typeof c.autoSec === 'number') cfg.autoSec = c.autoSec;
+    notifEnabled = !!c.notif;
+  } catch(e){}
+  try { tgConfig = Object.assign(tgConfig, JSON.parse(localStorage.getItem(TG_KEY) || '{}')); } catch(e){}
+  try { soundEnabled = localStorage.getItem(SOUND_KEY) === '1'; } catch(e){}
+  try { watchlist = JSON.parse(localStorage.getItem(WL_KEY) || '[]'); if (!Array.isArray(watchlist)) watchlist = []; } catch(e){ watchlist = []; }
+  try { seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch(e){ seen = {}; }
+}
+function saveCfg(){
+  try { localStorage.setItem(CFG_KEY, JSON.stringify({ thrMove: cfg.thrMove, thrVol: cfg.thrVol, thrPrice: cfg.thrPrice, autoSec: cfg.autoSec, notif: notifEnabled })); } catch(e){}
+}
+function saveSeen(){
+  // curăță intrări mai vechi de 30min
+  const cut = Date.now() - 30*60*1000;
+  for (const k in seen) if (seen[k] < cut) delete seen[k];
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch(e){}
+}
+function saveWatchlist(){ try { localStorage.setItem(WL_KEY, JSON.stringify(watchlist)); } catch(e){} }
+
+// ═══════════════════════════════════════════════════════════════
+//  Market session (NYSE/Nasdaq, DST-aware via Intl)
+// ═══════════════════════════════════════════════════════════════
+function marketSession(){
+  let parts;
+  try { parts = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date()); }
+  catch(e){ return { state:'unknown', txt:'sesiune ?' }; }
+  const get = t => (parts.find(p => p.type === t) || {}).value;
+  const wd = get('weekday'); const h = +get('hour'); const m = +get('minute'); const mins = h*60 + m;
+  if (wd === 'Sat' || wd === 'Sun') return { state:'closed', txt:'închis (weekend)' };
+  if (mins >= 4*60 && mins < 9*60+30) return { state:'pre', txt:'pre-market' };
+  if (mins >= 9*60+30 && mins < 16*60) return { state:'open', txt:'sesiune regulară' };
+  if (mins >= 16*60 && mins < 20*60) return { state:'post', txt:'after-hours' };
+  return { state:'closed', txt:'închis' };
+}
+function updateSessionPill(){
+  const s = marketSession(); const el = $('sessionPill'); if (!el) return;
+  const ico = s.state === 'open' ? '🟢' : s.state === 'pre' ? '🌅' : s.state === 'post' ? '🌆' : '🌙';
+  el.textContent = ico + ' ' + s.txt;
+  el.className = 'status-pill ' + (s.state === 'open' ? 'live' : s.state === 'closed' ? 'closed' : '');
+}
+setInterval(updateSessionPill, 30000);
+
+// ═══════════════════════════════════════════════════════════════
+//  DATA — Yahoo (spark batch + chart 5m), lanț de proxy-uri CORS cu fallback.
+//  NB: din file:// origin-ul e `null` → multe proxy-uri îl resping (CORS). Funcționează
+//  de pe un origin real (GitHub Pages / localhost). thingproxy.freeboard.io a fost scos — DNS mort.
+// ═══════════════════════════════════════════════════════════════
+const CORS_PROXIES = [
+  u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+];
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let _proxyIdx = 0;            // proxy preferat (cel care a mers ultima dată)
+let _deadProxies = new Set(); // proxy-uri care au dat rate-limit/eroare în scanul curent — sărite
+
+// GET prin lanțul de proxy-uri; întoarce JSON parsat sau null. Marchează proxy-ul „mort" dacă întoarce non-JSON.
+async function proxyGetJSON(targetUrl, startIdx, timeoutMs = 8000){
+  const n = CORS_PROXIES.length;
+  for (let k = 0; k < n; k++){
+    const pi = ((startIdx == null ? _proxyIdx : startIdx) + k) % n;
+    if (_deadProxies.has(pi) && _deadProxies.size < n) continue; // sari proxy-urile moarte (dacă nu sunt toate moarte)
+    try {
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), timeoutMs);
+      const r = await fetch(CORS_PROXIES[pi](targetUrl), { signal: ctrl.signal });
+      clearTimeout(to);
+      if (!r.ok){ if (r.status === 429 || r.status === 403) _deadProxies.add(pi); continue; }
+      const txt = await r.text();
+      let d; try { d = JSON.parse(txt); } catch(_){ _deadProxies.add(pi); continue; } // pagină de eroare (rate-limit etc.)
+      _proxyIdx = pi; // promovează proxy-ul care a mers
+      return d;
+    } catch(e){ /* timeout / network — încearcă următorul */ }
+  }
+  return null;
+}
+
+function parseYahooChart(symbol, d){
+  const r = d && d.chart && d.chart.result && d.chart.result[0];
+  if (!r || !r.indicators || !r.indicators.quote) return null;
+  const q = r.indicators.quote[0] || {};
+  const meta = r.meta || {};
+  const closeRaw = q.close || [], volRaw = q.volume || [];
+  const closes = [], vols = [];
+  for (let i = 0; i < closeRaw.length; i++){
+    if (closeRaw[i] == null) continue;
+    closes.push(closeRaw[i]); vols.push(volRaw[i] || 0);
+  }
+  if (closes.length < 4) return null;
+  return {
+    symbol,
+    price: (meta.regularMarketPrice != null ? meta.regularMarketPrice : closes[closes.length - 1]),
+    prevClose: (meta.chartPreviousClose != null ? meta.chartPreviousClose : (meta.previousClose != null ? meta.previousClose : closes[0])),
+    closes, vols, ts: Date.now(),
+  };
+}
+
+async function fetchChart5m(symbol){
+  const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d&includePrePost=true`);
+  return d ? parseYahooChart(symbol, d) : null;
+}
+
+function chunk(arr, size){ const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; }
+
+// ── BATCH: spark — multe simboluri într-un singur request (barele de 5m) ──
+function parseSpark(d){
+  const arr = d && d.spark && Array.isArray(d.spark.result) ? d.spark.result : null;
+  if (!arr) return null;
+  const map = {};
+  arr.forEach(r => {
+    const sym = r && r.symbol; const resp = r && r.response && r.response[0];
+    if (!sym || !resp) return;
+    const meta = resp.meta || {};
+    const closeRaw = (resp.indicators && resp.indicators.quote && resp.indicators.quote[0] && resp.indicators.quote[0].close) || [];
+    const closes = closeRaw.filter(v => v != null);
+    if (closes.length < 4) return;
+    map[sym] = {
+      symbol: sym,
+      price: (meta.regularMarketPrice != null ? meta.regularMarketPrice : closes[closes.length - 1]),
+      prevClose: (meta.chartPreviousClose != null ? meta.chartPreviousClose : (meta.previousClose != null ? meta.previousClose : closes[0])),
+      closes, vols: null, ts: Date.now(),
+    };
+  });
+  return map;
+}
+async function fetchSparkChunk(symbols){
+  const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols.join(',')}&range=1d&interval=5m`;
+  const d = await proxyGetJSON(url);
+  return d ? parseSpark(d) : null;
+}
+
+// ── BATCH: quote — volum azi vs media 10z (best-effort; poate cere crumb → 401 → ignorăm) ──
+function parseQuoteBatch(d){
+  const arr = d && d.quoteResponse && Array.isArray(d.quoteResponse.result) ? d.quoteResponse.result : null;
+  if (!arr) return null;
+  const map = {};
+  arr.forEach(q => { if (q && q.symbol && (q.regularMarketVolume != null)) map[q.symbol] = { volDay: q.regularMarketVolume, volAvg10: q.averageDailyVolume10Day || q.averageDailyVolume3Month || null }; });
+  return map;
+}
+async function fetchQuoteChunk(symbols){
+  const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols.join(',')}`, null, 7000);
+  return d ? parseQuoteBatch(d) : null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INDICATORS + SPARKLINE
+// ═══════════════════════════════════════════════════════════════
+function calcRSI(closes, period = 14){
+  if (!closes || closes.length < period + 1) return null;
+  let g = 0, l = 0;
+  for (let i = 1; i <= period; i++){ const c = closes[i] - closes[i - 1]; if (c >= 0) g += c; else l -= c; }
+  let ag = g / period, al = l / period;
+  for (let i = period + 1; i < closes.length; i++){
+    const c = closes[i] - closes[i - 1];
+    ag = (ag * (period - 1) + (c > 0 ? c : 0)) / period;
+    al = (al * (period - 1) + (c < 0 ? -c : 0)) / period;
+  }
+  if (al === 0) return 100;
+  return 100 - (100 / (1 + ag / al));
+}
+function mean(arr){ return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
+
+function buildSparkline(closes, n = 40){
+  if (!closes || closes.length < 3) return '<span style="color:var(--t3)">—</span>';
+  const arr = closes.slice(-n);
+  const lo = Math.min(...arr), hi = Math.max(...arr), rng = (hi - lo) || 1;
+  const w = 100, h = 30, pad = 2;
+  const pts = arr.map((v, i) => [pad + (i / (arr.length - 1)) * (w - pad * 2), pad + (1 - (v - lo) / rng) * (h - pad * 2)]);
+  const line = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const f = pts[0], lst = pts[pts.length - 1];
+  const area = line + ` L${lst[0].toFixed(1)},${h - pad} L${f[0].toFixed(1)},${h - pad} Z`;
+  const dir = arr[arr.length - 1] > arr[0] ? 'up' : arr[arr.length - 1] < arr[0] ? 'dn' : 'flat';
+  return `<svg class="spark ${dir}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path class="area" d="${area}"/><path d="${line}"/></svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ALERT DETECTION — din barele de 5m
+// ═══════════════════════════════════════════════════════════════
+function volRatioOf(d){
+  // 1) volum azi vs media 10z (din batch quote, dacă a mers) — ratio „cumulat azi / zi medie"
+  if (d.volDay != null && d.volAvg10) return d.volDay / d.volAvg10;
+  // 2) altfel, dacă avem bare 5m cu volum (per-symbol chart): bara curentă vs media intraday
+  const vols = d.vols;
+  if (Array.isArray(vols) && vols.length > 1){
+    const now = vols[vols.length - 1] || 0;
+    const prior = vols.slice(0, vols.length - 1).filter(v => v > 0);
+    if (prior.length && now > 0) return now / mean(prior);
+  }
+  return null;
+}
+function computeHeat(m5, volRatio, mom){
+  const moveScore = Math.min(Math.abs(m5) / 5, 1) * 55;
+  const volScore = volRatio != null ? Math.min(Math.max(volRatio - 1, 0) / 5, 1) * 35 : 0;
+  const momScore = mom ? 10 : 0;
+  return Math.round(Math.min(moveScore + volScore + momScore, 100));
+}
+function computeAlerts(price, m5, volRatio, mom){
+  const a = [];
+  if (price >= cfg.thrPrice){
+    if (m5 >= cfg.thrMove) a.push('up');
+    if (m5 <= -cfg.thrMove) a.push('down');
+    if (volRatio != null && volRatio >= cfg.thrVol) a.push('vol');
+    if (mom === 'up' || mom === 'down') a.push('mom');
+  }
+  return a;
+}
+function analyze(d){
+  const closes = d.closes, n = closes.length;
+  const last = closes[n - 1], prev = closes[n - 2];
+  const m5 = prev ? ((last - prev) / prev) * 100 : 0;                    // mișcare ultima bară 5m
+  const chgDay = d.prevClose ? ((d.price - d.prevClose) / d.prevClose) * 100 : 0;
+  const volRatio = volRatioOf(d);
+  const rsi = calcRSI(closes, 14);
+
+  // Momentum shift: ultimele 3 bare urcă (sau coboară) constant după ce cele 3 anterioare mergeau invers
+  let mom = null;
+  if (n >= 7){
+    const d1 = closes[n - 1] - closes[n - 4]; // panta ultimelor 3 segmente
+    const d2 = closes[n - 4] - closes[n - 7]; // panta segmentelor 4-6 anterioare
+    const up3 = closes[n - 1] > closes[n - 2] && closes[n - 2] > closes[n - 3];
+    const dn3 = closes[n - 1] < closes[n - 2] && closes[n - 2] < closes[n - 3];
+    if (d1 > 0 && d2 < 0 && up3) mom = 'up';
+    else if (d1 < 0 && d2 > 0 && dn3) mom = 'down';
+  }
+
+  return { ...d, m5, chgDay, volRatio, rsi, momDir: mom, alerts: computeAlerts(d.price, m5, volRatio, mom), heat: computeHeat(m5, volRatio, mom) };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INSIDER (Finnhub, opțional) — confirmare semnal
+// ═══════════════════════════════════════════════════════════════
+function isoDaysAgo(n){ const d = new Date(Date.now() - n*86400000); return d.toISOString().slice(0, 10); }
+const _insiderCache = {}; // SYM -> { ok, verdict, txt, ts }
+async function fetchInsider(symbol){
+  const cached = _insiderCache[symbol];
+  if (cached && Date.now() - cached.ts < 30*60*1000) return cached;
+  let key = '';
+  try { key = localStorage.getItem(FINNHUB_KEY) || ''; } catch(e){}
+  if (!key) return { ok:false, reason:'no-key' };
+  try {
+    const r = await fetch(`${FINNHUB_BASE}/stock/insider-transactions?symbol=${symbol}&from=${isoDaysAgo(60)}&to=${isoDaysAgo(0)}&token=${key}`);
+    if (r.status === 401 || r.status === 403) return { ok:false, reason:'auth' };
+    if (!r.ok) return { ok:false, reason:'http' };
+    const j = await r.json();
+    const data = (j && Array.isArray(j.data)) ? j.data : [];
+    let buyN = 0, sellN = 0, net = 0;
+    data.forEach(t => {
+      const code = (t.transactionCode || '').toUpperCase();
+      const val = (t.transactionPrice || 0) * Math.abs(t.change || t.share || 0);
+      if (code === 'P' || code === 'A'){ buyN++; net += val; }
+      else if (code === 'S' || code === 'D'){ sellN++; net -= val; }
+    });
+    let verdict = 'neut', txt = 'neutru';
+    if (buyN > sellN && net > 0){ verdict = 'bull'; txt = `${buyN} buy / ${sellN} sell`; }
+    else if (sellN > buyN && net < 0){ verdict = 'bear'; txt = `${sellN} sell / ${buyN} buy`; }
+    else if (buyN === 0 && sellN === 0){ verdict = 'neut'; txt = 'fără activitate 60z'; }
+    const res = { ok:true, verdict, txt, ts: Date.now() };
+    _insiderCache[symbol] = res; return res;
+  } catch(e){ return { ok:false, reason:'network' }; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  STATUS + AUTO-SCAN scheduler
+// ═══════════════════════════════════════════════════════════════
+function setStatus(state, txt){ $('statusDot').className = 'status-dot' + (state ? ' ' + state : ''); $('statusTxt').textContent = txt; }
+function clearAutoTimer(){ if (autoTimer){ clearTimeout(autoTimer); autoTimer = null; } }
+function scheduleNextScan(){
+  clearAutoTimer();
+  if (cfg.autoSec > 0){
+    nextScanAt = Date.now() + cfg.autoSec * 1000;
+    autoTimer = setTimeout(() => { if (!scanRunning) runScan(); else scheduleNextScan(); }, cfg.autoSec * 1000);
+  } else nextScanAt = 0;
+  updateCountdown();
+}
+function updateCountdown(){
+  const el = $('countdownPill'); if (!el) return;
+  if (cfg.autoSec > 0 && nextScanAt){
+    const left = Math.max(0, Math.round((nextScanAt - Date.now()) / 1000));
+    const m = Math.floor(left / 60), s = left % 60;
+    $('countdownTxt').textContent = scanRunning ? 'scanez…' : (m > 0 ? m + ':' + String(s).padStart(2, '0') : s + 's');
+    el.style.display = '';
+  } else el.style.display = 'none';
+}
+setInterval(updateCountdown, 1000);
+
+// ═══════════════════════════════════════════════════════════════
+//  SCAN
+// ═══════════════════════════════════════════════════════════════
+async function runScan(){
+  if (scanRunning) return;
+  scanRunning = true;
+  const seq = ++_scanSeq;
+  clearAutoTimer();
+  _deadProxies = new Set(); // resetăm „proxy mort" la fiecare scan nou
+  $('scanBtn').disabled = true;
+  const aborted = () => seq !== _scanSeq;
+
+  // ── 1) batch spark pe chunk-uri de 25 (1 request acoperă 25 simboluri) ──
+  const chunks = chunk(UNIVERSE, 25);
+  const byUni = {};
+  for (let ci = 0; ci < chunks.length; ci++){
+    if (aborted()) break;
+    setStatus('load', `scanez batch ${ci + 1}/${chunks.length} (${Object.keys(byUni).length}/${UNIVERSE.length})…`);
+    const map = await fetchSparkChunk(chunks[ci]).catch(() => null);
+    if (map) Object.assign(byUni, map);
+    // simbolurile pe care spark nu le-a întors → fallback per-symbol (rar; doar pe ce a eșuat)
+    const missing = chunks[ci].filter(s => !byUni[s]);
+    for (let mi = 0; mi < missing.length && !aborted(); mi++){
+      const d = await fetchChart5m(missing[mi]).catch(() => null);
+      if (d) byUni[missing[mi]] = d;
+      await sleep(150);
+    }
+    if (ci < chunks.length - 1) await sleep(200);
+  }
+  if (aborted()){ scanRunning = false; $('scanBtn').disabled = false; return; }
+
+  // ── 2) volum (best-effort, batch quote) — pentru coloana Vol ×avg + alerta vol ──
+  setStatus('load', 'verific volume…');
+  for (let ci = 0; ci < chunks.length && !aborted(); ci++){
+    const vmap = await fetchQuoteChunk(chunks[ci]).catch(() => null);
+    if (vmap) for (const s in vmap){ if (byUni[s]){ byUni[s].volDay = vmap[s].volDay; byUni[s].volAvg10 = vmap[s].volAvg10; } }
+    if (ci < chunks.length - 1) await sleep(150);
+  }
+  if (aborted()){ scanRunning = false; $('scanBtn').disabled = false; return; }
+
+  const raw = Object.values(byUni);
+  const ok = raw.length;
+  const fresh = raw.map(analyze);
+
+  // ── 3) volum intraday DOAR pe simbolurile cu alertă de preț care încă n-au volum (spark n-are; quote poate fi 401) ──
+  const needVol = fresh.filter(r => r.alerts.length && r.volRatio == null && r.vols == null).slice(0, 10);
+  for (let i = 0; i < needVol.length && !aborted(); i++){
+    const r = needVol[i];
+    const d = await fetchChart5m(r.symbol).catch(() => null);
+    if (d && d.vols){
+      r.vols = d.vols; r.volRatio = volRatioOf(r);
+      if (r.volRatio != null && r.volRatio >= cfg.thrVol && !r.alerts.includes('vol')) r.alerts.push('vol');
+      r.heat = computeHeat(r.m5, r.volRatio, r.momDir);
+    }
+    await sleep(150);
+  }
+  if (aborted()){ scanRunning = false; $('scanBtn').disabled = false; return; }
+
+  // flash: heat ±10 vs scan anterior
+  fresh.forEach(r => {
+    const p = prevHeat[r.symbol];
+    r.flashDir = (p != null && r.heat - p >= 10) ? 1 : (p != null && r.heat - p <= -10) ? -1 : 0;
+  });
+  // păstrează insider din cache (nu-l re-fetch-uim la fiecare scan)
+  fresh.forEach(r => { const c = _insiderCache[r.symbol]; r.insider = (c && c.ok) ? c : null; });
+
+  results = fresh;
+  prevHeat = {}; fresh.forEach(r => prevHeat[r.symbol] = r.heat);
+
+  // notificări + insider on-alert
+  await notifyNewAlerts(fresh);
+
+  const alertN = fresh.filter(r => r.alerts.length).length;
+  $('stScan').textContent = ok; $('stUniverse').textContent = '/ ' + UNIVERSE.length + ' universe';
+  $('lastScan').textContent = `${new Date().toLocaleTimeString('ro-RO')} · ${ok}/${UNIVERSE.length} ok`;
+  if (ok === 0) setStatus('err', 'eșec — toate proxy-urile CORS picate; reîncearcă în câteva minute');
+  else if (ok < UNIVERSE.length) setStatus('ok', `${alertN} alerte · ${ok}/${UNIVERSE.length} ok (${UNIVERSE.length - ok} ratate — proxy rate-limit)`);
+  else setStatus('ok', `${alertN} alerte · ${ok}/${UNIVERSE.length} ok`);
+  render();
+  scanRunning = false; $('scanBtn').disabled = false;
+  scheduleNextScan();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  NOTIFY — dedupe (pump_radar_seen, TTL 30min) + grouping + insider on-alert
+// ═══════════════════════════════════════════════════════════════
+async function notifyNewAlerts(list){
+  const now = Date.now();
+  const newOnes = []; // { r, type }
+  list.forEach(r => r.alerts.forEach(t => {
+    const k = r.symbol + '|' + t;
+    if (!seen[k] || now - seen[k] > 30*60*1000){ newOnes.push({ r, type: t }); seen[k] = now; }
+    else seen[k] = now; // refresh ttl
+  }));
+  saveSeen();
+  if (!newOnes.length) return;
+
+  // insider check pentru simbolurile cu alertă nouă (max 6 ca să nu epuizăm rate-limit Finnhub)
+  const symsToCheck = [...new Set(newOnes.map(x => x.r.symbol))].slice(0, 6);
+  for (const sym of symsToCheck){
+    const ins = await fetchInsider(sym);
+    if (ins && ins.ok){ const r = results.find(x => x.symbol === sym); if (r) r.insider = ins; }
+  }
+
+  // toasts (max 5 cele mai fierbinți)
+  const byHeat = [...newOnes].sort((a, b) => b.r.heat - a.r.heat);
+  byHeat.slice(0, 5).forEach(({ r, type }) => showToast(r, type));
+
+  // sunet + browser notif
+  if (soundEnabled) beep();
+  if (notifEnabled && 'Notification' in window && Notification.permission === 'granted'){
+    const top = byHeat.slice(0, 4).map(({ r, type }) => `${ALERT_META[type].icon}${r.symbol} ${fmtPct(r.m5, 1)}`).join('  ');
+    const more = newOnes.length > 4 ? ` +${newOnes.length - 4}` : '';
+    try { new Notification(`🚨 Pump Radar — ${newOnes.length} alerte 5m`, { body: top + more, tag: 'pump-radar' }); } catch(e){}
+  }
+
+  // Telegram — grupat (un singur mesaj per scan)
+  if (tgConfig.enabled && tgConfig.token && tgConfig.chatId){
+    const lines = byHeat.slice(0, 12).map(({ r, type }) => {
+      const ins = (r.insider && r.insider.ok) ? `  · insider ${r.insider.verdict === 'bull' ? '🟢' : r.insider.verdict === 'bear' ? '🔴' : '⚪'}` : '';
+      return `${ALERT_META[type].icon} <b>${r.symbol}</b> ${ALERT_META[type].label} · 5m ${fmtPct(r.m5, 1)} · zi ${fmtPct(r.chgDay, 1)}${r.volRatio != null ? ` · vol ${r.volRatio.toFixed(1)}×` : ''}${ins}`;
+    });
+    const more = newOnes.length > 12 ? `\n…+${newOnes.length - 12} alte alerte` : '';
+    sendTelegram(`<b>🚨 Pump Radar Stocks — ${newOnes.length} alerte 5m</b>\n${lines.join('\n')}${more}`);
+  }
+}
+
+function showToast(r, type){
+  const wrap = $('toastWrap'); if (!wrap) return;
+  const m = ALERT_META[type];
+  const el = document.createElement('div');
+  el.className = 'toast ' + m.cls;
+  el.innerHTML = `<div class="tt-sym">${m.icon} ${r.symbol} — ${m.label}</div><div class="tt-sub">5m ${fmtPct(r.m5, 1)} · zi ${fmtPct(r.chgDay, 1)}${r.volRatio != null ? ' · vol ' + r.volRatio.toFixed(1) + '×' : ''}</div>`;
+  el.addEventListener('click', () => { el.remove(); scrollToRow(r.symbol); });
+  wrap.appendChild(el);
+  while (wrap.children.length > 5) wrap.removeChild(wrap.firstChild);
+  setTimeout(() => { el.classList.add('fade-out'); setTimeout(() => el.remove(), 450); }, 7000);
+}
+window.scrollToRow = function(sym){ const el = $('row-' + sym); if (el){ el.scrollIntoView({ behavior:'smooth', block:'center' }); el.classList.remove('flash-up'); void el.offsetWidth; el.classList.add('flash-up'); } };
+
+// ═══════════════════════════════════════════════════════════════
+//  Sunet + Telegram
+// ═══════════════════════════════════════════════════════════════
+let _audioCtx = null;
+function beep(){
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx, t = ctx.currentTime;
+    [1046, 784].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+      const st = t + i * 0.14;
+      g.gain.setValueAtTime(0.0001, st);
+      g.gain.exponentialRampToValueAtTime(0.2, st + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + 0.18);
+      o.start(st); o.stop(st + 0.2);
+    });
+  } catch(e){}
+}
+async function sendTelegram(text){
+  if (!tgConfig.token || !tgConfig.chatId) return false;
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${tgConfig.token}/sendMessage`, {
+      method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ chat_id: tgConfig.chatId, text, parse_mode:'HTML', disable_web_page_preview:true }),
+    });
+    const j = await r.json().catch(() => ({}));
+    return !!j.ok;
+  } catch(e){ console.warn('[pr] telegram failed', e.message); return false; }
+}
+function updateAlertBtns(){
+  $('soundBtn').style.opacity = soundEnabled ? '1' : '.45';
+  $('notifBtn').style.opacity = notifEnabled ? '1' : '.45';
+  $('tgBtn').style.opacity = (tgConfig.enabled && tgConfig.token && tgConfig.chatId) ? '1' : '.45';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FORMAT
+// ═══════════════════════════════════════════════════════════════
+function fmtUSD(n){ if (n == null || isNaN(n)) return '—'; return '$' + (n >= 1000 ? n.toLocaleString('en-US', { maximumFractionDigits:0 }) : n.toFixed(2)); }
+function fmtPct(n, d = 1){ if (n == null || isNaN(n)) return '—'; return (n >= 0 ? '+' : '') + n.toFixed(d) + '%'; }
+function fmtVol(n){ if (n == null || !n) return '—'; if (n >= 1e9) return (n/1e9).toFixed(1) + 'B'; if (n >= 1e6) return (n/1e6).toFixed(1) + 'M'; if (n >= 1e3) return (n/1e3).toFixed(0) + 'K'; return '' + n; }
+function heatColor(h){ if (h >= 70) return '#ef4444'; if (h >= 45) return 'var(--warn)'; if (h >= 20) return 'var(--crypto-2)'; return 'var(--t3)'; }
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════
+function alertChips(r){ return r.alerts.map(t => `<span class="al ${ALERT_META[t].cls}">${ALERT_META[t].icon}${ALERT_META[t].label}</span>`).join(''); }
+function insiderCell(r){
+  if (!r.insider){
+    let key = ''; try { key = localStorage.getItem(FINNHUB_KEY) || ''; } catch(e){}
+    return key ? '<span class="ins na">—</span>' : '<span class="ins na" title="Setează Finnhub key în nasdaq-scanner/smart-trade-long pentru insider">⚙</span>';
+  }
+  const v = r.insider.verdict;
+  const ic = v === 'bull' ? '🟢' : v === 'bear' ? '🔴' : '⚪';
+  return `<span class="ins ${v === 'bull' ? 'bull' : v === 'bear' ? 'bear' : 'neut'}" title="insider 60z: ${r.insider.txt}">${ic} ${r.insider.txt}</span>`;
+}
+
+function updateStats(){
+  $('stUp').textContent = results.filter(r => r.alerts.includes('up')).length;
+  $('stDown').textContent = results.filter(r => r.alerts.includes('down')).length;
+  $('stVol').textContent = results.filter(r => r.alerts.includes('vol')).length;
+  $('stMom').textContent = results.filter(r => r.alerts.includes('mom')).length;
+}
+function renderHotStrip(){
+  const box = $('hotStrip'); if (!box) return;
+  const hot = results.filter(r => r.alerts.length).sort((a, b) => b.heat - a.heat).slice(0, 6);
+  box.innerHTML = hot.map(r => {
+    const cls = r.alerts.includes('up') ? 'hc-up' : r.alerts.includes('vol') ? 'hc-vol' : '';
+    return `<div class="hot-card ${cls}" onclick="scrollToRow('${r.symbol}')">
+      <div class="hc-top"><span class="hc-sym">${r.symbol}</span><span class="hc-tag" style="color:${heatColor(r.heat)}">🔥${r.heat}</span></div>
+      <div class="hc-mid"><span class="hc-price">${fmtUSD(r.price)}</span><span class="badge ${r.m5 >= 0 ? 'up' : 'down'}">5m ${fmtPct(r.m5, 1)}</span><span style="font-size:10px;color:var(--t3)">zi ${fmtPct(r.chgDay, 1)}</span></div>
+      <div class="hc-alerts">${alertChips(r)}${r.insider && r.insider.ok ? ` · insider ${r.insider.verdict === 'bull' ? '🟢' : r.insider.verdict === 'bear' ? '🔴' : '⚪'}` : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function passFilter(r){
+  if (filterText && !r.symbol.includes(filterText)) return false;
+  if (filterMode === 'alert') return r.alerts.length > 0;
+  if (filterMode === 'star') return watchlist.includes(r.symbol);
+  if (filterMode !== 'all') return r.alerts.includes(filterMode);
+  return true;
+}
+
+function render(){
+  updateStats(); renderHotStrip();
+  const tbody = $('resultsBody');
+  if (!results.length){
+    tbody.innerHTML = `<tr><td colspan="10" class="empty"><div class="empty-icon">🚨</div><div class="empty-title">Apasă <b>🚨 SCAN</b> ca să pornești radarul</div><div class="empty-sub">Scanează ~${UNIVERSE.length} stocks lichide pe barele de 5 minute. Auto 60s = watchdog continuu + alerte browser / sunet / Telegram la fiecare alertă nouă.</div></td></tr>`;
+    return;
+  }
+  const filtered = results.filter(passFilter);
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortKey === 'symbol') return sortAsc ? a.symbol.localeCompare(b.symbol) : b.symbol.localeCompare(a.symbol);
+    let va = a[sortKey], vb = b[sortKey];
+    if (va == null) va = -Infinity; if (vb == null) vb = -Infinity;
+    return sortAsc ? va - vb : vb - va;
+  });
+
+  const filterActive = filterMode !== 'all' || !!filterText;
+  const cEl = $('fbCount');
+  if (cEl){ cEl.textContent = filterActive ? `${sorted.length} / ${results.length} vizibile` : `${results.length} scanate`; cEl.style.color = (filterActive && !sorted.length) ? 'var(--warn)' : 'var(--t3)'; }
+
+  if (!sorted.length){
+    tbody.innerHTML = `<tr><td colspan="10" class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Nimic pe filtrul curent</div><div class="empty-sub">Schimbă chip-ul de mai sus sau golește căutarea. (E posibil să nu fie nicio alertă activă chiar acum — normal în afara sesiunii.)</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(r => {
+    const tvUrl = `https://www.tradingview.com/chart/?symbol=${r.symbol}`;
+    const yhUrl = `https://finance.yahoo.com/quote/${r.symbol}`;
+    const fvUrl = `https://finviz.com/quote.ashx?t=${r.symbol}`;
+    const rowCls = r.alerts.includes('up') ? 'a-up' : r.alerts.includes('down') ? 'a-down' : r.alerts.includes('vol') ? 'a-vol' : r.alerts.includes('mom') ? 'a-mom' : '';
+    const flashCls = r.flashDir > 0 ? ' flash-up' : r.flashDir < 0 ? ' flash-dn' : '';
+    const rsiCls = r.rsi == null ? 'neut' : r.rsi >= 75 ? 'down' : r.rsi <= 25 ? 'up' : r.rsi >= 65 ? 'warn' : 'neut';
+    const volCls = r.volRatio == null ? 'neut' : r.volRatio >= cfg.thrVol ? 'vol' : r.volRatio >= 1.5 ? 'warn' : 'neut';
+    const starOn = watchlist.includes(r.symbol);
+    return `<tr id="row-${r.symbol}" class="${rowCls}${flashCls}">
+      <td class="left">
+        <button class="star-btn ${starOn ? 'on' : ''}" title="${starOn ? 'scoate din' : 'adaugă în'} watchlist (shared)" onclick="toggleStar('${r.symbol}')">${starOn ? '★' : '☆'}</button>
+        <span class="sym-name">${r.symbol}</span><div class="sym-sector">Stocks · 5m</div>
+      </td>
+      <td>${fmtUSD(r.price)}</td>
+      <td><span class="badge ${r.m5 >= 0 ? 'up' : 'down'}">${fmtPct(r.m5, 2)}</span></td>
+      <td><span class="badge ${r.chgDay >= 0 ? 'up' : 'down'}">${fmtPct(r.chgDay, 1)}</span></td>
+      <td><span class="badge ${volCls}">${r.volRatio != null ? r.volRatio.toFixed(1) + '×' : '—'}</span></td>
+      <td class="hide-mobile"><span class="badge ${rsiCls}">${r.rsi != null ? r.rsi.toFixed(0) : '—'}</span></td>
+      <td class="hide-mobile" title="${r.closes.length} bare de 5m">${buildSparkline(r.closes)}</td>
+      <td><div class="alerts-cell">${r.alerts.length ? alertChips(r) : '<span style="color:var(--t3);font-size:10px">—</span>'}</div><div style="font-size:9px;color:${heatColor(r.heat)};font-family:var(--mono);margin-top:1px">🔥${r.heat}</div></td>
+      <td class="hide-mobile">${insiderCell(r)}</td>
+      <td><a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener">TV</a><a class="action-btn hide-mobile" href="${fvUrl}" target="_blank" rel="noopener">FV</a><a class="action-btn hide-mobile" href="${yhUrl}" target="_blank" rel="noopener">YH</a></td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('th[data-sort]').forEach(th => { th.style.color = th.dataset.sort === sortKey ? 'var(--accent)' : ''; });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ⭐ Watchlist (shared cu nasdaq-scanner / watchlist-monitor)
+// ═══════════════════════════════════════════════════════════════
+window.toggleStar = function(sym){
+  if (watchlist.includes(sym)) watchlist = watchlist.filter(s => s !== sym);
+  else { if (watchlist.length >= 100){ alert('Maxim 100 în watchlist'); return; } watchlist.push(sym); }
+  saveWatchlist(); render();
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  MODALS — features + Telegram config
+// ═══════════════════════════════════════════════════════════════
+window.showFeatures = function(){
+  $('flOverlay') && $('flOverlay').remove();
+  const ov = document.createElement('div'); ov.id = 'flOverlay'; ov.className = 'fl-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  const sections = [
+    { title:'📡 Date', cls:'data', items:[
+      { e:'📡', t:'<b>Yahoo Finance</b> bare de 5 minute (interval=5m, range=1d, includePrePost) — fără cheie; lanț de 4 proxy-uri CORS cu fallback round-robin' },
+      { e:'👔', t:'<b>Finnhub insider</b> (cheie opțională, shared <code>finnhub_api_key</code>) — verificat la alertă nouă, max 6 simboluri/scan' },
+      { e:'🌐', t:'<b>~' + UNIVERSE.length + ' stocks</b> lichide, sectoare mixte (mega/large caps + retail favorites)' },
+    ]},
+    { title:'🚨 Alerte 5m', cls:'tool', items:[
+      { e:'🟢', t:'<b>Pump up</b> — Δ% pe ultima bară de 5m ≥ prag (slider)' },
+      { e:'🔴', t:'<b>Dump down</b> — Δ% ≤ −prag' },
+      { e:'📊', t:'<b>Vol spike</b> — volum bara curentă / media intraday ≥ multiplu (slider)' },
+      { e:'⚡', t:'<b>Momentum shift</b> — 3 bare consecutive într-un sens după ce mergeau invers' },
+      { e:'💰', t:'<b>Filtru preț minim</b> ca să sari peste penny stocks (slider)' },
+      { e:'🔥', t:'<b>Heat 0-100</b> per stock = |Δ5m| + exces volum + bonus momentum (sortabil, colorat)' },
+    ]},
+    { title:'🤖 Automation & UI', cls:'auto', items:[
+      { e:'🔄', t:'<b>Auto-scan</b> 30s / 60s / 120s / OFF — watchdog cu self-reschedule' },
+      { e:'🔔🔊📡', t:'<b>Notificare browser + beep + Telegram</b> la fiecare alertă nouă (dedupe 30min, mesaj grupat per scan); Telegram config shared cu Watchlist Monitor' },
+      { e:'🔥', t:'<b>Hot strip</b> — top 6 alerte ca card-uri, click → scroll la rând + flash' },
+      { e:'🧰', t:'<b>Filtre</b> — chip-uri pe tip alertă / cu alertă / watchlist + căutare ticker; sortabil pe orice coloană; flash rând la Δheat ±10' },
+      { e:'⭐', t:'<b>Watchlist shared</b> — ☆/★ pe fiecare rând, sincron cu Nasdaq Scanner & Watchlist Monitor' },
+      { e:'⏱', t:'<b>Countdown</b> + indicator sesiune piață (pre/regular/after/closed, DST-aware)' },
+    ]},
+  ];
+  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v99 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
+  sections.forEach(s => { html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`; });
+  html += `<div style="font-size:10.5px;color:var(--t3);line-height:1.5;font-family:var(--mono);padding-top:6px;border-top:1px solid var(--b1)">⚠ Alertele 5m sunt relevante în <b>sesiunea regulară</b> (09:30-16:00 ET). În afara ei datele pot fi rare/lipsă; radarul tot afișează ce găsește.</div></div>`;
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+};
+
+window.showTgConfig = function(){
+  $('tgOverlay') && $('tgOverlay').remove();
+  const ov = document.createElement('div'); ov.id = 'tgOverlay'; ov.className = 'fl-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  ov.innerHTML = `<div class="fl-modal" style="max-width:440px">
+    <div class="fl-head"><div><h3>📡 Alerte Telegram</h3><div class="sub">Mesaj grupat la fiecare alertă nouă · config shared cu Watchlist Monitor</div></div><button class="fl-close" type="button" data-close>×</button></div>
+    <div style="font-size:11px;color:var(--t3);line-height:1.55;margin-bottom:12px;font-family:var(--mono)">1. Creează un bot cu <b style="color:var(--t2)">@BotFather</b> → primești <i>token</i>.<br>2. Scrie-i botului orice mesaj, apoi deschide <span style="color:var(--accent);word-break:break-all">api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> → vezi <i>chat.id</i>.</div>
+    <div class="tg-field"><label>Bot token</label><input type="text" id="tgToken" placeholder="123456789:ABC-DEF..." value="${(tgConfig.token || '').replace(/"/g, '&quot;')}"></div>
+    <div class="tg-field"><label>Chat ID</label><input type="text" id="tgChatId" placeholder="123456789" value="${(tgConfig.chatId || '').replace(/"/g, '&quot;')}"></div>
+    <label class="fb-toggle" style="margin-bottom:13px"><input type="checkbox" id="tgEnabled" ${tgConfig.enabled ? 'checked' : ''}> activează alertele Telegram</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="primary" id="tgSave">💾 Salvează</button><button type="button" id="tgTest">🧪 Test</button><span id="tgMsg" style="font-size:11px;font-family:var(--mono)"></span></div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+  const save = () => {
+    tgConfig.token = $('tgToken').value.trim(); tgConfig.chatId = $('tgChatId').value.trim(); tgConfig.enabled = $('tgEnabled').checked;
+    try { localStorage.setItem(TG_KEY, JSON.stringify(tgConfig)); } catch(e){}
+    updateAlertBtns();
+  };
+  $('tgSave').addEventListener('click', () => { save(); const m = $('tgMsg'); m.textContent = '✓ salvat'; m.style.color = 'var(--bull-s)'; });
+  $('tgTest').addEventListener('click', async () => {
+    save(); const m = $('tgMsg');
+    if (!tgConfig.token || !tgConfig.chatId){ m.textContent = '✗ completează token + chat id'; m.style.color = 'var(--bear-s)'; return; }
+    m.textContent = '⏳ trimit…'; m.style.color = 'var(--t3)';
+    const ok = await sendTelegram('🧪 <b>Test Pump Radar Stocks</b>\nAlertele Telegram funcționează ✅');
+    m.textContent = ok ? '✓ trimis — verifică Telegram!' : '✗ eșuat (token/chat id greșit sau CORS)';
+    m.style.color = ok ? 'var(--bull-s)' : 'var(--bear-s)';
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  EVENT WIRING + INIT
+// ═══════════════════════════════════════════════════════════════
+function syncThrUI(){
+  $('thrMove').value = cfg.thrMove; $('thrMoveVal').textContent = cfg.thrMove.toFixed(1);
+  $('thrVol').value = cfg.thrVol; $('thrVolVal').textContent = cfg.thrVol.toFixed(1);
+  $('thrPrice').value = cfg.thrPrice; $('thrPriceVal').textContent = cfg.thrPrice;
+  $('autoSel').value = String(cfg.autoSec);
+}
+function recomputeAlerts(){ // re-evaluează alertele pe datele existente după schimbarea pragurilor (fără re-fetch)
+  results = results.map(r => { const re = analyze(r); const c = _insiderCache[r.symbol]; re.insider = (c && c.ok) ? c : null; re.flashDir = 0; return re; });
+  render();
+}
+
+$('thrMove').addEventListener('input', e => { cfg.thrMove = +e.target.value; $('thrMoveVal').textContent = cfg.thrMove.toFixed(1); });
+$('thrMove').addEventListener('change', () => { saveCfg(); if (results.length) recomputeAlerts(); });
+$('thrVol').addEventListener('input', e => { cfg.thrVol = +e.target.value; $('thrVolVal').textContent = cfg.thrVol.toFixed(1); });
+$('thrVol').addEventListener('change', () => { saveCfg(); if (results.length) recomputeAlerts(); });
+$('thrPrice').addEventListener('input', e => { cfg.thrPrice = +e.target.value; $('thrPriceVal').textContent = cfg.thrPrice; });
+$('thrPrice').addEventListener('change', () => { saveCfg(); if (results.length) recomputeAlerts(); });
+$('thrReset').addEventListener('click', () => { cfg.thrMove = 1.5; cfg.thrVol = 3; cfg.thrPrice = 3; syncThrUI(); saveCfg(); if (results.length) recomputeAlerts(); });
+
+$('autoSel').addEventListener('change', e => { cfg.autoSec = +e.target.value; saveCfg(); scheduleNextScan(); });
+$('scanBtn').addEventListener('click', () => runScan());
+
+$('soundBtn').addEventListener('click', () => {
+  soundEnabled = !soundEnabled; try { localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0'); } catch(e){}
+  updateAlertBtns(); if (soundEnabled) beep();
+});
+$('notifBtn').addEventListener('click', async () => {
+  if (!('Notification' in window)){ alert('Browserul nu suportă notificări'); return; }
+  if (Notification.permission === 'granted'){ notifEnabled = !notifEnabled; }
+  else { const p = await Notification.requestPermission(); notifEnabled = (p === 'granted'); }
+  saveCfg(); updateAlertBtns();
+  setStatus(notifEnabled ? 'ok' : '', notifEnabled ? 'notificări ON' : 'notificări OFF');
+});
+$('tgBtn').addEventListener('click', () => window.showTgConfig());
+
+document.querySelectorAll('.fb-chip').forEach(ch => ch.addEventListener('click', () => {
+  document.querySelectorAll('.fb-chip').forEach(c => c.classList.remove('active'));
+  ch.classList.add('active'); filterMode = ch.dataset.f; render();
+}));
+$('fbSearch').addEventListener('input', e => { filterText = e.target.value.trim().toUpperCase().replace(/[^A-Z.]/g, ''); render(); });
+document.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('click', () => {
+  const k = th.dataset.sort;
+  if (sortKey === k) sortAsc = !sortAsc; else { sortKey = k; sortAsc = (k === 'symbol'); }
+  render();
+}));
+
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && cfg.autoSec > 0 && !scanRunning && nextScanAt && Date.now() > nextScanAt) runScan(); });
+
+// init
+loadCfg();
+syncThrUI();
+updateAlertBtns();
+updateSessionPill();
+render();
+// auto-scan: pornește un scan inițial dacă auto e ON
+if (cfg.autoSec > 0) runScan(); else scheduleNextScan();
+</script>
 </body>
 </html>
