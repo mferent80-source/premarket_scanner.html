@@ -250,7 +250,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v106</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v107</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -390,7 +390,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v106-2026-05-13';
+const VER = 'tt-v107-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -561,22 +561,24 @@ async function fetchHistEarnings(symbol){
   return sorted;
 }
 
+// Fereastră extinsă la 60z — free tier Finnhub indexează rar tranzacții într-o singură lună,
+// 60z dă semnal mai consistent. Cache păstrat pe (symbol+earningsDate).
 async function fetchInsider30(symbol, earningsDate){
-  // cache pe (symbol+earningsDate) — același raport, aceeași fereastră 30z
   const key = `${symbol}_${earningsDate}`;
   const cache = loadCache(INS_CACHE_LS);
   const c = cache[key];
   if (c && c.ts && (Date.now() - c.ts) < HIST_TTL_MS) return c.data;
-  // fereastra: [earningsDate - 30z, earningsDate]
   const to = earningsDate;
-  const fromDate = new Date(earningsDate + 'T00:00:00Z'); fromDate.setUTCDate(fromDate.getUTCDate() - 30);
+  const fromDate = new Date(earningsDate + 'T00:00:00Z'); fromDate.setUTCDate(fromDate.getUTCDate() - 60);
   const from = fromDate.toISOString().slice(0, 10);
   const d = await finnhub('/stock/insider-transactions', { symbol, from, to });
-  if (d.__err || d.__noKey || !d.data || !Array.isArray(d.data)) return null;
-  const res = d.data;
-  cache[key] = { ts:Date.now(), data:res };
+  if (d.__noKey) return null;
+  if (d.__err){ console.warn('[eh] insider err', symbol, d.__err); return null; }
+  // Finnhub returnează { data: [...] } sau direct array în unele cazuri
+  const arr = Array.isArray(d.data) ? d.data : (Array.isArray(d) ? d : []);
+  cache[key] = { ts:Date.now(), data:arr };
   saveCache(INS_CACHE_LS, cache);
-  return res;
+  return arr;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -622,19 +624,26 @@ const VERDICT_META = {
   'na':          { icon:'⚪', label:'N/A' },
 };
 
+// Clasificare robustă: `change` semn (pozitiv=buy, negativ=sell) e sursa primară;
+// transactionCode P/A/S/D doar dacă există. Free tier Finnhub uneori omite codul → fallback pe semn.
 function analyzeInsider(rows){
   if (!Array.isArray(rows) || rows.length === 0) return { ok:false, txt:'—', verdict:'na' };
   let buys = 0, sells = 0, netShares = 0;
   for (const r of rows){
-    // code P/A = buy, S/D = sell
     const c = (r.transactionCode || '').toUpperCase();
-    const qty = +r.change || 0;
-    if (c === 'P' || c === 'A'){ buys++; netShares += Math.abs(qty); }
-    else if (c === 'S' || c === 'D'){ sells++; netShares -= Math.abs(qty); }
+    const chg = +r.change || 0;
+    let kind = '';
+    if (c === 'P' || c === 'A') kind = 'buy';
+    else if (c === 'S' || c === 'D') kind = 'sell';
+    else if (chg > 0) kind = 'buy';
+    else if (chg < 0) kind = 'sell';
+    const absQty = Math.abs(chg);
+    if (kind === 'buy'){ buys++; netShares += absQty; }
+    else if (kind === 'sell'){ sells++; netShares -= absQty; }
   }
   let verdict = 'neut';
-  if (buys >= 2 && netShares > 0 && buys > sells) verdict = 'bull';
-  else if (sells >= 2 && netShares < 0 && sells > buys) verdict = 'bear';
+  if (buys >= 2 && netShares > 0 && buys >= sells) verdict = 'bull';
+  else if (sells >= 2 && netShares < 0 && sells >= buys) verdict = 'bear';
   return { ok:true, txt:`${buys}B/${sells}S`, verdict, buys, sells, netShares, rows };
 }
 
