@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v119</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v120-DBG</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -430,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v119-2026-05-13';
+const VER = 'tt-v120-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -994,10 +994,19 @@ function renderTable(){
   $('fbCount').textContent = `${filtered.length} / ${calendar.length}`;
 
   if (!sorted.length){
+    let title = 'Niciun rezultat', sub = 'Schimbă filtrele de mai sus.';
+    if (filterMode === 'watch' && !watchlist.length){
+      title = 'Watchlist gol'; sub = 'Adaugă tickere în watchlist (⭐ pe rând, sau din nasdaq-scanner / watchlist-monitor).';
+    } else if (filterMode === 'watch'){
+      title = 'Niciun ticker watchlist cu earnings'; sub = `Ai ${watchlist.length} tickere în watchlist, dar niciunul nu raportează în 30 zile.`;
+    } else if (filterMode === '48h'){ title = 'Niciun ticker în 48h'; sub = `Nu există tickere cu earnings ≤2 zile din ${calendar.length} total.`; }
+    else if (filterMode === '7d'){ title = 'Niciun ticker în 7 zile'; sub = `Nu există tickere cu earnings ≤7 zile din ${calendar.length} total.`; }
+    else if (filterMode === 'bmo'){ title = 'Niciun BMO'; sub = `Finnhub nu marchează cu „bmo" (before market open). Verifică cu 🌙 AMC sau 📅 Toate.`; }
+    else if (filterMode === 'amc'){ title = 'Niciun AMC'; sub = `Finnhub nu marchează cu „amc" (after market close). Încearcă 🌅 BMO sau 📅 Toate.`; }
     tbody.innerHTML = `<tr><td colspan="12"><div class="empty">
       <div class="empty-icon">🔍</div>
-      <div class="empty-title">Niciun rezultat</div>
-      <div class="empty-sub">Schimbă filtrele de mai sus sau adaugă tickere în watchlist (din nasdaq-scanner / watchlist-monitor).</div>
+      <div class="empty-title">${escHtml(title)}</div>
+      <div class="empty-sub">${sub}</div>
     </div></td></tr>`;
     return;
   }
@@ -1514,6 +1523,14 @@ $('fbChips').addEventListener('click', e => {
   document.querySelectorAll('.fb-chip').forEach(c => c.classList.remove('active'));
   chip.classList.add('active');
   filterMode = chip.dataset.f;
+  // Diagnostic per-filter
+  const all = calendar.length;
+  const wl = calendar.filter(x => watchlist.includes(x.symbol)).length;
+  const z48 = calendar.filter(x => x.zile >= 0 && x.zile <= 2).length;
+  const z7d = calendar.filter(x => x.zile >= 0 && x.zile <= 7).length;
+  const bmo = calendar.filter(x => x.hour === 'bmo').length;
+  const amc = calendar.filter(x => x.hour === 'amc').length;
+  console.log('[filter]', filterMode, '| total=', all, 'watchlist=', wl, '<48h=', z48, '7d=', z7d, 'bmo=', bmo, 'amc=', amc, 'watchlist_size=', watchlist.length);
   renderTable();
 });
 $('searchInp').addEventListener('input', e => {
