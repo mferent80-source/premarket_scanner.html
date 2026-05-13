@@ -179,6 +179,14 @@ td.left { text-align:left; padding-left:14px; }
 .ins.bull { background:var(--bull-bg); color:var(--bull-s); } .ins.bear { background:var(--bear-bg); color:var(--bear-s); }
 .ins.neut { background:var(--panel2); color:var(--t3); } .ins.na { color:var(--t3); }
 
+/* Sugestie acțiune (BUY/WATCH/WAIT/AVOID/SKIP) — derivată algoritmic din alerte + insider + RSI + heat */
+.act { font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:4px; font-family:var(--head); letter-spacing:.2px; white-space:nowrap; cursor:help; }
+.act.buy { background:var(--bull-bg); color:var(--bull-s); border:1px solid rgba(34,214,107,.45); }
+.act.watch { background:rgba(34,214,107,.10); color:var(--bull-s); border:1px solid rgba(34,214,107,.25); }
+.act.wait { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.35); }
+.act.avoid { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.45); }
+.act.skip { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
+
 .spark { width:62px; height:22px; display:block; margin:0 auto; }
 .spark path { fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
 .spark .area { stroke:none; opacity:.16; }
@@ -244,7 +252,7 @@ footer a { color:var(--accent); text-decoration:none; }
 <body>
 
 <header>
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v101</span></h1>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v102</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
   <a href="../watchlist-monitor/" class="nav-link">👁️ Watchlist</a>
@@ -323,11 +331,12 @@ footer a { color:var(--accent); text-decoration:none; }
       <th data-sort="rsi" class="hide-mobile">RSI 5m</th>
       <th class="hide-mobile">Intraday</th>
       <th data-sort="heat">Alerte</th>
+      <th data-sort="action" class="hide-mobile">Sugestie</th>
       <th class="hide-mobile">Insider</th>
       <th>·</th>
     </tr></thead>
     <tbody id="resultsBody">
-      <tr><td colspan="10" class="empty">
+      <tr><td colspan="11" class="empty">
         <div class="empty-icon">🚨</div>
         <div class="empty-title">Apasă <b>🚨 SCAN</b> ca să pornești radarul</div>
         <div class="empty-sub">Scanează ~90 stocks lichide pe barele de 5 minute și marchează pump-uri / dump-uri / spike-uri de volum / schimbări de momentum. Activează Auto 60s pentru watchdog continuu + notificări browser / sunet / Telegram la fiecare alertă nouă.</div>
@@ -387,6 +396,57 @@ const ALERT_META = {
   vol:  { icon:'📊', label:'VOL',   cls:'vol'  },
   mom:  { icon:'⚡', label:'MOM',   cls:'mom'  },
 };
+
+// Sugestie acțiune (BUY / WATCH / WAIT / AVOID / SKIP) — derivată algoritmic
+// din alerte 5m + insider verdict + RSI + chgDay + heat. NU înlocuiește un trade plan —
+// e doar un tag rapid pentru filtrare vizuală (trader long-only, conservator).
+const ACTION_META = {
+  'buy':   { icon:'🚀', label:'BUY',   tip:'Pump confirmat de volum + insider/momentum pozitiv. Setup BUY cu R:R favorabil.' },
+  'watch': { icon:'🟢', label:'WATCH', tip:'Momentum pozitiv dar singur — așteaptă confirmare (volum sau pullback la suport).' },
+  'wait':  { icon:'🟡', label:'WAIT',  tip:'Semnale mixte sau RSI overbought. Stai pe margine sau așteaptă cool-down.' },
+  'avoid': { icon:'🔴', label:'AVOID', tip:'Dump cu volum / insider bear. Risc continuare scădere.' },
+  'skip':  { icon:'⏭', label:'SKIP',  tip:'Niciun semnal activ, heat scăzut. Sari peste.' },
+};
+function computeActionPR(r){
+  const a = r.alerts || [];
+  const iv = (r.insider && r.insider.verdict) || 'na';
+  const rsi = r.rsi;
+  const heat = r.heat || 0;
+  const hasPump = a.includes('up');
+  const hasDump = a.includes('down');
+  const hasVol  = a.includes('vol');
+  const momDir = r.momDir; // 'up' | 'down' | null
+  const chgUp = (r.chgDay || 0) > 0;
+
+  // DUMP cu insider bear / volum mare / RSI extrem oversold → AVOID
+  if (hasDump && (iv === 'bear' || hasVol)) return 'avoid';
+  if (hasDump && rsi != null && rsi < 25) return 'avoid';
+
+  // PUMP cu RSI overbought sever → WAIT (pullback iminent)
+  if (hasPump && rsi != null && rsi >= 80) return 'wait';
+
+  // PUMP + VOL + (insider bull SAU chgDay+ cu RSI sub 70) → BUY
+  if (hasPump && hasVol && (iv === 'bull' || (chgUp && (rsi == null || rsi < 70)))) return 'buy';
+
+  // PUMP cu confirmare parțială (zi+ sau insider bull) → WATCH
+  if (hasPump && (chgUp || iv === 'bull') && (rsi == null || rsi < 75)) return 'watch';
+
+  // MOM up + chgUp → WATCH (early reversal / breakout incipient)
+  if (momDir === 'up' && chgUp) return 'watch';
+
+  // DUMP fără confirmare → WAIT (poate fi noise)
+  if (hasDump) return 'wait';
+
+  // niciun alert + heat mort → SKIP
+  if (a.length === 0 && heat < 30) return 'skip';
+
+  return 'wait';
+}
+function actionCell(r){
+  const k = computeActionPR(r);
+  const m = ACTION_META[k];
+  return `<span class="act ${k}" title="${m.tip}">${m.icon} ${m.label}</span>`;
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG persist
@@ -914,12 +974,17 @@ function render(){
   updateStats(); renderHotStrip();
   const tbody = $('resultsBody');
   if (!results.length){
-    tbody.innerHTML = `<tr><td colspan="10" class="empty"><div class="empty-icon">🚨</div><div class="empty-title">Apasă <b>🚨 SCAN</b> ca să pornești radarul</div><div class="empty-sub">Scanează ~${UNIVERSE.length} stocks lichide pe barele de 5 minute. Auto 60s = watchdog continuu + alerte browser / sunet / Telegram la fiecare alertă nouă.</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="empty"><div class="empty-icon">🚨</div><div class="empty-title">Apasă <b>🚨 SCAN</b> ca să pornești radarul</div><div class="empty-sub">Scanează ~${UNIVERSE.length} stocks lichide pe barele de 5 minute. Auto 60s = watchdog continuu + alerte browser / sunet / Telegram la fiecare alertă nouă.</div></td></tr>`;
     return;
   }
   const filtered = results.filter(passFilter);
   const sorted = [...filtered].sort((a, b) => {
     if (sortKey === 'symbol') return sortAsc ? a.symbol.localeCompare(b.symbol) : b.symbol.localeCompare(a.symbol);
+    if (sortKey === 'action'){
+      const ord = { buy:4, watch:3, wait:2, avoid:1, skip:0 };
+      const va = ord[computeActionPR(a)] ?? 0, vb = ord[computeActionPR(b)] ?? 0;
+      return sortAsc ? va - vb : vb - va;
+    }
     let va = a[sortKey], vb = b[sortKey];
     if (va == null) va = -Infinity; if (vb == null) vb = -Infinity;
     return sortAsc ? va - vb : vb - va;
@@ -930,7 +995,7 @@ function render(){
   if (cEl){ cEl.textContent = filterActive ? `${sorted.length} / ${results.length} vizibile` : `${results.length} scanate`; cEl.style.color = (filterActive && !sorted.length) ? 'var(--warn)' : 'var(--t3)'; }
 
   if (!sorted.length){
-    tbody.innerHTML = `<tr><td colspan="10" class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Nimic pe filtrul curent</div><div class="empty-sub">Schimbă chip-ul de mai sus sau golește căutarea. (E posibil să nu fie nicio alertă activă chiar acum — normal în afara sesiunii.)</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Nimic pe filtrul curent</div><div class="empty-sub">Schimbă chip-ul de mai sus sau golește căutarea. (E posibil să nu fie nicio alertă activă chiar acum — normal în afara sesiunii.)</div></td></tr>`;
     return;
   }
 
@@ -955,6 +1020,7 @@ function render(){
       <td class="hide-mobile"><span class="badge ${rsiCls}">${r.rsi != null ? r.rsi.toFixed(0) : '—'}</span></td>
       <td class="hide-mobile" title="${r.closes.length} bare de 5m">${buildSparkline(r.closes)}</td>
       <td><div class="alerts-cell">${r.alerts.length ? alertChips(r) : '<span style="color:var(--t3);font-size:10px">—</span>'}</div><div style="font-size:9px;color:${heatColor(r.heat)};font-family:var(--mono);margin-top:1px">🔥${r.heat}</div></td>
+      <td class="hide-mobile">${actionCell(r)}</td>
       <td class="hide-mobile">${insiderCell(r)}</td>
       <td><a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener">TV</a><a class="action-btn hide-mobile" href="${fvUrl}" target="_blank" rel="noopener">FV</a><a class="action-btn hide-mobile" href="${yhUrl}" target="_blank" rel="noopener">YH</a></td>
     </tr>`;
@@ -992,6 +1058,7 @@ window.showFeatures = function(){
       { e:'⚡', t:'<b>Momentum shift</b> — 3 bare consecutive într-un sens după ce mergeau invers' },
       { e:'💰', t:'<b>Filtru preț minim</b> ca să sari peste penny stocks (slider)' },
       { e:'🔥', t:'<b>Heat 0-100</b> per stock = |Δ5m| + exces volum + bonus momentum (sortabil, colorat)' },
+      { e:'🎯', t:'<b>Sugestie</b> 5 tier-uri (BUY / WATCH / WAIT / AVOID / SKIP) — derivată algoritmic din alerte + insider + RSI + zi; sortabilă' },
     ]},
     { title:'🤖 Automation & UI', cls:'auto', items:[
       { e:'🔄', t:'<b>Auto-scan</b> 30s / 60s / 120s / OFF — watchdog cu self-reschedule' },
@@ -1002,7 +1069,7 @@ window.showFeatures = function(){
       { e:'⏱', t:'<b>Countdown</b> + indicator sesiune piață (pre/regular/after/closed, DST-aware)' },
     ]},
   ];
-  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v101 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
+  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v102 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => { html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`; });
   html += `<div style="font-size:10.5px;color:var(--t3);line-height:1.5;font-family:var(--mono);padding-top:6px;border-top:1px solid var(--b1)">⚠ Alertele 5m sunt relevante în <b>sesiunea regulară</b> (09:30-16:00 ET). În afara ei datele pot fi rare/lipsă; radarul tot afișează ce găsește.</div></div>`;
   ov.innerHTML = html;
