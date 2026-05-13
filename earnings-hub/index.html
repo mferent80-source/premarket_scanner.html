@@ -257,7 +257,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v114</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v115</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -398,7 +398,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v114-2026-05-13';
+const VER = 'tt-v115-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -575,17 +575,14 @@ async function fetchInsider30(symbol, earningsDate){
   const key = `${symbol}_${earningsDate}`;
   const cache = loadCache(INS_CACHE_LS);
   const c = cache[key];
-  if (c && c.ts && (Date.now() - c.ts) < HIST_TTL_MS){ console.log('[insider]', symbol, 'CACHE hit:', c.data && c.data.length, 'rows'); return c.data; }
+  if (c && c.ts && (Date.now() - c.ts) < HIST_TTL_MS) return c.data;
   const to = earningsDate;
   const fromDate = new Date(earningsDate + 'T00:00:00Z'); fromDate.setUTCDate(fromDate.getUTCDate() - 60);
   const from = fromDate.toISOString().slice(0, 10);
-  console.log('[insider]', symbol, 'fetching', from, '→', to);
   const d = await finnhub('/stock/insider-transactions', { symbol, from, to });
-  console.log('[insider]', symbol, 'response:', d);
-  if (d.__noKey){ console.warn('[insider]', symbol, 'NO KEY'); return null; }
-  if (d.__err){ console.warn('[insider]', symbol, 'ERR', d.__err); return null; }
+  if (d.__noKey) return null;
+  if (d.__err){ console.warn('[eh] insider err', symbol, d.__err); return null; }
   const arr = Array.isArray(d.data) ? d.data : (Array.isArray(d) ? d : []);
-  console.log('[insider]', symbol, 'parsed', arr.length, 'rows. First:', arr[0]);
   cache[key] = { ts:Date.now(), data:arr };
   saveCache(INS_CACHE_LS, cache);
   return arr;
@@ -737,8 +734,13 @@ async function runScan(){
     }
   });
 
-  // 3: insider 30z pentru watchlist cu zile ≤ 14 (preîncărcare → afișare în coloana principală pe rândurile relevante)
-  const insTargets = calendar.filter(e => watchlist.includes(e.symbol) && e.zile >= 0 && e.zile <= 14).slice(0, 12);
+  // 3: insider pre-load larg — toate watchlist ≤21z + top 30 după proximitate (zile ≤14).
+  // Limita 30 = cap pentru rate limit Finnhub free (60/min).
+  const insSet = new Set();
+  const insTargets = [];
+  for (const e of calendar) if (watchlist.includes(e.symbol) && e.zile >= 0 && e.zile <= 21){ if (!insSet.has(e.symbol)){ insSet.add(e.symbol); insTargets.push(e); } }
+  const upcoming = calendar.slice().sort((a, b) => a.zile - b.zile);
+  for (const e of upcoming){ if (insTargets.length >= 30) break; if (e.zile < 0 || e.zile > 14) continue; if (!insSet.has(e.symbol)){ insSet.add(e.symbol); insTargets.push(e); } }
   if (insTargets.length){
     st.textContent = `Insider (${insTargets.length})…`;
     await throttledMap(insTargets, 3, async e => {
@@ -1074,13 +1076,10 @@ async function loadExpandedDetails(e){
   if (e.hist && e.hist.length){
     reactions = await fetchReactionBias(e.symbol, e.hist);
   }
-  // 3) insider — forțez re-evaluare dacă pre-load a returnat ok:false (rows puteau fi între timp populate în cache)
+  // 3) insider — forțez re-evaluare dacă pre-load a returnat ok:false (cache între timp populat)
   if (!e.insider || !e.insider.ok){
     const rows = await fetchInsider30(e.symbol, e.date);
     e.insider = analyzeInsider(rows);
-    console.log('[expand] insider re-evaluated for', e.symbol, '→ ok=', e.insider.ok, 'buys=', e.insider.buys, 'sells=', e.insider.sells, 'rows=', e.insider.rows && e.insider.rows.length);
-  } else {
-    console.log('[expand] insider deja setat din pre-load:', e.symbol, 'ok=', e.insider.ok, 'rows=', e.insider.rows && e.insider.rows.length);
   }
 
   const histBox = $('exp-hist-' + e.symbol);
@@ -1169,7 +1168,6 @@ async function loadExpandedDetails(e){
         const act = ACTION_META[actKey] || ACTION_META.skip;
         actCell.innerHTML = `<span class="action ${actKey}" title="${escHtml(act.tip)}">${act.icon} ${act.label}</span>`;
       }
-      console.log('[update]', e.symbol, 'insCell?', !!insCell, 'actCell?', !!actCell, 'insiderTxt:', insiderCell(e));
     }
   } catch(err){ console.warn('[eh] update cells failed:', err); }
 }
