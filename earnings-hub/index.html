@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v125-DBG</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v126-DBG</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -430,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v125-2026-05-13';
+const VER = 'tt-v126-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1006,19 +1006,12 @@ function renderTable(){
   const _ls = $('lastScan'); if (_ls) _ls.textContent = _diag;
 
   if (!sorted.length){
-    let title = 'Niciun rezultat', sub = 'Schimbă filtrele de mai sus.';
-    if (filterMode === 'watch' && !watchlist.length){
-      title = 'Watchlist gol'; sub = 'Adaugă tickere în watchlist (⭐ pe rând, sau din nasdaq-scanner / watchlist-monitor).';
-    } else if (filterMode === 'watch'){
-      title = 'Niciun ticker watchlist cu earnings'; sub = `Ai ${watchlist.length} tickere în watchlist, dar niciunul nu raportează în 30 zile.`;
-    } else if (filterMode === '48h'){ title = 'Niciun ticker în 48h'; sub = `Nu există tickere cu earnings ≤2 zile din ${calendar.length} total.`; }
-    else if (filterMode === '7d'){ title = 'Niciun ticker în 7 zile'; sub = `Nu există tickere cu earnings ≤7 zile din ${calendar.length} total.`; }
-    else if (filterMode === 'bmo'){ title = 'Niciun BMO'; sub = `Finnhub nu marchează cu „bmo" (before market open). Verifică cu 🌙 AMC sau 📅 Toate.`; }
-    else if (filterMode === 'amc'){ title = 'Niciun AMC'; sub = `Finnhub nu marchează cu „amc" (after market close). Încearcă 🌅 BMO sau 📅 Toate.`; }
+    const _diag = `filterMode=${filterMode} · filterText="${filterText}" · calendar=${calendar.length} · filtered=${filtered.length} · sorted=${sorted.length} · expandedSym=${expandedSym}`;
     tbody.innerHTML = `<tr><td colspan="12"><div class="empty">
       <div class="empty-icon">🔍</div>
-      <div class="empty-title">${escHtml(title)}</div>
-      <div class="empty-sub">${sub}</div>
+      <div class="empty-title">DIAGNOSTIC v125</div>
+      <div class="empty-sub" style="font-family:var(--mono);color:var(--accent);background:rgba(91,176,255,.08);padding:8px;border-radius:6px;margin-top:8px">${escHtml(_diag)}</div>
+      <div class="empty-sub" style="margin-top:8px">Trimite-mi textul de mai sus.</div>
     </div></td></tr>`;
     return;
   }
