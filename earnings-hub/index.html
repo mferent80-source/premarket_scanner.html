@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v128</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v129</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -328,6 +328,8 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
     <span class="fb-chip" data-f="7d">📆 7 zile <b id="cnt-7d">—</b></span>
     <span class="fb-chip" data-f="bmo">🌅 BMO <b id="cnt-bmo">—</b></span>
     <span class="fb-chip" data-f="amc">🌙 AMC <b id="cnt-amc">—</b></span>
+    <span class="fb-chip" data-f="eu">🇪🇺 EU ADR <b id="cnt-eu">—</b></span>
+    <span class="fb-chip" data-f="us-pure">🇺🇸 US pur <b id="cnt-us">—</b></span>
   </div>
   <input type="text" id="searchInp" placeholder="Caută ticker…" maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
   <button id="searchClear" title="Golește search" style="display:none">✖</button>
@@ -431,7 +433,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v128-2026-05-13';
+const VER = 'tt-v129-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -440,6 +442,28 @@ const SEEN_KEY_LS    = 'eh_seen';              // dedupe alerte: { "SYM_YYYY-MM-
 const HIST_CACHE_LS  = 'eh_hist_cache';        // cache local pentru EPS history (TTL 6h)
 const INS_CACHE_LS   = 'eh_insider_cache';     // cache insider 30z pre-earning (TTL 6h)
 const HIST_TTL_MS    = 6 * 3600 * 1000;
+
+// ADR-uri europene cunoscute listate pe NYSE/NASDAQ — pentru identificare tickere foreign in calendar.
+// Sursa: top ADR-uri active (UK, Germania, Olanda, Elveția, Franța, etc.). Nu exhaustivă, dar acoperă majoritatea relevante.
+const EU_ADRS = new Set([
+  // UK
+  'AZN','GSK','BP','SHEL','UL','DEO','VOD','BTI','HSBC','BCS','NWG','LYG','LSXMA','PSO','RIO','BHP','RELX','ERJ','SMFG','VOD',
+  // Olanda
+  'ASML','NXPI','PHG','ING','STLA','ABN','HEIA','LYB','RDS',
+  // Germania
+  'SAP','DB','SIEGY','BAYRY','BMWYY','VWAGY','MBGYY','PSHG','ADDYY','HNNMY',
+  // Elveția
+  'NVS','RHHBY','NSRGY','UBS','CS','ABB','ZURVY',
+  // Franța
+  'SNY','LVMUY','TTE','BNPQY','SAN','ATEYY','ESLOY','AIQUY','MC','SU',
+  // Danemarca/Suedia/Finlanda
+  'NVO','ERIC','NOK','VLVLY','CARL','MAERSK',
+  // Italia/Spania
+  'E','STM','LUX','SAN','TEF','BBVA','REPYY','TIT',
+  // Belgia/Irlanda/Norvegia
+  'BUD','BFLY','MDLZ','EQNR','TEL','SDRL','RYAAY','ICLR','MDT','ACN','CRH','ABBV',
+]);
+function isEuAdr(symbol){ return EU_ADRS.has(symbol); }
 const SEEN_TTL_MS    = 14 * 24 * 3600 * 1000;  // 14 zile — auto-curățare alerte vechi
 
 // ═══════════════════════════════════════════════════════════════
@@ -939,9 +963,12 @@ function renderStats(){
   const _bmo = calendar.filter(e => e.hour === 'bmo').length;
   const _amc = calendar.filter(e => e.hour === 'amc').length;
   const setCnt = (id, n) => { const el = $(id); if (el) el.textContent = '(' + n + ')'; };
+  const _eu = calendar.filter(e => isEuAdr(e.symbol)).length;
+  const _usPure = calendar.length - _eu;
   setCnt('cnt-all', calendar.length); setCnt('cnt-watch', wl);
   setCnt('cnt-48h', _48h); setCnt('cnt-7d', _7d);
   setCnt('cnt-bmo', _bmo); setCnt('cnt-amc', _amc);
+  setCnt('cnt-eu', _eu); setCnt('cnt-us', _usPure);
 }
 
 function renderHotStrip(){
@@ -963,11 +990,13 @@ function renderHotStrip(){
 
 function passFilter(e){
   if (filterText && !e.symbol.includes(filterText)) return false;
-  if (filterMode === 'watch')  return watchlist.includes(e.symbol);
-  if (filterMode === '48h')    return e.zile >= 0 && e.zile <= 2;
-  if (filterMode === '7d')     return e.zile >= 0 && e.zile <= 7;
-  if (filterMode === 'bmo')    return e.hour === 'bmo';
-  if (filterMode === 'amc')    return e.hour === 'amc';
+  if (filterMode === 'watch')   return watchlist.includes(e.symbol);
+  if (filterMode === '48h')     return e.zile >= 0 && e.zile <= 2;
+  if (filterMode === '7d')      return e.zile >= 0 && e.zile <= 7;
+  if (filterMode === 'bmo')     return e.hour === 'bmo';
+  if (filterMode === 'amc')     return e.hour === 'amc';
+  if (filterMode === 'eu')      return isEuAdr(e.symbol);
+  if (filterMode === 'us-pure') return !isEuAdr(e.symbol);
   return true;
 }
 
@@ -1016,6 +1045,8 @@ function renderTable(){
     else if (filterMode === '7d'){ title = 'Niciun ticker în 7 zile'; sub = `Nu există tickere cu earnings ≤7 zile din ${calendar.length} total.`; }
     else if (filterMode === 'bmo'){ title = 'Niciun BMO'; sub = `Finnhub nu marchează cu „bmo" (before market open). Verifică cu 🌙 AMC sau 📅 Toate.`; }
     else if (filterMode === 'amc'){ title = 'Niciun AMC'; sub = `Finnhub nu marchează cu „amc" (after market close). Încearcă 🌅 BMO sau 📅 Toate.`; }
+    else if (filterMode === 'eu'){ title = 'Niciun ADR european'; sub = `Niciun ticker din lista EU ADR (ASML, SAP, NVO, NVS, AZN, GSK, etc.) nu raportează în 30 zile.`; }
+    else if (filterMode === 'us-pure'){ title = 'Lista goală'; sub = `Toate tickere din calendar sunt ADR-uri europene? Improbabil — verifică logica.`; }
     tbody.innerHTML = `<tr><td colspan="12"><div class="empty">
       <div class="empty-icon">🔍</div>
       <div class="empty-title">${escHtml(title)}</div>
