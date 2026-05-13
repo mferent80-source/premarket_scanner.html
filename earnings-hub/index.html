@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v120-DBG</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v121-DBG</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -430,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v120-2026-05-13';
+const VER = 'tt-v121-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1011,12 +1011,14 @@ function renderTable(){
     return;
   }
 
-  let html = '';
+  let html = '', okCount = 0, errCount = 0;
   for (let i = 0; i < sorted.length; i++){
-    try { html += renderRow(sorted[i]); }
-    catch(err){ console.error('[render] eroare la ticker', sorted[i] && sorted[i].symbol, err); }
+    try { html += renderRow(sorted[i]); okCount++; }
+    catch(err){ errCount++; if (errCount < 5) console.error('[render] eroare la ticker', sorted[i] && sorted[i].symbol, err); }
   }
+  console.log('[render]', filterMode, '→', sorted.length, 'tickere | OK=', okCount, 'eroare=', errCount, 'html.length=', html.length);
   tbody.innerHTML = html;
+  console.log('[render] după set: tbody.children=', tbody.children.length, 'first tr visible?', tbody.firstElementChild && getComputedStyle(tbody.firstElementChild).display);
   // expand state restore (in caz de re-render după sort)
   if (expandedSym){
     const e = calendar.find(x => x.symbol === expandedSym);
