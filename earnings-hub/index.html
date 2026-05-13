@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v104</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v105-DBG</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -430,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v104-2026-05-13';
+const VER = 'tt-v105-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1081,20 +1081,32 @@ function renderEmpty(title, sub){
 //  EXPANDED ROW (lazy load: hist + insider + reaction bias)
 // ═══════════════════════════════════════════════════════════════
 window.toggleExpand = function(sym){
+  console.log('[DBG] toggleExpand click', sym);
   const tr = document.querySelector(`tr[data-sym="${sym}"]`);
-  if (!tr) return;
+  console.log('[DBG] tr found?', !!tr, 'expandedSym=', expandedSym, 'tbody children before:', $('mainBody').children.length);
+  if (!tr) { console.warn('[DBG] no tr — aborting'); return; }
   // dacă era deja expandat → colapsare
   if (expandedSym === sym){
     const next = tr.nextElementSibling;
     if (next && next.classList.contains('expanded-row')) next.remove();
-    expandedSym = null; return;
+    expandedSym = null;
+    console.log('[DBG] collapsed; tbody children after:', $('mainBody').children.length);
+    return;
   }
   // remove orice expand existent
-  document.querySelectorAll('tr.expanded-row').forEach(r => r.remove());
+  const existing = document.querySelectorAll('tr.expanded-row');
+  console.log('[DBG] removing existing expanded:', existing.length);
+  existing.forEach(r => r.remove());
   expandedSym = sym;
-  const e = calendar.find(x => x.symbol === sym); if (!e) return;
-  injectExpandedRow(tr, e);
-  loadExpandedDetails(e);
+  const e = calendar.find(x => x.symbol === sym);
+  console.log('[DBG] entry found?', !!e, 'calendar length:', calendar.length);
+  if (!e) return;
+  try {
+    injectExpandedRow(tr, e);
+    console.log('[DBG] injected; tbody children:', $('mainBody').children.length);
+  } catch(err){ console.error('[DBG] injectExpandedRow threw:', err); }
+  loadExpandedDetails(e).catch(err => console.error('[DBG] loadExpandedDetails async error:', err));
+  setTimeout(() => console.log('[DBG] +500ms tbody children:', $('mainBody').children.length, 'visible rows:', document.querySelectorAll('#mainBody tr:not(.expanded-row)').length), 500);
 };
 
 function injectExpandedRow(tr, e){
