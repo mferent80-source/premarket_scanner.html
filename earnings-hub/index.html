@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v123</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v124-DBG</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -430,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v123-2026-05-13';
+const VER = 'tt-v124-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1021,11 +1021,14 @@ function renderTable(){
   }
 
   let html = '';
+  let firstErr = null;
   for (let i = 0; i < sorted.length; i++){
     try { html += renderRow(sorted[i]); }
-    catch(err){ console.error('[render] eroare la ticker', sorted[i] && sorted[i].symbol, err); }
+    catch(err){ if (!firstErr) firstErr = { sym:sorted[i] && sorted[i].symbol, msg:err.message, e:sorted[i] }; console.error('[render] eroare la ticker', sorted[i] && sorted[i].symbol, err); }
   }
-  tbody.innerHTML = html;
+  // Bandă diagnostic mereu vizibilă în tabel
+  const debugBanner = `<tr style="background:#11161f"><td colspan="12" style="padding:6px 10px;font-family:var(--mono);font-size:10px;color:var(--t3);border-bottom:1px solid var(--b1)">🔍 filterMode=<b style="color:var(--accent)">${filterMode}</b> · sorted=<b style="color:var(--accent)">${sorted.length}</b> · html.length=<b style="color:var(--accent)">${html.length}</b>${firstErr ? ' · <span style="color:#f88">EROARE pe ' + escHtml(firstErr.sym || '?') + ': ' + escHtml(firstErr.msg || '?') + '</span>' : ''}</td></tr>`;
+  tbody.innerHTML = debugBanner + html;
   // expand state restore (in caz de re-render după sort)
   if (expandedSym){
     const e = calendar.find(x => x.symbol === expandedSym);
