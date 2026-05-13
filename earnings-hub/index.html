@@ -165,6 +165,13 @@ td.left { text-align:left; padding-left:14px; }
 .verdict.likely-miss { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.35); }
 .verdict.na { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
 
+.action { display:inline-block; padding:3px 9px; border-radius:6px; font-weight:800; font-size:10.5px; font-family:var(--head); letter-spacing:.4px; cursor:help; }
+.action.buy   { background:linear-gradient(135deg, rgba(34,214,107,.22), rgba(34,214,107,.10)); color:var(--bull-s); border:1px solid rgba(34,214,107,.5); }
+.action.watch { background:rgba(34,214,107,.08); color:var(--bull-s); border:1px solid rgba(34,214,107,.32); }
+.action.wait  { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.4); }
+.action.avoid { background:linear-gradient(135deg, rgba(255,77,77,.22), rgba(255,77,77,.10)); color:var(--bear-s); border:1px solid rgba(255,77,77,.5); }
+.action.skip  { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
+
 .ins { font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:4px; font-family:var(--head); }
 .ins.bull { background:var(--bull-bg); color:var(--bull-s); }
 .ins.bear { background:var(--bear-bg); color:var(--bear-s); }
@@ -208,6 +215,33 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .exp-loading { color:var(--t3); font-style:italic; font-size:11px; padding:8px; text-align:center; }
 @media(max-width:780px){ .exp-wrap { grid-template-columns:1fr; } }
 
+/* AI bubble */
+.exp-ai-bar { display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:10px; border-top:1px dashed var(--b1); flex-wrap:wrap; }
+.ai-btn { background:linear-gradient(135deg, #6366f1, #a855f7); border:none; color:#fff; padding:7px 14px; font-size:11.5px; font-weight:700; border-radius:var(--rs); cursor:pointer; box-shadow:0 2px 8px rgba(168,85,247,.3); font-family:var(--head); }
+.ai-btn:hover { filter:brightness(1.1); transform:translateY(-1px); color:#fff; }
+.ai-btn:disabled { opacity:.55; cursor:wait; }
+.ai-hint { font-size:10.5px; color:var(--t3); font-family:var(--mono); }
+.exp-ai { margin-top:10px; }
+.exp-ai:empty { display:none; }
+.ai-bubble {
+  background:linear-gradient(180deg, rgba(99,102,241,.08), rgba(168,85,247,.05));
+  border:1px solid rgba(168,85,247,.4); border-radius:var(--r); padding:14px 16px;
+  font-size:12.5px; line-height:1.6; color:var(--t1); font-family:var(--head);
+  white-space:pre-wrap; position:relative;
+}
+.ai-bubble::before {
+  content:""; position:absolute; top:-8px; left:24px; width:14px; height:14px;
+  background:linear-gradient(135deg, #6366f1, #a855f7); border:1px solid rgba(168,85,247,.4);
+  border-right:none; border-bottom:none; transform:rotate(45deg);
+}
+.ai-bubble .ai-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px dashed rgba(168,85,247,.3); }
+.ai-bubble .ai-head .ai-meta { font-size:10px; color:var(--t3); font-family:var(--mono); }
+.ai-bubble .ai-head .ai-rerun { background:transparent; border:1px solid var(--b1); color:var(--t2); padding:3px 8px; font-size:10px; border-radius:4px; cursor:pointer; }
+.ai-bubble .ai-head .ai-rerun:hover { border-color:var(--accent); color:var(--accent); background:transparent; transform:none; }
+.ai-bubble.error { border-color:rgba(255,77,77,.5); background:linear-gradient(180deg, rgba(255,77,77,.07), rgba(20,26,40,.4)); }
+.ai-cursor { display:inline-block; width:7px; height:13px; background:var(--acc-1); animation:blink 1s steps(2) infinite; vertical-align:middle; margin-left:2px; }
+@keyframes blink { 0%, 50% { opacity:1; } 51%, 100% { opacity:0; } }
+
 .empty { padding:54px 20px; text-align:center; color:var(--t3); font-size:13px; font-family:var(--head); }
 .empty-icon { font-size:42px; margin-bottom:12px; opacity:.55; }
 .empty-title { font-size:15px; font-weight:700; color:var(--t2); margin-bottom:5px; }
@@ -250,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v101</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v102</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -278,9 +312,9 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
     <div class="stat-sub" id="stSoonSub">iminente</div>
   </div>
   <div class="stat-tile gold">
-    <div class="stat-label">🧠 Bias bullish</div>
+    <div class="stat-label">🚀 Sugestii BUY</div>
     <div class="stat-value" id="stBull">—</div>
-    <div class="stat-sub" id="stBullSub">cu beat rate ≥60%</div>
+    <div class="stat-sub" id="stBullSub">BUY + WATCH</div>
   </div>
 </div>
 
@@ -317,12 +351,13 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
           <th data-sort="surprise">Surprise %</th>
           <th data-sort="beatRate">Beat rate</th>
           <th data-sort="verdict">AI verdict</th>
-          <th>Insider 30z</th>
+          <th data-sort="action">Sugestie</th>
+          <th>Insider 60z</th>
           <th>Acțiuni</th>
         </tr>
       </thead>
       <tbody id="mainBody">
-        <tr><td colspan="11"><div class="empty">
+        <tr><td colspan="12"><div class="empty">
           <div class="empty-icon">📅</div>
           <div class="empty-title">Nu s-a făcut încă scan</div>
           <div class="empty-sub">Apasă <b>🔄 Scanează</b> ca să încarci calendarul earnings 30 zile.
@@ -346,6 +381,11 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
       <label>Finnhub API key (shared cu celelalte pagini)</label>
       <input type="text" id="setFinnhub" placeholder="d…">
       <span class="hint">Gratuit pe <a href="https://finnhub.io/register" target="_blank" style="color:var(--accent)">finnhub.io/register</a>. Limită 60/min — suficient pentru earnings (cache local).</span>
+    </div>
+    <div class="mod-row">
+      <label>Anthropic API key (Claude — shared cu nasdaq-scanner)</label>
+      <input type="password" id="setAnthropic" placeholder="sk-ant-…">
+      <span class="hint">Pentru butonul 🤖 din expand row. Obții cheia de pe <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. ≈ $0.05–0.10 / analiză (claude-opus-4-7).</span>
     </div>
     <div class="mod-row">
       <label>Auto-refresh</label>
@@ -390,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v101-2026-05-13';
+const VER = 'tt-v102-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -561,22 +601,24 @@ async function fetchHistEarnings(symbol){
   return sorted;
 }
 
+// Fereastra implicită extinsă la 60z — free tier Finnhub indexează rar tranzacții într-o singură lună,
+// 60z dă semnal mai consistent fără să dilueze conceptul „pre-earnings".
 async function fetchInsider30(symbol, earningsDate){
-  // cache pe (symbol+earningsDate) — același raport, aceeași fereastră 30z
   const key = `${symbol}_${earningsDate}`;
   const cache = loadCache(INS_CACHE_LS);
   const c = cache[key];
   if (c && c.ts && (Date.now() - c.ts) < HIST_TTL_MS) return c.data;
-  // fereastra: [earningsDate - 30z, earningsDate]
   const to = earningsDate;
-  const fromDate = new Date(earningsDate + 'T00:00:00Z'); fromDate.setUTCDate(fromDate.getUTCDate() - 30);
+  const fromDate = new Date(earningsDate + 'T00:00:00Z'); fromDate.setUTCDate(fromDate.getUTCDate() - 60);
   const from = fromDate.toISOString().slice(0, 10);
   const d = await finnhub('/stock/insider-transactions', { symbol, from, to });
-  if (d.__err || d.__noKey || !d.data || !Array.isArray(d.data)) return null;
-  const res = d.data;
-  cache[key] = { ts:Date.now(), data:res };
+  if (d.__noKey) return null;
+  if (d.__err){ console.warn('[eh] insider err', symbol, d.__err); return null; }
+  // Finnhub returnează { data: [...], symbol }; uneori `data` lipseşte (free tier limită)
+  const arr = Array.isArray(d.data) ? d.data : (Array.isArray(d) ? d : []);
+  cache[key] = { ts:Date.now(), data:arr };
   saveCache(INS_CACHE_LS, cache);
-  return res;
+  return arr;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -622,20 +664,72 @@ const VERDICT_META = {
   'na':          { icon:'⚪', label:'N/A' },
 };
 
+// Clasificare robustă: `change` semn (pozitiv=buy, negativ=sell) e sursa primară;
+// transactionCode P/A/S/D doar dacă există. Free tier Finnhub uneori omite codul → fallback pe semn.
 function analyzeInsider(rows){
-  if (!Array.isArray(rows) || rows.length === 0) return { ok:false, txt:'—', verdict:'na' };
-  let buys = 0, sells = 0, netShares = 0;
+  if (!Array.isArray(rows) || rows.length === 0) return { ok:false, txt:'—', verdict:'na', buys:0, sells:0, netShares:0, netUsd:0, rows:[] };
+  let buys = 0, sells = 0, netShares = 0, netUsd = 0;
+  const normRows = [];
   for (const r of rows){
-    // code P/A = buy, S/D = sell
     const c = (r.transactionCode || '').toUpperCase();
-    const qty = +r.change || 0;
-    if (c === 'P' || c === 'A'){ buys++; netShares += Math.abs(qty); }
-    else if (c === 'S' || c === 'D'){ sells++; netShares -= Math.abs(qty); }
+    const chg = +r.change || 0;
+    const price = +r.transactionPrice || 0;
+    let kind = '';
+    if (c === 'P' || c === 'A') kind = 'buy';
+    else if (c === 'S' || c === 'D') kind = 'sell';
+    else if (chg > 0) kind = 'buy';
+    else if (chg < 0) kind = 'sell';
+    const absQty = Math.abs(chg);
+    if (kind === 'buy'){ buys++; netShares += absQty; netUsd += absQty * price; }
+    else if (kind === 'sell'){ sells++; netShares -= absQty; netUsd -= absQty * price; }
+    normRows.push(Object.assign({}, r, { _kind:kind, _absQty:absQty }));
   }
   let verdict = 'neut';
-  if (buys >= 2 && netShares > 0 && buys > sells) verdict = 'bull';
-  else if (sells >= 2 && netShares < 0 && sells > buys) verdict = 'bear';
-  return { ok:true, txt:`${buys}B/${sells}S`, verdict, buys, sells, netShares, rows };
+  if (buys >= 2 && netUsd > 0 && buys >= sells) verdict = 'bull';
+  else if (sells >= 2 && netUsd < 0 && sells >= buys) verdict = 'bear';
+  else if (buys === 1 && sells === 0) verdict = 'bull';
+  else if (sells === 1 && buys === 0) verdict = 'bear';
+  return { ok:true, txt:`${buys}B/${sells}S`, verdict, buys, sells, netShares, netUsd, rows:normRows };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ACTION SUGGESTION (BUY/WATCH/WAIT/AVOID/SKIP)
+// ═══════════════════════════════════════════════════════════════
+// Derivă o sugestie de acțiune din: EPS verdict + insider verdict + reacție medie istorică + zile rămase.
+// NU înlocuiește un trade plan — e doar un "tag" rapid pentru filtrare vizuală.
+const ACTION_META = {
+  'buy':   { icon:'🚀', label:'BUY',   cls:'high-beat',   tip:'Pattern beat puternic + insider/reacție pozitivă. Cumpărare pre-earnings cu R:R rezonabil.' },
+  'watch': { icon:'🟢', label:'WATCH', cls:'likely-beat', tip:'Setup pozitiv dar mai slab — așteaptă confirmare (insider activ sau pullback la suport).' },
+  'wait':  { icon:'🟡', label:'WAIT',  cls:'mixt',        tip:'Mix de semnale. Mai bine aștepți post-earnings (gap up/down) decât să intri orb.' },
+  'avoid': { icon:'🔴', label:'AVOID', cls:'likely-miss', tip:'Pattern miss istoric + insider bear sau reacție negativă. Risc asimetric.' },
+  'skip':  { icon:'⏭', label:'SKIP',  cls:'na',          tip:'Date insuficiente pentru o opinie — sari peste.' },
+};
+function computeAction(e, avgReact){
+  const v = (e.ana && e.ana.verdict) || 'na';
+  const iv = (e.insider && e.insider.verdict) || 'na';
+  const beatRate = (e.ana && e.ana.beatRate != null) ? e.ana.beatRate : null;
+  const n = (e.ana && e.ana.n) || 0;
+  const ar = (avgReact != null) ? avgReact : null;
+
+  // SKIP: prea puține date istorice
+  if (n < 2 && iv === 'na') return 'skip';
+
+  // BUY: EPS high-beat sau (likely-beat + beat rate ≥70% + insider/reacție pozitivă)
+  if (v === 'high-beat' && iv !== 'bear') return 'buy';
+  if (v === 'likely-beat' && (beatRate != null && beatRate >= 0.7) && (iv === 'bull' || (ar != null && ar > 0.5))) return 'buy';
+
+  // AVOID: likely-miss + insider bear sau reacție negativă consistent
+  if (v === 'likely-miss' && (iv === 'bear' || (ar != null && ar < -0.5))) return 'avoid';
+  if (iv === 'bear' && (ar != null && ar < -1)) return 'avoid';
+
+  // WATCH: likely-beat fără confirmare extra, sau high-beat cu insider bear (conflict)
+  if (v === 'likely-beat' || (v === 'high-beat' && iv === 'bear')) return 'watch';
+
+  // WAIT: mixt sau likely-miss fără bear confirmation
+  if (v === 'mixt' || v === 'likely-miss') return 'wait';
+
+  // default
+  return 'wait';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -690,8 +784,15 @@ async function runScan(){
     }
   });
 
-  // 3: insider 30z pentru watchlist cu zile ≤ 14 (preîncărcare → afișare în coloana principală pe rândurile relevante)
-  const insTargets = calendar.filter(e => watchlist.includes(e.symbol) && e.zile >= 0 && e.zile <= 14).slice(0, 12);
+  // 3: insider pentru tickere relevante:
+  //    - TOATE watchlist cu zile ≤ 21
+  //    - + top 20 după proximitate (toate, nu doar watchlist) cu zile ≤ 14
+  //    Limită totală 30 ca să nu trecem rate-limit Finnhub free (60/min).
+  const insSet = new Set();
+  const insTargets = [];
+  for (const e of calendar) if (watchlist.includes(e.symbol) && e.zile >= 0 && e.zile <= 21){ if (!insSet.has(e.symbol)){ insSet.add(e.symbol); insTargets.push(e); } }
+  const upcoming = calendar.slice().sort((a, b) => a.zile - b.zile);
+  for (const e of upcoming){ if (insTargets.length >= 30) break; if (e.zile < 0 || e.zile > 14) continue; if (!insSet.has(e.symbol)){ insSet.add(e.symbol); insTargets.push(e); } }
   if (insTargets.length){
     st.textContent = `Insider (${insTargets.length})…`;
     await throttledMap(insTargets, 3, async e => {
@@ -839,10 +940,10 @@ function renderStats(){
   $('stTotal').textContent = calendar.length || '0';
   const wl = calendar.filter(e => watchlist.includes(e.symbol)).length;
   const soon = calendar.filter(e => e.zile >= 0 && e.zile <= cfg.threshold).length;
-  const bull = calendar.filter(e => e.ana && (e.ana.verdict === 'high-beat' || e.ana.verdict === 'likely-beat')).length;
+  const buyCount = calendar.filter(e => { const a = computeAction(e, e.avgReact); return a === 'buy' || a === 'watch'; }).length;
   $('stWatch').textContent = wl;
   $('stSoon').textContent = soon;
-  $('stBull').textContent = bull;
+  $('stBull').textContent = buyCount;
   $('stSoonSub').textContent = `prag ≤${cfg.threshold}z`;
 }
 
@@ -855,10 +956,11 @@ function renderHotStrip(){
   box.innerHTML = hot.map(e => {
     const urgent = e.zile <= cfg.threshold;
     const v = VERDICT_META[(e.ana && e.ana.verdict) || 'na'];
+    const a = ACTION_META[computeAction(e, e.avgReact)];
     return `<div class="hot-card ${urgent ? 'urgent' : ''}" onclick="focusRow('${e.symbol}')">
       <div class="hc-top"><span class="hc-sym">${e.symbol}</span><span class="hc-when ${urgent ? 'urgent' : ''}">${e.zile === 0 ? 'AZI' : e.zile + 'z'}</span></div>
       <div class="hc-mid">${e.date}${e.hour ? ' · ' + e.hour.toUpperCase() : ''} · EPS est ${fmtNum(e.epsEst)}</div>
-      <div class="hc-verdict">${v.icon} ${v.label}${e.insider && e.insider.ok ? ' · 👔 ' + e.insider.txt : ''}</div>
+      <div class="hc-verdict">${v.icon} ${v.label} · <span class="action ${computeAction(e, e.avgReact)}">${a.icon} ${a.label}</span>${e.insider && e.insider.ok ? ' · 👔 ' + e.insider.txt : ''}</div>
     </div>`;
   }).join('');
 }
@@ -886,6 +988,7 @@ function sortItems(arr){
       case 'surprise': va = (a.ana && a.ana.lastSurpPct != null) ? a.ana.lastSurpPct : -Infinity; vb = (b.ana && b.ana.lastSurpPct != null) ? b.ana.lastSurpPct : -Infinity; return (va - vb) * mult;
       case 'beatRate': va = (a.ana && a.ana.beatRate != null) ? a.ana.beatRate : -1; vb = (b.ana && b.ana.beatRate != null) ? b.ana.beatRate : -1; return (va - vb) * mult;
       case 'verdict': { const ord = { 'high-beat':4, 'likely-beat':3, 'mixt':2, 'likely-miss':1, 'na':0 }; return ((ord[a.ana?.verdict] || 0) - (ord[b.ana?.verdict] || 0)) * mult; }
+      case 'action': { const ord = { 'buy':4, 'watch':3, 'wait':2, 'avoid':1, 'skip':0 }; return ((ord[computeAction(a, a.avgReact)] || 0) - (ord[computeAction(b, b.avgReact)] || 0)) * mult; }
     }
     return 0;
   });
@@ -935,6 +1038,8 @@ function renderRow(e){
   const hourCell = e.hour ? `<span class="when-h">${e.hour.toUpperCase()}</span>` : '';
   const insiderHtml = insiderCell(e);
   const verCls = e.ana ? e.ana.verdict : 'na';
+  const actKey = computeAction(e, (e.avgReact != null ? e.avgReact : null));
+  const act = ACTION_META[actKey];
   return `<tr class="clickable ${rowClass(e)}" data-sym="${e.symbol}" onclick="toggleExpand('${e.symbol}')">
     <td><button class="star-btn ${isW ? 'on' : ''}" onclick="event.stopPropagation(); toggleStar('${e.symbol}')">${isW ? '★' : '☆'}</button></td>
     <td class="left"><div class="sym-name">${e.symbol}</div><div class="sym-sector">Q${e.quarter || '?'} ${e.year || ''}</div></td>
@@ -945,6 +1050,7 @@ function renderRow(e){
     <td><span class="badge ${surpCls}">${lastSurp}</span></td>
     <td>${beatRate}</td>
     <td><span class="verdict ${verCls}">${verdict.icon} ${verdict.label}</span></td>
+    <td><span class="action ${actKey}" title="${escHtml(act.tip)}">${act.icon} ${act.label}</span></td>
     <td>${insiderHtml}</td>
     <td>
       <a class="action-btn" href="https://www.tradingview.com/chart/?symbol=${e.symbol}" target="_blank" rel="noopener" onclick="event.stopPropagation()">TV</a>
@@ -964,7 +1070,7 @@ function insiderCell(e){
 }
 
 function renderEmpty(title, sub){
-  $('mainBody').innerHTML = `<tr><td colspan="11"><div class="empty">
+  $('mainBody').innerHTML = `<tr><td colspan="12"><div class="empty">
     <div class="empty-icon">⚠</div>
     <div class="empty-title">${escHtml(title)}</div>
     <div class="empty-sub">${sub}</div>
@@ -995,7 +1101,7 @@ function injectExpandedRow(tr, e){
   if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('expanded-row')) return;
   const row = document.createElement('tr');
   row.className = 'expanded-row'; row.dataset.expFor = e.symbol;
-  row.innerHTML = `<td colspan="11">
+  row.innerHTML = `<td colspan="12">
     <div class="exp-wrap">
       <div class="exp-box">
         <div class="exp-title">📊 EPS history (ultimele 8 trim.)</div>
@@ -1006,10 +1112,15 @@ function injectExpandedRow(tr, e){
         <div id="exp-stats-${e.symbol}"><div class="exp-loading">…</div></div>
       </div>
       <div class="exp-box">
-        <div class="exp-title">👔 Insider activity (30 zile pre-earnings)</div>
+        <div class="exp-title">👔 Insider activity (60 zile pre-earnings)</div>
         <div id="exp-ins-${e.symbol}"><div class="exp-loading">se încarcă…</div></div>
       </div>
     </div>
+    <div class="exp-ai-bar">
+      <button class="ai-btn" id="ai-btn-${e.symbol}" onclick="event.stopPropagation(); analyzeEarningWithAI('${e.symbol}', this)">🤖 Analizează cu AI (Claude)</button>
+      <span class="ai-hint">Foloseşte cheia Anthropic shared cu nasdaq-scanner. Setează-o din ⚙ Setări dacă lipseşte.</span>
+    </div>
+    <div class="exp-ai" id="ai-result-${e.symbol}" data-done="0"></div>
   </td>`;
   tr.parentNode.insertBefore(row, tr.nextSibling);
 }
@@ -1063,6 +1174,9 @@ async function loadExpandedDetails(e){
     const a = e.ana || {};
     const rArr = reactions ? Object.values(reactions).filter(v => v != null) : [];
     const avgReact = rArr.length ? (rArr.reduce((s, v) => s + v, 0) / rArr.length) : null;
+    // Salvează pentru computeAction / sort / hot strip
+    e.avgReact = avgReact;
+    e.reactions = reactions;
     const beatRate = a.beatRate != null ? (a.beatRate * 100).toFixed(0) + '%' : '—';
     const v = VERDICT_META[a.verdict || 'na'];
     statsBox.innerHTML = `
@@ -1153,6 +1267,180 @@ window.toggleStar = function(sym){
 };
 
 // ═══════════════════════════════════════════════════════════════
+//  AI BUBBLE (Claude API — shared key cu nasdaq-scanner)
+// ═══════════════════════════════════════════════════════════════
+const ANTHROPIC_KEY_LS = 'anthropic_api_key';  // shared cu nasdaq-scanner
+const AI_CACHE_LS = 'eh_ai_cache_v1';
+const AI_CACHE_TTL_MS = 60 * 60 * 1000;        // 1h — earnings nu se mişcă des
+
+const AI_SYSTEM = `Eşti analist financiar român pentru un trader activ pe Nasdaq via Trade 212 (long-only stocks).
+Reguli stricte:
+- Răspunde DOAR în română.
+- Maxim 7 rânduri, fără introduceri ("Iată...", "Pe baza datelor...").
+- Recomandă explicit: "BUY pre-earnings cu entry $X / SL $Y / TP $Z" SAU "AŞTEAPTĂ post-earnings (gap în direcţia X)" SAU "SKIP — risc asimetric".
+- Argumentează în maxim 2 propoziţii: pattern beat/miss istoric + insider/reacţie.
+- Identifică UN risc principal într-o singură propoziţie.
+- Fără markdown, fără emoji, fără bold. Text plat, scurt, direct.`;
+
+function getAnthropicKey(){ try { return localStorage.getItem(ANTHROPIC_KEY_LS) || ''; } catch(e){ return ''; } }
+function setAnthropicKey(k){ try { if (k) localStorage.setItem(ANTHROPIC_KEY_LS, k); else localStorage.removeItem(ANTHROPIC_KEY_LS); } catch(e){} }
+
+function aiCacheGet(key){
+  try {
+    const o = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    const e = o[key]; if (!e) return null;
+    if (Date.now() - e.ts > AI_CACHE_TTL_MS){ delete o[key]; localStorage.setItem(AI_CACHE_LS, JSON.stringify(o)); return null; }
+    return e;
+  } catch(_){ return null; }
+}
+function aiCacheSet(key, text, model){
+  try {
+    const o = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    o[key] = { text, model, ts:Date.now() };
+    const cut = Date.now() - AI_CACHE_TTL_MS;
+    for (const k of Object.keys(o)) if (o[k].ts < cut) delete o[k];
+    localStorage.setItem(AI_CACHE_LS, JSON.stringify(o));
+  } catch(_){}
+}
+
+function buildAiPrompt(e){
+  const today = todayISO();
+  const a = e.ana || {};
+  const beatRate = a.beatRate != null ? Math.round(a.beatRate * 100) + '%' : 'N/A';
+  const avgSurp = a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : 'N/A';
+  const lastSurp = a.lastSurpPct != null ? (a.lastSurpPct >= 0 ? '+' : '') + a.lastSurpPct.toFixed(1) + '%' : 'N/A';
+  const ar = e.avgReact != null ? (e.avgReact >= 0 ? '+' : '') + e.avgReact.toFixed(2) + '%' : 'N/A';
+  let histLines = '';
+  if (Array.isArray(e.hist) && e.hist.length){
+    histLines = '\nEPS ISTORIC (ultimele 8 trim. — perioadă / est / actual / surpriză% / reacţie 1z):\n' +
+      e.hist.map(h => {
+        const re = (e.reactions && e.reactions[h.period] != null) ? (e.reactions[h.period] >= 0 ? '+' : '') + e.reactions[h.period].toFixed(1) + '%' : 'N/A';
+        const surp = h.surprisePrc != null ? (h.surprisePrc >= 0 ? '+' : '') + h.surprisePrc.toFixed(1) + '%' : 'N/A';
+        return `  ${h.period}: est ${h.estimate != null ? h.estimate.toFixed(2) : 'N/A'} / act ${h.actual != null ? h.actual.toFixed(2) : 'N/A'} / ${surp} / reacţie ${re}`;
+      }).join('\n');
+  }
+  let insLines = '';
+  if (e.insider && e.insider.ok){
+    insLines = `\nINSIDER 60 ZILE PRE-EARNINGS: ${e.insider.buys} cumpărări / ${e.insider.sells} vânzări · net $${Math.round(e.insider.netUsd).toLocaleString('en-US')} · verdict ${e.insider.verdict}`;
+  } else {
+    insLines = '\nINSIDER: fără date sau lipsă tranzacţii înregistrate în 60z.';
+  }
+  const actNow = ACTION_META[computeAction(e, e.avgReact)];
+  return `Analiză rapidă pentru ${e.symbol} — earnings programat ${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''} (în ${e.zile} zile de azi ${today}).
+
+DATE STRUCTURATE:
+- EPS estimate trim. curent: ${a.lastActual != null ? '(prev act ' + a.lastActual.toFixed(2) + ')' : ''} ${e.epsEst != null ? e.epsEst.toFixed(2) : 'N/A'}
+- Pattern istoric: ${a.beats || 0} beats / ${a.n || 0} (beat rate ${beatRate}), surpriză medie ${avgSurp}, ultima surpriză ${lastSurp}
+- Reacţie medie 1z post-earnings (istoric): ${ar}
+- Tag derivat algoritmic: ${actNow.icon} ${actNow.label}${histLines}${insLines}
+
+CONTEXT: ${watchlist.includes(e.symbol) ? 'tickerul ESTE pe watchlist-ul traderului.' : 'tickerul nu e pe watchlist.'} Trader long-only, Trade 212, fonduri limitate — conservator.
+
+Întrebare: ce face traderul cu ${e.symbol} acum (pre-earnings)? Confirmă sau contestă tagul algoritmic.`;
+}
+
+window.analyzeEarningWithAI = async function(symbol, btn){
+  const e = calendar.find(x => x.symbol === symbol); if (!e) return;
+  const container = $('ai-result-' + symbol); if (!container) return;
+  // toggle off dacă deja afișat
+  if (container.dataset.done === '1'){
+    container.innerHTML = ''; container.dataset.done = '0';
+    if (btn) btn.textContent = '🤖 Analizează cu AI (Claude)';
+    return;
+  }
+  const key = getAnthropicKey();
+  if (!key){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>⚠ Lipsește cheia Anthropic</b></div>Adaugă cheia în ⚙ Setări → câmpul „Anthropic API key". O obţii de la console.anthropic.com/settings/keys.</div>`;
+    container.dataset.done = '1'; return;
+  }
+  // cache hit?
+  const ck = `${symbol}_${e.date}_${(e.ana && e.ana.verdict) || 'na'}`;
+  const cached = aiCacheGet(ck);
+  if (cached){
+    renderAiBubble(container, cached.text, cached.model + ' · cache');
+    container.dataset.done = '1';
+    if (btn) btn.textContent = '🤖 Ascunde analiză';
+    return;
+  }
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ Se generează…'; }
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-4-7 · streaming…</span></div><span id="ai-stream-${symbol}"></span><span class="ai-cursor"></span></div>`;
+  container.dataset.done = '1';
+
+  const prompt = buildAiPrompt(e);
+  let full = '';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body: JSON.stringify({
+        model:'claude-opus-4-7',
+        max_tokens:600,
+        stream:true,
+        system:[{ type:'text', text:AI_SYSTEM, cache_control:{ type:'ephemeral' } }],
+        messages:[{ role:'user', content:prompt }],
+      }),
+    });
+    if (!resp.ok){
+      const j = await resp.json().catch(() => ({ error:{ message:'HTTP ' + resp.status } }));
+      throw new Error(j.error?.message || ('HTTP ' + resp.status));
+    }
+    const reader = resp.body.getReader(); const dec = new TextDecoder();
+    let buf = '';
+    while (true){
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream:true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines){
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim(); if (!data) continue;
+        try {
+          const ev = JSON.parse(data);
+          if (ev.type === 'content_block_delta' && ev.delta?.text){
+            full += ev.delta.text;
+            const span = $('ai-stream-' + symbol); if (span) span.textContent = full;
+          }
+        } catch(_){}
+      }
+    }
+    aiCacheSet(ck, full, 'claude-opus-4-7');
+    renderAiBubble(container, full, 'claude-opus-4-7 · ' + new Date().toLocaleTimeString('ro-RO'));
+    if (btn) btn.textContent = '🤖 Ascunde analiză';
+  } catch(err){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare AI</b><span class="ai-meta">${escHtml(err.message || 'unknown')}</span></div>Verifică cheia (sk-ant-…), creditul rămas în consolă sau încearcă peste 1 min.</div>`;
+    if (btn) btn.textContent = '🤖 Reîncearcă';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+function renderAiBubble(container, text, meta){
+  const safe = escHtml(text || '(răspuns gol)');
+  container.innerHTML = `<div class="ai-bubble">
+    <div class="ai-head">
+      <span class="ai-meta">${escHtml(meta)}</span>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunAi(this)">↻ Rerun</button>
+    </div>${safe}</div>`;
+}
+window.rerunAi = function(btn){
+  const bubble = btn.closest('.exp-ai');
+  if (!bubble) return;
+  const sym = bubble.id.replace('ai-result-', '');
+  const cachedRaw = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+  // şterge cache pt acest simbol (toate variantele)
+  for (const k of Object.keys(cachedRaw)) if (k.startsWith(sym + '_')) delete cachedRaw[k];
+  try { localStorage.setItem(AI_CACHE_LS, JSON.stringify(cachedRaw)); } catch(_){}
+  bubble.dataset.done = '0'; bubble.innerHTML = '';
+  const trigger = $('ai-btn-' + sym);
+  analyzeEarningWithAI(sym, trigger);
+};
+
+// ═══════════════════════════════════════════════════════════════
 //  ALERT BUTTONS
 // ═══════════════════════════════════════════════════════════════
 function updateAlertBtns(){
@@ -1182,6 +1470,7 @@ $('tgBtn').addEventListener('click', () => $('setBtn').click());
 // ═══════════════════════════════════════════════════════════════
 function openSettings(){
   $('setFinnhub').value = getFinnhubKey();
+  $('setAnthropic').value = getAnthropicKey();
   $('setAuto').value = String(cfg.auto);
   $('setThr').value = String(cfg.threshold);
   $('setTgToken').value = tgConfig.token || '';
@@ -1195,6 +1484,7 @@ $('setCancel').addEventListener('click', closeSettings);
 $('setModal').addEventListener('click', e => { if (e.target.id === 'setModal') closeSettings(); });
 $('setSave').addEventListener('click', () => {
   setFinnhubKey($('setFinnhub').value.trim());
+  setAnthropicKey($('setAnthropic').value.trim());
   cfg.auto = +$('setAuto').value || 0;
   cfg.threshold = +$('setThr').value || 2;
   tgConfig.token  = $('setTgToken').value.trim();
