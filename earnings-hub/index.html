@@ -250,7 +250,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v111</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v112-DBG</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -390,7 +390,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v111-2026-05-13';
+const VER = 'tt-v112-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1119,13 +1119,21 @@ async function loadExpandedDetails(e){
     }
   }
 
-  // Update țintit DOAR celula insider (col 9) a rândului expandat — fără renderTable (ar distruge expand row).
+  // Update țintit DOAR celula insider (col 9) a rândului expandat — fără renderTable.
   // 11 celule: [0]star [1]ticker [2]data [3]zile [4]eps_est [5]eps_prev [6]surp [7]beat_rate [8]verdict [9]insider [10]actions
   try {
     const tr = document.querySelector(`tr[data-sym="${e.symbol}"]`);
+    console.log('[update cell]', e.symbol, 'tr found?', !!tr);
     if (tr){
       const cells = tr.querySelectorAll('td');
-      if (cells.length === 11 && cells[9]) cells[9].innerHTML = insiderCell(e);
+      console.log('[update cell]', e.symbol, 'cells.length=', cells.length, 'insiderCell=', insiderCell(e));
+      // FĂRĂ check === 11 — dacă găsim cells[9] îl populăm
+      if (cells[9]){
+        cells[9].innerHTML = insiderCell(e);
+        console.log('[update cell]', e.symbol, '✓ celula 9 actualizată');
+      } else {
+        console.warn('[update cell]', e.symbol, '✗ cells[9] lipsește, total cells:', cells.length);
+      }
     }
   } catch(err){ console.warn('[eh] update insider cell failed:', err); }
 }
