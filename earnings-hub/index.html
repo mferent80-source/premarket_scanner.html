@@ -222,6 +222,33 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); font-size:11px; color:var(--t3); display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-family:var(--mono); }
 
+/* AI bubble (Claude) */
+.exp-ai-bar { display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:10px; border-top:1px dashed var(--b1); flex-wrap:wrap; }
+.ai-btn { background:linear-gradient(135deg, #6366f1, #a855f7); border:none; color:#fff; padding:7px 14px; font-size:11.5px; font-weight:700; border-radius:var(--rs); cursor:pointer; box-shadow:0 2px 8px rgba(168,85,247,.3); font-family:var(--head); }
+.ai-btn:hover { filter:brightness(1.1); transform:translateY(-1px); color:#fff; }
+.ai-btn:disabled { opacity:.55; cursor:wait; }
+.ai-hint { font-size:10.5px; color:var(--t3); font-family:var(--mono); }
+.exp-ai { margin-top:10px; }
+.exp-ai:empty { display:none; }
+.ai-bubble {
+  background:linear-gradient(180deg, rgba(99,102,241,.08), rgba(168,85,247,.05));
+  border:1px solid rgba(168,85,247,.4); border-radius:var(--r); padding:14px 16px;
+  font-size:12.5px; line-height:1.6; color:var(--t1); font-family:var(--head);
+  white-space:pre-wrap; position:relative;
+}
+.ai-bubble::before {
+  content:""; position:absolute; top:-8px; left:24px; width:14px; height:14px;
+  background:linear-gradient(135deg, #6366f1, #a855f7); border:1px solid rgba(168,85,247,.4);
+  border-right:none; border-bottom:none; transform:rotate(45deg);
+}
+.ai-bubble .ai-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px dashed rgba(168,85,247,.3); }
+.ai-bubble .ai-head .ai-meta { font-size:10px; color:var(--t3); font-family:var(--mono); }
+.ai-bubble .ai-head .ai-rerun { background:transparent; border:1px solid var(--b1); color:var(--t2); padding:3px 8px; font-size:10px; border-radius:4px; cursor:pointer; }
+.ai-bubble .ai-head .ai-rerun:hover { border-color:var(--accent); color:var(--accent); background:transparent; transform:none; }
+.ai-bubble.error { border-color:rgba(255,77,77,.5); background:linear-gradient(180deg, rgba(255,77,77,.07), rgba(20,26,40,.4)); }
+.ai-cursor { display:inline-block; width:7px; height:13px; background:var(--acc-1); animation:blink 1s steps(2) infinite; vertical-align:middle; margin-left:2px; }
+@keyframes blink { 0%, 50% { opacity:1; } 51%, 100% { opacity:0; } }
+
 /* Modal */
 .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; z-index:1000; padding:14px; }
 .modal-bg.open { display:flex; }
@@ -257,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v115</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v116</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -356,6 +383,11 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
       <span class="hint">Gratuit pe <a href="https://finnhub.io/register" target="_blank" style="color:var(--accent)">finnhub.io/register</a>. Limită 60/min — suficient pentru earnings (cache local).</span>
     </div>
     <div class="mod-row">
+      <label>Anthropic API key (Claude — shared cu nasdaq-scanner)</label>
+      <input type="password" id="setAnthropic" placeholder="sk-ant-…">
+      <span class="hint">Pentru butonul 🤖 din expand row. Cheia de pe <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. ≈ $0.05–0.10 / analiză (claude-opus-4-7).</span>
+    </div>
+    <div class="mod-row">
       <label>Auto-refresh</label>
       <select id="setAuto">
         <option value="0">OFF (manual)</option>
@@ -398,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v115-2026-05-13';
+const VER = 'tt-v116-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1059,10 +1091,15 @@ function injectExpandedRow(tr, e){
         <div id="exp-stats-${e.symbol}"><div class="exp-loading">…</div></div>
       </div>
       <div class="exp-box">
-        <div class="exp-title">👔 Insider activity (30 zile pre-earnings)</div>
+        <div class="exp-title">👔 Insider activity (60 zile pre-earnings)</div>
         <div id="exp-ins-${e.symbol}"><div class="exp-loading">se încarcă…</div></div>
       </div>
     </div>
+    <div class="exp-ai-bar">
+      <button class="ai-btn" id="ai-btn-${e.symbol}" onclick="event.stopPropagation(); analyzeEarningWithAI('${e.symbol}', this)">🤖 Analizează cu AI (Claude)</button>
+      <span class="ai-hint">Foloseşte cheia Anthropic shared cu nasdaq-scanner. Setează-o din ⚙ Setări dacă lipseşte. ≈ $0.05–0.10 / analiză.</span>
+    </div>
+    <div class="exp-ai" id="ai-result-${e.symbol}" data-done="0"></div>
   </td>`;
   tr.parentNode.insertBefore(row, tr.nextSibling);
 }
@@ -1219,6 +1256,178 @@ window.toggleStar = function(sym){
 };
 
 // ═══════════════════════════════════════════════════════════════
+//  AI BUBBLE — Claude API (shared key cu nasdaq-scanner)
+// ═══════════════════════════════════════════════════════════════
+const ANTHROPIC_KEY_LS = 'anthropic_api_key';
+const AI_CACHE_LS = 'eh_ai_cache_v1';
+const AI_CACHE_TTL_MS = 60 * 60 * 1000;
+
+const AI_SYSTEM = `Eşti analist financiar român pentru un trader activ pe Nasdaq via Trade 212 (long-only stocks).
+Reguli stricte:
+- Răspunde DOAR în română.
+- Maxim 7 rânduri, fără introduceri ("Iată...", "Pe baza datelor...").
+- Recomandă explicit: "BUY pre-earnings cu entry $X / SL $Y / TP $Z" SAU "AŞTEAPTĂ post-earnings (gap în direcţia X)" SAU "SKIP — risc asimetric".
+- Argumentează în maxim 2 propoziţii: pattern beat/miss istoric + insider/reacţie.
+- Identifică UN risc principal într-o singură propoziţie.
+- Fără markdown, fără emoji, fără bold. Text plat, scurt, direct.`;
+
+function getAnthropicKey(){ try { return localStorage.getItem(ANTHROPIC_KEY_LS) || ''; } catch(e){ return ''; } }
+function setAnthropicKey(k){ try { if (k) localStorage.setItem(ANTHROPIC_KEY_LS, k); else localStorage.removeItem(ANTHROPIC_KEY_LS); } catch(e){} }
+
+function aiCacheGet(key){
+  try {
+    const o = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    const ent = o[key]; if (!ent) return null;
+    if (Date.now() - ent.ts > AI_CACHE_TTL_MS){ delete o[key]; localStorage.setItem(AI_CACHE_LS, JSON.stringify(o)); return null; }
+    return ent;
+  } catch(_){ return null; }
+}
+function aiCacheSet(key, text, model){
+  try {
+    const o = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    o[key] = { text, model, ts:Date.now() };
+    const cut = Date.now() - AI_CACHE_TTL_MS;
+    for (const k of Object.keys(o)) if (o[k].ts < cut) delete o[k];
+    localStorage.setItem(AI_CACHE_LS, JSON.stringify(o));
+  } catch(_){}
+}
+
+function buildAiPrompt(e){
+  const today = todayISO();
+  const a = e.ana || {};
+  const beatRate = a.beatRate != null ? Math.round(a.beatRate * 100) + '%' : 'N/A';
+  const avgSurp = a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : 'N/A';
+  const lastSurp = a.lastSurpPct != null ? (a.lastSurpPct >= 0 ? '+' : '') + a.lastSurpPct.toFixed(1) + '%' : 'N/A';
+  const ar = e.avgReact != null ? (e.avgReact >= 0 ? '+' : '') + e.avgReact.toFixed(2) + '%' : 'N/A';
+  let histLines = '';
+  if (Array.isArray(e.hist) && e.hist.length){
+    histLines = '\nEPS ISTORIC (ultimele 8 trim. — perioadă / est / actual / surpriză% / reacţie 1z):\n' +
+      e.hist.map(h => {
+        const re = (e.reactions && e.reactions[h.period] != null) ? (e.reactions[h.period] >= 0 ? '+' : '') + e.reactions[h.period].toFixed(1) + '%' : 'N/A';
+        const surp = h.surprisePrc != null ? (h.surprisePrc >= 0 ? '+' : '') + h.surprisePrc.toFixed(1) + '%' : 'N/A';
+        return `  ${h.period}: est ${h.estimate != null ? h.estimate.toFixed(2) : 'N/A'} / act ${h.actual != null ? h.actual.toFixed(2) : 'N/A'} / ${surp} / reacţie ${re}`;
+      }).join('\n');
+  }
+  let insLines = '';
+  if (e.insider && e.insider.ok){
+    insLines = `\nINSIDER 60 ZILE PRE-EARNINGS: ${e.insider.buys} cumpărări / ${e.insider.sells} vânzări · net acţiuni ${e.insider.netShares.toLocaleString('en-US')} · verdict ${e.insider.verdict}`;
+  } else {
+    insLines = '\nINSIDER: fără date sau lipsă tranzacţii înregistrate în 60z.';
+  }
+  const actNow = ACTION_META[computeAction(e, e.avgReact)] || ACTION_META.skip;
+  return `Analiză rapidă pentru ${e.symbol} — earnings programat ${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''} (în ${e.zile} zile de azi ${today}).
+
+DATE STRUCTURATE:
+- EPS estimate trim. curent: ${e.epsEst != null ? e.epsEst.toFixed(2) : 'N/A'} ${a.lastActual != null ? '(prev act ' + a.lastActual.toFixed(2) + ')' : ''}
+- Pattern istoric: ${a.beats || 0} beats / ${a.n || 0} (beat rate ${beatRate}), surpriză medie ${avgSurp}, ultima surpriză ${lastSurp}
+- Reacţie medie 1z post-earnings (istoric): ${ar}
+- Tag derivat algoritmic: ${actNow.icon} ${actNow.label}${histLines}${insLines}
+
+CONTEXT: ${watchlist.includes(e.symbol) ? 'tickerul ESTE pe watchlist-ul traderului.' : 'tickerul nu e pe watchlist.'} Trader long-only, Trade 212, fonduri limitate — conservator.
+
+Întrebare: ce face traderul cu ${e.symbol} acum (pre-earnings)? Confirmă sau contestă tagul algoritmic.`;
+}
+
+window.analyzeEarningWithAI = async function(symbol, btn){
+  const e = calendar.find(x => x.symbol === symbol); if (!e) return;
+  const container = $('ai-result-' + symbol); if (!container) return;
+  if (container.dataset.done === '1'){
+    container.innerHTML = ''; container.dataset.done = '0';
+    if (btn) btn.textContent = '🤖 Analizează cu AI (Claude)';
+    return;
+  }
+  const key = getAnthropicKey();
+  if (!key){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>⚠ Lipsește cheia Anthropic</b></div>Adaugă cheia în ⚙ Setări → câmpul „Anthropic API key". O obţii de la console.anthropic.com/settings/keys.</div>`;
+    container.dataset.done = '1'; return;
+  }
+  const ck = `${symbol}_${e.date}_${(e.ana && e.ana.verdict) || 'na'}`;
+  const cached = aiCacheGet(ck);
+  if (cached){
+    renderAiBubble(container, cached.text, cached.model + ' · cache');
+    container.dataset.done = '1';
+    if (btn) btn.textContent = '🤖 Ascunde analiză';
+    return;
+  }
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ Se generează…'; }
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-4-7 · streaming…</span></div><span id="ai-stream-${symbol}"></span><span class="ai-cursor"></span></div>`;
+  container.dataset.done = '1';
+
+  const prompt = buildAiPrompt(e);
+  let full = '';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body: JSON.stringify({
+        model:'claude-opus-4-7',
+        max_tokens:600,
+        stream:true,
+        system:[{ type:'text', text:AI_SYSTEM, cache_control:{ type:'ephemeral' } }],
+        messages:[{ role:'user', content:prompt }],
+      }),
+    });
+    if (!resp.ok){
+      const j = await resp.json().catch(() => ({ error:{ message:'HTTP ' + resp.status } }));
+      throw new Error(j.error?.message || ('HTTP ' + resp.status));
+    }
+    const reader = resp.body.getReader(); const dec = new TextDecoder();
+    let buf = '';
+    while (true){
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream:true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines){
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim(); if (!data) continue;
+        try {
+          const ev = JSON.parse(data);
+          if (ev.type === 'content_block_delta' && ev.delta?.text){
+            full += ev.delta.text;
+            const span = $('ai-stream-' + symbol); if (span) span.textContent = full;
+          }
+        } catch(_){}
+      }
+    }
+    aiCacheSet(ck, full, 'claude-opus-4-7');
+    renderAiBubble(container, full, 'claude-opus-4-7 · ' + new Date().toLocaleTimeString('ro-RO'));
+    if (btn) btn.textContent = '🤖 Ascunde analiză';
+  } catch(err){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare AI</b><span class="ai-meta">${escHtml(err.message || 'unknown')}</span></div>Verifică cheia (sk-ant-…), creditul rămas în consolă sau încearcă peste 1 min.</div>`;
+    if (btn) btn.textContent = '🤖 Reîncearcă';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+function renderAiBubble(container, text, meta){
+  const safe = escHtml(text || '(răspuns gol)');
+  container.innerHTML = `<div class="ai-bubble">
+    <div class="ai-head">
+      <span class="ai-meta">${escHtml(meta)}</span>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunAi(this)">↻ Rerun</button>
+    </div>${safe}</div>`;
+}
+window.rerunAi = function(btn){
+  const bubble = btn.closest('.exp-ai');
+  if (!bubble) return;
+  const sym = bubble.id.replace('ai-result-', '');
+  try {
+    const cachedRaw = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    for (const k of Object.keys(cachedRaw)) if (k.startsWith(sym + '_')) delete cachedRaw[k];
+    localStorage.setItem(AI_CACHE_LS, JSON.stringify(cachedRaw));
+  } catch(_){}
+  bubble.dataset.done = '0'; bubble.innerHTML = '';
+  analyzeEarningWithAI(sym, $('ai-btn-' + sym));
+};
+
+// ═══════════════════════════════════════════════════════════════
 //  ALERT BUTTONS
 // ═══════════════════════════════════════════════════════════════
 function updateAlertBtns(){
@@ -1248,6 +1457,7 @@ $('tgBtn').addEventListener('click', () => $('setBtn').click());
 // ═══════════════════════════════════════════════════════════════
 function openSettings(){
   $('setFinnhub').value = getFinnhubKey();
+  $('setAnthropic').value = getAnthropicKey();
   $('setAuto').value = String(cfg.auto);
   $('setThr').value = String(cfg.threshold);
   $('setTgToken').value = tgConfig.token || '';
@@ -1261,6 +1471,7 @@ $('setCancel').addEventListener('click', closeSettings);
 $('setModal').addEventListener('click', e => { if (e.target.id === 'setModal') closeSettings(); });
 $('setSave').addEventListener('click', () => {
   setFinnhubKey($('setFinnhub').value.trim());
+  setAnthropicKey($('setAnthropic').value.trim());
   cfg.auto = +$('setAuto').value || 0;
   cfg.threshold = +$('setThr').value || 2;
   tgConfig.token  = $('setTgToken').value.trim();
