@@ -165,6 +165,13 @@ td.left { text-align:left; padding-left:14px; }
 .verdict.likely-miss { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.35); }
 .verdict.na { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
 
+.action { display:inline-block; padding:3px 9px; border-radius:6px; font-weight:800; font-size:10.5px; font-family:var(--head); letter-spacing:.4px; cursor:help; }
+.action.buy   { background:linear-gradient(135deg, rgba(34,214,107,.22), rgba(34,214,107,.10)); color:var(--bull-s); border:1px solid rgba(34,214,107,.5); }
+.action.watch { background:rgba(34,214,107,.08); color:var(--bull-s); border:1px solid rgba(34,214,107,.32); }
+.action.wait  { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.4); }
+.action.avoid { background:linear-gradient(135deg, rgba(255,77,77,.22), rgba(255,77,77,.10)); color:var(--bear-s); border:1px solid rgba(255,77,77,.5); }
+.action.skip  { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
+
 .ins { font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:4px; font-family:var(--head); }
 .ins.bull { background:var(--bull-bg); color:var(--bull-s); }
 .ins.bear { background:var(--bear-bg); color:var(--bear-s); }
@@ -250,7 +257,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v112-DBG</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v113</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -317,12 +324,13 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
           <th data-sort="surprise">Surprise %</th>
           <th data-sort="beatRate">Beat rate</th>
           <th data-sort="verdict">AI verdict</th>
-          <th>Insider 30z</th>
+          <th data-sort="action">Sugestie</th>
+          <th>Insider 60z</th>
           <th>Acțiuni</th>
         </tr>
       </thead>
       <tbody id="mainBody">
-        <tr><td colspan="11"><div class="empty">
+        <tr><td colspan="12"><div class="empty">
           <div class="empty-icon">📅</div>
           <div class="empty-title">Nu s-a făcut încă scan</div>
           <div class="empty-sub">Apasă <b>🔄 Scanează</b> ca să încarci calendarul earnings 30 zile.
@@ -390,7 +398,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v112-2026-05-13';
+const VER = 'tt-v113-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -628,6 +636,31 @@ const VERDICT_META = {
   'likely-miss': { icon:'🔴', label:'LIKELY MISS' },
   'na':          { icon:'⚪', label:'N/A' },
 };
+
+// Sugestie acțiune derivată din EPS verdict + insider + reacție medie istorică + zile rămase.
+// NU înlocuiește un trade plan — e doar un tag rapid pentru filtrare vizuală.
+const ACTION_META = {
+  'buy':   { icon:'🚀', label:'BUY',   tip:'Pattern beat puternic + insider/reacție pozitivă. Cumpărare pre-earnings cu R:R rezonabil.' },
+  'watch': { icon:'🟢', label:'WATCH', tip:'Setup pozitiv dar mai slab — așteaptă confirmare (insider activ sau pullback la suport).' },
+  'wait':  { icon:'🟡', label:'WAIT',  tip:'Mix de semnale. Mai bine aștepți post-earnings (gap up/down) decât să intri orb.' },
+  'avoid': { icon:'🔴', label:'AVOID', tip:'Pattern miss istoric + insider bear sau reacție negativă. Risc asimetric.' },
+  'skip':  { icon:'⏭', label:'SKIP',  tip:'Date insuficiente pentru o opinie — sari peste.' },
+};
+function computeAction(e, avgReact){
+  const v = (e.ana && e.ana.verdict) || 'na';
+  const iv = (e.insider && e.insider.verdict) || 'na';
+  const beatRate = (e.ana && e.ana.beatRate != null) ? e.ana.beatRate : null;
+  const n = (e.ana && e.ana.n) || 0;
+  const ar = (avgReact != null) ? avgReact : null;
+  if (n < 2 && iv === 'na') return 'skip';
+  if (v === 'high-beat' && iv !== 'bear') return 'buy';
+  if (v === 'likely-beat' && (beatRate != null && beatRate >= 0.7) && (iv === 'bull' || (ar != null && ar > 0.5))) return 'buy';
+  if (v === 'likely-miss' && (iv === 'bear' || (ar != null && ar < -0.5))) return 'avoid';
+  if (iv === 'bear' && (ar != null && ar < -1)) return 'avoid';
+  if (v === 'likely-beat' || (v === 'high-beat' && iv === 'bear')) return 'watch';
+  if (v === 'mixt' || v === 'likely-miss') return 'wait';
+  return 'wait';
+}
 
 // Clasificare robustă: `change` semn (pozitiv=buy, negativ=sell) e sursa primară;
 // transactionCode P/A/S/D doar dacă există. Free tier Finnhub uneori omite codul → fallback pe semn.
@@ -900,6 +933,7 @@ function sortItems(arr){
       case 'surprise': va = (a.ana && a.ana.lastSurpPct != null) ? a.ana.lastSurpPct : -Infinity; vb = (b.ana && b.ana.lastSurpPct != null) ? b.ana.lastSurpPct : -Infinity; return (va - vb) * mult;
       case 'beatRate': va = (a.ana && a.ana.beatRate != null) ? a.ana.beatRate : -1; vb = (b.ana && b.ana.beatRate != null) ? b.ana.beatRate : -1; return (va - vb) * mult;
       case 'verdict': { const ord = { 'high-beat':4, 'likely-beat':3, 'mixt':2, 'likely-miss':1, 'na':0 }; return ((ord[a.ana?.verdict] || 0) - (ord[b.ana?.verdict] || 0)) * mult; }
+      case 'action': { const ord = { 'buy':4, 'watch':3, 'wait':2, 'avoid':1, 'skip':0 }; return ((ord[computeAction(a, a.avgReact)] || 0) - (ord[computeAction(b, b.avgReact)] || 0)) * mult; }
     }
     return 0;
   });
@@ -919,7 +953,7 @@ function renderTable(){
   $('fbCount').textContent = `${filtered.length} / ${calendar.length}`;
 
   if (!sorted.length){
-    tbody.innerHTML = `<tr><td colspan="11"><div class="empty">
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty">
       <div class="empty-icon">🔍</div>
       <div class="empty-title">Niciun rezultat</div>
       <div class="empty-sub">Schimbă filtrele de mai sus sau adaugă tickere în watchlist (din nasdaq-scanner / watchlist-monitor).</div>
@@ -949,6 +983,8 @@ function renderRow(e){
   const hourCell = e.hour ? `<span class="when-h">${e.hour.toUpperCase()}</span>` : '';
   const insiderHtml = insiderCell(e);
   const verCls = e.ana ? e.ana.verdict : 'na';
+  const actKey = computeAction(e, e.avgReact != null ? e.avgReact : null);
+  const act = ACTION_META[actKey] || ACTION_META.skip;
   return `<tr class="clickable ${rowClass(e)}" data-sym="${e.symbol}" onclick="toggleExpand('${e.symbol}')">
     <td><button class="star-btn ${isW ? 'on' : ''}" onclick="event.stopPropagation(); toggleStar('${e.symbol}')">${isW ? '★' : '☆'}</button></td>
     <td class="left"><div class="sym-name">${e.symbol}</div><div class="sym-sector">Q${e.quarter || '?'} ${e.year || ''}</div></td>
@@ -959,6 +995,7 @@ function renderRow(e){
     <td><span class="badge ${surpCls}">${lastSurp}</span></td>
     <td>${beatRate}</td>
     <td><span class="verdict ${verCls}">${verdict.icon} ${verdict.label}</span></td>
+    <td><span class="action ${actKey}" title="${escHtml(act.tip)}">${act.icon} ${act.label}</span></td>
     <td>${insiderHtml}</td>
     <td>
       <a class="action-btn" href="https://www.tradingview.com/chart/?symbol=${e.symbol}" target="_blank" rel="noopener" onclick="event.stopPropagation()">TV</a>
@@ -978,7 +1015,7 @@ function insiderCell(e){
 }
 
 function renderEmpty(title, sub){
-  $('mainBody').innerHTML = `<tr><td colspan="11"><div class="empty">
+  $('mainBody').innerHTML = `<tr><td colspan="12"><div class="empty">
     <div class="empty-icon">⚠</div>
     <div class="empty-title">${escHtml(title)}</div>
     <div class="empty-sub">${sub}</div>
@@ -1009,7 +1046,7 @@ function injectExpandedRow(tr, e){
   if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('expanded-row')) return;
   const row = document.createElement('tr');
   row.className = 'expanded-row'; row.dataset.expFor = e.symbol;
-  row.innerHTML = `<td colspan="11">
+  row.innerHTML = `<td colspan="12">
     <div class="exp-wrap">
       <div class="exp-box">
         <div class="exp-title">📊 EPS history (ultimele 8 trim.)</div>
@@ -1080,6 +1117,7 @@ async function loadExpandedDetails(e){
     const a = e.ana || {};
     const rArr = reactions ? Object.values(reactions).filter(v => v != null) : [];
     const avgReact = rArr.length ? (rArr.reduce((s, v) => s + v, 0) / rArr.length) : null;
+    e.avgReact = avgReact;  // pentru computeAction la update cells
     const beatRate = a.beatRate != null ? (a.beatRate * 100).toFixed(0) + '%' : '—';
     const v = VERDICT_META[a.verdict || 'na'];
     statsBox.innerHTML = `
@@ -1119,23 +1157,20 @@ async function loadExpandedDetails(e){
     }
   }
 
-  // Update țintit DOAR celula insider (col 9) a rândului expandat — fără renderTable.
-  // 11 celule: [0]star [1]ticker [2]data [3]zile [4]eps_est [5]eps_prev [6]surp [7]beat_rate [8]verdict [9]insider [10]actions
+  // Update țintit pe celulele sugestie (col 9) + insider (col 10) — fără renderTable.
+  // 12 celule: [0]star [1]ticker [2]data [3]zile [4]eps_est [5]eps_prev [6]surp [7]beat_rate [8]verdict [9]sugestie [10]insider [11]actions
   try {
     const tr = document.querySelector(`tr[data-sym="${e.symbol}"]`);
-    console.log('[update cell]', e.symbol, 'tr found?', !!tr);
     if (tr){
       const cells = tr.querySelectorAll('td');
-      console.log('[update cell]', e.symbol, 'cells.length=', cells.length, 'insiderCell=', insiderCell(e));
-      // FĂRĂ check === 11 — dacă găsim cells[9] îl populăm
+      if (cells[10]) cells[10].innerHTML = insiderCell(e);
       if (cells[9]){
-        cells[9].innerHTML = insiderCell(e);
-        console.log('[update cell]', e.symbol, '✓ celula 9 actualizată');
-      } else {
-        console.warn('[update cell]', e.symbol, '✗ cells[9] lipsește, total cells:', cells.length);
+        const actKey = computeAction(e, e.avgReact);
+        const act = ACTION_META[actKey] || ACTION_META.skip;
+        cells[9].innerHTML = `<span class="action ${actKey}" title="${escHtml(act.tip)}">${act.icon} ${act.label}</span>`;
       }
     }
-  } catch(err){ console.warn('[eh] update insider cell failed:', err); }
+  } catch(err){ console.warn('[eh] update cells failed:', err); }
 }
 
 // ═══════════════════════════════════════════════════════════════
