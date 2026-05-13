@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v124-DBG</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v125-DBG</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -430,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v124-2026-05-13';
+const VER = 'tt-v125-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1001,6 +1001,9 @@ function renderTable(){
   const filtered = calendar.filter(passFilter);
   const sorted = sortItems(filtered);
   $('fbCount').textContent = `${filtered.length} / ${calendar.length}`;
+  // Diagnostic care apare ALWAYS în titlu — chiar și pe empty state
+  const _diag = `🔍 filterMode=${filterMode} | filterText="${filterText}" | calendar=${calendar.length} | filtered=${filtered.length} | sorted=${sorted.length}`;
+  const _ls = $('lastScan'); if (_ls) _ls.textContent = _diag;
 
   if (!sorted.length){
     let title = 'Niciun rezultat', sub = 'Schimbă filtrele de mai sus.';
