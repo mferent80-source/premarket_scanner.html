@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v129</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v130</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -331,7 +331,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
     <span class="fb-chip" data-f="eu">🇪🇺 EU ADR <b id="cnt-eu">—</b></span>
     <span class="fb-chip" data-f="us-pure">🇺🇸 US pur <b id="cnt-us">—</b></span>
   </div>
-  <input type="text" id="searchInp" placeholder="Caută ticker…" maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <input type="search" id="searchInp" placeholder="Caută ticker…" maxlength="6" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="eh_no_autofill">
   <button id="searchClear" title="Golește search" style="display:none">✖</button>
   <span class="fb-count" id="fbCount">— / —</span>
 </div>
@@ -433,7 +433,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v129-2026-05-13';
+const VER = 'tt-v130-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1618,8 +1618,14 @@ function rescheduleAuto(){
 // ═══════════════════════════════════════════════════════════════
 function init(){
   $('verBadge').textContent = VER.replace(/-\d{4}-\d{2}-\d{2}$/, '');
-  // Forțează golire search input — Chrome autofill îl populează cu ultima valoare folosită
-  const _si = $('searchInp'); if (_si){ _si.value = ''; filterText = ''; }
+  // Forțează golire search input — Chrome autofill îl populează cu ultima valoare folosită.
+  // Triplu trigger ca să prindem și autofill întârziat.
+  const _si = $('searchInp');
+  if (_si){
+    _si.value = ''; filterText = '';
+    setTimeout(() => { _si.value = ''; filterText = ''; }, 50);
+    setTimeout(() => { _si.value = ''; filterText = ''; renderTable && calendar.length && renderTable(); }, 500);
+  }
   loadCfg();
   updateAlertBtns();
   updateSessionPill();
