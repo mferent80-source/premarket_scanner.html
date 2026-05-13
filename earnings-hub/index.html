@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v117-DBG</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v118</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -430,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v117-2026-05-13';
+const VER = 'tt-v118-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -584,7 +584,14 @@ async function fetchEarningsCalendar(){
   const arr = (d && Array.isArray(d.earningsCalendar)) ? d.earningsCalendar : [];
   // filtru: US (Finnhub global returnează și BR/EU — păstrăm doar exchange-uri US sau tickere simple fără sufix)
   // Finnhub /calendar/earnings nu pune `exchange` explicit, dar tickerul are sufix pt non-US (ex: "TICKER.HK")
-  const filtered = arr.filter(e => e && e.symbol && !/\./.test(e.symbol));
+  // Filtru STRICT US: ticker 1-5 caractere, doar litere mari (eventual cifre), fără puncte/sufixe.
+  // Asta taie din 1400+ WW la ~300-400 entries pur americane (NYSE/NASDAQ).
+  // În plus: trebuie să aibă measurable data (epsEstimate SAU revenueEstimate).
+  const filtered = arr.filter(e => {
+    if (!e || !e.symbol) return false;
+    if (!/^[A-Z][A-Z0-9]{0,4}$/.test(e.symbol)) return false;
+    return (e.epsEstimate != null) || (e.revenueEstimate != null) || (e.epsActual != null);
+  });
   return { ok:true, items:filtered };
 }
 
@@ -1000,7 +1007,6 @@ function renderTable(){
     try { html += renderRow(sorted[i]); }
     catch(err){ console.error('[render] eroare la ticker', sorted[i] && sorted[i].symbol, err); }
   }
-  console.log('[render] calendar=', calendar.length, 'filtered=', filtered.length, 'sorted=', sorted.length, 'html.length=', html.length, 'filterMode=', filterMode);
   tbody.innerHTML = html;
   // expand state restore (in caz de re-render după sort)
   if (expandedSym){
