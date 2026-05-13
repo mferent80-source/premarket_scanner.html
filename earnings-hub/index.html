@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v121-DBG</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v122</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -322,12 +322,12 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 
 <div class="filter-bar">
   <div class="fb-chips" id="fbChips">
-    <span class="fb-chip active" data-f="all">📅 Toate</span>
-    <span class="fb-chip" data-f="watch">⭐ Watchlist</span>
-    <span class="fb-chip" data-f="48h">⏰ &lt;48h</span>
-    <span class="fb-chip" data-f="7d">📆 7 zile</span>
-    <span class="fb-chip" data-f="bmo">🌅 BMO</span>
-    <span class="fb-chip" data-f="amc">🌙 AMC</span>
+    <span class="fb-chip active" data-f="all">📅 Toate <b id="cnt-all">—</b></span>
+    <span class="fb-chip" data-f="watch">⭐ Watchlist <b id="cnt-watch">—</b></span>
+    <span class="fb-chip" data-f="48h">⏰ &lt;48h <b id="cnt-48h">—</b></span>
+    <span class="fb-chip" data-f="7d">📆 7 zile <b id="cnt-7d">—</b></span>
+    <span class="fb-chip" data-f="bmo">🌅 BMO <b id="cnt-bmo">—</b></span>
+    <span class="fb-chip" data-f="amc">🌙 AMC <b id="cnt-amc">—</b></span>
   </div>
   <input type="text" id="searchInp" placeholder="Caută ticker…" maxlength="6">
   <span class="fb-count" id="fbCount">— / —</span>
@@ -430,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v121-2026-05-13';
+const VER = 'tt-v122-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -932,6 +932,15 @@ function renderStats(){
   $('stSoon').textContent = soon;
   $('stBull').textContent = bull;
   $('stSoonSub').textContent = `prag ≤${cfg.threshold}z`;
+  // Counts pe chip-urile de filter — afișează direct (X)
+  const _48h = calendar.filter(e => e.zile >= 0 && e.zile <= 2).length;
+  const _7d = calendar.filter(e => e.zile >= 0 && e.zile <= 7).length;
+  const _bmo = calendar.filter(e => e.hour === 'bmo').length;
+  const _amc = calendar.filter(e => e.hour === 'amc').length;
+  const setCnt = (id, n) => { const el = $(id); if (el) el.textContent = '(' + n + ')'; };
+  setCnt('cnt-all', calendar.length); setCnt('cnt-watch', wl);
+  setCnt('cnt-48h', _48h); setCnt('cnt-7d', _7d);
+  setCnt('cnt-bmo', _bmo); setCnt('cnt-amc', _amc);
 }
 
 function renderHotStrip(){
@@ -1011,14 +1020,12 @@ function renderTable(){
     return;
   }
 
-  let html = '', okCount = 0, errCount = 0;
+  let html = '';
   for (let i = 0; i < sorted.length; i++){
-    try { html += renderRow(sorted[i]); okCount++; }
-    catch(err){ errCount++; if (errCount < 5) console.error('[render] eroare la ticker', sorted[i] && sorted[i].symbol, err); }
+    try { html += renderRow(sorted[i]); }
+    catch(err){ console.error('[render] eroare la ticker', sorted[i] && sorted[i].symbol, err); }
   }
-  console.log('[render]', filterMode, '→', sorted.length, 'tickere | OK=', okCount, 'eroare=', errCount, 'html.length=', html.length);
   tbody.innerHTML = html;
-  console.log('[render] după set: tbody.children=', tbody.children.length, 'first tr visible?', tbody.firstElementChild && getComputedStyle(tbody.firstElementChild).display);
   // expand state restore (in caz de re-render după sort)
   if (expandedSym){
     const e = calendar.find(x => x.symbol === expandedSym);
@@ -1525,14 +1532,6 @@ $('fbChips').addEventListener('click', e => {
   document.querySelectorAll('.fb-chip').forEach(c => c.classList.remove('active'));
   chip.classList.add('active');
   filterMode = chip.dataset.f;
-  // Diagnostic per-filter
-  const all = calendar.length;
-  const wl = calendar.filter(x => watchlist.includes(x.symbol)).length;
-  const z48 = calendar.filter(x => x.zile >= 0 && x.zile <= 2).length;
-  const z7d = calendar.filter(x => x.zile >= 0 && x.zile <= 7).length;
-  const bmo = calendar.filter(x => x.hour === 'bmo').length;
-  const amc = calendar.filter(x => x.hour === 'amc').length;
-  console.log('[filter]', filterMode, '| total=', all, 'watchlist=', wl, '<48h=', z48, '7d=', z7d, 'bmo=', bmo, 'amc=', amc, 'watchlist_size=', watchlist.length);
   renderTable();
 });
 $('searchInp').addEventListener('input', e => {
