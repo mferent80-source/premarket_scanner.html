@@ -257,7 +257,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v113</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v114</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -398,7 +398,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v113-2026-05-13';
+const VER = 'tt-v114-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -995,8 +995,8 @@ function renderRow(e){
     <td><span class="badge ${surpCls}">${lastSurp}</span></td>
     <td>${beatRate}</td>
     <td><span class="verdict ${verCls}">${verdict.icon} ${verdict.label}</span></td>
-    <td><span class="action ${actKey}" title="${escHtml(act.tip)}">${act.icon} ${act.label}</span></td>
-    <td>${insiderHtml}</td>
+    <td data-col="action"><span class="action ${actKey}" title="${escHtml(act.tip)}">${act.icon} ${act.label}</span></td>
+    <td data-col="insider">${insiderHtml}</td>
     <td>
       <a class="action-btn" href="https://www.tradingview.com/chart/?symbol=${e.symbol}" target="_blank" rel="noopener" onclick="event.stopPropagation()">TV</a>
       <a class="action-btn" href="https://finance.yahoo.com/quote/${e.symbol}" target="_blank" rel="noopener" onclick="event.stopPropagation()">YH</a>
@@ -1157,18 +1157,19 @@ async function loadExpandedDetails(e){
     }
   }
 
-  // Update țintit pe celulele sugestie (col 9) + insider (col 10) — fără renderTable.
-  // 12 celule: [0]star [1]ticker [2]data [3]zile [4]eps_est [5]eps_prev [6]surp [7]beat_rate [8]verdict [9]sugestie [10]insider [11]actions
+  // Update țintit pe celulele Sugestie + Insider via data-col (robust la schimbări de coloane).
   try {
     const tr = document.querySelector(`tr[data-sym="${e.symbol}"]`);
     if (tr){
-      const cells = tr.querySelectorAll('td');
-      if (cells[10]) cells[10].innerHTML = insiderCell(e);
-      if (cells[9]){
+      const insCell = tr.querySelector('td[data-col="insider"]');
+      const actCell = tr.querySelector('td[data-col="action"]');
+      if (insCell) insCell.innerHTML = insiderCell(e);
+      if (actCell){
         const actKey = computeAction(e, e.avgReact);
         const act = ACTION_META[actKey] || ACTION_META.skip;
-        cells[9].innerHTML = `<span class="action ${actKey}" title="${escHtml(act.tip)}">${act.icon} ${act.label}</span>`;
+        actCell.innerHTML = `<span class="action ${actKey}" title="${escHtml(act.tip)}">${act.icon} ${act.label}</span>`;
       }
+      console.log('[update]', e.symbol, 'insCell?', !!insCell, 'actCell?', !!actCell, 'insiderTxt:', insiderCell(e));
     }
   } catch(err){ console.warn('[eh] update cells failed:', err); }
 }
