@@ -222,6 +222,30 @@ tr.expanded-row:hover { background:rgba(20,26,40,.55) !important; }
 .exp-ins-summary { margin-bottom:6px; padding:5px 8px; background:var(--panel2); border-radius:4px; font-size:11px; font-weight:700; }
 @media(max-width:780px){ .exp-wrap { grid-template-columns:1fr; } }
 
+/* AI bubble (Claude streaming) */
+.exp-ai-bar { display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:10px; border-top:1px dashed var(--b1); flex-wrap:wrap; }
+.ai-btn { background:linear-gradient(135deg, #6366f1, #a855f7); border:none; color:#fff; padding:7px 14px; font-size:11.5px; font-weight:700; border-radius:6px; cursor:pointer; box-shadow:0 2px 8px rgba(168,85,247,.3); font-family:var(--head); }
+.ai-btn:hover { filter:brightness(1.1); transform:translateY(-1px); color:#fff; }
+.ai-btn:disabled { opacity:.55; cursor:wait; }
+.ai-hint { font-size:10.5px; color:var(--t3); font-family:var(--mono); }
+.exp-ai { margin-top:10px; }
+.exp-ai:empty { display:none; }
+.ai-bubble {
+  background:linear-gradient(180deg, rgba(168,85,247,.06), rgba(20,26,40,.4));
+  border:1px solid rgba(168,85,247,.35);
+  border-radius:8px; padding:12px 14px;
+  font-size:12.5px; line-height:1.55; color:var(--t1); font-family:var(--head);
+  white-space:pre-wrap; position:relative;
+}
+.ai-bubble::before { content:''; position:absolute; top:-1px; left:-1px; right:-1px; height:2px; background:linear-gradient(90deg, #6366f1, #a855f7); border-radius:8px 8px 0 0; }
+.ai-bubble .ai-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px dashed rgba(168,85,247,.3); }
+.ai-bubble .ai-head .ai-meta { font-size:10px; color:var(--t3); font-family:var(--mono); }
+.ai-bubble .ai-head .ai-rerun { background:transparent; border:1px solid var(--b1); color:var(--t2); padding:3px 8px; font-size:10px; border-radius:4px; cursor:pointer; }
+.ai-bubble .ai-head .ai-rerun:hover { border-color:var(--crypto-1); color:var(--crypto-1); }
+.ai-bubble.error { border-color:rgba(255,77,77,.5); background:linear-gradient(180deg, rgba(255,77,77,.07), rgba(20,26,40,.4)); }
+@keyframes pr_blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+.ai-cursor { display:inline-block; width:7px; height:13px; background:var(--crypto-1); animation:pr_blink 1s steps(2) infinite; vertical-align:middle; margin-left:2px; }
+
 .spark { width:62px; height:22px; display:block; margin:0 auto; }
 .spark path { fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
 .spark .area { stroke:none; opacity:.16; }
@@ -287,7 +311,7 @@ footer a { color:var(--accent); text-decoration:none; }
 <body>
 
 <header>
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v106</span></h1>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v107</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
   <a href="../watchlist-monitor/" class="nav-link">👁️ Watchlist</a>
@@ -523,6 +547,11 @@ function injectExpandedRow(tr, r){
         <div id="exp-ins-${r.symbol}"></div>
       </div>
     </div>
+    <div class="exp-ai-bar">
+      <button class="ai-btn" id="ai-btn-${r.symbol}" onclick="event.stopPropagation(); analyzePumpWithAI('${r.symbol}', this)">🤖 Analizează cu AI (Claude)</button>
+      <span class="ai-hint">Foloseşte cheia Anthropic shared cu earnings-hub / nasdaq-scanner. Cache 1h. ≈ $0.03–0.08 / analiză.</span>
+    </div>
+    <div class="exp-ai" id="ai-result-${r.symbol}" data-done="0"></div>
   </td>`;
   tr.parentNode.insertBefore(row, tr.nextSibling);
   fillExpandedDetails(r);
@@ -615,6 +644,185 @@ function fillExpandedDetails(r){
     }
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  AI BUBBLE — Claude API (shared key cu nasdaq-scanner / earnings-hub)
+// ═══════════════════════════════════════════════════════════════
+const ANTHROPIC_KEY_LS = 'anthropic_api_key';
+const AI_CACHE_LS = 'pump_radar_ai_cache_v1';
+const AI_CACHE_TTL_MS = 60 * 60 * 1000;
+
+const AI_SYSTEM_PR = `Eşti analist tehnic român pentru un trader activ pe Nasdaq via Trade 212 (long-only stocks).
+Reguli stricte:
+- Răspunde DOAR în română.
+- Maxim 7 rânduri, fără introduceri ("Iată...", "Pe baza datelor...").
+- Recomandă explicit unul din: "BUY momentum cu entry $X / SL $Y / TP $Z" SAU "AŞTEAPTĂ pullback la suport $X" SAU "SKIP — risc asimetric" SAU "AVOID — semnal short, nu intra long".
+- Argumentează în maxim 2 propoziţii: alertele 5m (pump/dump/vol/momentum) + confirmarea/contradicţia insider + RSI.
+- Identifică UN risc principal într-o singură propoziţie (ex: overbought, vol slab, sub MA, ora aproape de close).
+- Fără markdown, fără emoji, fără bold. Text plat, scurt, direct.`;
+
+function getAnthropicKey(){ try { return localStorage.getItem(ANTHROPIC_KEY_LS) || ''; } catch(e){ return ''; } }
+
+function aiCacheGet(key){
+  try {
+    const o = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    const ent = o[key]; if (!ent) return null;
+    if (Date.now() - ent.ts > AI_CACHE_TTL_MS){ delete o[key]; localStorage.setItem(AI_CACHE_LS, JSON.stringify(o)); return null; }
+    return ent;
+  } catch(_){ return null; }
+}
+function aiCacheSet(key, text, model){
+  try {
+    const o = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    o[key] = { text, model, ts:Date.now() };
+    const cut = Date.now() - AI_CACHE_TTL_MS;
+    for (const k of Object.keys(o)) if (o[k].ts < cut) delete o[k];
+    localStorage.setItem(AI_CACHE_LS, JSON.stringify(o));
+  } catch(_){}
+}
+
+function buildAiPromptPR(r){
+  const sess = marketSession();
+  const actKey = computeActionPR(r);
+  const actM = ACTION_META[actKey];
+  const alertsTxt = r.alerts.length ? r.alerts.map(t => ALERT_META[t].label).join(' + ') : 'niciuna';
+  const inWl = watchlist.includes(r.symbol);
+  let insTxt = 'fără date sau lipsă tranzacţii înregistrate în 60z';
+  if (r.insider && r.insider.ok){
+    insTxt = `verdict ${r.insider.verdict} · ${r.insider.buyN} buys / ${r.insider.sellN} sells · net ${(r.insider.netShares >= 0 ? '+' : '') + r.insider.netShares.toLocaleString('en-US')} share`;
+  }
+  // ATR aproximativ
+  const closes = r.closes || [];
+  let atr = null;
+  if (closes.length >= 15){
+    let sum = 0, count = 0;
+    const tail = closes.slice(-15);
+    for (let i = 1; i < tail.length; i++){ const p = tail[i-1]; if (p) { sum += Math.abs((tail[i] - p) / p) * 100; count++; } }
+    atr = count ? sum / count : null;
+  }
+  const lastFew = closes.slice(-6);
+  const trendTxt = lastFew.length ? lastFew.map(v => v.toFixed(2)).join(' → ') : 'N/A';
+  return `Analiză tehnică rapidă pentru ${r.symbol} pe barele de 5 minute. Sesiune: ${sess.txt}.
+
+DATE STRUCTURATE:
+- Preţ curent: $${r.price.toFixed(2)} (Δ zi ${(r.chgDay >= 0 ? '+' : '') + r.chgDay.toFixed(2)}%, Δ ultima bară 5m ${(r.m5 >= 0 ? '+' : '') + r.m5.toFixed(2)}%)
+- Volum vs medie intraday: ${r.volRatio != null ? r.volRatio.toFixed(2) + '×' : 'N/A'}
+- RSI(14) 5m: ${r.rsi != null ? r.rsi.toFixed(0) : 'N/A'}
+- ATR aproximativ 5m (media |Δ%| 14 bare): ${atr != null ? '±' + atr.toFixed(2) + '%' : 'N/A'}
+- Heat radar (0-100): ${r.heat}
+- Alerte 5m active: ${alertsTxt}
+- Momentum 3-bar: ${r.momDir === 'up' ? 'reversal upward' : r.momDir === 'down' ? 'reversal downward' : 'niciun shift'}
+- Trend ultimele 6 bare: ${trendTxt}
+- Insider 60z: ${insTxt}
+- Tag derivat algoritmic: ${actM.icon} ${actM.label}
+
+CONTEXT: ${inWl ? 'tickerul ESTE pe watchlist-ul traderului.' : 'tickerul nu e pe watchlist.'} Trader long-only pe Trade 212, fonduri limitate — conservator.
+
+Întrebare: ce face traderul cu ${r.symbol} acum? Confirmă sau contestă tagul algoritmic ${actM.label}. Dă entry/SL/TP concrete în USD, sau spune AŞTEAPTĂ / SKIP / AVOID.`;
+}
+
+window.analyzePumpWithAI = async function(symbol, btn){
+  const r = results.find(x => x.symbol === symbol); if (!r) return;
+  const container = $('ai-result-' + symbol); if (!container) return;
+  if (container.dataset.done === '1'){
+    container.innerHTML = ''; container.dataset.done = '0';
+    if (btn) btn.textContent = '🤖 Analizează cu AI (Claude)';
+    return;
+  }
+  const key = getAnthropicKey();
+  if (!key){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>⚠ Lipsește cheia Anthropic</b></div>Adaugă cheia în earnings-hub → ⚙ Setări → câmpul „Anthropic API key", sau pune-o manual cu <code>localStorage.setItem('anthropic_api_key','sk-ant-...')</code> din Console. O obţii de la console.anthropic.com/settings/keys.</div>`;
+    container.dataset.done = '1'; return;
+  }
+  // cache key include alerte + heat + sugestie (analiza depinde de starea curentă)
+  const ck = `${symbol}_${r.alerts.sort().join('_') || 'none'}_h${Math.round(r.heat / 10)}_${computeActionPR(r)}`;
+  const cached = aiCacheGet(ck);
+  if (cached){
+    renderAiBubble(container, cached.text, cached.model + ' · cache');
+    container.dataset.done = '1';
+    if (btn) btn.textContent = '🤖 Ascunde analiză';
+    return;
+  }
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ Se generează…'; }
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-4-7 · streaming…</span></div><span id="ai-stream-${symbol}"></span><span class="ai-cursor"></span></div>`;
+  container.dataset.done = '1';
+
+  const prompt = buildAiPromptPR(r);
+  let full = '';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body: JSON.stringify({
+        model:'claude-opus-4-7',
+        max_tokens:600,
+        stream:true,
+        system:[{ type:'text', text:AI_SYSTEM_PR, cache_control:{ type:'ephemeral' } }],
+        messages:[{ role:'user', content:prompt }],
+      }),
+    });
+    if (!resp.ok){
+      const j = await resp.json().catch(() => ({ error:{ message:'HTTP ' + resp.status } }));
+      throw new Error(j.error?.message || ('HTTP ' + resp.status));
+    }
+    const reader = resp.body.getReader(); const dec = new TextDecoder();
+    let buf = '';
+    while (true){
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream:true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines){
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim(); if (!data) continue;
+        try {
+          const ev = JSON.parse(data);
+          if (ev.type === 'content_block_delta' && ev.delta?.text){
+            full += ev.delta.text;
+            const span = $('ai-stream-' + symbol); if (span) span.textContent = full;
+          }
+        } catch(_){}
+      }
+    }
+    aiCacheSet(ck, full, 'claude-opus-4-7');
+    renderAiBubble(container, full, 'claude-opus-4-7 · ' + new Date().toLocaleTimeString('ro-RO'));
+    if (btn) btn.textContent = '🤖 Ascunde analiză';
+  } catch(err){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare AI</b><span class="ai-meta">${(err.message || 'unknown')}</span></div>Verifică cheia (sk-ant-…), creditul rămas în consolă sau încearcă peste 1 min.</div>`;
+    if (btn) btn.textContent = '🤖 Reîncearcă';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+function renderAiBubble(container, text, meta){
+  const safe = (text || '(răspuns gol)').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  const metaSafe = (meta || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  container.innerHTML = `<div class="ai-bubble">
+    <div class="ai-head">
+      <span class="ai-meta">${metaSafe}</span>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunPRAi(this)">↻ Rerun</button>
+    </div>${safe}</div>`;
+}
+window.rerunPRAi = function(btn){
+  const bubble = btn.closest('.exp-ai');
+  if (!bubble) return;
+  const sym = bubble.id.replace('ai-result-', '');
+  try {
+    const cachedRaw = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    for (const k of Object.keys(cachedRaw)) if (k.startsWith(sym + '_')) delete cachedRaw[k];
+    localStorage.setItem(AI_CACHE_LS, JSON.stringify(cachedRaw));
+  } catch(_){}
+  bubble.dataset.done = '0'; bubble.innerHTML = '';
+  const aiBtn = $('ai-btn-' + sym);
+  if (aiBtn) aiBtn.textContent = '🤖 Analizează cu AI (Claude)';
+  analyzePumpWithAI(sym, aiBtn);
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG persist
@@ -1254,6 +1462,7 @@ window.showFeatures = function(){
       { e:'🔥', t:'<b>Heat 0-100</b> per stock = |Δ5m| + exces volum + bonus momentum (sortabil, colorat)' },
       { e:'🎯', t:'<b>Sugestie</b> 5 tier-uri (BUY / WATCH / WAIT / AVOID / SKIP) — derivată algoritmic din alerte + insider + RSI + zi; sortabilă' },
       { e:'🔬', t:'<b>Click pe rând</b> → expand cu 3 box-uri: 📊 sparkline mare 60z + ultimele 8 bare 5m / 🧠 stats (heat, RSI, ATR, alerte, mom) / 👔 listă insider top 12 cu nume, code, qty, preț, dată' },
+      { e:'🤖', t:'<b>AI bubble (Claude opus-4-7)</b> pe expand — streaming SSE, prompt cu context complet (alerte + RSI + ATR + insider + sugestie), răspuns BUY/AŞTEAPTĂ/SKIP cu entry-SL-TP. Cheia <code>anthropic_api_key</code> shared cu earnings-hub. Cache LS 1h per simbol·state.' },
     ]},
     { title:'🤖 Automation & UI', cls:'auto', items:[
       { e:'🔄', t:'<b>Auto-scan</b> 30s / 60s / 120s / OFF — watchdog cu self-reschedule' },
@@ -1264,7 +1473,7 @@ window.showFeatures = function(){
       { e:'⏱', t:'<b>Countdown</b> + indicator sesiune piață (pre/regular/after/closed, DST-aware)' },
     ]},
   ];
-  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v106 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
+  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v107 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => { html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`; });
   html += `<div style="font-size:10.5px;color:var(--t3);line-height:1.5;font-family:var(--mono);padding-top:6px;border-top:1px solid var(--b1)">⚠ Alertele 5m sunt relevante în <b>sesiunea regulară</b> (09:30-16:00 ET). În afara ei datele pot fi rare/lipsă; radarul tot afișează ce găsește.</div></div>`;
   ov.innerHTML = html;
