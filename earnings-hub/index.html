@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v122</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v123</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -430,7 +430,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v122-2026-05-13';
+const VER = 'tt-v123-2026-05-13';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1037,6 +1037,7 @@ function renderTable(){
 }
 
 function renderRow(e){
+  try {
   const isW = watchlist.includes(e.symbol);
   const verdict = VERDICT_META[(e.ana && e.ana.verdict) || 'na'];
   const beatRate = (e.ana && e.ana.beatRate != null) ? Math.round(e.ana.beatRate * 100) + '%' : '—';
@@ -1066,6 +1067,10 @@ function renderRow(e){
       <a class="action-btn" href="https://finance.yahoo.com/quote/${e.symbol}" target="_blank" rel="noopener" onclick="event.stopPropagation()">YH</a>
     </td>
   </tr>`;
+  } catch(err){
+    console.error('[renderRow] eșuat pentru', e && e.symbol, '|', err.message, '|', e);
+    return `<tr><td colspan="12" style="background:rgba(255,77,77,.08);color:#f88;padding:8px;font-family:var(--mono);font-size:11px">⚠ Eroare render <b>${escHtml((e && e.symbol) || '?')}</b>: ${escHtml(err.message || 'unknown')}</td></tr>`;
+  }
 }
 
 function insiderCell(e){
