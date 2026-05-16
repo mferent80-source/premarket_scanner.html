@@ -269,6 +269,27 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .exp-info .info-key { color:var(--t3); font-size:10.5px; }
 .exp-info .info-val { color:var(--t1); font-weight:700; font-family:var(--mono); font-size:10.5px; }
 
+/* Daily Brief */
+.brief-wrap { display:grid; grid-template-columns:1fr; gap:10px; }
+.brief-head { background:linear-gradient(135deg, rgba(59,130,246,.12), rgba(16,185,129,.06)); border:1px solid rgba(59,130,246,.35); border-radius:var(--r); padding:14px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.brief-head .bh-title { font-size:16px; font-weight:800; background:linear-gradient(90deg, var(--acc-1), var(--acc-2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; font-family:var(--head); }
+.brief-head .bh-date { font-size:11.5px; color:var(--t2); font-family:var(--mono); }
+.brief-head .bh-status { font-size:10.5px; color:var(--t3); font-family:var(--mono); margin-left:auto; }
+.brief-head .bh-actions { display:flex; gap:6px; }
+.brief-meta { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:8px; }
+.brief-meta-tile { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:8px 12px; }
+.brief-meta-tile .bmt-label { font-size:9.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; font-weight:700; font-family:var(--mono); }
+.brief-meta-tile .bmt-val { font-size:12.5px; font-weight:700; color:var(--t1); font-family:var(--head); margin-top:2px; }
+.brief-body { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:18px 22px; font-family:var(--head); font-size:13.5px; line-height:1.75; color:var(--t1); white-space:pre-wrap; word-wrap:break-word; min-height:200px; }
+.brief-body.loading::after { content:" ▍"; animation:blink 1s infinite; color:var(--acc-1); }
+.brief-body.error { background:rgba(255,77,77,.06); border-color:rgba(255,77,77,.35); color:#fca5a5; }
+.brief-body h1, .brief-body h2, .brief-body h3 { color:var(--t1); margin-bottom:6px; }
+.brief-empty { padding:60px 24px; text-align:center; color:var(--t3); }
+.brief-empty .bp-icon { font-size:56px; opacity:.4; margin-bottom:14px; }
+.brief-empty h4 { font-size:15px; color:var(--t1); font-weight:700; margin-bottom:6px; }
+.brief-empty p { font-size:12px; max-width:520px; margin:0 auto; line-height:1.7; }
+.brief-empty .next-time { margin-top:14px; font-family:var(--mono); font-size:11px; color:var(--accent); }
+
 @media (max-width:640px) {
   body { padding:8px; font-size:12.5px; }
   header { gap:6px; padding:10px 12px; }
@@ -288,7 +309,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v138</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v139</span></h1>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte (beep)">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -417,10 +438,30 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <!-- Tab: AI Daily Brief -->
 <div class="tab-content" id="tab-brief">
-  <div class="placeholder">
-    <div class="ph-icon">🤖</div>
-    <h4>AI Daily Brief — disponibil în PAS 3</h4>
-    <p>Brief generat automat de Claude opus-4.7 la 08:00 ET în fiecare zi: agregare evenimente high-impact, sentiment macro, watch list cross-asset.</p>
+  <div class="brief-wrap">
+    <div class="brief-head">
+      <div>
+        <div class="bh-title">🤖 AI Daily Brief</div>
+        <div class="bh-date" id="briefDate">—</div>
+      </div>
+      <span class="bh-status" id="briefStatus">—</span>
+      <div class="bh-actions">
+        <button class="primary" id="briefGenBtn">🚀 Generează brief</button>
+        <button class="ghost" id="briefRerunBtn" title="Re-generează (șterge cache)">↻ Rerun</button>
+      </div>
+    </div>
+
+    <div class="brief-meta" id="briefMeta"></div>
+
+    <div class="brief-body" id="briefBody">
+      <div class="brief-empty">
+        <div class="bp-icon">📋</div>
+        <h4>Niciun brief generat încă</h4>
+        <p>Brief-ul agregă <strong>top high-impact events azi</strong>, <strong>sentiment macro/crypto</strong>, <strong>valori curente VIX/DXY/BTC/ETH</strong> și generează un context decizional cross-asset prin Claude opus-4.7.</p>
+        <p>Auto-trigger la prima încărcare după <strong>08:00 ET</strong>. Cache 12h per zi.</p>
+        <div class="next-time" id="briefNextTime"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -498,7 +539,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <script>
 // ============ CONFIG ============
-const VERSION = 'v138';
+const VERSION = 'v139';
 const DEFAULT_CFG = {
   alertThreshold: 120, // minute
   autoRefresh: 1800, // secunde
@@ -1473,6 +1514,250 @@ async function preloadAITop5() {
   }
 }
 
+// ============ AI DAILY BRIEF ============
+const AI_SYSTEM_BRIEF = `Esti analist macro senior pentru un trader stocks Nasdaq + crypto (Pionex, Trade212).
+Genereaza un BRIEF MATINAL structurat in romana (max 800 cuvinte), profesional dar direct.
+
+STRUCTURA OBLIGATORIE (foloseste markdown headings ##):
+
+## 🎯 Verdict scurt
+1-2 propozitii cu sentimentul general al zilei (risk-on / risk-off / mixed) si motivul principal.
+
+## 📅 Events ce conteaza azi
+Lista top high-impact events din ziua curenta cu ce sa urmaresti specific (consensus, ce surpriza misca piata).
+
+## 📊 Context piata
+Comenteaza valorile actuale VIX/DXY/10Y/BTC/ETH din contextul evenimentelor. Daca VIX > 20 sau DXY se misca puternic, semnal stress.
+
+## 🎯 Sectoare watch
+Top 3 sectoare US/ETF (XLF/XLK/XLY/XLRE/XLE/XLP) cu setup interesant azi + motivul.
+
+## 🪙 Crypto pulse
+BTC + ETH directional, F&G, watch list crypto stocks (MARA/RIOT/COIN/MSTR) + insight scurt.
+
+## ⚠️ Risc cheie
+1-2 risc-uri cu probabilitate inalta de a reversa teza (geopolitica, surpriza CPI/Fed, headline crypto).
+
+## 💡 Idei de trade (orientativ, nu sfat)
+Max 3 idei concrete cu ticker + bias (long/short/wait) + nivel de invalidare. Foloseste asterisks pentru tickere.
+
+Fii direct. Fara disclaimere generale. Daca data e incomplete, mentioneaza limita.`;
+
+function getNYDateHour() {
+  const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
+  const parts = fmt.formatToParts(new Date());
+  const get = t => parts.find(p => p.type === t)?.value || '';
+  return {
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+    hour: parseInt(get('hour'), 10),
+    minute: parseInt(get('minute'), 10)
+  };
+}
+
+function loadBriefCache() {
+  try { return JSON.parse(localStorage.getItem('md_brief_cache') || 'null'); } catch (e) { return null; }
+}
+function saveBriefCache(brief) {
+  try { localStorage.setItem('md_brief_cache', JSON.stringify(brief)); } catch (e) { /* quota */ }
+}
+
+function getStatTileVal(id) {
+  const tile = $(id);
+  const v = tile?.querySelector('.stat-value')?.textContent || '';
+  const sub = tile?.querySelector('.stat-sub')?.textContent || '';
+  return { v: v.trim(), sub: sub.trim() };
+}
+
+function buildBriefContext() {
+  const nyt = getNYDateHour();
+  const now = Date.now();
+
+  // Events azi + next 24h (high + med impact)
+  const todayStart = new Date(nyt.date + 'T00:00:00Z').getTime();
+  const next24h = todayStart + 36*3600000;
+  const eventsToday = CAL_DATA.filter(e => {
+    const t = parseEventTime(e.time)?.getTime() || 0;
+    return t >= now - 3*3600000 && t < next24h && (e.impact === 'high' || e.impact === 'med');
+  }).sort((a, b) => (parseEventTime(a.time)?.getTime() || 0) - (parseEventTime(b.time)?.getTime() || 0));
+
+  const eventsList = eventsToday.slice(0, 10).map(e => {
+    const dt = fmtEventDateTime(e.time);
+    const cm = COUNTRY_META[e.country] || { name: e.country };
+    const fcst = e.forecast != null ? ` · forecast: ${e.forecast}` : '';
+    const prev = e.previous != null ? ` · prev: ${e.previous}` : '';
+    const act = e.actual != null ? ` · ACTUAL: ${e.actual}` : '';
+    return `- [${e.impact.toUpperCase()}] ${cm.name} · ${e.event} · ${dt.date} ${dt.time} UTC${fcst}${prev}${act}`;
+  }).join('\n');
+
+  // Macro news top 8 (din ultimele 24h)
+  const recentMacro = MACRO_NEWS.filter(n => (now - n.ts*1000) < 24*3600000).slice(0, 8);
+  const macroList = recentMacro.map(n => `- [${n.sentiment.toUpperCase()}] ${n.source} · ${n.title}`).join('\n') || '(nu sunt știri macro încărcate)';
+
+  // Crypto news top 6
+  const recentCrypto = CRYPTO_NEWS.filter(n => (now - n.ts*1000) < 24*3600000).slice(0, 6);
+  const cryptoList = recentCrypto.map(n => `- [${n.sentiment.toUpperCase()}] ${n.source} · ${n.title}${n.tags?.length ? ' · ' + n.tags.join('/') : ''}`).join('\n') || '(nu sunt știri crypto încărcate)';
+
+  // Stat tiles snapshot
+  const tiles = [
+    ['VIX', getStatTileVal('tile-vix')],
+    ['DXY', getStatTileVal('tile-dxy')],
+    ['10Y', getStatTileVal('tile-10y')],
+    ['BTC', getStatTileVal('tile-btc')],
+    ['ETH', getStatTileVal('tile-eth')],
+    ['F&G', getStatTileVal('tile-fng')]
+  ];
+  const tilesList = tiles.map(([k, t]) => `- ${k}: ${t.v} (${t.sub})`).join('\n');
+
+  return { nyt, eventsList, macroList, cryptoList, tilesList, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
+}
+
+async function generateBrief(force=false) {
+  const nyt = getNYDateHour();
+  const cached = loadBriefCache();
+  if (!force && cached && cached.dateET === nyt.date && (Date.now() - cached.generatedAt) < 12*3600000) {
+    renderBrief(cached);
+    return;
+  }
+
+  if (!getAnthropicKey()) {
+    renderBriefError('⚠ Lipsă Anthropic key. Configureaz-o din Setări ⚙.');
+    return;
+  }
+
+  // Asigură-te că ai news încărcate (pentru context)
+  if (!MACRO_NEWS.length && getFinnhubKey()) await fetchMacroNews().catch(() => {});
+  if (!CRYPTO_NEWS.length) await fetchCryptoNews().catch(() => {});
+
+  const ctx = buildBriefContext();
+  renderBriefMeta(ctx);
+
+  const prompt = `Data: ${ctx.nyt.date} · Ora ET acum: ${String(ctx.nyt.hour).padStart(2,'0')}:${String(ctx.nyt.minute).padStart(2,'0')}
+
+=== EVENIMENTE ECONOMICE AZI + NEXT 24H (${ctx.eventsCount} total, ${ctx.hiCount} HIGH) ===
+${ctx.eventsList || '(niciun event high/med în fereastră)'}
+
+=== STIRI MACRO (ultimele 24h) ===
+${ctx.macroList}
+
+=== STIRI CRYPTO (ultimele 24h) ===
+${ctx.cryptoList}
+
+=== CONTEXT PIATA (live) ===
+${ctx.tilesList}
+
+Genereaza brief-ul matinal conform structurii.`;
+
+  const bodyEl = $('briefBody');
+  const statusEl = $('briefStatus');
+  bodyEl.classList.remove('error');
+  bodyEl.classList.add('loading');
+  bodyEl.textContent = '';
+  statusEl.textContent = '🧠 generez...';
+
+  try {
+    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, txt => {
+      bodyEl.textContent = txt;
+    });
+    bodyEl.classList.remove('loading');
+    const brief = {
+      dateET: nyt.date,
+      generatedAt: Date.now(),
+      text: full,
+      ctx: { eventsCount: ctx.eventsCount, hiCount: ctx.hiCount, tiles: ctx.tilesList }
+    };
+    saveBriefCache(brief);
+    renderBrief(brief);
+    toast('✅ Brief generat', 'success');
+  } catch (e) {
+    bodyEl.classList.remove('loading');
+    renderBriefError('❌ Eroare AI: ' + e.message);
+    statusEl.textContent = 'eroare';
+  }
+}
+
+function renderBriefMeta(ctxOrBrief) {
+  const meta = $('briefMeta');
+  let ev = ctxOrBrief.eventsCount ?? 0;
+  let hi = ctxOrBrief.hiCount ?? 0;
+  let tilesStr = ctxOrBrief.tilesList || ctxOrBrief.ctx?.tiles || '';
+  // Parse tilesStr line by line
+  const tileLines = tilesStr.split('\n').filter(l => l.startsWith('- '));
+  const tilesHtml = tileLines.map(l => {
+    const m = l.match(/^- ([^:]+):\s*(.+?)\s*\((.+)\)/);
+    if (!m) return '';
+    return `<div class="brief-meta-tile"><div class="bmt-label">${escHtml(m[1])}</div><div class="bmt-val">${escHtml(m[2])}</div></div>`;
+  }).join('');
+  meta.innerHTML = `
+    <div class="brief-meta-tile"><div class="bmt-label">📅 Events azi+24h</div><div class="bmt-val">${ev} (${hi} 🔴 high)</div></div>
+    ${tilesHtml}`;
+}
+
+function renderBrief(brief) {
+  const body = $('briefBody');
+  body.classList.remove('loading', 'error');
+  body.textContent = brief.text;
+  $('briefDate').textContent = `${brief.dateET} · generat ${new Date(brief.generatedAt).toLocaleString('ro-RO', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}`;
+  $('briefStatus').textContent = `✅ cache · ${Math.round((Date.now() - brief.generatedAt) / 60000)}min în urmă`;
+  renderBriefMeta(brief);
+  $('briefNextTime').textContent = '';
+}
+
+function renderBriefError(msg) {
+  const body = $('briefBody');
+  body.classList.add('error');
+  body.classList.remove('loading');
+  body.textContent = msg;
+  $('briefStatus').textContent = 'eroare';
+}
+
+function renderBriefEmpty() {
+  const body = $('briefBody');
+  body.innerHTML = `<div class="brief-empty">
+    <div class="bp-icon">📋</div>
+    <h4>Niciun brief generat încă</h4>
+    <p>Brief-ul agregă <strong>top high-impact events azi</strong>, <strong>sentiment macro/crypto</strong>, <strong>valori curente VIX/DXY/BTC/ETH</strong> și generează un context decizional cross-asset prin Claude opus-4.7.</p>
+    <p>Auto-trigger la prima încărcare după <strong>08:00 ET</strong>. Cache 12h per zi.</p>
+    <div class="next-time" id="briefNextTime"></div>
+  </div>`;
+  updateBriefNextTime();
+}
+
+function updateBriefNextTime() {
+  const nyt = getNYDateHour();
+  const el = $('briefNextTime');
+  if (!el) return;
+  if (nyt.hour >= 8) {
+    el.textContent = '✅ Fereastra de generare e activă (după 08:00 ET). Apasă butonul pentru a genera.';
+  } else {
+    const left = (8 - nyt.hour - 1) * 60 + (60 - nyt.minute);
+    const h = Math.floor(left / 60);
+    const m = left % 60;
+    el.textContent = `⏰ Următorul auto-trigger: 08:00 ET (în ${h}h ${m}min)`;
+  }
+}
+
+function shouldAutoGenerateBrief() {
+  const nyt = getNYDateHour();
+  if (nyt.hour < 8) return false;
+  const cached = loadBriefCache();
+  if (cached && cached.dateET === nyt.date) return false;
+  return true;
+}
+
+function initBriefTab() {
+  const cached = loadBriefCache();
+  const nyt = getNYDateHour();
+  if (cached && cached.dateET === nyt.date) {
+    renderBrief(cached);
+  } else if (cached) {
+    // Brief vechi (ziua precedentă) — afișează-l cu marker stale
+    renderBrief(cached);
+    $('briefStatus').textContent = `⚠ vechi · ${cached.dateET}`;
+  } else {
+    renderBriefEmpty();
+  }
+}
+
 // ============ TABS ============
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -1481,6 +1766,7 @@ function switchTab(name) {
   const now = Date.now();
   if (name === 'macroNews' && now - _newsLoadedAt.macro > NEWS_CACHE_TTL) fetchMacroNews();
   if (name === 'cryptoNews' && now - _newsLoadedAt.crypto > NEWS_CACHE_TTL) fetchCryptoNews();
+  if (name === 'brief') initBriefTab();
 }
 
 // ============ SETTINGS MODAL ============
@@ -1671,6 +1957,13 @@ function bindEvents() {
     if (t) t.classList.add('active');
   }
 
+  // Brief tab buttons
+  $('briefGenBtn').addEventListener('click', () => generateBrief(false));
+  $('briefRerunBtn').addEventListener('click', () => {
+    if (!confirm('Re-generează brief-ul (consumă tokens AI)?')) return;
+    generateBrief(true);
+  });
+
   // Restaurez chip-uri active din CFG
   if (CFG.impactFilter !== 'all') {
     document.querySelectorAll('.fb-chip[data-impact]').forEach(x => x.classList.remove('active'));
@@ -1693,10 +1986,15 @@ async function init() {
   bindEvents();
   renderSession();
   setInterval(renderSession, 30000);
+  initBriefTab(); // afișează brief cached dacă există
   await Promise.all([loadCalendar(), loadStatTiles()]);
   scheduleAutoRefresh();
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
   preloadAITop5().catch(() => {});
+  // Auto-trigger Daily Brief dacă e după 08:00 ET și nu există brief pentru azi
+  if (shouldAutoGenerateBrief() && getAnthropicKey()) {
+    setTimeout(() => generateBrief(false).catch(() => {}), 3000);
+  }
 }
 
 // Register service worker
