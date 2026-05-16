@@ -278,6 +278,26 @@ tbody tr:nth-child(even):not(.expanded-row) { background:rgba(255,255,255,.012);
 tbody tr.imminent { border-left-color:var(--bear-s); }
 tbody tr.soon { border-left-color:var(--warn); }
 tbody tr.week { border-left-color:var(--gold); }
+tbody tr.result-new { animation:flashResult 2.5s ease; }
+@keyframes flashResult {
+  0% { background:rgba(34,214,107,.35); }
+  30% { background:rgba(34,214,107,.20); }
+  100% { background:transparent; }
+}
+tbody tr.result-new.miss { animation-name:flashResultBad; }
+@keyframes flashResultBad {
+  0% { background:rgba(255,77,77,.35); }
+  30% { background:rgba(255,77,77,.20); }
+  100% { background:transparent; }
+}
+.fast-poll-pill {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 9px; border-radius:999px; font-size:10px; font-weight:700;
+  background:rgba(34,214,107,.18); color:var(--bull-s); border:1px solid rgba(34,214,107,.5);
+  font-family:var(--mono); letter-spacing:.3px;
+  animation:pulse 2s ease-in-out infinite;
+}
+.fast-poll-pill::before { content:"⚡"; margin-right:2px; }
 tbody tr.clickable { cursor:pointer; }
 td { padding:7px 6px; text-align:center; vertical-align:middle; font-family:var(--mono); }
 td.left { text-align:left; padding-left:14px; }
@@ -528,9 +548,10 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v145</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v146</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
+  <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte (beep)">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
   <button class="icon-btn" id="tgBtn" title="Telegram alerts">📡</button>
@@ -772,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <script>
 // ============ CONFIG ============
-const VERSION = 'v145';
+const VERSION = 'v146';
 const DEFAULT_CFG = {
   alertThreshold: 120, // minute
   autoRefresh: 1800, // secunde
@@ -1626,6 +1647,10 @@ async function loadCalendar() {
   LAST_SCAN_AT = Date.now();
   // După reload calendar, re-evaluăm alertele (pot fi events noi sub threshold)
   checkAlerts();
+  // Și verificăm dacă au apărut rezultate noi (actual publicat)
+  checkResults();
+  // Re-check fast-poll status (poate intra în fereastra release acum)
+  scheduleAutoRefresh();
 }
 
 function normalizeImpact(v) {
@@ -1729,16 +1754,18 @@ function renderCalendar() {
     const fcst = e.forecast != null ? escHtml(String(e.forecast)) + u : '—';
     const prev = e.previous != null ? escHtml(String(e.previous)) + u : '—';
     let actHtml = '<span class="act-flat">—</span>';
+    let resultBias = null;
     if (e.actual != null) {
-      const a = parseFloat(e.actual), f = parseFloat(e.forecast);
-      let cls = 'act-flat';
-      if (!isNaN(a) && !isNaN(f)) cls = a > f ? 'act-pos' : (a < f ? 'act-neg' : 'act-flat');
-      actHtml = `<span class="${cls}">${escHtml(String(e.actual))}${u}</span>`;
+      const r = classifyResult(e.actual, e.forecast, e.event);
+      resultBias = r.bias;
+      const cls = r.cls === 'beat' ? 'act-pos' : (r.cls === 'miss' ? 'act-neg' : 'act-flat');
+      actHtml = `<span class="${cls}" title="${escHtml(r.verdict)}">${r.icon} ${escHtml(String(e.actual))}${u}</span>`;
     }
+    const flashCls = _flashedRows.has(e.time + '|' + e.event) ? ' result-new' + (resultBias === 'bearish' ? ' miss' : '') : '';
     const tvSym = quickTickerFor(e);
     const tvBtn = tvSym ? `<a class="action-btn" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSym)}" target="_blank" title="TradingView">📈</a>` : '';
 
-    return `<tr class="clickable ${rowCls}" data-time="${escHtml(e.time)}" data-event="${escHtml(e.event)}">
+    return `<tr class="clickable ${rowCls}${flashCls}" data-time="${escHtml(e.time)}" data-event="${escHtml(e.event)}">
       <td class="left when-cell"><span class="when-d">${escHtml(dt.date)} · ${escHtml(dt.time)}</span><span class="when-h">${escHtml(tu)}</span></td>
       <td><span class="flag">${cm.flag}</span><span class="country-code">${escHtml(e.country)}</span></td>
       <td class="left"><div class="evt-name">${escHtml(e.event)}</div></td>
@@ -2844,17 +2871,6 @@ async function tgTestHandler() {
   } catch (e) { toast('❌ Eroare rețea Telegram', 'error'); }
 }
 
-// ============ AUTO-REFRESH ============
-function scheduleAutoRefresh() {
-  if (_refreshTimer) clearTimeout(_refreshTimer);
-  if (!CFG.autoRefresh) return;
-  _refreshTimer = setTimeout(async () => {
-    await loadCalendar();
-    await loadStatTiles();
-    scheduleAutoRefresh();
-  }, CFG.autoRefresh * 1000);
-}
-
 // ============ ALERTS pre-event ============
 let _alertTimer = null;
 let _audioCtx = null;
@@ -2986,6 +3002,173 @@ function scheduleAlertCheck() {
     checkAlerts();
     scheduleAlertCheck();
   }, 60000);
+}
+
+// ============ RESULT DETECTION (actual apare) ============
+let SEEN_ACTUAL = (() => { try { return JSON.parse(localStorage.getItem('md_seen_actual') || '{}'); } catch (e) { return {}; } })();
+let _flashedRows = new Set(); // rânduri flash-uite în această sesiune
+const FLASH_WINDOW_MS = 6*3600*1000; // un event publicat acum max 6h e considerat „nou"
+
+function cleanupSeenActual() {
+  const now = Date.now();
+  let dirty = false;
+  for (const k of Object.keys(SEEN_ACTUAL)) {
+    if (now - SEEN_ACTUAL[k].ts > 7*86400000) { delete SEEN_ACTUAL[k]; dirty = true; }
+  }
+  if (dirty) try { localStorage.setItem('md_seen_actual', JSON.stringify(SEEN_ACTUAL)); } catch (e) {}
+}
+
+function classifyResult(actual, forecast, eventName) {
+  // Pentru events bullish-on-up: NFP, Retail Sales, GDP, PMI, Confidence
+  // Pentru events bearish-on-up: CPI, PPI, Inflation, Jobless Claims, Unemployment
+  const bullishOnUp = /payroll|nfp|retail|gdp|pmi|confidence|industrial|durable|housing/i.test(eventName);
+  const bearishOnUp = /cpi|ppi|inflation|jobless|unemployment|claims/i.test(eventName);
+  const a = parseFloat(actual);
+  const f = parseFloat(forecast);
+  if (isNaN(a) || isNaN(f)) {
+    return { verdict:'PUBLISHED', icon:'📊', cls:'neut', surprise:null, bias:'neutral' };
+  }
+  const surprise = ((a - f) / Math.abs(f || 1)) * 100; // % surprise vs forecast
+  const absDiff = a - f;
+  if (Math.abs(absDiff) < 0.01) return { verdict:'IN-LINE', icon:'➖', cls:'neut', surprise, bias:'neutral' };
+
+  if (bullishOnUp) {
+    if (a > f) return { verdict:'BEAT', icon:'🟢', cls:'beat', surprise, bias:'bullish' };
+    else return { verdict:'MISS', icon:'🔴', cls:'miss', surprise, bias:'bearish' };
+  }
+  if (bearishOnUp) {
+    if (a < f) return { verdict:'COOL', icon:'🟢', cls:'beat', surprise, bias:'bullish' };
+    else return { verdict:'HOT', icon:'🔴', cls:'miss', surprise, bias:'bearish' };
+  }
+  // Default: assume bullish on beat (higher = better)
+  if (a > f) return { verdict:'ABOVE', icon:'🟢', cls:'beat', surprise, bias:'bullish' };
+  return { verdict:'BELOW', icon:'🔴', cls:'miss', surprise, bias:'bearish' };
+}
+
+function buildResultTgMessage(events) {
+  const lines = [`📊 <b>Macro Dashboard</b> · rezultate publicate`];
+  for (const { e, r } of events) {
+    const cm = COUNTRY_META[e.country] || { name: e.country, flag:'🌐' };
+    lines.push('');
+    lines.push(`${r.icon} <b>${escHtml(e.event)}</b> · ${r.verdict}`);
+    lines.push(`${cm.flag} ${escHtml(cm.name)} · Actual: <code>${escHtml(String(e.actual))}</code>`);
+    const detailParts = [];
+    if (e.forecast != null) detailParts.push(`Forecast: <code>${escHtml(String(e.forecast))}</code>`);
+    if (e.previous != null) detailParts.push(`Prev: <code>${escHtml(String(e.previous))}</code>`);
+    if (r.surprise != null) detailParts.push(`Surprise: <code>${(r.surprise>=0?'+':'')+r.surprise.toFixed(2)}%</code>`);
+    if (detailParts.length) lines.push(detailParts.join(' · '));
+    const sectors = getSectorImpact(e.event);
+    if (sectors) {
+      const tickers = sectors.flatMap(s => s.tickers).slice(0, 5);
+      lines.push(`📊 Sectoare reactive: ${tickers.map(t => `<code>${escHtml(t)}</code>`).join(' ')}`);
+    }
+    lines.push(`<i>Bias inițial: ${r.bias === 'bullish' ? '🟢 BULL' : (r.bias === 'bearish' ? '🔴 BEAR' : '⚪ NEUTRAL')}</i>`);
+  }
+  return lines.join('\n');
+}
+
+function checkResults() {
+  if (!CAL_DATA.length) return;
+  const now = Date.now();
+  const newResults = [];
+  for (const e of CAL_DATA) {
+    if (e.actual == null) continue;
+    const t = parseEventTime(e.time)?.getTime();
+    if (!t) continue;
+    // Filtru: doar events din ultimele 6h ca să nu spamăm cu istorie veche
+    if (now - t > FLASH_WINDOW_MS) continue;
+    const key = e.time + '|' + e.event;
+    const prev = SEEN_ACTUAL[key];
+    if (prev && prev.actual == e.actual) continue; // deja văzut cu aceeași valoare
+    // Nou: salvăm și trigger alert
+    SEEN_ACTUAL[key] = { actual: e.actual, ts: now };
+    const r = classifyResult(e.actual, e.forecast, e.event);
+    newResults.push({ e, r, key });
+    _flashedRows.add(key);
+  }
+  if (!newResults.length) return;
+
+  try { localStorage.setItem('md_seen_actual', JSON.stringify(SEEN_ACTUAL)); } catch (err) {}
+
+  // Re-render ca să apară flash pe rânduri noi
+  renderCalendar();
+
+  // Alerte combo
+  newResults.forEach(({ e, r }) => {
+    toast(`${r.icon} ${r.verdict} · ${e.event} → ${e.actual} (forecast ${e.forecast ?? '—'})`, r.cls === 'miss' ? 'error' : 'success');
+  });
+  playBeep();
+  if (newResults.length === 1) {
+    const { e, r } = newResults[0];
+    showBrowserNotif(`${r.icon} ${r.verdict}: ${e.event}`, `Actual ${e.actual} vs forecast ${e.forecast ?? '—'}`);
+  } else {
+    showBrowserNotif(`📊 ${newResults.length} rezultate publicate`, newResults.map(x => x.e.event).join(', '));
+  }
+  sendTelegramAlert(buildResultTgMessage(newResults));
+
+  // Curăță flash după animație
+  setTimeout(() => {
+    newResults.forEach(({ key }) => _flashedRows.delete(key));
+  }, 3000);
+}
+
+// ============ FAST-POLL în jurul release events ============
+let _fastPollActive = false;
+let _fastPollUntil = 0;
+
+function detectFastPollNeed() {
+  // Activăm fast-poll dacă există high-impact event în T-15min până T+30min
+  const now = Date.now();
+  for (const e of CAL_DATA) {
+    if (e.impact !== 'high') continue;
+    const t = parseEventTime(e.time)?.getTime();
+    if (!t) continue;
+    const delta = t - now;
+    if (delta < 30*60000 && delta > -30*60000) {
+      // T-30min până T+30min: fereastra de release ±30min
+      // Dar activăm fast-poll doar dacă suntem aproape de release (T-15min ... T+30min)
+      if (delta < 15*60000 && delta > -30*60000) {
+        return Math.max(_fastPollUntil, t + 30*60000); // active până T+30min
+      }
+    }
+  }
+  return 0;
+}
+
+function applyFastPollUI() {
+  const pill = $('fastPollPill');
+  if (!pill) return;
+  if (_fastPollActive) {
+    pill.style.display = 'inline-flex';
+    const left = Math.max(0, Math.floor((_fastPollUntil - Date.now()) / 60000));
+    pill.textContent = `⚡ FAST-POLL · ${left}min`;
+  } else {
+    pill.style.display = 'none';
+  }
+}
+
+function scheduleAutoRefresh() {
+  if (_refreshTimer) clearTimeout(_refreshTimer);
+
+  // Check dacă activăm fast-poll
+  const fpUntil = detectFastPollNeed();
+  if (fpUntil > Date.now()) {
+    _fastPollActive = true;
+    _fastPollUntil = fpUntil;
+  } else if (_fastPollActive && Date.now() >= _fastPollUntil) {
+    _fastPollActive = false;
+    _fastPollUntil = 0;
+  }
+  applyFastPollUI();
+
+  const interval = _fastPollActive ? 60 : CFG.autoRefresh;
+  if (!interval) return;
+  _refreshTimer = setTimeout(async () => {
+    await loadCalendar();
+    if (!_fastPollActive) await loadStatTiles(); // în fast-poll skip stat tiles ca să nu burst proxy
+    checkResults();
+    scheduleAutoRefresh();
+  }, interval * 1000);
 }
 
 // ============ EVENT HANDLERS ============
@@ -3192,8 +3375,9 @@ function bindEvents() {
 async function init() {
   bindEvents();
   renderSession();
-  setInterval(renderSession, 30000);
+  setInterval(() => { renderSession(); applyFastPollUI(); }, 30000);
   cleanupSeen(); // sterge entries SEEN >7z
+  cleanupSeenActual(); // sterge entries SEEN_ACTUAL >7z
   initBriefTab(); // afișează brief cached dacă există
   await Promise.all([loadCalendar(), loadStatTiles()]);
   scheduleAutoRefresh();
