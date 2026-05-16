@@ -309,7 +309,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v140</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v141</span></h1>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte (beep)">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -483,11 +483,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <label>Anthropic key:</label>
         <input type="text" id="setAnthropicKey" placeholder="sk-ant-...">
       </div>
-      <div class="modal-row">
-        <label>CryptoPanic key:</label>
-        <input type="text" id="setCryptopanicKey" placeholder="(opțional, free de la cryptopanic.com)">
-      </div>
-      <div class="modal-note">Cheile sunt persistate local (localStorage), nu trimise nicăieri în afară de API-urile respective. Finnhub și Anthropic sunt SHARED cu nasdaq-scanner / earnings-hub / pump-radar.</div>
+      <div class="modal-note">Cheile sunt persistate local (localStorage), nu trimise nicăieri în afară de API-urile respective. Finnhub și Anthropic sunt SHARED cu nasdaq-scanner / earnings-hub / pump-radar.<br>Crypto news folosește <b>Finnhub crypto + Reddit r/CryptoCurrency + Cointelegraph RSS</b> (free, fără cheie extra).</div>
     </div>
 
     <div class="modal-section">
@@ -544,7 +540,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <script>
 // ============ CONFIG ============
-const VERSION = 'v140';
+const VERSION = 'v141';
 const DEFAULT_CFG = {
   alertThreshold: 120, // minute
   autoRefresh: 1800, // secunde
@@ -681,7 +677,6 @@ function toast(msg, kind='info') {
 
 function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || ''; }
 function getAnthropicKey() { return localStorage.getItem('anthropic_api_key') || ''; }
-function getCryptopanicKey() { return localStorage.getItem('cryptopanic_key') || ''; }
 function getTgConfig() { try { return JSON.parse(localStorage.getItem('tt_tg_config') || '{}'); } catch(e) { return {}; } }
 
 // ============ NYSE SESSION (DST-aware) ============
@@ -1178,61 +1173,99 @@ async function fetchMacroNews() {
 
 async function fetchCryptoNews() {
   $('cnStatus').textContent = '⏳ Se încarcă...';
-  $('cnList').innerHTML = '<div class="news-loading">⏳ Aduc știri crypto...</div>';
-  const cpKey = getCryptopanicKey();
+  $('cnList').innerHTML = '<div class="news-loading">⏳ Aduc știri crypto (Finnhub + Reddit + Cointelegraph)...</div>';
   const fhKey = getFinnhubKey();
+  const usedSources = [];
 
   const tasks = [];
-  // CryptoPanic (free, public, no key required pentru public posts dar key dezactivează rate limit)
-  tasks.push(
-    (async () => {
-      try {
-        const url = cpKey
-          ? `https://cryptopanic.com/api/v1/posts/?auth_token=${encodeURIComponent(cpKey)}&public=true&kind=news`
-          : `https://cryptopanic.com/api/v1/posts/?public=true&kind=news`;
-        const data = await fetchViaProxy(url);
-        const posts = data?.results || [];
-        return posts.map(p => ({
-          id: 'cp_' + p.id,
-          title: p.title,
-          summary: p.title,
-          source: p.source?.title || 'CryptoPanic',
-          url: p.url || p.original_url || '',
-          ts: Math.floor(new Date(p.published_at).getTime()/1000),
-          sentiment: (() => {
-            const v = p.votes || {};
-            if (v.important && v.important >= 2) return 'important';
-            const pos = (v.positive||0) + (v.liked||0);
-            const neg = (v.negative||0) + (v.disliked||0) + (v.toxic||0);
-            if (pos > neg + 1) return 'bull';
-            if (neg > pos + 1) return 'bear';
-            return quickSentiment(p.title);
-          })(),
-          tags: (p.currencies || []).map(c => c.code).slice(0, 4),
-          category: 'crypto'
-        }));
-      } catch (e) { return []; }
-    })()
-  );
-  // Finnhub crypto news as backup
+
+  // 1. Finnhub crypto news (cu key, business-focused)
   if (fhKey) {
     tasks.push(
       fetch(`https://finnhub.io/api/v1/news?category=crypto&token=${encodeURIComponent(fhKey)}`)
         .then(r => r.ok ? r.json() : [])
-        .then(arr => (Array.isArray(arr) ? arr : []).map(n => ({
-          id: 'fh_' + n.id,
-          title: n.headline,
-          summary: n.summary || '',
-          source: n.source || 'Finnhub',
-          url: n.url || '',
-          ts: n.datetime || Math.floor(Date.now()/1000),
-          sentiment: quickSentiment(n.headline + ' ' + (n.summary || '')),
-          tags: detectCryptoTags(n.headline + ' ' + (n.summary || '')),
-          category: 'crypto'
-        })))
+        .then(arr => {
+          if (Array.isArray(arr) && arr.length) usedSources.push('Finnhub');
+          return (Array.isArray(arr) ? arr : []).map(n => ({
+            id: 'fh_' + n.id,
+            title: n.headline,
+            summary: n.summary || '',
+            source: n.source || 'Finnhub',
+            url: n.url || '',
+            ts: n.datetime || Math.floor(Date.now()/1000),
+            sentiment: quickSentiment(n.headline + ' ' + (n.summary || '')),
+            tags: detectCryptoTags(n.headline + ' ' + (n.summary || '')),
+            category: 'crypto'
+          }));
+        })
         .catch(() => [])
     );
   }
+
+  // 2. Reddit r/CryptoCurrency JSON (free, no key, CORS allowed)
+  tasks.push(
+    fetch('https://www.reddit.com/r/CryptoCurrency/new.json?limit=30')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const posts = data?.data?.children || [];
+        if (posts.length) usedSources.push('Reddit');
+        return posts.map(c => c.data).filter(p => p && !p.stickied && (p.score || 0) >= 10).map(p => ({
+          id: 'rd_' + p.id,
+          title: p.title,
+          summary: (p.selftext || '').slice(0, 200),
+          source: 'r/' + (p.subreddit || 'CryptoCurrency'),
+          url: 'https://reddit.com' + (p.permalink || ''),
+          ts: p.created_utc || Math.floor(Date.now()/1000),
+          sentiment: (() => {
+            // Boost important pe posts cu engagement mare
+            const eng = (p.score || 0) + (p.num_comments || 0) * 2;
+            if (eng >= 500) return 'important';
+            return quickSentiment(p.title + ' ' + (p.selftext || ''));
+          })(),
+          tags: detectCryptoTags(p.title + ' ' + (p.selftext || '')),
+          category: 'crypto'
+        }));
+      })
+      .catch(() => [])
+  );
+
+  // 3. Cointelegraph RSS via proxy CORS
+  tasks.push(
+    fetchViaProxy('https://cointelegraph.com/rss')
+      .then(content => {
+        const text = typeof content === 'string' ? content : '';
+        if (!text || text.length < 100) return [];
+        // Parse XML/RSS prin DOMParser
+        const items = [];
+        try {
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(text, 'text/xml');
+          const itemNodes = xml.querySelectorAll('item');
+          itemNodes.forEach((item, i) => {
+            if (i >= 25) return;
+            const title = item.querySelector('title')?.textContent?.trim() || '';
+            const link = item.querySelector('link')?.textContent?.trim() || '';
+            const pubDate = item.querySelector('pubDate')?.textContent?.trim() || '';
+            const desc = (item.querySelector('description')?.textContent?.trim() || '').replace(/<[^>]+>/g, '').slice(0, 200);
+            const ts = pubDate ? Math.floor(new Date(pubDate).getTime()/1000) : Math.floor(Date.now()/1000);
+            items.push({
+              id: 'ct_' + ts + '_' + i,
+              title,
+              summary: desc,
+              source: 'Cointelegraph',
+              url: link,
+              ts,
+              sentiment: quickSentiment(title + ' ' + desc),
+              tags: detectCryptoTags(title + ' ' + desc),
+              category: 'crypto'
+            });
+          });
+          if (items.length) usedSources.push('Cointelegraph');
+        } catch (e) { /* ignore parse error */ }
+        return items;
+      })
+      .catch(() => [])
+  );
 
   try {
     const results = await Promise.all(tasks);
@@ -1246,7 +1279,8 @@ async function fetchCryptoNews() {
       return true;
     }).sort((a, b) => b.ts - a.ts).slice(0, 80);
     _newsLoadedAt.crypto = Date.now();
-    $('cnStatus').textContent = `✅ ${CRYPTO_NEWS.length} știri · ${cpKey ? 'CryptoPanic ✓' : 'CryptoPanic public'}${fhKey ? ' + Finnhub' : ''}`;
+    const srcLabel = usedSources.length ? usedSources.join(' + ') : '(nicio sursă)';
+    $('cnStatus').textContent = `✅ ${CRYPTO_NEWS.length} știri · ${srcLabel} · ${new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}`;
     renderCryptoNews();
   } catch (e) {
     $('cnStatus').textContent = '❌ Eroare';
@@ -1780,7 +1814,6 @@ function switchTab(name) {
 function openSettings() {
   $('setFinnhubKey').value = getFinnhubKey();
   $('setAnthropicKey').value = getAnthropicKey();
-  $('setCryptopanicKey').value = getCryptopanicKey();
   $('setAlertThreshold').value = String(CFG.alertThreshold);
   $('setAutoRefresh').value = String(CFG.autoRefresh);
   const tg = getTgConfig();
@@ -1794,10 +1827,8 @@ function closeSettings() { $('settingsModal').classList.remove('show'); }
 function saveSettingsHandler() {
   const fk = $('setFinnhubKey').value.trim();
   const ak = $('setAnthropicKey').value.trim();
-  const ck = $('setCryptopanicKey').value.trim();
   if (fk) localStorage.setItem('finnhub_api_key', fk);
   if (ak) localStorage.setItem('anthropic_api_key', ak);
-  if (ck) localStorage.setItem('cryptopanic_key', ck);
 
   CFG.alertThreshold = parseInt($('setAlertThreshold').value, 10) || 120;
   CFG.autoRefresh = parseInt($('setAutoRefresh').value, 10) || 0;
