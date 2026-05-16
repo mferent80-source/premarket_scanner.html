@@ -548,7 +548,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v146</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v147</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <script>
 // ============ CONFIG ============
-const VERSION = 'v146';
+const VERSION = 'v147';
 const DEFAULT_CFG = {
   alertThreshold: 120, // minute
   autoRefresh: 1800, // secunde
@@ -2079,7 +2079,9 @@ function persistNewsAiCache() {
 }
 
 function findNewsById(id) {
-  return MACRO_NEWS.find(n => n.id === id) || CRYPTO_NEWS.find(n => n.id === id);
+  // Comparație ca string: Finnhub macro returnează id ca number, dar dataset.id e string
+  const s = String(id);
+  return MACRO_NEWS.find(n => String(n.id) === s) || CRYPTO_NEWS.find(n => String(n.id) === s);
 }
 
 function toggleNewsExpand(card) {
