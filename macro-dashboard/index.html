@@ -309,7 +309,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v139</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v140</span></h1>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte (beep)">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -509,6 +509,11 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
           <option value="7200">2 ore</option>
         </select>
       </div>
+      <div class="modal-row">
+        <label>&nbsp;</label>
+        <button id="alertTest" class="ghost">🧪 Test alertă (beep + notif + tg)</button>
+      </div>
+      <div class="modal-note">Alertele se declanșează automat pentru evenimentele <b>high-impact</b> când rămâne sub pragul ales. Dedupe 7 zile per eveniment (nu te spamează la fiecare scan).</div>
     </div>
 
     <div class="modal-section">
@@ -539,7 +544,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <script>
 // ============ CONFIG ============
-const VERSION = 'v139';
+const VERSION = 'v140';
 const DEFAULT_CFG = {
   alertThreshold: 120, // minute
   autoRefresh: 1800, // secunde
@@ -945,6 +950,8 @@ async function loadCalendar() {
   renderHotStrip();
   renderCalendar();
   LAST_SCAN_AT = Date.now();
+  // După reload calendar, re-evaluăm alertele (pot fi events noi sub threshold)
+  checkAlerts();
 }
 
 function normalizeImpact(v) {
@@ -1835,6 +1842,139 @@ function scheduleAutoRefresh() {
   }, CFG.autoRefresh * 1000);
 }
 
+// ============ ALERTS pre-event ============
+let _alertTimer = null;
+let _audioCtx = null;
+
+function playBeep() {
+  if (!CFG.sound) return;
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx;
+    const now = ctx.currentTime;
+    // Pattern 2-ton: 880Hz + 1320Hz
+    [{ f: 880, t: 0 }, { f: 1320, t: 0.18 }].forEach(({ f, t }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0, now + t);
+      gain.gain.linearRampToValueAtTime(0.15, now + t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.20);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + t);
+      osc.stop(now + t + 0.22);
+    });
+  } catch (e) { /* ignore */ }
+}
+
+function showBrowserNotif(title, body) {
+  if (!CFG.notif) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification(title, { body, icon: '/favicon.ico', tag: 'md-alert' });
+    setTimeout(() => n.close(), 8000);
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch (e) { /* ignore */ }
+}
+
+async function sendTelegramAlert(htmlMessage) {
+  const tg = getTgConfig();
+  if (!tg.enabled || !tg.token || !tg.chatId) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${tg.token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: tg.chatId, text: htmlMessage, parse_mode: 'HTML', disable_web_page_preview: true })
+    });
+  } catch (e) { /* ignore network */ }
+}
+
+function buildAlertTgMessage(events, thresholdLabel) {
+  const lines = [`🔔 <b>Macro Dashboard</b> · alerte pre-event (${escHtml(thresholdLabel)})`];
+  for (const e of events) {
+    const cm = COUNTRY_META[e.country] || { name: e.country, flag:'🌐' };
+    const dt = fmtEventDateTime(e.time);
+    const tu = timeUntilLabel(e.time);
+    const impactIcon = e.impact === 'high' ? '🔴' : (e.impact === 'med' ? '🟡' : '⚪');
+    lines.push('');
+    lines.push(`${impactIcon} <b>${escHtml(e.event)}</b>`);
+    lines.push(`${cm.flag} ${escHtml(cm.name)} · ${escHtml(dt.date)} ${escHtml(dt.time)} UTC · <i>${escHtml(tu)}</i>`);
+    const meta = [];
+    if (e.forecast != null) meta.push(`Forecast: <code>${escHtml(String(e.forecast))}</code>`);
+    if (e.previous != null) meta.push(`Prev: <code>${escHtml(String(e.previous))}</code>`);
+    if (meta.length) lines.push(meta.join(' · '));
+    const sectors = getSectorImpact(e.event);
+    if (sectors) {
+      const tickers = sectors.flatMap(s => s.tickers).slice(0, 5);
+      lines.push(`📊 Sectoare: ${tickers.map(t => `<code>${escHtml(t)}</code>`).join(' ')}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function thresholdLabel(min) {
+  if (min < 60) return min + ' min';
+  if (min < 1440) return (min/60) + 'h';
+  return (min/1440) + 'z';
+}
+
+function cleanupSeen() {
+  const now = Date.now();
+  let dirty = false;
+  for (const k of Object.keys(SEEN)) {
+    if (now - SEEN[k] > 7*86400000) { delete SEEN[k]; dirty = true; }
+  }
+  if (dirty) try { localStorage.setItem('md_seen', JSON.stringify(SEEN)); } catch (e) {}
+}
+
+function checkAlerts() {
+  if (!CAL_DATA.length) return;
+  const now = Date.now();
+  const thresholdMs = (CFG.alertThreshold || 120) * 60000;
+  // Detect high-impact events care intra in fereastra threshold (sub threshold, dar nu au trecut deja)
+  const trigger = [];
+  for (const e of CAL_DATA) {
+    if (e.impact !== 'high') continue;
+    const t = parseEventTime(e.time)?.getTime();
+    if (!t) continue;
+    const delta = t - now;
+    if (delta < 0 || delta > thresholdMs) continue;
+    const key = e.time + '|' + e.event;
+    if (SEEN[key]) continue;
+    SEEN[key] = now;
+    trigger.push(e);
+  }
+  if (!trigger.length) return;
+
+  // Persist SEEN
+  try { localStorage.setItem('md_seen', JSON.stringify(SEEN)); } catch (e) {}
+
+  // Combo alert: toast + sound + browser notif + telegram (grouped)
+  const label = thresholdLabel(CFG.alertThreshold);
+  trigger.forEach(e => {
+    const cm = COUNTRY_META[e.country] || { name: e.country };
+    toast(`🔴 ${cm.name} · ${e.event} · ${timeUntilLabel(e.time)}`, 'warn');
+  });
+  playBeep();
+  if (trigger.length === 1) {
+    const e = trigger[0];
+    showBrowserNotif(`🔴 ${e.event}`, `${(COUNTRY_META[e.country]||{}).name||e.country} · ${timeUntilLabel(e.time)}`);
+  } else {
+    showBrowserNotif(`🔴 ${trigger.length} evenimente high-impact`, `Următoarele ${label} pe Macro Dashboard`);
+  }
+  sendTelegramAlert(buildAlertTgMessage(trigger, label));
+}
+
+function scheduleAlertCheck() {
+  if (_alertTimer) clearTimeout(_alertTimer);
+  // Verifică la fiecare 60s
+  _alertTimer = setTimeout(() => {
+    checkAlerts();
+    scheduleAlertCheck();
+  }, 60000);
+}
+
 // ============ EVENT HANDLERS ============
 function bindEvents() {
   // Tabs
@@ -1850,6 +1990,18 @@ function bindEvents() {
   $('cancelSettings').addEventListener('click', closeSettings);
   $('saveSettings').addEventListener('click', saveSettingsHandler);
   $('tgTest').addEventListener('click', tgTestHandler);
+  $('alertTest').addEventListener('click', () => {
+    const fakeEvent = {
+      time: new Date(Date.now() + 90*60000).toISOString().slice(0,16).replace('T',' '),
+      country: 'US', event: '🧪 TEST · FOMC Rate Decision (DEMO)', impact: 'high',
+      forecast: '5.25%', previous: '5.25%', actual: null, source: 'test'
+    };
+    toast('🔴 TEST · ' + fakeEvent.event, 'warn');
+    playBeep();
+    showBrowserNotif('🧪 TEST Macro Dashboard', 'Eveniment demo: ' + fakeEvent.event);
+    sendTelegramAlert(buildAlertTgMessage([fakeEvent], thresholdLabel(CFG.alertThreshold)));
+    toast('✅ Test trimis (verifică sunet + notif browser + Telegram)', 'success');
+  });
 
   // Sound / Notif
   $('soundBtn').addEventListener('click', () => {
@@ -1986,9 +2138,11 @@ async function init() {
   bindEvents();
   renderSession();
   setInterval(renderSession, 30000);
+  cleanupSeen(); // sterge entries SEEN >7z
   initBriefTab(); // afișează brief cached dacă există
   await Promise.all([loadCalendar(), loadStatTiles()]);
   scheduleAutoRefresh();
+  scheduleAlertCheck(); // verificare alerte la fiecare 60s
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
   preloadAITop5().catch(() => {});
   // Auto-trigger Daily Brief dacă e după 08:00 ET și nu există brief pentru azi
