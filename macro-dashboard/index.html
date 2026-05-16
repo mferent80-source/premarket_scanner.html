@@ -220,6 +220,55 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .placeholder h4 { font-size:15px; color:var(--t1); margin-bottom:8px; font-weight:700; }
 .placeholder p { font-size:12px; color:var(--t3); max-width:480px; margin:0 auto; line-height:1.6; }
 
+/* News cards */
+.news-wrap { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:10px; margin-bottom:10px; }
+.news-card { background:var(--panel); border:1px solid var(--b1); border-left:3px solid var(--accent); border-radius:var(--rs); padding:12px 14px; display:flex; flex-direction:column; gap:6px; transition:all .15s var(--ease); cursor:pointer; }
+.news-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); border-color:var(--accent); }
+.news-card.bull { border-left-color:var(--bull-s); }
+.news-card.bear { border-left-color:var(--bear-s); }
+.news-card.neut { border-left-color:var(--t3); }
+.news-card.important { border-left-color:var(--gold); background:linear-gradient(135deg, rgba(255,216,107,.06), var(--panel)); }
+.news-card .nc-title { font-family:var(--head); font-weight:700; font-size:13px; line-height:1.35; color:var(--t1); }
+.news-card .nc-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:10.5px; color:var(--t3); font-family:var(--mono); }
+.news-card .nc-source { font-weight:700; color:var(--t2); }
+.news-card .nc-time { color:var(--t3); }
+.news-card .nc-summary { font-size:11.5px; color:var(--t2); line-height:1.5; font-family:var(--head); max-height:60px; overflow:hidden; text-overflow:ellipsis; }
+.news-card .nc-tags { display:flex; gap:4px; flex-wrap:wrap; }
+.sent-chip { padding:2px 7px; border-radius:4px; font-size:9.5px; font-weight:700; font-family:var(--head); letter-spacing:.2px; }
+.sent-chip.bull { background:var(--bull-bg); color:var(--bull-s); border:1px solid rgba(34,214,107,.4); }
+.sent-chip.bear { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.4); }
+.sent-chip.neut { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
+.sent-chip.important { background:var(--gold-bg); color:var(--gold); border:1px solid rgba(255,216,107,.45); }
+.impact-chip { padding:1px 6px; border-radius:3px; font-size:9px; font-weight:700; font-family:var(--mono); background:rgba(59,130,246,.13); color:#60a5fa; border:1px solid rgba(59,130,246,.35); }
+
+.news-loading { padding:30px; text-align:center; color:var(--t3); font-size:12px; font-family:var(--head); }
+.news-empty { padding:30px; text-align:center; color:var(--t3); font-size:12px; font-family:var(--head); }
+
+/* AI bubble (streaming) */
+.ai-bubble { background:linear-gradient(135deg, rgba(59,130,246,.10), rgba(16,185,129,.06)); border:1px solid rgba(59,130,246,.35); border-radius:var(--rs); padding:10px 12px; font-family:var(--head); font-size:12px; line-height:1.6; color:var(--t1); white-space:pre-wrap; word-wrap:break-word; min-height:30px; max-height:340px; overflow-y:auto; }
+.ai-bubble.error { background:rgba(255,77,77,.08); border-color:rgba(255,77,77,.35); color:#fca5a5; }
+.ai-bubble.loading::after { content:" ▍"; animation:blink 1s infinite; color:var(--acc-1); }
+@keyframes blink { 50% { opacity:0; } }
+.ai-bar { display:flex; gap:6px; margin-bottom:6px; align-items:center; }
+.ai-bar button { padding:4px 10px; font-size:10.5px; }
+.ai-bar .ai-status { font-size:10px; color:var(--t3); font-family:var(--mono); margin-left:auto; }
+
+/* Sector impact map */
+.sector-grid { display:flex; flex-direction:column; gap:6px; }
+.sector-row { display:flex; align-items:center; gap:8px; padding:6px 9px; background:var(--panel2); border-radius:var(--rs); border:1px solid var(--b1); }
+.sector-icon { font-size:16px; }
+.sector-label { font-size:11px; color:var(--t2); font-family:var(--head); font-weight:600; flex:1; }
+.sector-tickers { display:flex; gap:4px; flex-wrap:wrap; }
+.sector-ticker { background:var(--panel3); border:1px solid var(--b2); padding:2px 7px; border-radius:4px; font-size:10px; font-weight:700; font-family:var(--mono); color:var(--t2); text-decoration:none; transition:all .15s var(--ease); }
+.sector-ticker:hover { border-color:var(--accent); color:var(--accent); }
+
+.exp-info { font-size:11px; color:var(--t2); line-height:1.55; font-family:var(--head); }
+.exp-info .info-label { font-size:9.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; font-weight:700; font-family:var(--mono); margin-bottom:3px; }
+.exp-info .info-row { display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid rgba(42,50,71,.4); }
+.exp-info .info-row:last-child { border-bottom:none; }
+.exp-info .info-key { color:var(--t3); font-size:10.5px; }
+.exp-info .info-val { color:var(--t1); font-weight:700; font-family:var(--mono); font-size:10.5px; }
+
 @media (max-width:640px) {
   body { padding:8px; font-size:12.5px; }
   header { gap:6px; padding:10px 12px; }
@@ -239,7 +288,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v137</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v138</span></h1>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte (beep)">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -322,19 +371,47 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <!-- Tab: Macro News -->
 <div class="tab-content" id="tab-macroNews">
-  <div class="placeholder">
-    <div class="ph-icon">📰</div>
-    <h4>Macro News — disponibil în PAS 2</h4>
-    <p>Aici vor apărea știri macro din Finnhub (Fed speak, geopolitică, market commentary) cu analiză sentiment AI per știre.</p>
+  <div class="filter-bar">
+    <div class="fb-group">
+      <span class="fb-label">Sentiment:</span>
+      <button class="fb-chip active" data-mnSent="all">Toate</button>
+      <button class="fb-chip" data-mnSent="bull">🟢 Bull</button>
+      <button class="fb-chip" data-mnSent="bear">🔴 Bear</button>
+      <button class="fb-chip" data-mnSent="neut">⚪ Neut</button>
+    </div>
+    <input type="text" id="mnSearch" placeholder="🔍 Caută titlu/sursă..." autocomplete="off">
+    <button class="ghost" id="mnRefresh" title="Reîncarcă știrile">🔄</button>
+    <span class="fb-count" id="mnCount">0 / 0</span>
+  </div>
+  <div class="panel-box">
+    <div class="panel-head">
+      <h3>📰 Macro News — Finnhub (general + forex)</h3>
+      <span class="panel-sub" id="mnStatus">Se încarcă...</span>
+    </div>
+    <div id="mnList" class="news-wrap" style="padding:10px"></div>
   </div>
 </div>
 
 <!-- Tab: Crypto News -->
 <div class="tab-content" id="tab-cryptoNews">
-  <div class="placeholder">
-    <div class="ph-icon">₿</div>
-    <h4>Crypto News — disponibil în PAS 2</h4>
-    <p>Aici vor apărea știri crypto din CryptoPanic + Finnhub cu sentiment built-in și impact pe MARA/RIOT/COIN/MSTR.</p>
+  <div class="filter-bar">
+    <div class="fb-group">
+      <span class="fb-label">Filtru:</span>
+      <button class="fb-chip active" data-cnFilter="all">Toate</button>
+      <button class="fb-chip" data-cnFilter="bull">🟢 Bull</button>
+      <button class="fb-chip" data-cnFilter="bear">🔴 Bear</button>
+      <button class="fb-chip" data-cnFilter="important">⭐ Important</button>
+    </div>
+    <input type="text" id="cnSearch" placeholder="🔍 Caută titlu/coin..." autocomplete="off">
+    <button class="ghost" id="cnRefresh" title="Reîncarcă știrile">🔄</button>
+    <span class="fb-count" id="cnCount">0 / 0</span>
+  </div>
+  <div class="panel-box">
+    <div class="panel-head">
+      <h3>₿ Crypto News — CryptoPanic + Finnhub</h3>
+      <span class="panel-sub" id="cnStatus">Se încarcă...</span>
+    </div>
+    <div id="cnList" class="news-wrap" style="padding:10px"></div>
   </div>
 </div>
 
@@ -421,7 +498,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <script>
 // ============ CONFIG ============
-const VERSION = 'v137';
+const VERSION = 'v138';
 const DEFAULT_CFG = {
   alertThreshold: 120, // minute
   autoRefresh: 1800, // secunde
@@ -431,16 +508,101 @@ const DEFAULT_CFG = {
   sortKey: 'time',
   sortDir: 'asc',
   sound: false,
-  notif: false
+  notif: false,
+  mnFilter: 'all',
+  cnFilter: 'all',
+  mnSearch: '',
+  cnSearch: ''
 };
+
+const NEWS_CACHE_TTL = 15 * 60 * 1000; // 15 min
+const AI_CACHE_TTL = 6 * 3600 * 1000; // 6h
+
+const AI_SYSTEM = `Esti analist macro pentru un trader stocks Nasdaq + crypto (Pionex, Trade212).
+Pentru evenimentul economic dat, raspunde concis in romana (max 250 cuvinte):
+1. Impact probabil pe Nasdaq (QQQ/SPY) - directional + intensitate
+2. Impact pe crypto (BTC/ETH) - corelatie cu USD/yields
+3. Sectoare US sensibile (ETF-uri: XLF/XLK/XLY/XLRE/XLE)
+4. Stocks individuale watchlist (max 3 tickere) + de ce
+5. Risc cheie (ce surpriza ar reversa teza)
+Fii direct, fara disclaimere. Foloseste bullet points scurte.`;
+
+const AI_SYSTEM_NEWS = `Esti analist sentiment pentru un trader Nasdaq + crypto.
+Pentru stirea data, raspunde concis in romana (max 150 cuvinte):
+1. Sentiment (bullish/bearish/neutru) + impact strength (mic/mediu/mare)
+2. Asset-uri afectate direct (max 3 tickere/coin-uri)
+3. Actiune practica: WATCH/BUY/SELL/IGNORE + de ce
+Foloseste bullet points. Fara disclaimere.`;
+
+// Sector impact map per event type (substring match, case insensitive)
+const SECTOR_IMPACT_MAP = [
+  { match:['fomc','fed','interest rate','rate decision'], sectors:[
+    {icon:'🏦', label:'Financiar (yields)', tickers:['XLF','JPM','BAC','GS']},
+    {icon:'💻', label:'Tech (growth/duration)', tickers:['XLK','QQQ','NVDA']},
+    {icon:'🏠', label:'Real Estate (rate-sensitive)', tickers:['XLRE','VNQ']},
+    {icon:'₿', label:'Crypto (USD inverse)', tickers:['BTC-USD','COIN','MSTR']}
+  ]},
+  { match:['cpi','core cpi','inflation'], sectors:[
+    {icon:'🏠', label:'Real Estate', tickers:['XLRE','TIPS']},
+    {icon:'🏦', label:'Banks (yield curve)', tickers:['XLF','KRE']},
+    {icon:'💎', label:'Gold/Inflation hedge', tickers:['GLD','SLV']},
+    {icon:'₿', label:'Bitcoin (digital gold)', tickers:['BTC-USD','MARA','RIOT']}
+  ]},
+  { match:['ppi','producer price'], sectors:[
+    {icon:'🏭', label:'Industriale', tickers:['XLI','CAT']},
+    {icon:'🛍️', label:'Consumer Staples', tickers:['XLP','WMT']}
+  ]},
+  { match:['non-farm','nfp','payroll','unemployment'], sectors:[
+    {icon:'🛍️', label:'Consumer Disc.', tickers:['XLY','AMZN','TSLA']},
+    {icon:'🛒', label:'Consumer Staples', tickers:['XLP','PG']},
+    {icon:'💼', label:'Financiar', tickers:['XLF','GS']}
+  ]},
+  { match:['gdp','gross domestic'], sectors:[
+    {icon:'📊', label:'Broad market', tickers:['SPY','QQQ','IWM']},
+    {icon:'🏭', label:'Industriale ciclice', tickers:['XLI','XLE']}
+  ]},
+  { match:['retail sales'], sectors:[
+    {icon:'🛍️', label:'Consumer Disc.', tickers:['XLY','AMZN','HD','TGT']},
+    {icon:'🛒', label:'Retail giants', tickers:['WMT','COST']}
+  ]},
+  { match:['ism','pmi','manufacturing'], sectors:[
+    {icon:'🏭', label:'Industriale', tickers:['XLI','CAT','DE']},
+    {icon:'🛢️', label:'Energy (demand)', tickers:['XLE','XOM']},
+    {icon:'🚚', label:'Transport', tickers:['IYT','UPS']}
+  ]},
+  { match:['jobless','initial claims'], sectors:[
+    {icon:'🛍️', label:'Consumer', tickers:['XLY','XLP']},
+    {icon:'💼', label:'Banks', tickers:['XLF']}
+  ]},
+  { match:['consumer confidence','michigan'], sectors:[
+    {icon:'🛍️', label:'Consumer Disc.', tickers:['XLY','AMZN']}
+  ]},
+  { match:['bitcoin','etf','halving'], sectors:[
+    {icon:'₿', label:'Crypto stocks', tickers:['MARA','RIOT','COIN','MSTR']},
+    {icon:'🪙', label:'Direct crypto', tickers:['BTC-USD','ETH-USD']}
+  ]}
+];
+
+function getSectorImpact(eventName) {
+  const n = (eventName || '').toLowerCase();
+  for (const entry of SECTOR_IMPACT_MAP) {
+    if (entry.match.some(m => n.includes(m))) return entry.sectors;
+  }
+  return null;
+}
 
 // ============ STATE ============
 let CFG = loadCfg();
 let CAL_DATA = []; // array de evenimente normalizate
+let MACRO_NEWS = [];
+let CRYPTO_NEWS = [];
 let SEEN = JSON.parse(localStorage.getItem('md_seen') || '{}'); // dedupe alerte
 let LAST_SCAN_AT = 0;
 let _refreshTimer = null;
 let _proxyIdx = 0;
+let _expandedKey = null;
+let _newsLoadedAt = { macro: 0, crypto: 0 };
+let _aiCache = (() => { try { return JSON.parse(localStorage.getItem('md_ai_cache_v1') || '{}'); } catch (e) { return {}; } })();
 const CORS_PROXIES = [
   { build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: r => r.text() },
   { build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), extract: r => r.text() },
@@ -904,10 +1066,421 @@ function renderHotStrip() {
   }).join('');
 }
 
+// ============ NEWS — Macro & Crypto ============
+function timeAgo(ts) {
+  const diff = Date.now() - ts*1000;
+  if (diff < 60000) return 'acum';
+  if (diff < 3600000) return Math.floor(diff/60000) + 'm';
+  if (diff < 86400000) return Math.floor(diff/3600000) + 'h';
+  return Math.floor(diff/86400000) + 'z';
+}
+
+function quickSentiment(text) {
+  const s = (text || '').toLowerCase();
+  const bull = ['rally','surge','soar','jump','beat','beats','gain','rise','rises','up ','bullish','breakout','high','record','strong','growth','optimis','positive','outperform'];
+  const bear = ['plunge','crash','fall','falls','drop','tumble','miss','misses','slump','bearish','fear','recession','warn','cut','weak','down ','sell-off','selloff','low','negative','underperform','tariff'];
+  let bs = 0, br = 0;
+  bull.forEach(k => { if (s.includes(k)) bs++; });
+  bear.forEach(k => { if (s.includes(k)) br++; });
+  if (bs > br + 1) return 'bull';
+  if (br > bs + 1) return 'bear';
+  return 'neut';
+}
+
+async function fetchMacroNews() {
+  const key = getFinnhubKey();
+  if (!key) {
+    $('mnStatus').textContent = '⚠ Lipsă Finnhub key (Setări ⚙)';
+    $('mnList').innerHTML = '<div class="news-empty">⚠ Configurează cheia Finnhub în Setări pentru a vedea știrile.</div>';
+    return;
+  }
+  $('mnStatus').textContent = '⏳ Se încarcă...';
+  $('mnList').innerHTML = '<div class="news-loading">⏳ Aduc știri Finnhub...</div>';
+  try {
+    const [gen, fx] = await Promise.allSettled([
+      fetch(`https://finnhub.io/api/v1/news?category=general&token=${encodeURIComponent(key)}`).then(r => r.ok ? r.json() : []),
+      fetch(`https://finnhub.io/api/v1/news?category=forex&token=${encodeURIComponent(key)}`).then(r => r.ok ? r.json() : [])
+    ]);
+    const arr1 = gen.status === 'fulfilled' ? (Array.isArray(gen.value) ? gen.value : []) : [];
+    const arr2 = fx.status === 'fulfilled' ? (Array.isArray(fx.value) ? fx.value : []) : [];
+    const seen = new Set();
+    MACRO_NEWS = [...arr1, ...arr2].filter(n => {
+      if (!n || !n.headline || !n.id) return false;
+      if (seen.has(n.id)) return false;
+      seen.add(n.id);
+      return true;
+    }).map(n => ({
+      id: n.id,
+      title: n.headline,
+      summary: n.summary || '',
+      source: n.source || 'Finnhub',
+      url: n.url || '',
+      ts: n.datetime || Math.floor(Date.now()/1000),
+      sentiment: quickSentiment(n.headline + ' ' + (n.summary || '')),
+      category: n.category || 'general'
+    })).sort((a, b) => b.ts - a.ts).slice(0, 80);
+    _newsLoadedAt.macro = Date.now();
+    $('mnStatus').textContent = `✅ ${MACRO_NEWS.length} știri · ${new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}`;
+    renderMacroNews();
+  } catch (e) {
+    $('mnStatus').textContent = '❌ Eroare';
+    $('mnList').innerHTML = `<div class="news-empty">❌ Eroare fetch: ${escHtml(e.message)}</div>`;
+  }
+}
+
+async function fetchCryptoNews() {
+  $('cnStatus').textContent = '⏳ Se încarcă...';
+  $('cnList').innerHTML = '<div class="news-loading">⏳ Aduc știri crypto...</div>';
+  const cpKey = getCryptopanicKey();
+  const fhKey = getFinnhubKey();
+
+  const tasks = [];
+  // CryptoPanic (free, public, no key required pentru public posts dar key dezactivează rate limit)
+  tasks.push(
+    (async () => {
+      try {
+        const url = cpKey
+          ? `https://cryptopanic.com/api/v1/posts/?auth_token=${encodeURIComponent(cpKey)}&public=true&kind=news`
+          : `https://cryptopanic.com/api/v1/posts/?public=true&kind=news`;
+        const data = await fetchViaProxy(url);
+        const posts = data?.results || [];
+        return posts.map(p => ({
+          id: 'cp_' + p.id,
+          title: p.title,
+          summary: p.title,
+          source: p.source?.title || 'CryptoPanic',
+          url: p.url || p.original_url || '',
+          ts: Math.floor(new Date(p.published_at).getTime()/1000),
+          sentiment: (() => {
+            const v = p.votes || {};
+            if (v.important && v.important >= 2) return 'important';
+            const pos = (v.positive||0) + (v.liked||0);
+            const neg = (v.negative||0) + (v.disliked||0) + (v.toxic||0);
+            if (pos > neg + 1) return 'bull';
+            if (neg > pos + 1) return 'bear';
+            return quickSentiment(p.title);
+          })(),
+          tags: (p.currencies || []).map(c => c.code).slice(0, 4),
+          category: 'crypto'
+        }));
+      } catch (e) { return []; }
+    })()
+  );
+  // Finnhub crypto news as backup
+  if (fhKey) {
+    tasks.push(
+      fetch(`https://finnhub.io/api/v1/news?category=crypto&token=${encodeURIComponent(fhKey)}`)
+        .then(r => r.ok ? r.json() : [])
+        .then(arr => (Array.isArray(arr) ? arr : []).map(n => ({
+          id: 'fh_' + n.id,
+          title: n.headline,
+          summary: n.summary || '',
+          source: n.source || 'Finnhub',
+          url: n.url || '',
+          ts: n.datetime || Math.floor(Date.now()/1000),
+          sentiment: quickSentiment(n.headline + ' ' + (n.summary || '')),
+          tags: detectCryptoTags(n.headline + ' ' + (n.summary || '')),
+          category: 'crypto'
+        })))
+        .catch(() => [])
+    );
+  }
+
+  try {
+    const results = await Promise.all(tasks);
+    const all = results.flat();
+    const seen = new Set();
+    CRYPTO_NEWS = all.filter(n => {
+      if (!n.title) return false;
+      const key = (n.title || '').slice(0, 60).toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).sort((a, b) => b.ts - a.ts).slice(0, 80);
+    _newsLoadedAt.crypto = Date.now();
+    $('cnStatus').textContent = `✅ ${CRYPTO_NEWS.length} știri · ${cpKey ? 'CryptoPanic ✓' : 'CryptoPanic public'}${fhKey ? ' + Finnhub' : ''}`;
+    renderCryptoNews();
+  } catch (e) {
+    $('cnStatus').textContent = '❌ Eroare';
+    $('cnList').innerHTML = `<div class="news-empty">❌ Eroare fetch: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function detectCryptoTags(text) {
+  const t = (text || '').toUpperCase();
+  const out = [];
+  const coins = ['BTC','BITCOIN','ETH','ETHEREUM','SOL','SOLANA','XRP','DOGE','ADA','BNB','MATIC','LINK','MARA','RIOT','COIN','MSTR'];
+  for (const c of coins) {
+    if (t.includes(c) && !out.includes(c.slice(0,4))) out.push(c.replace('BITCOIN','BTC').replace('ETHEREUM','ETH').replace('SOLANA','SOL').slice(0,4));
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
+function renderMacroNews() {
+  const arr = MACRO_NEWS.filter(n => {
+    if (CFG.mnFilter !== 'all' && n.sentiment !== CFG.mnFilter) return false;
+    if (CFG.mnSearch) {
+      const q = CFG.mnSearch.toLowerCase();
+      if (!(n.title.toLowerCase().includes(q) || (n.source||'').toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+  $('mnCount').textContent = `${arr.length} / ${MACRO_NEWS.length}`;
+  if (!arr.length) {
+    $('mnList').innerHTML = '<div class="news-empty">📭 Nicio știre care să corespundă filtrelor.</div>';
+    return;
+  }
+  $('mnList').innerHTML = arr.map(n => renderNewsCard(n, 'macro')).join('');
+}
+
+function renderCryptoNews() {
+  const arr = CRYPTO_NEWS.filter(n => {
+    if (CFG.cnFilter !== 'all' && n.sentiment !== CFG.cnFilter) return false;
+    if (CFG.cnSearch) {
+      const q = CFG.cnSearch.toLowerCase();
+      if (!(n.title.toLowerCase().includes(q) || (n.tags||[]).join(' ').toLowerCase().includes(q))) return false;
+    }
+    return true;
+  });
+  $('cnCount').textContent = `${arr.length} / ${CRYPTO_NEWS.length}`;
+  if (!arr.length) {
+    $('cnList').innerHTML = '<div class="news-empty">📭 Nicio știre care să corespundă filtrelor.</div>';
+    return;
+  }
+  $('cnList').innerHTML = arr.map(n => renderNewsCard(n, 'crypto')).join('');
+}
+
+function renderNewsCard(n, kind) {
+  const sentCls = n.sentiment === 'important' ? 'important' : n.sentiment;
+  const sentLabel = ({bull:'🟢 BULL', bear:'🔴 BEAR', neut:'⚪ NEUT', important:'⭐ IMPORTANT'})[n.sentiment] || '⚪ NEUT';
+  const tags = (n.tags || []).map(t => `<span class="impact-chip">${escHtml(t)}</span>`).join('');
+  const summary = n.summary && n.summary !== n.title ? `<div class="nc-summary">${escHtml(n.summary)}</div>` : '';
+  return `<div class="news-card ${sentCls}" data-kind="${kind}" data-id="${escHtml(n.id)}">
+    <div class="nc-title">${escHtml(n.title)}</div>
+    ${summary}
+    <div class="nc-meta">
+      <span class="nc-source">${escHtml(n.source)}</span>
+      <span class="nc-time">· ${timeAgo(n.ts)}</span>
+      <span class="sent-chip ${sentCls}">${sentLabel}</span>
+      ${tags}
+      <a class="action-btn" href="${escHtml(n.url)}" target="_blank" rel="noopener" style="margin-left:auto" onclick="event.stopPropagation()">↗</a>
+    </div>
+  </div>`;
+}
+
+// ============ AI BUBBLE (Claude streaming) ============
+async function callAnthropicStream(systemPrompt, userPrompt, onChunk) {
+  const key = getAnthropicKey();
+  if (!key) throw new Error('Lipsă Anthropic key (Setări ⚙)');
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-7',
+      max_tokens: 700,
+      stream: true,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error(`HTTP ${resp.status}: ${txt.slice(0,200)}`);
+  }
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let full = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (!data || data === '[DONE]') continue;
+      try {
+        const evt = JSON.parse(data);
+        if (evt.type === 'content_block_delta' && evt.delta?.text) {
+          full += evt.delta.text;
+          onChunk(full);
+        }
+      } catch (e) { /* ignore parse errors */ }
+    }
+  }
+  return full;
+}
+
+function aiCacheKey(eventName, eventTime) { return `evt::${eventName}::${(eventTime||'').slice(0,10)}`; }
+function getCachedAI(key) {
+  const it = _aiCache[key];
+  if (!it) return null;
+  if (Date.now() - it.ts > AI_CACHE_TTL) { delete _aiCache[key]; persistAICache(); return null; }
+  return it.text;
+}
+function setCachedAI(key, text) {
+  _aiCache[key] = { ts: Date.now(), text };
+  persistAICache();
+}
+function persistAICache() {
+  try { localStorage.setItem('md_ai_cache_v1', JSON.stringify(_aiCache)); } catch (e) { /* quota */ }
+}
+
+async function runAIAnalysis(event, bubbleEl, statusEl, force=false) {
+  const key = aiCacheKey(event.event, event.time);
+  if (!force) {
+    const cached = getCachedAI(key);
+    if (cached) {
+      bubbleEl.classList.remove('loading', 'error');
+      bubbleEl.textContent = cached;
+      statusEl.textContent = 'cache · ' + new Date(_aiCache[key].ts).toLocaleTimeString('ro-RO');
+      return;
+    }
+  }
+  if (!getAnthropicKey()) {
+    bubbleEl.classList.add('error');
+    bubbleEl.textContent = '⚠ Lipsă Anthropic key. Configureaz-o din Setări ⚙.';
+    return;
+  }
+  bubbleEl.classList.remove('error');
+  bubbleEl.classList.add('loading');
+  bubbleEl.textContent = '';
+  statusEl.textContent = 'AI: stream...';
+  const cm = COUNTRY_META[event.country] || { name: event.country };
+  const dt = fmtEventDateTime(event.time);
+  const prompt = `EVENIMENT ECONOMIC
+Nume: ${event.event}
+Țară: ${cm.name} (${event.country})
+Data/Oră: ${dt.date} ${dt.time} UTC
+Impact așteptat: ${event.impact}
+Forecast: ${event.forecast ?? 'N/A'}
+Previous: ${event.previous ?? 'N/A'}
+Actual: ${event.actual ?? 'încă nepublicat'}
+Context piață acum: VIX, DXY, BTC, ETH (live pe pagină).
+
+Te rog analiza scurtă conform sistemului.`;
+  try {
+    const full = await callAnthropicStream(AI_SYSTEM, prompt, txt => { bubbleEl.textContent = txt; });
+    setCachedAI(key, full);
+    bubbleEl.classList.remove('loading');
+    statusEl.textContent = 'AI · gata';
+  } catch (e) {
+    bubbleEl.classList.remove('loading');
+    bubbleEl.classList.add('error');
+    bubbleEl.textContent = '❌ Eroare AI: ' + e.message;
+    statusEl.textContent = 'eroare';
+  }
+}
+
+// ============ EXPAND CALENDAR ROW ============
+function toggleExpand(tr, event) {
+  const key = event.time + '|' + event.event;
+  // Închide toate existente
+  document.querySelectorAll('tr.expanded-row').forEach(r => r.remove());
+  document.querySelectorAll('tbody tr.expanded-parent').forEach(r => r.classList.remove('expanded-parent'));
+  if (_expandedKey === key) { _expandedKey = null; return; }
+  _expandedKey = key;
+  tr.classList.add('expanded-parent');
+  const colspan = tr.cells.length;
+  const exTr = document.createElement('tr');
+  exTr.className = 'expanded-row';
+  exTr.innerHTML = `<td colspan="${colspan}">${buildExpandHTML(event)}</td>`;
+  tr.parentNode.insertBefore(exTr, tr.nextSibling);
+
+  // Bind AI button
+  const aiBtn = exTr.querySelector('.btn-ai');
+  const aiRerunBtn = exTr.querySelector('.btn-ai-rerun');
+  const aiBubble = exTr.querySelector('.ai-bubble');
+  const aiStatus = exTr.querySelector('.ai-status');
+  if (aiBtn) aiBtn.addEventListener('click', e => { e.stopPropagation(); runAIAnalysis(event, aiBubble, aiStatus, false); });
+  if (aiRerunBtn) aiRerunBtn.addEventListener('click', e => { e.stopPropagation(); runAIAnalysis(event, aiBubble, aiStatus, true); });
+
+  // Auto-run dacă există deja cache
+  const cached = getCachedAI(aiCacheKey(event.event, event.time));
+  if (cached) { aiBubble.textContent = cached; aiStatus.textContent = 'cache (auto)'; }
+}
+
+function buildExpandHTML(event) {
+  const sectors = getSectorImpact(event.event);
+  const cm = COUNTRY_META[event.country] || { name: event.country, flag:'🌐' };
+  const dt = fmtEventDateTime(event.time);
+  const sectorsHTML = sectors ? `<div class="sector-grid">${sectors.map(s => `
+    <div class="sector-row">
+      <span class="sector-icon">${s.icon}</span>
+      <span class="sector-label">${escHtml(s.label)}</span>
+      <span class="sector-tickers">${s.tickers.map(t => `<a class="sector-ticker" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(t)}" target="_blank">${escHtml(t)}</a>`).join('')}</span>
+    </div>
+  `).join('')}</div>` : '<div class="exp-soon">Niciun mapping sectorial direct pentru acest eveniment. Folosește AI bubble pentru analiză.</div>';
+
+  return `<div class="exp-wrap">
+    <div class="exp-box">
+      <div class="ai-bar">
+        <button class="btn-ai primary">🤖 Analiză AI Claude</button>
+        <button class="btn-ai-rerun ghost" title="Re-rulează (șterge cache)">↻ Rerun</button>
+        <span class="ai-status"></span>
+      </div>
+      <div class="ai-bubble">Apasă butonul pentru analiză AI (Claude opus-4.7 streaming).</div>
+    </div>
+    <div class="exp-box">
+      <div class="exp-title">🎯 Sectoare / Stocks impact</div>
+      ${sectorsHTML}
+    </div>
+    <div class="exp-box">
+      <div class="exp-title">ℹ️ Detalii eveniment</div>
+      <div class="exp-info">
+        <div class="info-row"><span class="info-key">Țară</span><span class="info-val">${cm.flag} ${escHtml(cm.name)}</span></div>
+        <div class="info-row"><span class="info-key">Data / Ora</span><span class="info-val">${escHtml(dt.date)} ${escHtml(dt.time)} UTC</span></div>
+        <div class="info-row"><span class="info-key">Impact</span><span class="info-val">${event.impact.toUpperCase()}</span></div>
+        <div class="info-row"><span class="info-key">Forecast</span><span class="info-val">${event.forecast ?? '—'}</span></div>
+        <div class="info-row"><span class="info-key">Previous</span><span class="info-val">${event.previous ?? '—'}</span></div>
+        <div class="info-row"><span class="info-key">Actual</span><span class="info-val">${event.actual ?? '(nepublicat)'}</span></div>
+        <div class="info-row"><span class="info-key">Sursă</span><span class="info-val">${escHtml(event.source || 'finnhub')}</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============ AI PRELOAD top 5 high-impact ============
+async function preloadAITop5() {
+  if (!getAnthropicKey()) return;
+  const now = Date.now();
+  const top = CAL_DATA
+    .filter(e => e.impact === 'high')
+    .map(e => ({ e, t: parseEventTime(e.time)?.getTime() || 0 }))
+    .filter(x => x.t > now && x.t - now < 7*86400000)
+    .sort((a,b) => a.t - b.t)
+    .slice(0, 5);
+  for (const { e } of top) {
+    const key = aiCacheKey(e.event, e.time);
+    if (getCachedAI(key)) continue;
+    try {
+      let full = '';
+      const dt = fmtEventDateTime(e.time);
+      const cm = COUNTRY_META[e.country] || { name:e.country };
+      const prompt = `EVENIMENT: ${e.event}\nȚară: ${cm.name}\nData/Oră: ${dt.date} ${dt.time} UTC\nImpact: ${e.impact}\nForecast: ${e.forecast ?? 'N/A'}\nPrevious: ${e.previous ?? 'N/A'}\n\nAnaliză scurtă.`;
+      full = await callAnthropicStream(AI_SYSTEM, prompt, () => {});
+      setCachedAI(key, full);
+      await sleep(500);
+    } catch (err) { /* ignore individual fail */ }
+  }
+}
+
 // ============ TABS ============
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + name));
+  // Lazy load news
+  const now = Date.now();
+  if (name === 'macroNews' && now - _newsLoadedAt.macro > NEWS_CACHE_TTL) fetchMacroNews();
+  if (name === 'cryptoNews' && now - _newsLoadedAt.crypto > NEWS_CACHE_TTL) fetchCryptoNews();
 }
 
 // ============ SETTINGS MODAL ============
@@ -1044,6 +1617,60 @@ function bindEvents() {
     saveCfg(); renderCalendar();
   }));
 
+  // Click pe rânduri tabel → expand
+  $('calBody').addEventListener('click', e => {
+    const target = e.target;
+    if (target.closest('a') || target.closest('.action-btn[href]')) return;
+    const tr = target.closest('tr.clickable');
+    if (!tr) return;
+    const time = tr.dataset.time;
+    const eventName = tr.dataset.event;
+    const ev = CAL_DATA.find(x => x.time === time && x.event === eventName);
+    if (ev) toggleExpand(tr, ev);
+  });
+
+  // Macro News chips + search + refresh
+  document.querySelectorAll('.fb-chip[data-mnSent]').forEach(c => c.addEventListener('click', () => {
+    document.querySelectorAll('.fb-chip[data-mnSent]').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    CFG.mnFilter = c.dataset.mnsent || c.dataset.mnSent;
+    saveCfg(); renderMacroNews();
+  }));
+  let mnSearchTimer = null;
+  $('mnSearch').addEventListener('input', e => {
+    if (mnSearchTimer) clearTimeout(mnSearchTimer);
+    mnSearchTimer = setTimeout(() => { CFG.mnSearch = e.target.value.trim(); saveCfg(); renderMacroNews(); }, 200);
+  });
+  $('mnSearch').value = CFG.mnSearch;
+  $('mnRefresh').addEventListener('click', () => { _newsLoadedAt.macro = 0; fetchMacroNews(); });
+
+  // Crypto News chips + search + refresh
+  document.querySelectorAll('.fb-chip[data-cnFilter]').forEach(c => c.addEventListener('click', () => {
+    document.querySelectorAll('.fb-chip[data-cnFilter]').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    CFG.cnFilter = c.dataset.cnfilter || c.dataset.cnFilter;
+    saveCfg(); renderCryptoNews();
+  }));
+  let cnSearchTimer = null;
+  $('cnSearch').addEventListener('input', e => {
+    if (cnSearchTimer) clearTimeout(cnSearchTimer);
+    cnSearchTimer = setTimeout(() => { CFG.cnSearch = e.target.value.trim(); saveCfg(); renderCryptoNews(); }, 200);
+  });
+  $('cnSearch').value = CFG.cnSearch;
+  $('cnRefresh').addEventListener('click', () => { _newsLoadedAt.crypto = 0; fetchCryptoNews(); });
+
+  // Restaurez chip-uri news active
+  if (CFG.mnFilter !== 'all') {
+    document.querySelectorAll('.fb-chip[data-mnSent]').forEach(x => x.classList.remove('active'));
+    const t = document.querySelector(`.fb-chip[data-mnSent="${CFG.mnFilter}"]`);
+    if (t) t.classList.add('active');
+  }
+  if (CFG.cnFilter !== 'all') {
+    document.querySelectorAll('.fb-chip[data-cnFilter]').forEach(x => x.classList.remove('active'));
+    const t = document.querySelector(`.fb-chip[data-cnFilter="${CFG.cnFilter}"]`);
+    if (t) t.classList.add('active');
+  }
+
   // Restaurez chip-uri active din CFG
   if (CFG.impactFilter !== 'all') {
     document.querySelectorAll('.fb-chip[data-impact]').forEach(x => x.classList.remove('active'));
@@ -1068,6 +1695,8 @@ async function init() {
   setInterval(renderSession, 30000);
   await Promise.all([loadCalendar(), loadStatTiles()]);
   scheduleAutoRefresh();
+  // Pre-load AI pe top 5 high-impact events în background (non-blocking)
+  preloadAITop5().catch(() => {});
 }
 
 // Register service worker
