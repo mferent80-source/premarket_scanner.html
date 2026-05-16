@@ -328,6 +328,94 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .modal-section { margin-top:14px; padding-top:12px; border-top:1px solid var(--b1); }
 .modal-section h4 { font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--t3); font-weight:700; font-family:var(--mono); margin-bottom:8px; }
 
+/* Generic drill-down modal */
+.gen-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.78); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:1500; align-items:center; justify-content:center; padding:18px; animation:fadeIn .2s ease; }
+.gen-modal.show { display:flex; }
+.gm-content { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:0; max-width:700px; width:100%; max-height:92vh; overflow:hidden; box-shadow:0 12px 48px rgba(0,0,0,.7); display:flex; flex-direction:column; }
+.gm-head { display:flex; align-items:center; gap:8px; padding:14px 18px; border-bottom:1px solid var(--b1); background:linear-gradient(180deg, rgba(30,46,68,.7), rgba(20,26,40,.5)); flex-shrink:0; }
+.gm-head h3 { font-size:14px; font-weight:700; background:linear-gradient(90deg, var(--acc-1), var(--acc-2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-right:auto; }
+.gm-sub { font-size:10.5px; color:var(--t3); font-family:var(--mono); }
+.gm-body { padding:16px 18px; overflow-y:auto; flex:1; }
+
+/* Stat tile drill-down */
+.stat-tile { cursor:pointer; transition:transform .15s var(--ease), box-shadow .15s var(--ease); }
+.stat-tile:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.drill-chart-wrap { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:12px; margin-bottom:12px; }
+.drill-chart-wrap svg { width:100%; height:auto; display:block; }
+.drill-stats-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:8px; margin-bottom:12px; }
+.drill-stat-tile { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:8px 12px; }
+.drill-stat-tile .dst-label { font-size:9.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; font-weight:700; font-family:var(--mono); }
+.drill-stat-tile .dst-val { font-size:14px; font-weight:800; color:var(--t1); font-family:var(--head); margin-top:2px; }
+.drill-stat-tile .dst-val.up { color:var(--bull-s); }
+.drill-stat-tile .dst-val.down { color:var(--bear-s); }
+.drill-interp { background:linear-gradient(135deg, rgba(59,130,246,.08), rgba(16,185,129,.04)); border:1px solid rgba(59,130,246,.25); border-radius:var(--rs); padding:12px 14px; margin-bottom:12px; }
+.drill-interp h4 { font-size:11px; text-transform:uppercase; letter-spacing:.3px; color:var(--t3); font-family:var(--mono); margin-bottom:6px; font-weight:700; }
+.drill-interp p { font-size:13px; line-height:1.65; color:var(--t1); font-family:var(--head); }
+.drill-interp p strong { color:var(--accent); }
+.drill-corr { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:10px 12px; }
+.drill-corr h4 { font-size:10.5px; text-transform:uppercase; letter-spacing:.3px; color:var(--t3); font-family:var(--mono); margin-bottom:6px; font-weight:700; }
+.drill-corr-row { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:11.5px; color:var(--t2); font-family:var(--head); }
+.drill-corr-row .corr-arrow { font-weight:800; color:var(--accent); }
+.ticker-link {
+  display:inline-block;
+  background:linear-gradient(135deg, rgba(59,130,246,.12), rgba(16,185,129,.08));
+  color:var(--accent);
+  padding:1px 8px; border-radius:5px;
+  font-weight:800; font-family:var(--mono);
+  border:1px solid rgba(59,130,246,.3);
+  cursor:pointer; transition:all .12s var(--ease);
+  font-size:0.92em; letter-spacing:.2px;
+  text-decoration:none;
+}
+.ticker-link:hover {
+  background:linear-gradient(135deg, rgba(59,130,246,.25), rgba(16,185,129,.15));
+  border-color:var(--accent);
+  transform:translateY(-1px);
+  box-shadow:0 2px 6px rgba(59,130,246,.25);
+}
+.ticker-link::after { content:" ↗"; opacity:.5; font-weight:400; }
+
+.brief-section-h {
+  display:block; cursor:pointer; padding:8px 0 4px;
+  font-family:var(--head); font-size:15.5px; font-weight:800;
+  color:var(--t1); border-bottom:1px solid rgba(59,130,246,.2);
+  margin:14px 0 8px; transition:all .15s var(--ease);
+  position:relative;
+}
+.brief-section-h:hover { color:var(--accent); border-bottom-color:var(--accent); }
+.brief-section-h::after {
+  content:"🔍 click pentru elaborare AI"; font-size:9.5px; color:var(--t3);
+  font-weight:600; letter-spacing:.3px; font-family:var(--mono);
+  margin-left:8px; opacity:0; transition:opacity .15s var(--ease);
+  vertical-align:middle;
+}
+.brief-section-h:hover::after { opacity:1; }
+
+.brief-section-followup {
+  background:linear-gradient(135deg, rgba(59,130,246,.10), rgba(16,185,129,.05));
+  border:1px solid rgba(59,130,246,.3); border-radius:var(--rs);
+  padding:14px 16px; margin:8px 0 12px;
+  font-size:13px; line-height:1.75; color:var(--t1);
+  font-family:var(--head); white-space:pre-wrap;
+}
+.brief-section-followup.loading { display:flex; align-items:center; min-height:60px; color:var(--t3); }
+.brief-section-followup.loading::before { content:"🧠"; font-size:22px; margin-right:10px; animation:pulse 1.4s ease-in-out infinite; }
+.brief-section-followup .bsf-head {
+  display:flex; align-items:center; gap:8px;
+  font-size:10.5px; color:var(--t3); font-family:var(--mono);
+  text-transform:uppercase; letter-spacing:.3px; font-weight:700;
+  margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid rgba(59,130,246,.15);
+}
+.brief-section-followup .bsf-close {
+  margin-left:auto; background:transparent; border:none; color:var(--t3);
+  cursor:pointer; font-size:14px; padding:2px 6px;
+}
+.brief-section-followup .bsf-close:hover { color:var(--bear-s); background:transparent; transform:none; }
+
+.drill-loading { padding:40px; text-align:center; color:var(--t3); font-size:13px; font-family:var(--head); }
+.drill-loading .dl-icon { font-size:36px; animation:pulse 1.4s ease-in-out infinite; }
+.drill-error { padding:24px; text-align:center; color:var(--bear-s); background:rgba(255,77,77,.08); border:1px solid rgba(255,77,77,.3); border-radius:var(--rs); }
+
 /* Toasts */
 #toasts { position:fixed; bottom:14px; right:14px; display:flex; flex-direction:column; gap:6px; z-index:2000; max-width:380px; }
 .toast { background:var(--panel); border:1px solid var(--b1); border-left:3px solid var(--accent); border-radius:var(--rs); padding:9px 13px; font-size:11.5px; box-shadow:var(--shadow); font-family:var(--head); color:var(--t1); animation:slideIn .25s var(--ease); }
@@ -350,6 +438,11 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .news-card.bear { border-left-color:var(--bear-s); }
 .news-card.neut { border-left-color:var(--t3); }
 .news-card.important { border-left-color:var(--gold); background:linear-gradient(135deg, rgba(255,216,107,.06), var(--panel)); }
+.news-card.expanded { box-shadow:0 0 0 1px var(--accent), var(--shadow); border-color:var(--accent); }
+.news-ai-box { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:10px 12px; margin-top:8px; }
+.news-ai-bar { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.news-ai-bar button { padding:3px 9px; font-size:10px; }
+.news-ai-bar .nas-status { font-size:10px; color:var(--t3); font-family:var(--mono); margin-left:auto; }
 .news-card .nc-title { font-family:var(--head); font-weight:700; font-size:13px; line-height:1.35; color:var(--t1); }
 .news-card .nc-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:10.5px; color:var(--t3); font-family:var(--mono); }
 .news-card .nc-source { font-weight:700; color:var(--t2); }
@@ -435,7 +528,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v144</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v145</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte (beep)">🔊</button>
@@ -663,11 +756,23 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   </div>
 </div>
 
+<!-- Generic drill-down modal -->
+<div class="gen-modal" id="genericModal">
+  <div class="gm-content">
+    <div class="gm-head">
+      <h3 id="gmTitle">—</h3>
+      <span class="gm-sub" id="gmSub"></span>
+      <button class="icon-btn ghost" id="gmClose">✖</button>
+    </div>
+    <div class="gm-body" id="gmBody"></div>
+  </div>
+</div>
+
 <div id="toasts"></div>
 
 <script>
 // ============ CONFIG ============
-const VERSION = 'v144';
+const VERSION = 'v145';
 const DEFAULT_CFG = {
   alertThreshold: 120, // minute
   autoRefresh: 1800, // secunde
@@ -933,6 +1038,373 @@ async function loadStatTiles() {
 
   // Auto-detect market mood și aplică tema
   applyMood(detectMarketMood());
+}
+
+// ============ GENERIC MODAL (drill-down) ============
+function openGenericModal(title, subtitle, bodyHtml) {
+  $('gmTitle').textContent = title || '';
+  $('gmSub').textContent = subtitle || '';
+  $('gmBody').innerHTML = bodyHtml || '';
+  $('genericModal').classList.add('show');
+}
+function closeGenericModal() { $('genericModal').classList.remove('show'); }
+
+// ============ DRILL DOWN: STAT TILES ============
+const TILE_DRILL_META = {
+  'tile-vix': {
+    sym:'^VIX', label:'📊 VIX — Volatility Index',
+    interpret:(v) => {
+      if (v < 12) return { tag:'EXTREME COMPLACENCY', text:'Sub 12 = piață prea relaxată. Risc reversal violent. Investorii ignoră riscul → setup periculos pentru long crowd.' };
+      if (v < 15) return { tag:'COMPLACENCY', text:'14-15 = mood bullish stabil. Tendință upside dar atenție la spike-uri din nicăieri.' };
+      if (v < 18) return { tag:'NORMAL', text:'15-18 = nivel sănătos, piață cu activitate normală. Tendințele direcționale funcționează.' };
+      if (v < 22) return { tag:'ELEVATED', text:'18-22 = nervi crescuți. Volatilitate intraday mare. Pozițiile trebuie ajustate (size mai mic).' };
+      if (v < 30) return { tag:'STRESS', text:'22-30 = stress real. Selling pressure, news headline-driven. Defensive plays favorizate.' };
+      return { tag:'PANIC', text:'Peste 30 = panică, capitulare. Istoric → oportunitate buy pe correction extreme. Atenție la timing — VIX poate spike-ui mult mai sus.' };
+    },
+    corr:[
+      { txt:'VIX ↑ → SPY ↓ (corelație inversă ~-0.85)', emoji:'📉' },
+      { txt:'VIX > 25 → favor defensive sectors (XLP, XLU)', emoji:'🛡️' },
+      { txt:'VIX spike → opt put spreads, exit long calls', emoji:'⚠️' }
+    ]
+  },
+  'tile-dxy': {
+    sym:'DX-Y.NYB', label:'💵 DXY — US Dollar Index',
+    interpret:(v) => {
+      if (v < 95) return { tag:'WEAK USD', text:'Sub 95 = USD slab. Bullish pentru export stocks (AAPL/MSFT), commodities, emerging markets, crypto.' };
+      if (v < 100) return { tag:'NORMAL-WEAK', text:'95-100 = neutru spre slab. Equity bias pozitiv, crypto OK.' };
+      if (v < 105) return { tag:'NORMAL-STRONG', text:'100-105 = USD normal-strong. Pressure pe export stocks, neutru general.' };
+      if (v < 110) return { tag:'STRONG', text:'105-110 = USD strong. Headwind serios pentru tech/exporteri. Bearish crypto. Favor domestic stocks (XLF, XLI).' };
+      return { tag:'EXTREME', text:'Peste 110 = parity-era extreme. Stress pentru emerging markets, presiune Fed pentru cut.' };
+    },
+    corr:[
+      { txt:'DXY ↑ → BTC ↓ (corelație inversă)', emoji:'🪙' },
+      { txt:'DXY ↑ → exporteri ↓ (AAPL/MSFT/NKE)', emoji:'🌐' },
+      { txt:'DXY ↑ → emerging markets ↓ (EEM, FXI)', emoji:'🌍' }
+    ]
+  },
+  'tile-10y': {
+    sym:'^TNX', label:'📈 10Y Treasury Yield', divide:10,
+    interpret:(v) => {
+      if (v < 2.5) return { tag:'EASY MONEY', text:'Sub 2.5% = monetary policy loose. Bullish tech/growth, REIT, utilities. Risk-on extrem.' };
+      if (v < 3.5) return { tag:'ACCOMMODATIVE', text:'2.5-3.5% = încă accommodative. Growth sectors OK, REITs normale.' };
+      if (v < 4.5) return { tag:'NEUTRAL', text:'3.5-4.5% = neutru-restrictiv. Echilibru între value/growth. Atenție la duration risk.' };
+      if (v < 5) return { tag:'RESTRICTIVE', text:'4.5-5% = restrictiv. Headwind tech/growth, REIT pressure. Favor financials, energy.' };
+      return { tag:'EXTREME', text:'Peste 5% = restrictiv extrem. Recession risk. Defensive shift critic.' };
+    },
+    corr:[
+      { txt:'10Y ↑ rapid → tech/growth ↓ (QQQ, NVDA)', emoji:'💻' },
+      { txt:'10Y ↑ → REIT ↓ (XLRE, VNQ)', emoji:'🏠' },
+      { txt:'10Y ↑ → Financials ↑ (XLF, banks)', emoji:'🏦' }
+    ]
+  },
+  'tile-btc': {
+    sym:'BTC-USD', label:'₿ Bitcoin USD',
+    interpret:(v) => {
+      if (v < 30000) return { tag:'BEAR ZONE', text:'Sub $30k = bear market deep. Acumulare zone istorică. High risk/reward setup.' };
+      if (v < 60000) return { tag:'RECOVERY', text:'$30-60k = recovery / mid-cycle. Tendință direcțională clară necesară pentru entry.' };
+      if (v < 80000) return { tag:'BULL MID', text:'$60-80k = bull market mid. Volatility crescută. Targets ATH în viz.' };
+      if (v < 120000) return { tag:'BULL LATE', text:'$80-120k = bull market late. Euphoria emergentă. Trailing stops esențiale.' };
+      return { tag:'EUPHORIA', text:'Peste $120k = euphoria zone. Risk-off pe size, take profits parțial.' };
+    },
+    corr:[
+      { txt:'BTC ↔ Nasdaq (~+0.6 corr 30d)', emoji:'📊' },
+      { txt:'BTC ↑ → MARA/RIOT/COIN/MSTR ↑↑ (beta 2-3x)', emoji:'⛏️' },
+      { txt:'BTC dump → ETH dump mai violent', emoji:'📉' }
+    ]
+  },
+  'tile-eth': {
+    sym:'ETH-USD', label:'Ξ Ethereum USD',
+    interpret:(v) => {
+      if (v < 2000) return { tag:'BEAR ZONE', text:'Sub $2k = bear deep. ETH/BTC ratio prost = altcoin season departe.' };
+      if (v < 3500) return { tag:'RECOVERY', text:'$2-3.5k = recovery. Watch ETH/BTC ratio pentru rotation altcoin signal.' };
+      if (v < 5000) return { tag:'BULL', text:'$3.5-5k = bull. DeFi/L2 stocks activate. ETH dominance crescut.' };
+      return { tag:'EUPHORIA', text:'Peste $5k = euphoria. Altcoin season probabilă, watch SOL/AVAX/etc.' };
+    },
+    corr:[
+      { txt:'ETH ↑ > BTC ↑ → altcoin season alert', emoji:'🚀' },
+      { txt:'ETH ↑ → COIN/HOOD ↑ (volume retail)', emoji:'💰' },
+      { txt:'Gas fees ↑ → DeFi activity ↑', emoji:'⚡' }
+    ]
+  },
+  'tile-fng': {
+    sym:null, label:'😱 Crypto Fear & Greed',
+    interpret:(v) => {
+      if (v < 25) return { tag:'EXTREME FEAR', text:'Sub 25 = panică crypto. Istoric: zone de acumulare pentru long-term. DCA opportunity.' };
+      if (v < 45) return { tag:'FEAR', text:'25-45 = fear normal. Volatilitate, retail panicked. Setup contrarian potential.' };
+      if (v < 55) return { tag:'NEUTRAL', text:'45-55 = echilibru. Fără edge contrarian. Direcția decisivă vine de la news/macro.' };
+      if (v < 75) return { tag:'GREED', text:'55-75 = greed. Momentum bullish dar atenție la late entry — risk reward worsens.' };
+      return { tag:'EXTREME GREED', text:'Peste 75 = euphoria. Take profits parțial, trailing stops. Top probabil în 1-3 săpt.' };
+    },
+    corr:[
+      { txt:'F&G > 75 cu BTC ATH → distribution often', emoji:'📤' },
+      { txt:'F&G < 25 + DXY scade → buy signal istoric', emoji:'📥' },
+      { txt:'F&G ↔ retail sentiment (Twitter/Reddit)', emoji:'💬' }
+    ]
+  }
+};
+
+const _chartCache = new Map(); // sym → { ts, data }
+
+async function fetchYahooChart30d(symbol) {
+  const cached = _chartCache.get(symbol);
+  if (cached && Date.now() - cached.ts < 10*60000) return cached.data;
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=3mo`;
+    const data = await fetchViaProxy(url);
+    const r = data?.chart?.result?.[0];
+    if (!r) return null;
+    const closes = r.indicators?.quote?.[0]?.close || [];
+    const ts = r.timestamp || [];
+    const points = closes.map((c, i) => ({ ts: ts[i], close: c })).filter(p => p.close != null);
+    if (points.length < 5) return null;
+    const out = { points, meta: r.meta };
+    _chartCache.set(symbol, { ts: Date.now(), data: out });
+    return out;
+  } catch (e) { return null; }
+}
+
+function drawSparkline(points, w=620, h=160) {
+  if (!points || points.length < 2) return '';
+  const vals = points.map(p => p.close);
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const padL = 50, padR = 16, padT = 12, padB = 22;
+  const innerW = w - padL - padR;
+  const innerH = h - padT - padB;
+  const xStep = innerW / (vals.length - 1);
+  const pts = vals.map((v, i) => [padL + i*xStep, padT + innerH - ((v - min) / range) * innerH]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const area = line + ` L${pts[pts.length-1][0].toFixed(1)},${padT+innerH} L${pts[0][0].toFixed(1)},${padT+innerH} Z`;
+  const lastV = vals[vals.length-1];
+  const firstV = vals[0];
+  const isUp = lastV >= firstV;
+  const color = isUp ? '#22d66b' : '#ff4d4d';
+  const colorBg = isUp ? 'rgba(34,214,107,.15)' : 'rgba(255,77,77,.15)';
+  // Y-axis labels
+  const yLabelHigh = max.toFixed(2);
+  const yLabelLow = min.toFixed(2);
+  const yLabelMid = ((min + max) / 2).toFixed(2);
+  // X-axis labels (start/mid/end date)
+  const ds = points[0]?.ts ? new Date(points[0].ts * 1000).toLocaleDateString('ro-RO', { day:'2-digit', month:'2-digit' }) : '';
+  const de = points[points.length-1]?.ts ? new Date(points[points.length-1].ts * 1000).toLocaleDateString('ro-RO', { day:'2-digit', month:'2-digit' }) : '';
+  const dm = points[Math.floor(points.length/2)]?.ts ? new Date(points[Math.floor(points.length/2)].ts * 1000).toLocaleDateString('ro-RO', { day:'2-digit', month:'2-digit' }) : '';
+
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <rect x="${padL}" y="${padT}" width="${innerW}" height="${innerH}" fill="${colorBg}" opacity="0.3"/>
+    <line x1="${padL}" y1="${padT}" x2="${padL+innerW}" y2="${padT}" stroke="#2a3247" stroke-width="0.5"/>
+    <line x1="${padL}" y1="${padT+innerH/2}" x2="${padL+innerW}" y2="${padT+innerH/2}" stroke="#2a3247" stroke-width="0.5" stroke-dasharray="2,3"/>
+    <line x1="${padL}" y1="${padT+innerH}" x2="${padL+innerW}" y2="${padT+innerH}" stroke="#2a3247" stroke-width="0.5"/>
+    <text x="${padL-4}" y="${padT+4}" text-anchor="end" fill="#8892a6" font-size="10" font-family="DM Mono, monospace">${yLabelHigh}</text>
+    <text x="${padL-4}" y="${padT+innerH/2+4}" text-anchor="end" fill="#8892a6" font-size="10" font-family="DM Mono, monospace">${yLabelMid}</text>
+    <text x="${padL-4}" y="${padT+innerH+4}" text-anchor="end" fill="#8892a6" font-size="10" font-family="DM Mono, monospace">${yLabelLow}</text>
+    <text x="${padL}" y="${h-6}" text-anchor="start" fill="#64748b" font-size="9.5" font-family="DM Mono, monospace">${ds}</text>
+    <text x="${padL+innerW/2}" y="${h-6}" text-anchor="middle" fill="#64748b" font-size="9.5" font-family="DM Mono, monospace">${dm}</text>
+    <text x="${padL+innerW}" y="${h-6}" text-anchor="end" fill="#64748b" font-size="9.5" font-family="DM Mono, monospace">${de}</text>
+    <path d="${area}" fill="url(#grad)"/>
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="1.8"/>
+    <circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="3.5" fill="${color}"/>
+  </svg>`;
+}
+
+function calcVolatility(points) {
+  if (!points || points.length < 5) return null;
+  const returns = [];
+  for (let i = 1; i < points.length; i++) {
+    if (points[i-1].close && points[i].close) {
+      returns.push((points[i].close - points[i-1].close) / points[i-1].close);
+    }
+  }
+  if (!returns.length) return null;
+  const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+  const variance = returns.reduce((a, b) => a + (b - mean) ** 2, 0) / returns.length;
+  const stddev = Math.sqrt(variance);
+  return stddev * 100 * Math.sqrt(252); // annualized %
+}
+
+function pctChg(points, daysBack) {
+  if (!points || points.length < daysBack + 1) return null;
+  const cur = points[points.length-1].close;
+  const old = points[points.length-1-daysBack].close;
+  if (!cur || !old) return null;
+  return ((cur - old) / old) * 100;
+}
+
+async function drillStatTile(tileId) {
+  const meta = TILE_DRILL_META[tileId];
+  if (!meta) return;
+  openGenericModal(meta.label, 'Se încarcă chart 3 luni...', '<div class="drill-loading"><div class="dl-icon">📊</div><div>Aduc datele Yahoo...</div></div>');
+
+  if (tileId === 'tile-fng') {
+    // Caz special — Fear & Greed: fetch istoric alternative.me
+    try {
+      const r = await fetch('https://api.alternative.me/fng/?limit=30');
+      const d = await r.json();
+      const items = (d?.data || []).reverse(); // chronological
+      const points = items.map(it => ({ ts: parseInt(it.timestamp, 10), close: parseInt(it.value, 10) }));
+      const cur = points[points.length-1]?.close;
+      const interp = meta.interpret(cur);
+      const max = Math.max(...points.map(p => p.close));
+      const min = Math.min(...points.map(p => p.close));
+      const d1 = pctChg(points, 1), d7 = pctChg(points, 7), d29 = pctChg(points, 29);
+      renderTileBody(meta, points, cur, { max, min, vol: null, d1, d5: d7, d30: d29 }, interp);
+    } catch (e) {
+      $('gmBody').innerHTML = '<div class="drill-error">❌ Nu am putut încărca F&G istoric.</div>';
+    }
+    return;
+  }
+
+  const data = await fetchYahooChart30d(meta.sym);
+  if (!data || !data.points.length) {
+    $('gmBody').innerHTML = '<div class="drill-error">❌ Nu am putut încărca chart-ul (proxy CORS sau symbol).</div>';
+    return;
+  }
+  let points = data.points;
+  if (meta.divide) points = points.map(p => ({ ts: p.ts, close: p.close / meta.divide }));
+  const cur = points[points.length-1].close;
+  const max = Math.max(...points.map(p => p.close));
+  const min = Math.min(...points.map(p => p.close));
+  const vol = calcVolatility(points);
+  const d1 = pctChg(points, 1), d5 = pctChg(points, 5), d30 = pctChg(points, points.length-1);
+  const interp = meta.interpret(cur);
+  renderTileBody(meta, points, cur, { max, min, vol, d1, d5, d30 }, interp);
+}
+
+function renderTileBody(meta, points, cur, stats, interp) {
+  const fmt = n => n == null ? '—' : (n >= 10000 ? '$' + n.toLocaleString('en-US', {maximumFractionDigits:0}) : n.toLocaleString('en-US', {maximumFractionDigits:2}));
+  const fmtP = n => n == null ? '—' : (n>=0?'+':'') + n.toFixed(2) + '%';
+  const cls = n => n == null ? '' : (n >= 0 ? 'up' : 'down');
+  $('gmSub').textContent = `${points.length} zile · ${new Date(points[0].ts*1000).toLocaleDateString('ro-RO')} → ${new Date(points[points.length-1].ts*1000).toLocaleDateString('ro-RO')}`;
+  $('gmBody').innerHTML = `
+    <div class="drill-chart-wrap">${drawSparkline(points)}</div>
+    <div class="drill-stats-grid">
+      <div class="drill-stat-tile"><div class="dst-label">Current</div><div class="dst-val">${fmt(cur)}</div></div>
+      <div class="drill-stat-tile"><div class="dst-label">Max ${points.length}z</div><div class="dst-val">${fmt(stats.max)}</div></div>
+      <div class="drill-stat-tile"><div class="dst-label">Min ${points.length}z</div><div class="dst-val">${fmt(stats.min)}</div></div>
+      <div class="drill-stat-tile"><div class="dst-label">Δ 1d</div><div class="dst-val ${cls(stats.d1)}">${fmtP(stats.d1)}</div></div>
+      <div class="drill-stat-tile"><div class="dst-label">Δ 5d</div><div class="dst-val ${cls(stats.d5)}">${fmtP(stats.d5)}</div></div>
+      <div class="drill-stat-tile"><div class="dst-label">Δ ${points.length-1}d</div><div class="dst-val ${cls(stats.d30)}">${fmtP(stats.d30)}</div></div>
+      ${stats.vol != null ? `<div class="drill-stat-tile"><div class="dst-label">Volat (ann)</div><div class="dst-val">${stats.vol.toFixed(1)}%</div></div>` : ''}
+    </div>
+    <div class="drill-interp">
+      <h4>📍 Interpretare nivel curent</h4>
+      <p><strong>${escHtml(interp.tag)}</strong> — ${escHtml(interp.text)}</p>
+    </div>
+    <div class="drill-corr">
+      <h4>🔗 Corelații cheie</h4>
+      ${meta.corr.map(c => `<div class="drill-corr-row"><span class="corr-arrow">${c.emoji}</span> ${escHtml(c.txt)}</div>`).join('')}
+    </div>`;
+}
+
+// ============ DRILL DOWN: TICKER auto-link + modal ============
+const TICKER_LIB = new Set([
+  // Major ETFs sectors
+  'SPY','QQQ','IWM','DIA','VOO','VTI','VXUS','EEM','FXI',
+  'XLF','XLK','XLY','XLP','XLE','XLI','XLU','XLV','XLB','XLRE','XLC',
+  'KRE','VNQ','IYR','IYT','SMH','XBI','TLT','HYG','LQD','TIPS','SHY','UUP','UDN',
+  'GLD','SLV','USO','UNG','GDX','GDXJ',
+  // Tech mega-caps
+  'AAPL','MSFT','GOOGL','GOOG','AMZN','META','NVDA','TSLA','NFLX','ADBE','CRM','ORCL','AMD','AVGO','INTC',
+  // Finance
+  'JPM','BAC','GS','MS','WFC','C','BLK','SCHW','AXP','V','MA',
+  // Crypto stocks
+  'COIN','MARA','RIOT','MSTR','HOOD','SOFI','HIVE','CLSK','BITF','BTBT','WULF',
+  // Energy
+  'XOM','CVX','OXY','SLB','EOG','COP',
+  // Consumer
+  'WMT','COST','HD','TGT','LOW','DIS','MCD','SBUX','NKE','LULU',
+  // Industrials
+  'CAT','DE','BA','UPS','FDX','HON','RTX',
+  // Health
+  'JNJ','PFE','MRK','UNH','LLY','ABBV','BMY',
+  // Crypto (Yahoo format)
+  'BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD','ADA-USD','DOGE-USD','LINK-USD','MATIC-USD','AVAX-USD',
+  // Index/futures
+  'ES=F','NQ=F','YM=F','RTY=F','GC=F','SI=F','CL=F','BZ=F','HG=F','^GSPC','^IXIC','^DJI','^RUT','^VIX','^TNX','^FVX'
+]);
+
+function autoLinkTickers(text) {
+  // Escape HTML first
+  let html = escHtml(text);
+  // Pattern markdown bold **TICKER**: convert if recognized
+  html = html.replace(/\*\*([A-Z][A-Z0-9.\-=^]{0,9})\*\*/g, (m, t) => {
+    if (TICKER_LIB.has(t)) return `<span class="ticker-link" data-ticker="${t}">${t}</span>`;
+    return `<strong>${t}</strong>`;
+  });
+  // Pattern bare ticker (uppercase letters/digits separated by space/punct, NOT already linked)
+  // Conservativ: doar tickere din TICKER_LIB cu word boundaries
+  html = html.replace(/\b([A-Z]{2,5}(?:-USD)?)\b/g, (m, t) => {
+    if (!TICKER_LIB.has(t)) return m;
+    // Skip if already wrapped (heuristic: anywhere within span tag — simplified)
+    return `<span class="ticker-link" data-ticker="${t}">${t}</span>`;
+  });
+  return html;
+}
+
+function formatBriefText(text) {
+  // Split pe linii, convertesc headings markdown ## la div clickable, restul prin autoLinkTickers
+  const lines = text.split('\n');
+  const out = [];
+  for (const line of lines) {
+    const hMatch = line.match(/^##\s+(.+)$/);
+    if (hMatch) {
+      out.push(`<div class="brief-section-h" data-section="${escHtml(hMatch[1])}">${escHtml(hMatch[1])}</div>`);
+    } else {
+      out.push(autoLinkTickers(line));
+    }
+  }
+  return out.join('\n');
+}
+
+async function drillTicker(ticker) {
+  openGenericModal('📊 ' + ticker, 'Aduc datele Yahoo Finance...', '<div class="drill-loading"><div class="dl-icon">📈</div><div>Se încarcă...</div></div>');
+  try {
+    const data = await fetchYahooChart30d(ticker);
+    if (!data || !data.points.length) {
+      $('gmBody').innerHTML = '<div class="drill-error">❌ Nu am putut încărca chart pentru <code>' + escHtml(ticker) + '</code>. Verifică symbol-ul (format Yahoo).</div>';
+      return;
+    }
+    const points = data.points;
+    const cur = points[points.length-1].close;
+    const max = Math.max(...points.map(p => p.close));
+    const min = Math.min(...points.map(p => p.close));
+    const d1 = pctChg(points, 1), d5 = pctChg(points, 5), d30 = pctChg(points, points.length-1);
+    const vol = calcVolatility(points);
+    const meta = data.meta || {};
+    const name = meta.longName || meta.shortName || ticker;
+    const exchange = meta.exchangeName || meta.fullExchangeName || '';
+    const currency = meta.currency || 'USD';
+
+    const fmt = n => n == null ? '—' : (n >= 10000 ? n.toLocaleString('en-US', {maximumFractionDigits:0}) : n.toLocaleString('en-US', {maximumFractionDigits:2}));
+    const fmtP = n => n == null ? '—' : (n>=0?'+':'') + n.toFixed(2) + '%';
+    const cls = n => n == null ? '' : (n >= 0 ? 'up' : 'down');
+
+    $('gmSub').textContent = `${name} · ${exchange} · ${currency}`;
+    $('gmBody').innerHTML = `
+      <div class="drill-chart-wrap">${drawSparkline(points)}</div>
+      <div class="drill-stats-grid">
+        <div class="drill-stat-tile"><div class="dst-label">Current</div><div class="dst-val">${fmt(cur)}</div></div>
+        <div class="drill-stat-tile"><div class="dst-label">Max</div><div class="dst-val">${fmt(max)}</div></div>
+        <div class="drill-stat-tile"><div class="dst-label">Min</div><div class="dst-val">${fmt(min)}</div></div>
+        <div class="drill-stat-tile"><div class="dst-label">Δ 1d</div><div class="dst-val ${cls(d1)}">${fmtP(d1)}</div></div>
+        <div class="drill-stat-tile"><div class="dst-label">Δ 5d</div><div class="dst-val ${cls(d5)}">${fmtP(d5)}</div></div>
+        <div class="drill-stat-tile"><div class="dst-label">Δ ${points.length-1}d</div><div class="dst-val ${cls(d30)}">${fmtP(d30)}</div></div>
+        ${vol != null ? `<div class="drill-stat-tile"><div class="dst-label">Volat (ann)</div><div class="dst-val">${vol.toFixed(1)}%</div></div>` : ''}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <a class="action-btn" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(ticker)}" target="_blank" rel="noopener">📈 TradingView</a>
+        <a class="action-btn" href="https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}" target="_blank" rel="noopener">📊 Yahoo Finance</a>
+        <a class="action-btn" href="https://finviz.com/quote.ashx?t=${encodeURIComponent(ticker.split('-')[0])}" target="_blank" rel="noopener">📋 Finviz</a>
+      </div>`;
+  } catch (e) {
+    $('gmBody').innerHTML = '<div class="drill-error">❌ ' + escHtml(e.message) + '</div>';
+  }
 }
 
 // ============ MARKET MOOD ============
@@ -1545,7 +2017,7 @@ function renderNewsCard(n, kind) {
   const sentLabel = ({bull:'🟢 BULL', bear:'🔴 BEAR', neut:'⚪ NEUT', important:'⭐ IMPORTANT'})[n.sentiment] || '⚪ NEUT';
   const tags = (n.tags || []).map(t => `<span class="impact-chip">${escHtml(t)}</span>`).join('');
   const summary = n.summary && n.summary !== n.title ? `<div class="nc-summary">${escHtml(n.summary)}</div>` : '';
-  return `<div class="news-card ${sentCls}" data-kind="${kind}" data-id="${escHtml(n.id)}">
+  return `<div class="news-card ${sentCls}" data-kind="${kind}" data-id="${escHtml(n.id)}" title="Click pentru analiză AI">
     <div class="nc-title">${escHtml(n.title)}</div>
     ${summary}
     <div class="nc-meta">
@@ -1556,6 +2028,132 @@ function renderNewsCard(n, kind) {
       <a class="action-btn" href="${escHtml(n.url)}" target="_blank" rel="noopener" style="margin-left:auto" onclick="event.stopPropagation()">↗</a>
     </div>
   </div>`;
+}
+
+// ============ DRILL DOWN: NEWS AI ============
+let _newsAiCache = (() => { try { return JSON.parse(localStorage.getItem('md_news_ai_cache') || '{}'); } catch (e) { return {}; } })();
+const NEWS_AI_TTL = 6 * 3600 * 1000;
+
+function getCachedNewsAI(id) {
+  const it = _newsAiCache[id];
+  if (!it) return null;
+  if (Date.now() - it.ts > NEWS_AI_TTL) { delete _newsAiCache[id]; persistNewsAiCache(); return null; }
+  return it.text;
+}
+function setCachedNewsAI(id, text) {
+  _newsAiCache[id] = { ts: Date.now(), text };
+  persistNewsAiCache();
+}
+function persistNewsAiCache() {
+  // Keep only last 50 entries
+  const entries = Object.entries(_newsAiCache).sort((a, b) => b[1].ts - a[1].ts).slice(0, 50);
+  _newsAiCache = Object.fromEntries(entries);
+  try { localStorage.setItem('md_news_ai_cache', JSON.stringify(_newsAiCache)); } catch (e) {}
+}
+
+function findNewsById(id) {
+  return MACRO_NEWS.find(n => n.id === id) || CRYPTO_NEWS.find(n => n.id === id);
+}
+
+function toggleNewsExpand(card) {
+  const existing = card.querySelector('.news-ai-box');
+  if (existing) {
+    existing.remove();
+    card.classList.remove('expanded');
+    return;
+  }
+  // Close other expanded
+  document.querySelectorAll('.news-card.expanded').forEach(c => {
+    c.classList.remove('expanded');
+    c.querySelector('.news-ai-box')?.remove();
+  });
+  card.classList.add('expanded');
+  const newsId = card.dataset.id;
+  const news = findNewsById(newsId);
+  if (!news) return;
+
+  const box = document.createElement('div');
+  box.className = 'news-ai-box';
+  box.innerHTML = `
+    <div class="news-ai-bar">
+      <button class="btn-nai primary">🤖 Analiză AI Claude</button>
+      <button class="btn-nai-rerun ghost">↻ Rerun</button>
+      <span class="nas-status"></span>
+    </div>
+    <div class="ai-bubble">Apasă butonul pentru analiză AI (impact pe Nasdaq + crypto + watchlist).</div>
+  `;
+  card.appendChild(box);
+
+  const aiBtn = box.querySelector('.btn-nai');
+  const rerunBtn = box.querySelector('.btn-nai-rerun');
+  const bubble = box.querySelector('.ai-bubble');
+  const status = box.querySelector('.nas-status');
+
+  aiBtn.addEventListener('click', e => { e.stopPropagation(); runNewsAI(news, bubble, status, false); });
+  rerunBtn.addEventListener('click', e => { e.stopPropagation(); runNewsAI(news, bubble, status, true); });
+
+  // Auto-show cached
+  const cached = getCachedNewsAI(news.id);
+  if (cached) {
+    bubble.classList.add('appear');
+    bubble.textContent = cached;
+    status.textContent = 'cache · ' + new Date(_newsAiCache[news.id].ts).toLocaleTimeString('ro-RO');
+  }
+}
+
+async function runNewsAI(news, bubbleEl, statusEl, force=false) {
+  if (!force) {
+    const cached = getCachedNewsAI(news.id);
+    if (cached) {
+      bubbleEl.classList.remove('loading', 'error', 'appear');
+      void bubbleEl.offsetWidth;
+      bubbleEl.classList.add('appear');
+      bubbleEl.textContent = cached;
+      statusEl.textContent = 'cache';
+      return;
+    }
+  }
+  if (!getAnthropicKey()) {
+    bubbleEl.classList.add('error');
+    bubbleEl.textContent = '⚠ Lipsă Anthropic key. Setări ⚙.';
+    return;
+  }
+  bubbleEl.classList.remove('error', 'appear');
+  bubbleEl.classList.add('loading');
+  bubbleEl.textContent = '';
+  const startMs = Date.now();
+  const tickTimer = setInterval(() => { statusEl.textContent = `AI: ${Math.floor((Date.now()-startMs)/1000)}s`; }, 500);
+
+  const tags = (news.tags || []).join(', ') || '(niciun tag detectat)';
+  const ago = timeAgo(news.ts);
+  const prompt = `STIRE
+Titlu: ${news.title}
+Sursă: ${news.source}
+Vârstă: ${ago}
+Sentiment quick: ${news.sentiment}
+Tags detectate: ${tags}
+${news.summary && news.summary !== news.title ? `Sumar: ${news.summary}` : ''}
+
+Categorie: ${news.category || 'general'}
+
+Analizează scurt conform sistemului. Fii direct. Dacă știrea e zgomot/irelevantă, spune asta.`;
+
+  try {
+    const full = await callAnthropicStream(AI_SYSTEM_NEWS, prompt, () => {}, 500);
+    clearInterval(tickTimer);
+    setCachedNewsAI(news.id, full);
+    bubbleEl.classList.remove('loading');
+    void bubbleEl.offsetWidth;
+    bubbleEl.classList.add('appear');
+    bubbleEl.textContent = full;
+    statusEl.textContent = `AI · ${Math.round((Date.now()-startMs)/1000)}s`;
+  } catch (e) {
+    clearInterval(tickTimer);
+    bubbleEl.classList.remove('loading');
+    bubbleEl.classList.add('error');
+    bubbleEl.textContent = '❌ ' + e.message;
+    statusEl.textContent = 'eroare';
+  }
 }
 
 // ============ AI BUBBLE (Claude streaming) ============
@@ -1716,7 +2314,7 @@ function buildExpandHTML(event) {
     <div class="sector-row">
       <span class="sector-icon">${s.icon}</span>
       <span class="sector-label">${escHtml(s.label)}</span>
-      <span class="sector-tickers">${s.tickers.map(t => `<a class="sector-ticker" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(t)}" target="_blank">${escHtml(t)}</a>`).join('')}</span>
+      <span class="sector-tickers">${s.tickers.map(t => `<span class="sector-ticker ticker-link" data-ticker="${escHtml(t)}">${escHtml(t)}</span>`).join('')}</span>
     </div>
   `).join('')}</div>` : '<div class="exp-soon">Niciun mapping sectorial direct pentru acest eveniment. Folosește AI bubble pentru analiză.</div>';
 
@@ -1746,6 +2344,110 @@ function buildExpandHTML(event) {
       </div>
     </div>
   </div>`;
+}
+
+// ============ DRILL DOWN: BRIEF SECTIONS (AI follow-up) ============
+let _sectionAiCache = (() => { try { return JSON.parse(localStorage.getItem('md_section_ai_cache') || '{}'); } catch (e) { return {}; } })();
+const SECTION_AI_TTL = 12 * 3600 * 1000;
+const SECTION_PROMPTS = {
+  'Verdict zilei': 'Aprofundează verdictul. Explică pas-cu-pas raționamentul: ce date din câmpul macro/news/calendar sunt factor decisiv. Ce ar trebui să se schimbe ca verdictul să se inverseze (scenarii numerice).',
+  'Recap 24h': 'Detaliază fiecare punct cheie din recap-ul de 24h. Pentru fiecare: ce sector/asset a fost afectat, cu cât (numere), și cum se conectează cu setup-ul de azi.',
+  'Calendar de azi + 24h': 'Pentru fiecare event high-impact: scenariu bullish surpriză + scenariu bearish surpriză + nivel concret pe SPY/QQQ/BTC ca răspuns. Adaugă și „market reaction template" — cât % típic se mișcă piața la asemenea event istoric.',
+  'Context piata detaliat': 'Aprofundează context-ul macro: corelații istorice între indicatorii (VIX/DXY/yields/BTC) la nivelurile actuale. Ce regim macro suntem (early/mid/late cycle, recession risk).',
+  'Sectoare watch': 'Pentru fiecare sector menționat, adaugă: top 3 stocks în sector (cu raport), pivot tehnic exact + invalidare, catalist săptămâna asta, risk-reward setup-uri concrete.',
+  'Crypto pulse extins': 'Detalii crypto: zone tehnice exacte BTC/ETH cu suport/rezistență istorice, on-chain metrics dacă relevante (exchange inflows, hash rate), corelație cu Nasdaq detaliată.',
+  'Risc cheie': 'Pentru fiecare risc, adaugă probabilitate estimativă (%) + cum se hedge (puts, inverse ETFs, defensive sectors). Concret, nu generic.',
+  'Scenarii bull vs bear': 'Detaliază scenariile cu trigger-uri exacte. Bull: ce nivel SPY/BTC + ce volum + ce catalist. Bear: la fel. Plus „what if neither" — sideways scenario.',
+  'Idei de trade': 'Pentru fiecare idee, elaborează: setup tehnic complet (chart pattern), context fundamental, sizing recomandat (% din cont), management activ (trailing stops, scaling out la TP1/TP2), invalidare clară.',
+  'Look-ahead saptamana': 'Detaliază săptămâna: zi-cu-zi cu evenimente + catalist + sizing recomandat per zi. Top 1 risc pentru fiecare zi.'
+};
+
+function getSectionPrompt(title) {
+  // Match parțial — ignor emoji din heading
+  const cleanTitle = title.replace(/^\s*[\p{Emoji}\p{Symbol}]+\s*/u, '').trim();
+  for (const [k, v] of Object.entries(SECTION_PROMPTS)) {
+    if (cleanTitle.toLowerCase().includes(k.toLowerCase().slice(0, 8))) return v;
+  }
+  return `Elaborează în detaliu această secțiune cu informații concrete, niveluri, scenarii numerice și recomandări practice. Adaugă context istoric dacă e relevant.`;
+}
+
+function sectionCacheKey(briefDate, sectionTitle) {
+  return `${briefDate}::${sectionTitle}`;
+}
+function getCachedSectionAI(key) {
+  const it = _sectionAiCache[key];
+  if (!it) return null;
+  if (Date.now() - it.ts > SECTION_AI_TTL) { delete _sectionAiCache[key]; persistSectionAiCache(); return null; }
+  return it.text;
+}
+function setCachedSectionAI(key, text) {
+  _sectionAiCache[key] = { ts: Date.now(), text };
+  persistSectionAiCache();
+}
+function persistSectionAiCache() {
+  // Keep last 30 entries
+  const entries = Object.entries(_sectionAiCache).sort((a, b) => b[1].ts - a[1].ts).slice(0, 30);
+  _sectionAiCache = Object.fromEntries(entries);
+  try { localStorage.setItem('md_section_ai_cache', JSON.stringify(_sectionAiCache)); } catch (e) {}
+}
+
+async function drillBriefSection(headerEl) {
+  const sectionTitle = headerEl.dataset.section;
+  // Verifică dacă follow-up-ul există deja sub heading
+  let followup = headerEl.nextElementSibling;
+  if (followup && followup.classList.contains('brief-section-followup')) {
+    followup.remove();
+    return;
+  }
+
+  const brief = loadBriefCache();
+  if (!brief) { toast('⚠ Nu există brief generat încă', 'warn'); return; }
+  if (!getAnthropicKey()) { toast('⚠ Lipsă Anthropic key', 'warn'); return; }
+
+  const key = sectionCacheKey(brief.dateET, sectionTitle);
+  const cached = getCachedSectionAI(key);
+
+  followup = document.createElement('div');
+  followup.className = 'brief-section-followup';
+  followup.innerHTML = `
+    <div class="bsf-head">
+      🔍 Elaborare AI · ${escHtml(sectionTitle)}
+      <button class="bsf-close" title="Închide">✖</button>
+    </div>
+    <div class="bsf-content"></div>`;
+  headerEl.insertAdjacentElement('afterend', followup);
+  followup.querySelector('.bsf-close').addEventListener('click', () => followup.remove());
+
+  const contentEl = followup.querySelector('.bsf-content');
+
+  if (cached) {
+    contentEl.innerHTML = autoLinkTickers(cached);
+    return;
+  }
+
+  followup.classList.add('loading');
+  contentEl.textContent = 'Generez analiză detaliată...';
+  const startMs = Date.now();
+  const prompt = `BRIEF MATINAL CONTEXT (data ${brief.dateET}):
+${brief.text}
+
+SECTIUNEA DE ELABORAT: "${sectionTitle}"
+
+INSTRUCTIUNE:
+${getSectionPrompt(sectionTitle)}
+
+Raspunde concis dar detaliat (400-700 cuvinte), in romana. Foloseste **TICKER** pentru tickere. Bullets scurte. Numere concrete cand ai date.`;
+
+  try {
+    const full = await callAnthropicStream('Esti analist macro detaliind o sectiune din brief-ul matinal. Fii precis, cu numere si scenarii concrete, fara disclaimere.', prompt, () => {}, 1200);
+    followup.classList.remove('loading');
+    setCachedSectionAI(key, full);
+    contentEl.innerHTML = autoLinkTickers(full);
+    toast(`✅ Elaborare în ${Math.round((Date.now()-startMs)/1000)}s`, 'success');
+  } catch (e) {
+    followup.classList.remove('loading');
+    contentEl.innerHTML = '<span style="color:var(--bear-s)">❌ ' + escHtml(e.message) + '</span>';
+  }
 }
 
 // ============ AI PRELOAD top 5 high-impact ============
@@ -2013,7 +2715,7 @@ function renderBrief(brief) {
   // Fade-in smooth
   void body.offsetWidth; // force reflow ca animația să se re-trigger
   body.classList.add('appear');
-  body.textContent = brief.text;
+  body.innerHTML = formatBriefText(brief.text);
   $('briefDate').textContent = `${brief.dateET} · generat ${new Date(brief.generatedAt).toLocaleString('ro-RO', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}`;
   $('briefStatus').textContent = `✅ cache · ${Math.round((Date.now() - brief.generatedAt) / 60000)}min în urmă`;
   renderBriefMeta(brief);
@@ -2420,11 +3122,53 @@ function bindEvents() {
     if (t) t.classList.add('active');
   }
 
+  // Drill down stat tiles
+  ['tile-vix','tile-dxy','tile-10y','tile-btc','tile-eth','tile-fng'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('click', () => drillStatTile(id));
+  });
+
+  // Drill down news cards (click pe card → AI expand inline)
+  ['mnList', 'cnList'].forEach(listId => {
+    const list = $(listId);
+    if (!list) return;
+    list.addEventListener('click', e => {
+      if (e.target.closest('a') || e.target.closest('.news-ai-box')) return;
+      const card = e.target.closest('.news-card');
+      if (card) toggleNewsExpand(card);
+    });
+  });
+
+  // Generic modal close
+  $('gmClose').addEventListener('click', closeGenericModal);
+  $('genericModal').addEventListener('click', e => {
+    if (e.target === $('genericModal')) closeGenericModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && $('genericModal').classList.contains('show')) closeGenericModal();
+  });
+
+  // Global click handler: ticker-link → drillTicker (oriunde în pagină)
+  document.body.addEventListener('click', e => {
+    const t = e.target.closest('[data-ticker]');
+    if (t) {
+      e.preventDefault();
+      e.stopPropagation();
+      drillTicker(t.dataset.ticker);
+    }
+  });
+
   // Brief tab buttons
   $('briefGenBtn').addEventListener('click', () => generateBrief(false));
   $('briefRerunBtn').addEventListener('click', () => {
     if (!confirm('Re-generează brief-ul (consumă tokens AI)?')) return;
     generateBrief(true);
+  });
+
+  // Drill down brief sections: click pe ## heading → AI follow-up
+  $('briefBody').addEventListener('click', e => {
+    const h = e.target.closest('.brief-section-h');
+    if (h) { e.preventDefault(); e.stopPropagation(); drillBriefSection(h); }
   });
 
   // Restaurez chip-uri active din CFG
