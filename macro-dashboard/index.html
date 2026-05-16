@@ -244,11 +244,12 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .news-loading { padding:30px; text-align:center; color:var(--t3); font-size:12px; font-family:var(--head); }
 .news-empty { padding:30px; text-align:center; color:var(--t3); font-size:12px; font-family:var(--head); }
 
-/* AI bubble (streaming) */
-.ai-bubble { background:linear-gradient(135deg, rgba(59,130,246,.10), rgba(16,185,129,.06)); border:1px solid rgba(59,130,246,.35); border-radius:var(--rs); padding:10px 12px; font-family:var(--head); font-size:12px; line-height:1.6; color:var(--t1); white-space:pre-wrap; word-wrap:break-word; min-height:30px; max-height:340px; overflow-y:auto; }
+/* AI bubble */
+.ai-bubble { background:linear-gradient(135deg, rgba(59,130,246,.10), rgba(16,185,129,.06)); border:1px solid rgba(59,130,246,.35); border-radius:var(--rs); padding:12px 14px; font-family:var(--head); font-size:12.5px; line-height:1.75; color:var(--t1); white-space:pre-wrap; word-wrap:break-word; min-height:30px; max-height:380px; overflow-y:auto; letter-spacing:.1px; }
 .ai-bubble.error { background:rgba(255,77,77,.08); border-color:rgba(255,77,77,.35); color:#fca5a5; }
-.ai-bubble.loading::after { content:" ▍"; animation:blink 1s infinite; color:var(--acc-1); }
-@keyframes blink { 50% { opacity:0; } }
+.ai-bubble.loading { display:flex; align-items:center; justify-content:center; min-height:80px; color:var(--t3); }
+.ai-bubble.loading::before { content:"🧠"; font-size:24px; margin-right:10px; animation:pulse 1.4s ease-in-out infinite; }
+.ai-bubble.appear { animation:fadeIn .35s ease; }
 .ai-bar { display:flex; gap:6px; margin-bottom:6px; align-items:center; }
 .ai-bar button { padding:4px 10px; font-size:10.5px; }
 .ai-bar .ai-status { font-size:10px; color:var(--t3); font-family:var(--mono); margin-left:auto; }
@@ -280,9 +281,12 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .brief-meta-tile { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:8px 12px; }
 .brief-meta-tile .bmt-label { font-size:9.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; font-weight:700; font-family:var(--mono); }
 .brief-meta-tile .bmt-val { font-size:12.5px; font-weight:700; color:var(--t1); font-family:var(--head); margin-top:2px; }
-.brief-body { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:18px 22px; font-family:var(--head); font-size:13.5px; line-height:1.75; color:var(--t1); white-space:pre-wrap; word-wrap:break-word; min-height:200px; }
-.brief-body.loading::after { content:" ▍"; animation:blink 1s infinite; color:var(--acc-1); }
+.brief-body { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:22px 26px; font-family:var(--head); font-size:14.5px; line-height:1.85; color:var(--t1); white-space:pre-wrap; word-wrap:break-word; min-height:200px; letter-spacing:.1px; }
+.brief-body.loading { display:flex; align-items:center; justify-content:center; color:var(--t3); font-size:13px; min-height:240px; }
+.brief-body.loading::before { content:"🧠"; font-size:32px; margin-right:12px; animation:pulse 1.4s ease-in-out infinite; }
 .brief-body.error { background:rgba(255,77,77,.06); border-color:rgba(255,77,77,.35); color:#fca5a5; }
+.brief-body.appear { animation:fadeIn .45s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
 .brief-body h1, .brief-body h2, .brief-body h3 { color:var(--t1); margin-bottom:6px; }
 .brief-empty { padding:60px 24px; text-align:center; color:var(--t3); }
 .brief-empty .bp-icon { font-size:56px; opacity:.4; margin-bottom:14px; }
@@ -309,7 +313,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v141</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v142</span></h1>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte (beep)">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -540,7 +544,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <script>
 // ============ CONFIG ============
-const VERSION = 'v141';
+const VERSION = 'v142';
 const DEFAULT_CFG = {
   alertThreshold: 120, // minute
   autoRefresh: 1800, // secunde
@@ -1421,7 +1425,9 @@ async function runAIAnalysis(event, bubbleEl, statusEl, force=false) {
   if (!force) {
     const cached = getCachedAI(key);
     if (cached) {
-      bubbleEl.classList.remove('loading', 'error');
+      bubbleEl.classList.remove('loading', 'error', 'appear');
+      void bubbleEl.offsetWidth;
+      bubbleEl.classList.add('appear');
       bubbleEl.textContent = cached;
       statusEl.textContent = 'cache · ' + new Date(_aiCache[key].ts).toLocaleTimeString('ro-RO');
       return;
@@ -1432,10 +1438,13 @@ async function runAIAnalysis(event, bubbleEl, statusEl, force=false) {
     bubbleEl.textContent = '⚠ Lipsă Anthropic key. Configureaz-o din Setări ⚙.';
     return;
   }
-  bubbleEl.classList.remove('error');
+  bubbleEl.classList.remove('error', 'appear');
   bubbleEl.classList.add('loading');
   bubbleEl.textContent = '';
-  statusEl.textContent = 'AI: stream...';
+  const startMs = Date.now();
+  const tickTimer = setInterval(() => {
+    statusEl.textContent = `AI: ${Math.floor((Date.now() - startMs)/1000)}s`;
+  }, 500);
   const cm = COUNTRY_META[event.country] || { name: event.country };
   const dt = fmtEventDateTime(event.time);
   const prompt = `EVENIMENT ECONOMIC
@@ -1450,11 +1459,17 @@ Context piață acum: VIX, DXY, BTC, ETH (live pe pagină).
 
 Te rog analiza scurtă conform sistemului.`;
   try {
-    const full = await callAnthropicStream(AI_SYSTEM, prompt, txt => { bubbleEl.textContent = txt; });
+    // Streaming silentios — afișează DOAR la final cu fade-in
+    const full = await callAnthropicStream(AI_SYSTEM, prompt, () => {});
+    clearInterval(tickTimer);
     setCachedAI(key, full);
     bubbleEl.classList.remove('loading');
-    statusEl.textContent = 'AI · gata';
+    void bubbleEl.offsetWidth;
+    bubbleEl.classList.add('appear');
+    bubbleEl.textContent = full;
+    statusEl.textContent = `AI · gata (${Math.round((Date.now() - startMs)/1000)}s)`;
   } catch (e) {
+    clearInterval(tickTimer);
     bubbleEl.classList.remove('loading');
     bubbleEl.classList.add('error');
     bubbleEl.textContent = '❌ Eroare AI: ' + e.message;
@@ -1690,16 +1705,19 @@ Genereaza brief-ul matinal conform structurii.`;
 
   const bodyEl = $('briefBody');
   const statusEl = $('briefStatus');
-  bodyEl.classList.remove('error');
+  bodyEl.classList.remove('error', 'appear');
   bodyEl.classList.add('loading');
-  bodyEl.textContent = '';
-  statusEl.textContent = '🧠 generez...';
+  bodyEl.textContent = 'Generez brief-ul, durează ~10-20 secunde...';
+
+  const startMs = Date.now();
+  const tickTimer = setInterval(() => {
+    statusEl.textContent = `🧠 generez... ${Math.floor((Date.now() - startMs)/1000)}s`;
+  }, 500);
 
   try {
-    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, txt => {
-      bodyEl.textContent = txt;
-    });
-    bodyEl.classList.remove('loading');
+    // Streaming silentios — NU update-uim DOM-ul la fiecare chunk (e obositor)
+    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, () => {});
+    clearInterval(tickTimer);
     const brief = {
       dateET: nyt.date,
       generatedAt: Date.now(),
@@ -1707,10 +1725,10 @@ Genereaza brief-ul matinal conform structurii.`;
       ctx: { eventsCount: ctx.eventsCount, hiCount: ctx.hiCount, tiles: ctx.tilesList }
     };
     saveBriefCache(brief);
-    renderBrief(brief);
-    toast('✅ Brief generat', 'success');
+    renderBrief(brief); // afișează deodată cu fade-in
+    toast(`✅ Brief generat în ${Math.round((Date.now() - startMs)/1000)}s`, 'success');
   } catch (e) {
-    bodyEl.classList.remove('loading');
+    clearInterval(tickTimer);
     renderBriefError('❌ Eroare AI: ' + e.message);
     statusEl.textContent = 'eroare';
   }
@@ -1735,12 +1753,16 @@ function renderBriefMeta(ctxOrBrief) {
 
 function renderBrief(brief) {
   const body = $('briefBody');
-  body.classList.remove('loading', 'error');
+  body.classList.remove('loading', 'error', 'appear');
+  // Fade-in smooth
+  void body.offsetWidth; // force reflow ca animația să se re-trigger
+  body.classList.add('appear');
   body.textContent = brief.text;
   $('briefDate').textContent = `${brief.dateET} · generat ${new Date(brief.generatedAt).toLocaleString('ro-RO', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}`;
   $('briefStatus').textContent = `✅ cache · ${Math.round((Date.now() - brief.generatedAt) / 60000)}min în urmă`;
   renderBriefMeta(brief);
-  $('briefNextTime').textContent = '';
+  const nextTimeEl = $('briefNextTime');
+  if (nextTimeEl) nextTimeEl.textContent = '';
 }
 
 function renderBriefError(msg) {
