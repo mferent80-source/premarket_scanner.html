@@ -740,7 +740,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v158</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v159</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1382,17 +1382,16 @@ async function fetchViaProxy(url, timeoutMs=9000) {
 }
 
 // ============ STAT TILES (live macro indicators) ============
+// Refolosim fetchYahooChart30d (range=3mo merge stabil prin proxy)
+// — range=5d eșuează intermitent pe Yahoo via codetabs/corsproxy.
 async function fetchYahooQuote(symbol) {
-  // Yahoo v8 chart endpoint - returnează preț + Δ%
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
-  const data = await fetchViaProxy(url);
-  const result = data?.chart?.result?.[0];
-  if (!result) return null;
-  const meta = result.meta;
-  const closes = result.indicators?.quote?.[0]?.close?.filter(v => v != null) || [];
-  if (!closes.length) return null;
-  const last = meta.regularMarketPrice ?? closes[closes.length-1];
-  const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? closes[closes.length-2] ?? last;
+  const data = await fetchYahooChart30d(symbol);
+  if (!data || !data.points || !data.points.length) return null;
+  const last = data.meta?.regularMarketPrice ?? data.points[data.points.length-1].close;
+  const prevClose = data.meta?.chartPreviousClose
+    ?? data.meta?.previousClose
+    ?? data.points[data.points.length-2]?.close
+    ?? last;
   const chgPct = prevClose ? ((last - prevClose) / prevClose) * 100 : 0;
   return { last, chgPct, prevClose };
 }
@@ -1407,10 +1406,12 @@ async function loadStatTiles() {
     { id:'tile-eth', sym:'ETH-USD', label:'Ξ ETH', sub:'Ethereum USD', dec:0, suffix:'$', invertedColor:false, prefix:true }
   ];
 
-  for (const t of tiles) {
+  // Paralelizăm toate 5 fetch-urile (Promise.allSettled ca să nu pice tot dacă unul eșuează)
+  const results = await Promise.allSettled(tiles.map(t => fetchYahooQuote(t.sym).then(q => ({ t, q }))));
+  for (const res of results) {
+    if (res.status !== 'fulfilled' || !res.value.q) continue;
+    const { t, q } = res.value;
     try {
-      const q = await fetchYahooQuote(t.sym);
-      if (!q) continue;
       const val = t.divide ? q.last / t.divide : q.last;
       const fmt = t.prefix
         ? '$' + val.toLocaleString('en-US', {maximumFractionDigits:t.dec})
@@ -1425,10 +1426,7 @@ async function loadStatTiles() {
       tile.innerHTML = `<span class="stat-label">${t.label}</span>
         <span class="stat-value">${fmt}</span>
         <span class="stat-sub ${dirClass}">${arrow} ${fmtPct(q.chgPct,2)} · ${t.sub}</span>`;
-      await sleep(120);
-    } catch (e) {
-      // tile rămâne cu placeholder; nu blochez restul
-    }
+    } catch (e) { /* skip tile-ul ăsta */ }
   }
 
   // Crypto Fear & Greed (alternative.me - free, no key, CORS allowed)
@@ -3671,14 +3669,18 @@ function returnsFromAligned(aligned) {
 async function computeRiskDashboard() {
   if (RISK_STATE && Date.now() - RISK_STATE.ts < RISK_CACHE_TTL) return RISK_STATE;
   try {
-    const [spy, btc, tnx] = await Promise.all([
+    const [spy, btc, tnx, vix] = await Promise.all([
       fetchYahooChart30d('SPY'),
       fetchYahooChart30d('BTC-USD'),
-      fetchYahooChart30d('^TNX')
+      fetchYahooChart30d('^TNX'),
+      fetchYahooChart30d('^VIX')
     ]);
-    // VIX: din DOM (deja încărcat de loadStatTiles)
-    const vixEl = $('tile-vix')?.querySelector('.stat-value');
-    const vixVal = vixEl ? parseFloat(vixEl.textContent.replace(',', '')) : NaN;
+    // Dacă toate fetch-urile au eșuat, returnăm null (nu afișăm tile mincinos)
+    if (!spy && !btc && !tnx && !vix) return null;
+    // VIX: din chart direct (cache shared cu stat tile dacă deja încărcat)
+    const vixVal = vix?.points?.length
+      ? (vix.meta?.regularMarketPrice ?? vix.points[vix.points.length-1].close)
+      : NaN;
     // 10Y: ^TNX returnează valoarea ×10 (ex: 4.5% = 45). Conversie ÷10.
     let tenYVal = null, tenYDelta30 = null;
     if (tnx?.points?.length > 10) {
