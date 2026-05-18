@@ -183,7 +183,7 @@ button.primary {
 <body>
 
 <header>
-  <h1>🎯 Today's Playbook <span class="ver-badge" id="verBadge">v1</span></h1>
+  <h1>🎯 Today's Playbook <span class="ver-badge" id="verBadge">v2</span></h1>
   <span class="date-pill" id="datePill">—</span>
   <span class="session-pill" id="sessionPill">⏳ —</span>
   <button id="refreshBtn" class="primary">🔄 Refresh</button>
@@ -230,6 +230,18 @@ button.primary {
   </div>
   <div class="pb-section-body" id="bodyEarnings">
     <div class="pb-loading">se încarcă calendar earnings...</div>
+  </div>
+</div>
+
+<!-- Watchlist events 14-30 zile (earnings + dividends + splits) -->
+<div class="pb-section" id="secWlEvents">
+  <div class="pb-section-head">
+    <h3>📌 Watchlist events (14-30 zile)</h3>
+    <span class="pb-count" id="cntWlEvents">—</span>
+    <span class="pb-go" style="cursor:default;color:var(--t3)">earnings · dividends · splits</span>
+  </div>
+  <div class="pb-section-body" id="bodyWlEvents">
+    <div class="pb-loading">se agregă events din watchlist...</div>
   </div>
 </div>
 
@@ -521,6 +533,143 @@ async function loadEarnings() {
   }
 }
 
+// ============ Watchlist events 14-30z (earnings + dividends + splits) ============
+const WL_EVENTS_CACHE_KEY = 'pb_wl_events_cache_v1';
+const WL_EVENTS_CACHE_TTL = 6*3600*1000; // 6h
+
+async function loadWatchlistEvents() {
+  const wl = getWatchlist();
+  if (!wl.length) {
+    $('bodyWlEvents').innerHTML = '<div class="pb-empty">📭 Watchlist gol. Adaugă tickere din nasdaq-scanner sau watchlist-monitor.</div>';
+    $('cntWlEvents').textContent = '0';
+    return;
+  }
+  const key = getFinnhubKey();
+  if (!key) {
+    $('bodyWlEvents').innerHTML = '<div class="pb-empty">⚠ Cheia Finnhub lipsește.</div>';
+    $('cntWlEvents').textContent = '0';
+    return;
+  }
+
+  // Cache check
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(WL_EVENTS_CACHE_KEY) || 'null'); } catch (e) {}
+  const wlKey = wl.slice().sort().join(',');
+  if (cached && cached.wlKey === wlKey && Date.now() - cached.ts < WL_EVENTS_CACHE_TTL) {
+    renderWlEvents(cached.events);
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0,10);
+  const in14 = new Date(Date.now() + 14*86400000).toISOString().slice(0,10);
+  const in30 = new Date(Date.now() + 30*86400000).toISOString().slice(0,10);
+  const wlUpper = wl.map(t => t.toUpperCase());
+  const wlSet = new Set(wlUpper);
+
+  try {
+    // 1. Earnings (un singur request pentru tot calendarul)
+    const earningsResp = await fetch(`https://finnhub.io/api/v1/calendar/earnings?from=${today}&to=${in14}&token=${encodeURIComponent(key)}`);
+    let earnings = [];
+    if (earningsResp.ok) {
+      const d = await earningsResp.json();
+      earnings = (d?.earningsCalendar || []).filter(e => wlSet.has((e.symbol || '').toUpperCase()));
+    }
+
+    // 2. Dividends + Splits per ticker (paralel, max 20 tickere ca să nu burst 60/min Finnhub)
+    const tickers = wlUpper.slice(0, 20);
+    const divPromises = tickers.map(async t => {
+      try {
+        const r = await fetch(`https://finnhub.io/api/v1/stock/dividend2?symbol=${encodeURIComponent(t)}&from=${today}&to=${in30}&token=${encodeURIComponent(key)}`);
+        if (!r.ok) return [];
+        const d = await r.json();
+        const list = d?.data || (Array.isArray(d) ? d : []);
+        return list.map(x => ({ symbol: t, ...x }));
+      } catch (e) { return []; }
+    });
+    const splitPromises = tickers.map(async t => {
+      try {
+        const r = await fetch(`https://finnhub.io/api/v1/stock/split?symbol=${encodeURIComponent(t)}&from=${today}&to=${in30}&token=${encodeURIComponent(key)}`);
+        if (!r.ok) return [];
+        const d = await r.json();
+        return (Array.isArray(d) ? d : []).map(x => ({ symbol: t, ...x }));
+      } catch (e) { return []; }
+    });
+    const [divResults, splitResults] = await Promise.all([Promise.all(divPromises), Promise.all(splitPromises)]);
+    const dividends = divResults.flat();
+    const splits = splitResults.flat();
+
+    // 3. Combina și normalize
+    const events = [
+      ...earnings.map(e => ({
+        type: 'earnings', date: e.date, symbol: (e.symbol || '').toUpperCase(),
+        hour: e.hour, epsEst: e.epsEstimate, revEst: e.revenueEstimate
+      })),
+      ...dividends.map(d => ({
+        type: 'dividend', date: d.date || d.exDate || d.payDate, symbol: d.symbol,
+        amount: d.amount, freq: d.freq, payDate: d.payDate
+      })).filter(d => d.date && d.date >= today && d.date <= in30),
+      ...splits.map(s => ({
+        type: 'split', date: s.date, symbol: s.symbol,
+        ratio: (s.toFactor && s.fromFactor) ? `${s.toFactor}-for-${s.fromFactor}` : (s.ratio || '—')
+      })).filter(s => s.date && s.date >= today && s.date <= in30)
+    ].sort((a,b) => a.date.localeCompare(b.date));
+
+    // Cache
+    try { localStorage.setItem(WL_EVENTS_CACHE_KEY, JSON.stringify({ ts: Date.now(), wlKey, events })); } catch (e) {}
+    renderWlEvents(events);
+  } catch (e) {
+    $('bodyWlEvents').innerHTML = `<div class="pb-empty">⚠ Eroare fetch: ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderWlEvents(events) {
+  $('cntWlEvents').textContent = String(events.length);
+  if (!events.length) {
+    $('bodyWlEvents').innerHTML = '<div class="pb-empty">📭 Niciun event programat în următoarele 14-30 zile pentru watchlist (verificat earnings + dividends + splits).</div>';
+    return;
+  }
+  const today = new Date().toISOString().slice(0,10);
+  const fmtDate = d => {
+    const dt = new Date(d + 'T00:00:00Z');
+    const today0 = new Date(today + 'T00:00:00Z');
+    const days = Math.round((dt - today0) / 86400000);
+    const dStr = dt.toLocaleDateString('ro-RO', { day:'2-digit', month:'short', weekday:'short' });
+    let til;
+    if (days === 0) til = '<b style="color:var(--bear-s)">AZI</b>';
+    else if (days === 1) til = '<b style="color:var(--warn)">MÂINE</b>';
+    else if (days <= 7) til = `T-${days}z`;
+    else til = `${days}z`;
+    return { dStr, til };
+  };
+  $('bodyWlEvents').innerHTML = `<table class="pb-table">
+    <thead><tr><th>Data</th><th>Ticker</th><th>Tip</th><th>Detalii</th></tr></thead>
+    <tbody>${events.slice(0, 20).map(e => {
+      const dt = fmtDate(e.date);
+      let typeChip, details = '';
+      if (e.type === 'earnings') {
+        typeChip = '<span class="chip warn">💰 Earnings</span>';
+        const hour = e.hour === 'bmo' ? '🌅 BMO' : (e.hour === 'amc' ? '🌙 AMC' : (e.hour || ''));
+        details = `${hour}${e.epsEst != null ? ' · EPS est <b>$' + Number(e.epsEst).toFixed(2) + '</b>' : ''}`;
+      } else if (e.type === 'dividend') {
+        typeChip = '<span class="chip bull">💵 Dividend</span>';
+        const amt = e.amount != null ? `$${Number(e.amount).toFixed(3)}/share` : '—';
+        const freq = e.freq ? ` · ${escHtml(String(e.freq))}` : '';
+        const pay = e.payDate ? ` · pay ${escHtml(e.payDate)}` : '';
+        details = `ex-date · <b>${amt}</b>${freq}${pay}`;
+      } else if (e.type === 'split') {
+        typeChip = '<span class="chip high">✂ Split</span>';
+        details = `ratio <b>${escHtml(e.ratio)}</b>`;
+      }
+      return `<tr>
+        <td class="time-cell"><span>${dt.dStr}</span><span class="t-til">${dt.til}</span></td>
+        <td class="sym"><a href="https://www.tradingview.com/chart/?symbol=NASDAQ:${escHtml(e.symbol)}" target="_blank">${escHtml(e.symbol)}</a></td>
+        <td>${typeChip}</td>
+        <td style="color:var(--t1);font-size:12px">${details}</td>
+      </tr>`;
+    }).join('')}</tbody></table>
+    <div style="font-size:11px;color:var(--t3);margin-top:8px;text-align:right">cache 6h · primele 20 entries</div>`;
+}
+
 // ============ Nasdaq picks din LS ============
 function loadNasdaqPicks() {
   let scan = null;
@@ -586,14 +735,18 @@ async function loadAll() {
   loadWatchlistHero();
   loadNasdaqPicks();
   loadSuggestions();
-  await Promise.allSettled([loadRiskRegime(), loadMacroEvents(), loadEarnings()]);
+  await Promise.allSettled([loadRiskRegime(), loadMacroEvents(), loadEarnings(), loadWatchlistEvents()]);
   $('refreshInfo').textContent = `🔄 ultim refresh: ${new Date().toLocaleTimeString('ro-RO')}`;
+}
+
+function clearWlEventsCache() {
+  try { localStorage.removeItem(WL_EVENTS_CACHE_KEY); } catch (e) {}
 }
 
 renderDate();
 renderSession();
 setInterval(renderSession, 30000);
-$('refreshBtn').addEventListener('click', () => { PROXY_DEAD.clear(); loadAll(); });
+$('refreshBtn').addEventListener('click', () => { PROXY_DEAD.clear(); clearWlEventsCache(); loadAll(); });
 
 loadAll();
 
