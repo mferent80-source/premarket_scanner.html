@@ -281,7 +281,18 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 'use strict';
 
 // ─────────────────────── CONFIG ───────────────────────
-const PROXY = 'https://api.codetabs.com/v1/proxy?quest=';
+// Codetabs e rate-limited frecvent (returnează „Edge: Too Many Requests" plain text).
+// Lanț de 6 proxy-uri CORS cu marker dead automat pe fail.
+const CORS_PROXIES = [
+  u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  u => 'https://api.cors.lol/?url=' + encodeURIComponent(u),
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u),
+  u => 'https://proxy.cors.sh/' + u
+];
+const PROXY_DEAD = new Set();
+let _proxyIdx = 0;
 const YAHOO_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart/';
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 const LS_KEY = 'finnhub_api_key';
@@ -407,11 +418,52 @@ function adx(highs, lows, closes, period = 14) {
 }
 
 // ─────────────────────── DATA FETCH ───────────────────────
+async function fetchViaProxy(url, timeoutMs = 9000) {
+  const tried = new Set();
+  let lastErr = null;
+  for (let attempt = 0; attempt < CORS_PROXIES.length; attempt++) {
+    const idx = (_proxyIdx + attempt) % CORS_PROXIES.length;
+    if (PROXY_DEAD.has(idx) || tried.has(idx)) continue;
+    tried.add(idx);
+    const proxyBuild = CORS_PROXIES[idx];
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      const r = await fetch(proxyBuild(url), { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!r.ok) {
+        if ([400,408,429,502,503,504].includes(r.status)) PROXY_DEAD.add(idx);
+        lastErr = `HTTP ${r.status} proxy ${idx}`;
+        continue;
+      }
+      const txt = await r.text();
+      // Detect HTML / plain-text error pages (codetabs „Edge: Too Many Requests", etc.)
+      const trimmed = txt.trim();
+      if (trimmed.startsWith('<') || trimmed.startsWith('Edge:') || trimmed.startsWith('Error')) {
+        PROXY_DEAD.add(idx);
+        lastErr = `non-JSON proxy ${idx} (${trimmed.slice(0,40)})`;
+        continue;
+      }
+      // allorigins/get returnează { contents: "..." } în loc de raw
+      let parsed;
+      try { parsed = JSON.parse(txt); } catch (e) { lastErr = 'JSON parse fail'; PROXY_DEAD.add(idx); continue; }
+      if (parsed?.contents && typeof parsed.contents === 'string') {
+        try { parsed = JSON.parse(parsed.contents); } catch (e) {}
+      }
+      _proxyIdx = idx;
+      return parsed;
+    } catch (e) {
+      if (e.name === 'AbortError') { lastErr = `timeout proxy ${idx}`; continue; }
+      PROXY_DEAD.add(idx);
+      lastErr = `${e.message} proxy ${idx}`;
+    }
+  }
+  throw new Error(`Proxy CORS chain epuizat (${lastErr || 'unknown'})`);
+}
+
 async function fetchYahoo(sym) {
   const url = `${YAHOO_BASE}${sym}?interval=1d&range=6mo`;
-  const res = await fetch(PROXY + encodeURIComponent(url));
-  if (!res.ok) throw new Error(`Yahoo ${res.status}`);
-  const j = await res.json();
+  const j = await fetchViaProxy(url);
   const r = j?.chart?.result?.[0];
   if (!r) throw new Error('Symbol invalid sau fără date');
   const q = r.indicators?.quote?.[0];
