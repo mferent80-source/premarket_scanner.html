@@ -683,8 +683,31 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .drill-error { padding:24px; text-align:center; color:var(--bear-s); background:rgba(255,77,77,.08); border:1px solid rgba(255,77,77,.3); border-radius:var(--rs); }
 
 /* Toasts */
-#toasts { position:fixed; bottom:14px; right:14px; display:flex; flex-direction:column; gap:6px; z-index:2000; max-width:380px; }
-.toast { background:var(--panel); border:1px solid var(--b1); border-left:3px solid var(--accent); border-radius:var(--rs); padding:10px 14px; font-size:12.5px; box-shadow:var(--shadow); font-family:var(--head); color:var(--t1); animation:slideIn .25s var(--ease); }
+#toasts { position:fixed; bottom:14px; right:14px; display:flex; flex-direction:column; gap:6px; z-index:2000; max-width:400px; pointer-events:none; }
+#toasts > * { pointer-events:auto; }
+.toast-clear-all {
+  align-self:flex-end; background:var(--panel2); border:1px solid var(--b1); color:var(--t2);
+  padding:4px 10px; font-size:11px; cursor:pointer; border-radius:4px; font-weight:700;
+  font-family:var(--head);
+}
+.toast-clear-all:hover { color:var(--bear-s); border-color:var(--bear-s); background:rgba(255,77,77,.06); }
+.toast {
+  display:flex; align-items:flex-start; gap:10px;
+  background:var(--panel); border:1px solid var(--b1); border-left:3px solid var(--accent);
+  border-radius:var(--rs); padding:10px 12px 10px 14px;
+  font-size:12.5px; line-height:1.5; box-shadow:0 4px 16px rgba(0,0,0,.4);
+  font-family:var(--head); color:var(--t1); animation:slideIn .25s var(--ease);
+  max-width:380px; word-wrap:break-word;
+}
+.toast.toast-out { animation:slideOut .2s ease forwards; }
+.toast-msg { flex:1; }
+.toast-close {
+  background:transparent; border:none; color:var(--t3); cursor:pointer;
+  padding:0 2px; font-size:14px; line-height:1; font-weight:700; flex-shrink:0;
+  margin-top:1px;
+}
+.toast-close:hover { color:var(--bear-s); background:transparent; transform:none; }
+@keyframes slideOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(20px); } }
 .toast.success { border-left-color:var(--bull-s); }
 .toast.warn { border-left-color:var(--warn); }
 .toast.error { border-left-color:var(--bear-s); }
@@ -795,7 +818,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v169</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v170</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1553,12 +1576,53 @@ function loadCfg() {
 }
 function saveCfg() { localStorage.setItem('md_cfg', JSON.stringify(CFG)); }
 
-function toast(msg, kind='info') {
+function toast(msg, kind='info', opts={}) {
   const el = document.createElement('div');
   el.className = 'toast ' + kind;
-  el.textContent = msg;
+  // warn/error persistente by default. info/success 12s auto-dismiss (era 4.5s — mult prea scurt).
+  // Hover pauzează auto-dismiss. Click pe X închide manual oricând.
+  const autoDismissMs = opts.persist === true
+    ? 0
+    : (opts.persist === false
+        ? (opts.duration || 12000)
+        : (kind === 'warn' || kind === 'error' ? 0 : (opts.duration || 12000)));
+  el.innerHTML = `
+    <span class="toast-msg">${escHtml(msg)}</span>
+    <button class="toast-close" title="Închide">✕</button>
+  `;
+  const close = () => { el.classList.add('toast-out'); setTimeout(() => { el.remove(); updateClearAllBtn(); }, 200); };
+  el.querySelector('.toast-close').addEventListener('click', close);
   $('toasts').appendChild(el);
-  setTimeout(() => el.remove(), 4500);
+  updateClearAllBtn();
+  if (autoDismissMs > 0) {
+    let timer = setTimeout(close, autoDismissMs);
+    // Hover pe toast → pauză auto-dismiss; mouse out → reia
+    el.addEventListener('mouseenter', () => { clearTimeout(timer); timer = null; });
+    el.addEventListener('mouseleave', () => { if (!timer) timer = setTimeout(close, 4000); });
+  }
+}
+
+function updateClearAllBtn() {
+  const container = $('toasts');
+  let btn = container.querySelector('.toast-clear-all');
+  const toasts = container.querySelectorAll('.toast:not(.toast-out)');
+  if (toasts.length >= 3) {
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.className = 'toast-clear-all';
+      btn.textContent = '✕ Închide toate';
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.toast').forEach(t => {
+          t.classList.add('toast-out');
+          setTimeout(() => t.remove(), 200);
+        });
+        btn.remove();
+      });
+      container.insertBefore(btn, container.firstChild);
+    }
+  } else if (btn) {
+    btn.remove();
+  }
 }
 
 function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || ''; }
