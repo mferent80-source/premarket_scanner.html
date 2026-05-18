@@ -795,7 +795,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v166</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v167</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1162,7 +1162,11 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <label>Anthropic key:</label>
         <input type="text" id="setAnthropicKey" placeholder="sk-ant-...">
       </div>
-      <div class="modal-note">Cheile sunt persistate local (localStorage), nu trimise nicăieri în afară de API-urile respective. Finnhub și Anthropic sunt SHARED cu nasdaq-scanner / earnings-hub / pump-radar.<br>Crypto news folosește <b>Finnhub crypto + Reddit r/CryptoCurrency + Cointelegraph RSS</b> (free, fără cheie extra).</div>
+      <div class="modal-row">
+        <label>TwelveData key:</label>
+        <input type="text" id="setTwelvedataKey" placeholder="opțional · pentru chart 30z indices">
+      </div>
+      <div class="modal-note">Cheile sunt persistate local (localStorage), nu trimise nicăieri în afară de API-urile respective. Finnhub și Anthropic sunt SHARED cu nasdaq-scanner / earnings-hub / pump-radar.<br>Crypto news folosește <b>Finnhub crypto + Reddit r/CryptoCurrency + Cointelegraph RSS</b> (free, fără cheie extra).<br><b>TwelveData</b> (opțional) — folosit doar ca fallback pentru chart 30z VIX/DXY/10Y când Yahoo proxy CORS pică. Registration gratis 8 req/min, 800/zi: <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--accent)">twelvedata.com/pricing</a> → plan FREE.</div>
     </div>
 
     <div class="modal-section">
@@ -1659,8 +1663,9 @@ async function fetchCryptoChartFromCoinGecko(coinId, days = 60) {
 async function fetchBtcChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('bitcoin'); }
 async function fetchEthChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('ethereum'); }
 
-// Finnhub /stock/candle pentru ETF (no proxy CORS). Premium pentru indices,
-// dar pentru ETF echivalente (VXX/UUP/IEF) ar trebui să fie free tier.
+// Finnhub /stock/candle pentru ETF (no proxy CORS). ⚠ FINNHUB a băgat /candle pe paywall
+// recent (2024+) — pentru free tier returnează 403 chiar pe ETF. Lăsăm funcția dar o folosim
+// doar best-effort. Marius poate avea o cheie pro veche care încă merge.
 async function fetchFinnhubCandle(symbol, days = 60) {
   const key = getFinnhubKey();
   if (!key) return null;
@@ -1673,6 +1678,29 @@ async function fetchFinnhubCandle(symbol, days = 60) {
     const d = await r.json();
     if (d?.s !== 'ok' || !Array.isArray(d.c) || !d.c.length) return null;
     const points = d.c.map((close, i) => ({ ts: d.t[i], close }));
+    return { points, meta: { regularMarketPrice: points[points.length-1].close } };
+  } catch (e) { return null; }
+}
+
+// TwelveData /time_series — free 8 req/min, 800/day. CORS allowed. Registration gratuită la
+// twelvedata.com/free. Cheia se stochează în LS twelvedata_api_key.
+function getTwelveDataKey() { return localStorage.getItem('twelvedata_api_key') || ''; }
+async function fetchTwelveDataChart(symbol, days = 60) {
+  const key = getTwelveDataKey();
+  if (!key) return null;
+  try {
+    const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=1day&outputsize=${days}&apikey=${encodeURIComponent(key)}`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d?.status === 'error' || !Array.isArray(d?.values)) return null;
+    // TwelveData returnează values descendent (newest first) — invertim cronologic
+    const values = d.values.slice().reverse();
+    const points = values.map(v => ({
+      ts: Math.floor(new Date(v.datetime).getTime() / 1000),
+      close: parseFloat(v.close)
+    })).filter(p => !isNaN(p.close));
+    if (points.length < 5) return null;
     return { points, meta: { regularMarketPrice: points[points.length-1].close } };
   } catch (e) { return null; }
 }
@@ -1696,6 +1724,16 @@ const ETF_PROXY_MAP = {
   '^VIX': 'VXX',       // iPath Series B S&P 500 VIX Short-Term Futures ETN
   'DX-Y.NYB': 'UUP',   // Invesco DB US Dollar Bullish Fund
   '^TNX': 'IEF'        // iShares 7-10 Year Treasury Bond ETF
+};
+
+// TwelveData symbol mapping (uneori diferit de Yahoo)
+const TWELVEDATA_SYMBOL_MAP = {
+  '^VIX': 'VIX',
+  'DX-Y.NYB': 'DXY',
+  '^TNX': 'TNX',
+  'BTC-USD': 'BTC/USD',
+  'ETH-USD': 'ETH/USD',
+  'SPY': 'SPY'
 };
 
 // Refolosim fetchYahooChart30d (range=3mo merge stabil prin proxy)
@@ -2035,29 +2073,45 @@ async function drillStatTile(tileId) {
     return;
   }
 
-  // Fetch chart Yahoo, cu fallback per simbol (no proxy CORS):
-  // - crypto -> CoinGecko
-  // - indices (VIX/DXY/10Y) -> Finnhub /stock/candle pe ETF echivalent (VXX/UUP/IEF)
+  // Cascadă fetch chart (no proxy CORS fallback per simbol):
+  // 1. Yahoo via proxy (universal dar pică des)
+  // 2. Crypto -> CoinGecko (mereu, no key)
+  // 3. Indices -> Finnhub candle pe ETF (premium acum, best-effort)
+  // 4. Indices/orice -> TwelveData (free 8/min cu cheia, registration gratis)
   let data = await fetchYahooChart30d(meta.sym);
   let proxyEtfUsed = null;
+  let sourceUsed = data ? 'Yahoo' : null;
   if (!data || !data.points.length) {
-    if (meta.sym === 'BTC-USD') data = await fetchBtcChartFromCoinGecko();
-    else if (meta.sym === 'ETH-USD') data = await fetchEthChartFromCoinGecko();
+    if (meta.sym === 'BTC-USD') { data = await fetchBtcChartFromCoinGecko(); if (data) sourceUsed = 'CoinGecko'; }
+    else if (meta.sym === 'ETH-USD') { data = await fetchEthChartFromCoinGecko(); if (data) sourceUsed = 'CoinGecko'; }
     else if (ETF_PROXY_MAP[meta.sym]) {
       const etf = ETF_PROXY_MAP[meta.sym];
       data = await fetchFinnhubCandle(etf, 90);
-      if (data) proxyEtfUsed = etf;
+      if (data) { proxyEtfUsed = etf; sourceUsed = 'Finnhub ETF'; }
     }
   }
+  // Fallback final: TwelveData (free cu cheia, registration gratuită)
   if (!data || !data.points.length) {
+    const tdSym = TWELVEDATA_SYMBOL_MAP[meta.sym] || meta.sym;
+    data = await fetchTwelveDataChart(tdSym, 90);
+    if (data) sourceUsed = 'TwelveData';
+  }
+  if (!data || !data.points.length) {
+    const hasTdKey = !!getTwelveDataKey();
     $('gmBody').innerHTML = `<div class="drill-error">
-      <div style="font-size:18px;margin-bottom:8px">❌ Chart 30z indisponibil momentan</div>
-      <div style="font-size:13px;line-height:1.6;color:var(--t2);margin-bottom:14px">
-        Pentru <b>${escHtml(meta.label)}</b> (indice) nu există sursă free fără proxy CORS — Yahoo Finance blochează IP-urile datacenter (429),
-        iar Finnhub <code>/stock/candle</code> e premium. Tile-ul afișează totuși valoarea curentă via ETF echivalent (VXX/UUP/IEF) și Δ% direcțional.
+      <div style="font-size:18px;margin-bottom:8px">❌ Chart 30z indisponibil momentan pentru ${escHtml(meta.label)}</div>
+      <div style="font-size:13px;line-height:1.6;color:var(--t2);margin-bottom:14px;text-align:left">
+        <p style="margin-bottom:8px">Toate sursele free au eșuat pentru acest simbol:</p>
+        <ul style="margin-left:18px;line-height:1.7">
+          <li><b>Yahoo Finance</b> via proxy CORS — toate proxy-urile picate momentan (429 Too Many Requests pe IP-uri datacenter)</li>
+          <li><b>Finnhub</b> <code>/stock/candle</code> — recent băgat pe paywall (free tier returnează 403 chiar pe ETF)</li>
+          ${hasTdKey ? '<li><b>TwelveData</b> — cheia setată, dar request a eșuat (rate limit 8/min sau 800/day depășit?)</li>' : '<li><b>TwelveData</b> — fără cheie configurată (registration gratuită cu 8 req/min, 800/zi: <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--accent)">twelvedata.com/pricing</a> → Free plan → Setări ⚙ → TwelveData key)</li>'}
+        </ul>
+        <p style="margin-top:10px"><b>Tile-ul</b> afișează totuși valoarea curentă via ETF echivalent (VXX/UUP/IEF) cu Δ% direcțional — pentru chart 30z detaliat, încearcă <b>🔄 Retry</b> în 1-2 min sau setează TwelveData key.</p>
       </div>
       <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         <button class="primary" id="drillRetry">🔄 Retry (reset proxy chain)</button>
+        <button class="ghost" id="drillSettings">⚙ Setări</button>
         <button class="ghost" id="drillClose">Închide</button>
       </div>
     </div>`;
@@ -2066,6 +2120,10 @@ async function drillStatTile(tileId) {
       _proxyResetTs = Date.now();
       _chartCache?.clear();
       drillStatTile(tileId);
+    });
+    $('drillSettings')?.addEventListener('click', () => {
+      $('genericModal').classList.remove('show');
+      openSettings();
     });
     $('drillClose')?.addEventListener('click', () => $('genericModal').classList.remove('show'));
     return;
@@ -3705,6 +3763,7 @@ function switchTab(name) {
 function openSettings() {
   $('setFinnhubKey').value = getFinnhubKey();
   $('setAnthropicKey').value = getAnthropicKey();
+  $('setTwelvedataKey').value = getTwelveDataKey();
   $('setAlertThreshold').value = String(CFG.alertThreshold);
   $('setAutoRefresh').value = String(CFG.autoRefresh);
   const tg = getTgConfig();
@@ -3718,8 +3777,11 @@ function closeSettings() { $('settingsModal').classList.remove('show'); }
 function saveSettingsHandler() {
   const fk = $('setFinnhubKey').value.trim();
   const ak = $('setAnthropicKey').value.trim();
+  const tdk = $('setTwelvedataKey').value.trim();
   if (fk) localStorage.setItem('finnhub_api_key', fk);
   if (ak) localStorage.setItem('anthropic_api_key', ak);
+  if (tdk) localStorage.setItem('twelvedata_api_key', tdk);
+  else localStorage.removeItem('twelvedata_api_key');
 
   CFG.alertThreshold = parseInt($('setAlertThreshold').value, 10) || 120;
   CFG.autoRefresh = parseInt($('setAutoRefresh').value, 10) || 0;
