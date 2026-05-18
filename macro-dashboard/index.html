@@ -475,6 +475,70 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .modal-section { margin-top:14px; padding-top:12px; border-top:1px solid var(--b1); }
 .modal-section h4 { font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--t2); font-weight:700; font-family:var(--mono); margin-bottom:8px; }
 
+/* Risk Dashboard drill-down */
+.risk-verdict {
+  font-family:var(--head); font-size:24px; font-weight:800; text-align:center;
+  margin-bottom:8px; letter-spacing:.3px;
+}
+.risk-recommend {
+  font-family:var(--head); font-size:13px; color:var(--t1); text-align:center;
+  background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs);
+  padding:10px 14px; margin-bottom:14px; line-height:1.55;
+}
+.risk-grid {
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+  gap:10px; margin-bottom:14px;
+}
+.risk-card {
+  background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs);
+  padding:12px 14px;
+}
+.risk-card-head {
+  font-family:var(--mono); font-size:11px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.4px; color:var(--t2); margin-bottom:6px;
+}
+.risk-card-val {
+  font-family:var(--head); font-size:22px; font-weight:800; color:var(--t1);
+}
+.risk-card-label {
+  font-family:var(--head); font-size:12.5px; color:var(--t1); margin-top:2px;
+}
+.risk-card-score {
+  font-family:var(--mono); font-size:11.5px; color:var(--t2); margin-top:6px;
+  padding:3px 8px; background:var(--panel3); border-radius:4px; display:inline-block;
+  font-weight:700;
+}
+.risk-card-help {
+  font-family:var(--head); font-size:11px; color:var(--t2); margin-top:8px;
+  line-height:1.5; padding-top:8px; border-top:1px dashed var(--b1);
+}
+.risk-legend {
+  font-family:var(--mono); font-size:11.5px; color:var(--t2);
+  background:rgba(91,176,255,.05); border-left:3px solid var(--accent);
+  padding:8px 12px; border-radius:0 var(--rs) var(--rs) 0; line-height:1.6;
+}
+
+/* Guide modal — ghid features */
+.guide-body { font-family:var(--head); color:var(--t1); }
+.guide-intro { font-size:13.5px; line-height:1.65; color:var(--t2); margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--b1); }
+.guide-section { margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid rgba(42,50,71,.5); }
+.guide-section:last-of-type { border-bottom:none; padding-bottom:0; }
+.guide-section h4 { font-size:14px; font-weight:800; color:var(--t1); margin-bottom:8px; font-family:var(--head); text-transform:none; letter-spacing:0; }
+.guide-section ul { list-style:none; padding:0; margin:0; }
+.guide-section li { font-size:12.5px; line-height:1.65; color:var(--t2); padding:4px 0 4px 18px; position:relative; }
+.guide-section li::before { content:"▸"; position:absolute; left:4px; color:var(--accent); font-weight:700; }
+.guide-section li b { color:var(--t1); font-weight:700; }
+.guide-section code {
+  background:rgba(91,176,255,.10); color:var(--accent); border:1px solid rgba(91,176,255,.25);
+  padding:1px 6px; border-radius:3px; font-family:var(--mono); font-size:11.5px;
+}
+.guide-footer {
+  margin-top:14px; padding-top:12px; border-top:1px solid var(--b1);
+  font-family:var(--mono); font-size:11.5px; color:var(--t2); text-align:center;
+}
+.guide-footer a { color:var(--accent); text-decoration:none; }
+.guide-footer a:hover { text-decoration:underline; }
+
 /* Generic drill-down modal */
 .gen-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:1500; align-items:center; justify-content:center; padding:18px; animation:fadeIn .2s ease; }
 .gen-modal.show { display:flex; }
@@ -676,7 +740,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v157</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v158</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -684,6 +748,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
   <button class="icon-btn" id="tgBtn" title="Telegram alerts">📡</button>
   <button class="icon-btn" id="refreshBtn" title="Reîncarcă datele">🔄</button>
+  <button class="icon-btn" id="guideBtn" title="Ghid funcționalități">📖</button>
   <button class="icon-btn" id="settingsBtn" title="Setări">⚙</button>
   <a href="../" class="nav-link">← Hub</a>
 </header>
@@ -697,6 +762,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <div class="stat-tile" id="tile-eth"><span class="stat-label">Ξ ETH</span><span class="stat-value">—</span><span class="stat-sub">Ethereum USD</span></div>
   <div class="stat-tile" id="tile-fng"><span class="stat-label">😱 F&G</span><span class="stat-value">—</span><span class="stat-sub">Crypto Fear&Greed</span></div>
   <div class="stat-tile" id="tile-earnings" title="Mega-cap earnings în următoarele 7 zile (click → Earnings Hub)"><span class="stat-label">⚡ Earnings 7z</span><span class="stat-value">—</span><span class="stat-sub">mega-caps săptămâna asta</span></div>
+  <div class="stat-tile" id="tile-risk" title="Risk regime composite — click pentru detalii (VIX + Yield 10Y + BTC/SPY correlation)"><span class="stat-label">🛡 Risk</span><span class="stat-value">—</span><span class="stat-sub">VIX · 10Y · BTC/SPY</span></div>
 </div>
 
 <!-- Sugestii watchlist (auto din rezultate cu surprise mare) -->
@@ -834,6 +900,138 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <p>Auto-trigger la prima încărcare după <strong>08:00 ET</strong>. Cache 12h per zi.</p>
         <div class="next-time" id="briefNextTime"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Guide Modal — ghid funcționalități macro-dashboard -->
+<div class="modal" id="guideModal">
+  <div class="modal-content" style="max-width:780px">
+    <div class="modal-head">
+      <h3>📖 Ghid Macro Dashboard</h3>
+      <button class="ghost icon-btn" id="closeGuide">✖</button>
+    </div>
+    <div class="guide-body">
+      <p class="guide-intro">Dashboard macro pentru trader Nasdaq + crypto: calendar economic + news + AI Daily Brief + alerte + result detection. Toate datele live din Finnhub + Yahoo + alternative.me + Reddit.</p>
+
+      <div class="guide-section">
+        <h4>📅 Calendar economic</h4>
+        <ul>
+          <li><b>Sursă:</b> Finnhub <code>/calendar/economic</code> (range -4z … +14z). Fallback hardcoded cu evenimente US recurente dacă API-ul nu răspunde.</li>
+          <li><b>Coloane:</b> Data/Oră, Țară, Eveniment, Impact (🔴 high / 🟡 med / ⚪ low), Forecast, Previous, <b>Actual</b> (publicat post-release).</li>
+          <li><b>Filtre:</b> Impact + Țară (chips) + Search (free text). Click pe coloana header → sort asc/desc.</li>
+          <li><b>Border-left rând:</b> roșu = imminent (&lt;24h), galben = soon (&lt;72h), auriu = săptămâna asta.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>📊 Historical sparkline + 📈 Istoric expand</h4>
+        <ul>
+          <li>Sub denumirea evenimentului apare <b>mini-sparkline</b> (84×22px) cu ultimele rezultate (linie blue + dot final colorat după bias).</li>
+          <li>Click 🔍 pe rând → expand cu box „📊 Istoric publicări" + sparkline 280×60 + 3 stat tiles (<b>Beat rate</b>, <b>Surprise mediu</b>, <b>Trend ultimele 3</b>) + tabel 8 release-uri.</li>
+          <li><b>Data:</b> 13 luni înapoi din Finnhub (cache LS 24h).</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>⚡ Result detection + Fast-poll</h4>
+        <ul>
+          <li>Când actual e publicat, rândul <b>flash 2.5s</b> verde/roșu + clasă persistentă <code>has-result</code> (border + bg tint) care rămâne 72h.</li>
+          <li><b>Bias auto:</b> NFP/Retail/GDP/PMI → bullishOnUp (actual&gt;forecast = BEAT). CPI/PPI/Jobless → bearishOnUp (actual&lt;forecast = COOL).</li>
+          <li><b>Fast-poll:</b> auto-refresh la 60s în fereastra T-15min … T+30min al high-impact events. Pill ⚡ pulsing în header.</li>
+          <li><b>Alertă combo:</b> toast + beep WebAudio + browser notif + Telegram HTML grupat.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>🎯 Auto-suggest watchlist</h4>
+        <ul>
+          <li>La rezultat cu <b>|surprise%| ≥ 2.5</b> sau high-impact + bias clar, apare panel sus cu cards per eveniment.</li>
+          <li>Tickere recomandate din <code>SECTOR_IMPACT_MAP</code> (filtrate doar stocks US), cu chip-uri <code>+ TICKER</code> click → add la <code>wl_stocks</code> shared cu nasdaq-scanner + watchlist-monitor.</li>
+          <li>Persistent 24h. Buton "+ Adaugă toate" + ✕ Ignoră per card / global.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>⚡ Vol Week + 📅 Earnings 7z</h4>
+        <ul>
+          <li>Pe rândurile high-impact, badge <code>⚡ VOL WEEK · N earnings</code> apare când săptămâna are ≥3 mega-cap earnings (risk awareness).</li>
+          <li>Stat tile „⚡ Earnings 7z" arată count unique mega-caps în următoarele 7 zile. Click → deschide Earnings Hub.</li>
+          <li><b>Mega-caps:</b> top 44 SP500/QQQ + crypto-related (COIN/MSTR/PLTR/SMCI).</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>📰 Macro News + ₿ Crypto News</h4>
+        <ul>
+          <li>Macro: Finnhub <code>/news?category=general+forex</code> paralel. Sentiment heuristic prin keywords.</li>
+          <li>Crypto: Finnhub crypto + <b>Reddit r/CryptoCurrency</b> (free no key, filter score≥10) + <b>Cointelegraph RSS</b> via proxy.</li>
+          <li>Cards color-coded bull/bear/neut/important (gold border pentru high-score). Click pe card → AI inline expand cu impact (Claude opus-4.7, cache 6h).</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>🤖 AI Daily Brief</h4>
+        <ul>
+          <li><b>Auto-trigger 08:00 ET</b> (DST-aware via Intl.DateTimeFormat) cu cheia Anthropic configurată.</li>
+          <li>Brief detaliat ~1800 cuvinte cu 10 secțiuni: Verdict / Recap 24h / Calendar / Context / Sectoare / Crypto / Risc / Bull vs Bear / Idei trade / Look-ahead.</li>
+          <li><b>Drill-down:</b> click pe heading secțiune → AI follow-up 400-700 cuvinte cu prompt specific per secțiune (cache 12h).</li>
+          <li><b>Ticker auto-link:</b> 100+ tickere în brief sunt clickable → modal cu chart Yahoo + 7 stats + linkuri TV/Yahoo/Finviz.</li>
+          <li>Cache LS 12h cheia dateET. Rerun cu confirm.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>📊 Drill-down stat tiles</h4>
+        <ul>
+          <li>Click pe VIX / DXY / 10Y / BTC / ETH / F&G → modal cu chart 30d SVG + 6-7 stats + interpretare nivel + 3 corelații cheie.</li>
+          <li>F&G special: fetch <code>alternative.me/fng/?limit=30</code>.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>🎨 Market mood theming</h4>
+        <ul>
+          <li>Auto-detect <b>risk-on / risk-off / stress / mixed / neutral</b> din VIX (&lt;14 / &gt;22 / &gt;30), F&G (&gt;70 / &lt;30), DXY/10Y/BTC Δ%.</li>
+          <li>Background gradient + header tint + h1 gradient + ver-badge + mood-pill auto-shift smooth (.8s).</li>
+          <li><b>STRESS</b> = bg roșu intens + inset border + pulse animation.</li>
+          <li>AI poate suprascrie cu prima linie <code>MARKET_MOOD: &lt;val&gt;</code> în brief.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>🔔 Alerte pre-event</h4>
+        <ul>
+          <li><b>Configurabile:</b> 30min / 2h / 24h (default 2h) în Setări.</li>
+          <li>Trigger pentru high-impact + watchlist hits. Dedupe SEEN 7z (nu spamează).</li>
+          <li>Combo: toast + beep 2-ton (880+1320Hz) + browser notif + Telegram HTML grupat (shared <code>tt_tg_config</code> cu watchlist-monitor + pump-radar + earnings-hub).</li>
+          <li>Buton 🧪 Test în Setări.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>⌨ Shortcuts + UX</h4>
+        <ul>
+          <li><b>Click pe rând tabel</b> → expand cu AI bubble + sectoare + detalii + istoric (la evenimentele recurente).</li>
+          <li><b>Click pe stat tile</b> → drill-down chart + stats.</li>
+          <li><b>Click pe news card</b> → AI expand inline.</li>
+          <li><b>Click pe heading secțiune brief</b> → AI follow-up detaliat.</li>
+          <li><b>Click pe ticker auto-link în brief</b> → modal stock cu chart.</li>
+          <li>Toate cache-urile au TTL configurat (6h news/AI, 12h brief/sections, 24h historical/suggestions, 6h earnings).</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>🔑 Configurare</h4>
+        <ul>
+          <li><b>Finnhub key:</b> obligatorie pentru calendar economic + earnings. Free tier 60req/min.</li>
+          <li><b>Anthropic key:</b> opțională, doar pentru AI brief + AI bubble + AI news.</li>
+          <li>Shared cu nasdaq-scanner / earnings-hub (LS <code>finnhub_api_key</code> + <code>anthropic_api_key</code>).</li>
+          <li><b>Telegram:</b> token + chatId + toggle în Setări (shared cu watchlist-monitor / pump-radar / earnings-hub).</li>
+        </ul>
+      </div>
+
+      <p class="guide-footer">Versiune curentă: <code>v158</code> · sw.js <code>tt-v162</code> · Macro Dashboard live pe <a href="https://mferent80-source.github.io/premarket_scanner.html/macro-dashboard/" target="_blank">GitHub Pages</a></p>
     </div>
   </div>
 </div>
@@ -1073,7 +1271,13 @@ let MD_SUGGESTIONS = (() => {
   try {
     const raw = JSON.parse(localStorage.getItem(MD_SUGGESTIONS_KEY) || '{}');
     const now = Date.now();
-    for (const k of Object.keys(raw)) if (now - (raw[k].ts || 0) > SUGGESTIONS_TTL_MS) delete raw[k];
+    let cleaned = false;
+    for (const k of Object.keys(raw)) {
+      // Curățare automată: entries vechi (>24h) + entries DEMO rămase din versiuni anterioare
+      if (now - (raw[k].ts || 0) > SUGGESTIONS_TTL_MS) { delete raw[k]; cleaned = true; }
+      else if (k.startsWith('demo|') || (raw[k].eventName || '').includes('(DEMO)')) { delete raw[k]; cleaned = true; }
+    }
+    if (cleaned) try { localStorage.setItem(MD_SUGGESTIONS_KEY, JSON.stringify(raw)); } catch (e) {}
     return raw;
   } catch (e) { return {}; }
 })();
@@ -3426,6 +3630,205 @@ function countEarningsNextDays(days = 7) {
   return { count: total, unique: symbols.size, symbols: Array.from(symbols).slice(0, 8) };
 }
 
+// ============ RISK DASHBOARD (composite VIX + Yield 10Y + BTC/SPY correlation) ============
+let RISK_STATE = null; // { vix, vixScore, tenY, tenYDelta30, tenYScore, corr, corrScore, composite, label, color, ts }
+const RISK_CACHE_TTL = 15*60*1000; // 15 min
+
+function pearsonCorr(xs, ys) {
+  const n = Math.min(xs.length, ys.length);
+  if (n < 5) return null;
+  const mx = xs.slice(0,n).reduce((a,b)=>a+b,0)/n;
+  const my = ys.slice(0,n).reduce((a,b)=>a+b,0)/n;
+  let cov=0, sx=0, sy=0;
+  for (let i=0; i<n; i++) {
+    const dx = xs[i]-mx, dy = ys[i]-my;
+    cov += dx*dy; sx += dx*dx; sy += dy*dy;
+  }
+  if (sx === 0 || sy === 0) return 0;
+  return cov / (Math.sqrt(sx) * Math.sqrt(sy));
+}
+
+function alignChartsByDate(points1, points2) {
+  // Match points pe ziua YYYY-MM-DD ca să corelăm corect (BTC=7d/săpt, SPY=5d/săpt)
+  const map2 = new Map(points2.map(p => [new Date(p.ts*1000).toISOString().slice(0,10), p.close]));
+  const out = [];
+  for (const p of points1) {
+    const k = new Date(p.ts*1000).toISOString().slice(0,10);
+    if (map2.has(k)) out.push({ ts: p.ts, c1: p.close, c2: map2.get(k) });
+  }
+  return out;
+}
+
+function returnsFromAligned(aligned) {
+  const r1 = [], r2 = [];
+  for (let i = 1; i < aligned.length; i++) {
+    r1.push(aligned[i].c1 / aligned[i-1].c1 - 1);
+    r2.push(aligned[i].c2 / aligned[i-1].c2 - 1);
+  }
+  return { r1, r2 };
+}
+
+async function computeRiskDashboard() {
+  if (RISK_STATE && Date.now() - RISK_STATE.ts < RISK_CACHE_TTL) return RISK_STATE;
+  try {
+    const [spy, btc, tnx] = await Promise.all([
+      fetchYahooChart30d('SPY'),
+      fetchYahooChart30d('BTC-USD'),
+      fetchYahooChart30d('^TNX')
+    ]);
+    // VIX: din DOM (deja încărcat de loadStatTiles)
+    const vixEl = $('tile-vix')?.querySelector('.stat-value');
+    const vixVal = vixEl ? parseFloat(vixEl.textContent.replace(',', '')) : NaN;
+    // 10Y: ^TNX returnează valoarea ×10 (ex: 4.5% = 45). Conversie ÷10.
+    let tenYVal = null, tenYDelta30 = null;
+    if (tnx?.points?.length > 10) {
+      const last = tnx.points[tnx.points.length-1].close;
+      const first = tnx.points[0].close;
+      tenYVal = last / 10;
+      tenYDelta30 = (last - first) / 10 * 100; // în basis points (Δ în bp)
+    }
+    // BTC/SPY correlation 30d
+    let corrVal = null;
+    if (spy?.points && btc?.points) {
+      const aligned = alignChartsByDate(spy.points, btc.points).slice(-30);
+      if (aligned.length >= 10) {
+        const { r1, r2 } = returnsFromAligned(aligned);
+        corrVal = pearsonCorr(r1, r2);
+      }
+    }
+
+    // ---- Sub-scoruri ----
+    // VIX score: -3 (stress >30) ... +2 (complacency <12 = atenție reversal)
+    let vixScore = 0, vixLabel = 'N/A';
+    if (!isNaN(vixVal)) {
+      if (vixVal < 12) { vixScore = +1; vixLabel = '⚠ Complacency'; }
+      else if (vixVal < 18) { vixScore = +2; vixLabel = '🟢 Calm'; }
+      else if (vixVal < 25) { vixScore = -1; vixLabel = '🟡 Caut'; }
+      else if (vixVal < 30) { vixScore = -2; vixLabel = '🔴 Fear'; }
+      else { vixScore = -3; vixLabel = '⛔ Stress'; }
+    }
+    // 10Y score: scădere mare = recession concerns, creștere mare = rate hikes / inflation
+    let tenYScore = 0, tenYLabel = 'N/A';
+    if (tenYDelta30 != null) {
+      if (tenYDelta30 < -25) { tenYScore = -2; tenYLabel = '🔴 Drop puternic (recession)'; }
+      else if (tenYDelta30 < -10) { tenYScore = -1; tenYLabel = '🟡 Drop moderat'; }
+      else if (tenYDelta30 > 25) { tenYScore = -1; tenYLabel = '🟡 Spike (hawkish)'; }
+      else if (tenYDelta30 > 10) { tenYScore = 0; tenYLabel = '⚪ Up moderat'; }
+      else { tenYScore = +1; tenYLabel = '🟢 Stabil'; }
+    }
+    // BTC/SPY corr: >0.6 = risk asset pure, 0.2-0.6 = mix, <0.2 = decoupled (hedge mode)
+    let corrScore = 0, corrLabel = 'N/A';
+    if (corrVal != null) {
+      if (corrVal > 0.6) { corrScore = +1; corrLabel = '🟢 Risk-on aligned'; }
+      else if (corrVal > 0.2) { corrScore = 0; corrLabel = '⚪ Partial decoupled'; }
+      else if (corrVal > -0.2) { corrScore = -1; corrLabel = '🟡 Decoupled'; }
+      else { corrScore = -2; corrLabel = '🔴 Anti-correlated'; }
+    }
+
+    const composite = vixScore + tenYScore + corrScore;
+    let label, color;
+    if (composite >= 3) { label = '🟢 RISK-ON'; color = 'var(--bull-s)'; }
+    else if (composite >= 1) { label = '🟢 LEAN ON'; color = 'var(--bull-s)'; }
+    else if (composite >= -1) { label = '⚪ NEUTRAL'; color = 'var(--t1)'; }
+    else if (composite >= -3) { label = '🟡 CAUTIOUS'; color = 'var(--warn)'; }
+    else if (composite >= -5) { label = '🔴 RISK-OFF'; color = 'var(--bear-s)'; }
+    else { label = '⛔ STRESS'; color = 'var(--bear-s)'; }
+
+    RISK_STATE = {
+      vix: vixVal, vixScore, vixLabel,
+      tenY: tenYVal, tenYDelta30, tenYScore, tenYLabel,
+      corr: corrVal, corrScore, corrLabel,
+      composite, label, color, ts: Date.now()
+    };
+    return RISK_STATE;
+  } catch (e) { return null; }
+}
+
+function renderRiskTile() {
+  const tile = $('tile-risk');
+  if (!tile) return;
+  const valEl = tile.querySelector('.stat-value');
+  const subEl = tile.querySelector('.stat-sub');
+  if (!RISK_STATE) {
+    valEl.textContent = '—'; subEl.textContent = 'se încarcă...';
+    return;
+  }
+  const s = RISK_STATE;
+  // Label scurt în value (font 21px, trebuie să încapă)
+  valEl.innerHTML = `<span style="font-size:14px;color:${s.color};font-weight:800">${s.label}</span>`;
+  // Sub: scor composit + 3 sub-scoruri
+  const sign = s.composite >= 0 ? '+' : '';
+  subEl.innerHTML = `score ${sign}${s.composite} · VIX ${s.vixScore>=0?'+':''}${s.vixScore} · 10Y ${s.tenYScore>=0?'+':''}${s.tenYScore} · ρ ${s.corrScore>=0?'+':''}${s.corrScore}`;
+  // Highlight border pentru CAUTIOUS+
+  if (s.composite <= -3) tile.style.borderColor = 'rgba(255,77,77,.4)';
+  else if (s.composite <= -1) tile.style.borderColor = 'rgba(212,137,44,.4)';
+  else if (s.composite >= 3) tile.style.borderColor = 'rgba(34,214,107,.4)';
+  else tile.style.borderColor = '';
+  // Bind click drill-down
+  if (!tile.dataset.bound) {
+    tile.dataset.bound = '1';
+    tile.style.cursor = 'pointer';
+    tile.addEventListener('click', drillRiskDashboard);
+  }
+}
+
+function drillRiskDashboard() {
+  if (!RISK_STATE) {
+    openGenericModal('🛡 Risk Dashboard', 'Se calculează...', '<div class="drill-loading"><div class="dl-icon">📊</div><div>Aduc datele 30 zile (SPY + BTC + 10Y)...</div></div>');
+    computeRiskDashboard().then(() => { if (RISK_STATE) renderRiskDrillBody(); });
+    return;
+  }
+  renderRiskDrillBody();
+}
+
+function renderRiskDrillBody() {
+  const s = RISK_STATE;
+  openGenericModal('🛡 Risk Dashboard', `Composite score: ${s.composite >= 0 ? '+' : ''}${s.composite}`, '');
+  const corrPct = s.corr != null ? (s.corr * 100).toFixed(0) + '%' : '—';
+  const tenYDeltaStr = s.tenYDelta30 != null ? (s.tenYDelta30 >= 0 ? '+' : '') + s.tenYDelta30.toFixed(0) + ' bp' : '—';
+  const recommend = buildRiskRecommendation(s);
+  const body = `
+    <div class="risk-verdict" style="color:${s.color}">${s.label}</div>
+    <div class="risk-recommend">${recommend}</div>
+    <div class="risk-grid">
+      <div class="risk-card">
+        <div class="risk-card-head">📊 VIX (Volatility)</div>
+        <div class="risk-card-val">${!isNaN(s.vix) ? s.vix.toFixed(2) : '—'}</div>
+        <div class="risk-card-label">${escHtml(s.vixLabel)}</div>
+        <div class="risk-card-score">${s.vixScore >= 0 ? '+' : ''}${s.vixScore}</div>
+        <div class="risk-card-help">Repere: &lt;12 complacency · 12-18 calm · 18-25 caut · 25-30 fear · &gt;30 stress.</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-card-head">📈 10Y Yield (Δ 30z)</div>
+        <div class="risk-card-val">${s.tenY != null ? s.tenY.toFixed(2) + '%' : '—'}</div>
+        <div class="risk-card-label">${escHtml(s.tenYLabel)}</div>
+        <div class="risk-card-score">${s.tenYScore >= 0 ? '+' : ''}${s.tenYScore} · Δ ${tenYDeltaStr}</div>
+        <div class="risk-card-help">Drop puternic &gt;25bp = recession concerns. Spike &gt;25bp = hawkish/inflation.</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-card-head">ρ BTC/SPY corr 30d</div>
+        <div class="risk-card-val">${corrPct}</div>
+        <div class="risk-card-label">${escHtml(s.corrLabel)}</div>
+        <div class="risk-card-score">${s.corrScore >= 0 ? '+' : ''}${s.corrScore}</div>
+        <div class="risk-card-help">&gt;60% = risk-on aligned (BTC urmează stocks). &lt;20% = decoupled (BTC ca hedge).</div>
+      </div>
+    </div>
+    <div class="risk-legend">
+      <b>Scor composit:</b> ≥+3 RISK-ON · +1/+2 LEAN ON · -1/0 NEUTRAL · -2/-3 CAUTIOUS · -4/-5 RISK-OFF · ≤-6 STRESS
+    </div>
+  `;
+  $('gmBody').innerHTML = body;
+}
+
+function buildRiskRecommendation(s) {
+  if (s.composite >= 3) return '🟢 Setup favorabil long bias. Sizing normal, pot lăsa stop-uri mai largi.';
+  if (s.composite >= 1) return '🟢 Bias long cu rezervă. Sizing moderat, watch pentru reversal pe VIX spike.';
+  if (s.composite >= -1) return '⚪ Tranzacții selectiv. Sizing redus. Preferință pentru setup-uri tehnice clare.';
+  if (s.composite >= -3) return '🟡 Caution mode. Reduce sizing 40-60%. Hedge cu puts SPY/QQQ sau cash partial.';
+  if (s.composite >= -5) return '🔴 Risk-off. Cash heavy, defensive sectors (XLP/XLU/XLV), gold (GLD), eventual short via SQQQ/SH.';
+  return '⛔ STRESS REGIME. Cash 70%+, sau hedge agresiv. Evită LONG fără confirmation.';
+}
+
 function renderEarningsTile() {
   const tile = $('tile-earnings');
   if (!tile) return;
@@ -3801,6 +4204,9 @@ function bindEvents() {
   });
   $('settingsBtn').addEventListener('click', openSettings);
   $('closeSettings').addEventListener('click', closeSettings);
+  $('guideBtn').addEventListener('click', () => $('guideModal').classList.add('show'));
+  $('closeGuide').addEventListener('click', () => $('guideModal').classList.remove('show'));
+  $('guideModal').addEventListener('click', (e) => { if (e.target.id === 'guideModal') $('guideModal').classList.remove('show'); });
   $('cancelSettings').addEventListener('click', closeSettings);
   $('saveSettings').addEventListener('click', saveSettingsHandler);
   $('tgTest').addEventListener('click', tgTestHandler);
@@ -4015,6 +4421,10 @@ async function init() {
       renderCalendar(); // re-render ca să apară vol-week badge-urile
     }
   }).catch(() => {});
+  // Risk Dashboard composite (VIX + 10Y + BTC/SPY corr) — non-blocking, are nevoie de VIX deja încărcat
+  setTimeout(() => {
+    computeRiskDashboard().then(() => renderRiskTile()).catch(() => {});
+  }, 1500);
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
   preloadAITop5().catch(() => {});
   // Auto-trigger Daily Brief dacă e după 08:00 ET și nu există brief pentru azi
