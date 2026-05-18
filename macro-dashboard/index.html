@@ -795,7 +795,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v167</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v168</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1166,7 +1166,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <label>TwelveData key:</label>
         <input type="text" id="setTwelvedataKey" placeholder="opțional · pentru chart 30z indices">
       </div>
-      <div class="modal-note">Cheile sunt persistate local (localStorage), nu trimise nicăieri în afară de API-urile respective. Finnhub și Anthropic sunt SHARED cu nasdaq-scanner / earnings-hub / pump-radar.<br>Crypto news folosește <b>Finnhub crypto + Reddit r/CryptoCurrency + Cointelegraph RSS</b> (free, fără cheie extra).<br><b>TwelveData</b> (opțional) — folosit doar ca fallback pentru chart 30z VIX/DXY/10Y când Yahoo proxy CORS pică. Registration gratis 8 req/min, 800/zi: <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--accent)">twelvedata.com/pricing</a> → plan FREE.</div>
+      <div class="modal-note">Cheile sunt persistate local (localStorage), nu trimise nicăieri în afară de API-urile respective. Finnhub și Anthropic sunt SHARED cu nasdaq-scanner / earnings-hub / pump-radar.<br>Crypto news folosește <b>Finnhub crypto + Reddit r/CryptoCurrency + Cointelegraph RSS</b> (free, fără cheie extra).<br><b>TwelveData</b> (opțional, 8 req/min · 800/zi free) — chart 30z fallback pentru indices când Yahoo proxy pică. ⚠ Free plan doar US stocks → pentru VIX/DXY/10Y folosim ETF echivalente (VXX/UUP/IEF). Registration: <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--accent)">twelvedata.com/pricing</a> → plan FREE.</div>
     </div>
 
     <div class="modal-section">
@@ -1726,15 +1726,18 @@ const ETF_PROXY_MAP = {
   '^TNX': 'IEF'        // iShares 7-10 Year Treasury Bond ETF
 };
 
-// TwelveData symbol mapping (uneori diferit de Yahoo)
+// TwelveData symbol mapping.
+// ⚠ Free plan TwelveData = DOAR US stocks. Indices (VIX/DXY/TNX) și crypto/forex
+// necesită plan plătit. Pentru indices folosim ETF-urile (VXX/UUP/IEF) care SUNT
+// US stocks eligibile pe free tier.
 const TWELVEDATA_SYMBOL_MAP = {
-  '^VIX': 'VIX',
-  'DX-Y.NYB': 'DXY',
-  '^TNX': 'TNX',
-  'BTC-USD': 'BTC/USD',
-  'ETH-USD': 'ETH/USD',
-  'SPY': 'SPY'
+  '^VIX': 'VXX',       // proxy ETF (US stock free)
+  'DX-Y.NYB': 'UUP',   // proxy ETF (US stock free)
+  '^TNX': 'IEF',       // proxy ETF (US stock free)
+  'SPY': 'SPY'         // direct (deja US stock)
 };
+// Set cu simbolurile care vin ca ETF proxy din TwelveData (pentru banner explicativ)
+const TWELVEDATA_USES_ETF_PROXY = new Set(['^VIX', 'DX-Y.NYB', '^TNX']);
 
 // Refolosim fetchYahooChart30d (range=3mo merge stabil prin proxy)
 // — range=5d eșuează intermitent pe Yahoo via codetabs/corsproxy.
@@ -2090,11 +2093,15 @@ async function drillStatTile(tileId) {
       if (data) { proxyEtfUsed = etf; sourceUsed = 'Finnhub ETF'; }
     }
   }
-  // Fallback final: TwelveData (free cu cheia, registration gratuită)
+  // Fallback final: TwelveData (free cu cheia, doar US stocks → folosim ETF pentru indices)
   if (!data || !data.points.length) {
     const tdSym = TWELVEDATA_SYMBOL_MAP[meta.sym] || meta.sym;
     data = await fetchTwelveDataChart(tdSym, 90);
-    if (data) sourceUsed = 'TwelveData';
+    if (data) {
+      sourceUsed = 'TwelveData';
+      // Dacă am cerut prin ETF echivalent (indice), marcăm pentru banner explicativ
+      if (TWELVEDATA_USES_ETF_PROXY.has(meta.sym)) proxyEtfUsed = tdSym;
+    }
   }
   if (!data || !data.points.length) {
     const hasTdKey = !!getTwelveDataKey();
