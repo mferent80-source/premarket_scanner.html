@@ -125,6 +125,39 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .tcell-num{text-align:right;font-variant-numeric:tabular-nums}
 .spark-mini{width:80px;height:24px;display:inline-block;vertical-align:middle}
 
+/* Row clickable + expanded inline */
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover td{background:rgba(8,145,178,.06)}
+tbody tr.active-row td{background:rgba(8,145,178,.1)!important;box-shadow:inset 3px 0 0 var(--teal)}
+tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(--br2)}
+.exp-box{padding:18px 20px;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:14px}
+@media(max-width:980px){.exp-box{grid-template-columns:1fr}}
+.exp-card{background:var(--panel);border:1px solid var(--br);border-radius:9px;padding:13px 14px}
+.exp-h{font-size:11px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px;justify-content:space-between}
+.exp-h .exp-actions{display:flex;gap:5px}
+.exp-h .exp-actions a,.exp-h .exp-actions button{font-size:10px;padding:3px 8px;border-radius:5px;background:var(--bg);border:1px solid var(--br);
+  color:var(--txt-d);text-decoration:none;font-weight:500;cursor:pointer;transition:all .15s}
+.exp-h .exp-actions a:hover,.exp-h .exp-actions button:hover{color:var(--txt);border-color:var(--br2)}
+.spark-big{width:100%;height:90px;display:block}
+.stat-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed var(--br);font-size:12.5px}
+.stat-row:last-child{border-bottom:none}
+.stat-row .lbl{color:var(--txt-d)}
+.stat-row .val{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
+.stat-row .val.up{color:var(--green)}.stat-row .val.dn{color:var(--red)}
+.hold-list{display:flex;flex-direction:column;gap:6px}
+.hold-row{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;padding:5px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--br);font-size:12px}
+.hold-row .h-sym{font-weight:700;color:var(--teal);min-width:46px}
+.hold-row .h-spark{width:60px;height:18px}
+.hold-row .h-pct{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;min-width:58px}
+.hold-row .h-pct.up{color:var(--green)}.hold-row .h-pct.dn{color:var(--red)}
+.hold-row .h-price{color:var(--txt-d);min-width:60px;text-align:right;font-variant-numeric:tabular-nums}
+.hold-loading{color:var(--txt-dd);font-size:11.5px;padding:14px 8px;text-align:center}
+.hold-note{font-size:10.5px;color:var(--txt-dd);margin-top:8px;line-height:1.45;font-style:italic}
+
+/* Heatmap card hover hint */
+.heat-card{cursor:pointer}
+.heat-card:active{transform:translateY(0)}
+
 /* ── EMPTY / LOADING ── */
 .empty{padding:60px 24px;text-align:center;color:var(--txt-d)}
 .empty .emoji{font-size:54px;margin-bottom:14px}
@@ -278,11 +311,28 @@ tr:hover td{background:rgba(255,255,255,.015)}
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════
-//   SECTOR ROTATION · v148 PAS 1
+//   SECTOR ROTATION · v149 PAS 2
 //   11 SPDR Sector ETFs · Yahoo Finance via proxy CORS
+//   PAS 2: drill-down click sector (top 5 holdings + sparkline 60z mare + stats 52w)
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v148';
+const VER = 'v149';
+
+// Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
+// Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
+const TOP_HOLDINGS = {
+  XLK:  ['AAPL','MSFT','NVDA','AVGO','ORCL'],
+  XLY:  ['AMZN','TSLA','HD','MCD','BKNG'],
+  XLC:  ['META','GOOGL','NFLX','GOOG','DIS'],
+  XLF:  ['BRK-B','JPM','V','MA','BAC'],
+  XLI:  ['GE','RTX','CAT','UNP','BA'],
+  XLB:  ['LIN','SHW','FCX','ECL','APD'],
+  XLE:  ['XOM','CVX','COP','EOG','MPC'],
+  XLRE: ['PLD','AMT','EQIX','WELL','SPG'],
+  XLV:  ['LLY','JNJ','UNH','ABBV','MRK'],
+  XLP:  ['COST','WMT','PG','KO','PM'],
+  XLU:  ['NEE','SO','DUK','CEG','AEP'],
+};
 
 // SPDR Sector ETFs (Select Sector SPDRs — cele 11 oficiale)
 const SECTORS = [
@@ -334,22 +384,34 @@ async function proxyGetJSON(targetUrl, timeoutMs = 9000){
 function parseChart(symbol, d){
   const r = d && d.chart && d.chart.result && d.chart.result[0];
   if (!r || !r.indicators || !r.indicators.quote) return null;
-  const closeRaw = r.indicators.quote[0].close || [];
-  const tsRaw    = r.timestamp || [];
-  const meta     = r.meta || {};
-  const closes = [], times = [];
+  const q = r.indicators.quote[0] || {};
+  const closeRaw = q.close || [], volRaw = q.volume || [];
+  const highRaw = q.high || [], lowRaw = q.low || [];
+  const tsRaw   = r.timestamp || [];
+  const meta    = r.meta || {};
+  const closes = [], vols = [], highs = [], lows = [], times = [];
   for (let i = 0; i < closeRaw.length; i++){
     if (closeRaw[i] == null) continue;
-    closes.push(closeRaw[i]); times.push(tsRaw[i] || 0);
+    closes.push(closeRaw[i]);
+    vols.push(volRaw[i] || 0);
+    highs.push(highRaw[i] != null ? highRaw[i] : closeRaw[i]);
+    lows.push(lowRaw[i] != null ? lowRaw[i] : closeRaw[i]);
+    times.push(tsRaw[i] || 0);
   }
   if (closes.length < 25) return null;
   const price = meta.regularMarketPrice != null ? meta.regularMarketPrice : closes[closes.length-1];
-  return { symbol, price, closes, times, ts: Date.now() };
+  return { symbol, price, closes, vols, highs, lows, times, ts: Date.now() };
 }
 
 async function fetchSectorChart(sym){
   // 6mo interval 1d ne dă ~126 bare — suficient pentru 1d/1w/1m/3m/YTD (YTD acoperit până în iulie)
   const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=6mo`);
+  return d ? parseChart(sym, d) : null;
+}
+
+// ── 1y data pentru 52w high/low real (fetch lazy doar la primul expand al unui ETF) ──
+async function fetchYearChart(sym){
+  const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1y`);
   return d ? parseChart(sym, d) : null;
 }
 
@@ -395,16 +457,74 @@ function sparkSVG(closes, width=80, height=24){
   return `<svg class="spark-mini" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="${stroke}" stroke-width="1.5"/></svg>`;
 }
 
+// ── Sparkline mare cu grid + zone fill (60-90 zile) ──
+function sparkBigSVG(closes, days=60){
+  if (!closes || closes.length < 5) return '<div class="hold-loading">— fără date —</div>';
+  const arr = closes.slice(-days);
+  const W = 380, H = 90, padL = 30, padR = 4, padT = 6, padB = 14;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const min = Math.min(...arr), max = Math.max(...arr);
+  const rng = (max - min) || 1;
+  const dx = innerW / (arr.length - 1);
+  const pts = arr.map((v,i) => `${(padL + i*dx).toFixed(1)},${(padT + innerH - ((v-min)/rng) * innerH).toFixed(1)}`).join(' ');
+  const up = arr[arr.length-1] >= arr[0];
+  const stroke = up ? '#22c55e' : '#ef4444';
+  const fill = up ? 'rgba(34,197,94,.10)' : 'rgba(239,68,68,.10)';
+  const areaPts = `${padL},${padT + innerH} ${pts} ${(padL + (arr.length-1)*dx).toFixed(1)},${padT + innerH}`;
+  // grid 3 linii orizontale
+  const yLines = [0, 0.5, 1].map(t => `<line x1="${padL}" y1="${padT + t*innerH}" x2="${W-padR}" y2="${padT + t*innerH}" stroke="#262e3d" stroke-width="0.5" stroke-dasharray="2,3"/>`).join('');
+  // etichete pe Y (min/max)
+  const ylab = `<text x="${padL-4}" y="${padT + 4}" font-size="9" fill="#64748b" text-anchor="end">${max.toFixed(2)}</text>
+                <text x="${padL-4}" y="${padT + innerH}" font-size="9" fill="#64748b" text-anchor="end">${min.toFixed(2)}</text>`;
+  return `<svg class="spark-big" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${yLines}${ylab}<polygon points="${areaPts}" fill="${fill}"/><polyline points="${pts}" fill="none" stroke="${stroke}" stroke-width="1.5"/></svg>`;
+}
+
+// ── Calcule pentru stats expand (52w high/low + dist + volatility + avg vol) ──
+function calcStats(closes, vols, highs, lows, currentPrice){
+  if (!closes || closes.length < 5) return null;
+  const hi52 = Math.max(...(highs || closes));
+  const lo52 = Math.min(...(lows  || closes));
+  const distHi = pctChange(currentPrice, hi52); // negativ când e sub max
+  const distLo = pctChange(currentPrice, lo52); // pozitiv când e peste min
+  // Volatility annualized = stdev(daily returns) * sqrt(252)
+  const rets = [];
+  for (let i = 1; i < closes.length; i++){
+    rets.push((closes[i] - closes[i-1]) / closes[i-1]);
+  }
+  const meanR = rets.reduce((s,v) => s+v, 0) / (rets.length || 1);
+  const varR = rets.reduce((s,v) => s + (v-meanR)*(v-meanR), 0) / (rets.length || 1);
+  const volAnn = Math.sqrt(varR) * Math.sqrt(252) * 100; // %
+  // ATR aprox = media |Δ%| 14 bare daily
+  const last14 = rets.slice(-14);
+  const atrPct = last14.length ? (last14.reduce((s,v) => s + Math.abs(v), 0) / last14.length) * 100 : 0;
+  // Volum mediu 20z
+  let avgVol = 0;
+  if (vols && vols.length){
+    const last20 = vols.slice(-20).filter(v => v > 0);
+    avgVol = last20.length ? last20.reduce((s,v) => s+v, 0) / last20.length : 0;
+  }
+  return { hi52, lo52, distHi, distLo, volAnn, atrPct, avgVol };
+}
+function fmtVol(v){
+  if (!v) return '—';
+  if (v >= 1e9) return (v/1e9).toFixed(2)+'B';
+  if (v >= 1e6) return (v/1e6).toFixed(1)+'M';
+  if (v >= 1e3) return (v/1e3).toFixed(0)+'K';
+  return Math.round(v).toString();
+}
+
 // ═══════════════════════════════════════════════════════════════
 //   STATE & CONFIG
 // ═══════════════════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
 let CFG = { interval: 300000, threshold: 1.0 };
-let DATA = []; // { sym, name, group, price, chg1d, chg1w, chg1m, chg3m, chgYTD, closes }
+let DATA = []; // { sym, name, group, price, chg1d, chg1w, chg1m, chg3m, chgYTD, closes, vols, highs, lows }
 let sortBy = 'chg1w';
 let sortAsc = false;
 let scanning = false;
 let autoTimer = null;
+let expandedSym = null;          // ETF curent expandat (max 1 simultan)
+const EXP_CACHE = {};            // { SYM: { year:{closes,vols,highs,lows}, holdings:[{sym,price,chg1d,chg1w,closes}] } }
 
 function loadCfg(){
   try { const s = JSON.parse(localStorage.getItem('sr_cfg') || '{}'); Object.assign(CFG, s); } catch(_){}
@@ -472,6 +592,10 @@ async function runScan(){
         chg3m: pctOf(c.closes, 63),
         chgYTD: pctYTD(c.closes, c.times),
         closes: c.closes,
+        vols: c.vols,
+        highs: c.highs,
+        lows: c.lows,
+        times: c.times,
       });
     }
     await sleep(180);
@@ -523,16 +647,18 @@ function render(){
   // Heatmap (sortat după Δ1w descending mereu — vizual clar)
   const heatOrd = DATA.slice().sort((a,b) => b.chg1w - a.chg1w);
   $('heatmap').innerHTML = heatOrd.map(d => `
-    <div class="heat-card ${heatBucket(d.chg1w)}" title="${d.name}">
+    <div class="heat-card ${heatBucket(d.chg1w)}" data-sym="${d.sym}" title="Click pentru detalii ${d.name}">
       <div class="heat-sym">${d.sym}</div>
       <div class="heat-name">${d.name}</div>
       <div class="heat-pct ${pctClass(d.chg1w)}">${fmtPct(d.chg1w)}</div>
       <div class="heat-sub">1z ${fmtPct(d.chg1d)} · 1l ${fmtPct(d.chg1m)}</div>
     </div>`).join('');
 
-  // Table
-  $('tblBody').innerHTML = ord.map(d => `
-    <tr>
+  // Table — fiecare rând cu data-sym + clickable; injectez expand-row sub rândul activ
+  const rows = [];
+  for (const d of ord){
+    const active = expandedSym === d.sym ? ' active-row' : '';
+    rows.push(`<tr class="clickable${active}" data-sym="${d.sym}">
       <td><span class="td-sym">${d.sym}</span> <span class="td-name">${d.name}</span></td>
       <td class="tcell-num">$${fmtPrice(d.price)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chg1d)}">${fmtPct(d.chg1d)}</td>
@@ -541,9 +667,14 @@ function render(){
       <td class="tcell-num td-pct ${pctClass(d.chg3m)}">${fmtPct(d.chg3m)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chgYTD)}">${fmtPct(d.chgYTD)}</td>
       <td class="tcell-num">${sparkSVG(d.closes)}</td>
-    </tr>`).join('');
+    </tr>`);
+    if (expandedSym === d.sym){
+      rows.push(`<tr class="expanded-row" data-exp-for="${d.sym}"><td colspan="8"><div class="exp-box" id="expBox_${d.sym}">${renderExpandBody(d)}</div></td></tr>`);
+    }
+  }
+  $('tblBody').innerHTML = rows.join('');
 
-  $('tblInfo').textContent = `${DATA.length} sectoare · sort ${sortBy} ${sortAsc?'↑':'↓'}`;
+  $('tblInfo').textContent = `${DATA.length} sectoare · sort ${sortBy} ${sortAsc?'↑':'↓'} · 💡 click pe rând`;
 
   // Sort chips + th highlight
   document.querySelectorAll('.sort-chip').forEach(c => c.classList.toggle('active', c.dataset.sort === sortBy));
@@ -551,6 +682,132 @@ function render(){
     t.classList.toggle('sort-active', t.dataset.col === sortBy);
     t.classList.toggle('asc', t.dataset.col === sortBy && sortAsc);
   });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//   EXPAND DRILL-DOWN (PAS 2)
+// ═══════════════════════════════════════════════════════════════
+function renderExpandBody(d){
+  const cache  = EXP_CACHE[d.sym] || {};
+  const year   = cache.year;
+  const holds  = cache.holdings;
+  // Folosesc data 1y dacă există, altfel data scan 6mo
+  const closes = (year && year.closes) || d.closes;
+  const vols   = (year && year.vols)   || d.vols;
+  const highs  = (year && year.highs)  || d.highs;
+  const lows   = (year && year.lows)   || d.lows;
+  const stats  = calcStats(closes, vols, highs, lows, d.price) || { hi52:d.price, lo52:d.price, distHi:0, distLo:0, volAnn:0, atrPct:0, avgVol:0 };
+  const ySrc   = year ? '52 săpt' : '6 luni';
+
+  // 1. Sparkline mare (60z din date 1y, sau ce avem)
+  const sparkBox = `
+    <div class="exp-card">
+      <div class="exp-h">
+        <span>📈 Sparkline (${closes.length >= 60 ? '60 zile' : closes.length+' bare'})</span>
+        <span class="exp-actions">
+          <a href="https://www.tradingview.com/symbols/AMEX-${d.sym}/" target="_blank" rel="noopener">TV</a>
+          <a href="https://finance.yahoo.com/quote/${d.sym}" target="_blank" rel="noopener">YH</a>
+          <a href="https://finviz.com/quote.ashx?t=${d.sym}" target="_blank" rel="noopener">FV</a>
+        </span>
+      </div>
+      ${sparkBigSVG(closes, 60)}
+      <div class="hold-note">Sursă: Yahoo daily · ${ySrc} window</div>
+    </div>`;
+
+  // 2. Stats detaliate
+  const statsBox = `
+    <div class="exp-card">
+      <div class="exp-h"><span>🧠 Statistici ${d.sym}</span></div>
+      <div class="stat-row"><span class="lbl">Preț curent</span><span class="val">$${fmtPrice(d.price)}</span></div>
+      <div class="stat-row"><span class="lbl">${year?'52w':'6mo'} High</span><span class="val">$${stats.hi52.toFixed(2)}</span></div>
+      <div class="stat-row"><span class="lbl">${year?'52w':'6mo'} Low</span><span class="val">$${stats.lo52.toFixed(2)}</span></div>
+      <div class="stat-row"><span class="lbl">Distanță High</span><span class="val ${pctClass(stats.distHi)}">${fmtPct(stats.distHi)}</span></div>
+      <div class="stat-row"><span class="lbl">Distanță Low</span><span class="val ${pctClass(stats.distLo)}">${fmtPct(stats.distLo)}</span></div>
+      <div class="stat-row"><span class="lbl">ATR≈ (14z |Δ%|)</span><span class="val">${stats.atrPct.toFixed(2)}%</span></div>
+      <div class="stat-row"><span class="lbl">Volatilitate anualiz.</span><span class="val">${stats.volAnn.toFixed(1)}%</span></div>
+      <div class="stat-row"><span class="lbl">Volum mediu 20z</span><span class="val">${fmtVol(stats.avgVol)}</span></div>
+      ${!year ? '<div class="hold-note">⏳ Se încarcă datele 52w real…</div>' : ''}
+    </div>`;
+
+  // 3. Top 5 holdings
+  let holdHtml;
+  if (!holds){
+    holdHtml = '<div class="hold-loading"><span class="spinner"></span>Se încarcă top 5 holdings…</div>';
+  } else if (!holds.length){
+    holdHtml = '<div class="hold-loading">— nu am putut încărca holdings —</div>';
+  } else {
+    holdHtml = '<div class="hold-list">' + holds.map(h => `
+      <div class="hold-row">
+        <span class="h-sym">${h.sym}</span>
+        ${sparkSVG(h.closes, 60, 18).replace('class="spark-mini"','class="h-spark"')}
+        <span class="h-pct ${pctClass(h.chg1d)}">${fmtPct(h.chg1d)}</span>
+        <span class="h-price">$${h.price ? fmtPrice(h.price) : '—'}</span>
+      </div>`).join('') + '</div>';
+  }
+  const holdBox = `
+    <div class="exp-card">
+      <div class="exp-h">
+        <span>👔 Top 5 holdings</span>
+        <span class="exp-actions"><button type="button" data-act="refresh" data-sym="${d.sym}">↻</button></span>
+      </div>
+      ${holdHtml}
+      ${holds ? '<div class="hold-note">Date Q4 2025 — schimbarea e lentă. Δ1z din ultimul close Yahoo.</div>' : ''}
+    </div>`;
+
+  return sparkBox + statsBox + holdBox;
+}
+
+async function fetchHoldings(etfSym, force = false){
+  const syms = TOP_HOLDINGS[etfSym] || [];
+  if (!syms.length) return [];
+  if (!force && EXP_CACHE[etfSym] && EXP_CACHE[etfSym].holdings) return EXP_CACHE[etfSym].holdings;
+  const out = [];
+  for (const s of syms){
+    // 1mo daily e mic, rapid + suficient pentru chg1d/1w + sparkline
+    const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${s}?interval=1d&range=1mo`);
+    const c = d ? parseChart(s, d) : null;
+    if (c){
+      out.push({ sym: s, price: c.price, chg1d: pctOf(c.closes, 1), chg1w: pctOf(c.closes, 5), closes: c.closes });
+    } else {
+      out.push({ sym: s, price: null, chg1d: 0, chg1w: 0, closes: [] });
+    }
+    await sleep(180);
+  }
+  return out;
+}
+
+async function loadExpandAsync(sym){
+  if (!EXP_CACHE[sym]) EXP_CACHE[sym] = {};
+  // Paralel: year chart + holdings
+  const [year, holds] = await Promise.all([
+    EXP_CACHE[sym].year ? Promise.resolve(EXP_CACHE[sym].year) : fetchYearChart(sym),
+    fetchHoldings(sym),
+  ]);
+  if (year) EXP_CACHE[sym].year = year;
+  EXP_CACHE[sym].holdings = holds;
+  // Re-render doar dacă încă mai e expandat acest sym
+  if (expandedSym === sym){
+    const d = DATA.find(x => x.sym === sym);
+    const box = $('expBox_' + sym);
+    if (d && box) box.innerHTML = renderExpandBody(d);
+  }
+}
+
+function toggleExpand(sym){
+  if (expandedSym === sym){
+    expandedSym = null;
+    render();
+    return;
+  }
+  expandedSym = sym;
+  render();
+  // Scroll smooth la rândul expand (după ce render a injectat DOM-ul)
+  setTimeout(() => {
+    const row = document.querySelector(`tr.expanded-row[data-exp-for="${sym}"]`);
+    if (row) row.scrollIntoView({ behavior:'smooth', block:'center' });
+  }, 60);
+  // Fetch async
+  loadExpandAsync(sym);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -594,6 +851,32 @@ function init(){
     if (sortBy === col) sortAsc = !sortAsc; else { sortBy = col; sortAsc = false; }
     render();
   }));
+
+  // Click delegation pe tabel — toggle expand pe rândul cu data-sym (exclude link-uri/butoane din expand)
+  $('tblBody').addEventListener('click', e => {
+    // dacă a fost click pe link sau buton din expand-box, las să se propage la handlerii respectivi
+    if (e.target.closest('a') || e.target.closest('button[data-act]')) return;
+    const row = e.target.closest('tr.clickable[data-sym]');
+    if (row) toggleExpand(row.dataset.sym);
+  });
+  // Refresh holdings (butonul ↻ din expand box)
+  $('tblBody').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-act="refresh"]');
+    if (!btn) return;
+    e.stopPropagation();
+    const sym = btn.dataset.sym;
+    if (EXP_CACHE[sym]) { EXP_CACHE[sym].holdings = null; EXP_CACHE[sym].year = null; }
+    const d = DATA.find(x => x.sym === sym);
+    const box = $('expBox_' + sym);
+    if (d && box) box.innerHTML = renderExpandBody(d);
+    loadExpandAsync(sym);
+  });
+
+  // Click pe heatmap card → expand + scroll smooth la rândul din tabel
+  $('heatmap').addEventListener('click', e => {
+    const card = e.target.closest('.heat-card[data-sym]');
+    if (card) toggleExpand(card.dataset.sym);
+  });
 
   // Auto-scan la deschidere dacă suntem pe origin real (nu file://)
   if (location.protocol !== 'file:'){
