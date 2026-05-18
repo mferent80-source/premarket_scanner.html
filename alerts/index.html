@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔔 Price Alerts — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Custom price alerts pe stocks + crypto cu polling 60s + notify combo (toast + beep + browser + Telegram)">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#0b0f17; --bg-grad:radial-gradient(1200px 600px at 50% -200px, #142533 0%, #0b0f17 55%);
+  --panel:#141a28; --panel2:#1d2537; --panel3:#222b40;
+  --b1:#2a3247; --b2:#3a4258;
+  --t1:#f0f4fa; --t2:#cdd5e2; --t3:#a3adc1;
+  --acc-1:#3b82f6; --acc-2:#10b981; --accent:#5bb0ff;
+  --bull-s:#22d66b; --bull-bg:rgba(34,214,107,.12);
+  --bear-s:#ff4d4d; --bear-bg:rgba(255,77,77,.12);
+  --warn:#d4892c; --warn-bg:rgba(212,137,44,.15);
+  --gold:#ffd86b;
+  --shadow:0 4px 14px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.2);
+  --r:12px; --rs:8px;
+  --mono:'DM Mono',monospace; --head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+html,body { min-height:100vh; }
+body {
+  font-family:var(--head); background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
+  color:var(--t1); padding:12px; font-size:14px;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility; font-variant-numeric:tabular-nums;
+}
+
+header {
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+  background:linear-gradient(180deg, rgba(20,37,51,.94), rgba(20,26,40,.97));
+  padding:12px 16px; border-radius:var(--r);
+  border:1px solid var(--b1); margin-bottom:12px; box-shadow:var(--shadow);
+  position:sticky; top:8px; z-index:50;
+}
+header h1 {
+  font-size:18px; font-weight:800;
+  background:linear-gradient(90deg, var(--gold), var(--warn));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  margin-right:auto; font-family:var(--head);
+}
+.ver-badge {
+  display:inline-block; padding:3px 8px; margin-left:8px; border-radius:4px;
+  background:rgba(212,137,44,.15); color:var(--warn); border:1px solid rgba(212,137,44,.4);
+  font-size:11px; font-weight:700; -webkit-text-fill-color:var(--warn); font-family:var(--mono);
+}
+.status-pill {
+  font-family:var(--mono); font-size:12px; padding:4px 10px; background:var(--panel2);
+  border-radius:999px; border:1px solid var(--b1); color:var(--t2);
+}
+.status-pill.live { color:var(--bull-s); border-color:rgba(34,214,107,.4); }
+.status-pill.live::before { content:"🟢 "; }
+.status-pill.paused { color:var(--warn); border-color:rgba(212,137,44,.4); }
+.status-pill.paused::before { content:"⏸ "; }
+
+button {
+  background:var(--panel2); color:var(--t1); border:1px solid var(--b1);
+  padding:7px 12px; border-radius:var(--rs); font-size:12.5px; font-family:inherit;
+  cursor:pointer; font-weight:700; transition:all .15s var(--ease);
+}
+button:hover { background:var(--accent); border-color:var(--accent); color:#000; transform:translateY(-1px); }
+button.primary {
+  background:linear-gradient(135deg, var(--acc-1), var(--acc-2));
+  border-color:transparent; color:#fff; box-shadow:0 2px 8px rgba(59,130,246,.3);
+}
+button.danger {
+  background:rgba(255,77,77,.12); color:var(--bear-s); border-color:rgba(255,77,77,.4);
+}
+button.danger:hover { background:var(--bear-s); color:#fff; }
+button.icon-btn { padding:5px 9px; font-size:14px; }
+input, select {
+  background:var(--panel2); color:var(--t1); border:1px solid var(--b1);
+  padding:7px 11px; border-radius:var(--rs); font-size:13px; font-family:inherit;
+}
+input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(91,176,255,.2); }
+
+.nav-link {
+  display:inline-flex; align-items:center; gap:5px;
+  background:var(--panel2); border:1px solid var(--b1);
+  padding:7px 12px; border-radius:var(--rs);
+  color:var(--t1); text-decoration:none; font-size:12.5px; font-weight:700;
+}
+.nav-link:hover { background:var(--accent); border-color:var(--accent); color:#000; }
+
+/* Add form */
+.add-form {
+  background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
+  padding:14px 18px; margin-bottom:12px; box-shadow:var(--shadow);
+}
+.add-form h3 { font-size:14px; font-weight:800; color:var(--t1); margin-bottom:12px; }
+.add-row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+.add-row > div { display:flex; flex-direction:column; gap:4px; }
+.add-row label { font-size:11px; color:var(--t2); font-family:var(--mono); text-transform:uppercase; letter-spacing:.3px; font-weight:700; }
+.add-row .sym-input { width:120px; text-transform:uppercase; font-family:var(--mono); font-weight:700; }
+.add-row .price-input { width:130px; font-family:var(--mono); }
+.add-row .dir-select { width:130px; }
+.add-row .note-input { flex:1; min-width:200px; }
+.add-row .add-btn { padding:8px 18px; font-size:13px; }
+.add-hint { font-size:11.5px; color:var(--t3); margin-top:8px; font-family:var(--mono); }
+
+/* Sections */
+.section {
+  background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
+  margin-bottom:12px; overflow:hidden;
+}
+.section-head {
+  display:flex; align-items:center; gap:10px; padding:11px 16px;
+  background:linear-gradient(180deg, var(--panel2), var(--panel));
+  border-bottom:1px solid var(--b1);
+}
+.section-head h3 { font-family:var(--head); font-size:14px; font-weight:800; color:var(--t1); flex:1; }
+.section-head .count {
+  background:var(--panel3); color:var(--t1); padding:2px 10px;
+  border-radius:999px; font-family:var(--mono); font-size:11.5px; font-weight:700;
+  border:1px solid var(--b1);
+}
+.section-body { padding:10px 14px; }
+
+.empty { padding:30px 16px; text-align:center; color:var(--t2); font-style:italic; font-size:13px; }
+.empty .ico { font-size:36px; margin-bottom:8px; opacity:.5; display:block; }
+
+/* Alert row */
+.alert-row {
+  display:grid; grid-template-columns:80px 100px 110px 110px 1fr auto auto; gap:12px;
+  align-items:center; padding:10px 12px;
+  border-bottom:1px solid rgba(42,50,71,.5);
+  font-family:var(--head); font-size:12.5px;
+}
+.alert-row:last-child { border-bottom:none; }
+.alert-row:hover { background:rgba(91,176,255,.04); }
+.alert-row.triggered { background:rgba(34,214,107,.06); border-left:3px solid var(--bull-s); padding-left:9px; }
+.alert-row.triggered.bear { background:rgba(255,77,77,.06); border-left-color:var(--bear-s); }
+
+.alert-sym {
+  font-family:var(--mono); font-weight:800; color:var(--accent); font-size:13.5px;
+}
+.alert-sym a { color:var(--accent); text-decoration:none; }
+.alert-sym a:hover { text-decoration:underline; }
+.alert-thr { font-family:var(--mono); font-weight:700; color:var(--t1); }
+.alert-thr .dir { font-size:11px; color:var(--t2); display:block; margin-top:1px; }
+.alert-current { font-family:var(--mono); font-weight:700; color:var(--t1); }
+.alert-current.up { color:var(--bull-s); }
+.alert-current.down { color:var(--bear-s); }
+.alert-delta { font-family:var(--mono); font-size:11.5px; color:var(--t2); }
+.alert-delta.close { color:var(--warn); font-weight:700; }
+.alert-note { font-size:12px; color:var(--t2); font-style:italic; }
+.alert-actions { display:flex; gap:4px; }
+
+.alert-trigger-info {
+  grid-column:1/-1; font-size:11.5px; color:var(--bull-s); font-family:var(--mono);
+  background:rgba(34,214,107,.06); padding:4px 8px; border-radius:4px; margin-top:5px;
+}
+.alert-row.bear .alert-trigger-info { color:var(--bear-s); background:rgba(255,77,77,.06); }
+
+.refresh-info { font-family:var(--mono); font-size:11px; color:var(--t3); margin-top:8px; text-align:right; }
+
+/* Toasts */
+#toasts { position:fixed; bottom:14px; right:14px; display:flex; flex-direction:column; gap:6px; z-index:2000; max-width:400px; pointer-events:none; }
+#toasts > * { pointer-events:auto; }
+.toast {
+  display:flex; align-items:flex-start; gap:10px;
+  background:var(--panel); border:1px solid var(--b1); border-left:3px solid var(--accent);
+  border-radius:var(--rs); padding:10px 12px 10px 14px; font-size:12.5px;
+  box-shadow:0 4px 16px rgba(0,0,0,.4); font-family:var(--head); color:var(--t1);
+  animation:slideIn .25s var(--ease); max-width:380px;
+}
+.toast.success { border-left-color:var(--bull-s); }
+.toast.warn { border-left-color:var(--warn); }
+.toast.error { border-left-color:var(--bear-s); }
+.toast.toast-out { animation:slideOut .2s ease forwards; }
+.toast-msg { flex:1; }
+.toast-close { background:transparent; border:none; color:var(--t3); cursor:pointer; padding:0 2px; font-size:14px; line-height:1; font-weight:700; flex-shrink:0; }
+.toast-close:hover { color:var(--bear-s); }
+@keyframes slideIn { from { transform:translateX(20px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+@keyframes slideOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(20px); } }
+
+@media (max-width:768px) {
+  .alert-row { grid-template-columns:1fr 1fr; gap:8px; }
+  .alert-note, .alert-current, .alert-delta { grid-column:1/-1; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v1</span></h1>
+  <span class="status-pill" id="pollStatus">⏳ —</span>
+  <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
+  <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
+  <button class="icon-btn" id="testBtn" title="Test alertă (demo)">🧪</button>
+  <a href="../" class="nav-link">← Hub</a>
+</header>
+
+<!-- Add new alert -->
+<div class="add-form">
+  <h3>➕ Adaugă alertă nouă</h3>
+  <div class="add-row">
+    <div>
+      <label>Ticker</label>
+      <input type="text" id="inpSym" class="sym-input" placeholder="AAPL" maxlength="10">
+    </div>
+    <div>
+      <label>Preț prag $</label>
+      <input type="number" id="inpThr" class="price-input" placeholder="175.50" step="0.01">
+    </div>
+    <div>
+      <label>Direcție</label>
+      <select id="inpDir" class="dir-select">
+        <option value="above">▲ Sus / peste</option>
+        <option value="below">▼ Jos / sub</option>
+      </select>
+    </div>
+    <div>
+      <label>Notă (opțional)</label>
+      <input type="text" id="inpNote" class="note-input" placeholder="ex: target TP1 după ATR x2" maxlength="80">
+    </div>
+    <button class="primary add-btn" id="btnAdd">+ Adaugă</button>
+  </div>
+  <div class="add-hint">
+    Polling automat la 60s când pagina e activă. Notify combo: toast persistent + sunet + browser + Telegram (dacă config în macro-dashboard). Suportă: stocks US (AAPL/NVDA/etc.) + crypto (BTC-USD/ETH-USD).
+  </div>
+</div>
+
+<!-- Active alerts -->
+<div class="section">
+  <div class="section-head">
+    <h3>🎯 Alerte active</h3>
+    <span class="count" id="cntActive">0</span>
+    <button id="btnPause" class="icon-btn" title="Pauză polling">⏸</button>
+  </div>
+  <div class="section-body" id="bodyActive">
+    <div class="empty"><span class="ico">📭</span>Niciun alert activ. Adaugă unul de mai sus.</div>
+  </div>
+</div>
+
+<!-- Triggered history -->
+<div class="section">
+  <div class="section-head">
+    <h3>✅ Triggered (ultimele 50)</h3>
+    <span class="count" id="cntTriggered">0</span>
+    <button id="btnClearTriggered" class="danger" style="font-size:11.5px">🗑 Clear triggered</button>
+  </div>
+  <div class="section-body" id="bodyTriggered">
+    <div class="empty"><span class="ico">🔕</span>Niciun alert declanșat încă.</div>
+  </div>
+</div>
+
+<div class="refresh-info" id="refreshInfo">—</div>
+<div id="toasts"></div>
+
+<script>
+// ============ CONFIG ============
+const ALERTS_KEY = 'pa_alerts_v1';
+const POLL_INTERVAL_MS = 60000;
+const MAX_TRIGGERED_HISTORY = 50;
+const SOUND_KEY = 'pa_sound';
+const NOTIF_KEY = 'pa_notif';
+
+const $ = id => document.getElementById(id);
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmtNum = (n, d=2) => (n==null || isNaN(n)) ? '—' : Number(n).toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+const fmtPct = (n, d=2) => (n==null || isNaN(n)) ? '—' : (n>=0?'+':'') + Number(n).toFixed(d) + '%';
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
+
+function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || ''; }
+function getTgConfig() { try { return JSON.parse(localStorage.getItem('tt_tg_config') || '{}'); } catch (e) { return {}; } }
+let soundEnabled = localStorage.getItem(SOUND_KEY) === '1';
+let notifEnabled = localStorage.getItem(NOTIF_KEY) === '1';
+let pollPaused = false;
+let pollTimer = null;
+
+// ============ STATE ============
+let ALERTS = (() => { try { return JSON.parse(localStorage.getItem(ALERTS_KEY) || '[]'); } catch (e) { return []; } })();
+function persistAlerts() { try { localStorage.setItem(ALERTS_KEY, JSON.stringify(ALERTS)); } catch (e) {} }
+
+// ============ TOAST ============
+function toast(msg, kind='info', opts={}) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  const autoMs = opts.persist === true ? 0 : (kind === 'warn' || kind === 'error' ? 0 : 12000);
+  el.innerHTML = `<span class="toast-msg">${escHtml(msg)}</span><button class="toast-close" title="Închide">✕</button>`;
+  const close = () => { el.classList.add('toast-out'); setTimeout(() => el.remove(), 200); };
+  el.querySelector('.toast-close').addEventListener('click', close);
+  $('toasts').appendChild(el);
+  if (autoMs > 0) {
+    let timer = setTimeout(close, autoMs);
+    el.addEventListener('mouseenter', () => { clearTimeout(timer); timer = null; });
+    el.addEventListener('mouseleave', () => { if (!timer) timer = setTimeout(close, 4000); });
+  }
+}
+
+// ============ BEEP + NOTIF + TG ============
+let _audioCtx = null;
+function playBeep() {
+  if (!soundEnabled) return;
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx;
+    const t = ctx.currentTime;
+    [880, 1320].forEach((f, i) => {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t + i*0.18); g.gain.linearRampToValueAtTime(0.15, t + i*0.18 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + i*0.18 + 0.16);
+      o.connect(g).connect(ctx.destination);
+      o.start(t + i*0.18); o.stop(t + i*0.18 + 0.18);
+    });
+  } catch (e) {}
+}
+function showBrowserNotif(title, body) {
+  if (!notifEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
+  try { new Notification(title, { body, icon:'/favicon.ico' }); } catch (e) {}
+}
+async function sendTelegram(msg) {
+  const cfg = getTgConfig();
+  if (!cfg.enabled || !cfg.token || !cfg.chatId) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${cfg.token}/sendMessage`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ chat_id: cfg.chatId, text: msg, parse_mode:'HTML' })
+    });
+  } catch (e) {}
+}
+
+// ============ PRICE FETCH ============
+async function fetchPriceFinnhub(symbol) {
+  const key = getFinnhubKey();
+  if (!key) return null;
+  try {
+    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(key)}`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d?.c == null || d.c === 0) return null;
+    return { last: d.c, prev: d.pc ?? d.c };
+  } catch (e) { return null; }
+}
+async function fetchPriceCoinGecko(coinId) {
+  try {
+    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    const data = d?.[coinId];
+    if (!data?.usd) return null;
+    return { last: data.usd, prev: data.usd / (1 + (data.usd_24h_change ?? 0)/100) };
+  } catch (e) { return null; }
+}
+async function fetchPrice(symbol) {
+  const s = symbol.toUpperCase();
+  // Crypto: CoinGecko direct
+  if (s === 'BTC-USD' || s === 'BTC') return fetchPriceCoinGecko('bitcoin');
+  if (s === 'ETH-USD' || s === 'ETH') return fetchPriceCoinGecko('ethereum');
+  if (s === 'SOL-USD' || s === 'SOL') return fetchPriceCoinGecko('solana');
+  // Stocks/ETF: Finnhub /quote (no proxy)
+  return fetchPriceFinnhub(s);
+}
+
+// ============ POLL CYCLE ============
+async function pollPrices() {
+  if (pollPaused) return;
+  const activeAlerts = ALERTS.filter(a => a.active && !a.triggered);
+  if (!activeAlerts.length) { $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · niciun alert activ`; return; }
+  const unique = [...new Set(activeAlerts.map(a => a.symbol.toUpperCase()))];
+  const prices = {};
+  await Promise.all(unique.map(async sym => {
+    const p = await fetchPrice(sym);
+    if (p?.last != null) prices[sym] = p.last;
+  }));
+  let triggeredCount = 0;
+  const triggeredNow = [];
+  for (const alert of activeAlerts) {
+    const cur = prices[alert.symbol.toUpperCase()];
+    if (cur == null) continue;
+    alert.currentPrice = cur;
+    const triggered = (alert.direction === 'above' && cur >= alert.threshold)
+                   || (alert.direction === 'below' && cur <= alert.threshold);
+    if (triggered) {
+      alert.triggered = true;
+      alert.triggeredAt = Date.now();
+      alert.triggeredPrice = cur;
+      triggeredCount++;
+      triggeredNow.push(alert);
+    }
+  }
+  if (triggeredCount > 0) {
+    persistAlerts();
+    // Notify combo
+    triggeredNow.forEach(a => {
+      const dirIcon = a.direction === 'above' ? '▲' : '▼';
+      const kind = a.direction === 'above' ? 'success' : 'error';
+      toast(`🔔 ${a.symbol} ${dirIcon} $${fmtNum(a.triggeredPrice)} · prag $${fmtNum(a.threshold)}${a.note ? ' · ' + a.note : ''}`, kind, { persist: true });
+      showBrowserNotif(`🔔 ${a.symbol} ${dirIcon} prag atins`, `Preț ${fmtNum(a.triggeredPrice)} · prag ${fmtNum(a.threshold)}${a.note ? ' · ' + a.note : ''}`);
+    });
+    playBeep();
+    if (triggeredNow.length === 1) {
+      const a = triggeredNow[0];
+      sendTelegram(`🔔 <b>Price Alert</b>\n${a.direction === 'above' ? '▲' : '▼'} <b>${a.symbol}</b> a atins $${fmtNum(a.triggeredPrice)}\nPrag: $${fmtNum(a.threshold)} (${a.direction})${a.note ? '\nNotă: ' + a.note : ''}`);
+    } else {
+      sendTelegram(`🔔 <b>${triggeredNow.length} Price Alerts triggered</b>\n` + triggeredNow.map(a => `${a.direction === 'above' ? '▲' : '▼'} <b>${a.symbol}</b> $${fmtNum(a.triggeredPrice)} (prag $${fmtNum(a.threshold)})`).join('\n'));
+    }
+  }
+  render();
+  $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · ${unique.length} simboluri${triggeredCount ? ` · ${triggeredCount} triggered` : ''}`;
+}
+
+function schedulePoll() {
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = setTimeout(async () => {
+    await pollPrices();
+    schedulePoll();
+  }, POLL_INTERVAL_MS);
+}
+
+// ============ RENDER ============
+function render() {
+  const active = ALERTS.filter(a => a.active && !a.triggered);
+  const triggered = ALERTS.filter(a => a.triggered).sort((a,b) => b.triggeredAt - a.triggeredAt).slice(0, MAX_TRIGGERED_HISTORY);
+  $('cntActive').textContent = active.length;
+  $('cntTriggered').textContent = triggered.length;
+
+  if (!active.length) {
+    $('bodyActive').innerHTML = '<div class="empty"><span class="ico">📭</span>Niciun alert activ. Adaugă unul de mai sus.</div>';
+  } else {
+    $('bodyActive').innerHTML = active.map(a => {
+      const cur = a.currentPrice;
+      const delta = cur != null ? ((cur - a.threshold) / a.threshold * 100) : null;
+      const deltaDir = a.direction === 'above' ? (cur > a.threshold ? 'atins' : delta) : (cur < a.threshold ? 'atins' : -delta);
+      const isClose = delta != null && Math.abs(delta) < 1.5;
+      const dirIcon = a.direction === 'above' ? '▲ peste' : '▼ sub';
+      const dirCls = a.direction === 'above' ? 'up' : 'down';
+      return `<div class="alert-row" data-id="${escHtml(a.id)}">
+        <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(a.symbol)}" target="_blank">${escHtml(a.symbol)}</a></div>
+        <div class="alert-thr">$${fmtNum(a.threshold)}<span class="dir">${dirIcon}</span></div>
+        <div class="alert-current ${dirCls}">${cur != null ? '$' + fmtNum(cur) : '⏳'}</div>
+        <div class="alert-delta ${isClose ? 'close' : ''}">${delta != null ? (delta>=0?'+':'')+delta.toFixed(2)+'%' : '—'}</div>
+        <div class="alert-note">${escHtml(a.note || '')}</div>
+        <div class="alert-actions">
+          <button class="icon-btn" data-action="edit" title="Editează">✎</button>
+          <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+    // Bind actions
+    $('bodyActive').querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
+      const id = e.target.closest('.alert-row').dataset.id;
+      if (!confirm('Șterge acest alert?')) return;
+      ALERTS = ALERTS.filter(a => a.id !== id);
+      persistAlerts(); render();
+    }));
+    $('bodyActive').querySelectorAll('[data-action="edit"]').forEach(btn => btn.addEventListener('click', e => {
+      const id = e.target.closest('.alert-row').dataset.id;
+      const a = ALERTS.find(x => x.id === id);
+      if (!a) return;
+      const newThr = parseFloat(prompt(`Prag nou pentru ${a.symbol}:`, a.threshold));
+      if (!isNaN(newThr) && newThr > 0) { a.threshold = newThr; persistAlerts(); render(); }
+    }));
+  }
+
+  if (!triggered.length) {
+    $('bodyTriggered').innerHTML = '<div class="empty"><span class="ico">🔕</span>Niciun alert declanșat încă.</div>';
+  } else {
+    $('bodyTriggered').innerHTML = triggered.map(a => {
+      const cls = a.direction === 'above' ? '' : 'bear';
+      const dirIcon = a.direction === 'above' ? '▲' : '▼';
+      const ageMin = Math.round((Date.now() - a.triggeredAt) / 60000);
+      const ageStr = ageMin < 60 ? `${ageMin}min` : `${Math.round(ageMin/60)}h`;
+      return `<div class="alert-row triggered ${cls}" data-id="${escHtml(a.id)}">
+        <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(a.symbol)}" target="_blank">${escHtml(a.symbol)}</a></div>
+        <div class="alert-thr">$${fmtNum(a.threshold)}<span class="dir">${dirIcon}</span></div>
+        <div class="alert-current ${a.direction === 'above' ? 'up' : 'down'}">$${fmtNum(a.triggeredPrice)}</div>
+        <div class="alert-delta">acum ${ageStr}</div>
+        <div class="alert-note">${escHtml(a.note || '')}</div>
+        <div class="alert-actions">
+          <button class="icon-btn" data-action="reactivate" title="Reactivează">↻</button>
+          <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+    $('bodyTriggered').querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
+      const id = e.target.closest('.alert-row').dataset.id;
+      ALERTS = ALERTS.filter(a => a.id !== id);
+      persistAlerts(); render();
+    }));
+    $('bodyTriggered').querySelectorAll('[data-action="reactivate"]').forEach(btn => btn.addEventListener('click', e => {
+      const id = e.target.closest('.alert-row').dataset.id;
+      const a = ALERTS.find(x => x.id === id);
+      if (!a) return;
+      a.triggered = false; a.triggeredAt = null; a.triggeredPrice = null; a.active = true;
+      persistAlerts(); render();
+      toast(`↻ ${a.symbol} reactivat`, 'info');
+    }));
+  }
+
+  $('pollStatus').className = 'status-pill ' + (pollPaused ? 'paused' : 'live');
+  $('pollStatus').textContent = pollPaused ? 'PAUZĂ' : `LIVE · ${POLL_INTERVAL_MS/1000}s`;
+  $('btnPause').textContent = pollPaused ? '▶' : '⏸';
+  $('btnPause').title = pollPaused ? 'Reia polling' : 'Pauză polling';
+  $('soundBtn').style.color = soundEnabled ? 'var(--bull-s)' : '';
+  $('notifBtn').style.color = notifEnabled ? 'var(--bull-s)' : '';
+}
+
+// ============ EVENT HANDLERS ============
+$('btnAdd').addEventListener('click', () => {
+  const sym = $('inpSym').value.trim().toUpperCase();
+  const thr = parseFloat($('inpThr').value);
+  const dir = $('inpDir').value;
+  const note = $('inpNote').value.trim();
+  if (!sym || !sym.match(/^[A-Z0-9.\-]{1,12}$/)) { toast('⚠ Simbol invalid (doar A-Z, 0-9, .-)', 'error'); return; }
+  if (isNaN(thr) || thr <= 0) { toast('⚠ Preț prag invalid (trebuie > 0)', 'error'); return; }
+  ALERTS.push({ id: uid(), symbol: sym, threshold: thr, direction: dir, note, active: true, triggered: false, triggeredAt: null, triggeredPrice: null, currentPrice: null, createdAt: Date.now() });
+  persistAlerts(); render();
+  $('inpSym').value = ''; $('inpThr').value = ''; $('inpNote').value = '';
+  toast(`✓ Alert adăugat: ${sym} ${dir === 'above' ? '▲' : '▼'} $${fmtNum(thr)}`, 'success');
+  pollPrices(); // immediate check
+});
+
+$('btnPause').addEventListener('click', () => {
+  pollPaused = !pollPaused;
+  render();
+  toast(pollPaused ? '⏸ Polling oprit' : '▶ Polling reluat', 'info');
+  if (!pollPaused) pollPrices();
+});
+
+$('btnClearTriggered').addEventListener('click', () => {
+  const count = ALERTS.filter(a => a.triggered).length;
+  if (!count) { toast('Nimic de șters', 'info'); return; }
+  if (!confirm(`Ștergi ${count} alerte declanșate?`)) return;
+  ALERTS = ALERTS.filter(a => !a.triggered);
+  persistAlerts(); render();
+  toast(`🗑 ${count} alerte șterse`, 'info');
+});
+
+$('soundBtn').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0');
+  render();
+  toast(soundEnabled ? '🔊 Sunet ACTIVAT' : '🔇 Sunet DEZACTIVAT', 'info');
+  if (soundEnabled) playBeep();
+});
+
+$('notifBtn').addEventListener('click', async () => {
+  if (!('Notification' in window)) { toast('⚠ Browser-ul nu suportă notificări', 'warn'); return; }
+  if (notifEnabled) {
+    notifEnabled = false;
+    localStorage.setItem(NOTIF_KEY, '0');
+    toast('🔕 Notificări DEZACTIVATE', 'info');
+  } else {
+    const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+    if (perm === 'granted') {
+      notifEnabled = true;
+      localStorage.setItem(NOTIF_KEY, '1');
+      toast('🔔 Notificări ACTIVATE', 'success');
+      showBrowserNotif('🔔 Test Price Alerts', 'Notificările sunt active.');
+    } else { toast('⚠ Permisiune notificări refuzată', 'warn'); }
+  }
+  render();
+});
+
+$('testBtn').addEventListener('click', () => {
+  toast('🧪 Test alert: AAPL ▲ $200.00 atins (DEMO)', 'success', { persist: true });
+  playBeep();
+  showBrowserNotif('🧪 TEST Price Alerts', 'Notificările funcționează.');
+});
+
+// Allow Enter in input fields
+$('inpSym').addEventListener('keypress', e => { if (e.key === 'Enter') $('inpThr').focus(); });
+$('inpThr').addEventListener('keypress', e => { if (e.key === 'Enter') $('btnAdd').click(); });
+$('inpNote').addEventListener('keypress', e => { if (e.key === 'Enter') $('btnAdd').click(); });
+
+// Pause polling when tab inactive
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // optional: don't pause, just rely on browser throttling
+  } else {
+    pollPrices(); // refresh imediat when tab e activ din nou
+  }
+});
+
+// ============ INIT ============
+render();
+pollPrices();
+schedulePoll();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(()=>{});
+</script>
+</body>
+</html>
