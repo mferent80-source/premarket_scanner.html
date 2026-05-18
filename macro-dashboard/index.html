@@ -795,7 +795,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v165</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v166</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1659,6 +1659,24 @@ async function fetchCryptoChartFromCoinGecko(coinId, days = 60) {
 async function fetchBtcChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('bitcoin'); }
 async function fetchEthChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('ethereum'); }
 
+// Finnhub /stock/candle pentru ETF (no proxy CORS). Premium pentru indices,
+// dar pentru ETF echivalente (VXX/UUP/IEF) ar trebui să fie free tier.
+async function fetchFinnhubCandle(symbol, days = 60) {
+  const key = getFinnhubKey();
+  if (!key) return null;
+  try {
+    const to = Math.floor(Date.now() / 1000);
+    const from = to - days * 86400;
+    const url = `https://finnhub.io/api/v1/stock/candle?symbol=${encodeURIComponent(symbol)}&resolution=D&from=${from}&to=${to}&token=${encodeURIComponent(key)}`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d?.s !== 'ok' || !Array.isArray(d.c) || !d.c.length) return null;
+    const points = d.c.map((close, i) => ({ ts: d.t[i], close }));
+    return { points, meta: { regularMarketPrice: points[points.length-1].close } };
+  } catch (e) { return null; }
+}
+
 // Finnhub /quote — permite CORS direct (no proxy). Folosit pentru ETF proxy când Yahoo pică.
 async function fetchFinnhubQuote(symbol) {
   const key = getFinnhubKey();
@@ -2017,24 +2035,52 @@ async function drillStatTile(tileId) {
     return;
   }
 
-  // Fetch chart Yahoo, cu fallback CoinGecko pentru crypto (no proxy)
+  // Fetch chart Yahoo, cu fallback per simbol (no proxy CORS):
+  // - crypto -> CoinGecko
+  // - indices (VIX/DXY/10Y) -> Finnhub /stock/candle pe ETF echivalent (VXX/UUP/IEF)
   let data = await fetchYahooChart30d(meta.sym);
+  let proxyEtfUsed = null;
   if (!data || !data.points.length) {
     if (meta.sym === 'BTC-USD') data = await fetchBtcChartFromCoinGecko();
     else if (meta.sym === 'ETH-USD') data = await fetchEthChartFromCoinGecko();
+    else if (ETF_PROXY_MAP[meta.sym]) {
+      const etf = ETF_PROXY_MAP[meta.sym];
+      data = await fetchFinnhubCandle(etf, 90);
+      if (data) proxyEtfUsed = etf;
+    }
   }
   if (!data || !data.points.length) {
-    $('gmBody').innerHTML = '<div class="drill-error">❌ Nu am putut încărca chart-ul (proxy CORS Yahoo momentan blocat, fără fallback pentru acest simbol).</div>';
+    $('gmBody').innerHTML = `<div class="drill-error">
+      <div style="font-size:18px;margin-bottom:8px">❌ Chart 30z indisponibil momentan</div>
+      <div style="font-size:13px;line-height:1.6;color:var(--t2);margin-bottom:14px">
+        Pentru <b>${escHtml(meta.label)}</b> (indice) nu există sursă free fără proxy CORS — Yahoo Finance blochează IP-urile datacenter (429),
+        iar Finnhub <code>/stock/candle</code> e premium. Tile-ul afișează totuși valoarea curentă via ETF echivalent (VXX/UUP/IEF) și Δ% direcțional.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="primary" id="drillRetry">🔄 Retry (reset proxy chain)</button>
+        <button class="ghost" id="drillClose">Închide</button>
+      </div>
+    </div>`;
+    $('drillRetry')?.addEventListener('click', () => {
+      PROXY_DEAD.clear();
+      _proxyResetTs = Date.now();
+      _chartCache?.clear();
+      drillStatTile(tileId);
+    });
+    $('drillClose')?.addEventListener('click', () => $('genericModal').classList.remove('show'));
     return;
   }
   let points = data.points;
-  if (meta.divide) points = points.map(p => ({ ts: p.ts, close: p.close / meta.divide }));
+  // Pentru ETF proxy NU aplicăm divide (e preț, nu indice ×10) și skip interpret (nu se mapează direct)
+  if (meta.divide && !proxyEtfUsed) points = points.map(p => ({ ts: p.ts, close: p.close / meta.divide }));
   const cur = points[points.length-1].close;
   const max = Math.max(...points.map(p => p.close));
   const min = Math.min(...points.map(p => p.close));
   const vol = calcVolatility(points);
   const d1 = pctChg(points, 1), d5 = pctChg(points, 5), d30 = pctChg(points, points.length-1);
-  const interp = meta.interpret(cur);
+  const interp = proxyEtfUsed
+    ? `📊 <b>Chart afișat via ETF ${proxyEtfUsed}</b> — Yahoo Finance proxy CORS pică pentru indici momentan, folosim ETF echivalent pentru direcție. Valorile absolute diferă de indicele real, dar Δ% reflectă mișcarea corectă.`
+    : meta.interpret(cur);
   renderTileBody(meta, points, cur, { max, min, vol, d1, d5, d30 }, interp);
 }
 
