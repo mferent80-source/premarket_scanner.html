@@ -290,6 +290,15 @@ tbody tr.result-new.miss { animation-name:flashResultBad; }
   30% { background:rgba(255,77,77,.20); }
   100% { background:transparent; }
 }
+/* Highlight persistent pentru evenimentele cu rezultat publicat — rămâne după ce dispare animația flash */
+tbody tr.has-result { background:rgba(91,176,255,.04); }
+tbody tr.has-result-bullish { background:rgba(34,214,107,.07); border-left-color:var(--bull-s) !important; }
+tbody tr.has-result-bearish { background:rgba(255,77,77,.07); border-left-color:var(--bear-s) !important; }
+tbody tr.has-result-neutral { background:rgba(212,137,44,.05); border-left-color:var(--warn) !important; }
+tbody tr.has-result:hover { background:rgba(91,176,255,.10); }
+tbody tr.has-result-bullish:hover { background:rgba(34,214,107,.14); }
+tbody tr.has-result-bearish:hover { background:rgba(255,77,77,.14); }
+tbody tr.has-result-neutral:hover { background:rgba(212,137,44,.12); }
 .fast-poll-pill {
   display:inline-flex; align-items:center; gap:4px;
   padding:3px 9px; border-radius:999px; font-size:10px; font-weight:700;
@@ -548,7 +557,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v147</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v148</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1635,11 +1644,21 @@ async function loadCalendar() {
     $('calStatus').textContent = `✅ Finnhub · ${CAL_DATA.length} evenimente · ${new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}`;
   }
 
-  // Filtrare doar viitor (sau actual aceeași zi)
+  // Merge cu rezultatele salvate local: dacă Finnhub returnează acum actual=null
+  // pentru un eveniment pe care l-am văzut publicat (SEEN_ACTUAL), păstrăm valoarea.
+  // Asta previne dispariția rezultatelor la următorul reload calendar.
+  CAL_DATA = CAL_DATA.map(e => {
+    if (e.actual != null) return e;
+    const seen = SEEN_ACTUAL[e.time + '|' + e.event];
+    return seen ? { ...e, actual: seen.actual, _restoredActual: true } : e;
+  });
+
+  // Filtrare: păstrăm viitorul + evenimentele publicate în ultimele 72h
+  // (înainte era 6h și rezultatele dispăreau prea repede — Marius nu apuca să le vadă)
   const now = Date.now();
   CAL_DATA = CAL_DATA.filter(e => {
     const t = parseEventTime(e.time);
-    return t && t.getTime() >= now - 6*3600000; // ține si evenimentele din ultimele 6h ca să vedem 'actual'
+    return t && t.getTime() >= now - RESULTS_RETAIN_MS;
   });
 
   renderHotStrip();
@@ -1762,10 +1781,12 @@ function renderCalendar() {
       actHtml = `<span class="${cls}" title="${escHtml(r.verdict)}">${r.icon} ${escHtml(String(e.actual))}${u}</span>`;
     }
     const flashCls = _flashedRows.has(e.time + '|' + e.event) ? ' result-new' + (resultBias === 'bearish' ? ' miss' : '') : '';
+    // Highlight persistent (rămâne după ce dispare animația flash) pentru evenimentele cu rezultat publicat
+    const resultCls = e.actual != null ? ` has-result has-result-${resultBias || 'neutral'}` : '';
     const tvSym = quickTickerFor(e);
     const tvBtn = tvSym ? `<a class="action-btn" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSym)}" target="_blank" title="TradingView">📈</a>` : '';
 
-    return `<tr class="clickable ${rowCls}${flashCls}" data-time="${escHtml(e.time)}" data-event="${escHtml(e.event)}">
+    return `<tr class="clickable ${rowCls}${flashCls}${resultCls}" data-time="${escHtml(e.time)}" data-event="${escHtml(e.event)}">
       <td class="left when-cell"><span class="when-d">${escHtml(dt.date)} · ${escHtml(dt.time)}</span><span class="when-h">${escHtml(tu)}</span></td>
       <td><span class="flag">${cm.flag}</span><span class="country-code">${escHtml(e.country)}</span></td>
       <td class="left"><div class="evt-name">${escHtml(e.event)}</div></td>
@@ -3009,7 +3030,8 @@ function scheduleAlertCheck() {
 // ============ RESULT DETECTION (actual apare) ============
 let SEEN_ACTUAL = (() => { try { return JSON.parse(localStorage.getItem('md_seen_actual') || '{}'); } catch (e) { return {}; } })();
 let _flashedRows = new Set(); // rânduri flash-uite în această sesiune
-const FLASH_WINDOW_MS = 6*3600*1000; // un event publicat acum max 6h e considerat „nou"
+const FLASH_WINDOW_MS = 6*3600*1000; // un event publicat acum max 6h e considerat „nou" pentru toast/beep
+const RESULTS_RETAIN_MS = 72*3600*1000; // cât timp păstrăm evenimentele publicate vizibile în tabel (după publish)
 
 function cleanupSeenActual() {
   const now = Date.now();
