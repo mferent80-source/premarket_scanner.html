@@ -788,7 +788,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v160</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v161</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1513,12 +1513,19 @@ function addTickerToWatchlist(ticker) {
   try { localStorage.setItem(WL_KEY, JSON.stringify(wl)); } catch (e) { return false; }
   return true;
 }
+// CORS proxy chain pentru Yahoo Finance (Yahoo nu permite CORS direct).
+// Toate proxy-urile sunt teren mișcător — încercăm 5-6 variante și marcăm dead-uri.
 const CORS_PROXIES = [
   { build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: r => r.text() },
   { build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), extract: r => r.text() },
-  { build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u), extract: r => r.text() }
+  { build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u), extract: r => r.text() },
+  { build: u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u), extract: r => r.text() },
+  { build: u => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u), extract: async r => { const j = await r.json(); return j?.contents || ''; } },
+  { build: u => 'https://proxy.cors.sh/' + u, extract: r => r.text() }
 ];
 const PROXY_DEAD = new Set();
+// Reset dead proxies la fiecare reload — poate au revenit între sesiuni
+let _proxyResetTs = Date.now();
 
 // ============ UTIL ============
 const $ = id => document.getElementById(id);
@@ -1571,7 +1578,10 @@ function renderSession() {
 
 // ============ PROXY FETCH ============
 async function fetchViaProxy(url, timeoutMs=9000) {
+  // Reset proxies marcate dead la fiecare 5 min (poate s-au reabilitat între timp)
+  if (Date.now() - _proxyResetTs > 5*60000) { PROXY_DEAD.clear(); _proxyResetTs = Date.now(); }
   const tried = new Set();
+  let lastError = null;
   for (let attempt = 0; attempt < CORS_PROXIES.length; attempt++) {
     const idx = (_proxyIdx + attempt) % CORS_PROXIES.length;
     if (PROXY_DEAD.has(idx)) continue;
@@ -1584,18 +1594,26 @@ async function fetchViaProxy(url, timeoutMs=9000) {
       const r = await fetch(p.build(url), { signal: ctrl.signal });
       clearTimeout(t);
       if (!r.ok) {
-        if ([408,502,504].includes(r.status)) PROXY_DEAD.add(idx);
+        if ([400, 408, 429, 502, 503, 504].includes(r.status)) PROXY_DEAD.add(idx);
+        lastError = `HTTP ${r.status} proxy ${idx}`;
         continue;
       }
       const txt = await p.extract(r);
+      // Verifică dacă răspunsul nu e o pagină HTML de eroare în loc de JSON
+      if (typeof txt === 'string' && txt.trim().startsWith('<')) {
+        PROXY_DEAD.add(idx);
+        lastError = `HTML response proxy ${idx}`;
+        continue;
+      }
       _proxyIdx = idx;
       try { return JSON.parse(txt); } catch (e) { return txt; }
     } catch (e) {
-      if (e.name === 'AbortError') continue;
+      if (e.name === 'AbortError') { lastError = `timeout proxy ${idx}`; continue; }
       PROXY_DEAD.add(idx);
+      lastError = `${e.message} proxy ${idx}`;
     }
   }
-  throw new Error('Toate proxy-urile CORS au eșuat');
+  throw new Error(`Toate proxy-urile CORS au eșuat (${lastError || 'unknown'})`);
 }
 
 // ============ STAT TILES (live macro indicators) ============
@@ -1625,9 +1643,22 @@ async function loadStatTiles() {
 
   // Paralelizăm toate 5 fetch-urile (Promise.allSettled ca să nu pice tot dacă unul eșuează)
   const results = await Promise.allSettled(tiles.map(t => fetchYahooQuote(t.sym).then(q => ({ t, q }))));
-  for (const res of results) {
-    if (res.status !== 'fulfilled' || !res.value.q) continue;
-    const { t, q } = res.value;
+  let okCount = 0;
+  for (let i = 0; i < results.length; i++) {
+    const res = results[i];
+    const t = tiles[i];
+    if (res.status !== 'fulfilled' || !res.value?.q) {
+      // Fetch eșuat — marchează vizual tile-ul cu status N/A + tooltip cu motiv
+      const tile = $(t.id);
+      if (tile) {
+        tile.innerHTML = `<span class="stat-label">${t.label}</span>
+          <span class="stat-value" style="color:var(--t3);font-size:14px">N/A</span>
+          <span class="stat-sub" style="color:var(--bear-s);font-size:10.5px">⚠ proxy CORS · retry?</span>`;
+        tile.title = 'Yahoo Finance via proxy CORS — toate proxy-urile au eșuat momentan. Apasă 🔄 Reîncarcă în câteva secunde.';
+      }
+      continue;
+    }
+    const { q } = res.value;
     try {
       const val = t.divide ? q.last / t.divide : q.last;
       const fmt = t.prefix
@@ -1640,10 +1671,19 @@ async function loadStatTiles() {
         : (q.chgPct >= 0 ? 'bull' : 'bear');
       const tile = $(t.id);
       tile.className = 'stat-tile ' + tileClass;
+      tile.title = '';
       tile.innerHTML = `<span class="stat-label">${t.label}</span>
         <span class="stat-value">${fmt}</span>
         <span class="stat-sub ${dirClass}">${arrow} ${fmtPct(q.chgPct,2)} · ${t.sub}</span>`;
+      okCount++;
     } catch (e) { /* skip tile-ul ăsta */ }
+  }
+  // Dacă TOATE au eșuat, afișează toast informativ (o singură dată)
+  if (okCount === 0 && !window._proxyErrorToastShown) {
+    window._proxyErrorToastShown = true;
+    toast('⚠ Proxy CORS pentru Yahoo Finance momentan blocat. Reîncearcă în 1-2 min cu 🔄.', 'warn');
+  } else if (okCount > 0) {
+    window._proxyErrorToastShown = false;
   }
 
   // Crypto Fear & Greed (alternative.me - free, no key, CORS allowed)
