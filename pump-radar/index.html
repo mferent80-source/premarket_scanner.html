@@ -549,9 +549,11 @@ function injectExpandedRow(tr, r){
     </div>
     <div class="exp-ai-bar">
       <button class="ai-btn" id="ai-btn-${r.symbol}" onclick="event.stopPropagation(); analyzePumpWithAI('${r.symbol}', this)">🤖 Analizează cu AI (Claude)</button>
-      <span class="ai-hint">Foloseşte cheia Anthropic shared cu earnings-hub / nasdaq-scanner. Cache 1h. ≈ $0.03–0.08 / analiză.</span>
+      <button class="ai-btn" id="qs-btn-${r.symbol}" onclick="event.stopPropagation(); runPRQuickSetup('${r.symbol}', this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">🎯 Quick Setup (Opus 4.7)</button>
+      <span class="ai-hint">Cache 1h. AI = analiză detaliată ~600 cuvinte. Quick Setup = JSON ready-to-execute (Entry/SL/TP/sizing).</span>
     </div>
     <div class="exp-ai" id="ai-result-${r.symbol}" data-done="0"></div>
+    <div class="exp-ai" id="qs-result-${r.symbol}" data-done="0"></div>
   </td>`;
   tr.parentNode.insertBefore(row, tr.nextSibling);
   fillExpandedDetails(r);
@@ -798,6 +800,174 @@ window.analyzePumpWithAI = async function(symbol, btn){
   } finally {
     if (btn) btn.disabled = false;
   }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  QUICK SETUP — JSON ready-to-execute (Opus 4.7, max 350 tok)
+// ═══════════════════════════════════════════════════════════════
+const PR_QS_CACHE_KEY = 'pr_qs_cache_v1';
+const PR_QS_TTL = 60*60*1000; // 1h
+function prQsCacheGet(sym){
+  try {
+    const c = JSON.parse(localStorage.getItem(PR_QS_CACHE_KEY) || '{}');
+    const it = c[sym]; if (!it) return null;
+    if (Date.now() - it.ts > PR_QS_TTL) return null;
+    return it.data;
+  } catch(_){ return null; }
+}
+function prQsCacheSet(sym, data){
+  try {
+    const c = JSON.parse(localStorage.getItem(PR_QS_CACHE_KEY) || '{}');
+    c[sym] = { ts:Date.now(), data };
+    for (const k of Object.keys(c)) if (Date.now() - c[k].ts > 3*24*3600*1000) delete c[k];
+    localStorage.setItem(PR_QS_CACHE_KEY, JSON.stringify(c));
+  } catch(_){}
+}
+
+window.runPRQuickSetup = async function(symbol, btn){
+  const r = results.find(x => x.symbol === symbol); if (!r) return;
+  const container = $('qs-result-' + symbol); if (!container) return;
+  if (container.dataset.done === '1'){
+    container.innerHTML = ''; container.dataset.done = '0';
+    if (btn) btn.textContent = '🎯 Quick Setup (Opus 4.7)';
+    return;
+  }
+  const key = getAnthropicKey();
+  if (!key){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>⚠ Lipsește cheia Anthropic</b></div>Adaugă cheia în earnings-hub / macro-dashboard → ⚙ Setări.</div>`;
+    container.dataset.done = '1'; return;
+  }
+  const cached = prQsCacheGet(symbol);
+  if (cached){
+    renderPRQuickSetup(container, cached, '💾 cache 1h');
+    container.dataset.done = '1';
+    if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
+    return;
+  }
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ Opus 4.7 gândește (5-10s)…'; }
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">🎯 Quick Setup · Opus 4.7</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:6px;font-size:12.5px">Generez JSON ready-to-execute…</div></div></div>`;
+  container.dataset.done = '1';
+
+  // ATR aprox 5m (medie |Δ%| ultimele 14 bare)
+  let atr = null;
+  const closes = r.closes || [];
+  if (closes.length >= 15){
+    let sum = 0, count = 0;
+    const tail = closes.slice(-15);
+    for (let i = 1; i < tail.length; i++){ const p = tail[i-1]; if (p){ sum += Math.abs((tail[i] - p) / p) * 100; count++; } }
+    atr = count ? sum / count : null;
+  }
+  const sugestie = computeActionPR(r);
+  let insiderTxt = 'N/A';
+  if (r.insider && r.insider.ok){
+    insiderTxt = `${r.insider.verdict} · ${r.insider.buyN}B/${r.insider.sellN}S · net ${r.insider.netShares >= 0 ? '+' : ''}${r.insider.netShares}`;
+  }
+  const userPrompt = `Pump alert pentru ${symbol}:
+- Preț curent: $${r.price?.toFixed(2)}
+- Δ% ultima bară 5m: ${r.m5 != null ? r.m5.toFixed(2) + '%' : 'N/A'}
+- Δ% zi: ${r.chgDay != null ? r.chgDay.toFixed(2) + '%' : 'N/A'}
+- Heat: ${r.heat}/100
+- RSI(14) 5m: ${r.rsi != null ? r.rsi.toFixed(1) : 'N/A'}
+- ATR≈ 5m (medie |Δ%| 14 bare): ${atr != null ? atr.toFixed(2) + '%' : 'N/A'}
+- Vol ratio: ${r.volRatio != null ? r.volRatio.toFixed(2) + 'x' : 'N/A'}
+- Alerte active: ${r.alerts && r.alerts.length ? r.alerts.join(', ') : 'none'}
+- Sugestie algoritmică curentă: ${sugestie}
+- Insider 60z: ${insiderTxt}
+
+Output STRICT JSON (un singur obiect, pe O singură linie sau bloc cu newline-uri OK):
+{"entry":<număr>,"sl":<număr>,"tp1":<număr>,"tp2":<număr>,"sizing_pct":<număr 1-5>,"timeframe":"<intraday|swing 1-3z|skip>","risk":"<one-liner max 40 chars>","confidence":"<HIGH|MED|LOW>"}
+
+Reguli pentru PUMP setup:
+- entry = preț curent dacă RSI<70 + momentum bullish; pullback la VWAP/MA8 dacă RSI>75 (overextended)
+- SL strict: −1×ATR (cap loss intraday) sau sub low-ul ultimei bare verzi
+- TP1 = +1×ATR (quick scalp), TP2 = +2×ATR (extended)
+- sizing_pct mic la PUMP (vol mare): 1-2% (LOW), 2-3% (MED), max 3% (HIGH)
+- timeframe: "intraday" default pentru pump-uri; "skip" dacă setup-ul e proast
+- risk: cea mai mare amenințare în 40 chars (ex: "RSI=78, reversal probabil, watch low 175.50")
+- confidence: bazat pe heat + vol ratio + insider + alerts mix
+
+Dacă sugestia e AVOID/SKIP sau RSI extreme overbought (>80) + heat>80, dă confidence:LOW și timeframe:"skip" cu sizing_pct:1, risk explică de ce.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+      },
+      body: JSON.stringify({
+        model:'claude-opus-4-7',
+        max_tokens:350,
+        messages:[{ role:'user', content:userPrompt }],
+      }),
+    });
+    if (!resp.ok){
+      const j = await resp.json().catch(() => ({ error:{ message:'HTTP ' + resp.status } }));
+      throw new Error(j.error?.message || ('HTTP ' + resp.status));
+    }
+    const data = await resp.json();
+    const text = data?.content?.[0]?.text || '';
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start < 0 || end < 0 || end <= start) throw new Error('Format JSON invalid: ' + text.slice(0,120));
+    const setup = JSON.parse(text.slice(start, end+1));
+    prQsCacheSet(symbol, setup);
+    renderPRQuickSetup(container, setup, '✓ ' + new Date().toLocaleTimeString('ro-RO'));
+    if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
+  } catch(err){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare Quick Setup</b><span class="ai-meta">${(err.message || 'unknown')}</span></div>Verifică cheia, creditul sau încearcă peste 1 min.</div>`;
+    if (btn) btn.textContent = '🎯 Reîncearcă';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+function renderPRQuickSetup(container, setup, sourceLabel){
+  const confColor = setup.confidence === 'HIGH' ? 'var(--bull-s)' : (setup.confidence === 'MED' ? 'var(--gold)' : 'var(--bear-s)');
+  const slPct = setup.entry && setup.sl ? ((setup.sl - setup.entry) / setup.entry * 100).toFixed(2) : '—';
+  const tp1Pct = setup.entry && setup.tp1 ? ((setup.tp1 - setup.entry) / setup.entry * 100).toFixed(2) : '—';
+  const tp2Pct = setup.entry && setup.tp2 ? ((setup.tp2 - setup.entry) / setup.entry * 100).toFixed(2) : '—';
+  const rr = setup.entry && setup.sl && setup.tp2 ? Math.abs((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '—';
+  const fmt$ = n => (n != null && !isNaN(n)) ? '$' + Number(n).toFixed(2) : '—';
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  container.innerHTML = `<div class="ai-bubble" style="background:linear-gradient(180deg, rgba(247,147,26,.10), rgba(20,26,40,.4));border-color:rgba(247,147,26,.4)">
+    <div class="ai-head">
+      <span class="ai-meta">🎯 Quick Setup · Opus 4.7 · ${sourceLabel}</span>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunPRQuickSetup(this)">↻ Re-rulează</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px">
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Entry</div><div style="font-size:17px;font-weight:800;color:var(--t1)">${fmt$(setup.entry)}</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Stop Loss</div><div style="font-size:17px;font-weight:800;color:var(--bear-s)">${fmt$(setup.sl)} <span style="font-size:10.5px;font-weight:600">${slPct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP1</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp1)} <span style="font-size:10.5px;font-weight:600">+${tp1Pct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP2</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp2)} <span style="font-size:10.5px;font-weight:600">+${tp2Pct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Sizing</div><div style="font-size:17px;font-weight:800;color:var(--crypto-2)">${setup.sizing_pct}% cont</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">R:R</div><div style="font-size:17px;font-weight:800;color:var(--t1)">1 : ${rr}</div></div>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12.5px">
+      <div><span style="color:var(--t3)">Timeframe:</span> <strong>${esc(setup.timeframe || 'N/A')}</strong></div>
+      <div><span style="color:var(--t3)">Confidence:</span> <strong style="color:${confColor}">${esc(setup.confidence || 'N/A')}</strong></div>
+    </div>
+    <div style="margin-top:8px;padding:8px 10px;background:rgba(255,77,77,.08);border-left:3px solid var(--bear-s);border-radius:0 6px 6px 0;font-size:12px">
+      <strong style="color:var(--bear-s)">⚠ Risc principal:</strong> ${esc(setup.risk || 'N/A')}
+    </div>
+  </div>`;
+}
+
+window.rerunPRQuickSetup = function(btn){
+  const bubble = btn.closest('.exp-ai');
+  if (!bubble) return;
+  const sym = bubble.id.replace('qs-result-', '');
+  try {
+    const c = JSON.parse(localStorage.getItem(PR_QS_CACHE_KEY) || '{}');
+    delete c[sym];
+    localStorage.setItem(PR_QS_CACHE_KEY, JSON.stringify(c));
+  } catch(_){}
+  bubble.dataset.done = '0'; bubble.innerHTML = '';
+  const qsBtn = $('qs-btn-' + sym);
+  if (qsBtn) qsBtn.textContent = '🎯 Quick Setup (Opus 4.7)';
+  runPRQuickSetup(sym, qsBtn);
 };
 
 function renderAiBubble(container, text, meta){
