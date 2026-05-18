@@ -839,16 +839,19 @@ async function runAIQuickSetup(sym, scoreData, insiderData, force) {
 - Score scanner: ${scoreData.score}/100 — ${scoreData.tier}
 - Insider 90d: ${insiderSummary}
 
-Output STRICT format JSON (un singur obiect, max 200 chars total în message):
-{"entry":<număr>,"sl":<număr>,"tp1":<număr>,"tp2":<număr>,"sizing_pct":<număr 1-5>,"timeframe":"<intraday|swing 3-7z|position 2-4săpt>","risk":"<one-liner max 40 chars>","confidence":"<HIGH|MED|LOW>"}
+Output STRICT format JSON (un singur obiect, niciun text înainte sau după):
+{"entry":<număr>,"sl":<număr>,"tp1":<număr>,"tp2":<număr>,"sizing_pct":<număr 1-5>,"timeframe":"<intraday|swing 3-7z|position 2-4săpt>","risk":"<one-liner max 50 chars>","confidence":"<HIGH|MED|LOW>","reasoning":"<3-5 propoziții, max 400 chars, explicit despre setup>","invalidation":"<ce trigger anulează teza, max 120 chars>","catalysts":"<events/news așteptate care pot mișca, max 120 chars>"}
 
-Reguli:
-- entry = preț curent (pentru market entry now) sau pullback level (dacă RSI>70)
+Reguli pentru câmpuri:
+- entry = preț curent (market entry now) sau pullback level (dacă RSI>70)
 - SL la suport tehnic (sub MA50 sau −1.5×ATR, care e mai aproape)
 - TP1 = +1×ATR (quick), TP2 = +2-3×ATR (extended)
 - sizing_pct: 1-2 (LOW conf), 2-3 (MED), 3-5 (HIGH) — risc % din cont
-- risk: cea mai mare amenințare în 40 chars (ex: "RSI>72, bounce probabil înainte de spike")
-- confidence: bazat pe score + trend + insider`;
+- risk: cea mai mare amenințare în 50 chars (ex: "RSI>72, bounce probabil înainte de spike")
+- confidence: bazat pe score + trend + insider
+- reasoning: explică EXPLICIT raționamentul deciziei — ce indicatori convergă, ce pattern tehnic vezi, de ce acest entry/SL/TP specific, cum se aliniază cu trend-ul macro. Vorbește direct trader-ului în română.
+- invalidation: nivel/condiție clar care anulează setup-ul (ex: "close sub MA50 + RSI<40 → setup invalid")
+- catalysts: events/news/macro din zilele următoare care pot mișca prețul (ex: "Earnings 7z, FOMC week viitor")`;
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -861,7 +864,7 @@ Reguli:
       },
       body: JSON.stringify({
         model: 'claude-opus-4-7',
-        max_tokens: 350,
+        max_tokens: 800,
         messages: [{ role: 'user', content: userPrompt }]
       })
     });
@@ -914,9 +917,19 @@ function renderAISetupOutput(setup, sourceLabel) {
       <div><span style="color:var(--txt-dd)">Timeframe:</span> <strong>${escHtml(setup.timeframe || 'N/A')}</strong></div>
       <div><span style="color:var(--txt-dd)">Confidence:</span> <strong style="color:${confColor}">${escHtml(setup.confidence || 'N/A')}</strong></div>
     </div>
+    ${setup.reasoning ? `<div style="margin-top:12px;padding:11px 14px;background:rgba(91,176,255,.07);border-left:3px solid var(--blue);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--txt);line-height:1.6">
+      <div style="font-size:10px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:5px">🧠 Raționament</div>
+      ${escHtml(setup.reasoning)}
+    </div>` : ''}
     <div style="margin-top:10px;padding:8px 10px;background:rgba(239,68,68,.06);border-left:3px solid var(--red);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--txt)">
       <strong style="color:var(--red)">⚠ Risc principal:</strong> ${escHtml(setup.risk || 'N/A')}
     </div>
+    ${setup.invalidation ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(247,147,26,.06);border-left:3px solid var(--yellow);border-radius:0 6px 6px 0;font-size:12px;color:var(--txt)">
+      <strong style="color:var(--yellow)">🚫 Invalidare:</strong> ${escHtml(setup.invalidation)}
+    </div>` : ''}
+    ${setup.catalysts ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(34,197,94,.06);border-left:3px solid var(--green);border-radius:0 6px 6px 0;font-size:12px;color:var(--txt)">
+      <strong style="color:var(--green)">⚡ Catalist:</strong> ${escHtml(setup.catalysts)}
+    </div>` : ''}
   </div>`;
   if (status) status.textContent = sourceLabel === 'cache' ? '💾 cache 1h' : '✓ generat ' + new Date().toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' });
 }

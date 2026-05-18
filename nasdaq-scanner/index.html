@@ -5148,6 +5148,137 @@ function renderSaveSetupBtn(symbol, contextType){
   const ct=contextType||'opportunity';
   return '<button onclick="openSaveSetupModal(\''+symbol+'\',\''+ct+'\')" style="width:100%;padding:7px;border-radius:7px;border:1px solid #7dd3fc;background:#f0f9ff;color:#0284c7;font-size:.62rem;font-weight:700;cursor:pointer;margin-top:7px;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .2s" onmouseover="this.style.background=\'#0284c7\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'#f0f9ff\';this.style.color=\'#0284c7\'">📌 Salvează în jurnal</button>';
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  QUICK SETUP — JSON ready-to-execute (Opus 4.7, max 350 tok)
+// ═══════════════════════════════════════════════════════════════
+const NASDAQ_QS_CACHE_KEY='nasdaq_qs_cache_v1';
+const NASDAQ_QS_TTL=60*60*1000; // 1h
+function nasdaqQsCacheGet(sym){
+  try{const c=JSON.parse(localStorage.getItem(NASDAQ_QS_CACHE_KEY)||'{}'); const it=c[sym]; if(!it) return null;
+    if(Date.now()-it.ts>NASDAQ_QS_TTL) return null; return it.data;}catch(_){return null;}
+}
+function nasdaqQsCacheSet(sym,data){
+  try{const c=JSON.parse(localStorage.getItem(NASDAQ_QS_CACHE_KEY)||'{}'); c[sym]={ts:Date.now(),data};
+    for(const k of Object.keys(c)) if(Date.now()-c[k].ts>3*24*3600*1000) delete c[k];
+    localStorage.setItem(NASDAQ_QS_CACHE_KEY,JSON.stringify(c));}catch(_){}
+}
+
+function renderQuickSetupSection(symbol){
+  return '<div class="ai-inline" style="margin-top:6px"><button class="ai-btn-c" onclick="runNasdaqQuickSetup(\''+symbol+'\',this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">🎯 Quick Setup (Opus 4.7)</button><div id="qs-result-'+symbol+'" data-done="0"></div></div>';
+}
+
+window.runNasdaqQuickSetup=async function(symbol,btn){
+  const o=(allOpportunities||[]).find(x=>x.symbol===symbol);
+  const container=document.getElementById('qs-result-'+symbol); if(!container) return;
+  if(!o){ container.innerHTML='<div style="padding:10px;color:var(--red);font-size:11px">Nu am găsit opportunity pentru '+symbol+' — rulează scan complet.</div>'; return; }
+  if(container.dataset.done==='1'){
+    container.innerHTML=''; container.dataset.done='0';
+    if(btn) btn.textContent='🎯 Quick Setup (Opus 4.7)'; return;
+  }
+  const key=getAnthropicKey();
+  if(!key){
+    container.innerHTML='<div style="padding:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:6px;color:var(--red);font-size:11px">⚠ Cheia Anthropic lipsește. Setează în ⚙ Setări sau cu localStorage.setItem(\'anthropic_api_key\',\'sk-ant-...\') din Console.</div>';
+    container.dataset.done='1'; return;
+  }
+  const cached=nasdaqQsCacheGet(symbol);
+  if(cached){ renderNasdaqQuickSetup(container,cached,'💾 cache 1h',symbol); container.dataset.done='1'; if(btn) btn.textContent='🎯 Ascunde Quick Setup'; return; }
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Opus 4.7 gândește (5-10s)…'; }
+  container.innerHTML='<div style="padding:14px;text-align:center;color:var(--t3);background:var(--bg2);border:1px solid var(--b1);border-radius:8px;margin-top:6px"><span style="font-size:24px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:6px;font-size:11.5px">Generez JSON ready-to-execute…</div></div>';
+  container.dataset.done='1';
+  const spark=sparklineCache[symbol]||o.spark||[];
+  const trendTxt=spark.length>=5?spark.slice(-5).map(v=>v.toFixed(2)).join(' → '):'N/A';
+  const userPrompt=`Setup pentru ${symbol} (${o.isBuy?'LONG candidate':'SHORT/cautious candidate'}):
+- Preț curent: $${o.price?.toFixed(2)}
+- Δ% zi: ${o.chg24>=0?'+':''}${o.chg24?.toFixed(2)}%
+- Range zi: ${o.range24pct?.toFixed(1)}%
+- RSI(14): ${o.rsi?.toFixed(1) ?? 'N/A'}
+- Scanner score: ${o.score}/100 (${o.isBuy?'BUY':'SELL'} side)
+- Entry algoritmic propus: $${o.entry?.toFixed(2)}
+- TP algoritmic: $${o.tp?.toFixed(2)} (R:R ${o.rr}:1)
+- SL algoritmic: $${o.sl?.toFixed(2)}
+- Sector: ${SECTORS[symbol]||'US Equity'}
+- Trend ultimele 5 zile: ${trendTxt}
+- Reasons scanner: ${(o.reasons||[]).map(r=>r.t).join('; ')}
+
+Output STRICT JSON (un singur obiect, niciun text înainte/după):
+{"entry":<număr>,"sl":<număr>,"tp1":<număr>,"tp2":<număr>,"sizing_pct":<număr 1-5>,"timeframe":"<intraday|swing 3-7z|position 2-4săpt>","risk":"<one-liner max 50 chars>","confidence":"<HIGH|MED|LOW>","reasoning":"<3-5 propoziții, max 400 chars, raționament EXPLICIT>","invalidation":"<trigger care anulează, max 120 chars>","catalysts":"<events/macro pe scurt-term, max 120 chars>"}
+
+Reguli:
+- entry = preț curent (market entry now) sau pullback level (dacă RSI>70 + Δ% mare pe zi)
+- SL la suport tehnic clar — folosește SL-ul algoritmic ca referință, dar îmbunătățește dacă vezi nivel mai apropiat
+- TP1 = R:R minimum 1:1, TP2 = R:R 1:2 sau extended la rezistență
+- sizing_pct: 1-2 (LOW), 2-3 (MED), 3-5 (HIGH) — risc % din cont
+- risk: cea mai mare amenințare în 50 chars
+- confidence: HIGH dacă score≥75 + trend bullish, MED dacă score 60-75, LOW altfel
+- reasoning: explică EXPLICIT logica deciziei — ce indicatori convergă (RSI+Δ%+sector+trend?), care e setup-ul tehnic vizual (breakout, pullback, mean reversion), de ce acel entry/SL/TP exact și de ce confidence-ul ăla. Vorbește direct trader-ului în română.
+- invalidation: nivel/condiție clar care anulează setup-ul (ex: "close sub MA50 + RSI<40 → setup invalid")
+- catalysts: events din zilele următoare care pot mișca prețul (ex: "Earnings 5z, sector rotation IT slab")
+- Verifică coerența: dacă score<55, confidence trebuie LOW`;
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-opus-4-7',max_tokens:800,messages:[{role:'user',content:userPrompt}]})
+    });
+    if(!resp.ok){
+      const j=await resp.json().catch(()=>({error:{message:'HTTP '+resp.status}}));
+      throw new Error(j.error?.message||('HTTP '+resp.status));
+    }
+    const data=await resp.json();
+    const text=data?.content?.[0]?.text||'';
+    const start=text.indexOf('{'); const end=text.lastIndexOf('}');
+    if(start<0||end<0||end<=start) throw new Error('Format JSON invalid: '+text.slice(0,120));
+    const setup=JSON.parse(text.slice(start,end+1));
+    nasdaqQsCacheSet(symbol,setup);
+    renderNasdaqQuickSetup(container,setup,'✓ '+new Date().toLocaleTimeString('ro-RO'),symbol);
+    if(btn) btn.textContent='🎯 Ascunde Quick Setup';
+  }catch(err){
+    container.innerHTML='<div style="padding:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:6px;color:var(--red);font-size:11.5px;margin-top:6px">❌ '+(err.message||'unknown')+'</div>';
+    if(btn) btn.textContent='🎯 Reîncearcă';
+  }finally{
+    if(btn) btn.disabled=false;
+  }
+};
+
+function renderNasdaqQuickSetup(container,setup,sourceLabel,symbol){
+  const confColor=setup.confidence==='HIGH'?'var(--green)':(setup.confidence==='MED'?'var(--gold)':'var(--red)');
+  const slPct=setup.entry&&setup.sl?((setup.sl-setup.entry)/setup.entry*100).toFixed(2):'—';
+  const tp1Pct=setup.entry&&setup.tp1?((setup.tp1-setup.entry)/setup.entry*100).toFixed(2):'—';
+  const tp2Pct=setup.entry&&setup.tp2?((setup.tp2-setup.entry)/setup.entry*100).toFixed(2):'—';
+  const rr=setup.entry&&setup.sl&&setup.tp2?Math.abs((setup.tp2-setup.entry)/(setup.entry-setup.sl)).toFixed(2):'—';
+  const fmt$=n=>(n!=null&&!isNaN(n))?'$'+Number(n).toFixed(2):'—';
+  const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  container.innerHTML='<div style="background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(34,197,94,.06));border:1px solid rgba(247,147,26,.35);border-radius:8px;padding:11px 13px;margin-top:6px;font-size:11.5px">'+
+    '<div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center"><span style="font-size:10px;color:var(--t3);font-family:monospace;letter-spacing:.3px">🎯 Quick Setup · Opus 4.7 · '+sourceLabel+'</span>'+
+    '<button onclick="event.stopPropagation();rerunNasdaqQuickSetup(\''+symbol+'\')" style="background:transparent;border:1px solid var(--b1);color:var(--t2);padding:2px 7px;font-size:10px;border-radius:3px;cursor:pointer">↻ Re-rulează</button></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:7px;margin-bottom:8px">'+
+    '<div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">Entry</div><div style="font-size:14px;font-weight:800;color:var(--t1)">'+fmt$(setup.entry)+'</div></div>'+
+    '<div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">Stop Loss</div><div style="font-size:14px;font-weight:800;color:var(--red)">'+fmt$(setup.sl)+' <span style="font-size:9px;font-weight:600">'+slPct+'%</span></div></div>'+
+    '<div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">TP1</div><div style="font-size:14px;font-weight:800;color:var(--green)">'+fmt$(setup.tp1)+' <span style="font-size:9px;font-weight:600">+'+tp1Pct+'%</span></div></div>'+
+    '<div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">TP2</div><div style="font-size:14px;font-weight:800;color:var(--green)">'+fmt$(setup.tp2)+' <span style="font-size:9px;font-weight:600">+'+tp2Pct+'%</span></div></div>'+
+    '<div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">Sizing</div><div style="font-size:14px;font-weight:800;color:var(--acc)">'+setup.sizing_pct+'% cont</div></div>'+
+    '<div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">R:R</div><div style="font-size:14px;font-weight:800;color:var(--t1)">1 : '+rr+'</div></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;padding:6px 0;border-top:1px solid rgba(255,255,255,.06);font-size:11px">'+
+    '<div><span style="color:var(--t3)">Timeframe:</span> <strong>'+esc(setup.timeframe||'N/A')+'</strong></div>'+
+    '<div><span style="color:var(--t3)">Confidence:</span> <strong style="color:'+confColor+'">'+esc(setup.confidence||'N/A')+'</strong></div>'+
+    '</div>'+
+    (setup.reasoning?'<div style="margin-top:9px;padding:9px 11px;background:rgba(91,176,255,.07);border-left:3px solid var(--acc);border-radius:0 6px 6px 0;font-size:11.5px;line-height:1.55"><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">🧠 Raționament</div>'+esc(setup.reasoning)+'</div>':'')+
+    '<div style="margin-top:7px;padding:6px 9px;background:rgba(239,68,68,.06);border-left:3px solid var(--red);border-radius:0 5px 5px 0;font-size:10.5px"><strong style="color:var(--red)">⚠ Risc principal:</strong> '+esc(setup.risk||'N/A')+'</div>'+
+    (setup.invalidation?'<div style="margin-top:6px;padding:6px 9px;background:rgba(247,147,26,.06);border-left:3px solid var(--gold);border-radius:0 5px 5px 0;font-size:10.5px"><strong style="color:var(--gold)">🚫 Invalidare:</strong> '+esc(setup.invalidation)+'</div>':'')+
+    (setup.catalysts?'<div style="margin-top:6px;padding:6px 9px;background:rgba(34,197,94,.06);border-left:3px solid var(--green);border-radius:0 5px 5px 0;font-size:10.5px"><strong style="color:var(--green)">⚡ Catalist:</strong> '+esc(setup.catalysts)+'</div>':'')+
+    '</div>';
+}
+
+window.rerunNasdaqQuickSetup=function(symbol){
+  try{const c=JSON.parse(localStorage.getItem(NASDAQ_QS_CACHE_KEY)||'{}'); delete c[symbol]; localStorage.setItem(NASDAQ_QS_CACHE_KEY,JSON.stringify(c));}catch(_){}
+  const container=document.getElementById('qs-result-'+symbol);
+  if(container){ container.dataset.done='0'; container.innerHTML=''; }
+  // Caut butonul Quick Setup (în .ai-inline cu acest container)
+  const btn=container?.previousElementSibling;
+  runNasdaqQuickSetup(symbol,btn);
+}
 function renderWatchlistChips(){
   const c=document.getElementById('wlChips');
   if(!c) return;
@@ -5968,6 +6099,7 @@ function renderRecommendations(){
         ${renderAlertSection(o.symbol, o.price)}
         ${earningsSet.has(o.symbol)?renderEPSHistoryWidget(o.symbol):''}
         ${renderAISection(o.symbol)}
+        ${renderQuickSetupSection(o.symbol)}
         ${renderSaveSetupBtn(o.symbol,'opportunity')}
       </div>
     </div>`;

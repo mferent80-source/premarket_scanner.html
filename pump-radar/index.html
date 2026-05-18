@@ -874,8 +874,8 @@ window.runPRQuickSetup = async function(symbol, btn){
 - Sugestie algoritmică curentă: ${sugestie}
 - Insider 60z: ${insiderTxt}
 
-Output STRICT JSON (un singur obiect, pe O singură linie sau bloc cu newline-uri OK):
-{"entry":<număr>,"sl":<număr>,"tp1":<număr>,"tp2":<număr>,"sizing_pct":<număr 1-5>,"timeframe":"<intraday|swing 1-3z|skip>","risk":"<one-liner max 40 chars>","confidence":"<HIGH|MED|LOW>"}
+Output STRICT JSON (un singur obiect, niciun text înainte/după):
+{"entry":<număr>,"sl":<număr>,"tp1":<număr>,"tp2":<număr>,"sizing_pct":<număr 1-5>,"timeframe":"<intraday|swing 1-3z|skip>","risk":"<one-liner max 50 chars>","confidence":"<HIGH|MED|LOW>","reasoning":"<3-5 propoziții, max 400 chars, raționament EXPLICIT pump setup>","invalidation":"<trigger care anulează teza, max 120 chars>","catalysts":"<events/news pe scurt-term, max 120 chars>"}
 
 Reguli pentru PUMP setup:
 - entry = preț curent dacă RSI<70 + momentum bullish; pullback la VWAP/MA8 dacă RSI>75 (overextended)
@@ -883,10 +883,13 @@ Reguli pentru PUMP setup:
 - TP1 = +1×ATR (quick scalp), TP2 = +2×ATR (extended)
 - sizing_pct mic la PUMP (vol mare): 1-2% (LOW), 2-3% (MED), max 3% (HIGH)
 - timeframe: "intraday" default pentru pump-uri; "skip" dacă setup-ul e proast
-- risk: cea mai mare amenințare în 40 chars (ex: "RSI=78, reversal probabil, watch low 175.50")
+- risk: cea mai mare amenințare în 50 chars
 - confidence: bazat pe heat + vol ratio + insider + alerts mix
+- reasoning: explică EXPLICIT logica pump-ului — ce alerte convergă (vol+pump+momentum?), unde e nivelul de continuare vs reversal, de ce acel entry/SL/TP exact, ce indicator e dominant. Vorbește direct trader-ului în română.
+- invalidation: condiție clară care anulează (ex: "break sub 175.20 cu vol mare = exit")
+- catalysts: events imediate (news/macro/earnings) sau structurale (RSI overextended, vol epuizat)
 
-Dacă sugestia e AVOID/SKIP sau RSI extreme overbought (>80) + heat>80, dă confidence:LOW și timeframe:"skip" cu sizing_pct:1, risk explică de ce.`;
+Dacă sugestia e AVOID/SKIP sau RSI extreme overbought (>80) + heat>80, dă confidence:LOW și timeframe:"skip" cu sizing_pct:1, risk + reasoning explică de ce e setup prost.`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -899,7 +902,7 @@ Dacă sugestia e AVOID/SKIP sau RSI extreme overbought (>80) + heat>80, dă conf
       },
       body: JSON.stringify({
         model:'claude-opus-4-7',
-        max_tokens:350,
+        max_tokens:800,
         messages:[{ role:'user', content:userPrompt }],
       }),
     });
@@ -949,9 +952,19 @@ function renderPRQuickSetup(container, setup, sourceLabel){
       <div><span style="color:var(--t3)">Timeframe:</span> <strong>${esc(setup.timeframe || 'N/A')}</strong></div>
       <div><span style="color:var(--t3)">Confidence:</span> <strong style="color:${confColor}">${esc(setup.confidence || 'N/A')}</strong></div>
     </div>
+    ${setup.reasoning ? `<div style="margin-top:10px;padding:10px 12px;background:rgba(91,176,255,.08);border-left:3px solid var(--crypto-1);border-radius:0 6px 6px 0;font-size:12px;line-height:1.55">
+      <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">🧠 Raționament</div>
+      ${esc(setup.reasoning)}
+    </div>` : ''}
     <div style="margin-top:8px;padding:8px 10px;background:rgba(255,77,77,.08);border-left:3px solid var(--bear-s);border-radius:0 6px 6px 0;font-size:12px">
       <strong style="color:var(--bear-s)">⚠ Risc principal:</strong> ${esc(setup.risk || 'N/A')}
     </div>
+    ${setup.invalidation ? `<div style="margin-top:7px;padding:7px 10px;background:rgba(247,147,26,.07);border-left:3px solid var(--gold);border-radius:0 6px 6px 0;font-size:11.5px">
+      <strong style="color:var(--gold)">🚫 Invalidare:</strong> ${esc(setup.invalidation)}
+    </div>` : ''}
+    ${setup.catalysts ? `<div style="margin-top:7px;padding:7px 10px;background:rgba(34,214,107,.07);border-left:3px solid var(--bull-s);border-radius:0 6px 6px 0;font-size:11.5px">
+      <strong style="color:var(--bull-s)">⚡ Catalist:</strong> ${esc(setup.catalysts)}
+    </div>` : ''}
   </div>`;
 }
 
