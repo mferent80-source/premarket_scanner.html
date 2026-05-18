@@ -316,7 +316,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   PAS 2: drill-down click sector (top 5 holdings + sparkline 60z mare + stats 52w)
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v149';
+const VER = 'v150';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -763,8 +763,8 @@ async function fetchHoldings(etfSym, force = false){
   if (!force && EXP_CACHE[etfSym] && EXP_CACHE[etfSym].holdings) return EXP_CACHE[etfSym].holdings;
   const out = [];
   for (const s of syms){
-    // 1mo daily e mic, rapid + suficient pentru chg1d/1w + sparkline
-    const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${s}?interval=1d&range=1mo`);
+    // 3mo daily — parseChart cere min 25 bare (1mo = ~22 sub threshold, return null fals-negative)
+    const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${s}?interval=1d&range=3mo`);
     const c = d ? parseChart(s, d) : null;
     if (c){
       out.push({ sym: s, price: c.price, chg1d: pctOf(c.closes, 1), chg1w: pctOf(c.closes, 5), closes: c.closes });
