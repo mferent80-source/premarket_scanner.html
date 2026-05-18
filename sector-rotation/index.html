@@ -158,6 +158,52 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 .heat-card{cursor:pointer}
 .heat-card:active{transform:translateY(0)}
 
+/* AI bubble (al 4-lea card, full-width sub cele 3) */
+.exp-ai{grid-column:1 / -1;background:linear-gradient(180deg,var(--panel),var(--bg2));
+  border:1px solid var(--br);border-radius:9px;padding:14px 16px;margin-top:4px}
+.exp-ai .exp-h{margin-bottom:12px}
+.ai-actions{display:flex;gap:6px;align-items:center}
+.ai-actions button{font-size:11px;padding:5px 11px;border-radius:6px;background:var(--bg);border:1px solid var(--br);
+  color:var(--txt);cursor:pointer;font-weight:600;transition:all .15s;font-family:inherit}
+.ai-actions button:hover{border-color:var(--teal);color:var(--teal)}
+.ai-actions button:disabled{opacity:.5;cursor:not-allowed}
+.ai-actions .ai-btn-primary{background:linear-gradient(135deg,var(--teal),var(--emerald));color:#fff;border-color:transparent}
+.ai-body{font-size:13px;line-height:1.7;color:var(--txt);white-space:pre-wrap;min-height:60px}
+.ai-body.appear{animation:fadeIn .45s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.ai-loading{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 0;color:var(--txt-d)}
+.ai-loading .emoji{font-size:38px;animation:pulse 1.4s ease-in-out infinite}
+.ai-loading .timer{font-size:13px;color:var(--txt-dd);font-variant-numeric:tabular-nums}
+.ai-error{color:var(--red);font-size:12.5px;padding:10px 12px;background:rgba(239,68,68,.08);
+  border:1px solid rgba(239,68,68,.3);border-radius:7px}
+.ai-meta{font-size:10.5px;color:var(--txt-dd);margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;border-top:1px dashed var(--br);padding-top:8px}
+
+/* Toast queue */
+.toast-stack{position:fixed;bottom:18px;right:18px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:360px}
+.toast{background:var(--panel);border:1px solid var(--br);border-left:3px solid var(--teal);border-radius:8px;
+  padding:10px 14px;font-size:12.5px;color:var(--txt);box-shadow:var(--shadow);
+  animation:tIn .25s ease-out;line-height:1.45}
+.toast.ok   {border-left-color:var(--green)}
+.toast.warn {border-left-color:var(--yellow)}
+.toast.err  {border-left-color:var(--red)}
+.toast.alert{border-left-color:var(--orange);background:linear-gradient(180deg,var(--panel),rgba(245,158,11,.06))}
+.toast b{color:var(--txt)}
+@keyframes tIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* Alert flash pe heatmap card când e tranziție */
+.heat-card.flash-up{animation:flashUp 2.2s ease-out}
+.heat-card.flash-dn{animation:flashDn 2.2s ease-out}
+@keyframes flashUp{0%,40%{box-shadow:0 0 0 2px var(--green),0 0 22px rgba(34,197,94,.7)}100%{box-shadow:none}}
+@keyframes flashDn{0%,40%{box-shadow:0 0 0 2px var(--red),0 0 22px rgba(239,68,68,.6)}100%{box-shadow:none}}
+
+/* Settings sections */
+.set-section{border-top:1px solid var(--br);margin-top:14px;padding-top:14px}
+.set-section:first-of-type{border-top:none;margin-top:0;padding-top:0}
+.set-section .set-h{font-size:10.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--txt-dd);font-weight:600;margin-bottom:9px}
+.set-switch{display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:13px;color:var(--txt)}
+.set-switch input{transform:scale(1.2);accent-color:var(--teal);cursor:pointer}
+.set-help{font-size:11px;color:var(--txt-dd);line-height:1.5;margin-top:4px}
+
 /* ── EMPTY / LOADING ── */
 .empty{padding:60px 24px;text-align:center;color:var(--txt-d)}
 .empty .emoji{font-size:54px;margin-bottom:14px}
@@ -282,27 +328,64 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
   <a href="../">← Înapoi la Hub Trading Tools</a> · Date: <a href="https://finance.yahoo.com" target="_blank" rel="noopener">Yahoo Finance</a> via proxy CORS
 </footer>
 
+<!-- TOAST STACK -->
+<div class="toast-stack" id="toastStack"></div>
+
 <!-- SETTINGS MODAL -->
 <div class="mo" id="settingsModal" role="dialog" aria-modal="true">
-  <div class="modal">
-    <div class="mt">⚙ Setări</div>
-    <div class="frow">
-      <label class="flbl" for="cfgInterval">Auto-scan interval</label>
-      <select id="cfgInterval">
-        <option value="0">OFF (manual)</option>
-        <option value="60000">60 s</option>
-        <option value="180000">3 min</option>
-        <option value="300000" selected>5 min (recomandat)</option>
-        <option value="600000">10 min</option>
-      </select>
+  <div class="modal" style="max-width:520px">
+    <div class="mt">⚙ Setări Sector Rotation</div>
+
+    <div class="set-section">
+      <div class="set-h">📊 Scanare</div>
+      <div class="frow">
+        <label class="flbl" for="cfgInterval">Auto-scan interval</label>
+        <select id="cfgInterval">
+          <option value="0">OFF (manual)</option>
+          <option value="60000">60 s</option>
+          <option value="180000">3 min</option>
+          <option value="300000" selected>5 min (recomandat)</option>
+          <option value="600000">10 min</option>
+        </select>
+      </div>
+      <div class="frow">
+        <label class="flbl" for="cfgThreshold">Prag „hot / cold" (% Δ 1săpt)</label>
+        <input class="finp" type="number" id="cfgThreshold" min="0.1" max="10" step="0.1" value="1.0">
+        <div class="set-help">Sectoare cu |Δ1săpt| ≥ prag intră în zona hot/cold. Tranzițiile între zone declanșează alerte.</div>
+      </div>
     </div>
-    <div class="frow">
-      <label class="flbl" for="cfgThreshold">Prag „hot / cold" (% Δ 1săpt)</label>
-      <input class="finp" type="number" id="cfgThreshold" min="0.1" max="10" step="0.1" value="1.0">
+
+    <div class="set-section">
+      <div class="set-h">🔔 Alerte rotație</div>
+      <div class="set-switch"><span>🔊 Sunet la alertă</span><input type="checkbox" id="cfgSound" checked></div>
+      <div class="set-switch"><span>🔔 Notificare browser</span><input type="checkbox" id="cfgNotif"></div>
+      <div class="set-switch"><span>📡 Telegram (shared <code>tt_tg_config</code>)</span><input type="checkbox" id="cfgTgEnabled"></div>
+      <div class="frow" style="margin-top:8px">
+        <label class="flbl" for="cfgTgToken">Telegram Bot Token (opțional aici — shared)</label>
+        <input class="finp" type="text" id="cfgTgToken" placeholder="123456:ABC..." autocomplete="off">
+      </div>
+      <div class="frow">
+        <label class="flbl" for="cfgTgChatId">Telegram Chat ID</label>
+        <input class="finp" type="text" id="cfgTgChatId" placeholder="-1001234... sau username">
+      </div>
+      <div class="set-help">Tokenul + chatId sunt partajate între paginile suite-ului (macro-dashboard, pump-radar, watchlist-monitor, earnings-hub).</div>
     </div>
-    <div class="mf">
-      <button class="btn" onclick="closeModal('settingsModal')">Anulează</button>
-      <button class="btn btn-a" id="settingsSaveBtn">Salvează</button>
+
+    <div class="set-section">
+      <div class="set-h">🤖 AI Bubble (Claude)</div>
+      <div class="frow">
+        <label class="flbl" for="cfgAiKey">Anthropic API Key (shared <code>anthropic_api_key</code>)</label>
+        <input class="finp" type="password" id="cfgAiKey" placeholder="sk-ant-..." autocomplete="off">
+        <div class="set-help">Cheia e partajată cu nasdaq-scanner, earnings-hub și macro-dashboard. Cache verdict 1h per setup.</div>
+      </div>
+    </div>
+
+    <div class="mf" style="justify-content:space-between">
+      <button class="btn" id="settingsTestBtn" title="Trimite o alertă fictivă (toast + sunet + Telegram dacă activ)">🧪 Test alertă</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="closeModal('settingsModal')">Anulează</button>
+        <button class="btn btn-a" id="settingsSaveBtn">Salvează</button>
+      </div>
     </div>
   </div>
 </div>
@@ -311,12 +394,12 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════
-//   SECTOR ROTATION · v149 PAS 2
+//   SECTOR ROTATION · v151 PAS 3
 //   11 SPDR Sector ETFs · Yahoo Finance via proxy CORS
-//   PAS 2: drill-down click sector (top 5 holdings + sparkline 60z mare + stats 52w)
+//   PAS 3: AI bubble Claude streaming + alerte rotație hot↔cold + Telegram + sound
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v150';
+const VER = 'v151';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -517,27 +600,330 @@ function fmtVol(v){
 //   STATE & CONFIG
 // ═══════════════════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
-let CFG = { interval: 300000, threshold: 1.0 };
+let CFG = { interval: 300000, threshold: 1.0, sound: true, notif: false, tgEnabled: false };
 let DATA = []; // { sym, name, group, price, chg1d, chg1w, chg1m, chg3m, chgYTD, closes, vols, highs, lows }
 let sortBy = 'chg1w';
 let sortAsc = false;
 let scanning = false;
 let autoTimer = null;
 let expandedSym = null;          // ETF curent expandat (max 1 simultan)
-const EXP_CACHE = {};            // { SYM: { year:{closes,vols,highs,lows}, holdings:[{sym,price,chg1d,chg1w,closes}] } }
+const EXP_CACHE = {};            // { SYM: { year, holdings, ai:{ text, ts, key } } }
+let _audioCtx = null;
 
 function loadCfg(){
   try { const s = JSON.parse(localStorage.getItem('sr_cfg') || '{}'); Object.assign(CFG, s); } catch(_){}
-  $('cfgInterval').value = String(CFG.interval);
+  $('cfgInterval').value  = String(CFG.interval);
   $('cfgThreshold').value = CFG.threshold;
+  $('cfgSound').checked = !!CFG.sound;
+  $('cfgNotif').checked = !!CFG.notif;
+  $('cfgTgEnabled').checked = !!CFG.tgEnabled;
+  // shared keys
+  const tg = getTgConfig();
+  $('cfgTgToken').value  = tg.token || '';
+  $('cfgTgChatId').value = tg.chatId || '';
+  $('cfgAiKey').value    = getAnthropicKey() || '';
 }
 function saveCfg(){
-  CFG.interval = parseInt($('cfgInterval').value, 10) || 0;
+  CFG.interval  = parseInt($('cfgInterval').value, 10) || 0;
   CFG.threshold = Math.max(0.1, Math.min(10, parseFloat($('cfgThreshold').value) || 1.0));
+  CFG.sound = $('cfgSound').checked;
+  CFG.notif = $('cfgNotif').checked;
+  CFG.tgEnabled = $('cfgTgEnabled').checked;
   try { localStorage.setItem('sr_cfg', JSON.stringify(CFG)); } catch(_){}
+  // shared keys
+  const newTg = { token: $('cfgTgToken').value.trim(), chatId: $('cfgTgChatId').value.trim(),
+                  enabled: CFG.tgEnabled };
+  try { localStorage.setItem('tt_tg_config', JSON.stringify(newTg)); } catch(_){}
+  const aiKey = $('cfgAiKey').value.trim();
+  if (aiKey) { try { localStorage.setItem('anthropic_api_key', aiKey); } catch(_){} }
+  if (CFG.notif) requestNotifPerm();
   rescheduleAuto();
   closeModal('settingsModal');
+  showToast('Setări salvate ✓', 'ok');
   render();
+}
+
+// ── Shared keys helpers ──
+function getAnthropicKey(){ try { return localStorage.getItem('anthropic_api_key') || ''; } catch(_) { return ''; } }
+function getTgConfig(){
+  try { const c = JSON.parse(localStorage.getItem('tt_tg_config') || '{}');
+        return { token: c.token || '', chatId: c.chatId || '', enabled: !!c.enabled }; } catch(_){ return { token:'', chatId:'', enabled:false }; }
+}
+
+// ── Toast / Beep / Notif / Telegram ──
+function showToast(msg, level='info', durationMs=4500){
+  const t = document.createElement('div');
+  t.className = 'toast ' + level;
+  t.innerHTML = msg;
+  $('toastStack').appendChild(t);
+  setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, durationMs);
+}
+function playBeep(){
+  if (!CFG.sound) return;
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx, now = ctx.currentTime;
+    [{f:880,t:0},{f:1320,t:0.18}].forEach(({f,t}) => {
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = f;
+      g.gain.setValueAtTime(0, now+t);
+      g.gain.linearRampToValueAtTime(0.15, now+t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now+t+0.20);
+      osc.connect(g).connect(ctx.destination);
+      osc.start(now+t); osc.stop(now+t+0.22);
+    });
+  } catch(_){}
+}
+function showBrowserNotif(title, body){
+  if (!CFG.notif) return;
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try { const n = new Notification(title, { body, tag:'sr-alert' });
+        setTimeout(() => n.close(), 8000); n.onclick = () => { window.focus(); n.close(); }; } catch(_){}
+}
+function requestNotifPerm(){
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') Notification.requestPermission().catch(()=>{});
+}
+async function sendTelegramAlert(htmlMessage){
+  if (!CFG.tgEnabled) return;
+  const tg = getTgConfig();
+  if (!tg.token || !tg.chatId) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${tg.token}/sendMessage`, {
+      method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ chat_id: tg.chatId, text: htmlMessage, parse_mode:'HTML', disable_web_page_preview:true })
+    });
+  } catch(_){}
+}
+function escHtml(s){ return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c])); }
+
+// ── Rotation transitions ──
+function classifyState(d){
+  if (d.chg1w >  CFG.threshold) return 'hot';
+  if (d.chg1w < -CFG.threshold) return 'cold';
+  return 'neutral';
+}
+function loadLastStates(){
+  try { return JSON.parse(localStorage.getItem('sr_last_state') || '{}') || {}; } catch(_) { return {}; }
+}
+function saveLastStates(map){
+  try { localStorage.setItem('sr_last_state', JSON.stringify(map)); } catch(_){}
+}
+function todayYMD(){
+  const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function loadSeen(){
+  try { const s = JSON.parse(localStorage.getItem('sr_seen') || '{}'); const cut = Date.now() - 7*864e5;
+        const out = {}; for (const k in s) if (s[k] > cut) out[k] = s[k]; return out; } catch(_) { return {}; }
+}
+function saveSeen(m){ try { localStorage.setItem('sr_seen', JSON.stringify(m)); } catch(_){} }
+
+function detectAndEmitAlerts(){
+  const prev = loadLastStates();
+  const seen = loadSeen();
+  const ymd  = todayYMD();
+  const alerts = [];
+  const next = {};
+  for (const d of DATA){
+    const cur = classifyState(d);
+    next[d.sym] = cur;
+    const pr = prev[d.sym];
+    if (!pr || pr === cur) continue;
+    // Interesting: intrare în hot/cold sau hot↔cold extreme
+    const interesting =
+      (pr === 'neutral' && (cur === 'hot' || cur === 'cold')) ||
+      (pr === 'hot' && cur === 'cold') ||
+      (pr === 'cold' && cur === 'hot');
+    if (!interesting) continue;
+    const key = `${d.sym}_${pr}_${cur}_${ymd}`;
+    if (seen[key]) continue;
+    seen[key] = Date.now();
+    alerts.push({ sym:d.sym, name:d.name, from:pr, to:cur, chg1w:d.chg1w });
+  }
+  saveLastStates(next);
+  saveSeen(seen);
+  if (alerts.length) emitRotationAlerts(alerts);
+  // Flash heatmap cards pentru tranziții fresh
+  for (const a of alerts){
+    const card = document.querySelector(`.heat-card[data-sym="${a.sym}"]`);
+    if (card){
+      card.classList.add(a.to === 'hot' ? 'flash-up' : 'flash-dn');
+      setTimeout(() => card.classList.remove('flash-up','flash-dn'), 2400);
+    }
+  }
+}
+
+function emitRotationAlerts(alerts){
+  playBeep();
+  for (const a of alerts){
+    const icon = transitionIcon(a.from, a.to);
+    const label = transitionLabel(a.from, a.to);
+    showToast(`${icon} <b>${a.sym}</b> · ${escHtml(a.name)}<br>${label} · Δ1săpt ${fmtPct(a.chg1w)}`, 'alert', 6500);
+    showBrowserNotif(`${icon} Sector ${a.sym} — ${label}`, `${a.name} · Δ1săpt ${fmtPct(a.chg1w)}`);
+  }
+  // Telegram: un mesaj grupat
+  const lines = [`🌐 <b>Sector Rotation</b> · tranziții detectate (${alerts.length})`, ''];
+  for (const a of alerts){
+    lines.push(`${transitionIcon(a.from, a.to)} <b>${escHtml(a.sym)}</b> ${escHtml(a.name)}`);
+    lines.push(`<i>${escHtml(transitionLabel(a.from, a.to))}</i> · Δ1săpt <b>${escHtml(fmtPct(a.chg1w))}</b>`);
+    lines.push('');
+  }
+  sendTelegramAlert(lines.join('\n'));
+}
+function transitionIcon(from, to){
+  if (to === 'hot'  && from === 'cold')    return '🔄🚀';
+  if (to === 'cold' && from === 'hot')     return '🔄💀';
+  if (to === 'hot')  return '🚀';
+  if (to === 'cold') return '💀';
+  return '↕';
+}
+function transitionLabel(from, to){
+  const m = { hot:'HOT', cold:'COLD', neutral:'NEUTRU' };
+  return `${m[from]} → ${m[to]}`;
+}
+
+// ── AI bubble Claude streaming ──
+async function callAnthropicStream(systemPrompt, userPrompt, maxTokens=600){
+  const key = getAnthropicKey();
+  if (!key) throw new Error('Lipsă Anthropic key (Setări ⚙)');
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'x-api-key':key,
+              'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+    body: JSON.stringify({ model:'claude-opus-4-7', max_tokens:maxTokens, stream:true,
+                           system:systemPrompt, messages:[{ role:'user', content:userPrompt }] })
+  });
+  if (!resp.ok){ const t = await resp.text(); throw new Error(`HTTP ${resp.status}: ${t.slice(0,200)}`); }
+  const reader = resp.body.getReader(), dec = new TextDecoder();
+  let buf = '', full = '';
+  while (true){
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream:true });
+    const lines = buf.split('\n'); buf = lines.pop() || '';
+    for (const line of lines){
+      if (!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (!data || data === '[DONE]') continue;
+      try { const evt = JSON.parse(data);
+            if (evt.type === 'content_block_delta' && evt.delta?.text) full += evt.delta.text;
+      } catch(_){}
+    }
+  }
+  return full;
+}
+
+const AI_SYSTEM_SR = `Ești analist trading pe piețele americane, vorbești în română. Răspuns scurt (max 220 cuvinte) și concret, fără disclaimere generice.
+Pentru sectorul ETF primit, dă:
+1. **Verdict** (LONG ETF / WATCH / EVITĂ / SHORT ETF) — pe 1 linie cu motivul principal.
+2. **Bull case** (2-3 idei: catalizatori, momentum, contextul macro).
+3. **Bear case** (2-3 idei: riscuri, divergențe, supraextindere).
+4. **Top 2 stocks din holdings** pentru long (sau short dacă verdict negativ) cu motivul.
+5. **Niveluri ETF**: zonă bună de cumpărare, zonă de vânzare/stop pe baza dist 52w high/low și ATR.
+Nu repeta cifrele primite — interpretează. Folosește **bold** pentru tickere și niveluri-cheie.`;
+
+function buildAIPrompt(d){
+  const cache = EXP_CACHE[d.sym] || {};
+  const year = cache.year, holds = cache.holdings;
+  const closes = (year && year.closes) || d.closes;
+  const vols   = (year && year.vols)   || d.vols;
+  const highs  = (year && year.highs)  || d.highs;
+  const lows   = (year && year.lows)   || d.lows;
+  const stats  = calcStats(closes, vols, highs, lows, d.price) || {};
+  // risk regime curent
+  const cyc = DATA.filter(x => x.group === 'cyclical');
+  const def = DATA.filter(x => x.group === 'defensive');
+  const cycAvg = cyc.reduce((s,x) => s+x.chg1w, 0) / (cyc.length || 1);
+  const defAvg = def.reduce((s,x) => s+x.chg1w, 0) / (def.length || 1);
+  const spread = cycAvg - defAvg;
+  const regime = spread > 0.6 ? 'RISK-ON' : (spread < -0.6 ? 'RISK-OFF' : 'NEUTRU');
+  // top/bottom sectoare
+  const ord = DATA.slice().sort((a,b) => b.chg1w - a.chg1w);
+  const top3 = ord.slice(0,3).map(x => `${x.sym} ${fmtPct(x.chg1w)}`).join(', ');
+  const bot3 = ord.slice(-3).reverse().map(x => `${x.sym} ${fmtPct(x.chg1w)}`).join(', ');
+  const holdLines = (holds || []).map(h => `- ${h.sym}: ${fmtPct(h.chg1d)} (1z), preț $${h.price ? fmtPrice(h.price) : '—'}`).join('\n');
+
+  return `Sector: ${d.sym} (${d.name}) — grup ${d.group}.
+Preț curent: $${fmtPrice(d.price)}.
+Δ 1z: ${fmtPct(d.chg1d)} · 1săpt: ${fmtPct(d.chg1w)} · 1lună: ${fmtPct(d.chg1m)} · 3luni: ${fmtPct(d.chg3m)} · YTD: ${fmtPct(d.chgYTD)}.
+52w high: $${(stats.hi52||0).toFixed(2)} (dist ${fmtPct(stats.distHi||0)}).
+52w low:  $${(stats.lo52||0).toFixed(2)} (dist ${fmtPct(stats.distLo||0)}).
+ATR (14z |Δ%|): ${(stats.atrPct||0).toFixed(2)}%. Volatilitate anualizată: ${(stats.volAnn||0).toFixed(1)}%.
+
+Top 5 holdings ${d.sym} (Δ1z):
+${holdLines || '(neîncărcat)'}
+
+Context piață:
+- Risk regime: ${regime} (spread cyclicals−defensives ${fmtPct(spread)})
+- Top 3 sectoare 1săpt: ${top3}
+- Bottom 3 sectoare 1săpt: ${bot3}`;
+}
+
+async function runAIBubble(sym, force = false){
+  const d = DATA.find(x => x.sym === sym);
+  if (!d) return;
+  if (!EXP_CACHE[sym]) EXP_CACHE[sym] = {};
+  const bucket = heatBucket(d.chg1w);
+  // risk regime simplificat pentru cache key
+  const cyc = DATA.filter(x => x.group === 'cyclical');
+  const def = DATA.filter(x => x.group === 'defensive');
+  const cycAvg = cyc.reduce((s,x) => s+x.chg1w, 0) / (cyc.length || 1);
+  const defAvg = def.reduce((s,x) => s+x.chg1w, 0) / (def.length || 1);
+  const regime = (cycAvg - defAvg) > 0.6 ? 'on' : ((cycAvg - defAvg) < -0.6 ? 'off' : 'nx');
+  const cacheKey = `${sym}_${bucket}_${regime}`;
+
+  // Cache LS 1h
+  const lsKey = 'sr_ai_cache_v1';
+  let lsCache = {};
+  try { lsCache = JSON.parse(localStorage.getItem(lsKey) || '{}'); } catch(_){}
+  if (!force){
+    const c = lsCache[cacheKey];
+    if (c && c.text && (Date.now() - c.ts < 60*60*1000)){
+      renderAIBubble(sym, c.text, true);
+      return;
+    }
+  }
+
+  // Loading state
+  renderAIBubbleLoading(sym);
+  const t0 = Date.now();
+  try {
+    const text = await callAnthropicStream(AI_SYSTEM_SR, buildAIPrompt(d), 600);
+    const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+    // save cache
+    lsCache[cacheKey] = { text, ts: Date.now() };
+    try { localStorage.setItem(lsKey, JSON.stringify(lsCache)); } catch(_){}
+    if (!EXP_CACHE[sym]) EXP_CACHE[sym] = {};
+    EXP_CACHE[sym].ai = { text, ts: Date.now(), elapsed };
+    renderAIBubble(sym, text, false, elapsed);
+  } catch (e){
+    const box = $('aiBody_' + sym);
+    if (box) box.innerHTML = `<div class="ai-error">❌ ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderAIBubbleLoading(sym){
+  const box = $('aiBody_' + sym); if (!box) return;
+  box.innerHTML = `<div class="ai-loading"><div class="emoji">🧠</div><div class="timer" id="aiTimer_${sym}">0.0 s</div><div style="font-size:11px;color:var(--txt-dd)">Claude analizează ${sym}…</div></div>`;
+  const t0 = Date.now();
+  const tEl = $('aiTimer_' + sym);
+  const tick = () => {
+    if (!$('aiTimer_' + sym)) return; // dispărut între timp
+    tEl.textContent = ((Date.now() - t0) / 1000).toFixed(1) + ' s';
+    if ($('aiTimer_' + sym)) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+function renderAIBubble(sym, text, fromCache, elapsed){
+  const box = $('aiBody_' + sym); if (!box) return;
+  // markdown light: **bold**
+  const html = escHtml(text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  box.innerHTML = `<div class="ai-body appear">${html}</div>
+    <div class="ai-meta">
+      <span>🤖 claude-opus-4-7</span>
+      ${fromCache ? '<span>⚡ din cache (1h)</span>' : `<span>⏱ ${elapsed || '?'} s</span>`}
+      <span>${new Date().toLocaleTimeString('ro-RO')}</span>
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -606,6 +992,8 @@ async function runScan(){
   $('statStatus').textContent = okCount === SECTORS.length ? '✓ OK' : (okCount > 0 ? `⚠ ${okCount}/${SECTORS.length}` : '❌');
   $('statTime').textContent = okCount > 0 ? new Date().toLocaleTimeString('ro-RO') : 'eroare proxy';
   render();
+  // Detectare tranziții hot↔cold + emite alerte (după render, ca să existe heatmap cards pentru flash)
+  if (okCount > 0) setTimeout(() => detectAndEmitAlerts(), 100);
   rescheduleAuto();
 }
 
@@ -754,7 +1142,28 @@ function renderExpandBody(d){
       ${holds ? '<div class="hold-note">Date Q4 2025 — schimbarea e lentă. Δ1z din ultimul close Yahoo.</div>' : ''}
     </div>`;
 
-  return sparkBox + statsBox + holdBox;
+  // 4. AI bubble Claude (full-width)
+  const ai = cache.ai;
+  const aiInitial = ai && ai.text
+    ? `<div class="ai-body appear">${escHtml(ai.text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')}</div>
+       <div class="ai-meta">
+         <span>🤖 claude-opus-4-7</span>
+         <span>⚡ ${Date.now() - ai.ts < 60*60*1000 ? 'din cache (1h)' : 'expirat — apasă Rerun'}</span>
+         <span>${new Date(ai.ts).toLocaleTimeString('ro-RO')}</span>
+       </div>`
+    : `<div style="color:var(--txt-dd);font-size:12.5px;padding:8px 0">Apasă <b>🤖 Analizează</b> pentru un verdict AI Claude (bull/bear case, top 2 stocks pentru long, niveluri ETF).</div>`;
+  const aiBox = `
+    <div class="exp-ai">
+      <div class="exp-h">
+        <span>🤖 Verdict AI Claude</span>
+        <div class="ai-actions">
+          <button type="button" class="ai-btn-primary" data-act="ai-run" data-sym="${d.sym}">${ai && ai.text ? '↻ Rerun' : '🤖 Analizează'}</button>
+        </div>
+      </div>
+      <div id="aiBody_${d.sym}">${aiInitial}</div>
+    </div>`;
+
+  return sparkBox + statsBox + holdBox + aiBox;
 }
 
 async function fetchHoldings(etfSym, force = false){
@@ -870,6 +1279,22 @@ function init(){
     const box = $('expBox_' + sym);
     if (d && box) box.innerHTML = renderExpandBody(d);
     loadExpandAsync(sym);
+  });
+  // AI bubble button (Analizează / Rerun)
+  $('tblBody').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-act="ai-run"]');
+    if (!btn) return;
+    e.stopPropagation();
+    const sym = btn.dataset.sym;
+    const hasCache = EXP_CACHE[sym] && EXP_CACHE[sym].ai && EXP_CACHE[sym].ai.text
+                   && (Date.now() - EXP_CACHE[sym].ai.ts < 60*60*1000);
+    runAIBubble(sym, hasCache); // force=true dacă deja avem cache valid (e Rerun)
+  });
+  // Test alert button (din Settings modal)
+  $('settingsTestBtn').addEventListener('click', () => {
+    const fake = { sym:'XLK', name:'Technology', from:'neutral', to:'hot', chg1w: CFG.threshold + 0.5 };
+    emitRotationAlerts([fake]);
+    showToast('🧪 Test alertă trimis', 'ok', 3000);
   });
 
   // Click pe heatmap card → expand + scroll smooth la rândul din tabel
