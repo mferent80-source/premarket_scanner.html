@@ -232,9 +232,22 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 
 /* Sugestii watchlist (panel auto din rezultate cu surprise mare) */
 .md-sg-panel {
-  background:linear-gradient(135deg, rgba(91,176,255,.10), rgba(34,214,107,.05));
-  border:1px solid rgba(91,176,255,.4); border-radius:var(--r);
-  padding:12px 14px; margin-bottom:10px;
+  background:linear-gradient(135deg, rgba(91,176,255,.14), rgba(34,214,107,.08));
+  border:2px solid rgba(91,176,255,.6); border-radius:var(--r);
+  padding:14px 16px; margin-bottom:12px;
+  box-shadow:0 4px 16px rgba(91,176,255,.15);
+}
+.md-sg-panel.just-appeared {
+  animation:sgAppear .5s ease, sgGlow 3s ease .5s;
+}
+@keyframes sgAppear {
+  from { opacity:0; transform:translateY(-12px) scale(.96); }
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+@keyframes sgGlow {
+  0%, 100% { box-shadow:0 4px 16px rgba(91,176,255,.15); border-color:rgba(91,176,255,.6); }
+  25%, 75% { box-shadow:0 0 50px rgba(91,176,255,.55), 0 4px 20px rgba(91,176,255,.4); border-color:rgba(91,176,255,1); }
+  50% { box-shadow:0 0 60px rgba(34,214,107,.5), 0 4px 24px rgba(91,176,255,.4); border-color:rgba(34,214,107,.9); }
 }
 .md-sg-panel-head {
   display:flex; align-items:center; gap:8px;
@@ -654,7 +667,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v155</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v156</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -3688,9 +3701,16 @@ function bindEvents() {
     renderSuggestionsPanel();
     // Închide modal-ul ca să vezi panelul
     closeSettings();
-    // Scroll la panel ca să fie vizibil
-    setTimeout(() => $('suggestionsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    toast('🎯 2 sugestii demo afișate (CPI cool + NFP beat) — închide cu × sau adaugă tickere', 'success');
+    // Scroll la TOPUL paginii (panelul e între stat-strip și hot-strip) + animație glow
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const sgPanel = $('suggestionsPanel');
+    if (sgPanel) {
+      sgPanel.classList.remove('just-appeared');
+      void sgPanel.offsetWidth; // force reflow ca animația să re-pornească
+      sgPanel.classList.add('just-appeared');
+      setTimeout(() => sgPanel.classList.remove('just-appeared'), 3500);
+    }
+    toast('🎯 Vezi panelul SUS în pagină — 2 sugestii afișate (CPI cool + NFP beat) cu chip-uri tickere', 'success');
   });
 
   // Sound / Notif
