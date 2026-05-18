@@ -253,6 +253,48 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   footer{display:none}
 }
 
+/* PRE-MARKET / AFTER-HOURS GAPPERS WIDGET */
+.gappers-panel {
+  background:linear-gradient(135deg, rgba(212,137,44,.12), rgba(255,216,107,.06));
+  border:1px solid rgba(212,137,44,.4); border-radius:var(--rs);
+  padding:14px 18px; margin-bottom:18px; box-shadow:var(--sh);
+}
+.gappers-head {
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  margin-bottom:10px; padding-bottom:9px; border-bottom:1px solid rgba(212,137,44,.25);
+}
+.gappers-head h3 {
+  font-family:var(--head); font-size:14px; font-weight:800; color:var(--t1);
+  flex:1; margin:0;
+}
+.gappers-session-pill {
+  font-family:var(--mono); font-size:11px; padding:3px 9px;
+  background:rgba(212,137,44,.18); color:#d4892c; border:1px solid rgba(212,137,44,.45);
+  border-radius:999px; font-weight:700;
+}
+.gappers-status {
+  font-family:var(--mono); font-size:11px; color:var(--t3); margin-left:auto;
+}
+.gappers-list {
+  display:flex; flex-wrap:wrap; gap:8px;
+}
+.gapper-chip {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--bg2); border:1px solid var(--b1); border-radius:6px;
+  padding:7px 11px; cursor:pointer; text-decoration:none;
+  font-family:var(--mono); transition:all .15s ease;
+}
+.gapper-chip:hover { transform:translateY(-1px); border-color:#5bb0ff; box-shadow:0 2px 8px rgba(91,176,255,.2); }
+.gapper-chip .gp-sym { font-weight:800; font-size:13px; color:#5bb0ff; }
+.gapper-chip .gp-pct { font-weight:800; font-size:12.5px; }
+.gapper-chip .gp-pct.up { color:#22d66b; }
+.gapper-chip .gp-pct.down { color:#ff4d4d; }
+.gapper-chip .gp-price { font-size:11px; color:var(--t2); }
+.gappers-empty {
+  font-family:var(--head); font-size:13px; color:var(--t2); font-style:italic;
+  padding:8px 0;
+}
+
 /* DASHBOARD WIDGETS */
 .dash{
   display:grid;gap:12px;
@@ -397,6 +439,9 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   <div class="hub-no-results" id="hubNoResults">
     🤷 Nimic nu corespunde căutării. Încearcă „nasdaq", „watchlist", „events"…
   </div>
+
+  <!-- Pre-market / After-Hours gappers widget (apare doar in PM + AH session) -->
+  <div id="gappersWidget" style="display:none"></div>
 
   <main class="grid" id="hubCards">
 
@@ -1176,6 +1221,161 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   const f = document.querySelector('footer');
   if (f) f.style.display = 'none';
 }
+</script>
+
+<script>
+// ============ PRE-MARKET / AFTER-HOURS GAPPERS WIDGET ============
+// Apare doar in PM (04:00-09:30 ET) sau AH (16:00-20:00 ET). Hide in RTH si Closed.
+// Sursa: Finnhub /quote (no proxy CORS) pentru universe ~50 active stocks.
+// Refresh 60s. Cache LS 'pm_gappers_cache' 60s.
+(function() {
+  const GAPPER_UNIVERSE = [
+    // Mega-caps
+    'AAPL','MSFT','NVDA','GOOGL','AMZN','META','TSLA','AVGO','AMD','NFLX',
+    // High-beta / volatile
+    'PLTR','SMCI','COIN','MSTR','RIVN','LCID','MARA','RIOT','HOOD','SOFI',
+    'GME','AMC','HUT','BITF','CIFR',
+    // Solar / EV
+    'ENPH','FSLR','RUN','SEDG','NIO','XPEV','LI',
+    // Fintech
+    'AFRM','UPST','SQ','PYPL',
+    // Travel / consumer
+    'UBER','LYFT','DASH','ABNB','LULU','NKE',
+    // Pharma / biotech volatile
+    'MRNA','BNTX','PFE','LLY',
+    // Energy
+    'XOM','CVX','OXY','DVN',
+    // Banks
+    'JPM','BAC','GS','C',
+    // Crypto-adjacent
+    'IBIT','FBTC','ARKK',
+    // Tech other
+    'CRWD','SNOW','DDOG','NET','SHOP','SQ',
+    // Small caps frequent PM movers
+    'IDCC','AMRX'
+  ];
+  const CACHE_KEY = 'pm_gappers_cache';
+  const CACHE_TTL = 60000;
+  const MIN_GAP_PCT = 3;
+  const TOP_N = 8;
+  const REFRESH_MS = 60000;
+  let refreshTimer = null;
+
+  function $(id) { return document.getElementById(id); }
+  function fmtNum(n) { return Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+  function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || ''; }
+
+  function getNYSESession() {
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false });
+    const parts = fmt.formatToParts(new Date());
+    const wd = parts.find(p=>p.type==='weekday')?.value || '';
+    const h = parseInt(parts.find(p=>p.type==='hour')?.value, 10) || 0;
+    const m = parseInt(parts.find(p=>p.type==='minute')?.value, 10) || 0;
+    const mins = h*60 + m;
+    if (wd==='Sat' || wd==='Sun') return { state:'closed', label:'🛑 Weekend' };
+    if (mins >= 240 && mins < 570) return { state:'pre', label:'🌅 Pre-Market' };
+    if (mins >= 570 && mins < 960) return { state:'open', label:'🟢 NYSE OPEN' };
+    if (mins >= 960 && mins < 1200) return { state:'after', label:'🌙 After-Hours' };
+    return { state:'closed', label:'🛑 Closed' };
+  }
+
+  async function fetchQuote(sym, key) {
+    try {
+      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(key)}`);
+      if (!r.ok) return null;
+      const d = await r.json();
+      if (d?.c == null || d.c === 0 || d?.pc == null || d.pc === 0) return null;
+      const gapPct = ((d.c - d.pc) / d.pc) * 100;
+      return { sym, price: d.c, prev: d.pc, gapPct };
+    } catch (e) { return null; }
+  }
+
+  async function fetchAllGappers() {
+    const key = getFinnhubKey();
+    if (!key) return { gappers: [], reason: 'no_key' };
+    // Cache check
+    try {
+      const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+      if (c && Date.now() - c.ts < CACHE_TTL) return { gappers: c.data, reason: 'cache' };
+    } catch (e) {}
+    // Throttle: 8 in paralel ca să nu spamăm rate limit (60/min Finnhub free)
+    const results = [];
+    const batchSize = 8;
+    for (let i = 0; i < GAPPER_UNIVERSE.length; i += batchSize) {
+      const batch = GAPPER_UNIVERSE.slice(i, i + batchSize);
+      const batchResults = await Promise.all(batch.map(s => fetchQuote(s, key)));
+      results.push(...batchResults.filter(Boolean));
+      if (i + batchSize < GAPPER_UNIVERSE.length) await new Promise(r => setTimeout(r, 50));
+    }
+    const gappers = results.filter(g => Math.abs(g.gapPct) >= MIN_GAP_PCT)
+                           .sort((a, b) => Math.abs(b.gapPct) - Math.abs(a.gapPct))
+                           .slice(0, TOP_N);
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: gappers })); } catch (e) {}
+    return { gappers, reason: 'fresh' };
+  }
+
+  function renderWidget(session, gappers, reason) {
+    const widget = $('gappersWidget');
+    if (!widget) return;
+    const html = `<div class="gappers-panel">
+      <div class="gappers-head">
+        <h3>🌅 Top gappers — ${session.state === 'pre' ? 'Pre-Market' : 'After-Hours'}</h3>
+        <span class="gappers-session-pill">${session.label}</span>
+        <span class="gappers-status" id="gappersStatus">${reason === 'cache' ? '⏱ cache 60s' : '🔄 ' + new Date().toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' })}</span>
+      </div>
+      ${gappers.length === 0
+        ? `<div class="gappers-empty">📭 Niciun gapper ≥${MIN_GAP_PCT}% în acest moment. Scan din universe ${GAPPER_UNIVERSE.length} stocks.</div>`
+        : `<div class="gappers-list">${gappers.map(g => {
+            const dir = g.gapPct >= 0 ? 'up' : 'down';
+            const arrow = g.gapPct >= 0 ? '▲' : '▼';
+            return `<a class="gapper-chip" href="https://www.tradingview.com/chart/?symbol=NASDAQ:${encodeURIComponent(g.sym)}" target="_blank" title="${g.sym} · ${fmtNum(g.price)} (prev close ${fmtNum(g.prev)})">
+              <span class="gp-sym">${g.sym}</span>
+              <span class="gp-pct ${dir}">${arrow} ${(g.gapPct>=0?'+':'')+g.gapPct.toFixed(2)}%</span>
+              <span class="gp-price">$${fmtNum(g.price)}</span>
+            </a>`;
+          }).join('')}</div>`
+      }
+    </div>`;
+    widget.innerHTML = html;
+    widget.style.display = 'block';
+  }
+
+  async function tick() {
+    const session = getNYSESession();
+    const widget = $('gappersWidget');
+    if (!widget) return;
+    // Hide in RTH si Closed
+    if (session.state !== 'pre' && session.state !== 'after') {
+      widget.style.display = 'none';
+      widget.innerHTML = '';
+      return;
+    }
+    // Verifica cheie Finnhub
+    if (!getFinnhubKey()) {
+      widget.innerHTML = `<div class="gappers-panel"><div class="gappers-head"><h3>🌅 Pre-Market Gappers</h3></div><div class="gappers-empty">⚠ Cheia Finnhub lipsește. Setează în <a href="./macro-dashboard/" style="color:#5bb0ff">Macro Dashboard → ⚙ Setări</a> sau direct cu <code>localStorage.setItem('finnhub_api_key','...')</code>.</div></div>`;
+      widget.style.display = 'block';
+      return;
+    }
+    const { gappers, reason } = await fetchAllGappers();
+    renderWidget(session, gappers, reason);
+  }
+
+  function scheduleRefresh() {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(async () => {
+      await tick();
+      scheduleRefresh();
+    }, REFRESH_MS);
+  }
+
+  tick();
+  scheduleRefresh();
+
+  // Refresh imediat când tab redevine vizibil
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) tick();
+  });
+})();
 </script>
 </body>
 </html>
