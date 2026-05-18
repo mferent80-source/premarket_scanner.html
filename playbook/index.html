@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎯 Today's Playbook — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Vedere consolidată a top picks de azi: Risk Regime + Macro events + Earnings watchlist + Nasdaq picks + Sugestii watchlist">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🎯</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#0b0f17; --bg-grad:radial-gradient(1200px 600px at 50% -200px, #142533 0%, #0b0f17 55%);
+  --panel:#141a28; --panel2:#1d2537; --panel3:#222b40;
+  --b1:#2a3247; --b2:#3a4258;
+  --t1:#f0f4fa; --t2:#cdd5e2; --t3:#a3adc1;
+  --acc-1:#3b82f6; --acc-2:#10b981;
+  --bull-s:#22d66b; --bull:#1ba858; --bull-bg:rgba(34,214,107,.12);
+  --bear-s:#ff4d4d; --bear:#cc3434; --bear-bg:rgba(255,77,77,.12);
+  --warn:#d4892c; --warn-bg:rgba(212,137,44,.15);
+  --gold:#ffd86b; --high:#ef4444; --high-bg:rgba(239,68,68,.15); --med:#f59e0b; --med-bg:rgba(245,158,11,.13);
+  --accent:#5bb0ff;
+  --shadow:0 4px 14px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.2);
+  --r:12px; --rs:8px;
+  --mono:'DM Mono',monospace; --head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+html,body { min-height:100vh; }
+body {
+  font-family:var(--head); background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
+  color:var(--t1); padding:12px; font-size:14px;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility; font-variant-numeric:tabular-nums;
+}
+
+header {
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px;
+  background:linear-gradient(180deg, rgba(20,37,51,.94), rgba(20,26,40,.97));
+  padding:12px 16px; border-radius:var(--r);
+  border:1px solid var(--b1); margin-bottom:12px; box-shadow:var(--shadow);
+  position:sticky; top:8px; z-index:50;
+}
+header h1 {
+  font-size:18px; font-weight:800; letter-spacing:0;
+  background:linear-gradient(90deg, var(--acc-1), var(--acc-2));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  margin-right:auto; font-family:var(--head);
+}
+.ver-badge {
+  display:inline-block; padding:3px 8px; margin-left:8px; border-radius:4px;
+  background:rgba(59,130,246,.15); color:#60a5fa; border:1px solid rgba(59,130,246,.4);
+  font-size:11px; font-weight:700; letter-spacing:.3px;
+  -webkit-text-fill-color:#60a5fa; font-family:var(--mono);
+}
+.date-pill { font-family:var(--mono); font-size:12.5px; color:var(--t2); padding:4px 10px; background:var(--panel2); border-radius:999px; border:1px solid var(--b1); }
+.session-pill { font-family:var(--mono); font-size:12px; padding:4px 10px; background:var(--panel2); border-radius:999px; border:1px solid var(--b1); color:var(--t2); }
+.session-pill.open { color:var(--bull-s); border-color:rgba(34,214,107,.4); }
+.session-pill.pre { color:var(--accent); border-color:rgba(91,176,255,.4); }
+.session-pill.after { color:var(--warn); border-color:rgba(212,137,44,.4); }
+
+.nav-link {
+  display:inline-flex; align-items:center; gap:5px;
+  background:var(--panel2); border:1px solid var(--b1);
+  padding:7px 12px; border-radius:var(--rs);
+  color:var(--t1); text-decoration:none; font-size:12.5px; font-weight:700;
+  transition:all .15s var(--ease); font-family:var(--head);
+}
+.nav-link:hover { background:var(--accent); border-color:var(--accent); color:#000; transform:translateY(-1px); }
+
+button {
+  background:var(--panel2); color:var(--t1); border:1px solid var(--b1);
+  padding:7px 12px; border-radius:var(--rs); font-size:12.5px; font-family:inherit;
+  cursor:pointer; font-weight:700; transition:all .15s var(--ease);
+}
+button:hover { background:var(--accent); border-color:var(--accent); color:#000; transform:translateY(-1px); }
+button.primary {
+  background:linear-gradient(135deg, var(--acc-1), var(--acc-2));
+  border-color:transparent; color:#fff; box-shadow:0 2px 8px rgba(59,130,246,.3);
+}
+
+/* Hero — Risk + Session quick info */
+.hero {
+  display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:10px; margin-bottom:14px;
+}
+.hero-card {
+  background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
+  padding:14px 18px; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:6px;
+}
+.hero-label { font-family:var(--mono); font-size:11px; color:var(--t2); text-transform:uppercase; letter-spacing:.4px; font-weight:700; }
+.hero-value { font-family:var(--head); font-size:22px; font-weight:800; color:var(--t1); }
+.hero-sub { font-family:var(--mono); font-size:12px; color:var(--t2); }
+.hero-card.risk-on { border-left:4px solid var(--bull-s); }
+.hero-card.lean-on { border-left:4px solid var(--bull-s); }
+.hero-card.neutral { border-left:4px solid var(--accent); }
+.hero-card.cautious { border-left:4px solid var(--warn); }
+.hero-card.risk-off, .hero-card.stress { border-left:4px solid var(--bear-s); }
+
+/* Sections */
+.pb-section {
+  background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
+  margin-bottom:12px; overflow:hidden;
+}
+.pb-section-head {
+  display:flex; align-items:center; gap:10px; padding:11px 16px;
+  background:linear-gradient(180deg, var(--panel2), var(--panel));
+  border-bottom:1px solid var(--b1);
+}
+.pb-section-head h3 {
+  font-family:var(--head); font-size:14px; font-weight:800; color:var(--t1);
+  flex:1;
+}
+.pb-section-head .pb-count {
+  background:var(--panel3); color:var(--t1); padding:2px 10px;
+  border-radius:999px; font-family:var(--mono); font-size:11.5px; font-weight:700;
+  border:1px solid var(--b1);
+}
+.pb-section-head .pb-go {
+  background:transparent; border:1px solid var(--b1); color:var(--t2);
+  padding:4px 12px; font-size:11.5px; cursor:pointer; border-radius:4px;
+  font-family:var(--head); font-weight:700; text-decoration:none;
+}
+.pb-section-head .pb-go:hover { color:var(--accent); border-color:var(--accent); }
+.pb-section-body { padding:10px 14px; }
+
+.pb-empty { padding:20px; text-align:center; color:var(--t2); font-style:italic; font-size:13px; }
+.pb-loading { padding:20px; text-align:center; color:var(--t2); font-size:13px; }
+.pb-loading::before { content:"⏳ "; }
+
+/* Tables */
+.pb-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+.pb-table th { padding:7px 8px; text-align:left; font-weight:700; font-size:11px; color:var(--t2); text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid var(--b1); font-family:var(--mono); }
+.pb-table td { padding:8px 8px; border-bottom:1px solid rgba(42,50,71,.5); font-family:var(--head); color:var(--t1); font-variant-numeric:tabular-nums; }
+.pb-table tr:hover td { background:rgba(91,176,255,.04); }
+.pb-table tr:last-child td { border-bottom:none; }
+.pb-table .sym { font-weight:800; font-family:var(--mono); color:var(--accent); }
+.pb-table .sym a { color:var(--accent); text-decoration:none; }
+.pb-table .sym a:hover { text-decoration:underline; }
+.pb-table .pos { color:var(--bull-s); font-weight:700; }
+.pb-table .neg { color:var(--bear-s); font-weight:700; }
+.pb-table .neut { color:var(--t2); }
+
+.chip {
+  display:inline-block; padding:2px 8px; border-radius:4px;
+  font-family:var(--mono); font-size:10.5px; font-weight:800; letter-spacing:.3px;
+}
+.chip.high { background:var(--high-bg); color:var(--high); border:1px solid rgba(239,68,68,.4); }
+.chip.med { background:var(--med-bg); color:var(--med); border:1px solid rgba(245,158,11,.4); }
+.chip.low { background:rgba(100,116,139,.13); color:#94a3b8; border:1px solid rgba(100,116,139,.3); }
+.chip.bull { background:var(--bull-bg); color:var(--bull-s); border:1px solid rgba(34,214,107,.4); }
+.chip.bear { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.4); }
+.chip.warn { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.4); }
+.chip.imminent { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.4); }
+
+.time-cell { font-family:var(--mono); font-size:11.5px; color:var(--t2); }
+.time-cell .t-til { display:block; font-size:10.5px; color:var(--t3); }
+.t-imminent { color:var(--bear-s) !important; font-weight:700; }
+
+/* Quick actions footer */
+.quick-actions {
+  display:flex; flex-wrap:wrap; gap:8px; padding:12px 16px;
+  background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
+  margin-top:12px;
+}
+.quick-actions a {
+  flex:1; min-width:140px; padding:10px 14px;
+  background:linear-gradient(135deg, var(--panel2), var(--panel3));
+  border:1px solid var(--b1); border-radius:var(--rs);
+  color:var(--t1); text-decoration:none; font-family:var(--head);
+  font-size:12.5px; font-weight:700; text-align:center;
+  transition:all .15s var(--ease);
+}
+.quick-actions a:hover { background:linear-gradient(135deg, var(--acc-1), var(--acc-2)); color:#fff; transform:translateY(-1px); border-color:transparent; box-shadow:0 2px 8px rgba(59,130,246,.3); }
+
+.refresh-info { font-family:var(--mono); font-size:11px; color:var(--t3); margin-top:8px; text-align:right; }
+
+@media (max-width:768px) {
+  .hero { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎯 Today's Playbook <span class="ver-badge" id="verBadge">v1</span></h1>
+  <span class="date-pill" id="datePill">—</span>
+  <span class="session-pill" id="sessionPill">⏳ —</span>
+  <button id="refreshBtn" class="primary">🔄 Refresh</button>
+  <a href="../" class="nav-link">← Hub</a>
+</header>
+
+<!-- Hero: Risk + High-impact azi + Watchlist size -->
+<div class="hero">
+  <div class="hero-card neutral" id="heroRisk">
+    <div class="hero-label">🛡 Risk Regime</div>
+    <div class="hero-value" id="heroRiskValue">⏳ se calculează...</div>
+    <div class="hero-sub" id="heroRiskSub">VIX · 10Y · BTC/SPY corr</div>
+  </div>
+  <div class="hero-card" id="heroEvents">
+    <div class="hero-label">📅 High-Impact Azi</div>
+    <div class="hero-value" id="heroEventsValue">—</div>
+    <div class="hero-sub" id="heroEventsSub">se încarcă din Finnhub...</div>
+  </div>
+  <div class="hero-card" id="heroWatchlist">
+    <div class="hero-label">⭐ Watchlist</div>
+    <div class="hero-value" id="heroWatchlistValue">—</div>
+    <div class="hero-sub" id="heroWatchlistSub">tickere monitorizate</div>
+  </div>
+</div>
+
+<!-- Macro events azi -->
+<div class="pb-section" id="secEvents">
+  <div class="pb-section-head">
+    <h3>📅 Evenimente macro azi</h3>
+    <span class="pb-count" id="cntEvents">—</span>
+    <a class="pb-go" href="../macro-dashboard/">Open Macro →</a>
+  </div>
+  <div class="pb-section-body" id="bodyEvents">
+    <div class="pb-loading">se încarcă calendar economic...</div>
+  </div>
+</div>
+
+<!-- Earnings watchlist azi/mâine -->
+<div class="pb-section" id="secEarnings">
+  <div class="pb-section-head">
+    <h3>📊 Earnings azi / mâine (watchlist)</h3>
+    <span class="pb-count" id="cntEarnings">—</span>
+    <a class="pb-go" href="../earnings-hub/">Open Earnings →</a>
+  </div>
+  <div class="pb-section-body" id="bodyEarnings">
+    <div class="pb-loading">se încarcă calendar earnings...</div>
+  </div>
+</div>
+
+<!-- Nasdaq top picks din ultimul scan -->
+<div class="pb-section" id="secNasdaq">
+  <div class="pb-section-head">
+    <h3>🚀 Nasdaq top picks (ultimul scan)</h3>
+    <span class="pb-count" id="cntNasdaq">—</span>
+    <a class="pb-go" href="../nasdaq-scanner/">Open Scanner →</a>
+  </div>
+  <div class="pb-section-body" id="bodyNasdaq">
+    <div class="pb-loading">se citesc datele din nasdaq-scanner...</div>
+  </div>
+</div>
+
+<!-- Sugestii watchlist macro (din macro-dashboard auto-suggest) -->
+<div class="pb-section" id="secSuggestions">
+  <div class="pb-section-head">
+    <h3>🎯 Sugestii watchlist (din rezultate macro)</h3>
+    <span class="pb-count" id="cntSuggestions">—</span>
+    <a class="pb-go" href="../macro-dashboard/">Open Macro →</a>
+  </div>
+  <div class="pb-section-body" id="bodySuggestions">
+    <div class="pb-loading">se verifică sugestiile active...</div>
+  </div>
+</div>
+
+<!-- Quick actions -->
+<div class="quick-actions">
+  <a href="../macro-dashboard/">🌍 Macro Dashboard</a>
+  <a href="../nasdaq-scanner/">🚀 Nasdaq Scanner</a>
+  <a href="../pump-radar/">⚡ Pump Radar</a>
+  <a href="../earnings-hub/">📊 Earnings Hub</a>
+  <a href="../sector-rotation/">🔄 Sector Rotation</a>
+  <a href="../watchlist-monitor/">⭐ Watchlist Monitor</a>
+  <a href="../smart-trade-long/">🎯 Smart Trade Long</a>
+</div>
+
+<div class="refresh-info" id="refreshInfo">—</div>
+
+<script>
+// ============ CONFIG + UTIL ============
+const $ = id => document.getElementById(id);
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmtPct = (n, d=2) => (n==null || isNaN(n)) ? '—' : (n>=0?'+':'') + Number(n).toFixed(d) + '%';
+const fmtNum = (n) => (n==null || isNaN(n)) ? '—' : Number(n).toLocaleString('en-US', {maximumFractionDigits:2});
+
+function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || ''; }
+function getWatchlist() {
+  try { return JSON.parse(localStorage.getItem('wl_stocks') || '[]'); } catch (e) { return []; }
+}
+
+// ============ NYSE Session ============
+function getNYSESession() {
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false });
+  const parts = fmt.formatToParts(new Date());
+  const wd = parts.find(p=>p.type==='weekday')?.value || '';
+  const h = parseInt(parts.find(p=>p.type==='hour')?.value, 10) || 0;
+  const m = parseInt(parts.find(p=>p.type==='minute')?.value, 10) || 0;
+  const mins = h*60 + m;
+  if (wd==='Sat' || wd==='Sun') return { state:'closed', label:'🛑 Weekend' };
+  if (mins >= 240 && mins < 570) return { state:'pre', label:'🌅 Pre-Market' };
+  if (mins >= 570 && mins < 960) return { state:'open', label:'🟢 NYSE OPEN' };
+  if (mins >= 960 && mins < 1200) return { state:'after', label:'🌙 After-Hours' };
+  return { state:'closed', label:'🛑 Closed' };
+}
+function renderSession() {
+  const s = getNYSESession();
+  $('sessionPill').textContent = s.label;
+  $('sessionPill').className = 'session-pill ' + s.state;
+}
+function renderDate() {
+  $('datePill').textContent = new Date().toLocaleDateString('ro-RO', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+}
+
+// ============ Yahoo + CoinGecko fetch (shared cu macro-dashboard) ============
+const CORS_PROXIES = [
+  { build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: r => r.text() },
+  { build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), extract: r => r.text() },
+  { build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u), extract: r => r.text() },
+  { build: u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u), extract: r => r.text() }
+];
+const PROXY_DEAD = new Set();
+async function fetchViaProxy(url, timeoutMs=9000) {
+  for (let i = 0; i < CORS_PROXIES.length; i++) {
+    if (PROXY_DEAD.has(i)) continue;
+    const p = CORS_PROXIES[i];
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      const r = await fetch(p.build(url), { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!r.ok) { if ([400,408,429,502,503,504].includes(r.status)) PROXY_DEAD.add(i); continue; }
+      const txt = await p.extract(r);
+      if (typeof txt === 'string' && txt.trim().startsWith('<')) { PROXY_DEAD.add(i); continue; }
+      try { return JSON.parse(txt); } catch (e) { return txt; }
+    } catch (e) { PROXY_DEAD.add(i); }
+  }
+  return null;
+}
+async function fetchYahooChart30d(symbol) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=3mo`;
+  const data = await fetchViaProxy(url);
+  const r = data?.chart?.result?.[0];
+  if (!r) return null;
+  const closes = r.indicators?.quote?.[0]?.close || [];
+  const ts = r.timestamp || [];
+  const points = closes.map((c, i) => ({ ts: ts[i], close: c })).filter(p => p.close != null);
+  if (points.length < 5) return null;
+  return { points, meta: r.meta };
+}
+async function fetchCryptoFromCoinGecko(coinId='bitcoin') {
+  try {
+    const r = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=60&interval=daily`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    const prices = d?.prices || [];
+    if (prices.length < 5) return null;
+    return { points: prices.map(p => ({ ts: Math.floor(p[0]/1000), close: p[1] })) };
+  } catch (e) { return null; }
+}
+
+// ============ Risk Regime quick compute ============
+async function loadRiskRegime() {
+  // Doar VIX nivel curent + 10Y delta + BTC/SPY corr — versiune simplificată
+  const [vixData, spyData, btcData, tnxData] = await Promise.all([
+    fetchYahooChart30d('^VIX'),
+    fetchYahooChart30d('SPY'),
+    fetchYahooChart30d('BTC-USD').then(d => d || fetchCryptoFromCoinGecko('bitcoin')),
+    fetchYahooChart30d('^TNX')
+  ]);
+
+  let vixScore = 0, vixLabel = 'N/A', vixVal = NaN;
+  if (vixData?.points?.length) {
+    vixVal = vixData.meta?.regularMarketPrice ?? vixData.points[vixData.points.length-1].close;
+    if (vixVal < 12) { vixScore = 1; vixLabel = '⚠ Complacency'; }
+    else if (vixVal < 18) { vixScore = 2; vixLabel = '🟢 Calm'; }
+    else if (vixVal < 25) { vixScore = -1; vixLabel = '🟡 Caut'; }
+    else if (vixVal < 30) { vixScore = -2; vixLabel = '🔴 Fear'; }
+    else { vixScore = -3; vixLabel = '⛔ Stress'; }
+  }
+  let tenYScore = 0, tenYLabel = 'N/A', tenYVal = null, tenYDelta = null;
+  if (tnxData?.points?.length > 10) {
+    const last = tnxData.points[tnxData.points.length-1].close;
+    const first = tnxData.points[0].close;
+    tenYVal = last / 10;
+    tenYDelta = (last - first) / 10 * 100;
+    if (tenYDelta < -25) { tenYScore = -2; tenYLabel = '🔴 Drop'; }
+    else if (tenYDelta < -10) { tenYScore = -1; tenYLabel = '🟡 Drop moderat'; }
+    else if (tenYDelta > 25) { tenYScore = -1; tenYLabel = '🟡 Spike'; }
+    else if (tenYDelta > 10) { tenYScore = 0; tenYLabel = '⚪ Up moderat'; }
+    else { tenYScore = 1; tenYLabel = '🟢 Stabil'; }
+  }
+  let corrScore = 0, corrVal = null, corrLabel = 'N/A';
+  if (spyData?.points && btcData?.points) {
+    const map = new Map(btcData.points.map(p => [new Date(p.ts*1000).toISOString().slice(0,10), p.close]));
+    const aligned = [];
+    for (const p of spyData.points) {
+      const k = new Date(p.ts*1000).toISOString().slice(0,10);
+      if (map.has(k)) aligned.push({ c1: p.close, c2: map.get(k) });
+    }
+    if (aligned.length >= 10) {
+      const a = aligned.slice(-30);
+      const r1 = [], r2 = [];
+      for (let i = 1; i < a.length; i++) { r1.push(a[i].c1/a[i-1].c1 - 1); r2.push(a[i].c2/a[i-1].c2 - 1); }
+      const n = r1.length;
+      const mx = r1.reduce((s,v)=>s+v,0)/n, my = r2.reduce((s,v)=>s+v,0)/n;
+      let cov=0, sx=0, sy=0;
+      for (let i=0; i<n; i++) { const dx=r1[i]-mx, dy=r2[i]-my; cov+=dx*dy; sx+=dx*dx; sy+=dy*dy; }
+      corrVal = (sx === 0 || sy === 0) ? 0 : cov / (Math.sqrt(sx) * Math.sqrt(sy));
+      if (corrVal > 0.6) { corrScore = 1; corrLabel = '🟢 Risk-on aligned'; }
+      else if (corrVal > 0.2) { corrLabel = '⚪ Partial decoupled'; }
+      else if (corrVal > -0.2) { corrScore = -1; corrLabel = '🟡 Decoupled'; }
+      else { corrScore = -2; corrLabel = '🔴 Anti-corr'; }
+    }
+  }
+  const composite = vixScore + tenYScore + corrScore;
+  let label, color, cls;
+  if (composite >= 3) { label = '🟢 RISK-ON'; color = 'var(--bull-s)'; cls = 'risk-on'; }
+  else if (composite >= 1) { label = '🟢 LEAN ON'; color = 'var(--bull-s)'; cls = 'lean-on'; }
+  else if (composite >= -1) { label = '⚪ NEUTRAL'; color = 'var(--t1)'; cls = 'neutral'; }
+  else if (composite >= -3) { label = '🟡 CAUTIOUS'; color = 'var(--warn)'; cls = 'cautious'; }
+  else if (composite >= -5) { label = '🔴 RISK-OFF'; color = 'var(--bear-s)'; cls = 'risk-off'; }
+  else { label = '⛔ STRESS'; color = 'var(--bear-s)'; cls = 'stress'; }
+
+  $('heroRisk').className = 'hero-card ' + cls;
+  $('heroRiskValue').innerHTML = `<span style="color:${color}">${label}</span>`;
+  const sign = composite >= 0 ? '+' : '';
+  $('heroRiskSub').textContent = `score ${sign}${composite} · VIX ${vixVal && !isNaN(vixVal) ? vixVal.toFixed(1) : '—'} · 10Y Δ${tenYDelta != null ? (tenYDelta>=0?'+':'')+Math.round(tenYDelta)+'bp' : '—'} · ρ ${corrVal != null ? Math.round(corrVal*100)+'%' : '—'}`;
+}
+
+// ============ Macro events azi ============
+async function loadMacroEvents() {
+  const key = getFinnhubKey();
+  if (!key) {
+    $('bodyEvents').innerHTML = '<div class="pb-empty">⚠ Cheia Finnhub lipsește. Setează în <a href="../macro-dashboard/" style="color:var(--accent)">Macro Dashboard → ⚙ Setări</a>.</div>';
+    $('cntEvents').textContent = '0';
+    $('heroEventsValue').textContent = 'N/A';
+    return;
+  }
+  const today = new Date().toISOString().slice(0,10);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0,10);
+  try {
+    const url = `https://finnhub.io/api/v1/calendar/economic?from=${today}&to=${tomorrow}&token=${encodeURIComponent(key)}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('Finnhub eroare');
+    const data = await r.json();
+    let events = (data?.economicCalendar || []).map(e => ({
+      time: (e.time || e.date || '').slice(0,16).replace('T',' '),
+      country: (e.country || '').toUpperCase().slice(0,2),
+      event: e.event || 'Unknown',
+      impact: String(e.impact || '').toLowerCase(),
+      forecast: e.estimate ?? e.forecast ?? null,
+      previous: e.prev ?? e.previous ?? null,
+      actual: e.actual ?? null
+    })).filter(e => e.time && e.country === 'US');
+    // Filter: doar azi (în următoarele 24h) + sort cronologic
+    const now = Date.now();
+    events = events.filter(e => {
+      const t = new Date(e.time.replace(' ', 'T') + 'Z').getTime();
+      return t > now - 30*60000 && t < now + 26*3600000;
+    }).sort((a,b) => a.time.localeCompare(b.time));
+
+    const highCount = events.filter(e => e.impact === 'high').length;
+    $('heroEventsValue').textContent = highCount > 0 ? `${highCount} high-impact` : 'fără high-impact';
+    $('heroEventsSub').textContent = `${events.length} evenimente US azi/mâine`;
+    $('cntEvents').textContent = String(events.length);
+    if (!events.length) { $('bodyEvents').innerHTML = '<div class="pb-empty">📭 Niciun eveniment US azi.</div>'; return; }
+    $('bodyEvents').innerHTML = `<table class="pb-table">
+      <thead><tr><th>Ora</th><th>Eveniment</th><th>Impact</th><th>Forecast</th><th>Previous</th><th>Actual</th></tr></thead>
+      <tbody>${events.slice(0, 10).map(e => {
+        const t = new Date(e.time.replace(' ', 'T') + 'Z');
+        const til = t.getTime() - now;
+        const tilStr = til < 0 ? 'PUBLICAT' : (til < 3600000 ? `T-${Math.round(til/60000)}min` : `T-${Math.round(til/3600000)}h`);
+        const tilCls = til < 3600000 && til > 0 ? 't-imminent' : '';
+        return `<tr>
+          <td class="time-cell"><span class="${tilCls}">${t.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}</span><span class="t-til">${tilStr}</span></td>
+          <td>${escHtml(e.event)}</td>
+          <td><span class="chip ${e.impact}">${e.impact === 'high' ? '🔴 HIGH' : (e.impact === 'med' || e.impact === 'medium' ? '🟡 MED' : '⚪ LOW')}</span></td>
+          <td>${e.forecast ?? '—'}</td>
+          <td>${e.previous ?? '—'}</td>
+          <td>${e.actual != null ? `<b>${escHtml(String(e.actual))}</b>` : '<span style="color:var(--t3)">—</span>'}</td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
+  } catch (e) {
+    $('bodyEvents').innerHTML = `<div class="pb-empty">⚠ Eroare Finnhub: ${escHtml(e.message)}</div>`;
+  }
+}
+
+// ============ Earnings watchlist azi/mâine ============
+async function loadEarnings() {
+  const key = getFinnhubKey();
+  const wl = new Set(getWatchlist().map(t => t.toUpperCase()));
+  if (!key) { $('bodyEarnings').innerHTML = '<div class="pb-empty">⚠ Cheia Finnhub lipsește.</div>'; $('cntEarnings').textContent = '0'; return; }
+  const today = new Date().toISOString().slice(0,10);
+  const inTwoDays = new Date(Date.now() + 2*86400000).toISOString().slice(0,10);
+  try {
+    const url = `https://finnhub.io/api/v1/calendar/earnings?from=${today}&to=${inTwoDays}&token=${encodeURIComponent(key)}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('Finnhub eroare');
+    const data = await r.json();
+    let earnings = (data?.earningsCalendar || []).map(e => ({
+      symbol: (e.symbol || '').toUpperCase(),
+      date: (e.date || '').slice(0,10),
+      hour: e.hour || '—',
+      epsEst: e.epsEstimate, epsAct: e.epsActual,
+      revEst: e.revenueEstimate, revAct: e.revenueActual,
+      inWatchlist: wl.has((e.symbol || '').toUpperCase())
+    }));
+    // Filter: doar watchlist OR mega-caps comune
+    const MEGAS = new Set(['AAPL','MSFT','NVDA','GOOGL','AMZN','META','TSLA','AVGO','JPM','WMT','XOM','UNH']);
+    earnings = earnings.filter(e => e.inWatchlist || MEGAS.has(e.symbol));
+    earnings.sort((a,b) => (a.inWatchlist === b.inWatchlist ? 0 : (a.inWatchlist ? -1 : 1)) || a.date.localeCompare(b.date));
+
+    $('cntEarnings').textContent = String(earnings.length);
+    if (!earnings.length) { $('bodyEarnings').innerHTML = '<div class="pb-empty">📭 Niciun earnings din watchlist sau mega-caps azi/mâine.</div>'; return; }
+    $('bodyEarnings').innerHTML = `<table class="pb-table">
+      <thead><tr><th>Ticker</th><th>Data</th><th>Ora</th><th>EPS Est</th><th>EPS Prev</th><th>Watchlist</th></tr></thead>
+      <tbody>${earnings.slice(0, 12).map(e => `<tr>
+        <td class="sym"><a href="https://www.tradingview.com/chart/?symbol=NASDAQ:${escHtml(e.symbol)}" target="_blank">${escHtml(e.symbol)}</a></td>
+        <td>${escHtml(e.date)}</td>
+        <td>${e.hour === 'bmo' ? '🌅 BMO' : (e.hour === 'amc' ? '🌙 AMC' : escHtml(e.hour))}</td>
+        <td>${e.epsEst != null ? '$' + Number(e.epsEst).toFixed(2) : '—'}</td>
+        <td>${e.epsAct != null ? '$' + Number(e.epsAct).toFixed(2) : '—'}</td>
+        <td>${e.inWatchlist ? '<span class="chip bull">⭐ DA</span>' : '<span class="chip low">—</span>'}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } catch (e) {
+    $('bodyEarnings').innerHTML = `<div class="pb-empty">⚠ Eroare: ${escHtml(e.message)}</div>`;
+  }
+}
+
+// ============ Nasdaq picks din LS ============
+function loadNasdaqPicks() {
+  let scan = null;
+  try { scan = JSON.parse(localStorage.getItem('nasdaq_last_scan') || 'null'); } catch (e) {}
+  if (!scan || !scan.opportunities) {
+    $('bodyNasdaq').innerHTML = '<div class="pb-empty">📭 Niciun scan recent în nasdaq-scanner. Deschide pagina și pornește scan.</div>';
+    $('cntNasdaq').textContent = '0';
+    return;
+  }
+  const ageMin = Math.round((Date.now() - (scan.timestamp || 0)) / 60000);
+  const ops = (scan.opportunities || []).filter(o => o.score >= 65).slice(0, 8);
+  $('cntNasdaq').textContent = String(ops.length);
+  if (!ops.length) { $('bodyNasdaq').innerHTML = '<div class="pb-empty">📭 Niciun stock cu score ≥65 în ultimul scan.</div>'; return; }
+  const ageStr = ageMin < 60 ? `${ageMin}min` : `${Math.round(ageMin/60)}h`;
+  $('bodyNasdaq').innerHTML = `<div style="font-size:11.5px;color:var(--t3);margin-bottom:6px">scan acum ${ageStr} · top 8 cu score ≥65</div>
+    <table class="pb-table">
+      <thead><tr><th>Ticker</th><th>Score</th><th>Type</th><th>Preț</th><th>Chg 24h</th><th>RSI</th></tr></thead>
+      <tbody>${ops.map(o => {
+        const chgCls = (o.chg24 ?? 0) >= 0 ? 'pos' : 'neg';
+        return `<tr>
+          <td class="sym"><a href="https://www.tradingview.com/chart/?symbol=NASDAQ:${escHtml(o.symbol)}" target="_blank">${escHtml(o.symbol)}</a></td>
+          <td><b style="color:${o.score >= 80 ? 'var(--bull-s)' : (o.score >= 70 ? 'var(--accent)' : 'var(--warn)')}">${o.score}</b></td>
+          <td>${o.isBuy ? '<span class="chip bull">BUY</span>' : '<span class="chip bear">SHORT</span>'}</td>
+          <td>$${fmtNum(o.price)}</td>
+          <td class="${chgCls}">${fmtPct(o.chg24)}</td>
+          <td>${o.rsi != null ? Math.round(o.rsi) : '—'}</td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
+}
+
+// ============ Sugestii watchlist macro ============
+function loadSuggestions() {
+  let sg = {};
+  try { sg = JSON.parse(localStorage.getItem('md_wl_suggestions') || '{}'); } catch (e) {}
+  const now = Date.now();
+  const active = Object.values(sg).filter(s => s && !s.dismissed && (now - (s.ts || 0) < 24*3600000) && s.tickers && s.tickers.some(t => !(s.added || []).includes(t)));
+  $('cntSuggestions').textContent = String(active.length);
+  if (!active.length) {
+    $('bodySuggestions').innerHTML = '<div class="pb-empty">📭 Nicio sugestie activă. Apar automat la rezultate macro cu surprise ≥2.5%.</div>';
+    return;
+  }
+  $('bodySuggestions').innerHTML = active.map(s => {
+    const remaining = s.tickers.filter(t => !(s.added || []).includes(t));
+    const surpStr = (s.surprise != null) ? `${s.surprise>=0?'+':''}${s.surprise.toFixed(2)}%` : '';
+    const bias = s.bias === 'bullish' ? '🟢 Bullish' : (s.bias === 'bearish' ? '🔴 Bearish' : '⚪ Neutral');
+    return `<div style="padding:8px 0;border-bottom:1px solid rgba(42,50,71,.5)">
+      <div style="font-weight:700;font-size:13.5px;margin-bottom:4px">${escHtml(s.eventName)} · ${bias} <span style="font-family:var(--mono);font-size:11.5px;color:var(--t2)">${surpStr}</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap">${remaining.map(t => `<span class="chip warn" style="font-family:var(--mono);font-size:11px">+ ${escHtml(t)}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+// ============ Watchlist hero ============
+function loadWatchlistHero() {
+  const wl = getWatchlist();
+  $('heroWatchlistValue').textContent = wl.length;
+  $('heroWatchlistSub').textContent = wl.length ? wl.slice(0, 5).join(' · ') + (wl.length > 5 ? ' ...' : '') : 'gol — adaugă tickere din nasdaq-scanner';
+}
+
+// ============ Init + Refresh ============
+async function loadAll() {
+  $('refreshInfo').textContent = '⏳ se încarcă...';
+  loadWatchlistHero();
+  loadNasdaqPicks();
+  loadSuggestions();
+  await Promise.allSettled([loadRiskRegime(), loadMacroEvents(), loadEarnings()]);
+  $('refreshInfo').textContent = `🔄 ultim refresh: ${new Date().toLocaleTimeString('ro-RO')}`;
+}
+
+renderDate();
+renderSession();
+setInterval(renderSession, 30000);
+$('refreshBtn').addEventListener('click', () => { PROXY_DEAD.clear(); loadAll(); });
+
+loadAll();
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('../sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
