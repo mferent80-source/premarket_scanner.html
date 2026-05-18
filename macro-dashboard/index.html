@@ -475,6 +475,13 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .modal-section { margin-top:14px; padding-top:12px; border-top:1px solid var(--b1); }
 .modal-section h4 { font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--t2); font-weight:700; font-family:var(--mono); margin-bottom:8px; }
 
+/* Proxy ETF marker (când Yahoo proxy pică și folosim ETF echivalent) */
+.proxy-marker {
+  background:rgba(212,137,44,.16); color:var(--warn); border:1px solid rgba(212,137,44,.4);
+  padding:1px 5px; border-radius:3px; font-family:var(--mono); font-size:10px; font-weight:700;
+  letter-spacing:.2px;
+}
+
 /* Alerts Log */
 .al-badge {
   display:inline-block; margin-left:3px;
@@ -788,7 +795,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v162</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v163</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1650,6 +1657,27 @@ async function fetchBtcChartFromCoinGecko() {
   } catch (e) { return null; }
 }
 
+// Finnhub /quote — permite CORS direct (no proxy). Folosit pentru ETF proxy când Yahoo pică.
+async function fetchFinnhubQuote(symbol) {
+  const key = getFinnhubKey();
+  if (!key) return null;
+  try {
+    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(key)}`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d?.c == null || d.c === 0) return null;
+    return { last: d.c, chgPct: d.dp ?? 0, prevClose: d.pc ?? d.c };
+  } catch (e) { return null; }
+}
+
+// Map indice → ETF echivalent (folosite când Yahoo via proxy pică)
+// Valorile ETF nu sunt identice cu indicele, dar Δ% e proxy bun pentru direcție.
+const ETF_PROXY_MAP = {
+  '^VIX': 'VXX',       // iPath Series B S&P 500 VIX Short-Term Futures ETN
+  'DX-Y.NYB': 'UUP',   // Invesco DB US Dollar Bullish Fund
+  '^TNX': 'IEF'        // iShares 7-10 Year Treasury Bond ETF
+};
+
 // Refolosim fetchYahooChart30d (range=3mo merge stabil prin proxy)
 // — range=5d eșuează intermitent pe Yahoo via codetabs/corsproxy.
 async function fetchYahooQuote(symbol) {
@@ -1657,17 +1685,25 @@ async function fetchYahooQuote(symbol) {
   if (symbol === 'BTC-USD' || symbol === 'ETH-USD') {
     const cg = await fetchCryptoFromCoinGecko();
     if (cg && cg[symbol]) return cg[symbol];
-    // Fallback la Yahoo via proxy doar dacă CoinGecko a picat
   }
+  // Yahoo via proxy
   const data = await fetchYahooChart30d(symbol);
-  if (!data || !data.points || !data.points.length) return null;
-  const last = data.meta?.regularMarketPrice ?? data.points[data.points.length-1].close;
-  const prevClose = data.meta?.chartPreviousClose
-    ?? data.meta?.previousClose
-    ?? data.points[data.points.length-2]?.close
-    ?? last;
-  const chgPct = prevClose ? ((last - prevClose) / prevClose) * 100 : 0;
-  return { last, chgPct, prevClose };
+  if (data && data.points && data.points.length) {
+    const last = data.meta?.regularMarketPrice ?? data.points[data.points.length-1].close;
+    const prevClose = data.meta?.chartPreviousClose
+      ?? data.meta?.previousClose
+      ?? data.points[data.points.length-2]?.close
+      ?? last;
+    const chgPct = prevClose ? ((last - prevClose) / prevClose) * 100 : 0;
+    return { last, chgPct, prevClose };
+  }
+  // Yahoo a picat → fallback ETF proxy via Finnhub (no proxy)
+  const etfSym = ETF_PROXY_MAP[symbol];
+  if (etfSym) {
+    const etf = await fetchFinnhubQuote(etfSym);
+    if (etf) return { ...etf, proxyEtf: etfSym };
+  }
+  return null;
 }
 
 async function loadStatTiles() {
@@ -1699,10 +1735,13 @@ async function loadStatTiles() {
     }
     const { q } = res.value;
     try {
-      const val = t.divide ? q.last / t.divide : q.last;
-      const fmt = t.prefix
-        ? '$' + val.toLocaleString('en-US', {maximumFractionDigits:t.dec})
-        : val.toLocaleString('en-US', {minimumFractionDigits:t.dec, maximumFractionDigits:t.dec}) + (t.suffix || '');
+      // Dacă e ETF proxy (Yahoo a picat), nu mai facem t.divide (ETF e preț raw, nu indice ×10)
+      const isProxy = !!q.proxyEtf;
+      const val = (t.divide && !isProxy) ? q.last / t.divide : q.last;
+      const decimals = isProxy ? 2 : t.dec; // ETF preț are 2 zecimale
+      const fmt = (t.prefix && !isProxy)
+        ? '$' + val.toLocaleString('en-US', {maximumFractionDigits:decimals})
+        : val.toLocaleString('en-US', {minimumFractionDigits:decimals, maximumFractionDigits:decimals}) + (isProxy ? '' : (t.suffix || ''));
       const dirClass = q.chgPct >= 0 ? 'up' : 'down';
       const arrow = q.chgPct >= 0 ? '▲' : '▼';
       const tileClass = t.invertedColor
@@ -1710,10 +1749,13 @@ async function loadStatTiles() {
         : (q.chgPct >= 0 ? 'bull' : 'bear');
       const tile = $(t.id);
       tile.className = 'stat-tile ' + tileClass;
-      tile.title = '';
+      tile.title = isProxy ? `ETF proxy (${q.proxyEtf}) — Yahoo Finance pică momentan, folosim ETF echivalent pentru direcție.` : '';
+      const subText = isProxy
+        ? `${arrow} ${fmtPct(q.chgPct,2)} · <span class="proxy-marker">via ${escHtml(q.proxyEtf)}</span>`
+        : `${arrow} ${fmtPct(q.chgPct,2)} · ${t.sub}`;
       tile.innerHTML = `<span class="stat-label">${t.label}</span>
         <span class="stat-value">${fmt}</span>
-        <span class="stat-sub ${dirClass}">${arrow} ${fmtPct(q.chgPct,2)} · ${t.sub}</span>`;
+        <span class="stat-sub ${dirClass}">${subText}</span>`;
       okCount++;
     } catch (e) { /* skip tile-ul ăsta */ }
   }
@@ -3974,12 +4016,16 @@ async function computeRiskDashboard() {
       fetchYahooChart30d('^TNX'),
       fetchYahooChart30d('^VIX')
     ]);
-    // Dacă toate fetch-urile au eșuat, returnăm null (nu afișăm tile mincinos)
-    if (!spy && !btc && !tnx && !vix) return null;
-    // VIX: din chart direct (cache shared cu stat tile dacă deja încărcat)
+    // Dacă toate fetch-urile au eșuat, încercăm fallback Finnhub /quote pentru ^VIX direct
+    let vixFallback = null;
+    if (!vix) {
+      vixFallback = await fetchFinnhubQuote('^VIX'); // încercăm direct (Finnhub free are uneori ^VIX)
+    }
+    if (!spy && !btc && !tnx && !vix && !vixFallback) return null;
+    // VIX: din chart direct sau Finnhub quote fallback
     const vixVal = vix?.points?.length
       ? (vix.meta?.regularMarketPrice ?? vix.points[vix.points.length-1].close)
-      : NaN;
+      : (vixFallback?.last ?? NaN);
     // 10Y: ^TNX returnează valoarea ×10 (ex: 4.5% = 45). Conversie ÷10.
     let tenYVal = null, tenYDelta30 = null;
     if (tnx?.points?.length > 10) {
