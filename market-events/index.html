@@ -864,6 +864,7 @@
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
   <h1>📊 Nasdaq Scanner Pro <span class="ver-badge" title="Versiune build (crește la fiecare push)">v79</span></h1>
+  <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1538,7 +1539,7 @@ async function scanEarnings() {
           <td class="num">${intradayLow}</td>
           <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
           <td>${s.sector || '-'}</td>
-          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button></td>
+          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button> <button class="btn-ai-row" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a;font-weight:800" onclick='meQuickSetup("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="🎯 Quick Setup ready-to-execute (Opus 4.7)">🎯</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -1603,7 +1604,7 @@ async function scanLosers() {
           <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
           <td class="num"><span class="${earn.cls}">${earn.text}</span></td>
           <td>${s.sector || '-'}</td>
-          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button></td>
+          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button> <button class="btn-ai-row" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a;font-weight:800" onclick='meQuickSetup("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="🎯 Quick Setup ready-to-execute">🎯</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -1786,6 +1787,129 @@ async function aiAnalyzeRow(type, s) {
     });
   };
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  QUICK SETUP — JSON ready-to-execute (Opus 4.7)
+// ═══════════════════════════════════════════════════════════════
+const ME_QS_CACHE_KEY = 'me_qs_cache_v1';
+const ME_QS_TTL = 60 * 60 * 1000; // 1h
+function meQsCacheGet(key) {
+  try { const c = JSON.parse(localStorage.getItem(ME_QS_CACHE_KEY) || '{}'); const it = c[key]; if (!it) return null;
+    if (Date.now() - it.ts > ME_QS_TTL) return null; return it.data; } catch (e) { return null; }
+}
+function meQsCacheSet(key, data) {
+  try { const c = JSON.parse(localStorage.getItem(ME_QS_CACHE_KEY) || '{}'); c[key] = { ts: Date.now(), data };
+    for (const k of Object.keys(c)) if (Date.now() - c[k].ts > 3*24*3600*1000) delete c[k];
+    localStorage.setItem(ME_QS_CACHE_KEY, JSON.stringify(c)); } catch (e) {}
+}
+
+async function meQuickSetup(type, s) {
+  const key = getAnthropicKey();
+  if (!key) { showAiKeyModal(() => meQuickSetup(type, s)); return; }
+  const cacheKey = `qs:${type}:${s.symbol}`;
+  const titleIcon = type === 'earnings' ? '⚡ Earnings' : (type === 'loser' ? '🔻 Top Loser' : '⭐ Watchlist');
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:680px">
+      <div class="ai-modal-title">🎯 Quick Setup: ${s.symbol}</div>
+      <div class="ai-modal-sub">${titleIcon} · ${(s.name || '').slice(0,60)} · ${s.sector || 'N/A'}</div>
+      <div class="ai-modal-result" id="qsResultArea"><div style="padding:18px;text-align:center;color:#a3adc1"><span style="font-size:28px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:8px;font-size:13px">Claude Opus 4.7 generează JSON ready-to-execute (5-10s)...</div></div></div>
+      <div class="ai-modal-meta" id="qsMeta"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="qsRerunBtn">↻ Re-rulează</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const result = ov.querySelector('#qsResultArea');
+  const meta = ov.querySelector('#qsMeta');
+
+  const renderSetup = (setup, source) => {
+    const confColor = setup.confidence === 'HIGH' ? '#22d66b' : (setup.confidence === 'MED' ? '#ffd86b' : '#ff4d4d');
+    const fmt$ = n => (n != null && !isNaN(n)) ? '$' + Number(n).toFixed(2) : '—';
+    const pct = (a, b) => (a != null && b != null && b !== 0) ? ((a - b) / b * 100).toFixed(2) : '—';
+    const esc = x => String(x ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const slPct = setup.entry && setup.sl ? pct(setup.sl, setup.entry) : '—';
+    const tp1Pct = setup.entry && setup.tp1 ? pct(setup.tp1, setup.entry) : '—';
+    const tp2Pct = setup.entry && setup.tp2 ? pct(setup.tp2, setup.entry) : '—';
+    const rr = setup.entry && setup.sl && setup.tp2 ? Math.abs((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '—';
+    result.innerHTML = `<div style="background:linear-gradient(180deg,rgba(247,147,26,.10),rgba(20,26,40,.4));border:1px solid rgba(247,147,26,.4);border-radius:8px;padding:14px 16px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px;margin-bottom:10px">
+        <div><div style="font-size:10px;color:#a3adc1;text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">Entry</div><div style="font-size:16px;font-weight:800;color:#f0f4fa">${fmt$(setup.entry)}</div></div>
+        <div><div style="font-size:10px;color:#a3adc1;text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">Stop Loss</div><div style="font-size:16px;font-weight:800;color:#ff4d4d">${fmt$(setup.sl)} <span style="font-size:10px;font-weight:600">${slPct}%</span></div></div>
+        <div><div style="font-size:10px;color:#a3adc1;text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">TP1</div><div style="font-size:16px;font-weight:800;color:#22d66b">${fmt$(setup.tp1)} <span style="font-size:10px;font-weight:600">${tp1Pct}%</span></div></div>
+        <div><div style="font-size:10px;color:#a3adc1;text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">TP2</div><div style="font-size:16px;font-weight:800;color:#22d66b">${fmt$(setup.tp2)} <span style="font-size:10px;font-weight:600">${tp2Pct}%</span></div></div>
+        <div><div style="font-size:10px;color:#a3adc1;text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">Sizing</div><div style="font-size:16px;font-weight:800;color:#5bb0ff">${setup.sizing_pct}% cont</div></div>
+        <div><div style="font-size:10px;color:#a3adc1;text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">R:R</div><div style="font-size:16px;font-weight:800;color:#f0f4fa">1 : ${rr}</div></div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;padding:7px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12px">
+        <div><span style="color:#a3adc1">Timeframe:</span> <strong>${esc(setup.timeframe || 'N/A')}</strong></div>
+        <div><span style="color:#a3adc1">Confidence:</span> <strong style="color:${confColor}">${esc(setup.confidence || 'N/A')}</strong></div>
+      </div>
+      ${setup.reasoning ? `<div style="margin-top:9px;padding:9px 11px;background:rgba(91,176,255,.08);border-left:3px solid #5bb0ff;border-radius:0 6px 6px 0;font-size:12px;line-height:1.5"><div style="font-size:10px;color:#a3adc1;text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">🧠 Raționament</div>${esc(setup.reasoning)}</div>` : ''}
+      <div style="margin-top:7px;padding:7px 10px;background:rgba(255,77,77,.08);border-left:3px solid #ff4d4d;border-radius:0 6px 6px 0;font-size:11.5px"><strong style="color:#ff4d4d">⚠ Risc principal:</strong> ${esc(setup.risk || 'N/A')}</div>
+      ${setup.invalidation ? `<div style="margin-top:6px;padding:7px 10px;background:rgba(212,137,44,.07);border-left:3px solid #d4892c;border-radius:0 6px 6px 0;font-size:11.5px"><strong style="color:#d4892c">🚫 Invalidare:</strong> ${esc(setup.invalidation)}</div>` : ''}
+      ${setup.catalysts ? `<div style="margin-top:6px;padding:7px 10px;background:rgba(34,214,107,.07);border-left:3px solid #22d66b;border-radius:0 6px 6px 0;font-size:11.5px"><strong style="color:#22d66b">⚡ Catalist:</strong> ${esc(setup.catalysts)}</div>` : ''}
+    </div>`;
+    meta.textContent = `✓ claude-opus-4-7 · ${source}`;
+  };
+
+  const cached = meQsCacheGet(cacheKey);
+  if (cached) { renderSetup(cached, 'cache 1h'); }
+  else { await fetchSetup(); }
+
+  ov.querySelector('#qsRerunBtn').onclick = async () => {
+    try { const c = JSON.parse(localStorage.getItem(ME_QS_CACHE_KEY) || '{}'); delete c[cacheKey]; localStorage.setItem(ME_QS_CACHE_KEY, JSON.stringify(c)); } catch (e) {}
+    result.innerHTML = `<div style="padding:18px;text-align:center;color:#a3adc1"><span style="font-size:28px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:8px;font-size:13px">Re-rulez...</div></div>`;
+    await fetchSetup();
+  };
+
+  async function fetchSetup() {
+    const isEarn = type === 'earnings';
+    const userPrompt = `${isEarn ? 'Earnings play setup' : (type === 'loser' ? 'Reversal/bounce setup' : 'Watchlist setup')} pentru ${s.symbol}:
+- Nume: ${s.name || 'N/A'}
+- Sector: ${s.sector || 'N/A'}
+- Market cap: ${NasdaqScanner.formatMcap(s.marketCap || 0)}
+- Preț: $${s.price != null ? s.price.toFixed(2) : 'N/A'}
+- Δ% zi: ${s.changePct != null ? (s.changePct >= 0 ? '+' : '') + s.changePct.toFixed(2) + '%' : 'N/A'}
+- Intraday low: ${s.intradayLowPct != null ? s.intradayLowPct.toFixed(2) + '%' : 'N/A'}
+${isEarn ? `- Earnings: în ${s.daysToEarnings} zile (${NasdaqScanner.formatTime(s.time)}), EPS forecast ${s.epsForecast || 'N/A'}` : ''}
+
+Output STRICT JSON (un singur obiect, niciun text înainte/după):
+{"entry":<număr|null>,"sl":<număr|null>,"tp1":<număr|null>,"tp2":<număr|null>,"sizing_pct":<număr 1-5>,"timeframe":"<intraday|swing 1-7z|skip>","risk":"<one-liner max 50 chars>","confidence":"<HIGH|MED|LOW>","reasoning":"<3-5 propoziții, max 400 chars>","invalidation":"<trigger care anulează, max 120 chars>","catalysts":"<events imediate, max 120 chars>"}
+
+REGULI:
+${isEarn ? '- Pre-earnings (entry înainte de raport) = risc MAXIM, sizing MAX 2%. Doar dacă context bullish clar. Altfel timeframe:"skip".\n- Post-earnings (entry după raport) = entry pe reacția inițială + IV crush.\n- TP1 = ~1× reacția medie istorică, TP2 = ~2×.' : ''}
+${type === 'loser' ? '- Top loser = posibil bounce setup (oversold). Verifică intradayLowPct: dacă <-7% și RSI probabil <30, candidat reversal.\n- Entry pe break above prev day low cu confirmare vol. SL strict sub low-ul curent.' : ''}
+${type === 'watchlist' ? '- Watchlist standard: entry market sau pullback, SL la suport tehnic, TP1/TP2 la rezistențe.\n- Sizing normal 2-3% pentru watchlist priority.' : ''}
+- risk: cea mai mare amenințare în 50 chars
+- reasoning: explică EXPLICIT în română (3-5 propoziții) — ce indicatori convergă, setup-ul tehnic, de ce acel entry/SL/TP, ce confidence și de ce.
+- invalidation: trigger clar care anulează setup-ul
+- catalysts: events imediate sau structurale care pot mișca prețul
+- confidence: HIGH/MED/LOW bazat pe context disponibil`;
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] })
+      });
+      if (!resp.ok) { const j = await resp.json().catch(() => ({ error: { message: 'HTTP ' + resp.status } })); throw new Error(j.error?.message || ('HTTP ' + resp.status)); }
+      const data = await resp.json();
+      const text = data?.content?.[0]?.text || '';
+      const start = text.indexOf('{'); const end = text.lastIndexOf('}');
+      if (start < 0 || end < 0) throw new Error('Format JSON invalid: ' + text.slice(0, 120));
+      const setup = JSON.parse(text.slice(start, end + 1));
+      meQsCacheSet(cacheKey, setup);
+      renderSetup(setup, new Date().toLocaleTimeString('ro-RO'));
+    } catch (err) {
+      result.innerHTML = `<div style="padding:12px;background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.3);border-radius:6px;color:#ff4d4d">❌ ${err.message || 'unknown'}</div>`;
+      meta.textContent = 'eroare';
+    }
+  }
+}
+window.meQuickSetup = meQuickSetup;
 
 // Init buton AI key (badge) la load
 updateAiKeyBadge();
@@ -2321,6 +2445,7 @@ function _wlRowHtml(w){
     <span class="num ${pctCls}">${pctStr}</span>
     <span class="wl-actions">
       <button class="btn-row btn-row-wl-ai" onclick='aiAnalyzeRow("watchlist", ${aiData})' title="AI">🤖</button>
+      <button class="btn-row btn-row-wl-ai" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a" onclick='meQuickSetup("watchlist", ${aiData})' title="🎯 Quick Setup">🎯</button>
       <button class="btn-row btn-row-wl-del" onclick='wlRemove("${w.symbol}")' title="Șterge">✕</button>
     </span>
   </div>`;
