@@ -183,7 +183,7 @@ button.primary {
 <body>
 
 <header>
-  <h1>🎯 Today's Playbook <span class="ver-badge" id="verBadge">v2</span></h1>
+  <h1>🎯 Today's Playbook <span class="ver-badge" id="verBadge">v3</span></h1>
   <span class="date-pill" id="datePill">—</span>
   <span class="session-pill" id="sessionPill">⏳ —</span>
   <button id="refreshBtn" class="primary">🔄 Refresh</button>
@@ -238,7 +238,7 @@ button.primary {
   <div class="pb-section-head">
     <h3>📌 Watchlist events (14-30 zile)</h3>
     <span class="pb-count" id="cntWlEvents">—</span>
-    <span class="pb-go" style="cursor:default;color:var(--t3)">earnings · dividends · splits</span>
+    <span class="pb-go" style="cursor:default;color:var(--t3)">earnings · dividends · splits · presentations</span>
   </div>
   <div class="pb-section-body" id="bodyWlEvents">
     <div class="pb-loading">se agregă events din watchlist...</div>
@@ -594,9 +594,38 @@ async function loadWatchlistEvents() {
         return (Array.isArray(d) ? d : []).map(x => ({ symbol: t, ...x }));
       } catch (e) { return []; }
     });
-    const [divResults, splitResults] = await Promise.all([Promise.all(divPromises), Promise.all(splitPromises)]);
+    // 2b. Presentations din news headlines (ultimele 7 zile, filter keyword)
+    const PRES_KEYWORDS = /\b(conference|investor day|analyst day|presents at|presenting at|keynote|shareholder meeting|product launch|investor briefing|investor update|fireside chat|webcast|analyst meeting|annual meeting|investor presentation|to present)\b/i;
+    const newsFrom = new Date(Date.now() - 7*86400000).toISOString().slice(0,10);
+    const presPromises = tickers.map(async t => {
+      try {
+        const r = await fetch(`https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(t)}&from=${newsFrom}&to=${today}&token=${encodeURIComponent(key)}`);
+        if (!r.ok) return [];
+        const list = await r.json();
+        if (!Array.isArray(list)) return [];
+        // Filter + dedupe pe headline + max 2 per ticker
+        const filtered = list.filter(n => PRES_KEYWORDS.test(n.headline || ''));
+        const seen = new Set();
+        const out = [];
+        for (const n of filtered) {
+          const k = (n.headline || '').slice(0, 50).toLowerCase();
+          if (seen.has(k)) continue;
+          seen.add(k);
+          out.push({ symbol: t, headline: n.headline, url: n.url, datetime: n.datetime, source: n.source });
+          if (out.length >= 2) break;
+        }
+        return out;
+      } catch (e) { return []; }
+    });
+
+    const [divResults, splitResults, presResults] = await Promise.all([
+      Promise.all(divPromises),
+      Promise.all(splitPromises),
+      Promise.all(presPromises)
+    ]);
     const dividends = divResults.flat();
     const splits = splitResults.flat();
+    const presentations = presResults.flat();
 
     // 3. Combina și normalize
     const events = [
@@ -611,7 +640,15 @@ async function loadWatchlistEvents() {
       ...splits.map(s => ({
         type: 'split', date: s.date, symbol: s.symbol,
         ratio: (s.toFactor && s.fromFactor) ? `${s.toFactor}-for-${s.fromFactor}` : (s.ratio || '—')
-      })).filter(s => s.date && s.date >= today && s.date <= in30)
+      })).filter(s => s.date && s.date >= today && s.date <= in30),
+      ...presentations.map(p => ({
+        type: 'presentation',
+        date: new Date((p.datetime || 0) * 1000).toISOString().slice(0,10),
+        symbol: p.symbol,
+        headline: p.headline,
+        url: p.url,
+        source: p.source
+      }))
     ].sort((a,b) => a.date.localeCompare(b.date));
 
     // Cache
@@ -659,6 +696,14 @@ function renderWlEvents(events) {
       } else if (e.type === 'split') {
         typeChip = '<span class="chip high">✂ Split</span>';
         details = `ratio <b>${escHtml(e.ratio)}</b>`;
+      } else if (e.type === 'presentation') {
+        typeChip = '<span class="chip" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">🎤 Presentation</span>';
+        const trunc = (s, n) => s && s.length > n ? s.slice(0, n) + '…' : (s || '');
+        const headline = trunc(e.headline, 75);
+        const sourceStr = e.source ? ` · <span style="color:var(--t3)">${escHtml(e.source)}</span>` : '';
+        details = e.url
+          ? `<a href="${escHtml(e.url)}" target="_blank" rel="noopener" style="color:var(--t1);text-decoration:none" title="${escHtml(e.headline || '')}">${escHtml(headline)}</a>${sourceStr}`
+          : escHtml(headline);
       }
       return `<tr>
         <td class="time-cell"><span>${dt.dStr}</span><span class="t-til">${dt.til}</span></td>
