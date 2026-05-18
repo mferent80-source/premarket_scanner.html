@@ -795,7 +795,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v168</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v169</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1662,6 +1662,19 @@ async function fetchCryptoChartFromCoinGecko(coinId, days = 60) {
 }
 async function fetchBtcChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('bitcoin'); }
 async function fetchEthChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('ethereum'); }
+
+// Helper unified: încearcă în ordine Yahoo proxy → CoinGecko (crypto) → Finnhub ETF candle → TwelveData ETF
+async function fetchChartWithFallback(yahooSym, days = 90) {
+  let d = await fetchYahooChart30d(yahooSym);
+  if (d?.points?.length) return d;
+  if (yahooSym === 'BTC-USD') { d = await fetchBtcChartFromCoinGecko(); if (d?.points?.length) return d; }
+  if (yahooSym === 'ETH-USD') { d = await fetchEthChartFromCoinGecko(); if (d?.points?.length) return d; }
+  const etf = ETF_PROXY_MAP[yahooSym];
+  if (etf) { d = await fetchFinnhubCandle(etf, days); if (d?.points?.length) return d; }
+  const tdSym = TWELVEDATA_SYMBOL_MAP[yahooSym];
+  if (tdSym) { d = await fetchTwelveDataChart(tdSym, days); if (d?.points?.length) return d; }
+  return null;
+}
 
 // Finnhub /stock/candle pentru ETF (no proxy CORS). ⚠ FINNHUB a băgat /candle pe paywall
 // recent (2024+) — pentru free tier returnează 403 chiar pe ETF. Lăsăm funcția dar o folosim
@@ -4130,16 +4143,15 @@ function returnsFromAligned(aligned) {
 async function computeRiskDashboard() {
   if (RISK_STATE && Date.now() - RISK_STATE.ts < RISK_CACHE_TTL) return RISK_STATE;
   try {
-    // Folosim fetchYahooQuote pentru valori curente (lanț complet de fallback Yahoo→ETF/CoinGecko).
-    // Pentru chart 30d (pentru Δ30z + correlation) folosim fetchYahooChart30d cu fallback dedicat.
-    const btcPromise = fetchYahooChart30d('BTC-USD').then(d => d || fetchBtcChartFromCoinGecko());
+    // Folosim fetchChartWithFallback (Yahoo proxy → CoinGecko/ETF Finnhub/TwelveData) pentru tot.
+    // fetchYahooQuote rămâne pentru valori curente cu fallback ETF/CoinGecko.
     const [vixQ, tnxQ, spyChart, btcChart, tnxChart, vixChart] = await Promise.all([
       fetchYahooQuote('^VIX'),
       fetchYahooQuote('^TNX'),
-      fetchYahooChart30d('SPY'),
-      btcPromise,
-      fetchYahooChart30d('^TNX'),
-      fetchYahooChart30d('^VIX')
+      fetchChartWithFallback('SPY'),
+      fetchChartWithFallback('BTC-USD'),
+      fetchChartWithFallback('^TNX'),
+      fetchChartWithFallback('^VIX')
     ]);
     if (!vixQ && !tnxQ && !spyChart && !btcChart) return null;
 
@@ -4262,43 +4274,65 @@ function renderRiskTile() {
 }
 
 function drillRiskDashboard() {
-  if (!RISK_STATE) {
-    openGenericModal('🛡 Risk Dashboard', 'Se calculează...', '<div class="drill-loading"><div class="dl-icon">📊</div><div>Aduc datele 30 zile (SPY + BTC + 10Y)...</div></div>');
-    computeRiskDashboard().then(() => { if (RISK_STATE) renderRiskDrillBody(); });
-    return;
-  }
-  renderRiskDrillBody();
+  // Deschide modal cu loading și forțează recompute fresh (evităm cache stale)
+  openGenericModal('🛡 Risk Dashboard', 'Se calculează...', '<div class="drill-loading"><div class="dl-icon">📊</div><div>Aduc datele 30 zile (SPY + BTC + ^TNX + ^VIX)...</div></div>');
+  // Reset cache parțial ca să folosim datele fresh dacă proxy a revenit între timp
+  RISK_STATE = null;
+  computeRiskDashboard().then(() => {
+    if (RISK_STATE) renderRiskDrillBody();
+    else {
+      $('gmBody').innerHTML = `<div class="drill-error">
+        <div style="font-size:18px;margin-bottom:8px">❌ Risk Dashboard indisponibil momentan</div>
+        <div style="font-size:13px;line-height:1.6;color:var(--t2);margin-bottom:14px">
+          Toate sursele pentru SPY/BTC/^TNX/^VIX au eșuat (Yahoo proxy CORS blocat, Finnhub /candle premium, TwelveData lipsă cheie sau rate limit).
+          Tile-urile individuale pot afișa valori curente prin fallback ETF, dar pentru calculul composite ai nevoie de chart 30d pe cel puțin SPY și BTC.
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button class="primary" id="riskRetry">🔄 Retry</button>
+          <button class="ghost" id="riskClose">Închide</button>
+        </div>
+      </div>`;
+      $('riskRetry')?.addEventListener('click', () => { PROXY_DEAD.clear(); _proxyResetTs = Date.now(); _chartCache?.clear(); drillRiskDashboard(); });
+      $('riskClose')?.addEventListener('click', () => $('genericModal').classList.remove('show'));
+    }
+  });
 }
 
 function renderRiskDrillBody() {
   const s = RISK_STATE;
-  openGenericModal('🛡 Risk Dashboard', `Composite score: ${s.composite >= 0 ? '+' : ''}${s.composite}`, '');
-  const corrPct = s.corr != null ? (s.corr * 100).toFixed(0) + '%' : '—';
-  const tenYDeltaStr = s.tenYDelta30 != null ? (s.tenYDelta30 >= 0 ? '+' : '') + s.tenYDelta30.toFixed(0) + ' bp' : '—';
+  if (!s) return;
+  // Helpers defensive
+  const f2 = v => (v != null && !isNaN(v)) ? Number(v).toFixed(2) : '—';
+  const intSigned = v => (v == null || isNaN(v)) ? '—' : ((v >= 0 ? '+' : '') + Math.round(v));
+  const composite = s.composite ?? 0;
+  const sign = composite >= 0 ? '+' : '';
+  const corrPct = (s.corr != null && !isNaN(s.corr)) ? Math.round(s.corr * 100) + '%' : '—';
+  const tenYDeltaStr = (s.tenYDelta30 != null && !isNaN(s.tenYDelta30)) ? ((s.tenYDelta30 >= 0 ? '+' : '') + Math.round(s.tenYDelta30) + ' bp') : '—';
   const recommend = buildRiskRecommendation(s);
-  const body = `
-    <div class="risk-verdict" style="color:${s.color}">${s.label}</div>
+  openGenericModal('🛡 Risk Dashboard', `Composite score: ${sign}${composite}`, '');
+  $('gmBody').innerHTML = `
+    <div class="risk-verdict" style="color:${s.color || 'var(--t1)'}">${escHtml(s.label || '—')}</div>
     <div class="risk-recommend">${recommend}</div>
     <div class="risk-grid">
       <div class="risk-card">
         <div class="risk-card-head">📊 VIX (Volatility)</div>
-        <div class="risk-card-val">${!isNaN(s.vix) ? s.vix.toFixed(2) : '—'}</div>
-        <div class="risk-card-label">${escHtml(s.vixLabel)}</div>
-        <div class="risk-card-score">${s.vixScore >= 0 ? '+' : ''}${s.vixScore}</div>
+        <div class="risk-card-val">${f2(s.vix)}</div>
+        <div class="risk-card-label">${escHtml(s.vixLabel || 'N/A')}</div>
+        <div class="risk-card-score">score ${intSigned(s.vixScore)}</div>
         <div class="risk-card-help">Repere: &lt;12 complacency · 12-18 calm · 18-25 caut · 25-30 fear · &gt;30 stress.</div>
       </div>
       <div class="risk-card">
         <div class="risk-card-head">📈 10Y Yield (Δ 30z)</div>
-        <div class="risk-card-val">${s.tenY != null ? s.tenY.toFixed(2) + '%' : '—'}</div>
-        <div class="risk-card-label">${escHtml(s.tenYLabel)}</div>
-        <div class="risk-card-score">${s.tenYScore >= 0 ? '+' : ''}${s.tenYScore} · Δ ${tenYDeltaStr}</div>
+        <div class="risk-card-val">${s.tenY != null ? f2(s.tenY) + '%' : '—'}</div>
+        <div class="risk-card-label">${escHtml(s.tenYLabel || 'N/A')}</div>
+        <div class="risk-card-score">score ${intSigned(s.tenYScore)} · Δ ${tenYDeltaStr}</div>
         <div class="risk-card-help">Drop puternic &gt;25bp = recession concerns. Spike &gt;25bp = hawkish/inflation.</div>
       </div>
       <div class="risk-card">
         <div class="risk-card-head">ρ BTC/SPY corr 30d</div>
         <div class="risk-card-val">${corrPct}</div>
-        <div class="risk-card-label">${escHtml(s.corrLabel)}</div>
-        <div class="risk-card-score">${s.corrScore >= 0 ? '+' : ''}${s.corrScore}</div>
+        <div class="risk-card-label">${escHtml(s.corrLabel || 'N/A')}</div>
+        <div class="risk-card-score">score ${intSigned(s.corrScore)}</div>
         <div class="risk-card-help">&gt;60% = risk-on aligned (BTC urmează stocks). &lt;20% = decoupled (BTC ca hedge).</div>
       </div>
     </div>
@@ -4306,7 +4340,6 @@ function renderRiskDrillBody() {
       <b>Scor composit:</b> ≥+3 RISK-ON · +1/+2 LEAN ON · -1/0 NEUTRAL · -2/-3 CAUTIOUS · -4/-5 RISK-OFF · ≤-6 STRESS
     </div>
   `;
-  $('gmBody').innerHTML = body;
 }
 
 function buildRiskRecommendation(s) {
