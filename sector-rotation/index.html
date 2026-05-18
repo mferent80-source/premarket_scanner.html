@@ -3,58 +3,610 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#0b0f17">
 <title>Sector Rotation · Trading Tools</title>
+<link rel="manifest" href="../manifest.webmanifest">
 <style>
 :root{
-  --bg:#0b0f17; --bg2:#11161f; --panel:#161b26; --br:#262e3d;
+  --bg:#0b0f17; --bg2:#11161f; --panel:#161b26; --br:#262e3d; --br2:#2f384a;
   --txt:#e8edf5; --txt-d:#94a3b8; --txt-dd:#64748b;
-  --acc:#3b82f6; --gold:#f7931a; --green:#22c55e; --red:#ef4444;
-  --crypto-1:#f7931a; --crypto-2:#ffd86b; --teal:#0891b2; --emerald:#22d66b;
+  --teal:#0891b2; --emerald:#10b981; --emerald-l:#22d66b;
+  --green:#22c55e; --red:#ef4444; --yellow:#facc15; --orange:#f59e0b;
+  --crypto-1:#f7931a; --crypto-2:#ffd86b;
+  --shadow:0 4px 20px rgba(0,0,0,.35);
 }
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;font-variant-numeric:tabular-nums}
-.brand{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1a2233,#11161f);
-  border:1px solid var(--br);padding:8px 14px;border-radius:10px;margin-bottom:24px;font-size:13px;color:var(--txt-d)}
-.brand .dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--emerald))}
-.icon{font-size:64px;margin-bottom:16px;filter:drop-shadow(0 4px 14px rgba(8,145,178,.35))}
-h1{font-size:32px;margin:0 0 8px;background:linear-gradient(90deg,var(--teal),var(--emerald));
-  -webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700;letter-spacing:-.5px;text-align:center}
-.tag{display:inline-block;background:rgba(8,145,178,.12);color:var(--teal);border:1px solid rgba(8,145,178,.3);
-  padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600;margin-bottom:16px}
-.desc{color:var(--txt-d);max-width:560px;text-align:center;margin:0 0 28px;line-height:1.6}
-.feats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:560px;width:100%;margin-bottom:28px}
-.feat{background:var(--panel);border:1px solid var(--br);border-left:3px solid var(--teal);
-  padding:10px 14px;border-radius:8px;font-size:13px;color:var(--txt-d)}
-.feat strong{color:var(--txt);display:block;margin-bottom:2px;font-size:13.5px}
-.cta{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));
-  color:#0b0f17;padding:11px 22px;border-radius:10px;font-weight:700;text-decoration:none;font-size:14px;
-  box-shadow:0 4px 14px rgba(247,147,26,.3)}
-.cta:hover{transform:translateY(-1px)}
-.eta{font-size:12px;color:var(--txt-dd);margin-top:18px;font-style:italic}
-@media(max-width:560px){.feats{grid-template-columns:1fr}h1{font-size:26px}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  font-variant-numeric:tabular-nums;min-height:100vh;padding-bottom:40px}
+
+/* ── HEADER STICKY ── */
+.hdr{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,rgba(11,15,23,.96),rgba(11,15,23,.88));
+  backdrop-filter:blur(10px);border-bottom:1px solid var(--br);box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.hdr-in{max-width:1400px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:9px}
+.brand-icon{font-size:24px;filter:drop-shadow(0 2px 8px rgba(8,145,178,.5))}
+h1{font-size:18px;font-weight:700;letter-spacing:-.3px;background:linear-gradient(90deg,var(--teal),var(--emerald-l));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.ver-badge{font-size:10px;background:rgba(8,145,178,.15);color:var(--teal);border:1px solid rgba(8,145,178,.35);
+  padding:2px 7px;border-radius:99px;font-weight:600;letter-spacing:.3px}
+.pill{font-size:11px;padding:4px 10px;border-radius:99px;font-weight:600;display:inline-flex;align-items:center;gap:5px;
+  background:var(--bg2);border:1px solid var(--br);color:var(--txt-d)}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:var(--txt-dd)}
+.pill.open .dot{background:var(--green);box-shadow:0 0 8px var(--green)}
+.pill.pre  .dot{background:var(--yellow);box-shadow:0 0 8px var(--yellow)}
+.pill.after .dot{background:var(--orange);box-shadow:0 0 8px var(--orange)}
+.pill.closed .dot{background:var(--red)}
+.hdr-spc{flex:1}
+.btn{background:var(--bg2);border:1px solid var(--br);color:var(--txt);padding:7px 12px;border-radius:8px;
+  font-size:13px;cursor:pointer;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{background:var(--panel);border-color:var(--br2)}
+.btn:active{transform:translateY(1px)}
+.btn-a{background:linear-gradient(135deg,var(--teal),var(--emerald));color:#fff;border:none;font-weight:600}
+.btn-a:hover{filter:brightness(1.1)}
+.btn-icon{padding:7px 9px;font-size:14px}
+
+/* ── MAIN ── */
+.wrap{max-width:1400px;margin:18px auto;padding:0 18px;display:flex;flex-direction:column;gap:18px}
+.section-title{font-size:11px;font-weight:600;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.8px;
+  margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--br),transparent)}
+
+/* ── STATS STRIP ── */
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+@media(max-width:1100px){.stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--panel);border:1px solid var(--br);border-radius:10px;padding:12px 14px;display:flex;
+  flex-direction:column;gap:4px;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--teal);opacity:.6}
+.stat.hot::before{background:var(--green)}
+.stat.cold::before{background:var(--red)}
+.stat.best::before{background:var(--emerald-l)}
+.stat.worst::before{background:var(--orange)}
+.stat-label{font-size:10.5px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.stat-val{font-size:22px;font-weight:700;color:var(--txt);letter-spacing:-.5px;line-height:1.1}
+.stat-sub{font-size:11px;color:var(--txt-d)}
+
+/* ── RISK REGIME PILL ── */
+.risk-bar{background:var(--panel);border:1px solid var(--br);border-radius:10px;padding:12px 16px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.risk-pill{font-size:13px;font-weight:700;padding:6px 14px;border-radius:99px;display:inline-flex;align-items:center;gap:6px;
+  background:var(--bg2);border:1px solid var(--br);color:var(--txt-d)}
+.risk-pill.on{background:rgba(34,197,94,.12);color:var(--green);border-color:rgba(34,197,94,.4);box-shadow:0 0 18px rgba(34,197,94,.18)}
+.risk-pill.off{background:rgba(239,68,68,.12);color:var(--red);border-color:rgba(239,68,68,.4);box-shadow:0 0 18px rgba(239,68,68,.18)}
+.risk-pill.neutral{background:rgba(250,204,21,.1);color:var(--yellow);border-color:rgba(250,204,21,.35)}
+.risk-detail{font-size:12px;color:var(--txt-d);flex:1;min-width:200px}
+.risk-detail b{color:var(--txt)}
+
+/* ── HEATMAP ── */
+.heatmap{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.heat-card{background:var(--panel);border:1px solid var(--br);border-radius:10px;padding:12px 14px;
+  cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden;min-height:96px}
+.heat-card:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,0,0,.4)}
+.heat-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--br2)}
+.heat-card.h5::before{background:#15803d}.heat-card.h5{background:linear-gradient(135deg,rgba(21,128,61,.22),var(--panel))}
+.heat-card.h4::before{background:#22c55e}.heat-card.h4{background:linear-gradient(135deg,rgba(34,197,94,.16),var(--panel))}
+.heat-card.h3::before{background:#86efac}.heat-card.h3{background:linear-gradient(135deg,rgba(134,239,172,.1),var(--panel))}
+.heat-card.h2::before{background:#64748b}.heat-card.h2{background:linear-gradient(135deg,rgba(100,116,139,.08),var(--panel))}
+.heat-card.h1::before{background:#fca5a5}.heat-card.h1{background:linear-gradient(135deg,rgba(252,165,165,.1),var(--panel))}
+.heat-card.h0::before{background:#ef4444}.heat-card.h0{background:linear-gradient(135deg,rgba(239,68,68,.16),var(--panel))}
+.heat-card.hN::before{background:#991b1b}.heat-card.hN{background:linear-gradient(135deg,rgba(153,27,27,.22),var(--panel))}
+.heat-sym{font-size:15px;font-weight:700;letter-spacing:.3px;color:var(--txt)}
+.heat-name{font-size:11px;color:var(--txt-d);margin-bottom:8px;line-height:1.3}
+.heat-pct{font-size:22px;font-weight:700;letter-spacing:-.5px}
+.heat-pct.up{color:var(--green)}
+.heat-pct.dn{color:var(--red)}
+.heat-pct.flat{color:var(--txt-dd)}
+.heat-sub{font-size:10.5px;color:var(--txt-dd);margin-top:3px}
+
+/* ── TABEL ── */
+.table-wrap{background:var(--panel);border:1px solid var(--br);border-radius:10px;overflow:hidden}
+.table-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--br);flex-wrap:wrap;background:var(--bg2)}
+.sort-chip{font-size:12px;padding:5px 11px;border-radius:99px;background:var(--bg);border:1px solid var(--br);
+  color:var(--txt-d);cursor:pointer;font-weight:500;transition:all .15s}
+.sort-chip:hover{border-color:var(--br2);color:var(--txt)}
+.sort-chip.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.tbl-info{font-size:11px;color:var(--txt-dd);margin-left:auto}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.5px;font-weight:600;
+  padding:10px 12px;border-bottom:1px solid var(--br);text-align:left;background:var(--bg2);cursor:pointer;user-select:none}
+th:hover{color:var(--txt)}
+th.sort-active{color:var(--teal)}
+th.sort-active::after{content:' ▼';font-size:9px}
+th.sort-active.asc::after{content:' ▲'}
+td{padding:11px 12px;border-bottom:1px solid var(--br);font-size:13.5px;color:var(--txt)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.015)}
+.td-sym{font-weight:700;color:var(--teal);font-size:14px;letter-spacing:.3px}
+.td-name{color:var(--txt-d);font-size:12px}
+.td-pct{font-weight:600;font-variant-numeric:tabular-nums}
+.td-pct.up{color:var(--green)}
+.td-pct.dn{color:var(--red)}
+.td-pct.flat{color:var(--txt-dd)}
+.tcell-num{text-align:right;font-variant-numeric:tabular-nums}
+.spark-mini{width:80px;height:24px;display:inline-block;vertical-align:middle}
+
+/* ── EMPTY / LOADING ── */
+.empty{padding:60px 24px;text-align:center;color:var(--txt-d)}
+.empty .emoji{font-size:54px;margin-bottom:14px}
+.empty h3{font-size:17px;font-weight:600;color:var(--txt);margin-bottom:6px}
+.empty p{font-size:13px;line-height:1.6;max-width:480px;margin:0 auto 16px}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--br);border-top-color:var(--teal);
+  border-radius:50%;animation:spin 0.7s linear infinite;vertical-align:-3px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.pulse-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--teal);
+  margin-right:5px;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+
+/* ── MODAL ── */
+.mo{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:20px}
+.mo.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--br);border-radius:14px;padding:20px 22px;max-width:480px;
+  width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow)}
+.mt{font-size:17px;font-weight:700;margin-bottom:14px;color:var(--txt)}
+.mf{margin-top:18px;display:flex;gap:8px;justify-content:flex-end}
+.frow{margin-bottom:12px}
+.flbl{display:block;font-size:11.5px;color:var(--txt-d);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.finp,select{width:100%;background:var(--bg);border:1px solid var(--br);color:var(--txt);padding:9px 11px;
+  border-radius:8px;font-size:13px;font-family:inherit}
+.finp:focus,select:focus{outline:none;border-color:var(--teal)}
+
+.footer{text-align:center;padding:24px;color:var(--txt-dd);font-size:12px}
+.footer a{color:var(--teal);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+
+@media(max-width:720px){
+  h1{font-size:15px}
+  .heatmap{grid-template-columns:repeat(2,1fr)}
+  .spark-mini{display:none}
+  td,th{padding:9px 8px;font-size:12.5px}
+}
 </style>
 </head>
-<body>
-<div class="brand"><span class="dot"></span> Trading Tools · Premarket Suite</div>
-<div class="icon">🌐</div>
-<span class="tag">În construcție</span>
-<h1>Sector Rotation</h1>
-<p class="desc">Auto-scan ETF-uri sectoare (XLF/XLE/XLK/XLV/XLY etc.) cu detecție rotație clară
-  și momentum shifts hot/cold per perioadă (1d/1w/1m).</p>
+<body class="dark">
 
-<div class="feats">
-  <div class="feat"><strong>📊 11 ETFs sectoare</strong>XLF · XLE · XLK · XLV · XLY · XLP · XLI · XLU · XLB · XLRE · XLC</div>
-  <div class="feat"><strong>🗺️ Heatmap rotație</strong>Vizualizare hot/cold cu performanță relativă</div>
-  <div class="feat"><strong>🔄 Momentum shifts</strong>1 zi · 1 săpt · 1 lună cu sortare dinamică</div>
-  <div class="feat"><strong>⚡ Alert rotație</strong>Notificare când un sector trece din rece în cald</div>
-  <div class="feat"><strong>📈 Top stocks/sector</strong>Click pe sector → top 5 stocks mover din ETF</div>
-  <div class="feat"><strong>🧭 Defensive vs Cyclical</strong>Risk-on vs risk-off detection</div>
+<header class="hdr">
+  <div class="hdr-in">
+    <div class="brand">
+      <span class="brand-icon">🌐</span>
+      <h1>Sector Rotation</h1>
+    </div>
+    <span class="ver-badge" id="verBadge">v148</span>
+    <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
+    <div class="hdr-spc"></div>
+    <button class="btn" id="scanBtn">🔄 SCAN</button>
+    <button class="btn btn-icon" id="settingsBtn" title="Setări">⚙</button>
+    <a href="../" class="btn btn-icon" title="Înapoi la Hub">🏠</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- STATS STRIP -->
+  <section>
+    <div class="stats" id="statsStrip">
+      <div class="stat"><div class="stat-label">Status</div><div class="stat-val" id="statStatus">—</div><div class="stat-sub" id="statTime">Apasă SCAN</div></div>
+      <div class="stat hot"><div class="stat-label">🔥 Hot (Δ1w > +1%)</div><div class="stat-val" id="statHot">—</div><div class="stat-sub">sectoare</div></div>
+      <div class="stat cold"><div class="stat-label">❄ Cold (Δ1w < -1%)</div><div class="stat-val" id="statCold">—</div><div class="stat-sub">sectoare</div></div>
+      <div class="stat best"><div class="stat-label">🏆 Best 1w</div><div class="stat-val" id="statBest">—</div><div class="stat-sub" id="statBestPct">—</div></div>
+      <div class="stat worst"><div class="stat-label">💀 Worst 1w</div><div class="stat-val" id="statWorst">—</div><div class="stat-sub" id="statWorstPct">—</div></div>
+    </div>
+  </section>
+
+  <!-- RISK REGIME -->
+  <section class="risk-bar" id="riskBar">
+    <span class="risk-pill" id="riskPill"><span>🧭</span><span id="riskPillTxt">— Risc detectat după scan —</span></span>
+    <div class="risk-detail" id="riskDetail">Cyclical (XLK·XLY·XLF·XLI·XLC) vs Defensive (XLU·XLP·XLV)</div>
+  </section>
+
+  <!-- HEATMAP -->
+  <section>
+    <div class="section-title">🗺️ Heatmap rotație (Δ 1 săpt.)</div>
+    <div class="heatmap" id="heatmap">
+      <div class="empty" style="grid-column:1/-1">
+        <div class="emoji">🌐</div>
+        <h3>Apasă <b>🔄 SCAN</b> ca să încarci datele</h3>
+        <p>Pagina folosește Yahoo Finance prin proxy CORS. Trebuie origin real (GitHub Pages) — <b>NU merge din file://</b>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABEL -->
+  <section>
+    <div class="section-title">📊 Tabel sectoare</div>
+    <div class="table-wrap">
+      <div class="table-bar">
+        <span class="sort-chip" data-sort="chg1d">Δ 1z</span>
+        <span class="sort-chip active" data-sort="chg1w">Δ 1săpt</span>
+        <span class="sort-chip" data-sort="chg1m">Δ 1lună</span>
+        <span class="sort-chip" data-sort="chg3m">Δ 3luni</span>
+        <span class="sort-chip" data-sort="chgYTD">Δ YTD</span>
+        <span class="tbl-info" id="tblInfo">11 sectoare</span>
+      </div>
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th data-col="sym">Sector</th>
+            <th data-col="price" class="tcell-num">Preț</th>
+            <th data-col="chg1d" class="tcell-num">Δ 1z</th>
+            <th data-col="chg1w" class="tcell-num sort-active">Δ 1săpt</th>
+            <th data-col="chg1m" class="tcell-num">Δ 1lună</th>
+            <th data-col="chg3m" class="tcell-num">Δ 3luni</th>
+            <th data-col="chgYTD" class="tcell-num">Δ YTD</th>
+            <th data-col="spark">30z</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody">
+          <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--txt-dd)">— niciun scan încă —</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <a href="../">← Înapoi la Hub Trading Tools</a> · Date: <a href="https://finance.yahoo.com" target="_blank" rel="noopener">Yahoo Finance</a> via proxy CORS
+</footer>
+
+<!-- SETTINGS MODAL -->
+<div class="mo" id="settingsModal" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="mt">⚙ Setări</div>
+    <div class="frow">
+      <label class="flbl" for="cfgInterval">Auto-scan interval</label>
+      <select id="cfgInterval">
+        <option value="0">OFF (manual)</option>
+        <option value="60000">60 s</option>
+        <option value="180000">3 min</option>
+        <option value="300000" selected>5 min (recomandat)</option>
+        <option value="600000">10 min</option>
+      </select>
+    </div>
+    <div class="frow">
+      <label class="flbl" for="cfgThreshold">Prag „hot / cold" (% Δ 1săpt)</label>
+      <input class="finp" type="number" id="cfgThreshold" min="0.1" max="10" step="0.1" value="1.0">
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="closeModal('settingsModal')">Anulează</button>
+      <button class="btn btn-a" id="settingsSaveBtn">Salvează</button>
+    </div>
+  </div>
 </div>
 
-<a href="../" class="cta">← Înapoi la Hub</a>
-<div class="eta">⏰ ETA: după Earnings Hub</div>
+<script>
+'use strict';
 
-<script>document.body.classList.add('dark');try{localStorage.setItem('darkMode','1')}catch(e){}</script>
+// ═══════════════════════════════════════════════════════════════
+//   SECTOR ROTATION · v148 PAS 1
+//   11 SPDR Sector ETFs · Yahoo Finance via proxy CORS
+// ═══════════════════════════════════════════════════════════════
+
+const VER = 'v148';
+
+// SPDR Sector ETFs (Select Sector SPDRs — cele 11 oficiale)
+const SECTORS = [
+  { sym:'XLK',  name:'Technology',          group:'cyclical'  },
+  { sym:'XLY',  name:'Consumer Disc.',      group:'cyclical'  },
+  { sym:'XLC',  name:'Communication Serv.', group:'cyclical'  },
+  { sym:'XLF',  name:'Financials',          group:'cyclical'  },
+  { sym:'XLI',  name:'Industrials',         group:'cyclical'  },
+  { sym:'XLB',  name:'Materials',           group:'cyclical'  },
+  { sym:'XLE',  name:'Energy',              group:'cyclical'  },
+  { sym:'XLRE', name:'Real Estate',         group:'rate'      },
+  { sym:'XLV',  name:'Health Care',         group:'defensive' },
+  { sym:'XLP',  name:'Consumer Staples',    group:'defensive' },
+  { sym:'XLU',  name:'Utilities',           group:'defensive' },
+];
+
+// ── CORS proxy chain (preluat din pump-radar v107) ──
+const CORS_PROXIES = [
+  { name:'codetabs',     build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: t => t },
+  { name:'corsproxy.io', build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),               extract: t => t },
+  { name:'cors.lol',     build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u),               extract: t => t },
+];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let _proxyIdx = 0;
+let _deadProxies = new Set();
+
+async function proxyGetJSON(targetUrl, timeoutMs = 9000){
+  const n = CORS_PROXIES.length;
+  for (let k = 0; k < n; k++){
+    const pi = (_proxyIdx + k) % n;
+    if (_deadProxies.has(pi) && _deadProxies.size < n) continue;
+    const px = CORS_PROXIES[pi];
+    try {
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), timeoutMs);
+      const r = await fetch(px.build(targetUrl), { signal: ctrl.signal });
+      clearTimeout(to);
+      if (!r.ok){ if ([400,403,408,429,502,504].includes(r.status)) _deadProxies.add(pi); continue; }
+      const raw = await r.text();
+      let d; try { d = JSON.parse(px.extract(raw)); } catch(_){ _deadProxies.add(pi); continue; }
+      _proxyIdx = pi;
+      return d;
+    } catch(e){ _deadProxies.add(pi); }
+  }
+  return null;
+}
+
+// ── Yahoo /chart parser (range 6mo daily — destul pentru toate intervalele incl. YTD până în iunie) ──
+function parseChart(symbol, d){
+  const r = d && d.chart && d.chart.result && d.chart.result[0];
+  if (!r || !r.indicators || !r.indicators.quote) return null;
+  const closeRaw = r.indicators.quote[0].close || [];
+  const tsRaw    = r.timestamp || [];
+  const meta     = r.meta || {};
+  const closes = [], times = [];
+  for (let i = 0; i < closeRaw.length; i++){
+    if (closeRaw[i] == null) continue;
+    closes.push(closeRaw[i]); times.push(tsRaw[i] || 0);
+  }
+  if (closes.length < 25) return null;
+  const price = meta.regularMarketPrice != null ? meta.regularMarketPrice : closes[closes.length-1];
+  return { symbol, price, closes, times, ts: Date.now() };
+}
+
+async function fetchSectorChart(sym){
+  // 6mo interval 1d ne dă ~126 bare — suficient pentru 1d/1w/1m/3m/YTD (YTD acoperit până în iulie)
+  const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=6mo`);
+  return d ? parseChart(sym, d) : null;
+}
+
+// ── Calcul Δ% pe intervale ──
+function pctChange(a, b){ return b > 0 ? ((a - b) / b) * 100 : 0; }
+function pctOf(arr, daysAgo){
+  if (!arr || arr.length < daysAgo + 1) return 0;
+  return pctChange(arr[arr.length-1], arr[arr.length-1 - daysAgo]);
+}
+function pctYTD(arr, times){
+  if (!arr || arr.length < 2) return 0;
+  const last = arr[arr.length-1];
+  const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime() / 1000;
+  for (let i = 0; i < times.length; i++){
+    if (times[i] >= yearStart) return pctChange(last, arr[i]);
+  }
+  return pctChange(last, arr[0]);
+}
+
+// ── Heat bucket pe Δ1w (mai granular decât 3 culori) ──
+function heatBucket(pct){
+  if (pct >=  3.0) return 'h5';
+  if (pct >=  1.5) return 'h4';
+  if (pct >=  0.3) return 'h3';
+  if (pct >= -0.3) return 'h2';
+  if (pct >= -1.5) return 'h1';
+  if (pct >= -3.0) return 'h0';
+  return 'hN';
+}
+function pctClass(p){ return p >= 0.05 ? 'up' : (p <= -0.05 ? 'dn' : 'flat'); }
+function fmtPct(p){ const s = p>=0?'+':''; return s + p.toFixed(2) + '%'; }
+function fmtPrice(p){ return p >= 100 ? p.toFixed(2) : p.toFixed(3); }
+
+// ── Sparkline SVG mic (30 zile) ──
+function sparkSVG(closes, width=80, height=24){
+  if (!closes || closes.length < 2) return '';
+  const arr = closes.slice(-30);
+  const min = Math.min(...arr), max = Math.max(...arr);
+  const rng = (max - min) || 1;
+  const dx = width / (arr.length - 1);
+  const points = arr.map((v,i) => `${(i*dx).toFixed(1)},${(height - ((v-min)/rng) * height).toFixed(1)}`).join(' ');
+  const stroke = arr[arr.length-1] >= arr[0] ? '#22c55e' : '#ef4444';
+  return `<svg class="spark-mini" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="${stroke}" stroke-width="1.5"/></svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//   STATE & CONFIG
+// ═══════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+let CFG = { interval: 300000, threshold: 1.0 };
+let DATA = []; // { sym, name, group, price, chg1d, chg1w, chg1m, chg3m, chgYTD, closes }
+let sortBy = 'chg1w';
+let sortAsc = false;
+let scanning = false;
+let autoTimer = null;
+
+function loadCfg(){
+  try { const s = JSON.parse(localStorage.getItem('sr_cfg') || '{}'); Object.assign(CFG, s); } catch(_){}
+  $('cfgInterval').value = String(CFG.interval);
+  $('cfgThreshold').value = CFG.threshold;
+}
+function saveCfg(){
+  CFG.interval = parseInt($('cfgInterval').value, 10) || 0;
+  CFG.threshold = Math.max(0.1, Math.min(10, parseFloat($('cfgThreshold').value) || 1.0));
+  try { localStorage.setItem('sr_cfg', JSON.stringify(CFG)); } catch(_){}
+  rescheduleAuto();
+  closeModal('settingsModal');
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//   MARKET SESSION (NYSE DST-aware)
+// ═══════════════════════════════════════════════════════════════
+function nyParts(){
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false,
+      weekday:'short', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const parts = fmt.formatToParts(new Date()).reduce((o,p) => (o[p.type]=p.value, o), {});
+    return { wd: parts.weekday, h: parseInt(parts.hour,10), m: parseInt(parts.minute,10) };
+  } catch(_){ const d=new Date(); return { wd:'Mon', h:d.getHours(), m:d.getMinutes() }; }
+}
+function getSession(){
+  const { wd, h, m } = nyParts();
+  if (['Sat','Sun'].includes(wd)) return { state:'closed', label:'Închis (weekend)' };
+  const mins = h * 60 + m;
+  if (mins >= 240 && mins < 570) return { state:'pre',    label:'Pre-market' };
+  if (mins >= 570 && mins < 960) return { state:'open',   label:'Deschis' };
+  if (mins >= 960 && mins < 1200) return { state:'after', label:'After-hours' };
+  return { state:'closed', label:'Închis' };
+}
+function updateSession(){
+  const s = getSession();
+  const pill = $('sessionPill'); pill.className = 'pill ' + s.state;
+  $('sessionTxt').textContent = s.label;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//   SCAN
+// ═══════════════════════════════════════════════════════════════
+async function runScan(){
+  if (scanning) return;
+  scanning = true;
+  _deadProxies = new Set();
+  $('scanBtn').disabled = true;
+  $('statStatus').innerHTML = '<span class="spinner"></span>Scanare';
+  $('statTime').textContent = 'Yahoo prin proxy…';
+
+  const results = [];
+  let okCount = 0;
+  for (const s of SECTORS){
+    const c = await fetchSectorChart(s.sym);
+    if (c){
+      okCount++;
+      results.push({
+        sym: s.sym, name: s.name, group: s.group,
+        price: c.price,
+        chg1d: pctOf(c.closes, 1),
+        chg1w: pctOf(c.closes, 5),
+        chg1m: pctOf(c.closes, 21),
+        chg3m: pctOf(c.closes, 63),
+        chgYTD: pctYTD(c.closes, c.times),
+        closes: c.closes,
+      });
+    }
+    await sleep(180);
+  }
+  DATA = results;
+  scanning = false;
+  $('scanBtn').disabled = false;
+  $('statStatus').textContent = okCount === SECTORS.length ? '✓ OK' : (okCount > 0 ? `⚠ ${okCount}/${SECTORS.length}` : '❌');
+  $('statTime').textContent = okCount > 0 ? new Date().toLocaleTimeString('ro-RO') : 'eroare proxy';
+  render();
+  rescheduleAuto();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//   RENDER
+// ═══════════════════════════════════════════════════════════════
+function render(){
+  if (!DATA.length){ return; }
+  // Sort
+  const ord = DATA.slice().sort((a,b) => sortAsc ? (a[sortBy]-b[sortBy]) : (b[sortBy]-a[sortBy]));
+
+  // Stats
+  const hot  = DATA.filter(d => d.chg1w >  CFG.threshold).length;
+  const cold = DATA.filter(d => d.chg1w < -CFG.threshold).length;
+  const best  = DATA.slice().sort((a,b) => b.chg1w - a.chg1w)[0];
+  const worst = DATA.slice().sort((a,b) => a.chg1w - b.chg1w)[0];
+  $('statHot').textContent  = hot;
+  $('statCold').textContent = cold;
+  $('statBest').textContent  = best.sym;
+  $('statBestPct').textContent  = fmtPct(best.chg1w) + ' · ' + best.name;
+  $('statWorst').textContent = worst.sym;
+  $('statWorstPct').textContent = fmtPct(worst.chg1w) + ' · ' + worst.name;
+
+  // Risk regime (cyclicals — XLK XLY XLC XLF XLI; defensives — XLU XLP XLV)
+  const cyc = DATA.filter(d => d.group === 'cyclical');
+  const def = DATA.filter(d => d.group === 'defensive');
+  const cycAvg = cyc.length ? cyc.reduce((s,d) => s+d.chg1w, 0) / cyc.length : 0;
+  const defAvg = def.length ? def.reduce((s,d) => s+d.chg1w, 0) / def.length : 0;
+  const spread = cycAvg - defAvg;
+  let regime, regimeCls;
+  if (spread >  0.6)  { regime = 'RISK-ON';  regimeCls = 'on'; }
+  else if (spread < -0.6){ regime = 'RISK-OFF'; regimeCls = 'off'; }
+  else                { regime = 'NEUTRU';   regimeCls = 'neutral'; }
+  $('riskPill').className = 'risk-pill ' + regimeCls;
+  $('riskPillTxt').textContent = regime + ' (spread ' + fmtPct(spread) + ')';
+  $('riskDetail').innerHTML = `Cyclicals (XLK·XLY·XLC·XLF·XLI·XLB·XLE) avg <b class="${pctClass(cycAvg)}" style="color:var(--${cycAvg>=0?'green':'red'})">${fmtPct(cycAvg)}</b>` +
+    ` · Defensives (XLU·XLP·XLV) avg <b class="${pctClass(defAvg)}" style="color:var(--${defAvg>=0?'green':'red'})">${fmtPct(defAvg)}</b>`;
+
+  // Heatmap (sortat după Δ1w descending mereu — vizual clar)
+  const heatOrd = DATA.slice().sort((a,b) => b.chg1w - a.chg1w);
+  $('heatmap').innerHTML = heatOrd.map(d => `
+    <div class="heat-card ${heatBucket(d.chg1w)}" title="${d.name}">
+      <div class="heat-sym">${d.sym}</div>
+      <div class="heat-name">${d.name}</div>
+      <div class="heat-pct ${pctClass(d.chg1w)}">${fmtPct(d.chg1w)}</div>
+      <div class="heat-sub">1z ${fmtPct(d.chg1d)} · 1l ${fmtPct(d.chg1m)}</div>
+    </div>`).join('');
+
+  // Table
+  $('tblBody').innerHTML = ord.map(d => `
+    <tr>
+      <td><span class="td-sym">${d.sym}</span> <span class="td-name">${d.name}</span></td>
+      <td class="tcell-num">$${fmtPrice(d.price)}</td>
+      <td class="tcell-num td-pct ${pctClass(d.chg1d)}">${fmtPct(d.chg1d)}</td>
+      <td class="tcell-num td-pct ${pctClass(d.chg1w)}">${fmtPct(d.chg1w)}</td>
+      <td class="tcell-num td-pct ${pctClass(d.chg1m)}">${fmtPct(d.chg1m)}</td>
+      <td class="tcell-num td-pct ${pctClass(d.chg3m)}">${fmtPct(d.chg3m)}</td>
+      <td class="tcell-num td-pct ${pctClass(d.chgYTD)}">${fmtPct(d.chgYTD)}</td>
+      <td class="tcell-num">${sparkSVG(d.closes)}</td>
+    </tr>`).join('');
+
+  $('tblInfo').textContent = `${DATA.length} sectoare · sort ${sortBy} ${sortAsc?'↑':'↓'}`;
+
+  // Sort chips + th highlight
+  document.querySelectorAll('.sort-chip').forEach(c => c.classList.toggle('active', c.dataset.sort === sortBy));
+  document.querySelectorAll('th').forEach(t => {
+    t.classList.toggle('sort-active', t.dataset.col === sortBy);
+    t.classList.toggle('asc', t.dataset.col === sortBy && sortAsc);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//   AUTO-SCAN
+// ═══════════════════════════════════════════════════════════════
+function rescheduleAuto(){
+  if (autoTimer){ clearTimeout(autoTimer); autoTimer = null; }
+  if (CFG.interval > 0){
+    autoTimer = setTimeout(() => runScan(), CFG.interval);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//   MODAL HELPERS
+// ═══════════════════════════════════════════════════════════════
+function openModal(id){ $(id).classList.add('show'); }
+function closeModal(id){ $(id).classList.remove('show'); }
+window.closeModal = closeModal;
+
+// ═══════════════════════════════════════════════════════════════
+//   INIT
+// ═══════════════════════════════════════════════════════════════
+function init(){
+  $('verBadge').textContent = VER;
+  loadCfg();
+  updateSession();
+  setInterval(updateSession, 30000);
+
+  $('scanBtn').addEventListener('click', runScan);
+  $('settingsBtn').addEventListener('click', () => openModal('settingsModal'));
+  $('settingsSaveBtn').addEventListener('click', saveCfg);
+  $('settingsModal').addEventListener('click', e => { if (e.target.id === 'settingsModal') closeModal('settingsModal'); });
+
+  // Sort interactions: chips + headers
+  document.querySelectorAll('.sort-chip').forEach(c => c.addEventListener('click', () => {
+    sortBy = c.dataset.sort; sortAsc = false; render();
+  }));
+  document.querySelectorAll('th[data-col]').forEach(th => th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (col === 'sym' || col === 'spark') return;
+    if (sortBy === col) sortAsc = !sortAsc; else { sortBy = col; sortAsc = false; }
+    render();
+  }));
+
+  // Auto-scan la deschidere dacă suntem pe origin real (nu file://)
+  if (location.protocol !== 'file:'){
+    setTimeout(runScan, 400);
+  }
+}
+init();
+
+// SW register
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => navigator.serviceWorker.register('../sw.js').catch(()=>{}));
+}
+</script>
+
 </body>
 </html>
