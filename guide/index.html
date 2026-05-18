@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📖 Ghid Features — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Index complet al tuturor features pe suite trading-tools: by page / by category / changelog cu search live">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📖</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0b0f17;--bg-grad:radial-gradient(1200px 600px at 50% -200px,#142533 0%,#0b0f17 55%);
+  --panel:#141a28;--panel2:#1d2537;--panel3:#222b40;
+  --b1:#2a3247;--b2:#3a4258;
+  --t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;
+  --acc-1:#3b82f6;--acc-2:#10b981;--accent:#5bb0ff;
+  --bull-s:#22d66b;--bear-s:#ff4d4d;--warn:#d4892c;--gold:#ffd86b;--purple:#a78bfa;
+  --r:12px;--rs:8px;
+  --mono:'DM Mono',monospace;--head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+html,body{min-height:100vh}
+body{
+  font-family:var(--head);background:var(--bg);background-image:var(--bg-grad);background-attachment:fixed;
+  color:var(--t1);padding:12px;font-size:14px;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;font-variant-numeric:tabular-nums;
+}
+header{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  background:linear-gradient(180deg,rgba(20,37,51,.94),rgba(20,26,40,.97));
+  padding:12px 16px;border-radius:var(--r);
+  border:1px solid var(--b1);margin-bottom:14px;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  position:sticky;top:8px;z-index:50;
+}
+header h1{
+  font-size:18px;font-weight:800;
+  background:linear-gradient(90deg,#a78bfa,#5bb0ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-right:auto;font-family:var(--head);
+}
+.ver-badge{
+  display:inline-block;padding:3px 8px;margin-left:8px;border-radius:4px;
+  background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4);
+  font-size:11px;font-weight:700;-webkit-text-fill-color:#a78bfa;font-family:var(--mono);
+}
+.nav-link{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--panel2);border:1px solid var(--b1);
+  padding:7px 12px;border-radius:var(--rs);
+  color:var(--t1);text-decoration:none;font-size:12.5px;font-weight:700;
+}
+.nav-link:hover{background:var(--accent);border-color:var(--accent);color:#000;transform:translateY(-1px)}
+
+/* Toolbar */
+.toolbar{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+  background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);
+  padding:12px 16px;margin-bottom:12px;
+}
+.view-tabs{display:flex;gap:4px;background:var(--bg);border-radius:var(--rs);padding:3px;border:1px solid var(--b1)}
+.view-tab{
+  background:transparent;border:none;color:var(--t2);
+  padding:6px 14px;border-radius:5px;font-size:12.5px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .15s ease;
+}
+.view-tab.active{background:linear-gradient(135deg,var(--acc-1),var(--acc-2));color:#fff;box-shadow:0 2px 6px rgba(59,130,246,.3)}
+.view-tab:hover:not(.active){color:var(--t1);background:var(--panel2)}
+.search-wrap{flex:1;min-width:220px;position:relative}
+.search-wrap input{
+  width:100%;background:var(--panel2);color:var(--t1);
+  border:1px solid var(--b1);padding:9px 36px 9px 14px;border-radius:var(--rs);
+  font-size:13px;font-family:inherit;
+}
+.search-wrap input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px rgba(91,176,255,.2)}
+.search-wrap::before{content:"🔍";position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;opacity:.5}
+.counter{font-family:var(--mono);font-size:11.5px;color:var(--t2);background:var(--panel3);padding:5px 10px;border-radius:999px;border:1px solid var(--b1)}
+
+/* Page sections */
+.page-section{
+  background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);
+  margin-bottom:12px;overflow:hidden;
+}
+.page-section-head{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 18px;background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border-bottom:1px solid var(--b1);cursor:pointer;
+  transition:background .15s ease;
+}
+.page-section-head:hover{background:linear-gradient(180deg,var(--panel3),var(--panel2))}
+.page-section-head h2{font-family:var(--head);font-size:15px;font-weight:800;color:var(--t1);flex:1}
+.page-section-head .feat-count{
+  background:var(--panel3);color:var(--t1);padding:2px 10px;
+  border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:700;
+  border:1px solid var(--b1);
+}
+.page-section-head .page-link{
+  background:transparent;border:1px solid var(--b1);color:var(--t2);
+  padding:4px 12px;border-radius:4px;font-family:var(--head);font-size:11.5px;
+  font-weight:700;text-decoration:none;
+}
+.page-section-head .page-link:hover{color:var(--accent);border-color:var(--accent)}
+.page-section-head .chevron{transition:transform .2s ease;color:var(--t2);font-size:14px}
+.page-section.collapsed .chevron{transform:rotate(-90deg)}
+.page-section.collapsed .features-grid{display:none}
+
+.features-grid{
+  padding:12px 16px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;
+}
+.feat-card{
+  background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);
+  padding:10px 12px;display:flex;flex-direction:column;gap:5px;
+  position:relative;transition:all .15s ease;
+}
+.feat-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.feat-card.new::before{
+  content:"NOU";position:absolute;top:-6px;right:-6px;
+  background:linear-gradient(135deg,var(--bull-s),var(--gold));
+  color:#0a0a0a;font-family:var(--mono);font-size:9px;font-weight:800;
+  padding:2px 6px;border-radius:4px;letter-spacing:.5px;
+  box-shadow:0 2px 6px rgba(34,214,107,.4);
+}
+.feat-head{display:flex;align-items:center;gap:8px}
+.feat-icon{font-size:18px;flex-shrink:0}
+.feat-name{font-weight:700;font-size:13px;color:var(--t1);flex:1}
+.feat-desc{font-size:12px;color:var(--t2);line-height:1.45}
+.feat-meta{display:flex;gap:8px;font-family:var(--mono);font-size:10.5px;color:var(--t3);margin-top:3px;flex-wrap:wrap}
+.feat-meta .cat-chip{padding:1px 6px;border-radius:3px;font-weight:700}
+.feat-meta .cat-data{background:rgba(91,176,255,.12);color:var(--accent);border:1px solid rgba(91,176,255,.3)}
+.feat-meta .cat-ai{background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.3)}
+.feat-meta .cat-alerts{background:rgba(212,137,44,.12);color:var(--warn);border:1px solid rgba(212,137,44,.3)}
+.feat-meta .cat-charts{background:rgba(34,214,107,.12);color:var(--bull-s);border:1px solid rgba(34,214,107,.3)}
+.feat-meta .cat-risk{background:rgba(255,77,77,.12);color:var(--bear-s);border:1px solid rgba(255,77,77,.3)}
+.feat-meta .cat-ux{background:rgba(255,216,107,.12);color:var(--gold);border:1px solid rgba(255,216,107,.3)}
+.feat-meta .cat-integration{background:rgba(100,116,139,.18);color:#94a3b8;border:1px solid rgba(100,116,139,.4)}
+.feat-meta .date{opacity:.7}
+
+/* Changelog */
+.changelog-entry{
+  display:grid;grid-template-columns:130px 1fr;gap:14px;
+  padding:12px 0;border-bottom:1px solid rgba(42,50,71,.4);
+}
+.changelog-entry:last-child{border-bottom:none}
+.changelog-date{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:700}
+.changelog-date small{display:block;font-size:11px;color:var(--t3);margin-top:2px;font-weight:400}
+.changelog-features{display:flex;flex-direction:column;gap:6px}
+.changelog-item{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.45}
+.changelog-item .page-tag{
+  background:var(--panel3);color:var(--t2);padding:1px 7px;border-radius:3px;
+  font-family:var(--mono);font-size:10.5px;font-weight:700;border:1px solid var(--b1);
+}
+.changelog-item .feat-name-cl{color:var(--t1);font-weight:700}
+.changelog-item .feat-desc-cl{color:var(--t2)}
+
+/* By category */
+.category-section{
+  background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);
+  margin-bottom:12px;padding:14px 18px;
+}
+.category-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--b1)}
+.category-head h2{font-size:15px;font-weight:800;color:var(--t1);flex:1}
+.cat-features{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+
+.empty-state{padding:60px 20px;text-align:center;color:var(--t2);font-style:italic}
+.empty-state .ic{font-size:48px;display:block;margin-bottom:10px;opacity:.4}
+
+@media(max-width:640px){
+  .features-grid,.cat-features{grid-template-columns:1fr}
+  .changelog-entry{grid-template-columns:1fr}
+  .changelog-date{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📖 Ghid Features <span class="ver-badge" id="verBadge">v1</span></h1>
+  <span class="counter" id="counter">— / —</span>
+  <a href="../" class="nav-link">← Hub</a>
+</header>
+
+<div class="toolbar">
+  <div class="view-tabs">
+    <button class="view-tab active" data-view="page">📄 Per pagină</button>
+    <button class="view-tab" data-view="category">🏷 Pe categorii</button>
+    <button class="view-tab" data-view="changelog">🕐 Changelog</button>
+  </div>
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Caută feature (ex: AI, alert, risk, chart...)" autocomplete="off">
+  </div>
+</div>
+
+<div id="content"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  FEATURES DATABASE — sursă unică pentru toate paginile
+// ═══════════════════════════════════════════════════════════════
+const FEATURES_DB = [
+  {
+    page: 'hub', pageLabel: '🏠 Hub Central', pageUrl: '../',
+    features: [
+      { name:'Dashboard widgets SPY/QQQ/VIX', icon:'📊', cat:'data', added:'2026-05-06', version:'v50', desc:'Live macro indicators sub cards (SPY + QQQ + VIX via Yahoo proxy)' },
+      { name:'Pre-Market Gappers widget', icon:'🌅', cat:'data', added:'2026-05-18', version:'v179', desc:'Top 8 stocks cu gap >3% in PM/AH session. Universe ~55 stocks, refresh 60s. Auto-hide in RTH' },
+      { name:'Hub search filter cards', icon:'🔍', cat:'ux', added:'2026-05-10', version:'v82', desc:'Search bar filtrează cardurile după nume/descriere/features' },
+      { name:'PWA installable', icon:'📱', cat:'ux', added:'2026-05-02', version:'v1', desc:'Service worker cu cache + offline. Install on phone/desktop' },
+      { name:'Cards info modal (showFeaturesModal)', icon:'ℹ', cat:'ux', added:'2026-05-09', version:'v77', desc:'Click pe ℹ pe orice card → modal cu lista feature-urilor pe pagina respectivă' }
+    ]
+  },
+  {
+    page: 'macro-dashboard', pageLabel: '🌍 Macro Dashboard', pageUrl: '../macro-dashboard/',
+    features: [
+      { name:'Calendar economic 14 zile', icon:'📅', cat:'data', added:'2026-05-12', version:'v137', desc:'Finnhub /calendar/economic + fallback hardcoded US recurente. Filter impact/țară/search, sort sortabil' },
+      { name:'Historical sparkline events recurente', icon:'📊', cat:'charts', added:'2026-05-18', version:'v153', desc:'Mini-sparkline 84×22 sub denumire eveniment cu ultimele 8 rezultate (CPI/NFP/Jobless/etc.). Cache 24h' },
+      { name:'Istoric expand row', icon:'📈', cat:'charts', added:'2026-05-18', version:'v153', desc:'Click rând → sparkline mare 280×60 + 3 stat tiles (beat rate, surprise mediu, trend last3 vs prev3) + tabel 8 publicări' },
+      { name:'Result detection + flash 2.5s', icon:'⚡', cat:'alerts', added:'2026-05-18', version:'v146', desc:'Când actual apare, rând flash verde/roșu + clasa has-result persistentă 72h cu border tinted' },
+      { name:'Fast-poll 60s în release window', icon:'⚡', cat:'data', added:'2026-05-18', version:'v146', desc:'Auto-refresh 60s în T-15min ... T+30min al high-impact events. Pill ⚡ pulsing' },
+      { name:'Auto-suggest watchlist din surprise', icon:'🎯', cat:'alerts', added:'2026-05-18', version:'v154', desc:'La rezultat cu |surprise|≥2.5% sau high-impact + bias clar, panel sus cu cards tickere sugerate per sector. Persist 24h LS' },
+      { name:'Vol Week badge pe rânduri', icon:'⚡', cat:'data', added:'2026-05-18', version:'v157', desc:'Pe events high-impact, badge "⚡ VOL WEEK · N earnings" dacă săptămâna are ≥3 mega-cap earnings' },
+      { name:'Earnings 7z stat tile', icon:'📅', cat:'data', added:'2026-05-18', version:'v157', desc:'Stat tile separat cu count unique mega-caps în următoarele 7z. Click → Earnings Hub' },
+      { name:'Risk Dashboard composite', icon:'🛡', cat:'risk', added:'2026-05-18', version:'v158', desc:'Stat tile cu score composit din VIX (calm/fear/stress) + 10Y Δ30z bp + BTC/SPY corr 30d. Click → modal 3 cards + recomandare acțiune' },
+      { name:'Jurnal alerte istoric', icon:'📜', cat:'alerts', added:'2026-05-18', version:'v160', desc:'Buton 📜 cu badge counter unseen. Listă cronologică pre-event + result alerts. Filter Tip/Bias. Export JSON + Clear' },
+      { name:'Macro News (Finnhub + sentiment heuristic)', icon:'📰', cat:'data', added:'2026-05-12', version:'v138', desc:'News general+forex paralel, sentiment via keywords. AI inline expand cu impact' },
+      { name:'Crypto News (Finnhub + Reddit + Cointelegraph RSS)', icon:'₿', cat:'data', added:'2026-05-12', version:'v141', desc:'CryptoPanic înlocuit cu surse free no-key' },
+      { name:'AI Daily Brief auto 08:00 ET', icon:'🤖', cat:'ai', added:'2026-05-12', version:'v139', desc:'Auto-trigger 08:00 ET DST-aware, ~1800 cuvinte cu 10 secțiuni structurate. Cache 12h dateET' },
+      { name:'Ticker auto-link în brief', icon:'🔗', cat:'ai', added:'2026-05-12', version:'v145', desc:'100+ tickere auto-detectate în text → click deschide modal stock chart + 7 stats' },
+      { name:'AI follow-up per secțiune brief', icon:'🔍', cat:'ai', added:'2026-05-12', version:'v145', desc:'Click pe heading secțiune brief → AI elaborează 400-700 cuvinte cu prompt specific. Cache 12h' },
+      { name:'Drill-down stat tiles (chart 30d)', icon:'📊', cat:'charts', added:'2026-05-12', version:'v145', desc:'Click VIX/DXY/10Y/BTC/ETH → modal cu chart 30d + 6-7 stats + interpretare + corelații' },
+      { name:'Market mood theming auto-detect', icon:'🎨', cat:'ux', added:'2026-05-12', version:'v144', desc:'Background gradient + header tint + h1 gradient + mood-pill auto-shift per VIX/F&G/DXY/10Y' },
+      { name:'Alerte pre-event combo', icon:'🔔', cat:'alerts', added:'2026-05-12', version:'v140', desc:'Toast + beep 2-ton + browser notif + Telegram HTML. Threshold 30min/2h/24h. Dedupe 7z' },
+      { name:'CoinGecko fallback BTC/ETH', icon:'🪙', cat:'integration', added:'2026-05-18', version:'v162', desc:'Sursă directă (no proxy CORS) când Yahoo proxy pică. Plus chart 60d pentru Risk' },
+      { name:'ETF proxy fallback VXX/UUP/IEF', icon:'🔄', cat:'integration', added:'2026-05-18', version:'v163', desc:'Pentru VIX/DXY/10Y când Yahoo pică, folosesc Finnhub /quote pe VXX/UUP/IEF (Δ% direcțional)' },
+      { name:'TwelveData fallback chart indices', icon:'🔄', cat:'integration', added:'2026-05-18', version:'v167', desc:'Free 8/min cu cheia (registration twelvedata.com/free). Cascadă fetch 4 nivele' },
+      { name:'Toast UX persistent warn/error', icon:'🍞', cat:'ux', added:'2026-05-18', version:'v170', desc:'Warn/error nu se închid auto. Info/success 12s cu hover pauză. Buton X pe toate' }
+    ]
+  },
+  {
+    page: 'nasdaq-scanner', pageLabel: '📈 Nasdaq Opportunity Scanner', pageUrl: '../nasdaq-scanner/',
+    features: [
+      { name:'Tab 💡 Oportunit. (Reco)', icon:'💡', cat:'data', added:'2026-05-02', version:'v1', desc:'Top BUY/SELL recomandări cu score 0-100. Combinație RSI + range + trend 7z + fundamentale' },
+      { name:'Multi-Scan tab universe complet', icon:'📊', cat:'data', added:'2026-05-06', version:'v50', desc:'Scan 200+ stocks universal: scoring + sortare după strength' },
+      { name:'Pump Radar inline tab', icon:'⚡', cat:'alerts', added:'2026-05-06', version:'v50', desc:'Live alerts pump/dump/vol/momentum cu 4 alerte 5m. Throttle Finnhub free 60/min' },
+      { name:'Smart Trade Long inline', icon:'🎯', cat:'data', added:'2026-05-09', version:'v82', desc:'Verdict tier + niveluri auto + position sizer pe simbol direct din scanner' },
+      { name:'AI Quick Setup (Opus 4.7)', icon:'🎯', cat:'ai', added:'2026-05-18', version:'v184', desc:'Buton 🎯 pe carduri opportunity → JSON ready-to-execute cu Entry/SL/TP1/TP2/sizing/timeframe/risc/confidence + raționament detaliat + invalidation + catalysts' },
+      { name:'AI Analiza narativă (Claude opus-4-7 streaming)', icon:'🤖', cat:'ai', added:'2026-05-13', version:'v116', desc:'Per opportunity, analiză ~600 cuvinte cu context complet. Cache 30min' },
+      { name:'Custom Screener 🎯', icon:'🎯', cat:'data', added:'2026-05-09', version:'v82', desc:'Rule builder max 5 reguli AND combinate (chg/RSI/strength/price + 5 ops). Aplică pe TOATE tab-urile' },
+      { name:'Mini-chart popup (Yahoo)', icon:'📊', cat:'charts', added:'2026-05-09', version:'v82', desc:'Click 📊 pe card → mini-chart 30d candlestick + volume. Yahoo CORS proxy' },
+      { name:'Insider transactions feed', icon:'👔', cat:'data', added:'2026-05-13', version:'v116', desc:'Pre-load top 30 stocks după proximitate. Badge bull/bear/neutru per ticker' },
+      { name:'Earnings calendar inline', icon:'📅', cat:'data', added:'2026-05-13', version:'v116', desc:'Earnings ≤14z badge pe carduri + secțiune dedicată EPS history' },
+      { name:'Trading Journal hook 📓', icon:'📓', cat:'integration', added:'2026-05-09', version:'v82', desc:'Buton 📓 prefill journal cu entry/SL/TP din card' },
+      { name:'Compare mode 2-3 stocks', icon:'⚖', cat:'data', added:'2026-05-09', version:'v82', desc:'Side-by-side cu metrici + sparkline SVG per stock + actions TV/Remove' },
+      { name:'Keyboard shortcuts', icon:'⌨', cat:'ux', added:'2026-05-09', version:'v82', desc:'/ search · 1-9 tabs · r start/stop · t dark/light · Esc clear · ? help modal' },
+      { name:'Pre-market gappers tab Pre/After', icon:'🌅', cat:'data', added:'2026-05-09', version:'v82', desc:'Cache adaptiv 60s PM, auto-refresh 60s, toggle gappers ≥3%' },
+      { name:'Sector heatmap tab', icon:'🔥', cat:'charts', added:'2026-05-06', version:'v50', desc:'11 sectoare ETF cu Δ% color-coded grid' },
+      { name:'Squeeze radar (Bollinger)', icon:'🔍', cat:'data', added:'2026-05-09', version:'v82', desc:'BB squeeze detection cu RSI confirm' },
+      { name:'AI Briefing tab full', icon:'🤖', cat:'ai', added:'2026-05-13', version:'v116', desc:'AI generates daily briefing cu top picks + macro context' }
+    ]
+  },
+  {
+    page: 'smart-trade-long', pageLabel: '🎯 Smart Trade Long', pageUrl: '../smart-trade-long/',
+    features: [
+      { name:'5-filter scoring (100 pts)', icon:'📊', cat:'data', added:'2026-05-09', version:'v82', desc:'MA Structure 25 + Volume 15 + RSI Sweet 20 + ADX Trend 20 + R:R 20' },
+      { name:'Verdict 4-tier', icon:'🎯', cat:'data', added:'2026-05-09', version:'v82', desc:'🚀 READY ≥90 / 🟢 OK ≥70 / 🟡 MIXT ≥50 / 🔴 NU <50' },
+      { name:'Niveluri auto din ATR', icon:'📐', cat:'data', added:'2026-05-09', version:'v82', desc:'Entry=preț · SL=−1.5×ATR · TP1=+1×ATR · TP2=+2×ATR · TP3=+3×ATR' },
+      { name:'Position Sizer', icon:'💰', cat:'risk', added:'2026-05-09', version:'v82', desc:'Input cont + risc% → shares + position $ + % cont + profit așteptat TP2' },
+      { name:'Insider widget 90 zile', icon:'👔', cat:'data', added:'2026-05-09', version:'v82', desc:'P/A buys + S/D sells + net USD + verdict + lista top 8 tranzacții' },
+      { name:'AI Quick Setup (Opus 4.7)', icon:'🎯', cat:'ai', added:'2026-05-18', version:'v180', desc:'Buton 🎯 după Insider → JSON cu Entry/SL/TP1/TP2/sizing/timeframe/risc/confidence + raționament + invalidation + catalysts' },
+      { name:'Watchlist chips quick scan', icon:'⭐', cat:'integration', added:'2026-05-09', version:'v82', desc:'Citește wl_stocks shared, click chip = scan rapid' },
+      { name:'Auto-scan 5min toggle', icon:'🔄', cat:'data', added:'2026-05-09', version:'v82', desc:'Refresh automat cu countdown live' },
+      { name:'Auto-restore ultimul scan', icon:'💾', cat:'ux', added:'2026-05-09', version:'v82', desc:'Restore symbol + account + risc + auto-scan state' },
+      { name:'Proxy CORS chain 6 fallback', icon:'🔄', cat:'integration', added:'2026-05-18', version:'v181', desc:'codetabs/corsproxy/cors.lol/allorigins/cors.sh cu auto-marker dead pe HTML/Edge response' }
+    ]
+  },
+  {
+    page: 'pump-radar', pageLabel: '⚡ Pump Radar Stocks', pageUrl: '../pump-radar/',
+    features: [
+      { name:'Universe ~24 stocks intraday', icon:'📊', cat:'data', added:'2026-05-12', version:'v100', desc:'Mega-caps + volatile (PLTR/SMCI/COIN/MSTR/etc.). Yahoo /spark BATCH 5m' },
+      { name:'4 tipuri alerte 5m', icon:'⚡', cat:'alerts', added:'2026-05-12', version:'v100', desc:'pump (Δ≥prag) / dump (≤-prag) / vol spike (×medie) / momentum shift (3 consec)' },
+      { name:'Heat score 0-100', icon:'🔥', cat:'data', added:'2026-05-12', version:'v100', desc:'|Δ5m| + exces volum + bonus momentum' },
+      { name:'AI Quick Setup (Opus 4.7)', icon:'🎯', cat:'ai', added:'2026-05-18', version:'v183', desc:'Buton 🎯 în expand → JSON pump setup cu sizing 1-3% + raționament + invalidation + catalysts. Reguli specifice pump' },
+      { name:'AI Analiza narativă streaming', icon:'🤖', cat:'ai', added:'2026-05-13', version:'v107', desc:'Per alert, raționament tehnic ~600 cuvinte. Cache 1h cheia setup similar' },
+      { name:'Sugestie algoritmică 5 tier', icon:'🎯', cat:'data', added:'2026-05-13', version:'v103', desc:'🚀BUY/🟢WATCH/🟡WAIT/🔴AVOID/⏭SKIP din alerte+RSI+chgDay+heat+insider' },
+      { name:'Expand row 3 box-uri', icon:'📊', cat:'charts', added:'2026-05-13', version:'v106', desc:'Sparkline 60 bare + tabel 8 bare + Statistici scan + Insider list' },
+      { name:'Insider on-alert + pre-load top 20', icon:'👔', cat:'data', added:'2026-05-13', version:'v103', desc:'Finnhub /stock/insider-transactions 60z. Pre-load watchlist + top 20 după heat' },
+      { name:'Sliders praguri reevaluare on-spot', icon:'🎛', cat:'ux', added:'2026-05-12', version:'v100', desc:'pump/dump/vol/preț → recomputeAlerts fără re-fetch' },
+      { name:'Auto-scan 30/60/120s', icon:'🔄', cat:'data', added:'2026-05-12', version:'v100', desc:'Self-reschedule cu countdown + indicator sesiune NYSE DST-aware' },
+      { name:'Notif combo (toast+beep+browser+Telegram)', icon:'🔔', cat:'alerts', added:'2026-05-12', version:'v100', desc:'Dedupe + grupare per scan. Toast persistent, beep 2-ton, browser cu permission, TG HTML' },
+      { name:'Watchlist ⭐ shared', icon:'⭐', cat:'integration', added:'2026-05-12', version:'v100', desc:'Cheie wl_stocks shared cu nasdaq-scanner + watchlist-monitor' }
+    ]
+  },
+  {
+    page: 'earnings-hub', pageLabel: '📊 Earnings Hub', pageUrl: '../earnings-hub/',
+    features: [
+      { name:'Calendar 30 zile filter strict US', icon:'📅', cat:'data', added:'2026-05-13', version:'v119', desc:'Finnhub /calendar/earnings cu regex [A-Z]{1,5} + cerință EPS/revenue' },
+      { name:'EPS history 8 trim + reacție 1z', icon:'📊', cat:'charts', added:'2026-05-13', version:'v119', desc:'Yahoo chart 2y → Δ% close zi tranz vs prev pentru fiecare earning historic' },
+      { name:'AI verdict 5 tier', icon:'🧠', cat:'ai', added:'2026-05-13', version:'v119', desc:'🚀 HIGH BEAT (≥75% + avg ≥3%) / 🟢 LIKELY BEAT (≥60%) / 🟡 MIXT / 🔴 LIKELY MISS / ⚪ N/A' },
+      { name:'Sugestie acțiune 5 tier', icon:'🎯', cat:'data', added:'2026-05-13', version:'v119', desc:'BUY/WATCH/WAIT/AVOID/SKIP derivată algoritmic din EPS + insider + reacție' },
+      { name:'Insider 60z pre-earnings + pre-load 30', icon:'👔', cat:'data', added:'2026-05-13', version:'v119', desc:'Clasificare prin semn change + transactionCode fallback. Pre-load watchlist + top 30' },
+      { name:'AI Analiză narativă (Claude opus streaming)', icon:'🤖', cat:'ai', added:'2026-05-13', version:'v116', desc:'Per ticker în expand, ~600 cuvinte cu context EPS+insider+reacții+tag' },
+      { name:'AI Quick Setup pre/post-earnings', icon:'🎯', cat:'ai', added:'2026-05-18', version:'v185', desc:'Buton 🎯 → JSON pre/post-earnings cu sizing max 3% + reasoning + invalidation + catalysts. Reguli specifice (skip dacă beat<70% + insider bear)' },
+      { name:'Alerte ≤prag (default 48h)', icon:'🔔', cat:'alerts', added:'2026-05-13', version:'v119', desc:'Watchlist ∩ calendar cu zile≤threshold. Dedupe 14z. Combo notify' },
+      { name:'Filter chips counts', icon:'🔍', cat:'ux', added:'2026-05-13', version:'v122', desc:'Chips Toate/⭐/<48h/7d/BMO/AMC cu counts vizibili' },
+      { name:'Hot strip top 6 watchlist ≤7z', icon:'🔥', cat:'charts', added:'2026-05-13', version:'v119', desc:'Cards top 6 cu urgent class la ≤threshold' }
+    ]
+  },
+  {
+    page: 'sector-rotation', pageLabel: '🔄 Sector Rotation', pageUrl: '../sector-rotation/',
+    features: [
+      { name:'11 sectoare ETFs', icon:'🏭', cat:'data', added:'2026-05-17', version:'v149', desc:'XLF/XLK/XLE/XLV/XLY/XLP/XLU/XLI/XLB/XLRE/XLC live' },
+      { name:'Heatmap rotație 1d/1w/1m/3m', icon:'🔥', cat:'charts', added:'2026-05-17', version:'v149', desc:'Color-coded grid cu Δ% per timeframe' },
+      { name:'Momentum shifts 1d/1w/1m', icon:'⚡', cat:'data', added:'2026-05-17', version:'v149', desc:'Detect schimbări rapide momentum între sectoare' },
+      { name:'Drill-down click sector', icon:'📊', cat:'charts', added:'2026-05-17', version:'v149', desc:'Sparkline 60z + top 5 holdings + stats 52w' },
+      { name:'Holdings range 3mo', icon:'📊', cat:'data', added:'2026-05-17', version:'v150', desc:'Parse chart min 25 bare (range 1mo → 3mo fix)' },
+      { name:'AI bubble Claude pe sector', icon:'🤖', cat:'ai', added:'2026-05-17', version:'v151', desc:'Analiză rotație sector cu context cross-sector' },
+      { name:'Alerte rotație hot↔cold', icon:'🔔', cat:'alerts', added:'2026-05-17', version:'v151', desc:'Telegram + beep când sector cycling agresiv' }
+    ]
+  },
+  {
+    page: 'watchlist-monitor', pageLabel: '⭐ Watchlist Monitor Stocks', pageUrl: '../watchlist-monitor/',
+    features: [
+      { name:'Auto-scan 60/180/300s', icon:'🔄', cat:'data', added:'2026-05-09', version:'v82', desc:'Configurabil cu countdown live. Self-reschedule pe setTimeout' },
+      { name:'Scoring stocks (MA50+MA200+RSI+GC)', icon:'📊', cat:'data', added:'2026-05-09', version:'v82', desc:'5 factori + verdict 5-tier (STRONG BUY/BUY/HOLD/SELL/AVOID)' },
+      { name:'Sparkline 30z SVG', icon:'📊', cat:'charts', added:'2026-05-11', version:'v97', desc:'Mini per rând + col sortabilă "📈 30z"' },
+      { name:'Flash rând Δscore ±2', icon:'⚡', cat:'ux', added:'2026-05-11', version:'v97', desc:'Verde/roșu animation + bară verdict color-coded stânga' },
+      { name:'Hot strip top 3 score≥55', icon:'🔥', cat:'charts', added:'2026-05-11', version:'v97', desc:'Strip top 3 cu click→scroll' },
+      { name:'Panou detalii inline (F4)', icon:'📊', cat:'charts', added:'2026-05-11', version:'v97', desc:'Sparkline 60z mare + dist 52s + ATR≈ + breakdown score + plan long ATR' },
+      { name:'Bara filtre chip-uri + search', icon:'🔍', cat:'ux', added:'2026-05-11', version:'v97', desc:'Verdict chips + ticker search + movers |Δ|≥2% + contor' },
+      { name:'Countdown live + jurnal verdicte', icon:'⏱', cat:'ux', added:'2026-05-11', version:'v97', desc:'Header countdown + 📋 cu badge unseen verdicte change' },
+      { name:'🔊 beep + 📡 Telegram alerte', icon:'🔔', cat:'alerts', added:'2026-05-11', version:'v97', desc:'WebAudio + TG config în modal. STRONG BUY nou → notify combo' },
+      { name:'Quick-add tickere populare', icon:'➕', cat:'ux', added:'2026-05-11', version:'v97', desc:'Empty-state cu tickere populare + 📥 din Scanner (citește nasdaq_last_scan)' },
+      { name:'Perf tracking primul BUY', icon:'🚀', cat:'data', added:'2026-05-11', version:'v97', desc:'Memorează preț primul BUY/STRONG BUY → afișează "🚀 +X% · Nz" pe rând' },
+      { name:'CORS proxy chain 4 fallback', icon:'🔄', cat:'integration', added:'2026-05-11', version:'v98', desc:'codetabs + allorigins + corsproxy + thingproxy cu detecție 429' }
+    ]
+  },
+  {
+    page: 'playbook', pageLabel: '🎯 Today\'s Playbook', pageUrl: '../playbook/',
+    features: [
+      { name:'Hero 3 cards (Risk + Events + WL)', icon:'🛡', cat:'data', added:'2026-05-18', version:'v1', desc:'Risk Regime live + high-impact events count + watchlist count' },
+      { name:'Macro events azi/mâine US', icon:'📅', cat:'data', added:'2026-05-18', version:'v1', desc:'Finnhub filter US sort cronologic, coloană T-X countdown imminent' },
+      { name:'Earnings azi/mâine watchlist+mega', icon:'📊', cat:'data', added:'2026-05-18', version:'v1', desc:'Filter wl_stocks ∩ calendar + mega-caps. BMO/AMC marker' },
+      { name:'Nasdaq top picks din LS', icon:'🚀', cat:'integration', added:'2026-05-18', version:'v1', desc:'Citește nasdaq_last_scan, age "scan acum 23min". Filter score≥65 top 8' },
+      { name:'Sugestii watchlist macro', icon:'🎯', cat:'integration', added:'2026-05-18', version:'v1', desc:'Citește md_wl_suggestions active (<24h non-dismissed)' },
+      { name:'Watchlist events 14-30z', icon:'📌', cat:'data', added:'2026-05-18', version:'v2', desc:'Earnings + Dividends + Splits per ticker wl. Cache 6h key validat pe wlKey' },
+      { name:'Presentations din news headlines', icon:'🎤', cat:'data', added:'2026-05-18', version:'v3', desc:'Finnhub /company-news + regex keyword (conference/investor day/analyst day/keynote). Max 2 per ticker' },
+      { name:'Quick actions footer', icon:'🔗', cat:'ux', added:'2026-05-18', version:'v1', desc:'Link-uri la toate 7 sub-pagini' }
+    ]
+  },
+  {
+    page: 'alerts', pageLabel: '🔔 Price Alerts', pageUrl: '../alerts/',
+    features: [
+      { name:'Custom price alerts stocks+crypto', icon:'🔔', cat:'alerts', added:'2026-05-18', version:'v1', desc:'Add Ticker + Prag $ + Direcție ▲/▼ + Note opțional. LS pa_alerts_v1' },
+      { name:'Polling 60s self-rescheduled', icon:'🔄', cat:'data', added:'2026-05-18', version:'v1', desc:'Setimeout cu pauză ⏸ + refresh imediat la add/unpause/visibility' },
+      { name:'Notify combo on-trigger', icon:'🔔', cat:'alerts', added:'2026-05-18', version:'v1', desc:'Toast persistent + beep 2-ton + browser Notification + Telegram HTML' },
+      { name:'Surse no-proxy', icon:'🔄', cat:'integration', added:'2026-05-18', version:'v1', desc:'Finnhub /quote pentru stocks/ETF + CoinGecko direct pentru BTC/ETH/SOL' },
+      { name:'Δ% close to trigger warn', icon:'⚡', cat:'ux', added:'2026-05-18', version:'v1', desc:'Coloana Δ% devine galben când <1.5% de prag' },
+      { name:'Triggered history (max 50)', icon:'✅', cat:'data', added:'2026-05-18', version:'v1', desc:'Border-left verde (above) sau roșu (below) + age in min/h + reactivate ↻' }
+    ]
+  }
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE + RENDER
+// ═══════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const NEW_THRESHOLD_DAYS = 7;
+function isNew(dateStr) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  return (Date.now() - d.getTime()) < NEW_THRESHOLD_DAYS * 86400000;
+}
+
+let currentView = 'page';
+let searchQuery = '';
+
+function flattenFeatures() {
+  return FEATURES_DB.flatMap(p => p.features.map(f => ({ ...f, page: p.page, pageLabel: p.pageLabel, pageUrl: p.pageUrl })));
+}
+
+function filterFeatures(features) {
+  if (!searchQuery) return features;
+  const q = searchQuery.toLowerCase();
+  return features.filter(f =>
+    (f.name || '').toLowerCase().includes(q) ||
+    (f.desc || '').toLowerCase().includes(q) ||
+    (f.cat || '').toLowerCase().includes(q) ||
+    (f.pageLabel || '').toLowerCase().includes(q)
+  );
+}
+
+function renderFeatureCard(f) {
+  const newBadge = isNew(f.added) ? ' new' : '';
+  const catLabel = { data:'DATA', ai:'AI', alerts:'ALERTS', charts:'CHARTS', risk:'RISK', ux:'UX', integration:'INTEGR' }[f.cat] || (f.cat || '').toUpperCase();
+  return `<div class="feat-card${newBadge}">
+    <div class="feat-head">
+      <span class="feat-icon">${f.icon || '•'}</span>
+      <span class="feat-name">${escHtml(f.name)}</span>
+    </div>
+    <div class="feat-desc">${escHtml(f.desc)}</div>
+    <div class="feat-meta">
+      <span class="cat-chip cat-${f.cat}">${catLabel}</span>
+      ${f.version ? `<span>${escHtml(f.version)}</span>` : ''}
+      <span class="date">${escHtml(f.added || '')}</span>
+    </div>
+  </div>`;
+}
+
+function renderByPage() {
+  const content = $('content');
+  let totalCount = 0;
+  let filteredCount = 0;
+  const html = FEATURES_DB.map(p => {
+    totalCount += p.features.length;
+    const filtered = filterFeatures(p.features.map(f => ({ ...f, pageLabel: p.pageLabel })));
+    filteredCount += filtered.length;
+    if (!filtered.length && searchQuery) return '';
+    return `<div class="page-section">
+      <div class="page-section-head" onclick="this.parentElement.classList.toggle('collapsed')">
+        <h2>${escHtml(p.pageLabel)}</h2>
+        <span class="feat-count">${filtered.length}/${p.features.length}</span>
+        <a class="page-link" href="${escHtml(p.pageUrl)}" target="_blank" onclick="event.stopPropagation()">Open →</a>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="features-grid">${filtered.map(renderFeatureCard).join('')}</div>
+    </div>`;
+  }).join('');
+  $('counter').textContent = `${filteredCount} / ${totalCount} features`;
+  content.innerHTML = html || '<div class="empty-state"><span class="ic">🔍</span>Niciun feature găsit pentru "' + escHtml(searchQuery) + '"</div>';
+}
+
+function renderByCategory() {
+  const all = flattenFeatures();
+  const filtered = filterFeatures(all);
+  $('counter').textContent = `${filtered.length} / ${all.length} features`;
+  if (!filtered.length) {
+    $('content').innerHTML = '<div class="empty-state"><span class="ic">🔍</span>Niciun feature găsit pentru "' + escHtml(searchQuery) + '"</div>';
+    return;
+  }
+  const cats = ['data', 'ai', 'alerts', 'charts', 'risk', 'ux', 'integration'];
+  const catLabels = {
+    data: '📊 Data Sources & Scanners',
+    ai: '🤖 AI Features (Claude)',
+    alerts: '🔔 Alerts & Notifications',
+    charts: '📈 Charts & Visualization',
+    risk: '🛡 Risk Management',
+    ux: '✨ UX & Interface',
+    integration: '🔄 Integration & Cross-page'
+  };
+  const html = cats.map(cat => {
+    const list = filtered.filter(f => f.cat === cat);
+    if (!list.length) return '';
+    return `<div class="category-section">
+      <div class="category-head">
+        <h2>${catLabels[cat]}</h2>
+        <span class="feat-count">${list.length} features</span>
+      </div>
+      <div class="cat-features">${list.map(f => {
+        const pageBadge = `<span class="page-tag" style="margin-bottom:5px;display:inline-block;background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.3)">${escHtml(f.pageLabel)}</span>`;
+        return renderFeatureCard(f).replace('<div class="feat-meta">', pageBadge + '<div class="feat-meta">');
+      }).join('')}</div>
+    </div>`;
+  }).join('');
+  $('content').innerHTML = html;
+}
+
+function renderChangelog() {
+  const all = flattenFeatures();
+  const filtered = filterFeatures(all);
+  $('counter').textContent = `${filtered.length} / ${all.length} features`;
+  if (!filtered.length) {
+    $('content').innerHTML = '<div class="empty-state"><span class="ic">🔍</span>Niciun feature găsit pentru "' + escHtml(searchQuery) + '"</div>';
+    return;
+  }
+  // Group by date desc
+  const byDate = {};
+  filtered.forEach(f => {
+    const d = f.added || 'unknown';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(f);
+  });
+  const dates = Object.keys(byDate).sort().reverse();
+  const today = new Date().toISOString().slice(0,10);
+  const html = '<div class="category-section">' + dates.map(d => {
+    const ago = d === 'unknown' ? '' : (() => {
+      const diff = Math.round((new Date(today) - new Date(d)) / 86400000);
+      if (diff === 0) return 'azi';
+      if (diff === 1) return 'ieri';
+      if (diff < 7) return `acum ${diff}z`;
+      if (diff < 30) return `acum ${Math.round(diff/7)}săpt`;
+      return `acum ${Math.round(diff/30)}luni`;
+    })();
+    return `<div class="changelog-entry">
+      <div class="changelog-date">${escHtml(d)}<small>${ago}</small></div>
+      <div class="changelog-features">${byDate[d].map(f => `<div class="changelog-item">
+        <span class="page-tag">${escHtml(f.pageLabel)}</span>
+        <span class="feat-icon">${f.icon || '•'}</span>
+        <span class="feat-name-cl">${escHtml(f.name)}</span>
+        ${f.version ? `<span class="page-tag" style="background:rgba(167,139,250,.12);color:var(--purple);border-color:rgba(167,139,250,.3)">${escHtml(f.version)}</span>` : ''}
+        ${isNew(f.added) ? '<span style="background:linear-gradient(135deg,var(--bull-s),var(--gold));color:#0a0a0a;font-family:var(--mono);font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.5px">NOU</span>' : ''}
+      </div>`).join('')}</div>
+    </div>`;
+  }).join('') + '</div>';
+  $('content').innerHTML = html;
+}
+
+function render() {
+  if (currentView === 'page') renderByPage();
+  else if (currentView === 'category') renderByCategory();
+  else if (currentView === 'changelog') renderChangelog();
+}
+
+// Bindings
+document.querySelectorAll('.view-tab').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentView = btn.dataset.view;
+  render();
+}));
+$('search').addEventListener('input', e => {
+  searchQuery = e.target.value.trim();
+  render();
+});
+
+render();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(()=>{});
+</script>
+</body>
+</html>
