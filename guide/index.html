@@ -378,6 +378,10 @@ function isNew(dateStr) {
 let currentView = 'page';
 let searchQuery = '';
 
+// Suport ?page=<slug> — auto-expand acea pagină în view "page" + scroll
+const urlParams = new URLSearchParams(window.location.search);
+const focusPage = urlParams.get('page');
+
 function flattenFeatures() {
   return FEATURES_DB.flatMap(p => p.features.map(f => ({ ...f, page: p.page, pageLabel: p.pageLabel, pageUrl: p.pageUrl })));
 }
@@ -527,6 +531,24 @@ $('search').addEventListener('input', e => {
 });
 
 render();
+
+// Dacă există ?page=<slug>, scroll la secțiune după render + highlight scurt
+if (focusPage) {
+  setTimeout(() => {
+    const sections = document.querySelectorAll('.page-section');
+    sections.forEach((sec, i) => {
+      if (FEATURES_DB[i] && FEATURES_DB[i].page === focusPage) {
+        sec.classList.remove('collapsed');
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        sec.style.transition = 'box-shadow .3s ease';
+        sec.style.boxShadow = '0 0 0 3px var(--accent), 0 0 30px rgba(91,176,255,.4)';
+        setTimeout(() => { sec.style.boxShadow = ''; }, 2500);
+      } else {
+        sec.classList.add('collapsed'); // collapse altele pentru claritate
+      }
+    });
+  }, 100);
+}
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(()=>{});
 </script>
