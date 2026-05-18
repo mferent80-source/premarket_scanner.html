@@ -795,7 +795,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v164</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v165</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1642,10 +1642,10 @@ async function fetchCryptoFromCoinGecko() {
   } catch (e) { return null; }
 }
 
-// CoinGecko chart 30d pentru BTC (BTC/SPY correlation în Risk Dashboard când Yahoo pică)
-async function fetchBtcChartFromCoinGecko() {
+// CoinGecko chart pentru crypto (no proxy). Folosit pentru BTC/SPY corr în Risk + drill-down tile.
+async function fetchCryptoChartFromCoinGecko(coinId, days = 60) {
   try {
-    const r = await fetch('https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=60&interval=daily');
+    const r = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}&interval=daily`);
     if (!r.ok) return null;
     const d = await r.json();
     const prices = d?.prices || []; // [[ts_ms, price], ...]
@@ -1656,6 +1656,8 @@ async function fetchBtcChartFromCoinGecko() {
     };
   } catch (e) { return null; }
 }
+async function fetchBtcChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('bitcoin'); }
+async function fetchEthChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('ethereum'); }
 
 // Finnhub /quote — permite CORS direct (no proxy). Folosit pentru ETF proxy când Yahoo pică.
 async function fetchFinnhubQuote(symbol) {
@@ -2015,9 +2017,14 @@ async function drillStatTile(tileId) {
     return;
   }
 
-  const data = await fetchYahooChart30d(meta.sym);
+  // Fetch chart Yahoo, cu fallback CoinGecko pentru crypto (no proxy)
+  let data = await fetchYahooChart30d(meta.sym);
   if (!data || !data.points.length) {
-    $('gmBody').innerHTML = '<div class="drill-error">❌ Nu am putut încărca chart-ul (proxy CORS sau symbol).</div>';
+    if (meta.sym === 'BTC-USD') data = await fetchBtcChartFromCoinGecko();
+    else if (meta.sym === 'ETH-USD') data = await fetchEthChartFromCoinGecko();
+  }
+  if (!data || !data.points.length) {
+    $('gmBody').innerHTML = '<div class="drill-error">❌ Nu am putut încărca chart-ul (proxy CORS Yahoo momentan blocat, fără fallback pentru acest simbol).</div>';
     return;
   }
   let points = data.points;
