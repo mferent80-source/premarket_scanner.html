@@ -654,7 +654,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v154</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v155</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -859,7 +859,11 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <label>&nbsp;</label>
         <button id="alertTest" class="ghost">🧪 Test alertă (beep + notif + tg)</button>
       </div>
-      <div class="modal-note">Alertele se declanșează automat pentru evenimentele <b>high-impact</b> când rămâne sub pragul ales. Dedupe 7 zile per eveniment (nu te spamează la fiecare scan).</div>
+      <div class="modal-row">
+        <label>&nbsp;</label>
+        <button id="suggestionDemo" class="ghost">🎯 Demo sugestie watchlist (CPI cool + NFP beat)</button>
+      </div>
+      <div class="modal-note">Alertele se declanșează automat pentru evenimentele <b>high-impact</b> când rămâne sub pragul ales. Dedupe 7 zile per eveniment (nu te spamează la fiecare scan).<br>Sugestiile watchlist apar automat la rezultate cu surprise ≥2.5% sau high-impact cu bias clar — apasă <b>Demo</b> ca să vezi cum arată.</div>
     </div>
 
     <div class="modal-section">
@@ -3660,6 +3664,33 @@ function bindEvents() {
     showBrowserNotif('🧪 TEST Macro Dashboard', 'Eveniment demo: ' + fakeEvent.event);
     sendTelegramAlert(buildAlertTgMessage([fakeEvent], thresholdLabel(CFG.alertThreshold)));
     toast('✅ Test trimis (verifică sunet + notif browser + Telegram)', 'success');
+  });
+
+  // Demo sugestie watchlist — generează 2 sugestii (1 bullish CPI cool, 1 bullish NFP beat)
+  // ca să vezi cum arată panelul în acțiune. Le poți închide individual cu × sau global cu „Ignoră toate".
+  $('suggestionDemo').addEventListener('click', () => {
+    const nowStr = new Date().toISOString().slice(0,16).replace('T',' ');
+    const key1 = `demo|CPI YoY (DEMO)`;
+    const key2 = `demo|Non-Farm Payrolls (DEMO)`;
+    MD_SUGGESTIONS[key1] = {
+      eventName: 'CPI YoY (DEMO)', time: nowStr, bias: 'bullish', verdict: 'COOL',
+      surprise: -3.45, actual: 2.8, forecast: 3.1,
+      tickers: ['XLRE','XLF','XLK','GLD','KRE'],
+      added: [], dismissed: false, ts: Date.now()
+    };
+    MD_SUGGESTIONS[key2] = {
+      eventName: 'Non-Farm Payrolls (DEMO)', time: nowStr, bias: 'bullish', verdict: 'BEAT',
+      surprise: 5.20, actual: 263000, forecast: 250000,
+      tickers: ['XLY','AMZN','TSLA','XLP','GS'],
+      added: [], dismissed: false, ts: Date.now()
+    };
+    persistSuggestions();
+    renderSuggestionsPanel();
+    // Închide modal-ul ca să vezi panelul
+    closeSettings();
+    // Scroll la panel ca să fie vizibil
+    setTimeout(() => $('suggestionsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    toast('🎯 2 sugestii demo afișate (CPI cool + NFP beat) — închide cu × sau adaugă tickere', 'success');
   });
 
   // Sound / Notif
