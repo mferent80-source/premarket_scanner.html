@@ -314,6 +314,30 @@ tbody tr.clickable { cursor:pointer; }
 td { padding:8px 7px; text-align:center; vertical-align:middle; font-family:var(--head); font-variant-numeric:tabular-nums; color:var(--t1); }
 td.left { text-align:left; padding-left:14px; }
 .evt-name { font-weight:700; font-size:12.5px; letter-spacing:0; font-family:var(--head); color:var(--t1); }
+.evt-spark-wrap { display:inline-flex; align-items:center; gap:5px; margin-top:3px; opacity:.88; }
+.evt-spark-wrap:hover { opacity:1; }
+.evt-sparkline { display:block; }
+.evt-spark-cnt { font-size:9.5px; color:var(--t3); font-family:var(--mono); font-weight:600; }
+
+/* Box istoric în expand row */
+.exp-history-box { margin-top:14px; }
+.exp-hist-head { display:flex; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+.exp-hist-stats { display:flex; gap:14px; flex-wrap:wrap; font-family:var(--head); font-size:12px; }
+.exp-hist-stats .ehs-tile { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:5px 10px; }
+.exp-hist-stats .ehs-label { font-size:10px; color:var(--t2); text-transform:uppercase; letter-spacing:.3px; font-family:var(--mono); font-weight:700; }
+.exp-hist-stats .ehs-val { font-size:13px; font-weight:800; color:var(--t1); margin-top:1px; }
+.exp-hist-stats .ehs-val.bull { color:var(--bull-s); }
+.exp-hist-stats .ehs-val.bear { color:var(--bear-s); }
+.exp-hist-stats .ehs-val.neut { color:var(--warn); }
+.exp-hist-svg-wrap { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:8px 12px; flex:1; min-width:240px; }
+.exp-hist-table { width:100%; border-collapse:collapse; font-size:11.5px; margin-top:6px; font-family:var(--head); }
+.exp-hist-table th { padding:6px 8px; text-align:center; font-size:10.5px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:.3px; border-bottom:1px solid var(--b1); font-family:var(--mono); }
+.exp-hist-table td { padding:5px 8px; text-align:center; font-size:11.5px; color:var(--t1); border-bottom:1px solid rgba(42,50,71,.5); font-family:var(--head); font-variant-numeric:tabular-nums; }
+.exp-hist-table td.beat { color:var(--bull-s); font-weight:700; }
+.exp-hist-table td.miss { color:var(--bear-s); font-weight:700; }
+.exp-hist-table td.neut { color:var(--warn); font-weight:700; }
+.exp-hist-table tr:last-child td { border-bottom:none; }
+.exp-hist-table .ehr-date { color:var(--t2); font-family:var(--mono); font-size:11px; }
 .evt-cat { color:var(--t2); font-size:11px; font-family:var(--mono); }
 
 .flag { font-size:15px; margin-right:4px; vertical-align:middle; }
@@ -562,7 +586,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v152</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v153</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -912,6 +936,17 @@ let _proxyIdx = 0;
 let _expandedKey = null;
 let _newsLoadedAt = { macro: 0, crypto: 0 };
 let _aiCache = (() => { try { return JSON.parse(localStorage.getItem('md_ai_cache_v1') || '{}'); } catch (e) { return {}; } })();
+
+// ============ HISTORICAL EVENTS (pentru sparkline + expand history) ============
+const HISTORICAL_CACHE_KEY = 'md_hist_events_v1';
+const HISTORICAL_CACHE_TTL = 24*3600*1000; // refetch 1x/zi
+let HISTORICAL_BY_EVENT = (() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(HISTORICAL_CACHE_KEY) || 'null');
+    if (raw?.ts && Date.now() - raw.ts < HISTORICAL_CACHE_TTL) return raw.data || {};
+  } catch (e) {}
+  return {};
+})();
 const CORS_PROXIES = [
   { build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: r => r.text() },
   { build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), extract: r => r.text() },
@@ -1797,7 +1832,13 @@ function renderCalendar() {
     return `<tr class="clickable ${rowCls}${flashCls}${resultCls}" data-time="${escHtml(e.time)}" data-event="${escHtml(e.event)}">
       <td class="left when-cell"><span class="when-d">${escHtml(dt.date)} · ${escHtml(dt.time)}</span><span class="when-h">${escHtml(tu)}</span></td>
       <td><span class="flag">${cm.flag}</span><span class="country-code">${escHtml(e.country)}</span></td>
-      <td class="left"><div class="evt-name">${escHtml(e.event)}</div></td>
+      <td class="left">
+        <div class="evt-name">${escHtml(e.event)}</div>
+        ${(() => {
+          const hist = getHistoryFor(e.event, 8);
+          return hist.length >= 3 ? `<div class="evt-spark-wrap">${renderMiniSparkline(hist, e.event)}<span class="evt-spark-cnt">${hist.length}×</span></div>` : '';
+        })()}
+      </td>
       <td><span class="impact-badge ${e.impact}">${impactLabel}</span></td>
       <td>${fcst}</td>
       <td>${prev}</td>
@@ -2376,6 +2417,9 @@ function buildExpandHTML(event) {
     </div>
   `).join('')}</div>` : '<div class="exp-soon">Niciun mapping sectorial direct pentru acest eveniment. Folosește AI bubble pentru analiză.</div>';
 
+  const hist = getHistoryFor(event.event, 12);
+  const histHTML = hist.length >= 3 ? buildHistoryBoxHTML(event, hist) : '';
+
   return `<div class="exp-wrap">
     <div class="exp-box">
       <div class="ai-bar">
@@ -2401,6 +2445,65 @@ function buildExpandHTML(event) {
         <div class="info-row"><span class="info-key">Sursă</span><span class="info-val">${escHtml(event.source || 'finnhub')}</span></div>
       </div>
     </div>
+  </div>${histHTML}`;
+}
+
+// Box istoric (sub grid-ul cu 3 box-uri) — sparkline mare + stats + tabel ultimele N
+function buildHistoryBoxHTML(event, hist) {
+  const vals = hist.map(h => parseFloat(h.actual));
+  if (vals.some(v => isNaN(v))) return '';
+  // Stats: beat rate, surprise mediu, direcția modă (ultimele 3 vs precedente)
+  let beats = 0, misses = 0, neuts = 0;
+  let surprSum = 0, surprN = 0;
+  hist.forEach(h => {
+    const r = classifyResult(h.actual, h.forecast, event.event);
+    if (r.cls === 'beat') beats++;
+    else if (r.cls === 'miss') misses++;
+    else neuts++;
+    if (r.surprise != null && !isNaN(r.surprise)) { surprSum += r.surprise; surprN++; }
+  });
+  const beatRate = ((beats / hist.length) * 100).toFixed(0);
+  const avgSurpr = surprN ? (surprSum / surprN).toFixed(2) : null;
+  const last3 = vals.slice(-3), prev3 = vals.slice(-6, -3);
+  let trendLabel = '—', trendCls = 'neut';
+  if (last3.length === 3 && prev3.length === 3) {
+    const lAvg = last3.reduce((a,b)=>a+b,0)/3;
+    const pAvg = prev3.reduce((a,b)=>a+b,0)/3;
+    const diff = lAvg - pAvg;
+    const bearishOnUp = /cpi|ppi|inflation|jobless|unemployment|claims/i.test(event.event);
+    if (Math.abs(diff) < 0.05) { trendLabel = '➖ stabil'; trendCls = 'neut'; }
+    else if (diff > 0) { trendLabel = bearishOnUp ? '🔴 în creștere' : '🟢 în creștere'; trendCls = bearishOnUp ? 'bear' : 'bull'; }
+    else { trendLabel = bearishOnUp ? '🟢 în scădere' : '🔴 în scădere'; trendCls = bearishOnUp ? 'bull' : 'bear'; }
+  }
+  // Sparkline mare cu marker forecast pe ultimul
+  const bigSpark = renderMiniSparkline(hist, event.event, { width: 280, height: 60 });
+  // Tabel cu ultimele 8 (cele mai recente sus)
+  const rows = hist.slice().reverse().slice(0, 8).map(h => {
+    const r = classifyResult(h.actual, h.forecast, event.event);
+    const actCls = r.cls === 'beat' ? 'beat' : (r.cls === 'miss' ? 'miss' : 'neut');
+    const surp = (r.surprise != null && !isNaN(r.surprise)) ? `${r.surprise>=0?'+':''}${r.surprise.toFixed(2)}%` : '—';
+    return `<tr>
+      <td class="ehr-date">${escHtml((h.time || '').slice(0,10))}</td>
+      <td class="${actCls}">${r.icon} ${escHtml(String(h.actual))}</td>
+      <td>${h.forecast != null ? escHtml(String(h.forecast)) : '—'}</td>
+      <td>${h.previous != null ? escHtml(String(h.previous)) : '—'}</td>
+      <td class="${actCls}">${surp}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="exp-box exp-history-box">
+    <div class="exp-title">📊 Istoric — ultimele ${hist.length} publicări</div>
+    <div class="exp-hist-head">
+      <div class="exp-hist-svg-wrap">${bigSpark}</div>
+      <div class="exp-hist-stats">
+        <div class="ehs-tile"><div class="ehs-label">Beat rate</div><div class="ehs-val ${beats>misses?'bull':(misses>beats?'bear':'neut')}">${beatRate}% <span style="font-size:10px;color:var(--t3);font-weight:600">(${beats}B/${misses}M/${neuts}N)</span></div></div>
+        ${avgSurpr != null ? `<div class="ehs-tile"><div class="ehs-label">Surprise mediu</div><div class="ehs-val ${parseFloat(avgSurpr)>0?'bull':(parseFloat(avgSurpr)<0?'bear':'neut')}">${avgSurpr>=0?'+':''}${avgSurpr}%</div></div>` : ''}
+        <div class="ehs-tile"><div class="ehs-label">Trend ultimele 3</div><div class="ehs-val ${trendCls}">${trendLabel}</div></div>
+      </div>
+    </div>
+    <table class="exp-hist-table">
+      <thead><tr><th>Data</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Surprise</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
   </div>`;
 }
 
@@ -3050,6 +3153,81 @@ function cleanupSeenActual() {
   if (dirty) try { localStorage.setItem('md_seen_actual', JSON.stringify(SEEN_ACTUAL)); } catch (e) {}
 }
 
+// Normalizează numele evenimentului pentru grupare istoric
+// (ex: „CPI YoY (Apr)" și „CPI YoY" → aceeași cheie)
+function normalizeEventName(name) {
+  return String(name || '').toLowerCase()
+    .replace(/\([^)]*\)/g, '')         // scoate (m/m), (y/y), nume luni
+    .replace(/[^a-z0-9]+/g, ' ')       // doar alfanumerice
+    .replace(/\s+(mom|yoy|qoq|preliminary|final|advance|revised)\s*$/g, ' $1') // păstrăm sufix relevant
+    .trim();
+}
+
+// Fetch o singură dată ultimele ~13 luni de calendar economic cu actual publicat
+// → index pe nume normalizat. Cache LS 24h.
+async function loadHistoricalEvents() {
+  if (Object.keys(HISTORICAL_BY_EVENT).length) return; // deja încărcat (din cache LS sau fetch anterior)
+  const key = getFinnhubKey();
+  if (!key) return;
+  try {
+    const from = new Date(Date.now() - 400*86400000).toISOString().slice(0,10);
+    const to = new Date(Date.now() - 1*86400000).toISOString().slice(0,10);
+    const url = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${encodeURIComponent(key)}`;
+    const r = await fetch(url);
+    if (!r.ok) return;
+    const data = await r.json();
+    const events = data?.economicCalendar || data?.economic || [];
+    const map = {};
+    for (const e of events) {
+      if (e.actual == null) continue;
+      const nameKey = normalizeEventName(e.event || e.eventName);
+      if (!nameKey) continue;
+      if (!map[nameKey]) map[nameKey] = [];
+      map[nameKey].push({
+        time: (e.time || e.date || '').slice(0,16).replace('T',' '),
+        actual: e.actual,
+        forecast: e.estimate ?? e.forecast ?? null,
+        previous: e.prev ?? e.previous ?? null
+      });
+    }
+    for (const k of Object.keys(map)) {
+      map[k].sort((a,b) => (a.time > b.time ? 1 : -1));
+      if (map[k].length > 20) map[k] = map[k].slice(-20);
+      // Filtrăm cele cu prea puține date sau actuals non-numerice
+      if (map[k].length < 2 || map[k].every(h => isNaN(parseFloat(h.actual)))) delete map[k];
+    }
+    HISTORICAL_BY_EVENT = map;
+    try { localStorage.setItem(HISTORICAL_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: map })); } catch (e) {}
+  } catch (e) { /* silent — sparkline pur opțional */ }
+}
+
+function getHistoryFor(eventName, max = 8) {
+  const arr = HISTORICAL_BY_EVENT[normalizeEventName(eventName)];
+  if (!arr || !arr.length) return [];
+  return arr.slice(-max);
+}
+
+// Mini sparkline SVG inline (lângă numele evenimentului în tabel)
+// Linia conectează actuals. Dot final colorat după bias-ul ultimului release.
+function renderMiniSparkline(history, eventName, opts = {}) {
+  if (!history || history.length < 3) return '';
+  const vals = history.map(h => parseFloat(h.actual));
+  if (vals.some(v => isNaN(v))) return '';
+  const W = opts.width || 84, H = opts.height || 22, pad = 2;
+  const min = Math.min(...vals), max = Math.max(...vals), range = max - min || 1;
+  const dx = (W - 2*pad) / (vals.length - 1);
+  const pts = vals.map((v, i) => [pad + i*dx, H - pad - ((v - min) / range) * (H - 2*pad)]);
+  const path = pts.map((p, i) => `${i===0?'M':'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const last = history[history.length-1];
+  const r = classifyResult(last.actual, last.forecast, eventName);
+  const dotColor = r.bias === 'bullish' ? '#22d66b' : (r.bias === 'bearish' ? '#ff4d4d' : '#d4892c');
+  const title = `Ultimele ${history.length} rezultate: ${vals.map(v => v.toFixed(2)).join(' → ')}`;
+  return `<svg class="evt-sparkline" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><title>${escHtml(title)}</title>
+    <path d="${path}" fill="none" stroke="#5bb0ff" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="2.4" fill="${dotColor}"/>
+  </svg>`;
+}
+
 function classifyResult(actual, forecast, eventName) {
   // Pentru events bullish-on-up: NFP, Retail Sales, GDP, PMI, Confidence
   // Pentru events bearish-on-up: CPI, PPI, Inflation, Jobless Claims, Unemployment
@@ -3414,6 +3592,11 @@ async function init() {
   await Promise.all([loadCalendar(), loadStatTiles()]);
   scheduleAutoRefresh();
   scheduleAlertCheck(); // verificare alerte la fiecare 60s
+  // Fetch istoric ultimele 13 luni în background (sparkline + expand history).
+  // Non-blocking, re-render calendar după ce vine să apară sparkline-urile.
+  loadHistoricalEvents().then(() => {
+    if (Object.keys(HISTORICAL_BY_EVENT).length) renderCalendar();
+  }).catch(() => {});
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
   preloadAITop5().catch(() => {});
   // Auto-trigger Daily Brief dacă e după 08:00 ET și nu există brief pentru azi
