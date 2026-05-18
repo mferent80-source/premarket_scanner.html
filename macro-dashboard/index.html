@@ -395,10 +395,19 @@ tbody tr.clickable { cursor:pointer; }
 td { padding:8px 7px; text-align:center; vertical-align:middle; font-family:var(--head); font-variant-numeric:tabular-nums; color:var(--t1); }
 td.left { text-align:left; padding-left:14px; }
 .evt-name { font-weight:700; font-size:12.5px; letter-spacing:0; font-family:var(--head); color:var(--t1); }
-.evt-spark-wrap { display:inline-flex; align-items:center; gap:5px; margin-top:3px; opacity:.88; }
+.evt-extras { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:3px; }
+.evt-spark-wrap { display:inline-flex; align-items:center; gap:5px; opacity:.88; }
 .evt-spark-wrap:hover { opacity:1; }
 .evt-sparkline { display:block; }
 .evt-spark-cnt { font-size:9.5px; color:var(--t3); font-family:var(--mono); font-weight:600; }
+.vol-week-badge {
+  display:inline-flex; align-items:center; gap:3px;
+  background:linear-gradient(135deg, rgba(255,77,77,.16), rgba(255,170,77,.12));
+  color:#ffa756; border:1px solid rgba(255,77,77,.45);
+  padding:2px 8px; border-radius:4px;
+  font-family:var(--mono); font-size:10px; font-weight:800; letter-spacing:.3px;
+  cursor:help;
+}
 
 /* Box istoric în expand row */
 .exp-history-box { margin-top:14px; }
@@ -667,7 +676,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v156</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v157</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -687,6 +696,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <div class="stat-tile" id="tile-btc"><span class="stat-label">₿ BTC</span><span class="stat-value">—</span><span class="stat-sub">Bitcoin USD</span></div>
   <div class="stat-tile" id="tile-eth"><span class="stat-label">Ξ ETH</span><span class="stat-value">—</span><span class="stat-sub">Ethereum USD</span></div>
   <div class="stat-tile" id="tile-fng"><span class="stat-label">😱 F&G</span><span class="stat-value">—</span><span class="stat-sub">Crypto Fear&Greed</span></div>
+  <div class="stat-tile" id="tile-earnings" title="Mega-cap earnings în următoarele 7 zile (click → Earnings Hub)"><span class="stat-label">⚡ Earnings 7z</span><span class="stat-value">—</span><span class="stat-sub">mega-caps săptămâna asta</span></div>
 </div>
 
 <!-- Sugestii watchlist (auto din rezultate cu surprise mare) -->
@@ -872,11 +882,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <label>&nbsp;</label>
         <button id="alertTest" class="ghost">🧪 Test alertă (beep + notif + tg)</button>
       </div>
-      <div class="modal-row">
-        <label>&nbsp;</label>
-        <button id="suggestionDemo" class="ghost">🎯 Demo sugestie watchlist (CPI cool + NFP beat)</button>
-      </div>
-      <div class="modal-note">Alertele se declanșează automat pentru evenimentele <b>high-impact</b> când rămâne sub pragul ales. Dedupe 7 zile per eveniment (nu te spamează la fiecare scan).<br>Sugestiile watchlist apar automat la rezultate cu surprise ≥2.5% sau high-impact cu bias clar — apasă <b>Demo</b> ca să vezi cum arată.</div>
+      <div class="modal-note">Alertele se declanșează automat pentru evenimentele <b>high-impact</b> când rămâne sub pragul ales. Dedupe 7 zile per eveniment (nu te spamează la fiecare scan).<br>Sugestiile watchlist apar automat la rezultate cu surprise ≥2.5% sau high-impact cu bias clar.</div>
     </div>
 
     <div class="modal-section">
@@ -1032,6 +1038,27 @@ let HISTORICAL_BY_EVENT = (() => {
   try {
     const raw = JSON.parse(localStorage.getItem(HISTORICAL_CACHE_KEY) || 'null');
     if (raw?.ts && Date.now() - raw.ts < HISTORICAL_CACHE_TTL) return raw.data || {};
+  } catch (e) {}
+  return {};
+})();
+
+// ============ EARNINGS WEEK INDEX (cross-link cu Earnings Hub) ============
+// Top mega-caps care creează volatility la earnings. Earnings într-o săptămână cu
+// FOMC/CPI/NFP = „volatility week" — risc de mișcări mari amplificat.
+const MEGA_CAPS = [
+  'AAPL','MSFT','NVDA','GOOGL','GOOG','AMZN','META','TSLA','AVGO','BRK.B',
+  'JPM','V','MA','UNH','XOM','WMT','JNJ','PG','HD','COST',
+  'BAC','ABBV','KO','PEP','NFLX','AMD','CVX','CRM','ORCL','ADBE',
+  'CSCO','TMO','MRK','LLY','BX','BABA','SHOP','UBER','PYPL','SQ',
+  'COIN','MSTR','PLTR','SMCI'
+];
+const EARNINGS_CACHE_KEY = 'md_earnings_week_v1';
+const EARNINGS_CACHE_TTL = 6*3600*1000; // 6h
+// Map: YYYY-MM-DD -> [{symbol, hour}], doar mega-caps
+let EARNINGS_BY_DATE = (() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(EARNINGS_CACHE_KEY) || 'null');
+    if (raw?.ts && Date.now() - raw.ts < EARNINGS_CACHE_TTL) return raw.data || {};
   } catch (e) {}
   return {};
 })();
@@ -1953,8 +1980,18 @@ function renderCalendar() {
       <td class="left">
         <div class="evt-name">${escHtml(e.event)}</div>
         ${(() => {
+          const parts = [];
           const hist = getHistoryFor(e.event, 8);
-          return hist.length >= 3 ? `<div class="evt-spark-wrap">${renderMiniSparkline(hist, e.event)}<span class="evt-spark-cnt">${hist.length}×</span></div>` : '';
+          if (hist.length >= 3) parts.push(`<span class="evt-spark-wrap">${renderMiniSparkline(hist, e.event)}<span class="evt-spark-cnt">${hist.length}×</span></span>`);
+          // Vol Week: doar pentru evenimente high-impact + ≥3 mega-cap earnings în aceeași săpt.
+          if (e.impact === 'high') {
+            const weekEarn = getWeekEarnings(e.time);
+            if (weekEarn.length >= 3) {
+              const top = weekEarn.slice(0, 4).map(x => x.symbol).join(', ');
+              parts.push(`<span class="vol-week-badge" title="Volatility Week — ${weekEarn.length} mega-cap earnings în săptămâna asta: ${top}${weekEarn.length>4?'...':''}">⚡ VOL WEEK · ${weekEarn.length} earnings</span>`);
+            }
+          }
+          return parts.length ? `<div class="evt-extras">${parts.join('')}</div>` : '';
         })()}
       </td>
       <td><span class="impact-badge ${e.impact}">${impactLabel}</span></td>
@@ -3325,6 +3362,99 @@ function getHistoryFor(eventName, max = 8) {
   return arr.slice(-max);
 }
 
+// Fetch mega-cap earnings pentru următoarele 14 zile (cache 6h)
+// Index pe ziua earnings → marchează săptămânile cu concentrație
+async function loadEarningsWeek() {
+  if (Object.keys(EARNINGS_BY_DATE).length) return; // cached
+  const key = getFinnhubKey();
+  if (!key) return;
+  try {
+    const from = new Date().toISOString().slice(0,10);
+    const to = new Date(Date.now() + 14*86400000).toISOString().slice(0,10);
+    const url = `https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&token=${encodeURIComponent(key)}`;
+    const r = await fetch(url);
+    if (!r.ok) return;
+    const data = await r.json();
+    const list = data?.earningsCalendar || [];
+    const map = {};
+    const megaSet = new Set(MEGA_CAPS);
+    for (const e of list) {
+      const sym = (e.symbol || '').toUpperCase();
+      if (!megaSet.has(sym)) continue;
+      const date = (e.date || '').slice(0,10);
+      if (!date) continue;
+      if (!map[date]) map[date] = [];
+      map[date].push({ symbol: sym, hour: e.hour || 'amc' });
+    }
+    EARNINGS_BY_DATE = map;
+    try { localStorage.setItem(EARNINGS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: map })); } catch (e) {}
+  } catch (e) { /* silent */ }
+}
+
+// Pentru o dată a unui eveniment macro, întoarce mega-cap earnings din aceeași
+// săptămână ISO (luni-vineri). Folosit pentru indicatorul „Vol Week".
+function getWeekEarnings(eventTimeStr) {
+  const d = parseEventTime(eventTimeStr);
+  if (!d) return [];
+  // ISO week start = luni
+  const day = d.getDay() || 7; // duminică = 7
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - (day - 1));
+  monday.setHours(0,0,0,0);
+  const all = [];
+  for (let i = 0; i < 5; i++) { // L-V
+    const dt = new Date(monday);
+    dt.setDate(monday.getDate() + i);
+    const key = dt.toISOString().slice(0,10);
+    if (EARNINGS_BY_DATE[key]) all.push(...EARNINGS_BY_DATE[key]);
+  }
+  return all;
+}
+
+// Count earnings în următoarele N zile (pentru stat tile)
+function countEarningsNextDays(days = 7) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  let total = 0;
+  const symbols = new Set();
+  for (let i = 0; i <= days; i++) {
+    const dt = new Date(now);
+    dt.setDate(now.getDate() + i);
+    const key = dt.toISOString().slice(0,10);
+    const arr = EARNINGS_BY_DATE[key];
+    if (arr) { total += arr.length; arr.forEach(e => symbols.add(e.symbol)); }
+  }
+  return { count: total, unique: symbols.size, symbols: Array.from(symbols).slice(0, 8) };
+}
+
+function renderEarningsTile() {
+  const tile = $('tile-earnings');
+  if (!tile) return;
+  const { count, unique, symbols } = countEarningsNextDays(7);
+  const valEl = tile.querySelector('.stat-value');
+  const subEl = tile.querySelector('.stat-sub');
+  if (!count) {
+    valEl.textContent = '0';
+    subEl.textContent = 'fără mega-caps · 7z';
+    return;
+  }
+  valEl.textContent = unique;
+  subEl.textContent = symbols.length ? symbols.slice(0, 5).join(' · ') + (symbols.length > 5 ? '…' : '') : 'mega-caps · 7z';
+  // High-vol când ≥3 unique
+  if (unique >= 3) {
+    valEl.style.color = 'var(--warn)';
+    tile.style.borderColor = 'rgba(212,137,44,.4)';
+  } else {
+    valEl.style.color = '';
+    tile.style.borderColor = '';
+  }
+  // Click → deschide Earnings Hub
+  if (!tile.dataset.bound) {
+    tile.dataset.bound = '1';
+    tile.style.cursor = 'pointer';
+    tile.addEventListener('click', () => { window.open('../earnings-hub/', '_blank'); });
+  }
+}
+
 // Mini sparkline SVG inline (lângă numele evenimentului în tabel)
 // Linia conectează actuals. Dot final colorat după bias-ul ultimului release.
 function renderMiniSparkline(history, eventName, opts = {}) {
@@ -3442,6 +3572,14 @@ function checkResults() {
   if (suggestionsAdded) {
     persistSuggestions();
     renderSuggestionsPanel();
+    // Animație glow ca să nu rateze panel-ul când apare brusc
+    const sgPanel = $('suggestionsPanel');
+    if (sgPanel) {
+      sgPanel.classList.remove('just-appeared');
+      void sgPanel.offsetWidth;
+      sgPanel.classList.add('just-appeared');
+      setTimeout(() => sgPanel.classList.remove('just-appeared'), 3500);
+    }
   }
 
   // Curăță flash după animație
@@ -3679,39 +3817,6 @@ function bindEvents() {
     toast('✅ Test trimis (verifică sunet + notif browser + Telegram)', 'success');
   });
 
-  // Demo sugestie watchlist — generează 2 sugestii (1 bullish CPI cool, 1 bullish NFP beat)
-  // ca să vezi cum arată panelul în acțiune. Le poți închide individual cu × sau global cu „Ignoră toate".
-  $('suggestionDemo').addEventListener('click', () => {
-    const nowStr = new Date().toISOString().slice(0,16).replace('T',' ');
-    const key1 = `demo|CPI YoY (DEMO)`;
-    const key2 = `demo|Non-Farm Payrolls (DEMO)`;
-    MD_SUGGESTIONS[key1] = {
-      eventName: 'CPI YoY (DEMO)', time: nowStr, bias: 'bullish', verdict: 'COOL',
-      surprise: -3.45, actual: 2.8, forecast: 3.1,
-      tickers: ['XLRE','XLF','XLK','GLD','KRE'],
-      added: [], dismissed: false, ts: Date.now()
-    };
-    MD_SUGGESTIONS[key2] = {
-      eventName: 'Non-Farm Payrolls (DEMO)', time: nowStr, bias: 'bullish', verdict: 'BEAT',
-      surprise: 5.20, actual: 263000, forecast: 250000,
-      tickers: ['XLY','AMZN','TSLA','XLP','GS'],
-      added: [], dismissed: false, ts: Date.now()
-    };
-    persistSuggestions();
-    renderSuggestionsPanel();
-    // Închide modal-ul ca să vezi panelul
-    closeSettings();
-    // Scroll la TOPUL paginii (panelul e între stat-strip și hot-strip) + animație glow
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    const sgPanel = $('suggestionsPanel');
-    if (sgPanel) {
-      sgPanel.classList.remove('just-appeared');
-      void sgPanel.offsetWidth; // force reflow ca animația să re-pornească
-      sgPanel.classList.add('just-appeared');
-      setTimeout(() => sgPanel.classList.remove('just-appeared'), 3500);
-    }
-    toast('🎯 Vezi panelul SUS în pagină — 2 sugestii afișate (CPI cool + NFP beat) cu chip-uri tickere', 'success');
-  });
 
   // Sound / Notif
   $('soundBtn').addEventListener('click', () => {
@@ -3897,10 +4002,18 @@ async function init() {
   scheduleAutoRefresh();
   scheduleAlertCheck(); // verificare alerte la fiecare 60s
   renderSuggestionsPanel(); // restore sugestii salvate (din LS) la load
+  renderEarningsTile(); // restore tile din LS cache dacă există
   // Fetch istoric ultimele 13 luni în background (sparkline + expand history).
   // Non-blocking, re-render calendar după ce vine să apară sparkline-urile.
   loadHistoricalEvents().then(() => {
     if (Object.keys(HISTORICAL_BY_EVENT).length) renderCalendar();
+  }).catch(() => {});
+  // Fetch mega-cap earnings 14z în background (vol-week badge + stat tile)
+  loadEarningsWeek().then(() => {
+    if (Object.keys(EARNINGS_BY_DATE).length) {
+      renderEarningsTile();
+      renderCalendar(); // re-render ca să apară vol-week badge-urile
+    }
   }).catch(() => {});
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
   preloadAITop5().catch(() => {});
