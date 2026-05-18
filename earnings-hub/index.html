@@ -1170,9 +1170,11 @@ function injectExpandedRow(tr, e){
     </div>
     <div class="exp-ai-bar">
       <button class="ai-btn" id="ai-btn-${e.symbol}" onclick="event.stopPropagation(); analyzeEarningWithAI('${e.symbol}', this)">🤖 Analizează cu AI (Claude)</button>
-      <span class="ai-hint">Foloseşte cheia Anthropic shared cu nasdaq-scanner. Setează-o din ⚙ Setări dacă lipseşte. ≈ $0.05–0.10 / analiză.</span>
+      <button class="ai-btn" id="qs-btn-${e.symbol}" onclick="event.stopPropagation(); runEHQuickSetup('${e.symbol}', this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">🎯 Quick Setup (Opus 4.7)</button>
+      <span class="ai-hint">AI = analiză narativă pre-earnings. Quick Setup = JSON ready-to-execute pentru play pe data release.</span>
     </div>
     <div class="exp-ai" id="ai-result-${e.symbol}" data-done="0"></div>
+    <div class="exp-ai" id="qs-result-${e.symbol}" data-done="0"></div>
   </td>`;
   tr.parentNode.insertBefore(row, tr.nextSibling);
 }
@@ -1477,6 +1479,162 @@ window.analyzeEarningWithAI = async function(symbol, btn){
   } finally {
     if (btn) btn.disabled = false;
   }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  QUICK SETUP — JSON ready-to-execute pentru earnings play (Opus 4.7)
+// ═══════════════════════════════════════════════════════════════
+const EH_QS_CACHE_KEY = 'eh_qs_cache_v1';
+const EH_QS_TTL = 60*60*1000; // 1h
+function ehQsCacheGet(sym){
+  try{ const c=JSON.parse(localStorage.getItem(EH_QS_CACHE_KEY)||'{}'); const it=c[sym]; if(!it) return null;
+    if(Date.now()-it.ts>EH_QS_TTL) return null; return it.data;}catch(_){return null;}
+}
+function ehQsCacheSet(sym,data){
+  try{const c=JSON.parse(localStorage.getItem(EH_QS_CACHE_KEY)||'{}'); c[sym]={ts:Date.now(),data};
+    for(const k of Object.keys(c)) if(Date.now()-c[k].ts>3*24*3600*1000) delete c[k];
+    localStorage.setItem(EH_QS_CACHE_KEY,JSON.stringify(c));}catch(_){}
+}
+
+window.runEHQuickSetup = async function(symbol, btn){
+  const e = calendar.find(x => x.symbol === symbol);
+  const container = $('qs-result-' + symbol); if (!container) return;
+  if (!e){ container.innerHTML = '<div class="ai-bubble error"><div class="ai-head"><b>⚠ Date earnings lipsă</b></div>Re-deschide expand row sau scan din nou.</div>'; return; }
+  if (container.dataset.done === '1'){
+    container.innerHTML = ''; container.dataset.done = '0';
+    if (btn) btn.textContent = '🎯 Quick Setup (Opus 4.7)';
+    return;
+  }
+  const key = getAnthropicKey();
+  if (!key){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>⚠ Lipsește cheia Anthropic</b></div>Setează în ⚙ Setări.</div>`;
+    container.dataset.done = '1'; return;
+  }
+  const cached = ehQsCacheGet(symbol);
+  if (cached){
+    renderEHQuickSetup(container, cached, '💾 cache 1h', symbol);
+    container.dataset.done = '1';
+    if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
+    return;
+  }
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ Opus 4.7 gândește (5-15s)…'; }
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">🎯 Quick Setup · Opus 4.7</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:6px;font-size:12.5px">Generez JSON pre-earnings setup…</div></div></div>`;
+  container.dataset.done = '1';
+
+  const a = analyzeHist(e.hist || []);
+  const beatRate = a.n ? ((a.beats / a.n) * 100).toFixed(0) + '%' : 'N/A';
+  const avgReact = e.avgReact != null ? (e.avgReact >= 0 ? '+' : '') + e.avgReact.toFixed(2) + '%' : 'N/A';
+  const insiderTxt = (e.insider && e.insider.ok)
+    ? `${e.insider.verdict} (${e.insider.buys}B/${e.insider.sells}S, net ${e.insider.netShares >= 0 ? '+' : ''}${e.insider.netShares})`
+    : 'N/A';
+
+  const userPrompt = `Earnings play setup pentru ${symbol} — raport în ${e.zile} zile (${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''}).
+- EPS estimate trim. curent: ${e.epsEst != null ? '$' + e.epsEst.toFixed(2) : 'N/A'}
+- Beat rate istoric: ${beatRate} (${a.beats}/${a.n})
+- Surpriză medie istorică: ${a.avgSurp != null ? (a.avgSurp >= 0 ? '+' : '') + a.avgSurp.toFixed(1) + '%' : 'N/A'}
+- Ultima surpriză: ${a.lastSurp != null ? (a.lastSurp >= 0 ? '+' : '') + a.lastSurp.toFixed(1) + '%' : 'N/A'}
+- Reacţie medie 1z post-earnings: ${avgReact}
+- Tag algoritmic: ${(ACTION_META[computeAction(e, e.avgReact)] || ACTION_META.skip).label}
+- Insider 60z pre-earnings: ${insiderTxt}
+- ⭐ Watchlist: ${e.fav ? 'da' : 'nu'}
+
+Output STRICT JSON (un singur obiect, niciun text înainte/după):
+{"entry":<număr|null>,"sl":<număr|null>,"tp1":<număr|null>,"tp2":<număr|null>,"sizing_pct":<număr 1-3>,"timeframe":"<pre-earnings|post-earnings|skip>","risk":"<one-liner max 50 chars>","confidence":"<HIGH|MED|LOW>","reasoning":"<3-5 propoziții, max 400 chars, raționament EXPLICIT earnings play>","invalidation":"<trigger care anulează, max 120 chars>","catalysts":"<events imediate pre/post-earnings, max 120 chars>"}
+
+REGULI SPECIFICE EARNINGS:
+- Pre-earnings (entry ÎNAINTE de raport) e risc MAXIM — sizing MAX 2% cont, doar dacă beat rate>=70% și insider bullish și surpriză medie pozitivă. Altfel timeframe:"skip".
+- Post-earnings (entry DUPĂ raport) e mai sigur: pe IV crush + reacție inițială clară. Sizing 2-3%.
+- Dacă pretul curent NU e cunoscut (nu avem yet), pune entry/sl/tp1/tp2: null și explică în reasoning că vei stabili la deschidere.
+- TP1: +1×reacţie medie istorică, TP2: +2× (sau target tehnic dacă există)
+- SL: -1.5× reacţie medie istorică sau lvl tehnic important
+- sizing_pct: MAX 3 (earnings = volatility extremă, risc dublu)
+- timeframe: "pre-earnings" (long entry înainte de release cu hold prin), "post-earnings" (entry pe reacția inițială), "skip" (setup prost: miss pattern + insider bear)
+- risk: cea mai mare amenințare (ex: "Miss EPS + sell-off pre-market 4%+")
+- confidence: HIGH = beat≥80% + insider bull + surpriză medie pozitivă; MED = mixt; LOW = sub 50% sau date insuficiente
+- reasoning: explică EXPLICIT — pattern istoric (beats vs misses), insider activity ca semnal, reacţia 1z medie ca proxy de volatilitate aşteptată, decizia pre/post-earnings. Sfat practic dacă să intri sau să aştepţi.
+- invalidation: trigger clar (ex: "Earnings MISS sau guidance dezamăgitor → exit la deschidere")
+- catalysts: alte events relevante (analyst upgrades, macro events overlap, sector momentum)`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] })
+    });
+    if (!resp.ok){
+      const j = await resp.json().catch(() => ({ error: { message: 'HTTP ' + resp.status } }));
+      throw new Error(j.error?.message || ('HTTP ' + resp.status));
+    }
+    const data = await resp.json();
+    const text = data?.content?.[0]?.text || '';
+    const start = text.indexOf('{'); const end = text.lastIndexOf('}');
+    if (start < 0 || end < 0 || end <= start) throw new Error('Format JSON invalid: ' + text.slice(0, 120));
+    const setup = JSON.parse(text.slice(start, end + 1));
+    ehQsCacheSet(symbol, setup);
+    renderEHQuickSetup(container, setup, '✓ ' + new Date().toLocaleTimeString('ro-RO'), symbol);
+    if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
+  } catch (err){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare Quick Setup</b><span class="ai-meta">${escHtml(err.message || 'unknown')}</span></div>Verifică cheia, creditul sau încearcă peste 1 min.</div>`;
+    if (btn) btn.textContent = '🎯 Reîncearcă';
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+};
+
+function renderEHQuickSetup(container, setup, sourceLabel, symbol){
+  const confColor = setup.confidence === 'HIGH' ? 'var(--bull-s)' : (setup.confidence === 'MED' ? 'var(--gold)' : 'var(--bear-s)');
+  const fmt$ = n => (n != null && !isNaN(n)) ? '$' + Number(n).toFixed(2) : '—';
+  const pctOf = (a, b) => (a != null && b != null && b !== 0) ? ((a - b) / b * 100).toFixed(2) : '—';
+  const slPct = setup.entry && setup.sl ? pctOf(setup.sl, setup.entry) : '—';
+  const tp1Pct = setup.entry && setup.tp1 ? pctOf(setup.tp1, setup.entry) : '—';
+  const tp2Pct = setup.entry && setup.tp2 ? pctOf(setup.tp2, setup.entry) : '—';
+  const rr = (setup.entry && setup.sl && setup.tp2) ? Math.abs((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '—';
+  const tfLabel = setup.timeframe === 'skip' ? '⏭ SKIP' : (setup.timeframe === 'pre-earnings' ? '⚠ Pre-earnings' : '🎯 Post-earnings');
+  container.innerHTML = `<div class="ai-bubble" style="background:linear-gradient(180deg, rgba(247,147,26,.10), rgba(20,26,40,.4));border-color:rgba(247,147,26,.4)">
+    <div class="ai-head">
+      <span class="ai-meta">🎯 Quick Setup · Opus 4.7 · ${sourceLabel}</span>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunEHQuickSetup('${symbol}')">↻ Re-rulează</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px">
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Entry</div><div style="font-size:17px;font-weight:800;color:var(--t1)">${fmt$(setup.entry)}</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Stop Loss</div><div style="font-size:17px;font-weight:800;color:var(--bear-s)">${fmt$(setup.sl)} <span style="font-size:10.5px;font-weight:600">${slPct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP1</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp1)} <span style="font-size:10.5px;font-weight:600">${tp1Pct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP2</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp2)} <span style="font-size:10.5px;font-weight:600">${tp2Pct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Sizing</div><div style="font-size:17px;font-weight:800;color:var(--accent)">${setup.sizing_pct}% cont</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">R:R</div><div style="font-size:17px;font-weight:800;color:var(--t1)">1 : ${rr}</div></div>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12.5px">
+      <div><span style="color:var(--t3)">Timeframe:</span> <strong>${tfLabel}</strong></div>
+      <div><span style="color:var(--t3)">Confidence:</span> <strong style="color:${confColor}">${escHtml(setup.confidence || 'N/A')}</strong></div>
+    </div>
+    ${setup.reasoning ? `<div style="margin-top:10px;padding:10px 12px;background:rgba(91,176,255,.08);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:12px;line-height:1.55">
+      <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">🧠 Raționament</div>
+      ${escHtml(setup.reasoning)}
+    </div>` : ''}
+    <div style="margin-top:8px;padding:8px 10px;background:rgba(255,77,77,.08);border-left:3px solid var(--bear-s);border-radius:0 6px 6px 0;font-size:12px">
+      <strong style="color:var(--bear-s)">⚠ Risc principal:</strong> ${escHtml(setup.risk || 'N/A')}
+    </div>
+    ${setup.invalidation ? `<div style="margin-top:7px;padding:7px 10px;background:rgba(247,147,26,.07);border-left:3px solid var(--warn);border-radius:0 6px 6px 0;font-size:11.5px">
+      <strong style="color:var(--warn)">🚫 Invalidare:</strong> ${escHtml(setup.invalidation)}
+    </div>` : ''}
+    ${setup.catalysts ? `<div style="margin-top:7px;padding:7px 10px;background:rgba(34,214,107,.07);border-left:3px solid var(--bull-s);border-radius:0 6px 6px 0;font-size:11.5px">
+      <strong style="color:var(--bull-s)">⚡ Catalist:</strong> ${escHtml(setup.catalysts)}
+    </div>` : ''}
+  </div>`;
+}
+
+window.rerunEHQuickSetup = function(symbol){
+  try{const c=JSON.parse(localStorage.getItem(EH_QS_CACHE_KEY)||'{}'); delete c[symbol]; localStorage.setItem(EH_QS_CACHE_KEY,JSON.stringify(c));}catch(_){}
+  const container = $('qs-result-' + symbol);
+  if (container){ container.dataset.done = '0'; container.innerHTML = ''; }
+  const btn = $('qs-btn-' + symbol);
+  if (btn) btn.textContent = '🎯 Quick Setup (Opus 4.7)';
+  runEHQuickSetup(symbol, btn);
 };
 
 function renderAiBubble(container, text, meta){
