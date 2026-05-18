@@ -475,6 +475,54 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .modal-section { margin-top:14px; padding-top:12px; border-top:1px solid var(--b1); }
 .modal-section h4 { font-size:12px; text-transform:uppercase; letter-spacing:.4px; color:var(--t2); font-weight:700; font-family:var(--mono); margin-bottom:8px; }
 
+/* Alerts Log */
+.al-badge {
+  display:inline-block; margin-left:3px;
+  background:var(--bear-s); color:#fff; border-radius:999px;
+  padding:0 5px; font-size:9.5px; font-weight:800; min-width:14px;
+  text-align:center; vertical-align:top; font-family:var(--mono);
+}
+.al-toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; padding-bottom:10px; border-bottom:1px solid var(--b1); }
+.al-body { max-height:60vh; overflow-y:auto; }
+.al-empty { padding:50px 20px; text-align:center; color:var(--t2); font-family:var(--head); }
+.al-empty .ale-icon { font-size:48px; margin-bottom:10px; opacity:.4; }
+.al-entry {
+  display:grid; grid-template-columns:90px 1fr auto; gap:10px; align-items:center;
+  padding:10px 12px; border-bottom:1px solid rgba(42,50,71,.5);
+  font-family:var(--head); font-size:12.5px;
+}
+.al-entry:hover { background:rgba(91,176,255,.04); }
+.al-entry.pre { border-left:3px solid var(--warn); padding-left:10px; }
+.al-entry.result.bull { border-left:3px solid var(--bull-s); padding-left:10px; }
+.al-entry.result.bear { border-left:3px solid var(--bear-s); padding-left:10px; }
+.al-entry.result.neut { border-left:3px solid var(--t3); padding-left:10px; }
+.al-time { font-family:var(--mono); font-size:11px; color:var(--t2); font-weight:600; line-height:1.35; }
+.al-time .al-date { display:block; color:var(--t3); font-size:10px; }
+.al-info { display:flex; flex-direction:column; gap:3px; }
+.al-event-name { font-weight:700; color:var(--t1); font-size:13px; }
+.al-event-meta { font-family:var(--mono); font-size:11px; color:var(--t2); }
+.al-event-meta code {
+  background:rgba(91,176,255,.10); color:var(--accent); border:1px solid rgba(91,176,255,.25);
+  padding:1px 5px; border-radius:3px; font-size:10.5px;
+}
+.al-side { display:flex; flex-direction:column; align-items:flex-end; gap:4px; font-family:var(--mono); font-size:11.5px; }
+.al-type-chip { padding:2px 8px; border-radius:4px; font-weight:700; font-size:10.5px; letter-spacing:.3px; font-family:var(--head); }
+.al-type-chip.pre { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.4); }
+.al-type-chip.result.bull { background:var(--bull-bg); color:var(--bull-s); border:1px solid rgba(34,214,107,.4); }
+.al-type-chip.result.bear { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.4); }
+.al-type-chip.result.neut { background:var(--panel3); color:var(--t2); border:1px solid var(--b1); }
+.al-surp { font-weight:800; font-size:12px; }
+.al-surp.pos { color:var(--bull-s); }
+.al-surp.neg { color:var(--bear-s); }
+.al-stats {
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:8px;
+  background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs);
+  padding:10px 12px; margin-bottom:12px;
+}
+.al-stat-tile { display:flex; flex-direction:column; gap:2px; }
+.al-stat-label { font-family:var(--mono); font-size:10.5px; color:var(--t2); text-transform:uppercase; letter-spacing:.3px; font-weight:700; }
+.al-stat-val { font-family:var(--head); font-size:16px; font-weight:800; color:var(--t1); }
+
 /* Risk Dashboard drill-down */
 .risk-verdict {
   font-family:var(--head); font-size:24px; font-weight:800; text-align:center;
@@ -740,7 +788,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v159</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v160</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -748,6 +796,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
   <button class="icon-btn" id="tgBtn" title="Telegram alerts">📡</button>
   <button class="icon-btn" id="refreshBtn" title="Reîncarcă datele">🔄</button>
+  <button class="icon-btn" id="alertsLogBtn" title="Jurnal alerte istoric">📜<span class="al-badge" id="alBadge" style="display:none">0</span></button>
   <button class="icon-btn" id="guideBtn" title="Ghid funcționalități">📖</button>
   <button class="icon-btn" id="settingsBtn" title="Setări">⚙</button>
   <a href="../" class="nav-link">← Hub</a>
@@ -904,6 +953,34 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   </div>
 </div>
 
+<!-- Alerts Log Modal — jurnal istoric alerte primite -->
+<div class="modal" id="alertsLogModal">
+  <div class="modal-content" style="max-width:820px">
+    <div class="modal-head">
+      <h3>📜 Jurnal alerte</h3>
+      <span class="gm-sub" id="alertsLogSummary"></span>
+      <button class="ghost icon-btn" id="closeAlertsLog">✖</button>
+    </div>
+    <div class="al-toolbar">
+      <div class="fb-group">
+        <span class="fb-label">Tip:</span>
+        <button class="fb-chip active al-filter" data-type="all">Toate</button>
+        <button class="fb-chip al-filter" data-type="pre">🔴 Pre-event</button>
+        <button class="fb-chip al-filter" data-type="result">📊 Rezultat</button>
+      </div>
+      <div class="fb-group">
+        <span class="fb-label">Bias:</span>
+        <button class="fb-chip active al-bias-filter" data-bias="all">Toate</button>
+        <button class="fb-chip al-bias-filter" data-bias="bullish">🟢 Bull</button>
+        <button class="fb-chip al-bias-filter" data-bias="bearish">🔴 Bear</button>
+      </div>
+      <button class="ghost" id="alExport" title="Exportă JSON" style="margin-left:auto">📤 Export</button>
+      <button class="ghost" id="alClear" title="Șterge tot jurnalul">🗑 Clear</button>
+    </div>
+    <div class="al-body" id="alertsLogBody"></div>
+  </div>
+</div>
+
 <!-- Guide Modal — ghid funcționalități macro-dashboard -->
 <div class="modal" id="guideModal">
   <div class="modal-content" style="max-width:780px">
@@ -978,6 +1055,30 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
           <li><b>Drill-down:</b> click pe heading secțiune → AI follow-up 400-700 cuvinte cu prompt specific per secțiune (cache 12h).</li>
           <li><b>Ticker auto-link:</b> 100+ tickere în brief sunt clickable → modal cu chart Yahoo + 7 stats + linkuri TV/Yahoo/Finviz.</li>
           <li>Cache LS 12h cheia dateET. Rerun cu confirm.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>📜 Jurnal alerte istoric</h4>
+        <ul>
+          <li>Buton <b>📜</b> în header → modal cu lista cronologică a alertelor (pre-event + rezultate publicate).</li>
+          <li><b>Badge counter:</b> apare pe buton numărul de entries nevăzute (resetat la deschiderea modal-ului).</li>
+          <li><b>Filtre:</b> Tip (Toate / Pre-event / Rezultat) · Bias (Toate / Bullish / Bearish).</li>
+          <li><b>Stats:</b> total, count pre-event vs result, bull vs bear.</li>
+          <li><b>Border-left color:</b> pre-event galben, result verde/roșu/galben după bias.</li>
+          <li>Buton <b>📤 Export JSON</b> pentru download arhivă + <b>🗑 Clear</b> ștergere completă.</li>
+          <li><b>Storage:</b> LS <code>md_alerts_log_v1</code> max 200 entries (FIFO).</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>🛡 Risk Dashboard composite</h4>
+        <ul>
+          <li>Stat tile „🛡 Risk" cu score composit din 3 sub-indicatori.</li>
+          <li><b>VIX score:</b> &lt;12 +1 complacency · 12-18 +2 calm · 18-25 -1 caut · 25-30 -2 fear · &gt;30 -3 stress.</li>
+          <li><b>10Y Δ30z:</b> drop &gt;25bp = -2 recession concerns · spike &gt;25bp = -1 hawkish · stable = +1.</li>
+          <li><b>BTC/SPY corr 30d:</b> Pearson pe daily returns aliniate pe data. &gt;0.6 = +1 risk-on · &lt;-0.2 = -2 anti-corr.</li>
+          <li><b>Verdict composite:</b> ≥+3 RISK-ON · +1/+2 LEAN ON · -1/0 NEUTRAL · -2/-3 CAUTIOUS · -4/-5 RISK-OFF · ≤-6 STRESS + recomandare concretă (sizing, hedge).</li>
         </ul>
       </div>
 
@@ -1260,6 +1361,122 @@ let EARNINGS_BY_DATE = (() => {
   } catch (e) {}
   return {};
 })();
+
+// ============ ALERTS LOG (jurnal istoric alerte) ============
+const ALERTS_LOG_KEY = 'md_alerts_log_v1';
+const MAX_LOG_ENTRIES = 200;
+// entries [{ ts, type: 'pre'|'result', eventName, eventTime, country, impact, bias?, surprise?, actual?, forecast? }]
+let MD_ALERTS_LOG = (() => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ALERTS_LOG_KEY) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch (e) { return []; }
+})();
+function pushAlertLog(entry) {
+  MD_ALERTS_LOG.unshift({ ts: Date.now(), ...entry });
+  if (MD_ALERTS_LOG.length > MAX_LOG_ENTRIES) MD_ALERTS_LOG.length = MAX_LOG_ENTRIES;
+  try { localStorage.setItem(ALERTS_LOG_KEY, JSON.stringify(MD_ALERTS_LOG)); } catch (e) {}
+  // Refresh modal dacă e deschis + badge counter
+  if ($('alertsLogModal')?.classList.contains('show')) renderAlertsLog();
+  updateAlertsBadge();
+}
+
+let _alertsFilter = { type: 'all', bias: 'all' };
+let _lastViewedAlertsTs = parseInt(localStorage.getItem('md_alerts_log_seen') || '0', 10);
+
+function updateAlertsBadge() {
+  const badge = $('alBadge');
+  if (!badge) return;
+  const unseen = MD_ALERTS_LOG.filter(e => e.ts > _lastViewedAlertsTs).length;
+  if (unseen > 0) {
+    badge.textContent = unseen > 99 ? '99+' : String(unseen);
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function markAlertsAsViewed() {
+  _lastViewedAlertsTs = Date.now();
+  try { localStorage.setItem('md_alerts_log_seen', String(_lastViewedAlertsTs)); } catch (e) {}
+  updateAlertsBadge();
+}
+
+function renderAlertsLog() {
+  const body = $('alertsLogBody');
+  const summary = $('alertsLogSummary');
+  if (!body) return;
+  // Stats globale (înainte de filter)
+  const total = MD_ALERTS_LOG.length;
+  const preCount = MD_ALERTS_LOG.filter(e => e.type === 'pre').length;
+  const resCount = MD_ALERTS_LOG.filter(e => e.type === 'result').length;
+  const bullCount = MD_ALERTS_LOG.filter(e => e.bias === 'bullish').length;
+  const bearCount = MD_ALERTS_LOG.filter(e => e.bias === 'bearish').length;
+  if (summary) summary.textContent = `${total} ${total === 1 ? 'entry' : 'entries'} · ultimele 200`;
+
+  // Filter
+  let arr = MD_ALERTS_LOG.slice();
+  if (_alertsFilter.type !== 'all') arr = arr.filter(e => e.type === _alertsFilter.type);
+  if (_alertsFilter.bias !== 'all') arr = arr.filter(e => e.bias === _alertsFilter.bias);
+
+  if (!total) {
+    body.innerHTML = `<div class="al-empty"><div class="ale-icon">📭</div>Niciun jurnal de alerte încă. La primul eveniment high-impact sub pragul setat sau la primul rezultat publicat, intrările vor apărea aici.</div>`;
+    return;
+  }
+
+  const stats = `<div class="al-stats">
+    <div class="al-stat-tile"><span class="al-stat-label">Total</span><span class="al-stat-val">${total}</span></div>
+    <div class="al-stat-tile"><span class="al-stat-label">🔴 Pre-event</span><span class="al-stat-val">${preCount}</span></div>
+    <div class="al-stat-tile"><span class="al-stat-label">📊 Rezultate</span><span class="al-stat-val">${resCount}</span></div>
+    <div class="al-stat-tile"><span class="al-stat-label">🟢 Bullish</span><span class="al-stat-val" style="color:var(--bull-s)">${bullCount}</span></div>
+    <div class="al-stat-tile"><span class="al-stat-label">🔴 Bearish</span><span class="al-stat-val" style="color:var(--bear-s)">${bearCount}</span></div>
+  </div>`;
+
+  if (!arr.length) {
+    body.innerHTML = stats + `<div class="al-empty"><div class="ale-icon">🔍</div>Niciun entry cu filtrele curente.</div>`;
+    return;
+  }
+
+  const entries = arr.map(e => {
+    const dt = new Date(e.ts);
+    const dStr = dt.toLocaleDateString('ro-RO', { day:'2-digit', month:'short' });
+    const tStr = dt.toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' });
+    const cm = COUNTRY_META[e.country] || { flag:'🌐', name: e.country || '—' };
+    let biasCls = '', chipLabel, chipExtra = '';
+    if (e.type === 'pre') {
+      biasCls = '';
+      chipLabel = '🔴 PRE-EVENT';
+    } else {
+      biasCls = e.bias === 'bullish' ? 'bull' : (e.bias === 'bearish' ? 'bear' : 'neut');
+      chipLabel = e.verdict || '📊 RESULT';
+    }
+    const surp = (e.surprise != null && !isNaN(e.surprise))
+      ? `<div class="al-surp ${e.surprise >= 0 ? 'pos' : 'neg'}">${e.surprise>=0?'+':''}${e.surprise.toFixed(2)}%</div>`
+      : '';
+    const factPart = e.type === 'result' && e.actual != null
+      ? ` · Actual <code>${escHtml(String(e.actual))}</code> vs forecast <code>${escHtml(String(e.forecast ?? '—'))}</code>`
+      : '';
+    return `<div class="al-entry ${e.type} ${biasCls}">
+      <div class="al-time"><span>${escHtml(tStr)}</span><span class="al-date">${escHtml(dStr)}</span></div>
+      <div class="al-info">
+        <div class="al-event-name">${cm.flag} ${escHtml(e.eventName)}</div>
+        <div class="al-event-meta">${escHtml(cm.name)} · ${e.impact?.toUpperCase() || '—'} · Eveniment ${escHtml(e.eventTime || '—')}${factPart}</div>
+      </div>
+      <div class="al-side">
+        <div class="al-type-chip ${e.type} ${biasCls}">${chipLabel}</div>
+        ${surp}
+      </div>
+    </div>`;
+  }).join('');
+  body.innerHTML = stats + entries;
+}
+
+function openAlertsLog() {
+  $('alertsLogModal').classList.add('show');
+  renderAlertsLog();
+  markAlertsAsViewed();
+}
+function closeAlertsLog() { $('alertsLogModal').classList.remove('show'); }
 
 // ============ WATCHLIST SUGGESTIONS (din rezultate macro cu surprise) ============
 const WL_KEY = 'wl_stocks';                 // shared cu nasdaq-scanner + watchlist-monitor
@@ -3475,6 +3692,7 @@ function checkAlerts() {
   trigger.forEach(e => {
     const cm = COUNTRY_META[e.country] || { name: e.country };
     toast(`🔴 ${cm.name} · ${e.event} · ${timeUntilLabel(e.time)}`, 'warn');
+    pushAlertLog({ type: 'pre', eventName: e.event, eventTime: e.time, country: e.country, impact: e.impact });
   });
   playBeep();
   if (trigger.length === 1) {
@@ -3959,6 +4177,10 @@ function checkResults() {
   // Alerte combo
   newResults.forEach(({ e, r }) => {
     toast(`${r.icon} ${r.verdict} · ${e.event} → ${e.actual} (forecast ${e.forecast ?? '—'})`, r.cls === 'miss' ? 'error' : 'success');
+    pushAlertLog({
+      type: 'result', eventName: e.event, eventTime: e.time, country: e.country, impact: e.impact,
+      bias: r.bias, verdict: r.verdict, surprise: r.surprise, actual: e.actual, forecast: e.forecast
+    });
   });
   playBeep();
   if (newResults.length === 1) {
@@ -4209,6 +4431,40 @@ function bindEvents() {
   $('guideBtn').addEventListener('click', () => $('guideModal').classList.add('show'));
   $('closeGuide').addEventListener('click', () => $('guideModal').classList.remove('show'));
   $('guideModal').addEventListener('click', (e) => { if (e.target.id === 'guideModal') $('guideModal').classList.remove('show'); });
+
+  // Alerts Log modal
+  $('alertsLogBtn').addEventListener('click', openAlertsLog);
+  $('closeAlertsLog').addEventListener('click', closeAlertsLog);
+  $('alertsLogModal').addEventListener('click', (e) => { if (e.target.id === 'alertsLogModal') closeAlertsLog(); });
+  document.querySelectorAll('.al-filter').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.al-filter').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _alertsFilter.type = btn.dataset.type;
+    renderAlertsLog();
+  }));
+  document.querySelectorAll('.al-bias-filter').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.al-bias-filter').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _alertsFilter.bias = btn.dataset.bias;
+    renderAlertsLog();
+  }));
+  $('alClear').addEventListener('click', () => {
+    if (!confirm('Ștergi tot jurnalul de alerte (' + MD_ALERTS_LOG.length + ' entries)?')) return;
+    MD_ALERTS_LOG = [];
+    try { localStorage.setItem(ALERTS_LOG_KEY, '[]'); } catch (e) {}
+    renderAlertsLog();
+    updateAlertsBadge();
+    toast('🗑 Jurnal alerte șters', 'info');
+  });
+  $('alExport').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(MD_ALERTS_LOG, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `macro-alerts-log-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('📤 Exportat ' + MD_ALERTS_LOG.length + ' entries', 'success');
+  });
   $('cancelSettings').addEventListener('click', closeSettings);
   $('saveSettings').addEventListener('click', saveSettingsHandler);
   $('tgTest').addEventListener('click', tgTestHandler);
@@ -4411,6 +4667,7 @@ async function init() {
   scheduleAlertCheck(); // verificare alerte la fiecare 60s
   renderSuggestionsPanel(); // restore sugestii salvate (din LS) la load
   renderEarningsTile(); // restore tile din LS cache dacă există
+  updateAlertsBadge(); // badge pe butonul 📜 cu entries nevăzute
   // Fetch istoric ultimele 13 luni în background (sparkline + expand history).
   // Non-blocking, re-render calendar după ce vine să apară sparkline-urile.
   loadHistoricalEvents().then(() => {
