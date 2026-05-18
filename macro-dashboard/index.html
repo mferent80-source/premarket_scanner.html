@@ -788,7 +788,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v161</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v162</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1617,9 +1617,48 @@ async function fetchViaProxy(url, timeoutMs=9000) {
 }
 
 // ============ STAT TILES (live macro indicators) ============
+// CoinGecko: BTC + ETH direct (NO proxy CORS — CoinGecko permite CORS *).
+// Backup pentru când proxy chain Yahoo pică complet.
+let _coingeckoCache = null;
+async function fetchCryptoFromCoinGecko() {
+  if (_coingeckoCache && Date.now() - _coingeckoCache.ts < 60000) return _coingeckoCache.data;
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true');
+    if (!r.ok) return null;
+    const d = await r.json();
+    const out = {
+      'BTC-USD': d.bitcoin ? { last: d.bitcoin.usd, chgPct: d.bitcoin.usd_24h_change ?? 0 } : null,
+      'ETH-USD': d.ethereum ? { last: d.ethereum.usd, chgPct: d.ethereum.usd_24h_change ?? 0 } : null
+    };
+    _coingeckoCache = { ts: Date.now(), data: out };
+    return out;
+  } catch (e) { return null; }
+}
+
+// CoinGecko chart 30d pentru BTC (BTC/SPY correlation în Risk Dashboard când Yahoo pică)
+async function fetchBtcChartFromCoinGecko() {
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=60&interval=daily');
+    if (!r.ok) return null;
+    const d = await r.json();
+    const prices = d?.prices || []; // [[ts_ms, price], ...]
+    if (prices.length < 5) return null;
+    return {
+      points: prices.map(p => ({ ts: Math.floor(p[0]/1000), close: p[1] })),
+      meta: { regularMarketPrice: prices[prices.length-1][1] }
+    };
+  } catch (e) { return null; }
+}
+
 // Refolosim fetchYahooChart30d (range=3mo merge stabil prin proxy)
 // — range=5d eșuează intermitent pe Yahoo via codetabs/corsproxy.
 async function fetchYahooQuote(symbol) {
+  // Pentru crypto: încercăm întâi CoinGecko (no proxy)
+  if (symbol === 'BTC-USD' || symbol === 'ETH-USD') {
+    const cg = await fetchCryptoFromCoinGecko();
+    if (cg && cg[symbol]) return cg[symbol];
+    // Fallback la Yahoo via proxy doar dacă CoinGecko a picat
+  }
   const data = await fetchYahooChart30d(symbol);
   if (!data || !data.points || !data.points.length) return null;
   const last = data.meta?.regularMarketPrice ?? data.points[data.points.length-1].close;
@@ -3927,9 +3966,11 @@ function returnsFromAligned(aligned) {
 async function computeRiskDashboard() {
   if (RISK_STATE && Date.now() - RISK_STATE.ts < RISK_CACHE_TTL) return RISK_STATE;
   try {
+    // BTC chart: Yahoo via proxy SAU CoinGecko direct (no proxy) ca fallback
+    const btcPromise = fetchYahooChart30d('BTC-USD').then(d => d || fetchBtcChartFromCoinGecko());
     const [spy, btc, tnx, vix] = await Promise.all([
       fetchYahooChart30d('SPY'),
-      fetchYahooChart30d('BTC-USD'),
+      btcPromise,
       fetchYahooChart30d('^TNX'),
       fetchYahooChart30d('^VIX')
     ]);
