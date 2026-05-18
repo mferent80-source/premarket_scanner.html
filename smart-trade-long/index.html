@@ -323,6 +323,7 @@ function toast(msg, type = '') {
 function fmt$(n, d = 2) { return n == null || isNaN(n) ? '—' : '$' + Number(n).toFixed(d); }
 function fmtPct(n, d = 2) { return n == null || isNaN(n) ? '—' : (n >= 0 ? '+' : '') + Number(n).toFixed(d) + '%'; }
 function fmtNum(n, d = 0) { return n == null || isNaN(n) ? '—' : Number(n).toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d }); }
+function escHtml(s) { return String(s ?? '').replace(/[&<>"']/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[m])); }
 function isoDaysAgo(d) { const t = new Date(); t.setDate(t.getDate() - d); return t.toISOString().slice(0, 10); }
 
 // ─────────────────────── INDICATORI ───────────────────────
@@ -692,11 +693,179 @@ function render(sym, scoreData, insiderData) {
         <h2><span class="ico">👔</span> Insider Activity (90 zile)</h2>
         ${insiderHTML}
       </div>
+
+      <div class="card" id="aiSetupCard" style="grid-column:span 2">
+        <h2><span class="ico">🎯</span> AI Quick Setup <span style="font-size:11px;color:var(--txt-dd);font-weight:500;margin-left:6px">— Claude haiku, ready-to-execute</span></h2>
+        <div id="aiSetupBar" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <button class="btn primary" id="aiSetupBtn">🎯 Generează Setup AI</button>
+          <button class="btn" id="aiSetupRerun" style="display:none">↻ Re-rulează</button>
+          <span id="aiSetupStatus" style="margin-left:auto;font-size:12px;color:var(--txt-dd);font-family:'JetBrains Mono',monospace"></span>
+        </div>
+        <div id="aiSetupOutput" style="display:none"></div>
+      </div>
     </div>
   `;
 
   state.lastResult = { sym, scoreData, insiderData };
   localStorage.setItem(LS_LAST, sym);
+
+  // Bind AI Setup buttons
+  const setupBtn = document.getElementById('aiSetupBtn');
+  const rerunBtn = document.getElementById('aiSetupRerun');
+  if (setupBtn) setupBtn.addEventListener('click', () => runAIQuickSetup(sym, scoreData, insiderData, false));
+  if (rerunBtn) rerunBtn.addEventListener('click', () => runAIQuickSetup(sym, scoreData, insiderData, true));
+
+  // Auto-show cached setup if exists
+  const cached = getCachedSetup(sym);
+  if (cached) renderAISetupOutput(cached, 'cache');
+}
+
+// ─────────────────────── AI QUICK SETUP ───────────────────────
+const AI_SETUP_CACHE_KEY = 'stl_ai_setup_v1';
+const AI_SETUP_TTL = 60*60*1000; // 1h
+
+function getCachedSetup(sym) {
+  try {
+    const c = JSON.parse(localStorage.getItem(AI_SETUP_CACHE_KEY) || '{}');
+    const it = c[sym];
+    if (!it) return null;
+    if (Date.now() - it.ts > AI_SETUP_TTL) return null;
+    return it.data;
+  } catch (e) { return null; }
+}
+function setCachedSetup(sym, data) {
+  try {
+    const c = JSON.parse(localStorage.getItem(AI_SETUP_CACHE_KEY) || '{}');
+    c[sym] = { ts: Date.now(), data };
+    // Cleanup vechi (>3 zile) ca să nu burst LS
+    for (const k of Object.keys(c)) if (Date.now() - c[k].ts > 3*24*3600*1000) delete c[k];
+    localStorage.setItem(AI_SETUP_CACHE_KEY, JSON.stringify(c));
+  } catch (e) {}
+}
+
+async function runAIQuickSetup(sym, scoreData, insiderData, force) {
+  const apiKey = localStorage.getItem('anthropic_api_key') || '';
+  if (!apiKey) {
+    document.getElementById('aiSetupOutput').style.display = 'block';
+    document.getElementById('aiSetupOutput').innerHTML = `<div style="padding:14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:var(--red);font-size:13px">
+      ⚠ Cheia Anthropic lipsește. Setează în <a href="../macro-dashboard/" style="color:var(--blue)">Macro Dashboard → ⚙ Setări</a> sau direct cu <code style="background:rgba(0,0,0,.3);padding:2px 6px;border-radius:3px">localStorage.setItem('anthropic_api_key','sk-ant-...')</code> din DevTools Console.
+    </div>`;
+    return;
+  }
+  if (!force) {
+    const cached = getCachedSetup(sym);
+    if (cached) { renderAISetupOutput(cached, 'cache'); return; }
+  }
+  const status = document.getElementById('aiSetupStatus');
+  const output = document.getElementById('aiSetupOutput');
+  const setupBtn = document.getElementById('aiSetupBtn');
+  const rerunBtn = document.getElementById('aiSetupRerun');
+  if (setupBtn) setupBtn.disabled = true;
+  if (rerunBtn) rerunBtn.disabled = true;
+  status.textContent = '⏳ Gândesc...';
+  output.style.display = 'block';
+  output.innerHTML = `<div style="padding:18px;text-align:center;color:var(--txt-dd)"><span style="font-size:28px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:8px;font-size:13px">Claude haiku analizează setup-ul...</div></div>`;
+
+  // Build context compact pentru prompt
+  const insiderSummary = insiderData?.ok && insiderData.data?.length
+    ? (() => { const a = analyzeInsiders(insiderData.data); return `${a.bullish ? 'bullish' : (a.bearish ? 'bearish' : 'neutral')} (${a.buys}B/${a.sells}S, net ${a.netUSD>=0?'+':''}${(a.netUSD/1000).toFixed(0)}k)`; })()
+    : 'N/A';
+  const trend = (scoreData.ma50 && scoreData.ma200) ? (scoreData.ma50 > scoreData.ma200 ? 'bullish (MA50>MA200)' : 'bearish (MA50<MA200)') : 'N/A';
+  const lastPx = scoreData.last;
+  const atr = scoreData.atr || 0;
+  const atrPct = lastPx ? (atr / lastPx * 100).toFixed(2) : '—';
+  const vsMA50 = scoreData.ma50 ? ((lastPx / scoreData.ma50 - 1) * 100).toFixed(1) : 'N/A';
+
+  const userPrompt = `Setup long pentru ${sym}:
+- Preț curent: $${lastPx?.toFixed(2)}
+- ATR(14): $${atr.toFixed(2)} (${atrPct}% din preț)
+- RSI(14): ${scoreData.rsi?.toFixed(1) ?? 'N/A'}
+- ADX(14): ${scoreData.adx?.toFixed(1) ?? 'N/A'} (trend strength)
+- Trend MA: ${trend}
+- Distance vs MA50: ${vsMA50}%
+- Vol Ratio (5d/avg20d): ${scoreData.volRatio?.toFixed(2) ?? 'N/A'}x
+- Score scanner: ${scoreData.score}/100 — ${scoreData.tier}
+- Insider 90d: ${insiderSummary}
+
+Output STRICT format JSON (un singur obiect, max 200 chars total în message):
+{"entry":<număr>,"sl":<număr>,"tp1":<număr>,"tp2":<număr>,"sizing_pct":<număr 1-5>,"timeframe":"<intraday|swing 3-7z|position 2-4săpt>","risk":"<one-liner max 40 chars>","confidence":"<HIGH|MED|LOW>"}
+
+Reguli:
+- entry = preț curent (pentru market entry now) sau pullback level (dacă RSI>70)
+- SL la suport tehnic (sub MA50 sau −1.5×ATR, care e mai aproape)
+- TP1 = +1×ATR (quick), TP2 = +2-3×ATR (extended)
+- sizing_pct: 1-2 (LOW conf), 2-3 (MED), 3-5 (HIGH) — risc % din cont
+- risk: cea mai mare amenințare în 40 chars (ex: "RSI>72, bounce probabil înainte de spike")
+- confidence: bazat pe score + trend + insider`;
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+    if (!r.ok) {
+      const err = await r.text();
+      throw new Error(`API ${r.status}: ${err.slice(0, 200)}`);
+    }
+    const data = await r.json();
+    const text = data?.content?.[0]?.text || '';
+    // Extract JSON din răspuns
+    const match = text.match(/\{[^}]+\}/);
+    if (!match) throw new Error('Format JSON invalid: ' + text.slice(0, 100));
+    const setup = JSON.parse(match[0]);
+    setup._sym = sym;
+    setup._ts = Date.now();
+    setCachedSetup(sym, setup);
+    renderAISetupOutput(setup, 'fresh');
+  } catch (e) {
+    output.innerHTML = `<div style="padding:14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:var(--red);font-size:13px">❌ ${escHtml(e.message)}</div>`;
+    status.textContent = '❌ eroare';
+  } finally {
+    if (setupBtn) setupBtn.disabled = false;
+    if (rerunBtn) rerunBtn.disabled = false;
+  }
+}
+
+function renderAISetupOutput(setup, sourceLabel) {
+  const output = document.getElementById('aiSetupOutput');
+  const status = document.getElementById('aiSetupStatus');
+  const rerunBtn = document.getElementById('aiSetupRerun');
+  if (!output || !setup) return;
+  output.style.display = 'block';
+  if (rerunBtn) rerunBtn.style.display = 'inline-block';
+  const confColor = setup.confidence === 'HIGH' ? 'var(--green)' : (setup.confidence === 'MED' ? 'var(--yellow)' : 'var(--red)');
+  const slPct = setup.entry && setup.sl ? ((setup.sl - setup.entry) / setup.entry * 100).toFixed(2) : '—';
+  const tp1Pct = setup.entry && setup.tp1 ? ((setup.tp1 - setup.entry) / setup.entry * 100).toFixed(2) : '—';
+  const tp2Pct = setup.entry && setup.tp2 ? ((setup.tp2 - setup.entry) / setup.entry * 100).toFixed(2) : '—';
+  const rr = setup.entry && setup.sl && setup.tp2 ? Math.abs((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '—';
+  output.innerHTML = `<div style="background:linear-gradient(135deg, rgba(247,147,26,.10), rgba(34,197,94,.06));border:1px solid rgba(247,147,26,.35);border-radius:10px;padding:14px 16px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">
+      <div><div style="font-size:10.5px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.3px;font-weight:700">Entry</div><div style="font-size:18px;font-weight:800;color:var(--txt)">${fmt$(setup.entry)}</div></div>
+      <div><div style="font-size:10.5px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.3px;font-weight:700">Stop Loss</div><div style="font-size:18px;font-weight:800;color:var(--red)">${fmt$(setup.sl)} <span style="font-size:11px;font-weight:600">${slPct}%</span></div></div>
+      <div><div style="font-size:10.5px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.3px;font-weight:700">TP1</div><div style="font-size:18px;font-weight:800;color:var(--green)">${fmt$(setup.tp1)} <span style="font-size:11px;font-weight:600">+${tp1Pct}%</span></div></div>
+      <div><div style="font-size:10.5px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.3px;font-weight:700">TP2</div><div style="font-size:18px;font-weight:800;color:var(--green)">${fmt$(setup.tp2)} <span style="font-size:11px;font-weight:600">+${tp2Pct}%</span></div></div>
+      <div><div style="font-size:10.5px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.3px;font-weight:700">Sizing</div><div style="font-size:18px;font-weight:800;color:var(--blue)">${setup.sizing_pct}% cont</div></div>
+      <div><div style="font-size:10.5px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.3px;font-weight:700">R:R</div><div style="font-size:18px;font-weight:800;color:var(--txt)">1 : ${rr}</div></div>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);font-size:13px">
+      <div><span style="color:var(--txt-dd)">Timeframe:</span> <strong>${escHtml(setup.timeframe || 'N/A')}</strong></div>
+      <div><span style="color:var(--txt-dd)">Confidence:</span> <strong style="color:${confColor}">${escHtml(setup.confidence || 'N/A')}</strong></div>
+    </div>
+    <div style="margin-top:10px;padding:8px 10px;background:rgba(239,68,68,.06);border-left:3px solid var(--red);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--txt)">
+      <strong style="color:var(--red)">⚠ Risc principal:</strong> ${escHtml(setup.risk || 'N/A')}
+    </div>
+  </div>`;
+  if (status) status.textContent = sourceLabel === 'cache' ? '💾 cache 1h' : '✓ generat ' + new Date().toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' });
 }
 
 // ─────────────────────── SCAN ───────────────────────
