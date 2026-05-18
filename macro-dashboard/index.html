@@ -795,7 +795,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v163</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v164</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -4008,36 +4008,56 @@ function returnsFromAligned(aligned) {
 async function computeRiskDashboard() {
   if (RISK_STATE && Date.now() - RISK_STATE.ts < RISK_CACHE_TTL) return RISK_STATE;
   try {
-    // BTC chart: Yahoo via proxy SAU CoinGecko direct (no proxy) ca fallback
+    // Folosim fetchYahooQuote pentru valori curente (lanț complet de fallback Yahoo→ETF/CoinGecko).
+    // Pentru chart 30d (pentru Δ30z + correlation) folosim fetchYahooChart30d cu fallback dedicat.
     const btcPromise = fetchYahooChart30d('BTC-USD').then(d => d || fetchBtcChartFromCoinGecko());
-    const [spy, btc, tnx, vix] = await Promise.all([
+    const [vixQ, tnxQ, spyChart, btcChart, tnxChart, vixChart] = await Promise.all([
+      fetchYahooQuote('^VIX'),
+      fetchYahooQuote('^TNX'),
       fetchYahooChart30d('SPY'),
       btcPromise,
       fetchYahooChart30d('^TNX'),
       fetchYahooChart30d('^VIX')
     ]);
-    // Dacă toate fetch-urile au eșuat, încercăm fallback Finnhub /quote pentru ^VIX direct
-    let vixFallback = null;
-    if (!vix) {
-      vixFallback = await fetchFinnhubQuote('^VIX'); // încercăm direct (Finnhub free are uneori ^VIX)
+    if (!vixQ && !tnxQ && !spyChart && !btcChart) return null;
+
+    // VIX: valoarea curentă din quote (cu fallback ETF/CoinGecko). Dacă e ETF (VXX), încercăm
+    // să citim valoarea reală din chart (care folosește ^VIX prin proxy poate funcționează diferit).
+    let vixVal = NaN;
+    if (vixQ) {
+      if (vixQ.proxyEtf && vixChart?.points?.length) {
+        // Avem ETF curent dar și chart ^VIX direct — folosim valoarea reală din chart
+        vixVal = vixChart.meta?.regularMarketPrice ?? vixChart.points[vixChart.points.length-1].close;
+      } else if (!vixQ.proxyEtf) {
+        vixVal = vixQ.last;
+      } else {
+        // Doar VXX disponibil — mapăm aprox (VXX nu = VIX, dar bands similare)
+        // VXX ~$12-15 când VIX 14-18; ~$20-30 când VIX 25-35. Lăsăm NaN ca să nu scorăm greșit.
+        vixVal = NaN;
+      }
     }
-    if (!spy && !btc && !tnx && !vix && !vixFallback) return null;
-    // VIX: din chart direct sau Finnhub quote fallback
-    const vixVal = vix?.points?.length
-      ? (vix.meta?.regularMarketPrice ?? vix.points[vix.points.length-1].close)
-      : (vixFallback?.last ?? NaN);
-    // 10Y: ^TNX returnează valoarea ×10 (ex: 4.5% = 45). Conversie ÷10.
+
+    // 10Y: ^TNX returnează valoarea ×10 (ex: 4.5% = 45). Δ30z în bp.
     let tenYVal = null, tenYDelta30 = null;
-    if (tnx?.points?.length > 10) {
-      const last = tnx.points[tnx.points.length-1].close;
-      const first = tnx.points[0].close;
+    if (tnxChart?.points?.length > 10) {
+      const last = tnxChart.points[tnxChart.points.length-1].close;
+      const first = tnxChart.points[0].close;
       tenYVal = last / 10;
-      tenYDelta30 = (last - first) / 10 * 100; // în basis points (Δ în bp)
+      tenYDelta30 = (last - first) / 10 * 100; // bp
+    } else if (tnxQ && !tnxQ.proxyEtf) {
+      // Avem doar quote ^TNX, fără chart. Folosim Δ% zilnic ca proxy aprox pentru Δ30z.
+      tenYVal = tnxQ.last / 10;
+      tenYDelta30 = tnxQ.chgPct * 5; // factor proxy (rough — preferăm chart real)
+    } else if (tnxQ?.proxyEtf) {
+      // IEF: creștere preț ETF = scădere yield. Folosim Δ% inversă × factor proxy lunar.
+      tenYVal = null; // nu avem valoare absolută corectă
+      tenYDelta30 = -tnxQ.chgPct * 10; // proxy direcțional
     }
-    // BTC/SPY correlation 30d
+
+    // BTC/SPY correlation 30d (doar dacă avem ambele chart-uri)
     let corrVal = null;
-    if (spy?.points && btc?.points) {
-      const aligned = alignChartsByDate(spy.points, btc.points).slice(-30);
+    if (spyChart?.points && btcChart?.points) {
+      const aligned = alignChartsByDate(spyChart.points, btcChart.points).slice(-30);
       if (aligned.length >= 10) {
         const { r1, r2 } = returnsFromAligned(aligned);
         corrVal = pearsonCorr(r1, r2);
@@ -4551,7 +4571,14 @@ function bindEvents() {
   // Refresh / Settings
   $('refreshBtn').addEventListener('click', async () => {
     toast('🔄 Reîncarc...', 'info');
+    // Reset cache-uri ca să forțăm fetch fresh
+    RISK_STATE = null;
+    _coingeckoCache = null;
+    _chartCache?.clear();
+    PROXY_DEAD.clear();
+    _proxyResetTs = Date.now();
     await Promise.all([loadCalendar(), loadStatTiles()]);
+    computeRiskDashboard().then(() => renderRiskTile()).catch(() => {});
   });
   $('settingsBtn').addEventListener('click', openSettings);
   $('closeSettings').addEventListener('click', closeSettings);
