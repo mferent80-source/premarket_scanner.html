@@ -863,7 +863,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Nasdaq Scanner Pro <span class="ver-badge" title="Versiune build (crește la fiecare push)">v80</span></h1>
+  <h1>📊 Nasdaq Scanner Pro <span class="ver-badge" title="Versiune build (crește la fiecare push)">v81</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -926,6 +926,7 @@
       onkeydown="if(event.key==='Enter'){event.preventDefault();wlAdd();}" />
     <button class="wl-add-btn" onclick="wlAdd()">+</button>
     <button class="wl-refresh-btn" onclick="wlRefresh()" title="Refresh prețuri">🔄</button>
+    <button class="wl-refresh-btn" style="background:#1f6feb" onclick="wlSendAllToScanners()" title="Trimite tot watchlist-ul în Watchlist Monitor + Smart Trade">📊</button>
     <button class="wl-sync-btn" onclick="wlSyncModal()" title="Sync GitHub Gist">☁️</button>
   </div>
 
@@ -2014,6 +2015,40 @@ function wlRemove(sym){
   wlSave(); wlRender();
 }
 
+// Trimite simbolul în watchlist-ul partajat 'wl_stocks' — aceeași cheie folosită
+// de Watchlist Monitor ȘI Smart Trade Long, deci un singur push alimentează ambele.
+const SHARED_WL_KEY = 'wl_stocks';
+function wlSendToScanners(rawSym){
+  const sym = String(rawSym || '').trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
+  if (!sym) return;
+  let arr = [];
+  try { arr = JSON.parse(localStorage.getItem(SHARED_WL_KEY) || '[]'); } catch(_){}
+  if (!Array.isArray(arr)) arr = [];
+  // normalizează la string-uri (Smart Trade acceptă și format vechi cu obiecte)
+  const syms = arr.map(x => typeof x === 'string' ? x : (x && (x.symbol || x.sym)) || '').filter(Boolean);
+  if (syms.includes(sym)) { showToastMsg('📊 ' + sym + ' deja în Monitor / Smart Trade'); return; }
+  if (syms.length >= 100) { showToastMsg('⚠ Watchlist Monitor plin (max 100)', 'err'); return; }
+  syms.push(sym);
+  localStorage.setItem(SHARED_WL_KEY, JSON.stringify(syms));
+  showToastMsg('📊 ' + sym + ' → Watchlist Monitor + Smart Trade');
+}
+
+// Trimite toate simbolurile din watchlist-ul market-events în 'wl_stocks' (bulk).
+function wlSendAllToScanners(){
+  if (!watchlist.length) { showToastMsg('Watchlist gol — nimic de trimis'); return; }
+  let arr = [];
+  try { arr = JSON.parse(localStorage.getItem(SHARED_WL_KEY) || '[]'); } catch(_){}
+  if (!Array.isArray(arr)) arr = [];
+  const syms = arr.map(x => typeof x === 'string' ? x : (x && (x.symbol || x.sym)) || '').filter(Boolean);
+  let added = 0;
+  for (const w of watchlist){
+    if (syms.length >= 100) break;
+    if (!syms.includes(w.symbol)) { syms.push(w.symbol); added++; }
+  }
+  localStorage.setItem(SHARED_WL_KEY, JSON.stringify(syms));
+  showToastMsg(added ? ('📊 ' + added + ' simbol(uri) → Monitor + Smart Trade') : 'Toate erau deja în Monitor / Smart Trade');
+}
+
 async function wlRefresh(){
   if (!watchlist.length) return;
   const btn = document.querySelector('.wl-refresh-btn');
@@ -2448,6 +2483,7 @@ function _wlRowHtml(w){
     <span class="wl-actions">
       <button class="btn-row btn-row-wl-ai" onclick='aiAnalyzeRow("watchlist", ${aiData})' title="AI">🤖</button>
       <button class="btn-row btn-row-wl-ai" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a" onclick='meQuickSetup("watchlist", ${aiData})' title="🎯 Quick Setup">🎯</button>
+      <button class="btn-row btn-row-wl-send" style="background:rgba(91,176,255,.15);color:#79c0ff;border-color:rgba(91,176,255,.4)" onclick='wlSendToScanners("${w.symbol}")' title="Trimite în Watchlist Monitor + Smart Trade">📊</button>
       <button class="btn-row btn-row-wl-del" onclick='wlRemove("${w.symbol}")' title="Șterge">✕</button>
     </span>
   </div>`;

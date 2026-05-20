@@ -361,7 +361,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v102</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v103</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -568,6 +568,13 @@ function loadWatchlist(){
 function saveWatchlist(){
   try { localStorage.setItem(WL_KEY, JSON.stringify(watchlist)); } catch(e){}
 }
+// Sync live cross-tab: când alt tab (ex. Market Events) scrie în wl_stocks,
+// reîncarcă watchlist-ul și scanează simbolurile noi fără refresh manual.
+window.addEventListener('storage', e => {
+  if (e.key !== WL_KEY) return;
+  loadWatchlist(); render();
+  if (autoSec > 0 || watchlist.length <= 3) runScan();
+});
 
 const $ = id => document.getElementById(id);
 function setStatus(state, text){

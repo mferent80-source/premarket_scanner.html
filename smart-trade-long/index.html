@@ -989,6 +989,9 @@ function renderWL() {
     el.addEventListener('click', () => scan(el.dataset.sym));
   });
 }
+// Sync live cross-tab: când alt tab (ex. Market Events) scrie în wl_stocks,
+// re-randează bara de watchlist fără refresh manual.
+window.addEventListener('storage', e => { if (e.key === WL_KEY) renderWL(); });
 
 // ─────────────────────── AUTO-SCAN ───────────────────────
 function startAuto() {
