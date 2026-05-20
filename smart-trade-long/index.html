@@ -15,7 +15,7 @@
   --shadow:0 4px 14px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0}
+html,body{margin:0;padding:0;overflow-x:hidden}
 body{background:radial-gradient(1200px 600px at 70% -10%, rgba(247,147,26,.07), transparent 60%),
   radial-gradient(1000px 500px at 0% 100%, rgba(34,197,94,.04), transparent 60%),
   var(--bg);
@@ -51,10 +51,10 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 /* SCAN BAR */
 .scan-bar{background:var(--panel);border:1px solid var(--br);border-radius:14px;padding:18px;
   display:grid;grid-template-columns:1.4fr 1fr 1fr auto auto;gap:12px;align-items:end;margin-bottom:18px;box-shadow:var(--shadow)}
-.field{display:flex;flex-direction:column;gap:6px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field label{font-size:12px;font-weight:600;color:var(--txt-d);text-transform:uppercase;letter-spacing:.5px}
 .field input,.field select{background:var(--bg2);border:1px solid var(--br);color:var(--txt);
-  padding:10px 12px;border-radius:8px;font:inherit;font-size:14px;outline:none;transition:border .15s,box-shadow .15s}
+  width:100%;min-width:0;padding:10px 12px;border-radius:8px;font:inherit;font-size:14px;outline:none;transition:border .15s,box-shadow .15s}
 .field input:focus,.field select:focus{border-color:var(--crypto-1);box-shadow:0 0 0 3px rgba(247,147,26,.15)}
 .field input[type=number]{font-variant-numeric:tabular-nums}
 .scan-btn{padding:10px 22px;font-size:15px;font-weight:700;border-radius:10px}
@@ -67,6 +67,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 .toggle input:checked + .slider:before{transform:translateX(22px);background:#0b0f17}
 
 @media(max-width:780px){.scan-bar{grid-template-columns:1fr 1fr;gap:10px}.scan-btn,.auto-toggle{grid-column:span 2}}
+@media(max-width:520px){.scan-bar{grid-template-columns:1fr;padding:14px}.scan-btn,.auto-toggle{grid-column:span 1}h1{font-size:23px}main{padding:16px 14px}.meta-card{grid-template-columns:repeat(2,1fr)}}
 
 /* GRID */
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
