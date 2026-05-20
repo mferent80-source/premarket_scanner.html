@@ -818,7 +818,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v170</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v171</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1828,10 +1828,13 @@ async function fetchYahooQuote(symbol) {
   const data = await fetchYahooChart30d(symbol);
   if (data && data.points && data.points.length) {
     const last = data.meta?.regularMarketPrice ?? data.points[data.points.length-1].close;
-    const prevClose = data.meta?.chartPreviousClose
-      ?? data.meta?.previousClose
-      ?? data.points[data.points.length-2]?.close
-      ?? last;
+    // Δ Zi = față de close-ul de IERI = penultimul punct.
+    // NU folosi meta.chartPreviousClose: cu range=3mo acela e close-ul de acum 3 luni
+    // (prima bară a chart-ului) → ar afișa variația pe 3 luni ca schimbare zilnică.
+    const lastPt = data.points[data.points.length-1]?.close;
+    const prevPt = data.points[data.points.length-2]?.close;
+    const sameDay = lastPt != null && Math.abs(last - lastPt) / last < 0.0005;
+    const prevClose = (sameDay ? prevPt : lastPt) ?? data.meta?.chartPreviousClose ?? last;
     const chgPct = prevClose ? ((last - prevClose) / prevClose) * 100 : 0;
     return { last, chgPct, prevClose };
   }

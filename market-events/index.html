@@ -863,7 +863,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Nasdaq Scanner Pro <span class="ver-badge" title="Versiune build (crește la fiecare push)">v79</span></h1>
+  <h1>📊 Nasdaq Scanner Pro <span class="ver-badge" title="Versiune build (crește la fiecare push)">v80</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1329,7 +1329,9 @@ class NasdaqScanner {
   // ============================================================
   async _fetchSymbolDetail(symbol) {
     // v8 chart endpoint — fără crumb, returnează preț + low/high zilnic + volum în .meta
-    const yahooUrl = `${this.yahooChart}/${symbol}?interval=1d&range=2d`;
+    // range=1d → meta.chartPreviousClose e close-ul de IERI (corect pentru Δ Zi).
+    // Cu range mai mare, chartPreviousClose ar fi close-ul de dinaintea ferestrei → variație greșită.
+    const yahooUrl = `${this.yahooChart}/${symbol}?interval=1d&range=1d`;
     const url = this.corsProxy ? this.corsProxy + encodeURIComponent(yahooUrl) : yahooUrl;
 
     try {

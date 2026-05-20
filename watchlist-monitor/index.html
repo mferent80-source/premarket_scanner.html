@@ -361,7 +361,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v101</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v102</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -768,10 +768,20 @@ function _parseYahoo(symbol, d){
   const volumes = result.indicators?.quote?.[0]?.volume || [];
   const validCloses = closes.filter(v => v != null);
   if (validCloses.length < 50) return null;
+  const price = meta.regularMarketPrice != null ? meta.regularMarketPrice : validCloses[validCloses.length - 1];
+  // Δ Zi = variația față de close-ul zilei PRECEDENTE.
+  // NU folosi meta.chartPreviousClose: cu range=1y acela e close-ul de acum un an
+  // (prima bară a chart-ului), nu de ieri → ar da variații uriașe (pe tot anul).
+  const last = validCloses[validCloses.length - 1];
+  const prev = validCloses[validCloses.length - 2];
+  // dacă ultima bară e ziua curentă (price ≈ ultima close) → ieri = penultima;
+  // altfel (ex. premarket, ultima bară e deja ieri închisă) → prevClose = ultima.
+  const sameDay = last != null && price != null && Math.abs(price - last) / price < 0.0005;
+  const prevClose = sameDay ? prev : last;
   return {
     symbol,
-    price: meta.regularMarketPrice,
-    prevClose: meta.chartPreviousClose,
+    price,
+    prevClose,
     vol: volumes[volumes.length - 1] || 0,
     closes: validCloses,
     ts: Date.now(),

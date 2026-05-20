@@ -706,7 +706,9 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   const CORS = (u) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u);
   const fetchQuote = async (sym) => {
     // chart endpoint: returnează ultimul quote + prevClose
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2d`;
+    // range=1d → meta.chartPreviousClose e close-ul de IERI (corect pentru "% azi").
+    // Cu range mai mare, chartPreviousClose ar fi close-ul de dinaintea ferestrei → variație greșită.
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
     const r = await fetch(CORS(url));
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
