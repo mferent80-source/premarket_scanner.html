@@ -897,7 +897,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v193</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v195</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -960,6 +960,7 @@
       onkeydown="if(event.key==='Enter'){event.preventDefault();wlAdd();}" />
     <button class="wl-add-btn" onclick="wlAdd()">+</button>
     <button class="wl-refresh-btn" onclick="wlRefresh()" title="Refresh prețuri">🔄</button>
+    <button class="wl-refresh-btn" id="wlSelectAllBtn" style="background:#8957e5" onclick="wlSelectAllVisible()" title="Selectează / deselectează tot ce e vizibil">☑</button>
     <button class="wl-refresh-btn" style="background:#1f6feb" onclick="wlSendAllToScanners()" title="Trimite tot watchlist-ul în Watchlist Monitor + Smart Trade">📊</button>
     <button class="wl-sync-btn" onclick="wlSyncModal()" title="Sync GitHub Gist">☁️</button>
   </div>
@@ -1184,7 +1185,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v193 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v195 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2777,6 +2778,14 @@ function wlRender(){
   const ss = document.getElementById('wlSortSel'); if (ss) ss.value = wlSort;
   const gc = document.getElementById('wlGroupChk'); if (gc) gc.checked = wlGroup;
   const ei = document.getElementById('wlExtInp'); if (ei && document.activeElement !== ei) ei.value = wlExtPct;
+  // Buton bulk select: ☑ = selectează tot vizibil / ☒ = deselectează (când totul e deja selectat)
+  const sab = document.getElementById('wlSelectAllBtn');
+  if (sab) {
+    const vis = wlVisibleSymbols();
+    const allSel = vis.length > 0 && vis.every(s => wlSelected.has(s));
+    sab.textContent = allSel ? '☒' : '☑';
+    sab.title = allSel ? 'Deselectează tot' : 'Selectează tot ce e vizibil';
+  }
 
   if (!watchlist.length) {
     tbody.innerHTML = '<div class="wl-grid-empty">📋 Niciun simbol. Adaugă manual sau apasă 👁️ în Earnings / Top Losers.</div>';
