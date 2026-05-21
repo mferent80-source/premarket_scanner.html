@@ -9,7 +9,7 @@
 <!-- Content Security Policy: connect-src whitelist endpoint-urile externe legitime, blochează data exfiltration prin XSS rezidual.
      'unsafe-inline' la script/style nu poate fi eliminat fără refactor major (60+ onclick + 70+ stiluri inline). -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; manifest-src 'self' blob:; connect-src 'self' https://api.binance.com https://fapi.binance.com https://data-api.binance.vision https://api.anthropic.com https://api.telegram.org https://api.coinpaprika.com https://api.alternative.me https://api.github.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
-<title>Crypto Opportunity Scanner</title>
+<title>Crypto Opportunity Scanner — AI Compare + Bubble</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%237c3aed'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -497,6 +497,81 @@ body.dark .dark-toggle::after{content:'🌙';transform:translateX(14px);}
 .ai-loading-dot:nth-child(2){animation-delay:.2s;}
 .ai-loading-dot:nth-child(3){animation-delay:.4s;}
 @keyframes aiPulse{from{opacity:.2}to{opacity:1}}
+.ai-timer{font-variant-numeric:tabular-nums;font-weight:800;}
+/* fade-in la afisarea rezultatului AI (NU streaming token-cu-token) */
+@keyframes aiFadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.ai-fade-in{animation:aiFadeIn .35s ease;}
+
+/* ── COMPARE: checkbox pe card ── */
+.cmp-chk{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:.5rem;font-weight:800;
+  background:var(--bg3);border:1px solid var(--b1);border-radius:5px;padding:2px 6px;color:var(--t3);
+  text-transform:uppercase;letter-spacing:.4px;transition:all .15s;user-select:none;}
+.cmp-chk:hover{border-color:var(--purplb);color:var(--purple);}
+.cmp-chk.on{background:var(--purpll);border-color:var(--purplb);color:var(--purple);}
+.cmp-chk input{accent-color:var(--purple);width:12px;height:12px;cursor:pointer;margin:0;}
+
+/* ── COMPARE: bara flotanta jos ── */
+.cmp-bar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(120%);
+  z-index:9990;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;
+  background:var(--bg2);border:1px solid var(--purplb);border-radius:14px;padding:9px 14px;
+  box-shadow:var(--shh);transition:transform .25s ease;max-width:calc(100% - 28px);}
+.cmp-bar.show{transform:translateX(-50%) translateY(0);}
+.cmp-bar-info{font-size:.66rem;font-weight:700;color:var(--t1);font-family:var(--head);}
+.cmp-bar-chips{display:flex;gap:5px;flex-wrap:wrap;}
+.cmp-bar-chip{font-size:.56rem;font-weight:800;background:var(--purpll);color:var(--purple);
+  border:1px solid var(--purplb);border-radius:5px;padding:2px 7px;display:inline-flex;align-items:center;gap:4px;}
+.cmp-bar-chip b{cursor:pointer;opacity:.7;}.cmp-bar-chip b:hover{opacity:1;}
+.cmp-bar-btn{padding:7px 13px;border-radius:8px;font-size:.64rem;font-weight:800;cursor:pointer;
+  border:none;background:var(--purple);color:#fff;transition:all .15s;white-space:nowrap;}
+.cmp-bar-btn:hover{filter:brightness(1.1);}
+.cmp-bar-btn.ghost{background:var(--bg3);color:var(--t2);border:1px solid var(--b1);}
+.cmp-bar-btn:disabled{opacity:.45;cursor:not-allowed;}
+
+/* ── MODAL generic AI (comparatie / clasament) ── */
+.ai-modal-ov{position:fixed;inset:0;background:rgba(10,15,26,.7);z-index:10000;
+  display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);}
+.ai-modal{background:var(--bg2);border:1px solid var(--b1);border-radius:16px;width:100%;
+  max-width:600px;max-height:88vh;display:flex;flex-direction:column;box-shadow:var(--shh);overflow:hidden;}
+.ai-modal-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 18px;border-bottom:1px solid var(--b1);}
+.ai-modal-hdr h3{font-family:var(--head);font-weight:800;font-size:.95rem;color:var(--t1);}
+.ai-modal-x{background:var(--bg3);border:1px solid var(--b1);border-radius:7px;width:28px;height:28px;
+  cursor:pointer;color:var(--t2);font-size:.8rem;flex-shrink:0;}
+.ai-modal-body{padding:16px 18px;overflow-y:auto;font-size:.7rem;line-height:1.75;color:var(--t2);white-space:pre-wrap;}
+.ai-modal-body::-webkit-scrollbar{width:5px;}.ai-modal-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px;}
+.ai-modal-foot{padding:10px 18px;border-top:1px solid var(--b1);font-size:.52rem;color:var(--t3);
+  display:flex;justify-content:space-between;align-items:center;gap:8px;}
+
+/* ── BUBBLE AI GLOBAL FLOTANT ── */
+.bub-fab{position:fixed;right:18px;bottom:18px;z-index:9985;width:54px;height:54px;border-radius:50%;
+  border:none;cursor:pointer;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-size:1.5rem;
+  box-shadow:0 6px 20px rgba(79,70,229,.4);transition:transform .2s;display:flex;align-items:center;justify-content:center;}
+.bub-fab:hover{transform:scale(1.08);}
+.bub-panel{position:fixed;right:18px;bottom:82px;z-index:9986;width:min(380px,calc(100% - 36px));
+  height:min(520px,70vh);background:var(--bg2);border:1px solid var(--b1);border-radius:16px;
+  box-shadow:var(--shh);display:none;flex-direction:column;overflow:hidden;}
+.bub-panel.show{display:flex;}
+.bub-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;
+  border-bottom:1px solid var(--b1);background:linear-gradient(135deg,var(--purpll),var(--accl));}
+.bub-hdr-t{font-family:var(--head);font-weight:800;font-size:.78rem;color:var(--t1);display:flex;align-items:center;gap:6px;}
+.bub-hdr-x{background:var(--bg2);border:1px solid var(--b1);border-radius:6px;width:24px;height:24px;cursor:pointer;color:var(--t2);}
+.bub-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:9px;}
+.bub-msgs::-webkit-scrollbar{width:4px;}.bub-msgs::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px;}
+.bub-msg{max-width:88%;padding:8px 11px;border-radius:11px;font-size:.66rem;line-height:1.6;white-space:pre-wrap;}
+.bub-msg.user{align-self:flex-end;background:var(--purple);color:#fff;border-bottom-right-radius:3px;}
+.bub-msg.ai{align-self:flex-start;background:var(--bg3);color:var(--t2);border:1px solid var(--b1);border-bottom-left-radius:3px;}
+.bub-msg.sys{align-self:center;font-size:.58rem;color:var(--t3);text-align:center;background:none;}
+.bub-quick{display:flex;gap:5px;flex-wrap:wrap;padding:0 12px 8px;}
+.bub-quick button{font-size:.55rem;font-weight:700;background:var(--bg3);border:1px solid var(--b1);
+  border-radius:12px;padding:4px 9px;color:var(--t2);cursor:pointer;transition:all .15s;}
+.bub-quick button:hover{border-color:var(--purplb);color:var(--purple);}
+.bub-input{display:flex;gap:7px;padding:10px 12px;border-top:1px solid var(--b1);}
+.bub-input input{flex:1;background:var(--bg3);border:1px solid var(--b1);border-radius:9px;
+  padding:8px 11px;font-size:.66rem;color:var(--t1);font-family:var(--mono);outline:none;}
+.bub-input input:focus{border-color:var(--purplb);}
+.bub-input button{background:var(--purple);border:none;border-radius:9px;width:38px;color:#fff;cursor:pointer;font-size:.8rem;}
+.bub-input button:disabled{opacity:.5;cursor:not-allowed;}
+
 /* MTF RSI pill */
 .mtf-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;}
 .mtf-pill{font-size:.54rem;font-weight:700;padding:2px 7px;border-radius:4px;border:1px solid var(--b1);}
@@ -1372,7 +1447,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
       <div class="brand-name">Crypto <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v79</span></div>
-      <div class="brand-sub">Oportunități live · Binance API · Notificări instant</div>
+      <div class="brand-sub">Oportunități live · Binance API · Notificări instant · AI Compare · Bubble</div>
     </div>
   </div>
   <div class="hdr-right">
@@ -1383,6 +1458,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
     <a href="../" style="padding:5px 11px;border-radius:7px;font-size:.6rem;font-weight:600;border:1px solid var(--b1);background:var(--bg2);color:var(--t2);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;" onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t2)'">← Hub</a>
     <button onclick="window.showCsFeatures()" style="padding:5px 11px;border-radius:7px;font-size:.6rem;font-weight:700;border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);color:#5bb0ff;cursor:pointer;font-family:inherit" title="Listă completă funcționalități">ℹ Funcționalități</button>
     <button class="ai-sum-btn" onclick="toggleCryptoSummary()">🧠 AI Summary</button>
+    <button class="ai-sum-btn" onclick="rankTopAI()" title="Clasament AI al top oportunităților (Opus 4.7)">🏆 Clasament AI</button>
     <div id="pwaInstallBtn" onclick="installPWA()" style="display:none;padding:6px 12px;border-radius:var(--rs);font-size:.62rem;font-weight:600;cursor:pointer;border:1px solid var(--accb);background:var(--accl);color:var(--acc);align-items:center;gap:5px;">📱 Instalează</div>
     <div class="notif-btn" id="notifBtn" onclick="requestNotif()">🔔 Notificări</div>
     <div class="notif-btn" id="tgBtn" onclick="showTelegramModal()" style="cursor:pointer" title="Configurează Telegram pentru alerte">📱 Telegram</div>
@@ -2607,6 +2683,52 @@ function renderAlertSectionCrypto(coin,price){
 // ── API KEY MANAGEMENT ──
 function getApiKey(){ return localStorage.getItem('anthropic_api_key')||''; }
 function saveApiKey(k){ localStorage.setItem('anthropic_api_key',k.trim()); }
+
+// Model rapid pentru analize inline per card; model "deep" (Opus 4.7) pentru
+// comparatii, clasamente si chat-ul global — analize mai complexe.
+const AI_FAST_MODEL='claude-haiku-4-5-20251001';
+const AI_DEEP_MODEL='claude-opus-4-7';
+
+// ── HELPER UNIFICAT CLAUDE API ──
+// Un singur loc pentru apelul Anthropic. Returneaza {ok:true,text} sau {ok:false,error}.
+// Raspuns complet deodata (fara streaming token-cu-token).
+async function callClaudeAPI(prompt, maxTokens, model){
+  const apiKey=getApiKey();
+  if(!apiKey) return {ok:false,error:'NO_KEY'};
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model: model||AI_FAST_MODEL,
+        max_tokens: maxTokens||600,
+        messages: Array.isArray(prompt)?prompt:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await resp.json();
+    if(data.content?.[0]?.text) return {ok:true,text:data.content[0].text};
+    return {ok:false,error:data.error?.message||'Răspuns gol de la API'};
+  }catch(e){
+    return {ok:false,error:e.message};
+  }
+}
+
+// Loading cu cronometru (numara secundele in timp ce asteptam). Intoarce un stop().
+function aiLoadingTimer(el, label){
+  let s=0;
+  el.innerHTML='<div class="ai-loading"><div class="ai-loading-dot"></div><div class="ai-loading-dot"></div><div class="ai-loading-dot"></div><span style="margin-left:4px">'+(label||'Claude analizează')+' <b class="ai-timer">0.0s</b></span></div>';
+  const t=el.querySelector('.ai-timer');
+  const iv=setInterval(()=>{ s+=0.1; if(t) t.textContent=s.toFixed(1)+'s'; },100);
+  return ()=>clearInterval(iv);
+}
+
+// Escape HTML pentru afisarea textului AI in siguranta.
+function aiEscape(s){ return (s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function showApiKeyModal(onSuccess){
   const existing=getApiKey();
   const ov=document.createElement('div');
@@ -2816,6 +2938,263 @@ function renderAISectionCrypto(coin, contextType, contextId){
   const ct=contextType||'opportunity';
   const ci=contextId||coin;
   return `<div class="ai-inline"><button class="ai-btn-c" onclick="analyzeWithAICrypto('${coin}',this,'${ct}','${ci}')">🤖 Analizează cu AI</button><div id="ai-result-${ci}" data-done="0"></div></div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+//  MODUL COMPARAȚIE AI — selectezi 2-4 monede și Opus 4.7 le pune
+//  față-n față; plus clasament automat al top oportunităților.
+// ════════════════════════════════════════════════════════════
+const CMP_MAX=4;
+const compareSelection=new Set();
+
+// Checkbox de selecție randat în header-ul fiecărui card de oportunitate.
+function renderCmpChk(coin){
+  const on=compareSelection.has(coin);
+  return `<label class="cmp-chk ${on?'on':''}" id="cmpchk-${coin}" onclick="event.stopPropagation()" title="Adaugă la comparație AI">
+    <input type="checkbox" ${on?'checked':''} onchange="cmpToggle('${coin}',this)">⚖️</label>`;
+}
+
+function cmpToggle(coin, input){
+  if(compareSelection.has(coin)){
+    compareSelection.delete(coin);
+  } else {
+    if(compareSelection.size>=CMP_MAX){
+      if(input) input.checked=false;
+      showToast('Maxim '+CMP_MAX+' monede în comparație','err');
+      return;
+    }
+    compareSelection.add(coin);
+  }
+  // Sincronizează aspectul tuturor checkbox-urilor cu acest coin (apare în mai multe carduri).
+  document.querySelectorAll('#cmpchk-'+coin).forEach(lbl=>{
+    lbl.classList.toggle('on', compareSelection.has(coin));
+    const i=lbl.querySelector('input'); if(i) i.checked=compareSelection.has(coin);
+  });
+  renderCmpBar();
+}
+
+function cmpRemove(coin){
+  compareSelection.delete(coin);
+  document.querySelectorAll('#cmpchk-'+coin).forEach(lbl=>{
+    lbl.classList.remove('on'); const i=lbl.querySelector('input'); if(i) i.checked=false;
+  });
+  renderCmpBar();
+}
+
+function cmpClear(){
+  [...compareSelection].forEach(c=>{
+    document.querySelectorAll('#cmpchk-'+c).forEach(lbl=>{
+      lbl.classList.remove('on'); const i=lbl.querySelector('input'); if(i) i.checked=false;
+    });
+  });
+  compareSelection.clear();
+  renderCmpBar();
+}
+
+// Bara flotantă jos — apare când sunt selectate ≥2 monede.
+function renderCmpBar(){
+  let bar=document.getElementById('cmpBar');
+  if(!bar){
+    bar=document.createElement('div');
+    bar.id='cmpBar'; bar.className='cmp-bar';
+    document.body.appendChild(bar);
+  }
+  const coins=[...compareSelection];
+  if(coins.length===0){ bar.classList.remove('show'); return; }
+  const chips=coins.map(c=>`<span class="cmp-bar-chip">${c}<b onclick="cmpRemove('${c}')">✕</b></span>`).join('');
+  bar.innerHTML=`<span class="cmp-bar-info">⚖️ ${coins.length} selectate</span>
+    <div class="cmp-bar-chips">${chips}</div>
+    <button class="cmp-bar-btn" onclick="runCompareAI()" ${coins.length<2?'disabled':''}>🤖 Compară cu AI</button>
+    <button class="cmp-bar-btn ghost" onclick="cmpClear()">Golește</button>`;
+  bar.classList.add('show');
+}
+
+// Linie compactă cu datele unei monede, pentru prompt.
+function cmpCoinLine(coin){
+  const o=(allCryptoOpportunities||[]).find(x=>x.coin===coin)||{};
+  const sp=sparkCache[coin];
+  const trend=sp&&sp.length>=2?((sp[sp.length-1]-sp[0])/sp[0]*100).toFixed(1)+'%':'N/A';
+  const reasons=(o.reasons||[]).map(r=>r.t).join('; ')||'N/A';
+  const px=(o.price||0).toFixed((o.price||0)<1?6:2);
+  return `${coin}/USDT: Preț $${px} | 24h ${(o.chg24||0)>=0?'+':''}${(o.chg24||0).toFixed(2)}% | RSI(15m) ${(o.rsi||50).toFixed(0)} | Range ${(o.range24pct||0).toFixed(1)}% | VolRatio ${o.volRatio!=null?o.volRatio.toFixed(2)+'x':'N/A'} | Scor ${o.score||0}/100 (${o.isBuy?'BULLISH':'BEARISH'}) | EarlyScore ${o.earlyScore||0} | Entry ${o.entry||'N/A'} TP ${o.tp||'N/A'} SL ${o.sl||'N/A'} RR ${o.rr||'N/A'} | Trend ${trend} | Factori: ${reasons}`;
+}
+
+// ── MODAL generic pentru rezultate AI (comparație / clasament) ──
+function openAIModal(title){
+  document.getElementById('aiModalOv')?.remove();
+  const ov=document.createElement('div');
+  ov.className='ai-modal-ov'; ov.id='aiModalOv';
+  ov.innerHTML=`<div class="ai-modal">
+    <div class="ai-modal-hdr"><h3>${title}</h3><button class="ai-modal-x" onclick="document.getElementById('aiModalOv').remove()">✕</button></div>
+    <div class="ai-modal-body" id="aiModalBody"></div>
+    <div class="ai-modal-foot"><span id="aiModalFootL">⚡ Opus 4.7</span><button class="cmp-bar-btn ghost" style="padding:5px 11px" onclick="document.getElementById('aiModalOv').remove()">Închide</button></div>
+  </div>`;
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  document.body.appendChild(ov);
+  return document.getElementById('aiModalBody');
+}
+
+// Fallback când nu există API key (sau eroare): copiază promptul + deschide Claude.ai.
+function aiModalFallback(body, prompt, errMsg){
+  let ok=false;
+  try{
+    const ta=document.createElement('textarea'); ta.value=prompt;
+    ta.style.cssText='position:fixed;left:-9999px;opacity:0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    ok=document.execCommand('copy'); document.body.removeChild(ta);
+  }catch(e){}
+  body.innerHTML=`<div class="ai-fade-in">
+    ${errMsg?`<div style="color:var(--red);font-size:.62rem;margin-bottom:8px">⚠️ API indisponibil: ${aiEscape(errMsg).slice(0,90)}</div>`:''}
+    <div style="color:var(--purple);font-weight:700;margin-bottom:6px">🤖 Analizează pe Claude.ai (gratuit cu Pro)</div>
+    <div style="color:var(--t2);margin-bottom:8px">${ok?'✅ Promptul a fost copiat în clipboard!':'📋 Copiază promptul de mai jos:'}</div>
+    ${!ok?`<textarea style="width:100%;height:120px;font-size:.58rem;font-family:monospace;border:1px solid var(--b1);border-radius:6px;padding:8px;background:var(--bg3);color:var(--t1)">${aiEscape(prompt)}</textarea>`:''}
+    <a href="https://claude.ai/new" target="_blank" style="display:block;text-align:center;padding:9px;border-radius:8px;background:var(--purple);color:#fff;font-weight:700;text-decoration:none;margin-top:8px">🚀 Deschide Claude.ai → Ctrl+V</a>
+  </div>`;
+  if(ok) setTimeout(()=>window.open('https://claude.ai/new','_blank'),700);
+}
+
+// Comparație manuală a monedelor selectate.
+async function runCompareAI(){
+  const coins=[...compareSelection];
+  if(coins.length<2){ showToast('Selectează minim 2 monede','err'); return; }
+  const fg=typeof cryptoFgScore!=='undefined'?cryptoFgScore:50;
+  const lines=coins.map(cmpCoinLine).join('\n');
+  const prompt=`Ești analist crypto expert pentru un trader român pe Pionex. Compară următoarele ${coins.length} monede și decide care e cea mai bună oportunitate ACUM.
+Fear&Greed: ${fg}/100.
+${lines}
+
+Răspunde în română, structurat și concis:
+1. Comparativ pe scurt — puncte tari/slabe per monedă.
+2. 🏆 CÂȘTIGĂTOR clar + motivul.
+3. Pentru câștigător: acțiune concretă (entry / TP / SL) și tip recomandat (spot / grid / futures).
+4. ⚠️ Un risc principal de urmărit.`;
+  const body=openAIModal('⚖️ Comparație AI — '+coins.join(' vs '));
+  const stop=aiLoadingTimer(body,'Opus 4.7 compară '+coins.length+' monede...');
+  if(!getApiKey()){ stop(); aiModalFallback(body, prompt); return; }
+  const res=await callClaudeAPI(prompt, 1200, AI_DEEP_MODEL);
+  stop();
+  if(res.ok){ body.innerHTML='<div class="ai-fade-in">'+aiEscape(res.text)+'</div>'; }
+  else aiModalFallback(body, prompt, res.error);
+}
+
+// Clasament automat al top oportunităților (după scor).
+async function rankTopAI(){
+  const top=(allCryptoOpportunities||[]).filter(o=>o.isBuy).sort((a,b)=>b.score-a.score).slice(0,5);
+  if(top.length<2){ showToast('Prea puține oportunități — pornește scanner-ul întâi.','err'); return; }
+  const fg=typeof cryptoFgScore!=='undefined'?cryptoFgScore:50;
+  const lines=top.map(o=>cmpCoinLine(o.coin)).join('\n');
+  const prompt=`Ești analist crypto expert pentru un trader român pe Pionex. Iată top ${top.length} oportunități bullish detectate de scanner. Fă un CLASAMENT motivat.
+Fear&Greed: ${fg}/100.
+${lines}
+
+Răspunde în română, concis:
+- Clasament 1→${top.length} cu un argument scurt per poziție (risc/reward, momentum, confirmări).
+- Pentru #1: acțiune concretă (entry / TP / SL) și tip recomandat (spot / grid / futures).
+- ⚠️ Care monedă pare cea mai riscantă/capcană și de ce.`;
+  const body=openAIModal('🏆 Clasament AI — top '+top.length+' oportunități');
+  const stop=aiLoadingTimer(body,'Opus 4.7 clasează '+top.length+' oportunități...');
+  if(!getApiKey()){ stop(); aiModalFallback(body, prompt); return; }
+  const res=await callClaudeAPI(prompt, 1200, AI_DEEP_MODEL);
+  stop();
+  if(res.ok){ body.innerHTML='<div class="ai-fade-in">'+aiEscape(res.text)+'</div>'; }
+  else aiModalFallback(body, prompt, res.error);
+}
+
+// ════════════════════════════════════════════════════════════
+//  BUBBLE AI GLOBAL — chat flotant cu context din tot scanner-ul.
+// ════════════════════════════════════════════════════════════
+let bubOpen=false;
+let bubBusy=false;
+const bubHistory=[]; // {role:'user'|'assistant', content}
+
+// Construiește un rezumat al stării curente a scanner-ului (system context).
+function bubBuildContext(){
+  const fg=typeof cryptoFgScore!=='undefined'?cryptoFgScore:50;
+  const top=(allCryptoOpportunities||[]).filter(o=>o.isBuy).sort((a,b)=>b.score-a.score).slice(0,6)
+    .map(o=>`${o.coin} scor:${o.score} RSI:${(o.rsi||50).toFixed(0)} 24h:${(o.chg24||0)>=0?'+':''}${(o.chg24||0).toFixed(1)}%`).join(', ')||'—';
+  const sigs=(allSignals||[]).filter(s=>s.priority==='high').slice(0,6).map(s=>`${s.coin} ${s.title}`).join(', ')||'—';
+  const pumps=(typeof pumpHistory!=='undefined'?pumpHistory:[]).slice(0,4).map(a=>`${a.coin} ${a.title}`).join(', ')||'—';
+  const futs=(typeof futuresAlerts!=='undefined'?futuresAlerts:[]).slice(0,4).map(a=>`${a.coin} ${a.title}`).join(', ')||'—';
+  return `Ești asistentul AI al unui scanner crypto (Pionex) pentru un trader român. Răspunde concis, în română, cu nivele de preț concrete când e cazul. NU da sfaturi financiare garantate — explică scenarii și riscuri.
+STARE SCANNER ACUM:
+- Fear&Greed: ${fg}/100
+- Top oportunități bullish: ${top}
+- Semnale high priority: ${sigs}
+- Pump radar: ${pumps}
+- Futures: ${futs}`;
+}
+
+function bubToggle(){
+  bubOpen=!bubOpen;
+  const p=document.getElementById('bubPanel');
+  if(p) p.classList.toggle('show', bubOpen);
+  if(bubOpen){
+    if(!bubHistory.length) bubRenderMsgs(); // afișează mesajul de bun venit
+    setTimeout(()=>document.getElementById('bubInput')?.focus(),100);
+  }
+}
+
+function bubRenderMsgs(){
+  const box=document.getElementById('bubMsgs');
+  if(!box) return;
+  let html='';
+  if(!bubHistory.length){
+    html='<div class="bub-msg sys">👋 Salut! Întreabă-mă orice despre piață sau monedele din scanner.<br>Am context live: top oportunități, semnale, F&G.</div>';
+  } else {
+    html=bubHistory.map(m=>`<div class="bub-msg ${m.role==='user'?'user':'ai'}">${aiEscape(m.content)}</div>`).join('');
+  }
+  box.innerHTML=html;
+  box.scrollTop=box.scrollHeight;
+}
+
+function bubQuick(q){
+  const inp=document.getElementById('bubInput');
+  if(inp) inp.value=q;
+  bubSend();
+}
+
+async function bubSend(){
+  if(bubBusy) return;
+  const inp=document.getElementById('bubInput');
+  const q=(inp?.value||'').trim();
+  if(!q) return;
+  if(!getApiKey()){
+    showApiKeyModal(()=>bubSend());
+    return;
+  }
+  inp.value='';
+  bubHistory.push({role:'user',content:q});
+  bubRenderMsgs();
+
+  const box=document.getElementById('bubMsgs');
+  const loadEl=document.createElement('div');
+  loadEl.className='bub-msg ai';
+  box.appendChild(loadEl);
+  const stop=aiLoadingTimer(loadEl,'Opus 4.7 scrie...');
+  box.scrollTop=box.scrollHeight;
+
+  bubBusy=true;
+  const sendBtn=document.getElementById('bubSendBtn');
+  if(sendBtn) sendBtn.disabled=true;
+
+  // Trimitem contextul ca prim mesaj user + ultimele schimburi (păstrăm conversația scurtă).
+  const msgs=[{role:'user',content:bubBuildContext()+'\n\nÎntâia mea întrebare urmează în mesajul următor.'},
+              {role:'assistant',content:'Am înțeles contextul scanner-ului. Sunt gata.'}];
+  bubHistory.slice(-8).forEach(m=>msgs.push({role:m.role,content:m.content}));
+
+  const res=await callClaudeAPI(msgs, 900, AI_DEEP_MODEL);
+  stop();
+  bubBusy=false;
+  if(sendBtn) sendBtn.disabled=false;
+
+  if(res.ok){
+    bubHistory.push({role:'assistant',content:res.text});
+  } else if(res.error==='NO_KEY'){
+    bubHistory.push({role:'assistant',content:'⚠️ Lipsește cheia API. Apasă 🔑 API Key în header.'});
+  } else {
+    bubHistory.push({role:'assistant',content:'⚠️ Eroare API: '+(res.error||'necunoscută')+'. Încearcă din nou.'});
+  }
+  bubRenderMsgs();
 }
 
 
@@ -3943,6 +4322,7 @@ function renderCryptoEarlyBuy(){
               stLongBadge+
               (isWl?'<span style="color:#f59e0b;font-size:.75rem">⭐</span>':'')+
               '<span style="font-size:.5rem;background:var(--bg3);border:1px solid var(--b1);border-radius:4px;padding:1px 6px;color:var(--t3)">'+(CRYPTO_CAT[o.coin]||'Crypto')+'</span>'+
+              renderCmpChk(o.coin)+
             '</div>'+
             '<div class="early-sector">'+(CRYPTO_CAT[o.coin]||'Cryptocurrency')+'</div>'+
             '<div style="display:flex;align-items:center;gap:10px;margin-top:4px;">'+
@@ -4735,6 +5115,7 @@ function renderSetups(){
               getFundingBadge(o.coin)+
               ((o.earlyScore||0)>=60 ? '<span style="font-size:.5rem;background:var(--teall);color:var(--teal);border:1px solid var(--tealb);border-radius:4px;padding:2px 6px;font-weight:700">🌱 Early '+o.earlyScore+'</span>' : '')+
               '<span style="font-size:.5rem;background:var(--bg3);border:1px solid var(--b1);border-radius:4px;padding:1px 6px;color:var(--t3)">'+(CRYPTO_CAT[o.coin]||'Crypto')+'</span>'+
+              renderCmpChk(o.coin)+
             '</div>'+
             '<div class="early-sector">'+(CRYPTO_CAT[o.coin]||'Cryptocurrency')+'</div>'+
             '<div style="display:flex;align-items:center;gap:10px;margin-top:4px">'+
@@ -11434,6 +11815,26 @@ function buildCrossTabContext() {
     </div>
   </div>
 </dialog>
+
+<!-- ── BUBBLE AI GLOBAL FLOTANT ── -->
+<button class="bub-fab" id="bubFab" onclick="bubToggle()" title="Asistent AI — întreabă orice despre piață">🤖</button>
+<div class="bub-panel" id="bubPanel">
+  <div class="bub-hdr">
+    <div class="bub-hdr-t">🤖 Asistent AI <span style="font-size:.52rem;font-weight:600;color:var(--t3)">Opus 4.7</span></div>
+    <button class="bub-hdr-x" onclick="bubToggle()">✕</button>
+  </div>
+  <div class="bub-msgs" id="bubMsgs"></div>
+  <div class="bub-quick">
+    <button onclick="bubQuick('Care e cea mai bună oportunitate acum și de ce?')">🏆 Best pick</button>
+    <button onclick="bubQuick('Cum interpretez Fear &amp; Greed actual pentru intrări?')">😱 F&G</button>
+    <button onclick="bubQuick('Ce monedă pare o capcană / fakeout acum?')">⚠️ Capcane</button>
+  </div>
+  <div class="bub-input">
+    <input id="bubInput" type="text" placeholder="Întreabă AI-ul..." onkeydown="if(event.key==='Enter')bubSend()">
+    <button id="bubSendBtn" onclick="bubSend()">➤</button>
+  </div>
+</div>
+<script>bubRenderMsgs();</script>
 
 </body>
 </html>
