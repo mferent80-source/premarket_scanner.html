@@ -907,7 +907,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v198</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v199</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1130,6 +1130,7 @@
   <!-- Toolbar selecție multiplă pentru comparație AI între losers -->
   <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
     <button class="btn-select-all" id="loserSelectAllBtn" onclick="loserToggleAll()" title="Selectează / deselectează toate rândurile vizibile pentru comparație AI">☑ Selectează tot</button>
+    <button class="btn-select-all" id="loserEarlyBtn" onclick="loserAddEarlyReversal()" style="border-color:rgba(46,160,67,.5);color:#3fb950" title="Scanează loserii afișați (max 30) și adaugă în watchlist doar pe cei care DEJA întorc în sus (reversal early-bird)">🌱→👁 Reversal early</button>
     <span style="font-size:10.5px;color:var(--muted);">Bifează 2+ losers → bara apare jos cu „🤖 Compară AI"</span>
   </div>
 
@@ -1703,6 +1704,43 @@ async function scanLosers() {
   } finally {
     btn.disabled = false;
   }
+}
+
+// Scanează loserii afișați și adaugă în watchlist doar reversal-urile early-bird
+// (un loser care DEJA s-a întors în sus pe daily = early-bird de manual).
+async function loserAddEarlyReversal(){
+  if (typeof lastLosers === 'undefined' || !lastLosers || !lastLosers.length){
+    showToast('Rulează întâi scanarea Top Losers', 'warn'); return;
+  }
+  const cands = lastLosers.slice(0, 30);
+  const btn = document.getElementById('loserEarlyBtn');
+  const oldLabel = btn ? btn.textContent : '';
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ 0/' + cands.length; }
+  const scanner = getScanner();
+  const queue = [...cands];
+  const found = [];
+  let done = 0;
+  const worker = async () => {
+    while (queue.length){
+      const s = queue.shift();
+      const hist = await scanner._fetchDailyHistory(s.symbol);
+      const eb = hist ? computeEarlyBird(hist, wlExtPct) : null;
+      if (eb && eb.isEarly) found.push(s.symbol);
+      done++;
+      if (btn) btn.textContent = '⏳ ' + done + '/' + cands.length;
+    }
+  };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  let added = 0;
+  for (const sym of found){
+    if (!watchlist.find(w => w.symbol === sym)){ watchlist.push({ symbol: sym, price: null, fetchedAt: 0 }); added++; }
+  }
+  if (added){ wlSave(); wlRender(); wlRefresh(); wlEnsureEarlyData(true).then(wlRender); }
+  if (btn){ btn.disabled = false; btn.textContent = oldLabel || '🌱→👁 Reversal early'; }
+  showToast(
+    found.length ? `🌱 ${found.length} reversal early găsiți · ${added} adăugați în watchlist` : '🌱 Niciun reversal early printre loseri acum',
+    found.length ? 'success' : 'warn'
+  );
 }
 
 // ============================================================
