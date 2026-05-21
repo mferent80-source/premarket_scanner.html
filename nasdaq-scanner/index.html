@@ -1331,6 +1331,8 @@ let macroEventsUpcoming = []; // [{event, time, impact, country}] high-impact US
 let macroBlockerActive = null; // {event, hoursAway} dacă există high-impact event în <24h, altfel null
 let earningsCalendar=[]; // [{symbol,date,hour,epsEst,revEst}] — for widget
 let sparklineCache={};
+let dailyTrendCache={};            // {sym: {dir, confirmed, ema20, ema50}} — trend confirmat din daily EMA
+let nasdaqConfirmedOnly=false;     // toggle filtru "trend confirmat" pe oportunități
 let watchlist=[];
 let savedSetups=[]; // {id, symbol, savedAt, price, score, reason, target, stop, sizing, status, outcome}
 let riskConfig={
@@ -2370,14 +2372,18 @@ async function fetchSparklines(symbols, key){
     if(!running) break;
     if(sparklineCache[sym]) continue;
     try{
-      // Yahoo first (free, ~22 daily closes pe range=1mo, păstrăm ultimele 8 pt sparkline)
-      const yh=await fetchYahooDailyCloses(sym, 30);
+      // Yahoo first (free, range=3mo ~63 daily closes; păstrăm 8 pt sparkline + tot pt trend EMA)
+      const yh=await fetchYahooDailyCloses(sym, 90);
       if(yh.length>=2){
         sparklineCache[sym]=yh.slice(-8);
+        const tr=computeDailyTrend(yh); if(tr) dailyTrendCache[sym]=tr;
       } else {
         // Finnhub fallback (paid tier)
         const d=await fhGet(`${FINNHUB}/stock/candle?symbol=${sym}&resolution=D&from=${from}&to=${to}&token=${key}`);
-        if(d?.s==='ok'&&d.c?.length>=2) sparklineCache[sym]=d.c;
+        if(d?.s==='ok'&&d.c?.length>=2){
+          sparklineCache[sym]=d.c.slice(-8);
+          const tr=computeDailyTrend(d.c); if(tr) dailyTrendCache[sym]=tr;
+        }
       }
     }catch(e){}
     await sleep(130);
@@ -6016,6 +6022,45 @@ function _csfApplyIfActive(arr){
   }
   return arr;
 }
+// ── TREND CONFIRMAT DIN DAILY EMA (anti-semnale-false pentru acțiuni) ──
+// Pentru stocks, MTF intraday e impracticabil cu Yahoo free (rate limit). Folosim
+// trendul pe daily (preț > EMA20 > EMA50 + slope), calculat din daily closes deja
+// fetch-uite — robust pentru swing pe acțiuni, fără niciun fetch suplimentar.
+function emaCalc(vals, p){
+  if(!vals || vals.length < p) return null;
+  const k = 2/(p+1);
+  let e = vals.slice(0,p).reduce((a,b)=>a+b,0)/p;
+  for(let i=p;i<vals.length;i++) e = vals[i]*k + e*(1-k);
+  return e;
+}
+function computeDailyTrend(closes){
+  const c = (closes||[]).filter(x=>typeof x==='number' && x>0);
+  if(c.length < 50) return null;                       // date insuficiente = N/A
+  const price = c[c.length-1];
+  const ema20 = emaCalc(c, 20), ema50 = emaCalc(c, 50);
+  const ema20prev = emaCalc(c.slice(0,-5), 20);        // EMA20 acum 5 zile (slope)
+  if(ema20==null || ema50==null || ema20prev==null) return null;
+  let dir = 0, confirmed = false;
+  if(price > ema20 && ema20 > ema50 && ema20 > ema20prev){ dir = 1; confirmed = true; }
+  else if(price < ema20 && ema20 < ema50 && ema20 < ema20prev){ dir = -1; confirmed = true; }
+  else { dir = price >= ema50 ? 1 : -1; confirmed = false; }  // direcție slabă, neconfirmată
+  return { dir, confirmed, ema20, ema50 };
+}
+// Gate: trendul daily confirmat ȘI aliniat cu direcția semnalului + nu supraextins.
+function isConfirmedNasdaq(o){
+  const t = dailyTrendCache[o.symbol];
+  if(!t || !t.confirmed) return false;                 // N/A sau trend neconfirmat
+  const dir = o.isBuy ? 1 : -1;
+  if(t.dir !== dir) return false;                      // trend daily contrazice semnalul
+  if(o.isBuy && o.rsi >= 72) return false;             // long supraextins
+  if(!o.isBuy && o.rsi <= 28) return false;            // short supraextins
+  return true;
+}
+function toggleNasdaqConfirmed(){
+  nasdaqConfirmedOnly = !nasdaqConfirmedOnly;
+  renderRecommendations();
+}
+
 function renderRecommendations(){
   const container=document.getElementById('signalsContainer');
   if(!allOpportunities.length){
@@ -6023,7 +6068,9 @@ function renderRecommendations(){
     return;
   }
   // Pas 7: custom screener filter aplicat înainte de tier (buy/sell)
-  const filteredOpps = _csfApplyIfActive(allOpportunities);
+  let filteredOpps = _csfApplyIfActive(allOpportunities);
+  // Gate anti-semnale-false: doar oportunități cu trend daily confirmat (≠ N/A)
+  if(nasdaqConfirmedOnly) filteredOpps = filteredOpps.filter(isConfirmedNasdaq);
   const buys=filteredOpps.filter(o=>o.isBuy&&o.score>=55).sort((a,b)=>b.score-a.score).slice(0,8);
   const sells=filteredOpps.filter(o=>!o.isBuy&&o.score>=55).sort((a,b)=>b.score-a.score).slice(0,5);
 
@@ -6044,7 +6091,11 @@ function renderRecommendations(){
     const isBuy=o.isBuy;
     const strong=o.score>=75;
     const clr=isBuy?'var(--green)':'var(--red)';
-    const sparkH=o.spark&&o.spark.length>=2?`<div style="margin-bottom:8px">${renderSparkline(o.symbol)}</div>`:'';
+    const _tt=dailyTrendCache[o.symbol];
+    const trendTag=(_tt&&_tt.confirmed)
+      ? `<span style="display:inline-block;margin-left:6px;font-size:.55rem;font-weight:700;padding:2px 7px;border-radius:5px;background:${_tt.dir>0?'var(--greenl)':'var(--redl)'};color:${_tt.dir>0?'var(--green)':'var(--red)'};border:1px solid ${_tt.dir>0?'var(--greenb)':'var(--redb)'}" title="Trend daily confirmat: preț>EMA20>EMA50 + slope">${_tt.dir>0?'📈 Trend ↑':'📉 Trend ↓'} confirmat</span>`
+      : (!_tt ? `<span style="display:inline-block;margin-left:6px;font-size:.55rem;font-weight:600;padding:2px 7px;border-radius:5px;background:var(--bg3);color:var(--t3);border:1px solid var(--b1)" title="Date daily insuficiente pentru trend">trend N/A</span>` : '');
+    const sparkH=o.spark&&o.spark.length>=2?`<div style="margin-bottom:8px">${renderSparkline(o.symbol)}${trendTag}</div>`:(trendTag?`<div style="margin-bottom:8px">${trendTag}</div>`:'');
     const td=`<div class="reco-stats">
       <div class="reco-stat"><div class="reco-stat-val" style="color:${o.rsi<=35?'var(--acc)':o.rsi>=65?'var(--orange)':'var(--t1)'}">RSI ${o.rsi.toFixed(0)}</div><div class="reco-stat-lbl">RSI 14</div></div>
       <div class="reco-stat"><div class="reco-stat-val" style="color:${o.chg24>=0?'var(--green)':'var(--red)'}">${o.chg24>=0?'+':''}${o.chg24.toFixed(2)}%</div><div class="reco-stat-lbl">Zi</div></div>
@@ -6106,7 +6157,15 @@ function renderRecommendations(){
     </div>`;
   };
 
-  let html='<div class="reco-grid">';
+  const cntConfirmed = _csfApplyIfActive(allOpportunities).filter(isConfirmedNasdaq).length;
+  let html='';
+  html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <button onclick="toggleNasdaqConfirmed()" title="Arată doar oportunități cu trend daily confirmat (preț>EMA20>EMA50 + slope, în direcția semnalului) — exclude trend N/A/lateral"
+      style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;border:1px solid ${nasdaqConfirmedOnly?'var(--greenb)':'var(--b2)'};background:${nasdaqConfirmedOnly?'var(--greenl)':'var(--bg2)'};color:${nasdaqConfirmedOnly?'var(--green)':'var(--t2)'};transition:all .15s">
+      ✅ Trend confirmat ${nasdaqConfirmedOnly?'ON':'OFF'}</button>
+    <span style="font-size:.62rem;color:var(--t3)">${cntConfirmed} cu trend confirmat (daily EMA)</span>
+  </div>`;
+  html+='<div class="reco-grid">';
   if(buys.length){
     html+=`<div class="reco-section-title buy">🟢 Top ${buys.length} Oportunități de Cumpărare</div>`;
     html+=buys.map(card).join('');
