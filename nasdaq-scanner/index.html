@@ -6184,8 +6184,9 @@ function renderRecommendations(){
 // ── EARLY BUY SCORE ENGINE ──
 function calcEarlyBuyScore(opp){
   const {chg24, rsi, range24pct, symbol, buyScore, buyScoreRaw} = opp;
-  // Exclud zilele negative — trebuie zi pozitivă
-  if(chg24 < 0) return 0;
+  // Exclud doar corecțiile MARI — permitem zi ușor negativă, ca să prindem reversal-urile
+  // timpurii de la oversold (esența unui "early bird"), nu doar momentum deja pornit.
+  if(chg24 < -2.5) return 0;
   // Folosește scorul "raw" (ÎNAINTE de cap-urile macro/earnings-hard) — Early Buy arată ce se coace,
   // banner-ul de avertizare semnalează că e blocat. Fallback la buyScore dacă raw lipsește (compat vechi).
   let score = (typeof buyScoreRaw === 'number' ? buyScoreRaw : buyScore);
@@ -6195,10 +6196,12 @@ function calcEarlyBuyScore(opp){
   else if(chg24>2 && chg24<=3.5)   score += 12; // bun
   else if(chg24>3.5 && chg24<=5.5) score += 6;  // oarecum ok
   else if(chg24>5.5)                score -= 8;  // probabil deja pompadour
+  else if(chg24>=-2.5 && chg24<0.3) score += 8;  // bază/reversal timpuriu — candidat early valid
 
   // ── Factorul 2: RSI — zona neutru/usor bullish (42–63)
   if(rsi>=42 && rsi<=58)          score += 14;
   else if(rsi>=38 && rsi<42)      score += 9;  // oversold ușor — poate renaște
+  else if(rsi<38)                 score += 11; // oversold marcat — reversal early potențial (era ignorat)
   else if(rsi>58 && rsi<=63)      score += 6;  // momentum înalt dar în regulă
   else if(rsi>63 && rsi<=70)      score -= 4;  // aproape overbought
   else if(rsi>70)                 score -= 12; // overbought — nu e early buy
@@ -6251,21 +6254,21 @@ function renderEarlyBuy(){
   const baseOpps  = _csfApplyIfActive(allOpportunities);
   // Funnel explicit ca să se vadă UNDE moare lista când e gol. Folosim score-ul "raw" (ÎNAINTE de
   // cap-urile macro/earnings-hard) ca Early Buy să arate ce se coace; banner-ul de mai jos avertizează.
-  const fPos  = baseOpps.filter(o => o.chg24 >= 0);
-  const fBuy  = fPos.filter(o => (o.isBuyRaw ?? o.isBuy) && (o.scoreRaw ?? o.score) >= 42);
-  const fEarl = fBuy.map(o => ({...o, earlyScore: calcEarlyBuyScore(o)})).filter(o => o.earlyScore >= 50);
+  const fPos  = baseOpps.filter(o => o.chg24 >= -2.5);  // permitem corecție ușoară (early reversal), nu doar zi verde
+  const fBuy  = fPos.filter(o => (o.isBuyRaw ?? o.isBuy) && (o.scoreRaw ?? o.score) >= 38);  // relaxat de la 42
+  const fEarl = fBuy.map(o => ({...o, earlyScore: calcEarlyBuyScore(o)})).filter(o => o.earlyScore >= 45);  // relaxat de la 50
   const scored = fEarl.sort((a,b) => b.earlyScore - a.earlyScore).slice(0, 14);
 
   if(!scored.length){
-    const funnel = `${allOpportunities.length} scanate${csfActive ? ` → ${baseOpps.length} după 🎯 Screener` : ''} → ${fPos.length} zi pozitivă → ${fBuy.length} buy-side(raw) & score≥42 → ${fEarl.length} earlyScore≥50`;
+    const funnel = `${allOpportunities.length} scanate${csfActive ? ` → ${baseOpps.length} după 🎯 Screener` : ''} → ${fPos.length} zi ≥ -2.5% → ${fBuy.length} buy-side(raw) & score≥38 → ${fEarl.length} earlyScore≥45`;
     const posWithEarn = (typeof earningsSet !== 'undefined' && earningsSet) ? fPos.filter(o => earningsSet.has(o.symbol)).length : 0;
     let hint;
     if(fPos.length === 0){
       hint = 'Toate acțiunile scanate sunt în scădere/plate azi — piață roșie, nu e bug. Extinde lista de acțiuni sau revino într-o zi verde.';
     } else if(fBuy.length === 0){
-      hint = `${fPos.length} acțiuni pozitive azi, dar 0 cu scor buy-side (raw) ≥ 42${posWithEarn > 0 ? ` (din care ${posWithEarn} cu earnings în 7 zile → score redus)` : ''}. Cauză probabilă: lipsesc RSI/sparkline de pe Yahoo (fără ele scoringul rămâne neutru 50/50). Verifică log-ul ("RSI: ... total", warning-uri Yahoo); hard-refresh (Ctrl+Shift+R) — ver-badge trebuie v93+.`;
+      hint = `${fPos.length} acțiuni eligibile azi, dar 0 cu scor buy-side (raw) ≥ 38${posWithEarn > 0 ? ` (din care ${posWithEarn} cu earnings în 7 zile → score redus)` : ''}. Cauză probabilă: lipsesc RSI/sparkline de pe Yahoo (fără ele scoringul rămâne neutru 50/50). Verifică log-ul ("RSI: ... total", warning-uri Yahoo); hard-refresh (Ctrl+Shift+R) — ver-badge trebuie v93+.`;
     } else {
-      hint = `${fBuy.length} candidați buy-side, dar niciunul cu earlyScore ≥ 50 — momentum prea slab azi.`;
+      hint = `${fBuy.length} candidați buy-side, dar niciunul cu earlyScore ≥ 45 — momentum prea slab azi.`;
     }
     if(macroBlk) hint += ` <span style="opacity:.7">(ℹ️ ${macroBlk.event} în ~${Math.round(macroBlk.hoursAway)}h — Early Buy folosește score-ul "raw" pre-cap, deci macro NU e cauza golirii aici.)</span>`;
     if(csfActive) hint += ' ⚠️ Custom Screener 🎯 e ACTIV — resetează-l dacă nu-l vrei.';
