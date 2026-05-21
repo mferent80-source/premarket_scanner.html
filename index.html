@@ -1396,5 +1396,28 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
+<script>
+// ── O SINGURĂ FILĂ per pagină ──
+// Cardurile au target numit (ttools-*). Default, re-click reîncarcă fila existentă
+// (pierde starea) și NU o aduce în față. Reținem handle-ul ferestrei și la re-click
+// doar focus() — fără reload. Dacă fila a fost închisă, o redeschidem.
+(function(){
+  const wins = {};
+  document.addEventListener('click', function(e){
+    if (e.target.closest('.card-info-btn')) return;        // ℹ deschide modalul, nu pagina
+    const a = e.target.closest('a.card[target]');
+    if (!a) return;
+    const name = a.getAttribute('target') || '';
+    if (!name.startsWith('ttools-')) return;               // doar paginile interne din suite
+    e.preventDefault();
+    const existing = wins[name];
+    if (existing && !existing.closed){
+      try { existing.focus(); return; } catch(_){}          // adu în față, fără reload
+    }
+    const w = window.open(a.href, name);                    // nu e deschisă → deschide
+    if (w){ wins[name] = w; try { w.focus(); } catch(_){} }
+  });
+})();
+</script>
 </body>
 </html>
