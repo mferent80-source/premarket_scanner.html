@@ -1333,6 +1333,16 @@ let earningsCalendar=[]; // [{symbol,date,hour,epsEst,revEst}] — for widget
 let sparklineCache={};
 let dailyTrendCache={};            // {sym: {dir, confirmed, ema20, ema50}} — trend confirmat din daily EMA
 let nasdaqConfirmedOnly=false;     // toggle filtru "trend confirmat" pe oportunități
+const TREND_CACHE_KEY='nasdaq_trend_v1';
+const TREND_CACHE_TTL=12*3600*1000;   // EMA daily nu se schimbă intraday → cache 12h, evită refetch 3mo
+function loadTrendCache(){
+  try{ const raw=JSON.parse(localStorage.getItem(TREND_CACHE_KEY)||'null');
+    if(raw && raw.data && (Date.now()-raw.ts)<TREND_CACHE_TTL) dailyTrendCache=raw.data; }catch(e){}
+}
+function saveTrendCache(){
+  try{ localStorage.setItem(TREND_CACHE_KEY, JSON.stringify({data:dailyTrendCache, ts:Date.now()})); }catch(e){}
+}
+loadTrendCache();
 let watchlist=[];
 let savedSetups=[]; // {id, symbol, savedAt, price, score, reason, target, stop, sizing, status, outcome}
 let riskConfig={
@@ -2367,7 +2377,7 @@ function renderSentiment(score,vix){
 // ── SPARKLINES (7 zile daily) ──
 async function fetchSparklines(symbols, key){
   const to=Math.floor(Date.now()/1000);
-  const from=to-8*24*3600;
+  const from=to-150*24*3600;   // ~150 zile (≈105 trading days) — destul pt EMA50 din computeDailyTrend pe fallback Finnhub
   for(const sym of symbols){
     if(!running) break;
     if(sparklineCache[sym]) continue;
@@ -2388,6 +2398,7 @@ async function fetchSparklines(symbols, key){
     }catch(e){}
     await sleep(130);
   }
+  saveTrendCache();   // persistă trendul daily (TTL 12h) — gate-ul "Confirmat" merge imediat la reload
 }
 function renderSparkline(sym){
   const prices=sparklineCache[sym];
