@@ -897,7 +897,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v195</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v196</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -987,6 +987,10 @@
       <label class="wl-group-toggle" title="Grupează pe performanță">
         <input type="checkbox" id="wlGroupChk" onchange="wlSetGroup(this.checked)">
         <span>Grup</span>
+      </label>
+      <label class="wl-group-toggle" title="Alertă (toast + notificare browser) când un simbol din watchlist devine early-bird">
+        <input type="checkbox" id="wlEbAlertChk" onchange="wlSetEbAlerts(this.checked)">
+        <span>🔔🌱</span>
       </label>
     </div>
   </div>
@@ -2136,6 +2140,12 @@ let wlExtPct = parseFloat(localStorage.getItem('me_wl_extpct'));
 if (isNaN(wlExtPct)) wlExtPct = 6;
 // Cache rezultate early-bird per simbol: { eb, ts }
 let wlEarlyCache = {};
+// Alerte early-bird: stare „văzut" per simbol (dedupe + baseline anti-spam la prima rulare)
+const EB_SEEN_KEY = 'me_eb_seen';
+let ebSeen = {};
+try { ebSeen = JSON.parse(localStorage.getItem(EB_SEEN_KEY) || '{}'); } catch(_) { ebSeen = {}; }
+let ebAlertsOn = localStorage.getItem('me_eb_alerts_on') !== '0';
+function wlSetEbAlerts(on){ ebAlertsOn = !!on; localStorage.setItem('me_eb_alerts_on', on ? '1' : '0'); }
 
 // === Selecție multiplă pentru comparație AI între Earnings ===
 let lastEarnings = [];
@@ -2714,6 +2724,31 @@ async function wlEnsureEarlyData(force){
   await Promise.all([worker(), worker(), worker(), worker()]);
   wlEarlyLoading = false;
   if (status) status.style.display = 'none';
+
+  // Detectează tranziții: simboluri care DEVIN early (alertă entry). Prima dată
+  // pentru un simbol = baseline (doar memorăm, fără alertă) ca să nu spam-uim la load.
+  const newlyEarly = [];
+  for (const w of need){
+    const eb = wlEarlyCache[w.symbol]?.eb;
+    const nowEarly = !!(eb && eb.isEarly);
+    const prev = ebSeen[w.symbol];
+    if (prev !== undefined && !prev.early && nowEarly){
+      newlyEarly.push({ symbol: w.symbol, score: eb.score });
+    }
+    ebSeen[w.symbol] = { early: nowEarly, score: eb ? eb.score : 0, ts: Date.now() };
+  }
+  try { localStorage.setItem(EB_SEEN_KEY, JSON.stringify(ebSeen)); } catch(_){}
+  if (ebAlertsOn && newlyEarly.length) wlNotifyEarly(newlyEarly);
+}
+function wlNotifyEarly(items){
+  const list = items.map(x => `${x.symbol} ▲${x.score}`).join(', ');
+  const msg = items.length === 1
+    ? `🌱 Early-bird nou: ${items[0].symbol} a început creșterea (▲${items[0].score})`
+    : `🌱 ${items.length} early-bird noi: ${list}`;
+  showToast(msg, 'success');
+  if ('Notification' in window && Notification.permission === 'granted'){
+    try { new Notification('Market Events · 🌱 Early-bird', { body: msg }); } catch(_){}
+  }
 }
 // Recalculează early-bird din istoricul deja cache-uit, fără re-fetch (la schimbarea pragului)
 function wlRecomputeEarly(){
@@ -2777,6 +2812,7 @@ function wlRender(){
   document.querySelectorAll('.wl-fbtn').forEach(b => b.classList.toggle('active', b.dataset.filter === wlFilter));
   const ss = document.getElementById('wlSortSel'); if (ss) ss.value = wlSort;
   const gc = document.getElementById('wlGroupChk'); if (gc) gc.checked = wlGroup;
+  const ac = document.getElementById('wlEbAlertChk'); if (ac) ac.checked = ebAlertsOn;
   const ei = document.getElementById('wlExtInp'); if (ei && document.activeElement !== ei) ei.value = wlExtPct;
   // Buton bulk select: ☑ = selectează tot vizibil / ☒ = deselectează (când totul e deja selectat)
   const sab = document.getElementById('wlSelectAllBtn');
