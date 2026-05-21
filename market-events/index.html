@@ -589,6 +589,11 @@
   background:rgba(46,160,67,.18);color:#3fb950;border:1px solid rgba(46,160,67,.45);
   padding:0 4px;border-radius:7px;line-height:1.5;margin-left:5px;letter-spacing:.2px;
 }
+.ev-badge{
+  display:inline-flex;align-items:center;font-size:9.5px;font-weight:800;
+  background:rgba(247,147,26,.16);color:#f0883e;border:1px solid rgba(247,147,26,.45);
+  padding:0 4px;border-radius:7px;line-height:1.5;margin-left:4px;letter-spacing:.2px;
+}
 .eb-spark-row{
   grid-column:1 / -1;display:flex;align-items:center;justify-content:flex-end;
   padding:1px 2px 2px;margin-top:1px;
@@ -897,7 +902,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v196</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v197</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -2782,13 +2787,18 @@ function _wlRowHtml(w){
   const eb = wlEarlyCache[w.symbol]?.eb;
   const ebBadge = (eb && eb.isEarly)
     ? `<span class="eb-badge" title="🌱 Early bird — ${_ebSignalText(eb)}">🌱▲${eb.score}</span>` : '';
+  // Badge earnings aproape (din calendarul deja scanat) — avertisment swing pre-raport
+  const earnDays = (typeof lastEarnings !== 'undefined' && lastEarnings)
+    ? lastEarnings.find(e => e.symbol === w.symbol)?.daysToEarnings : null;
+  const earnBadge = (earnDays != null && earnDays >= 0 && earnDays <= 7)
+    ? `<span class="ev-badge" title="Earnings în ${earnDays} zile — atenție la swing înainte de raport (mișcare binară)">⚡${earnDays}z</span>` : '';
   const ebSparkRow = (eb && eb.spark)
     ? `<div class="eb-spark-row">${_ebSparkSvg(eb.spark)}</div>` : '';
   const exJs = String(w.exchange || '').replace(/'/g, "");
   // Grid cell layout: chk · SYM · price · %change · [TV][AI][🎯][📊][✕] · (sparkline row dacă early)
   return `<div class="wl-cell wl-tr${trCls}" data-sym="${w.symbol}" onclick="wlCellClick(event,'${w.symbol}')">
     <input type="checkbox" class="wl-chk" ${checked} onchange="wlToggleSelect('${w.symbol}')" title="Selectează">
-    <span class="sym">${w.symbol}${ebBadge}</span>
+    <span class="sym">${w.symbol}${ebBadge}${earnBadge}</span>
     <span class="num">${priceStr}</span>
     <span class="num ${pctCls}">${pctStr}</span>
     <span class="wl-actions">
