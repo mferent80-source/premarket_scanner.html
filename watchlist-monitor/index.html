@@ -361,7 +361,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v106</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v107</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -390,6 +390,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
   <input type="text" id="symInp" placeholder="Simbol sau nume (ex. RHM, Rheinmetall)…" maxlength="40">
   <button class="primary" id="addBtn">+ Add</button>
   <button id="fromScannerBtn" title="Adaugă top picks buy-side din Nasdaq Scanner">📥 din Scanner</button>
+  <button id="wlmSyncBtn" title="Sync cross-device (GitHub Gist)" onclick="wlmSyncModal()">☁️ Sync</button>
   <span style="margin-left:auto;font-size:11px;color:var(--t3);font-family:var(--mono)" id="wlMeta">— stocks în watchlist</span>
 </div>
 <div id="wlSearchResults" style="display:none;flex-direction:column;gap:3px;margin:-2px 0 10px"></div>
@@ -568,6 +569,7 @@ function loadWatchlist(){
 }
 function saveWatchlist(){
   try { localStorage.setItem(WL_KEY, JSON.stringify(watchlist)); } catch(e){}
+  if (typeof wlmAutoPush === 'function') wlmAutoPush(); // sync automat cross-device dacă e activ
 }
 // Sync live cross-tab: când alt tab (ex. Market Events) scrie în wl_stocks,
 // reîncarcă watchlist-ul și scanează simbolurile noi fără refresh manual.
@@ -1554,6 +1556,109 @@ document.querySelectorAll('th[data-sort]').forEach(th => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+//  SYNC CROSS-DEVICE — GitHub Gist privat (fișier wl_stocks.json)
+// ═══════════════════════════════════════════════════════════════
+const WLM_GIST_KEY = 'wl_gist_config'; // { token, gistId, auto, lastSyncTs }
+function _wlmCfg(){ try { return JSON.parse(localStorage.getItem(WLM_GIST_KEY) || '{}'); } catch(_){ return {}; } }
+function _wlmSave(c){ localStorage.setItem(WLM_GIST_KEY, JSON.stringify(c)); }
+function _wlmToken(c){
+  if (c && c.token) return c.token;
+  // refolosește token-ul deja configurat în alte pagini ale suite-ului
+  for (const k of ['me_gist_config','gist_config_nasdaq','gist_config_crypto']){
+    try { const fb = JSON.parse(localStorage.getItem(k) || '{}'); if (fb.token) return fb.token; } catch(_){}
+  }
+  return '';
+}
+async function _gistApi(method, path, body, token){
+  const r = await fetch('https://api.github.com' + path, {
+    method,
+    headers: { 'Accept':'application/vnd.github+json', 'Authorization':'Bearer '+token, 'X-GitHub-Api-Version':'2022-11-28', 'Content-Type':'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!r.ok){ const t = await r.text(); throw new Error('GitHub ' + r.status + ': ' + t.slice(0,160)); }
+  return r.json();
+}
+async function wlmPush(silent){
+  const c = _wlmCfg(); const token = _wlmToken(c);
+  if (!token){ if(!silent) showToastMsg('❌ Lipsește token GitHub','err'); return; }
+  if (!c.gistId){ if(!silent) showToastMsg('❌ Lipsește gist ID','err'); return; }
+  try {
+    await _gistApi('PATCH', '/gists/' + c.gistId, {
+      description: 'Watchlist Monitor — wl_stocks sync',
+      files: { 'wl_stocks.json': { content: JSON.stringify({ watchlist, updatedAt: Date.now() }, null, 2) } }
+    }, token);
+    c.lastSyncTs = Date.now(); _wlmSave(c);
+    if (!silent) showToastMsg('✅ Push reușit (' + watchlist.length + ' stocks)');
+  } catch(e){ if(!silent) showToastMsg('❌ Push: ' + e.message,'err'); }
+}
+async function wlmPull(silent){
+  const c = _wlmCfg(); const token = _wlmToken(c);
+  if (!token || !c.gistId){ if(!silent) showToastMsg('❌ Configurează token + gist ID','err'); return; }
+  try {
+    const g = await _gistApi('GET', '/gists/' + c.gistId, null, token);
+    const file = g.files && g.files['wl_stocks.json'];
+    if (!file || !file.content) throw new Error('Gist fără wl_stocks.json');
+    const data = JSON.parse(file.content);
+    if (!Array.isArray(data.watchlist)) throw new Error('Format invalid');
+    if (!silent && !confirm('Înlocuiești watchlist-ul curent (' + watchlist.length + ') cu ' + data.watchlist.length + ' simboluri din cloud?')) return;
+    watchlist = data.watchlist.map(s => String(s).toUpperCase());
+    saveWatchlist(); render(); if (watchlist.length) runScan();
+    if (!silent) showToastMsg('✅ Pull reușit (' + watchlist.length + ' stocks)');
+  } catch(e){ if(!silent) showToastMsg('❌ Pull: ' + e.message,'err'); }
+}
+async function wlmCreate(){
+  const c = _wlmCfg(); const token = _wlmToken(c);
+  if (!token){ showToastMsg('❌ Introdu token-ul GitHub întâi','err'); return; }
+  try {
+    const r = await _gistApi('POST', '/gists', {
+      description: 'Watchlist Monitor — wl_stocks sync', public: false,
+      files: { 'wl_stocks.json': { content: JSON.stringify({ watchlist, updatedAt: Date.now() }, null, 2) } }
+    }, token);
+    c.gistId = r.id; _wlmSave(c);
+    const inp = $('wlmGistId'); if (inp) inp.value = r.id;
+    showToastMsg('✅ Gist creat: ' + r.id.slice(0,8) + '…');
+  } catch(e){ showToastMsg('❌ Creare: ' + e.message,'err'); }
+}
+let _wlmPushTimer = null;
+function wlmAutoPush(){
+  const c = _wlmCfg();
+  if (!c.auto || !c.gistId || !_wlmToken(c)) return;
+  clearTimeout(_wlmPushTimer);
+  _wlmPushTimer = setTimeout(() => wlmPush(true), 1200); // debounce — push o singură dată după rafale
+}
+function wlmSyncModal(){
+  const c = _wlmCfg(); const token = _wlmToken(c);
+  const last = c.lastSyncTs ? new Date(c.lastSyncTs).toLocaleString('ro-RO') : '—';
+  const ov = document.createElement('div');
+  ov.id = 'wlmSyncOv';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML =
+    '<div style="max-width:520px;width:100%;background:#0f1623;border:1px solid #2a3550;border-radius:14px;padding:18px;font-family:system-ui,sans-serif;color:#e6edf3">' +
+    '<div style="font-size:15px;font-weight:800;margin-bottom:4px">☁️ Sync Watchlist (GitHub Gist)</div>' +
+    '<div style="font-size:11px;color:#8b949e;margin-bottom:12px">Token + Gist ID privat, partajat între device-uri. Ultim sync: ' + last + '</div>' +
+    '<div style="font-size:11px;color:#8b949e;margin-bottom:5px">GitHub token (scope: <b>gist</b>)' + (token && !c.token ? ' — preluat din altă pagină' : '') + '</div>' +
+    '<input id="wlmToken" type="password" placeholder="ghp_…" value="' + (c.token||'').replace(/"/g,'&quot;') + '" style="width:100%;padding:9px 11px;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;font-size:12px;font-family:monospace;margin-bottom:10px;box-sizing:border-box">' +
+    '<div style="font-size:11px;color:#8b949e;margin-bottom:5px">Gist ID (gol = creează unul nou)</div>' +
+    '<input id="wlmGistId" type="text" placeholder="ex: a1b2c3…" value="' + (c.gistId||'').replace(/"/g,'&quot;') + '" style="width:100%;padding:9px 11px;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;font-size:12px;font-family:monospace;margin-bottom:10px;box-sizing:border-box">' +
+    '<label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:12px;cursor:pointer"><input id="wlmAuto" type="checkbox" ' + (c.auto ? 'checked' : '') + ' style="width:16px;height:16px"> 🔄 Auto-sync (pull la pornire + push la fiecare schimbare)</label>' +
+    '<div style="font-size:10px;color:#6e7681;margin-bottom:14px;line-height:1.5">💡 Token la <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:#79c0ff">github.com/settings/tokens</a> (doar scope <b>gist</b>). Device 1: lasă Gist ID gol → 🆕 Creează. Device 2: același token + Gist ID + 🔽 Pull (sau bifează Auto-sync).</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button id="wlmSaveBtn" style="background:#238636;color:#fff;border:none;padding:9px 14px;border-radius:8px;font-weight:700;cursor:pointer">💾 Salvează</button>' +
+    '<button id="wlmCreateBtn" style="background:#1f2a44;color:#e6edf3;border:1px solid #30363d;padding:9px 14px;border-radius:8px;cursor:pointer">🆕 Creează</button>' +
+    '<button id="wlmPushBtn" style="background:#1f2a44;color:#e6edf3;border:1px solid #30363d;padding:9px 14px;border-radius:8px;cursor:pointer">⬆️ Push</button>' +
+    '<button id="wlmPullBtn" style="background:#1f2a44;color:#e6edf3;border:1px solid #30363d;padding:9px 14px;border-radius:8px;cursor:pointer">⬇️ Pull</button>' +
+    '<button onclick="document.getElementById(\'wlmSyncOv\').remove()" style="margin-left:auto;background:transparent;color:#8b949e;border:1px solid #30363d;padding:9px 12px;border-radius:8px;cursor:pointer">✕</button>' +
+    '</div></div>';
+  document.body.appendChild(ov);
+  const save = () => { const cc = _wlmCfg(); cc.token = $('wlmToken').value.trim(); cc.gistId = $('wlmGistId').value.trim(); cc.auto = $('wlmAuto').checked; _wlmSave(cc); };
+  $('wlmSaveBtn').onclick = () => { save(); showToastMsg('✅ Salvat'); };
+  $('wlmCreateBtn').onclick = async () => { save(); await wlmCreate(); };
+  $('wlmPushBtn').onclick = async () => { save(); await wlmPush(false); };
+  $('wlmPullBtn').onclick = async () => { save(); await wlmPull(false); ov.remove(); };
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════════════
 loadWatchlist();
@@ -1566,6 +1671,9 @@ updateAlertButtons();
 setStatus('', `${watchlist.length} stocks · auto-scan 60s`);
 updateChangesBadge();
 render();
+
+// Auto-sync: pull silențios la pornire dacă e activat (cloud = sursa de adevăr între device-uri)
+(function(){ const c = _wlmCfg(); if (c.auto && c.gistId && _wlmToken(c)) setTimeout(() => wlmPull(true), 300); })();
 
 // Auto-start scan + auto-refresh la load
 autoSec = parseInt($('autoRefresh').value, 10) || 60;
