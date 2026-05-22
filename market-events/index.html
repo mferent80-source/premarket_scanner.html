@@ -434,9 +434,18 @@
 .wl-add-row input{
   flex:1;min-width:0;padding:6px 9px;background:#0d1117;border:1px solid #30363d;
   border-radius:6px;color:#e6edf3;font-size:12px;font-family:monospace;outline:none;
-  text-transform:uppercase;
 }
 .wl-add-row input:focus{border-color:#1f6feb}
+.wl-search-results{margin:-4px 0 8px;display:none;flex-direction:column;gap:3px}
+.wl-search-results.show{display:flex}
+.wl-sr-item{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:7px 10px;background:#0d1117;border:1px solid #30363d;border-radius:6px;
+  cursor:pointer;font-size:12px;transition:all .12s}
+.wl-sr-item:hover{border-color:#1f6feb;background:#161b22}
+.wl-sr-sym{font-family:monospace;font-weight:700;color:#79c0ff}
+.wl-sr-name{color:#8b949e;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl-sr-ex{color:#6e7681;font-size:10px;font-family:monospace}
+.wl-sr-empty{padding:7px 10px;color:#8b949e;font-size:11px}
 .wl-add-btn,.wl-refresh-btn,.wl-sync-btn{
   padding:6px 9px;border:none;color:#fff;border-radius:6px;
   font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0;
@@ -907,7 +916,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v200</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v201</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -966,7 +975,7 @@
 <section class="section-watchlist section" id="wlSection" style="margin-bottom:12px;">
   <h2 onclick="toggleSection('wlSection')"><span class="collapse-arrow">▼</span> 👁️ WATCHLIST <span id="wlBadge" class="badge">-</span></h2>
   <div class="wl-add-row">
-    <input id="wlAddInp" type="text" placeholder="Simbol..." maxlength="6"
+    <input id="wlAddInp" type="text" placeholder="Simbol sau nume (ex. RHM, Rheinmetall)..." maxlength="40"
       onkeydown="if(event.key==='Enter'){event.preventDefault();wlAdd();}" />
     <button class="wl-add-btn" onclick="wlAdd()">+</button>
     <button class="wl-refresh-btn" onclick="wlRefresh()" title="Refresh prețuri">🔄</button>
@@ -974,6 +983,7 @@
     <button class="wl-refresh-btn" style="background:#1f6feb" onclick="wlSendAllToScanners()" title="Trimite tot watchlist-ul în Watchlist Monitor + Smart Trade">📊</button>
     <button class="wl-sync-btn" onclick="wlSyncModal()" title="Sync GitHub Gist">☁️</button>
   </div>
+  <div id="wlSearchResults" class="wl-search-results"></div>
 
   <!-- Filtre + sortare compacte -->
   <div class="wl-toolbar">
@@ -1201,7 +1211,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v200 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v201 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1215,6 +1225,38 @@ window.showMeFeatures = function(){
   document.body.appendChild(ov);
 };
 
+// Proxy-uri CORS de rezervă (folosite în ordine dacă cel din topbar cade).
+const PROXY_FALLBACKS = [
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://thingproxy.freeboard.io/fetch/' + u,
+];
+
+// Pool de concurență: rulează `worker` peste `items`, max `size` simultan.
+// Evită zecile de cereri paralele care pot duce la throttle IP (Yahoo/Nasdaq) sau rate-limit AI.
+async function runPool(items, worker, size = 4) {
+  const queue = items.map((it, i) => ({ it, i }));
+  const out = new Array(items.length);
+  async function runner() {
+    while (queue.length) {
+      const { it, i } = queue.shift();
+      try { out[i] = await worker(it, i); } catch (e) { out[i] = null; }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(size, items.length || 1) }, runner));
+  return out;
+}
+
+// Extrage un obiect JSON dintr-un răspuns AI, tolerant la ```fences``` și virgule în plus.
+function extractJson(text) {
+  let t = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  const start = t.indexOf('{'), end = t.lastIndexOf('}');
+  if (start < 0 || end < 0) throw new Error('Fără JSON în răspuns: ' + String(text).slice(0, 120));
+  const body = t.slice(start, end + 1);
+  try { return JSON.parse(body); }
+  catch (e) { return JSON.parse(body.replace(/,\s*([}\]])/g, '$1')); } // scoate trailing commas
+}
+
 // ============================================================
 // CLASA NasdaqScanner
 // ============================================================
@@ -1227,6 +1269,35 @@ class NasdaqScanner {
     this.nasdaqEarnings = 'https://api.nasdaq.com/api/calendar/earnings';
   }
 
+  // Fetch JSON cu fallback automat de proxy: încearcă proxy-ul din topbar,
+  // apoi lista de rezervă, apoi direct. Primul care întoarce JSON valid câștigă.
+  async _getJson(rawUrl) {
+    const cands = [];
+    if (this.corsProxy) cands.push(this.corsProxy + encodeURIComponent(rawUrl));
+    for (const f of PROXY_FALLBACKS) cands.push(f(rawUrl));
+    cands.push(rawUrl); // last resort: direct (merge doar pe endpoint-uri cu CORS deschis)
+    for (const u of cands) {
+      try {
+        const r = await fetch(u, { headers: { 'Accept': 'application/json' } });
+        if (!r.ok) continue;
+        const j = await r.json();
+        if (j) return j;
+      } catch (e) { /* încearcă următorul proxy */ }
+    }
+    return null;
+  }
+
+  // Yahoo symbol search — rezolvă ticker SAU nume (ex. „RHM" / „Rheinmetall" → RHM.DE Xetra).
+  // Returnează listă de potriviri equity/ETF cu bursa corectă (suport US + EU).
+  async searchSymbols(query) {
+    const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=12&newsCount=0`;
+    const j = await this._getJson(url);
+    const quotes = (j && j.quotes) || [];
+    return quotes
+      .filter(q => q.symbol && /EQUITY|ETF/i.test(q.quoteType || 'EQUITY'))
+      .map(q => ({ symbol: q.symbol, name: q.shortname || q.longname || q.symbol, exchange: q.exchDisp || q.exchange || '' }));
+  }
+
   // ============================================================
   // TOP LOSERS — folosește Yahoo screener (funcționează fără auth)
   // ============================================================
@@ -1237,11 +1308,9 @@ class NasdaqScanner {
     } = options;
 
     const yahooUrl = `${this.yahooScreener}?formatted=true&lang=en-US&region=US&scrIds=day_losers&count=${maxResults}`;
-    const url = this.corsProxy ? this.corsProxy + encodeURIComponent(yahooUrl) : yahooUrl;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    
+    const data = await this._getJson(yahooUrl);
+    if (!data) throw new Error('Proxy/Yahoo indisponibil (toate proxy-urile au eșuat)');
+
     const quotes = data?.finance?.result?.[0]?.quotes || [];
     return quotes
       .map(q => this._parseYahooQuote(q))
@@ -1320,9 +1389,7 @@ class NasdaqScanner {
 
     // 5. Enrich cu preț din Yahoo (în paralel)
     if (enrichWithPrice && filtered.length > 0) {
-      const priceResults = await Promise.all(
-        filtered.map(e => this._fetchSymbolDetail(e.symbol))
-      );
+      const priceResults = await runPool(filtered, e => this._fetchSymbolDetail(e.symbol), 5);
       
       filtered = filtered.map((e, i) => {
         const detail = priceResults[i];
@@ -1358,19 +1425,8 @@ class NasdaqScanner {
 
   async _fetchNasdaqEarningsForDay(dateStr) {
     const url = `${this.nasdaqEarnings}?date=${dateStr}`;
-    const fullUrl = this.corsProxy ? this.corsProxy + encodeURIComponent(url) : url;
-    try {
-      const r = await fetch(fullUrl);
-      if (!r.ok) {
-        console.warn(`Nasdaq earnings ${dateStr}: HTTP ${r.status}`);
-        return null;
-      }
-      const data = await r.json();
-      return data?.data?.rows || [];
-    } catch (e) {
-      console.warn(`Nasdaq earnings ${dateStr} failed:`, e.message);
-      return null;
-    }
+    const data = await this._getJson(url);
+    return (data && data.data && data.data.rows) || [];
   }
 
   _parseNasdaqMcap(str) {
@@ -1386,12 +1442,8 @@ class NasdaqScanner {
     // range=1d → meta.chartPreviousClose e close-ul de IERI (corect pentru Δ Zi).
     // Cu range mai mare, chartPreviousClose ar fi close-ul de dinaintea ferestrei → variație greșită.
     const yahooUrl = `${this.yahooChart}/${symbol}?interval=1d&range=1d`;
-    const url = this.corsProxy ? this.corsProxy + encodeURIComponent(yahooUrl) : yahooUrl;
-
     try {
-      const r = await fetch(url);
-      if (!r.ok) return null;
-      const data = await r.json();
+      const data = await this._getJson(yahooUrl);
       const result = data?.chart?.result?.[0];
       if (!result) return null;
 
@@ -1425,11 +1477,8 @@ class NasdaqScanner {
   // ============================================================
   async _fetchDailyHistory(symbol, range = '3mo') {
     const yahooUrl = `${this.yahooChart}/${symbol}?interval=1d&range=${range}`;
-    const url = this.corsProxy ? this.corsProxy + encodeURIComponent(yahooUrl) : yahooUrl;
     try {
-      const r = await fetch(url);
-      if (!r.ok) return null;
-      const data = await r.json();
+      const data = await this._getJson(yahooUrl);
       const result = data?.chart?.result?.[0];
       const q = result?.indicators?.quote?.[0];
       if (!result || !q) return null;
@@ -1554,11 +1603,30 @@ function getScanner() {
   return new NasdaqScanner($('proxyUrl').value.trim());
 }
 
-// Construiește URL TradingView, alegând prefixul de exchange (NYSE/NASDAQ).
+// Sufix Yahoo → prefix de bursă TradingView (suport burse EU + alte piețe).
+const TV_EXCHANGE = {
+  '.DE':'XETR', '.F':'FWB', '.MU':'MUN', '.SG':'SWB', '.DU':'DUS', '.HM':'HAM', '.BE':'TRADEGATE',
+  '.PA':'EURONEXT', '.AS':'EURONEXT', '.BR':'EURONEXT', '.LS':'EURONEXT',
+  '.MI':'MIL', '.MC':'BME', '.L':'LSE', '.SW':'SIX', '.VX':'SIX', '.VI':'VIE',
+  '.CO':'OMXCOP', '.ST':'OMXSTO', '.HE':'OMXHEX', '.OL':'OSL',
+  '.TO':'TSX', '.V':'TSXV', '.AX':'ASX', '.HK':'HKEX', '.T':'TSE',
+};
+// Construiește simbolul TradingView corect din simbolul Yahoo + bursă.
+function tvSymbol(sym, exchange) {
+  const dot = sym.lastIndexOf('.');
+  if (dot > 0) {
+    const suf = sym.slice(dot).toUpperCase();
+    const ex = TV_EXCHANGE[suf];
+    const base = sym.slice(0, dot);
+    return ex ? `${ex}:${base}` : base; // sufix necunoscut → lasă TV să caute simbolul brut
+  }
+  // fără sufix = listare US: alege NASDAQ/NYSE după bursă
+  const exU = (exchange || '').toUpperCase();
+  const prefix = exU.includes('NYSE') ? 'NYSE' : 'NASDAQ';
+  return `${prefix}:${sym}`;
+}
 function tvUrl(s) {
-  const ex = (s.exchange || '').toUpperCase();
-  const prefix = ex.includes('NYSE') ? 'NYSE' : 'NASDAQ';
-  return `https://www.tradingview.com/chart/?symbol=${prefix}:${encodeURIComponent(s.symbol)}`;
+  return `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol(s.symbol, s.exchange))}`;
 }
 function symCell(s) {
   return `<td class="sym"><a href="${tvUrl(s)}" target="_blank" rel="noopener" title="Deschide ${s.symbol} în TradingView">${s.symbol}</a></td>`;
@@ -2020,9 +2088,7 @@ ${type === 'watchlist' ? '- Watchlist standard: entry market sau pullback, SL la
       if (!resp.ok) { const j = await resp.json().catch(() => ({ error: { message: 'HTTP ' + resp.status } })); throw new Error(j.error?.message || ('HTTP ' + resp.status)); }
       const data = await resp.json();
       const text = data?.content?.[0]?.text || '';
-      const start = text.indexOf('{'); const end = text.lastIndexOf('}');
-      if (start < 0 || end < 0) throw new Error('Format JSON invalid: ' + text.slice(0, 120));
-      const setup = JSON.parse(text.slice(start, end + 1));
+      const setup = extractJson(text);
       meQsCacheSet(cacheKey, setup);
       renderSetup(setup, new Date().toLocaleTimeString('ro-RO'));
     } catch (err) {
@@ -2080,24 +2146,50 @@ async function wlFetchSymbol(sym){
   };
 }
 
+function wlEsc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+let wlSearchMatches = [];
+function wlClearSearch(){ const b=document.getElementById('wlSearchResults'); if(b){ b.classList.remove('show'); b.innerHTML=''; } wlSearchMatches=[]; }
+function wlPickResolved(i){
+  const m = wlSearchMatches[i]; if(!m) return;
+  document.getElementById('wlAddInp').value = '';
+  wlClearSearch();
+  wlAddSymbol(m.symbol, { name:m.name, exchange:m.exchange });
+}
+// Add manual: caută prin Yahoo (ticker SAU nume) și arată lista de potriviri (US + EU).
 async function wlAdd(){
   const inp = document.getElementById('wlAddInp');
-  const sym = (inp.value || '').trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
-  if (!sym) { inp.focus(); return; }
-  inp.value = '';
-  await wlAddSymbol(sym);
+  const q = (inp.value || '').trim();
+  if (!q) { inp.focus(); return; }
+  const box = document.getElementById('wlSearchResults');
+  box.classList.add('show');
+  box.innerHTML = '<div class="wl-sr-empty">căutare…</div>';
+  try { wlSearchMatches = await getScanner().searchSymbols(q); } catch(e){ wlSearchMatches = []; }
+  if (!wlSearchMatches.length) {
+    // fallback: dacă search-ul nu întoarce nimic, oferă adăugarea ca simbol direct
+    const direct = q.toUpperCase().replace(/[^A-Z0-9.\-=^]/g, '');
+    wlSearchMatches = direct ? [{ symbol: direct, name: '(adaugă ca simbol direct)', exchange: '' }] : [];
+  }
+  if (!wlSearchMatches.length) { box.innerHTML = '<div class="wl-sr-empty">nicio potrivire</div>'; return; }
+  if (wlSearchMatches.length === 1) { wlPickResolved(0); return; }
+  box.innerHTML = wlSearchMatches.map((m, i) =>
+    `<div class="wl-sr-item" onclick="wlPickResolved(${i})">
+       <span class="wl-sr-sym">${wlEsc(m.symbol)}</span>
+       <span class="wl-sr-name">${wlEsc(m.name)}</span>
+       <span class="wl-sr-ex">${wlEsc(m.exchange)}</span>
+     </div>`).join('');
 }
 
-// Funcție publică pentru add direct (fără input) — apelată de butonul 👁️ din earnings/losers
-async function wlAddSymbol(rawSym){
-  const sym = String(rawSym || '').trim().toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
+// Funcție publică pentru add direct (fără input) — apelată de butonul 👁️ din earnings/losers,
+// sau din picker-ul de search cu meta {name, exchange}.
+async function wlAddSymbol(rawSym, meta){
+  const sym = String(rawSym || '').trim().toUpperCase().replace(/[^A-Z0-9.\-=^]/g, '');
   if (!sym) return;
   if (watchlist.find(w => w.symbol === sym)) {
     showToastMsg('👁️ ' + sym + ' deja în watchlist');
     return;
   }
   // Adaugă imediat ca placeholder, apoi fetch
-  watchlist.push({ symbol: sym, price: null, fetchedAt: 0 });
+  watchlist.push({ symbol: sym, name: (meta && meta.name) || '', exchange: (meta && meta.exchange) || '', price: null, fetchedAt: 0 });
   wlSave(); wlRender();
   showToastMsg('➕ Adăugat: ' + sym);
   const data = await wlFetchSymbol(sym);
@@ -2107,6 +2199,7 @@ async function wlAddSymbol(rawSym){
     showToastMsg('❌ Nu am putut găsi date pentru ' + sym, 'err');
     return;
   }
+  if (meta && meta.name && !data.name) data.name = meta.name;
   const idx = watchlist.findIndex(w => w.symbol === sym);
   if (idx >= 0) watchlist[idx] = data;
   wlSave(); wlRender();
@@ -2172,10 +2265,12 @@ async function wlRefresh(){
   if (!watchlist.length) return;
   const btn = document.querySelector('.wl-refresh-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Refresh...'; }
-  // Fetch în paralel pentru toate
-  const results = await Promise.all(watchlist.map(w => wlFetchSymbol(w.symbol)));
+  // Fetch cu pool de concurență (max 5) ca să nu fim throttle-uiți la watchlist mare
+  const results = await runPool(watchlist, w => wlFetchSymbol(w.symbol), 5);
   watchlist = watchlist.map((w, i) => results[i] || w);
   wlSave(); wlRender();
+  // re-calculează și datele early-bird (altfel rămân din cache vechi de până la 10 min)
+  wlEnsureEarlyData(true).then(wlRender);
   if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh'; }
 }
 
@@ -2341,8 +2436,7 @@ function wlClearSelection(){ wlSelected.clear(); wlRender(); wlUpdateCompareBar(
 
 // Deschide un simbol în TradingView (1 simbol — fără batch ca să nu fie blocat de popup blocker)
 function wlOpenTV(sym, ex){
-  const prefix = String(ex || '').toUpperCase().includes('NYSE') ? 'NYSE' : 'NASDAQ';
-  window.open(`https://www.tradingview.com/chart/?symbol=${prefix}:${encodeURIComponent(sym)}`, '_blank');
+  window.open(`https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol(sym, ex))}`, '_blank');
 }
 
 // Simbolurile vizibile acum (după filtru + sort)
@@ -2983,7 +3077,7 @@ const AICHAT_MAX_TURNS = 12;
 const aiChat = { open: false, busy: false, messages: [] };
 
 function aiChatLoad(){ try{ aiChat.messages = JSON.parse(localStorage.getItem(AICHAT_KEY) || '[]'); }catch(_){ aiChat.messages = []; } }
-function aiChatPersist(){ try{ localStorage.setItem(AICHAT_KEY, JSON.stringify(aiChat.messages.slice(-30))); }catch(_){} }
+function aiChatPersist(){ try{ localStorage.setItem(AICHAT_KEY, JSON.stringify(aiChat.messages.slice(-30))); }catch(e){ showToastMsg('⚠ Stocare locală plină — istoricul chat nu s-a salvat', 'err'); } }
 
 function aiChatToggle(){
   aiChat.open = !aiChat.open;
@@ -3168,12 +3262,11 @@ function aiChatQuickCmd(cmd){
 // Folosim chart endpoint v8 (fără crumb) prin proxy-ul deja existent.
 // ============================================================
 async function fetchMarketSentiment() {
-  const proxy = ($('proxyUrl').value || '').trim();
+  const scanner = getScanner();
   const symbols = ['SPY', 'QQQ', '^VIX'];
   const requests = symbols.map(sym => {
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1d&interval=1d`;
-    const url = proxy ? proxy + encodeURIComponent(yahooUrl) : yahooUrl;
-    return fetch(url).then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status} on ${sym}`)));
+    return scanner._getJson(yahooUrl).then(j => j || Promise.reject(new Error(`fără date ${sym}`)));
   });
 
   const results = await Promise.allSettled(requests);
@@ -4116,7 +4209,7 @@ const ME_SAVED_KEY = 'me_saved_analyses';
 let meSavedAnalyses = [];
 
 function meLoadSaved(){ try { meSavedAnalyses = JSON.parse(localStorage.getItem(ME_SAVED_KEY) || '[]'); } catch(_) { meSavedAnalyses = []; } }
-function meSaveSaved(){ try { localStorage.setItem(ME_SAVED_KEY, JSON.stringify(meSavedAnalyses.slice(-100))); } catch(_) {} updateSavedBadge(); }
+function meSaveSaved(){ try { localStorage.setItem(ME_SAVED_KEY, JSON.stringify(meSavedAnalyses.slice(-100))); } catch(e) { showToastMsg('⚠ Stocare locală plină — analiza nu s-a salvat', 'err'); } updateSavedBadge(); }
 function updateSavedBadge(){
   const b = document.getElementById('savedBadge');
   if (!b) return;
