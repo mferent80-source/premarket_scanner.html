@@ -361,7 +361,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v103</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v104</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -387,11 +387,12 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <!-- Add bar -->
 <div class="add-bar">
   <label>Adaugă ticker:</label>
-  <input type="text" id="symInp" placeholder="AAPL, NVDA, TSLA…" maxlength="8">
+  <input type="text" id="symInp" placeholder="Simbol sau nume (ex. RHM, Rheinmetall)…" maxlength="40">
   <button class="primary" id="addBtn">+ Add</button>
   <button id="fromScannerBtn" title="Adaugă top picks buy-side din Nasdaq Scanner">📥 din Scanner</button>
   <span style="margin-left:auto;font-size:11px;color:var(--t3);font-family:var(--mono)" id="wlMeta">— stocks în watchlist</span>
 </div>
+<div id="wlSearchResults" style="display:none;flex-direction:column;gap:3px;margin:-2px 0 10px"></div>
 
 <!-- Stats strip -->
 <div class="stats-strip">
@@ -796,7 +797,9 @@ function _parseYahoo(symbol, d){
 }
 
 async function fetchYahooData(symbol){
-  const yurl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1y`;
+  // &_=timestamp = cache-buster: proxy-uri ca codetabs/corsproxy cache-uiesc răspunsul
+  // pentru URL identic și serveau prețuri vechi după scan („rămâne în urmă").
+  const yurl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1y&_=${Date.now()}`;
   const order = [];
   for (let k = 0; k < CORS_PROXIES.length; k++) order.push(CORS_PROXIES[(_proxyIdx + k) % CORS_PROXIES.length]);
   for (let i = 0; i < order.length; i++){
@@ -819,6 +822,84 @@ async function fetchYahooData(symbol){
   }
   console.warn('[wl] fetch failed (toate proxy-urile)', symbol);
   return null;
+}
+
+// JSON prin lanțul de proxy-uri (pentru search). Cache-buster inclus de apelant.
+async function _proxiedJson(rawUrl){
+  const order = [];
+  for (let k = 0; k < CORS_PROXIES.length; k++) order.push(CORS_PROXIES[(_proxyIdx + k) % CORS_PROXIES.length]);
+  for (let i = 0; i < order.length; i++){
+    try {
+      const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 9000);
+      const r = await fetch(order[i](rawUrl), { signal: ctrl.signal }); clearTimeout(to);
+      if (!r.ok) continue;
+      const txt = await r.text();
+      let d; try { d = JSON.parse(txt); } catch(_){ continue; }
+      if (d){ _proxyIdx = (_proxyIdx + i) % CORS_PROXIES.length; return d; }
+    } catch(e){ /* next */ }
+  }
+  return null;
+}
+// Yahoo symbol search — rezolvă ticker SAU nume (RHM / Rheinmetall → RHM.DE), US + EU.
+async function searchSymbols(query){
+  const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=12&newsCount=0&_=${Date.now()}`;
+  const j = await _proxiedJson(url);
+  const quotes = (j && j.quotes) || [];
+  return quotes
+    .filter(q => q.symbol && /EQUITY|ETF/i.test(q.quoteType || 'EQUITY'))
+    .map(q => ({ symbol: q.symbol, name: q.shortname || q.longname || q.symbol, exchange: q.exchDisp || q.exchange || '' }));
+}
+
+// Sufix Yahoo → prefix de bursă TradingView (corect pentru EU; fără sufix = NASDAQ).
+const TV_EXCHANGE = {
+  '.DE':'XETR', '.F':'FWB', '.MU':'MUN', '.SG':'SWB', '.DU':'DUS', '.HM':'HAM', '.BE':'TRADEGATE',
+  '.PA':'EURONEXT', '.AS':'EURONEXT', '.BR':'EURONEXT', '.LS':'EURONEXT',
+  '.MI':'MIL', '.MC':'BME', '.L':'LSE', '.SW':'SIX', '.VX':'SIX', '.VI':'VIE',
+  '.CO':'OMXCOP', '.ST':'OMXSTO', '.HE':'OMXHEX', '.OL':'OSL',
+  '.TO':'TSX', '.V':'TSXV', '.AX':'ASX', '.HK':'HKEX', '.T':'TSE',
+};
+function tvSymbol(sym){
+  const dot = sym.lastIndexOf('.');
+  if (dot > 0){
+    const ex = TV_EXCHANGE[sym.slice(dot).toUpperCase()];
+    const base = sym.slice(0, dot);
+    return ex ? `${ex}:${base}` : base;
+  }
+  return `NASDAQ:${sym}`;
+}
+
+// ── Add manual cu search + listă de potriviri ──
+function wlEsc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+let wlSearchMatches = [];
+function wlClearSearch(){ const b = $('wlSearchResults'); if (b){ b.style.display='none'; b.innerHTML=''; } wlSearchMatches=[]; }
+function wlPick(i){
+  const m = wlSearchMatches[i]; if (!m) return;
+  $('symInp').value = ''; wlClearSearch(); wlAddResolved(m.symbol);
+}
+function wlAddResolved(sym){
+  sym = String(sym || '').trim().toUpperCase().replace(/[^A-Z0-9.\-^]/g, '');
+  if (!sym) return;
+  if (watchlist.includes(sym)){ alert(sym + ' e deja în watchlist'); return; }
+  if (watchlist.length >= 100){ alert('Maxim 100 stocks în watchlist'); return; }
+  watchlist.push(sym); saveWatchlist(); render(); runScan();
+}
+async function wlSearchAdd(){
+  const q = $('symInp').value.trim(); if (!q) return;
+  const box = $('wlSearchResults'); box.style.display = 'flex';
+  box.innerHTML = '<div style="padding:7px 10px;color:var(--t3);font-size:11px">căutare…</div>';
+  try { wlSearchMatches = await searchSymbols(q); } catch(e){ wlSearchMatches = []; }
+  if (!wlSearchMatches.length){
+    const direct = q.toUpperCase().replace(/[^A-Z0-9.\-^]/g, '');
+    wlSearchMatches = direct ? [{ symbol: direct, name: '(adaugă ca simbol direct)', exchange: '' }] : [];
+  }
+  if (!wlSearchMatches.length){ box.innerHTML = '<div style="padding:7px 10px;color:var(--t3);font-size:11px">nicio potrivire</div>'; return; }
+  if (wlSearchMatches.length === 1){ wlPick(0); return; }
+  box.innerHTML = wlSearchMatches.map((m, i) =>
+    `<div onclick="wlPick(${i})" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;background:var(--panel2);border:1px solid var(--b1);border-radius:6px;cursor:pointer;font-size:12px">
+       <span style="font-family:var(--mono);font-weight:700;color:var(--accent)">${wlEsc(m.symbol)}</span>
+       <span style="color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${wlEsc(m.name)}</span>
+       <span style="color:var(--t3);font-size:10px;font-family:var(--mono)">${wlEsc(m.exchange)}</span>
+     </div>`).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1139,7 +1220,7 @@ function dmCell(label, value){
 
 function buildDetailRow(r){
   const sym = r.symbol;
-  const tvUrl = `https://www.tradingview.com/chart/?symbol=NASDAQ:${sym}`;
+  const tvUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol(sym))}`;
   const yhUrl = `https://finance.yahoo.com/quote/${sym}`;
   const fvUrl = `https://finviz.com/quote.ashx?t=${sym}`;
   const distHi = (r.hi52 && r.price) ? ((r.price - r.hi52) / r.hi52) * 100 : null;
@@ -1300,7 +1381,7 @@ function render(){
   }
 
   let html = sorted.map(r => {
-    const tvUrl = `https://www.tradingview.com/chart/?symbol=NASDAQ:${r.symbol}`;
+    const tvUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol(r.symbol))}`;
     const yhUrl = `https://finance.yahoo.com/quote/${r.symbol}`;
     const chgCls = r.chg >= 0 ? 'up' : 'down';
     const rsiCls = r.rsi == null ? 'neut' : r.rsi <= 30 ? 'down' : r.rsi >= 70 ? 'warn' : r.rsi >= 40 && r.rsi <= 65 ? 'up' : 'neut';
@@ -1374,18 +1455,7 @@ window.removeFromWl = function(sym){
   render();
 };
 
-$('addBtn').addEventListener('click', () => {
-  const v = $('symInp').value.trim().toUpperCase().replace(/[^A-Z]/g, '');
-  if (!v){ return; }
-  if (watchlist.includes(v)){ alert(v + ' e deja în watchlist'); return; }
-  if (watchlist.length >= 100){ alert('Maxim 100 stocks în watchlist'); return; }
-  watchlist.push(v);
-  saveWatchlist();
-  $('symInp').value = '';
-  render();
-  // Trigger scan automat dacă sunt doar 1-3 stocks (rapid feedback)
-  if (watchlist.length <= 3) runScan();
-});
+$('addBtn').addEventListener('click', () => { wlSearchAdd(); });
 $('symInp').addEventListener('keydown', e => {
   if (e.key === 'Enter') $('addBtn').click();
 });
