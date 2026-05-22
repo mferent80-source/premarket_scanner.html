@@ -361,7 +361,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v104</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v105</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -867,6 +867,19 @@ function tvSymbol(sym){
   }
   return `NASDAQ:${sym}`;
 }
+// Etichetă bursă lizibilă din sufixul Yahoo (pentru afișare sub simbol).
+const EX_LABEL = {
+  '.DE':'Xetra','.F':'Frankfurt','.MU':'München','.SG':'Stuttgart','.DU':'Düsseldorf','.HM':'Hamburg','.BE':'Tradegate',
+  '.PA':'Euronext Paris','.AS':'Euronext AMS','.BR':'Euronext BRU','.LS':'Euronext LIS',
+  '.MI':'Milano','.MC':'Madrid','.L':'LSE','.SW':'SIX','.VI':'Viena',
+  '.CO':'Copenhaga','.ST':'Stockholm','.HE':'Helsinki','.OL':'Oslo',
+  '.TO':'Toronto','.V':'TSXV','.AX':'ASX','.HK':'Hong Kong','.T':'Tokyo',
+};
+function exLabel(sym){
+  const dot = sym.lastIndexOf('.');
+  if (dot > 0) return EX_LABEL[sym.slice(dot).toUpperCase()] || sym.slice(dot + 1);
+  return 'US';
+}
 
 // ── Add manual cu search + listă de potriviri ──
 function wlEsc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -1287,7 +1300,7 @@ function buildDetailRow(r){
         <div class="detail-links">
           <a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener">📈 TradingView</a>
           <a class="action-btn" href="${yhUrl}" target="_blank" rel="noopener">📰 Yahoo</a>
-          <a class="action-btn" href="${fvUrl}" target="_blank" rel="noopener">📊 Finviz</a>
+          ${sym.includes('.') ? '' : `<a class="action-btn" href="${fvUrl}" target="_blank" rel="noopener">📊 Finviz</a>`}
         </div>
       </div>
       <div>
@@ -1394,7 +1407,7 @@ function render(){
     return `<tr id="wlrow-${r.symbol}" class="data-row v-${r.verdict}${flashCls}${openCls}" onclick="toggleDetail('${r.symbol}')">
       <td class="left">
         <div class="sym-name"><span class="row-caret">▸</span>${r.symbol}</div>
-        <div class="sym-sector">Stocks · NASDAQ</div>
+        <div class="sym-sector">Stocks · ${exLabel(r.symbol)}</div>
         ${perfTag}
       </td>
       <td>${fmtUSD(r.price)}</td>
