@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trading Tools — App</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:#0b0f17;color:#e6edf3;font-family:system-ui,-apple-system,sans-serif;overflow:hidden}
+  #app{display:flex;flex-direction:column;height:100dvh;height:100vh}
+  /* ── bara de taburi (sus) ── */
+  #tabbar{flex:0 0 auto;display:flex;gap:3px;overflow-x:auto;padding:calc(6px + env(safe-area-inset-top,0px)) 6px 0;
+    background:#0d1320;border-bottom:1px solid #1e2942;scrollbar-width:none}
+  #tabbar::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;display:flex;align-items:center;gap:6px;max-width:170px;padding:8px 9px;border-radius:9px 9px 0 0;
+    background:#141d30;border:1px solid #1e2942;border-bottom:none;color:#9aa4b2;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .tab.active{background:#1b2740;color:#fff}
+  .tab .i{font-size:14px;line-height:1}
+  .tab .tx{overflow:hidden;text-overflow:ellipsis;max-width:96px}
+  .tab .cl{opacity:.55;font-size:12px;line-height:1;padding:2px 4px;border-radius:5px;margin-left:1px}
+  .tab .cl:hover{opacity:1;background:rgba(255,255,255,.12);color:#ff6b6b}
+  /* ── zona cu pagini (iframe-uri) ── */
+  #frames{flex:1 1 auto;position:relative;background:#0b0f17;min-height:0}
+  #frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:#0b0f17}
+  #frames iframe.active{display:block}
+  /* ── dock lansator (jos) ── */
+  #dock{flex:0 0 auto;display:flex;gap:2px;overflow-x:auto;justify-content:safe center;
+    padding:5px 6px calc(5px + env(safe-area-inset-bottom,0px));background:rgba(11,15,23,.96);
+    border-top:1px solid rgba(255,255,255,.10);scrollbar-width:none;box-shadow:0 -6px 20px rgba(0,0,0,.35)}
+  #dock::-webkit-scrollbar{display:none}
+  #dock a{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px;padding:5px 7px;
+    border-radius:10px;color:#9aa4b2;text-decoration:none;font-size:9.5px;font-weight:600;cursor:pointer}
+  #dock a:hover{color:#e6edf3;background:rgba(255,255,255,.06)}
+  #dock a.cur{color:#0b0f17;background:linear-gradient(135deg,#f7931a,#ffd86b)}
+  #dock a .i{font-size:17px;line-height:1}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="tabbar" aria-label="Taburi deschise"></div>
+  <div id="frames"></div>
+  <nav id="dock" aria-label="Deschide pagină"></nav>
+</div>
+<script>
+(function(){
+  var PAGES = [
+    { u:'',                   n:'Hub',      e:'🏠' },
+    { u:'nasdaq-scanner/',    n:'Nasdaq',   e:'📈' },
+    { u:'watchlist-monitor/', n:'Watch',    e:'👁️' },
+    { u:'market-events/',     n:'Events',   e:'📊' },
+    { u:'smart-trade-long/',  n:'Smart',    e:'🚀' },
+    { u:'pump-radar/',        n:'Pump',     e:'🔥' },
+    { u:'earnings-hub/',      n:'Earnings', e:'📅' },
+    { u:'sector-rotation/',   n:'Sector',   e:'🔄' },
+    { u:'macro-dashboard/',   n:'Macro',    e:'🌍' },
+    { u:'playbook/',          n:'Playbook', e:'📓' },
+    { u:'alerts/',            n:'Alerts',   e:'🔔' },
+    { u:'guide/',             n:'Ghid',     e:'📖' }
+  ];
+  var byU = {}; PAGES.forEach(function(p){ byU[p.u] = p; });
+  var ROOT = '../'; // shell e la /shell/, paginile la /<page>/
+
+  var open = [];
+  try { open = JSON.parse(localStorage.getItem('tt_open_tabs') || '[]'); } catch(e){ open = []; }
+  open = open.filter(function(u){ return byU[u] !== undefined; });
+  if (!open.length) open = ['']; // implicit: Hub
+  var active = localStorage.getItem('tt_active_tab');
+  if (active === null || byU[active] === undefined || open.indexOf(active) < 0) active = open[0];
+
+  var frames = {}; // u -> iframe
+  var framesEl = document.getElementById('frames');
+  var tabbarEl = document.getElementById('tabbar');
+  var dockEl   = document.getElementById('dock');
+
+  function persist(){ try { localStorage.setItem('tt_open_tabs', JSON.stringify(open)); localStorage.setItem('tt_active_tab', active); } catch(e){} }
+
+  function ensureFrame(u){
+    if (frames[u]) return frames[u];
+    var f = document.createElement('iframe');
+    f.src = ROOT + u; f.dataset.u = u;
+    f.setAttribute('title', (byU[u] || {}).n || u);
+    framesEl.appendChild(f); frames[u] = f; return f;
+  }
+  function setActive(u){
+    if (byU[u] === undefined) return;
+    if (open.indexOf(u) < 0) open.push(u);
+    active = u; ensureFrame(u);
+    for (var k in frames) frames[k].classList.toggle('active', k === u);
+    renderTabs(); renderDock(); persist();
+  }
+  function closeTab(u){
+    var i = open.indexOf(u); if (i < 0) return;
+    open.splice(i, 1);
+    if (frames[u]){ frames[u].remove(); delete frames[u]; }
+    if (!open.length){ open = ['']; ensureFrame(''); }
+    if (active === u) active = open[Math.min(i, open.length - 1)] || open[0];
+    setActive(active);
+  }
+  function renderTabs(){
+    tabbarEl.innerHTML = '';
+    open.forEach(function(u){
+      var p = byU[u];
+      var t = document.createElement('div');
+      t.className = 'tab' + (u === active ? ' active' : '');
+      t.innerHTML = '<span class="i">' + p.e + '</span><span class="tx">' + p.n + '</span>' +
+                    (open.length > 1 ? '<span class="cl" data-cl="1" title="Închide tab">✕</span>' : '');
+      t.onclick = function(ev){ if (ev.target && ev.target.getAttribute('data-cl')) closeTab(u); else setActive(u); };
+      tabbarEl.appendChild(t);
+      if (u === active && t.scrollIntoView){ try { t.scrollIntoView({ inline:'nearest', block:'nearest' }); } catch(_){} }
+    });
+  }
+  function renderDock(){
+    dockEl.innerHTML = '';
+    PAGES.forEach(function(p){
+      var a = document.createElement('a');
+      a.className = (p.u === active ? 'cur' : '');
+      a.title = (open.indexOf(p.u) >= 0 ? 'Comută la ' : 'Deschide ') + p.n;
+      a.innerHTML = '<span class="i">' + p.e + '</span><span>' + p.n + '</span>';
+      a.onclick = function(){ setActive(p.u); };
+      dockEl.appendChild(a);
+    });
+  }
+
+  // paginile (din iframe) cer deschiderea unui tab prin postMessage (vezi nav.js)
+  window.addEventListener('message', function(e){
+    var d = e.data;
+    if (d && d.ttOpen !== undefined && byU[d.ttOpen] !== undefined) setActive(d.ttOpen);
+  });
+
+  // init: creează iframe-urile pentru taburile salvate, activează ultimul activ
+  open.forEach(ensureFrame);
+  setActive(active);
+
+  // service worker (offline + install)
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(function(){});
+
+  // manifest inline — aplicația pornește în shell, scope = rădăcina suite-ului
+  var icon192 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='38' fill='%23f7931a'/%3E%3Ctext y='128' x='96' text-anchor='middle' font-size='96'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E";
+  var icon512 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='102' fill='%23f7931a'/%3E%3Ctext y='340' x='256' text-anchor='middle' font-size='256'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E";
+  var mf = { name:'Trading Tools', short_name:'Tools', start_url: location.href.split('?')[0], scope:'../',
+    display:'standalone', background_color:'#0b0f17', theme_color:'#f7931a',
+    icons:[ {src:icon192,sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'},
+            {src:icon512,sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'} ] };
+  var ml = document.createElement('link'); ml.rel = 'manifest';
+  ml.href = URL.createObjectURL(new Blob([JSON.stringify(mf)], { type:'application/json' }));
+  document.head.appendChild(ml);
+})();
+</script>
+</body>
+</html>

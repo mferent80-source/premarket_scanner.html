@@ -1196,7 +1196,8 @@ window.ttDeleteTrade = function(id){
 (function(){
   const mf = {
     name: 'Trading Tools', short_name: 'Tools',
-    start_url: location.href.split('?')[0],
+    start_url: new URL('shell/', location.href).href, // aplicația instalată pornește în shell-ul cu taburi
+    scope: new URL('./', location.href).href,         // scope = rădăcina suite-ului
     display: 'standalone',
     background_color: '#0b0f17',
     theme_color: '#f7931a',

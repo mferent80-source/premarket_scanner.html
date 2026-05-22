@@ -5,8 +5,32 @@
 //   - Hub (rădăcină):   data-nav-root="./"
 //   - sub-pagini:       data-nav-root="../"
 (function(){
+  // Dacă pagina e încărcată ÎNTR-UN IFRAME = rulează în shell-ul cu taburi.
+  // Nu desenăm dock-ul (shell-ul are propria navigare); în schimb, click pe un link
+  // intern din pagină → cerem shell-ului să deschidă/comute tabul prin postMessage.
+  if (window.self !== window.top){
+    var SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/',
+                'earnings-hub/','sector-rotation/','macro-dashboard/','playbook/','alerts/','guide/'];
+    var hrefToSeg = function(href){
+      var abs; try { abs = new URL(href, location.href).pathname.replace(/index\.html$/, ''); } catch(_){ return null; }
+      for (var i = 0; i < SEGS.length; i++){ if (abs.indexOf('/' + SEGS[i]) >= 0) return SEGS[i]; }
+      return /\/$/.test(abs) ? '' : null; // se termină cu „/” fără segment cunoscut = Hub
+    };
+    document.addEventListener('click', function(e){
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      var href = a.getAttribute('href') || '';
+      if (/^(https?:|mailto:|tel:|#|javascript:)/i.test(href)) return; // extern/ancoră → normal
+      var seg = hrefToSeg(href);
+      if (seg === null) return; // nu e pagină din suite → comportament normal
+      e.preventDefault(); e.stopPropagation();
+      try { parent.postMessage({ ttOpen: seg }, '*'); } catch(_){}
+    }, true);
+    return; // în iframe NU afișăm dock-ul
+  }
+
   var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  if (!standalone) return; // în browser ai tab-uri native — nu afișăm dock-ul
+  if (!standalone) return; // în browser (top-level) ai tab-uri native — nu afișăm dock-ul
 
   var s = document.querySelector('script[data-nav-root]');
   var root = (s && s.getAttribute('data-nav-root')) || './';
