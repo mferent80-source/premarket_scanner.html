@@ -2,8 +2,9 @@
 // Strategie: network-first cu fallback la cache (nu blochează update-urile)
 //
 // IMPORTANT: bump CACHE_VERSION manual la fiecare release semnificativ — invalidare automată în clienți.
-// SW are scope `/` (rădăcina repo-ului), deci controlează hub + crypto-scanner + nasdaq-scanner + market-events + crypto-events + watchlist-monitor.
-const CACHE_VERSION = 'tt-v204-2026-05-22';
+// SW are scope `/` (rădăcina repo-ului), deci controlează Hub + toate sub-paginile.
+// PRECACHE = toate cele 11 pagini din Hub → se instalează offline odată cu Hub-ul (instalare PWA).
+const CACHE_VERSION = 'tt-v205-2026-05-22';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 // Resurse statice pre-cache-uite la instalare
@@ -38,8 +39,16 @@ const PRECACHE = [
 self.addEventListener('install', e => {
   // Activează imediat noua versiune fără să aștepte tab-urile vechi
   self.skipWaiting();
+  // Precache REZILIENT: fiecare pagină se adaugă independent. `addAll` e atomic —
+  // dacă O SINGURĂ pagină eșuează la fetch, NICIUNA nu se cache-uiește. Cu `add` per item
+  // + catch, toate paginile din Hub se instalează offline chiar dacă una pică temporar.
+  // `cache:'reload'` ocolește cache-ul HTTP al browserului → ia mereu versiunea proaspătă.
   e.waitUntil(
-    caches.open(CACHE_NAME).then(c => c.addAll(PRECACHE).catch(() => {}))
+    caches.open(CACHE_NAME).then(c =>
+      Promise.all(PRECACHE.map(u =>
+        c.add(new Request(u, { cache: 'reload' })).catch(() => { /* pagină indisponibilă temporar — skip */ })
+      ))
+    )
   );
 });
 
