@@ -361,7 +361,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v105</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v106</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -896,16 +896,34 @@ function wlAddResolved(sym){
   if (watchlist.length >= 100){ alert('Maxim 100 stocks în watchlist'); return; }
   watchlist.push(sym); saveWatchlist(); render(); runScan();
 }
+// Fallback când search-ul Yahoo nu merge prin proxy: probează sufixe de bursă via
+// endpoint-ul chart (care merge sigur) și întoarce simbolurile cu date reale (RHM → RHM.DE).
+const PROBE_SUFFIXES = ['', '.DE', '.L', '.PA', '.AS', '.MI', '.MC', '.SW', '.VI', '.F', '.TO', '.AX'];
+async function probeSuffixes(base){
+  base = base.toUpperCase().replace(/[^A-Z0-9.\-^]/g, '');
+  if (!base) return [];
+  if (base.includes('.')){
+    const d = await fetchYahooData(base);
+    return (d && d.price != null) ? [{ symbol: base, name:'', exchange: exLabel(base) }] : [];
+  }
+  for (const suf of PROBE_SUFFIXES){
+    const sym = base + suf;
+    const d = await fetchYahooData(sym);
+    if (d && d.price != null) return [{ symbol: sym, name:'', exchange: exLabel(sym) }]; // primul cu date câștigă
+  }
+  return [];
+}
 async function wlSearchAdd(){
   const q = $('symInp').value.trim(); if (!q) return;
   const box = $('wlSearchResults'); box.style.display = 'flex';
   box.innerHTML = '<div style="padding:7px 10px;color:var(--t3);font-size:11px">căutare…</div>';
   try { wlSearchMatches = await searchSymbols(q); } catch(e){ wlSearchMatches = []; }
-  if (!wlSearchMatches.length){
-    const direct = q.toUpperCase().replace(/[^A-Z0-9.\-^]/g, '');
-    wlSearchMatches = direct ? [{ symbol: direct, name: '(adaugă ca simbol direct)', exchange: '' }] : [];
+  if (!wlSearchMatches.length && !/\s/.test(q)){
+    // search gol/blocat → probează bursele (doar pentru ticker, nu nume cu spații)
+    box.innerHTML = '<div style="padding:7px 10px;color:var(--t3);font-size:11px">verific bursele (US/EU)…</div>';
+    wlSearchMatches = await probeSuffixes(q);
   }
-  if (!wlSearchMatches.length){ box.innerHTML = '<div style="padding:7px 10px;color:var(--t3);font-size:11px">nicio potrivire</div>'; return; }
+  if (!wlSearchMatches.length){ box.innerHTML = '<div style="padding:7px 10px;color:var(--t3);font-size:11px">nicio potrivire — încearcă tickerul exact (ex. RHM.DE)</div>'; return; }
   if (wlSearchMatches.length === 1){ wlPick(0); return; }
   box.innerHTML = wlSearchMatches.map((m, i) =>
     `<div onclick="wlPick(${i})" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;background:var(--panel2);border:1px solid var(--b1);border-radius:6px;cursor:pointer;font-size:12px">
