@@ -36,6 +36,7 @@
   var css = document.createElement('style');
   css.textContent =
     '#tt-dock{position:fixed;left:0;right:0;bottom:0;z-index:2147483646;display:flex;gap:2px;' +
+    'justify-content:safe center;' + // centrat când încap; pe ecrane mici revine la stânga + scroll (fără să taie iconițe)
     'overflow-x:auto;background:rgba(11,15,23,.94);backdrop-filter:blur(10px);' +
     '-webkit-backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,.10);' +
     'padding:5px 6px calc(5px + env(safe-area-inset-bottom,0px));scrollbar-width:none;' +
