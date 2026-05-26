@@ -936,7 +936,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v202</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v203</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1002,6 +1002,7 @@
     <button class="wl-refresh-btn" id="wlSelectAllBtn" style="background:#8957e5" onclick="wlSelectAllVisible()" title="Selectează / deselectează tot ce e vizibil">☑</button>
     <button class="wl-refresh-btn" style="background:#1f6feb" onclick="wlSendAllToScanners()" title="Trimite tot watchlist-ul în Watchlist Monitor + Smart Trade">📊</button>
     <button class="wl-sync-btn" onclick="wlSyncModal()" title="Sync GitHub Gist">☁️</button>
+    <button class="wl-sync-btn" onclick="wlBadgesDebug()" title="🐛 Diagnostic: câte simboluri ating fiecare prag de badge nou (insider/RSI/RVOL)" style="background:#6e7681">🐛</button>
   </div>
   <div id="wlSearchResults" class="wl-search-results"></div>
 
@@ -1231,7 +1232,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v202 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v203 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2961,7 +2962,8 @@ function wlNotifyEarly(items){
 // Detectează 2+ buys de la executivi (CEO/CFO/President/Director/Officer)
 // în ultimele 60z. Cache local 24h pe simbol. Skip non-US (.L, .PA, etc).
 // ============================================================
-const WL_INS_KEY = 'me_wl_insider_cache';
+// v2 = relaxare detecție (Finnhub free omite des transactionCode → acceptăm change>0 + excludem explicit S/D/F)
+const WL_INS_KEY = 'me_wl_insider_cache_v2';
 const WL_INS_TTL_MS = 24 * 3600 * 1000;
 let wlInsiderCache = {};
 try { wlInsiderCache = JSON.parse(localStorage.getItem(WL_INS_KEY) || '{}'); } catch(_) { wlInsiderCache = {}; }
@@ -2991,24 +2993,37 @@ const EXEC_TITLES_RX = /\b(ceo|cfo|coo|president|director|officer|chairman|chief
 
 async function wlFetchInsider(sym){
   if (!wlIsUSTicker(sym)) return { cluster:false, reason:'non-US' };
-  const to = new Date(), from = new Date(to.getTime() - 60 * 86400000);
+  const to = new Date(), from = new Date(to.getTime() - 90 * 86400000); // 90z (era 60) — mai mulți data points
   const d = await wlFinnhub('/stock/insider-transactions', {
     symbol: sym, from: from.toISOString().slice(0,10), to: to.toISOString().slice(0,10)
   });
   if (d.__noKey) return { cluster:false, reason:'noKey' };
-  if (d.__err) return { cluster:false, reason:'err' };
+  if (d.__err) return { cluster:false, reason:'err:' + d.__err };
   const arr = Array.isArray(d.data) ? d.data : (Array.isArray(d) ? d : []);
-  // Cluster = ≥2 persoane distincte cu transactionCode='P' (Purchase) și change>0 + titlu executiv
+  // Cluster = ≥2 persoane distincte care au CUMPĂRAT.
+  // Detecție: explicit P (Purchase) SAU change > 0 fără cod negativ explicit (S/D/F = sell/dispose/withhold).
+  // Motivul: Finnhub free omite frecvent transactionCode → strict P pierde majoritatea buys reale (vezi earnings-hub).
+  // Excludem strict NEGATIVE codes ca să nu confundăm sell-uri raportate cu change negativ ca buys.
   const buys = arr.filter(t => {
-    const isPurchase = (t.transactionCode === 'P') || (t.transactionCode === 'A');
-    const positive = (Number(t.change) || 0) > 0 || (Number(t.share) || 0) > 0 && isPurchase;
+    const change = Number(t.change) || 0;
+    const code = (t.transactionCode || '').toUpperCase();
+    const isExplicitSell = code === 'S' || code === 'D' || code === 'F' || code === 'G';
+    const isExplicitBuy = code === 'P';
+    const positiveChange = change > 0;
+    // Acceptă: explicit P, sau change>0 cu cod gol/necunoscut (free tier)
+    const isBuy = isExplicitBuy || (positiveChange && !isExplicitSell && code !== 'A'); // exclud A (grant) — nu e signal real
+    // Titlu executiv (sau lipsește position și avem nume — multe entries n-au position completat)
     const exec = t.name && (!t.position || EXEC_TITLES_RX.test(t.position) || EXEC_TITLES_RX.test(t.name));
-    return isPurchase && positive && exec;
+    return isBuy && positiveChange && exec;
   });
   const people = new Set(buys.map(t => (t.name || '').trim().toLowerCase()));
   const cluster = people.size >= 2;
   const totalValue = buys.reduce((s, t) => s + (Number(t.change) || 0) * (Number(t.transactionPrice) || 0), 0);
-  return { cluster, people: people.size, buys: buys.length, value: totalValue, reason:cluster ? 'ok' : 'no-cluster' };
+  return {
+    cluster, people: people.size, buys: buys.length, value: totalValue,
+    raw: arr.length, // total tranzacții returnate (pt debug — dacă raw=0, Finnhub n-are date pe simbol)
+    reason: cluster ? 'ok' : (arr.length === 0 ? 'no-data' : 'no-cluster')
+  };
 }
 
 let wlInsiderLoading = false;
@@ -3032,6 +3047,50 @@ async function wlEnsureInsiderData(force){
   wlInsiderSave();
   wlInsiderLoading = false;
 }
+
+// Diagnostic — câte simboluri din watchlist ating fiecare prag de badge.
+// Util când Marius zice „nu apare nimic": dacă badge-uri = 0 dar fetch-uri OK,
+// înseamnă că lista chiar n-are nimic în extreme (nu e bug).
+window.wlBadgesDebug = function(){
+  if (!watchlist.length){ showToastMsg('Watchlist gol'); return; }
+  let rsiLow=0, rsiHi=0, rvolMid=0, rvolHi=0, insClust=0, insRaw=0, insNoData=0, insErr=0, insNoKey=0, ebOk=0, ebMiss=0;
+  const ebDetail = [], insDetail = [];
+  for (const w of watchlist){
+    const eb = wlEarlyCache[w.symbol]?.eb;
+    if (eb){
+      ebOk++;
+      if (eb.rsiNow != null){
+        if (eb.rsiNow < 30){ rsiLow++; ebDetail.push(`${w.symbol} RSI=${eb.rsiNow.toFixed(0)}`); }
+        else if (eb.rsiNow > 70){ rsiHi++; ebDetail.push(`${w.symbol} RSI=${eb.rsiNow.toFixed(0)}`); }
+      }
+      if (eb.rvol != null){
+        if (eb.rvol >= 5){ rvolHi++; ebDetail.push(`${w.symbol} RVOL=${eb.rvol.toFixed(1)}×`); }
+        else if (eb.rvol >= 2){ rvolMid++; ebDetail.push(`${w.symbol} RVOL=${eb.rvol.toFixed(1)}×`); }
+      }
+    } else { ebMiss++; }
+    const c = wlInsiderCache[w.symbol]?.ins;
+    if (c){
+      if (c.cluster){ insClust++; insDetail.push(`${w.symbol} 🏛️${c.people}`); }
+      else if (c.reason === 'no-data') insNoData++;
+      else if (c.reason === 'noKey') insNoKey++;
+      else if (c.reason && c.reason.startsWith('err')) insErr++;
+      if (c.raw) insRaw += c.raw;
+    }
+  }
+  const lines = [
+    `📊 Watchlist: ${watchlist.length} simboluri`,
+    `🌱 Early-bird date: ${ebOk} OK / ${ebMiss} fără history încă`,
+    `⚡ RSI<30 (oversold): ${rsiLow}`,
+    `🔥 RSI>70 (hot): ${rsiHi}`,
+    `🔊 RVOL≥2×: ${rvolMid}`,
+    `🔊 RVOL≥5×: ${rvolHi}`,
+    `🏛️ Insider cluster: ${insClust} / ${insRaw} tranzacții totale (no-data: ${insNoData}, no-key: ${insNoKey}, err: ${insErr})`,
+  ];
+  if (ebDetail.length) lines.push('— Extreme tehnice: ' + ebDetail.slice(0, 8).join(', '));
+  if (insDetail.length) lines.push('— Cluster: ' + insDetail.join(', '));
+  console.log('[WL DEBUG]', { rsiLow, rsiHi, rvolMid, rvolHi, insClust, insRaw, insNoData, insNoKey, insErr, ebOk, ebMiss });
+  alert(lines.join('\n'));
+};
 
 // Recalculează early-bird din istoricul deja cache-uit, fără re-fetch (la schimbarea pragului)
 function wlRecomputeEarly(){
