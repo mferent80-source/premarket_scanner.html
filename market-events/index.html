@@ -3371,6 +3371,7 @@ function _wlDetailHtml(w){
         <h4>🏛️ Insider 90z · Context</h4>
         ${insHtml}
         ${earnHtml}
+        <button onclick="wlAiAnalyzeDetail('${sym}')" style="margin-top:8px;width:100%;padding:8px;background:linear-gradient(135deg,#8957e5,#b392f0);color:#fff;border:none;border-radius:6px;font-weight:800;font-size:11.5px;cursor:pointer;letter-spacing:.3px" title="Analiză AI cu TOATE datele din drill-down (perf MTF, RSI, MA, ATR, plan, insider) — răspuns drastic mai precis decât 🤖 generic">🤖 ANALIZĂ AI PROFUNDĂ (context complet)</button>
         <div class="wl-d-links">
           <a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol(sym, w.exchange))}" target="_blank">📈 TV</a>
           <a href="https://finance.yahoo.com/quote/${encodeURIComponent(sym)}" target="_blank">🟣 Yahoo</a>
@@ -3502,6 +3503,136 @@ function wlRender(){
     tbody.innerHTML = wlSorted(filtered).map(_wlRowHtml).join('');
   }
 }
+// AI analiză profundă din drill-down — primește tot contextul (perf multi-TF + indicatori + plan + insider)
+// pentru răspuns precis vs analiza generică din 🤖 row-button.
+window.wlAiAnalyzeDetail = async function(sym){
+  const key = getAnthropicKey();
+  if (!key) { showAiKeyModal(() => wlAiAnalyzeDetail(sym)); return; }
+  const w = watchlist.find(x => x.symbol === sym);
+  const hist = wlDetailCache[sym]?.data;
+  if (!w || !hist){ showToastMsg('Drill-down lipsește — deschide-l mai întâi', 'err'); return; }
+
+  const c = hist.closes, h = hist.highs, l = hist.lows;
+  const last = c[c.length - 1];
+  const perf = (n) => { const v = _wlPerf(c, n); return v != null ? (v >= 0 ? '+' : '') + v.toFixed(2) + '%' : 'N/A'; };
+  const ma20 = _wlSMA(c, 20), ma50 = _wlSMA(c, 50), ma200 = _wlSMA(c, 200);
+  const atr14 = _wlATR(h, l, c, 14);
+  const hi52 = Math.max(...h), lo52 = Math.min(...l);
+  const eb = wlEarlyCache[sym]?.eb;
+  const ins = wlInsiderCache[sym]?.ins;
+
+  const ctxLines = [
+    `Simbol: ${sym}${w.name ? ' (' + w.name + ')' : ''} · Exchange: ${w.exchange || 'N/A'}`,
+    `Preț curent: $${last.toFixed(2)} (azi: ${w.changePct != null ? (w.changePct >= 0 ? '+' : '') + w.changePct.toFixed(2) + '%' : 'N/A'})`,
+    ``,
+    `📊 PERFORMANCE MULTI-TF:`,
+    `· 1d: ${perf(1)} · 5d: ${perf(5)} · 15d: ${perf(11)} · 30d: ${perf(22)}`,
+    `· 90d: ${perf(65)} · 180d: ${perf(126)} · 252d (1y): ${perf(252)}`,
+    `· 52w high: $${hi52.toFixed(2)} (dist ${((last - hi52) / hi52 * 100).toFixed(1)}%)`,
+    `· 52w low:  $${lo52.toFixed(2)} (dist +${((last - lo52) / lo52 * 100).toFixed(1)}%)`,
+    ``,
+    `🧠 INDICATORI TEHNICI:`,
+    eb?.rsiNow != null ? `· RSI(14): ${eb.rsiNow.toFixed(1)} ${eb.rsiNow < 30 ? '(OVERSOLD)' : eb.rsiNow > 70 ? '(OVERHEATED)' : '(neutru)'}` : '· RSI: N/A',
+    ma20 ? `· MA20: $${ma20.toFixed(2)} (preț ${last > ma20 ? '+' : ''}${((last - ma20) / ma20 * 100).toFixed(1)}%)` : '',
+    ma50 ? `· MA50: $${ma50.toFixed(2)} (preț ${last > ma50 ? '+' : ''}${((last - ma50) / ma50 * 100).toFixed(1)}%)` : '',
+    ma200 ? `· MA200: $${ma200.toFixed(2)} (preț ${last > ma200 ? '+' : ''}${((last - ma200) / ma200 * 100).toFixed(1)}%)` : '',
+    atr14 ? `· ATR(14): $${atr14.toFixed(2)} (${(atr14 / last * 100).toFixed(1)}%/zi volatilitate)` : '',
+    eb?.rvol != null ? `· RVOL azi: ${eb.rvol.toFixed(2)}× media 20z` : '',
+    eb ? `· Early-bird score: ${eb.score}/5 ${eb.isEarly ? '(activ — abia a întors în sus)' : (eb.isWilting ? '(invalidat — ' + eb.wiltReason + ')' : '')}` : '',
+  ].filter(Boolean);
+
+  if (atr14){
+    const entry = last, sl = entry - 1.5 * atr14;
+    ctxLines.push(``, `📋 PLAN LONG REF-ATR (orientativ):`,
+      `· Entry $${entry.toFixed(2)} · SL $${sl.toFixed(2)} (−${((entry - sl) / entry * 100).toFixed(1)}%)`,
+      `· TP1 $${(entry + atr14).toFixed(2)} · TP2 $${(entry + 2 * atr14).toFixed(2)} · TP3 $${(entry + 3 * atr14).toFixed(2)}`);
+  }
+
+  if (ins && ins.raw != null){
+    ctxLines.push(``, `🏛️ INSIDER 90z (Form 4 SEC):`);
+    if (ins.cluster) ctxLines.push(`· CLUSTER BUY DETECTAT: ${ins.people} executivi distincți au cumpărat (${ins.buys} tranzacții, ~$${(ins.value / 1000).toFixed(0)}K total) — semnal smart-money bullish`);
+    else if (ins.raw === 0) ctxLines.push(`· Niciun raport insider în 90z`);
+    else ctxLines.push(`· ${ins.raw} tranzacții raportate dar fără cluster (${ins.buys} buys de la ${ins.people} persoane)`);
+  }
+
+  const earnDays = (typeof lastEarnings !== 'undefined' && lastEarnings)
+    ? lastEarnings.find(e => e.symbol === sym)?.daysToEarnings : null;
+  if (earnDays != null && earnDays >= 0 && earnDays <= 14)
+    ctxLines.push(``, `⚡ EARNINGS în ${earnDays} zile — atenție mișcare binară post-raport`);
+
+  const prompt = `Ești un trader experimentat care analizează stocks pe Trade 212.
+Datele de mai jos sunt CALCULATE EXACT din 1y istoric Yahoo + Finnhub insider. Folosește-le ca atare, nu le re-estima.
+
+${ctxLines.join('\n')}
+
+Dă-mi în 5-7 puncte concise (max 400 cuvinte, română, fără introducere lungă):
+1. **Setup curent** (trend pe 30/90d, poziție vs MA50/MA200, RSI regim) — diagnostic concret
+2. **Catalist / context** (insider cluster? earnings aproape? extreme RSI?) — ce face acest setup interesant SAU periculos AZI
+3. **Verdict acțiune**: LONG NOW / LONG la pullback / WAIT / SKIP / AVOID — alege UN tier, justifică în 1 propoziție
+4. **Trigger concret** (preț specific sau condiție) dacă verdict ≠ SKIP/AVOID
+5. **Risc principal** — ce ar invalida teza (1 propoziție, concret, ex „rupere sub MA50 = ieșire")
+6. **Sizing sugestie** (% account) bazat pe ATR% — small/normal/full pentru un trader cu 2-3% risc per trade
+7. **Notă specială** dacă vezi ceva neobișnuit (divergențe, breakout iminent, capcană bullă)
+
+Format: ## titluri scurte + bullet points sub. NU repeta cifrele — interpretează-le.`;
+
+  // Modal AI custom (acelasi pattern ca aiAnalyzeRow dar key deep- ca să nu se ciocnească cu cache-ul AI simplu)
+  const cacheKey = `watchlist-deep:${sym}`;
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal">
+      <div class="ai-modal-title">🤖 Analiză profundă: ${sym}</div>
+      <div class="ai-modal-sub">${(w.name || '').slice(0, 60)} · context complet (perf MTF + RSI + MA + ATR + insider)</div>
+      <div class="ai-modal-result" id="aiDeepResultArea">⏳ Generez analiza cu ${AI_MODEL}...</div>
+      <div class="ai-modal-meta" id="aiDeepMeta"></div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+        <button class="primary" id="aiDeepCopyBtn">📋 Copiază</button>
+        <button onclick="delete aiCache['${cacheKey}']; this.closest('.ai-modal-bg').remove(); wlAiAnalyzeDetail('${sym}')" title="Forțează regenerare">↻ Rerun</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  const result = document.getElementById('aiDeepResultArea');
+  const meta = document.getElementById('aiDeepMeta');
+
+  if (aiCache[cacheKey]){
+    result.innerHTML = aiCache[cacheKey].replace(/\n/g, '<br>');
+    meta.textContent = `✓ ${AI_MODEL} · cached (apasă ↻ Rerun pentru refresh)`;
+  } else {
+    const t0 = performance.now();
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: AI_MODEL, max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+      });
+      const data = await resp.json();
+      const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+      if (data.content?.[0]?.text){
+        const text = data.content[0].text;
+        aiCache[cacheKey] = text;
+        result.innerHTML = text.replace(/\n/g, '<br>');
+        const usage = data.usage ? ` · ${data.usage.input_tokens}+${data.usage.output_tokens} tok` : '';
+        meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${usage}`;
+      } else if (data.error){
+        result.textContent = '❌ ' + data.error.message;
+        meta.textContent = `eroare API`;
+      } else {
+        result.textContent = '❌ Răspuns gol';
+        meta.textContent = `eroare`;
+      }
+    } catch(e){
+      result.textContent = '❌ ' + (e?.message || 'eroare rețea');
+      meta.textContent = `eroare`;
+    }
+  }
+  document.getElementById('aiDeepCopyBtn').onclick = () => {
+    navigator.clipboard.writeText(result.innerText || '').then(() => showToastMsg('📋 Copiat'));
+  };
+};
+
 // Adapt aiAnalyzeRow să accepte și 'watchlist' ca tip
 const _origBuildPrompt = _buildAiPrompt;
 _buildAiPrompt = function(type, s) {
