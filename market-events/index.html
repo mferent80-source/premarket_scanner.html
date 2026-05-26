@@ -1022,7 +1022,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v205</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v206</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1326,7 +1326,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v205 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v206 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -3666,7 +3666,10 @@ function _wlRowHtml(w){
   // Grid cell layout: chk · SYM · price · %change · [TV][AI][🎯][📊][✕] · (sparkline row dacă early)
   const isOpen = wlDetailOpen === w.symbol;
   const detailBtnCls = isOpen ? 'btn-row btn-row-wl-detail open' : 'btn-row btn-row-wl-detail';
-  return `<div class="wl-cell wl-tr${trCls}" data-sym="${w.symbol}" onclick="wlCellClick(event,'${w.symbol}')">
+  // Important: .wl-detail trebuie să fie SIBLING al .wl-cell (NU copil) ca să poată ocupa
+  // grid-column 1/-1 din .wl-grid părinte (lățime totală watchlist). Altfel rămâne în
+  // interiorul celulei de ~10% și deborează peste casuța vecină.
+  const cellHtml = `<div class="wl-cell wl-tr${trCls}" data-sym="${w.symbol}" onclick="wlCellClick(event,'${w.symbol}')">
     <input type="checkbox" class="wl-chk" ${checked} onchange="wlToggleSelect('${w.symbol}')" title="Selectează">
     <span class="sym" onclick="event.stopPropagation();wlToggleDetail('${w.symbol}')" title="Click pe simbol → drill-down detaliat">${w.symbol}${ebBadge}${wiltBadge}${earnBadge}${insBadge}${rsiBadge}${rvolBadge}</span>
     <span class="num">${priceStr}</span>
@@ -3680,8 +3683,8 @@ function _wlRowHtml(w){
       <button class="btn-row btn-row-wl-del" onclick='wlRemove("${w.symbol}")' title="Șterge">✕</button>
     </span>
     ${ebSparkRow}
-    ${isOpen ? _wlDetailHtml(w) : ''}
   </div>`;
+  return cellHtml + (isOpen ? _wlDetailHtml(w) : '');
 }
 
 function wlRender(){
