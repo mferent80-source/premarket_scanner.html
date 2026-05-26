@@ -1076,6 +1076,10 @@
       <button class="wl-fbtn" data-filter="losers" onclick="wlSetFilter('losers')">📉</button>
       <button class="wl-fbtn" data-filter="movers" onclick="wlSetFilter('movers')">🔥</button>
       <button class="wl-fbtn" data-filter="early" onclick="wlSetFilter('early')" title="🌱 Early bird — acțiuni care abia au început creșterea (întors în sus, încă nu extins)">🌱 Early</button>
+      <button class="wl-fbtn" data-filter="cluster" onclick="wlSetFilter('cluster')" title="🏛️ Doar simboluri cu cluster insider activ (2+ executivi cumpărători în 90z)">🏛️</button>
+      <button class="wl-fbtn" data-filter="oversold" onclick="wlSetFilter('oversold')" title="⚡ RSI(14) < 30 — oversold, potențial reversal">⚡</button>
+      <button class="wl-fbtn" data-filter="hot" onclick="wlSetFilter('hot')" title="🔥 RSI(14) > 70 — overheated, atenție pullback">🔥</button>
+      <button class="wl-fbtn" data-filter="rvol" onclick="wlSetFilter('rvol')" title="🔊 RVOL ≥ 2× — volum azi peste normal, mișcare reală">🔊</button>
       <label class="wl-ext" title="Prag anti-extins: cât de departe peste EMA21 mai e acceptat ca „early”. Mai mic = mai strict / mai timpuriu.">🌱≤<input type="number" id="wlExtInp" min="0" max="50" step="1" value="6" onchange="wlSetExtPct(this.value)">%</label>
     </div>
     <div class="wl-sort">
@@ -2790,7 +2794,9 @@ function wlSyncModal(){
 
 function wlSetFilter(f){
   wlFilter = f; localStorage.setItem('me_wl_filter', f);
-  if (f === 'early') wlEnsureEarlyData().then(wlRender);
+  // Asigură-te că datele necesare filtrului sunt fetch-uite
+  if (f === 'early' || f === 'oversold' || f === 'hot' || f === 'rvol') wlEnsureEarlyData().then(wlRender);
+  if (f === 'cluster') wlEnsureInsiderData().then(wlRender);
   wlRender();
 }
 function wlSetSort(s){ wlSort = s; localStorage.setItem('me_wl_sort', s); wlRender(); }
@@ -2801,6 +2807,22 @@ function wlMatchesFilter(w){
   if (wlFilter === 'early'){
     const c = wlEarlyCache[w.symbol];
     return !!(c && c.eb && c.eb.isEarly);
+  }
+  // Filtre noi pe badge-uri (insider/RSI/RVOL) — necesită fetch sub-rulat
+  if (wlFilter === 'cluster'){
+    return !!(wlInsiderCache[w.symbol]?.ins?.cluster);
+  }
+  if (wlFilter === 'oversold'){
+    const rsi = wlEarlyCache[w.symbol]?.eb?.rsiNow;
+    return rsi != null && rsi < 30;
+  }
+  if (wlFilter === 'hot'){
+    const rsi = wlEarlyCache[w.symbol]?.eb?.rsiNow;
+    return rsi != null && rsi > 70;
+  }
+  if (wlFilter === 'rvol'){
+    const rvol = wlEarlyCache[w.symbol]?.eb?.rvol;
+    return rvol != null && rvol >= 2;
   }
   if (w.changePct == null) return wlFilter === 'all';
   const p = w.changePct;
@@ -3523,7 +3545,13 @@ function wlRender(){
         : '<div class="wl-grid-empty">🌱 Niciun candidat early-bird acum (prag ≤' + wlExtPct + '% peste EMA21). Mărește pragul sau așteaptă să întoarcă vreuna în sus.</div>';
       return;
     }
-    tbody.innerHTML = '<div class="wl-grid-empty">🔍 Niciun simbol nu corespunde filtrului „' + wlFilter + '".</div>';
+    const msgMap = {
+      cluster: '🏛️ Niciun simbol cu cluster insider activ. Cluster real e rar (≥2 executivi în 90z) — verifică în câteva ore după filings.',
+      oversold: '⚡ Niciun simbol cu RSI<30. Watchlist-ul tău e în zonă neutră/optimistă acum.',
+      hot: '🔥 Niciun simbol cu RSI>70. Watchlist-ul tău nu e overheated acum.',
+      rvol: '🔊 Niciun simbol cu RVOL≥2×. Volumele azi sunt aproape de normal.'
+    };
+    tbody.innerHTML = '<div class="wl-grid-empty">' + (msgMap[wlFilter] || '🔍 Niciun simbol nu corespunde filtrului „' + wlFilter + '".') + '</div>';
     return;
   }
 
