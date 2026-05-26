@@ -1111,6 +1111,10 @@
         <option value="change-desc">Schimb ↓</option>
         <option value="change-asc">Schimb ↑</option>
         <option value="early-desc">🌱 Scor</option>
+        <option value="rsi-asc">⚡ RSI ↑ (oversold sus)</option>
+        <option value="rsi-desc">🔥 RSI ↓ (hot sus)</option>
+        <option value="rvol-desc">🔊 RVOL ↓</option>
+        <option value="cluster-desc">🏛️ Cluster size ↓</option>
         <option value="alpha">Alfa</option>
         <option value="price-desc">Preț ↓</option>
         <option value="volume-desc">Volum ↓</option>
@@ -2969,6 +2973,9 @@ function wlMatchesFilter(w){
 
 function wlSorted(arr){
   const sorted = [...arr];
+  const getRsi = (s) => wlEarlyCache[s.symbol]?.eb?.rsiNow;
+  const getRvol = (s) => wlEarlyCache[s.symbol]?.eb?.rvol;
+  const getCluster = (s) => wlInsiderCache[s.symbol]?.ins?.people || 0;
   switch (wlSort) {
     case 'alpha': return sorted.sort((a,b) => a.symbol.localeCompare(b.symbol));
     case 'price-desc': return sorted.sort((a,b) => (b.price ?? -1) - (a.price ?? -1));
@@ -2983,6 +2990,11 @@ function wlSorted(arr){
       const vb = (sb ? (sb.isEarly ? 100 : 0) + sb.score : -1);
       return vb - va;
     });
+    // Sortări noi pe date din eb/insider — undefined la final
+    case 'rsi-asc': return sorted.sort((a,b) => (getRsi(a) ?? 999) - (getRsi(b) ?? 999)); // oversold sus
+    case 'rsi-desc': return sorted.sort((a,b) => (getRsi(b) ?? -1) - (getRsi(a) ?? -1)); // overheated sus
+    case 'rvol-desc': return sorted.sort((a,b) => (getRvol(b) ?? -1) - (getRvol(a) ?? -1));
+    case 'cluster-desc': return sorted.sort((a,b) => getCluster(b) - getCluster(a));
     case 'recent': return sorted; // ordinea inserării e ordinea în array
     default: return sorted;
   }
