@@ -3382,12 +3382,25 @@ function wlSetExtPct(v){
 let wlDetailOpen = null; // simbolul curent deschis (max 1)
 const wlDetailCache = {}; // { sym: { data, ts } } — 1y istoric, TTL 10min
 
+// SPY benchmark — fetch o singură dată per sesiune (TTL 30min, schimbarea zilnică e mică)
+let _wlSpyData = null;
+let _wlSpyTs = 0;
+async function _wlFetchSPY(){
+  if (_wlSpyData && (Date.now() - _wlSpyTs < 30 * 60 * 1000)) return _wlSpyData;
+  const hist = await getScanner()._fetchDailyHistory('SPY', '1y');
+  if (!hist) return null;
+  _wlSpyData = hist; _wlSpyTs = Date.now();
+  return hist;
+}
+
 async function _wlFetch1y(sym){
   const cached = wlDetailCache[sym];
   if (cached && (Date.now() - cached.ts < 10 * 60 * 1000)) return cached.data;
   const hist = await getScanner()._fetchDailyHistory(sym, '1y');
   if (!hist) return null;
   wlDetailCache[sym] = { data: hist, ts: Date.now() };
+  // Trigger SPY în background (non-blocking) ca să fie gata la următoarele drill-down-uri
+  _wlFetchSPY();
   return hist;
 }
 
@@ -3476,6 +3489,15 @@ function _wlDetailHtml(w){
   const distHi = ((last - hi52) / hi52) * 100;
   const distLo = ((last - lo52) / lo52) * 100;
 
+  // Performance relativ vs SPY (benchmark) — un stock care a făcut +10% nu e impresionant dacă SPY a făcut +15%
+  // _wlSpyData fetch-uit în paralel cu primul drill-down; dacă nu e gata, sărim peste perfRel.
+  const spy = _wlSpyData;
+  const spyPerf = spy ? (n) => _wlPerf(spy.closes, n) : () => null;
+  const rel = (myPct, spyPct) => (myPct != null && spyPct != null) ? (myPct - spyPct) : null;
+  const rel30 = rel(perf30d, spyPerf(22));
+  const rel90 = rel(perf90d, spyPerf(65));
+  const rel252 = rel(perf252d, spyPerf(252));
+
   // --- Indicatori ---
   const ma20 = _wlSMA(c, 20), ma50 = _wlSMA(c, 50), ma200 = _wlSMA(c, 200);
   const distMA20 = ma20 ? ((last - ma20) / ma20) * 100 : null;
@@ -3558,6 +3580,11 @@ function _wlDetailHtml(w){
         ${_wlPerfRow('252d (~1 an)', perf252d)}
         <div class="wl-d-row" style="margin-top:5px"><span class="lbl">52w High</span><span class="val">$${hi52.toFixed(2)} (${distHi.toFixed(1)}%)</span></div>
         <div class="wl-d-row"><span class="lbl">52w Low</span><span class="val">$${lo52.toFixed(2)} (${distLo > 0 ? '+' : ''}${distLo.toFixed(1)}%)</span></div>
+        ${spy ? `
+          <div class="wl-d-row" style="margin-top:5px;border-top:1px dashed #30363d;padding-top:5px"><span class="lbl">📊 vs SPY 30d</span><span class="val ${rel30 != null ? (rel30 >= 0 ? 'pos' : 'neg') : 'muted'}" title="Alpha 30d — outperformance vs benchmark">${rel30 != null ? (rel30 >= 0 ? '+' : '') + rel30.toFixed(2) + '%' : '—'}</span></div>
+          <div class="wl-d-row"><span class="lbl">📊 vs SPY 90d</span><span class="val ${rel90 != null ? (rel90 >= 0 ? 'pos' : 'neg') : 'muted'}">${rel90 != null ? (rel90 >= 0 ? '+' : '') + rel90.toFixed(2) + '%' : '—'}</span></div>
+          <div class="wl-d-row"><span class="lbl">📊 vs SPY 1y</span><span class="val ${rel252 != null ? (rel252 >= 0 ? 'pos' : 'neg') : 'muted'}">${rel252 != null ? (rel252 >= 0 ? '+' : '') + rel252.toFixed(2) + '%' : '—'}</span></div>
+        ` : '<div class="wl-d-row"><span class="lbl muted" style="font-size:9.5px">📊 vs SPY: încărc benchmark...</span></div>'}
         <div class="wl-d-spark">${_wlSparkBig(c)}<div style="font-size:9px;color:#6e7681;text-align:center;margin-top:2px">Sparkline 60z</div></div>
       </div>
       <!-- Box 2: Indicatori tehnici -->
