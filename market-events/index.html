@@ -608,6 +608,26 @@
   background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.4);
   padding:0 3px;border-radius:7px;line-height:1.5;margin-left:4px;
 }
+/* Badge insider cluster buys 🏛️ (Form 4 Finnhub) — purpuriu, smart-money signal */
+.ins-badge{
+  display:inline-flex;align-items:center;gap:1px;font-size:9.5px;font-weight:800;
+  background:rgba(137,87,229,.18);color:#b392f0;border:1px solid rgba(137,87,229,.5);
+  padding:0 4px;border-radius:7px;line-height:1.5;margin-left:4px;letter-spacing:.2px;
+}
+/* Badge RSI(14) — albastru pe oversold, portocaliu pe overheating */
+.rsi-badge{
+  display:inline-flex;align-items:center;font-size:9.5px;font-weight:800;
+  padding:0 4px;border-radius:7px;line-height:1.5;margin-left:4px;letter-spacing:.2px;
+}
+.rsi-badge.rsi-oversold{background:rgba(91,176,255,.18);color:#79c0ff;border:1px solid rgba(91,176,255,.5)}
+.rsi-badge.rsi-hot{background:rgba(247,147,26,.18);color:#f0883e;border:1px solid rgba(247,147,26,.5)}
+/* Badge RVOL — galben la 2x, roșu la 5x (volum vs media 20z) */
+.rvol-badge{
+  display:inline-flex;align-items:center;font-size:9.5px;font-weight:800;
+  padding:0 4px;border-radius:7px;line-height:1.5;margin-left:4px;letter-spacing:.2px;
+}
+.rvol-badge.rvol-mid{background:rgba(255,210,80,.18);color:#f0d050;border:1px solid rgba(255,210,80,.45)}
+.rvol-badge.rvol-hi{background:rgba(248,81,73,.18);color:#ff7b72;border:1px solid rgba(248,81,73,.5)}
 .eb-spark-row{
   grid-column:1 / -1;display:flex;align-items:center;justify-content:flex-end;
   padding:1px 2px 2px;margin-top:1px;
@@ -916,7 +936,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v201</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v202</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1211,7 +1231,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v201 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v202 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2839,7 +2859,10 @@ function computeEarlyBird(hist, antiExtPct){
   const isWilting = !isEarly && (freshCrossDown || brokeLow);
   const wiltReason = [freshCrossDown ? 'EMA9 a recăzut sub EMA21' : '', brokeLow ? 'a rupt minimul ultimelor 10z' : ''].filter(Boolean).join(' · ');
 
-  return { isEarly, score, signals, extPct, rsiNow, antiExt, isWilting, wiltReason, spark: c.slice(Math.max(0, n - 20)) };
+  // RVOL = volum azi vs media 20z (pentru badge dedicat — confirmă mișcarea reală)
+  const rvol = (avgVol20 > 0 && v[last] > 0) ? (v[last] / avgVol20) : null;
+
+  return { isEarly, score, signals, extPct, rsiNow, rvol, antiExt, isWilting, wiltReason, spark: c.slice(Math.max(0, n - 20)) };
 }
 function _ebSignalText(eb){
   if (!eb) return '';
@@ -2933,6 +2956,83 @@ function wlNotifyEarly(items){
     try { new Notification('Market Events · 🌱 Early-bird', { body: msg }); } catch(_){}
   }
 }
+// ============================================================
+// INSIDER CLUSTER BUYS 🏛️ — Form 4 Finnhub (shared API key)
+// Detectează 2+ buys de la executivi (CEO/CFO/President/Director/Officer)
+// în ultimele 60z. Cache local 24h pe simbol. Skip non-US (.L, .PA, etc).
+// ============================================================
+const WL_INS_KEY = 'me_wl_insider_cache';
+const WL_INS_TTL_MS = 24 * 3600 * 1000;
+let wlInsiderCache = {};
+try { wlInsiderCache = JSON.parse(localStorage.getItem(WL_INS_KEY) || '{}'); } catch(_) { wlInsiderCache = {}; }
+function wlInsiderSave(){ try { localStorage.setItem(WL_INS_KEY, JSON.stringify(wlInsiderCache)); } catch(_){} }
+
+function wlGetFinnhubKey(){ try { return localStorage.getItem('finnhub_api_key') || ''; } catch(_){ return ''; } }
+
+async function wlFinnhub(path, params){
+  const key = wlGetFinnhubKey();
+  if (!key) return { __noKey:true };
+  const q = new URLSearchParams(Object.assign({}, params, { token:key })).toString();
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 12000);
+    const r = await fetch(`https://finnhub.io/api/v1${path}?${q}`, { signal: ctrl.signal });
+    clearTimeout(to);
+    if (!r.ok) return { __err:r.status };
+    return await r.json();
+  } catch(e){ return { __err:'net' }; }
+}
+
+// Doar tickere US pure: 1-5 litere mari, fără puncte/sufixe (.L, .PA, ^GSPC etc.)
+function wlIsUSTicker(sym){ return /^[A-Z][A-Z0-9]{0,4}$/.test(sym); }
+
+// Titluri considerate „insider executiv" (signal mai puternic decât 10% owner)
+const EXEC_TITLES_RX = /\b(ceo|cfo|coo|president|director|officer|chairman|chief|vp|vice president)\b/i;
+
+async function wlFetchInsider(sym){
+  if (!wlIsUSTicker(sym)) return { cluster:false, reason:'non-US' };
+  const to = new Date(), from = new Date(to.getTime() - 60 * 86400000);
+  const d = await wlFinnhub('/stock/insider-transactions', {
+    symbol: sym, from: from.toISOString().slice(0,10), to: to.toISOString().slice(0,10)
+  });
+  if (d.__noKey) return { cluster:false, reason:'noKey' };
+  if (d.__err) return { cluster:false, reason:'err' };
+  const arr = Array.isArray(d.data) ? d.data : (Array.isArray(d) ? d : []);
+  // Cluster = ≥2 persoane distincte cu transactionCode='P' (Purchase) și change>0 + titlu executiv
+  const buys = arr.filter(t => {
+    const isPurchase = (t.transactionCode === 'P') || (t.transactionCode === 'A');
+    const positive = (Number(t.change) || 0) > 0 || (Number(t.share) || 0) > 0 && isPurchase;
+    const exec = t.name && (!t.position || EXEC_TITLES_RX.test(t.position) || EXEC_TITLES_RX.test(t.name));
+    return isPurchase && positive && exec;
+  });
+  const people = new Set(buys.map(t => (t.name || '').trim().toLowerCase()));
+  const cluster = people.size >= 2;
+  const totalValue = buys.reduce((s, t) => s + (Number(t.change) || 0) * (Number(t.transactionPrice) || 0), 0);
+  return { cluster, people: people.size, buys: buys.length, value: totalValue, reason:cluster ? 'ok' : 'no-cluster' };
+}
+
+let wlInsiderLoading = false;
+async function wlEnsureInsiderData(force){
+  if (wlInsiderLoading) return;
+  if (!wlGetFinnhubKey()) return; // fără cheie → silent skip
+  const fresh = (s) => wlInsiderCache[s] && (Date.now() - wlInsiderCache[s].ts < WL_INS_TTL_MS);
+  const need = watchlist.filter(w => wlIsUSTicker(w.symbol) && (force || !fresh(w.symbol)));
+  if (!need.length) return;
+  wlInsiderLoading = true;
+  // Concurență limitată (max 3) — Finnhub free e 60/min, suficient pentru watchlist 30-50 simboluri
+  const queue = [...need];
+  const worker = async () => {
+    while (queue.length){
+      const w = queue.shift();
+      const ins = await wlFetchInsider(w.symbol);
+      wlInsiderCache[w.symbol] = { ins, ts: Date.now() };
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  wlInsiderSave();
+  wlInsiderLoading = false;
+}
+
 // Recalculează early-bird din istoricul deja cache-uit, fără re-fetch (la schimbarea pragului)
 function wlRecomputeEarly(){
   // Cache-ul ține doar rezultatul, nu istoricul brut → forțăm re-fetch (prag schimbat rar)
@@ -2975,11 +3075,30 @@ function _wlRowHtml(w){
     ? `<span class="wilt-badge" title="🥀 Invalidare — ${eb.wiltReason}">🥀</span>` : '';
   const ebSparkRow = (eb && eb.spark)
     ? `<div class="eb-spark-row">${_ebSparkSvg(eb.spark)}</div>` : '';
+  // Insider cluster 🏛️ (Form 4 — 2+ executivi cumpărători în 60z) — smart-money signal
+  const ins = wlInsiderCache[w.symbol]?.ins;
+  const insBadge = (ins && ins.cluster)
+    ? `<span class="ins-badge" title="🏛️ Cluster buy — ${ins.people} executivi au cumpărat în 60z${ins.value ? ' (~$' + (ins.value/1000).toFixed(0) + 'K total)' : ''}. Form 4 are delay 2z; bun ca confirmare swing.">🏛️${ins.people}</span>`
+    : '';
+  // RSI(14) — extrase din computeEarlyBird (deja calculate). Afișez doar la extreme.
+  const rsiVal = eb?.rsiNow;
+  let rsiBadge = '';
+  if (rsiVal != null){
+    if (rsiVal < 30) rsiBadge = `<span class="rsi-badge rsi-oversold" title="RSI(14) = ${rsiVal.toFixed(0)} — oversold (<30). Posibil reversal, dar nu intra fără confirmare (early-bird, vol).">⚡${rsiVal.toFixed(0)}</span>`;
+    else if (rsiVal > 70) rsiBadge = `<span class="rsi-badge rsi-hot" title="RSI(14) = ${rsiVal.toFixed(0)} — overheated (>70). Atenție la pullback, nu chase pe runner.">🔥${rsiVal.toFixed(0)}</span>`;
+  }
+  // RVOL — volum azi vs media 20z (calculat în computeEarlyBird)
+  const rvol = eb?.rvol;
+  let rvolBadge = '';
+  if (rvol != null){
+    if (rvol >= 5) rvolBadge = `<span class="rvol-badge rvol-hi" title="RVOL = ${rvol.toFixed(1)}× media 20z — volum extrem azi. Confirmă mișcarea (breakouts/news catalysts).">🔊${rvol.toFixed(1)}×</span>`;
+    else if (rvol >= 2) rvolBadge = `<span class="rvol-badge rvol-mid" title="RVOL = ${rvol.toFixed(1)}× media 20z — volum peste normal, mișcarea pare reală nu zgomot.">🔊${rvol.toFixed(1)}×</span>`;
+  }
   const exJs = String(w.exchange || '').replace(/'/g, "");
   // Grid cell layout: chk · SYM · price · %change · [TV][AI][🎯][📊][✕] · (sparkline row dacă early)
   return `<div class="wl-cell wl-tr${trCls}" data-sym="${w.symbol}" onclick="wlCellClick(event,'${w.symbol}')">
     <input type="checkbox" class="wl-chk" ${checked} onchange="wlToggleSelect('${w.symbol}')" title="Selectează">
-    <span class="sym">${w.symbol}${ebBadge}${wiltBadge}${earnBadge}</span>
+    <span class="sym">${w.symbol}${ebBadge}${wiltBadge}${earnBadge}${insBadge}${rsiBadge}${rvolBadge}</span>
     <span class="num">${priceStr}</span>
     <span class="num ${pctCls}">${pctStr}</span>
     <span class="wl-actions">
@@ -3068,6 +3187,9 @@ setInterval(() => { if (!document.hidden && watchlist.length) wlRefresh(); }, 60
 // apoi reîmprospătează la 10 min — semnalele daily nu se mișcă intraday.
 if (watchlist.length) wlEnsureEarlyData().then(wlRender);
 setInterval(() => { if (!document.hidden && watchlist.length) wlEnsureEarlyData(true).then(wlRender); }, 10 * 60 * 1000);
+// Insider cluster (Form 4): fetch în fundal, cache 24h — Form 4 e public delayed, n-are sens să polăm des
+if (watchlist.length) wlEnsureInsiderData().then(wlRender);
+setInterval(() => { if (!document.hidden && watchlist.length) wlEnsureInsiderData().then(wlRender); }, 6 * 60 * 60 * 1000);
 
 // ============================================================
 // CHAT AI FLOTANT (port din nasdaq-scanner, simplificat)
