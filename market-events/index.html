@@ -802,6 +802,30 @@
 .wl-cell .sym{cursor:pointer}
 .wl-cell .sym:hover{color:#79c0ff}
 
+/* === Tabel side-by-side compare === */
+.wl-sbs-table{
+  width:100%; border-collapse:collapse; font-size:11px; color:#c9d1d9;
+  font-variant-numeric:tabular-nums;
+}
+.wl-sbs-table th, .wl-sbs-table td{
+  padding:7px 10px; text-align:right; border-bottom:1px solid #21262d;
+}
+.wl-sbs-table thead th{
+  background:#161b22; color:#79c0ff; font-weight:800; font-size:12px;
+  position:sticky; top:0; letter-spacing:.3px;
+}
+.wl-sbs-table .sbs-label{
+  text-align:left; color:#8b949e; font-weight:700; font-size:10.5px;
+  background:rgba(255,255,255,.02);
+}
+.wl-sbs-table td.sbs-best{
+  background:rgba(63,185,80,.18); color:#3fb950; font-weight:800;
+}
+.wl-sbs-table td.sbs-worst{
+  background:rgba(255,107,107,.14); color:#ff6b6b; font-weight:700;
+}
+.wl-sbs-table tbody tr:hover{background:rgba(255,255,255,.02)}
+
 /* === AI auto-scan widget în topbar === */
 .ai-autoscan-wrap{
   display:inline-flex;align-items:center;gap:5px;
@@ -2574,10 +2598,120 @@ function wlUpdateCompareBar(){
     <button class="btn-cmp-act" onclick="wlSelectAllVisible()" title="Selectează / deselectează tot ce e vizibil">☑ Tot vizibil</button>
     <button class="btn-cmp-act" onclick="wlSendSelected()" title="Trimite selectate în Watchlist Monitor + Smart Trade">📊 Trimite</button>
     <button class="btn-cmp-go" id="wlCmpGoBtn" onclick="aiCompare()" ${cmpAttr}>🤖 Compară</button>
+    <button class="btn-cmp-act" onclick="wlSideBySide()" ${cmpAttr} style="background:#8957e5;color:#fff;border-color:#8957e5" title="Tabel side-by-side cu perf MTF, RSI, MA, ATR, RVOL, plan pentru toate simbolurile selectate (date măsurate, fără AI)">📊 Side-by-side</button>
     <button class="btn-cmp-del" onclick="wlDeleteSelected()" title="Șterge selectate din watchlist">🗑 Șterge</button>
     <button class="btn-cmp-clear" onclick="wlClearSelection()" title="Deselectează tot">✕</button>
   `;
 }
+
+// Compare side-by-side fără AI — tabel cu toate metricile drill-down pentru 2-5 simboluri.
+// Highlight best/worst per rând (verde/roșu) ca să vezi instant câștigătorul fiecărei metrici.
+window.wlSideBySide = async function(){
+  if (wlSelected.size < 2) return;
+  const symbols = Array.from(wlSelected).slice(0, 5); // max 5 ca să încapă pe ecran
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `
+    <div class="ai-modal" style="max-width:min(1100px, 95vw)">
+      <div class="ai-modal-title">📊 Side-by-side: ${symbols.join(' vs ')}</div>
+      <div class="ai-modal-sub">${symbols.length} simboluri · măsurători din 1y daily Yahoo</div>
+      <div id="wlSbsContent" class="ai-modal-result" style="padding:0">⏳ Încarc date pentru ${symbols.length} simboluri...</div>
+      <div class="ai-modal-actions">
+        <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+
+  // Fetch 1y pentru fiecare (cache 10min e activ — refolosit dacă deja drill-down deschis)
+  const data = await Promise.all(symbols.map(async sym => {
+    const w = watchlist.find(x => x.symbol === sym);
+    if (!w) return null;
+    const hist = await _wlFetch1y(sym);
+    if (!hist) return { sym, w, err: true };
+    const c = hist.closes, h = hist.highs, l = hist.lows;
+    const last = c[c.length - 1];
+    const hi52 = Math.max(...h), lo52 = Math.min(...l);
+    const atr14 = _wlATR(h, l, c, 14);
+    const eb = wlEarlyCache[sym]?.eb;
+    const ins = wlInsiderCache[sym]?.ins;
+    return {
+      sym, w, last,
+      perf1d: _wlPerf(c, 1), perf5d: _wlPerf(c, 5), perf15d: _wlPerf(c, 11),
+      perf30d: _wlPerf(c, 22), perf90d: _wlPerf(c, 65), perf252d: _wlPerf(c, 252),
+      distHi52: ((last - hi52) / hi52) * 100,
+      distLo52: ((last - lo52) / lo52) * 100,
+      rsi: eb?.rsiNow,
+      ma20: _wlSMA(c, 20), ma50: _wlSMA(c, 50), ma200: _wlSMA(c, 200),
+      distMa20: _wlSMA(c, 20) ? ((last - _wlSMA(c, 20)) / _wlSMA(c, 20)) * 100 : null,
+      distMa50: _wlSMA(c, 50) ? ((last - _wlSMA(c, 50)) / _wlSMA(c, 50)) * 100 : null,
+      distMa200: _wlSMA(c, 200) ? ((last - _wlSMA(c, 200)) / _wlSMA(c, 200)) * 100 : null,
+      atrPct: atr14 ? (atr14 / last) * 100 : null,
+      rvol: eb?.rvol,
+      cluster: !!(ins?.cluster), clusterPeople: ins?.people || 0,
+      tp2: atr14 ? last + 2 * atr14 : null,
+      tp2Pct: atr14 ? (2 * atr14 / last) * 100 : null
+    };
+  }));
+
+  const valid = data.filter(d => d && !d.err);
+  if (!valid.length){
+    document.getElementById('wlSbsContent').innerHTML = '<div style="padding:20px;color:#ff6b6b">❌ Nu am putut încărca date pentru niciun simbol</div>';
+    return;
+  }
+
+  // Highlight best/worst: pentru o metrică numerică, returnează clase css per simbol
+  const rankClass = (vals, higherIsBetter = true) => {
+    const finite = vals.map((v, i) => ({ v, i })).filter(x => x.v != null && isFinite(x.v));
+    if (finite.length < 2) return vals.map(() => '');
+    finite.sort((a, b) => higherIsBetter ? b.v - a.v : a.v - b.v);
+    const best = finite[0].i, worst = finite[finite.length - 1].i;
+    return vals.map((_, i) => i === best ? 'sbs-best' : i === worst ? 'sbs-worst' : '');
+  };
+
+  // Layout: header row cu simboluri + rânduri cu metrici
+  const rows = [
+    ['Preț', valid.map(d => '$' + d.last.toFixed(2)), ''],
+    ['Δ 1d %', valid.map(d => d.perf1d), rankClass(valid.map(d => d.perf1d))],
+    ['Δ 5d %', valid.map(d => d.perf5d), rankClass(valid.map(d => d.perf5d))],
+    ['Δ 15d %', valid.map(d => d.perf15d), rankClass(valid.map(d => d.perf15d))],
+    ['Δ 30d %', valid.map(d => d.perf30d), rankClass(valid.map(d => d.perf30d))],
+    ['Δ 90d %', valid.map(d => d.perf90d), rankClass(valid.map(d => d.perf90d))],
+    ['Δ 1y %', valid.map(d => d.perf252d), rankClass(valid.map(d => d.perf252d))],
+    ['Dist 52w high', valid.map(d => d.distHi52), rankClass(valid.map(d => d.distHi52))], // mai aproape de high = better
+    ['Dist 52w low', valid.map(d => d.distLo52), rankClass(valid.map(d => d.distLo52))],
+    ['RSI(14)', valid.map(d => d.rsi), valid.map(d => d.rsi == null ? '' : (d.rsi < 30 ? 'sbs-best' : d.rsi > 70 ? 'sbs-worst' : ''))],
+    ['Dist MA50 %', valid.map(d => d.distMa50), rankClass(valid.map(d => d.distMa50))],
+    ['Dist MA200 %', valid.map(d => d.distMa200), rankClass(valid.map(d => d.distMa200))],
+    ['ATR % / zi', valid.map(d => d.atrPct), rankClass(valid.map(d => d.atrPct), false)], // volatilitate mai mică = better pt risk
+    ['RVOL azi', valid.map(d => d.rvol), rankClass(valid.map(d => d.rvol))],
+    ['🏛️ Cluster', valid.map(d => d.cluster ? `DA (${d.clusterPeople})` : '—'), valid.map(d => d.cluster ? 'sbs-best' : '')],
+    ['TP2 (+2 ATR) %', valid.map(d => d.tp2Pct), rankClass(valid.map(d => d.tp2Pct))]
+  ];
+
+  const fmt = (v) => {
+    if (v == null) return '—';
+    if (typeof v === 'string') return v;
+    if (typeof v !== 'number' || !isFinite(v)) return '—';
+    return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+  };
+
+  let html = '<div style="overflow-x:auto"><table class="wl-sbs-table"><thead><tr><th class="sbs-label">Metric</th>';
+  for (const d of valid) html += `<th>${d.sym}</th>`;
+  html += '</tr></thead><tbody>';
+  for (const [label, vals, cls] of rows){
+    html += `<tr><td class="sbs-label">${label}</td>`;
+    for (let i = 0; i < vals.length; i++){
+      const c = (Array.isArray(cls) ? cls[i] : cls) || '';
+      const v = vals[i];
+      const display = typeof v === 'string' ? v : (typeof v === 'number' ? (label.includes('%') ? fmt(v) : (label === 'RSI(14)' ? v.toFixed(1) : (label.includes('TP2') ? fmt(v) : v.toFixed(2)))) : fmt(v));
+      html += `<td class="${c}">${display}</td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div><div style="font-size:10px;color:#8b949e;padding:8px;text-align:center">🟢 = cel mai bun pe rând · 🔴 = cel mai prost · RSI: verde=oversold, roșu=overheated · ATR%: mai puțin = mai bine (risc mai mic)</div>';
+  document.getElementById('wlSbsContent').innerHTML = html;
+};
 
 // Comparație AI între 2+ simboluri selectate
 // source: 'wl' (default) → watchlist[] · 'loser' → lastLosers[] · 'earn' → lastEarnings[]
