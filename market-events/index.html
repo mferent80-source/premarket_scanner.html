@@ -3096,6 +3096,10 @@ async function wlEnsureInsiderData(force){
   const need = watchlist.filter(w => wlIsUSTicker(w.symbol) && (force || !fresh(w.symbol)));
   if (!need.length) return;
   wlInsiderLoading = true;
+  // Memorez ce era cluster ÎNAINTE ca să detectez tranziții (cluster NOU = alertă)
+  const prevCluster = {};
+  for (const w of need) prevCluster[w.symbol] = !!(wlInsiderCache[w.symbol]?.ins?.cluster);
+
   // Concurență limitată (max 3) — Finnhub free e 60/min, suficient pentru watchlist 30-50 simboluri
   const queue = [...need];
   const worker = async () => {
@@ -3108,6 +3112,40 @@ async function wlEnsureInsiderData(force){
   await Promise.all([worker(), worker(), worker()]);
   wlInsiderSave();
   wlInsiderLoading = false;
+
+  // Detectez tranziții: simboluri care DEVIN cluster (nou). Prima rulare după baseline → nu spam la load.
+  // Folosim WL_INS_SEEN_KEY ca dedupe — la fel ca ebSeen pt early-bird.
+  const newlyCluster = [];
+  for (const w of need){
+    const nowCluster = !!(wlInsiderCache[w.symbol]?.ins?.cluster);
+    const prevWasInCache = wlInsiderCache[w.symbol]?.ins != null && prevCluster[w.symbol] !== undefined;
+    // Trigger doar dacă: înainte nu era cluster (sau era prima dată) și acum E. Plus dedupe via insSeen.
+    if (nowCluster && !insSeen[w.symbol] && prevWasInCache){
+      newlyCluster.push({
+        symbol: w.symbol,
+        people: wlInsiderCache[w.symbol].ins.people,
+        value: wlInsiderCache[w.symbol].ins.value
+      });
+    }
+    insSeen[w.symbol] = nowCluster;
+  }
+  try { localStorage.setItem(WL_INS_SEEN_KEY, JSON.stringify(insSeen)); } catch(_){}
+  if (newlyCluster.length) wlNotifyInsiderCluster(newlyCluster);
+}
+
+const WL_INS_SEEN_KEY = 'me_wl_ins_seen';
+let insSeen = {};
+try { insSeen = JSON.parse(localStorage.getItem(WL_INS_SEEN_KEY) || '{}'); } catch(_) { insSeen = {}; }
+
+function wlNotifyInsiderCluster(items){
+  const list = items.map(x => `${x.symbol} 🏛️${x.people}`).join(', ');
+  const msg = items.length === 1
+    ? `🏛️ Cluster insider NOU: ${items[0].symbol} — ${items[0].people} executivi au cumpărat${items[0].value ? ' (~$' + (items[0].value / 1000).toFixed(0) + 'K)' : ''}. Smart-money bullish signal.`
+    : `🏛️ ${items.length} cluster-uri insider noi: ${list}`;
+  showToast(msg, 'success');
+  if ('Notification' in window && Notification.permission === 'granted'){
+    try { new Notification('Market Events · 🏛️ Insider cluster nou', { body: msg }); } catch(_){}
+  }
 }
 
 // Diagnostic — câte simboluri din watchlist ating fiecare prag de badge.
