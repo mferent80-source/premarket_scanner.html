@@ -740,6 +740,68 @@
 @keyframes wlPulseUp  {50%{box-shadow:inset 0 0 0 1px #3fb950}}
 @keyframes wlPulseDown{50%{box-shadow:inset 0 0 0 1px #ff6b6b}}
 
+/* === Drill-down row sub watchlist cell (click pe sym sau buton 🔎) === */
+.wl-detail{
+  grid-column:1 / -1; margin-top:6px; padding:10px;
+  background:#0d1117; border:1px solid #30363d; border-left:3px solid #8957e5;
+  border-radius:8px; font-size:11px; color:#c9d1d9;
+}
+.wl-detail-grid{
+  display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;
+}
+@media (max-width: 900px){ .wl-detail-grid{ grid-template-columns: 1fr; } }
+.wl-detail h4{
+  margin:0 0 6px; font-size:11px; font-weight:800; letter-spacing:.3px;
+  color:#79c0ff; text-transform:uppercase;
+}
+.wl-d-row{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:2px 0; border-bottom:1px dashed rgba(255,255,255,.05);
+  font-variant-numeric:tabular-nums;
+}
+.wl-d-row:last-child{border-bottom:none}
+.wl-d-row .lbl{color:#8b949e; font-size:10.5px}
+.wl-d-row .val{font-weight:700; font-size:11px}
+.wl-d-row .val.pos{color:#3fb950}
+.wl-d-row .val.neg{color:#ff6b6b}
+.wl-d-row .val.muted{color:#8b949e}
+.wl-d-spark{margin-top:6px; padding:4px; background:#161b22; border-radius:5px}
+.wl-d-rsi-bar{
+  position:relative; height:8px; background:linear-gradient(90deg,#1f6feb 0%,#1f6feb 30%,#21262d 30%,#21262d 70%,#f0883e 70%,#f0883e 100%);
+  border-radius:4px; margin-top:3px;
+}
+.wl-d-rsi-bar .knob{
+  position:absolute; top:-2px; width:3px; height:12px;
+  background:#e6edf3; border-radius:1px; transform:translateX(-50%);
+}
+.wl-d-plan{
+  margin-top:6px; padding:6px; background:rgba(46,160,67,.06);
+  border:1px solid rgba(46,160,67,.25); border-radius:5px;
+}
+.wl-d-plan h5{margin:0 0 4px; font-size:10px; color:#3fb950; font-weight:800; letter-spacing:.3px}
+.wl-d-links{margin-top:6px; display:flex; flex-wrap:wrap; gap:5px}
+.wl-d-links a{
+  display:inline-block; padding:3px 7px; border-radius:5px;
+  background:#21262d; border:1px solid #30363d; color:#c9d1d9;
+  font-size:10px; font-weight:700; text-decoration:none;
+}
+.wl-d-links a:hover{background:#30363d; color:#79c0ff}
+.wl-d-loading{padding:14px; text-align:center; color:#8b949e; font-size:11px}
+.wl-d-ins-list{margin-top:6px; max-height:160px; overflow-y:auto}
+.wl-d-ins-list .ins-row{
+  display:grid; grid-template-columns: 1fr auto auto; gap:6px; padding:3px 0;
+  border-bottom:1px dashed rgba(255,255,255,.05); font-size:10px;
+}
+.wl-d-ins-list .ins-row.buy{border-left:2px solid #3fb950; padding-left:4px}
+.wl-d-ins-list .ins-row.sell{border-left:2px solid #ff6b6b; padding-left:4px}
+.wl-d-ins-list .ins-row .ins-name{color:#c9d1d9; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.wl-d-ins-list .ins-row .ins-qty{color:#8b949e; font-variant-numeric:tabular-nums}
+.wl-d-ins-list .ins-row .ins-date{color:#6e7681; font-size:9.5px}
+.btn-row-wl-detail{background:rgba(137,87,229,.18); color:#b392f0; border-color:rgba(137,87,229,.5)}
+.btn-row-wl-detail.open{background:#8957e5; color:#fff}
+.wl-cell .sym{cursor:pointer}
+.wl-cell .sym:hover{color:#79c0ff}
+
 /* === AI auto-scan widget în topbar === */
 .ai-autoscan-wrap{
   display:inline-flex;align-items:center;gap:5px;
@@ -936,7 +998,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v203</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v204</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1232,7 +1294,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v203 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v204 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -3107,6 +3169,219 @@ function wlSetExtPct(v){
   wlEnsureEarlyData(true).then(wlRender);
 }
 
+// ============================================================
+// DRILL-DOWN watchlist — click pe simbol sau buton 🔎
+// 3 box-uri inline: Performance multi-TF, Indicatori, Insider+Plan
+// ============================================================
+let wlDetailOpen = null; // simbolul curent deschis (max 1)
+const wlDetailCache = {}; // { sym: { data, ts } } — 1y istoric, TTL 10min
+
+async function _wlFetch1y(sym){
+  const cached = wlDetailCache[sym];
+  if (cached && (Date.now() - cached.ts < 10 * 60 * 1000)) return cached.data;
+  const hist = await getScanner()._fetchDailyHistory(sym, '1y');
+  if (!hist) return null;
+  wlDetailCache[sym] = { data: hist, ts: Date.now() };
+  return hist;
+}
+
+// Calculează SMA simplu (close-uri ale ultimelor N zile)
+function _wlSMA(closes, period){
+  if (closes.length < period) return null;
+  const slice = closes.slice(-period);
+  return slice.reduce((a, b) => a + b, 0) / period;
+}
+// ATR(14) Wilder din highs/lows/closes
+function _wlATR(highs, lows, closes, period){
+  if (closes.length < period + 1) return null;
+  const trs = [];
+  for (let i = 1; i < closes.length; i++){
+    const tr = Math.max(highs[i] - lows[i], Math.abs(highs[i] - closes[i-1]), Math.abs(lows[i] - closes[i-1]));
+    trs.push(tr);
+  }
+  // Wilder smoothing
+  let atr = trs.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  for (let i = period; i < trs.length; i++) atr = (atr * (period - 1) + trs[i]) / period;
+  return atr;
+}
+// Δ% între închiderea curentă și cea de acum N zile (sau cât avem)
+function _wlPerf(closes, daysAgo){
+  if (closes.length < 2) return null;
+  const last = closes[closes.length - 1];
+  const idx = Math.max(0, closes.length - 1 - daysAgo);
+  const past = closes[idx];
+  if (past == null || past === 0) return null;
+  return ((last - past) / past) * 100;
+}
+
+window.wlToggleDetail = async function(sym){
+  if (wlDetailOpen === sym){ wlDetailOpen = null; wlRender(); return; }
+  wlDetailOpen = sym;
+  wlRender(); // afișează skeleton loading
+  // Pre-fetch 1y dacă lipsește (re-render după)
+  if (!wlDetailCache[sym] || (Date.now() - wlDetailCache[sym].ts > 10 * 60 * 1000)){
+    await _wlFetch1y(sym);
+    if (wlDetailOpen === sym) wlRender(); // doar dacă userul n-a închis între timp
+  }
+};
+
+function _wlSparkBig(closes){
+  if (!closes || closes.length < 2) return '';
+  const data = closes.slice(-60);
+  const w = 220, h = 36;
+  const min = Math.min(...data), max = Math.max(...data), rng = (max - min) || 1;
+  const pts = data.map((val, i) =>
+    `${(i / (data.length - 1) * w).toFixed(1)},${(h - ((val - min) / rng) * h).toFixed(1)}`).join(' ');
+  const up = data[data.length - 1] >= data[0];
+  const col = up ? '#3fb950' : '#ff6b6b';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="display:block">
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5"/>
+  </svg>`;
+}
+
+function _wlPerfRow(label, pct, tooltip){
+  if (pct == null) return `<div class="wl-d-row"><span class="lbl">${label}</span><span class="val muted">—</span></div>`;
+  const cls = pct >= 0 ? 'pos' : 'neg';
+  const s = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+  return `<div class="wl-d-row" ${tooltip ? `title="${tooltip}"` : ''}><span class="lbl">${label}</span><span class="val ${cls}">${s}</span></div>`;
+}
+
+function _wlDetailHtml(w){
+  const sym = w.symbol;
+  const hist = wlDetailCache[sym]?.data;
+  if (!hist){
+    return `<div class="wl-detail"><div class="wl-d-loading">⏳ Încarc 1y istoric pentru ${sym}...</div></div>`;
+  }
+  const c = hist.closes, h = hist.highs, l = hist.lows, v = hist.vols;
+  const n = c.length, last = c[n-1];
+
+  // --- Performance multi-TF ---
+  // Zilele de trading: ~5/sapt → 7d ≈ 5 bare, 15d ≈ 11, 30d ≈ 22, 90d ≈ 65, YTD calculat după dată
+  const perf1d = _wlPerf(c, 1);
+  const perf5d = _wlPerf(c, 5);
+  const perf15d = _wlPerf(c, 11);
+  const perf30d = _wlPerf(c, 22);
+  const perf90d = _wlPerf(c, 65);
+  const perf180d = _wlPerf(c, 126);
+  const perf252d = _wlPerf(c, 252); // ≈ 1y
+
+  // 52w high/low (sau cât avem)
+  const hi52 = Math.max(...h), lo52 = Math.min(...l);
+  const distHi = ((last - hi52) / hi52) * 100;
+  const distLo = ((last - lo52) / lo52) * 100;
+
+  // --- Indicatori ---
+  const ma20 = _wlSMA(c, 20), ma50 = _wlSMA(c, 50), ma200 = _wlSMA(c, 200);
+  const distMA20 = ma20 ? ((last - ma20) / ma20) * 100 : null;
+  const distMA50 = ma50 ? ((last - ma50) / ma50) * 100 : null;
+  const distMA200 = ma200 ? ((last - ma200) / ma200) * 100 : null;
+  const atr14 = _wlATR(h, l, c, 14);
+  const atrPct = atr14 ? (atr14 / last) * 100 : null;
+  const eb = wlEarlyCache[sym]?.eb;
+  const rsi = eb?.rsiNow;
+  const rvol = eb?.rvol;
+
+  // Plan long ref-ATR (Entry/SL/TP1-3)
+  let planHtml = '';
+  if (atr14){
+    const entry = last;
+    const sl = entry - 1.5 * atr14;
+    const tp1 = entry + 1 * atr14;
+    const tp2 = entry + 2 * atr14;
+    const tp3 = entry + 3 * atr14;
+    const risk = entry - sl, reward2 = tp2 - entry;
+    const rr = (reward2 / risk).toFixed(2);
+    planHtml = `<div class="wl-d-plan">
+      <h5>📋 Plan long (ref ATR ${atr14.toFixed(2)})</h5>
+      <div class="wl-d-row"><span class="lbl">Entry</span><span class="val">$${entry.toFixed(2)}</span></div>
+      <div class="wl-d-row"><span class="lbl">SL (−1.5 ATR)</span><span class="val neg">$${sl.toFixed(2)} (${((sl-entry)/entry*100).toFixed(1)}%)</span></div>
+      <div class="wl-d-row"><span class="lbl">TP1 (+1 ATR)</span><span class="val pos">$${tp1.toFixed(2)}</span></div>
+      <div class="wl-d-row"><span class="lbl">TP2 (+2 ATR)</span><span class="val pos">$${tp2.toFixed(2)}</span></div>
+      <div class="wl-d-row"><span class="lbl">TP3 (+3 ATR)</span><span class="val pos">$${tp3.toFixed(2)}</span></div>
+      <div class="wl-d-row"><span class="lbl">R:R la TP2</span><span class="val">${rr}</span></div>
+    </div>`;
+  }
+
+  // --- Insider detail ---
+  const ins = wlInsiderCache[sym]?.ins;
+  let insHtml = '';
+  if (ins){
+    if (ins.reason === 'noKey'){
+      insHtml = `<div class="wl-d-row"><span class="lbl muted">Setează cheia Finnhub în earnings-hub / nasdaq-scanner</span></div>`;
+    } else if (ins.reason === 'non-US'){
+      insHtml = `<div class="wl-d-row"><span class="lbl muted">Ticker non-US — Finnhub free indexează doar US (Form 4 SEC)</span></div>`;
+    } else if (ins.raw === 0 || ins.reason === 'no-data'){
+      insHtml = `<div class="wl-d-row"><span class="lbl muted">Nicio tranzacție insider raportată în 90z</span></div>`;
+    } else {
+      insHtml = `
+        <div class="wl-d-row"><span class="lbl">🟢 Buys (executivi)</span><span class="val ${ins.buys > 0 ? 'pos' : 'muted'}">${ins.buys}</span></div>
+        <div class="wl-d-row"><span class="lbl">👥 Persoane distincte</span><span class="val">${ins.people}</span></div>
+        <div class="wl-d-row"><span class="lbl">📊 Total tranzacții 90z</span><span class="val muted">${ins.raw}</span></div>
+        <div class="wl-d-row"><span class="lbl">💰 Valoare cumulată buys</span><span class="val ${ins.value > 0 ? 'pos' : 'muted'}">$${(ins.value/1000).toFixed(0)}K</span></div>
+        ${ins.cluster ? '<div class="wl-d-row"><span class="lbl">🏛️ Cluster signal</span><span class="val pos">DA — bullish</span></div>' : ''}
+      `;
+    }
+  } else {
+    insHtml = `<div class="wl-d-row"><span class="lbl muted">⏳ Insider data se încarcă încă...</span></div>`;
+  }
+
+  // Earnings days
+  const earnDays = (typeof lastEarnings !== 'undefined' && lastEarnings)
+    ? lastEarnings.find(e => e.symbol === sym)?.daysToEarnings : null;
+  const earnHtml = (earnDays != null && earnDays >= 0)
+    ? `<div class="wl-d-row"><span class="lbl">⚡ Earnings în</span><span class="val ${earnDays <= 7 ? 'neg' : ''}">${earnDays} zile</span></div>` : '';
+
+  // RSI bar visual: 0=stânga, 100=dreapta, zone albastră 0-30, neutră 30-70, portocalie 70-100
+  const rsiBarHtml = (rsi != null) ? `
+    <div class="wl-d-rsi-bar"><div class="knob" style="left:${Math.max(0, Math.min(100, rsi)).toFixed(0)}%"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:#6e7681;margin-top:2px">
+      <span>0</span><span>30</span><span>70</span><span>100</span>
+    </div>` : '';
+
+  return `<div class="wl-detail" onclick="event.stopPropagation()">
+    <div class="wl-detail-grid">
+      <!-- Box 1: Performance -->
+      <div>
+        <h4>📊 Performance multi-TF</h4>
+        ${_wlPerfRow('1d', perf1d)}
+        ${_wlPerfRow('5d (1 săpt.)', perf5d)}
+        ${_wlPerfRow('15d (~3 săpt.)', perf15d)}
+        ${_wlPerfRow('30d (1 lună)', perf30d)}
+        ${_wlPerfRow('90d (3 luni)', perf90d)}
+        ${_wlPerfRow('180d (6 luni)', perf180d)}
+        ${_wlPerfRow('252d (~1 an)', perf252d)}
+        <div class="wl-d-row" style="margin-top:5px"><span class="lbl">52w High</span><span class="val">$${hi52.toFixed(2)} (${distHi.toFixed(1)}%)</span></div>
+        <div class="wl-d-row"><span class="lbl">52w Low</span><span class="val">$${lo52.toFixed(2)} (${distLo > 0 ? '+' : ''}${distLo.toFixed(1)}%)</span></div>
+        <div class="wl-d-spark">${_wlSparkBig(c)}<div style="font-size:9px;color:#6e7681;text-align:center;margin-top:2px">Sparkline 60z</div></div>
+      </div>
+      <!-- Box 2: Indicatori tehnici -->
+      <div>
+        <h4>🧠 Indicatori tehnici</h4>
+        ${rsi != null ? `<div class="wl-d-row"><span class="lbl">RSI(14)</span><span class="val ${rsi < 30 ? 'pos' : (rsi > 70 ? 'neg' : '')}">${rsi.toFixed(1)}</span></div>${rsiBarHtml}` : '<div class="wl-d-row"><span class="lbl">RSI(14)</span><span class="val muted">—</span></div>'}
+        <div class="wl-d-row" style="margin-top:5px"><span class="lbl">MA20</span><span class="val">${ma20 ? '$' + ma20.toFixed(2) : '—'} ${distMA20 != null ? `<span class="${distMA20 >= 0 ? 'pos' : 'neg'}">(${distMA20 >= 0 ? '+' : ''}${distMA20.toFixed(1)}%)</span>` : ''}</span></div>
+        <div class="wl-d-row"><span class="lbl">MA50</span><span class="val">${ma50 ? '$' + ma50.toFixed(2) : '—'} ${distMA50 != null ? `<span class="${distMA50 >= 0 ? 'pos' : 'neg'}">(${distMA50 >= 0 ? '+' : ''}${distMA50.toFixed(1)}%)</span>` : ''}</span></div>
+        <div class="wl-d-row"><span class="lbl">MA200</span><span class="val">${ma200 ? '$' + ma200.toFixed(2) : '—'} ${distMA200 != null ? `<span class="${distMA200 >= 0 ? 'pos' : 'neg'}">(${distMA200 >= 0 ? '+' : ''}${distMA200.toFixed(1)}%)</span>` : ''}</span></div>
+        <div class="wl-d-row" style="margin-top:5px"><span class="lbl">ATR(14)</span><span class="val">${atr14 ? '$' + atr14.toFixed(2) : '—'} ${atrPct != null ? `<span class="muted">(${atrPct.toFixed(1)}%/zi)</span>` : ''}</span></div>
+        <div class="wl-d-row"><span class="lbl">RVOL azi</span><span class="val ${rvol >= 2 ? 'pos' : ''}">${rvol != null ? rvol.toFixed(2) + '×' : '—'}</span></div>
+        ${eb ? `<div class="wl-d-row"><span class="lbl">🌱 Early-bird score</span><span class="val ${eb.isEarly ? 'pos' : 'muted'}">${eb.score}/5 ${eb.isEarly ? '· activ' : ''}</span></div>` : ''}
+        ${planHtml}
+      </div>
+      <!-- Box 3: Insider + Earnings + Links -->
+      <div>
+        <h4>🏛️ Insider 90z · Context</h4>
+        ${insHtml}
+        ${earnHtml}
+        <div class="wl-d-links">
+          <a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol(sym, w.exchange))}" target="_blank">📈 TV</a>
+          <a href="https://finance.yahoo.com/quote/${encodeURIComponent(sym)}" target="_blank">🟣 Yahoo</a>
+          <a href="https://finviz.com/quote.ashx?t=${encodeURIComponent(sym)}" target="_blank">🟡 Finviz</a>
+          <a href="http://openinsider.com/screener?s=${encodeURIComponent(sym)}" target="_blank">🏛️ OpenInsider</a>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function _wlRowHtml(w){
   const priceStr = w.price != null ? '$' + w.price.toFixed(2) : '...';
   const pct = w.changePct;
@@ -3155,12 +3430,15 @@ function _wlRowHtml(w){
   }
   const exJs = String(w.exchange || '').replace(/'/g, "");
   // Grid cell layout: chk · SYM · price · %change · [TV][AI][🎯][📊][✕] · (sparkline row dacă early)
+  const isOpen = wlDetailOpen === w.symbol;
+  const detailBtnCls = isOpen ? 'btn-row btn-row-wl-detail open' : 'btn-row btn-row-wl-detail';
   return `<div class="wl-cell wl-tr${trCls}" data-sym="${w.symbol}" onclick="wlCellClick(event,'${w.symbol}')">
     <input type="checkbox" class="wl-chk" ${checked} onchange="wlToggleSelect('${w.symbol}')" title="Selectează">
-    <span class="sym">${w.symbol}${ebBadge}${wiltBadge}${earnBadge}${insBadge}${rsiBadge}${rvolBadge}</span>
+    <span class="sym" onclick="event.stopPropagation();wlToggleDetail('${w.symbol}')" title="Click pe simbol → drill-down detaliat">${w.symbol}${ebBadge}${wiltBadge}${earnBadge}${insBadge}${rsiBadge}${rvolBadge}</span>
     <span class="num">${priceStr}</span>
     <span class="num ${pctCls}">${pctStr}</span>
     <span class="wl-actions">
+      <button class="${detailBtnCls}" onclick="wlToggleDetail('${w.symbol}')" title="🔎 Drill-down: 1d/7d/15d/30d perf, RSI, MA, ATR, insider, plan trade">🔎</button>
       <button class="btn-row btn-row-wl-tv" onclick='wlOpenTV("${w.symbol}","${exJs}")' title="Deschide în TradingView">📈</button>
       <button class="btn-row btn-row-wl-ai" onclick='aiAnalyzeRow("watchlist", ${aiData})' title="AI">🤖</button>
       <button class="btn-row btn-row-wl-ai" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a" onclick='meQuickSetup("watchlist", ${aiData})' title="🎯 Quick Setup">🎯</button>
@@ -3168,6 +3446,7 @@ function _wlRowHtml(w){
       <button class="btn-row btn-row-wl-del" onclick='wlRemove("${w.symbol}")' title="Șterge">✕</button>
     </span>
     ${ebSparkRow}
+    ${isOpen ? _wlDetailHtml(w) : ''}
   </div>`;
 }
 
