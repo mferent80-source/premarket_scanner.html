@@ -183,6 +183,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 <script src="../lib/data.js"></script>
 <script src="../lib/indicators.js"></script>
 <script src="../lib/markov.js"></script>
+<script src="../lib/ai.js"></script>
 <script>
 // ─────────── fetch OHLC — delegă la stratul de date comun (lib/data.js, D.*) ───────────
 // Proxy cu health-scoring per-host + cache localStorage cu TTL + dedup — toate din D.
@@ -603,6 +604,23 @@ function renderHMM(meta, ohlc){
     </div>
     <div class="legend">Sizing = vol „normală" (π-ponderată ${(refVol*100).toFixed(2)}%) ÷ vol prognozată (${(curVol*100).toFixed(2)}%). Regim volatil → sub 1× automat. SL mai strâns de 1.5σ e mâncat de zgomotul regimului.</div></div>`;
 
+  // date structurate pt interpretarea AI (se completează cu first-passage + OOS mai jos)
+  const aiData = {
+    simbol: meta.sym, interval: meta.tf, nrRegimuri: K,
+    regimCurent: names[curRank], probabilitatePct: +(curProb*100).toFixed(0),
+    miscareAsteptataPct: +expMove.toFixed(2), slMinimPct: +(expMove*1.5).toFixed(2), sizingMultiplicator: +sizeMult.toFixed(2),
+    autocorelatieRegimCurent: rstats[last].autocorr != null ? +rstats[last].autocorr.toFixed(3) : null,
+    regimuri: order.map(idx => ({ nume: names[rank[idx]], volPct: +(hmm.sigma[idx]*100).toFixed(2), persistenta: +hmm.A[idx][idx].toFixed(2), durataBare: Math.round(1/Math.max(1e-6,1-hmm.A[idx][idx])), pctTimp: Math.round(pi[idx]*100), autocorelatie: rstats[idx].autocorr != null ? +rstats[idx].autocorr.toFixed(3) : null })),
+    firstPassage: [], validareOOS: null
+  };
+
+  // buton interpretare AI (citește window.__mkRegimeData setat la finalul render-ului)
+  html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--b1)">
+    <button id="mkAiBtn" onclick="interpretRegimeAI(this)" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f;font-weight:700;border:none;padding:9px 16px;border-radius:var(--rs);cursor:pointer;font-family:var(--head)">🧠 Interpretare AI (Opus 4.8)</button>
+    <span class="muted" style="font-size:11px;margin-left:8px">read în limbaj natural al numerelor — interpretează, NU prezice</span>
+    <div id="mkAiResult" style="margin-top:10px"></div>
+  </div>`;
+
   // ── FIRST-PASSAGE: P(atinge TP înainte de SL), regim-aware — setupuri scalate la σ ──
   const fpRows = [
     { lbl: 'TP 1σ / SL 1σ', rr: '1:1', tp: 1, sl: 1 },
@@ -615,6 +633,7 @@ function renderHMM(meta, ohlc){
   for (const row of fpRows){
     const tpFrac = row.tp * curVol, slFrac = row.sl * curVol;
     const fp = MK.firstPassage(hmm, tpFrac, slFrac, { sims: 3000, maxBars: 80 });
+    aiData.firstPassage.push({ setup: row.lbl + ' (' + row.rr + ')', pTP_pct: +(fp.pTP*100).toFixed(0), naiv_pct: +(fp.naivePTP*100).toFixed(0) });
     const tpCol = fp.pTP > fp.naivePTP + 0.02 ? 'var(--bull-s)' : (fp.pTP < fp.naivePTP - 0.02 ? 'var(--bear-s)' : 'var(--t1)');
     html += `<tr><td class="lbl" style="text-align:left">${row.lbl}</td>
       <td class="muted">${row.rr}</td>
@@ -631,6 +650,7 @@ function renderHMM(meta, ohlc){
   try {
     const bt = MK.backtestRegimeFade(ohlc, { K: Math.min(K,3), train: Math.min(400, Math.floor(ohlc.length*0.5)), refit: 25 });
     const v = bt.volFade, a = bt.allFade;
+    aiData.validareOOS = { fadeInVolatil_avgPct: +v.avgPct.toFixed(3), t_stat: +v.t.toFixed(2), n: v.n, semnificativ: Math.abs(v.t) >= 2, fadeInToate_avgPct: +a.avgPct.toFixed(3) };
     const sig = Math.abs(v.t) >= 2;
     const cls = (v.avgPct>0 && sig) ? 'good' : (v.avgPct>0 ? 'warn' : 'bad');
     html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:6px">Validare OOS — „fade mișcarea precedentă, DOAR în regim volatil" (walk-forward, BRUT fără costuri)</div>
@@ -644,6 +664,7 @@ function renderHMM(meta, ohlc){
           ? `🟡 Direcția e corectă (fade pozitiv DOAR în volatil, negativ/zero altundeva) dar <b>nesemnificativ statistic</b> (t=${v.t.toFixed(2)}, ai nevoie de |t|&gt;2) și ~0.05%/trade probabil dispare la costuri. Promițător, NEDOVEDIT.`
           : `❌ Fade-ul nu plătește OOS nici în regim volatil aici (${v.avgPct.toFixed(3)}%/trade).`) }</div></div>`;
   } catch(e){ /* prea puține bare pt OOS */ }
+  window.__mkRegimeData = aiData;   // disponibil pentru interpretarea AI
   html += `<div class="legend"><b>Onest, ca să nu te induc în eroare:</b> regimul CURENT + prognoza de vol sunt <b>cauzale</b> (doar trecut). Banda de istoric + autocorelațiile sunt <i>in-sample</i> (Viterbi pe toată seria) — descriptive, nu un backtest live. Autocorelația măsurată e tendința direcțională reală a regimului, NU una inventată.<br>Fit: ${hmm.iters} iter, 6 restart-uri (cel mai bun logLik, evită optime locale)${meta.K==='auto'?', K ales prin BIC':''}. Validat: prognoza de vol bate rolling-20 & EWMA OOS (crypto daily, 4/4). Aplicația robustă a Markov — <b>regim + risc</b>; direcția o folosești doar dacă autocorelația regimului e clar ≠ 0.</div></div>`;
   return html;
 }
@@ -661,6 +682,29 @@ async function runHMM(){
   } catch(e){ setStatus('Eroare: '+(e.message||e),true); }
   finally { $('hmm').disabled=false; $('run').disabled=false; }
 }
+
+// ─────────── Interpretare AI: sintetizează numerele HMM în read natural (NU prezice) ───────────
+window.interpretRegimeAI = async function(btn){
+  const box = document.getElementById('mkAiResult');
+  const d = window.__mkRegimeData;
+  if(!box || !d) return;
+  if(!window.AI){ box.innerHTML = '<div class="verdict bad">lib/ai.js neîncărcat.</div>'; return; }
+  if(!AI.getKey()){
+    box.innerHTML = `<div class="verdict warn">⚠ Lipsește cheia Anthropic. Seteaz-o în pump-radar/earnings-hub (⚙ Setări), sau din Console: <code>localStorage.setItem('anthropic_api_key','sk-ant-...')</code></div>`;
+    return;
+  }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '⏳ Generez…';
+  box.innerHTML = `<div class="verdict" style="background:var(--panel3);border:1px solid var(--b1);white-space:pre-wrap"><span id="mkAiStream"></span><span style="opacity:.6">▋</span></div>`;
+  const system = `Ești asistent de RISC pentru trading. Primești NUMERE DEJA CALCULATE de un model HMM de regim de volatilitate (nu date brute). Interpretează-le într-un read concis, acționabil, în ROMÂNĂ (max 130 cuvinte). REGULI STRICTE: (1) NU inventa predicții direcționale — singura bază pt direcție e câmpul "autocorelatie" (negativ=mean-revert/fadezi, pozitiv=trend/urmărești, ~0=impredictibil). (2) Separă explicit DOVEDIT (detecția de regim + prognoza de vol, care bat baseline-urile) de NEDOVEDIT (ex. validareOOS dacă "semnificativ"=false → spune că NU e dovedit statistic). (3) Ghidare concretă de risc: sizing (sizingMultiplicator), distanță SL (slMinimPct), ce setup R:R din firstPassage are P(TP) peste pragul de breakeven. (4) Fără hype, fără promisiuni. Dacă ceva e nesemnificativ, spune-o.`;
+  const prompt = `Interpretează aceste numere HMM pentru ${d.simbol} (${d.interval}):\n` + JSON.stringify(d);
+  let full = '';
+  try {
+    await AI.stream({ prompt, system, model: 'claude-opus-4-8', maxTokens: 400 },
+      tok => { full += tok; const s = document.getElementById('mkAiStream'); if(s) s.textContent = full; });
+    box.innerHTML = `<div class="verdict" style="background:var(--panel3);border:1px solid var(--b1);white-space:pre-wrap;line-height:1.5">🧠 ${full}</div>`;
+  } catch(e){ box.innerHTML = `<div class="verdict bad">Eroare AI: ${e.message || e}</div>`; }
+  finally { btn.disabled = false; btn.textContent = old; }
+};
 
 // ─────────── wiring ───────────
 const $ = id => document.getElementById(id);
