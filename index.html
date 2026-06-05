@@ -420,6 +420,11 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       <div class="w-val" id="vixVal">—</div>
       <div class="w-sub" id="vixSub">se încarcă…</div>
     </div>
+    <div class="widget" id="wRisk" style="display:none">
+      <div class="w-lbl">🔄 Regim de risc</div>
+      <div class="w-val" id="riskVal" style="font-size:18px">—</div>
+      <div class="w-sub" id="riskSub">se calculează…</div>
+    </div>
     <div class="widget" id="wWL">
       <div class="w-lbl">⭐ Watchlist total</div>
       <div class="w-val" id="wlVal">—</div>
@@ -716,6 +721,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+<script src="lib/data.js"></script>
 <script>
 // ── DASHBOARD WIDGETS ──
 // Hub-ul afișează context macro stocks (SPY + QQQ + VIX) + counts (watchlist, open trades).
@@ -731,11 +737,17 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   const fetchQuote = async (sym) => {
     // chart endpoint: returnează ultimul quote + prevClose
     // range=1d → meta.chartPreviousClose e close-ul de IERI (corect pentru "% azi").
-    // Cu range mai mare, chartPreviousClose ar fi close-ul de dinaintea ferestrei → variație greșită.
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
-    const r = await fetch(CORS(url));
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
+    // strat de date comun (lib/data.js): proxy health per-host + fallback + cache 30s.
+    // Fallback la codetabs dacă data.js nu e încărcat.
+    let data;
+    if (window.D && D.fetchJSON) {
+      data = await D.fetchJSON(url, { ttl: 30 });
+    } else {
+      const r = await fetch(CORS(url));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      data = await r.json();
+    }
     const meta = data?.chart?.result?.[0]?.meta;
     if (!meta) throw new Error('no meta');
     const price = meta.regularMarketPrice;
@@ -766,6 +778,25 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     } catch (e) {
       $('vixSub').textContent = 'indisponibil';
     }
+  })();
+
+  // ── Regim de risc (din sector-rotation: cyclicals vs defensives, via localStorage) ──
+  // Complementar cu VIX: VIX = nivel volatilitate; regimul = rotație risk-on/off.
+  (function(){
+    try {
+      const raw = localStorage.getItem('tt_risk_regime');
+      if (!raw) return;
+      const r = JSON.parse(raw);
+      if (!r || !r.regime) return;
+      const ageH = (Date.now() - (r.t || 0)) / 3600000;
+      if (ageH > 48) return;  // prea vechi → ascuns (deschide Sector Rotation ca să-l reîmprospătezi)
+      const col = r.cls === 'on' ? 'w-pos' : (r.cls === 'off' ? 'w-neg' : '');
+      const icon = r.cls === 'on' ? '🟢' : (r.cls === 'off' ? '🔴' : '⚪');
+      $('riskVal').textContent = icon + ' ' + r.regime;
+      $('riskVal').className = 'w-val ' + col;
+      $('riskSub').textContent = 'spread ' + (r.spread >= 0 ? '+' : '') + r.spread + '%' + (ageH > 6 ? ' · ' + Math.round(ageH) + 'h' : '');
+      $('wRisk').style.display = '';
+    } catch (e) {}
   })();
 
   // ── Watchlist UNIFICAT (stocks + crypto) — cross-page aggregation ──
