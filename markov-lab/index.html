@@ -91,7 +91,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 </head>
 <body>
 
-<h1>🔗 Markov Lab <span class="ver">v2</span></h1>
+<h1>🔗 Markov Lab <span class="ver">v3</span></h1>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
   Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
@@ -610,14 +610,16 @@ function renderHMM(meta, ohlc){
     regimCurent: names[curRank], probabilitatePct: +(curProb*100).toFixed(0),
     miscareAsteptataPct: +expMove.toFixed(2), slMinimPct: +(expMove*1.5).toFixed(2), sizingMultiplicator: +sizeMult.toFixed(2),
     autocorelatieRegimCurent: rstats[last].autocorr != null ? +rstats[last].autocorr.toFixed(3) : null,
+    ultimaMiscarePct: obs.length ? +(obs[obs.length-1]*100).toFixed(2) : 0,
+    ultimele3BarePct: obs.slice(-3).map(x => +(x*100).toFixed(2)),
     regimuri: order.map(idx => ({ nume: names[rank[idx]], volPct: +(hmm.sigma[idx]*100).toFixed(2), persistenta: +hmm.A[idx][idx].toFixed(2), durataBare: Math.round(1/Math.max(1e-6,1-hmm.A[idx][idx])), pctTimp: Math.round(pi[idx]*100), autocorelatie: rstats[idx].autocorr != null ? +rstats[idx].autocorr.toFixed(3) : null })),
     firstPassage: [], validareOOS: null
   };
 
   // buton interpretare AI (citește window.__mkRegimeData setat la finalul render-ului)
   html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--b1)">
-    <button id="mkAiBtn" onclick="interpretRegimeAI(this)" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f;font-weight:700;border:none;padding:9px 16px;border-radius:var(--rs);cursor:pointer;font-family:var(--head)">🧠 Interpretare AI (Opus 4.8)</button>
-    <span class="muted" style="font-size:11px;margin-left:8px">read în limbaj natural al numerelor — interpretează, NU prezice</span>
+    <button id="mkAiBtn" onclick="interpretRegimeAI(this)" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f;font-weight:700;border:none;padding:9px 16px;border-radius:var(--rs);cursor:pointer;font-family:var(--head)">🧠 Interpretare AI + direcție (Opus 4.8)</button>
+    <span class="muted" style="font-size:11px;margin-left:8px">înclinație LONG/SHORT/NEUTRU <b>derivată</b> din autocorelație + ultima mișcare (cu încredere onestă, nu fabricată)</span>
     <div id="mkAiResult" style="margin-top:10px"></div>
   </div>`;
 
@@ -695,7 +697,14 @@ window.interpretRegimeAI = async function(btn){
   }
   const old = btn.textContent; btn.disabled = true; btn.textContent = '⏳ Generez…';
   box.innerHTML = `<div class="verdict" style="background:var(--panel3);border:1px solid var(--b1);white-space:pre-wrap"><span id="mkAiStream"></span><span style="opacity:.6">▋</span></div>`;
-  const system = `Ești asistent de RISC pentru trading. Primești NUMERE DEJA CALCULATE de un model HMM de regim de volatilitate (nu date brute). Interpretează-le într-un read concis, acționabil, în ROMÂNĂ (max 130 cuvinte). REGULI STRICTE: (1) NU inventa predicții direcționale — singura bază pt direcție e câmpul "autocorelatie" (negativ=mean-revert/fadezi, pozitiv=trend/urmărești, ~0=impredictibil). (2) Separă explicit DOVEDIT (detecția de regim + prognoza de vol, care bat baseline-urile) de NEDOVEDIT (ex. validareOOS dacă "semnificativ"=false → spune că NU e dovedit statistic). (3) Ghidare concretă de risc: sizing (sizingMultiplicator), distanță SL (slMinimPct), ce setup R:R din firstPassage are P(TP) peste pragul de breakeven. (4) Fără hype, fără promisiuni. Dacă ceva e nesemnificativ, spune-o.`;
+  const system = `Ești asistent de RISC + DIRECȚIE pentru trading. Primești NUMERE DEJA CALCULATE de un model HMM de regim de volatilitate. Răspuns concis, acționabil, în ROMÂNĂ (max 150 cuvinte). STRUCTURĂ OBLIGATORIE:
+1) "🎯 Direcție sugerată: LONG / SHORT / NEUTRU (încredere: foarte slabă / slabă)". DERIVĂ direcția DOAR așa, NU o inventa:
+   - autocorelatieRegimCurent < −0.05 (mean-revert) → direcție OPUSĂ ultimei mișcări (ultimaMiscarePct).
+   - autocorelatieRegimCurent > +0.05 (trend) → direcție în SENSUL ultimei mișcări.
+   - între → NEUTRU, dacă firstPassage nu arată un bias clar de drift (P(TP) net peste "naiv") → atunci înclinație ușoară spre acel sens, încredere foarte slabă.
+2) Spune EXPLICIT că direcția NU e dovedită statistic dacă validareOOS.semnificativ=false (e o înclinație slabă, nu un semnal).
+3) Risc concret: sizing (sizingMultiplicator×), SL minim (slMinimPct), ce setup R:R din firstPassage are P(TP) peste breakeven.
+4) Separă DOVEDIT (regim + vol bat baseline-uri) de NEDOVEDIT (direcția/fade). Fără hype, fără promisiuni de profit.`;
   const prompt = `Interpretează aceste numere HMM pentru ${d.simbol} (${d.interval}):\n` + JSON.stringify(d);
   let full = '';
   try {
