@@ -1098,6 +1098,8 @@ let _deadProxies = new Set(); // proxy-uri care au dat rate-limit / CORS / eroar
 // Marchează „mort" la: 429/403/400, non-JSON, sau CORS/network error (TypeError în catch) —
 // CORS error e indistinct de „Failed to fetch", deci trebuie să abandonăm proxy-ul rapid.
 async function proxyGetJSON(targetUrl, startIdx, timeoutMs = 8000){
+  // strat de date comun (lib/data.js): proxy health per-host + dedup + cache scurt
+  if (window.D && D.fetchJSON) { const j = await D.fetchJSON(targetUrl, { ttl: 0, timeout: timeoutMs }); if (j != null) return j; }
   const n = CORS_PROXIES.length;
   for (let k = 0; k < n; k++){
     const pi = ((startIdx == null ? _proxyIdx : startIdx) + k) % n;
@@ -1764,6 +1766,7 @@ render();
 if (cfg.autoSec > 0) runScan(); else scheduleNextScan();
 </script>
 <!-- Markov Lab: regim de volatilitate al pieței (HMM pe SPY daily) — context de risc global -->
+<script src="../lib/data.js"></script>
 <script src="../lib/markov.js"></script>
 <script src="../lib/backtest.js"></script>
 <script>

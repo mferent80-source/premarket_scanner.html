@@ -391,6 +391,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
   </div>
 </div>
 
+<script src="../lib/data.js"></script>
 <script>
 'use strict';
 
@@ -444,6 +445,8 @@ let _proxyIdx = 0;
 let _deadProxies = new Set();
 
 async function proxyGetJSON(targetUrl, timeoutMs = 9000){
+  // strat de date comun (lib/data.js): proxy health per-host + dedup
+  if (window.D && D.fetchJSON) { const j = await D.fetchJSON(targetUrl, { ttl: 0, timeout: timeoutMs }); if (j != null) return j; }
   const n = CORS_PROXIES.length;
   for (let k = 0; k < n; k++){
     const pi = (_proxyIdx + k) % n;
