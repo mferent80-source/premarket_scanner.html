@@ -428,6 +428,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 
 <div class="toasts" id="toasts"></div>
 
+<script src="../lib/data.js"></script>
 <script>
 'use strict';
 
@@ -566,6 +567,8 @@ const CORS_PROXIES = [
 ];
 let _proxyIdx = 0;
 async function proxyGetJSON(targetUrl, timeoutMs = 8000){
+  // strat de date comun (lib/data.js): proxy health per-host + dedup, ttl:0 = fără date stale
+  if (window.D && D.fetchJSON) return D.fetchJSON(targetUrl, { ttl: 0, timeout: timeoutMs });
   const n = CORS_PROXIES.length;
   for (let k = 0; k < n; k++){
     const pi = (_proxyIdx + k) % n;

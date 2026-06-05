@@ -279,6 +279,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 
 <div class="toast" id="toast"></div>
 
+<script src="../lib/data.js"></script>
 <script>
 'use strict';
 
@@ -421,6 +422,8 @@ function adx(highs, lows, closes, period = 14) {
 
 // ─────────────────────── DATA FETCH ───────────────────────
 async function fetchViaProxy(url, timeoutMs = 9000) {
+  // strat de date comun (lib/data.js): proxy health per-host + dedup, ttl:0 = fără date stale
+  if (window.D && D.fetchJSON) { const j = await D.fetchJSON(url, { ttl: 0, timeout: timeoutMs }); if (j != null) return j; }
   const tried = new Set();
   let lastErr = null;
   for (let attempt = 0; attempt < CORS_PROXIES.length; attempt++) {
