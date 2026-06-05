@@ -586,6 +586,23 @@ function renderHMM(meta, ohlc){
   else { advice = `⚪ <b>Direcție impredictibilă</b> (autocorel. ${curAc.toFixed(2)} ≈ 0). Nu trage concluzii direcționale — folosește HMM aici DOAR pentru risc/sizing (vol prognozată ${predVolPct.toFixed(2)}%).${risk}`; aCls=curRank>=K-1?'warn':''; }
   html += `<div class="verdict ${aCls}" style="${aCls===''?'background:var(--panel3);border:1px solid var(--b1)':''}">${advice}</div>`;
 
+  // ── RISC & SIZING pe regim: mișcare așteptată (pt stops) + sizing invers-vol ──
+  const refVol = order.reduce((s, idx) => s + pi[idx] * hmm.sigma[idx], 0);   // vol „normală" long-run (π-weighted)
+  const curVol = Math.sqrt(predVar);                                          // vol prognozată next bar (fracție)
+  const expMove = predVolPct;                                                 // 1σ next bar, %
+  const expHold = predVolPct * Math.sqrt(Math.max(1, dur));                   // mișcare pe durata tipică a regimului
+  let sizeMult = (refVol > 0 && curVol > 0) ? refVol / curVol : 1;
+  sizeMult = Math.max(0.3, Math.min(1.6, sizeMult));                          // vol-targeting, mărginit
+  const szCol = sizeMult < 0.75 ? 'var(--bear-s)' : (sizeMult > 1.1 ? 'var(--bull-s)' : 'var(--t1)');
+  html += `<div style="margin-top:12px"><div class="muted" style="font-size:11px;margin-bottom:6px">🎯 Risc & sizing pe regim (din volatilitatea prognozată)</div>
+    <div class="stats">
+      <div class="stat"><div class="k">Mișcare așteptată (1 bară)</div><div class="v">±${expMove.toFixed(2)}%</div><div class="muted" style="font-size:10px">~68% din bare aici · ~95% în ±${(expMove*2).toFixed(1)}%</div></div>
+      <div class="stat"><div class="k">SL minim (sub asta = zgomot)</div><div class="v">±${(expMove*1.5).toFixed(2)}%</div><div class="muted" style="font-size:10px">1.5σ pe regimul curent</div></div>
+      <div class="stat"><div class="k">Mișcare pe durata regimului</div><div class="v">±${expHold.toFixed(1)}%</div><div class="muted" style="font-size:10px">~${dur.toFixed(0)} bare tipic</div></div>
+      <div class="stat"><div class="k">Sizing sugerat (vol-target)</div><div class="v" style="color:${szCol}">${sizeMult.toFixed(2)}×</div><div class="muted" style="font-size:10px">invers cu vol → risc/poziție constant</div></div>
+    </div>
+    <div class="legend">Sizing = vol „normală" (π-ponderată ${(refVol*100).toFixed(2)}%) ÷ vol prognozată (${(curVol*100).toFixed(2)}%). Regim volatil → sub 1× automat. SL mai strâns de 1.5σ e mâncat de zgomotul regimului.</div></div>`;
+
   // VALIDARE OOS — strategia „fade în regim volatil" pe bani, walk-forward (reproductibil)
   try {
     const bt = MK.backtestRegimeFade(ohlc, { K: Math.min(K,3), train: Math.min(400, Math.floor(ohlc.length*0.5)), refit: 25 });
