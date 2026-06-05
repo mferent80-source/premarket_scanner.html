@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔗 Markov Lab — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Model Markov Chain pe randament normalizat la volatilitate — matrice de tranziție, probabilități next-state, backtest walk-forward cu test de edge (chi² + log-loss vs baseline)">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><circle cx='9' cy='16' r='3' fill='none' stroke='%235bb0ff' stroke-width='2'/><circle cx='23' cy='9' r='3' fill='none' stroke='%2322d66b' stroke-width='2'/><circle cx='23' cy='23' r='3' fill='none' stroke='%23ff4d4d' stroke-width='2'/><path d='M12 15 L20 10 M12 17 L20 22' stroke='%238892a6' stroke-width='1.5'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg:#0b0f17;
+  --bg-grad:radial-gradient(1200px 600px at 50% -200px, #14202c 0%, #0b0f17 55%);
+  --panel:#141a28; --panel2:#1d2537; --panel3:#222b40;
+  --b1:#2a3247; --b2:#3a4258;
+  --t1:#e8eef5; --t2:#c1c9d6; --t3:#8892a6;
+  --bull-s:#22d66b; --bull:#1ba858; --bull-bg:rgba(34,214,107,.12);
+  --bear-s:#ff4d4d; --bear:#cc3434; --bear-bg:rgba(255,77,77,.12);
+  --warn:#d4892c; --warn-bg:rgba(212,137,44,.15);
+  --vol:#a78bfa; --accent:#5bb0ff;
+  --r:12px; --rs:8px;
+  --mono:'DM Mono',monospace; --head:'Sora',sans-serif;
+  color-scheme:dark;
+}
+html,body { min-height:100vh; }
+body {
+  font-family:var(--head);
+  background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
+  color:var(--t1); padding:14px; font-size:13px;
+  -webkit-font-smoothing:antialiased; font-variant-numeric:tabular-nums;
+  max-width:1080px; margin:0 auto;
+}
+a { color:var(--accent); text-decoration:none; }
+h1 { font-size:20px; font-weight:800; letter-spacing:-.3px; display:flex; align-items:center; gap:8px; }
+h1 .ver { font-size:10px; color:var(--t3); font-weight:500; padding:2px 7px; border:1px solid var(--b1); border-radius:20px; }
+.sub { color:var(--t3); font-size:12px; margin:4px 0 16px; line-height:1.5; }
+.panel { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:14px; margin-bottom:14px; }
+.panel h2 { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--t2); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.panel h2 .tag { font-size:10px; font-weight:500; text-transform:none; letter-spacing:0; color:var(--t3); }
+.row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+label.fld { display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--t3); }
+input, select, button { font-family:var(--mono); font-size:13px; }
+input, select {
+  background:var(--panel3); border:1px solid var(--b1); color:var(--t1);
+  border-radius:var(--rs); padding:8px 10px; outline:none;
+}
+input:focus, select:focus { border-color:var(--accent); }
+input[type=text]{ width:130px; text-transform:uppercase; }
+button {
+  background:var(--accent); color:#06121f; border:none; font-weight:700;
+  padding:9px 16px; border-radius:var(--rs); cursor:pointer; font-family:var(--head);
+}
+button.ghost { background:var(--panel3); color:var(--t1); border:1px solid var(--b1); font-weight:500; }
+button:disabled { opacity:.5; cursor:not-allowed; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:720px){ .grid2{ grid-template-columns:1fr; } body{font-size:12.5px;} }
+
+/* Matrice heatmap */
+table.mx { border-collapse:collapse; width:100%; font-family:var(--mono); font-size:12px; }
+table.mx th, table.mx td { padding:6px 4px; text-align:center; border:1px solid var(--b1); }
+table.mx th { color:var(--t3); font-weight:500; background:var(--panel2); }
+table.mx td.lbl { color:var(--t2); background:var(--panel2); font-weight:600; }
+.cell { border-radius:3px; padding:5px 2px; }
+
+/* Bare distribuție */
+.distrow { display:flex; align-items:center; gap:8px; margin:5px 0; }
+.distrow .nm { width:96px; font-size:11px; color:var(--t2); font-family:var(--mono); }
+.distrow .bar { flex:1; height:18px; background:var(--panel3); border-radius:4px; overflow:hidden; position:relative; }
+.distrow .bar i { display:block; height:100%; border-radius:4px; }
+.distrow .pct { width:48px; text-align:right; font-family:var(--mono); font-size:11px; color:var(--t1); }
+
+.stat { display:flex; flex-direction:column; gap:2px; }
+.stat .k { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; }
+.stat .v { font-size:18px; font-weight:700; font-family:var(--mono); }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; }
+.verdict { padding:10px 12px; border-radius:var(--rs); font-size:12.5px; line-height:1.5; margin-top:10px; }
+.verdict.good { background:var(--bull-bg); border:1px solid var(--bull); }
+.verdict.bad { background:var(--bear-bg); border:1px solid var(--bear); }
+.verdict.warn { background:var(--warn-bg); border:1px solid var(--warn); }
+.pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; font-family:var(--mono); }
+.muted { color:var(--t3); }
+.err { color:var(--bear-s); }
+.curstate { font-size:34px; font-weight:800; font-family:var(--mono); }
+code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; border-radius:4px; font-size:12px; }
+.legend { font-size:10.5px; color:var(--t3); margin-top:8px; line-height:1.5; }
+.spinner { display:inline-block; width:13px; height:13px; border:2px solid var(--b2); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; }
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<h1>🔗 Markov Lab <span class="ver">v1</span></h1>
+<p class="sub">
+  Două modele Markov, cu scopuri diferite:<br>
+  • <b>Lanț discret</b> (▶ Rulează / Sweep / Batch) — pe direcție normalizată la volatilitate. Onest: pe instrumente lichide <b>nu prinde direcția</b> (piețe eficiente), iar panourile o demonstrează cu <code>chi²</code> + <code>log-loss vs baseline</code> walk-forward.<br>
+  • <b>🧠 HMM</b> (regim de volatilitate) — <b>ăsta e Markov-ul care chiar bate baseline-urile</b> (rolling-20 & EWMA, out-of-sample). Detectează regim calm/normal/volatil → filtru real pentru celelalte scannere.
+</p>
+
+<!-- ─────────── CONTROLS ─────────── -->
+<div class="panel">
+  <h2>① Sursă de date <span class="tag">crypto (Binance) sau stock (Yahoo)</span></h2>
+  <div class="row">
+    <label class="fld">Tip
+      <select id="src">
+        <option value="crypto">Crypto / USDT</option>
+        <option value="stock">Stock / ETF</option>
+      </select>
+    </label>
+    <label class="fld">Simbol
+      <input type="text" id="sym" value="BTCUSDT" spellcheck="false">
+    </label>
+    <label class="fld">Interval
+      <select id="tf">
+        <option value="1h">1h</option>
+        <option value="4h">4h</option>
+        <option value="1d" selected>1d</option>
+        <option value="1wk">1săpt</option>
+      </select>
+    </label>
+    <label class="fld">Stări
+      <select id="nstates">
+        <option value="5" selected>5 (⇊ ↓ · ↑ ⇈)</option>
+        <option value="3">3 (↓ · ↑)</option>
+      </select>
+    </label>
+    <label class="fld">Fereastră backtest
+      <input type="text" id="win" value="300" style="width:70px">
+    </label>
+    <label class="fld">RVOL prag
+      <input type="text" id="rvol" value="1.5" style="width:56px" title="Bară cu volum ≥ acest multiplu × media = regim HIGH">
+    </label>
+    <label class="fld">Regimuri HMM
+      <select id="khmm">
+        <option value="auto" selected>auto (BIC)</option>
+        <option value="2">2 (calm/volatil)</option>
+        <option value="3">3 (calm/normal/volatil)</option>
+        <option value="4">4</option>
+      </select>
+    </label>
+    <label class="fld">&nbsp;
+      <button id="run">▶ Rulează</button>
+    </label>
+    <label class="fld">&nbsp;
+      <button id="hmm" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f" title="HMM gaussian — detecție de regim de volatilitate (Markov-ul care chiar bate baseline-urile)">🧠 Regim HMM</button>
+    </label>
+    <label class="fld">&nbsp;
+      <button id="sweep" class="ghost" title="Testează toate timeframe-urile × regim de volum ca să găsești unde există edge">🔍 Sweep edge</button>
+    </label>
+    <label class="fld">&nbsp;
+      <button id="selftest" class="ghost" title="Validează matematica pe date sintetice cu structură cunoscută">🧪 Self-test</button>
+    </label>
+  </div>
+  <div id="status" class="legend"></div>
+  <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--b1)">
+    <label class="fld" style="width:100%">📊 Batch scan — testează o listă întreagă pe TF-ul selectat (caută edge pe univers volatil)
+      <textarea id="batchlist" rows="2" spellcheck="false" style="width:100%; font-family:var(--mono); font-size:12px; background:var(--panel3); border:1px solid var(--b1); color:var(--t1); border-radius:var(--rs); padding:8px; resize:vertical; text-transform:uppercase">PLTR,SMCI,COIN,MSTR,HOOD,SOFI,RIVN,MARA,RIOT,ARM,NET,CRWD,TSLA,NVDA,AMD,AFRM,UPST,CVNA,DKNG,RBLX</textarea>
+    </label>
+    <div class="row" style="margin-top:8px">
+      <button id="batch" class="ghost" title="Rulează modelul pe fiecare ticker din listă, le ordonează după edge">📊 Batch scan listă</button>
+      <span class="legend" style="margin:0">Folosește tipul + TF-ul de mai sus. Pentru stocks pune tip „Stock". 1 request/ticker.</span>
+    </div>
+  </div>
+</div>
+
+<div id="out"></div>
+
+<div class="panel">
+  <h2>ℹ️ Cum citești rezultatul</h2>
+  <div class="legend" style="font-size:11.5px; line-height:1.65">
+    <b>Stările</b> = randamentul barei împărțit la ATR% (volatilitate). <code>z &gt; 1</code> = mișcare mare în sus față de volatilitatea proprie (⇈), <code>|z| &lt; 0.25</code> = plat (·). Așa „UP" înseamnă același lucru pe BTC și pe un blue-chip lent.<br>
+    <b>Matricea</b> P(i→j): pe rândul stării curente citești probabilitatea fiecărei stări următoare. Smoothing Laplace (add-k) ca o tranziție văzută o dată să nu pară certitudine.<br>
+    <b>chi²</b>: testează dacă starea curentă chiar influențează următoarea. <code>p &lt; 0.05</code> ⇒ există structură (memorie). Dacă nu, matricea e doar zgomot.<br>
+    <b>Edge% (backtest)</b>: cât de mult bate modelul un baseline „ghicește distribuția medie", testat <i>out-of-sample</i> (walk-forward). <b>&gt; 0 = edge real.</b> ≤ 0 ⇒ NU-l folosi ca semnal.<br>
+    <b>Verdict</b>: combină ambele. Doar verde = candidat de folosit ca filtru în celelalte scannere.
+  </div>
+</div>
+
+<p class="sub muted" style="text-align:center">
+  Modul: <code>lib/markov.js</code> (<code>MK.*</code>) — generic, fără dependențe. Această pagină e doar laboratorul de validare.
+</p>
+
+<script src="../lib/indicators.js"></script>
+<script src="../lib/markov.js"></script>
+<script>
+// ─────────── proxy fallbacks (același pattern ca market-events) ───────────
+const PROXY_FALLBACKS = [
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://thingproxy.freeboard.io/fetch/' + u,
+];
+async function getJson(rawUrl){
+  const cands = [];
+  for (const f of PROXY_FALLBACKS) cands.push(f(rawUrl));
+  cands.push(rawUrl);
+  for (const u of cands){
+    try { const r = await fetch(u, { headers:{ 'Accept':'application/json' } }); if(!r.ok) continue; const j = await r.json(); if(j) return j; }
+    catch(e){ /* next */ }
+  }
+  return null;
+}
+
+// ─────────── fetch OHLC ───────────
+const TF_CRYPTO = { '1h':'1h','4h':'4h','1d':'1d','1wk':'1w' };
+async function fetchCrypto(sym, tf){
+  const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(sym)}&interval=${TF_CRYPTO[tf]||'1d'}&limit=1000`;
+  const j = await getJson(url);
+  if(!Array.isArray(j) || !j.length) throw new Error('Binance: niciun rezultat pentru ' + sym);
+  return j.map(k => ({ o:+k[1], h:+k[2], l:+k[3], c:+k[4], v:+k[5] }));
+}
+async function fetchStock(sym, tf){
+  // Yahoo: range cât mai mare pentru destule bare la backtest
+  const range = (tf==='1h') ? '730d' : (tf==='4h' ? '730d' : '10y');
+  const interval = (tf==='1h') ? '60m' : (tf==='4h' ? '60m' : (tf==='1wk' ? '1wk' : '1d'));
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=${interval}`;
+  const j = await getJson(url);
+  const res = j?.chart?.result?.[0];
+  if(!res) throw new Error('Yahoo: simbol invalid sau indisponibil — ' + sym);
+  const ts = res.timestamp || [];
+  const q = res.indicators?.quote?.[0] || {};
+  const out = [];
+  for(let i=0;i<ts.length;i++){
+    const o=q.open?.[i], h=q.high?.[i], l=q.low?.[i], c=q.close?.[i], v=q.volume?.[i];
+    if([o,h,l,c].every(x => x!=null && !isNaN(x))) out.push({o,h,l,c,v:(v!=null&&!isNaN(v))?v:0});
+  }
+  if(!out.length) throw new Error('Yahoo: serie goală pentru ' + sym);
+  return out;
+}
+
+// ─────────── heatmap color ───────────
+function heat(p){
+  // 0 → panel, mare → accent. Verde dacă e pe diagonala „bună", neutru altfel.
+  const a = Math.min(1, p*1.6);
+  return `rgba(91,176,255,${(0.08+a*0.55).toFixed(3)})`;
+}
+
+function distColor(score){
+  if(score>0) return 'var(--bull-s)';
+  if(score<0) return 'var(--bear-s)';
+  return 'var(--t3)';
+}
+
+// ─────────── render ───────────
+function fmtPct(x){ return (x*100).toFixed(1)+'%'; }
+
+function renderAnalysis(meta, ohlc){
+  const n = meta.nStates;
+  const lab = MK.labelStates(ohlc, { nStates:n });
+  const m = MK.buildMatrix(lab.states, n);
+  const chi = MK.chiSquare(m.counts);
+  const pi = MK.stationary(m.probs);
+  const cur = lab.states[lab.states.length-1];
+  const pred = MK.predictNext(m, cur, lab.score);
+  const bt = MK.backtest(lab.states, n, lab.score, { window: meta.win });
+
+  // ── header / stare curentă ──
+  let html = `<div class="panel"><h2>② Stare curentă & predicție <span class="tag">${meta.sym} · ${meta.tf} · ${ohlc.length} bare</span></h2>`;
+  html += `<div class="grid2">`;
+  // stânga: starea curentă + bias
+  const leanPct = (pred.pUp - pred.pDown);
+  const leanCol = leanPct>0?'var(--bull-s)':(leanPct<0?'var(--bear-s)':'var(--t3)');
+  html += `<div>
+    <div class="muted" style="font-size:11px">Ultima bară este în starea</div>
+    <div class="curstate" style="color:${distColor(lab.score[cur])}">${lab.short[cur]} ${lab.labels[cur]}</div>
+    <div style="margin-top:8px; display:flex; gap:18px; flex-wrap:wrap">
+      <div class="stat"><div class="k">P(următoarea ↑)</div><div class="v" style="color:var(--bull-s)">${fmtPct(pred.pUp)}</div></div>
+      <div class="stat"><div class="k">P(următoarea ↓)</div><div class="v" style="color:var(--bear-s)">${fmtPct(pred.pDown)}</div></div>
+      <div class="stat"><div class="k">Bias net</div><div class="v" style="color:${leanCol}">${leanPct>=0?'+':''}${fmtPct(leanPct)}</div></div>
+    </div>
+    ${!pred.confident ? `<div class="verdict warn" style="margin-top:10px">⚠ Doar ${m.rowN[cur]} observații istorice pe această stare — predicția e slab susținută. Tratează cu prudență.</div>` : ''}
+  </div>`;
+  // dreapta: distribuția next-state
+  html += `<div><div class="muted" style="font-size:11px; margin-bottom:6px">Distribuția stării următoare (din rândul curent)</div>`;
+  for(let j=0;j<n;j++){
+    const p = pred.dist[j];
+    html += `<div class="distrow">
+      <span class="nm">${lab.short[j]} ${lab.labels[j]}</span>
+      <span class="bar"><i style="width:${(p*100).toFixed(1)}%; background:${distColor(lab.score[j])}"></i></span>
+      <span class="pct">${fmtPct(p)}</span>
+    </div>`;
+  }
+  html += `</div></div></div>`;
+
+  // ── matricea de tranziție ──
+  html += `<div class="panel"><h2>③ Matrice de tranziție <span class="tag">P(rând → coloană) · Laplace k=${m.k}</span></h2>`;
+  html += `<div style="overflow-x:auto"><table class="mx"><tr><th>din ↓ \\ în →</th>`;
+  for(let j=0;j<n;j++) html += `<th>${lab.short[j]}</th>`;
+  html += `<th>n</th></tr>`;
+  for(let i=0;i<n;i++){
+    html += `<tr><td class="lbl">${lab.short[i]} ${lab.labels[i]}</td>`;
+    for(let j=0;j<n;j++){
+      const p = m.probs[i][j];
+      const isCur = i===cur;
+      html += `<td><div class="cell" style="background:${heat(p)};${isCur?'outline:1px solid var(--accent)':''}">${(p*100).toFixed(0)}%</div></td>`;
+    }
+    html += `<td class="muted">${m.rowN[i]}</td></tr>`;
+  }
+  // rând staționar
+  html += `<tr><td class="lbl" style="color:var(--vol)">π staționar</td>`;
+  for(let j=0;j<n;j++) html += `<td style="color:var(--vol)">${(pi[j]*100).toFixed(0)}%</td>`;
+  html += `<td>—</td></tr>`;
+  html += `</table></div>`;
+  html += `<div class="legend">Rândul evidențiat = starea curentă (<b>${lab.labels[cur]}</b>). π = mix-ul de regim pe termen lung implicat de matrice.</div></div>`;
+
+  // ── validare edge ──
+  const edge = bt.edgePct;
+  const struct = chi.hasStructure;
+  let vClass, vText;
+  if(struct && edge > 1){
+    vClass='good';
+    vText=`✅ <b>EDGE detectat.</b> Există memorie statistică (chi² p≈${chi.pApprox.toFixed(3)}) ȘI modelul bate baseline-ul out-of-sample cu <b>${edge.toFixed(1)}%</b> la log-loss. Candidat valid pentru filtru în scannere.`;
+  } else if(struct && edge > -1){
+    vClass='warn';
+    vText=`🟡 <b>Structură slabă.</b> chi² sugerează ceva memorie (p≈${chi.pApprox.toFixed(3)}) dar edge-ul out-of-sample e marginal (${edge.toFixed(1)}%). Folosește cel mult ca semnal secundar, nu standalone.`;
+  } else {
+    vClass='bad';
+    vText=`❌ <b>Fără edge.</b> ${struct?'chi² arată ceva structură in-sample dar':'chi² nu arată memorie (p≈'+chi.pApprox.toFixed(3)+') și'} modelul NU bate baseline-ul out-of-sample (edge ${edge.toFixed(1)}%). Pe acest instrument/TF, Markov ≈ random walk — nu-l folosi ca semnal.`;
+  }
+  html += `<div class="panel"><h2>④ Validare edge <span class="tag">walk-forward, fereastră=${bt.window}</span></h2>`;
+  html += `<div class="stats">
+    <div class="stat"><div class="k">chi² (df=${chi.df})</div><div class="v">${chi.chi2.toFixed(1)}</div><div class="muted" style="font-size:10px">p≈${chi.pApprox.toFixed(4)}</div></div>
+    <div class="stat"><div class="k">Edge% vs baseline</div><div class="v" style="color:${edge>0?'var(--bull-s)':'var(--bear-s)'}">${edge>=0?'+':''}${edge.toFixed(1)}%</div></div>
+    <div class="stat"><div class="k">Log-loss model</div><div class="v">${bt.logLossModel.toFixed(3)}</div></div>
+    <div class="stat"><div class="k">Log-loss baseline</div><div class="v muted">${bt.logLossBaseline.toFixed(3)}</div></div>
+    <div class="stat"><div class="k">Direcție corectă</div><div class="v">${bt.dirHitRate!=null?fmtPct(bt.dirHitRate):'n/a'}</div><div class="muted" style="font-size:10px">${bt.dirSamples} mostre</div></div>
+    <div class="stat"><div class="k">Mostre backtest</div><div class="v">${bt.samples}</div></div>
+  </div>`;
+  html += `<div class="verdict ${vClass}">${vText}</div>`;
+  html += `<div class="legend">Direcție corectă &gt; 50% = bias-ul (pUp−pDown) anticipă semnul barei mai des decât hazardul. Pe 5 stări, „direcție" ignoră FLAT.</div></div>`;
+
+  // ── ⑤ condiționare pe RVOL ──
+  if(ohlc.some(b => b.v)){
+    const reg = MK.volumeRegime(ohlc, 20, meta.rvol).slice(1); // aliniat la states
+    const btc = MK.backtestConditional(lab.states, reg, n, lab.score, { window: meta.win });
+    const cell = (b) => {
+      const col = b.edgePct>1?'var(--bull-s)':(b.edgePct<-1?'var(--bear-s)':'var(--t2)');
+      return `<div class="stat"><div class="v" style="color:${col};font-size:16px">${b.edgePct>=0?'+':''}${b.edgePct.toFixed(1)}%</div><div class="muted" style="font-size:10px">dir ${b.dirHitRate!=null?(b.dirHitRate*100).toFixed(0)+'%':'—'} · n=${b.samples}</div></div>`;
+    };
+    const hi = btc.high, no = btc.normal;
+    const improved = hi.samples>=30 && hi.edgePct > Math.max(1, no.edgePct + 1.5);
+    html += `<div class="panel"><h2>⑤ Condiționare pe volum (RVOL ≥ ${meta.rvol}×) <span class="tag">edge separat pe regim de volum</span></h2>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:center">
+      <div><div class="muted" style="font-size:11px;margin-bottom:4px">Toate barele</div>${cell(btc.all)}</div>
+      <div><div class="muted" style="font-size:11px;margin-bottom:4px">🔥 Volum MARE</div>${cell(hi)}</div>
+      <div><div class="muted" style="font-size:11px;margin-bottom:4px">Volum normal</div>${cell(no)}</div>
+    </div>`;
+    if(improved)
+      html += `<div class="verdict good">✅ <b>Volumul ADAUGĂ edge.</b> Pe barele cu RVOL≥${meta.rvol}× edge-ul (${hi.edgePct.toFixed(1)}%) bate clar regimul normal (${no.edgePct.toFixed(1)}%). Aici merită condiționat semnalul pe volum.</div>`;
+    else if(hi.samples<30)
+      html += `<div class="verdict warn">🟡 Prea puține bare cu volum mare (${hi.samples}) la acest TF — crește istoricul sau coboară pragul RVOL pentru un test valid.</div>`;
+    else
+      html += `<div class="verdict bad">❌ Condiționarea pe volum NU îmbunătățește edge-ul aici (high ${hi.edgePct.toFixed(1)}% vs normal ${no.edgePct.toFixed(1)}%). Pe acest TF, RVOL nu separă regimuri utile.</div>`;
+    html += `</div>`;
+  }
+
+  return html;
+}
+
+// ─────────── self-test (date sintetice cu adevăr cunoscut) ───────────
+function genSeries(N, mode, seed){
+  let s = seed||42; const rnd = () => { s = (s*1103515245 + 12345) & 0x7fffffff; return s/0x7fffffff; };
+  const ohlc=[]; let c=100, dir=1;
+  for(let i=0;i<N;i++){
+    let move;
+    if(mode==='trend'){ if(rnd()>0.75) dir=-dir; move = dir*(0.004+rnd()*0.010)*c; }
+    else if(mode==='meanrev'){ const pull = (100-c)/100; move = (pull*0.5 + (rnd()-0.5)*0.02)*c; }
+    else { move = (rnd()-0.5)*0.022*c; } // random walk
+    const o=c, cl=c+move, h=Math.max(o,cl)+rnd()*0.003*c, l=Math.min(o,cl)-rnd()*0.003*c;
+    ohlc.push({o,h,l,c:cl}); c=cl;
+  }
+  return ohlc;
+}
+function runSelfTest(){
+  const cases = [
+    ['Momentum (trend)', 'trend', '+edge AȘTEPTAT'],
+    ['Mean-reversion',   'meanrev', '+edge AȘTEPTAT'],
+    ['Random walk pur',  'random', 'edge ~0 AȘTEPTAT'],
+  ];
+  let html = `<div class="panel"><h2>🧪 Self-test <span class="tag">date sintetice cu structură cunoscută — verifică matematica</span></h2>`;
+  html += `<div style="overflow-x:auto"><table class="mx" style="font-size:11.5px"><tr><th>Serie</th><th>chi² p</th><th>structură?</th><th>edge%</th><th>dir%</th><th>așteptat</th><th>verdict</th></tr>`;
+  for(const [name,mode,exp] of cases){
+    const ohlc = genSeries(1500, mode, 42);
+    const lab = MK.labelStates(ohlc, { nStates:5 });
+    const m = MK.buildMatrix(lab.states, 5);
+    const chi = MK.chiSquare(m.counts);
+    const bt = MK.backtest(lab.states, 5, lab.score, { window:300 });
+    const wantEdge = exp.startsWith('+');
+    const ok = wantEdge ? (chi.hasStructure && bt.edgePct>0.5) : (Math.abs(bt.edgePct)<3);
+    html += `<tr>
+      <td class="lbl" style="text-align:left">${name}</td>
+      <td>${chi.pApprox.toFixed(4)}</td>
+      <td>${chi.hasStructure?'da':'nu'}</td>
+      <td style="color:${bt.edgePct>0?'var(--bull-s)':'var(--bear-s)'}">${bt.edgePct>=0?'+':''}${bt.edgePct.toFixed(1)}</td>
+      <td>${bt.dirHitRate!=null?(bt.dirHitRate*100).toFixed(0)+'%':'—'}</td>
+      <td class="muted">${exp}</td>
+      <td style="color:${ok?'var(--bull-s)':'var(--bear-s)'}">${ok?'✓ PASS':'✗ FAIL'}</td>
+    </tr>`;
+  }
+  html += `</table></div>`;
+  html += `<div class="legend">Seriile trend & mean-reversion AU structură → modelul trebuie să găsească edge. Random walk NU are → edge trebuie ~0. Dacă toate sunt PASS, matematica modulului e corectă.</div></div>`;
+  document.getElementById('out').innerHTML = html;
+}
+
+// ─────────── sweep: testează TF × regim de volum, găsește unde e edge ───────────
+const SWEEP_TFS = { crypto: ['1h','4h','1d','1wk'], stock: ['1h','1d','1wk'] };
+async function runSweep(){
+  const src = $('src').value, sym = $('sym').value.trim().toUpperCase();
+  const nStates = +$('nstates').value, rvol = Math.max(1.05, +$('rvol').value || 1.5);
+  if(!sym){ setStatus('Introdu un simbol.', true); return; }
+  $('sweep').disabled = true; $('run').disabled = true;
+  $('out').innerHTML = '';
+  const tfs = SWEEP_TFS[src];
+  const rows = [];
+  for(const tf of tfs){
+    setStatus(`<span class="spinner"></span> Sweep ${sym}: ${tf}…`);
+    try {
+      const ohlc = src==='crypto' ? await fetchCrypto(sym, tf) : await fetchStock(sym, tf);
+      const win = Math.min(300, Math.max(50, ohlc.length - 60));
+      if(ohlc.length < 120){ rows.push({ tf, err:`doar ${ohlc.length} bare` }); continue; }
+      const lab = MK.labelStates(ohlc, { nStates });
+      const m = MK.buildMatrix(lab.states, nStates);
+      const chi = MK.chiSquare(m.counts);
+      const reg = ohlc.some(b=>b.v) ? MK.volumeRegime(ohlc, 20, rvol).slice(1) : null;
+      const btc = reg ? MK.backtestConditional(lab.states, reg, nStates, lab.score, { window:win }) : null;
+      const uncond = MK.backtest(lab.states, nStates, lab.score, { window:win });
+      rows.push({ tf, bars:ohlc.length, chi, uncond, high:btc&&btc.high, normal:btc&&btc.normal });
+    } catch(e){ rows.push({ tf, err:(e.message||e).slice(0,40) }); }
+  }
+  setStatus(`Sweep complet: ${sym} pe ${tfs.length} timeframe-uri.`);
+
+  // găsește cel mai bun candidat
+  let best = null;
+  for(const r of rows){
+    if(r.err) continue;
+    const cands = [['uncond', r.uncond], r.high && ['high-RVOL', r.high]].filter(Boolean);
+    for(const [mode, b] of cands){
+      if(b.samples>=50 && b.edgePct>1 && r.chi.hasStructure && (!best || b.edgePct>best.edge))
+        best = { tf:r.tf, mode, edge:b.edgePct, dir:b.dirHitRate };
+    }
+  }
+
+  const ef = (b) => b ? `<span style="color:${b.edgePct>1?'var(--bull-s)':(b.edgePct<-1?'var(--bear-s)':'var(--t2)')}">${b.edgePct>=0?'+':''}${b.edgePct.toFixed(1)}%</span><br><span class="muted" style="font-size:10px">n=${b.samples}</span>` : '<span class="muted">—</span>';
+  let html = `<div class="panel"><h2>🔍 Sweep edge — ${sym} <span class="tag">${nStates} stări · RVOL≥${rvol}×</span></h2>`;
+  html += `<div style="overflow-x:auto"><table class="mx"><tr><th>TF</th><th>bare</th><th>chi² p</th><th>edge necond.</th><th>🔥 edge vol-mare</th><th>edge vol-normal</th></tr>`;
+  for(const r of rows){
+    if(r.err){ html += `<tr><td class="lbl">${r.tf}</td><td colspan="5" class="muted" style="text-align:left">⚠ ${r.err}</td></tr>`; continue; }
+    const sig = r.chi.hasStructure;
+    html += `<tr>
+      <td class="lbl">${r.tf}</td>
+      <td class="muted">${r.bars}</td>
+      <td style="color:${sig?'var(--bull-s)':'var(--t3)'}">${r.chi.pApprox.toFixed(3)}</td>
+      <td>${ef(r.uncond)}</td>
+      <td>${ef(r.high)}</td>
+      <td>${ef(r.normal)}</td>
+    </tr>`;
+  }
+  html += `</table></div>`;
+  if(best)
+    html += `<div class="verdict good">✅ <b>Cel mai bun candidat: ${sym} ${best.tf} (${best.mode}).</b> Edge +${best.edge.toFixed(1)}% out-of-sample, direcție ${best.dir!=null?(best.dir*100).toFixed(0)+'%':'—'}, cu structură chi² semnificativă. Aici merită să mergi mai departe / să-l folosești ca filtru.</div>`;
+  else
+    html += `<div class="verdict bad">❌ <b>Niciun edge robust</b> pe ${sym} la TF-urile testate (nici necondiționat, nici pe volum mare). Markov simplu nu prinde nimic aici — încearcă alt simbol, sau e un instrument prea eficient/zgomotos.</div>`;
+  html += `<div class="legend">Verde pe chi² p = există memorie statistică. „edge vol-mare" = backtest doar pe barele cu RVOL≥${rvol}×. Caut celula cu edge&gt;1%, n≥50 ȘI chi² semnificativ.</div></div>`;
+  $('out').innerHTML = html;
+  $('sweep').disabled = false; $('run').disabled = false;
+}
+
+// ─────────── batch: rulează modelul pe o listă de tickere, le ordonează după edge ───────────
+async function runBatch(){
+  const src = $('src').value, tf = $('tf').value, nStates = +$('nstates').value;
+  const rvol = Math.max(1.05, +$('rvol').value || 1.5);
+  const tickers = $('batchlist').value.toUpperCase().split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean);
+  if(!tickers.length){ setStatus('Listă goală.', true); return; }
+  $('batch').disabled = true; $('run').disabled = true; $('sweep').disabled = true;
+  $('out').innerHTML = '';
+  const rows = [];
+  for(let i=0;i<tickers.length;i++){
+    const sym = tickers[i];
+    setStatus(`<span class="spinner"></span> Batch ${i+1}/${tickers.length}: ${sym} (${tf})…`);
+    try {
+      const ohlc = src==='crypto' ? await fetchCrypto(sym, tf) : await fetchStock(sym, tf);
+      if(ohlc.length < 120){ rows.push({ sym, err:`${ohlc.length} bare` }); continue; }
+      const win = Math.min(300, Math.max(50, ohlc.length - 60));
+      const lab = MK.labelStates(ohlc, { nStates });
+      const m = MK.buildMatrix(lab.states, nStates);
+      const chi = MK.chiSquare(m.counts);
+      const uncond = MK.backtest(lab.states, nStates, lab.score, { window:win });
+      const reg = ohlc.some(b=>b.v) ? MK.volumeRegime(ohlc, 20, rvol).slice(1) : null;
+      const high = reg ? MK.backtestConditional(lab.states, reg, nStates, lab.score, { window:win }).high : null;
+      // cel mai bun mod valid pentru acest ticker
+      const cands = [['necond', uncond], high && ['vol-mare', high]].filter(Boolean)
+        .filter(([,b]) => b.samples>=50);
+      let best = null;
+      for(const [mode,b] of cands) if(!best || b.edgePct>best.b.edgePct) best = { mode, b };
+      rows.push({ sym, bars:ohlc.length, chi, uncond, high, best });
+    } catch(e){ rows.push({ sym, err:(e.message||e).slice(0,30) }); }
+  }
+  setStatus(`Batch complet: ${tickers.length} tickere pe ${tf}.`);
+
+  // sortează: cu edge valid întâi (desc), apoi erorile
+  const valid = rows.filter(r=>!r.err && r.best);
+  const noBest = rows.filter(r=>!r.err && !r.best);
+  const errs = rows.filter(r=>r.err);
+  valid.sort((a,b)=> b.best.b.edgePct - a.best.b.edgePct);
+  const winners = valid.filter(r => r.best.b.edgePct>1 && r.chi.hasStructure);
+
+  const cellEdge = (b,strong) => b ? `<span style="color:${b.edgePct>1?'var(--bull-s)':(b.edgePct<-1?'var(--bear-s)':'var(--t2)')};${strong?'font-weight:700':''}">${b.edgePct>=0?'+':''}${b.edgePct.toFixed(1)}%</span>` : '<span class="muted">—</span>';
+  let html = `<div class="panel"><h2>📊 Batch edge — ${tf} <span class="tag">${rows.length} tickere · ${nStates} stări · RVOL≥${rvol}×</span></h2>`;
+  html += `<div style="overflow-x:auto"><table class="mx"><tr><th>#</th><th>Ticker</th><th>chi² p</th><th>edge necond.</th><th>🔥 edge vol-mare</th><th>cel mai bun</th></tr>`;
+  let rank=1;
+  for(const r of [...valid, ...noBest]){
+    const isWin = r.best && r.best.b.edgePct>1 && r.chi.hasStructure;
+    html += `<tr style="${isWin?'background:var(--bull-bg)':''}">
+      <td class="muted">${rank++}</td>
+      <td class="lbl">${r.sym}</td>
+      <td style="color:${r.chi.hasStructure?'var(--bull-s)':'var(--t3)'}">${r.chi.pApprox.toFixed(3)}</td>
+      <td>${cellEdge(r.uncond)}</td>
+      <td>${cellEdge(r.high)} ${r.high?`<span class="muted" style="font-size:10px">n=${r.high.samples}</span>`:''}</td>
+      <td>${r.best?`${cellEdge(r.best.b,true)} <span class="muted" style="font-size:10px">${r.best.mode} · dir ${r.best.b.dirHitRate!=null?(r.best.b.dirHitRate*100).toFixed(0)+'%':'—'}</span>`:'<span class="muted">date puține</span>'}</td>
+    </tr>`;
+  }
+  for(const r of errs) html += `<tr><td class="muted">—</td><td class="lbl">${r.sym}</td><td colspan="4" class="muted" style="text-align:left">⚠ ${r.err}</td></tr>`;
+  html += `</table></div>`;
+  if(winners.length){
+    const top = winners[0];
+    html += `<div class="verdict good">✅ <b>${winners.length} ticker(e) cu edge robust.</b> Top: <b>${top.sym}</b> — ${top.best.b.edgePct.toFixed(1)}% (${top.best.mode}), direcție ${top.best.b.dirHitRate!=null?(top.best.b.dirHitRate*100).toFixed(0)+'%':'—'}, chi² p=${top.chi.pApprox.toFixed(3)}. Deschide-l individual cu ▶ Rulează pentru matricea completă.</div>`;
+  } else {
+    html += `<div class="verdict bad">❌ <b>Niciun edge robust</b> pe lista asta la ${tf} (criteriu: edge&gt;1%, n≥50, chi² semnificativ). Încearcă alt TF (1h intraday e adesea mai bun) sau coboară pragul RVOL.</div>`;
+  }
+  html += `<div class="legend">Rândurile verzi = candidați reali. „cel mai bun" alege între necondiționat și vol-mare, cel cu n≥50. Sortat după edge descrescător.</div></div>`;
+  $('out').innerHTML = html;
+  $('batch').disabled = false; $('run').disabled = false; $('sweep').disabled = false;
+}
+
+// ─────────── HMM regime detection (Markov-ul care bate baseline-urile) ───────────
+const REG_COLORS = ['var(--bull-s)','var(--mom,#5bb0ff)','var(--vol)','var(--bear-s)']; // calm→volatil
+function renderHMM(meta, ohlc){
+  const obs = MK.logReturns(ohlc);
+  let K, hmm, bicNote = '';
+  try {
+    if (meta.K === 'auto'){
+      const sel = MK.selectK(obs, 2, 4, { iters: 120, restarts: 6 });
+      K = sel.bestK; hmm = sel.fits[K];
+      bicNote = ' · BIC auto → K=' + K + ' (' + sel.table.map(r=>r.K+':'+Math.round(r.bic)).join(' ') + ')';
+    } else {
+      K = +meta.K; hmm = MK.fitHMM(obs, K, { iters: 120, restarts: 6 });
+    }
+  } catch(e){ return `<div class="panel"><div class="err">HMM eroare: ${e.message}</div></div>`; }
+  const order = hmm.order;                       // idx sortați calm→volatil
+  const rank = {}; order.forEach((idx,r)=> rank[idx]=r);
+  const rstats = MK.regimeStats(obs, hmm);       // autocorelație etc. per regim (index brut)
+  const names = K===2 ? ['CALM','VOLATIL'] : K===3 ? ['CALM','NORMAL','VOLATIL'] : ['CALM','NORMAL','RIDICAT','VOLATIL'];
+  const pi = MK.stationary(hmm.A);
+  // regim curent = argmax al probabilității marginale (gamma) pe ultima bară (consistent cu prob afișată)
+  const g = hmm.gamma[hmm.gamma.length-1];
+  let last = 0; for(let k=1;k<K;k++) if(g[k]>g[last]) last=k;
+  const curRank = rank[last];
+  const curProb = g[last];
+  // prognoză volatilitate next bar: gamma_last · A · sigma²
+  const pd = new Array(K).fill(0);
+  for(let i=0;i<K;i++) for(let j=0;j<K;j++) pd[j]+=g[i]*hmm.A[i][j];
+  let predVar=0; for(let k=0;k<K;k++) predVar+=pd[k]*hmm.sigma[k]*hmm.sigma[k];
+  const predVolPct = Math.sqrt(predVar)*100;
+
+  let html = `<div class="panel"><h2>🧠 Regim HMM <span class="tag">${meta.sym} · ${meta.tf} · ${K} stări · conv. ${hmm.iters} iter${bicNote}</span></h2>`;
+  // banner regim curent
+  const col = REG_COLORS[curRank] || 'var(--t2)';
+  const dur = 1/Math.max(1e-6, 1-hmm.A[last][last]);
+  html += `<div class="grid2">
+    <div>
+      <div class="muted" style="font-size:11px">Regim curent</div>
+      <div class="curstate" style="color:${col}">${names[curRank]}</div>
+      <div style="margin-top:8px;display:flex;gap:18px;flex-wrap:wrap">
+        <div class="stat"><div class="k">Probabilitate</div><div class="v">${(curProb*100).toFixed(0)}%</div></div>
+        <div class="stat"><div class="k">Vol prognozată (next)</div><div class="v" style="color:${col}">${predVolPct.toFixed(2)}%</div></div>
+        <div class="stat"><div class="k">Durată tipică regim</div><div class="v">${dur.toFixed(0)} bare</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="muted" style="font-size:11px;margin-bottom:6px">Probabilități regim (bara curentă)</div>`;
+  for(const idx of order){
+    const p=g[idx], r=rank[idx];
+    html += `<div class="distrow"><span class="nm" style="color:${REG_COLORS[r]}">${names[r]}</span><span class="bar"><i style="width:${(p*100).toFixed(1)}%;background:${REG_COLORS[r]}"></i></span><span class="pct">${(p*100).toFixed(0)}%</span></div>`;
+  }
+  html += `</div></div>`;
+
+  // timeline ultimele ~140 bare
+  const N = Math.min(140, hmm.states.length);
+  const tl = hmm.states.slice(-N);
+  html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:4px">Istoric regim (ultimele ${N} bare)</div>`;
+  html += `<div style="display:flex;height:22px;border-radius:5px;overflow:hidden;border:1px solid var(--b1)">`;
+  for(const s of tl){ const r=rank[s]; html += `<div style="flex:1;background:${REG_COLORS[r]};opacity:.85" title="${names[r]}"></div>`; }
+  html += `</div></div>`;
+
+  // tabel regimuri + autocorelație măsurată (direcție)
+  const acTag = ac => ac==null ? '<span class="muted">—</span>'
+    : ac < -0.05 ? `<span style="color:var(--bear-s)">${ac.toFixed(2)} ↩ revine</span>`
+    : ac >  0.05 ? `<span style="color:var(--bull-s)">+${ac.toFixed(2)} ↗ trend</span>`
+    : `<span class="muted">${ac.toFixed(2)} ≈ random</span>`;
+  html += `<div style="overflow-x:auto;margin-top:14px"><table class="mx"><tr><th>Regim</th><th>Vol/bară</th><th>Persistență</th><th>Durată</th><th>% timp (π)</th><th>Autocorel. dir.</th></tr>`;
+  for(const idx of order){
+    const r=rank[idx];
+    html += `<tr><td class="lbl" style="color:${REG_COLORS[r]}">${names[r]}</td>
+      <td>${(hmm.sigma[idx]*100).toFixed(2)}%</td>
+      <td>${hmm.A[idx][idx].toFixed(2)}</td>
+      <td>${(1/Math.max(1e-6,1-hmm.A[idx][idx])).toFixed(0)} bare</td>
+      <td>${(pi[idx]*100).toFixed(0)}%</td>
+      <td>${acTag(rstats[idx].autocorr)}</td></tr>`;
+  }
+  html += `</table></div>`;
+
+  // sfat de filtrare BAZAT PE DATE (autocorelația măsurată a regimului curent), nu inventat
+  const curAc = rstats[last].autocorr;
+  const risk = curRank >= K-1 ? ' Vol ridicată → <b>redu sizing-ul</b> și lărgește SL.' : (curRank===0 ? ' Vol joasă → sizing normal, SL mai strâns OK.' : '');
+  let advice, aCls;
+  if (curAc == null){ advice = `Prea puține bare în acest regim pentru autocorelație fiabilă.${risk}`; aCls=''; }
+  else if (curAc < -0.05){ advice = `↩️ <b>MEAN-REVERTING</b> (autocorel. ${curAc.toFixed(2)}). În acest regim mișcările se ÎNTORC → <b>fadează</b> extensiile, NU urmări breakout-urile.${risk}`; aCls='good'; }
+  else if (curAc > 0.05){ advice = `↗️ <b>TRENDING</b> (autocorel. +${curAc.toFixed(2)}). Direcția PERSISTĂ → urmărește momentum-ul / breakout-urile.${risk}`; aCls='good'; }
+  else { advice = `⚪ <b>Direcție impredictibilă</b> (autocorel. ${curAc.toFixed(2)} ≈ 0). Nu trage concluzii direcționale — folosește HMM aici DOAR pentru risc/sizing (vol prognozată ${predVolPct.toFixed(2)}%).${risk}`; aCls=curRank>=K-1?'warn':''; }
+  html += `<div class="verdict ${aCls}" style="${aCls===''?'background:var(--panel3);border:1px solid var(--b1)':''}">${advice}</div>`;
+
+  // VALIDARE OOS — strategia „fade în regim volatil" pe bani, walk-forward (reproductibil)
+  try {
+    const bt = MK.backtestRegimeFade(ohlc, { K: Math.min(K,3), train: Math.min(400, Math.floor(ohlc.length*0.5)), refit: 25 });
+    const v = bt.volFade, a = bt.allFade;
+    const sig = Math.abs(v.t) >= 2;
+    const cls = (v.avgPct>0 && sig) ? 'good' : (v.avgPct>0 ? 'warn' : 'bad');
+    html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:6px">Validare OOS — „fade mișcarea precedentă, DOAR în regim volatil" (walk-forward, BRUT fără costuri)</div>
+      <div class="stats">
+        <div class="stat"><div class="k">Fade în VOLATIL</div><div class="v" style="color:${v.avgPct>0?'var(--bull-s)':'var(--bear-s)'}">${v.avgPct>=0?'+':''}${v.avgPct.toFixed(3)}%</div><div class="muted" style="font-size:10px">t=${v.t.toFixed(2)} · hit ${v.hitPct.toFixed(0)}% · n=${v.n}</div></div>
+        <div class="stat"><div class="k">Fade în TOATE regimurile</div><div class="v muted">${a.avgPct>=0?'+':''}${a.avgPct.toFixed(3)}%</div><div class="muted" style="font-size:10px">t=${a.t.toFixed(2)} · n=${a.n}</div></div>
+      </div>
+      <div class="verdict ${cls}">${ sig && v.avgPct>0
+        ? `✅ Edge OOS <b>semnificativ</b> (t=${v.t.toFixed(2)}) — fade-ul plătește în regim volatil pe acest simbol.`
+        : (v.avgPct>0
+          ? `🟡 Direcția e corectă (fade pozitiv DOAR în volatil, negativ/zero altundeva) dar <b>nesemnificativ statistic</b> (t=${v.t.toFixed(2)}, ai nevoie de |t|&gt;2) și ~0.05%/trade probabil dispare la costuri. Promițător, NEDOVEDIT.`
+          : `❌ Fade-ul nu plătește OOS nici în regim volatil aici (${v.avgPct.toFixed(3)}%/trade).`) }</div></div>`;
+  } catch(e){ /* prea puține bare pt OOS */ }
+  html += `<div class="legend"><b>Onest, ca să nu te induc în eroare:</b> regimul CURENT + prognoza de vol sunt <b>cauzale</b> (doar trecut). Banda de istoric + autocorelațiile sunt <i>in-sample</i> (Viterbi pe toată seria) — descriptive, nu un backtest live. Autocorelația măsurată e tendința direcțională reală a regimului, NU una inventată.<br>Fit: ${hmm.iters} iter, 6 restart-uri (cel mai bun logLik, evită optime locale)${meta.K==='auto'?', K ales prin BIC':''}. Validat: prognoza de vol bate rolling-20 & EWMA OOS (crypto daily, 4/4). Aplicația robustă a Markov — <b>regim + risc</b>; direcția o folosești doar dacă autocorelația regimului e clar ≠ 0.</div></div>`;
+  return html;
+}
+async function runHMM(){
+  const src=$('src').value, sym=$('sym').value.trim().toUpperCase(), tf=$('tf').value, kSel=$('khmm').value;
+  const Kmax = kSel==='auto' ? 4 : +kSel;
+  if(!sym){ setStatus('Introdu un simbol.',true); return; }
+  $('hmm').disabled=true; $('run').disabled=true; $('out').innerHTML='';
+  setStatus(`<span class="spinner"></span> Aduc ${sym} (${tf}) + antrenez HMM (${kSel==='auto'?'auto-K via BIC':kSel+' regimuri'})…`);
+  try {
+    const ohlc = src==='crypto' ? await fetchCrypto(sym,tf) : await fetchStock(sym,tf);
+    if(ohlc.length<Kmax*20){ setStatus(`Prea puține bare (${ohlc.length}) pentru ${Kmax} regimuri.`,true); return; }
+    setStatus(`${ohlc.length} bare · HMM antrenat.`);
+    $('out').innerHTML = renderHMM({sym,tf,K:kSel}, ohlc);
+  } catch(e){ setStatus('Eroare: '+(e.message||e),true); }
+  finally { $('hmm').disabled=false; $('run').disabled=false; }
+}
+
+// ─────────── wiring ───────────
+const $ = id => document.getElementById(id);
+function setStatus(txt, isErr){ $('status').innerHTML = isErr ? `<span class="err">${txt}</span>` : txt; }
+
+$('src').addEventListener('change', () => {
+  $('sym').value = $('src').value === 'crypto' ? 'BTCUSDT' : 'AAPL';
+});
+
+async function run(){
+  const src = $('src').value, sym = $('sym').value.trim().toUpperCase(), tf = $('tf').value;
+  const nStates = +$('nstates').value, win = Math.max(50, +$('win').value || 300);
+  const rvol = Math.max(1.05, +$('rvol').value || 1.5);
+  if(!sym){ setStatus('Introdu un simbol.', true); return; }
+  $('run').disabled = true;
+  setStatus(`<span class="spinner"></span> Aduc ${sym} (${tf})…`);
+  $('out').innerHTML = '';
+  try {
+    const ohlc = src==='crypto' ? await fetchCrypto(sym, tf) : await fetchStock(sym, tf);
+    if(ohlc.length < win + 60){
+      setStatus(`Doar ${ohlc.length} bare — reduc fereastra de backtest la ${Math.max(50, ohlc.length-60)} ca să rămână mostre out-of-sample.`);
+    } else {
+      setStatus(`${ohlc.length} bare încărcate.`);
+    }
+    const effWin = Math.min(win, Math.max(50, ohlc.length - 60));
+    $('out').innerHTML = renderAnalysis({ sym, tf, nStates, win: effWin, rvol }, ohlc);
+  } catch(e){
+    setStatus('Eroare: ' + (e.message || e), true);
+  } finally {
+    $('run').disabled = false;
+  }
+}
+$('run').addEventListener('click', run);
+$('sym').addEventListener('keydown', e => { if(e.key==='Enter') run(); });
+$('selftest').addEventListener('click', runSelfTest);
+$('sweep').addEventListener('click', runSweep);
+$('batch').addEventListener('click', runBatch);
+$('hmm').addEventListener('click', runHMM);
+
+// rulează self-test la load ca demonstrație că modulul merge fără rețea
+runSelfTest();
+</script>
+<script src="../nav.js" data-nav-root="../"></script>
+</body>
+</html>
