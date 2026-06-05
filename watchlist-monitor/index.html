@@ -658,16 +658,8 @@ function beep(){
 }
 
 // ── Telegram (F7) ─────────────────────────────────────────────────
-async function sendTelegram(text){
-  if (!tgConfig.token || !tgConfig.chatId) return false;
-  try {
-    const r = await fetch(`https://api.telegram.org/bot${tgConfig.token}/sendMessage`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: tgConfig.chatId, text, parse_mode: 'HTML', disable_web_page_preview: true }),
-    });
-    const j = await r.json().catch(() => ({}));
-    return !!j.ok;
-  } catch(e){ console.warn('[wl] telegram failed', e.message); return false; }
+async function sendTelegram(text){  // → lib/telegram.js (TG.*); config în memorie păstrat
+  return TG.send(text, { token: tgConfig.token, chatId: tgConfig.chatId, force: true });
 }
 function updateAlertButtons(){
   const sb = $('soundBtn'), tb = $('tgBtn');
@@ -1683,6 +1675,7 @@ autoSec = parseInt($('autoRefresh').value, 10) || 60;
 if (watchlist.length) setTimeout(runScan, 800);
 scheduleNextScan();
 </script>
+<script src="../lib/telegram.js"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>
