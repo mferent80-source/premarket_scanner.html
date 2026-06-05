@@ -1299,6 +1299,7 @@
   </div>
 </section>
 
+<script src="../lib/data.js"></script>
 <script>
 // Features modal pentru pagina market-events
 window.showMeFeatures = function(){
@@ -1387,10 +1388,19 @@ class NasdaqScanner {
   // Fetch JSON cu fallback automat de proxy: încearcă proxy-ul din topbar,
   // apoi lista de rezervă, apoi direct. Primul care întoarce JSON valid câștigă.
   async _getJson(rawUrl) {
+    // 1) proxy-ul user din topbar are prioritate (dacă e setat)
+    if (this.corsProxy) {
+      try {
+        const r = await fetch(this.corsProxy + encodeURIComponent(rawUrl), { headers: { 'Accept': 'application/json' } });
+        if (r.ok) { const j = await r.json(); if (j) return j; }
+      } catch (e) { /* cade pe stratul comun */ }
+    }
+    // 2) strat de date comun (lib/data.js): proxy cu health per-host + dedup, ttl:0 = fără date stale
+    if (window.D && D.fetchJSON) return D.fetchJSON(rawUrl, { ttl: 0 });
+    // 3) fallback dacă data.js nu e încărcat (comportamentul vechi)
     const cands = [];
-    if (this.corsProxy) cands.push(this.corsProxy + encodeURIComponent(rawUrl));
     for (const f of PROXY_FALLBACKS) cands.push(f(rawUrl));
-    cands.push(rawUrl); // last resort: direct (merge doar pe endpoint-uri cu CORS deschis)
+    cands.push(rawUrl);
     for (const u of cands) {
       try {
         const r = await fetch(u, { headers: { 'Accept': 'application/json' } });
