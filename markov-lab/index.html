@@ -618,6 +618,24 @@ function renderHMM(meta, ohlc){
   else if (curAc > 0.05){ advice = `↗️ <b>TRENDING</b> (autocorel. +${curAc.toFixed(2)}). Direcția PERSISTĂ → urmărește momentum-ul / breakout-urile.${risk}`; aCls='good'; }
   else { advice = `⚪ <b>Direcție impredictibilă</b> (autocorel. ${curAc.toFixed(2)} ≈ 0). Nu trage concluzii direcționale — folosește HMM aici DOAR pentru risc/sizing (vol prognozată ${predVolPct.toFixed(2)}%).${risk}`; aCls=curRank>=K-1?'warn':''; }
   html += `<div class="verdict ${aCls}" style="${aCls===''?'background:var(--panel3);border:1px solid var(--b1)':''}">${advice}</div>`;
+
+  // VALIDARE OOS — strategia „fade în regim volatil" pe bani, walk-forward (reproductibil)
+  try {
+    const bt = MK.backtestRegimeFade(ohlc, { K: Math.min(K,3), train: Math.min(400, Math.floor(ohlc.length*0.5)), refit: 25 });
+    const v = bt.volFade, a = bt.allFade;
+    const sig = Math.abs(v.t) >= 2;
+    const cls = (v.avgPct>0 && sig) ? 'good' : (v.avgPct>0 ? 'warn' : 'bad');
+    html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:6px">Validare OOS — „fade mișcarea precedentă, DOAR în regim volatil" (walk-forward, BRUT fără costuri)</div>
+      <div class="stats">
+        <div class="stat"><div class="k">Fade în VOLATIL</div><div class="v" style="color:${v.avgPct>0?'var(--bull-s)':'var(--bear-s)'}">${v.avgPct>=0?'+':''}${v.avgPct.toFixed(3)}%</div><div class="muted" style="font-size:10px">t=${v.t.toFixed(2)} · hit ${v.hitPct.toFixed(0)}% · n=${v.n}</div></div>
+        <div class="stat"><div class="k">Fade în TOATE regimurile</div><div class="v muted">${a.avgPct>=0?'+':''}${a.avgPct.toFixed(3)}%</div><div class="muted" style="font-size:10px">t=${a.t.toFixed(2)} · n=${a.n}</div></div>
+      </div>
+      <div class="verdict ${cls}">${ sig && v.avgPct>0
+        ? `✅ Edge OOS <b>semnificativ</b> (t=${v.t.toFixed(2)}) — fade-ul plătește în regim volatil pe acest simbol.`
+        : (v.avgPct>0
+          ? `🟡 Direcția e corectă (fade pozitiv DOAR în volatil, negativ/zero altundeva) dar <b>nesemnificativ statistic</b> (t=${v.t.toFixed(2)}, ai nevoie de |t|&gt;2) și ~0.05%/trade probabil dispare la costuri. Promițător, NEDOVEDIT.`
+          : `❌ Fade-ul nu plătește OOS nici în regim volatil aici (${v.avgPct.toFixed(3)}%/trade).`) }</div></div>`;
+  } catch(e){ /* prea puține bare pt OOS */ }
   html += `<div class="legend"><b>Onest, ca să nu te induc în eroare:</b> regimul CURENT + prognoza de vol sunt <b>cauzale</b> (doar trecut). Banda de istoric + autocorelațiile sunt <i>in-sample</i> (Viterbi pe toată seria) — descriptive, nu un backtest live. Autocorelația măsurată e tendința direcțională reală a regimului, NU una inventată.<br>Fit: ${hmm.iters} iter, 6 restart-uri (cel mai bun logLik, evită optime locale)${meta.K==='auto'?', K ales prin BIC':''}. Validat: prognoza de vol bate rolling-20 & EWMA OOS (crypto daily, 4/4). Aplicația robustă a Markov — <b>regim + risc</b>; direcția o folosești doar dacă autocorelația regimului e clar ≠ 0.</div></div>`;
   return html;
 }

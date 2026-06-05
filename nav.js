@@ -10,7 +10,7 @@
   // intern din pagină → cerem shell-ului să deschidă/comute tabul prin postMessage.
   if (window.self !== window.top){
     var SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/',
-                'earnings-hub/','sector-rotation/','macro-dashboard/','playbook/','alerts/','guide/'];
+                'earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','playbook/','alerts/','guide/'];
     var hrefToSeg = function(href){
       var abs; try { abs = new URL(href, location.href).pathname.replace(/index\.html$/, ''); } catch(_){ return null; }
       for (var i = 0; i < SEGS.length; i++){ if (abs.indexOf('/' + SEGS[i]) >= 0) return SEGS[i]; }
@@ -45,6 +45,7 @@
     { u:'earnings-hub/',      n:'Earnings', e:'📅' },
     { u:'sector-rotation/',   n:'Sector',   e:'🔄' },
     { u:'macro-dashboard/',   n:'Macro',    e:'🌍' },
+    { u:'markov-lab/',        n:'Markov',   e:'🔗' },
     { u:'playbook/',          n:'Playbook', e:'📓' },
     { u:'alerts/',            n:'Alerts',   e:'🔔' },
     { u:'guide/',             n:'Ghid',     e:'📖' }

@@ -358,6 +358,7 @@ footer a { color:var(--accent); text-decoration:none; }
   <div class="stat-tile bear"><div class="stat-label">🔴 Dump down</div><div class="stat-value" id="stDown">—</div><div class="stat-sub">≤ −prag 5m</div></div>
   <div class="stat-tile vol"><div class="stat-label">📊 Vol spike</div><div class="stat-value" id="stVol">—</div><div class="stat-sub">volum anormal</div></div>
   <div class="stat-tile mom"><div class="stat-label">⚡ Momentum</div><div class="stat-value" id="stMom">—</div><div class="stat-sub">schimbare direcție</div></div>
+  <div class="stat-tile vol" id="stRegimeTile" title="Regim de volatilitate al pieței (HMM gaussian pe SPY daily, din Markov Lab). Regim volatil → breakout-urile sunt mai puțin fiabile, redu sizing-ul."><div class="stat-label">🧠 Regim piață</div><div class="stat-value" id="stRegime">…</div><div class="stat-sub" id="stRegimeSub">SPY · HMM</div></div>
 </div>
 
 <!-- Hot strip -->
@@ -1754,6 +1755,36 @@ updateSessionPill();
 render();
 // auto-scan: pornește un scan inițial dacă auto e ON
 if (cfg.autoSec > 0) runScan(); else scheduleNextScan();
+</script>
+<!-- Markov Lab: regim de volatilitate al pieței (HMM pe SPY daily) — context de risc global -->
+<script src="../lib/markov.js"></script>
+<script>
+(async function initMarketRegime(){
+  try{
+    var elV = document.getElementById('stRegime'), elS = document.getElementById('stRegimeSub');
+    var tile = document.getElementById('stRegimeTile');
+    if(!elV || !window.MK || typeof proxyGetJSON !== 'function') return;
+    var d = await proxyGetJSON('https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=2y');
+    var res = d && d.chart && d.chart.result && d.chart.result[0];
+    var q = res && res.indicators && res.indicators.quote && res.indicators.quote[0];
+    var closes = ((q && q.close) || []).filter(function(x){ return x != null && !isNaN(x); });
+    if(closes.length < 120){ elV.textContent = 'n/a'; return; }
+    var hmm = MK.fitHMM(MK.logReturns(closes), 2, { restarts: 5, iters: 100 });
+    var g = hmm.gamma[hmm.gamma.length - 1];
+    var cur = 0; for(var k = 1; k < hmm.K; k++) if(g[k] > g[cur]) cur = k;
+    var volState = hmm.order[hmm.order.length - 1];
+    var isVol = (cur === volState);
+    var rs = MK.regimeStats(MK.logReturns(closes), hmm);
+    var ac = rs[cur] && rs[cur].autocorr;
+    elV.textContent = isVol ? 'VOLATIL' : 'CALM';
+    elV.style.color = isVol ? 'var(--bear-s)' : 'var(--bull-s)';
+    if(tile){ tile.classList.remove('vol'); tile.classList.add(isVol ? 'bear' : 'bull'); }
+    var volPct = (hmm.sigma[cur] * 100).toFixed(1);
+    elS.innerHTML = isVol
+      ? 'SPY ' + volPct + '%/zi · breakout-uri riscante, ↓ sizing'
+      : 'SPY ' + volPct + '%/zi · condiții normale';
+  }catch(e){ var e2 = document.getElementById('stRegime'); if(e2) e2.textContent = '—'; }
+})();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
