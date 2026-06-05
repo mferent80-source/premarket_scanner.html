@@ -93,14 +93,14 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 
 <h1>🔗 Markov Lab <span class="ver">v1</span></h1>
 <p class="sub">
-  Două modele Markov, cu scopuri diferite:<br>
-  • <b>Lanț discret</b> (▶ Rulează / Sweep / Batch) — pe direcție normalizată la volatilitate. Onest: pe instrumente lichide <b>nu prinde direcția</b> (piețe eficiente), iar panourile o demonstrează cu <code>chi²</code> + <code>log-loss vs baseline</code> walk-forward.<br>
-  • <b>🧠 HMM</b> (regim de volatilitate) — <b>ăsta e Markov-ul care chiar bate baseline-urile</b> (rolling-20 & EWMA, out-of-sample). Detectează regim calm/normal/volatil → filtru real pentru celelalte scannere.
+  <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
+  Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
+  <span class="muted" style="font-size:11px">(Lanțul Markov discret pe direcție l-am testat și <b>nu are edge</b> pe instrumente lichide — rămâne în „explorare avansată", pliat, pentru transparență.)</span>
 </p>
 
 <!-- ─────────── CONTROLS ─────────── -->
 <div class="panel">
-  <h2>① Sursă de date <span class="tag">crypto (Binance) sau stock (Yahoo)</span></h2>
+  <h2>Analiză de regim <span class="tag">crypto (Binance) sau stock (Yahoo)</span></h2>
   <div class="row">
     <label class="fld">Tip
       <select id="src">
@@ -119,19 +119,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
         <option value="1wk">1săpt</option>
       </select>
     </label>
-    <label class="fld">Stări
-      <select id="nstates">
-        <option value="5" selected>5 (⇊ ↓ · ↑ ⇈)</option>
-        <option value="3">3 (↓ · ↑)</option>
-      </select>
-    </label>
-    <label class="fld">Fereastră backtest
-      <input type="text" id="win" value="300" style="width:70px">
-    </label>
-    <label class="fld">RVOL prag
-      <input type="text" id="rvol" value="1.5" style="width:56px" title="Bară cu volum ≥ acest multiplu × media = regim HIGH">
-    </label>
-    <label class="fld">Regimuri HMM
+    <label class="fld">Regimuri
       <select id="khmm">
         <option value="auto" selected>auto (BIC)</option>
         <option value="2">2 (calm/volatil)</option>
@@ -140,45 +128,56 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
       </select>
     </label>
     <label class="fld">&nbsp;
-      <button id="run">▶ Rulează</button>
-    </label>
-    <label class="fld">&nbsp;
-      <button id="hmm" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f" title="HMM gaussian — detecție de regim de volatilitate (Markov-ul care chiar bate baseline-urile)">🧠 Regim HMM</button>
-    </label>
-    <label class="fld">&nbsp;
-      <button id="sweep" class="ghost" title="Testează toate timeframe-urile × regim de volum ca să găsești unde există edge">🔍 Sweep edge</button>
-    </label>
-    <label class="fld">&nbsp;
-      <button id="selftest" class="ghost" title="Validează matematica pe date sintetice cu structură cunoscută">🧪 Self-test</button>
+      <button id="hmm" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f;font-weight:800" title="HMM gaussian — detecție de regim de volatilitate, validare OOS + autocorelație per regim">🧠 Analizează regim</button>
     </label>
   </div>
   <div id="status" class="legend"></div>
-  <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--b1)">
-    <label class="fld" style="width:100%">📊 Batch scan — testează o listă întreagă pe TF-ul selectat (caută edge pe univers volatil)
-      <textarea id="batchlist" rows="2" spellcheck="false" style="width:100%; font-family:var(--mono); font-size:12px; background:var(--panel3); border:1px solid var(--b1); color:var(--t1); border-radius:var(--rs); padding:8px; resize:vertical; text-transform:uppercase">PLTR,SMCI,COIN,MSTR,HOOD,SOFI,RIVN,MARA,RIOT,ARM,NET,CRWD,TSLA,NVDA,AMD,AFRM,UPST,CVNA,DKNG,RBLX</textarea>
-    </label>
-    <div class="row" style="margin-top:8px">
-      <button id="batch" class="ghost" title="Rulează modelul pe fiecare ticker din listă, le ordonează după edge">📊 Batch scan listă</button>
-      <span class="legend" style="margin:0">Folosește tipul + TF-ul de mai sus. Pentru stocks pune tip „Stock". 1 request/ticker.</span>
+
+  <!-- Explorare avansată — lanțul discret, păstrat pentru transparență (fără edge dovedit) -->
+  <details style="margin-top:12px; border-top:1px solid var(--b1); padding-top:10px">
+    <summary style="cursor:pointer; color:var(--t3); font-size:12px; user-select:none">🔬 Explorare avansată — lanț discret pe direcție <span class="muted">(dovedit <b>fără edge</b> pe instrumente lichide; păstrat pentru transparență)</span></summary>
+    <div style="margin-top:12px">
+      <div class="row">
+        <label class="fld">Stări
+          <select id="nstates"><option value="5" selected>5 (⇊ ↓ · ↑ ⇈)</option><option value="3">3 (↓ · ↑)</option></select>
+        </label>
+        <label class="fld">Fereastră
+          <input type="text" id="win" value="300" style="width:64px">
+        </label>
+        <label class="fld">RVOL prag
+          <input type="text" id="rvol" value="1.5" style="width:54px" title="Bară cu volum ≥ acest multiplu × media = regim HIGH">
+        </label>
+        <label class="fld">&nbsp;<button id="run" class="ghost" title="Matrice de tranziție + backtest walk-forward + condiționare RVOL">▶ Matrice</button></label>
+        <label class="fld">&nbsp;<button id="sweep" class="ghost" title="Testează toate TF × regim de volum">🔍 Sweep</button></label>
+        <label class="fld">&nbsp;<button id="selftest" class="ghost" title="Validează matematica modulului pe date sintetice">🧪 Self-test</button></label>
+      </div>
+      <div style="margin-top:12px">
+        <label class="fld" style="width:100%">📊 Batch — rulează lanțul pe o listă întreagă (TF-ul de sus)
+          <textarea id="batchlist" rows="2" spellcheck="false" style="width:100%; font-family:var(--mono); font-size:12px; background:var(--panel3); border:1px solid var(--b1); color:var(--t1); border-radius:var(--rs); padding:8px; resize:vertical; text-transform:uppercase">PLTR,SMCI,COIN,MSTR,HOOD,SOFI,RIVN,MARA,RIOT,ARM,NET,CRWD,TSLA,NVDA,AMD,AFRM,UPST,CVNA,DKNG,RBLX</textarea>
+        </label>
+        <div class="row" style="margin-top:6px">
+          <button id="batch" class="ghost" title="Rulează modelul pe fiecare ticker, ordonat după edge">📊 Batch scan listă</button>
+        </div>
+      </div>
     </div>
-  </div>
+  </details>
 </div>
 
 <div id="out"></div>
 
 <div class="panel">
-  <h2>ℹ️ Cum citești rezultatul</h2>
+  <h2>ℹ️ Cum citești regimul</h2>
   <div class="legend" style="font-size:11.5px; line-height:1.65">
-    <b>Stările</b> = randamentul barei împărțit la ATR% (volatilitate). <code>z &gt; 1</code> = mișcare mare în sus față de volatilitatea proprie (⇈), <code>|z| &lt; 0.25</code> = plat (·). Așa „UP" înseamnă același lucru pe BTC și pe un blue-chip lent.<br>
-    <b>Matricea</b> P(i→j): pe rândul stării curente citești probabilitatea fiecărei stări următoare. Smoothing Laplace (add-k) ca o tranziție văzută o dată să nu pară certitudine.<br>
-    <b>chi²</b>: testează dacă starea curentă chiar influențează următoarea. <code>p &lt; 0.05</code> ⇒ există structură (memorie). Dacă nu, matricea e doar zgomot.<br>
-    <b>Edge% (backtest)</b>: cât de mult bate modelul un baseline „ghicește distribuția medie", testat <i>out-of-sample</i> (walk-forward). <b>&gt; 0 = edge real.</b> ≤ 0 ⇒ NU-l folosi ca semnal.<br>
-    <b>Verdict</b>: combină ambele. Doar verde = candidat de folosit ca filtru în celelalte scannere.
+    <b>Regim</b> = stare ascunsă de volatilitate (HMM): calm / normal / volatil, dedusă din randamente. „Regimuri" = câte stări — <b>auto (BIC)</b> lasă datele să decidă.<br>
+    <b>Vol/bară & durată</b>: cât de mare e mișcarea tipică în fiecare regim și cât persistă (regimurile se grupează — volatility clustering).<br>
+    <b>Autocorel. dir.</b>: tendința direcțională <i>măsurată</i> a regimului — <code>&lt;0</code> mean-reverting (fadezi), <code>&gt;0</code> trending (urmărești), <code>≈0</code> impredictibilă. Nu inventată.<br>
+    <b>Validare OOS</b>: strategia „fade în regim volatil" testată walk-forward — cu t-statistic onest (semnificativ doar <code>|t|&gt;2</code>).<br>
+    <b>Cauzal vs descriptiv</b>: regimul curent + prognoza de vol sunt cauzale (live); banda de istoric e retrospectivă.
   </div>
 </div>
 
 <p class="sub muted" style="text-align:center">
-  Modul: <code>lib/markov.js</code> (<code>MK.*</code>) — generic, fără dependențe. Această pagină e doar laboratorul de validare.
+  Module: <code>lib/markov.js</code> (<code>MK.*</code>) + <code>lib/data.js</code> (<code>D.*</code>) + <code>lib/backtest.js</code> (<code>BT.*</code>) — generice, fără dependențe.
 </p>
 
 <script src="../lib/data.js"></script>
@@ -654,14 +653,14 @@ async function run(){
   }
 }
 $('run').addEventListener('click', run);
-$('sym').addEventListener('keydown', e => { if(e.key==='Enter') run(); });
+$('sym').addEventListener('keydown', e => { if(e.key==='Enter') runHMM(); });   // Enter → analiza principală (regim)
 $('selftest').addEventListener('click', runSelfTest);
 $('sweep').addEventListener('click', runSweep);
 $('batch').addEventListener('click', runBatch);
 $('hmm').addEventListener('click', runHMM);
 
-// rulează self-test la load ca demonstrație că modulul merge fără rețea
-runSelfTest();
+// la load: analiză de regim pe simbolul implicit (acțiunea principală), nu self-test discret
+runHMM();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
