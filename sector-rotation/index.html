@@ -391,6 +391,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
   </div>
 </div>
 
+<script src="../lib/data.js"></script>
 <script>
 'use strict';
 
@@ -444,6 +445,8 @@ let _proxyIdx = 0;
 let _deadProxies = new Set();
 
 async function proxyGetJSON(targetUrl, timeoutMs = 9000){
+  // strat de date comun (lib/data.js): proxy health per-host + dedup
+  if (window.D && D.fetchJSON) { const j = await D.fetchJSON(targetUrl, { ttl: 0, timeout: timeoutMs }); if (j != null) return j; }
   const n = CORS_PROXIES.length;
   for (let k = 0; k < n; k++){
     const pi = (_proxyIdx + k) % n;
@@ -791,7 +794,7 @@ async function callAnthropicStream(systemPrompt, userPrompt, maxTokens=600){
     method:'POST',
     headers:{ 'Content-Type':'application/json', 'x-api-key':key,
               'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-    body: JSON.stringify({ model:'claude-opus-4-7', max_tokens:maxTokens, stream:true,
+    body: JSON.stringify({ model:'claude-opus-4-8', max_tokens:maxTokens, stream:true,
                            system:systemPrompt, messages:[{ role:'user', content:userPrompt }] })
   });
   if (!resp.ok){ const t = await resp.text(); throw new Error(`HTTP ${resp.status}: ${t.slice(0,200)}`); }
@@ -921,7 +924,7 @@ function renderAIBubble(sym, text, fromCache, elapsed){
   const html = escHtml(text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
   box.innerHTML = `<div class="ai-body appear">${html}</div>
     <div class="ai-meta">
-      <span>🤖 claude-opus-4-7</span>
+      <span>🤖 claude-opus-4-8</span>
       ${fromCache ? '<span>⚡ din cache (1h)</span>' : `<span>⏱ ${elapsed || '?'} s</span>`}
       <span>${new Date().toLocaleTimeString('ro-RO')}</span>
     </div>`;
@@ -1032,6 +1035,8 @@ function render(){
   $('riskPillTxt').textContent = regime + ' (spread ' + fmtPct(spread) + ')';
   $('riskDetail').innerHTML = `Cyclicals (XLK·XLY·XLC·XLF·XLI·XLB·XLE) avg <b class="${pctClass(cycAvg)}" style="color:var(--${cycAvg>=0?'green':'red'})">${fmtPct(cycAvg)}</b>` +
     ` · Defensives (XLU·XLP·XLV) avg <b class="${pctClass(defAvg)}" style="color:var(--${defAvg>=0?'green':'red'})">${fmtPct(defAvg)}</b>`;
+  // Persistă regimul de risc pentru consum cross-page (ex. nasdaq-scanner ca filtru de context)
+  try { localStorage.setItem('tt_risk_regime', JSON.stringify({ regime, cls: regimeCls, spread: +spread.toFixed(2), cycAvg: +cycAvg.toFixed(2), defAvg: +defAvg.toFixed(2), t: Date.now() })); } catch(_){}
 
   // Heatmap (sortat după Δ1w descending mereu — vizual clar)
   const heatOrd = DATA.slice().sort((a,b) => b.chg1w - a.chg1w);
@@ -1148,7 +1153,7 @@ function renderExpandBody(d){
   const aiInitial = ai && ai.text
     ? `<div class="ai-body appear">${escHtml(ai.text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')}</div>
        <div class="ai-meta">
-         <span>🤖 claude-opus-4-7</span>
+         <span>🤖 claude-opus-4-8</span>
          <span>⚡ ${Date.now() - ai.ts < 60*60*1000 ? 'din cache (1h)' : 'expirat — apasă Rerun'}</span>
          <span>${new Date(ai.ts).toLocaleTimeString('ro-RO')}</span>
        </div>`

@@ -389,7 +389,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
     <div class="mod-row">
       <label>Anthropic API key (Claude — shared cu nasdaq-scanner)</label>
       <input type="password" id="setAnthropic" placeholder="sk-ant-…">
-      <span class="hint">Pentru butonul 🤖 din expand row. Cheia de pe <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. ≈ $0.05–0.10 / analiză (claude-opus-4-7).</span>
+      <span class="hint">Pentru butonul 🤖 din expand row. Cheia de pe <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. ≈ $0.05–0.10 / analiză (claude-opus-4-8).</span>
     </div>
     <div class="mod-row">
       <label>Auto-refresh</label>
@@ -428,6 +428,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 
 <div class="toasts" id="toasts"></div>
 
+<script src="../lib/data.js"></script>
 <script>
 'use strict';
 
@@ -566,6 +567,8 @@ const CORS_PROXIES = [
 ];
 let _proxyIdx = 0;
 async function proxyGetJSON(targetUrl, timeoutMs = 8000){
+  // strat de date comun (lib/data.js): proxy health per-host + dedup, ttl:0 = fără date stale
+  if (window.D && D.fetchJSON) return D.fetchJSON(targetUrl, { ttl: 0, timeout: timeoutMs });
   const n = CORS_PROXIES.length;
   for (let k = 0; k < n; k++){
     const pi = (_proxyIdx + k) % n;
@@ -910,16 +913,8 @@ function beep(){
     });
   } catch(e){}
 }
-async function sendTelegram(text){
-  if (!tgConfig.token || !tgConfig.chatId) return false;
-  try {
-    const r = await fetch(`https://api.telegram.org/bot${tgConfig.token}/sendMessage`, {
-      method:'POST', headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ chat_id: tgConfig.chatId, text, parse_mode:'HTML', disable_web_page_preview:true }),
-    });
-    const j = await r.json().catch(() => ({}));
-    return !!j.ok;
-  } catch(e){ console.warn('[eh] telegram failed', e.message); return false; }
+async function sendTelegram(text){  // → lib/telegram.js (TG.*); config în memorie păstrat
+  return TG.send(text, { token: tgConfig.token, chatId: tgConfig.chatId, force: true });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1171,7 +1166,7 @@ function injectExpandedRow(tr, e){
     </div>
     <div class="exp-ai-bar">
       <button class="ai-btn" id="ai-btn-${e.symbol}" onclick="event.stopPropagation(); analyzeEarningWithAI('${e.symbol}', this)">🤖 Analizează cu AI (Claude)</button>
-      <button class="ai-btn" id="qs-btn-${e.symbol}" onclick="event.stopPropagation(); runEHQuickSetup('${e.symbol}', this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">🎯 Quick Setup (Opus 4.7)</button>
+      <button class="ai-btn" id="qs-btn-${e.symbol}" onclick="event.stopPropagation(); runEHQuickSetup('${e.symbol}', this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">🎯 Quick Setup (Opus 4.8)</button>
       <span class="ai-hint">AI = analiză narativă pre-earnings. Quick Setup = JSON ready-to-execute pentru play pe data release.</span>
     </div>
     <div class="exp-ai" id="ai-result-${e.symbol}" data-done="0"></div>
@@ -1426,7 +1421,7 @@ window.analyzeEarningWithAI = async function(symbol, btn){
     return;
   }
   if (btn){ btn.disabled = true; btn.textContent = '⏳ Se generează…'; }
-  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-4-7 · streaming…</span></div><span id="ai-stream-${symbol}"></span><span class="ai-cursor"></span></div>`;
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-4-8 · streaming…</span></div><span id="ai-stream-${symbol}"></span><span class="ai-cursor"></span></div>`;
   container.dataset.done = '1';
 
   const prompt = buildAiPrompt(e);
@@ -1441,7 +1436,7 @@ window.analyzeEarningWithAI = async function(symbol, btn){
         'anthropic-dangerous-direct-browser-access':'true',
       },
       body: JSON.stringify({
-        model:'claude-opus-4-7',
+        model:'claude-opus-4-8',
         max_tokens:600,
         stream:true,
         system:[{ type:'text', text:AI_SYSTEM, cache_control:{ type:'ephemeral' } }],
@@ -1471,8 +1466,8 @@ window.analyzeEarningWithAI = async function(symbol, btn){
         } catch(_){}
       }
     }
-    aiCacheSet(ck, full, 'claude-opus-4-7');
-    renderAiBubble(container, full, 'claude-opus-4-7 · ' + new Date().toLocaleTimeString('ro-RO'));
+    aiCacheSet(ck, full, 'claude-opus-4-8');
+    renderAiBubble(container, full, 'claude-opus-4-8 · ' + new Date().toLocaleTimeString('ro-RO'));
     if (btn) btn.textContent = '🤖 Ascunde analiză';
   } catch(err){
     container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare AI</b><span class="ai-meta">${escHtml(err.message || 'unknown')}</span></div>Verifică cheia (sk-ant-…), creditul rămas în consolă sau încearcă peste 1 min.</div>`;
@@ -1483,7 +1478,7 @@ window.analyzeEarningWithAI = async function(symbol, btn){
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  QUICK SETUP — JSON ready-to-execute pentru earnings play (Opus 4.7)
+//  QUICK SETUP — JSON ready-to-execute pentru earnings play (Opus 4.8)
 // ═══════════════════════════════════════════════════════════════
 const EH_QS_CACHE_KEY = 'eh_qs_cache_v1';
 const EH_QS_TTL = 60*60*1000; // 1h
@@ -1503,7 +1498,7 @@ window.runEHQuickSetup = async function(symbol, btn){
   if (!e){ container.innerHTML = '<div class="ai-bubble error"><div class="ai-head"><b>⚠ Date earnings lipsă</b></div>Re-deschide expand row sau scan din nou.</div>'; return; }
   if (container.dataset.done === '1'){
     container.innerHTML = ''; container.dataset.done = '0';
-    if (btn) btn.textContent = '🎯 Quick Setup (Opus 4.7)';
+    if (btn) btn.textContent = '🎯 Quick Setup (Opus 4.8)';
     return;
   }
   const key = getAnthropicKey();
@@ -1518,8 +1513,8 @@ window.runEHQuickSetup = async function(symbol, btn){
     if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
     return;
   }
-  if (btn){ btn.disabled = true; btn.textContent = '⏳ Opus 4.7 gândește (5-15s)…'; }
-  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">🎯 Quick Setup · Opus 4.7</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:6px;font-size:12.5px">Generez JSON pre-earnings setup…</div></div></div>`;
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ Opus 4.8 gândește (5-15s)…'; }
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">🎯 Quick Setup · Opus 4.8</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:6px;font-size:12.5px">Generez JSON pre-earnings setup…</div></div></div>`;
   container.dataset.done = '1';
 
   const a = analyzeHist(e.hist || []);
@@ -1565,7 +1560,7 @@ REGULI SPECIFICE EARNINGS:
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] })
+      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] })
     });
     if (!resp.ok){
       const j = await resp.json().catch(() => ({ error: { message: 'HTTP ' + resp.status } }));
@@ -1598,7 +1593,7 @@ function renderEHQuickSetup(container, setup, sourceLabel, symbol){
   const tfLabel = setup.timeframe === 'skip' ? '⏭ SKIP' : (setup.timeframe === 'pre-earnings' ? '⚠ Pre-earnings' : '🎯 Post-earnings');
   container.innerHTML = `<div class="ai-bubble" style="background:linear-gradient(180deg, rgba(247,147,26,.10), rgba(20,26,40,.4));border-color:rgba(247,147,26,.4)">
     <div class="ai-head">
-      <span class="ai-meta">🎯 Quick Setup · Opus 4.7 · ${sourceLabel}</span>
+      <span class="ai-meta">🎯 Quick Setup · Opus 4.8 · ${sourceLabel}</span>
       <button class="ai-rerun" onclick="event.stopPropagation(); rerunEHQuickSetup('${symbol}')">↻ Re-rulează</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px">
@@ -1634,7 +1629,7 @@ window.rerunEHQuickSetup = function(symbol){
   const container = $('qs-result-' + symbol);
   if (container){ container.dataset.done = '0'; container.innerHTML = ''; }
   const btn = $('qs-btn-' + symbol);
-  if (btn) btn.textContent = '🎯 Quick Setup (Opus 4.7)';
+  if (btn) btn.textContent = '🎯 Quick Setup (Opus 4.8)';
   runEHQuickSetup(symbol, btn);
 };
 
@@ -1808,6 +1803,7 @@ if ('serviceWorker' in navigator){
   navigator.serviceWorker.register('../sw.js').catch(() => {});
 }
 </script>
+<script src="../lib/telegram.js"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>

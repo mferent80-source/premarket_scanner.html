@@ -320,15 +320,10 @@ function showBrowserNotif(title, body) {
   if (!notifEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
   try { new Notification(title, { body, icon:'/favicon.ico' }); } catch (e) {}
 }
-async function sendTelegram(msg) {
+async function sendTelegram(msg) {  // → lib/telegram.js (TG.*); gating pe enabled păstrat
   const cfg = getTgConfig();
   if (!cfg.enabled || !cfg.token || !cfg.chatId) return;
-  try {
-    await fetch(`https://api.telegram.org/bot${cfg.token}/sendMessage`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ chat_id: cfg.chatId, text: msg, parse_mode:'HTML' })
-    });
-  } catch (e) {}
+  return TG.send(msg, { token: cfg.token, chatId: cfg.chatId, force: true });
 }
 
 // ============ PRICE FETCH ============
@@ -591,6 +586,7 @@ schedulePoll();
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(()=>{});
 </script>
+<script src="../lib/telegram.js"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>

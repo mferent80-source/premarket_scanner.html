@@ -91,16 +91,16 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 </head>
 <body>
 
-<h1>🔗 Markov Lab <span class="ver">v1</span></h1>
+<h1>🔗 Markov Lab <span class="ver">v2</span></h1>
 <p class="sub">
-  Două modele Markov, cu scopuri diferite:<br>
-  • <b>Lanț discret</b> (▶ Rulează / Sweep / Batch) — pe direcție normalizată la volatilitate. Onest: pe instrumente lichide <b>nu prinde direcția</b> (piețe eficiente), iar panourile o demonstrează cu <code>chi²</code> + <code>log-loss vs baseline</code> walk-forward.<br>
-  • <b>🧠 HMM</b> (regim de volatilitate) — <b>ăsta e Markov-ul care chiar bate baseline-urile</b> (rolling-20 & EWMA, out-of-sample). Detectează regim calm/normal/volatil → filtru real pentru celelalte scannere.
+  <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
+  Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
+  <span class="muted" style="font-size:11px">(Lanțul Markov discret pe direcție l-am testat și <b>nu are edge</b> pe instrumente lichide — rămâne în „explorare avansată", pliat, pentru transparență.)</span>
 </p>
 
 <!-- ─────────── CONTROLS ─────────── -->
 <div class="panel">
-  <h2>① Sursă de date <span class="tag">crypto (Binance) sau stock (Yahoo)</span></h2>
+  <h2>Analiză de regim <span class="tag">crypto (Binance) sau stock (Yahoo)</span></h2>
   <div class="row">
     <label class="fld">Tip
       <select id="src">
@@ -119,19 +119,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
         <option value="1wk">1săpt</option>
       </select>
     </label>
-    <label class="fld">Stări
-      <select id="nstates">
-        <option value="5" selected>5 (⇊ ↓ · ↑ ⇈)</option>
-        <option value="3">3 (↓ · ↑)</option>
-      </select>
-    </label>
-    <label class="fld">Fereastră backtest
-      <input type="text" id="win" value="300" style="width:70px">
-    </label>
-    <label class="fld">RVOL prag
-      <input type="text" id="rvol" value="1.5" style="width:56px" title="Bară cu volum ≥ acest multiplu × media = regim HIGH">
-    </label>
-    <label class="fld">Regimuri HMM
+    <label class="fld">Regimuri
       <select id="khmm">
         <option value="auto" selected>auto (BIC)</option>
         <option value="2">2 (calm/volatil)</option>
@@ -140,92 +128,72 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
       </select>
     </label>
     <label class="fld">&nbsp;
-      <button id="run">▶ Rulează</button>
-    </label>
-    <label class="fld">&nbsp;
-      <button id="hmm" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f" title="HMM gaussian — detecție de regim de volatilitate (Markov-ul care chiar bate baseline-urile)">🧠 Regim HMM</button>
-    </label>
-    <label class="fld">&nbsp;
-      <button id="sweep" class="ghost" title="Testează toate timeframe-urile × regim de volum ca să găsești unde există edge">🔍 Sweep edge</button>
-    </label>
-    <label class="fld">&nbsp;
-      <button id="selftest" class="ghost" title="Validează matematica pe date sintetice cu structură cunoscută">🧪 Self-test</button>
+      <button id="hmm" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f;font-weight:800" title="HMM gaussian — detecție de regim de volatilitate, validare OOS + autocorelație per regim">🧠 Analizează regim</button>
     </label>
   </div>
   <div id="status" class="legend"></div>
-  <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--b1)">
-    <label class="fld" style="width:100%">📊 Batch scan — testează o listă întreagă pe TF-ul selectat (caută edge pe univers volatil)
-      <textarea id="batchlist" rows="2" spellcheck="false" style="width:100%; font-family:var(--mono); font-size:12px; background:var(--panel3); border:1px solid var(--b1); color:var(--t1); border-radius:var(--rs); padding:8px; resize:vertical; text-transform:uppercase">PLTR,SMCI,COIN,MSTR,HOOD,SOFI,RIVN,MARA,RIOT,ARM,NET,CRWD,TSLA,NVDA,AMD,AFRM,UPST,CVNA,DKNG,RBLX</textarea>
-    </label>
-    <div class="row" style="margin-top:8px">
-      <button id="batch" class="ghost" title="Rulează modelul pe fiecare ticker din listă, le ordonează după edge">📊 Batch scan listă</button>
-      <span class="legend" style="margin:0">Folosește tipul + TF-ul de mai sus. Pentru stocks pune tip „Stock". 1 request/ticker.</span>
+
+  <!-- Explorare avansată — lanțul discret, păstrat pentru transparență (fără edge dovedit) -->
+  <details style="margin-top:12px; border-top:1px solid var(--b1); padding-top:10px">
+    <summary style="cursor:pointer; color:var(--t3); font-size:12px; user-select:none">🔬 Explorare avansată — lanț discret pe direcție <span class="muted">(dovedit <b>fără edge</b> pe instrumente lichide; păstrat pentru transparență)</span></summary>
+    <div style="margin-top:12px">
+      <div class="row">
+        <label class="fld">Stări
+          <select id="nstates"><option value="5" selected>5 (⇊ ↓ · ↑ ⇈)</option><option value="3">3 (↓ · ↑)</option></select>
+        </label>
+        <label class="fld">Fereastră
+          <input type="text" id="win" value="300" style="width:64px">
+        </label>
+        <label class="fld">RVOL prag
+          <input type="text" id="rvol" value="1.5" style="width:54px" title="Bară cu volum ≥ acest multiplu × media = regim HIGH">
+        </label>
+        <label class="fld">&nbsp;<button id="run" class="ghost" title="Matrice de tranziție + backtest walk-forward + condiționare RVOL">▶ Matrice</button></label>
+        <label class="fld">&nbsp;<button id="sweep" class="ghost" title="Testează toate TF × regim de volum">🔍 Sweep</button></label>
+        <label class="fld">&nbsp;<button id="selftest" class="ghost" title="Validează matematica modulului pe date sintetice">🧪 Self-test</button></label>
+      </div>
+      <div style="margin-top:12px">
+        <label class="fld" style="width:100%">📊 Batch — rulează lanțul pe o listă întreagă (TF-ul de sus)
+          <textarea id="batchlist" rows="2" spellcheck="false" style="width:100%; font-family:var(--mono); font-size:12px; background:var(--panel3); border:1px solid var(--b1); color:var(--t1); border-radius:var(--rs); padding:8px; resize:vertical; text-transform:uppercase">PLTR,SMCI,COIN,MSTR,HOOD,SOFI,RIVN,MARA,RIOT,ARM,NET,CRWD,TSLA,NVDA,AMD,AFRM,UPST,CVNA,DKNG,RBLX</textarea>
+        </label>
+        <div class="row" style="margin-top:6px">
+          <button id="batch" class="ghost" title="Rulează modelul pe fiecare ticker, ordonat după edge">📊 Batch scan listă</button>
+        </div>
+      </div>
     </div>
-  </div>
+  </details>
 </div>
 
 <div id="out"></div>
 
 <div class="panel">
-  <h2>ℹ️ Cum citești rezultatul</h2>
+  <h2>ℹ️ Cum citești regimul</h2>
   <div class="legend" style="font-size:11.5px; line-height:1.65">
-    <b>Stările</b> = randamentul barei împărțit la ATR% (volatilitate). <code>z &gt; 1</code> = mișcare mare în sus față de volatilitatea proprie (⇈), <code>|z| &lt; 0.25</code> = plat (·). Așa „UP" înseamnă același lucru pe BTC și pe un blue-chip lent.<br>
-    <b>Matricea</b> P(i→j): pe rândul stării curente citești probabilitatea fiecărei stări următoare. Smoothing Laplace (add-k) ca o tranziție văzută o dată să nu pară certitudine.<br>
-    <b>chi²</b>: testează dacă starea curentă chiar influențează următoarea. <code>p &lt; 0.05</code> ⇒ există structură (memorie). Dacă nu, matricea e doar zgomot.<br>
-    <b>Edge% (backtest)</b>: cât de mult bate modelul un baseline „ghicește distribuția medie", testat <i>out-of-sample</i> (walk-forward). <b>&gt; 0 = edge real.</b> ≤ 0 ⇒ NU-l folosi ca semnal.<br>
-    <b>Verdict</b>: combină ambele. Doar verde = candidat de folosit ca filtru în celelalte scannere.
+    <b>Regim</b> = stare ascunsă de volatilitate (HMM): calm / normal / volatil, dedusă din randamente. „Regimuri" = câte stări — <b>auto (BIC)</b> lasă datele să decidă.<br>
+    <b>Vol/bară & durată</b>: cât de mare e mișcarea tipică în fiecare regim și cât persistă (regimurile se grupează — volatility clustering).<br>
+    <b>Autocorel. dir.</b>: tendința direcțională <i>măsurată</i> a regimului — <code>&lt;0</code> mean-reverting (fadezi), <code>&gt;0</code> trending (urmărești), <code>≈0</code> impredictibilă. Nu inventată.<br>
+    <b>Validare OOS</b>: strategia „fade în regim volatil" testată walk-forward — cu t-statistic onest (semnificativ doar <code>|t|&gt;2</code>).<br>
+    <b>Cauzal vs descriptiv</b>: regimul curent + prognoza de vol sunt cauzale (live); banda de istoric e retrospectivă.
   </div>
 </div>
 
 <p class="sub muted" style="text-align:center">
-  Modul: <code>lib/markov.js</code> (<code>MK.*</code>) — generic, fără dependențe. Această pagină e doar laboratorul de validare.
+  Module: <code>lib/markov.js</code> (<code>MK.*</code>) + <code>lib/data.js</code> (<code>D.*</code>) + <code>lib/backtest.js</code> (<code>BT.*</code>) — generice, fără dependențe.
 </p>
 
+<script src="../lib/data.js"></script>
 <script src="../lib/indicators.js"></script>
 <script src="../lib/markov.js"></script>
+<script src="../lib/ai.js"></script>
 <script>
-// ─────────── proxy fallbacks (același pattern ca market-events) ───────────
-const PROXY_FALLBACKS = [
-  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
-  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-  u => 'https://thingproxy.freeboard.io/fetch/' + u,
-];
-async function getJson(rawUrl){
-  const cands = [];
-  for (const f of PROXY_FALLBACKS) cands.push(f(rawUrl));
-  cands.push(rawUrl);
-  for (const u of cands){
-    try { const r = await fetch(u, { headers:{ 'Accept':'application/json' } }); if(!r.ok) continue; const j = await r.json(); if(j) return j; }
-    catch(e){ /* next */ }
-  }
-  return null;
-}
-
-// ─────────── fetch OHLC ───────────
-const TF_CRYPTO = { '1h':'1h','4h':'4h','1d':'1d','1wk':'1w' };
+// ─────────── fetch OHLC — delegă la stratul de date comun (lib/data.js, D.*) ───────────
+// Proxy cu health-scoring per-host + cache localStorage cu TTL + dedup — toate din D.
 async function fetchCrypto(sym, tf){
-  const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(sym)}&interval=${TF_CRYPTO[tf]||'1d'}&limit=1000`;
-  const j = await getJson(url);
-  if(!Array.isArray(j) || !j.length) throw new Error('Binance: niciun rezultat pentru ' + sym);
-  return j.map(k => ({ o:+k[1], h:+k[2], l:+k[3], c:+k[4], v:+k[5] }));
+  return D.fetchCrypto(sym, tf, 1000);   // [{o,h,l,c,v,t}]
 }
 async function fetchStock(sym, tf){
-  // Yahoo: range cât mai mare pentru destule bare la backtest
-  const range = (tf==='1h') ? '730d' : (tf==='4h' ? '730d' : '10y');
-  const interval = (tf==='1h') ? '60m' : (tf==='4h' ? '60m' : (tf==='1wk' ? '1wk' : '1d'));
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=${range}&interval=${interval}`;
-  const j = await getJson(url);
-  const res = j?.chart?.result?.[0];
-  if(!res) throw new Error('Yahoo: simbol invalid sau indisponibil — ' + sym);
-  const ts = res.timestamp || [];
-  const q = res.indicators?.quote?.[0] || {};
-  const out = [];
-  for(let i=0;i<ts.length;i++){
-    const o=q.open?.[i], h=q.high?.[i], l=q.low?.[i], c=q.close?.[i], v=q.volume?.[i];
-    if([o,h,l,c].every(x => x!=null && !isNaN(x))) out.push({o,h,l,c,v:(v!=null&&!isNaN(v))?v:0});
-  }
-  if(!out.length) throw new Error('Yahoo: serie goală pentru ' + sym);
-  return out;
+  const range = (tf==='1h' || tf==='4h') ? '730d' : '10y';
+  const interval = (tf==='1h' || tf==='4h') ? '60m' : (tf==='1wk' ? '1wk' : '1d');
+  return D.fetchStock(sym, { range, interval });
 }
 
 // ─────────── heatmap color ───────────
@@ -619,10 +587,70 @@ function renderHMM(meta, ohlc){
   else { advice = `⚪ <b>Direcție impredictibilă</b> (autocorel. ${curAc.toFixed(2)} ≈ 0). Nu trage concluzii direcționale — folosește HMM aici DOAR pentru risc/sizing (vol prognozată ${predVolPct.toFixed(2)}%).${risk}`; aCls=curRank>=K-1?'warn':''; }
   html += `<div class="verdict ${aCls}" style="${aCls===''?'background:var(--panel3);border:1px solid var(--b1)':''}">${advice}</div>`;
 
+  // ── RISC & SIZING pe regim: mișcare așteptată (pt stops) + sizing invers-vol ──
+  const refVol = order.reduce((s, idx) => s + pi[idx] * hmm.sigma[idx], 0);   // vol „normală" long-run (π-weighted)
+  const curVol = Math.sqrt(predVar);                                          // vol prognozată next bar (fracție)
+  const expMove = predVolPct;                                                 // 1σ next bar, %
+  const expHold = predVolPct * Math.sqrt(Math.max(1, dur));                   // mișcare pe durata tipică a regimului
+  let sizeMult = (refVol > 0 && curVol > 0) ? refVol / curVol : 1;
+  sizeMult = Math.max(0.3, Math.min(1.6, sizeMult));                          // vol-targeting, mărginit
+  const szCol = sizeMult < 0.75 ? 'var(--bear-s)' : (sizeMult > 1.1 ? 'var(--bull-s)' : 'var(--t1)');
+  html += `<div style="margin-top:12px"><div class="muted" style="font-size:11px;margin-bottom:6px">🎯 Risc & sizing pe regim (din volatilitatea prognozată)</div>
+    <div class="stats">
+      <div class="stat"><div class="k">Mișcare așteptată (1 bară)</div><div class="v">±${expMove.toFixed(2)}%</div><div class="muted" style="font-size:10px">~68% din bare aici · ~95% în ±${(expMove*2).toFixed(1)}%</div></div>
+      <div class="stat"><div class="k">SL minim (sub asta = zgomot)</div><div class="v">±${(expMove*1.5).toFixed(2)}%</div><div class="muted" style="font-size:10px">1.5σ pe regimul curent</div></div>
+      <div class="stat"><div class="k">Mișcare pe durata regimului</div><div class="v">±${expHold.toFixed(1)}%</div><div class="muted" style="font-size:10px">~${dur.toFixed(0)} bare tipic</div></div>
+      <div class="stat"><div class="k">Sizing sugerat (vol-target)</div><div class="v" style="color:${szCol}">${sizeMult.toFixed(2)}×</div><div class="muted" style="font-size:10px">invers cu vol → risc/poziție constant</div></div>
+    </div>
+    <div class="legend">Sizing = vol „normală" (π-ponderată ${(refVol*100).toFixed(2)}%) ÷ vol prognozată (${(curVol*100).toFixed(2)}%). Regim volatil → sub 1× automat. SL mai strâns de 1.5σ e mâncat de zgomotul regimului.</div></div>`;
+
+  // date structurate pt interpretarea AI (se completează cu first-passage + OOS mai jos)
+  const aiData = {
+    simbol: meta.sym, interval: meta.tf, nrRegimuri: K,
+    regimCurent: names[curRank], probabilitatePct: +(curProb*100).toFixed(0),
+    miscareAsteptataPct: +expMove.toFixed(2), slMinimPct: +(expMove*1.5).toFixed(2), sizingMultiplicator: +sizeMult.toFixed(2),
+    autocorelatieRegimCurent: rstats[last].autocorr != null ? +rstats[last].autocorr.toFixed(3) : null,
+    regimuri: order.map(idx => ({ nume: names[rank[idx]], volPct: +(hmm.sigma[idx]*100).toFixed(2), persistenta: +hmm.A[idx][idx].toFixed(2), durataBare: Math.round(1/Math.max(1e-6,1-hmm.A[idx][idx])), pctTimp: Math.round(pi[idx]*100), autocorelatie: rstats[idx].autocorr != null ? +rstats[idx].autocorr.toFixed(3) : null })),
+    firstPassage: [], validareOOS: null
+  };
+
+  // buton interpretare AI (citește window.__mkRegimeData setat la finalul render-ului)
+  html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--b1)">
+    <button id="mkAiBtn" onclick="interpretRegimeAI(this)" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f;font-weight:700;border:none;padding:9px 16px;border-radius:var(--rs);cursor:pointer;font-family:var(--head)">🧠 Interpretare AI (Opus 4.8)</button>
+    <span class="muted" style="font-size:11px;margin-left:8px">read în limbaj natural al numerelor — interpretează, NU prezice</span>
+    <div id="mkAiResult" style="margin-top:10px"></div>
+  </div>`;
+
+  // ── FIRST-PASSAGE: P(atinge TP înainte de SL), regim-aware — setupuri scalate la σ ──
+  const fpRows = [
+    { lbl: 'TP 1σ / SL 1σ', rr: '1:1', tp: 1, sl: 1 },
+    { lbl: 'TP 2σ / SL 1σ', rr: '2:1', tp: 2, sl: 1 },
+    { lbl: 'TP 1.5σ / SL 1.5σ', rr: '1:1', tp: 1.5, sl: 1.5 },
+    { lbl: 'TP 3σ / SL 1.5σ', rr: '2:1', tp: 3, sl: 1.5 },
+  ];
+  html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:6px">🎲 First-passage — P(atinge TP înainte de SL), regim-aware (σ = ±${expMove.toFixed(2)}% mișcare așteptată)</div>`;
+  html += `<div style="overflow-x:auto"><table class="mx"><tr><th>Setup</th><th>R:R</th><th>TP / SL</th><th>P(TP întâi)</th><th>P(SL întâi)</th><th>timeout</th><th>bare</th><th>naiv</th></tr>`;
+  for (const row of fpRows){
+    const tpFrac = row.tp * curVol, slFrac = row.sl * curVol;
+    const fp = MK.firstPassage(hmm, tpFrac, slFrac, { sims: 3000, maxBars: 80 });
+    aiData.firstPassage.push({ setup: row.lbl + ' (' + row.rr + ')', pTP_pct: +(fp.pTP*100).toFixed(0), naiv_pct: +(fp.naivePTP*100).toFixed(0) });
+    const tpCol = fp.pTP > fp.naivePTP + 0.02 ? 'var(--bull-s)' : (fp.pTP < fp.naivePTP - 0.02 ? 'var(--bear-s)' : 'var(--t1)');
+    html += `<tr><td class="lbl" style="text-align:left">${row.lbl}</td>
+      <td class="muted">${row.rr}</td>
+      <td class="muted">+${(tpFrac*100).toFixed(1)}% / −${(slFrac*100).toFixed(1)}%</td>
+      <td style="color:${tpCol};font-weight:700">${(fp.pTP*100).toFixed(0)}%</td>
+      <td>${(fp.pSL*100).toFixed(0)}%</td>
+      <td class="muted">${(fp.pTimeout*100).toFixed(0)}%</td>
+      <td>${fp.expBars!=null?fp.expBars.toFixed(0):'—'}</td>
+      <td class="muted">${(fp.naivePTP*100).toFixed(0)}%</td></tr>`;
+  }
+  html += `</table></div><div class="legend">Monte Carlo pe lanțul de regim (3000 sim/setup): din regimul curent, fiecare bară trage din gaussiana regimului, regimul evoluează. „naiv" = random walk simetric fără drift — diferența = ce adaugă regimul (vol clustering → rezolvare mai rapidă). Brut, fără costuri/spread. La R:R 2:1, prag de profitabilitate ≈ 33% P(TP).</div></div>`;
+
   // VALIDARE OOS — strategia „fade în regim volatil" pe bani, walk-forward (reproductibil)
   try {
     const bt = MK.backtestRegimeFade(ohlc, { K: Math.min(K,3), train: Math.min(400, Math.floor(ohlc.length*0.5)), refit: 25 });
     const v = bt.volFade, a = bt.allFade;
+    aiData.validareOOS = { fadeInVolatil_avgPct: +v.avgPct.toFixed(3), t_stat: +v.t.toFixed(2), n: v.n, semnificativ: Math.abs(v.t) >= 2, fadeInToate_avgPct: +a.avgPct.toFixed(3) };
     const sig = Math.abs(v.t) >= 2;
     const cls = (v.avgPct>0 && sig) ? 'good' : (v.avgPct>0 ? 'warn' : 'bad');
     html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:6px">Validare OOS — „fade mișcarea precedentă, DOAR în regim volatil" (walk-forward, BRUT fără costuri)</div>
@@ -636,6 +664,7 @@ function renderHMM(meta, ohlc){
           ? `🟡 Direcția e corectă (fade pozitiv DOAR în volatil, negativ/zero altundeva) dar <b>nesemnificativ statistic</b> (t=${v.t.toFixed(2)}, ai nevoie de |t|&gt;2) și ~0.05%/trade probabil dispare la costuri. Promițător, NEDOVEDIT.`
           : `❌ Fade-ul nu plătește OOS nici în regim volatil aici (${v.avgPct.toFixed(3)}%/trade).`) }</div></div>`;
   } catch(e){ /* prea puține bare pt OOS */ }
+  window.__mkRegimeData = aiData;   // disponibil pentru interpretarea AI
   html += `<div class="legend"><b>Onest, ca să nu te induc în eroare:</b> regimul CURENT + prognoza de vol sunt <b>cauzale</b> (doar trecut). Banda de istoric + autocorelațiile sunt <i>in-sample</i> (Viterbi pe toată seria) — descriptive, nu un backtest live. Autocorelația măsurată e tendința direcțională reală a regimului, NU una inventată.<br>Fit: ${hmm.iters} iter, 6 restart-uri (cel mai bun logLik, evită optime locale)${meta.K==='auto'?', K ales prin BIC':''}. Validat: prognoza de vol bate rolling-20 & EWMA OOS (crypto daily, 4/4). Aplicația robustă a Markov — <b>regim + risc</b>; direcția o folosești doar dacă autocorelația regimului e clar ≠ 0.</div></div>`;
   return html;
 }
@@ -653,6 +682,29 @@ async function runHMM(){
   } catch(e){ setStatus('Eroare: '+(e.message||e),true); }
   finally { $('hmm').disabled=false; $('run').disabled=false; }
 }
+
+// ─────────── Interpretare AI: sintetizează numerele HMM în read natural (NU prezice) ───────────
+window.interpretRegimeAI = async function(btn){
+  const box = document.getElementById('mkAiResult');
+  const d = window.__mkRegimeData;
+  if(!box || !d) return;
+  if(!window.AI){ box.innerHTML = '<div class="verdict bad">lib/ai.js neîncărcat.</div>'; return; }
+  if(!AI.getKey()){
+    box.innerHTML = `<div class="verdict warn">⚠ Lipsește cheia Anthropic. Seteaz-o în pump-radar/earnings-hub (⚙ Setări), sau din Console: <code>localStorage.setItem('anthropic_api_key','sk-ant-...')</code></div>`;
+    return;
+  }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '⏳ Generez…';
+  box.innerHTML = `<div class="verdict" style="background:var(--panel3);border:1px solid var(--b1);white-space:pre-wrap"><span id="mkAiStream"></span><span style="opacity:.6">▋</span></div>`;
+  const system = `Ești asistent de RISC pentru trading. Primești NUMERE DEJA CALCULATE de un model HMM de regim de volatilitate (nu date brute). Interpretează-le într-un read concis, acționabil, în ROMÂNĂ (max 130 cuvinte). REGULI STRICTE: (1) NU inventa predicții direcționale — singura bază pt direcție e câmpul "autocorelatie" (negativ=mean-revert/fadezi, pozitiv=trend/urmărești, ~0=impredictibil). (2) Separă explicit DOVEDIT (detecția de regim + prognoza de vol, care bat baseline-urile) de NEDOVEDIT (ex. validareOOS dacă "semnificativ"=false → spune că NU e dovedit statistic). (3) Ghidare concretă de risc: sizing (sizingMultiplicator), distanță SL (slMinimPct), ce setup R:R din firstPassage are P(TP) peste pragul de breakeven. (4) Fără hype, fără promisiuni. Dacă ceva e nesemnificativ, spune-o.`;
+  const prompt = `Interpretează aceste numere HMM pentru ${d.simbol} (${d.interval}):\n` + JSON.stringify(d);
+  let full = '';
+  try {
+    await AI.stream({ prompt, system, model: 'claude-opus-4-8', maxTokens: 400 },
+      tok => { full += tok; const s = document.getElementById('mkAiStream'); if(s) s.textContent = full; });
+    box.innerHTML = `<div class="verdict" style="background:var(--panel3);border:1px solid var(--b1);white-space:pre-wrap;line-height:1.5">🧠 ${full}</div>`;
+  } catch(e){ box.innerHTML = `<div class="verdict bad">Eroare AI: ${e.message || e}</div>`; }
+  finally { btn.disabled = false; btn.textContent = old; }
+};
 
 // ─────────── wiring ───────────
 const $ = id => document.getElementById(id);
@@ -686,14 +738,14 @@ async function run(){
   }
 }
 $('run').addEventListener('click', run);
-$('sym').addEventListener('keydown', e => { if(e.key==='Enter') run(); });
+$('sym').addEventListener('keydown', e => { if(e.key==='Enter') runHMM(); });   // Enter → analiza principală (regim)
 $('selftest').addEventListener('click', runSelfTest);
 $('sweep').addEventListener('click', runSweep);
 $('batch').addEventListener('click', runBatch);
 $('hmm').addEventListener('click', runHMM);
 
-// rulează self-test la load ca demonstrație că modulul merge fără rețea
-runSelfTest();
+// la load: analiză de regim pe simbolul implicit (acțiunea principală), nu self-test discret
+runHMM();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>

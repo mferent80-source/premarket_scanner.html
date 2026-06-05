@@ -420,6 +420,11 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       <div class="w-val" id="vixVal">—</div>
       <div class="w-sub" id="vixSub">se încarcă…</div>
     </div>
+    <div class="widget" id="wRisk" style="display:none">
+      <div class="w-lbl">🔄 Regim de risc</div>
+      <div class="w-val" id="riskVal" style="font-size:18px">—</div>
+      <div class="w-sub" id="riskSub">se calculează…</div>
+    </div>
     <div class="widget" id="wWL">
       <div class="w-lbl">⭐ Watchlist total</div>
       <div class="w-val" id="wlVal">—</div>
@@ -593,7 +598,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
     <a href="./markov-lab/" target="ttools-markov" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">🔗</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Markov · v1</span>
+      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Markov · v2</span>
       <h2 class="card-title">Markov Lab</h2>
       <p class="card-desc">Model Markov + HMM gaussian de regim de volatilitate. Detectează regim
         calm/volatil (bate EWMA OOS), cu validare onestă de edge (chi² + backtest walk-forward).</p>
@@ -716,6 +721,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
+<script src="lib/data.js"></script>
 <script>
 // ── DASHBOARD WIDGETS ──
 // Hub-ul afișează context macro stocks (SPY + QQQ + VIX) + counts (watchlist, open trades).
@@ -731,11 +737,17 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   const fetchQuote = async (sym) => {
     // chart endpoint: returnează ultimul quote + prevClose
     // range=1d → meta.chartPreviousClose e close-ul de IERI (corect pentru "% azi").
-    // Cu range mai mare, chartPreviousClose ar fi close-ul de dinaintea ferestrei → variație greșită.
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
-    const r = await fetch(CORS(url));
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
+    // strat de date comun (lib/data.js): proxy health per-host + fallback + cache 30s.
+    // Fallback la codetabs dacă data.js nu e încărcat.
+    let data;
+    if (window.D && D.fetchJSON) {
+      data = await D.fetchJSON(url, { ttl: 30 });
+    } else {
+      const r = await fetch(CORS(url));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      data = await r.json();
+    }
     const meta = data?.chart?.result?.[0]?.meta;
     if (!meta) throw new Error('no meta');
     const price = meta.regularMarketPrice;
@@ -766,6 +778,25 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     } catch (e) {
       $('vixSub').textContent = 'indisponibil';
     }
+  })();
+
+  // ── Regim de risc (din sector-rotation: cyclicals vs defensives, via localStorage) ──
+  // Complementar cu VIX: VIX = nivel volatilitate; regimul = rotație risk-on/off.
+  (function(){
+    try {
+      const raw = localStorage.getItem('tt_risk_regime');
+      if (!raw) return;
+      const r = JSON.parse(raw);
+      if (!r || !r.regime) return;
+      const ageH = (Date.now() - (r.t || 0)) / 3600000;
+      if (ageH > 48) return;  // prea vechi → ascuns (deschide Sector Rotation ca să-l reîmprospătezi)
+      const col = r.cls === 'on' ? 'w-pos' : (r.cls === 'off' ? 'w-neg' : '');
+      const icon = r.cls === 'on' ? '🟢' : (r.cls === 'off' ? '🔴' : '⚪');
+      $('riskVal').textContent = icon + ' ' + r.regime;
+      $('riskVal').className = 'w-val ' + col;
+      $('riskSub').textContent = 'spread ' + (r.spread >= 0 ? '+' : '') + r.spread + '%' + (ageH > 6 ? ' · ' + Math.round(ageH) + 'h' : '');
+      $('wRisk').style.display = '';
+    } catch (e) {}
   })();
 
   // ── Watchlist UNIFICAT (stocks + crypto) — cross-page aggregation ──
@@ -939,7 +970,7 @@ const SCANNER_FEATURES = {
         { e: '⏰', t: '<b>Price alerts</b> per stock cu Telegram + browser' },
       ]},
       { title: '🧠 AI integration', cls: 'ai', items: [
-        { e: '🌅', t: '<b>AI Briefing</b> — analiză watchlist completă (Opus 4.7)' },
+        { e: '🌅', t: '<b>AI Briefing</b> — analiză watchlist completă (Opus 4.8)' },
         { e: '🤖', t: '<b>AI inline</b> per stock pe oportunități/squeeze/pump' },
         { e: '🧠', t: '<b>AI Market Summary</b> — context macro după scan' },
       ]},

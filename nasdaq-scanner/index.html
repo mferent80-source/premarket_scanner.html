@@ -912,6 +912,9 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
       <div class="mdot" id="sdot"></div>
       <span id="statusTxt">OPRIT</span>
     </div>
+    <a href="../sector-rotation/" class="market-pill" id="riskRegimePill" title="Regim de risc al pieței (din Sector Rotation: cyclicals vs defensives). RISK-OFF → prudență la long-uri. Click pentru detalii." style="display:none;text-decoration:none;color:inherit;gap:5px">
+      <span id="riskRegimeTxt">—</span>
+    </a>
     <a href="../guide/?page=nasdaq-scanner" style="padding:5px 11px;border-radius:7px;font-size:.6rem;font-weight:600;border:1px solid var(--b1);background:var(--bg2);color:var(--t2);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;" onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t2)'" title="Ghid features">📖 Ghid</a>
     <a href="../" style="padding:5px 11px;border-radius:7px;font-size:.6rem;font-weight:600;border:1px solid var(--b1);background:var(--bg2);color:var(--t2);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;" onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t2)'">← Hub</a>
     <button class="notif-btn" id="darkModeBtn" onclick="toggleDarkMode()" style="cursor:pointer" title="Comută Dark / Light mode (shared cu crypto-scanner)">🌙</button>
@@ -1840,7 +1843,7 @@ async function generateAISummary(force){
     },
     (full)=>{
       aiCacheSet(cacheKey,full);
-      _briefRender(el,full,'claude-opus-4-7 · '+new Date().toLocaleTimeString('ro-RO'));
+      _briefRender(el,full,'claude-opus-4-8 · '+new Date().toLocaleTimeString('ro-RO'));
     },
     (err)=>{
       el.innerHTML='<div style="color:var(--red);font-size:.7rem">❌ '+(err.message||'Eroare')+'</div>'+
@@ -3030,7 +3033,7 @@ function showInfoModal(){
       content:'• <strong>Buton AI pe card individual</strong>: când vrei opinie pe un setup specific (validitate, entry/SL/TP)<br>'+
         '• <strong>🌅 AI Briefing</strong>: dimineața, o singură dată — privire de ansamblu pe tot watchlist-ul<br>'+
         '• <strong>🧠 AI Summary</strong>: după un scan complet — context macro al pieței<br>'+
-        '<em>Costuri: claude-opus-4-7 ≈ $0.05–0.10 per analiză inline. AI Briefing ≈ $0.10–0.15. Model maxim — raționament profund, mai puține greșeli pe setup-uri.</em>'},
+        '<em>Costuri: claude-opus-4-8 ≈ $0.05–0.10 per analiză inline. AI Briefing ≈ $0.10–0.15. Model maxim — raționament profund, mai puține greșeli pe setup-uri.</em>'},
     
     {cat:'ai', bg:'#dcfce7', border:'#86efac', titleColor:'#166534', textColor:'#14532d', emoji:'⚡', title:'AI ca confirmation, nu decision',
       content:'AI-ul e <strong>tool de confirmare</strong>, nu oracol. Folosește-l așa:<br>'+
@@ -3388,7 +3391,7 @@ async function showAIBriefing(){
       const resp=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
         headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model:'claude-opus-4-7',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+        body:JSON.stringify({model:'claude-opus-4-8',max_tokens:1500,messages:[{role:'user',content:prompt}]})
       });
       const data=await resp.json();
       if(data.content?.[0]?.text){
@@ -4881,7 +4884,7 @@ async function aiCallStream(prompt, opts, onDelta, onDone, onError){
   const system=[{type:'text', text:AI_SYSTEM, cache_control:{type:'ephemeral'}}];
   if(opts.systemExtra) system.push({type:'text', text:opts.systemExtra, cache_control:{type:'ephemeral'}});
   const body={
-    model:'claude-opus-4-7',
+    model:'claude-opus-4-8',
     max_tokens:opts.maxTokens||1024,
     stream:true,
     system,
@@ -5099,7 +5102,7 @@ async function analyzeWithAI(symbol, btn, contextType, contextId, force){
     (full)=>{
       // Nu cache-uim răspunsuri generate cu date 0 — ar contamina viitoarele rulări.
       if(!aiPromptIsBlank(prompt)) aiCacheSet(cacheKey,full);
-      renderResult(full,'claude-opus-4-7',news.length);
+      renderResult(full,'claude-opus-4-8',news.length);
     },
     (err)=>{
       container.innerHTML=''; container.dataset.done='0';
@@ -5132,7 +5135,7 @@ function openClaudeAiFallback(symbol, prompt, container, btn, errMsg){
   } else {
     container.innerHTML='<div class="ai-inline-result" style="background:rgba(124,58,237,.10);border-color:rgba(124,58,237,.25)">'+
       '<div style="font-size:.7rem;color:var(--purple);font-weight:700;margin-bottom:6px">🔑 Lipsește cheia Anthropic API</div>'+
-      '<div style="font-size:.6rem;color:var(--t2);margin-bottom:10px;line-height:1.5">Adaugă cheia o dată și analiza apare inline pentru toate simbolurile (claude-opus-4-7 ≈ $0.05–0.10 / analiză — model maxim).</div>'+
+      '<div style="font-size:.6rem;color:var(--t2);margin-bottom:10px;line-height:1.5">Adaugă cheia o dată și analiza apare inline pentru toate simbolurile (claude-opus-4-8 ≈ $0.05–0.10 / analiză — model maxim).</div>'+
       '<button data-action="addKey" style="'+btnStyle+'background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff">🔑 Adaugă cheie</button>'+
     '</div>';
   }
@@ -5168,7 +5171,7 @@ function renderSaveSetupBtn(symbol, contextType){
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  QUICK SETUP — JSON ready-to-execute (Opus 4.7, max 350 tok)
+//  QUICK SETUP — JSON ready-to-execute (Opus 4.8, max 350 tok)
 // ═══════════════════════════════════════════════════════════════
 const NASDAQ_QS_CACHE_KEY='nasdaq_qs_cache_v1';
 const NASDAQ_QS_TTL=60*60*1000; // 1h
@@ -5183,7 +5186,7 @@ function nasdaqQsCacheSet(sym,data){
 }
 
 function renderQuickSetupSection(symbol){
-  return '<div class="ai-inline" style="margin-top:6px"><button class="ai-btn-c" onclick="runNasdaqQuickSetup(\''+symbol+'\',this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">🎯 Quick Setup (Opus 4.7)</button><div id="qs-result-'+symbol+'" data-done="0"></div></div>';
+  return '<div class="ai-inline" style="margin-top:6px"><button class="ai-btn-c" onclick="runNasdaqQuickSetup(\''+symbol+'\',this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">🎯 Quick Setup (Opus 4.8)</button><div id="qs-result-'+symbol+'" data-done="0"></div></div>';
 }
 
 window.runNasdaqQuickSetup=async function(symbol,btn){
@@ -5192,7 +5195,7 @@ window.runNasdaqQuickSetup=async function(symbol,btn){
   if(!o){ container.innerHTML='<div style="padding:10px;color:var(--red);font-size:11px">Nu am găsit opportunity pentru '+symbol+' — rulează scan complet.</div>'; return; }
   if(container.dataset.done==='1'){
     container.innerHTML=''; container.dataset.done='0';
-    if(btn) btn.textContent='🎯 Quick Setup (Opus 4.7)'; return;
+    if(btn) btn.textContent='🎯 Quick Setup (Opus 4.8)'; return;
   }
   const key=getAnthropicKey();
   if(!key){
@@ -5201,7 +5204,7 @@ window.runNasdaqQuickSetup=async function(symbol,btn){
   }
   const cached=nasdaqQsCacheGet(symbol);
   if(cached){ renderNasdaqQuickSetup(container,cached,'💾 cache 1h',symbol); container.dataset.done='1'; if(btn) btn.textContent='🎯 Ascunde Quick Setup'; return; }
-  if(btn){ btn.disabled=true; btn.textContent='⏳ Opus 4.7 gândește (5-10s)…'; }
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Opus 4.8 gândește (5-10s)…'; }
   container.innerHTML='<div style="padding:14px;text-align:center;color:var(--t3);background:var(--bg2);border:1px solid var(--b1);border-radius:8px;margin-top:6px"><span style="font-size:24px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:6px;font-size:11.5px">Generez JSON ready-to-execute…</div></div>';
   container.dataset.done='1';
   const spark=sparklineCache[symbol]||o.spark||[];
@@ -5237,7 +5240,7 @@ Reguli:
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-opus-4-7',max_tokens:800,messages:[{role:'user',content:userPrompt}]})
+      body:JSON.stringify({model:'claude-opus-4-8',max_tokens:800,messages:[{role:'user',content:userPrompt}]})
     });
     if(!resp.ok){
       const j=await resp.json().catch(()=>({error:{message:'HTTP '+resp.status}}));
@@ -5268,7 +5271,7 @@ function renderNasdaqQuickSetup(container,setup,sourceLabel,symbol){
   const fmt$=n=>(n!=null&&!isNaN(n))?'$'+Number(n).toFixed(2):'—';
   const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   container.innerHTML='<div style="background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(34,197,94,.06));border:1px solid rgba(247,147,26,.35);border-radius:8px;padding:11px 13px;margin-top:6px;font-size:11.5px">'+
-    '<div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center"><span style="font-size:10px;color:var(--t3);font-family:monospace;letter-spacing:.3px">🎯 Quick Setup · Opus 4.7 · '+sourceLabel+'</span>'+
+    '<div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center"><span style="font-size:10px;color:var(--t3);font-family:monospace;letter-spacing:.3px">🎯 Quick Setup · Opus 4.8 · '+sourceLabel+'</span>'+
     '<button onclick="event.stopPropagation();rerunNasdaqQuickSetup(\''+symbol+'\')" style="background:transparent;border:1px solid var(--b1);color:var(--t2);padding:2px 7px;font-size:10px;border-radius:3px;cursor:pointer">↻ Re-rulează</button></div>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:7px;margin-bottom:8px">'+
     '<div><div style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:monospace">Entry</div><div style="font-size:14px;font-weight:800;color:var(--t1)">'+fmt$(setup.entry)+'</div></div>'+
@@ -8489,7 +8492,7 @@ window.showNasdaqFeatures = function(){
       { e: '🔔', t: '<b>Browser notifications</b> + ⏰ <b>Price alerts</b>' },
     ]},
     { title: '🧠 AI integration', cls: 'ai', items: [
-      { e: '🌅', t: '<b>AI Briefing</b> watchlist (Opus 4.7)' },
+      { e: '🌅', t: '<b>AI Briefing</b> watchlist (Opus 4.8)' },
       { e: '🤖', t: '<b>AI inline</b> per stock pe oportunități/squeeze/pump' },
       { e: '🧠', t: '<b>AI Market Summary</b> — context macro după scan' },
     ]},
@@ -8596,7 +8599,7 @@ function openCompareModal(){
         }).join('')}
       </div>
       <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
-        <button id="cmpAiBtn" onclick="window.compareWithAI()" style="flex:1;padding:10px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:.7rem;cursor:pointer;font-family:var(--head)">🤖 Compară cu AI (Opus 4.7)</button>
+        <button id="cmpAiBtn" onclick="window.compareWithAI()" style="flex:1;padding:10px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;border-radius:8px;color:#fff;font-weight:700;font-size:.7rem;cursor:pointer;font-family:var(--head)">🤖 Compară cu AI (Opus 4.8)</button>
         <div style="font-size:.55rem;color:var(--t3);max-width:240px;text-align:right">Verdict 🟢/🟡/🔴 + alocare 100% recomandată per stock</div>
       </div>
       <div id="cmpAiResult" style="margin-top:12px"></div>
@@ -8605,7 +8608,7 @@ function openCompareModal(){
   document.body.appendChild(ov);
 }
 
-// ── COMPARE AI — analiză comparativă structurată via Claude Opus 4.7 ──
+// ── COMPARE AI — analiză comparativă structurată via Claude Opus 4.8 ──
 window.compareWithAI = async function(){
   const key = (typeof getAnthropicKey === 'function') ? getAnthropicKey() : (localStorage.getItem('anthropic_api_key')||'');
   if(!key){
@@ -8700,7 +8703,7 @@ Reguli:
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-7',
+        model: 'claude-opus-4-8',
         max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -9465,7 +9468,7 @@ async function _lvAnalyze(symbol,kind,btn,force){
     },
     (full)=>{
       aiCacheSet(cacheKey,full);
-      cell.innerHTML=_lvFormatAiResult(full,symbol,kind,'claude-opus-4-7 · '+new Date().toLocaleTimeString('ro-RO'),news.length);
+      cell.innerHTML=_lvFormatAiResult(full,symbol,kind,'claude-opus-4-8 · '+new Date().toLocaleTimeString('ro-RO'),news.length);
       btn.disabled=false;
     },
     (err)=>{
@@ -9552,7 +9555,7 @@ async function _lvBatchAnalyze(kind){
     },
     (full)=>{
       aiCacheSet(cacheKey,full);
-      panel.innerHTML=_lvBatchFormat(full,kind,'claude-opus-4-7 · '+new Date().toLocaleTimeString('ro-RO'),0);
+      panel.innerHTML=_lvBatchFormat(full,kind,'claude-opus-4-8 · '+new Date().toLocaleTimeString('ro-RO'),0);
     },
     (err)=>{ panel.innerHTML='<div class="lv-ai-err">❌ '+(err.message||'Eroare')+'</div>'; }
   );
@@ -10470,6 +10473,27 @@ window.addEventListener('load', () => {
 setTimeout(_updateGistStatusN, 500);
 // ═══════════════════════════════════════════════════════════════
 
+</script>
+<!-- Context de regim de risc (din Sector Rotation, via localStorage) — filtru de context -->
+<script>
+(function showRiskRegime(){
+  try{
+    var raw = localStorage.getItem('tt_risk_regime');
+    if(!raw) return;
+    var r = JSON.parse(raw);
+    if(!r || !r.regime) return;
+    var ageH = (Date.now() - (r.t||0)) / 3600000;
+    if(ageH > 48) return;  // prea vechi → nu arăta (deschide Sector Rotation ca să-l reîmprospătezi)
+    var pill = document.getElementById('riskRegimePill'), txt = document.getElementById('riskRegimeTxt');
+    if(!pill || !txt) return;
+    var col = r.cls === 'on' ? 'var(--green,#22c55e)' : (r.cls === 'off' ? 'var(--red,#ef4444)' : 'var(--t2,#888)');
+    var icon = r.cls === 'on' ? '🟢' : (r.cls === 'off' ? '🔴' : '⚪');
+    txt.innerHTML = icon + ' ' + r.regime + (ageH > 6 ? ' <span style="opacity:.6">(' + Math.round(ageH) + 'h)</span>' : '');
+    txt.style.color = col;
+    pill.style.display = 'inline-flex';
+    pill.style.borderColor = col;
+  }catch(e){}
+})();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>

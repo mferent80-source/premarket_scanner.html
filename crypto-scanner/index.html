@@ -1458,7 +1458,7 @@ body.dark .signal-panel-body #signalsContainer > div:first-child{margin-top:0}
     <a href="../" style="padding:5px 11px;border-radius:7px;font-size:.6rem;font-weight:600;border:1px solid var(--b1);background:var(--bg2);color:var(--t2);text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;" onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t2)'">← Hub</a>
     <button onclick="window.showCsFeatures()" style="padding:5px 11px;border-radius:7px;font-size:.6rem;font-weight:700;border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);color:#5bb0ff;cursor:pointer;font-family:inherit" title="Listă completă funcționalități">ℹ Funcționalități</button>
     <button class="ai-sum-btn" onclick="toggleCryptoSummary()">🧠 AI Summary</button>
-    <button class="ai-sum-btn" onclick="rankTopAI()" title="Clasament AI al top oportunităților (Opus 4.7)">🏆 Clasament AI</button>
+    <button class="ai-sum-btn" onclick="rankTopAI()" title="Clasament AI al top oportunităților (Opus 4.8)">🏆 Clasament AI</button>
     <div id="pwaInstallBtn" onclick="installPWA()" style="display:none;padding:6px 12px;border-radius:var(--rs);font-size:.62rem;font-weight:600;cursor:pointer;border:1px solid var(--accb);background:var(--accl);color:var(--acc);align-items:center;gap:5px;">📱 Instalează</div>
     <div class="notif-btn" id="notifBtn" onclick="requestNotif()">🔔 Notificări</div>
     <div class="notif-btn" id="tgBtn" onclick="showTelegramModal()" style="cursor:pointer" title="Configurează Telegram pentru alerte">📱 Telegram</div>
@@ -2684,10 +2684,10 @@ function renderAlertSectionCrypto(coin,price){
 function getApiKey(){ return localStorage.getItem('anthropic_api_key')||''; }
 function saveApiKey(k){ localStorage.setItem('anthropic_api_key',k.trim()); }
 
-// Model rapid pentru analize inline per card; model "deep" (Opus 4.7) pentru
+// Model rapid pentru analize inline per card; model "deep" (Opus 4.8) pentru
 // comparatii, clasamente si chat-ul global — analize mai complexe.
 const AI_FAST_MODEL='claude-haiku-4-5-20251001';
-const AI_DEEP_MODEL='claude-opus-4-7';
+const AI_DEEP_MODEL='claude-opus-4-8';
 
 // ── HELPER UNIFICAT CLAUDE API ──
 // Un singur loc pentru apelul Anthropic. Returneaza {ok:true,text} sau {ok:false,error}.
@@ -2887,7 +2887,7 @@ Răspunde în română, max 5 rânduri: stare tehnică actuală, scenariu 24-72h
         'anthropic-dangerous-direct-browser-access':'true'
       },
       body:JSON.stringify({
-        model:'claude-opus-4-7',
+        model:'claude-opus-4-8',
         max_tokens:1024,
         messages:[{role:'user',content:prompt}]
       })
@@ -2895,7 +2895,7 @@ Răspunde în română, max 5 rânduri: stare tehnică actuală, scenariu 24-72h
     const data=await resp.json();
     if(data.content?.[0]?.text){
       container.innerHTML=`<div class="ai-inline-result">${data.content[0].text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-        <div style="font-size:.5rem;color:var(--t3);margin-top:4px;text-align:right">🧠 claude-opus-4-7</div>`;
+        <div style="font-size:.5rem;color:var(--t3);margin-top:4px;text-align:right">🧠 claude-opus-4-8</div>`;
       container.dataset.done='1';
       btn.textContent='🤖 Ascunde analiză';
     } else {
@@ -2941,7 +2941,7 @@ function renderAISectionCrypto(coin, contextType, contextId){
 }
 
 // ════════════════════════════════════════════════════════════
-//  MODUL COMPARAȚIE AI — selectezi 2-4 monede și Opus 4.7 le pune
+//  MODUL COMPARAȚIE AI — selectezi 2-4 monede și Opus 4.8 le pune
 //  față-n față; plus clasament automat al top oportunităților.
 // ════════════════════════════════════════════════════════════
 const CMP_MAX=4;
@@ -3027,7 +3027,7 @@ function openAIModal(title){
   ov.innerHTML=`<div class="ai-modal">
     <div class="ai-modal-hdr"><h3>${title}</h3><button class="ai-modal-x" onclick="document.getElementById('aiModalOv').remove()">✕</button></div>
     <div class="ai-modal-body" id="aiModalBody"></div>
-    <div class="ai-modal-foot"><span id="aiModalFootL">⚡ Opus 4.7</span><button class="cmp-bar-btn ghost" style="padding:5px 11px" onclick="document.getElementById('aiModalOv').remove()">Închide</button></div>
+    <div class="ai-modal-foot"><span id="aiModalFootL">⚡ Opus 4.8</span><button class="cmp-bar-btn ghost" style="padding:5px 11px" onclick="document.getElementById('aiModalOv').remove()">Închide</button></div>
   </div>`;
   ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
   document.body.appendChild(ov);
@@ -3069,7 +3069,7 @@ Răspunde în română, structurat și concis:
 3. Pentru câștigător: acțiune concretă (entry / TP / SL) și tip recomandat (spot / grid / futures).
 4. ⚠️ Un risc principal de urmărit.`;
   const body=openAIModal('⚖️ Comparație AI — '+coins.join(' vs '));
-  const stop=aiLoadingTimer(body,'Opus 4.7 compară '+coins.length+' monede...');
+  const stop=aiLoadingTimer(body,'Opus 4.8 compară '+coins.length+' monede...');
   if(!getApiKey()){ stop(); aiModalFallback(body, prompt); return; }
   const res=await callClaudeAPI(prompt, 1200, AI_DEEP_MODEL);
   stop();
@@ -3092,7 +3092,7 @@ Răspunde în română, concis:
 - Pentru #1: acțiune concretă (entry / TP / SL) și tip recomandat (spot / grid / futures).
 - ⚠️ Care monedă pare cea mai riscantă/capcană și de ce.`;
   const body=openAIModal('🏆 Clasament AI — top '+top.length+' oportunități');
-  const stop=aiLoadingTimer(body,'Opus 4.7 clasează '+top.length+' oportunități...');
+  const stop=aiLoadingTimer(body,'Opus 4.8 clasează '+top.length+' oportunități...');
   if(!getApiKey()){ stop(); aiModalFallback(body, prompt); return; }
   const res=await callClaudeAPI(prompt, 1200, AI_DEEP_MODEL);
   stop();
@@ -3170,7 +3170,7 @@ async function bubSend(){
   const loadEl=document.createElement('div');
   loadEl.className='bub-msg ai';
   box.appendChild(loadEl);
-  const stop=aiLoadingTimer(loadEl,'Opus 4.7 scrie...');
+  const stop=aiLoadingTimer(loadEl,'Opus 4.8 scrie...');
   box.scrollTop=box.scrollHeight;
 
   bubBusy=true;
@@ -7639,7 +7639,7 @@ const TIPS_DATA_CRYPTO=[
       '• <strong>OK pentru</strong>: BTC/ETH/top 50 (date suficiente), analiza tehnică, validare setup-uri tehnice<br>'+
       '• <strong>NU pentru</strong>: noi launch-uri, narrative shifts (gen "pump.fun season"), prediction de gem-uri<br>'+
       '• <strong>Bun la</strong>: "validează acest setup pe X funding+OI+RSI" → răspunde concret<br>'+
-      '<strong>Costuri</strong>: ~$0.05–0.10/analiză inline cu Opus 4.7 (model maxim — raționament profund, mai puține greșeli pe setup-uri tehnice).'},
+      '<strong>Costuri</strong>: ~$0.05–0.10/analiză inline cu Opus 4.8 (model maxim — raționament profund, mai puține greșeli pe setup-uri tehnice).'},
   
   // ─── WORKFLOW ───
   {cat:'workflow',bg:'#ffedd5',border:'#fdba74',titleColor:'#9a3412',textColor:'#7c2d12',emoji:'🚀',title:'Smart Trade vs Grid — când folosești fiecare',
@@ -10501,7 +10501,7 @@ async function aiCallStreamCrypto(opts, onDelta, onDone, onError){
   const system = [{type:'text', text:AI_SYSTEM_C, cache_control:{type:'ephemeral'}}];
   if(opts.systemExtra) system.push({type:'text', text:opts.systemExtra, cache_control:{type:'ephemeral'}});
   const body = {
-    model: 'claude-opus-4-7',
+    model: 'claude-opus-4-8',
     max_tokens: opts.maxTokens || 1024,
     stream: true,
     system,
@@ -11181,7 +11181,7 @@ Concret, fără introducere. Maximum 600 cuvinte. Răspunde în română.`;
         'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-7',
+        model: 'claude-opus-4-8',
         max_tokens: 2200,
         stream: true,
         messages: [{ role: 'user', content: prompt }],
@@ -11227,7 +11227,7 @@ Concret, fără introducere. Maximum 600 cuvinte. Răspunde în română.`;
 
     const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
     const tok = usage ? ` · ${usage.input_tokens||'?'}+${usage.output_tokens||'?'} tok` : '';
-    meta.textContent = `✓ claude-opus-4-7 · ${elapsed}s${tok}`;
+    meta.textContent = `✓ claude-opus-4-8 · ${elapsed}s${tok}`;
 
     // Salvează în saved analyses dacă există hook
     try { logNotification('success', 'Multi-tab AI summary generat', 'cross-ai'); } catch(_){}
@@ -11820,7 +11820,7 @@ function buildCrossTabContext() {
 <button class="bub-fab" id="bubFab" onclick="bubToggle()" title="Asistent AI — întreabă orice despre piață">🤖</button>
 <div class="bub-panel" id="bubPanel">
   <div class="bub-hdr">
-    <div class="bub-hdr-t">🤖 Asistent AI <span style="font-size:.52rem;font-weight:600;color:var(--t3)">Opus 4.7</span></div>
+    <div class="bub-hdr-t">🤖 Asistent AI <span style="font-size:.52rem;font-weight:600;color:var(--t3)">Opus 4.8</span></div>
     <button class="bub-hdr-x" onclick="bubToggle()">✕</button>
   </div>
   <div class="bub-msgs" id="bubMsgs"></div>
