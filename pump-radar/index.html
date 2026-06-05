@@ -769,45 +769,11 @@ window.analyzePumpWithAI = async function(symbol, btn){
   const prompt = buildAiPromptPR(r);
   let full = '';
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':key,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true',
-      },
-      body: JSON.stringify({
-        model:'claude-opus-4-7',
-        max_tokens:600,
-        stream:true,
-        system:[{ type:'text', text:AI_SYSTEM_PR, cache_control:{ type:'ephemeral' } }],
-        messages:[{ role:'user', content:prompt }],
-      }),
-    });
-    if (!resp.ok){
-      const j = await resp.json().catch(() => ({ error:{ message:'HTTP ' + resp.status } }));
-      throw new Error(j.error?.message || ('HTTP ' + resp.status));
-    }
-    const reader = resp.body.getReader(); const dec = new TextDecoder();
-    let buf = '';
-    while (true){
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, { stream:true });
-      const lines = buf.split('\n'); buf = lines.pop();
-      for (const line of lines){
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim(); if (!data) continue;
-        try {
-          const ev = JSON.parse(data);
-          if (ev.type === 'content_block_delta' && ev.delta?.text){
-            full += ev.delta.text;
-            const span = $('ai-stream-' + symbol); if (span) span.textContent = full;
-          }
-        } catch(_){}
-      }
-    }
+    // → lib/ai.js (AI.stream): streaming SSE + cheie din 'anthropic_api_key' (același loc)
+    await AI.stream(
+      { prompt, system: AI_SYSTEM_PR, model: 'claude-opus-4-7', maxTokens: 600 },
+      tok => { full += tok; const span = $('ai-stream-' + symbol); if (span) span.textContent = full; }
+    );
     aiCacheSet(ck, full, 'claude-opus-4-7');
     renderAiBubble(container, full, 'claude-opus-4-7 · ' + new Date().toLocaleTimeString('ro-RO'));
     if (btn) btn.textContent = '🤖 Ascunde analiză';
@@ -1837,6 +1803,7 @@ window.validatePumpSignal = async function(symbol, btn){
 })();
 </script>
 <script src="../lib/telegram.js"></script>
+<script src="../lib/ai.js"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>
