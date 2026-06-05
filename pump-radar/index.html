@@ -468,7 +468,8 @@ const ACTION_META = {
   'avoid': { icon:'🔴', label:'AVOID', tip:'Dump cu volum / insider bear. Risc continuare scădere.' },
   'skip':  { icon:'⏭', label:'SKIP',  tip:'Niciun semnal activ, heat scăzut. Sari peste.' },
 };
-function computeActionPR(r){
+// Acțiunea brută (fără context de regim de piață)
+function _computeActionRaw(r){
   const a = r.alerts || [];
   const iv = (r.insider && r.insider.verdict) || 'na';
   const rsi = r.rsi;
@@ -502,6 +503,18 @@ function computeActionPR(r){
   if (a.length === 0 && heat < 30) return 'skip';
 
   return 'wait';
+}
+// FILTRU DE REGIM (Markov Lab): în regim de piață VOLATIL, breakout-urile/continuările
+// bullish sunt statistic mai puțin fiabile (regimul volatil e mean-reverting, autocorr<0).
+// → retrogradăm un nivel semnalele de continuare. Validat în markov-lab.
+function computeActionPR(r){
+  const base = _computeActionRaw(r);
+  const reg = window.__marketRegime;
+  if (reg && reg.isVol){
+    if (base === 'buy')   return 'watch';
+    if (base === 'watch') return 'wait';
+  }
+  return base;
 }
 function actionCell(r){
   const k = computeActionPR(r);
@@ -1776,13 +1789,17 @@ if (cfg.autoSec > 0) runScan(); else scheduleNextScan();
     var isVol = (cur === volState);
     var rs = MK.regimeStats(MK.logReturns(closes), hmm);
     var ac = rs[cur] && rs[cur].autocorr;
+    var volPct = (hmm.sigma[cur] * 100).toFixed(1);
+    // expune global → folosit de computeActionPR ca FILTRU (retrogradează BUY/WATCH în regim volatil)
+    window.__marketRegime = { isVol: isVol, state: isVol ? 'VOLATIL' : 'CALM', volPct: +volPct, autocorr: ac };
     elV.textContent = isVol ? 'VOLATIL' : 'CALM';
     elV.style.color = isVol ? 'var(--bear-s)' : 'var(--bull-s)';
     if(tile){ tile.classList.remove('vol'); tile.classList.add(isVol ? 'bear' : 'bull'); }
-    var volPct = (hmm.sigma[cur] * 100).toFixed(1);
     elS.innerHTML = isVol
-      ? 'SPY ' + volPct + '%/zi · breakout-uri riscante, ↓ sizing'
+      ? 'SPY ' + volPct + '%/zi · filtrez BUY→WATCH (mean-revert)'
       : 'SPY ' + volPct + '%/zi · condiții normale';
+    // re-randează ca filtrul de regim să se aplice la acțiunile deja afișate
+    if (typeof render === 'function') { try { render(); } catch(_){} }
   }catch(e){ var e2 = document.getElementById('stRegime'); if(e2) e2.textContent = '—'; }
 })();
 </script>
