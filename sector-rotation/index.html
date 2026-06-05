@@ -1032,6 +1032,8 @@ function render(){
   $('riskPillTxt').textContent = regime + ' (spread ' + fmtPct(spread) + ')';
   $('riskDetail').innerHTML = `Cyclicals (XLK·XLY·XLC·XLF·XLI·XLB·XLE) avg <b class="${pctClass(cycAvg)}" style="color:var(--${cycAvg>=0?'green':'red'})">${fmtPct(cycAvg)}</b>` +
     ` · Defensives (XLU·XLP·XLV) avg <b class="${pctClass(defAvg)}" style="color:var(--${defAvg>=0?'green':'red'})">${fmtPct(defAvg)}</b>`;
+  // Persistă regimul de risc pentru consum cross-page (ex. nasdaq-scanner ca filtru de context)
+  try { localStorage.setItem('tt_risk_regime', JSON.stringify({ regime, cls: regimeCls, spread: +spread.toFixed(2), cycAvg: +cycAvg.toFixed(2), defAvg: +defAvg.toFixed(2), t: Date.now() })); } catch(_){}
 
   // Heatmap (sortat după Δ1w descending mereu — vizual clar)
   const heatOrd = DATA.slice().sort((a,b) => b.chg1w - a.chg1w);
