@@ -603,6 +603,30 @@ function renderHMM(meta, ohlc){
     </div>
     <div class="legend">Sizing = vol „normală" (π-ponderată ${(refVol*100).toFixed(2)}%) ÷ vol prognozată (${(curVol*100).toFixed(2)}%). Regim volatil → sub 1× automat. SL mai strâns de 1.5σ e mâncat de zgomotul regimului.</div></div>`;
 
+  // ── FIRST-PASSAGE: P(atinge TP înainte de SL), regim-aware — setupuri scalate la σ ──
+  const fpRows = [
+    { lbl: 'TP 1σ / SL 1σ', rr: '1:1', tp: 1, sl: 1 },
+    { lbl: 'TP 2σ / SL 1σ', rr: '2:1', tp: 2, sl: 1 },
+    { lbl: 'TP 1.5σ / SL 1.5σ', rr: '1:1', tp: 1.5, sl: 1.5 },
+    { lbl: 'TP 3σ / SL 1.5σ', rr: '2:1', tp: 3, sl: 1.5 },
+  ];
+  html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:6px">🎲 First-passage — P(atinge TP înainte de SL), regim-aware (σ = ±${expMove.toFixed(2)}% mișcare așteptată)</div>`;
+  html += `<div style="overflow-x:auto"><table class="mx"><tr><th>Setup</th><th>R:R</th><th>TP / SL</th><th>P(TP întâi)</th><th>P(SL întâi)</th><th>timeout</th><th>bare</th><th>naiv</th></tr>`;
+  for (const row of fpRows){
+    const tpFrac = row.tp * curVol, slFrac = row.sl * curVol;
+    const fp = MK.firstPassage(hmm, tpFrac, slFrac, { sims: 3000, maxBars: 80 });
+    const tpCol = fp.pTP > fp.naivePTP + 0.02 ? 'var(--bull-s)' : (fp.pTP < fp.naivePTP - 0.02 ? 'var(--bear-s)' : 'var(--t1)');
+    html += `<tr><td class="lbl" style="text-align:left">${row.lbl}</td>
+      <td class="muted">${row.rr}</td>
+      <td class="muted">+${(tpFrac*100).toFixed(1)}% / −${(slFrac*100).toFixed(1)}%</td>
+      <td style="color:${tpCol};font-weight:700">${(fp.pTP*100).toFixed(0)}%</td>
+      <td>${(fp.pSL*100).toFixed(0)}%</td>
+      <td class="muted">${(fp.pTimeout*100).toFixed(0)}%</td>
+      <td>${fp.expBars!=null?fp.expBars.toFixed(0):'—'}</td>
+      <td class="muted">${(fp.naivePTP*100).toFixed(0)}%</td></tr>`;
+  }
+  html += `</table></div><div class="legend">Monte Carlo pe lanțul de regim (3000 sim/setup): din regimul curent, fiecare bară trage din gaussiana regimului, regimul evoluează. „naiv" = random walk simetric fără drift — diferența = ce adaugă regimul (vol clustering → rezolvare mai rapidă). Brut, fără costuri/spread. La R:R 2:1, prag de profitabilitate ≈ 33% P(TP).</div></div>`;
+
   // VALIDARE OOS — strategia „fade în regim volatil" pe bani, walk-forward (reproductibil)
   try {
     const bt = MK.backtestRegimeFade(ohlc, { K: Math.min(K,3), train: Math.min(400, Math.floor(ohlc.length*0.5)), refit: 25 });
