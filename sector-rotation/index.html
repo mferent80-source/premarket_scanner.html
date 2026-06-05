@@ -794,7 +794,7 @@ async function callAnthropicStream(systemPrompt, userPrompt, maxTokens=600){
     method:'POST',
     headers:{ 'Content-Type':'application/json', 'x-api-key':key,
               'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-    body: JSON.stringify({ model:'claude-opus-4-7', max_tokens:maxTokens, stream:true,
+    body: JSON.stringify({ model:'claude-opus-4-8', max_tokens:maxTokens, stream:true,
                            system:systemPrompt, messages:[{ role:'user', content:userPrompt }] })
   });
   if (!resp.ok){ const t = await resp.text(); throw new Error(`HTTP ${resp.status}: ${t.slice(0,200)}`); }
@@ -924,7 +924,7 @@ function renderAIBubble(sym, text, fromCache, elapsed){
   const html = escHtml(text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
   box.innerHTML = `<div class="ai-body appear">${html}</div>
     <div class="ai-meta">
-      <span>🤖 claude-opus-4-7</span>
+      <span>🤖 claude-opus-4-8</span>
       ${fromCache ? '<span>⚡ din cache (1h)</span>' : `<span>⏱ ${elapsed || '?'} s</span>`}
       <span>${new Date().toLocaleTimeString('ro-RO')}</span>
     </div>`;
@@ -1153,7 +1153,7 @@ function renderExpandBody(d){
   const aiInitial = ai && ai.text
     ? `<div class="ai-body appear">${escHtml(ai.text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')}</div>
        <div class="ai-meta">
-         <span>🤖 claude-opus-4-7</span>
+         <span>🤖 claude-opus-4-8</span>
          <span>⚡ ${Date.now() - ai.ts < 60*60*1000 ? 'din cache (1h)' : 'expirat — apasă Rerun'}</span>
          <span>${new Date(ai.ts).toLocaleTimeString('ro-RO')}</span>
        </div>`

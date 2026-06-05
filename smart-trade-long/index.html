@@ -752,7 +752,7 @@ function render(sym, scoreData, insiderData) {
       </div>
 
       <div class="card" id="aiSetupCard" style="grid-column:span 2">
-        <h2><span class="ico">🎯</span> AI Quick Setup <span style="font-size:11px;color:var(--txt-dd);font-weight:500;margin-left:6px">— Claude Opus 4.7, ready-to-execute</span></h2>
+        <h2><span class="ico">🎯</span> AI Quick Setup <span style="font-size:11px;color:var(--txt-dd);font-weight:500;margin-left:6px">— Claude Opus 4.8, ready-to-execute</span></h2>
         <div id="aiSetupBar" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
           <button class="btn primary" id="aiSetupBtn">🎯 Generează Setup AI</button>
           <button class="btn" id="aiSetupRerun" style="display:none">↻ Re-rulează</button>
@@ -821,7 +821,7 @@ async function runAIQuickSetup(sym, scoreData, insiderData, force) {
   if (rerunBtn) rerunBtn.disabled = true;
   status.textContent = '⏳ Gândesc...';
   output.style.display = 'block';
-  output.innerHTML = `<div style="padding:18px;text-align:center;color:var(--txt-dd)"><span style="font-size:28px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:8px;font-size:13px">Claude Opus 4.7 analizează setup-ul (5-10s)...</div></div>`;
+  output.innerHTML = `<div style="padding:18px;text-align:center;color:var(--txt-dd)"><span style="font-size:28px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:8px;font-size:13px">Claude Opus 4.8 analizează setup-ul (5-10s)...</div></div>`;
 
   // Build context compact pentru prompt
   const insiderSummary = insiderData?.ok && insiderData.data?.length
@@ -868,7 +868,7 @@ Reguli pentru câmpuri:
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-7',
+        model: 'claude-opus-4-8',
         max_tokens: 800,
         messages: [{ role: 'user', content: userPrompt }]
       })

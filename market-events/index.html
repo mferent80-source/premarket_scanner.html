@@ -1817,7 +1817,7 @@ async function scanEarnings() {
           <td class="num">${intradayLow}</td>
           <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
           <td>${s.sector || '-'}</td>
-          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button> <button class="btn-ai-row" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a;font-weight:800" onclick='meQuickSetup("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="🎯 Quick Setup ready-to-execute (Opus 4.7)">🎯</button></td>
+          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button> <button class="btn-ai-row" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a;font-weight:800" onclick='meQuickSetup("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="🎯 Quick Setup ready-to-execute (Opus 4.8)">🎯</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -1940,7 +1940,7 @@ async function loserAddEarlyReversal(){
 // ============================================================
 // AI INTEGRATION (port din nasdaq-scanner)
 // ============================================================
-const AI_MODEL = 'claude-opus-4-7';
+const AI_MODEL = 'claude-opus-4-8';
 const aiCache = {}; // simbol+type → text (evită apeluri duplicate în aceeași sesiune)
 
 function getAnthropicKey(){ return localStorage.getItem('anthropic_api_key')||''; }
@@ -1969,7 +1969,7 @@ function showAiKeyModal(onSuccess){
         <button id="anthCancelBtn">✕ Anulează</button>
       </div>
       ${existing ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #30363d;display:flex;justify-content:flex-end"><button id="anthDeleteBtn" style="background:#3d1418;border-color:#5c1d23;color:#ff6b6b">🗑️ Șterge cheia</button></div>' : ''}
-      <div style="margin-top:10px;font-size:10px;color:#6e7681;line-height:1.5">💡 Cheia se salvează doar local (localStorage), nu se trimite la GitHub. Costuri: claude-opus-4-7 ≈ $0.05–0.10 per analiză.</div>
+      <div style="margin-top:10px;font-size:10px;color:#6e7681;line-height:1.5">💡 Cheia se salvează doar local (localStorage), nu se trimite la GitHub. Costuri: claude-opus-4-8 ≈ $0.05–0.10 per analiză.</div>
     </div>`;
   document.body.appendChild(ov);
   setTimeout(() => document.getElementById('anthKeyInp')?.focus(), 100);
@@ -2104,7 +2104,7 @@ async function aiAnalyzeRow(type, s) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  QUICK SETUP — JSON ready-to-execute (Opus 4.7)
+//  QUICK SETUP — JSON ready-to-execute (Opus 4.8)
 // ═══════════════════════════════════════════════════════════════
 const ME_QS_CACHE_KEY = 'me_qs_cache_v1';
 const ME_QS_TTL = 60 * 60 * 1000; // 1h
@@ -2130,7 +2130,7 @@ async function meQuickSetup(type, s) {
     <div class="ai-modal" style="max-width:680px">
       <div class="ai-modal-title">🎯 Quick Setup: ${s.symbol}</div>
       <div class="ai-modal-sub">${titleIcon} · ${(s.name || '').slice(0,60)} · ${s.sector || 'N/A'}</div>
-      <div class="ai-modal-result" id="qsResultArea"><div style="padding:18px;text-align:center;color:#a3adc1"><span style="font-size:28px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:8px;font-size:13px">Claude Opus 4.7 generează JSON ready-to-execute (5-10s)...</div></div></div>
+      <div class="ai-modal-result" id="qsResultArea"><div style="padding:18px;text-align:center;color:#a3adc1"><span style="font-size:28px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:8px;font-size:13px">Claude Opus 4.8 generează JSON ready-to-execute (5-10s)...</div></div></div>
       <div class="ai-modal-meta" id="qsMeta"></div>
       <div class="ai-modal-actions">
         <button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button>
@@ -2168,7 +2168,7 @@ async function meQuickSetup(type, s) {
       ${setup.invalidation ? `<div style="margin-top:6px;padding:7px 10px;background:rgba(212,137,44,.07);border-left:3px solid #d4892c;border-radius:0 6px 6px 0;font-size:11.5px"><strong style="color:#d4892c">🚫 Invalidare:</strong> ${esc(setup.invalidation)}</div>` : ''}
       ${setup.catalysts ? `<div style="margin-top:6px;padding:7px 10px;background:rgba(34,214,107,.07);border-left:3px solid #22d66b;border-radius:0 6px 6px 0;font-size:11.5px"><strong style="color:#22d66b">⚡ Catalist:</strong> ${esc(setup.catalysts)}</div>` : ''}
     </div>`;
-    meta.textContent = `✓ claude-opus-4-7 · ${source}`;
+    meta.textContent = `✓ claude-opus-4-8 · ${source}`;
   };
 
   const cached = meQsCacheGet(cacheKey);
@@ -2208,7 +2208,7 @@ ${type === 'watchlist' ? '- Watchlist standard: entry market sau pullback, SL la
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] })
+        body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] })
       });
       if (!resp.ok) { const j = await resp.json().catch(() => ({ error: { message: 'HTTP ' + resp.status } })); throw new Error(j.error?.message || ('HTTP ' + resp.status)); }
       const data = await resp.json();
