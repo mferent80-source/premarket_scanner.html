@@ -91,7 +91,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 </head>
 <body>
 
-<h1>🔗 Markov Lab <span class="ver">v3.2</span></h1>
+<h1>🔗 Markov Lab <span class="ver">v3.3</span></h1>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
   Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
@@ -576,6 +576,8 @@ function renderHMM(meta, ohlc){
   // banner regim curent
   const col = REG_COLORS[curRank] || 'var(--t2)';
   const dur = 1/Math.max(1e-6, 1-hmm.A[last][last]);
+  let barsIn = 0; for(let i=hmm.states.length-1; i>=0 && hmm.states[i]===last; i--) barsIn++;  // bare consecutive în regimul curent
+  const overstay = barsIn > dur*1.2;
   html += `<div class="grid2">
     <div>
       <div class="muted" style="font-size:11px">Regim curent</div>
@@ -584,6 +586,7 @@ function renderHMM(meta, ohlc){
         <div class="stat"><div class="k">Probabilitate</div><div class="v">${(curProb*100).toFixed(0)}%</div></div>
         <div class="stat"><div class="k">Vol prognozată (next)</div><div class="v" style="color:${col}">${predVolPct.toFixed(2)}%</div></div>
         <div class="stat"><div class="k">Durată tipică regim</div><div class="v">${dur.toFixed(0)} bare</div></div>
+        <div class="stat"><div class="k">În regim de</div><div class="v"${overstay?' style="color:var(--warn)"':''}>${barsIn} bare${overstay?' ↗':''}</div><div class="muted" style="font-size:10px">${overstay?'peste tipic → posibil flip curând':'din ~'+dur.toFixed(0)+' tipic'}</div></div>
       </div>
     </div>
     <div>
@@ -777,12 +780,16 @@ window.interpretRegimeAI = async function(btn){
 // ─────────── wiring ───────────
 const $ = id => document.getElementById(id);
 function setStatus(txt, isErr){ $('status').innerHTML = isErr ? `<span class="err">${txt}</span>` : txt; }
+// persistă/restaurează ultimul simbol + setări (ca să nu reseteze la BTCUSDT la fiecare deschidere)
+function saveCfg(){ try { localStorage.setItem('mk_lab_cfg', JSON.stringify({ src:$('src').value, sym:$('sym').value, tf:$('tf').value, khmm:$('khmm').value, nstates:$('nstates').value, win:$('win').value, rvol:$('rvol').value })); } catch(e){} }
+function restoreCfg(){ try { const c = JSON.parse(localStorage.getItem('mk_lab_cfg')||'null'); if(!c) return; if(c.src)$('src').value=c.src; if(c.sym)$('sym').value=c.sym; if(c.tf)$('tf').value=c.tf; if(c.khmm)$('khmm').value=c.khmm; if(c.nstates)$('nstates').value=c.nstates; if(c.win)$('win').value=c.win; if(c.rvol)$('rvol').value=c.rvol; } catch(e){} }
 
 $('src').addEventListener('change', () => {
   $('sym').value = $('src').value === 'crypto' ? 'BTCUSDT' : 'AAPL';
 });
 
 async function run(){
+  saveCfg();
   const src = $('src').value, sym = $('sym').value.trim().toUpperCase(), tf = $('tf').value;
   const nStates = +$('nstates').value, win = Math.max(50, +$('win').value || 300);
   const rvol = Math.max(1.05, +$('rvol').value || 1.5);
@@ -806,13 +813,14 @@ async function run(){
   }
 }
 $('run').addEventListener('click', run);
-$('sym').addEventListener('keydown', e => { if(e.key==='Enter') runHMM(); });   // Enter → analiza principală (regim)
+$('sym').addEventListener('keydown', e => { if(e.key==='Enter'){ saveCfg(); runHMM(); } });   // Enter → analiza principală (regim)
 $('selftest').addEventListener('click', runSelfTest);
-$('sweep').addEventListener('click', runSweep);
-$('batch').addEventListener('click', runBatch);
-$('hmm').addEventListener('click', runHMM);
+$('sweep').addEventListener('click', () => { saveCfg(); runSweep(); });
+$('batch').addEventListener('click', () => { saveCfg(); runBatch(); });
+$('hmm').addEventListener('click', () => { saveCfg(); runHMM(); });
 
-// la load: analiză de regim pe simbolul implicit (acțiunea principală), nu self-test discret
+// la load: restaurează setările salvate, apoi analiză de regim (acțiunea principală)
+restoreCfg();
 runHMM();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
