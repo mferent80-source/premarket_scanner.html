@@ -91,7 +91,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 </head>
 <body>
 
-<h1>🔗 Markov Lab <span class="ver">v3.1</span></h1>
+<h1>🔗 Markov Lab <span class="ver">v3.2</span></h1>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
   Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
@@ -663,6 +663,8 @@ function renderHMM(meta, ohlc){
     regimuri: order.map(idx => ({ nume: names[rank[idx]], volPct: +(hmm.sigma[idx]*100).toFixed(2), persistenta: +hmm.A[idx][idx].toFixed(2), durataBare: Math.round(1/Math.max(1e-6,1-hmm.A[idx][idx])), pctTimp: Math.round(pi[idx]*100), autocorelatie: rstats[idx].autocorr != null ? +rstats[idx].autocorr.toFixed(3) : null })),
     firstPassage: [], validareOOS: null
   };
+  window.__mkRegimeData = aiData;                          // disponibil IMEDIAT pt AI (chiar înainte de validarea grea)
+  window.__mkValCtx = { hmm, ohlc, K, curVol, expMove };   // context pt validarea grea lazy (pe buton)
 
   // buton interpretare AI (citește window.__mkRegimeData setat la finalul render-ului)
   html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--b1)">
@@ -671,50 +673,12 @@ function renderHMM(meta, ohlc){
     <div id="mkAiResult" style="margin-top:10px"></div>
   </div>`;
 
-  // ── FIRST-PASSAGE: P(atinge TP înainte de SL), regim-aware — setupuri scalate la σ ──
-  const fpRows = [
-    { lbl: 'TP 1σ / SL 1σ', rr: '1:1', tp: 1, sl: 1 },
-    { lbl: 'TP 2σ / SL 1σ', rr: '2:1', tp: 2, sl: 1 },
-    { lbl: 'TP 1.5σ / SL 1.5σ', rr: '1:1', tp: 1.5, sl: 1.5 },
-    { lbl: 'TP 3σ / SL 1.5σ', rr: '2:1', tp: 3, sl: 1.5 },
-  ];
-  html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:6px">🎲 First-passage — P(atinge TP înainte de SL), regim-aware (σ = ±${expMove.toFixed(2)}% mișcare așteptată)</div>`;
-  html += `<div style="overflow-x:auto"><table class="mx"><tr><th>Setup</th><th>R:R</th><th>TP / SL</th><th>P(TP întâi)</th><th>P(SL întâi)</th><th>timeout</th><th>bare</th><th>naiv</th></tr>`;
-  for (const row of fpRows){
-    const tpFrac = row.tp * curVol, slFrac = row.sl * curVol;
-    const fp = MK.firstPassage(hmm, tpFrac, slFrac, { sims: 3000, maxBars: 80 });
-    aiData.firstPassage.push({ setup: row.lbl + ' (' + row.rr + ')', pTP_pct: +(fp.pTP*100).toFixed(0), naiv_pct: +(fp.naivePTP*100).toFixed(0) });
-    const tpCol = fp.pTP > fp.naivePTP + 0.02 ? 'var(--bull-s)' : (fp.pTP < fp.naivePTP - 0.02 ? 'var(--bear-s)' : 'var(--t1)');
-    html += `<tr><td class="lbl" style="text-align:left">${row.lbl}</td>
-      <td class="muted">${row.rr}</td>
-      <td class="muted">+${(tpFrac*100).toFixed(1)}% / −${(slFrac*100).toFixed(1)}%</td>
-      <td style="color:${tpCol};font-weight:700">${(fp.pTP*100).toFixed(0)}%</td>
-      <td>${(fp.pSL*100).toFixed(0)}%</td>
-      <td class="muted">${(fp.pTimeout*100).toFixed(0)}%</td>
-      <td>${fp.expBars!=null?fp.expBars.toFixed(0):'—'}</td>
-      <td class="muted">${(fp.naivePTP*100).toFixed(0)}%</td></tr>`;
-  }
-  html += `</table></div><div class="legend">Monte Carlo pe lanțul de regim (3000 sim/setup): din regimul curent, fiecare bară trage din gaussiana regimului, regimul evoluează. „naiv" = random walk simetric fără drift — diferența = ce adaugă regimul (vol clustering → rezolvare mai rapidă). Brut, fără costuri/spread. La R:R 2:1, prag de profitabilitate ≈ 33% P(TP).</div></div>`;
-
-  // VALIDARE OOS — strategia „fade în regim volatil" pe bani, walk-forward (reproductibil)
-  try {
-    const bt = MK.backtestRegimeFade(ohlc, { K: Math.min(K,3), train: Math.min(400, Math.floor(ohlc.length*0.5)), refit: 25 });
-    const v = bt.volFade, a = bt.allFade;
-    aiData.validareOOS = { fadeInVolatil_avgPct: +v.avgPct.toFixed(3), t_stat: +v.t.toFixed(2), n: v.n, semnificativ: Math.abs(v.t) >= 2, fadeInToate_avgPct: +a.avgPct.toFixed(3) };
-    const sig = Math.abs(v.t) >= 2;
-    const cls = (v.avgPct>0 && sig) ? 'good' : (v.avgPct>0 ? 'warn' : 'bad');
-    html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:6px">Validare OOS — „fade mișcarea precedentă, DOAR în regim volatil" (walk-forward, BRUT fără costuri)</div>
-      <div class="stats">
-        <div class="stat"><div class="k">Fade în VOLATIL</div><div class="v" style="color:${v.avgPct>0?'var(--bull-s)':'var(--bear-s)'}">${v.avgPct>=0?'+':''}${v.avgPct.toFixed(3)}%</div><div class="muted" style="font-size:10px">t=${v.t.toFixed(2)} · hit ${v.hitPct.toFixed(0)}% · n=${v.n}</div></div>
-        <div class="stat"><div class="k">Fade în TOATE regimurile</div><div class="v muted">${a.avgPct>=0?'+':''}${a.avgPct.toFixed(3)}%</div><div class="muted" style="font-size:10px">t=${a.t.toFixed(2)} · n=${a.n}</div></div>
-      </div>
-      <div class="verdict ${cls}">${ sig && v.avgPct>0
-        ? `✅ Edge OOS <b>semnificativ</b> (t=${v.t.toFixed(2)}) — fade-ul plătește în regim volatil pe acest simbol.`
-        : (v.avgPct>0
-          ? `🟡 Direcția e corectă (fade pozitiv DOAR în volatil, negativ/zero altundeva) dar <b>nesemnificativ statistic</b> (t=${v.t.toFixed(2)}, ai nevoie de |t|&gt;2) și ~0.05%/trade probabil dispare la costuri. Promițător, NEDOVEDIT.`
-          : `❌ Fade-ul nu plătește OOS nici în regim volatil aici (${v.avgPct.toFixed(3)}%/trade).`) }</div></div>`;
-  } catch(e){ /* prea puține bare pt OOS */ }
-  window.__mkRegimeData = aiData;   // disponibil pentru interpretarea AI
+  // ── VALIDARE GREA (LAZY): first-passage Monte Carlo + OOS walk-forward — pe buton, NU la load ──
+  html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--b1)">
+    <button id="mkValBtn" class="ghost" onclick="runRegimeValidation(this)" title="Monte Carlo first-passage + backtest walk-forward cu refit HMM — durează câteva secunde">🎲 Rulează validare OOS + first-passage</button>
+    <span class="muted" style="font-size:11px;margin-left:8px">heavy (Monte Carlo + walk-forward cu refit HMM) — rulat la cerere ca pagina să se încarce instant</span>
+    <div id="mkValResult" style="margin-top:10px"></div>
+  </div>`;
   html += `<div class="legend"><b>Onest, ca să nu te induc în eroare:</b> regimul CURENT + prognoza de vol sunt <b>cauzale</b> (doar trecut). Banda de istoric + autocorelațiile sunt <i>in-sample</i> (Viterbi pe toată seria) — descriptive, nu un backtest live. Autocorelația măsurată e tendința direcțională reală a regimului, NU una inventată.<br>Fit: ${hmm.iters} iter, 6 restart-uri (cel mai bun logLik, evită optime locale)${meta.K==='auto'?', K ales prin BIC':''}. Validat: prognoza de vol bate rolling-20 & EWMA OOS (crypto daily, 4/4). Aplicația robustă a Markov — <b>regim + risc</b>; direcția o folosești doar dacă autocorelația regimului e clar ≠ 0.</div></div>`;
   return html;
 }
@@ -734,6 +698,53 @@ async function runHMM(){
 }
 
 // ─────────── Interpretare AI: sintetizează numerele HMM în read natural (NU prezice) ───────────
+// ─────────── Validare grea (lazy, pe buton): first-passage + OOS walk-forward ───────────
+window.runRegimeValidation = function(btn){
+  const ctx = window.__mkValCtx, aiData = window.__mkRegimeData;
+  const box = document.getElementById('mkValResult');
+  if(!ctx || !box) return;
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '⏳ Calculez…';
+  box.innerHTML = '<div class="muted" style="font-size:11px"><span class="spinner"></span> Monte Carlo + walk-forward (refit HMM)…</div>';
+  setTimeout(() => {
+    try {
+      const hmm = ctx.hmm, ohlc = ctx.ohlc, K = ctx.K, curVol = ctx.curVol, expMove = ctx.expMove;
+      let html = '';
+      const fpRows = [
+        { lbl:'TP 1σ / SL 1σ', rr:'1:1', tp:1, sl:1 },
+        { lbl:'TP 2σ / SL 1σ', rr:'2:1', tp:2, sl:1 },
+        { lbl:'TP 1.5σ / SL 1.5σ', rr:'1:1', tp:1.5, sl:1.5 },
+        { lbl:'TP 3σ / SL 1.5σ', rr:'2:1', tp:3, sl:1.5 },
+      ];
+      if(aiData) aiData.firstPassage = [];
+      html += `<div><div class="muted" style="font-size:11px;margin-bottom:6px">🎲 First-passage — P(atinge TP înainte de SL), regim-aware (σ = ±${expMove.toFixed(2)}% mișcare așteptată)</div>`;
+      html += `<div style="overflow-x:auto"><table class="mx"><tr><th>Setup</th><th>R:R</th><th>TP / SL</th><th>P(TP întâi)</th><th>P(SL întâi)</th><th>timeout</th><th>bare</th><th>naiv</th></tr>`;
+      for(const row of fpRows){
+        const tpFrac = row.tp*curVol, slFrac = row.sl*curVol;
+        const fp = MK.firstPassage(hmm, tpFrac, slFrac, { sims:3000, maxBars:80 });
+        if(aiData) aiData.firstPassage.push({ setup: row.lbl+' ('+row.rr+')', pTP_pct:+(fp.pTP*100).toFixed(0), naiv_pct:+(fp.naivePTP*100).toFixed(0) });
+        const tpCol = fp.pTP>fp.naivePTP+0.02?'var(--bull-s)':(fp.pTP<fp.naivePTP-0.02?'var(--bear-s)':'var(--t1)');
+        html += `<tr><td class="lbl" style="text-align:left">${row.lbl}</td><td class="muted">${row.rr}</td><td class="muted">+${(tpFrac*100).toFixed(1)}% / −${(slFrac*100).toFixed(1)}%</td><td style="color:${tpCol};font-weight:700">${(fp.pTP*100).toFixed(0)}%</td><td>${(fp.pSL*100).toFixed(0)}%</td><td class="muted">${(fp.pTimeout*100).toFixed(0)}%</td><td>${fp.expBars!=null?fp.expBars.toFixed(0):'—'}</td><td class="muted">${(fp.naivePTP*100).toFixed(0)}%</td></tr>`;
+      }
+      html += `</table></div><div class="legend">Monte Carlo pe lanțul de regim (3000 sim/setup). „naiv" = random walk simetric fără drift; diferența = ce adaugă regimul (vol clustering). Brut, fără costuri. La R:R 2:1, prag ≈ 33% P(TP).</div></div>`;
+      try {
+        const bt = MK.backtestRegimeFade(ohlc, { K: Math.min(K,3), train: Math.min(400, Math.floor(ohlc.length*0.5)), refit:25 });
+        const v = bt.volFade, a = bt.allFade;
+        if(aiData) aiData.validareOOS = { fadeInVolatil_avgPct:+v.avgPct.toFixed(3), t_stat:+v.t.toFixed(2), n:v.n, semnificativ:Math.abs(v.t)>=2, fadeInToate_avgPct:+a.avgPct.toFixed(3) };
+        const sig = Math.abs(v.t)>=2;
+        const cls = (v.avgPct>0&&sig)?'good':(v.avgPct>0?'warn':'bad');
+        html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:6px">Validare OOS — „fade mișcarea precedentă, DOAR în regim volatil" (walk-forward, BRUT fără costuri)</div>
+          <div class="stats">
+            <div class="stat"><div class="k">Fade în VOLATIL</div><div class="v" style="color:${v.avgPct>0?'var(--bull-s)':'var(--bear-s)'}">${v.avgPct>=0?'+':''}${v.avgPct.toFixed(3)}%</div><div class="muted" style="font-size:10px">t=${v.t.toFixed(2)} · hit ${v.hitPct.toFixed(0)}% · n=${v.n}</div></div>
+            <div class="stat"><div class="k">Fade în TOATE regimurile</div><div class="v muted">${a.avgPct>=0?'+':''}${a.avgPct.toFixed(3)}%</div><div class="muted" style="font-size:10px">t=${a.t.toFixed(2)} · n=${a.n}</div></div>
+          </div>
+          <div class="verdict ${cls}">${ sig && v.avgPct>0 ? `✅ Edge OOS <b>semnificativ</b> (t=${v.t.toFixed(2)}) — fade-ul plătește în regim volatil pe acest simbol.` : (v.avgPct>0 ? `🟡 Direcția e corectă dar <b>nesemnificativ statistic</b> (t=${v.t.toFixed(2)}, ai nevoie de |t|&gt;2); ~0.05%/trade probabil dispare la costuri. Promițător, NEDOVEDIT.` : `❌ Fade-ul nu plătește OOS nici în regim volatil aici (${v.avgPct.toFixed(3)}%/trade).`) }</div></div>`;
+      } catch(e){ html += `<div class="legend muted" style="margin-top:10px">Validare OOS indisponibilă (prea puține bare).</div>`; }
+      box.innerHTML = html;
+      btn.textContent = '↻ Rerun validare'; btn.disabled = false;
+    } catch(e){ box.innerHTML = `<div class="verdict bad">Eroare validare: ${e.message||e}</div>`; btn.textContent = old; btn.disabled = false; }
+  }, 30);
+};
+
 window.interpretRegimeAI = async function(btn){
   const box = document.getElementById('mkAiResult');
   const d = window.__mkRegimeData;
