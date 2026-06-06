@@ -91,7 +91,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 </head>
 <body>
 
-<h1>🔗 Markov Lab <span class="ver">v3</span></h1>
+<h1>🔗 Markov Lab <span class="ver">v3.1</span></h1>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
   Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
@@ -502,6 +502,48 @@ async function runBatch(){
 
 // ─────────── HMM regime detection (Markov-ul care bate baseline-urile) ───────────
 const REG_COLORS = ['var(--bull-s)','var(--mom,#5bb0ff)','var(--vol)','var(--bear-s)']; // calm→volatil
+
+// ── #1 — preț cu fundal colorat pe regim (SVG, fără librării) ──
+function regimePriceSVG(ohlc, states, rank){
+  const N = Math.min(160, states.length);
+  const stTail = states.slice(-N);
+  const closes = ohlc.slice(ohlc.length - N).map(b => b.c);
+  const W = 600, H = 140, padT = 8, padB = 8;
+  let lo = Math.min(...closes), hi = Math.max(...closes); if(hi===lo) hi = lo + 1;
+  const X = i => (((i+0.5)/N)*W);
+  const Y = v => padT + (1-(v-lo)/(hi-lo))*(H-padT-padB);
+  let bands = '', s = 0;
+  for(let i=1;i<=N;i++){
+    if(i===N || rank[stTail[i]] !== rank[stTail[s]]){
+      const r = rank[stTail[s]];
+      bands += `<rect x="${((s/N)*W).toFixed(1)}" y="0" width="${(((i-s)/N)*W).toFixed(1)}" height="${H}" style="fill:${REG_COLORS[r]||'var(--t3)'};opacity:.14"/>`;
+      s = i;
+    }
+  }
+  let pts=''; for(let i=0;i<N;i++) pts += `${X(i).toFixed(1)},${Y(closes[i]).toFixed(1)} `;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="height:auto;display:block;border-radius:6px;border:1px solid var(--b1);background:var(--panel3)">${bands}<polyline points="${pts.trim()}" style="fill:none;stroke:var(--t1);stroke-width:1.6" vector-effect="non-scaling-stroke"/></svg>`;
+}
+
+// ── #2 — curbele de distribuție gaussiană per regim (densitate reală: calm îngust/înalt, volatil lat/jos) ──
+function regimeDistSVG(hmm, order, rank, names){
+  const K = hmm.K, W=600, H=150, padT=10, padB=24, padX=6, SAMP=90;
+  let maxS=0, muMin=Infinity, muMax=-Infinity;
+  for(let k=0;k<K;k++){ maxS=Math.max(maxS,hmm.sigma[k]); muMin=Math.min(muMin,hmm.mu[k]); muMax=Math.max(muMax,hmm.mu[k]); }
+  const lo = muMin - 3.5*maxS, hi = muMax + 3.5*maxS;
+  const INV = 1/Math.sqrt(2*Math.PI);
+  const dens = (x,mu,sg)=>{ const s=Math.max(sg,1e-9); return (INV/s)*Math.exp(-0.5*((x-mu)/s)**2); };
+  const Xp = v => padX + ((v-lo)/(hi-lo))*(W-2*padX);
+  let yMax=0; const curves=order.map(idx=>{ const pts=[]; for(let i=0;i<=SAMP;i++){ const x=lo+(hi-lo)*i/SAMP, d=dens(x,hmm.mu[idx],hmm.sigma[idx]); pts.push([x,d]); if(d>yMax)yMax=d; } return {idx,pts}; });
+  const Yp = d => padT + (1-d/(yMax||1))*(H-padT-padB);
+  let paths=''; for(const c of curves){ const r=rank[c.idx]; let p=''; for(const [x,d] of c.pts) p+=`${Xp(x).toFixed(1)},${Yp(d).toFixed(1)} `; paths += `<polyline points="${p.trim()}" style="fill:none;stroke:${REG_COLORS[r]||'var(--t3)'};stroke-width:1.8" vector-effect="non-scaling-stroke"/>`; }
+  const zX = (lo<=0&&hi>=0) ? Xp(0) : null;
+  let axis = `<line x1="${padX}" y1="${H-padB}" x2="${W-padX}" y2="${H-padB}" style="stroke:var(--b1)"/>`;
+  if(zX!=null) axis += `<line x1="${zX.toFixed(1)}" y1="${padT}" x2="${zX.toFixed(1)}" y2="${H-padB}" style="stroke:var(--b2)" stroke-dasharray="3 3"/><text x="${zX.toFixed(1)}" y="${H-7}" style="fill:var(--t3);font:11px monospace" text-anchor="middle">0</text>`;
+  axis += `<text x="${padX}" y="${H-7}" style="fill:var(--t3);font:11px monospace">${(lo*100).toFixed(1)}%</text><text x="${W-padX}" y="${H-7}" style="fill:var(--t3);font:11px monospace" text-anchor="end">+${(hi*100).toFixed(1)}%</text>`;
+  let leg=''; for(const idx of order){ const r=rank[idx]; leg += `<span style="color:${REG_COLORS[r]};font-size:10.5px;margin-right:12px">● ${names[r]} <span class="muted">σ ${(hmm.sigma[idx]*100).toFixed(2)}%</span></span>`; }
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="height:auto;display:block">${axis}${paths}</svg><div style="margin-top:6px">${leg}</div>`;
+}
+
 function renderHMM(meta, ohlc){
   const obs = MK.logReturns(ohlc);
   let K, hmm, bicNote = '';
@@ -560,6 +602,9 @@ function renderHMM(meta, ohlc){
   for(const s of tl){ const r=rank[s]; html += `<div style="flex:1;background:${REG_COLORS[r]};opacity:.85" title="${names[r]}"></div>`; }
   html += `</div></div>`;
 
+  // #1 — preț cu fundal pe regim: vezi pe prețul REAL unde au lovit regimurile
+  html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:4px">📈 Preț + regim (fundalul fiecărei bare = regimul ei)</div>${regimePriceSVG(ohlc, hmm.states, rank)}</div>`;
+
   // tabel regimuri + autocorelație măsurată (direcție)
   const acTag = ac => ac==null ? '<span class="muted">—</span>'
     : ac < -0.05 ? `<span style="color:var(--bear-s)">${ac.toFixed(2)} ↩ revine</span>`
@@ -576,6 +621,9 @@ function renderHMM(meta, ohlc){
       <td>${acTag(rstats[idx].autocorr)}</td></tr>`;
   }
   html += `</table></div>`;
+
+  // #2 — distribuțiile gaussiene per regim: forma fiecărui regim, vizual
+  html += `<div style="margin-top:14px"><div class="muted" style="font-size:11px;margin-bottom:4px">🔔 Distribuția randamentelor per regim (densitatea gaussiană învățată de HMM)</div>${regimeDistSVG(hmm, order, rank, names)}<div class="legend">Clopot îngust & înalt = regim calm (mișcări mici). Lat & jos = volatil (cozi groase). Deplasarea față de 0 = drift-ul regimului.</div></div>`;
 
   // sfat de filtrare BAZAT PE DATE (autocorelația măsurată a regimului curent), nu inventat
   const curAc = rstats[last].autocorr;
