@@ -230,87 +230,6 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .stat-sub.up { color:var(--bull-s); }
 .stat-sub.down { color:var(--bear-s); }
 
-/* Sugestii watchlist (panel auto din rezultate cu surprise mare) */
-.md-sg-panel {
-  background:linear-gradient(135deg, rgba(91,176,255,.14), rgba(34,214,107,.08));
-  border:2px solid rgba(91,176,255,.6); border-radius:var(--r);
-  padding:14px 16px; margin-bottom:12px;
-  box-shadow:0 4px 16px rgba(91,176,255,.15);
-}
-.md-sg-panel.just-appeared {
-  animation:sgAppear .5s ease, sgGlow 3s ease .5s;
-}
-@keyframes sgAppear {
-  from { opacity:0; transform:translateY(-12px) scale(.96); }
-  to { opacity:1; transform:translateY(0) scale(1); }
-}
-@keyframes sgGlow {
-  0%, 100% { box-shadow:0 4px 16px rgba(91,176,255,.15); border-color:rgba(91,176,255,.6); }
-  25%, 75% { box-shadow:0 0 50px rgba(91,176,255,.55), 0 4px 20px rgba(91,176,255,.4); border-color:rgba(91,176,255,1); }
-  50% { box-shadow:0 0 60px rgba(34,214,107,.5), 0 4px 24px rgba(91,176,255,.4); border-color:rgba(34,214,107,.9); }
-}
-.md-sg-panel-head {
-  display:flex; align-items:center; gap:8px;
-  font-family:var(--head); font-weight:800; font-size:13.5px; color:var(--t1);
-  margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid rgba(91,176,255,.2);
-}
-.md-sg-clear {
-  margin-left:auto; background:transparent; border:1px solid var(--b1);
-  color:var(--t2); padding:3px 10px; font-size:11px; cursor:pointer;
-  border-radius:4px;
-}
-.md-sg-clear:hover { color:var(--bear-s); border-color:var(--bear-s); background:rgba(255,77,77,.06); }
-.md-sg-grid {
-  display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));
-  gap:10px;
-}
-.md-sg-card {
-  background:var(--panel2); border:1px solid var(--b1);
-  border-left:3px solid var(--accent); border-radius:var(--rs);
-  padding:10px 13px;
-}
-.md-sg-card.md-sg-bullish { border-left-color:var(--bull-s); background:linear-gradient(135deg, rgba(34,214,107,.07), var(--panel2)); }
-.md-sg-card.md-sg-bearish { border-left-color:var(--bear-s); background:linear-gradient(135deg, rgba(255,77,77,.07), var(--panel2)); }
-.md-sg-head {
-  display:flex; align-items:center; gap:6px;
-  font-family:var(--head); font-weight:700; font-size:12.5px; color:var(--t1);
-  margin-bottom:5px;
-}
-.md-sg-icon { font-size:14px; }
-.md-sg-title { flex:1; font-size:12.5px; }
-.md-sg-verdict { color:var(--t2); font-weight:600; font-size:11px; }
-.md-sg-surp { font-family:var(--mono); font-size:11.5px; font-weight:800; padding:2px 7px; border-radius:4px; }
-.md-sg-surp.pos { color:var(--bull-s); background:rgba(34,214,107,.12); }
-.md-sg-surp.neg { color:var(--bear-s); background:rgba(255,77,77,.12); }
-.md-sg-dismiss {
-  background:transparent; border:none; color:var(--t3); cursor:pointer;
-  font-size:13px; padding:0 4px; line-height:1;
-}
-.md-sg-dismiss:hover { color:var(--bear-s); background:transparent; transform:none; }
-.md-sg-reason {
-  font-family:var(--head); font-size:11.5px; color:var(--t2);
-  margin-bottom:8px; line-height:1.45;
-}
-.md-sg-chips { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:7px; }
-.md-sg-chip {
-  background:var(--panel3); border:1px solid var(--b2);
-  color:var(--t1); padding:4px 10px; border-radius:4px;
-  font-family:var(--mono); font-size:11.5px; font-weight:700;
-  cursor:pointer; transition:all .15s var(--ease);
-}
-.md-sg-chip:hover { background:var(--accent); color:#000; border-color:var(--accent); transform:translateY(-1px); }
-.md-sg-chip.added {
-  background:rgba(34,214,107,.12); color:var(--bull-s);
-  border-color:rgba(34,214,107,.4); cursor:default;
-}
-.md-sg-add-all {
-  background:linear-gradient(135deg, var(--acc-1), var(--acc-2));
-  border:none; color:#fff; padding:5px 12px; border-radius:4px;
-  font-family:var(--head); font-size:11.5px; font-weight:700;
-  cursor:pointer; box-shadow:0 2px 6px rgba(59,130,246,.2);
-}
-.md-sg-add-all:hover { filter:brightness(1.1); transform:translateY(-1px); }
-
 /* Hot strip — next 24h high-impact */
 .hot-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:8px; margin-bottom:10px; }
 .hot-strip:empty { display:none; }
@@ -767,6 +686,45 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .sector-ticker { background:var(--panel3); border:1px solid var(--b2); padding:3px 8px; border-radius:4px; font-size:11.5px; font-weight:700; font-family:var(--mono); color:var(--t1); text-decoration:none; transition:all .15s var(--ease); }
 .sector-ticker:hover { border-color:var(--accent); color:var(--accent); }
 
+/* Tab Oportunități */
+.op-badge { display:inline-block; min-width:16px; padding:0 4px; margin-left:5px; border-radius:8px; background:var(--bull-s); color:#04130a; font-size:10px; font-weight:800; line-height:16px; text-align:center; font-family:var(--mono); vertical-align:middle; }
+.op-wrap { display:flex; flex-direction:column; gap:14px; }
+.op-head { display:flex; align-items:flex-start; gap:12px; }
+.op-title { font-size:16px; font-weight:800; color:var(--t1); font-family:var(--head); }
+.op-sub { font-size:12px; color:var(--t2); font-family:var(--head); margin-top:3px; line-height:1.5; }
+.op-head .ghost { margin-left:auto; white-space:nowrap; }
+.op-body { display:flex; flex-direction:column; gap:14px; }
+.op-empty { text-align:center; padding:50px 20px; color:var(--t3); }
+.op-empty .ope-icon { font-size:40px; margin-bottom:10px; }
+.op-empty h4 { font-size:15px; color:var(--t2); font-weight:700; font-family:var(--head); margin-bottom:6px; }
+.op-empty p { font-size:12.5px; color:var(--t3); font-family:var(--head); line-height:1.6; max-width:480px; margin:0 auto; }
+/* Card sector */
+.op-sector { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--r); overflow:hidden; }
+.op-sector.bull { border-left:3px solid var(--bull-s); }
+.op-sector.bear { border-left:3px solid var(--bear-s); }
+.op-sec-head { display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--panel3); }
+.op-sec-icon { font-size:22px; }
+.op-sec-titles { flex:1; min-width:0; }
+.op-sec-name { font-size:14px; font-weight:800; color:var(--t1); font-family:var(--head); }
+.op-sec-bias { display:inline-block; padding:2px 8px; border-radius:4px; font-size:10.5px; font-weight:800; font-family:var(--mono); letter-spacing:.3px; margin-top:3px; }
+.op-sec-bias.bull { color:var(--bull-s); background:var(--bull-bg); }
+.op-sec-bias.bear { color:var(--bear-s); background:var(--bear-bg); }
+.op-sec-trigger { font-size:11px; color:var(--t2); font-family:var(--mono); margin-top:4px; line-height:1.5; }
+.op-sec-body { padding:12px 14px; }
+.op-sec-reason { font-size:12.5px; color:var(--t2); font-family:var(--head); line-height:1.6; margin-bottom:10px; }
+.op-tickers { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.op-ticker { display:inline-flex; align-items:center; gap:5px; background:var(--panel3); border:1px solid var(--b2); padding:5px 10px; border-radius:6px; font-size:12px; font-weight:700; font-family:var(--mono); color:var(--t1); cursor:pointer; transition:all .15s var(--ease); }
+.op-ticker:hover { border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }
+.op-ticker.added { color:var(--bull-s); border-color:var(--bull-s); background:var(--bull-bg); cursor:default; }
+.op-sec-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.op-sec-actions button { font-size:11.5px; padding:6px 12px; }
+.op-ai { margin-top:12px; padding:12px 14px; background:linear-gradient(135deg, rgba(59,130,246,.08), rgba(16,185,129,.04)); border:1px solid rgba(59,130,246,.25); border-radius:var(--rs); }
+.op-ai-head { display:flex; align-items:center; gap:8px; font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--t2); font-family:var(--mono); font-weight:700; margin-bottom:8px; }
+.op-ai-head .opa-close { margin-left:auto; cursor:pointer; color:var(--t3); background:none; border:none; font-size:13px; }
+.op-ai-content { font-size:13px; line-height:1.7; color:var(--t1); font-family:var(--head); }
+.op-ai-content strong { color:var(--accent); }
+.op-ai.loading .op-ai-content { color:var(--t3); animation:pulse 1.4s ease-in-out infinite; }
+
 .exp-info { font-size:12.5px; color:var(--t1); line-height:1.6; font-family:var(--head); }
 .exp-info .info-label { font-size:11px; color:var(--t2); text-transform:uppercase; letter-spacing:.3px; font-weight:700; font-family:var(--mono); margin-bottom:4px; }
 .exp-info .info-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid rgba(42,50,71,.4); }
@@ -818,7 +776,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v171</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v172</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -844,9 +802,6 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <div class="stat-tile" id="tile-risk" title="Risk regime composite — click pentru detalii (VIX + Yield 10Y + BTC/SPY correlation)"><span class="stat-label">🛡 Risk</span><span class="stat-value">—</span><span class="stat-sub">VIX · 10Y · BTC/SPY</span></div>
 </div>
 
-<!-- Sugestii watchlist (auto din rezultate cu surprise mare) -->
-<div class="md-sg-panel" id="suggestionsPanel" style="display:none"></div>
-
 <!-- Hot strip - next 24h high-impact events -->
 <div class="hot-strip" id="hotStrip"></div>
 
@@ -856,6 +811,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <button class="tab-btn" data-tab="macroNews">📰 Macro News</button>
   <button class="tab-btn" data-tab="cryptoNews">₿ Crypto News</button>
   <button class="tab-btn" data-tab="brief">🤖 AI Daily Brief</button>
+  <button class="tab-btn" data-tab="opportunities">💡 Oportunități<span class="op-badge" id="opBadge" style="display:none">0</span></button>
 </div>
 
 <!-- Tab: Calendar economic -->
@@ -980,6 +936,20 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <div class="next-time" id="briefNextTime"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Tab: Oportunități — sugestii de cumpărare pe sector din rezultatele evenimentelor -->
+<div class="tab-content" id="tab-opportunities">
+  <div class="op-wrap">
+    <div class="op-head">
+      <div>
+        <div class="op-title">💡 Oportunități pe sector</div>
+        <div class="op-sub">Acțiuni favorizate de rezultatele economice publicate azi, grupate pe sectorul impactat.</div>
+      </div>
+      <button class="ghost" id="opClearBtn" title="Ignoră toate oportunitățile">✕ Curăță tot</button>
+    </div>
+    <div class="op-body" id="opBody"></div>
   </div>
 </div>
 
@@ -3844,6 +3814,7 @@ function switchTab(name) {
   if (name === 'macroNews' && now - _newsLoadedAt.macro > NEWS_CACHE_TTL) fetchMacroNews();
   if (name === 'cryptoNews' && now - _newsLoadedAt.crypto > NEWS_CACHE_TTL) fetchCryptoNews();
   if (name === 'brief') initBriefTab();
+  if (name === 'opportunities') renderSuggestionsPanel(); // refresh starea watchlist/added la deschidere
 }
 
 // ============ SETTINGS MODAL ============
@@ -4567,15 +4538,8 @@ function checkResults() {
   });
   if (suggestionsAdded) {
     persistSuggestions();
-    renderSuggestionsPanel();
-    // Animație glow ca să nu rateze panel-ul când apare brusc
-    const sgPanel = $('suggestionsPanel');
-    if (sgPanel) {
-      sgPanel.classList.remove('just-appeared');
-      void sgPanel.offsetWidth;
-      sgPanel.classList.add('just-appeared');
-      setTimeout(() => sgPanel.classList.remove('just-appeared'), 3500);
-    }
+    renderSuggestionsPanel(); // actualizează tab-ul Oportunități + badge (fără popup care sare)
+    toast('💡 Oportunități noi pe sector — vezi tab-ul „Oportunități"', 'success');
   }
 
   // Curăță flash după animație
@@ -4622,68 +4586,149 @@ function computeAndStoreSuggestion(event, result, key) {
   return true;
 }
 
+// Badge cu numărul de oportunități active pe tab-ul „💡 Oportunități"
+function updateOpBadge(n) {
+  const b = $('opBadge');
+  if (!b) return;
+  if (n > 0) { b.textContent = n; b.style.display = 'inline-block'; }
+  else b.style.display = 'none';
+}
+
+// Randează tab-ul Oportunități: sugestiile grupate pe sector (din rezultatele evenimentelor)
 function renderSuggestionsPanel() {
-  const panel = $('suggestionsPanel');
-  if (!panel) return;
+  const body = $('opBody');
+  if (!body) return;
   const now = Date.now();
-  // Filtru: nu afișăm cele dismissed sau cele unde toate tickerele au fost adăugate
-  const active = Object.entries(MD_SUGGESTIONS).filter(([k, s]) => {
-    if (s.dismissed) return false;
-    if (now - s.ts > SUGGESTIONS_TTL_MS) return false;
-    return s.tickers.some(t => !s.added.includes(t));
-  });
-  if (!active.length) { panel.innerHTML = ''; panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
+  const active = Object.entries(MD_SUGGESTIONS)
+    .filter(([k, s]) => !s.dismissed && (now - s.ts <= SUGGESTIONS_TTL_MS))
+    .sort((a, b) => (b[1].ts || 0) - (a[1].ts || 0));
 
-  const cards = active.map(([k, s]) => {
-    const icon = s.bias === 'bullish' ? '🟢' : '🔴';
-    const biasLabel = s.bias === 'bullish' ? 'BULLISH' : 'BEARISH';
-    const surpStr = (s.surprise != null && !isNaN(s.surprise)) ? `${s.surprise>=0?'+':''}${s.surprise.toFixed(2)}%` : null;
-    const reasoning = buildSuggestionReasoning(s);
-    const chips = s.tickers.map(t => {
-      const added = s.added.includes(t);
-      return added
-        ? `<span class="md-sg-chip added">✓ ${escHtml(t)}</span>`
-        : `<button class="md-sg-chip" data-key="${escHtml(k)}" data-ticker="${escHtml(t)}">+ ${escHtml(t)}</button>`;
-    }).join('');
-    const remaining = s.tickers.filter(t => !s.added.includes(t));
-    return `<div class="md-sg-card md-sg-${s.bias}">
-      <div class="md-sg-head">
-        <span class="md-sg-icon">${icon}</span>
-        <span class="md-sg-title">${escHtml(s.eventName)} <span class="md-sg-verdict">· ${s.verdict}</span></span>
-        ${surpStr ? `<span class="md-sg-surp ${s.surprise>=0?'pos':'neg'}">${surpStr}</span>` : ''}
-        <button class="md-sg-dismiss" data-key="${escHtml(k)}" title="Ignoră">✕</button>
-      </div>
-      <div class="md-sg-reason">${reasoning}</div>
-      <div class="md-sg-chips">${chips}</div>
-      ${remaining.length > 1 ? `<button class="md-sg-add-all" data-key="${escHtml(k)}">+ Adaugă toate (${remaining.length})</button>` : ''}
+  updateOpBadge(active.length);
+
+  if (!active.length) {
+    body.innerHTML = `<div class="op-empty">
+      <div class="ope-icon">🌙</div>
+      <h4>Nicio oportunitate momentan</h4>
+      <p>Când un rezultat economic important e publicat azi (CPI, NFP, FOMC, Retail Sales…), sectoarele favorizate și acțiunile de cumpărat apar aici automat — grupate pe sector, fără popup-uri. Apasă <b>🤖 Aprofundează</b> pe orice sector pentru analiză AI concretă.</p>
     </div>`;
-  }).join('');
+    return;
+  }
 
-  panel.innerHTML = `<div class="md-sg-panel-head">
-    <span>🎯 Sugestii watchlist · ${active.length} ${active.length === 1 ? 'eveniment' : 'evenimente'}</span>
-    <button class="md-sg-clear" title="Ignoră toate">✕ Ignoră toate</button>
-  </div>
-  <div class="md-sg-grid">${cards}</div>`;
-
-  // Bind buttons
-  panel.querySelectorAll('.md-sg-chip[data-ticker]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const k = btn.dataset.key, t = btn.dataset.ticker;
-      handleAddSuggestionTicker(k, t);
+  const wl = new Set(readWatchlist());
+  const cards = [];
+  active.forEach(([k, s]) => {
+    const sectors = getSectorImpact(s.eventName) || [];
+    if (!sectors.length) return;
+    const surpStr = (s.surprise != null && !isNaN(s.surprise)) ? `${s.surprise>=0?'+':''}${s.surprise.toFixed(2)}%` : null;
+    const biasClass = s.bias === 'bullish' ? 'bull' : 'bear';
+    const biasLabel = s.bias === 'bullish' ? '🟢 BULLISH' : '🔴 BEARISH';
+    const reasoning = buildSuggestionReasoning(s);
+    sectors.forEach((sec, si) => {
+      const tickerHtml = sec.tickers.map(t => {
+        const added = wl.has(t) || s.added.includes(t);
+        return added
+          ? `<span class="op-ticker added">✓ ${escHtml(t)}</span>`
+          : `<button class="op-ticker" data-key="${escHtml(k)}" data-ticker="${escHtml(t)}">+ ${escHtml(t)}</button>`;
+      }).join('');
+      const newCount = sec.tickers.filter(t => !wl.has(t) && !s.added.includes(t)).length;
+      cards.push(`<div class="op-sector ${biasClass}">
+        <div class="op-sec-head">
+          <span class="op-sec-icon">${sec.icon}</span>
+          <div class="op-sec-titles">
+            <div class="op-sec-name">${escHtml(sec.label)}</div>
+            <span class="op-sec-bias ${biasClass}">${biasLabel}</span>
+            <div class="op-sec-trigger">📊 ${escHtml(s.eventName)} · ${escHtml(s.verdict)}${surpStr ? ` · surprise ${surpStr}` : ''} · Actual ${escHtml(String(s.actual ?? '—'))} vs ${escHtml(String(s.forecast ?? '—'))}</div>
+          </div>
+        </div>
+        <div class="op-sec-body">
+          <div class="op-sec-reason">${reasoning}</div>
+          <div class="op-tickers">${tickerHtml}</div>
+          <div class="op-sec-actions">
+            ${newCount ? `<button class="primary op-add-sector" data-key="${escHtml(k)}" data-sec="${si}">+ Adaugă ${newCount} la watchlist</button>` : ''}
+            <button class="ghost op-ai-btn" data-key="${escHtml(k)}" data-sec="${si}">🤖 Aprofundează cu AI</button>
+            <button class="ghost op-dismiss" data-key="${escHtml(k)}" title="Ignoră evenimentul din listă">✕ Ignoră</button>
+          </div>
+          <div class="op-ai" style="display:none">
+            <div class="op-ai-head">🤖 Analiză AI · ${sec.icon} ${escHtml(sec.label)} <button class="opa-close" title="Închide">✖</button></div>
+            <div class="op-ai-content"></div>
+          </div>
+        </div>
+      </div>`);
     });
   });
-  panel.querySelectorAll('.md-sg-dismiss').forEach(btn => {
-    btn.addEventListener('click', () => { handleDismissSuggestion(btn.dataset.key); });
+
+  body.innerHTML = cards.join('');
+
+  // Bind
+  body.querySelectorAll('.op-ticker[data-ticker]').forEach(btn =>
+    btn.addEventListener('click', () => handleAddSuggestionTicker(btn.dataset.key, btn.dataset.ticker)));
+  body.querySelectorAll('.op-add-sector').forEach(btn =>
+    btn.addEventListener('click', () => handleAddSectorTickers(btn.dataset.key, +btn.dataset.sec)));
+  body.querySelectorAll('.op-dismiss').forEach(btn =>
+    btn.addEventListener('click', () => handleDismissSuggestion(btn.dataset.key)));
+  body.querySelectorAll('.op-ai-btn').forEach(btn =>
+    btn.addEventListener('click', () => deepDiveSector(btn.dataset.key, +btn.dataset.sec, btn)));
+}
+
+// Adaugă toate tickerele noi dintr-un sector la watchlist
+function handleAddSectorTickers(key, secIdx) {
+  const s = MD_SUGGESTIONS[key];
+  if (!s) return;
+  const sec = (getSectorImpact(s.eventName) || [])[secIdx];
+  if (!sec) return;
+  const wl = new Set(readWatchlist());
+  let added = 0;
+  sec.tickers.forEach(t => {
+    if (!wl.has(t) && !s.added.includes(t)) {
+      if (addTickerToWatchlist(t)) added++;
+      s.added.push(t);
+    }
   });
-  panel.querySelectorAll('.md-sg-add-all').forEach(btn => {
-    btn.addEventListener('click', () => { handleAddAllSuggestion(btn.dataset.key); });
-  });
-  panel.querySelector('.md-sg-clear')?.addEventListener('click', () => {
-    for (const k of Object.keys(MD_SUGGESTIONS)) MD_SUGGESTIONS[k].dismissed = true;
-    persistSuggestions();
-    renderSuggestionsPanel();
-  });
+  persistSuggestions();
+  toast(`✓ ${added} ${added === 1 ? 'ticker adăugat' : 'tickere adăugate'} la watchlist (${sec.label})`, 'success');
+  renderSuggestionsPanel();
+}
+
+// Analiză AI on-demand per sector: conectează rezultatul macro la sector + recomandă acțiuni concrete
+async function deepDiveSector(key, secIdx, btn) {
+  const s = MD_SUGGESTIONS[key];
+  if (!s) return;
+  const sec = (getSectorImpact(s.eventName) || [])[secIdx];
+  if (!sec) return;
+  if (!getAnthropicKey()) { toast('⚠ Lipsă Anthropic key — adaug-o în Setări ⚙', 'warn'); return; }
+
+  // Găsim cutia AI prin DOM-ul cardului (robust la caractere speciale în cheie)
+  const box = btn?.closest('.op-sec-body')?.querySelector('.op-ai');
+  if (!box) return;
+  const contentEl = box.querySelector('.op-ai-content');
+  // Toggle: dacă e deja deschis și încărcat → închide
+  if (box.style.display !== 'none' && contentEl.dataset.loaded === '1') { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.querySelector('.opa-close').onclick = () => { box.style.display = 'none'; };
+
+  if (contentEl.dataset.loaded === '1') return; // deja încărcat, doar re-deschidem
+  box.classList.add('loading');
+  contentEl.textContent = 'Analizez sectorul...';
+
+  const surpStr = (s.surprise != null && !isNaN(s.surprise)) ? `${s.surprise>=0?'+':''}${s.surprise.toFixed(2)}%` : 'n/a';
+  const prompt = `Rezultat economic publicat azi:
+- Eveniment: ${s.eventName}
+- Actual: ${s.actual ?? 'n/a'} vs Forecast: ${s.forecast ?? 'n/a'} (surprise ${surpStr})
+- Verdict: ${s.verdict} · bias general risk: ${s.bias}
+
+SECTOR DE ANALIZAT: ${sec.label} (tickere candidate: ${sec.tickers.join(', ')})
+
+INSTRUCTIUNE: Explica in romana cum afecteaza ACEST rezultat sectorul de mai sus. Spune clar daca directia e BULLISH sau BEARISH pentru sector (poate diferi de bias-ul general de risk). Recomanda concret 2-3 actiuni/ETF din lista (sau adiacente) cele mai bine pozitionate, cu un motiv scurt per fiecare. Mentioneaza 1 risc cheie. Concis (150-250 cuvinte), bullets scurte, foloseste **TICKER** pentru tickere. Fara disclaimere.`;
+
+  try {
+    const full = await callAnthropicStream('Esti analist de piata. Conectezi rezultate macro la sectoare si dai idei de pozitionare concrete, fara disclaimere.', prompt, () => {}, 600);
+    box.classList.remove('loading');
+    contentEl.innerHTML = autoLinkTickers(full);
+    contentEl.dataset.loaded = '1';
+  } catch (e) {
+    box.classList.remove('loading');
+    contentEl.innerHTML = `<span style="color:var(--bear-s)">⚠ Eroare AI: ${escHtml(e.message || 'necunoscut')}</span>`;
+  }
 }
 
 function buildSuggestionReasoning(s) {
@@ -4707,17 +4752,6 @@ function handleAddSuggestionTicker(key, ticker) {
   if (ok || !s.added.includes(ticker)) s.added.push(ticker);
   persistSuggestions();
   toast(`✓ ${ticker} adăugat la watchlist`, 'success');
-  renderSuggestionsPanel();
-}
-
-function handleAddAllSuggestion(key) {
-  const s = MD_SUGGESTIONS[key];
-  if (!s) return;
-  const remaining = s.tickers.filter(t => !s.added.includes(t));
-  let added = 0;
-  remaining.forEach(t => { if (addTickerToWatchlist(t)) added++; s.added.push(t); });
-  persistSuggestions();
-  toast(`✓ ${added} tickere adăugate la watchlist`, 'success');
   renderSuggestionsPanel();
 }
 
@@ -4789,6 +4823,17 @@ function scheduleAutoRefresh() {
 function bindEvents() {
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+  // Oportunități — curăță tot
+  $('opClearBtn')?.addEventListener('click', () => {
+    const n = Object.values(MD_SUGGESTIONS).filter(s => !s.dismissed).length;
+    if (!n) { toast('Nicio oportunitate de curățat', 'info'); return; }
+    if (!confirm(`Ignori toate cele ${n} oportunități curente?`)) return;
+    for (const k of Object.keys(MD_SUGGESTIONS)) MD_SUGGESTIONS[k].dismissed = true;
+    persistSuggestions();
+    renderSuggestionsPanel();
+    toast('🧹 Oportunități curățate', 'info');
+  });
 
   // Refresh / Settings
   $('refreshBtn').addEventListener('click', async () => {
