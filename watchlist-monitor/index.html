@@ -365,7 +365,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v114</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v115</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -511,7 +511,8 @@ window.showWlFeatures = function(){
       { e: '🔄', t: '<b>Auto-scan</b> 60s/180s/300s/OFF' },
       { e: '🔔', t: '<b>Browser notification</b> la STRONG BUY nou' },
       { e: '🔊', t: '<b>Sunet</b> (beep Web Audio) la STRONG BUY nou — toggle 🔊 în header' },
-      { e: '📡', t: '<b>Alerte Telegram</b> la STRONG BUY nou — config bot token + chat id (buton 📡), buton test inclus' },
+      { e: '📡', t: '<b>Alerte Telegram</b> la semnal nou — config bot token + chat id (buton 📡), buton test inclus' },
+      { e: '🎚', t: '<b>Prag de alertă configurabil</b> (în modalul 📡) — guvernează sunet+Telegram+notif: 🚀 doar STRONG BUY nou / 📈 BUY sau mai bun / ⬆️ orice upgrade de tier (până la BUY+)' },
       { e: '⚙', t: '<b>Sortabil</b> pe orice coloană' },
     ]},
     { title: '✨ Liveliness', cls: 'tool', items: [
@@ -531,7 +532,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v114 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v115 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -552,6 +553,7 @@ const LAST_SEEN_KEY = 'wl_monitor_last_seen';
 const SOUND_KEY = 'wl_sound';            // F7
 const TG_KEY = 'tt_tg_config';           // F7 — { token, chatId, enabled }
 const PERF_KEY = 'wl_perf';              // F9 — { SYMBOL: { entryPrice, entryTs, entryVerdict } }
+const ALERT_LEVEL_KEY = 'wl_alert_level'; // F5-extra — pragul pt sunet/Telegram/notif
 const SCANNER_LAST_KEY = 'nasdaq_last_scan'; // F8 — scris de nasdaq-scanner
 const RESULTS_CACHE_KEY = 'wl_results_cache'; // F4-extra — { ts, results } ultimul scan, pt afișare instant la reload
 const POPULAR_TICKERS = ['AAPL','MSFT','NVDA','TSLA','AMZN','GOOGL','META','AMD','NFLX','PLTR','AVGO','COIN'];
@@ -564,6 +566,7 @@ let notifEnabled = false;
 let soundEnabled = false;                // F7
 let tgConfig = { token: '', chatId: '', enabled: false }; // F7
 let perfMap = {};                        // F9
+let alertLevel = 'strong-buy';           // F5-extra — 'strong-buy' | 'buy' | 'upgrade'
 let sortKey = 'score', sortAsc = false;
 let openDetail = null; // simbolul cu rândul de detalii expandat (F4)
 let filterVerdict = 'all', filterText = '', filterMovers = false; // F5
@@ -720,6 +723,13 @@ window.showTgConfig = function(){
     <div style="font-size:11px;color:var(--t3);line-height:1.55;margin-bottom:12px;font-family:var(--mono)">1. Creează un bot cu <b style="color:var(--t2)">@BotFather</b> → primești <i>token</i>.<br>2. Scrie-i botului orice mesaj, apoi deschide <span style="color:var(--accent);word-break:break-all">api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> → în răspuns vezi <i>chat.id</i>.</div>
     <div class="tg-field"><label>Bot token</label><input type="text" id="tgToken" placeholder="123456789:ABC-DEF1234..." value="${(tgConfig.token || '').replace(/"/g, '&quot;')}"></div>
     <div class="tg-field"><label>Chat ID</label><input type="text" id="tgChatId" placeholder="123456789" value="${(tgConfig.chatId || '').replace(/"/g, '&quot;')}"></div>
+    <div class="tg-field"><label>Alertează la (sunet 🔊 + Telegram 📡 + notif 🔔)</label>
+      <select id="tgAlertLevel">
+        <option value="strong-buy" ${alertLevel === 'strong-buy' ? 'selected' : ''}>🚀 Doar STRONG BUY nou (recomandat)</option>
+        <option value="buy" ${alertLevel === 'buy' ? 'selected' : ''}>📈 BUY sau mai bun (intrare în zona de cumpărare)</option>
+        <option value="upgrade" ${alertLevel === 'upgrade' ? 'selected' : ''}>⬆️ Orice upgrade de tier (până la BUY+)</option>
+      </select>
+    </div>
     <label class="fb-toggle" style="margin-bottom:13px"><input type="checkbox" id="tgEnabled" ${tgConfig.enabled ? 'checked' : ''}> activează alertele Telegram</label>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="primary" id="tgSave">💾 Salvează</button><button type="button" id="tgTest">🧪 Trimite test</button><span id="tgMsg" style="font-size:11px;font-family:var(--mono)"></span></div>
   </div>`;
@@ -729,7 +739,9 @@ window.showTgConfig = function(){
     tgConfig.token = document.getElementById('tgToken').value.trim();
     tgConfig.chatId = document.getElementById('tgChatId').value.trim();
     tgConfig.enabled = document.getElementById('tgEnabled').checked;
+    alertLevel = document.getElementById('tgAlertLevel').value || 'strong-buy';
     try { localStorage.setItem(TG_KEY, JSON.stringify(tgConfig)); } catch(e){}
+    try { localStorage.setItem(ALERT_LEVEL_KEY, alertLevel); } catch(e){}
     updateAlertButtons();
   };
   document.getElementById('tgSave').addEventListener('click', () => {
@@ -1221,8 +1233,8 @@ async function runScan(){
   // Performance tracking (F9) — memorează prețul la primul BUY/STRONG BUY + calculează gain
   updatePerfTracking(newResults);
 
-  // Detect noi STRONG BUY → notification + sunet + Telegram
-  detectAndNotifyStrongBuys(newResults);
+  // Detect semnale noi conform pragului ales → notification + sunet + Telegram (F5-extra)
+  detectAndNotifyAlerts(newResults);
 
   results = newResults;
   lastScanTs = Date.now();
@@ -1240,37 +1252,49 @@ async function runScan(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  NOTIFICATIONS — STRONG BUY nou apărut
+//  NOTIFICATIONS — semnal nou conform pragului ales (F5-extra)
+//  Pragul (wl_alert_level) guvernează TOATE canalele: sunet + Telegram + browser notif.
+//    'strong-buy' = doar STRONG BUY nou (default, comportamentul vechi)
+//    'buy'        = a intrat în BUY sau mai bun (venind de sub BUY)
+//    'upgrade'    = orice upgrade de tier care aterizează la BUY+
 // ═══════════════════════════════════════════════════════════════
-function detectAndNotifyStrongBuys(newResults){
+function detectAndNotifyAlerts(newResults){
   let lastSeen = {};
   try { lastSeen = JSON.parse(localStorage.getItem(LAST_SEEN_KEY) || '{}'); } catch(e){}
 
-  const newStrong = [];
+  const BUY_RANK = VERDICT_RANK['buy'];
+  const fresh = [];
   newResults.forEach(r => {
     if (r.price == null) return; // fetch eșuat — nu actualiza istoricul
-    if (r.verdict === 'strong-buy' && lastSeen[r.symbol] !== 'strong-buy') newStrong.push(r);
+    const prev = lastSeen[r.symbol];
+    const curRank = VERDICT_RANK[r.verdict] ?? 2;
+    const prevRank = (prev != null) ? (VERDICT_RANK[prev] ?? 2) : null;
+    let hit = false;
+    if (alertLevel === 'strong-buy') hit = r.verdict === 'strong-buy' && prev !== 'strong-buy';
+    else if (alertLevel === 'buy')   hit = curRank >= BUY_RANK && (prevRank == null || prevRank < BUY_RANK);
+    else /* upgrade */                hit = curRank >= BUY_RANK && prevRank != null && curRank > prevRank;
+    if (hit) fresh.push(r);
     lastSeen[r.symbol] = r.verdict;
   });
   try { localStorage.setItem(LAST_SEEN_KEY, JSON.stringify(lastSeen)); } catch(e){}
 
-  if (!newStrong.length) return;
+  if (!fresh.length) return;
 
   // Sunet (F7)
   if (soundEnabled) beep();
 
-  // Telegram (F7)
+  // Telegram (F7) — verdictul real, nu hardcodat STRONG BUY
   if (tgConfig.enabled && tgConfig.token && tgConfig.chatId){
-    const lines = newStrong.slice(0, 8).map(r => `🚀 <b>${r.symbol}</b> — $${r.price.toFixed(2)} · score ${r.score}${r.chg != null ? ' · zi ' + (r.chg >= 0 ? '+' : '') + r.chg.toFixed(2) + '%' : ''}`);
-    const more = newStrong.length > 8 ? `\n…și ${newStrong.length - 8} mai multe` : '';
-    sendTelegram(`<b>👁 Watchlist Monitor — STRONG BUY nou (${newStrong.length})</b>\n${lines.join('\n')}${more}`);
+    const lines = fresh.slice(0, 8).map(r => `${r.verdictTxt} <b>${r.symbol}</b> — $${r.price.toFixed(2)} · score ${r.score}${r.chg != null ? ' · zi ' + (r.chg >= 0 ? '+' : '') + r.chg.toFixed(2) + '%' : ''}`);
+    const more = fresh.length > 8 ? `\n…și ${fresh.length - 8} mai multe` : '';
+    sendTelegram(`<b>👁 Watchlist Monitor — semnal nou (${fresh.length})</b>\n${lines.join('\n')}${more}`);
   }
 
   // Browser notification
   if (notifEnabled && ('Notification' in window) && Notification.permission === 'granted'){
-    const list = newStrong.slice(0, 5).map(r => `${r.symbol} ($${r.price.toFixed(2)} · ${r.score})`).join(', ');
-    const more = newStrong.length > 5 ? ` și ${newStrong.length - 5} mai multe` : '';
-    new Notification('🚀 STRONG BUY nou (' + newStrong.length + ')', { body: list + more, tag: 'wl-strong-buy' });
+    const list = fresh.slice(0, 5).map(r => `${r.symbol} (${r.verdictTxt} · ${r.score})`).join(', ');
+    const more = fresh.length > 5 ? ` și ${fresh.length - 5} mai multe` : '';
+    new Notification('🔔 Semnal nou (' + fresh.length + ')', { body: list + more, tag: 'wl-alert' });
   }
 }
 
@@ -1761,6 +1785,7 @@ try { notifEnabled = localStorage.getItem(NOTIF_KEY) === '1' && Notification.per
 try { soundEnabled = localStorage.getItem(SOUND_KEY) === '1'; } catch(e){}
 try { tgConfig = Object.assign(tgConfig, JSON.parse(localStorage.getItem(TG_KEY) || '{}')); } catch(e){}
 try { perfMap = JSON.parse(localStorage.getItem(PERF_KEY) || '{}') || {}; } catch(e){ perfMap = {}; }
+try { const al = localStorage.getItem(ALERT_LEVEL_KEY); if (al === 'buy' || al === 'upgrade' || al === 'strong-buy') alertLevel = al; } catch(e){}
 loadResultsCache(); // F4-extra — populează tabelul din cache înainte de primul scan
 $('notifBtn').style.opacity = notifEnabled ? '1' : '.5';
 updateAlertButtons();
