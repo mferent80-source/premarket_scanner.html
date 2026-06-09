@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v175</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v176</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -3580,11 +3580,16 @@ Max 4 idei structurate:
 
 INSTRUCTIUNI STIL:
 - Fii direct, fara disclaimere generale ("not financial advice" inutil — el e trader experimentat)
-- Foloseste numere concrete cand ai date (forecast, previous, niveluri tehnice estimative)
+- Foloseste numere concrete cand ai date (forecast, previous, niveluri tehnice)
 - Tickerele cu format **AAPL** (bold)
 - Bullets scurte, nu paragrafe lungi
 - Daca data e incompleta sau lipsa, MENTIONEAZA explicit ("Nu am date forecast pentru CPI") in loc sa inventezi
-- Limba: romaneste 100%, doar tickerele si termenii tehnici (RSI, ATR, EPS) in original`;
+- Limba: romaneste 100%, doar tickerele si termenii tehnici (RSI, ATR, EPS) in original
+
+NIVELURI DE PRET — REGULA CRITICA:
+- Pentru Entry/SL/TP si setupuri tehnice foloseste EXCLUSIV preturile din sectiunea "NIVELURI TEHNICE LIVE" (sunt reale, de azi). MA50/MA200/ATR/range 20z de acolo sunt ancorele tale.
+- Construieste SL/TP din ATR-ul real dat (ex: SL = entry - 1×ATR, TP = entry + 2×ATR) si din nivelurile MA/range, NU din memorie.
+- Daca un ticker NU e in lista de niveluri, spune explicit "fara nivel live pentru X" si da doar directie/teza, FARA cifre inventate de Entry/SL/TP.`;
 
 function getNYDateHour() {
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
@@ -3611,9 +3616,102 @@ function getStatTileVal(id) {
   return { v: v.trim(), sub: sub.trim() };
 }
 
-function buildBriefContext() {
+// ============ NIVELURI TEHNICE REALE pentru AI Daily Brief ============
+// Simboluri ancoră: broad market + sector ETFs + crypto stocks. AI-ul primește prețuri/niveluri
+// REALE ca să nu inventeze Entry/SL/TP din memorie.
+const BRIEF_LEVEL_SYMS = [
+  'SPY','QQQ','IWM',                              // broad market US
+  'XLF','XLK','XLE','XLY','XLRE','XLI','XLP','GLD', // sector ETFs
+  'BTC-USD','ETH-USD',                            // crypto direct
+  'COIN','MSTR','NVDA','MARA','RIOT'              // crypto/AI stocks
+];
+const _briefLevelsCache = new Map(); // sym → { ts, data }
+
+// Fetch chart 1y (≥200 bare pt MA200) + calcul niveluri din closes
+async function fetchBriefLevels(sym) {
+  const cached = _briefLevelsCache.get(sym);
+  if (cached && Date.now() - cached.ts < 10*60000) return cached.data;
+  let points = null;
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1y`;
+    const data = await fetchViaProxy(url);
+    const r = data?.chart?.result?.[0];
+    const closes = r?.indicators?.quote?.[0]?.close || [];
+    const ts = r?.timestamp || [];
+    points = closes.map((c, i) => ({ ts: ts[i], close: c })).filter(p => p.close != null);
+    if (points.length < 5) {
+      // fallback (crypto via CoinGecko, ETF via Finnhub/TwelveData)
+      const fb = await fetchChartWithFallback(sym, 250);
+      points = fb?.points || null;
+    }
+  } catch (e) { points = null; }
+  if (!points || points.length < 5) { _briefLevelsCache.set(sym, { ts: Date.now(), data: null }); return null; }
+
+  const cl = points.map(p => p.close);
+  const n = cl.length;
+  const last = cl[n-1];
+  // Δ% azi: dacă ultima bară e ziua curentă, comparăm cu penultima (vezi logica din fetchYahooQuote)
+  const prev = cl[n-2] ?? last;
+  const chgPct = prev ? ((last - prev) / prev) * 100 : 0;
+  const avg = (arr) => arr.reduce((s,x)=>s+x,0) / arr.length;
+  const ma50 = n >= 50 ? avg(cl.slice(-50)) : null;
+  const ma200 = n >= 200 ? avg(cl.slice(-200)) : null;
+  // ATR aproximat ca % (media |Δ% zilnic| pe 14 bare — chart-ul nu are High/Low)
+  const rets = [];
+  for (let i = Math.max(1, n-14); i < n; i++) rets.push(Math.abs(cl[i]/cl[i-1] - 1) * 100);
+  const atrPct = rets.length ? avg(rets) : null;
+  const win20 = cl.slice(-20);
+  const out = {
+    sym, last, chgPct,
+    ma50, ma200,
+    distMa50: ma50 ? ((last - ma50) / ma50) * 100 : null,
+    distMa200: ma200 ? ((last - ma200) / ma200) * 100 : null,
+    atrPct,
+    hi20: Math.max(...win20), lo20: Math.min(...win20)
+  };
+  _briefLevelsCache.set(sym, { ts: Date.now(), data: out });
+  return out;
+}
+
+// Pool cu concurență limitată (proxy CORS are rate limit)
+async function fetchBriefLevelsAll(syms, concurrency = 4) {
+  const out = {};
+  let i = 0;
+  async function worker() {
+    while (i < syms.length) {
+      const sym = syms[i++];
+      try { out[sym] = await fetchBriefLevels(sym); } catch (e) { out[sym] = null; }
+    }
+  }
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  return out;
+}
+
+// Formatează nivelurile pentru prompt (o linie per simbol, doar cele cu date)
+function formatBriefLevels(levels) {
+  const fmtP = v => v == null ? '—' : (v >= 100 ? v.toFixed(0) : v.toFixed(2));
+  const fmtD = v => v == null ? '' : ` (dist ${v>=0?'+':''}${v.toFixed(1)}%)`;
+  const lines = [];
+  for (const sym of BRIEF_LEVEL_SYMS) {
+    const L = levels[sym];
+    if (!L || L.last == null) continue;
+    const chg = `${L.chgPct>=0?'+':''}${L.chgPct.toFixed(2)}%`;
+    const ma50 = L.ma50 ? ` · MA50 ${fmtP(L.ma50)}${fmtD(L.distMa50)}` : '';
+    const ma200 = L.ma200 ? ` · MA200 ${fmtP(L.ma200)}${fmtD(L.distMa200)}` : '';
+    const atr = L.atrPct != null ? ` · ATR≈${L.atrPct.toFixed(1)}%/zi` : '';
+    const rng = ` · range 20z ${fmtP(L.lo20)}-${fmtP(L.hi20)}`;
+    lines.push(`- ${sym}: ${fmtP(L.last)} (${chg})${ma50}${ma200}${atr}${rng}`);
+  }
+  return lines.join('\n') || '(niveluri indisponibile — proxy CORS picat)';
+}
+
+async function buildBriefContext() {
   const nyt = getNYDateHour();
   const now = Date.now();
+
+  // Niveluri tehnice reale (paralel cu restul) — ancoră anti-halucinare pentru Entry/SL/TP
+  const levels = await fetchBriefLevelsAll(BRIEF_LEVEL_SYMS);
+  const levelsList = formatBriefLevels(levels);
 
   // Events azi + next 24h (high + med impact)
   const todayStart = new Date(nyt.date + 'T00:00:00Z').getTime();
@@ -3651,7 +3749,7 @@ function buildBriefContext() {
   ];
   const tilesList = tiles.map(([k, t]) => `- ${k}: ${t.v} (${t.sub})`).join('\n');
 
-  return { nyt, eventsList, macroList, cryptoList, tilesList, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
+  return { nyt, eventsList, macroList, cryptoList, tilesList, levelsList, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
 }
 
 async function generateBrief(force=false) {
@@ -3671,7 +3769,7 @@ async function generateBrief(force=false) {
   if (!MACRO_NEWS.length && getFinnhubKey()) await fetchMacroNews().catch(() => {});
   if (!CRYPTO_NEWS.length) await fetchCryptoNews().catch(() => {});
 
-  const ctx = buildBriefContext();
+  const ctx = await buildBriefContext();
   renderBriefMeta(ctx);
 
   const prompt = `Data: ${ctx.nyt.date} · Ora ET acum: ${String(ctx.nyt.hour).padStart(2,'0')}:${String(ctx.nyt.minute).padStart(2,'0')}
@@ -3687,6 +3785,9 @@ ${ctx.cryptoList}
 
 === CONTEXT PIATA (live) ===
 ${ctx.tilesList}
+
+=== NIVELURI TEHNICE LIVE (preturi reale azi — foloseste EXCLUSIV acestea pentru Entry/SL/TP) ===
+${ctx.levelsList}
 
 Genereaza brief-ul matinal conform structurii.`;
 
