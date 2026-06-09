@@ -1029,7 +1029,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v208</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v209</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1334,7 +1334,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v208 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v209 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1859,7 +1859,7 @@ async function scanEarnings() {
           <td><input type="checkbox" class="earn-chk" ${isSel ? 'checked' : ''} onchange="earnToggleSelect('${s.symbol}')" title="Selectează pentru comparație AI"></td>
           <td>${i + 1}</td>
           ${symCell(s)}
-          <td>${(s.name || '').slice(0, 26)}</td>
+          <td>${wlEsc((s.name || '').slice(0, 26))}</td>
           <td class="num"><span class="${earn.cls}">${earn.text}</span></td>
           <td>${NasdaqScanner.formatTime(s.time)}</td>
           <td class="num">${s.epsForecast || '-'}</td>
@@ -1867,7 +1867,7 @@ async function scanEarnings() {
           <td class="num ${changeClass}">${changeStr}</td>
           <td class="num">${intradayLow}</td>
           <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
-          <td>${s.sector || '-'}</td>
+          <td>${wlEsc(s.sector || '-')}</td>
           <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button> <button class="btn-ai-row" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a;font-weight:800" onclick='meQuickSetup("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="🎯 Quick Setup ready-to-execute (Opus 4.8)">🎯</button></td>
         `;
         tbody.appendChild(tr);
@@ -1925,14 +1925,14 @@ async function scanLosers() {
           <td><input type="checkbox" class="loser-chk" ${isSel ? 'checked' : ''} onchange="loserToggleSelect('${s.symbol}')" title="Selectează pentru comparație AI"></td>
           <td>${i + 1}</td>
           ${symCell(s)}
-          <td>${(s.name || '').slice(0, 28)}</td>
+          <td>${wlEsc((s.name || '').slice(0, 28))}</td>
           <td class="num">$${s.price?.toFixed(2) || '-'}</td>
           <td class="num neg">${s.changePct?.toFixed(2)}%</td>
           <td class="num">${NasdaqScanner.formatVolume(s.volume)}</td>
           <td class="num ${volRatio >= 2 ? 'vol-hot' : ''}">${volRatio ? volRatio.toFixed(1) + 'x' : '-'}</td>
           <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
           <td class="num"><span class="${earn.cls}">${earn.text}</span></td>
-          <td>${s.sector || '-'}</td>
+          <td>${wlEsc(s.sector || '-')}</td>
           <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button> <button class="btn-ai-row" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a;font-weight:800" onclick='meQuickSetup("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="🎯 Quick Setup ready-to-execute">🎯</button></td>
         `;
         tbody.appendChild(tr);
@@ -2096,7 +2096,7 @@ async function aiAnalyzeRow(type, s) {
   ov.innerHTML = `
     <div class="ai-modal">
       <div class="ai-modal-title">🤖 ${titleIcon}: ${s.symbol}</div>
-      <div class="ai-modal-sub">${(s.name || '').slice(0, 60)} · ${s.sector || 'N/A'} · ${NasdaqScanner.formatMcap(s.marketCap || 0)}</div>
+      <div class="ai-modal-sub">${wlEsc((s.name || '').slice(0, 60))} · ${wlEsc(s.sector || 'N/A')} · ${NasdaqScanner.formatMcap(s.marketCap || 0)}</div>
       <div class="ai-modal-result" id="aiResultArea">⏳ Generez analiza cu ${AI_MODEL}...</div>
       <div class="ai-modal-meta" id="aiMeta"></div>
       <div class="ai-modal-actions">
@@ -2180,7 +2180,7 @@ async function meQuickSetup(type, s) {
   ov.innerHTML = `
     <div class="ai-modal" style="max-width:680px">
       <div class="ai-modal-title">🎯 Quick Setup: ${s.symbol}</div>
-      <div class="ai-modal-sub">${titleIcon} · ${(s.name || '').slice(0,60)} · ${s.sector || 'N/A'}</div>
+      <div class="ai-modal-sub">${titleIcon} · ${wlEsc((s.name || '').slice(0,60))} · ${wlEsc(s.sector || 'N/A')}</div>
       <div class="ai-modal-result" id="qsResultArea"><div style="padding:18px;text-align:center;color:#a3adc1"><span style="font-size:28px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:8px;font-size:13px">Claude Opus 4.8 generează JSON ready-to-execute (5-10s)...</div></div></div>
       <div class="ai-modal-meta" id="qsMeta"></div>
       <div class="ai-modal-actions">
@@ -3921,7 +3921,7 @@ Format: ## titluri scurte + bullet points sub. NU repeta cifrele — interpretea
   ov.innerHTML = `
     <div class="ai-modal">
       <div class="ai-modal-title">🤖 Analiză profundă: ${sym}</div>
-      <div class="ai-modal-sub">${(w.name || '').slice(0, 60)} · context complet (perf MTF + RSI + MA + ATR + insider)</div>
+      <div class="ai-modal-sub">${wlEsc((w.name || '').slice(0, 60))} · context complet (perf MTF + RSI + MA + ATR + insider)</div>
       <div class="ai-modal-result" id="aiDeepResultArea">⏳ Generez analiza cu ${AI_MODEL}...</div>
       <div class="ai-modal-meta" id="aiDeepMeta"></div>
       <div class="ai-modal-actions">
@@ -4476,7 +4476,7 @@ aiAnalyzeRow = async function(type, s) {
   ov.innerHTML = `
     <div class="ai-modal">
       <div class="ai-modal-title">🤖 ${titleIcon}: ${s.symbol}</div>
-      <div class="ai-modal-sub">${(s.name || '').slice(0, 60)} · ${s.sector || 'N/A'} · ${NasdaqScanner.formatMcap(s.marketCap || 0)}</div>
+      <div class="ai-modal-sub">${wlEsc((s.name || '').slice(0, 60))} · ${wlEsc(s.sector || 'N/A')} · ${NasdaqScanner.formatMcap(s.marketCap || 0)}</div>
       <div class="ai-modal-result" id="aiResultArea">⏳ Generez analiza cu ${AI_MODEL}...</div>
       <div class="ai-modal-meta" id="aiMeta"></div>
       <div class="ai-modal-actions">
@@ -5366,7 +5366,7 @@ function renderSectorHeatmap() {
     const labelShort = a.name.length > 18 ? a.name.slice(0, 17) + '…' : a.name;
     const sym = labelShort.split(' ')[0].toUpperCase().slice(0, 8);
     return `<div class="heat-row">
-      <span class="sym" title="${a.name}">${sym}</span>
+      <span class="sym" title="${wlEsc(a.name)}">${wlEsc(sym)}</span>
       <div class="bar" style="width:${widthPct.toFixed(1)}%">
         <span class="meta">${a.count} stocks · ${a.avgChg.toFixed(2)}% avg</span>
       </div>
