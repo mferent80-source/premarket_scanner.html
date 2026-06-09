@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v180</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v181</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -3563,6 +3563,14 @@ Pentru fiecare:
 - Watch list crypto stocks (COIN/MSTR/MARA/RIOT/HOOD) cu setup specific per stock
 - Sectoare DeFi/Layer-2 daca apar in stiri
 
+## 🌍 Risc geopolitic
+Pe baza sectiunii "SEMNALE GEOPOLITICE" + stirilor primite, evalueaza tensiunile globale care pot misca bursa AZI: razboaie/conflicte, tarife si trade war, sanctiuni, alegeri, OPEC/petrol, China-Taiwan, Orientul Mijlociu, chip bans.
+Pentru fiecare risc activ:
+- Ce s-a intamplat (din stiri) + de ce conteaza pentru piete
+- Ce asset se misca si in ce directie: petrol (**XLE**/**USO**), aur (**GLD**), defense (**ITA**/**LMT**), **VIX**, **DXY**, **BTC** (safe-haven vs risk-off)
+- Nivel de alerta: scazut / mediu / ridicat
+IMPORTANT: daca NU sunt semnale geopolitice in feed, scrie explicit "Fara catalizatori geopolitici noi in ultimele 48h" si NU inventa crize. Folosesti DOAR ce e in stiri, nu memoria ta (care e invechita).
+
 ## ⚠️ Risc cheie (2-3 scenarii)
 Scenarii concrete care REVERSEAZA teza:
 - Surpriza X la eveniment Y → ce se misca + cat
@@ -3710,6 +3718,9 @@ function formatBriefLevels(levels) {
   return lines.join('\n') || '(niveluri indisponibile — proxy CORS picat)';
 }
 
+// Cuvinte-cheie geopolitice care mișcă bursa (știrile Finnhub sunt în engleză)
+const GEO_NEWS_RE = /\b(war|conflict|military|invasion|missile|airstrike|strike|tariff|tariffs|sanction|embargo|trade war|geopolit|election|coup|opec|russia|ukraine|china|taiwan|iran|israel|gaza|hamas|hezbollah|houthi|middle east|north korea|nuclear|ceasefire|putin|xi jinping|netanyahu|shutdown|debt ceiling|downgrade|oil supply|crude|strait of hormuz|red sea|chip ban|export control)\b/i;
+
 async function buildBriefContext() {
   const nyt = getNYDateHour();
   const now = Date.now();
@@ -3763,6 +3774,14 @@ async function buildBriefContext() {
     return `- ${cm.name} · ${e.event} · ${dt.date} ${dt.time} UTC${fcst}${prev}`;
   }).join('\n') || '(niciun high-impact în următoarele 2-7 zile din calendarul încărcat)';
 
+  // Semnale geopolitice: filtrăm știrile pe cuvinte-cheie care mișcă bursa (ultimele 48h)
+  const geoNews = MACRO_NEWS.filter(n => {
+    if ((now - n.ts*1000) > 48*3600000) return false;
+    return GEO_NEWS_RE.test((n.title || '') + ' ' + (n.summary || ''));
+  }).slice(0, 8);
+  const geoList = geoNews.map(n => `- [${n.sentiment.toUpperCase()}] ${n.source} · ${n.title}`).join('\n')
+    || '(niciun semnal geopolitic notabil în feed-ul de știri din ultimele 48h)';
+
   // Macro news top 8 (din ultimele 24h)
   const recentMacro = MACRO_NEWS.filter(n => (now - n.ts*1000) < 24*3600000).slice(0, 8);
   const macroList = recentMacro.map(n => `- [${n.sentiment.toUpperCase()}] ${n.source} · ${n.title}`).join('\n') || '(nu sunt știri macro încărcate)';
@@ -3782,7 +3801,7 @@ async function buildBriefContext() {
   ];
   const tilesList = tiles.map(([k, t]) => `- ${k}: ${t.v} (${t.sub})`).join('\n');
 
-  return { nyt, eventsList, resultsList, weekAheadList, macroList, cryptoList, tilesList, levelsList, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
+  return { nyt, eventsList, resultsList, weekAheadList, geoList, macroList, cryptoList, tilesList, levelsList, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
 }
 
 async function generateBrief(force=false) {
@@ -3821,6 +3840,9 @@ ${ctx.macroList}
 
 === STIRI CRYPTO (ultimele 24h) ===
 ${ctx.cryptoList}
+
+=== SEMNALE GEOPOLITICE (filtrate din stiri, 48h) ===
+${ctx.geoList}
 
 === CONTEXT PIATA (live) ===
 ${ctx.tilesList}
