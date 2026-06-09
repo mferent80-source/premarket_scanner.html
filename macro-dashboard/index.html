@@ -793,12 +793,13 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v179</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v180</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte (beep)">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
+  <button class="icon-btn" id="toastBtn" title="Mesaje pop-up în pagină (info/success)">💬</button>
   <button class="icon-btn" id="tgBtn" title="Telegram alerts">📡</button>
   <button class="icon-btn" id="refreshBtn" title="Reîncarcă datele">🔄</button>
   <button class="icon-btn" id="alertsLogBtn" title="Jurnal alerte istoric">📜<span class="al-badge" id="alBadge" style="display:none">0</span></button>
@@ -1256,6 +1257,7 @@ const DEFAULT_CFG = {
   sortDir: 'asc',
   sound: false,
   notif: false,
+  toastsMuted: false, // mod silențios: ascunde toast-urile info/success (păstrează erorile)
   mnFilter: 'all',
   cnFilter: 'all',
   mnSearch: '',
@@ -1564,6 +1566,8 @@ function loadCfg() {
 function saveCfg() { localStorage.setItem('md_cfg', JSON.stringify(CFG)); }
 
 function toast(msg, kind='info', opts={}) {
+  // Mod silențios: ascunde notificările de rutină (info/success), păstrează warn/error
+  if (CFG.toastsMuted && (kind === 'info' || kind === 'success') && !opts.force) return;
   const el = document.createElement('div');
   el.className = 'toast ' + kind;
   // warn/error persistente by default. info/success 12s auto-dismiss (era 4.5s — mult prea scurt).
@@ -5049,6 +5053,15 @@ function scheduleAutoRefresh() {
   }, interval * 1000);
 }
 
+// Reflectă starea toggle-ului de toast în buton (💬 active / 🔕 muted)
+function applyToastBtnUI() {
+  const b = $('toastBtn');
+  if (!b) return;
+  b.textContent = CFG.toastsMuted ? '🔕' : '💬';
+  b.style.color = CFG.toastsMuted ? 'var(--bear-s)' : '';
+  b.title = CFG.toastsMuted ? 'Mesaje pop-up oprite — click pentru a reactiva' : 'Mesaje pop-up în pagină (info/success) — click pentru a opri';
+}
+
 // ============ EVENT HANDLERS ============
 function bindEvents() {
   // Tabs
@@ -5148,6 +5161,13 @@ function bindEvents() {
     CFG.notif = !CFG.notif; saveCfg();
     $('notifBtn').style.color = CFG.notif ? 'var(--bull-s)' : '';
     toast(CFG.notif ? '🔔 Notificări active' : '🔕 Notificări dezactivate', 'info');
+  });
+  // Toast toggle: silențiază mesajele info/success din pagină
+  $('toastBtn').addEventListener('click', () => {
+    CFG.toastsMuted = !CFG.toastsMuted; saveCfg();
+    applyToastBtnUI();
+    // mesajul de confirmare îl forțăm ca să se vadă chiar și când tocmai am silențiat
+    toast(CFG.toastsMuted ? '🔕 Mesaje pop-up oprite (rămân doar erorile)' : '💬 Mesaje pop-up active', 'info', { force: true });
   });
   $('tgBtn').addEventListener('click', openSettings);
 
@@ -5308,6 +5328,7 @@ function bindEvents() {
 // ============ INIT ============
 async function init() {
   bindEvents();
+  applyToastBtnUI(); // reflectă starea muted salvată
   renderSession();
   setInterval(() => { renderSession(); applyFastPollUI(); }, 30000);
   cleanupSeen(); // sterge entries SEEN >7z
