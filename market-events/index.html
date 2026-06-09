@@ -1029,7 +1029,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v212</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v213</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1334,7 +1334,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v212 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v213 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2310,6 +2310,26 @@ const WL_KEY = 'me_watchlist';
 let watchlist = [];
 try { watchlist = JSON.parse(localStorage.getItem(WL_KEY) || '[]'); } catch(_) { watchlist = []; }
 function wlSave(){ localStorage.setItem(WL_KEY, JSON.stringify(watchlist)); }
+
+// Cross-tab sync: dacă alt tab al paginii adaugă/șterge simboluri din watchlist, le preluăm aici.
+// (Înainte, fără listener: 2 taburi → last-write-wins ștergea tăcut simbolurile celuilalt.)
+// Reacționăm DOAR la schimbarea SETULUI de simboluri — NU la simplele update-uri de preț din
+// polling-ul celuilalt tab (altfel s-ar declanșa re-render + re-fetch în lanț la fiecare 15s).
+window.addEventListener('storage', (e) => {
+  if (e.key !== WL_KEY) return;
+  let next; try { next = JSON.parse(e.newValue || '[]'); } catch(_) { return; }
+  if (!Array.isArray(next)) return;
+  const nextSyms = next.map(w => w && w.symbol).filter(Boolean);
+  const curSyms = watchlist.map(w => w.symbol);
+  if (nextSyms.join(',') === curSyms.join(',')) return; // doar update de prețuri → ignoră
+  // Reconciliază păstrând datele noastre (preț/ext) pentru simbolurile pe care le aveam deja.
+  const mine = {}; for (const w of watchlist) mine[w.symbol] = w;
+  watchlist = nextSyms.map(s => mine[s] || { symbol: s, price: null, fetchedAt: 0 });
+  wlRender(); // NU re-salvăm (am citit din storage) — evităm bucla cross-tab
+  wlEnsureEarlyData(false).then(wlRender);
+  wlEnsureInsiderData().then(wlRender);
+  showToast('🔄 Watchlist sincronizat din alt tab', 'success');
+});
 
 async function wlFetchSymbol(sym){
   // Folosim aceeași clasă scanner cu același proxy + chart endpoint
