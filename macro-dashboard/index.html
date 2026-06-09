@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v177</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v178</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -3577,7 +3577,7 @@ Max 4 idei structurate:
 - Setup: 1 propozitie despre catalist + invalidare clara
 
 ## 📅 Look-ahead saptamana
-2-3 puncte despre ce evenimente CRITICE vin in urmatoarele 5 zile (FOMC, CPI, NFP) si cum sa te pozitionezi sizing-wise.
+Foloseste sectiunea "EVENIMENTE CRITICE SAPTAMANA (2-7 zile)" — comenteaza fiecare high-impact real de acolo (data, ora, forecast) si cum sa te pozitionezi sizing-wise inainte. Daca sectiunea e goala, spune ca nu sunt high-impact programate in fereastra si NU inventa evenimente.
 
 INSTRUCTIUNI STIL:
 - Fii direct, fara disclaimere generale ("not financial advice" inutil — el e trader experimentat)
@@ -3744,6 +3744,21 @@ async function buildBriefContext() {
     return `- [${r.verdict} ${r.icon}] ${e.event} · Actual ${e.actual}${fc}${surp} → ${r.bias}`;
   }).join('\n') || '(niciun rezultat publicat încă azi)';
 
+  // Look-ahead săptămână: high-impact în (next24h ... +7 zile) — pentru poziționare/sizing
+  const weekEnd = todayStart + 7*24*3600000;
+  const weekAhead = CAL_DATA.filter(e => {
+    if (e.impact !== 'high') return false;
+    const t = parseEventTime(e.time)?.getTime() || 0;
+    return t >= next24h && t < weekEnd;
+  }).sort((a, b) => (parseEventTime(a.time)?.getTime() || 0) - (parseEventTime(b.time)?.getTime() || 0));
+  const weekAheadList = weekAhead.slice(0, 10).map(e => {
+    const dt = fmtEventDateTime(e.time);
+    const cm = COUNTRY_META[e.country] || { name: e.country };
+    const fcst = e.forecast != null ? ` · forecast: ${e.forecast}` : '';
+    const prev = e.previous != null ? ` · prev: ${e.previous}` : '';
+    return `- ${cm.name} · ${e.event} · ${dt.date} ${dt.time} UTC${fcst}${prev}`;
+  }).join('\n') || '(niciun high-impact în următoarele 2-7 zile din calendarul încărcat)';
+
   // Macro news top 8 (din ultimele 24h)
   const recentMacro = MACRO_NEWS.filter(n => (now - n.ts*1000) < 24*3600000).slice(0, 8);
   const macroList = recentMacro.map(n => `- [${n.sentiment.toUpperCase()}] ${n.source} · ${n.title}`).join('\n') || '(nu sunt știri macro încărcate)';
@@ -3763,7 +3778,7 @@ async function buildBriefContext() {
   ];
   const tilesList = tiles.map(([k, t]) => `- ${k}: ${t.v} (${t.sub})`).join('\n');
 
-  return { nyt, eventsList, resultsList, macroList, cryptoList, tilesList, levelsList, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
+  return { nyt, eventsList, resultsList, weekAheadList, macroList, cryptoList, tilesList, levelsList, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
 }
 
 async function generateBrief(force=false) {
@@ -3793,6 +3808,9 @@ ${ctx.resultsList}
 
 === EVENIMENTE ECONOMICE AZI + NEXT 24H (${ctx.eventsCount} total, ${ctx.hiCount} HIGH) ===
 ${ctx.eventsList || '(niciun event high/med în fereastră)'}
+
+=== EVENIMENTE CRITICE SAPTAMANA (2-7 zile) ===
+${ctx.weekAheadList}
 
 === STIRI MACRO (ultimele 24h) ===
 ${ctx.macroList}
