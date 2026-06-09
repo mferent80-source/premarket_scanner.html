@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v176</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v177</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -3531,6 +3531,7 @@ Apoi STRUCTURA COMPLETA (markdown ## pentru headings):
 
 ## 📰 Recap 24h
 Sintetizeaza ce s-a intamplat in ultimele 24h relevant pentru sesiunea de azi (din stirile macro+crypto primite). Maxim 5 puncte cheie.
+Daca exista REZULTATE DEJA PUBLICATE AZI, incepe cu ele: ce a iesit (BEAT/MISS/HOT/COOL), surprise-ul, si reactia asteptata pe sectoarele afectate — acestea sunt deja FAPT, nu scenariu.
 
 ## 📅 Calendar de azi + 24h
 Pentru fiecare high-impact event din lista primita:
@@ -3730,6 +3731,19 @@ async function buildBriefContext() {
     return `- [${e.impact.toUpperCase()}] ${cm.name} · ${e.event} · ${dt.date} ${dt.time} UTC${fcst}${prev}${act}`;
   }).join('\n');
 
+  // Rezultate DEJA publicate azi (actual != null, în ziua ET curentă) — ce s-a întâmplat deja
+  const resultsToday = CAL_DATA.filter(e => {
+    if (e.actual == null) return false;
+    const t = parseEventTime(e.time)?.getTime() || 0;
+    return t >= todayStart && t <= now;
+  }).sort((a, b) => (parseEventTime(b.time)?.getTime() || 0) - (parseEventTime(a.time)?.getTime() || 0));
+  const resultsList = resultsToday.slice(0, 8).map(e => {
+    const r = classifyResult(e.actual, e.forecast, e.event);
+    const surp = (r.surprise != null && !isNaN(r.surprise)) ? ` (surprise ${r.surprise>=0?'+':''}${r.surprise.toFixed(1)}%)` : '';
+    const fc = e.forecast != null ? ` vs forecast ${e.forecast}` : '';
+    return `- [${r.verdict} ${r.icon}] ${e.event} · Actual ${e.actual}${fc}${surp} → ${r.bias}`;
+  }).join('\n') || '(niciun rezultat publicat încă azi)';
+
   // Macro news top 8 (din ultimele 24h)
   const recentMacro = MACRO_NEWS.filter(n => (now - n.ts*1000) < 24*3600000).slice(0, 8);
   const macroList = recentMacro.map(n => `- [${n.sentiment.toUpperCase()}] ${n.source} · ${n.title}`).join('\n') || '(nu sunt știri macro încărcate)';
@@ -3749,7 +3763,7 @@ async function buildBriefContext() {
   ];
   const tilesList = tiles.map(([k, t]) => `- ${k}: ${t.v} (${t.sub})`).join('\n');
 
-  return { nyt, eventsList, macroList, cryptoList, tilesList, levelsList, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
+  return { nyt, eventsList, resultsList, macroList, cryptoList, tilesList, levelsList, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
 }
 
 async function generateBrief(force=false) {
@@ -3773,6 +3787,9 @@ async function generateBrief(force=false) {
   renderBriefMeta(ctx);
 
   const prompt = `Data: ${ctx.nyt.date} · Ora ET acum: ${String(ctx.nyt.hour).padStart(2,'0')}:${String(ctx.nyt.minute).padStart(2,'0')}
+
+=== REZULTATE DEJA PUBLICATE AZI (ce s-a intamplat deja) ===
+${ctx.resultsList}
 
 === EVENIMENTE ECONOMICE AZI + NEXT 24H (${ctx.eventsCount} total, ${ctx.hiCount} HIGH) ===
 ${ctx.eventsList || '(niciun event high/med în fereastră)'}
