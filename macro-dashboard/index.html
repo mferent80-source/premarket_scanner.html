@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v178</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v179</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -3839,7 +3839,9 @@ Genereaza brief-ul matinal conform structurii.`;
 
   try {
     // Streaming silentios — NU update-uim DOM-ul la fiecare chunk (e obositor)
-    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, () => {}, 2500);
+    // 5500 tokens: brief-ul are 10 secțiuni ~1500-1800 cuvinte în română (diacritice = mai multe
+    // tokenuri); 2500 tăia răspunsul pe la secțiunea 7-8 → „Idei de trade" + „Look-ahead" lipseau.
+    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, () => {}, 5500);
     clearInterval(tickTimer);
 
     // Parse MARKET_MOOD din prima linie
