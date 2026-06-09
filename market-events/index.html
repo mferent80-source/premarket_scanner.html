@@ -141,6 +141,10 @@
   .btn-earnings:hover { background: #a371f7; }
   .btn-losers { background: #da3633; }
   .btn-losers:hover { background: #f85149; }
+  .btn-gainers { background: #238636; }
+  .btn-gainers:hover { background: #2ea043; }
+  #loserModeBtn { background: var(--panel2); border: 1px solid var(--border); color: var(--text); padding: 7px 10px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  #loserModeBtn:hover { border-color: var(--accent); }
   button:disabled { background: #484f58; cursor: not-allowed; }
   
   .status {
@@ -1029,7 +1033,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v213</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v214</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1228,11 +1232,15 @@
 <!-- TABEL 2: TOP LOSERS NASDAQ                     -->
 <!-- ============================================== -->
 <section class="section-losers section" id="loserSection">
-  <h2 onclick="toggleSection('loserSection')"><span class="collapse-arrow">▼</span> 🔻 TOP LOSERS <span id="loserBadge" class="badge">-</span></h2>
-  
+  <h2 onclick="toggleSection('loserSection')"><span class="collapse-arrow">▼</span> <span id="loserTitle">🔻 TOP LOSERS</span> <span id="loserBadge" class="badge">-</span></h2>
+
   <div class="controls">
     <div class="ctrl">
-      <label>Min scădere %</label>
+      <label>Direcție</label>
+      <button id="loserModeBtn" type="button" onclick="loserToggleMode()" title="Comută între Top Losers (în scădere) și Top Gainers (în creștere) — gap scanner pe ambele direcții">🔻 Losers</button>
+    </div>
+    <div class="ctrl">
+      <label id="minDropLabel">Min scădere %</label>
       <input id="minDrop" type="number" value="5" min="1" step="0.5" />
     </div>
     <div class="ctrl">
@@ -1297,11 +1305,11 @@
 <!-- === Heatmaps: Volume + Sector (sub Earnings + Top Losers) === -->
 <section class="heat-grid">
   <div class="heat-section section-vol">
-    <h2>📊 Volume Heatmap (losers)</h2>
+    <h2>📊 Volume Heatmap (movers)</h2>
     <div class="heat-list" id="volHeatmap"><div class="heat-empty">se încarcă…</div></div>
   </div>
   <div class="heat-section section-sector">
-    <h2>🏭 Sector Heatmap (losers)</h2>
+    <h2>🏭 Sector Heatmap (movers)</h2>
     <div class="heat-list" id="sectorHeatmap"><div class="heat-empty">se încarcă…</div></div>
   </div>
 </section>
@@ -1334,7 +1342,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v213 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v214 · Earnings + Losers/Gainers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1439,18 +1447,21 @@ class NasdaqScanner {
   async fetchTopLosers(options = {}) {
     const {
       minDropPct = 5, minVolume = 0, volumeMultiplier = 0,
-      minMarketCap = 0, maxResults = 100, exchange = 'NASDAQ'
+      minMarketCap = 0, maxResults = 100, exchange = 'NASDAQ', mode = 'losers'
     } = options;
 
-    const yahooUrl = `${this.yahooScreener}?formatted=true&lang=en-US&region=US&scrIds=day_losers&count=${maxResults}`;
-    const data = await this._getJson(yahooUrl, 30); // lista de losers — cache 30s (re-scanări rapide)
+    const gainers = mode === 'gainers';
+    const scrId = gainers ? 'day_gainers' : 'day_losers';
+    const yahooUrl = `${this.yahooScreener}?formatted=true&lang=en-US&region=US&scrIds=${scrId}&count=${maxResults}`;
+    const data = await this._getJson(yahooUrl, 30); // lista de movers — cache 30s (re-scanări rapide)
     if (!data) throw new Error('Proxy/Yahoo indisponibil (toate proxy-urile au eșuat)');
 
     const quotes = data?.finance?.result?.[0]?.quotes || [];
     return quotes
       .map(q => this._parseYahooQuote(q))
-      .filter(s => this._matchesLoserFilters(s, { minDropPct, minVolume, volumeMultiplier, minMarketCap, exchange }))
-      .sort((a, b) => a.changePct - b.changePct);
+      .filter(s => this._matchesLoserFilters(s, { minDropPct, minVolume, volumeMultiplier, minMarketCap, exchange, mode }))
+      // Losers: cel mai în scădere sus (asc). Gainers: cel mai în creștere sus (desc).
+      .sort((a, b) => gainers ? b.changePct - a.changePct : a.changePct - b.changePct);
   }
 
   // ============================================================
@@ -1703,8 +1714,12 @@ class NasdaqScanner {
 
   _matchesLoserFilters(s, f) {
     if (s.changePct == null) return false;
-    const dropPct = Math.abs(s.changePct);
-    if (s.changePct > 0 || dropPct < f.minDropPct) return false;
+    const moved = Math.abs(s.changePct);
+    if (f.mode === 'gainers') {
+      if (s.changePct < 0 || moved < f.minDropPct) return false; // doar în creștere, peste prag
+    } else {
+      if (s.changePct > 0 || moved < f.minDropPct) return false; // doar în scădere, peste prag
+    }
     if (f.exchange) {
       const ex = (s.exchange || '').toUpperCase();
       if (f.exchange === 'NASDAQ' && !/NASDAQ|NMS|NGM|NCM/.test(ex)) return false;
@@ -1897,19 +1912,21 @@ async function scanEarnings() {
 // SCAN 2: TOP LOSERS NASDAQ
 // ============================================================
 async function scanLosers() {
+  const gain = loserMode === 'gainers';
   const btn = $('scanLoserBtn');
   btn.disabled = true;
-  setStatus('loserStatus', '⏳ Scanare top losers...');
+  setStatus('loserStatus', gain ? '⏳ Scanare top gainers...' : '⏳ Scanare top losers...');
   $('loserResults').innerHTML = '';
   $('loserBadge').textContent = '...';
-  
+
   try {
     const losers = await getScanner().fetchTopLosers({
       minDropPct: parseFloat($('minDrop').value),
       minMarketCap: parseFloat($('minMcap').value) * 1e6,
       volumeMultiplier: parseFloat($('volMult').value),
       maxResults: parseInt($('maxRes').value),
-      exchange: $('exchange').value
+      exchange: $('exchange').value,
+      mode: loserMode
     });
     
     const tbody = $('loserResults');
@@ -1920,7 +1937,7 @@ async function scanLosers() {
     [...loserSelected].forEach(sym => { if (!visible.has(sym)) loserSelected.delete(sym); });
 
     if (losers.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="12" class="empty">Niciun loser care îndeplinește filtrele.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="12" class="empty">Niciun ${gain ? 'gainer' : 'loser'} care îndeplinește filtrele.</td></tr>`;
     } else {
       losers.forEach((s, i) => {
         const volRatio = s.avgVolume ? (s.volume / s.avgVolume) : 0;
@@ -1934,7 +1951,7 @@ async function scanLosers() {
           ${symCell(s)}
           <td>${wlEsc((s.name || '').slice(0, 28))}</td>
           <td class="num">$${s.price?.toFixed(2) || '-'}</td>
-          <td class="num neg">${s.changePct?.toFixed(2)}%</td>
+          <td class="num ${gain ? 'pos' : 'neg'}">${gain && s.changePct >= 0 ? '+' : ''}${s.changePct?.toFixed(2)}%</td>
           <td class="num">${NasdaqScanner.formatVolume(s.volume)}</td>
           <td class="num ${volRatio >= 2 ? 'vol-hot' : ''}">${volRatio ? volRatio.toFixed(1) + 'x' : '-'}</td>
           <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
@@ -1948,7 +1965,7 @@ async function scanLosers() {
     loserUpdateCompareBar();
 
     $('loserBadge').textContent = `${losers.length}`;
-    setStatus('loserStatus', `✅ ${losers.length} losers ≥ ${$('minDrop').value}% — ${new Date().toLocaleTimeString('ro-RO')}`, 'success');
+    setStatus('loserStatus', `✅ ${losers.length} ${gain ? 'gainers' : 'losers'} ≥ ${$('minDrop').value}% — ${new Date().toLocaleTimeString('ro-RO')}`, 'success');
   } catch (err) {
     setStatus('loserStatus', `❌ ${err.message}`, 'error');
     $('loserBadge').textContent = 'eroare';
@@ -2582,6 +2599,25 @@ function earnUpdateCompareBar(){
 // Cache global cu ultima listă de losers (pentru re-render după toggle + lookup la compare)
 let lastLosers = [];
 const loserSelected = new Set();
+
+// Mod scanner movers: 'losers' (day_losers) ⇄ 'gainers' (day_gainers) — gap scanner pe ambele direcții.
+let loserMode = localStorage.getItem('me_loser_mode') || 'losers';
+function loserApplyModeUI(){
+  const g = loserMode === 'gainers';
+  const title = document.getElementById('loserTitle'); if (title) title.textContent = g ? '🔺 TOP GAINERS' : '🔻 TOP LOSERS';
+  const mbtn = document.getElementById('loserModeBtn'); if (mbtn) mbtn.textContent = g ? '🔺 Gainers' : '🔻 Losers';
+  const dlbl = document.getElementById('minDropLabel'); if (dlbl) dlbl.textContent = g ? 'Min creștere %' : 'Min scădere %';
+  const sbtn = document.getElementById('scanLoserBtn');
+  if (sbtn) { sbtn.textContent = g ? '🔺 Scanează' : '🔻 Scanează'; sbtn.classList.toggle('btn-gainers', g); }
+}
+function loserToggleMode(){
+  loserMode = loserMode === 'losers' ? 'gainers' : 'losers';
+  localStorage.setItem('me_loser_mode', loserMode);
+  loserSelected.clear(); // selecțiile vechi nu mai au sens între direcții
+  loserApplyModeUI();
+  scanLosers();
+}
+loserApplyModeUI(); // sincronizează UI-ul cu modul persistat la încărcare
 
 function loserToggleSelect(sym){
   if (loserSelected.has(sym)) loserSelected.delete(sym);
