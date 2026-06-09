@@ -1033,7 +1033,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v217</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v218</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1342,7 +1342,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v217 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v218 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2528,63 +2528,57 @@ function wlSetEbAlerts(on){ ebAlertsOn = !!on; localStorage.setItem('me_eb_alert
 let lastEarnings = [];
 const earnSelected = new Set();
 
-function earnToggleSelect(sym){
-  if (earnSelected.has(sym)) earnSelected.delete(sym);
-  else earnSelected.add(sym);
-  const row = document.querySelector(`#earnResults tr input[onchange*="earnToggleSelect('${sym}')"]`)?.closest('tr');
-  if (row) row.classList.toggle('earn-tr-selected', earnSelected.has(sym));
-  earnUpdateCompareBar();
-  earnUpdateSelectAllBtn();
+// ── Helpere COMUNE de selecție pentru secțiunile „movers" (Earnings + Top Losers/Gainers).
+// Earnings și Losers aveau cod identic copy-paste; logica trăiește acum o singură dată aici.
+// Funcțiile publice (earn*/loser*) rămân delegări subțiri — nume/semnături neschimbate, deci
+// toate onclick-urile + stratul de persistență + aiCompare continuă să funcționeze ca înainte.
+function _moverToggleSelect(sym, c){
+  if (c.selected.has(sym)) c.selected.delete(sym); else c.selected.add(sym);
+  const row = document.querySelector(`#${c.container} tr input[onchange*="${c.toggleName}('${sym}')"]`)?.closest('tr');
+  if (row) row.classList.toggle(c.rowClass, c.selected.has(sym));
+  c.updateBar(); c.updateBtn();
 }
-
-function earnClearSelection(){
-  earnSelected.clear();
-  document.querySelectorAll('#earnResults tr.earn-tr-selected').forEach(r => r.classList.remove('earn-tr-selected'));
-  document.querySelectorAll('#earnResults input.earn-chk').forEach(c => { c.checked = false; });
-  earnUpdateCompareBar();
-  earnUpdateSelectAllBtn();
+function _moverClear(c){
+  c.selected.clear();
+  document.querySelectorAll(`#${c.container} tr.${c.rowClass}`).forEach(r => r.classList.remove(c.rowClass));
+  document.querySelectorAll(`#${c.container} input.${c.chkClass}`).forEach(ch => { ch.checked = false; });
+  c.updateBar(); c.updateBtn();
 }
-
-function earnToggleAll(){
-  if (!lastEarnings.length) return;
-  const allSelected = lastEarnings.every(e => earnSelected.has(e.symbol));
-  if (allSelected) {
-    earnClearSelection();
-  } else {
-    lastEarnings.forEach(e => earnSelected.add(e.symbol));
-    document.querySelectorAll('#earnResults tr').forEach(r => r.classList.add('earn-tr-selected'));
-    document.querySelectorAll('#earnResults input.earn-chk').forEach(c => { c.checked = true; });
-    earnUpdateCompareBar();
-    earnUpdateSelectAllBtn();
-  }
+function _moverToggleAll(c){
+  if (!c.data().length) return;
+  const allSel = c.data().every(e => c.selected.has(e.symbol));
+  if (allSel) { c.clear(); return; }
+  c.data().forEach(e => c.selected.add(e.symbol));
+  document.querySelectorAll(`#${c.container} tr`).forEach(r => r.classList.add(c.rowClass));
+  document.querySelectorAll(`#${c.container} input.${c.chkClass}`).forEach(ch => { ch.checked = true; });
+  c.updateBar(); c.updateBtn();
 }
-
-function earnUpdateSelectAllBtn(){
-  const btn = document.getElementById('earnSelectAllBtn');
+function _moverSelectAllBtn(btnId, data, selected){
+  const btn = document.getElementById(btnId);
   if (!btn) return;
-  const allSel = lastEarnings.length > 0 && lastEarnings.every(e => earnSelected.has(e.symbol));
-  btn.classList.toggle('active', allSel && lastEarnings.length > 0);
-  btn.textContent = allSel && lastEarnings.length > 0 ? '☒ Deselectează tot' : '☑ Selectează tot';
+  const allSel = data.length > 0 && data.every(e => selected.has(e.symbol));
+  btn.classList.toggle('active', allSel);
+  btn.textContent = allSel ? '☒ Deselectează tot' : '☑ Selectează tot';
 }
-
-function earnUpdateCompareBar(){
-  let bar = document.getElementById('earnCompareBar');
-  if (!bar) {
-    bar = document.createElement('div');
-    bar.id = 'earnCompareBar';
-    bar.className = 'earn-compare-bar';
-    document.body.appendChild(bar);
-  }
-  if (earnSelected.size < 2) { bar.classList.remove('show'); return; }
+function _moverCompareBar(c){
+  let bar = document.getElementById(c.barId);
+  if (!bar) { bar = document.createElement('div'); bar.id = c.barId; bar.className = c.barClass; document.body.appendChild(bar); }
+  if (c.selected.size < 2) { bar.classList.remove('show'); return; }
   bar.classList.add('show');
-  const list = Array.from(earnSelected);
+  const list = Array.from(c.selected);
   const display = list.length > 6 ? list.slice(0, 6).join(', ') + ` +${list.length - 6}` : list.join(', ');
   bar.innerHTML = `
-    <span><span class="earn-cmp-count">${earnSelected.size}</span> earnings: ${display}</span>
-    <button class="btn-cmp-go" id="earnCmpGoBtn" onclick="aiCompare('earn')">🤖 Compară AI</button>
-    <button class="btn-cmp-clear" onclick="earnClearSelection()">✕ Anulează</button>
+    <span><span class="${c.countClass}">${c.selected.size}</span> ${c.label}: ${display}</span>
+    <button class="btn-cmp-go" onclick="aiCompare('${c.cmpArg}')">🤖 Compară AI</button>
+    <button class="btn-cmp-clear" onclick="${c.clearName}()">✕ Anulează</button>
   `;
 }
+
+function earnToggleSelect(sym){ _moverToggleSelect(sym, { container:'earnResults', selected:earnSelected, rowClass:'earn-tr-selected', toggleName:'earnToggleSelect', updateBar:earnUpdateCompareBar, updateBtn:earnUpdateSelectAllBtn }); }
+function earnClearSelection(){ _moverClear({ container:'earnResults', selected:earnSelected, rowClass:'earn-tr-selected', chkClass:'earn-chk', updateBar:earnUpdateCompareBar, updateBtn:earnUpdateSelectAllBtn }); }
+function earnToggleAll(){ _moverToggleAll({ container:'earnResults', data:() => lastEarnings, selected:earnSelected, rowClass:'earn-tr-selected', chkClass:'earn-chk', clear:earnClearSelection, updateBar:earnUpdateCompareBar, updateBtn:earnUpdateSelectAllBtn }); }
+function earnUpdateSelectAllBtn(){ _moverSelectAllBtn('earnSelectAllBtn', lastEarnings, earnSelected); }
+function earnUpdateCompareBar(){ _moverCompareBar({ barId:'earnCompareBar', barClass:'earn-compare-bar', selected:earnSelected, countClass:'earn-cmp-count', label:'earnings', cmpArg:'earn', clearName:'earnClearSelection' }); }
 
 // === Selecție multiplă pentru comparație AI între Top Losers ===
 // Cache global cu ultima listă de losers (pentru re-render după toggle + lookup la compare)
@@ -2610,66 +2604,12 @@ function loserToggleMode(){
 }
 loserApplyModeUI(); // sincronizează UI-ul cu modul persistat la încărcare
 
-function loserToggleSelect(sym){
-  if (loserSelected.has(sym)) loserSelected.delete(sym);
-  else loserSelected.add(sym);
-  // Update vizual fără re-render complet — doar clasa rândului
-  const row = document.querySelector(`#loserResults tr input[onchange*="loserToggleSelect('${sym}')"]`)?.closest('tr');
-  if (row) row.classList.toggle('loser-tr-selected', loserSelected.has(sym));
-  loserUpdateCompareBar();
-  loserUpdateSelectAllBtn();
-}
-
-function loserClearSelection(){
-  loserSelected.clear();
-  document.querySelectorAll('#loserResults tr.loser-tr-selected').forEach(r => r.classList.remove('loser-tr-selected'));
-  document.querySelectorAll('#loserResults input.loser-chk').forEach(c => { c.checked = false; });
-  loserUpdateCompareBar();
-  loserUpdateSelectAllBtn();
-}
-
-function loserToggleAll(){
-  if (!lastLosers.length) return;
-  // Dacă tot ce e vizibil e deja selectat → deselect; altfel selectează tot
-  const allSelected = lastLosers.every(l => loserSelected.has(l.symbol));
-  if (allSelected) {
-    loserClearSelection();
-  } else {
-    lastLosers.forEach(l => loserSelected.add(l.symbol));
-    document.querySelectorAll('#loserResults tr').forEach(r => r.classList.add('loser-tr-selected'));
-    document.querySelectorAll('#loserResults input.loser-chk').forEach(c => { c.checked = true; });
-    loserUpdateCompareBar();
-    loserUpdateSelectAllBtn();
-  }
-}
-
-function loserUpdateSelectAllBtn(){
-  const btn = document.getElementById('loserSelectAllBtn');
-  if (!btn) return;
-  const allSel = lastLosers.length > 0 && lastLosers.every(l => loserSelected.has(l.symbol));
-  btn.classList.toggle('active', allSel && lastLosers.length > 0);
-  btn.textContent = allSel && lastLosers.length > 0 ? '☒ Deselectează tot' : '☑ Selectează tot';
-}
-
-function loserUpdateCompareBar(){
-  let bar = document.getElementById('loserCompareBar');
-  if (!bar) {
-    bar = document.createElement('div');
-    bar.id = 'loserCompareBar';
-    bar.className = 'loser-compare-bar';
-    document.body.appendChild(bar);
-  }
-  if (loserSelected.size < 2) { bar.classList.remove('show'); return; }
-  bar.classList.add('show');
-  const list = Array.from(loserSelected);
-  // Truncăm dacă sunt prea multe ca să nu lățim bara peste tot
-  const display = list.length > 6 ? list.slice(0, 6).join(', ') + ` +${list.length - 6}` : list.join(', ');
-  bar.innerHTML = `
-    <span><span class="loser-cmp-count">${loserSelected.size}</span> losers: ${display}</span>
-    <button class="btn-cmp-go" id="loserCmpGoBtn" onclick="aiCompare('loser')">🤖 Compară AI</button>
-    <button class="btn-cmp-clear" onclick="loserClearSelection()">✕ Anulează</button>
-  `;
-}
+function loserToggleSelect(sym){ _moverToggleSelect(sym, { container:'loserResults', selected:loserSelected, rowClass:'loser-tr-selected', toggleName:'loserToggleSelect', updateBar:loserUpdateCompareBar, updateBtn:loserUpdateSelectAllBtn }); }
+function loserClearSelection(){ _moverClear({ container:'loserResults', selected:loserSelected, rowClass:'loser-tr-selected', chkClass:'loser-chk', updateBar:loserUpdateCompareBar, updateBtn:loserUpdateSelectAllBtn }); }
+function loserToggleAll(){ _moverToggleAll({ container:'loserResults', data:() => lastLosers, selected:loserSelected, rowClass:'loser-tr-selected', chkClass:'loser-chk', clear:loserClearSelection, updateBar:loserUpdateCompareBar, updateBtn:loserUpdateSelectAllBtn }); }
+function loserUpdateSelectAllBtn(){ _moverSelectAllBtn('loserSelectAllBtn', lastLosers, loserSelected); }
+// Eticheta „movers" acoperă ambele direcții (losers/gainers) în bara de comparație AI.
+function loserUpdateCompareBar(){ _moverCompareBar({ barId:'loserCompareBar', barClass:'loser-compare-bar', selected:loserSelected, countClass:'loser-cmp-count', label:'movers', cmpArg:'loser', clearName:'loserClearSelection' }); }
 
 // === Selecție multiplă watchlist (TV, trimite, compară AI, șterge) ===
 const wlSelected = new Set();
