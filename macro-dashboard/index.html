@@ -694,6 +694,14 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .op-sub { font-size:12px; color:var(--t2); font-family:var(--head); margin-top:3px; line-height:1.5; }
 .op-head .ghost { margin-left:auto; white-space:nowrap; }
 .op-body { display:flex; flex-direction:column; gap:14px; }
+/* Verdict agregat al zilei */
+.op-verdict { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:11px 15px; border-radius:var(--r); border:1px solid var(--b1); background:var(--panel2); }
+.op-verdict.on { border-color:rgba(34,214,107,.5); background:linear-gradient(135deg, rgba(34,214,107,.1), var(--panel2)); }
+.op-verdict.off { border-color:rgba(255,77,77,.5); background:linear-gradient(135deg, rgba(255,77,77,.1), var(--panel2)); }
+.op-verdict.mixed { border-color:rgba(212,137,44,.5); background:linear-gradient(135deg, rgba(212,137,44,.1), var(--panel2)); }
+.opv-mood { font-family:var(--head); font-weight:800; font-size:14px; color:var(--t1); }
+.opv-detail { font-family:var(--head); font-size:12px; color:var(--t2); }
+.opv-detail b { color:var(--t1); }
 .op-empty { text-align:center; padding:50px 20px; color:var(--t3); }
 .op-empty .ope-icon { font-size:40px; margin-bottom:10px; }
 .op-empty h4 { font-size:15px; color:var(--t2); font-weight:700; font-family:var(--head); margin-bottom:6px; }
@@ -783,7 +791,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v173</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v174</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -4666,7 +4674,7 @@ function renderSuggestionsPanel() {
     });
   });
 
-  body.innerHTML = cards.join('');
+  body.innerHTML = renderDailyVerdict(active) + cards.join('');
 
   // Bind
   body.querySelectorAll('.op-ticker[data-ticker]').forEach(btn =>
@@ -4717,6 +4725,36 @@ function applyChgBadge(el, q) {
     el.title = 'Mișcare mică azi (±0.3%) — neconcludent';
   }
   el.textContent = `${sign}${chg.toFixed(2)}%${mark}`;
+}
+
+// Verdict agregat al zilei: risk-on/off + sectorul cheie, din toate rezultatele active
+function renderDailyVerdict(active) {
+  let bull = 0, bear = 0;
+  const sectorScore = {}; // "icon label" -> scor semnat (+ bullish / - bearish), ponderat pe surprise
+  active.forEach(([k, s]) => {
+    const w = 1 + Math.min(Math.abs(s.surprise || 0), 5); // |surprise| capat la 5% ca să nu domine un outlier
+    if (s.bias === 'bullish') bull += w; else if (s.bias === 'bearish') bear += w;
+    (getSectorImpact(s.eventName) || []).forEach(sec => {
+      const key2 = `${sec.icon} ${sec.label}`;
+      sectorScore[key2] = (sectorScore[key2] || 0) + (s.bias === 'bullish' ? w : -w);
+    });
+  });
+  const net = bull - bear;
+  let mood, cls, emoji;
+  if (Math.abs(net) < 0.5) { mood = 'MIXT'; cls = 'mixed'; emoji = '🟠'; }
+  else if (net > 0) { mood = 'RISK-ON'; cls = 'on'; emoji = '🟢'; }
+  else { mood = 'RISK-OFF'; cls = 'off'; emoji = '🔴'; }
+
+  let top = null, topAbs = 0;
+  for (const [lbl, sc] of Object.entries(sectorScore)) {
+    if (Math.abs(sc) > topAbs) { topAbs = Math.abs(sc); top = { lbl, dir: sc >= 0 ? 'favorizat' : 'sub presiune' }; }
+  }
+  const n = active.length;
+  const topHtml = top ? ` · sector cheie: <b>${escHtml(top.lbl)}</b> (${top.dir})` : '';
+  return `<div class="op-verdict ${cls}">
+    <span class="opv-mood">${emoji} Bias zilei: ${mood}</span>
+    <span class="opv-detail">din ${n} ${n === 1 ? 'rezultat' : 'rezultate'} azi${topHtml}</span>
+  </div>`;
 }
 
 // Adaugă toate tickerele noi dintr-un sector la watchlist
