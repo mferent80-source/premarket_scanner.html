@@ -1033,7 +1033,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v214</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v215</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1342,7 +1342,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v214 · Earnings + Losers/Gainers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v215 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1890,7 +1890,7 @@ async function scanEarnings() {
           <td class="num">${intradayLow}</td>
           <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
           <td>${wlEsc(s.sector || '-')}</td>
-          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button> <button class="btn-ai-row" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a;font-weight:800" onclick='meQuickSetup("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="🎯 Quick Setup ready-to-execute (Opus 4.8)">🎯</button></td>
+          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-row" onclick='meShowNews("${s.symbol}")' title="📰 Catalyst — știri recente">📰</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button> <button class="btn-ai-row" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a;font-weight:800" onclick='meQuickSetup("earnings", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="🎯 Quick Setup ready-to-execute (Opus 4.8)">🎯</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -1957,7 +1957,7 @@ async function scanLosers() {
           <td class="num">${NasdaqScanner.formatMcap(s.marketCap)}</td>
           <td class="num"><span class="${earn.cls}">${earn.text}</span></td>
           <td>${wlEsc(s.sector || '-')}</td>
-          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button> <button class="btn-ai-row" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a;font-weight:800" onclick='meQuickSetup("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="🎯 Quick Setup ready-to-execute">🎯</button></td>
+          <td><button class="btn-row btn-row-wl" onclick='wlAddSymbol("${s.symbol}")' title="Adaugă în watchlist">👁️</button> <button class="btn-row" onclick='meShowNews("${s.symbol}")' title="📰 Catalyst — știri recente (de ce s-a mișcat)">📰</button> <button class="btn-ai-row" onclick='aiAnalyzeRow("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Analiză AI">🤖</button> <button class="btn-ai-row" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a;font-weight:800" onclick='meQuickSetup("loser", ${JSON.stringify(s).replace(/'/g, "&apos;")})' title="🎯 Quick Setup ready-to-execute">🎯</button></td>
         `;
         tbody.appendChild(tr);
       });
@@ -3366,6 +3366,39 @@ async function wlFinnhub(path, params){
 
 // Doar tickere US pure: 1-5 litere mari, fără puncte/sufixe (.L, .PA, ^GSPC etc.)
 function wlIsUSTicker(sym){ return /^[A-Z][A-Z0-9]{0,4}$/.test(sym); }
+
+// 📰 CATALYST — știri recente pentru un simbol (Finnhub company-news), popup on-demand.
+// Răspunde la „de ce s-a mișcat?" — earnings miss / dilution / downgrade / news.
+async function meShowNews(sym){
+  sym = NasdaqScanner.cleanSymbol(sym);
+  const ov = document.createElement('div');
+  ov.className = 'ai-modal-bg';
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  ov.innerHTML = `<div class="ai-modal" style="max-width:560px">
+    <div class="ai-modal-title">📰 Catalyst: ${wlEsc(sym)}</div>
+    <div class="ai-modal-sub">știri din ultimele 7 zile (Finnhub)</div>
+    <div class="ai-modal-result" id="meNewsArea" style="max-height:48vh;overflow:auto">⏳ Încarc...</div>
+    <div class="ai-modal-actions"><button onclick="this.closest('.ai-modal-bg').remove()">✕ Închide</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const area = ov.querySelector('#meNewsArea');
+  if (!wlGetFinnhubKey()) { area.innerHTML = '⚠ Lipsește cheia Finnhub (o configurezi din ⚙ insider). Fără ea nu pot aduce știri.'; return; }
+  if (!wlIsUSTicker(sym)) { area.innerHTML = 'ℹ Știrile Finnhub sunt disponibile doar pentru tickere US.'; return; }
+  const to = new Date(), from = new Date(to.getTime() - 7 * 86400000);
+  const d = await wlFinnhub('/company-news', { symbol: sym, from: from.toISOString().slice(0,10), to: to.toISOString().slice(0,10) });
+  if (d && d.__err) { area.innerHTML = '❌ Eroare Finnhub: ' + d.__err + (d.__err === 429 ? ' (rate limit — așteaptă un minut)' : ''); return; }
+  if (!Array.isArray(d) || !d.length) { area.innerHTML = 'Nicio știre în ultimele 7 zile (sau ticker fără acoperire).'; return; }
+  const items = d.slice().sort((a, b) => (b.datetime || 0) - (a.datetime || 0)).slice(0, 8);
+  area.innerHTML = items.map(n => {
+    const safeUrl = /^https?:\/\//i.test(n.url || '') ? n.url : '#'; // anti javascript: în href
+    const dt = n.datetime ? new Date(n.datetime * 1000).toLocaleString('ro-RO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+    return `<div style="padding:9px 0;border-bottom:1px solid var(--border-soft)">
+      <a href="${encodeURI(safeUrl)}" target="_blank" rel="noopener" style="color:#79c0ff;font-weight:600;text-decoration:none;font-size:12.5px;line-height:1.4">${wlEsc(n.headline || '(fără titlu)')}</a>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px">${wlEsc(n.source || '')}${dt ? ' · ' + dt : ''}</div>
+    </div>`;
+  }).join('');
+}
+window.meShowNews = meShowNews;
 
 // Titluri considerate „insider executiv" (signal mai puternic decât 10% owner)
 const EXEC_TITLES_RX = /\b(ceo|cfo|coo|president|director|officer|chairman|chief|vp|vice president)\b/i;
