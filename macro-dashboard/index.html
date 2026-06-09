@@ -713,6 +713,13 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .op-sec-body { padding:12px 14px; }
 .op-sec-reason { font-size:12.5px; color:var(--t2); font-family:var(--head); line-height:1.6; margin-bottom:10px; }
 .op-tickers { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.op-tk-wrap { display:inline-flex; align-items:center; gap:4px; }
+.op-chg { font-family:var(--mono); font-size:11px; font-weight:700; color:var(--t3); min-width:18px; }
+.op-chg.up { color:var(--bull-s); }
+.op-chg.down { color:var(--bear-s); }
+.op-chg.na { color:var(--t3); opacity:.5; font-size:10px; }
+.op-chg.confirm { background:var(--bull-bg); padding:1px 5px; border-radius:4px; }
+.op-chg.diverge { background:var(--warn-bg); color:var(--warn); padding:1px 5px; border-radius:4px; }
 .op-ticker { display:inline-flex; align-items:center; gap:5px; background:var(--panel3); border:1px solid var(--b2); padding:5px 10px; border-radius:6px; font-size:12px; font-weight:700; font-family:var(--mono); color:var(--t1); cursor:pointer; transition:all .15s var(--ease); }
 .op-ticker:hover { border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }
 .op-ticker.added { color:var(--bull-s); border-color:var(--bull-s); background:var(--bull-bg); cursor:default; }
@@ -776,7 +783,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v172</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v173</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -4626,9 +4633,11 @@ function renderSuggestionsPanel() {
     sectors.forEach((sec, si) => {
       const tickerHtml = sec.tickers.map(t => {
         const added = wl.has(t) || s.added.includes(t);
-        return added
+        const chip = added
           ? `<span class="op-ticker added">✓ ${escHtml(t)}</span>`
           : `<button class="op-ticker" data-key="${escHtml(k)}" data-ticker="${escHtml(t)}">+ ${escHtml(t)}</button>`;
+        // Placeholder Δ% azi — completat async de enrichOpportunityPrices (confluență cu teza)
+        return `<span class="op-tk-wrap">${chip}<span class="op-chg" data-sym="${escHtml(t)}" data-bias="${s.bias}" title="Δ% azi vs teza sectorului">·</span></span>`;
       }).join('');
       const newCount = sec.tickers.filter(t => !wl.has(t) && !s.added.includes(t)).length;
       cards.push(`<div class="op-sector ${biasClass}">
@@ -4668,6 +4677,46 @@ function renderSuggestionsPanel() {
     btn.addEventListener('click', () => handleDismissSuggestion(btn.dataset.key)));
   body.querySelectorAll('.op-ai-btn').forEach(btn =>
     btn.addEventListener('click', () => deepDiveSector(btn.dataset.key, +btn.dataset.sec, btn)));
+
+  enrichOpportunityPrices(); // confluență preț live (async, non-blocking)
+}
+
+// Completează Δ% azi pe fiecare ticker + marcaj confluență ✅/⚠ față de teza sectorului
+let _opEnrichSeq = 0;
+async function enrichOpportunityPrices() {
+  const seq = ++_opEnrichSeq; // dacă se re-randează între timp, abandonăm rezultatele vechi
+  const els = [...document.querySelectorAll('#opBody .op-chg[data-sym]')];
+  if (!els.length) return;
+  const syms = [...new Set(els.map(e => e.dataset.sym))];
+  for (const sym of syms) {
+    let q = null;
+    try { q = await fetchYahooQuote(sym); } catch (e) { q = null; }
+    if (seq !== _opEnrichSeq) return; // render nou între timp → stop
+    els.filter(e => e.dataset.sym === sym).forEach(el => applyChgBadge(el, q));
+    await sleep(120); // throttle proxy CORS
+  }
+}
+
+function applyChgBadge(el, q) {
+  if (!q || q.chgPct == null || isNaN(q.chgPct)) { el.textContent = 'n/a'; el.classList.add('na'); return; }
+  const chg = q.chgPct;
+  const bias = el.dataset.bias; // teza generală a evenimentului (bullish/bearish risk)
+  const sign = chg >= 0 ? '+' : '';
+  el.classList.remove('na');
+  el.classList.toggle('up', chg > 0);
+  el.classList.toggle('down', chg < 0);
+  // Confluență: mișcarea de azi confirmă teza sau diverge? Prag ±0.3% ca să tăiem zgomotul.
+  let mark = '';
+  if (Math.abs(chg) >= 0.3) {
+    const aligned = (bias === 'bullish' && chg > 0) || (bias === 'bearish' && chg < 0);
+    mark = aligned ? ' ✅' : ' ⚠';
+    el.classList.toggle('confirm', aligned);
+    el.classList.toggle('diverge', !aligned);
+    el.title = aligned ? 'Prețul confirmă teza sectorului azi' : 'Divergență: prețul se mișcă invers tezei azi';
+  } else {
+    el.title = 'Mișcare mică azi (±0.3%) — neconcludent';
+  }
+  el.textContent = `${sign}${chg.toFixed(2)}%${mark}`;
 }
 
 // Adaugă toate tickerele noi dintr-un sector la watchlist
