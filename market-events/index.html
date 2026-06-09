@@ -1029,7 +1029,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v209</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v210</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1334,7 +1334,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v209 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v210 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1494,7 +1494,7 @@ class NasdaqScanner {
         const mcap = this._parseNasdaqMcap(row.marketCap);
         const ts = Math.floor(dates[i].dateObj.getTime() / 1000);
         allEarnings.push({
-          symbol: row.symbol,
+          symbol: NasdaqScanner.cleanSymbol(row.symbol),
           name: row.name || row.companyName || row.symbol,
           marketCap: mcap,
           earningsDate: dates[i].dateObj,
@@ -1625,7 +1625,7 @@ class NasdaqScanner {
       // Note: chart endpoint NU returnează sector/marketCap/avgVolume3M (rămân din Nasdaq earnings),
       // dar meta ARE shortName/longName — îl expunem ca să nu se piardă numele la refresh.
       return {
-        symbol: meta.symbol || symbol,
+        symbol: NasdaqScanner.cleanSymbol(meta.symbol || symbol),
         name: meta.shortName || meta.longName || null,
         regularMarketPrice: price,
         regularMarketChange: change,
@@ -1681,7 +1681,7 @@ class NasdaqScanner {
       daysToEarnings = Math.round((earningsTs * 1000 - Date.now()) / (1000 * 60 * 60 * 24));
     }
     return {
-      symbol: q.symbol,
+      symbol: NasdaqScanner.cleanSymbol(q.symbol),
       name: q.shortName || q.longName || q.symbol,
       price: get(q, 'regularMarketPrice'),
       change: get(q, 'regularMarketChange'),
@@ -1723,6 +1723,13 @@ class NasdaqScanner {
   // ============================================================
   // Helpers static pentru afișaj
   // ============================================================
+  // Sanitizare ticker la sursă (defense-in-depth): un symbol din feed cu caractere
+  // ne-tickere (< " ' etc.) ar putea sparge atributele onclick / HTML din rânduri.
+  // Whitelist identic cu wlAddSymbol: litere, cifre, . - = ^ (suport EU/indici/futures).
+  static cleanSymbol(s) {
+    return String(s || '').trim().toUpperCase().replace(/[^A-Z0-9.\-=^]/g, '');
+  }
+
   static formatVolume(v) {
     if (!v) return '-';
     if (v >= 1e9) return (v/1e9).toFixed(2) + 'B';
