@@ -728,6 +728,8 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .op-chg.na { color:var(--t3); opacity:.5; font-size:10px; }
 .op-chg.confirm { background:var(--bull-bg); padding:1px 5px; border-radius:4px; }
 .op-chg.diverge { background:var(--warn-bg); color:var(--warn); padding:1px 5px; border-radius:4px; }
+.op-stl { text-decoration:none; font-size:12px; opacity:.55; transition:opacity .15s var(--ease), transform .15s var(--ease); cursor:pointer; }
+.op-stl:hover { opacity:1; transform:translateY(-1px); }
 .op-ticker { display:inline-flex; align-items:center; gap:5px; background:var(--panel3); border:1px solid var(--b2); padding:5px 10px; border-radius:6px; font-size:12px; font-weight:700; font-family:var(--mono); color:var(--t1); cursor:pointer; transition:all .15s var(--ease); }
 .op-ticker:hover { border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }
 .op-ticker.added { color:var(--bull-s); border-color:var(--bull-s); background:var(--bull-bg); cursor:default; }
@@ -791,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v174</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v175</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -4645,7 +4647,10 @@ function renderSuggestionsPanel() {
           ? `<span class="op-ticker added">✓ ${escHtml(t)}</span>`
           : `<button class="op-ticker" data-key="${escHtml(k)}" data-ticker="${escHtml(t)}">+ ${escHtml(t)}</button>`;
         // Placeholder Δ% azi — completat async de enrichOpportunityPrices (confluență cu teza)
-        return `<span class="op-tk-wrap">${chip}<span class="op-chg" data-sym="${escHtml(t)}" data-bias="${s.bias}" title="Δ% azi vs teza sectorului">·</span></span>`;
+        const chg = `<span class="op-chg" data-sym="${escHtml(t)}" data-bias="${s.bias}" title="Δ% azi vs teza sectorului">·</span>`;
+        // Hook → Smart Trade Long (doar stocks/ETF, nu crypto -USD)
+        const stl = /-USD$/.test(t) ? '' : `<a class="op-stl" href="../smart-trade-long/?symbol=${encodeURIComponent(t)}" target="_blank" rel="noopener" title="Analizează ${escHtml(t)} în Smart Trade Long (scoring + niveluri + sizer)">📊</a>`;
+        return `<span class="op-tk-wrap">${chip}${chg}${stl}</span>`;
       }).join('');
       const newCount = sec.tickers.filter(t => !wl.has(t) && !s.added.includes(t)).length;
       cards.push(`<div class="op-sector ${biasClass}">

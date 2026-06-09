@@ -1053,8 +1053,11 @@ autoScan.addEventListener('change', () => {
   const savedRisk = localStorage.getItem(LS_RISK); if (savedRisk) riskPctEl.value = savedRisk;
   const savedAuto = localStorage.getItem(LS_AUTO) === '1';
   autoScan.checked = savedAuto; if (savedAuto) startAuto();
+  // Symbol din query (?symbol=XXX) are prioritate — hook din Macro Dashboard → scanează direct
+  const urlSym = (new URLSearchParams(location.search).get('symbol') || '').toUpperCase().trim();
   const savedSym = localStorage.getItem(LS_LAST);
-  if (savedSym) { symInput.value = savedSym; }
+  if (urlSym) { symInput.value = urlSym; setTimeout(() => scan(urlSym), 200); }
+  else if (savedSym) { symInput.value = savedSym; }
   renderWL();
   // Re-render WL când se schimbă în alt tab
   window.addEventListener('storage', e => {
