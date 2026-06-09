@@ -628,6 +628,13 @@
 }
 .rvol-badge.rvol-mid{background:rgba(255,210,80,.18);color:#f0d050;border:1px solid rgba(255,210,80,.45)}
 .rvol-badge.rvol-hi{background:rgba(248,81,73,.18);color:#ff7b72;border:1px solid rgba(248,81,73,.5)}
+/* Badge 🌅 premarket / 🌙 after-hours — mișcarea în sesiunea extinsă vs close regular */
+.pm-badge{
+  display:inline-flex;align-items:center;gap:1px;font-size:9.5px;font-weight:800;
+  padding:0 4px;border-radius:7px;line-height:1.5;margin-left:5px;letter-spacing:.2px;
+}
+.pm-badge.pos{background:rgba(46,160,67,.18);color:#3fb950;border:1px solid rgba(46,160,67,.5)}
+.pm-badge.neg{background:rgba(248,81,73,.18);color:#ff7b72;border:1px solid rgba(248,81,73,.5)}
 .eb-spark-row{
   grid-column:1 / -1;display:flex;align-items:center;justify-content:flex-end;
   padding:1px 2px 2px;margin-top:1px;
@@ -1022,7 +1029,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v206</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v207</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1327,7 +1334,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v206 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v207 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1563,10 +1570,12 @@ class NasdaqScanner {
   // Fetch detalii pentru un simbol via Yahoo quoteSummary
   // ============================================================
   async _fetchSymbolDetail(symbol) {
-    // v8 chart endpoint — fără crumb, returnează preț + low/high zilnic + volum în .meta
-    // range=1d → meta.chartPreviousClose e close-ul de IERI (corect pentru Δ Zi).
-    // Cu range mai mare, chartPreviousClose ar fi close-ul de dinaintea ferestrei → variație greșită.
-    const yahooUrl = `${this.yahooChart}/${symbol}?interval=1d&range=1d`;
+    // v8 chart endpoint — fără crumb. interval=5m + includePrePost=true ne dă și barele din
+    // sesiunea extinsă (pre 4:00-9:30 / post 16:00-20:00 ET), ca să reflectăm mișcarea de PREMARKET,
+    // nu doar close-ul regular de ieri (motivul pentru care pagina părea „oarbă" dimineața).
+    //   • meta.regularMarketPrice  = close-ul ULTIMEI sesiuni regular complete (referința pt Δ premarket)
+    //   • meta.chartPreviousClose  = close-ul de DINAINTE (referința pt Δ zi regular)
+    const yahooUrl = `${this.yahooChart}/${symbol}?interval=5m&range=1d&includePrePost=true`;
     try {
       const data = await this._getJson(yahooUrl);
       const result = data?.chart?.result?.[0];
@@ -1574,15 +1583,47 @@ class NasdaqScanner {
 
       const meta = result.meta || {};
       const price = meta.regularMarketPrice ?? null;
-      const prevClose = meta.previousClose ?? meta.chartPreviousClose ?? null;
+      // Δ zi regular: vs close-ul de dinaintea ultimei sesiuni (consecvent cu fetchMarketSentiment)
+      const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? null;
       const change = (price != null && prevClose != null) ? (price - prevClose) : null;
       const changePct = (price != null && prevClose != null && prevClose !== 0)
         ? ((price - prevClose) / prevClose) * 100 : null;
 
-      // Note: chart endpoint NU returnează shortName/sector/marketCap/avgVolume3M.
-      // Cele lipsa rămân pe valorile venite din Nasdaq earnings calendar (sector, marketCap).
+      // === Sesiune extinsă (pre/post) din seria 5m a perioadei curente de tranzacționare ===
+      // Doar dacă ultima bară chiar cade în fereastra pre/post de AZI (nu o sesiune veche de weekend).
+      const cp = meta.currentTradingPeriod || {};
+      const preStart = cp.pre?.start ?? null, regStart = cp.regular?.start ?? null;
+      const regEnd = cp.regular?.end ?? null, postEnd = cp.post?.end ?? null;
+      const ts = result.timestamp || [];
+      const closes = result.indicators?.quote?.[0]?.close || [];
+      const vols   = result.indicators?.quote?.[0]?.volume || [];
+      let extSession = null, extPrice = null, extChange = null, extChangePct = null, extVolume = 0;
+      let lastIdx = -1;
+      for (let i = ts.length - 1; i >= 0; i--) { if (closes[i] != null && !isNaN(closes[i])) { lastIdx = i; break; } }
+      if (lastIdx >= 0 && regStart != null) {
+        const lt = ts[lastIdx];
+        const inPre  = preStart != null && lt >= preStart && lt < regStart;
+        const inPost = regEnd != null && lt >= regEnd && (postEnd == null || lt <= postEnd);
+        if (inPre || inPost) {
+          extSession = inPre ? 'PRE' : 'POST';
+          extPrice = +closes[lastIdx];
+          // Δ premarket/postmarket = vs close-ul regular complet (regularMarketPrice), NU vs prevClose
+          if (price != null && price !== 0) {
+            extChange = extPrice - price;
+            extChangePct = ((extPrice - price) / price) * 100;
+          }
+          const lo = inPre ? preStart : regEnd, hi = inPre ? regStart : (postEnd ?? Infinity);
+          for (let i = 0; i < ts.length; i++) {
+            if (ts[i] >= lo && ts[i] < hi && vols[i] != null && !isNaN(vols[i])) extVolume += +vols[i];
+          }
+        }
+      }
+
+      // Note: chart endpoint NU returnează sector/marketCap/avgVolume3M (rămân din Nasdaq earnings),
+      // dar meta ARE shortName/longName — îl expunem ca să nu se piardă numele la refresh.
       return {
         symbol: meta.symbol || symbol,
+        name: meta.shortName || meta.longName || null,
         regularMarketPrice: price,
         regularMarketChange: change,
         regularMarketChangePercent: changePct,
@@ -1590,7 +1631,10 @@ class NasdaqScanner {
         regularMarketDayHigh: meta.regularMarketDayHigh ?? null,
         regularMarketDayLow: meta.regularMarketDayLow ?? null,
         regularMarketPreviousClose: prevClose,
-        fullExchangeName: meta.exchangeName || meta.fullExchangeName
+        fullExchangeName: meta.exchangeName || meta.fullExchangeName,
+        // Sesiune extinsă (null când piața e în regular/închisă fără pre/post)
+        extSession, extPrice, extChange, extChangePct,
+        extVolume: extVolume || null
       };
     } catch (e) {
       return null;
@@ -1665,7 +1709,11 @@ class NasdaqScanner {
     }
     if (f.minMarketCap && (s.marketCap || 0) < f.minMarketCap) return false;
     if (f.minVolume && (s.volume || 0) < f.minVolume) return false;
-    if (f.volumeMultiplier && s.avgVolume > 0 && s.volume / s.avgVolume < f.volumeMultiplier) return false;
+    if (f.volumeMultiplier) {
+      // Fără avgVolume nu putem confirma pragul → excludem (înainte trecea tăcut filtrul).
+      if (!s.avgVolume || s.avgVolume <= 0) return false;
+      if (s.volume / s.avgVolume < f.volumeMultiplier) return false;
+    }
     return true;
   }
 
@@ -2259,6 +2307,7 @@ async function wlFetchSymbol(sym){
   if (!det) return null;
   return {
     symbol: sym,
+    name: det.name || undefined,
     price: det.regularMarketPrice,
     change: det.regularMarketChange,
     changePct: det.regularMarketChangePercent,
@@ -2267,6 +2316,12 @@ async function wlFetchSymbol(sym){
     low: det.regularMarketDayLow,
     volume: det.regularMarketVolume,
     exchange: det.fullExchangeName,
+    // Sesiune extinsă (premarket / after-hours) — null când nu e activă
+    extSession: det.extSession,
+    extPrice: det.extPrice,
+    extChange: det.extChange,
+    extChangePct: det.extChangePct,
+    extVolume: det.extVolume,
     fetchedAt: Date.now()
   };
 }
@@ -2392,7 +2447,13 @@ async function wlRefresh(){
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Refresh...'; }
   // Fetch cu pool de concurență (max 5) ca să nu fim throttle-uiți la watchlist mare
   const results = await runPool(watchlist, w => wlFetchSymbol(w.symbol), 5);
-  watchlist = watchlist.map((w, i) => results[i] || w);
+  // Merge (nu replace): wlFetchSymbol nu întoarce mereu name → altfel se pierdea numele companiei
+  // după primul refresh, sărăcind analizele AI. Păstrăm name-ul vechi dacă fetch-ul nu-l aduce.
+  watchlist = watchlist.map((w, i) => {
+    const r = results[i];
+    if (!r) return w;
+    return { ...w, ...r, name: r.name || w.name };
+  });
   wlSave(); wlRender();
   // re-calculează și datele early-bird (altfel rămân din cache vechi de până la 10 min)
   wlEnsureEarlyData(true).then(wlRender);
@@ -3076,7 +3137,10 @@ function computeEarlyBird(hist, antiExtPct){
   }
 
   // Semnale de calitate (scor, nu obligatorii)
-  const avgVol20 = v.slice(Math.max(0, n - 20)).reduce((a, b) => a + b, 0) / Math.min(20, n);
+  // RVOL corect = volum azi vs media zilelor ANTERIOARE. Excludem ziua curentă (v[last]) din medie,
+  // altfel o zi cu volum extrem se auto-include în numitor și RVOL iese sistematic subestimat.
+  const volWin = v.slice(Math.max(0, n - 21), n - 1); // 20 zile dinainte de azi
+  const avgVol20 = volWin.length ? volWin.reduce((a, b) => a + b, 0) / volWin.length : 0;
   let volConfirm = false; // volum pe o zi verde recentă > media 20z
   for (let i = last; i >= Math.max(1, last - 2); i--){
     if (c[i] > c[i-1] && avgVol20 > 0 && v[i] > avgVol20 * 1.1) { volConfirm = true; break; }
@@ -3672,6 +3736,15 @@ function _wlRowHtml(w){
     if (rvol >= 5) rvolBadge = `<span class="rvol-badge rvol-hi" title="RVOL = ${rvol.toFixed(1)}× media 20z — volum extrem azi. Confirmă mișcarea (breakouts/news catalysts).">🔊${rvol.toFixed(1)}×</span>`;
     else if (rvol >= 2) rvolBadge = `<span class="rvol-badge rvol-mid" title="RVOL = ${rvol.toFixed(1)}× media 20z — volum peste normal, mișcarea pare reală nu zgomot.">🔊${rvol.toFixed(1)}×</span>`;
   }
+  // 🌅 PREMARKET / 🌙 AFTER-HOURS — mișcarea în sesiunea extinsă vs close-ul regular complet.
+  let pmBadge = '';
+  if (w.extSession && w.extChangePct != null){
+    const up = w.extChangePct >= 0;
+    const ic = w.extSession === 'PRE' ? '🌅' : '🌙';
+    const lbl = w.extSession === 'PRE' ? 'Premarket' : 'After-hours';
+    const volTxt = w.extVolume ? ` · vol ${NasdaqScanner.formatVolume(w.extVolume)}` : '';
+    pmBadge = `<span class="pm-badge ${up ? 'pos' : 'neg'}" title="${lbl}: $${(w.extPrice||0).toFixed(2)} (${up?'+':''}${w.extChangePct.toFixed(2)}% vs close-ul regular)${volTxt}">${ic}${up?'+':''}${w.extChangePct.toFixed(2)}%</span>`;
+  }
   const exJs = String(w.exchange || '').replace(/'/g, "");
   // Grid cell layout: chk · SYM · price · %change · [TV][AI][🎯][📊][✕] · (sparkline row dacă early)
   const isOpen = wlDetailOpen === w.symbol;
@@ -3681,7 +3754,7 @@ function _wlRowHtml(w){
   // interiorul celulei de ~10% și deborează peste casuța vecină.
   const cellHtml = `<div class="wl-cell wl-tr${trCls}" data-sym="${w.symbol}" onclick="wlCellClick(event,'${w.symbol}')">
     <input type="checkbox" class="wl-chk" ${checked} onchange="wlToggleSelect('${w.symbol}')" title="Selectează">
-    <span class="sym" onclick="event.stopPropagation();wlToggleDetail('${w.symbol}')" title="Click pe simbol → drill-down detaliat">${w.symbol}${ebBadge}${wiltBadge}${earnBadge}${insBadge}${rsiBadge}${rvolBadge}</span>
+    <span class="sym" onclick="event.stopPropagation();wlToggleDetail('${w.symbol}')" title="Click pe simbol → drill-down detaliat">${w.symbol}${pmBadge}${ebBadge}${wiltBadge}${earnBadge}${insBadge}${rsiBadge}${rvolBadge}</span>
     <span class="num">${priceStr}</span>
     <span class="num ${pctCls}">${pctStr}</span>
     <span class="wl-actions">
@@ -4193,13 +4266,16 @@ async function runAll() {
 }
 
 $('scanEarnBtn').addEventListener('click', scanEarnings);
-$('scanLoserBtn').addEventListener('click', scanLosers);
+// Late-binding: scanLosers e re-wrapped mai jos (heatmaps) — referința directă ar fi capturat
+// varianta veche, fără heatmap. Arrow-ul apelează versiunea curentă la fiecare click.
+$('scanLoserBtn').addEventListener('click', () => scanLosers());
 
 // În PWA standalone, ascunde butonul "← Hub" (fallback JS robust peste CSS)
 if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
   document.querySelectorAll('a[href="../"]').forEach(el => { el.style.display = 'none'; });
 }
-$('refreshAllBtn').addEventListener('click', runAll);
+// Late-binding: runAll e re-wrapped mai jos (evaluare alerte) — vezi nota de la scanLosers.
+$('refreshAllBtn').addEventListener('click', () => runAll());
 
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(runAll, 200);
@@ -4768,6 +4844,9 @@ function meAlertsEvaluate(){
   if (typeof lastLosers   !== 'undefined' && lastLosers)   lastLosers.forEach(s => allSyms.add(s.symbol));
   if (typeof watchlist    !== 'undefined' && watchlist)    watchlist.forEach(s => allSyms.add(s.symbol));
 
+  // Dedup EDGE-TRIGGERED: alerta sună o singură dată când condiția devine adevărată și se
+  // re-armează abia când redevine falsă. (Înainte set-ul se golea global la fiecare ciclu/refresh
+  // → o condiție persistentă re-suna la fiecare refresh = spam.)
   const triggered = [];
   for (const a of meAlerts) {
     if (!a.enabled) continue;
@@ -4776,15 +4855,16 @@ function meAlertsEvaluate(){
       const v = meAlertsExtractValue(sym, a.metric);
       if (v == null || isNaN(v)) continue;
       const hits = a.op === '>' ? v >= a.value : v <= a.value;
+      const dedup = `${a.id}:${sym}`;
       if (hits) {
-        const dedup = `${a.id}:${sym}`;
-        if (meAlertsTriggeredCycle.has(dedup)) continue;
+        if (meAlertsTriggeredCycle.has(dedup)) continue; // deja semnalată, încă adevărată → tăcere
         meAlertsTriggeredCycle.add(dedup);
         triggered.push({ alert: a, symbol: sym, value: v });
+      } else {
+        meAlertsTriggeredCycle.delete(dedup); // condiția a redevenit falsă → re-armează
       }
     }
   }
-  if (triggered.length === 0) meAlertsTriggeredCycle.clear();
 
   const labels = { changePct: 'chg', intradayLowPct: 'low azi', volRatio: 'vol/avg', daysToEarnings: 'zile-earn' };
   for (const t of triggered) {
@@ -4800,7 +4880,8 @@ function meAlertsEvaluate(){
 const _origRunAll = runAll;
 runAll = async function(){
   await _origRunAll();
-  meAlertsTriggeredCycle.clear();
+  // NU golim meAlertsTriggeredCycle aici: dedup-ul e acum edge-triggered (se re-armează singur
+  // când condiția redevine falsă). Golirea la fiecare refresh re-declanșa alertele persistente.
   setTimeout(meAlertsEvaluate, 200);
 };
 
