@@ -1029,7 +1029,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v207</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v208</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1334,7 +1334,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v207 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v208 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1394,7 +1394,10 @@ class NasdaqScanner {
 
   // Fetch JSON cu fallback automat de proxy: încearcă proxy-ul din topbar,
   // apoi lista de rezervă, apoi direct. Primul care întoarce JSON valid câștigă.
-  async _getJson(rawUrl) {
+  async _getJson(rawUrl, ttl = 0) {
+    // ttl (sec) = cât timp poate fi reutilizat răspunsul din cache localStorage (vezi lib/data.js).
+    // 0 = fără cache. Pe categorii: cotații intraday ~12s, istoric daily ~600s, calendar ~300s.
+    // Reduce drastic request-urile redundante la reload/polling (proxy-urile publice se throttle-uiesc ușor).
     // 1) proxy-ul user din topbar are prioritate (dacă e setat)
     if (this.corsProxy) {
       try {
@@ -1402,8 +1405,8 @@ class NasdaqScanner {
         if (r.ok) { const j = await r.json(); if (j) return j; }
       } catch (e) { /* cade pe stratul comun */ }
     }
-    // 2) strat de date comun (lib/data.js): proxy cu health per-host + dedup, ttl:0 = fără date stale
-    if (window.D && D.fetchJSON) return D.fetchJSON(rawUrl, { ttl: 0 });
+    // 2) strat de date comun (lib/data.js): proxy cu health per-host + dedup + cache TTL
+    if (window.D && D.fetchJSON) return D.fetchJSON(rawUrl, { ttl });
     // 3) fallback dacă data.js nu e încărcat (comportamentul vechi)
     const cands = [];
     for (const f of PROXY_FALLBACKS) cands.push(f(rawUrl));
@@ -1440,7 +1443,7 @@ class NasdaqScanner {
     } = options;
 
     const yahooUrl = `${this.yahooScreener}?formatted=true&lang=en-US&region=US&scrIds=day_losers&count=${maxResults}`;
-    const data = await this._getJson(yahooUrl);
+    const data = await this._getJson(yahooUrl, 30); // lista de losers — cache 30s (re-scanări rapide)
     if (!data) throw new Error('Proxy/Yahoo indisponibil (toate proxy-urile au eșuat)');
 
     const quotes = data?.finance?.result?.[0]?.quotes || [];
@@ -1557,7 +1560,7 @@ class NasdaqScanner {
 
   async _fetchNasdaqEarningsForDay(dateStr) {
     const url = `${this.nasdaqEarnings}?date=${dateStr}`;
-    const data = await this._getJson(url);
+    const data = await this._getJson(url, 300); // calendarul earnings nu se mișcă intraday — cache 5 min
     return (data && data.data && data.data.rows) || [];
   }
 
@@ -1577,7 +1580,7 @@ class NasdaqScanner {
     //   • meta.chartPreviousClose  = close-ul de DINAINTE (referința pt Δ zi regular)
     const yahooUrl = `${this.yahooChart}/${symbol}?interval=5m&range=1d&includePrePost=true`;
     try {
-      const data = await this._getJson(yahooUrl);
+      const data = await this._getJson(yahooUrl, 12); // cotație intraday — cache 12s (< polling 15s, dedup la load)
       const result = data?.chart?.result?.[0];
       if (!result) return null;
 
@@ -1647,7 +1650,7 @@ class NasdaqScanner {
   async _fetchDailyHistory(symbol, range = '3mo') {
     const yahooUrl = `${this.yahooChart}/${symbol}?interval=1d&range=${range}`;
     try {
-      const data = await this._getJson(yahooUrl);
+      const data = await this._getJson(yahooUrl, 600); // istoric daily — nu se mișcă intraday, cache 10 min
       const result = data?.chart?.result?.[0];
       const q = result?.indicators?.quote?.[0];
       if (!result || !q) return null;
@@ -2441,23 +2444,32 @@ function wlSendAllToScanners(){
   showToastMsg(added ? ('📊 ' + added + ' simbol(uri) → Monitor + Smart Trade') : 'Toate erau deja în Monitor / Smart Trade');
 }
 
+let wlRefreshing = false; // guard: împiedică suprapunerea cicluri de refresh (polling 15s + 60s)
 async function wlRefresh(){
   if (!watchlist.length) return;
+  if (wlRefreshing) return; // un refresh anterior încă rulează (proxy lent + watchlist mare) → nu acumula
+  wlRefreshing = true;
   const btn = document.querySelector('.wl-refresh-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Refresh...'; }
-  // Fetch cu pool de concurență (max 5) ca să nu fim throttle-uiți la watchlist mare
-  const results = await runPool(watchlist, w => wlFetchSymbol(w.symbol), 5);
-  // Merge (nu replace): wlFetchSymbol nu întoarce mereu name → altfel se pierdea numele companiei
-  // după primul refresh, sărăcind analizele AI. Păstrăm name-ul vechi dacă fetch-ul nu-l aduce.
-  watchlist = watchlist.map((w, i) => {
-    const r = results[i];
-    if (!r) return w;
-    return { ...w, ...r, name: r.name || w.name };
-  });
-  wlSave(); wlRender();
-  // re-calculează și datele early-bird (altfel rămân din cache vechi de până la 10 min)
-  wlEnsureEarlyData(true).then(wlRender);
-  if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh'; }
+  try {
+    // Fetch cu pool de concurență (max 5) ca să nu fim throttle-uiți la watchlist mare
+    const results = await runPool(watchlist, w => wlFetchSymbol(w.symbol), 5);
+    // Merge (nu replace): wlFetchSymbol nu întoarce mereu name → altfel se pierdea numele companiei
+    // după primul refresh, sărăcind analizele AI. Păstrăm name-ul vechi dacă fetch-ul nu-l aduce.
+    watchlist = watchlist.map((w, i) => {
+      const r = results[i];
+      if (!r) return w;
+      return { ...w, ...r, name: r.name || w.name };
+    });
+    wlSave(); wlRender();
+    // Early-bird e pe timeframe DAILY — nu se mișcă intraday. Folosim force=false (re-fetch doar
+    // simbolurile noi/stale >10min); refresh-ul complet îl face intervalul dedicat de 10 min.
+    // Înainte: force=true la fiecare 15s re-aducea istoric 3mo × tot watchlist-ul = retry storm.
+    wlEnsureEarlyData(false).then(wlRender);
+  } finally {
+    wlRefreshing = false;
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh'; }
+  }
 }
 
 // State pentru filter/sort/group (persistent)
@@ -3976,7 +3988,9 @@ _buildAiPrompt = function(type, s) {
 wlRender();
 wlUpdateCompareBar(); // creează DOM-ul barei (ascuns până la 1+ selectate)
 if (watchlist.length) wlRefresh(); // refresh imediat la load
-setInterval(() => { if (!document.hidden && watchlist.length) wlRefresh(); }, 60000);
+// Refresh „lent" 60s — DOAR când NU suntem în live-mode (REGULAR). În sesiune REGULAR preia
+// intervalul de 15s din applyLiveMode; altfel ar rula ambele în paralel pe aceleași simboluri.
+setInterval(() => { if (!document.hidden && watchlist.length && currentSession !== 'REGULAR') wlRefresh(); }, 60000);
 // Early-bird: calculează în fundal la load (badge-urile 🌱 apar și în vederea „Toate"),
 // apoi reîmprospătează la 10 min — semnalele daily nu se mișcă intraday.
 if (watchlist.length) wlEnsureEarlyData().then(wlRender);
@@ -4182,7 +4196,7 @@ async function fetchMarketSentiment() {
   const symbols = ['SPY', 'QQQ', '^VIX'];
   const requests = symbols.map(sym => {
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1d&interval=1d`;
-    return scanner._getJson(yahooUrl).then(j => j || Promise.reject(new Error(`fără date ${sym}`)));
+    return scanner._getJson(yahooUrl, 30).then(j => j || Promise.reject(new Error(`fără date ${sym}`))); // sentiment — cache 30s
   });
 
   const results = await Promise.allSettled(requests);
