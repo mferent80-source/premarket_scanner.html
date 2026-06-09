@@ -365,7 +365,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v115</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v116</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -513,6 +513,7 @@ window.showWlFeatures = function(){
       { e: '🔊', t: '<b>Sunet</b> (beep Web Audio) la STRONG BUY nou — toggle 🔊 în header' },
       { e: '📡', t: '<b>Alerte Telegram</b> la semnal nou — config bot token + chat id (buton 📡), buton test inclus' },
       { e: '🎚', t: '<b>Prag de alertă configurabil</b> (în modalul 📡) — guvernează sunet+Telegram+notif: 🚀 doar STRONG BUY nou / 📈 BUY sau mai bun / ⬆️ orice upgrade de tier (până la BUY+)' },
+      { e: '📊', t: '<b>Alertă mișcare preț</b> (Telegram) — pas incremental: la fiecare ±X% (reglabil, default 1%) față de ultimul preț alertat, pe orice stock din listă. Grupat per scan; independent de verdict' },
       { e: '⚙', t: '<b>Sortabil</b> pe orice coloană' },
     ]},
     { title: '✨ Liveliness', cls: 'tool', items: [
@@ -532,7 +533,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v115 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v116 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -554,6 +555,7 @@ const SOUND_KEY = 'wl_sound';            // F7
 const TG_KEY = 'tt_tg_config';           // F7 — { token, chatId, enabled }
 const PERF_KEY = 'wl_perf';              // F9 — { SYMBOL: { entryPrice, entryTs, entryVerdict } }
 const ALERT_LEVEL_KEY = 'wl_alert_level'; // F5-extra — pragul pt sunet/Telegram/notif
+const MOVE_ALERT_KEY = 'wl_move_alert';   // F6-extra — { enabled, pct } alertă mișcare preț
 const SCANNER_LAST_KEY = 'nasdaq_last_scan'; // F8 — scris de nasdaq-scanner
 const RESULTS_CACHE_KEY = 'wl_results_cache'; // F4-extra — { ts, results } ultimul scan, pt afișare instant la reload
 const POPULAR_TICKERS = ['AAPL','MSFT','NVDA','TSLA','AMZN','GOOGL','META','AMD','NFLX','PLTR','AVGO','COIN'];
@@ -567,6 +569,9 @@ let soundEnabled = false;                // F7
 let tgConfig = { token: '', chatId: '', enabled: false }; // F7
 let perfMap = {};                        // F9
 let alertLevel = 'strong-buy';           // F5-extra — 'strong-buy' | 'buy' | 'upgrade'
+let moveAlert = { enabled: false, pct: 1 }; // F6-extra — alertă Telegram la fiecare ±pct% mișcare
+let moveRefMap = {};                     // { SYMBOL: ultimul preț alertat } (in-memory, re-ancorat per sesiune)
+let _moveArmed = false;                  // primul scan cu alerta activă doar ancorează (fără blast)
 let sortKey = 'score', sortAsc = false;
 let openDetail = null; // simbolul cu rândul de detalii expandat (F4)
 let filterVerdict = 'all', filterText = '', filterMovers = false; // F5
@@ -712,14 +717,14 @@ async function sendTelegram(text){  // → lib/telegram.js (TG.*); config în me
 function updateAlertButtons(){
   const sb = $('soundBtn'), tb = $('tgBtn');
   if (sb) sb.style.opacity = soundEnabled ? '1' : '.4';
-  if (tb) tb.style.opacity = (tgConfig.enabled && tgConfig.token && tgConfig.chatId) ? '1' : '.4';
+  if (tb) tb.style.opacity = ((tgConfig.enabled || moveAlert.enabled) && tgConfig.token && tgConfig.chatId) ? '1' : '.4';
 }
 window.showTgConfig = function(){
   document.getElementById('tgOverlay')?.remove();
   const ov = document.createElement('div'); ov.id = 'tgOverlay'; ov.className = 'fl-overlay';
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   ov.innerHTML = `<div class="fl-modal" style="max-width:440px">
-    <div class="fl-head"><div><h3>📡 Alerte Telegram</h3><div class="sub">Mesaj pe Telegram la fiecare STRONG BUY nou</div></div><button class="fl-close" type="button" data-close>×</button></div>
+    <div class="fl-head"><div><h3>📡 Alerte Telegram</h3><div class="sub">Semnale de verdict + mișcări de preț, pe Telegram</div></div><button class="fl-close" type="button" data-close>×</button></div>
     <div style="font-size:11px;color:var(--t3);line-height:1.55;margin-bottom:12px;font-family:var(--mono)">1. Creează un bot cu <b style="color:var(--t2)">@BotFather</b> → primești <i>token</i>.<br>2. Scrie-i botului orice mesaj, apoi deschide <span style="color:var(--accent);word-break:break-all">api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> → în răspuns vezi <i>chat.id</i>.</div>
     <div class="tg-field"><label>Bot token</label><input type="text" id="tgToken" placeholder="123456789:ABC-DEF1234..." value="${(tgConfig.token || '').replace(/"/g, '&quot;')}"></div>
     <div class="tg-field"><label>Chat ID</label><input type="text" id="tgChatId" placeholder="123456789" value="${(tgConfig.chatId || '').replace(/"/g, '&quot;')}"></div>
@@ -730,7 +735,15 @@ window.showTgConfig = function(){
         <option value="upgrade" ${alertLevel === 'upgrade' ? 'selected' : ''}>⬆️ Orice upgrade de tier (până la BUY+)</option>
       </select>
     </div>
-    <label class="fb-toggle" style="margin-bottom:13px"><input type="checkbox" id="tgEnabled" ${tgConfig.enabled ? 'checked' : ''}> activează alertele Telegram</label>
+    <div class="tg-field"><label>Alertă mișcare preț (pas incremental)</label>
+      <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
+        <label class="fb-toggle" style="margin:0"><input type="checkbox" id="tgMoveEnabled" ${moveAlert.enabled ? 'checked' : ''}> activează</label>
+        <span style="font-size:11px;color:var(--t3)">la fiecare ±</span>
+        <input type="number" id="tgMovePct" min="0.2" max="20" step="0.1" value="${moveAlert.pct}" style="width:64px">
+        <span style="font-size:11px;color:var(--t3)">% față de ultimul preț alertat → Telegram</span>
+      </div>
+    </div>
+    <label class="fb-toggle" style="margin-bottom:13px"><input type="checkbox" id="tgEnabled" ${tgConfig.enabled ? 'checked' : ''}> activează alertele Telegram (verdict)</label>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="primary" id="tgSave">💾 Salvează</button><button type="button" id="tgTest">🧪 Trimite test</button><span id="tgMsg" style="font-size:11px;font-family:var(--mono)"></span></div>
   </div>`;
   document.body.appendChild(ov);
@@ -740,8 +753,17 @@ window.showTgConfig = function(){
     tgConfig.chatId = document.getElementById('tgChatId').value.trim();
     tgConfig.enabled = document.getElementById('tgEnabled').checked;
     alertLevel = document.getElementById('tgAlertLevel').value || 'strong-buy';
+    const prevMoveEnabled = moveAlert.enabled;
+    moveAlert.enabled = document.getElementById('tgMoveEnabled').checked;
+    moveAlert.pct = Math.max(0.2, Math.min(20, parseFloat(document.getElementById('tgMovePct').value) || 1));
     try { localStorage.setItem(TG_KEY, JSON.stringify(tgConfig)); } catch(e){}
     try { localStorage.setItem(ALERT_LEVEL_KEY, alertLevel); } catch(e){}
+    try { localStorage.setItem(MOVE_ALERT_KEY, JSON.stringify(moveAlert)); } catch(e){}
+    // tocmai activat → ancorează imediat din ultimul scan, alertele pornesc de la următorul
+    if (moveAlert.enabled && !prevMoveEnabled){
+      moveRefMap = {}; results.forEach(r => { if (r.price != null) moveRefMap[r.symbol] = r.price; });
+      _moveArmed = true;
+    }
     updateAlertButtons();
   };
   document.getElementById('tgSave').addEventListener('click', () => {
@@ -1236,6 +1258,9 @@ async function runScan(){
   // Detect semnale noi conform pragului ales → notification + sunet + Telegram (F5-extra)
   detectAndNotifyAlerts(newResults);
 
+  // Detect mișcări de preț ±pct% → Telegram (F6-extra)
+  detectAndNotifyMoves(newResults);
+
   results = newResults;
   lastScanTs = Date.now();
   persistResults(); // F4-extra — cache pt afișare instantă la următorul reload
@@ -1296,6 +1321,45 @@ function detectAndNotifyAlerts(newResults){
     const more = fresh.length > 5 ? ` și ${fresh.length - 5} mai multe` : '';
     new Notification('🔔 Semnal nou (' + fresh.length + ')', { body: list + more, tag: 'wl-alert' });
   }
+}
+
+// ── Alertă mișcare preț incrementală (F6-extra) ───────────────────
+// Pas incremental: la fiecare ±pct% față de ULTIMUL preț alertat → Telegram (grupat per scan).
+// Ref-urile sunt in-memory; primul scan cu alerta activă doar ancorează (evită blast după reload/pauză).
+function detectAndNotifyMoves(newResults){
+  // curăță ref-urile simbolurilor scoase din watchlist
+  Object.keys(moveRefMap).forEach(s => { if (!watchlist.includes(s)) delete moveRefMap[s]; });
+
+  if (!moveAlert.enabled){
+    // ține ref-urile pe prețul curent → activarea ulterioară pornește de la prețurile de acum
+    newResults.forEach(r => { if (r.price != null) moveRefMap[r.symbol] = r.price; });
+    _moveArmed = false;
+    return;
+  }
+  const pct = moveAlert.pct > 0 ? moveAlert.pct : 1;
+  if (!_moveArmed){ // primul scan cu alerta ON → ancorează, nu alerta
+    newResults.forEach(r => { if (r.price != null) moveRefMap[r.symbol] = r.price; });
+    _moveArmed = true;
+    return;
+  }
+  const moved = [];
+  newResults.forEach(r => {
+    if (r.price == null) return;
+    const ref = moveRefMap[r.symbol];
+    if (ref == null){ moveRefMap[r.symbol] = r.price; return; }
+    const chg = (r.price - ref) / ref * 100;
+    if (Math.abs(chg) >= pct){ moved.push({ sym: r.symbol, price: r.price, chg }); moveRefMap[r.symbol] = r.price; }
+  });
+  if (!moved.length) return;
+
+  // Telegram grupat
+  if (tgConfig.token && tgConfig.chatId){
+    const lines = moved.slice(0, 12).map(m => `${m.chg >= 0 ? '🟢⬆' : '🔴⬇'} <b>${m.sym}</b> ${m.chg >= 0 ? '+' : ''}${m.chg.toFixed(2)}% → $${m.price.toFixed(2)}`);
+    const more = moved.length > 12 ? `\n…și ${moved.length - 12} mai multe` : '';
+    sendTelegram(`<b>👁 Watchlist — mișcări ≥${pct}% (${moved.length})</b>\n${lines.join('\n')}${more}`);
+  }
+  // Toast în pagină (rezumat)
+  showToastMsg(`📊 ${moved.length} mișcare${moved.length > 1 ? 'ări' : ''} ≥${pct}%${tgConfig.token && tgConfig.chatId ? ' → Telegram' : ''}`);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1786,6 +1850,7 @@ try { soundEnabled = localStorage.getItem(SOUND_KEY) === '1'; } catch(e){}
 try { tgConfig = Object.assign(tgConfig, JSON.parse(localStorage.getItem(TG_KEY) || '{}')); } catch(e){}
 try { perfMap = JSON.parse(localStorage.getItem(PERF_KEY) || '{}') || {}; } catch(e){ perfMap = {}; }
 try { const al = localStorage.getItem(ALERT_LEVEL_KEY); if (al === 'buy' || al === 'upgrade' || al === 'strong-buy') alertLevel = al; } catch(e){}
+try { const ma = JSON.parse(localStorage.getItem(MOVE_ALERT_KEY) || 'null'); if (ma && typeof ma === 'object'){ moveAlert.enabled = !!ma.enabled; moveAlert.pct = Math.max(0.2, Math.min(20, parseFloat(ma.pct) || 1)); } } catch(e){}
 loadResultsCache(); // F4-extra — populează tabelul din cache înainte de primul scan
 $('notifBtn').style.opacity = notifEnabled ? '1' : '.5';
 updateAlertButtons();
