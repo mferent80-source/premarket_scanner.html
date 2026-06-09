@@ -1029,7 +1029,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v210</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v211</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1334,7 +1334,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v210 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v211 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2468,7 +2468,7 @@ async function wlRefresh(){
       if (!r) return w;
       return { ...w, ...r, name: r.name || w.name };
     });
-    wlSave(); wlRender();
+    wlSave(); wlUpdateLive(); // update țintit (nu re-render total) — păstrează scroll/focus la 15s
     // Early-bird e pe timeframe DAILY — nu se mișcă intraday. Folosim force=false (re-fetch doar
     // simbolurile noi/stale >10min); refresh-ul complet îl face intervalul dedicat de 10 min.
     // Înainte: force=true la fiecare 15s re-aducea istoric 3mo × tot watchlist-ul = retry storm.
@@ -3709,46 +3709,28 @@ function _wlDetailHtml(w){
   </div>`;
 }
 
-function _wlRowHtml(w){
-  const priceStr = w.price != null ? '$' + w.price.toFixed(2) : '...';
-  const pct = w.changePct;
-  const pctStr = pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : '-';
-  const pctCls = pct == null ? '' : (pct >= 0 ? 'pos' : 'neg');
-  const volStr = w.volume ? NasdaqScanner.formatVolume(w.volume) : '—';
-  const aiData = JSON.stringify({
-    symbol: w.symbol, name: w.symbol, price: w.price, changePct: w.changePct,
-    marketCap: 0, sector: w.exchange || 'N/A', volume: w.volume,
-    regularMarketDayHigh: w.high, regularMarketDayLow: w.low
-  }).replace(/'/g, "&apos;");
-  const checked = wlSelected.has(w.symbol) ? 'checked' : '';
-  const trCls = wlSelected.has(w.symbol) ? ' wl-tr-selected' : '';
-  // Date early-bird (din cache, dacă au fost calculate)
+// Conținutul span-ului .sym = symbol + toate badge-urile. Extras separat ca să-l putem
+// actualiza ȚINTIT în polling (wlUpdateLive) fără re-render complet al gridului.
+function _wlSymInner(w){
   const eb = wlEarlyCache[w.symbol]?.eb;
   const ebBadge = (eb && eb.isEarly)
     ? `<span class="eb-badge" title="🌱 Early bird — ${_ebSignalText(eb)}">🌱▲${eb.score}</span>` : '';
-  // Badge earnings aproape (din calendarul deja scanat) — avertisment swing pre-raport
   const earnDays = (typeof lastEarnings !== 'undefined' && lastEarnings)
     ? lastEarnings.find(e => e.symbol === w.symbol)?.daysToEarnings : null;
   const earnBadge = (earnDays != null && earnDays >= 0 && earnDays <= 7)
     ? `<span class="ev-badge" title="Earnings în ${earnDays} zile — atenție la swing înainte de raport (mișcare binară)">⚡${earnDays}z</span>` : '';
-  // Badge invalidare (exit-ul lui early-bird) — trendul tocmai a recăzut
   const wiltBadge = (eb && eb.isWilting)
     ? `<span class="wilt-badge" title="🥀 Invalidare — ${eb.wiltReason}">🥀</span>` : '';
-  const ebSparkRow = (eb && eb.spark)
-    ? `<div class="eb-spark-row">${_ebSparkSvg(eb.spark)}</div>` : '';
-  // Insider cluster 🏛️ (Form 4 — 2+ executivi cumpărători în 60z) — smart-money signal
   const ins = wlInsiderCache[w.symbol]?.ins;
   const insBadge = (ins && ins.cluster)
     ? `<span class="ins-badge" title="🏛️ Cluster buy — ${ins.people} executivi au cumpărat în 60z${ins.value ? ' (~$' + (ins.value/1000).toFixed(0) + 'K total)' : ''}. Form 4 are delay 2z; bun ca confirmare swing.">🏛️${ins.people}</span>`
     : '';
-  // RSI(14) — extrase din computeEarlyBird (deja calculate). Afișez doar la extreme.
   const rsiVal = eb?.rsiNow;
   let rsiBadge = '';
   if (rsiVal != null){
     if (rsiVal < 30) rsiBadge = `<span class="rsi-badge rsi-oversold" title="RSI(14) = ${rsiVal.toFixed(0)} — oversold (<30). Posibil reversal, dar nu intra fără confirmare (early-bird, vol).">⚡${rsiVal.toFixed(0)}</span>`;
     else if (rsiVal > 70) rsiBadge = `<span class="rsi-badge rsi-hot" title="RSI(14) = ${rsiVal.toFixed(0)} — overheated (>70). Atenție la pullback, nu chase pe runner.">🔥${rsiVal.toFixed(0)}</span>`;
   }
-  // RVOL — volum azi vs media 20z (calculat în computeEarlyBird)
   const rvol = eb?.rvol;
   let rvolBadge = '';
   if (rvol != null){
@@ -3764,6 +3746,24 @@ function _wlRowHtml(w){
     const volTxt = w.extVolume ? ` · vol ${NasdaqScanner.formatVolume(w.extVolume)}` : '';
     pmBadge = `<span class="pm-badge ${up ? 'pos' : 'neg'}" title="${lbl}: $${(w.extPrice||0).toFixed(2)} (${up?'+':''}${w.extChangePct.toFixed(2)}% vs close-ul regular)${volTxt}">${ic}${up?'+':''}${w.extChangePct.toFixed(2)}%</span>`;
   }
+  return `${w.symbol}${pmBadge}${ebBadge}${wiltBadge}${earnBadge}${insBadge}${rsiBadge}${rvolBadge}`;
+}
+
+function _wlRowHtml(w){
+  const priceStr = w.price != null ? '$' + w.price.toFixed(2) : '...';
+  const pct = w.changePct;
+  const pctStr = pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : '-';
+  const pctCls = pct == null ? '' : (pct >= 0 ? 'pos' : 'neg');
+  const aiData = JSON.stringify({
+    symbol: w.symbol, name: w.symbol, price: w.price, changePct: w.changePct,
+    marketCap: 0, sector: w.exchange || 'N/A', volume: w.volume,
+    regularMarketDayHigh: w.high, regularMarketDayLow: w.low
+  }).replace(/'/g, "&apos;");
+  const checked = wlSelected.has(w.symbol) ? 'checked' : '';
+  const trCls = wlSelected.has(w.symbol) ? ' wl-tr-selected' : '';
+  const eb = wlEarlyCache[w.symbol]?.eb;
+  const ebSparkRow = (eb && eb.spark)
+    ? `<div class="eb-spark-row">${_ebSparkSvg(eb.spark)}</div>` : '';
   const exJs = String(w.exchange || '').replace(/'/g, "");
   // Grid cell layout: chk · SYM · price · %change · [TV][AI][🎯][📊][✕] · (sparkline row dacă early)
   const isOpen = wlDetailOpen === w.symbol;
@@ -3773,9 +3773,9 @@ function _wlRowHtml(w){
   // interiorul celulei de ~10% și deborează peste casuța vecină.
   const cellHtml = `<div class="wl-cell wl-tr${trCls}" data-sym="${w.symbol}" onclick="wlCellClick(event,'${w.symbol}')">
     <input type="checkbox" class="wl-chk" ${checked} onchange="wlToggleSelect('${w.symbol}')" title="Selectează">
-    <span class="sym" onclick="event.stopPropagation();wlToggleDetail('${w.symbol}')" title="Click pe simbol → drill-down detaliat">${w.symbol}${pmBadge}${ebBadge}${wiltBadge}${earnBadge}${insBadge}${rsiBadge}${rvolBadge}</span>
-    <span class="num">${priceStr}</span>
-    <span class="num ${pctCls}">${pctStr}</span>
+    <span class="sym" data-f="sym" onclick="event.stopPropagation();wlToggleDetail('${w.symbol}')" title="Click pe simbol → drill-down detaliat">${_wlSymInner(w)}</span>
+    <span class="num" data-f="price">${priceStr}</span>
+    <span class="num ${pctCls}" data-f="pct">${pctStr}</span>
     <span class="wl-actions">
       <button class="${detailBtnCls}" onclick="wlToggleDetail('${w.symbol}')" title="🔎 Drill-down: 1d/7d/15d/30d perf, RSI, MA, ATR, insider, plan trade">🔎</button>
       <button class="btn-row btn-row-wl-tv" onclick='wlOpenTV("${w.symbol}","${exJs}")' title="Deschide în TradingView">📈</button>
@@ -3845,6 +3845,38 @@ function wlRender(){
     tbody.innerHTML = html;
   } else {
     tbody.innerHTML = wlSorted(filtered).map(_wlRowHtml).join('');
+  }
+}
+
+// Update ȚINTIT pentru polling (15s/60s): rescrie doar preț / Δ% / badge-uri pe celulele
+// existente, fără să reconstruiască tot gridul. Păstrează scroll/focus și ordinea (mai puțin
+// „jumpy"), evită reflow-ul complet. Cade pe wlRender dacă structura se schimbă (simboluri
+// adăugate/șterse, filtru schimbat) sau e mod grupat (regrupare = render complet).
+function wlUpdateLive(){
+  const tbody = document.getElementById('wlTbody');
+  if (!tbody) return;
+  if (!watchlist.length || wlGroup) { wlRender(); return; }
+  const visSyms = watchlist.filter(wlMatchesFilter).map(w => w.symbol);
+  const domCells = Array.from(tbody.querySelectorAll('.wl-cell'));
+  const domSyms = domCells.map(c => c.dataset.sym);
+  // Setul vizibil s-a schimbat (add/remove/filtru) → render complet (structură nouă).
+  const sameSet = domSyms.length === visSyms.length && domSyms.every(s => visSyms.includes(s));
+  if (!sameSet) { wlRender(); return; }
+  const bySym = {};
+  for (const w of watchlist) bySym[w.symbol] = w;
+  for (const cell of domCells){
+    const w = bySym[cell.dataset.sym];
+    if (!w) continue;
+    const priceEl = cell.querySelector('[data-f="price"]');
+    if (priceEl) priceEl.textContent = w.price != null ? '$' + w.price.toFixed(2) : '...';
+    const pctEl = cell.querySelector('[data-f="pct"]');
+    if (pctEl){
+      const pct = w.changePct;
+      pctEl.textContent = pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%' : '-';
+      pctEl.className = 'num ' + (pct == null ? '' : (pct >= 0 ? 'pos' : 'neg'));
+    }
+    const symEl = cell.querySelector('[data-f="sym"]');
+    if (symEl) symEl.innerHTML = _wlSymInner(w);
   }
 }
 // AI analiză profundă din drill-down — primește tot contextul (perf multi-TF + indicatori + plan + insider)
