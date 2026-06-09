@@ -1029,7 +1029,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v211</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v212</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1334,7 +1334,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v211 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v212 · Earnings + Top Losers + Heatmaps + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -4082,6 +4082,15 @@ function aiChatRender(){
 
 function aiChatBuildContext(){
   const lines = ['CONTEXT MARKET EVENTS (' + new Date().toLocaleString('ro-RO') + '):'];
+  // Sentiment piață: SPY/QQQ/VIX + sesiune — esențial pentru observația macro din raport.
+  if (lastSentiment) {
+    const fmt = (d, pre) => (d && d.price != null)
+      ? `${pre}${d.price.toFixed(2)}${d.chgPct != null ? ' (' + (d.chgPct >= 0 ? '+' : '') + d.chgPct.toFixed(2) + '%)' : ''}`
+      : 'n/a';
+    const sessMap = { PRE: 'PRE-MARKET', REGULAR: 'OPEN', POST: 'AFTER-HOURS', POSTPOST: 'CLOSED', PREPRE: 'CLOSED', CLOSED: 'CLOSED' };
+    const sess = sessMap[lastSentiment.session] || '?';
+    lines.push(`PIAȚĂ [${sess}]: SPY ${fmt(lastSentiment.spy, '$')} · QQQ ${fmt(lastSentiment.qqq, '$')} · VIX ${fmt(lastSentiment.vix, '')}`);
+  }
   if (watchlist.length) {
     const wlSnap = watchlist.slice(0, 8).map(w => `${w.symbol}${w.price != null ? ' $' + w.price.toFixed(2) : ''}${w.changePct != null ? ' (' + (w.changePct >= 0 ? '+' : '') + w.changePct.toFixed(1) + '%)' : ''}`).join(', ');
     lines.push('WATCHLIST (' + watchlist.length + '): ' + wlSnap);
@@ -4230,6 +4239,7 @@ function aiChatQuickCmd(cmd){
 // SENTIMENT / STARE DE PIAȚĂ — SPY + QQQ + VIX + Market Session via Yahoo Finance
 // Folosim chart endpoint v8 (fără crumb) prin proxy-ul deja existent.
 // ============================================================
+let lastSentiment = null; // ultimele valori SPY/QQQ/VIX + sesiune — pentru contextul AI (auto-scan + chat)
 async function fetchMarketSentiment() {
   const scanner = getScanner();
   const symbols = ['SPY', 'QQQ', '^VIX'];
@@ -4262,6 +4272,9 @@ async function fetchMarketSentiment() {
   // Market Session: Yahoo dă PRE / REGULAR / POST / CLOSED în meta.marketState
   const state = data.SPY?.marketState || data.QQQ?.marketState || data['^VIX']?.marketState;
   renderMarketSession(state);
+
+  // Memorăm pentru contextul AI (auto-scan + chat cereau „SPY/QQQ/VIX" dar nu le primeau).
+  lastSentiment = { spy: data.SPY || null, qqq: data.QQQ || null, vix: data['^VIX'] || null, session: state || null };
 }
 
 function renderSentCard(key, d, opts = {}) {
@@ -4749,6 +4762,8 @@ async function runAutoScan() {
   meta.textContent = '⏳ analizez...';
   content.textContent = '';
 
+  // Reîmprospătează SPY/QQQ/VIX înainte de raport (cache 30s) ca observația macro să fie live.
+  await fetchMarketSentiment().catch(() => {});
   const ctx = aiChatBuildContext();
   const system = 'Asistent stock trading pentru Marius (Trade 212, Nasdaq). Răspunde scurt, concret, în română.\n\n' + ctx;
   const prompt = `Pe baza datelor LIVE din panou (Watchlist + Earnings + Top Losers), dă-mi un raport scurt (5-7 rânduri max):
