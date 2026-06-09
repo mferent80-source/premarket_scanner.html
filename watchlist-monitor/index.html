@@ -365,7 +365,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v113</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v114</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -526,11 +526,12 @@ window.showWlFeatures = function(){
       { e: '⚡', t: '<b>Adăugare rapidă</b> — butoane tickere populare în empty-state + „📥 din Scanner" (top picks buy-side din nasdaq-scanner)' },
       { e: '🚀', t: '<b>Performance tracking</b> — memorează prețul la primul BUY/STRONG BUY, arată „+X% · Nz" pe rând și în detalii (cu reset)' },
       { e: '📅', t: '<b>Earnings warning</b> — badge „ER Nz" pe rând + metrică în detalii când raportul e ≤7 zile (roșu ⚠️ la ≤48h); date Finnhub (cheia shared), cache 6h. Evită să ții long peste un raport surpriză' },
+      { e: '💾', t: '<b>Cache rezultate</b> — ultimul scan e salvat local; la reload tabelul apare instant (nu ecran gol) cu eticheta „Cache: acum Xmin" până când scanul nou aduce date proaspete' },
     ]},
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v113 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v114 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -552,6 +553,7 @@ const SOUND_KEY = 'wl_sound';            // F7
 const TG_KEY = 'tt_tg_config';           // F7 — { token, chatId, enabled }
 const PERF_KEY = 'wl_perf';              // F9 — { SYMBOL: { entryPrice, entryTs, entryVerdict } }
 const SCANNER_LAST_KEY = 'nasdaq_last_scan'; // F8 — scris de nasdaq-scanner
+const RESULTS_CACHE_KEY = 'wl_results_cache'; // F4-extra — { ts, results } ultimul scan, pt afișare instant la reload
 const POPULAR_TICKERS = ['AAPL','MSFT','NVDA','TSLA','AMZN','GOOGL','META','AMD','NFLX','PLTR','AVGO','COIN'];
 
 let watchlist = [];
@@ -577,6 +579,30 @@ function loadWatchlist(){
 function saveWatchlist(){
   try { localStorage.setItem(WL_KEY, JSON.stringify(watchlist)); } catch(e){}
   if (typeof wlmAutoPush === 'function') wlmAutoPush(); // sync automat cross-device dacă e activ
+}
+
+// ── Cache rezultate (F4-extra) — afișare instantă la reload, fără ecran gol ──
+let lastScanTs = 0;
+function persistResults(){
+  try { localStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify({ ts: Date.now(), results })); } catch(e){}
+}
+function loadResultsCache(){
+  try {
+    const c = JSON.parse(localStorage.getItem(RESULTS_CACHE_KEY) || 'null');
+    if (c && Array.isArray(c.results)){
+      // păstrează doar simbolurile încă în watchlist (poate s-a schimbat lista între sesiuni)
+      results = c.results.filter(r => r && watchlist.includes(r.symbol));
+      lastScanTs = c.ts || 0;
+    }
+  } catch(e){}
+}
+function fmtAge(ts){
+  if (!ts) return '';
+  const m = Math.floor((Date.now() - ts) / 60000);
+  if (m < 1) return 'acum câteva secunde';
+  if (m < 60) return 'acum ' + m + ' min';
+  const h = Math.floor(m / 60);
+  return h < 24 ? 'acum ' + h + 'h' : 'acum ' + Math.floor(h / 24) + 'z';
 }
 // Sync live cross-tab: când alt tab (ex. Market Events) scrie în wl_stocks,
 // reîncarcă watchlist-ul și scanează simbolurile noi fără refresh manual.
@@ -1199,6 +1225,8 @@ async function runScan(){
   detectAndNotifyStrongBuys(newResults);
 
   results = newResults;
+  lastScanTs = Date.now();
+  persistResults(); // F4-extra — cache pt afișare instantă la următorul reload
   const okCount = newResults.filter(r => r.price != null).length;
   const failCount = newResults.length - okCount;
   if (failCount === 0) setStatus('ok', `gata · ${okCount} stocks`);
@@ -1733,11 +1761,13 @@ try { notifEnabled = localStorage.getItem(NOTIF_KEY) === '1' && Notification.per
 try { soundEnabled = localStorage.getItem(SOUND_KEY) === '1'; } catch(e){}
 try { tgConfig = Object.assign(tgConfig, JSON.parse(localStorage.getItem(TG_KEY) || '{}')); } catch(e){}
 try { perfMap = JSON.parse(localStorage.getItem(PERF_KEY) || '{}') || {}; } catch(e){ perfMap = {}; }
+loadResultsCache(); // F4-extra — populează tabelul din cache înainte de primul scan
 $('notifBtn').style.opacity = notifEnabled ? '1' : '.5';
 updateAlertButtons();
 setStatus('', `${watchlist.length} stocks · auto-scan 60s`);
 updateChangesBadge();
 render();
+if (results.length && lastScanTs) $('lastScan').textContent = 'Cache: ' + fmtAge(lastScanTs) + ' — apasă SCAN ↻ pt date noi';
 
 // Auto-sync: pull silențios la pornire dacă e activat (cloud = sursa de adevăr între device-uri)
 (function(){ const c = _wlmCfg(); if (c.auto && c.gistId && _wlmToken(c)) setTimeout(() => wlmPull(true), 300); })();
