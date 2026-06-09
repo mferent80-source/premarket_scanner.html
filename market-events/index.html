@@ -1033,7 +1033,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v216</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v217</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1342,7 +1342,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v216 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v217 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1972,6 +1972,9 @@ async function scanLosers() {
     console.error(err);
   } finally {
     btn.disabled = false;
+    // Heatmap-urile se randează din lastLosers (funcții definite mai jos, hoisted) — fără monkey-patch.
+    renderVolumeHeatmap();
+    renderSectorHeatmap();
   }
 }
 
@@ -4398,6 +4401,16 @@ function renderMarketSession(state) {
   // Schimbăm bara verticală + valoarea text → ambele culori după session
   $('senti-card-session').style.setProperty('--bar-color', m.color);
   $val.style.color = m.color;
+
+  // Tranziții de sesiune (PRE→OPEN→POST): pornește/oprește live-mode 15s + toast.
+  // currentSession/applyLiveMode sunt definite mai jos; aici se accesează la runtime.
+  if (state !== currentSession) {
+    const wasRegular = currentSession === 'REGULAR';
+    currentSession = state;
+    applyLiveMode();
+    if (state === 'REGULAR' && !wasRegular) showToast('🔌 Market OPEN — watchlist live (15s refresh)', 'success');
+    if (state !== 'REGULAR' && wasRegular)  showToast('Market closed — watchlist 60s refresh', 'warn');
+  }
 }
 
 // ============================================================
@@ -4406,19 +4419,19 @@ function renderMarketSession(state) {
 async function runAll() {
   // Sentiment-ul rulează în paralel cu earnings/losers; nu blocăm restul dacă pică
   await Promise.all([fetchMarketSentiment().catch(e => console.warn('sentiment failed', e)), scanEarnings(), scanLosers()]);
+  // Evaluează alertele după ce datele sunt proaspete. Dedup edge-triggered (se re-armează singur
+  // când condiția redevine falsă), deci NU golim setul aici — altfel re-spam la fiecare refresh.
+  setTimeout(meAlertsEvaluate, 200);
 }
 
 $('scanEarnBtn').addEventListener('click', scanEarnings);
-// Late-binding: scanLosers e re-wrapped mai jos (heatmaps) — referința directă ar fi capturat
-// varianta veche, fără heatmap. Arrow-ul apelează versiunea curentă la fiecare click.
-$('scanLoserBtn').addEventListener('click', () => scanLosers());
+$('scanLoserBtn').addEventListener('click', scanLosers);
 
 // În PWA standalone, ascunde butonul "← Hub" (fallback JS robust peste CSS)
 if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
   document.querySelectorAll('a[href="../"]').forEach(el => { el.style.display = 'none'; });
 }
-// Late-binding: runAll e re-wrapped mai jos (evaluare alerte) — vezi nota de la scanLosers.
-$('refreshAllBtn').addEventListener('click', () => runAll());
+$('refreshAllBtn').addEventListener('click', runAll);
 
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(runAll, 200);
@@ -5021,15 +5034,7 @@ function meAlertsEvaluate(){
   }
 }
 
-// Wire up evaluator după runAll
-const _origRunAll = runAll;
-runAll = async function(){
-  await _origRunAll();
-  // NU golim meAlertsTriggeredCycle aici: dedup-ul e acum edge-triggered (se re-armează singur
-  // când condiția redevine falsă). Golirea la fiecare refresh re-declanșa alertele persistente.
-  setTimeout(meAlertsEvaluate, 200);
-};
-
+// Evaluarea alertelor e acum apelată direct din runAll (vezi sus) — fără monkey-patch.
 meLoadAlerts();
 updateAlertsBadge();
 
@@ -5415,19 +5420,7 @@ function applyLiveMode() {
   }
 }
 
-// Hook pe renderMarketSession ca să detectăm tranzițiile (PRE→OPEN, OPEN→POST, etc)
-const _origRenderMarketSession = renderMarketSession;
-renderMarketSession = function(state) {
-  _origRenderMarketSession(state);
-  if (state !== currentSession) {
-    const wasRegular = currentSession === 'REGULAR';
-    currentSession = state;
-    applyLiveMode();
-    // Anunț toast dacă tocmai s-a deschis sau s-a închis sesiunea
-    if (state === 'REGULAR' && !wasRegular) showToast('🔌 Market OPEN — watchlist live (15s refresh)', 'success');
-    if (state !== 'REGULAR' && wasRegular)  showToast('Market closed — watchlist 60s refresh', 'warn');
-  }
-};
+// Tranzițiile de sesiune sunt detectate direct în renderMarketSession (vezi sus) — fără monkey-patch.
 
 // === VOLUME HEATMAP — vol/avg per loser, bare orizontale colorate ===
 function renderVolumeHeatmap() {
@@ -5507,13 +5500,7 @@ function renderSectorHeatmap() {
   wrap.innerHTML = headerNote + rowsHtml;
 }
 
-// Hook pe scanLosers ca să rendăm heatmap-urile după ce avem date
-const _origScanLosers = scanLosers;
-scanLosers = async function() {
-  await _origScanLosers();
-  renderVolumeHeatmap();
-  renderSectorHeatmap();
-};
+// Heatmap-urile sunt randate direct din scanLosers (în finally) — fără monkey-patch.
 </script>
 
 <script src="../nav.js" data-nav-root="../"></script>
