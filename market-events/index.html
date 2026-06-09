@@ -1033,7 +1033,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v215</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v216</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1342,7 +1342,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v215 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v216 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2433,21 +2433,9 @@ async function wlAddSymbol(rawSym, meta){
 }
 
 // Mini-toast (pentru feedback rapid la add din tabel)
-function showToastMsg(msg, type){
-  let t = document.getElementById('_meToast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = '_meToast';
-    t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#161b22;border:1px solid #30363d;color:#e6edf3;padding:10px 18px;border-radius:10px;font-size:12px;font-weight:600;z-index:9997;box-shadow:0 8px 24px rgba(0,0,0,.4);transition:opacity .25s';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.style.borderColor = type === 'err' ? '#5c1d23' : '#30363d';
-  t.style.color = type === 'err' ? '#ff6b6b' : '#e6edf3';
-  t.style.opacity = '1';
-  clearTimeout(t._timer);
-  t._timer = setTimeout(()=>{ t.style.opacity = '0'; }, 2200);
-}
+// Alias istoric: toast-urile folosesc acum un SINGUR sistem (showToast, container + clase CSS).
+// Normalizăm tipul vechi 'err' → 'error' ca să prindă stilul roșu definit în CSS.
+function showToastMsg(msg, type){ showToast(msg, type === 'err' ? 'error' : type); }
 
 function wlRemove(sym){
   watchlist = watchlist.filter(w => w.symbol !== sym);
