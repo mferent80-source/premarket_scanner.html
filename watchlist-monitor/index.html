@@ -376,7 +376,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v127</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v128</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -553,7 +553,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v127 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v128 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -865,21 +865,25 @@ function daysUntil(dateStr){
 async function loadEarningsCalendar(){
   try {
     const c = JSON.parse(localStorage.getItem(EARN_CACHE_KEY) || 'null');
-    if (c && c.ts && (Date.now() - c.ts) < 6 * 3600 * 1000 && c.map){ earningsMap = c.map; return; }
+    // eșecul se cache-uiește și el (TTL scurt) — altfel cu cheie invalidă/rate-limit
+    // se irosea 1 request Finnhub la FIECARE scan (60/h la auto-scan 60s)
+    const ttl = (c && c.fail) ? 15 * 60 * 1000 : 6 * 3600 * 1000;
+    if (c && c.ts && (Date.now() - c.ts) < ttl && c.map){ earningsMap = c.map; return; }
   } catch(_){}
   let key = ''; try { key = localStorage.getItem('finnhub_api_key') || ''; } catch(_){}
   if (!key){ earningsMap = {}; return; }
   const fmt = d => d.toISOString().slice(0, 10);
+  const cacheFail = () => { try { localStorage.setItem(EARN_CACHE_KEY, JSON.stringify({ ts: Date.now(), map: earningsMap || {}, fail: true })); } catch(_){} };
   try {
     const r = await fetch(`https://finnhub.io/api/v1/calendar/earnings?from=${fmt(new Date())}&to=${fmt(new Date(Date.now() + 14 * 86400000))}&token=${key}`);
-    if (!r.ok) return;
+    if (!r.ok){ cacheFail(); return; }
     const j = await r.json();
     const arr = (j && j.earningsCalendar) || [];
     const map = {};
     arr.forEach(e => { if (e && e.symbol && e.date){ const s = e.symbol.toUpperCase(); if (!map[s]) map[s] = { date: e.date, hour: e.hour || '' }; } });
     earningsMap = map;
     try { localStorage.setItem(EARN_CACHE_KEY, JSON.stringify({ ts: Date.now(), map })); } catch(_){}
-  } catch(_){}
+  } catch(_){ cacheFail(); }
 }
 // Badge pentru rând (≤7 zile; roșu/urgent ≤2 zile = sub 48h).
 function earnBadge(sym){
@@ -1324,15 +1328,16 @@ function wlAddResolved(sym){
 // Fallback când search-ul Yahoo nu merge prin proxy: probează sufixe de bursă via
 // endpoint-ul chart (care merge sigur) și întoarce simbolurile cu date reale (RHM → RHM.DE).
 const PROBE_SUFFIXES = ['', '.DE', '.L', '.PA', '.AS', '.MI', '.MC', '.SW', '.VI', '.F', '.TO', '.AX'];
-async function probeSuffixes(base){
+async function probeSuffixes(base, onProgress){
   base = base.toUpperCase().replace(/[^A-Z0-9.\-^]/g, '');
   if (!base) return [];
   if (base.includes('.')){
     const d = await fetchYahooData(base);
     return (d && d.price != null) ? [{ symbol: base, name:'', exchange: exLabel(base) }] : [];
   }
-  for (const suf of PROBE_SUFFIXES){
-    const sym = base + suf;
+  for (let i = 0; i < PROBE_SUFFIXES.length; i++){
+    const sym = base + PROBE_SUFFIXES[i];
+    if (onProgress) onProgress(i + 1, PROBE_SUFFIXES.length, sym); // feedback — probarea poate dura zeci de secunde
     const d = await fetchYahooData(sym);
     if (d && d.price != null) return [{ symbol: sym, name:'', exchange: exLabel(sym) }]; // primul cu date câștigă
   }
@@ -1346,7 +1351,9 @@ async function wlSearchAdd(){
   if (!wlSearchMatches.length && !/\s/.test(q)){
     // search gol/blocat → probează bursele (doar pentru ticker, nu nume cu spații)
     box.innerHTML = '<div style="padding:7px 10px;color:var(--t3);font-size:11px">verific bursele (US/EU)…</div>';
-    wlSearchMatches = await probeSuffixes(q);
+    wlSearchMatches = await probeSuffixes(q, (i, n, sym) => {
+      box.innerHTML = `<div style="padding:7px 10px;color:var(--t3);font-size:11px">verific bursele… ${wlEsc(sym)} (${i}/${n})</div>`;
+    });
   }
   if (!wlSearchMatches.length){ box.innerHTML = '<div style="padding:7px 10px;color:var(--t3);font-size:11px">nicio potrivire — încearcă tickerul exact (ex. RHM.DE)</div>'; return; }
   if (wlSearchMatches.length === 1){ wlPick(0); return; }
@@ -1661,6 +1668,8 @@ async function runScan(){
 function detectAndNotifyAlerts(newResults){
   let lastSeen = {};
   try { lastSeen = JSON.parse(localStorage.getItem(LAST_SEEN_KEY) || '{}'); } catch(e){}
+  // curăță simbolurile scoase din watchlist — altfel cheia crește nelimitat
+  Object.keys(lastSeen).forEach(s => { if (!watchlist.includes(s)) delete lastSeen[s]; });
 
   const BUY_RANK = VERDICT_RANK['buy'];
   const fresh = [];
@@ -2237,8 +2246,12 @@ async function wlmPull(silent){
     const data = JSON.parse(file.content);
     if (!Array.isArray(data.watchlist)) throw new Error('Format invalid');
     if (!silent && !confirm('Înlocuiești watchlist-ul curent (' + watchlist.length + ') cu ' + data.watchlist.length + ' simboluri din cloud?')) return;
-    watchlist = data.watchlist.map(s => String(s).toUpperCase());
-    saveWatchlist(); render(); if (watchlist.length) runScan();
+    // sanitizare ca la add (simbolurile ajung în onclick-uri inline) + fără push înapoi
+    // imediat după pull (auto-push-ul ar rescrie gist-ul cu exact ce tocmai am citit)
+    watchlist = data.watchlist.map(s => String(s).toUpperCase().replace(/[^A-Z0-9.\-^]/g, '')).filter(Boolean);
+    _wlmPulling = true;
+    try { saveWatchlist(); } finally { _wlmPulling = false; }
+    render(); if (watchlist.length) runScan();
     if (!silent) showToastMsg('✅ Pull reușit (' + watchlist.length + ' stocks)');
   } catch(e){ if(!silent) showToastMsg('❌ Pull: ' + e.message,'err'); }
 }
@@ -2256,7 +2269,9 @@ async function wlmCreate(){
   } catch(e){ showToastMsg('❌ Creare: ' + e.message,'err'); }
 }
 let _wlmPushTimer = null;
+let _wlmPulling = false; // pull în curs → suprimă auto-push-ul declanșat de saveWatchlist
 function wlmAutoPush(){
+  if (_wlmPulling) return;
   const c = _wlmCfg();
   if (!c.auto || !c.gistId || !_wlmToken(c)) return;
   clearTimeout(_wlmPushTimer);
