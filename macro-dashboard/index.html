@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v184</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v185</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -2620,8 +2620,13 @@ function fmtEventDateTime(s) {
   if (evDay.getTime() === today.getTime()) date = 'Azi';
   else if (evDay.getTime() === tomorrow.getTime()) date = 'Mâine';
   else date = d.toLocaleDateString('ro-RO', { weekday:'short', day:'2-digit', month:'2-digit' });
-  const time = d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'UTC' });
-  return { date, time };
+  const time = d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'UTC' }); // intern + prompturi AI (consistent UTC)
+  // Pentru OAMENI: ora pieței (ET) + ora României — ora UTC goală în tabel era derutantă
+  // (traderul gândește în ET/RO, nu în UTC). Intern totul rămâne UTC, doar afișarea diferă.
+  const timeET = d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'America/New_York' });
+  const timeRO = d.toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit', hour12:false, timeZone:'Europe/Bucharest' });
+  const disp = `${timeET} ET (${timeRO} RO)`;
+  return { date, time, timeET, timeRO, disp };
 }
 
 function timeUntilLabel(s) {
@@ -2707,7 +2712,7 @@ function renderCalendar() {
     const tvBtn = tvSym ? `<a class="action-btn" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSym)}" target="_blank" title="TradingView">📈</a>` : '';
 
     return `<tr class="clickable ${rowCls}${flashCls}${resultCls}" data-time="${escHtml(e.time)}" data-event="${escHtml(e.event)}">
-      <td class="left when-cell"><span class="when-d">${escHtml(dt.date)} · ${escHtml(dt.time)}</span><span class="when-h">${escHtml(tu)}</span></td>
+      <td class="left when-cell"><span class="when-d">${escHtml(dt.date)} · ${escHtml(dt.disp)}</span><span class="when-h">${escHtml(tu)}</span></td>
       <td><span class="flag">${cm.flag}</span><span class="country-code">${escHtml(e.country)}</span></td>
       <td class="left">
         <div class="evt-name">${escHtml(e.event)}</div>
@@ -2767,7 +2772,7 @@ function renderHotStrip() {
         <span class="hc-title">${escHtml(e.event)}</span>
         <span class="hc-when">${escHtml(tu)}</span>
       </div>
-      <div class="hc-mid">${escHtml(fmtEventDateTime(e.time).date)} · ${escHtml(fmtEventDateTime(e.time).time)} UTC</div>
+      <div class="hc-mid">${escHtml(fmtEventDateTime(e.time).date)} · ${escHtml(fmtEventDateTime(e.time).disp)}</div>
     </div>`;
   }).join('');
 }
@@ -3341,7 +3346,7 @@ function buildExpandHTML(event) {
       <div class="exp-title">ℹ️ Detalii eveniment</div>
       <div class="exp-info">
         <div class="info-row"><span class="info-key">Țară</span><span class="info-val">${cm.flag} ${escHtml(cm.name)}</span></div>
-        <div class="info-row"><span class="info-key">Data / Ora</span><span class="info-val">${escHtml(dt.date)} ${escHtml(dt.time)} UTC</span></div>
+        <div class="info-row"><span class="info-key">Data / Ora</span><span class="info-val">${escHtml(dt.date)} · ${escHtml(dt.disp)}</span></div>
         <div class="info-row"><span class="info-key">Impact</span><span class="info-val">${event.impact.toUpperCase()}</span></div>
         <div class="info-row"><span class="info-key">Forecast</span><span class="info-val">${event.forecast ?? '—'}</span></div>
         <div class="info-row"><span class="info-key">Previous</span><span class="info-val">${event.previous ?? '—'}</span></div>
@@ -4131,7 +4136,7 @@ function buildAlertTgMessage(events, thresholdLabel) {
     const impactIcon = e.impact === 'high' ? '🔴' : (e.impact === 'med' ? '🟡' : '⚪');
     lines.push('');
     lines.push(`${impactIcon} <b>${escHtml(e.event)}</b>`);
-    lines.push(`${cm.flag} ${escHtml(cm.name)} · ${escHtml(dt.date)} ${escHtml(dt.time)} UTC · <i>${escHtml(tu)}</i>`);
+    lines.push(`${cm.flag} ${escHtml(cm.name)} · ${escHtml(dt.date)} ${escHtml(dt.disp)} · <i>${escHtml(tu)}</i>`);
     const meta = [];
     if (e.forecast != null) meta.push(`Forecast: <code>${escHtml(String(e.forecast))}</code>`);
     if (e.previous != null) meta.push(`Prev: <code>${escHtml(String(e.previous))}</code>`);
