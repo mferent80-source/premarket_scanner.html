@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v101</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v102</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -6145,7 +6145,7 @@ function isConfirmedNasdaq(o){
 }
 function toggleNasdaqConfirmed(){
   nasdaqConfirmedOnly = !nasdaqConfirmedOnly;
-  renderRecommendations();
+  renderSignals(); // re-render tab-ul CURENT — toggle-ul e shared (Reco / Early Buy / Swing)
 }
 
 function renderRecommendations(){
@@ -6343,17 +6343,24 @@ function renderEarlyBuy(){
   // cap-urile macro/earnings-hard) ca Early Buy să arate ce se coace; banner-ul de mai jos avertizează.
   const fPos  = baseOpps.filter(o => o.chg24 >= -2.5);  // permitem corecție ușoară (early reversal), nu doar zi verde
   const fBuy  = fPos.filter(o => (o.isBuyRaw ?? o.isBuy) && (o.scoreRaw ?? o.score) >= 38);  // relaxat de la 42
-  const fEarl = fBuy.map(o => ({...o, earlyScore: calcEarlyBuyScore(o)})).filter(o => o.earlyScore >= 45);  // relaxat de la 50
+  // Chip „✅ Trend confirmat" (shared cu Reco) — filtru OPȚIONAL buy-side: trend daily
+  // confirmat ↑ + nu supraextins. Cu toggle-ul OFF, Early Buy rămâne agresiv (scopul lui).
+  const fTrend = nasdaqConfirmedOnly
+    ? fBuy.filter(o => { const t = dailyTrendCache[o.symbol]; return t && t.confirmed && t.dir > 0 && (o.rsi == null || o.rsi < 72); })
+    : fBuy;
+  const fEarl = fTrend.map(o => ({...o, earlyScore: calcEarlyBuyScore(o)})).filter(o => o.earlyScore >= 45);  // relaxat de la 50
   const scored = fEarl.sort((a,b) => b.earlyScore - a.earlyScore).slice(0, 14);
 
   if(!scored.length){
-    const funnel = `${allOpportunities.length} scanate${csfActive ? ` → ${baseOpps.length} după 🎯 Screener` : ''} → ${fPos.length} zi ≥ -2.5% → ${fBuy.length} buy-side(raw) & score≥38 → ${fEarl.length} earlyScore≥45`;
+    const funnel = `${allOpportunities.length} scanate${csfActive ? ` → ${baseOpps.length} după 🎯 Screener` : ''} → ${fPos.length} zi ≥ -2.5% → ${fBuy.length} buy-side(raw) & score≥38${nasdaqConfirmedOnly ? ` → ${fTrend.length} trend confirmat ↑` : ''} → ${fEarl.length} earlyScore≥45`;
     const posWithEarn = (typeof earningsSet !== 'undefined' && earningsSet) ? fPos.filter(o => earningsSet.has(o.symbol)).length : 0;
     let hint;
     if(fPos.length === 0){
       hint = 'Toate acțiunile scanate sunt în scădere/plate azi — piață roșie, nu e bug. Extinde lista de acțiuni sau revino într-o zi verde.';
     } else if(fBuy.length === 0){
       hint = `${fPos.length} acțiuni eligibile azi, dar 0 cu scor buy-side (raw) ≥ 38${posWithEarn > 0 ? ` (din care ${posWithEarn} cu earnings în 7 zile → score redus)` : ''}. Cauză probabilă: lipsesc RSI/sparkline de pe Yahoo (fără ele scoringul rămâne neutru 50/50). Verifică log-ul ("RSI: ... total", warning-uri Yahoo); hard-refresh (Ctrl+Shift+R) — ver-badge trebuie v93+.`;
+    } else if(nasdaqConfirmedOnly && fTrend.length === 0){
+      hint = `${fBuy.length} candidați buy-side, dar 0 cu trend daily confirmat ↑ — chip-ul „✅ Trend confirmat" e ACTIV și filtrează tot. Dezactivează-l ca să vezi candidații agresivi.`;
     } else {
       hint = `${fBuy.length} candidați buy-side, dar niciunul cu earlyScore ≥ 45 — momentum prea slab azi.`;
     }
@@ -6515,6 +6522,11 @@ function renderEarlyBuy(){
   const earnBanner = earnHardCount > 0
     ? `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:8px;padding:7px 11px;margin-bottom:10px;font-size:.6rem;color:#fcd34d;">📅 ${earnHardCount} din candidați au earnings în &lt;48h — verdict agresiv blocat pe acelea; afișate doar informativ (vezi 🚫 în motivele cardului).</div>`
     : '';
+  const trendChip=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <button onclick="toggleNasdaqConfirmed()" title="Filtru OPȚIONAL: doar candidați cu trend daily confirmat ↑ (preț>EMA20>EMA50 + slope) și RSI<72 — shared cu tab-ul Oportunități. OFF = Early Buy agresiv, cum e gândit."
+      style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;border:1px solid ${nasdaqConfirmedOnly?'var(--greenb)':'var(--b2)'};background:${nasdaqConfirmedOnly?'var(--greenl)':'var(--bg2)'};color:${nasdaqConfirmedOnly?'var(--green)':'var(--t2)'};transition:all .15s">
+      ✅ Trend confirmat ${nasdaqConfirmedOnly?'ON':'OFF'}</button>
+  </div>`;
   container.innerHTML=`<div>
     <div class="early-section-hdr">
       <div>
@@ -6523,7 +6535,7 @@ function renderEarlyBuy(){
       </div>
       <span class="early-count-pill">${scored.length} candidați</span>
     </div>
-    ${macroBanner}${earnBanner}
+    ${trendChip}${macroBanner}${earnBanner}
     <div class="early-info-box">
       <strong>Cum funcționează Early Buy?</strong> Algoritmul combină 6 factori: creștere zilnică +0.3–5% (pornit dar nu pompadour), RSI 38–65 (spațiu de creștere), accelerare pe sparkline 3/7 zile, sentiment știri pozitiv, scor de oportunitate și apropierea de watchlist.
       Acțiunile cu <strong>Early Score ≥ 72</strong> sunt marcate cu border verde (top pick).
@@ -6935,7 +6947,11 @@ function renderSignals(){
   const q=(document.getElementById('searchInp').value||'').toLowerCase();
   let source=currentTab==='history'?historySignals:allSignals;
   if(currentTab==='live') source=source.filter(s=>Date.now()-s.time<120000);
-  else if(currentTab==='swing') source=source.filter(s=>s.type==='swing');
+  else if(currentTab==='swing'){
+    source=source.filter(s=>s.type==='swing');
+    // Chip „✅ Trend confirmat" (shared) — filtru opțional pe trend daily ↑
+    if(nasdaqConfirmedOnly) source=source.filter(s=>{const t=dailyTrendCache[s.coin]; return t&&t.confirmed&&t.dir>0;});
+  }
   // Pas 7: Custom screener filter aplicat înaintea filterului per tip
   if(typeof csfMatches==='function' && _customFilter && _customFilter.on){
     source=source.filter(s=>csfMatches(s));
@@ -6973,7 +6989,8 @@ function renderSignals(){
   const strengthColor=s=>s>=80?'#059669':s>=60?'#d97706':'#64748b';
   const priorityClass=p=>p==='high'?'priority-high':p==='med'?'priority-med':'';
 
-  container.innerHTML=`<div class="signals-grid">${source.slice(0,40).map(s=>{
+  const _swChip = currentTab==='swing' ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><button onclick="toggleNasdaqConfirmed()" title="Filtru OPȚIONAL: doar semnale swing cu trend daily confirmat ↑ — shared cu Oportunități/Early Buy" style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;border:1px solid ${nasdaqConfirmedOnly?'var(--greenb)':'var(--b2)'};background:${nasdaqConfirmedOnly?'var(--greenl)':'var(--bg2)'};color:${nasdaqConfirmedOnly?'var(--green)':'var(--t2)'};transition:all .15s">✅ Trend confirmat ${nasdaqConfirmedOnly?'ON':'OFF'}</button></div>` : '';
+  container.innerHTML=_swChip+`<div class="signals-grid">${source.slice(0,40).map(s=>{
     const chgStr=(s.chg>=0?'+':'')+s.chg.toFixed(2)+'%';
     const m=s.metrics||{};
     const ago=timeAgo(s.time);
