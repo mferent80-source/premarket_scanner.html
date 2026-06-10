@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v181</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v182</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -3143,50 +3143,61 @@ Analizează scurt conform sistemului. Fii direct. Dacă știrea e zgomot/ireleva
 async function callAnthropicStream(systemPrompt, userPrompt, onChunk, maxTokens=700) {
   const key = getAnthropicKey();
   if (!key) throw new Error('Lipsă Anthropic key (Setări ⚙)');
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-opus-4-8',
-      max_tokens: maxTokens,
-      stream: true,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
-    })
-  });
-  if (!resp.ok) {
-    const txt = await resp.text();
-    throw new Error(`HTTP ${resp.status}: ${txt.slice(0,200)}`);
-  }
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let full = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-    for (const line of lines) {
-      if (!line.startsWith('data:')) continue;
-      const data = line.slice(5).trim();
-      if (!data || data === '[DONE]') continue;
-      try {
-        const evt = JSON.parse(data);
-        if (evt.type === 'content_block_delta' && evt.delta?.text) {
-          full += evt.delta.text;
-          onChunk(full);
-        }
-      } catch (e) { /* ignore parse errors */ }
+  // Timeout dur pe TOT stream-ul: fără el, un stream blocat (rețea/API) ținea bula
+  // „🧠 Analizez…" + cronometrul la infinit — reader.read() nu are timeout propriu.
+  // 180s acoperă lejer și brief-ul de 5500 tokens.
+  const ctrl = new AbortController();
+  const killer = setTimeout(() => ctrl.abort(), 180000);
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-8',
+        max_tokens: maxTokens,
+        stream: true,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      }),
+      signal: ctrl.signal
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${txt.slice(0,200)}`);
     }
-  }
-  return full;
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let full = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+        try {
+          const evt = JSON.parse(data);
+          if (evt.type === 'content_block_delta' && evt.delta?.text) {
+            full += evt.delta.text;
+            onChunk(full);
+          }
+        } catch (e) { /* ignore parse errors */ }
+      }
+    }
+    return full;
+  } catch (e) {
+    if (e && e.name === 'AbortError') throw new Error('Timeout AI (180s) — rețea lentă sau API blocat; reîncearcă.');
+    throw e;
+  } finally { clearTimeout(killer); }
 }
 
 function aiCacheKey(eventName, eventTime) { return `evt::${eventName}::${(eventTime||'').slice(0,10)}`; }
@@ -3201,6 +3212,12 @@ function setCachedAI(key, text) {
   persistAICache();
 }
 function persistAICache() {
+  // Prune la persist: TTL-ul se aplica lazy DOAR la citire → cheile evenimentelor
+  // vechi (necitite niciodată din nou) se acumulau nelimitat în md_ai_cache_v1.
+  const now = Date.now();
+  Object.keys(_aiCache).forEach(k => { if (now - (_aiCache[k]?.ts || 0) > AI_CACHE_TTL) delete _aiCache[k]; });
+  const keys = Object.keys(_aiCache);
+  if (keys.length > 60) keys.sort((a, b) => (_aiCache[a].ts || 0) - (_aiCache[b].ts || 0)).slice(0, keys.length - 60).forEach(k => delete _aiCache[k]);
   try { localStorage.setItem('md_ai_cache_v1', JSON.stringify(_aiCache)); } catch (e) { /* quota */ }
 }
 
