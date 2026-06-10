@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v94</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v95</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -5985,7 +5985,12 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
     const e = eCal.find(x => x.symbol === symbol);
     if(e && e.date){
       try {
-        const ts = new Date(e.date).getTime();
+        // Data e doar o ZI ("2026-06-15") — ancorăm pe ~17:00 ET (după AMC).
+        // new Date(date) = miezul nopții UTC = ~19:00 ET cu o seară ÎNAINTE →
+        // blocajul <48h expira în dimineața raportului (înainte de BMO!) și
+        // protecția dispărea exact când era nevoie de ea. Offset fix -05:00
+        // (EST): vara eroare max 1h, acoperitoare.
+        const ts = new Date(e.date + 'T17:00:00-05:00').getTime();
         if(!isNaN(ts)) earningsHoursAway = (ts - Date.now()) / (1000 * 3600);
       } catch(_){}
     }
