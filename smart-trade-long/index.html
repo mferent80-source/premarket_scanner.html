@@ -222,7 +222,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v4</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v5</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -566,12 +566,14 @@ function computeScore(d) {
   } else { f4.pts = 0; f4.status = 'fail'; }
   score += f4.pts; filters.push(f4);
 
-  // 5. R:R ≥ 1:2 (calc bazat pe ATR)
-  let f5 = { name: 'R:R Ratio', desc: 'Min 1:2 din nivel ATR', ico: '⚖️', max: 20 };
+  // 5. Niveluri ATR calculabile — ONEST: nu e un test de R:R variabil, e un gate de
+  // calitate a datelor. Nivelurile sunt fixe prin construcție (SL=−1.5×ATR, TP3=+3×ATR
+  // → R:R 1:2 garantat), deci punctele se acordă mereu când ATR există. Eticheta veche
+  // „R:R Ratio" sugera fals un criteriu care discriminează între setup-uri.
+  let f5 = { name: 'Niveluri ATR (R:R 1:2 by design)', desc: 'SL/TP calculabile din volatilitate', ico: '⚖️', max: 20 };
   if (atrV) {
-    // SL = entry - 1.5*ATR, TP2 = entry + 3*ATR → R:R = 2 (mereu OK dacă avem ATR valid)
-    f5.pts = 20; f5.status = 'ok'; f5.desc = `R:R ≥ 1:2 din ATR ${atrV.toFixed(2)}`;
-  } else { f5.pts = 0; f5.status = 'fail'; f5.desc = 'ATR indisponibil'; }
+    f5.pts = 20; f5.status = 'ok'; f5.desc = `ATR ${atrV.toFixed(2)} → SL −1.5×, TP-uri +1/+2/+3× (R:R 1:2 garantat prin construcție)`;
+  } else { f5.pts = 0; f5.status = 'fail'; f5.desc = 'ATR indisponibil (date insuficiente) — niveluri necalculabile'; }
   score += f5.pts; filters.push(f5);
 
   return { score, filters, last, ma50, ma200, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null };
@@ -984,7 +986,7 @@ async function scan(sym) {
       <div class="empty-state">
         <div class="ico">⚠</div>
         <h3>Eroare la scan</h3>
-        <p>${e.message || e}</p>
+        <p>${escHtml(e.message || String(e))}</p>
       </div>
     `;
     toast('Eroare: ' + (e.message || e), 'err');
