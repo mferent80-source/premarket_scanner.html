@@ -1033,7 +1033,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v218</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v219</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1342,7 +1342,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v218 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v219 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1666,7 +1666,8 @@ class NasdaqScanner {
       const q = result?.indicators?.quote?.[0];
       if (!result || !q) return null;
       const rawC = q.close || [], rawH = q.high || [], rawL = q.low || [], rawV = q.volume || [];
-      const out = { closes: [], highs: [], lows: [], vols: [] };
+      const tsArr = result.timestamp || [];
+      const out = { closes: [], highs: [], lows: [], vols: [], lastBarTs: null };
       for (let i = 0; i < rawC.length; i++) {
         // Yahoo bagă null pe zilele fără tranzacționare — le sărim aliniat
         if (rawC[i] == null || isNaN(rawC[i])) continue;
@@ -1674,6 +1675,7 @@ class NasdaqScanner {
         out.highs.push(rawH[i] != null ? +rawH[i] : +rawC[i]);
         out.lows.push(rawL[i] != null ? +rawL[i] : +rawC[i]);
         out.vols.push(rawV[i] != null ? +rawV[i] : 0);
+        if (tsArr[i] != null) out.lastBarTs = tsArr[i]; // bara de azi e parțială intraday → RVOL proiectat
       }
       return out.closes.length >= 22 ? out : null;
     } catch (e) {
@@ -3112,6 +3114,18 @@ function _rsi(closes, period = 14){
   }
   return out;
 }
+// Data calendaristică + minutele zilei în fusul ET — pentru proiecția volumului intraday
+function _etDateStr(ms){
+  try { return new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(ms)); }
+  catch(e){ return new Date(ms).toISOString().slice(0, 10); }
+}
+function _etMinutes(){
+  try {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
+    const g = t => +(p.find(x => x.type === t) || {}).value;
+    return g('hour') * 60 + g('minute');
+  } catch(e){ return null; }
+}
 function computeEarlyBird(hist, antiExtPct){
   const c = hist.closes, v = hist.vols, lo = hist.lows;
   const n = c.length;
@@ -3147,9 +3161,25 @@ function computeEarlyBird(hist, antiExtPct){
   // altfel o zi cu volum extrem se auto-include în numitor și RVOL iese sistematic subestimat.
   const volWin = v.slice(Math.max(0, n - 21), n - 1); // 20 zile dinainte de azi
   const avgVol20 = volWin.length ? volWin.reduce((a, b) => a + b, 0) / volWin.length : 0;
+  // Bara de azi e PARȚIALĂ în sesiunea regulară → proiectează volumul liniar la
+  // 390 min (cap 8×) înainte de comparații; sub 45 min de sesiune e prea zgomotos
+  // (volum U-shaped la open) → azi nu se evaluează deloc. Altfel RVOL ieșea
+  // subestimat dimineața și volConfirm rata confirmarea (fix paralel cu
+  // watchlist-monitor v126).
+  let vLast = v[last], vLastValid = true, rvolProj = false;
+  if (hist.lastBarTs != null && _etDateStr(hist.lastBarTs * 1000) === _etDateStr(Date.now())){
+    const mins = _etMinutes();
+    if (mins != null && mins >= 9 * 60 + 30 && mins < 16 * 60){
+      const elapsed = mins - (9 * 60 + 30);
+      if (elapsed < 45) vLastValid = false;
+      else { vLast = v[last] * Math.min(8, 390 / elapsed); rvolProj = true; }
+    }
+  }
   let volConfirm = false; // volum pe o zi verde recentă > media 20z
   for (let i = last; i >= Math.max(1, last - 2); i--){
-    if (c[i] > c[i-1] && avgVol20 > 0 && v[i] > avgVol20 * 1.1) { volConfirm = true; break; }
+    if (i === last && !vLastValid) continue; // azi prea devreme — nu evalua bara parțială
+    const vi = i === last ? vLast : v[i];
+    if (c[i] > c[i-1] && avgVol20 > 0 && vi > avgVol20 * 1.1) { volConfirm = true; break; }
   }
   const rsiNow = rsi[last];
   const rsiHealthy = rsiNow != null && rsiNow < 65; // încă nu e supracumpărat
@@ -3171,9 +3201,9 @@ function computeEarlyBird(hist, antiExtPct){
   const wiltReason = [freshCrossDown ? 'EMA9 a recăzut sub EMA21' : '', brokeLow ? 'a rupt minimul ultimelor 10z' : ''].filter(Boolean).join(' · ');
 
   // RVOL = volum azi vs media 20z (pentru badge dedicat — confirmă mișcarea reală)
-  const rvol = (avgVol20 > 0 && v[last] > 0) ? (v[last] / avgVol20) : null;
+  const rvol = (avgVol20 > 0 && vLastValid && vLast > 0) ? (vLast / avgVol20) : null;
 
-  return { isEarly, score, signals, extPct, rsiNow, rvol, antiExt, isWilting, wiltReason, spark: c.slice(Math.max(0, n - 20)) };
+  return { isEarly, score, signals, extPct, rsiNow, rvol, rvolProj, antiExt, isWilting, wiltReason, spark: c.slice(Math.max(0, n - 20)) };
 }
 function _ebSignalText(eb){
   if (!eb) return '';
@@ -3752,10 +3782,11 @@ function _wlSymInner(w){
     else if (rsiVal > 70) rsiBadge = `<span class="rsi-badge rsi-hot" title="RSI(14) = ${rsiVal.toFixed(0)} — overheated (>70). Atenție la pullback, nu chase pe runner.">🔥${rsiVal.toFixed(0)}</span>`;
   }
   const rvol = eb?.rvol;
+  const rvP = eb?.rvolProj ? '~' : ''; // ~ = volum proiectat la sesiunea întreagă (zi în desfășurare)
   let rvolBadge = '';
   if (rvol != null){
-    if (rvol >= 5) rvolBadge = `<span class="rvol-badge rvol-hi" title="RVOL = ${rvol.toFixed(1)}× media 20z — volum extrem azi. Confirmă mișcarea (breakouts/news catalysts).">🔊${rvol.toFixed(1)}×</span>`;
-    else if (rvol >= 2) rvolBadge = `<span class="rvol-badge rvol-mid" title="RVOL = ${rvol.toFixed(1)}× media 20z — volum peste normal, mișcarea pare reală nu zgomot.">🔊${rvol.toFixed(1)}×</span>`;
+    if (rvol >= 5) rvolBadge = `<span class="rvol-badge rvol-hi" title="RVOL = ${rvP}${rvol.toFixed(1)}× media 20z${rvP ? ' (proiectat — zi în desfășurare)' : ''} — volum extrem azi. Confirmă mișcarea (breakouts/news catalysts).">🔊${rvP}${rvol.toFixed(1)}×</span>`;
+    else if (rvol >= 2) rvolBadge = `<span class="rvol-badge rvol-mid" title="RVOL = ${rvP}${rvol.toFixed(1)}× media 20z${rvP ? ' (proiectat — zi în desfășurare)' : ''} — volum peste normal, mișcarea pare reală nu zgomot.">🔊${rvP}${rvol.toFixed(1)}×</span>`;
   }
   // 🌅 PREMARKET / 🌙 AFTER-HOURS — mișcarea în sesiunea extinsă vs close-ul regular complet.
   let pmBadge = '';
@@ -3933,7 +3964,7 @@ window.wlAiAnalyzeDetail = async function(sym){
     ma50 ? `· MA50: $${ma50.toFixed(2)} (preț ${last > ma50 ? '+' : ''}${((last - ma50) / ma50 * 100).toFixed(1)}%)` : '',
     ma200 ? `· MA200: $${ma200.toFixed(2)} (preț ${last > ma200 ? '+' : ''}${((last - ma200) / ma200 * 100).toFixed(1)}%)` : '',
     atr14 ? `· ATR(14): $${atr14.toFixed(2)} (${(atr14 / last * 100).toFixed(1)}%/zi volatilitate)` : '',
-    eb?.rvol != null ? `· RVOL azi: ${eb.rvol.toFixed(2)}× media 20z` : '',
+    eb?.rvol != null ? `· RVOL azi: ${eb.rvolProj ? '~' : ''}${eb.rvol.toFixed(2)}× media 20z${eb.rvolProj ? ' (proiectat — zi în desfășurare)' : ''}` : '',
     eb ? `· Early-bird score: ${eb.score}/5 ${eb.isEarly ? '(activ — abia a întors în sus)' : (eb.isWilting ? '(invalidat — ' + eb.wiltReason + ')' : '')}` : '',
   ].filter(Boolean);
 
