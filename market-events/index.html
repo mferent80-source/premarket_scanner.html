@@ -1033,7 +1033,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v220</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v221</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1342,7 +1342,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v220 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v221 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2384,6 +2384,10 @@ async function wlFetchSymbol(sym){
 }
 
 function wlEsc(s){ return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+// Output-ul AI trece prin escape înainte de innerHTML — modelul poate reflecta HTML
+// din datele externe incluse în prompt (headlines, nume companii). Păstrăm doar
+// **bold** + newlines (pattern watchlist-monitor _aiHtml).
+function _aiSafeHtml(text){ return wlEsc(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>'); }
 let wlSearchMatches = [];
 function wlClearSearch(){ const b=document.getElementById('wlSearchResults'); if(b){ b.classList.remove('show'); b.innerHTML=''; } wlSearchMatches=[]; }
 function wlPickResolved(i){
@@ -4030,7 +4034,7 @@ Format: ## titluri scurte + bullet points sub. NU repeta cifrele — interpretea
   const meta = document.getElementById('aiDeepMeta');
 
   if (aiCache[cacheKey]){
-    result.innerHTML = aiCache[cacheKey].replace(/\n/g, '<br>');
+    result.innerHTML = _aiSafeHtml(aiCache[cacheKey]);
     meta.textContent = `✓ ${AI_MODEL} · cached (apasă ↻ Rerun pentru refresh)`;
   } else {
     const t0 = performance.now();
@@ -4045,7 +4049,7 @@ Format: ## titluri scurte + bullet points sub. NU repeta cifrele — interpretea
       if (data.content?.[0]?.text){
         const text = data.content[0].text;
         aiCache[cacheKey] = text;
-        result.innerHTML = text.replace(/\n/g, '<br>');
+        result.innerHTML = _aiSafeHtml(text);
         const usage = data.usage ? ` · ${data.usage.input_tokens}+${data.usage.output_tokens} tok` : '';
         meta.textContent = `✓ ${AI_MODEL} · ${elapsed}s${usage}`;
       } else if (data.error){
