@@ -222,7 +222,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v2</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v3</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -832,7 +832,7 @@ async function runAIQuickSetup(sym, scoreData, insiderData, force) {
 
   // Build context compact pentru prompt
   const insiderSummary = insiderData?.ok && insiderData.data?.length
-    ? (() => { const a = analyzeInsiders(insiderData.data); return `${a.bullish ? 'bullish' : (a.bearish ? 'bearish' : 'neutral')} (${a.buys}B/${a.sells}S, net ${a.netUSD>=0?'+':''}${(a.netUSD/1000).toFixed(0)}k)`; })()
+    ? (() => { const a = analyzeInsiders(insiderData.data); return `${a.verdict === 'bull' ? 'bullish' : (a.verdict === 'bear' ? 'bearish' : 'neutral')} (${a.buys.length} buys/${a.sells.length} sells, net ${a.net>=0?'+':''}$${(a.net/1000).toFixed(0)}k)`; })()
     : 'N/A';
   const trend = (scoreData.ma50 && scoreData.ma200) ? (scoreData.ma50 > scoreData.ma200 ? 'bullish (MA50>MA200)' : 'bearish (MA50<MA200)') : 'N/A';
   const lastPx = scoreData.last;
@@ -891,6 +891,13 @@ Reguli pentru câmpuri:
     const end = text.lastIndexOf('}');
     if (start < 0 || end < 0 || end <= start) throw new Error('Format JSON invalid: ' + text.slice(0, 100));
     const setup = JSON.parse(text.slice(start, end + 1));
+    // Sanity anti-halucinare pe nivelurile AI — pagina e LONG-only: SL trebuie SUB
+    // entry și TP-urile PESTE; fără gardă, render-ul ascundea inversarea (Math.abs
+    // pe R:R) și sizer-ul putea dimensiona o poziție cu riscul invers.
+    const _lvl = v => typeof v === 'number' && isFinite(v) && v > 0;
+    if (!_lvl(setup.entry) || !_lvl(setup.sl) || !_lvl(setup.tp1) || !_lvl(setup.tp2)
+        || setup.sl >= setup.entry || setup.tp1 <= setup.entry || setup.tp2 <= setup.tp1)
+      throw new Error(`Setup AI incoerent pentru LONG (entry=${setup.entry}, SL=${setup.sl}, TP1=${setup.tp1}, TP2=${setup.tp2}) — apasă ↻ Rerun.`);
     setup._sym = sym;
     setup._ts = Date.now();
     setCachedSetup(sym, setup);
