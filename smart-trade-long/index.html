@@ -222,7 +222,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v5</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v6</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -463,7 +463,10 @@ async function fetchViaProxy(url, timeoutMs = 9000) {
 }
 
 async function fetchYahoo(sym) {
-  const url = `${YAHOO_BASE}${sym}?interval=1d&range=6mo`;
+  // range=1y (era 6mo ≈ 126 bare): cu 6mo, MA200 NU se putea calcula NICIODATĂ și
+  // fallback-ul silențios o înlocuia cu MA~125 etichetată „MA200". 1y = același
+  // request, MA200 reală + max/min 52 săptămâni gratuit.
+  const url = `${YAHOO_BASE}${sym}?interval=1d&range=1y`;
   const j = await fetchViaProxy(url);
   const r = j?.chart?.result?.[0];
   if (!r) throw new Error('Symbol invalid sau fără date');
@@ -518,7 +521,8 @@ function computeScore(d) {
   const { closes, volumes, highs, lows } = d;
   const last = closes[closes.length - 1];
   const ma50 = sma(closes, 50);
-  const ma200 = sma(closes, 200) ?? sma(closes, Math.min(closes.length - 1, 150));
+  const ma200Real = sma(closes, 200); // cu range=1y există aproape mereu; null doar la IPO-uri recente
+  const ma200 = ma200Real ?? sma(closes, Math.min(closes.length - 1, 150));
   const atrV = atr(highs, lows, closes, 14);
   const rsiV = rsi(closes, 14);
   const adxV = adx(highs, lows, closes, 14);
@@ -535,6 +539,7 @@ function computeScore(d) {
     else if (last > ma50 || last > ma200) { f1.pts = 12; f1.status = 'partial'; f1.desc += ' (parțial)'; }
     else { f1.pts = 0; f1.status = 'fail'; f1.desc = `Preț ${fmt$(last)} < MA50 ${fmt$(ma50)}`; }
   } else { f1.pts = 0; f1.status = 'fail'; f1.desc = 'Date insuficiente'; }
+  if (!ma200Real && ma200) f1.desc += ' · MA200≈ (istoric scurt — IPO recent)';
   score += f1.pts; filters.push(f1);
 
   // 2. Volume confirm
@@ -576,7 +581,7 @@ function computeScore(d) {
   } else { f5.pts = 0; f5.status = 'fail'; f5.desc = 'ATR indisponibil (date insuficiente) — niveluri necalculabile'; }
   score += f5.pts; filters.push(f5);
 
-  return { score, filters, last, ma50, ma200, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null };
+  return { score, filters, last, ma50, ma200, ma200Approx: !ma200Real, hi52: closes.length ? Math.max(...closes) : null, lo52: closes.length ? Math.min(...closes) : null, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null };
 }
 
 function tier(score) {
@@ -705,9 +710,11 @@ function render(sym, scoreData, insiderData) {
           <div class="meta"><div class="lbl">ADX(14)</div><div class="v">${scoreData.adx != null ? scoreData.adx.toFixed(1) : '—'}</div></div>
           <div class="meta"><div class="lbl">ATR(14)</div><div class="v">${scoreData.atr != null ? scoreData.atr.toFixed(2) : '—'}</div></div>
           <div class="meta"><div class="lbl">MA50</div><div class="v">${scoreData.ma50 != null ? fmt$(scoreData.ma50) : '—'}</div></div>
-          <div class="meta"><div class="lbl">MA200</div><div class="v">${scoreData.ma200 != null ? fmt$(scoreData.ma200) : '—'}</div></div>
+          <div class="meta"><div class="lbl">MA200${scoreData.ma200Approx ? '≈' : ''}</div><div class="v">${scoreData.ma200 != null ? fmt$(scoreData.ma200) : '—'}</div></div>
           <div class="meta ${scoreData.volRatio >= 1 ? 'up' : 'dn'}"><div class="lbl">Vol Ratio</div><div class="v">${scoreData.volRatio != null ? scoreData.volRatio.toFixed(2) + '×' : '—'}</div></div>
           <div class="meta ${last > scoreData.ma50 ? 'up' : 'dn'}"><div class="lbl">vs MA50</div><div class="v">${scoreData.ma50 ? ((last / scoreData.ma50 - 1) * 100).toFixed(1) + '%' : '—'}</div></div>
+          <div class="meta ${scoreData.hi52 && last >= scoreData.hi52 * 0.98 ? 'up' : ''}"><div class="lbl">vs Max 52s</div><div class="v">${scoreData.hi52 ? ((last / scoreData.hi52 - 1) * 100).toFixed(1) + '%' : '—'}</div></div>
+          <div class="meta"><div class="lbl">vs Min 52s</div><div class="v">${scoreData.lo52 ? '+' + ((last / scoreData.lo52 - 1) * 100).toFixed(1) + '%' : '—'}</div></div>
         </div>
       </div>
 
