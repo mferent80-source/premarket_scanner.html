@@ -222,7 +222,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v6</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v7</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -516,6 +516,37 @@ async function fetchInsiders(sym) {
   }
 }
 
+// ─────────────────────── EARNINGS GUARD ───────────────────────
+// Singura pagină care te împinge spre EXECUȚIE nu verifica earnings — verdict
+// „READY" cu raport a doua zi = loterie (gap ±10-30%, SL-ul pe ATR nu protejează
+// de gap). Cache SHARED cu watchlist-monitor (`wl_earnings_cache`, același format
+// { ts, map:{SYM:{date,hour}} }, TTL 6h) — oricare pagină îl reîmprospătează.
+const EARN_CACHE_KEY = 'wl_earnings_cache';
+async function getEarningsInfo(sym) {
+  let map = null;
+  try { const c = JSON.parse(localStorage.getItem(EARN_CACHE_KEY) || 'null'); if (c && c.ts && Date.now() - c.ts < 6 * 3600 * 1000 && c.map) map = c.map; } catch (e) {}
+  if (!map && state.finnhubKey) {
+    try {
+      const fmtD = d => d.toISOString().slice(0, 10);
+      const r = await fetch(`${FINNHUB_BASE}/calendar/earnings?from=${fmtD(new Date())}&to=${fmtD(new Date(Date.now() + 14 * 86400000))}&token=${state.finnhubKey}`);
+      if (r.ok) {
+        const j = await r.json();
+        map = {};
+        (j.earningsCalendar || []).forEach(e => { if (e && e.symbol && e.date) { const s = e.symbol.toUpperCase(); if (!map[s]) map[s] = { date: e.date, hour: e.hour || '' }; } });
+        try { localStorage.setItem(EARN_CACHE_KEY, JSON.stringify({ ts: Date.now(), map })); } catch (e) {}
+      }
+    } catch (e) {}
+  }
+  const e = map && map[sym];
+  if (!e || !e.date) return null;
+  // ancorat pe ~17:00 ET (după AMC) — miezul nopții UTC ar stinge alerta chiar în dimineața raportului
+  const ts = new Date(e.date + 'T17:00:00-05:00').getTime();
+  if (isNaN(ts)) return null;
+  const hoursAway = (ts - Date.now()) / 3600000;
+  if (hoursAway < -6 || hoursAway > 7 * 24) return null; // doar fereastra relevantă ≤7 zile
+  return { date: e.date, hour: e.hour, hoursAway };
+}
+
 // ─────────────────────── SCORING ───────────────────────
 function computeScore(d) {
   const { closes, volumes, highs, lows } = d;
@@ -626,7 +657,7 @@ function analyzeInsiders(transactions) {
 }
 
 // ─────────────────────── RENDER ───────────────────────
-function render(sym, scoreData, insiderData) {
+function render(sym, scoreData, insiderData, earnInfo) {
   const t = tier(scoreData.score);
   const last = scoreData.last;
   const atrV = scoreData.atr || 0;
@@ -691,7 +722,14 @@ function render(sym, scoreData, insiderData) {
     `;
   }
 
-  resultArea.innerHTML = `
+  // Earnings guard — banner peste tot rezultatul; NU mută scorul (filtrele rămân
+  // transparente), dar avertismentul e imposibil de ratat.
+  const earnBanner = earnInfo
+    ? (earnInfo.hoursAway <= 48
+        ? `<div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5);border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:13px;color:var(--red);font-weight:600;line-height:1.5">🚫 <strong>EARNINGS ${earnInfo.date}${earnInfo.hour === 'bmo' ? ' (pre-market)' : earnInfo.hour === 'amc' ? ' (after-close)' : ''} — în ~${Math.max(0, Math.round(earnInfo.hoursAway))}h.</strong> NU deschide poziția înainte de raport: gap ±10-30% imposibil de prezis, SL-ul pe ATR nu te protejează de gap. Verdictul de mai jos NU include acest risc.</div>`
+        : `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:10px;padding:9px 13px;margin-bottom:12px;font-size:12.5px;color:var(--yellow)">📅 Earnings <strong>${earnInfo.date}</strong> (~${Math.ceil(earnInfo.hoursAway / 24)} zile) — volatilitate imprevizibilă în jurul raportului; dimensionează conservator sau așteaptă publicarea.</div>`)
+    : '';
+  resultArea.innerHTML = earnBanner + `
     <div class="grid">
       <div class="card verdict-card">
         <div class="verdict-icon">${t.icon}</div>
@@ -983,10 +1021,10 @@ async function scan(sym) {
   resultArea.innerHTML = `<div class="loading"><div class="spinner"></div><div>Fetch Yahoo + Finnhub pentru <strong>${sym}</strong>…</div></div>`;
 
   try {
-    const [yahoo, ins] = await Promise.all([fetchYahoo(sym), fetchInsiders(sym)]);
+    const [yahoo, ins, earn] = await Promise.all([fetchYahoo(sym), fetchInsiders(sym), getEarningsInfo(sym)]);
     if (yahoo.closes.length < 50) throw new Error(`Doar ${yahoo.closes.length} bare disponibile (min 50)`);
     const scoreData = computeScore(yahoo);
-    render(sym, scoreData, ins);
+    render(sym, scoreData, ins, earn);
     toast(`✓ ${sym} · Score ${scoreData.score}/100`, 'ok');
   } catch (e) {
     resultArea.innerHTML = `
