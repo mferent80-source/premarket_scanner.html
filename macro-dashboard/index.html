@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v182</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v183</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1246,7 +1246,8 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <script>
 // ============ CONFIG ============
-const VERSION = 'v147';
+// (constanta VERSION a fost eliminată — era „v147", desincronizată cu ver-badge-ul
+//  din header și nefolosită nicăieri; sursa de adevăr e badge-ul, bump-uit la fiecare push)
 const DEFAULT_CFG = {
   alertThreshold: 120, // minute
   autoRefresh: 1800, // secunde
@@ -2051,7 +2052,9 @@ async function fetchYahooChart30d(symbol) {
 }
 
 function drawSparkline(points, w=620, h=160) {
-  if (!points || points.length < 2) return '';
+  if (!points) return '';
+  points = points.filter(p => p && Number.isFinite(p.close)); // close undefined/NaN → SVG cu coordonate NaN
+  if (points.length < 2) return '';
   const vals = points.map(p => p.close);
   const min = Math.min(...vals);
   const max = Math.max(...vals);
@@ -5125,6 +5128,7 @@ function bindEvents() {
     _coingeckoCache = null;
     _chartCache?.clear();
     PROXY_DEAD.clear();
+    window._proxyErrorToastShown = false; // la retry manual eșuat, avertismentul de proxy trebuie să REAPARĂ
     _proxyResetTs = Date.now();
     await Promise.all([loadCalendar(), loadStatTiles()]);
     computeRiskDashboard().then(() => renderRiskTile()).catch(() => {});
@@ -5181,7 +5185,7 @@ function bindEvents() {
     playBeep();
     showBrowserNotif('🧪 TEST Macro Dashboard', 'Eveniment demo: ' + fakeEvent.event);
     sendTelegramAlert(buildAlertTgMessage([fakeEvent], thresholdLabel(CFG.alertThreshold)));
-    toast('✅ Test trimis (verifică sunet + notif browser + Telegram)', 'success');
+    toast('✅ Test trimis (verifică sunet + notif browser + Telegram)', 'success', { force: true }); // confirmarea testului trebuie să apară și cu 🔕 activ
   });
 
 
