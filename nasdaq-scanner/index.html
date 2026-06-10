@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v98</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v99</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -5992,6 +5992,25 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
     if(w3 <= -5){
       buyScore -= 18;
       buyReasons.push({t:`⚠️ Falling knife: RSI ${rsi.toFixed(0)} + ${w3.toFixed(1)}% în 3 zile fără bounce. Așteaptă confirmare reversal (close pozitiv 2+ zile).`,c:'neg'});
+    }
+  }
+
+  // ── RVOL direcțional (din dailyVolCache — zero request-uri în plus) ──
+  // Volum mare pe creștere = acumulare (buy+), pe scădere = distribuție (sell+),
+  // anemic = încredere scăzută în ambele direcții. Intră ÎNAINTE de cap-uri (e în raw).
+  const _dvO=(typeof dailyVolCache!=='undefined'&&dailyVolCache[symbol])||null;
+  if(_dvO&&_dvO.avgVol>0&&_dvO.vol24>0){
+    const _rvol=_dvO.vol24/_dvO.avgVol;
+    if(_rvol>=1.5&&chg24>=0){
+      const p=_rvol>=2?6:4; buyScore+=p;
+      buyReasons.push({t:`📊 RVOL ${_rvol.toFixed(1)}× media 20z pe creștere — acumulare, volumul confirmă mișcarea.`,c:'pos'});
+    } else if(_rvol>=1.5&&chg24<0){
+      const p=_rvol>=2?6:4; sellScore+=p;
+      sellReasons.push({t:`📊 RVOL ${_rvol.toFixed(1)}× media 20z pe scădere — distribuție, presiune reală de vânzare.`,c:'neg'});
+    } else if(_rvol<0.5){
+      buyScore-=2; sellScore-=2;
+      const m={t:`📊 RVOL ${_rvol.toFixed(1)}× — volum anemic, mișcarea are puțină convingere în spate.`,c:'neu'};
+      buyReasons.push(m); sellReasons.push(m);
     }
   }
 
