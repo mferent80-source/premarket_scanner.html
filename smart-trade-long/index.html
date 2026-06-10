@@ -222,7 +222,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v3</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v4</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -306,7 +306,9 @@ const AUTO_INTERVAL_MS = 5 * 60 * 1000;
 
 // ─────────────────────── STATE ───────────────────────
 const state = {
-  finnhubKey: localStorage.getItem(LS_KEY) || 'd7bsmo9r01quh9fbktq0d7bsmo9r01quh9fbktqg',
+  // FĂRĂ cheie hardcodată (cea veche era revocată + secret în repo public) —
+  // cheia e shared `finnhub_api_key`, setată din ⚙ Setări; UI-ul are deja mesajul de ghidaj.
+  finnhubKey: localStorage.getItem(LS_KEY) || '',
   autoTimer: null,
   lastSymbol: null,
   lastResult: null,
@@ -592,8 +594,14 @@ function analyzeInsiders(transactions) {
     const price = Number(t.transactionPrice || 0);
     const value = Math.abs(change) * price;
     const item = { ...t, value };
-    if (code === 'P' || (code === 'A' && change > 0)) buys.push(item);
-    else if (code === 'S' || (code === 'D' && change < 0)) sells.push(item);
+    // Clasificare aliniată cu suite-ul (earnings-hub/watchlist-monitor):
+    // A = GRANT administrativ, NU decizie de cumpărare → exclus din buys;
+    // S/D/F/G = vânzare/dispoziție; fallback pe semnul `change` (free tier
+    // omite frecvent codul). P = singura cumpărare decizională.
+    const isSell = code === 'S' || code === 'D' || code === 'F' || code === 'G' || change < 0;
+    const isBuy = code === 'P' || (change > 0 && !isSell && code !== 'A');
+    if (isBuy) buys.push(item);
+    else if (isSell && change !== 0) sells.push(item);
   }
   const buyVal = buys.reduce((a, b) => a + b.value, 0);
   const sellVal = sells.reduce((a, b) => a + b.value, 0);
