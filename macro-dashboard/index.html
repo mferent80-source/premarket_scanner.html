@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v185</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v186</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -4804,6 +4804,7 @@ function computeAndStoreSuggestion(event, result, key) {
     bias: result.bias,
     verdict: result.verdict,
     surprise: result.surprise,
+    impact: event.impact || 'med', // pt ponderarea verdictului zilei (HIGH > MED)
     actual: event.actual,
     forecast: event.forecast,
     tickers: newOnes,
@@ -4948,7 +4949,11 @@ function renderDailyVerdict(active) {
   let bull = 0, bear = 0;
   const sectorScore = {}; // "icon label" -> scor semnat (+ bullish / - bearish), ponderat pe surprise
   active.forEach(([k, s]) => {
-    const w = 1 + Math.min(Math.abs(s.surprise || 0), 5); // |surprise| capat la 5% ca să nu domine un outlier
+    // Ponderare pe |surprise| (capat la 5% anti-outlier) × IMPORTANȚA evenimentului:
+    // un beat de 3% pe CPI (HIGH) trebuie să tragă dublu față de același beat pe un
+    // eveniment minor — înainte cântăreau identic. Intrările vechi fără `impact` = 1×.
+    const impW = s.impact === 'high' ? 2 : 1;
+    const w = (1 + Math.min(Math.abs(s.surprise || 0), 5)) * impW;
     if (s.bias === 'bullish') bull += w; else if (s.bias === 'bearish') bear += w;
     (getSectorImpact(s.eventName) || []).forEach(sec => {
       const key2 = `${sec.icon} ${sec.label}`;
