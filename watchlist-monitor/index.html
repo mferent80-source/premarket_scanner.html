@@ -371,7 +371,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v117</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v118</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -505,7 +505,8 @@ window.showWlFeatures = function(){
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   const sections = [
     { title: '📡 Date', cls: 'data', items: [
-      { e: '📡', t: '<b>Yahoo Finance</b> — fără cheie, range 1y interval 1d; lanț de 3 proxy-uri CORS cu fallback + marcare proxy mort (dacă unul e rate-limited/CORS, trece la următorul și-l sare până la scanul următor)' },
+      { e: '📡', t: '<b>Yahoo Finance</b> — fără cheie; lanț de 3 proxy-uri CORS cu fallback + marcare proxy mort (dacă unul e rate-limited/CORS, trece la următorul și-l sare până la scanul următor)' },
+      { e: '⚡', t: '<b>Scan rapid</b> — istoricul 1y (MA/RSI) e cache-uit local 45 min; la fiecare scan pleacă doar un request mic live per simbol, 3 în paralel → secunde, nu minute, și mult mai blând cu proxy-urile' },
       { e: '🌅', t: '<b>Pre/After-hours live</b> — în sesiunea extinsă apare coloana „🌅 Pre"/„🌆 After" cu Δ%, preț și volum din pre-market/after-hours (simboluri US); alertele de mișcare ±X% folosesc prețul live, nu close-ul de ieri. Badge sesiune NYSE în header' },
       { e: '🔄', t: '<b>Storage shared</b> wl_stocks cu nasdaq-scanner' },
     ]},
@@ -542,7 +543,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v117 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v118 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -902,43 +903,116 @@ function updateSessionPill(){
   el.className = 'status-pill' + (s.state === 'open' ? ' live' : (s.state === 'pre' || s.state === 'post') ? ' pre' : '');
 }
 setInterval(updateSessionPill, 30000);
+// Data calendaristică în fusul ET (YYYY-MM-DD) — decide dacă o bară daily e „azi".
+function etDate(ms){
+  try { return new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(ms)); }
+  catch(e){ return new Date(ms).toISOString().slice(0, 10); }
+}
 
 // ═══════════════════════════════════════════════════════════════
-//  PRE/POST-MARKET (F-pre) — Yahoo chart 5m/1d cu includePrePost=true.
-//  Doar simboluri US (EU nu au pre/post pe Yahoo). Returnează mișcarea
-//  din sesiunea extinsă curentă: preț live, Δ% vs referință, volum cumulat.
+//  LIVE SNAPSHOT (F2) — un singur request mic per simbol per scan:
+//  chart 5m/1d cu includePrePost=true → preț regular curent + close-ul
+//  de ieri + volum zi + (în sesiunea extinsă, simboluri US) mișcarea
+//  pre/post: ultimul preț din barele pre/post, Δ% vs referință, volum cumulat.
 //    pre:  bare în [pre.start, regular.start) · ref = close-ul de ieri (chartPreviousClose)
 //    post: bare în [post.start, ∞)            · ref = close-ul regular de azi
 // ═══════════════════════════════════════════════════════════════
-async function fetchPrePost(symbol, state){
-  if (symbol.includes('.')) return null; // doar US
+async function fetchLiveMeta(symbol, state){
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d&includePrePost=true&_=${Date.now()}`;
   const d = await proxyGetJSON(url);
   const result = d?.chart?.result?.[0];
-  if (!result || !result.timestamp) return null;
+  if (!result) return null;
   const meta = result.meta || {};
   const per = meta.currentTradingPeriod || {};
-  const ts = result.timestamp;
+  const ts = result.timestamp || [];
   const closes = result.indicators?.quote?.[0]?.close || [];
   const vols = result.indicators?.quote?.[0]?.volume || [];
-  let from, to, ref;
-  if (state === 'pre'){
-    if (!per.pre || !per.regular) return null;
-    from = per.pre.start; to = per.regular.start;
-    ref = meta.chartPreviousClose ?? meta.previousClose ?? null;
-  } else { // post
-    if (!per.post) return null;
-    from = per.post.start; to = Infinity;
-    ref = meta.regularMarketPrice ?? null;
+  const out = {
+    price: meta.regularMarketPrice ?? null,
+    prevClose: meta.chartPreviousClose ?? meta.previousClose ?? null,
+    dayVol: meta.regularMarketVolume ?? null,
+    pre: null,
+  };
+  if (out.dayVol == null && per.regular){ // fallback: suma barelor din sesiunea regulară
+    let v = 0;
+    for (let i = 0; i < ts.length; i++){ if (ts[i] >= per.regular.start && ts[i] < per.regular.end && vols[i] != null) v += vols[i]; }
+    out.dayVol = v || null;
   }
-  let last = null, vol = 0;
-  for (let i = 0; i < ts.length; i++){
-    if (ts[i] < from || ts[i] >= to) continue;
-    if (closes[i] != null) last = closes[i];
-    if (vols[i] != null) vol += vols[i];
+  if ((state === 'pre' || state === 'post') && !symbol.includes('.')){ // doar US au pre/post
+    let from, to, ref;
+    if (state === 'pre'){ if (per.pre && per.regular){ from = per.pre.start; to = per.regular.start; ref = out.prevClose; } }
+    else if (per.post){ from = per.post.start; to = Infinity; ref = out.price; }
+    if (from != null && ref){
+      let last = null, vol = 0;
+      for (let i = 0; i < ts.length; i++){
+        if (ts[i] < from || ts[i] >= to) continue;
+        if (closes[i] != null) last = closes[i];
+        if (vols[i] != null) vol += vols[i];
+      }
+      if (last != null) out.pre = { price: last, chg: ((last - ref) / ref) * 100, vol };
+    }
   }
-  if (last == null || !ref) return null;
-  return { price: last, chg: ((last - ref) / ref) * 100, vol };
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CACHE ISTORIC (F2) — closes/volumes 1y per simbol, TTL 45 min.
+//  Istoricul daily nu se schimbă intraday — doar prețul live, care vine
+//  din fetchLiveMeta. Reduce request-urile prin proxy de la N×scan la N×45min.
+// ═══════════════════════════════════════════════════════════════
+const HIST_CACHE_KEY = 'wl_hist_cache';
+const HIST_TTL_MS = 45 * 60 * 1000;
+let _histMem = null;
+function _histAll(){
+  if (!_histMem){ try { _histMem = JSON.parse(localStorage.getItem(HIST_CACHE_KEY) || '{}'); } catch(_){ _histMem = {}; } }
+  return _histMem;
+}
+function _histPersist(){
+  const all = _histAll();
+  Object.keys(all).forEach(s => { if (!watchlist.includes(s) && s !== 'QQQ') delete all[s]; }); // nu crește nelimitat
+  try { localStorage.setItem(HIST_CACHE_KEY, JSON.stringify(all)); }
+  catch(_){ _histMem = {}; try { localStorage.removeItem(HIST_CACHE_KEY); } catch(__){} } // quota plin → fără cache, scanul merge
+}
+async function getHist(symbol){
+  const all = _histAll();
+  const c = all[symbol];
+  if (c && (Date.now() - c.ts) < HIST_TTL_MS) return c;
+  const fresh = await fetchYahooData(symbol);
+  if (fresh){ all[symbol] = fresh; return fresh; }
+  return c || null; // istoric expirat > nimic, dacă fetch-ul pică
+}
+
+// Combină istoricul cache-uit cu snapshot-ul live → obiectul folosit de scoring.
+// După compunere ultima intrare din closes = „acum", deci universal:
+//   price = closes[len-1], prevClose = closes[len-2] (Δ Zi = ultima sesiune, ca înainte).
+async function getStockData(sym, sess){
+  const live = await fetchLiveMeta(sym, sess.state);
+  const hist = await getHist(sym);
+  if (!hist) return null;
+  const closes = hist.closes.slice();
+  const vols = (hist.vols || []).slice();
+  const today = etDate(Date.now());
+  const lastDate = hist.lastBarTs ? etDate(hist.lastBarTs * 1000) : null;
+  const lp = live ? live.price : null;
+  if (lp != null){
+    if (lastDate === today){
+      closes[closes.length - 1] = lp; // bara de azi e în istoric → actualizează-i close-ul
+      if (live.dayVol != null) vols[vols.length - 1] = live.dayVol;
+    } else if (sess.state === 'open' || sess.state === 'post'){
+      closes.push(lp); vols.push(live.dayVol ?? 0); // azi lipsește din cache → extinde
+    }
+    // pre/closed cu ultima bară ieri: lp E close-ul de ieri — nimic de schimbat
+  }
+  if (closes.length < 2) return null;
+  return {
+    symbol: sym,
+    price: closes[closes.length - 1],
+    prevClose: closes[closes.length - 2],
+    vol: (live && live.dayVol != null) ? live.dayVol : vols[vols.length - 1] || 0,
+    closes, vols,
+    pre: live ? live.pre : null,
+    ts: Date.now(),
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -983,26 +1057,25 @@ function _parseYahoo(symbol, d){
   const result = d?.chart?.result?.[0];
   if (!result) return null;
   const meta = result.meta;
-  const closes = result.indicators?.quote?.[0]?.close || [];
-  const volumes = result.indicators?.quote?.[0]?.volume || [];
-  const validCloses = closes.filter(v => v != null);
-  if (validCloses.length < 50) return null;
-  const price = meta.regularMarketPrice != null ? meta.regularMarketPrice : validCloses[validCloses.length - 1];
-  // Δ Zi = variația față de close-ul zilei PRECEDENTE.
-  // NU folosi meta.chartPreviousClose: cu range=1y acela e close-ul de acum un an
-  // (prima bară a chart-ului), nu de ieri → ar da variații uriașe (pe tot anul).
-  const last = validCloses[validCloses.length - 1];
-  const prev = validCloses[validCloses.length - 2];
-  // dacă ultima bară e ziua curentă (price ≈ ultima close) → ieri = penultima;
-  // altfel (ex. premarket, ultima bară e deja ieri închisă) → prevClose = ultima.
-  const sameDay = last != null && price != null && Math.abs(price - last) / price < 0.0005;
-  const prevClose = sameDay ? prev : last;
+  const rawCloses = result.indicators?.quote?.[0]?.close || [];
+  const rawVols = result.indicators?.quote?.[0]?.volume || [];
+  const tsArr = result.timestamp || [];
+  // filtrează null-urile (zile fără tranzacționare) ținând closes/vols ALINIATE
+  const closes = [], vols = [];
+  let lastBarTs = null;
+  for (let i = 0; i < rawCloses.length; i++){
+    if (rawCloses[i] == null) continue;
+    closes.push(rawCloses[i]);
+    vols.push(rawVols[i] != null ? rawVols[i] : 0);
+    if (tsArr[i] != null) lastBarTs = tsArr[i];
+  }
+  if (closes.length < 50) return null;
+  const price = meta.regularMarketPrice != null ? meta.regularMarketPrice : closes[closes.length - 1];
   return {
     symbol,
     price,
-    prevClose,
-    vol: volumes[volumes.length - 1] || 0,
-    closes: validCloses,
+    vol: vols[vols.length - 1] || 0,
+    closes, vols, lastBarTs,
     ts: Date.now(),
   };
 }
@@ -1257,55 +1330,64 @@ async function runScan(){
 
   // Benchmark QQQ (Nasdaq-100) o dată per scan → alpha 30z per stock (F3-extra)
   let benchTrend30 = null;
-  try { const qd = await fetchYahooData('QQQ'); if (qd && qd.closes) benchTrend30 = trendPct(qd.closes, 30); } catch(_){}
+  try { const qd = await getHist('QQQ'); if (qd && qd.closes) benchTrend30 = trendPct(qd.closes, 30); } catch(_){}
 
-  const newResults = [];
-  for (let i = 0; i < watchlist.length; i++){
-    const sym = watchlist[i];
-    const data = await fetchYahooData(sym);
-    let pp = null;
-    if (extended && data) pp = await fetchPrePost(sym, sess.state);
-    if (data){
-      const sc = scoreStock(data);
-      newResults.push({
-        symbol: sym,
-        price: data.price,
-        prePrice: pp ? pp.price : null,
-        preChg: pp ? pp.chg : null,
-        preVol: pp ? pp.vol : null,
-        livePrice: pp ? pp.price : data.price,
-        chg: sc.chg,
-        vol: data.vol,
-        rsi: sc.rsi,
-        ma50: sc.aboveMa50,
-        ma200: sc.aboveMa200,
-        ma50abs: sc.ma50,
-        ma200abs: sc.ma200,
-        atrPct: sc.atrPct,
-        breakdown: sc.breakdown,
-        hi52: Math.max(...data.closes),
-        lo52: Math.min(...data.closes),
-        score: sc.score,
-        verdict: sc.verdict,
-        verdictTxt: sc.verdictTxt,
-        spark: data.closes.slice(-60),
-        trend: trendPct(data.closes, 30),
-        alpha: (benchTrend30 != null && trendPct(data.closes, 30) != null) ? trendPct(data.closes, 30) - benchTrend30 : null,
-        ts: Date.now(),
-      });
-    } else {
-      newResults.push({
-        symbol: sym, price: null, chg: null, vol: null, rsi: null,
-        prePrice: null, preChg: null, preVol: null, livePrice: null,
-        ma50: null, ma200: null, ma50abs: null, ma200abs: null, atrPct: null, breakdown: [],
-        hi52: null, lo52: null, score: 0,
-        verdict: 'hold', verdictTxt: '⚠️ N/A', spark: [], trend: null, alpha: null, ts: Date.now(),
-      });
+  const buildRow = (sym, data, pp) => {
+    if (!data) return {
+      symbol: sym, price: null, chg: null, vol: null, rsi: null,
+      prePrice: null, preChg: null, preVol: null, livePrice: null,
+      ma50: null, ma200: null, ma50abs: null, ma200abs: null, atrPct: null, breakdown: [],
+      hi52: null, lo52: null, score: 0,
+      verdict: 'hold', verdictTxt: '⚠️ N/A', spark: [], trend: null, alpha: null, ts: Date.now(),
+    };
+    const sc = scoreStock(data);
+    return {
+      symbol: sym,
+      price: data.price,
+      prePrice: pp ? pp.price : null,
+      preChg: pp ? pp.chg : null,
+      preVol: pp ? pp.vol : null,
+      livePrice: pp ? pp.price : data.price,
+      chg: sc.chg,
+      vol: data.vol,
+      rsi: sc.rsi,
+      ma50: sc.aboveMa50,
+      ma200: sc.aboveMa200,
+      ma50abs: sc.ma50,
+      ma200abs: sc.ma200,
+      atrPct: sc.atrPct,
+      breakdown: sc.breakdown,
+      hi52: Math.max(...data.closes),
+      lo52: Math.min(...data.closes),
+      score: sc.score,
+      verdict: sc.verdict,
+      verdictTxt: sc.verdictTxt,
+      spark: data.closes.slice(-60),
+      trend: trendPct(data.closes, 30),
+      alpha: (benchTrend30 != null && trendPct(data.closes, 30) != null) ? trendPct(data.closes, 30) - benchTrend30 : null,
+      ts: Date.now(),
+    };
+  };
+
+  // Worker pool: 3 fetch-uri în paralel + stagger mic — cu cache-ul istoric (F2)
+  // majoritatea scanurilor = 1 request mic/simbol, deci scanul durează secunde, nu minute.
+  const newResults = new Array(watchlist.length);
+  let _qIdx = 0, _qDone = 0;
+  const scanWorker = async () => {
+    while (true){
+      const i = _qIdx++;
+      if (i >= watchlist.length) break;
+      const sym = watchlist[i];
+      let data = null;
+      try { data = await getStockData(sym, sess); } catch(_){}
+      newResults[i] = buildRow(sym, data, data ? data.pre : null);
+      _qDone++;
+      setStatus('load', `scanez… ${_qDone}/${watchlist.length}`);
+      await new Promise(r => setTimeout(r, 150)); // blândețe cu proxy-urile free
     }
-    setStatus('load', `scanez… ${i + 1}/${watchlist.length}`);
-    // Rate limit safety — 350ms între request-uri (proxy-urile free se supără repede)
-    await new Promise(r => setTimeout(r, 350));
-  }
+  };
+  await Promise.all(Array.from({ length: Math.min(3, watchlist.length) }, scanWorker));
+  _histPersist(); // o singură scriere LS per scan (nu per simbol)
 
   // Flash direction (F2) + detectare schimbări de verdict (F6) față de scan-ul anterior
   const prevScore = {}, prevVerd = {};
