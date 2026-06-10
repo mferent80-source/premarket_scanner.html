@@ -353,6 +353,10 @@ table.no-pre .col-pre { display:none; }
 .tg-field label { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:700; font-family:var(--mono); }
 .tg-field input { padding:7px 10px; font-size:12px; font-family:var(--mono); }
 
+/* Corelație / concentrare (D) */
+.corr-banner { background:rgba(212,137,44,.10); border:1px solid rgba(212,137,44,.4); border-radius:var(--r); padding:9px 13px; margin-bottom:10px; font-size:11.5px; color:var(--t2); line-height:1.5; }
+.corr-banner b { color:var(--warn); }
+
 /* AI verdict (B) */
 .ai-box { margin-top:12px; background:var(--panel2); border:1px solid rgba(91,176,255,.35); border-radius:var(--rs); padding:10px 12px; font-size:11.5px; line-height:1.55; }
 .ai-box.fade-in { animation:aiFade .5s var(--ease); }
@@ -382,7 +386,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v131</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v132</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -463,6 +467,9 @@ table.no-pre .col-pre { display:none; }
   <span class="fb-count" id="fbCount"></span>
 </div>
 
+<!-- Warning concentrare / corelație (D) -->
+<div id="corrBanner" class="corr-banner" style="display:none"></div>
+
 <!-- Tabel -->
 <div class="panel-box scanner-wrap">
   <div class="panel-head">
@@ -528,6 +535,8 @@ window.showWlFeatures = function(){
       { e: '🔊', t: '<b>RVOL</b> — volum relativ vs media 20 zile, coloană + în scor direcțional: volum mare pe creștere = acumulare (+), pe scădere = distribuție (−), anemic = penalizare mică. Intraday volumul parțial e <b>proiectat</b> la sesiunea întreagă (prefix ~); în primele 45 min nu se evaluează (prea zgomotos)' },
       { e: '🎯', t: '<b>Verdict 5-tier</b>: 🚀 STRONG BUY ≥75 / 📈 BUY 60-74 / 📊 HOLD / 📉 SELL / 🔴 AVOID' },
       { e: 'α', t: '<b>Alpha vs QQQ</b> — coloană + metrică „α QQQ 30z": cât bate stockul indicele Nasdaq-100 pe 30 zile (verde = outperformance). Un STRONG BUY cu alpha negativ = atenție, mișcă mai slab decât piața' },
+      { e: 'β', t: '<b>Beta vs QQQ</b> — în detalii: cât amplifică stockul mișcarea indicelui (~120 zile de randamente); β 2 = mișcă dublu → la aceeași sumă investită ai risc dublu. Portocaliu la β≥1.5' },
+      { e: '⚠️', t: '<b>Warning concentrare</b> — banner când ≥3 stocks din listă au corelație ≥0.8 între ele pe ~60 zile: mișcă împreună = practic o singură poziție (diversificare falsă). Calculat local din datele existente, zero request-uri' },
     ]},
     { title: '🤖 Automation & Alerte', cls: 'auto', items: [
       { e: '🔄', t: '<b>Auto-scan</b> 60s/180s/300s/OFF' },
@@ -562,7 +571,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v131 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v132 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -1102,7 +1111,7 @@ function buildAiPrompt(r){
   const earn = earningsMap[r.symbol];
   const lines = [
     `Ești un trader swing pe stocks US/EU. Analizează DOAR datele de mai jos (reale, calculate acum) pentru ${r.symbol}:`,
-    `- Preț: $${r.price.toFixed(2)} · Δ zi ${fmtPct(r.chg, 2)} · trend 30z ${fmtPct(r.trend, 1)} · alpha vs QQQ 30z ${r.alpha != null ? fmtPct(r.alpha, 1) : 'n/a'}`,
+    `- Preț: $${r.price.toFixed(2)} · Δ zi ${fmtPct(r.chg, 2)} · trend 30z ${fmtPct(r.trend, 1)} · alpha vs QQQ 30z ${r.alpha != null ? fmtPct(r.alpha, 1) : 'n/a'} · beta ≈ ${r.beta != null ? r.beta.toFixed(2) : 'n/a'}`,
     `- RSI14 ${r.rsi != null ? r.rsi.toFixed(1) : 'n/a'} · vs MA50 ${fmtPct(r.ma50, 1)} · vs MA200 ${fmtPct(r.ma200, 1)} · RVOL ${r.rvol != null ? r.rvol.toFixed(2) + '×' : 'n/a'}${r.rvolProj ? ' (proiectat)' : ''}`,
     `- ATR ≈ ${r.atrPct != null ? r.atrPct.toFixed(2) + '%/zi' : 'n/a'} · vs max 52s ${distHi != null ? fmtPct(distHi, 1) : 'n/a'} · vs min 52s ${distLo != null ? fmtPct(distLo, 1) : 'n/a'}`,
     `- Score intern ${r.score}/100 → ${r.verdictTxt}. Compoziție: ${(r.breakdown || []).map(b => b.l + ' ' + (b.base ? b.p : (b.p >= 0 ? '+' : '') + b.p)).join('; ')}`,
@@ -1502,6 +1511,69 @@ function calcMA(closes, period){
   return slice.reduce((a, b) => a + b, 0) / period;
 }
 
+// Beta vs benchmark din randamente zilnice (~120 zile). Aproximat pentru
+// simbolurile EU (calendarele de tranzacționare diferă cu câteva zile/an).
+function calcBeta(closes, benchCloses, n = 120){
+  if (!closes || !benchCloses || closes.length < 30 || benchCloses.length < 30) return null;
+  const m = Math.min(closes.length, benchCloses.length, n + 1);
+  const s = closes.slice(-m), b = benchCloses.slice(-m);
+  const rs = [], rb = [];
+  for (let i = 1; i < m; i++){
+    if (s[i - 1] && b[i - 1]){ rs.push(s[i] / s[i - 1] - 1); rb.push(b[i] / b[i - 1] - 1); }
+  }
+  if (rs.length < 20) return null;
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const ms = mean(rs), mb = mean(rb);
+  let cov = 0, varb = 0;
+  for (let i = 0; i < rs.length; i++){ cov += (rs[i] - ms) * (rb[i] - mb); varb += (rb[i] - mb) * (rb[i] - mb); }
+  return varb ? cov / varb : null;
+}
+
+// ── Corelație / concentrare (D) — clustere de stocks care mișcă împreună ──
+// Pearson pe randamentele zilnice din spark (60z, deja în memorie — ZERO request-uri).
+// Cluster = ≥3 simboluri legate prin perechi cu ρ≥0.8 → diversificare falsă.
+let corrClusters = [];
+function computeCorrClusters(rs){
+  const items = rs.filter(r => r.price != null && r.spark && r.spark.length >= 40);
+  if (items.length < 3) return [];
+  const rets = {};
+  items.forEach(r => {
+    const a = r.spark, out = [];
+    for (let i = 1; i < a.length; i++){ if (a[i - 1]) out.push(a[i] / a[i - 1] - 1); }
+    rets[r.symbol] = out;
+  });
+  const syms = items.map(r => r.symbol);
+  const parent = {};
+  syms.forEach(s => { parent[s] = s; });
+  const find = x => { while (parent[x] !== x){ parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  const corr = (x, y) => {
+    const n = Math.min(x.length, y.length);
+    if (n < 30) return 0;
+    const a = x.slice(-n), b = y.slice(-n);
+    const ma = a.reduce((p, c) => p + c, 0) / n, mb = b.reduce((p, c) => p + c, 0) / n;
+    let cab = 0, va = 0, vb = 0;
+    for (let i = 0; i < n; i++){ const da = a[i] - ma, db = b[i] - mb; cab += da * db; va += da * da; vb += db * db; }
+    return (va && vb) ? cab / Math.sqrt(va * vb) : 0;
+  };
+  for (let i = 0; i < syms.length; i++)
+    for (let j = i + 1; j < syms.length; j++)
+      if (corr(rets[syms[i]], rets[syms[j]]) >= 0.8){
+        const a = find(syms[i]), b = find(syms[j]);
+        if (a !== b) parent[a] = b;
+      }
+  const groups = {};
+  syms.forEach(s => { const r = find(s); (groups[r] = groups[r] || []).push(s); });
+  return Object.values(groups).filter(g => g.length >= 3);
+}
+function updateCorrBanner(){
+  const el = $('corrBanner'); if (!el) return;
+  if (!corrClusters.length){ el.style.display = 'none'; return; }
+  el.innerHTML = corrClusters.map(g =>
+    `⚠️ <b>Concentrare:</b> ${g.join(' · ')} mișcă împreună (ρ≥0.8 pe ~60 zile) — practic o singură poziție; dimensionează riscul pe grup, nu per stock.`
+  ).join('<br>');
+  el.style.display = '';
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  SPARKLINE — mini-grafic SVG din ultimele ~N închideri (F1)
 // ═══════════════════════════════════════════════════════════════
@@ -1647,16 +1719,16 @@ async function runScan(){
   const extended = sess.state === 'pre' || sess.state === 'post'; // sesiune extinsă → fetch pre/post per simbol US
   await loadEarningsCalendar(); // o dată per scan (cache 6h) — pentru badge-urile ER
 
-  // Benchmark QQQ (Nasdaq-100) o dată per scan → alpha 30z per stock (F3-extra)
-  let benchTrend30 = null;
-  try { const qd = await getHist('QQQ'); if (qd && qd.closes) benchTrend30 = trendPct(qd.closes, 30); } catch(_){}
+  // Benchmark QQQ (Nasdaq-100) o dată per scan → alpha 30z + beta per stock (F3-extra, D)
+  let benchTrend30 = null, benchCloses = null;
+  try { const qd = await getHist('QQQ'); if (qd && qd.closes){ benchTrend30 = trendPct(qd.closes, 30); benchCloses = qd.closes; } } catch(_){}
 
   const buildRow = (sym, data, pp) => {
     if (!data) return {
       symbol: sym, price: null, chg: null, vol: null, rvol: null, rsi: null,
       prePrice: null, preChg: null, preVol: null, livePrice: null,
       ma50: null, ma200: null, ma50abs: null, ma200abs: null, atrPct: null, breakdown: [],
-      hi52: null, lo52: null, score: 0,
+      hi52: null, lo52: null, beta: null, score: 0,
       verdict: 'hold', verdictTxt: '⚠️ N/A', spark: [], trend: null, alpha: null, ts: Date.now(),
     };
     const sc = scoreStock(data);
@@ -1680,6 +1752,7 @@ async function runScan(){
       breakdown: sc.breakdown,
       hi52: Math.max(...data.closes),
       lo52: Math.min(...data.closes),
+      beta: calcBeta(data.closes, benchCloses),
       score: sc.score,
       verdict: sc.verdict,
       verdictTxt: sc.verdictTxt,
@@ -1758,6 +1831,7 @@ async function runScan(){
 
   results = newResults;
   lastScanTs = Date.now();
+  corrClusters = computeCorrClusters(results); // D — warning concentrare (zero request-uri)
   persistResults(); // F4-extra — cache pt afișare instantă la următorul reload
   const okCount = newResults.filter(r => r.price != null).length;
   const failCount = newResults.length - okCount;
@@ -2049,6 +2123,7 @@ function buildDetailRow(r){
   if (r.preChg != null) metrics += dmCell('🌅 Pre/After', `<span style="color:${colP(r.preChg)}">${fmtPct(r.preChg, 2)}</span> <span style="font-size:9px;color:var(--t3)">$${r.prePrice.toFixed(2)} · vol ${fmtVol(r.preVol)}</span>`);
   metrics += dmCell('Trend 30z', `<span style="color:${colP(r.trend)}">${r.trend != null ? fmtPct(r.trend, 1) : '—'}</span>`);
   metrics += dmCell('α vs QQQ 30z', `<span style="color:${colP(r.alpha)}">${r.alpha != null ? fmtPct(r.alpha, 1) : '—'}</span>`);
+  metrics += dmCell('β vs QQQ ≈', r.beta != null ? `<span style="color:${r.beta >= 1.5 ? 'var(--warn)' : 'var(--t1)'}" title="cât amplifică mișcarea indicelui (~120 zile); β ${r.beta.toFixed(1)} = la −2% QQQ te aștepți la ~${(r.beta * -2).toFixed(1)}%">${r.beta.toFixed(2)}</span>` : '—');
   metrics += dmCell('RSI 14', r.rsi != null ? r.rsi.toFixed(1) : '—');
   metrics += dmCell('MA50', `${r.ma50abs != null ? fmtUSD(r.ma50abs) : '—'} <span style="font-size:9px;color:${colP(r.ma50)}">${r.ma50 != null ? fmtPct(r.ma50, 1) : ''}</span>`);
   metrics += dmCell('MA200', `${r.ma200abs != null ? fmtUSD(r.ma200abs) : '—'} <span style="font-size:9px;color:${colP(r.ma200)}">${r.ma200 != null ? fmtPct(r.ma200, 1) : ''}</span>`);
@@ -2183,6 +2258,7 @@ function renderHotStrip(){
 function render(){
   updateStats();
   renderHotStrip();
+  updateCorrBanner();
   const tbody = $('resultsBody');
   if (!watchlist.length){
     const popBtns = POPULAR_TICKERS.map(t => `<button class="qa-btn" type="button" onclick="quickAdd('${t}')">+ ${t}</button>`).join('');
@@ -2516,6 +2592,7 @@ try { const al = localStorage.getItem(ALERT_LEVEL_KEY); if (al === 'buy' || al =
 try { const ma = JSON.parse(localStorage.getItem(MOVE_ALERT_KEY) || 'null'); if (ma && typeof ma === 'object'){ moveAlert.enabled = !!ma.enabled; moveAlert.pct = Math.max(0.2, Math.min(20, parseFloat(ma.pct) || 1)); } } catch(e){}
 try { priceAlerts = JSON.parse(localStorage.getItem(PRICE_ALERT_KEY) || '{}') || {}; } catch(e){ priceAlerts = {}; }
 loadResultsCache(); // F4-extra — populează tabelul din cache înainte de primul scan
+corrClusters = computeCorrClusters(results); // D — banner-ul apare și din cache
 $('notifBtn').style.opacity = notifEnabled ? '1' : '.5';
 updateAlertButtons();
 setStatus('', `${watchlist.length} stocks · auto-scan 60s`);
