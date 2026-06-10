@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v93</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v94</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -4482,10 +4482,21 @@ async function fetchExtendedHours(){
     const batch=symbols.slice(i,i+BATCH);
     const batchResults=await Promise.all(batch.map(async sym=>{
       try{
-        const url='https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=5m&range=1d&includePrePost=true';
-        const r=await fetch(url);
-        if(!r.ok) return null;
-        const data=await r.json();
+        // cache-buster: proxy-urile cache-uiesc URL identic și servesc prețuri vechi.
+        const yahooUrl='https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=5m&range=1d&includePrePost=true&_='+Date.now();
+        // direct întâi (dacă CORS permite), apoi lanțul de proxy-uri — înainte era DOAR
+        // fetch direct, iar de pe GitHub Pages Yahoo respinge frecvent originul (CORS).
+        let data=null;
+        const _cands=[yahooUrl].concat((typeof yahooProxies!=='undefined'?yahooProxies:[]).map(p=>p+encodeURIComponent(yahooUrl)));
+        for(const u of _cands){
+          try{
+            const r=await fetch(u,{signal:AbortSignal.timeout(6000)});
+            if(!r.ok) continue;
+            data=await r.json();
+            if(data) break;
+          }catch(e){}
+        }
+        if(!data) return null;
         const result=data?.chart?.result?.[0];
         if(!result||!result.meta) return null;
         const meta=result.meta;
@@ -4496,10 +4507,14 @@ async function fetchExtendedHours(){
         const postMarketPrice=meta.postMarketPrice||null;
         
         // Determine which extended price is relevant
+        // Referința Δpre = regularMarketPrice (în premarket = close-ul de IERI).
+        // NU chartPreviousClose: cu range=1d în premarket acela e close-ul de
+        // ALALTĂIERI (verificat empiric pe TSLA — gap fals; bug-ul v121 din suite).
+        const preRef=regularPrice||prevClose;
         let extPrice=null, extLabel='', extPct=0;
         if(session.session==='premarket' && preMarketPrice){
           extPrice=preMarketPrice; extLabel='Pre';
-          extPct=((preMarketPrice-prevClose)/prevClose)*100;
+          extPct=((preMarketPrice-preRef)/preRef)*100;
         } else if(session.session==='afterhours' && postMarketPrice){
           extPrice=postMarketPrice; extLabel='After';
           extPct=((postMarketPrice-regularPrice)/regularPrice)*100;
@@ -4508,9 +4523,9 @@ async function fetchExtendedHours(){
           if(postMarketPrice && Math.abs(postMarketPrice-regularPrice)>regularPrice*0.001){
             extPrice=postMarketPrice; extLabel='After (last)';
             extPct=((postMarketPrice-regularPrice)/regularPrice)*100;
-          } else if(preMarketPrice && Math.abs(preMarketPrice-prevClose)>prevClose*0.001){
+          } else if(preMarketPrice && Math.abs(preMarketPrice-preRef)>preRef*0.001){
             extPrice=preMarketPrice; extLabel='Pre (last)';
-            extPct=((preMarketPrice-prevClose)/prevClose)*100;
+            extPct=((preMarketPrice-preRef)/preRef)*100;
           } else {
             return null; // No extended movement
           }
