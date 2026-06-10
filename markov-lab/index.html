@@ -86,12 +86,14 @@ table.mx td.lbl { color:var(--t2); background:var(--panel2); font-weight:600; }
 code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; border-radius:4px; font-size:12px; }
 .legend { font-size:10.5px; color:var(--t3); margin-top:8px; line-height:1.5; }
 .spinner { display:inline-block; width:13px; height:13px; border:2px solid var(--b2); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; }
+.mk-fadein { animation:mkFade .5s ease; }
+@keyframes mkFade { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
 @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
 
-<h1>🔗 Markov Lab <span class="ver">v3.4</span></h1>
+<h1>🔗 Markov Lab <span class="ver">v3.5</span></h1>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
   Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
@@ -587,7 +589,7 @@ function renderHMM(meta, ohlc){
     } else {
       K = +meta.K; hmm = MK.fitHMM(obs, K, { iters: 120, restarts: 6 });
     }
-  } catch(e){ return `<div class="panel"><div class="err">HMM eroare: ${e.message}</div></div>`; }
+  } catch(e){ return `<div class="panel"><div class="err">HMM eroare: ${mkEsc(e.message)}</div></div>`; }
   const order = hmm.order;                       // idx sortați calm→volatil
   const rank = {}; order.forEach((idx,r)=> rank[idx]=r);
   const rstats = MK.regimeStats(obs, hmm);       // autocorelație etc. per regim (index brut)
@@ -728,7 +730,7 @@ async function runHMM(){
     if(ohlc.length<Kmax*20){ setStatus(`Prea puține bare (${ohlc.length}) pentru ${Kmax} regimuri.`,true); return; }
     setStatus(`${ohlc.length} bare · HMM antrenat.`);
     $('out').innerHTML = renderHMM({sym,tf,K:kSel}, ohlc);
-  } catch(e){ setStatus('Eroare: '+(e.message||e),true); }
+  } catch(e){ setStatus('Eroare: ' + mkEsc(e.message||e), true); }
   finally { $('hmm').disabled=false; $('run').disabled=false; }
 }
 
@@ -776,7 +778,7 @@ window.runRegimeValidation = function(btn){
       } catch(e){ html += `<div class="legend muted" style="margin-top:10px">Validare OOS indisponibilă (prea puține bare).</div>`; }
       box.innerHTML = html;
       btn.textContent = '↻ Rerun validare'; btn.disabled = false;
-    } catch(e){ box.innerHTML = `<div class="verdict bad">Eroare validare: ${e.message||e}</div>`; btn.textContent = old; btn.disabled = false; }
+    } catch(e){ box.innerHTML = `<div class="verdict bad">Eroare validare: ${mkEsc(e.message||e)}</div>`; btn.textContent = old; btn.disabled = false; }
   }, 30);
 };
 
@@ -790,7 +792,8 @@ window.interpretRegimeAI = async function(btn){
     return;
   }
   const old = btn.textContent; btn.disabled = true; btn.textContent = '⏳ Generez…';
-  box.innerHTML = `<div class="verdict" style="background:var(--panel3);border:1px solid var(--b1);white-space:pre-wrap"><span id="mkAiStream"></span><span style="opacity:.6">▋</span></div>`;
+  // Afișare DEODATĂ la final (token-cu-token e obositor vizual) — între timp spinner + cronometru.
+  box.innerHTML = `<div class="verdict" style="background:var(--panel3);border:1px solid var(--b1)"><span class="spinner"></span> 🧠 Generez interpretarea… <span id="mkAiSecs" class="muted">0s</span></div>`;
   const system = `Ești asistent de RISC + DIRECȚIE pentru trading. Primești NUMERE DEJA CALCULATE de un model HMM de regim de volatilitate. Răspuns concis, acționabil, în ROMÂNĂ (max 150 cuvinte). STRUCTURĂ OBLIGATORIE:
 1) "🎯 Direcție sugerată: LONG / SHORT / NEUTRU (încredere: foarte slabă / slabă)". DERIVĂ direcția DOAR așa, NU o inventa:
    - autocorelatieRegimCurent < −0.05 (mean-revert) → direcție OPUSĂ ultimei mișcări (ultimaMiscarePct).
@@ -801,17 +804,21 @@ window.interpretRegimeAI = async function(btn){
 4) Separă DOVEDIT (regim + vol bat baseline-uri) de NEDOVEDIT (direcția/fade). Fără hype, fără promisiuni de profit.`;
   const prompt = `Interpretează aceste numere HMM pentru ${d.simbol} (${d.interval}):\n` + JSON.stringify(d);
   let full = '';
+  const t0 = Date.now();
+  const tmr = setInterval(() => { const s = document.getElementById('mkAiSecs'); if (s) s.textContent = Math.round((Date.now() - t0) / 1000) + 's'; }, 500);
   try {
     await AI.stream({ prompt, system, model: 'claude-opus-4-8', maxTokens: 400 },
-      tok => { full += tok; const s = document.getElementById('mkAiStream'); if(s) s.textContent = full; });
-    box.innerHTML = `<div class="verdict" style="background:var(--panel3);border:1px solid var(--b1);white-space:pre-wrap;line-height:1.5">🧠 ${full}</div>`;
-  } catch(e){ box.innerHTML = `<div class="verdict bad">Eroare AI: ${e.message || e}</div>`; }
-  finally { btn.disabled = false; btn.textContent = old; }
+      tok => { full += tok; }); // doar acumulează — fără update vizual per token
+    box.innerHTML = `<div class="verdict mk-fadein" style="background:var(--panel3);border:1px solid var(--b1);white-space:pre-wrap;line-height:1.5">🧠 ${mkEsc(full)}</div>`;
+  } catch(e){ box.innerHTML = `<div class="verdict bad">Eroare AI: ${mkEsc(e.message || e)}</div>`; }
+  finally { clearInterval(tmr); btn.disabled = false; btn.textContent = old; }
 };
 
 // ─────────── wiring ───────────
 const $ = id => document.getElementById(id);
 function setStatus(txt, isErr){ $('status').innerHTML = isErr ? `<span class="err">${txt}</span>` : txt; }
+// Escape pentru date externe randate cu innerHTML (output AI, mesaje de eroare din fetch)
+function mkEsc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 // persistă/restaurează ultimul simbol + setări (ca să nu reseteze la BTCUSDT la fiecare deschidere)
 function saveCfg(){ try { localStorage.setItem('mk_lab_cfg', JSON.stringify({ src:$('src').value, sym:$('sym').value, tf:$('tf').value, khmm:$('khmm').value, nstates:$('nstates').value, win:$('win').value, rvol:$('rvol').value })); } catch(e){} }
 function restoreCfg(){ try { const c = JSON.parse(localStorage.getItem('mk_lab_cfg')||'null'); if(!c) return; if(c.src)$('src').value=c.src; if(c.sym)$('sym').value=c.sym; if(c.tf)$('tf').value=c.tf; if(c.khmm)$('khmm').value=c.khmm; if(c.nstates)$('nstates').value=c.nstates; if(c.win)$('win').value=c.win; if(c.rvol)$('rvol').value=c.rvol; } catch(e){} }
@@ -839,7 +846,7 @@ async function run(){
     const effWin = Math.min(win, Math.max(50, ohlc.length - 60));
     $('out').innerHTML = renderAnalysis({ sym, tf, nStates, win: effWin, rvol }, ohlc);
   } catch(e){
-    setStatus('Eroare: ' + (e.message || e), true);
+    setStatus('Eroare: ' + mkEsc(e.message || e), true);
   } finally {
     $('run').disabled = false;
   }
