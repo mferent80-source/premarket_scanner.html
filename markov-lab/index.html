@@ -93,7 +93,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 </head>
 <body>
 
-<h1>🔗 Markov Lab <span class="ver">v3.5</span></h1>
+<h1>🔗 Markov Lab <span class="ver">v3.6</span></h1>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
   Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
@@ -762,7 +762,7 @@ window.runRegimeValidation = function(btn){
         const tpCol = fp.pTP>fp.naivePTP+0.02?'var(--bull-s)':(fp.pTP<fp.naivePTP-0.02?'var(--bear-s)':'var(--t1)');
         html += `<tr><td class="lbl" style="text-align:left">${row.lbl}</td><td class="muted">${row.rr}</td><td class="muted">+${(tpFrac*100).toFixed(1)}% / −${(slFrac*100).toFixed(1)}%</td><td style="color:${tpCol};font-weight:700">${(fp.pTP*100).toFixed(0)}%</td><td>${(fp.pSL*100).toFixed(0)}%</td><td class="muted">${(fp.pTimeout*100).toFixed(0)}%</td><td>${fp.expBars!=null?fp.expBars.toFixed(0):'—'}</td><td class="muted">${(fp.naivePTP*100).toFixed(0)}%</td></tr>`;
       }
-      html += `</table></div><div class="legend">Monte Carlo pe lanțul de regim (3000 sim/setup). „naiv" = random walk simetric fără drift; diferența = ce adaugă regimul (vol clustering). Brut, fără costuri. La R:R 2:1, prag ≈ 33% P(TP).</div></div>`;
+      html += `</table></div><div class="legend">Monte Carlo pe lanțul de regim (3000 sim/setup). „naiv" = random walk simetric fără drift; diferența = ce adaugă regimul (vol clustering). Brut, fără costuri. La R:R 2:1, prag ≈ 33% P(TP). ⚠ Asumă randamente <b>gaussiene</b> per regim — cozile groase reale (fat tails) fac mișcările extreme mai probabile decât în simulare, deci P(TP) la țintele largi (3σ) e ușor optimistă.</div></div>`;
       try {
         const bt = MK.backtestRegimeFade(ohlc, { K: Math.min(K,3), train: Math.min(400, Math.floor(ohlc.length*0.5)), refit:25 });
         const v = bt.volFade, a = bt.allFade;
