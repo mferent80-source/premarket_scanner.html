@@ -222,7 +222,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v7</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v8</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -622,6 +622,40 @@ function tier(score) {
   return { cls: 'tier-n', icon: '🔴', label: 'NU', desc: 'Setup slab — renunță' };
 }
 
+// ─────────────────────── ISTORIC VERDICTE (validare onestă) ───────────────────────
+// Memorează ce a zis pagina la scanurile anterioare → vezi cu date reale dacă
+// scoring-ul chiar prezice ceva („READY acum 12z la $182 → +4.3%"), nu pe încredere.
+const HIST_KEY = 'stl_scan_history';
+function recordScanHistory(sym, sd) {
+  try {
+    const all = JSON.parse(localStorage.getItem(HIST_KEY) || '{}');
+    const arr = all[sym] || [];
+    const t = tier(sd.score).label;
+    const lastE = arr[arr.length - 1];
+    // anti-spam auto-scan 5min: notează doar la schimbare de tier sau după 6h
+    if (lastE && lastE.tier === t && Date.now() - lastE.ts < 6 * 3600 * 1000) return;
+    arr.push({ ts: Date.now(), score: sd.score, tier: t, price: sd.last });
+    all[sym] = arr.slice(-10);
+    const syms = Object.keys(all); // purge: max 40 simboluri, ies cele mai vechi
+    if (syms.length > 40) syms.sort((a, b) => (all[a][all[a].length - 1]?.ts || 0) - (all[b][all[b].length - 1]?.ts || 0)).slice(0, syms.length - 40).forEach(s => delete all[s]);
+    localStorage.setItem(HIST_KEY, JSON.stringify(all));
+  } catch (e) {}
+}
+function historyHTML(sym, sd) {
+  let arr = [];
+  try { arr = (JSON.parse(localStorage.getItem(HIST_KEY) || '{}')[sym]) || []; } catch (e) {}
+  if (arr.length < 2) return ''; // sub 2 intrări nu e „istoric"
+  const first = arr.find(h => (h.tier === 'READY' || h.tier === 'OK') && h.price > 0);
+  let head = '';
+  if (first && Date.now() - first.ts > 3600000) {
+    const g = (sd.last / first.price - 1) * 100;
+    const days = Math.max(1, Math.round((Date.now() - first.ts) / 86400000));
+    head = `<div style="margin-bottom:10px;font-size:13px">De la primul <strong>${first.tier}</strong> (acum ${days}z @ ${fmt$(first.price)}): <strong style="color:${g >= 0 ? 'var(--green)' : 'var(--red)'}">${g >= 0 ? '+' : ''}${g.toFixed(1)}%</strong></div>`;
+  }
+  const rows = arr.slice(-5).reverse().map(h => `<div style="display:flex;gap:10px;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:var(--txt-dd);min-width:78px">${new Date(h.ts).toLocaleDateString('ro-RO')}</span><strong style="min-width:52px">${h.tier}</strong><span>${h.score}/100</span><span style="margin-left:auto">${fmt$(h.price)}</span></div>`).join('');
+  return `<div class="card"><h2><span class="ico">📜</span> Istoric verdicte (local)</h2>${head}${rows}<div style="font-size:11px;color:var(--txt-dd);margin-top:8px">Ce a zis pagina la scanurile anterioare vs prețul de azi — validare cu date reale, nu pe încredere. Se notează doar schimbările de tier (sau la 6h).</div></div>`;
+}
+
 // ─────────────────────── INSIDER ANALYSIS ───────────────────────
 function analyzeInsiders(transactions) {
   // Doar buy real (P) vs sell real (S, no T) — filter conform Finnhub transactionCode
@@ -812,6 +846,8 @@ function render(sym, scoreData, insiderData, earnInfo) {
         <h2><span class="ico">👔</span> Insider Activity (90 zile)</h2>
         ${insiderHTML}
       </div>
+
+      ${historyHTML(sym, scoreData)}
 
       <div class="card" id="aiSetupCard" style="grid-column:span 2">
         <h2><span class="ico">🎯</span> AI Quick Setup <span style="font-size:11px;color:var(--txt-dd);font-weight:500;margin-left:6px">— Claude Opus 4.8, ready-to-execute</span></h2>
@@ -1024,6 +1060,7 @@ async function scan(sym) {
     const [yahoo, ins, earn] = await Promise.all([fetchYahoo(sym), fetchInsiders(sym), getEarningsInfo(sym)]);
     if (yahoo.closes.length < 50) throw new Error(`Doar ${yahoo.closes.length} bare disponibile (min 50)`);
     const scoreData = computeScore(yahoo);
+    recordScanHistory(sym, scoreData); // înainte de render — istoricul include și scanul curent
     render(sym, scoreData, ins, earn);
     toast(`✓ ${sym} · Score ${scoreData.score}/100`, 'ok');
   } catch (e) {
