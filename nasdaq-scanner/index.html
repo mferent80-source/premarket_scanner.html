@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v99</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v100</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -1335,6 +1335,7 @@ let macroBlockerActive = null; // {event, hoursAway} dacă există high-impact e
 let earningsCalendar=[]; // [{symbol,date,hour,epsEst,revEst}] — for widget
 let sparklineCache={};
 let dailyVolCache={};   // { SYM: { vol24, avgVol } } — din același fetch Yahoo daily (zero request-uri în plus)
+let fiftyTwoCache={};   // { SYM: { hi, lo } } — max/min 52 săptămâni din fetch-ul 1y (zero request-uri în plus)
 let dailyTrendCache={};            // {sym: {dir, confirmed, ema20, ema50}} — trend confirmat din daily EMA
 let nasdaqConfirmedOnly=false;     // toggle filtru "trend confirmat" pe oportunități
 const TREND_CACHE_KEY='nasdaq_trend_v1';
@@ -2123,7 +2124,7 @@ async function fhQuote(symbol,key){
 let _yahooDailyLoggedThisScan = false;
 async function fetchYahooDailyCloses(symbol, days){
   if(typeof yahooDisabled !== 'undefined' && yahooDisabled) return [];
-  const range = (days && days <= 30) ? '1mo' : '3mo';
+  const range = (days && days <= 30) ? '1mo' : (days && days >= 200 ? '1y' : '3mo'); // 1y → max/min 52s din ACELAȘI request
   const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=${range}`;
   const proxyList = (typeof yahooProxies !== 'undefined' && yahooProxies.length) ? yahooProxies : ['https://corsproxy.io/?','https://api.cors.lol/?url=','https://api.codetabs.com/v1/proxy?quest='];
   const startIdx = (typeof yahooProxyIndex !== 'undefined') ? yahooProxyIndex : 0;
@@ -2403,11 +2404,13 @@ async function fetchSparklines(symbols, key){
     if(!running) break;
     if(sparklineCache[sym]) continue;
     try{
-      // Yahoo first (free, range=3mo ~63 daily closes; păstrăm 8 pt sparkline + tot pt trend EMA)
-      const yh=await fetchYahooDailyCloses(sym, 90);
+      // Yahoo first (free, range=1y ~250 daily closes; păstrăm 8 pt sparkline, tot pt
+      // trend EMA — mai stabil pe 1y — și max/min 52 săptămâni pt scoring/context)
+      const yh=await fetchYahooDailyCloses(sym, 365);
       if(yh.length>=2){
         sparklineCache[sym]=yh.slice(-8);
         const tr=computeDailyTrend(yh); if(tr) dailyTrendCache[sym]=tr;
+        if(yh.length>=60) fiftyTwoCache[sym]={hi:Math.max(...yh),lo:Math.min(...yh)};
       } else {
         // Finnhub fallback (paid tier)
         const d=await fhGet(`${FINNHUB}/stock/candle?symbol=${sym}&resolution=D&from=${from}&to=${to}&token=${key}`);
@@ -5723,7 +5726,9 @@ async function runScan(){
     // 6. SWING Setup
     if(activeSigs.has('swing')){
       const _dv=dailyVolCache[symbol]||{};
-      const swingScore=calcSwingScore(chg24,range24pct,rsi,_dv.vol24||0,_dv.avgVol||0,0);
+      const _f2=(typeof fiftyTwoCache!=='undefined'&&fiftyTwoCache[symbol])||null;
+      const _pH=(_f2&&_f2.hi>0)?((_f2.hi-price)/_f2.hi*100):0; // % SUB maximul 52s — reînvie criteriul +5
+      const swingScore=calcSwingScore(chg24,range24pct,rsi,_dv.vol24||0,_dv.avgVol||0,_pH);
       if(swingScore>=65){
         const strength=swingScore;
         const rsiCtx=rsi>=55?` RSI ${rsi.toFixed(0)} — intră aproape de support.`
@@ -6012,6 +6017,14 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
       const m={t:`📊 RVOL ${_rvol.toFixed(1)}× — volum anemic, mișcarea are puțină convingere în spate.`,c:'neu'};
       buyReasons.push(m); sellReasons.push(m);
     }
+  }
+
+  // ── Context 52 săptămâni (din același fetch 1y — zero request-uri) ──
+  const _f2O=(typeof fiftyTwoCache!=='undefined'&&fiftyTwoCache[symbol])||null;
+  if(_f2O&&_f2O.hi>0&&price>0){
+    const _dH=((price-_f2O.hi)/_f2O.hi)*100;
+    if(_dH>=-2) buyReasons.push({t:`🏔 La ${Math.abs(_dH).toFixed(1)}% de maximul 52 săptămâni — zonă de breakout (cere confirmare cu volum) sau rezistență majoră.`,c:'neu'});
+    else if(_dH<=-50) buyReasons.push({t:`🕳 La ${Math.abs(_dH).toFixed(0)}% sub maximul 52s — downtrend structural adânc; bounce-urile de aici sunt counter-trend.`,c:'neu'});
   }
 
   // ── Earnings risk: BLOCK BUY/SELL aggressive în <48h pre-earnings ──
