@@ -222,7 +222,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long</h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v2</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -284,15 +284,13 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 'use strict';
 
 // ─────────────────────── CONFIG ───────────────────────
-// Codetabs e rate-limited frecvent (returnează „Edge: Too Many Requests" plain text).
-// Lanț de 6 proxy-uri CORS cu marker dead automat pe fail.
+// Fallback DOAR dacă lib/data.js nu e încărcat (calea normală e D.fetchJSON cu
+// health per-host). Lanț aliniat cu suite-ul: scoase allorigins ×2 (fără headere
+// CORS pe github.io) și proxy.cors.sh (cere API key) — ardeau încercări degeaba.
 const CORS_PROXIES = [
   u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
   u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
-  u => 'https://api.cors.lol/?url=' + encodeURIComponent(u),
-  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-  u => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u),
-  u => 'https://proxy.cors.sh/' + u
+  u => 'https://api.cors.lol/?url=' + encodeURIComponent(u)
 ];
 const PROXY_DEAD = new Set();
 let _proxyIdx = 0;
@@ -449,12 +447,8 @@ async function fetchViaProxy(url, timeoutMs = 9000) {
         lastErr = `non-JSON proxy ${idx} (${trimmed.slice(0,40)})`;
         continue;
       }
-      // allorigins/get returnează { contents: "..." } în loc de raw
       let parsed;
       try { parsed = JSON.parse(txt); } catch (e) { lastErr = 'JSON parse fail'; PROXY_DEAD.add(idx); continue; }
-      if (parsed?.contents && typeof parsed.contents === 'string') {
-        try { parsed = JSON.parse(parsed.contents); } catch (e) {}
-      }
       _proxyIdx = idx;
       return parsed;
     } catch (e) {
@@ -485,6 +479,19 @@ async function fetchYahoo(sym) {
     closes.push(q.close[i]);
     volumes.push(q.volume[i] || 0);
   }
+  // DOAR bare ÎNCHISE: în sesiunea regulară Yahoo include bara zilei în curs —
+  // parțială → SMA/RSI/ATR/ADX ușor distorsionate și mai ales filtrul de VOLUM
+  // fals negativ dimineața (volum de 1-2h comparat cu medii pe zile întregi).
+  // Bara de azi rămâne în date după 16:00 ET (e completă).
+  try {
+    if (ts.length > 50) {
+      const p = new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
+      const g = t => (p.find(x => x.type === t) || {}).value;
+      const etDay = `${g('year')}-${g('month')}-${g('day')}`, etMin = (+g('hour')) * 60 + (+g('minute'));
+      const lastDay = new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York' }).format(new Date(ts[ts.length - 1]));
+      if (lastDay === etDay && etMin < 16 * 60) { ts.pop(); opens.pop(); highs.pop(); lows.pop(); closes.pop(); volumes.pop(); }
+    }
+  } catch (e) {}
   return { ts, opens, highs, lows, closes, volumes, meta: r.meta };
 }
 
