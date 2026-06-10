@@ -222,7 +222,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v8</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v9</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -704,7 +704,16 @@ function render(sym, scoreData, insiderData, earnInfo) {
   const riskPct = parseFloat(riskPctEl.value) || 1;
   const riskUSD = acct * riskPct / 100;
   const riskShare = entry - sl;
-  const shares = riskShare > 0 ? Math.floor(riskUSD / riskShare) : 0;
+  let shares = riskShare > 0 ? Math.floor(riskUSD / riskShare) : 0;
+  // Cap la mărimea contului — T212 cash, FĂRĂ leverage: la ATR mic (stock liniștit),
+  // riscul permis ar cere o poziție mai mare decât tot contul. Fără gardă, sizer-ul
+  // afișa senin „120% account".
+  const maxShares = entry > 0 ? Math.floor(acct / entry) : 0;
+  let sizerCapNote = '';
+  if (shares > maxShares) {
+    sizerCapNote = `<div style="margin-top:10px;padding:8px 11px;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:8px;font-size:12px;color:var(--yellow);line-height:1.5">⚠ Riscul de ${fmt$(riskUSD)} ar cere <strong>${fmtNum(shares)}</strong> shares — peste cont (fără leverage pe T212 cash). Redus la <strong>${fmtNum(maxShares)}</strong> shares; riscul real la SL devine <strong>${fmt$(maxShares * riskShare)}</strong> (${acct > 0 ? (maxShares * riskShare / acct * 100).toFixed(2) : '—'}% din cont).</div>`;
+    shares = maxShares;
+  }
   const positionValue = shares * entry;
   const positionPct = positionValue / acct * 100;
 
@@ -836,8 +845,9 @@ function render(sym, scoreData, insiderData, earnInfo) {
           <div class="o-item"><div class="lbl">Position $</div><div class="v">${fmt$(positionValue, 0)}</div></div>
           <div class="o-item"><div class="lbl">% Account</div><div class="v">${positionPct.toFixed(1)}%</div></div>
         </div>
+        ${sizerCapNote}
         <div style="margin-top:12px;font-size:12px;color:var(--txt-dd);line-height:1.5">
-          Calcul: <code>shares = floor(${fmt$(riskUSD)} / ${fmt$(riskShare)}) = ${shares}</code><br>
+          Calcul: <code>shares = floor(${fmt$(riskUSD)} / ${fmt$(riskShare)})${sizerCapNote ? ', limitat la cont' : ''} = ${shares}</code><br>
           La TP2 (+2 ATR) profit așteptat: <strong style="color:var(--green)">${fmt$(shares * 2 * atrV)}</strong>
         </div>
       </div>
