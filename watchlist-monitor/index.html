@@ -376,7 +376,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v125</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v126</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -471,7 +471,7 @@ table.no-pre .col-pre { display:none; }
         <th data-sort="chg">Δ Zi</th>
         <th data-sort="preChg" class="col-pre" id="thPre" title="Mișcarea în pre-market / after-hours (doar simboluri US)">🌅 Pre</th>
         <th data-sort="trend">📈 30z</th>
-        <th data-sort="rvol" class="hide-mobile" title="Volum relativ: ultima zi vs media 20 zile (intraday = parțial)">RVOL</th>
+        <th data-sort="rvol" class="hide-mobile" title="Volum relativ: ultima zi vs media 20 zile. Intraday volumul parțial e proiectat la sesiunea întreagă (~); în primele 45 min nu se evaluează">RVOL</th>
         <th data-sort="rsi">RSI</th>
         <th data-sort="ma50" class="hide-mobile">vs MA50</th>
         <th data-sort="ma200" class="hide-mobile">vs MA200</th>
@@ -519,7 +519,7 @@ window.showWlFeatures = function(){
       { e: '📊', t: '<b>MA50/MA200</b> distance + Golden Cross +6 bonus' },
       { e: '📈', t: '<b>RSI 14</b> sweet 40-65 (+10), OB/OS penalty' },
       { e: '⚡', t: '<b>Day momentum</b> chg% scoring' },
-      { e: '🔊', t: '<b>RVOL</b> — volum relativ vs media 20 zile, coloană + în scor direcțional: volum mare pe creștere = acumulare (+), pe scădere = distribuție (−), anemic = penalizare mică. Intraday volumul e parțial → RVOL subestimat dimineața' },
+      { e: '🔊', t: '<b>RVOL</b> — volum relativ vs media 20 zile, coloană + în scor direcțional: volum mare pe creștere = acumulare (+), pe scădere = distribuție (−), anemic = penalizare mică. Intraday volumul parțial e <b>proiectat</b> la sesiunea întreagă (prefix ~); în primele 45 min nu se evaluează (prea zgomotos)' },
       { e: '🎯', t: '<b>Verdict 5-tier</b>: 🚀 STRONG BUY ≥75 / 📈 BUY 60-74 / 📊 HOLD / 📉 SELL / 🔴 AVOID' },
       { e: 'α', t: '<b>Alpha vs QQQ</b> — coloană + metrică „α QQQ 30z": cât bate stockul indicele Nasdaq-100 pe 30 zile (verde = outperformance). Un STRONG BUY cu alpha negativ = atenție, mișcă mai slab decât piața' },
     ]},
@@ -553,7 +553,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v125 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v126 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -1057,11 +1057,11 @@ function marketSession(){
   catch(e){ return { state:'unknown', txt:'sesiune ?' }; }
   const get = t => (parts.find(p => p.type === t) || {}).value;
   const wd = get('weekday'); const mins = (+get('hour'))*60 + (+get('minute'));
-  if (wd === 'Sat' || wd === 'Sun') return { state:'closed', txt:'închis (weekend)' };
-  if (mins >= 4*60 && mins < 9*60+30) return { state:'pre', txt:'pre-market' };
-  if (mins >= 9*60+30 && mins < 16*60) return { state:'open', txt:'sesiune regulară' };
-  if (mins >= 16*60 && mins < 20*60) return { state:'post', txt:'after-hours' };
-  return { state:'closed', txt:'închis' };
+  if (wd === 'Sat' || wd === 'Sun') return { state:'closed', txt:'închis (weekend)', mins };
+  if (mins >= 4*60 && mins < 9*60+30) return { state:'pre', txt:'pre-market', mins };
+  if (mins >= 9*60+30 && mins < 16*60) return { state:'open', txt:'sesiune regulară', mins };
+  if (mins >= 16*60 && mins < 20*60) return { state:'post', txt:'after-hours', mins };
+  return { state:'closed', txt:'închis', mins };
 }
 function updateSessionPill(){
   const s = marketSession(); const el = $('sessionPill'); if (!el) return;
@@ -1165,12 +1165,13 @@ async function getStockData(sym, sess){
   const today = etDate(Date.now());
   const lastDate = hist.lastBarTs ? etDate(hist.lastBarTs * 1000) : null;
   const lp = live ? live.price : null;
+  let pushedToday = false;
   if (lp != null){
     if (lastDate === today){
       closes[closes.length - 1] = lp; // bara de azi e în istoric → actualizează-i close-ul
       if (live.dayVol != null) vols[vols.length - 1] = live.dayVol;
     } else if (sess.state === 'open' || sess.state === 'post'){
-      closes.push(lp); vols.push(live.dayVol ?? 0); // azi lipsește din cache → extinde
+      closes.push(lp); vols.push(live.dayVol ?? 0); pushedToday = true; // azi lipsește din cache → extinde
     }
     // pre/closed cu ultima bară ieri: lp E close-ul de ieri — nimic de schimbat
   }
@@ -1181,6 +1182,8 @@ async function getStockData(sym, sess){
     prevClose: closes[closes.length - 2],
     vol: (live && live.dayVol != null) ? live.dayVol : vols[vols.length - 1] || 0,
     closes, vols,
+    // ultima bară de volum e ziua de AZI încă în desfășurare → RVOL trebuie proiectat
+    volPartial: sess.state === 'open' && (lastDate === today || pushedToday),
     pre: live ? live.pre : null,
     ts: Date.now(),
   };
@@ -1464,20 +1467,28 @@ function scoreStock(d){
 
   // RVOL = volumul ultimei zile vs media precedentelor 20 (F3).
   // Direcțional: volum mare pe creștere = acumulare (+), pe scădere = distribuție (−).
-  // Intraday e volum parțial → RVOL subestimat dimineața (badge-ul are tooltip).
-  let rvol = null;
+  // Intraday volumul e parțial → se PROIECTEAZĂ liniar la sesiunea întreagă (390 min);
+  // înainte penaliza fals „anemic" toate stocks dimineața. Sub 45 min de sesiune
+  // proiecția e prea zgomotoasă (volum U-shaped la open) → fără RVOL deloc.
+  let rvol = null, rvolProj = false;
   const vols = d.vols || [];
   if (vols.length >= 21){
-    const lastV = vols[vols.length - 1];
+    let lastV = vols[vols.length - 1];
+    if (d.volPartial){
+      const elapsed = (marketSession().mins ?? 0) - (9 * 60 + 30);
+      if (elapsed < 45) lastV = 0; // prea devreme — nu evalua deloc
+      else { lastV = lastV * Math.min(8, 390 / elapsed); rvolProj = true; }
+    }
     let s = 0, c = 0;
     for (let i = vols.length - 21; i < vols.length - 1; i++){ if (vols[i] > 0){ s += vols[i]; c++; } }
     if (c >= 10 && lastV > 0) rvol = lastV / (s / c);
   }
   if (rvol != null){
-    let p = 0, lbl = `RVOL ${rvol.toFixed(1)}× — normal`;
-    if (rvol >= 1.5 && chg >= 0){ p = rvol >= 2 ? 6 : 4; lbl = `RVOL ${rvol.toFixed(1)}× pe creștere — acumulare`; }
-    else if (rvol >= 1.5 && chg < 0){ p = rvol >= 2 ? -6 : -4; lbl = `RVOL ${rvol.toFixed(1)}× pe scădere — distribuție`; }
-    else if (rvol < 0.5){ p = -2; lbl = `RVOL ${rvol.toFixed(1)}× — volum anemic`; }
+    const rl = (rvolProj ? '~' : '') + rvol.toFixed(1) + '×' + (rvolProj ? ' (proiectat)' : '');
+    let p = 0, lbl = `RVOL ${rl} — normal`;
+    if (rvol >= 1.5 && chg >= 0){ p = rvol >= 2 ? 6 : 4; lbl = `RVOL ${rl} pe creștere — acumulare`; }
+    else if (rvol >= 1.5 && chg < 0){ p = rvol >= 2 ? -6 : -4; lbl = `RVOL ${rl} pe scădere — distribuție`; }
+    else if (rvol < 0.5){ p = -2; lbl = `RVOL ${rl} — volum anemic`; }
     score += p; if (p !== 0) bd.push({ l: lbl, p });
   }
 
@@ -1500,7 +1511,7 @@ function scoreStock(d){
   else if (score >= 25) { verdict = 'sell'; verdictTxt = '📉 SELL'; }
   else { verdict = 'strong-sell'; verdictTxt = '🔴 AVOID'; }
 
-  return { score, verdict, verdictTxt, chg, rsi, ma50, ma200, aboveMa50, aboveMa200, atrPct, rvol, breakdown: bd };
+  return { score, verdict, verdictTxt, chg, rsi, ma50, ma200, aboveMa50, aboveMa200, atrPct, rvol, rvolProj, breakdown: bd };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1541,6 +1552,7 @@ async function runScan(){
       chg: sc.chg,
       vol: data.vol,
       rvol: sc.rvol,
+      rvolProj: sc.rvolProj,
       rsi: sc.rsi,
       ma50: sc.aboveMa50,
       ma200: sc.aboveMa200,
@@ -1856,7 +1868,7 @@ function buildDetailRow(r){
   metrics += dmCell('MA50', `${r.ma50abs != null ? fmtUSD(r.ma50abs) : '—'} <span style="font-size:9px;color:${colP(r.ma50)}">${r.ma50 != null ? fmtPct(r.ma50, 1) : ''}</span>`);
   metrics += dmCell('MA200', `${r.ma200abs != null ? fmtUSD(r.ma200abs) : '—'} <span style="font-size:9px;color:${colP(r.ma200)}">${r.ma200 != null ? fmtPct(r.ma200, 1) : ''}</span>`);
   metrics += dmCell('Volum', fmtVol(r.vol));
-  metrics += dmCell('RVOL 20z', r.rvol != null ? `<span style="color:${r.rvol >= 1.5 ? ((r.chg ?? 0) >= 0 ? 'var(--bull-s)' : 'var(--bear-s)') : r.rvol < 0.5 ? 'var(--t3)' : 'var(--t1)'}">${r.rvol.toFixed(2)}×</span>` : '—');
+  metrics += dmCell('RVOL 20z' + (r.rvolProj ? ' (proiectat)' : ''), r.rvol != null ? `<span style="color:${r.rvol >= 1.5 ? ((r.chg ?? 0) >= 0 ? 'var(--bull-s)' : 'var(--bear-s)') : r.rvol < 0.5 ? 'var(--t3)' : 'var(--t1)'}">${r.rvolProj ? '~' : ''}${r.rvol.toFixed(2)}×</span>` : '—');
   metrics += dmCell('ATR ≈', r.atrPct != null ? r.atrPct.toFixed(2) + '%/zi' : '—');
   metrics += dmCell('vs max 52s', `<span style="color:${colP(distHi)}">${distHi != null ? fmtPct(distHi, 1) : '—'}</span>`);
   metrics += dmCell('vs min 52s', `<span style="color:${colP(distLo)}">${distLo != null ? fmtPct(distLo, 1) : '—'}</span>`);
@@ -2046,7 +2058,7 @@ function render(){
       <td><span class="badge ${chgCls}">${fmtPct(r.chg, 2)}</span></td>
       <td class="col-pre">${r.preChg != null ? `<span class="badge ${r.preChg >= 0 ? 'up' : 'down'}">${fmtPct(r.preChg, 2)}</span><span class="pre-price">$${r.prePrice.toFixed(2)}${r.preVol ? ' · ' + fmtVol(r.preVol) : ''}</span>` : '<span style="color:var(--t3)">—</span>'}</td>
       <td title="${r.trend != null ? 'trend 30 zile: ' + fmtPct(r.trend, 1) : 'fără date'}">${buildSparkline(r.spark) || '<span style="color:var(--t3)">—</span>'}<span class="spark-trend-pct ${trCls}" style="color:${r.trend == null ? 'var(--t3)' : r.trend >= 0 ? 'var(--bull-s)' : 'var(--bear-s)'}">${r.trend != null ? fmtPct(r.trend, 1) : ''}</span></td>
-      <td class="hide-mobile" title="volum vs media 20 zile (intraday = parțial)">${r.rvol != null ? (r.rvol >= 1.5 ? `<span class="badge ${(r.chg ?? 0) >= 0 ? 'up' : 'down'}">${r.rvol.toFixed(1)}×</span>` : `<span style="color:${r.rvol < 0.5 ? 'var(--t3)' : 'var(--t2)'}">${r.rvol.toFixed(1)}×</span>`) : '<span style="color:var(--t3)">—</span>'}<span class="pre-price">${fmtVol(r.vol)}</span></td>
+      <td class="hide-mobile" title="volum vs media 20 zile${r.rvolProj ? ' — ~ = proiectat la sesiunea întreagă (zi în desfășurare)' : ''}">${r.rvol != null ? (r.rvol >= 1.5 ? `<span class="badge ${(r.chg ?? 0) >= 0 ? 'up' : 'down'}">${r.rvolProj ? '~' : ''}${r.rvol.toFixed(1)}×</span>` : `<span style="color:${r.rvol < 0.5 ? 'var(--t3)' : 'var(--t2)'}">${r.rvolProj ? '~' : ''}${r.rvol.toFixed(1)}×</span>`) : '<span style="color:var(--t3)">—</span>'}<span class="pre-price">${fmtVol(r.vol)}</span></td>
       <td><span class="badge ${rsiCls}">${r.rsi != null ? r.rsi.toFixed(0) : '—'}</span></td>
       <td class="hide-mobile"><span class="badge ${ma50Cls}">${fmtPct(r.ma50, 1)}</span></td>
       <td class="hide-mobile"><span class="badge ${ma200Cls}">${fmtPct(r.ma200, 1)}</span></td>
