@@ -386,7 +386,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v134</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v135</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -546,6 +546,7 @@ window.showWlFeatures = function(){
       { e: '🔊', t: '<b>Sunet</b> (beep Web Audio) la STRONG BUY nou — toggle 🔊 în header' },
       { e: '📡', t: '<b>Alerte Telegram</b> la semnal nou — config bot token + chat id (buton 📡), buton test inclus' },
       { e: '🎚', t: '<b>Prag de alertă configurabil</b> (în modalul 📡) — guvernează sunet+Telegram+notif: 🚀 doar STRONG BUY nou / 📈 BUY sau mai bun / ⬆️ orice upgrade de tier (până la BUY+)' },
+      { e: '📰', t: '<b>Digest zilnic Telegram</b> — la intrarea în after-hours (16:00 ET): un mesaj/zi cu distribuția verdictelor, top movers ↑/↓, schimbările de verdict din sesiune și lista STRONG BUY. Toggle în modalul 📡; necesită pagina deschisă' },
       { e: '📊', t: '<b>Alertă mișcare preț</b> (Telegram) — pas incremental: la fiecare ±X% (reglabil, default 1%) față de ultimul preț alertat, pe orice stock din listă. Grupat per scan; independent de verdict' },
       { e: '🚨', t: '<b>Breakout alerts</b> — toast + Telegram când un stock face nou maxim 52 săptămâni sau trece peste / cade sub MA50/MA200 (evenimente structurale între scanuri, dedupe 24h per simbol+tip)' },
       { e: '⏰', t: '<b>Alerte de preț manuale</b> — în detalii: „anunță-mă când trece peste/sub $X" per stock; one-shot (dispare după declanșare) sau re-arm (se re-armează când prețul revine, histerezis 0.3%); toast + 🔊 + Telegram + notificare; badge ⏰N pe rând' },
@@ -573,7 +574,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v134 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v135 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -798,7 +799,8 @@ window.showTgConfig = function(){
         <span style="font-size:11px;color:var(--t3)">% față de ultimul preț alertat → Telegram</span>
       </div>
     </div>
-    <label class="fb-toggle" style="margin-bottom:13px"><input type="checkbox" id="tgEnabled" ${tgConfig.enabled ? 'checked' : ''}> activează alertele Telegram (verdict)</label>
+    <label class="fb-toggle" style="margin-bottom:8px"><input type="checkbox" id="tgEnabled" ${tgConfig.enabled ? 'checked' : ''}> activează alertele Telegram (verdict)</label>
+    <label class="fb-toggle" style="margin-bottom:13px" title="un singur mesaj/zi la intrarea în after-hours (16:00 ET): distribuție verdicte, top movers ↑/↓, schimbările de verdict, lista STRONG BUY — necesită pagina deschisă"><input type="checkbox" id="tgDigest" ${digestCfg.enabled ? 'checked' : ''}> 📰 digest zilnic la închiderea pieței</label>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="primary" id="tgSave">💾 Salvează</button><button type="button" id="tgTest">🧪 Trimite test</button><span id="tgMsg" style="font-size:11px;font-family:var(--mono)"></span></div>
   </div>`;
   document.body.appendChild(ov);
@@ -811,9 +813,11 @@ window.showTgConfig = function(){
     const prevMoveEnabled = moveAlert.enabled;
     moveAlert.enabled = document.getElementById('tgMoveEnabled').checked;
     moveAlert.pct = Math.max(0.2, Math.min(20, parseFloat(document.getElementById('tgMovePct').value) || 1));
+    digestCfg.enabled = !!document.getElementById('tgDigest')?.checked;
     try { localStorage.setItem(TG_KEY, JSON.stringify(tgConfig)); } catch(e){}
     try { localStorage.setItem(ALERT_LEVEL_KEY, alertLevel); } catch(e){}
     try { localStorage.setItem(MOVE_ALERT_KEY, JSON.stringify(moveAlert)); } catch(e){}
+    try { localStorage.setItem(DIGEST_CFG_KEY, JSON.stringify(digestCfg)); } catch(e){}
     // tocmai activat → ancorează imediat din ultimul scan, alertele pornesc de la următorul
     if (moveAlert.enabled && !prevMoveEnabled){
       moveRefMap = {}; results.forEach(r => { const p = r.livePrice != null ? r.livePrice : r.price; if (p != null) moveRefMap[r.symbol] = p; });
@@ -1241,6 +1245,7 @@ function updateSessionPill(){
   const ico = s.state === 'open' ? '🟢' : s.state === 'pre' ? '🌅' : s.state === 'post' ? '🌆' : '🌙';
   el.textContent = ico + ' ' + s.txt;
   el.className = 'status-pill' + (s.state === 'open' ? ' live' : (s.state === 'pre' || s.state === 'post') ? ' pre' : '');
+  if (typeof maybeSendDigest === 'function') maybeSendDigest(); // G — digest la intrarea în after-hours
 }
 setInterval(updateSessionPill, 30000);
 // Data calendaristică în fusul ET (YYYY-MM-DD) — decide dacă o bară daily e „azi".
@@ -1894,6 +1899,7 @@ async function runScan(){
   render();
   loadInsiderData(); // F5 — async, badge-urile vin din cache instant + fetch pe ce lipsește
   loadProfileData(); // F — sector real per rând (cache 30z, max 30 fetch-uri/scan)
+  maybeSendDigest(); // G — digest de închidere (dacă scanul a prins after-hours)
   if (autoSec > 0) scheduleNextScan();
 }
 
@@ -2095,6 +2101,43 @@ function detectAndNotifyMoves(newResults){
   }
   // Toast în pagină (rezumat)
   showToastMsg(`📊 ${moved.length} mișcare${moved.length > 1 ? 'ări' : ''} ≥${pct}%${tgConfig.token && tgConfig.chatId ? ' → Telegram' : ''}`);
+}
+
+// ── Digest zilnic Telegram la închiderea pieței (G) ───────────────
+// Tranziția în after-hours (detectată la pill-update 30s sau post-scan) →
+// un singur rezumat/zi (dedupe pe data ET): distribuție verdicte, top movers,
+// schimbările de verdict din sesiunea curentă, lista STRONG BUY.
+// Necesită pagina deschisă la 16:00 ET (23:00 RO vara / 22:00 iarna) — e
+// pagină, nu server; dacă era închisă, digestul pleacă la prima deschidere
+// în after-hours cu un scan proaspăt (<2h).
+const DIGEST_CFG_KEY = 'wl_digest_cfg';
+const DIGEST_SENT_KEY = 'wl_digest_sent';
+let digestCfg = { enabled: false };
+function maybeSendDigest(){
+  if (!digestCfg.enabled || !tgConfig.token || !tgConfig.chatId) return;
+  if (marketSession().state !== 'post') return;
+  const today = etDate(Date.now());
+  let sent = ''; try { sent = localStorage.getItem(DIGEST_SENT_KEY) || ''; } catch(_){}
+  if (sent === today) return;
+  const ok = results.filter(r => r.price != null);
+  if (!ok.length || !lastScanTs || (Date.now() - lastScanTs) > 2 * 3600 * 1000) return; // doar pe date proaspete, nu cache vechi
+  try { localStorage.setItem(DIGEST_SENT_KEY, today); } catch(_){} // dedupe ÎNAINTE de send (anti-dublu la check-uri repetate)
+  const n = v => ok.filter(r => r.verdict === v).length;
+  const sorted = ok.filter(r => r.chg != null).sort((a, b) => b.chg - a.chg);
+  const up = sorted.slice(0, 3).filter(r => r.chg > 0);
+  const dn = sorted.slice(-3).reverse().filter(r => r.chg < 0);
+  const todayChanges = verdictLog.filter(c => etDate(c.ts) === today);
+  const lines = [
+    `<b>📰 Digest watchlist — închidere ${today}</b>`,
+    `${ok.length} stocks · 🚀${n('strong-buy')} 📈${n('buy')} 📊${n('hold')} 📉${n('sell') + n('strong-sell')}`,
+  ];
+  if (up.length) lines.push('⬆ ' + up.map(r => `<b>${r.symbol}</b> +${r.chg.toFixed(1)}%`).join(' · '));
+  if (dn.length) lines.push('⬇ ' + dn.map(r => `<b>${r.symbol}</b> ${r.chg.toFixed(1)}%`).join(' · '));
+  if (todayChanges.length) lines.push(`🔁 Verdicte azi (${todayChanges.length}): ` + todayChanges.slice(0, 5).map(c => `${c.sym} ${c.dir > 0 ? '⬆' : '⬇'}${c.toTxt}`).join(', ') + (todayChanges.length > 5 ? '…' : ''));
+  const strongs = ok.filter(r => r.verdict === 'strong-buy').map(r => r.symbol);
+  if (strongs.length) lines.push('🚀 Strong: ' + strongs.slice(0, 8).join(', '));
+  sendTelegram(lines.join('\n'));
+  showToastMsg('📰 Digest de închidere trimis pe Telegram');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2643,6 +2686,7 @@ try { perfMap = JSON.parse(localStorage.getItem(PERF_KEY) || '{}') || {}; } catc
 try { const al = localStorage.getItem(ALERT_LEVEL_KEY); if (al === 'buy' || al === 'upgrade' || al === 'strong-buy') alertLevel = al; } catch(e){}
 try { const ma = JSON.parse(localStorage.getItem(MOVE_ALERT_KEY) || 'null'); if (ma && typeof ma === 'object'){ moveAlert.enabled = !!ma.enabled; moveAlert.pct = Math.max(0.2, Math.min(20, parseFloat(ma.pct) || 1)); } } catch(e){}
 try { priceAlerts = JSON.parse(localStorage.getItem(PRICE_ALERT_KEY) || '{}') || {}; } catch(e){ priceAlerts = {}; }
+try { const dc = JSON.parse(localStorage.getItem(DIGEST_CFG_KEY) || 'null'); if (dc && typeof dc === 'object') digestCfg.enabled = !!dc.enabled; } catch(e){}
 loadResultsCache(); // F4-extra — populează tabelul din cache înainte de primul scan
 corrClusters = computeCorrClusters(results); // D — banner-ul apare și din cache
 try { const pc = _profAll(); watchlist.forEach(s => { if (pc[s]) sectorMap[s] = pc[s].data; }); } catch(e){} // F — sectoarele din cache, înainte de primul scan
