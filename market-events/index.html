@@ -1033,7 +1033,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v219</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v220</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1342,7 +1342,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v219 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v220 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1356,12 +1356,15 @@ window.showMeFeatures = function(){
   document.body.appendChild(ov);
 };
 
-// Proxy-uri CORS de rezervă (folosite în ordine dacă cel din topbar cade).
+// Proxy-uri CORS de rezervă (folosite DOAR dacă lib/data.js nu e încărcat și topbar-ul e gol).
+// Aliniat cu lanțul verificat din pump-radar/watchlist-monitor: scoase thingproxy
+// (DNS mort — ERR_NAME_NOT_RESOLVED) și allorigins (a eliminat headerele CORS pt github.io).
 const PROXY_FALLBACKS = [
+  u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
   u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
-  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-  u => 'https://thingproxy.freeboard.io/fetch/' + u,
+  u => 'https://api.cors.lol/?url=' + encodeURIComponent(u),
 ];
+const _proxyDeadUntil = new Map(); // idx → ts până când proxy-ul picat e sărit (nu re-încercat la fiecare request)
 
 // Pool de concurență: rulează `worker` peste `items`, max `size` simultan.
 // Evită zecile de cereri paralele care pot duce la throttle IP (Yahoo/Nasdaq) sau rate-limit AI.
@@ -1415,17 +1418,19 @@ class NasdaqScanner {
     }
     // 2) strat de date comun (lib/data.js): proxy cu health per-host + dedup + cache TTL
     if (window.D && D.fetchJSON) return D.fetchJSON(rawUrl, { ttl });
-    // 3) fallback dacă data.js nu e încărcat (comportamentul vechi)
-    const cands = [];
-    for (const f of PROXY_FALLBACKS) cands.push(f(rawUrl));
-    cands.push(rawUrl);
-    for (const u of cands) {
+    // 3) fallback dacă data.js nu e încărcat (comportamentul vechi) + dead-marking 60s:
+    // proxy-ul picat (429/403/CORS) e sărit la request-urile următoare, nu re-încercat mereu.
+    const now = Date.now();
+    for (let i = 0; i <= PROXY_FALLBACKS.length; i++) {
+      const direct = i === PROXY_FALLBACKS.length; // ultimul candidat = URL-ul direct, fără proxy
+      if (!direct && (_proxyDeadUntil.get(i) || 0) > now) continue;
+      const u = direct ? rawUrl : PROXY_FALLBACKS[i](rawUrl);
       try {
         const r = await fetch(u, { headers: { 'Accept': 'application/json' } });
-        if (!r.ok) continue;
+        if (!r.ok) { if (!direct) _proxyDeadUntil.set(i, now + 60000); continue; }
         const j = await r.json();
         if (j) return j;
-      } catch (e) { /* încearcă următorul proxy */ }
+      } catch (e) { if (!direct) _proxyDeadUntil.set(i, now + 60000); /* CORS/network — sari 60s */ }
     }
     return null;
   }
