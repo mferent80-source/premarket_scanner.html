@@ -91,7 +91,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 </head>
 <body>
 
-<h1>🔗 Markov Lab <span class="ver">v3.3</span></h1>
+<h1>🔗 Markov Lab <span class="ver">v3.4</span></h1>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
   Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
@@ -187,13 +187,45 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 <script>
 // ─────────── fetch OHLC — delegă la stratul de date comun (lib/data.js, D.*) ───────────
 // Proxy cu health-scoring per-host + cache localStorage cu TTL + dedup — toate din D.
+// DOAR BARE ÎNCHISE intră în model: Binance întoarce mereu kline-ul curent (în
+// desfășurare), iar Yahoo include bara zilei de azi în timpul sesiunii. O bară
+// parțială distorsionează randamentul + ATR-ul ultimei stări, regimul curent și
+// numărătorile din matricea de tranziție (statistica cere observații complete).
+function _etParts(){
+  try {
+    const p = new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
+    const g = t => (p.find(x => x.type === t) || {}).value;
+    return { day: `${g('year')}-${g('month')}-${g('day')}`, mins: (+g('hour')) * 60 + (+g('minute')) };
+  } catch(e){ return null; }
+}
+function _etDayOf(ms){
+  try { return new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(ms)); }
+  catch(e){ return null; }
+}
+function dropOpenBar(ohlc, spanMs){
+  if (!Array.isArray(ohlc) || ohlc.length < 3) return ohlc;
+  const lastT = ohlc[ohlc.length - 1].t;
+  if (lastT == null) return ohlc;
+  return Date.now() < lastT + spanMs ? ohlc.slice(0, -1) : ohlc; // t = open time → bara se închide la t+span
+}
 async function fetchCrypto(sym, tf){
-  return D.fetchCrypto(sym, tf, 1000);   // [{o,h,l,c,v,t}]
+  const span = { '1h':36e5, '4h':144e5, '1d':864e5, '1wk':6048e5 }[tf] || 864e5;
+  return dropOpenBar(await D.fetchCrypto(sym, tf, 1000), span);   // [{o,h,l,c,v,t}]
 }
 async function fetchStock(sym, tf){
   const range = (tf==='1h' || tf==='4h') ? '730d' : '10y';
   const interval = (tf==='1h' || tf==='4h') ? '60m' : (tf==='1wk' ? '1wk' : '1d');
-  return D.fetchStock(sym, { range, interval });
+  const ohlc = await D.fetchStock(sym, { range, interval });
+  if (interval === '60m') return dropOpenBar(ohlc, 36e5);
+  if (interval === '1wk') return dropOpenBar(ohlc, 6048e5); // săptămâna în curs e parțială
+  // 1d: bara zilei e completă la 16:00 ET (NU la t+24h — regula aia ar tăia bara
+  // completă toată seara). Tai ultima bară doar dacă e „azi" în ET și piața nu a închis.
+  if (Array.isArray(ohlc) && ohlc.length >= 3){
+    const lastT = ohlc[ohlc.length - 1].t;
+    const et = _etParts();
+    if (lastT != null && et && _etDayOf(lastT) === et.day && et.mins < 16 * 60) return ohlc.slice(0, -1);
+  }
+  return ohlc;
 }
 
 // ─────────── heatmap color ───────────
