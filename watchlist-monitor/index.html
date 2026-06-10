@@ -371,7 +371,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v119</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v120</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -540,11 +540,12 @@ window.showWlFeatures = function(){
       { e: '🚀', t: '<b>Performance tracking</b> — memorează prețul la primul BUY/STRONG BUY, arată „+X% · Nz" pe rând și în detalii (cu reset)' },
       { e: '📅', t: '<b>Earnings warning</b> — badge „ER Nz" pe rând + metrică în detalii când raportul e ≤7 zile (roșu ⚠️ la ≤48h); date Finnhub (cheia shared), cache 6h. Evită să ții long peste un raport surpriză' },
       { e: '💾', t: '<b>Cache rezultate</b> — ultimul scan e salvat local; la reload tabelul apare instant (nu ecran gol) cu eticheta „Cache: acum Xmin" până când scanul nou aduce date proaspete' },
+      { e: '📰', t: '<b>News catalyst</b> — buton 📰 pe rând și în detalii: ultimele 8 știri din 7 zile (Finnhub, cheia shared) — răspunde la „de ce mișcă?". On-demand, zero cost dacă nu apeși' },
     ]},
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v119 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v120 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -881,6 +882,44 @@ function earnBadge(sym){
   const urgent = d <= 2;
   return `<div class="earn-tag ${urgent ? 'urgent' : ''}" title="Earnings ${e.date}${hour ? ' · ' + hour : ''} — atenție la poziții long peste raport">📅 ER ${lbl}${urgent ? ' ⚠️' : ''}</div>`;
 }
+
+// ── News catalyst per stock (F4) — port din market-events v215 ───
+// Răspunde la „de ce mișcă?": ultimele 8 știri 7 zile, Finnhub direct (CORS ok),
+// cheia shared `finnhub_api_key`. On-demand = zero cost dacă nu apeși.
+window.wlShowNews = function(sym){
+  sym = String(sym || '').toUpperCase().replace(/[^A-Z0-9.\-^]/g, '');
+  document.getElementById('newsOverlay')?.remove();
+  const ov = document.createElement('div');
+  ov.id = 'newsOverlay'; ov.className = 'fl-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  ov.innerHTML = `<div class="fl-modal" style="max-width:560px">
+    <div class="fl-head"><div><h3>📰 Catalyst: ${wlEsc(sym)}</h3><div class="sub">știri din ultimele 7 zile (Finnhub)</div></div><button class="fl-close" type="button" data-close>×</button></div>
+    <div id="wlNewsArea" style="max-height:52vh;overflow-y:auto;font-size:12px">⏳ Încarc…</div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+  const area = ov.querySelector('#wlNewsArea');
+  let key = ''; try { key = localStorage.getItem('finnhub_api_key') || ''; } catch(_){}
+  if (!key){ area.innerHTML = '⚠ Lipsește cheia Finnhub — e shared cu nasdaq-scanner/earnings-hub, configureaz-o acolo o dată și merge peste tot.'; return; }
+  if (sym.includes('.')){ area.innerHTML = 'ℹ Știrile Finnhub sunt disponibile doar pentru tickere US.'; return; }
+  const to = new Date(), from = new Date(to.getTime() - 7 * 86400000);
+  const fmt = d => d.toISOString().slice(0, 10);
+  fetch(`https://finnhub.io/api/v1/company-news?symbol=${sym}&from=${fmt(from)}&to=${fmt(to)}&token=${key}`)
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status + (r.status === 429 ? ' (rate limit — așteaptă un minut)' : ''))))
+    .then(d => {
+      if (!Array.isArray(d) || !d.length){ area.innerHTML = 'Nicio știre în ultimele 7 zile (sau ticker fără acoperire).'; return; }
+      const items = d.slice().sort((a, b) => (b.datetime || 0) - (a.datetime || 0)).slice(0, 8);
+      area.innerHTML = items.map(n => {
+        const safeUrl = /^https?:\/\//i.test(n.url || '') ? n.url : '#'; // anti javascript: în href
+        const dt = n.datetime ? new Date(n.datetime * 1000).toLocaleString('ro-RO', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+        return `<div style="padding:9px 0;border-bottom:1px solid var(--b1)">
+          <a href="${encodeURI(safeUrl)}" target="_blank" rel="noopener" style="color:var(--accent);font-weight:600;text-decoration:none;font-size:12.5px;line-height:1.4">${wlEsc(n.headline || '(fără titlu)')}</a>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px">${wlEsc(n.source || '')}${dt ? ' · ' + dt : ''}</div>
+        </div>`;
+      }).join('');
+    })
+    .catch(e => { area.innerHTML = '❌ Eroare Finnhub: ' + wlEsc(e.message); });
+};
 
 // ═══════════════════════════════════════════════════════════════
 //  MARKET SESSION (NYSE/Nasdaq, DST-aware via Intl) — pattern pump-radar
@@ -1690,8 +1729,9 @@ function buildDetailRow(r){
         ${planHtml}
         <div class="detail-links">
           <a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener">📈 TradingView</a>
-          <a class="action-btn" href="${yhUrl}" target="_blank" rel="noopener">📰 Yahoo</a>
+          <a class="action-btn" href="${yhUrl}" target="_blank" rel="noopener">📊 Yahoo</a>
           ${sym.includes('.') ? '' : `<a class="action-btn" href="${fvUrl}" target="_blank" rel="noopener">📊 Finviz</a>`}
+          <button class="action-btn" onclick="wlShowNews('${sym}')">📰 News 7z</button>
         </div>
       </div>
       <div>
@@ -1815,7 +1855,7 @@ function render(){
       <td><span class="verdict ${r.verdict}">${r.verdictTxt}</span></td>
       <td onclick="event.stopPropagation()">
         <a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener">📈 TV</a>
-        <a class="action-btn" href="${yhUrl}" target="_blank" rel="noopener">📰 YH</a>
+        <button class="action-btn" onclick="wlShowNews('${r.symbol}')" title="De ce mișcă? Știri 7 zile (Finnhub)">📰</button>
         <button class="action-btn del" onclick="removeFromWl('${r.symbol}')">🗑</button>
       </td>
     </tr>`;
