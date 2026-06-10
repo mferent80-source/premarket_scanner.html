@@ -334,6 +334,11 @@ table.no-pre .col-pre { display:none; }
 .earn-tag { display:inline-block; font-size:9.5px; font-weight:700; font-family:var(--mono); margin-top:2px; line-height:1.2; color:var(--accent); }
 .earn-tag.urgent { color:var(--warn); }
 
+/* Insider badge (F5) */
+.ins-tag { display:inline-block; font-size:9.5px; font-weight:700; font-family:var(--mono); margin-top:2px; margin-left:6px; line-height:1.2; }
+.ins-tag.bull { color:var(--bull-s); }
+.ins-tag.bear { color:var(--bear-s); }
+
 /* Quick-add empty state (F8) */
 .qa-wrap { margin-top:18px; }
 .qa-title { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; font-family:var(--mono); }
@@ -371,7 +376,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v121</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v122</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -541,11 +546,12 @@ window.showWlFeatures = function(){
       { e: '📅', t: '<b>Earnings warning</b> — badge „ER Nz" pe rând + metrică în detalii când raportul e ≤7 zile (roșu ⚠️ la ≤48h); date Finnhub (cheia shared), cache 6h. Evită să ții long peste un raport surpriză' },
       { e: '💾', t: '<b>Cache rezultate</b> — ultimul scan e salvat local; la reload tabelul apare instant (nu ecran gol) cu eticheta „Cache: acum Xmin" până când scanul nou aduce date proaspete' },
       { e: '📰', t: '<b>News catalyst</b> — buton 📰 pe rând și în detalii: ultimele 8 știri din 7 zile (Finnhub, cheia shared) — răspunde la „de ce mișcă?". On-demand, zero cost dacă nu apeși' },
+      { e: '👔', t: '<b>Insider 90 zile</b> — badge pe rând: „👔 N× buy" verde la cluster (≥2 persoane distincte au cumpărat) / „👔 selling" roșu; lista tranzacțiilor în detalii (nume, shares @ preț, data). Finnhub, cache 12h. Cluster buy + BUY tehnic = confluență serioasă' },
     ]},
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v121 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v122 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -881,6 +887,79 @@ function earnBadge(sym){
   const lbl = d === 0 ? 'azi' : d === 1 ? 'mâine' : d + 'z';
   const urgent = d <= 2;
   return `<div class="earn-tag ${urgent ? 'urgent' : ''}" title="Earnings ${e.date}${hour ? ' · ' + hour : ''} — atenție la poziții long peste raport">📅 ER ${lbl}${urgent ? ' ⚠️' : ''}</div>`;
+}
+
+// ── Insider transactions per stock (F5) — pattern earnings-hub ───
+// Finnhub /stock/insider-transactions 90z, cache 12h (filings se depun lent).
+// Clasificare robustă pe free tier: semn `change` primar + transactionCode
+// fallback (codul lipsește frecvent pe free; A = grant, nu semnal).
+// Cluster = ≥2 persoane DISTINCTE care au cumpărat → semnalul tare.
+const INSIDER_CACHE_KEY = 'wl_insider_cache';
+const INSIDER_TTL_MS = 12 * 3600 * 1000;
+let insiderMap = {}; // { SYM: { verdict, buys, sells, buyPeople, netShares, top[] } | null }
+let _insCache = null, _insLoading = false;
+function _insAll(){
+  if (!_insCache){
+    try {
+      const c = JSON.parse(localStorage.getItem(INSIDER_CACHE_KEY) || '{}');
+      _insCache = {};
+      Object.keys(c).forEach(s => { if (c[s] && (Date.now() - c[s].ts) < INSIDER_TTL_MS) _insCache[s] = c[s]; });
+    } catch(_){ _insCache = {}; }
+  }
+  return _insCache;
+}
+async function fetchInsiderFor(sym, key){
+  const fmt = d => d.toISOString().slice(0, 10);
+  const from = new Date(Date.now() - 90 * 86400000);
+  try {
+    const r = await fetch(`https://finnhub.io/api/v1/stock/insider-transactions?symbol=${sym}&from=${fmt(from)}&to=${fmt(new Date())}&token=${key}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    const arr = Array.isArray(j?.data) ? j.data : [];
+    let buys = 0, sells = 0, netShares = 0;
+    const buyPeople = new Set(), top = [];
+    arr.forEach(t => {
+      const change = Number(t.change) || 0;
+      const code = (t.transactionCode || '').toUpperCase();
+      const isSell = code === 'S' || code === 'D' || code === 'F' || code === 'G' || change < 0;
+      const isBuy = code === 'P' || (change > 0 && !isSell && code !== 'A');
+      if (isBuy){ buys++; buyPeople.add((t.name || '').trim().toLowerCase()); }
+      else if (isSell && change !== 0) sells++;
+      else return;
+      netShares += change;
+      if (top.length < 8) top.push({ name: t.name || '?', date: t.transactionDate || t.filingDate || '', change, price: Number(t.transactionPrice) || null, buy: isBuy });
+    });
+    const verdict = buyPeople.size >= 2 ? 'bull' : (sells >= 2 && netShares < 0) ? 'bear' : 'neut';
+    return { verdict, buys, sells, buyPeople: buyPeople.size, netShares, top };
+  } catch(_){ return null; }
+}
+// Populează insiderMap pentru watchlist-ul US: instant din cache, apoi fetch
+// throttled doar pe ce lipsește. Fire-and-forget după fiecare scan.
+async function loadInsiderData(){
+  if (_insLoading) return;
+  let key = ''; try { key = localStorage.getItem('finnhub_api_key') || ''; } catch(_){}
+  if (!key) return;
+  const cache = _insAll();
+  const syms = watchlist.filter(s => !s.includes('.'));
+  syms.forEach(s => { if (cache[s]) insiderMap[s] = cache[s].data; });
+  const missing = syms.filter(s => !cache[s]);
+  if (!missing.length) return;
+  _insLoading = true;
+  for (const s of missing){
+    const d = await fetchInsiderFor(s, key);
+    insiderMap[s] = d;
+    cache[s] = { ts: Date.now(), data: d }; // și null-urile (nu re-încerca la fiecare scan)
+    await new Promise(r => setTimeout(r, 250)); // lejer sub 60 req/min Finnhub
+  }
+  try { localStorage.setItem(INSIDER_CACHE_KEY, JSON.stringify(cache)); } catch(_){}
+  _insLoading = false;
+  render(); // badge-urile noi apar fără să aștepte scanul următor
+}
+function insBadge(sym){
+  const d = insiderMap[sym];
+  if (!d || d.verdict === 'neut') return '';
+  if (d.verdict === 'bull') return `<span class="ins-tag bull" title="Insider cluster: ${d.buyPeople} persoane au cumpărat în ultimele 90 zile (${d.buys} tranzacții buy / ${d.sells} sell)">👔 ${d.buyPeople}× buy</span>`;
+  return `<span class="ins-tag bear" title="Insider selling: ${d.sells} vânzări în ultimele 90 zile, net negativ">👔 selling</span>`;
 }
 
 // ── News catalyst per stock (F4) — port din market-events v215 ───
@@ -1502,6 +1581,7 @@ async function runScan(){
   scanRunning = false;
   $('scanBtn').disabled = false;
   render();
+  loadInsiderData(); // F5 — async, badge-urile vin din cache instant + fetch pe ce lipsește
   if (autoSec > 0) scheduleNextScan();
 }
 
@@ -1721,6 +1801,18 @@ function buildDetailRow(r){
       <div style="font-size:9px;color:var(--t3);margin-top:5px">Doar orientativ — bazat pe volatilitate medie. Confirmă cu structura graficului.</div>`;
   }
 
+  // Insider 90z (F5) — listă tranzacții sub compoziția scorului
+  let insiderHtml = '';
+  const ins = insiderMap[sym];
+  if (ins && (ins.buys || ins.sells)){
+    const vCol = ins.verdict === 'bull' ? 'var(--bull-s)' : ins.verdict === 'bear' ? 'var(--bear-s)' : 'var(--t2)';
+    const vTxt = ins.verdict === 'bull' ? `CLUSTER BUY (${ins.buyPeople} pers.)` : ins.verdict === 'bear' ? 'SELLING' : 'mixt';
+    insiderHtml = `<div class="detail-bd-title" style="margin-top:13px">👔 Insider 90z — <b style="color:${vCol}">${vTxt}</b> · ${ins.buys} buy / ${ins.sells} sell</div>
+      <div class="detail-bd">${(ins.top || []).map(t =>
+        `<div class="bd-row"><span class="bd-p ${t.buy ? 'pos' : 'neg'}" style="min-width:16px">${t.buy ? '🟢' : '🔴'}</span><span class="bd-l" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${wlEsc(t.name)}</span><span style="color:var(--t3);font-size:9.5px;white-space:nowrap">${(t.change > 0 ? '+' : '−') + fmtVol(Math.abs(t.change))}${t.price ? ' @ $' + t.price.toFixed(2) : ''} · ${wlEsc(t.date)}</span></div>`
+      ).join('') || '<div class="bd-row"><span class="bd-l" style="color:var(--t3)">fără tranzacții relevante</span></div>'}</div>`;
+  }
+
   return `<tr class="detail-row"><td colspan="13">
     <div class="detail-grid">
       <div>
@@ -1741,6 +1833,7 @@ function buildDetailRow(r){
       <div>
         <div class="detail-bd-title">🧮 Compoziție score → <b style="color:${scoreColor(r.score)}">${r.score}</b> · ${r.verdictTxt}</div>
         <div class="detail-bd">${bdHtml}</div>
+        ${insiderHtml}
       </div>
     </div>
   </td></tr>`;
@@ -1843,7 +1936,7 @@ function render(){
       <td class="left">
         <div class="sym-name"><span class="row-caret">▸</span>${r.symbol}</div>
         <div class="sym-sector">Stocks · ${exLabel(r.symbol)}</div>
-        ${earnBadge(r.symbol)}
+        ${earnBadge(r.symbol)}${insBadge(r.symbol)}
         ${perfTag}
       </td>
       <td>${fmtUSD(r.price)}</td>
