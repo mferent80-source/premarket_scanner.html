@@ -1033,7 +1033,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v221</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v222</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1342,7 +1342,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v221 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v222 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1481,18 +1481,21 @@ class NasdaqScanner {
       sortBy = 'date'
     } = options;
 
-    // 1. Generează lista de date (skip weekends — earnings doar zile lucrătoare)
+    // 1. Generează lista de date ancorată pe fusul ET (ziua pieței, nu local/UTC).
+    // Înainte: new Date() local + toISOString (UTC) → în fereastra 03:00-07:00 ora RO
+    // (= 20:00-24:00 ET) „azi" devenea ziua ET de mâine și badge-urile azi/mâine se
+    // decalau cu o zi. Skip weekends — earnings doar zile lucrătoare.
     const dates = [];
-    const today = new Date();
+    const nowMs = Date.now();
     for (let i = 0; i <= maxDays; i++) {
-      const d = new Date(today);
-      d.setDate(d.getDate() + i);
-      const dayOfWeek = d.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) continue; // skip Sun/Sat
+      const str = _etDateStr(nowMs + i * 86400000); // YYYY-MM-DD în America/New_York (DST-aware)
+      if (dates.some(d => d.str === str)) continue; // gardă la tranzițiile DST (zile de 23/25h)
+      const wd = new Date(str + 'T12:00:00Z').getUTCDay(); // weekday stabil din data ET
+      if (wd === 0 || wd === 6) continue; // skip Sun/Sat
       dates.push({
-        str: d.toISOString().split('T')[0],
+        str,
         dayOffset: i,
-        dateObj: new Date(d)
+        dateObj: new Date(str + 'T00:00:00')
       });
     }
 
