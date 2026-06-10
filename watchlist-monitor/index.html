@@ -353,6 +353,12 @@ table.no-pre .col-pre { display:none; }
 .tg-field label { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:700; font-family:var(--mono); }
 .tg-field input { padding:7px 10px; font-size:12px; font-family:var(--mono); }
 
+/* AI verdict (B) */
+.ai-box { margin-top:12px; background:var(--panel2); border:1px solid rgba(91,176,255,.35); border-radius:var(--rs); padding:10px 12px; font-size:11.5px; line-height:1.55; }
+.ai-box.fade-in { animation:aiFade .5s var(--ease); }
+@keyframes aiFade { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.ai-meta { font-size:9.5px; color:var(--t3); font-family:var(--mono); margin-bottom:6px; display:flex; gap:8px; align-items:center; }
+
 /* Mobile */
 @media (max-width:760px) {
   body { padding:8px; font-size:12px; }
@@ -376,7 +382,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v129</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v130</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -550,11 +556,12 @@ window.showWlFeatures = function(){
       { e: '📰', t: '<b>News catalyst</b> — buton 📰 pe rând și în detalii: ultimele 8 știri din 7 zile (Finnhub, cheia shared) — răspunde la „de ce mișcă?". On-demand, zero cost dacă nu apeși' },
       { e: '👔', t: '<b>Insider 90 zile</b> — badge pe rând: „👔 N× buy" verde la cluster (≥2 persoane distincte au cumpărat) / „👔 selling" roșu; lista tranzacțiilor în detalii (nume, shares @ preț, data). Finnhub, cache 12h. Cluster buy + BUY tehnic = confluență serioasă' },
       { e: '📊', t: '<b>Analyst consensus</b> — în detalii: % analiști pe Buy (nr total + direcția vs luna trecută). Finnhub recommendation trends, fetch doar la click pe rând, cache 24h' },
+      { e: '🤖', t: '<b>AI verdict</b> (claude-opus-4-8) — buton 🤖 în detalii: verdict LONG/AȘTEAPTĂ/SKIP + plan ancorat EXCLUSIV pe nivelurile reale calculate (Entry/SL/TP ref ATR, MA, 52s) — anti-halucinare. Cache 1h + Rerun; cheia shared `anthropic_api_key`' },
     ]},
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v129 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v130 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -1066,6 +1073,93 @@ window.wlShowNews = function(sym){
       }).join('');
     })
     .catch(e => { area.innerHTML = '❌ Eroare Finnhub: ' + wlEsc(e.message); });
+};
+
+// ── AI verdict (B) — claude-opus-4-8, cheia shared `anthropic_api_key` ──
+// Non-streaming (afișare deodată cu fade-in + cronometru), cache LS 1h + Rerun.
+// Prompt ANCORAT pe prețurile reale calculate (anti-halucinare Entry/SL/TP).
+const AI_CACHE_KEY = 'wl_ai_cache';
+const AI_TTL_MS = 60 * 60 * 1000;
+let _aiCacheMem = null; const _aiLoading = {};
+function _aiAll(){ if (!_aiCacheMem){ try { _aiCacheMem = JSON.parse(localStorage.getItem(AI_CACHE_KEY) || '{}'); } catch(_){ _aiCacheMem = {}; } } return _aiCacheMem; }
+function _aiFresh(sym){ const c = _aiAll()[sym]; return (c && (Date.now() - c.ts) < AI_TTL_MS) ? c : null; }
+function _aiSave(sym, text){ const all = _aiAll(); all[sym] = { ts: Date.now(), text }; try { localStorage.setItem(AI_CACHE_KEY, JSON.stringify(all)); } catch(_){} }
+function _aiHtml(text){ return wlEsc(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>'); }
+// Conținutul zonei AI la (re)render — supraviețuiește re-render-ului de la fiecare scan
+function aiAreaHtml(sym){
+  if (_aiLoading[sym]) return `<div class="ai-box"><div class="ai-meta">🤖 claude-opus-4-8 · analizez… <span id="aiTimer-${sym}">0s</span></div></div>`;
+  const c = _aiFresh(sym);
+  if (c) return `<div class="ai-box"><div class="ai-meta">🤖 claude-opus-4-8 · ${fmtAge(c.ts)}<button type="button" class="action-btn" style="margin-left:auto;font-size:9px" onclick="wlAskAI('${sym}', true)">↻ Rerun</button></div><div>${_aiHtml(c.text)}</div></div>`;
+  return '';
+}
+function buildAiPrompt(r){
+  const a = (r.atrPct != null && r.price != null) ? r.price * r.atrPct / 100 : null;
+  const lvl = a ? { sl: r.price - 1.5 * a, tp1: r.price + 2 * a, tp2: r.price + 3.5 * a } : null;
+  const distHi = (r.hi52 && r.price) ? ((r.price - r.hi52) / r.hi52) * 100 : null;
+  const distLo = (r.lo52 && r.price) ? ((r.price - r.lo52) / r.lo52) * 100 : null;
+  const ins = insiderMap[r.symbol];
+  const earn = earningsMap[r.symbol];
+  const lines = [
+    `Ești un trader swing pe stocks US/EU. Analizează DOAR datele de mai jos (reale, calculate acum) pentru ${r.symbol}:`,
+    `- Preț: $${r.price.toFixed(2)} · Δ zi ${fmtPct(r.chg, 2)} · trend 30z ${fmtPct(r.trend, 1)} · alpha vs QQQ 30z ${r.alpha != null ? fmtPct(r.alpha, 1) : 'n/a'}`,
+    `- RSI14 ${r.rsi != null ? r.rsi.toFixed(1) : 'n/a'} · vs MA50 ${fmtPct(r.ma50, 1)} · vs MA200 ${fmtPct(r.ma200, 1)} · RVOL ${r.rvol != null ? r.rvol.toFixed(2) + '×' : 'n/a'}${r.rvolProj ? ' (proiectat)' : ''}`,
+    `- ATR ≈ ${r.atrPct != null ? r.atrPct.toFixed(2) + '%/zi' : 'n/a'} · vs max 52s ${distHi != null ? fmtPct(distHi, 1) : 'n/a'} · vs min 52s ${distLo != null ? fmtPct(distLo, 1) : 'n/a'}`,
+    `- Score intern ${r.score}/100 → ${r.verdictTxt}. Compoziție: ${(r.breakdown || []).map(b => b.l + ' ' + (b.base ? b.p : (b.p >= 0 ? '+' : '') + b.p)).join('; ')}`,
+  ];
+  if (lvl) lines.push(`- Niveluri ref ATR: Entry $${r.price.toFixed(2)} · SL $${lvl.sl.toFixed(2)} · TP1 $${lvl.tp1.toFixed(2)} · TP2 $${lvl.tp2.toFixed(2)}`);
+  if (earn){ const d = daysUntil(earn.date); if (d != null && d >= 0 && d <= 14) lines.push(`- ⚠ Earnings în ${d === 0 ? '0 zile (AZI)' : d + ' zile'} (${earn.date}${earn.hour ? ' ' + earn.hour : ''})`); }
+  if (ins && (ins.buys || ins.sells)) lines.push(`- Insider 90z: ${ins.buys} buy (${ins.buyPeople} pers. distincte) / ${ins.sells} sell → ${ins.verdict}`);
+  lines.push('',
+    'Răspunde în română, maxim 10 rânduri, fără introducere:',
+    '1. **Verdict**: LONG ACUM / AȘTEAPTĂ (cu condiția concretă de intrare) / SKIP — cu 2-3 motive din datele de sus',
+    '2. **Plan**: folosește EXCLUSIV nivelurile date mai sus (Entry/SL/TP1/TP2 ref ATR) — NU inventa alte prețuri; ajustează doar dacă MA50/MA200/max-min 52s din date e mai logic ca nivel și spune explicit care',
+    '3. **Riscul principal** + invalidarea clară a setup-ului',
+    '4. Dacă earnings ≤7 zile: menționează explicit riscul de gap peste raport.');
+  return lines.join('\n');
+}
+window.wlAskAI = async function(sym, force){
+  const r = results.find(x => x.symbol === sym);
+  const area0 = document.getElementById('aiArea-' + sym);
+  if (!r || r.price == null){ if (area0) area0.innerHTML = '<div class="ai-box">⚠ Fără date — rulează un scan întâi.</div>'; return; }
+  if (!force && _aiFresh(sym)){ if (area0) area0.innerHTML = aiAreaHtml(sym); return; }
+  let key = ''; try { key = localStorage.getItem('anthropic_api_key') || ''; } catch(_){}
+  if (!key){
+    const k = window.prompt('Cheia Anthropic (shared cu nasdaq-scanner/earnings-hub) — o iei din console.anthropic.com/settings/keys:');
+    if (!k || !k.trim()) return;
+    key = k.trim(); try { localStorage.setItem('anthropic_api_key', key); } catch(_){}
+  }
+  if (_aiLoading[sym]) return;
+  _aiLoading[sym] = Date.now();
+  if (area0) area0.innerHTML = aiAreaHtml(sym);
+  const t0 = Date.now();
+  const timer = setInterval(() => { const el = document.getElementById('aiTimer-' + sym); if (el) el.textContent = Math.round((Date.now() - t0) / 1000) + 's'; }, 500);
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 700, messages: [{ role: 'user', content: buildAiPrompt(r) }] })
+    });
+    if (!resp.ok){
+      const j = await resp.json().catch(() => ({}));
+      throw new Error(j.error?.message || ('HTTP ' + resp.status));
+    }
+    const data = await resp.json();
+    const text = (data?.content?.[0]?.text || '').trim();
+    if (!text) throw new Error('răspuns gol');
+    _aiSave(sym, text);
+    delete _aiLoading[sym];
+    const el = document.getElementById('aiArea-' + sym);
+    if (el){ el.innerHTML = aiAreaHtml(sym); const box = el.querySelector('.ai-box'); if (box) box.classList.add('fade-in'); }
+  } catch(e){
+    delete _aiLoading[sym];
+    const el = document.getElementById('aiArea-' + sym);
+    if (el) el.innerHTML = `<div class="ai-box" style="border-color:rgba(255,77,77,.4)">❌ AI: ${wlEsc(e.message)}</div>`;
+  } finally { clearInterval(timer); }
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1968,7 +2062,9 @@ function buildDetailRow(r){
           <a class="action-btn" href="${yhUrl}" target="_blank" rel="noopener">📊 Yahoo</a>
           ${sym.includes('.') ? '' : `<a class="action-btn" href="${fvUrl}" target="_blank" rel="noopener">📊 Finviz</a>`}
           <button class="action-btn" onclick="wlShowNews('${sym}')">📰 News 7z</button>
+          <button class="action-btn" style="border-color:rgba(91,176,255,.4);color:var(--accent)" onclick="wlAskAI('${sym}')" title="Verdict AI (claude-opus-4-8) ancorat pe datele reale de mai sus — cache 1h">🤖 AI</button>
         </div>
+        <div id="aiArea-${sym}">${aiAreaHtml(sym)}</div>
       </div>
       <div>
         <div class="detail-bd-title">🧮 Compoziție score → <b style="color:${scoreColor(r.score)}">${r.score}</b> · ${r.verdictTxt}</div>
