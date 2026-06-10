@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v102</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v103</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -5205,7 +5205,11 @@ function renderSignalAI(s, prefix){
 
 function renderSaveSetupBtn(symbol, contextType){
   const ct=contextType||'opportunity';
-  return '<button onclick="openSaveSetupModal(\''+symbol+'\',\''+ct+'\')" style="width:100%;padding:7px;border-radius:7px;border:1px solid #7dd3fc;background:#f0f9ff;color:#0284c7;font-size:.62rem;font-weight:700;cursor:pointer;margin-top:7px;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .2s" onmouseover="this.style.background=\'#0284c7\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'#f0f9ff\';this.style.color=\'#0284c7\'">📌 Salvează în jurnal</button>';
+  // 📌 jurnal local + 🎯 hook Smart Trade Long (?symbol= prefill — position sizer, scoring 5-filtre, insider)
+  return '<div style="display:flex;gap:6px;margin-top:7px">'
+    +'<button onclick="openSaveSetupModal(\''+symbol+'\',\''+ct+'\')" style="flex:1;padding:7px;border-radius:7px;border:1px solid #7dd3fc;background:#f0f9ff;color:#0284c7;font-size:.62rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .2s" onmouseover="this.style.background=\'#0284c7\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'#f0f9ff\';this.style.color=\'#0284c7\'">📌 Salvează în jurnal</button>'
+    +'<a href="../smart-trade-long/?symbol='+encodeURIComponent(symbol)+'" target="_blank" rel="noopener" title="Deschide Smart Trade Long cu simbolul prefill — scoring 5-filtre, niveluri ATR, position sizer pe contul tău, insider" style="flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:7px 11px;border-radius:7px;border:1px solid var(--goldb);background:var(--goldl);color:var(--gold);font-size:.62rem;font-weight:700;text-decoration:none">🎯 Smart Trade</a>'
+    +'</div>';
 }
 
 // ═══════════════════════════════════════════════════════════════
