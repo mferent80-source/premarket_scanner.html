@@ -324,6 +324,12 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 .perf-tag.pos { color:var(--bull-s); }
 .perf-tag.neg { color:var(--bear-s); }
 
+/* Premarket / after-hours (F-pre) */
+table.no-pre .col-pre { display:none; }
+.pre-price { display:block; font-size:9px; color:var(--t3); margin-top:1px; }
+#sessionPill.live { border-color:rgba(34,214,107,.45); color:var(--bull-s); }
+#sessionPill.pre  { border-color:rgba(212,137,44,.45); color:var(--warn); }
+
 /* Earnings badge (F2-extra) */
 .earn-tag { display:inline-block; font-size:9.5px; font-weight:700; font-family:var(--mono); margin-top:2px; line-height:1.2; color:var(--accent); }
 .earn-tag.urgent { color:var(--warn); }
@@ -365,12 +371,13 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v116</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v117</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
   <a href="../market-events/" class="nav-link">📅 Events</a>
   <button onclick="window.showWlFeatures()" class="nav-link" style="color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
+  <span class="status-pill" id="sessionPill" title="Sesiunea NYSE/Nasdaq (ora New York, DST-aware)">⏳</span>
   <span class="status-pill"><span class="status-dot" id="statusDot"></span><span id="statusTxt">Ready</span></span>
   <span class="status-pill" id="countdownPill" style="display:none" title="Timp până la următorul auto-scan">⏱ <span id="countdownTxt">—</span></span>
   <div style="display:inline-flex;align-items:center;gap:5px"><label style="font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Auto:</label>
@@ -451,12 +458,13 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
     <span style="font-size:14px">📊</span><h3>Watchlist live</h3>
     <span class="panel-sub" id="lastScan">apasă SCAN</span>
   </div>
-  <table>
+  <table id="wlTable" class="no-pre">
     <thead>
       <tr>
         <th data-sort="symbol" class="left">Ticker</th>
         <th data-sort="price">Preț</th>
         <th data-sort="chg">Δ Zi</th>
+        <th data-sort="preChg" class="col-pre" id="thPre" title="Mișcarea în pre-market / after-hours (doar simboluri US)">🌅 Pre</th>
         <th data-sort="trend">📈 30z</th>
         <th data-sort="vol" class="hide-mobile">Vol</th>
         <th data-sort="rsi">RSI</th>
@@ -469,7 +477,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
       </tr>
     </thead>
     <tbody id="resultsBody">
-      <tr><td colspan="12" class="empty">
+      <tr><td colspan="13" class="empty">
         <div class="empty-icon">👁️</div>
         <div class="empty-title">Niciun stock în watchlist</div>
         <div class="empty-sub">Adaugă tickere (AAPL, NVDA, TSLA…) prin formularul de sus + apasă SCAN. Auto-refresh 60s va verifica continuu condițiile pentru BUY/STRONG BUY și te va notifica la fiecare semnal nou puternic.</div>
@@ -498,6 +506,7 @@ window.showWlFeatures = function(){
   const sections = [
     { title: '📡 Date', cls: 'data', items: [
       { e: '📡', t: '<b>Yahoo Finance</b> — fără cheie, range 1y interval 1d; lanț de 3 proxy-uri CORS cu fallback + marcare proxy mort (dacă unul e rate-limited/CORS, trece la următorul și-l sare până la scanul următor)' },
+      { e: '🌅', t: '<b>Pre/After-hours live</b> — în sesiunea extinsă apare coloana „🌅 Pre"/„🌆 After" cu Δ%, preț și volum din pre-market/after-hours (simboluri US); alertele de mișcare ±X% folosesc prețul live, nu close-ul de ieri. Badge sesiune NYSE în header' },
       { e: '🔄', t: '<b>Storage shared</b> wl_stocks cu nasdaq-scanner' },
     ]},
     { title: '🎯 Scoring & Verdict', cls: 'tool', items: [
@@ -533,7 +542,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v116 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v117 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -761,7 +770,7 @@ window.showTgConfig = function(){
     try { localStorage.setItem(MOVE_ALERT_KEY, JSON.stringify(moveAlert)); } catch(e){}
     // tocmai activat → ancorează imediat din ultimul scan, alertele pornesc de la următorul
     if (moveAlert.enabled && !prevMoveEnabled){
-      moveRefMap = {}; results.forEach(r => { if (r.price != null) moveRefMap[r.symbol] = r.price; });
+      moveRefMap = {}; results.forEach(r => { const p = r.livePrice != null ? r.livePrice : r.price; if (p != null) moveRefMap[r.symbol] = p; });
       _moveArmed = true;
     }
     updateAlertButtons();
@@ -869,6 +878,67 @@ function earnBadge(sym){
   const lbl = d === 0 ? 'azi' : d === 1 ? 'mâine' : d + 'z';
   const urgent = d <= 2;
   return `<div class="earn-tag ${urgent ? 'urgent' : ''}" title="Earnings ${e.date}${hour ? ' · ' + hour : ''} — atenție la poziții long peste raport">📅 ER ${lbl}${urgent ? ' ⚠️' : ''}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MARKET SESSION (NYSE/Nasdaq, DST-aware via Intl) — pattern pump-radar
+// ═══════════════════════════════════════════════════════════════
+function marketSession(){
+  let parts;
+  try { parts = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date()); }
+  catch(e){ return { state:'unknown', txt:'sesiune ?' }; }
+  const get = t => (parts.find(p => p.type === t) || {}).value;
+  const wd = get('weekday'); const mins = (+get('hour'))*60 + (+get('minute'));
+  if (wd === 'Sat' || wd === 'Sun') return { state:'closed', txt:'închis (weekend)' };
+  if (mins >= 4*60 && mins < 9*60+30) return { state:'pre', txt:'pre-market' };
+  if (mins >= 9*60+30 && mins < 16*60) return { state:'open', txt:'sesiune regulară' };
+  if (mins >= 16*60 && mins < 20*60) return { state:'post', txt:'after-hours' };
+  return { state:'closed', txt:'închis' };
+}
+function updateSessionPill(){
+  const s = marketSession(); const el = $('sessionPill'); if (!el) return;
+  const ico = s.state === 'open' ? '🟢' : s.state === 'pre' ? '🌅' : s.state === 'post' ? '🌆' : '🌙';
+  el.textContent = ico + ' ' + s.txt;
+  el.className = 'status-pill' + (s.state === 'open' ? ' live' : (s.state === 'pre' || s.state === 'post') ? ' pre' : '');
+}
+setInterval(updateSessionPill, 30000);
+
+// ═══════════════════════════════════════════════════════════════
+//  PRE/POST-MARKET (F-pre) — Yahoo chart 5m/1d cu includePrePost=true.
+//  Doar simboluri US (EU nu au pre/post pe Yahoo). Returnează mișcarea
+//  din sesiunea extinsă curentă: preț live, Δ% vs referință, volum cumulat.
+//    pre:  bare în [pre.start, regular.start) · ref = close-ul de ieri (chartPreviousClose)
+//    post: bare în [post.start, ∞)            · ref = close-ul regular de azi
+// ═══════════════════════════════════════════════════════════════
+async function fetchPrePost(symbol, state){
+  if (symbol.includes('.')) return null; // doar US
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d&includePrePost=true&_=${Date.now()}`;
+  const d = await proxyGetJSON(url);
+  const result = d?.chart?.result?.[0];
+  if (!result || !result.timestamp) return null;
+  const meta = result.meta || {};
+  const per = meta.currentTradingPeriod || {};
+  const ts = result.timestamp;
+  const closes = result.indicators?.quote?.[0]?.close || [];
+  const vols = result.indicators?.quote?.[0]?.volume || [];
+  let from, to, ref;
+  if (state === 'pre'){
+    if (!per.pre || !per.regular) return null;
+    from = per.pre.start; to = per.regular.start;
+    ref = meta.chartPreviousClose ?? meta.previousClose ?? null;
+  } else { // post
+    if (!per.post) return null;
+    from = per.post.start; to = Infinity;
+    ref = meta.regularMarketPrice ?? null;
+  }
+  let last = null, vol = 0;
+  for (let i = 0; i < ts.length; i++){
+    if (ts[i] < from || ts[i] >= to) continue;
+    if (closes[i] != null) last = closes[i];
+    if (vols[i] != null) vol += vols[i];
+  }
+  if (last == null || !ref) return null;
+  return { price: last, chg: ((last - ref) / ref) * 100, vol };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1181,6 +1251,8 @@ async function runScan(){
   _deadProxies.clear(); // reîncearcă de la zero proxy-urile la fiecare scan nou
   $('scanBtn').disabled = true;
   setStatus('load', `scanez ${watchlist.length} stocks…`);
+  const sess = marketSession();
+  const extended = sess.state === 'pre' || sess.state === 'post'; // sesiune extinsă → fetch pre/post per simbol US
   await loadEarningsCalendar(); // o dată per scan (cache 6h) — pentru badge-urile ER
 
   // Benchmark QQQ (Nasdaq-100) o dată per scan → alpha 30z per stock (F3-extra)
@@ -1191,11 +1263,17 @@ async function runScan(){
   for (let i = 0; i < watchlist.length; i++){
     const sym = watchlist[i];
     const data = await fetchYahooData(sym);
+    let pp = null;
+    if (extended && data) pp = await fetchPrePost(sym, sess.state);
     if (data){
       const sc = scoreStock(data);
       newResults.push({
         symbol: sym,
         price: data.price,
+        prePrice: pp ? pp.price : null,
+        preChg: pp ? pp.chg : null,
+        preVol: pp ? pp.vol : null,
+        livePrice: pp ? pp.price : data.price,
         chg: sc.chg,
         vol: data.vol,
         rsi: sc.rsi,
@@ -1218,6 +1296,7 @@ async function runScan(){
     } else {
       newResults.push({
         symbol: sym, price: null, chg: null, vol: null, rsi: null,
+        prePrice: null, preChg: null, preVol: null, livePrice: null,
         ma50: null, ma200: null, ma50abs: null, ma200abs: null, atrPct: null, breakdown: [],
         hi52: null, lo52: null, score: 0,
         verdict: 'hold', verdictTxt: '⚠️ N/A', spark: [], trend: null, alpha: null, ts: Date.now(),
@@ -1260,6 +1339,10 @@ async function runScan(){
 
   // Detect mișcări de preț ±pct% → Telegram (F6-extra)
   detectAndNotifyMoves(newResults);
+
+  // Coloana Pre/After: vizibilă doar în sesiunea extinsă (F-pre)
+  $('wlTable')?.classList.toggle('no-pre', !extended);
+  const thPre = $('thPre'); if (thPre) thPre.textContent = sess.state === 'post' ? '🌆 After' : '🌅 Pre';
 
   results = newResults;
   lastScanTs = Date.now();
@@ -1330,25 +1413,30 @@ function detectAndNotifyMoves(newResults){
   // curăță ref-urile simbolurilor scoase din watchlist
   Object.keys(moveRefMap).forEach(s => { if (!watchlist.includes(s)) delete moveRefMap[s]; });
 
+  // Prețul „viu": în pre/after folosește prețul din sesiunea extinsă (F-pre),
+  // altfel alertele ar dormi pe close-ul de ieri toată dimineața.
+  const liveOf = r => r.livePrice != null ? r.livePrice : r.price;
+
   if (!moveAlert.enabled){
     // ține ref-urile pe prețul curent → activarea ulterioară pornește de la prețurile de acum
-    newResults.forEach(r => { if (r.price != null) moveRefMap[r.symbol] = r.price; });
+    newResults.forEach(r => { const p = liveOf(r); if (p != null) moveRefMap[r.symbol] = p; });
     _moveArmed = false;
     return;
   }
   const pct = moveAlert.pct > 0 ? moveAlert.pct : 1;
   if (!_moveArmed){ // primul scan cu alerta ON → ancorează, nu alerta
-    newResults.forEach(r => { if (r.price != null) moveRefMap[r.symbol] = r.price; });
+    newResults.forEach(r => { const p = liveOf(r); if (p != null) moveRefMap[r.symbol] = p; });
     _moveArmed = true;
     return;
   }
   const moved = [];
   newResults.forEach(r => {
-    if (r.price == null) return;
+    const p = liveOf(r);
+    if (p == null) return;
     const ref = moveRefMap[r.symbol];
-    if (ref == null){ moveRefMap[r.symbol] = r.price; return; }
-    const chg = (r.price - ref) / ref * 100;
-    if (Math.abs(chg) >= pct){ moved.push({ sym: r.symbol, price: r.price, chg }); moveRefMap[r.symbol] = r.price; }
+    if (ref == null){ moveRefMap[r.symbol] = p; return; }
+    const chg = (p - ref) / ref * 100;
+    if (Math.abs(chg) >= pct){ moved.push({ sym: r.symbol, price: p, chg }); moveRefMap[r.symbol] = p; }
   });
   if (!moved.length) return;
 
@@ -1433,6 +1521,7 @@ function buildDetailRow(r){
   let metrics = '';
   metrics += dmCell('Preț', fmtUSD(r.price));
   metrics += dmCell('Δ Zi', `<span style="color:${colP(r.chg)}">${fmtPct(r.chg, 2)}</span>`);
+  if (r.preChg != null) metrics += dmCell('🌅 Pre/After', `<span style="color:${colP(r.preChg)}">${fmtPct(r.preChg, 2)}</span> <span style="font-size:9px;color:var(--t3)">$${r.prePrice.toFixed(2)} · vol ${fmtVol(r.preVol)}</span>`);
   metrics += dmCell('Trend 30z', `<span style="color:${colP(r.trend)}">${r.trend != null ? fmtPct(r.trend, 1) : '—'}</span>`);
   metrics += dmCell('α vs QQQ 30z', `<span style="color:${colP(r.alpha)}">${r.alpha != null ? fmtPct(r.alpha, 1) : '—'}</span>`);
   metrics += dmCell('RSI 14', r.rsi != null ? r.rsi.toFixed(1) : '—');
@@ -1485,7 +1574,7 @@ function buildDetailRow(r){
       <div style="font-size:9px;color:var(--t3);margin-top:5px">Doar orientativ — bazat pe volatilitate medie. Confirmă cu structura graficului.</div>`;
   }
 
-  return `<tr class="detail-row"><td colspan="12">
+  return `<tr class="detail-row"><td colspan="13">
     <div class="detail-grid">
       <div>
         <div class="detail-spark-wrap">
@@ -1540,7 +1629,7 @@ function render(){
   const tbody = $('resultsBody');
   if (!watchlist.length){
     const popBtns = POPULAR_TICKERS.map(t => `<button class="qa-btn" type="button" onclick="quickAdd('${t}')">+ ${t}</button>`).join('');
-    tbody.innerHTML = `<tr><td colspan="12" class="empty">
+    tbody.innerHTML = `<tr><td colspan="13" class="empty">
       <div class="empty-icon">👁️</div>
       <div class="empty-title">Niciun stock în watchlist</div>
       <div class="empty-sub">Adaugă tickere prin formularul de sus sau alege rapid mai jos. Auto-scan 60s verifică apoi continuu condițiile pentru BUY/STRONG BUY și te anunță (notificare/sunet/Telegram) la fiecare semnal nou.</div>
@@ -1611,6 +1700,7 @@ function render(){
       </td>
       <td>${fmtUSD(r.price)}</td>
       <td><span class="badge ${chgCls}">${fmtPct(r.chg, 2)}</span></td>
+      <td class="col-pre">${r.preChg != null ? `<span class="badge ${r.preChg >= 0 ? 'up' : 'down'}">${fmtPct(r.preChg, 2)}</span><span class="pre-price">$${r.prePrice.toFixed(2)}${r.preVol ? ' · ' + fmtVol(r.preVol) : ''}</span>` : '<span style="color:var(--t3)">—</span>'}</td>
       <td title="${r.trend != null ? 'trend 30 zile: ' + fmtPct(r.trend, 1) : 'fără date'}">${buildSparkline(r.spark) || '<span style="color:var(--t3)">—</span>'}<span class="spark-trend-pct ${trCls}" style="color:${r.trend == null ? 'var(--t3)' : r.trend >= 0 ? 'var(--bull-s)' : 'var(--bear-s)'}">${r.trend != null ? fmtPct(r.trend, 1) : ''}</span></td>
       <td class="hide-mobile">${fmtVol(r.vol)}</td>
       <td><span class="badge ${rsiCls}">${r.rsi != null ? r.rsi.toFixed(0) : '—'}</span></td>
@@ -1630,15 +1720,15 @@ function render(){
       <div class="sym-name">${s}</div>
       <div class="sym-sector">⏳ pending scan</div>
     </td>
-    <td colspan="9" style="color:var(--t3);font-style:italic">apasă SCAN ↻ pentru date</td>
+    <td colspan="10" style="color:var(--t3);font-style:italic">apasă SCAN ↻ pentru date</td>
     <td><span class="verdict hold">⏳ PENDING</span></td>
     <td><button class="action-btn del" onclick="removeFromWl('${s}')">🗑</button></td>
   </tr>`).join('');
 
   if (!html){
     html = (filterActive && results.length)
-      ? '<tr><td colspan="12" class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Niciun stock nu se potrivește filtrului</div><div class="empty-sub">Schimbă chip-ul de verdict, golește căutarea sau dezactivează „doar movers".</div></td></tr>'
-      : '<tr><td colspan="12" class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Apasă SCAN pentru a popula datele</div></td></tr>';
+      ? '<tr><td colspan="13" class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Niciun stock nu se potrivește filtrului</div><div class="empty-sub">Schimbă chip-ul de verdict, golește căutarea sau dezactivează „doar movers".</div></td></tr>'
+      : '<tr><td colspan="13" class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Apasă SCAN pentru a popula datele</div></td></tr>';
   }
   tbody.innerHTML = html;
 
@@ -1855,6 +1945,7 @@ loadResultsCache(); // F4-extra — populează tabelul din cache înainte de pri
 $('notifBtn').style.opacity = notifEnabled ? '1' : '.5';
 updateAlertButtons();
 setStatus('', `${watchlist.length} stocks · auto-scan 60s`);
+updateSessionPill();
 updateChangesBadge();
 render();
 if (results.length && lastScanTs) $('lastScan').textContent = 'Cache: ' + fmtAge(lastScanTs) + ' — apasă SCAN ↻ pt date noi';
