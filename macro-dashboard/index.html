@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v186</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v187</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -940,6 +940,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
       <div class="bh-actions">
         <button class="primary" id="briefGenBtn">🚀 Generează brief</button>
         <button class="ghost" id="briefRerunBtn" title="Re-generează (șterge cache)">↻ Rerun</button>
+        <button class="ghost" id="briefArchiveBtn" title="Brief-urile din ultimele 7 zile — compară ce a zis AI-ul cu ce a făcut piața">📜</button>
       </div>
     </div>
 
@@ -3646,6 +3647,33 @@ function loadBriefCache() {
 function saveBriefCache(brief) {
   try { localStorage.setItem('md_brief_cache', JSON.stringify(brief)); } catch (e) { /* quota */ }
 }
+// ── Arhivă brief-uri 7 zile — validare ONESTĂ: deschizi brief-ul de luni și vezi
+// ce a zis AI-ul vs ce a făcut piața. O intrare pe zi (rerun-ul înlocuiește ziua).
+function archiveBrief(brief) {
+  try {
+    let arc = [];
+    try { arc = JSON.parse(localStorage.getItem('md_brief_archive') || '[]'); } catch (e) {}
+    if (!Array.isArray(arc)) arc = [];
+    arc = arc.filter(b => b && b.dateET !== brief.dateET);
+    arc.push({ dateET: brief.dateET, generatedAt: brief.generatedAt, text: brief.text, mood: brief.mood });
+    arc.sort((a, b) => (a.generatedAt || 0) - (b.generatedAt || 0));
+    if (arc.length > 7) arc = arc.slice(-7);
+    localStorage.setItem('md_brief_archive', JSON.stringify(arc));
+  } catch (e) { /* quota */ }
+}
+function showBriefArchive() {
+  let arc = [];
+  try { arc = JSON.parse(localStorage.getItem('md_brief_archive') || '[]'); } catch (e) {}
+  if (!Array.isArray(arc)) arc = [];
+  const items = arc.slice().reverse(); // cel mai recent primul
+  const html = items.length
+    ? items.map((b, i) => `<details ${i === 0 ? 'open' : ''} style="margin-bottom:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px 14px">
+        <summary style="cursor:pointer;font-weight:700">${escHtml(b.dateET)} · generat ${new Date(b.generatedAt).toLocaleString('ro-RO', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}${b.mood ? ' · mood ' + escHtml(b.mood) : ''}</summary>
+        <div style="margin-top:10px;font-size:13px;line-height:1.6">${formatBriefText(b.text)}</div>
+      </details>`).join('')
+    : '<div style="padding:18px;color:var(--t3)">Niciun brief arhivat încă — arhiva se umple automat la fiecare brief generat (păstrează ultimele 7 zile).</div>';
+  openGenericModal('📜 Brief-uri anterioare', 'Validare onestă: ce a zis AI-ul vs ce a făcut piața (ultimele 7 zile)', html);
+}
 
 function getStatTileVal(id) {
   const tile = $(id);
@@ -3913,6 +3941,7 @@ Genereaza brief-ul matinal conform structurii.`;
       ctx: { eventsCount: ctx.eventsCount, hiCount: ctx.hiCount, tiles: ctx.tilesList }
     };
     saveBriefCache(brief);
+    archiveBrief(brief); // 📜 arhiva 7 zile — validare retroactivă
     renderBrief(brief); // afișează deodată cu fade-in
     toast(`✅ Brief generat în ${Math.round((Date.now() - startMs)/1000)}s · mood: ${mood || 'auto'}`, 'success');
   } catch (e) {
@@ -5372,6 +5401,7 @@ function bindEvents() {
 
   // Brief tab buttons
   $('briefGenBtn').addEventListener('click', () => generateBrief(false));
+  $('briefArchiveBtn')?.addEventListener('click', showBriefArchive);
   $('briefRerunBtn').addEventListener('click', () => {
     if (!confirm('Re-generează brief-ul (consumă tokens AI)?')) return;
     generateBrief(true);
