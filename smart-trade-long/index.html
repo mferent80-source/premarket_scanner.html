@@ -222,7 +222,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v10</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v11</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -281,6 +281,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 
 <script src="../lib/data.js"></script>
 <script src="../lib/insider.js"></script>
+<script src="../lib/ledger.js"></script>
 <script>
 'use strict';
 
@@ -636,6 +637,8 @@ function recordScanHistory(sym, sd) {
     // anti-spam auto-scan 5min: notează doar la schimbare de tier sau după 6h
     if (lastE && lastE.tier === t && Date.now() - lastE.ts < 6 * 3600 * 1000) return;
     arr.push({ ts: Date.now(), score: sd.score, tier: t, price: sd.last });
+    // Signal ledger (lib/ledger.js) — doar verdictul de top READY (dedupe pe zi în lib)
+    if (window.LEDGER && /READY/.test(t)) LEDGER.log('stl-ready', sym, sd.last, t);
     all[sym] = arr.slice(-10);
     const syms = Object.keys(all); // purge: max 40 simboluri, ies cele mai vechi
     if (syms.length > 40) syms.sort((a, b) => (all[a][all[a].length - 1]?.ts || 0) - (all[b][all[b].length - 1]?.ts || 0)).slice(0, syms.length - 40).forEach(s => delete all[s]);

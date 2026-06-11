@@ -1037,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v229</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v230</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1319,6 +1319,7 @@
 
 <script src="../lib/data.js"></script>
 <script src="../lib/insider.js"></script>
+<script src="../lib/ledger.js"></script>
 <script>
 // Features modal pentru pagina market-events
 window.showMeFeatures = function(){
@@ -1346,7 +1347,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v229 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird/🌿 Forming + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v230 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird/🌿 Forming + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -3328,6 +3329,8 @@ async function wlEnsureEarlyData(force){
     const prev = ebSeen[w.symbol];
     if (prev !== undefined && !prev.early && nowEarly){
       newlyEarly.push({ symbol: w.symbol, score: eb.score });
+      // Signal ledger (lib/ledger.js) — early-bird NOU, evaluat la +5/+20z în scorecard-ul din Hub
+      if (window.LEDGER && eb.price > 0) LEDGER.log('me-early', w.symbol, eb.price, '🌱 ▲' + eb.score);
     }
     // Exit: ceva ce era early (sau marcat early în istoric) tocmai s-a invalidat
     if (prev !== undefined && (prev.early || prev.wasEarly) && nowWilting){

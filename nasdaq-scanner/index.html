@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v107</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v108</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -5884,6 +5884,8 @@ async function runScan(){
       opportunities: allOpportunities.filter(o=>o.score>=65).slice(0,10).map(o=>({symbol:o.symbol,score:o.score,isBuy:o.isBuy,price:o.price,chg24:o.chg24,rsi:o.rsi})),
     }));
   }catch(e){}
+  // Signal ledger (lib/ledger.js) — doar buy-side de elită (score ≥80); dedupe pe zi în lib
+  try{ if(window.LEDGER) allOpportunities.filter(o=>o.isBuy&&o.score>=80).slice(0,10).forEach(o=>LEDGER.log('nasdaq-opp80', o.symbol, o.price, 'score '+o.score)); }catch(e){}
 
   // ── FAZA 6: Auto-fetch insider transactions pentru top 12 stocks (background, non-blocking) ──
   // Insider badge 🟢/🔴 apare oriunde apare ticker-ul după ce datele se încarcă.
@@ -10643,6 +10645,7 @@ setTimeout(_updateGistStatusN, 500);
 })();
 </script>
 <script src="../lib/data.js"></script>
+<script src="../lib/ledger.js"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>
