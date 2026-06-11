@@ -602,6 +602,8 @@
   background:rgba(46,160,67,.18);color:#3fb950;border:1px solid rgba(46,160,67,.45);
   padding:0 4px;border-radius:7px;line-height:1.5;margin-left:5px;letter-spacing:.2px;
 }
+/* P3: early valid dar care „a fugit azi" (Δzi > prag) — portocaliu, nu te invită să intri pe vârf */
+.eb-badge.ran{background:rgba(247,147,26,.16);color:#f0883e;border-color:rgba(247,147,26,.45)}
 .ev-badge{
   display:inline-flex;align-items:center;font-size:9.5px;font-weight:800;
   background:rgba(247,147,26,.16);color:#f0883e;border:1px solid rgba(247,147,26,.45);
@@ -1033,7 +1035,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v225</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v226</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1342,7 +1344,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v225 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v226 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2538,6 +2540,9 @@ const EB_SEEN_KEY = 'me_eb_seen';
 // mai e „abia a început". EMA21 urcă după preț pe un climb constant, deci garda
 // anti-extins singură nu stinge niciodată semnalul — de aici early-uri cu +5-8% în spate.
 const EB_EXPIRY = { pct: 4, days: 7 };
+// P3: dacă Δzi curentă e deja peste pragul ăsta, semnalul rămâne vizibil dar marcat
+// „a fugit azi" — nu e invitație de intrare pe vârf de zi; alerta + ancora așteaptă o zi calmă.
+const EB_RAN_PCT = 3;
 let ebSeen = {};
 try { ebSeen = JSON.parse(localStorage.getItem(EB_SEEN_KEY) || '{}'); } catch(_) { ebSeen = {}; }
 let ebAlertsOn = localStorage.getItem('me_eb_alerts_on') !== '0';
@@ -3192,8 +3197,9 @@ function computeEarlyBird(hist, antiExtPct, anchor){
   // (volum U-shaped la open) → azi nu se evaluează deloc. Altfel RVOL ieșea
   // subestimat dimineața și volConfirm rata confirmarea (fix paralel cu
   // watchlist-monitor v126).
+  const lastBarIsToday = hist.lastBarTs != null && _etDateStr(hist.lastBarTs * 1000) === _etDateStr(Date.now());
   let vLast = v[last], vLastValid = true, rvolProj = false;
-  if (hist.lastBarTs != null && _etDateStr(hist.lastBarTs * 1000) === _etDateStr(Date.now())){
+  if (lastBarIsToday){
     const mins = _etMinutes();
     if (mins != null && mins >= 9 * 60 + 30 && mins < 16 * 60){
       const elapsed = mins - (9 * 60 + 30);
@@ -3220,6 +3226,13 @@ function computeEarlyBird(hist, antiExtPct, anchor){
     ageDays = Math.floor((Date.now() - anchor.t) / 86400000);
     if (isEarly && (sincePct > EB_EXPIRY.pct || ageDays > EB_EXPIRY.days)){ isEarly = false; expired = true; }
   }
+  // P3: „a fugit azi" — Δzi pe bara de azi (doar când bara de azi EXISTĂ; în premarket
+  // și după close mișcarea de ieri e deja în EMA/extensie, nu mai e „azi").
+  let ranToday = null;
+  if (lastBarIsToday && n >= 2 && c[last-1] > 0){
+    const dayChg = (c[last] - c[last-1]) / c[last-1] * 100;
+    if (dayChg > EB_RAN_PCT) ranToday = dayChg;
+  }
   const signals = { freshCross, rsiCross, higherLow, volConfirm, rsiHealthy };
   const score = [freshCross, rsiCross, higherLow, volConfirm, rsiHealthy].filter(Boolean).length;
 
@@ -3237,7 +3250,7 @@ function computeEarlyBird(hist, antiExtPct, anchor){
   // RVOL = volum azi vs media 20z (pentru badge dedicat — confirmă mișcarea reală)
   const rvol = (avgVol20 > 0 && vLastValid && vLast > 0) ? (vLast / avgVol20) : null;
 
-  return { isEarly, score, signals, extPct, rsiNow, rvol, rvolProj, antiExt, isWilting, wiltReason, price, expired, sincePct, ageDays, spark: c.slice(Math.max(0, n - 20)) };
+  return { isEarly, score, signals, extPct, rsiNow, rvol, rvolProj, antiExt, isWilting, wiltReason, price, expired, sincePct, ageDays, ranToday, spark: c.slice(Math.max(0, n - 20)) };
 }
 function _ebSignalText(eb){
   if (!eb) return '';
@@ -3291,7 +3304,9 @@ async function wlEnsureEarlyData(force){
   const newlyEarly = [], newlyWilting = [];
   for (const w of need){
     const eb = wlEarlyCache[w.symbol]?.eb;
-    const nowEarly = !!(eb && eb.isEarly);
+    // P3: cât „a fugit azi", semnalul nu intră în state machine-ul de alerte/ancoră —
+    // dacă mâine e tot early pe zi calmă, ATUNCI vine alerta de intrare + ancora.
+    const nowEarly = !!(eb && eb.isEarly && !eb.ranToday);
     const nowWilting = !!(eb && eb.isWilting);
     const prev = ebSeen[w.symbol];
     if (prev !== undefined && !prev.early && nowEarly){
@@ -3305,7 +3320,7 @@ async function wlEnsureEarlyData(force){
     // Persistă cât timp semnalul brut e valid (activ sau expirat); când semnalul
     // dispare natural, ancora se șterge → un trigger viitor = semnal NOU, cu ancoră nouă.
     let anchor = prev?.anchor || null;
-    if (eb && eb.isEarly && !anchor) anchor = { p: eb.price, t: Date.now() };
+    if (eb && eb.isEarly && !eb.ranToday && !anchor) anchor = { p: eb.price, t: Date.now() };
     if (!eb || (!eb.isEarly && !eb.expired)) anchor = null;
     ebSeen[w.symbol] = {
       early: nowEarly,
@@ -3804,7 +3819,7 @@ function _wlDetailHtml(w){
 function _wlSymInner(w){
   const eb = wlEarlyCache[w.symbol]?.eb;
   const ebBadge = (eb && eb.isEarly)
-    ? `<span class="eb-badge" title="🌱 Early bird — ${_ebSignalText(eb)}${eb.ageDays != null && eb.sincePct != null ? ` · semnal de ${eb.ageDays}z (${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci, expiră la +${EB_EXPIRY.pct}% sau ${EB_EXPIRY.days}z)` : ''}">🌱▲${eb.score}${eb.ageDays >= 1 ? `·${eb.ageDays}z` : ''}</span>` : '';
+    ? `<span class="eb-badge${eb.ranToday ? ' ran' : ''}" title="🌱 Early bird — ${_ebSignalText(eb)}${eb.ageDays != null && eb.sincePct != null ? ` · semnal de ${eb.ageDays}z (${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci, expiră la +${EB_EXPIRY.pct}% sau ${EB_EXPIRY.days}z)` : ''}${eb.ranToday ? ` · 🏃 a fugit azi +${eb.ranToday.toFixed(1)}% — nu intra pe vârf de zi, așteaptă retest sau ziua următoare` : ''}">🌱▲${eb.score}${eb.ageDays >= 1 ? `·${eb.ageDays}z` : ''}${eb.ranToday ? '🏃' : ''}</span>` : '';
   const earnDays = (typeof lastEarnings !== 'undefined' && lastEarnings)
     ? lastEarnings.find(e => e.symbol === w.symbol)?.daysToEarnings : null;
   const earnBadge = (earnDays != null && earnDays >= 0 && earnDays <= 7)
