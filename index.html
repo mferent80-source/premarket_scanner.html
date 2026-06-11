@@ -340,6 +340,49 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   h1{font-size:28px}
 }
 
+/* === TODAY'S PLAYBOOK (absorbit din pagina playbook, retrasă 2026-06-11) === */
+.pb-wrap{margin:18px 0 6px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.pb-summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:13px 18px;font-family:var(--head);font-size:14px;font-weight:800;color:var(--t1);user-select:none}
+.pb-summary::-webkit-details-marker{display:none}
+.pb-summary::before{content:"▸";color:var(--crypto-1);transition:transform .15s var(--ease)}
+.pb-wrap[open] .pb-summary::before{transform:rotate(90deg)}
+.pb-sum-sub{font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--t3);flex:1}
+.pb-refresh-btn{background:var(--bg3);border:1px solid var(--b1);color:var(--t2);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--head);font-weight:700}
+.pb-refresh-btn:hover{color:var(--crypto-2);border-color:var(--crypto-1)}
+.pb-inner{padding:12px 14px;border-top:1px solid var(--b1)}
+.pb-section{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.pb-section-head{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--b1)}
+.pb-section-head h3{font-family:var(--head);font-size:13px;font-weight:800;color:var(--t1);flex:1;margin:0}
+.pb-count{background:var(--bg4);color:var(--t1);padding:1px 9px;border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:700;border:1px solid var(--b1)}
+.pb-go{border:1px solid var(--b1);color:var(--t2);padding:3px 10px;font-size:11px;border-radius:5px;font-family:var(--head);font-weight:700;text-decoration:none}
+.pb-go:hover{color:#5bb0ff;border-color:#5bb0ff}
+.pb-section-body{padding:8px 12px}
+.pb-empty{padding:16px;text-align:center;color:var(--t2);font-style:italic;font-size:12.5px}
+.pb-loading{padding:16px;text-align:center;color:var(--t2);font-size:12.5px}
+.pb-loading::before{content:"⏳ "}
+.pb-table{width:100%;border-collapse:collapse;font-size:12px}
+.pb-table th{padding:6px 7px;text-align:left;font-weight:700;font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--b1);font-family:var(--mono)}
+.pb-table td{padding:7px;border-bottom:1px solid rgba(42,50,71,.5);font-family:var(--head);color:var(--t1)}
+.pb-table tr:last-child td{border-bottom:none}
+.pb-table .sym{font-weight:800;font-family:var(--mono)}
+.pb-table .sym a{color:#5bb0ff;text-decoration:none}
+.pb-table .sym a:hover{text-decoration:underline}
+.pb-table .pos{color:var(--green);font-weight:700}
+.pb-table .neg{color:#ff4d4d;font-weight:700}
+.pb-chip{display:inline-block;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:800}
+.pb-chip.high{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.4)}
+.pb-chip.med{background:rgba(245,158,11,.13);color:#f59e0b;border:1px solid rgba(245,158,11,.4)}
+.pb-chip.low{background:rgba(100,116,139,.13);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
+.pb-chip.bull{background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.4)}
+.pb-chip.bear{background:rgba(255,77,77,.12);color:#ff4d4d;border:1px solid rgba(255,77,77,.4)}
+.pb-chip.warn{background:rgba(212,137,44,.15);color:#d4892c;border:1px solid rgba(212,137,44,.4)}
+.pb-time{font-family:var(--mono);font-size:11px;color:var(--t2)}
+.pb-time .t-til{display:block;font-size:10px;color:var(--t3)}
+.pb-time .t-imm{color:#ff4d4d!important;font-weight:700}
+.pb-risk-row{display:flex;align-items:center;gap:12px;padding:10px 14px;flex-wrap:wrap}
+.pb-risk-val{font-family:var(--head);font-size:18px;font-weight:800}
+.pb-risk-sub{font-family:var(--mono);font-size:11.5px;color:var(--t2)}
+
 /* === Trade Tracker Modal === */
 .tt-fab{position:fixed;bottom:20px;right:20px;width:54px;height:54px;border-radius:50%;
   background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));border:none;color:#1a1a1a;
@@ -454,20 +497,54 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   <!-- Pre-market / After-Hours gappers widget (apare doar in PM + AH session) -->
   <div id="gappersWidget" style="display:none"></div>
 
+  <!-- TODAY'S PLAYBOOK — absorbit din pagina playbook (retrasă); lazy-load la primul expand -->
+  <details class="pb-wrap" id="pbWrap">
+    <summary class="pb-summary">🎯 Today's Playbook
+      <span class="pb-sum-sub">risk regime · macro azi · earnings · watchlist events · top picks · sugestii</span>
+      <button class="pb-refresh-btn" id="pbRefreshBtn" title="Reîncarcă toate secțiunile">🔄 Refresh</button>
+    </summary>
+    <div class="pb-inner">
+      <div class="pb-section">
+        <div class="pb-section-head"><h3>🛡 Risk Regime</h3><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
+        <div class="pb-risk-row"><span class="pb-risk-val" id="pbRiskVal">⏳ …</span><span class="pb-risk-sub" id="pbRiskSub">se calculează…</span></div>
+      </div>
+      <div class="pb-section">
+        <div class="pb-section-head"><h3>📅 Evenimente macro azi</h3><span class="pb-count" id="pbCntEvents">—</span><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
+        <div class="pb-section-body" id="pbBodyEvents"><div class="pb-loading">calendar economic…</div></div>
+      </div>
+      <div class="pb-section">
+        <div class="pb-section-head"><h3>📊 Earnings azi / mâine (watchlist)</h3><span class="pb-count" id="pbCntEarnings">—</span><a class="pb-go" href="./earnings-hub/">Open Earnings →</a></div>
+        <div class="pb-section-body" id="pbBodyEarnings"><div class="pb-loading">calendar earnings…</div></div>
+      </div>
+      <div class="pb-section">
+        <div class="pb-section-head"><h3>📌 Watchlist events (14-30 zile)</h3><span class="pb-count" id="pbCntWlEvents">—</span><span class="pb-go" style="cursor:default">earnings · dividends · splits · presentations</span></div>
+        <div class="pb-section-body" id="pbBodyWlEvents"><div class="pb-loading">se agregă events…</div></div>
+      </div>
+      <div class="pb-section">
+        <div class="pb-section-head"><h3>🚀 Nasdaq top picks (ultimul scan)</h3><span class="pb-count" id="pbCntNasdaq">—</span><a class="pb-go" href="./nasdaq-scanner/">Open Scanner →</a></div>
+        <div class="pb-section-body" id="pbBodyNasdaq"><div class="pb-loading">se citesc datele…</div></div>
+      </div>
+      <div class="pb-section">
+        <div class="pb-section-head"><h3>🎯 Sugestii watchlist (din rezultate macro)</h3><span class="pb-count" id="pbCntSuggestions">—</span><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
+        <div class="pb-section-body" id="pbBodySuggestions"><div class="pb-loading">se verifică sugestiile…</div></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:10.5px;color:var(--t3);text-align:right" id="pbRefreshInfo">—</div>
+    </div>
+  </details>
+
   <main class="grid" id="hubCards">
 
     <a href="./nasdaq-scanner/" target="ttools-nasdaq" rel="noopener" class="card nasdaq">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('nasdaq')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon">📈</div>
-      <span class="card-tag">Stocks · v103</span>
+      <span class="card-tag">Stocks · v107</span>
       <h2 class="card-title">Nasdaq Opportunity Scanner</h2>
-      <p class="card-desc">Scaner top Nasdaq + ETF-uri cu 18 tab-uri, AI Briefing, Pump Radar,
+      <p class="card-desc">Scaner top Nasdaq + ETF-uri cu AI Briefing, Early Buy,
         Multi-TF, Earnings Calendar, signal log + auto-scan.</p>
       <div class="features">
         <span class="feat data">📡 Yahoo + Finnhub</span>
         <span class="feat tool">🎯 Custom Screener</span>
         <span class="feat tool">⚖️ Compare 3 stocks</span>
-        <span class="feat auto">🚨 Pump Radar 5m</span>
         <span class="feat ai">🧠 AI inline + Briefing</span>
         <span class="feat alert">📱 Telegram smart batch</span>
         <span class="feat viz">📊 Mini-chart 30d</span>
@@ -482,7 +559,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     <a href="./watchlist-monitor/" target="ttools-watchlist" rel="noopener" class="card journal" style="--accent:linear-gradient(90deg,var(--green),#5bdcb0); --glow:rgba(34,214,107,.18)">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('watchlist')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon" style="background:linear-gradient(135deg,var(--green),#5bdcb0);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#000">👁️</div>
-      <span class="card-tag" style="background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)">Watchlist · v135</span>
+      <span class="card-tag" style="background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)">Watchlist · v136</span>
       <h2 class="card-title">Watchlist Monitor</h2>
       <p class="card-desc">Auto-scan 60s pe stocks-urile tale cu verdict instant 5-tier
         STRONG BUY → AVOID din scoring multi-factor (MA50/MA200/RSI/momentum).</p>
@@ -503,7 +580,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     <a href="./market-events/" target="ttools-events" rel="noopener" class="card events">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('market-events')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon">📉</div>
-      <span class="card-tag">Events · v223</span>
+      <span class="card-tag">Events · v228</span>
       <h2 class="card-title">Market Events</h2>
       <p class="card-desc">Earnings calendar 7 zile + Top Losers Nasdaq + Volume Heatmap +
         Sector Heatmap — evenimente cu impact pe preț.</p>
@@ -598,7 +675,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
     <a href="./markov-lab/" target="ttools-markov" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">🔗</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Markov · v3.6</span>
+      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Markov · v3.7</span>
       <h2 class="card-title">Markov Lab</h2>
       <p class="card-desc">Model Markov + HMM gaussian de regim de volatilitate. Detectează regim
         calm/volatil (bate EWMA OOS), cu validare onestă de edge (chi² + backtest walk-forward).</p>
@@ -633,10 +710,10 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
     <a href="./alerts/" target="ttools-alerts" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#d4892c,#ffd86b); --glow:rgba(212,137,44,.20)">
       <div class="card-icon" style="background:linear-gradient(135deg,#d4892c,#ffd86b);box-shadow:0 4px 14px rgba(212,137,44,.3);color:#1a1a1a">🔔</div>
-      <span class="card-tag" style="background:rgba(212,137,44,.15);color:#d4892c;border:1px solid rgba(212,137,44,.4)">Alerts · v1</span>
+      <span class="card-tag" style="background:rgba(212,137,44,.15);color:#d4892c;border:1px solid rgba(212,137,44,.4)">Alerts · v3</span>
       <h2 class="card-title">Price Alerts</h2>
-      <p class="card-desc">Custom alerts pe orice ticker stocks/crypto. Polling 60s + notify combo
-        (toast persistent + sunet + browser + Telegram). Cross-page LS storage.</p>
+      <p class="card-desc">Managerul universal de alerte preț (storage UNIFICAT cu Watchlist Monitor).
+        Orice ticker stocks/crypto, one-shot sau re-arm, polling 60s + notify combo.</p>
       <div class="features">
         <span class="feat data">📈 Stocks + Crypto</span>
         <span class="feat ai">🔔 Notify combo</span>
@@ -644,23 +721,6 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       </div>
       <div class="card-cta" style="color:#d4892c">
         <span>Deschide Alerts</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./playbook/" target="ttools-playbook" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#22d66b,#5bb0ff); --glow:rgba(34,214,107,.20)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#22d66b,#5bb0ff);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#0a0a0a">🎯</div>
-      <span class="card-tag" style="background:rgba(34,214,107,.15);color:#22d66b;border:1px solid rgba(34,214,107,.4)">Playbook · v3</span>
-      <h2 class="card-title">Today's Playbook</h2>
-      <p class="card-desc">Vedere consolidată: Risk Regime + macro events azi + earnings watchlist + Nasdaq picks + sugestii.
-        Toate decizidale într-un singur view — perfect pentru deschidere matinală.</p>
-      <div class="features">
-        <span class="feat ai">🛡 Risk Regime live</span>
-        <span class="feat data">📅 Events + Earnings azi</span>
-        <span class="feat viz">🚀 Top picks Nasdaq</span>
-      </div>
-      <div class="card-cta" style="color:#22d66b">
-        <span>Deschide Playbook</span>
         <span class="arrow">→</span>
       </div>
     </a>
@@ -961,7 +1021,7 @@ const SCANNER_FEATURES = {
         { e: '🎛️', t: '<b>Multi-Scan Dashboard</b> — pump/dump/swing/RSI/vol în coloane' },
         { e: '🎯', t: '<b>Swing</b> — setup-uri multi-day' },
         { e: '🔥', t: '<b>Squeeze Radar</b> — bollinger band squeeze detection' },
-        { e: '🚨', t: '<b>Pump Radar</b> — pump/dump/vol/mom 5m cu sliders praguri' },
+        { e: '🚨', t: '<b>Pump Radar</b> — mutat pe pagina dedicată ⚡ pump-radar (HMM + insider + backtest)' },
         { e: '🗺️', t: '<b>Heatmap</b> sectoare ETFs (XLK/XLF/XLV...)' },
         { e: '🌐', t: '<b>Sector rotation</b> — momentum shifts hot/cold' },
         { e: '🌅', t: '<b>Pre/After-hours</b> — gappers, refresh 60s în pre-market' },
@@ -1442,6 +1502,380 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     const w = window.open(a.href, name);                    // nu e deschisă → deschide
     if (w){ wins[name] = w; try { w.focus(); } catch(_){} }
   });
+})();
+</script>
+<script>
+// ============ TODAY'S PLAYBOOK (port din pagina playbook v4, retrasă) ============
+// Totul în IIFE — zero globals noi (regula anti-coliziune pe fișiere mari).
+// Lazy: secțiunile se încarcă la PRIMUL expand al <details>; starea open persistă (pb_open).
+(function(){
+  const $ = id => document.getElementById(id);
+  const escHtml = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const fmtPct = (n, d=2) => (n==null || isNaN(n)) ? '—' : (n>=0?'+':'') + Number(n).toFixed(d) + '%';
+  const fmtNum = (n) => (n==null || isNaN(n)) ? '—' : Number(n).toLocaleString('en-US', {maximumFractionDigits:2});
+  const getFinnhubKey = () => localStorage.getItem('finnhub_api_key') || '';
+  const getWatchlist = () => { try { return JSON.parse(localStorage.getItem('wl_stocks') || '[]'); } catch (e) { return []; } };
+
+  // fetch cu timeout — apelurile directe (Finnhub/CoinGecko) nu au altfel niciun timeout
+  async function fetchT(url, timeoutMs = 9000){
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), timeoutMs);
+    try { return await fetch(url, { signal: ctrl.signal }); }
+    finally { clearTimeout(to); }
+  }
+  // Datele calendaristice se ancorează pe ziua ET (nu UTC)
+  function etToday(){ try { return new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York' }).format(new Date()); } catch(e){ return new Date().toISOString().slice(0,10); } }
+  function etPlus(days){ const t = new Date(etToday() + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + days); return t.toISOString().slice(0,10); }
+
+  // Yahoo prin lib/data.js (hub-ul îl încarcă garantat); lanț local doar ca plasă de siguranță
+  const PB_PROXIES = [
+    u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+    u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),
+    u => 'https://api.cors.lol/?url=' + encodeURIComponent(u)
+  ];
+  async function fetchViaProxy(url){
+    if (window.D && D.fetchJSON){
+      const j = await D.fetchJSON(url, { ttl: 120 });
+      if (j != null) return j;
+    }
+    for (const build of PB_PROXIES){
+      try {
+        const r = await fetchT(build(url));
+        if (!r.ok) continue;
+        const txt = await r.text();
+        if (txt.trim().startsWith('<')) continue;
+        try { return JSON.parse(txt); } catch (e) { continue; }
+      } catch (e) {}
+    }
+    return null;
+  }
+  async function fetchYahooChart(symbol){
+    const data = await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=3mo`);
+    const r = data?.chart?.result?.[0];
+    if (!r) return null;
+    const closes = r.indicators?.quote?.[0]?.close || [];
+    const ts = r.timestamp || [];
+    const points = closes.map((c, i) => ({ ts: ts[i], close: c })).filter(p => p.close != null);
+    return points.length < 5 ? null : { points, meta: r.meta };
+  }
+  async function fetchCryptoCG(coinId){
+    try {
+      const r = await fetchT(`https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=60&interval=daily`);
+      if (!r.ok) return null;
+      const d = await r.json();
+      const prices = d?.prices || [];
+      return prices.length < 5 ? null : { points: prices.map(p => ({ ts: Math.floor(p[0]/1000), close: p[1] })) };
+    } catch (e) { return null; }
+  }
+
+  // ── Risk Regime: ÎNTÂI regimul Macro Dashboard (cu histerezis — sursa de adevăr),
+  //    fallback calcul rapid local (VIX nivel + 10Y Δ + corelație BTC/SPY) doar dacă e stale.
+  async function pbLoadRisk(){
+    try {
+      const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
+      if (r && r.label && Date.now() - (r.ts || 0) < 6 * 3600000){
+        $('pbRiskVal').innerHTML = `<span style="color:${escHtml(r.color || 'inherit')}">${escHtml(r.label)}</span>`;
+        $('pbRiskSub').textContent = `score ${r.composite >= 0 ? '+' : ''}${r.composite} · din Macro Dashboard (acum ${Math.max(1, Math.round((Date.now() - (r.ts||0)) / 60000))} min)`;
+        return;
+      }
+    } catch (e) {}
+    const [vixData, spyData, btcData, tnxData] = await Promise.all([
+      fetchYahooChart('^VIX'), fetchYahooChart('SPY'),
+      fetchYahooChart('BTC-USD').then(d => d || fetchCryptoCG('bitcoin')),
+      fetchYahooChart('^TNX')
+    ]);
+    let vixScore = 0, vixVal = NaN;
+    if (vixData?.points?.length){
+      vixVal = vixData.meta?.regularMarketPrice ?? vixData.points[vixData.points.length-1].close;
+      vixScore = vixVal < 12 ? 1 : vixVal < 18 ? 2 : vixVal < 25 ? -1 : vixVal < 30 ? -2 : -3;
+    }
+    let tenYScore = 0, tenYDelta = null;
+    if (tnxData?.points?.length > 10){
+      const last = tnxData.points[tnxData.points.length-1].close, first = tnxData.points[0].close;
+      tenYDelta = (last - first) / 10 * 100;
+      tenYScore = tenYDelta < -25 ? -2 : tenYDelta < -10 ? -1 : tenYDelta > 25 ? -1 : tenYDelta > 10 ? 0 : 1;
+    }
+    let corrScore = 0, corrVal = null;
+    if (spyData?.points && btcData?.points){
+      const map = new Map(btcData.points.map(p => [new Date(p.ts*1000).toISOString().slice(0,10), p.close]));
+      const aligned = [];
+      for (const p of spyData.points){
+        const k = new Date(p.ts*1000).toISOString().slice(0,10);
+        if (map.has(k)) aligned.push({ c1: p.close, c2: map.get(k) });
+      }
+      if (aligned.length >= 10){
+        const a = aligned.slice(-30), r1 = [], r2 = [];
+        for (let i = 1; i < a.length; i++){ r1.push(a[i].c1/a[i-1].c1 - 1); r2.push(a[i].c2/a[i-1].c2 - 1); }
+        const n = r1.length, mx = r1.reduce((s,v)=>s+v,0)/n, my = r2.reduce((s,v)=>s+v,0)/n;
+        let cov=0, sx=0, sy=0;
+        for (let i=0; i<n; i++){ const dx=r1[i]-mx, dy=r2[i]-my; cov+=dx*dy; sx+=dx*dx; sy+=dy*dy; }
+        corrVal = (sx === 0 || sy === 0) ? 0 : cov / (Math.sqrt(sx) * Math.sqrt(sy));
+        corrScore = corrVal > 0.6 ? 1 : corrVal > 0.2 ? 0 : corrVal > -0.2 ? -1 : -2;
+      }
+    }
+    const composite = vixScore + tenYScore + corrScore;
+    const label = composite >= 3 ? '🟢 RISK-ON' : composite >= 1 ? '🟢 LEAN ON' : composite >= -1 ? '⚪ NEUTRAL' : composite >= -3 ? '🟡 CAUTIOUS' : composite >= -5 ? '🔴 RISK-OFF' : '⛔ STRESS';
+    const color = composite >= 1 ? 'var(--green)' : composite >= -1 ? 'var(--t1)' : composite >= -3 ? '#d4892c' : '#ff4d4d';
+    $('pbRiskVal').innerHTML = `<span style="color:${color}">${label}</span>`;
+    $('pbRiskSub').textContent = `score ${composite >= 0 ? '+' : ''}${composite} · VIX ${!isNaN(vixVal) ? vixVal.toFixed(1) : '—'} · 10Y Δ${tenYDelta != null ? (tenYDelta>=0?'+':'')+Math.round(tenYDelta)+'bp' : '—'} · ρ ${corrVal != null ? Math.round(corrVal*100)+'%' : '—'} · calcul local (Macro stale)`;
+  }
+
+  // ── Evenimente macro azi (Finnhub economic calendar, doar US) ──
+  async function pbLoadMacroEvents(){
+    const key = getFinnhubKey();
+    if (!key){
+      $('pbBodyEvents').innerHTML = '<div class="pb-empty">⚠ Cheia Finnhub lipsește. Setează în <a href="./macro-dashboard/" style="color:#5bb0ff">Macro Dashboard → ⚙ Setări</a>.</div>';
+      $('pbCntEvents').textContent = '0';
+      return;
+    }
+    try {
+      const r = await fetchT(`https://finnhub.io/api/v1/calendar/economic?from=${etToday()}&to=${etPlus(1)}&token=${encodeURIComponent(key)}`);
+      if (!r.ok) throw new Error('Finnhub eroare');
+      const data = await r.json();
+      const now = Date.now();
+      let events = (data?.economicCalendar || []).map(e => ({
+        time: (e.time || e.date || '').slice(0,16).replace('T',' '),
+        country: (e.country || '').toUpperCase().slice(0,2),
+        event: e.event || 'Unknown',
+        impact: String(e.impact || '').toLowerCase(),
+        forecast: e.estimate ?? e.forecast ?? null,
+        previous: e.prev ?? e.previous ?? null,
+        actual: e.actual ?? null
+      })).filter(e => e.time && e.country === 'US')
+        .filter(e => { const t = new Date(e.time.replace(' ', 'T') + 'Z').getTime(); return t > now - 30*60000 && t < now + 26*3600000; })
+        .sort((a,b) => a.time.localeCompare(b.time));
+      $('pbCntEvents').textContent = String(events.length);
+      if (!events.length){ $('pbBodyEvents').innerHTML = '<div class="pb-empty">📭 Niciun eveniment US azi.</div>'; return; }
+      $('pbBodyEvents').innerHTML = `<table class="pb-table">
+        <thead><tr><th>Ora</th><th>Eveniment</th><th>Impact</th><th>Forecast</th><th>Prev</th><th>Actual</th></tr></thead>
+        <tbody>${events.slice(0, 10).map(e => {
+          const t = new Date(e.time.replace(' ', 'T') + 'Z');
+          const til = t.getTime() - now;
+          const tilStr = til < 0 ? 'PUBLICAT' : (til < 3600000 ? `T-${Math.round(til/60000)}min` : `T-${Math.round(til/3600000)}h`);
+          return `<tr>
+            <td class="pb-time"><span class="${til < 3600000 && til > 0 ? 't-imm' : ''}">${t.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}</span><span class="t-til">${tilStr}</span></td>
+            <td>${escHtml(e.event)}</td>
+            <td><span class="pb-chip ${e.impact === 'high' ? 'high' : (e.impact === 'med' || e.impact === 'medium' ? 'med' : 'low')}">${e.impact === 'high' ? '🔴 HIGH' : (e.impact === 'med' || e.impact === 'medium' ? '🟡 MED' : '⚪ LOW')}</span></td>
+            <td>${escHtml(e.forecast ?? '—')}</td>
+            <td>${escHtml(e.previous ?? '—')}</td>
+            <td>${e.actual != null ? `<b>${escHtml(String(e.actual))}</b>` : '—'}</td>
+          </tr>`;
+        }).join('')}</tbody></table>`;
+    } catch (e) {
+      $('pbBodyEvents').innerHTML = `<div class="pb-empty">⚠ Eroare Finnhub: ${escHtml(e.message)}</div>`;
+    }
+  }
+
+  // ── Earnings azi/mâine (watchlist + mega-caps) ──
+  async function pbLoadEarnings(){
+    const key = getFinnhubKey();
+    const wl = new Set(getWatchlist().map(t => t.toUpperCase()));
+    if (!key){ $('pbBodyEarnings').innerHTML = '<div class="pb-empty">⚠ Cheia Finnhub lipsește.</div>'; $('pbCntEarnings').textContent = '0'; return; }
+    try {
+      const r = await fetchT(`https://finnhub.io/api/v1/calendar/earnings?from=${etToday()}&to=${etPlus(2)}&token=${encodeURIComponent(key)}`);
+      if (!r.ok) throw new Error('Finnhub eroare');
+      const data = await r.json();
+      const MEGAS = new Set(['AAPL','MSFT','NVDA','GOOGL','AMZN','META','TSLA','AVGO','JPM','WMT','XOM','UNH']);
+      let earnings = (data?.earningsCalendar || []).map(e => ({
+        symbol: (e.symbol || '').toUpperCase(), date: (e.date || '').slice(0,10), hour: e.hour || '—',
+        epsEst: e.epsEstimate, epsAct: e.epsActual, inWatchlist: wl.has((e.symbol || '').toUpperCase())
+      })).filter(e => e.inWatchlist || MEGAS.has(e.symbol));
+      earnings.sort((a,b) => (a.inWatchlist === b.inWatchlist ? 0 : (a.inWatchlist ? -1 : 1)) || a.date.localeCompare(b.date));
+      $('pbCntEarnings').textContent = String(earnings.length);
+      if (!earnings.length){ $('pbBodyEarnings').innerHTML = '<div class="pb-empty">📭 Niciun earnings din watchlist sau mega-caps azi/mâine.</div>'; return; }
+      $('pbBodyEarnings').innerHTML = `<table class="pb-table">
+        <thead><tr><th>Ticker</th><th>Data</th><th>Ora</th><th>EPS Est</th><th>Watchlist</th></tr></thead>
+        <tbody>${earnings.slice(0, 12).map(e => `<tr>
+          <td class="sym"><a href="https://www.tradingview.com/chart/?symbol=NASDAQ:${escHtml(e.symbol)}" target="_blank">${escHtml(e.symbol)}</a></td>
+          <td>${escHtml(e.date)}</td>
+          <td>${e.hour === 'bmo' ? '🌅 BMO' : (e.hour === 'amc' ? '🌙 AMC' : escHtml(e.hour))}</td>
+          <td>${e.epsEst != null ? '$' + Number(e.epsEst).toFixed(2) : '—'}</td>
+          <td>${e.inWatchlist ? '<span class="pb-chip bull">⭐ DA</span>' : '<span class="pb-chip low">—</span>'}</td>
+        </tr>`).join('')}</tbody></table>`;
+    } catch (e) {
+      $('pbBodyEarnings').innerHTML = `<div class="pb-empty">⚠ Eroare: ${escHtml(e.message)}</div>`;
+    }
+  }
+
+  // ── Watchlist events 14-30z (earnings + dividends + splits + presentations) ──
+  const WL_EVENTS_CACHE_KEY = 'pb_wl_events_cache_v1';
+  async function pbLoadWlEvents(){
+    const wl = getWatchlist();
+    if (!wl.length){ $('pbBodyWlEvents').innerHTML = '<div class="pb-empty">📭 Watchlist gol.</div>'; $('pbCntWlEvents').textContent = '0'; return; }
+    const key = getFinnhubKey();
+    if (!key){ $('pbBodyWlEvents').innerHTML = '<div class="pb-empty">⚠ Cheia Finnhub lipsește.</div>'; $('pbCntWlEvents').textContent = '0'; return; }
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(WL_EVENTS_CACHE_KEY) || 'null'); } catch (e) {}
+    const wlKey = wl.slice().sort().join(',');
+    if (cached && cached.wlKey === wlKey && Date.now() - cached.ts < 6*3600*1000){ pbRenderWlEvents(cached.events); return; }
+    const today = etToday(), in14 = etPlus(14), in30 = etPlus(30);
+    const wlUpper = wl.map(t => t.toUpperCase()), wlSet = new Set(wlUpper);
+    try {
+      const earningsResp = await fetchT(`https://finnhub.io/api/v1/calendar/earnings?from=${today}&to=${in14}&token=${encodeURIComponent(key)}`);
+      let earnings = [];
+      if (earningsResp.ok){
+        const d = await earningsResp.json();
+        earnings = (d?.earningsCalendar || []).filter(e => wlSet.has((e.symbol || '').toUpperCase()));
+      }
+      const tickers = wlUpper.slice(0, 20);
+      const fetchPer = (mk) => tickers.map(async t => { try { return await mk(t); } catch (e) { return []; } });
+      const divPromises = fetchPer(async t => {
+        const r = await fetchT(`https://finnhub.io/api/v1/stock/dividend2?symbol=${encodeURIComponent(t)}&from=${today}&to=${in30}&token=${encodeURIComponent(key)}`);
+        if (!r.ok) return [];
+        const d = await r.json();
+        return (d?.data || (Array.isArray(d) ? d : [])).map(x => ({ symbol: t, ...x }));
+      });
+      const splitPromises = fetchPer(async t => {
+        const r = await fetchT(`https://finnhub.io/api/v1/stock/split?symbol=${encodeURIComponent(t)}&from=${today}&to=${in30}&token=${encodeURIComponent(key)}`);
+        if (!r.ok) return [];
+        const d = await r.json();
+        return (Array.isArray(d) ? d : []).map(x => ({ symbol: t, ...x }));
+      });
+      const PRES_KW = /\b(conference|investor day|analyst day|presents at|presenting at|keynote|shareholder meeting|product launch|investor briefing|investor update|fireside chat|webcast|analyst meeting|annual meeting|investor presentation|to present)\b/i;
+      const newsFrom = etPlus(-7);
+      const presPromises = fetchPer(async t => {
+        const r = await fetchT(`https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(t)}&from=${newsFrom}&to=${today}&token=${encodeURIComponent(key)}`);
+        if (!r.ok) return [];
+        const list = await r.json();
+        if (!Array.isArray(list)) return [];
+        const seen = new Set(), out = [];
+        for (const n of list.filter(n => PRES_KW.test(n.headline || ''))){
+          const k = (n.headline || '').slice(0, 50).toLowerCase();
+          if (seen.has(k)) continue;
+          seen.add(k);
+          out.push({ symbol: t, headline: n.headline, url: n.url, datetime: n.datetime, source: n.source });
+          if (out.length >= 2) break;
+        }
+        return out;
+      });
+      const [divR, splitR, presR] = await Promise.all([Promise.all(divPromises), Promise.all(splitPromises), Promise.all(presPromises)]);
+      const events = [
+        ...earnings.map(e => ({ type:'earnings', date: e.date, symbol: (e.symbol||'').toUpperCase(), hour: e.hour, epsEst: e.epsEstimate })),
+        ...divR.flat().map(d => ({ type:'dividend', date: d.date || d.exDate || d.payDate, symbol: d.symbol, amount: d.amount, freq: d.freq, payDate: d.payDate })).filter(d => d.date && d.date >= today && d.date <= in30),
+        ...splitR.flat().map(s => ({ type:'split', date: s.date, symbol: s.symbol, ratio: (s.toFactor && s.fromFactor) ? `${s.toFactor}-for-${s.fromFactor}` : (s.ratio || '—') })).filter(s => s.date && s.date >= today && s.date <= in30),
+        ...presR.flat().map(p => ({ type:'presentation', date: new Date((p.datetime || 0) * 1000).toISOString().slice(0,10), symbol: p.symbol, headline: p.headline, url: p.url, source: p.source }))
+      ].sort((a,b) => a.date.localeCompare(b.date));
+      try { localStorage.setItem(WL_EVENTS_CACHE_KEY, JSON.stringify({ ts: Date.now(), wlKey, events })); } catch (e) {}
+      pbRenderWlEvents(events);
+    } catch (e) {
+      $('pbBodyWlEvents').innerHTML = `<div class="pb-empty">⚠ Eroare fetch: ${escHtml(e.message)}</div>`;
+    }
+  }
+  function pbRenderWlEvents(events){
+    $('pbCntWlEvents').textContent = String(events.length);
+    if (!events.length){ $('pbBodyWlEvents').innerHTML = '<div class="pb-empty">📭 Niciun event programat 14-30 zile pentru watchlist.</div>'; return; }
+    const today = etToday();
+    const fmtDate = d => {
+      const days = Math.round((new Date(d + 'T00:00:00Z') - new Date(today + 'T00:00:00Z')) / 86400000);
+      const dStr = new Date(d + 'T00:00:00Z').toLocaleDateString('ro-RO', { day:'2-digit', month:'short', weekday:'short' });
+      const til = days === 0 ? '<b style="color:#ff4d4d">AZI</b>' : days === 1 ? '<b style="color:#d4892c">MÂINE</b>' : days < 0 ? `acum ${-days}z` : days <= 7 ? `T-${days}z` : `${days}z`;
+      return { dStr, til };
+    };
+    $('pbBodyWlEvents').innerHTML = `<table class="pb-table">
+      <thead><tr><th>Data</th><th>Ticker</th><th>Tip</th><th>Detalii</th></tr></thead>
+      <tbody>${events.slice(0, 20).map(e => {
+        const dt = fmtDate(e.date);
+        let typeChip = '', details = '';
+        if (e.type === 'earnings'){
+          typeChip = '<span class="pb-chip warn">💰 Earnings</span>';
+          const hour = e.hour === 'bmo' ? '🌅 BMO' : (e.hour === 'amc' ? '🌙 AMC' : escHtml(e.hour || ''));
+          details = `${hour}${e.epsEst != null ? ' · EPS est <b>$' + Number(e.epsEst).toFixed(2) + '</b>' : ''}`;
+        } else if (e.type === 'dividend'){
+          typeChip = '<span class="pb-chip bull">💵 Dividend</span>';
+          details = `ex-date · <b>${e.amount != null ? '$' + Number(e.amount).toFixed(3) + '/share' : '—'}</b>${e.freq ? ' · ' + escHtml(String(e.freq)) : ''}${e.payDate ? ' · pay ' + escHtml(e.payDate) : ''}`;
+        } else if (e.type === 'split'){
+          typeChip = '<span class="pb-chip high">✂ Split</span>';
+          details = `ratio <b>${escHtml(e.ratio)}</b>`;
+        } else if (e.type === 'presentation'){
+          typeChip = '<span class="pb-chip med">🎤 Presentation</span>';
+          const headline = (e.headline || '').length > 75 ? e.headline.slice(0, 75) + '…' : (e.headline || '');
+          details = e.url ? `<a href="${escHtml(e.url)}" target="_blank" rel="noopener" style="color:var(--t1);text-decoration:none" title="${escHtml(e.headline || '')}">${escHtml(headline)}</a>${e.source ? ' · <span style="color:var(--t3)">' + escHtml(e.source) + '</span>' : ''}` : escHtml(headline);
+        }
+        return `<tr>
+          <td class="pb-time"><span>${dt.dStr}</span><span class="t-til">${dt.til}</span></td>
+          <td class="sym"><a href="https://www.tradingview.com/chart/?symbol=NASDAQ:${escHtml(e.symbol)}" target="_blank">${escHtml(e.symbol)}</a></td>
+          <td>${typeChip}</td>
+          <td style="font-size:11.5px">${details}</td>
+        </tr>`;
+      }).join('')}</tbody></table>
+      <div style="font-size:10.5px;color:var(--t3);margin-top:6px;text-align:right;font-family:var(--mono)">cache 6h · primele 20 entries</div>`;
+  }
+
+  // ── Nasdaq top picks (din nasdaq_last_scan în localStorage) ──
+  function pbLoadNasdaqPicks(){
+    let scan = null;
+    try { scan = JSON.parse(localStorage.getItem('nasdaq_last_scan') || 'null'); } catch (e) {}
+    if (!scan || !scan.opportunities){
+      $('pbBodyNasdaq').innerHTML = '<div class="pb-empty">📭 Niciun scan recent în nasdaq-scanner.</div>';
+      $('pbCntNasdaq').textContent = '0';
+      return;
+    }
+    const ageMin = Math.round((Date.now() - (scan.timestamp || 0)) / 60000);
+    const ops = (scan.opportunities || []).filter(o => o.score >= 65).slice(0, 8);
+    $('pbCntNasdaq').textContent = String(ops.length);
+    if (!ops.length){ $('pbBodyNasdaq').innerHTML = '<div class="pb-empty">📭 Niciun stock cu score ≥65 în ultimul scan.</div>'; return; }
+    $('pbBodyNasdaq').innerHTML = `<div style="font-size:10.5px;color:var(--t3);margin-bottom:5px;font-family:var(--mono)">scan acum ${ageMin < 60 ? ageMin + 'min' : Math.round(ageMin/60) + 'h'} · top 8 cu score ≥65</div>
+      <table class="pb-table">
+        <thead><tr><th>Ticker</th><th>Score</th><th>Type</th><th>Preț</th><th>Chg 24h</th><th>RSI</th></tr></thead>
+        <tbody>${ops.map(o => `<tr>
+          <td class="sym"><a href="https://www.tradingview.com/chart/?symbol=NASDAQ:${escHtml(o.symbol)}" target="_blank">${escHtml(o.symbol)}</a></td>
+          <td><b style="color:${o.score >= 80 ? 'var(--green)' : (o.score >= 70 ? '#5bb0ff' : '#d4892c')}">${o.score}</b></td>
+          <td>${o.isBuy ? '<span class="pb-chip bull">BUY</span>' : '<span class="pb-chip bear">SHORT</span>'}</td>
+          <td>$${fmtNum(o.price)}</td>
+          <td class="${(o.chg24 ?? 0) >= 0 ? 'pos' : 'neg'}">${fmtPct(o.chg24)}</td>
+          <td>${o.rsi != null ? Math.round(o.rsi) : '—'}</td>
+        </tr>`).join('')}</tbody></table>`;
+  }
+
+  // ── Sugestii watchlist (din macro-dashboard auto-suggest) ──
+  function pbLoadSuggestions(){
+    let sg = {};
+    try { sg = JSON.parse(localStorage.getItem('md_wl_suggestions') || '{}'); } catch (e) {}
+    const now = Date.now();
+    const active = Object.values(sg).filter(s => s && !s.dismissed && (now - (s.ts || 0) < 24*3600000) && s.tickers && s.tickers.some(t => !(s.added || []).includes(t)));
+    $('pbCntSuggestions').textContent = String(active.length);
+    if (!active.length){ $('pbBodySuggestions').innerHTML = '<div class="pb-empty">📭 Nicio sugestie activă (apar la rezultate macro cu surprise ≥2.5%).</div>'; return; }
+    $('pbBodySuggestions').innerHTML = active.map(s => {
+      const remaining = s.tickers.filter(t => !(s.added || []).includes(t));
+      const surpStr = (s.surprise != null) ? `${s.surprise>=0?'+':''}${s.surprise.toFixed(2)}%` : '';
+      const bias = s.bias === 'bullish' ? '🟢 Bullish' : (s.bias === 'bearish' ? '🔴 Bearish' : '⚪ Neutral');
+      return `<div style="padding:7px 0;border-bottom:1px solid rgba(42,50,71,.5)">
+        <div style="font-weight:700;font-size:12.5px;margin-bottom:4px">${escHtml(s.eventName)} · ${bias} <span style="font-family:var(--mono);font-size:11px;color:var(--t2)">${surpStr}</span></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">${remaining.map(t => `<span class="pb-chip warn">+ ${escHtml(t)}</span>`).join('')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  async function pbLoadAll(){
+    $('pbRefreshInfo').textContent = '⏳ se încarcă…';
+    pbLoadNasdaqPicks();
+    pbLoadSuggestions();
+    await Promise.allSettled([pbLoadRisk(), pbLoadMacroEvents(), pbLoadEarnings(), pbLoadWlEvents()]);
+    $('pbRefreshInfo').textContent = `🔄 ultim refresh: ${new Date().toLocaleTimeString('ro-RO')}`;
+  }
+
+  // Lazy + persistare stare open
+  const wrap = $('pbWrap');
+  if (!wrap) return;
+  let pbLoaded = false;
+  function pbEnsure(force){
+    if (!wrap.open) return;
+    if (pbLoaded && !force) return;
+    pbLoaded = true;
+    pbLoadAll();
+  }
+  wrap.addEventListener('toggle', () => {
+    try { localStorage.setItem('pb_open', wrap.open ? '1' : '0'); } catch (e) {}
+    pbEnsure(false);
+  });
+  $('pbRefreshBtn').addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    if (!wrap.open) wrap.open = true;
+    try { localStorage.removeItem(WL_EVENTS_CACHE_KEY); } catch (e2) {}
+    pbLoaded = true;
+    pbLoadAll();
+  });
+  try { if (localStorage.getItem('pb_open') === '1'){ wrap.open = true; pbEnsure(false); } } catch (e) {}
 })();
 </script>
 <script src="nav.js" data-nav-root="./"></script>
