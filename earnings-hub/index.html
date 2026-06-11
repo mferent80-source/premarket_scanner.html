@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v134</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v135</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -435,7 +435,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v134-2026-06-11';
+const VER = 'tt-v135-2026-06-11';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -519,7 +519,16 @@ function markSeen(key){
 function loadCache(lsKey){
   try { return JSON.parse(localStorage.getItem(lsKey) || '{}') || {}; } catch(e){ return {}; }
 }
-function saveCache(lsKey, obj){ try { localStorage.setItem(lsKey, JSON.stringify(obj)); } catch(e){} }
+function saveCache(lsKey, obj){
+  try {
+    // prune la PERSIST (TTL-ul aplicat lazy doar la citire lăsa cheile vechi să se acumuleze nelimitat) + cap 120
+    const cut = Date.now() - HIST_TTL_MS;
+    for (const k of Object.keys(obj)) if (obj[k] && obj[k].ts && obj[k].ts < cut) delete obj[k];
+    const sorted = Object.keys(obj).sort((a, b) => ((obj[a] && obj[a].ts) || 0) - ((obj[b] && obj[b].ts) || 0));
+    while (sorted.length > 120) delete obj[sorted.shift()];
+    localStorage.setItem(lsKey, JSON.stringify(obj));
+  } catch(e){}
+}
 
 // ═══════════════════════════════════════════════════════════════
 //  MARKET SESSION (NYSE DST-aware via Intl)
@@ -546,9 +555,11 @@ setInterval(updateSessionPill, 30000);
 
 function todayISO(){ const p = nyDateParts(); return `${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`; }
 function isoPlus(days){
-  const t = new Date(); t.setUTCDate(t.getUTCDate() + days);
-  const p = nyDateParts(t);
-  return `${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`;
+  // aritmetică pur calendaristică ancorată pe ziua ET de azi (aritmetica UTC pe `new Date()`
+  // dădea off-by-one seara, când data UTC ≠ data ET)
+  const t = new Date(todayISO() + 'T00:00:00Z');
+  t.setUTCDate(t.getUTCDate() + days);
+  return t.toISOString().slice(0, 10);
 }
 function daysBetween(isoFrom, isoTo){
   // diferență în zile calendaristice, ignorând ora
@@ -560,10 +571,11 @@ function daysBetween(isoFrom, isoTo){
 // ═══════════════════════════════════════════════════════════════
 //  CORS proxy chain (Yahoo) — pentru reaction bias
 // ═══════════════════════════════════════════════════════════════
+// Lanț aliniat suite (market-events v220): allorigins NU trimite CORS pe github.io → scos.
 const CORS_PROXIES = [
-  { name:'codetabs',       build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: t => t },
-  { name:'allorigins/raw', build: u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),      extract: t => t },
-  { name:'allorigins/get', build: u => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u),      extract: t => { const w = JSON.parse(t); return w && typeof w.contents === 'string' ? w.contents : t; } },
+  { name:'codetabs',     build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: t => t },
+  { name:'corsproxy.io', build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),               extract: t => t },
+  { name:'cors.lol',     build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u),               extract: t => t },
 ];
 let _proxyIdx = 0;
 async function proxyGetJSON(targetUrl, timeoutMs = 8000, ttl = 0){
@@ -1059,8 +1071,8 @@ function renderTable(){
     try { html += renderRow(sorted[i]); }
     catch(err){ if (!firstErr) firstErr = { sym:sorted[i] && sorted[i].symbol, msg:err.message, e:sorted[i] }; console.error('[render] eroare la ticker', sorted[i] && sorted[i].symbol, err); }
   }
-  // Bandă diagnostic mereu vizibilă în tabel
-  const debugBanner = `<tr style="background:#11161f"><td colspan="12" style="padding:6px 10px;font-family:var(--mono);font-size:10px;color:var(--t3);border-bottom:1px solid var(--b1)">🔍 filterMode=<b style="color:var(--accent)">${filterMode}</b> · sorted=<b style="color:var(--accent)">${sorted.length}</b> · html.length=<b style="color:var(--accent)">${html.length}</b>${firstErr ? ' · <span style="color:#f88">EROARE pe ' + escHtml(firstErr.sym || '?') + ': ' + escHtml(firstErr.msg || '?') + '</span>' : ''}</td></tr>`;
+  // Bandă diagnostic DOAR la eroare de render (era permanentă — rest din sesiunea de debugging v108-110)
+  const debugBanner = firstErr ? `<tr style="background:#11161f"><td colspan="12" style="padding:6px 10px;font-family:var(--mono);font-size:10px;color:#f88;border-bottom:1px solid var(--b1)">⚠ EROARE render pe ${escHtml(firstErr.sym || '?')}: ${escHtml(firstErr.msg || '?')} · filterMode=${filterMode} · sorted=${sorted.length}</td></tr>` : '';
   tbody.innerHTML = debugBanner + html;
   // expand state restore (in caz de re-render după sort)
   if (expandedSym){
@@ -1750,6 +1762,7 @@ function closeSettings(){ $('setModal').classList.remove('open'); }
 $('setBtn').addEventListener('click', openSettings);
 $('setCancel').addEventListener('click', closeSettings);
 $('setModal').addEventListener('click', e => { if (e.target.id === 'setModal') closeSettings(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('setModal').classList.contains('open')) closeSettings(); });
 $('setSave').addEventListener('click', () => {
   setFinnhubKey($('setFinnhub').value.trim());
   setAnthropicKey($('setAnthropic').value.trim());
