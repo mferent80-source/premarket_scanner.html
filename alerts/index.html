@@ -191,7 +191,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v2</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v3</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -223,10 +223,14 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
       <label>Notă (opțional)</label>
       <input type="text" id="inpNote" class="note-input" placeholder="ex: target TP1 după ATR x2" maxlength="80">
     </div>
+    <div>
+      <label title="One-shot: alerta dispare la declanșare. Re-arm: rămâne și se re-armează când prețul revine 0.3% dincolo de nivel.">↻ Re-arm</label>
+      <input type="checkbox" id="inpRearm" style="width:18px;height:18px;margin:8px 0">
+    </div>
     <button class="primary add-btn" id="btnAdd">+ Adaugă</button>
   </div>
   <div class="add-hint">
-    Polling automat la 60s când pagina e activă. Notify combo: toast persistent + sunet + browser + Telegram (dacă config în macro-dashboard). Suportă: stocks US (AAPL/NVDA/etc.) + crypto (BTC-USD/ETH-USD).
+    Storage UNIFICAT cu Watchlist Monitor (⏰ din detaliile de rând) — o singură listă de alerte, vizibilă din ambele pagini. Polling 60s aici (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD); watchlist-monitor le verifică în plus la scan. Notify: toast persistent + sunet + browser + Telegram.
   </div>
 </div>
 
@@ -245,7 +249,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <!-- Triggered history -->
 <div class="section">
   <div class="section-head">
-    <h3>✅ Triggered (ultimele 50)</h3>
+    <h3>✅ Triggered (ultimele 50) <span style="font-weight:400;font-size:10.5px;color:var(--t3)" title="Alertele one-shot declanșate de watchlist-monitor dispar din listă fără să treacă pe aici">· istoric local paginii</span></h3>
     <span class="count" id="cntTriggered">0</span>
     <button id="btnClearTriggered" class="danger" style="font-size:11.5px">🗑 Clear triggered</button>
   </div>
@@ -259,9 +263,17 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 
 <script>
 // ============ CONFIG ============
-const ALERTS_KEY = 'pa_alerts_v1';
+// Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
+//   { SYM: [{ id, lvl, dir:'above'|'below', rearm, armed, lastFired, note? }] }
+// Pagina asta e managerul universal (orice simbol, inclusiv crypto); watchlist-monitor
+// verifică în plus, la scan, simbolurile din watchlist-ul lui. Câmpul `note` e doar al
+// nostru — watchlist-monitor îl ignoră dar îl păstrează la persist (roundtrip JSON).
+const ALERTS_KEY = 'wl_price_alerts';
+const HIST_KEY = 'pa_triggered_v1';   // istoric LOCAL paginii (one-shot-urile declanșate de wlm nu apar aici)
+const LEGACY_KEY = 'pa_alerts_v1';    // formatul vechi (array) — migrat o singură dată
 const POLL_INTERVAL_MS = 60000;
 const MAX_TRIGGERED_HISTORY = 50;
+const REARM_HYST = 0.003;             // histerezis re-arm 0.3% — identic cu watchlist-monitor
 const SOUND_KEY = 'pa_sound';
 const NOTIF_KEY = 'pa_notif';
 
@@ -300,8 +312,33 @@ let pollPaused = false;
 let pollTimer = null;
 
 // ============ STATE ============
-let ALERTS = (() => { try { return JSON.parse(localStorage.getItem(ALERTS_KEY) || '[]'); } catch (e) { return []; } })();
-function persistAlerts() { try { localStorage.setItem(ALERTS_KEY, JSON.stringify(ALERTS)); } catch (e) {} }
+function loadAlerts(){ try { const o = JSON.parse(localStorage.getItem(ALERTS_KEY) || '{}'); return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; } catch (e) { return {}; } }
+let priceAlerts = loadAlerts();
+function persistAlerts() { try { localStorage.setItem(ALERTS_KEY, JSON.stringify(priceAlerts)); } catch (e) {} }
+let HISTORY = (() => { try { const h = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); return Array.isArray(h) ? h : []; } catch (e) { return []; } })();
+function persistHistory(){ try { localStorage.setItem(HIST_KEY, JSON.stringify(HISTORY.slice(0, MAX_TRIGGERED_HISTORY))); } catch (e) {} }
+
+// Migrare one-shot din formatul vechi pa_alerts_v1 (array): activele → storage-ul shared,
+// cele triggered → istoricul local. Cheia veche se șterge după migrare.
+(function migrateLegacy(){
+  let legacy = null;
+  try { legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null'); } catch (e) {}
+  if (!Array.isArray(legacy)) return;
+  legacy.forEach(a => {
+    if (!a || !a.symbol) return;
+    if (a.triggered) {
+      HISTORY.push({ sym: a.symbol, lvl: a.threshold, dir: a.direction, price: a.triggeredPrice, ts: a.triggeredAt || Date.now(), note: a.note || '', rearm: false });
+    } else if (a.active !== false) {
+      (priceAlerts[a.symbol] = priceAlerts[a.symbol] || []).push({ id: a.id || uid(), lvl: a.threshold, dir: a.direction, rearm: false, armed: true, lastFired: null, note: a.note || '' });
+    }
+  });
+  HISTORY.sort((x, y) => (y.ts || 0) - (x.ts || 0));
+  persistAlerts(); persistHistory();
+  try { localStorage.removeItem(LEGACY_KEY); } catch (e) {}
+})();
+
+// Cross-tab: dacă watchlist-monitor (sau alt tab) modifică alertele, re-randăm.
+window.addEventListener('storage', e => { if (e.key === ALERTS_KEY) { priceAlerts = loadAlerts(); render(); } });
 
 // ============ TOAST ============
 function toast(msg, kind='info', opts={}) {
@@ -380,11 +417,15 @@ async function fetchPrice(symbol) {
 }
 
 // ============ POLL CYCLE ============
+// Semantică IDENTICĂ cu checkPriceAlerts din watchlist-monitor: one-shot → alerta
+// dispare la fire; re-arm → se dezarmează și se re-armează cu histerezis 0.3%.
+const _lastPrice = {}; // preț curent per simbol (doar pentru UI — NU se persistă în storage)
 async function pollPrices() {
   if (pollPaused) return;
-  const activeAlerts = ALERTS.filter(a => a.active && !a.triggered);
-  if (!activeAlerts.length) { $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · niciun alert activ`; return; }
-  let unique = [...new Set(activeAlerts.map(a => a.symbol.toUpperCase()))];
+  priceAlerts = loadAlerts(); // sync cross-tab înainte de check (wlm poate modifica între cicluri)
+  const allSyms = Object.keys(priceAlerts).filter(s => (priceAlerts[s] || []).length);
+  if (!allSyms.length) { $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · niciun alert activ`; render(); return; }
+  let unique = [...new Set(allSyms.map(s => s.toUpperCase()))];
   const stockSyms = unique.filter(s => !CRYPTO_SYMS.has(s));
   let sessionNote = '';
   // piață închisă (noapte/weekend ET) → stocks doar la 10 min; crypto rămâne la fiecare ciclu
@@ -404,41 +445,49 @@ async function pollPrices() {
     const p = await fetchPrice(sym);
     if (p?.last != null) prices[sym] = p.last;
   }));
-  let triggeredCount = 0;
-  const triggeredNow = [];
-  for (const alert of activeAlerts) {
-    const cur = prices[alert.symbol.toUpperCase()];
-    if (cur == null) continue;
-    alert.currentPrice = cur;
-    const triggered = (alert.direction === 'above' && cur >= alert.threshold)
-                   || (alert.direction === 'below' && cur <= alert.threshold);
-    if (triggered) {
-      alert.triggered = true;
-      alert.triggeredAt = Date.now();
-      alert.triggeredPrice = cur;
-      triggeredCount++;
-      triggeredNow.push(alert);
+  priceAlerts = loadAlerts(); // re-sync după await-uri (fetch-urile durează — alt tab putea scrie)
+  const fired = [];
+  let changed = false;
+  for (const sym of Object.keys(priceAlerts)) {
+    const p = prices[sym.toUpperCase()];
+    if (p == null) continue;
+    _lastPrice[sym] = p;
+    const list = priceAlerts[sym];
+    for (let i = list.length - 1; i >= 0; i--) {
+      const a = list[i];
+      const hit = a.dir === 'above' ? p >= a.lvl : p <= a.lvl;
+      if (a.armed && hit) {
+        fired.push({ sym, price: p, a: Object.assign({}, a) });
+        a.lastFired = Date.now(); changed = true;
+        if (a.rearm) a.armed = false; else list.splice(i, 1); // one-shot → dispare
+      } else if (!a.armed && a.rearm) {
+        const back = a.dir === 'above' ? p <= a.lvl * (1 - REARM_HYST) : p >= a.lvl * (1 + REARM_HYST);
+        if (back) { a.armed = true; changed = true; }
+      }
     }
+    if (!list.length) delete priceAlerts[sym];
   }
-  if (triggeredCount > 0) {
-    persistAlerts();
-    // Notify combo
-    triggeredNow.forEach(a => {
-      const dirIcon = a.direction === 'above' ? '▲' : '▼';
-      const kind = a.direction === 'above' ? 'success' : 'error';
-      toast(`🔔 ${a.symbol} ${dirIcon} $${fmtNum(a.triggeredPrice)} · prag $${fmtNum(a.threshold)}${a.note ? ' · ' + a.note : ''}`, kind, { persist: true });
-      showBrowserNotif(`🔔 ${a.symbol} ${dirIcon} prag atins`, `Preț ${fmtNum(a.triggeredPrice)} · prag ${fmtNum(a.threshold)}${a.note ? ' · ' + a.note : ''}`);
+  if (changed) persistAlerts();
+  if (fired.length) {
+    // Notify combo + istoric local
+    fired.forEach(f => {
+      HISTORY.unshift({ sym: f.sym, lvl: f.a.lvl, dir: f.a.dir, price: f.price, ts: Date.now(), note: f.a.note || '', rearm: !!f.a.rearm });
+      const dirIcon = f.a.dir === 'above' ? '▲' : '▼';
+      toast(`🔔 ${f.sym} ${dirIcon} $${fmtNum(f.price)} · prag $${fmtNum(f.a.lvl)}${f.a.note ? ' · ' + f.a.note : ''}${f.a.rearm ? ' · ↻ re-arm' : ''}`, f.a.dir === 'above' ? 'success' : 'error', { persist: true });
+      showBrowserNotif(`🔔 ${f.sym} ${dirIcon} prag atins`, `Preț ${fmtNum(f.price)} · prag ${fmtNum(f.a.lvl)}${f.a.note ? ' · ' + f.a.note : ''}`);
     });
+    HISTORY = HISTORY.slice(0, MAX_TRIGGERED_HISTORY);
+    persistHistory();
     playBeep();
-    if (triggeredNow.length === 1) {
-      const a = triggeredNow[0];
-      sendTelegram(`🔔 <b>Price Alert</b>\n${a.direction === 'above' ? '▲' : '▼'} <b>${tgEsc(a.symbol)}</b> a atins $${fmtNum(a.triggeredPrice)}\nPrag: $${fmtNum(a.threshold)} (${a.direction})${a.note ? '\nNotă: ' + tgEsc(a.note) : ''}`);
+    if (fired.length === 1) {
+      const f = fired[0];
+      sendTelegram(`🔔 <b>Price Alert</b>\n${f.a.dir === 'above' ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> a atins $${fmtNum(f.price)}\nPrag: $${fmtNum(f.a.lvl)} (${f.a.dir})${f.a.rearm ? ' · re-arm' : ''}${f.a.note ? '\nNotă: ' + tgEsc(f.a.note) : ''}`);
     } else {
-      sendTelegram(`🔔 <b>${triggeredNow.length} Price Alerts triggered</b>\n` + triggeredNow.map(a => `${a.direction === 'above' ? '▲' : '▼'} <b>${tgEsc(a.symbol)}</b> $${fmtNum(a.triggeredPrice)} (prag $${fmtNum(a.threshold)})`).join('\n'));
+      sendTelegram(`🔔 <b>${fired.length} Price Alerts triggered</b>\n` + fired.map(f => `${f.a.dir === 'above' ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> $${fmtNum(f.price)} (prag $${fmtNum(f.a.lvl)})`).join('\n'));
     }
   }
   render();
-  $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · ${unique.length} simboluri${triggeredCount ? ` · ${triggeredCount} triggered` : ''}${sessionNote}`;
+  $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · ${unique.length} simboluri${fired.length ? ` · ${fired.length} triggered` : ''}${sessionNote}`;
 }
 
 function schedulePoll() {
@@ -451,80 +500,86 @@ function schedulePoll() {
 
 // ============ RENDER ============
 function render() {
-  const active = ALERTS.filter(a => a.active && !a.triggered);
-  const triggered = ALERTS.filter(a => a.triggered).sort((a,b) => b.triggeredAt - a.triggeredAt).slice(0, MAX_TRIGGERED_HISTORY);
-  $('cntActive').textContent = active.length;
+  const rows = [];
+  Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
+  const triggered = HISTORY.slice(0, MAX_TRIGGERED_HISTORY);
+  $('cntActive').textContent = rows.length;
   $('cntTriggered').textContent = triggered.length;
 
-  if (!active.length) {
+  if (!rows.length) {
     $('bodyActive').innerHTML = '<div class="empty"><span class="ico">📭</span>Niciun alert activ. Adaugă unul de mai sus.</div>';
   } else {
-    $('bodyActive').innerHTML = active.map(a => {
-      const cur = a.currentPrice;
-      const delta = cur != null ? ((cur - a.threshold) / a.threshold * 100) : null;
+    $('bodyActive').innerHTML = rows.map(({ sym, a }) => {
+      const cur = _lastPrice[sym];
+      const delta = cur != null ? ((cur - a.lvl) / a.lvl * 100) : null;
       const isClose = delta != null && Math.abs(delta) < 1.5;
-      const dirIcon = a.direction === 'above' ? '▲ peste' : '▼ sub';
-      const dirCls = a.direction === 'above' ? 'up' : 'down';
-      return `<div class="alert-row" data-id="${escHtml(a.id)}">
-        <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(a.symbol)}" target="_blank">${escHtml(a.symbol)}</a></div>
-        <div class="alert-thr">$${fmtNum(a.threshold)}<span class="dir">${dirIcon}</span></div>
+      const dirIcon = a.dir === 'above' ? '▲ peste' : '▼ sub';
+      const dirCls = a.dir === 'above' ? 'up' : 'down';
+      const stateBadge = a.rearm ? (a.armed ? '<span title="re-arm: alerta se păstrează și se re-armează după revenire">↻</span>' : '<span title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel" style="opacity:.55">↻💤</span>') : '';
+      return `<div class="alert-row" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
+        <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a></div>
+        <div class="alert-thr">$${fmtNum(a.lvl)}<span class="dir">${dirIcon} ${stateBadge}</span></div>
         <div class="alert-current ${dirCls}">${cur != null ? '$' + fmtNum(cur) : '⏳'}</div>
         <div class="alert-delta ${isClose ? 'close' : ''}">${delta != null ? (delta>=0?'+':'')+delta.toFixed(2)+'%' : '—'}</div>
         <div class="alert-note">${escHtml(a.note || '')}</div>
         <div class="alert-actions">
-          <button class="icon-btn" data-action="edit" title="Editează">✎</button>
+          <button class="icon-btn" data-action="edit" title="Editează nivelul">✎</button>
           <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
         </div>
       </div>`;
     }).join('');
     // Bind actions
     $('bodyActive').querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
-      const id = e.target.closest('.alert-row').dataset.id;
+      const row = e.target.closest('.alert-row');
+      const sym = row.dataset.sym, id = row.dataset.id;
       if (!confirm('Șterge acest alert?')) return;
-      ALERTS = ALERTS.filter(a => a.id !== id);
+      priceAlerts[sym] = (priceAlerts[sym] || []).filter(a => a.id !== id);
+      if (!priceAlerts[sym].length) delete priceAlerts[sym];
       persistAlerts(); render();
     }));
     $('bodyActive').querySelectorAll('[data-action="edit"]').forEach(btn => btn.addEventListener('click', e => {
-      const id = e.target.closest('.alert-row').dataset.id;
-      const a = ALERTS.find(x => x.id === id);
+      const row = e.target.closest('.alert-row');
+      const sym = row.dataset.sym, id = row.dataset.id;
+      const a = (priceAlerts[sym] || []).find(x => x.id === id);
       if (!a) return;
-      const newThr = parseFloat(prompt(`Prag nou pentru ${a.symbol}:`, a.threshold));
-      if (!isNaN(newThr) && newThr > 0) { a.threshold = newThr; persistAlerts(); render(); }
+      const newLvl = parseFloat(prompt(`Prag nou pentru ${sym}:`, a.lvl));
+      if (!isNaN(newLvl) && newLvl > 0) { a.lvl = newLvl; a.armed = true; persistAlerts(); render(); }
     }));
   }
 
   if (!triggered.length) {
     $('bodyTriggered').innerHTML = '<div class="empty"><span class="ico">🔕</span>Niciun alert declanșat încă.</div>';
   } else {
-    $('bodyTriggered').innerHTML = triggered.map(a => {
-      const cls = a.direction === 'above' ? '' : 'bear';
-      const dirIcon = a.direction === 'above' ? '▲' : '▼';
-      const ageMin = Math.round((Date.now() - a.triggeredAt) / 60000);
-      const ageStr = ageMin < 60 ? `${ageMin}min` : `${Math.round(ageMin/60)}h`;
-      return `<div class="alert-row triggered ${cls}" data-id="${escHtml(a.id)}">
-        <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(a.symbol)}" target="_blank">${escHtml(a.symbol)}</a></div>
-        <div class="alert-thr">$${fmtNum(a.threshold)}<span class="dir">${dirIcon}</span></div>
-        <div class="alert-current ${a.direction === 'above' ? 'up' : 'down'}">$${fmtNum(a.triggeredPrice)}</div>
+    $('bodyTriggered').innerHTML = triggered.map((h, idx) => {
+      const cls = h.dir === 'above' ? '' : 'bear';
+      const dirIcon = h.dir === 'above' ? '▲' : '▼';
+      const ageMin = Math.round((Date.now() - (h.ts || 0)) / 60000);
+      const ageStr = ageMin < 60 ? `${ageMin}min` : (ageMin < 1440 ? `${Math.round(ageMin/60)}h` : `${Math.round(ageMin/1440)}z`);
+      return `<div class="alert-row triggered ${cls}" data-idx="${idx}">
+        <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(h.sym)}" target="_blank">${escHtml(h.sym)}</a></div>
+        <div class="alert-thr">$${fmtNum(h.lvl)}<span class="dir">${dirIcon}${h.rearm ? ' ↻' : ''}</span></div>
+        <div class="alert-current ${h.dir === 'above' ? 'up' : 'down'}">$${fmtNum(h.price)}</div>
         <div class="alert-delta">acum ${ageStr}</div>
-        <div class="alert-note">${escHtml(a.note || '')}</div>
+        <div class="alert-note">${escHtml(h.note || '')}</div>
         <div class="alert-actions">
-          <button class="icon-btn" data-action="reactivate" title="Reactivează">↻</button>
-          <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
+          <button class="icon-btn" data-action="reactivate" title="Re-creează alerta cu același nivel">↻</button>
+          <button class="icon-btn danger" data-action="delete" title="Șterge din istoric">🗑</button>
         </div>
       </div>`;
     }).join('');
     $('bodyTriggered').querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
-      const id = e.target.closest('.alert-row').dataset.id;
-      ALERTS = ALERTS.filter(a => a.id !== id);
-      persistAlerts(); render();
+      const idx = +e.target.closest('.alert-row').dataset.idx;
+      HISTORY.splice(idx, 1);
+      persistHistory(); render();
     }));
     $('bodyTriggered').querySelectorAll('[data-action="reactivate"]').forEach(btn => btn.addEventListener('click', e => {
-      const id = e.target.closest('.alert-row').dataset.id;
-      const a = ALERTS.find(x => x.id === id);
-      if (!a) return;
-      a.triggered = false; a.triggeredAt = null; a.triggeredPrice = null; a.active = true;
+      const idx = +e.target.closest('.alert-row').dataset.idx;
+      const h = HISTORY[idx];
+      if (!h) return;
+      priceAlerts = loadAlerts();
+      (priceAlerts[h.sym] = priceAlerts[h.sym] || []).push({ id: uid(), lvl: h.lvl, dir: h.dir, rearm: !!h.rearm, armed: true, lastFired: null, note: h.note || '' });
       persistAlerts(); render();
-      toast(`↻ ${a.symbol} reactivat`, 'info');
+      toast(`↻ ${h.sym} re-creat: ${h.dir === 'above' ? 'peste' : 'sub'} $${fmtNum(h.lvl)}`, 'info');
     }));
   }
 
@@ -542,12 +597,14 @@ $('btnAdd').addEventListener('click', () => {
   const thr = parseFloat($('inpThr').value);
   const dir = $('inpDir').value;
   const note = $('inpNote').value.trim();
+  const rearm = $('inpRearm').checked;
   if (!sym || !sym.match(/^[A-Z0-9.\-]{1,12}$/)) { toast('⚠ Simbol invalid (doar A-Z, 0-9, .-)', 'error'); return; }
   if (isNaN(thr) || thr <= 0) { toast('⚠ Preț prag invalid (trebuie > 0)', 'error'); return; }
-  ALERTS.push({ id: uid(), symbol: sym, threshold: thr, direction: dir, note, active: true, triggered: false, triggeredAt: null, triggeredPrice: null, currentPrice: null, createdAt: Date.now() });
+  priceAlerts = loadAlerts(); // sync înainte de write — alt tab poate să fi modificat
+  (priceAlerts[sym] = priceAlerts[sym] || []).push({ id: uid(), lvl: thr, dir, rearm, armed: true, lastFired: null, note });
   persistAlerts(); render();
   $('inpSym').value = ''; $('inpThr').value = ''; $('inpNote').value = '';
-  toast(`✓ Alert adăugat: ${sym} ${dir === 'above' ? '▲' : '▼'} $${fmtNum(thr)}`, 'success');
+  toast(`✓ Alert adăugat: ${sym} ${dir === 'above' ? '▲' : '▼'} $${fmtNum(thr)}${rearm ? ' · ↻ re-arm' : ''}`, 'success');
   pollPrices(); // immediate check
 });
 
@@ -559,12 +616,12 @@ $('btnPause').addEventListener('click', () => {
 });
 
 $('btnClearTriggered').addEventListener('click', () => {
-  const count = ALERTS.filter(a => a.triggered).length;
-  if (!count) { toast('Nimic de șters', 'info'); return; }
-  if (!confirm(`Ștergi ${count} alerte declanșate?`)) return;
-  ALERTS = ALERTS.filter(a => !a.triggered);
-  persistAlerts(); render();
-  toast(`🗑 ${count} alerte șterse`, 'info');
+  if (!HISTORY.length) { toast('Nimic de șters', 'info'); return; }
+  if (!confirm(`Ștergi ${HISTORY.length} intrări din istoric?`)) return;
+  const n = HISTORY.length;
+  HISTORY = [];
+  persistHistory(); render();
+  toast(`🗑 ${n} intrări șterse`, 'info');
 });
 
 $('soundBtn').addEventListener('click', () => {
