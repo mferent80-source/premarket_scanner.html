@@ -838,7 +838,8 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
   // Breakdown pe categorii cu cross-link
   const stocksLink = '<a href="./nasdaq-scanner/" target="_blank" style="color:var(--crypto-2);text-decoration:none">📈 ' + stockWL.length + ' stocks</a>';
-  const cryptoLink = '<a href="./crypto-scanner/" target="_blank" style="color:#5bb0ff;text-decoration:none">🪙 ' + cryptoWL.length + ' crypto</a>';
+  // crypto locuiește la Scanner Hub (split mai 2026) — link extern, nu folder local
+  const cryptoLink = '<a href="https://mferent80-source.github.io/scanner/" target="_blank" style="color:#5bb0ff;text-decoration:none">🪙 ' + cryptoWL.length + ' crypto</a>';
   $('wlBreakdownVal').innerHTML = stocksLink + ' · ' + cryptoLink;
 
   // Sample top simbol pentru sub-text (din ce există)
@@ -1036,58 +1037,8 @@ const SCANNER_FEATURES = {
       ]},
     ],
   },
-  'crypto-events': {
-    title: '⚡ Crypto Events',
-    sub: 'v82 · Movers + Sentiment + Funding + OI · live `crypto-events/`',
-    url: './crypto-events/',
-    sections: [
-      { title: '📊 Movers & Sentiment', cls: 'data', items: [
-        { e: '🚀', t: '<b>Top Gainers/Losers</b> 1h și 24h (CoinGecko top 100)' },
-        { e: '😱', t: '<b>Fear &amp; Greed Index</b> + BTC.D + ETH.D + Total mcap' },
-        { e: '🔥', t: '<b>Trending</b> CoinGecko (cele mai căutate)' },
-      ]},
-      { title: '💸 Futures data', cls: 'data', items: [
-        { e: '💸', t: '<b>Funding Rates extreme</b> Binance Futures + APR estimat' },
-        { e: '📈', t: '<b>Open Interest</b> top 10 + OI Δ 1h whale flow' },
-        { e: '⚖️', t: '<b>Long/Short Ratio</b> top accounts (extreme detection)' },
-        { e: '💥', t: '<b>Liquidations</b> recente OKX SWAP top 12' },
-      ]},
-      { title: '🔓 Special tools', cls: 'tool', items: [
-        { e: '🔓', t: '<b>Token Unlocks 60d</b> DefiLlama (cache 5 min)' },
-        { e: '🗺️', t: '<b>Heatmap categorii</b> narrative tracker (Layer1/L2/DeFi/Meme/AI/...)' },
-        { e: '🌐', t: '<b>WebSocket Binance</b> live prices' },
-        { e: '🤖', t: '<b>Grid bot calc</b> pentru Pionex' },
-      ]},
-    ],
-  },
-  'crypto-scanner': {
-    title: '🪙 Crypto Opportunity Scanner',
-    sub: 'v82 · Binance Futures · 13 tab-uri · live `crypto-scanner/`',
-    url: './crypto-scanner/',
-    sections: [
-      { title: '📡 Sursa', cls: 'data', items: [
-        { e: '📡', t: '<b>Binance Futures + Spot</b> — prețuri, volume, klines real-time' },
-      ]},
-      { title: '🛠️ Tab-uri (13)', cls: 'tool', items: [
-        { e: '🎯', t: '<b>Setups</b> + 💎 <b>Premium</b> filtre configurabile cu pre-scan ST Long' },
-        { e: '🚨', t: '<b>Pump Radar</b> 5m, 🌪 <b>Volatilitate</b>, 🔥 <b>Squeeze</b>' },
-        { e: '👁️', t: '<b>Watchlist Live</b> grid 30 coin-uri full-width' },
-        { e: '💸', t: '<b>Funding alerts</b>, 🤖 <b>Pionex grid suggester</b>, 📊 <b>Order flow</b>' },
-        { e: '📓', t: '<b>Tab pinning</b> right-click — max 3 mini-cards persistente' },
-      ]},
-      { title: '🤖 Automation & AI', cls: 'auto', items: [
-        { e: '🔊', t: '<b>Voice TTS</b> pentru semnale critice' },
-        { e: '🤖', t: '<b>Cross-AI multi-tab</b> — agregare semnale din mai multe tab-uri' },
-        { e: '📈', t: '<b>Backtester rapid</b> RSI/BB/Breakout' },
-        { e: '🎯', t: '<b>Performance tracker</b> per tab (24h hit rate)' },
-      ]},
-      { title: '💾 Sync & Tools', cls: 'auto', items: [
-        { e: '🔄', t: '<b>Gist sync</b> watchlist + setări + API key cross-device' },
-        { e: '⚙️', t: '<b>Position sizer</b>, ⏰ <b>Volatility tab</b>, ➕ <b>Watchlist quick-add</b>' },
-      ]},
-    ],
-  },
 };
+// (intrările crypto-events/crypto-scanner eliminate — paginile locuiesc la Scanner Hub din mai 2026)
 
 window.showFeaturesModal = function(scannerKey){
   const data = SCANNER_FEATURES[scannerKey];
