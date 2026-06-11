@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v105</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v106</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -4522,17 +4522,24 @@ async function fetchExtendedHours(){
       try{
         // cache-buster: proxy-urile cache-uiesc URL identic și servesc prețuri vechi.
         const yahooUrl='https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=5m&range=1d&includePrePost=true&_='+Date.now();
-        // direct întâi (dacă CORS permite), apoi lanțul de proxy-uri — înainte era DOAR
-        // fetch direct, iar de pe GitHub Pages Yahoo respinge frecvent originul (CORS).
         let data=null;
-        const _cands=[yahooUrl].concat((typeof yahooProxies!=='undefined'?yahooProxies:[]).map(p=>p+encodeURIComponent(yahooUrl)));
-        for(const u of _cands){
-          try{
-            const r=await fetch(u,{signal:AbortSignal.timeout(6000)});
-            if(!r.ok) continue;
-            data=await r.json();
-            if(data) break;
-          }catch(e){}
+        // 1) lib/data.js — ACELAȘI request ca fetchYahooCandles (5m/1d/prePost), deci
+        //    același cacheKey nq:5m:SYM → un singur fetch servește și Extended și
+        //    Pump Radar în fereastra de 30s. Buster-ul rămâne în URL (anti-stale proxy).
+        if(window.D && D.fetchJSON){
+          try{ data=await D.fetchJSON(yahooUrl,{ ttl:30, timeout:8000, cacheKey:`nq:5m:${sym}`, validate:d=>d&&d.chart }); }catch(e){}
+        }
+        // 2) fallback: direct întâi (dacă CORS permite), apoi lanțul local de proxy-uri.
+        if(!data){
+          const _cands=[yahooUrl].concat((typeof yahooProxies!=='undefined'?yahooProxies:[]).map(p=>p+encodeURIComponent(yahooUrl)));
+          for(const u of _cands){
+            try{
+              const r=await fetch(u,{signal:AbortSignal.timeout(6000)});
+              if(!r.ok) continue;
+              data=await r.json();
+              if(data) break;
+            }catch(e){}
+          }
         }
         if(!data) return null;
         const result=data?.chart?.result?.[0];
