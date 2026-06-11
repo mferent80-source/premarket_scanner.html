@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v104</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v105</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -7238,14 +7238,41 @@ let yahooProxyIndex = 0;
 let yahooFailCount = 0;
 let yahooDisabled = false;
 
+// Parse comun (calea D + lanțul local) — candles 5m, barele cu null-uri filtrate.
+function _parseCandles5m(result){
+  const timestamps=result.timestamp||[];
+  const quote=result.indicators&&result.indicators.quote&&result.indicators.quote[0];
+  if(!quote) return null;
+  const candles=[];
+  for(let i=0;i<timestamps.length;i++){
+    const o=quote.open[i], h=quote.high[i], l=quote.low[i], c=quote.close[i], v=quote.volume[i];
+    if(o==null||h==null||l==null||c==null) continue;
+    candles.push({
+      time:timestamps[i]*1000,
+      open:o, high:h, low:l, close:c, volume:v||0
+    });
+  }
+  return candles;
+}
+
 async function fetchYahooCandles(symbol){
   if(yahooDisabled) return null;
-  
+
   // cache-buster: fără el proxy-urile servesc candles vechi pe URL identic → Pump Radar pe date stale
   const yahooUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d&includePrePost=true&_=${Date.now()}`;
+  // 1) lib/data.js — buster-ul rămâne în URL (proxy-urile nu pot servi stale), dar
+  //    cacheKey e STABIL + ttl 30s → prospețimea o controlează D, nu proxy-ul;
+  //    health-scoring alege proxy-ul care merge. Lanțul local = doar fallback.
+  if (window.D && D.fetchJSON) {
+    try {
+      const data = await D.fetchJSON(yahooUrl, { ttl: 30, timeout: 8000, cacheKey: `nq:5m:${symbol}`, validate: d => d && d.chart });
+      const res = data && data.chart && data.chart.result && data.chart.result[0];
+      if (res) return _parseCandles5m(res);
+    } catch(e){}
+  }
   const proxy=yahooProxies[yahooProxyIndex];
   const url=proxy+encodeURIComponent(yahooUrl);
-  
+
   try{
     const r=await fetch(url, {signal: AbortSignal.timeout(6000)});
     if(!r.ok){
@@ -7259,25 +7286,9 @@ async function fetchYahooCandles(symbol){
     }
     const data=await r.json();
     if(!data||!data.chart||!data.chart.result||!data.chart.result[0]) return null;
-    
-    const result=data.chart.result[0];
-    const timestamps=result.timestamp||[];
-    const quote=result.indicators.quote[0];
-    if(!quote) return null;
-    
-    // Build candles, filter out null bars
-    const candles=[];
-    for(let i=0;i<timestamps.length;i++){
-      const o=quote.open[i], h=quote.high[i], l=quote.low[i], c=quote.close[i], v=quote.volume[i];
-      if(o==null||h==null||l==null||c==null) continue;
-      candles.push({
-        time:timestamps[i]*1000,
-        open:o, high:h, low:l, close:c, volume:v||0
-      });
-    }
-    
+
     yahooFailCount=Math.max(0, yahooFailCount-1);
-    return candles;
+    return _parseCandles5m(data.chart.result[0]);
   }catch(e){
     yahooFailCount++;
     if(yahooFailCount>=8){
