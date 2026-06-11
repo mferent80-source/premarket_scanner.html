@@ -250,7 +250,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v148</span>
+    <span class="ver-badge" id="verBadge">v152</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <div class="hdr-spc"></div>
     <button class="btn" id="scanBtn">🔄 SCAN</button>
@@ -401,7 +401,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   PAS 3: AI bubble Claude streaming + alerte rotație hot↔cold + Telegram + sound
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v151';
+const VER = 'v152';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -786,35 +786,42 @@ function transitionLabel(from, to){
   return `${m[from]} → ${m[to]}`;
 }
 
-// ── AI bubble Claude streaming ──
+// ── AI bubble Claude streaming (afișat deodată; timeout 180s — reader.read() n-are timeout nativ) ──
 async function callAnthropicStream(systemPrompt, userPrompt, maxTokens=600){
   const key = getAnthropicKey();
   if (!key) throw new Error('Lipsă Anthropic key (Setări ⚙)');
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST',
-    headers:{ 'Content-Type':'application/json', 'x-api-key':key,
-              'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-    body: JSON.stringify({ model:'claude-opus-4-8', max_tokens:maxTokens, stream:true,
-                           system:systemPrompt, messages:[{ role:'user', content:userPrompt }] })
-  });
-  if (!resp.ok){ const t = await resp.text(); throw new Error(`HTTP ${resp.status}: ${t.slice(0,200)}`); }
-  const reader = resp.body.getReader(), dec = new TextDecoder();
-  let buf = '', full = '';
-  while (true){
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += dec.decode(value, { stream:true });
-    const lines = buf.split('\n'); buf = lines.pop() || '';
-    for (const line of lines){
-      if (!line.startsWith('data:')) continue;
-      const data = line.slice(5).trim();
-      if (!data || data === '[DONE]') continue;
-      try { const evt = JSON.parse(data);
-            if (evt.type === 'content_block_delta' && evt.delta?.text) full += evt.delta.text;
-      } catch(_){}
+  const ctrl = new AbortController();
+  const tmo = setTimeout(() => ctrl.abort(), 180000);
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-api-key':key,
+                'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:'claude-opus-4-8', max_tokens:maxTokens, stream:true,
+                             system:systemPrompt, messages:[{ role:'user', content:userPrompt }] }),
+      signal: ctrl.signal,
+    });
+    if (!resp.ok){ const t = await resp.text(); throw new Error(`HTTP ${resp.status}: ${t.slice(0,200)}`); }
+    const reader = resp.body.getReader(), dec = new TextDecoder();
+    let buf = '', full = '';
+    while (true){
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream:true });
+      const lines = buf.split('\n'); buf = lines.pop() || '';
+      for (const line of lines){
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+        try { const evt = JSON.parse(data);
+              if (evt.type === 'content_block_delta' && evt.delta?.text) full += evt.delta.text;
+        } catch(_){}
+      }
     }
-  }
-  return full;
+    return full;
+  } catch(e){
+    throw (e && e.name === 'AbortError') ? new Error('timeout 180s — reîncearcă') : e;
+  } finally { clearTimeout(tmo); }
 }
 
 const AI_SYSTEM_SR = `Ești analist trading pe piețele americane, vorbești în română. Răspuns scurt (max 220 cuvinte) și concret, fără disclaimere generice.
@@ -894,9 +901,15 @@ async function runAIBubble(sym, force = false){
   try {
     const text = await callAnthropicStream(AI_SYSTEM_SR, buildAIPrompt(d), 600);
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-    // save cache
+    // save cache — cu prune la persist (TTL 1h + cap 40, altfel crește nelimitat)
     lsCache[cacheKey] = { text, ts: Date.now() };
-    try { localStorage.setItem(lsKey, JSON.stringify(lsCache)); } catch(_){}
+    try {
+      const cut = Date.now() - 60*60*1000;
+      for (const k of Object.keys(lsCache)) if (!lsCache[k] || !lsCache[k].ts || lsCache[k].ts < cut) delete lsCache[k];
+      const ordered = Object.keys(lsCache).sort((a,b) => lsCache[a].ts - lsCache[b].ts);
+      while (ordered.length > 40) delete lsCache[ordered.shift()];
+      localStorage.setItem(lsKey, JSON.stringify(lsCache));
+    } catch(_){}
     if (!EXP_CACHE[sym]) EXP_CACHE[sym] = {};
     EXP_CACHE[sym].ai = { text, ts: Date.now(), elapsed };
     renderAIBubble(sym, text, false, elapsed);
@@ -1255,6 +1268,7 @@ function init(){
   $('settingsBtn').addEventListener('click', () => openModal('settingsModal'));
   $('settingsSaveBtn').addEventListener('click', saveCfg);
   $('settingsModal').addEventListener('click', e => { if (e.target.id === 'settingsModal') closeModal('settingsModal'); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('settingsModal').classList.contains('show')) closeModal('settingsModal'); });
 
   // Sort interactions: chips + headers
   document.querySelectorAll('.sort-chip').forEach(c => c.addEventListener('click', () => {
