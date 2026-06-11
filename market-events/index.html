@@ -1033,7 +1033,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v224</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v225</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1342,7 +1342,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v224 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v225 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2532,7 +2532,12 @@ if (isNaN(wlExtPct)) wlExtPct = 6;
 // Cache rezultate early-bird per simbol: { eb, ts }
 let wlEarlyCache = {};
 // Alerte early-bird: stare „văzut" per simbol (dedupe + baseline anti-spam la prima rulare)
+// + ancora primului semnal {p:preț, t:dată} — baza expirării P2
 const EB_SEEN_KEY = 'me_eb_seen';
+// Semnalul early EXPIRĂ: după +4% de la prețul primului trigger sau după 7 zile nu
+// mai e „abia a început". EMA21 urcă după preț pe un climb constant, deci garda
+// anti-extins singură nu stinge niciodată semnalul — de aici early-uri cu +5-8% în spate.
+const EB_EXPIRY = { pct: 4, days: 7 };
 let ebSeen = {};
 try { ebSeen = JSON.parse(localStorage.getItem(EB_SEEN_KEY) || '{}'); } catch(_) { ebSeen = {}; }
 let ebAlertsOn = localStorage.getItem('me_eb_alerts_on') !== '0';
@@ -3138,7 +3143,7 @@ function _etMinutes(){
     return g('hour') * 60 + g('minute');
   } catch(e){ return null; }
 }
-function computeEarlyBird(hist, antiExtPct){
+function computeEarlyBird(hist, antiExtPct, anchor){
   const c = hist.closes, v = hist.vols, lo = hist.lows;
   const n = c.length;
   if (n < 22) return null;
@@ -3206,7 +3211,15 @@ function computeEarlyBird(hist, antiExtPct){
   const rsiHealthy = rsiNow != null && rsiNow < 65; // încă nu e supracumpărat
 
   const trigger = freshCross || rsiCross || higherLow;
-  const isEarly = antiExt && trigger;
+  let isEarly = antiExt && trigger;
+  // P2: expirare ancorată pe PRIMUL semnal. Fără ea, isEarly rămânea aprins zile la
+  // rând cât timp prețul stătea ≤prag peste EMA21 — adică exact pe climb-urile lente.
+  let expired = false, sincePct = null, ageDays = null;
+  if (anchor && anchor.p > 0){
+    sincePct = (price - anchor.p) / anchor.p * 100;
+    ageDays = Math.floor((Date.now() - anchor.t) / 86400000);
+    if (isEarly && (sincePct > EB_EXPIRY.pct || ageDays > EB_EXPIRY.days)){ isEarly = false; expired = true; }
+  }
   const signals = { freshCross, rsiCross, higherLow, volConfirm, rsiHealthy };
   const score = [freshCross, rsiCross, higherLow, volConfirm, rsiHealthy].filter(Boolean).length;
 
@@ -3224,7 +3237,7 @@ function computeEarlyBird(hist, antiExtPct){
   // RVOL = volum azi vs media 20z (pentru badge dedicat — confirmă mișcarea reală)
   const rvol = (avgVol20 > 0 && vLastValid && vLast > 0) ? (vLast / avgVol20) : null;
 
-  return { isEarly, score, signals, extPct, rsiNow, rvol, rvolProj, antiExt, isWilting, wiltReason, spark: c.slice(Math.max(0, n - 20)) };
+  return { isEarly, score, signals, extPct, rsiNow, rvol, rvolProj, antiExt, isWilting, wiltReason, price, expired, sincePct, ageDays, spark: c.slice(Math.max(0, n - 20)) };
 }
 function _ebSignalText(eb){
   if (!eb) return '';
@@ -3264,7 +3277,7 @@ async function wlEnsureEarlyData(force){
     while (queue.length){
       const w = queue.shift();
       const hist = await scanner._fetchDailyHistory(w.symbol);
-      wlEarlyCache[w.symbol] = { eb: hist ? computeEarlyBird(hist, wlExtPct) : null, ts: Date.now() };
+      wlEarlyCache[w.symbol] = { eb: hist ? computeEarlyBird(hist, wlExtPct, ebSeen[w.symbol]?.anchor) : null, ts: Date.now() };
       done++;
       if (status) status.textContent = `🌱 Calculez early-bird... (${done}/${need.length})`;
     }
@@ -3288,10 +3301,16 @@ async function wlEnsureEarlyData(force){
     if (prev !== undefined && (prev.early || prev.wasEarly) && nowWilting){
       newlyWilting.push({ symbol: w.symbol, reason: eb.wiltReason });
     }
+    // P2: ancora primului semnal — prețul + data la care simbolul a DEVENIT early.
+    // Persistă cât timp semnalul brut e valid (activ sau expirat); când semnalul
+    // dispare natural, ancora se șterge → un trigger viitor = semnal NOU, cu ancoră nouă.
+    let anchor = prev?.anchor || null;
+    if (eb && eb.isEarly && !anchor) anchor = { p: eb.price, t: Date.now() };
+    if (!eb || (!eb.isEarly && !eb.expired)) anchor = null;
     ebSeen[w.symbol] = {
       early: nowEarly,
       wasEarly: nowEarly || (prev && (prev.early || prev.wasEarly) && !nowWilting) || false,
-      score: eb ? eb.score : 0, ts: Date.now()
+      score: eb ? eb.score : 0, anchor, ts: Date.now()
     };
   }
   try { localStorage.setItem(EB_SEEN_KEY, JSON.stringify(ebSeen)); } catch(_){}
@@ -3760,7 +3779,7 @@ function _wlDetailHtml(w){
         <div class="wl-d-row"><span class="lbl">MA200</span><span class="val">${ma200 ? '$' + ma200.toFixed(2) : '—'} ${distMA200 != null ? `<span class="${distMA200 >= 0 ? 'pos' : 'neg'}">(${distMA200 >= 0 ? '+' : ''}${distMA200.toFixed(1)}%)</span>` : ''}</span></div>
         <div class="wl-d-row" style="margin-top:5px"><span class="lbl">ATR(14)</span><span class="val">${atr14 ? '$' + atr14.toFixed(2) : '—'} ${atrPct != null ? `<span class="muted">(${atrPct.toFixed(1)}%/zi)</span>` : ''}</span></div>
         <div class="wl-d-row"><span class="lbl">RVOL azi</span><span class="val ${rvol >= 2 ? 'pos' : ''}">${rvol != null ? rvol.toFixed(2) + '×' : '—'}</span></div>
-        ${eb ? `<div class="wl-d-row"><span class="lbl">🌱 Early-bird score</span><span class="val ${eb.isEarly ? 'pos' : 'muted'}">${eb.score}/5 ${eb.isEarly ? '· activ' : ''}</span></div>` : ''}
+        ${eb ? `<div class="wl-d-row"><span class="lbl">🌱 Early-bird score</span><span class="val ${eb.isEarly ? 'pos' : 'muted'}">${eb.score}/5 ${eb.isEarly ? '· activ' + (eb.ageDays >= 1 ? ` (de ${eb.ageDays}z, ${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}%)` : '') : (eb.expired ? `· expirat (${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de la semnal, ${eb.ageDays}z)` : '')}</span></div>` : ''}
         ${planHtml}
       </div>
       <!-- Box 3: Insider + Earnings + Links -->
@@ -3785,7 +3804,7 @@ function _wlDetailHtml(w){
 function _wlSymInner(w){
   const eb = wlEarlyCache[w.symbol]?.eb;
   const ebBadge = (eb && eb.isEarly)
-    ? `<span class="eb-badge" title="🌱 Early bird — ${_ebSignalText(eb)}">🌱▲${eb.score}</span>` : '';
+    ? `<span class="eb-badge" title="🌱 Early bird — ${_ebSignalText(eb)}${eb.ageDays != null && eb.sincePct != null ? ` · semnal de ${eb.ageDays}z (${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci, expiră la +${EB_EXPIRY.pct}% sau ${EB_EXPIRY.days}z)` : ''}">🌱▲${eb.score}${eb.ageDays >= 1 ? `·${eb.ageDays}z` : ''}</span>` : '';
   const earnDays = (typeof lastEarnings !== 'undefined' && lastEarnings)
     ? lastEarnings.find(e => e.symbol === w.symbol)?.daysToEarnings : null;
   const earnBadge = (earnDays != null && earnDays >= 0 && earnDays <= 7)
@@ -3986,7 +4005,7 @@ window.wlAiAnalyzeDetail = async function(sym){
     ma200 ? `· MA200: $${ma200.toFixed(2)} (preț ${last > ma200 ? '+' : ''}${((last - ma200) / ma200 * 100).toFixed(1)}%)` : '',
     atr14 ? `· ATR(14): $${atr14.toFixed(2)} (${(atr14 / last * 100).toFixed(1)}%/zi volatilitate)` : '',
     eb?.rvol != null ? `· RVOL azi: ${eb.rvolProj ? '~' : ''}${eb.rvol.toFixed(2)}× media 20z${eb.rvolProj ? ' (proiectat — zi în desfășurare)' : ''}` : '',
-    eb ? `· Early-bird score: ${eb.score}/5 ${eb.isEarly ? '(activ — abia a întors în sus)' : (eb.isWilting ? '(invalidat — ' + eb.wiltReason + ')' : '')}` : '',
+    eb ? `· Early-bird score: ${eb.score}/5 ${eb.isEarly ? '(activ — abia a întors în sus' + (eb.ageDays >= 1 ? `, semnal de ${eb.ageDays}z cu ${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci` : '') + ')' : (eb.expired ? `(expirat — semnalul a fost acum ${eb.ageDays}z, a mers ${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci, nu mai e intrare early)` : (eb.isWilting ? '(invalidat — ' + eb.wiltReason + ')' : ''))}` : '',
   ].filter(Boolean);
 
   if (atr14){
