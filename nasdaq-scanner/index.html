@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v106</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v107</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -1165,7 +1165,6 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
     <!-- PRIMARY: cele mai folosite -->
     <div class="tab act" onclick="setTab('reco',this)">💡 Oportunit.</div>
     <div class="tab" onclick="setTab('multiscan',this)" style="color:var(--purple)">🎛️ Multi-Scan</div>
-    <div class="tab" onclick="setTab('pumpradar',this)" style="color:#e11d48">🚨 Pump</div>
     <div class="tab" onclick="setTab('extended',this)" style="color:#a855f7">🌅 Pre/After</div>
     <div class="tab" onclick="setTab('macro',this)">🗺️ Macro</div>
     <div class="tab" onclick="setTab('history',this)">📜 Istoric</div>
@@ -2846,9 +2845,9 @@ const TAB_GUIDE = [
   {emoji:'🎯', name:'Swing', desc:'Setup-uri swing 2-5 zile cu range intraday + RSI redresare. R:R calculat automat.'},
   {emoji:'↕️', name:'Gap', desc:'Gap up/down vs ziua precedentă. Util pentru momentum trades dimineața.'},
   {emoji:'🔗', name:'Corelații', desc:'Stocks care se mișcă împreună. Util pentru a vedea când o categorie întreagă urcă/coboară.'},
-  {emoji:'📜', name:'Istoric', desc:'Toate semnalele din sesiunea curentă, ordonate cronologic.'},
-  {emoji:'🚨', name:'Pump Radar', desc:'Detectie real-time de mișcări mari (preț + volum în 5-15 min). Alertă cu Telegram/notificări browser.'}
+  {emoji:'📜', name:'Istoric', desc:'Toate semnalele din sesiunea curentă, ordonate cronologic.'}
 ];
+// (Pump Radar retras din tab-uri — pagina dedicată ../pump-radar/ e mai completă)
 
 const HEADER_GUIDE = [
   {emoji:'🔑', name:'AI Key', desc:'Configurare cheie Anthropic API. Cu cheie → analiza AI apare inline sub card / rând (peste tot în scanner). Fără cheie → buton „Adaugă cheie" în panoul AI.'},
@@ -5908,7 +5907,7 @@ async function runScan(){
     if(fetched > 0){
       log(`👔 Insider data: ${fetched} stocks noi (cache total: ${Object.keys(insiderCache).length})`, 'ok');
       // Re-render dacă tab-ul curent afișează ticker-uri
-      if(['multiscan','reco','earlybuy','pumpradar','extended','squeeze','live','all','swing','losers'].includes(currentTab)){
+      if(['multiscan','reco','earlybuy','extended','squeeze','live','all','swing','losers'].includes(currentTab)){
         renderSignals();
       }
     }
@@ -6810,7 +6809,6 @@ const DEFAULT_NASDAQ_PRESETS = {
   '🔥 Breakout / Squeeze': { tab: 'squeeze', filter: 'high', sort: 'strength' },
   '🌱 Early Buy momentum': { tab: 'earlybuy', filter: 'all', sort: 'strength' },
   '📉 Top losers (short bias)': { tab: 'losers', filter: 'dump', sort: 'chg_down' },
-  '🚨 Pump Radar prio.': { tab: 'pumpradar', filter: 'high', sort: 'recent' },
 };
 
 function loadNasdaqUserPresets(){
@@ -7834,6 +7832,18 @@ function clearPumpHistory(){
 // ── RENDER ──
 function renderPumpRadar(){
   const c=document.getElementById('signalsContainer');
+  // Tab RETRAS (2026-06-11): era duplicat mai slab al paginii dedicate ../pump-radar/
+  // (care are regim HMM, insider on-alert, backtest de validare, slidere live).
+  // Render-ul de mai jos rămâne doar ca redirect pentru currentTab restaurat din UI vechi.
+  if(c){
+    c.innerHTML=`
+      <div style="background:linear-gradient(135deg,#fef2f2,#fff);border:1px solid #fecaca;border-radius:14px;padding:28px;text-align:center">
+        <div style="font-family:var(--head);font-weight:800;font-size:1.1rem;color:#e11d48;margin-bottom:8px">🚨 Pump Radar s-a mutat</div>
+        <div style="font-size:.8rem;color:#64748b;margin-bottom:16px;line-height:1.6">Tab-ul a fost retras — pagina dedicată e mai completă:<br>regim HMM · insider on-alert · backtest de validare · slidere live · universe propriu</div>
+        <a href="../pump-radar/" style="display:inline-block;background:#e11d48;color:#fff;padding:10px 22px;border-radius:10px;font-weight:800;font-size:.85rem;text-decoration:none">⚡ Deschide Pump Radar →</a>
+      </div>`;
+    return;
+  }
   const session=isPumpRadarAllowedNow();
   
   const statusBadge=pumpRadarRunning
@@ -8605,7 +8615,7 @@ window.showNasdaqFeatures = function(){
       { e: '🎛', t: '<b>Multi-Scan Dashboard</b> — pump/dump/swing/RSI în coloane' },
       { e: '🎯', t: '<b>Swing</b> — setup-uri multi-day' },
       { e: '🔥', t: '<b>Squeeze Radar</b> — bollinger band squeeze' },
-      { e: '🚨', t: '<b>Pump Radar</b> — pump/dump/vol/mom 5m cu sliders' },
+      { e: '🚨', t: '<b>Pump Radar</b> — mutat pe pagina dedicată <a href="../pump-radar/" style="color:inherit">⚡ pump-radar</a> (HMM + insider + backtest)' },
       { e: '🗺', t: '<b>Heatmap sectoare</b> ETFs + 🌐 <b>Sector rotation</b>' },
       { e: '🌅', t: '<b>Pre/After-hours</b> — gappers ≥3% cu refresh 60s' },
       { e: '📉', t: '<b>Top Losers</b> + 👔 <b>Insider feed</b>' },
@@ -8894,7 +8904,7 @@ Reguli:
 //  KEYBOARD SHORTCUTS — power user (pas 6)
 //  / → focus search · 1-9 → tab switch · r → SCAN · t → toggle dark · ? → help
 // ═══════════════════════════════════════════════════════════════
-const KB_TABS = ['live','all','earlybuy','reco','multiscan','swing','squeeze','pumpradar','heatmap'];
+const KB_TABS = ['live','all','earlybuy','reco','multiscan','swing','squeeze','heatmap'];
 function isTypingInInput(e){
   const t = e.target;
   if (!t) return false;
