@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v133</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v134</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -435,7 +435,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v133-2026-06-11';
+const VER = 'tt-v134-2026-06-11';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1458,58 +1458,50 @@ window.analyzeEarningWithAI = async function(symbol, btn){
     return;
   }
   if (btn){ btn.disabled = true; btn.textContent = '⏳ Se generează…'; }
-  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-4-8 · streaming…</span></div><span id="ai-stream-${symbol}"></span><span class="ai-cursor"></span></div>`;
+  // Fără streaming vizual (obositor) — spinner + cronometru, răspunsul apare DEODATĂ cu fade-in.
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-4-8</span></div><div style="padding:10px;text-align:center;color:var(--t3)"><span style="font-size:20px;animation:pulse 1.4s infinite">🤖</span><div style="margin-top:6px;font-size:12.5px">Analizez… <span id="ai-timer-${symbol}">0.0s</span></div></div></div>`;
   container.dataset.done = '1';
 
   const prompt = buildAiPrompt(e);
-  let full = '';
+  const t0 = Date.now();
+  const timer = setInterval(() => { const el = $('ai-timer-' + symbol); if (el) el.textContent = ((Date.now() - t0) / 1000).toFixed(1) + 's'; }, 100);
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':key,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true',
-      },
-      body: JSON.stringify({
-        model:'claude-opus-4-8',
-        max_tokens:600,
-        stream:true,
-        system:[{ type:'text', text:AI_SYSTEM, cache_control:{ type:'ephemeral' } }],
-        messages:[{ role:'user', content:prompt }],
-      }),
-    });
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 180000);  // un request blocat nu ține bula la infinit
+    let resp;
+    try {
+      resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key':key,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true',
+        },
+        body: JSON.stringify({
+          model:'claude-opus-4-8',
+          max_tokens:600,
+          system:[{ type:'text', text:AI_SYSTEM, cache_control:{ type:'ephemeral' } }],
+          messages:[{ role:'user', content:prompt }],
+        }),
+        signal: ctrl.signal,
+      });
+    } finally { clearTimeout(to); }
     if (!resp.ok){
       const j = await resp.json().catch(() => ({ error:{ message:'HTTP ' + resp.status } }));
       throw new Error(j.error?.message || ('HTTP ' + resp.status));
     }
-    const reader = resp.body.getReader(); const dec = new TextDecoder();
-    let buf = '';
-    while (true){
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, { stream:true });
-      const lines = buf.split('\n'); buf = lines.pop();
-      for (const line of lines){
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim(); if (!data) continue;
-        try {
-          const ev = JSON.parse(data);
-          if (ev.type === 'content_block_delta' && ev.delta?.text){
-            full += ev.delta.text;
-            const span = $('ai-stream-' + symbol); if (span) span.textContent = full;
-          }
-        } catch(_){}
-      }
-    }
+    const data = await resp.json();
+    const full = data?.content?.[0]?.text || '';
     aiCacheSet(ck, full, 'claude-opus-4-8');
-    renderAiBubble(container, full, 'claude-opus-4-8 · ' + new Date().toLocaleTimeString('ro-RO'));
+    renderAiBubble(container, full, 'claude-opus-4-8 · ' + ((Date.now() - t0) / 1000).toFixed(1) + 's · ' + new Date().toLocaleTimeString('ro-RO'));
     if (btn) btn.textContent = '🤖 Ascunde analiză';
   } catch(err){
-    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare AI</b><span class="ai-meta">${escHtml(err.message || 'unknown')}</span></div>Verifică cheia (sk-ant-…), creditul rămas în consolă sau încearcă peste 1 min.</div>`;
+    const msg = (err && err.name === 'AbortError') ? 'timeout 180s — reîncearcă' : (err.message || 'unknown');
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare AI</b><span class="ai-meta">${escHtml(msg)}</span></div>Verifică cheia (sk-ant-…), creditul rămas în consolă sau încearcă peste 1 min.</div>`;
     if (btn) btn.textContent = '🤖 Reîncearcă';
   } finally {
+    clearInterval(timer);
     if (btn) btn.disabled = false;
   }
 };
@@ -1551,8 +1543,10 @@ window.runEHQuickSetup = async function(symbol, btn){
     return;
   }
   if (btn){ btn.disabled = true; btn.textContent = '⏳ Opus 4.8 gândește (5-15s)…'; }
-  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">🎯 Quick Setup · Opus 4.8</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:6px;font-size:12.5px">Generez JSON pre-earnings setup…</div></div></div>`;
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">🎯 Quick Setup · Opus 4.8</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:6px;font-size:12.5px">Generez JSON pre-earnings setup… <span id="qs-timer-${symbol}">0.0s</span></div></div></div>`;
   container.dataset.done = '1';
+  const _qsT0 = Date.now();
+  const _qsTimer = setInterval(() => { const el = $('qs-timer-' + symbol); if (el) el.textContent = ((Date.now() - _qsT0) / 1000).toFixed(1) + 's'; }, 100);
 
   const a = analyzeHist(e.hist || []);
   const beatRate = a.n ? ((a.beats / a.n) * 100).toFixed(0) + '%' : 'N/A';
@@ -1589,16 +1583,22 @@ REGULI SPECIFICE EARNINGS:
 - catalysts: alte events relevante (analyst upgrades, macro events overlap, sector momentum)`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] })
-    });
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 180000);
+    let resp;
+    try {
+      resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] }),
+        signal: ctrl.signal,
+      });
+    } finally { clearTimeout(to); }
     if (!resp.ok){
       const j = await resp.json().catch(() => ({ error: { message: 'HTTP ' + resp.status } }));
       throw new Error(j.error?.message || ('HTTP ' + resp.status));
@@ -1623,9 +1623,11 @@ REGULI SPECIFICE EARNINGS:
     renderEHQuickSetup(container, setup, '✓ ' + new Date().toLocaleTimeString('ro-RO'), symbol);
     if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
   } catch (err){
-    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare Quick Setup</b><span class="ai-meta">${escHtml(err.message || 'unknown')}</span></div>Verifică cheia, creditul sau încearcă peste 1 min.</div>`;
+    const msg = (err && err.name === 'AbortError') ? 'timeout 180s — reîncearcă' : (err.message || 'unknown');
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare Quick Setup</b><span class="ai-meta">${escHtml(msg)}</span></div>Verifică cheia, creditul sau încearcă peste 1 min.</div>`;
     if (btn) btn.textContent = '🎯 Reîncearcă';
   } finally {
+    clearInterval(_qsTimer);
     if (btn) btn.disabled = false;
   }
 };
@@ -1689,6 +1691,9 @@ function renderAiBubble(container, text, meta){
       <span class="ai-meta">${escHtml(meta)}</span>
       <button class="ai-rerun" onclick="event.stopPropagation(); rerunAi(this)">↻ Rerun</button>
     </div>${safe}</div>`;
+  // fade-in — răspunsul apare deodată, nu token-cu-token
+  const b = container.firstElementChild;
+  if (b){ b.style.opacity = '0'; b.style.transition = 'opacity .45s ease'; requestAnimationFrame(() => { b.style.opacity = '1'; }); }
 }
 window.rerunAi = function(btn){
   const bubble = btn.closest('.exp-ai');
