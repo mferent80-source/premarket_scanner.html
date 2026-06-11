@@ -191,7 +191,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v1</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v2</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -273,6 +273,27 @@ const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(3
 
 function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || ''; }
 function getTgConfig() { try { return JSON.parse(localStorage.getItem('tt_tg_config') || '{}'); } catch (e) { return {}; } }
+// fetch cu timeout — fără el un request blocat oprește lanțul de polling PENTRU TOTDEAUNA
+// (schedulePoll re-armează timerul abia după ce pollPrices se termină)
+async function fetchT(url, timeoutMs = 9000) {
+  const ctrl = new AbortController();
+  const to = setTimeout(() => ctrl.abort(), timeoutMs);
+  try { return await fetch(url, { signal: ctrl.signal }); }
+  finally { clearTimeout(to); }
+}
+// escape pentru parse_mode HTML Telegram — un < în nota userului dădea 400 și pierdea alerta
+const tgEsc = s => String(s ?? '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+// stocks nu mișcă noaptea/weekend — la closed se verifică doar la 10 min (crypto rămâne 60s)
+function nyseClosed() {
+  const p = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
+  const wd = p.find(x => x.type === 'weekday')?.value || '';
+  const mins = (parseInt(p.find(x => x.type === 'hour')?.value, 10) || 0) * 60 + (parseInt(p.find(x => x.type === 'minute')?.value, 10) || 0);
+  if (wd === 'Sat' || wd === 'Sun') return true;
+  return mins < 240 || mins >= 1200; // în afara 04:00-20:00 ET (pre+regular+after)
+}
+const CRYPTO_SYMS = new Set(['BTC-USD','BTC','ETH-USD','ETH','SOL-USD','SOL']);
+let _lastStockPollTs = 0;
+let _warnedNoKey = false;
 let soundEnabled = localStorage.getItem(SOUND_KEY) === '1';
 let notifEnabled = localStorage.getItem(NOTIF_KEY) === '1';
 let pollPaused = false;
@@ -331,7 +352,7 @@ async function fetchPriceFinnhub(symbol) {
   const key = getFinnhubKey();
   if (!key) return null;
   try {
-    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(key)}`);
+    const r = await fetchT(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(key)}`);
     if (!r.ok) return null;
     const d = await r.json();
     if (d?.c == null || d.c === 0) return null;
@@ -340,7 +361,7 @@ async function fetchPriceFinnhub(symbol) {
 }
 async function fetchPriceCoinGecko(coinId) {
   try {
-    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`);
+    const r = await fetchT(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`);
     if (!r.ok) return null;
     const d = await r.json();
     const data = d?.[coinId];
@@ -363,7 +384,21 @@ async function pollPrices() {
   if (pollPaused) return;
   const activeAlerts = ALERTS.filter(a => a.active && !a.triggered);
   if (!activeAlerts.length) { $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · niciun alert activ`; return; }
-  const unique = [...new Set(activeAlerts.map(a => a.symbol.toUpperCase()))];
+  let unique = [...new Set(activeAlerts.map(a => a.symbol.toUpperCase()))];
+  const stockSyms = unique.filter(s => !CRYPTO_SYMS.has(s));
+  let sessionNote = '';
+  // piață închisă (noapte/weekend ET) → stocks doar la 10 min; crypto rămâne la fiecare ciclu
+  if (stockSyms.length && nyseClosed()) {
+    if (Date.now() - _lastStockPollTs < 600000) {
+      unique = unique.filter(s => CRYPTO_SYMS.has(s));
+      sessionNote = ' · 🌙 stocks la 10min (piață închisă)';
+    } else { _lastStockPollTs = Date.now(); }
+  } else if (stockSyms.length) { _lastStockPollTs = Date.now(); }
+  // fără cheie Finnhub alertele pe stocks nu pot fi verificate — spune-o, nu lăsa ⏳ mut
+  if (stockSyms.length && !getFinnhubKey()) {
+    sessionNote += ' · ⚠ cheia Finnhub lipsește (stocks neverificate)';
+    if (!_warnedNoKey) { _warnedNoKey = true; toast('⚠ Alertele pe stocks au nevoie de cheia Finnhub (setează în Macro Dashboard → ⚙ Setări)', 'warn'); }
+  }
   const prices = {};
   await Promise.all(unique.map(async sym => {
     const p = await fetchPrice(sym);
@@ -397,13 +432,13 @@ async function pollPrices() {
     playBeep();
     if (triggeredNow.length === 1) {
       const a = triggeredNow[0];
-      sendTelegram(`🔔 <b>Price Alert</b>\n${a.direction === 'above' ? '▲' : '▼'} <b>${a.symbol}</b> a atins $${fmtNum(a.triggeredPrice)}\nPrag: $${fmtNum(a.threshold)} (${a.direction})${a.note ? '\nNotă: ' + a.note : ''}`);
+      sendTelegram(`🔔 <b>Price Alert</b>\n${a.direction === 'above' ? '▲' : '▼'} <b>${tgEsc(a.symbol)}</b> a atins $${fmtNum(a.triggeredPrice)}\nPrag: $${fmtNum(a.threshold)} (${a.direction})${a.note ? '\nNotă: ' + tgEsc(a.note) : ''}`);
     } else {
-      sendTelegram(`🔔 <b>${triggeredNow.length} Price Alerts triggered</b>\n` + triggeredNow.map(a => `${a.direction === 'above' ? '▲' : '▼'} <b>${a.symbol}</b> $${fmtNum(a.triggeredPrice)} (prag $${fmtNum(a.threshold)})`).join('\n'));
+      sendTelegram(`🔔 <b>${triggeredNow.length} Price Alerts triggered</b>\n` + triggeredNow.map(a => `${a.direction === 'above' ? '▲' : '▼'} <b>${tgEsc(a.symbol)}</b> $${fmtNum(a.triggeredPrice)} (prag $${fmtNum(a.threshold)})`).join('\n'));
     }
   }
   render();
-  $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · ${unique.length} simboluri${triggeredCount ? ` · ${triggeredCount} triggered` : ''}`;
+  $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · ${unique.length} simboluri${triggeredCount ? ` · ${triggeredCount} triggered` : ''}${sessionNote}`;
 }
 
 function schedulePoll() {
@@ -427,7 +462,6 @@ function render() {
     $('bodyActive').innerHTML = active.map(a => {
       const cur = a.currentPrice;
       const delta = cur != null ? ((cur - a.threshold) / a.threshold * 100) : null;
-      const deltaDir = a.direction === 'above' ? (cur > a.threshold ? 'atins' : delta) : (cur < a.threshold ? 'atins' : -delta);
       const isClose = delta != null && Math.abs(delta) < 1.5;
       const dirIcon = a.direction === 'above' ? '▲ peste' : '▼ sub';
       const dirCls = a.direction === 'above' ? 'up' : 'down';
