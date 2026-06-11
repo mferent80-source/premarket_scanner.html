@@ -311,7 +311,7 @@ footer a { color:var(--accent); text-decoration:none; }
 <body>
 
 <header>
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v112</span></h1>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v113</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=pump-radar" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
@@ -1290,13 +1290,8 @@ async function fetchInsider(symbol){
       const chg = +t.change || 0;
       const qty = Math.abs(chg || t.share || 0);
       const val = (t.transactionPrice || 0) * qty;
-      // aliniat suite: P = buy real; A = award/grant (acțiuni gratis) → EXCLUS; S/D/F/G = sell-like
-      let kind = '';
-      if (code === 'A') kind = '';
-      else if (code === 'P') kind = 'buy';
-      else if (code === 'S' || code === 'D' || code === 'F' || code === 'G') kind = 'sell';
-      else if (chg > 0) kind = 'buy';
-      else if (chg < 0) kind = 'sell';
+      // clasificarea vine din lib/insider.js — sursa unică pe toată suita
+      const kind = (window.INS && INS.classify) ? INS.classify(t) : null;
       if (kind === 'buy'){ buyN++; net += val; netShares += qty; }
       else if (kind === 'sell'){ sellN++; net -= val; netShares -= qty; }
       rows.push({ name: t.name || '—', code, qty, price: t.transactionPrice || 0, date: t.transactionDate || t.filingDate || '', kind });
@@ -1778,6 +1773,7 @@ if (cfg.autoSec > 0) runScan(); else scheduleNextScan();
 </script>
 <!-- Markov Lab: regim de volatilitate al pieței (HMM pe SPY daily) — context de risc global -->
 <script src="../lib/data.js"></script>
+<script src="../lib/insider.js"></script>
 <script src="../lib/markov.js"></script>
 <script src="../lib/backtest.js"></script>
 <script>

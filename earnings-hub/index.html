@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v135</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v136</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -429,13 +429,14 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <div class="toasts" id="toasts"></div>
 
 <script src="../lib/data.js"></script>
+<script src="../lib/insider.js"></script>
 <script>
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v135-2026-06-11';
+const VER = 'tt-v136-2026-06-11';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -746,14 +747,9 @@ function analyzeInsider(rows){
   if (!Array.isArray(rows) || rows.length === 0) return { ok:false, txt:'—', verdict:'na' };
   let buys = 0, sells = 0, netShares = 0;
   for (const r of rows){
-    const c = (r.transactionCode || '').toUpperCase();
     const chg = +r.change || 0;
-    let kind = '';
-    if (c === 'A') kind = '';
-    else if (c === 'P') kind = 'buy';
-    else if (c === 'S' || c === 'D' || c === 'F' || c === 'G') kind = 'sell';
-    else if (chg > 0) kind = 'buy';
-    else if (chg < 0) kind = 'sell';
+    // clasificarea vine din lib/insider.js — sursa unică pe toată suita
+    const kind = (window.INS && INS.classify) ? INS.classify(r) : null;
     const absQty = Math.abs(chg);
     if (kind === 'buy'){ buys++; netShares += absQty; }
     else if (kind === 'sell'){ sells++; netShares -= absQty; }
@@ -1260,9 +1256,8 @@ async function loadExpandedDetails(e){
       const verdictTxt = e.insider.verdict === 'bull' ? '🟢 Bullish' : e.insider.verdict === 'bear' ? '🔴 Bearish' : '⚪ Neutru';
       const list = top.map(t => {
         const code = (t.transactionCode || '').toUpperCase();
-        const isBuy = code === 'P';
-        const isSell = code === 'S' || code === 'D' || code === 'F' || code === 'G';
-        const cls = isBuy ? 'buy' : isSell ? 'sell' : '';
+        const kind = (window.INS && INS.classify) ? INS.classify(t) : null; // lib/insider.js
+        const cls = kind === 'buy' ? 'buy' : kind === 'sell' ? 'sell' : '';
         return `<div class="exp-ins-row ${cls}">
           <span class="ti">${escHtml(code || '?')}</span>
           <span class="nm">${escHtml(t.name || '—')}</span>

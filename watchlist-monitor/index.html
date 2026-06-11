@@ -386,7 +386,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v136</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v137</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -574,7 +574,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v136 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v137 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -965,14 +965,13 @@ async function fetchInsiderFor(sym, key){
     const buyPeople = new Set(), top = [];
     arr.forEach(t => {
       const change = Number(t.change) || 0;
-      const code = (t.transactionCode || '').toUpperCase();
-      const isSell = code === 'S' || code === 'D' || code === 'F' || code === 'G' || change < 0;
-      const isBuy = code === 'P' || (change > 0 && !isSell && code !== 'A');
-      if (isBuy){ buys++; buyPeople.add((t.name || '').trim().toLowerCase()); }
-      else if (isSell && change !== 0) sells++;
+      // clasificarea vine din lib/insider.js — sursa unică (P buy · A exclus · S/D/F/G sell · fallback semn)
+      const kind = (window.INS && INS.classify) ? INS.classify(t) : null;
+      if (kind === 'buy'){ buys++; buyPeople.add((t.name || '').trim().toLowerCase()); }
+      else if (kind === 'sell' && change !== 0) sells++;
       else return;
       netShares += change;
-      if (top.length < 8) top.push({ name: t.name || '?', date: t.transactionDate || t.filingDate || '', change, price: Number(t.transactionPrice) || null, buy: isBuy });
+      if (top.length < 8) top.push({ name: t.name || '?', date: t.transactionDate || t.filingDate || '', change, price: Number(t.transactionPrice) || null, buy: kind === 'buy' });
     });
     const verdict = buyPeople.size >= 2 ? 'bull' : (sells >= 2 && netShares < 0) ? 'bear' : 'neut';
     return { verdict, buys, sells, buyPeople: buyPeople.size, netShares, top };
@@ -2711,6 +2710,7 @@ if (watchlist.length) setTimeout(runScan, 800);
 scheduleNextScan();
 </script>
 <script src="../lib/telegram.js"></script>
+<script src="../lib/insider.js"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>
