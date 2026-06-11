@@ -604,6 +604,8 @@
 }
 /* P3: early valid dar care „a fugit azi" (Δzi > prag) — portocaliu, nu te invită să intri pe vârf */
 .eb-badge.ran{background:rgba(247,147,26,.16);color:#f0883e;border-color:rgba(247,147,26,.45)}
+/* P4: tier anticipativ Forming 🌿 — pre-cross, mai devreme dar mai riscant; dashed = neconfirmat */
+.eb-badge.forming{background:rgba(63,185,80,.07);color:#7ee2a8;border:1px dashed rgba(63,185,80,.35)}
 .ev-badge{
   display:inline-flex;align-items:center;font-size:9.5px;font-weight:800;
   background:rgba(247,147,26,.16);color:#f0883e;border:1px solid rgba(247,147,26,.45);
@@ -1035,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v226</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v227</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <a href="../crypto-events/" class="nav-link">⚡ Crypto Events</a>
@@ -1112,7 +1114,7 @@
       <button class="wl-fbtn" data-filter="gainers" onclick="wlSetFilter('gainers')">📈</button>
       <button class="wl-fbtn" data-filter="losers" onclick="wlSetFilter('losers')">📉</button>
       <button class="wl-fbtn" data-filter="movers" onclick="wlSetFilter('movers')">🔥</button>
-      <button class="wl-fbtn" data-filter="early" onclick="wlSetFilter('early')" title="🌱 Early bird — acțiuni care abia au început creșterea (întors în sus, încă nu extins)">🌱 Early</button>
+      <button class="wl-fbtn" data-filter="early" onclick="wlSetFilter('early')" title="🌱 Early bird — acțiuni care abia au început creșterea (întors în sus, încă nu extins; semnalul expiră la +4% de la trigger sau 7z). Include și 🌿 Forming = setup pre-cross anticipativ (mai devreme, mai riscant).">🌱 Early</button>
       <button class="wl-fbtn" data-filter="cluster" onclick="wlSetFilter('cluster')" title="🏛️ Doar simboluri cu cluster insider activ (2+ executivi cumpărători în 90z)">🏛️</button>
       <button class="wl-fbtn" data-filter="oversold" onclick="wlSetFilter('oversold')" title="⚡ RSI(14) < 30 — oversold, potențial reversal">⚡</button>
       <button class="wl-fbtn" data-filter="hot" onclick="wlSetFilter('hot')" title="🔥 RSI(14) > 70 — overheated, atenție pullback">🔥</button>
@@ -1344,7 +1346,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v226 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v227 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early-bird/🌿 Forming + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -3045,7 +3047,7 @@ function wlMatchesFilter(w){
   if (wlFilter === 'all') return true;
   if (wlFilter === 'early'){
     const c = wlEarlyCache[w.symbol];
-    return !!(c && c.eb && c.eb.isEarly);
+    return !!(c && c.eb && (c.eb.isEarly || c.eb.isForming)); // 🌿 forming incluse (tier anticipativ)
   }
   // Filtre noi pe badge-uri (insider/RSI/RVOL) — necesită fetch sub-rulat
   if (wlFilter === 'cluster'){
@@ -3086,9 +3088,9 @@ function wlSorted(arr){
     case 'early-desc': return sorted.sort((a,b) => {
       const sa = wlEarlyCache[a.symbol]?.eb;
       const sb = wlEarlyCache[b.symbol]?.eb;
-      // early reale sus (isEarly bonus mare), apoi după scor ▲N
-      const va = (sa ? (sa.isEarly ? 100 : 0) + sa.score : -1);
-      const vb = (sb ? (sb.isEarly ? 100 : 0) + sb.score : -1);
+      // early reale sus (isEarly bonus mare), 🌿 forming la mijloc, apoi după scor ▲N
+      const va = (sa ? (sa.isEarly ? 100 : sa.isForming ? 50 : 0) + sa.score : -1);
+      const vb = (sb ? (sb.isEarly ? 100 : sb.isForming ? 50 : 0) + sb.score : -1);
       return vb - va;
     });
     // Sortări noi pe date din eb/insider — undefined la final
@@ -3250,7 +3252,22 @@ function computeEarlyBird(hist, antiExtPct, anchor){
   // RVOL = volum azi vs media 20z (pentru badge dedicat — confirmă mișcarea reală)
   const rvol = (avgVol20 > 0 && vLastValid && vLast > 0) ? (vLast / avgVol20) : null;
 
-  return { isEarly, score, signals, extPct, rsiNow, rvol, rvolProj, antiExt, isWilting, wiltReason, price, expired, sincePct, ageDays, ranToday, spark: c.slice(Math.max(0, n - 20)) };
+  // P4: tier ANTICIPATIV „Forming" 🌿 — setup în construcție ÎNAINTE de cross.
+  // Mai devreme decât 🌱 (prinzi începutul, nu confirmarea), dar cu mai multe semnale
+  // care mor pe loc — de aceea e doar VIZUAL (fără alerte) și marcat distinct.
+  // Condiții: preț lipit de EMA21 (±2.5%), RSI 40-55 în urcare, EMA9 încă sub/la EMA21
+  // (pre-cross), fără semne de rupere în jos. Volumul care se trezește = bonus afișat.
+  let isForming = false, formingVolWake = false;
+  if (!isEarly && !expired && !freshCrossDown && !brokeLow){
+    const nearEma = Math.abs(extPct) <= 2.5;
+    const rsiBand = rsiNow != null && rsiNow >= 40 && rsiNow <= 55;
+    const rsiRising = rsiNow != null && rsi[last - 3] != null && rsiNow > rsi[last - 3];
+    const preCross = ema9[last] != null && ema9[last] <= e21 * 1.005;
+    isForming = nearEma && rsiBand && rsiRising && preCross;
+    if (isForming && vLastValid && avgVol20 > 0 && vLast > avgVol20 * 1.2) formingVolWake = true;
+  }
+
+  return { isEarly, score, signals, extPct, rsiNow, rvol, rvolProj, antiExt, isWilting, wiltReason, price, expired, sincePct, ageDays, ranToday, isForming, formingVolWake, spark: c.slice(Math.max(0, n - 20)) };
 }
 function _ebSignalText(eb){
   if (!eb) return '';
@@ -3794,7 +3811,7 @@ function _wlDetailHtml(w){
         <div class="wl-d-row"><span class="lbl">MA200</span><span class="val">${ma200 ? '$' + ma200.toFixed(2) : '—'} ${distMA200 != null ? `<span class="${distMA200 >= 0 ? 'pos' : 'neg'}">(${distMA200 >= 0 ? '+' : ''}${distMA200.toFixed(1)}%)</span>` : ''}</span></div>
         <div class="wl-d-row" style="margin-top:5px"><span class="lbl">ATR(14)</span><span class="val">${atr14 ? '$' + atr14.toFixed(2) : '—'} ${atrPct != null ? `<span class="muted">(${atrPct.toFixed(1)}%/zi)</span>` : ''}</span></div>
         <div class="wl-d-row"><span class="lbl">RVOL azi</span><span class="val ${rvol >= 2 ? 'pos' : ''}">${rvol != null ? rvol.toFixed(2) + '×' : '—'}</span></div>
-        ${eb ? `<div class="wl-d-row"><span class="lbl">🌱 Early-bird score</span><span class="val ${eb.isEarly ? 'pos' : 'muted'}">${eb.score}/5 ${eb.isEarly ? '· activ' + (eb.ageDays >= 1 ? ` (de ${eb.ageDays}z, ${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}%)` : '') : (eb.expired ? `· expirat (${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de la semnal, ${eb.ageDays}z)` : '')}</span></div>` : ''}
+        ${eb ? `<div class="wl-d-row"><span class="lbl">🌱 Early-bird score</span><span class="val ${eb.isEarly ? 'pos' : 'muted'}">${eb.score}/5 ${eb.isEarly ? '· activ' + (eb.ageDays >= 1 ? ` (de ${eb.ageDays}z, ${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}%)` : '') : (eb.expired ? `· expirat (${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de la semnal, ${eb.ageDays}z)` : (eb.isForming ? '· 🌿 forming (setup pre-cross, anticipativ)' : ''))}</span></div>` : ''}
         ${planHtml}
       </div>
       <!-- Box 3: Insider + Earnings + Links -->
@@ -3819,7 +3836,10 @@ function _wlDetailHtml(w){
 function _wlSymInner(w){
   const eb = wlEarlyCache[w.symbol]?.eb;
   const ebBadge = (eb && eb.isEarly)
-    ? `<span class="eb-badge${eb.ranToday ? ' ran' : ''}" title="🌱 Early bird — ${_ebSignalText(eb)}${eb.ageDays != null && eb.sincePct != null ? ` · semnal de ${eb.ageDays}z (${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci, expiră la +${EB_EXPIRY.pct}% sau ${EB_EXPIRY.days}z)` : ''}${eb.ranToday ? ` · 🏃 a fugit azi +${eb.ranToday.toFixed(1)}% — nu intra pe vârf de zi, așteaptă retest sau ziua următoare` : ''}">🌱▲${eb.score}${eb.ageDays >= 1 ? `·${eb.ageDays}z` : ''}${eb.ranToday ? '🏃' : ''}</span>` : '';
+    ? `<span class="eb-badge${eb.ranToday ? ' ran' : ''}" title="🌱 Early bird — ${_ebSignalText(eb)}${eb.ageDays != null && eb.sincePct != null ? ` · semnal de ${eb.ageDays}z (${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci, expiră la +${EB_EXPIRY.pct}% sau ${EB_EXPIRY.days}z)` : ''}${eb.ranToday ? ` · 🏃 a fugit azi +${eb.ranToday.toFixed(1)}% — nu intra pe vârf de zi, așteaptă retest sau ziua următoare` : ''}">🌱▲${eb.score}${eb.ageDays >= 1 ? `·${eb.ageDays}z` : ''}${eb.ranToday ? '🏃' : ''}</span>`
+    : (eb && eb.isForming
+      ? `<span class="eb-badge forming" title="🌿 Forming (anticipativ) — setup în construcție ÎNAINTE de cross: preț lipit de EMA21 (${eb.extPct >= 0 ? '+' : ''}${eb.extPct.toFixed(1)}%), RSI ${eb.rsiNow != null ? eb.rsiNow.toFixed(0) : '?'} în urcare, EMA9 încă sub EMA21${eb.formingVolWake ? ', volumul se trezește 🔊' : ''}. Mai devreme decât 🌱 dar mai riscant — doar vizual, fără alerte.">🌿${eb.formingVolWake ? '🔊' : ''}</span>`
+      : '');
   const earnDays = (typeof lastEarnings !== 'undefined' && lastEarnings)
     ? lastEarnings.find(e => e.symbol === w.symbol)?.daysToEarnings : null;
   const earnBadge = (earnDays != null && earnDays >= 0 && earnDays <= 7)
@@ -3926,7 +3946,7 @@ function wlRender(){
     if (wlFilter === 'early') {
       tbody.innerHTML = wlEarlyLoading
         ? '<div class="wl-grid-empty">🌱 Calculez early-bird...</div>'
-        : '<div class="wl-grid-empty">🌱 Niciun candidat early-bird acum (prag ≤' + wlExtPct + '% peste EMA21). Mărește pragul sau așteaptă să întoarcă vreuna în sus.</div>';
+        : '<div class="wl-grid-empty">🌱 Niciun candidat early-bird sau 🌿 forming acum (prag ≤' + wlExtPct + '% peste EMA21, semnal expirat după +4%/7z). Mărește pragul sau așteaptă să întoarcă vreuna în sus.</div>';
       return;
     }
     const msgMap = {
@@ -4020,7 +4040,7 @@ window.wlAiAnalyzeDetail = async function(sym){
     ma200 ? `· MA200: $${ma200.toFixed(2)} (preț ${last > ma200 ? '+' : ''}${((last - ma200) / ma200 * 100).toFixed(1)}%)` : '',
     atr14 ? `· ATR(14): $${atr14.toFixed(2)} (${(atr14 / last * 100).toFixed(1)}%/zi volatilitate)` : '',
     eb?.rvol != null ? `· RVOL azi: ${eb.rvolProj ? '~' : ''}${eb.rvol.toFixed(2)}× media 20z${eb.rvolProj ? ' (proiectat — zi în desfășurare)' : ''}` : '',
-    eb ? `· Early-bird score: ${eb.score}/5 ${eb.isEarly ? '(activ — abia a întors în sus' + (eb.ageDays >= 1 ? `, semnal de ${eb.ageDays}z cu ${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci` : '') + ')' : (eb.expired ? `(expirat — semnalul a fost acum ${eb.ageDays}z, a mers ${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci, nu mai e intrare early)` : (eb.isWilting ? '(invalidat — ' + eb.wiltReason + ')' : ''))}` : '',
+    eb ? `· Early-bird score: ${eb.score}/5 ${eb.isEarly ? '(activ — abia a întors în sus' + (eb.ageDays >= 1 ? `, semnal de ${eb.ageDays}z cu ${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci` : '') + ')' : (eb.expired ? `(expirat — semnalul a fost acum ${eb.ageDays}z, a mers ${eb.sincePct >= 0 ? '+' : ''}${eb.sincePct.toFixed(1)}% de atunci, nu mai e intrare early)` : (eb.isForming ? '(🌿 forming — setup pre-cross anticipativ: preț la EMA21, RSI în urcare, crossul încă nu a avut loc — mai riscant decât early confirmat)' : (eb.isWilting ? '(invalidat — ' + eb.wiltReason + ')' : '')))}` : '',
   ].filter(Boolean);
 
   if (atr14){
