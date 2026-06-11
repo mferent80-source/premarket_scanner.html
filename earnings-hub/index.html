@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v131</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v132</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -435,7 +435,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v131-2026-06-11';
+const VER = 'tt-v132-2026-06-11';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -727,8 +727,9 @@ function computeAction(e, avgReact){
   return 'wait';
 }
 
-// Clasificare robustă: `change` semn (pozitiv=buy, negativ=sell) e sursa primară;
-// transactionCode P/A/S/D doar dacă există. Free tier Finnhub uneori omite codul → fallback pe semn.
+// Clasificare aliniată cu suita (smart-trade-long/watchlist-monitor): P = buy real;
+// A = award/grant (acțiuni GRATIS, nu decizie de cumpărare) → EXCLUS; S/D/F/G = sell-like.
+// Free tier Finnhub omite des codul → fallback pe semnul `change`.
 function analyzeInsider(rows){
   if (!Array.isArray(rows) || rows.length === 0) return { ok:false, txt:'—', verdict:'na' };
   let buys = 0, sells = 0, netShares = 0;
@@ -736,8 +737,9 @@ function analyzeInsider(rows){
     const c = (r.transactionCode || '').toUpperCase();
     const chg = +r.change || 0;
     let kind = '';
-    if (c === 'P' || c === 'A') kind = 'buy';
-    else if (c === 'S' || c === 'D') kind = 'sell';
+    if (c === 'A') kind = '';
+    else if (c === 'P') kind = 'buy';
+    else if (c === 'S' || c === 'D' || c === 'F' || c === 'G') kind = 'sell';
     else if (chg > 0) kind = 'buy';
     else if (chg < 0) kind = 'sell';
     const absQty = Math.abs(chg);
@@ -1246,8 +1248,8 @@ async function loadExpandedDetails(e){
       const verdictTxt = e.insider.verdict === 'bull' ? '🟢 Bullish' : e.insider.verdict === 'bear' ? '🔴 Bearish' : '⚪ Neutru';
       const list = top.map(t => {
         const code = (t.transactionCode || '').toUpperCase();
-        const isBuy = code === 'P' || code === 'A';
-        const isSell = code === 'S' || code === 'D';
+        const isBuy = code === 'P';
+        const isSell = code === 'S' || code === 'D' || code === 'F' || code === 'G';
         const cls = isBuy ? 'buy' : isSell ? 'sell' : '';
         return `<div class="exp-ins-row ${cls}">
           <span class="ti">${escHtml(code || '?')}</span>
