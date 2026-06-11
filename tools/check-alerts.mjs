@@ -1,0 +1,114 @@
+// ═══════════════════════════════════════════════════════════════════
+// check-alerts.mjs — verificare alerte preț SERVER-SIDE (GitHub Actions)
+//
+// Rulează din .github/workflows/price-alerts.yml la fiecare 15 min în orele
+// de piață. Citește tools/alerts.json, ia prețurile de pe Yahoo (direct —
+// server-side nu există CORS), trimite pe Telegram la prag atins și persistă
+// starea înapoi în fișier (one-shot consumate / re-arm dezarmate) printr-un
+// commit al botului. Funcționează cu laptopul ÎNCHIS — ăsta e tot rostul.
+//
+// Secrets necesare în repo (Settings → Secrets and variables → Actions):
+//   TELEGRAM_TOKEN   — tokenul botului (de la @BotFather)
+//   TELEGRAM_CHAT_ID — chat id-ul destinație
+//
+// Format tools/alerts.json:
+//   { "alerts": [ { "symbol":"NVDA", "level":180, "dir":"above"|"below",
+//                   "rearm":false, "armed":true, "note":"..." } ],
+//     "triggered": [ ...istoric, scris de script... ] }
+// Semantica e identică cu wl_price_alerts din suite: one-shot dispare la
+// declanșare; re-arm se dezarmează și se re-armează cu histerezis 0.3%.
+// ═══════════════════════════════════════════════════════════════════
+import { readFileSync, writeFileSync } from 'node:fs';
+
+const FILE = new URL('./alerts.json', import.meta.url);
+const REARM_HYST = 0.003;
+
+let cfg;
+try { cfg = JSON.parse(readFileSync(FILE, 'utf8')); }
+catch (e) { console.log('tools/alerts.json lipsește sau e invalid — nimic de făcut.'); process.exit(0); }
+
+const alerts = Array.isArray(cfg.alerts) ? cfg.alerts : [];
+if (!alerts.length) { console.log('Niciun alert definit în tools/alerts.json.'); process.exit(0); }
+
+const TOKEN = process.env.TELEGRAM_TOKEN || '';
+const CHAT = process.env.TELEGRAM_CHAT_ID || '';
+
+// Preț live: ultima bară 5m cu includePrePost (acoperă pre/after) — pattern-ul
+// validat în suite (regularMarketPrice e stale în extended hours).
+async function fetchPrice(sym){
+  try {
+    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=5m&range=1d&includePrePost=true`,
+      { headers: { 'User-Agent': 'Mozilla/5.0 (price-alerts-bot)' }, signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const res = j?.chart?.result?.[0];
+    if (!res) return null;
+    const closes = res.indicators?.quote?.[0]?.close || [];
+    for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) return closes[i];
+    return res.meta?.regularMarketPrice ?? null;
+  } catch (e) { return null; }
+}
+
+const tgEsc = s => String(s ?? '').replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+async function sendTelegram(html){
+  if (!TOKEN || !CHAT) { console.log('⚠ TELEGRAM_TOKEN/TELEGRAM_CHAT_ID lipsesc din secrets — mesaj nesent:\n' + html); return false; }
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: CHAT, text: html, parse_mode: 'HTML', disable_web_page_preview: true }),
+      signal: AbortSignal.timeout(10000)
+    });
+    if (!r.ok) console.log('⚠ Telegram HTTP ' + r.status + ': ' + await r.text());
+    return r.ok;
+  } catch (e) { console.log('⚠ Telegram: ' + e.message); return false; }
+}
+
+const uniq = [...new Set(alerts.map(a => String(a.symbol || '').toUpperCase()).filter(Boolean))];
+const prices = {};
+for (const sym of uniq){
+  prices[sym] = await fetchPrice(sym);
+  await new Promise(r => setTimeout(r, 300)); // menajează Yahoo
+}
+console.log('Prețuri:', JSON.stringify(prices));
+
+const fired = [];
+let changed = false;
+const kept = [];
+for (const a of alerts){
+  const sym = String(a.symbol || '').toUpperCase();
+  const p = prices[sym];
+  const lvl = Number(a.level);
+  if (p == null || !(lvl > 0)){ kept.push(a); continue; }
+  const armed = a.armed !== false;
+  const hit = a.dir === 'below' ? p <= lvl : p >= lvl;
+  if (armed && hit){
+    fired.push({ sym, lvl, dir: a.dir, price: p, note: a.note || '', rearm: !!a.rearm });
+    changed = true;
+    if (a.rearm){ a.armed = false; kept.push(a); }            // re-arm → dezarmat, rămâne
+    // one-shot → NU se păstrează (dispare, ca în suite)
+  } else if (!armed && a.rearm){
+    const back = a.dir === 'below' ? p >= lvl * (1 + REARM_HYST) : p <= lvl * (1 - REARM_HYST);
+    if (back){ a.armed = true; changed = true; }
+    kept.push(a);
+  } else {
+    kept.push(a);
+  }
+}
+
+if (fired.length){
+  cfg.triggered = [
+    ...fired.map(f => ({ symbol: f.sym, level: f.lvl, dir: f.dir, price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })),
+    ...(Array.isArray(cfg.triggered) ? cfg.triggered : [])
+  ].slice(0, 50);
+  const lines = fired.map(f => `${f.dir === 'below' ? '▼' : '▲'} <b>${tgEsc(f.sym)}</b> $${f.price.toFixed(2)} — prag $${f.lvl}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`);
+  await sendTelegram(`🔔 <b>Price Alert (server-side · ${fired.length})</b>\n${lines.join('\n')}`);
+  console.log(`🔔 ${fired.length} alerte declanșate.`);
+} else {
+  console.log('Niciun prag atins.');
+}
+
+if (changed){
+  cfg.alerts = kept;
+  writeFileSync(FILE, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
+  console.log('Stare actualizată în tools/alerts.json (workflow-ul o comite înapoi).');
+}

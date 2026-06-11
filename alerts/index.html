@@ -191,11 +191,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v3</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v4</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
   <button class="icon-btn" id="testBtn" title="Test alertă (demo)">🧪</button>
+  <button class="icon-btn" id="exportBtn" title="Export JSON pentru alertele server-side (GitHub Actions) — merg și cu laptopul închis">📤</button>
   <a href="../guide/?page=alerts" class="nav-link" title="Ghid features pagina asta">📖</a>
   <a href="../" class="nav-link">← Hub</a>
 </header>
@@ -654,6 +655,20 @@ $('testBtn').addEventListener('click', () => {
   toast('🧪 Test alert: AAPL ▲ $200.00 atins (DEMO)', 'success', { persist: true });
   playBeep();
   showBrowserNotif('🧪 TEST Price Alerts', 'Notificările funcționează.');
+});
+
+// 📤 Export pentru alertele SERVER-SIDE: GitHub Actions le verifică la 15 min și
+// trimite pe Telegram cu laptopul ÎNCHIS. Lipești JSON-ul în tools/alerts.json pe GitHub.
+$('exportBtn').addEventListener('click', async () => {
+  priceAlerts = loadAlerts();
+  const out = { _doc: 'Lipește acest conținut în tools/alerts.json din repo (commit pe GitHub) — workflow-ul Price Alerts le verifică la 15 min și trimite pe Telegram, fără pagină deschisă.', alerts: [], triggered: [] };
+  Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => out.alerts.push({ symbol: sym, level: a.lvl, dir: a.dir, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' })));
+  if (!out.alerts.length) { toast('📭 Nicio alertă de exportat', 'info'); return; }
+  const txt = JSON.stringify(out, null, 2);
+  try {
+    await navigator.clipboard.writeText(txt);
+    toast(`📤 ${out.alerts.length} alerte copiate ca JSON — lipește în tools/alerts.json pe GitHub (commit) și merg 24/7, server-side`, 'success', { persist: true });
+  } catch (e) { prompt('Copiază manual JSON-ul:', txt); }
 });
 
 // Allow Enter in input fields

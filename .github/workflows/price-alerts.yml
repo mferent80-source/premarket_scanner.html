@@ -1,0 +1,48 @@
+# ═══════════════════════════════════════════════════════════════════
+# Price Alerts → Telegram (server-side, fără pagină deschisă)
+# Rulează tools/check-alerts.mjs la 15 min în orele de piață (L-V).
+# Necesită secrets: TELEGRAM_TOKEN + TELEGRAM_CHAT_ID
+#   (repo → Settings → Secrets and variables → Actions → New repository secret)
+# Test manual: tab-ul Actions → Price Alerts → Run workflow.
+# ═══════════════════════════════════════════════════════════════════
+name: Price Alerts → Telegram
+
+on:
+  schedule:
+    # la 15 min, 08:00–22:59 UTC, luni–vineri — acoperă pre-market + regular +
+    # after-hours ET indiferent de DST (cron-ul GitHub e mereu pe UTC)
+    - cron: '*/15 8-22 * * 1-5'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # comite starea înapoi (one-shot consumate / re-arm)
+
+concurrency:
+  group: price-alerts
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verifică alertele
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node tools/check-alerts.mjs
+
+      - name: Persistă starea (one-shot consumate / re-arm dezarmate)
+        run: |
+          if ! git diff --quiet tools/alerts.json; then
+            git config user.name 'github-actions[bot]'
+            git config user.email 'github-actions[bot]@users.noreply.github.com'
+            git add tools/alerts.json
+            git commit -m 'chore(alerts): stare actualizata dupa verificare [skip ci]'
+            git push
+          fi
