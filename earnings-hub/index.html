@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v130</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v131</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -435,7 +435,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v130-2026-05-13';
+const VER = 'tt-v131-2026-06-11';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -566,9 +566,9 @@ const CORS_PROXIES = [
   { name:'allorigins/get', build: u => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u),      extract: t => { const w = JSON.parse(t); return w && typeof w.contents === 'string' ? w.contents : t; } },
 ];
 let _proxyIdx = 0;
-async function proxyGetJSON(targetUrl, timeoutMs = 8000){
-  // strat de date comun (lib/data.js): proxy health per-host + dedup, ttl:0 = fără date stale
-  if (window.D && D.fetchJSON) return D.fetchJSON(targetUrl, { ttl: 0, timeout: timeoutMs });
+async function proxyGetJSON(targetUrl, timeoutMs = 8000, ttl = 0){
+  // strat de date comun (lib/data.js): proxy health per-host + dedup; ttl=0 = fără date stale
+  if (window.D && D.fetchJSON) return D.fetchJSON(targetUrl, { ttl, timeout: timeoutMs });
   const n = CORS_PROXIES.length;
   for (let k = 0; k < n; k++){
     const pi = (_proxyIdx + k) % n;
@@ -1179,11 +1179,12 @@ async function loadExpandedDetails(e){
   // 1) hist
   if (!e.hist) e.hist = await fetchHistEarnings(e.symbol);
   if (e.hist) e.ana = analyzeHist(e.hist);
-  // 2) reaction bias — fetch Yahoo chart 2y daily, calculează variația % zi t vs t-1 pentru fiecare earning historic
+  // 2) reaction bias — Yahoo chart 2y + data reală de raportare (Nasdaq) per trimestru
   let reactions = null;
   if (e.hist && e.hist.length){
     reactions = await fetchReactionBias(e.symbol, e.hist);
   }
+  e.reactions = reactions;  // folosit și în buildAiPrompt (istoric per trimestru)
   // 3) insider — forțez re-evaluare dacă pre-load a returnat ok:false (cache între timp populat)
   if (!e.insider || !e.insider.ok){
     const rows = await fetchInsider30(e.symbol, e.date);
@@ -1214,7 +1215,7 @@ async function loadExpandedDetails(e){
         </tr>`;
       }).join('');
       histBox.innerHTML = `<table class="exp-hist">
-        <thead><tr><th>Perioadă</th><th>Est</th><th>Act</th><th>Surp</th><th>Reacție 1z</th></tr></thead>
+        <thead><tr><th>Perioadă</th><th>Est</th><th>Act</th><th>Surp</th><th title="Δ% în ziua raportării reale (Nasdaq dateReported); fără dată confirmată → —">Reacție 1z</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
     }
@@ -1232,7 +1233,7 @@ async function loadExpandedDetails(e){
       <div class="exp-stat-row"><span>Beats / total</span><span>${(a.beats || 0)}/${(a.n || 0)}</span></div>
       <div class="exp-stat-row"><span>Beat rate</span><span>${beatRate}</span></div>
       <div class="exp-stat-row"><span>Surprise medie</span><span>${a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : '—'}</span></div>
-      <div class="exp-stat-row"><span>Reacție medie 1z</span><span class="${avgReact == null ? '' : avgReact > 0 ? 'exp-react up' : 'exp-react dn'}">${avgReact != null ? (avgReact >= 0 ? '+' : '') + avgReact.toFixed(2) + '%' : '—'}</span></div>
+      <div class="exp-stat-row"><span>Reacție medie 1z</span><span class="${avgReact == null ? '' : avgReact > 0 ? 'exp-react up' : 'exp-react dn'}">${avgReact != null ? (avgReact >= 0 ? '+' : '') + avgReact.toFixed(2) + '% (n=' + rArr.length + ')' : '—'}</span></div>
       <div class="exp-stat-row"><span>Sursă</span><span>Finnhub + Yahoo</span></div>
     `;
   }
@@ -1281,10 +1282,42 @@ async function loadExpandedDetails(e){
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  REACTION BIAS (Yahoo chart daily 2y)
+//  REACTION BIAS (Yahoo chart daily 2y + date REALE de raportare)
 // ═══════════════════════════════════════════════════════════════
+// h.period (Finnhub /stock/earnings) = sfârșitul trimestrului FISCAL (ex: 2024-12-31),
+// NU data raportării — raportul vine la 3-6 săptămâni DUPĂ. Reacția se măsoară pe ziua
+// raportării reale (Nasdaq earnings-surprise → dateReported, acoperă ~4 trimestre).
+// Fără dată reală → reacție absentă (onest), nu mișcarea de după quarter-end.
+const _MONTHS_EN = { Jan:1, Feb:2, Mar:3, Apr:4, May:5, Jun:6, Jul:7, Aug:8, Sep:9, Oct:10, Nov:11, Dec:12 };
+function _parseUSDate(s){
+  // "Jan 30, 2025" → "2025-01-30"
+  const m = /^([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})$/.exec(String(s || '').trim());
+  if (!m || !_MONTHS_EN[m[1].slice(0, 3)]) return null;
+  return `${m[3]}-${String(_MONTHS_EN[m[1].slice(0, 3)]).padStart(2, '0')}-${String(+m[2]).padStart(2, '0')}`;
+}
+function _parseFiscalQtr(s){
+  // "Dec/2024" → "2024-12"
+  const m = /^([A-Za-z]{3})[a-z]*\/(\d{4})$/.exec(String(s || '').trim());
+  if (!m || !_MONTHS_EN[m[1].slice(0, 3)]) return null;
+  return `${m[2]}-${String(_MONTHS_EN[m[1].slice(0, 3)]).padStart(2, '0')}`;
+}
+async function fetchReportDates(symbol){
+  const d = await proxyGetJSON(`https://api.nasdaq.com/api/company/${symbol}/earnings-surprise`, 9000, 6 * 3600 * 1000);
+  const rows = (d && d.data && d.data.earningsSurpriseTable && Array.isArray(d.data.earningsSurpriseTable.rows))
+    ? d.data.earningsSurpriseTable.rows : [];
+  const map = {};   // "YYYY-MM" (fiscal qtr end) → "YYYY-MM-DD" (data raportării)
+  for (const r of rows){
+    const fq = _parseFiscalQtr(r.fiscalQtrEnd);
+    const dr = _parseUSDate(r.dateReported);
+    if (fq && dr) map[fq] = dr;
+  }
+  return map;
+}
 async function fetchReactionBias(symbol, hist){
-  const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2y`);
+  const [d, repDates] = await Promise.all([
+    proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2y`, 8000, 10 * 60 * 1000),
+    fetchReportDates(symbol),
+  ]);
   const r = d && d.chart && d.chart.result && d.chart.result[0];
   if (!r || !r.timestamp || !r.indicators || !r.indicators.quote) return null;
   const ts = r.timestamp;
@@ -1297,21 +1330,23 @@ async function fetchReactionBias(symbol, hist){
     dateToClose[iso] = closes[i];
     datesSorted.push(iso);
   }
+  const pct = (before, after) => (before > 0 && after > 0) ? ((after - before) / before) * 100 : null;
   const map = {};
   for (const h of hist){
     if (!h.period) continue;
-    // găsește ziua tranzacționată cea mai apropiată ≥ period
-    const target = h.period;
+    const reported = repDates[h.period.slice(0, 7)];
+    if (!reported) continue;   // fără dată reală de raportare → fără reacție
     let idx = -1;
     for (let i = 0; i < datesSorted.length; i++){
-      if (datesSorted[i] >= target){ idx = i; break; }
+      if (datesSorted[i] >= reported){ idx = i; break; }
     }
     if (idx < 1 || idx >= datesSorted.length) continue;
-    const before = dateToClose[datesSorted[idx - 1]];
-    const after  = dateToClose[datesSorted[idx]];
-    if (before > 0 && after > 0){
-      map[h.period] = ((after - before) / before) * 100;
-    }
+    // Istoricul nu are ora raportării (BMO/AMC): BMO lovește în ziua D, AMC în D+1 →
+    // luăm ziua cu mișcarea mai mare dintre cele două.
+    const m1 = pct(dateToClose[datesSorted[idx - 1]], dateToClose[datesSorted[idx]]);
+    const m2 = (idx + 1 < datesSorted.length) ? pct(dateToClose[datesSorted[idx]], dateToClose[datesSorted[idx + 1]]) : null;
+    const re = (m1 == null) ? m2 : (m2 != null && Math.abs(m2) > Math.abs(m1)) ? m2 : m1;
+    if (re != null) map[h.period] = re;
   }
   return map;
 }
