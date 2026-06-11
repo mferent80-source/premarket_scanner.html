@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v103</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v104</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -2122,10 +2122,43 @@ async function fhQuote(symbol,key){
 // nu mai diferențiază oversold/overbought și toate stocks rămân la baseline 50.
 // Log o singură dată pe scan ca să nu spamuim
 let _yahooDailyLoggedThisScan = false;
+// Volum din ACELAȘI răspuns Yahoo → calcSwingScore primește volum real în loc de
+// zerourile hardcodate (componenta de volum de 25 pcte era complet moartă).
+// Extras ca helper pentru că e folosit și pe calea D.fetchJSON și pe lanțul local.
+function _harvestDailyVol(data, closes, symbol){
+  try{
+    const q0=data.chart.result[0].indicators.quote[0];
+    const volsRaw=q0.volume||[];
+    const vols=[];
+    for(let i=0;i<closes.length;i++){ if(closes[i]!=null&&!isNaN(closes[i])) vols.push(volsRaw[i]!=null?volsRaw[i]:0); }
+    // în sesiunea regulară bara de azi e parțială → bare complete only
+    const _sess=(typeof getMarketSession==='function')?getMarketSession().session:'';
+    const v=_sess==='regular'?vols.slice(0,-1):vols;
+    if(v.length>=8){
+      const vol24=v[v.length-1];
+      const win=v.slice(Math.max(0,v.length-21),v.length-1).filter(x=>x>0);
+      const avgVol=win.length>=5?win.reduce((a,b)=>a+b,0)/win.length:0;
+      if(vol24>0&&avgVol>0) dailyVolCache[symbol]={vol24,avgVol};
+    }
+  }catch(e){}
+}
 async function fetchYahooDailyCloses(symbol, days){
   if(typeof yahooDisabled !== 'undefined' && yahooDisabled) return [];
   const range = (days && days <= 30) ? '1mo' : (days && days >= 200 ? '1y' : '3mo'); // 1y → max/min 52s din ACELAȘI request
   const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=${range}`;
+  // 1) lib/data.js — proxy-uri cu health-scoring per host + cache TTL 5min + dedup
+  //    request-uri identice în zbor + timeout. Lanțul local de mai jos rămâne DOAR
+  //    fallback (lib neîncărcat sau toate proxy-urile lui picate → null).
+  if (window.D && D.fetchJSON) {
+    try {
+      const data = await D.fetchJSON(yahooUrl, { ttl: 300, timeout: 8000, cacheKey: `nq:daily:${symbol}:${range}`, validate: d => d && d.chart });
+      const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+      if (Array.isArray(closes)) {
+        _harvestDailyVol(data, closes, symbol);
+        return closes.filter(c => c != null && !isNaN(c));
+      }
+    } catch(e){}
+  }
   const proxyList = (typeof yahooProxies !== 'undefined' && yahooProxies.length) ? yahooProxies : ['https://corsproxy.io/?','https://api.cors.lol/?url=','https://api.codetabs.com/v1/proxy?quest='];
   const startIdx = (typeof yahooProxyIndex !== 'undefined') ? yahooProxyIndex : 0;
 
@@ -2154,23 +2187,7 @@ async function fetchYahooDailyCloses(symbol, days){
         log(`✓ Yahoo proxy switched la ${proxyIdx} (${proxy.substring(0,30)}...)`,'ok');
       }
       if(typeof yahooFailCount !== 'undefined') yahooFailCount = Math.max(0, yahooFailCount - 1);
-      // Volum din ACELAȘI răspuns → calcSwingScore primește volum real în loc de
-      // zerourile hardcodate (componenta de volum de 25 pcte era complet moartă).
-      try{
-        const q0=data.chart.result[0].indicators.quote[0];
-        const volsRaw=q0.volume||[];
-        const vols=[];
-        for(let i=0;i<closes.length;i++){ if(closes[i]!=null&&!isNaN(closes[i])) vols.push(volsRaw[i]!=null?volsRaw[i]:0); }
-        // în sesiunea regulară bara de azi e parțială → bare complete only
-        const _sess=(typeof getMarketSession==='function')?getMarketSession().session:'';
-        const v=_sess==='regular'?vols.slice(0,-1):vols;
-        if(v.length>=8){
-          const vol24=v[v.length-1];
-          const win=v.slice(Math.max(0,v.length-21),v.length-1).filter(x=>x>0);
-          const avgVol=win.length>=5?win.reduce((a,b)=>a+b,0)/win.length:0;
-          if(vol24>0&&avgVol>0) dailyVolCache[symbol]={vol24,avgVol};
-        }
-      }catch(e){}
+      _harvestDailyVol(data, closes, symbol);
       return closes.filter(c => c != null && !isNaN(c));
     } catch(e){
       if(!_yahooDailyLoggedThisScan){ log(`⚠️ Yahoo proxy ${proxyIdx} → ${e.name||'error'}: ${(e.message||'').substring(0,40)}`,'warn'); _yahooDailyLoggedThisScan=true; }
@@ -10597,6 +10614,7 @@ setTimeout(_updateGistStatusN, 500);
   }catch(e){}
 })();
 </script>
+<script src="../lib/data.js"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>
