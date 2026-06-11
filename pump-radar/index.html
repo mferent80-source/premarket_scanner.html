@@ -311,7 +311,7 @@ footer a { color:var(--accent); text-decoration:none; }
 <body>
 
 <header>
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v109</span></h1>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v110</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=pump-radar" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
@@ -416,6 +416,7 @@ footer a { color:var(--accent); text-decoration:none; }
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
+const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 
 // ═══════════════════════════════════════════════════════════════
 //  UNIVERSE — ~24 stocks: cele mai lichide + cele care chiar "pump-uiesc".
@@ -653,8 +654,9 @@ function fillExpandedDetails(r){
       const top = (ins.rows || []).slice(0, 12);
       const list = top.length ? top.map(t => {
         const v = (t.price || 0) * (t.qty || 0);
-        const meta = `${(t.code || '?')} · ${t.qty.toLocaleString('en-US')}@$${t.price.toFixed(2)} · $${Math.round(v).toLocaleString('en-US')} · ${t.date}`;
-        return `<div class="exp-ins-row ${t.kind || 'neut'}"><span class="exp-ins-name" title="${t.name}">${t.name}</span><span class="exp-ins-meta">${meta}</span></div>`;
+        const nm = escHtml(t.name);  // numele vine din feed extern → escape obligatoriu
+        const meta = `${escHtml(t.code || '?')} · ${t.qty.toLocaleString('en-US')}@$${t.price.toFixed(2)} · $${Math.round(v).toLocaleString('en-US')} · ${escHtml(t.date)}`;
+        return `<div class="exp-ins-row ${t.kind || 'neut'}"><span class="exp-ins-name" title="${nm}">${nm}</span><span class="exp-ins-meta">${meta}</span></div>`;
       }).join('') : '<div class="exp-loading">Fără tranzacții.</div>';
       insBox.innerHTML = `
         <div class="exp-ins-summary">${verdictTxt} · ${ins.buyN} buys / ${ins.sellN} sells · net ${(ins.netShares >= 0 ? '+' : '') + ins.netShares.toLocaleString('en-US')} share</div>
@@ -778,7 +780,7 @@ window.analyzePumpWithAI = async function(symbol, btn){
     renderAiBubble(container, full, 'claude-opus-4-8 · ' + new Date().toLocaleTimeString('ro-RO'));
     if (btn) btn.textContent = '🤖 Ascunde analiză';
   } catch(err){
-    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare AI</b><span class="ai-meta">${(err.message || 'unknown')}</span></div>Verifică cheia (sk-ant-…), creditul rămas în consolă sau încearcă peste 1 min.</div>`;
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare AI</b><span class="ai-meta">${escHtml(err.message || 'unknown')}</span></div>Verifică cheia (sk-ant-…), creditul rămas în consolă sau încearcă peste 1 min.</div>`;
     if (btn) btn.textContent = '🤖 Reîncearcă';
   } finally {
     if (btn) btn.disabled = false;
@@ -903,7 +905,7 @@ Dacă sugestia e AVOID/SKIP sau RSI extreme overbought (>80) + heat>80, dă conf
     renderPRQuickSetup(container, setup, '✓ ' + new Date().toLocaleTimeString('ro-RO'));
     if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
   } catch(err){
-    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare Quick Setup</b><span class="ai-meta">${(err.message || 'unknown')}</span></div>Verifică cheia, creditul sau încearcă peste 1 min.</div>`;
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare Quick Setup</b><span class="ai-meta">${escHtml(err.message || 'unknown')}</span></div>Verifică cheia, creditul sau încearcă peste 1 min.</div>`;
     if (btn) btn.textContent = '🎯 Reîncearcă';
   } finally {
     if (btn) btn.disabled = false;
@@ -1290,9 +1292,11 @@ async function fetchInsider(symbol){
       const chg = +t.change || 0;
       const qty = Math.abs(chg || t.share || 0);
       const val = (t.transactionPrice || 0) * qty;
+      // aliniat suite: P = buy real; A = award/grant (acțiuni gratis) → EXCLUS; S/D/F/G = sell-like
       let kind = '';
-      if (code === 'P' || code === 'A') kind = 'buy';
-      else if (code === 'S' || code === 'D') kind = 'sell';
+      if (code === 'A') kind = '';
+      else if (code === 'P') kind = 'buy';
+      else if (code === 'S' || code === 'D' || code === 'F' || code === 'G') kind = 'sell';
       else if (chg > 0) kind = 'buy';
       else if (chg < 0) kind = 'sell';
       if (kind === 'buy'){ buyN++; net += val; netShares += qty; }
@@ -1662,7 +1666,7 @@ window.showFeatures = function(){
       { e:'⏱', t:'<b>Countdown</b> + indicator sesiune piață (pre/regular/after/closed, DST-aware)' },
     ]},
   ];
-  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v109 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
+  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v110 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => { html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`; });
   html += `<div style="font-size:10.5px;color:var(--t3);line-height:1.5;font-family:var(--mono);padding-top:6px;border-top:1px solid var(--b1)">⚠ Alertele 5m sunt relevante în <b>sesiunea regulară</b> (09:30-16:00 ET). În afara ei datele pot fi rare/lipsă; radarul tot afișează ce găsește.</div></div>`;
   ov.innerHTML = html;
@@ -1795,7 +1799,7 @@ window.validatePumpSignal = async function(symbol, btn){
     const vcol = v.cls === 'good' ? '#22d66b' : (v.cls === 'bad' ? '#ff4d4d' : '#d4892c');
     html += `<div style="margin-top:8px;padding:8px 10px;border-radius:6px;border:1px solid ${vcol};color:${vcol};font-size:11.5px;line-height:1.45">${v.text}</div>`;
     box.innerHTML = html;
-  } catch (e) { box.innerHTML = '<div class="exp-loading">Eroare: ' + (e.message || e) + '</div>'; }
+  } catch (e) { box.innerHTML = '<div class="exp-loading">Eroare: ' + escHtml(e.message || e) + '</div>'; }
   finally { btn.disabled = false; btn.textContent = old; }
 };
 </script>
