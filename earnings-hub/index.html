@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v132</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v133</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -435,7 +435,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v132-2026-06-11';
+const VER = 'tt-v133-2026-06-11';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -1564,12 +1564,12 @@ window.runEHQuickSetup = async function(symbol, btn){
   const userPrompt = `Earnings play setup pentru ${symbol} — raport în ${e.zile} zile (${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''}).
 - EPS estimate trim. curent: ${e.epsEst != null ? '$' + e.epsEst.toFixed(2) : 'N/A'}
 - Beat rate istoric: ${beatRate} (${a.beats}/${a.n})
-- Surpriză medie istorică: ${a.avgSurp != null ? (a.avgSurp >= 0 ? '+' : '') + a.avgSurp.toFixed(1) + '%' : 'N/A'}
-- Ultima surpriză: ${a.lastSurp != null ? (a.lastSurp >= 0 ? '+' : '') + a.lastSurp.toFixed(1) + '%' : 'N/A'}
+- Surpriză medie istorică: ${a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : 'N/A'}
+- Ultima surpriză: ${a.lastSurpPct != null ? (a.lastSurpPct >= 0 ? '+' : '') + a.lastSurpPct.toFixed(1) + '%' : 'N/A'}
 - Reacţie medie 1z post-earnings: ${avgReact}
 - Tag algoritmic: ${(ACTION_META[computeAction(e, e.avgReact)] || ACTION_META.skip).label}
 - Insider 60z pre-earnings: ${insiderTxt}
-- ⭐ Watchlist: ${e.fav ? 'da' : 'nu'}
+- ⭐ Watchlist: ${watchlist.includes(symbol) ? 'da' : 'nu'}
 
 Output STRICT JSON (un singur obiect, niciun text înainte/după):
 {"entry":<număr|null>,"sl":<număr|null>,"tp1":<număr|null>,"tp2":<număr|null>,"sizing_pct":<număr 1-3>,"timeframe":"<pre-earnings|post-earnings|skip>","risk":"<one-liner max 50 chars>","confidence":"<HIGH|MED|LOW>","reasoning":"<3-5 propoziții, max 400 chars, raționament EXPLICIT earnings play>","invalidation":"<trigger care anulează, max 120 chars>","catalysts":"<events imediate pre/post-earnings, max 120 chars>"}
@@ -1608,6 +1608,17 @@ REGULI SPECIFICE EARNINGS:
     const start = text.indexOf('{'); const end = text.lastIndexOf('}');
     if (start < 0 || end < 0 || end <= start) throw new Error('Format JSON invalid: ' + text.slice(0, 120));
     const setup = JSON.parse(text.slice(start, end + 1));
+    // Validare anti-halucinare (LONG-only): numere pozitive + SL<entry<TP1<TP2 — altfel respinge.
+    for (const k of ['entry', 'sl', 'tp1', 'tp2']){
+      if (setup[k] != null){ setup[k] = +setup[k]; if (!isFinite(setup[k]) || setup[k] <= 0) setup[k] = null; }
+    }
+    if (setup.entry != null){
+      const bad = (setup.sl != null && setup.sl >= setup.entry)
+        || (setup.tp1 != null && setup.tp1 <= setup.entry)
+        || (setup.tp1 != null && setup.tp2 != null && setup.tp2 <= setup.tp1);
+      if (bad) throw new Error('Setup AI incoerent (LONG cere SL < entry < TP1 < TP2) — re-rulează');
+    }
+    setup.sizing_pct = (setup.sizing_pct != null && isFinite(+setup.sizing_pct)) ? Math.min(3, Math.max(0, +setup.sizing_pct)) : null;
     ehQsCacheSet(symbol, setup);
     renderEHQuickSetup(container, setup, '✓ ' + new Date().toLocaleTimeString('ro-RO'), symbol);
     if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
@@ -1626,7 +1637,8 @@ function renderEHQuickSetup(container, setup, sourceLabel, symbol){
   const slPct = setup.entry && setup.sl ? pctOf(setup.sl, setup.entry) : '—';
   const tp1Pct = setup.entry && setup.tp1 ? pctOf(setup.tp1, setup.entry) : '—';
   const tp2Pct = setup.entry && setup.tp2 ? pctOf(setup.tp2, setup.entry) : '—';
-  const rr = (setup.entry && setup.sl && setup.tp2) ? Math.abs((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '—';
+  // fără Math.abs — un SL inversat trebuie să se VADĂ (negativ), nu să fie mascat
+  const rr = (setup.entry && setup.sl && setup.tp2 && setup.entry > setup.sl) ? ((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '—';
   const tfLabel = setup.timeframe === 'skip' ? '⏭ SKIP' : (setup.timeframe === 'pre-earnings' ? '⚠ Pre-earnings' : '🎯 Post-earnings');
   container.innerHTML = `<div class="ai-bubble" style="background:linear-gradient(180deg, rgba(247,147,26,.10), rgba(20,26,40,.4));border-color:rgba(247,147,26,.4)">
     <div class="ai-head">
@@ -1638,7 +1650,7 @@ function renderEHQuickSetup(container, setup, sourceLabel, symbol){
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Stop Loss</div><div style="font-size:17px;font-weight:800;color:var(--bear-s)">${fmt$(setup.sl)} <span style="font-size:10.5px;font-weight:600">${slPct}%</span></div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP1</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp1)} <span style="font-size:10.5px;font-weight:600">${tp1Pct}%</span></div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP2</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp2)} <span style="font-size:10.5px;font-weight:600">${tp2Pct}%</span></div></div>
-      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Sizing</div><div style="font-size:17px;font-weight:800;color:var(--accent)">${setup.sizing_pct}% cont</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Sizing</div><div style="font-size:17px;font-weight:800;color:var(--accent)">${setup.sizing_pct != null ? setup.sizing_pct + '% cont' : '—'}</div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">R:R</div><div style="font-size:17px;font-weight:800;color:var(--t1)">1 : ${rr}</div></div>
     </div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12.5px">
