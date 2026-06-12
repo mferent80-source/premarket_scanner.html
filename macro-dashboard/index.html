@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v188</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v189</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1540,13 +1540,12 @@ function addTickerToWatchlist(ticker) {
 }
 // CORS proxy chain pentru Yahoo Finance (Yahoo nu permite CORS direct).
 // Toate proxy-urile sunt teren mișcător — încercăm 5-6 variante și marcăm dead-uri.
+// Lanț aliniat cu restul suitei — scoase: allorigins ×2 (fără header CORS pe
+// github.io) și proxy.cors.sh (cere API key → 403) — ardeau încercări + erori în consolă.
 const CORS_PROXIES = [
   { build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: r => r.text() },
   { build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), extract: r => r.text() },
-  { build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u), extract: r => r.text() },
-  { build: u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u), extract: r => r.text() },
-  { build: u => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u), extract: async r => { const j = await r.json(); return j?.contents || ''; } },
-  { build: u => 'https://proxy.cors.sh/' + u, extract: r => r.text() }
+  { build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u), extract: r => r.text() }
 ];
 const PROXY_DEAD = new Set();
 // Reset dead proxies la fiecare reload — poate au revenit între sesiuni
