@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v187</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v188</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -4514,9 +4514,9 @@ async function computeRiskDashboard() {
     // ultimul regim confirmat NU comută (ținem regimul vechi); salt de ≥2 puncte sau
     // ≥2 benzi comută imediat + toast/Telegram (schimbarea de regim e semnal de portofoliu).
     const bandOf = c => c >= 3 ? 5 : c >= 1 ? 4 : c >= -1 ? 3 : c >= -3 ? 2 : c >= -5 ? 1 : 0;
-    let held = false;
+    let held = false, prev = null;
     try {
-      const prev = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
+      prev = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
       if (prev && prev.label && typeof prev.composite === 'number' && prev.label !== label) {
         const bandDelta = Math.abs(bandOf(composite) - bandOf(prev.composite));
         if (bandDelta <= 1 && Math.abs(composite - prev.composite) < 2) {
@@ -4527,7 +4527,14 @@ async function computeRiskDashboard() {
           try { sendTelegramAlert(`🛡 <b>Schimbare regim de risc</b>\n${prev.label} → <b>${label}</b> · score ${composite >= 0 ? '+' : ''}${composite}\nVIX ${vixLabel} · 10Y ${tenYLabel} · ρ ${corrLabel}`); } catch (e) {}
         }
       }
-      if (!held) localStorage.setItem('md_risk_regime', JSON.stringify({ label, composite, color, ts: Date.now() }));
+      // persistă MEREU un ts proaspăt — hub-ul (Today's Playbook) acceptă regimul doar
+      // <6h; înainte, pe drumul held ts rămânea înghețat → hub vedea fals „Macro stale".
+      // La held se păstrează ÎNTREAGA ancoră veche (label + composite confirmat) — doar
+      // ts se împrospătează; altfel composite-ul de referință ar luneca și histerezisul
+      // ar putea ține un regim vechi la nesfârșit fără să anunțe schimbarea.
+      localStorage.setItem('md_risk_regime', held
+        ? JSON.stringify({ label: prev.label, composite: prev.composite, color: prev.color || color, ts: Date.now() })
+        : JSON.stringify({ label, composite, color, ts: Date.now() }));
     } catch (e) {}
 
     RISK_STATE = {
