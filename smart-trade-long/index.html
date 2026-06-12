@@ -203,6 +203,21 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 .wl-chip:hover{background:rgba(247,147,26,.2)}
 .wl-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;align-items:center}
 .wl-bar .lbl{font-size:11px;color:var(--txt-dd);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-right:4px}
+
+/* LIST SCAN */
+#wlScanCard{margin-top:18px}
+.ls-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.ls-controls select{background:var(--bg2);border:1px solid var(--br);color:var(--txt);padding:6px 10px;border-radius:8px;font:inherit;font-size:13px;outline:none}
+.ls-status{font-size:12px;color:var(--txt-dd);margin-left:auto;font-variant-numeric:tabular-nums}
+.ls-table{width:100%;border-collapse:collapse;font-size:13px}
+.ls-table th{font-size:10.5px;color:var(--txt-d);text-transform:uppercase;letter-spacing:.5px;text-align:right;padding:6px 8px;border-bottom:1px solid var(--br);white-space:nowrap}
+.ls-table th:first-child,.ls-table td:first-child{text-align:left}
+.ls-table td{padding:7px 8px;border-bottom:1px solid var(--br-l);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ls-table tbody tr{cursor:pointer;transition:background .12s}
+.ls-table tbody tr:hover{background:rgba(247,147,26,.06)}
+.ls-tier{display:inline-block;padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.4px}
+.ls-earn{font-size:10px;color:var(--red);font-weight:700;margin-left:5px}
+@media(max-width:640px){.ls-hide{display:none}}
 </style>
 </head>
 <body class="dark">
@@ -222,7 +237,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v11</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v12</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -258,6 +273,29 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
       <p>Introdu un simbol (sau selectează din watchlist) și apasă <strong>Scanează</strong> pentru verdict + niveluri auto.</p>
     </div>
   </div>
+
+  <!-- Scan toată watchlist-a la interval configurabil — overview cu scor STL per simbol -->
+  <div class="card" id="wlScanCard">
+    <h2><span class="ico">📋</span> Scan listă watchlist</h2>
+    <div class="ls-controls">
+      <button class="btn pri sm" id="lsScanBtn">🔍 Scan listă</button>
+      <label style="font-size:12px;color:var(--txt-d);font-weight:600">Auto:
+        <select id="lsInterval">
+          <option value="0">OFF</option>
+          <option value="5">5 min</option>
+          <option value="10" selected>10 min</option>
+          <option value="15">15 min</option>
+        </select>
+      </label>
+      <span class="ls-status" id="lsStatus"></span>
+    </div>
+    <div id="lsTgHint" style="display:none;font-size:11.5px;color:var(--yellow);margin-bottom:8px">📡 Telegram neconfigurat sau dezactivat — setează botul din Watchlist Monitor (butonul 📡, configul e partajat). Până atunci alertele READY apar doar ca toast.</div>
+    <div style="overflow-x:auto"><table class="ls-table">
+      <thead><tr><th>Ticker</th><th>Preț (close)</th><th>Δ ult. zi</th><th class="ls-hide">RSI</th><th class="ls-hide">ADX</th><th class="ls-hide">Vol×</th><th>Score</th><th>Verdict</th></tr></thead>
+      <tbody id="lsBody"><tr><td colspan="8" style="text-align:center;color:var(--txt-dd);padding:18px">⏳</td></tr></tbody>
+    </table></div>
+    <div style="margin-top:10px;font-size:11.5px;color:var(--txt-dd);line-height:1.5">Scor pe bare zilnice ÎNCHISE (prețul intraday parțial nu intră) — semnalele de aici sunt setup-uri de swing, nu tick-uri live. Click pe rând → analiza completă sus (niveluri, sizer, insider, AI). Alertă toast + Telegram doar când un simbol <strong>devine</strong> READY (nu re-alertează cât timp rămâne). Noaptea/weekend intervalul se rărește automat (🌙).</div>
+  </div>
 </main>
 
 <!-- Settings modal -->
@@ -282,6 +320,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 <script src="../lib/data.js"></script>
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
+<script src="../lib/telegram.js"></script>
 <script>
 'use strict';
 
@@ -423,9 +462,10 @@ function adx(highs, lows, closes, period = 14) {
 }
 
 // ─────────────────────── DATA FETCH ───────────────────────
-async function fetchViaProxy(url, timeoutMs = 9000) {
-  // strat de date comun (lib/data.js): proxy health per-host + dedup, ttl:0 = fără date stale
-  if (window.D && D.fetchJSON) { const j = await D.fetchJSON(url, { ttl: 0, timeout: timeoutMs }); if (j != null) return j; }
+async function fetchViaProxy(url, timeoutMs = 9000, ttl = 0) {
+  // strat de date comun (lib/data.js): proxy health per-host + dedup; ttl=0 = fără date
+  // stale (scan manual), ttl>0 = cache scurt pt scanul de listă (20+ simboluri/ciclu)
+  if (window.D && D.fetchJSON) { const j = await D.fetchJSON(url, { ttl, timeout: timeoutMs }); if (j != null) return j; }
   const tried = new Set();
   let lastErr = null;
   for (let attempt = 0; attempt < CORS_PROXIES.length; attempt++) {
@@ -464,12 +504,12 @@ async function fetchViaProxy(url, timeoutMs = 9000) {
   throw new Error(`Proxy CORS chain epuizat (${lastErr || 'unknown'})`);
 }
 
-async function fetchYahoo(sym) {
+async function fetchYahoo(sym, ttl = 0) {
   // range=1y (era 6mo ≈ 126 bare): cu 6mo, MA200 NU se putea calcula NICIODATĂ și
   // fallback-ul silențios o înlocuia cu MA~125 etichetată „MA200". 1y = același
   // request, MA200 reală + max/min 52 săptămâni gratuit.
   const url = `${YAHOO_BASE}${sym}?interval=1d&range=1y`;
-  const j = await fetchViaProxy(url);
+  const j = await fetchViaProxy(url, 9000, ttl);
   const r = j?.chart?.result?.[0];
   if (!r) throw new Error('Symbol invalid sau fără date');
   const q = r.indicators?.quote?.[0];
@@ -949,7 +989,7 @@ async function runAIQuickSetup(sym, scoreData, insiderData, force) {
 - Trend MA: ${trend}
 - Distance vs MA50: ${vsMA50}%
 - Vol Ratio (5d/avg20d): ${scoreData.volRatio?.toFixed(2) ?? 'N/A'}x
-- Score scanner: ${scoreData.score}/100 — ${scoreData.tier}
+- Score scanner: ${scoreData.score}/100 — ${tier(scoreData.score).label}
 - Insider 90d: ${insiderSummary}
 
 Output STRICT format JSON (un singur obiect, niciun text înainte sau după):
@@ -1102,9 +1142,10 @@ function renderWL() {
     wlBar.innerHTML = '<span class="lbl">Watchlist:</span><span style="color:var(--txt-dd);font-size:12px">gol — adaugă din Watchlist Monitor</span>';
     return;
   }
-  wlBar.innerHTML = '<span class="lbl">Watchlist:</span>' + wl.slice(0, 12).map(s =>
+  // TOATE chips-urile, nu doar primele 12 (slice-ul vechi ascundea restul listei)
+  wlBar.innerHTML = '<span class="lbl">Watchlist:</span>' + wl.map(s =>
     `<span class="wl-chip" data-sym="${s}">⭐ ${s}</span>`
-  ).join('') + (wl.length > 12 ? `<span style="color:var(--txt-dd);font-size:11.5px">+${wl.length - 12}</span>` : '');
+  ).join('');
   wlBar.querySelectorAll('.wl-chip').forEach(el => {
     el.addEventListener('click', () => scan(el.dataset.sym));
   });
@@ -1123,6 +1164,153 @@ function startAuto() {
 function stopAuto() {
   if (state.autoTimer) { clearInterval(state.autoTimer); state.autoTimer = null; }
 }
+
+// ─────────────────────── LIST SCAN (toată watchlist-a la interval) ───────────────────────
+// Overview cu scorul STL pe TOATE simbolurile din wl_stocks — lentilă diferită de
+// Watchlist Monitor (ADX + niveluri ATR + READY ≥90, mult mai strict decât STRONG BUY).
+// Batch = DOAR scoring (AI + insider rămân on-demand per simbol, altfel ardem rate limit).
+const LS_LIST_INT = 'stl_list_interval';   // minute: 0 = OFF
+const LIST_STATE_KEY = 'stl_list_state';   // { SYM: { tier, ts } } — alertă DOAR pe tranziția în READY
+const listState = { rows: [], timer: null, running: false, lastTs: 0, nextTs: 0, overdue: false };
+
+function listInterval() { const v = parseInt(localStorage.getItem(LS_LIST_INT) ?? '10', 10); return [0, 5, 10, 15].includes(v) ? v : 10; }
+
+// În afara orelor 04:00–20:00 ET (sau weekend) barele zilnice nu se mișcă —
+// interval rărit automat ×3 (min 30 min), 🌙 în status.
+function listQuietHours() {
+  try {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', hour12: false }).formatToParts(new Date());
+    const g = t => (p.find(x => x.type === t) || {}).value;
+    const wd = g('weekday'), h = +g('hour');
+    if (wd === 'Sat' || wd === 'Sun') return true;
+    return h < 4 || h >= 20;
+  } catch (e) { return false; }
+}
+
+function scheduleListScan() {
+  if (listState.timer) { clearTimeout(listState.timer); listState.timer = null; }
+  const base = listInterval();
+  if (!base) { listState.nextTs = 0; updateListStatus(); return; }
+  const mins = listQuietHours() ? Math.max(30, base * 3) : base;
+  listState.nextTs = Date.now() + mins * 60000;
+  listState.timer = setTimeout(() => {
+    // tab ascuns → nu arde request-uri; scanează la revenire (visibilitychange)
+    if (document.hidden) { listState.overdue = true; scheduleListScan(); return; }
+    runListScan();
+  }, mins * 60000);
+  updateListStatus();
+}
+
+async function runListScan() {
+  if (listState.running) return;
+  const wl = loadWL().map(s => String(s).trim().toUpperCase()).filter(s => /^[A-Z][A-Z0-9.\-]{0,7}$/.test(s));
+  const tbody = $('lsBody');
+  if (!wl.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--txt-dd);padding:18px">Watchlist gol — adaugă tickere din Watchlist Monitor</td></tr>';
+    updateListStatus(); return;
+  }
+  listState.running = true;
+  const btn = $('lsScanBtn'); btn.disabled = true; btn.textContent = '⏳ Scanez…';
+  const statusEl = $('lsStatus');
+  await getEarningsInfo(wl[0]).catch(() => null); // pre-încălzește cache-ul de calendar o singură dată (workerii paraleli l-ar fetch-ui de 3 ori)
+  const rows = []; let done = 0, qi = 0;
+  const worker = async () => {
+    while (true) {
+      const i = qi++; if (i >= wl.length) break;
+      const sym = wl[i];
+      try {
+        const data = await fetchYahoo(sym, 240); // ttl 4 min: re-scan manual rapid = cache, ciclul de 10 min = fresh
+        if (data.closes.length < 50) throw new Error('istoric scurt');
+        const sd = computeScore(data);
+        const chg = data.closes.length >= 2 ? (data.closes[data.closes.length - 1] / data.closes[data.closes.length - 2] - 1) * 100 : null;
+        const earn = await getEarningsInfo(sym).catch(() => null);
+        recordScanHistory(sym, sd); // alimentează istoricul + Signal Ledger și din scanul de listă (anti-spam în funcție)
+        rows.push({ sym, ok: true, sd, t: tier(sd.score), chg, earn });
+      } catch (e) { rows.push({ sym, ok: false, err: e.message || String(e) }); }
+      done++; statusEl.textContent = `scanez ${done}/${wl.length}…`;
+      await new Promise(r => setTimeout(r, 150));
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  listState.rows = rows; listState.lastTs = Date.now();
+  renderListTable();
+  notifyNewReady(rows);
+  lsTgHintRefresh();
+  listState.running = false; btn.disabled = false; btn.textContent = '🔍 Scan listă';
+  scheduleListScan();
+}
+
+function renderListTable() {
+  const tbody = $('lsBody');
+  const rows = [...listState.rows].sort((a, b) => (b.ok ? b.sd.score : -1) - (a.ok ? a.sd.score : -1));
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--txt-dd);padding:18px">apasă 🔍 Scan listă</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    if (!r.ok) return `<tr style="opacity:.55;cursor:default"><td><strong>${r.sym}</strong></td><td colspan="7" style="text-align:left;color:var(--txt-dd)">⚠ ${escHtml(r.err)}</td></tr>`;
+    const s = r.sd;
+    const chgCol = r.chg == null ? 'var(--txt-dd)' : r.chg >= 0 ? 'var(--green)' : 'var(--red)';
+    const earnB = r.earn ? `<span class="ls-earn" title="earnings ${r.earn.date} (~${Math.max(0, Math.round(r.earn.hoursAway))}h)">⚠E${r.earn.hoursAway <= 48 ? '!' : ''}</span>` : '';
+    return `<tr onclick="scanFromList('${r.sym}')" title="click → analiză completă">
+      <td><strong>${r.sym}</strong>${earnB}</td>
+      <td>${fmt$(s.last)}</td>
+      <td style="color:${chgCol}">${fmtPct(r.chg)}</td>
+      <td class="ls-hide">${s.rsi != null ? s.rsi.toFixed(0) : '—'}</td>
+      <td class="ls-hide">${s.adx != null ? s.adx.toFixed(0) : '—'}</td>
+      <td class="ls-hide">${s.volRatio != null ? s.volRatio.toFixed(2) + '×' : '—'}</td>
+      <td><strong>${s.score}</strong></td>
+      <td><span class="ls-tier ${r.t.cls}">${r.t.icon} ${r.t.label}</span></td>
+    </tr>`;
+  }).join('');
+  updateListStatus();
+}
+
+function scanFromList(sym) { scan(sym); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+// Alertă (toast + Telegram) DOAR pe tranziția în READY — nu pe primul scan al paginii
+// (altfel orice deschidere ar spama tot ce era deja READY) și nu cât timp rămâne READY.
+function notifyNewReady(rows) {
+  let prev = null;
+  try { prev = JSON.parse(localStorage.getItem(LIST_STATE_KEY) || 'null'); } catch (e) {}
+  const firstRun = !prev || typeof prev !== 'object' || !Object.keys(prev).length;
+  const next = (prev && typeof prev === 'object') ? prev : {};
+  const fresh = [];
+  rows.forEach(r => {
+    if (!r.ok) return; // eșec de fetch NU șterge starea — altfel re-alertă fals la recuperarea proxy-ului
+    const was = next[r.sym] && next[r.sym].tier;
+    if (r.t.label === 'READY' && was !== 'READY' && !firstRun) fresh.push(r);
+    next[r.sym] = { tier: r.t.label, ts: Date.now() };
+  });
+  const wlSet = new Set(rows.map(r => r.sym));
+  Object.keys(next).forEach(s => { if (!wlSet.has(s)) delete next[s]; });
+  try { localStorage.setItem(LIST_STATE_KEY, JSON.stringify(next)); } catch (e) {}
+  if (!fresh.length) return;
+  toast(`🚀 READY nou: ${fresh.map(f => f.sym).join(', ')}`, 'ok');
+  if (window.TG) {
+    const lines = fresh.map(f => `🚀 <b>${f.sym}</b> — score ${f.sd.score}/100 @ $${f.sd.last.toFixed(2)}${f.earn && f.earn.hoursAway <= 48 ? ' ⚠ earnings &lt;48h' : ''}`);
+    TG.send(`🎯 <b>Smart Trade Long — READY nou (${fresh.length})</b>\n${lines.join('\n')}\nNiveluri SL/TP din ATR → în pagină.`);
+  }
+}
+
+function updateListStatus() {
+  const el = $('lsStatus'); if (!el || listState.running) return;
+  const parts = [];
+  if (listState.lastTs) {
+    const ok = listState.rows.filter(r => r.ok).length;
+    parts.push(`scan ${new Date(listState.lastTs).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })} · ${ok}/${listState.rows.length} OK`);
+  }
+  if (listInterval() && listState.nextTs) parts.push(`${listQuietHours() ? '🌙 ' : ''}next ~${new Date(listState.nextTs).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}`);
+  if (!listInterval()) parts.push('auto OFF');
+  el.textContent = parts.join(' · ');
+}
+
+function lsTgHintRefresh() {
+  const el = $('lsTgHint'); if (!el) return;
+  const c = window.TG ? TG.getConfig() : null;
+  el.style.display = (c && c.token && c.chatId && c.enabled) ? 'none' : '';
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && listState.overdue) { listState.overdue = false; runListScan(); }
+});
 
 // ─────────────────────── SETTINGS MODAL ───────────────────────
 settingsBtn.addEventListener('click', () => {
@@ -1158,6 +1346,12 @@ autoScan.addEventListener('change', () => {
   if (autoScan.checked) { startAuto(); toast('Auto-scan activat (5min)', 'ok'); }
   else { stopAuto(); toast('Auto-scan oprit'); }
 });
+$('lsScanBtn').addEventListener('click', () => runListScan());
+$('lsInterval').addEventListener('change', () => {
+  localStorage.setItem(LS_LIST_INT, $('lsInterval').value);
+  scheduleListScan();
+  toast(listInterval() ? `Auto-scan listă: ${listInterval()} min` : 'Auto-scan listă oprit');
+});
 
 // ─────────────────────── INIT ───────────────────────
 (function init() {
@@ -1175,6 +1369,12 @@ autoScan.addEventListener('change', () => {
   if (urlSym) { symInput.value = urlSym; setTimeout(() => scan(urlSym), 200); }
   else if (savedSym) { symInput.value = savedSym; }
   renderWL();
+  // List scan: restaurează intervalul + primul scan automat (după deep-scanul din URL, dacă există)
+  $('lsInterval').value = String(listInterval());
+  lsTgHintRefresh();
+  if (loadWL().length === 0) renderListTable(); // arată mesajul de listă goală în loc de ⏳
+  if (listInterval()) setTimeout(() => runListScan(), urlSym ? 1500 : 600);
+  else $('lsBody').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--txt-dd);padding:18px">auto OFF — apasă 🔍 Scan listă</td></tr>';
   // Re-render WL când se schimbă în alt tab
   window.addEventListener('storage', e => {
     if (e.key === WL_KEY) renderWL();
