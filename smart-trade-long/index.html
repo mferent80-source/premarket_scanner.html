@@ -247,7 +247,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v15</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v16</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -686,7 +686,14 @@ function computeScore(d, spyCloses) {
   } else { f6.pts = 0; f6.status = 'fail'; f6.desc = 'Date insuficiente'; }
   score += f6.pts; filters.push(f6);
 
-  return { score, filters, last, ma50, ma200, ma200Approx: !ma200Real, hi52, lo52: closes.length ? Math.min(...closes) : null, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null, rsSpy, distHi52 };
+  // Anti-chase: cât de „fugit" e prețul peste MA50 — trendul bun nu scuză intrarea
+  // proastă. La ≥3×ATR (sau ≥10%) peste MA50, SL-ul −1.5×ATR pică în gol și
+  // R:R-ul real e degradat; intrarea corectă e pe pullback, nu pe vârf.
+  const extATR = (atrV && ma50) ? (last - ma50) / atrV : null;
+  const extPct = ma50 ? (last / ma50 - 1) * 100 : null;
+  const ext = { atr: extATR, pct: extPct, ran: (extATR != null && extATR >= 3) || (extPct != null && extPct >= 10) };
+
+  return { score, filters, last, ma50, ma200, ma200Approx: !ma200Real, hi52, lo52: closes.length ? Math.min(...closes) : null, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null, rsSpy, distHi52, ext };
 }
 
 function tier(score) {
@@ -694,6 +701,16 @@ function tier(score) {
   if (score >= 70) return { cls: 'tier-o', icon: '🟢', label: 'OK', desc: 'Setup bun — poate fi executat cu prudență' };
   if (score >= 50) return { cls: 'tier-m', icon: '🟡', label: 'MIXT', desc: 'Setup nesigur — așteaptă confirmare' };
   return { cls: 'tier-n', icon: '🔴', label: 'NU', desc: 'Setup slab — renunță' };
+}
+
+// Verdict EFECTIV = tier(score) + cap-uri de context. Scorul brut rămâne vizibil —
+// cap-ul mută doar ETICHETA (READY→OK la preț extins peste MA50), transparent prin
+// badge 🏃 + banner. Alertele/ledger-ul folosesc verdictul efectiv (anti-zgomot).
+function effTier(sd) {
+  let t = tier(sd.score);
+  const caps = [];
+  if (sd.ext && sd.ext.ran && t.label === 'READY') { t = tier(70); caps.push('ext'); }
+  return { ...t, caps };
 }
 
 // ─────────────────────── ISTORIC VERDICTE (validare onestă) ───────────────────────
@@ -704,7 +721,7 @@ function recordScanHistory(sym, sd) {
   try {
     const all = JSON.parse(localStorage.getItem(HIST_KEY) || '{}');
     const arr = all[sym] || [];
-    const t = tier(sd.score).label;
+    const t = effTier(sd).label; // verdictul EFECTIV (cu cap-uri) — ledger-ul măsoară ce am afișat, nu scorul brut
     const lastE = arr[arr.length - 1];
     // anti-spam auto-scan 5min: notează doar la schimbare de tier sau după 6h
     if (lastE && lastE.tier === t && Date.now() - lastE.ts < 6 * 3600 * 1000) return;
@@ -764,7 +781,7 @@ function analyzeInsiders(transactions) {
 
 // ─────────────────────── RENDER ───────────────────────
 function render(sym, scoreData, insiderData, earnInfo) {
-  const t = tier(scoreData.score);
+  const t = effTier(scoreData);
   const last = scoreData.last;
   const atrV = scoreData.atr || 0;
   const entry = last;
@@ -844,11 +861,16 @@ function render(sym, scoreData, insiderData, earnInfo) {
         ? `<div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5);border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:13px;color:var(--red);font-weight:600;line-height:1.5">🚫 <strong>EARNINGS ${earnInfo.date}${earnInfo.hour === 'bmo' ? ' (pre-market)' : earnInfo.hour === 'amc' ? ' (after-close)' : ''} — în ~${Math.max(0, Math.round(earnInfo.hoursAway))}h.</strong> NU deschide poziția înainte de raport: gap ±10-30% imposibil de prezis, SL-ul pe ATR nu te protejează de gap. Verdictul de mai jos NU include acest risc.</div>`
         : `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:10px;padding:9px 13px;margin-bottom:12px;font-size:12.5px;color:var(--yellow)">📅 Earnings <strong>${earnInfo.date}</strong> (~${Math.ceil(earnInfo.hoursAway / 24)} zile) — volatilitate imprevizibilă în jurul raportului; dimensionează conservator sau așteaptă publicarea.</div>`)
     : '';
+  // Anti-chase banner — apare ori de câte ori prețul e extins peste MA50, indiferent
+  // de tier (la READY, eticheta e și limitată la OK prin effTier).
+  const extBanner = (scoreData.ext && scoreData.ext.ran)
+    ? `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--yellow);line-height:1.5">🏃 <strong>A fugit deja:</strong> +${scoreData.ext.pct.toFixed(1)}% peste MA50${scoreData.ext.atr != null ? ` (${scoreData.ext.atr.toFixed(1)}×ATR)` : ''}. Entry aici = chasing — SL-ul −1.5×ATR pică departe de orice suport și R:R-ul real e degradat.${t.caps.includes('ext') ? ' <strong>Verdictul a fost limitat la OK.</strong>' : ''} Intrarea corectă e pe pullback spre MA20/MA50, nu pe vârf.</div>`
+    : '';
   // Panou pliabil: summary = simbol + verdict; restrâns, lista de dedesubt urcă la vedere.
   // Starea (collapsed) supraviețuiește re-render-urilor (auto 5min, schimbare cont/risc).
   resultArea.innerHTML = `<details class="res-details" id="resDetails"${state.resCollapsed ? '' : ' open'}>
-    <summary><span class="caret">▶</span> 🎯 <strong>${sym}</strong> · ${t.icon} ${t.label} · ${scoreData.score}/100 · ${fmt$(last)}${earnInfo && earnInfo.hoursAway <= 48 ? ' · <span style="color:var(--red);font-weight:700">🚫 earnings!</span>' : ''}<span class="sum-hint">click = restrânge/extinde</span></summary>
-    <div class="res-body">` + earnBanner + `
+    <summary><span class="caret">▶</span> 🎯 <strong>${sym}</strong> · ${t.icon} ${t.label}${t.caps.includes('ext') ? ' 🏃' : ''} · ${scoreData.score}/100 · ${fmt$(last)}${earnInfo && earnInfo.hoursAway <= 48 ? ' · <span style="color:var(--red);font-weight:700">🚫 earnings!</span>' : ''}<span class="sum-hint">click = restrânge/extinde</span></summary>
+    <div class="res-body">` + earnBanner + extBanner + `
     <div class="grid">
       <div class="card verdict-card">
         <div class="verdict-icon">${t.icon}</div>
@@ -1031,7 +1053,7 @@ async function runAIQuickSetup(sym, scoreData, insiderData, force) {
 - Vol Ratio (5d/avg20d): ${scoreData.volRatio?.toFixed(2) ?? 'N/A'}x
 - RS vs SPY (3m): ${scoreData.rsSpy != null ? (scoreData.rsSpy >= 0 ? '+' : '') + scoreData.rsSpy.toFixed(1) + 'pp' : 'N/A'}
 - Distanță față de max 52s: ${scoreData.distHi52 != null ? scoreData.distHi52.toFixed(1) + '%' : 'N/A'}
-- Score scanner: ${scoreData.score}/100 — ${tier(scoreData.score).label}
+- Score scanner: ${scoreData.score}/100 — ${effTier(scoreData).label}${scoreData.ext && scoreData.ext.ran ? ' (extins peste MA50 — chasing risk)' : ''}
 - Insider 90d: ${insiderSummary}
 
 Output STRICT format JSON (un singur obiect, niciun text înainte sau după):
@@ -1270,7 +1292,7 @@ async function runListScan() {
         const chg = data.closes.length >= 2 ? (data.closes[data.closes.length - 1] / data.closes[data.closes.length - 2] - 1) * 100 : null;
         const earn = await getEarningsInfo(sym).catch(() => null);
         recordScanHistory(sym, sd); // alimentează istoricul + Signal Ledger și din scanul de listă (anti-spam în funcție)
-        rows.push({ sym, ok: true, sd, t: tier(sd.score), chg, earn });
+        rows.push({ sym, ok: true, sd, t: effTier(sd), chg, earn });
       } catch (e) { rows.push({ sym, ok: false, err: e.message || String(e) }); }
       done++; statusEl.textContent = `scanez ${done}/${wl.length}…`;
       await new Promise(r => setTimeout(r, 150));
@@ -1302,7 +1324,7 @@ function renderListTable() {
       <td class="ls-hide">${s.adx != null ? s.adx.toFixed(0) : '—'}</td>
       <td class="ls-hide">${s.volRatio != null ? s.volRatio.toFixed(2) + '×' : '—'}</td>
       <td><strong>${s.score}</strong></td>
-      <td><span class="ls-tier ${r.t.cls}">${r.t.icon} ${r.t.label}</span></td>
+      <td><span class="ls-tier ${r.t.cls}"${r.sd.ext && r.sd.ext.ran ? ` title="extins +${r.sd.ext.pct.toFixed(1)}% peste MA50 — chasing${r.t.caps.includes('ext') ? '; READY limitat la OK' : ''}"` : ''}>${r.t.icon} ${r.t.label}${r.sd.ext && r.sd.ext.ran ? ' 🏃' : ''}</span></td>
     </tr>`;
   }).join('');
   updateListStatus();
