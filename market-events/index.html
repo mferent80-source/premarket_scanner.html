@@ -1037,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v235</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v236</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1348,7 +1348,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v235 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early (început de drum)/🌳 Confirmat + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v236 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early (început de drum)/🌳 Confirmat + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -3355,6 +3355,15 @@ async function wlEnsureEarlyData(force){
       // Signal ledger (lib/ledger.js) — early-bird NOU, evaluat la +5/+20z în scorecard-ul din Hub
       if (window.LEDGER && eb.price > 0) LEDGER.log('me-early', w.symbol, eb.price, '🌱 ▲' + eb.score);
     }
+    // A/B empiric early vs confirmat: 🌳 nou logat ca sursă SEPARATĂ (fără alerte) —
+    // scorecard-ul hub va arăta cu cifre dacă „început de drum" chiar prinde mai mult
+    // decât cross-ul confirmat (+5/+20z). Dacă nu prinde → redesign-ul se revizuiește.
+    const nowConf = !!(eb && eb.isConfirmed);
+    // prev.conf === false (nu undefined): primul scan după update e doar baseline —
+    // altfel confirmatele EXISTENTE (cross vechi de zile) s-ar loga azi ca „noi" și ar corupe A/B-ul
+    if (prev !== undefined && prev.conf === false && nowConf && window.LEDGER && eb.price > 0){
+      LEDGER.log('me-confirmed', w.symbol, eb.price, '🌳');
+    }
     // Exit: ceva ce era early (sau marcat early în istoric) tocmai s-a invalidat
     if (prev !== undefined && (prev.early || prev.wasEarly) && nowWilting){
       newlyWilting.push({ symbol: w.symbol, reason: eb.wiltReason });
@@ -3367,6 +3376,7 @@ async function wlEnsureEarlyData(force){
     if (!eb || (!eb.isEarly && !eb.expired)) anchor = null;
     ebSeen[w.symbol] = {
       early: nowEarly,
+      conf: nowConf,
       wasEarly: nowEarly || (prev && (prev.early || prev.wasEarly) && !nowWilting) || false,
       score: eb ? eb.score : 0, anchor, ts: Date.now()
     };
@@ -3410,7 +3420,8 @@ function wlNotifyEarly(items){
   if ('Notification' in window && Notification.permission === 'granted'){
     try { new Notification('Market Events · 🌱 Early-bird', { body: msg }); } catch(_){}
   }
-  if (window.TG) TG.send(`📊 <b>Market Events — 🌱 early-bird nou (${items.length})</b>\n` + items.map(x => `🌱 <b>${wlEsc(x.symbol)}</b> ▲${x.score}`).join('\n') + (reg && reg.warn ? `\n⚠ Regim de piață: <b>${wlEsc(reg.label)}</b> — long-uri noi cu probabilitate degradată, dimensionează conservator.` : ''));
+  // link STL per simbol — tap pe telefon → scan automat de validare (?symbol= hook)
+  if (window.TG) TG.send(`📊 <b>Market Events — 🌱 early-bird nou (${items.length})</b>\n` + items.map(x => `🌱 <b>${wlEsc(x.symbol)}</b> ▲${x.score} · <a href="https://mferent80-source.github.io/premarket_scanner.html/smart-trade-long/?symbol=${encodeURIComponent(x.symbol)}">validează în STL</a>`).join('\n') + (reg && reg.warn ? `\n⚠ Regim de piață: <b>${wlEsc(reg.label)}</b> — long-uri noi cu probabilitate degradată, dimensionează conservator.` : ''));
 }
 // ============================================================
 // INSIDER CLUSTER BUYS 🏛️ — Form 4 Finnhub (shared API key)
@@ -3871,6 +3882,7 @@ function _wlDetailHtml(w){
           <a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol(sym, w.exchange))}" target="_blank">📈 TV</a>
           <a href="https://finance.yahoo.com/quote/${encodeURIComponent(sym)}" target="_blank">🟣 Yahoo</a>
           <a href="https://finviz.com/quote.ashx?t=${encodeURIComponent(sym)}" target="_blank">🟡 Finviz</a>
+          <a href="../smart-trade-long/?symbol=${encodeURIComponent(sym)}" target="ttools-smart" title="Scan automat la deschidere — validare RS/MA/volum/niveluri ATR">🎯 Smart Trade</a>
           <a href="http://openinsider.com/screener?s=${encodeURIComponent(sym)}" target="_blank">🏛️ OpenInsider</a>
         </div>
       </div>
@@ -3954,6 +3966,7 @@ function _wlRowHtml(w){
       <button class="btn-row btn-row-wl-tv" onclick='wlOpenTV("${w.symbol}","${exJs}")' title="Deschide în TradingView">📈</button>
       <button class="btn-row btn-row-wl-ai" onclick='aiAnalyzeRow("watchlist", ${aiData})' title="AI">🤖</button>
       <button class="btn-row btn-row-wl-ai" style="background:linear-gradient(135deg,#f7931a,#22d66b);color:#0a0a0a" onclick='meQuickSetup("watchlist", ${aiData})' title="🎯 Quick Setup">🎯</button>
+      ${eb && (eb.isEarly || eb.isConfirmed) ? `<button class="btn-row" style="background:rgba(34,214,107,.15);color:#22d66b;border-color:rgba(34,214,107,.45);font-weight:800;font-size:.6rem" onclick='event.stopPropagation();window.open("../smart-trade-long/?symbol=${w.symbol}","ttools-smart")' title="Validează în Smart Trade Long (scan automat la deschidere): RS vs SPY, structura MA, volum, niveluri ATR. ATENȚIE: un early adevărat iese rar READY acolo (STL cere trend matur) — citește contextul (RS, MA, volum), nu doar tier-ul.">STL</button>` : ''}
       <button class="btn-row btn-row-wl-send" style="background:rgba(91,176,255,.15);color:#79c0ff;border-color:rgba(91,176,255,.4)" onclick='wlSendToScanners("${w.symbol}")' title="Trimite în Watchlist Monitor + Smart Trade">📊</button>
       <button class="btn-row btn-row-wl-del" onclick='wlRemove("${w.symbol}")' title="Șterge">✕</button>
     </span>
