@@ -247,7 +247,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v18</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v19</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -555,6 +555,39 @@ async function fetchSpyCloses() {
   try { const d = await fetchYahoo('SPY', 600); return d.closes; } catch (e) { return null; }
 }
 
+// Sesiunea NYSE curentă în ET (DST-aware): pre 04:00-09:30 · open 09:30-16:00 ·
+// after 16:00-20:00 · closed restul + weekend.
+function marketSession() {
+  try {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+    const g = t => (p.find(x => x.type === t) || {}).value;
+    if (g('weekday') === 'Sat' || g('weekday') === 'Sun') return 'closed';
+    const min = (+g('hour')) * 60 + (+g('minute'));
+    if (min >= 240 && min < 570) return 'pre';
+    if (min >= 570 && min < 960) return 'open';
+    if (min >= 960 && min < 1200) return 'after';
+  } catch (e) {}
+  return 'closed';
+}
+
+// Δ extended-hours la deep scan — scorul e pe închideri daily, dar dacă stock-ul
+// gap-uiește în pre/after, planul (entry/SL pe close-ul de ieri) e deja invalid.
+// Referința corectă: pre → chartPreviousClose (close-ul de ieri); after →
+// regularMarketPrice (close-ul regular de AZI), altfel Δ ar îngloba și ziua întreagă.
+async function fetchPrePost(sym) {
+  const sess = marketSession();
+  if (sess !== 'pre' && sess !== 'after') return null;
+  try {
+    const j = await fetchViaProxy(`${YAHOO_BASE}${sym}?interval=5m&range=1d&includePrePost=true`, 9000, 60);
+    const r = j?.chart?.result?.[0];
+    const closes = (r?.indicators?.quote?.[0]?.close || []).filter(v => v != null);
+    const px = closes[closes.length - 1];
+    const prev = sess === 'pre' ? r?.meta?.chartPreviousClose : (r?.meta?.regularMarketPrice ?? r?.meta?.chartPreviousClose);
+    if (!px || !prev) return null;
+    return { sess, px, prev, chg: (px / prev - 1) * 100 };
+  } catch (e) { return null; }
+}
+
 async function fetchInsiders(sym) {
   if (!state.finnhubKey) return { ok: false, reason: 'no-key' };
   const from = isoDaysAgo(90);
@@ -816,7 +849,7 @@ function calcShares(entry, sl) {
 }
 
 // ─────────────────────── RENDER ───────────────────────
-function render(sym, scoreData, insiderData, earnInfo) {
+function render(sym, scoreData, insiderData, earnInfo, prePost) {
   const t = effTier(scoreData);
   const last = scoreData.last;
   const atrV = scoreData.atr || 0;
@@ -903,11 +936,18 @@ function render(sym, scoreData, insiderData, earnInfo) {
         ? `<div style="background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--red);line-height:1.5">🛡 <strong>Regim de piață: ${escHtml(reg.label)}</strong> (din Macro Dashboard) — verdictul a fost limitat la <strong>${t.label}</strong>. Long-urile noi au probabilitate degradată în acest regim: dimensionează mai mic sau așteaptă revenirea spre RISK-ON.</div>`
         : `<div style="margin-bottom:12px;font-size:12px;color:var(--txt-dd)">🛡 Regim de piață: <strong style="color:${reg.color}">${escHtml(reg.label)}</strong> · din Macro Dashboard</div>`)
     : '';
+  // Δ extended-hours: gap ≥3% = avertisment serios (planul de mai jos e pe close-ul
+  // de referință, nu pe prețul live); sub 3% = doar rând informativ.
+  const ppBanner = prePost
+    ? (Math.abs(prePost.chg) >= 3
+        ? `<div style="background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--red);line-height:1.5">${prePost.sess === 'pre' ? '🌅' : '🌙'} <strong>Gap ${prePost.sess === 'pre' ? 'pre-market' : 'after-hours'}: ${fmtPct(prePost.chg)}</strong> — preț live ${fmt$(prePost.px)} vs referință ${fmt$(prePost.prev)}. Entry/SL/TP de mai jos sunt pe close-ul ${prePost.sess === 'pre' ? 'de ieri' : 'regular de azi'} — gap-ul le invalidează; re-scanează după deschidere.</div>`
+        : `<div style="margin-bottom:12px;font-size:12px;color:var(--txt-dd)">${prePost.sess === 'pre' ? '🌅 Pre-market' : '🌙 After-hours'}: <strong style="color:${prePost.chg >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtPct(prePost.chg)}</strong> · ${fmt$(prePost.px)} (ref ${fmt$(prePost.prev)})</div>`)
+    : '';
   // Panou pliabil: summary = simbol + verdict; restrâns, lista de dedesubt urcă la vedere.
   // Starea (collapsed) supraviețuiește re-render-urilor (auto 5min, schimbare cont/risc).
   resultArea.innerHTML = `<details class="res-details" id="resDetails"${state.resCollapsed ? '' : ' open'}>
-    <summary><span class="caret">▶</span> 🎯 <strong>${sym}</strong> · ${t.icon} ${t.label}${t.caps.includes('ext') ? ' 🏃' : ''}${t.caps.includes('regim') ? ' 🛡' : ''} · ${scoreData.score}/100 · ${fmt$(last)}${earnInfo && earnInfo.hoursAway <= 48 ? ' · <span style="color:var(--red);font-weight:700">🚫 earnings!</span>' : ''}<span class="sum-hint">click = restrânge/extinde</span></summary>
-    <div class="res-body">` + earnBanner + extBanner + regBanner + `
+    <summary><span class="caret">▶</span> 🎯 <strong>${sym}</strong> · ${t.icon} ${t.label}${t.caps.includes('ext') ? ' 🏃' : ''}${t.caps.includes('regim') ? ' 🛡' : ''} · ${scoreData.score}/100 · ${fmt$(last)}${prePost ? ` · ${prePost.sess === 'pre' ? '🌅' : '🌙'} <span style="color:${prePost.chg >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:700">${fmtPct(prePost.chg)}</span>` : ''}${earnInfo && earnInfo.hoursAway <= 48 ? ' · <span style="color:var(--red);font-weight:700">🚫 earnings!</span>' : ''}<span class="sum-hint">click = restrânge/extinde</span></summary>
+    <div class="res-body">` + earnBanner + extBanner + regBanner + ppBanner + `
     <div class="grid">
       <div class="card verdict-card">
         <div class="verdict-icon">${t.icon}</div>
@@ -1007,7 +1047,9 @@ function render(sym, scoreData, insiderData, earnInfo) {
     </div>
   </details>`;
 
-  state.lastResult = { sym, scoreData, insiderData };
+  // earnInfo + prePost păstrate și ele — re-render-ul din schimbarea cont/risc le
+  // pierdea înainte (bannerul de earnings dispărea la orice ajustare a sizer-ului)
+  state.lastResult = { sym, scoreData, insiderData, earnInfo, prePost };
   localStorage.setItem(LS_LAST, sym);
   // ține minte preferința expand/restrâns între re-render-uri (auto-scan, sizer)
   const resDet = document.getElementById('resDetails');
@@ -1210,11 +1252,11 @@ async function scan(sym, isAuto) {
   if (!state.resCollapsed) resultArea.innerHTML = `<div class="loading"><div class="spinner"></div><div>Fetch Yahoo + Finnhub pentru <strong>${sym}</strong>…</div></div>`;
 
   try {
-    const [yahoo, ins, earn, spy] = await Promise.all([fetchYahoo(sym), fetchInsiders(sym), getEarningsInfo(sym), fetchSpyCloses()]);
+    const [yahoo, ins, earn, spy, prePost] = await Promise.all([fetchYahoo(sym), fetchInsiders(sym), getEarningsInfo(sym), fetchSpyCloses(), fetchPrePost(sym)]);
     if (yahoo.closes.length < 50) throw new Error(`Doar ${yahoo.closes.length} bare disponibile (min 50)`);
     const scoreData = computeScore(yahoo, spy);
     recordScanHistory(sym, scoreData); // înainte de render — istoricul include și scanul curent
-    render(sym, scoreData, ins, earn);
+    render(sym, scoreData, ins, earn, prePost);
     toast(`✓ ${sym} · Score ${scoreData.score}/100`, 'ok');
   } catch (e) {
     resultArea.innerHTML = `
@@ -1443,14 +1485,9 @@ settingsModal.addEventListener('click', e => {
 // ─────────────────────── EVENTS ───────────────────────
 scanBtn.addEventListener('click', () => scan());
 symInput.addEventListener('keydown', e => { if (e.key === 'Enter') scan(); });
-acctSizeEl.addEventListener('change', () => {
-  localStorage.setItem(LS_ACCT, acctSizeEl.value);
-  if (state.lastResult) render(state.lastResult.sym, state.lastResult.scoreData, state.lastResult.insiderData);
-});
-riskPctEl.addEventListener('change', () => {
-  localStorage.setItem(LS_RISK, riskPctEl.value);
-  if (state.lastResult) render(state.lastResult.sym, state.lastResult.scoreData, state.lastResult.insiderData);
-});
+const reRender = () => { const r = state.lastResult; if (r) render(r.sym, r.scoreData, r.insiderData, r.earnInfo, r.prePost); };
+acctSizeEl.addEventListener('change', () => { localStorage.setItem(LS_ACCT, acctSizeEl.value); reRender(); });
+riskPctEl.addEventListener('change', () => { localStorage.setItem(LS_RISK, riskPctEl.value); reRender(); });
 autoScan.addEventListener('change', () => {
   localStorage.setItem(LS_AUTO, autoScan.checked ? '1' : '0');
   if (autoScan.checked) { startAuto(); toast('Auto-scan activat (5min)', 'ok'); }
