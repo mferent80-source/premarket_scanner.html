@@ -1037,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v231</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v232</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -3366,16 +3366,29 @@ function wlNotifyWilting(items){
   // tab-ul; invalidarea tezei trebuie să ajungă pe telefon la fel ca semnalul de intrare
   if (window.TG) TG.send(`📊 <b>Market Events — 🥀 invalidare early-bird</b>\n` + items.map(x => `🥀 <b>${wlEsc(x.symbol)}</b> — ${wlEsc(x.reason || '')}`).join('\n'));
 }
+// Context regim de piață pentru alertele early-bird (teze LONG) — citește compozitul
+// din Macro Dashboard (`md_risk_regime`, valid <6h). ANOTĂM, nu suprimăm: semnalul
+// rămâne, dar un 🌱 în RISK-OFF se citește altfel decât unul în RISK-ON.
+function meRiskRegime(){
+  try {
+    const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
+    if (!r || !r.label || !r.ts || Date.now() - r.ts > 6 * 3600 * 1000) return null;
+    const L = String(r.label).toUpperCase();
+    return { label: r.label, warn: L.includes('RISK-OFF') || L.includes('CAUTIOUS') };
+  } catch(_) { return null; }
+}
 function wlNotifyEarly(items){
+  const reg = meRiskRegime();
+  const regTxt = reg && reg.warn ? ` · ⚠ regim ${reg.label}` : '';
   const list = items.map(x => `${x.symbol} ▲${x.score}`).join(', ');
-  const msg = items.length === 1
+  const msg = (items.length === 1
     ? `🌱 Early-bird nou: ${items[0].symbol} a început creșterea (▲${items[0].score})`
-    : `🌱 ${items.length} early-bird noi: ${list}`;
+    : `🌱 ${items.length} early-bird noi: ${list}`) + regTxt;
   showToast(msg, 'success');
   if ('Notification' in window && Notification.permission === 'granted'){
     try { new Notification('Market Events · 🌱 Early-bird', { body: msg }); } catch(_){}
   }
-  if (window.TG) TG.send(`📊 <b>Market Events — 🌱 early-bird nou (${items.length})</b>\n` + items.map(x => `🌱 <b>${wlEsc(x.symbol)}</b> ▲${x.score}`).join('\n'));
+  if (window.TG) TG.send(`📊 <b>Market Events — 🌱 early-bird nou (${items.length})</b>\n` + items.map(x => `🌱 <b>${wlEsc(x.symbol)}</b> ▲${x.score}`).join('\n') + (reg && reg.warn ? `\n⚠ Regim de piață: <b>${wlEsc(reg.label)}</b> — long-uri noi cu probabilitate degradată, dimensionează conservator.` : ''));
 }
 // ============================================================
 // INSIDER CLUSTER BUYS 🏛️ — Form 4 Finnhub (shared API key)
