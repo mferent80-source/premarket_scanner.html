@@ -191,12 +191,13 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v4</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v5</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
   <button class="icon-btn" id="testBtn" title="Test alertă (demo)">🧪</button>
   <button class="icon-btn" id="exportBtn" title="Export JSON pentru alertele server-side (GitHub Actions) — merg și cu laptopul închis">📤</button>
+  <button class="icon-btn" id="ghSyncBtn" title="Sync GitHub — comite alertele DIRECT în tools/alerts.json (server-side live în secunde). Click-dreapta = setează/schimbă token-ul">☁️</button>
   <a href="../guide/?page=alerts" class="nav-link" title="Ghid features pagina asta">📖</a>
   <a href="../" class="nav-link">← Hub</a>
 </header>
@@ -669,6 +670,67 @@ $('exportBtn').addEventListener('click', async () => {
     await navigator.clipboard.writeText(txt);
     toast(`📤 ${out.alerts.length} alerte copiate ca JSON — lipește în tools/alerts.json pe GitHub (commit) și merg 24/7, server-side`, 'success', { persist: true });
   } catch (e) { prompt('Copiază manual JSON-ul:', txt); }
+});
+
+// ☁️ Sync GitHub: comite tools/alerts.json DIRECT din pagină (GitHub Contents API) —
+// elimină lanțul 📤 → paste → commit manual. Necesită un fine-grained PAT scoped DOAR
+// pe repo-ul ăsta cu permisiunea Contents: Read and write — cerut o dată, stocat local.
+// Păstrează istoricul `triggered` scris de bot pe remote; alertele locale sunt sursa de adevăr.
+const GH_TOKEN_KEY = 'gh_repo_token';
+const GH_REPO = 'mferent80-source/premarket_scanner.html';
+const GH_PATH = 'tools/alerts.json';
+
+function ghAskToken() {
+  const t = prompt('Token GitHub (fine-grained PAT):\n1. github.com/settings/personal-access-tokens → Generate new token\n2. Repository access: Only select repositories → premarket_scanner.html\n3. Permissions → Contents: Read and write\n\nLipește token-ul (gol = șterge):', localStorage.getItem(GH_TOKEN_KEY) || '');
+  if (t === null) return null;
+  const v = t.trim();
+  try { if (v) localStorage.setItem(GH_TOKEN_KEY, v); else localStorage.removeItem(GH_TOKEN_KEY); } catch (e) {}
+  return v || null;
+}
+// UTF-8 ↔ base64 (btoa/atob direct se îneacă pe diacritice/emoji din _doc)
+function b64utf8(s) { let bin = ''; new TextEncoder().encode(s).forEach(x => bin += String.fromCharCode(x)); return btoa(bin); }
+function b64deutf8(s) { const bin = atob(s); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); return new TextDecoder().decode(arr); }
+
+$('ghSyncBtn').addEventListener('click', async () => {
+  let token = localStorage.getItem(GH_TOKEN_KEY) || '';
+  if (!token) { token = ghAskToken(); if (!token) { toast('☁️ Sync anulat — fără token', 'info'); return; } }
+  priceAlerts = loadAlerts();
+  const alerts = [];
+  Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => alerts.push({ symbol: sym, level: a.lvl, dir: a.dir, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' })));
+  if (!alerts.length && !confirm('Nicio alertă locală — sincronizez lista GOALĂ? (șterge toate alertele server-side)')) return;
+  const btn = $('ghSyncBtn'); btn.disabled = true;
+  try {
+    const api = `https://api.github.com/repos/${GH_REPO}/contents/${GH_PATH}`;
+    const hdr = { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' };
+    // sha-ul curent + istoricul triggered de pe remote (scris de bot — îl păstrăm)
+    const g = await fetch(api + '?ref=main', { headers: hdr });
+    if (g.status === 401 || g.status === 403) throw new Error('token invalid sau fără permisiunea Contents — click-dreapta pe ☁️ pt re-setare');
+    if (!g.ok) throw new Error('GitHub GET HTTP ' + g.status);
+    const cur = await g.json();
+    let remote = {};
+    try { remote = JSON.parse(b64deutf8(String(cur.content || '').replace(/\n/g, ''))); } catch (e) {}
+    const out = {
+      _doc: remote._doc || 'Alerte preț server-side — gestionate din pagina /alerts/ (sync direct cu butonul ☁️).',
+      alerts,
+      triggered: Array.isArray(remote.triggered) ? remote.triggered : []
+    };
+    const p = await fetch(api, {
+      method: 'PUT',
+      headers: { ...hdr, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `chore(alerts): sync din pagina /alerts/ (${alerts.length} alerte)`, content: b64utf8(JSON.stringify(out, null, 2) + '\n'), sha: cur.sha, branch: 'main' })
+    });
+    if (p.status === 409) throw new Error('conflict — botul tocmai a comis starea; mai apasă o dată ☁️');
+    if (!p.ok) throw new Error('GitHub PUT HTTP ' + p.status);
+    const j = await p.json();
+    toast(`☁️ ${alerts.length} alerte live server-side — commit ${String((j.commit || {}).sha || '').slice(0, 7)} ✅`, 'success', { persist: true });
+  } catch (e) {
+    toast('❌ Sync GitHub eșuat: ' + e.message, 'error', { persist: true });
+  } finally { btn.disabled = false; }
+});
+// click-dreapta pe ☁️ = setează/schimbă/șterge token-ul
+$('ghSyncBtn').addEventListener('contextmenu', e => {
+  e.preventDefault();
+  ghAskToken() ? toast('🔑 Token GitHub salvat', 'success') : toast('🔑 Token șters sau neschimbat', 'info');
 });
 
 // Allow Enter in input fields
