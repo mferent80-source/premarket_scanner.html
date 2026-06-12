@@ -1900,9 +1900,13 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     }
   }
   function pbRenderWlEvents(events){
-    $('pbCntWlEvents').textContent = String(events.length);
-    if (!events.length){ $('pbBodyWlEvents').innerHTML = '<div class="pb-empty">📭 Niciun event programat 14-30 zile pentru watchlist.</div>'; return; }
     const today = etToday();
+    // DOAR azi → viitor (cerut explicit de Marius): „presentations" vin din știri cu
+    // data PUBLICĂRII (trecut) → afișate doar dacă-s de azi; filtrul se aplică la
+    // render ca să curețe și cache-ul vechi de 6h, nu doar fetch-urile noi
+    events = (events || []).filter(e => e.date && e.date >= today);
+    $('pbCntWlEvents').textContent = String(events.length);
+    if (!events.length){ $('pbBodyWlEvents').innerHTML = '<div class="pb-empty">📭 Niciun event VIITOR programat 14-30 zile pentru watchlist.</div>'; return; }
     const fmtDate = d => {
       const days = Math.round((new Date(d + 'T00:00:00Z') - new Date(today + 'T00:00:00Z')) / 86400000);
       const dStr = new Date(d + 'T00:00:00Z').toLocaleDateString('ro-RO', { day:'2-digit', month:'short', weekday:'short' });
