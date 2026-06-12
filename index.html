@@ -1598,19 +1598,38 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   // ── Risk Regime: ÎNTÂI regimul Macro Dashboard (cu histerezis — sursa de adevăr),
   //    fallback calcul rapid local (VIX nivel + 10Y Δ + corelație BTC/SPY) doar dacă e stale.
   async function pbLoadRisk(){
+    let stale = null;
     try {
       const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
-      if (r && r.label && Date.now() - (r.ts || 0) < 6 * 3600000){
+      if (r && r.label){
+        const ageMin = Math.round((Date.now() - (r.ts || 0)) / 60000);
+        if (ageMin < 360){
+          $('pbRiskVal').innerHTML = `<span style="color:${escHtml(r.color || 'inherit')}">${escHtml(r.label)}</span>`;
+          $('pbRiskSub').textContent = `score ${r.composite >= 0 ? '+' : ''}${r.composite} · din Macro Dashboard (acum ${Math.max(1, ageMin)} min)`;
+          return;
+        }
+        // regim VECHI: îl arătăm imediat (mai bine decât ⏳) cât rulează calculul local
+        stale = { ...r, ageMin };
         $('pbRiskVal').innerHTML = `<span style="color:${escHtml(r.color || 'inherit')}">${escHtml(r.label)}</span>`;
-        $('pbRiskSub').textContent = `score ${r.composite >= 0 ? '+' : ''}${r.composite} · din Macro Dashboard (acum ${Math.max(1, Math.round((Date.now() - (r.ts||0)) / 60000))} min)`;
-        return;
+        $('pbRiskSub').textContent = `din Macro acum ${Math.round(ageMin / 60)}h (vechi) · recalculez local…`;
       }
     } catch (e) {}
+    try {
     const [vixData, spyData, btcData, tnxData] = await Promise.all([
       fetchYahooChart('^VIX'), fetchYahooChart('SPY'),
       fetchYahooChart('BTC-USD').then(d => d || fetchCryptoCG('bitcoin')),
       fetchYahooChart('^TNX')
     ]);
+    if (!vixData && !spyData && !tnxData){
+      // TOATE sursele au picat (proxy CORS jos / rate-limit) → onest, nu un NEUTRAL fals din zerouri
+      if (stale){
+        $('pbRiskSub').textContent = `din Macro acum ${Math.round(stale.ageMin / 60)}h (VECHI) · datele live indisponibile — deschide Macro Dashboard pt update`;
+      } else {
+        $('pbRiskVal').innerHTML = '<span style="color:var(--t3)">⚠ n/a</span>';
+        $('pbRiskSub').innerHTML = 'date live indisponibile (proxy CORS) — deschide <a href="./macro-dashboard/" style="color:#5bb0ff">Macro Dashboard</a> (regimul lui se preia automat aici)';
+      }
+      return;
+    }
     let vixScore = 0, vixVal = NaN;
     if (vixData?.points?.length){
       vixVal = vixData.meta?.regularMarketPrice ?? vixData.points[vixData.points.length-1].close;
@@ -1644,7 +1663,11 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     const label = composite >= 3 ? '🟢 RISK-ON' : composite >= 1 ? '🟢 LEAN ON' : composite >= -1 ? '⚪ NEUTRAL' : composite >= -3 ? '🟡 CAUTIOUS' : composite >= -5 ? '🔴 RISK-OFF' : '⛔ STRESS';
     const color = composite >= 1 ? 'var(--green)' : composite >= -1 ? 'var(--t1)' : composite >= -3 ? '#d4892c' : '#ff4d4d';
     $('pbRiskVal').innerHTML = `<span style="color:${color}">${label}</span>`;
-    $('pbRiskSub').textContent = `score ${composite >= 0 ? '+' : ''}${composite} · VIX ${!isNaN(vixVal) ? vixVal.toFixed(1) : '—'} · 10Y Δ${tenYDelta != null ? (tenYDelta>=0?'+':'')+Math.round(tenYDelta)+'bp' : '—'} · ρ ${corrVal != null ? Math.round(corrVal*100)+'%' : '—'} · calcul local (Macro stale)`;
+    $('pbRiskSub').textContent = `score ${composite >= 0 ? '+' : ''}${composite} · VIX ${!isNaN(vixVal) ? vixVal.toFixed(1) : '—'} · 10Y Δ${tenYDelta != null ? (tenYDelta>=0?'+':'')+Math.round(tenYDelta)+'bp' : '—'} · ρ ${corrVal != null ? Math.round(corrVal*100)+'%' : '—'} · calcul local (Macro nedeschis recent)`;
+    } catch (e) {
+      $('pbRiskVal').innerHTML = '<span style="color:var(--t3)">⚠ n/a</span>';
+      $('pbRiskSub').textContent = 'eroare calcul local: ' + ((e && e.message) || e);
+    }
   }
 
   // ── Evenimente macro azi ──
