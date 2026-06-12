@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v189</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v190</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1543,6 +1543,9 @@ function addTickerToWatchlist(ticker) {
 // Lanț aliniat cu restul suitei — scoase: allorigins ×2 (fără header CORS pe
 // github.io) și proxy.cors.sh (cere API key → 403) — ardeau încercări + erori în consolă.
 const CORS_PROXIES = [
+  // Worker-ul PROPRIU (Cloudflare, doar al lui Marius) PRIMUL — 2026-06-12 toate
+  // proxy-urile free au picat simultan (codetabs 400, corsproxy 403, cors.lol 429)
+  { build: u => 'https://tt-proxy.mferent80.workers.dev/?url=' + encodeURIComponent(u), extract: r => r.text() },
   { build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: r => r.text() },
   { build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), extract: r => r.text() },
   { build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u), extract: r => r.text() }
