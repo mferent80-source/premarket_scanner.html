@@ -247,7 +247,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v14</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v15</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -548,6 +548,13 @@ async function fetchYahoo(sym, ttl = 0) {
   return { ts, opens, highs, lows, closes, volumes, meta: r.meta };
 }
 
+// Închideri SPY pentru filtrul RS — ttl 10 min (benchmark-ul nu se schimbă în timpul
+// unui scan de listă; D dedup-uiește oricum request-urile în zbor). null la eșec —
+// computeScore tratează lipsa cu punctaj neutru, scanul NU pică din cauza SPY.
+async function fetchSpyCloses() {
+  try { const d = await fetchYahoo('SPY', 600); return d.closes; } catch (e) { return null; }
+}
+
 async function fetchInsiders(sym) {
   if (!state.finnhubKey) return { ok: false, reason: 'no-key' };
   const from = isoDaysAgo(90);
@@ -596,7 +603,7 @@ async function getEarningsInfo(sym) {
 }
 
 // ─────────────────────── SCORING ───────────────────────
-function computeScore(d) {
+function computeScore(d, spyCloses) {
   const { closes, volumes, highs, lows } = d;
   const last = closes[closes.length - 1];
   const ma50 = sma(closes, 50);
@@ -650,17 +657,36 @@ function computeScore(d) {
   } else { f4.pts = 0; f4.status = 'fail'; }
   score += f4.pts; filters.push(f4);
 
-  // 5. Niveluri ATR calculabile — ONEST: nu e un test de R:R variabil, e un gate de
-  // calitate a datelor. Nivelurile sunt fixe prin construcție (SL=−1.5×ATR, TP3=+3×ATR
-  // → R:R 1:2 garantat), deci punctele se acordă mereu când ATR există. Eticheta veche
-  // „R:R Ratio" sugera fals un criteriu care discriminează între setup-uri.
-  let f5 = { name: 'Niveluri ATR (R:R 1:2 by design)', desc: 'SL/TP calculabile din volatilitate', ico: '⚖️', max: 20 };
-  if (atrV) {
-    f5.pts = 20; f5.status = 'ok'; f5.desc = `ATR ${atrV.toFixed(2)} → SL −1.5×, TP-uri +1/+2/+3× (R:R 1:2 garantat prin construcție)`;
-  } else { f5.pts = 0; f5.status = 'fail'; f5.desc = 'ATR indisponibil (date insuficiente) — niveluri necalculabile'; }
+  // 5. Relative Strength vs SPY (3 luni ≈ 63 bare închise) — stock-ul trebuie să
+  // BATĂ piața, nu doar să urce odată cu ea; înlocuiește vechiul filtru „Niveluri ATR"
+  // care dădea 20 puncte gratis oricui (ATR există mereu la min 50 bare).
+  let f5 = { name: 'RS vs SPY (3 luni)', desc: 'Randament 3m peste SPY', ico: '💪', max: 12 };
+  let rsSpy = null;
+  const nRS = Math.min(63, closes.length - 1, spyCloses ? spyCloses.length - 1 : 0);
+  if (spyCloses && nRS >= 21) {
+    const retS = last / closes[closes.length - 1 - nRS] - 1;
+    const retM = spyCloses[spyCloses.length - 1] / spyCloses[spyCloses.length - 1 - nRS] - 1;
+    rsSpy = (retS - retM) * 100;
+    const detail = `${(retS * 100).toFixed(1)}% vs SPY ${(retM * 100).toFixed(1)}%${nRS < 63 ? ` · doar ${nRS} bare` : ''}`;
+    if (rsSpy >= 5) { f5.pts = 12; f5.status = 'ok'; f5.desc = `+${rsSpy.toFixed(1)}pp (${detail})`; }
+    else if (rsSpy > 0) { f5.pts = 6; f5.status = 'partial'; f5.desc = `+${rsSpy.toFixed(1)}pp (${detail})`; }
+    else { f5.pts = 0; f5.status = 'fail'; f5.desc = `sub piață cu ${Math.abs(rsSpy).toFixed(1)}pp (${detail})`; }
+  } else { f5.pts = 6; f5.status = 'partial'; f5.desc = 'SPY indisponibil — punctaj neutru (nu penalizăm stock-ul pentru o problemă de rețea)'; }
   score += f5.pts; filters.push(f5);
 
-  return { score, filters, last, ma50, ma200, ma200Approx: !ma200Real, hi52: closes.length ? Math.max(...closes) : null, lo52: closes.length ? Math.min(...closes) : null, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null };
+  // 6. Aproape de max 52 săptămâni — stage-2 (Minervini): liderii fac highs noi,
+  // nu recuperează gropi adânci; un long la −40% de max luptă cu supply la fiecare nivel.
+  const hi52 = closes.length ? Math.max(...closes) : null;
+  const distHi52 = hi52 ? (last / hi52 - 1) * 100 : null; // ≤ 0 prin definiție
+  let f6 = { name: 'Aproape de Max 52s', desc: 'Preț la <15% sub max', ico: '🏔️', max: 8 };
+  if (distHi52 != null) {
+    if (distHi52 >= -15) { f6.pts = 8; f6.status = 'ok'; f6.desc = `${distHi52.toFixed(1)}% sub max 52s`; }
+    else if (distHi52 >= -25) { f6.pts = 4; f6.status = 'partial'; f6.desc = `${distHi52.toFixed(1)}% sub max 52s`; }
+    else { f6.pts = 0; f6.status = 'fail'; f6.desc = `prea departe de max (${distHi52.toFixed(1)}%) — mult supply deasupra`; }
+  } else { f6.pts = 0; f6.status = 'fail'; f6.desc = 'Date insuficiente'; }
+  score += f6.pts; filters.push(f6);
+
+  return { score, filters, last, ma50, ma200, ma200Approx: !ma200Real, hi52, lo52: closes.length ? Math.min(...closes) : null, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null, rsSpy, distHi52 };
 }
 
 function tier(score) {
@@ -1003,6 +1029,8 @@ async function runAIQuickSetup(sym, scoreData, insiderData, force) {
 - Trend MA: ${trend}
 - Distance vs MA50: ${vsMA50}%
 - Vol Ratio (5d/avg20d): ${scoreData.volRatio?.toFixed(2) ?? 'N/A'}x
+- RS vs SPY (3m): ${scoreData.rsSpy != null ? (scoreData.rsSpy >= 0 ? '+' : '') + scoreData.rsSpy.toFixed(1) + 'pp' : 'N/A'}
+- Distanță față de max 52s: ${scoreData.distHi52 != null ? scoreData.distHi52.toFixed(1) + '%' : 'N/A'}
 - Score scanner: ${scoreData.score}/100 — ${tier(scoreData.score).label}
 - Insider 90d: ${insiderSummary}
 
@@ -1123,9 +1151,9 @@ async function scan(sym, isAuto) {
   if (!state.resCollapsed) resultArea.innerHTML = `<div class="loading"><div class="spinner"></div><div>Fetch Yahoo + Finnhub pentru <strong>${sym}</strong>…</div></div>`;
 
   try {
-    const [yahoo, ins, earn] = await Promise.all([fetchYahoo(sym), fetchInsiders(sym), getEarningsInfo(sym)]);
+    const [yahoo, ins, earn, spy] = await Promise.all([fetchYahoo(sym), fetchInsiders(sym), getEarningsInfo(sym), fetchSpyCloses()]);
     if (yahoo.closes.length < 50) throw new Error(`Doar ${yahoo.closes.length} bare disponibile (min 50)`);
-    const scoreData = computeScore(yahoo);
+    const scoreData = computeScore(yahoo, spy);
     recordScanHistory(sym, scoreData); // înainte de render — istoricul include și scanul curent
     render(sym, scoreData, ins, earn);
     toast(`✓ ${sym} · Score ${scoreData.score}/100`, 'ok');
@@ -1229,6 +1257,7 @@ async function runListScan() {
   const btn = $('lsScanBtn'); btn.disabled = true; btn.textContent = '⏳ Scanez…';
   const statusEl = $('lsStatus');
   await getEarningsInfo(wl[0]).catch(() => null); // pre-încălzește cache-ul de calendar o singură dată (workerii paraleli l-ar fetch-ui de 3 ori)
+  const spyCloses = await fetchSpyCloses(); // un singur fetch SPY pentru tot batch-ul (filtrul RS)
   const rows = []; let done = 0, qi = 0;
   const worker = async () => {
     while (true) {
@@ -1237,7 +1266,7 @@ async function runListScan() {
       try {
         const data = await fetchYahoo(sym, 240); // ttl 4 min: re-scan manual rapid = cache, ciclul de 10 min = fresh
         if (data.closes.length < 50) throw new Error('istoric scurt');
-        const sd = computeScore(data);
+        const sd = computeScore(data, spyCloses);
         const chg = data.closes.length >= 2 ? (data.closes[data.closes.length - 1] / data.closes[data.closes.length - 2] - 1) * 100 : null;
         const earn = await getEarningsInfo(sym).catch(() => null);
         recordScanHistory(sym, sd); // alimentează istoricul + Signal Ledger și din scanul de listă (anti-spam în funcție)
