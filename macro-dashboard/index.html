@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v190</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v191</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -2533,10 +2533,15 @@ async function loadCalendar() {
   const to = new Date(Date.now() + 14*86400000).toISOString().slice(0,10);
   let finnhubOk = false;
 
-  if (key) {
+  // după primul 403 (free tier n-are /calendar/economic) nu mai încercăm 24h —
+  // fallback-ul hardcoded e oricum calea normală; flag shared cu hub-ul
+  if (key && Date.now() < +(localStorage.getItem('fh_econ_403_until') || 0)) {
+    // skip direct la fallback
+  } else if (key) {
     try {
       const url = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${encodeURIComponent(key)}`;
       const r = await fetch(url);
+      if (r.status === 403) { try { localStorage.setItem('fh_econ_403_until', String(Date.now() + 24*3600000)); } catch (e2) {} }
       if (r.ok) {
         const data = await r.json();
         const events = data?.economicCalendar || data?.economic || [];
@@ -4275,11 +4280,13 @@ async function loadHistoricalEvents() {
   if (Object.keys(HISTORICAL_BY_EVENT).length) return; // deja încărcat (din cache LS sau fetch anterior)
   const key = getFinnhubKey();
   if (!key) return;
+  if (Date.now() < +(localStorage.getItem('fh_econ_403_until') || 0)) return; // economic = premium, nu arde call-ul
   try {
     const from = new Date(Date.now() - 400*86400000).toISOString().slice(0,10);
     const to = new Date(Date.now() - 1*86400000).toISOString().slice(0,10);
     const url = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${encodeURIComponent(key)}`;
     const r = await fetch(url);
+    if (r.status === 403) { try { localStorage.setItem('fh_econ_403_until', String(Date.now() + 24*3600000)); } catch (e2) {} }
     if (!r.ok) return;
     const data = await r.json();
     const events = data?.economicCalendar || data?.economic || [];
