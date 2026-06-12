@@ -513,7 +513,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
         <div class="pb-section-body" id="pbBodyEvents"><div class="pb-loading">calendar economic…</div></div>
       </div>
       <div class="pb-section">
-        <div class="pb-section-head"><h3>📊 Earnings azi / mâine (watchlist)</h3><span class="pb-count" id="pbCntEarnings">—</span><a class="pb-go" href="./earnings-hub/">Open Earnings →</a></div>
+        <div class="pb-section-head"><h3>📊 Earnings next 7 zile (watchlist + mega-caps)</h3><span class="pb-count" id="pbCntEarnings">—</span><a class="pb-go" href="./earnings-hub/">Open Earnings →</a></div>
         <div class="pb-section-body" id="pbBodyEarnings"><div class="pb-loading">calendar earnings…</div></div>
       </div>
       <div class="pb-section">
@@ -521,7 +521,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
         <div class="pb-section-body" id="pbBodyWlEvents"><div class="pb-loading">se agregă events…</div></div>
       </div>
       <div class="pb-section">
-        <div class="pb-section-head"><h3>🚀 Nasdaq top picks (ultimul scan)</h3><span class="pb-count" id="pbCntNasdaq">—</span><a class="pb-go" href="./nasdaq-scanner/">Open Scanner →</a></div>
+        <div class="pb-section-head"><h3>🚀 Top picks (scan nasdaq + semnale suite)</h3><span class="pb-count" id="pbCntNasdaq">—</span><a class="pb-go" href="./nasdaq-scanner/">Open Scanner →</a></div>
         <div class="pb-section-body" id="pbBodyNasdaq"><div class="pb-loading">se citesc datele…</div></div>
       </div>
       <div class="pb-section">
@@ -1639,18 +1639,80 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     $('pbRiskSub').textContent = `score ${composite >= 0 ? '+' : ''}${composite} · VIX ${!isNaN(vixVal) ? vixVal.toFixed(1) : '—'} · 10Y Δ${tenYDelta != null ? (tenYDelta>=0?'+':'')+Math.round(tenYDelta)+'bp' : '—'} · ρ ${corrVal != null ? Math.round(corrVal*100)+'%' : '—'} · calcul local (Macro stale)`;
   }
 
-  // ── Evenimente macro azi (Finnhub economic calendar, doar US) ──
-  async function pbLoadMacroEvents(){
-    const key = getFinnhubKey();
-    if (!key){
-      $('pbBodyEvents').innerHTML = '<div class="pb-empty">⚠ Cheia Finnhub lipsește. Setează în <a href="./macro-dashboard/" style="color:#5bb0ff">Macro Dashboard → ⚙ Setări</a>.</div>';
-      $('pbCntEvents').textContent = '0';
+  // ── Evenimente macro azi ──
+  // Finnhub /calendar/economic e PREMIUM pe free tier → secțiunea era mereu goală/eroare.
+  // Fallback: generatorul hardcoded din Macro Dashboard (FOMC date oficiale + pattern-uri
+  // recurente CPI/NFP/PPI/claims/retail/ISM), filtrat pe următoarele 24h, etichetat estimativ.
+  function pbEtWall(dateStr, hm){
+    // 'YYYY-MM-DD' + 'HH:MM' ca oră de PERETE ET → Date corect (probează EDT/EST)
+    for (const off of ['-04:00','-05:00']){
+      const d = new Date(`${dateStr}T${hm}:00${off}`);
+      try {
+        const p = new Intl.DateTimeFormat('en-GB', { timeZone:'America/New_York', hour:'2-digit', minute:'2-digit', hour12:false }).format(d);
+        if (p === hm) return d;
+      } catch (e) {}
+    }
+    return new Date(`${dateStr}T${hm}:00-04:00`);
+  }
+  function pbHardcodedEvents(){
+    const out = [];
+    const push = (dateStr, hm, event, impact) => out.push({ d: pbEtWall(dateStr, hm), hm, event, impact });
+    // FOMC 2026 — date publice oficiale
+    ['2026-01-28','2026-03-18','2026-04-29','2026-06-17','2026-07-29','2026-09-16','2026-11-04','2026-12-16'].forEach(ds => {
+      push(ds, '14:00', 'FOMC Rate Decision', 'high');
+      push(ds, '14:30', 'FOMC Press Conference', 'high');
+    });
+    const base = new Date(etToday() + 'T00:00:00Z');
+    const iso = d => d.toISOString().slice(0,10);
+    const skipWE = d => { while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1); return d; };
+    for (let m = 0; m < 2; m++){
+      const month = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + m, 1));
+      const nfp = new Date(month); nfp.setUTCDate(1 + ((5 - month.getUTCDay() + 7) % 7));
+      push(iso(nfp), '08:30', 'Non-Farm Payrolls + Unemployment Rate', 'high');
+      const cpi = skipWE(new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 12)));
+      push(iso(cpi), '08:30', 'CPI YoY + Core CPI', 'high');
+      const ppi = skipWE(new Date(cpi.getTime() + 86400000));
+      push(iso(ppi), '08:30', 'PPI YoY', 'med');
+      const d = new Date(month);
+      while (d.getUTCMonth() === month.getUTCMonth()){ if (d.getUTCDay() === 4) push(iso(d), '08:30', 'Initial Jobless Claims', 'med'); d.setUTCDate(d.getUTCDate() + 1); }
+      const retail = skipWE(new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 15)));
+      push(iso(retail), '08:30', 'Retail Sales MoM', 'med');
+      const ism = skipWE(new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1)));
+      push(iso(ism), '10:00', 'ISM Manufacturing PMI', 'med');
+    }
+    return out;
+  }
+  function pbRenderHardcoded(){
+    const now = Date.now();
+    const events = pbHardcodedEvents()
+      .filter(e => e.d.getTime() > now - 30*60000 && e.d.getTime() < now + 26*3600000)
+      .sort((a, b) => a.d - b.d);
+    $('pbCntEvents').textContent = String(events.length);
+    if (!events.length){
+      $('pbBodyEvents').innerHTML = '<div class="pb-empty">📭 Niciun eveniment US recurent (CPI/NFP/FOMC/claims) în următoarele 24h. <span style="color:var(--t3)">📦 estimativ — calendarul live Finnhub e premium.</span></div>';
       return;
     }
+    $('pbBodyEvents').innerHTML = `<table class="pb-table">
+      <thead><tr><th>Ora</th><th>Eveniment</th><th>Impact</th></tr></thead>
+      <tbody>${events.slice(0, 10).map(e => {
+        const til = e.d.getTime() - now;
+        const tilStr = til < 0 ? 'PUBLICAT' : (til < 3600000 ? `T-${Math.round(til/60000)}min` : `T-${Math.round(til/3600000)}h`);
+        return `<tr>
+          <td class="pb-time"><span class="${til < 3600000 && til > 0 ? 't-imm' : ''}">${e.hm} ET (${e.d.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})} RO)</span><span class="t-til">${tilStr}</span></td>
+          <td>${escHtml(e.event)}</td>
+          <td><span class="pb-chip ${e.impact === 'high' ? 'high' : 'med'}">${e.impact === 'high' ? '🔴 HIGH' : '🟡 MED'}</span></td>
+        </tr>`;
+      }).join('')}</tbody></table>
+      <div style="font-size:10.5px;color:var(--t3);margin-top:5px;font-family:var(--mono)">📦 estimativ — pattern-uri recurente (orele exacte pot diferi cu o zi); calendarul live Finnhub e premium</div>`;
+  }
+  async function pbLoadMacroEvents(){
+    const key = getFinnhubKey();
+    if (!key){ pbRenderHardcoded(); return; }
     try {
       const r = await fetchT(`https://finnhub.io/api/v1/calendar/economic?from=${etToday()}&to=${etPlus(1)}&token=${encodeURIComponent(key)}`);
       if (!r.ok) throw new Error('Finnhub eroare');
       const data = await r.json();
+      if (!(data?.economicCalendar || []).length){ pbRenderHardcoded(); return; } // premium/gol → estimativ
       const now = Date.now();
       let events = (data?.economicCalendar || []).map(e => ({
         time: (e.time || e.date || '').slice(0,16).replace('T',' '),
@@ -1681,17 +1743,19 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
           </tr>`;
         }).join('')}</tbody></table>`;
     } catch (e) {
-      $('pbBodyEvents').innerHTML = `<div class="pb-empty">⚠ Eroare Finnhub: ${escHtml(e.message)}</div>`;
+      pbRenderHardcoded(); // Finnhub picat/premium → mai bine estimativ decât eroare seacă
     }
   }
 
-  // ── Earnings azi/mâine (watchlist + mega-caps) ──
+  // ── Earnings next 7 zile (watchlist + mega-caps) ──
+  // fereastra veche azi/mâine × watchlist+12 mega-caps = gol aproape mereu în afara
+  // sezonului de earnings; 7 zile = aproape mereu ai ce vedea, ordinea ⭐ întâi rămâne
   async function pbLoadEarnings(){
     const key = getFinnhubKey();
     const wl = new Set(getWatchlist().map(t => t.toUpperCase()));
     if (!key){ $('pbBodyEarnings').innerHTML = '<div class="pb-empty">⚠ Cheia Finnhub lipsește.</div>'; $('pbCntEarnings').textContent = '0'; return; }
     try {
-      const r = await fetchT(`https://finnhub.io/api/v1/calendar/earnings?from=${etToday()}&to=${etPlus(2)}&token=${encodeURIComponent(key)}`);
+      const r = await fetchT(`https://finnhub.io/api/v1/calendar/earnings?from=${etToday()}&to=${etPlus(7)}&token=${encodeURIComponent(key)}`);
       if (!r.ok) throw new Error('Finnhub eroare');
       const data = await r.json();
       const MEGAS = new Set(['AAPL','MSFT','NVDA','GOOGL','AMZN','META','TSLA','AVGO','JPM','WMT','XOM','UNH']);
@@ -1701,7 +1765,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
       })).filter(e => e.inWatchlist || MEGAS.has(e.symbol));
       earnings.sort((a,b) => (a.inWatchlist === b.inWatchlist ? 0 : (a.inWatchlist ? -1 : 1)) || a.date.localeCompare(b.date));
       $('pbCntEarnings').textContent = String(earnings.length);
-      if (!earnings.length){ $('pbBodyEarnings').innerHTML = '<div class="pb-empty">📭 Niciun earnings din watchlist sau mega-caps azi/mâine.</div>'; return; }
+      if (!earnings.length){ $('pbBodyEarnings').innerHTML = '<div class="pb-empty">📭 Niciun earnings din watchlist sau mega-caps în următoarele 7 zile.</div>'; return; }
       $('pbBodyEarnings').innerHTML = `<table class="pb-table">
         <thead><tr><th>Ticker</th><th>Data</th><th>Ora</th><th>EPS Est</th><th>Watchlist</th></tr></thead>
         <tbody>${earnings.slice(0, 12).map(e => `<tr>
@@ -1820,19 +1884,41 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
       <div style="font-size:10.5px;color:var(--t3);margin-top:6px;text-align:right;font-family:var(--mono)">cache 6h · primele 20 entries</div>`;
   }
 
-  // ── Nasdaq top picks (din nasdaq_last_scan în localStorage) ──
+  // ── Top picks: nasdaq_last_scan dacă e fresh; altfel semnalele LIVE din restul
+  //    suitei (READY/OK din scanul de listă STL + ultimele intrări Signal Ledger) ──
+  function pbPicksFallback(){
+    let stl = {};
+    try { stl = JSON.parse(localStorage.getItem('stl_list_state') || '{}'); } catch (e) {}
+    const stlHot = Object.entries(stl)
+      .filter(([, v]) => v && (v.tier === 'READY' || v.tier === 'OK') && Date.now() - (v.ts || 0) < 24*3600000)
+      .sort((a, b) => (a[1].tier === 'READY' ? 0 : 1) - (b[1].tier === 'READY' ? 0 : 1)).slice(0, 10);
+    const led = (window.LEDGER ? LEDGER.all() : []).slice(-5).reverse();
+    if (!stlHot.length && !led.length) return null;
+    const SRC = { 'wlm-strongbuy': '👁 WLM', 'me-early': '🌱 Events', 'stl-ready': '🎯 STL', 'nasdaq-opp80': '🚀 Nasdaq' };
+    let html = '';
+    if (stlHot.length) html += `<div style="margin-bottom:7px"><span style="font-size:10.5px;color:var(--t3);font-family:var(--mono)">🎯 Smart Trade Long — scan listă &lt;24h:</span><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:4px">${stlHot.map(([s, v]) => `<span class="pb-chip ${v.tier === 'READY' ? 'bull' : 'med'}">${escHtml(s)} ${v.tier === 'READY' ? '🚀 READY' : '🟢 OK'}</span>`).join('')}</div></div>`;
+    if (led.length) html += `<div><span style="font-size:10.5px;color:var(--t3);font-family:var(--mono)">📒 ultimele semnale consemnate (Signal Ledger):</span>${led.map(e => `<div style="font-size:11.5px;padding:3px 0;border-bottom:1px solid rgba(42,50,71,.4)">${SRC[e.src] || escHtml(e.src)} · <b>${escHtml(e.sym)}</b> @ $${fmtNum(e.price)} <span style="color:var(--t3);font-family:var(--mono)">${escHtml(e.day)}</span></div>`).join('')}</div>`;
+    return { html, n: stlHot.length + led.length };
+  }
   function pbLoadNasdaqPicks(){
     let scan = null;
     try { scan = JSON.parse(localStorage.getItem('nasdaq_last_scan') || 'null'); } catch (e) {}
-    if (!scan || !scan.opportunities){
-      $('pbBodyNasdaq').innerHTML = '<div class="pb-empty">📭 Niciun scan recent în nasdaq-scanner.</div>';
-      $('pbCntNasdaq').textContent = '0';
+    const ageMin = scan ? Math.round((Date.now() - (scan.timestamp || 0)) / 60000) : null;
+    const ops = (scan && scan.opportunities ? scan.opportunities : []).filter(o => o.score >= 65).slice(0, 8);
+    if (!ops.length || ageMin == null || ageMin > 24*60){
+      // scan lipsă/vechi >24h (ar induce în eroare) → arată ce ȘTIE deja restul suitei
+      const fb = pbPicksFallback();
+      const note = ageMin != null ? `ultimul scan nasdaq: acum ${ageMin < 60 ? ageMin + 'min' : Math.round(ageMin/60) + 'h'}` : 'niciun scan nasdaq recent';
+      if (fb){
+        $('pbCntNasdaq').textContent = String(fb.n);
+        $('pbBodyNasdaq').innerHTML = `<div style="font-size:10.5px;color:var(--t3);margin-bottom:6px;font-family:var(--mono)">${note} — mai jos: semnalele live din restul suitei</div>` + fb.html;
+      } else {
+        $('pbCntNasdaq').textContent = '0';
+        $('pbBodyNasdaq').innerHTML = `<div class="pb-empty">📭 ${note} și niciun semnal în suite — rulează un scan în <a href="./nasdaq-scanner/" style="color:#5bb0ff">Nasdaq Scanner</a> sau lasă <a href="./smart-trade-long/" style="color:#5bb0ff">Smart Trade Long</a> deschis (scan listă automat).</div>`;
+      }
       return;
     }
-    const ageMin = Math.round((Date.now() - (scan.timestamp || 0)) / 60000);
-    const ops = (scan.opportunities || []).filter(o => o.score >= 65).slice(0, 8);
     $('pbCntNasdaq').textContent = String(ops.length);
-    if (!ops.length){ $('pbBodyNasdaq').innerHTML = '<div class="pb-empty">📭 Niciun stock cu score ≥65 în ultimul scan.</div>'; return; }
     $('pbBodyNasdaq').innerHTML = `<div style="font-size:10.5px;color:var(--t3);margin-bottom:5px;font-family:var(--mono)">scan acum ${ageMin < 60 ? ageMin + 'min' : Math.round(ageMin/60) + 'h'} · top 8 cu score ≥65</div>
       <table class="pb-table">
         <thead><tr><th>Ticker</th><th>Score</th><th>Type</th><th>Preț</th><th>Chg 24h</th><th>RSI</th></tr></thead>
