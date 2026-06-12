@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v109</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v110</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -1402,7 +1402,11 @@ document.addEventListener('click',()=>{if(!audioCtx)try{audioCtx=new(window.Audi
   // Generează manifest dinamic (no external files needed)
   const mf = {
     name:'Nasdaq Scanner', short_name:'Nasdaq',
+    // start_url/scope/id ABSOLUTE — manifestul e servit dintr-un URL blob:, unde
+    // rezolvarea relativă e imposibilă (Chrome: „property 'scope' ignored, URL is invalid")
     start_url: location.href.split('?')[0],
+    scope: location.href.replace(/[^/]*(\?.*)?$/, ''),
+    id: location.href.split('?')[0],
     display:'standalone', background_color:'#f4f6ff', theme_color:'#2563eb',
     icons:[
       { src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='38' fill='%232563eb'/%3E%3Ctext y='128' x='96' text-anchor='middle' font-size='96'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E", sizes:'192x192', type:'image/svg+xml', purpose:'any maskable' },
@@ -10416,6 +10420,12 @@ async function _gistApiN(method, path, body, token){
   };
   if(body){ opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
   const r = await fetch(url, opts);
+  if(r.status === 401){
+    // Token mort (expirat/revocat) — flag persistent: auto-pull-ul de la load TACE până
+    // e salvat alt token (altfel 401 + stack trace în consolă la FIECARE deschidere).
+    try{ const c = _gistConfigN(); c.authFailed = Date.now(); _gistSaveConfigN(c); }catch(_){}
+    throw new Error('Gist token invalid (401 Bad credentials) — generează un PAT nou cu scope "gist" la github.com/settings/tokens și salvează-l în ⚙ Sync.');
+  }
   if(!r.ok) throw new Error('Gist API ' + r.status + ': ' + (await r.text()).slice(0,200));
   return r.json();
 }
@@ -10441,6 +10451,8 @@ async function gistInitNasdaq(){
       _gistSaveConfigN(cfg);
     }
   }
+  delete cfg.authFailed; // încercare cu token (posibil) nou → re-armează auto-pull-ul
+  _gistSaveConfigN(cfg);
   if(!cfg.token){ alert('❌ Lipsește token-ul GitHub. Lipește un Personal Access Token (scope: gist) în câmpul Token sau creează unul la github.com/settings/tokens.'); return; }
   if(cfg.gistId){
     if(!confirm('Există deja un gist configurat (' + cfg.gistId.slice(0,8) + '...). Vrei să creezi unul NOU? Cel vechi rămâne dar nu va mai fi folosit.')) return;
@@ -10587,6 +10599,7 @@ function saveGistConfigNasdaq(){
   cfg.token = (document.getElementById('gsn_token').value || '').trim() || null;
   cfg.gistId = (document.getElementById('gsn_gistId').value || '').trim() || null;
   cfg.autoSync = document.getElementById('gsn_auto').checked;
+  delete cfg.authFailed; // token (posibil) schimbat → re-armează auto-pull-ul
   _gistSaveConfigN(cfg);
   _updateGistStatusN();
   if(typeof showToast === 'function') showToast('✅ Configurație Sync salvată','ok');
@@ -10598,6 +10611,7 @@ function _updateGistStatusN(){
   const el = document.getElementById('gsn_status');
   if(el){
     if(!cfg.token){ el.innerHTML = '<span style="color:var(--t3)">⚪ Neconfigurat — adaugă token + gist ID</span>'; }
+    else if(cfg.authFailed){ el.innerHTML = '<span style="color:#dc2626">🔴 Token invalid (401 — expirat/revocat). Generează un PAT nou cu scope „gist" la <a href="https://github.com/settings/tokens" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">github.com/settings/tokens</a>, lipește-l mai sus și salvează. Auto-sync e oprit până atunci.</span>'; }
     else if(!cfg.gistId){ el.innerHTML = '<span style="color:#d97706">🟡 Token ok, dar lipsește gist ID — creează unul nou sau introdu unul existent</span>'; }
     else {
       const last = cfg.lastSyncTs ? new Date(cfg.lastSyncTs).toLocaleString() : 'niciodată';
@@ -10614,7 +10628,7 @@ function _updateGistStatusN(){
 window.addEventListener('load', () => {
   setTimeout(() => {
     const cfg = _gistConfigN();
-    if(!cfg.token || !cfg.gistId || !cfg.autoSync) { _updateGistStatusN(); return; }
+    if(!cfg.token || !cfg.gistId || !cfg.autoSync || cfg.authFailed) { _updateGistStatusN(); return; }
     _gistApiN('GET', '/gists/' + cfg.gistId, null, cfg.token).then(r => {
       const file = r.files && r.files['nasdaq_scanner.json'];
       if(!file || !file.content) return;
