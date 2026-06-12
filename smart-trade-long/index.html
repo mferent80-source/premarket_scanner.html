@@ -247,7 +247,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v19</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v20</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -956,6 +956,7 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
         <div class="verdict-desc">${t.desc}</div>
         <div class="score-bar"><div class="score-fill" style="width:${scoreData.score}%"></div></div>
         <div class="score-num">${scoreData.score}<small>/100</small></div>
+        <button class="btn" id="savePlanBtn" style="margin-top:12px;font-size:12px" title="Salvează Entry/SL/TP2 + shares în Trade Tracker-ul din Hub (FAB 📓)">📓 Salvează plan în Hub</button>
       </div>
 
       <div class="card">
@@ -1060,10 +1061,36 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
   const rerunBtn = document.getElementById('aiSetupRerun');
   if (setupBtn) setupBtn.addEventListener('click', () => runAIQuickSetup(sym, scoreData, insiderData, false));
   if (rerunBtn) rerunBtn.addEventListener('click', () => runAIQuickSetup(sym, scoreData, insiderData, true));
+  const planBtn = document.getElementById('savePlanBtn');
+  if (planBtn) planBtn.addEventListener('click', savePlanToTracker);
 
   // Auto-show cached setup if exists
   const cached = getCachedSetup(sym);
   if (cached) renderAISetupOutput(cached, 'cache');
+}
+
+// ─────────────────────── PLAN → TRADE TRACKER (Hub) ───────────────────────
+// Scrie planul curent în `trade_plans_v1` — storage-ul FAB-ului 📓 din Hub, schema
+// identică cu ttAddTrade de acolo. Închide cercul semnal → plan → tracking PnL
+// fără pagină nouă. Shares = sizer-ul curent (cont + % risc din inputuri).
+function savePlanToTracker() {
+  const r = state.lastResult;
+  if (!r) return;
+  const atrV = r.scoreData.atr || 0, entry = r.scoreData.last;
+  const sl = entry - 1.5 * atrV, tp2 = entry + 2 * atrV;
+  const sz = calcShares(entry, sl);
+  try {
+    const arr = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
+    arr.unshift({
+      id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      ticker: r.sym, size: sz.shares || 0,
+      entry: +entry.toFixed(2), sl: +sl.toFixed(2), tp: +tp2.toFixed(2),
+      dir: 'long', notes: `STL ${effTier(r.scoreData).label} ${r.scoreData.score}/100 · risc ~$${sz.riskUSD.toFixed(0)}`,
+      status: 'open', opened: Date.now(),
+    });
+    localStorage.setItem('trade_plans_v1', JSON.stringify(arr));
+    toast(`📓 Plan ${r.sym} salvat — vezi Trade Plans (📓) în Hub`, 'ok');
+  } catch (e) { toast('Eroare la salvarea planului', 'err'); }
 }
 
 // ─────────────────────── AI QUICK SETUP ───────────────────────
