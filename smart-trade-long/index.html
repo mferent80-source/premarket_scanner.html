@@ -247,7 +247,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v16</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v17</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -703,13 +703,35 @@ function tier(score) {
   return { cls: 'tier-n', icon: '🔴', label: 'NU', desc: 'Setup slab — renunță' };
 }
 
+// Gate de regim de piață — citește compozitul scris de Macro Dashboard în
+// `md_risk_regime` ({label, composite, ts}, valid <6h). Un long READY în RISK-OFF
+// are alte șanse decât în RISK-ON; cap-ul e pe etichetă, scorul rămâne intact.
+// Culoarea se derivă LOCAL din etichetă (gotcha cunoscut: macro salvează color
+// ca var(--bull-s) — variabilă inexistentă în paleta altor pagini).
+function riskRegime() {
+  try {
+    const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
+    if (!r || !r.label || !r.ts || Date.now() - r.ts > 6 * 3600 * 1000) return null;
+    const L = String(r.label).toUpperCase();
+    if (L.includes('RISK-OFF')) return { label: r.label, cap: 'MIXT', color: '#ef4444' };
+    if (L.includes('CAUTIOUS')) return { label: r.label, cap: 'OK', color: '#f59e0b' };
+    return { label: r.label, cap: null, color: L.includes('RISK-ON') ? '#22c55e' : (L.includes('LEAN') ? '#a3e635' : '#9ca3af') };
+  } catch (e) { return null; }
+}
+
 // Verdict EFECTIV = tier(score) + cap-uri de context. Scorul brut rămâne vizibil —
-// cap-ul mută doar ETICHETA (READY→OK la preț extins peste MA50), transparent prin
-// badge 🏃 + banner. Alertele/ledger-ul folosesc verdictul efectiv (anti-zgomot).
+// cap-ul mută doar ETICHETA (READY→OK la preț extins peste MA50; READY→OK/MIXT după
+// regimul macro), transparent prin badge 🏃/🛡 + banner. Alertele/ledger-ul folosesc
+// verdictul efectiv (anti-zgomot).
 function effTier(sd) {
   let t = tier(sd.score);
   const caps = [];
   if (sd.ext && sd.ext.ran && t.label === 'READY') { t = tier(70); caps.push('ext'); }
+  const reg = riskRegime();
+  if (reg && reg.cap) {
+    const order = { 'NU': 0, 'MIXT': 1, 'OK': 2, 'READY': 3 };
+    if (order[t.label] > order[reg.cap]) { t = tier(reg.cap === 'OK' ? 70 : 50); caps.push('regim'); }
+  }
   return { ...t, caps };
 }
 
@@ -866,11 +888,19 @@ function render(sym, scoreData, insiderData, earnInfo) {
   const extBanner = (scoreData.ext && scoreData.ext.ran)
     ? `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--yellow);line-height:1.5">🏃 <strong>A fugit deja:</strong> +${scoreData.ext.pct.toFixed(1)}% peste MA50${scoreData.ext.atr != null ? ` (${scoreData.ext.atr.toFixed(1)}×ATR)` : ''}. Entry aici = chasing — SL-ul −1.5×ATR pică departe de orice suport și R:R-ul real e degradat.${t.caps.includes('ext') ? ' <strong>Verdictul a fost limitat la OK.</strong>' : ''} Intrarea corectă e pe pullback spre MA20/MA50, nu pe vârf.</div>`
     : '';
+  // Regim de piață: chip informativ mereu când compozitul macro e proaspăt;
+  // avertisment vizibil când a limitat verdictul.
+  const reg = riskRegime();
+  const regBanner = reg
+    ? (t.caps.includes('regim')
+        ? `<div style="background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--red);line-height:1.5">🛡 <strong>Regim de piață: ${escHtml(reg.label)}</strong> (din Macro Dashboard) — verdictul a fost limitat la <strong>${t.label}</strong>. Long-urile noi au probabilitate degradată în acest regim: dimensionează mai mic sau așteaptă revenirea spre RISK-ON.</div>`
+        : `<div style="margin-bottom:12px;font-size:12px;color:var(--txt-dd)">🛡 Regim de piață: <strong style="color:${reg.color}">${escHtml(reg.label)}</strong> · din Macro Dashboard</div>`)
+    : '';
   // Panou pliabil: summary = simbol + verdict; restrâns, lista de dedesubt urcă la vedere.
   // Starea (collapsed) supraviețuiește re-render-urilor (auto 5min, schimbare cont/risc).
   resultArea.innerHTML = `<details class="res-details" id="resDetails"${state.resCollapsed ? '' : ' open'}>
-    <summary><span class="caret">▶</span> 🎯 <strong>${sym}</strong> · ${t.icon} ${t.label}${t.caps.includes('ext') ? ' 🏃' : ''} · ${scoreData.score}/100 · ${fmt$(last)}${earnInfo && earnInfo.hoursAway <= 48 ? ' · <span style="color:var(--red);font-weight:700">🚫 earnings!</span>' : ''}<span class="sum-hint">click = restrânge/extinde</span></summary>
-    <div class="res-body">` + earnBanner + extBanner + `
+    <summary><span class="caret">▶</span> 🎯 <strong>${sym}</strong> · ${t.icon} ${t.label}${t.caps.includes('ext') ? ' 🏃' : ''}${t.caps.includes('regim') ? ' 🛡' : ''} · ${scoreData.score}/100 · ${fmt$(last)}${earnInfo && earnInfo.hoursAway <= 48 ? ' · <span style="color:var(--red);font-weight:700">🚫 earnings!</span>' : ''}<span class="sum-hint">click = restrânge/extinde</span></summary>
+    <div class="res-body">` + earnBanner + extBanner + regBanner + `
     <div class="grid">
       <div class="card verdict-card">
         <div class="verdict-icon">${t.icon}</div>
@@ -1324,7 +1354,7 @@ function renderListTable() {
       <td class="ls-hide">${s.adx != null ? s.adx.toFixed(0) : '—'}</td>
       <td class="ls-hide">${s.volRatio != null ? s.volRatio.toFixed(2) + '×' : '—'}</td>
       <td><strong>${s.score}</strong></td>
-      <td><span class="ls-tier ${r.t.cls}"${r.sd.ext && r.sd.ext.ran ? ` title="extins +${r.sd.ext.pct.toFixed(1)}% peste MA50 — chasing${r.t.caps.includes('ext') ? '; READY limitat la OK' : ''}"` : ''}>${r.t.icon} ${r.t.label}${r.sd.ext && r.sd.ext.ran ? ' 🏃' : ''}</span></td>
+      <td><span class="ls-tier ${r.t.cls}"${r.sd.ext && r.sd.ext.ran ? ` title="extins +${r.sd.ext.pct.toFixed(1)}% peste MA50 — chasing${r.t.caps.includes('ext') ? '; READY limitat la OK' : ''}"` : ''}>${r.t.icon} ${r.t.label}${r.sd.ext && r.sd.ext.ran ? ' 🏃' : ''}${r.t.caps && r.t.caps.includes('regim') ? ' 🛡' : ''}</span></td>
     </tr>`;
   }).join('');
   updateListStatus();
