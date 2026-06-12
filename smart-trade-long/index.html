@@ -247,7 +247,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v17</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v18</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -801,6 +801,20 @@ function analyzeInsiders(transactions) {
   return { buys, sells, buyVal, sellVal, net, verdict, verdictTxt, recent };
 }
 
+// ─────────────────────── SIZER (reutilizat: render + alerte TG + salvare plan) ───────────────────────
+// Shares din riscul % de cont, limitate la mărimea contului (T212 cash, FĂRĂ leverage:
+// la ATR mic, riscul permis ar cere o poziție mai mare decât tot contul).
+function calcShares(entry, sl) {
+  const acct = parseFloat(acctSizeEl.value) || 10000;
+  const riskPct = parseFloat(riskPctEl.value) || 1;
+  const riskUSD = acct * riskPct / 100;
+  const riskShare = entry - sl;
+  const sharesRaw = riskShare > 0 ? Math.floor(riskUSD / riskShare) : 0;
+  const maxShares = entry > 0 ? Math.floor(acct / entry) : 0;
+  const capped = sharesRaw > maxShares;
+  return { shares: capped ? maxShares : sharesRaw, sharesRaw, riskUSD, riskShare, acct, capped };
+}
+
 // ─────────────────────── RENDER ───────────────────────
 function render(sym, scoreData, insiderData, earnInfo) {
   const t = effTier(scoreData);
@@ -811,19 +825,12 @@ function render(sym, scoreData, insiderData, earnInfo) {
   const tp1 = entry + 1 * atrV;
   const tp2 = entry + 2 * atrV;
   const tp3 = entry + 3 * atrV;
-  const acct = parseFloat(acctSizeEl.value) || 10000;
-  const riskPct = parseFloat(riskPctEl.value) || 1;
-  const riskUSD = acct * riskPct / 100;
-  const riskShare = entry - sl;
-  let shares = riskShare > 0 ? Math.floor(riskUSD / riskShare) : 0;
-  // Cap la mărimea contului — T212 cash, FĂRĂ leverage: la ATR mic (stock liniștit),
-  // riscul permis ar cere o poziție mai mare decât tot contul. Fără gardă, sizer-ul
-  // afișa senin „120% account".
-  const maxShares = entry > 0 ? Math.floor(acct / entry) : 0;
+  const sz = calcShares(entry, sl);
+  const { riskUSD, riskShare, acct } = sz;
+  const shares = sz.shares;
   let sizerCapNote = '';
-  if (shares > maxShares) {
-    sizerCapNote = `<div style="margin-top:10px;padding:8px 11px;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:8px;font-size:12px;color:var(--yellow);line-height:1.5">⚠ Riscul de ${fmt$(riskUSD)} ar cere <strong>${fmtNum(shares)}</strong> shares — peste cont (fără leverage pe T212 cash). Redus la <strong>${fmtNum(maxShares)}</strong> shares; riscul real la SL devine <strong>${fmt$(maxShares * riskShare)}</strong> (${acct > 0 ? (maxShares * riskShare / acct * 100).toFixed(2) : '—'}% din cont).</div>`;
-    shares = maxShares;
+  if (sz.capped) {
+    sizerCapNote = `<div style="margin-top:10px;padding:8px 11px;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:8px;font-size:12px;color:var(--yellow);line-height:1.5">⚠ Riscul de ${fmt$(riskUSD)} ar cere <strong>${fmtNum(sz.sharesRaw)}</strong> shares — peste cont (fără leverage pe T212 cash). Redus la <strong>${fmtNum(shares)}</strong> shares; riscul real la SL devine <strong>${fmt$(shares * riskShare)}</strong> (${acct > 0 ? (shares * riskShare / acct * 100).toFixed(2) : '—'}% din cont).</div>`;
   }
   const positionValue = shares * entry;
   const positionPct = positionValue / acct * 100;
@@ -1382,8 +1389,14 @@ function notifyNewReady(rows) {
   if (!fresh.length) return;
   toast(`🚀 READY nou: ${fresh.map(f => f.sym).join(', ')}`, 'ok');
   if (window.TG) {
-    const lines = fresh.map(f => `🚀 <b>${f.sym}</b> — score ${f.sd.score}/100 @ $${f.sd.last.toFixed(2)}${f.earn && f.earn.hoursAway <= 48 ? ' ⚠ earnings &lt;48h' : ''}`);
-    TG.send(`🎯 <b>Smart Trade Long — READY nou (${fresh.length})</b>\n${lines.join('\n')}\nNiveluri SL/TP din ATR → în pagină.`);
+    // alertă acționabilă direct de pe telefon: niveluri ATR + shares din sizer-ul curent
+    const lines = fresh.map(f => {
+      const a = f.sd.atr || 0, e = f.sd.last;
+      const sl = e - 1.5 * a, tp1 = e + a, tp2 = e + 2 * a;
+      const sz = calcShares(e, sl);
+      return `🚀 <b>${f.sym}</b> — score ${f.sd.score}/100${f.earn && f.earn.hoursAway <= 48 ? ' ⚠ earnings &lt;48h' : ''}\nE $${e.toFixed(2)} · SL $${sl.toFixed(2)} · TP1 $${tp1.toFixed(2)} · TP2 $${tp2.toFixed(2)} · <b>${sz.shares} sh</b> (risc ~$${sz.riskUSD.toFixed(0)})`;
+    });
+    TG.send(`🎯 <b>Smart Trade Long — READY nou (${fresh.length})</b>\n${lines.join('\n\n')}`);
   }
 }
 
