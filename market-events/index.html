@@ -1037,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v230</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v231</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1320,6 +1320,7 @@
 <script src="../lib/data.js"></script>
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
+<script src="../lib/telegram.js"></script>
 <script>
 // Features modal pentru pagina market-events
 window.showMeFeatures = function(){
@@ -3361,6 +3362,9 @@ function wlNotifyWilting(items){
   if ('Notification' in window && Notification.permission === 'granted'){
     try { new Notification('Market Events · 🥀 Invalidare', { body: msg }); } catch(_){}
   }
+  // Telegram (lib/telegram.js, config shared tt_tg_config) — toast/Notification mor cu
+  // tab-ul; invalidarea tezei trebuie să ajungă pe telefon la fel ca semnalul de intrare
+  if (window.TG) TG.send(`📊 <b>Market Events — 🥀 invalidare early-bird</b>\n` + items.map(x => `🥀 <b>${wlEsc(x.symbol)}</b> — ${wlEsc(x.reason || '')}`).join('\n'));
 }
 function wlNotifyEarly(items){
   const list = items.map(x => `${x.symbol} ▲${x.score}`).join(', ');
@@ -3371,6 +3375,7 @@ function wlNotifyEarly(items){
   if ('Notification' in window && Notification.permission === 'granted'){
     try { new Notification('Market Events · 🌱 Early-bird', { body: msg }); } catch(_){}
   }
+  if (window.TG) TG.send(`📊 <b>Market Events — 🌱 early-bird nou (${items.length})</b>\n` + items.map(x => `🌱 <b>${wlEsc(x.symbol)}</b> ▲${x.score}`).join('\n'));
 }
 // ============================================================
 // INSIDER CLUSTER BUYS 🏛️ — Form 4 Finnhub (shared API key)
@@ -3529,6 +3534,7 @@ function wlNotifyInsiderCluster(items){
   if ('Notification' in window && Notification.permission === 'granted'){
     try { new Notification('Market Events · 🏛️ Insider cluster nou', { body: msg }); } catch(_){}
   }
+  if (window.TG) TG.send(`📊 <b>Market Events — 🏛️ insider cluster nou (${items.length})</b>\n` + items.map(x => `🏛️ <b>${wlEsc(x.symbol)}</b> — ${x.people} executivi au cumpărat${x.value ? ' (~$' + (x.value / 1000).toFixed(0) + 'K)' : ''}`).join('\n'));
 }
 
 // Diagnostic — câte simboluri din watchlist ating fiecare prag de badge.
@@ -5077,6 +5083,11 @@ function meAlertsEvaluate(){
     if ('Notification' in window && Notification.permission === 'granted') {
       try { new Notification('Market Events Alert', { body: msg }); } catch (_) {}
     }
+  }
+  // Telegram agregat (un mesaj per ciclu, nu unul per alertă); op-ul ≥/≤ în loc de
+  // >/< — caracterele brute ar strica parse_mode HTML
+  if (triggered.length && window.TG) {
+    TG.send(`📊 <b>Market Events — 🔔 alerte metrice (${triggered.length})</b>\n` + triggered.map(t => `🔔 <b>${wlEsc(t.symbol)}</b> · ${labels[t.alert.metric]} ${t.alert.op === '>' ? '≥' : '≤'} ${t.alert.value} (acum ${(+t.value).toFixed(2)})`).join('\n'));
   }
 }
 
