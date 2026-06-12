@@ -247,7 +247,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v20</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v21</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -359,6 +359,7 @@ const state = {
   lastSymbol: null,
   lastResult: null,
   resCollapsed: false, // panoul de analiză restrâns de user (summary-only)
+  autoOverdue: false, // auto-scan 5min ratat cât a fost tab-ul ascuns → recuperat la revenire
 };
 
 // ─────────────────────── DOM ───────────────────────
@@ -1081,6 +1082,8 @@ function savePlanToTracker() {
   const sz = calcShares(entry, sl);
   try {
     const arr = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
+    // anti-duplicat: două click-uri = două planuri identice în tracker fără asta
+    if (arr.some(p => p.ticker === r.sym && p.status === 'open') && !confirm(`Există deja un plan OPEN pe ${r.sym} în tracker. Adaug încă unul?`)) return;
     arr.unshift({
       id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       ticker: r.sym, size: sz.shares || 0,
@@ -1156,7 +1159,7 @@ async function runAIQuickSetup(sym, scoreData, insiderData, force) {
 - ADX(14): ${scoreData.adx?.toFixed(1) ?? 'N/A'} (trend strength)
 - Trend MA: ${trend}
 - Distance vs MA50: ${vsMA50}%
-- Vol Ratio (5d/avg20d): ${scoreData.volRatio?.toFixed(2) ?? 'N/A'}x
+- Vol Ratio (ultima zi închisă / avg 20d): ${scoreData.volRatio?.toFixed(2) ?? 'N/A'}x
 - RS vs SPY (3m): ${scoreData.rsSpy != null ? (scoreData.rsSpy >= 0 ? '+' : '') + scoreData.rsSpy.toFixed(1) + 'pp' : 'N/A'}
 - Distanță față de max 52s: ${scoreData.distHi52 != null ? scoreData.distHi52.toFixed(1) + '%' : 'N/A'}
 - Score scanner: ${scoreData.score}/100 — ${effTier(scoreData).label}${scoreData.ext && scoreData.ext.ran ? ' (extins peste MA50 — chasing risk)' : ''}
@@ -1330,6 +1333,9 @@ window.addEventListener('storage', e => { if (e.key === WL_KEY) renderWL(); });
 function startAuto() {
   stopAuto();
   state.autoTimer = setInterval(() => {
+    // tab ascuns → nu arde request-uri (aceeași gardă ca scanul de listă);
+    // scanul restant rulează la revenire prin visibilitychange
+    if (document.hidden) { state.autoOverdue = true; return; }
     if (state.lastSymbol) scan(state.lastSymbol, true);
   }, AUTO_INTERVAL_MS);
 }
@@ -1488,7 +1494,9 @@ function lsTgHintRefresh() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && listState.overdue) { listState.overdue = false; runListScan(); }
+  if (document.hidden) return;
+  if (listState.overdue) { listState.overdue = false; runListScan(); }
+  if (state.autoOverdue) { state.autoOverdue = false; if (autoScan.checked && state.lastSymbol) scan(state.lastSymbol, true); }
 });
 
 // ─────────────────────── SETTINGS MODAL ───────────────────────
