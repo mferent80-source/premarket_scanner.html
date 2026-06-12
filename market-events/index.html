@@ -1037,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v232</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v233</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -3525,13 +3525,19 @@ async function wlEnsureInsiderData(force){
       newlyCluster.push({
         symbol: w.symbol,
         people: wlInsiderCache[w.symbol].ins.people,
-        value: wlInsiderCache[w.symbol].ins.value
+        value: wlInsiderCache[w.symbol].ins.value,
+        price: (watchlist.find(x => x.symbol === w.symbol) || {}).price || null
       });
     }
     insSeen[w.symbol] = nowCluster;
   }
   try { localStorage.setItem(WL_INS_SEEN_KEY, JSON.stringify(insSeen)); } catch(_){}
-  if (newlyCluster.length) wlNotifyInsiderCluster(newlyCluster);
+  if (newlyCluster.length) {
+    wlNotifyInsiderCluster(newlyCluster);
+    // Signal ledger — cluster NOU, evaluat la +5/+20z în scorecard-ul din Hub:
+    // singura cale de a afla cu CIFRE dacă „smart-money bullish" chiar prezice ceva
+    if (window.LEDGER) newlyCluster.forEach(x => { if (x.price > 0) LEDGER.log('me-insider', x.symbol, x.price, '🏛️×' + x.people); });
+  }
 }
 
 const WL_INS_SEEN_KEY = 'me_wl_ins_seen';
