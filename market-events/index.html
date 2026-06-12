@@ -1037,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v234</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v235</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1348,7 +1348,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v234 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early (început de drum)/🌳 Confirmat + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v235 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early (început de drum)/🌳 Confirmat + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2035,6 +2035,11 @@ async function loserAddEarlyReversal(){
 // AI INTEGRATION (port din nasdaq-scanner)
 // ============================================================
 const AI_MODEL = 'claude-opus-4-8';
+// Gardă anti-„amintiri" (cerere Marius 2026-06-12: „AI scan vorbește din amintiri"):
+// modelul are knowledge cutoff vechi de luni — fără regula asta explicită, Opus
+// completează senin cu prețuri/evenimente/„ce știe" despre companie din memoria de
+// antrenament (plauzibile, dar GREȘITE azi). Se atașează la TOATE prompturile AI.
+const AI_GROUNDING = `REGULĂ CRITICĂ DE GROUNDING: cunoștințele tale despre companii sunt VECHI (cutoff de antrenament cu luni în urmă). Folosește EXCLUSIV cifrele și faptele din acest mesaj (preț, indicatori, earnings, insider, volum). NU cita prețuri istorice, evenimente, știri sau „ce știi" despre companie din memorie — sunt depășite și induc în eroare. Nivelurile tehnice (suport/rezistență/entry/SL/TP) le derivezi DOAR din cifrele furnizate aici. Dacă o informație lipsește din date, scrie explicit „nu am această dată" — NU o inventa.`;
 const aiCache = {}; // simbol+type → text (evită apeluri duplicate în aceeași sesiune)
 
 function getAnthropicKey(){ return localStorage.getItem('anthropic_api_key')||''; }
@@ -2120,9 +2125,9 @@ function _buildAiPrompt(type, s) {
   const ctx = [priceLine, changeLine, mcapLine, sectorLine, earnLine, epsLine, volLine, lowLine].filter(Boolean).join('\n');
 
   if (type === 'earnings') {
-    return `Analizează rapid simbolul ${s.symbol} (${s.name || ''}) ca trader pe Nasdaq, înainte de raportul de earnings:\n\n${ctx}\n\nDă-mi în 6-8 puncte concise (max 350 cuvinte, română):\n1. Așteptările pieței față de earnings (estimate vs trend ramurii)\n2. Risc principal pe earnings (gap up/down, volatilitate implicită)\n3. Setup tehnic prezent (suport/rezistență relevante)\n4. Catalysti potențiali post-raport\n5. Strategii: pre-earnings vs post-earnings, opțiuni vs underlying\n6. Verdict scurt: trade pre-earnings (risk/reward), wait-for-confirmation post-earnings, sau skip\n\nFormat: bullet points, fără introducere lungă. Concret.`;
+    return `Analizează rapid simbolul ${s.symbol} (${s.name || ''}) ca trader pe Nasdaq, înainte de raportul de earnings:\n\n${ctx}\n\nDă-mi în 6-8 puncte concise (max 350 cuvinte, română):\n1. Așteptările pieței față de earnings (estimate vs trend ramurii)\n2. Risc principal pe earnings (gap up/down, volatilitate implicită)\n3. Setup tehnic prezent (suport/rezistență relevante)\n4. Catalysti potențiali post-raport\n5. Strategii: pre-earnings vs post-earnings, opțiuni vs underlying\n6. Verdict scurt: trade pre-earnings (risk/reward), wait-for-confirmation post-earnings, sau skip\n\nFormat: bullet points, fără introducere lungă. Concret.\n\n${AI_GROUNDING}`;
   } else {
-    return `Analizează rapid simbolul ${s.symbol} (${s.name || ''}) ca trader pe Nasdaq, după o cădere semnificativă:\n\n${ctx}\n\nDă-mi în 6-8 puncte concise (max 350 cuvinte, română):\n1. Cauza probabilă a căderii (sectorial, news, earnings miss, downgrade)\n2. Suporturi tehnice relevante (Fib, EMA20/50/200, low previous swing)\n3. Risc continuat (cap-and-trade, bear flag, gap fill failed)\n4. Probabilitate revenire scurt-mediu termen (oversold RSI, divergență)\n5. Setup pentru bounce trade vs continuation short\n6. Verdict: long oversold bounce, short continuation, sau wait\n\nFormat: bullet points, fără introducere lungă. Concret.`;
+    return `Analizează rapid simbolul ${s.symbol} (${s.name || ''}) ca trader pe Nasdaq, după o cădere semnificativă:\n\n${ctx}\n\nDă-mi în 6-8 puncte concise (max 350 cuvinte, română):\n1. Cauza probabilă a căderii (sectorial, news, earnings miss, downgrade)\n2. Suporturi tehnice relevante (Fib, EMA20/50/200, low previous swing)\n3. Risc continuat (cap-and-trade, bear flag, gap fill failed)\n4. Probabilitate revenire scurt-mediu termen (oversold RSI, divergență)\n5. Setup pentru bounce trade vs continuation short\n6. Verdict: long oversold bounce, short continuation, sau wait\n\nFormat: bullet points, fără introducere lungă. Concret.\n\n${AI_GROUNDING}`;
   }
 }
 
@@ -2297,7 +2302,9 @@ ${type === 'watchlist' ? '- Watchlist standard: entry market sau pullback, SL la
 - reasoning: explică EXPLICIT în română (3-5 propoziții) — ce indicatori convergă, setup-ul tehnic, de ce acel entry/SL/TP, ce confidence și de ce.
 - invalidation: trigger clar care anulează setup-ul
 - catalysts: events imediate sau structurale care pot mișca prețul
-- confidence: HIGH/MED/LOW bazat pe context disponibil`;
+- confidence: HIGH/MED/LOW bazat pe context disponibil
+
+${AI_GROUNDING}`;
     try {
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -2886,7 +2893,7 @@ async function aiCompare(source = 'wl'){
     intro = `Compară următoarele ${symbols.length} simboluri pentru un trade pe termen scurt (Trade 212, Nasdaq):`;
   }
 
-  const prompt = `${intro}\n\n${ctx}\n\nDă-mi:\n1. Tabel cu rating tehnic (1-10) per simbol pentru: trend, momentum, R/R bun la entry actual\n2. Care simbol are cel mai bun setup ACUM (long sau short) și de ce, cu entry/TP/SL concret\n3. Care simbol e cel mai riscant și de ce\n4. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + un mini tabel ASCII pentru rating. Maximum 400 cuvinte. Concret, fără fluff.`;
+  const prompt = `${intro}\n\n${ctx}\n\nDă-mi:\n1. Tabel cu rating tehnic (1-10) per simbol pentru: trend, momentum, R/R bun la entry actual\n2. Care simbol are cel mai bun setup ACUM (long sau short) și de ce, cu entry/TP/SL concret\n3. Care simbol e cel mai riscant și de ce\n4. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + un mini tabel ASCII pentru rating. Maximum 400 cuvinte. Concret, fără fluff.\n\n${AI_GROUNDING}`;
 
   const t0 = performance.now();
   try {
@@ -4104,6 +4111,7 @@ window.wlAiAnalyzeDetail = async function(sym){
 
   const prompt = `Ești un trader experimentat care analizează stocks pe Trade 212.
 Datele de mai jos sunt CALCULATE EXACT din 1y istoric Yahoo + Finnhub insider. Folosește-le ca atare, nu le re-estima.
+${AI_GROUNDING}
 
 ${ctxLines.join('\n')}
 
@@ -4322,7 +4330,7 @@ async function aiChatSend(){
   document.getElementById('aiChatSendBtn').disabled = true;
 
   const ctx = aiChatBuildContext();
-  const sysExtra = 'Acționezi ca asistent personal de tradat pentru Marius (cont Trade 212 + Pionex). Răspunde scurt și direct, în română. Folosește datele din contextul market-events dacă sunt relevante.\n\n' + ctx;
+  const sysExtra = 'Acționezi ca asistent personal de tradat pentru Marius (cont Trade 212 + Pionex). Răspunde scurt și direct, în română. Folosește datele din contextul market-events dacă sunt relevante.\n\n' + AI_GROUNDING + '\n\n' + ctx;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -4811,7 +4819,7 @@ aiCompare = async function(source = 'wl') {
   } else {
     intro = `Compară următoarele ${symbols.length} simboluri pentru un trade pe termen scurt (Trade 212, Nasdaq):`;
   }
-  const prompt = `${intro}\n\n${ctx}\n\nDă-mi:\n1. Tabel cu rating tehnic (1-10) per simbol pentru: trend, momentum, R/R bun la entry actual\n2. Care simbol are cel mai bun setup ACUM (long sau short) și de ce, cu entry/TP/SL concret\n3. Care simbol e cel mai riscant și de ce\n4. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + un mini tabel ASCII pentru rating. Maximum 400 cuvinte. Concret, fără fluff.`;
+  const prompt = `${intro}\n\n${ctx}\n\nDă-mi:\n1. Tabel cu rating tehnic (1-10) per simbol pentru: trend, momentum, R/R bun la entry actual\n2. Care simbol are cel mai bun setup ACUM (long sau short) și de ce, cu entry/TP/SL concret\n3. Care simbol e cel mai riscant și de ce\n4. Verdict scurt: "Trade ACUM: <ticker>" sau "Stay flat — niciunul nu e bun"\n\nFormat: bullet points + un mini tabel ASCII pentru rating. Maximum 400 cuvinte. Concret, fără fluff.\n\n${AI_GROUNDING}`;
 
   const t0 = performance.now();
   result.textContent = '';
@@ -4867,7 +4875,7 @@ aiChatSend = async function() {
   document.getElementById('aiChatSendBtn').disabled = true;
 
   const ctx = aiChatBuildContext();
-  const sysExtra = 'Acționezi ca asistent personal de tradat pentru Marius (cont Trade 212 + Pionex). Răspunde scurt și direct, în română. Folosește datele din contextul market-events dacă sunt relevante.\n\n' + ctx;
+  const sysExtra = 'Acționezi ca asistent personal de tradat pentru Marius (cont Trade 212 + Pionex). Răspunde scurt și direct, în română. Folosește datele din contextul market-events dacă sunt relevante.\n\n' + AI_GROUNDING + '\n\n' + ctx;
 
   try {
     await callAnthropicStream({
