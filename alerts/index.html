@@ -191,7 +191,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v5</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v6</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -263,6 +263,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <div class="refresh-info" id="refreshInfo">—</div>
 <div id="toasts"></div>
 
+<script src="../lib/data.js"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -319,6 +320,26 @@ let priceAlerts = loadAlerts();
 function persistAlerts() { try { localStorage.setItem(ALERTS_KEY, JSON.stringify(priceAlerts)); } catch (e) {} }
 let HISTORY = (() => { try { const h = JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); return Array.isArray(h) ? h : []; } catch (e) { return []; } })();
 function persistHistory(){ try { localStorage.setItem(HIST_KEY, JSON.stringify(HISTORY.slice(0, MAX_TRIGGERED_HISTORY))); } catch (e) {} }
+
+// Istoricul botului SERVER-SIDE (tools/alerts.json → `triggered`, scris de GitHub
+// Actions): alertele declanșate cu laptopul ÎNCHIS nu apăreau nicăieri în UI — le
+// citim din raw.githubusercontent (repo public, CORS ok; CDN cache ~5 min) și le
+// afișăm cu ☁️ în aceeași listă. Read-only: trăiesc în repo, nu se șterg de aici.
+const RAW_ALERTS_URL = 'https://raw.githubusercontent.com/mferent80-source/premarket_scanner.html/main/tools/alerts.json';
+let SERVER_HIST = [];
+let _histView = []; // lista combinată local+☁️ exact cum e randată (referință pt acțiuni)
+async function loadServerHist(){
+  try {
+    const r = await fetchT(RAW_ALERTS_URL, 9000);
+    if (!r.ok) return;
+    const j = await r.json();
+    SERVER_HIST = (Array.isArray(j?.triggered) ? j.triggered : []).map(t => ({
+      sym: String(t.symbol || '').toUpperCase(), lvl: Number(t.level), dir: t.dir === 'below' ? 'below' : 'above',
+      price: Number(t.price), ts: Date.parse(t.at) || 0, note: t.note || '', rearm: !!t.rearm, cloud: true
+    })).filter(h => h.sym && h.lvl > 0);
+    render();
+  } catch (e) {}
+}
 
 // Migrare one-shot din formatul vechi pa_alerts_v1 (array): activele → storage-ul shared,
 // cele triggered → istoricul local. Cheia veche se șterge după migrare.
@@ -408,14 +429,31 @@ async function fetchPriceCoinGecko(coinId) {
     return { last: data.usd, prev: data.usd / (1 + (data.usd_24h_change ?? 0)/100) };
   } catch (e) { return null; }
 }
+// Yahoo prin lib/data.js (tt-proxy primul în lanț) — pagina merge și FĂRĂ cheie
+// Finnhub și nu mai pică la 429 (cheia e partajată de mai multe pagini). Ultima bară
+// 5m cu includePrePost = ACELAȘI preț pe care îl vede botul server-side (check-alerts.mjs).
+async function fetchPriceYahoo(symbol) {
+  if (!window.D || !D.fetchJSON) return null;
+  try {
+    const j = await D.fetchJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=1d&includePrePost=true`, { ttl: 45, timeout: 9000 });
+    const res = j?.chart?.result?.[0];
+    if (!res) return null;
+    const closes = res.indicators?.quote?.[0]?.close || [];
+    let last = null;
+    for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { last = closes[i]; break; }
+    if (last == null) last = res.meta?.regularMarketPrice ?? null;
+    if (last == null) return null;
+    return { last, prev: res.meta?.chartPreviousClose ?? last };
+  } catch (e) { return null; }
+}
 async function fetchPrice(symbol) {
   const s = symbol.toUpperCase();
-  // Crypto: CoinGecko direct
-  if (s === 'BTC-USD' || s === 'BTC') return fetchPriceCoinGecko('bitcoin');
-  if (s === 'ETH-USD' || s === 'ETH') return fetchPriceCoinGecko('ethereum');
-  if (s === 'SOL-USD' || s === 'SOL') return fetchPriceCoinGecko('solana');
-  // Stocks/ETF: Finnhub /quote (no proxy)
-  return fetchPriceFinnhub(s);
+  // Crypto cunoscute: CoinGecko direct, Yahoo ca plasă; orice alt XXX-USD merge pe Yahoo
+  if (s === 'BTC-USD' || s === 'BTC') return (await fetchPriceCoinGecko('bitcoin')) || fetchPriceYahoo('BTC-USD');
+  if (s === 'ETH-USD' || s === 'ETH') return (await fetchPriceCoinGecko('ethereum')) || fetchPriceYahoo('ETH-USD');
+  if (s === 'SOL-USD' || s === 'SOL') return (await fetchPriceCoinGecko('solana')) || fetchPriceYahoo('SOL-USD');
+  // Stocks/ETF: Finnhub /quote (rapid, fără proxy) cu fallback Yahoo (sau direct Yahoo fără cheie)
+  return (await fetchPriceFinnhub(s)) || fetchPriceYahoo(s);
 }
 
 // ============ POLL CYCLE ============
@@ -437,10 +475,13 @@ async function pollPrices() {
       sessionNote = ' · 🌙 stocks la 10min (piață închisă)';
     } else { _lastStockPollTs = Date.now(); }
   } else if (stockSyms.length) { _lastStockPollTs = Date.now(); }
-  // fără cheie Finnhub alertele pe stocks nu pot fi verificate — spune-o, nu lăsa ⏳ mut
+  // fără cheie Finnhub, stocks merg pe Yahoo (lib/data.js); avertizăm doar dacă nici aia nu e
   if (stockSyms.length && !getFinnhubKey()) {
-    sessionNote += ' · ⚠ cheia Finnhub lipsește (stocks neverificate)';
-    if (!_warnedNoKey) { _warnedNoKey = true; toast('⚠ Alertele pe stocks au nevoie de cheia Finnhub (setează în Macro Dashboard → ⚙ Setări)', 'warn'); }
+    if (window.D && D.fetchJSON) sessionNote += ' · stocks via Yahoo (fără cheie Finnhub)';
+    else {
+      sessionNote += ' · ⚠ fără cheie Finnhub și fără lib/data.js — stocks neverificate';
+      if (!_warnedNoKey) { _warnedNoKey = true; toast('⚠ Alertele pe stocks au nevoie de cheia Finnhub sau de Yahoo (lib/data.js)', 'warn'); }
+    }
   }
   const prices = {};
   await Promise.all(unique.map(async sym => {
@@ -504,7 +545,15 @@ function schedulePoll() {
 function render() {
   const rows = [];
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
-  const triggered = HISTORY.slice(0, MAX_TRIGGERED_HISTORY);
+  // Istoric combinat: local + ☁️ server-side, dedup pe sym|lvl|dir|minut (același
+  // eveniment poate exista în ambele dacă pagina și botul l-au prins simultan)
+  const hKey = h => `${h.sym}|${h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
+  const localKeys = new Set(HISTORY.map(hKey));
+  _histView = [
+    ...HISTORY.map((h, li) => ({ ...h, _li: li })),
+    ...SERVER_HIST.filter(h => !localKeys.has(hKey(h)))
+  ].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, MAX_TRIGGERED_HISTORY);
+  const triggered = _histView;
   $('cntActive').textContent = rows.length;
   $('cntTriggered').textContent = triggered.length;
 
@@ -557,26 +606,27 @@ function render() {
       const dirIcon = h.dir === 'above' ? '▲' : '▼';
       const ageMin = Math.round((Date.now() - (h.ts || 0)) / 60000);
       const ageStr = ageMin < 60 ? `${ageMin}min` : (ageMin < 1440 ? `${Math.round(ageMin/60)}h` : `${Math.round(ageMin/1440)}z`);
-      return `<div class="alert-row triggered ${cls}" data-idx="${idx}">
-        <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(h.sym)}" target="_blank">${escHtml(h.sym)}</a></div>
+      return `<div class="alert-row triggered ${cls}" data-idx="${idx}"${h._li != null ? ` data-li="${h._li}"` : ''}>
+        <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(h.sym)}" target="_blank">${escHtml(h.sym)}</a>${h.cloud ? ' <span title="declanșat de botul server-side (GitHub Actions, la 15 min) — vizibil pe orice device; trăiește în tools/alerts.json, nu se șterge de aici">☁️</span>' : ''}</div>
         <div class="alert-thr">$${fmtNum(h.lvl)}<span class="dir">${dirIcon}${h.rearm ? ' ↻' : ''}</span></div>
         <div class="alert-current ${h.dir === 'above' ? 'up' : 'down'}">$${fmtNum(h.price)}</div>
         <div class="alert-delta">acum ${ageStr}</div>
         <div class="alert-note">${escHtml(h.note || '')}</div>
         <div class="alert-actions">
           <button class="icon-btn" data-action="reactivate" title="Re-creează alerta cu același nivel">↻</button>
-          <button class="icon-btn danger" data-action="delete" title="Șterge din istoric">🗑</button>
+          ${h._li != null ? '<button class="icon-btn danger" data-action="delete" title="Șterge din istoricul local">🗑</button>' : ''}
         </div>
       </div>`;
     }).join('');
     $('bodyTriggered').querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
-      const idx = +e.target.closest('.alert-row').dataset.idx;
-      HISTORY.splice(idx, 1);
+      const li = +e.target.closest('.alert-row').dataset.li;
+      if (isNaN(li)) return;
+      HISTORY.splice(li, 1);
       persistHistory(); render();
     }));
     $('bodyTriggered').querySelectorAll('[data-action="reactivate"]').forEach(btn => btn.addEventListener('click', e => {
       const idx = +e.target.closest('.alert-row').dataset.idx;
-      const h = HISTORY[idx];
+      const h = _histView[idx];
       if (!h) return;
       priceAlerts = loadAlerts();
       (priceAlerts[h.sym] = priceAlerts[h.sym] || []).push({ id: uid(), lvl: h.lvl, dir: h.dir, rearm: !!h.rearm, armed: true, lastFired: null, note: h.note || '' });
@@ -618,12 +668,12 @@ $('btnPause').addEventListener('click', () => {
 });
 
 $('btnClearTriggered').addEventListener('click', () => {
-  if (!HISTORY.length) { toast('Nimic de șters', 'info'); return; }
-  if (!confirm(`Ștergi ${HISTORY.length} intrări din istoric?`)) return;
+  if (!HISTORY.length) { toast('Nimic de șters în istoricul local (intrările ☁️ trăiesc în repo)', 'info'); return; }
+  if (!confirm(`Ștergi ${HISTORY.length} intrări din istoricul LOCAL? (cele ☁️ ale botului rămân — trăiesc în tools/alerts.json)`)) return;
   const n = HISTORY.length;
   HISTORY = [];
   persistHistory(); render();
-  toast(`🗑 ${n} intrări șterse`, 'info');
+  toast(`🗑 ${n} intrări locale șterse`, 'info');
 });
 
 $('soundBtn').addEventListener('click', () => {
@@ -751,6 +801,9 @@ document.addEventListener('visibilitychange', () => {
 render();
 pollPrices();
 schedulePoll();
+loadServerHist();
+// istoricul ☁️ se împrospătează rar — botul rulează la 15 min, CDN-ul raw ține ~5 min
+setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(()=>{});
 </script>
