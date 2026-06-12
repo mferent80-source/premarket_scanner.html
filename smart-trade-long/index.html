@@ -204,6 +204,16 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 .wl-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;align-items:center}
 .wl-bar .lbl{font-size:11px;color:var(--txt-dd);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-right:4px}
 
+/* REZULTAT PLIABIL — analiza simbolului ales se restrânge la un header */
+.res-details summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--br);border-radius:14px;padding:12px 16px;font-size:14.5px;box-shadow:var(--shadow-sm);transition:border .15s}
+.res-details summary:hover{border-color:#324158}
+.res-details summary::-webkit-details-marker{display:none}
+.res-details summary .caret{transition:transform .15s;font-size:11px;color:var(--txt-d)}
+.res-details[open] summary .caret{transform:rotate(90deg)}
+.res-details .res-body{margin-top:12px}
+.res-details summary .sum-hint{margin-left:auto;font-size:11px;color:var(--txt-dd);font-weight:500}
+
 /* LIST SCAN */
 #wlScanCard{margin-top:18px}
 .ls-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
@@ -237,7 +247,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v13</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v14</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -348,6 +358,7 @@ const state = {
   autoTimer: null,
   lastSymbol: null,
   lastResult: null,
+  resCollapsed: false, // panoul de analiză restrâns de user (summary-only)
 };
 
 // ─────────────────────── DOM ───────────────────────
@@ -807,7 +818,11 @@ function render(sym, scoreData, insiderData, earnInfo) {
         ? `<div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5);border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:13px;color:var(--red);font-weight:600;line-height:1.5">🚫 <strong>EARNINGS ${earnInfo.date}${earnInfo.hour === 'bmo' ? ' (pre-market)' : earnInfo.hour === 'amc' ? ' (after-close)' : ''} — în ~${Math.max(0, Math.round(earnInfo.hoursAway))}h.</strong> NU deschide poziția înainte de raport: gap ±10-30% imposibil de prezis, SL-ul pe ATR nu te protejează de gap. Verdictul de mai jos NU include acest risc.</div>`
         : `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:10px;padding:9px 13px;margin-bottom:12px;font-size:12.5px;color:var(--yellow)">📅 Earnings <strong>${earnInfo.date}</strong> (~${Math.ceil(earnInfo.hoursAway / 24)} zile) — volatilitate imprevizibilă în jurul raportului; dimensionează conservator sau așteaptă publicarea.</div>`)
     : '';
-  resultArea.innerHTML = earnBanner + `
+  // Panou pliabil: summary = simbol + verdict; restrâns, lista de dedesubt urcă la vedere.
+  // Starea (collapsed) supraviețuiește re-render-urilor (auto 5min, schimbare cont/risc).
+  resultArea.innerHTML = `<details class="res-details" id="resDetails"${state.resCollapsed ? '' : ' open'}>
+    <summary><span class="caret">▶</span> 🎯 <strong>${sym}</strong> · ${t.icon} ${t.label} · ${scoreData.score}/100 · ${fmt$(last)}${earnInfo && earnInfo.hoursAway <= 48 ? ' · <span style="color:var(--red);font-weight:700">🚫 earnings!</span>' : ''}<span class="sum-hint">click = restrânge/extinde</span></summary>
+    <div class="res-body">` + earnBanner + `
     <div class="grid">
       <div class="card verdict-card">
         <div class="verdict-icon">${t.icon}</div>
@@ -904,10 +919,14 @@ function render(sym, scoreData, insiderData, earnInfo) {
         <div id="aiSetupOutput" style="display:none"></div>
       </div>
     </div>
-  `;
+    </div>
+  </details>`;
 
   state.lastResult = { sym, scoreData, insiderData };
   localStorage.setItem(LS_LAST, sym);
+  // ține minte preferința expand/restrâns între re-render-uri (auto-scan, sizer)
+  const resDet = document.getElementById('resDetails');
+  if (resDet) resDet.addEventListener('toggle', () => { state.resCollapsed = !resDet.open; });
 
   // Bind AI Setup buttons
   const setupBtn = document.getElementById('aiSetupBtn');
@@ -1090,7 +1109,7 @@ function renderAISetupOutput(setup, sourceLabel) {
 }
 
 // ─────────────────────── SCAN ───────────────────────
-async function scan(sym) {
+async function scan(sym, isAuto) {
   sym = (sym || symInput.value || '').trim().toUpperCase();
   if (!sym) { toast('Introdu un simbol', 'err'); return; }
   if (!/^[A-Z][A-Z0-9.\-]{0,7}$/.test(sym)) { toast('Simbol invalid', 'err'); return; }
@@ -1099,7 +1118,9 @@ async function scan(sym) {
   state.lastSymbol = sym;
   scanBtn.disabled = true;
   scanBtn.textContent = '⏳ Se scanează…';
-  resultArea.innerHTML = `<div class="loading"><div class="spinner"></div><div>Fetch Yahoo + Finnhub pentru <strong>${sym}</strong>…</div></div>`;
+  // scan ales de user → deschide panoul; refresh-ul auto 5min NU forțează expand
+  if (!isAuto) state.resCollapsed = false;
+  if (!state.resCollapsed) resultArea.innerHTML = `<div class="loading"><div class="spinner"></div><div>Fetch Yahoo + Finnhub pentru <strong>${sym}</strong>…</div></div>`;
 
   try {
     const [yahoo, ins, earn] = await Promise.all([fetchYahoo(sym), fetchInsiders(sym), getEarningsInfo(sym)]);
@@ -1153,7 +1174,7 @@ window.addEventListener('storage', e => { if (e.key === WL_KEY) renderWL(); });
 function startAuto() {
   stopAuto();
   state.autoTimer = setInterval(() => {
-    if (state.lastSymbol) scan(state.lastSymbol);
+    if (state.lastSymbol) scan(state.lastSymbol, true);
   }, AUTO_INTERVAL_MS);
 }
 function stopAuto() {
