@@ -327,6 +327,12 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 .anchor-tag { font-size:9.5px; font-weight:600; font-family:var(--mono); margin-top:2px; line-height:1.2; color:var(--t2); display:flex; align-items:center; gap:3px; flex-wrap:wrap; }
 .anchor-tag b { font-weight:800; }
 .anchor-tag.pos b { color:var(--bull-s); } .anchor-tag.neg b { color:var(--bear-s); }
+.anchor-bar-mini { height:4px; border-radius:3px; background:var(--panel2); border:1px solid var(--b1); overflow:hidden; width:54px; position:relative; }
+.anchor-bar-mini .f { position:absolute; left:0; top:0; bottom:0; background:var(--bull-s); opacity:.65; }
+.anchor-prog { position:relative; height:9px; border-radius:5px; background:var(--panel2); border:1px solid var(--b1); margin:10px 0 4px; }
+.anchor-prog .fill { position:absolute; left:0; top:0; bottom:0; border-radius:5px 0 0 5px; background:linear-gradient(90deg,var(--bull-s),var(--accent)); opacity:.5; }
+.anchor-prog .mark { position:absolute; top:-3px; width:3px; height:15px; background:var(--t1); border-radius:2px; box-shadow:0 0 0 2px var(--panel); }
+.anchor-prog-lbl { display:flex; justify-content:space-between; font-size:9px; font-family:var(--mono); color:var(--t3); }
 
 /* Premarket / after-hours (F-pre) */
 table.no-pre .col-pre { display:none; }
@@ -390,7 +396,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v142</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v143</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -680,6 +686,13 @@ function livePriceOf(r){ return r && r.livePrice != null ? r.livePrice : (r ? r.
 function defaultTargetFor(r){
   if (r && r.atrPct != null && r.price != null) return +(r.price + 3.5 * (r.price * r.atrPct / 100)).toFixed(2);
   return null;
+}
+// Progres ancoră→țintă în % (0=la ancoră, 100=la țintă; poate fi <0 sau >100). Generalizează și pe ținte sub ancoră.
+function anchorProgress(a, lp){
+  if (!a || a.price == null || a.target == null || lp == null) return null;
+  const span = a.target - a.price;
+  if (span === 0) return null;
+  return (lp - a.price) / span * 100;
 }
 // Post-scan: ancorează simbolurile noi, curăță-le pe cele scoase din watchlist.
 function ensureAnchors(newResults){
@@ -2247,7 +2260,11 @@ function anchorTagRow(r){
   if (p == null) return '';
   const d = (p - a.price) / a.price * 100;
   const cls = d >= 0 ? 'pos' : 'neg';
-  return `<div class="anchor-tag ${cls}" title="ancoră ${fmtUSD(a.price)} · ${fmtAge(a.ts)}">⚓ ${fmtUSD(a.price)} · <b>${fmtPct(d, 1)}</b></div>`;
+  const pr = anchorProgress(a, p);
+  const bar = (pr != null)
+    ? `<span class="anchor-bar-mini" title="${pr.toFixed(0)}% spre țintă ${fmtUSD(a.target)}"><span class="f" style="width:${Math.max(0, Math.min(100, pr))}%"></span></span><span style="color:var(--t3)">${pr.toFixed(0)}%→🎯</span>`
+    : '';
+  return `<div class="anchor-tag ${cls}" title="ancoră ${fmtUSD(a.price)} · ${fmtAge(a.ts)}">⚓ ${fmtUSD(a.price)} · <b>${fmtPct(d, 1)}</b>${bar}</div>`;
 }
 
 function updateStats(){
@@ -2380,6 +2397,14 @@ function buildDetailRow(r){
       const slTag = a.sl != null
         ? `<div class="dp-tag sl"><span>Stop${toSl != null ? ' · ' + fmtPct(toSl, 1) : ''}</span>${fmtUSD(a.sl)}</div>`
         : '';
+      // bară de progres ancoră → țintă (mare)
+      let progBar = '';
+      const pr = anchorProgress(a, lp);
+      if (pr != null){
+        const cl = Math.max(0, Math.min(100, pr));
+        progBar = `<div class="anchor-prog"><div class="fill" style="width:${cl}%"></div><div class="mark" style="left:calc(${cl}% - 1px)"></div></div>
+          <div class="anchor-prog-lbl"><span>⚓ ${fmtUSD(a.price)}</span><span style="color:${pr >= 100 ? 'var(--bull-s)' : 'var(--t2)'}">${pr.toFixed(0)}% spre țintă</span><span>🎯 ${fmtUSD(a.target)}</span></div>`;
+      }
       anchorHtml = `<div class="detail-plan-title" style="margin-top:13px">⚓ Ancoră &amp; țintă${rr != null ? ` · R:R≈${rr.toFixed(1)}` : ''}</div>
         <div class="detail-plan">
           <div class="dp-tag"><span>Ancoră · ${fmtAge(a.ts)}</span>${fmtUSD(a.price)}</div>
@@ -2387,6 +2412,7 @@ function buildDetailRow(r){
           ${tgtTag}
           ${slTag}
         </div>
+        ${progBar}
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:7px">
           <span style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px">Setează</span>
           <input type="number" id="atgt-${sym}" placeholder="țintă $" step="0.01" min="0" value="${a.target != null ? a.target : ''}" style="width:84px">
