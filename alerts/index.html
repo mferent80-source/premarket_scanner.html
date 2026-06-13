@@ -191,7 +191,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v8</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v9</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -321,6 +321,8 @@ function nyseClosed() {
   return mins < 240 || mins >= 1200; // în afara 04:00-20:00 ET (pre+regular+after)
 }
 const CRYPTO_SYMS = new Set(['BTC-USD','BTC','ETH-USD','ETH','SOL-USD','SOL']);
+// crypto = 24/7 (nu se throttle-ază noaptea/weekend ca stocks): perechi USDT (Binance) + orice XXX-USD
+const isCrypto = s => CRYPTO_SYMS.has(s) || /USDT$/.test(s) || /-USD$/.test(s);
 let _lastStockPollTs = 0;
 let _warnedNoKey = false;
 let soundEnabled = localStorage.getItem(SOUND_KEY) === '1';
@@ -461,12 +463,26 @@ async function fetchPriceYahoo(symbol) {
     return { last, prev: res.meta?.chartPreviousClose ?? last };
   } catch (e) { return null; }
 }
+// Binance pentru perechile USDT (ONDOUSDT, PEPEUSDT etc.) — stil Pionex/Binance,
+// fără cheie, CORS ok pe market data public. /ticker/24hr dă și prevClosePrice.
+async function fetchPriceBinance(symbol) {
+  try {
+    const r = await fetchT(`https://api.binance.com/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    const last = parseFloat(d?.lastPrice);
+    if (!(last > 0)) return null;
+    return { last, prev: parseFloat(d.prevClosePrice) || last };
+  } catch (e) { return null; }
+}
 async function fetchPrice(symbol) {
   const s = symbol.toUpperCase();
   // Crypto cunoscute: CoinGecko direct, Yahoo ca plasă; orice alt XXX-USD merge pe Yahoo
   if (s === 'BTC-USD' || s === 'BTC') return (await fetchPriceCoinGecko('bitcoin')) || fetchPriceYahoo('BTC-USD');
   if (s === 'ETH-USD' || s === 'ETH') return (await fetchPriceCoinGecko('ethereum')) || fetchPriceYahoo('ETH-USD');
   if (s === 'SOL-USD' || s === 'SOL') return (await fetchPriceCoinGecko('solana')) || fetchPriceYahoo('SOL-USD');
+  // Perechi Binance USDT: Binance direct, Yahoo (ONDOUSDT→ONDO-USD) ca plasă
+  if (/USDT$/.test(s)) return (await fetchPriceBinance(s)) || fetchPriceYahoo(s.replace(/USDT$/, '-USD'));
   // Stocks/ETF: Finnhub /quote (rapid, fără proxy) cu fallback Yahoo (sau direct Yahoo fără cheie)
   return (await fetchPriceFinnhub(s)) || fetchPriceYahoo(s);
 }
@@ -481,12 +497,12 @@ async function pollPrices() {
   const allSyms = Object.keys(priceAlerts).filter(s => (priceAlerts[s] || []).length);
   if (!allSyms.length) { $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · niciun alert activ`; render(); return; }
   let unique = [...new Set(allSyms.map(s => s.toUpperCase()))];
-  const stockSyms = unique.filter(s => !CRYPTO_SYMS.has(s));
+  const stockSyms = unique.filter(s => !isCrypto(s));
   let sessionNote = '';
   // piață închisă (noapte/weekend ET) → stocks doar la 10 min; crypto rămâne la fiecare ciclu
   if (stockSyms.length && nyseClosed()) {
     if (Date.now() - _lastStockPollTs < 600000) {
-      unique = unique.filter(s => CRYPTO_SYMS.has(s));
+      unique = unique.filter(isCrypto);
       sessionNote = ' · 🌙 stocks la 10min (piață închisă)';
     } else { _lastStockPollTs = Date.now(); }
   } else if (stockSyms.length) { _lastStockPollTs = Date.now(); }

@@ -39,8 +39,11 @@ const CHAT = process.env.TELEGRAM_CHAT_ID || '';
 // Preț live: ultima bară 5m cu includePrePost (acoperă pre/after) — pattern-ul
 // validat în suite (regularMarketPrice e stale în extended hours).
 async function fetchPrice(sym){
+  // Yahoo nu cunoaște perechile Binance USDT (ONDOUSDT) — convertim la forma lui (ONDO-USD).
+  // Binance.com e geo-blocat pe runnerele GitHub (IP US → 451), deci server-side rămânem pe Yahoo.
+  const ySym = /USDT$/.test(sym) ? sym.replace(/USDT$/, '-USD') : sym;
   try {
-    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=5m&range=1d&includePrePost=true`,
+    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=5m&range=1d&includePrePost=true`,
       { headers: { 'User-Agent': 'Mozilla/5.0 (price-alerts-bot)' }, signal: AbortSignal.timeout(10000) });
     if (!r.ok) return null;
     const j = await r.json();
