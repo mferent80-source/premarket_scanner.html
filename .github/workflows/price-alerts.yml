@@ -1,6 +1,9 @@
 # ═══════════════════════════════════════════════════════════════════
 # Price Alerts → Telegram (server-side, fără pagină deschisă)
-# Rulează tools/check-alerts.mjs la 5 min în orele de piață (L-V).
+# Rulează tools/check-alerts.mjs la 5 min, NON-STOP (toate zilele, toate orele) —
+# crypto (USDT/-USD) se tranzacționează 24/7, deci trebuie verificat și noaptea/weekend.
+# Stocks în afara orelor de piață: Yahoo dă ultima cotație (staționară) → nu produc
+# alerte noi false (pragul ar fi declanșat deja în sesiune), deci e safe să rulăm mereu.
 # ⚠ GitHub NU garantează cadența pe cron programat — sub încărcare poate sări/întârzia
 #   (observat empiric ~1 rulare/1-2h chiar și cu */15). */5 = "cât de des poate", nu fix 5min.
 # Necesită secrets: TELEGRAM_TOKEN + TELEGRAM_CHAT_ID
@@ -11,9 +14,9 @@ name: Price Alerts → Telegram
 
 on:
   schedule:
-    # la 5 min, 08:00–22:59 UTC, luni–vineri — acoperă pre-market + regular +
-    # after-hours ET indiferent de DST (cron-ul GitHub e mereu pe UTC)
-    - cron: '*/5 8-22 * * 1-5'
+    # la 5 min, 24/7 — crypto e non-stop; stocks acoperite automat în orele lor
+    # (cron-ul GitHub e mereu pe UTC, independent de DST)
+    - cron: '*/5 * * * *'
   workflow_dispatch: {}
 
 permissions:
