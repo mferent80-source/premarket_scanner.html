@@ -25,6 +25,8 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const FILE = new URL('./alerts.json', import.meta.url);
 const REARM_HYST = 0.003;
+// Perechile USDT (crypto, des sub 1$) → 4 zecimale: acolo se vede mișcarea reală. Restul → 2.
+const dec = sym => /USDT$/.test(String(sym || '').toUpperCase()) ? 4 : 2;
 
 let cfg;
 try { cfg = JSON.parse(readFileSync(FILE, 'utf8')); }
@@ -125,8 +127,8 @@ if (fired.length){
     ...(Array.isArray(cfg.triggered) ? cfg.triggered : [])
   ].slice(0, 50);
   const lines = fired.map(f => f.kind === 'pct'
-    ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% → $${f.price.toFixed(2)} (de la $${Number(f.base).toFixed(2)})${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
-    : `${f.dir === 'below' ? '▼' : '▲'} <b>${tgEsc(f.sym)}</b> $${f.price.toFixed(2)} — prag $${f.lvl}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`);
+    ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% → $${f.price.toFixed(dec(f.sym))} (de la $${Number(f.base).toFixed(dec(f.sym))})${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
+    : `${f.dir === 'below' ? '▼' : '▲'} <b>${tgEsc(f.sym)}</b> $${f.price.toFixed(dec(f.sym))} — prag $${Number(f.lvl).toFixed(dec(f.sym))}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`);
   await sendTelegram(`🔔 <b>Price Alert (server-side · ${fired.length})</b>\n${lines.join('\n')}`);
   console.log(`🔔 ${fired.length} alerte declanșate.`);
 } else {
