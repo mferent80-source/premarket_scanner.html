@@ -191,7 +191,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v6</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v7</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -211,10 +211,17 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
       <input type="text" id="inpSym" class="sym-input" placeholder="AAPL" maxlength="10">
     </div>
     <div>
-      <label>Preț prag $</label>
-      <input type="number" id="inpThr" class="price-input" placeholder="175.50" step="0.01">
+      <label>Tip alertă</label>
+      <select id="inpKind" class="dir-select">
+        <option value="price">$ Preț prag</option>
+        <option value="pct">% Mișcare ±</option>
+      </select>
     </div>
     <div>
+      <label id="lblThr">Preț prag $</label>
+      <input type="number" id="inpThr" class="price-input" placeholder="175.50" step="0.01">
+    </div>
+    <div id="wrapDir">
       <label>Direcție</label>
       <select id="inpDir" class="dir-select">
         <option value="above">▲ Sus / peste</option>
@@ -232,7 +239,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
     <button class="primary add-btn" id="btnAdd">+ Adaugă</button>
   </div>
   <div class="add-hint">
-    Storage UNIFICAT cu Watchlist Monitor (⏰ din detaliile de rând) — o singură listă de alerte, vizibilă din ambele pagini. Polling 60s aici (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD); watchlist-monitor le verifică în plus la scan. Notify: toast persistent + sunet + browser + Telegram.
+    <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 60s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram.
   </div>
 </div>
 
@@ -286,6 +293,13 @@ const fmtNum = (n, d=2) => (n==null || isNaN(n)) ? '—' : Number(n).toLocaleStr
 const fmtPct = (n, d=2) => (n==null || isNaN(n)) ? '—' : (n>=0?'+':'') + Number(n).toFixed(d) + '%';
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 
+// Serializare alertă → JSON pentru export 📤 / sync ☁️ (și pentru botul server-side).
+// Două forme: preț prag (level+dir) sau mișcare ± (pct+base ancoră).
+function alertToJson(sym, a) {
+  if (a.kind === 'pct') return { symbol: sym, kind: 'pct', pct: a.pct, base: a.base ?? null, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' };
+  return { symbol: sym, level: a.lvl, dir: a.dir, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' };
+}
+
 function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || ''; }
 function getTgConfig() { try { return JSON.parse(localStorage.getItem('tt_tg_config') || '{}'); } catch (e) { return {}; } }
 // fetch cu timeout — fără el un request blocat oprește lanțul de polling PENTRU TOTDEAUNA
@@ -333,10 +347,11 @@ async function loadServerHist(){
     const r = await fetchT(RAW_ALERTS_URL, 9000);
     if (!r.ok) return;
     const j = await r.json();
-    SERVER_HIST = (Array.isArray(j?.triggered) ? j.triggered : []).map(t => ({
-      sym: String(t.symbol || '').toUpperCase(), lvl: Number(t.level), dir: t.dir === 'below' ? 'below' : 'above',
-      price: Number(t.price), ts: Date.parse(t.at) || 0, note: t.note || '', rearm: !!t.rearm, cloud: true
-    })).filter(h => h.sym && h.lvl > 0);
+    SERVER_HIST = (Array.isArray(j?.triggered) ? j.triggered : []).map(t => {
+      const kind = t.kind === 'pct' ? 'pct' : 'price';
+      return { sym: String(t.symbol || '').toUpperCase(), kind, lvl: Number(t.level), pct: Number(t.pct), base: Number(t.base), moved: Number(t.moved),
+        dir: t.dir === 'below' ? 'below' : 'above', price: Number(t.price), ts: Date.parse(t.at) || 0, note: t.note || '', rearm: !!t.rearm, cloud: true };
+    }).filter(h => h.sym && (h.kind === 'pct' ? h.pct > 0 : h.lvl > 0));
     render();
   } catch (e) {}
 }
@@ -498,6 +513,17 @@ async function pollPrices() {
     const list = priceAlerts[sym];
     for (let i = list.length - 1; i >= 0; i--) {
       const a = list[i];
+      if (a.kind === 'pct') {
+        // mișcare ±X% față de prețul ancoră (live la setare). base==null → ancorăm acum, fără fire.
+        if (a.base == null) { a.base = p; changed = true; continue; }
+        const moved = (p - a.base) / a.base * 100;
+        if (a.armed && Math.abs(moved) >= a.pct) {
+          fired.push({ sym, price: p, moved, a: Object.assign({}, a) });
+          a.lastFired = Date.now(); changed = true;
+          if (a.rearm) a.base = p; else list.splice(i, 1); // re-arm → re-ancorează la prețul nou; one-shot → dispare
+        }
+        continue;
+      }
       const hit = a.dir === 'above' ? p >= a.lvl : p <= a.lvl;
       if (a.armed && hit) {
         fired.push({ sym, price: p, a: Object.assign({}, a) });
@@ -514,19 +540,31 @@ async function pollPrices() {
   if (fired.length) {
     // Notify combo + istoric local
     fired.forEach(f => {
-      HISTORY.unshift({ sym: f.sym, lvl: f.a.lvl, dir: f.a.dir, price: f.price, ts: Date.now(), note: f.a.note || '', rearm: !!f.a.rearm });
-      const dirIcon = f.a.dir === 'above' ? '▲' : '▼';
-      toast(`🔔 ${f.sym} ${dirIcon} $${fmtNum(f.price)} · prag $${fmtNum(f.a.lvl)}${f.a.note ? ' · ' + f.a.note : ''}${f.a.rearm ? ' · ↻ re-arm' : ''}`, f.a.dir === 'above' ? 'success' : 'error', { persist: true });
-      showBrowserNotif(`🔔 ${f.sym} ${dirIcon} prag atins`, `Preț ${fmtNum(f.price)} · prag ${fmtNum(f.a.lvl)}${f.a.note ? ' · ' + f.a.note : ''}`);
+      const isPct = f.a.kind === 'pct';
+      const dirIcon = isPct ? (f.moved >= 0 ? '▲' : '▼') : (f.a.dir === 'above' ? '▲' : '▼');
+      HISTORY.unshift({ sym: f.sym, kind: f.a.kind || 'price', lvl: f.a.lvl, pct: f.a.pct, base: f.a.base, moved: f.moved, dir: isPct ? (f.moved >= 0 ? 'above' : 'below') : f.a.dir, price: f.price, ts: Date.now(), note: f.a.note || '', rearm: !!f.a.rearm });
+      if (isPct) {
+        toast(`🔔 ${f.sym} ${dirIcon} ${fmtPct(f.moved)} (de la $${fmtNum(f.a.base)}) · acum $${fmtNum(f.price)}${f.a.note ? ' · ' + f.a.note : ''}${f.a.rearm ? ' · ↻' : ''}`, f.moved >= 0 ? 'success' : 'error', { persist: true });
+        showBrowserNotif(`🔔 ${f.sym} ${dirIcon} mișcare ${fmtPct(f.moved)}`, `De la $${fmtNum(f.a.base)} la $${fmtNum(f.price)}${f.a.note ? ' · ' + f.a.note : ''}`);
+      } else {
+        toast(`🔔 ${f.sym} ${dirIcon} $${fmtNum(f.price)} · prag $${fmtNum(f.a.lvl)}${f.a.note ? ' · ' + f.a.note : ''}${f.a.rearm ? ' · ↻ re-arm' : ''}`, f.a.dir === 'above' ? 'success' : 'error', { persist: true });
+        showBrowserNotif(`🔔 ${f.sym} ${dirIcon} prag atins`, `Preț ${fmtNum(f.price)} · prag ${fmtNum(f.a.lvl)}${f.a.note ? ' · ' + f.a.note : ''}`);
+      }
     });
     HISTORY = HISTORY.slice(0, MAX_TRIGGERED_HISTORY);
     persistHistory();
     playBeep();
+    const tgLine = f => f.a.kind === 'pct'
+      ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${fmtPct(f.moved)} → $${fmtNum(f.price)} (de la $${fmtNum(f.a.base)})${f.a.rearm ? ' · re-arm' : ''}`
+      : `${f.a.dir === 'above' ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> $${fmtNum(f.price)} (prag $${fmtNum(f.a.lvl)})`;
     if (fired.length === 1) {
       const f = fired[0];
-      sendTelegram(`🔔 <b>Price Alert</b>\n${f.a.dir === 'above' ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> a atins $${fmtNum(f.price)}\nPrag: $${fmtNum(f.a.lvl)} (${f.a.dir})${f.a.rearm ? ' · re-arm' : ''}${f.a.note ? '\nNotă: ' + tgEsc(f.a.note) : ''}`);
+      const body = f.a.kind === 'pct'
+        ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> s-a mișcat ${fmtPct(f.moved)}\nDe la $${fmtNum(f.a.base)} la $${fmtNum(f.price)}${f.a.rearm ? ' · re-arm' : ''}${f.a.note ? '\nNotă: ' + tgEsc(f.a.note) : ''}`
+        : `${f.a.dir === 'above' ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> a atins $${fmtNum(f.price)}\nPrag: $${fmtNum(f.a.lvl)} (${f.a.dir})${f.a.rearm ? ' · re-arm' : ''}${f.a.note ? '\nNotă: ' + tgEsc(f.a.note) : ''}`;
+      sendTelegram(`🔔 <b>Price Alert</b>\n${body}`);
     } else {
-      sendTelegram(`🔔 <b>${fired.length} Price Alerts triggered</b>\n` + fired.map(f => `${f.a.dir === 'above' ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> $${fmtNum(f.price)} (prag $${fmtNum(f.a.lvl)})`).join('\n'));
+      sendTelegram(`🔔 <b>${fired.length} Price Alerts triggered</b>\n` + fired.map(tgLine).join('\n'));
     }
   }
   render();
@@ -547,7 +585,7 @@ function render() {
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
   // Istoric combinat: local + ☁️ server-side, dedup pe sym|lvl|dir|minut (același
   // eveniment poate exista în ambele dacă pagina și botul l-au prins simultan)
-  const hKey = h => `${h.sym}|${h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
+  const hKey = h => `${h.sym}|${h.kind || 'price'}|${h.kind === 'pct' ? h.pct : h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
   const localKeys = new Set(HISTORY.map(hKey));
   _histView = [
     ...HISTORY.map((h, li) => ({ ...h, _li: li })),
@@ -562,14 +600,23 @@ function render() {
   } else {
     $('bodyActive').innerHTML = rows.map(({ sym, a }) => {
       const cur = _lastPrice[sym];
-      const delta = cur != null ? ((cur - a.lvl) / a.lvl * 100) : null;
-      const isClose = delta != null && Math.abs(delta) < 1.5;
-      const dirIcon = a.dir === 'above' ? '▲ peste' : '▼ sub';
-      const dirCls = a.dir === 'above' ? 'up' : 'down';
-      const stateBadge = a.rearm ? (a.armed ? '<span title="re-arm: alerta se păstrează și se re-armează după revenire">↻</span>' : '<span title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel" style="opacity:.55">↻💤</span>') : '';
+      const isPct = a.kind === 'pct';
+      const stateBadge = a.rearm ? (a.armed ? '<span title="re-arm: alerta se păstrează și se re-armează după declanșare">↻</span>' : '<span title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel" style="opacity:.55">↻💤</span>') : '';
+      let thrHtml, delta, isClose, dirCls;
+      if (isPct) {
+        delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;       // mișcarea curentă față de ancoră
+        isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;                       // aproape de pragul ±%
+        dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
+        thrHtml = `±${a.pct}%<span class="dir">de la ${a.base ? '$' + fmtNum(a.base) : '⏳ ancorare'} ${stateBadge}</span>`;
+      } else {
+        delta = cur != null ? ((cur - a.lvl) / a.lvl * 100) : null;
+        isClose = delta != null && Math.abs(delta) < 1.5;
+        dirCls = a.dir === 'above' ? 'up' : 'down';
+        thrHtml = `$${fmtNum(a.lvl)}<span class="dir">${a.dir === 'above' ? '▲ peste' : '▼ sub'} ${stateBadge}</span>`;
+      }
       return `<div class="alert-row" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
         <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a></div>
-        <div class="alert-thr">$${fmtNum(a.lvl)}<span class="dir">${dirIcon} ${stateBadge}</span></div>
+        <div class="alert-thr">${thrHtml}</div>
         <div class="alert-current ${dirCls}">${cur != null ? '$' + fmtNum(cur) : '⏳'}</div>
         <div class="alert-delta ${isClose ? 'close' : ''}">${delta != null ? (delta>=0?'+':'')+delta.toFixed(2)+'%' : '—'}</div>
         <div class="alert-note">${escHtml(a.note || '')}</div>
@@ -593,8 +640,13 @@ function render() {
       const sym = row.dataset.sym, id = row.dataset.id;
       const a = (priceAlerts[sym] || []).find(x => x.id === id);
       if (!a) return;
-      const newLvl = parseFloat(prompt(`Prag nou pentru ${sym}:`, a.lvl));
-      if (!isNaN(newLvl) && newLvl > 0) { a.lvl = newLvl; a.armed = true; persistAlerts(); render(); }
+      if (a.kind === 'pct') {
+        const newPct = parseFloat(prompt(`Mișcare ±% nouă pentru ${sym} (re-ancorează la prețul curent):`, a.pct));
+        if (!isNaN(newPct) && newPct > 0) { a.pct = newPct; a.base = _lastPrice[sym] ?? null; a.armed = true; persistAlerts(); render(); }
+      } else {
+        const newLvl = parseFloat(prompt(`Prag nou pentru ${sym}:`, a.lvl));
+        if (!isNaN(newLvl) && newLvl > 0) { a.lvl = newLvl; a.armed = true; persistAlerts(); render(); }
+      }
     }));
   }
 
@@ -604,11 +656,15 @@ function render() {
     $('bodyTriggered').innerHTML = triggered.map((h, idx) => {
       const cls = h.dir === 'above' ? '' : 'bear';
       const dirIcon = h.dir === 'above' ? '▲' : '▼';
+      const isPct = h.kind === 'pct';
       const ageMin = Math.round((Date.now() - (h.ts || 0)) / 60000);
       const ageStr = ageMin < 60 ? `${ageMin}min` : (ageMin < 1440 ? `${Math.round(ageMin/60)}h` : `${Math.round(ageMin/1440)}z`);
+      const thrHist = isPct
+        ? `±${h.pct}%<span class="dir">${dirIcon}${isFinite(h.moved) ? ' ' + fmtPct(h.moved) : ''}${h.rearm ? ' ↻' : ''}</span>`
+        : `$${fmtNum(h.lvl)}<span class="dir">${dirIcon}${h.rearm ? ' ↻' : ''}</span>`;
       return `<div class="alert-row triggered ${cls}" data-idx="${idx}"${h._li != null ? ` data-li="${h._li}"` : ''}>
         <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(h.sym)}" target="_blank">${escHtml(h.sym)}</a>${h.cloud ? ' <span title="declanșat de botul server-side (GitHub Actions, la 15 min) — vizibil pe orice device; trăiește în tools/alerts.json, nu se șterge de aici">☁️</span>' : ''}</div>
-        <div class="alert-thr">$${fmtNum(h.lvl)}<span class="dir">${dirIcon}${h.rearm ? ' ↻' : ''}</span></div>
+        <div class="alert-thr">${thrHist}</div>
         <div class="alert-current ${h.dir === 'above' ? 'up' : 'down'}">$${fmtNum(h.price)}</div>
         <div class="alert-delta">acum ${ageStr}</div>
         <div class="alert-note">${escHtml(h.note || '')}</div>
@@ -629,9 +685,15 @@ function render() {
       const h = _histView[idx];
       if (!h) return;
       priceAlerts = loadAlerts();
-      (priceAlerts[h.sym] = priceAlerts[h.sym] || []).push({ id: uid(), lvl: h.lvl, dir: h.dir, rearm: !!h.rearm, armed: true, lastFired: null, note: h.note || '' });
-      persistAlerts(); render();
-      toast(`↻ ${h.sym} re-creat: ${h.dir === 'above' ? 'peste' : 'sub'} $${fmtNum(h.lvl)}`, 'info');
+      if (h.kind === 'pct') {
+        (priceAlerts[h.sym] = priceAlerts[h.sym] || []).push({ id: uid(), kind: 'pct', pct: h.pct, base: _lastPrice[h.sym] ?? null, rearm: !!h.rearm, armed: true, lastFired: null, note: h.note || '' });
+        persistAlerts(); render();
+        toast(`↻ ${h.sym} re-creat: ±${h.pct}% (re-ancorează la prețul curent)`, 'info');
+      } else {
+        (priceAlerts[h.sym] = priceAlerts[h.sym] || []).push({ id: uid(), lvl: h.lvl, dir: h.dir, rearm: !!h.rearm, armed: true, lastFired: null, note: h.note || '' });
+        persistAlerts(); render();
+        toast(`↻ ${h.sym} re-creat: ${h.dir === 'above' ? 'peste' : 'sub'} $${fmtNum(h.lvl)}`, 'info');
+      }
     }));
   }
 
@@ -644,19 +706,38 @@ function render() {
 }
 
 // ============ EVENT HANDLERS ============
+// schimbă label-ul/placeholder-ul și ascunde Direcția când tipul e mișcare ±%
+function updateFormMode() {
+  const pct = $('inpKind').value === 'pct';
+  $('lblThr').textContent = pct ? 'Mișcare ±%' : 'Preț prag $';
+  $('inpThr').placeholder = pct ? '1' : '175.50';
+  $('inpThr').step = pct ? '0.1' : '0.01';
+  $('wrapDir').style.display = pct ? 'none' : '';
+}
+$('inpKind').addEventListener('change', updateFormMode);
+updateFormMode();
+
 $('btnAdd').addEventListener('click', () => {
   const sym = $('inpSym').value.trim().toUpperCase();
   const thr = parseFloat($('inpThr').value);
   const dir = $('inpDir').value;
+  const kind = $('inpKind').value;
   const note = $('inpNote').value.trim();
   const rearm = $('inpRearm').checked;
   if (!sym || !sym.match(/^[A-Z0-9.\-]{1,12}$/)) { toast('⚠ Simbol invalid (doar A-Z, 0-9, .-)', 'error'); return; }
-  if (isNaN(thr) || thr <= 0) { toast('⚠ Preț prag invalid (trebuie > 0)', 'error'); return; }
+  if (isNaN(thr) || thr <= 0) { toast(kind === 'pct' ? '⚠ Mișcare % invalidă (trebuie > 0)' : '⚠ Preț prag invalid (trebuie > 0)', 'error'); return; }
   priceAlerts = loadAlerts(); // sync înainte de write — alt tab poate să fi modificat
-  (priceAlerts[sym] = priceAlerts[sym] || []).push({ id: uid(), lvl: thr, dir, rearm, armed: true, lastFired: null, note });
+  if (kind === 'pct') {
+    // base = prețul live cunoscut acum (dacă l-am polat deja); altfel se ancorează la primul check
+    (priceAlerts[sym] = priceAlerts[sym] || []).push({ id: uid(), kind: 'pct', pct: thr, base: _lastPrice[sym] ?? null, rearm, armed: true, lastFired: null, note });
+  } else {
+    (priceAlerts[sym] = priceAlerts[sym] || []).push({ id: uid(), lvl: thr, dir, rearm, armed: true, lastFired: null, note });
+  }
   persistAlerts(); render();
   $('inpSym').value = ''; $('inpThr').value = ''; $('inpNote').value = '';
-  toast(`✓ Alert adăugat: ${sym} ${dir === 'above' ? '▲' : '▼'} $${fmtNum(thr)}${rearm ? ' · ↻ re-arm' : ''}`, 'success');
+  toast(kind === 'pct'
+    ? `✓ Alert mișcare: ${sym} ±${thr}%${rearm ? ' · ↻ re-arm' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · de la $' + fmtNum(_lastPrice[sym])}`
+    : `✓ Alert adăugat: ${sym} ${dir === 'above' ? '▲' : '▼'} $${fmtNum(thr)}${rearm ? ' · ↻ re-arm' : ''}`, 'success');
   pollPrices(); // immediate check
 });
 
@@ -713,7 +794,7 @@ $('testBtn').addEventListener('click', () => {
 $('exportBtn').addEventListener('click', async () => {
   priceAlerts = loadAlerts();
   const out = { _doc: 'Lipește acest conținut în tools/alerts.json din repo (commit pe GitHub) — workflow-ul Price Alerts le verifică la 15 min și trimite pe Telegram, fără pagină deschisă.', alerts: [], triggered: [] };
-  Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => out.alerts.push({ symbol: sym, level: a.lvl, dir: a.dir, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' })));
+  Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => out.alerts.push(alertToJson(sym, a))));
   if (!out.alerts.length) { toast('📭 Nicio alertă de exportat', 'info'); return; }
   const txt = JSON.stringify(out, null, 2);
   try {
@@ -746,7 +827,7 @@ $('ghSyncBtn').addEventListener('click', async () => {
   if (!token) { token = ghAskToken(); if (!token) { toast('☁️ Sync anulat — fără token', 'info'); return; } }
   priceAlerts = loadAlerts();
   const alerts = [];
-  Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => alerts.push({ symbol: sym, level: a.lvl, dir: a.dir, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' })));
+  Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => alerts.push(alertToJson(sym, a))));
   if (!alerts.length && !confirm('Nicio alertă locală — sincronizez lista GOALĂ? (șterge toate alertele server-side)')) return;
   const btn = $('ghSyncBtn'); btn.disabled = true;
   try {

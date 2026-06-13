@@ -11,12 +11,15 @@
 //   TELEGRAM_TOKEN   — tokenul botului (de la @BotFather)
 //   TELEGRAM_CHAT_ID — chat id-ul destinație
 //
-// Format tools/alerts.json:
-//   { "alerts": [ { "symbol":"NVDA", "level":180, "dir":"above"|"below",
-//                   "rearm":false, "armed":true, "note":"..." } ],
-//     "triggered": [ ...istoric, scris de script... ] }
+// Format tools/alerts.json (două tipuri de alertă):
+//   PREȚ PRAG: { "symbol":"NVDA", "level":180, "dir":"above"|"below",
+//               "rearm":false, "armed":true, "note":"..." }
+//   MIȘCARE ±%: { "symbol":"NVDA", "kind":"pct", "pct":1, "base":180.5,
+//               "rearm":false, "note":"..." }   // base = prețul ancoră (null → se ancorează la primul check)
+//   { "alerts": [ ... ], "triggered": [ ...istoric, scris de script... ] }
 // Semantica e identică cu wl_price_alerts din suite: one-shot dispare la
-// declanșare; re-arm se dezarmează și se re-armează cu histerezis 0.3%.
+// declanșare; re-arm la preț-prag se dezarmează și se re-armează cu histerezis
+// 0.3%; re-arm la mișcare-% se re-ancorează la prețul nou (alertă la fiecare pas de X%).
 // ═══════════════════════════════════════════════════════════════════
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -77,8 +80,24 @@ const kept = [];
 for (const a of alerts){
   const sym = String(a.symbol || '').toUpperCase();
   const p = prices[sym];
+  if (p == null){ kept.push(a); continue; }
+  // ── Alertă MIȘCARE ±% (față de prețul ancoră) ──
+  if (a.kind === 'pct'){
+    const pct = Number(a.pct);
+    if (!(pct > 0)){ kept.push(a); continue; }
+    if (a.base == null){ a.base = +p.toFixed(4); changed = true; kept.push(a); continue; } // ancorare la primul preț valid
+    const moved = (p - a.base) / a.base * 100;
+    if (Math.abs(moved) >= pct){
+      fired.push({ sym, kind:'pct', pct, base: a.base, moved, price: p, note: a.note || '', rearm: !!a.rearm });
+      changed = true;
+      if (a.rearm){ a.base = +p.toFixed(4); kept.push(a); }   // re-arm → re-ancorează la prețul nou
+      // one-shot → NU se păstrează (dispare)
+    } else { kept.push(a); }
+    continue;
+  }
+  // ── Alertă PREȚ PRAG ──
   const lvl = Number(a.level);
-  if (p == null || !(lvl > 0)){ kept.push(a); continue; }
+  if (!(lvl > 0)){ kept.push(a); continue; }
   const armed = a.armed !== false;
   const hit = a.dir === 'below' ? p <= lvl : p >= lvl;
   if (armed && hit){
@@ -97,10 +116,14 @@ for (const a of alerts){
 
 if (fired.length){
   cfg.triggered = [
-    ...fired.map(f => ({ symbol: f.sym, level: f.lvl, dir: f.dir, price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })),
+    ...fired.map(f => f.kind === 'pct'
+      ? ({ symbol: f.sym, kind: 'pct', pct: f.pct, base: +Number(f.base).toFixed(4), moved: +f.moved.toFixed(2), dir: f.moved >= 0 ? 'above' : 'below', price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })
+      : ({ symbol: f.sym, level: f.lvl, dir: f.dir, price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })),
     ...(Array.isArray(cfg.triggered) ? cfg.triggered : [])
   ].slice(0, 50);
-  const lines = fired.map(f => `${f.dir === 'below' ? '▼' : '▲'} <b>${tgEsc(f.sym)}</b> $${f.price.toFixed(2)} — prag $${f.lvl}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`);
+  const lines = fired.map(f => f.kind === 'pct'
+    ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% → $${f.price.toFixed(2)} (de la $${Number(f.base).toFixed(2)})${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
+    : `${f.dir === 'below' ? '▼' : '▲'} <b>${tgEsc(f.sym)}</b> $${f.price.toFixed(2)} — prag $${f.lvl}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`);
   await sendTelegram(`🔔 <b>Price Alert (server-side · ${fired.length})</b>\n${lines.join('\n')}`);
   console.log(`🔔 ${fired.length} alerte declanșate.`);
 } else {
