@@ -1,6 +1,8 @@
 # ═══════════════════════════════════════════════════════════════════
 # Price Alerts → Telegram (server-side, fără pagină deschisă)
-# Rulează tools/check-alerts.mjs la 15 min în orele de piață (L-V).
+# Rulează tools/check-alerts.mjs la 5 min în orele de piață (L-V).
+# ⚠ GitHub NU garantează cadența pe cron programat — sub încărcare poate sări/întârzia
+#   (observat empiric ~1 rulare/1-2h chiar și cu */15). */5 = "cât de des poate", nu fix 5min.
 # Necesită secrets: TELEGRAM_TOKEN + TELEGRAM_CHAT_ID
 #   (repo → Settings → Secrets and variables → Actions → New repository secret)
 # Test manual: tab-ul Actions → Price Alerts → Run workflow.
@@ -9,9 +11,9 @@ name: Price Alerts → Telegram
 
 on:
   schedule:
-    # la 15 min, 08:00–22:59 UTC, luni–vineri — acoperă pre-market + regular +
+    # la 5 min, 08:00–22:59 UTC, luni–vineri — acoperă pre-market + regular +
     # after-hours ET indiferent de DST (cron-ul GitHub e mereu pe UTC)
-    - cron: '*/15 8-22 * * 1-5'
+    - cron: '*/5 8-22 * * 1-5'
   workflow_dispatch: {}
 
 permissions:
