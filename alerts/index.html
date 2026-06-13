@@ -191,7 +191,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v7</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v8</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
@@ -621,12 +621,23 @@ function render() {
         <div class="alert-delta ${isClose ? 'close' : ''}">${delta != null ? (delta>=0?'+':'')+delta.toFixed(2)+'%' : '—'}</div>
         <div class="alert-note">${escHtml(a.note || '')}</div>
         <div class="alert-actions">
+          <button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (devine one-shot, dispare după declanșare)' : 'One-shot — click pt ↻ re-arm (se reia/re-ancorează după declanșare)'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>
           <button class="icon-btn" data-action="edit" title="Editează nivelul">✎</button>
           <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
         </div>
       </div>`;
     }).join('');
     // Bind actions
+    $('bodyActive').querySelectorAll('[data-action="rearm"]').forEach(btn => btn.addEventListener('click', e => {
+      const row = e.target.closest('.alert-row');
+      const sym = row.dataset.sym, id = row.dataset.id;
+      const a = (priceAlerts[sym] || []).find(x => x.id === id);
+      if (!a) return;
+      a.rearm = !a.rearm;
+      a.armed = true; // re-armăm la toggle — un one-shot dezarmat ar rămâne altfel mort
+      persistAlerts(); render();
+      toast(`↻ ${sym}: re-arm ${a.rearm ? 'PORNIT' : 'oprit (one-shot)'}`, 'info');
+    }));
     $('bodyActive').querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
       const row = e.target.closest('.alert-row');
       const sym = row.dataset.sym, id = row.dataset.id;
