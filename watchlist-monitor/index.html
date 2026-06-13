@@ -390,7 +390,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v141</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v142</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -706,6 +706,18 @@ window.reanchor = function(sym){
   const keepTarget = (a.target != null && a.tAuto === false);
   const t = keepTarget ? a.target : defaultTargetFor(r);
   anchorMap[sym] = { price: p, ts: Date.now(), target: t, tAuto: !keepTarget && t != null, sl: keepTarget ? a.sl : null, lastStep: 0 };
+  persistAnchor();
+  render();
+};
+// Setare manuală țintă/stop din inputurile din detalii (marchează ținta ca ne-auto).
+window.setAnchorLevels = function(sym){
+  const a = anchorMap[sym];
+  if (!a) return;
+  const tv = parseFloat(document.getElementById('atgt-' + sym)?.value);
+  const sv = parseFloat(document.getElementById('asl-' + sym)?.value);
+  a.target = (isFinite(tv) && tv > 0) ? +tv.toFixed(2) : null;
+  a.sl = (isFinite(sv) && sv > 0) ? +sv.toFixed(2) : null;
+  a.tAuto = false; // utilizatorul a stabilit ținta → nu o mai recalcula din ATR la re-ancorare
   persistAnchor();
   render();
 };
@@ -2356,11 +2368,31 @@ function buildDetailRow(r){
     if (a && a.price != null){
       const d = (lp != null) ? (lp - a.price) / a.price * 100 : null;
       const dc = d == null ? 'var(--t2)' : d >= 0 ? 'var(--bull-s)' : 'var(--bear-s)';
-      anchorHtml = `<div class="detail-plan-title" style="margin-top:13px">⚓ Ancoră — preț de referință</div>
+      // distanțe rămase din prețul CURENT până la nivelurile setate
+      const toTgt = (a.target != null && lp != null && lp > 0) ? (a.target - lp) / lp * 100 : null;
+      const toSl  = (a.sl != null && lp != null && lp > 0) ? (a.sl - lp) / lp * 100 : null;
+      // R:R din ancoră → țintă vs ancoră → stop
+      let rr = null;
+      if (a.target != null && a.sl != null && (a.price - a.sl) > 0) rr = (a.target - a.price) / (a.price - a.sl);
+      const tgtTag = a.target != null
+        ? `<div class="dp-tag tp"><span>Țintă${a.tAuto ? ' (auto)' : ''}${toTgt != null ? ' · ' + fmtPct(toTgt, 1) + ' rămas' : ''}</span>${fmtUSD(a.target)}</div>`
+        : `<div class="dp-tag"><span>Țintă — nesetată</span>—</div>`;
+      const slTag = a.sl != null
+        ? `<div class="dp-tag sl"><span>Stop${toSl != null ? ' · ' + fmtPct(toSl, 1) : ''}</span>${fmtUSD(a.sl)}</div>`
+        : '';
+      anchorHtml = `<div class="detail-plan-title" style="margin-top:13px">⚓ Ancoră &amp; țintă${rr != null ? ` · R:R≈${rr.toFixed(1)}` : ''}</div>
         <div class="detail-plan">
           <div class="dp-tag"><span>Ancoră · ${fmtAge(a.ts)}</span>${fmtUSD(a.price)}</div>
           <div class="dp-tag" style="border-color:${dc};color:${dc}"><span>Δ vs ancoră</span>${d == null ? '—' : fmtPct(d, 2)}</div>
-          <button type="button" class="action-btn" style="align-self:center" onclick="reanchor('${sym}')" title="mută ancora la prețul curent (ex. la intrarea efectivă în trade)">⚓ re-ancorează aici</button>
+          ${tgtTag}
+          ${slTag}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:7px">
+          <span style="font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px">Setează</span>
+          <input type="number" id="atgt-${sym}" placeholder="țintă $" step="0.01" min="0" value="${a.target != null ? a.target : ''}" style="width:84px">
+          <input type="number" id="asl-${sym}" placeholder="stop $" step="0.01" min="0" value="${a.sl != null ? a.sl : ''}" style="width:84px">
+          <button type="button" class="action-btn" onclick="setAnchorLevels('${sym}')">💾 Salvează</button>
+          <button type="button" class="action-btn" onclick="reanchor('${sym}')" title="mută ancora la prețul curent (ex. la intrarea efectivă în trade)">⚓ re-ancorează</button>
         </div>`;
     } else {
       anchorHtml = `<div class="detail-plan-title" style="margin-top:13px">⚓ Ancoră</div>
