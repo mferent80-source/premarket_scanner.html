@@ -324,6 +324,9 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 .perf-tag { font-size:9.5px; font-weight:700; font-family:var(--mono); margin-top:1px; line-height:1.2; }
 .perf-tag.pos { color:var(--bull-s); }
 .perf-tag.neg { color:var(--bear-s); }
+.anchor-tag { font-size:9.5px; font-weight:600; font-family:var(--mono); margin-top:2px; line-height:1.2; color:var(--t2); display:flex; align-items:center; gap:3px; flex-wrap:wrap; }
+.anchor-tag b { font-weight:800; }
+.anchor-tag.pos b { color:var(--bull-s); } .anchor-tag.neg b { color:var(--bear-s); }
 
 /* Premarket / after-hours (F-pre) */
 table.no-pre .col-pre { display:none; }
@@ -387,7 +390,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v140</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v141</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -598,6 +601,7 @@ const TG_KEY = 'tt_tg_config';           // F7 — { token, chatId, enabled }
 const PERF_KEY = 'wl_perf';              // F9 — { SYMBOL: { entryPrice, entryTs, entryVerdict } }
 const ALERT_LEVEL_KEY = 'wl_alert_level'; // F5-extra — pragul pt sunet/Telegram/notif
 const MOVE_ALERT_KEY = 'wl_move_alert';   // F6-extra — { enabled, pct } alertă mișcare preț
+const ANCHOR_KEY = 'wl_anchor';           // ANCORĂ — { SYM: { price, ts, target, tAuto, sl } } preț de referință fix (preț creare) + țintă
 const SCANNER_LAST_KEY = 'nasdaq_last_scan'; // F8 — scris de nasdaq-scanner
 const RESULTS_CACHE_KEY = 'wl_results_cache'; // F4-extra — { ts, results } ultimul scan, pt afișare instant la reload
 const POPULAR_TICKERS = ['AAPL','MSFT','NVDA','TSLA','AMZN','GOOGL','META','AMD','NFLX','PLTR','AVGO','COIN'];
@@ -614,6 +618,7 @@ let alertLevel = 'strong-buy';           // F5-extra — 'strong-buy' | 'buy' | 
 let moveAlert = { enabled: false, pct: 1 }; // F6-extra — alertă Telegram la fiecare ±pct% mișcare
 let moveRefMap = {};                     // { SYMBOL: ultimul preț alertat } (in-memory, re-ancorat per sesiune)
 let _moveArmed = false;                  // primul scan cu alerta activă doar ancorează (fără blast)
+let anchorMap = {};                      // ANCORĂ — { SYM: { price, ts, target, tAuto, sl, lastStep } } persistent în wl_anchor
 let sortKey = 'score', sortAsc = false;
 // Perioada sparkline-ului din coloana 📈 (1/7/15/30 zile de tranzacționare, default 7)
 let sparkDays = (() => { const v = parseInt(localStorage.getItem('wl_spark_days') || '7', 10); return [1, 7, 15, 30].includes(v) ? v : 7; })();
@@ -663,6 +668,47 @@ function fmtAge(ts){
   const h = Math.floor(m / 60);
   return h < 24 ? 'acum ' + h + 'h' : 'acum ' + Math.floor(h / 24) + 'z';
 }
+
+// ── ANCORĂ (preț de referință fix) ───────────────────────────────
+// Fiecare simbol primește o ancoră = prețul de la primul scan cu preț valid
+// după adăugare. NU se resetează (spre deosebire de moveRefMap incremental).
+// Ținta (target) se pre-completează din TP2 ref-ATR și e editabilă de utilizator.
+function persistAnchor(){ try { localStorage.setItem(ANCHOR_KEY, JSON.stringify(anchorMap)); } catch(e){} }
+// Prețul „viu": în pre/after sesiune extinsă, altfel close-ul ultimei sesiuni regular.
+function livePriceOf(r){ return r && r.livePrice != null ? r.livePrice : (r ? r.price : null); }
+// Țintă implicită = TP2 ref-ATR (entry + 3.5×ATR) când avem volatilitate; altfel null.
+function defaultTargetFor(r){
+  if (r && r.atrPct != null && r.price != null) return +(r.price + 3.5 * (r.price * r.atrPct / 100)).toFixed(2);
+  return null;
+}
+// Post-scan: ancorează simbolurile noi, curăță-le pe cele scoase din watchlist.
+function ensureAnchors(newResults){
+  let changed = false;
+  Object.keys(anchorMap).forEach(s => { if (!watchlist.includes(s)){ delete anchorMap[s]; changed = true; } });
+  newResults.forEach(r => {
+    const p = livePriceOf(r);
+    if (p == null) return;
+    if (!anchorMap[r.symbol]){
+      const t = defaultTargetFor(r);
+      anchorMap[r.symbol] = { price: p, ts: Date.now(), target: t, tAuto: t != null, sl: null, lastStep: 0 };
+      changed = true;
+    }
+  });
+  if (changed) persistAnchor();
+}
+// Re-ancorare manuală la prețul curent (ex. la intrarea efectivă în trade).
+window.reanchor = function(sym){
+  const r = results.find(x => x.symbol === sym);
+  const p = livePriceOf(r);
+  if (p == null) return;
+  const a = anchorMap[sym] || {};
+  // ținta auto se recalculează din noul preț; cea setată manual rămâne
+  const keepTarget = (a.target != null && a.tAuto === false);
+  const t = keepTarget ? a.target : defaultTargetFor(r);
+  anchorMap[sym] = { price: p, ts: Date.now(), target: t, tAuto: !keepTarget && t != null, sl: keepTarget ? a.sl : null, lastStep: 0 };
+  persistAnchor();
+  render();
+};
 // Sync live cross-tab: când alt tab (ex. Market Events) scrie în wl_stocks,
 // reîncarcă watchlist-ul și scanează simbolurile noi fără refresh manual.
 window.addEventListener('storage', e => {
@@ -1880,6 +1926,9 @@ async function runScan(){
   // Performance tracking (F9) — memorează prețul la primul BUY/STRONG BUY + calculează gain
   updatePerfTracking(newResults);
 
+  // ANCORĂ — ancorează simbolurile noi (preț de referință fix) + curăță cele scoase
+  ensureAnchors(newResults);
+
   // Detect semnale noi conform pragului ales → notification + sunet + Telegram (F5-extra)
   detectAndNotifyAlerts(newResults);
 
@@ -2178,6 +2227,16 @@ function fmtPct(n, decimals = 1){
   if (n == null || isNaN(n)) return '—';
   return (n >= 0 ? '+' : '') + n.toFixed(decimals) + '%';
 }
+// Badge ancoră pe rând: ⚓ preț + Δ% față de ancora fixă
+function anchorTagRow(r){
+  const a = anchorMap[r.symbol];
+  if (!a || a.price == null) return '';
+  const p = livePriceOf(r);
+  if (p == null) return '';
+  const d = (p - a.price) / a.price * 100;
+  const cls = d >= 0 ? 'pos' : 'neg';
+  return `<div class="anchor-tag ${cls}" title="ancoră ${fmtUSD(a.price)} · ${fmtAge(a.ts)}">⚓ ${fmtUSD(a.price)} · <b>${fmtPct(d, 1)}</b></div>`;
+}
 
 function updateStats(){
   // Tier-urile se numără doar din rândurile cu date valide — rândurile eșuate
@@ -2289,6 +2348,26 @@ function buildDetailRow(r){
       <div style="font-size:9px;color:var(--t3);margin-top:5px">Doar orientativ — bazat pe volatilitate medie. Confirmă cu structura graficului.</div>`;
   }
 
+  // ANCORĂ — preț de referință fix + Δ% (țintă/progres adăugate în F2/F3)
+  let anchorHtml = '';
+  {
+    const a = anchorMap[sym];
+    const lp = livePriceOf(r);
+    if (a && a.price != null){
+      const d = (lp != null) ? (lp - a.price) / a.price * 100 : null;
+      const dc = d == null ? 'var(--t2)' : d >= 0 ? 'var(--bull-s)' : 'var(--bear-s)';
+      anchorHtml = `<div class="detail-plan-title" style="margin-top:13px">⚓ Ancoră — preț de referință</div>
+        <div class="detail-plan">
+          <div class="dp-tag"><span>Ancoră · ${fmtAge(a.ts)}</span>${fmtUSD(a.price)}</div>
+          <div class="dp-tag" style="border-color:${dc};color:${dc}"><span>Δ vs ancoră</span>${d == null ? '—' : fmtPct(d, 2)}</div>
+          <button type="button" class="action-btn" style="align-self:center" onclick="reanchor('${sym}')" title="mută ancora la prețul curent (ex. la intrarea efectivă în trade)">⚓ re-ancorează aici</button>
+        </div>`;
+    } else {
+      anchorHtml = `<div class="detail-plan-title" style="margin-top:13px">⚓ Ancoră</div>
+        <div style="font-size:11px;color:var(--t3)">se ancorează automat la primul scan cu preț valid.</div>`;
+    }
+  }
+
   // Alerte de preț manuale (C)
   const pAlerts = priceAlerts[sym] || [];
   const alertsHtml = `<div class="detail-plan-title" style="margin-top:13px">⏰ Alerte preț${pAlerts.length ? ` (${pAlerts.length})` : ''}</div>
@@ -2323,6 +2402,7 @@ function buildDetailRow(r){
         </div>
         <div class="detail-metrics">${metrics}</div>
         ${perfHtml}
+        ${anchorHtml}
         ${planHtml}
         ${alertsHtml}
         <div class="detail-links">
@@ -2448,6 +2528,7 @@ function render(){
         <div class="sym-sector">${wlEsc(sectorOf(r.symbol)) || 'Stocks'} · ${exLabel(r.symbol)}</div>
         ${earnBadge(r.symbol)}${insBadge(r.symbol)}${alertBadge(r.symbol)}
         ${perfTag}
+        ${anchorTagRow(r)}
       </td>
       <td>${fmtUSD(r.price)}</td>
       <td><span class="badge ${chgCls}">${fmtPct(r.chg, 2)}</span></td>
@@ -2515,6 +2596,7 @@ window.removeFromWl = function(sym){
   results = results.filter(r => r.symbol !== sym);
   if (openDetail === sym) openDetail = null;
   if (perfMap[sym]){ delete perfMap[sym]; persistPerf(); }
+  if (anchorMap[sym]){ delete anchorMap[sym]; persistAnchor(); }
   saveWatchlist();
   render();
 };
@@ -2712,6 +2794,7 @@ try { perfMap = JSON.parse(localStorage.getItem(PERF_KEY) || '{}') || {}; } catc
 try { const al = localStorage.getItem(ALERT_LEVEL_KEY); if (al === 'buy' || al === 'upgrade' || al === 'strong-buy') alertLevel = al; } catch(e){}
 try { const ma = JSON.parse(localStorage.getItem(MOVE_ALERT_KEY) || 'null'); if (ma && typeof ma === 'object'){ moveAlert.enabled = !!ma.enabled; moveAlert.pct = Math.max(0.2, Math.min(20, parseFloat(ma.pct) || 1)); } } catch(e){}
 try { priceAlerts = JSON.parse(localStorage.getItem(PRICE_ALERT_KEY) || '{}') || {}; } catch(e){ priceAlerts = {}; }
+try { anchorMap = JSON.parse(localStorage.getItem(ANCHOR_KEY) || '{}') || {}; } catch(e){ anchorMap = {}; }
 try { const dc = JSON.parse(localStorage.getItem(DIGEST_CFG_KEY) || 'null'); if (dc && typeof dc === 'object') digestCfg.enabled = !!dc.enabled; } catch(e){}
 loadResultsCache(); // F4-extra — populează tabelul din cache înainte de primul scan
 corrClusters = computeCorrClusters(results); // D — banner-ul apare și din cache
