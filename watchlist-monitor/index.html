@@ -396,7 +396,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v143</span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v144</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -622,8 +622,6 @@ let tgConfig = { token: '', chatId: '', enabled: false }; // F7
 let perfMap = {};                        // F9
 let alertLevel = 'strong-buy';           // F5-extra — 'strong-buy' | 'buy' | 'upgrade'
 let moveAlert = { enabled: false, pct: 1 }; // F6-extra — alertă Telegram la fiecare ±pct% mișcare
-let moveRefMap = {};                     // { SYMBOL: ultimul preț alertat } (in-memory, re-ancorat per sesiune)
-let _moveArmed = false;                  // primul scan cu alerta activă doar ancorează (fără blast)
 let anchorMap = {};                      // ANCORĂ — { SYM: { price, ts, target, tAuto, sl, lastStep } } persistent în wl_anchor
 let sortKey = 'score', sortAsc = false;
 // Perioada sparkline-ului din coloana 📈 (1/7/15/30 zile de tranzacționare, default 7)
@@ -677,7 +675,7 @@ function fmtAge(ts){
 
 // ── ANCORĂ (preț de referință fix) ───────────────────────────────
 // Fiecare simbol primește o ancoră = prețul de la primul scan cu preț valid
-// după adăugare. NU se resetează (spre deosebire de moveRefMap incremental).
+// după adăugare. NU se resetează — alertele-pas se măsoară mereu față de ea (cumulat).
 // Ținta (target) se pre-completează din TP2 ref-ATR și e editabilă de utilizator.
 function persistAnchor(){ try { localStorage.setItem(ANCHOR_KEY, JSON.stringify(anchorMap)); } catch(e){} }
 // Prețul „viu": în pre/after sesiune extinsă, altfel close-ul ultimei sesiuni regular.
@@ -872,12 +870,12 @@ window.showTgConfig = function(){
         <option value="upgrade" ${alertLevel === 'upgrade' ? 'selected' : ''}>⬆️ Orice upgrade de tier (până la BUY+)</option>
       </select>
     </div>
-    <div class="tg-field"><label>Alertă mișcare preț (pas incremental)</label>
+    <div class="tg-field"><label>⚓ Alertă ancoră (pas vs ancoră fixă + 🎯 țintă + 🔔 aproape 90% + 🛑 stop)</label>
       <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
         <label class="fb-toggle" style="margin:0"><input type="checkbox" id="tgMoveEnabled" ${moveAlert.enabled ? 'checked' : ''}> activează</label>
-        <span style="font-size:11px;color:var(--t3)">la fiecare ±</span>
+        <span style="font-size:11px;color:var(--t3)">pas la fiecare ±</span>
         <input type="number" id="tgMovePct" min="0.2" max="20" step="0.1" value="${moveAlert.pct}" style="width:64px">
-        <span style="font-size:11px;color:var(--t3)">% față de ultimul preț alertat → Telegram</span>
+        <span style="font-size:11px;color:var(--t3)">% față de ancoră (preț de creare)</span>
       </div>
     </div>
     <label class="fb-toggle" style="margin-bottom:8px"><input type="checkbox" id="tgEnabled" ${tgConfig.enabled ? 'checked' : ''}> activează alertele Telegram (verdict)</label>
@@ -899,11 +897,8 @@ window.showTgConfig = function(){
     try { localStorage.setItem(ALERT_LEVEL_KEY, alertLevel); } catch(e){}
     try { localStorage.setItem(MOVE_ALERT_KEY, JSON.stringify(moveAlert)); } catch(e){}
     try { localStorage.setItem(DIGEST_CFG_KEY, JSON.stringify(digestCfg)); } catch(e){}
-    // tocmai activat → ancorează imediat din ultimul scan, alertele pornesc de la următorul
-    if (moveAlert.enabled && !prevMoveEnabled){
-      moveRefMap = {}; results.forEach(r => { const p = r.livePrice != null ? r.livePrice : r.price; if (p != null) moveRefMap[r.symbol] = p; });
-      _moveArmed = true;
-    }
+    // tocmai activat → sincronizează starea cu ultimul scan (baseline), alertele pornesc de la următorul
+    if (moveAlert.enabled && !prevMoveEnabled) baselineAnchorAlerts();
     updateAlertButtons();
   };
   document.getElementById('tgSave').addEventListener('click', () => {
@@ -1957,8 +1952,8 @@ async function runScan(){
   // Detect semnale noi conform pragului ales → notification + sunet + Telegram (F5-extra)
   detectAndNotifyAlerts(newResults);
 
-  // Detect mișcări de preț ±pct% → Telegram (F6-extra)
-  detectAndNotifyMoves(newResults);
+  // Alerte ancoră: pas cumulat vs ancora fixă + țintă/aproape/stop → Telegram
+  detectAndNotifyAnchor(newResults);
 
   // Alerte de preț manuale — niveluri exacte peste/sub (C)
   checkPriceAlerts(newResults);
@@ -2152,48 +2147,83 @@ function checkPriceAlerts(newResults){
   }
 }
 
-// ── Alertă mișcare preț incrementală (F6-extra) ───────────────────
-// Pas incremental: la fiecare ±pct% față de ULTIMUL preț alertat → Telegram (grupat per scan).
-// Ref-urile sunt in-memory; primul scan cu alerta activă doar ancorează (evită blast după reload/pauză).
-function detectAndNotifyMoves(newResults){
-  // curăță ref-urile simbolurilor scoase din watchlist
-  Object.keys(moveRefMap).forEach(s => { if (!watchlist.includes(s)) delete moveRefMap[s]; });
-
-  // Prețul „viu": în pre/after folosește prețul din sesiunea extinsă (F-pre),
-  // altfel alertele ar dormi pe close-ul de ieri toată dimineața.
-  const liveOf = r => r.livePrice != null ? r.livePrice : r.price;
-
-  if (!moveAlert.enabled){
-    // ține ref-urile pe prețul curent → activarea ulterioară pornește de la prețurile de acum
-    newResults.forEach(r => { const p = liveOf(r); if (p != null) moveRefMap[r.symbol] = p; });
-    _moveArmed = false;
-    return;
-  }
+// ── Alerte ANCORĂ (pas cumulat din ancora fixă + țintă + aproape + stop) ──
+// Toate măsurate față de ancora FIXĂ (preț de creare), nu față de ultimul ping.
+// Guvernate de moveAlert.{enabled,pct}. One-shot-urile (țintă/aproape/stop) se re-armează
+// când condiția redevine falsă. Starea persistă în anchorMap → fără blast la reload.
+function anchorAlertState(a, p, pct){
+  const step = Math.trunc((p - a.price) / a.price * 100 / pct); // banda de ±pct% în care suntem
+  const longTgt = a.target != null && a.target >= a.price;
+  const tgtHit = a.target != null ? (longTgt ? p >= a.target : p <= a.target) : false;
+  const pr = (a.target != null && (a.target - a.price) !== 0) ? (p - a.price) / (a.target - a.price) * 100 : null;
+  const longStop = a.sl != null && a.sl <= a.price;
+  const slHit = a.sl != null ? (longStop ? p <= a.sl : p >= a.sl) : false;
+  return { step, tgtHit, pr, slHit };
+}
+// Sincronizează starea alertelor cu prețul curent FĂRĂ să trimită nimic (baseline anti-blast).
+function baselineAnchorAlerts(){
   const pct = moveAlert.pct > 0 ? moveAlert.pct : 1;
-  if (!_moveArmed){ // primul scan cu alerta ON → ancorează, nu alerta
-    newResults.forEach(r => { const p = liveOf(r); if (p != null) moveRefMap[r.symbol] = p; });
-    _moveArmed = true;
-    return;
-  }
-  const moved = [];
-  newResults.forEach(r => {
-    const p = liveOf(r);
-    if (p == null) return;
-    const ref = moveRefMap[r.symbol];
-    if (ref == null){ moveRefMap[r.symbol] = p; return; }
-    const chg = (p - ref) / ref * 100;
-    if (Math.abs(chg) >= pct){ moved.push({ sym: r.symbol, price: p, chg }); moveRefMap[r.symbol] = p; }
+  let dirty = false;
+  results.forEach(r => {
+    const a = anchorMap[r.symbol]; const p = livePriceOf(r);
+    if (!a || a.price == null || p == null) return;
+    const s = anchorAlertState(a, p, pct);
+    a.lastStep = s.step; a.tgtHit = s.tgtHit; a.slHit = s.slHit;
+    a.nearHit = (s.pr != null && s.pr >= 90 && !s.tgtHit);
+    dirty = true;
   });
-  if (!moved.length) return;
+  if (dirty) persistAnchor();
+}
+function detectAndNotifyAnchor(newResults){
+  const pct = moveAlert.pct > 0 ? moveAlert.pct : 1;
+  if (!moveAlert.enabled){ baselineAnchorAlerts(); return; } // dezactivat → doar baseline silent
+  const stepMsgs = [], tgtMsgs = [], nearMsgs = [], slMsgs = [];
+  let dirty = false;
+  newResults.forEach(r => {
+    const a = anchorMap[r.symbol]; const p = livePriceOf(r);
+    if (!a || a.price == null || p == null) return;
+    const dPct = (p - a.price) / a.price * 100;
+    const s = anchorAlertState(a, p, pct);
 
-  // Telegram grupat
-  if (tgConfig.token && tgConfig.chatId){
-    const lines = moved.slice(0, 12).map(m => `${m.chg >= 0 ? '🟢⬆' : '🔴⬇'} <b>${m.sym}</b> ${m.chg >= 0 ? '+' : ''}${m.chg.toFixed(2)}% → $${m.price.toFixed(2)}`);
-    const more = moved.length > 12 ? `\n…și ${moved.length - 12} mai multe` : '';
-    sendTelegram(`<b>👁 Watchlist — mișcări ≥${pct}% (${moved.length})</b>\n${lines.join('\n')}${more}`);
+    // 1) pas cumulat din ancora fixă — alertă când intrăm într-o bandă mai depărtată de ancoră
+    if (a.lastStep == null){ a.lastStep = s.step; dirty = true; }
+    else if (s.step !== a.lastStep){
+      if (s.step !== 0 && Math.abs(s.step) > Math.abs(a.lastStep)) stepMsgs.push({ sym: r.symbol, step: s.step, dPct, p });
+      a.lastStep = s.step; dirty = true;
+    }
+    // 2) țintă atinsă (one-shot, re-armare la revenire)
+    if (a.target != null){
+      if (s.tgtHit && !a.tgtHit){ tgtMsgs.push({ sym: r.symbol, p, target: a.target }); a.tgtHit = true; dirty = true; }
+      else if (!s.tgtHit && a.tgtHit){ a.tgtHit = false; dirty = true; }
+      // 3) aproape de țintă (≥90% din drum), histerezis re-armare sub 85%
+      if (!s.tgtHit && s.pr != null && s.pr >= 90){ if (!a.nearHit){ nearMsgs.push({ sym: r.symbol, p, target: a.target, pr: s.pr }); a.nearHit = true; dirty = true; } }
+      else if (s.pr != null && s.pr < 85){ if (a.nearHit){ a.nearHit = false; dirty = true; } }
+    }
+    // 4) stop atins (one-shot, re-armare)
+    if (a.sl != null){
+      if (s.slHit && !a.slHit){ slMsgs.push({ sym: r.symbol, p, sl: a.sl }); a.slHit = true; dirty = true; }
+      else if (!s.slHit && a.slHit){ a.slHit = false; dirty = true; }
+    }
+  });
+  if (dirty) persistAnchor();
+
+  const total = stepMsgs.length + tgtMsgs.length + nearMsgs.length + slMsgs.length;
+  if (!total) return;
+  const sendTG = tgConfig.token && tgConfig.chatId;
+  if (sendTG){
+    const blocks = [];
+    if (stepMsgs.length) blocks.push(`<b>📊 Mișcare ≥${pct}% vs ancoră (${stepMsgs.length})</b>\n` +
+      stepMsgs.slice(0, 12).map(m => `${m.dPct >= 0 ? '🟢⬆' : '🔴⬇'} <b>${m.sym}</b> ${fmtPct(m.dPct, 1)} (prag ${m.step >= 0 ? '+' : ''}${(m.step * pct).toFixed(1)}%) → $${m.p.toFixed(2)}`).join('\n'));
+    if (tgtMsgs.length) blocks.push(`<b>🎯 Țintă atinsă (${tgtMsgs.length})</b>\n` +
+      tgtMsgs.map(m => `🎯 <b>${m.sym}</b> a atins ținta $${m.target.toFixed(2)} → acum $${m.p.toFixed(2)}`).join('\n'));
+    if (nearMsgs.length) blocks.push(`<b>🔔 Aproape de țintă (${nearMsgs.length})</b>\n` +
+      nearMsgs.map(m => `🔔 <b>${m.sym}</b> ${m.pr.toFixed(0)}% spre țintă $${m.target.toFixed(2)} → $${m.p.toFixed(2)}`).join('\n'));
+    if (slMsgs.length) blocks.push(`<b>🛑 Stop atins (${slMsgs.length})</b>\n` +
+      slMsgs.map(m => `🛑 <b>${m.sym}</b> a atins stopul $${m.sl.toFixed(2)} → $${m.p.toFixed(2)}`).join('\n'));
+    sendTelegram(blocks.join('\n\n'));
   }
-  // Toast în pagină (rezumat)
-  showToastMsg(`📊 ${moved.length} mișcare${moved.length > 1 ? 'ări' : ''} ≥${pct}%${tgConfig.token && tgConfig.chatId ? ' → Telegram' : ''}`);
+  if (soundEnabled) beep();
+  showToastMsg(`⚓ ${total} alertă ancoră${sendTG ? ' → Telegram' : ''}`);
 }
 
 // ── Digest zilnic Telegram la închiderea pieței (G) ───────────────
