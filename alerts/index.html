@@ -95,7 +95,14 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
   padding:14px 18px; margin-bottom:12px; box-shadow:var(--shadow);
 }
-.add-form h3 { font-size:14px; font-weight:800; color:var(--t1); margin-bottom:12px; }
+.add-form h3 { font-size:14px; font-weight:800; color:var(--t1); }
+.add-form-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
+.hint-btn {
+  padding:5px 11px; font-size:11.5px; font-family:var(--head); cursor:pointer;
+  background:transparent; color:var(--t2); border:1px solid var(--b1); border-radius:8px;
+  white-space:nowrap; transition:background .15s,color .15s;
+}
+.hint-btn:hover { background:rgba(91,176,255,.08); color:var(--t1); }
 .add-row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
 .add-row > div { display:flex; flex-direction:column; gap:4px; }
 .add-row label { font-size:11px; color:var(--t2); font-family:var(--mono); text-transform:uppercase; letter-spacing:.3px; font-weight:700; }
@@ -226,15 +233,31 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 @keyframes slideOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(20px); } }
 
 @media (max-width:768px) {
-  .alert-row { grid-template-columns:1fr 1fr; gap:8px; }
-  .alert-note, .alert-current, .alert-delta { grid-column:1/-1; }
+  /* Compact 2 rânduri: simbol+prag+acțiuni sus, preț+Δ% jos, notă mică dedesubt. */
+  .alert-row {
+    grid-template-columns:auto 1fr auto;
+    grid-template-areas:
+      "sym thr actions"
+      "cur delta delta"
+      "note note note";
+    gap:2px 8px; padding:8px 12px; font-size:12px;
+  }
+  .alert-sym { grid-area:sym; font-size:12.5px; }
+  .alert-thr { grid-area:thr; }
+  .alert-thr .dir { display:inline; margin:0 0 0 5px; }   /* prag + direcție pe același rând */
+  .alert-actions { grid-area:actions; }
+  .alert-current { grid-area:cur; }
+  .alert-delta { grid-area:delta; }
+  .alert-note { grid-area:note; font-size:11px; }
+  .alert-note:empty { display:none; }                      /* fără rând gol când nu există notă */
+  .icon-btn { padding:4px 7px; }                            /* butoane puțin mai mici pe telefon */
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v15</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v16</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -249,7 +272,10 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 
 <!-- Add new alert -->
 <div class="add-form">
-  <h3>➕ Adaugă alertă nouă</h3>
+  <div class="add-form-head">
+    <h3>➕ Adaugă alertă nouă</h3>
+    <button type="button" id="btnHint" class="hint-btn">ℹ️ Cum funcționează</button>
+  </div>
   <div class="add-row">
     <div>
       <label>Ticker / nume</label>
@@ -296,7 +322,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
     <button class="primary add-btn" id="btnAdd">+ Adaugă</button>
   </div>
   <div id="symSearchResults" style="display:none;flex-direction:column;gap:3px;margin:8px 0 0"></div>
-  <div class="add-hint">
+  <div class="add-hint" id="addHint" style="display:none">
     <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. <b>⚓ Ancoră</b> = ancoră FIXĂ la prețul de creare (nu se mută) cu Δ% afișat + bară de progres spre țintă + R:R; te anunță la <b>4 evenimente</b>: 🪜 fiecare pas cumulat de ±X% din ancoră, 🎯 ținta atinsă, 🔔 aproape de țintă (≥90%), 🛑 stopul atins. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 60s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram.
   </div>
 </div>
@@ -1122,6 +1148,14 @@ async function asSearch() {
      </div>`).join('');
 }
 $('btnSearch').addEventListener('click', asSearch);
+
+// Toggle descriere („Cum funcționează") — ascunsă implicit ca să nu ocupe spațiu
+$('btnHint').addEventListener('click', () => {
+  const h = $('addHint');
+  const show = h.style.display === 'none';
+  h.style.display = show ? 'block' : 'none';
+  $('btnHint').textContent = show ? '✕ Ascunde' : 'ℹ️ Cum funcționează';
+});
 
 $('btnAdd').addEventListener('click', () => {
   const sym = $('inpSym').value.trim().toUpperCase();
