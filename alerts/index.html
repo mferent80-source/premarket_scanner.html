@@ -160,6 +160,42 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .anchor-bar-mini > i { display:block; height:100%; background:linear-gradient(90deg,var(--acc-1),var(--bull-s)); border-radius:3px; transition:width .3s var(--ease); }
 .anchor-rem { display:block; font-size:10px; color:var(--t3); font-family:var(--mono); margin-top:2px; }
 
+/* Badge sesiune per grup (crypto 24/7 vs stocks cu sesiune) */
+.sess-badge {
+  font-family:var(--mono); font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px;
+  background:var(--panel3); color:var(--t2); border:1px solid var(--b1); white-space:nowrap;
+}
+.sess-badge.open { color:var(--bull-s); border-color:rgba(34,214,107,.4); background:rgba(34,214,107,.1); }
+.sess-badge.pre { color:var(--warn); border-color:rgba(212,137,44,.4); background:rgba(212,137,44,.12); }
+.sess-badge.closed { color:var(--t3); }
+
+/* Modal editare alertă */
+.modal-ov {
+  position:fixed; inset:0; background:rgba(4,7,12,.72); z-index:3000;
+  display:flex; align-items:center; justify-content:center; padding:16px;
+  animation:fadeIn .15s var(--ease);
+}
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.modal {
+  background:var(--panel); border:1px solid var(--b2); border-radius:var(--r);
+  box-shadow:0 12px 48px rgba(0,0,0,.5); width:100%; max-width:420px; overflow:hidden;
+}
+.modal-head {
+  display:flex; align-items:center; gap:8px; padding:13px 16px;
+  background:linear-gradient(180deg, var(--panel2), var(--panel)); border-bottom:1px solid var(--b1);
+}
+.modal-head h3 { font-size:14px; font-weight:800; flex:1; color:var(--t1); }
+.modal-body { padding:16px; display:flex; flex-direction:column; gap:12px; }
+.modal-field { display:flex; flex-direction:column; gap:4px; }
+.modal-field label { font-size:11px; color:var(--t2); font-family:var(--mono); text-transform:uppercase; letter-spacing:.3px; font-weight:700; }
+.modal-field input, .modal-field select { width:100%; }
+.modal-row { display:flex; gap:10px; }
+.modal-row .modal-field { flex:1; }
+.modal-check { display:flex; align-items:center; gap:8px; }
+.modal-check input { width:18px; height:18px; }
+.modal-check label { text-transform:none; letter-spacing:0; color:var(--t1); font-family:var(--head); font-size:12.5px; }
+.modal-foot { display:flex; gap:8px; justify-content:flex-end; padding:12px 16px; border-top:1px solid var(--b1); }
+
 .alert-trigger-info {
   grid-column:1/-1; font-size:11.5px; color:var(--bull-s); font-family:var(--mono);
   background:rgba(34,214,107,.06); padding:4px 8px; border-radius:4px; margin-top:5px;
@@ -197,8 +233,9 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v11</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v12</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
+  <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
   <button class="icon-btn" id="testBtn" title="Test alertă (demo)">🧪</button>
@@ -258,15 +295,27 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </div>
 </div>
 
-<!-- Active alerts -->
+<!-- Active alerts — crypto (24/7) -->
 <div class="section">
   <div class="section-head">
-    <h3>🎯 Alerte active</h3>
-    <span class="count" id="cntActive">0</span>
-    <button id="btnPause" class="icon-btn" title="Pauză polling">⏸</button>
+    <h3>🪙 Crypto active</h3>
+    <span class="sess-badge open" id="sessCrypto" title="Crypto se verifică non-stop, inclusiv noaptea și weekendul">🟢 24/7</span>
+    <span class="count" id="cntCrypto">0</span>
   </div>
-  <div class="section-body" id="bodyActive">
-    <div class="empty"><span class="ico">📭</span>Niciun alert activ. Adaugă unul de mai sus.</div>
+  <div class="section-body" id="bodyCrypto">
+    <div class="empty"><span class="ico">🪙</span>Nicio alertă crypto. Adaugă una de mai sus (BTC-USD, ETH-USD, ONDOUSDT…).</div>
+  </div>
+</div>
+
+<!-- Active alerts — stocks (cu sesiune) -->
+<div class="section">
+  <div class="section-head">
+    <h3>📈 Stocks active</h3>
+    <span class="sess-badge" id="sessStocks" title="Sesiunea bursei US (ET)">⏳</span>
+    <span class="count" id="cntStocks">0</span>
+  </div>
+  <div class="section-body" id="bodyStocks">
+    <div class="empty"><span class="ico">📈</span>Nicio alertă pe stocks. Adaugă una de mai sus (AAPL, NVDA…).</div>
   </div>
 </div>
 
@@ -284,6 +333,56 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 
 <div class="refresh-info" id="refreshInfo">—</div>
 <div id="toasts"></div>
+
+<!-- Modal editare alertă -->
+<div class="modal-ov" id="editModal" style="display:none">
+  <div class="modal">
+    <div class="modal-head"><h3 id="editTitle">✏️ Editează alertă</h3><button class="icon-btn" id="editClose" title="Închide">✕</button></div>
+    <div class="modal-body">
+      <div class="modal-field">
+        <label>Tip alertă</label>
+        <select id="editKind">
+          <option value="price">$ Preț prag</option>
+          <option value="pct">% Mișcare ±</option>
+          <option value="anchor">⚓ Ancoră (pas+țintă)</option>
+        </select>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label id="editLblThr">Preț prag $</label>
+          <input type="number" id="editThr" step="0.01">
+        </div>
+        <div class="modal-field" id="editWrapDir">
+          <label>Direcție</label>
+          <select id="editDir">
+            <option value="above">▲ Sus / peste</option>
+            <option value="below">▼ Jos / sub</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-row" id="editWrapAnchor" style="display:none">
+        <div class="modal-field"><label>🎯 Țintă $</label><input type="number" id="editTarget" step="0.01"></div>
+        <div class="modal-field"><label>🛑 Stop $ (opț)</label><input type="number" id="editStop" step="0.01"></div>
+      </div>
+      <div class="modal-field">
+        <label>Notă</label>
+        <input type="text" id="editNote" maxlength="80" placeholder="ex: target TP1 după ATR x2">
+      </div>
+      <div class="modal-check">
+        <input type="checkbox" id="editRearm">
+        <label for="editRearm">↻ Re-arm (rămâne și se re-armează după declanșare)</label>
+      </div>
+      <div class="modal-check" id="editWrapReanchor" style="display:none">
+        <input type="checkbox" id="editReanchor">
+        <label for="editReanchor">⚓ Re-ancorează la prețul curent (la intrarea în trade)</label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button id="editCancel">Anulează</button>
+      <button class="primary" id="editSave">💾 Salvează</button>
+    </div>
+  </div>
+</div>
 
 <script src="../lib/data.js"></script>
 <script>
@@ -338,6 +437,18 @@ function nyseClosed() {
   if (wd === 'Sat' || wd === 'Sun') return true;
   return mins < 240 || mins >= 1200; // în afara 04:00-20:00 ET (pre+regular+after)
 }
+// Sesiunea bursei US (ET, DST-aware) pentru badge-ul grupului Stocks
+function marketSession() {
+  const p = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
+  const wd = p.find(x => x.type === 'weekday')?.value || '';
+  const mins = (parseInt(p.find(x => x.type === 'hour')?.value, 10) || 0) * 60 + (parseInt(p.find(x => x.type === 'minute')?.value, 10) || 0);
+  if (wd === 'Sat' || wd === 'Sun') return { label: '🌙 weekend · 10min', cls: 'closed' };
+  if (mins >= 570 && mins < 960) return { label: '🟢 regular', cls: 'open' };       // 09:30-16:00
+  if (mins >= 240 && mins < 570) return { label: '🟡 pre-market', cls: 'pre' };      // 04:00-09:30
+  if (mins >= 960 && mins < 1200) return { label: '🟡 after-hours', cls: 'pre' };    // 16:00-20:00
+  return { label: '🌙 închis · 10min', cls: 'closed' };                              // verificare la 10min
+}
+
 const CRYPTO_SYMS = new Set(['BTC-USD','BTC','ETH-USD','ETH','SOL-USD','SOL']);
 // crypto = 24/7 (nu se throttle-ază noaptea/weekend ca stocks): perechi USDT (Binance) + orice XXX-USD
 const isCrypto = s => CRYPTO_SYMS.has(s) || /USDT$/.test(s) || /-USD$/.test(s);
@@ -679,6 +790,85 @@ function schedulePoll() {
 }
 
 // ============ RENDER ============
+// HTML-ul unui rând de alertă activă (folosit în ambele grupuri crypto/stocks)
+function rowHtml(sym, a) {
+  const cur = _lastPrice[sym];
+  const isPct = a.kind === 'pct';
+  const isAnchor = a.kind === 'anchor';
+  const stateBadge = a.rearm ? (a.armed ? '<span title="re-arm: alerta se păstrează și se re-armează după declanșare">↻</span>' : '<span title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel" style="opacity:.55">↻💤</span>') : '';
+  let thrHtml, delta, isClose, dirCls, extraHtml = '';
+  if (isAnchor) {
+    delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;        // Δ% vs ancoră fixă
+    dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
+    isClose = false;
+    const tgtTxt = a.target != null ? ` 🎯$${fmtPx(a.target, sym)}` : '';
+    thrHtml = `±${a.pct}%${tgtTxt}<span class="dir">⚓$${a.base != null ? fmtPx(a.base, sym) : '⏳'}${a.stop != null ? ' · 🛑$' + fmtPx(a.stop, sym) : ''} ${stateBadge}</span>`;
+    // bară progres ancoră→țintă + % rămas (din prețul curent) + R:R
+    if (a.target != null && a.base != null && a.target !== a.base && cur != null) {
+      const prog = (cur - a.base) / (a.target - a.base) * 100;
+      const clamped = Math.max(0, Math.min(100, prog));
+      const remPct = (a.target - cur) / cur * 100;                                    // cât mai are până la țintă, % din preț curent
+      const rr = (a.stop != null && a.base !== a.stop) ? Math.abs(a.target - a.base) / Math.abs(a.base - a.stop) : null;
+      extraHtml = `<div class="anchor-prog"><div class="anchor-bar-mini"><i style="width:${clamped.toFixed(0)}%"></i></div><span class="anchor-rem">${prog.toFixed(0)}%→🎯 · ${fmtPct(remPct)} rămas${rr != null ? ' · R:R ' + rr.toFixed(1) : ''}</span></div>`;
+    }
+  } else if (isPct) {
+    delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;       // mișcarea curentă față de ancoră
+    isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;                       // aproape de pragul ±%
+    dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
+    thrHtml = `±${a.pct}%<span class="dir">de la ${a.base ? '$' + fmtPx(a.base, sym) : '⏳ ancorare'} ${stateBadge}</span>`;
+  } else {
+    delta = cur != null ? ((cur - a.lvl) / a.lvl * 100) : null;
+    isClose = delta != null && Math.abs(delta) < 1.5;
+    dirCls = a.dir === 'above' ? 'up' : 'down';
+    thrHtml = `$${fmtPx(a.lvl, sym)}<span class="dir">${a.dir === 'above' ? '▲ peste' : '▼ sub'} ${stateBadge}</span>`;
+  }
+  return `<div class="alert-row" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
+    <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a></div>
+    <div class="alert-thr">${thrHtml}</div>
+    <div class="alert-current ${dirCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</div>
+    <div class="alert-delta ${isClose ? 'close' : ''}">${delta != null ? (delta>=0?'+':'')+delta.toFixed(2)+'%' : '—'}${extraHtml}</div>
+    <div class="alert-note">${escHtml(a.note || '')}</div>
+    <div class="alert-actions">
+      <button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (devine one-shot, dispare după declanșare)' : 'One-shot — click pt ↻ re-arm (se reia/re-ancorează după declanșare)'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>
+      <button class="icon-btn" data-action="edit" title="Editează alerta (modal complet)">✎</button>
+      <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
+    </div>
+  </div>`;
+}
+
+// Randează un grup (crypto/stocks) + leagă acțiunile pe rândurile lui
+function renderActiveGroup(bodyEl, groupRows, ico, emptyMsg) {
+  if (!groupRows.length) { bodyEl.innerHTML = `<div class="empty"><span class="ico">${ico}</span>${emptyMsg}</div>`; return; }
+  bodyEl.innerHTML = groupRows.map(({ sym, a }) => rowHtml(sym, a)).join('');
+  bindActiveActions(bodyEl);
+}
+
+// Leagă rearm/delete/edit pe rândurile dintr-un container
+function bindActiveActions(container) {
+  container.querySelectorAll('[data-action="rearm"]').forEach(btn => btn.addEventListener('click', e => {
+    const row = e.target.closest('.alert-row');
+    const sym = row.dataset.sym, id = row.dataset.id;
+    const a = (priceAlerts[sym] || []).find(x => x.id === id);
+    if (!a) return;
+    a.rearm = !a.rearm;
+    a.armed = true; // re-armăm la toggle — un one-shot dezarmat ar rămâne altfel mort
+    persistAlerts(); render();
+    toast(`↻ ${sym}: re-arm ${a.rearm ? 'PORNIT' : 'oprit (one-shot)'}`, 'info');
+  }));
+  container.querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
+    const row = e.target.closest('.alert-row');
+    const sym = row.dataset.sym, id = row.dataset.id;
+    if (!confirm('Șterge acest alert?')) return;
+    priceAlerts[sym] = (priceAlerts[sym] || []).filter(a => a.id !== id);
+    if (!priceAlerts[sym].length) delete priceAlerts[sym];
+    persistAlerts(); render();
+  }));
+  container.querySelectorAll('[data-action="edit"]').forEach(btn => btn.addEventListener('click', e => {
+    const row = e.target.closest('.alert-row');
+    openEditModal(row.dataset.sym, row.dataset.id);
+  }));
+}
+
 function render() {
   const rows = [];
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
@@ -691,101 +881,18 @@ function render() {
     ...SERVER_HIST.filter(h => !localKeys.has(hKey(h)))
   ].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, MAX_TRIGGERED_HISTORY);
   const triggered = _histView;
-  $('cntActive').textContent = rows.length;
+  // Split crypto (24/7) vs stocks (cu sesiune) — logica de polling diferă deja
+  const cryptoRows = rows.filter(r => isCrypto(r.sym.toUpperCase()));
+  const stockRows = rows.filter(r => !isCrypto(r.sym.toUpperCase()));
+  $('cntCrypto').textContent = cryptoRows.length;
+  $('cntStocks').textContent = stockRows.length;
   $('cntTriggered').textContent = triggered.length;
+  // Badge sesiune pe grupul Stocks (crypto rămâne 🟢 24/7 fix din HTML)
+  const ss = marketSession();
+  const sb = $('sessStocks'); sb.textContent = ss.label; sb.className = 'sess-badge ' + ss.cls;
 
-  if (!rows.length) {
-    $('bodyActive').innerHTML = '<div class="empty"><span class="ico">📭</span>Niciun alert activ. Adaugă unul de mai sus.</div>';
-  } else {
-    $('bodyActive').innerHTML = rows.map(({ sym, a }) => {
-      const cur = _lastPrice[sym];
-      const isPct = a.kind === 'pct';
-      const isAnchor = a.kind === 'anchor';
-      const stateBadge = a.rearm ? (a.armed ? '<span title="re-arm: alerta se păstrează și se re-armează după declanșare">↻</span>' : '<span title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel" style="opacity:.55">↻💤</span>') : '';
-      let thrHtml, delta, isClose, dirCls, extraHtml = '';
-      if (isAnchor) {
-        delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;        // Δ% vs ancoră fixă
-        dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
-        isClose = false;
-        const tgtTxt = a.target != null ? ` 🎯$${fmtPx(a.target, sym)}` : '';
-        thrHtml = `±${a.pct}%${tgtTxt}<span class="dir">⚓$${a.base != null ? fmtPx(a.base, sym) : '⏳'}${a.stop != null ? ' · 🛑$' + fmtPx(a.stop, sym) : ''} ${stateBadge}</span>`;
-        // bară progres ancoră→țintă + % rămas (din prețul curent) + R:R
-        if (a.target != null && a.base != null && a.target !== a.base && cur != null) {
-          const prog = (cur - a.base) / (a.target - a.base) * 100;
-          const clamped = Math.max(0, Math.min(100, prog));
-          const remPct = (a.target - cur) / cur * 100;                                    // cât mai are până la țintă, % din preț curent
-          const rr = (a.stop != null && a.base !== a.stop) ? Math.abs(a.target - a.base) / Math.abs(a.base - a.stop) : null;
-          extraHtml = `<div class="anchor-prog"><div class="anchor-bar-mini"><i style="width:${clamped.toFixed(0)}%"></i></div><span class="anchor-rem">${prog.toFixed(0)}%→🎯 · ${fmtPct(remPct)} rămas${rr != null ? ' · R:R ' + rr.toFixed(1) : ''}</span></div>`;
-        }
-      } else if (isPct) {
-        delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;       // mișcarea curentă față de ancoră
-        isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;                       // aproape de pragul ±%
-        dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
-        thrHtml = `±${a.pct}%<span class="dir">de la ${a.base ? '$' + fmtPx(a.base, sym) : '⏳ ancorare'} ${stateBadge}</span>`;
-      } else {
-        delta = cur != null ? ((cur - a.lvl) / a.lvl * 100) : null;
-        isClose = delta != null && Math.abs(delta) < 1.5;
-        dirCls = a.dir === 'above' ? 'up' : 'down';
-        thrHtml = `$${fmtPx(a.lvl, sym)}<span class="dir">${a.dir === 'above' ? '▲ peste' : '▼ sub'} ${stateBadge}</span>`;
-      }
-      return `<div class="alert-row" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
-        <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a></div>
-        <div class="alert-thr">${thrHtml}</div>
-        <div class="alert-current ${dirCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</div>
-        <div class="alert-delta ${isClose ? 'close' : ''}">${delta != null ? (delta>=0?'+':'')+delta.toFixed(2)+'%' : '—'}${extraHtml}</div>
-        <div class="alert-note">${escHtml(a.note || '')}</div>
-        <div class="alert-actions">
-          <button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (devine one-shot, dispare după declanșare)' : 'One-shot — click pt ↻ re-arm (se reia/re-ancorează după declanșare)'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>
-          <button class="icon-btn" data-action="edit" title="Editează nivelul">✎</button>
-          <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
-        </div>
-      </div>`;
-    }).join('');
-    // Bind actions
-    $('bodyActive').querySelectorAll('[data-action="rearm"]').forEach(btn => btn.addEventListener('click', e => {
-      const row = e.target.closest('.alert-row');
-      const sym = row.dataset.sym, id = row.dataset.id;
-      const a = (priceAlerts[sym] || []).find(x => x.id === id);
-      if (!a) return;
-      a.rearm = !a.rearm;
-      a.armed = true; // re-armăm la toggle — un one-shot dezarmat ar rămâne altfel mort
-      persistAlerts(); render();
-      toast(`↻ ${sym}: re-arm ${a.rearm ? 'PORNIT' : 'oprit (one-shot)'}`, 'info');
-    }));
-    $('bodyActive').querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
-      const row = e.target.closest('.alert-row');
-      const sym = row.dataset.sym, id = row.dataset.id;
-      if (!confirm('Șterge acest alert?')) return;
-      priceAlerts[sym] = (priceAlerts[sym] || []).filter(a => a.id !== id);
-      if (!priceAlerts[sym].length) delete priceAlerts[sym];
-      persistAlerts(); render();
-    }));
-    $('bodyActive').querySelectorAll('[data-action="edit"]').forEach(btn => btn.addEventListener('click', e => {
-      const row = e.target.closest('.alert-row');
-      const sym = row.dataset.sym, id = row.dataset.id;
-      const a = (priceAlerts[sym] || []).find(x => x.id === id);
-      if (!a) return;
-      if (a.kind === 'anchor') {
-        const nt = prompt(`🎯 Țintă $ pentru ${sym} (gol = neschimbată):`, a.target ?? '');
-        if (nt !== null && nt.trim() !== '') { const v = parseFloat(nt); if (v > 0) { a.target = v; a.tgtHit = false; a.nearHit = false; } }
-        const ns = prompt(`🛑 Stop $ pentru ${sym} (gol = fără stop):`, a.stop ?? '');
-        if (ns !== null) { const v = parseFloat(ns); a.stop = (v > 0) ? v : null; a.slHit = false; }
-        const np = prompt(`🪜 Pas alertă ±% pentru ${sym}:`, a.pct);
-        if (np !== null && np.trim() !== '') { const v = parseFloat(np); if (v > 0) { a.pct = v; a.lastStep = 0; } }
-        if (confirm(`Re-ancorezi ${sym} la prețul curent? (⚓$${a.base != null ? fmtPx(a.base, sym) : '—'} → $${_lastPrice[sym] != null ? fmtPx(_lastPrice[sym], sym) : '—'})\nOK = da (la intrarea în trade) · Anulează = păstrează ancora`)) {
-          if (_lastPrice[sym] != null) { a.base = _lastPrice[sym]; a.lastStep = 0; a.tgtHit = false; a.nearHit = false; a.slHit = false; }
-        }
-        a.armed = true; persistAlerts(); render();
-        toast(`⚓ ${sym} actualizat`, 'info');
-      } else if (a.kind === 'pct') {
-        const newPct = parseFloat(prompt(`Mișcare ±% nouă pentru ${sym} (re-ancorează la prețul curent):`, a.pct));
-        if (!isNaN(newPct) && newPct > 0) { a.pct = newPct; a.base = _lastPrice[sym] ?? null; a.armed = true; persistAlerts(); render(); }
-      } else {
-        const newLvl = parseFloat(prompt(`Prag nou pentru ${sym}:`, a.lvl));
-        if (!isNaN(newLvl) && newLvl > 0) { a.lvl = newLvl; a.armed = true; persistAlerts(); render(); }
-      }
-    }));
-  }
+  renderActiveGroup($('bodyCrypto'), cryptoRows, '🪙', 'Nicio alertă crypto. Adaugă una de mai sus (BTC-USD, ETH-USD, ONDOUSDT…).');
+  renderActiveGroup($('bodyStocks'), stockRows, '📈', 'Nicio alertă pe stocks. Adaugă una de mai sus (AAPL, NVDA…).');
 
   if (!triggered.length) {
     $('bodyTriggered').innerHTML = '<div class="empty"><span class="ico">🔕</span>Niciun alert declanșat încă.</div>';
@@ -865,6 +972,74 @@ function updateFormMode() {
 }
 $('inpKind').addEventListener('change', updateFormMode);
 updateFormMode();
+
+// ============ MODAL EDITARE ============
+let _editing = null; // { sym, id } al alertei în curs de editare
+function updateEditMode() {
+  const k = $('editKind').value;
+  const pct = k === 'pct', anchor = k === 'anchor';
+  $('editLblThr').textContent = anchor ? 'Pas alertă ±%' : (pct ? 'Mișcare ±%' : 'Preț prag $');
+  $('editThr').step = (pct || anchor) ? '0.1' : '0.01';
+  $('editWrapDir').style.display = (pct || anchor) ? 'none' : '';
+  $('editWrapAnchor').style.display = anchor ? '' : 'none';
+  $('editWrapReanchor').style.display = anchor ? '' : 'none';
+}
+function openEditModal(sym, id) {
+  const a = (priceAlerts[sym] || []).find(x => x.id === id);
+  if (!a) return;
+  _editing = { sym, id };
+  const kind = a.kind === 'anchor' ? 'anchor' : (a.kind === 'pct' ? 'pct' : 'price');
+  $('editTitle').textContent = `✏️ Editează ${sym}`;
+  $('editKind').value = kind;
+  $('editThr').value = kind === 'price' ? (a.lvl ?? '') : (a.pct ?? '');
+  $('editDir').value = a.dir || 'above';
+  $('editTarget').value = a.target ?? '';
+  $('editStop').value = a.stop ?? '';
+  $('editNote').value = a.note || '';
+  $('editRearm').checked = !!a.rearm;
+  $('editReanchor').checked = false;
+  updateEditMode();
+  $('editModal').style.display = 'flex';
+}
+function closeEditModal() { $('editModal').style.display = 'none'; _editing = null; }
+function saveEditModal() {
+  if (!_editing) return;
+  const { sym, id } = _editing;
+  priceAlerts = loadAlerts(); // sync înainte de write (alt tab / wlm poate fi modificat)
+  const a = (priceAlerts[sym] || []).find(x => x.id === id);
+  if (!a) { toast('⚠ Alerta nu mai există (modificată în alt tab)', 'warn'); closeEditModal(); render(); return; }
+  const kind = $('editKind').value;
+  const thr = parseFloat($('editThr').value);
+  if (isNaN(thr) || thr <= 0) { toast(kind === 'price' ? '⚠ Preț prag invalid (> 0)' : '⚠ Valoare ±% invalidă (> 0)', 'error'); return; }
+  a.note = $('editNote').value.trim();
+  a.rearm = $('editRearm').checked;
+  a.armed = true;
+  if (kind === 'anchor') {
+    const target = parseFloat($('editTarget').value);
+    const stopV = parseFloat($('editStop').value);
+    if (isNaN(target) || target <= 0) { toast('⚠ Ținta 🎯 e obligatorie pentru ancoră (> 0)', 'error'); return; }
+    a.kind = 'anchor'; a.pct = thr; a.target = target; a.stop = (stopV > 0) ? stopV : null;
+    if (a.base == null || $('editReanchor').checked) a.base = _lastPrice[sym] ?? a.base ?? null; // re-ancorare la cerere / dacă lipsește
+    a.lastStep = 0; a.tgtHit = false; a.nearHit = false; a.slHit = false;                        // resetăm stările de declanșare
+    delete a.lvl; delete a.dir;
+  } else if (kind === 'pct') {
+    a.kind = 'pct'; a.pct = thr;
+    if (a.base == null) a.base = _lastPrice[sym] ?? null;
+    delete a.lvl; delete a.dir; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit;
+  } else {
+    delete a.kind; a.lvl = thr; a.dir = $('editDir').value;                                       // price = fără câmpul kind
+    delete a.pct; delete a.base; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit;
+  }
+  persistAlerts(); closeEditModal(); render();
+  toast(`✏️ ${sym} actualizat`, 'success');
+  pollPrices();
+}
+$('editKind').addEventListener('change', updateEditMode);
+$('editClose').addEventListener('click', closeEditModal);
+$('editCancel').addEventListener('click', closeEditModal);
+$('editSave').addEventListener('click', saveEditModal);
+$('editModal').addEventListener('click', e => { if (e.target === $('editModal')) closeEditModal(); }); // click pe overlay
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('editModal').style.display !== 'none') closeEditModal(); });
 
 $('btnAdd').addEventListener('click', () => {
   const sym = $('inpSym').value.trim().toUpperCase();
