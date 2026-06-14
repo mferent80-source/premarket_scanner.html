@@ -100,6 +100,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .add-row > div { display:flex; flex-direction:column; gap:4px; }
 .add-row label { font-size:11px; color:var(--t2); font-family:var(--mono); text-transform:uppercase; letter-spacing:.3px; font-weight:700; }
 .add-row .sym-input { width:120px; text-transform:uppercase; font-family:var(--mono); font-weight:700; }
+.add-row .search-btn { padding:0 10px; align-self:stretch; cursor:pointer; }
 .add-row .price-input { width:130px; font-family:var(--mono); }
 .add-row .dir-select { width:130px; }
 .add-row .note-input { flex:1; min-width:200px; }
@@ -233,7 +234,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v14</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v15</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -251,8 +252,11 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   <h3>➕ Adaugă alertă nouă</h3>
   <div class="add-row">
     <div>
-      <label>Ticker</label>
-      <input type="text" id="inpSym" class="sym-input" placeholder="AAPL" maxlength="10">
+      <label>Ticker / nume</label>
+      <div style="display:flex;gap:4px">
+        <input type="text" id="inpSym" class="sym-input" placeholder="AAPL / Rheinmetall" maxlength="40">
+        <button type="button" id="btnSearch" class="search-btn" title="Caută pe burse (US + EU/NYSE) după ticker sau nume">🔎</button>
+      </div>
     </div>
     <div>
       <label>Tip alertă</label>
@@ -291,6 +295,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
     </div>
     <button class="primary add-btn" id="btnAdd">+ Adaugă</button>
   </div>
+  <div id="symSearchResults" style="display:none;flex-direction:column;gap:3px;margin:8px 0 0"></div>
   <div class="add-hint">
     <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. <b>⚓ Ancoră</b> = ancoră FIXĂ la prețul de creare (nu se mută) cu Δ% afișat + bară de progres spre țintă + R:R; te anunță la <b>4 evenimente</b>: 🪜 fiecare pas cumulat de ±X% din ancoră, 🎯 ținta atinsă, 🔔 aproape de țintă (≥90%), 🛑 stopul atins. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 60s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram.
   </div>
@@ -1045,6 +1050,79 @@ $('editSave').addEventListener('click', saveEditModal);
 $('editModal').addEventListener('click', e => { if (e.target === $('editModal')) closeEditModal(); }); // click pe overlay
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('editModal').style.display !== 'none') closeEditModal(); });
 
+// ── Search ticker pe burse (US + EU/NYSE) — model portat din Watchlist Monitor ──
+// Selecția DOAR completează tickerul în #inpSym; parametrii alertei se setează apoi manual.
+const AS_EX_LABEL = {
+  '.DE':'Xetra','.F':'Frankfurt','.MU':'München','.SG':'Stuttgart','.DU':'Düsseldorf','.HM':'Hamburg','.BE':'Tradegate',
+  '.PA':'Euronext Paris','.AS':'Euronext AMS','.BR':'Euronext BRU','.LS':'Euronext LIS',
+  '.MI':'Milano','.MC':'Madrid','.L':'LSE','.SW':'SIX','.VI':'Viena',
+  '.CO':'Copenhaga','.ST':'Stockholm','.HE':'Helsinki','.OL':'Oslo',
+  '.TO':'Toronto','.V':'TSXV','.AX':'ASX','.HK':'Hong Kong','.T':'Tokyo',
+};
+function asExLabel(sym) {
+  const dot = sym.lastIndexOf('.');
+  if (dot > 0) return AS_EX_LABEL[sym.slice(dot).toUpperCase()] || sym.slice(dot + 1);
+  return 'US';
+}
+// Yahoo symbol search — rezolvă ticker SAU nume (RHM / Rheinmetall → RHM.DE), US + EU.
+async function asSearchSymbols(query) {
+  if (!window.D || !D.fetchJSON) return [];
+  const url = `https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=12&newsCount=0`;
+  const j = await D.fetchJSON(url, { ttl: 30, timeout: 9000 });
+  const quotes = (j && j.quotes) || [];
+  return quotes
+    .filter(q => q.symbol && /EQUITY|ETF/i.test(q.quoteType || 'EQUITY'))
+    .map(q => ({ symbol: q.symbol, name: q.shortname || q.longname || q.symbol, exchange: q.exchDisp || q.exchange || '' }));
+}
+// Fallback când search-ul Yahoo nu trece prin proxy: probează sufixe de bursă via
+// endpoint-ul chart (care merge sigur) și întoarce primul simbol cu date reale (RHM → RHM.DE).
+const AS_PROBE_SUFFIXES = ['', '.DE', '.L', '.PA', '.AS', '.MI', '.MC', '.SW', '.VI', '.F', '.TO', '.AX'];
+async function asProbeSuffixes(base, onProgress) {
+  base = base.toUpperCase().replace(/[^A-Z0-9.\-^]/g, '');
+  if (!base) return [];
+  if (base.includes('.')) {
+    const d = await fetchPriceYahoo(base);
+    return (d && d.last != null) ? [{ symbol: base, name: '', exchange: asExLabel(base) }] : [];
+  }
+  for (let i = 0; i < AS_PROBE_SUFFIXES.length; i++) {
+    const sym = base + AS_PROBE_SUFFIXES[i];
+    if (onProgress) onProgress(i + 1, AS_PROBE_SUFFIXES.length, sym);
+    const d = await fetchPriceYahoo(sym);
+    if (d && d.last != null) return [{ symbol: sym, name: '', exchange: asExLabel(sym) }]; // primul cu date câștigă
+  }
+  return [];
+}
+let asMatches = [];
+function asClearSearch() { const b = $('symSearchResults'); if (b) { b.style.display = 'none'; b.innerHTML = ''; } asMatches = []; }
+function asPick(i) {
+  const m = asMatches[i]; if (!m) return;
+  $('inpSym').value = m.symbol.toUpperCase();
+  asClearSearch();
+  $('inpThr').focus(); // selecția doar completează tickerul — utilizatorul setează pragul/ținta
+}
+window.asPick = asPick; // apelat din onclick inline
+async function asSearch() {
+  const q = $('inpSym').value.trim(); if (!q) return;
+  const box = $('symSearchResults'); box.style.display = 'flex';
+  const msg = t => { box.innerHTML = `<div style="padding:7px 10px;color:var(--t3);font-size:11px">${t}</div>`; };
+  msg('căutare…');
+  try { asMatches = await asSearchSymbols(q); } catch (e) { asMatches = []; }
+  if (!asMatches.length && !/\s/.test(q)) {
+    // search gol/blocat → probează bursele (doar pentru ticker, nu nume cu spații)
+    msg('verific bursele (US/EU)…');
+    asMatches = await asProbeSuffixes(q, (i, n, sym) => msg(`verific bursele… ${escHtml(sym)} (${i}/${n})`));
+  }
+  if (!asMatches.length) { msg('nicio potrivire — încearcă tickerul exact (ex. RHM.DE)'); return; }
+  if (asMatches.length === 1) { asPick(0); return; }
+  box.innerHTML = asMatches.map((m, i) =>
+    `<div onclick="asPick(${i})" style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;background:var(--panel2,var(--panel));border:1px solid var(--b1);border-radius:6px;cursor:pointer;font-size:12px">
+       <span style="font-family:var(--mono);font-weight:700;color:var(--accent)">${escHtml(m.symbol)}</span>
+       <span style="color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(m.name)}</span>
+       <span style="color:var(--t3);font-size:10px;font-family:var(--mono)">${escHtml(m.exchange)}</span>
+     </div>`).join('');
+}
+$('btnSearch').addEventListener('click', asSearch);
+
 $('btnAdd').addEventListener('click', () => {
   const sym = $('inpSym').value.trim().toUpperCase();
   const thr = parseFloat($('inpThr').value);
@@ -1052,7 +1130,7 @@ $('btnAdd').addEventListener('click', () => {
   const kind = $('inpKind').value;
   const note = $('inpNote').value.trim();
   const rearm = $('inpRearm').checked;
-  if (!sym || !sym.match(/^[A-Z0-9.\-]{1,12}$/)) { toast('⚠ Simbol invalid (doar A-Z, 0-9, .-)', 'error'); return; }
+  if (!sym || !sym.match(/^[A-Z0-9.\-]{1,16}$/)) { toast('⚠ Simbol invalid (doar A-Z, 0-9, .-)', 'error'); return; }
   const thrMsg = kind === 'pct' ? '⚠ Mișcare % invalidă (trebuie > 0)' : kind === 'anchor' ? '⚠ Pas alertă ±% invalid (trebuie > 0)' : '⚠ Preț prag invalid (trebuie > 0)';
   if (isNaN(thr) || thr <= 0) { toast(thrMsg, 'error'); return; }
   priceAlerts = loadAlerts(); // sync înainte de write — alt tab poate să fi modificat
@@ -1071,7 +1149,7 @@ $('btnAdd').addEventListener('click', () => {
     (priceAlerts[sym] = priceAlerts[sym] || []).push({ id: uid(), lvl: thr, dir, rearm, armed: true, lastFired: null, note });
   }
   persistAlerts(); render();
-  $('inpSym').value = ''; $('inpThr').value = ''; $('inpNote').value = ''; $('inpTarget').value = ''; $('inpStop').value = '';
+  $('inpSym').value = ''; $('inpThr').value = ''; $('inpNote').value = ''; $('inpTarget').value = ''; $('inpStop').value = ''; asClearSearch();
   toast(kind === 'anchor'
     ? `✓ Ancoră: ${sym} 🎯$${fmtPx(anchorTgt, sym)} · pas ±${thr}%${rearm ? ' · ↻' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · ⚓$' + fmtPx(_lastPrice[sym], sym)}`
     : kind === 'pct'
@@ -1280,7 +1358,7 @@ async function pullFromGitHub(isAuto) {
 $('pullBtn').addEventListener('click', () => pullFromGitHub(false));
 
 // Allow Enter in input fields
-$('inpSym').addEventListener('keypress', e => { if (e.key === 'Enter') $('inpThr').focus(); });
+$('inpSym').addEventListener('keypress', e => { if (e.key === 'Enter') asSearch(); });
 $('inpThr').addEventListener('keypress', e => { if (e.key === 'Enter') $('btnAdd').click(); });
 $('inpNote').addEventListener('keypress', e => { if (e.key === 'Enter') $('btnAdd').click(); });
 
