@@ -233,7 +233,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v13</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v14</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -613,7 +613,10 @@ async function fetchPrice(symbol) {
   if (s === 'SOL-USD' || s === 'SOL') return (await fetchPriceCoinGecko('solana')) || fetchPriceYahoo('SOL-USD');
   // Perechi Binance USDT: Binance direct, Yahoo (ONDOUSDT→ONDO-USD) ca plasă
   if (/USDT$/.test(s)) return (await fetchPriceBinance(s)) || fetchPriceYahoo(s.replace(/USDT$/, '-USD'));
-  // Stocks/ETF: Finnhub /quote (rapid, fără proxy) cu fallback Yahoo (sau direct Yahoo fără cheie)
+  // Stocks/ETF: în PRE/AFTER-market Finnhub /quote (free) dă close-ul regular ÎNGHEȚAT
+  // (nu prinde extended) → folosim Yahoo includePrePost ÎNTÂI (ca botul server-side).
+  // În orele regular Finnhub e ok și mai rapid (fără proxy), cu Yahoo ca plasă.
+  if (marketSession().cls === 'pre') return (await fetchPriceYahoo(s)) || fetchPriceFinnhub(s);
   return (await fetchPriceFinnhub(s)) || fetchPriceYahoo(s);
 }
 
