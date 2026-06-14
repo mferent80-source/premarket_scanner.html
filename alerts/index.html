@@ -233,14 +233,15 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v12</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v13</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
   <button class="icon-btn" id="testBtn" title="Test alertă (demo)">🧪</button>
   <button class="icon-btn" id="exportBtn" title="Export JSON pentru alertele server-side (GitHub Actions) — merg și cu laptopul închis">📤</button>
-  <button class="icon-btn" id="ghSyncBtn" title="Sync GitHub — comite alertele DIRECT în tools/alerts.json (server-side live în secunde). Click-dreapta = setează/schimbă token-ul">☁️</button>
+  <button class="icon-btn" id="ghSyncBtn" title="☁️ URCĂ pe GitHub — comite alertele locale în tools/alerts.json (server-side + sync cross-device). Click-dreapta = setează/schimbă token-ul">☁️</button>
+  <button class="icon-btn" id="pullBtn" title="⬇️ ADU de pe GitHub — trage lista de pe alt device (laptop↔telefon). GitHub = sursa de adevăr; se face și automat la deschidere">⬇️</button>
   <a href="../guide/?page=alerts" class="nav-link" title="Ghid features pagina asta">📖</a>
   <a href="../" class="nav-link">← Hub</a>
 </header>
@@ -1188,6 +1189,7 @@ $('ghSyncBtn').addEventListener('click', async () => {
     if (p.status === 409) throw new Error('conflict — botul tocmai a comis starea; mai apasă o dată ☁️');
     if (!p.ok) throw new Error('GitHub PUT HTTP ' + p.status);
     const j = await p.json();
+    _lastServerSig = alertsSig(priceAlerts); localStorage.setItem(LASTSIG_KEY, _lastServerSig); // după push, local == server
     toast(`☁️ ${alerts.length} alerte live server-side — commit ${String((j.commit || {}).sha || '').slice(0, 7)} ✅`, 'success', { persist: true });
   } catch (e) {
     toast('❌ Sync GitHub eșuat: ' + e.message, 'error', { persist: true });
@@ -1198,6 +1200,81 @@ $('ghSyncBtn').addEventListener('contextmenu', e => {
   e.preventDefault();
   ghAskToken() ? toast('🔑 Token GitHub salvat', 'success') : toast('🔑 Token șters sau neschimbat', 'info');
 });
+
+// ============ ⬇️ PULL din GitHub (sync listă cross-device laptop↔telefon) ============
+// GitHub (tools/alerts.json) = sursa de adevăr partajată. ☁️ urcă local→server;
+// ⬇️ (și auto la deschidere) aduce server→local ca listele să fie identice peste tot.
+// Detecția conflictelor: `_lastServerSig` = semnătura listei la ultima sincronizare.
+// La auto-pull, dacă local DIFERĂ de ea (ai modificat local de atunci) nu suprascriu
+// orb — te anunț; dacă local == ultima sincronizare (curat), accept versiunea de pe server.
+const LASTSIG_KEY = 'pa_last_server_sig';
+let _lastServerSig = localStorage.getItem(LASTSIG_KEY) || '';
+
+// Semnătură normalizată a unei liste (ignoră id/lastFired/stările volatile de declanșare)
+function alertsSig(map) {
+  const items = [];
+  Object.keys(map || {}).forEach(sym => (map[sym] || []).forEach(a => {
+    const k = a.kind === 'anchor' ? `anchor|${a.pct}|${a.target}|${a.stop}` : (a.kind === 'pct' ? `pct|${a.pct}` : `price|${a.lvl}|${a.dir}`);
+    items.push(`${sym.toUpperCase()}|${k}|${a.rearm ? 1 : 0}|${(a.note || '').trim()}`);
+  }));
+  return items.sort().join('\n');
+}
+// O alertă din formatul server (tools/alerts.json) → formatul local (wl_price_alerts)
+function serverAlertToLocal(s) {
+  const b = { id: uid(), rearm: !!s.rearm, armed: s.armed !== false, lastFired: null, note: s.note || '' };
+  if (s.kind === 'anchor') return Object.assign(b, { kind: 'anchor', pct: Number(s.pct), base: s.base != null ? Number(s.base) : null, target: s.target != null ? Number(s.target) : null, stop: s.stop != null ? Number(s.stop) : null, lastStep: s.lastStep || 0, tgtHit: !!s.tgtHit, nearHit: !!s.nearHit, slHit: !!s.slHit });
+  if (s.kind === 'pct') return Object.assign(b, { kind: 'pct', pct: Number(s.pct), base: s.base != null ? Number(s.base) : null });
+  return Object.assign(b, { lvl: Number(s.level), dir: s.dir === 'below' ? 'below' : 'above' });
+}
+function serverToMap(arr) {
+  const m = {};
+  (arr || []).forEach(s => { const sym = String(s.symbol || '').toUpperCase(); if (!sym) return; (m[sym] = m[sym] || []).push(serverAlertToLocal(s)); });
+  return m;
+}
+// Citește tools/alerts.json FRESH: Contents API (cu token dacă există) cu fallback pe raw (CDN ~5min)
+async function fetchServerAlertsObj() {
+  const token = localStorage.getItem(GH_TOKEN_KEY) || '';
+  try {
+    const hdr = { 'Accept': 'application/vnd.github+json' };
+    if (token) hdr['Authorization'] = 'Bearer ' + token;
+    const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 9000);
+    const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_PATH}?ref=main`, { headers: hdr, signal: ctrl.signal });
+    clearTimeout(to);
+    if (r.ok) { const j = await r.json(); return JSON.parse(b64deutf8(String(j.content || '').replace(/\n/g, ''))); }
+  } catch (e) {}
+  try { const r = await fetchT(RAW_ALERTS_URL + '?_=' + Date.now(), 9000); if (r.ok) return await r.json(); } catch (e) {}
+  return null;
+}
+async function pullFromGitHub(isAuto) {
+  const obj = await fetchServerAlertsObj();
+  if (!obj) { if (!isAuto) toast('❌ Nu am putut citi lista de pe GitHub', 'error'); return; }
+  const next = serverToMap(obj.alerts);
+  const serverSig = alertsSig(next);
+  const localSig = alertsSig(priceAlerts);
+  const localCount = Object.values(priceAlerts).reduce((n, l) => n + l.length, 0);
+  const serverCount = (obj.alerts || []).length;
+  if (serverSig === localSig) { // deja identice
+    _lastServerSig = serverSig; localStorage.setItem(LASTSIG_KEY, serverSig);
+    if (!isAuto) toast('✓ Deja sincronizat cu GitHub', 'info');
+    return;
+  }
+  if (isAuto) {
+    // local modificat de la ultima sincronizare → nu suprascriu orb, doar anunț
+    if (localCount > 0 && localSig !== _lastServerSig) {
+      toast('⬇️ GitHub are o listă diferită de cea locală. Apasă ⬇️ ca s-o aduci (sau ☁️ ca să urci local).', 'warn', { persist: true });
+      return;
+    }
+  } else if (localCount > 0 && localSig !== _lastServerSig) {
+    if (!confirm(`Aduc ${serverCount} alerte de pe GitHub și înlocuiesc lista locală (${localCount})?\nModificările locale neurcate cu ☁️ se pierd.`)) return;
+  }
+  priceAlerts = next;
+  persistAlerts();
+  _lastServerSig = serverSig; localStorage.setItem(LASTSIG_KEY, serverSig);
+  render();
+  toast(`⬇️ ${serverCount} alerte aduse de pe GitHub`, 'success');
+  pollPrices();
+}
+$('pullBtn').addEventListener('click', () => pullFromGitHub(false));
 
 // Allow Enter in input fields
 $('inpSym').addEventListener('keypress', e => { if (e.key === 'Enter') $('inpThr').focus(); });
@@ -1218,6 +1295,7 @@ render();
 pollPrices();
 schedulePoll();
 loadServerHist();
+pullFromGitHub(true); // auto-sync listă de pe GitHub la deschidere (laptop↔telefon)
 // istoricul ☁️ se împrospătează rar — botul rulează la 15 min, CDN-ul raw ține ~5 min
 setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
 
