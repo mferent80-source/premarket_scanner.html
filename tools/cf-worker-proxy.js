@@ -44,12 +44,8 @@ const GH_REPO = 'premarket_scanner.html';
 const GH_WORKFLOW = 'price-alerts.yml';
 const GH_REF = 'main';
 
-// Cheie simplă pt ruta de diagnostic /cron-test (nu e secret critic — declanșează
-// doar același workflow care rulează oricum la 5 min; o scoatem după ce confirmăm).
-const CRON_TEST_KEY = 'tt-cron-diag-2026';
-
-// Logica de declanșare workflow_dispatch — partajată de cron (`scheduled`) și de
-// ruta de diagnostic. Întoarce {status, text} ca să poată fi și afișat, și logat.
+// Logica de declanșare workflow_dispatch — apelată de handler-ul `scheduled` (cron).
+// Întoarce {status, text} ca să poată fi logat (Workers → Logs / `wrangler tail`).
 async function ghDispatch(env) {
   if (!env || !env.GH_DISPATCH_TOKEN) return { status: 0, text: 'GH_DISPATCH_TOKEN lipsește din secrets' };
   const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/dispatches`;
@@ -70,27 +66,6 @@ async function ghDispatch(env) {
 export default {
   async fetch(request, env) {
     const u = new URL(request.url);
-    // ── Rută DIAGNOSTIC: /cron-test?key=... → testează dispatch-ul GitHub din browser ──
-    if (u.pathname === '/cron-test') {
-      if (u.searchParams.get('key') !== CRON_TEST_KEY) return new Response('cron-test: cheie greșită', { status: 403 });
-      try {
-        const res = await ghDispatch(env);
-        const ok = res.status === 204;
-        return new Response(
-          `${ok ? '✅ MERGE' : '❌ NU merge'}\nstatus: ${res.status}\n${res.text}\n\n` +
-          (ok ? 'Token + cod OK. Dacă cronul tot nu pornește singur → activează Cron Trigger (Settings → Triggers → */5 * * * *).'
-              : res.status === 0 ? 'Adaugă secretul GH_DISPATCH_TOKEN în worker (Settings → Variables and Secrets).'
-              : res.status === 401 ? 'Token invalid/expirat — regenerează PAT-ul.'
-              : res.status === 403 ? 'Token fără permisiunea Actions: Read and write — regenerează cu scope-ul corect.'
-              : res.status === 404 ? 'Repo/workflow negăsit SAU token fără acces la repo — verifică Repository access pe PAT.'
-              : 'Vezi mesajul de mai sus.'),
-          { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
-        );
-      } catch (e) {
-        return new Response('❌ excepție: ' + e.message, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-      }
-    }
-
     const origin = request.headers.get('Origin') || '';
     if (origin && origin !== ALLOW_ORIGIN) return new Response('forbidden origin', { status: 403 });
 
