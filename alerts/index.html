@@ -257,7 +257,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v16</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v17</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -469,12 +469,18 @@ function nyseClosed() {
   if (wd === 'Sat' || wd === 'Sun') return true;
   return mins < 240 || mins >= 1200; // în afara 04:00-20:00 ET (pre+regular+after)
 }
+// Weekend ET: bursa US e închisă COMPLET (fără pre/after) → prețul stocks e înghețat
+// la close-ul de vineri, verificarea n-ar declanșa nimic → sărim complet stocks Sat/Sun.
+function nyseWeekend() {
+  const wd = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short' }).format(new Date());
+  return wd === 'Sat' || wd === 'Sun';
+}
 // Sesiunea bursei US (ET, DST-aware) pentru badge-ul grupului Stocks
 function marketSession() {
   const p = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
   const wd = p.find(x => x.type === 'weekday')?.value || '';
   const mins = (parseInt(p.find(x => x.type === 'hour')?.value, 10) || 0) * 60 + (parseInt(p.find(x => x.type === 'minute')?.value, 10) || 0);
-  if (wd === 'Sat' || wd === 'Sun') return { label: '🌙 weekend · 10min', cls: 'closed' };
+  if (wd === 'Sat' || wd === 'Sun') return { label: '🌙 weekend · oprit', cls: 'closed' };
   if (mins >= 570 && mins < 960) return { label: '🟢 regular', cls: 'open' };       // 09:30-16:00
   if (mins >= 240 && mins < 570) return { label: '🟡 pre-market', cls: 'pre' };      // 04:00-09:30
   if (mins >= 960 && mins < 1200) return { label: '🟡 after-hours', cls: 'pre' };    // 16:00-20:00
@@ -663,8 +669,12 @@ async function pollPrices() {
   let unique = [...new Set(allSyms.map(s => s.toUpperCase()))];
   const stockSyms = unique.filter(s => !isCrypto(s));
   let sessionNote = '';
-  // piață închisă (noapte/weekend ET) → stocks doar la 10 min; crypto rămâne la fiecare ciclu
-  if (stockSyms.length && nyseClosed()) {
+  // Weekend ET → stocks OPRITE complet (preț înghețat la close-ul de vineri, n-ar
+  // declanșa nimic). Noapte (weeknight) → stocks doar la 10 min. Crypto rămâne mereu.
+  if (stockSyms.length && nyseWeekend()) {
+    unique = unique.filter(isCrypto);
+    sessionNote = ' · 🌙 stocks oprite (weekend)';
+  } else if (stockSyms.length && nyseClosed()) {
     if (Date.now() - _lastStockPollTs < 600000) {
       unique = unique.filter(isCrypto);
       sessionNote = ' · 🌙 stocks la 10min (piață închisă)';

@@ -74,7 +74,15 @@ async function sendTelegram(html){
   } catch (e) { console.log('⚠ Telegram: ' + e.message); return false; }
 }
 
-const uniq = [...new Set(alerts.map(a => String(a.symbol || '').toUpperCase()).filter(Boolean))];
+// Weekend ET: bursa US e închisă complet (fără pre/after) → prețul stocks e înghețat
+// la close-ul de vineri. Sărim complet simbolurile stocks Sat/Sun ca să nu interogăm
+// degeaba și să nu trimitem alerte pe preț vechi. Crypto rămâne 24/7.
+const isCrypto = s => /USDT$/.test(s) || /-USD$/.test(s) || ['BTC','ETH','SOL'].includes(s);
+const etWeekday = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short' }).format(new Date());
+const isWeekend = etWeekday === 'Sat' || etWeekday === 'Sun';
+const uniq = [...new Set(alerts.map(a => String(a.symbol || '').toUpperCase()).filter(Boolean))]
+  .filter(sym => !isWeekend || isCrypto(sym));
+if (isWeekend) console.log('🌙 Weekend ET — stocks sărite (preț înghețat), verific doar crypto.');
 const prices = {};
 for (const sym of uniq){
   prices[sym] = await fetchPrice(sym);
