@@ -16,6 +16,9 @@
 //               "rearm":false, "armed":true, "note":"..." }
 //   MIȘCARE ±%: { "symbol":"NVDA", "kind":"pct", "pct":1, "base":180.5,
 //               "rearm":false, "note":"..." }   // base = prețul ancoră (null → se ancorează la primul check)
+//   ANCORĂ:     { "symbol":"NVDA", "kind":"anchor", "pct":1, "base":180.5, "target":200, "stop":175,
+//               "lastStep":0, "tgtHit":false, "nearHit":false, "slHit":false, "rearm":false, "note":"..." }
+//               // ancoră FIXĂ: 4 alerte vs base — pas cumulat ±pct%, țintă, aproape ≥90%, stop. Tracker persistent (nu dispare).
 //   { "alerts": [ ... ], "triggered": [ ...istoric, scris de script... ] }
 // Semantica e identică cu wl_price_alerts din suite: one-shot dispare la
 // declanșare; re-arm la preț-prag se dezarmează și se re-armează cu histerezis
@@ -86,6 +89,48 @@ for (const a of alerts){
   const sym = String(a.symbol || '').toUpperCase();
   const p = prices[sym];
   if (p == null){ kept.push(a); continue; }
+  // ── Alertă ANCORĂ (ancoră FIXĂ: pas cumulat + țintă + aproape ≥90% + stop) ──
+  if (a.kind === 'anchor'){
+    const pct = Number(a.pct);
+    if (!(pct > 0)){ kept.push(a); continue; }
+    if (a.base == null){ a.base = +p.toFixed(4); changed = true; kept.push(a); continue; } // ancorare la primul preț valid
+    const base = Number(a.base);
+    const moved = (p - base) / base * 100;
+    const target = (a.target != null) ? Number(a.target) : null;
+    const stop = (a.stop != null) ? Number(a.stop) : null;
+    const up = target != null ? target >= base : (stop != null ? stop <= base : true); // direcția trade-ului
+    const armed = a.armed !== false;
+    // 1) PAS cumulat (alertă doar când |step| crește — fără chop pe aceeași bandă)
+    const step = Math.trunc(moved / pct);
+    const prevStep = a.lastStep || 0;
+    if (armed && step !== 0 && Math.abs(step) > Math.abs(prevStep)){
+      fired.push({ sym, kind:'anchor', sub:'step', pct, base, target, stop, step, moved, price: p, note: a.note || '', rearm: !!a.rearm });
+    }
+    if (step !== prevStep){ a.lastStep = step; changed = true; }
+    // 2) ȚINTĂ (one-shot re-armabilă) + 3) APROAPE ≥90% (histerezis re-arm 85%)
+    if (target != null && target !== base){
+      const tgtReached = up ? p >= target : p <= target;
+      if (!a.tgtHit && tgtReached){
+        fired.push({ sym, kind:'anchor', sub:'target', pct, base, target, stop, moved, price: p, note: a.note || '', rearm: !!a.rearm });
+        a.tgtHit = true; changed = true;
+      } else if (a.tgtHit && a.rearm && !tgtReached){ a.tgtHit = false; changed = true; }
+      const prog = (p - base) / (target - base) * 100;
+      if (!a.nearHit && prog >= 90 && !tgtReached){
+        fired.push({ sym, kind:'anchor', sub:'near', pct, base, target, stop, prog, moved, price: p, note: a.note || '', rearm: !!a.rearm });
+        a.nearHit = true; changed = true;
+      } else if (a.nearHit && prog < 85){ a.nearHit = false; changed = true; }
+    }
+    // 4) STOP (one-shot re-armabil)
+    if (stop != null){
+      const stopReached = up ? p <= stop : p >= stop;
+      if (!a.slHit && stopReached){
+        fired.push({ sym, kind:'anchor', sub:'stop', pct, base, target, stop, moved, price: p, note: a.note || '', rearm: !!a.rearm });
+        a.slHit = true; changed = true;
+      } else if (a.slHit && a.rearm && !stopReached){ a.slHit = false; changed = true; }
+    }
+    kept.push(a); // ancora rămâne mereu (tracker persistent)
+    continue;
+  }
   // ── Alertă MIȘCARE ±% (față de prețul ancoră) ──
   if (a.kind === 'pct'){
     const pct = Number(a.pct);
@@ -121,12 +166,19 @@ for (const a of alerts){
 
 if (fired.length){
   cfg.triggered = [
-    ...fired.map(f => f.kind === 'pct'
+    ...fired.map(f => f.kind === 'anchor'
+      ? ({ symbol: f.sym, kind: 'anchor', sub: f.sub, pct: f.pct, base: +Number(f.base).toFixed(4), target: f.target != null ? +Number(f.target).toFixed(4) : null, stop: f.stop != null ? +Number(f.stop).toFixed(4) : null, moved: +f.moved.toFixed(2), prog: f.prog != null ? +f.prog.toFixed(0) : undefined, dir: f.sub === 'stop' ? 'below' : (f.sub === 'step' ? (f.moved >= 0 ? 'above' : 'below') : 'above'), price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })
+      : f.kind === 'pct'
       ? ({ symbol: f.sym, kind: 'pct', pct: f.pct, base: +Number(f.base).toFixed(4), moved: +f.moved.toFixed(2), dir: f.moved >= 0 ? 'above' : 'below', price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })
       : ({ symbol: f.sym, level: f.lvl, dir: f.dir, price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })),
     ...(Array.isArray(cfg.triggered) ? cfg.triggered : [])
   ].slice(0, 50);
-  const lines = fired.map(f => f.kind === 'pct'
+  const lines = fired.map(f => f.kind === 'anchor'
+    ? (f.sub === 'target' ? `🎯 <b>${tgEsc(f.sym)}</b> ȚINTĂ $${Number(f.target).toFixed(dec(f.sym))} atinsă → $${f.price.toFixed(dec(f.sym))} (${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% de la $${Number(f.base).toFixed(dec(f.sym))})${f.note ? ' · ' + tgEsc(f.note) : ''}`
+      : f.sub === 'near' ? `🔔 <b>${tgEsc(f.sym)}</b> ${Number(f.prog).toFixed(0)}% spre țintă $${Number(f.target).toFixed(dec(f.sym))} → $${f.price.toFixed(dec(f.sym))}`
+      : f.sub === 'stop' ? `🛑 <b>${tgEsc(f.sym)}</b> STOP $${Number(f.stop).toFixed(dec(f.sym))} atins → $${f.price.toFixed(dec(f.sym))}${f.note ? ' · ' + tgEsc(f.note) : ''}`
+      : `🪜 <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% (pas ${f.step}×${f.pct}%) → $${f.price.toFixed(dec(f.sym))} (de la $${Number(f.base).toFixed(dec(f.sym))})`)
+    : f.kind === 'pct'
     ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% → $${f.price.toFixed(dec(f.sym))} (de la $${Number(f.base).toFixed(dec(f.sym))})${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
     : `${f.dir === 'below' ? '▼' : '▲'} <b>${tgEsc(f.sym)}</b> $${f.price.toFixed(dec(f.sym))} — prag $${Number(f.lvl).toFixed(dec(f.sym))}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`);
   await sendTelegram(`🔔 <b>Price Alert (server-side · ${fired.length})</b>\n${lines.join('\n')}`);
