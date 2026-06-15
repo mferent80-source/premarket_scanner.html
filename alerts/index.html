@@ -127,6 +127,16 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .pulse-seg.down { color:var(--bear-s); }
 .pulse-seg.near { color:var(--warn); }
 
+/* Filtru rapid */
+.filter-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
+.filter-bar #filterInp { flex:1; min-width:160px; }
+.filter-bar .chip {
+  padding:6px 12px; font-size:12px; font-weight:700; border-radius:999px;
+  background:var(--panel2); color:var(--t2); border:1px solid var(--b1); cursor:pointer; transition:all .15s var(--ease);
+}
+.filter-bar .chip:hover { color:var(--t1); border-color:var(--b2); background:var(--panel3); transform:none; }
+.filter-bar .chip.active { background:var(--accent); color:#000; border-color:var(--accent); }
+
 /* Sections */
 .section {
   background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
@@ -318,7 +328,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v27</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v28</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -399,6 +409,15 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 
 <!-- Pulse: rezumat rapid al stării alertelor -->
 <div id="pulseBar" class="pulse-bar" style="display:none"></div>
+
+<!-- Filtru rapid -->
+<div id="filterBar" class="filter-bar" style="display:none">
+  <input type="text" id="filterInp" placeholder="🔎 Filtrează după ticker / notă…" autocomplete="off">
+  <button type="button" class="chip active" data-fmode="all">Toate</button>
+  <button type="button" class="chip" data-fmode="up">▲ azi</button>
+  <button type="button" class="chip" data-fmode="down">▼ azi</button>
+  <button type="button" class="chip" data-fmode="near">⏰ aproape</button>
+</div>
 
 <!-- Active alerts — crypto (24/7) -->
 <div class="section">
@@ -1175,6 +1194,19 @@ function sortRows(arr) {
   });
 }
 
+// Filtru rapid: text (ticker/notă) + mod (toate / ▲azi / ▼azi / aproape de declanșare)
+let filterText = '', filterMode = 'all';
+function matchesFilter(r) {
+  if (filterText) {
+    const hay = (r.sym + ' ' + (r.a.note || '')).toLowerCase();
+    if (!hay.includes(filterText)) return false;
+  }
+  if (filterMode === 'up') return _lastChange[r.sym] != null && _lastChange[r.sym] > 0;
+  if (filterMode === 'down') return _lastChange[r.sym] != null && _lastChange[r.sym] < 0;
+  if (filterMode === 'near') return proximityScore(r.sym, r.a) < 0.5;
+  return true;
+}
+
 // Bara de pulse: rezumat rapid — câte alerte, câte simboluri ▲/▼ azi, top mover, câte aproape de declanșare
 function renderPulse(activeRows) {
   const el = $('pulseBar');
@@ -1207,16 +1239,21 @@ function render() {
   // Split crypto (24/7) vs stocks (cu sesiune) — logica de polling diferă deja
   const cryptoRows = sortRows(rows.filter(r => isCrypto(r.sym.toUpperCase())));
   const stockRows = sortRows(rows.filter(r => !isCrypto(r.sym.toUpperCase())));
-  $('cntCrypto').textContent = cryptoRows.length;
-  $('cntStocks').textContent = stockRows.length;
   $('cntTriggered').textContent = triggered.length;
   // Badge sesiune pe grupul Stocks (crypto rămâne 🟢 24/7 fix din HTML)
   const ss = marketSession();
   const sb = $('sessStocks'); sb.textContent = ss.label; sb.className = 'sess-badge ' + ss.cls;
 
   renderPulse([...cryptoRows, ...stockRows]);
-  renderActiveGroup($('bodyCrypto'), cryptoRows, '🪙', 'Nicio alertă crypto. Adaugă una de mai sus (BTC-USD, ETH-USD, ONDOUSDT…).');
-  renderActiveGroup($('bodyStocks'), stockRows, '📈', 'Nicio alertă pe stocks. Adaugă una de mai sus (AAPL, NVDA…).');
+  // Filtru: pulse + badge sesiune rămân pe TOATE; doar listele afișate se filtrează
+  const filterActive = !!filterText || filterMode !== 'all';
+  const cryptoView = filterActive ? cryptoRows.filter(matchesFilter) : cryptoRows;
+  const stockView = filterActive ? stockRows.filter(matchesFilter) : stockRows;
+  $('cntCrypto').textContent = filterActive ? `${cryptoView.length}/${cryptoRows.length}` : cryptoRows.length;
+  $('cntStocks').textContent = filterActive ? `${stockView.length}/${stockRows.length}` : stockRows.length;
+  $('filterBar').style.display = rows.length ? 'flex' : 'none';
+  renderActiveGroup($('bodyCrypto'), cryptoView, '🪙', filterActive ? 'Nicio alertă crypto care să se potrivească filtrului.' : 'Nicio alertă crypto. Adaugă una de mai sus (BTC-USD, ETH-USD, ONDOUSDT…).');
+  renderActiveGroup($('bodyStocks'), stockView, '📈', filterActive ? 'Niciun stock care să se potrivească filtrului.' : 'Nicio alertă pe stocks. Adaugă una de mai sus (AAPL, NVDA…).');
 
   if (!triggered.length) {
     $('bodyTriggered').innerHTML = '<div class="empty"><span class="ico">🔕</span>Niciun alert declanșat încă.</div>';
@@ -1616,6 +1653,14 @@ $('btnSort').addEventListener('click', () => {
   toast('Sortare: ' + _SORT_LABEL[sortMode], 'info');
 });
 applySortBtn();
+
+// Filtru rapid: căutare text + chips (toate / ▲azi / ▼azi / aproape)
+$('filterInp').addEventListener('input', e => { filterText = e.target.value.trim().toLowerCase(); render(); });
+document.querySelectorAll('#filterBar .chip').forEach(ch => ch.addEventListener('click', () => {
+  filterMode = ch.dataset.fmode;
+  document.querySelectorAll('#filterBar .chip').forEach(c => c.classList.toggle('active', c === ch));
+  render();
+}));
 
 // 📤 Export pentru alertele SERVER-SIDE: GitHub Actions le verifică la 15 min și
 // trimite pe Telegram cu laptopul ÎNCHIS. Lipești JSON-ul în tools/alerts.json pe GitHub.
