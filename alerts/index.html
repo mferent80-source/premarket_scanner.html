@@ -300,7 +300,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v24</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v25</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -730,6 +730,7 @@ async function fetchPrice(symbol) {
 // Semantică IDENTICĂ cu checkPriceAlerts din watchlist-monitor: one-shot → alerta
 // dispare la fire; re-arm → se dezarmează și se re-armează cu histerezis 0.3%.
 const _lastPrice = {}; // preț curent per simbol (doar pentru UI — NU se persistă în storage)
+const _lastChange = {}; // variația zilei % per simbol = (last - prevClose)/prevClose (pt sortare după creștere)
 async function pollPrices() {
   if (pollPaused) return;
   priceAlerts = loadAlerts(); // sync cross-tab înainte de check (wlm poate modifica între cicluri)
@@ -758,9 +759,13 @@ async function pollPrices() {
     }
   }
   const prices = {};
+  const changes = {};   // variația zilei % per simbol (din prevClose-ul fiecărui fetch)
   await Promise.all(unique.map(async sym => {
     const p = await fetchPrice(sym);
-    if (p?.last != null) prices[sym] = p.last;
+    if (p?.last != null) {
+      prices[sym] = p.last;
+      if (p.prev > 0) changes[sym] = (p.last - p.prev) / p.prev * 100;
+    }
   }));
   priceAlerts = loadAlerts(); // re-sync după await-uri (fetch-urile durează — alt tab putea scrie)
   const fired = [];
@@ -769,6 +774,7 @@ async function pollPrices() {
     const p = prices[sym.toUpperCase()];
     if (p == null) continue;
     _lastPrice[sym] = p;
+    if (changes[sym.toUpperCase()] != null) _lastChange[sym] = changes[sym.toUpperCase()];
     const list = priceAlerts[sym];
     for (let i = list.length - 1; i >= 0; i--) {
       const a = list[i];
@@ -1099,13 +1105,11 @@ function bindActiveActions(container) {
 // Sortare: 'growth' = după creștere (cea mai mare sus), 'prox' = proximitate de declanșare, 'abc' = alfabetic
 const _SORT_MODES = ['growth', 'prox', 'abc'];
 let sortMode = _SORT_MODES.includes(localStorage.getItem('pa_sort')) ? localStorage.getItem('pa_sort') : 'growth';
-// Scor creștere: Δ% de la referința/pragul alertei (exact ce afișează rândul). MAI MARE = mai sus.
-// Fără preț curent → -Infinity (la coadă).
-function growthScore(sym, a) {
-  const cur = _lastPrice[sym];
-  if (cur == null) return -Infinity;
-  if (a.kind === 'ref' || a.kind === 'pct' || a.kind === 'anchor') return a.base != null ? (cur - a.base) / a.base * 100 : -Infinity;
-  return a.lvl ? (cur - a.lvl) / a.lvl * 100 : -Infinity;                         // preț prag: % față de prag
+// Scor creștere: variația ZILEI % (last vs închiderea de ieri). MAI MARE = mai sus.
+// Fără date de variație încă → -Infinity (la coadă).
+function growthScore(sym) {
+  const c = _lastChange[sym];
+  return c == null ? -Infinity : c;
 }
 // Scor proximitate: % până la cel mai apropiat eveniment de declanșare. MAI MIC = mai aproape.
 // Fără preț curent → Infinity (la coadă). Acoperă toate tipurile.
@@ -1135,8 +1139,8 @@ function proximityScore(sym, a) {
 function sortRows(arr) {
   if (sortMode === 'abc') return arr;   // deja sortat alfabetic (din Object.keys().sort())
   if (sortMode === 'growth') return arr.sort((x, y) => {
-    const gx = growthScore(x.sym, x.a), gy = growthScore(y.sym, y.a);
-    return gx === gy ? x.sym.localeCompare(y.sym) : gy - gx;   // DESC: creșterea mare sus
+    const gx = growthScore(x.sym), gy = growthScore(y.sym);
+    return gx === gy ? x.sym.localeCompare(y.sym) : gy - gx;   // DESC: variația zilei mare sus
   });
   return arr.sort((x, y) => {
     const dx = proximityScore(x.sym, x.a), dy = proximityScore(y.sym, y.a);
@@ -1555,7 +1559,7 @@ $('testBtn').addEventListener('click', () => {
 });
 
 // Toggle sortare listă: 📈 creștere → 🎯 proximitate → 🔤 alfabetic → ...
-const _SORT_LABEL = { growth: '📈 după creștere (cele mai mari sus)', prox: '🎯 proximitate de declanșare (gata să se miște sus)', abc: '🔤 alfabetic' };
+const _SORT_LABEL = { growth: '📈 după variația zilei (cele mai în plus sus)', prox: '🎯 proximitate de declanșare (gata să se miște sus)', abc: '🔤 alfabetic' };
 function applySortBtn() {
   $('btnSort').textContent = sortMode === 'growth' ? '📈' : sortMode === 'prox' ? '🎯' : '🔤';
   $('btnSort').title = 'Sortare listă: ' + _SORT_LABEL[sortMode] + ' — click pt schimbare';
