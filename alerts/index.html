@@ -167,6 +167,18 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 }
 .alert-row:last-child { border-bottom:none; }
 .alert-row:hover { background:rgba(91,176,255,.04); }
+.alert-row.snoozed { opacity:.5; }
+.snz-badge { font-size:10px; color:var(--warn); font-family:var(--mono); font-weight:700; margin-left:4px; }
+/* Meniu snooze (popover lângă butonul 😴) */
+.snooze-menu {
+  position:fixed; z-index:3500; display:flex; flex-direction:column; gap:2px;
+  background:var(--panel); border:1px solid var(--b2); border-radius:var(--rs);
+  box-shadow:0 8px 28px rgba(0,0,0,.5); padding:5px; min-width:180px;
+}
+.snooze-menu button { text-align:left; background:transparent; border:none; padding:8px 10px; border-radius:6px; font-size:12.5px; font-weight:600; color:var(--t1); }
+.snooze-menu button:hover { background:var(--panel3); color:var(--t1); transform:none; }
+.snooze-menu button.danger { color:var(--bear-s); }
+.snooze-menu button.danger:hover { background:rgba(255,77,77,.12); color:var(--bear-s); }
 .alert-row.triggered { background:rgba(34,214,107,.06); border-left:3px solid var(--bull-s); padding-left:9px; }
 .alert-row.triggered.bear { background:rgba(255,77,77,.06); border-left-color:var(--bear-s); }
 
@@ -328,7 +340,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v28</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v29</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -541,6 +553,11 @@ const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(3
 // Serializare alertă → JSON pentru export 📤 / sync ☁️ (și pentru botul server-side).
 // Două forme: preț prag (level+dir) sau mișcare ± (pct+base ancoră).
 function alertToJson(sym, a) {
+  const o = _alertToJsonInner(sym, a);
+  if (a.snoozeUntil && a.snoozeUntil > Date.now()) o.snoozeUntil = a.snoozeUntil;   // amânare → sync și pe server (botul o respectă)
+  return o;
+}
+function _alertToJsonInner(sym, a) {
   if (a.kind === 'ref') return a.trail
     ? { symbol: sym, kind: 'ref', trail: true, pct: a.pct, base: a.base ?? null, peak: a.peak ?? null, trailFired: !!a.trailFired, note: a.note || '' }
     : { symbol: sym, kind: 'ref', pct: a.pct, base: a.base ?? null, lastStep: a.lastStep || 0, hi: a.hi ?? 0, lo: a.lo ?? 0, note: a.note || '' };
@@ -824,6 +841,10 @@ async function pollPrices() {
     const list = priceAlerts[sym];
     for (let i = list.length - 1; i >= 0; i--) {
       const a = list[i];
+      if (a.snoozeUntil) {                                    // alertă amânată (snooze)
+        if (Date.now() < a.snoozeUntil) continue;             // încă amânată → o sărim
+        delete a.snoozeUntil; changed = true;                 // expirat → se trezește
+      }
       if (a.kind === 'ref') {
         if (a.trail) {
           // Trailing: referința urmează vârful; alertă când prețul scade ≥pct% din maximul atins.
@@ -1086,13 +1107,17 @@ function rowHtml(sym, a) {
     dirCls = a.dir === 'above' ? 'up' : 'down';
     thrHtml = `$${fmtPx(a.lvl, sym)}<span class="dir">${a.dir === 'above' ? '▲ peste' : '▼ sub'} ${stateBadge}</span>`;
   }
-  return `<div class="alert-row" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
-    <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a></div>
+  const snoozed = a.snoozeUntil && a.snoozeUntil > Date.now();
+  const snzRem = snoozed ? Math.ceil((a.snoozeUntil - Date.now()) / 60000) : 0;
+  const snzTxt = snzRem >= 120 ? Math.round(snzRem / 60) + 'h' : snzRem + 'm';
+  return `<div class="alert-row${snoozed ? ' snoozed' : ''}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
+    <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${snoozed ? `<span class="snz-badge" title="amânată (snooze)">😴${snzTxt}</span>` : ''}</div>
     <div class="alert-thr">${thrHtml}</div>
     <div class="alert-current ${dirCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}${cur != null ? sessTag(sym) : ''}${cur != null ? dayTag(sym) : ''}</div>
     <div class="alert-delta ${isClose ? 'close' : ''}">${delta != null ? (delta>=0?'+':'')+delta.toFixed(2)+'%' : '—'}${extraHtml}</div>
     <div class="alert-note">${escHtml(a.note || '')}</div>
     <div class="alert-actions">
+      <button class="icon-btn" data-action="snooze" title="😴 Amână alerta (1h / 4h / până la deschidere)" style="${snoozed ? 'color:var(--warn);border-color:rgba(212,137,44,.4)' : 'opacity:.6'}">😴</button>
       ${isRef
         ? `<button class="icon-btn" data-action="reanchor" title="🔄 Re-ancorează referința la prețul curent (resetează 0%, pașii și max/min — ex: după ce intri în trade)">🔄</button>`
         : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (devine one-shot, dispare după declanșare)' : 'One-shot — click pt ↻ re-arm (se reia/re-ancorează după declanșare)'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>`}
@@ -1146,7 +1171,53 @@ function bindActiveActions(container) {
     const row = e.target.closest('.alert-row');
     openEditModal(row.dataset.sym, row.dataset.id);
   }));
+  container.querySelectorAll('[data-action="snooze"]').forEach(btn => btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const row = e.target.closest('.alert-row');
+    showSnoozeMenu(btn, row.dataset.sym, row.dataset.id);
+  }));
 }
+
+// ms până la următoarea deschidere 09:30 ET (azi dacă încă n-a fost, altfel mâine)
+function msUntilNextSessionOpen() {
+  const p = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
+  const mins = (parseInt(p.find(x => x.type === 'hour')?.value, 10) || 0) * 60 + (parseInt(p.find(x => x.type === 'minute')?.value, 10) || 0);
+  let delta = (9 * 60 + 30) - mins;
+  if (delta <= 0) delta += 1440;
+  return delta * 60000;
+}
+function closeSnoozeMenu() { const m = $('snoozeMenu'); if (m) m.remove(); }
+// Popover snooze: 1h / 4h / până la deschidere / anulează — poziționat lângă butonul 😴
+function showSnoozeMenu(btn, sym, id) {
+  closeSnoozeMenu();
+  const a = (priceAlerts[sym] || []).find(x => x.id === id);
+  if (!a) return;
+  const opts = [
+    { label: '⏱ 1 oră', ms: 3600000 },
+    { label: '⏱ 4 ore', ms: 4 * 3600000 },
+    { label: '🌅 Până la deschidere (09:30 ET)', ms: msUntilNextSessionOpen() },
+  ];
+  const menu = document.createElement('div');
+  menu.className = 'snooze-menu'; menu.id = 'snoozeMenu';
+  menu.innerHTML = opts.map((o, i) => `<button data-i="${i}">${o.label}</button>`).join('')
+    + (a.snoozeUntil ? `<button data-i="off" class="danger">✕ Anulează snooze</button>` : '');
+  document.body.appendChild(menu);
+  const r = btn.getBoundingClientRect();
+  menu.style.top = Math.min(r.bottom + 4, window.innerHeight - menu.offsetHeight - 8) + 'px';
+  menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+  menu.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    priceAlerts = loadAlerts();
+    const al = (priceAlerts[sym] || []).find(x => x.id === id);
+    if (al) {
+      if (b.dataset.i === 'off') { delete al.snoozeUntil; toast(`⏰ ${sym}: snooze anulat`, 'info'); }
+      else { const o = opts[+b.dataset.i]; al.snoozeUntil = Date.now() + o.ms; toast(`😴 ${sym} amânat (${o.label.replace(/^\S+\s/, '')})`, 'info'); }
+      persistAlerts(); render(); autoSync();
+    }
+    closeSnoozeMenu();
+  }));
+}
+// click în afara meniului (dar nu pe butonul 😴) → închide
+document.addEventListener('click', e => { const m = $('snoozeMenu'); if (m && !m.contains(e.target) && !e.target.closest('[data-action="snooze"]')) closeSnoozeMenu(); });
 
 // Sortare: 'growth' = după creștere (cea mai mare sus), 'prox' = proximitate de declanșare, 'abc' = alfabetic
 const _SORT_MODES = ['growth', 'prox', 'abc'];
@@ -1782,7 +1853,7 @@ function alertsSig(map) {
 }
 // O alertă din formatul server (tools/alerts.json) → formatul local (wl_price_alerts)
 function serverAlertToLocal(s) {
-  const b = { id: uid(), rearm: !!s.rearm, armed: s.armed !== false, lastFired: null, note: s.note || '' };
+  const b = { id: uid(), rearm: !!s.rearm, armed: s.armed !== false, lastFired: null, note: s.note || '', ...(s.snoozeUntil ? { snoozeUntil: Number(s.snoozeUntil) } : {}) };
   if (s.kind === 'ref') return s.trail
     ? Object.assign(b, { kind: 'ref', trail: true, pct: Number(s.pct), base: s.base != null ? Number(s.base) : null, peak: s.peak != null ? Number(s.peak) : null, trailFired: !!s.trailFired })
     : Object.assign(b, { kind: 'ref', pct: Number(s.pct), base: s.base != null ? Number(s.base) : null, lastStep: s.lastStep || 0, hi: Number(s.hi) || 0, lo: Number(s.lo) || 0 });

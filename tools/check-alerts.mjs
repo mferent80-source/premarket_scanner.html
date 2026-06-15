@@ -103,6 +103,11 @@ for (const a of alerts){
   const sym = String(a.symbol || '').toUpperCase();
   const p = prices[sym];
   if (p == null){ kept.push(a); continue; }
+  // ── Snooze: alertă amânată — o sărim cât timp nu a expirat; la expirare se trezește ──
+  if (a.snoozeUntil){
+    if (Date.now() < Number(a.snoozeUntil)){ kept.push(a); continue; }
+    delete a.snoozeUntil; changed = true;
+  }
   // ── Alertă REFERINȚĂ (preț de creare = 0%: pas cumulat ±pct% sus/jos + water-marks) ──
   if (a.kind === 'ref'){
     const pct = Number(a.pct);
