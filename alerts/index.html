@@ -168,6 +168,36 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .anchor-bar-mini > i { display:block; height:100%; background:linear-gradient(90deg,var(--acc-1),var(--bull-s)); border-radius:3px; transition:width .3s var(--ease); }
 .anchor-rem { display:block; font-size:10px; color:var(--t3); font-family:var(--mono); margin-top:2px; }
 
+/* Bara simetrică referință (tip 📊 Referință): 0% la centru, creștere → dreapta (verde), scădere → stânga (roșu) */
+.ref-wrap { margin-top:5px; }
+.ref-bar {
+  position:relative; height:14px; background:var(--panel3); border-radius:4px;
+  border:1px solid var(--b1); overflow:hidden;
+}
+.ref-bar > .ref-fill { position:absolute; top:0; bottom:0; border-radius:2px; opacity:.55; }
+.ref-bar > .ref-fill.up   { background:linear-gradient(90deg, rgba(34,214,107,.25), var(--bull-s)); }
+.ref-bar > .ref-fill.down { background:linear-gradient(270deg, rgba(255,77,77,.25), var(--bear-s)); }
+.ref-bar > .ref-center {  /* linia 0% (referința) */
+  position:absolute; top:-1px; bottom:-1px; left:50%; width:1px; background:var(--t2); opacity:.5; transform:translateX(-.5px);
+}
+.ref-bar > .ref-cursor {  /* poziția curentă */
+  position:absolute; top:50%; width:8px; height:8px; border-radius:50%;
+  background:var(--t1); border:1.5px solid var(--bg); box-shadow:0 0 4px rgba(0,0,0,.5);
+  transform:translate(-50%,-50%); z-index:3;
+}
+.ref-bar > .ref-cursor.up   { background:var(--bull-s); }
+.ref-bar > .ref-cursor.down { background:var(--bear-s); }
+.ref-bar > .ref-mark {  /* high/low water-mark — linii subțiri */
+  position:absolute; top:1px; bottom:1px; width:2px; border-radius:1px; z-index:2; transform:translateX(-1px);
+}
+.ref-bar > .ref-mark.hi { background:var(--bull-s); opacity:.7; }
+.ref-bar > .ref-mark.lo { background:var(--bear-s); opacity:.7; }
+.ref-scale { display:flex; justify-content:space-between; font-size:9px; color:var(--t3); font-family:var(--mono); margin-top:2px; }
+.ref-meta { display:block; font-size:10px; color:var(--t3); font-family:var(--mono); margin-top:2px; line-height:1.5; }
+.ref-meta b.up { color:var(--bull-s); }
+.ref-meta b.down { color:var(--bear-s); }
+.ref-next { color:var(--t2); }
+
 /* Badge sesiune per grup (crypto 24/7 vs stocks cu sesiune) */
 .sess-badge {
   font-family:var(--mono); font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px;
@@ -257,7 +287,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v17</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v18</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -287,6 +317,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
     <div>
       <label>Tip alertă</label>
       <select id="inpKind" class="dir-select">
+        <option value="ref">📊 Referință (pași ±%)</option>
         <option value="price">$ Preț prag</option>
         <option value="pct">% Mișcare ±</option>
         <option value="anchor">⚓ Ancoră (pas+țintă)</option>
@@ -323,7 +354,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </div>
   <div id="symSearchResults" style="display:none;flex-direction:column;gap:3px;margin:8px 0 0"></div>
   <div class="add-hint" id="addHint" style="display:none">
-    <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. <b>⚓ Ancoră</b> = ancoră FIXĂ la prețul de creare (nu se mută) cu Δ% afișat + bară de progres spre țintă + R:R; te anunță la <b>4 evenimente</b>: 🪜 fiecare pas cumulat de ±X% din ancoră, 🎯 ținta atinsă, 🔔 aproape de țintă (≥90%), 🛑 stopul atins. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 60s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram.
+    <b>📊 Referință (pași ±%)</b> = prețul live din momentul adăugării devine <b>referința (0%)</b>; primești o alertă la fiecare pas de ±X% (ex: 1%) față de ea, sus pe verde / jos pe roșu. Bară simetrică centrată pe referință + max/min atinse + următorul nivel. Buton 🔄 pe rând = re-ancorează referința la prețul curent (ex: după ce intri în trade). <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. <b>⚓ Ancoră</b> = ancoră FIXĂ la prețul de creare (nu se mută) cu Δ% afișat + bară de progres spre țintă + R:R; te anunță la <b>4 evenimente</b>: 🪜 fiecare pas cumulat de ±X% din ancoră, 🎯 ținta atinsă, 🔔 aproape de țintă (≥90%), 🛑 stopul atins. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 60s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram.
   </div>
 </div>
 
@@ -374,6 +405,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
       <div class="modal-field">
         <label>Tip alertă</label>
         <select id="editKind">
+          <option value="ref">📊 Referință (pași ±%)</option>
           <option value="price">$ Preț prag</option>
           <option value="pct">% Mișcare ±</option>
           <option value="anchor">⚓ Ancoră (pas+țintă)</option>
@@ -444,6 +476,7 @@ const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(3
 // Serializare alertă → JSON pentru export 📤 / sync ☁️ (și pentru botul server-side).
 // Două forme: preț prag (level+dir) sau mișcare ± (pct+base ancoră).
 function alertToJson(sym, a) {
+  if (a.kind === 'ref') return { symbol: sym, kind: 'ref', pct: a.pct, base: a.base ?? null, lastStep: a.lastStep || 0, hi: a.hi ?? 0, lo: a.lo ?? 0, note: a.note || '' };
   if (a.kind === 'anchor') return { symbol: sym, kind: 'anchor', pct: a.pct, base: a.base ?? null, target: a.target ?? null, stop: a.stop ?? null, lastStep: a.lastStep || 0, tgtHit: !!a.tgtHit, nearHit: !!a.nearHit, slHit: !!a.slHit, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' };
   if (a.kind === 'pct') return { symbol: sym, kind: 'pct', pct: a.pct, base: a.base ?? null, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' };
   return { symbol: sym, level: a.lvl, dir: a.dir, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' };
@@ -517,10 +550,10 @@ async function loadServerHist(){
     if (!r.ok) return;
     const j = await r.json();
     SERVER_HIST = (Array.isArray(j?.triggered) ? j.triggered : []).map(t => {
-      const kind = t.kind === 'anchor' ? 'anchor' : (t.kind === 'pct' ? 'pct' : 'price');
-      return { sym: String(t.symbol || '').toUpperCase(), kind, sub: t.sub || '', lvl: Number(t.level), pct: Number(t.pct), base: Number(t.base), target: Number(t.target), stop: Number(t.stop), moved: Number(t.moved), prog: Number(t.prog),
+      const kind = t.kind === 'anchor' ? 'anchor' : t.kind === 'ref' ? 'ref' : (t.kind === 'pct' ? 'pct' : 'price');
+      return { sym: String(t.symbol || '').toUpperCase(), kind, sub: t.sub || '', lvl: Number(t.level), pct: Number(t.pct), base: Number(t.base), target: Number(t.target), stop: Number(t.stop), moved: Number(t.moved), prog: Number(t.prog), step: Number(t.step),
         dir: t.dir === 'below' ? 'below' : 'above', price: Number(t.price), ts: Date.parse(t.at) || 0, note: t.note || '', rearm: !!t.rearm, cloud: true };
-    }).filter(h => h.sym && (h.kind === 'anchor' ? h.pct > 0 : (h.kind === 'pct' ? h.pct > 0 : h.lvl > 0)));
+    }).filter(h => h.sym && ((h.kind === 'anchor' || h.kind === 'pct' || h.kind === 'ref') ? h.pct > 0 : h.lvl > 0));
     render();
   } catch (e) {}
 }
@@ -703,6 +736,23 @@ async function pollPrices() {
     const list = priceAlerts[sym];
     for (let i = list.length - 1; i >= 0; i--) {
       const a = list[i];
+      if (a.kind === 'ref') {
+        // Referință FIXĂ (preț de creare = 0%): alertă la fiecare pas cumulat de ±pct%,
+        // sus/jos. Tracker persistent (nu dispare) — se șterge sau re-ancorează manual.
+        if (a.base == null) { a.base = p; a.lastStep = 0; a.hi = 0; a.lo = 0; changed = true; continue; }
+        const moved = (p - a.base) / a.base * 100;
+        if (moved > (a.hi || 0)) { a.hi = moved; changed = true; }   // high-water-mark
+        if (moved < (a.lo || 0)) { a.lo = moved; changed = true; }   // low-water-mark
+        const step = a.pct > 0 ? Math.trunc(moved / a.pct) : 0;
+        const prevStep = a.lastStep || 0;
+        // alertă DOAR când banda atinsă e mai depărtată de referință decât ultima raportată (fără chop)
+        if (step !== 0 && Math.abs(step) > Math.abs(prevStep)) {
+          fired.push({ sym, price: p, moved, step, a: Object.assign({}, a) });
+          a.lastFired = Date.now();
+        }
+        if (step !== prevStep) { a.lastStep = step; changed = true; }
+        continue; // referința rămâne mereu în listă
+      }
       if (a.kind === 'anchor') {
         // Ancoră FIXĂ (preț de creare): NU se mută. 4 alerte măsurate vs ancoră.
         if (a.base == null) { a.base = p; changed = true; continue; }
@@ -766,6 +816,14 @@ async function pollPrices() {
   if (fired.length) {
     // Notify combo + istoric local
     fired.forEach(f => {
+      if (f.a.kind === 'ref') {
+        const a = f.a, px = fmtPx(f.price, f.sym), base = '$' + fmtPx(a.base, f.sym);
+        const di = f.moved >= 0 ? '▲' : '▼';
+        HISTORY.unshift({ sym: f.sym, kind: 'ref', pct: a.pct, base: a.base, moved: f.moved, step: f.step, dir: f.moved >= 0 ? 'above' : 'below', price: f.price, ts: Date.now(), note: a.note || '' });
+        toast(`📊 ${f.sym} ${di} ${fmtPct(f.moved)} (pas ${f.step > 0 ? '+' : ''}${f.step}×${a.pct}%) de la ${base} · acum $${px}${a.note ? ' · ' + a.note : ''}`, f.moved >= 0 ? 'success' : 'error', { persist: true });
+        showBrowserNotif(`📊 ${f.sym} ${di} ${fmtPct(f.moved)}`, `Pas ${f.step}×${a.pct}% de la ${base} · acum $${px}`);
+        return;
+      }
       if (f.a.kind === 'anchor') {
         const a = f.a, px = fmtPx(f.price, f.sym), base = '$' + fmtPx(a.base, f.sym);
         const histDir = f.sub === 'stop' ? 'below' : (f.sub === 'step' ? (f.moved >= 0 ? 'above' : 'below') : 'above');
@@ -809,10 +867,12 @@ async function pollPrices() {
     };
     const tgLine = f => f.a.kind === 'anchor'
       ? tgAnchorLine(f)
+      : f.a.kind === 'ref'
+      ? `📊 <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '▲' : '▼'} ${fmtPct(f.moved)} (pas ${f.step > 0 ? '+' : ''}${f.step}×${f.a.pct}%) → $${fmtPx(f.price, f.sym)} (de la $${fmtPx(f.a.base, f.sym)})${f.a.note ? ' · ' + tgEsc(f.a.note) : ''}`
       : f.a.kind === 'pct'
       ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${fmtPct(f.moved)} → $${fmtPx(f.price, f.sym)} (de la $${fmtPx(f.a.base, f.sym)})${f.a.rearm ? ' · re-arm' : ''}`
       : `${f.a.dir === 'above' ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> $${fmtPx(f.price, f.sym)} (prag $${fmtPx(f.a.lvl, f.sym)})`;
-    if (fired.length === 1 && fired[0].a.kind !== 'anchor') {
+    if (fired.length === 1 && fired[0].a.kind !== 'anchor' && fired[0].a.kind !== 'ref') {
       const f = fired[0];
       const body = f.a.kind === 'pct'
         ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> s-a mișcat ${fmtPct(f.moved)}\nDe la $${fmtPx(f.a.base, f.sym)} la $${fmtPx(f.price, f.sym)}${f.a.rearm ? ' · re-arm' : ''}${f.a.note ? '\nNotă: ' + tgEsc(f.a.note) : ''}`
@@ -840,9 +900,38 @@ function rowHtml(sym, a) {
   const cur = _lastPrice[sym];
   const isPct = a.kind === 'pct';
   const isAnchor = a.kind === 'anchor';
+  const isRef = a.kind === 'ref';
   const stateBadge = a.rearm ? (a.armed ? '<span title="re-arm: alerta se păstrează și se re-armează după declanșare">↻</span>' : '<span title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel" style="opacity:.55">↻💤</span>') : '';
   let thrHtml, delta, isClose, dirCls, extraHtml = '';
-  if (isAnchor) {
+  if (isRef) {
+    // Tracker referință: 0% = preț de creare, bară simetrică + max/min + următoarele praguri
+    delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;
+    dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
+    isClose = false;
+    thrHtml = `±${a.pct}%/pas<span class="dir">📊$${a.base != null ? fmtPx(a.base, sym) : '⏳'} ref</span>`;
+    if (a.base != null && cur != null) {
+      const moved = delta;
+      const hi = Math.max(a.hi || 0, moved), lo = Math.min(a.lo || 0, moved);
+      // range vizual simetric: minim 3 pași, dar se extinde să încapă mișcarea/water-marks
+      const range = (Math.max(a.pct * 3, Math.abs(hi), Math.abs(lo), Math.abs(moved)) * 1.15) || (a.pct * 3);
+      const pos = v => Math.max(0, Math.min(100, 50 + (v / range) * 50));
+      const cp = pos(moved);
+      const fill = moved >= 0
+        ? `<i class="ref-fill up" style="left:50%;width:${(cp - 50).toFixed(1)}%"></i>`
+        : `<i class="ref-fill down" style="left:${cp.toFixed(1)}%;width:${(50 - cp).toFixed(1)}%"></i>`;
+      const hiMark = hi > 0.01 ? `<i class="ref-mark hi" style="left:${pos(hi).toFixed(1)}%" title="max +${hi.toFixed(2)}%"></i>` : '';
+      const loMark = lo < -0.01 ? `<i class="ref-mark lo" style="left:${pos(lo).toFixed(1)}%" title="min ${lo.toFixed(2)}%"></i>` : '';
+      // următoarele linii de grilă imediat peste/sub poziția curentă (preț + %)
+      const dp = a.pct < 1 ? 1 : 0;
+      const upPct = (Math.floor(moved / a.pct) + 1) * a.pct, dnPct = (Math.ceil(moved / a.pct) - 1) * a.pct;
+      const scaleR = range >= 10 ? range.toFixed(0) : range.toFixed(1);
+      extraHtml = `<div class="ref-wrap">
+        <div class="ref-bar">${fill}<div class="ref-center"></div>${hiMark}${loMark}<div class="ref-cursor ${dirCls}" style="left:${cp.toFixed(1)}%"></div></div>
+        <div class="ref-scale"><span>-${scaleR}%</span><span>0</span><span>+${scaleR}%</span></div>
+        <div class="ref-meta">max <b class="up">+${hi.toFixed(2)}%</b> / min <b class="down">${lo.toFixed(2)}%</b> · <span class="ref-next">↑+${upPct.toFixed(dp)}% $${fmtPx(a.base * (1 + upPct / 100), sym)} · ↓${dnPct >= 0 ? '+' : ''}${dnPct.toFixed(dp)}% $${fmtPx(a.base * (1 + dnPct / 100), sym)}</span></div>
+      </div>`;
+    }
+  } else if (isAnchor) {
     delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;        // Δ% vs ancoră fixă
     dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
     isClose = false;
@@ -874,7 +963,9 @@ function rowHtml(sym, a) {
     <div class="alert-delta ${isClose ? 'close' : ''}">${delta != null ? (delta>=0?'+':'')+delta.toFixed(2)+'%' : '—'}${extraHtml}</div>
     <div class="alert-note">${escHtml(a.note || '')}</div>
     <div class="alert-actions">
-      <button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (devine one-shot, dispare după declanșare)' : 'One-shot — click pt ↻ re-arm (se reia/re-ancorează după declanșare)'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>
+      ${isRef
+        ? `<button class="icon-btn" data-action="reanchor" title="🔄 Re-ancorează referința la prețul curent (resetează 0%, pașii și max/min — ex: după ce intri în trade)">🔄</button>`
+        : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (devine one-shot, dispare după declanșare)' : 'One-shot — click pt ↻ re-arm (se reia/re-ancorează după declanșare)'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>`}
       <button class="icon-btn" data-action="edit" title="Editează alerta (modal complet)">✎</button>
       <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
     </div>
@@ -900,6 +991,18 @@ function bindActiveActions(container) {
     persistAlerts(); render();
     toast(`↻ ${sym}: re-arm ${a.rearm ? 'PORNIT' : 'oprit (one-shot)'}`, 'info');
   }));
+  container.querySelectorAll('[data-action="reanchor"]').forEach(btn => btn.addEventListener('click', e => {
+    const row = e.target.closest('.alert-row');
+    const sym = row.dataset.sym, id = row.dataset.id;
+    priceAlerts = loadAlerts();
+    const a = (priceAlerts[sym] || []).find(x => x.id === id);
+    if (!a) return;
+    const px = _lastPrice[sym];
+    if (px == null) { toast(`⏳ ${sym}: încă n-am un preț — se ancorează la primul check`, 'warn'); return; }
+    a.base = px; a.lastStep = 0; a.hi = 0; a.lo = 0;   // reset complet la prețul curent
+    persistAlerts(); render();
+    toast(`🔄 ${sym}: referință re-ancorată la $${fmtPx(px, sym)} (0% resetat)`, 'success');
+  }));
   container.querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
     const row = e.target.closest('.alert-row');
     const sym = row.dataset.sym, id = row.dataset.id;
@@ -919,7 +1022,7 @@ function render() {
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
   // Istoric combinat: local + ☁️ server-side, dedup pe sym|lvl|dir|minut (același
   // eveniment poate exista în ambele dacă pagina și botul l-au prins simultan)
-  const hKey = h => `${h.sym}|${h.kind || 'price'}|${h.kind === 'anchor' ? (h.sub + ':' + h.pct) : h.kind === 'pct' ? h.pct : h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
+  const hKey = h => `${h.sym}|${h.kind || 'price'}|${h.kind === 'anchor' ? (h.sub + ':' + h.pct) : h.kind === 'ref' ? (h.pct + ':' + h.step) : h.kind === 'pct' ? h.pct : h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
   const localKeys = new Set(HISTORY.map(hKey));
   _histView = [
     ...HISTORY.map((h, li) => ({ ...h, _li: li })),
@@ -947,12 +1050,15 @@ function render() {
       const dirIcon = h.dir === 'above' ? '▲' : '▼';
       const isPct = h.kind === 'pct';
       const isAnchor = h.kind === 'anchor';
+      const isRef = h.kind === 'ref';
       const ageMin = Math.round((Date.now() - (h.ts || 0)) / 60000);
       const ageStr = ageMin < 60 ? `${ageMin}min` : (ageMin < 1440 ? `${Math.round(ageMin/60)}h` : `${Math.round(ageMin/1440)}z`);
       let thrHist;
       if (isAnchor) {
         const lbl = h.sub === 'target' ? `🎯 $${fmtPx(h.target, h.sym)}` : h.sub === 'near' ? `🔔 ${isFinite(h.prog) ? h.prog.toFixed(0) : '~'}%→🎯` : h.sub === 'stop' ? `🛑 $${fmtPx(h.stop, h.sym)}` : `🪜 ±${h.pct}%`;
         thrHist = `${lbl}<span class="dir">${isFinite(h.moved) ? fmtPct(h.moved) : ''}${h.rearm ? ' ↻' : ''}</span>`;
+      } else if (isRef) {
+        thrHist = `📊 ±${h.pct}%<span class="dir">${dirIcon}${isFinite(h.moved) ? ' ' + fmtPct(h.moved) : ''}${isFinite(h.step) ? ' ·' + (h.step > 0 ? '+' : '') + h.step + '×' : ''}</span>`;
       } else thrHist = isPct
         ? `±${h.pct}%<span class="dir">${dirIcon}${isFinite(h.moved) ? ' ' + fmtPct(h.moved) : ''}${h.rearm ? ' ↻' : ''}</span>`
         : `$${fmtPx(h.lvl, h.sym)}<span class="dir">${dirIcon}${h.rearm ? ' ↻' : ''}</span>`;
@@ -979,7 +1085,11 @@ function render() {
       const h = _histView[idx];
       if (!h) return;
       priceAlerts = loadAlerts();
-      if (h.kind === 'anchor') {
+      if (h.kind === 'ref') {
+        (priceAlerts[h.sym] = priceAlerts[h.sym] || []).push({ id: uid(), kind: 'ref', pct: h.pct, base: _lastPrice[h.sym] ?? null, lastStep: 0, hi: 0, lo: 0, armed: true, lastFired: null, note: h.note || '' });
+        persistAlerts(); render();
+        toast(`📊 ${h.sym} re-creat: referință la prețul curent · pași ±${h.pct}%`, 'info');
+      } else if (h.kind === 'anchor') {
         (priceAlerts[h.sym] = priceAlerts[h.sym] || []).push({ id: uid(), kind: 'anchor', pct: h.pct, base: _lastPrice[h.sym] ?? null, target: isFinite(h.target) ? h.target : null, stop: isFinite(h.stop) ? h.stop : null, lastStep: 0, tgtHit: false, nearHit: false, slHit: false, rearm: !!h.rearm, armed: true, lastFired: null, note: h.note || '' });
         persistAlerts(); render();
         toast(`⚓ ${h.sym} re-creat: ancoră la prețul curent${isFinite(h.target) ? ' · 🎯$' + fmtPx(h.target, h.sym) : ''}`, 'info');
@@ -1007,11 +1117,12 @@ function render() {
 // schimbă label-ul/placeholder-ul și ascunde Direcția când tipul e mișcare ±%
 function updateFormMode() {
   const k = $('inpKind').value;
-  const pct = k === 'pct', anchor = k === 'anchor';
-  $('lblThr').textContent = anchor ? 'Pas alertă ±%' : (pct ? 'Mișcare ±%' : 'Preț prag $');
-  $('inpThr').placeholder = (pct || anchor) ? '1' : '175.50';
-  $('inpThr').step = (pct || anchor) ? '0.1' : '0.01';
-  $('wrapDir').style.display = (pct || anchor) ? 'none' : '';
+  const pct = k === 'pct', anchor = k === 'anchor', ref = k === 'ref';
+  const stepLike = pct || anchor || ref;
+  $('lblThr').textContent = (anchor || ref) ? 'Pas alertă ±%' : (pct ? 'Mișcare ±%' : 'Preț prag $');
+  $('inpThr').placeholder = stepLike ? '1' : '175.50';
+  $('inpThr').step = stepLike ? '0.1' : '0.01';
+  $('wrapDir').style.display = stepLike ? 'none' : '';
   $('wrapTarget').style.display = anchor ? '' : 'none';
   $('wrapStop').style.display = anchor ? '' : 'none';
 }
@@ -1022,18 +1133,19 @@ updateFormMode();
 let _editing = null; // { sym, id } al alertei în curs de editare
 function updateEditMode() {
   const k = $('editKind').value;
-  const pct = k === 'pct', anchor = k === 'anchor';
-  $('editLblThr').textContent = anchor ? 'Pas alertă ±%' : (pct ? 'Mișcare ±%' : 'Preț prag $');
-  $('editThr').step = (pct || anchor) ? '0.1' : '0.01';
-  $('editWrapDir').style.display = (pct || anchor) ? 'none' : '';
+  const pct = k === 'pct', anchor = k === 'anchor', ref = k === 'ref';
+  const stepLike = pct || anchor || ref;
+  $('editLblThr').textContent = (anchor || ref) ? 'Pas alertă ±%' : (pct ? 'Mișcare ±%' : 'Preț prag $');
+  $('editThr').step = stepLike ? '0.1' : '0.01';
+  $('editWrapDir').style.display = stepLike ? 'none' : '';
   $('editWrapAnchor').style.display = anchor ? '' : 'none';
-  $('editWrapReanchor').style.display = anchor ? '' : 'none';
+  $('editWrapReanchor').style.display = (anchor || ref) ? '' : 'none';
 }
 function openEditModal(sym, id) {
   const a = (priceAlerts[sym] || []).find(x => x.id === id);
   if (!a) return;
   _editing = { sym, id };
-  const kind = a.kind === 'anchor' ? 'anchor' : (a.kind === 'pct' ? 'pct' : 'price');
+  const kind = a.kind === 'ref' ? 'ref' : a.kind === 'anchor' ? 'anchor' : (a.kind === 'pct' ? 'pct' : 'price');
   $('editTitle').textContent = `✏️ Editează ${sym}`;
   $('editKind').value = kind;
   $('editThr').value = kind === 'price' ? (a.lvl ?? '') : (a.pct ?? '');
@@ -1059,7 +1171,11 @@ function saveEditModal() {
   a.note = $('editNote').value.trim();
   a.rearm = $('editRearm').checked;
   a.armed = true;
-  if (kind === 'anchor') {
+  if (kind === 'ref') {
+    a.kind = 'ref'; a.pct = thr;
+    if (a.base == null || $('editReanchor').checked) { a.base = _lastPrice[sym] ?? a.base ?? null; a.lastStep = 0; a.hi = 0; a.lo = 0; } // re-ancorare la cerere
+    delete a.rearm; delete a.lvl; delete a.dir; delete a.target; delete a.stop; delete a.tgtHit; delete a.nearHit; delete a.slHit;
+  } else if (kind === 'anchor') {
     const target = parseFloat($('editTarget').value);
     const stopV = parseFloat($('editStop').value);
     if (isNaN(target) || target <= 0) { toast('⚠ Ținta 🎯 e obligatorie pentru ancoră (> 0)', 'error'); return; }
@@ -1070,10 +1186,10 @@ function saveEditModal() {
   } else if (kind === 'pct') {
     a.kind = 'pct'; a.pct = thr;
     if (a.base == null) a.base = _lastPrice[sym] ?? null;
-    delete a.lvl; delete a.dir; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit;
+    delete a.lvl; delete a.dir; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit; delete a.hi; delete a.lo;
   } else {
     delete a.kind; a.lvl = thr; a.dir = $('editDir').value;                                       // price = fără câmpul kind
-    delete a.pct; delete a.base; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit;
+    delete a.pct; delete a.base; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit; delete a.hi; delete a.lo;
   }
   persistAlerts(); closeEditModal(); render();
   toast(`✏️ ${sym} actualizat`, 'success');
@@ -1175,11 +1291,14 @@ $('btnAdd').addEventListener('click', () => {
   const note = $('inpNote').value.trim();
   const rearm = $('inpRearm').checked;
   if (!sym || !sym.match(/^[A-Z0-9.\-]{1,16}$/)) { toast('⚠ Simbol invalid (doar A-Z, 0-9, .-)', 'error'); return; }
-  const thrMsg = kind === 'pct' ? '⚠ Mișcare % invalidă (trebuie > 0)' : kind === 'anchor' ? '⚠ Pas alertă ±% invalid (trebuie > 0)' : '⚠ Preț prag invalid (trebuie > 0)';
+  const thrMsg = kind === 'pct' ? '⚠ Mișcare % invalidă (trebuie > 0)' : (kind === 'anchor' || kind === 'ref') ? '⚠ Pas alertă ±% invalid (trebuie > 0)' : '⚠ Preț prag invalid (trebuie > 0)';
   if (isNaN(thr) || thr <= 0) { toast(thrMsg, 'error'); return; }
   priceAlerts = loadAlerts(); // sync înainte de write — alt tab poate să fi modificat
   let anchorTgt = null;
-  if (kind === 'anchor') {
+  if (kind === 'ref') {
+    // Referință FIXĂ la prețul de creare (0%); pași ±thr% sus/jos. Tracker persistent.
+    (priceAlerts[sym] = priceAlerts[sym] || []).push({ id: uid(), kind: 'ref', pct: thr, base: _lastPrice[sym] ?? null, lastStep: 0, hi: 0, lo: 0, armed: true, lastFired: null, note });
+  } else if (kind === 'anchor') {
     // Ancoră FIXĂ la prețul de creare. Țintă obligatorie; stop opțional; pas = thr (±%).
     anchorTgt = parseFloat($('inpTarget').value);
     const stopV = parseFloat($('inpStop').value);
@@ -1194,7 +1313,9 @@ $('btnAdd').addEventListener('click', () => {
   }
   persistAlerts(); render();
   $('inpSym').value = ''; $('inpThr').value = ''; $('inpNote').value = ''; $('inpTarget').value = ''; $('inpStop').value = ''; asClearSearch();
-  toast(kind === 'anchor'
+  toast(kind === 'ref'
+    ? `✓ Referință: ${sym} · pași ±${thr}%${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · 📊$' + fmtPx(_lastPrice[sym], sym)}`
+    : kind === 'anchor'
     ? `✓ Ancoră: ${sym} 🎯$${fmtPx(anchorTgt, sym)} · pas ±${thr}%${rearm ? ' · ↻' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · ⚓$' + fmtPx(_lastPrice[sym], sym)}`
     : kind === 'pct'
     ? `✓ Alert mișcare: ${sym} ±${thr}%${rearm ? ' · ↻ re-arm' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · de la $' + fmtPx(_lastPrice[sym], sym)}`
@@ -1339,7 +1460,7 @@ let _lastServerSig = localStorage.getItem(LASTSIG_KEY) || '';
 function alertsSig(map) {
   const items = [];
   Object.keys(map || {}).forEach(sym => (map[sym] || []).forEach(a => {
-    const k = a.kind === 'anchor' ? `anchor|${a.pct}|${a.target}|${a.stop}` : (a.kind === 'pct' ? `pct|${a.pct}` : `price|${a.lvl}|${a.dir}`);
+    const k = a.kind === 'ref' ? `ref|${a.pct}` : a.kind === 'anchor' ? `anchor|${a.pct}|${a.target}|${a.stop}` : (a.kind === 'pct' ? `pct|${a.pct}` : `price|${a.lvl}|${a.dir}`);
     items.push(`${sym.toUpperCase()}|${k}|${a.rearm ? 1 : 0}|${(a.note || '').trim()}`);
   }));
   return items.sort().join('\n');
@@ -1347,6 +1468,7 @@ function alertsSig(map) {
 // O alertă din formatul server (tools/alerts.json) → formatul local (wl_price_alerts)
 function serverAlertToLocal(s) {
   const b = { id: uid(), rearm: !!s.rearm, armed: s.armed !== false, lastFired: null, note: s.note || '' };
+  if (s.kind === 'ref') return Object.assign(b, { kind: 'ref', pct: Number(s.pct), base: s.base != null ? Number(s.base) : null, lastStep: s.lastStep || 0, hi: Number(s.hi) || 0, lo: Number(s.lo) || 0 });
   if (s.kind === 'anchor') return Object.assign(b, { kind: 'anchor', pct: Number(s.pct), base: s.base != null ? Number(s.base) : null, target: s.target != null ? Number(s.target) : null, stop: s.stop != null ? Number(s.stop) : null, lastStep: s.lastStep || 0, tgtHit: !!s.tgtHit, nearHit: !!s.nearHit, slHit: !!s.slHit });
   if (s.kind === 'pct') return Object.assign(b, { kind: 'pct', pct: Number(s.pct), base: s.base != null ? Number(s.base) : null });
   return Object.assign(b, { lvl: Number(s.level), dir: s.dir === 'below' ? 'below' : 'above' });
