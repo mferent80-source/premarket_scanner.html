@@ -353,7 +353,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v33</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v34</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -1112,7 +1112,7 @@ function rowHtml(sym, a) {
     if (peak != null && cur != null) {
       const stopPx = peak * (1 - a.pct / 100), cushion = a.pct - dd;                  // pernă = cât mai are până la stop
       const fromEntry = a.base ? (cur - a.base) / a.base * 100 : null;
-      metaText = `🔝 vârf $${fmtPx(peak, sym)} · stop −${a.pct}% $${fmtPx(stopPx, sym)} · pernă ${cushion.toFixed(2)}%${fromEntry != null ? ' · de la intrare ' + fmtPct(fromEntry) : ''}`;
+      metaText = `🔝 Vârf $${fmtPx(peak, sym)} · stop la $${fmtPx(stopPx, sym)} (−${a.pct}%) · mai are ${cushion.toFixed(2)}% până la stop${fromEntry != null ? ' · de la intrare ' + fmtPct(fromEntry) : ''}`;
     }
   } else if (isRef) {
     delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;
@@ -1123,7 +1123,7 @@ function rowHtml(sym, a) {
       const moved = delta, hi = Math.max(a.hi || 0, moved), lo = Math.min(a.lo || 0, moved);
       const dp = a.pct < 1 ? 1 : 0;
       const upPct = (Math.floor(moved / a.pct) + 1) * a.pct, dnPct = (Math.ceil(moved / a.pct) - 1) * a.pct;
-      metaText = `de la ref $${fmtPx(a.base, sym)} · max <b class="up">+${hi.toFixed(2)}%</b>/min <b class="down">${lo.toFixed(2)}%</b> · ↑+${upPct.toFixed(dp)}% $${fmtPx(a.base * (1 + upPct / 100), sym)} · ↓${dnPct >= 0 ? '+' : ''}${dnPct.toFixed(dp)}% $${fmtPx(a.base * (1 + dnPct / 100), sym)}`;
+      metaText = `📍 Referință $${fmtPx(a.base, sym)} · maxim atins <b class="up">+${hi.toFixed(2)}%</b> / minim <b class="down">${lo.toFixed(2)}%</b> · următoarea alertă: sus la $${fmtPx(a.base * (1 + upPct / 100), sym)} · jos la $${fmtPx(a.base * (1 + dnPct / 100), sym)}`;
     }
   } else if (isAnchor) {
     delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;        // Δ% vs ancoră fixă
@@ -1135,33 +1135,34 @@ function rowHtml(sym, a) {
       const prog = (cur - a.base) / (a.target - a.base) * 100;
       const remPct = (a.target - cur) / cur * 100;
       const rr = (a.stop != null && a.base !== a.stop) ? Math.abs(a.target - a.base) / Math.abs(a.base - a.stop) : null;
-      metaText = `🎯 ${prog.toFixed(0)}% spre țintă · ${fmtPct(remPct)} rămas${rr != null ? ' · R:R ' + rr.toFixed(1) : ''}`;
+      metaText = `🎯 ${prog.toFixed(0)}% parcurs spre țintă · mai are ${fmtPct(remPct)}${rr != null ? ' · R:R ' + rr.toFixed(1) : ''}`;
     }
   } else if (isPct) {
     delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;       // mișcarea curentă față de ancoră
     isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;                       // aproape de pragul ±%
     dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
     thrHtml = `±${a.pct}%<span class="dir">de la ${a.base ? '$' + fmtPx(a.base, sym) : '⏳ ancorare'} ${stateBadge}</span>`;
-    if (a.base) metaText = `mișcare ±${a.pct}% de la $${fmtPx(a.base, sym)}`;
+    if (a.base) metaText = `📍 Ancoră $${fmtPx(a.base, sym)} · alertă la o mișcare de ±${a.pct}%`;
   } else if (isDay) {
     delta = _lastChange[sym] ?? null;                                                // urmărim variația zilei
     isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;
     dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
     thrHtml = `📅 ±${a.pct}%<span class="dir">variația zilei ${stateBadge}</span>`;
-    metaText = `alertă când |variația zilei| ≥ ±${a.pct}%`;
+    metaText = `Alertă când variația zilei depășește ±${a.pct}% (sus sau jos)`;
   } else {
     delta = cur != null ? ((cur - a.lvl) / a.lvl * 100) : null;
     isClose = delta != null && Math.abs(delta) < 1.5;
     dirCls = a.dir === 'above' ? 'up' : 'down';
     thrHtml = `$${fmtPx(a.lvl, sym)}<span class="dir">${a.dir === 'above' ? '▲ peste' : '▼ sub'} ${stateBadge}</span>`;
-    metaText = `prag $${fmtPx(a.lvl, sym)} ${a.dir === 'above' ? '▲ peste' : '▼ sub'}`;
+    metaText = `Alertă când prețul ajunge ${a.dir === 'above' ? 'peste ▲' : 'sub ▼'} $${fmtPx(a.lvl, sym)}`;
   }
-  // Sparkline (evoluția de la adăugare) + text "de la adăugare $X → +Y%" + meta contextual
+  // Sparkline + meta. "De la adăugare" DOAR pt tipurile fără referință proprie (day/price);
+  // la ref/pct/ancoră referința E prețul de la adăugare → o arătăm o singură dată (fără dublură).
   const spark = a.spark || [];
-  const addP = a.addedPrice ?? a.base ?? (spark.length ? spark[0] : null);
   const refLine = a.base ?? a.addedPrice ?? null;
+  const addP = a.addedPrice ?? (spark.length ? spark[0] : null);
   const pctFromAdd = (addP && cur != null) ? (cur - addP) / addP * 100 : null;
-  const addTxt = addP != null ? `de la adăugare $${fmtPx(addP, sym)}${pctFromAdd != null ? ' → ' + fmtPct(pctFromAdd) : ''}` : '';
+  const addTxt = (a.base == null && addP != null) ? `de la adăugare $${fmtPx(addP, sym)}${pctFromAdd != null ? ' → ' + fmtPct(pctFromAdd) : ''}` : '';
   const sparkLine = `<div class="alert-spark">${sparkSvg(spark, refLine)}<span class="spark-meta">${addTxt}${addTxt && metaText ? ' · ' : ''}${metaText}</span></div>`;
   const snoozed = a.snoozeUntil && a.snoozeUntil > Date.now();
   const snzRem = snoozed ? Math.ceil((a.snoozeUntil - Date.now()) / 60000) : 0;
