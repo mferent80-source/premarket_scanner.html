@@ -353,7 +353,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v34</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v35</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -810,12 +810,24 @@ async function fetchPrice(symbol) {
 // dispare la fire; re-arm → se dezarmează și se re-armează cu histerezis 0.3%.
 const _lastPrice = {}; // preț curent per simbol (doar pentru UI — NU se persistă în storage)
 const _lastChange = {}; // variația zilei % per simbol = (last - prevClose)/prevClose (pt sortare după creștere)
-// buffer evoluție preț per alertă (sparkline, DOAR local — nu se sync pe GitHub): max 64 puncte,
-// la umplere decimează păstrând indicele 0 (= de la adăugare) → acoperă perioade tot mai lungi.
-function pushSpark(a, p) {
-  if (!Array.isArray(a.spark)) a.spark = [];
-  a.spark.push(Math.round(p * 1e4) / 1e4);
-  if (a.spark.length > 64) a.spark = a.spark.filter((_, i) => i % 2 === 0);
+// Istoric 7 zile per simbol pentru sparkline (bare orare de la Yahoo). Cache în memorie 30 min.
+const _spark7d = {}, _spark7dLoading = {};
+async function loadSpark7d(sym) {
+  const u = String(sym || '').toUpperCase();
+  if (_spark7dLoading[u]) return;
+  const c = _spark7d[u];
+  if (c && Date.now() - c.ts < 1800000) return;             // proaspăt (< 30 min) → nu reîncărcăm
+  if (!window.D || !D.fetchJSON) return;                     // fără lib/data.js (CORS) nu putem
+  _spark7dLoading[u] = true;
+  try {
+    const ySym = /USDT$/.test(u) ? u.replace(/USDT$/, '-USD') : u;   // Yahoo nu cunoaște perechile Binance
+    const t2 = Math.floor(Date.now() / 1000), t1 = t2 - 7 * 86400;
+    const j = await D.fetchJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?period1=${t1}&period2=${t2}&interval=60m&includePrePost=true`, { ttl: 1200, timeout: 9000 });
+    const res = j?.chart?.result?.[0];
+    const closes = (res?.indicators?.quote?.[0]?.close || []).filter(v => v != null);
+    if (closes.length) { _spark7d[u] = { vals: closes, ts: Date.now() }; render(); }
+  } catch (e) {}
+  finally { _spark7dLoading[u] = false; }
 }
 async function pollPrices() {
   if (pollPaused) return;
@@ -864,9 +876,7 @@ async function pollPrices() {
     const list = priceAlerts[sym];
     for (let i = list.length - 1; i >= 0; i--) {
       const a = list[i];
-      if (a.addedPrice == null) { a.addedPrice = p; a.addedAt = Date.now(); }  // preț de la adăugare (ref pt sparkline)
-      pushSpark(a, p);                                         // colectează evoluția prețului (sparkline)
-      changed = true;                                          // spark se schimbă în fiecare ciclu → persistăm
+      if (a.addedPrice == null) { a.addedPrice = p; a.addedAt = Date.now(); changed = true; }  // preț de la adăugare (pt "de la adăugare" la day/price)
       if (a.snoozeUntil) {                                    // alertă amânată (snooze)
         if (Date.now() < a.snoozeUntil) continue;             // încă amânată → o sărim
         delete a.snoozeUntil; changed = true;                 // expirat → se trezește
@@ -1076,7 +1086,7 @@ function schedulePoll() {
 // ============ RENDER ============
 // Sparkline SVG ca AREA CHART: zonă umplută sub linie (verde/roșu după trend) + linia + ref punctată
 function sparkSvg(vals, refVal) {
-  if (!vals || vals.length < 2) return '<span class="spark-wait">⏳ colectez evoluția prețului…</span>';
+  if (!vals || vals.length < 2) return '<span class="spark-wait">⏳ încarc graficul (7 zile)…</span>';
   const w = 240, h = 30, pad = 3;
   let min = Math.min(...vals), max = Math.max(...vals);
   if (refVal != null) { min = Math.min(min, refVal); max = Math.max(max, refVal); }
@@ -1156,11 +1166,12 @@ function rowHtml(sym, a) {
     thrHtml = `$${fmtPx(a.lvl, sym)}<span class="dir">${a.dir === 'above' ? '▲ peste' : '▼ sub'} ${stateBadge}</span>`;
     metaText = `Alertă când prețul ajunge ${a.dir === 'above' ? 'peste ▲' : 'sub ▼'} $${fmtPx(a.lvl, sym)}`;
   }
-  // Sparkline + meta. "De la adăugare" DOAR pt tipurile fără referință proprie (day/price);
-  // la ref/pct/ancoră referința E prețul de la adăugare → o arătăm o singură dată (fără dublură).
-  const spark = a.spark || [];
+  // Sparkline din istoricul de 7 zile (bare orare Yahoo) + prețul live la capăt.
+  // "De la adăugare" DOAR pt tipurile fără referință proprie (day/price).
+  const hist = _spark7d[sym.toUpperCase()];
+  const spark = hist ? hist.vals.concat(cur != null ? [cur] : []) : (cur != null ? [cur] : []);
   const refLine = a.base ?? a.addedPrice ?? null;
-  const addP = a.addedPrice ?? (spark.length ? spark[0] : null);
+  const addP = a.addedPrice ?? null;
   const pctFromAdd = (addP && cur != null) ? (cur - addP) / addP * 100 : null;
   const addTxt = (a.base == null && addP != null) ? `de la adăugare $${fmtPx(addP, sym)}${pctFromAdd != null ? ' → ' + fmtPct(pctFromAdd) : ''}` : '';
   const sparkLine = `<div class="alert-spark">${sparkSvg(spark, refLine)}<span class="spark-meta">${addTxt}${addTxt && metaText ? ' · ' : ''}${metaText}</span></div>`;
@@ -1357,6 +1368,7 @@ function renderPulse(activeRows) {
 function render() {
   const rows = [];
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
+  [...new Set(rows.map(r => r.sym.toUpperCase()))].forEach(loadSpark7d);   // încarcă istoricul 7 zile (self-guard pe cache)
   // Istoric combinat: local + ☁️ server-side, dedup pe sym|lvl|dir|minut (același
   // eveniment poate exista în ambele dacă pagina și botul l-au prins simultan)
   const hKey = h => `${h.sym}|${h.kind || 'price'}|${h.kind === 'anchor' ? (h.sub + ':' + h.pct) : h.kind === 'ref' ? (h.trail ? 't:' + h.pct : h.pct + ':' + h.step) : h.kind === 'day' ? ('day:' + h.pct) : h.kind === 'pct' ? h.pct : h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
