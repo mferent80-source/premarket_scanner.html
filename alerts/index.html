@@ -157,6 +157,11 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .alert-current { font-family:var(--mono); font-weight:700; color:var(--t1); }
 .alert-current.up { color:var(--bull-s); }
 .alert-current.down { color:var(--bear-s); }
+/* badge sesiune lipit de prețul curent (stocks US): arată dacă prețul e PRE/AFT/RTH live */
+.px-sess { display:inline-block; margin-left:5px; font-family:var(--mono); font-size:9px; font-weight:700; padding:1px 5px; border-radius:999px; vertical-align:middle; border:1px solid var(--b1); color:var(--t3); white-space:nowrap; }
+.px-sess.open { color:var(--bull-s); border-color:rgba(34,214,107,.4); background:rgba(34,214,107,.08); }
+.px-sess.pre { color:var(--warn); border-color:rgba(212,137,44,.4); background:rgba(212,137,44,.1); }
+.px-sess.closed { color:var(--t3); }
 .alert-delta { font-family:var(--mono); font-size:11.5px; color:var(--t2); }
 .alert-delta.close { color:var(--warn); font-weight:700; }
 .alert-note { font-size:12px; color:var(--t2); font-style:italic; }
@@ -287,7 +292,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v18</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v19</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -304,7 +309,10 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <div class="add-form">
   <div class="add-form-head">
     <h3>➕ Adaugă alertă nouă</h3>
-    <button type="button" id="btnHint" class="hint-btn">ℹ️ Cum funcționează</button>
+    <div style="display:flex;gap:6px">
+      <button type="button" id="btnAdv" class="hint-btn" title="Arată tipurile vechi de alertă (preț prag, mișcare %, ancoră). Default: doar 📊 Referință.">⚙️ Avansat</button>
+      <button type="button" id="btnHint" class="hint-btn">ℹ️ Cum funcționează</button>
+    </div>
   </div>
   <div class="add-row">
     <div>
@@ -314,7 +322,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
         <button type="button" id="btnSearch" class="search-btn" title="Caută pe burse (US + EU/NYSE) după ticker sau nume">🔎</button>
       </div>
     </div>
-    <div>
+    <div id="wrapKind" style="display:none">
       <label>Tip alertă</label>
       <select id="inpKind" class="dir-select">
         <option value="ref">📊 Referință (pași ±%)</option>
@@ -523,6 +531,16 @@ function marketSession() {
 const CRYPTO_SYMS = new Set(['BTC-USD','BTC','ETH-USD','ETH','SOL-USD','SOL']);
 // crypto = 24/7 (nu se throttle-ază noaptea/weekend ca stocks): perechi USDT (Binance) + orice XXX-USD
 const isCrypto = s => CRYPTO_SYMS.has(s) || /USDT$/.test(s) || /-USD$/.test(s);
+// Badge sesiune lipit de prețul curent (doar stocks US listate, fără sufix de bursă):
+// confirmă vizual că prețul afișat e cel din pre-market / after-hours LIVE (Yahoo includePrePost),
+// nu close-ul regular înghețat. Crypto = 24/7 (badge la nivel de grup); EU (.DE etc) au altă sesiune.
+function sessTag(sym) {
+  const u = String(sym || '').toUpperCase();
+  if (isCrypto(u) || u.includes('.')) return '';
+  const s = marketSession();
+  const txt = s.cls === 'open' ? '🟢 RTH' : s.cls === 'pre' ? (s.label.includes('after') ? '🟡 AFT' : '🟡 PRE') : '🌙 CLS';
+  return `<span class="px-sess ${s.cls}" title="${s.label} · preț extended live (Yahoo includePrePost)">${txt}</span>`;
+}
 let _lastStockPollTs = 0;
 let _warnedNoKey = false;
 let soundEnabled = localStorage.getItem(SOUND_KEY) === '1';
@@ -959,7 +977,7 @@ function rowHtml(sym, a) {
   return `<div class="alert-row" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
     <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a></div>
     <div class="alert-thr">${thrHtml}</div>
-    <div class="alert-current ${dirCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</div>
+    <div class="alert-current ${dirCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}${cur != null ? sessTag(sym) : ''}</div>
     <div class="alert-delta ${isClose ? 'close' : ''}">${delta != null ? (delta>=0?'+':'')+delta.toFixed(2)+'%' : '—'}${extraHtml}</div>
     <div class="alert-note">${escHtml(a.note || '')}</div>
     <div class="alert-actions">
@@ -1128,6 +1146,26 @@ function updateFormMode() {
 }
 $('inpKind').addEventListener('change', updateFormMode);
 updateFormMode();
+
+// ── Mod avansat: tipurile vechi (preț prag, mișcare %, ancoră) ascunse sub toggle ⚙️ ──
+// Default = mod simplu: dropdown-ul „Tip alertă" e ascuns și se adaugă mereu 📊 Referință.
+const ADVANCED_KEY = 'pa_advanced';
+let advancedMode = localStorage.getItem(ADVANCED_KEY) === '1';
+function applyAdvanced() {
+  $('wrapKind').style.display = advancedMode ? '' : 'none';
+  if (!advancedMode) $('inpKind').value = 'ref';   // mod simplu → mereu Referință
+  $('btnAdv').textContent = advancedMode ? '⚙️ Avansat ✓' : '⚙️ Avansat';
+  $('btnAdv').style.color = advancedMode ? 'var(--bull-s)' : '';
+  $('btnAdv').style.borderColor = advancedMode ? 'rgba(34,214,107,.4)' : '';
+  updateFormMode();
+}
+$('btnAdv').addEventListener('click', () => {
+  advancedMode = !advancedMode;
+  localStorage.setItem(ADVANCED_KEY, advancedMode ? '1' : '0');
+  applyAdvanced();
+  toast(advancedMode ? '⚙️ Tipuri avansate afișate (preț prag · mișcare % · ancoră)' : '⚙️ Mod simplu — doar 📊 Referință', 'info');
+});
+applyAdvanced();
 
 // ============ MODAL EDITARE ============
 let _editing = null; // { sym, id } al alertei în curs de editare
