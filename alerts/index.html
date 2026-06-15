@@ -292,11 +292,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v20</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v21</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
+  <button class="icon-btn" id="btnSort" title="Sortare listă: 🎯 după proximitatea de declanșare (cele gata să se miște sus) / 🔤 alfabetic">🎯</button>
   <button class="icon-btn" id="testBtn" title="Test alertă (demo)">🧪</button>
   <button class="icon-btn" id="exportBtn" title="Export JSON pentru alertele server-side (GitHub Actions) — merg și cu laptopul închis">📤</button>
   <button class="icon-btn" id="ghSyncBtn" title="☁️ URCĂ pe GitHub — comite alertele locale în tools/alerts.json (server-side + sync cross-device). Click-dreapta = setează/schimbă token-ul">☁️</button>
@@ -1034,6 +1035,41 @@ function bindActiveActions(container) {
   }));
 }
 
+// Sortare: 'prox' = după proximitatea de declanșare (cele gata să se miște sus), 'abc' = alfabetic
+let sortMode = localStorage.getItem('pa_sort') === 'abc' ? 'abc' : 'prox';
+// Scor proximitate: % până la cel mai apropiat eveniment de declanșare. MAI MIC = mai aproape.
+// Fără preț curent → Infinity (la coadă). Acoperă toate tipurile.
+function proximityScore(sym, a) {
+  const cur = _lastPrice[sym];
+  if (cur == null) return Infinity;
+  if (a.kind === 'ref' || a.kind === 'pct') {
+    if (a.base == null) return Infinity;
+    const moved = (cur - a.base) / a.base * 100;
+    if (a.kind === 'pct') return Math.max(0, a.pct - Math.abs(moved));            // cât mai are până la ±pct
+    const upNext = (Math.floor(moved / a.pct) + 1) * a.pct;                       // ref: până la următoarea linie de grilă
+    const dnNext = (Math.ceil(moved / a.pct) - 1) * a.pct;
+    return Math.min(Math.abs(upNext - moved), Math.abs(moved - dnNext));
+  }
+  if (a.kind === 'anchor') {
+    const d = [];
+    if (a.target != null) d.push(Math.abs(a.target - cur) / cur * 100);
+    if (a.stop != null) d.push(Math.abs(a.stop - cur) / cur * 100);
+    if (a.base != null && a.pct > 0) {
+      const moved = (cur - a.base) / a.base * 100;
+      d.push(Math.min(Math.abs((Math.floor(moved / a.pct) + 1) * a.pct - moved), Math.abs(moved - (Math.ceil(moved / a.pct) - 1) * a.pct)));
+    }
+    return d.length ? Math.min(...d) : Infinity;
+  }
+  return Math.abs(cur - a.lvl) / cur * 100;                                       // preț prag: distanța % până la prag
+}
+function sortRows(arr) {
+  if (sortMode === 'abc') return arr;   // deja sortat alfabetic (din Object.keys().sort())
+  return arr.sort((x, y) => {
+    const dx = proximityScore(x.sym, x.a), dy = proximityScore(y.sym, y.a);
+    return dx === dy ? x.sym.localeCompare(y.sym) : dx - dy;
+  });
+}
+
 function render() {
   const rows = [];
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
@@ -1047,8 +1083,8 @@ function render() {
   ].sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, MAX_TRIGGERED_HISTORY);
   const triggered = _histView;
   // Split crypto (24/7) vs stocks (cu sesiune) — logica de polling diferă deja
-  const cryptoRows = rows.filter(r => isCrypto(r.sym.toUpperCase()));
-  const stockRows = rows.filter(r => !isCrypto(r.sym.toUpperCase()));
+  const cryptoRows = sortRows(rows.filter(r => isCrypto(r.sym.toUpperCase())));
+  const stockRows = sortRows(rows.filter(r => !isCrypto(r.sym.toUpperCase())));
   $('cntCrypto').textContent = cryptoRows.length;
   $('cntStocks').textContent = stockRows.length;
   $('cntTriggered').textContent = triggered.length;
@@ -1409,6 +1445,16 @@ $('testBtn').addEventListener('click', () => {
   playBeep();
   showBrowserNotif('🧪 TEST Price Alerts', 'Notificările funcționează.');
 });
+
+// 🎯/🔤 Toggle sortare listă (proximitate de declanșare ↔ alfabetic)
+function applySortBtn() { $('btnSort').textContent = sortMode === 'prox' ? '🎯' : '🔤'; }
+$('btnSort').addEventListener('click', () => {
+  sortMode = sortMode === 'prox' ? 'abc' : 'prox';
+  localStorage.setItem('pa_sort', sortMode);
+  applySortBtn(); render();
+  toast(sortMode === 'prox' ? '🎯 Sortare după proximitatea de declanșare (cele gata să se miște sus)' : '🔤 Sortare alfabetică', 'info');
+});
+applySortBtn();
 
 // 📤 Export pentru alertele SERVER-SIDE: GitHub Actions le verifică la 15 min și
 // trimite pe Telegram cu laptopul ÎNCHIS. Lipești JSON-ul în tools/alerts.json pe GitHub.
