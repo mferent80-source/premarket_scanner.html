@@ -353,7 +353,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v32</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v33</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -1074,10 +1074,10 @@ function schedulePoll() {
 }
 
 // ============ RENDER ============
-// Sparkline SVG (evoluția prețului): polyline întins pe toată lățimea + linie de referință punctată
+// Sparkline SVG ca AREA CHART: zonă umplută sub linie (verde/roșu după trend) + linia + ref punctată
 function sparkSvg(vals, refVal) {
   if (!vals || vals.length < 2) return '<span class="spark-wait">⏳ colectez evoluția prețului…</span>';
-  const w = 240, h = 28, pad = 3;
+  const w = 240, h = 30, pad = 3;
   let min = Math.min(...vals), max = Math.max(...vals);
   if (refVal != null) { min = Math.min(min, refVal); max = Math.max(max, refVal); }
   const rng = (max - min) || 1;
@@ -1086,9 +1086,11 @@ function sparkSvg(vals, refVal) {
   const pts = vals.map((v, i) => X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
   const col = vals[vals.length - 1] >= vals[0] ? 'var(--bull-s)' : 'var(--bear-s)';
   const refY = refVal != null ? Y(refVal).toFixed(1) : null;
+  const area = `0,${h} ${pts} ${w},${h}`;                  // poligon închis jos → zona de umplut
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`
+    + `<polygon points="${area}" fill="${col}" fill-opacity=".16" stroke="none"/>`
     + (refY != null ? `<line x1="0" y1="${refY}" x2="${w}" y2="${refY}" stroke="var(--t3)" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" opacity=".5"/>` : '')
-    + `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>`;
+    + `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;
 }
 // HTML-ul unui rând de alertă activă (folosit în ambele grupuri crypto/stocks)
 function rowHtml(sym, a) {
