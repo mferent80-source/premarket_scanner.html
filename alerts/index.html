@@ -292,7 +292,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v19</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v20</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -602,16 +602,15 @@ window.addEventListener('storage', e => { if (e.key === ALERTS_KEY) { priceAlert
 function toast(msg, kind='info', opts={}) {
   const el = document.createElement('div');
   el.className = 'toast ' + kind;
-  const autoMs = opts.persist === true ? 0 : (kind === 'warn' || kind === 'error' ? 0 : 12000);
+  const autoMs = 5000; // TOATE toast-urile dispar după 5s (inclusiv alerte declanșate + erori — ai Telegram/browser/istoric)
   el.innerHTML = `<span class="toast-msg">${escHtml(msg)}</span><button class="toast-close" title="Închide">✕</button>`;
   const close = () => { el.classList.add('toast-out'); setTimeout(() => el.remove(), 200); };
   el.querySelector('.toast-close').addEventListener('click', close);
   $('toasts').appendChild(el);
-  if (autoMs > 0) {
-    let timer = setTimeout(close, autoMs);
-    el.addEventListener('mouseenter', () => { clearTimeout(timer); timer = null; });
-    el.addEventListener('mouseleave', () => { if (!timer) timer = setTimeout(close, 4000); });
-  }
+  // pauză la hover ca să apuci să citești; reia 2s după ce iei mouse-ul
+  let timer = setTimeout(close, autoMs);
+  el.addEventListener('mouseenter', () => { clearTimeout(timer); timer = null; });
+  el.addEventListener('mouseleave', () => { if (!timer) timer = setTimeout(close, 2000); });
 }
 
 // ============ BEEP + NOTIF + TG ============
@@ -1006,7 +1005,7 @@ function bindActiveActions(container) {
     if (!a) return;
     a.rearm = !a.rearm;
     a.armed = true; // re-armăm la toggle — un one-shot dezarmat ar rămâne altfel mort
-    persistAlerts(); render();
+    persistAlerts(); render(); autoSync();
     toast(`↻ ${sym}: re-arm ${a.rearm ? 'PORNIT' : 'oprit (one-shot)'}`, 'info');
   }));
   container.querySelectorAll('[data-action="reanchor"]').forEach(btn => btn.addEventListener('click', e => {
@@ -1018,7 +1017,7 @@ function bindActiveActions(container) {
     const px = _lastPrice[sym];
     if (px == null) { toast(`⏳ ${sym}: încă n-am un preț — se ancorează la primul check`, 'warn'); return; }
     a.base = px; a.lastStep = 0; a.hi = 0; a.lo = 0;   // reset complet la prețul curent
-    persistAlerts(); render();
+    persistAlerts(); render(); autoSync();
     toast(`🔄 ${sym}: referință re-ancorată la $${fmtPx(px, sym)} (0% resetat)`, 'success');
   }));
   container.querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
@@ -1027,7 +1026,7 @@ function bindActiveActions(container) {
     if (!confirm('Șterge acest alert?')) return;
     priceAlerts[sym] = (priceAlerts[sym] || []).filter(a => a.id !== id);
     if (!priceAlerts[sym].length) delete priceAlerts[sym];
-    persistAlerts(); render();
+    persistAlerts(); render(); autoSync();
   }));
   container.querySelectorAll('[data-action="edit"]').forEach(btn => btn.addEventListener('click', e => {
     const row = e.target.closest('.alert-row');
@@ -1120,6 +1119,7 @@ function render() {
         persistAlerts(); render();
         toast(`↻ ${h.sym} re-creat: ${h.dir === 'above' ? 'peste' : 'sub'} $${fmtPx(h.lvl, h.sym)}`, 'info');
       }
+      autoSync(); // re-creare alertă din istoric = modificare → auto-sync ☁️
     }));
   }
 
@@ -1229,7 +1229,7 @@ function saveEditModal() {
     delete a.kind; a.lvl = thr; a.dir = $('editDir').value;                                       // price = fără câmpul kind
     delete a.pct; delete a.base; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit; delete a.hi; delete a.lo;
   }
-  persistAlerts(); closeEditModal(); render();
+  persistAlerts(); closeEditModal(); render(); autoSync();
   toast(`✏️ ${sym} actualizat`, 'success');
   pollPrices();
 }
@@ -1358,6 +1358,7 @@ $('btnAdd').addEventListener('click', () => {
     : kind === 'pct'
     ? `✓ Alert mișcare: ${sym} ±${thr}%${rearm ? ' · ↻ re-arm' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · de la $' + fmtPx(_lastPrice[sym], sym)}`
     : `✓ Alert adăugat: ${sym} ${dir === 'above' ? '▲' : '▼'} $${fmtPx(thr, sym)}${rearm ? ' · ↻ re-arm' : ''}`, 'success');
+  autoSync(); // auto-sync ☁️ pe GitHub (debounce)
   pollPrices(); // immediate check
 });
 
@@ -1442,43 +1443,67 @@ function ghAskToken() {
 function b64utf8(s) { let bin = ''; new TextEncoder().encode(s).forEach(x => bin += String.fromCharCode(x)); return btoa(bin); }
 function b64deutf8(s) { const bin = atob(s); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); return new TextDecoder().decode(arr); }
 
-$('ghSyncBtn').addEventListener('click', async () => {
+// Push local→GitHub (tools/alerts.json). Reutilizat de butonul ☁️ (silent:false) ȘI de
+// auto-sync (silent:true, fără confirmări/toast-uri de succes, fără prompt de token).
+// Păstrează istoricul `triggered` scris de bot; o reîncercare la conflict 409 (botul tocmai a comis).
+async function syncPushGitHub(opts = {}) {
+  const silent = !!opts.silent;
   let token = localStorage.getItem(GH_TOKEN_KEY) || '';
-  if (!token) { token = ghAskToken(); if (!token) { toast('☁️ Sync anulat — fără token', 'info'); return; } }
+  if (!token) {
+    if (silent) return false;                       // auto-sync fără token → sare în tăcere
+    token = ghAskToken(); if (!token) { toast('☁️ Sync anulat — fără token', 'info'); return false; }
+  }
   priceAlerts = loadAlerts();
   const alerts = [];
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => alerts.push(alertToJson(sym, a))));
-  if (!alerts.length && !confirm('Nicio alertă locală — sincronizez lista GOALĂ? (șterge toate alertele server-side)')) return;
-  const btn = $('ghSyncBtn'); btn.disabled = true;
+  if (!alerts.length && !silent && !confirm('Nicio alertă locală — sincronizez lista GOALĂ? (șterge toate alertele server-side)')) return false;
+  const btn = $('ghSyncBtn'); btn.disabled = true; const prevTxt = btn.textContent; btn.textContent = '⏳';
   try {
     const api = `https://api.github.com/repos/${GH_REPO}/contents/${GH_PATH}`;
     const hdr = { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' };
-    // sha-ul curent + istoricul triggered de pe remote (scris de bot — îl păstrăm)
-    const g = await fetch(api + '?ref=main', { headers: hdr });
-    if (g.status === 401 || g.status === 403) throw new Error('token invalid sau fără permisiunea Contents — click-dreapta pe ☁️ pt re-setare');
-    if (!g.ok) throw new Error('GitHub GET HTTP ' + g.status);
-    const cur = await g.json();
-    let remote = {};
-    try { remote = JSON.parse(b64deutf8(String(cur.content || '').replace(/\n/g, ''))); } catch (e) {}
-    const out = {
-      _doc: remote._doc || 'Alerte preț server-side — gestionate din pagina /alerts/ (sync direct cu butonul ☁️).',
-      alerts,
-      triggered: Array.isArray(remote.triggered) ? remote.triggered : []
-    };
-    const p = await fetch(api, {
-      method: 'PUT',
-      headers: { ...hdr, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: `chore(alerts): sync din pagina /alerts/ (${alerts.length} alerte)`, content: b64utf8(JSON.stringify(out, null, 2) + '\n'), sha: cur.sha, branch: 'main' })
-    });
-    if (p.status === 409) throw new Error('conflict — botul tocmai a comis starea; mai apasă o dată ☁️');
-    if (!p.ok) throw new Error('GitHub PUT HTTP ' + p.status);
-    const j = await p.json();
-    _lastServerSig = alertsSig(priceAlerts); localStorage.setItem(LASTSIG_KEY, _lastServerSig); // după push, local == server
-    toast(`☁️ ${alerts.length} alerte live server-side — commit ${String((j.commit || {}).sha || '').slice(0, 7)} ✅`, 'success', { persist: true });
+    let lastErr = null;
+    for (let attempt = 0; attempt < 2; attempt++) {   // 2 încercări: la 409 (botul a comis între GET și PUT) reluăm GET+PUT
+      const g = await fetch(api + '?ref=main', { headers: hdr });
+      if (g.status === 401 || g.status === 403) throw new Error('token invalid sau fără permisiunea Contents — click-dreapta pe ☁️ pt re-setare');
+      if (!g.ok) throw new Error('GitHub GET HTTP ' + g.status);
+      const cur = await g.json();
+      let remote = {};
+      try { remote = JSON.parse(b64deutf8(String(cur.content || '').replace(/\n/g, ''))); } catch (e) {}
+      const out = {
+        _doc: remote._doc || 'Alerte preț server-side — gestionate din pagina /alerts/ (auto-sync ☁️ la fiecare modificare).',
+        alerts,
+        triggered: Array.isArray(remote.triggered) ? remote.triggered : []
+      };
+      const p = await fetch(api, {
+        method: 'PUT',
+        headers: { ...hdr, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `chore(alerts): ${silent ? 'auto-sync' : 'sync'} din pagina /alerts/ (${alerts.length} alerte)`, content: b64utf8(JSON.stringify(out, null, 2) + '\n'), sha: cur.sha, branch: 'main' })
+      });
+      if (p.status === 409) { lastErr = new Error('conflict 409 (botul a comis)'); continue; }
+      if (!p.ok) throw new Error('GitHub PUT HTTP ' + p.status);
+      const j = await p.json();
+      _lastServerSig = alertsSig(priceAlerts); localStorage.setItem(LASTSIG_KEY, _lastServerSig); // după push, local == server
+      if (!silent) toast(`☁️ ${alerts.length} alerte live server-side — commit ${String((j.commit || {}).sha || '').slice(0, 7)} ✅`, 'success');
+      else toast(`☁️ Auto-sync: ${alerts.length} alerte salvate pe GitHub`, 'info');
+      return true;
+    }
+    throw lastErr || new Error('conflict persistent');
   } catch (e) {
-    toast('❌ Sync GitHub eșuat: ' + e.message, 'error', { persist: true });
-  } finally { btn.disabled = false; }
-});
+    if (!silent) toast('❌ Sync GitHub eșuat: ' + e.message, 'error');
+    else console.warn('☁️ auto-sync eșuat:', e.message);   // auto-sync nu spamează erori — log în consolă
+    return false;
+  } finally { btn.disabled = false; btn.textContent = prevTxt; }
+}
+$('ghSyncBtn').addEventListener('click', () => syncPushGitHub({ silent: false }));
+
+// Auto-sync ☁️ la modificările UTILIZATORULUI (NU la state-ul din polling — ar spama GitHub
+// la fiecare 60s). Debounce 2s: modificări rapide → un singur commit. Fără token → no-op.
+let _autoSyncTimer = null;
+function autoSync() {
+  if (!localStorage.getItem(GH_TOKEN_KEY)) return;
+  if (_autoSyncTimer) clearTimeout(_autoSyncTimer);
+  _autoSyncTimer = setTimeout(() => { _autoSyncTimer = null; syncPushGitHub({ silent: true }); }, 2000);
+}
 // click-dreapta pe ☁️ = setează/schimbă/șterge token-ul
 $('ghSyncBtn').addEventListener('contextmenu', e => {
   e.preventDefault();
