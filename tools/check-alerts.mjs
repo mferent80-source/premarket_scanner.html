@@ -18,6 +18,8 @@
 //   TRAILING:   { "symbol":"NVDA", "kind":"ref", "trail":true, "pct":2, "base":180.5,
 //               "peak":190, "trailFired":false, "note":"..." }
 //               // referința urmează vârful; alertă când prețul scade ≥pct% din maximul atins (trailing-stop mental).
+//   VARIAȚIA ZILEI: { "symbol":"NVDA", "kind":"day", "pct":5, "rearm":false, "armed":true, "note":"..." }
+//               // alertă când |variația zilei| ≥ pct% (față de chartPreviousClose), bidirecțional.
 //   PREȚ PRAG: { "symbol":"NVDA", "level":180, "dir":"above"|"below",
 //               "rearm":false, "armed":true, "note":"..." }
 //   MIȘCARE ±%: { "symbol":"NVDA", "kind":"pct", "pct":1, "base":180.5,
@@ -61,8 +63,11 @@ async function fetchPrice(sym){
     const res = j?.chart?.result?.[0];
     if (!res) return null;
     const closes = res.indicators?.quote?.[0]?.close || [];
-    for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) return closes[i];
-    return res.meta?.regularMarketPrice ?? null;
+    let last = null;
+    for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { last = closes[i]; break; }
+    if (last == null) last = res.meta?.regularMarketPrice ?? null;
+    if (last == null) return null;
+    return { last, prev: res.meta?.chartPreviousClose ?? null };   // prev = închiderea de ieri (pt variația zilei)
   } catch (e) { return null; }
 }
 
@@ -90,8 +95,11 @@ const uniq = [...new Set(alerts.map(a => String(a.symbol || '').toUpperCase()).f
   .filter(sym => !isWeekend || isCrypto(sym));
 if (isWeekend) console.log('🌙 Weekend ET — stocks sărite (preț înghețat), verific doar crypto.');
 const prices = {};
+const changes = {};   // variația zilei % per simbol (din chartPreviousClose)
 for (const sym of uniq){
-  prices[sym] = await fetchPrice(sym);
+  const q = await fetchPrice(sym);
+  prices[sym] = q?.last ?? null;
+  if (q?.prev > 0 && q?.last != null) changes[sym] = (q.last - q.prev) / q.prev * 100;
   await new Promise(r => setTimeout(r, 300)); // menajează Yahoo
 }
 console.log('Prețuri:', JSON.stringify(prices));
@@ -196,6 +204,24 @@ for (const a of alerts){
     } else { kept.push(a); }
     continue;
   }
+  // ── Alertă VARIAȚIA ZILEI ±% (bidirecțional, față de închiderea de ieri) ──
+  if (a.kind === 'day'){
+    const pct = Number(a.pct);
+    if (!(pct > 0)){ kept.push(a); continue; }
+    const dc = changes[sym];
+    if (dc == null){ kept.push(a); continue; }                 // n-avem variația zilei
+    const armed = a.armed !== false;
+    if (armed && Math.abs(dc) >= pct){
+      fired.push({ sym, kind:'day', pct, dc, price: p, note: a.note || '', rearm: !!a.rearm });
+      changed = true;
+      if (a.rearm){ a.armed = false; kept.push(a); }            // re-arm → dezarmat, rămâne
+      // one-shot → dispare
+    } else if (!armed && a.rearm){
+      if (Math.abs(dc) < pct * 0.9){ a.armed = true; changed = true; }   // re-arm când variația revine sub prag
+      kept.push(a);
+    } else { kept.push(a); }
+    continue;
+  }
   // ── Alertă PREȚ PRAG ──
   const lvl = Number(a.level);
   if (!(lvl > 0)){ kept.push(a); continue; }
@@ -225,6 +251,8 @@ if (fired.length){
       ? ({ symbol: f.sym, kind: 'anchor', sub: f.sub, pct: f.pct, base: +Number(f.base).toFixed(4), target: f.target != null ? +Number(f.target).toFixed(4) : null, stop: f.stop != null ? +Number(f.stop).toFixed(4) : null, moved: +f.moved.toFixed(2), prog: f.prog != null ? +f.prog.toFixed(0) : undefined, dir: f.sub === 'stop' ? 'below' : (f.sub === 'step' ? (f.moved >= 0 ? 'above' : 'below') : 'above'), price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })
       : f.kind === 'pct'
       ? ({ symbol: f.sym, kind: 'pct', pct: f.pct, base: +Number(f.base).toFixed(4), moved: +f.moved.toFixed(2), dir: f.moved >= 0 ? 'above' : 'below', price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })
+      : f.kind === 'day'
+      ? ({ symbol: f.sym, kind: 'day', pct: f.pct, dc: +f.dc.toFixed(2), moved: +f.dc.toFixed(2), dir: f.dc >= 0 ? 'above' : 'below', price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })
       : ({ symbol: f.sym, level: f.lvl, dir: f.dir, price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })),
     ...(Array.isArray(cfg.triggered) ? cfg.triggered : [])
   ].slice(0, 50);
@@ -239,6 +267,8 @@ if (fired.length){
       : `🪜 <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% (pas ${f.step}×${f.pct}%) → $${f.price.toFixed(dec(f.sym))} (de la $${Number(f.base).toFixed(dec(f.sym))})`)
     : f.kind === 'pct'
     ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% → $${f.price.toFixed(dec(f.sym))} (de la $${Number(f.base).toFixed(dec(f.sym))})${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
+    : f.kind === 'day'
+    ? `📅 <b>${tgEsc(f.sym)}</b> variația zilei ${f.dc >= 0 ? '▲' : '▼'} ${f.dc >= 0 ? '+' : ''}${f.dc.toFixed(2)}% (prag ±${f.pct}%) → $${f.price.toFixed(dec(f.sym))}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
     : `${f.dir === 'below' ? '▼' : '▲'} <b>${tgEsc(f.sym)}</b> $${f.price.toFixed(dec(f.sym))} — prag $${Number(f.lvl).toFixed(dec(f.sym))}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`);
   await sendTelegram(`🔔 <b>Price Alert (server-side · ${fired.length})</b>\n${lines.join('\n')}`);
   console.log(`🔔 ${fired.length} alerte declanșate.`);

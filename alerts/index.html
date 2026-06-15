@@ -340,7 +340,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v29</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v30</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -375,6 +375,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
       <label>Tip alertă</label>
       <select id="inpKind" class="dir-select">
         <option value="ref">📊 Referință (pași ±%)</option>
+        <option value="day">📅 Variația zilei ±%</option>
         <option value="price">$ Preț prag</option>
         <option value="pct">% Mișcare ±</option>
         <option value="anchor">⚓ Ancoră (pas+țintă)</option>
@@ -415,7 +416,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </div>
   <div id="symSearchResults" style="display:none;flex-direction:column;gap:3px;margin:8px 0 0"></div>
   <div class="add-hint" id="addHint" style="display:none">
-    <b>📊 Referință (pași ±%)</b> = prețul live din momentul adăugării devine <b>referința (0%)</b>; primești o alertă la fiecare pas de ±X% (ex: 1%) față de ea, sus pe verde / jos pe roșu. Bară simetrică centrată pe referință + max/min atinse + următorul nivel. Buton 🔄 pe rând = re-ancorează referința la prețul curent (ex: după ce intri în trade). Bifează <b>📉 Trailing din vârf</b> ca referința să urmeze automat maximul → te anunță doar când prețul scade X% din vârf (trailing-stop mental, ideal pt gestionat un trade în profit). <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. <b>⚓ Ancoră</b> = ancoră FIXĂ la prețul de creare (nu se mută) cu Δ% afișat + bară de progres spre țintă + R:R; te anunță la <b>4 evenimente</b>: 🪜 fiecare pas cumulat de ±X% din ancoră, 🎯 ținta atinsă, 🔔 aproape de țintă (≥90%), 🛑 stopul atins. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 60s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram.
+    <b>📊 Referință (pași ±%)</b> = prețul live din momentul adăugării devine <b>referința (0%)</b>; primești o alertă la fiecare pas de ±X% (ex: 1%) față de ea, sus pe verde / jos pe roșu. Bară simetrică centrată pe referință + max/min atinse + următorul nivel. Buton 🔄 pe rând = re-ancorează referința la prețul curent (ex: după ce intri în trade). Bifează <b>📉 Trailing din vârf</b> ca referința să urmeze automat maximul → te anunță doar când prețul scade X% din vârf (trailing-stop mental, ideal pt gestionat un trade în profit). <b>📅 Variația zilei ±%</b> = te anunță când simbolul a urcat SAU coborât cu cel puțin X% pe ziua curentă (față de închiderea de ieri) — prinde mișcările mari ale zilei. <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. <b>⚓ Ancoră</b> = ancoră FIXĂ la prețul de creare (nu se mută) cu Δ% afișat + bară de progres spre țintă + R:R; te anunță la <b>4 evenimente</b>: 🪜 fiecare pas cumulat de ±X% din ancoră, 🎯 ținta atinsă, 🔔 aproape de țintă (≥90%), 🛑 stopul atins. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 60s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram.
   </div>
 </div>
 
@@ -479,6 +480,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
         <label>Tip alertă</label>
         <select id="editKind">
           <option value="ref">📊 Referință (pași ±%)</option>
+          <option value="day">📅 Variația zilei ±%</option>
           <option value="price">$ Preț prag</option>
           <option value="pct">% Mișcare ±</option>
           <option value="anchor">⚓ Ancoră (pas+țintă)</option>
@@ -563,6 +565,7 @@ function _alertToJsonInner(sym, a) {
     : { symbol: sym, kind: 'ref', pct: a.pct, base: a.base ?? null, lastStep: a.lastStep || 0, hi: a.hi ?? 0, lo: a.lo ?? 0, note: a.note || '' };
   if (a.kind === 'anchor') return { symbol: sym, kind: 'anchor', pct: a.pct, base: a.base ?? null, target: a.target ?? null, stop: a.stop ?? null, lastStep: a.lastStep || 0, tgtHit: !!a.tgtHit, nearHit: !!a.nearHit, slHit: !!a.slHit, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' };
   if (a.kind === 'pct') return { symbol: sym, kind: 'pct', pct: a.pct, base: a.base ?? null, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' };
+  if (a.kind === 'day') return { symbol: sym, kind: 'day', pct: a.pct, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' };
   return { symbol: sym, level: a.lvl, dir: a.dir, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' };
 }
 
@@ -650,10 +653,10 @@ async function loadServerHist(){
     if (!r.ok) return;
     const j = await r.json();
     SERVER_HIST = (Array.isArray(j?.triggered) ? j.triggered : []).map(t => {
-      const kind = t.kind === 'anchor' ? 'anchor' : t.kind === 'ref' ? 'ref' : (t.kind === 'pct' ? 'pct' : 'price');
-      return { sym: String(t.symbol || '').toUpperCase(), kind, sub: t.sub || '', lvl: Number(t.level), pct: Number(t.pct), base: Number(t.base), target: Number(t.target), stop: Number(t.stop), moved: Number(t.moved), prog: Number(t.prog), step: Number(t.step), trail: !!t.trail, dd: Number(t.dd), peak: Number(t.peak),
+      const kind = t.kind === 'anchor' ? 'anchor' : t.kind === 'ref' ? 'ref' : t.kind === 'day' ? 'day' : (t.kind === 'pct' ? 'pct' : 'price');
+      return { sym: String(t.symbol || '').toUpperCase(), kind, sub: t.sub || '', lvl: Number(t.level), pct: Number(t.pct), base: Number(t.base), target: Number(t.target), stop: Number(t.stop), moved: Number(t.moved), prog: Number(t.prog), step: Number(t.step), trail: !!t.trail, dd: Number(t.dd), peak: Number(t.peak), dc: Number(t.dc),
         dir: t.dir === 'below' ? 'below' : 'above', price: Number(t.price), ts: Date.parse(t.at) || 0, note: t.note || '', rearm: !!t.rearm, cloud: true };
-    }).filter(h => h.sym && ((h.kind === 'anchor' || h.kind === 'pct' || h.kind === 'ref') ? h.pct > 0 : h.lvl > 0));
+    }).filter(h => h.sym && ((h.kind === 'anchor' || h.kind === 'pct' || h.kind === 'ref' || h.kind === 'day') ? h.pct > 0 : h.lvl > 0));
     render();
   } catch (e) {}
 }
@@ -921,6 +924,19 @@ async function pollPrices() {
         }
         continue;
       }
+      if (a.kind === 'day') {
+        // Variația ZILEI ±X% (față de închiderea de ieri), bidirecțional.
+        const dc = _lastChange[sym];
+        if (dc == null) continue;                              // n-avem încă variația zilei
+        if (a.armed !== false && Math.abs(dc) >= a.pct) {
+          fired.push({ sym, price: p, dc, a: Object.assign({}, a) });
+          a.lastFired = Date.now(); changed = true;
+          if (a.rearm) a.armed = false; else list.splice(i, 1); // one-shot → dispare; re-arm → dezarmat
+        } else if (a.armed === false && a.rearm && Math.abs(dc) < a.pct * 0.9) {
+          a.armed = true; changed = true;                      // re-arm când variația revine sub prag
+        }
+        continue;
+      }
       const hit = a.dir === 'above' ? p >= a.lvl : p <= a.lvl;
       if (a.armed && hit) {
         fired.push({ sym, price: p, a: Object.assign({}, a) });
@@ -973,6 +989,13 @@ async function pollPrices() {
         }
         return;
       }
+      if (f.a.kind === 'day') {
+        const di = f.dc >= 0 ? '▲' : '▼';
+        HISTORY.unshift({ sym: f.sym, kind: 'day', pct: f.a.pct, dc: f.dc, moved: f.dc, dir: f.dc >= 0 ? 'above' : 'below', price: f.price, ts: Date.now(), note: f.a.note || '', rearm: !!f.a.rearm });
+        toast(`📅 ${f.sym} variația zilei ${di} ${fmtPct(f.dc)} (prag ±${f.a.pct}%) · acum $${fmtPx(f.price, f.sym)}${f.a.note ? ' · ' + f.a.note : ''}`, f.dc >= 0 ? 'success' : 'error', { persist: true });
+        showBrowserNotif(`📅 ${f.sym} variația zilei ${di} ${fmtPct(f.dc)}`, `Prag ±${f.a.pct}% · acum $${fmtPx(f.price, f.sym)}`);
+        return;
+      }
       const isPct = f.a.kind === 'pct';
       const dirIcon = isPct ? (f.moved >= 0 ? '▲' : '▼') : (f.a.dir === 'above' ? '▲' : '▼');
       HISTORY.unshift({ sym: f.sym, kind: f.a.kind || 'price', lvl: f.a.lvl, pct: f.a.pct, base: f.a.base, moved: f.moved, dir: isPct ? (f.moved >= 0 ? 'above' : 'below') : f.a.dir, price: f.price, ts: Date.now(), note: f.a.note || '', rearm: !!f.a.rearm });
@@ -1000,10 +1023,12 @@ async function pollPrices() {
       ? (f.a.trail
         ? `📉 <b>${tgEsc(f.sym)}</b> TRAILING −${f.dd.toFixed(2)}% din vârf $${fmtPx(f.peak, f.sym)} → $${fmtPx(f.price, f.sym)}${f.a.note ? ' · ' + tgEsc(f.a.note) : ''}`
         : `📊 <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '▲' : '▼'} ${fmtPct(f.moved)} (pas ${f.step > 0 ? '+' : ''}${f.step}×${f.a.pct}%) → $${fmtPx(f.price, f.sym)} (de la $${fmtPx(f.a.base, f.sym)})${f.a.note ? ' · ' + tgEsc(f.a.note) : ''}`)
+      : f.a.kind === 'day'
+      ? `📅 <b>${tgEsc(f.sym)}</b> variația zilei ${f.dc >= 0 ? '▲' : '▼'} ${fmtPct(f.dc)} (prag ±${f.a.pct}%) → $${fmtPx(f.price, f.sym)}${f.a.note ? ' · ' + tgEsc(f.a.note) : ''}`
       : f.a.kind === 'pct'
       ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${fmtPct(f.moved)} → $${fmtPx(f.price, f.sym)} (de la $${fmtPx(f.a.base, f.sym)})${f.a.rearm ? ' · re-arm' : ''}`
       : `${f.a.dir === 'above' ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> $${fmtPx(f.price, f.sym)} (prag $${fmtPx(f.a.lvl, f.sym)})`;
-    if (fired.length === 1 && fired[0].a.kind !== 'anchor' && fired[0].a.kind !== 'ref') {
+    if (fired.length === 1 && fired[0].a.kind !== 'anchor' && fired[0].a.kind !== 'ref' && fired[0].a.kind !== 'day') {
       const f = fired[0];
       const body = f.a.kind === 'pct'
         ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> s-a mișcat ${fmtPct(f.moved)}\nDe la $${fmtPx(f.a.base, f.sym)} la $${fmtPx(f.price, f.sym)}${f.a.rearm ? ' · re-arm' : ''}${f.a.note ? '\nNotă: ' + tgEsc(f.a.note) : ''}`
@@ -1032,6 +1057,7 @@ function rowHtml(sym, a) {
   const isPct = a.kind === 'pct';
   const isAnchor = a.kind === 'anchor';
   const isRef = a.kind === 'ref';
+  const isDay = a.kind === 'day';
   const stateBadge = a.rearm ? (a.armed ? '<span title="re-arm: alerta se păstrează și se re-armează după declanșare">↻</span>' : '<span title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel" style="opacity:.55">↻💤</span>') : '';
   let thrHtml, delta, isClose, dirCls, extraHtml = '';
   if (isRef && a.trail) {
@@ -1101,6 +1127,11 @@ function rowHtml(sym, a) {
     isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;                       // aproape de pragul ±%
     dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
     thrHtml = `±${a.pct}%<span class="dir">de la ${a.base ? '$' + fmtPx(a.base, sym) : '⏳ ancorare'} ${stateBadge}</span>`;
+  } else if (isDay) {
+    delta = _lastChange[sym] ?? null;                                                // urmărim variația zilei
+    isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;
+    dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
+    thrHtml = `📅 ±${a.pct}%<span class="dir">variația zilei ${stateBadge}</span>`;
   } else {
     delta = cur != null ? ((cur - a.lvl) / a.lvl * 100) : null;
     isClose = delta != null && Math.abs(delta) < 1.5;
@@ -1251,6 +1282,7 @@ function proximityScore(sym, a) {
     }
     return d.length ? Math.min(...d) : Infinity;
   }
+  if (a.kind === 'day') { const dc = _lastChange[sym]; return dc == null ? Infinity : Math.max(0, a.pct - Math.abs(dc)); }  // cât mai are variația zilei până la prag
   return Math.abs(cur - a.lvl) / cur * 100;                                       // preț prag: distanța % până la prag
 }
 function sortRows(arr) {
@@ -1300,7 +1332,7 @@ function render() {
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
   // Istoric combinat: local + ☁️ server-side, dedup pe sym|lvl|dir|minut (același
   // eveniment poate exista în ambele dacă pagina și botul l-au prins simultan)
-  const hKey = h => `${h.sym}|${h.kind || 'price'}|${h.kind === 'anchor' ? (h.sub + ':' + h.pct) : h.kind === 'ref' ? (h.trail ? 't:' + h.pct : h.pct + ':' + h.step) : h.kind === 'pct' ? h.pct : h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
+  const hKey = h => `${h.sym}|${h.kind || 'price'}|${h.kind === 'anchor' ? (h.sub + ':' + h.pct) : h.kind === 'ref' ? (h.trail ? 't:' + h.pct : h.pct + ':' + h.step) : h.kind === 'day' ? ('day:' + h.pct) : h.kind === 'pct' ? h.pct : h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
   const localKeys = new Set(HISTORY.map(hKey));
   _histView = [
     ...HISTORY.map((h, li) => ({ ...h, _li: li })),
@@ -1335,6 +1367,7 @@ function render() {
       const isPct = h.kind === 'pct';
       const isAnchor = h.kind === 'anchor';
       const isRef = h.kind === 'ref';
+      const isDay = h.kind === 'day';
       const ageMin = Math.round((Date.now() - (h.ts || 0)) / 60000);
       const ageStr = ageMin < 60 ? `${ageMin}min` : (ageMin < 1440 ? `${Math.round(ageMin/60)}h` : `${Math.round(ageMin/1440)}z`);
       let thrHist;
@@ -1345,6 +1378,8 @@ function render() {
         thrHist = h.trail
           ? `📉 −${h.pct}% trail<span class="dir">▼${isFinite(h.dd) ? ' −' + h.dd.toFixed(2) + '%' : ''}${isFinite(h.peak) ? ' din $' + fmtPx(h.peak, h.sym) : ''}</span>`
           : `📊 ±${h.pct}%<span class="dir">${dirIcon}${isFinite(h.moved) ? ' ' + fmtPct(h.moved) : ''}${isFinite(h.step) ? ' ·' + (h.step > 0 ? '+' : '') + h.step + '×' : ''}</span>`;
+      } else if (isDay) {
+        thrHist = `📅 ±${h.pct}% zi<span class="dir">${dirIcon}${isFinite(h.dc) ? ' ' + fmtPct(h.dc) : ''}${h.rearm ? ' ↻' : ''}</span>`;
       } else thrHist = isPct
         ? `±${h.pct}%<span class="dir">${dirIcon}${isFinite(h.moved) ? ' ' + fmtPct(h.moved) : ''}${h.rearm ? ' ↻' : ''}</span>`
         : `$${fmtPx(h.lvl, h.sym)}<span class="dir">${dirIcon}${h.rearm ? ' ↻' : ''}</span>`;
@@ -1390,6 +1425,10 @@ function render() {
         (priceAlerts[h.sym] = priceAlerts[h.sym] || []).push({ id: uid(), kind: 'pct', pct: h.pct, base: _lastPrice[h.sym] ?? null, rearm: !!h.rearm, armed: true, lastFired: null, note: h.note || '' });
         persistAlerts(); render();
         toast(`↻ ${h.sym} re-creat: ±${h.pct}% (re-ancorează la prețul curent)`, 'info');
+      } else if (h.kind === 'day') {
+        (priceAlerts[h.sym] = priceAlerts[h.sym] || []).push({ id: uid(), kind: 'day', pct: h.pct, rearm: !!h.rearm, armed: true, lastFired: null, note: h.note || '' });
+        persistAlerts(); render();
+        toast(`📅 ${h.sym} re-creat: variația zilei ±${h.pct}%`, 'info');
       } else {
         (priceAlerts[h.sym] = priceAlerts[h.sym] || []).push({ id: uid(), lvl: h.lvl, dir: h.dir, rearm: !!h.rearm, armed: true, lastFired: null, note: h.note || '' });
         persistAlerts(); render();
@@ -1411,11 +1450,11 @@ function render() {
 // schimbă label-ul/placeholder-ul și ascunde Direcția când tipul e mișcare ±%
 function updateFormMode() {
   const k = $('inpKind').value;
-  const pct = k === 'pct', anchor = k === 'anchor', ref = k === 'ref';
-  const stepLike = pct || anchor || ref;
+  const pct = k === 'pct', anchor = k === 'anchor', ref = k === 'ref', day = k === 'day';
+  const stepLike = pct || anchor || ref || day;
   const trail = ref && $('inpTrail').checked;
-  $('lblThr').textContent = trail ? 'Scădere din vârf %' : (anchor || ref) ? 'Pas alertă ±%' : (pct ? 'Mișcare ±%' : 'Preț prag $');
-  $('inpThr').placeholder = stepLike ? '1' : '175.50';
+  $('lblThr').textContent = trail ? 'Scădere din vârf %' : day ? 'Variația zilei ±%' : (anchor || ref) ? 'Pas alertă ±%' : (pct ? 'Mișcare ±%' : 'Preț prag $');
+  $('inpThr').placeholder = day ? '5' : stepLike ? '1' : '175.50';
   $('inpThr').step = stepLike ? '0.1' : '0.01';
   $('wrapDir').style.display = stepLike ? 'none' : '';
   $('wrapTarget').style.display = anchor ? '' : 'none';
@@ -1451,10 +1490,10 @@ applyAdvanced();
 let _editing = null; // { sym, id } al alertei în curs de editare
 function updateEditMode() {
   const k = $('editKind').value;
-  const pct = k === 'pct', anchor = k === 'anchor', ref = k === 'ref';
-  const stepLike = pct || anchor || ref;
+  const pct = k === 'pct', anchor = k === 'anchor', ref = k === 'ref', day = k === 'day';
+  const stepLike = pct || anchor || ref || day;
   const trail = ref && $('editTrail').checked;
-  $('editLblThr').textContent = trail ? 'Scădere din vârf %' : (anchor || ref) ? 'Pas alertă ±%' : (pct ? 'Mișcare ±%' : 'Preț prag $');
+  $('editLblThr').textContent = trail ? 'Scădere din vârf %' : day ? 'Variația zilei ±%' : (anchor || ref) ? 'Pas alertă ±%' : (pct ? 'Mișcare ±%' : 'Preț prag $');
   $('editThr').step = stepLike ? '0.1' : '0.01';
   $('editWrapDir').style.display = stepLike ? 'none' : '';
   $('editWrapAnchor').style.display = anchor ? '' : 'none';
@@ -1517,6 +1556,9 @@ function saveEditModal() {
     a.kind = 'pct'; a.pct = thr;
     if (a.base == null) a.base = _lastPrice[sym] ?? null;
     delete a.lvl; delete a.dir; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit; delete a.hi; delete a.lo; delete a.trail; delete a.peak; delete a.trailFired;
+  } else if (kind === 'day') {
+    a.kind = 'day'; a.pct = thr;
+    delete a.lvl; delete a.dir; delete a.base; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit; delete a.hi; delete a.lo; delete a.trail; delete a.peak; delete a.trailFired;
   } else {
     delete a.kind; a.lvl = thr; a.dir = $('editDir').value;                                       // price = fără câmpul kind
     delete a.pct; delete a.base; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit; delete a.hi; delete a.lo; delete a.trail; delete a.peak; delete a.trailFired;
@@ -1622,11 +1664,14 @@ $('btnAdd').addEventListener('click', () => {
   const note = $('inpNote').value.trim();
   const rearm = $('inpRearm').checked;
   if (!sym || !sym.match(/^[A-Z0-9.\-]{1,16}$/)) { toast('⚠ Simbol invalid (doar A-Z, 0-9, .-)', 'error'); return; }
-  const thrMsg = kind === 'pct' ? '⚠ Mișcare % invalidă (trebuie > 0)' : (kind === 'anchor' || kind === 'ref') ? '⚠ Pas alertă ±% invalid (trebuie > 0)' : '⚠ Preț prag invalid (trebuie > 0)';
+  const thrMsg = kind === 'pct' ? '⚠ Mișcare % invalidă (trebuie > 0)' : kind === 'day' ? '⚠ Variația zilei % invalidă (trebuie > 0)' : (kind === 'anchor' || kind === 'ref') ? '⚠ Pas alertă ±% invalid (trebuie > 0)' : '⚠ Preț prag invalid (trebuie > 0)';
   if (isNaN(thr) || thr <= 0) { toast(thrMsg, 'error'); return; }
   priceAlerts = loadAlerts(); // sync înainte de write — alt tab poate să fi modificat
   let anchorTgt = null;
-  if (kind === 'ref') {
+  if (kind === 'day') {
+    // Variația ZILEI ±thr% (bidirecțional, față de închiderea de ieri).
+    (priceAlerts[sym] = priceAlerts[sym] || []).push({ id: uid(), kind: 'day', pct: thr, rearm, armed: true, lastFired: null, note });
+  } else if (kind === 'ref') {
     if ($('inpTrail').checked) {
       // Trailing: referința urmează vârful; alertă când prețul scade thr% din maximul atins.
       (priceAlerts[sym] = priceAlerts[sym] || []).push({ id: uid(), kind: 'ref', trail: true, pct: thr, base: _lastPrice[sym] ?? null, peak: _lastPrice[sym] ?? null, trailFired: false, armed: true, lastFired: null, note });
@@ -1658,6 +1703,8 @@ $('btnAdd').addEventListener('click', () => {
     ? `✓ Ancoră: ${sym} 🎯$${fmtPx(anchorTgt, sym)} · pas ±${thr}%${rearm ? ' · ↻' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · ⚓$' + fmtPx(_lastPrice[sym], sym)}`
     : kind === 'pct'
     ? `✓ Alert mișcare: ${sym} ±${thr}%${rearm ? ' · ↻ re-arm' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · de la $' + fmtPx(_lastPrice[sym], sym)}`
+    : kind === 'day'
+    ? `✓ Variația zilei: ${sym} ±${thr}%${rearm ? ' · ↻ re-arm' : ''}`
     : `✓ Alert adăugat: ${sym} ${dir === 'above' ? '▲' : '▼'} $${fmtPx(thr, sym)}${rearm ? ' · ↻ re-arm' : ''}`, 'success');
   autoSync(); // auto-sync ☁️ pe GitHub (debounce)
   pollPrices(); // immediate check
@@ -1846,7 +1893,7 @@ let _lastServerSig = localStorage.getItem(LASTSIG_KEY) || '';
 function alertsSig(map) {
   const items = [];
   Object.keys(map || {}).forEach(sym => (map[sym] || []).forEach(a => {
-    const k = a.kind === 'ref' ? `ref|${a.pct}|${a.trail ? 't' : ''}` : a.kind === 'anchor' ? `anchor|${a.pct}|${a.target}|${a.stop}` : (a.kind === 'pct' ? `pct|${a.pct}` : `price|${a.lvl}|${a.dir}`);
+    const k = a.kind === 'ref' ? `ref|${a.pct}|${a.trail ? 't' : ''}` : a.kind === 'anchor' ? `anchor|${a.pct}|${a.target}|${a.stop}` : a.kind === 'day' ? `day|${a.pct}` : (a.kind === 'pct' ? `pct|${a.pct}` : `price|${a.lvl}|${a.dir}`);
     items.push(`${sym.toUpperCase()}|${k}|${a.rearm ? 1 : 0}|${(a.note || '').trim()}`);
   }));
   return items.sort().join('\n');
@@ -1859,6 +1906,7 @@ function serverAlertToLocal(s) {
     : Object.assign(b, { kind: 'ref', pct: Number(s.pct), base: s.base != null ? Number(s.base) : null, lastStep: s.lastStep || 0, hi: Number(s.hi) || 0, lo: Number(s.lo) || 0 });
   if (s.kind === 'anchor') return Object.assign(b, { kind: 'anchor', pct: Number(s.pct), base: s.base != null ? Number(s.base) : null, target: s.target != null ? Number(s.target) : null, stop: s.stop != null ? Number(s.stop) : null, lastStep: s.lastStep || 0, tgtHit: !!s.tgtHit, nearHit: !!s.nearHit, slHit: !!s.slHit });
   if (s.kind === 'pct') return Object.assign(b, { kind: 'pct', pct: Number(s.pct), base: s.base != null ? Number(s.base) : null });
+  if (s.kind === 'day') return Object.assign(b, { kind: 'day', pct: Number(s.pct) });
   return Object.assign(b, { lvl: Number(s.level), dir: s.dir === 'below' ? 'below' : 'above' });
 }
 function serverToMap(arr) {
