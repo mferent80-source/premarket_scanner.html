@@ -114,6 +114,19 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .add-row .add-btn { padding:8px 18px; font-size:13px; }
 .add-hint { font-size:11.5px; color:var(--t3); margin-top:8px; font-family:var(--mono); }
 
+/* Pulse bar — rezumat rapid al stării alertelor */
+.pulse-bar {
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px;
+  background:linear-gradient(180deg, var(--panel2), var(--panel));
+  border:1px solid var(--b1); border-radius:var(--r); padding:9px 16px; margin-bottom:12px;
+  font-family:var(--mono); font-size:12px; color:var(--t2); box-shadow:var(--shadow);
+}
+.pulse-bar b { color:var(--t1); font-weight:700; }
+.pulse-seg { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+.pulse-seg.up { color:var(--bull-s); }
+.pulse-seg.down { color:var(--bear-s); }
+.pulse-seg.near { color:var(--warn); }
+
 /* Sections */
 .section {
   background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
@@ -305,7 +318,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v26</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v27</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -383,6 +396,9 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
     <b>📊 Referință (pași ±%)</b> = prețul live din momentul adăugării devine <b>referința (0%)</b>; primești o alertă la fiecare pas de ±X% (ex: 1%) față de ea, sus pe verde / jos pe roșu. Bară simetrică centrată pe referință + max/min atinse + următorul nivel. Buton 🔄 pe rând = re-ancorează referința la prețul curent (ex: după ce intri în trade). Bifează <b>📉 Trailing din vârf</b> ca referința să urmeze automat maximul → te anunță doar când prețul scade X% din vârf (trailing-stop mental, ideal pt gestionat un trade în profit). <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. <b>⚓ Ancoră</b> = ancoră FIXĂ la prețul de creare (nu se mută) cu Δ% afișat + bară de progres spre țintă + R:R; te anunță la <b>4 evenimente</b>: 🪜 fiecare pas cumulat de ±X% din ancoră, 🎯 ținta atinsă, 🔔 aproape de țintă (≥90%), 🛑 stopul atins. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 60s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram.
   </div>
 </div>
+
+<!-- Pulse: rezumat rapid al stării alertelor -->
+<div id="pulseBar" class="pulse-bar" style="display:none"></div>
 
 <!-- Active alerts — crypto (24/7) -->
 <div class="section">
@@ -1159,6 +1175,23 @@ function sortRows(arr) {
   });
 }
 
+// Bara de pulse: rezumat rapid — câte alerte, câte simboluri ▲/▼ azi, top mover, câte aproape de declanșare
+function renderPulse(activeRows) {
+  const el = $('pulseBar');
+  if (!activeRows.length) { el.style.display = 'none'; return; }
+  const symSet = [...new Set(activeRows.map(r => r.sym))];                          // un simbol = o variație
+  const chgs = symSet.map(s => ({ sym: s, c: _lastChange[s] })).filter(x => x.c != null);
+  const ups = chgs.filter(x => x.c > 0).length, downs = chgs.filter(x => x.c < 0).length;
+  const top = chgs.slice().sort((a, b) => b.c - a.c)[0];
+  const near = activeRows.filter(r => proximityScore(r.sym, r.a) < 0.5).length;     // < 0.5% până la declanșare
+  const segs = [`<span class="pulse-seg">📊 <b>${activeRows.length}</b> ${activeRows.length === 1 ? 'alertă' : 'alerte'}</span>`];
+  if (chgs.length) { segs.push(`<span class="pulse-seg up">▲ ${ups} azi</span>`); segs.push(`<span class="pulse-seg down">▼ ${downs} azi</span>`); }
+  if (top && top.c != null) segs.push(`<span class="pulse-seg ${top.c >= 0 ? 'up' : 'down'}">🔝 <b>${escHtml(top.sym)}</b> ${(top.c >= 0 ? '+' : '') + top.c.toFixed(2)}%</span>`);
+  if (near) segs.push(`<span class="pulse-seg near">⏰ <b>${near}</b> aproape de declanșare</span>`);
+  el.innerHTML = segs.join('');
+  el.style.display = 'flex';
+}
+
 function render() {
   const rows = [];
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
@@ -1181,6 +1214,7 @@ function render() {
   const ss = marketSession();
   const sb = $('sessStocks'); sb.textContent = ss.label; sb.className = 'sess-badge ' + ss.cls;
 
+  renderPulse([...cryptoRows, ...stockRows]);
   renderActiveGroup($('bodyCrypto'), cryptoRows, '🪙', 'Nicio alertă crypto. Adaugă una de mai sus (BTC-USD, ETH-USD, ONDOUSDT…).');
   renderActiveGroup($('bodyStocks'), stockRows, '📈', 'Nicio alertă pe stocks. Adaugă una de mai sus (AAPL, NVDA…).');
 
