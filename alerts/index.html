@@ -213,6 +213,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .alert-spark .spark-meta b.up { color:var(--bull-s); }
 .alert-spark .spark-meta b.down { color:var(--bear-s); }
 .alert-spark .spark-wait { font-family:var(--mono); font-size:10.5px; color:var(--t3); flex:1; }
+/* bara simetrică +/- față de referință (0% la centru, creștere→dreapta verde / scădere→stânga roșu) */
+.sym-bar { position:relative; display:inline-block; width:84px; height:9px; background:var(--panel3); border:1px solid var(--b1); border-radius:5px; overflow:hidden; flex-shrink:0; vertical-align:middle; }
+.sym-bar .sb-fill { position:absolute; top:0; bottom:0; }
+.sym-bar .sb-fill.up { background:var(--bull-s); }
+.sym-bar .sb-fill.down { background:var(--bear-s); }
+.sym-bar .sb-zero { position:absolute; top:-1px; bottom:-1px; left:50%; width:1px; background:var(--t2); opacity:.55; transform:translateX(-.5px); }
 
 /* Anchor progress (tip ⚓ Ancoră) */
 .anchor-prog { margin-top:4px; }
@@ -345,15 +351,16 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   /* sparkline mai adunat pe telefon */
   .alert-row { gap:1px 8px; }
   .alert-spark { gap:7px; padding:3px 0 0; margin-top:3px; }
-  .alert-spark .spark { height:20px; min-width:60px; }
+  .alert-spark .spark { height:20px; min-width:50px; }
   .alert-spark .spark-meta { font-size:8.5px; white-space:normal; line-height:1.35; }
+  .sym-bar { width:56px; height:8px; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v36</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v37</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -1111,6 +1118,14 @@ function sparkSvg(vals, refVal) {
     + (refY != null ? `<line x1="0" y1="${refY}" x2="${w}" y2="${refY}" stroke="var(--t3)" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" opacity=".5"/>` : '')
     + `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;
 }
+// Bara simetrică +/- față de referință: 0% la centru, umple spre dreapta (verde) dacă delta≥0, spre stânga (roșu) dacă <0
+function symBar(delta, pct) {
+  if (delta == null || isNaN(delta)) return '<span class="sym-bar"><i class="sb-zero"></i></span>';
+  const range = Math.max((pct || 1.5) * 2, Math.abs(delta) * 1.2, 0.5);
+  const pos = Math.max(0, Math.min(100, 50 + (delta / range) * 50));
+  const fill = delta >= 0 ? `left:50%;width:${(pos - 50).toFixed(1)}%` : `left:${pos.toFixed(1)}%;width:${(50 - pos).toFixed(1)}%`;
+  return `<span class="sym-bar" title="${(delta >= 0 ? '+' : '') + delta.toFixed(2)}% față de referință"><i class="sb-fill ${delta >= 0 ? 'up' : 'down'}" style="${fill}"></i><i class="sb-zero"></i></span>`;
+}
 // HTML-ul unui rând de alertă activă (folosit în ambele grupuri crypto/stocks)
 function rowHtml(sym, a) {
   const cur = _lastPrice[sym];
@@ -1128,62 +1143,44 @@ function rowHtml(sym, a) {
     dirCls = 'down';
     isClose = dd != null && dd >= a.pct * 0.8;        // aproape de stop
     thrHtml = `📉−${a.pct}% trail<span class="dir">🔝$${peak != null ? fmtPx(peak, sym) : '⏳'}</span>`;
-    if (peak != null && cur != null) {
-      const stopPx = peak * (1 - a.pct / 100), cushion = a.pct - dd;                  // pernă = cât mai are până la stop
-      const fromEntry = a.base ? (cur - a.base) / a.base * 100 : null;
-      metaText = `🔝 Vârf $${fmtPx(peak, sym)} · stop la $${fmtPx(stopPx, sym)} (−${a.pct}%) · mai are ${cushion.toFixed(2)}% până la stop${fromEntry != null ? ' · de la intrare ' + fmtPct(fromEntry) : ''}`;
-    }
+    if (peak != null && cur != null) metaText = `<b class="down">${fmtPct(delta)}</b> din vârf $${fmtPx(peak, sym)}`;
   } else if (isRef) {
     delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;
     dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
     isClose = false;
     thrHtml = `±${a.pct}%/pas<span class="dir">📊$${a.base != null ? fmtPx(a.base, sym) : '⏳'} ref</span>`;
-    if (a.base != null && cur != null) {
-      const moved = delta, hi = Math.max(a.hi || 0, moved), lo = Math.min(a.lo || 0, moved);
-      const dp = a.pct < 1 ? 1 : 0;
-      const upPct = (Math.floor(moved / a.pct) + 1) * a.pct, dnPct = (Math.ceil(moved / a.pct) - 1) * a.pct;
-      metaText = `📍 Referință $${fmtPx(a.base, sym)} · maxim atins <b class="up">+${hi.toFixed(2)}%</b> / minim <b class="down">${lo.toFixed(2)}%</b> · următoarea alertă: sus la $${fmtPx(a.base * (1 + upPct / 100), sym)} · jos la $${fmtPx(a.base * (1 + dnPct / 100), sym)}`;
-    }
+    if (a.base != null && cur != null) metaText = `<b class="${dirCls}">${fmtPct(delta)}</b> · ref $${fmtPx(a.base, sym)}`;
   } else if (isAnchor) {
     delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;        // Δ% vs ancoră fixă
     dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
     isClose = false;
     const tgtTxt = a.target != null ? ` 🎯$${fmtPx(a.target, sym)}` : '';
     thrHtml = `±${a.pct}%${tgtTxt}<span class="dir">⚓$${a.base != null ? fmtPx(a.base, sym) : '⏳'}${a.stop != null ? ' · 🛑$' + fmtPx(a.stop, sym) : ''} ${stateBadge}</span>`;
-    if (a.target != null && a.base != null && a.target !== a.base && cur != null) {
-      const prog = (cur - a.base) / (a.target - a.base) * 100;
-      const remPct = (a.target - cur) / cur * 100;
-      const rr = (a.stop != null && a.base !== a.stop) ? Math.abs(a.target - a.base) / Math.abs(a.base - a.stop) : null;
-      metaText = `🎯 ${prog.toFixed(0)}% parcurs spre țintă · mai are ${fmtPct(remPct)}${rr != null ? ' · R:R ' + rr.toFixed(1) : ''}`;
-    }
+    if (a.base != null && cur != null) metaText = `<b class="${dirCls}">${fmtPct(delta)}</b> · ancoră $${fmtPx(a.base, sym)}${a.target != null ? ' · 🎯$' + fmtPx(a.target, sym) : ''}`;
   } else if (isPct) {
     delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;       // mișcarea curentă față de ancoră
     isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;                       // aproape de pragul ±%
     dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
     thrHtml = `±${a.pct}%<span class="dir">de la ${a.base ? '$' + fmtPx(a.base, sym) : '⏳ ancorare'} ${stateBadge}</span>`;
-    if (a.base) metaText = `📍 Ancoră $${fmtPx(a.base, sym)} · alertă la o mișcare de ±${a.pct}%`;
+    if (a.base != null && cur != null) metaText = `<b class="${dirCls}">${fmtPct(delta)}</b> · de la $${fmtPx(a.base, sym)}`;
   } else if (isDay) {
     delta = _lastChange[sym] ?? null;                                                // urmărim variația zilei
     isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;
     dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
     thrHtml = `📅 ±${a.pct}%<span class="dir">variația zilei ${stateBadge}</span>`;
-    metaText = `Alertă când variația zilei depășește ±${a.pct}% (sus sau jos)`;
+    if (delta != null) metaText = `<b class="${dirCls}">${fmtPct(delta)}</b> azi (prag ±${a.pct}%)`;
   } else {
     delta = cur != null ? ((cur - a.lvl) / a.lvl * 100) : null;
     isClose = delta != null && Math.abs(delta) < 1.5;
     dirCls = a.dir === 'above' ? 'up' : 'down';
     thrHtml = `$${fmtPx(a.lvl, sym)}<span class="dir">${a.dir === 'above' ? '▲ peste' : '▼ sub'} ${stateBadge}</span>`;
-    metaText = `Alertă când prețul ajunge ${a.dir === 'above' ? 'peste ▲' : 'sub ▼'} $${fmtPx(a.lvl, sym)}`;
+    if (delta != null) metaText = `<b class="${dirCls}">${fmtPct(delta)}</b> · prag $${fmtPx(a.lvl, sym)} ${a.dir === 'above' ? '▲' : '▼'}`;
   }
-  // Sparkline din istoricul de 7 zile (bare orare Yahoo) + prețul live la capăt.
-  // "De la adăugare" DOAR pt tipurile fără referință proprie (day/price).
+  // Linie: sparkline (1z/7z) + bara simetrică +/- față de referință + text scurt "±% · ref $X"
   const hist = _sparkCache[sparkWin][sym.toUpperCase()];
   const spark = hist ? hist.vals.concat(cur != null ? [cur] : []) : (cur != null ? [cur] : []);
-  const refLine = a.base ?? a.addedPrice ?? null;
-  const addP = a.addedPrice ?? null;
-  const pctFromAdd = (addP && cur != null) ? (cur - addP) / addP * 100 : null;
-  const addTxt = (a.base == null && addP != null) ? `de la adăugare $${fmtPx(addP, sym)}${pctFromAdd != null ? ' → ' + fmtPct(pctFromAdd) : ''}` : '';
-  const sparkLine = `<div class="alert-spark">${sparkSvg(spark, refLine)}<span class="spark-meta">${addTxt}${addTxt && metaText ? ' · ' : ''}${metaText}</span></div>`;
+  const refLine = a.base ?? (a.kind === 'price' ? a.lvl : a.addedPrice) ?? null;
+  const sparkLine = `<div class="alert-spark">${sparkSvg(spark, refLine)}${symBar(delta, a.pct)}<span class="spark-meta">${metaText}</span></div>`;
   const snoozed = a.snoozeUntil && a.snoozeUntil > Date.now();
   const snzRem = snoozed ? Math.ceil((a.snoozeUntil - Date.now()) / 60000) : 0;
   const snzTxt = snzRem >= 120 ? Math.round(snzRem / 60) + 'h' : snzRem + 'm';
