@@ -15,6 +15,9 @@
 //   REFERINȚĂ:  { "symbol":"NVDA", "kind":"ref", "pct":1, "base":180.5,
 //               "lastStep":0, "hi":0, "lo":0, "note":"..." }
 //               // referință FIXĂ (preț de creare = 0%): alertă la fiecare pas cumulat ±pct% sus/jos. Tracker persistent.
+//   TRAILING:   { "symbol":"NVDA", "kind":"ref", "trail":true, "pct":2, "base":180.5,
+//               "peak":190, "trailFired":false, "note":"..." }
+//               // referința urmează vârful; alertă când prețul scade ≥pct% din maximul atins (trailing-stop mental).
 //   PREȚ PRAG: { "symbol":"NVDA", "level":180, "dir":"above"|"below",
 //               "rearm":false, "armed":true, "note":"..." }
 //   MIȘCARE ±%: { "symbol":"NVDA", "kind":"pct", "pct":1, "base":180.5,
@@ -104,6 +107,19 @@ for (const a of alerts){
   if (a.kind === 'ref'){
     const pct = Number(a.pct);
     if (!(pct > 0)){ kept.push(a); continue; }
+    if (a.trail){
+      // Trailing: referința urmează vârful; alertă când prețul scade ≥pct% din maximul atins.
+      if (a.base == null){ a.base = +p.toFixed(4); a.peak = +p.toFixed(4); a.trailFired = false; changed = true; kept.push(a); continue; }
+      if (a.peak == null) a.peak = a.base;
+      if (p > a.peak){ a.peak = +p.toFixed(4); a.trailFired = false; changed = true; }   // nou vârf → re-armăm
+      const dd = (a.peak - p) / a.peak * 100;
+      if (!a.trailFired && dd >= pct){
+        fired.push({ sym, kind:'ref', trail:true, pct, base: a.base, peak: a.peak, dd, price: p, note: a.note || '' });
+        a.trailFired = true; changed = true;
+      }
+      kept.push(a);
+      continue;
+    }
     if (a.base == null){ a.base = +p.toFixed(4); a.lastStep = 0; a.hi = 0; a.lo = 0; changed = true; kept.push(a); continue; } // ancorare la primul preț valid
     const base = Number(a.base);
     const moved = (p - base) / base * 100;
@@ -197,7 +213,9 @@ for (const a of alerts){
 if (fired.length){
   cfg.triggered = [
     ...fired.map(f => f.kind === 'ref'
-      ? ({ symbol: f.sym, kind: 'ref', pct: f.pct, base: +Number(f.base).toFixed(4), moved: +f.moved.toFixed(2), step: f.step, dir: f.moved >= 0 ? 'above' : 'below', price: +f.price.toFixed(4), note: f.note, at: new Date().toISOString() })
+      ? (f.trail
+        ? ({ symbol: f.sym, kind: 'ref', trail: true, pct: f.pct, base: +Number(f.base).toFixed(4), peak: +Number(f.peak).toFixed(4), dd: +f.dd.toFixed(2), moved: +(-f.dd).toFixed(2), dir: 'below', price: +f.price.toFixed(4), note: f.note, at: new Date().toISOString() })
+        : ({ symbol: f.sym, kind: 'ref', pct: f.pct, base: +Number(f.base).toFixed(4), moved: +f.moved.toFixed(2), step: f.step, dir: f.moved >= 0 ? 'above' : 'below', price: +f.price.toFixed(4), note: f.note, at: new Date().toISOString() }))
       : f.kind === 'anchor'
       ? ({ symbol: f.sym, kind: 'anchor', sub: f.sub, pct: f.pct, base: +Number(f.base).toFixed(4), target: f.target != null ? +Number(f.target).toFixed(4) : null, stop: f.stop != null ? +Number(f.stop).toFixed(4) : null, moved: +f.moved.toFixed(2), prog: f.prog != null ? +f.prog.toFixed(0) : undefined, dir: f.sub === 'stop' ? 'below' : (f.sub === 'step' ? (f.moved >= 0 ? 'above' : 'below') : 'above'), price: +f.price.toFixed(4), note: f.note, rearm: f.rearm, at: new Date().toISOString() })
       : f.kind === 'pct'
@@ -206,7 +224,9 @@ if (fired.length){
     ...(Array.isArray(cfg.triggered) ? cfg.triggered : [])
   ].slice(0, 50);
   const lines = fired.map(f => f.kind === 'ref'
-    ? `📊 <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '▲' : '▼'} ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% (pas ${f.step > 0 ? '+' : ''}${f.step}×${f.pct}%) → $${f.price.toFixed(dec(f.sym))} (de la $${Number(f.base).toFixed(dec(f.sym))})${f.note ? ' · ' + tgEsc(f.note) : ''}`
+    ? (f.trail
+      ? `📉 <b>${tgEsc(f.sym)}</b> TRAILING −${f.dd.toFixed(2)}% din vârf $${Number(f.peak).toFixed(dec(f.sym))} → $${f.price.toFixed(dec(f.sym))}${f.note ? ' · ' + tgEsc(f.note) : ''}`
+      : `📊 <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '▲' : '▼'} ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% (pas ${f.step > 0 ? '+' : ''}${f.step}×${f.pct}%) → $${f.price.toFixed(dec(f.sym))} (de la $${Number(f.base).toFixed(dec(f.sym))})${f.note ? ' · ' + tgEsc(f.note) : ''}`)
     : f.kind === 'anchor'
     ? (f.sub === 'target' ? `🎯 <b>${tgEsc(f.sym)}</b> ȚINTĂ $${Number(f.target).toFixed(dec(f.sym))} atinsă → $${f.price.toFixed(dec(f.sym))} (${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% de la $${Number(f.base).toFixed(dec(f.sym))})${f.note ? ' · ' + tgEsc(f.note) : ''}`
       : f.sub === 'near' ? `🔔 <b>${tgEsc(f.sym)}</b> ${Number(f.prog).toFixed(0)}% spre țintă $${Number(f.target).toFixed(dec(f.sym))} → $${f.price.toFixed(dec(f.sym))}`
