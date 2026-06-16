@@ -206,19 +206,45 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .alert-note { font-size:12px; color:var(--t2); font-style:italic; }
 .alert-actions { display:flex; gap:4px; }
 
-/* Linie sparkline full-width sub rând (evoluția prețului de la adăugare) */
-.alert-spark { grid-column:1 / -1; display:flex; align-items:center; gap:10px; padding:5px 2px 1px; margin-top:5px; border-top:1px dashed rgba(42,50,71,.45); }
-.alert-spark .spark { flex:1; height:28px; min-width:80px; display:block; }
-.alert-spark .spark-meta { font-family:var(--mono); font-size:10.5px; color:var(--t3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.alert-spark .spark-meta b.up { color:var(--bull-s); }
-.alert-spark .spark-meta b.down { color:var(--bear-s); }
-.alert-spark .spark-wait { font-family:var(--mono); font-size:10.5px; color:var(--t3); flex:1; }
-/* bara simetrică +/- față de referință (0% la centru, creștere→dreapta verde / scădere→stânga roșu) */
-.sym-bar { position:relative; display:inline-block; width:84px; height:9px; background:var(--panel3); border:1px solid var(--b1); border-radius:5px; overflow:hidden; flex-shrink:0; vertical-align:middle; }
-.sym-bar .sb-fill { position:absolute; top:0; bottom:0; }
-.sym-bar .sb-fill.up { background:var(--bull-s); }
-.sym-bar .sb-fill.down { background:var(--bear-s); }
-.sym-bar .sb-zero { position:absolute; top:-1px; bottom:-1px; left:50%; width:1px; background:var(--t2); opacity:.55; transform:translateX(-.5px); }
+/* ===== Card alertă activă (nume mare + meta + bare de diferență) ===== */
+.alert-card { padding:11px 14px; border-bottom:1px solid rgba(42,50,71,.5); font-family:var(--head); }
+.alert-card:last-child { border-bottom:none; }
+.alert-card:hover { background:rgba(91,176,255,.04); }
+.alert-card.snoozed { opacity:.5; }
+/* rândul 1: ticker MARE + badge sesiune + acțiuni */
+.ac-head { display:flex; align-items:center; gap:8px; }
+.ac-sym { font-family:var(--mono); font-weight:800; font-size:18px; letter-spacing:.3px; }
+.ac-sym a { color:var(--accent); text-decoration:none; }
+.ac-sym a:hover { text-decoration:underline; }
+.ac-snz { font-size:10px; color:var(--warn); font-family:var(--mono); font-weight:700; margin-left:5px; }
+.ac-actions { display:flex; gap:4px; margin-left:auto; }
+/* rândul 2: tipul alertei */
+.ac-kind { font-family:var(--mono); font-size:11.5px; color:var(--t2); margin-top:4px; }
+/* rândul 3: meta creare (stânga) + preț curent mare (dreapta) */
+.ac-meta { display:flex; align-items:baseline; gap:10px; margin-top:4px; font-family:var(--mono); font-size:11px; color:var(--t3); }
+.ac-born { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ac-now { font-size:15px; font-weight:700; color:var(--t1); white-space:nowrap; }
+.ac-now.up { color:var(--bull-s); } .ac-now.down { color:var(--bear-s); }
+/* bloc bare */
+.ac-bars { margin-top:8px; display:flex; flex-direction:column; gap:5px; }
+.ac-bar { display:grid; grid-template-columns:78px 1fr 92px; align-items:center; gap:8px; }
+.ac-bar .b-lbl { font-family:var(--mono); font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; }
+.ac-bar .b-val { font-family:var(--mono); font-size:11px; font-weight:700; text-align:right; color:var(--t2); white-space:nowrap; }
+.ac-bar .b-val.up { color:var(--bull-s); } .ac-bar .b-val.down { color:var(--bear-s); } .ac-bar .b-val.warn { color:var(--warn); }
+/* bara diferență 0%-centru (de la creare / azi) */
+.b-track { position:relative; height:12px; background:var(--panel3); border:1px solid var(--b1); border-radius:6px; overflow:hidden; }
+.b-fill { position:absolute; top:0; bottom:0; }
+.b-fill.up { background:linear-gradient(90deg, rgba(34,214,107,.35), var(--bull-s)); }
+.b-fill.down { background:linear-gradient(270deg, rgba(255,77,77,.35), var(--bear-s)); }
+.b-zero { position:absolute; top:-1px; bottom:-1px; left:50%; width:1px; background:var(--t2); opacity:.5; transform:translateX(-.5px); z-index:2; }
+.b-mark { position:absolute; top:1px; bottom:1px; width:2px; border-radius:1px; z-index:3; transform:translateX(-1px); }
+.b-mark.hi { background:var(--bull-s); opacity:.85; }
+.b-mark.lo { background:var(--bear-s); opacity:.85; }
+/* bara proximitate (cât mai are): se umple stânga→dreapta, plin = declanșează acum */
+.b-track.prox .b-fill { left:0; background:linear-gradient(90deg, var(--acc-1), var(--accent)); opacity:.8; border-radius:6px; }
+.b-track.prox.hot .b-fill { background:linear-gradient(90deg, var(--warn), var(--bear-s)); opacity:.95; }
+.ac-note { font-size:12px; color:var(--t2); font-style:italic; margin-top:7px; }
+.ac-note:empty { display:none; }
 
 /* Badge sesiune per grup (crypto 24/7 vs stocks cu sesiune) */
 .sess-badge {
@@ -305,25 +331,25 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   .icon-btn { padding:4px 7px; }                            /* butoane puțin mai mici pe telefon */
   .px-sess { font-size:8px; padding:1px 4px; margin-left:4px; }
   .day-chg { font-size:8.5px; padding:1px 4px; margin-left:4px; }
-  /* sparkline mai adunat pe telefon */
-  .alert-row { gap:1px 8px; }
-  .alert-spark { gap:7px; padding:3px 0 0; margin-top:3px; }
-  .alert-spark .spark { height:20px; min-width:50px; }
-  .alert-spark .spark-meta { font-size:8.5px; white-space:normal; line-height:1.35; }
-  .sym-bar { width:56px; height:8px; }
+  /* card alertă pe telefon: ticker puțin mai mic, bare cu coloane mai strânse */
+  .alert-card { padding:9px 12px; }
+  .ac-sym { font-size:16px; }
+  .ac-now { font-size:14px; }
+  .ac-bar { grid-template-columns:58px 1fr 78px; gap:6px; }
+  .ac-bar .b-lbl { font-size:9px; letter-spacing:.2px; }
+  .ac-bar .b-val { font-size:9.5px; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v38</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v39</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
   <button class="icon-btn" id="btnSort" title="Sortare listă: 🎯 după proximitatea de declanșare (cele gata să se miște sus) / 🔤 alfabetic">🎯</button>
-  <button class="icon-btn" id="btnSparkWin" title="Fereastră grafic: 1 zi (intraday) / 7 zile">📈 7z</button>
   <button class="icon-btn" id="testBtn" title="Test alertă (demo)">🧪</button>
   <button class="icon-btn" id="exportBtn" title="Export JSON pentru alertele server-side (GitHub Actions) — merg și cu laptopul închis">📤</button>
   <button class="icon-btn" id="ghSyncBtn" title="☁️ URCĂ pe GitHub — comite alertele locale în tools/alerts.json (server-side + sync cross-device). Click-dreapta = setează/schimbă token-ul">☁️</button>
@@ -573,16 +599,35 @@ function nyseWeekend() {
   const wd = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short' }).format(new Date());
   return wd === 'Sat' || wd === 'Sun';
 }
-// Sesiunea bursei US (ET, DST-aware) pentru badge-ul grupului Stocks
+// ── Orele bursei US afișate în ORA ROMÂNIEI ──
+// Logica de deschidere/închidere rămâne în ET (piața US operează după ora New York,
+// indiferent unde ești). Aici convertim DOAR pentru AFIȘARE, calculând dinamic decalajul
+// RO↔ET (de obicei 7h; 6h în ferestrele scurte când DST-ul US și EU nu sunt sincrone).
+function roEtOffsetMin() {
+  const now = new Date();
+  const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const ro = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Bucharest' }));
+  return Math.round((ro - et) / 60000);
+}
+// minute-de-la-miezul-nopții ET → "HH:MM" în ora RO
+function etMinToRo(mins) {
+  const m = ((mins + roEtOffsetMin()) % 1440 + 1440) % 1440;
+  return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+}
+// Orarul complet al sesiunilor US în ora RO (pentru tooltip-uri) — recalculat la DST
+function roSchedule() {
+  return `Orar bursă US (ora RO): pre-market ${etMinToRo(240)}–${etMinToRo(570)} · regular ${etMinToRo(570)}–${etMinToRo(960)} · after-hours ${etMinToRo(960)}–${etMinToRo(1200)}`;
+}
+// Sesiunea bursei US (ET, DST-aware) pentru badge-ul grupului Stocks — label cu orele RO
 function marketSession() {
   const p = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
   const wd = p.find(x => x.type === 'weekday')?.value || '';
   const mins = (parseInt(p.find(x => x.type === 'hour')?.value, 10) || 0) * 60 + (parseInt(p.find(x => x.type === 'minute')?.value, 10) || 0);
   if (wd === 'Sat' || wd === 'Sun') return { label: '🌙 weekend · oprit', cls: 'closed' };
-  if (mins >= 570 && mins < 960) return { label: '🟢 regular', cls: 'open' };       // 09:30-16:00
-  if (mins >= 240 && mins < 570) return { label: '🟡 pre-market', cls: 'pre' };      // 04:00-09:30
-  if (mins >= 960 && mins < 1200) return { label: '🟡 after-hours', cls: 'pre' };    // 16:00-20:00
-  return { label: '🌙 închis · 10min', cls: 'closed' };                              // verificare la 10min
+  if (mins >= 570 && mins < 960) return { label: `🟢 regular · ${etMinToRo(570)}–${etMinToRo(960)} RO`, cls: 'open' };       // 09:30-16:00 ET
+  if (mins >= 240 && mins < 570) return { label: `🟡 pre-market · ${etMinToRo(240)}–${etMinToRo(570)} RO`, cls: 'pre' };     // 04:00-09:30 ET
+  if (mins >= 960 && mins < 1200) return { label: `🟡 after-hours · ${etMinToRo(960)}–${etMinToRo(1200)} RO`, cls: 'pre' };  // 16:00-20:00 ET
+  return { label: `🌙 închis · deschide ${etMinToRo(240)} RO`, cls: 'closed' };                                              // pre-market 04:00 ET
 }
 
 const CRYPTO_SYMS = new Set(['BTC-USD','BTC','ETH-USD','ETH','SOL-USD','SOL']);
@@ -596,7 +641,7 @@ function sessTag(sym) {
   if (isCrypto(u) || u.includes('.')) return '';
   const s = marketSession();
   const txt = s.cls === 'open' ? '🟢 RTH' : s.cls === 'pre' ? (s.label.includes('after') ? '🟡 AFT' : '🟡 PRE') : '🌙 CLS';
-  return `<span class="px-sess ${s.cls}" title="${s.label} · preț extended live (Yahoo includePrePost)">${txt}</span>`;
+  return `<span class="px-sess ${s.cls}" title="${s.label} · preț extended live (Yahoo includePrePost)&#10;${roSchedule()}">${txt}</span>`;
 }
 // Badge variația zilei (toate simbolurile): % față de închiderea de ieri — criteriul sortării 📈
 function dayTag(sym) {
@@ -776,33 +821,6 @@ async function fetchPrice(symbol) {
 // dispare la fire; re-arm → se dezarmează și se re-armează cu histerezis 0.3%.
 const _lastPrice = {}; // preț curent per simbol (doar pentru UI — NU se persistă în storage)
 const _lastChange = {}; // variația zilei % per simbol = (last - prevClose)/prevClose (pt sortare după creștere)
-// Istoric per simbol pentru sparkline. Fereastră comutabilă: '1d' (intraday, bare 5m) / '7d' (bare orare).
-let sparkWin = localStorage.getItem('pa_sparkwin') === '1d' ? '1d' : '7d';
-const _sparkCache = { '1d': {}, '7d': {} }, _sparkLoading = { '1d': {}, '7d': {} };
-async function loadSpark(sym) {
-  const u = String(sym || '').toUpperCase();
-  const win = sparkWin;
-  if (_sparkLoading[win][u]) return;
-  const c = _sparkCache[win][u], ttl = win === '1d' ? 300000 : 1800000;   // 1d: 5 min, 7d: 30 min
-  if (c && Date.now() - c.ts < ttl) return;
-  if (!window.D || !D.fetchJSON) return;                                   // fără lib/data.js (CORS) nu putem
-  _sparkLoading[win][u] = true;
-  try {
-    const ySym = /USDT$/.test(u) ? u.replace(/USDT$/, '-USD') : u;         // Yahoo nu cunoaște perechile Binance
-    let url;
-    if (win === '1d') {
-      url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?range=1d&interval=5m&includePrePost=true`;
-    } else {
-      const t2 = Math.floor(Date.now() / 1000), t1 = t2 - 7 * 86400;
-      url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?period1=${t1}&period2=${t2}&interval=60m&includePrePost=true`;
-    }
-    const j = await D.fetchJSON(url, { ttl: win === '1d' ? 240 : 1200, timeout: 9000 });
-    const res = j?.chart?.result?.[0];
-    const closes = (res?.indicators?.quote?.[0]?.close || []).filter(v => v != null);
-    if (closes.length) { _sparkCache[win][u] = { vals: closes, ts: Date.now() }; render(); }
-  } catch (e) {}
-  finally { _sparkLoading[win][u] = false; }
-}
 async function pollPrices() {
   if (pollPaused) return;
   priceAlerts = loadAlerts(); // sync cross-tab înainte de check (wlm poate modifica între cicluri)
@@ -850,7 +868,13 @@ async function pollPrices() {
     const list = priceAlerts[sym];
     for (let i = list.length - 1; i >= 0; i--) {
       const a = list[i];
-      if (a.addedPrice == null) { a.addedPrice = p; a.addedAt = Date.now(); changed = true; }  // preț de la adăugare (pt "de la adăugare" la day/price)
+      if (a.addedPrice == null) { a.addedPrice = p; a.addedAt = Date.now(); changed = true; }  // preț + moment de la adăugare (pt "de la creare" + vârstă)
+      // high/low water-mark față de prețul de creare → markerele max/min de pe bara "de la creare".
+      // Ref are deja a.hi/a.lo (resetate corect la re-ancorare); restul folosesc cHi/cLo dedicate.
+      if (a.kind !== 'ref') {
+        const br = a.base ?? a.addedPrice;
+        if (br > 0) { const mv = (p - br) / br * 100; if (a.cHi == null || mv > a.cHi) { a.cHi = mv; changed = true; } if (a.cLo == null || mv < a.cLo) { a.cLo = mv; changed = true; } }
+      }
       if (a.snoozeUntil) {                                    // alertă amânată (snooze)
         if (Date.now() < a.snoozeUntil) continue;             // încă amânată → o sărim
         delete a.snoozeUntil; changed = true;                 // expirat → se trezește
@@ -1058,105 +1082,126 @@ function schedulePoll() {
 }
 
 // ============ RENDER ============
-// Sparkline SVG ca AREA CHART: zonă umplută sub linie (verde/roșu după trend) + linia + ref punctată
-function sparkSvg(vals, refVal) {
-  if (!vals || vals.length < 2) return `<span class="spark-wait">⏳ încarc graficul (${sparkWin === '1d' ? '1 zi' : '7 zile'})…</span>`;
-  const w = 240, h = 30, pad = 3;
-  let min = Math.min(...vals), max = Math.max(...vals);
-  if (refVal != null) { min = Math.min(min, refVal); max = Math.max(max, refVal); }
-  const rng = (max - min) || 1;
-  const X = i => (i / (vals.length - 1)) * w;
-  const Y = v => h - pad - ((v - min) / rng) * (h - 2 * pad);
-  const pts = vals.map((v, i) => X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
-  const col = vals[vals.length - 1] >= vals[0] ? 'var(--bull-s)' : 'var(--bear-s)';
-  const refY = refVal != null ? Y(refVal).toFixed(1) : null;
-  const area = `0,${h} ${pts} ${w},${h}`;                  // poligon închis jos → zona de umplut
-  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`
-    + `<polygon points="${area}" fill="${col}" fill-opacity=".16" stroke="none"/>`
-    + (refY != null ? `<line x1="0" y1="${refY}" x2="${w}" y2="${refY}" stroke="var(--t3)" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" opacity=".5"/>` : '')
-    + `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`;
+// Format dată creării (ora RO) + vârstă alertă
+function fmtBorn(ts) {
+  if (!ts) return '⏳ la primul check';
+  const d = new Date(ts);
+  return d.toLocaleDateString('ro-RO', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
 }
-// Bara simetrică +/- față de referință: 0% la centru, umple spre dreapta (verde) dacă delta≥0, spre stânga (roșu) dacă <0
-function symBar(delta, pct) {
-  if (delta == null || isNaN(delta)) return '<span class="sym-bar"><i class="sb-zero"></i></span>';
-  const range = Math.max((pct || 1.5) * 2, Math.abs(delta) * 1.2, 0.5);
-  const pos = Math.max(0, Math.min(100, 50 + (delta / range) * 50));
+function fmtAge(ts) {
+  if (!ts) return '';
+  const m = Math.round((Date.now() - ts) / 60000);
+  return m < 60 ? `${m}min` : m < 1440 ? `${Math.round(m / 60)}h` : `${Math.round(m / 1440)}z`;
+}
+// Bară diferență cu 0% la CENTRU: umple spre dreapta (verde) dacă delta≥0, spre stânga (roșu) dacă <0.
+// scale = anvergura la fiecare capăt; hi/lo = markere max/min atinse (% de la creare), opționale.
+function diffBar(delta, scale, hi, lo) {
+  if (delta == null || !isFinite(delta)) return `<div class="b-track"><i class="b-zero"></i></div>`;
+  const range = Math.max(scale || 1.5, Math.abs(delta) * 1.2, Math.abs(hi || 0), Math.abs(lo || 0), 0.5);
+  const posOf = v => Math.max(0, Math.min(100, 50 + (v / range) * 50));
+  const pos = posOf(delta);
   const fill = delta >= 0 ? `left:50%;width:${(pos - 50).toFixed(1)}%` : `left:${pos.toFixed(1)}%;width:${(50 - pos).toFixed(1)}%`;
-  return `<span class="sym-bar" title="${(delta >= 0 ? '+' : '') + delta.toFixed(2)}% față de referință"><i class="sb-fill ${delta >= 0 ? 'up' : 'down'}" style="${fill}"></i><i class="sb-zero"></i></span>`;
+  let marks = '';
+  if (hi != null && isFinite(hi) && hi > 0.05) marks += `<i class="b-mark hi" style="left:${posOf(hi).toFixed(1)}%" title="max +${hi.toFixed(2)}% de la creare"></i>`;
+  if (lo != null && isFinite(lo) && lo < -0.05) marks += `<i class="b-mark lo" style="left:${posOf(lo).toFixed(1)}%" title="min ${lo.toFixed(2)}% de la creare"></i>`;
+  return `<div class="b-track"><i class="b-fill ${delta >= 0 ? 'up' : 'down'}" style="${fill}"></i><i class="b-zero"></i>${marks}</div>`;
 }
-// HTML-ul unui rând de alertă activă (folosit în ambele grupuri crypto/stocks)
-function rowHtml(sym, a) {
-  const cur = _lastPrice[sym];
-  const isPct = a.kind === 'pct';
-  const isAnchor = a.kind === 'anchor';
-  const isRef = a.kind === 'ref';
-  const isDay = a.kind === 'day';
-  const stateBadge = a.rearm ? (a.armed ? '<span title="re-arm: alerta se păstrează și se re-armează după declanșare">↻</span>' : '<span title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel" style="opacity:.55">↻💤</span>') : '';
-  let thrHtml, delta, isClose, dirCls, metaText = '';
-  if (isRef && a.trail) {
-    // Trailing: referința urmează vârful; alertă la scădere din vârf
+// Bară proximitate „cât mai are până sună": se umple stânga→dreapta cu cât ești mai aproape (plin = declanșează acum)
+function proxBar(score, scale) {
+  if (score == null || !isFinite(score)) return `<div class="b-track prox"></div>`;
+  const sc = scale > 0 ? scale : 2;
+  const fillPct = Math.max(2, Math.min(100, (1 - Math.min(score, sc) / sc) * 100));
+  const hot = score < 0.5;
+  return `<div class="b-track prox${hot ? ' hot' : ''}"><i class="b-fill" style="width:${fillPct.toFixed(1)}%"></i></div>`;
+}
+// „Cât mai are până la declanșare": {score:% rămas, scale:scala barei, target:descriere țintă}
+function triggerHint(sym, a, cur) {
+  if (a.kind === 'ref' && a.trail) {
     const peak = a.peak ?? a.base;
     const dd = (cur != null && peak) ? (peak - cur) / peak * 100 : null;
-    delta = dd == null ? null : -dd;                 // afișăm scăderea din vârf ca negativ
-    dirCls = 'down';
-    isClose = dd != null && dd >= a.pct * 0.8;        // aproape de stop
-    thrHtml = `📉−${a.pct}% trail<span class="dir">🔝$${peak != null ? fmtPx(peak, sym) : '⏳'}</span>`;
-    if (peak != null && cur != null) metaText = `<b class="down">${fmtPct(delta)}</b> din vârf $${fmtPx(peak, sym)}`;
-  } else if (isRef) {
-    delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;
-    dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
-    isClose = false;
-    thrHtml = `±${a.pct}%/pas<span class="dir">📊$${a.base != null ? fmtPx(a.base, sym) : '⏳'} ref</span>`;
-    if (a.base != null && cur != null) metaText = `<b class="${dirCls}">${fmtPct(delta)}</b> · ref $${fmtPx(a.base, sym)}`;
-  } else if (isAnchor) {
-    delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;        // Δ% vs ancoră fixă
-    dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
-    isClose = false;
-    const tgtTxt = a.target != null ? ` 🎯$${fmtPx(a.target, sym)}` : '';
-    thrHtml = `±${a.pct}%${tgtTxt}<span class="dir">⚓$${a.base != null ? fmtPx(a.base, sym) : '⏳'}${a.stop != null ? ' · 🛑$' + fmtPx(a.stop, sym) : ''} ${stateBadge}</span>`;
-    if (a.base != null && cur != null) metaText = `<b class="${dirCls}">${fmtPct(delta)}</b> · ancoră $${fmtPx(a.base, sym)}${a.target != null ? ' · 🎯$' + fmtPx(a.target, sym) : ''}`;
-  } else if (isPct) {
-    delta = (cur != null && a.base) ? ((cur - a.base) / a.base * 100) : null;       // mișcarea curentă față de ancoră
-    isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;                       // aproape de pragul ±%
-    dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
-    thrHtml = `±${a.pct}%<span class="dir">de la ${a.base ? '$' + fmtPx(a.base, sym) : '⏳ ancorare'} ${stateBadge}</span>`;
-    if (a.base != null && cur != null) metaText = `<b class="${dirCls}">${fmtPct(delta)}</b> · de la $${fmtPx(a.base, sym)}`;
-  } else if (isDay) {
-    delta = _lastChange[sym] ?? null;                                                // urmărim variația zilei
-    isClose = delta != null && Math.abs(delta) >= a.pct * 0.8;
-    dirCls = delta == null ? '' : (delta >= 0 ? 'up' : 'down');
-    thrHtml = `📅 ±${a.pct}%<span class="dir">variația zilei ${stateBadge}</span>`;
-    if (delta != null) metaText = `<b class="${dirCls}">${fmtPct(delta)}</b> azi (prag ±${a.pct}%)`;
-  } else {
-    delta = cur != null ? ((cur - a.lvl) / a.lvl * 100) : null;
-    isClose = delta != null && Math.abs(delta) < 1.5;
-    dirCls = a.dir === 'above' ? 'up' : 'down';
-    thrHtml = `$${fmtPx(a.lvl, sym)}<span class="dir">${a.dir === 'above' ? '▲ peste' : '▼ sub'} ${stateBadge}</span>`;
-    if (delta != null) metaText = `<b class="${dirCls}">${fmtPct(delta)}</b> · prag $${fmtPx(a.lvl, sym)} ${a.dir === 'above' ? '▲' : '▼'}`;
+    return { score: dd == null ? Infinity : Math.max(0, a.pct - dd), scale: a.pct || 2, target: `−${a.pct}% din vârf` };
   }
-  // Linie: sparkline (1z/7z) + bara simetrică +/- față de referință + text scurt "±% · ref $X"
-  const hist = _sparkCache[sparkWin][sym.toUpperCase()];
-  const spark = hist ? hist.vals.concat(cur != null ? [cur] : []) : (cur != null ? [cur] : []);
-  const refLine = a.base ?? (a.kind === 'price' ? a.lvl : a.addedPrice) ?? null;
-  const sparkLine = `<div class="alert-spark">${sparkSvg(spark, refLine)}${symBar(delta, a.pct)}<span class="spark-meta">${metaText}</span></div>`;
+  if (a.kind === 'ref') return { score: proximityScore(sym, a), scale: a.pct || 2, target: `pas ±${a.pct}%` };
+  if (a.kind === 'pct') return { score: proximityScore(sym, a), scale: a.pct || 2, target: `±${a.pct}%` };
+  if (a.kind === 'day') return { score: proximityScore(sym, a), scale: a.pct || 2, target: `±${a.pct}% azi` };
+  if (a.kind === 'anchor') {
+    const opts = [];
+    if (cur != null && a.target != null) opts.push({ d: Math.abs(a.target - cur) / cur * 100, t: `🎯$${fmtPx(a.target, sym)}` });
+    if (cur != null && a.stop != null) opts.push({ d: Math.abs(a.stop - cur) / cur * 100, t: `🛑$${fmtPx(a.stop, sym)}` });
+    if (cur != null && a.base != null && a.pct > 0) { const mv = (cur - a.base) / a.base * 100; opts.push({ d: Math.min(Math.abs((Math.floor(mv / a.pct) + 1) * a.pct - mv), Math.abs(mv - (Math.ceil(mv / a.pct) - 1) * a.pct)), t: `pas ±${a.pct}%` }); }
+    opts.sort((x, y) => x.d - y.d);
+    return { score: opts.length ? opts[0].d : Infinity, scale: Math.max(a.pct || 2, 2), target: opts.length ? opts[0].t : '—' };
+  }
+  return { score: proximityScore(sym, a), scale: 2, target: `prag $${fmtPx(a.lvl, sym)}` };  // price
+}
+// HTML-ul unui card de alertă activă (folosit în ambele grupuri crypto/stocks)
+function rowHtml(sym, a) {
+  const cur = _lastPrice[sym];
+  const k = a.kind || 'price';
+  const isRef = k === 'ref', isAnchor = k === 'anchor', isPct = k === 'pct', isDay = k === 'day';
+  const stateBadge = a.rearm ? (a.armed ? ' <span title="re-arm: se păstrează și se re-armează după declanșare">↻</span>' : ' <span style="opacity:.55" title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel">↻💤</span>') : '';
+
+  // Prețul + momentul creării; delta „de la creare" (față de prețul de la adăugare / ancoră)
+  const baseCreate = a.base ?? a.addedPrice ?? (k === 'price' ? a.lvl : null);
+  const deltaCreate = (cur != null && baseCreate) ? (cur - baseCreate) / baseCreate * 100 : null;
+  const dayChg = _lastChange[sym];
+  const dayCls = dayChg == null ? '' : (dayChg >= 0 ? 'up' : 'down');
+  const hiMark = isRef ? a.hi : a.cHi;   // markere max/min: ref are hi/lo propriu, restul cHi/cLo
+  const loMark = isRef ? a.lo : a.cLo;
+
+  // Rândul 2: descrierea tipului de alertă
+  let kindHtml;
+  if (isRef && a.trail) kindHtml = `📉 −${a.pct}% trailing din vârf`;
+  else if (isRef) kindHtml = `±${a.pct}%/pas · 📊 referință`;
+  else if (isAnchor) kindHtml = `⚓ ancoră · pas ±${a.pct}%${a.target != null ? ' · 🎯$' + fmtPx(a.target, sym) : ''}${a.stop != null ? ' · 🛑$' + fmtPx(a.stop, sym) : ''}`;
+  else if (isPct) kindHtml = `±${a.pct}% mișcare de la ancoră`;
+  else if (isDay) kindHtml = `📅 ±${a.pct}% variația zilei`;
+  else kindHtml = `$${fmtPx(a.lvl, sym)} · ${a.dir === 'above' ? '▲ peste' : '▼ sub'}`;
+  kindHtml += stateBadge;
+
+  // Barele
+  const bars = [];
+  if (!isDay) {  // la „variația zilei" bara „de la creare" e identică cu „azi" → o sărim
+    const scale = Math.max((a.pct || 0) * 2, Math.abs(hiMark || 0), Math.abs(loMark || 0), Math.abs(deltaCreate || 0) * 1.2, 1.5);
+    const vc = deltaCreate == null ? '' : (deltaCreate >= 0 ? 'up' : 'down');
+    bars.push(`<div class="ac-bar"><span class="b-lbl">de la creare</span>${diffBar(deltaCreate, scale, hiMark, loMark)}<span class="b-val ${vc}">${deltaCreate == null ? '—' : fmtPct(deltaCreate)}</span></div>`);
+  }
+  {
+    const scale = Math.max(Math.abs(dayChg || 0) * 1.5, 1.5);
+    const vc = dayChg == null ? '' : (dayChg >= 0 ? 'up' : 'down');
+    bars.push(`<div class="ac-bar"><span class="b-lbl">azi</span>${diffBar(dayChg, scale, null, null)}<span class="b-val ${vc}">${dayChg == null ? '—' : fmtPct(dayChg)}</span></div>`);
+  }
+  {
+    const h = triggerHint(sym, a, cur);
+    const ok = h.score != null && isFinite(h.score);
+    const hot = ok && h.score < 0.5;
+    bars.push(`<div class="ac-bar"><span class="b-lbl">cât mai are</span>${proxBar(h.score, h.scale)}<span class="b-val ${hot ? 'warn' : ''}">${ok ? `${hot ? '⏰ ' : ''}${h.score.toFixed(2)}% → ${h.target}` : '—'}</span></div>`);
+  }
+
+  const bornStr = fmtBorn(a.addedAt);
+  const ageStr = a.addedAt ? ' · activă ' + fmtAge(a.addedAt) : '';
+  const createPxStr = baseCreate != null ? ' · creat la $' + fmtPx(baseCreate, sym) : '';
   const snoozed = a.snoozeUntil && a.snoozeUntil > Date.now();
   const snzRem = snoozed ? Math.ceil((a.snoozeUntil - Date.now()) / 60000) : 0;
   const snzTxt = snzRem >= 120 ? Math.round(snzRem / 60) + 'h' : snzRem + 'm';
-  return `<div class="alert-row${snoozed ? ' snoozed' : ''}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
-    <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${snoozed ? `<span class="snz-badge" title="amânată (snooze)">😴${snzTxt}</span>` : ''}</div>
-    <div class="alert-thr">${thrHtml}</div>
-    <div class="alert-current ${dirCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}${cur != null ? sessTag(sym) : ''}${cur != null ? dayTag(sym) : ''}</div>
-    <div class="alert-delta ${isClose ? 'close' : ''}">${delta != null ? (delta>=0?'+':'')+delta.toFixed(2)+'%' : '—'}</div>
-    <div class="alert-note">${escHtml(a.note || '')}</div>
-    <div class="alert-actions">
-      <button class="icon-btn" data-action="snooze" title="😴 Amână alerta (1h / 4h / până la deschidere)" style="${snoozed ? 'color:var(--warn);border-color:rgba(212,137,44,.4)' : 'opacity:.6'}">😴</button>
-      ${isRef
-        ? `<button class="icon-btn" data-action="reanchor" title="🔄 Re-ancorează referința la prețul curent (resetează 0%, pașii și max/min — ex: după ce intri în trade)">🔄</button>`
-        : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (devine one-shot, dispare după declanșare)' : 'One-shot — click pt ↻ re-arm (se reia/re-ancorează după declanșare)'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>`}
-      <button class="icon-btn" data-action="edit" title="Editează alerta (modal complet)">✎</button>
-      <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
+
+  return `<div class="alert-card${snoozed ? ' snoozed' : ''}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
+    <div class="ac-head">
+      <span class="ac-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}</span>
+      ${cur != null ? sessTag(sym) : ''}
+      <span class="ac-actions">
+        <button class="icon-btn" data-action="snooze" title="😴 Amână alerta (1h / 4h / până la deschidere)" style="${snoozed ? 'color:var(--warn);border-color:rgba(212,137,44,.4)' : 'opacity:.6'}">😴</button>
+        ${isRef
+          ? `<button class="icon-btn" data-action="reanchor" title="🔄 Re-ancorează referința la prețul curent (resetează 0%, pașii și max/min)">🔄</button>`
+          : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (one-shot)' : 'One-shot — click pt ↻ re-arm'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>`}
+        <button class="icon-btn" data-action="edit" title="Editează alerta (modal complet)">✎</button>
+        <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
+      </span>
     </div>
-    ${sparkLine}
+    <div class="ac-kind">${kindHtml}</div>
+    <div class="ac-meta"><span class="ac-born">creat ${bornStr}${ageStr}${createPxStr}</span><span class="ac-now ${dayCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}${cur != null ? dayTag(sym) : ''}</span></div>
+    <div class="ac-bars">${bars.join('')}</div>
+    <div class="ac-note">${escHtml(a.note || '')}</div>
   </div>`;
 }
 
@@ -1167,10 +1212,10 @@ function renderActiveGroup(bodyEl, groupRows, ico, emptyMsg) {
   bindActiveActions(bodyEl);
 }
 
-// Leagă rearm/delete/edit pe rândurile dintr-un container
+// Leagă rearm/delete/edit pe cardurile dintr-un container
 function bindActiveActions(container) {
   container.querySelectorAll('[data-action="rearm"]').forEach(btn => btn.addEventListener('click', e => {
-    const row = e.target.closest('.alert-row');
+    const row = e.target.closest('.alert-card');
     const sym = row.dataset.sym, id = row.dataset.id;
     const a = (priceAlerts[sym] || []).find(x => x.id === id);
     if (!a) return;
@@ -1180,20 +1225,20 @@ function bindActiveActions(container) {
     toast(`↻ ${sym}: re-arm ${a.rearm ? 'PORNIT' : 'oprit (one-shot)'}`, 'info');
   }));
   container.querySelectorAll('[data-action="reanchor"]').forEach(btn => btn.addEventListener('click', e => {
-    const row = e.target.closest('.alert-row');
+    const row = e.target.closest('.alert-card');
     const sym = row.dataset.sym, id = row.dataset.id;
     priceAlerts = loadAlerts();
     const a = (priceAlerts[sym] || []).find(x => x.id === id);
     if (!a) return;
     const px = _lastPrice[sym];
     if (px == null) { toast(`⏳ ${sym}: încă n-am un preț — se ancorează la primul check`, 'warn'); return; }
-    a.base = px; a.lastStep = 0; a.hi = 0; a.lo = 0;   // reset complet la prețul curent
+    a.base = px; a.lastStep = 0; a.hi = 0; a.lo = 0; a.cHi = 0; a.cLo = 0;   // reset complet (inclusiv max/min) la prețul curent
     if (a.trail) { a.peak = px; a.trailFired = false; }  // trailing → vârful repornește de la prețul curent
     persistAlerts(); render(); autoSync();
     toast(`🔄 ${sym}: ${a.trail ? 'vârf trailing re-ancorat' : 'referință re-ancorată'} la $${fmtPx(px, sym)}`, 'success');
   }));
   container.querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
-    const row = e.target.closest('.alert-row');
+    const row = e.target.closest('.alert-card');
     const sym = row.dataset.sym, id = row.dataset.id;
     if (!confirm('Șterge acest alert?')) return;
     priceAlerts[sym] = (priceAlerts[sym] || []).filter(a => a.id !== id);
@@ -1201,12 +1246,12 @@ function bindActiveActions(container) {
     persistAlerts(); render(); autoSync();
   }));
   container.querySelectorAll('[data-action="edit"]').forEach(btn => btn.addEventListener('click', e => {
-    const row = e.target.closest('.alert-row');
+    const row = e.target.closest('.alert-card');
     openEditModal(row.dataset.sym, row.dataset.id);
   }));
   container.querySelectorAll('[data-action="snooze"]').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
-    const row = e.target.closest('.alert-row');
+    const row = e.target.closest('.alert-card');
     showSnoozeMenu(btn, row.dataset.sym, row.dataset.id);
   }));
 }
@@ -1332,7 +1377,6 @@ function renderPulse(activeRows) {
 function render() {
   const rows = [];
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
-  [...new Set(rows.map(r => r.sym.toUpperCase()))].forEach(loadSpark);   // încarcă istoricul (fereastra curentă, self-guard pe cache)
   // Istoric combinat: local + ☁️ server-side, dedup pe sym|lvl|dir|minut (același
   // eveniment poate exista în ambele dacă pagina și botul l-au prins simultan)
   const hKey = h => `${h.sym}|${h.kind || 'price'}|${h.kind === 'anchor' ? (h.sub + ':' + h.pct) : h.kind === 'ref' ? (h.trail ? 't:' + h.pct : h.pct + ':' + h.step) : h.kind === 'day' ? ('day:' + h.pct) : h.kind === 'pct' ? h.pct : h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
@@ -1348,7 +1392,7 @@ function render() {
   $('cntTriggered').textContent = triggered.length;
   // Badge sesiune pe grupul Stocks (crypto rămâne 🟢 24/7 fix din HTML)
   const ss = marketSession();
-  const sb = $('sessStocks'); sb.textContent = ss.label; sb.className = 'sess-badge ' + ss.cls;
+  const sb = $('sessStocks'); sb.textContent = ss.label; sb.className = 'sess-badge ' + ss.cls; sb.title = roSchedule();
 
   renderPulse([...cryptoRows, ...stockRows]);
   // Filtru: pulse + badge sesiune rămân pe TOATE; doar listele afișate se filtrează
@@ -1774,19 +1818,6 @@ $('btnSort').addEventListener('click', () => {
   toast('Sortare: ' + _SORT_LABEL[sortMode], 'info');
 });
 applySortBtn();
-
-// Toggle fereastră grafic: 1 zi (intraday, bare 5m) ↔ 7 zile (bare orare)
-function applySparkWinBtn() {
-  $('btnSparkWin').textContent = sparkWin === '1d' ? '📈 1z' : '📈 7z';
-  $('btnSparkWin').title = `Fereastră grafic: ${sparkWin === '1d' ? '1 zi (intraday, bare 5m)' : '7 zile (bare orare)'} — click pt schimbare`;
-}
-$('btnSparkWin').addEventListener('click', () => {
-  sparkWin = sparkWin === '1d' ? '7d' : '1d';
-  localStorage.setItem('pa_sparkwin', sparkWin);
-  applySparkWinBtn(); render();
-  toast(sparkWin === '1d' ? '📈 Grafic: 1 zi (intraday)' : '📈 Grafic: 7 zile', 'info');
-});
-applySparkWinBtn();
 
 // Filtru rapid: căutare text + chips (toate / ▲azi / ▼azi / aproape)
 $('filterInp').addEventListener('input', e => { filterText = e.target.value.trim().toLowerCase(); render(); });
