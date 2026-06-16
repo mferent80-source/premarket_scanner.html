@@ -207,7 +207,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .alert-actions { display:flex; gap:4px; }
 
 /* ===== Card alertă activă (nume mare + meta + bare de diferență) ===== */
-.alert-card { padding:11px 14px; border-bottom:1px solid rgba(42,50,71,.5); font-family:var(--head); }
+.alert-card { padding:10px 14px; border-bottom:1px solid rgba(42,50,71,.5); font-family:var(--head); overflow:hidden; }
 .alert-card:last-child { border-bottom:none; }
 .alert-card:hover { background:rgba(91,176,255,.04); }
 .alert-card.snoozed { opacity:.5; }
@@ -226,13 +226,13 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .ac-now { font-size:15px; font-weight:700; color:var(--t1); white-space:nowrap; }
 .ac-now.up { color:var(--bull-s); } .ac-now.down { color:var(--bear-s); }
 /* bloc bare */
-.ac-bars { margin-top:8px; display:flex; flex-direction:column; gap:5px; }
-.ac-bar { display:grid; grid-template-columns:78px 1fr 92px; align-items:center; gap:8px; }
-.ac-bar .b-lbl { font-family:var(--mono); font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; }
-.ac-bar .b-val { font-family:var(--mono); font-size:11px; font-weight:700; text-align:right; color:var(--t2); white-space:nowrap; }
+.ac-bars { margin-top:7px; display:flex; flex-direction:column; gap:4px; }
+.ac-bar { display:grid; grid-template-columns:74px 1fr 76px; align-items:center; gap:8px; }
+.ac-bar .b-lbl { font-family:var(--mono); font-size:9.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; }
+.ac-bar .b-val { font-family:var(--mono); font-size:10.5px; font-weight:700; text-align:right; color:var(--t2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .ac-bar .b-val.up { color:var(--bull-s); } .ac-bar .b-val.down { color:var(--bear-s); } .ac-bar .b-val.warn { color:var(--warn); }
 /* bara diferență 0%-centru (de la creare / azi) */
-.b-track { position:relative; height:12px; background:var(--panel3); border:1px solid var(--b1); border-radius:6px; overflow:hidden; }
+.b-track { position:relative; height:9px; background:var(--panel3); border:1px solid var(--b1); border-radius:5px; overflow:hidden; }
 .b-fill { position:absolute; top:0; bottom:0; }
 .b-fill.up { background:linear-gradient(90deg, rgba(34,214,107,.35), var(--bull-s)); }
 .b-fill.down { background:linear-gradient(270deg, rgba(255,77,77,.35), var(--bear-s)); }
@@ -335,7 +335,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   .alert-card { padding:9px 12px; }
   .ac-sym { font-size:16px; }
   .ac-now { font-size:14px; }
-  .ac-bar { grid-template-columns:58px 1fr 78px; gap:6px; }
+  .ac-bar { grid-template-columns:54px 1fr 66px; gap:6px; }
   .ac-bar .b-lbl { font-size:9px; letter-spacing:.2px; }
   .ac-bar .b-val { font-size:9.5px; }
 }
@@ -344,7 +344,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v39</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v40</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -1107,32 +1107,33 @@ function diffBar(delta, scale, hi, lo) {
   return `<div class="b-track"><i class="b-fill ${delta >= 0 ? 'up' : 'down'}" style="${fill}"></i><i class="b-zero"></i>${marks}</div>`;
 }
 // Bară proximitate „cât mai are până sună": se umple stânga→dreapta cu cât ești mai aproape (plin = declanșează acum)
-function proxBar(score, scale) {
-  if (score == null || !isFinite(score)) return `<div class="b-track prox"></div>`;
+function proxBar(score, scale, title) {
+  const t = title ? ` title="${title}"` : '';
+  if (score == null || !isFinite(score)) return `<div class="b-track prox"${t}></div>`;
   const sc = scale > 0 ? scale : 2;
   const fillPct = Math.max(2, Math.min(100, (1 - Math.min(score, sc) / sc) * 100));
   const hot = score < 0.5;
-  return `<div class="b-track prox${hot ? ' hot' : ''}"><i class="b-fill" style="width:${fillPct.toFixed(1)}%"></i></div>`;
+  return `<div class="b-track prox${hot ? ' hot' : ''}"${t}><i class="b-fill" style="width:${fillPct.toFixed(1)}%"></i></div>`;
 }
-// „Cât mai are până la declanșare": {score:% rămas, scale:scala barei, target:descriere țintă}
+// „Cât mai are până la declanșare": {score:% rămas, scale, target:descriere completă (tooltip), ico:emoji scurt (coloana val)}
 function triggerHint(sym, a, cur) {
   if (a.kind === 'ref' && a.trail) {
     const peak = a.peak ?? a.base;
     const dd = (cur != null && peak) ? (peak - cur) / peak * 100 : null;
-    return { score: dd == null ? Infinity : Math.max(0, a.pct - dd), scale: a.pct || 2, target: `−${a.pct}% din vârf` };
+    return { score: dd == null ? Infinity : Math.max(0, a.pct - dd), scale: a.pct || 2, target: `−${a.pct}% din vârf`, ico: '📉' };
   }
-  if (a.kind === 'ref') return { score: proximityScore(sym, a), scale: a.pct || 2, target: `pas ±${a.pct}%` };
-  if (a.kind === 'pct') return { score: proximityScore(sym, a), scale: a.pct || 2, target: `±${a.pct}%` };
-  if (a.kind === 'day') return { score: proximityScore(sym, a), scale: a.pct || 2, target: `±${a.pct}% azi` };
+  if (a.kind === 'ref') return { score: proximityScore(sym, a), scale: a.pct || 2, target: `următorul pas ±${a.pct}%`, ico: '🪜' };
+  if (a.kind === 'pct') return { score: proximityScore(sym, a), scale: a.pct || 2, target: `mișcare ±${a.pct}%`, ico: '±' };
+  if (a.kind === 'day') return { score: proximityScore(sym, a), scale: a.pct || 2, target: `±${a.pct}% pe zi`, ico: '📅' };
   if (a.kind === 'anchor') {
     const opts = [];
-    if (cur != null && a.target != null) opts.push({ d: Math.abs(a.target - cur) / cur * 100, t: `🎯$${fmtPx(a.target, sym)}` });
-    if (cur != null && a.stop != null) opts.push({ d: Math.abs(a.stop - cur) / cur * 100, t: `🛑$${fmtPx(a.stop, sym)}` });
-    if (cur != null && a.base != null && a.pct > 0) { const mv = (cur - a.base) / a.base * 100; opts.push({ d: Math.min(Math.abs((Math.floor(mv / a.pct) + 1) * a.pct - mv), Math.abs(mv - (Math.ceil(mv / a.pct) - 1) * a.pct)), t: `pas ±${a.pct}%` }); }
+    if (cur != null && a.target != null) opts.push({ d: Math.abs(a.target - cur) / cur * 100, t: `🎯 $${fmtPx(a.target, sym)}`, i: '🎯' });
+    if (cur != null && a.stop != null) opts.push({ d: Math.abs(a.stop - cur) / cur * 100, t: `🛑 $${fmtPx(a.stop, sym)}`, i: '🛑' });
+    if (cur != null && a.base != null && a.pct > 0) { const mv = (cur - a.base) / a.base * 100; opts.push({ d: Math.min(Math.abs((Math.floor(mv / a.pct) + 1) * a.pct - mv), Math.abs(mv - (Math.ceil(mv / a.pct) - 1) * a.pct)), t: `pas ±${a.pct}%`, i: '🪜' }); }
     opts.sort((x, y) => x.d - y.d);
-    return { score: opts.length ? opts[0].d : Infinity, scale: Math.max(a.pct || 2, 2), target: opts.length ? opts[0].t : '—' };
+    return { score: opts.length ? opts[0].d : Infinity, scale: Math.max(a.pct || 2, 2), target: opts.length ? opts[0].t : '—', ico: opts.length ? opts[0].i : '' };
   }
-  return { score: proximityScore(sym, a), scale: 2, target: `prag $${fmtPx(a.lvl, sym)}` };  // price
+  return { score: proximityScore(sym, a), scale: 2, target: `prag $${fmtPx(a.lvl, sym)}`, ico: '🎯' };  // price
 }
 // HTML-ul unui card de alertă activă (folosit în ambele grupuri crypto/stocks)
 function rowHtml(sym, a) {
@@ -1175,7 +1176,10 @@ function rowHtml(sym, a) {
     const h = triggerHint(sym, a, cur);
     const ok = h.score != null && isFinite(h.score);
     const hot = ok && h.score < 0.5;
-    bars.push(`<div class="ac-bar"><span class="b-lbl">cât mai are</span>${proxBar(h.score, h.scale)}<span class="b-val ${hot ? 'warn' : ''}">${ok ? `${hot ? '⏰ ' : ''}${h.score.toFixed(2)}% → ${h.target}` : '—'}</span></div>`);
+    const tip = ok ? `${h.score.toFixed(2)}% până la ${h.target}` : 'cât mai are până la declanșare';
+    // coloana valoare = scurt (% + emoji țintă); descrierea completă în tooltip-ul barei
+    const valTxt = ok ? `${hot ? '⏰' : ''}${h.score.toFixed(2)}%${h.ico ? ' ' + h.ico : ''}` : '—';
+    bars.push(`<div class="ac-bar"><span class="b-lbl">cât mai are</span>${proxBar(h.score, h.scale, tip)}<span class="b-val ${hot ? 'warn' : ''}" title="${tip}">${valTxt}</span></div>`);
   }
 
   const bornStr = fmtBorn(a.addedAt);
