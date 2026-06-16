@@ -220,42 +220,6 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .sym-bar .sb-fill.down { background:var(--bear-s); }
 .sym-bar .sb-zero { position:absolute; top:-1px; bottom:-1px; left:50%; width:1px; background:var(--t2); opacity:.55; transform:translateX(-.5px); }
 
-/* Anchor progress (tip ⚓ Ancoră) */
-.anchor-prog { margin-top:4px; }
-.anchor-bar-mini { height:5px; background:var(--panel3); border-radius:3px; overflow:hidden; border:1px solid var(--b1); }
-.anchor-bar-mini > i { display:block; height:100%; background:linear-gradient(90deg,var(--acc-1),var(--bull-s)); border-radius:3px; transition:width .3s var(--ease); }
-.anchor-rem { display:block; font-size:10px; color:var(--t3); font-family:var(--mono); margin-top:2px; }
-
-/* Bara simetrică referință (tip 📊 Referință): 0% la centru, creștere → dreapta (verde), scădere → stânga (roșu) */
-.ref-wrap { margin-top:5px; }
-.ref-bar {
-  position:relative; height:14px; background:var(--panel3); border-radius:4px;
-  border:1px solid var(--b1); overflow:hidden;
-}
-.ref-bar > .ref-fill { position:absolute; top:0; bottom:0; border-radius:2px; opacity:.55; }
-.ref-bar > .ref-fill.up   { background:linear-gradient(90deg, rgba(34,214,107,.25), var(--bull-s)); }
-.ref-bar > .ref-fill.down { background:linear-gradient(270deg, rgba(255,77,77,.25), var(--bear-s)); }
-.ref-bar > .ref-center {  /* linia 0% (referința) */
-  position:absolute; top:-1px; bottom:-1px; left:50%; width:1px; background:var(--t2); opacity:.5; transform:translateX(-.5px);
-}
-.ref-bar > .ref-cursor {  /* poziția curentă */
-  position:absolute; top:50%; width:8px; height:8px; border-radius:50%;
-  background:var(--t1); border:1.5px solid var(--bg); box-shadow:0 0 4px rgba(0,0,0,.5);
-  transform:translate(-50%,-50%); z-index:3;
-}
-.ref-bar > .ref-cursor.up   { background:var(--bull-s); }
-.ref-bar > .ref-cursor.down { background:var(--bear-s); }
-.ref-bar > .ref-mark {  /* high/low water-mark — linii subțiri */
-  position:absolute; top:1px; bottom:1px; width:2px; border-radius:1px; z-index:2; transform:translateX(-1px);
-}
-.ref-bar > .ref-mark.hi { background:var(--bull-s); opacity:.7; }
-.ref-bar > .ref-mark.lo { background:var(--bear-s); opacity:.7; }
-.ref-scale { display:flex; justify-content:space-between; font-size:9px; color:var(--t3); font-family:var(--mono); margin-top:2px; }
-.ref-meta { display:block; font-size:10px; color:var(--t3); font-family:var(--mono); margin-top:2px; line-height:1.5; }
-.ref-meta b.up { color:var(--bull-s); }
-.ref-meta b.down { color:var(--bear-s); }
-.ref-next { color:var(--t2); }
-
 /* Badge sesiune per grup (crypto 24/7 vs stocks cu sesiune) */
 .sess-badge {
   font-family:var(--mono); font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px;
@@ -339,13 +303,6 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   .alert-note { grid-area:note; font-size:11px; }
   .alert-note:empty { display:none; }                      /* fără rând gol când nu există notă */
   .icon-btn { padding:4px 7px; }                            /* butoane puțin mai mici pe telefon */
-  /* Bara 📊 Referință pe ecran mic: compactă, fără overflow, praguri pe linie proprie */
-  .ref-wrap { margin-top:4px; }
-  .ref-bar { height:12px; }
-  .ref-cursor { width:9px; height:9px; }                   /* țintă mai ușor de văzut cu degetul */
-  .ref-scale { font-size:8px; }
-  .ref-meta { font-size:9px; line-height:1.45; white-space:normal; }
-  .ref-next { display:block; margin-top:1px; }             /* „următoarele praguri" pe rândul lor, nu înghesuite */
   .px-sess { font-size:8px; padding:1px 4px; margin-left:4px; }
   .day-chg { font-size:8.5px; padding:1px 4px; margin-left:4px; }
   /* sparkline mai adunat pe telefon */
@@ -360,7 +317,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v37</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v38</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -708,13 +665,14 @@ window.addEventListener('storage', e => { if (e.key === ALERTS_KEY) { priceAlert
 function toast(msg, kind='info', opts={}) {
   const el = document.createElement('div');
   el.className = 'toast ' + kind;
-  const autoMs = 5000; // TOATE toast-urile dispar după 5s (inclusiv alerte declanșate + erori — ai Telegram/browser/istoric)
+  const persist = !!opts.persist;   // alertele declanșate rămân până la click pe ✕ (altfel dispar în 5s și e ușor să le ratezi)
   el.innerHTML = `<span class="toast-msg">${escHtml(msg)}</span><button class="toast-close" title="Închide">✕</button>`;
   const close = () => { el.classList.add('toast-out'); setTimeout(() => el.remove(), 200); };
   el.querySelector('.toast-close').addEventListener('click', close);
   $('toasts').appendChild(el);
-  // pauză la hover ca să apuci să citești; reia 2s după ce iei mouse-ul
-  let timer = setTimeout(close, autoMs);
+  if (persist) return;   // persistent: fără auto-close — dispare doar la click
+  // non-persistent (info/confirmări): dispar după 5s, cu pauză la hover ca să apuci să citești; reia 2s după
+  let timer = setTimeout(close, 5000);
   el.addEventListener('mouseenter', () => { clearTimeout(timer); timer = null; });
   el.addEventListener('mouseleave', () => { if (!timer) timer = setTimeout(close, 2000); });
 }
