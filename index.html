@@ -830,7 +830,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     // v41 FIX „premarket nu e live": includePrePost + citim ULTIMA bară 5m (extended) ca preț curent.
     // ÎNAINTE: interval=1d&range=1d + meta.regularMarketPrice = close-ul regular ÎNGHEȚAT în pre/after
     // → widget-ul arăta prețul de ieri, nu cel live din premarket. (aliniat cu nasdaq-scanner)
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=5m&range=1d&includePrePost=true`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1m&range=1d&includePrePost=true`;
     // strat de date comun (lib/data.js): proxy health per-host + fallback + cache 30s.
     let data;
     if (window.D && D.fetchJSON) {
@@ -847,13 +847,14 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     const res = data?.chart?.result?.[0];
     const meta = res?.meta;
     if (!meta) throw new Error('no meta');
-    // preț LIVE din meta extended (pre/postMarketPrice) — ultima bară 5m cu range=1d poate fi ÎNCĂ
-    // close-ul regular de IERI. Fallback: ultima bară non-null, apoi regularMarketPrice.
+    // preț LIVE = ultima bară non-null (sursa cea mai proaspătă, ca alerts v44 — meta.preMarketPrice
+    // vine GOL pe destule simboluri). Fallback: meta extended pre/post (early premarket fără bare) → regular.
     const closes = res?.indicators?.quote?.[0]?.close || [];
     let bar = null;
     for (let i = closes.length - 1; i >= 0; i--) { if (closes[i] != null) { bar = closes[i]; break; } }
-    const price = (usSession === 'pre' ? meta.preMarketPrice : usSession === 'after' ? meta.postMarketPrice : meta.regularMarketPrice)
-      ?? bar ?? meta.regularMarketPrice;
+    const price = bar
+      ?? (usSession === 'pre' ? meta.preMarketPrice : usSession === 'after' ? meta.postMarketPrice : null)
+      ?? meta.regularMarketPrice;
     // În PREMARKET cu range=1d, chartPreviousClose = close N−2; close-ul de ieri (N−1) e regularMarketPrice.
     // În rth/after, chartPreviousClose e corect close-ul de ieri.
     const prev = usSession === 'pre'

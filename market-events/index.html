@@ -1037,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v237</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v238</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -4456,11 +4456,25 @@ function aiChatQuickCmd(cmd){
 // Folosim chart endpoint v8 (fără crumb) prin proxy-ul deja existent.
 // ============================================================
 let lastSentiment = null; // ultimele valori SPY/QQQ/VIX + sesiune — pentru contextul AI (auto-scan + chat)
+// Sesiunea US din ora ET (meta.marketState vine None pe chart endpoint cu includePrePost).
+function etMarketState() {
+  try {
+    const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false, weekday:'short', hour:'2-digit', minute:'2-digit' }).formatToParts(new Date()).map(x => [x.type, x.value]));
+    if (p.weekday === 'Sat' || p.weekday === 'Sun') return 'CLOSED';
+    const mins = (+p.hour) * 60 + (+p.minute);
+    if (mins >= 240 && mins < 570) return 'PRE';
+    if (mins >= 570 && mins < 960) return 'REGULAR';
+    if (mins >= 960 && mins < 1200) return 'POST';
+    return 'CLOSED';
+  } catch (e) { return 'REGULAR'; }
+}
 async function fetchMarketSentiment() {
   const scanner = getScanner();
   const symbols = ['SPY', 'QQQ', '^VIX'];
+  // v: includePrePost + preț din ultima bară (SPY/QQQ se mișcă în premarket pe futures) — înainte
+  // interval=1d + regularMarketPrice = close-ul de ieri, „nu live" dimineața (ca vechiul Hub).
   const requests = symbols.map(sym => {
-    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1d&interval=1d`;
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1d&interval=5m&includePrePost=true`;
     return scanner._getJson(yahooUrl, 30).then(j => j || Promise.reject(new Error(`fără date ${sym}`))); // sentiment — cache 30s
   });
 
@@ -4468,14 +4482,23 @@ async function fetchMarketSentiment() {
 
   // Parse rezultate; ignorăm cele picate (afișăm "—" pe carduri)
   const data = {};
+  const etState = etMarketState();
   results.forEach((r, i) => {
     if (r.status !== 'fulfilled') { console.warn('sentiment', symbols[i], r.reason); return; }
-    const meta = r.value?.chart?.result?.[0]?.meta;
+    const res = r.value?.chart?.result?.[0];
+    const meta = res?.meta;
     if (!meta) return;
-    const price = meta.regularMarketPrice;
-    const prev  = meta.chartPreviousClose ?? meta.previousClose;
+    // preț LIVE = ultima bară non-null (premarket/after); fallback regularMarketPrice
+    const closes = res.indicators?.quote?.[0]?.close || [];
+    let bar = null;
+    for (let k = closes.length - 1; k >= 0; k--) { if (closes[k] != null) { bar = closes[k]; break; } }
+    const price = bar ?? meta.regularMarketPrice;
+    // prev = close de IERI: în premarket regularMarketPrice (chartPreviousClose = N−2 cu range=1d)
+    const prev = etState === 'PRE'
+      ? (meta.regularMarketPrice ?? meta.chartPreviousClose ?? meta.previousClose)
+      : (meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice);
     const chgPct = (price != null && prev) ? ((price - prev) / prev) * 100 : null;
-    data[symbols[i]] = { price, chgPct, marketState: meta.marketState };
+    data[symbols[i]] = { price, chgPct, marketState: meta.marketState || etState };
   });
 
   // Render SPY
@@ -4486,7 +4509,7 @@ async function fetchMarketSentiment() {
   renderSentCard('vix', data['^VIX'], { invert: true });
 
   // Market Session: Yahoo dă PRE / REGULAR / POST / CLOSED în meta.marketState
-  const state = data.SPY?.marketState || data.QQQ?.marketState || data['^VIX']?.marketState;
+  const state = data.SPY?.marketState || data.QQQ?.marketState || data['^VIX']?.marketState || etState;
   renderMarketSession(state);
 
   // Memorăm pentru contextul AI (auto-scan + chat cereau „SPY/QQQ/VIX" dar nu le primeau).
