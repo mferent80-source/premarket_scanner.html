@@ -344,7 +344,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v40</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v41</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -742,7 +742,8 @@ function playBeep() {
 }
 function showBrowserNotif(title, body) {
   if (!notifEnabled || !('Notification' in window) || Notification.permission !== 'granted') return;
-  try { new Notification(title, { body, icon:'/favicon.ico' }); } catch (e) {}
+  // icon ca data-URI (SVG 🔔) — `/favicon.ico` absolut dădea 404 pe GitHub Pages (site sub /premarket_scanner.html/)
+  try { new Notification(title, { body, icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🔔</text></svg>" }); } catch (e) {}
 }
 async function sendTelegram(msg) {  // → lib/telegram.js (TG.*); gating pe enabled păstrat
   const cfg = getTgConfig();
@@ -821,25 +822,32 @@ async function fetchPrice(symbol) {
 // dispare la fire; re-arm → se dezarmează și se re-armează cu histerezis 0.3%.
 const _lastPrice = {}; // preț curent per simbol (doar pentru UI — NU se persistă în storage)
 const _lastChange = {}; // variația zilei % per simbol = (last - prevClose)/prevClose (pt sortare după creștere)
+let _pollBusy = false; // v41: latch anti re-entrancy — apelurile manuale (add/edit/pull/visibility) se pot suprapune peste cel programat → dublu fire/notificare
 async function pollPrices() {
-  if (pollPaused) return;
+  if (pollPaused || _pollBusy) return;
+  _pollBusy = true;
+  try {
   priceAlerts = loadAlerts(); // sync cross-tab înainte de check (wlm poate modifica între cicluri)
   const allSyms = Object.keys(priceAlerts).filter(s => (priceAlerts[s] || []).length);
   if (!allSyms.length) { $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · niciun alert activ`; render(); return; }
   let unique = [...new Set(allSyms.map(s => s.toUpperCase()))];
   const stockSyms = unique.filter(s => !isCrypto(s));
+  // v41: EU (.DE/.PA/.L…) au sesiunea LOR — nu le throttle-ăm pe ora US (la 09:30 CET = ~03:30 ET
+  // intrau în „piață închisă" deși bursa lor e deschisă). Throttling-ul pe ora US = doar stocks US.
+  const usStocks = stockSyms.filter(s => !s.includes('.'));
+  const keepNonUS = s => isCrypto(s) || s.includes('.');   // crypto 24/7 + EU rămân în poll
   let sessionNote = '';
-  // Weekend ET → stocks OPRITE complet (preț înghețat la close-ul de vineri, n-ar
-  // declanșa nimic). Noapte (weeknight) → stocks doar la 10 min. Crypto rămâne mereu.
-  if (stockSyms.length && nyseWeekend()) {
-    unique = unique.filter(isCrypto);
-    sessionNote = ' · 🌙 stocks oprite (weekend)';
-  } else if (stockSyms.length && nyseClosed()) {
+  // Weekend ET → stocks US OPRITE complet (preț înghețat la close-ul de vineri, n-ar
+  // declanșa nimic). Noapte (weeknight) → stocks US doar la 10 min. Crypto + EU rămân.
+  if (usStocks.length && nyseWeekend()) {
+    unique = unique.filter(keepNonUS);
+    sessionNote = ' · 🌙 stocks US oprite (weekend)';
+  } else if (usStocks.length && nyseClosed()) {
     if (Date.now() - _lastStockPollTs < 600000) {
-      unique = unique.filter(isCrypto);
-      sessionNote = ' · 🌙 stocks la 10min (piață închisă)';
+      unique = unique.filter(keepNonUS);
+      sessionNote = ' · 🌙 stocks US la 10min (piață închisă)';
     } else { _lastStockPollTs = Date.now(); }
-  } else if (stockSyms.length) { _lastStockPollTs = Date.now(); }
+  } else if (usStocks.length) { _lastStockPollTs = Date.now(); }
   // fără cheie Finnhub, stocks merg pe Yahoo (lib/data.js); avertizăm doar dacă nici aia nu e
   if (stockSyms.length && !getFinnhubKey()) {
     if (window.D && D.fetchJSON) sessionNote += ' · stocks via Yahoo (fără cheie Finnhub)';
@@ -1071,6 +1079,7 @@ async function pollPrices() {
   }
   render();
   $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · ${unique.length} simboluri${fired.length ? ` · ${fired.length} triggered` : ''}${sessionNote}`;
+  } finally { _pollBusy = false; }
 }
 
 function schedulePoll() {
@@ -1555,7 +1564,7 @@ function openEditModal(sym, id) {
   const a = (priceAlerts[sym] || []).find(x => x.id === id);
   if (!a) return;
   _editing = { sym, id };
-  const kind = a.kind === 'ref' ? 'ref' : a.kind === 'anchor' ? 'anchor' : (a.kind === 'pct' ? 'pct' : 'price');
+  const kind = a.kind === 'ref' ? 'ref' : a.kind === 'anchor' ? 'anchor' : a.kind === 'day' ? 'day' : (a.kind === 'pct' ? 'pct' : 'price');
   $('editTitle').textContent = `✏️ Editează ${sym}`;
   $('editKind').value = kind;
   $('editThr').value = kind === 'price' ? (a.lvl ?? '') : (a.pct ?? '');

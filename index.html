@@ -814,12 +814,24 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   const fmtP = p => p >= 1000 ? '$' + p.toLocaleString('en', {maximumFractionDigits: 0}) : '$' + p.toFixed(2);
   const fmtVix = p => p.toFixed(2);
   const CORS = (u) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u);
+  // v41: sesiunea US (ET) — decide cum citim prețul "live" și referința în pre/after-market.
+  const usSession = (() => {
+    try {
+      const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false, weekday:'short', hour:'2-digit', minute:'2-digit' }).formatToParts(new Date()).map(x => [x.type, x.value]));
+      if (p.weekday === 'Sat' || p.weekday === 'Sun') return 'weekend';
+      const mins = (+p.hour) * 60 + (+p.minute);
+      if (mins >= 240 && mins < 570) return 'pre';      // 04:00–09:30 ET
+      if (mins >= 570 && mins < 960) return 'rth';      // 09:30–16:00 ET
+      if (mins >= 960 && mins < 1200) return 'after';   // 16:00–20:00 ET
+      return 'closed';
+    } catch (e) { return 'rth'; }
+  })();
   const fetchQuote = async (sym) => {
-    // chart endpoint: returnează ultimul quote + prevClose
-    // range=1d → meta.chartPreviousClose e close-ul de IERI (corect pentru "% azi").
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`;
+    // v41 FIX „premarket nu e live": includePrePost + citim ULTIMA bară 5m (extended) ca preț curent.
+    // ÎNAINTE: interval=1d&range=1d + meta.regularMarketPrice = close-ul regular ÎNGHEȚAT în pre/after
+    // → widget-ul arăta prețul de ieri, nu cel live din premarket. (aliniat cu nasdaq-scanner)
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=5m&range=1d&includePrePost=true`;
     // strat de date comun (lib/data.js): proxy health per-host + fallback + cache 30s.
-    // Fallback la codetabs dacă data.js nu e încărcat.
     let data;
     if (window.D && D.fetchJSON) {
       data = await D.fetchJSON(url, { ttl: 30 });
@@ -832,23 +844,23 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
         data = await r.json();
       } finally { clearTimeout(to); }
     }
-    const meta = data?.chart?.result?.[0]?.meta;
+    const res = data?.chart?.result?.[0];
+    const meta = res?.meta;
     if (!meta) throw new Error('no meta');
-    const price = meta.regularMarketPrice;
-    const prev = meta.chartPreviousClose;
+    // preț LIVE = ultima bară 5m non-null (prinde pre/after-market); fallback la regularMarketPrice
+    const closes = res?.indicators?.quote?.[0]?.close || [];
+    let last = null;
+    for (let i = closes.length - 1; i >= 0; i--) { if (closes[i] != null) { last = closes[i]; break; } }
+    const price = last ?? meta.regularMarketPrice;
+    // În PREMARKET cu range=1d, chartPreviousClose = close N−2; close-ul de ieri (N−1) e regularMarketPrice.
+    // În rth/after, chartPreviousClose e corect close-ul de ieri.
+    const prev = usSession === 'pre'
+      ? (meta.regularMarketPrice ?? meta.chartPreviousClose)
+      : (meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice);
     if (!price || !prev) throw new Error('no price');
     return { price, chgPct: ((price - prev) / prev) * 100 };
   };
-  // Înainte de open (incl. pre-market) regularMarketPrice = close-ul de ieri și chartPreviousClose
-  // cu range=1d = close-ul N−2 (regula v121) → Δ-ul afișat e al ULTIMEI sesiuni, nu „azi".
-  const dayLabel = (() => {
-    try {
-      const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false, weekday:'short', hour:'2-digit', minute:'2-digit' }).formatToParts(new Date()).map(x => [x.type, x.value]));
-      const wknd = p.weekday === 'Sat' || p.weekday === 'Sun';
-      const beforeOpen = (+p.hour) * 60 + (+p.minute) < 570;
-      return (wknd || beforeOpen) ? '% ult. sesiune' : '% azi';
-    } catch (e) { return '% azi'; }
-  })();
+  const dayLabel = usSession === 'weekend' ? '% ult. sesiune' : usSession === 'pre' ? '% pre' : usSession === 'after' ? '% after' : '% azi';
   const renderTicker = async (sym, valEl, subEl, fmt) => {
     try {
       const q = await fetchQuote(sym);
