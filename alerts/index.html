@@ -344,7 +344,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v43</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v44</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -784,22 +784,19 @@ function usSessionFine() {
 async function fetchPriceYahoo(symbol) {
   if (!window.D || !D.fetchJSON) return null;
   try {
-    const j = await D.fetchJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=1d&includePrePost=true`, { ttl: 20, timeout: 9000 });
+    // v44: interval=1m (nu 5m) → ultima bară e proaspătă la ≤1 min (verificat live pe ASTS: prețul
+    // premarket LIVE e DOAR în ultima bară; meta.preMarketPrice vine gol pe destule simboluri).
+    const j = await D.fetchJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1m&range=1d&includePrePost=true`, { ttl: 20, timeout: 9000 });
     const res = j?.chart?.result?.[0];
     if (!res) return null;
     const m = res.meta || {};
     const ses = usSessionFine();
-    // v42 FIX „blocat la valoarea de ieri": în extended hours prețul LIVE e meta.preMarketPrice /
-    // postMarketPrice. Ultima bară 5m cu range=1d poate fi ÎNCĂ close-ul regular de IERI → arăta 85
-    // în loc de 87 din premarket. (același pattern ca nasdaq-scanner, care merge corect.)
-    let last = ses === 'pre' ? (m.preMarketPrice ?? null)
-             : ses === 'after' ? (m.postMarketPrice ?? null)
-             : ses === 'rth' ? (m.regularMarketPrice ?? null)
-             : (m.postMarketPrice ?? m.preMarketPrice ?? m.regularMarketPrice ?? null);
-    if (last == null) {  // fallback: ultima bară 5m non-null
-      const closes = res.indicators?.quote?.[0]?.close || [];
-      for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { last = closes[i]; break; }
-    }
+    // PRIMAR = ultima bară non-null (cea mai proaspătă când există tranzacții, inclusiv extended).
+    let last = null;
+    const closes = res.indicators?.quote?.[0]?.close || [];
+    for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { last = closes[i]; break; }
+    // fallback când NU sunt bare (ex. premarket f. devreme, fără tranzacții): meta extended → regular
+    if (last == null) last = ses === 'pre' ? (m.preMarketPrice ?? null) : ses === 'after' ? (m.postMarketPrice ?? null) : null;
     if (last == null) last = m.regularMarketPrice ?? null;
     if (last == null) return null;
     // prev = close de IERI: în premarket chartPreviousClose poate fi N−2 (range=1d) → regularMarketPrice
