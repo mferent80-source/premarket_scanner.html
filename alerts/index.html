@@ -344,7 +344,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v41</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v42</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -776,18 +776,35 @@ async function fetchPriceCoinGecko(coinId) {
 // Yahoo prin lib/data.js (tt-proxy primul în lanț) — pagina merge și FĂRĂ cheie
 // Finnhub și nu mai pică la 429 (cheia e partajată de mai multe pagini). Ultima bară
 // 5m cu includePrePost = ACELAȘI preț pe care îl vede botul server-side (check-alerts.mjs).
+// Sesiune US fină (pre/rth/after/closed) — pt alegerea prețului extended corect.
+function usSessionFine() {
+  const ms = marketSession();
+  return ms.cls === 'open' ? 'rth' : ms.cls === 'closed' ? 'closed' : (ms.label.includes('after') ? 'after' : 'pre');
+}
 async function fetchPriceYahoo(symbol) {
   if (!window.D || !D.fetchJSON) return null;
   try {
     const j = await D.fetchJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=1d&includePrePost=true`, { ttl: 45, timeout: 9000 });
     const res = j?.chart?.result?.[0];
     if (!res) return null;
-    const closes = res.indicators?.quote?.[0]?.close || [];
-    let last = null;
-    for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { last = closes[i]; break; }
-    if (last == null) last = res.meta?.regularMarketPrice ?? null;
+    const m = res.meta || {};
+    const ses = usSessionFine();
+    // v42 FIX „blocat la valoarea de ieri": în extended hours prețul LIVE e meta.preMarketPrice /
+    // postMarketPrice. Ultima bară 5m cu range=1d poate fi ÎNCĂ close-ul regular de IERI → arăta 85
+    // în loc de 87 din premarket. (același pattern ca nasdaq-scanner, care merge corect.)
+    let last = ses === 'pre' ? (m.preMarketPrice ?? null)
+             : ses === 'after' ? (m.postMarketPrice ?? null)
+             : ses === 'rth' ? (m.regularMarketPrice ?? null)
+             : (m.postMarketPrice ?? m.preMarketPrice ?? m.regularMarketPrice ?? null);
+    if (last == null) {  // fallback: ultima bară 5m non-null
+      const closes = res.indicators?.quote?.[0]?.close || [];
+      for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { last = closes[i]; break; }
+    }
+    if (last == null) last = m.regularMarketPrice ?? null;
     if (last == null) return null;
-    return { last, prev: res.meta?.chartPreviousClose ?? last };
+    // prev = close de IERI: în premarket chartPreviousClose poate fi N−2 (range=1d) → regularMarketPrice
+    const prev = (ses === 'pre' ? (m.regularMarketPrice ?? m.chartPreviousClose) : (m.chartPreviousClose ?? m.regularMarketPrice)) ?? last;
+    return { last, prev };
   } catch (e) { return null; }
 }
 // Binance pentru perechile USDT (ONDOUSDT, PEPEUSDT etc.) — stil Pionex/Binance,
@@ -810,11 +827,11 @@ async function fetchPrice(symbol) {
   if (s === 'SOL-USD' || s === 'SOL') return (await fetchPriceCoinGecko('solana')) || fetchPriceYahoo('SOL-USD');
   // Perechi Binance USDT: Binance direct, Yahoo (ONDOUSDT→ONDO-USD) ca plasă
   if (/USDT$/.test(s)) return (await fetchPriceBinance(s)) || fetchPriceYahoo(s.replace(/USDT$/, '-USD'));
-  // Stocks/ETF: în PRE/AFTER-market Finnhub /quote (free) dă close-ul regular ÎNGHEȚAT
-  // (nu prinde extended) → folosim Yahoo includePrePost ÎNTÂI (ca botul server-side).
-  // În orele regular Finnhub e ok și mai rapid (fără proxy), cu Yahoo ca plasă.
-  if (marketSession().cls === 'pre') return (await fetchPriceYahoo(s)) || fetchPriceFinnhub(s);
-  return (await fetchPriceFinnhub(s)) || fetchPriceYahoo(s);
+  // Stocks/ETF: în PRE/AFTER-market (și în orele „închis", unde Finnhub /quote free dă close-ul
+  // regular ÎNGHEȚAT) → Yahoo includePrePost ÎNTÂI (ca botul server-side). DOAR în orele regular
+  // Finnhub e ok și mai rapid (fără proxy), cu Yahoo ca plasă.
+  if (marketSession().cls === 'open') return (await fetchPriceFinnhub(s)) || fetchPriceYahoo(s);
+  return (await fetchPriceYahoo(s)) || fetchPriceFinnhub(s);
 }
 
 // ============ POLL CYCLE ============
