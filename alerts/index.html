@@ -344,7 +344,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v42</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v43</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -542,7 +542,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 const ALERTS_KEY = 'wl_price_alerts';
 const HIST_KEY = 'pa_triggered_v1';   // istoric LOCAL paginii (one-shot-urile declanșate de wlm nu apar aici)
 const LEGACY_KEY = 'pa_alerts_v1';    // formatul vechi (array) — migrat o singură dată
-const POLL_INTERVAL_MS = 60000;
+const POLL_INTERVAL_MS = 30000;   // v43: 60s→30s pt preț mai aproape de live (proxy ține 20s → ~15-30s prospețime)
 const MAX_TRIGGERED_HISTORY = 50;
 const REARM_HYST = 0.003;             // histerezis re-arm 0.3% — identic cu watchlist-monitor
 const SOUND_KEY = 'pa_sound';
@@ -784,7 +784,7 @@ function usSessionFine() {
 async function fetchPriceYahoo(symbol) {
   if (!window.D || !D.fetchJSON) return null;
   try {
-    const j = await D.fetchJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=1d&includePrePost=true`, { ttl: 45, timeout: 9000 });
+    const j = await D.fetchJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=1d&includePrePost=true`, { ttl: 20, timeout: 9000 });
     const res = j?.chart?.result?.[0];
     if (!res) return null;
     const m = res.meta || {};
