@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v192</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v193</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -2279,22 +2279,50 @@ const TICKER_LIB = new Set([
   'ES=F','NQ=F','YM=F','RTY=F','GC=F','SI=F','CL=F','BZ=F','HG=F','^GSPC','^IXIC','^DJI','^RUT','^VIX','^TNX','^FVX'
 ]);
 
+// Coinuri scrise SCURT în brief (AI le pune ca **SOL**, nu **SOL-USD**) → simbol Yahoo (-USD).
+// Necesar ca picks-urile crypto să fie clickable (chart-ul Yahoo cere forma -USD).
+const COIN_TICKERS = new Set([
+  'BTC','ETH','SOL','BNB','XRP','ADA','DOGE','LINK','MATIC','AVAX','DOT','TRX','LTC','BCH',
+  'SHIB','PEPE','ATOM','UNI','NEAR','APT','ARB','OP','SUI','INJ','TIA','SEI','RNDR','FET',
+  'FTM','ALGO','XLM','HBAR','IMX','RUNE','AAVE','MKR','GRT','LDO','STX','WIF','BONK','JUP','ONDO','ENA','TON','FIL'
+]);
+// Cuvinte all-caps care apar bold în brief dar NU sunt tickere (bias, direcții, indicatori, sigle).
+// Le excludem ca să nu devină linkuri moarte la click.
+const NOT_TICKERS = new Set([
+  'LONG','SHORT','WAIT','NEUTRAL','AVOID','BULL','BEAR','BUY','SELL','HOLD','FLAT','RISK',
+  'ATH','ATL','ETF','ETFS','ATR','RSI','EPS','PEG','ROE','TP','SL','VWAP','SMA','EMA','MACD','ADX','OBV',
+  'ET','UTC','GMT','EST','DST','USD','EUR','GBP','JPY','CNY','US','EU','UK','USA','RO',
+  'VIX','DXY','GDP','CPI','PPI','PCE','NFP','ISM','PMI','FOMC','FED','ECB','BOE','BOJ','OPEC','SEC','IPO',
+  'AI','ML','CEO','CFO','YOY','QOQ','MOM','YTD','MTF','HTF','LTF','SPX','NDX'
+]);
+
+// Mapează un ticker text → simbol Yahoo valid pentru drillTicker/chart.
+function tickerToYahoo(t) {
+  if (TICKER_LIB.has(t)) return t;            // deja format corect (inclusiv -USD / =F / ^)
+  if (COIN_TICKERS.has(t)) return t + '-USD'; // coin scurt → Yahoo
+  return t;                                   // stock presupus valid ca atare
+}
+
 function autoLinkTickers(text) {
-  // Escape HTML first
-  let html = escHtml(text);
-  // Pattern markdown bold **TICKER**: convert if recognized
-  html = html.replace(/\*\*([A-Z][A-Z0-9.\-=^]{0,9})\*\*/g, (m, t) => {
-    if (TICKER_LIB.has(t)) return `<span class="ticker-link" data-ticker="${t}">${t}</span>`;
-    return `<strong>${t}</strong>`;
+  const html = escHtml(text);
+  const mk = (label, sym) => `<span class="ticker-link" data-ticker="${sym}">${label}</span>`;
+  // O SINGURĂ trecere cu alternanță (**BOLD** SAU ticker-bare): evită re-wrap-ul span-în-span
+  // pe care îl făceau cele două .replace() succesive când un ticker era atât în atribut cât și în text.
+  const re = /\*\*([A-Z][A-Z0-9.\-=^]{0,9})\*\*|\b([A-Z]{2,5}(?:-USD)?)\b/g;
+  return html.replace(re, (m, boldT, bareT) => {
+    if (boldT != null) {
+      // **BOLD** — link generos (picks pot fi tickere exotice, în afara TICKER_LIB)
+      if (NOT_TICKERS.has(boldT)) return `<strong>${boldT}</strong>`;
+      if (TICKER_LIB.has(boldT) || COIN_TICKERS.has(boldT)) return mk(boldT, tickerToYahoo(boldT));
+      if (/^[A-Z]{2,5}$/.test(boldT)) return mk(boldT, boldT); // pick exotic bold → presupune ticker
+      return `<strong>${boldT}</strong>`;
+    }
+    // ticker bare (fără **) — conservator: doar din lib sau coin cunoscut
+    if (NOT_TICKERS.has(bareT)) return m;
+    if (TICKER_LIB.has(bareT)) return mk(bareT, bareT);
+    if (COIN_TICKERS.has(bareT)) return mk(bareT, bareT + '-USD');
+    return m;
   });
-  // Pattern bare ticker (uppercase letters/digits separated by space/punct, NOT already linked)
-  // Conservativ: doar tickere din TICKER_LIB cu word boundaries
-  html = html.replace(/\b([A-Z]{2,5}(?:-USD)?)\b/g, (m, t) => {
-    if (!TICKER_LIB.has(t)) return m;
-    // Skip if already wrapped (heuristic: anywhere within span tag — simplified)
-    return `<span class="ticker-link" data-ticker="${t}">${t}</span>`;
-  });
-  return html;
 }
 
 function formatBriefText(text) {
