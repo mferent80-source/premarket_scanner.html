@@ -9,7 +9,8 @@
 :root{
   --bg:#0b0f17; --bg2:#11161f; --panel:#161b26; --br:#262e3d; --br-l:#1f2632;
   --txt:#e8edf5; --txt-d:#94a3b8; --txt-dd:#64748b;
-  --acc:#3b82f6; --gold:#f7931a; --green:#22c55e; --red:#ef4444; --yellow:#facc15;
+  /* paletă aliniată la standardul suitei (consistență cross-pagină): accent #5bb0ff, verde #22d66b, roșu #ff4d4d */
+  --acc:#5bb0ff; --gold:#f7931a; --green:#22d66b; --red:#ff4d4d; --yellow:#facc15;
   --blue:var(--acc); --bull-s:var(--green); /* alias: erau folosite nedefinite → elemente necolorate (sizing + raționament AI) */
   --crypto-1:#f7931a; --crypto-2:#ffd86b;
   --shadow-sm:0 1px 2px rgba(0,0,0,.3);
@@ -18,7 +19,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;overflow-x:hidden}
 body{background:radial-gradient(1200px 600px at 70% -10%, rgba(247,147,26,.07), transparent 60%),
-  radial-gradient(1000px 500px at 0% 100%, rgba(34,197,94,.04), transparent 60%),
+  radial-gradient(1000px 500px at 0% 100%, rgba(34,214,107,.04), transparent 60%),
   var(--bg);
   color:var(--txt);font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,sans-serif;
   min-height:100vh;font-variant-numeric:tabular-nums;
@@ -91,10 +92,10 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
   border-radius:99px;transition:width .8s cubic-bezier(.4,0,.2,1);position:relative;box-shadow:0 0 12px rgba(247,147,26,.35)}
 .score-num{font-size:48px;font-weight:800;margin:18px 0 0;font-variant-numeric:tabular-nums;line-height:1}
 .score-num small{font-size:18px;color:var(--txt-d);font-weight:500;margin-left:4px}
-.tier-r{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff}
-.tier-o{background:linear-gradient(135deg,#22c55e,#84cc16);color:#fff}
+.tier-r{background:linear-gradient(135deg,#22d66b,#16a34a);color:#fff}
+.tier-o{background:linear-gradient(135deg,#22d66b,#84cc16);color:#fff}
 .tier-m{background:linear-gradient(135deg,#facc15,#fb923c);color:#1a1a1a}
-.tier-n{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff}
+.tier-n{background:linear-gradient(135deg,#ff4d4d,#b91c1c);color:#fff}
 .tier-tag{display:inline-block;padding:4px 14px;border-radius:99px;font-size:11px;font-weight:700;
   text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
 
@@ -122,9 +123,9 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 .level .delta{font-size:11px;color:var(--txt-dd);margin-top:2px}
 .level.entry{border-color:rgba(247,147,26,.4)}
 .level.entry .val{color:var(--crypto-1)}
-.level.sl{border-color:rgba(239,68,68,.4)}
+.level.sl{border-color:rgba(255,77,77,.4)}
 .level.sl .val{color:var(--red)}
-.level.tp1,.level.tp2,.level.tp3{border-color:rgba(34,197,94,.3)}
+.level.tp1,.level.tp2,.level.tp3{border-color:rgba(34,214,107,.3)}
 .level.tp1 .val,.level.tp2 .val,.level.tp3 .val{color:var(--green)}
 
 /* SIZER */
@@ -146,8 +147,8 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 
 .ins-verdict{padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;
   display:flex;align-items:center;gap:8px}
-.ins-verdict.bull{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.3)}
-.ins-verdict.bear{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.ins-verdict.bull{background:rgba(34,214,107,.1);color:var(--green);border:1px solid rgba(34,214,107,.3)}
+.ins-verdict.bear{background:rgba(255,77,77,.1);color:var(--red);border:1px solid rgba(255,77,77,.3)}
 .ins-verdict.neu{background:var(--bg2);color:var(--txt-d);border:1px solid var(--br)}
 
 .ins-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto}
@@ -185,8 +186,8 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
   border:1px solid var(--br);padding:10px 18px;border-radius:99px;font-size:13.5px;font-weight:600;
   box-shadow:var(--shadow);z-index:200;opacity:0;transition:opacity .2s}
 .toast.show{opacity:1}
-.toast.err{border-color:rgba(239,68,68,.5);color:var(--red)}
-.toast.ok{border-color:rgba(34,197,94,.5);color:var(--green)}
+.toast.err{border-color:rgba(255,77,77,.5);color:var(--red)}
+.toast.ok{border-color:rgba(34,214,107,.5);color:var(--green)}
 
 /* SETTINGS MODAL */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:300;
@@ -248,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v23</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v24</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -748,9 +749,9 @@ function riskRegime() {
     const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
     if (!r || !r.label || !r.ts || Date.now() - r.ts > 6 * 3600 * 1000) return null;
     const L = String(r.label).toUpperCase();
-    if (L.includes('RISK-OFF')) return { label: r.label, cap: 'MIXT', color: '#ef4444' };
+    if (L.includes('RISK-OFF')) return { label: r.label, cap: 'MIXT', color: '#ff4d4d' };
     if (L.includes('CAUTIOUS')) return { label: r.label, cap: 'OK', color: '#f59e0b' };
-    return { label: r.label, cap: null, color: L.includes('RISK-ON') ? '#22c55e' : (L.includes('LEAN') ? '#a3e635' : '#9ca3af') };
+    return { label: r.label, cap: null, color: L.includes('RISK-ON') ? '#22d66b' : (L.includes('LEAN') ? '#a3e635' : '#9ca3af') };
   } catch (e) { return null; }
 }
 
@@ -922,7 +923,7 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
   // transparente), dar avertismentul e imposibil de ratat.
   const earnBanner = earnInfo
     ? (earnInfo.hoursAway <= 48
-        ? `<div style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.5);border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:13px;color:var(--red);font-weight:600;line-height:1.5">🚫 <strong>EARNINGS ${earnInfo.date}${earnInfo.hour === 'bmo' ? ' (pre-market)' : earnInfo.hour === 'amc' ? ' (after-close)' : ''} — în ~${Math.max(0, Math.round(earnInfo.hoursAway))}h.</strong> NU deschide poziția înainte de raport: gap ±10-30% imposibil de prezis, SL-ul pe ATR nu te protejează de gap. Verdictul de mai jos NU include acest risc.</div>`
+        ? `<div style="background:rgba(255,77,77,.12);border:1px solid rgba(255,77,77,.5);border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:13px;color:var(--red);font-weight:600;line-height:1.5">🚫 <strong>EARNINGS ${earnInfo.date}${earnInfo.hour === 'bmo' ? ' (pre-market)' : earnInfo.hour === 'amc' ? ' (after-close)' : ''} — în ~${Math.max(0, Math.round(earnInfo.hoursAway))}h.</strong> NU deschide poziția înainte de raport: gap ±10-30% imposibil de prezis, SL-ul pe ATR nu te protejează de gap. Verdictul de mai jos NU include acest risc.</div>`
         : `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:10px;padding:9px 13px;margin-bottom:12px;font-size:12.5px;color:var(--yellow)">📅 Earnings <strong>${earnInfo.date}</strong> (~${Math.ceil(earnInfo.hoursAway / 24)} zile) — volatilitate imprevizibilă în jurul raportului; dimensionează conservator sau așteaptă publicarea.</div>`)
     : '';
   // Anti-chase banner — apare ori de câte ori prețul e extins peste MA50, indiferent
@@ -935,14 +936,14 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
   const reg = riskRegime();
   const regBanner = reg
     ? (t.caps.includes('regim')
-        ? `<div style="background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--red);line-height:1.5">🛡 <strong>Regim de piață: ${escHtml(reg.label)}</strong> (din Macro Dashboard) — verdictul a fost limitat la <strong>${t.label}</strong>. Long-urile noi au probabilitate degradată în acest regim: dimensionează mai mic sau așteaptă revenirea spre RISK-ON.</div>`
+        ? `<div style="background:rgba(255,77,77,.10);border:1px solid rgba(255,77,77,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--red);line-height:1.5">🛡 <strong>Regim de piață: ${escHtml(reg.label)}</strong> (din Macro Dashboard) — verdictul a fost limitat la <strong>${t.label}</strong>. Long-urile noi au probabilitate degradată în acest regim: dimensionează mai mic sau așteaptă revenirea spre RISK-ON.</div>`
         : `<div style="margin-bottom:12px;font-size:12px;color:var(--txt-dd)">🛡 Regim de piață: <strong style="color:${reg.color}">${escHtml(reg.label)}</strong> · din Macro Dashboard</div>`)
     : '';
   // Δ extended-hours: gap ≥3% = avertisment serios (planul de mai jos e pe close-ul
   // de referință, nu pe prețul live); sub 3% = doar rând informativ.
   const ppBanner = prePost
     ? (Math.abs(prePost.chg) >= 3
-        ? `<div style="background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--red);line-height:1.5">${prePost.sess === 'pre' ? '🌅' : '🌙'} <strong>Gap ${prePost.sess === 'pre' ? 'pre-market' : 'after-hours'}: ${fmtPct(prePost.chg)}</strong> — preț live ${fmt$(prePost.px)} vs referință ${fmt$(prePost.prev)}. Entry/SL/TP de mai jos sunt pe close-ul ${prePost.sess === 'pre' ? 'de ieri' : 'regular de azi'} — gap-ul le invalidează; re-scanează după deschidere.</div>`
+        ? `<div style="background:rgba(255,77,77,.10);border:1px solid rgba(255,77,77,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--red);line-height:1.5">${prePost.sess === 'pre' ? '🌅' : '🌙'} <strong>Gap ${prePost.sess === 'pre' ? 'pre-market' : 'after-hours'}: ${fmtPct(prePost.chg)}</strong> — preț live ${fmt$(prePost.px)} vs referință ${fmt$(prePost.prev)}. Entry/SL/TP de mai jos sunt pe close-ul ${prePost.sess === 'pre' ? 'de ieri' : 'regular de azi'} — gap-ul le invalidează; re-scanează după deschidere.</div>`
         : `<div style="margin-bottom:12px;font-size:12px;color:var(--txt-dd)">${prePost.sess === 'pre' ? '🌅 Pre-market' : '🌙 After-hours'}: <strong style="color:${prePost.chg >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtPct(prePost.chg)}</strong> · ${fmt$(prePost.px)} (ref ${fmt$(prePost.prev)})</div>`)
     : '';
   // Panou pliabil: summary = simbol + verdict; restrâns, lista de dedesubt urcă la vedere.
@@ -1124,7 +1125,7 @@ async function runAIQuickSetup(sym, scoreData, insiderData, force) {
   const apiKey = localStorage.getItem('anthropic_api_key') || '';
   if (!apiKey) {
     document.getElementById('aiSetupOutput').style.display = 'block';
-    document.getElementById('aiSetupOutput').innerHTML = `<div style="padding:14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:var(--red);font-size:13px">
+    document.getElementById('aiSetupOutput').innerHTML = `<div style="padding:14px;background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.3);border-radius:8px;color:var(--red);font-size:13px">
       ⚠ Cheia Anthropic lipsește. Setează în <a href="../macro-dashboard/" style="color:var(--blue)">Macro Dashboard → ⚙ Setări</a> sau direct cu <code style="background:rgba(0,0,0,.3);padding:2px 6px;border-radius:3px">localStorage.setItem('anthropic_api_key','sk-ant-...')</code> din DevTools Console.
     </div>`;
     return;
@@ -1218,7 +1219,7 @@ Reguli pentru câmpuri:
     setCachedSetup(sym, setup);
     renderAISetupOutput(setup, 'fresh');
   } catch (e) {
-    output.innerHTML = `<div style="padding:14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:var(--red);font-size:13px">❌ ${escHtml(e.message)}</div>`;
+    output.innerHTML = `<div style="padding:14px;background:rgba(255,77,77,.08);border:1px solid rgba(255,77,77,.3);border-radius:8px;color:var(--red);font-size:13px">❌ ${escHtml(e.message)}</div>`;
     status.textContent = '❌ eroare';
   } finally {
     if (setupBtn) setupBtn.disabled = false;
@@ -1238,7 +1239,7 @@ function renderAISetupOutput(setup, sourceLabel) {
   const tp1Pct = setup.entry && setup.tp1 ? ((setup.tp1 - setup.entry) / setup.entry * 100).toFixed(2) : '—';
   const tp2Pct = setup.entry && setup.tp2 ? ((setup.tp2 - setup.entry) / setup.entry * 100).toFixed(2) : '—';
   const rr = setup.entry && setup.sl && setup.tp2 ? Math.abs((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '—';
-  output.innerHTML = `<div style="background:linear-gradient(135deg, rgba(247,147,26,.10), rgba(34,197,94,.06));border:1px solid rgba(247,147,26,.35);border-radius:10px;padding:14px 16px">
+  output.innerHTML = `<div style="background:linear-gradient(135deg, rgba(247,147,26,.10), rgba(34,214,107,.06));border:1px solid rgba(247,147,26,.35);border-radius:10px;padding:14px 16px">
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px">
       <div><div style="font-size:10.5px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.3px;font-weight:700">Entry</div><div style="font-size:18px;font-weight:800;color:var(--txt)">${fmt$(setup.entry)}</div></div>
       <div><div style="font-size:10.5px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.3px;font-weight:700">Stop Loss</div><div style="font-size:18px;font-weight:800;color:var(--red)">${fmt$(setup.sl)} <span style="font-size:11px;font-weight:600">${slPct}%</span></div></div>
@@ -1255,13 +1256,13 @@ function renderAISetupOutput(setup, sourceLabel) {
       <div style="font-size:10px;color:var(--txt-dd);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:5px">🧠 Raționament</div>
       ${escHtml(setup.reasoning)}
     </div>` : ''}
-    <div style="margin-top:10px;padding:8px 10px;background:rgba(239,68,68,.06);border-left:3px solid var(--red);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--txt)">
+    <div style="margin-top:10px;padding:8px 10px;background:rgba(255,77,77,.06);border-left:3px solid var(--red);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--txt)">
       <strong style="color:var(--red)">⚠ Risc principal:</strong> ${escHtml(setup.risk || 'N/A')}
     </div>
     ${setup.invalidation ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(247,147,26,.06);border-left:3px solid var(--yellow);border-radius:0 6px 6px 0;font-size:12px;color:var(--txt)">
       <strong style="color:var(--yellow)">🚫 Invalidare:</strong> ${escHtml(setup.invalidation)}
     </div>` : ''}
-    ${setup.catalysts ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(34,197,94,.06);border-left:3px solid var(--green);border-radius:0 6px 6px 0;font-size:12px;color:var(--txt)">
+    ${setup.catalysts ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(34,214,107,.06);border-left:3px solid var(--green);border-radius:0 6px 6px 0;font-size:12px;color:var(--txt)">
       <strong style="color:var(--green)">⚡ Catalist:</strong> ${escHtml(setup.catalysts)}
     </div>` : ''}
   </div>`;
