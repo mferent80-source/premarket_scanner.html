@@ -812,7 +812,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v197</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v198</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -5600,9 +5600,11 @@ function bindEvents() {
     if (e.key === 'Escape' && $('genericModal').classList.contains('show')) closeGenericModal();
   });
 
-  // Global click handler: ticker-link → drillTicker (oriunde în pagină)
+  // Global click handler: DOAR span-urile .ticker-link → drillTicker (chart modal).
+  // NU prinde butoanele de acțiune cu data-ticker (.op-ticker / .op-momo-add „+ Adaugă") —
+  // altfel un click adăuga la watchlist ȘI deschidea modalul Yahoo simultan.
   document.body.addEventListener('click', e => {
-    const t = e.target.closest('[data-ticker]');
+    const t = e.target.closest('.ticker-link[data-ticker]');
     if (t) {
       e.preventDefault();
       e.stopPropagation();

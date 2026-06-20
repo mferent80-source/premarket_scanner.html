@@ -899,7 +899,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v111</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v112</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -6177,7 +6177,12 @@ function emaCalc(vals, p){
   return e;
 }
 function computeDailyTrend(closes){
-  const c = (closes||[]).filter(x=>typeof x==='number' && x>0);
+  let c = (closes||[]).filter(x=>typeof x==='number' && x>0);
+  // În sesiunea REGULAR bara de azi e parțială (close incomplet) → exclude-o, altfel EMA20/50
+  // și gate-ul „Confirmat" repaint-ează intraday (aceeași logică ca _harvestDailyVol). În
+  // pre/after/closed ultima bară daily e deja completă (ieri sau close-ul regular) → nu tăiem.
+  const _sess=(typeof getMarketSession==='function')?getMarketSession().session:'';
+  if(_sess==='regular' && c.length>1) c = c.slice(0,-1);
   if(c.length < 50) return null;                       // date insuficiente = N/A
   const price = c[c.length-1];
   const ema20 = emaCalc(c, 20), ema50 = emaCalc(c, 50);
@@ -7744,21 +7749,26 @@ async function runPumpRadarScan(){
         // ── Try Yahoo candles for advanced analysis ──
         let alert=null;
         let usedCandles=false;
-        
+        let snapPrice=q.c; // preț pt snapshotul de velocity (fallback: Finnhub quote)
+
         if(pumpConfig.useYahooCandles && !yahooDisabled){
           const candles=await fetchYahooCandles(sym);
           if(candles && candles.length>=22){
             alert=analyzeNasdaqFromCandles(sym, candles, q, prevSnap);
             usedCandles=true;
+            // velocity compară lastClose-ul Yahoo cu snapshotul anterior → snapshotul TREBUIE să fie tot
+            // lastClose Yahoo, NU q.c (Finnhub free e ÎNGHEȚAT la close-ul regular în extended hours →
+            // în premarket diferența ar fi mereu umflată = alerte ⚡ VELOCITY false)
+            snapPrice=candles[candles.length-1].close;
           }
         }
-        
+
         // Fallback to quote-only analysis
         if(!usedCandles){
           alert=analyzeNasdaqQuote(sym, q, prevSnap);
         }
-        
-        pumpPriceSnapshot[sym]={price:q.c, ts:now};
+
+        pumpPriceSnapshot[sym]={price:snapPrice, ts:now};
         
         if(alert){
           pumpAlertCooldown[sym]=now;
