@@ -812,7 +812,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v196</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v197</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -5026,9 +5026,11 @@ let _cryptoMomoSeq = 0;
 async function computeCryptoMomentum() {
   const levels = await fetchBriefLevelsAll(CRYPTO_MOMO_SYMS, 4); // reutilizează cache-ul brief-ului (TTL 10min)
   const opps = [];
+  let scanned = 0; // câte coinuri au date valide (ca să distingem „range fără setup" de „date n-au venit")
   for (const sym of CRYPTO_MOMO_SYMS) {
     const d = levels[sym];
     if (!d || d.last == null) continue;
+    scanned++;
     const chg = d.chgPct ?? 0;
     const atrPct = (d.atrPct && d.atrPct > 0.2) ? d.atrPct : Math.max(Math.abs(chg), 1);
     const nearHi = d.hi20 != null && d.last >= d.hi20 * 0.998;  // la/peste maximul de 20 zile
@@ -5064,7 +5066,7 @@ async function computeCryptoMomentum() {
     opps.push({ sym, dir, conv, facts, entry, sl, tp1, chg, atrPct });
   }
   opps.sort((a, b) => b.conv - a.conv || Math.abs(b.chg) - Math.abs(a.chg)); // risk/reward: conviction apoi mișcare
-  return opps;
+  return { opps, scanned };
 }
 
 function buildCryptoMomoCard(o) {
@@ -5093,13 +5095,17 @@ function buildCryptoMomoCard(o) {
 
 async function renderCryptoMomentum() {
   const seq = ++_cryptoMomoSeq;
-  let opps = [];
-  try { opps = await computeCryptoMomentum(); } catch (e) { opps = []; }
+  let res = { opps: [], scanned: 0 };
+  try { res = await computeCryptoMomentum(); } catch (e) { res = { opps: [], scanned: 0 }; }
   if (seq !== _cryptoMomoSeq) return; // re-render între timp → abandonăm
   const host = document.getElementById('opCryptoMomo');
   if (!host) return;
+  const { opps, scanned } = res;
   if (!opps.length) {
-    host.innerHTML = '<div class="op-section-empty">Niciun setup crypto momentum clar acum — niciun coin nu rupe maximul/minimul de 20 zile cu mișcare semnificativă.</div>';
+    // Distincție onestă: 0 date = problemă de încărcare; date OK dar 0 setupuri = range real
+    host.innerHTML = scanned === 0
+      ? `<div class="op-section-empty">⚠ Nu am putut încărca datele crypto (proxy/rețea). Reîncearcă în câteva momente — nu înseamnă că nu există setupuri.</div>`
+      : `<div class="op-section-empty">Niciun setup crypto momentum clar acum (verificat ${scanned} coinuri) — niciunul nu rupe maximul/minimul de 20 zile cu mișcare ≥ ${MOMO_MIN_MOVE}%. Piață în range = stai pe mâini.</div>`;
     return;
   }
   host.innerHTML = opps.map(buildCryptoMomoCard).join('');
