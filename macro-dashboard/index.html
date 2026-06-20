@@ -127,9 +127,9 @@ body[data-mood="mixed"] .panel-head { background:linear-gradient(180deg, rgba(55
 
 /* Mood pill - mai vizibil cu glow */
 .mood-pill {
-  display:inline-flex; align-items:center; gap:5px;
-  padding:5px 13px; border-radius:999px; font-size:12.5px; font-weight:800;
-  font-family:var(--head); letter-spacing:.4px;
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 16px; border-radius:999px; font-size:14px; font-weight:800;
+  font-family:var(--head); letter-spacing:.5px;
   background:var(--panel2); border:1px solid var(--b1); color:var(--t1);
   transition:all .3s ease;
 }
@@ -223,6 +223,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .stat-tile.bear::before { background:var(--bear-s); }
 .stat-tile.warn::before { background:var(--warn); }
 .stat-tile.gold::before { background:var(--gold); }
+/* IERARHIE (pilot): Risk regime = indicatorul-SINTEZĂ al stării de piață → tile DOMINANT (ancora
+   vizuală). 2 coloane + border accent + valoare mare → cade primul în ochi, restul tile-urilor = detaliu. */
+#tile-risk { grid-column:span 2; border:1.5px solid var(--accent); background:linear-gradient(135deg, var(--panel), rgba(91,176,255,.07)); }
+#tile-risk .stat-label { color:var(--accent); }
+#tile-risk .stat-value { font-size:28px; }
+#tile-risk::before { width:4px; }
 .stat-tile.high::before { background:var(--high); }
 .stat-label { font-size:11px; color:var(--t2); text-transform:uppercase; letter-spacing:.35px; font-weight:700; font-family:var(--mono); display:flex; align-items:center; gap:4px; }
 .stat-value { font-size:21px; font-weight:800; letter-spacing:0; font-family:var(--head); }
@@ -812,7 +818,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v199</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v200</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
