@@ -812,7 +812,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v198</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v199</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -3779,14 +3779,17 @@ async function fetchBriefLevels(sym) {
   const rets = [];
   for (let i = Math.max(1, n-14); i < n; i++) rets.push(Math.abs(cl[i]/cl[i-1] - 1) * 100);
   const atrPct = rets.length ? avg(rets) : null;
-  const win20 = cl.slice(-20);
+  // hi20/lo20 pe cele 20 bare ANTERIOARE ultimei (exclude bara curentă/parțială) — ca „last rupe
+  // maximul de 20z" să fie un breakout REAL (depășește maximul de dinainte), nu trivial-adevărat
+  // de fiecare dată când ziua curentă e propriul maxim.
+  const win20 = cl.length >= 21 ? cl.slice(-21, -1) : cl.slice(0, -1);
   const out = {
     sym, last, chgPct,
     ma50, ma200,
     distMa50: ma50 ? ((last - ma50) / ma50) * 100 : null,
     distMa200: ma200 ? ((last - ma200) / ma200) * 100 : null,
     atrPct,
-    hi20: Math.max(...win20), lo20: Math.min(...win20)
+    hi20: win20.length ? Math.max(...win20) : last, lo20: win20.length ? Math.min(...win20) : last
   };
   _briefLevelsCache.set(sym, { ts: Date.now(), data: out });
   return out;

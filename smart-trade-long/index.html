@@ -248,7 +248,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v22</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v23</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -711,7 +711,7 @@ function computeScore(d, spyCloses) {
 
   // 6. Aproape de max 52 săptămâni — stage-2 (Minervini): liderii fac highs noi,
   // nu recuperează gropi adânci; un long la −40% de max luptă cu supply la fiecare nivel.
-  const hi52 = closes.length ? Math.max(...closes) : null;
+  const hi52 = highs.length ? Math.max(...highs) : null; // din HIGH-uri (wick real), nu closes — Minervini compară cu maximul atins
   const distHi52 = hi52 ? (last / hi52 - 1) * 100 : null; // ≤ 0 prin definiție
   let f6 = { name: 'Aproape de Max 52s', desc: 'Preț la <15% sub max', ico: '🏔️', max: 8 };
   if (distHi52 != null) {
@@ -728,7 +728,7 @@ function computeScore(d, spyCloses) {
   const extPct = ma50 ? (last / ma50 - 1) * 100 : null;
   const ext = { atr: extATR, pct: extPct, ran: (extATR != null && extATR >= 3) || (extPct != null && extPct >= 10) };
 
-  return { score, filters, last, ma50, ma200, ma200Approx: !ma200Real, hi52, lo52: closes.length ? Math.min(...closes) : null, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null, rsSpy, distHi52, ext };
+  return { score, filters, last, ma50, ma200, ma200Approx: !ma200Real, hi52, lo52: lows.length ? Math.min(...lows) : null, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null, rsSpy, distHi52, ext };
 }
 
 function tier(score) {

@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v136</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v137</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -436,7 +436,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v136-2026-06-11';
+const VER = 'tt-v137-2026-06-20';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -798,6 +798,13 @@ async function runScan(){
       hist:null, ana:{ verdict:'na' }, insider:null,
     };
   }).filter(e => e.zile >= 0); // doar viitoare (zile = 0 înseamnă „azi" → păstrăm)
+
+  // Dedup pe symbol — Finnhub poate întoarce aceeași companie de mai multe ori (quartere/intrări
+  // multiple). data-sym trebuie UNIC, altfel querySelector('tr[data-sym=X]') la expand/star/focus
+  // prinde mereu primul rând. Păstrăm earnings-ul cel mai apropiat (zile minim).
+  const _bySym = new Map();
+  for (const e of calendar) { const p = _bySym.get(e.symbol); if (!p || e.zile < p.zile) _bySym.set(e.symbol, e); }
+  calendar = [..._bySym.values()];
 
   // sort cronologic implicit
   calendar.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.symbol.localeCompare(b.symbol)));
