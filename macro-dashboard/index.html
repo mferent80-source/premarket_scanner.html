@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v193</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v194</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1070,7 +1070,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <h4>🤖 AI Daily Brief</h4>
         <ul>
           <li><b>Auto-trigger 08:00 ET</b> (DST-aware via Intl.DateTimeFormat) cu cheia Anthropic configurată.</li>
-          <li>Brief actionabil ~1400-1700 cuvinte, anti-repetare, cu 7 secțiuni: Verdict & bias / Ce s-a întâmplat 24h / Ce urmează (azi+săptămână) / Tablou piață / Geopolitică / Scenarii / 🔥 Top oportunități azi (picks ranked stocks+coinuri cu conviction ⭐ + Entry/SL/TP).</li>
+          <li>Brief actionabil ~1500-1800 cuvinte, anti-repetare, cu 8 secțiuni: Verdict & bias / Ce s-a întâmplat 24h / Ce urmează (azi+săptămână) / Tablou piață / Geopolitică / Scenarii / 📈 STOCKS oportunități / 🪙 CRYPTO oportunități. Picks-urile trec un <b>gate de calitate</b> (doar setupuri cu fapt-ancoră concret: event/rezultat/știre/nivel rupt; calitate &gt; cantitate, 0-4 per categorie) + ⭐ Trade of the day + ⛔ Avoid.</li>
           <li><b>Drill-down:</b> click pe heading secțiune → AI follow-up 400-700 cuvinte cu prompt specific per secțiune (cache 12h).</li>
           <li><b>Ticker auto-link:</b> 100+ tickere în brief sunt clickable → modal cu chart Yahoo + 7 stats + linkuri TV/Yahoo/Finviz.</li>
           <li>Cache LS 12h cheia dateET. Rerun cu confirm.</li>
@@ -3189,7 +3189,7 @@ async function callAnthropicStream(systemPrompt, userPrompt, onChunk, maxTokens=
   if (!key) throw new Error('Lipsă Anthropic key (Setări ⚙)');
   // Timeout dur pe TOT stream-ul: fără el, un stream blocat (rețea/API) ținea bula
   // „🧠 Analizez…" + cronometrul la infinit — reader.read() nu are timeout propriu.
-  // 180s acoperă lejer și brief-ul de 5500 tokens.
+  // 180s acoperă lejer și brief-ul de 6000 tokens.
   const ctrl = new AbortController();
   const killer = setTimeout(() => ctrl.abort(), 180000);
   try {
@@ -3462,7 +3462,8 @@ const SECTION_PROMPTS = {
   'Tablou piata': 'Aprofundează tabloul macro+crypto: corelații istorice între indicatorii (VIX/DXY/yields/BTC/ETH) la nivelurile actuale. Ce regim macro suntem (early/mid/late cycle, recession risk) și ce înseamnă pentru apetitul de risc.',
   'Geopolitica': 'Pentru fiecare risc geopolitic activ, adaugă probabilitate estimativă (%) de escaladare + ce asset se mișcă cel mai mult + cum se hedge (puts, inverse ETFs, GLD, defense, cash). Concret, nu generic.',
   'Scenarii': 'Detaliază scenariile cu trigger-uri exacte. Bull: ce nivel SPY/BTC + ce volum + ce catalist. Bear: la fel. Risc-cheie: probabilitate + hedge. Plus „what if neither" — sideways scenario.',
-  'Top oportunitati': 'Pentru fiecare pick (stock sau coin), elaborează: setup tehnic complet (chart pattern), catalistul concret de azi, sizing recomandat (% din cont) corelat cu conviction-ul ⭐, management activ (trailing stops, scaling out la TP1/TP2), invalidare clară. Adaugă 1-2 picks alternative dacă apar oportunități noi.'
+  'STOCKS': 'Pentru fiecare pick stocks, elaborează: setup tehnic complet (chart pattern), faptul-ancoră concret de azi (event/rezultat/știre/nivel rupt), sizing recomandat (% din cont) corelat cu conviction-ul ⭐, management activ (trailing stops, scaling out la TP1/TP2), invalidare clară. Dacă lista era goală (niciun edge clar), explică ce ar trebui să apară ca să devină tradeabil.',
+  'CRYPTO': 'Pentru fiecare pick crypto, elaborează: zone tehnice exacte (suport/rezistență din nivelurile live), faptul-ancoră concret (știre crypto / on-chain / nivel BTC-ETH rupt / corelație macro), sizing corelat cu conviction-ul ⭐, management activ, invalidare clară. Dacă lista era goală, explică ce catalist ar debloca un setup.'
 };
 
 function getSectionPrompt(title) {
@@ -3586,7 +3587,7 @@ PRIMA LINIE OBLIGATORIE (parsata programatic, fara markdown):
 MARKET_MOOD: risk-on | risk-off | mixed | stress
 (alegerea ta bazata pe VIX, DXY, F&G, events, sentiment news. risk-on = apetit risc; risk-off = defensiv; mixed = fara directie clara; stress = VIX>30 sau eveniment major)
 
-Apoi STRUCTURA — EXACT aceste 7 sectiuni, in aceasta ordine (markdown ## pentru headings):
+Apoi STRUCTURA — EXACT aceste 8 sectiuni, in aceasta ordine (markdown ## pentru headings):
 
 ## 🎯 Verdict & bias
 - 2-3 propozitii: teza zilei + factorul dominant + cel secundar.
@@ -3624,14 +3625,29 @@ Un SINGUR bloc de scenarii — nu le imprastia in alte sectiuni:
 - **Bear case**: ce declanseaza un selloff 1-2% / crypto correction + cat.
 - **Risc-cheie / wildcard**: 1-2 lucruri care REVERSEAZA teza (surpriza la event, headline neasteptat, token unlock/hack) — fiecare cu probabilitate estimativa (%) si cum te aperi (hedge: puts, inverse ETF, defensive sectors, cash).
 
-## 🔥 Top oportunitati azi (ranked)
-INIMA brief-ului. 4-6 idei concrete, amestec de STOCKS si COINURI, ORDONATE dupa risk/reward (cea mai buna prima). Alege ce are catalist REAL azi (event, rezultat, rupere tehnica, stire din feed) — nu nume generice „de portofoliu". Pentru fiecare:
-- **TICKER** · directie (LONG / SHORT / WAIT) · conviction ⭐1-5
-- De ce AZI: catalistul concret, 1 propozitie (leaga-l de o sectiune de mai sus)
-- Entry: ~$X · SL: ~$Y · TP1/TP2: ~$Z — EXCLUSIV din "NIVELURI TEHNICE LIVE"
+## 📈 STOCKS — oportunitati azi (ranked)
+GATE DE CALITATE — adaugi o oportunitate DOAR daca trece TOATE conditiile:
+1. Are un CATALIST CONCRET din datele primite: event din calendar azi, rezultat publicat azi (BEAT/MISS), stire specifica din feed, SAU o configuratie tehnica reala (rupere/respingere de MA50/MA200/range din "NIVELURI TEHNICE LIVE"). Fara fapt-ancora verificabil → NU o lista.
+2. Are nivel tehnic live ca sa dai Entry/SL/TP reale. Daca tickerul nu e in "NIVELURI TEHNICE LIVE" dar faptul e foarte puternic, listeaza-l si scrie "fara nivel live" — FARA cifre inventate.
+3. ZERO memorie / cunostinte generale / "feeling" / pattern-uri inventate. Doar ce e in datele de mai sus.
+CALITATE > CANTITATE: 0-4 picks. Daca nu exista setup clar, scrie EXACT "Niciun setup stocks cu edge clar azi — stai pe maini" si NU umple lista cu mediocritati.
+Format per pick (ordonate dupa risk/reward, cea mai buna prima):
+- **TICKER** · directie (LONG / SHORT / WAIT) · conviction ⭐1-5 (⭐ reflecta TARIA FAPTELOR: 5 = catalist + confirmare tehnica + aliniere macro; 3 = teza solida cu un fapt; 2 = teza ok dar fara confirmare. Sub 2 → nu o lista)
+- 📌 Fapt-ancora: citeaza FAPTUL concret (event / rezultat / stire / nivel rupt) din datele de mai sus care justifica trade-ul
+- Entry: ~$X · SL: ~$Y · TP1/TP2: ~$Z (EXCLUSIV din "NIVELURI TEHNICE LIVE")
 - Timeline: intraday / swing 3-5 zile · Invalidare: nivelul la care teza moare
-Marcheaza cea mai buna idee cu prefixul "⭐ TRADE OF THE DAY".
-La final, o linie **⛔ AVOID azi**: 1-2 tickere/sectoare de evitat (risc de event/headline) + de ce.
+
+## 🪙 CRYPTO — oportunitati azi (ranked)
+ACELASI GATE DE CALITATE ca la stocks: catalist concret din feed/events SAU nivel tehnic live rupt, nivel live pentru Entry/SL/TP, ZERO memorie/feeling, calitate > cantitate (0-4 picks). Daca nu exista setup clar, scrie EXACT "Niciun setup crypto cu edge clar azi — stai pe maini".
+Format per pick (ordonate dupa risk/reward):
+- **COIN / crypto-stock** (ex: BTC, ETH, SOL, COIN, MSTR) · directie (LONG / SHORT / WAIT) · conviction ⭐1-5 (aceeasi scara bazata pe fapte)
+- 📌 Fapt-ancora: catalistul concret din datele primite (stire crypto, on-chain, nivel BTC/ETH rupt, corelatie cu macro de mai sus)
+- Entry: ~$X · SL: ~$Y · TP1/TP2: ~$Z (EXCLUSIV din "NIVELURI TEHNICE LIVE")
+- Timeline · Invalidare
+
+Dupa cele doua sectiuni de oportunitati, adauga doua linii:
+- **⭐ TRADE OF THE DAY**: o SINGURA idee, cea mai buna din AMBELE categorii, cu motivul (faptul cel mai tare).
+- **⛔ AVOID azi**: 1-2 tickere/sectoare de evitat (risc de event/headline necunoscut) + de ce.
 
 INSTRUCTIUNI STIL:
 - ANTI-REPETARE (prioritar): fiecare nivel/teza/scenariu/ticker apare o singura data, in sectiunea lui. Daca te trezesti reluand BTC, directia sau un scenariu — opreste-te, e deja spus mai sus.
@@ -3933,9 +3949,10 @@ Genereaza brief-ul matinal conform structurii.`;
 
   try {
     // Streaming silentios — NU update-uim DOM-ul la fiecare chunk (e obositor)
-    // 5500 tokens: brief-ul are 7 secțiuni ~1400-1700 cuvinte în română (diacritice = mai multe
-    // tokenuri); secțiunea finală „Top oportunități azi" e cea mai densă (picks + Entry/SL/TP) → nu o tăia.
-    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, () => {}, 5500);
+    // 6000 tokens: brief-ul are 8 secțiuni ~1500-1800 cuvinte în română (diacritice = mai multe
+    // tokenuri); ultimele 2 secțiuni (STOCKS + CRYPTO picks cu Entry/SL/TP) + TRADE OF THE DAY/AVOID
+    // sunt cele mai dense și vin la final → spațiu suficient ca să nu fie tăiate.
+    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, () => {}, 6000);
     clearInterval(tickTimer);
 
     // Parse MARKET_MOOD din prima linie
