@@ -97,7 +97,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 </head>
 <body>
 
-<h1>🔗 Markov Lab <span class="ver">v3.8</span> <a href="../" class="hub-link" title="Înapoi la Hub">← Hub</a></h1>
+<h1>🔗 Markov Lab <span class="ver">v3.9</span> <a href="../" class="hub-link" title="Înapoi la Hub">← Hub</a></h1>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
   Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
@@ -275,6 +275,7 @@ function renderAnalysis(meta, ohlc){
       <div class="stat"><div class="k">Bias net</div><div class="v" style="color:${leanCol}">${leanPct>=0?'+':''}${fmtPct(leanPct)}</div></div>
     </div>
     ${!pred.confident ? `<div class="verdict warn" style="margin-top:10px">⚠ Doar ${m.rowN[cur]} observații istorice pe această stare — predicția e slab susținută. Tratează cu prudență.</div>` : ''}
+    <div class="muted" style="font-size:10px; margin-top:8px; line-height:1.45">ℹ️ Predicție <b>descriptivă</b>, din toată seria (in-sample). Cât de bine ține pe date nevăzute vezi în <b>④ Validare edge</b> (walk-forward OOS) — acolo e numărul pe care te bazezi.</div>
   </div>`;
   // dreapta: distribuția next-state
   html += `<div><div class="muted" style="font-size:11px; margin-bottom:6px">Distribuția stării următoare (din rândul curent)</div>`;
@@ -289,7 +290,7 @@ function renderAnalysis(meta, ohlc){
   html += `</div></div></div>`;
 
   // ── matricea de tranziție ──
-  html += `<div class="panel"><h2>③ Matrice de tranziție <span class="tag">P(rând → coloană) · Laplace k=${m.k}</span></h2>`;
+  html += `<div class="panel"><h2>③ Matrice de tranziție <span class="tag">P(rând → coloană) · Laplace k=${m.k} · in-sample (toată seria)</span></h2>`;
   html += `<div style="overflow-x:auto"><table class="mx"><tr><th>din ↓ \\ în →</th>`;
   for(let j=0;j<n;j++) html += `<th>${lab.short[j]}</th>`;
   html += `<th>n</th></tr>`;

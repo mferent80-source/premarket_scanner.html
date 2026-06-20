@@ -250,7 +250,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v152</span>
+    <span class="ver-badge" id="verBadge">v153</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <div class="hdr-spc"></div>
     <button class="btn" id="scanBtn">🔄 SCAN</button>
@@ -401,7 +401,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   PAS 3: AI bubble Claude streaming + alerte rotație hot↔cold + Telegram + sound
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v152';
+const VER = 'v153';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -503,13 +503,14 @@ async function fetchYearChart(sym){
 }
 
 // ── Calcul Δ% pe intervale ──
-function pctChange(a, b){ return b > 0 ? ((a - b) / b) * 100 : 0; }
+function pctChange(a, b){ return b > 0 ? ((a - b) / b) * 100 : null; }
+// null = date insuficiente (≠ „neschimbat 0%") → afișat ca „—", ca să nu confunde lipsa cu flat.
 function pctOf(arr, daysAgo){
-  if (!arr || arr.length < daysAgo + 1) return 0;
+  if (!arr || arr.length < daysAgo + 1) return null;
   return pctChange(arr[arr.length-1], arr[arr.length-1 - daysAgo]);
 }
 function pctYTD(arr, times){
-  if (!arr || arr.length < 2) return 0;
+  if (!arr || arr.length < 2) return null;
   const last = arr[arr.length-1];
   const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime() / 1000;
   for (let i = 0; i < times.length; i++){
@@ -528,8 +529,8 @@ function heatBucket(pct){
   if (pct >= -3.0) return 'h0';
   return 'hN';
 }
-function pctClass(p){ return p >= 0.05 ? 'up' : (p <= -0.05 ? 'dn' : 'flat'); }
-function fmtPct(p){ const s = p>=0?'+':''; return s + p.toFixed(2) + '%'; }
+function pctClass(p){ if (p == null || isNaN(p)) return 'flat'; return p >= 0.05 ? 'up' : (p <= -0.05 ? 'dn' : 'flat'); }
+function fmtPct(p){ if (p == null || isNaN(p)) return '—'; const s = p>=0?'+':''; return s + p.toFixed(2) + '%'; }
 function fmtPrice(p){ return p >= 100 ? p.toFixed(2) : p.toFixed(3); }
 
 // ── Sparkline SVG mic (30 zile) ──
@@ -1019,8 +1020,9 @@ async function runScan(){
 // ═══════════════════════════════════════════════════════════════
 function render(){
   if (!DATA.length){ return; }
-  // Sort
-  const ord = DATA.slice().sort((a,b) => sortAsc ? (a[sortBy]-b[sortBy]) : (b[sortBy]-a[sortBy]));
+  // Sort — null (date insuficiente, ex. chg3m/YTD pe serii scurte) mereu la fund, indiferent de direcție
+  const sv = x => { const v = x[sortBy]; return (v == null || isNaN(v)) ? (sortAsc ? Infinity : -Infinity) : v; };
+  const ord = DATA.slice().sort((a,b) => sortAsc ? (sv(a)-sv(b)) : (sv(b)-sv(a)));
 
   // Stats
   const hot  = DATA.filter(d => d.chg1w >  CFG.threshold).length;
