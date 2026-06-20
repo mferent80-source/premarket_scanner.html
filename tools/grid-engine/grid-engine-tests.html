@@ -1,0 +1,53 @@
+<!DOCTYPE html><html lang="ro"><head><meta charset="UTF-8"><title>Grid Engine Tests</title>
+<style>body{background:#0b0f17;color:#e8eef5;font:13px monospace;padding:16px}.PASS{color:#22d66b}.FAIL{color:#ff4d4d;font-weight:700}</style></head>
+<body><pre id="out">rulează...</pre>
+<script src="grid-engine.js"></script>
+<script>
+const results = [];
+function eq(name, got, want, eps){
+  eps = eps || 1e-6;
+  const ok = Math.abs(got-want) <= eps;
+  results.push((ok?'PASS':'FAIL')+'  '+name+'  got='+got+' want='+want);
+  if(!ok) console.error('FAIL '+name+' got='+got+' want='+want);
+}
+function approx(name, got, want, eps){ eq(name, got, want, eps); }
+function truthy(name, cond, got){
+  results.push((cond?'PASS':'FAIL')+'  '+name+'  got='+got);
+  if(!cond) console.error('FAIL '+name+' got='+got);
+}
+
+// ── METRICI ──
+eq('ER monoton up', efficiencyRatio([1,2,3,4,5]), 1);
+eq('ER zigzag retur', efficiencyRatio([10,12,10,12,10]), 0);
+approx('ER partial', efficiencyRatio([10,11,10,11,12]), 0.5, 1e-4);
+eq('rangePct 10', rangePct([105,110,108],[100,103,101]), 10);
+eq('atrPct flat', atrPct([10,10,10],[10,10,10],[10,10,10]), 0);
+{ const c=[]; for(let i=0;i<60;i++) c.push(100 + (i%2===0?5:-5));
+  const r = oscillationRate(c, 20); truthy('oscRate oscilant>0.2', r>0.2, r); }
+{ const up=[100,101,102,103,104], s=slopePct(up); truthy('slope up>0', s>0, s); }
+{ const dn=[104,103,102,101,100], s=slopePct(dn); truthy('slope dn<0', s<0, s); }
+
+// ── SCORING ──
+eq('vol 1h sweet', volPointsNeutral(15,'1h'), 25);
+eq('vol 1h margine', volPointsNeutral(4,'1h'), 12);
+eq('vol 1h mort', volPointsNeutral(1,'1h'), 0);
+eq('vol 4h sweet', volPointsNeutral(20,'4h'), 25);
+
+{ const s = neutralSubScore({er:0.15, rangePct:15, oscRate:0.2, driftPct:2, quoteVol:1e7, tf:'1h'});
+  truthy('neutral ideal>=90', s>=90, s); }
+{ const s = neutralSubScore({er:0.9, rangePct:15, oscRate:0.05, driftPct:40, quoteVol:1e7, tf:'1h'});
+  truthy('neutral trend<=40', s<=40, s); }
+
+{ const s = directionalSubScore({er:0.5, rangePct:15, quoteVol:1e7, tf:'1h'}); eq('directional moderat', s, 75); }
+{ const s = directionalSubScore({er:0.9, rangePct:15, quoteVol:1e7, tf:'1h'}); eq('directional vertical', s, 40); }
+
+eq('combineNeutral bias', combineNeutral(40,80), 48);
+
+{ const r = combineDirectional(60,60, 3, 5); eq('dir score aliniat', r.score, 85); eq('dir dir up', r.direction, 1); }
+{ const r = combineDirectional(60,60, 3, -5); eq('dir score conflict', r.score, 60); }
+
+document.getElementById('out').textContent = results.join('\n');
+const pass = results.filter(r=>r.startsWith('PASS')).length;
+document.getElementById('out').innerHTML = results.map(r=>'<span class="'+r.slice(0,4)+'">'+r+'</span>').join('\n');
+console.log('SUMMARY '+pass+'/'+results.length+' PASS');
+</script></body></html>

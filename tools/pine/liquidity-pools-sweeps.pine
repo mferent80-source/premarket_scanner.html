@@ -1,0 +1,484 @@
+//@version=6
+// =============================================================================
+//  Liquidity Pools & Sweeps  —  v1.8  (standalone)
+//  Buy-side (BSL) above swing highs, sell-side (SSL) below swing lows.
+//  Flags equal-highs/lows (EQH/EQL) and the liquidity grab when price wicks
+//  through a pool and closes back. "Talking" status dashboard.
+//
+//  v1.8 changes vs v1.7:
+//   - Dashboard redimensionabil si mutabil, fara alta schimbare de logica:
+//       * input "Dashboard text size" (Tiny / Small / Normal / Large / Huge /
+//         Auto) scaleaza intreg tabelul. Normal = marimea din v1.7.
+//       * input "Position" extins la toate cele 9 ancore ale chartului
+//         (Top/Middle/Bottom x Left/Center/Right), nu doar cele 4 colturi.
+//       * Default Normal + Top Right => aspect identic cu v1.7. Zero atingere
+//         a verdictului, trigger-ului, culorilor sau alertelor.
+//
+//  v1.7 changes vs v1.6:
+//   - Verdict aliniat cu trigger-ul: cat timp un grab e proaspat si neinfirmat
+//     (grabLive), randul-verdict arata "GRAB ... LONG/SHORT activ" pe directia
+//     grab-ului produs, nu magnetul urmator. Verdict si trigger nu se mai
+//     contrazic in ferestrele de dupa un grab.
+//
+//  v1.6 changes vs v1.5:
+//   - Rand TRIGGER nou (sub verdict): raspunsul scurt negru-pe-alb daca intri
+//     ACUM sau astepti. "ASTEAPTA GRAB -> LONG/SHORT" (galben) cat timp nu s-a
+//     produs grab-ul; "GO LONG/SHORT ACUM" (verde/rosu) cat timp grab-ul e
+//     proaspat (in fereastra evalBars); "STAI - continuation" daca a spart.
+//     Elimina confuzia "verde = intru acum" - culoarea verdict arata DIRECTIA,
+//     trigger-ul arata DACA ai voie sa intri.
+//
+//  v1.5 changes vs v1.4:
+//   - Culoarea randului-verdict = DIRECTIA (verde LONG / rosu SHORT / gri
+//     NEUTRU), conventia clasica. Urgenta (IN ZONE / WATCH / NEUTRU) ramane
+//     scrisa in text. Inainte culoarea insemna urgenta, ceea ce inducea in
+//     eroare (rosu nu insemna short).
+//
+//  v1.4 changes vs v1.3:
+//   - Preset Crypto / Nasdaq / Custom pe parametrii cheie (Swing length,
+//     Equal-level tolerance, Setup within). Crypto = mai larg (24/7, volatil),
+//     Nasdaq = mai strans (RTH). Custom = inputurile manuale. Presetul activ
+//     apare in randul Context al dashboard-ului.
+//
+//  v1.3 changes vs v1.2:
+//   - Dashboard refacut ca VERDICT ACTIONAL, nu lista de valori:
+//       rand-verdict mare (IN ZONE / WATCH / NEUTRU) cu directia magnetului
+//       (BSL sus / SSL jos) + ce faci dupa grab (LONG/SHORT), urmat de doua
+//       scenarii conditionate: A = LONG la SSL, B = SHORT la BSL, cu cel de
+//       pe partea magnetului aprins si opusul estompat.
+//   - Tolerance + Mode + varsta magnetului comprimate intr-un rand "Context".
+//   - Cod mort eliminat (biasTxt/nextLbl/oppLbl/ageTxt). Zero predictie noua:
+//       totul derivat din ssCloser / magDist / nSSL / nBSL / outcome sweep.
+//
+//  v1.2 changes vs v1.1:
+//   - Dashboard rebuilt as a liquidity MAP, not a value list:
+//       Bias (which side is the magnet), Next magnet vs Opposite with
+//       distance in % AND xATR + [EQH]/[EQL] tag, Setup verdict
+//       (NEUTRAL / WATCH / IN ZONE), nearest-pool age, sweep outcome
+//       (REVERSAL OK / CONTINUATION), liquidity asymmetry, symbol+TF.
+//   - Per-pool creation bar tracked (bCB/sCB) -> pool age.
+//   - Sweep-outcome mini-tracker: after `lookahead` bars, did price revert?
+//
+//  Honest notes / trade-offs:
+//   - Pivots confirm `Swing length` bars LATE (inherent, not repaint).
+//   - Pivots do NOT repaint. With "Require close-back" ON, treat a grab as
+//     valid only at bar close -> set alerts to "Once per bar close".
+//   - Sweep outcome is a SIMPLE close-vs-level check `lookahead` bars after
+//     the grab. It is a sanity read, not a backtest of expectancy.
+//   - Verdictul/scenariile NU prezic directia: deriva strict din care pool e
+//     mai aproape (magnet) si din logica fade (grab + close-back -> revenire).
+//   - Bounded: only `Max active pools per side` tracked; oldest un-swept is
+//     dropped when exceeded. Swept lines/labels auto-pruned by max counts.
+// =============================================================================
+
+indicator("Liquidity Pools & Sweeps v1.8", overlay = true,
+     max_lines_count = 500, max_labels_count = 500, max_bars_back = 500)
+
+// ----------------------------- Inputs ----------------------------------------
+grpP = "Preset"
+preset = input.string("Custom", "Preset", options = ["Crypto", "Nasdaq", "Custom"], group = grpP,
+     tooltip = "Crypto = 24/7, volatil (pivoturi/tolerante mai largi). Nasdaq = RTH, mai strans. Custom = folosesti inputurile manuale de mai jos.")
+
+grpD = "Detection"
+pivotLenC  = input.int(8, "Swing length (Custom)", minval = 1, maxval = 50, group = grpD,
+     tooltip = "Folosit doar pe preset Custom. Bars on each side of a pivot. Larger = fewer, more significant pools. Pivots confirm this many bars late.")
+eqTolATRC  = input.float(0.10, "Equal-level tolerance xATR (Custom)", minval = 0.0, step = 0.01, group = grpD,
+     tooltip = "Folosit doar pe preset Custom. Two pivots within this xATR(14) are treated as an equal-highs/lows cluster (EQH/EQL).")
+maxPools   = input.int(6, "Max active pools per side", minval = 1, maxval = 30, group = grpD,
+     tooltip = "Oldest un-swept pool is dropped when exceeded. Keeps the chart clean and the work bounded.")
+onlyEqual  = input.bool(false, "Only show equal-level pools", group = grpD,
+     tooltip = "If on, a pool is drawn only when it matches a recent pivot within tolerance.")
+cleanupATR = input.float(0.0, "Drop pools beyond (xATR, 0=off)", minval = 0.0, step = 0.5, group = grpD,
+     tooltip = "Optional: remove an active pool when price moves this many xATR away from it. 0 disables.")
+
+grpS = "Sweep / grab"
+requireClose = input.bool(true, "Require close-back for sweep", group = grpS,
+     tooltip = "On: grab needs the wick to pierce the level AND the bar to close back on the origin side. Off: any wick beyond the level counts.")
+evalBars     = input.int(5, "Sweep outcome lookahead (bars)", minval = 1, maxval = 100, group = grpS,
+     tooltip = "Bars after a grab to judge REVERSAL vs CONTINUATION (close vs the swept level). Sanity read, not a backtest.")
+
+grpV = "Visuals"
+showLabels = input.bool(true,  "Show labels", group = grpV)
+extendR    = input.bool(true,  "Extend pools to the right", group = grpV)
+bslCol     = input.color(#f0b429, "Buy-side (BSL)", group = grpV)
+sslCol     = input.color(#38bdf8, "Sell-side (SSL)", group = grpV)
+sweptCol   = input.color(#7a8699, "Swept", group = grpV)
+lblBg      = input.color(color.new(#0a0d12, 25), "Label background", group = grpV)
+
+grpT = "Dashboard"
+showDash = input.bool(true, "Show status dashboard", group = grpT)
+dashPos  = input.string("Top Right", "Position", options = ["Top Left", "Top Center", "Top Right", "Middle Left", "Middle Center", "Middle Right", "Bottom Left", "Bottom Center", "Bottom Right"], group = grpT,
+     tooltip = "Muta dashboard-ul in oricare din cele 9 ancore ale chartului.")
+dashSize = input.string("Normal", "Dashboard text size", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], group = grpT,
+     tooltip = "Redimensioneaza tot dashboard-ul. Normal = marimea din v1.7. Auto scaleaza cu zoom-ul chartului.")
+setupATRc = input.float(0.5, "Setup alert within xATR (Custom)", minval = 0.0, step = 0.1, group = grpT,
+     tooltip = "Folosit doar pe preset Custom. If the nearest pool is closer than this (in xATR), Setup shows WATCH. Inside the equality tolerance it shows IN ZONE.")
+
+// ----------------------------- Preset resolve --------------------------------
+// Custom = inputurile manuale; altfel valori potrivite naturii activului.
+int   pivotLen = preset == "Crypto" ? 8    : preset == "Nasdaq" ? 10   : pivotLenC
+float eqTolATR = preset == "Crypto" ? 0.15 : preset == "Nasdaq" ? 0.08 : eqTolATRC
+float setupATR = preset == "Crypto" ? 0.7  : preset == "Nasdaq" ? 0.4  : setupATRc
+
+// ----------------------------- Dashboard size resolve ------------------------
+// szBig = randurile proeminente (titlu / verdict / trigger); szSml = detaliile.
+// Default "Normal" => szBig = size.normal, szSml = size.small => identic cu v1.7.
+szBig = dashSize == "Tiny" ? size.tiny : dashSize == "Small" ? size.small : dashSize == "Large" ? size.large : dashSize == "Huge" ? size.huge : dashSize == "Auto" ? size.auto : size.normal
+szSml = dashSize == "Tiny" ? size.tiny : dashSize == "Small" ? size.tiny  : dashSize == "Large" ? size.normal : dashSize == "Huge" ? size.large : dashSize == "Auto" ? size.auto : size.small
+
+// ----------------------------- State -----------------------------------------
+atr = ta.atr(14)
+tol = atr * eqTolATR
+
+// Active pools (parallel arrays, kept in sync by index)
+var array<line>  bL   = array.new<line>()
+var array<float> bV   = array.new<float>()
+var array<bool>  bE   = array.new<bool>()
+var array<label> bLab = array.new<label>()
+var array<int>   bCB  = array.new<int>()    // creation bar (for age)
+
+var array<line>  sL   = array.new<line>()
+var array<float> sV   = array.new<float>()
+var array<bool>  sE   = array.new<bool>()
+var array<label> sLab = array.new<label>()
+var array<int>   sCB  = array.new<int>()
+
+// Recent-pivot memory for equality
+var array<float> memPH = array.new<float>()
+var array<float> memPL = array.new<float>()
+int memCap = 12
+
+// Last-sweep tracking (for dashboard + outcome)
+var int    lastSweepBar     = na
+var string lastSweepSide    = ""
+var float  lastSweepLvl     = na
+var bool   lastSweepDone    = true
+var string lastSweepOutcome = "-"
+
+// ----------------------------- Helpers ---------------------------------------
+f_pushCap(array<float> arr, float v, int cap) =>
+    array.push(arr, v)
+    if array.size(arr) > cap
+        array.shift(arr)
+
+f_isEqual(array<float> arr, float v, float t) =>
+    bool found = false
+    if array.size(arr) > 0
+        for i = 0 to array.size(arr) - 1
+            if math.abs(array.get(arr, i) - v) <= t
+                found := true
+    found
+
+// ----------------------------- Pivots ----------------------------------------
+float ph = ta.pivothigh(pivotLen, pivotLen)
+float pl = ta.pivotlow(pivotLen, pivotLen)
+int   pbar = bar_index - pivotLen
+
+// --- New buy-side pool -------------------------------------------------------
+if not na(ph)
+    bool isEq = f_isEqual(memPH, ph, tol)
+    f_pushCap(memPH, ph, memCap)
+    if (not onlyEqual) or isEq
+        line ln = line.new(pbar, ph, bar_index, ph, xloc = xloc.bar_index,
+             color = bslCol, width = isEq ? 2 : 1,
+             style = isEq ? line.style_solid : line.style_dashed)
+        label lb = na
+        if showLabels
+            lb := label.new(pbar, ph, isEq ? "EQH" : "BSL", xloc = xloc.bar_index,
+                 yloc = yloc.price, style = label.style_label_down,
+                 color = lblBg, textcolor = bslCol, size = size.tiny)
+        array.push(bL, ln)
+        array.push(bV, ph)
+        array.push(bE, isEq)
+        array.push(bLab, lb)
+        array.push(bCB, pbar)
+        if array.size(bL) > maxPools
+            line.delete(array.shift(bL))
+            label.delete(array.shift(bLab))
+            array.shift(bV)
+            array.shift(bE)
+            array.shift(bCB)
+
+// --- New sell-side pool ------------------------------------------------------
+if not na(pl)
+    bool isEq = f_isEqual(memPL, pl, tol)
+    f_pushCap(memPL, pl, memCap)
+    if (not onlyEqual) or isEq
+        line ln = line.new(pbar, pl, bar_index, pl, xloc = xloc.bar_index,
+             color = sslCol, width = isEq ? 2 : 1,
+             style = isEq ? line.style_solid : line.style_dashed)
+        label lb = na
+        if showLabels
+            lb := label.new(pbar, pl, isEq ? "EQL" : "SSL", xloc = xloc.bar_index,
+                 yloc = yloc.price, style = label.style_label_up,
+                 color = lblBg, textcolor = sslCol, size = size.tiny)
+        array.push(sL, ln)
+        array.push(sV, pl)
+        array.push(sE, isEq)
+        array.push(sLab, lb)
+        array.push(sCB, pbar)
+        if array.size(sL) > maxPools
+            line.delete(array.shift(sL))
+            label.delete(array.shift(sLab))
+            array.shift(sV)
+            array.shift(sE)
+            array.shift(sCB)
+
+// ----------------------------- Sweeps ----------------------------------------
+bool bslSwept   = false
+bool sslSwept   = false
+bool bslEqSwept = false
+bool sslEqSwept = false
+
+// Buy-side: wick above the level, (optionally) close back below = grab
+if array.size(bL) > 0
+    for i = array.size(bL) - 1 to 0
+        float lvl  = array.get(bV, i)
+        bool  isEq = array.get(bE, i)
+        bool swept = high > lvl and (requireClose ? close < lvl : true)
+        bool stale = cleanupATR > 0 and (close - lvl) < -(cleanupATR * atr)
+        if swept
+            line ln = array.get(bL, i)
+            line.set_x2(ln, bar_index)
+            line.set_color(ln, sweptCol)
+            line.set_style(ln, line.style_dotted)
+            if showLabels
+                label.new(bar_index, high, isEq ? "x EQH grab" : "x BSL grab", xloc = xloc.bar_index,
+                     yloc = yloc.price, style = label.style_label_down,
+                     color = lblBg, textcolor = sweptCol, size = size.tiny)
+            alert((isEq ? "EQH " : "Buy-side ") + "liquidity swept @ " + str.tostring(lvl, format.mintick), alert.freq_once_per_bar)
+            bslSwept := true
+            bslEqSwept := bslEqSwept or isEq
+            lastSweepBar := bar_index
+            lastSweepSide := isEq ? "EQH" : "BSL"
+            lastSweepLvl := lvl
+            lastSweepDone := false
+            lastSweepOutcome := "pending"
+            array.remove(bL, i)
+            array.remove(bV, i)
+            array.remove(bE, i)
+            array.remove(bLab, i)
+            array.remove(bCB, i)
+        else if stale
+            line.delete(array.get(bL, i))
+            label.delete(array.get(bLab, i))
+            array.remove(bL, i)
+            array.remove(bV, i)
+            array.remove(bE, i)
+            array.remove(bLab, i)
+            array.remove(bCB, i)
+        else if extendR
+            line.set_x2(array.get(bL, i), bar_index)
+
+// Sell-side: wick below the level, (optionally) close back above = grab
+if array.size(sL) > 0
+    for i = array.size(sL) - 1 to 0
+        float lvl  = array.get(sV, i)
+        bool  isEq = array.get(sE, i)
+        bool swept = low < lvl and (requireClose ? close > lvl : true)
+        bool stale = cleanupATR > 0 and (lvl - close) < -(cleanupATR * atr)
+        if swept
+            line ln = array.get(sL, i)
+            line.set_x2(ln, bar_index)
+            line.set_color(ln, sweptCol)
+            line.set_style(ln, line.style_dotted)
+            if showLabels
+                label.new(bar_index, low, isEq ? "x EQL grab" : "x SSL grab", xloc = xloc.bar_index,
+                     yloc = yloc.price, style = label.style_label_up,
+                     color = lblBg, textcolor = sweptCol, size = size.tiny)
+            alert((isEq ? "EQL " : "Sell-side ") + "liquidity swept @ " + str.tostring(lvl, format.mintick), alert.freq_once_per_bar)
+            sslSwept := true
+            sslEqSwept := sslEqSwept or isEq
+            lastSweepBar := bar_index
+            lastSweepSide := isEq ? "EQL" : "SSL"
+            lastSweepLvl := lvl
+            lastSweepDone := false
+            lastSweepOutcome := "pending"
+            array.remove(sL, i)
+            array.remove(sV, i)
+            array.remove(sE, i)
+            array.remove(sLab, i)
+            array.remove(sCB, i)
+        else if stale
+            line.delete(array.get(sL, i))
+            label.delete(array.get(sLab, i))
+            array.remove(sL, i)
+            array.remove(sV, i)
+            array.remove(sE, i)
+            array.remove(sLab, i)
+            array.remove(sCB, i)
+        else if extendR
+            line.set_x2(array.get(sL, i), bar_index)
+
+// ----------------------------- Sweep-outcome tracker -------------------------
+// After `evalBars` bars, judge if price reverted past the swept level.
+if not lastSweepDone and not na(lastSweepBar) and (bar_index - lastSweepBar) >= evalBars
+    bool buySide = lastSweepSide == "BSL" or lastSweepSide == "EQH"
+    bool reverted = buySide ? close < lastSweepLvl : close > lastSweepLvl
+    lastSweepOutcome := reverted ? "REVERSAL OK" : "CONTINUATION"
+    lastSweepDone := true
+
+// ----------------------------- Dashboard -------------------------------------
+f_dashPos(_p) =>
+    _p == "Top Left" ? position.top_left :
+     _p == "Top Center" ? position.top_center :
+     _p == "Top Right" ? position.top_right :
+     _p == "Middle Left" ? position.middle_left :
+     _p == "Middle Center" ? position.middle_center :
+     _p == "Middle Right" ? position.middle_right :
+     _p == "Bottom Left" ? position.bottom_left :
+     _p == "Bottom Center" ? position.bottom_center :
+     _p == "Bottom Right" ? position.bottom_right :
+     position.top_right
+
+var table dash = table.new(f_dashPos(dashPos), 2, 10, border_width = 1, frame_color = color.new(#0a0d12, 0), frame_width = 1)
+
+f_cell(_t, _c, _r, _txt, _tc) =>
+    table.cell(_t, _c, _r, _txt, text_color = _tc, text_size = szSml, bgcolor = color.new(#0a0d12, 20), text_halign = text.align_left)
+
+if showDash and barstate.islast
+    // ---- nearest pools (capture flag + creation bar IN-LOOP, no later array.get on a maybe-invalid index) ----
+    float nBSL   = na
+    bool  nBSLeq = false
+    int   nBSLcb = na
+    if array.size(bV) > 0
+        for i = 0 to array.size(bV) - 1
+            float v = array.get(bV, i)
+            if v >= close and (na(nBSL) or v < nBSL)
+                nBSL   := v
+                nBSLeq := array.get(bE, i)
+                nBSLcb := array.get(bCB, i)
+    float nSSL   = na
+    bool  nSSLeq = false
+    int   nSSLcb = na
+    if array.size(sV) > 0
+        for i = 0 to array.size(sV) - 1
+            float v = array.get(sV, i)
+            if v <= close and (na(nSSL) or v > nSSL)
+                nSSL   := v
+                nSSLeq := array.get(sE, i)
+                nSSLcb := array.get(sCB, i)
+
+    float bslAtr = na(nBSL) ? na : (nBSL - close) / atr
+    float sslAtr = na(nSSL) ? na : (close - nSSL) / atr
+    string bslLine = na(nBSL) ? "-" : str.tostring(nBSL, format.mintick) + "  +" + str.tostring((nBSL - close) / close * 100, "#.##") + "% / " + str.tostring(bslAtr, "#.##") + "xATR" + (nBSLeq ? "  [EQH]" : "")
+    string sslLine = na(nSSL) ? "-" : str.tostring(nSSL, format.mintick) + "  -" + str.tostring((close - nSSL) / close * 100, "#.##") + "% / " + str.tostring(sslAtr, "#.##") + "xATR" + (nSSLeq ? "  [EQL]" : "")
+
+    // which side is the magnet (closer in xATR)?
+    bool ssCloser = not na(sslAtr) and (na(bslAtr) or sslAtr <= bslAtr)
+    bool hasMag   = not na(bslAtr) or not na(sslAtr)
+    float magDist = not hasMag ? na : ssCloser ? sslAtr : bslAtr
+
+    // ---- setup verdict (folosit de rand-verdict si de randul Setup) ----
+    string setupTxt = "NEUTRAL"
+    color  setupCol = color.gray
+    if not na(magDist)
+        if magDist <= eqTolATR
+            setupTxt := "IN ZONE - grab posibil"
+            setupCol := #ff5252
+        else if magDist <= setupATR
+            setupTxt := "WATCH - " + str.tostring(magDist, "#.##") + "xATR"
+            setupCol := #f0b429
+        else
+            setupTxt := "NEUTRAL - " + str.tostring(magDist, "#.##") + "xATR"
+            setupCol := color.gray
+
+    // ---- grab proaspat? (folosit de verdict SI de trigger) ----
+    bool   freshGrab = not na(lastSweepBar) and (bar_index - lastSweepBar) <= evalBars
+    bool   grabLong  = lastSweepSide == "SSL" or lastSweepSide == "EQL"
+    bool   grabLive  = freshGrab and lastSweepOutcome != "CONTINUATION"
+
+    // ---- verdict actional: magnet jos (SSL) -> LONG dupa grab, magnet sus (BSL) -> SHORT
+    bool   hasDir   = hasMag and not na(magDist)
+    string magName  = ssCloser ? "SSL" : "BSL"
+    string magArr   = ssCloser ? "▼" : "▲"
+    float  magLvl   = ssCloser ? nSSL : nBSL
+    string tradeDir = ssCloser ? "LONG" : "SHORT"
+    string vState   = not na(magDist) and magDist <= eqTolATR ? "IN ZONE" : not na(magDist) and magDist <= setupATR ? "WATCH" : "NEUTRU"
+    color  vTxt     = color.white
+    // culoare = DIRECTIA (verde long / rosu short / gri neutru); urgenta in text
+    color  vCol  = color.new(#5a6270, 0)
+    string vMain = "NEUTRU\nfara pooluri active"
+    string vSide = "-"
+    if grabLive
+        // grab proaspat neinfirmat -> verdictul se aliniaza cu trigger-ul (directia grab-ului)
+        vCol  := grabLong ? #4caf50 : #ff5252
+        vMain := "GRAB  " + (grabLong ? "▼ " : "▲ ") + lastSweepSide + "\n" + (grabLong ? "LONG activ" : "SHORT activ")
+        vSide := na(lastSweepLvl) ? "-" : "@" + str.tostring(lastSweepLvl, format.mintick) + "\n" + str.tostring(bar_index - lastSweepBar) + "b"
+    else if hasDir
+        vCol  := tradeDir == "LONG" ? #4caf50 : #ff5252
+        vMain := vState + "  " + magArr + " " + magName + "\n" + (vState == "IN ZONE" ? "grab acum -> " : "asteapta grab -> ") + tradeDir
+        vSide := na(magLvl) ? "-" : "@" + str.tostring(magLvl, format.mintick) + "\n" + str.tostring(magDist, "#.##") + "xATR"
+
+    // ---- doua scenarii conditionate; cel de pe partea magnetului e aprins, opusul estompat
+    bool   aActive = ssCloser
+    color  dimCol  = color.new(#5a6270, 0)
+    color  aTxt    = na(nSSL) ? dimCol : aActive ? sslCol : dimCol
+    color  bTxt    = na(nBSL) ? dimCol : (not aActive) ? bslCol : dimCol
+    string aHead   = (aActive ? "► " : "  ") + "LONG (A)"
+    string bHead   = ((not aActive) ? "► " : "  ") + "SHORT (B)"
+    string aVal    = na(nSSL) ? "fara SSL pool" : sslLine + "\ngrab+close-back -> LONG"
+    string bVal    = na(nBSL) ? "fara BSL pool" : bslLine + "\ngrab+close-back -> SHORT"
+
+    // ---- counts / asymmetry ----
+    int nb = array.size(bV)
+    int ns = array.size(sV)
+    string asymTxt = "BSL " + str.tostring(nb) + " / SSL " + str.tostring(ns) + (nb == ns ? "  (echilibrat)" : nb > ns ? "  (mai mult sus)" : "  (mai mult jos)")
+
+    // ---- nearest-pool age (magnet side) — captured creation bar, no array.get ----
+    int magAge = ssCloser ? (na(nSSLcb) ? na : bar_index - nSSLcb) : (na(nBSLcb) ? na : bar_index - nBSLcb)
+
+    // ---- last sweep + outcome ----
+    color  swpCol = lastSweepOutcome == "REVERSAL OK" ? #4caf50 : lastSweepOutcome == "CONTINUATION" ? #ff5252 : sweptCol
+    string swpTxt = na(lastSweepBar) ? "-" : lastSweepSide + " grab | " + str.tostring(bar_index - lastSweepBar) + "b | " + lastSweepOutcome
+
+    // ---- TRIGGER: pot intra ACUM sau inca astept? (raspunsul scurt, negru pe alb) ----
+    // Foloseste freshGrab/grabLong calculate mai sus. Cu close-back ON, grab-ul inregistrat
+    // are deja inchidere inapoi peste nivel => entry-ul fade e valid pe el.
+    string trigTxt   = "fara setup"
+    color  trigBg    = color.new(#5a6270, 0)
+    color  trigFg    = color.white
+    if freshGrab and lastSweepOutcome == "CONTINUATION"
+        trigTxt := "STAI - continuation (a spart, nu intra)"
+        trigBg  := color.new(#5a6270, 0)
+    else if freshGrab
+        trigTxt := (grabLong ? "GO LONG ACUM" : "GO SHORT ACUM") + " - grab " + (requireClose ? "+ close-back" : "(doar wick!)")
+        trigBg  := grabLong ? #4caf50 : #ff5252
+    else if hasDir
+        trigTxt := "ASTEAPTA GRAB -> apoi " + tradeDir
+        trigBg  := #f0b429
+        trigFg  := #0a0d12
+
+    // ---- context comprimat: tolerance + mode + varsta magnetului ----
+    string ctxTxt = preset + " | tol " + str.tostring(eqTolATR, "#.##") + "xATR | " + (requireClose ? "close-back" : "wick-only") + (onlyEqual ? " | EQ-only" : "") + (na(magAge) ? "" : " | " + str.tostring(magAge) + "b")
+
+    // ---- render ----
+    table.cell(dash, 0, 0, "LIQUIDITY MAP", text_color = color.white, text_size = szBig, bgcolor = color.new(#0a0d12, 0), text_halign = text.align_left)
+    table.cell(dash, 1, 0, syminfo.ticker + "  " + timeframe.period, text_color = color.new(#9aa4b2, 0), text_size = szSml, bgcolor = color.new(#0a0d12, 0), text_halign = text.align_right)
+
+    table.cell(dash, 0, 1, vMain, text_color = vTxt, text_size = szBig, bgcolor = vCol, text_halign = text.align_left)
+    table.cell(dash, 1, 1, vSide, text_color = vTxt, text_size = szBig, bgcolor = vCol, text_halign = text.align_right)
+
+    // TRIGGER — raspunsul scurt: intri ACUM sau astepti
+    table.cell(dash, 0, 2, trigTxt, text_color = trigFg, text_size = szBig, bgcolor = trigBg, text_halign = text.align_left)
+    table.cell(dash, 1, 2, freshGrab ? str.tostring(bar_index - lastSweepBar) + "b" : "-", text_color = trigFg, text_size = szBig, bgcolor = trigBg, text_halign = text.align_right)
+
+    table.cell(dash, 0, 3, aHead, text_color = aTxt, text_size = szSml, bgcolor = color.new(#0a0d12, 20), text_halign = text.align_left)
+    table.cell(dash, 1, 3, aVal,  text_color = aTxt, text_size = szSml, bgcolor = color.new(#0a0d12, 20), text_halign = text.align_left)
+    table.cell(dash, 0, 4, bHead, text_color = bTxt, text_size = szSml, bgcolor = color.new(#0a0d12, 20), text_halign = text.align_left)
+    table.cell(dash, 1, 4, bVal,  text_color = bTxt, text_size = szSml, bgcolor = color.new(#0a0d12, 20), text_halign = text.align_left)
+
+    f_cell(dash, 0, 5, "Setup",      color.new(#9aa4b2, 0))
+    f_cell(dash, 1, 5, setupTxt,     setupCol)
+    f_cell(dash, 0, 6, "Pools",      color.new(#9aa4b2, 0))
+    f_cell(dash, 1, 6, asymTxt,      color.white)
+    f_cell(dash, 0, 7, "Last sweep", color.new(#9aa4b2, 0))
+    f_cell(dash, 1, 7, swpTxt,       swpCol)
+    f_cell(dash, 0, 8, "Context",    color.new(#9aa4b2, 0))
+    f_cell(dash, 1, 8, ctxTxt,       color.white)
+
+// ----------------------------- Alert conditions ------------------------------
+alertcondition(bslSwept,   "Buy-side liquidity swept",  "BSL grab")
+alertcondition(sslSwept,   "Sell-side liquidity swept", "SSL grab")
+alertcondition(bslEqSwept, "EQH liquidity swept",       "EQH grab (double-top sweep)")
+alertcondition(sslEqSwept, "EQL liquidity swept",       "EQL grab (double-bottom sweep)")
