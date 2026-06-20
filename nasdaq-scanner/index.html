@@ -489,9 +489,11 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 
 /* strength */
 .strength-wrap{margin-bottom:8px;}
-.strength-lbl{font-size:.55rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;display:flex;justify-content:space-between;}
-.strength-track{height:4px;background:var(--b1);border-radius:2px;overflow:hidden;}
-.strength-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+.strength-lbl{font-size:.55rem;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:baseline;}
+/* ierarhie: scorul (intensitatea semnalului) = decizia → valoare proeminentă, nu text mic */
+.strength-lbl .strength-val{font-size:15px;font-weight:800;font-family:var(--head);}
+.strength-track{height:6px;background:var(--b1);border-radius:3px;overflow:hidden;}
+.strength-fill{height:100%;border-radius:3px;transition:width .5s ease;}
 
 /* actions */
 .sig-actions{display:flex;gap:5px;}
@@ -900,7 +902,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v114</span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v115</span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -7099,7 +7101,7 @@ function renderSignals(){
           ${m.vol24!==undefined?`<div class="metric"><div class="metric-val">${fmtVol(m.vol24)}</div><div class="metric-lbl">Vol zi</div></div>`:''}
         </div>
         <div class="strength-wrap">
-          <div class="strength-lbl"><span>Intensitate semnal</span><span style="color:${strengthColor(s.strength)};font-weight:700">${s.strength}%</span></div>
+          <div class="strength-lbl"><span>Intensitate semnal</span><span class="strength-val" style="color:${strengthColor(s.strength)}">${s.strength}%</span></div>
           <div class="strength-track"><div class="strength-fill" style="width:${s.strength}%;background:${strengthColor(s.strength)}"></div></div>
         </div>
         ${(()=>{try{const sp=sparklineCache[s.coin];const pats=sp&&sp.length>=8?detectPatterns(sp):[];return pats.length?`<div style="margin-bottom:6px">${renderPatternBadges(pats)}</div>`:''}catch(e){return ''}})()}
