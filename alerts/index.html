@@ -154,6 +154,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   border:1px solid var(--b1);
 }
 .section-body { padding:10px 14px; }
+/* Secțiune drill-down (Triggered) — colapsabilă, închisă by default */
+.trig-details > summary.section-head { cursor:pointer; list-style:none; user-select:none; }
+.trig-details > summary.section-head::-webkit-details-marker { display:none; }
+.trig-caret { font-family:var(--mono); color:var(--t3); font-size:12px; display:inline-block; transition:transform .15s var(--ease); }
+.trig-details[open] .trig-caret { transform:rotate(90deg); }
+.trig-details > summary.section-head:hover .trig-caret { color:var(--accent); }
 
 .empty { padding:30px 16px; text-align:center; color:var(--t2); font-style:italic; font-size:13px; }
 .empty .ico { font-size:36px; margin-bottom:8px; opacity:.5; display:block; }
@@ -197,95 +203,56 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .px-sess.open { color:var(--bull-s); border-color:rgba(34,214,107,.4); background:rgba(34,214,107,.08); }
 .px-sess.pre { color:var(--warn); border-color:rgba(212,137,44,.4); background:rgba(212,137,44,.1); }
 .px-sess.closed { color:var(--t3); }
-/* badge variația zilei (toate simbolurile): față de închiderea de ieri — după el se sortează 📈 */
-.day-chg { display:inline-block; margin-left:5px; font-family:var(--mono); font-size:9.5px; font-weight:700; padding:1px 5px; border-radius:999px; vertical-align:middle; border:1px solid var(--b1); white-space:nowrap; }
-.day-chg.up { color:var(--bull-s); border-color:rgba(34,214,107,.4); background:rgba(34,214,107,.08); }
-.day-chg.down { color:var(--bear-s); border-color:rgba(255,77,77,.4); background:rgba(255,77,77,.08); }
 .alert-delta { font-family:var(--mono); font-size:11.5px; color:var(--t2); }
 .alert-delta.close { color:var(--warn); font-weight:700; }
 .alert-note { font-size:12px; color:var(--t2); font-style:italic; }
 .alert-actions { display:flex; gap:4px; }
 
-/* ===== Card alertă activă (nume mare + meta + bare de diferență) ===== */
-.alert-card { padding:10px 14px; border-bottom:1px solid rgba(42,50,71,.5); font-family:var(--head); overflow:hidden; }
-.alert-card:last-child { border-bottom:none; }
-.alert-card:hover { background:rgba(91,176,255,.04); }
-.alert-card.snoozed { opacity:.5; }
-/* rândul 1: ticker MARE + badge sesiune + acțiuni */
-.ac-head { display:flex; align-items:center; gap:8px; }
-.ac-sym { font-family:var(--mono); font-weight:800; font-size:18px; letter-spacing:.3px; }
-.ac-sym a { color:var(--accent); text-decoration:none; }
-.ac-sym a:hover { text-decoration:underline; }
+/* badge snooze lipit de ticker (😴Xm) — folosit în tabelul de alerte active */
 .ac-snz { font-size:10px; color:var(--warn); font-family:var(--mono); font-weight:700; margin-left:5px; }
-.ac-actions { display:flex; gap:4px; margin-left:auto; }
-/* rândul 2: tipul alertei */
-.ac-kind { font-family:var(--mono); font-size:11.5px; color:var(--t2); margin-top:4px; }
-/* rândul 3: meta creare (stânga) + preț curent mare (dreapta) */
-.ac-meta { display:flex; align-items:baseline; gap:10px; margin-top:4px; font-family:var(--mono); font-size:11px; color:var(--t3); }
-.ac-born { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.ac-now { font-size:15px; font-weight:700; color:var(--t1); white-space:nowrap; }
-.ac-now.up { color:var(--bull-s); } .ac-now.down { color:var(--bear-s); }
-/* bloc bare */
-.ac-bars { margin-top:7px; display:flex; flex-direction:column; gap:4px; }
-.ac-bar { display:grid; grid-template-columns:74px 1fr 76px; align-items:center; gap:8px; }
-.ac-bar .b-lbl { font-family:var(--mono); font-size:9.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; }
-.ac-bar .b-val { font-family:var(--mono); font-size:10.5px; font-weight:700; text-align:right; color:var(--t2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.ac-bar .b-val.up { color:var(--bull-s); } .ac-bar .b-val.down { color:var(--bear-s); } .ac-bar .b-val.warn { color:var(--warn); }
-/* bara diferență 0%-centru (de la creare / azi) */
-.b-track { position:relative; height:9px; background:var(--panel3); border:1px solid var(--b1); border-radius:5px; overflow:hidden; }
-.b-fill { position:absolute; top:0; bottom:0; }
-.b-fill.up { background:linear-gradient(90deg, rgba(34,214,107,.35), var(--bull-s)); }
-.b-fill.down { background:linear-gradient(270deg, rgba(255,77,77,.35), var(--bear-s)); }
-.b-zero { position:absolute; top:-1px; bottom:-1px; left:50%; width:1px; background:var(--t2); opacity:.5; transform:translateX(-.5px); z-index:2; }
-.b-mark { position:absolute; top:1px; bottom:1px; width:2px; border-radius:1px; z-index:3; transform:translateX(-1px); }
-.b-mark.hi { background:var(--bull-s); opacity:.85; }
-.b-mark.lo { background:var(--bear-s); opacity:.85; }
-/* bara proximitate (cât mai are): se umple stânga→dreapta, plin = declanșează acum */
-.b-track.prox .b-fill { left:0; background:linear-gradient(90deg, var(--acc-1), var(--accent)); opacity:.8; border-radius:6px; }
-.b-track.prox.hot .b-fill { background:linear-gradient(90deg, var(--warn), var(--bear-s)); opacity:.95; }
-.ac-note { font-size:12px; color:var(--t2); font-style:italic; margin-top:7px; }
-.ac-note:empty { display:none; }
 
 /* ===== Tabel alerte active (model watchlist Smart Trade Long) ===== */
-.al-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.al-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -4px; }
 .al-table { width:100%; border-collapse:collapse; font-family:var(--head); }
 .al-table th {
-  font-family:var(--mono); font-size:10px; color:var(--t3); text-transform:uppercase;
-  letter-spacing:.4px; text-align:right; padding:4px 8px 8px; white-space:nowrap;
-  border-bottom:1px solid var(--b1);
+  font-family:var(--mono); font-size:9.5px; color:var(--t3); text-transform:uppercase;
+  letter-spacing:.5px; text-align:right; padding:2px 10px 9px; white-space:nowrap;
+  border-bottom:1px solid var(--b1); font-weight:700;
 }
 .al-table th:first-child { text-align:left; }
 .al-table td {
-  padding:9px 8px; border-bottom:1px solid rgba(42,50,71,.5); text-align:right;
-  font-variant-numeric:tabular-nums; white-space:nowrap; vertical-align:top;
+  padding:11px 10px; border-bottom:1px solid rgba(42,50,71,.45); text-align:right;
+  font-variant-numeric:tabular-nums; white-space:nowrap; vertical-align:middle;
 }
 .al-table tbody tr:last-child td { border-bottom:none; }
-.al-table tbody tr:hover { background:rgba(91,176,255,.04); }
+.al-table tbody tr { transition:background .12s; }
+.al-table tbody tr:hover { background:rgba(91,176,255,.05); }
 .al-row.snoozed { opacity:.5; }
-/* coloana ticker (stânga, cu sub-linii tip alertă + notă) */
-.al-tk { text-align:left; min-width:130px; }
-.al-tk a { font-family:var(--mono); font-weight:800; font-size:14px; color:var(--accent); text-decoration:none; }
+/* coloana ticker (stânga, ticker MARE + sub-linii tip alertă + notă) */
+.al-tk { text-align:left; min-width:150px; vertical-align:top; padding-top:10px; }
+.al-tk a { font-family:var(--mono); font-weight:800; font-size:17px; letter-spacing:.3px; color:var(--accent); text-decoration:none; }
 .al-tk a:hover { text-decoration:underline; }
-.al-kind { display:block; font-family:var(--mono); font-size:10.5px; color:var(--t2); margin-top:2px; white-space:normal; }
-.al-note { display:block; font-size:11px; color:var(--t3); font-style:italic; margin-top:1px; white-space:normal; }
+.al-kind { display:block; font-family:var(--mono); font-size:10.5px; color:var(--t2); margin-top:3px; white-space:normal; line-height:1.35; }
+.al-note { display:block; font-size:11px; color:var(--t3); font-style:italic; margin-top:2px; white-space:normal; line-height:1.3; }
 /* coloane numerice */
-.al-entry { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t2); }
-.al-num { font-family:var(--mono); font-size:13px; font-weight:700; color:var(--t2); }
+.al-entry { font-family:var(--mono); font-size:13px; font-weight:600; color:var(--t2); }
+.al-num { font-family:var(--mono); font-size:13.5px; font-weight:700; color:var(--t3); }
 .al-num.up { color:var(--bull-s); } .al-num.down { color:var(--bear-s); }
-.al-now { font-family:var(--mono); font-size:13.5px; font-weight:700; color:var(--t1); }
+.al-now { font-family:var(--mono); font-size:15px; font-weight:800; color:var(--t1); }
 .al-now.up { color:var(--bull-s); } .al-now.down { color:var(--bear-s); }
 /* coloana prag + distanță până sună */
 .al-trig { text-align:right; }
 .al-tgt { display:block; font-family:var(--mono); font-size:12px; font-weight:700; color:var(--t1); }
-.al-dist { display:block; font-family:var(--mono); font-size:10.5px; color:var(--t3); margin-top:1px; }
+.al-dist { display:block; font-family:var(--mono); font-size:10.5px; color:var(--t3); margin-top:2px; }
 .al-dist.warn { color:var(--warn); font-weight:700; }
 /* acțiuni */
-.al-act { white-space:nowrap; }
+.al-act { white-space:nowrap; text-align:right; }
 .al-act .icon-btn { padding:4px 6px; }
 @media (max-width:768px) {
-  .al-table th, .al-table td { padding:7px 6px; }
-  .al-tk a { font-size:13px; }
-  .al-num, .al-now { font-size:12px; }
+  .al-table th, .al-table td { padding:9px 7px; }
+  .al-tk { min-width:120px; padding-top:9px; }
+  .al-tk a { font-size:15px; }
+  .al-num { font-size:12.5px; } .al-now { font-size:13.5px; }
 }
 
 /* Badge sesiune per grup (crypto 24/7 vs stocks cu sesiune) */
@@ -372,21 +339,13 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   .alert-note:empty { display:none; }                      /* fără rând gol când nu există notă */
   .icon-btn { padding:4px 7px; }                            /* butoane puțin mai mici pe telefon */
   .px-sess { font-size:8px; padding:1px 4px; margin-left:4px; }
-  .day-chg { font-size:8.5px; padding:1px 4px; margin-left:4px; }
-  /* card alertă pe telefon: ticker puțin mai mic, bare cu coloane mai strânse */
-  .alert-card { padding:9px 12px; }
-  .ac-sym { font-size:16px; }
-  .ac-now { font-size:14px; }
-  .ac-bar { grid-template-columns:54px 1fr 66px; gap:6px; }
-  .ac-bar .b-lbl { font-size:9px; letter-spacing:.2px; }
-  .ac-bar .b-val { font-size:9.5px; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v45</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v46</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -502,17 +461,18 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </div>
 </div>
 
-<!-- Triggered history -->
-<div class="section">
-  <div class="section-head">
-    <h3>✅ Triggered (ultimele 50) <span style="font-weight:400;font-size:10.5px;color:var(--t3)" title="Alertele one-shot declanșate de watchlist-monitor dispar din listă fără să treacă pe aici">· istoric local paginii</span></h3>
+<!-- Triggered history — drill-down colapsat by default (nu mai ocupă spațiu mereu) -->
+<details class="section trig-details" id="trigSection">
+  <summary class="section-head">
+    <span class="trig-caret">▸</span>
+    <h3>✅ Triggered <span style="font-weight:400;font-size:10.5px;color:var(--t3)" title="Alertele one-shot declanșate de watchlist-monitor dispar din listă fără să treacă pe aici">· ultimele 50 · istoric local paginii</span></h3>
     <span class="count" id="cntTriggered">0</span>
-    <button id="btnClearTriggered" class="danger" style="font-size:11.5px">🗑 Clear triggered</button>
-  </div>
+    <button id="btnClearTriggered" class="danger" style="font-size:11.5px">🗑 Clear</button>
+  </summary>
   <div class="section-body" id="bodyTriggered">
     <div class="empty"><span class="ico">🔕</span>Niciun alert declanșat încă.</div>
   </div>
-</div>
+</details>
 
 <div class="refresh-info" id="refreshInfo">—</div>
 <div id="toasts"></div>
@@ -684,12 +644,6 @@ function sessTag(sym) {
   const s = marketSession();
   const txt = s.cls === 'open' ? '🟢 RTH' : s.cls === 'pre' ? (s.label.includes('after') ? '🟡 AFT' : '🟡 PRE') : '🌙 CLS';
   return `<span class="px-sess ${s.cls}" title="${s.label} · preț extended live (Yahoo includePrePost)&#10;${roSchedule()}">${txt}</span>`;
-}
-// Badge variația zilei (toate simbolurile): % față de închiderea de ieri — criteriul sortării 📈
-function dayTag(sym) {
-  const c = _lastChange[sym];
-  if (c == null) return '';
-  return `<span class="day-chg ${c >= 0 ? 'up' : 'down'}" title="Variația zilei (față de închiderea de ieri)">${c >= 0 ? '▲' : '▼'}${(c >= 0 ? '+' : '') + c.toFixed(2)}%</span>`;
 }
 let _lastStockPollTs = 0;
 let _warnedNoKey = false;
@@ -1157,28 +1111,6 @@ function fmtAge(ts) {
   if (!ts) return '';
   const m = Math.round((Date.now() - ts) / 60000);
   return m < 60 ? `${m}min` : m < 1440 ? `${Math.round(m / 60)}h` : `${Math.round(m / 1440)}z`;
-}
-// Bară diferență cu 0% la CENTRU: umple spre dreapta (verde) dacă delta≥0, spre stânga (roșu) dacă <0.
-// scale = anvergura la fiecare capăt; hi/lo = markere max/min atinse (% de la creare), opționale.
-function diffBar(delta, scale, hi, lo) {
-  if (delta == null || !isFinite(delta)) return `<div class="b-track"><i class="b-zero"></i></div>`;
-  const range = Math.max(scale || 1.5, Math.abs(delta) * 1.2, Math.abs(hi || 0), Math.abs(lo || 0), 0.5);
-  const posOf = v => Math.max(0, Math.min(100, 50 + (v / range) * 50));
-  const pos = posOf(delta);
-  const fill = delta >= 0 ? `left:50%;width:${(pos - 50).toFixed(1)}%` : `left:${pos.toFixed(1)}%;width:${(50 - pos).toFixed(1)}%`;
-  let marks = '';
-  if (hi != null && isFinite(hi) && hi > 0.05) marks += `<i class="b-mark hi" style="left:${posOf(hi).toFixed(1)}%" title="max +${hi.toFixed(2)}% de la creare"></i>`;
-  if (lo != null && isFinite(lo) && lo < -0.05) marks += `<i class="b-mark lo" style="left:${posOf(lo).toFixed(1)}%" title="min ${lo.toFixed(2)}% de la creare"></i>`;
-  return `<div class="b-track"><i class="b-fill ${delta >= 0 ? 'up' : 'down'}" style="${fill}"></i><i class="b-zero"></i>${marks}</div>`;
-}
-// Bară proximitate „cât mai are până sună": se umple stânga→dreapta cu cât ești mai aproape (plin = declanșează acum)
-function proxBar(score, scale, title) {
-  const t = title ? ` title="${title}"` : '';
-  if (score == null || !isFinite(score)) return `<div class="b-track prox"${t}></div>`;
-  const sc = scale > 0 ? scale : 2;
-  const fillPct = Math.max(2, Math.min(100, (1 - Math.min(score, sc) / sc) * 100));
-  const hot = score < 0.5;
-  return `<div class="b-track prox${hot ? ' hot' : ''}"${t}><i class="b-fill" style="width:${fillPct.toFixed(1)}%"></i></div>`;
 }
 // „Cât mai are până la declanșare": {score:% rămas, scale, target:descriere completă (tooltip), ico:emoji scurt (coloana val)}
 function triggerHint(sym, a, cur) {
@@ -1832,7 +1764,8 @@ $('btnPause').addEventListener('click', () => {
   if (!pollPaused) pollPrices();
 });
 
-$('btnClearTriggered').addEventListener('click', () => {
+$('btnClearTriggered').addEventListener('click', (e) => {
+  e.stopPropagation(); e.preventDefault();   // butonul e în <summary> → nu lăsa click-ul să colapseze drill-down-ul
   if (!HISTORY.length) { toast('Nimic de șters în istoricul local (intrările ☁️ trăiesc în repo)', 'info'); return; }
   if (!confirm(`Ștergi ${HISTORY.length} intrări din istoricul LOCAL? (cele ☁️ ale botului rămân — trăiesc în tools/alerts.json)`)) return;
   const n = HISTORY.length;
@@ -1840,6 +1773,13 @@ $('btnClearTriggered').addEventListener('click', () => {
   persistHistory(); render();
   toast(`🗑 ${n} intrări locale șterse`, 'info');
 });
+// Drill-down Triggered: reține starea deschis/închis între sesiuni (default închis)
+(function initTrigToggle(){
+  const d = $('trigSection');
+  if (!d) return;
+  if (localStorage.getItem('pa_trig_open') === '1') d.open = true;
+  d.addEventListener('toggle', () => localStorage.setItem('pa_trig_open', d.open ? '1' : '0'));
+})();
 
 $('soundBtn').addEventListener('click', () => {
   soundEnabled = !soundEnabled;
