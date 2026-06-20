@@ -246,6 +246,48 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .ac-note { font-size:12px; color:var(--t2); font-style:italic; margin-top:7px; }
 .ac-note:empty { display:none; }
 
+/* ===== Tabel alerte active (model watchlist Smart Trade Long) ===== */
+.al-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.al-table { width:100%; border-collapse:collapse; font-family:var(--head); }
+.al-table th {
+  font-family:var(--mono); font-size:10px; color:var(--t3); text-transform:uppercase;
+  letter-spacing:.4px; text-align:right; padding:4px 8px 8px; white-space:nowrap;
+  border-bottom:1px solid var(--b1);
+}
+.al-table th:first-child { text-align:left; }
+.al-table td {
+  padding:9px 8px; border-bottom:1px solid rgba(42,50,71,.5); text-align:right;
+  font-variant-numeric:tabular-nums; white-space:nowrap; vertical-align:top;
+}
+.al-table tbody tr:last-child td { border-bottom:none; }
+.al-table tbody tr:hover { background:rgba(91,176,255,.04); }
+.al-row.snoozed { opacity:.5; }
+/* coloana ticker (stânga, cu sub-linii tip alertă + notă) */
+.al-tk { text-align:left; min-width:130px; }
+.al-tk a { font-family:var(--mono); font-weight:800; font-size:14px; color:var(--accent); text-decoration:none; }
+.al-tk a:hover { text-decoration:underline; }
+.al-kind { display:block; font-family:var(--mono); font-size:10.5px; color:var(--t2); margin-top:2px; white-space:normal; }
+.al-note { display:block; font-size:11px; color:var(--t3); font-style:italic; margin-top:1px; white-space:normal; }
+/* coloane numerice */
+.al-entry { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t2); }
+.al-num { font-family:var(--mono); font-size:13px; font-weight:700; color:var(--t2); }
+.al-num.up { color:var(--bull-s); } .al-num.down { color:var(--bear-s); }
+.al-now { font-family:var(--mono); font-size:13.5px; font-weight:700; color:var(--t1); }
+.al-now.up { color:var(--bull-s); } .al-now.down { color:var(--bear-s); }
+/* coloana prag + distanță până sună */
+.al-trig { text-align:right; }
+.al-tgt { display:block; font-family:var(--mono); font-size:12px; font-weight:700; color:var(--t1); }
+.al-dist { display:block; font-family:var(--mono); font-size:10.5px; color:var(--t3); margin-top:1px; }
+.al-dist.warn { color:var(--warn); font-weight:700; }
+/* acțiuni */
+.al-act { white-space:nowrap; }
+.al-act .icon-btn { padding:4px 6px; }
+@media (max-width:768px) {
+  .al-table th, .al-table td { padding:7px 6px; }
+  .al-tk a { font-size:13px; }
+  .al-num, .al-now { font-size:12px; }
+}
+
 /* Badge sesiune per grup (crypto 24/7 vs stocks cu sesiune) */
 .sess-badge {
   font-family:var(--mono); font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px;
@@ -344,7 +386,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v44</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v45</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -1158,91 +1200,90 @@ function triggerHint(sym, a, cur) {
   }
   return { score: proximityScore(sym, a), scale: 2, target: `prag $${fmtPx(a.lvl, sym)}`, ico: '🎯' };  // price
 }
-// HTML-ul unui card de alertă activă (folosit în ambele grupuri crypto/stocks)
+// HTML-ul unui rând de tabel pentru o alertă activă (model watchlist Smart Trade Long).
+// Coloane: Ticker (+ tip alertă + notă) | Preț intrare | Evol. de la început | Δ ult. zi | Preț acum | Prag · distanță | Acțiuni
 function rowHtml(sym, a) {
   const cur = _lastPrice[sym];
   const k = a.kind || 'price';
   const isRef = k === 'ref', isAnchor = k === 'anchor', isPct = k === 'pct', isDay = k === 'day';
   const stateBadge = a.rearm ? (a.armed ? ' <span title="re-arm: se păstrează și se re-armează după declanșare">↻</span>' : ' <span style="opacity:.55" title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel">↻💤</span>') : '';
 
-  // Prețul + momentul creării; delta „de la creare" (față de prețul de la adăugare / ancoră)
+  // Preț intrare + evoluție de la început (față de prețul de la adăugare / ancoră)
   const baseCreate = a.base ?? a.addedPrice ?? (k === 'price' ? a.lvl : null);
   const deltaCreate = (cur != null && baseCreate) ? (cur - baseCreate) / baseCreate * 100 : null;
+  const evCls = deltaCreate == null ? '' : (deltaCreate >= 0 ? 'up' : 'down');
   const dayChg = _lastChange[sym];
   const dayCls = dayChg == null ? '' : (dayChg >= 0 ? 'up' : 'down');
   const hiMark = isRef ? a.hi : a.cHi;   // markere max/min: ref are hi/lo propriu, restul cHi/cLo
   const loMark = isRef ? a.lo : a.cLo;
+  const hiLoTip = (hiMark || loMark) ? `de la creare: max ${fmtPct(hiMark)} · min ${fmtPct(loMark)}` : '';
 
-  // Rândul 2: descrierea tipului de alertă
+  // Descrierea tipului de alertă (sub-linie sub ticker)
   let kindHtml;
   if (isRef && a.trail) kindHtml = `📉 −${a.pct}% trailing din vârf`;
   else if (isRef) kindHtml = `±${a.pct}%/pas · 📊 referință`;
   else if (isAnchor) kindHtml = `⚓ ancoră · pas ±${a.pct}%${a.target != null ? ' · 🎯$' + fmtPx(a.target, sym) : ''}${a.stop != null ? ' · 🛑$' + fmtPx(a.stop, sym) : ''}`;
   else if (isPct) kindHtml = `±${a.pct}% mișcare de la ancoră`;
   else if (isDay) kindHtml = `📅 ±${a.pct}% variația zilei`;
-  else kindHtml = `$${fmtPx(a.lvl, sym)} · ${a.dir === 'above' ? '▲ peste' : '▼ sub'}`;
+  else kindHtml = `${a.dir === 'above' ? '▲ peste' : '▼ sub'} prag`;
   kindHtml += stateBadge;
 
-  // Barele
-  const bars = [];
-  if (!isDay) {  // la „variația zilei" bara „de la creare" e identică cu „azi" → o sărim
-    const scale = Math.max((a.pct || 0) * 2, Math.abs(hiMark || 0), Math.abs(loMark || 0), Math.abs(deltaCreate || 0) * 1.2, 1.5);
-    const vc = deltaCreate == null ? '' : (deltaCreate >= 0 ? 'up' : 'down');
-    bars.push(`<div class="ac-bar"><span class="b-lbl">de la creare</span>${diffBar(deltaCreate, scale, hiMark, loMark)}<span class="b-val ${vc}">${deltaCreate == null ? '—' : fmtPct(deltaCreate)}</span></div>`);
-  }
-  {
-    const scale = Math.max(Math.abs(dayChg || 0) * 1.5, 1.5);
-    const vc = dayChg == null ? '' : (dayChg >= 0 ? 'up' : 'down');
-    bars.push(`<div class="ac-bar"><span class="b-lbl">azi</span>${diffBar(dayChg, scale, null, null)}<span class="b-val ${vc}">${dayChg == null ? '—' : fmtPct(dayChg)}</span></div>`);
-  }
-  {
-    const h = triggerHint(sym, a, cur);
-    const ok = h.score != null && isFinite(h.score);
-    const hot = ok && h.score < 0.5;
-    const tip = ok ? `${h.score.toFixed(2)}% până la ${h.target}` : 'cât mai are până la declanșare';
-    // coloana valoare = scurt (% + emoji țintă); descrierea completă în tooltip-ul barei
-    const valTxt = ok ? `${hot ? '⏰' : ''}${h.score.toFixed(2)}%${h.ico ? ' ' + h.ico : ''}` : '—';
-    bars.push(`<div class="ac-bar"><span class="b-lbl">cât mai are</span>${proxBar(h.score, h.scale, tip)}<span class="b-val ${hot ? 'warn' : ''}" title="${tip}">${valTxt}</span></div>`);
-  }
+  // Prag / țintă + distanța până la declanșare
+  const h = triggerHint(sym, a, cur);
+  const ok = h.score != null && isFinite(h.score);
+  const hot = ok && h.score < 0.5;
+  const distTip = ok ? `${h.score.toFixed(2)}% până la ${h.target}` : 'cât mai are până la declanșare';
+  const distTxt = ok ? `${hot ? '⏰ ' : ''}${h.score.toFixed(2)}% până` : '—';
 
+  // Meta creare → tooltip pe prețul de intrare
   const bornStr = fmtBorn(a.addedAt);
   const ageStr = a.addedAt ? ' · activă ' + fmtAge(a.addedAt) : '';
-  const createPxStr = baseCreate != null ? ' · creat la $' + fmtPx(baseCreate, sym) : '';
+  const entryTip = baseCreate != null ? `creat ${bornStr}${ageStr}` : 'fără preț de intrare salvat';
+
   const snoozed = a.snoozeUntil && a.snoozeUntil > Date.now();
   const snzRem = snoozed ? Math.ceil((a.snoozeUntil - Date.now()) / 60000) : 0;
   const snzTxt = snzRem >= 120 ? Math.round(snzRem / 60) + 'h' : snzRem + 'm';
 
-  return `<div class="alert-card${snoozed ? ' snoozed' : ''}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
-    <div class="ac-head">
-      <span class="ac-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}</span>
-      ${cur != null ? sessTag(sym) : ''}
-      <span class="ac-actions">
-        <button class="icon-btn" data-action="snooze" title="😴 Amână alerta (1h / 4h / până la deschidere)" style="${snoozed ? 'color:var(--warn);border-color:rgba(212,137,44,.4)' : 'opacity:.6'}">😴</button>
-        ${isRef
-          ? `<button class="icon-btn" data-action="reanchor" title="🔄 Re-ancorează referința la prețul curent (resetează 0%, pașii și max/min)">🔄</button>`
-          : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (one-shot)' : 'One-shot — click pt ↻ re-arm'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>`}
-        <button class="icon-btn" data-action="edit" title="Editează alerta (modal complet)">✎</button>
-        <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
-      </span>
-    </div>
-    <div class="ac-kind">${kindHtml}</div>
-    <div class="ac-meta"><span class="ac-born">creat ${bornStr}${ageStr}${createPxStr}</span><span class="ac-now ${dayCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}${cur != null ? dayTag(sym) : ''}</span></div>
-    <div class="ac-bars">${bars.join('')}</div>
-    <div class="ac-note">${escHtml(a.note || '')}</div>
-  </div>`;
+  return `<tr class="al-row${snoozed ? ' snoozed' : ''}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
+    <td class="al-tk">
+      <a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${cur != null ? sessTag(sym) : ''}${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}
+      <span class="al-kind">${kindHtml}</span>${a.note ? `<span class="al-note">${escHtml(a.note)}</span>` : ''}
+    </td>
+    <td class="al-entry" title="${entryTip}">${baseCreate != null ? '$' + fmtPx(baseCreate, sym) : '—'}</td>
+    <td class="al-num ${evCls}"${hiLoTip ? ` title="${hiLoTip}"` : ''}>${deltaCreate == null ? '—' : fmtPct(deltaCreate)}</td>
+    <td class="al-num ${dayCls}">${dayChg == null ? '—' : fmtPct(dayChg)}</td>
+    <td class="al-now ${dayCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</td>
+    <td class="al-trig">
+      <span class="al-tgt">${h.target || '—'}</span>
+      <span class="al-dist ${hot ? 'warn' : ''}" title="${distTip}">${distTxt}</span>
+    </td>
+    <td class="al-act">
+      <button class="icon-btn" data-action="snooze" title="😴 Amână alerta (1h / 4h / până la deschidere)" style="${snoozed ? 'color:var(--warn);border-color:rgba(212,137,44,.4)' : 'opacity:.6'}">😴</button>
+      ${isRef
+        ? `<button class="icon-btn" data-action="reanchor" title="🔄 Re-ancorează referința la prețul curent (resetează 0%, pașii și max/min)">🔄</button>`
+        : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (one-shot)' : 'One-shot — click pt ↻ re-arm'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>`}
+      <button class="icon-btn" data-action="edit" title="Editează alerta (modal complet)">✎</button>
+      <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
+    </td>
+  </tr>`;
 }
 
-// Randează un grup (crypto/stocks) + leagă acțiunile pe rândurile lui
+// Capul de tabel comun celor două grupuri (crypto/stocks)
+const AL_THEAD = `<thead><tr>
+  <th>Ticker</th><th>Preț intrare</th><th>Evol. %</th><th>Δ ult. zi</th><th>Preț acum</th><th>Prag · distanță</th><th></th>
+</tr></thead>`;
+
+// Randează un grup (crypto/stocks) ca tabel + leagă acțiunile pe rândurile lui
 function renderActiveGroup(bodyEl, groupRows, ico, emptyMsg) {
   if (!groupRows.length) { bodyEl.innerHTML = `<div class="empty"><span class="ico">${ico}</span>${emptyMsg}</div>`; return; }
-  bodyEl.innerHTML = groupRows.map(({ sym, a }) => rowHtml(sym, a)).join('');
+  bodyEl.innerHTML = `<div class="al-wrap"><table class="al-table">${AL_THEAD}<tbody>${groupRows.map(({ sym, a }) => rowHtml(sym, a)).join('')}</tbody></table></div>`;
   bindActiveActions(bodyEl);
 }
 
 // Leagă rearm/delete/edit pe cardurile dintr-un container
 function bindActiveActions(container) {
   container.querySelectorAll('[data-action="rearm"]').forEach(btn => btn.addEventListener('click', e => {
-    const row = e.target.closest('.alert-card');
+    const row = e.target.closest('[data-id]');
     const sym = row.dataset.sym, id = row.dataset.id;
     const a = (priceAlerts[sym] || []).find(x => x.id === id);
     if (!a) return;
@@ -1252,7 +1293,7 @@ function bindActiveActions(container) {
     toast(`↻ ${sym}: re-arm ${a.rearm ? 'PORNIT' : 'oprit (one-shot)'}`, 'info');
   }));
   container.querySelectorAll('[data-action="reanchor"]').forEach(btn => btn.addEventListener('click', e => {
-    const row = e.target.closest('.alert-card');
+    const row = e.target.closest('[data-id]');
     const sym = row.dataset.sym, id = row.dataset.id;
     priceAlerts = loadAlerts();
     const a = (priceAlerts[sym] || []).find(x => x.id === id);
@@ -1265,7 +1306,7 @@ function bindActiveActions(container) {
     toast(`🔄 ${sym}: ${a.trail ? 'vârf trailing re-ancorat' : 'referință re-ancorată'} la $${fmtPx(px, sym)}`, 'success');
   }));
   container.querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
-    const row = e.target.closest('.alert-card');
+    const row = e.target.closest('[data-id]');
     const sym = row.dataset.sym, id = row.dataset.id;
     if (!confirm('Șterge acest alert?')) return;
     priceAlerts[sym] = (priceAlerts[sym] || []).filter(a => a.id !== id);
@@ -1273,12 +1314,12 @@ function bindActiveActions(container) {
     persistAlerts(); render(); autoSync();
   }));
   container.querySelectorAll('[data-action="edit"]').forEach(btn => btn.addEventListener('click', e => {
-    const row = e.target.closest('.alert-card');
+    const row = e.target.closest('[data-id]');
     openEditModal(row.dataset.sym, row.dataset.id);
   }));
   container.querySelectorAll('[data-action="snooze"]').forEach(btn => btn.addEventListener('click', e => {
     e.stopPropagation();
-    const row = e.target.closest('.alert-card');
+    const row = e.target.closest('[data-id]');
     showSnoozeMenu(btn, row.dataset.sym, row.dataset.id);
   }));
 }
