@@ -720,6 +720,11 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .op-card-status.diverge { color:var(--bear-s); background:var(--bear-bg); }
 .op-sector.confirmed { border-left-color:var(--bull-s); box-shadow:inset 3px 0 0 var(--bull-s); }
 .op-sector.diverge { opacity:.82; }
+/* Crypto momentum card */
+.op-momo-conv { letter-spacing:-1px; }
+.op-momo-levels { font-size:12.5px; font-family:var(--mono); color:var(--t1); margin-bottom:10px; }
+.op-momo-levels b { color:var(--accent); }
+.op-momo-atr { color:var(--t3); font-size:11px; }
 /* Card sector */
 .op-sector { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--r); overflow:hidden; }
 .op-sector.bull { border-left:3px solid var(--bull-s); }
@@ -807,7 +812,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v195</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v196</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1058,6 +1063,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <ul>
           <li><b>Gate de calitate:</b> la rezultat cu <b>|surprise%| ≥ 3</b> sau high-impact cu mișcare reală (≥0.8%) + bias clar, apare card. High-impact la consensus fix nu mai face zgomot.</li>
           <li><b>Două secțiuni:</b> 📈 STOCKS și 🪙 CRYPTO (clasificare după sector/tickere). Coinurile directe apar acum în CRYPTO.</li>
+          <li><b>Crypto momentum</b> (sursă proprie, independentă de macro): scanează ~12 coinuri, listează doar setupuri clare — breakout peste maximul de 20z / breakdown sub minim, cu Δ% azi ≥ 2.5% + poziție MA50/MA200 → conviction ⭐ + Entry/SL/TP din ATR real.</li>
           <li><b>Confirmare de preț:</b> fiecare card e marcat 🟢 fermă (prețul confirmă teza azi), ⏳ de urmărit (fără confirmare), sau 🔴 prudență (preț diverge).</li>
           <li>Tickere din <code>SECTOR_IMPACT_MAP</code>, chip-uri <code>+ TICKER</code> click → add la <code>wl_stocks</code>. Persistent 24h. "+ Adaugă toate" + ✕ Ignoră per card / global.</li>
         </ul>
@@ -4923,15 +4929,6 @@ function renderSuggestionsPanel() {
 
   updateOpBadge(active.length);
 
-  if (!active.length) {
-    body.innerHTML = `<div class="op-empty">
-      <div class="ope-icon">🌙</div>
-      <h4>Nicio oportunitate momentan</h4>
-      <p>Când un rezultat economic important e publicat azi (CPI, NFP, FOMC, Retail Sales…), sectoarele favorizate și acțiunile de cumpărat apar aici automat — grupate pe sector, fără popup-uri. Apasă <b>🤖 Aprofundează</b> pe orice sector pentru analiză AI concretă.</p>
-    </div>`;
-    return;
-  }
-
   const wl = new Set(readWatchlist());
   const stockCards = [], cryptoCards = [];
   active.forEach(([k, s]) => {
@@ -4982,16 +4979,19 @@ function renderSuggestionsPanel() {
     });
   });
 
-  // Două secțiuni distincte: STOCKS (reacții macro) + CRYPTO (macro crypto-sensibil + momentum în Commit 2)
-  const sectionBlock = (title, sub, cards, emptyMsg) =>
-    `<div class="op-section-head"><span class="op-sh-title">${title}</span><span class="op-sh-sub">${sub}</span></div>` +
-    (cards.length ? cards.join('') : `<div class="op-section-empty">${emptyMsg}</div>`);
-
-  body.innerHTML = renderDailyVerdict(active)
-    + sectionBlock('📈 STOCKS', 'acțiuni/ETF favorizate de rezultatele macro de azi', stockCards,
-        'Niciun setup stocks cu edge clar azi — stai pe mâini.')
-    + sectionBlock('🪙 CRYPTO', 'coinuri + crypto-stocks pe macro și momentum de preț', cryptoCards,
-        'Niciun setup crypto din macro azi.');
+  // Două secțiuni distincte: STOCKS (reacții macro) + CRYPTO (macro crypto-sensibil + momentum de preț)
+  const head = (title, sub) => `<div class="op-section-head"><span class="op-sh-title">${title}</span><span class="op-sh-sub">${sub}</span></div>`;
+  const out = [];
+  if (active.length) out.push(renderDailyVerdict(active));
+  // STOCKS
+  out.push(head('📈 STOCKS', 'acțiuni/ETF favorizate de rezultatele macro de azi'));
+  out.push(stockCards.length ? stockCards.join('')
+    : `<div class="op-section-empty">${active.length ? 'Niciun setup stocks cu edge clar azi — stai pe mâini.' : 'Niciun rezultat macro publicat azi încă (la CPI/NFP/FOMC etc. apar aici automat).'}</div>`);
+  // CRYPTO: carduri din macro + container momentum (populat async)
+  out.push(head('🪙 CRYPTO', 'coinuri + crypto-stocks pe macro și momentum de preț'));
+  if (cryptoCards.length) out.push(cryptoCards.join(''));
+  out.push('<div id="opCryptoMomo"><div class="op-section-empty">⏳ scanez momentum crypto live…</div></div>');
+  body.innerHTML = out.join('');
 
   // Bind
   body.querySelectorAll('.op-ticker[data-ticker]').forEach(btn =>
@@ -5003,7 +5003,8 @@ function renderSuggestionsPanel() {
   body.querySelectorAll('.op-ai-btn').forEach(btn =>
     btn.addEventListener('click', () => deepDiveSector(btn.dataset.key, +btn.dataset.sec, btn)));
 
-  enrichOpportunityPrices(); // confluență preț live (async, non-blocking) → marchează card ferm/de urmărit
+  if (active.length) enrichOpportunityPrices(); // confluență preț live → marchează card ferm/de urmărit
+  renderCryptoMomentum(); // sursă crypto independentă (breakout/breakdown cu mișcare) → secțiunea CRYPTO
 }
 
 // Un card-sector e „crypto" dacă iconul e ₿/🪙 sau majoritatea tickerelor sunt crypto (coin -USD / crypto-stocks)
@@ -5012,6 +5013,102 @@ function isCryptoSector(sec) {
   if (/[₿🪙]/.test(sec.icon)) return true;
   const cryptoTk = sec.tickers.filter(t => /-USD$/.test(t) || CRYPTO_STOCKS.has(t));
   return cryptoTk.length >= sec.tickers.length / 2;
+}
+
+// ============ SURSĂ CRYPTO MOMENTUM (independentă de macro) ============
+// Gate de calitate intrinsec: listăm DOAR setupuri clare, susținute de FAPTE de preț reale azi —
+// breakout peste maximul de 20 zile sau breakdown sub minim, confirmat de o mișcare semnificativă,
+// + poziție față de MA50/MA200. Fără setup clar → coinul nu apare (calitate > cantitate).
+const CRYPTO_MOMO_SYMS = ['BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD','ADA-USD','DOGE-USD','AVAX-USD','LINK-USD','DOT-USD','LTC-USD','MATIC-USD'];
+const MOMO_MIN_MOVE = 2.5; // |Δ% azi| minim ca un coin să fie considerat un setup momentum
+let _cryptoMomoSeq = 0;
+
+async function computeCryptoMomentum() {
+  const levels = await fetchBriefLevelsAll(CRYPTO_MOMO_SYMS, 4); // reutilizează cache-ul brief-ului (TTL 10min)
+  const opps = [];
+  for (const sym of CRYPTO_MOMO_SYMS) {
+    const d = levels[sym];
+    if (!d || d.last == null) continue;
+    const chg = d.chgPct ?? 0;
+    const atrPct = (d.atrPct && d.atrPct > 0.2) ? d.atrPct : Math.max(Math.abs(chg), 1);
+    const nearHi = d.hi20 != null && d.last >= d.hi20 * 0.998;  // la/peste maximul de 20 zile
+    const nearLo = d.lo20 != null && d.last <= d.lo20 * 1.002;  // la/sub minimul de 20 zile
+    const aboveMa50 = d.ma50 != null && d.last > d.ma50, belowMa50 = d.ma50 != null && d.last < d.ma50;
+    const aboveMa200 = d.ma200 != null && d.last > d.ma200, belowMa200 = d.ma200 != null && d.last < d.ma200;
+    let dir = null; const facts = [];
+    if ((nearHi && chg >= MOMO_MIN_MOVE) || (chg >= 4 && aboveMa50)) {
+      dir = 'LONG';
+      if (nearHi) facts.push(`rupe maximul de 20 zile`);
+      facts.push(`+${chg.toFixed(1)}% azi`);
+      if (aboveMa50) facts.push('peste MA50');
+      if (aboveMa200) facts.push('peste MA200 (uptrend)');
+    } else if ((nearLo && chg <= -MOMO_MIN_MOVE) || (chg <= -4 && belowMa50)) {
+      dir = 'SHORT';
+      if (nearLo) facts.push(`rupe minimul de 20 zile`);
+      facts.push(`${chg.toFixed(1)}% azi`);
+      if (belowMa50) facts.push('sub MA50');
+      if (belowMa200) facts.push('sub MA200 (downtrend)');
+    }
+    if (!dir) continue; // niciun setup clar → nu îl listăm
+    // conviction 1-5 din numărul de confluențe (fapte care se aliniază)
+    let conv = 1;
+    if (nearHi || nearLo) conv++;
+    if (dir === 'LONG' ? aboveMa50 : belowMa50) conv++;
+    if (dir === 'LONG' ? aboveMa200 : belowMa200) conv++;
+    if (Math.abs(chg) >= 5) conv++;
+    conv = Math.min(5, conv);
+    const atrAbs = d.last * atrPct / 100;
+    const entry = d.last;
+    const sl = dir === 'LONG' ? entry - atrAbs : entry + atrAbs;
+    const tp1 = dir === 'LONG' ? entry + atrAbs * 2 : entry - atrAbs * 2;
+    opps.push({ sym, dir, conv, facts, entry, sl, tp1, chg, atrPct });
+  }
+  opps.sort((a, b) => b.conv - a.conv || Math.abs(b.chg) - Math.abs(a.chg)); // risk/reward: conviction apoi mișcare
+  return opps;
+}
+
+function buildCryptoMomoCard(o) {
+  const fmtPx = v => v == null ? '—' : (v >= 100 ? v.toFixed(0) : v >= 1 ? v.toFixed(2) : v.toFixed(4));
+  const cls = o.dir === 'LONG' ? 'bull' : 'bear';
+  const base = o.sym.replace('-USD', '');
+  const dirLabel = o.dir === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
+  const stars = '⭐'.repeat(o.conv);
+  return `<div class="op-sector ${cls} confirmed">
+    <div class="op-sec-head">
+      <span class="op-sec-icon">🪙</span>
+      <div class="op-sec-titles">
+        <div class="op-sec-name"><span class="ticker-link" data-ticker="${escHtml(o.sym)}">${escHtml(base)}</span> · ${dirLabel} · <span class="op-momo-conv">${stars}</span></div>
+        <div class="op-sec-trigger">📈 Momentum de preț · setup tehnic live (Δ% azi vs maxim/minim 20z + MA)</div>
+      </div>
+    </div>
+    <div class="op-sec-body">
+      <div class="op-card-status confirmed" title="Setup susținut de prețul real de azi">📌 ${escHtml(o.facts.join(' · '))}</div>
+      <div class="op-momo-levels">Entry <b>$${fmtPx(o.entry)}</b> · SL <b>$${fmtPx(o.sl)}</b> · TP <b>$${fmtPx(o.tp1)}</b> <span class="op-momo-atr">(SL/TP din ATR ~${o.atrPct.toFixed(1)}%)</span></div>
+      <div class="op-sec-actions">
+        <button class="primary op-momo-add" data-ticker="${escHtml(o.sym)}">+ Adaugă la watchlist</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function renderCryptoMomentum() {
+  const seq = ++_cryptoMomoSeq;
+  let opps = [];
+  try { opps = await computeCryptoMomentum(); } catch (e) { opps = []; }
+  if (seq !== _cryptoMomoSeq) return; // re-render între timp → abandonăm
+  const host = document.getElementById('opCryptoMomo');
+  if (!host) return;
+  if (!opps.length) {
+    host.innerHTML = '<div class="op-section-empty">Niciun setup crypto momentum clar acum — niciun coin nu rupe maximul/minimul de 20 zile cu mișcare semnificativă.</div>';
+    return;
+  }
+  host.innerHTML = opps.map(buildCryptoMomoCard).join('');
+  host.querySelectorAll('.op-momo-add[data-ticker]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      addTickerToWatchlist(btn.dataset.ticker);
+      toast(`✓ ${btn.dataset.ticker} adăugat la watchlist`, 'success');
+      renderSuggestionsPanel();
+    }));
 }
 
 // Completează Δ% azi pe fiecare ticker + marcaj confluență ✅/⚠ față de teza sectorului
