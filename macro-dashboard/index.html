@@ -793,7 +793,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v191</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v192</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1070,7 +1070,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <h4>🤖 AI Daily Brief</h4>
         <ul>
           <li><b>Auto-trigger 08:00 ET</b> (DST-aware via Intl.DateTimeFormat) cu cheia Anthropic configurată.</li>
-          <li>Brief detaliat ~1800 cuvinte cu 10 secțiuni: Verdict / Recap 24h / Calendar / Context / Sectoare / Crypto / Risc / Bull vs Bear / Idei trade / Look-ahead.</li>
+          <li>Brief actionabil ~1400-1700 cuvinte, anti-repetare, cu 7 secțiuni: Verdict & bias / Ce s-a întâmplat 24h / Ce urmează (azi+săptămână) / Tablou piață / Geopolitică / Scenarii / 🔥 Top oportunități azi (picks ranked stocks+coinuri cu conviction ⭐ + Entry/SL/TP).</li>
           <li><b>Drill-down:</b> click pe heading secțiune → AI follow-up 400-700 cuvinte cu prompt specific per secțiune (cache 12h).</li>
           <li><b>Ticker auto-link:</b> 100+ tickere în brief sunt clickable → modal cu chart Yahoo + 7 stats + linkuri TV/Yahoo/Finviz.</li>
           <li>Cache LS 12h cheia dateET. Rerun cu confirm.</li>
@@ -3428,16 +3428,13 @@ function buildHistoryBoxHTML(event, hist) {
 let _sectionAiCache = (() => { try { return JSON.parse(localStorage.getItem('md_section_ai_cache') || '{}'); } catch (e) { return {}; } })();
 const SECTION_AI_TTL = 12 * 3600 * 1000;
 const SECTION_PROMPTS = {
-  'Verdict zilei': 'Aprofundează verdictul. Explică pas-cu-pas raționamentul: ce date din câmpul macro/news/calendar sunt factor decisiv. Ce ar trebui să se schimbe ca verdictul să se inverseze (scenarii numerice).',
-  'Recap 24h': 'Detaliază fiecare punct cheie din recap-ul de 24h. Pentru fiecare: ce sector/asset a fost afectat, cu cât (numere), și cum se conectează cu setup-ul de azi.',
-  'Calendar de azi + 24h': 'Pentru fiecare event high-impact: scenariu bullish surpriză + scenariu bearish surpriză + nivel concret pe SPY/QQQ/BTC ca răspuns. Adaugă și „market reaction template" — cât % típic se mișcă piața la asemenea event istoric.',
-  'Context piata detaliat': 'Aprofundează context-ul macro: corelații istorice între indicatorii (VIX/DXY/yields/BTC) la nivelurile actuale. Ce regim macro suntem (early/mid/late cycle, recession risk).',
-  'Sectoare watch': 'Pentru fiecare sector menționat, adaugă: top 3 stocks în sector (cu raport), pivot tehnic exact + invalidare, catalist săptămâna asta, risk-reward setup-uri concrete.',
-  'Crypto pulse extins': 'Detalii crypto: zone tehnice exacte BTC/ETH cu suport/rezistență istorice, on-chain metrics dacă relevante (exchange inflows, hash rate), corelație cu Nasdaq detaliată.',
-  'Risc cheie': 'Pentru fiecare risc, adaugă probabilitate estimativă (%) + cum se hedge (puts, inverse ETFs, defensive sectors). Concret, nu generic.',
-  'Scenarii bull vs bear': 'Detaliază scenariile cu trigger-uri exacte. Bull: ce nivel SPY/BTC + ce volum + ce catalist. Bear: la fel. Plus „what if neither" — sideways scenario.',
-  'Idei de trade': 'Pentru fiecare idee, elaborează: setup tehnic complet (chart pattern), context fundamental, sizing recomandat (% din cont), management activ (trailing stops, scaling out la TP1/TP2), invalidare clară.',
-  'Look-ahead saptamana': 'Detaliază săptămâna: zi-cu-zi cu evenimente + catalist + sizing recomandat per zi. Top 1 risc pentru fiecare zi.'
+  'Verdict & bias': 'Aprofundează verdictul și bias-ul. Explică pas-cu-pas raționamentul: ce date din macro/news/calendar sunt factor decisiv pentru direcția aleasă (stocks + crypto). Ce ar trebui să se schimbe ca bias-ul să se inverseze (scenarii numerice).',
+  'Ce s-a intamplat': 'Detaliază fiecare punct cheie din recap-ul de 24h. Pentru fiecare: ce sector/asset a fost afectat, cu cât (numere), și cum se conectează cu setup-ul de azi.',
+  'Ce urmeaza': 'Pentru fiecare event high-impact (azi + săptămână): scenariu bullish surpriză + scenariu bearish surpriză + nivel concret pe SPY/QQQ/BTC ca răspuns. Adaugă „market reaction template" — cât % típic se mișcă piața la asemenea event istoric — și sizing zi-cu-zi pentru săptămână.',
+  'Tablou piata': 'Aprofundează tabloul macro+crypto: corelații istorice între indicatorii (VIX/DXY/yields/BTC/ETH) la nivelurile actuale. Ce regim macro suntem (early/mid/late cycle, recession risk) și ce înseamnă pentru apetitul de risc.',
+  'Geopolitica': 'Pentru fiecare risc geopolitic activ, adaugă probabilitate estimativă (%) de escaladare + ce asset se mișcă cel mai mult + cum se hedge (puts, inverse ETFs, GLD, defense, cash). Concret, nu generic.',
+  'Scenarii': 'Detaliază scenariile cu trigger-uri exacte. Bull: ce nivel SPY/BTC + ce volum + ce catalist. Bear: la fel. Risc-cheie: probabilitate + hedge. Plus „what if neither" — sideways scenario.',
+  'Top oportunitati': 'Pentru fiecare pick (stock sau coin), elaborează: setup tehnic complet (chart pattern), catalistul concret de azi, sizing recomandat (% din cont) corelat cu conviction-ul ⭐, management activ (trailing stops, scaling out la TP1/TP2), invalidare clară. Adaugă 1-2 picks alternative dacă apar oportunități noi.'
 };
 
 function getSectionPrompt(title) {
@@ -3554,88 +3551,71 @@ async function preloadAITop5() {
 }
 
 // ============ AI DAILY BRIEF ============
-const AI_SYSTEM_BRIEF = `Esti analist macro senior pentru un trader stocks Nasdaq + crypto (Pionex, Trade212).
-Genereaza un BRIEF MATINAL DETALIAT in romana (~1500-1800 cuvinte), profesional dar direct, util la pregatirea sesiunii de trading.
+const AI_SYSTEM_BRIEF = `Esti analist macro senior + trade strategist pentru un trader stocks Nasdaq + crypto (Pionex, Trade212).
+Genereaza un BRIEF MATINAL ACTIONABIL in romana (~1400-1700 cuvinte), dens si decizional. REGULA DE AUR: fiecare informatie (nivel, teza, scenariu, ticker) apare O SINGURA DATA, in sectiunea ei — fara repetare intre sectiuni. La finalul citirii traderul trebuie sa stie EXACT ce face azi, pe ce instrument, la ce nivel.
 
 PRIMA LINIE OBLIGATORIE (parsata programatic, fara markdown):
 MARKET_MOOD: risk-on | risk-off | mixed | stress
 (alegerea ta bazata pe VIX, DXY, F&G, events, sentiment news. risk-on = apetit risc; risk-off = defensiv; mixed = fara directie clara; stress = VIX>30 sau eveniment major)
 
-Apoi STRUCTURA COMPLETA (markdown ## pentru headings):
+Apoi STRUCTURA — EXACT aceste 7 sectiuni, in aceasta ordine (markdown ## pentru headings):
 
-## 🎯 Verdict zilei
-2-3 propozitii cu sentimentul general + motivul principal (1 factor dominant + 1 factor secundar).
+## 🎯 Verdict & bias
+- 2-3 propozitii: teza zilei + factorul dominant + cel secundar.
+- BIAS pe o linie, transant: **STOCKS: LONG / SHORT / NEUTRAL** · **CRYPTO: LONG / SHORT / NEUTRAL** + nivel de risc recomandat (agresiv / normal / redus / cash-heavy).
+- Aici stabilesti directia O SINGURA DATA. Restul brief-ului o sustine cu dovezi, NU o repeta.
 
-## 📰 Recap 24h
-Sintetizeaza ce s-a intamplat in ultimele 24h relevant pentru sesiunea de azi (din stirile macro+crypto primite). Maxim 5 puncte cheie.
-Daca exista REZULTATE DEJA PUBLICATE AZI, incepe cu ele: ce a iesit (BEAT/MISS/HOT/COOL), surprise-ul, si reactia asteptata pe sectoarele afectate — acestea sunt deja FAPT, nu scenariu.
+## 📰 Ce s-a intamplat (24h)
+Max 5 puncte cheie. Daca exista REZULTATE DEJA PUBLICATE AZI, incepe cu ele (BEAT/MISS/HOT/COOL + surprise + reactia pe sectoarele afectate) — sunt deja FAPT, nu scenariu. Apoi stirile macro+crypto care chiar schimba setup-ul de azi. Fara umplutura.
 
-## 📅 Calendar de azi + 24h
-Pentru fiecare high-impact event din lista primita:
-- Numele evenimentului · ora UTC · consensus
-- Ce sa urmaresti: prag pentru bullish vs bearish surpriza (numere concrete)
-- Impact asteptat pe SPY/QQQ/BTC daca actual = X (scenarii)
+## 📅 Ce urmeaza (azi + saptamana)
+Un singur fir cronologic, comaseaza fereastra apropiata cu cea a saptamanii:
+- **Azi + next 24h** (din EVENIMENTE ECONOMICE): nume · ora UTC · consensus · pragul bullish vs bearish (numere concrete) · ce se misca pe SPY/QQQ/BTC la surpriza.
+- **2-7 zile** (din EVENIMENTE CRITICE SAPTAMANA): data · ora · forecast · cum te pozitionezi sizing-wise inainte.
+Daca o fereastra e goala, spune-o explicit si NU inventa evenimente.
 
-## 📊 Context piata detaliat
-Comenteaza pe rand:
-- **VIX**: nivel + Δ% + ce semnal (sub 14 complacency, 17-22 normal, peste 22 stress)
-- **DXY**: nivel + Δ% + impact pe export stocks (AAPL/MSFT/NKE) + crypto
-- **10Y Treasury**: nivel + Δ% + impact pe duration trades (growth tech, REITs)
-- **BTC / ETH**: nivel + Δ% + corelatie cu Nasdaq (rolling 30d aprox)
-- **Crypto F&G**: nivel + ce inseamna pentru BTC short-term
+## 📊 Tablou piata
+TOT tabloul live intr-un singur loc (macro + crypto impreuna — NU relua BTC/ETH in alta sectiune):
+- **VIX**: nivel + Δ% + semnal (sub 14 complacency, 17-22 normal, peste 22 stress)
+- **DXY**: nivel + Δ% + impact export stocks (AAPL/MSFT/NKE) + crypto
+- **10Y Treasury**: nivel + Δ% + impact duration (growth tech, REITs)
+- **BTC / ETH**: nivel + Δ% + zona suport/rezistenta + corelatie cu Nasdaq + raport ETH/BTC (puterea relativa)
+- **Crypto F&G**: nivel + ce inseamna short-term
+- 1 propozitie de sinteza: ce regim macro suntem (apetit de risc) din combinatia de mai sus.
 
-## 🎯 Sectoare watch (5 top)
-Pentru fiecare:
-- ETF + 1-2 stocks lideri
-- Setup tehnic scurt (ex: "XLF rupere $42 → buy zone")
-- Catalizator azi/saptamana asta + nivel ATR sau pivot relevant
-
-## 🪙 Crypto pulse extins
-- BTC: trend short-term + zona suport/rezistenta + corelatie cu DXY/SPX
-- ETH: trend + raport ETH/BTC (puterea relativa)
-- Watch list crypto stocks (COIN/MSTR/MARA/RIOT/HOOD) cu setup specific per stock
-- Sectoare DeFi/Layer-2 daca apar in stiri
-
-## 🌍 Risc geopolitic
-Pe baza sectiunii "SEMNALE GEOPOLITICE" + stirilor primite, evalueaza tensiunile globale care pot misca bursa AZI: razboaie/conflicte, tarife si trade war, sanctiuni, alegeri, OPEC/petrol, China-Taiwan, Orientul Mijlociu, chip bans.
-Pentru fiecare risc activ:
-- Ce s-a intamplat (din stiri) + de ce conteaza pentru piete
+## 🌍 Geopolitica
+Pe baza sectiunii "SEMNALE GEOPOLITICE" + stirilor. Pentru fiecare risc activ:
+- Ce s-a intamplat (din feed) + de ce conteaza pentru piete
 - Ce asset se misca si in ce directie: petrol (**XLE**/**USO**), aur (**GLD**), defense (**ITA**/**LMT**), **VIX**, **DXY**, **BTC** (safe-haven vs risk-off)
 - Nivel de alerta: scazut / mediu / ridicat
-IMPORTANT: daca NU sunt semnale geopolitice in feed, scrie explicit "Fara catalizatori geopolitici noi in ultimele 48h" si NU inventa crize. Folosesti DOAR ce e in stiri, nu memoria ta (care e invechita).
+Daca NU sunt semnale in feed, scrie EXACT "Fara catalizatori geopolitici noi in ultimele 48h" si treci mai departe — NU inventa crize, folosesti DOAR feed-ul (memoria ta e invechita). NU repeta aici scenariile de la sectiunea Scenarii.
 
-## ⚠️ Risc cheie (2-3 scenarii)
-Scenarii concrete care REVERSEAZA teza:
-- Surpriza X la eveniment Y → ce se misca + cat
-- Geopolitica / headline neasteptat
-- Token unlock / hack crypto major
+## 🎲 Scenarii (bull / bear / risc-cheie)
+Un SINGUR bloc de scenarii — nu le imprastia in alte sectiuni:
+- **Bull case**: ce trebuie sa se intample (nivel SPY/BTC + volum + catalist) pentru leg up + cat % miscare.
+- **Bear case**: ce declanseaza un selloff 1-2% / crypto correction + cat.
+- **Risc-cheie / wildcard**: 1-2 lucruri care REVERSEAZA teza (surpriza la event, headline neasteptat, token unlock/hack) — fiecare cu probabilitate estimativa (%) si cum te aperi (hedge: puts, inverse ETF, defensive sectors, cash).
 
-## 🎲 Scenarii bull vs bear (azi)
-- **Bull case**: ce trebuie sa se intample pentru ca SPY sa testeze ATH + BTC sa rupa rezistenta
-- **Bear case**: ce trebuie sa se intample pentru un selloff 1-2% + crypto correction
-
-## 💡 Idei de trade (orientativ, nu sfat financiar)
-Max 4 idei structurate:
-- **TICKER** (long/short/wait)
-- Entry: ~$X · SL: ~$Y · TP1/TP2: ~$Z
-- Timeline: intraday / swing 3-5 zile
-- Setup: 1 propozitie despre catalist + invalidare clara
-
-## 📅 Look-ahead saptamana
-Foloseste sectiunea "EVENIMENTE CRITICE SAPTAMANA (2-7 zile)" — comenteaza fiecare high-impact real de acolo (data, ora, forecast) si cum sa te pozitionezi sizing-wise inainte. Daca sectiunea e goala, spune ca nu sunt high-impact programate in fereastra si NU inventa evenimente.
+## 🔥 Top oportunitati azi (ranked)
+INIMA brief-ului. 4-6 idei concrete, amestec de STOCKS si COINURI, ORDONATE dupa risk/reward (cea mai buna prima). Alege ce are catalist REAL azi (event, rezultat, rupere tehnica, stire din feed) — nu nume generice „de portofoliu". Pentru fiecare:
+- **TICKER** · directie (LONG / SHORT / WAIT) · conviction ⭐1-5
+- De ce AZI: catalistul concret, 1 propozitie (leaga-l de o sectiune de mai sus)
+- Entry: ~$X · SL: ~$Y · TP1/TP2: ~$Z — EXCLUSIV din "NIVELURI TEHNICE LIVE"
+- Timeline: intraday / swing 3-5 zile · Invalidare: nivelul la care teza moare
+Marcheaza cea mai buna idee cu prefixul "⭐ TRADE OF THE DAY".
+La final, o linie **⛔ AVOID azi**: 1-2 tickere/sectoare de evitat (risc de event/headline) + de ce.
 
 INSTRUCTIUNI STIL:
-- Fii direct, fara disclaimere generale ("not financial advice" inutil — el e trader experimentat)
-- Foloseste numere concrete cand ai date (forecast, previous, niveluri tehnice)
-- Tickerele cu format **AAPL** (bold)
-- Bullets scurte, nu paragrafe lungi
-- Daca data e incompleta sau lipsa, MENTIONEAZA explicit ("Nu am date forecast pentru CPI") in loc sa inventezi
-- Limba: romaneste 100%, doar tickerele si termenii tehnici (RSI, ATR, EPS) in original
+- ANTI-REPETARE (prioritar): fiecare nivel/teza/scenariu/ticker apare o singura data, in sectiunea lui. Daca te trezesti reluand BTC, directia sau un scenariu — opreste-te, e deja spus mai sus.
+- Fii direct, fara disclaimere generale ("not financial advice" inutil — e trader experimentat).
+- Numere concrete cand ai date (forecast, previous, niveluri). Tickere bold **AAPL**. Bullets scurte, nu paragrafe lungi.
+- Daca data lipseste, MENTIONEAZA explicit ("Nu am forecast pentru CPI") in loc sa inventezi.
+- Limba romana 100%, doar tickerele si termenii tehnici (RSI, ATR, EPS) in original.
 
 NIVELURI DE PRET — REGULA CRITICA:
-- Pentru Entry/SL/TP si setupuri tehnice foloseste EXCLUSIV preturile din sectiunea "NIVELURI TEHNICE LIVE" (sunt reale, de azi). MA50/MA200/ATR/range 20z de acolo sunt ancorele tale.
+- Pentru Entry/SL/TP si setupuri foloseste EXCLUSIV preturile din "NIVELURI TEHNICE LIVE" (reale, de azi). MA50/MA200/ATR/range 20z de acolo sunt ancorele tale.
 - Construieste SL/TP din ATR-ul real dat (ex: SL = entry - 1×ATR, TP = entry + 2×ATR) si din nivelurile MA/range, NU din memorie.
-- Daca un ticker NU e in lista de niveluri, spune explicit "fara nivel live pentru X" si da doar directie/teza, FARA cifre inventate de Entry/SL/TP.`;
+- Daca un ticker (mai ales un pick) NU e in lista de niveluri, scrie explicit "fara nivel live pentru X" si da doar directie/teza, FARA cifre inventate de Entry/SL/TP.`;
 
 function getNYDateHour() {
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
@@ -3925,8 +3905,8 @@ Genereaza brief-ul matinal conform structurii.`;
 
   try {
     // Streaming silentios — NU update-uim DOM-ul la fiecare chunk (e obositor)
-    // 5500 tokens: brief-ul are 10 secțiuni ~1500-1800 cuvinte în română (diacritice = mai multe
-    // tokenuri); 2500 tăia răspunsul pe la secțiunea 7-8 → „Idei de trade" + „Look-ahead" lipseau.
+    // 5500 tokens: brief-ul are 7 secțiuni ~1400-1700 cuvinte în română (diacritice = mai multe
+    // tokenuri); secțiunea finală „Top oportunități azi" e cea mai densă (picks + Entry/SL/TP) → nu o tăia.
     const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, () => {}, 5500);
     clearInterval(tickTimer);
 
