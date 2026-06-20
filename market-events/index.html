@@ -1037,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v238</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v239</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1356,7 +1356,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v237 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early (început de drum)/🏃 A fugit/🌳 Confirmat + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v239 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early (început de drum)/🏃 A fugit/🌳 Confirmat + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -1618,9 +1618,19 @@ class NasdaqScanner {
       if (!result) return null;
 
       const meta = result.meta || {};
-      const price = meta.regularMarketPrice ?? null;
-      // Δ zi regular: vs close-ul de dinaintea ultimei sesiuni (consecvent cu fetchMarketSentiment)
-      const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? null;
+      const ts = result.timestamp || [];
+      const closes = result.indicators?.quote?.[0]?.close || [];
+      const regClose = meta.regularMarketPrice ?? null; // close-ul ultimei sesiuni regular complete (referința extended)
+      // preț LIVE = ultima bară non-null din chart (reflectă mișcarea premarket/after); fallback regularMarketPrice
+      let liveBar = null;
+      for (let k = closes.length - 1; k >= 0; k--) { if (closes[k] != null && !isNaN(closes[k])) { liveBar = +closes[k]; break; } }
+      const price = liveBar ?? regClose;
+      // prev = close de IERI. În PREMARKET = regularMarketPrice (chartPreviousClose = close N−2 cu range=1d
+      // → baseline greșit dimineața, „% azi" arăta variația de ieri); altfel chartPreviousClose. Consecvent cu fetchMarketSentiment.
+      const _etState = (typeof etMarketState === 'function') ? etMarketState() : 'REGULAR';
+      const prevClose = _etState === 'PRE'
+        ? (regClose ?? meta.chartPreviousClose ?? meta.previousClose ?? null)
+        : (meta.chartPreviousClose ?? meta.previousClose ?? regClose ?? null);
       const change = (price != null && prevClose != null) ? (price - prevClose) : null;
       const changePct = (price != null && prevClose != null && prevClose !== 0)
         ? ((price - prevClose) / prevClose) * 100 : null;
@@ -1630,9 +1640,7 @@ class NasdaqScanner {
       const cp = meta.currentTradingPeriod || {};
       const preStart = cp.pre?.start ?? null, regStart = cp.regular?.start ?? null;
       const regEnd = cp.regular?.end ?? null, postEnd = cp.post?.end ?? null;
-      const ts = result.timestamp || [];
-      const closes = result.indicators?.quote?.[0]?.close || [];
-      const vols   = result.indicators?.quote?.[0]?.volume || [];
+      const vols   = result.indicators?.quote?.[0]?.volume || []; // ts + closes deja extrase sus
       let extSession = null, extPrice = null, extChange = null, extChangePct = null, extVolume = 0;
       let lastIdx = -1;
       for (let i = ts.length - 1; i >= 0; i--) { if (closes[i] != null && !isNaN(closes[i])) { lastIdx = i; break; } }
@@ -1643,10 +1651,10 @@ class NasdaqScanner {
         if (inPre || inPost) {
           extSession = inPre ? 'PRE' : 'POST';
           extPrice = +closes[lastIdx];
-          // Δ premarket/postmarket = vs close-ul regular complet (regularMarketPrice), NU vs prevClose
-          if (price != null && price !== 0) {
-            extChange = extPrice - price;
-            extChangePct = ((extPrice - price) / price) * 100;
+          // Δ premarket/postmarket = vs close-ul regular complet (regClose), NU vs prevClose sau price-ul live
+          if (regClose != null && regClose !== 0) {
+            extChange = extPrice - regClose;
+            extChangePct = ((extPrice - regClose) / regClose) * 100;
           }
           const lo = inPre ? preStart : regEnd, hi = inPre ? regStart : (postEnd ?? Infinity);
           for (let i = 0; i < ts.length; i++) {
