@@ -255,6 +255,36 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   .al-tk a { font-size:15px; }
   .al-num { font-size:12.5px; } .al-now { font-size:13.5px; }
 }
+/* ── Telefon îngust: tabelul de alerte active devine CARDURI — zero scroll orizontal.
+   Ordine card: [ticker + tip/notă] sus-stânga · [preț acum] sus-dreapta;
+   dedesubt, pe O linie: Evol% · Δ ult. zi · prag/distanță · acțiuni.
+   „Preț intrare" e ascuns pe telefon (Evol% exprimă deja mișcarea față de intrare). ── */
+@media (max-width:600px) {
+  .al-wrap { overflow-x:visible; margin:0; }              /* nu mai forțăm scroll orizontal */
+  .al-table thead { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  .al-table, .al-table tbody { display:block; width:100%; }
+  .al-table tr.al-row {
+    display:grid; gap:5px 10px; align-items:center;
+    grid-template-columns:auto auto 1fr auto;
+    grid-template-areas:
+      "tk  tk   tk    now"
+      "ev  day  trig  act";
+    padding:11px 8px; border-bottom:1px solid rgba(42,50,71,.45);
+  }
+  .al-table tr.al-row:last-child { border-bottom:none; }
+  .al-table td { display:block; padding:0; border:none; text-align:left; white-space:nowrap; }
+  .al-table td.al-tk { grid-area:tk; min-width:0; padding-top:0; }
+  .al-table td.al-entry { display:none; }                 /* Preț intrare — ascuns pe telefon */
+  .al-table td:nth-child(3) { grid-area:ev; }             /* Evol. % de la intrare */
+  .al-table td:nth-child(4) { grid-area:day; }            /* Δ ultima zi */
+  .al-table td.al-now { grid-area:now; text-align:right; font-size:16px; align-self:center; }
+  .al-table td.al-trig { grid-area:trig; text-align:left; }
+  .al-table td.al-act { grid-area:act; text-align:right; }
+  .al-table td.al-act .icon-btn { padding:4px 6px; }
+  /* micro-etichete: fără capul de tabel, marchează ce e fiecare procent */
+  .al-table td:nth-child(3)::before { content:"Evol "; color:var(--t3); font-size:9px; font-weight:700; font-family:var(--mono); }
+  .al-table td:nth-child(4)::before { content:"Zi "; color:var(--t3); font-size:9px; font-weight:700; font-family:var(--mono); }
+}
 
 /* Badge sesiune per grup (crypto 24/7 vs stocks cu sesiune) */
 .sess-badge {
@@ -346,7 +376,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v50</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v51</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
