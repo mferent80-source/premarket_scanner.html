@@ -1,0 +1,1016 @@
+//@version=6
+indicator("As Good As It Gets Pivot Arrows v3.9.1",
+     shorttitle="AGAIG v3.9.1", overlay=true,
+     max_labels_count=500, max_lines_count=500,
+     max_bars_back=500)
+
+// ------------------------------------------------------------
+// As Good As It Gets - Pivot Detection Indicator
+// Created by: NPR21
+// Version: 3.9.1
+// Last Updated: June 22, 2026
+//
+// v3.9.1 UPDATE:
+//   • GATE ACTION option. The HTF Trend Gate can now either
+//     BLOCK counter-trend signals (original behavior) or show
+//     them "Color only" - faded, as a heads-up - instead of
+//     hiding them. Lets you scalp both directions while still
+//     seeing at a glance which signals align with the bigger
+//     trend. Faded counter-trend signals do NOT fire alerts,
+//     do NOT draw a leader and do NOT move the dashboard
+//     State (they are warnings, not the trend call).
+//     Applies to Confirmed + Early modes; Confirmed +
+//     Potential keeps Block (its faded style already means
+//     "Potential"). Default = Block counter-trend.
+//
+// v3.9.0 UPDATE (INTRADAY / FAST PACK):
+//   • HTF TREND GATE. A higher-timeframe EMA bias filters
+//     every signal so only BUYs print in an HTF up-trend and
+//     only SELLs in a down-trend. This is the main whipsaw
+//     killer for fast intraday trading. NON-REPAINTING: the
+//     bias is read from the LAST CLOSED HTF bar (close[1] +
+//     EMA[1], lookahead_off), so it never redraws inside the
+//     forming HTF bar. Default ON. Auto-maps the HTF from the
+//     chart TF (15m->60, 30m->120, 60m->240) or set manual.
+//   • INTRADAY ASSET PRESET. New preset that auto-tunes pivot
+//     length / ATR filters / cooldown to the chart timeframe
+//     (15 / 30 / 60m) in one click - shorter, faster settings
+//     the smaller the TF.
+//   • CONTEXT FILTERS (optional, OFF by default): a session
+//     window (suppress signals outside active hours) and a
+//     volume-spike confirmation. Volume is treated as a pass
+//     when it is na (forex/indices), never a block.
+//   • DASHBOARD gains a "Trend" row showing the live HTF gate
+//     state (Up/Down + the HTF) so you see WHY a signal was
+//     allowed or cut.
+//   • DEFAULTS shifted for fast trading: Signal Mode now
+//     defaults to Early (repaints) and Asset Preset to
+//     Intraday. Switch back any time in the inputs.
+//
+// LOCAL EDIT (no version bump) [folded into v3.9.0]:
+//   • HONEST RENAME. The "Zero-Lag" mode is now "Early
+//     (repaints)". It was never lag-0 in the signal sense:
+//     it fires on the forming bar (zero CONFIRMATION lag)
+//     at the cost of intrabar repaint. The label, dashboard,
+//     mode tag and tooltips now say so plainly.
+//   • REAL ZLEMA OPTION. The Early detector can now use a
+//     true zero-lag EMA (src + (src - src[lag])) instead of
+//     a plain short EMA, via "Detector Filter". This trims
+//     SMOOTHING lag (cost: overshoot / more whipsaw). It
+//     does NOT remove the repaint - that is confirmation lag.
+//
+// v3.8.1 UPDATE:
+//   • Dashboard Position now exposes all 9 table anchors
+//     (Top/Middle/Bottom x Left/Center/Right) so it can be
+//     parked in any corner, edge or center. NOTE: a Pine
+//     table only snaps to these 9 spots - it cannot be
+//     dragged freely to an arbitrary pixel.
+//
+// v3.8.0 UPDATE (AUDIT PASS):
+//   • ALERTS now match the on-chart picture. In
+//     Confirmed + Potential the alerts are driven by the
+//     SAME alternating lifecycle as the labels (one
+//     Confirmed per leg; a migration is NOT re-alerted),
+//     and Potential alerts only fire for the direction
+//     that is actually due. No more phantom double BUYs.
+//   • UNIFIED RENDERER. The old drawSig / makeSig pair
+//     (which had silently diverged) is now a single
+//     placeSig() + a shared makeLeader() helper, so every
+//     mode draws identically and stays in sync.
+//   • LEADER LINE consistency. The "Labels and Arrows"
+//     leader now draws for confirmed stamps in EVERY mode
+//     (including Confirmed + Potential), fresh or morphed,
+//     and follows a migrated stamp. Potentials stay
+//     leader-free (transient heads-up).
+//   • "Ignore Last Bar" is finally WIRED UP: it suppresses
+//     live-bar (unconfirmed) Early signals and live
+//     Potentials so they no longer flicker/repaint
+//     intrabar. Default ON.
+//   • ASSET PRESET (Crypto / Nasdaq / Custom) tunes the
+//     key thresholds in one click: pivot length, Major-
+//     Swings ATR, Min-Swing ATR and Min-Bars cooldown.
+//   • DASHBOARD added (Mode / Asset / State / last signal /
+//     bars-since / pivot length) with a Vertical|Horizontal
+//     layout selector. Default ON.
+//   • "Match Pivot Length" option lines the Pivot Dots up
+//     with the confirmed arrows automatically.
+//
+// ---- prior history (unchanged behavior) ----
+// v3.7.0  Confirmed + Potential strictly alternates
+//         Buy->Sell->Buy; a consecutive same-direction
+//         pivot migrates the existing Confirmed instead of
+//         stamping a second one.
+// v3.6.x  Two-layer Potential->Confirmed morph in place.
+// v3.5.x  Major Swings filter; pivot-dots fixes; offset on
+//         all display modes.
+// v3.4.x  Early (fast) sensitivity + quality filters.
+// v3.1-3.3 Display modes, plain-English labels, offsets.
+//
+// SIGNAL MODES:
+//   • Confirmed  - Classic pivot detection. Waits for
+//     confirmation bars before firing. Non-repainting.
+//   • Early (repaints) - Fires on the forming bar using
+//     momentum-reversal detection. Repaints intrabar until
+//     the bar closes (that is the cost of zero CONFIRMATION
+//     delay); "Ignore Last Bar" hides the unconfirmed live
+//     signal. NOT lag-0 in the signal-processing sense.
+//   • Confirmed + Potential - Immediate faded Potential
+//     plus the confirmed stamp once the lookback validates.
+//
+// All Rights Reserved
+// ------------------------------------------------------------
+
+// --------------- SIGNAL MODE ----------------------
+string GRP_MODE = "--- Signal Mode ---"
+string MODE_TIP = "Confirmed: Classic pivot - waits for " +
+     "confirmation bars. Best for swing/higher TF.\n" +
+     "Early (repaints): Fires immediately on momentum " +
+     "reversal, on the still-forming bar. Fast, but repaints " +
+     "until the bar closes - it is zero CONFIRMATION lag, " +
+     "not lag-0.\n" +
+     "Confirmed + Potential: Shows both early potentials" +
+     " AND confirmed stamps."
+signalMode = input.string("Early (repaints)", "Signal Mode",
+     options=["Confirmed", "Early (repaints)",
+     "Confirmed + Potential"],
+     tooltip=MODE_TIP, group=GRP_MODE)
+
+bool isConfMode = signalMode == "Confirmed"
+bool isZLMode   = signalMode == "Early (repaints)"
+bool isPrevMode = signalMode == "Confirmed + Potential"
+
+string PRESET_TIP = "ASSET PRESET - one click tunes the " +
+     "key thresholds for the instrument class.\n\n" +
+     "Crypto: faster, 24/7, noisier - shorter pivot, " +
+     "lighter ATR filters, short cooldown.\n" +
+     "Nasdaq: RTH equities/index - the published balanced " +
+     "settings.\nIntraday: AUTO-tunes to the chart timeframe " +
+     "(15 / 30 / 60m) - the smaller the TF, the shorter and " +
+     "faster the settings. Built for quick trades.\n" +
+     "Custom = use every manual setting below " +
+     "(presets do NOT override anything)."
+assetPreset = input.string("Intraday", "Asset Preset",
+     options=["Crypto", "Nasdaq", "Intraday", "Custom"],
+     tooltip=PRESET_TIP, group=GRP_MODE)
+bool isCrypto      = assetPreset == "Crypto"
+bool isNasdaq      = assetPreset == "Nasdaq"
+bool isIntraday    = assetPreset == "Intraday"
+bool isCustomAsset = assetPreset == "Custom"
+
+// --------------- TREND GATE (HTF) -----------------
+string GRP_GATE = "--- Trend Gate (HTF) ---"
+string GATE_TIP = "HTF TREND GATE - the main whipsaw filter " +
+     "for fast intraday trading.\n\nOnly lets BUYs print " +
+     "while the higher timeframe is in an up-trend (price " +
+     "above its EMA) and only SELLs while it is in a " +
+     "down-trend. Aligns every signal with the bigger " +
+     "trend.\n\nNON-REPAINTING: reads the LAST CLOSED HTF " +
+     "bar, so the bias does not redraw inside the forming " +
+     "HTF bar (costs up to one HTF bar of lag - honest " +
+     "trade-off for stability).\n\nOff = show every signal, " +
+     "no trend filter."
+gateEnable = input.bool(true, "Enable HTF Trend Gate",
+     tooltip=GATE_TIP, group=GRP_GATE)
+gateAuto = input.bool(true, "Auto HTF (from chart TF)",
+     group=GRP_GATE,
+     tooltip="Auto-pick the higher timeframe from the chart " +
+     "TF: 15m->60m, 30m->120m, 60m->240m, else Daily. Turn " +
+     "off to set the HTF manually below.")
+gateHTFManual = input.timeframe("60", "HTF (manual)",
+     group=GRP_GATE,
+     tooltip="Used only when Auto HTF is off. The timeframe " +
+     "whose trend gates the signals (e.g. 60, 240, D).")
+gateEmaLen = input.int(50, "HTF EMA Length",
+     minval=2, maxval=400, group=GRP_GATE,
+     tooltip="Length of the EMA on the higher timeframe " +
+     "that defines the trend bias. Higher = slower, broader " +
+     "trend. 50 is a balanced intraday default.")
+string GACT_TIP = "What the gate DOES with a counter-trend " +
+     "signal (a Buy in an HTF down-trend, or a Sell in an " +
+     "HTF up-trend).\n\nBlock counter-trend = hide it " +
+     "completely (only trend-aligned signals print).\n" +
+     "Color only (show faded) = still print it, but FADED " +
+     "as a heads-up. Faded counter-trend signals do NOT " +
+     "alert, draw no leader and do NOT change the dashboard " +
+     "State - they are warnings, not the trend call. Lets " +
+     "you scalp both ways while seeing what aligns.\n\n" +
+     "Applies to Confirmed + Early. Confirmed + Potential " +
+     "always blocks (its faded style already means Potential)."
+gateAction = input.string("Block counter-trend", "Gate Action",
+     options=["Block counter-trend", "Color only (show faded)"],
+     tooltip=GACT_TIP, group=GRP_GATE)
+
+// --------------- CONTEXT FILTERS ------------------
+string GRP_CTX = "--- Context Filters (optional) ---"
+useSession = input.bool(false, "Session Filter",
+     group=GRP_CTX,
+     tooltip="Only allow signals inside the active session " +
+     "window below. Cuts dead-hour / illiquid signals on " +
+     "intraday. OFF by default.")
+sessionStr = input.session("0930-1600", "Active Session",
+     group=GRP_CTX,
+     tooltip="Active trading window (exchange time). Used " +
+     "only when Session Filter is on. Example RTH US: " +
+     "0930-1600.")
+useVol = input.bool(false, "Volume Confirmation",
+     group=GRP_CTX,
+     tooltip="Only allow signals when the bar's volume is " +
+     "at least <Volume Multiple> x its average. Confirms the " +
+     "turn has participation. Volume that is na (some " +
+     "forex/indices feeds) is treated as a PASS, never a " +
+     "block. OFF by default.")
+volLen = input.int(20, "Volume SMA Length",
+     minval=1, maxval=200, group=GRP_CTX)
+volMult = input.float(1.5, "Volume Multiple",
+     minval=0.1, maxval=10.0, step=0.1, group=GRP_CTX)
+
+// --------------- CONFIRMED SETTINGS ---------------
+string GRP_CONF = "--- Confirmed Mode ---"
+length = input.int(7, "Pivot Length",
+     minval=1, maxval=20, group=GRP_CONF)
+ignore_last_bar = input.bool(true, "Ignore Last Bar",
+     group=GRP_CONF,
+     tooltip="Suppress signals on the still-forming live " +
+     "bar (Early signals and live Potentials) so they " +
+     "do not flicker/repaint intrabar. They print once the " +
+     "bar closes. Confirmed pivots already lag, so this " +
+     "does not affect them.")
+
+string MAJ_TIP = "MAJOR SWINGS ONLY. Filters the " +
+     "confirmed pivots down to significant turns: a " +
+     "pivot only prints once price reverses by at least " +
+     "this many ATRs from the prior swing.\n\n" +
+     "0 = off (show every confirmed pivot).\n" +
+     "1.0-1.5 = trims the small swings.\n" +
+     "2.0-3.0 = only the big turns.\n\nNon-repainting: " +
+     "each stamp locks on its true high/low and is drawn " +
+     "once the reversal confirms (a few bars later)."
+confMinSwingATR = input.float(1.5, "Major Swings Only (x ATR)",
+     minval=0.0, maxval=20.0, step=0.1, group=GRP_CONF,
+     tooltip=MAJ_TIP)
+confAtrLen = input.int(14, "Major Swing ATR Length",
+     minval=1, maxval=200, group=GRP_CONF)
+
+// --------------- EARLY / FAST SETTINGS ------------
+string GRP_ZL = "--- Early / Fast Mode (repaints) ---"
+string ZL_TIP = "Smoothing for the fast turn detector.\n" +
+     "Low = smoother / fewer signals.\n" +
+     "Normal = balanced.\nHigh = faster / more signals." +
+     "\nCustom = set your own length below (try 8-21 to " +
+     "thin signals out a lot more)."
+zlSens = input.string("Normal", "Sensitivity (Smoothing)",
+     options=["Low", "Normal", "High", "Custom"],
+     tooltip=ZL_TIP, group=GRP_ZL)
+zlLenCustom = input.int(8, "Custom Smoothing Length",
+     minval=2, maxval=50, group=GRP_ZL,
+     tooltip="Used when Sensitivity = Custom. Higher = " +
+     "smoother, fewer turns. Try 8-21 to cut the noise.")
+string FILT_TIP = "Detector filter for the Early engine.\n\n" +
+     "EMA = classic short EMA slope flip (original behavior).\n" +
+     "ZLEMA = de-lagged EMA, src + (src - src[lag]). Cuts the " +
+     "SMOOTHING lag so turns are flagged sooner, at the cost of " +
+     "overshoot / more whipsaw in choppy ranges.\n\n" +
+     "NOTE: ZLEMA trims smoothing lag only. Early signals still " +
+     "repaint on the live bar - that is CONFIRMATION lag, a " +
+     "separate thing this option does not remove. At High " +
+     "sensitivity (len 2) ZLEMA collapses back to EMA."
+zlFilter = input.string("EMA", "Detector Filter",
+     options=["EMA", "ZLEMA (true zero-lag)"],
+     tooltip=FILT_TIP, group=GRP_ZL)
+
+string QUAL_TIP = "QUALITY FILTER - the main control for " +
+     "'only the good pivots, not every wiggle'.\n\nA new " +
+     "Early signal only prints if price has moved at " +
+     "least this many ATRs from the previous signal.\n\n" +
+     "0 = off (show every turn).\n1.0-1.5 = light " +
+     "cleanup.\n2.0-3.0 = only the bigger swings.\n" +
+     "Raise it until only the turns you want remain."
+zlMinSwingATR = input.float(1.0, "Min Swing (x ATR)",
+     minval=0.0, maxval=20.0, step=0.1,
+     tooltip=QUAL_TIP, group=GRP_ZL)
+zlMinBars = input.int(0, "Min Bars Between Signals",
+     minval=0, maxval=200, group=GRP_ZL,
+     tooltip="Also suppress a new signal until this many " +
+     "bars after the last one. 0 = off.")
+zlAtrLen = input.int(14, "Quality Filter ATR Length",
+     minval=1, maxval=200, group=GRP_ZL)
+
+// --------------- VISUAL OPTIONS -------------------
+string GRP_VIS = "--- Visual Options ---"
+string DISP_TIP = "How signals are drawn on the chart:\n" +
+     "Arrows Only - clean triangle arrows.\n" +
+     "Labels Only - descriptive text labels.\n" +
+     "Labels and Arrows - both, combined in one stamp."
+sigDisplay = input.string("Arrows Only", "Signal Display",
+     options=["Arrows Only", "Labels Only",
+     "Labels and Arrows"],
+     tooltip=DISP_TIP, group=GRP_VIS)
+show_mode_tag = input.bool(true, "Show Mode Tag",
+     tooltip="Small corner tag showing the active signal" +
+     " mode. Independent of the signal display.",
+     group=GRP_VIS)
+
+bool isArrowsOnly   = sigDisplay == "Arrows Only"
+bool isLabelsArrows = sigDisplay == "Labels and Arrows"
+// "Labels Only" is the remaining case (stamp, no leader)
+
+// --------------- DASHBOARD ------------------------
+string GRP_DASH = "--- Dashboard ---"
+show_dashboard = input.bool(true, "Show Dashboard",
+     group=GRP_DASH)
+dashLayout = input.string("Vertical", "Dashboard Layout",
+     options=["Vertical", "Horizontal"], group=GRP_DASH,
+     tooltip="Vertical = metrics stacked in rows. " +
+     "Horizontal = laid out across columns. (NPR21 f_col " +
+     "pattern, Confluence v1.3.)")
+dashPosChoice = input.string("Top Right", "Dashboard Position",
+     options=["Top Left", "Top Center", "Top Right",
+     "Middle Left", "Middle Center", "Middle Right",
+     "Bottom Left", "Bottom Center", "Bottom Right"],
+     group=GRP_DASH,
+     tooltip="All 9 anchor positions. A Pine table can " +
+     "only snap to these 9 spots - it cannot be dragged " +
+     "freely to an arbitrary pixel like a drawing.")
+dashSizeChoice = input.string("Small", "Dashboard Text Size",
+     options=["Tiny", "Small", "Normal", "Large"],
+     group=GRP_DASH)
+dashBgCol = input.color(color.rgb(30, 34, 45, 0),
+     "Background Color", group=GRP_DASH)
+dashLabelCol = input.color(color.gray, "Label Color",
+     group=GRP_DASH)
+dashValCol = input.color(color.white, "Value Color",
+     group=GRP_DASH)
+bool isVert = dashLayout == "Vertical"
+
+// --------------- PIVOT DOTS -----------------------
+string GRP_DOT = "--- Pivot Dots ---"
+show_pivot_dots = input.bool(false, "Show Pivot Dots",
+     tooltip="Optional swing high/low dots placed on the " +
+     "wick tip of each confirmed pivot - a separate " +
+     "analytical overlay. Tops use the SELL color, " +
+     "bottoms use the BUY color.", group=GRP_DOT)
+dotsMatchPivot = input.bool(true, "Match Pivot Length",
+     group=GRP_DOT,
+     tooltip="Lock the dot lookback to the confirmed " +
+     "Pivot Length so the dots line up with the arrows. " +
+     "Turn off to use the manual lookback below.")
+nP = input.int(13, "Lookback Period for Pivot",
+     minval=1, group=GRP_DOT,
+     tooltip="Used only when 'Match Pivot Length' is off. " +
+     "Bars on each side used to confirm a swing pivot.")
+dotSizeOpt = input.string("tiny", "Dot size",
+     options=["tiny","small","normal","large"],
+     group=GRP_DOT)
+
+// --------------- ARROW COLORS ---------------------
+string GRP_CLR = "--- Arrow Colors ---"
+confBuyColor = input.color(color.lime,
+     "BUY arrow color", group=GRP_CLR)
+confSellColor = input.color(color.red,
+     "SELL arrow color", group=GRP_CLR)
+arrowSizeOpt = input.string("normal", "Arrow size",
+     options=["tiny","small","normal","large","huge"],
+     group=GRP_CLR)
+
+// --------------- LABEL STYLING --------------------
+string GRP_LBL = "--- Label Styling ---"
+show_leader = input.bool(true, "Show leader line/arrow",
+     tooltip="The leader arrow used in 'Labels and " +
+     "Arrows' mode, connecting the confirmed stamp to its " +
+     "candle. Turn off to drop the connector.",
+     group=GRP_LBL)
+buyLabelOffsetATR = input.float(0.3,
+     "BUY label offset (ATR)",
+     minval=0.0, step=0.1, group=GRP_LBL,
+     tooltip="How far the BUY signal sits BELOW the " +
+     "candle, ATR-scaled to fit any instrument. Applies " +
+     "to ALL Signal Display modes - arrows and labels. " +
+     "Set independently from SELL (0 = touching).")
+sellLabelOffsetATR = input.float(0.3,
+     "SELL label offset (ATR)",
+     minval=0.0, step=0.1, group=GRP_LBL,
+     tooltip="How far the SELL signal sits ABOVE the " +
+     "candle, ATR-scaled to fit any instrument. Applies " +
+     "to ALL Signal Display modes - arrows and labels. " +
+     "Set independently from BUY (0 = touching).")
+leaderWidth = input.int(2, "Leader line width",
+     minval=1, maxval=4, group=GRP_LBL,
+     tooltip="Thickness of the leader line. 2 keeps it " +
+     "distinct from the 1px candle wick; 1 matches it.")
+buyLabelBgColor = input.color(color.rgb(0, 50, 25),
+     "BUY label background", group=GRP_LBL)
+sellLabelBgColor = input.color(color.rgb(90, 0, 0),
+     "SELL label background", group=GRP_LBL)
+buyTextColor = input.color(color.white,
+     "BUY text color", group=GRP_LBL)
+sellTextColor = input.color(color.yellow,
+     "SELL text color", group=GRP_LBL)
+labelSizeOpt = input.string("normal", "Label size",
+     options=["tiny","small","normal","large","huge"],
+     group=GRP_LBL)
+
+// --------------- POTENTIAL LABEL COLORS -------------
+string GRP_PRV = "--- Potential Label Colors ---"
+prevBuyColor = input.color(color.rgb(0, 115, 95),
+     "Potential BUY background", group=GRP_PRV)
+prevSellColor = input.color(color.rgb(120, 55, 0),
+     "Potential SELL background", group=GRP_PRV)
+
+// --------------- ASSET-PRESET RESOLUTION ----------
+// Crypto / Nasdaq / Intraday override the key thresholds;
+// Custom leaves every manual setting untouched. Intraday
+// reads the chart timeframe and scales down for fast trades.
+int tfSec = timeframe.in_seconds()
+int   intraLen     = tfSec <= 900 ? 3   : tfSec <= 1800 ? 4   : 5
+float intraConfATR = tfSec <= 900 ? 0.8 : tfSec <= 1800 ? 1.0 : 1.2
+float intraZlATR   = tfSec <= 900 ? 0.8 : tfSec <= 1800 ? 1.0 : 1.2
+int   intraBars    = tfSec <= 900 ? 1   : tfSec <= 1800 ? 2   : 3
+
+int   length_         = isCrypto ? 5   : isNasdaq ? 7   : isIntraday ? intraLen     : length
+float confMinSwingATR_= isCrypto ? 1.0 : isNasdaq ? 1.5 : isIntraday ? intraConfATR : confMinSwingATR
+float zlMinSwingATR_  = isCrypto ? 1.0 : isNasdaq ? 1.5 : isIntraday ? intraZlATR   : zlMinSwingATR
+int   zlMinBars_      = isCrypto ? 2   : isNasdaq ? 3   : isIntraday ? intraBars     : zlMinBars
+
+// --------------- SIZE MAPS ------------------------
+arrowSize = switch arrowSizeOpt
+    "tiny"   => size.tiny
+    "small"  => size.small
+    "normal" => size.normal
+    "large"  => size.large
+    => size.huge
+
+lblSize = switch labelSizeOpt
+    "tiny"   => size.tiny
+    "small"  => size.small
+    "normal" => size.normal
+    "large"  => size.large
+    => size.huge
+
+dashTextSize = switch dashSizeChoice
+    "Tiny"   => size.tiny
+    "Small"  => size.small
+    "Normal" => size.normal
+    => size.large
+
+// ATR base for label offset (computed every bar).
+float atrBase = nz(ta.atr(14), syminfo.mintick * 20)
+
+// Live (still-forming, unconfirmed) bar gate.
+bool suppressLive = ignore_last_bar and barstate.islast and
+     not barstate.isconfirmed
+
+// -------------------------------------------------
+// TREND GATE (HTF) + CONTEXT FILTERS
+//   Non-repainting bias: read the LAST CLOSED HTF bar
+//   (close[1] + EMA[1] with lookahead_off) so it never
+//   redraws inside the forming HTF bar. Directional gate:
+//   BUYs align with an HTF up-trend, SELLs with a down-trend.
+//   Gate Action decides what happens to a counter-trend turn:
+//   Block (ctxBuy/ctxSell hide it) or Color only (it shows
+//   FADED via buyFaded/sellFaded). ctxOK = session + volume.
+// -------------------------------------------------
+string autoHTF = tfSec <= 900 ? "60" : tfSec <= 1800 ? "120" :
+     tfSec <= 3600 ? "240" : "D"
+string htfRes  = gateAuto ? autoHTF : gateHTFManual
+
+float htfClose = request.security(syminfo.tickerid, htfRes,
+     close[1], lookahead=barmerge.lookahead_off)
+float htfEma   = request.security(syminfo.tickerid, htfRes,
+     ta.ema(close, gateEmaLen)[1], lookahead=barmerge.lookahead_off)
+
+bool htfBull = not na(htfEma) and not na(htfClose) and htfClose > htfEma
+bool htfBear = not na(htfEma) and not na(htfClose) and htfClose < htfEma
+
+// Alinierea cu trendul HTF, per direcție (când gate-ul e oprit, totul e "aliniat").
+bool buyAligned  = not gateEnable or htfBull
+bool sellAligned = not gateEnable or htfBear
+
+// Session filter (optional). na(time) => bar outside session.
+bool inSession = not useSession or
+     not na(time(timeframe.period, sessionStr))
+
+// Volume confirmation (optional). volume is na on some
+// forex/indices feeds -> treat as pass, never block.
+float volAvg = ta.sma(volume, volLen)
+bool volOK = not useVol or na(volume) or na(volAvg) or
+     volume >= volAvg * volMult
+bool ctxOK = inSession and volOK     // filtre NEdirecționale (sesiune + volum)
+
+// GATE ACTION. Block = contra-trend ASCUNS. Color only = afișat ESTOMPAT.
+bool gateBlock = gateEnable and gateAction == "Block counter-trend"
+
+// Permisiunea de AFIȘARE (Confirmed / Early): în Block trece doar aliniatul,
+// în Color trece orice (contra-trend devine faded). = "show semantics".
+bool ctxBuy  = ctxOK and (not gateBlock or buyAligned)
+bool ctxSell = ctxOK and (not gateBlock or sellAligned)
+// Marcaj contra-trend (relevant doar în Color only; în Block nu ajunge la randare).
+bool buyFaded  = gateEnable and not buyAligned
+bool sellFaded = gateEnable and not sellAligned
+
+// -------------------------------------------------
+// CONFIRMED MODE ENGINE
+// -------------------------------------------------
+left_right = length_ - 1
+
+pivot_high_conf = ta.pivothigh(high, left_right, left_right)
+pivot_low_conf  = ta.pivotlow(low,  left_right, left_right)
+
+confSell = not na(pivot_high_conf)
+confBuy  = not na(pivot_low_conf)
+
+// Early (1-right-bar) pivots for the live potential layer.
+phEarly = ta.pivothigh(high, left_right, 1)
+plEarly = ta.pivotlow(low,  left_right, 1)
+
+// -------------------------------------------------
+// MAJOR-SWING SIGNIFICANCE FILTER (non-repainting)
+// -------------------------------------------------
+float confThr = confMinSwingATR_ * ta.atr(confAtrLen)
+int   pivBar  = bar_index - left_right
+
+var int   legDir  = 0     // +1 tracking a high, -1 tracking a low
+var float legExtP = na    // running extreme of current leg
+var int   legExtB = na    // bar of running extreme
+
+bool  majorBuy   = false
+bool  majorSell  = false
+int   majorBar   = bar_index
+float majorPrice = na
+
+if not na(pivot_high_conf)
+    if legDir == 0
+        legDir := 1
+        legExtP := pivot_high_conf
+        legExtB := pivBar
+    else if legDir == 1
+        if pivot_high_conf > legExtP
+            legExtP := pivot_high_conf
+            legExtB := pivBar
+    else
+        if not na(legExtP) and pivot_high_conf - legExtP >= confThr
+            majorBuy   := true
+            majorBar   := legExtB
+            majorPrice := legExtP
+            legDir  := 1
+            legExtP := pivot_high_conf
+            legExtB := pivBar
+
+if not na(pivot_low_conf)
+    if legDir == 0
+        legDir := -1
+        legExtP := pivot_low_conf
+        legExtB := pivBar
+    else if legDir == -1
+        if pivot_low_conf < legExtP
+            legExtP := pivot_low_conf
+            legExtB := pivBar
+    else
+        if not na(legExtP) and legExtP - pivot_low_conf >= confThr
+            majorSell  := true
+            majorBar   := legExtB
+            majorPrice := legExtP
+            legDir  := -1
+            legExtP := pivot_low_conf
+            legExtB := pivBar
+
+// -------------------------------------------------
+// EARLY / FAST ENGINE
+// -------------------------------------------------
+zlLen = zlSens == "Low" ? 5 :
+     zlSens == "Normal" ? 3 :
+     zlSens == "High" ? 2 : zlLenCustom
+
+// True zero-lag EMA: inject the lost momentum so the line
+// tracks price with minimal smoothing delay. lag=0 (High
+// sensitivity, len 2) makes it collapse back to a plain EMA.
+zlemaCalc(src, len) =>
+    int   lag = math.floor((len - 1) / 2)
+    float ec  = src + (src - src[lag])
+    ta.ema(ec, len)
+
+zlLine = zlFilter == "EMA" ? ta.ema(close, zlLen) : zlemaCalc(close, zlLen)
+zlMom  = zlLine - zlLine[1]
+
+zlCrossUp   = ta.crossover(zlMom, 0)
+zlCrossDown = ta.crossunder(zlMom, 0)
+
+rawZlBuy  = zlCrossUp   and close > open
+rawZlSell = zlCrossDown and close < open
+
+zlAtr = ta.atr(zlAtrLen)
+var float zlLastPrice = na
+var int   zlLastBar   = na
+bool okSwing = zlMinSwingATR_ <= 0 or na(zlLastPrice) or
+     math.abs(close - zlLastPrice) >= zlMinSwingATR_ * zlAtr
+bool okBars  = zlMinBars_ <= 0 or na(zlLastBar) or
+     (bar_index - zlLastBar) >= zlMinBars_
+
+// Context gate (HTF trend + session + volume) folded in here so
+// blocked turns do NOT consume the quality-filter reference.
+zlBuy  = rawZlBuy  and okSwing and okBars and not suppressLive and ctxBuy
+zlSell = rawZlSell and okSwing and okBars and not suppressLive and ctxSell
+
+if zlBuy or zlSell
+    zlLastPrice := close
+    zlLastBar   := bar_index
+
+// -------------------------------------------------
+// SIGNAL ROUTING (Confirmed / Early modes)
+// -------------------------------------------------
+bool finalBuy  = false
+bool finalSell = false
+
+bool useMajor = isConfMode and confMinSwingATR_ > 0
+
+if isConfMode
+    finalBuy  := (useMajor ? majorBuy  : confBuy)  and ctxBuy
+    finalSell := (useMajor ? majorSell : confSell) and ctxSell
+
+if isZLMode
+    finalBuy  := zlBuy
+    finalSell := zlSell
+
+string sigType = isZLMode ? "Early" : "Confirmed"
+
+float finalBuyTip  = isZLMode ? low  :
+     useMajor ? majorPrice : low[left_right]
+float finalSellTip = isZLMode ? high :
+     useMajor ? majorPrice : high[left_right]
+
+int finalIdx = isZLMode ? bar_index :
+     useMajor ? majorBar : bar_index - left_right
+
+// -------------------------------------------------
+// UNIFIED RENDERER
+//   placeSig   - draws one signal (arrow or stamp) and
+//                returns the label so it can be morphed.
+//   makeLeader - draws the optional Labels-and-Arrows
+//                leader for a CONFIRMED stamp; returns the
+//                line (na when not applicable).
+//   morphSig   - upgrades a Potential label to Confirmed.
+// -------------------------------------------------
+placeSig(int bx, bool isBuy, float tip, string typ, bool faded) =>
+    color ac   = isBuy ? confBuyColor : confSellColor
+    color bg   = faded ? (isBuy ? prevBuyColor : prevSellColor) :
+         (isBuy ? buyLabelBgColor : sellLabelBgColor)
+    color txtC = isBuy ? buyTextColor : sellTextColor
+    string g   = isBuy ? "▲" : "▼"
+    float offMult  = isBuy ? buyLabelOffsetATR : sellLabelOffsetATR
+    float gapPrice = atrBase * offMult
+    float anchor   = isBuy ? tip - gapPrice : tip + gapPrice
+    label _l = na
+    if isArrowsOnly
+        if offMult <= 0
+            _l := label.new(bx, tip, g, xloc=xloc.bar_index,
+                 yloc=isBuy ? yloc.belowbar : yloc.abovebar,
+                 style=label.style_none,
+                 textcolor=faded ? color.new(ac, 45) : ac,
+                 size=arrowSize)
+        else
+            _l := label.new(bx, anchor, g, xloc=xloc.bar_index,
+                 yloc=yloc.price, style=label.style_none,
+                 textcolor=faded ? color.new(ac, 45) : ac,
+                 size=arrowSize)
+    else
+        string dirWord = isBuy ? "Buy" : "Sell"
+        string t = isBuy ? g + "\n" + dirWord + "\n" + typ :
+             typ + "\n" + dirWord + "\n" + g
+        labStyle = isBuy ? label.style_label_up : label.style_label_down
+        _l := label.new(bx, anchor, t, xloc=xloc.bar_index,
+             yloc=yloc.price, style=labStyle, color=bg,
+             textcolor=txtC, size=lblSize, textalign=text.align_center)
+    _l
+
+makeLeader(int bx, bool isBuy, float tip) =>
+    line _ln = na
+    if show_leader and isLabelsArrows
+        float off = (isBuy ? buyLabelOffsetATR : sellLabelOffsetATR) * atrBase
+        float anchor = isBuy ? tip - off : tip + off
+        _ln := line.new(bx, tip, bx, anchor, xloc=xloc.bar_index,
+             color=isBuy ? confBuyColor : confSellColor,
+             width=leaderWidth, style=line.style_arrow_left)
+    _ln
+
+morphSig(label _l, bool isBuy) =>
+    if not na(_l)
+        color ac = isBuy ? confBuyColor : confSellColor
+        if isArrowsOnly
+            label.set_textcolor(_l, ac)
+        else
+            string g = isBuy ? "▲" : "▼"
+            string t = isBuy ? g + "\nBuy\nConfirmed" :
+                 "Confirmed\nSell\n" + g
+            label.set_text(_l, t)
+            label.set_color(_l, isBuy ? buyLabelBgColor : sellLabelBgColor)
+            label.set_textcolor(_l, isBuy ? buyTextColor : sellTextColor)
+
+// -------------------------------------------------
+// DASHBOARD STATE (maintained across all modes)
+// -------------------------------------------------
+var int   dashDir   = 0     // +1 long, -1 short, 0 flat
+var float dashPrice = na
+var int   dashBar   = na
+
+// -------------------------------------------------
+// RENDER - Confirmed / Early modes
+// -------------------------------------------------
+if not isPrevMode
+    if finalBuy
+        placeSig(finalIdx, true, finalBuyTip, sigType, buyFaded)
+        if not buyFaded
+            makeLeader(finalIdx, true, finalBuyTip)
+            dashDir   := 1
+            dashPrice := finalBuyTip
+            dashBar   := finalIdx
+    if finalSell
+        placeSig(finalIdx, false, finalSellTip, sigType, sellFaded)
+        if not sellFaded
+            makeLeader(finalIdx, false, finalSellTip)
+            dashDir   := -1
+            dashPrice := finalSellTip
+            dashBar   := finalIdx
+
+// -------------------------------------------------
+// CONFIRMED + POTENTIAL lifecycle (alternating)
+//   Confirmed stamps strictly alternate Buy -> Sell -> Buy.
+//   A Potential is shown only for the direction due next AND
+//   permitted by the HTF gate / context filters; it morphs
+//   into Confirmed when its pivot validates. A consecutive
+//   same-direction pivot migrates the existing Confirmed to
+//   the new extreme (no 2nd stamp). Lifecycle flags feed the
+//   alerts so chart == alerts.
+// -------------------------------------------------
+var int   lastDir  = 0      // +1 last confirmed Buy, -1 Sell
+var label lastLbl  = na
+var line  lastLine = na
+var float lastExt  = na
+
+var label sLbl = na         // live SELL potential
+var int   sBar = na
+var label bLbl = na         // live BUY potential
+var int   bBar = na
+
+bool dueSell = lastDir != -1
+bool dueBuy  = lastDir != 1
+
+// A potential/confirmed is wanted only when it is BOTH due
+// next AND allowed for that direction. Conf+Potential always
+// BLOCKS counter-trend (Color only nu se aplică aici - faded
+// înseamnă deja "Potential"), deci folosim ctxOK + aligned.
+bool wantSellPot = dueSell and ctxOK and sellAligned
+bool wantBuyPot  = dueBuy  and ctxOK and buyAligned
+
+bool lcConfBuy  = false
+bool lcConfSell = false
+bool lcPotBuy   = false
+bool lcPotSell  = false
+
+if isPrevMode
+    // --- SELL potential (due for a Sell AND gate allows) ---
+    if wantSellPot and not na(phEarly) and not suppressLive
+        if not na(sLbl)
+            label.delete(sLbl)
+            sLbl := na
+        sLbl := placeSig(bar_index - 1, false, high[1], "Potential", true)
+        sBar := bar_index - 1
+        lcPotSell := true
+    if (not wantSellPot) and not na(sLbl)
+        label.delete(sLbl)
+        sLbl := na
+        sBar := na
+
+    // --- BUY potential (due for a Buy AND gate allows) ---
+    if wantBuyPot and not na(plEarly) and not suppressLive
+        if not na(bLbl)
+            label.delete(bLbl)
+            bLbl := na
+        bLbl := placeSig(bar_index - 1, true, low[1], "Potential", true)
+        bBar := bar_index - 1
+        lcPotBuy := true
+    if (not wantBuyPot) and not na(bLbl)
+        label.delete(bLbl)
+        bLbl := na
+        bBar := na
+
+    // --- confirmed HIGH pivot -> SELL (gated by HTF trend) ---
+    if not na(pivot_high_conf) and ctxOK and sellAligned
+        int t = bar_index - left_right
+        float p = high[left_right]
+        if dueSell
+            if not na(sLbl) and sBar == t
+                morphSig(sLbl, false)
+                lastLbl := sLbl
+                sLbl := na
+                sBar := na
+            else
+                if not na(sLbl)
+                    label.delete(sLbl)
+                    sLbl := na
+                    sBar := na
+                lastLbl := placeSig(t, false, p, "Confirmed", false)
+            lastLine := makeLeader(t, false, p)
+            lastDir := -1
+            lastExt := p
+            lcConfSell := true
+            dashDir   := -1
+            dashPrice := p
+            dashBar   := t
+        else
+            // consecutive Sell: migrate the Confirmed up
+            // to the new, higher swing high (no 2nd stamp)
+            if not na(lastLbl) and not na(lastExt) and p > lastExt
+                label.set_xy(lastLbl, t, p + sellLabelOffsetATR * atrBase)
+                if not na(lastLine)
+                    line.delete(lastLine)
+                lastLine := makeLeader(t, false, p)
+                lastExt := p
+                dashPrice := p
+                dashBar := t
+
+    // --- confirmed LOW pivot -> BUY (gated by HTF trend) ---
+    if not na(pivot_low_conf) and ctxOK and buyAligned
+        int t = bar_index - left_right
+        float p = low[left_right]
+        if dueBuy
+            if not na(bLbl) and bBar == t
+                morphSig(bLbl, true)
+                lastLbl := bLbl
+                bLbl := na
+                bBar := na
+            else
+                if not na(bLbl)
+                    label.delete(bLbl)
+                    bLbl := na
+                    bBar := na
+                lastLbl := placeSig(t, true, p, "Confirmed", false)
+            lastLine := makeLeader(t, true, p)
+            lastDir := 1
+            lastExt := p
+            lcConfBuy := true
+            dashDir   := 1
+            dashPrice := p
+            dashBar   := t
+        else
+            // consecutive Buy: migrate the Confirmed down
+            // to the new, lower swing low (no 2nd stamp)
+            if not na(lastLbl) and not na(lastExt) and p < lastExt
+                label.set_xy(lastLbl, t, p - buyLabelOffsetATR * atrBase)
+                if not na(lastLine)
+                    line.delete(lastLine)
+                lastLine := makeLeader(t, true, p)
+                lastExt := p
+                dashPrice := p
+                dashBar := t
+
+// -------------------------------------------------
+// ALERTS - mode-aware and aligned with the chart
+// -------------------------------------------------
+string mLabel = isConfMode ? "CONF" :
+     isZLMode ? "EARLY" : "PREV"
+
+bool alertBuy  = isPrevMode ? lcConfBuy  : (finalBuy  and not buyFaded)
+bool alertSell = isPrevMode ? lcConfSell : (finalSell and not sellFaded)
+bool alertPotBuy  = lcPotBuy
+bool alertPotSell = lcPotSell
+
+alertcondition(alertBuy, title="AGAIG Buy Signal",
+     message="AGAIG BUY - {{ticker}} {{interval}}")
+alertcondition(alertSell, title="AGAIG Sell Signal",
+     message="AGAIG SELL - {{ticker}} {{interval}}")
+alertcondition(alertPotBuy, title="AGAIG Potential Buy",
+     message="AGAIG POTENTIAL BUY - {{ticker}} {{interval}}")
+alertcondition(alertPotSell, title="AGAIG Potential Sell",
+     message="AGAIG POTENTIAL SELL - {{ticker}} {{interval}}")
+
+if alertBuy
+    alert("AGAIG " + mLabel + " BUY on " + syminfo.ticker +
+         " (" + str.tostring(timeframe.period) + ")",
+         alert.freq_once_per_bar_close)
+if alertSell
+    alert("AGAIG " + mLabel + " SELL on " + syminfo.ticker +
+         " (" + str.tostring(timeframe.period) + ")",
+         alert.freq_once_per_bar_close)
+if alertPotBuy
+    alert("AGAIG POTENTIAL BUY on " + syminfo.ticker +
+         " (" + str.tostring(timeframe.period) + ")",
+         alert.freq_once_per_bar_close)
+if alertPotSell
+    alert("AGAIG POTENTIAL SELL on " + syminfo.ticker +
+         " (" + str.tostring(timeframe.period) + ")",
+         alert.freq_once_per_bar_close)
+
+// -------------------------------------------------
+// PIVOT DOTS - swing high/low overlay on the wick tip
+// -------------------------------------------------
+int nP_ = dotsMatchPivot ? left_right : nP
+
+float dotHigh = ta.pivothigh(high, nP_, nP_)
+float dotLow  = ta.pivotlow(low,  nP_, nP_)
+
+float dotHighVal = show_pivot_dots and not na(dotHigh) ? dotHigh : na
+float dotLowVal  = show_pivot_dots and not na(dotLow)  ? dotLow  : na
+
+// plotshape needs a CONST size, so one call per size,
+// gated by the dropdown. Only the selected size draws.
+plotshape(dotSizeOpt == "tiny" ? dotHighVal : na,
+     "Pivot High Dot (tiny)", shape.circle,
+     location.absolute, confSellColor, size=size.tiny, offset=-nP_)
+plotshape(dotSizeOpt == "small" ? dotHighVal : na,
+     "Pivot High Dot (small)", shape.circle,
+     location.absolute, confSellColor, size=size.small, offset=-nP_)
+plotshape(dotSizeOpt == "normal" ? dotHighVal : na,
+     "Pivot High Dot (normal)", shape.circle,
+     location.absolute, confSellColor, size=size.normal, offset=-nP_)
+plotshape(dotSizeOpt == "large" ? dotHighVal : na,
+     "Pivot High Dot (large)", shape.circle,
+     location.absolute, confSellColor, size=size.large, offset=-nP_)
+
+plotshape(dotSizeOpt == "tiny" ? dotLowVal : na,
+     "Pivot Low Dot (tiny)", shape.circle,
+     location.absolute, confBuyColor, size=size.tiny, offset=-nP_)
+plotshape(dotSizeOpt == "small" ? dotLowVal : na,
+     "Pivot Low Dot (small)", shape.circle,
+     location.absolute, confBuyColor, size=size.small, offset=-nP_)
+plotshape(dotSizeOpt == "normal" ? dotLowVal : na,
+     "Pivot Low Dot (normal)", shape.circle,
+     location.absolute, confBuyColor, size=size.normal, offset=-nP_)
+plotshape(dotSizeOpt == "large" ? dotLowVal : na,
+     "Pivot Low Dot (large)", shape.circle,
+     location.absolute, confBuyColor, size=size.large, offset=-nP_)
+
+// -------------------------------------------------
+// DASHBOARD
+// -------------------------------------------------
+dashPos = switch dashPosChoice
+    "Top Left"      => position.top_left
+    "Top Center"    => position.top_center
+    "Top Right"     => position.top_right
+    "Middle Left"   => position.middle_left
+    "Middle Center" => position.middle_center
+    "Middle Right"  => position.middle_right
+    "Bottom Left"   => position.bottom_left
+    "Bottom Center" => position.bottom_center
+    "Bottom Right"  => position.bottom_right
+    => position.top_right
+
+// 7 metrics -> Vertical: 2 cols x 7 rows | Horizontal: 7 cols x 2 rows
+var table dash = table.new(dashPos, isVert ? 2 : 7, isVert ? 7 : 2,
+     bgcolor=dashBgCol, border_width=1,
+     border_color=color.new(color.gray, 70),
+     frame_width=1, frame_color=color.new(color.gray, 55))
+
+f_put(int _i, string _label, string _value, color _valCol) =>
+    if isVert
+        table.cell(dash, 0, _i, _label, text_color=dashLabelCol,
+             text_size=dashTextSize, text_halign=text.align_left)
+        table.cell(dash, 1, _i, _value, text_color=_valCol,
+             text_size=dashTextSize, text_halign=text.align_right)
+    else
+        table.cell(dash, _i, 0, _label, text_color=dashLabelCol,
+             text_size=dashTextSize, text_halign=text.align_center)
+        table.cell(dash, _i, 1, _value, text_color=_valCol,
+             text_size=dashTextSize, text_halign=text.align_center)
+
+if show_dashboard and barstate.islast
+    string modeTxt = isConfMode ? "Confirmed" :
+         isZLMode ? "Early ⚡" : "Conf + Pot"
+    string stTxt = dashDir == 1 ? "LONG" : dashDir == -1 ? "SHORT" : "FLAT"
+    color  stCol = dashDir == 1 ? confBuyColor :
+         dashDir == -1 ? confSellColor : color.gray
+    string lastTx = na(dashPrice) ? "—" :
+         str.tostring(dashPrice, format.mintick)
+    string barsTx = na(dashBar) ? "—" :
+         str.tostring(bar_index - dashBar)
+    // HTF trend-gate state row.
+    string gateTxt = not gateEnable ? "Off" :
+         (htfBull ? "Up " : htfBear ? "Down " : "Flat ") + htfRes
+    color  gateCol = not gateEnable ? color.gray :
+         htfBull ? confBuyColor : htfBear ? confSellColor : color.gray
+
+    f_put(0, "Mode",   modeTxt,                  dashValCol)
+    f_put(1, "Asset",  assetPreset,              dashValCol)
+    f_put(2, "Trend",  gateTxt,                  gateCol)
+    f_put(3, "State",  stTxt,                    stCol)
+    f_put(4, "Last @", lastTx,                   dashValCol)
+    f_put(5, "Bars",   barsTx,                   dashValCol)
+    f_put(6, "Pivot",  str.tostring(length_),    dashValCol)
+
+// -------------------------------------------------
+// ON-CHART MODE TAG
+// -------------------------------------------------
+var label modeTag = na
+if barstate.islast
+    label.delete(modeTag)
+    if show_mode_tag
+        string modeTxt = isConfMode ? "AGAIG: Confirmed" :
+             isZLMode ? "AGAIG: Early (repaints)" :
+             "AGAIG: Confirmed + Potential"
+        if not isCustomAsset
+            modeTxt := modeTxt + " · " + assetPreset
+        if gateEnable
+            modeTxt := modeTxt + " · gate " + htfRes
+        modeTag := label.new(bar_index + 3, close, modeTxt,
+             xloc=xloc.bar_index, yloc=yloc.price,
+             style=label.style_label_left,
+             color=color.rgb(30, 30, 30, 20),
+             textcolor=color.white, size=size.small)
