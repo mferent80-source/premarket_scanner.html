@@ -1,14 +1,28 @@
 //@version=6
-indicator("As Good As It Gets Pivot Arrows v3.9.1",
-     shorttitle="AGAIG v3.9.1", overlay=true,
+indicator("As Good As It Gets Pivot Arrows v3.9.2",
+     shorttitle="AGAIG v3.9.2", overlay=true,
      max_labels_count=500, max_lines_count=500,
      max_bars_back=500)
 
 // ------------------------------------------------------------
 // As Good As It Gets - Pivot Detection Indicator
 // Created by: NPR21
-// Version: 3.9.1
+// Version: 3.9.2
 // Last Updated: June 22, 2026
+//
+// v3.9.2 UPDATE:
+//   • REVERSAL MARKERS (Early). After a signal, if the Early
+//     momentum flips CONTRARY to the last shown direction, an
+//     early marker now prints IMMEDIATELY - even if the Min
+//     Swing / Min Bars quality filter would have suppressed it
+//     - so a turn is never missed. Full-quality signals stay
+//     normal; reversal-only flips (which did NOT clear the
+//     quality filter) print FADED as a heads-up, do NOT alert,
+//     draw no leader and do NOT move the dashboard State.
+//     Toggle "Reversal markers (Early)" (default ON). NOTE:
+//     reversal markers still respect the gate - to see
+//     counter-trend reversals set Gate Action = Color only
+//     (or turn the gate off). Early mode only.
 //
 // v3.9.1 UPDATE:
 //   • GATE ACTION option. The HTF Trend Gate can now either
@@ -294,6 +308,16 @@ zlMinBars = input.int(0, "Min Bars Between Signals",
      "bars after the last one. 0 = off.")
 zlAtrLen = input.int(14, "Quality Filter ATR Length",
      minval=1, maxval=200, group=GRP_ZL)
+revMarkers = input.bool(true, "Reversal markers (Early)",
+     group=GRP_ZL,
+     tooltip="After a signal, if Early momentum flips CONTRARY " +
+     "to the last shown direction, print an early marker " +
+     "immediately - even if Min Swing / Min Bars would have " +
+     "suppressed it - so you never miss a turn. Reversal-only " +
+     "flips (no quality) show FADED (heads-up: no alert, no " +
+     "leader, do not move dashboard State). Respects the gate: " +
+     "for counter-trend reversals use Gate Action = Color only. " +
+     "Early mode only.")
 
 // --------------- VISUAL OPTIONS -------------------
 string GRP_VIS = "--- Visual Options ---"
@@ -605,14 +629,41 @@ bool okSwing = zlMinSwingATR_ <= 0 or na(zlLastPrice) or
 bool okBars  = zlMinBars_ <= 0 or na(zlLastBar) or
      (bar_index - zlLastBar) >= zlMinBars_
 
-// Context gate (HTF trend + session + volume) folded in here so
-// blocked turns do NOT consume the quality-filter reference.
-zlBuy  = rawZlBuy  and okSwing and okBars and not suppressLive and ctxBuy
-zlSell = rawZlSell and okSwing and okBars and not suppressLive and ctxSell
+// A raw flip that clears the gate/session/volume + live filter.
+// (Context folded in here so blocked turns do NOT consume the
+//  quality-filter reference.)
+bool flipBuy  = rawZlBuy  and not suppressLive and ctxBuy
+bool flipSell = rawZlSell and not suppressLive and ctxSell
+
+// QUALITY signal = flip that also clears Min Swing + Min Bars.
+bool qualBuy  = flipBuy  and okSwing and okBars
+bool qualSell = flipSell and okSwing and okBars
+
+// REVERSAL marker = a flip CONTRARY to the last shown direction,
+// printed even if the quality filter would have suppressed it,
+// so a turn is never missed. Reversal-only flips (no quality)
+// print FADED as a heads-up. Toggle via revMarkers.
+var int lastEarlyDir = 0
+bool revBuy  = revMarkers and flipBuy  and lastEarlyDir == -1
+bool revSell = revMarkers and flipSell and lastEarlyDir == 1
+
+zlBuy  = qualBuy  or revBuy
+zlSell = qualSell or revSell
+
+// Reversal-only (contrary flip that did NOT meet quality) -> faded
+// heads-up. Fold into the gate fade so render/alerts treat it as
+// a warning (no alert, no leader, no dashboard State change).
+if isZLMode
+    buyFaded  := buyFaded  or (revBuy  and not qualBuy)
+    sellFaded := sellFaded or (revSell and not qualSell)
 
 if zlBuy or zlSell
     zlLastPrice := close
     zlLastBar   := bar_index
+if zlBuy
+    lastEarlyDir := 1
+if zlSell
+    lastEarlyDir := -1
 
 // -------------------------------------------------
 // SIGNAL ROUTING (Confirmed / Early modes)

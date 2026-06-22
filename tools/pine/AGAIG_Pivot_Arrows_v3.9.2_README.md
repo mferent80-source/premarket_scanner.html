@@ -1,7 +1,16 @@
-# AGAIG Pivot Arrows v3.9.1 — README
+# AGAIG Pivot Arrows v3.9.2 — README
 
 Indicator Pine v6 de detecție pivoturi (BUY/SELL) cu trei moduri de semnal,
 adaptat pentru **trade rapid intraday** (15 / 30 / 60 min).
+
+## Nou în v3.9.2 — Reversal markers (Early)
+Sub `Early / Fast Mode` → **Reversal markers (Early)** (default ON). După un semnal,
+dacă momentum-ul Early se întoarce **contrar** ultimei direcții afișate, apare imediat
+un marker — **chiar dacă** filtrul Min Swing / Min Bars l-ar fi tăiat — ca să nu ratezi
+nicio întoarcere. Semnalele de calitate rămân pline; reversările care n-au trecut filtrul
+apar **estompate** (heads-up: fără alertă, fără leader, nu mișcă „State"). ⚠ Respectă
+gate-ul — pentru reversări **contra-trend** trebuie `Gate Action = Color only` (sau gate
+oprit). Doar în modul Early.
 
 ## Nou în v3.9.1 — Gate Action (Block / Color only)
 Sub `Trend Gate (HTF)` → **Gate Action**:
