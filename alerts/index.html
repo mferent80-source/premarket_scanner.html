@@ -346,7 +346,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v47</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v48</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -636,6 +636,13 @@ function marketSession() {
 const CRYPTO_SYMS = new Set(['BTC-USD','BTC','ETH-USD','ETH','SOL-USD','SOL']);
 // crypto = 24/7 (nu se throttle-ază noaptea/weekend ca stocks): perechi USDT (Binance) + orice XXX-USD
 const isCrypto = s => CRYPTO_SYMS.has(s) || /USDT$/.test(s) || /-USD$/.test(s);
+// v48: tickere crypto populare care, scrise SIMPLU (fără sufix), ar fi căutate ca ACȚIUNE
+// cu același nume (ex. ONDO = Ondo InsurTech pe NASDAQ, nu crypto Ondo Finance). Folosit doar
+// pentru a sugera forma USDT la adăugare — nu blochează, doar întreabă.
+const CRYPTO_BASES = new Set(['ONDO','PEPE','XRP','ADA','DOGE','SHIB','AVAX','LINK','DOT','MATIC',
+  'ARB','OP','SUI','SEI','TIA','INJ','RNDR','RENDER','FET','NEAR','APT','ATOM','UNI','AAVE','LTC',
+  'BCH','TRX','XLM','ALGO','FIL','ICP','IMX','STX','RUNE','GRT','SAND','MANA','AXS','FTM','EGLD',
+  'CRV','LDO','JUP','WIF','BONK','PYTH','JTO','STRK','ENA','ENS','GALA','TAO','TON','HBAR','VET']);
 // Badge sesiune lipit de prețul curent (doar stocks US listate, fără sufix de bursă):
 // confirmă vizual că prețul afișat e cel din pre-market / after-hours LIVE (Yahoo includePrePost),
 // nu close-ul regular înghețat. Crypto = 24/7 (badge la nivel de grup); EU (.DE etc) au altă sesiune.
@@ -802,15 +809,22 @@ async function fetchPriceYahoo(symbol) {
   } catch (e) { return null; }
 }
 // Binance pentru perechile USDT (ONDOUSDT, PEPEUSDT etc.) — stil Pionex/Binance,
-// fără cheie, CORS ok pe market data public. /ticker/24hr dă și prevClosePrice.
+// fără cheie, CORS ok pe market data public.
+// v48: VARIAȚIA ZILEI (00:00 UTC), NU rolling-24h. Folosim candela 1d ÎN CURS:
+// [1]=open (baseline variația zilei) și [4]=close (preț live). /ticker/24hr dădea
+// prevClosePrice = prețul de acum FIX 24h → diverge mult de „azi +X%" când mișcarea a
+// fost între miezul nopții și acum 24h (incident ONDO: rolling-24h 0.6% vs ziua 3.5%).
+// Acum baseline-ul Binance e identic semantic cu chartPreviousClose-ul Yahoo (stocks).
 async function fetchPriceBinance(symbol) {
   try {
-    const r = await fetchT(`https://api.binance.com/api/v3/ticker/24hr?symbol=${encodeURIComponent(symbol)}`);
+    const r = await fetchT(`https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=1d&limit=1`);
     if (!r.ok) return null;
-    const d = await r.json();
-    const last = parseFloat(d?.lastPrice);
+    const k = (await r.json())?.[0];
+    if (!Array.isArray(k)) return null;
+    const last = parseFloat(k[4]);   // close-ul candelei în curs = preț live
+    const open = parseFloat(k[1]);   // open 00:00 UTC = baseline variația zilei
     if (!(last > 0)) return null;
-    return { last, prev: parseFloat(d.prevClosePrice) || last };
+    return { last, prev: open > 0 ? open : last };
   } catch (e) { return null; }
 }
 async function fetchPrice(symbol) {
@@ -1705,13 +1719,24 @@ $('btnHint').addEventListener('click', () => {
 });
 
 $('btnAdd').addEventListener('click', () => {
-  const sym = $('inpSym').value.trim().toUpperCase();
+  let sym = $('inpSym').value.trim().toUpperCase();
   const thr = parseFloat($('inpThr').value);
   const dir = $('inpDir').value;
   const kind = $('inpKind').value;
   const note = $('inpNote').value.trim();
   const rearm = $('inpRearm').checked;
   if (!sym || !sym.match(/^[A-Z0-9.\-]{1,16}$/)) { toast('⚠ Simbol invalid (doar A-Z, 0-9, .-)', 'error'); return; }
+  // v48: protecție anti-capcană crypto-vs-stock. Un ticker crypto popular scris SIMPLU (fără
+  // sufix -USD/USDT și fără bursă .XX) ar fi citit ca ACȚIUNE cu același nume (ex. ONDO simplu =
+  // Ondo InsurTech NASDAQ, NU crypto). Întrebăm o singură dată dacă vrei perechea USDT (Binance/
+  // Pionex, cu variația zilei corectă). Dacă refuzi, rămâne ca acțiune — alegerea ta.
+  if (!/USDT$/.test(sym) && !/-USD$/.test(sym) && !sym.includes('.') && CRYPTO_BASES.has(sym)) {
+    if (confirm(`„${sym}" simplu îl caut ca ACȚIUNE (ex. ${sym} pe NASDAQ), NU crypto.\n\n` +
+        `Vrei perechea crypto ${sym}USDT (Binance/Pionex) în loc?\n\n` +
+        `OK = folosesc ${sym}USDT · Anulează = las ${sym} ca acțiune`)) {
+      sym = sym + 'USDT';
+    }
+  }
   const thrMsg = kind === 'pct' ? '⚠ Mișcare % invalidă (trebuie > 0)' : kind === 'day' ? '⚠ Variația zilei % invalidă (trebuie > 0)' : (kind === 'anchor' || kind === 'ref') ? '⚠ Pas alertă ±% invalid (trebuie > 0)' : '⚠ Preț prag invalid (trebuie > 0)';
   if (isNaN(thr) || thr <= 0) { toast(thrMsg, 'error'); return; }
   priceAlerts = loadAlerts(); // sync înainte de write — alt tab poate să fi modificat
