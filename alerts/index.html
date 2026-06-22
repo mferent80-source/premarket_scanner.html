@@ -96,6 +96,13 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   padding:14px 18px; margin-bottom:12px; box-shadow:var(--shadow);
 }
 .add-form h3 { font-size:14px; font-weight:800; color:var(--t1); }
+/* drill-down: <summary> ca header, marker nativ ascuns, caret ▸ care rotește la deschidere */
+.add-form > summary.add-form-head { cursor:pointer; list-style:none; user-select:none; margin-bottom:0; }
+.add-form > summary.add-form-head::-webkit-details-marker { display:none; }
+.add-form[open] > summary.add-form-head { margin-bottom:12px; }   /* spațiu sub titlu doar când e deschis */
+.af-title { display:flex; align-items:center; gap:8px; }
+.add-form[open] .trig-caret { transform:rotate(90deg); }
+.add-form > summary.add-form-head:hover .trig-caret { color:var(--accent); }
 .add-form-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
 .hint-btn {
   padding:5px 11px; font-size:11.5px; font-family:var(--head); cursor:pointer;
@@ -376,7 +383,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v51</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v52</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -391,15 +398,15 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   <a href="../" class="nav-link">← Hub</a>
 </header>
 
-<!-- Add new alert -->
-<div class="add-form">
-  <div class="add-form-head">
-    <h3>➕ Adaugă alertă nouă</h3>
+<!-- Add new alert — drill-down colapsat by default (nu ocupă spațiu cât nu adaugi) -->
+<details class="add-form" id="addForm">
+  <summary class="add-form-head">
+    <div class="af-title"><span class="trig-caret">▸</span><h3>➕ Adaugă alertă nouă</h3></div>
     <div style="display:flex;gap:6px">
       <button type="button" id="btnAdv" class="hint-btn" title="Arată tipurile vechi de alertă (preț prag, mișcare %, ancoră). Default: doar 📊 Referință.">⚙️ Avansat</button>
       <button type="button" id="btnHint" class="hint-btn">ℹ️ Cum funcționează</button>
     </div>
-  </div>
+  </summary>
   <div class="add-row">
     <div>
       <label>Ticker / nume</label>
@@ -452,10 +459,10 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
     <button class="primary add-btn" id="btnAdd">+ Adaugă</button>
   </div>
   <div id="symSearchResults" style="display:none;flex-direction:column;gap:3px;margin:8px 0 0"></div>
-  <div class="add-hint" id="addHint" style="display:none">
+  <div class="add-hint af-hint" id="addHint" style="display:none">
     <b>📊 Referință (pași ±%)</b> = prețul live din momentul adăugării devine <b>referința (0%)</b>; primești o alertă la fiecare pas de ±X% (ex: 1%) față de ea, sus pe verde / jos pe roșu. Bară simetrică centrată pe referință + max/min atinse + următorul nivel. Buton 🔄 pe rând = re-ancorează referința la prețul curent (ex: după ce intri în trade). Bifează <b>📉 Trailing din vârf</b> ca referința să urmeze automat maximul → te anunță doar când prețul scade X% din vârf (trailing-stop mental, ideal pt gestionat un trade în profit). <b>📅 Variația zilei ±%</b> = te anunță când simbolul a urcat SAU coborât cu cel puțin X% pe ziua curentă (față de închiderea de ieri) — prinde mișcările mari ale zilei. <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. <b>⚓ Ancoră</b> = ancoră FIXĂ la prețul de creare (nu se mută) cu Δ% afișat + bară de progres spre țintă + R:R; te anunță la <b>4 evenimente</b>: 🪜 fiecare pas cumulat de ±X% din ancoră, 🎯 ținta atinsă, 🔔 aproape de țintă (≥90%), 🛑 stopul atins. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 60s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram.
   </div>
-</div>
+</details>
 
 <!-- Pulse: rezumat rapid al stării alertelor -->
 <div id="pulseBar" class="pulse-bar" style="display:none"></div>
@@ -1589,7 +1596,8 @@ function applyAdvanced() {
   $('btnAdv').style.borderColor = advancedMode ? 'rgba(34,214,107,.4)' : '';
   updateFormMode();
 }
-$('btnAdv').addEventListener('click', () => {
+$('btnAdv').addEventListener('click', (e) => {
+  e.stopPropagation(); e.preventDefault();   // buton în <summary> → nu toggla drill-down-ul
   advancedMode = !advancedMode;
   localStorage.setItem(ADVANCED_KEY, advancedMode ? '1' : '0');
   applyAdvanced();
@@ -1760,7 +1768,8 @@ async function asSearch() {
 $('btnSearch').addEventListener('click', asSearch);
 
 // Toggle descriere („Cum funcționează") — ascunsă implicit ca să nu ocupe spațiu
-$('btnHint').addEventListener('click', () => {
+$('btnHint').addEventListener('click', (e) => {
+  e.stopPropagation(); e.preventDefault();   // buton în <summary> → nu toggla drill-down-ul
   const h = $('addHint');
   const show = h.style.display === 'none';
   h.style.display = show ? 'block' : 'none';
@@ -1854,6 +1863,14 @@ $('btnClearTriggered').addEventListener('click', (e) => {
   if (!d) return;
   if (localStorage.getItem('pa_trig_open') === '1') d.open = true;
   d.addEventListener('toggle', () => localStorage.setItem('pa_trig_open', d.open ? '1' : '0'));
+})();
+// Drill-down formular „Adaugă alertă": colapsat by default (nu ocupă spațiu cât nu adaugi),
+// reține starea între sesiuni — cine adaugă des îl lasă deschis o dată și rămâne așa.
+(function initAddFormToggle(){
+  const d = $('addForm');
+  if (!d) return;
+  if (localStorage.getItem('pa_addform_open') === '1') d.open = true;
+  d.addEventListener('toggle', () => localStorage.setItem('pa_addform_open', d.open ? '1' : '0'));
 })();
 
 $('soundBtn').addEventListener('click', () => {
