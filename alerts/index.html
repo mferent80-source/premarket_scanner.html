@@ -346,11 +346,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v49</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v50</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
+  <button class="icon-btn" id="popupBtn" title="Popup-uri alerte: Auto (dispar în 6s) / Off (nu apar) / Stay (rămân până la ✕)">💬</button>
   <button class="icon-btn" id="btnSort" title="Sortare listă: 🎯 după proximitatea de declanșare (cele gata să se miște sus) / 🔤 alfabetic">🎯</button>
   <button class="icon-btn" id="testBtn" title="Test alertă (demo)">🧪</button>
   <button class="icon-btn" id="exportBtn" title="Export JSON pentru alertele server-side (GitHub Actions) — merg și cu laptopul închis">📤</button>
@@ -550,6 +551,7 @@ const MAX_TRIGGERED_HISTORY = 50;
 const REARM_HYST = 0.003;             // histerezis re-arm 0.3% — identic cu watchlist-monitor
 const SOUND_KEY = 'pa_sound';
 const NOTIF_KEY = 'pa_notif';
+const POPUP_KEY = 'pa_popup';   // mod popup alerte: 'auto' (6s) | 'off' | 'stay'
 
 const $ = id => document.getElementById(id);
 const escHtml = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -657,6 +659,7 @@ let _lastStockPollTs = 0;
 let _warnedNoKey = false;
 let soundEnabled = localStorage.getItem(SOUND_KEY) === '1';
 let notifEnabled = localStorage.getItem(NOTIF_KEY) === '1';
+let popupMode = localStorage.getItem(POPUP_KEY) || 'auto';   // default: dispar singure în 6s
 let pollPaused = false;
 let pollTimer = null;
 
@@ -712,16 +715,23 @@ window.addEventListener('storage', e => { if (e.key === ALERTS_KEY) { priceAlert
 
 // ============ TOAST ============
 function toast(msg, kind='info', opts={}) {
+  const persist = !!opts.persist;   // true = popup de alertă declanșată (controlat de popupMode)
+  // popupMode controlează DOAR popup-urile de alertă (persist). Alerta merge oricum
+  // în istoric + notificare browser + sunet + Telegram, deci „off" nu pierde nimic.
+  //   'off'  = nu se afișează deloc în pagină
+  //   'stay' = rămâne până la click pe ✕ (vechiul comportament)
+  //   'auto' = dispare singur după 6s (cu pauză la hover) — default
+  if (persist && popupMode === 'off') return;
   const el = document.createElement('div');
   el.className = 'toast ' + kind;
-  const persist = !!opts.persist;   // alertele declanșate rămân până la click pe ✕ (altfel dispar în 5s și e ușor să le ratezi)
   el.innerHTML = `<span class="toast-msg">${escHtml(msg)}</span><button class="toast-close" title="Închide">✕</button>`;
   const close = () => { el.classList.add('toast-out'); setTimeout(() => el.remove(), 200); };
   el.querySelector('.toast-close').addEventListener('click', close);
   $('toasts').appendChild(el);
-  if (persist) return;   // persistent: fără auto-close — dispare doar la click
-  // non-persistent (info/confirmări): dispar după 5s, cu pauză la hover ca să apuci să citești; reia 2s după
-  let timer = setTimeout(close, 5000);
+  if (persist && popupMode === 'stay') return;   // persistent: doar la click
+  // auto-close: alertele (persist, mod auto) după 6s; info/confirmări după 5s.
+  // Pauză la hover ca să apuci să citești; reia 2s după ce ieși.
+  let timer = setTimeout(close, persist ? 6000 : 5000);
   el.addEventListener('mouseenter', () => { clearTimeout(timer); timer = null; });
   el.addEventListener('mouseleave', () => { if (!timer) timer = setTimeout(close, 2000); });
 }
@@ -1509,6 +1519,12 @@ function render() {
   $('btnPause').title = pollPaused ? 'Reia polling' : 'Pauză polling';
   $('soundBtn').style.color = soundEnabled ? 'var(--bull-s)' : '';
   $('notifBtn').style.color = notifEnabled ? 'var(--bull-s)' : '';
+  const _pb = $('popupBtn');
+  if (_pb) {
+    _pb.textContent = popupMode === 'off' ? '🚫' : popupMode === 'stay' ? '📌' : '💬';
+    _pb.style.color = popupMode === 'off' ? 'var(--bear-s)' : popupMode === 'stay' ? 'var(--accent)' : '';
+    _pb.title = 'Popup-uri alerte: ' + (popupMode === 'auto' ? 'AUTO (dispar în 6s)' : popupMode === 'off' ? 'OFF (nu apar — rămân în istoric + notificări)' : 'STAY (rămân până la ✕)') + ' · click pt schimbare';
+  }
 }
 
 // ============ EVENT HANDLERS ============
@@ -1834,6 +1850,16 @@ $('notifBtn').addEventListener('click', async () => {
     } else { toast('⚠ Permisiune notificări refuzată', 'warn'); }
   }
   render();
+});
+
+// Popup alerte: cicleaza Auto -> Off -> Stay -> Auto
+$('popupBtn').addEventListener('click', () => {
+  popupMode = popupMode === 'auto' ? 'off' : popupMode === 'off' ? 'stay' : 'auto';
+  localStorage.setItem(POPUP_KEY, popupMode);
+  render();
+  toast(popupMode === 'auto' ? '💬 Popup-uri: AUTO (dispar în 6s)'
+      : popupMode === 'off' ? '🚫 Popup-uri: OFF (rămân doar în istoric + notificări)'
+      : '📌 Popup-uri: STAY (rămân până la ✕)', 'info');
 });
 
 $('testBtn').addEventListener('click', () => {
