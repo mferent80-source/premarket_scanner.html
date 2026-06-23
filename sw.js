@@ -4,7 +4,7 @@
 // IMPORTANT: bump CACHE_VERSION manual la fiecare release semnificativ — invalidare automată în clienți.
 // SW are scope `/` (rădăcina repo-ului), deci controlează Hub + toate sub-paginile.
 // PRECACHE = toate cele 11 pagini din Hub → se instalează offline odată cu Hub-ul (instalare PWA).
-const CACHE_VERSION = 'tt-v444-2026-06-23';
+const CACHE_VERSION = 'tt-v445-2026-06-23';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 // Resurse statice pre-cache-uite la instalare
@@ -37,6 +37,7 @@ const PRECACHE = [
   './lib/data.js',
   './lib/insider.js',
   './lib/ledger.js',
+  './lib/regime.js',
   './lib/backtest.js',
   './lib/ai.js',
   './lib/telegram.js',
