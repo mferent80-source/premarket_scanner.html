@@ -104,6 +104,19 @@ h1{font-size:18px;font-weight:700;letter-spacing:-.3px;background:linear-gradien
 .rrg-svg{width:100%;max-width:480px;height:auto}
 .rrg-note{color:var(--txt-dd);text-align:center;padding:26px 12px;font-size:13px}
 .rrg-legend{font-size:11px;color:var(--txt-dd);margin-top:6px;text-align:center;line-height:1.5}
+.rrg-toggle{display:inline-flex;gap:4px}
+/* RRG varianta carduri (2×2 cadrane) — v158 */
+.rrg-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.rrg-quad{border:1px solid var(--br);border-radius:10px;padding:8px 10px;background:var(--bg2);border-top-width:3px}
+.rrg-quad.lead{border-top-color:#22d66b} .rrg-quad.impr{border-top-color:#5bb0ff}
+.rrg-quad.weak{border-top-color:#d4892c} .rrg-quad.lag{border-top-color:#ff4d4d}
+.rq-h{font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.rq-h .cnt{color:var(--txt-dd);font-weight:600}
+.rq-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12.5px;border-top:1px solid rgba(255,255,255,.04)}
+.rq-row:first-of-type{border-top:none}
+.rq-row .s{font-weight:700;color:var(--txt)} .rq-row .n{font-size:10px;color:var(--txt-dd);margin-left:5px;font-weight:400}
+.rq-empty{color:var(--txt-dd);font-size:12px;padding:4px 0;font-style:italic}
+@media (max-width:520px){ .rrg-quad .n{display:none} }
 .table-wrap{background:var(--panel);border:1px solid var(--br);border-radius:10px;overflow:hidden}
 .table-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--br);flex-wrap:wrap;background:var(--bg2)}
 .sort-chip{font-size:12px;padding:5px 11px;border-radius:99px;background:var(--bg);border:1px solid var(--br);
@@ -255,7 +268,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v157</span>
+    <span class="ver-badge" id="verBadge">v158</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
     <div class="hdr-spc"></div>
@@ -287,7 +300,13 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 
   <!-- RRG — ROTAȚIE RELATIVĂ vs SPY -->
   <section>
-    <div class="section-title">🌀 RRG — rotație relativă vs SPY</div>
+    <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <span>🌀 RRG — rotație relativă vs SPY</span>
+      <span class="rrg-toggle">
+        <span class="sort-chip" data-rrgview="scatter">🌀 Grafic</span>
+        <span class="sort-chip" data-rrgview="cards">🔲 Cadrane</span>
+      </span>
+    </div>
     <div class="rrg-wrap"><div id="rrg" style="width:100%"><div class="rrg-note">Apasă <b>🔄 SCAN</b> ca să încarci RRG-ul.</div></div></div>
     <div class="rrg-legend">🟢 Leading (forță + și în creștere) · 🔵 Improving (forță − dar urcă) · 🟡 Weakening (forță + dar scade) · 🔴 Lagging (forță − și scade) · <b>coada</b> = ultimele ~4 săpt (direcția rotației)</div>
   </section>
@@ -416,9 +435,10 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   AI bubble Claude + alerte rotație hot↔cold + Telegram + sound.
 //   v155: fix corectitudine. v156: forță relativă vs SPY + RRG.
 //   v157: badge regim macro (lib/regime.js) + breadth holdings + cache last-scan (render instant).
+//   v158: RRG varianta carduri pe 4 cadrane (toggle scatter↔cadrane, persistat).
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v157';
+const VER = 'v158';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -672,6 +692,7 @@ const $ = id => document.getElementById(id);
 let CFG = { interval: 300000, threshold: 1.0, sound: true, notif: false, tgEnabled: false };
 let DATA = []; // { sym, name, group, price, chg1d, chg1w, chg1m, chg3m, chgYTD, rsChg1w, rsRatio, rsMom, rsTail, closes... }
 let SPY = null; // chart SPY pt forță relativă (benchmark)
+let rrgView = (() => { try { return localStorage.getItem('sr_rrg_view') || 'scatter'; } catch(_) { return 'scatter'; } })(); // 'scatter' | 'cards'
 let sortBy = 'chg1w';
 let sortAsc = false;
 let scanning = false;
@@ -1209,14 +1230,42 @@ function render(){
 // ═══════════════════════════════════════════════════════════════
 //   RRG RENDER (v156) — scatter SVG cu 4 cadrane + cozi
 // ═══════════════════════════════════════════════════════════════
+// v158: RRG ca 4 carduri-cadran (Leading/Improving/Weakening/Lagging), sectoare sortate după forță
+function rrgCardsHTML(pts){
+  const QUADS = [
+    { key:'lead', label:'🟢 Leading'   },
+    { key:'impr', label:'🔵 Improving' },
+    { key:'weak', label:'🟡 Weakening' },
+    { key:'lag',  label:'🔴 Lagging'   },
+  ];
+  const byQuad = { lead:[], impr:[], weak:[], lag:[] };
+  for (const d of pts){
+    const q = rrgQuadrant(d.rsRatio, d.rsMom);
+    if (q && byQuad[q.key]) byQuad[q.key].push(d);
+  }
+  for (const k in byQuad) byQuad[k].sort((a,b) => b.rsRatio - a.rsRatio); // forța relativă desc
+  const card = (q) => {
+    const list = byQuad[q.key];
+    const rows = list.length
+      ? list.map(d => `<div class="rq-row"><span><span class="s">${d.sym}</span><span class="n">${d.name}</span></span><span class="td-pct ${pctClass(d.rsChg1w)}">${fmtPct(d.rsChg1w)}</span></div>`).join('')
+      : '<div class="rq-empty">— niciun sector —</div>';
+    return `<div class="rrg-quad ${q.key}"><div class="rq-h">${q.label}<span class="cnt">${list.length}</span></div>${rows}</div>`;
+  };
+  return '<div class="rrg-cards">' + QUADS.map(card).join('') + '</div>';
+}
+
 function renderRRG(){
   const box = $('rrg');
   if (!box) return;
+  // chip-urile de toggle reflectă varianta activă
+  document.querySelectorAll('[data-rrgview]').forEach(c => c.classList.toggle('active', c.dataset.rrgview === rrgView));
   const pts = DATA.filter(d => d.rsRatio != null && d.rsMom != null);
   if (!SPY || pts.length < 3){
     box.innerHTML = '<div class="rrg-note">RRG indisponibil — lipsă date SPY sau serii prea scurte.</div>';
     return;
   }
+  // v158: varianta carduri pe 4 cadrane (mai scanabilă pe telefon)
+  if (rrgView === 'cards'){ box.innerHTML = rrgCardsHTML(pts); return; }
   const W = 460, H = 340, padL = 34, padR = 14, padT = 16, padB = 24;
   const innerW = W - padL - padR, innerH = H - padT - padB;
   const cx = padL + innerW/2, cy = padT + innerH/2;
@@ -1447,7 +1496,14 @@ function init(){
 
   // Sort interactions: chips + headers
   document.querySelectorAll('.sort-chip').forEach(c => c.addEventListener('click', () => {
+    if (!c.dataset.sort) return; // chip-urile de toggle RRG (data-rrgview) folosesc aceeași clasă — le ignorăm aici
     sortBy = c.dataset.sort; sortAsc = false; render();
+  }));
+  // v158: toggle variantă RRG (scatter ↔ carduri)
+  document.querySelectorAll('[data-rrgview]').forEach(c => c.addEventListener('click', () => {
+    rrgView = c.dataset.rrgview;
+    try { localStorage.setItem('sr_rrg_view', rrgView); } catch(_){}
+    renderRRG();
   }));
   document.querySelectorAll('th[data-col]').forEach(th => th.addEventListener('click', () => {
     const col = th.dataset.col;
