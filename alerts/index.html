@@ -90,6 +90,28 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 }
 .nav-link:hover { background:var(--accent); border-color:var(--accent); color:#000; }
 
+/* Dropdown „⋯" header — strânge acțiunile secundare (popup/sort/test/export/sync/pull/ghid)
+   ca header-ul să nu mai fie un șir lung de iconițe (mai ales pe telefon). */
+.hdr-menu {
+  position:fixed; z-index:3500; display:flex; flex-direction:column; gap:1px;
+  background:var(--panel); border:1px solid var(--b2); border-radius:var(--rs);
+  box-shadow:0 8px 28px rgba(0,0,0,.5); padding:5px; min-width:214px;
+}
+.hdr-menu .hm-item {
+  display:flex; align-items:center; gap:11px; padding:7px 9px; border-radius:6px;
+  cursor:pointer; color:var(--t1); font-size:12.5px; font-weight:600; font-family:var(--head);
+  text-decoration:none;
+}
+.hdr-menu .hm-item:hover { background:var(--panel3); }
+.hdr-menu .hm-item button,
+.hdr-menu .hm-ico {
+  background:transparent; border:none; padding:0; margin:0; font-size:16px; line-height:1;
+  width:22px; text-align:center; flex-shrink:0; cursor:pointer; color:inherit;
+}
+.hdr-menu .hm-item button:hover { background:transparent; transform:none; color:inherit; border:none; }
+.hdr-menu .hm-lbl { pointer-events:none; flex:1; }
+.hdr-menu .hm-sep { height:1px; background:var(--b1); margin:4px 4px; }
+
 /* Add form */
 .add-form {
   background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
@@ -120,6 +142,11 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .add-row .note-input { flex:1; min-width:200px; }
 .add-row .add-btn { padding:8px 18px; font-size:13px; }
 .add-hint { font-size:11.5px; color:var(--t3); margin-top:8px; font-family:var(--mono); }
+/* Opțiuni (Re-arm / Trailing) — pe rândul lor sub input-uri, ca să nu mai fure spațiu din linia principală */
+.add-opts { display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; margin-top:10px; }
+.add-opts > div { display:flex; flex-direction:row; align-items:center; gap:7px; }
+.add-opts label { font-size:12px; color:var(--t2); font-family:var(--head); font-weight:600; text-transform:none; letter-spacing:0; cursor:pointer; }
+.add-opts input[type=checkbox] { width:18px; height:18px; margin:0; cursor:pointer; }
 
 /* Pulse bar — rezumat rapid al stării alertelor */
 .pulse-bar {
@@ -389,20 +416,29 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v53</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v54</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
-  <button class="icon-btn" id="popupBtn" title="Popup-uri alerte: Auto (dispar în 6s) / Off (nu apar) / Stay (rămân până la ✕)">💬</button>
-  <button class="icon-btn" id="btnSort" title="Sortare listă: 🎯 după proximitatea de declanșare (cele gata să se miște sus) / 🔤 alfabetic">🎯</button>
-  <button class="icon-btn" id="testBtn" title="Test alertă (demo)">🧪</button>
-  <button class="icon-btn" id="exportBtn" title="Export JSON pentru alertele server-side (GitHub Actions) — merg și cu laptopul închis">📤</button>
-  <button class="icon-btn" id="ghSyncBtn" title="☁️ URCĂ pe GitHub — comite alertele locale în tools/alerts.json (server-side + sync cross-device). Click-dreapta = setează/schimbă token-ul">☁️</button>
-  <button class="icon-btn" id="pullBtn" title="⬇️ ADU de pe GitHub — trage lista de pe alt device (laptop↔telefon). GitHub = sursa de adevăr; se face și automat la deschidere">⬇️</button>
-  <a href="../guide/?page=alerts" class="nav-link" title="Ghid features pagina asta">📖</a>
+  <button class="icon-btn" id="hdrMenuBtn" title="Mai multe acțiuni">⋯</button>
   <a href="../" class="nav-link">← Hub</a>
 </header>
+
+<!-- Acțiuni secundare ale header-ului — popover „⋯" (recuperează spațiu, mai ales pe telefon).
+     Butoanele își păstrează ID-urile → toate listener-ele rămân legate; eticheta e span separat,
+     deci swap-ul de textContent (ex: ☁️→⏳ la sync) nu o șterge. -->
+<div id="hdrMenu" class="hdr-menu" style="display:none">
+  <div class="hm-item"><button id="popupBtn" title="Popup-uri alerte: Auto (dispar în 6s) / Off (nu apar) / Stay (rămân până la ✕)">💬</button><span class="hm-lbl">Popup-uri alerte</span></div>
+  <div class="hm-item"><button id="btnSort" title="Sortare listă: 🎯 după proximitatea de declanșare / 🔤 alfabetic">🎯</button><span class="hm-lbl">Sortare listă</span></div>
+  <div class="hm-item"><button id="testBtn" title="Test alertă (demo)">🧪</button><span class="hm-lbl">Test alertă (demo)</span></div>
+  <div class="hm-sep"></div>
+  <div class="hm-item"><button id="exportBtn" title="Export JSON pentru alertele server-side (GitHub Actions) — merg și cu laptopul închis">📤</button><span class="hm-lbl">Export JSON</span></div>
+  <div class="hm-item"><button id="ghSyncBtn" title="☁️ URCĂ pe GitHub — comite alertele locale în tools/alerts.json (server-side + sync cross-device). Click-dreapta = setează/schimbă token-ul">☁️</button><span class="hm-lbl">Urcă pe GitHub</span></div>
+  <div class="hm-item"><button id="pullBtn" title="⬇️ ADU de pe GitHub — trage lista de pe alt device (laptop↔telefon). GitHub = sursa de adevăr; se face și automat la deschidere">⬇️</button><span class="hm-lbl">Adu de pe GitHub</span></div>
+  <div class="hm-sep"></div>
+  <a href="../guide/?page=alerts" class="hm-item" title="Ghid features pagina asta"><span class="hm-ico">📖</span><span class="hm-lbl">Ghid pagina asta</span></a>
+</div>
 
 <!-- Add new alert — drill-down colapsat by default (nu ocupă spațiu cât nu adaugi) -->
 <details class="add-form" id="addForm">
@@ -454,15 +490,19 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
       <label>Notă (opțional)</label>
       <input type="text" id="inpNote" class="note-input" placeholder="ex: target TP1 după ATR x2" maxlength="80">
     </div>
+    <button class="primary add-btn" id="btnAdd">+ Adaugă</button>
+  </div>
+  <!-- Opțiuni (Re-arm / Trailing) — pe rândul lor, scoase din linia principală de input pt a recupera spațiu.
+       updateFormMode() le arată/ascunde după tipul de alertă (exact ca înainte). -->
+  <div class="add-opts">
     <div id="wrapRearm">
-      <label title="One-shot: alerta dispare la declanșare. Re-arm: rămâne și se re-armează când prețul revine 0.3% dincolo de nivel.">↻ Re-arm</label>
-      <input type="checkbox" id="inpRearm" checked style="width:18px;height:18px;margin:8px 0">
+      <input type="checkbox" id="inpRearm" checked>
+      <label for="inpRearm" title="One-shot: alerta dispare la declanșare. Re-arm: rămâne și se re-armează când prețul revine 0.3% dincolo de nivel.">↻ Re-arm</label>
     </div>
     <div id="wrapTrail" style="display:none">
-      <label title="Trailing: referința urmează automat maximul atins; te anunță când prețul scade X% din vârf (trailing-stop mental).">📉 Trailing din vârf</label>
-      <input type="checkbox" id="inpTrail" style="width:18px;height:18px;margin:8px 0">
+      <input type="checkbox" id="inpTrail">
+      <label for="inpTrail" title="Trailing: referința urmează automat maximul atins; te anunță când prețul scade X% din vârf (trailing-stop mental).">📉 Trailing din vârf</label>
     </div>
-    <button class="primary add-btn" id="btnAdd">+ Adaugă</button>
   </div>
   <div id="symSearchResults" style="display:none;flex-direction:column;gap:3px;margin:8px 0 0"></div>
   <div class="add-hint af-hint" id="addHint" style="display:none">
@@ -1610,6 +1650,32 @@ $('btnAdv').addEventListener('click', (e) => {
   toast(advancedMode ? '⚙️ Tipuri avansate afișate (preț prag · mișcare % · ancoră)' : '⚙️ Mod simplu — doar 📊 Referință', 'info');
 });
 applyAdvanced();
+
+// ── Meniu „⋯" header — popover cu acțiunile secundare ──
+const hdrMenu = $('hdrMenu'), hdrMenuBtn = $('hdrMenuBtn');
+function closeHdrMenu() { hdrMenu.style.display = 'none'; }
+function openHdrMenu() {
+  hdrMenu.style.display = 'flex';                       // întâi afișat ca să-i putem măsura lățimea
+  const r = hdrMenuBtn.getBoundingClientRect(), w = hdrMenu.offsetWidth;
+  let left = r.right - w;                                // aliniat la dreapta butonului
+  left = Math.max(8, Math.min(left, innerWidth - 8 - w));// clamp în ecran (telefon îngust)
+  hdrMenu.style.left = left + 'px';
+  hdrMenu.style.top = (r.bottom + 6) + 'px';
+}
+hdrMenuBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  hdrMenu.style.display === 'flex' ? closeHdrMenu() : openHdrMenu();
+});
+// click pe rând (oriunde în afară de butonul propriu-zis) → declanșează butonul; apoi închide
+hdrMenu.querySelectorAll('.hm-item').forEach(it => it.addEventListener('click', e => {
+  const btn = it.querySelector('button');
+  if (btn && !e.target.closest('button')) btn.click();   // forward doar dacă n-a fost butonul însuși
+  if (it.tagName !== 'A') closeHdrMenu();                 // link-urile (Ghid) navighează singure
+}));
+document.addEventListener('click', e => {
+  if (hdrMenu.style.display === 'flex' && !hdrMenu.contains(e.target) && !hdrMenuBtn.contains(e.target)) closeHdrMenu();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHdrMenu(); });
 
 // ============ MODAL EDITARE ============
 let _editing = null; // { sym, id } al alertei în curs de editare
