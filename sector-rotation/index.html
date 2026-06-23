@@ -250,7 +250,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v154</span>
+    <span class="ver-badge" id="verBadge">v155</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <div class="hdr-spc"></div>
     <button class="btn" id="scanBtn">🔄 SCAN</button>
@@ -396,12 +396,12 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════
-//   SECTOR ROTATION · v151 PAS 3
-//   11 SPDR Sector ETFs · Yahoo Finance via proxy CORS
-//   PAS 3: AI bubble Claude streaming + alerte rotație hot↔cold + Telegram + sound
+//   SECTOR ROTATION · 11 SPDR Sector ETFs · Yahoo Finance via proxy CORS
+//   AI bubble Claude + alerte rotație hot↔cold + Telegram + sound.
+//   v155: fix corectitudine (etichetă fereastră AI, holding fail→null, try/finally scan).
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v154';
+const VER = 'v155';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -858,8 +858,8 @@ function buildAIPrompt(d){
   return `Sector: ${d.sym} (${d.name}) — grup ${d.group}.
 Preț curent: $${fmtPrice(d.price)}.
 Δ 1z: ${fmtPct(d.chg1d)} · 1săpt: ${fmtPct(d.chg1w)} · 1lună: ${fmtPct(d.chg1m)} · 3luni: ${fmtPct(d.chg3m)} · YTD: ${fmtPct(d.chgYTD)}.
-52w high: $${(stats.hi52||0).toFixed(2)} (dist ${fmtPct(stats.distHi||0)}).
-52w low:  $${(stats.lo52||0).toFixed(2)} (dist ${fmtPct(stats.distLo||0)}).
+${year?'52w':'6mo'} high: $${(stats.hi52||0).toFixed(2)} (dist ${fmtPct(stats.distHi||0)}).
+${year?'52w':'6mo'} low:  $${(stats.lo52||0).toFixed(2)} (dist ${fmtPct(stats.distLo||0)}).
 ATR (14z |Δ%|): ${(stats.atrPct||0).toFixed(2)}%. Volatilitate anualizată: ${(stats.volAnn||0).toFixed(1)}%.
 
 Top 5 holdings ${d.sym} (Δ1z):
@@ -981,38 +981,45 @@ async function runScan(){
   $('statStatus').innerHTML = '<span class="spinner"></span>Scanare';
   $('statTime').textContent = 'Yahoo prin proxy…';
 
-  const results = [];
   let okCount = 0;
-  for (const s of SECTORS){
-    const c = await fetchSectorChart(s.sym);
-    if (c){
-      okCount++;
-      results.push({
-        sym: s.sym, name: s.name, group: s.group,
-        price: c.price,
-        chg1d: pctOf(c.closes, 1),
-        chg1w: pctOf(c.closes, 5),
-        chg1m: pctOf(c.closes, 21),
-        chg3m: pctOf(c.closes, 63),
-        chgYTD: pctYTD(c.closes, c.times),
-        closes: c.closes,
-        vols: c.vols,
-        highs: c.highs,
-        lows: c.lows,
-        times: c.times,
-      });
+  try {
+    const results = [];
+    for (const s of SECTORS){
+      const c = await fetchSectorChart(s.sym);
+      if (c){
+        okCount++;
+        results.push({
+          sym: s.sym, name: s.name, group: s.group,
+          price: c.price,
+          chg1d: pctOf(c.closes, 1),
+          chg1w: pctOf(c.closes, 5),
+          chg1m: pctOf(c.closes, 21),
+          chg3m: pctOf(c.closes, 63),
+          chgYTD: pctYTD(c.closes, c.times),
+          closes: c.closes,
+          vols: c.vols,
+          highs: c.highs,
+          lows: c.lows,
+          times: c.times,
+        });
+      }
+      await sleep(180);
     }
-    await sleep(180);
+    DATA = results;
+    $('statStatus').textContent = okCount === SECTORS.length ? '✓ OK' : (okCount > 0 ? `⚠ ${okCount}/${SECTORS.length}` : '❌');
+    $('statTime').textContent = okCount > 0 ? new Date().toLocaleTimeString('ro-RO') : 'eroare proxy';
+    render();
+    // Detectare tranziții hot↔cold + emite alerte (după render, ca să existe heatmap cards pentru flash)
+    if (okCount > 0) setTimeout(() => detectAndEmitAlerts(), 100);
+  } catch (e){
+    $('statStatus').textContent = '❌';
+    $('statTime').textContent = 'eroare scan';
+  } finally {
+    // v155: garantăm reset scanning + reschedule chiar dacă render/fetch aruncă (altfel rămâne blocat)
+    scanning = false;
+    $('scanBtn').disabled = false;
+    rescheduleAuto();
   }
-  DATA = results;
-  scanning = false;
-  $('scanBtn').disabled = false;
-  $('statStatus').textContent = okCount === SECTORS.length ? '✓ OK' : (okCount > 0 ? `⚠ ${okCount}/${SECTORS.length}` : '❌');
-  $('statTime').textContent = okCount > 0 ? new Date().toLocaleTimeString('ro-RO') : 'eroare proxy';
-  render();
-  // Detectare tranziții hot↔cold + emite alerte (după render, ca să existe heatmap cards pentru flash)
-  if (okCount > 0) setTimeout(() => detectAndEmitAlerts(), 100);
-  rescheduleAuto();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1036,7 +1043,7 @@ function render(){
   $('statWorst').textContent = worst.sym;
   $('statWorstPct').textContent = fmtPct(worst.chg1w) + ' · ' + worst.name;
 
-  // Risk regime (cyclicals — XLK XLY XLC XLF XLI; defensives — XLU XLP XLV)
+  // Risk regime (cyclicals — XLK·XLY·XLC·XLF·XLI·XLB·XLE; defensives — XLU·XLP·XLV; XLRE=rate, exclus)
   const cyc = DATA.filter(d => d.group === 'cyclical');
   const def = DATA.filter(d => d.group === 'defensive');
   const cycAvg = cyc.length ? cyc.reduce((s,d) => s+d.chg1w, 0) / cyc.length : 0;
@@ -1199,7 +1206,8 @@ async function fetchHoldings(etfSym, force = false){
     if (c){
       out.push({ sym: s, price: c.price, chg1d: pctOf(c.closes, 1), chg1w: pctOf(c.closes, 5), closes: c.closes });
     } else {
-      out.push({ sym: s, price: null, chg1d: 0, chg1w: 0, closes: [] });
+      // v155: null (nu 0) la fail → afișat „—", nu „+0.00%" ca și cum ar fi neschimbat
+      out.push({ sym: s, price: null, chg1d: null, chg1w: null, closes: [] });
     }
     await sleep(180);
   }
