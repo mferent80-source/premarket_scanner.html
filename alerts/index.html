@@ -263,8 +263,13 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   .al-num { font-size:12.5px; } .al-now { font-size:13.5px; }
 }
 /* ── Telefon îngust: tabelul de alerte active devine CARDURI — zero scroll orizontal.
-   Ordine card: [ticker + tip/notă] sus-stânga · [preț acum] sus-dreapta;
-   dedesubt, pe O linie: Evol% · Δ ult. zi · prag/distanță · acțiuni.
+   Card pe 3 rânduri ca să nimic nu iasă din ecran:
+     rând 1: [ticker + tip/notă] stânga · [preț acum] dreapta
+     rând 2: Evol% · Δ ult. zi · prag/distanță (cele 3 numerice)
+     rând 3: acțiunile (😴 🔄/↻ ✎ 🗑) pe lățime întreagă, aliniate dreapta.
+   Butoanele au rând propriu — înainte împărțeau linia cu numericele și, cu `nowrap`
+   + grid `auto` fără `min-width:0`, împingeau cardul peste lățimea telefonului.
+   Toate celulele primesc `min-width:0` ca grid-ul să se poată micșora sub conținut.
    „Preț intrare" e ascuns pe telefon (Evol% exprimă deja mișcarea față de intrare). ── */
 @media (max-width:600px) {
   .al-wrap { overflow-x:visible; margin:0; }              /* nu mai forțăm scroll orizontal */
@@ -272,22 +277,23 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   .al-table, .al-table tbody { display:block; width:100%; }
   .al-table tr.al-row {
     display:grid; gap:5px 10px; align-items:center;
-    grid-template-columns:auto auto 1fr auto;
+    grid-template-columns:auto auto minmax(0,1fr);    /* minmax(0,1fr) = se poate strânge sub conținut */
     grid-template-areas:
-      "tk  tk   tk    now"
-      "ev  day  trig  act";
+      "tk   tk   now"
+      "ev   day  trig"
+      "act  act  act";
     padding:11px 8px; border-bottom:1px solid rgba(42,50,71,.45);
   }
   .al-table tr.al-row:last-child { border-bottom:none; }
-  .al-table td { display:block; padding:0; border:none; text-align:left; white-space:nowrap; }
-  .al-table td.al-tk { grid-area:tk; min-width:0; padding-top:0; }
+  .al-table td { display:block; padding:0; border:none; text-align:left; white-space:nowrap; min-width:0; }
+  .al-table td.al-tk { grid-area:tk; min-width:0; padding-top:0; overflow:hidden; }
   .al-table td.al-entry { display:none; }                 /* Preț intrare — ascuns pe telefon */
   .al-table td:nth-child(3) { grid-area:ev; }             /* Evol. % de la intrare */
   .al-table td:nth-child(4) { grid-area:day; }            /* Δ ultima zi */
   .al-table td.al-now { grid-area:now; text-align:right; font-size:16px; align-self:center; }
-  .al-table td.al-trig { grid-area:trig; text-align:left; }
-  .al-table td.al-act { grid-area:act; text-align:right; }
-  .al-table td.al-act .icon-btn { padding:4px 6px; }
+  .al-table td.al-trig { grid-area:trig; text-align:right; }  /* prag·distanță aliniat sub „preț acum" */
+  .al-table td.al-act { grid-area:act; text-align:right; padding-top:2px; }
+  .al-table td.al-act .icon-btn { padding:5px 8px; }      /* puțin mai mari — au acum rând propriu */
   /* micro-etichete: fără capul de tabel, marchează ce e fiecare procent */
   .al-table td:nth-child(3)::before { content:"Evol "; color:var(--t3); font-size:9px; font-weight:700; font-family:var(--mono); }
   .al-table td:nth-child(4)::before { content:"Zi "; color:var(--t3); font-size:9px; font-weight:700; font-family:var(--mono); }
@@ -383,7 +389,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v52</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v53</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
