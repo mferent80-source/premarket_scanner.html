@@ -818,7 +818,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v200</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v201</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1955,8 +1955,8 @@ async function loadStatTiles() {
     }
   } catch (e) { /* ignore */ }
 
-  // Auto-detect market mood și aplică tema
-  applyMood(detectMarketMood());
+  // v193: mood-ul derivă din regimul composite (sursa unică). No-op până e gata RISK_STATE.
+  applyRegimeMood();
 }
 
 // ============ GENERIC MODAL (drill-down) ============
@@ -2428,49 +2428,9 @@ function parseTileChange(id) {
   return m ? parseFloat(m[1]) : null;
 }
 
-function detectMarketMood() {
-  const vix = parseTileValue('tile-vix');
-  const fng = parseTileValue('tile-fng');
-  const dxyChg = parseTileChange('tile-dxy');
-  const tnxChg = parseTileChange('tile-10y');
-  const btcChg = parseTileChange('tile-btc');
-
-  // Stress: VIX foarte ridicat
-  if (vix != null && vix >= 30) return 'stress';
-
-  // Score-based
-  let score = 0; // pozitiv = risk-on, negativ = risk-off
-  if (vix != null) {
-    if (vix < 14) score += 2;
-    else if (vix < 17) score += 1;
-    else if (vix > 22) score -= 2;
-    else if (vix > 19) score -= 1;
-  }
-  if (fng != null) {
-    if (fng > 70) score += 2;
-    else if (fng > 55) score += 1;
-    else if (fng < 30) score -= 2;
-    else if (fng < 45) score -= 1;
-  }
-  if (dxyChg != null) {
-    // DXY ↑ = USD strong = risk-off
-    if (dxyChg > 0.4) score -= 1;
-    else if (dxyChg < -0.4) score += 1;
-  }
-  if (tnxChg != null) {
-    // Yields ↑ rapid = pressure pe stocks
-    if (tnxChg > 3) score -= 1;
-    else if (tnxChg < -3) score += 1;
-  }
-  if (btcChg != null) {
-    if (btcChg > 3) score += 1;
-    else if (btcChg < -3) score -= 1;
-  }
-
-  if (score >= 3) return 'risk-on';
-  if (score <= -3) return 'risk-off';
-  return 'mixed';
-}
+// v193: detectMarketMood() ELIMINAT — era al doilea motor de regim (cauza contradicției
+// „RISK-OFF + NEUTRAL"). Acum sursa unică e computeRiskDashboard() (composite extins), iar
+// tema derivă din el prin applyRegimeMood(). parseTileValue/parseTileChange rămân (folosite de composite).
 
 const MOOD_META = {
   'risk-on':  { icon:'🟢', label:'RISK-ON',  tip:'VIX scăzut + F&G ridicat → apetit risc, favor stocks growth + crypto' },
@@ -2479,15 +2439,29 @@ const MOOD_META = {
   'stress':   { icon:'🔥', label:'STRESS',   tip:'VIX > 30 → panică, capitulare posibilă, atenție extremă' }
 };
 
-function applyMood(mood) {
+function applyMood(mood, pillLabel) {
   if (!mood || !MOOD_META[mood]) mood = 'mixed';
   document.body.dataset.mood = mood;
   const m = MOOD_META[mood];
   const pill = $('moodPill');
   if (pill) {
-    pill.textContent = `${m.icon} ${m.label}`;
+    // v193: dacă primim eticheta de regim (7 niveluri), o afișăm pe ea — pill + tile spun ACELAȘI lucru.
+    pill.textContent = pillLabel || `${m.icon} ${m.label}`;
     pill.title = m.tip;
   }
+}
+
+// v193: regimul composite (🛡) = SURSA UNICĂ. mood-pill + culoarea paginii derivă din el (7→4).
+function regimeToMood(label) {
+  if (!label) return 'mixed';
+  if (label.includes('STRESS')) return 'stress';
+  if (label.includes('RISK-ON') || label.includes('LEAN ON')) return 'risk-on';
+  if (label.includes('NEUTRAL')) return 'mixed';
+  return 'risk-off'; // CAUTIOUS / RISK-OFF
+}
+function applyRegimeMood() {
+  if (!RISK_STATE || !RISK_STATE.label) return;
+  applyMood(regimeToMood(RISK_STATE.label), RISK_STATE.label);
 }
 
 // ============ ECONOMIC CALENDAR ============
@@ -3993,7 +3967,7 @@ Genereaza brief-ul matinal conform structurii.`;
     if (moodMatch) {
       mood = moodMatch[1].toLowerCase();
       cleanText = full.replace(/^MARKET_MOOD:.*?\n+/i, '').trim();
-      applyMood(mood);
+      // v193: AI-ul NU mai suprascrie tema — regimul composite (🛡) e sursa unică; mood rămâne doar informativ.
     }
 
     const brief = {
@@ -4043,8 +4017,7 @@ function renderBrief(brief) {
   renderBriefMeta(brief);
   const nextTimeEl = $('briefNextTime');
   if (nextTimeEl) nextTimeEl.textContent = '';
-  // Re-aplică mood-ul salvat (suprascrie auto-detect dacă AI a votat)
-  if (brief.mood) applyMood(brief.mood);
+  // v193: regimul composite (🛡) e sursa unică a temei — AI-ul nu mai suprascrie. (brief.mood = doar informativ)
 }
 
 function renderBriefError(msg) {
@@ -4564,13 +4537,34 @@ async function computeRiskDashboard() {
       else { corrScore = -2; corrLabel = '🔴 Anti-correlated'; }
     }
 
-    const composite = vixScore + tenYScore + corrScore;
+    // v193: F&G (sentiment) — sursă UNICĂ de regim. Citim din tile-ul deja populat (parseTileValue).
+    let fngScore = 0, fngLabel = 'N/A';
+    const fngVal = parseTileValue('tile-fng');
+    if (fngVal != null) {
+      if (fngVal > 70) { fngScore = +2; fngLabel = '🟢 Greed'; }
+      else if (fngVal > 55) { fngScore = +1; fngLabel = '🟢 Lean greed'; }
+      else if (fngVal >= 45) { fngScore = 0; fngLabel = '⚪ Neutral'; }
+      else if (fngVal >= 30) { fngScore = -1; fngLabel = '🟡 Lean fear'; }
+      else { fngScore = -2; fngLabel = '🔴 Fear'; }
+    }
+    // v193: DXY Δ% — USD ↑ = risk-off pe assets, USD ↓ = risk-on
+    let dxyScore = 0, dxyLabel = 'N/A';
+    const dxyChg = parseTileChange('tile-dxy');
+    if (dxyChg != null) {
+      if (dxyChg > 0.4) { dxyScore = -1; dxyLabel = '🔴 USD strong'; }
+      else if (dxyChg < -0.4) { dxyScore = +1; dxyLabel = '🟢 USD weak'; }
+      else { dxyScore = 0; dxyLabel = '⚪ USD flat'; }
+    }
+
+    // v193: composite EXTINS (VIX + 10Y + corel.BTC/SPY + F&G + DXY). Range ~ −10..+7.
+    // Sursă UNICĂ de regim: mood-pill, culoarea paginii și AI-ul derivă din eticheta de mai jos.
+    const composite = vixScore + tenYScore + corrScore + fngScore + dxyScore;
     let label, color;
-    if (composite >= 3) { label = '🟢 RISK-ON'; color = 'var(--bull-s)'; }
-    else if (composite >= 1) { label = '🟢 LEAN ON'; color = 'var(--bull-s)'; }
-    else if (composite >= -1) { label = '⚪ NEUTRAL'; color = 'var(--t1)'; }
-    else if (composite >= -3) { label = '🟡 CAUTIOUS'; color = 'var(--warn)'; }
-    else if (composite >= -5) { label = '🔴 RISK-OFF'; color = 'var(--bear-s)'; }
+    if (composite >= 4)       { label = '🟢 RISK-ON';  color = 'var(--bull-s)'; }
+    else if (composite >= 1)  { label = '🟢 LEAN ON';  color = 'var(--bull-s)'; }
+    else if (composite >= -2) { label = '⚪ NEUTRAL';   color = 'var(--t1)'; }
+    else if (composite >= -5) { label = '🟡 CAUTIOUS'; color = 'var(--warn)'; }
+    else if (composite >= -8) { label = '🔴 RISK-OFF'; color = 'var(--bear-s)'; }
     else { label = '⛔ STRESS'; color = 'var(--bear-s)'; }
 
     // ── HISTEREZIS pe regim (anti flip-flop) + alertă la schimbarea REALĂ ──
@@ -4578,7 +4572,7 @@ async function computeRiskDashboard() {
     // de sizing. Regula: o trecere într-o bandă VECINĂ cu |Δcomposite| < 2 față de
     // ultimul regim confirmat NU comută (ținem regimul vechi); salt de ≥2 puncte sau
     // ≥2 benzi comută imediat + toast/Telegram (schimbarea de regim e semnal de portofoliu).
-    const bandOf = c => c >= 3 ? 5 : c >= 1 ? 4 : c >= -1 ? 3 : c >= -3 ? 2 : c >= -5 ? 1 : 0;
+    const bandOf = c => c >= 4 ? 5 : c >= 1 ? 4 : c >= -2 ? 3 : c >= -5 ? 2 : c >= -8 ? 1 : 0;
     let held = false, prev = null;
     try {
       prev = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
@@ -4589,7 +4583,7 @@ async function computeRiskDashboard() {
         } else {
           // schimbare REALĂ de regim → anunță (o singură dată, la tranziție)
           toast(`🛡 Regim de risc: ${prev.label} → ${label} (score ${composite >= 0 ? '+' : ''}${composite})`, 'warn');
-          try { sendTelegramAlert(`🛡 <b>Schimbare regim de risc</b>\n${prev.label} → <b>${label}</b> · score ${composite >= 0 ? '+' : ''}${composite}\nVIX ${vixLabel} · 10Y ${tenYLabel} · ρ ${corrLabel}`); } catch (e) {}
+          try { sendTelegramAlert(`🛡 <b>Schimbare regim de risc</b>\n${prev.label} → <b>${label}</b> · score ${composite >= 0 ? '+' : ''}${composite}\nVIX ${vixLabel} · 10Y ${tenYLabel} · ρ ${corrLabel} · F&G ${fngLabel} · DXY ${dxyLabel}`); } catch (e) {}
         }
       }
       // persistă MEREU un ts proaspăt — hub-ul (Today's Playbook) acceptă regimul doar
@@ -4606,6 +4600,8 @@ async function computeRiskDashboard() {
       vix: vixVal, vixScore, vixLabel,
       tenY: tenYVal, tenYDelta30, tenYScore, tenYLabel,
       corr: corrVal, corrScore, corrLabel,
+      fng: fngVal, fngScore, fngLabel,
+      dxy: dxyChg, dxyScore, dxyLabel,
       composite, label, color, held, ts: Date.now()
     };
     return RISK_STATE;
@@ -4626,7 +4622,7 @@ function renderRiskTile() {
   valEl.innerHTML = `<span style="font-size:14px;color:${s.color};font-weight:800">${s.label}</span>`;
   // Sub: scor composit + 3 sub-scoruri
   const sign = s.composite >= 0 ? '+' : '';
-  subEl.innerHTML = `score ${sign}${s.composite} · VIX ${s.vixScore>=0?'+':''}${s.vixScore} · 10Y ${s.tenYScore>=0?'+':''}${s.tenYScore} · ρ ${s.corrScore>=0?'+':''}${s.corrScore}${s.held ? ' · <span title="Histerezis: scorul a atins granița benzii vecine, dar mișcarea e prea mică (±1) ca să comute regimul — anti flip-flop">⚓</span>' : ''}`;
+  subEl.innerHTML = `score ${sign}${s.composite} · VIX ${s.vixScore>=0?'+':''}${s.vixScore} · 10Y ${s.tenYScore>=0?'+':''}${s.tenYScore} · ρ ${s.corrScore>=0?'+':''}${s.corrScore} · F&G ${s.fngScore>=0?'+':''}${s.fngScore} · DXY ${s.dxyScore>=0?'+':''}${s.dxyScore}${s.held ? ' · <span title="Histerezis: scorul a atins granița benzii vecine, dar mișcarea e prea mică (±1) ca să comute regimul — anti flip-flop">⚓</span>' : ''}`;
   // Highlight border pentru CAUTIOUS+
   if (s.composite <= -3) tile.style.borderColor = 'rgba(255,77,77,.4)';
   else if (s.composite <= -1) tile.style.borderColor = 'rgba(212,137,44,.4)';
@@ -5412,7 +5408,7 @@ function bindEvents() {
     window._proxyErrorToastShown = false; // la retry manual eșuat, avertismentul de proxy trebuie să REAPARĂ
     _proxyResetTs = Date.now();
     await Promise.all([loadCalendar(), loadStatTiles()]);
-    computeRiskDashboard().then(() => renderRiskTile()).catch(() => {});
+    computeRiskDashboard().then(() => { renderRiskTile(); applyRegimeMood(); }).catch(() => {});
   });
   $('settingsBtn').addEventListener('click', openSettings);
   $('closeSettings').addEventListener('click', closeSettings);
@@ -5681,7 +5677,7 @@ async function init() {
   }).catch(() => {});
   // Risk Dashboard composite (VIX + 10Y + BTC/SPY corr) — non-blocking, are nevoie de VIX deja încărcat
   setTimeout(() => {
-    computeRiskDashboard().then(() => renderRiskTile()).catch(() => {});
+    computeRiskDashboard().then(() => { renderRiskTile(); applyRegimeMood(); }).catch(() => {});
   }, 1500);
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
   preloadAITop5().catch(() => {});
