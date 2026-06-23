@@ -255,8 +255,9 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v156</span>
+    <span class="ver-badge" id="verBadge">v157</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
+    <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
     <div class="hdr-spc"></div>
     <button class="btn" id="scanBtn">🔄 SCAN</button>
     <button class="btn btn-icon" id="settingsBtn" title="Setări">⚙</button>
@@ -406,16 +407,18 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 </div>
 
 <script src="../lib/data.js"></script>
+<script src="../lib/regime.js"></script>
 <script>
 'use strict';
 
 // ═══════════════════════════════════════════════════════════════
 //   SECTOR ROTATION · 11 SPDR Sector ETFs · Yahoo Finance via proxy CORS
 //   AI bubble Claude + alerte rotație hot↔cold + Telegram + sound.
-//   v155: fix corectitudine. v156: forță relativă vs SPY + RRG (Relative Rotation Graph).
+//   v155: fix corectitudine. v156: forță relativă vs SPY + RRG.
+//   v157: badge regim macro (lib/regime.js) + breadth holdings + cache last-scan (render instant).
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v156';
+const VER = 'v157';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -1035,6 +1038,28 @@ function updateSession(){
 // ═══════════════════════════════════════════════════════════════
 //   SCAN
 // ═══════════════════════════════════════════════════════════════
+// v157: cache slim al ultimului scan → render instant la deschidere (fără ecran gol până la fetch).
+function saveScanCache(){
+  try {
+    const slim = DATA.map(d => ({ sym:d.sym, name:d.name, group:d.group, price:d.price,
+      chg1d:d.chg1d, chg1w:d.chg1w, chg1m:d.chg1m, chg3m:d.chg3m, chgYTD:d.chgYTD,
+      rsChg1w:d.rsChg1w, rsRatio:d.rsRatio, rsMom:d.rsMom, rsTail:d.rsTail, closes:d.closes }));
+    localStorage.setItem('sr_last_scan', JSON.stringify({ data: slim, ts: Date.now() }));
+  } catch(_){}
+}
+function loadScanCache(){
+  try {
+    const c = JSON.parse(localStorage.getItem('sr_last_scan') || 'null');
+    if (!c || !Array.isArray(c.data) || !c.data.length) return false;
+    DATA = c.data;
+    render();
+    const mins = Math.round((Date.now() - c.ts) / 60000);
+    $('statStatus').textContent = '⚡ cache';
+    $('statTime').textContent = 'acum ' + (mins >= 60 ? Math.round(mins/60)+'h' : mins+'m') + ' · reîmprospătez…';
+    return true;
+  } catch(_) { return false; }
+}
+
 async function runScan(){
   if (scanning) return;
   scanning = true;
@@ -1085,6 +1110,7 @@ async function runScan(){
     render();
     // Detectare tranziții hot↔cold + emite alerte (după render, ca să existe heatmap cards pentru flash)
     if (okCount > 0) setTimeout(() => detectAndEmitAlerts(), 100);
+    if (okCount > 0) saveScanCache();
   } catch (e){
     $('statStatus').textContent = '❌';
     $('statTime').textContent = 'eroare scan';
@@ -1128,10 +1154,12 @@ function render(){
   else if (spread < -0.6){ regime = 'RISK-OFF'; regimeCls = 'off'; }
   else                { regime = 'NEUTRU';   regimeCls = 'neutral'; }
   $('riskPill').className = 'risk-pill ' + regimeCls;
-  $('riskPillTxt').textContent = regime + ' (spread ' + fmtPct(spread) + ')';
+  $('riskPillTxt').textContent = 'Rotație ' + regime + ' (spread ' + fmtPct(spread) + ')';
   $('riskDetail').innerHTML = `Cyclicals (XLK·XLY·XLC·XLF·XLI·XLB·XLE) avg <b class="${pctClass(cycAvg)}" style="color:var(--${cycAvg>=0?'green':'red'})">${fmtPct(cycAvg)}</b>` +
     ` · Defensives (XLU·XLP·XLV) avg <b class="${pctClass(defAvg)}" style="color:var(--${defAvg>=0?'green':'red'})">${fmtPct(defAvg)}</b>`;
-  // Persistă regimul de risc pentru consum cross-page (ex. nasdaq-scanner ca filtru de context)
+  // Persistă regimul de ROTAȚIE SECTORIALĂ (cyclicals−defensives) pt consum cross-page (nasdaq ca filtru).
+  // ATENȚIE: `tt_risk_regime` = rotație sectorială ≠ `md_risk_regime` (regim de risc MACRO din macro-dashboard,
+  // citit via lib/regime.js). Sunt concepte diferite — badge-ul 🛡 din header arată regimul macro, separat.
   try { localStorage.setItem('tt_risk_regime', JSON.stringify({ regime, cls: regimeCls, spread: +spread.toFixed(2), cycAvg: +cycAvg.toFixed(2), defAvg: +defAvg.toFixed(2), t: Date.now() })); } catch(_){}
 
   // Heatmap (sortat după Δ1w descending mereu — vizual clar)
@@ -1291,10 +1319,16 @@ function renderExpandBody(d){
         <span class="h-price">$${h.price ? fmtPrice(h.price) : '—'}</span>
       </div>`).join('') + '</div>';
   }
+  // v157: breadth = câte din holdings sunt verzi azi (participare largă vs dus de 1 mega-cap)
+  const _upN  = holds ? holds.filter(h => h.chg1d != null && h.chg1d > 0).length : 0;
+  const _totN = holds ? holds.filter(h => h.chg1d != null).length : 0;
+  const breadthHtml = (holds && _totN)
+    ? `<span title="Participare: câte din top holdings sunt verzi azi" style="font-family:var(--mono,monospace);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;color:${_upN*2>=_totN?'var(--green)':'var(--red)'};background:${_upN*2>=_totN?'rgba(34,214,107,.12)':'rgba(255,77,77,.12)'}">📊 ${_upN}/${_totN} verzi</span>`
+    : '';
   const holdBox = `
     <div class="exp-card">
       <div class="exp-h">
-        <span>👔 Top 5 holdings</span>
+        <span>👔 Top 5 holdings ${breadthHtml}</span>
         <span class="exp-actions"><button type="button" data-act="refresh" data-sym="${d.sym}">↻</button></span>
       </div>
       ${holdHtml}
@@ -1466,6 +1500,7 @@ function init(){
 
   // Auto-scan la deschidere dacă suntem pe origin real (nu file://)
   if (location.protocol !== 'file:'){
+    loadScanCache(); // v157: afișează ultimul scan instant, apoi reîmprospătează
     setTimeout(runScan, 400);
   }
 }
