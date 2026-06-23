@@ -249,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v24</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v25</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -538,14 +538,19 @@ async function fetchYahoo(sym, ttl = 0) {
   // DOAR bare ÎNCHISE: în sesiunea regulară Yahoo include bara zilei în curs —
   // parțială → SMA/RSI/ATR/ADX ușor distorsionate și mai ales filtrul de VOLUM
   // fals negativ dimineața (volum de 1-2h comparat cu medii pe zile întregi).
-  // Bara de azi rămâne în date după 16:00 ET (e completă).
+  // EXCHANGE-AWARE: bara de azi e parțială DOAR cât timp bursa PROPRIE a instrumentului
+  // e încă în sesiune (din meta.currentTradingPeriod.regular.end). Pragul fix 16:00 ET
+  // era greșit pe EU (.DE/.PA/.L…): bursa lor închide ~17:30 CEST (≈11:30 ET), deci între
+  // 11:30 și 16:00 ET bara EU era completă dar o aruncam → EU rămânea pe datele de IERI.
   try {
     if (ts.length > 50) {
-      const p = new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
-      const g = t => (p.find(x => x.type === t) || {}).value;
-      const etDay = `${g('year')}-${g('month')}-${g('day')}`, etMin = (+g('hour')) * 60 + (+g('minute'));
-      const lastDay = new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York' }).format(new Date(ts[ts.length - 1]));
-      if (lastDay === etDay && etMin < 16 * 60) { ts.pop(); opens.pop(); highs.pop(); lows.pop(); closes.pop(); volumes.pop(); }
+      const tz = r.meta?.exchangeTimezoneName || 'America/New_York';
+      const fmtDay = d => new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(d);
+      const todayEx = fmtDay(new Date());
+      const lastDayEx = fmtDay(new Date(ts[ts.length - 1]));
+      const regEnd = r.meta?.currentTradingPeriod?.regular?.end; // epoch sec — închiderea regular de AZI pe bursa proprie
+      const stillOpen = regEnd ? (Date.now() / 1000 < regEnd) : true; // fără meta → conservator (tratează bara ca parțială)
+      if (lastDayEx === todayEx && stillOpen) { ts.pop(); opens.pop(); highs.pop(); lows.pop(); closes.pop(); volumes.pop(); }
     }
   } catch (e) {}
   return { ts, opens, highs, lows, closes, volumes, meta: r.meta };
@@ -575,9 +580,11 @@ function marketSession() {
 
 // Δ extended-hours la deep scan — scorul e pe închideri daily, dar dacă stock-ul
 // gap-uiește în pre/after, planul (entry/SL pe close-ul de ieri) e deja invalid.
-// Referința corectă: pre → chartPreviousClose (close-ul de ieri); after →
-// regularMarketPrice (close-ul regular de AZI), altfel Δ ar îngloba și ziua întreagă.
+// Referința corectă în AMBELE sesiuni = regularMarketPrice: în pre = close-ul regular
+// de IERI (range=1d face chartPreviousClose = N−2, nu ieri — bug confirmat pe pagina
+// alerts), în after = close-ul regular de AZI. Doar US: bursele EU n-au pre/post pe Yahoo.
 async function fetchPrePost(sym) {
+  if (/\./.test(sym)) return null;            // EU (.DE/.PA/.L…) — fără extended-hours pe Yahoo
   const sess = marketSession();
   if (sess !== 'pre' && sess !== 'after') return null;
   try {
@@ -585,7 +592,7 @@ async function fetchPrePost(sym) {
     const r = j?.chart?.result?.[0];
     const closes = (r?.indicators?.quote?.[0]?.close || []).filter(v => v != null);
     const px = closes[closes.length - 1];
-    const prev = sess === 'pre' ? r?.meta?.chartPreviousClose : (r?.meta?.regularMarketPrice ?? r?.meta?.chartPreviousClose);
+    const prev = r?.meta?.regularMarketPrice ?? r?.meta?.chartPreviousClose;
     if (!px || !prev) return null;
     return { sess, px, prev, chg: (px / prev - 1) * 100 };
   } catch (e) { return null; }
