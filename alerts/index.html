@@ -416,7 +416,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v54</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v55</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -888,6 +888,9 @@ async function fetchPriceYahoo(symbol) {
     if (!res) return null;
     const m = res.meta || {};
     const ses = usSessionFine();
+    // EU (.DE/.PA/.L…) au sesiunea LOR, nu ora US: când e premarket în US, bursa europeană e în
+    // plină sesiune regular → meta.regularMarketPrice e prețul LIVE de AZI, nu close-ul de ieri.
+    const isEU = /\./.test(symbol) && !isCrypto(String(symbol).toUpperCase());
     // PRIMAR = ultima bară non-null (cea mai proaspătă când există tranzacții, inclusiv extended).
     let last = null;
     const closes = res.indicators?.quote?.[0]?.close || [];
@@ -896,8 +899,13 @@ async function fetchPriceYahoo(symbol) {
     if (last == null) last = ses === 'pre' ? (m.preMarketPrice ?? null) : ses === 'after' ? (m.postMarketPrice ?? null) : null;
     if (last == null) last = m.regularMarketPrice ?? null;
     if (last == null) return null;
-    // prev = close de IERI: în premarket chartPreviousClose poate fi N−2 (range=1d) → regularMarketPrice
-    const prev = (ses === 'pre' ? (m.regularMarketPrice ?? m.chartPreviousClose) : (m.chartPreviousClose ?? m.regularMarketPrice)) ?? last;
+    // prev = close de IERI. EU: bursa proprie → mereu chartPreviousClose (close-ul de ieri pe bursa
+    // lor); regularMarketPrice ar fi prețul live de azi → „variația zilei" ar ieși ~0.00% (bug fix).
+    // US: păstrăm logica pe sesiunea US (în premarket regularMarketPrice = close-ul de ieri, fiindcă
+    // bursa US n-a deschis; chartPreviousClose cu range=1d poate fi N−2 acolo).
+    const prev = (isEU
+      ? (m.chartPreviousClose ?? m.regularMarketPrice)
+      : (ses === 'pre' ? (m.regularMarketPrice ?? m.chartPreviousClose) : (m.chartPreviousClose ?? m.regularMarketPrice))) ?? last;
     return { last, prev };
   } catch (e) { return null; }
 }
