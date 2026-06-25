@@ -416,7 +416,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v55</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v56</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -2125,6 +2125,7 @@ $('ghSyncBtn').addEventListener('contextmenu', e => {
 // orb — te anunț; dacă local == ultima sincronizare (curat), accept versiunea de pe server.
 const LASTSIG_KEY = 'pa_last_server_sig';
 let _lastServerSig = localStorage.getItem(LASTSIG_KEY) || '';
+let _autoPullWarned = false;   // v56: avertismentul de divergență la auto-pull se arată O DATĂ (pull-ul e acum periodic → altfel ar spama)
 
 // Semnătură normalizată a unei liste (ignoră id/lastFired/stările volatile de declanșare)
 function alertsSig(map) {
@@ -2175,13 +2176,17 @@ async function pullFromGitHub(isAuto) {
   const serverCount = (obj.alerts || []).length;
   if (serverSig === localSig) { // deja identice
     _lastServerSig = serverSig; localStorage.setItem(LASTSIG_KEY, serverSig);
+    _autoPullWarned = false;     // listele coincid → resetăm avertismentul pt o eventuală divergență viitoare
     if (!isAuto) toast('✓ Deja sincronizat cu GitHub', 'info');
     return;
   }
   if (isAuto) {
-    // local modificat de la ultima sincronizare → nu suprascriu orb, doar anunț
+    // local modificat de la ultima sincronizare → nu suprascriu orb, doar anunț (O singură dată — pull-ul e periodic)
     if (localCount > 0 && localSig !== _lastServerSig) {
-      toast('⬇️ GitHub are o listă diferită de cea locală. Apasă ⬇️ ca s-o aduci (sau ☁️ ca să urci local).', 'warn', { persist: true });
+      if (!_autoPullWarned) {
+        toast('⬇️ GitHub are o listă diferită de cea locală. Apasă ⬇️ ca s-o aduci (sau ☁️ ca să urci local).', 'warn', { persist: true });
+        _autoPullWarned = true;
+      }
       return;
     }
   } else if (localCount > 0 && localSig !== _lastServerSig) {
@@ -2190,6 +2195,7 @@ async function pullFromGitHub(isAuto) {
   priceAlerts = next;
   persistAlerts();
   _lastServerSig = serverSig; localStorage.setItem(LASTSIG_KEY, serverSig);
+  _autoPullWarned = false;
   render();
   toast(`⬇️ ${serverCount} alerte aduse de pe GitHub`, 'success');
   pollPrices();
@@ -2206,7 +2212,8 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     // optional: don't pause, just rely on browser throttling
   } else {
-    pollPrices(); // refresh imediat when tab e activ din nou
+    pollPrices();           // refresh preț imediat when tab e activ din nou
+    pullFromGitHub(true);   // v56: și aduce lista proaspătă de pe alt device la revenire (sync cross-device fără refresh manual)
   }
 });
 
@@ -2216,6 +2223,10 @@ pollPrices();
 schedulePoll();
 loadServerHist();
 pullFromGitHub(true); // auto-sync listă de pe GitHub la deschidere (laptop↔telefon)
+// v56: auto-pull PERIODIC al listei (nu doar la deschidere) — altfel un device cu pagina deja
+// deschisă nu prelua niciodată modificările făcute pe alt device decât la refresh manual.
+// 120s = ~30 req/h pe Contents API (bine sub limita 5000/h cu token); fără token cade pe raw (cache ~5min).
+setInterval(() => { if (!document.hidden) pullFromGitHub(true); }, 120000);
 // istoricul ☁️ se împrospătează rar — botul rulează la 15 min, CDN-ul raw ține ~5 min
 setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
 
