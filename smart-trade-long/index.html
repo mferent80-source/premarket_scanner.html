@@ -249,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v26</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v27</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -269,6 +269,13 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
       <input type="number" id="riskPct" value="1" min="0.1" max="5" step="0.1">
     </div>
     <button class="btn pri scan-btn" id="scanBtn">🚀 Scanează</button>
+    <div class="field" title="Pullback: disciplină — la preț extins îți dă nivelul de intrare pe retragere (MA20/MA50) + cap READY→OK. Momentum: cumperi forța — semnale mai permisive (READY ≥85, anti-chase doar avertizează).">
+      <label for="entryMode">Mod intrare</label>
+      <select id="entryMode">
+        <option value="pullback">🎯 Pullback (curat)</option>
+        <option value="momentum">🚀 Momentum (forță)</option>
+      </select>
+    </div>
     <div class="auto-toggle">
       <span>Auto 5min</span>
       <label class="toggle">
@@ -680,6 +687,7 @@ async function getEarningsInfo(sym) {
 function computeScore(d, spyCloses) {
   const { closes, volumes, highs, lows } = d;
   const last = closes[closes.length - 1];
+  const ma20 = sma(closes, 20);   // nivel de pullback pt modul Pullback (intrare pe retragere spre MA20)
   const ma50 = sma(closes, 50);
   const ma200Real = sma(closes, 200); // cu range=1y există aproape mereu; null doar la IPO-uri recente
   const ma200 = ma200Real ?? sma(closes, Math.min(closes.length - 1, 150));
@@ -760,18 +768,35 @@ function computeScore(d, spyCloses) {
   } else { f6.pts = 0; f6.status = 'fail'; f6.desc = 'Date insuficiente'; }
   score += f6.pts; filters.push(f6);
 
-  // Anti-chase: cât de „fugit" e prețul peste MA50 — trendul bun nu scuză intrarea
-  // proastă. La ≥3×ATR (sau ≥10%) peste MA50, SL-ul −1.5×ATR pică în gol și
-  // R:R-ul real e degradat; intrarea corectă e pe pullback, nu pe vârf.
+  // Anti-chase: cât de „fugit" e prețul peste MA50. Valorile brute (×ATR + %) sunt
+  // calculate aici; DECIZIA „a fugit" (`extRan`) se ia la render în funcție de MOD
+  // (Pullback strict / Momentum permisiv) — vezi extRan(). Astfel comutarea modului
+  // se reflectă printr-un simplu re-render, fără re-scan.
   const extATR = (atrV && ma50) ? (last - ma50) / atrV : null;
   const extPct = ma50 ? (last / ma50 - 1) * 100 : null;
-  const ext = { atr: extATR, pct: extPct, ran: (extATR != null && extATR >= 3) || (extPct != null && extPct >= 10) };
+  const ext = { atr: extATR, pct: extPct };
 
-  return { score, filters, last, ma50, ma200, ma200Approx: !ma200Real, hi52, lo52: lows.length ? Math.min(...lows) : null, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null, rsSpy, distHi52, ext };
+  return { score, filters, last, ma20, ma50, ma200, ma200Approx: !ma200Real, hi52, lo52: lows.length ? Math.min(...lows) : null, atr: atrV, rsi: rsiV, adx: adxV, volRatio: volAvg20 ? volToday / volAvg20 : null, rsSpy, distHi52, ext };
+}
+
+// ── Mod de intrare (hibrid): Pullback (disciplină) vs Momentum (forță) ──────────
+// Pullback: anti-chase strict, READY ≥90, iar la preț extins dăm nivelul de intrare
+//   pe retragere (MA20/MA50) + cap READY→OK. Pentru intrări curate.
+// Momentum: anti-chase permisiv (doar avertizează, NU capează), READY ≥85. Pentru
+//   cine cumpără breakout-ul/forța, conștient că intră mai sus.
+const ENTRY_MODE_KEY = 'stl_entry_mode';
+function entryMode() { return localStorage.getItem(ENTRY_MODE_KEY) === 'momentum' ? 'momentum' : 'pullback'; }
+// „A fugit deja" — pragul depinde de mod. Pullback 4×ATR / 13%; Momentum 5×ATR / 18%.
+function extRan(ext) {
+  if (!ext) return false;
+  const mom = entryMode() === 'momentum';
+  const aT = mom ? 5 : 4, pT = mom ? 18 : 13;
+  return (ext.atr != null && ext.atr >= aT) || (ext.pct != null && ext.pct >= pT);
 }
 
 function tier(score) {
-  if (score >= 90) return { cls: 'tier-r', icon: '🚀', label: 'READY', desc: 'Setup complet — execută conform plan' };
+  const readyMin = entryMode() === 'momentum' ? 85 : 90;   // Momentum scoate READY mai ușor
+  if (score >= readyMin) return { cls: 'tier-r', icon: '🚀', label: 'READY', desc: 'Setup complet — execută conform plan' };
   if (score >= 70) return { cls: 'tier-o', icon: '🟢', label: 'OK', desc: 'Setup bun — poate fi executat cu prudență' };
   if (score >= 50) return { cls: 'tier-m', icon: '🟡', label: 'MIXT', desc: 'Setup nesigur — așteaptă confirmare' };
   return { cls: 'tier-n', icon: '🔴', label: 'NU', desc: 'Setup slab — renunță' };
@@ -800,7 +825,9 @@ function riskRegime() {
 function effTier(sd) {
   let t = tier(sd.score);
   const caps = [];
-  if (sd.ext && sd.ext.ran && t.label === 'READY') { t = tier(70); caps.push('ext'); }
+  // Cap READY→OK pe preț extins DOAR în modul Pullback. În Momentum, chasing-ul e
+  // asumat: 🏃 rămâne ca avertisment, dar verdictul NU se mai degradează.
+  if (entryMode() === 'pullback' && sd.ext && extRan(sd.ext) && t.label === 'READY') { t = tier(70); caps.push('ext'); }
   const reg = riskRegime();
   if (reg && reg.cap) {
     const order = { 'NU': 0, 'MIXT': 1, 'OK': 2, 'READY': 3 };
@@ -964,11 +991,23 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
         ? `<div style="background:rgba(255,77,77,.12);border:1px solid rgba(255,77,77,.5);border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:13px;color:var(--red);font-weight:600;line-height:1.5">🚫 <strong>EARNINGS ${earnInfo.date}${earnInfo.hour === 'bmo' ? ' (pre-market)' : earnInfo.hour === 'amc' ? ' (after-close)' : ''} — în ~${Math.max(0, Math.round(earnInfo.hoursAway))}h.</strong> NU deschide poziția înainte de raport: gap ±10-30% imposibil de prezis, SL-ul pe ATR nu te protejează de gap. Verdictul de mai jos NU include acest risc.</div>`
         : `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:10px;padding:9px 13px;margin-bottom:12px;font-size:12.5px;color:var(--yellow)">📅 Earnings <strong>${earnInfo.date}</strong> (~${Math.ceil(earnInfo.hoursAway / 24)} zile) — volatilitate imprevizibilă în jurul raportului; dimensionează conservator sau așteaptă publicarea.</div>`)
     : '';
-  // Anti-chase banner — apare ori de câte ori prețul e extins peste MA50, indiferent
-  // de tier (la READY, eticheta e și limitată la OK prin effTier).
-  const extBanner = (scoreData.ext && scoreData.ext.ran)
-    ? `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--yellow);line-height:1.5">🏃 <strong>A fugit deja:</strong> +${scoreData.ext.pct.toFixed(1)}% peste MA50${scoreData.ext.atr != null ? ` (${scoreData.ext.atr.toFixed(1)}×ATR)` : ''}. Entry aici = chasing — SL-ul −1.5×ATR pică departe de orice suport și R:R-ul real e degradat.${t.caps.includes('ext') ? ' <strong>Verdictul a fost limitat la OK.</strong>' : ''} Intrarea corectă e pe pullback spre MA20/MA50, nu pe vârf.</div>`
-    : '';
+  // Anti-chase banner — apare ori de câte ori prețul e extins peste MA50 (prag pe mod).
+  // Pullback: dă NIVELUL concret de intrare pe retragere (MA20/MA50 = $) + cap READY→OK.
+  // Momentum: doar avertisment, verdictul rămâne (cumperi forța, dar dimensionezi mic).
+  let extBanner = '';
+  if (scoreData.ext && extRan(scoreData.ext)) {
+    const head = `🏃 <strong>${entryMode() === 'momentum' ? 'Extins' : 'A fugit deja'}:</strong> +${scoreData.ext.pct.toFixed(1)}% peste MA50${scoreData.ext.atr != null ? ` (${scoreData.ext.atr.toFixed(1)}×ATR)` : ''}.`;
+    if (entryMode() === 'pullback') {
+      // niveluri de retragere acționabile (doar cele aflate SUB prețul curent au sens ca pullback)
+      const lv = [];
+      if (scoreData.ma20 && scoreData.ma20 < last) lv.push(`MA20 ≈ <strong>${fmt$(scoreData.ma20)}</strong> (${((scoreData.ma20 / last - 1) * 100).toFixed(1)}%)`);
+      if (scoreData.ma50 && scoreData.ma50 < last) lv.push(`MA50 ≈ <strong>${fmt$(scoreData.ma50)}</strong> (${((scoreData.ma50 / last - 1) * 100).toFixed(1)}%)`);
+      const levels = lv.length ? ` <strong>Intră pe retragere:</strong> ${lv.join(' · ')}. Pune alertă preț ▼ la unul din niveluri în pagina 🔔 Alerts.` : '';
+      extBanner = `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--yellow);line-height:1.5">${head} Entry aici = chasing — SL-ul −1.5×ATR pică departe de orice suport și R:R-ul real e degradat.${t.caps.includes('ext') ? ' <strong>Verdictul a fost limitat la OK.</strong>' : ''}${levels}</div>`;
+    } else {
+      extBanner = `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--yellow);line-height:1.5">${head} Mod <strong>Momentum</strong> — cumperi forța, verdictul rămâne, dar <strong>dimensionează mai mic</strong>: chasing = risc de pullback imediat spre MA20 ≈ ${fmt$(scoreData.ma20 || 0)}.</div>`;
+    }
+  }
   // Regim de piață: chip informativ mereu când compozitul macro e proaspăt;
   // avertisment vizibil când a limitat verdictul.
   const reg = riskRegime();
@@ -1202,7 +1241,7 @@ async function runAIQuickSetup(sym, scoreData, insiderData, force) {
 - Vol Ratio (ultima zi închisă / avg 20d): ${scoreData.volRatio?.toFixed(2) ?? 'N/A'}x
 - RS vs SPY (3m): ${scoreData.rsSpy != null ? (scoreData.rsSpy >= 0 ? '+' : '') + scoreData.rsSpy.toFixed(1) + 'pp' : 'N/A'}
 - Distanță față de max 52s: ${scoreData.distHi52 != null ? scoreData.distHi52.toFixed(1) + '%' : 'N/A'}
-- Score scanner: ${scoreData.score}/100 — ${effTier(scoreData).label}${scoreData.ext && scoreData.ext.ran ? ' (extins peste MA50 — chasing risk)' : ''}
+- Score scanner: ${scoreData.score}/100 — ${effTier(scoreData).label}${scoreData.ext && extRan(scoreData.ext) ? ' (extins peste MA50 — chasing risk)' : ''}
 - Insider 90d: ${insiderSummary}
 
 Output STRICT format JSON (un singur obiect, niciun text înainte sau după):
@@ -1469,6 +1508,8 @@ function renderListTable() {
   tbody.innerHTML = rows.map(r => {
     if (!r.ok) return `<tr style="opacity:.55;cursor:default"><td><strong>${r.sym}</strong></td><td colspan="7" style="text-align:left;color:var(--txt-dd)">⚠ ${escHtml(r.err)}</td></tr>`;
     const s = r.sd;
+    const t = effTier(s);   // recalc pe MODUL curent (Pullback/Momentum) → comutarea se vede fără re-scan
+    const isExt = s.ext && extRan(s.ext);
     const chgCol = r.chg == null ? 'var(--txt-dd)' : r.chg >= 0 ? 'var(--green)' : 'var(--red)';
     const earnB = r.earn ? `<span class="ls-earn" title="earnings ${r.earn.date} (~${Math.max(0, Math.round(r.earn.hoursAway))}h)">⚠E${r.earn.hoursAway <= 48 ? '!' : ''}</span>` : '';
     return `<tr onclick="scanFromList('${r.sym}')" title="click → analiză completă">
@@ -1479,7 +1520,7 @@ function renderListTable() {
       <td class="ls-hide">${s.adx != null ? s.adx.toFixed(0) : '—'}</td>
       <td class="ls-hide">${s.volRatio != null ? s.volRatio.toFixed(2) + '×' : '—'}</td>
       <td><strong>${s.score}</strong></td>
-      <td><span class="ls-tier ${r.t.cls}"${r.sd.ext && r.sd.ext.ran ? ` title="extins +${r.sd.ext.pct.toFixed(1)}% peste MA50 — chasing${r.t.caps.includes('ext') ? '; READY limitat la OK' : ''}"` : ''}>${r.t.icon} ${r.t.label}${r.sd.ext && r.sd.ext.ran ? ' 🏃' : ''}${r.t.caps && r.t.caps.includes('regim') ? ' 🛡' : ''}</span></td>
+      <td><span class="ls-tier ${t.cls}"${isExt ? ` title="extins +${s.ext.pct.toFixed(1)}% peste MA50 — chasing${t.caps.includes('ext') ? '; READY limitat la OK' : ''}"` : ''}>${t.icon} ${t.label}${isExt ? ' 🏃' : ''}${t.caps && t.caps.includes('regim') ? ' 🛡' : ''}</span></td>
     </tr>`;
   }).join('');
   updateListStatus();
@@ -1564,6 +1605,16 @@ settingsModal.addEventListener('click', e => {
 scanBtn.addEventListener('click', () => scan());
 symInput.addEventListener('keydown', e => { if (e.key === 'Enter') scan(); });
 const reRender = () => { const r = state.lastResult; if (r) render(r.sym, r.scoreData, r.insiderData, r.earnInfo, r.prePost); };
+// Mod de intrare (Pullback/Momentum) — comutarea reaplică pragurile la RENDER (fără re-scan):
+// re-randăm rezultatul curent + tabelul listei din cache.
+$('entryMode').value = entryMode();
+$('entryMode').addEventListener('change', e => {
+  localStorage.setItem(ENTRY_MODE_KEY, e.target.value === 'momentum' ? 'momentum' : 'pullback');
+  reRender(); renderListTable();
+  toast(entryMode() === 'momentum'
+    ? '🚀 Mod Momentum — semnale permisive (READY ≥85, anti-chase doar avertizează)'
+    : '🎯 Mod Pullback — disciplină + nivel de intrare pe retragere', 'ok');
+});
 acctSizeEl.addEventListener('change', () => { localStorage.setItem(LS_ACCT, acctSizeEl.value); reRender(); });
 riskPctEl.addEventListener('change', () => { localStorage.setItem(LS_RISK, riskPctEl.value); reRender(); });
 autoScan.addEventListener('change', () => {
