@@ -249,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v29</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v30</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -287,6 +287,9 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 
   <!-- gol până la primul scan — empty-state-ul vechi ocupa degeaba spațiu peste tabelul de listă -->
   <div id="resultArea"></div>
+
+  <!-- Scorecard expectancy — agregat din istoricul de verdicte (validare cu date reale) -->
+  <div id="scorecardArea"></div>
 
   <!-- Scan toată watchlist-a la interval configurabil — overview cu scor STL per simbol -->
   <div class="card" id="wlScanCard">
@@ -872,6 +875,60 @@ function historyHTML(sym, sd) {
   return `<div class="card"><h2><span class="ico">📜</span> Istoric verdicte (local)</h2>${head}${rows}<div style="font-size:11px;color:var(--txt-dd);margin-top:8px">Ce a zis pagina la scanurile anterioare vs prețul de azi — validare cu date reale, nu pe încredere. Se notează doar schimbările de tier (sau la 6h).</div></div>`;
 }
 
+// ─────────────────────── SCORECARD EXPECTANCY (agregat, toate simbolurile) ───────────────────────
+// Validare ONESTĂ a scoring-ului: pentru fiecare verdict READY/OK din istoric, măsoară
+// randamentul prețului de la momentul verdictului până la ULTIMUL scan al acelui simbol.
+// Limite asumate (afișate): in-sample, eșantion mic, orizont = până la ultimul scan (nu
+// fix +5z/+20z — nu avem prețuri zilnice stocate), mișcare brută de preț (NU PnL cu SL/TP).
+function expectancySamples() {
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem(HIST_KEY) || '{}'); } catch (e) {}
+  const out = [];
+  Object.keys(all).forEach(sym => {
+    const arr = all[sym] || [];
+    if (arr.length < 2) return;
+    const lastE = arr[arr.length - 1];
+    if (!(lastE.price > 0)) return;
+    for (let i = 0; i < arr.length - 1; i++) {        // exclude ultima intrare (e referința de „acum")
+      const e = arr[i];
+      if (!(e.price > 0) || (e.tier !== 'READY' && e.tier !== 'OK')) continue;
+      out.push({ sym, tier: e.tier, ret: (lastE.price / e.price - 1) * 100, days: Math.max(1, Math.round((lastE.ts - e.ts) / 86400000)) });
+    }
+  });
+  return out;
+}
+function renderScorecard() {
+  const el = $('scorecardArea'); if (!el) return;
+  const s = expectancySamples();
+  if (s.length < 2) { el.innerHTML = ''; return; }   // sub 2 semnale închise — n-are sens
+  const n = s.length;
+  const wins = s.filter(x => x.ret > 0);
+  const losses = s.filter(x => x.ret <= 0);
+  const winRate = wins.length / n * 100;
+  const avgRet = s.reduce((a, x) => a + x.ret, 0) / n;          // expectancy ≈ randament mediu / semnal
+  const avgWin = wins.length ? wins.reduce((a, x) => a + x.ret, 0) / wins.length : 0;
+  const avgLoss = losses.length ? losses.reduce((a, x) => a + x.ret, 0) / losses.length : 0;
+  const sumWin = wins.reduce((a, x) => a + x.ret, 0);
+  const sumLoss = Math.abs(losses.reduce((a, x) => a + x.ret, 0));
+  const pf = sumLoss > 0 ? sumWin / sumLoss : (sumWin > 0 ? Infinity : 0);
+  const avgDays = Math.round(s.reduce((a, x) => a + x.days, 0) / n);
+  const col = v => v >= 0 ? 'var(--green)' : 'var(--red)';
+  const small = n < 10;
+  const cell = (lbl, val, c) => `<div class="meta"><div class="lbl">${lbl}</div><div class="v" style="color:${c || 'var(--txt)'}">${val}</div></div>`;
+  el.innerHTML = `<div class="card"><h2><span class="ico">📊</span> Scorecard semnale <span style="font-size:11px;color:var(--txt-dd);font-weight:500;margin-left:6px">— READY+OK, toate simbolurile</span></h2>
+    ${small ? `<div style="margin-bottom:10px;padding:8px 11px;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:8px;font-size:12px;color:var(--yellow);line-height:1.5">⚠ Eșantion mic (${n} semnale) — indicativ, nu statistic. Lasă scannerul să ruleze câteva zile (n≥10) înainte să tragi concluzii sau să ajustezi.</div>` : ''}
+    <div class="meta-card">
+      ${cell('Semnale', n)}
+      ${cell('Win-rate', winRate.toFixed(0) + '%', col(winRate - 50))}
+      ${cell('Expectancy/semnal', (avgRet >= 0 ? '+' : '') + avgRet.toFixed(1) + '%', col(avgRet))}
+      ${cell('Profit Factor', pf === Infinity ? '∞' : pf.toFixed(2), col(pf - 1))}
+      ${cell('Avg câștig', '+' + avgWin.toFixed(1) + '%', 'var(--green)')}
+      ${cell('Avg pierdere', avgLoss.toFixed(1) + '%', 'var(--red)')}
+    </div>
+    <div style="font-size:11px;color:var(--txt-dd);margin-top:8px;line-height:1.5">Randament de la verdict până la ultimul scan (~${avgDays}z mediu), mișcare brută de preț — NU PnL cu SL/TP, in-sample. Metrica reală e <strong>expectancy/PF</strong>, nu win-rate-ul (40% win cu PF>1 = profitabil).</div>
+  </div>`;
+}
+
 // ─────────────────────── INSIDER ANALYSIS ───────────────────────
 function analyzeInsiders(transactions) {
   // Doar buy real (P) vs sell real (S, no T) — filter conform Finnhub transactionCode
@@ -1169,6 +1226,7 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
   // pierdea înainte (bannerul de earnings dispărea la orice ajustare a sizer-ului)
   state.lastResult = { sym, scoreData, insiderData, earnInfo, prePost };
   localStorage.setItem(LS_LAST, sym);
+  renderScorecard();   // scanul curent a alimentat istoricul → reîmprospătează scorecardul agregat
   // ține minte preferința expand/restrâns între re-render-uri (auto-scan, sizer)
   const resDet = document.getElementById('resDetails');
   if (resDet) resDet.addEventListener('toggle', () => { state.resCollapsed = !resDet.open; });
@@ -1561,6 +1619,7 @@ function renderListTable() {
     </tr>`;
   }).join('');
   updateListStatus();
+  renderScorecard();   // scanul de listă alimentează istoricul → reîmprospătează scorecardul
 }
 
 function scanFromList(sym) { scan(sym); window.scrollTo({ top: 0, behavior: 'smooth' }); }
@@ -1682,6 +1741,7 @@ $('lsInterval').addEventListener('change', () => {
   if (urlSym) { symInput.value = urlSym; setTimeout(() => scan(urlSym), 200); }
   else if (savedSym) { symInput.value = savedSym; }
   renderWL();
+  renderScorecard();   // afișează scorecardul agregat din istoricul existent încă de la deschidere
   // List scan: restaurează intervalul + primul scan automat (după deep-scanul din URL, dacă există)
   $('lsInterval').value = String(listInterval());
   lsTgHintRefresh();
