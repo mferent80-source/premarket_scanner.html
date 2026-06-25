@@ -249,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v27</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v28</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -916,6 +916,24 @@ function calcShares(entry, sl) {
   return { shares: capped ? maxShares : sharesRaw, sharesRaw, riskUSD, riskShare, acct, capped };
 }
 
+// Plan de trade complet pentru un preț de intrare dat (folosit la entry=preț curent ȘI
+// la nivelurile de pullback MA20/MA50). Aceleași reguli ATR ca planul principal.
+function tradePlan(entry, atrV) {
+  const sl = entry - 1.5 * atrV;
+  const tp1 = entry + atrV, tp2 = entry + 2 * atrV, tp3 = entry + 3 * atrV;
+  return { entry, sl, tp1, tp2, tp3, sz: calcShares(entry, sl) };
+}
+// R:R STRUCTURAL — nu cel din ATR (care e fix 1.33:1 la TP2), ci raportul real față de
+// prima rezistență = maximul pe 52 săptămâni. Prinde tensiunea cu filtrul „aproape de max":
+// un stoc lipit de max are headroom mic în sus → R:R prost, oricât de bun ar fi scorul.
+// Stoc LA/peste max = breakout, fără rezistență deasupra → R:R „deschis" (nu penalizăm).
+function rrToResistance(entry, sl, hi52) {
+  const risk = entry - sl;
+  if (!(risk > 0)) return { rr: null, type: 'na' };
+  if (hi52 && hi52 > entry) return { rr: (hi52 - entry) / risk, target: hi52, type: 'max52' };
+  return { rr: null, type: 'breakout' };
+}
+
 // ─────────────────────── RENDER ───────────────────────
 function render(sym, scoreData, insiderData, earnInfo, prePost) {
   const t = effTier(scoreData);
@@ -998,11 +1016,19 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
   if (scoreData.ext && extRan(scoreData.ext)) {
     const head = `🏃 <strong>${entryMode() === 'momentum' ? 'Extins' : 'A fugit deja'}:</strong> +${scoreData.ext.pct.toFixed(1)}% peste MA50${scoreData.ext.atr != null ? ` (${scoreData.ext.atr.toFixed(1)}×ATR)` : ''}.`;
     if (entryMode() === 'pullback') {
-      // niveluri de retragere acționabile (doar cele aflate SUB prețul curent au sens ca pullback)
-      const lv = [];
-      if (scoreData.ma20 && scoreData.ma20 < last) lv.push(`MA20 ≈ <strong>${fmt$(scoreData.ma20)}</strong> (${((scoreData.ma20 / last - 1) * 100).toFixed(1)}%)`);
-      if (scoreData.ma50 && scoreData.ma50 < last) lv.push(`MA50 ≈ <strong>${fmt$(scoreData.ma50)}</strong> (${((scoreData.ma50 / last - 1) * 100).toFixed(1)}%)`);
-      const levels = lv.length ? ` <strong>Intră pe retragere:</strong> ${lv.join(' · ')}. Pune alertă preț ▼ la unul din niveluri în pagina 🔔 Alerts.` : '';
+      // Plan COMPLET pe fiecare nivel de retragere (doar cele SUB prețul curent au sens):
+      // Entry/SL/TP1/TP2 + R:R structural (până la max 52s) + nr. acțiuni din sizer.
+      const atrV = scoreData.atr || 0;
+      const levelPlan = (lbl, lvl) => {
+        if (!lvl || !(lvl < last) || !(atrV > 0)) return '';
+        const p = tradePlan(lvl, atrV);
+        const rr = rrToResistance(p.entry, p.sl, scoreData.hi52);
+        const rrTxt = rr.type === 'max52' ? `R:R ${rr.rr.toFixed(1)}` : rr.type === 'breakout' ? 'R:R deschis' : 'R:R —';
+        const rrCol = rr.type === 'max52' && rr.rr < 1.5 ? 'var(--red)' : 'var(--green)';
+        return `<div style="margin-top:6px">▸ <strong>${lbl} ≈ ${fmt$(lvl)}</strong> <span style="color:var(--txt-dd)">(${((lvl / last - 1) * 100).toFixed(1)}%)</span> → SL ${fmt$(p.sl)} · TP1 ${fmt$(p.tp1)} · TP2 ${fmt$(p.tp2)} · <strong style="color:${rrCol}">${rrTxt}</strong> · ${fmtNum(p.sz.shares)} sh</div>`;
+      };
+      const plans = levelPlan('MA20', scoreData.ma20) + levelPlan('MA50', scoreData.ma50);
+      const levels = plans ? `<div style="margin-top:8px"><strong>📋 Plan pe retragere</strong> (pune alertă preț ▼ la nivel în 🔔 Alerts):${plans}</div>` : '';
       extBanner = `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--yellow);line-height:1.5">${head} Entry aici = chasing — SL-ul −1.5×ATR pică departe de orice suport și R:R-ul real e degradat.${t.caps.includes('ext') ? ' <strong>Verdictul a fost limitat la OK.</strong>' : ''}${levels}</div>`;
     } else {
       extBanner = `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--yellow);line-height:1.5">${head} Mod <strong>Momentum</strong> — cumperi forța, verdictul rămâne, dar <strong>dimensionează mai mic</strong>: chasing = risc de pullback imediat spre MA20 ≈ ${fmt$(scoreData.ma20 || 0)}.</div>`;
