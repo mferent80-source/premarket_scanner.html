@@ -249,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v30</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v31</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -290,6 +290,9 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 
   <!-- Scorecard expectancy — agregat din istoricul de verdicte (validare cu date reale) -->
   <div id="scorecardArea"></div>
+
+  <!-- Radar pullback — stocuri bune dar extinse (din scanul de listă), de urmărit pe retragere -->
+  <div id="pullbackRadar"></div>
 
   <!-- Scan toată watchlist-a la interval configurabil — overview cu scor STL per simbol -->
   <div class="card" id="wlScanCard">
@@ -926,6 +929,40 @@ function renderScorecard() {
       ${cell('Avg pierdere', avgLoss.toFixed(1) + '%', 'var(--red)')}
     </div>
     <div style="font-size:11px;color:var(--txt-dd);margin-top:8px;line-height:1.5">Randament de la verdict până la ultimul scan (~${avgDays}z mediu), mișcare brută de preț — NU PnL cu SL/TP, in-sample. Metrica reală e <strong>expectancy/PF</strong>, nu win-rate-ul (40% win cu PF>1 = profitabil).</div>
+  </div>`;
+}
+
+// ─────────────────────── RADAR PULLBACK (din scanul de listă) ───────────────────────
+// Stocurile BUNE dar fugite (scor ≥70 + extinse peste MA50) nu sunt „de aruncat" — sunt
+// candidați de urmărit la retragere. Le strânge aici, cu nivelul de pullback + R:R care
+// devine bun acolo, ca să le pui pe radar în loc să le pierzi din vedere.
+function renderPullbackRadar() {
+  const el = $('pullbackRadar'); if (!el) return;
+  const cands = listState.rows.filter(r => r.ok && r.sd && r.sd.score >= 70 && r.sd.ext && extRan(r.sd.ext));
+  if (!cands.length) { el.innerHTML = ''; return; }
+  cands.sort((a, b) => b.sd.score - a.sd.score);
+  const body = cands.map(r => {
+    const s = r.sd, last = s.last, atrV = s.atr || 0;
+    const lvl = (s.ma20 && s.ma20 < last) ? { n: 'MA20', v: s.ma20 } : (s.ma50 && s.ma50 < last) ? { n: 'MA50', v: s.ma50 } : null;
+    const toLvl = lvl ? (lvl.v / last - 1) * 100 : null;
+    const rr = lvl && atrV > 0 ? rrToResistance(lvl.v, lvl.v - 1.5 * atrV, s.hi52) : { type: 'na' };
+    const rrTxt = rr.type === 'max52' ? `1:${rr.rr.toFixed(1)}` : rr.type === 'breakout' ? 'deschis' : '—';
+    const rrCol = rr.type === 'max52' ? (rr.rr < 1.5 ? 'var(--red)' : 'var(--green)') : 'var(--txt-d)';
+    return `<tr onclick="scanFromList('${r.sym}')" title="click → analiză completă" style="cursor:pointer">
+      <td><strong>${r.sym}</strong></td>
+      <td><strong>${s.score}</strong></td>
+      <td style="color:var(--yellow)">+${s.ext.pct.toFixed(1)}%</td>
+      <td>${lvl ? lvl.n + ' ' + fmt$(lvl.v) : '—'}</td>
+      <td style="color:var(--red)">${toLvl != null ? toLvl.toFixed(1) + '%' : '—'}</td>
+      <td style="color:${rrCol}"><strong>${rrTxt}</strong></td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<div class="card"><h2><span class="ico">🎯</span> Radar pullback <span style="font-size:11px;color:var(--txt-dd);font-weight:500;margin-left:6px">— bune dar fugite, de prins pe retragere</span></h2>
+    <div style="overflow-x:auto"><table class="ls-table">
+      <thead><tr><th>Ticker</th><th>Score</th><th>Peste MA50</th><th>Nivel intrare</th><th>Distanță</th><th>R:R la nivel</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+    <div style="font-size:11px;color:var(--txt-dd);margin-top:8px;line-height:1.5">Stocuri cu scor bun (≥70) dar extinse peste MA50 — nu le cumpăra acum (chasing). Pune alertă preț ▼ la „Nivel intrare" în 🔔 Alerts; când retragerea ajunge acolo, R:R-ul redevine cel din coloană.</div>
   </div>`;
 }
 
@@ -1619,7 +1656,8 @@ function renderListTable() {
     </tr>`;
   }).join('');
   updateListStatus();
-  renderScorecard();   // scanul de listă alimentează istoricul → reîmprospătează scorecardul
+  renderScorecard();        // scanul de listă alimentează istoricul → reîmprospătează scorecardul
+  renderPullbackRadar();    // și radarul de candidați fugiți (depinde de modul curent prin extRan)
 }
 
 function scanFromList(sym) { scan(sym); window.scrollTo({ top: 0, behavior: 'smooth' }); }
