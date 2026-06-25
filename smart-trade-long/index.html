@@ -249,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v32</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v33</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -1677,7 +1677,11 @@ async function runListScan() {
 function renderListTable() {
   const tbody = $('lsBody');
   const rows = [...listState.rows].sort((a, b) => (b.ok ? b.sd.score : -1) - (a.ok ? a.sd.score : -1));
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--txt-dd);padding:18px">apasă 🔍 Scan listă</td></tr>'; return; }
+  // Scorecard + radar sunt independente de tabel și TREBUIE reîmprospătate inclusiv pe modul
+  // schimbat când lista e goală — altfel return-ul devreme de mai jos le sărea (radarul nu comuta).
+  renderScorecard();
+  renderPullbackRadar();
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--txt-dd);padding:18px">apasă 🔍 Scan listă</td></tr>'; updateListStatus(); return; }
   tbody.innerHTML = rows.map(r => {
     if (!r.ok) return `<tr style="opacity:.55;cursor:default"><td><strong>${r.sym}</strong></td><td colspan="7" style="text-align:left;color:var(--txt-dd)">⚠ ${escHtml(r.err)}</td></tr>`;
     const s = r.sd;
@@ -1697,8 +1701,8 @@ function renderListTable() {
     </tr>`;
   }).join('');
   updateListStatus();
-  renderScorecard();        // scanul de listă alimentează istoricul → reîmprospătează scorecardul
-  renderPullbackRadar();    // și radarul de candidați fugiți (depinde de modul curent prin extRan)
+  renderScorecard();        // re-rulat după ce s-au actualizat rândurile (istoric proaspăt)
+  renderPullbackRadar();
 }
 
 function scanFromList(sym) { scan(sym); window.scrollTo({ top: 0, behavior: 'smooth' }); }
