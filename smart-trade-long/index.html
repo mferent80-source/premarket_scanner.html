@@ -249,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v28</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v29</span></h1>
   <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -944,6 +944,7 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
   const tp1 = entry + 1 * atrV;
   const tp2 = entry + 2 * atrV;
   const tp3 = entry + 3 * atrV;
+  const rrMain = rrToResistance(entry, sl, scoreData.hi52);   // R:R real până la max 52s (rezistență)
   const sz = calcShares(entry, sl);
   const { riskUSD, riskShare, acct } = sz;
   const shares = sz.shares;
@@ -1034,6 +1035,11 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
       extBanner = `<div style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--yellow);line-height:1.5">${head} Mod <strong>Momentum</strong> — cumperi forța, verdictul rămâne, dar <strong>dimensionează mai mic</strong>: chasing = risc de pullback imediat spre MA20 ≈ ${fmt$(scoreData.ma20 || 0)}.</div>`;
     }
   }
+  // R:R structural (până la max 52s) — gate ONEST: un scor bun cu headroom mic în sus
+  // (stoc lipit de max) e tot un trade prost. Avertisment doar când R:R real < 1.5.
+  const rrBanner = (rrMain.type === 'max52' && rrMain.rr < 1.5)
+    ? `<div style="background:rgba(255,77,77,.10);border:1px solid rgba(255,77,77,.45);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:var(--red);line-height:1.5">⚖️ <strong>R:R slab (1:${rrMain.rr.toFixed(1)}):</strong> doar +${((rrMain.target / entry - 1) * 100).toFixed(1)}% până la max 52s (${fmt$(rrMain.target)} = rezistență) față de −${((entry - sl) / entry * 100).toFixed(1)}% la SL. Scorul arată bine, dar e <strong>loc puțin de creștere</strong> — ia profit devreme (TP1) sau caută un setup cu headroom mai mare.</div>`
+    : '';
   // Regim de piață: chip informativ mereu când compozitul macro e proaspăt;
   // avertisment vizibil când a limitat verdictul.
   const reg = riskRegime();
@@ -1053,7 +1059,7 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
   // Starea (collapsed) supraviețuiește re-render-urilor (auto 5min, schimbare cont/risc).
   resultArea.innerHTML = `<details class="res-details" id="resDetails"${state.resCollapsed ? '' : ' open'}>
     <summary><span class="caret">▶</span> 🎯 <strong>${sym}</strong> · ${t.icon} ${t.label}${t.caps.includes('ext') ? ' 🏃' : ''}${t.caps.includes('regim') ? ' 🛡' : ''} · ${scoreData.score}/100 · ${fmt$(last)}${prePost ? ` · ${prePost.sess === 'pre' ? '🌅' : '🌙'} <span style="color:${prePost.chg >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:700">${fmtPct(prePost.chg)}</span>` : ''}${earnInfo && earnInfo.hoursAway <= 48 ? ' · <span style="color:var(--red);font-weight:700">🚫 earnings!</span>' : ''}<span class="sum-hint">click = restrânge/extinde</span></summary>
-    <div class="res-body">` + earnBanner + extBanner + regBanner + ppBanner + `
+    <div class="res-body">` + earnBanner + extBanner + rrBanner + regBanner + ppBanner + `
     <div class="grid">
       <div class="card verdict-card">
         <div class="verdict-icon">${t.icon}</div>
@@ -1113,6 +1119,11 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
             <div class="lbl">TP3 (runner)</div>
             <div class="val">${fmt$(tp3)}</div>
             <div class="delta">+3 ATR — R:R 1:2</div>
+          </div>
+          <div class="level" style="grid-column:span 2;border:1px solid ${rrMain.type === 'max52' && rrMain.rr < 1.5 ? 'rgba(255,77,77,.45)' : 'rgba(34,214,107,.35)'}">
+            <div class="lbl">R:R real (până la max 52s)</div>
+            <div class="val" style="color:${rrMain.type === 'max52' ? (rrMain.rr < 1.5 ? 'var(--red)' : 'var(--green)') : 'var(--txt-d)'}">${rrMain.type === 'max52' ? '1:' + rrMain.rr.toFixed(1) : rrMain.type === 'breakout' ? 'deschis' : '—'}</div>
+            <div class="delta">${rrMain.type === 'max52' ? `+${((rrMain.target / entry - 1) * 100).toFixed(1)}% headroom vs −${((entry - sl) / entry * 100).toFixed(1)}% risc` : rrMain.type === 'breakout' ? 'breakout — fără rezistență deasupra' : 'date insuficiente'}</div>
           </div>
         </div>
       </div>
