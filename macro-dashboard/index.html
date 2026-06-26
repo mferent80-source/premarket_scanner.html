@@ -822,7 +822,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v203</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v204</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -2500,34 +2500,31 @@ function hardcodedCalendar() {
     out.push({ time: d+' 14:30', country:'US', event:'FOMC Press Conference', impact:'high', forecast:null, previous:null, actual:null, source:'hardcoded' });
   });
 
-  // CPI release: a 2-a săptămână din lună, ora ~08:30 ET (de obicei marți sau miercuri)
-  // NFP: prima vineri din lună la 08:30 ET
-  // Generăm pentru next 60 zile
+  // NFP / Employment Situation 2026 — date OFICIALE BLS (verificate 26 iun 2026 din schedule + arhivă,
+  // 08:30 ET). 2026 NU respectă „prima vineri" peste tot: raportul pt aprilie a ieșit pe 8 mai (a 2-a
+  // vineri), cel pt iunie pe 2 iulie (joi, din cauza 4 Iulie) → folosim lista exactă, nu derivarea.
+  const nfp2026 = ['2026-01-09','2026-02-06','2026-03-06','2026-04-03','2026-05-08','2026-06-05','2026-07-02','2026-08-07','2026-09-04','2026-10-02','2026-11-06','2026-12-04'];
+  nfp2026.forEach(d => {
+    out.push({ time: d+' 08:30', country:'US', event:'Non-Farm Payrolls', impact:'high', forecast:null, previous:null, actual:null, source:'hardcoded' });
+    out.push({ time: d+' 08:30', country:'US', event:'Unemployment Rate', impact:'high', forecast:null, previous:null, actual:null, source:'hardcoded' });
+  });
+
+  // CPI 2026 — date OFICIALE BLS (verificate 26 iun 2026, 08:30 ET; a 2-a săptămână, ziua variază).
+  const cpi2026 = ['2026-01-13','2026-02-11','2026-03-11','2026-04-10','2026-05-12','2026-06-10','2026-07-14','2026-08-12','2026-09-11','2026-10-14','2026-11-10','2026-12-10'];
+  cpi2026.forEach(d => {
+    out.push({ time: d+' 08:30', country:'US', event:'CPI YoY', impact:'high', forecast:null, previous:null, actual:null, source:'hardcoded' });
+    out.push({ time: d+' 08:30', country:'US', event:'Core CPI YoY', impact:'high', forecast:null, previous:null, actual:null, source:'hardcoded' });
+    // PPI: BLS îl publică de regulă ~1 zi lucrătoare după CPI (data exactă nu e fixă) → estimăm de la CPI.
+    const ppi = new Date(d + 'T00:00:00Z');
+    ppi.setUTCDate(ppi.getUTCDate() + 1);
+    while (ppi.getUTCDay() === 0 || ppi.getUTCDay() === 6) ppi.setUTCDate(ppi.getUTCDate() + 1);
+    out.push({ time: ppi.toISOString().slice(0,10)+' 08:30', country:'US', event:'PPI YoY', impact:'med', forecast:null, previous:null, actual:null, source:'hardcoded' });
+  });
+
+  // Restul evenimentelor rămân ESTIMATIVE (zile recurente aproximate, NU date oficiale):
+  // jobless claims (joi), retail sales (~15), ISM (prima zi lucrătoare), consumer confidence (ultima marți).
   for (let m = 0; m < 3; m++) {
     const month = new Date(today.getFullYear(), today.getMonth()+m, 1);
-    // NFP: prima vineri
-    const firstDay = month.getDay();
-    const firstFridayOffset = (5 - firstDay + 7) % 7;
-    const nfpDate = new Date(month);
-    nfpDate.setDate(1 + firstFridayOffset);
-    const nfpStr = nfpDate.toISOString().slice(0,10);
-    out.push({ time: nfpStr+' 08:30', country:'US', event:'Non-Farm Payrolls', impact:'high', forecast:null, previous:null, actual:null, source:'hardcoded' });
-    out.push({ time: nfpStr+' 08:30', country:'US', event:'Unemployment Rate', impact:'high', forecast:null, previous:null, actual:null, source:'hardcoded' });
-
-    // CPI: aprox a 12-a zi a lunii (variază, deci aproximăm)
-    const cpiDate = new Date(month);
-    cpiDate.setDate(12);
-    while (cpiDate.getDay() === 0 || cpiDate.getDay() === 6) cpiDate.setDate(cpiDate.getDate()+1);
-    const cpiStr = cpiDate.toISOString().slice(0,10);
-    out.push({ time: cpiStr+' 08:30', country:'US', event:'CPI YoY', impact:'high', forecast:null, previous:null, actual:null, source:'hardcoded' });
-    out.push({ time: cpiStr+' 08:30', country:'US', event:'Core CPI YoY', impact:'high', forecast:null, previous:null, actual:null, source:'hardcoded' });
-
-    // PPI: ~1-2 zile după CPI
-    const ppiDate = new Date(cpiDate);
-    ppiDate.setDate(ppiDate.getDate()+1);
-    while (ppiDate.getDay() === 0 || ppiDate.getDay() === 6) ppiDate.setDate(ppiDate.getDate()+1);
-    out.push({ time: ppiDate.toISOString().slice(0,10)+' 08:30', country:'US', event:'PPI YoY', impact:'med', forecast:null, previous:null, actual:null, source:'hardcoded' });
-
     // Initial Jobless Claims: în fiecare joi
     let d = new Date(month);
     while (d.getMonth() === month.getMonth()) {
