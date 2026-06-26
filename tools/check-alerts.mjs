@@ -55,19 +55,36 @@ async function fetchPrice(sym){
   // Yahoo nu cunoaște perechile Binance USDT (ONDOUSDT) — convertim la forma lui (ONDO-USD).
   // Binance.com e geo-blocat pe runnerele GitHub (IP US → 451), deci server-side rămânem pe Yahoo.
   const ySym = /USDT$/.test(sym) ? sym.replace(/USDT$/, '-USD') : sym;
+  const crypto = isCrypto(sym);
+  // Crypto e 24/7 → `chartPreviousClose` e ambiguu/stale (N−2 dovedit pe Yahoo). Pentru a alinia
+  // „variația zilei" cu paginile (baseline = open 00:00 UTC, ca daily-kline Binance), cerem 2 zile
+  // și luăm open-ul primei bare din ziua UTC curentă. Stocks rămân pe close-ul de ieri.
+  const range = crypto ? '2d' : '1d';
   try {
-    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=5m&range=1d&includePrePost=true`,
+    const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=5m&range=${range}&includePrePost=true`,
       { headers: { 'User-Agent': 'Mozilla/5.0 (price-alerts-bot)' }, signal: AbortSignal.timeout(10000) });
     if (!r.ok) return null;
     const j = await r.json();
     const res = j?.chart?.result?.[0];
     if (!res) return null;
-    const closes = res.indicators?.quote?.[0]?.close || [];
+    const q = res.indicators?.quote?.[0] || {};
+    const closes = q.close || [];
+    const opens = q.open || [];
+    const ts = res.timestamp || [];
     let last = null;
     for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { last = closes[i]; break; }
     if (last == null) last = res.meta?.regularMarketPrice ?? null;
     if (last == null) return null;
-    return { last, prev: res.meta?.chartPreviousClose ?? null };   // prev = închiderea de ieri (pt variația zilei)
+    let prev;
+    if (crypto) {
+      const dayStart = Math.floor(Date.now() / 86400000) * 86400; // 00:00 UTC azi, în secunde
+      prev = null;
+      for (let i = 0; i < ts.length; i++) if (ts[i] >= dayStart && opens[i] != null) { prev = opens[i]; break; }
+      if (prev == null) prev = res.meta?.chartPreviousClose ?? null; // fallback dacă ziua n-are încă bare
+    } else {
+      prev = res.meta?.chartPreviousClose ?? null;   // stocks: închiderea de ieri
+    }
+    return { last, prev };
   } catch (e) { return null; }
 }
 
@@ -103,6 +120,12 @@ for (const sym of uniq){
   await new Promise(r => setTimeout(r, 300)); // menajează Yahoo
 }
 console.log('Prețuri:', JSON.stringify(prices));
+// Heartbeat diagnostic: fă vizibile eșecurile tăcute (Yahoo gol / baseline lipsă) în Actions log.
+{
+  const nPrice = Object.values(prices).filter(v => v == null).length;
+  const nPrev = uniq.filter(s => changes[s] == null).length;
+  console.log(`Heartbeat: ${uniq.length} simboluri · ${nPrice} fără preț · ${nPrev} fără variația zilei`);
+}
 
 const fired = [];
 let changed = false;

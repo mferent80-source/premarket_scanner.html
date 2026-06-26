@@ -74,10 +74,16 @@ export default {
     try { t = new URL(target); } catch (e) { return new Response('bad url', { status: 400 }); }
     if (t.protocol !== 'https:' || !ALLOW_HOSTS.test(t.host)) return new Response('host not allowed', { status: 403 });
 
-    const upstream = await fetch(t.toString(), {
-      headers: { 'User-Agent': 'Mozilla/5.0 (TradingTools CF Worker)' },
-      cf: { cacheTtl: 20, cacheEverything: true }
-    });
+    let upstream;
+    try {
+      upstream = await fetch(t.toString(), {
+        headers: { 'User-Agent': 'Mozilla/5.0 (TradingTools CF Worker)' },
+        cf: { cacheTtl: 20, cacheEverything: true },
+        signal: AbortSignal.timeout(15000)   // un upstream lent (Yahoo) nu mai ține conexiunea la infinit
+      });
+    } catch (e) {
+      return new Response('upstream timeout/eroare: ' + (e && e.message || e), { status: 504, headers: { 'Access-Control-Allow-Origin': origin || '*' } });
+    }
     const headers = new Headers();
     headers.set('Content-Type', upstream.headers.get('Content-Type') || 'application/json');
     headers.set('Access-Control-Allow-Origin', origin || '*');
