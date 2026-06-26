@@ -127,6 +127,7 @@
 
   // paginile (din iframe) cer deschiderea unui tab prin postMessage (vezi nav.js)
   window.addEventListener('message', function(e){
+    if (e.origin !== location.origin) return; // iframe-urile suitei sunt same-origin → ignoră mesaje terțe
     var d = e.data;
     if (d && d.ttOpen !== undefined && byU[d.ttOpen] !== undefined) setActive(d.ttOpen);
   });
