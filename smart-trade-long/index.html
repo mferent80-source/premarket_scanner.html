@@ -249,8 +249,8 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v34</span></h1>
-  <p class="lead">Scoring 5-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v35</span></h1>
+  <p class="lead">Scoring 6-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
   <div class="wl-bar" id="wlBar"></div>
@@ -1712,17 +1712,23 @@ function scanFromList(sym) { scan(sym); window.scrollTo({ top: 0, behavior: 'smo
 function notifyNewReady(rows) {
   let prev = null;
   try { prev = JSON.parse(localStorage.getItem(LIST_STATE_KEY) || 'null'); } catch (e) {}
-  const firstRun = !prev || typeof prev !== 'object' || !Object.keys(prev).length;
+  const mode = entryMode();
   const next = (prev && typeof prev === 'object') ? prev : {};
+  // Pragul READY diferă pe mod (Pullback 90 / Momentum 85). La comutarea modului un OK „devine"
+  // READY (sau invers) FĂRĂ ca setup-ul să se fi schimbat → NU e tranziție reală → nu alertăm
+  // (altfel apărea toast + Telegram fals doar din schimbarea pragului).
+  const modeChanged = next._mode && next._mode !== mode;
+  const firstRun = !prev || typeof prev !== 'object' || !Object.keys(next).filter(k => k !== '_mode').length;
   const fresh = [];
   rows.forEach(r => {
     if (!r.ok) return; // eșec de fetch NU șterge starea — altfel re-alertă fals la recuperarea proxy-ului
     const was = next[r.sym] && next[r.sym].tier;
-    if (r.t.label === 'READY' && was !== 'READY' && !firstRun) fresh.push(r);
+    if (r.t.label === 'READY' && was !== 'READY' && !firstRun && !modeChanged) fresh.push(r);
     next[r.sym] = { tier: r.t.label, ts: Date.now() };
   });
+  next._mode = mode;
   const wlSet = new Set(rows.map(r => r.sym));
-  Object.keys(next).forEach(s => { if (!wlSet.has(s)) delete next[s]; });
+  Object.keys(next).forEach(s => { if (s !== '_mode' && !wlSet.has(s)) delete next[s]; });
   try { localStorage.setItem(LIST_STATE_KEY, JSON.stringify(next)); } catch (e) {}
   if (!fresh.length) return;
   toast(`🚀 READY nou: ${fresh.map(f => f.sym).join(', ')}`, 'ok');

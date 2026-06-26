@@ -396,7 +396,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v145</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v146</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -1883,8 +1883,10 @@ async function runScan(){
       ma200abs: sc.ma200,
       atrPct: sc.atrPct,
       breakdown: sc.breakdown,
-      hi52: Math.max(...data.closes),
-      lo52: Math.min(...data.closes),
+      // în sesiune ultima „close" e prețul live (parțial) → o excludem din max/min 52s, altfel
+      // „nou maxim 52s" devine trivial-adevărat pe ziua curentă.
+      hi52: Math.max(...((data.volPartial && data.closes.length > 1) ? data.closes.slice(0, -1) : data.closes)),
+      lo52: Math.min(...((data.volPartial && data.closes.length > 1) ? data.closes.slice(0, -1) : data.closes)),
       beta: calcBeta(data.closes, benchCloses),
       score: sc.score,
       verdict: sc.verdict,
@@ -2602,7 +2604,7 @@ function render(){
   let html = sorted.map(r => {
     const tvUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol(r.symbol))}`;
     const yhUrl = `https://finance.yahoo.com/quote/${r.symbol}`;
-    const chgCls = r.chg >= 0 ? 'up' : 'down';
+    const chgCls = r.chg == null ? 'neut' : r.chg >= 0 ? 'up' : 'down';
     const rsiCls = r.rsi == null ? 'neut' : r.rsi <= 30 ? 'down' : r.rsi >= 70 ? 'warn' : r.rsi >= 40 && r.rsi <= 65 ? 'up' : 'neut';
     const ma50Cls = r.ma50 == null ? 'neut' : r.ma50 >= 0 ? 'up' : 'down';
     const ma200Cls = r.ma200 == null ? 'neut' : r.ma200 >= 0 ? 'up' : 'down';

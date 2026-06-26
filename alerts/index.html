@@ -416,7 +416,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v57</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v58</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -1088,7 +1088,7 @@ async function pollPrices() {
         if (a.armed && Math.abs(moved) >= a.pct) {
           fired.push({ sym, price: p, moved, a: Object.assign({}, a) });
           a.lastFired = Date.now(); changed = true;
-          if (a.rearm) a.base = p; else list.splice(i, 1); // re-arm → re-ancorează la prețul nou; one-shot → dispare
+          if (a.rearm) { a.base = p; a.cHi = 0; a.cLo = 0; } else list.splice(i, 1); // re-arm → re-ancorează (+ reset max/min ca să fie coerent cu noul base); one-shot → dispare
         }
         continue;
       }
@@ -1498,7 +1498,9 @@ function render() {
   Object.keys(priceAlerts).sort().forEach(sym => (priceAlerts[sym] || []).forEach(a => rows.push({ sym, a })));
   // Istoric combinat: local + ☁️ server-side, dedup pe sym|lvl|dir|minut (același
   // eveniment poate exista în ambele dacă pagina și botul l-au prins simultan)
-  const hKey = h => `${h.sym}|${h.kind || 'price'}|${h.kind === 'anchor' ? (h.sub + ':' + h.pct) : h.kind === 'ref' ? (h.trail ? 't:' + h.pct : h.pct + ':' + h.step) : h.kind === 'day' ? ('day:' + h.pct) : h.kind === 'pct' ? h.pct : h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
+  // h.step poate veni NaN/undefined din SERVER_HIST (botul nu-l scrie mereu) → normalizat la ''
+  // ca dedup-ul local↔☁️ pe alertele `ref` să nu eșueze (altfel cheile difereau → dublură în istoric).
+  const hKey = h => `${h.sym}|${h.kind || 'price'}|${h.kind === 'anchor' ? (h.sub + ':' + h.pct) : h.kind === 'ref' ? (h.trail ? 't:' + h.pct : h.pct + ':' + (Number.isFinite(h.step) ? h.step : '')) : h.kind === 'day' ? ('day:' + h.pct) : h.kind === 'pct' ? h.pct : h.lvl}|${h.dir}|${Math.round((h.ts || 0) / 60000)}`;
   const localKeys = new Set(HISTORY.map(hKey));
   _histView = [
     ...HISTORY.map((h, li) => ({ ...h, _li: li })),
@@ -2234,10 +2236,11 @@ document.addEventListener('visibilitychange', () => {
 
 // ============ INIT ============
 render();
-pollPrices();
-schedulePoll();
+schedulePoll();       // timerul recurent de poll — independent de pull (rulează chiar dacă pull-ul atârnă)
 loadServerHist();
-pullFromGitHub(true); // auto-sync listă de pe GitHub la deschidere (laptop↔telefon)
+// Întâi tragem lista de pe GitHub, ABIA APOI primul poll → primul check folosește lista proaspătă
+// (înainte pollPrices rula în paralel cu pull-ul pe lista veche). Fallback: poll oricum dacă pull pică.
+pullFromGitHub(true).then(() => pollPrices()).catch(() => pollPrices()); // auto-sync laptop↔telefon
 // v56: auto-pull PERIODIC al listei (nu doar la deschidere) — altfel un device cu pagina deja
 // deschisă nu prelua niciodată modificările făcute pe alt device decât la refresh manual.
 // 120s = ~30 req/h pe Contents API (bine sub limita 5000/h cu token); fără token cade pe raw (cache ~5min).

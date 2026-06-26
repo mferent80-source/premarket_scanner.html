@@ -312,7 +312,7 @@ footer a { color:var(--accent); text-decoration:none; }
 <body>
 
 <header>
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v116</span></h1>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v117</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=pump-radar" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
@@ -1490,6 +1490,7 @@ function beep(){
   } catch(e){}
 }
 async function sendTelegram(text){  // → lib/telegram.js (TG.*); config în memorie păstrat
+  if (typeof TG === 'undefined' || !TG.send) return false; // guard: lib/telegram.js poate să nu fi încărcat (script src eșuat)
   return TG.send(text, { token: tgConfig.token, chatId: tgConfig.chatId, force: true });
 }
 function updateAlertBtns(){

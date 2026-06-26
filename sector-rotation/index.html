@@ -268,7 +268,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v158</span>
+    <span class="ver-badge" id="verBadge">v159</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
     <div class="hdr-spc"></div>
@@ -647,6 +647,15 @@ function fmtVol(v){
 // ═══════════════════════════════════════════════════════════════
 const RRG_LB = 21;  // fereastra „trend" relativ (≈1 lună de tranzacționare)
 const RRG_MOM = 5;  // fereastra de momentum (≈1 săpt)
+// Bara de azi e parțială în sesiune → o excludem DOAR pentru RS/RRG (statistică relativă), ca să nu
+// „danseze" cadranele intraday. chg1d/chg1w etc. rămân pe seria completă (intenționat „live").
+function _srEtYMD(ms){ return new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(ms)); }
+function _srEtHour(){ return +new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour:'2-digit', hour12:false }).format(new Date()); }
+function closedSeries(closes, times){
+  if (!closes || !times || closes.length !== times.length || closes.length < 3) return closes;
+  const partial = _srEtYMD(times[times.length-1] * 1000) === _srEtYMD(Date.now()) && _srEtHour() < 16;
+  return partial ? closes.slice(0, -1) : closes;
+}
 function computeRS(sectorCloses, spyCloses){
   if (!sectorCloses || !spyCloses) return null;
   const n = Math.min(sectorCloses.length, spyCloses.length);
@@ -1120,7 +1129,7 @@ async function runScan(){
     // v156: forță relativă vs SPY + metrici RRG per sector
     for (const d of results){
       d.rsChg1w = (d.chg1w != null && spyChg1w != null) ? d.chg1w - spyChg1w : null;
-      const rs = SPY ? computeRS(d.closes, SPY.closes) : null;
+      const rs = SPY ? computeRS(closedSeries(d.closes, d.times), closedSeries(SPY.closes, SPY.times)) : null;
       d.rsRatio = rs ? rs.rsRatio : null;
       d.rsMom   = rs ? rs.rsMom   : null;
       d.rsTail  = rs ? rs.tail    : [];
