@@ -785,6 +785,10 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .brief-meta-tile { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:9px 13px; }
 .brief-meta-tile .bmt-label { font-size:11px; color:var(--t2); text-transform:uppercase; letter-spacing:.3px; font-weight:700; font-family:var(--mono); }
 .brief-meta-tile .bmt-val { font-size:14px; font-weight:800; color:var(--t1); font-family:var(--head); margin-top:3px; }
+.brief-big-events { display:flex; flex-wrap:wrap; align-items:center; gap:7px; padding:2px 0; }
+.brief-big-events .bbe-label { font-size:11.5px; font-weight:800; color:var(--bear-s); font-family:var(--mono); letter-spacing:.3px; }
+.brief-big-events .bbe-chip { font-size:11.5px; font-family:var(--mono); color:var(--t1); background:rgba(255,77,77,.10); border:1px solid rgba(255,77,77,.35); border-radius:var(--rs); padding:3px 9px; }
+.brief-big-events .bbe-chip b { color:var(--bear-s); font-weight:800; }
 .brief-body { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:22px 26px; font-family:var(--head); font-size:15px; line-height:1.85; color:var(--t1); white-space:pre-wrap; word-wrap:break-word; min-height:200px; letter-spacing:.1px; }
 .brief-body.loading { display:flex; align-items:center; justify-content:center; color:var(--t2); font-size:14px; min-height:240px; }
 .brief-body.loading::before { content:"🧠"; font-size:32px; margin-right:12px; animation:pulse 1.4s ease-in-out infinite; }
@@ -818,7 +822,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v202</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v203</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -970,6 +974,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
     </div>
 
     <div class="brief-meta" id="briefMeta"></div>
+    <div class="brief-big-events" id="briefBigEvents" style="display:none"></div>
 
     <div class="brief-body" id="briefBody">
       <div class="brief-empty">
@@ -2168,7 +2173,9 @@ async function drillStatTile(tileId) {
       const r = await fetch('https://api.alternative.me/fng/?limit=30');
       const d = await r.json();
       const items = (d?.data || []).reverse(); // chronological
-      const points = items.map(it => ({ ts: parseInt(it.timestamp, 10), close: parseInt(it.value, 10) }));
+      const points = items.map(it => ({ ts: parseInt(it.timestamp, 10), close: parseInt(it.value, 10) }))
+        .filter(p => Number.isFinite(p.close));
+      if (!points.length) throw new Error('F&G gol'); // altfel Math.max(...[]) = -Infinity → interpretare falsă
       const cur = points[points.length-1]?.close;
       const interp = meta.interpret(cur);
       const max = Math.max(...points.map(p => p.close));
@@ -2638,14 +2645,31 @@ function normalizeImpact(v) {
   return 'low';
 }
 
+// Offset-ul ET (America/New_York) față de UTC pentru un instant dat, în minute.
+// Pozitiv = ET în urma UTC (EDT vara = 240, EST iarna = 300). DST-aware.
+function etOffsetMinutes(utcMs) {
+  const dtf = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false,
+    year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const p = dtf.formatToParts(new Date(utcMs));
+  const g = t => +(p.find(x => x.type === t)?.value || 0);
+  // ora ET reprezentată ca și cum ar fi UTC, minus instant-ul UTC real → offset-ul
+  const asUTC = Date.UTC(g('year'), g('month')-1, g('day'), g('hour') % 24, g('minute'), g('second'));
+  return Math.round((utcMs - asUTC) / 60000);
+}
+
 function parseEventTime(s) {
   if (!s) return null;
-  // Finnhub: '2026-05-17 08:30' sau '2026-05-17 08:30:00'
+  // Finnhub & hardcoded: '2026-05-17 08:30' sau '2026-05-17 08:30:00'
   const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})[\sT](\d{2}):(\d{2})/);
   if (!m) return null;
-  // Tratăm ca timezone NY (ET) — Finnhub returnează în UTC dar majoritatea release-urilor sunt programate ET
-  // Simplificat: parseăm ca UTC și convertim aproximativ
-  return new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:00Z`);
+  // Orele release-urilor sunt programate în ET (atât calendarul hardcoded — calea normală fără
+  // cheie premium — cât și Finnhub livrează wall-clock ET pentru evenimentele US). Construim
+  // instant-ul UTC REAL ținând cont de DST: luăm ora ca și cum ar fi UTC, apoi adăugăm offset-ul
+  // ET (4h vara / 5h iarna). Înainte lipeam 'Z' (= „e deja UTC") → calendarul ieșea cu 4-5h prea
+  // devreme, iar printurile de dimineață (CPI/NFP la 08:30 ET) cădeau din fereastra brief-ului.
+  const naive = Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5]);
+  const off = etOffsetMinutes(naive); // ~240 (EDT) / ~300 (EST)
+  return new Date(naive + off*60000);
 }
 
 function fmtEventDateTime(s) {
@@ -3039,6 +3063,13 @@ function renderCryptoNews() {
   $('cnList').innerHTML = arr.map(n => renderNewsCard(n, 'crypto')).join('');
 }
 
+// Acceptă doar http(s) — blochează javascript:/data: dintr-un feed RSS necontrolat (Cointelegraph
+// <link>, Reddit permalink etc.). Fără asta, un URL malițios devenea link clickable în origin-ul
+// cu cheile (Anthropic/Finnhub/Telegram) în localStorage.
+function safeUrl(u) {
+  return /^https?:\/\//i.test(String(u || '').trim()) ? u : '#';
+}
+
 function renderNewsCard(n, kind) {
   const sentCls = n.sentiment === 'important' ? 'important' : n.sentiment;
   const sentLabel = ({bull:'🟢 BULL', bear:'🔴 BEAR', neut:'⚪ NEUT', important:'⭐ IMPORTANT'})[n.sentiment] || '⚪ NEUT';
@@ -3052,7 +3083,7 @@ function renderNewsCard(n, kind) {
       <span class="nc-time">· ${timeAgo(n.ts)}</span>
       <span class="sent-chip ${sentCls}">${sentLabel}</span>
       ${tags}
-      <a class="action-btn" href="${escHtml(n.url)}" target="_blank" rel="noopener" style="margin-left:auto" onclick="event.stopPropagation()">↗</a>
+      <a class="action-btn" href="${escHtml(safeUrl(n.url))}" target="_blank" rel="noopener" style="margin-left:auto" onclick="event.stopPropagation()">↗</a>
     </div>
   </div>`;
 }
@@ -3585,7 +3616,9 @@ Genereaza un DESK NOTE matinal in romana, SCURT si la obiect — TINTA ~450-600 
 
 REGIMUL DE RISC e DEJA CALCULAT si ti se da in context ("REGIM DE RISC (oficial)"). FOLOSESTE-L ca atare — NU-l recalcula, NU vota alt mood, NU scrie nicio linie MARKET_MOOD. Brief-ul tau explica si exploateaza regimul dat.
 
-STRUCTURA — EXACT aceste 5 sectiuni (markdown ## pentru headings), scurte:
+STRUCTURA — un TL;DR pe un rand, apoi EXACT aceste 5 sectiuni (markdown ## pentru headings), scurte:
+
+**TL;DR:** un SINGUR rand care comprima toata teza zilei (bias stocks + bias crypto + singurul lucru de urmarit azi). E primul lucru pe care il citesc — sa fie suficient de sec sa pot decide fara sa citesc restul.
 
 ## 🎯 Verdict
 1-2 randuri: porneste de la regimul oficial dat, apoi BIAS transant pe o linie:
@@ -3595,7 +3628,9 @@ STRUCTURA — EXACT aceste 5 sectiuni (markdown ## pentru headings), scurte:
 3-4 bullets, fiecare cu un FAPT-ANCORA concret din date (rezultat publicat azi / event / stire / nivel tehnic rupt). Fara fapt verificabil → nu-l scrie. Numere cand le ai. Zero memorie/feeling.
 
 ## 📅 Azi de urmarit
-2-3 puncte: event (nume · ora UTC · consensus · pragul bull vs bear) SAU nivel-cheie pe SPY/QQQ/BTC. Daca fereastra e goala, spune-o intr-un rand si gata.
+Evenimentele MARI din "EVENIMENTE ECONOMICE AZI" sunt prioritatea — pune-le PRIMELE, cate un rand fiecare:
+**Eveniment** · ora ET · consensus → **prag bull:** ce citire/reactie confirma LONG · **prag bear:** ce o invalideaza.
+Apoi, daca mai e loc, 1 nivel-cheie pe SPY/QQQ/BTC (din NIVELURI TEHNICE LIVE). Daca fereastra de evenimente e goala, spune-o explicit intr-un rand ("Azi fara evenimente macro mari") si treci mai departe — NU inventa evenimente.
 
 ## 💡 Oportunitati
 MAX 1-2 stocks + 1-2 crypto, DOAR cu edge real (catalist concret + nivel live). Un singur rand per pick:
@@ -3763,11 +3798,16 @@ async function buildBriefContext() {
   const levelsList = formatBriefLevels(levels);
 
   // Events azi + next 24h (high + med impact)
-  const todayStart = new Date(nyt.date + 'T00:00:00Z').getTime();
+  // todayStart = miezul nopții ET ca instant UTC real (consistent cu parseEventTime, care e ET-aware).
+  const todayStart = parseEventTime(nyt.date + ' 00:00')?.getTime() || new Date(nyt.date + 'T00:00:00Z').getTime();
   const next24h = todayStart + 36*3600000;
+  // Lower bound = todayStart (NU now-3h): altfel printurile de dimineață (CPI/NFP 08:30 ET) cădeau
+  // din fereastră de îndată ce treceau câteva ore → exact evenimentele MARI nu apăreau în brief.
+  // Cele cu actual deja publicat merg în secțiunea REZULTATE, deci aici le excludem (fără dublare).
   const eventsToday = CAL_DATA.filter(e => {
+    if (e.actual != null) return false;
     const t = parseEventTime(e.time)?.getTime() || 0;
-    return t >= now - 3*3600000 && t < next24h && (e.impact === 'high' || e.impact === 'med');
+    return t >= todayStart && t < next24h && (e.impact === 'high' || e.impact === 'med');
   }).sort((a, b) => (parseEventTime(a.time)?.getTime() || 0) - (parseEventTime(b.time)?.getTime() || 0));
 
   const eventsList = eventsToday.slice(0, 10).map(e => {
@@ -3776,8 +3816,15 @@ async function buildBriefContext() {
     const fcst = e.forecast != null ? ` · forecast: ${e.forecast}` : '';
     const prev = e.previous != null ? ` · prev: ${e.previous}` : '';
     const act = e.actual != null ? ` · ACTUAL: ${e.actual}` : '';
-    return `- [${e.impact.toUpperCase()}] ${cm.name} · ${e.event} · ${dt.date} ${dt.time} UTC${fcst}${prev}${act}`;
+    return `- [${e.impact.toUpperCase()}] ${cm.name} · ${e.event} · ${dt.date} ${dt.disp}${fcst}${prev}${act}`;
   }).join('\n');
+
+  // Evenimentele MARI de azi (high-impact) — pentru chips în layout-ul brief-ului
+  const bigEvents = eventsToday.filter(e => e.impact === 'high').slice(0, 6).map(e => {
+    const dt = fmtEventDateTime(e.time);
+    const cm = COUNTRY_META[e.country] || { name: e.country };
+    return { name: e.event, time: dt.timeET || dt.time, country: cm.flag || '' };
+  });
 
   // Rezultate DEJA publicate azi (actual != null, în ziua ET curentă) — ce s-a întâmplat deja
   const resultsToday = CAL_DATA.filter(e => {
@@ -3804,7 +3851,7 @@ async function buildBriefContext() {
     const cm = COUNTRY_META[e.country] || { name: e.country };
     const fcst = e.forecast != null ? ` · forecast: ${e.forecast}` : '';
     const prev = e.previous != null ? ` · prev: ${e.previous}` : '';
-    return `- ${cm.name} · ${e.event} · ${dt.date} ${dt.time} UTC${fcst}${prev}`;
+    return `- ${cm.name} · ${e.event} · ${dt.date} ${dt.disp}${fcst}${prev}`;
   }).join('\n') || '(niciun high-impact în următoarele 2-7 zile din calendarul încărcat)';
 
   // Semnale geopolitice: filtrăm știrile pe cuvinte-cheie care mișcă bursa (ultimele 48h)
@@ -3834,7 +3881,7 @@ async function buildBriefContext() {
   ];
   const tilesList = tiles.map(([k, t]) => `- ${k}: ${t.v} (${t.sub})`).join('\n');
 
-  return { nyt, eventsList, resultsList, weekAheadList, geoList, macroList, cryptoList, tilesList, levelsList, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
+  return { nyt, eventsList, resultsList, weekAheadList, geoList, macroList, cryptoList, tilesList, levelsList, bigEvents, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
 }
 
 async function generateBrief(force=false) {
@@ -3923,7 +3970,7 @@ Genereaza desk note-ul matinal conform structurii (scurt, ~450-600 cuvinte).`;
       generatedAt: Date.now(),
       text: cleanText,
       mood,
-      ctx: { eventsCount: ctx.eventsCount, hiCount: ctx.hiCount, tiles: ctx.tilesList }
+      ctx: { eventsCount: ctx.eventsCount, hiCount: ctx.hiCount, tiles: ctx.tilesList, bigEvents: ctx.bigEvents }
     };
     saveBriefCache(brief);
     archiveBrief(brief); // 📜 arhiva 7 zile — validare retroactivă
@@ -3951,6 +3998,21 @@ function renderBriefMeta(ctxOrBrief) {
   meta.innerHTML = `
     <div class="brief-meta-tile"><div class="bmt-label">📅 Events azi+24h</div><div class="bmt-val">${ev} (${hi} 🔴 high)</div></div>
     ${tilesHtml}`;
+
+  // Chips cu evenimentele MARI de azi (high-impact) — vizibile la o privire, înainte de a citi brief-ul
+  const big = ctxOrBrief.bigEvents || ctxOrBrief.ctx?.bigEvents || [];
+  const strip = $('briefBigEvents');
+  if (strip) {
+    if (big.length) {
+      strip.style.display = 'flex';
+      strip.innerHTML = `<span class="bbe-label">🔴 Azi:</span>` + big.map(e =>
+        `<span class="bbe-chip">${escHtml(e.country)} ${escHtml(e.name)}${e.time ? ` <b>${escHtml(e.time)} ET</b>` : ''}</span>`
+      ).join('');
+    } else {
+      strip.style.display = 'none';
+      strip.innerHTML = '';
+    }
+  }
 }
 
 function renderBrief(brief) {
@@ -4648,7 +4710,7 @@ function renderRiskDrillBody() {
       </div>
     </div>
     <div class="risk-legend">
-      <b>Scor composit:</b> ≥+3 RISK-ON · +1/+2 LEAN ON · -1/0 NEUTRAL · -2/-3 CAUTIOUS · -4/-5 RISK-OFF · ≤-6 STRESS
+      <b>Scor composit:</b> ≥+4 RISK-ON · +1…+3 LEAN ON · −2…0 NEUTRAL · −5…−3 CAUTIOUS · −8…−6 RISK-OFF · ≤−9 STRESS
     </div>
   `;
 }
@@ -4722,7 +4784,10 @@ function classifyResult(actual, forecast, eventName) {
   if (isNaN(a) || isNaN(f)) {
     return { verdict:'PUBLISHED', icon:'📊', cls:'neut', surprise:null, bias:'neutral' };
   }
-  const surprise = ((a - f) / Math.abs(f || 1)) * 100; // % surprise vs forecast
+  // % surprise vs forecast. La forecast ≈0 (ex. CPI MoM 0.0%) raportul nu are sens (înainte
+  // forțam numitor=1 → cifră inventată care declanșa sugestii false) → surprise = null (n/a).
+  // Direcția (bias) se decide oricum din semnul a−f mai jos, deci null nu pierde informație.
+  const surprise = Math.abs(f) >= 0.01 ? ((a - f) / Math.abs(f)) * 100 : null;
   const absDiff = a - f;
   if (Math.abs(absDiff) < 0.01) return { verdict:'IN-LINE', icon:'➖', cls:'neut', surprise, bias:'neutral' };
 
@@ -5266,22 +5331,21 @@ let _fastPollActive = false;
 let _fastPollUntil = 0;
 
 function detectFastPollNeed() {
-  // Activăm fast-poll dacă există high-impact event în T-15min până T+30min
+  // Activăm fast-poll dacă există high-impact event în fereastra T-15min … T+30min.
+  // Iterăm TOATE evenimentele și ținem cel mai TÂRZIU T+30 (dacă sunt mai multe release-uri
+  // apropiate, vrem să rămânem activi până trece ultimul, nu doar primul găsit).
   const now = Date.now();
+  let until = 0;
   for (const e of CAL_DATA) {
     if (e.impact !== 'high') continue;
     const t = parseEventTime(e.time)?.getTime();
     if (!t) continue;
     const delta = t - now;
-    if (delta < 30*60000 && delta > -30*60000) {
-      // T-30min până T+30min: fereastra de release ±30min
-      // Dar activăm fast-poll doar dacă suntem aproape de release (T-15min ... T+30min)
-      if (delta < 15*60000 && delta > -30*60000) {
-        return Math.max(_fastPollUntil, t + 30*60000); // active până T+30min
-      }
+    if (delta < 15*60000 && delta > -30*60000) { // T-15min … T+30min
+      until = Math.max(until, t + 30*60000); // activ până T+30min al celui mai târziu
     }
   }
-  return 0;
+  return until;
 }
 
 function applyFastPollUI() {
@@ -5313,9 +5377,8 @@ function scheduleAutoRefresh() {
   const interval = _fastPollActive ? 60 : CFG.autoRefresh;
   if (!interval) return;
   _refreshTimer = setTimeout(async () => {
-    await loadCalendar();
+    await loadCalendar(); // loadCalendar() apelează deja checkResults() la final — nu-l mai dublăm aici
     if (!_fastPollActive) await loadStatTiles(); // în fast-poll skip stat tiles ca să nu burst proxy
-    checkResults();
     scheduleAutoRefresh();
   }, interval * 1000);
 }
