@@ -249,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v35</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v36</span></h1>
   <p class="lead">Scoring 6-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -640,6 +640,23 @@ function lsSessBadge(sess) {
   const map = { pre: ['🌅 PRE', 'var(--gold,#ffd86b)'], after: ['🌙 AFT', 'var(--gold,#ffd86b)'], open: ['🟢 RTH', 'var(--green)'], closed: ['🌙 CLS', 'var(--txt-dd)'], eu: ['🇪🇺 EU', 'var(--blue)'] };
   const v = map[sess]; if (!v) return '';
   return ` <span style="font-size:9px;font-weight:700;color:${v[1]};opacity:.85;vertical-align:middle" title="preț live (${sess})">${v[0]}</span>`;
+}
+
+// Flag „preț extins faţă de min 52s": cât de departe e prețul de minimul pe ~1 an (lo52).
+// Un preț mare NU e un bug — un titlu poate face ×N legitim (ex. WDC 2026: de la ~62 la ~800
+// pe boom-ul HDD nearline). DAR un instrument atât de fugit de la bază e în teritoriu de
+// blow-off / trend târziu: entry-ul e tardiv și riscul de reversal e mare (vezi ENA). Pragul
+// ≥5× = avertisment ⚠️, ≥10× = extrem 🔥. `compact` = doar iconul (pt rândul de listă).
+function extLowBadge(px, lo52, compact) {
+  if (!(px > 0) || !(lo52 > 0)) return '';
+  const mult = px / lo52;
+  if (mult < 5) return '';
+  const extreme = mult >= 10;
+  const col = extreme ? 'var(--red)' : 'var(--gold,#ffd86b)';
+  const ico = extreme ? '🔥' : '⚠️';
+  const ttl = `Preț extins: ×${mult.toFixed(1)} față de minimul pe 52 săptămâni (${fmt$(lo52)}). Prețul mare e REAL, dar un titlu atât de fugit de la bază e în teritoriu de blow-off / trend târziu — entry tardiv, risc de reversal.`;
+  if (compact) return ` <span style="font-size:10px;vertical-align:middle;cursor:help" title="${ttl}">${ico}</span>`;
+  return ` <span style="font-size:10px;font-weight:700;color:${col};border:1px solid ${col};border-radius:5px;padding:1px 5px;vertical-align:middle;white-space:nowrap" title="${ttl}">${ico} ×${mult.toFixed(1)} min52s</span>`;
 }
 
 async function fetchInsiders(sym) {
@@ -1209,7 +1226,7 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
       <div class="card">
         <h2><span class="ico">📊</span> Indicatori cheie</h2>
         <div class="meta-card">
-          <div class="meta"><div class="lbl">Preț</div><div class="v">${fmt$(scoreData.last)}</div></div>
+          <div class="meta"><div class="lbl">Preț</div><div class="v">${fmt$(scoreData.last)}${extLowBadge(scoreData.last, scoreData.lo52)}</div></div>
           <div class="meta"><div class="lbl">RSI(14)</div><div class="v">${scoreData.rsi != null ? scoreData.rsi.toFixed(1) : '—'}</div></div>
           <div class="meta"><div class="lbl">ADX(14)</div><div class="v">${scoreData.adx != null ? scoreData.adx.toFixed(1) : '—'}</div></div>
           <div class="meta"><div class="lbl">ATR(14)</div><div class="v">${scoreData.atr != null ? scoreData.atr.toFixed(2) : '—'}</div></div>
@@ -1691,7 +1708,7 @@ function renderListTable() {
     const earnB = r.earn ? `<span class="ls-earn" title="earnings ${r.earn.date} (~${Math.max(0, Math.round(r.earn.hoursAway))}h)">⚠E${r.earn.hoursAway <= 48 ? '!' : ''}</span>` : '';
     return `<tr onclick="scanFromList('${r.sym}')" title="click → analiză completă">
       <td><strong>${r.sym}</strong>${earnB}</td>
-      <td>${fmt$(r.px != null ? r.px : s.last)}${r.sess ? lsSessBadge(r.sess) : ''}</td>
+      <td>${fmt$(r.px != null ? r.px : s.last)}${r.sess ? lsSessBadge(r.sess) : ''}${extLowBadge(r.px != null ? r.px : s.last, s.lo52, true)}</td>
       <td style="color:${chgCol}">${fmtPct(r.chg)}</td>
       <td class="ls-hide">${s.rsi != null ? s.rsi.toFixed(0) : '—'}</td>
       <td class="ls-hide">${s.adx != null ? s.adx.toFixed(0) : '—'}</td>
