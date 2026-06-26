@@ -902,7 +902,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v116</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v117</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -1878,7 +1878,7 @@ function exportCsvNasdaq(){
   for(var i=0;i<allSignals.length;i++){
     var s=allSignals[i];var td=s.tradeDetail||{};
     var row=[s.coin,s.type,s.title,'$'+(s.price||0).toFixed(2),((s.chg||0)>=0?'+':'')+(s.chg||0).toFixed(2)+'%',((s.metrics&&s.metrics.rsi)||0).toFixed(0),s.strength+'%',s.priority,td.entry||'',td.tp||'',td.sl||'',(SECTORS&&SECTORS[s.coin])||''];
-    lines.push(row.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(','));
+    lines.push(row.map(function(c){var v=String(c);if(/^[=+\-@]/.test(v))v="'"+v;/* anti CSV-formula injection */return '"'+v.replace(/"/g,'""')+'"';}).join(','));
   }
   var blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
   var url=URL.createObjectURL(blob);
@@ -2448,9 +2448,13 @@ async function fetchSparklines(symbols, key){
       // trend EMA — mai stabil pe 1y — și max/min 52 săptămâni pt scoring/context)
       const yh=await fetchYahooDailyCloses(sym, 365);
       if(yh.length>=2){
-        sparklineCache[sym]=yh.slice(-8);
+        // În sesiune regular ultima bară e parțială (azi în formare) → o excludem din sparkline
+        // și din max/min 52s ca breakout-ul „nou maxim" să nu fie trivial-adevărat pe ziua curentă.
+        const _sess=(typeof getMarketSession==='function')?getMarketSession().session:'';
+        const _closed=(_sess==='regular' && yh.length>=3)?yh.slice(0,-1):yh;
+        sparklineCache[sym]=_closed.slice(-8);
         const tr=computeDailyTrend(yh); if(tr) dailyTrendCache[sym]=tr;
-        if(yh.length>=60) fiftyTwoCache[sym]={hi:Math.max(...yh),lo:Math.min(...yh)};
+        if(_closed.length>=60) fiftyTwoCache[sym]={hi:Math.max(..._closed),lo:Math.min(..._closed)};
       } else {
         // Finnhub fallback (paid tier)
         const d=await fhGet(`${FINNHUB}/stock/candle?symbol=${sym}&resolution=D&from=${from}&to=${to}&token=${key}`);
@@ -2517,9 +2521,10 @@ function renderNewsSection(symbol){
   const items=news.map(n=>{
     const sc=n.sentiment>0.1?'pos':n.sentiment<-0.1?'neg':'neu';
     const st=n.sentiment>0.1?'Pozitiv':n.sentiment<-0.1?'Negativ':'Neutru';
+    // Escape pe datele externe din feedul Finnhub (headline/source/url) — apărare XSS.
     return`<div class="news-item">
-      <div class="news-headline"><a href="${n.url}" target="_blank" rel="noopener">${n.headline}</a></div>
-      <div class="news-meta"><span>${n.source}</span><span>${n.dt}</span><span class="news-sentiment ns-${sc}">${st}</span></div>
+      <div class="news-headline"><a href="${U.safeUrl(n.url)}" target="_blank" rel="noopener">${U.escHtml(n.headline)}</a></div>
+      <div class="news-meta"><span>${U.escHtml(n.source)}</span><span>${U.escHtml(n.dt)}</span><span class="news-sentiment ns-${sc}">${st}</span></div>
     </div>`;
   }).join('');
   return`<div class="news-section"><div class="news-title">📰 Știri recente</div>${items}</div>`;
@@ -10694,6 +10699,7 @@ setTimeout(_updateGistStatusN, 500);
   }catch(e){}
 })();
 </script>
+<script src="../lib/utils.js"></script>
 <script src="../lib/data.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
