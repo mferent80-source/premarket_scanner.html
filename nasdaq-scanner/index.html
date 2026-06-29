@@ -902,7 +902,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v117</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v118</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -4472,7 +4472,7 @@ function renderInsiderFeed(){
       const value=(tx.share||0)*(tx.transactionPrice||0);
       const date=new Date(tx.transactionDate).toLocaleDateString('ro-RO',{day:'2-digit',month:'short'});
       return '<div style="display:flex;justify-content:space-between;font-size:.58rem;color:var(--t2);padding:3px 0;border-top:1px dashed var(--b1)">'+
-        '<span><strong>'+(tx.name||'?').slice(0,30)+'</strong> · '+date+' · '+(isBuyTx?'<span style="color:var(--green)">▲ buy</span>':'<span style="color:var(--red)">▼ sell</span>')+'</span>'+
+        '<span><strong>'+U.escHtml((tx.name||'?').slice(0,30))+'</strong> · '+date+' · '+(isBuyTx?'<span style="color:var(--green)">▲ buy</span>':'<span style="color:var(--red)">▼ sell</span>')+'</span>'+
         '<span style="font-family:var(--mono);font-weight:700">$'+(value>=1e6?(value/1e6).toFixed(2)+'M':(value/1e3).toFixed(0)+'K')+'</span>'+
       '</div>';
     }).join('');
@@ -5678,6 +5678,10 @@ async function runScan(){
   log(`🔎 Faza 3: Analizez ${quotesData.length} acțiuni...`,'info');
   await sleep(0); // yield înainte de loop
   const newSignals=[];
+  // Finnhub /quote (q.c) = prețul ultimei sesiuni REGULAR; în pre/after-market chg24 e mișcarea
+  // de IERI, nu live. Marcăm vizual semnalele bazate pe chg24 ca posibil stale când nu e RTH.
+  const _scanSess=(typeof getMarketSession==='function')?getMarketSession().session:'regular';
+  const _staleWarn=(_scanSess!=='regular')?'<span class="warn">⚠️ Pre/after-market: chg% e din ultima sesiune regular (poate fi stale, nu live).</span> ':'';
   for(let idx=0;idx<quotesData.length;idx++){
     if(!running) break;
 
@@ -5734,7 +5738,7 @@ async function runScan(){
         :`<span class="good">RSI ${rsi.toFixed(0)} — spațiu tehnic disponibil. Rally cu potențial de continuare.</span>`;
       const entryZone=rsi>=70?`$${(price*0.96).toFixed(2)}–$${(price*0.98).toFixed(2)}`:`$${(price*0.99).toFixed(2)}–$${price.toFixed(2)}`;
       const sugg=rsi>=75?'wait':chg24>=8?'scalp':'long';
-      const desc=`<strong>${symbol}</strong> a crescut <strong>+${chg24.toFixed(2)}%</strong> față de închiderea precedentă ($${prevClose.toFixed(2)} → $${price.toFixed(2)}). ${rsiCtx}`;
+      const desc=`${_staleWarn}<strong>${symbol}</strong> a crescut <strong>+${chg24.toFixed(2)}%</strong> față de închiderea precedentă ($${prevClose.toFixed(2)} → $${price.toFixed(2)}). ${rsiCtx}`;
       const td={entry:entryZone,tp:`$${(price*1.07).toFixed(2)} / $${(price*1.12).toFixed(2)}`,sl:`$${(price*(rsi>=70?0.94:0.96)).toFixed(2)}`,risc:rsi>=75?'RIDICAT':chg24>=6?'MEDIU':'SCĂZUT'};
       newSignals.push(makeSignal(symbol,'pump','📈 Rally Puternic',desc,{chg24,rsi,range24pct},price,chg24,strength,priority,sugg,td));
     }
@@ -5748,7 +5752,7 @@ async function runScan(){
         :rsi<=45?`<span class="warn">RSI ${rsi.toFixed(0)} — momentum negativ. Stai lateral. Nicio intrare long fără confirmare.</span>`
         :`<span class="warn">RSI ${rsi.toFixed(0)} — vânzare cu RSI ridicat = distribuție sau reacție fundamentală. Risc de continuare.</span>`;
       const sugg=rsi<=30?'dca':'wait';
-      const desc=`<strong>${symbol}</strong> a scăzut <strong>${chg24.toFixed(2)}%</strong> față de închiderea precedentă. ${rsiCtx} <span class="muted">Suport imediat: $${low24.toFixed(2)}. Rezistența de recuperat: $${prevClose.toFixed(2)}.</span>`;
+      const desc=`${_staleWarn}<strong>${symbol}</strong> a scăzut <strong>${chg24.toFixed(2)}%</strong> față de închiderea precedentă. ${rsiCtx} <span class="muted">Suport imediat: $${low24.toFixed(2)}. Rezistența de recuperat: $${prevClose.toFixed(2)}.</span>`;
       const td={entry:`$${(price*0.99).toFixed(2)}–$${low24.toFixed(2)}`,tp:`$${(price*1.05).toFixed(2)}`,sl:`$${(low24*0.97).toFixed(2)}`,risc:rsi>=45?'RIDICAT':'MEDIU'};
       newSignals.push(makeSignal(symbol,'dump','📉 Scădere Bruscă',desc,{chg24,rsi,range24pct},price,chg24,strength,priority,sugg,td));
     }
