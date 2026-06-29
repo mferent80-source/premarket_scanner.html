@@ -83,13 +83,21 @@
     var f = document.createElement('iframe');
     f.src = ROOT + u; f.dataset.u = u;
     f.setAttribute('title', (byU[u] || {}).n || u);
+    // La încărcare, spune iframe-ului dacă e activ — paginile își pot pauza polling-ul în fundal
+    // (un iframe display:none NU primește visibilitychange, deci ar scana inutil în paralel).
+    f.addEventListener('load', function(){ try { f.contentWindow.postMessage({ ttShellVisible: f.dataset.u === active }, location.origin); } catch(_){} });
     framesEl.appendChild(f); frames[u] = f; return f;
+  }
+  function notifyVisible(){
+    // Notifică fiecare iframe dacă e vizibil (activ) — paginile pot pauza polling-ul în fundal.
+    for (var k in frames){ try { frames[k].contentWindow.postMessage({ ttShellVisible: k === active }, location.origin); } catch(_){} }
   }
   function setActive(u){
     if (byU[u] === undefined) return;
     if (open.indexOf(u) < 0) open.push(u);
     active = u; ensureFrame(u);
     for (var k in frames) frames[k].classList.toggle('active', k === u);
+    notifyVisible();
     renderTabs(); renderDock(); persist();
   }
   function closeTab(u){

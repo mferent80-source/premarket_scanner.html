@@ -1037,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v244</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v245</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1330,6 +1330,9 @@
 <script src="../lib/ledger.js"></script>
 <script src="../lib/telegram.js"></script>
 <script>
+// Flag shell-pause: default vizibil. FĂRĂ mesaj de la shell → comportament IDENTIC actual.
+// Pauza polling-urilor de fundal e opt-in DOAR la ttShellVisible:false (vezi secțiunea „SHELL VISIBILITY" jos).
+var _shellHidden = false;
 // Features modal pentru pagina market-events
 window.showMeFeatures = function(){
   document.getElementById('flOverlay')?.remove();
@@ -1356,7 +1359,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v244 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early (început de drum)/🏃 A fugit/🌳 Confirmat + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v245 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early (început de drum)/🏃 A fugit/🌳 Confirmat + 🌅 Premarket</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -4254,14 +4257,15 @@ wlUpdateCompareBar(); // creează DOM-ul barei (ascuns până la 1+ selectate)
 if (watchlist.length) wlRefresh(); // refresh imediat la load
 // Refresh „lent" 60s — DOAR când NU suntem în live-mode (REGULAR). În sesiune REGULAR preia
 // intervalul de 15s din applyLiveMode; altfel ar rula ambele în paralel pe aceleași simboluri.
-setInterval(() => { if (!document.hidden && watchlist.length && currentSession !== 'REGULAR') wlRefresh(); }, 60000);
+// Handle-uri stocate pt. shell-pause (vezi secțiunea „SHELL VISIBILITY" jos) — anonime altfel nu se pot opri.
+var _wlSlowTimer = setInterval(() => { if (!document.hidden && watchlist.length && currentSession !== 'REGULAR') wlRefresh(); }, 60000);
 // Early-bird: calculează în fundal la load (badge-urile 🌱 apar și în vederea „Toate"),
 // apoi reîmprospătează la 10 min — semnalele daily nu se mișcă intraday.
 if (watchlist.length) wlEnsureEarlyData().then(wlRender);
-setInterval(() => { if (!document.hidden && watchlist.length) wlEnsureEarlyData(true).then(wlRender); }, 10 * 60 * 1000);
+var _wlEarlyTimer = setInterval(() => { if (!document.hidden && watchlist.length) wlEnsureEarlyData(true).then(wlRender); }, 10 * 60 * 1000);
 // Insider cluster (Form 4): fetch în fundal, cache 24h — Form 4 e public delayed, n-are sens să polăm des
 if (watchlist.length) wlEnsureInsiderData().then(wlRender);
-setInterval(() => { if (!document.hidden && watchlist.length) wlEnsureInsiderData().then(wlRender); }, 6 * 60 * 60 * 1000);
+var _wlInsiderTimer = setInterval(() => { if (!document.hidden && watchlist.length) wlEnsureInsiderData().then(wlRender); }, 6 * 60 * 60 * 1000);
 
 // ============================================================
 // CHAT AI FLOTANT (port din nasdaq-scanner, simplificat)
@@ -4992,9 +4996,12 @@ function autoScanApply() {
   if (autoScanTimer) { clearInterval(autoScanTimer); autoScanTimer = null; }
   if (autoScanInterval > 0) {
     if (wrap) wrap.classList.add('active');
-    autoScanTimer = setInterval(runAutoScan, autoScanInterval * 60_000);
+    // Nu re-arma timerul de fundal cât suntem ascunși în shell (re-pornit la ttShellVisible:true).
+    if (!_shellHidden) {
+      autoScanTimer = setInterval(runAutoScan, autoScanInterval * 60_000);
+      setTimeout(runAutoScan, 2000);
+    }
     showToast(`✓ AI auto-scan activ la ${autoScanInterval} min`, 'success');
-    setTimeout(runAutoScan, 2000);
   } else {
     if (wrap) wrap.classList.remove('active');
     document.getElementById('aiAutoScanPanel')?.classList.remove('show');
@@ -5592,18 +5599,71 @@ function applyLiveMode() {
   const ind = document.getElementById('liveIndicator');
   if (currentSession === 'REGULAR') {
     if (ind) ind.classList.add('show');
-    // Refresh watchlist la 15s + updatează prețurile vizuale fără să rezbatem tot scan-ul
-    liveIntervalHandle = setInterval(() => {
-      if (!document.hidden && typeof watchlist !== 'undefined' && watchlist?.length) {
-        wlRefresh();
-      }
-    }, 15000);
+    // Refresh watchlist la 15s + updatează prețurile vizuale fără să rezbatem tot scan-ul.
+    // Nu re-arma cât suntem ascunși în shell (re-pornit la ttShellVisible:true).
+    if (!_shellHidden) {
+      liveIntervalHandle = setInterval(() => {
+        if (!document.hidden && typeof watchlist !== 'undefined' && watchlist?.length) {
+          wlRefresh();
+        }
+      }, 15000);
+    }
   } else {
     if (ind) ind.classList.remove('show');
   }
 }
 
 // Tranzițiile de sesiune sunt detectate direct în renderMarketSession (vezi sus) — fără monkey-patch.
+
+// ============================================================
+// SHELL VISIBILITY — pauză polling de fundal când shell-ul PWA
+// ține pagina în iframe ascuns (display:none, fără visibilitychange).
+// Shell trimite window.postMessage({ ttShellVisible: true|false }, origin).
+// REGULA DE AUR: default vizibil. FĂRĂ mesaj = ZERO schimbare față de actual.
+// Pauza e opt-in DOAR la ttShellVisible:false; revenirea reia TOATE timerele.
+// ============================================================
+function _shellPausePolling(){
+  // Oprește toate auto-poll-urile de fundal (NU acțiunile manuale ale userului).
+  if (typeof _wlSlowTimer    !== 'undefined' && _wlSlowTimer)    { clearInterval(_wlSlowTimer);    _wlSlowTimer = null; }
+  if (typeof _wlEarlyTimer   !== 'undefined' && _wlEarlyTimer)   { clearInterval(_wlEarlyTimer);   _wlEarlyTimer = null; }
+  if (typeof _wlInsiderTimer !== 'undefined' && _wlInsiderTimer) { clearInterval(_wlInsiderTimer); _wlInsiderTimer = null; }
+  if (typeof autoScanTimer    !== 'undefined' && autoScanTimer)    { clearInterval(autoScanTimer);    autoScanTimer = null; }
+  if (typeof liveIntervalHandle !== 'undefined' && liveIntervalHandle) { clearInterval(liveIntervalHandle); liveIntervalHandle = null; }
+}
+function _shellResumePolling(){
+  // Re-armează OBLIGATORIU toate timerele de fundal (toate au handle null după pauză).
+  try {
+    if (typeof _wlSlowTimer !== 'undefined' && !_wlSlowTimer) {
+      _wlSlowTimer = setInterval(() => { if (!document.hidden && watchlist.length && currentSession !== 'REGULAR') wlRefresh(); }, 60000);
+    }
+    if (typeof _wlEarlyTimer !== 'undefined' && !_wlEarlyTimer) {
+      _wlEarlyTimer = setInterval(() => { if (!document.hidden && watchlist.length) wlEnsureEarlyData(true).then(wlRender); }, 10 * 60 * 1000);
+    }
+    if (typeof _wlInsiderTimer !== 'undefined' && !_wlInsiderTimer) {
+      _wlInsiderTimer = setInterval(() => { if (!document.hidden && watchlist.length) wlEnsureInsiderData().then(wlRender); }, 6 * 60 * 60 * 1000);
+    }
+    // Live 15s + autoscan: re-armate prin funcțiile lor (acum gate-uite pe !_shellHidden).
+    if (typeof applyLiveMode === 'function') applyLiveMode();
+    if (typeof autoScanApply === 'function' && typeof autoScanInterval !== 'undefined' && autoScanInterval > 0) autoScanApply();
+    // Refresh imediat la revenire (datele s-au învechit cât am stat ascunși).
+    if (typeof watchlist !== 'undefined' && watchlist.length && typeof wlRefresh === 'function') wlRefresh();
+  } catch(e){ /* nu bloca pagina dacă un timer lipsește */ }
+}
+window.addEventListener('message', function(ev){
+  // Acceptă doar mesaje din același origin (shell-ul e pe același host) + payload boolean explicit.
+  if (ev.origin !== window.location.origin) return;
+  var d = ev.data;
+  if (!d || typeof d.ttShellVisible !== 'boolean') return;
+  if (d.ttShellVisible === false) {
+    if (_shellHidden) return;            // deja în pauză
+    _shellHidden = true;
+    _shellPausePolling();
+  } else {
+    if (!_shellHidden) return;           // deja activ (sau n-am fost niciodată pauzați)
+    _shellHidden = false;
+    _shellResumePolling();
+  }
+});
 
 // === VOLUME HEATMAP — vol/avg per loser, bare orizontale colorate ===
 function renderVolumeHeatmap() {

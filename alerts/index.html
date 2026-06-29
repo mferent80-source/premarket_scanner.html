@@ -416,7 +416,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body>
 
 <header>
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v58</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v59</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -745,6 +745,9 @@ let notifEnabled = localStorage.getItem(NOTIF_KEY) === '1';
 let popupMode = localStorage.getItem(POPUP_KEY) || 'auto';   // default: dispar singure în 6s
 let pollPaused = false;
 let pollTimer = null;
+// v59: shell PWA → iframe ascuns nu primește visibilitychange, deci shell-ul trimite postMessage({ttShellVisible}).
+// Default false = vizibil → comportament IDENTIC fără mesaj (pagină deschisă direct în browser nu se schimbă).
+var _shellHidden = false;
 
 // ============ STATE ============
 function loadAlerts(){ try { const o = JSON.parse(localStorage.getItem(ALERTS_KEY) || '{}'); return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; } catch (e) { return {}; } }
@@ -1213,6 +1216,9 @@ async function pollPrices() {
 
 function schedulePoll() {
   if (pollTimer) clearTimeout(pollTimer);
+  // v59: dacă shell-ul PWA ne ține în fundal (iframe ascuns dar viu), NU re-armăm timerul.
+  // Polling reluat la ttShellVisible:true. Plasă de siguranță: botul server-side (cron */5) prinde alertele oricum.
+  if (_shellHidden) return;
   pollTimer = setTimeout(async () => {
     await pollPrices();
     schedulePoll();
@@ -2223,6 +2229,24 @@ $('pullBtn').addEventListener('click', () => pullFromGitHub(false));
 $('inpSym').addEventListener('keypress', e => { if (e.key === 'Enter') asSearch(); });
 $('inpThr').addEventListener('keypress', e => { if (e.key === 'Enter') $('btnAdd').click(); });
 $('inpNote').addEventListener('keypress', e => { if (e.key === 'Enter') $('btnAdd').click(); });
+
+// v59: shell PWA — pauzează poll-ul de preț când iframe-ul e ascuns (display:none dar viu, fără visibilitychange).
+// Opt-in STRICT: doar la ttShellVisible:false. La true → reia schedulePoll + poll imediat. Botul server-side e plasa.
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin) return;            // origin check
+  if (!e.data || typeof e.data.ttShellVisible !== 'boolean') return; // boolean check
+  if (e.data.ttShellVisible === false) {
+    _shellHidden = true;
+    if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; } // oprește timerul recurent
+  } else {
+    const wasHidden = _shellHidden;
+    _shellHidden = false;
+    if (wasHidden) {
+      schedulePoll();   // OBLIGATORIU: re-armează timerul (altfel alertele nu mai pică local)
+      pollPrices();     // poll imediat la revenire
+    }
+  }
+});
 
 // Pause polling when tab inactive
 document.addEventListener('visibilitychange', () => {
