@@ -1,14 +1,29 @@
 //@version=6
-indicator("As Good As It Gets Pivot Arrows v3.9.3",
-     shorttitle="AGAIG v3.9.3", overlay=true,
+indicator("As Good As It Gets Pivot Arrows v3.9.4",
+     shorttitle="AGAIG v3.9.4", overlay=true,
      max_labels_count=500, max_lines_count=500,
      max_bars_back=500)
 
 // ------------------------------------------------------------
 // As Good As It Gets - Pivot Detection Indicator
 // Created by: NPR21
-// Version: 3.9.3
+// Version: 3.9.4
 // Last Updated: June 29, 2026
+//
+// v3.9.4 UPDATE (AUDIT FIXES - round 2):
+//   • FIX (major-swing leg-state, reziduu din v3.9.3). v3.9.3
+//     a separat ANCORELE de output, dar legDir/legExtP/legExtB
+//     ramaneau partajate intre blocul high (ruleaza primul) si
+//     blocul low. Pe o bara OUTSIDE (simultan swing high SI low)
+//     blocul low citea starea deja mutata de blocul high si
+//     compara high-ul barei cu low-ul ei (range intra-bara) ca
+//     "swing" -> stampila un major FALS. Acum o bara dublu-pivot
+//     e EXCLUSA din leg-tracking (ambigua directional); leg-ul
+//     continua corect la urmatorul pivot clar.
+//   • FIX (tie-break dashboard State). Daca pe aceeasi bara apar
+//     si Buy si Sell, ambele stampile se deseneaza dar State-ul
+//     (dashDir/Last@/Bars) NU mai face flip haotic - ramane pe
+//     ultima directie clara.
 //
 // v3.9.3 UPDATE (AUDIT FIXES):
 //   • FIX (major-swing): a bar that is BOTH a swing high and
@@ -596,9 +611,15 @@ var int   legDir  = 0     // +1 tracking a high, -1 tracking a low
 var float legExtP = na    // running extreme of current leg
 var int   legExtB = na    // bar of running extreme
 
-// FIX v3.9.3: ancore SEPARATE Buy/Sell. O bara care e simultan swing high SI
-// swing low rula ambele blocuri si suprascria un singur majorBar/majorPrice
-// partajat -> putea stampila un Buy si un Sell la acelasi pret/bara.
+// FIX v3.9.3: ancore SEPARATE Buy/Sell (output).
+// FIX v3.9.4: cauza de INTRARE. legDir/legExtP/legExtB sunt PARTAJATE intre cele
+// doua blocuri; blocul high ruleaza primul si le muta, iar blocul low citea starea
+// deja mutata -> pe o bara OUTSIDE (simultan swing high SI swing low) blocul low
+// compara legExtP(=high-ul barei) - low = range-ul intra-bara ca "swing" si stampila
+// un major FALS. O bara dublu-pivot e ambigua directional -> o EXCLUDEM din
+// leg-tracking (nu muta starea, nu genereaza major). La urmatorul pivot clar leg-ul
+// continua corect. Rar pe length mare, mai des pe length mic (intraday).
+bool  dualPivot = not na(pivot_high_conf) and not na(pivot_low_conf)
 bool  majorBuy       = false
 bool  majorSell      = false
 int   majorBuyBar    = bar_index
@@ -606,7 +627,7 @@ float majorBuyPrice  = na
 int   majorSellBar   = bar_index
 float majorSellPrice = na
 
-if not na(pivot_high_conf)
+if not na(pivot_high_conf) and not dualPivot
     if legDir == 0
         legDir := 1
         legExtP := pivot_high_conf
@@ -625,7 +646,7 @@ if not na(pivot_high_conf)
             legExtP := pivot_high_conf
             legExtB := pivBar
 
-if not na(pivot_low_conf)
+if not na(pivot_low_conf) and not dualPivot
     if legDir == 0
         legDir := -1
         legExtP := pivot_low_conf
@@ -818,17 +839,22 @@ var int   dashBar   = na
 // -------------------------------------------------
 // RENDER - Confirmed / Early modes
 // -------------------------------------------------
+// FIX v3.9.4: tie-break. Daca pe ACEEASI bara apar si Buy si Sell (posibil in
+// Confirmed non-major / Early cand o bara e si swing high si swing low), desenam
+// ambele stampile (sunt pivoti reali), dar NU mutam State-ul (dashDir/Price/Bar)
+// pe aceasta bara conflictuala -> ramane pe ultima directie clara, fara flip haotic.
+bool bothSig = finalBuy and finalSell
 if not isPrevMode
     if finalBuy
         placeSig(finalBuyIdx, true, finalBuyTip, sigType, buyFaded)
-        if not buyFaded
+        if not buyFaded and not bothSig
             makeLeader(finalBuyIdx, true, finalBuyTip)
             dashDir   := 1
             dashPrice := finalBuyTip
             dashBar   := finalBuyIdx
     if finalSell
         placeSig(finalSellIdx, false, finalSellTip, sigType, sellFaded)
-        if not sellFaded
+        if not sellFaded and not bothSig
             makeLeader(finalSellIdx, false, finalSellTip)
             dashDir   := -1
             dashPrice := finalSellTip

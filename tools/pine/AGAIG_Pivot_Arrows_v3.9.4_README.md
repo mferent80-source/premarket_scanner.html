@@ -1,7 +1,23 @@
-# AGAIG Pivot Arrows v3.9.3 — README
+# AGAIG Pivot Arrows v3.9.4 — README
 
 Indicator Pine v6 de detecție pivoturi (BUY/SELL) cu trei moduri de semnal,
 adaptat pentru **trade rapid intraday** (15 / 30 / 60 min).
+
+## Nou în v3.9.4 — Audit fixes round 2 (corectitudine)
+Audit suite-wide (3 auditori pe 9 lentile + verificare adversarială) a prins un
+reziduu din v3.9.3.
+
+- **🔴 FIX leg-state major-swing (reziduu v3.9.3).** v3.9.3 separase doar ancorele de
+  *output* (`majorBuyBar/Price` vs `Sell`), dar starea de leg `legDir`/`legExtP`/`legExtB`
+  rămânea **partajată** între blocul high (rulează primul) și blocul low. Pe o bară
+  **outside** (simultan swing high ȘI swing low), blocul low citea starea deja mutată de
+  blocul high și compara high-ul barei cu low-ul ei (range intra-bară) ca „swing" →
+  **stampila un major FALS**. Acum o bară dublu-pivot e **exclusă** din leg-tracking
+  (ambiguă direcțional); leg-ul continuă corect la următorul pivot clar. Rar pe `length`
+  mare, mai frecvent pe `length` mic (intraday).
+- **🟡 FIX tie-break dashboard State.** Dacă pe aceeași bară apar și Buy și Sell, ambele
+  stampile se desenează, dar State-ul (direcție / Last@ / Bars) **nu mai face flip haotic**
+  — rămâne pe ultima direcție clară.
 
 ## Nou în v3.9.3 — Audit fixes (corectitudine)
 Patch de corectitudine după un audit sever. Comportamentul de bază e neschimbat;
