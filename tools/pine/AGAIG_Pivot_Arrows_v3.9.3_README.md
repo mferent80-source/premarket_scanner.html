@@ -1,10 +1,28 @@
-# AGAIG Pivot Arrows v3.9.2 — README
+# AGAIG Pivot Arrows v3.9.3 — README
 
 Indicator Pine v6 de detecție pivoturi (BUY/SELL) cu trei moduri de semnal,
 adaptat pentru **trade rapid intraday** (15 / 30 / 60 min).
 
+## Nou în v3.9.3 — Audit fixes (corectitudine)
+Patch de corectitudine după un audit sever. Comportamentul de bază e neschimbat;
+se repară edge-case-uri și se curăță câteva defaulturi.
+
+- **🔴 FIX major-swing dublu.** O bară care era **simultan** swing high și swing low
+  putea stampila un BUY și un SELL la **același preț/aceeași bară** (cele două direcții
+  împărțeau un singur `majorBar`/`majorPrice`). Acum BUY și SELL au ancore separate.
+- **🟡 FIX filtre context în Confirmed.** Filtrele **Sesiune** și **Volum** se evaluează
+  acum pe **bara pivotului** (nu pe bara de confirmare de mai târziu), ca un turn să fie
+  judecat pe propria bară. Se aplică în Confirmed (non-major) + Confirmed+Potential.
+  *Notă:* major-swing are ancora variabilă în timp → acolo filtrul rămâne la confirmare.
+  Early evaluează bara live → neschimbat.
+- **🔵 FIX referință calitate (Early).** Un **reversal estompat** (heads-up, fără calitate)
+  nu mai consumă referința Min-Swing / Min-Bars, ca să nu suprime următorul semnal real.
+- **🔵 Polish.** `Pivot Length` minim = 2 (1 degenera detectorul); `confThr` tratează ATR
+  `na` la cold start explicit; **Mode Tag / Leader / Reversal markers acum default OFF**
+  (vizualele de chart pornesc ascunse — dashboard-ul rămâne ON). Le reactivezi din inputs.
+
 ## Nou în v3.9.2 — Reversal markers (Early)
-Sub `Early / Fast Mode` → **Reversal markers (Early)** (default ON). După un semnal,
+Sub `Early / Fast Mode` → **Reversal markers (Early)** (default OFF din v3.9.3). După un semnal,
 dacă momentum-ul Early se întoarce **contrar** ultimei direcții afișate, apare imediat
 un marker — **chiar dacă** filtrul Min Swing / Min Bars l-ar fi tăiat — ca să nu ratezi
 nicio întoarcere. Semnalele de calitate rămân pline; reversările care n-au trecut filtrul

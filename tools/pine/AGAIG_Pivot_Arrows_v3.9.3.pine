@@ -1,14 +1,36 @@
 //@version=6
-indicator("As Good As It Gets Pivot Arrows v3.9.2",
-     shorttitle="AGAIG v3.9.2", overlay=true,
+indicator("As Good As It Gets Pivot Arrows v3.9.3",
+     shorttitle="AGAIG v3.9.3", overlay=true,
      max_labels_count=500, max_lines_count=500,
      max_bars_back=500)
 
 // ------------------------------------------------------------
 // As Good As It Gets - Pivot Detection Indicator
 // Created by: NPR21
-// Version: 3.9.2
-// Last Updated: June 22, 2026
+// Version: 3.9.3
+// Last Updated: June 29, 2026
+//
+// v3.9.3 UPDATE (AUDIT FIXES):
+//   • FIX (major-swing): a bar that is BOTH a swing high and
+//     a swing low no longer lets the Buy and Sell legs
+//     overwrite a single shared majorBar/majorPrice (which
+//     could stamp a Buy and Sell at the same price/bar).
+//     Buy and Sell now track independent anchors.
+//   • FIX (context filters in Confirmed mode): the Session
+//     and Volume filters now read the PIVOT bar (offset by
+//     the confirmation lag), not the later confirmation bar,
+//     so a turn is judged on its own bar. Early mode already
+//     evaluated the live bar and is unchanged.
+//   • FIX (Early quality reference): a FADED reversal-only
+//     marker no longer consumes the Min-Swing / Min-Bars
+//     reference, so it can't suppress the next genuine
+//     quality signal. lastEarlyDir still updates (so a
+//     reversal isn't re-flagged in the same direction).
+//   • POLISH: Pivot Length min is now 2 (length 1 degenerated
+//     the detector); confThr guards na ATR at cold start;
+//     Mode Tag / Leader / Reversal markers now default OFF
+//     (chart visuals stay hidden by default - dashboard
+//     stays ON). Toggle any back on in the inputs.
 //
 // v3.9.2 UPDATE:
 //   • REVERSAL MARKERS (Early). After a signal, if the Early
@@ -241,7 +263,7 @@ volMult = input.float(1.5, "Volume Multiple",
 // --------------- CONFIRMED SETTINGS ---------------
 string GRP_CONF = "--- Confirmed Mode ---"
 length = input.int(7, "Pivot Length",
-     minval=1, maxval=20, group=GRP_CONF)
+     minval=2, maxval=20, group=GRP_CONF)
 ignore_last_bar = input.bool(true, "Ignore Last Bar",
      group=GRP_CONF,
      tooltip="Suppress signals on the still-forming live " +
@@ -308,7 +330,7 @@ zlMinBars = input.int(0, "Min Bars Between Signals",
      "bars after the last one. 0 = off.")
 zlAtrLen = input.int(14, "Quality Filter ATR Length",
      minval=1, maxval=200, group=GRP_ZL)
-revMarkers = input.bool(true, "Reversal markers (Early)",
+revMarkers = input.bool(false, "Reversal markers (Early)",
      group=GRP_ZL,
      tooltip="After a signal, if Early momentum flips CONTRARY " +
      "to the last shown direction, print an early marker " +
@@ -329,7 +351,7 @@ sigDisplay = input.string("Arrows Only", "Signal Display",
      options=["Arrows Only", "Labels Only",
      "Labels and Arrows"],
      tooltip=DISP_TIP, group=GRP_VIS)
-show_mode_tag = input.bool(true, "Show Mode Tag",
+show_mode_tag = input.bool(false, "Show Mode Tag",
      tooltip="Small corner tag showing the active signal" +
      " mode. Independent of the signal display.",
      group=GRP_VIS)
@@ -398,7 +420,7 @@ arrowSizeOpt = input.string("normal", "Arrow size",
 
 // --------------- LABEL STYLING --------------------
 string GRP_LBL = "--- Label Styling ---"
-show_leader = input.bool(true, "Show leader line/arrow",
+show_leader = input.bool(false, "Show leader line/arrow",
      tooltip="The leader arrow used in 'Labels and " +
      "Arrows' mode, connecting the confirmed stamp to its " +
      "candle. Turn off to drop the connector.",
@@ -518,7 +540,21 @@ bool inSession = not useSession or
 float volAvg = ta.sma(volume, volLen)
 bool volOK = not useVol or na(volume) or na(volAvg) or
      volume >= volAvg * volMult
-bool ctxOK = inSession and volOK     // filtre NEdirecționale (sesiune + volum)
+bool ctxOK = inSession and volOK     // filtre NEdirecționale (sesiune + volum) - bara LIVE (Early)
+
+// FIX v3.9.3: în Confirmed (non-major) și Conf+Potential pivotul e ancorat in
+// trecut, la bar_index-pivOff. Filtrele NEdirectionale se evalueaza pe BARA
+// PIVOTULUI (offset pivOff), nu pe bara de confirmare de mai tarziu, ca un
+// turn sa fie judecat pe propria bara. (Major-swing are ancora VARIABILA in
+// timp -> nu se poate indexa cu offset fix; acolo ramane ctxOK la confirmare.)
+// pivOff = aceeasi formula ca left_right (care e declarat mai jos); folosim
+// length_ direct ca sa nu depindem de ordinea declararii.
+int pivOff = math.max(1, length_ - 1)
+bool inSessionPiv = not useSession or
+     not na(time(timeframe.period, sessionStr)[pivOff])
+bool volOKPiv = not useVol or na(volume[pivOff]) or na(volAvg[pivOff]) or
+     volume[pivOff] >= volAvg[pivOff] * volMult
+bool ctxOKPiv = inSessionPiv and volOKPiv
 
 // GATE ACTION. Block = contra-trend ASCUNS. Color only = afișat ESTOMPAT.
 bool gateBlock = gateEnable and gateAction == "Block counter-trend"
@@ -527,6 +563,9 @@ bool gateBlock = gateEnable and gateAction == "Block counter-trend"
 // în Color trece orice (contra-trend devine faded). = "show semantics".
 bool ctxBuy  = ctxOK and (not gateBlock or buyAligned)
 bool ctxSell = ctxOK and (not gateBlock or sellAligned)
+// Versiuni pe BARA PIVOTULUI (Confirmed non-major + Conf+Potential).
+bool ctxBuyPiv  = ctxOKPiv and (not gateBlock or buyAligned)
+bool ctxSellPiv = ctxOKPiv and (not gateBlock or sellAligned)
 // Marcaj contra-trend (relevant doar în Color only; în Block nu ajunge la randare).
 bool buyFaded  = gateEnable and not buyAligned
 bool sellFaded = gateEnable and not sellAligned
@@ -534,7 +573,8 @@ bool sellFaded = gateEnable and not sellAligned
 // -------------------------------------------------
 // CONFIRMED MODE ENGINE
 // -------------------------------------------------
-left_right = length_ - 1
+// guard: length_=1 (Custom manual) ar da left_right=0 -> fiecare bara devine pivot
+left_right = math.max(1, length_ - 1)
 
 pivot_high_conf = ta.pivothigh(high, left_right, left_right)
 pivot_low_conf  = ta.pivotlow(low,  left_right, left_right)
@@ -556,10 +596,15 @@ var int   legDir  = 0     // +1 tracking a high, -1 tracking a low
 var float legExtP = na    // running extreme of current leg
 var int   legExtB = na    // bar of running extreme
 
-bool  majorBuy   = false
-bool  majorSell  = false
-int   majorBar   = bar_index
-float majorPrice = na
+// FIX v3.9.3: ancore SEPARATE Buy/Sell. O bara care e simultan swing high SI
+// swing low rula ambele blocuri si suprascria un singur majorBar/majorPrice
+// partajat -> putea stampila un Buy si un Sell la acelasi pret/bara.
+bool  majorBuy       = false
+bool  majorSell      = false
+int   majorBuyBar    = bar_index
+float majorBuyPrice  = na
+int   majorSellBar   = bar_index
+float majorSellPrice = na
 
 if not na(pivot_high_conf)
     if legDir == 0
@@ -571,10 +616,11 @@ if not na(pivot_high_conf)
             legExtP := pivot_high_conf
             legExtB := pivBar
     else
-        if not na(legExtP) and pivot_high_conf - legExtP >= confThr
-            majorBuy   := true
-            majorBar   := legExtB
-            majorPrice := legExtP
+        // confThr e na pana se incalzeste ATR-ul -> major inactiv la cold start (intentionat, evita false)
+        if not na(legExtP) and not na(confThr) and pivot_high_conf - legExtP >= confThr
+            majorBuy      := true
+            majorBuyBar   := legExtB
+            majorBuyPrice := legExtP
             legDir  := 1
             legExtP := pivot_high_conf
             legExtB := pivBar
@@ -589,10 +635,10 @@ if not na(pivot_low_conf)
             legExtP := pivot_low_conf
             legExtB := pivBar
     else
-        if not na(legExtP) and legExtP - pivot_low_conf >= confThr
-            majorSell  := true
-            majorBar   := legExtB
-            majorPrice := legExtP
+        if not na(legExtP) and not na(confThr) and legExtP - pivot_low_conf >= confThr
+            majorSell      := true
+            majorSellBar   := legExtB
+            majorSellPrice := legExtP
             legDir  := -1
             legExtP := pivot_low_conf
             legExtB := pivBar
@@ -657,7 +703,11 @@ if isZLMode
     buyFaded  := buyFaded  or (revBuy  and not qualBuy)
     sellFaded := sellFaded or (revSell and not qualSell)
 
-if zlBuy or zlSell
+// FIX v3.9.3: referinta Min-Swing/Min-Bars se updateaza doar pe semnale de
+// CALITATE; un reversal-only faded nu o mai consuma (altfel suprima urmatorul
+// qual legitim). lastEarlyDir se updateaza pe ORICE semnal afisat (qual sau
+// reversal), ca un reversal sa nu fie re-marcat in aceeasi directie.
+if qualBuy or qualSell
     zlLastPrice := close
     zlLastBar   := bar_index
 if zlBuy
@@ -674,8 +724,9 @@ bool finalSell = false
 bool useMajor = isConfMode and confMinSwingATR_ > 0
 
 if isConfMode
-    finalBuy  := (useMajor ? majorBuy  : confBuy)  and ctxBuy
-    finalSell := (useMajor ? majorSell : confSell) and ctxSell
+    // major = ancora variabila -> ctx la confirmare; non-major = ctx pe bara pivotului
+    finalBuy  := useMajor ? (majorBuy  and ctxBuy)  : (confBuy  and ctxBuyPiv)
+    finalSell := useMajor ? (majorSell and ctxSell) : (confSell and ctxSellPiv)
 
 if isZLMode
     finalBuy  := zlBuy
@@ -684,12 +735,14 @@ if isZLMode
 string sigType = isZLMode ? "Early" : "Confirmed"
 
 float finalBuyTip  = isZLMode ? low  :
-     useMajor ? majorPrice : low[left_right]
+     useMajor ? majorBuyPrice  : low[left_right]
 float finalSellTip = isZLMode ? high :
-     useMajor ? majorPrice : high[left_right]
+     useMajor ? majorSellPrice : high[left_right]
 
-int finalIdx = isZLMode ? bar_index :
-     useMajor ? majorBar : bar_index - left_right
+int finalBuyIdx  = isZLMode ? bar_index :
+     useMajor ? majorBuyBar  : bar_index - left_right
+int finalSellIdx = isZLMode ? bar_index :
+     useMajor ? majorSellBar : bar_index - left_right
 
 // -------------------------------------------------
 // UNIFIED RENDERER
@@ -767,19 +820,19 @@ var int   dashBar   = na
 // -------------------------------------------------
 if not isPrevMode
     if finalBuy
-        placeSig(finalIdx, true, finalBuyTip, sigType, buyFaded)
+        placeSig(finalBuyIdx, true, finalBuyTip, sigType, buyFaded)
         if not buyFaded
-            makeLeader(finalIdx, true, finalBuyTip)
+            makeLeader(finalBuyIdx, true, finalBuyTip)
             dashDir   := 1
             dashPrice := finalBuyTip
-            dashBar   := finalIdx
+            dashBar   := finalBuyIdx
     if finalSell
-        placeSig(finalIdx, false, finalSellTip, sigType, sellFaded)
+        placeSig(finalSellIdx, false, finalSellTip, sigType, sellFaded)
         if not sellFaded
-            makeLeader(finalIdx, false, finalSellTip)
+            makeLeader(finalSellIdx, false, finalSellTip)
             dashDir   := -1
             dashPrice := finalSellTip
-            dashBar   := finalIdx
+            dashBar   := finalSellIdx
 
 // -------------------------------------------------
 // CONFIRMED + POTENTIAL lifecycle (alternating)
@@ -844,7 +897,7 @@ if isPrevMode
         bBar := na
 
     // --- confirmed HIGH pivot -> SELL (gated by HTF trend) ---
-    if not na(pivot_high_conf) and ctxOK and sellAligned
+    if not na(pivot_high_conf) and ctxOKPiv and sellAligned
         int t = bar_index - left_right
         float p = high[left_right]
         if dueSell
@@ -879,7 +932,7 @@ if isPrevMode
                 dashBar := t
 
     // --- confirmed LOW pivot -> BUY (gated by HTF trend) ---
-    if not na(pivot_low_conf) and ctxOK and buyAligned
+    if not na(pivot_low_conf) and ctxOKPiv and buyAligned
         int t = bar_index - left_right
         float p = low[left_right]
         if dueBuy
