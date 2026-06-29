@@ -1037,7 +1037,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v241</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v242</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -5305,6 +5305,12 @@ function meSizerCalc(){
 
   const riskUsd = acct * (riskPct / 100);
   const slDist = Math.abs(entry - sl);
+  // Gardă div-by-zero: SL === entry → slDist 0 → shares Infinity, plan „valid" cu poziție
+  // infinită. Guard-ul de sus prinde doar valori falsy, nu egalitatea entry==sl.
+  if (slDist === 0) {
+    out.innerHTML = '<div class="row" style="grid-column:1 / -1; color:#8b949e; font-style:italic;">⚠ SL nu poate fi egal cu entry (distanță 0 → poziție infinită). Alege un SL diferit.</div>';
+    return;
+  }
   const slDistPct = (slDist / entry) * 100;
   const shares = riskUsd / slDist;
   const investUsd = shares * entry;
