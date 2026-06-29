@@ -268,7 +268,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v159</span>
+    <span class="ver-badge" id="verBadge">v160</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
     <div class="hdr-spc"></div>
@@ -438,7 +438,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   v158: RRG varianta carduri pe 4 cadrane (toggle scatter↔cadrane, persistat).
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v158';
+const VER = 'v160';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -1176,21 +1176,27 @@ function render(){
   // Risk regime (cyclicals — XLK·XLY·XLC·XLF·XLI·XLB·XLE; defensives — XLU·XLP·XLV; XLRE=rate, exclus)
   const cyc = DATA.filter(d => d.group === 'cyclical');
   const def = DATA.filter(d => d.group === 'defensive');
-  const cycAvg = cyc.length ? cyc.reduce((s,d) => s+d.chg1w, 0) / cyc.length : 0;
-  const defAvg = def.length ? def.reduce((s,d) => s+d.chg1w, 0) / def.length : 0;
+  // Filtrăm null (sector picat la cădere parțială de proxy) — un singur null otrăvea media cu NaN.
+  const cycVals = cyc.map(d => d.chg1w).filter(v => v != null && !isNaN(v));
+  const defVals = def.map(d => d.chg1w).filter(v => v != null && !isNaN(v));
+  const cycAvg = cycVals.length ? cycVals.reduce((s,v) => s+v, 0) / cycVals.length : 0;
+  const defAvg = defVals.length ? defVals.reduce((s,v) => s+v, 0) / defVals.length : 0;
   const spread = cycAvg - defAvg;
+  // Regim INCOMPLET dacă lipsesc sectoare (cădere parțială) — nu-l persistăm cross-page (vezi mai jos).
+  const regimePartial = cycVals.length < cyc.length || defVals.length < def.length || cyc.length < 3 || def.length < 2;
   let regime, regimeCls;
   if (spread >  0.6)  { regime = 'RISK-ON';  regimeCls = 'on'; }
   else if (spread < -0.6){ regime = 'RISK-OFF'; regimeCls = 'off'; }
   else                { regime = 'NEUTRU';   regimeCls = 'neutral'; }
   $('riskPill').className = 'risk-pill ' + regimeCls;
-  $('riskPillTxt').textContent = 'Rotație ' + regime + ' (spread ' + fmtPct(spread) + ')';
+  $('riskPillTxt').textContent = 'Rotație ' + regime + (regimePartial ? ' ⚠ parțial' : '') + ' (spread ' + fmtPct(spread) + ')';
   $('riskDetail').innerHTML = `Cyclicals (XLK·XLY·XLC·XLF·XLI·XLB·XLE) avg <b class="${pctClass(cycAvg)}" style="color:var(--${cycAvg>=0?'green':'red'})">${fmtPct(cycAvg)}</b>` +
     ` · Defensives (XLU·XLP·XLV) avg <b class="${pctClass(defAvg)}" style="color:var(--${defAvg>=0?'green':'red'})">${fmtPct(defAvg)}</b>`;
   // Persistă regimul de ROTAȚIE SECTORIALĂ (cyclicals−defensives) pt consum cross-page (nasdaq ca filtru).
   // ATENȚIE: `tt_risk_regime` = rotație sectorială ≠ `md_risk_regime` (regim de risc MACRO din macro-dashboard,
   // citit via lib/regime.js). Sunt concepte diferite — badge-ul 🛡 din header arată regimul macro, separat.
-  try { localStorage.setItem('tt_risk_regime', JSON.stringify({ regime, cls: regimeCls, spread: +spread.toFixed(2), cycAvg: +cycAvg.toFixed(2), defAvg: +defAvg.toFixed(2), t: Date.now() })); } catch(_){}
+  // Persistă cross-page DOAR pe date complete — un regim pe sectoare lipsă ar contamina nasdaq cu un RISK-ON/OFF fals.
+  if (!regimePartial) try { localStorage.setItem('tt_risk_regime', JSON.stringify({ regime, cls: regimeCls, spread: +spread.toFixed(2), cycAvg: +cycAvg.toFixed(2), defAvg: +defAvg.toFixed(2), t: Date.now() })); } catch(_){}
 
   // Heatmap (sortat după Δ1w descending mereu — vizual clar)
   const heatOrd = DATA.slice().sort((a,b) => b.chg1w - a.chg1w);

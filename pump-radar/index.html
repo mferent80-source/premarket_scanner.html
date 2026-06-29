@@ -89,6 +89,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .status-dot.ok { background:var(--bull-s); box-shadow:0 0 5px var(--bull-s); }
 .status-dot.load { background:var(--warn); animation:pulse 1s infinite; }
 .status-dot.err { background:var(--bear-s); }
+.status-dot.warn { background:var(--warn); }
 @keyframes pulse { 50% { opacity:.3; } }
 .status-pill { font-size:10px; padding:3px 8px; border-radius:999px; background:var(--panel2); border:1px solid var(--b1); color:var(--t2); font-family:var(--mono); }
 .status-pill.live { border-color:rgba(34,214,107,.4); color:var(--bull-s); }
@@ -312,7 +313,7 @@ footer a { color:var(--accent); text-decoration:none; }
 <body>
 
 <header>
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v117</span></h1>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v118</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=pump-radar" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
@@ -1096,8 +1097,10 @@ function parseYahooChart(symbol, d){
   const closeRaw = q.close || [], volRaw = q.volume || [];
   const closes = [], vols = [], tss = [];
   for (let i = 0; i < closeRaw.length; i++){
-    if (closeRaw[i] == null) continue;
-    closes.push(closeRaw[i]); vols.push(volRaw[i] || 0); tss.push(tsRaw[i] || 0);
+    // Sanity numeric: respinge bare cu preț absurd de la proxy terț (null/≤0/non-finit) — fără
+    // asta o valoare fabricată/coruptă produce un m5 uriaș = pump fals.
+    if (closeRaw[i] == null || !isFinite(closeRaw[i]) || closeRaw[i] <= 0) continue;
+    closes.push(closeRaw[i]); vols.push((volRaw[i] != null && isFinite(volRaw[i]) && volRaw[i] >= 0) ? volRaw[i] : 0); tss.push(tsRaw[i] || 0);
   }
   if (closes.length < 4) return null;
   // Prețul LIVE = ultima bară (incl. pre/post) — meta.regularMarketPrice e STALE
@@ -1406,7 +1409,7 @@ async function runScan(){
   $('stScan').textContent = ok; $('stUniverse').textContent = '/ ' + UNIVERSE.length + ' universe';
   $('lastScan').textContent = `${new Date().toLocaleTimeString('ro-RO')} · ${ok}/${UNIVERSE.length} ok`;
   if (ok === 0) setStatus('err', 'eșec — toate proxy-urile CORS picate; reîncearcă în câteva minute');
-  else if (ok < UNIVERSE.length) setStatus('ok', `${alertN} alerte · ${ok}/${UNIVERSE.length} ok (${UNIVERSE.length - ok} ratate — proxy rate-limit)`);
+  else if (ok < UNIVERSE.length) setStatus('warn', `${alertN} alerte · ${ok}/${UNIVERSE.length} ok (${UNIVERSE.length - ok} ratate — proxy rate-limit; univers INCOMPLET)`);
   else setStatus('ok', `${alertN} alerte · ${ok}/${UNIVERSE.length} ok`);
   render();
   scanRunning = false; $('scanBtn').disabled = false;
