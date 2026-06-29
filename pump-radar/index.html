@@ -313,7 +313,7 @@ footer a { color:var(--accent); text-decoration:none; }
 <body>
 
 <header>
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v118</span></h1>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v119</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=pump-radar" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
@@ -1023,9 +1023,14 @@ function saveWatchlist(){ try { localStorage.setItem(WL_KEY, JSON.stringify(watc
 // ═══════════════════════════════════════════════════════════════
 //  Market session (NYSE/Nasdaq, DST-aware via Intl)
 // ═══════════════════════════════════════════════════════════════
+// formatter reutilizat (instanțierea Intl.DateTimeFormat e scumpă; marketSession e chemat de zeci de ori/scan)
+let _nySessionFmt = null;
 function marketSession(){
   let parts;
-  try { parts = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date()); }
+  try {
+    if (!_nySessionFmt) _nySessionFmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false });
+    parts = _nySessionFmt.formatToParts(new Date());
+  }
   catch(e){ return { state:'unknown', txt:'sesiune ?' }; }
   const get = t => (parts.find(p => p.type === t) || {}).value;
   const wd = get('weekday'); const h = +get('hour'); const m = +get('minute'); const mins = h*60 + m;
@@ -1287,7 +1292,7 @@ async function fetchInsider(symbol){
     if (!r.ok) return { ok:false, reason:'http' };
     const j = await r.json();
     const data = (j && Array.isArray(j.data)) ? j.data : [];
-    let buyN = 0, sellN = 0, net = 0, netShares = 0;
+    let net = 0; // valoare $ netă (price*qty) — propriu pump-radar, nu există în INS.analyze
     const rows = []; // top 30 recent, păstrate pentru box-ul expand
     data.forEach(t => {
       const code = (t.transactionCode || '').toUpperCase();
@@ -1296,15 +1301,23 @@ async function fetchInsider(symbol){
       const val = (t.transactionPrice || 0) * qty;
       // clasificarea vine din lib/insider.js — sursa unică pe toată suita
       const kind = (window.INS && INS.classify) ? INS.classify(t) : null;
-      if (kind === 'buy'){ buyN++; net += val; netShares += qty; }
-      else if (kind === 'sell'){ sellN++; net -= val; netShares -= qty; }
+      if (kind === 'buy') net += val;
+      else if (kind === 'sell') net -= val;
       rows.push({ name: t.name || '—', code, qty, price: t.transactionPrice || 0, date: t.transactionDate || t.filingDate || '', kind });
     });
     rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    let verdict = 'neut', txt = 'neutru';
-    if (buyN > sellN && net > 0){ verdict = 'bull'; txt = `${buyN} buy / ${sellN} sell`; }
-    else if (sellN > buyN && net < 0){ verdict = 'bear'; txt = `${sellN} sell / ${buyN} buy`; }
-    else if (buyN === 0 && sellN === 0){ verdict = 'neut'; txt = 'fără activitate 60z'; }
+    // verdictul + counts + netShares vin din INS.analyze (sursa unică pe suită):
+    // bull = ≥2 persoane DISTINCTE care cumpără + netShares>0 (cluster smart-money), nu doar buyN>sellN
+    const agg = (window.INS && INS.analyze) ? INS.analyze(data) : null;
+    const buyN = agg ? agg.buys : 0;
+    const sellN = agg ? agg.sells : 0;
+    const netShares = agg ? agg.netShares : 0;
+    const verdict = agg ? agg.verdict : 'neut';
+    let txt;
+    if (verdict === 'bull') txt = `${buyN} buy / ${sellN} sell`;
+    else if (verdict === 'bear') txt = `${sellN} sell / ${buyN} buy`;
+    else if (buyN === 0 && sellN === 0) txt = 'fără activitate 60z';
+    else txt = 'neutru';
     const res = { ok:true, verdict, txt, buyN, sellN, net, netShares, rows: rows.slice(0, 30), ts: Date.now() };
     _insiderCache[symbol] = res; return res;
   } catch(e){ return { ok:false, reason:'network' }; }
@@ -1677,7 +1690,7 @@ window.showFeatures = function(){
       { e:'⏱', t:'<b>Countdown</b> + indicator sesiune piață (pre/regular/after/closed, DST-aware)' },
     ]},
   ];
-  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v116 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
+  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v119 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => { html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`; });
   html += `<div style="font-size:10.5px;color:var(--t3);line-height:1.5;font-family:var(--mono);padding-top:6px;border-top:1px solid var(--b1)">⚠ Alertele 5m sunt relevante în <b>sesiunea regulară</b> (09:30-16:00 ET). În afara ei datele pot fi rare/lipsă; radarul tot afișează ce găsește.</div></div>`;
   ov.innerHTML = html;
