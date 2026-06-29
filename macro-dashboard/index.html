@@ -822,7 +822,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v206</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v207</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1385,6 +1385,29 @@ let CRYPTO_NEWS = [];
 let SEEN = JSON.parse(localStorage.getItem('md_seen') || '{}'); // dedupe alerte
 let LAST_SCAN_AT = 0;
 let _refreshTimer = null;
+// ============ SHELL VISIBILITY (pauză polling în fundal) ============
+// Shell-ul PWA ține pagina în iframe (display:none când e tab inactiv, dar rămâne VIE).
+// Trimite postMessage({ttShellVisible:bool}) la load + la fiecare schimbare de tab.
+// Default = vizibil: FĂRĂ mesaj → comportament IDENTIC (pagina în browser normal nu primește nimic).
+var _shellHidden = false;
+window.addEventListener('message', (ev) => {
+  // Acceptă doar mesaje de la același origin (shell-ul e pe același domeniu)
+  if (ev.origin !== location.origin) return;
+  const d = ev.data;
+  if (!d || typeof d.ttShellVisible !== 'boolean') return;
+  const wasHidden = _shellHidden;
+  _shellHidden = !d.ttShellVisible;
+  if (_shellHidden) {
+    // Intră în fundal: oprește timerele de DATE (acțiunile manuale rămân neatinse)
+    if (_refreshTimer) { clearTimeout(_refreshTimer); _refreshTimer = null; }
+    if (_alertTimer) { clearTimeout(_alertTimer); _alertTimer = null; }
+  } else if (wasHidden) {
+    // Redevine activ: reia OBLIGATORIU timerele + un refresh imediat
+    scheduleAutoRefresh();
+    scheduleAlertCheck();
+    try { loadCalendar(); } catch (e) {}
+  }
+});
 let _proxyIdx = 0;
 let _expandedKey = null;
 let _newsLoadedAt = { macro: 0, crypto: 0 };
@@ -4283,6 +4306,7 @@ function checkAlerts() {
 function scheduleAlertCheck() {
   if (_alertTimer) clearTimeout(_alertTimer);
   // Verifică la fiecare 60s
+  if (_shellHidden) return; // shell în fundal: nu re-arma polling-ul de date
   _alertTimer = setTimeout(() => {
     checkAlerts();
     scheduleAlertCheck();
@@ -5384,6 +5408,7 @@ function applyFastPollUI() {
 
 function scheduleAutoRefresh() {
   if (_refreshTimer) clearTimeout(_refreshTimer);
+  if (_shellHidden) return; // shell în fundal: nu re-arma polling-ul de date
 
   // Check dacă activăm fast-poll
   const fpUntil = detectFastPollNeed();

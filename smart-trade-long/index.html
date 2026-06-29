@@ -249,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v38</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v39</span></h1>
   <p class="lead">Scoring 6-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -364,6 +364,10 @@ const LS_ACCT = 'smart_trade_acct';
 const LS_RISK = 'smart_trade_risk';
 const WL_KEY = 'wl_stocks';
 const AUTO_INTERVAL_MS = 5 * 60 * 1000;
+// Shell PWA: iframe-urile inactive sunt display:none dar VII (nu primesc visibilitychange).
+// Shell-ul trimite postMessage({ttShellVisible:bool}) → pauzăm polling-ul de fundal.
+// Default false = comportament IDENTIC actual; pauza e opt-in DOAR la mesaj ttShellVisible:false.
+var _shellHidden = false;
 
 // ─────────────────────── STATE ───────────────────────
 const state = {
@@ -1610,6 +1614,7 @@ window.addEventListener('storage', e => { if (e.key === WL_KEY) renderWL(); });
 // ─────────────────────── AUTO-SCAN ───────────────────────
 function startAuto() {
   stopAuto();
+  if (_shellHidden) return; // shell în fundal → nu pornim timerul (se reia la ttShellVisible:true)
   state.autoTimer = setInterval(() => {
     // tab ascuns → nu arde request-uri (aceeași gardă ca scanul de listă);
     // scanul restant rulează la revenire prin visibilitychange
@@ -1645,6 +1650,8 @@ function listQuietHours() {
 
 function scheduleListScan() {
   if (listState.timer) { clearTimeout(listState.timer); listState.timer = null; }
+  // Shell PWA în fundal → nu re-armăm timerul (se reia la ttShellVisible:true).
+  if (_shellHidden) { listState.nextTs = 0; updateListStatus(); return; }
   const base = listInterval();
   if (!base) { listState.nextTs = 0; updateListStatus(); return; }
   const mins = listQuietHours() ? Math.max(30, base * 3) : base;
@@ -1792,6 +1799,36 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   if (listState.overdue) { listState.overdue = false; runListScan(); }
   if (state.autoOverdue) { state.autoOverdue = false; if (autoScan.checked && state.lastSymbol) scan(state.lastSymbol, true); }
+});
+
+// ─────────────────────── SHELL PWA — pauză polling de fundal ───────────────────────
+// Iframe-urile inactive din shell sunt display:none dar VII → nu primesc visibilitychange.
+// Shell-ul trimite postMessage({ttShellVisible:bool}). La false: oprim ambele timere de fundal
+// (auto-scan single-symbol + list-scan recurent). La true: le reluăm + un refresh imediat.
+// Scanul MANUAL al userului NU e atins. Browser normal (fără mesaj) = ZERO schimbare.
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin) return;          // origin check
+  const d = e.data;
+  if (!d || typeof d.ttShellVisible !== 'boolean') return; // boolean check
+  const hidden = !d.ttShellVisible;
+  if (hidden === _shellHidden) return;               // fără tranziție → nimic
+  _shellHidden = hidden;
+  if (hidden) {
+    // → fundal: oprește ambele timere
+    stopAuto();
+    if (listState.timer) { clearTimeout(listState.timer); listState.timer = null; }
+    listState.nextTs = 0; updateListStatus();
+  } else {
+    // → revenire: reia OBLIGATORIU ce era activ + refresh imediat
+    if (autoScan.checked) {
+      startAuto();
+      if (state.lastSymbol) scan(state.lastSymbol, true);
+    }
+    if (listInterval()) {
+      scheduleListScan();
+      runListScan();
+    }
+  }
 });
 
 // ─────────────────────── SETTINGS MODAL ───────────────────────
