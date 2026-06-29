@@ -97,7 +97,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 </head>
 <body>
 
-<h1>🔗 Markov Lab <span class="ver">v3.9</span> <a href="../" class="hub-link" title="Înapoi la Hub">← Hub</a></h1>
+<h1>🔗 Markov Lab <span class="ver">v3.10</span> <a href="../" class="hub-link" title="Înapoi la Hub">← Hub</a></h1>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
   Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
@@ -183,7 +183,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 </div>
 
 <p class="sub muted" style="text-align:center">
-  Module: <code>lib/markov.js</code> (<code>MK.*</code>) + <code>lib/data.js</code> (<code>D.*</code>) + <code>lib/backtest.js</code> (<code>BT.*</code>) — generice, fără dependențe.
+  Module: <code>lib/markov.js</code> (<code>MK.*</code>) + <code>lib/data.js</code> (<code>D.*</code>) + <code>lib/indicators.js</code> + <code>lib/ai.js</code> — generice, fără dependențe.
 </p>
 
 <script src="../lib/data.js"></script>
@@ -191,6 +191,8 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 <script src="../lib/markov.js"></script>
 <script src="../lib/ai.js"></script>
 <script>
+// Helper DOM declarat la începutul scriptului (înainte de orice folosire) — elimină riscul TDZ
+const $ = id => document.getElementById(id);
 // ─────────── fetch OHLC — delegă la stratul de date comun (lib/data.js, D.*) ───────────
 // Proxy cu health-scoring per-host + cache localStorage cu TTL + dedup — toate din D.
 // DOAR BARE ÎNCHISE intră în model: Binance întoarce mereu kline-ul curent (în
@@ -820,7 +822,6 @@ window.interpretRegimeAI = async function(btn){
 };
 
 // ─────────── wiring ───────────
-const $ = id => document.getElementById(id);
 function setStatus(txt, isErr){ $('status').innerHTML = isErr ? `<span class="err">${txt}</span>` : txt; }
 // Escape pentru date externe randate cu innerHTML (output AI, mesaje de eroare din fetch)
 function mkEsc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }

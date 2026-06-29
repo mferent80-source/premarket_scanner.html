@@ -183,7 +183,7 @@ header h1{
 <body>
 
 <header>
-  <h1>📖 Ghid Features <span class="ver-badge" id="verBadge">v2</span></h1>
+  <h1>📖 Ghid Features <span class="ver-badge" id="verBadge">v3</span></h1>
   <span class="counter" id="counter">— / —</span>
   <a href="../" class="nav-link">← Hub</a>
 </header>
@@ -388,6 +388,29 @@ const FEATURES_DB = [
       { name:'Surse no-proxy', icon:'🔄', cat:'integration', added:'2026-05-18', version:'v1', desc:'Finnhub /quote pentru stocks/ETF + CoinGecko direct pentru BTC/ETH/SOL' },
       { name:'Δ% close to trigger warn', icon:'⚡', cat:'ux', added:'2026-05-18', version:'v1', desc:'Coloana Δ% devine galben când <1.5% de prag' },
       { name:'Triggered history (max 50)', icon:'✅', cat:'data', added:'2026-05-18', version:'v1', desc:'Border-left verde (above) sau roșu (below) + age in min/h + reactivate ↻' }
+    ]
+  },
+  {
+    page: 'markov-lab', pageLabel: '🔗 Markov Lab', pageUrl: '../markov-lab/',
+    features: [
+      { name:'HMM gaussian regim de volatilitate', icon:'📊', cat:'data', added:'2026-06-14', version:'v3.9', desc:'Hidden Markov Model gaussian cu K stări (calm/normal/volatil) pe randamente + ATR. Estimare via Baum-Welch + decodare Viterbi pe bare ÎNCHISE (drop bara curentă parțială)' },
+      { name:'Lanț Markov direcție', icon:'🔗', cat:'data', added:'2026-06-14', version:'v3.9', desc:'Matrice de tranziție N-stări pe direcția randamentelor → probabilități condiționate de starea curentă + prognoza pasului următor' },
+      { name:'Teste statistice (chi² / log-loss)', icon:'🧪', cat:'data', added:'2026-06-14', version:'v3.9', desc:'Chi² pentru independența tranzițiilor (lanțul aduce informație vs random) + log-loss pe predicții pentru calibrare onestă' },
+      { name:'First-passage time', icon:'⏱', cat:'data', added:'2026-06-14', version:'v3.9', desc:'Timpul mediu așteptat până la atingerea unei stări țintă din starea curentă — cât durează tipic ieșirea dintr-un regim' },
+      { name:'Backtest fade în regim volatil (OOS)', icon:'🎯', cat:'data', added:'2026-06-14', version:'v3.9', desc:'Strategia „fade în regim volatil" validată walk-forward, cu t-statistic onest (semnificativ doar |t|>2). Motor MK.* din lib/markov.js' },
+      { name:'Banda istoric regimuri pe chart', icon:'📈', cat:'charts', added:'2026-06-14', version:'v3.9', desc:'Vizualizare retrospectivă a stărilor decodate de-a lungul istoricului (descriptiv), separat de regimul curent + prognoza de vol (cauzale, live)' },
+      { name:'AI bubble (Opus 4.8)', icon:'🤖', cat:'ai', added:'2026-06-14', version:'v3.9', desc:'Interpretare narativă a regimului + matricei + prognozei via claude-opus-4-8. Afișare deodată cu fade-in (fără streaming token-cu-token)' },
+      { name:'Multi-sursă crypto + stocks', icon:'🔄', cat:'integration', added:'2026-06-14', version:'v3.9', desc:'OHLC via lib/data.js (D.*): Binance pentru crypto + Yahoo pentru stocks, TF 1h/4h/1d/1wk. Proxy health-scoring + cache TTL. Persistă ultimul simbol+setări în LS' }
+    ]
+  },
+  {
+    page: 'guide', pageLabel: '📖 Ghid Features', pageUrl: '../guide/',
+    features: [
+      { name:'FEATURES_DB sursă unică', icon:'🗂', cat:'data', added:'2026-05-18', version:'v2', desc:'Bază de date centralizată a tuturor feature-urilor din suită, grupate pe pagină + categorie + versiune + dată' },
+      { name:'View per pagină / pe categorii', icon:'📄', cat:'ux', added:'2026-05-18', version:'v2', desc:'Tab-uri Per pagină + Pe categorii pentru navigare cross-tool a feature-urilor' },
+      { name:'Changelog cronologic', icon:'🕐', cat:'ux', added:'2026-05-18', version:'v2', desc:'Listă cronologică a feature-urilor adăugate, sortată după dată' },
+      { name:'Legendă iconuri + categorii', icon:'🔣', cat:'ux', added:'2026-05-18', version:'v2', desc:'Tab dedicat cu semnificația iconurilor + categoriilor (data/ai/charts/alerts/risk/ux/integration)' },
+      { name:'Search feature live', icon:'🔍', cat:'ux', added:'2026-05-18', version:'v2', desc:'Caută după nume/descriere/categorie în toate paginile (ex: AI, alert, risk, chart)' }
     ]
   }
 ];

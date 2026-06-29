@@ -396,7 +396,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v146</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v147</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -584,7 +584,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v140 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v147 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -652,7 +652,12 @@ function saveWatchlist(){
 // ── Cache rezultate (F4-extra) — afișare instantă la reload, fără ecran gol ──
 let lastScanTs = 0;
 function persistResults(){
-  try { localStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify({ ts: Date.now(), results })); } catch(e){}
+  // NU persista rândurile fără preț (data null → verdict:'hold' placeholder „N/A");
+  // altfel reapar la reload ca HOLD/N/A pentru simboluri ce n-au fost de fapt scanate.
+  try {
+    const toSave = (results || []).filter(r => r && r.price != null);
+    localStorage.setItem(RESULTS_CACHE_KEY, JSON.stringify({ ts: Date.now(), results: toSave }));
+  } catch(e){}
 }
 function loadResultsCache(){
   try {
@@ -2845,22 +2850,25 @@ function wlmSyncModal(){
   ov.id = 'wlmSyncOv';
   ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px';
   ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  // Modal aliniat la tema suitei (CSS variables din :root + font Sora, ca restul .fl-modal)
+  const inputCss = 'width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--b2);border-radius:7px;color:var(--t1);font-size:12px;font-family:var(--mono);margin-bottom:10px;box-sizing:border-box';
+  const btnSec = 'background:var(--panel2);color:var(--t1);border:1px solid var(--b1);padding:9px 14px;border-radius:8px;cursor:pointer';
   ov.innerHTML =
-    '<div style="max-width:520px;width:100%;background:#0f1623;border:1px solid #2a3550;border-radius:14px;padding:18px;font-family:system-ui,sans-serif;color:#e6edf3">' +
+    '<div style="max-width:520px;width:100%;background:var(--panel);border:1px solid var(--b1);border-radius:14px;padding:18px;font-family:var(--head);color:var(--t1);box-shadow:0 30px 80px rgba(0,0,0,.6)">' +
     '<div style="font-size:15px;font-weight:800;margin-bottom:4px">☁️ Sync Watchlist (GitHub Gist)</div>' +
-    '<div style="font-size:11px;color:#8b949e;margin-bottom:12px">Token + Gist ID privat, partajat între device-uri. Ultim sync: ' + last + '</div>' +
-    '<div style="font-size:11px;color:#8b949e;margin-bottom:5px">GitHub token (scope: <b>gist</b>)' + (token && !c.token ? ' — preluat din altă pagină' : '') + '</div>' +
-    '<input id="wlmToken" type="password" placeholder="ghp_…" value="' + (c.token||'').replace(/"/g,'&quot;') + '" style="width:100%;padding:9px 11px;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;font-size:12px;font-family:monospace;margin-bottom:10px;box-sizing:border-box">' +
-    '<div style="font-size:11px;color:#8b949e;margin-bottom:5px">Gist ID (gol = creează unul nou)</div>' +
-    '<input id="wlmGistId" type="text" placeholder="ex: a1b2c3…" value="' + (c.gistId||'').replace(/"/g,'&quot;') + '" style="width:100%;padding:9px 11px;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;font-size:12px;font-family:monospace;margin-bottom:10px;box-sizing:border-box">' +
+    '<div style="font-size:11px;color:var(--t3);margin-bottom:12px">Token + Gist ID privat, partajat între device-uri. Ultim sync: ' + last + '</div>' +
+    '<div style="font-size:11px;color:var(--t3);margin-bottom:5px">GitHub token (scope: <b>gist</b>)' + (token && !c.token ? ' — preluat din altă pagină' : '') + '</div>' +
+    '<input id="wlmToken" type="password" placeholder="ghp_…" value="' + (c.token||'').replace(/"/g,'&quot;') + '" style="' + inputCss + '">' +
+    '<div style="font-size:11px;color:var(--t3);margin-bottom:5px">Gist ID (gol = creează unul nou)</div>' +
+    '<input id="wlmGistId" type="text" placeholder="ex: a1b2c3…" value="' + (c.gistId||'').replace(/"/g,'&quot;') + '" style="' + inputCss + '">' +
     '<label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:12px;cursor:pointer"><input id="wlmAuto" type="checkbox" ' + (c.auto ? 'checked' : '') + ' style="width:16px;height:16px"> 🔄 Auto-sync (pull la pornire + push la fiecare schimbare)</label>' +
-    '<div style="font-size:10px;color:#6e7681;margin-bottom:14px;line-height:1.5">💡 Token CLASIC cu scope <b>gist</b>: <a href="https://github.com/settings/tokens/new?scopes=gist&description=Trading+Tools+sync" target="_blank" style="color:#79c0ff">generează aici</a> (bifează doar „gist"). Device 1: lasă Gist ID gol → 🆕 Creează. Device 2: același token + Gist ID + 🔽 Pull (sau bifează Auto-sync).</div>' +
+    '<div style="font-size:10px;color:var(--t3);margin-bottom:14px;line-height:1.5">💡 Token CLASIC cu scope <b>gist</b>: <a href="https://github.com/settings/tokens/new?scopes=gist&description=Trading+Tools+sync" target="_blank" style="color:var(--accent)">generează aici</a> (bifează doar „gist"). Device 1: lasă Gist ID gol → 🆕 Creează. Device 2: același token + Gist ID + 🔽 Pull (sau bifează Auto-sync).</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-    '<button id="wlmSaveBtn" style="background:#238636;color:#fff;border:none;padding:9px 14px;border-radius:8px;font-weight:700;cursor:pointer">💾 Salvează</button>' +
-    '<button id="wlmCreateBtn" style="background:#1f2a44;color:#e6edf3;border:1px solid #30363d;padding:9px 14px;border-radius:8px;cursor:pointer">🆕 Creează</button>' +
-    '<button id="wlmPushBtn" style="background:#1f2a44;color:#e6edf3;border:1px solid #30363d;padding:9px 14px;border-radius:8px;cursor:pointer">⬆️ Push</button>' +
-    '<button id="wlmPullBtn" style="background:#1f2a44;color:#e6edf3;border:1px solid #30363d;padding:9px 14px;border-radius:8px;cursor:pointer">⬇️ Pull</button>' +
-    '<button onclick="document.getElementById(\'wlmSyncOv\').remove()" style="margin-left:auto;background:transparent;color:#8b949e;border:1px solid #30363d;padding:9px 12px;border-radius:8px;cursor:pointer">✕</button>' +
+    '<button id="wlmSaveBtn" style="background:var(--bull);color:#fff;border:none;padding:9px 14px;border-radius:8px;font-weight:700;cursor:pointer">💾 Salvează</button>' +
+    '<button id="wlmCreateBtn" style="' + btnSec + '">🆕 Creează</button>' +
+    '<button id="wlmPushBtn" style="' + btnSec + '">⬆️ Push</button>' +
+    '<button id="wlmPullBtn" style="' + btnSec + '">⬇️ Pull</button>' +
+    '<button onclick="document.getElementById(\'wlmSyncOv\').remove()" style="margin-left:auto;background:transparent;color:var(--t3);border:1px solid var(--b1);padding:9px 12px;border-radius:8px;cursor:pointer">✕</button>' +
     '</div></div>';
   document.body.appendChild(ov);
   const save = () => { const cc = _wlmCfg(); cc.token = $('wlmToken').value.trim(); cc.gistId = $('wlmGistId').value.trim(); cc.auto = $('wlmAuto').checked; _wlmSave(cc); };
