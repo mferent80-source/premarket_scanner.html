@@ -284,7 +284,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v138</span></h1>
+  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v139</span></h1>
   <span class="status-pill" id="sessionPill">— · sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -436,7 +436,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 // ═══════════════════════════════════════════════════════════════
 //  CONFIG + CONSTANTS
 // ═══════════════════════════════════════════════════════════════
-const VER = 'tt-v138-2026-06-26';
+const VER = 'tt-v139-2026-06-29';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
 const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
@@ -450,7 +450,7 @@ const HIST_TTL_MS    = 6 * 3600 * 1000;
 // Sursa: top ADR-uri active (UK, Germania, Olanda, Elveția, Franța, etc.). Nu exhaustivă, dar acoperă majoritatea relevante.
 const EU_ADRS = new Set([
   // UK
-  'AZN','GSK','BP','SHEL','UL','DEO','VOD','BTI','HSBC','BCS','NWG','LYG','LSXMA','PSO','RIO','BHP','RELX','ERJ','SMFG','VOD',
+  'AZN','GSK','BP','SHEL','UL','DEO','VOD','BTI','HSBC','BCS','NWG','LYG','LSXMA','PSO','RIO','BHP','RELX','ERJ','SMFG',
   // Olanda
   'ASML','NXPI','PHG','ING','STLA','ABN','HEIA','LYB','RDS',
   // Germania
@@ -464,7 +464,9 @@ const EU_ADRS = new Set([
   // Italia/Spania
   'E','STM','LUX','SAN','TEF','BBVA','REPYY','TIT',
   // Belgia/Irlanda/Norvegia
-  'BUD','BFLY','MDLZ','EQNR','TEL','SDRL','RYAAY','ICLR','MDT','ACN','CRH','ABBV',
+  // Scoase MDT/ACN/ABBV/MDLZ: NU sunt ADR-uri europene (Medtronic/Accenture incorporate în Irlanda
+  // dar listare comună directă pe NYSE; AbbVie + Mondelez sunt companii US pure) → strica counts 🇪🇺/us-pure.
+  'BUD','BFLY','EQNR','TEL','SDRL','RYAAY','ICLR','CRH',
 ]);
 function isEuAdr(symbol){ return EU_ADRS.has(symbol); }
 const SEEN_TTL_MS    = 14 * 24 * 3600 * 1000;  // 14 zile — auto-curățare alerte vechi
@@ -791,7 +793,7 @@ async function runScan(){
       hour: (e.hour || '').toLowerCase(),   // 'bmo' | 'amc' | 'dmh' | ''
       year: e.year, quarter: e.quarter,
       epsEst: (e.epsEstimate != null ? +e.epsEstimate : null),
-      epsAct: (e.epsActual   != null ? +e.epsActual   : null), // pt cele deja raportate (negativ zile)
+      // epsAct scos: era „pt cele deja raportate" dar .filter(e=>e.zile>=0) de mai jos taie tot trecutul → niciodată citit (cod mort).
       revEst: (e.revenueEstimate != null ? +e.revenueEstimate : null),
       zile,
       // calc dupa hist:
@@ -1199,7 +1201,7 @@ async function loadExpandedDetails(e){
   // 2) reaction bias — Yahoo chart 2y + data reală de raportare (Nasdaq) per trimestru
   let reactions = null;
   if (e.hist && e.hist.length){
-    reactions = await fetchReactionBias(e.symbol, e.hist);
+    reactions = await fetchReactionBias(e.symbol, e.hist, e.hour);
   }
   e.reactions = reactions;  // folosit și în buildAiPrompt (istoric per trimestru)
   // 3) insider — forțez re-evaluare dacă pre-load a returnat ok:false (cache între timp populat)
@@ -1329,7 +1331,7 @@ async function fetchReportDates(symbol){
   }
   return map;
 }
-async function fetchReactionBias(symbol, hist){
+async function fetchReactionBias(symbol, hist, hour){
   const [d, repDates] = await Promise.all([
     proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2y`, 8000, 10 * 60 * 1000),
     fetchReportDates(symbol),
@@ -1361,11 +1363,26 @@ async function fetchReactionBias(symbol, hist){
       if (datesSorted[i] >= reported){ idx = i; break; }
     }
     if (idx < 1 || idx >= datesSorted.length) continue;
-    // Istoricul nu are ora raportării (BMO/AMC): BMO lovește în ziua D, AMC în D+1 →
-    // luăm ziua cu mișcarea mai mare dintre cele două.
+    // Reacția post-raport pe ziua CORECTĂ în funcție de ora raportării:
+    //   m1 = close(D-1)→close(D)   — mișcarea din ziua raportului
+    //   m2 = close(D)→close(D+1)   — mișcarea din ziua următoare
+    // BMO (before market open): raportul iese dimineața → reacția se vede în ziua D  → m1.
+    // AMC (after market close):  raportul iese seara    → reacția se vede în ziua D+1 → m2.
+    // Istoricul Finnhub /stock/earnings NU conține ora pe trimestru; folosim `hour` al
+    // evenimentului curent ca proxy (companiile raportează de regulă consistent BMO/AMC).
+    // Dacă `hour` lipsește, păstrăm euristica veche (ziua cu mișcarea mai mare în |valoare|) —
+    // APROXIMARE: poate umfla optimist reacția prin alegerea zilei „mai spectaculoase".
     const m1 = pct(dateToClose[datesSorted[idx - 1]], dateToClose[datesSorted[idx]]);
     const m2 = (idx + 1 < datesSorted.length) ? pct(dateToClose[datesSorted[idx]], dateToClose[datesSorted[idx + 1]]) : null;
-    const re = (m1 == null) ? m2 : (m2 != null && Math.abs(m2) > Math.abs(m1)) ? m2 : m1;
+    let re;
+    if (hour === 'bmo'){
+      re = m1;                                   // raport dimineața → reacția în ziua D
+    } else if (hour === 'amc' || hour === 'dmh'){
+      re = (m2 != null) ? m2 : m1;               // raport seara → reacția în D+1 (fallback D)
+    } else {
+      // ora necunoscută → euristică (aproximare, vezi comentariul de mai sus)
+      re = (m1 == null) ? m2 : (m2 != null && Math.abs(m2) > Math.abs(m1)) ? m2 : m1;
+    }
     if (re != null) map[h.period] = re;
   }
   return map;

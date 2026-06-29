@@ -822,7 +822,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v205</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v206</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1125,11 +1125,14 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
       <div class="guide-section">
         <h4>🛡 Risk Dashboard composite</h4>
         <ul>
-          <li>Stat tile „🛡 Risk" cu score composit din 3 sub-indicatori.</li>
+          <li>Stat tile „🛡 Risk" cu score composit din 5 sub-indicatori (VIX + 10Y + corel. BTC/SPY + F&G + DXY).</li>
           <li><b>VIX score:</b> &lt;12 +1 complacency · 12-18 +2 calm · 18-25 -1 caut · 25-30 -2 fear · &gt;30 -3 stress.</li>
-          <li><b>10Y Δ30z:</b> drop &gt;25bp = -2 recession concerns · spike &gt;25bp = -1 hawkish · stable = +1.</li>
-          <li><b>BTC/SPY corr 30d:</b> Pearson pe daily returns aliniate pe data. &gt;0.6 = +1 risk-on · &lt;-0.2 = -2 anti-corr.</li>
-          <li><b>Verdict composite:</b> ≥+3 RISK-ON · +1/+2 LEAN ON · -1/0 NEUTRAL · -2/-3 CAUTIOUS · -4/-5 RISK-OFF · ≤-6 STRESS + recomandare concretă (sizing, hedge).</li>
+          <li><b>10Y Δ30z:</b> drop &gt;25bp = -2 recession concerns · drop 10-25bp = -1 · spike &gt;25bp = -1 hawkish · stable = +1.</li>
+          <li><b>BTC/SPY corr 30d:</b> Pearson pe daily returns aliniate pe data. &gt;0.6 = +1 risk-on · 0.2-0.6 = 0 · -0.2..0.2 = -1 decoupled · &lt;-0.2 = -2 anti-corr.</li>
+          <li><b>F&G score:</b> &gt;70 +2 greed · 55-70 +1 · 45-55 0 neutral · 30-45 -1 · &lt;30 -2 fear.</li>
+          <li><b>DXY Δ%:</b> &gt;+0.4% = -1 USD strong (risk-off) · &lt;-0.4% = +1 USD weak · altfel 0 flat.</li>
+          <li><b>Verdict composite</b> (range ~ −10..+7): ≥+4 RISK-ON · +1..+3 LEAN ON · -2..0 NEUTRAL · -5..-3 CAUTIOUS · -8..-6 RISK-OFF · ≤-9 STRESS + recomandare concretă (sizing, hedge).</li>
+          <li><b>Date parțiale:</b> dacă sub 3 din 5 surse au date reale (proxy CORS jos), regimul e degradat la „⚪ DATE PARȚIALE" și NU comută/alertează — composite-ul din zerouri nu e prezentat ca oficial.</li>
         </ul>
       </div>
 
@@ -2461,6 +2464,7 @@ function applyMood(mood, pillLabel) {
 // v193: regimul composite (🛡) = SURSA UNICĂ. mood-pill + culoarea paginii derivă din el (7→4).
 function regimeToMood(label) {
   if (!label) return 'mixed';
+  if (label.includes('PARȚIALE')) return 'mixed'; // date insuficiente → temă neutră, nu risk-off fals
   if (label.includes('STRESS')) return 'stress';
   if (label.includes('RISK-ON') || label.includes('LEAN ON')) return 'risk-on';
   if (label.includes('NEUTRAL')) return 'mixed';
@@ -4574,6 +4578,19 @@ async function computeRiskDashboard() {
     else if (composite >= -8) { label = '🔴 RISK-OFF'; color = 'var(--bear-s)'; }
     else { label = '⛔ STRESS'; color = 'var(--bear-s)'; }
 
+    // ── GUARD pe surse parțiale (proxy CORS jos) ──
+    // Fiecare sub-scor pică pe 0 când sursa lipsește (label rămâne 'N/A'). Cu 2-3 surse
+    // căzute, composite-ul produce o etichetă (ex. NEUTRAL) DIN ZEROURI — un regim fals
+    // prezentat ca oficial. Numărăm sub-scorurile cu sursă reală; sub prag degradăm
+    // eticheta la „⚪ DATE PARȚIALE" (nu mai pretindem un regim cu încredere).
+    const validCount = [vixLabel, tenYLabel, corrLabel, fngLabel, dxyLabel]
+      .filter(l => l && l !== 'N/A').length;
+    const partial = validCount < 3; // <3 din 5 surse = composite nesigur
+    if (partial) {
+      label = '⚪ DATE PARȚIALE';
+      color = 'var(--t2)';
+    }
+
     // ── HISTEREZIS pe regim (anti flip-flop) + alertă la schimbarea REALĂ ──
     // Fără asta, VIX 17.9↔18.1 comuta regimul pe o mișcare de 0.2 — exact instrumentul
     // de sizing. Regula: o trecere într-o bandă VECINĂ cu |Δcomposite| < 2 față de
@@ -4581,7 +4598,10 @@ async function computeRiskDashboard() {
     // ≥2 benzi comută imediat + toast/Telegram (schimbarea de regim e semnal de portofoliu).
     const bandOf = c => c >= 4 ? 5 : c >= 1 ? 4 : c >= -2 ? 3 : c >= -5 ? 2 : c >= -8 ? 1 : 0;
     let held = false, prev = null;
-    try {
+    // Pe DATE PARȚIALE sărim COMPLET histerezisul + persistarea: nu comparăm cu regimul
+    // confirmat (am da alertă falsă „X → DATE PARȚIALE") și nu suprascriem ancora reală
+    // din localStorage cu un label de incompletitudine (hub-ul ar prelua un regim fals).
+    if (!partial) try {
       prev = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
       if (prev && prev.label && typeof prev.composite === 'number' && prev.label !== label) {
         const bandDelta = Math.abs(bandOf(composite) - bandOf(prev.composite));
@@ -4609,7 +4629,7 @@ async function computeRiskDashboard() {
       corr: corrVal, corrScore, corrLabel,
       fng: fngVal, fngScore, fngLabel,
       dxy: dxyChg, dxyScore, dxyLabel,
-      composite, label, color, held, ts: Date.now()
+      composite, label, color, held, partial, validCount, ts: Date.now()
     };
     return RISK_STATE;
   } catch (e) { return null; }
@@ -4627,9 +4647,12 @@ function renderRiskTile() {
   const s = RISK_STATE;
   // Label scurt în value (font 21px, trebuie să încapă)
   valEl.innerHTML = `<span style="font-size:14px;color:${s.color};font-weight:800">${s.label}</span>`;
-  // Sub: scor composit + 3 sub-scoruri
+  // Sub: scor composit + 3 sub-scoruri. Pe date parțiale marcăm explicit câte surse lipsesc.
   const sign = s.composite >= 0 ? '+' : '';
-  subEl.innerHTML = `score ${sign}${s.composite} · VIX ${s.vixScore>=0?'+':''}${s.vixScore} · 10Y ${s.tenYScore>=0?'+':''}${s.tenYScore} · ρ ${s.corrScore>=0?'+':''}${s.corrScore} · F&G ${s.fngScore>=0?'+':''}${s.fngScore} · DXY ${s.dxyScore>=0?'+':''}${s.dxyScore}${s.held ? ' · <span title="Histerezis: scorul a atins granița benzii vecine, dar mișcarea e prea mică (±1) ca să comute regimul — anti flip-flop">⚓</span>' : ''}`;
+  const partialTag = s.partial
+    ? ` · <span title="Doar ${s.validCount}/5 surse au date reale (proxy CORS jos). Composite-ul ar fi calculat din zerouri → regim nesigur, nemarcat ca oficial." style="color:var(--warn);font-weight:700">⚠ ${s.validCount}/5 surse</span>`
+    : '';
+  subEl.innerHTML = `score ${sign}${s.composite} · VIX ${s.vixScore>=0?'+':''}${s.vixScore} · 10Y ${s.tenYScore>=0?'+':''}${s.tenYScore} · ρ ${s.corrScore>=0?'+':''}${s.corrScore} · F&G ${s.fngScore>=0?'+':''}${s.fngScore} · DXY ${s.dxyScore>=0?'+':''}${s.dxyScore}${partialTag}${s.held ? ' · <span title="Histerezis: scorul a atins granița benzii vecine, dar mișcarea e prea mică (±1) ca să comute regimul — anti flip-flop">⚓</span>' : ''}`;
   // Highlight border pentru CAUTIOUS+
   if (s.composite <= -3) tile.style.borderColor = 'rgba(255,77,77,.4)';
   else if (s.composite <= -1) tile.style.borderColor = 'rgba(212,137,44,.4)';
@@ -4713,6 +4736,8 @@ function renderRiskDrillBody() {
 }
 
 function buildRiskRecommendation(s) {
+  // Pe date parțiale nu dăm recomandare de sizing — composite-ul e calculat din zerouri.
+  if (s.partial) return `⚪ DATE PARȚIALE — doar ${s.validCount}/5 surse au date reale (proxy CORS jos). Composite-ul nu e fiabil; nu ajusta sizing pe baza lui. Retry sau așteaptă revenirea surselor.`;
   if (s.composite >= 3) return '🟢 Setup favorabil long bias. Sizing normal, pot lăsa stop-uri mai largi.';
   if (s.composite >= 1) return '🟢 Bias long cu rezervă. Sizing moderat, watch pentru reversal pe VIX spike.';
   if (s.composite >= -1) return '⚪ Tranzacții selectiv. Sizing redus. Preferință pentru setup-uri tehnice clare.';
