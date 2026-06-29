@@ -249,7 +249,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v37</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v38</span></h1>
   <p class="lead">Scoring 6-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -665,7 +665,7 @@ async function fetchInsiders(sym) {
   const to = isoDaysAgo(0);
   const url = `${FINNHUB_BASE}/stock/insider-transactions?symbol=${sym}&from=${from}&to=${to}&token=${state.finnhubKey}`;
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(9000) });
     if (res.status === 401 || res.status === 403) return { ok: false, reason: 'auth' };
     if (!res.ok) return { ok: false, reason: 'http-' + res.status };
     const j = await res.json();
@@ -687,7 +687,7 @@ async function getEarningsInfo(sym) {
   if (!map && state.finnhubKey) {
     try {
       const fmtD = d => d.toISOString().slice(0, 10);
-      const r = await fetch(`${FINNHUB_BASE}/calendar/earnings?from=${fmtD(new Date())}&to=${fmtD(new Date(Date.now() + 14 * 86400000))}&token=${state.finnhubKey}`);
+      const r = await fetch(`${FINNHUB_BASE}/calendar/earnings?from=${fmtD(new Date())}&to=${fmtD(new Date(Date.now() + 14 * 86400000))}&token=${state.finnhubKey}`, { signal: AbortSignal.timeout(9000) });
       if (r.ok) {
         const j = await r.json();
         map = {};
@@ -1863,10 +1863,6 @@ $('lsInterval').addEventListener('change', () => {
   if (loadWL().length === 0) renderListTable(); // arată mesajul de listă goală în loc de ⏳
   if (listInterval()) setTimeout(() => runListScan(), urlSym ? 1500 : 600);
   else $('lsBody').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--txt-dd);padding:18px">auto OFF — apasă 🔍 Scan listă</td></tr>';
-  // Re-render WL când se schimbă în alt tab
-  window.addEventListener('storage', e => {
-    if (e.key === WL_KEY) renderWL();
-  });
 })();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
