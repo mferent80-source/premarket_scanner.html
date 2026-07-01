@@ -822,7 +822,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v208</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v209</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -3651,7 +3651,11 @@ async function preloadAITop5() {
 const AI_SYSTEM_BRIEF = `Esti trade strategist senior pentru un trader stocks Nasdaq + crypto (Pionex, Trade212).
 Genereaza un DESK NOTE matinal in romana, SCURT si la obiect — TINTA ~450-600 cuvinte, format de masa de tranzactionare (nu eseu). Fara umplutura, fara disclaimere, fara teorie generala. Daca o informatie nu schimba ce faci AZI, NU o scrie. Fiecare lucru apare O SINGURA DATA.
 
-REGIMUL DE RISC e DEJA CALCULAT si ti se da in context ("REGIM DE RISC (oficial)"). FOLOSESTE-L ca atare — NU-l recalcula, NU vota alt mood, NU scrie nicio linie MARKET_MOOD. Brief-ul tau explica si exploateaza regimul dat.
+REGIMUL DE RISC e DEJA CALCULAT si ti se da in context ("REGIM DE RISC (oficial)"). FOLOSESTE-L ca atare — NU-l recalcula, NU vota alt mood, NU scrie nicio linie MARKET_MOOD. Brief-ul tau explica si exploateaza regimul dat. Daca ti se da TRENDUL regimului (ieri→azi), foloseste DIRECTIA la sizing: deteriorare rapida (↓) = redu risc mai agresiv decat nivelul static; stabilizare/ameliorare (↑) dintr-un nivel jos = poti reintra gradual.
+
+CONTINUITATE: daca ti se da "TEZA DE IERI", compar-o cu teza de azi. Daca s-a schimbat biasul (ex. ieri STOCKS LONG, azi NEUTRAL), spune EXPLICIT intr-un rand ce s-a schimbat si de ce (ce fapt nou). Daca e la fel, confirma scurt ("teza de ieri se mentine").
+
+WATCHLIST: daca primesti "WATCHLIST-UL MEU", cand un event / nivel tehnic / earnings atinge un simbol de acolo, PRIORITIZEAZA-l in sectiunile "Azi de urmarit" si "Oportunitati" (e mai actionabil pentru user decat SPY/QQQ generic).
 
 STRUCTURA — un TL;DR pe un rand, apoi EXACT aceste 5 sectiuni (markdown ## pentru headings), scurte:
 
@@ -3729,6 +3733,78 @@ function getStatTileVal(id) {
   const v = tile?.querySelector('.stat-value')?.textContent || '';
   const sub = tile?.querySelector('.stat-sub')?.textContent || '';
   return { v: v.trim(), sub: sub.trim() };
+}
+
+// ============ F1 — CONTEXT BRIEF EXTINS (earnings / watchlist / memorie zi-la-zi / trend regim) ============
+// Ziua următoare (YYYY-MM-DD) pornind de la o dată pură; ancoră la prânz UTC ca să evit DST edge.
+function nextDayStr(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+// Earnings mega-cap AZI + MÂINE din EARNINGS_BY_DATE — cel mai frecvent catalist pe stocks.
+function getBriefEarnings(todayDate) {
+  const hourLabel = h => h === 'bmo' ? 'BMO/pre-open' : h === 'amc' ? 'AMC/post-close' : (h === 'dmh' ? 'în timpul zilei' : (h || '—'));
+  const out = [];
+  [[todayDate, 'AZI'], [nextDayStr(todayDate), 'MÂINE']].forEach(([d, lbl]) => {
+    const arr = EARNINGS_BY_DATE[d];
+    if (arr && arr.length) {
+      const syms = arr.map(e => `${e.symbol} (${hourLabel(e.hour)})`).join(', ');
+      out.push(`- ${lbl} (${d}): ${syms}`);
+    }
+  });
+  return out.join('\n') || '(niciun earnings mega-cap azi/mâine în calendarul încărcat)';
+}
+
+// Watchlist-ul real al userului (wl_stocks) — pentru personalizarea brief-ului. Defensiv:
+// elementele pot fi string-uri (macro/nasdaq) sau obiecte {symbol}/{ticker} (watchlist-monitor).
+function getBriefWatchlist() {
+  const wl = readWatchlist();
+  if (!Array.isArray(wl) || !wl.length) return '';
+  const syms = wl.map(t => typeof t === 'string' ? t : (t && (t.symbol || t.ticker) || '')).filter(Boolean);
+  return syms.slice(0, 40).join(', ');
+}
+
+// Teza de IERI (ultimul brief arhivat cu dateET < azi) — TL;DR + linia de Verdict, pentru continuitate.
+function getPrevThesis(todayDateET) {
+  let arc = [];
+  try { arc = JSON.parse(localStorage.getItem('md_brief_archive') || '[]'); } catch (e) {}
+  if (!Array.isArray(arc)) return null;
+  const past = arc.filter(b => b && b.dateET && b.dateET < todayDateET && b.text)
+    .sort((a, b) => (a.generatedAt || 0) - (b.generatedAt || 0));
+  const last = past[past.length - 1];
+  if (!last) return null;
+  const txt = last.text;
+  const tldrM = txt.match(/TL;DR[:\s*]*([^\n]+)/i);
+  const verdM = txt.match(/##[^\n]*Verdict[^\n]*\n+([^\n#]+)/i);
+  const tldr = tldrM ? tldrM[1].replace(/\*/g, '').trim() : '';
+  const verdict = verdM ? verdM[1].replace(/\*/g, '').trim() : '';
+  if (!tldr && !verdict) return null;
+  return { dateET: last.dateET, tldr, verdict };
+}
+
+// Istoric zilnic al regimului de risc (o intrare/zi) — pentru a arăta AI-ului TRENDUL (ieri→azi),
+// nu doar starea statică. Direcția composite-ului e info de sizing (deteriorare rapidă vs stabilizare).
+function snapshotRegimeDaily(dateET) {
+  if (!RISK_STATE || RISK_STATE.partial || typeof RISK_STATE.composite !== 'number') return;
+  try {
+    let h = JSON.parse(localStorage.getItem('md_regime_daily') || '[]');
+    if (!Array.isArray(h)) h = [];
+    h = h.filter(x => x && x.dateET !== dateET);
+    h.push({ dateET, composite: RISK_STATE.composite, label: RISK_STATE.label });
+    h.sort((a, b) => (a.dateET < b.dateET ? -1 : 1));
+    if (h.length > 14) h = h.slice(-14);
+    localStorage.setItem('md_regime_daily', JSON.stringify(h));
+  } catch (e) {}
+}
+function getRegimeTrend(todayDateET) {
+  try {
+    const h = JSON.parse(localStorage.getItem('md_regime_daily') || '[]');
+    if (!Array.isArray(h)) return null;
+    const past = h.filter(x => x && x.dateET && x.dateET < todayDateET);
+    return past.length ? past[past.length - 1] : null;
+  } catch (e) { return null; }
 }
 
 // ============ NIVELURI TEHNICE REALE pentru AI Daily Brief ============
@@ -3918,7 +3994,13 @@ async function buildBriefContext() {
   ];
   const tilesList = tiles.map(([k, t]) => `- ${k}: ${t.v} (${t.sub})`).join('\n');
 
-  return { nyt, eventsList, resultsList, weekAheadList, geoList, macroList, cryptoList, tilesList, levelsList, bigEvents, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
+  // F1: earnings azi/mâine, watchlist personal, teza de ieri, trendul regimului
+  const earningsList = getBriefEarnings(nyt.date);
+  const watchList = getBriefWatchlist();
+  const prevThesis = getPrevThesis(nyt.date);
+  const regimePrev = getRegimeTrend(nyt.date);
+
+  return { nyt, eventsList, resultsList, weekAheadList, geoList, macroList, cryptoList, tilesList, levelsList, bigEvents, earningsList, watchList, prevThesis, regimePrev, eventsCount: eventsToday.length, hiCount: eventsToday.filter(e => e.impact === 'high').length };
 }
 
 async function generateBrief(force=false) {
@@ -3937,9 +4019,32 @@ async function generateBrief(force=false) {
   // Asigură-te că ai news încărcate (pentru context)
   if (!MACRO_NEWS.length && getFinnhubKey()) await fetchMacroNews().catch(() => {});
   if (!CRYPTO_NEWS.length) await fetchCryptoNews().catch(() => {});
+  // F1: earnings mega-cap (catalist stocks) — încarcă înainte de context (guard intern la cache)
+  if (!Object.keys(EARNINGS_BY_DATE).length && getFinnhubKey()) await loadEarningsWeek().catch(() => {});
 
   const ctx = await buildBriefContext();
   renderBriefMeta(ctx);
+
+  // F1: linia de regim cu TREND (ieri→azi) — direcția composite-ului = info de sizing
+  let regimeLine;
+  if (RISK_STATE && RISK_STATE.label) {
+    const sign = RISK_STATE.composite >= 0 ? '+' : '';
+    const sub = s => (s >= 0 ? '+' : '') + s;
+    let trend = '';
+    if (ctx.regimePrev && typeof ctx.regimePrev.composite === 'number') {
+      const d = RISK_STATE.composite - ctx.regimePrev.composite;
+      const dir = d > 0 ? '↑ ameliorare' : d < 0 ? '↓ deteriorare' : '→ stabil';
+      trend = ` · ieri ${ctx.regimePrev.label} (score ${sub(ctx.regimePrev.composite)}) → ${dir} ${d >= 0 ? '+' : ''}${d}`;
+    }
+    regimeLine = `${RISK_STATE.label} · score ${sign}${RISK_STATE.composite} (VIX ${sub(RISK_STATE.vixScore)} · 10Y ${sub(RISK_STATE.tenYScore)} · ρ ${sub(RISK_STATE.corrScore)} · F&G ${sub(RISK_STATE.fngScore)} · DXY ${sub(RISK_STATE.dxyScore)})${trend}`;
+  } else {
+    regimeLine = '(regim indisponibil acum — deduci tu apetitul de risc din CONTEXT PIATA, dar marcheaza ca estimare)';
+  }
+
+  // F1: teza de ieri (continuitate)
+  const prevThesisStr = ctx.prevThesis
+    ? `TL;DR ieri (${ctx.prevThesis.dateET}): ${ctx.prevThesis.tldr || '—'}${ctx.prevThesis.verdict ? `\nVerdict ieri: ${ctx.prevThesis.verdict}` : ''}`
+    : '(niciun brief de ieri arhivat — prima rulare sau arhiva goală)';
 
   const prompt = `Data: ${ctx.nyt.date} · Ora ET acum: ${String(ctx.nyt.hour).padStart(2,'0')}:${String(ctx.nyt.minute).padStart(2,'0')}
 
@@ -3951,6 +4056,15 @@ ${ctx.eventsList || '(niciun event high/med în fereastră)'}
 
 === EVENIMENTE CRITICE SAPTAMANA (2-7 zile) ===
 ${ctx.weekAheadList}
+
+=== EARNINGS MEGA-CAP AZI/DISEARA (catalist stocks) ===
+${ctx.earningsList}
+
+=== WATCHLIST-UL MEU (daca un event/nivel/earnings atinge un simbol de aici, PRIORITIZEAZA-l in "Azi" si "Oportunitati") ===
+${ctx.watchList || '(watchlist gol)'}
+
+=== TEZA DE IERI (pentru CONTINUITATE — daca teza de azi difera, spune EXPLICIT ce s-a schimbat si de ce) ===
+${prevThesisStr}
 
 === STIRI MACRO (ultimele 24h) ===
 ${ctx.macroList}
@@ -3964,10 +4078,8 @@ ${ctx.geoList}
 === CONTEXT PIATA (live) ===
 ${ctx.tilesList}
 
-=== REGIM DE RISC (oficial — deja calculat din VIX+10Y+corel.BTC/SPY+F&G+DXY; FOLOSESTE-L, nu-l recalcula) ===
-${RISK_STATE && RISK_STATE.label
-  ? `${RISK_STATE.label} · score ${RISK_STATE.composite >= 0 ? '+' : ''}${RISK_STATE.composite} (VIX ${RISK_STATE.vixScore>=0?'+':''}${RISK_STATE.vixScore} · 10Y ${RISK_STATE.tenYScore>=0?'+':''}${RISK_STATE.tenYScore} · ρ ${RISK_STATE.corrScore>=0?'+':''}${RISK_STATE.corrScore} · F&G ${RISK_STATE.fngScore>=0?'+':''}${RISK_STATE.fngScore} · DXY ${RISK_STATE.dxyScore>=0?'+':''}${RISK_STATE.dxyScore})`
-  : '(regim indisponibil acum — deduci tu apetitul de risc din CONTEXT PIATA, dar marcheaza ca estimare)'}
+=== REGIM DE RISC (oficial — deja calculat din VIX+10Y+corel.BTC/SPY+F&G+DXY; FOLOSESTE-L, nu-l recalcula. TRENDUL ieri→azi = info de sizing) ===
+${regimeLine}
 
 === NIVELURI TEHNICE LIVE (preturi reale azi — foloseste EXCLUSIV acestea pentru Entry/SL/TP) ===
 ${ctx.levelsList}
@@ -4011,6 +4123,7 @@ Genereaza desk note-ul matinal conform structurii (scurt, ~450-600 cuvinte).`;
     };
     saveBriefCache(brief);
     archiveBrief(brief); // 📜 arhiva 7 zile — validare retroactivă
+    snapshotRegimeDaily(nyt.date); // F1: reține composite-ul de azi pt trendul de mâine
     renderBrief(brief); // afișează deodată cu fade-in
     toast(`✅ Brief generat în ${Math.round((Date.now() - startMs)/1000)}s · mood: ${mood || 'auto'}`, 'success');
   } catch (e) {
