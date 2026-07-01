@@ -371,6 +371,11 @@ table.no-pre .col-pre { display:none; }
 .wl-regime.rg-off { background:rgba(255,77,77,.10); border-color:rgba(255,77,77,.45); color:var(--bear-s); }
 .wl-regime.rg-off b { color:var(--bear-s); }
 .wl-regime.rg-neu { color:var(--t2); }
+.wl-pulse { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.wl-pp { display:inline-flex; align-items:center; gap:4px; background:var(--panel2); border:1px solid var(--b1); border-radius:999px; padding:4px 11px; font-size:11px; font-weight:600; color:var(--t2); font-family:var(--mono); }
+.wl-pp b { color:var(--t1); font-size:12.5px; }
+.wl-pp.wl-pp-total { border-color:rgba(91,176,255,.5); background:rgba(91,176,255,.1); color:var(--accent); }
+.wl-exp-tag { display:inline-block; font-size:9.5px; font-weight:700; padding:1px 6px; border-radius:4px; background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.45); margin-left:3px; vertical-align:middle; }
 
 /* AI verdict (B) */
 .ai-box { margin-top:12px; background:var(--panel2); border:1px solid rgba(91,176,255,.35); border-radius:var(--rs); padding:10px 12px; font-size:11.5px; line-height:1.55; }
@@ -401,7 +406,7 @@ table.no-pre .col-pre { display:none; }
 <body>
 
 <header>
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v149</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v150</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -484,6 +489,7 @@ table.no-pre .col-pre { display:none; }
 
 <!-- Warning concentrare / corelație (D) -->
 <div id="wlRegimeBanner" class="corr-banner wl-regime" style="display:none"></div>
+<div id="wlPulse" class="wl-pulse" style="display:none"></div>
 <div id="corrBanner" class="corr-banner" style="display:none"></div>
 
 <!-- Tabel -->
@@ -590,7 +596,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v149 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v150 · Stocks dedicated · auto-scan continuu</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -1761,6 +1767,38 @@ function wlToSetup(sym){
 }
 window.wlToSetup = wlToSetup;
 
+// ── Sensibilitate macro per-simbol (euristic pe sector) + flag „expus" in regim advers ──
+function wlMacroSens(sym){
+  if (/-usd$/i.test(sym)) return { tag:'crypto', rate:true };
+  const s = (sectorOf(sym) || '').toLowerCase();
+  if (/tech|semiconductor|software|communication/.test(s)) return { tag:'growth', rate:true };
+  if (/financ|bank|insurance/.test(s)) return { tag:'banks', rate:false };
+  if (/energy|oil|gas/.test(s)) return { tag:'energy', rate:false };
+  return { tag:'other', rate:false };
+}
+function wlExposedTag(sym){
+  const sens = wlMacroSens(sym);
+  if (_wlRgComp != null && _wlRgComp <= -2 && sens.rate)
+    return `<span class="wl-exp-tag" title="Sector sensibil la dobânzi (${sens.tag}) într-un regim macro advers — dublu risc, redu sizing">⚠ expus</span>`;
+  return '';
+}
+// Market Pulse — starea watchlist-ului in 3 sec
+function updatePulse(){
+  const el = $('wlPulse'); if (!el) return;
+  if (!results.length){ el.style.display = 'none'; return; }
+  let up=0, down=0, earn=0, exp=0;
+  for (const r of results){
+    if (r.chg > 0) up++; else if (r.chg < 0) down++;
+    if (typeof earningsMap !== 'undefined' && earningsMap[r.symbol]) earn++;
+    if (_wlRgComp != null && _wlRgComp <= -2 && wlMacroSens(r.symbol).rate) exp++;
+  }
+  el.style.display = '';
+  el.innerHTML = `<span class="wl-pp wl-pp-total"><b>${results.length}</b> poziții</span>`
+    + `<span class="wl-pp"><b style="color:var(--bull-s)">${up}</b>▲ / <b style="color:var(--bear-s)">${down}</b>▼</span>`
+    + (earn ? `<span class="wl-pp">📅 <b>${earn}</b> earnings ≤7z</span>` : '')
+    + (exp ? `<span class="wl-pp" style="color:var(--warn);border-color:rgba(212,137,44,.5)">⚠ <b>${exp}</b> expuse la regim</span>` : '');
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  SPARKLINE — mini-grafic SVG din ultimele ~N închideri (F1)
 // ═══════════════════════════════════════════════════════════════
@@ -2598,6 +2636,7 @@ function render(){
   renderHotStrip();
   updateCorrBanner();
   updateRegimeBanner();
+  updatePulse();
   const tbody = $('resultsBody');
   if (!watchlist.length){
     const popBtns = POPULAR_TICKERS.map(t => `<button class="qa-btn" type="button" onclick="quickAdd('${t}')">+ ${t}</button>`).join('');
@@ -2671,7 +2710,7 @@ function render(){
       <td class="left">
         <div class="sym-name"><span class="row-caret">▸</span>${r.symbol}</div>
         <div class="sym-sector">${wlEsc(sectorOf(r.symbol)) || 'Stocks'} · ${exLabel(r.symbol)}</div>
-        ${earnBadge(r.symbol)}${insBadge(r.symbol)}${alertBadge(r.symbol)}
+        ${earnBadge(r.symbol)}${insBadge(r.symbol)}${alertBadge(r.symbol)}${wlExposedTag(r.symbol)}
         ${perfTag}
         ${anchorTagRow(r)}
       </td>
