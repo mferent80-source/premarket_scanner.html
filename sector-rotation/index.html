@@ -108,8 +108,16 @@ h1{font-size:18px;font-weight:700;letter-spacing:-.3px;background:linear-gradien
 /* RRG varianta carduri (2×2 cadrane) — v158 */
 .rrg-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
 .rrg-quad{border:1px solid var(--br);border-radius:10px;padding:8px 10px;background:var(--bg2);border-top-width:3px}
-.rrg-quad.lead{border-top-color:#22d66b} .rrg-quad.impr{border-top-color:#5bb0ff}
-.rrg-quad.weak{border-top-color:#d4892c} .rrg-quad.lag{border-top-color:#ff4d4d}
+.rrg-quad.lead{border-top-color:#22d66b;background:linear-gradient(180deg,rgba(34,214,107,.07),var(--bg2))} .rrg-quad.impr{border-top-color:#5bb0ff;background:linear-gradient(180deg,rgba(91,176,255,.07),var(--bg2))}
+.rrg-quad.weak{border-top-color:#d4892c;background:linear-gradient(180deg,rgba(212,137,44,.07),var(--bg2))} .rrg-quad.lag{border-top-color:#ff4d4d;background:linear-gradient(180deg,rgba(255,77,77,.07),var(--bg2))}
+/* B: highlight lider #1 din heatmap + sumar cadrane RRG */
+.heat-card.leader{box-shadow:0 0 0 2px rgba(34,214,107,.55),0 4px 16px rgba(34,214,107,.18)}
+.heat-card .heat-crown{font-size:11px;margin-left:4px}
+.rrg-summary{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.rrg-sum-pill{display:flex;flex-direction:column;gap:1px;background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:6px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.3px;font-weight:700;color:var(--txt-d);border-left-width:3px}
+.rrg-sum-pill b{font-size:16px;font-family:var(--mono,monospace);color:var(--txt)}
+.rrg-sum-pill.lead{border-left-color:#22d66b} .rrg-sum-pill.impr{border-left-color:#5bb0ff}
+.rrg-sum-pill.weak{border-left-color:#d4892c} .rrg-sum-pill.lag{border-left-color:#ff4d4d}
 .rq-h{font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
 .rq-h .cnt{color:var(--txt-dd);font-weight:600}
 .rq-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12.5px;border-top:1px solid rgba(255,255,255,.04)}
@@ -268,7 +276,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v162</span>
+    <span class="ver-badge" id="verBadge">v163</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
     <div class="hdr-spc"></div>
@@ -307,6 +315,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
         <span class="sort-chip" data-rrgview="cards">🔲 Cadrane</span>
       </span>
     </div>
+    <div class="rrg-summary" id="rrgSummary"></div>
     <div class="rrg-wrap"><div id="rrg" style="width:100%"><div class="rrg-note">Apasă <b>🔄 SCAN</b> ca să încarci RRG-ul.</div></div></div>
     <div class="rrg-legend">🟢 Leading (forță + și în creștere) · 🔵 Improving (forță − dar urcă) · 🟡 Weakening (forță + dar scade) · 🔴 Lagging (forță − și scade) · <b>coada</b> = ultimele ~4 săpt (direcția rotației)</div>
   </section>
@@ -1254,9 +1263,9 @@ function render(){
 
   // Heatmap (sortat după Δ1w descending mereu — vizual clar)
   const heatOrd = DATA.slice().sort((a,b) => b.chg1w - a.chg1w);
-  $('heatmap').innerHTML = heatOrd.map(d => `
-    <div class="heat-card ${heatBucket(d.chg1w)}" data-sym="${d.sym}" title="Click pentru detalii ${d.name}">
-      <div class="heat-sym">${d.sym}</div>
+  $('heatmap').innerHTML = heatOrd.map((d, i) => `
+    <div class="heat-card ${heatBucket(d.chg1w)}${i===0?' leader':''}" data-sym="${d.sym}" title="Click pentru detalii ${d.name}">
+      <div class="heat-sym">${d.sym}${i===0 && d.chg1w>0 ? '<span class="heat-crown" title="Liderul rotației (#1 pe Δ1săpt)">👑</span>' : ''}</div>
       <div class="heat-name">${d.name}</div>
       <div class="heat-pct ${pctClass(d.chg1w)}">${fmtPct(d.chg1w)}</div>
       <div class="heat-sub">1z ${fmtPct(d.chg1d)} · 1l ${fmtPct(d.chg1m)}</div>
@@ -1266,6 +1275,8 @@ function render(){
   renderRRG();
 
   // Table — fiecare rând cu data-sym + clickable; injectez expand-row sub rândul activ
+  // Heat pe celula RS (metrica centrală) — fundal proporțional cu magnitudinea forței relative
+  const rsHeat = v => { if (v == null || isNaN(v)) return ''; const a = Math.min(Math.abs(v) / 3, 1) * 0.22; return `background:rgba(${v > 0 ? '34,214,107' : '255,77,77'},${a.toFixed(3)})`; };
   const rows = [];
   for (const d of ord){
     const active = expandedSym === d.sym ? ' active-row' : '';
@@ -1274,8 +1285,8 @@ function render(){
       <td class="tcell-num">$${fmtPrice(d.price)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chg1d)}">${fmtPct(d.chg1d)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chg1w)}">${fmtPct(d.chg1w)}</td>
-      <td class="tcell-num td-pct ${pctClass(d.rsChg1w)}" title="${(()=>{const q=rrgQuadrant(d.rsRatio,d.rsMom);return q?q.icon+' '+q.label:'';})()}">${fmtPct(d.rsChg1w)}</td>
-      <td class="tcell-num td-pct ${pctClass(d.rsChg1m)}" title="RS pe 1 lună — ${(d.rsChg1w!=null&&d.rsChg1m!=null&&(d.rsChg1w>0)===(d.rsChg1m>0))?'aliniat cu 1săpt = trend relativ real':'divergent vs 1săpt = posibil bounce/mean-reversion'}">${fmtPct(d.rsChg1m)}</td>
+      <td class="tcell-num td-pct ${pctClass(d.rsChg1w)}" style="${rsHeat(d.rsChg1w)}" title="${(()=>{const q=rrgQuadrant(d.rsRatio,d.rsMom);return q?q.icon+' '+q.label:'';})()}">${fmtPct(d.rsChg1w)}</td>
+      <td class="tcell-num td-pct ${pctClass(d.rsChg1m)}" style="${rsHeat(d.rsChg1m)}" title="RS pe 1 lună — ${(d.rsChg1w!=null&&d.rsChg1m!=null&&(d.rsChg1w>0)===(d.rsChg1m>0))?'aliniat cu 1săpt = trend relativ real':'divergent vs 1săpt = posibil bounce/mean-reversion'}">${fmtPct(d.rsChg1m)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chg1m)}">${fmtPct(d.chg1m)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chg3m)}">${fmtPct(d.chg3m)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chgYTD)}">${fmtPct(d.chgYTD)}</td>
@@ -1330,6 +1341,12 @@ function renderRRG(){
   // chip-urile de toggle reflectă varianta activă
   document.querySelectorAll('[data-rrgview]').forEach(c => c.classList.toggle('active', c.dataset.rrgview === rrgView));
   const pts = DATA.filter(d => d.rsRatio != null && d.rsMom != null);
+  // Sumar cadrane (câte sectoare în fiecare) — titlul poveștii de rotație la prima privire
+  const byQ = { lead:0, impr:0, weak:0, lag:0 };
+  for (const d of pts){ const q = rrgQuadrant(d.rsRatio, d.rsMom); if (q && byQ[q.key] != null) byQ[q.key]++; }
+  const sumEl = $('rrgSummary');
+  if (sumEl) sumEl.innerHTML = [['lead','🟢 Leading'],['impr','🔵 Improving'],['weak','🟡 Weakening'],['lag','🔴 Lagging']]
+    .map(([k, lbl]) => `<div class="rrg-sum-pill ${k}"><b>${byQ[k]}</b>${lbl}</div>`).join('');
   if (!SPY || pts.length < 3){
     box.innerHTML = '<div class="rrg-note">RRG indisponibil — lipsă date SPY sau serii prea scurte.</div>';
     return;
