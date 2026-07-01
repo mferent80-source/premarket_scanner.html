@@ -257,6 +257,13 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .cc-gauge { height:5px; border-radius:3px; background:var(--panel3); overflow:hidden; margin-top:5px; }
 .cc-gauge-fill { height:100%; border-radius:3px; transition:width .5s var(--ease); }
 
+/* Freeze window banner */
+.freeze-banner { border-radius:var(--r); padding:10px 16px; margin-bottom:10px; display:flex; align-items:center; gap:10px; font-family:var(--head); font-weight:700; font-size:13px; box-shadow:var(--shadow-sm); }
+.freeze-banner .fb-icon { font-size:18px; flex-shrink:0; }
+.freeze-banner .fb-count { margin-left:auto; font-family:var(--mono); font-weight:800; font-size:14px; white-space:nowrap; }
+.freeze-banner.freeze { background:linear-gradient(135deg, rgba(255,77,77,.22), rgba(20,26,40,.6)); border:1px solid rgba(255,77,77,.6); color:#ffb3b3; animation:moodPulseGlow 1.6s ease-in-out infinite; }
+.freeze-banner.soon { background:linear-gradient(135deg, rgba(212,137,44,.16), rgba(20,26,40,.6)); border:1px solid rgba(212,137,44,.5); color:var(--warn); }
+
 /* Hot strip — next 24h high-impact */
 .hot-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:8px; margin-bottom:10px; }
 .hot-strip:empty { display:none; }
@@ -858,7 +865,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v211</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v212</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -881,6 +888,9 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <div class="cc-cell" id="cc-curve" onclick="drillCurve()" title="Curba randamentelor 10Y-3M — inversată = semnal clasic de recesiune (risc pt equities)"><span class="cc-label">📈 Curbă 10Y-3M</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
   <div class="cc-cell" id="cc-tilt" onclick="drillRiskDashboard()" title="Înclinația cross-asset: ce drivere împing risk-on vs risk-off acum"><span class="cc-label">⚖️ Cross-asset</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
 </div>
+
+<!-- FREEZE WINDOW: protejeaza executia in jurul evenimentelor high-impact -->
+<div class="freeze-banner" id="freezeBanner" style="display:none"></div>
 
 <div class="stats-strip" id="statsStrip">
   <div class="stat-tile" id="tile-vix"><span class="stat-label">📊 VIX</span><span class="stat-value">—</span><span class="stat-sub">Volatility Index</span></div>
@@ -2188,6 +2198,7 @@ function renderCommandCenter() {
       tc.innerHTML = `<span class="cc-label">⚖️ Cross-asset</span><span class="cc-value neut" style="font-size:16px">—</span><span class="cc-sub">date parțiale</span>`;
     }
   }
+  renderFreezeWindow();
 }
 
 // Drill-down Danger Score — arată breakdown-ul (de ce scorul e X + ce înseamnă sizing-ul)
@@ -2216,6 +2227,53 @@ function drillCurve() {
       ? 'Curba e <strong>inversată</strong> (3M randează mai mult ca 10Y). Istoric, un semnal clasic de recesiune care precede slăbiciune în equities cu 6-18 luni — <strong>context de precauție</strong> pe termen mediu, nu un trigger de vânzare imediat.'
       : 'Curba e <strong>normală/pozitivă</strong> (10Y peste 3M). Consistent cu un ciclu economic sănătos — mediu de fond mai favorabil pentru equities ciclice.'}</p></div>`;
   openGenericModal('📈 Curba randamentelor 10Y-3M', 'Fed watch — semnal macro de regim', html);
+}
+
+// ============ FREEZE WINDOW — protejează execuția în jurul evenimentelor high-impact ============
+function nextHighImpactEvent() {
+  const now = Date.now();
+  let best = null, bestT = Infinity;
+  for (const e of CAL_DATA) {
+    if (e.impact !== 'high' || e.actual != null) continue;
+    const t = parseEventTime(e.time)?.getTime() || 0;
+    if (t > now && t < bestT) { bestT = t; best = e; }
+  }
+  return best ? { event: best, ts: bestT, minsUntil: (bestT - now) / 60000 } : null;
+}
+
+function renderFreezeWindow() {
+  const el = $('freezeBanner');
+  if (!el) return;
+  const now = Date.now();
+  const flag = e => (COUNTRY_META[e.country] || { flag: '' }).flag || '';
+  // 1) Fereastră POST-event: un high-impact publicat în ultimele 15 min → volatilitate
+  let recent = null;
+  for (const e of CAL_DATA) {
+    if (e.impact !== 'high') continue;
+    const t = parseEventTime(e.time)?.getTime() || 0;
+    const minsAgo = (now - t) / 60000;
+    if (minsAgo > 0 && minsAgo <= 15) { recent = { event: e, minsAgo }; break; }
+  }
+  if (recent) {
+    el.style.display = 'flex'; el.className = 'freeze-banner freeze';
+    el.innerHTML = `<span class="fb-icon">⛔</span><span>FEREASTRĂ POST-EVENT · <b>${flag(recent.event)} ${escHtml(recent.event.event)}</b> tocmai publicat — volatilitate, evită intrări impulsive</span><span class="fb-count">acum ${Math.round(recent.minsAgo)}m</span>`;
+    return;
+  }
+  const nx = nextHighImpactEvent();
+  // 2) Fereastră PRE-event ±15 min → nu deschide poziții noi
+  if (nx && nx.minsUntil <= 15) {
+    el.style.display = 'flex'; el.className = 'freeze-banner freeze';
+    el.innerHTML = `<span class="fb-icon">⛔</span><span>FREEZE · <b>${flag(nx.event)} ${escHtml(nx.event.event)}</b> imediat — <b>NU deschide poziții noi</b> până se publică</span><span class="fb-count">${Math.round(nx.minsUntil)}m</span>`;
+    return;
+  }
+  // 3) Countdown informativ (următoarele 2h) → pregătire/sizing
+  if (nx && nx.minsUntil <= 120) {
+    el.style.display = 'flex'; el.className = 'freeze-banner soon';
+    const h = Math.floor(nx.minsUntil / 60), m = Math.round(nx.minsUntil % 60);
+    el.innerHTML = `<span class="fb-icon">⏳</span><span>Următorul high-impact: <b>${flag(nx.event)} ${escHtml(nx.event.event)}</b> — pregătește-te, redu sizing spre event</span><span class="fb-count">${h > 0 ? h + 'h ' : ''}${m}m</span>`;
+    return;
+  }
+  el.style.display = 'none';
 }
 
 // ============ GENERIC MODAL (drill-down) ============
@@ -4952,13 +5010,14 @@ async function computeRiskDashboard() {
   try {
     // Folosim fetchChartWithFallback (Yahoo proxy → CoinGecko/ETF Finnhub/TwelveData) pentru tot.
     // fetchYahooQuote rămâne pentru valori curente cu fallback ETF/CoinGecko.
-    const [vixQ, tnxQ, spyChart, btcChart, tnxChart, vixChart] = await Promise.all([
+    const [vixQ, tnxQ, spyChart, btcChart, tnxChart, vixChart, dxyChart] = await Promise.all([
       fetchYahooQuote('^VIX'),
       fetchYahooQuote('^TNX'),
       fetchChartWithFallback('SPY'),
       fetchChartWithFallback('BTC-USD'),
       fetchChartWithFallback('^TNX'),
-      fetchChartWithFallback('^VIX')
+      fetchChartWithFallback('^VIX'),
+      fetchChartWithFallback('DX-Y.NYB')
     ]);
     if (!vixQ && !tnxQ && !spyChart && !btcChart) return null;
 
@@ -4994,9 +5053,9 @@ async function computeRiskDashboard() {
       tenYVal = tnxQ.last / 10;
       tenYDelta30 = tnxQ.chgPct * 5; // factor proxy (rough — preferăm chart real)
     } else if (tnxQ?.proxyEtf) {
-      // IEF: creștere preț ETF = scădere yield. Folosim Δ% inversă × factor proxy lunar.
-      tenYVal = null; // nu avem valoare absolută corectă
-      tenYDelta30 = -tnxQ.chgPct * 10; // proxy direcțional
+      // IEF proxy: factorul magic ×10 e zgomot, nu semnal de regim. Mai bine N/A → tenYScore
+      // rămâne 0 și validCount scade ONEST, decât un scor 10Y inventat care poluează composite-ul.
+      tenYVal = null; tenYDelta30 = null;
     }
 
     // BTC/SPY correlation 30d (doar dacă avem ambele chart-uri)
@@ -5047,12 +5106,21 @@ async function computeRiskDashboard() {
       else if (fngVal >= 30) { fngScore = -1; fngLabel = '🟡 Lean fear'; }
       else { fngScore = -2; fngLabel = '🔴 Fear'; }
     }
-    // v193: DXY Δ% — USD ↑ = risk-off pe assets, USD ↓ = risk-on
+    // DXY: TREND ~30 bare (nu Δ% zilnic — o zi verde flip-uia semnalul de regim și contrazicea
+    // histerezisul composite-ului). Fallback la Δ% zi doar dacă lipsește chart-ul.
     let dxyScore = 0, dxyLabel = 'N/A';
-    const dxyChg = parseTileChange('tile-dxy');
-    if (dxyChg != null) {
-      if (dxyChg > 0.4) { dxyScore = -1; dxyLabel = '🔴 USD strong'; }
-      else if (dxyChg < -0.4) { dxyScore = +1; dxyLabel = '🟢 USD weak'; }
+    let dxyTrend = null;
+    if (dxyChart?.points?.length > 5) {
+      const dl = dxyChart.points[dxyChart.points.length - 1].close;
+      const df = dxyChart.points[0].close;
+      if (Number.isFinite(dl) && Number.isFinite(df) && df) dxyTrend = (dl - df) / df * 100;
+    }
+    const dxyChg = parseTileChange('tile-dxy'); // Δ% zi = fallback
+    const dxyMetric = dxyTrend != null ? dxyTrend : dxyChg;
+    const dxyThresh = dxyTrend != null ? 1.5 : 0.4; // trend lunar vs Δ zi = praguri diferite
+    if (dxyMetric != null) {
+      if (dxyMetric > dxyThresh) { dxyScore = -1; dxyLabel = dxyTrend != null ? '🔴 USD trend ↑' : '🔴 USD strong'; }
+      else if (dxyMetric < -dxyThresh) { dxyScore = +1; dxyLabel = dxyTrend != null ? '🟢 USD trend ↓' : '🟢 USD weak'; }
       else { dxyScore = 0; dxyLabel = '⚪ USD flat'; }
     }
 
@@ -6182,7 +6250,7 @@ async function init() {
   bindEvents();
   applyToastBtnUI(); // reflectă starea muted salvată
   renderSession();
-  setInterval(() => { renderSession(); applyFastPollUI(); }, 30000);
+  setInterval(() => { renderSession(); applyFastPollUI(); renderFreezeWindow(); }, 30000);
   cleanupSeen(); // sterge entries SEEN >7z
   cleanupSeenActual(); // sterge entries SEEN_ACTUAL >7z
   initBriefTab(); // afișează brief cached dacă există
