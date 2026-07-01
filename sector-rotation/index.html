@@ -201,6 +201,8 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 .ai-actions button:disabled{opacity:.5;cursor:not-allowed}
 .ai-actions .ai-btn-primary{background:linear-gradient(135deg,var(--teal),var(--emerald));color:#fff;border-color:transparent}
 .ai-body{font-size:13px;line-height:1.7;color:var(--txt);white-space:pre-wrap;min-height:60px}
+.ai-tk{display:inline-flex;align-items:center;gap:2px;background:rgba(8,145,178,.12);border:1px solid rgba(8,145,178,.3);border-radius:5px;padding:0 5px;font-weight:700;color:var(--teal);cursor:pointer;white-space:nowrap}
+.ai-tk:hover{background:rgba(8,145,178,.22);border-color:var(--teal)}
 .ai-body.appear{animation:fadeIn .45s ease-out}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .ai-loading{display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 0;color:var(--txt-d)}
@@ -282,7 +284,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v165</span>
+    <span class="ver-badge" id="verBadge">v166</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
     <div class="hdr-spc"></div>
@@ -456,7 +458,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   v158: RRG varianta carduri pe 4 cadrane (toggle scatter↔cadrane, persistat).
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v165';
+const VER = 'v166';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -1093,10 +1095,22 @@ function renderAIBubbleLoading(sym){
   };
   requestAnimationFrame(tick);
 }
+// Face tickerele din top holdings ale sectorului clickabile în textul AI → Setup Builder
+function linkTickersInAI(html, sym){
+  const d = DATA.find(x => x.sym === sym);
+  const q = d ? rrgQuadrant(d.rsRatio, d.rsMom) : null;
+  const dir = (q && (q.key === 'lag' || q.key === 'weak')) ? 'short' : 'long';
+  const uniq = Array.from(new Set(TOP_HOLDINGS[sym] || [])).filter(t => t && t.length >= 2).sort((a,b) => b.length - a.length);
+  for (const tk of uniq){
+    const re = new RegExp(`\\b(${tk})\\b`, 'g');
+    html = html.replace(re, `<span class="ai-tk" onclick="sendToSetup('${tk}','${dir}')" title="Setup pe ${tk} în Macro (${dir.toUpperCase()})">$1 🎯</span>`);
+  }
+  return html;
+}
 function renderAIBubble(sym, text, fromCache, elapsed){
   const box = $('aiBody_' + sym); if (!box) return;
-  // markdown light: **bold**
-  const html = escHtml(text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  // markdown light: **bold** + tickere din holdings clickabile → Setup
+  const html = linkTickersInAI(escHtml(text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>'), sym);
   box.innerHTML = `<div class="ai-body appear">${html}</div>
     <div class="ai-meta">
       <span>🤖 claude-opus-4-8</span>
