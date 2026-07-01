@@ -822,7 +822,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v207</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v208</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -1610,6 +1610,7 @@ const CORS_PROXIES = [
   { build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u), extract: r => r.text() }
 ];
 const PROXY_DEAD = new Set();
+const PROXY_TIMEOUTS = new Map(); // idx -> nr. timeout-uri consecutive (2 strikes → dead temporar)
 // Reset dead proxies la fiecare reload — poate au revenit între sesiuni
 let _proxyResetTs = Date.now();
 
@@ -1708,7 +1709,7 @@ function renderSession() {
 // ============ PROXY FETCH ============
 async function fetchViaProxy(url, timeoutMs=9000) {
   // Reset proxies marcate dead la fiecare 5 min (poate s-au reabilitat între timp)
-  if (Date.now() - _proxyResetTs > 5*60000) { PROXY_DEAD.clear(); _proxyResetTs = Date.now(); }
+  if (Date.now() - _proxyResetTs > 5*60000) { PROXY_DEAD.clear(); PROXY_TIMEOUTS.clear(); _proxyResetTs = Date.now(); }
   const tried = new Set();
   let lastError = null;
   for (let attempt = 0; attempt < CORS_PROXIES.length; attempt++) {
@@ -1735,9 +1736,19 @@ async function fetchViaProxy(url, timeoutMs=9000) {
         continue;
       }
       _proxyIdx = idx;
+      PROXY_TIMEOUTS.delete(idx); // succes → resetează contorul de timeout-uri consecutive
       try { return JSON.parse(txt); } catch (e) { return txt; }
     } catch (e) {
-      if (e.name === 'AbortError') { lastError = `timeout proxy ${idx}`; continue; }
+      if (e.name === 'AbortError') {
+        // Timeout tranzitoriu ≠ proxy mort: nu-l omorâm din prima (altfel o pană de rețea
+        // care dă timeout pe toate le-ar bloca pe 5 min). Dar un proxy constant lent → dead
+        // temporar după 2 timeout-uri consecutive, ca să nu risipim ~9s la fiecare fetch.
+        const strikes = (PROXY_TIMEOUTS.get(idx) || 0) + 1;
+        PROXY_TIMEOUTS.set(idx, strikes);
+        if (strikes >= 2) PROXY_DEAD.add(idx);
+        lastError = `timeout proxy ${idx}`;
+        continue;
+      }
       PROXY_DEAD.add(idx);
       lastError = `${e.message} proxy ${idx}`;
     }
@@ -1887,7 +1898,7 @@ async function fetchYahooQuote(symbol) {
     // (prima bară a chart-ului) → ar afișa variația pe 3 luni ca schimbare zilnică.
     const lastPt = data.points[data.points.length-1]?.close;
     const prevPt = data.points[data.points.length-2]?.close;
-    const sameDay = lastPt != null && Math.abs(last - lastPt) / last < 0.0005;
+    const sameDay = lastPt != null && last && Math.abs(last - lastPt) / last < 0.0005;
     const prevClose = (sameDay ? prevPt : lastPt) ?? data.meta?.chartPreviousClose ?? last;
     const chgPct = prevClose ? ((last - prevClose) / prevClose) * 100 : 0;
     return { last, chgPct, prevClose };
@@ -2206,8 +2217,10 @@ async function drillStatTile(tileId) {
       const interp = meta.interpret(cur);
       const max = Math.max(...points.map(p => p.close));
       const min = Math.min(...points.map(p => p.close));
-      const d1 = pctChg(points, 1), d7 = pctChg(points, 7), d29 = pctChg(points, 29);
-      renderTileBody(meta, points, cur, { max, min, vol: null, d1, d5: d7, d30: d29 }, interp);
+      // Aliniat cu celelalte tile-uri: valoarea trebuie să corespundă exact etichetei
+      // (Δ 5d = 5 zile, Δ Nd = points.length-1). Înainte se calcula d7/d29 dar se afișa ca „5d"/„30d".
+      const d1 = pctChg(points, 1), d5 = pctChg(points, 5), d30 = pctChg(points, points.length-1);
+      renderTileBody(meta, points, cur, { max, min, vol: null, d1, d5, d30 }, interp);
     } catch (e) {
       $('gmBody').innerHTML = '<div class="drill-error">❌ Nu am putut încărca F&G istoric.</div>';
     }
@@ -3485,7 +3498,7 @@ function buildHistoryBoxHTML(event, hist) {
     const actCls = r.cls === 'beat' ? 'beat' : (r.cls === 'miss' ? 'miss' : 'neut');
     const surp = (r.surprise != null && !isNaN(r.surprise)) ? `${r.surprise>=0?'+':''}${r.surprise.toFixed(2)}%` : '—';
     return `<tr>
-      <td class="ehr-date">${escHtml((h.time || '').slice(0,10))}</td>
+      <td class="ehr-date">${escHtml((h.time || '').slice(0,10) || '—')}</td>
       <td class="${actCls}">${r.icon} ${escHtml(String(h.actual))}</td>
       <td>${h.forecast != null ? escHtml(String(h.forecast)) : '—'}</td>
       <td>${h.previous != null ? escHtml(String(h.previous)) : '—'}</td>
@@ -4368,7 +4381,9 @@ async function loadHistoricalEvents() {
       });
     }
     for (const k of Object.keys(map)) {
-      map[k].sort((a,b) => (a.time > b.time ? 1 : -1));
+      // Comparator valid (întoarce 0 la egal, tratează time gol determinist — altfel sortare
+      // instabilă în unele engine-uri, iar intrările fără dată corup ordinea cronologică).
+      map[k].sort((a,b) => (a.time || '').localeCompare(b.time || ''));
       if (map[k].length > 20) map[k] = map[k].slice(-20);
       // Filtrăm cele cu prea puține date sau actuals non-numerice
       if (map[k].length < 2 || map[k].every(h => isNaN(parseFloat(h.actual)))) delete map[k];
@@ -4413,6 +4428,15 @@ async function loadEarningsWeek() {
   } catch (e) { /* silent */ }
 }
 
+// Cheie YYYY-MM-DD din componentele LOCALE ale unui Date (nu UTC). EARNINGS_BY_DATE e indexat
+// pe date calendaristice pure de la Finnhub; toISOString() ar converti la UTC și, într-un fus ≠ UTC
+// (ex. RO = UTC+2/+3), miezul nopții local devine ziua anterioară → cheile ar ieși decalate cu o zi.
+function ymdLocal(dt) {
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${dt.getFullYear()}-${m}-${day}`;
+}
+
 // Pentru o dată a unui eveniment macro, întoarce mega-cap earnings din aceeași
 // săptămână ISO (luni-vineri). Folosit pentru indicatorul „Vol Week".
 function getWeekEarnings(eventTimeStr) {
@@ -4427,7 +4451,7 @@ function getWeekEarnings(eventTimeStr) {
   for (let i = 0; i < 5; i++) { // L-V
     const dt = new Date(monday);
     dt.setDate(monday.getDate() + i);
-    const key = dt.toISOString().slice(0,10);
+    const key = ymdLocal(dt);
     if (EARNINGS_BY_DATE[key]) all.push(...EARNINGS_BY_DATE[key]);
   }
   return all;
@@ -4441,7 +4465,7 @@ function countEarningsNextDays(days = 7) {
   for (let i = 0; i <= days; i++) {
     const dt = new Date(now);
     dt.setDate(now.getDate() + i);
-    const key = dt.toISOString().slice(0,10);
+    const key = ymdLocal(dt);
     const arr = EARNINGS_BY_DATE[key];
     if (arr) { total += arr.length; arr.forEach(e => symbols.add(e.symbol)); }
   }
@@ -4522,8 +4546,12 @@ async function computeRiskDashboard() {
     if (tnxChart?.points?.length > 10) {
       const last = tnxChart.points[tnxChart.points.length-1].close;
       const first = tnxChart.points[0].close;
-      tenYVal = last / 10;
-      tenYDelta30 = (last - first) / 10 * 100; // bp
+      // Găurile din chart-ul Yahoo pot livra close=null la capete → NaN. Validăm înainte
+      // să evităm ca un NaN să treacă de guard-ul `!= null` și să injecteze fals „🟢 Stabil".
+      if (Number.isFinite(last) && Number.isFinite(first)) {
+        tenYVal = last / 10;
+        tenYDelta30 = (last - first) / 10 * 100; // bp
+      }
     } else if (tnxQ && !tnxQ.proxyEtf) {
       // Avem doar quote ^TNX, fără chart. Folosim Δ% zilnic ca proxy aprox pentru Δ30z.
       tenYVal = tnxQ.last / 10;
@@ -4556,7 +4584,7 @@ async function computeRiskDashboard() {
     }
     // 10Y score: scădere mare = recession concerns, creștere mare = rate hikes / inflation
     let tenYScore = 0, tenYLabel = 'N/A';
-    if (tenYDelta30 != null) {
+    if (tenYDelta30 != null && Number.isFinite(tenYDelta30)) {
       if (tenYDelta30 < -25) { tenYScore = -2; tenYLabel = '🔴 Drop puternic (recession)'; }
       else if (tenYDelta30 < -10) { tenYScore = -1; tenYLabel = '🟡 Drop moderat'; }
       else if (tenYDelta30 > 25) { tenYScore = -1; tenYLabel = '🟡 Spike (hawkish)'; }
@@ -4875,6 +4903,12 @@ function buildResultTgMessage(events) {
 function checkResults() {
   if (!CAL_DATA.length) return;
   const now = Date.now();
+  // Egalitate robustă între surse: numeric când ambele sunt numerice (5 == "5.0"),
+  // altfel string strict — evită coerciția înșelătoare a lui `==` care re-declanșa alerte.
+  const sameActual = (a, b) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    return (!isNaN(na) && !isNaN(nb)) ? na === nb : String(a) === String(b);
+  };
   const newResults = [];
   for (const e of CAL_DATA) {
     if (e.actual == null) continue;
@@ -4884,7 +4918,7 @@ function checkResults() {
     if (now - t > FLASH_WINDOW_MS) continue;
     const key = e.time + '|' + e.event;
     const prev = SEEN_ACTUAL[key];
-    if (prev && prev.actual == e.actual) continue; // deja văzut cu aceeași valoare
+    if (prev && sameActual(prev.actual, e.actual)) continue; // deja văzut cu aceeași valoare
     // Nou: salvăm și trigger alert
     SEEN_ACTUAL[key] = { actual: e.actual, ts: now };
     const r = classifyResult(e.actual, e.forecast, e.event);
