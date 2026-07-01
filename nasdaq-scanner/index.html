@@ -378,7 +378,11 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 /* SIGNAL CARDS */
 .signals-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 @media(max-width:500px){.signals-grid{grid-template-columns:1fr;}}
-.sig-card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);transition:all .2s;animation:popIn .3s cubic-bezier(.34,1.56,.64,1);position:relative;}
+.scan-regime{padding:9px 13px;border-radius:10px;margin-bottom:10px;font-size:.72rem;line-height:1.5;border:1px solid var(--b1);background:var(--bg2)}
+.scan-regime.rg-on{border-color:rgba(34,214,107,.4);background:rgba(34,214,107,.08);color:var(--green)}
+.scan-regime.rg-off{border-color:rgba(255,77,77,.4);background:rgba(255,77,77,.08);color:var(--red)}
+.scan-regime.rg-neu{color:var(--t2)}
+.sig-card{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);transition:all .2s;animation:popIn .3s cubic-bezier(.34,1.56,.64,1);position:relative;}
 @keyframes popIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
 .sig-card:hover{box-shadow:var(--shh);transform:translateY(-2px);}
 .sig-card.priority-high{border-color:transparent;box-shadow:0 0 0 2px var(--red),var(--sh);}
@@ -902,7 +906,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v120</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v121</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -5286,8 +5290,15 @@ function renderSaveSetupBtn(symbol, contextType){
   return '<div style="display:flex;gap:6px;margin-top:7px">'
     +'<button onclick="openSaveSetupModal(\''+symbol+'\',\''+ct+'\')" style="flex:1;padding:7px;border-radius:7px;border:1px solid #7dd3fc;background:#f0f9ff;color:#0284c7;font-size:.62rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .2s" onmouseover="this.style.background=\'#0284c7\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'#f0f9ff\';this.style.color=\'#0284c7\'">📌 Salvează în jurnal</button>'
     +'<a href="../smart-trade-long/?symbol='+encodeURIComponent(symbol)+'" target="_blank" rel="noopener" title="Deschide Smart Trade Long cu simbolul prefill — scoring 5-filtre, niveluri ATR, position sizer pe contul tău, insider" style="flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:7px 11px;border-radius:7px;border:1px solid var(--goldb);background:var(--goldl);color:var(--gold);font-size:.62rem;font-weight:700;text-decoration:none">🎯 Smart Trade</a>'
+    +'<button onclick="sendToMacroSetup(\''+symbol+'\',\'long\')" title="Deschide Pre-Trade Setup Builder din Macro Dashboard cu simbolul prefill — Entry/SL/TP din ATR + sizing pe Danger Score-ul zilei" style="flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:4px;padding:7px 11px;border-radius:7px;border:1px solid var(--accb);background:var(--accl);color:var(--acc);font-size:.62rem;font-weight:700;cursor:pointer">📐 Setup Macro</button>'
     +'</div>';
 }
+// Handoff → Pre-Trade Setup Builder din Macro Dashboard (observație → execuție)
+function sendToMacroSetup(sym, dir){
+  try { localStorage.setItem('md_setup_prefill', JSON.stringify({ ticker: sym, dir: dir || 'long', ts: Date.now() })); } catch(e){}
+  window.open('../macro-dashboard/#setup', '_blank');
+}
+window.sendToMacroSetup = sendToMacroSetup;
 
 // ═══════════════════════════════════════════════════════════════
 //  QUICK SETUP — JSON ready-to-execute (Opus 4.8, max 350 tok)
@@ -7082,7 +7093,18 @@ function renderSignals(){
   const priorityClass=p=>p==='high'?'priority-high':p==='med'?'priority-med':'';
 
   const _swChip = currentTab==='swing' ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><button onclick="toggleNasdaqConfirmed()" title="Filtru OPȚIONAL: doar semnale swing cu trend daily confirmat ↑ — shared cu Oportunități/Early Buy" style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;border:1px solid ${nasdaqConfirmedOnly?'var(--greenb)':'var(--b2)'};background:${nasdaqConfirmedOnly?'var(--greenl)':'var(--bg2)'};color:${nasdaqConfirmedOnly?'var(--green)':'var(--t2)'};transition:all .15s">✅ Trend confirmat ${nasdaqConfirmedOnly?'ON':'OFF'}</button></div>` : '';
-  container.innerHTML=_swChip+`<div class="signals-grid">${source.slice(0,40).map(s=>{
+  let _rgBanner='';
+  try{
+    const _rg=(typeof Regime!=='undefined'&&Regime.get)?Regime.get():null;
+    if(_rg&&typeof _rg.composite==='number'){
+      const on=_rg.composite>=1,off=_rg.composite<=-2;
+      const txt=on?'✅ semnalele long au <b>vânt din spate</b> (regim favorabil)':off?'⚠ semnalele long merg <b>contra regimului</b> — selectivitate mare, redu sizing':'➖ regim neutru — fără vânt din spate';
+      const cls=on?'rg-on':off?'rg-off':'rg-neu';
+      const stale=_rg.fresh?'':` <span style="opacity:.6">(vechi ${_rg.ageMin}m)</span>`;
+      _rgBanner=`<div class="scan-regime ${cls}">🛡 Regim macro: <b>${U.escHtml(_rg.label||'—')}</b> (score ${_rg.composite>=0?'+':''}${_rg.composite})${stale} · ${txt}</div>`;
+    }
+  }catch(e){}
+  container.innerHTML=_swChip+_rgBanner+`<div class="signals-grid">${source.slice(0,40).map(s=>{
     const chgStr=(s.chg>=0?'+':'')+s.chg.toFixed(2)+'%';
     const m=s.metrics||{};
     const ago=timeAgo(s.time);
