@@ -374,6 +374,20 @@ td.left { text-align:left; padding-left:14px; }
 .exp-hist-table td.neut { color:var(--warn); font-weight:700; }
 .exp-hist-table tr:last-child td { border-bottom:none; }
 .exp-hist-table .ehr-date { color:var(--t2); font-family:var(--mono); font-size:11px; }
+
+/* Edge pe surprize — reacția istorică a prețului (QQQ/BTC) în box-ul de istoric */
+.exp-reaction { margin-top:14px; padding-top:12px; border-top:1px dashed var(--b1); }
+.react-head { font-size:11.5px; color:var(--t2); text-transform:uppercase; letter-spacing:.4px; font-weight:700; font-family:var(--mono); margin-bottom:8px; }
+.react-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:8px; }
+.react-card { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:10px 12px; }
+.react-sym { font-family:var(--head); font-weight:800; font-size:13px; color:var(--t1); display:flex; align-items:center; gap:6px; }
+.react-n { font-family:var(--mono); font-size:10px; color:var(--t3); font-weight:600; }
+.react-main { font-family:var(--head); font-weight:800; font-size:20px; margin-top:3px; display:flex; align-items:baseline; gap:6px; }
+.react-main.bull { color:var(--bull-s); } .react-main.bear { color:var(--bear-s); } .react-main.neut { color:var(--t1); }
+.react-lbl { font-size:10px; color:var(--t3); font-weight:600; font-family:var(--mono); }
+.react-sub { font-family:var(--mono); font-size:11px; color:var(--t2); margin-top:4px; }
+.react-note { font-family:var(--mono); font-size:10.5px; color:var(--t3); margin-top:8px; line-height:1.5; }
+.react-empty { font-family:var(--mono); font-size:11.5px; color:var(--t3); padding:6px 0; }
 .evt-cat { color:var(--t2); font-size:11px; font-family:var(--mono); }
 
 .flag { font-size:15px; margin-right:4px; vertical-align:middle; }
@@ -844,7 +858,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v210</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v211</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -3621,6 +3635,9 @@ function toggleExpand(tr, event) {
   // Auto-run dacă există deja cache
   const cached = getCachedAI(aiCacheKey(event.event, event.time));
   if (cached) { aiBubble.textContent = cached; aiStatus.textContent = 'cache (auto)'; }
+
+  // Edge pe surprize: reacția istorică a prețului (async, populează box-ul când e gata)
+  enrichEventReaction(event, exTr);
 }
 
 function buildExpandHTML(event) {
@@ -3722,7 +3739,111 @@ function buildHistoryBoxHTML(event, hist) {
       <thead><tr><th>Data</th><th>Actual</th><th>Forecast</th><th>Previous</th><th>Surprise</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
+    <div class="exp-reaction"><div class="react-empty">📉 calculez reacția prețului QQQ/BTC la publicările istorice…</div></div>
   </div>`;
+}
+
+// ============ EDGE PE SURPRIZE — reacția istorică a prețului (QQQ/BTC) la publicări ============
+const _reactionSeriesCache = new Map(); // sym → { ts, points:[{ts,close}] }
+// Serie zilnică ~2 ani (acoperă 12-24 publicări lunare). Yahoo range=2y, fallback la fetchChartWithFallback.
+async function getReactionSeries(sym) {
+  const c = _reactionSeriesCache.get(sym);
+  if (c && Date.now() - c.ts < 30 * 60000) return c.points;
+  let points = null;
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2y`;
+    const data = await fetchViaProxy(url);
+    const r = data?.chart?.result?.[0];
+    const closes = r?.indicators?.quote?.[0]?.close || [];
+    const ts = r?.timestamp || [];
+    points = closes.map((cl, i) => ({ ts: ts[i], close: cl })).filter(p => p.close != null && p.ts != null);
+    if (points.length < 30) {
+      const fb = await fetchChartWithFallback(sym, 730);
+      points = (fb?.points || []).filter(p => p && p.close != null && p.ts != null);
+    }
+  } catch (e) { points = null; }
+  if (!points || points.length < 30) points = null;
+  _reactionSeriesCache.set(sym, { ts: Date.now(), points });
+  return points;
+}
+
+// Indexul barei din ziua calendaristică dateStr (UTC) într-o serie sortată crescător pe ts.
+function findBarIndexForDate(points, dateStr) {
+  for (let i = 0; i < points.length; i++) {
+    const d = new Date(points[i].ts * 1000).toISOString().slice(0, 10);
+    if (d === dateStr) return i;
+    if (d > dateStr) return -1; // trecut de zi fără match (weekend/holiday)
+  }
+  return -1;
+}
+
+function median(arr) {
+  if (!arr.length) return null;
+  const s = arr.slice().sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+// Reacția unui asset pe publicările istorice: median zi-0 + drift +1/+3z + hit-rate direcțional vs bias.
+async function computeAssetReaction(sym, event, hist) {
+  const points = await getReactionSeries(sym);
+  if (!points || points.length < 30) return null;
+  const day0 = [], d1 = [], d3 = [];
+  let hit = 0, nDir = 0;
+  for (const h of hist) {
+    const d = (h.time || '').slice(0, 10);
+    if (!d) continue;
+    const i = findBarIndexForDate(points, d);
+    if (i < 1) continue;
+    const r0 = (points[i].close - points[i - 1].close) / points[i - 1].close * 100;
+    if (!Number.isFinite(r0)) continue;
+    day0.push(r0);
+    if (i + 1 < points.length) { const x = (points[i + 1].close - points[i].close) / points[i].close * 100; if (Number.isFinite(x)) d1.push(x); }
+    if (i + 3 < points.length) { const x = (points[i + 3].close - points[i].close) / points[i].close * 100; if (Number.isFinite(x)) d3.push(x); }
+    const cr = classifyResult(h.actual, h.forecast, event.event);
+    if (cr.bias === 'bullish' || cr.bias === 'bearish') {
+      nDir++;
+      const up = r0 > 0;
+      if ((cr.bias === 'bullish' && up) || (cr.bias === 'bearish' && !up)) hit++;
+    }
+  }
+  if (day0.length < 3) return null;
+  return { n: day0.length, medDay0: median(day0), medD1: median(d1), medD3: median(d3), hitRate: nDir ? Math.round(hit / nDir * 100) : null, nDir };
+}
+
+function fmtReactPct(v) { return v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`; }
+
+// Populează async box-ul .exp-reaction din expand-row (QQQ + BTC).
+async function enrichEventReaction(event, exTr) {
+  const box = exTr && exTr.querySelector('.exp-reaction');
+  if (!box) return;
+  const hist = getHistoryFor(event.event, 12);
+  if (hist.length < 3) { box.remove(); return; }
+  const isCrypto = /bitcoin|crypto|etf|halving|ethereum/i.test(event.event);
+  const syms = isCrypto ? [['BTC-USD', 'BTC'], ['QQQ', 'QQQ']] : [['QQQ', 'QQQ'], ['BTC-USD', 'BTC']];
+  try {
+    const results = await Promise.all(syms.map(([s]) => computeAssetReaction(s, event, hist).catch(() => null)));
+    if (!box.isConnected) return; // expand-row închis între timp
+    const cards = [];
+    for (let i = 0; i < syms.length; i++) {
+      const R = results[i];
+      if (!R) continue;
+      const label = syms[i][1];
+      const d0cls = R.medDay0 > 0 ? 'bull' : R.medDay0 < 0 ? 'bear' : 'neut';
+      cards.push(`<div class="react-card">
+        <div class="react-sym">${label} <span class="react-n">n=${R.n}</span></div>
+        <div class="react-main ${d0cls}">${fmtReactPct(R.medDay0)}<span class="react-lbl">median zi-0</span></div>
+        <div class="react-sub">drift +1z ${fmtReactPct(R.medD1)} · +3z ${fmtReactPct(R.medD3)}${R.hitRate != null ? ` · direcție ${R.hitRate}% (${R.nDir})` : ''}</div>
+      </div>`);
+    }
+    box.innerHTML = cards.length
+      ? `<div class="react-head">📉 Reacția istorică a prețului (median pe zilele de publicare)</div>
+         <div class="react-grid">${cards.join('')}</div>
+         <div class="react-note">Cât s-a mișcat activul în ziua publicării (median = robust la outlieri) + drift după 1/3 zile. „direcție X%" = cât de des reacția a mers în sensul biasului. Ghid de mărime, NU garanție — bare zilnice ascund whipsaw-ul intraday.</div>`
+      : `<div class="react-empty">Reacția prețului indisponibilă (serie de prețuri sau suprapunere de date insuficientă).</div>`;
+  } catch (e) {
+    if (box.isConnected) box.innerHTML = `<div class="react-empty">Nu am putut calcula reacția prețului (proxy CORS?).</div>`;
+  }
 }
 
 // ============ DRILL DOWN: BRIEF SECTIONS (AI follow-up) ============
