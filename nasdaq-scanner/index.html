@@ -906,7 +906,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v122</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v123</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -2266,10 +2266,16 @@ async function fhCandles(symbol,key){
 }
 
 // Fetch DOAR quotes mai întâi (1 call/stock) — rapid, fără rate limit
-async function fetchAllQuotes(symbols, key, onProgress){
+async function fetchAllQuotes(symbols, key, onProgress, preFetched){
   const results=[];
   for(let i=0;i<symbols.length;i++){
     if(!running) break;
+    // Reutilizează quote-ul din pre-fetch (gainers/losers/volatile) → evită re-fetch duplicat
+    if(preFetched && preFetched[symbols[i]]){
+      results.push({symbol:symbols[i], q:preFetched[symbols[i]]});
+      if(onProgress) onProgress(i+1,symbols.length,symbols[i]);
+      continue;
+    }
     try{
       const d=await fhQuote(symbols[i],key);
       results.push({symbol:symbols[i], q:d});
@@ -2286,7 +2292,7 @@ async function fetchAllQuotes(symbols, key, onProgress){
       }
     }
     if(onProgress) onProgress(i+1,symbols.length,symbols[i]);
-    await sleep(120); // ~8 stocks/sec = 480/min well under 60/min per endpoint
+    // sleep(120) eliminat: _fhThrottle (48/min) face deja spacing-ul → era dublă întârziere redundantă
   }
   return results;
 }
@@ -5525,6 +5531,7 @@ async function runScan(){
   const nasdaqSortMode=window.nasdaqSortMode||'rotation';
 
   let symbols=[];
+  let preQuotesMap=null; // quote-uri deja fetch-uite in pre-fetch (gainers/losers/volatile) → reutilizate in Faza 1
 
   if(nasdaqSortMode==='rotation'){
     // Original: rotație prin lista completă
@@ -5541,6 +5548,7 @@ async function runScan(){
     setProgress(3,'Pre-fetch câștigători...');
     const preList=fullList.slice(0,150);
     const preQuotes=await fetchAllQuotes(preList,key,(d,t,s)=>setProgress(3+(d/t*20),s));
+    preQuotesMap={}; preQuotes.forEach(x=>{ if(x.q) preQuotesMap[x.symbol]=x.q; }); // reutilizare → fara re-fetch duplicat
     const sorted=preQuotes
       .filter(q=>q.q&&q.q.c&&q.q.pc)
       .map(q=>({symbol:q.symbol,chg:(q.q.c-q.q.pc)/q.q.pc*100}))
@@ -5555,6 +5563,7 @@ async function runScan(){
     setProgress(3,'Pre-fetch perdanți...');
     const preList=fullList.slice(0,150);
     const preQuotes=await fetchAllQuotes(preList,key,(d,t,s)=>setProgress(3+(d/t*20),s));
+    preQuotesMap={}; preQuotes.forEach(x=>{ if(x.q) preQuotesMap[x.symbol]=x.q; }); // reutilizare → fara re-fetch duplicat
     const sorted=preQuotes
       .filter(q=>q.q&&q.q.c&&q.q.pc)
       .map(q=>({symbol:q.symbol,chg:(q.q.c-q.q.pc)/q.q.pc*100}))
@@ -5569,6 +5578,7 @@ async function runScan(){
     setProgress(3,'Pre-fetch volatilitate...');
     const preList=fullList.slice(0,150);
     const preQuotes=await fetchAllQuotes(preList,key,(d,t,s)=>setProgress(3+(d/t*20),s));
+    preQuotesMap={}; preQuotes.forEach(x=>{ if(x.q) preQuotesMap[x.symbol]=x.q; }); // reutilizare → fara re-fetch duplicat
     const sorted=preQuotes
       .filter(q=>q.q&&q.q.h&&q.q.l&&q.q.l>0)
       .map(q=>({symbol:q.symbol,range:(q.q.h-q.q.l)/q.q.l*100}))
@@ -5637,7 +5647,7 @@ async function runScan(){
   // ── PRE-FETCH: Earnings + VIX (paralel, nu blochează scan-ul) ──
   setProgress(5,'Fetch earnings + VIX...');
   await Promise.allSettled([fetchEarnings(key), fetchVIX(key), fetchMacroEvents(key)]);
-  await sleep(300); // mini-pauză după 2 extra calluri
+  // sleep(300) eliminat: _fhThrottle face deja spacing-ul, era timp mort pe calea critică
 
   // ── FAZA 1: Quotes (1 call/stock, rapid) ──
   log(`📡 Faza 1: Fetch quotes pentru ${allSymbols.length} acțiuni...`,'info');
@@ -5646,7 +5656,7 @@ async function runScan(){
   const quotesData=await fetchAllQuotes(allSymbols, key,(done,total,sym)=>{
     setProgress(5+(done/total*50), sym);
     document.getElementById('st-scanned').textContent=done;
-  });
+  }, preQuotesMap);
 
   if(!quotesData.length){
     const errMsg='❌ Nicio acțiune incarcata. Posibile cauze:\n'+
