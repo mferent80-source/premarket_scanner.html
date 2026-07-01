@@ -175,7 +175,9 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 .stat-row .val{color:var(--txt);font-weight:600;font-variant-numeric:tabular-nums}
 .stat-row .val.up{color:var(--green)}.stat-row .val.dn{color:var(--red)}
 .hold-list{display:flex;flex-direction:column;gap:6px}
-.hold-row{display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;padding:5px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--br);font-size:12px}
+.hold-row{display:grid;grid-template-columns:auto 1fr auto auto auto;gap:8px;align-items:center;padding:5px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--br);font-size:12px}
+.hold-row .h-setup{background:transparent;border:1px solid var(--br);border-radius:5px;padding:2px 6px;font-size:12px;cursor:pointer;line-height:1}
+.hold-row .h-setup:hover{border-color:var(--teal);background:rgba(8,145,178,.12)}
 .hold-row .h-sym{font-weight:700;color:var(--teal);min-width:46px}
 .hold-row .h-spark{width:60px;height:18px}
 .hold-row .h-pct{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;min-width:58px}
@@ -280,7 +282,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v164</span>
+    <span class="ver-badge" id="verBadge">v165</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
     <div class="hdr-spc"></div>
@@ -454,7 +456,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   v158: RRG varianta carduri pe 4 cadrane (toggle scatter↔cadrane, persistat).
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v164';
+const VER = 'v165';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -1425,10 +1427,9 @@ function renderRRG(){
 //   EXPAND DRILL-DOWN (PAS 2)
 // ═══════════════════════════════════════════════════════════════
 // C: handoff către Pre-Trade Setup Builder din Macro Dashboard (observație → execuție)
-function sendToSetup(sym){
-  const d = DATA.find(x => x.sym === sym);
-  let dir = 'long';
-  if (d){ const q = rrgQuadrant(d.rsRatio, d.rsMom); if (q && (q.key === 'lag' || q.key === 'weak')) dir = 'short'; }
+function sendToSetup(sym, dirOverride){
+  let dir = dirOverride || 'long';
+  if (!dirOverride){ const d = DATA.find(x => x.sym === sym); if (d){ const q = rrgQuadrant(d.rsRatio, d.rsMom); if (q && (q.key === 'lag' || q.key === 'weak')) dir = 'short'; } }
   try { localStorage.setItem('md_setup_prefill', JSON.stringify({ ticker: sym, dir, ts: Date.now() })); } catch(_){}
   window.open('../macro-dashboard/#setup', '_blank');
 }
@@ -1475,7 +1476,9 @@ function renderExpandBody(d){
       ${!year ? '<div class="hold-note">⏳ Se încarcă datele 52w real…</div>' : ''}
     </div>`;
 
-  // 3. Top 5 holdings
+  // 3. Top 5 holdings — direcția Setup moștenită din cadranul RRG al sectorului
+  const _hq = rrgQuadrant(d.rsRatio, d.rsMom);
+  const sectorDir = (_hq && (_hq.key === 'lag' || _hq.key === 'weak')) ? 'short' : 'long';
   let holdHtml;
   if (!holds){
     holdHtml = '<div class="hold-loading"><span class="spinner"></span>Se încarcă top 5 holdings…</div>';
@@ -1488,6 +1491,7 @@ function renderExpandBody(d){
         ${sparkSVG(h.closes, 60, 18).replace('class="spark-mini"','class="h-spark"')}
         <span class="h-pct ${pctClass(h.chg1d)}">${fmtPct(h.chg1d)}</span>
         <span class="h-price">$${h.price ? fmtPrice(h.price) : '—'}</span>
+        <button type="button" class="h-setup" onclick="sendToSetup('${h.sym}','${sectorDir}')" title="Setup pe ${h.sym} în Macro (direcția sectorului: ${sectorDir.toUpperCase()})">🎯</button>
       </div>`).join('') + '</div>';
   }
   // v157: breadth = câte din holdings sunt verzi azi (participare largă vs dus de 1 mega-cap)
