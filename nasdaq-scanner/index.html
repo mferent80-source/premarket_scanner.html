@@ -386,6 +386,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 .sp-pill{display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:999px;padding:4px 11px;font-size:.68rem;font-weight:600;color:var(--t2)}
 .sp-pill b{color:var(--t1);font-size:.8rem}
 .sp-pill.sp-total{border-color:var(--accb);background:var(--accl);color:var(--acc)}
+.regime-warn{display:inline-block;font-size:.55rem;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--redl);color:var(--red);border:1px solid var(--redb);margin-left:4px;vertical-align:middle}
 .sig-card{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);transition:all .2s;animation:popIn .3s cubic-bezier(.34,1.56,.64,1);position:relative;}
 @keyframes popIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
 .sig-card:hover{box-shadow:var(--shh);transform:translateY(-2px);}
@@ -910,7 +911,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v124</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v125</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -7135,15 +7136,21 @@ function renderSignals(){
   const priorityClass=p=>p==='high'?'priority-high':p==='med'?'priority-med':'';
 
   const _swChip = currentTab==='swing' ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><button onclick="toggleNasdaqConfirmed()" title="Filtru OPȚIONAL: doar semnale swing cu trend daily confirmat ↑ — shared cu Oportunități/Early Buy" style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;border:1px solid ${nasdaqConfirmedOnly?'var(--greenb)':'var(--b2)'};background:${nasdaqConfirmedOnly?'var(--greenl)':'var(--bg2)'};color:${nasdaqConfirmedOnly?'var(--green)':'var(--t2)'};transition:all .15s">✅ Trend confirmat ${nasdaqConfirmedOnly?'ON':'OFF'}</button></div>` : '';
-  let _rgBanner='';
+  let _rgBanner='', _rgComp=null;
   try{
     const _rg=(typeof Regime!=='undefined'&&Regime.get)?Regime.get():null;
+    // 🅒 Rotatie sectoriala (din sector-rotation, tt_risk_regime) — context cross-hub
+    let _rot=null; try{ _rot=JSON.parse(localStorage.getItem('tt_risk_regime')||'null'); }catch(_){}
+    const _rotStr=(_rot&&_rot.regime&&(Date.now()-(_rot.t||0)<24*3600000))?` · 🔄 Rotație: <b>${U.escHtml(_rot.regime)}</b>`:'';
     if(_rg&&typeof _rg.composite==='number'){
-      const on=_rg.composite>=1,off=_rg.composite<=-2;
+      _rgComp=_rg.composite;
+      const on=_rgComp>=1,off=_rgComp<=-2;
       const txt=on?'✅ semnalele long au <b>vânt din spate</b> (regim favorabil)':off?'⚠ semnalele long merg <b>contra regimului</b> — selectivitate mare, redu sizing':'➖ regim neutru — fără vânt din spate';
       const cls=on?'rg-on':off?'rg-off':'rg-neu';
       const stale=_rg.fresh?'':` <span style="opacity:.6">(vechi ${_rg.ageMin}m)</span>`;
-      _rgBanner=`<div class="scan-regime ${cls}">🛡 Regim macro: <b>${U.escHtml(_rg.label||'—')}</b> (score ${_rg.composite>=0?'+':''}${_rg.composite})${stale} · ${txt}</div>`;
+      _rgBanner=`<div class="scan-regime ${cls}">🛡 Regim macro: <b>${U.escHtml(_rg.label||'—')}</b> (score ${_rgComp>=0?'+':''}${_rgComp})${stale}${_rotStr} · ${txt}</div>`;
+    } else if(_rot&&_rot.regime){
+      _rgBanner=`<div class="scan-regime rg-neu">🔄 Rotație sectorială: <b>${U.escHtml(_rot.regime)}</b> · regim macro indisponibil (deschide Macro Dashboard)</div>`;
     }
   }catch(e){}
   // 🅐 Market Pulse — starea scanului in 3 sec (distributie pe tip + bull/bear + watchlist/earnings)
@@ -7180,6 +7187,11 @@ function renderSignals(){
     const hasEarnings=earningsSet.has(s.coin);
     const earningsBadge=hasEarnings?`<span class="earnings-badge">📅 Earnings</span>`:'';
     const wlStar=isWatchlist?`<span class="watchlist-star">⭐</span>`:'';
+    // 🅒 Flag contra-regim: doar cand directia semnalului luptă cu regimul macro (calitate inferioara)
+    const _bull=['long','scalp','swing'].includes(s.suggestion)||(s.chg>0&&s.type!=='dump');
+    const _bear=s.type==='dump'||s.suggestion==='dca';
+    const _contra=_rgComp!=null&&((_bull&&_rgComp<=-2)||(_bear&&_rgComp>=1));
+    const contraBadge=_contra?`<span class="regime-warn" title="Direcție contra regimului macro — calitate inferioară, redu sizing">⚠ contra regim</span>`:'';
     const sparkHtml=renderSparkline(s.coin);
     const suggHtml=s.suggestion?`<div class="trade-action ${suggClass[s.suggestion]||'ta-wait'}">${suggLabels[s.suggestion]||s.suggestion}</div>`:'';
     const tdHtml=s.tradeDetail?`<div class="trade-detail">
@@ -7194,7 +7206,7 @@ function renderSignals(){
         <div class="sig-top">
           <div class="sig-left">
             <div class="sig-coin">
-              ${s.coin}${wlStar}${earningsBadge}
+              ${s.coin}${wlStar}${earningsBadge}${contraBadge}
               <span class="sig-type-badge ${typeBadge[s.type]||'tb-volatility'}">${typeIcons[s.type]||'⚡'} ${s.title}</span>
             </div>
             <div class="sig-sector">${sector}</div>
