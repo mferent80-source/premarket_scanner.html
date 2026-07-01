@@ -308,12 +308,19 @@ footer a { color:var(--accent); text-decoration:none; }
   .spark { width:46px; height:18px; }
   .toast-wrap { right:8px; bottom:8px; left:8px; max-width:none; }
 }
+.pr-regime { border-radius:var(--r); padding:9px 13px; margin-bottom:10px; font-size:11.5px; line-height:1.5; border:1px solid var(--b1); background:var(--panel2); color:var(--t2); }
+.pr-regime b { color:var(--t1); }
+.pr-regime.rg-on { background:rgba(34,214,107,.09); border-color:rgba(34,214,107,.4); color:var(--bull-s); }
+.pr-regime.rg-on b { color:var(--bull-s); }
+.pr-regime.rg-off { background:rgba(255,77,77,.10); border-color:rgba(255,77,77,.45); color:var(--bear-s); }
+.pr-regime.rg-off b { color:var(--bear-s); }
+.pr-regime.rg-neu { color:var(--t2); }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v120</span></h1>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v121</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=pump-radar" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
@@ -362,6 +369,8 @@ footer a { color:var(--accent); text-decoration:none; }
   <div class="stat-tile mom"><div class="stat-label">⚡ Momentum</div><div class="stat-value" id="stMom">—</div><div class="stat-sub">schimbare direcție</div></div>
   <div class="stat-tile vol" id="stRegimeTile" title="Regim de volatilitate al pieței (HMM gaussian pe SPY daily, din Markov Lab). Regim volatil → breakout-urile sunt mai puțin fiabile, redu sizing-ul."><div class="stat-label">🧠 Regim piață</div><div class="stat-value" id="stRegime">…</div><div class="stat-sub" id="stRegimeSub">SPY · HMM</div></div>
 </div>
+
+<div id="prRegimeBanner" class="pr-regime" style="display:none"></div>
 
 <!-- Hot strip -->
 <div class="hot-strip" id="hotStrip"></div>
@@ -1547,6 +1556,25 @@ function updateStats(){
   $('stVol').textContent = results.filter(r => r.alerts.includes('vol')).length;
   $('stMom').textContent = results.filter(r => r.alerts.includes('mom')).length;
 }
+// Handoff → Pre-Trade Setup Builder din Macro (dir din tipul semnalului: pump→long, dump→short)
+function prToSetup(sym, dir){
+  try{ localStorage.setItem('md_setup_prefill', JSON.stringify({ ticker: sym, dir: (dir==='short'?'short':'long'), ts: Date.now() })); }catch(e){}
+  window.open('../macro-dashboard/#setup', '_blank');
+}
+window.prToSetup = prToSetup;
+// Banner aliniere cu regimul de RISC macro (md_risk_regime) — distinct de regimul HMM de volatilitate
+function updateRegimeBanner(){
+  const el = $('prRegimeBanner'); if (!el) return;
+  let rg = null; try{ rg = (window.Regime && Regime.get) ? Regime.get() : null; }catch(_){}
+  const c = (rg && typeof rg.composite === 'number') ? rg.composite : null;
+  if (c == null){ el.style.display = 'none'; return; }
+  const on = c >= 1, off = c <= -2;
+  const txt = on ? '✅ pump-urile long au vânt din spate (regim favorabil)' : off ? '⚠ regim advers — pump-urile long sunt riscante, favorizează calitate/short' : '➖ regim neutru';
+  const stale = rg.fresh ? '' : ` <span style="opacity:.6">(vechi ${rg.ageMin}m)</span>`;
+  el.className = 'pr-regime ' + (on ? 'rg-on' : off ? 'rg-off' : 'rg-neu');
+  el.style.display = '';
+  el.innerHTML = `🛡 Regim macro: <b>${escHtml(rg.label || '—')}</b> (score ${c >= 0 ? '+' : ''}${c})${stale} · ${txt}`;
+}
 function renderHotStrip(){
   const box = $('hotStrip'); if (!box) return;
   const hot = results.filter(r => r.alerts.length).sort((a, b) => b.heat - a.heat).slice(0, 6);
@@ -1569,7 +1597,7 @@ function passFilter(r){
 }
 
 function render(){
-  updateStats(); renderHotStrip();
+  updateStats(); renderHotStrip(); updateRegimeBanner();
   const tbody = $('resultsBody');
   if (!results.length){
     tbody.innerHTML = `<tr><td colspan="11" class="empty"><div class="empty-icon">🚨</div><div class="empty-title">Apasă <b>🚨 SCAN</b> ca să pornești radarul</div><div class="empty-sub">Scanează ~${UNIVERSE.length} stocks lichide pe barele de 5 minute. Auto 60s = watchdog continuu + alerte browser / sunet / Telegram la fiecare alertă nouă.</div></td></tr>`;
@@ -1620,7 +1648,7 @@ function render(){
       <td><div class="alerts-cell">${r.alerts.length ? alertChips(r) : '<span style="color:var(--t3);font-size:10px">—</span>'}</div><div style="font-size:9px;color:${heatColor(r.heat)};font-family:var(--mono);margin-top:1px">🔥${r.heat}</div></td>
       <td class="hide-mobile">${actionCell(r)}</td>
       <td class="hide-mobile">${insiderCell(r)}</td>
-      <td><a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">TV</a><a class="action-btn hide-mobile" href="${fvUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">FV</a><a class="action-btn hide-mobile" href="${yhUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">YH</a></td>
+      <td><a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">TV</a><a class="action-btn hide-mobile" href="${fvUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">FV</a><a class="action-btn hide-mobile" href="${yhUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">YH</a><button class="action-btn hide-mobile" onclick="event.stopPropagation();prToSetup('${r.symbol}','${r.alerts.includes('down')?'short':'long'}')" title="Pre-Trade Setup Builder în Macro (Entry/SL/TP + sizing pe Danger Score)">📐</button></td>
     </tr>`;
   }).join('');
 
@@ -1694,7 +1722,7 @@ window.showFeatures = function(){
       { e:'⏱', t:'<b>Countdown</b> + indicator sesiune piață (pre/regular/after/closed, DST-aware)' },
     ]},
   ];
-  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v120 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
+  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v121 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => { html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`; });
   html += `<div style="font-size:10.5px;color:var(--t3);line-height:1.5;font-family:var(--mono);padding-top:6px;border-top:1px solid var(--b1)">⚠ Alertele 5m sunt relevante în <b>sesiunea regulară</b> (09:30-16:00 ET). În afara ei datele pot fi rare/lipsă; radarul tot afișează ce găsește.</div></div>`;
   ov.innerHTML = html;
@@ -1887,6 +1915,7 @@ window.validatePumpSignal = async function(symbol, btn){
 </script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/ai.js"></script>
+<script src="../lib/regime.js"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>
