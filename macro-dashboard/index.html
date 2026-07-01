@@ -917,7 +917,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v214</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v215</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -966,6 +966,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <button class="tab-btn" data-tab="brief">🤖 AI Daily Brief</button>
   <button class="tab-btn" data-tab="opportunities">💡 Oportunități<span class="op-badge" id="opBadge" style="display:none">0</span></button>
   <button class="tab-btn" data-tab="setup">🎯 Setup Builder</button>
+  <button class="tab-btn" data-tab="journal">📓 Jurnal</button>
 </div>
 
 <!-- Tab: Pre-Trade Setup Builder -->
@@ -985,6 +986,18 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
       </div>
       <div class="setup-hint">Nivelurile (S/R, MA, ATR) vin din chart-ul 1y real. Sizing-ul se ajustează pe Danger Score-ul zilei. Entry/SL/TP nu sunt ordine — sunt un schelet de plan pe care îl validezi tu.</div>
       <div id="setupResult"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Signal Journal + Expectancy -->
+<div class="tab-content" id="tab-journal">
+  <div class="panel-box">
+    <div class="panel-head"><h3>📓 Signal Journal</h3><span class="panel-sub">măsoară ce chiar funcționează — win-rate · expectancy · profit factor</span></div>
+    <div class="setup-wrap">
+      <div id="journalScorecard"></div>
+      <div class="setup-section-h" style="margin-top:6px">Setup-uri salvate <button class="action-btn" id="journalRefresh" title="Reevaluează cu prețuri live" style="margin-left:8px">↻ Reevaluează</button> <button class="action-btn" id="journalClear" title="Șterge tot jurnalul" style="margin-left:4px">🗑 Golește</button></div>
+      <div id="journalList"></div>
     </div>
   </div>
 </div>
@@ -2352,6 +2365,7 @@ function renderFreezeWindow() {
 
 // ============ PRE-TRADE SETUP BUILDER — ticker → nivel + R:R + sizing pe regim + checklist ============
 let _setupDir = 'long';
+let _lastSetup = null; // ultimul setup construit (pt salvare în jurnal)
 // Multiplicator de sizing derivat din Danger Score (mediu periculos → poziții mai mici)
 function dangerSizeMult(score) {
   return score >= 70 ? 0.35 : score >= 45 ? 0.5 : score >= 25 ? 0.75 : 1;
@@ -2440,6 +2454,7 @@ function renderSetup(ticker, dir, L, account, riskPct) {
   }
   const catalysts = findSetupCatalysts(ticker);
   const okCount = checks.filter(c => c.ok).length;
+  _lastSetup = { ticker, dir, entry, sl, tp1, tp2, tp3, r, atrPct: L.atrPct, dangerScore: danger.score, confluence: okCount, totalChecks: checks.length };
 
   $('setupResult').innerHTML = `
     <div class="setup-verdict">
@@ -2465,7 +2480,11 @@ function renderSetup(ticker, dir, L, account, riskPct) {
     <div class="setup-section-h">✅ Checklist confluență (${okCount}/${checks.length})</div>
     <div class="setup-check">${checks.map(c => `<div class="setup-check-row"><span class="scr-icon">${c.ok ? '✅' : '⚠️'}</span> ${escHtml(c.txt)} <span class="scr-note">${escHtml(c.note)}</span></div>`).join('')}</div>
     ${catalysts.length ? `<div class="setup-section-h">📅 Catalist apropiat (risc + oportunitate)</div>${catalysts.map(c => `<div class="setup-cat">${escHtml(c)}</div>`).join('')}` : ''}
-    <div class="setup-hint" style="margin-top:12px">⚠ Entry/SL/TP = schelet din ATR real (1.5×ATR risc, TP la 1/2/3R). Sizing pe Danger Score-ul zilei. NU sunt ordine — validează cu propriul plan și confirmă pe grafic.</div>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="primary" onclick="saveLastSetup()">📓 Salvează în jurnal</button>
+      <button class="ghost" onclick="alertFromSetup()" title="Pune alerte de preț pe SL și TP1 în pagina /alerts/">🔔 Alertă SL+TP în /alerts/</button>
+    </div>
+    <div class="setup-hint" style="margin-top:10px">⚠ Entry/SL/TP = schelet din ATR real (1.5×ATR risc, TP la 1/2/3R). Sizing pe Danger Score-ul zilei. NU sunt ordine — validează cu propriul plan și confirmă pe grafic.</div>`;
 }
 
 function wireSetup() {
@@ -2478,6 +2497,126 @@ function wireSetup() {
     document.querySelectorAll('#setupDir .fb-chip').forEach(x => x.classList.toggle('active', x === c));
     if (($('setupTicker').value || '').trim()) buildSetup();
   }));
+  $('journalRefresh')?.addEventListener('click', renderJournal);
+  $('journalClear')?.addEventListener('click', clearJournal);
+}
+
+// ============ SIGNAL JOURNAL — măsoară ce chiar funcționează (expectancy pe date reale) ============
+const JOURNAL_KEY = 'md_signal_journal';
+function loadJournal() { try { const a = JSON.parse(localStorage.getItem(JOURNAL_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function persistJournal(arr) { try { localStorage.setItem(JOURNAL_KEY, JSON.stringify(arr.slice(-100))); } catch (e) {} }
+
+function saveLastSetup() {
+  if (!_lastSetup) { toast('⚠ Construiește întâi un setup', 'warn'); return; }
+  const s = _lastSetup;
+  const arr = loadJournal();
+  arr.push({ ...s, id: 'j_' + Date.now(), dateET: getNYDateHour().date, createdAt: Date.now() });
+  persistJournal(arr);
+  toast(`📓 ${s.ticker} ${s.dir.toUpperCase()} salvat în jurnal`, 'success');
+  renderJournal();
+}
+function deleteJournalEntry(id) { persistJournal(loadJournal().filter(e => e.id !== id)); renderJournal(); }
+function clearJournal() { if (!confirm('Ștergi tot jurnalul de semnale?')) return; persistJournal([]); renderJournal(); }
+
+// Pune alertă de preț pe SL + TP1 în /alerts/ (format wl_price_alerts identic cu ce creează pagina alerts)
+function alertFromSetup() {
+  if (!_lastSetup) { toast('⚠ Construiește întâi un setup', 'warn'); return; }
+  const s = _lastSetup;
+  try {
+    const raw = JSON.parse(localStorage.getItem('wl_price_alerts') || '{}');
+    const sym = s.ticker.toUpperCase();
+    if (!Array.isArray(raw[sym])) raw[sym] = [];
+    const isLong = s.dir === 'long';
+    const dec = Math.abs(s.entry) >= 100 ? 2 : 4;
+    const rnd = v => +v.toFixed(dec);
+    raw[sym].push({ id: 'md_' + Date.now() + '_sl', lvl: rnd(s.sl), dir: isLong ? 'below' : 'above', rearm: false, armed: true, lastFired: null, note: `SL setup ${s.dir.toUpperCase()} (din Macro) — plan invalidat` });
+    raw[sym].push({ id: 'md_' + (Date.now() + 1) + '_tp', lvl: rnd(s.tp1), dir: isLong ? 'above' : 'below', rearm: false, armed: true, lastFired: null, note: `TP1 setup ${s.dir.toUpperCase()} (din Macro)` });
+    localStorage.setItem('wl_price_alerts', JSON.stringify(raw));
+    toast(`🔔 Alerte SL ${rnd(s.sl)} + TP1 ${rnd(s.tp1)} puse pe ${sym} — le vezi/gestionezi în pagina /alerts/`, 'success');
+  } catch (e) { toast('❌ Nu am putut salva alerta', 'error'); }
+}
+
+// Evaluează un setup salvat pe seria de prețuri (close-only, first-touch — conservator pe SL, optimist pe TP)
+async function evalJournalEntry(e) {
+  const points = await getReactionSeries(e.ticker);
+  if (!points || !points.length) return { status: 'unknown' };
+  const idx = points.findIndex(p => new Date(p.ts * 1000).toISOString().slice(0, 10) >= e.dateET);
+  if (idx < 0) return { status: 'pending' };
+  const isLong = e.dir === 'long';
+  const r = e.r || Math.abs(e.entry - e.sl);
+  if (!(r > 0)) return { status: 'unknown' };
+  let maxR = -Infinity;
+  for (let i = idx; i < points.length; i++) {
+    const px = points[i].close;
+    if (!Number.isFinite(px)) continue;
+    const rNow = isLong ? (px - e.entry) / r : (e.entry - px) / r;
+    if (rNow > maxR) maxR = rNow;
+    const hitSL = isLong ? px <= e.sl : px >= e.sl;
+    if (hitSL) {
+      // SL atins pe close. Dacă înainte atinsese TP1 (maxR≥1) → win (presupune că ai luat profit la TP), altfel loss.
+      if (maxR >= 1) return { status: 'win', rMultiple: Math.min(maxR, 3) };
+      return { status: 'loss', rMultiple: -1 };
+    }
+    if (rNow >= 3) return { status: 'win', rMultiple: 3 };
+  }
+  const lastR = isLong ? (points[points.length - 1].close - e.entry) / r : (e.entry - points[points.length - 1].close) / r;
+  if (maxR >= 1) return { status: 'win', rMultiple: Math.min(maxR, 3), open: true };
+  return { status: 'open', rMultiple: Number.isFinite(lastR) ? lastR : 0 };
+}
+
+function journalStats(evals) {
+  const closed = evals.filter(x => x.status === 'win' || x.status === 'loss');
+  if (!closed.length) return null;
+  const wins = closed.filter(x => x.rMultiple > 0);
+  const winRate = wins.length / closed.length * 100;
+  const expectancy = closed.reduce((s, x) => s + x.rMultiple, 0) / closed.length;
+  const gW = wins.reduce((s, x) => s + x.rMultiple, 0);
+  const gL = Math.abs(closed.filter(x => x.rMultiple <= 0).reduce((s, x) => s + x.rMultiple, 0));
+  const pf = gL ? gW / gL : null;
+  return { n: closed.length, winRate, expectancy, pf, open: evals.length - closed.length };
+}
+
+async function renderJournal() {
+  const listEl = $('journalList'), scoreEl = $('journalScorecard');
+  if (!listEl) return;
+  const arr = loadJournal().slice().reverse();
+  if (!arr.length) {
+    if (scoreEl) scoreEl.innerHTML = '';
+    listEl.innerHTML = '<div class="setup-err">Niciun setup salvat încă. Construiește unul în 🎯 <b>Setup Builder</b> și apasă „📓 Salvează în jurnal".</div>';
+    return;
+  }
+  listEl.innerHTML = '<div class="setup-err">⏳ Evaluez setup-urile pe prețuri reale…</div>';
+  const evals = await Promise.all(arr.map(e => evalJournalEntry(e).catch(() => ({ status: 'unknown' }))));
+  const stats = journalStats(evals);
+  const fmtJ = v => v == null ? '—' : (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toFixed(2) : v.toFixed(4));
+  if (scoreEl) {
+    if (stats) {
+      const expColor = stats.expectancy > 0 ? 'var(--bull-s)' : stats.expectancy < 0 ? 'var(--bear-s)' : 'var(--t1)';
+      scoreEl.innerHTML = `<div class="setup-grid">
+        <div class="setup-tile"><div class="st-label">Win rate</div><div class="st-val">${stats.winRate.toFixed(0)}%</div><div class="st-sub">${stats.n} închise</div></div>
+        <div class="setup-tile"><div class="st-label">Expectancy</div><div class="st-val" style="color:${expColor}">${stats.expectancy >= 0 ? '+' : ''}${stats.expectancy.toFixed(2)}R</div><div class="st-sub">per trade</div></div>
+        <div class="setup-tile"><div class="st-label">Profit factor</div><div class="st-val">${stats.pf != null ? stats.pf.toFixed(2) : '—'}</div></div>
+        <div class="setup-tile"><div class="st-label">Deschise</div><div class="st-val">${stats.open}</div></div>
+      </div>${stats.n < 10 ? '<div class="setup-hint">⚠ Eșantion mic (n&lt;10) — orientativ. Evaluare close-only (nu vede whipsaw intraday), in-sample. Metrica reală = expectancy/PF, nu win-rate.</div>' : ''}`;
+    } else scoreEl.innerHTML = '<div class="setup-hint">Setup-uri încă deschise — scorecard-ul apare când se închid (ating SL sau TP).</div>';
+  }
+  listEl.innerHTML = arr.map((e, i) => {
+    const ev = evals[i] || { status: 'unknown' };
+    const color = ev.status === 'win' ? 'var(--bull-s)' : ev.status === 'loss' ? 'var(--bear-s)' : 'var(--t2)';
+    const stTxt = ev.status === 'win' ? `✅ WIN +${ev.rMultiple.toFixed(1)}R${ev.open ? ' (deschis)' : ''}`
+      : ev.status === 'loss' ? `❌ LOSS ${ev.rMultiple.toFixed(1)}R`
+      : ev.status === 'open' ? `⏳ deschis ${ev.rMultiple >= 0 ? '+' : ''}${ev.rMultiple.toFixed(1)}R`
+      : ev.status === 'pending' ? '· în așteptare' : '· n/a';
+    return `<div class="setup-check-row" style="align-items:flex-start">
+      <span class="scr-icon">${e.dir === 'long' ? '📈' : '📉'}</span>
+      <div style="flex:1;min-width:0">
+        <b>${escHtml(e.ticker)}</b> ${e.dir.toUpperCase()} · <span style="color:var(--t3);font-family:var(--mono);font-size:11px">${escHtml(e.dateET)} · E ${fmtJ(e.entry)} / SL ${fmtJ(e.sl)} / TP1 ${fmtJ(e.tp1)}</span>
+        <div style="font-family:var(--mono);font-size:10.5px;color:var(--t3);margin-top:2px">confluență ${e.confluence}/${e.totalChecks} · Danger ${e.dangerScore}/100</div>
+      </div>
+      <span style="color:${color};font-weight:800;font-family:var(--head);font-size:12px;white-space:nowrap">${stTxt}</span>
+      <button class="action-btn" onclick="deleteJournalEntry('${e.id}')" title="Șterge" style="margin-left:6px">🗑</button>
+    </div>`;
+  }).join('');
 }
 
 // ============ GENERIC MODAL (drill-down) ============
@@ -4832,6 +4971,7 @@ function switchTab(name) {
   const now = Date.now();
   if (name === 'macroNews' && now - _newsLoadedAt.macro > NEWS_CACHE_TTL) fetchMacroNews();
   if (name === 'cryptoNews' && now - _newsLoadedAt.crypto > NEWS_CACHE_TTL) fetchCryptoNews();
+  if (name === 'journal') renderJournal();
   if (name === 'brief') initBriefTab();
   if (name === 'opportunities') renderSuggestionsPanel(); // refresh starea watchlist/added la deschidere
 }
