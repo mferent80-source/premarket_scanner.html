@@ -911,7 +911,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v125</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v126</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -4146,7 +4146,11 @@ function calcJournalStats(){
   const avgLoss=losses.length?losses.reduce((a,s)=>a+s.outcome.pctChange,0)/losses.length:0;
   const totalPnL=closed.reduce((a,s)=>a+(s.outcome.dollarChange||0),0);
   const expectancy=closed.length?closed.reduce((a,s)=>a+s.outcome.pctChange,0)/closed.length:0;
-  
+  // Profit factor = suma castigurilor / suma pierderilor (pe pctChange) — metrica reala de edge
+  const grossWin=wins.reduce((a,s)=>a+s.outcome.pctChange,0);
+  const grossLoss=Math.abs(losses.reduce((a,s)=>a+s.outcome.pctChange,0));
+  const profitFactor=grossLoss>0?grossWin/grossLoss:null;
+
   // By score bracket
   const scoreBrackets={
     'high':closed.filter(s=>s.score>=70),
@@ -4167,7 +4171,7 @@ function calcJournalStats(){
     total:closed.length,
     open:savedSetups.filter(s=>s.status==='open').length,
     wins:wins.length, losses:losses.length,
-    winRate, avgWin, avgLoss, expectancy,
+    winRate, avgWin, avgLoss, expectancy, profitFactor,
     totalPnL,
     bracketStats
   };
@@ -4230,8 +4234,13 @@ function renderJournal(){
     html+='<div style="font-family:var(--head);font-weight:800;font-size:1.3rem;color:'+(stats.expectancy>0?'var(--green)':'var(--red)')+';margin-top:2px">'+(stats.expectancy>=0?'+':'')+stats.expectancy.toFixed(2)+'%</div>';
     html+='<div style="font-size:.55rem;color:var(--t3);margin-top:2px">per trade</div>';
     html+='</div>';
+    html+='<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:11px 13px">';
+    html+='<div style="font-size:.55rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Profit Factor</div>';
+    html+='<div style="font-family:var(--head);font-weight:800;font-size:1.3rem;color:'+(stats.profitFactor==null?'var(--t2)':stats.profitFactor>=1.5?'var(--green)':stats.profitFactor>=1?'var(--gold)':'var(--red)')+';margin-top:2px">'+(stats.profitFactor==null?'—':stats.profitFactor.toFixed(2))+'</div>';
+    html+='<div style="font-size:.55rem;color:var(--t3);margin-top:2px">câștig/pierdere</div>';
     html+='</div>';
-    
+    html+='</div>';
+
     // Score bracket performance
     if(Object.keys(stats.bracketStats).length){
       html+='<div style="background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:11px 13px;margin-bottom:14px">';
