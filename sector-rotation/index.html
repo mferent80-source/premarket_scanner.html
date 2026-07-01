@@ -268,7 +268,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v161</span>
+    <span class="ver-badge" id="verBadge">v162</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
     <div class="hdr-spc"></div>
@@ -331,6 +331,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
         <span class="sort-chip" data-sort="chg1d">Δ 1z</span>
         <span class="sort-chip active" data-sort="chg1w">Δ 1săpt</span>
         <span class="sort-chip" data-sort="rsChg1w" title="Forță relativă: Δ1săpt sector − Δ1săpt SPY">RS vs SPY</span>
+        <span class="sort-chip" data-sort="rsChg1m" title="Forță relativă pe 1 lună (Δ1lună sector − SPY) — aliniere cu RS 1săpt = trend real, semne opuse = bounce">RS 1L</span>
         <span class="sort-chip" data-sort="chg1m">Δ 1lună</span>
         <span class="sort-chip" data-sort="chg3m">Δ 3luni</span>
         <span class="sort-chip" data-sort="chgYTD">Δ YTD</span>
@@ -344,6 +345,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
             <th data-col="chg1d" class="tcell-num">Δ 1z</th>
             <th data-col="chg1w" class="tcell-num sort-active">Δ 1săpt</th>
             <th data-col="rsChg1w" class="tcell-num" title="Forță relativă vs SPY (Δ1săpt sector − SPY)">RS vs SPY</th>
+            <th data-col="rsChg1m" class="tcell-num" title="Forță relativă vs SPY pe 1 lună — aliniere cu RS 1săpt = trend relativ real">RS 1L</th>
             <th data-col="chg1m" class="tcell-num">Δ 1lună</th>
             <th data-col="chg3m" class="tcell-num">Δ 3luni</th>
             <th data-col="chgYTD" class="tcell-num">Δ YTD</th>
@@ -351,7 +353,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
           </tr>
         </thead>
         <tbody id="tblBody">
-          <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--txt-dd)">— niciun scan încă —</td></tr>
+          <tr><td colspan="10" style="text-align:center;padding:30px;color:var(--txt-dd)">— niciun scan încă —</td></tr>
         </tbody>
       </table>
     </div>
@@ -684,7 +686,13 @@ function computeRS(sectorCloses, spyCloses){
     const rr = ratioAt(j), rp = ratioAt(j - RRG_MOM);
     if (rr != null && rp != null) tail.push({ x: rr, y: rr - rp });
   }
-  return { rsRatio, rsMom, tail };
+  // Viteza rotației = lungimea traseului cozii (sumă distanțe euclidiene) — coadă lungă = rotație rapidă
+  let tailLen = 0;
+  for (let t = 1; t < tail.length; t++){ const dx = tail[t].x - tail[t-1].x, dy = tail[t].y - tail[t-1].y; tailLen += Math.sqrt(dx*dx + dy*dy); }
+  // Cadranul de acum ~1 săpt (penultimul punct al cozii) → detectare tranziție de cadran
+  const qp = tail.length >= 2 ? tail[tail.length - 2] : null;
+  const quadPrev = qp ? rrgQuadrant(qp.x, qp.y) : null;
+  return { rsRatio, rsMom, tail, tailLen, quadPrev };
 }
 function rrgQuadrant(rsRatio, rsMom){
   if (rsRatio == null || rsMom == null) return null;
@@ -867,6 +875,47 @@ function emitRotationAlerts(alerts){
   for (const a of alerts){
     lines.push(`${transitionIcon(a.from, a.to)} <b>${escHtml(a.sym)}</b> ${escHtml(a.name)}`);
     lines.push(`<i>${escHtml(transitionLabel(a.from, a.to))}</i> · Δ1săpt <b>${escHtml(fmtPct(a.chg1w))}</b>`);
+    lines.push('');
+  }
+  sendTelegramAlert(lines.join('\n'));
+}
+
+// ── RRG cadran transitions (semnalul de rotație REAL — mult mai puțin zgomotos ca hot/cold pe Δ1w brut) ──
+function rrgTransitionMeta(toKey){
+  if (toKey === 'lead') return { icon:'🟢🚀', label:'intră în LEADING — forță relativă confirmată (candidat intrare)' };
+  if (toKey === 'impr') return { icon:'🔵', label:'intră în IMPROVING — early bullish (de urmărit)' };
+  if (toKey === 'weak') return { icon:'🟡', label:'intră în WEAKENING — leadership slăbește (early warning)' };
+  if (toKey === 'lag')  return { icon:'🔴', label:'intră în LAGGING — forță relativă pierdută (ieșire)' };
+  return { icon:'🔄', label:'tranziție de cadran RRG' };
+}
+function detectRRGTransitions(){
+  const seen = loadSeen();
+  const ymd  = todayYMD();
+  const alerts = [];
+  for (const d of DATA){
+    const cur = rrgQuadrant(d.rsRatio, d.rsMom);
+    const prev = d.rsQuadPrev;
+    if (!cur || !prev || cur.key === prev.key) continue;
+    const key = `rrg_${d.sym}_${prev.key}_${cur.key}_${ymd}`;
+    if (seen[key]) continue;
+    seen[key] = Date.now();
+    alerts.push({ sym:d.sym, name:d.name, from:prev, to:cur });
+  }
+  saveSeen(seen);
+  if (alerts.length) emitRRGTransitions(alerts);
+}
+function emitRRGTransitions(alerts){
+  playBeep();
+  for (const a of alerts){
+    const m = rrgTransitionMeta(a.to.key);
+    showToast(`${m.icon} <b>${a.sym}</b> · ${escHtml(a.name)}<br>${a.from.icon} ${escHtml(a.from.label)} → ${a.to.icon} ${escHtml(a.to.label)}<br><span style="opacity:.82;font-size:11px">${escHtml(m.label)}</span>`, 'alert', 7000);
+    showBrowserNotif(`${m.icon} ${a.sym} — RRG ${a.to.label}`, `${a.name} · ${m.label}`);
+  }
+  const lines = [`🔄 <b>Sector Rotation</b> · tranziții RRG (${alerts.length})`, ''];
+  for (const a of alerts){
+    const m = rrgTransitionMeta(a.to.key);
+    lines.push(`${m.icon} <b>${escHtml(a.sym)}</b> ${escHtml(a.name)}`);
+    lines.push(`<i>${escHtml(a.from.label)} → ${escHtml(a.to.label)}</i>`);
     lines.push('');
   }
   sendTelegramAlert(lines.join('\n'));
@@ -1105,6 +1154,7 @@ async function runScan(){
     SPY = await fetchSectorChart('SPY');
     await sleep(180);
     const spyChg1w = SPY ? pctOf(SPY.closes, 5) : null;
+    const spyChg1m = SPY ? pctOf(SPY.closes, 21) : null;
     const results = [];
     for (const s of SECTORS){
       const c = await fetchSectorChart(s.sym);
@@ -1130,17 +1180,20 @@ async function runScan(){
     // v156: forță relativă vs SPY + metrici RRG per sector
     for (const d of results){
       d.rsChg1w = (d.chg1w != null && spyChg1w != null) ? d.chg1w - spyChg1w : null;
+      d.rsChg1m = (d.chg1m != null && spyChg1m != null) ? d.chg1m - spyChg1m : null;
       const rs = SPY ? computeRS(closedSeries(d.closes, d.times), closedSeries(SPY.closes, SPY.times)) : null;
       d.rsRatio = rs ? rs.rsRatio : null;
       d.rsMom   = rs ? rs.rsMom   : null;
       d.rsTail  = rs ? rs.tail    : [];
+      d.rsTailLen = rs ? rs.tailLen : null;
+      d.rsQuadPrev = rs ? rs.quadPrev : null;
     }
     DATA = results;
     $('statStatus').textContent = okCount === SECTORS.length ? '✓ OK' : (okCount > 0 ? `⚠ ${okCount}/${SECTORS.length}` : '❌');
     $('statTime').textContent = okCount > 0 ? new Date().toLocaleTimeString('ro-RO') : 'eroare proxy';
     render();
     // Detectare tranziții hot↔cold + emite alerte (după render, ca să existe heatmap cards pentru flash)
-    if (okCount > 0) setTimeout(() => detectAndEmitAlerts(), 100);
+    if (okCount > 0) setTimeout(() => { detectAndEmitAlerts(); detectRRGTransitions(); }, 100);
     if (okCount > 0) saveScanCache();
   } catch (e){
     $('statStatus').textContent = '❌';
@@ -1222,13 +1275,14 @@ function render(){
       <td class="tcell-num td-pct ${pctClass(d.chg1d)}">${fmtPct(d.chg1d)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chg1w)}">${fmtPct(d.chg1w)}</td>
       <td class="tcell-num td-pct ${pctClass(d.rsChg1w)}" title="${(()=>{const q=rrgQuadrant(d.rsRatio,d.rsMom);return q?q.icon+' '+q.label:'';})()}">${fmtPct(d.rsChg1w)}</td>
+      <td class="tcell-num td-pct ${pctClass(d.rsChg1m)}" title="RS pe 1 lună — ${(d.rsChg1w!=null&&d.rsChg1m!=null&&(d.rsChg1w>0)===(d.rsChg1m>0))?'aliniat cu 1săpt = trend relativ real':'divergent vs 1săpt = posibil bounce/mean-reversion'}">${fmtPct(d.rsChg1m)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chg1m)}">${fmtPct(d.chg1m)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chg3m)}">${fmtPct(d.chg3m)}</td>
       <td class="tcell-num td-pct ${pctClass(d.chgYTD)}">${fmtPct(d.chgYTD)}</td>
       <td class="tcell-num">${sparkSVG(d.closes)}</td>
     </tr>`);
     if (expandedSym === d.sym){
-      rows.push(`<tr class="expanded-row" data-exp-for="${d.sym}"><td colspan="9"><div class="exp-box" id="expBox_${d.sym}">${renderExpandBody(d)}</div></td></tr>`);
+      rows.push(`<tr class="expanded-row" data-exp-for="${d.sym}"><td colspan="10"><div class="exp-box" id="expBox_${d.sym}">${renderExpandBody(d)}</div></td></tr>`);
     }
   }
   $('tblBody').innerHTML = rows.join('');
@@ -1263,7 +1317,7 @@ function rrgCardsHTML(pts){
   const card = (q) => {
     const list = byQuad[q.key];
     const rows = list.length
-      ? list.map(d => `<div class="rq-row"><span><span class="s">${d.sym}</span><span class="n">${d.name}</span></span><span class="td-pct ${pctClass(d.rsChg1w)}">${fmtPct(d.rsChg1w)}</span></div>`).join('')
+      ? list.map(d => { const fast = (d.rsTailLen != null && d.rsTailLen > 4) ? '<span title="Rotație rapidă — coadă RRG lungă, direcție puternică" style="margin:0 3px">🚀</span>' : ''; return `<div class="rq-row"><span><span class="s">${d.sym}</span>${fast}<span class="n">${d.name}</span></span><span class="td-pct ${pctClass(d.rsChg1w)}">${fmtPct(d.rsChg1w)}</span></div>`; }).join('')
       : '<div class="rq-empty">— niciun sector —</div>';
     return `<div class="rrg-quad ${q.key}"><div class="rq-h">${q.label}<span class="cnt">${list.length}</span></div>${rows}</div>`;
   };
