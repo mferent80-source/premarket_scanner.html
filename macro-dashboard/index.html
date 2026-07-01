@@ -264,6 +264,35 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .freeze-banner.freeze { background:linear-gradient(135deg, rgba(255,77,77,.22), rgba(20,26,40,.6)); border:1px solid rgba(255,77,77,.6); color:#ffb3b3; animation:moodPulseGlow 1.6s ease-in-out infinite; }
 .freeze-banner.soon { background:linear-gradient(135deg, rgba(212,137,44,.16), rgba(20,26,40,.6)); border:1px solid rgba(212,137,44,.5); color:var(--warn); }
 
+/* ============ PRE-TRADE SETUP BUILDER ============ */
+.setup-wrap { padding:14px; }
+.setup-form { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.setup-form #setupTicker { flex:1; min-width:180px; font-family:var(--mono); text-transform:uppercase; font-size:14px; padding:9px 12px; letter-spacing:.5px; }
+.setup-dir { display:flex; gap:4px; }
+.setup-inp { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--t2); font-family:var(--mono); font-weight:700; }
+.setup-inp input { width:82px; font-family:var(--mono); }
+.setup-hint { font-size:11px; color:var(--t3); font-family:var(--mono); margin-top:10px; line-height:1.5; }
+#setupResult { margin-top:14px; }
+.setup-verdict { display:flex; align-items:center; gap:14px; flex-wrap:wrap; background:linear-gradient(135deg, var(--panel2), rgba(91,176,255,.05)); border:1px solid var(--b1); border-radius:var(--r); padding:14px 16px; margin-bottom:12px; }
+.setup-verdict .sv-tag { font-family:var(--mono); font-size:11px; color:var(--t2); font-weight:700; }
+.setup-verdict .sv-px { font-family:var(--head); font-size:26px; font-weight:800; color:var(--t1); line-height:1.1; }
+.setup-verdict .sv-meta { font-family:var(--mono); font-size:12px; color:var(--t2); }
+.setup-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(148px, 1fr)); gap:8px; margin-bottom:8px; }
+.setup-tile { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:10px 12px; }
+.setup-tile .st-label { font-size:10.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--t2); font-weight:700; font-family:var(--mono); }
+.setup-tile .st-val { font-size:17px; font-weight:800; font-family:var(--head); margin-top:3px; color:var(--t1); }
+.setup-tile .st-sub { font-size:10.5px; color:var(--t3); font-family:var(--mono); margin-top:2px; }
+.setup-tile.entry { border-color:rgba(91,176,255,.5); }
+.setup-tile.sl { border-color:rgba(255,77,77,.5); } .setup-tile.sl .st-val { color:var(--bear-s); }
+.setup-tile.tp { border-color:rgba(34,214,107,.4); } .setup-tile.tp .st-val { color:var(--bull-s); }
+.setup-section-h { font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--t2); font-weight:700; font-family:var(--mono); margin:14px 0 8px; }
+.setup-check { display:flex; flex-direction:column; gap:6px; }
+.setup-check-row { display:flex; align-items:center; gap:8px; font-family:var(--head); font-size:12.5px; color:var(--t1); background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:8px 12px; }
+.setup-check-row .scr-icon { font-size:14px; flex-shrink:0; }
+.setup-check-row .scr-note { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--t3); }
+.setup-cat { background:linear-gradient(135deg, rgba(212,137,44,.12), rgba(20,26,40,.5)); border:1px solid rgba(212,137,44,.35); border-radius:var(--rs); padding:9px 14px; font-family:var(--head); font-size:12.5px; color:var(--t1); margin-bottom:6px; }
+.setup-err { padding:20px; text-align:center; color:var(--t2); font-family:var(--head); font-size:13px; }
+
 /* Hot strip — next 24h high-impact */
 .hot-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:8px; margin-bottom:10px; }
 .hot-strip:empty { display:none; }
@@ -865,7 +894,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v212</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v213</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -913,6 +942,28 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <button class="tab-btn" data-tab="cryptoNews">₿ Crypto News</button>
   <button class="tab-btn" data-tab="brief">🤖 AI Daily Brief</button>
   <button class="tab-btn" data-tab="opportunities">💡 Oportunități<span class="op-badge" id="opBadge" style="display:none">0</span></button>
+  <button class="tab-btn" data-tab="setup">🎯 Setup Builder</button>
+</div>
+
+<!-- Tab: Pre-Trade Setup Builder -->
+<div class="tab-content" id="tab-setup">
+  <div class="panel-box">
+    <div class="panel-head"><h3>🎯 Pre-Trade Setup Builder</h3><span class="panel-sub">niveluri + R:R + sizing pe regim × ATR + checklist</span></div>
+    <div class="setup-wrap">
+      <div class="setup-form">
+        <input id="setupTicker" type="text" placeholder="Ticker (ex: NVDA, AAPL, BTC-USD)" autocomplete="off">
+        <div class="setup-dir" id="setupDir">
+          <button class="fb-chip active" data-dir="long">📈 LONG</button>
+          <button class="fb-chip" data-dir="short">📉 SHORT</button>
+        </div>
+        <label class="setup-inp"><span>Cont $</span><input id="setupAccount" type="number" min="0" step="500" value="10000"></label>
+        <label class="setup-inp"><span>Risc %</span><input id="setupRisk" type="number" min="0.1" step="0.25" value="1"></label>
+        <button class="primary" id="setupBtn">Construiește setup</button>
+      </div>
+      <div class="setup-hint">Nivelurile (S/R, MA, ATR) vin din chart-ul 1y real. Sizing-ul se ajustează pe Danger Score-ul zilei. Entry/SL/TP nu sunt ordine — sunt un schelet de plan pe care îl validezi tu.</div>
+      <div id="setupResult"></div>
+    </div>
+  </div>
 </div>
 
 <!-- Tab: Calendar economic -->
@@ -2274,6 +2325,136 @@ function renderFreezeWindow() {
     return;
   }
   el.style.display = 'none';
+}
+
+// ============ PRE-TRADE SETUP BUILDER — ticker → nivel + R:R + sizing pe regim + checklist ============
+let _setupDir = 'long';
+// Multiplicator de sizing derivat din Danger Score (mediu periculos → poziții mai mici)
+function dangerSizeMult(score) {
+  return score >= 70 ? 0.35 : score >= 45 ? 0.5 : score >= 25 ? 0.75 : 1;
+}
+
+// Catalisti apropiati pentru un ticker: earnings (EARNINGS_BY_DATE) + urmatorul macro high-impact
+function findSetupCatalysts(ticker) {
+  const out = [];
+  const T = ticker.toUpperCase();
+  try {
+    const today = getNYDateHour().date;
+    const keys = Object.keys(EARNINGS_BY_DATE).filter(d => d >= today).sort();
+    for (const d of keys) {
+      const hit = (EARNINGS_BY_DATE[d] || []).find(e => e.symbol === T);
+      if (hit) { out.push(`📊 Earnings ${T} pe ${d} (${hit.hour || 'amc'}) — catalist major, atenție la gap`); break; }
+    }
+  } catch (e) {}
+  const nx = nextHighImpactEvent();
+  if (nx) {
+    const cm = COUNTRY_META[nx.event.country] || { flag: '' };
+    const h = Math.floor(nx.minsUntil / 60), m = Math.round(nx.minsUntil % 60);
+    const when = nx.minsUntil < 120 ? `${h > 0 ? h + 'h ' : ''}${m}m` : `~${Math.round(nx.minsUntil / 60)}h`;
+    out.push(`${cm.flag || '📅'} Macro: ${nx.event.event} în ${when} — poate mișca tot piața`);
+  }
+  return out;
+}
+
+async function buildSetup() {
+  const resultEl = $('setupResult');
+  const ticker = ($('setupTicker').value || '').trim().toUpperCase();
+  if (!ticker) { resultEl.innerHTML = '<div class="setup-err">Introdu un ticker (ex: NVDA, AAPL, BTC-USD).</div>'; return; }
+  const account = parseFloat($('setupAccount').value) || 0;
+  const riskPct = parseFloat($('setupRisk').value) || 1;
+  resultEl.innerHTML = `<div class="setup-err">⏳ Calculez nivelurile pentru <b>${escHtml(ticker)}</b>…</div>`;
+  let L = null;
+  try { L = await fetchBriefLevels(ticker); } catch (e) { L = null; }
+  if (!L || L.last == null) {
+    resultEl.innerHTML = `<div class="setup-err">❌ Nu am găsit date pentru <b>${escHtml(ticker)}</b>. Verifică simbolul (crypto: <code>BTC-USD</code>, ETF/stocks: <code>SPY</code>, <code>NVDA</code>).</div>`;
+    return;
+  }
+  renderSetup(ticker, _setupDir, L, account, riskPct);
+}
+
+function renderSetup(ticker, dir, L, account, riskPct) {
+  const isLong = dir === 'long';
+  const isCrypto = /-USD$/i.test(ticker);
+  const fmt = v => v == null ? '—' : (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toFixed(2) : v.toFixed(4));
+  const entry = L.last;
+  const atrAbs = L.atrPct != null ? entry * L.atrPct / 100 : entry * 0.02; // fallback 2%/zi
+  const r = 1.5 * atrAbs; // risc pe trade = 1.5×ATR
+  const sl = isLong ? entry - r : entry + r;
+  const tp1 = isLong ? entry + r : entry - r;
+  const tp2 = isLong ? entry + 2 * r : entry - 2 * r;
+  const tp3 = isLong ? entry + 3 * r : entry - 3 * r;
+  // R:R structural la nivelul de 20 zile (rezistență pt long, suport pt short)
+  const target = isLong ? L.hi20 : L.lo20;
+  let rrStruct = null;
+  if (target != null && r > 0) {
+    const reward = isLong ? target - entry : entry - target;
+    if (reward > 0) rrStruct = reward / r;
+  }
+  const rrColor = rrStruct == null ? 'var(--t1)' : rrStruct >= 2 ? 'var(--bull-s)' : rrStruct >= 1 ? 'var(--warn)' : 'var(--bear-s)';
+  // Sizing pe Danger Score
+  const danger = computeDangerScore();
+  const mult = dangerSizeMult(danger.score);
+  const riskDollars = account * (riskPct / 100) * mult;
+  const shares = r > 0 ? riskDollars / r : 0;
+  const posValue = shares * entry;
+  // Checklist confluență
+  const checks = [];
+  const maOk = L.ma50 != null && (isLong ? entry > L.ma50 : entry < L.ma50);
+  checks.push({ ok: maOk, txt: `Trend MA50 ${isLong ? 'în favoare (preț peste)' : 'în favoare (preț sub)'}`, note: L.ma50 != null ? `MA50 ${fmt(L.ma50)}` : 'n/a' });
+  if (L.ma200 != null) {
+    const ma200Ok = isLong ? entry > L.ma200 : entry < L.ma200;
+    checks.push({ ok: ma200Ok, txt: `Trend MA200 aliniat`, note: `MA200 ${fmt(L.ma200)}` });
+  }
+  let regOk = true, regNote = 'n/a';
+  if (RISK_STATE && !RISK_STATE.partial) {
+    regNote = RISK_STATE.label;
+    regOk = isLong ? RISK_STATE.composite >= -2 : RISK_STATE.composite <= 1;
+  }
+  checks.push({ ok: regOk, txt: `Regim de risc ${isLong ? 'nu contra LONG' : 'nu contra SHORT'}`, note: regNote });
+  checks.push({ ok: danger.score < 45, txt: `Danger Score sub prag (mediu ok)`, note: `${danger.score}/100` });
+  if (L.distMa50 != null) {
+    checks.push({ ok: Math.abs(L.distMa50) < 12, txt: `Nu e supra-extins față de MA50`, note: `${L.distMa50 >= 0 ? '+' : ''}${L.distMa50.toFixed(1)}%` });
+  }
+  const catalysts = findSetupCatalysts(ticker);
+  const okCount = checks.filter(c => c.ok).length;
+
+  $('setupResult').innerHTML = `
+    <div class="setup-verdict">
+      <div>
+        <div class="sv-tag">${escHtml(ticker)} · ${isLong ? '📈 LONG' : '📉 SHORT'} · confluență ${okCount}/${checks.length}</div>
+        <div class="sv-px">$${fmt(entry)}</div>
+        <div class="sv-meta">${L.chgPct >= 0 ? '+' : ''}${L.chgPct.toFixed(2)}% azi · ATR≈${L.atrPct != null ? L.atrPct.toFixed(1) : '—'}%/zi</div>
+      </div>
+    </div>
+    <div class="setup-grid">
+      <div class="setup-tile entry"><div class="st-label">Entry</div><div class="st-val">$${fmt(entry)}</div><div class="st-sub">preț curent</div></div>
+      <div class="setup-tile sl"><div class="st-label">Stop Loss</div><div class="st-val">$${fmt(sl)}</div><div class="st-sub">1.5×ATR · risc $${fmt(r)} (${(r / entry * 100).toFixed(1)}%)</div></div>
+      <div class="setup-tile tp"><div class="st-label">TP1 · 1R</div><div class="st-val">$${fmt(tp1)}</div></div>
+      <div class="setup-tile tp"><div class="st-label">TP2 · 2R</div><div class="st-val">$${fmt(tp2)}</div></div>
+      <div class="setup-tile tp"><div class="st-label">TP3 · 3R</div><div class="st-val">$${fmt(tp3)}</div></div>
+      <div class="setup-tile"><div class="st-label">R:R la ${isLong ? 'max' : 'min'} 20z</div><div class="st-val" style="color:${rrColor}">${rrStruct != null ? rrStruct.toFixed(2) + ':1' : '—'}</div><div class="st-sub">${target != null ? 'nivel $' + fmt(target) : 'n/a'}</div></div>
+    </div>
+    <div class="setup-section-h">💰 Sizing — Danger ${danger.score}/100 → ×${mult} (${escHtml(danger.mult)})</div>
+    <div class="setup-grid">
+      <div class="setup-tile"><div class="st-label">Risc $ / trade</div><div class="st-val">$${fmt(riskDollars)}</div><div class="st-sub">${riskPct}% × ${mult} din $${account.toLocaleString('en-US')}</div></div>
+      <div class="setup-tile"><div class="st-label">Poziție</div><div class="st-val">${shares >= 1 ? Math.floor(shares).toLocaleString('en-US') : shares.toFixed(4)}</div><div class="st-sub">${isCrypto ? 'unități' : 'acțiuni'} · ≈ $${fmt(posValue)} notional</div></div>
+    </div>
+    <div class="setup-section-h">✅ Checklist confluență (${okCount}/${checks.length})</div>
+    <div class="setup-check">${checks.map(c => `<div class="setup-check-row"><span class="scr-icon">${c.ok ? '✅' : '⚠️'}</span> ${escHtml(c.txt)} <span class="scr-note">${escHtml(c.note)}</span></div>`).join('')}</div>
+    ${catalysts.length ? `<div class="setup-section-h">📅 Catalist apropiat (risc + oportunitate)</div>${catalysts.map(c => `<div class="setup-cat">${escHtml(c)}</div>`).join('')}` : ''}
+    <div class="setup-hint" style="margin-top:12px">⚠ Entry/SL/TP = schelet din ATR real (1.5×ATR risc, TP la 1/2/3R). Sizing pe Danger Score-ul zilei. NU sunt ordine — validează cu propriul plan și confirmă pe grafic.</div>`;
+}
+
+function wireSetup() {
+  const btn = $('setupBtn');
+  if (btn) btn.addEventListener('click', buildSetup);
+  const inp = $('setupTicker');
+  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') buildSetup(); });
+  document.querySelectorAll('#setupDir .fb-chip').forEach(c => c.addEventListener('click', () => {
+    _setupDir = c.dataset.dir;
+    document.querySelectorAll('#setupDir .fb-chip').forEach(x => x.classList.toggle('active', x === c));
+    if (($('setupTicker').value || '').trim()) buildSetup();
+  }));
 }
 
 // ============ GENERIC MODAL (drill-down) ============
@@ -5982,6 +6163,7 @@ function applyToastBtnUI() {
 function bindEvents() {
   // Tabs
   document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+  wireSetup(); // Pre-Trade Setup Builder
 
   // Oportunități — curăță tot
   $('opClearBtn')?.addEventListener('click', () => {
