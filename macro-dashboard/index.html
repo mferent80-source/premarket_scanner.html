@@ -52,8 +52,9 @@ body[data-mood="risk-off"] {
   --bg-grad:radial-gradient(1400px 800px at 50% -200px, rgba(255,77,77,.32) 0%, rgba(40,15,15,.7) 35%, #0b0f17 70%);
 }
 body[data-mood="stress"] {
+  /* Fundal roșu intens STATIC + inset border comunică starea instant. Pulsul de fundal (moodPulseBg)
+     a fost tăiat deliberat: un fundal care pulsează continuu obosește exact când vrei date reci. */
   --bg-grad:radial-gradient(1400px 800px at 50% -200px, rgba(255,55,55,.50) 0%, rgba(60,10,10,.85) 35%, #1a0606 75%);
-  animation:moodPulseBg 3s ease-in-out infinite;
   box-shadow:inset 0 0 0 3px rgba(255,77,77,.45), inset 0 0 80px rgba(255,77,77,.25);
 }
 body[data-mood="mixed"] {
@@ -88,13 +89,13 @@ body[data-mood="mixed"] header {
 /* Ver-badge mood color */
 body[data-mood="risk-on"] .ver-badge { background:rgba(34,214,107,.18); color:var(--bull-s); border-color:rgba(34,214,107,.5); -webkit-text-fill-color:var(--bull-s); }
 body[data-mood="risk-off"] .ver-badge { background:rgba(255,77,77,.18); color:var(--bear-s); border-color:rgba(255,77,77,.5); -webkit-text-fill-color:var(--bear-s); }
-body[data-mood="stress"] .ver-badge { background:rgba(255,55,55,.35); color:#fff; border-color:rgba(255,77,77,.8); -webkit-text-fill-color:#fff; animation:moodPulseGlow 1.5s ease-in-out infinite; }
+body[data-mood="stress"] .ver-badge { background:rgba(255,55,55,.35); color:#fff; border-color:rgba(255,77,77,.8); -webkit-text-fill-color:#fff; }
 body[data-mood="mixed"] .ver-badge { background:rgba(212,137,44,.18); color:var(--warn); border-color:rgba(212,137,44,.5); -webkit-text-fill-color:var(--warn); }
 
 /* H1 gradient changes per mood */
 body[data-mood="risk-on"] header h1 { background:linear-gradient(90deg, var(--bull-s), #5bb0ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 body[data-mood="risk-off"] header h1 { background:linear-gradient(90deg, var(--bear-s), #ff9b6b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-body[data-mood="stress"] header h1 { background:linear-gradient(90deg, #ff5555, #ffaaaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:moodPulseGlow 1.5s ease-in-out infinite; }
+body[data-mood="stress"] header h1 { background:linear-gradient(90deg, #ff5555, #ffaaaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 body[data-mood="mixed"] header h1 { background:linear-gradient(90deg, var(--warn), var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 
 /* Panel-uri tinted subtle */
@@ -888,13 +889,35 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   td.left { padding-left:10px; }
   .scanner-wrap { max-height:none; }
   .evt-name { font-size:12px; }
+  /* Tap targets ≥40px pe mobil (evită mis-tap-urile dimineața) */
+  .icon-btn, .action-btn, .nav-link, .tab-btn, button.primary, button.ghost, button { min-height:40px; }
+  .fb-chip { min-height:36px; }
+  .cc-cell { min-height:62px; }
+  /* Card-view pt tabelul de calendar (8 coloane nu încap la 360px) */
+  #tab-calendar thead { display:none; }
+  #tab-calendar table, #tab-calendar tbody { display:block; width:100%; }
+  #tab-calendar tbody tr.clickable { display:flex; flex-wrap:wrap; align-items:center; gap:3px 8px; border:1px solid var(--b1); border-left-width:3px; border-radius:var(--rs); margin-bottom:8px; padding:9px 11px; }
+  #tab-calendar tbody tr.expanded-row { display:block; }
+  #tab-calendar tbody tr.clickable td { display:inline-flex; align-items:center; padding:0 !important; border:none !important; text-align:left !important; width:auto; min-height:0; }
+  #tab-calendar tbody tr.clickable td:nth-child(3) { order:1; flex:1 1 100%; }
+  #tab-calendar tbody tr.clickable td:nth-child(1) { order:2; font-size:11px; color:var(--t2); }
+  #tab-calendar tbody tr.clickable td:nth-child(2) { order:3; }
+  #tab-calendar tbody tr.clickable td:nth-child(4) { order:4; margin-left:auto; }
+  #tab-calendar tbody tr.clickable td:nth-child(5) { order:5; }
+  #tab-calendar tbody tr.clickable td:nth-child(6) { order:6; }
+  #tab-calendar tbody tr.clickable td:nth-child(7) { order:7; }
+  #tab-calendar tbody tr.clickable td:nth-child(8) { order:8; margin-left:auto; }
+  #tab-calendar tbody tr.clickable td:nth-child(5)::before { content:"F:"; color:var(--t3); font-family:var(--mono); font-size:10px; margin-right:3px; }
+  #tab-calendar tbody tr.clickable td:nth-child(6)::before { content:"P:"; color:var(--t3); font-family:var(--mono); font-size:10px; margin-right:3px; }
+  #tab-calendar tbody tr.clickable td:nth-child(7)::before { content:"A:"; color:var(--t3); font-family:var(--mono); font-size:10px; margin-right:3px; }
+  #tab-calendar .when-h { display:inline; margin-left:5px; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v213</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v214</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -4219,6 +4242,8 @@ REGIMUL DE RISC e DEJA CALCULAT si ti se da in context ("REGIM DE RISC (oficial)
 CONTINUITATE: daca ti se da "TEZA DE IERI", compar-o cu teza de azi. Daca s-a schimbat biasul (ex. ieri STOCKS LONG, azi NEUTRAL), spune EXPLICIT intr-un rand ce s-a schimbat si de ce (ce fapt nou). Daca e la fel, confirma scurt ("teza de ieri se mentine").
 
 WATCHLIST: daca primesti "WATCHLIST-UL MEU", cand un event / nivel tehnic / earnings atinge un simbol de acolo, PRIORITIZEAZA-l in sectiunile "Azi de urmarit" si "Oportunitati" (e mai actionabil pentru user decat SPY/QQQ generic).
+
+GOOD NEWS = BAD NEWS: nu citi rezultatele mecanic (BEAT=bullish). Intr-un regim dominat de frica de dobanzi (10Y in crestere, DXY puternic, VIX ridicat), un BEAT de crestere (NFP/PMI/GDP/retail hot) poate fi BEARISH pentru Nasdaq — creste asteptarile de rate/yields, loveste growth-ul. Invers, date de crestere slabe pot fi bullish („bad news is good news") daca aduc sperante de taieri. Leaga interpretarea fiecarui rezultat de REGIMUL curent, nu doar de semnul surprizei.
 
 STRUCTURA — un TL;DR pe un rand, apoi EXACT aceste 5 sectiuni (markdown ## pentru headings), scurte:
 
