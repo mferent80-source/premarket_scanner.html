@@ -917,7 +917,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v216</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v217</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -968,6 +968,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <button class="tab-btn" data-tab="opportunities">💡 Oportunități<span class="op-badge" id="opBadge" style="display:none">0</span></button>
   <button class="tab-btn" data-tab="setup">🎯 Setup Builder</button>
   <button class="tab-btn" data-tab="journal">📓 Jurnal</button>
+  <button class="tab-btn" data-tab="watchmacro">👁 Watchlist</button>
 </div>
 
 <!-- Tab: Pre-Trade Setup Builder -->
@@ -987,6 +988,17 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
       </div>
       <div class="setup-hint">Nivelurile (S/R, MA, ATR) vin din chart-ul 1y real. Sizing-ul se ajustează pe Danger Score-ul zilei. Entry/SL/TP nu sunt ordine — sunt un schelet de plan pe care îl validezi tu.</div>
       <div id="setupResult"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab: Watchlist × Macro sensitivity -->
+<div class="tab-content" id="tab-watchmacro">
+  <div class="panel-box">
+    <div class="panel-head"><h3>👁 Watchlist × Macro</h3><span class="panel-sub">expunerea pozițiilor tale la evenimentele de azi</span></div>
+    <div class="setup-wrap">
+      <div id="watchMacroCtx"></div>
+      <div id="watchMacroList"></div>
     </div>
   </div>
 </div>
@@ -2689,6 +2701,61 @@ async function renderJournal() {
       </div>
       <span style="color:${color};font-weight:800;font-family:var(--head);font-size:12px;white-space:nowrap">${stTxt}</span>
       <button class="action-btn" onclick="deleteJournalEntry('${e.id}')" title="Șterge" style="margin-left:6px">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+// ============ WATCHLIST × MACRO SENSITIVITY — expunerea pozițiilor la evenimentele de azi ============
+// Clasificare euristică a sensibilității la dobânzi/yields (fără date de beta reale — orientativ).
+function rateSensitivity(sym) {
+  const s = sym.toUpperCase();
+  const growth = ['NVDA','AAPL','MSFT','TSLA','AMZN','META','GOOGL','GOOG','AMD','CRM','ADBE','NFLX','SHOP','PYPL','SQ','ARM','PLTR','SMCI','AVGO','QQQ','ARKK','MU','INTC','QCOM'];
+  const banks = ['JPM','BAC','GS','MS','WFC','C','XLF','KRE','SCHW','USB','PNC'];
+  const energy = ['XOM','CVX','XLE','OXY','SLB','COP'];
+  const cryptoSt = ['COIN','MSTR','MARA','RIOT','HOOD','CLSK'];
+  if (/-USD$/.test(s) || cryptoSt.includes(s)) return { tag:'crypto', icon:'₿', txt:'sensibil la lichiditate/USD — yields ↑ = presiune' };
+  if (growth.includes(s)) return { tag:'growth', icon:'💻', txt:'growth/duration — yields ↑ = presiune (rate hike bearish)' };
+  if (banks.includes(s)) return { tag:'banks', icon:'🏦', txt:'financiar — yields ↑ = beneficiu (curbă mai abruptă)' };
+  if (energy.includes(s)) return { tag:'energy', icon:'🛢️', txt:'energie — corelat cu inflația/mărfuri' };
+  return { tag:'other', icon:'📈', txt:'sensibilitate macro moderată' };
+}
+
+function renderWatchMacro() {
+  const el = $('watchMacroList'), ctxEl = $('watchMacroCtx');
+  if (!el) return;
+  const wl = readWatchlist();
+  const syms = (Array.isArray(wl) ? wl : []).map(t => typeof t === 'string' ? t : (t && (t.symbol || t.ticker) || '')).filter(Boolean);
+  if (!syms.length) {
+    if (ctxEl) ctxEl.innerHTML = '';
+    el.innerHTML = '<div class="setup-err">Watchlist gol. Adaugă simboluri în <b>watchlist-monitor</b> (cheia <code>wl_stocks</code> e partajată).</div>';
+    return;
+  }
+  const nyt = getNYDateHour();
+  const todayStart = parseEventTime(nyt.date + ' 00:00')?.getTime() || 0;
+  const todayHigh = CAL_DATA.filter(e => {
+    const t = parseEventTime(e.time)?.getTime() || 0;
+    return e.impact === 'high' && t >= todayStart && t < todayStart + 24 * 3600000;
+  }).map(e => e.event);
+  const rateEventToday = todayHigh.some(ev => /cpi|ppi|fomc|fed|rate|payroll|nfp|inflation|gdp|pce|jobless/i.test(ev));
+  const earnKeys = Object.keys(EARNINGS_BY_DATE).filter(d => d >= nyt.date).sort();
+
+  if (ctxEl) ctxEl.innerHTML = `<div class="setup-hint">${todayHigh.length} eveniment(e) high-impact azi${rateEventToday ? ' · <b style="color:var(--warn)">include date rate-sensitive (CPI/Fed/NFP)</b> → growth &amp; crypto expuse' : ''}. „⚠ expus azi" = simbol sensibil + eveniment de dobânzi azi. Sensibilitatea e euristică (pe sector), nu beta real.</div>`;
+
+  el.innerHTML = syms.map(sym => {
+    const rs = rateSensitivity(sym);
+    let earn = '';
+    for (const d of earnKeys) {
+      const hit = (EARNINGS_BY_DATE[d] || []).find(e => e.symbol === sym.toUpperCase());
+      if (hit) { earn = `📊 earnings ${d} (${hit.hour || 'amc'}) — catalist propriu`; break; }
+    }
+    const exposed = rateEventToday && (rs.tag === 'growth' || rs.tag === 'crypto' || rs.tag === 'banks');
+    const badge = exposed ? '<span class="vol-week-badge">⚠ expus azi</span>' : '';
+    return `<div class="setup-check-row" style="align-items:flex-start">
+      <span class="scr-icon">${rs.icon}</span>
+      <div style="flex:1;min-width:0"><b>${escHtml(sym)}</b> ${badge}
+        <div style="font-family:var(--mono);font-size:11px;color:var(--t3);margin-top:2px">${escHtml(rs.txt)}</div>
+        ${earn ? `<div style="font-family:var(--mono);font-size:11px;color:var(--warn);margin-top:2px">${escHtml(earn)}</div>` : ''}
+      </div>
     </div>`;
   }).join('');
 }
@@ -5046,6 +5113,7 @@ function switchTab(name) {
   if (name === 'macroNews' && now - _newsLoadedAt.macro > NEWS_CACHE_TTL) fetchMacroNews();
   if (name === 'cryptoNews' && now - _newsLoadedAt.crypto > NEWS_CACHE_TTL) fetchCryptoNews();
   if (name === 'journal') renderJournal();
+  if (name === 'watchmacro') renderWatchMacro();
   if (name === 'brief') initBriefTab();
   if (name === 'opportunities') renderSuggestionsPanel(); // refresh starea watchlist/added la deschidere
 }
