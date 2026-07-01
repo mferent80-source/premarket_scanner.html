@@ -812,8 +812,8 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .op-empty h4 { font-size:15px; color:var(--t2); font-weight:700; font-family:var(--head); margin-bottom:6px; }
 .op-empty p { font-size:12.5px; color:var(--t3); font-family:var(--head); line-height:1.6; max-width:480px; margin:0 auto; }
 /* Header secțiune STOCKS / CRYPTO */
-.op-section-head { display:flex; align-items:baseline; gap:10px; margin-top:6px; padding-bottom:6px; border-bottom:1px solid var(--b1); }
-.op-section-head:first-of-type { margin-top:0; }
+.op-section-head { display:flex; align-items:baseline; gap:10px; margin:16px 0 10px; padding:9px 0 9px 12px; border-bottom:1px solid var(--b1); border-left:3px solid var(--accent); background:linear-gradient(90deg, rgba(91,176,255,.07), transparent 70%); border-radius:2px; }
+.op-section-head:first-of-type { margin-top:2px; }
 .op-sh-title { font-size:15px; font-weight:800; color:var(--t1); font-family:var(--head); letter-spacing:.3px; }
 .op-sh-sub { font-size:11.5px; color:var(--t3); font-family:var(--head); }
 .op-section-empty { padding:18px; text-align:center; color:var(--t3); font-size:12.5px; font-family:var(--head); background:var(--panel2); border:1px dashed var(--b1); border-radius:var(--r); }
@@ -831,10 +831,11 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .op-momo-levels b { color:var(--accent); }
 .op-momo-atr { color:var(--t3); font-size:11px; }
 /* Card sector */
-.op-sector { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--r); overflow:hidden; }
-.op-sector.bull { border-left:3px solid var(--bull-s); }
-.op-sector.bear { border-left:3px solid var(--bear-s); }
-.op-sec-head { display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--panel3); }
+.op-sector { background:linear-gradient(135deg, var(--panel2), rgba(20,26,40,.5)); border:1px solid var(--b1); border-radius:var(--r); overflow:hidden; transition:transform .15s var(--ease), box-shadow .15s var(--ease); }
+.op-sector:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.op-sector.bull { border-left:4px solid var(--bull-s); }
+.op-sector.bear { border-left:4px solid var(--bear-s); }
+.op-sec-head { display:flex; align-items:center; gap:10px; padding:12px 14px; background:linear-gradient(180deg, var(--panel3), rgba(20,26,40,.35)); border-bottom:1px solid var(--b1); }
 .op-sec-icon { font-size:22px; }
 .op-sec-titles { flex:1; min-width:0; }
 .op-sec-name { font-size:14px; font-weight:800; color:var(--t1); font-family:var(--head); }
@@ -944,7 +945,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v218</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v219</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -6114,11 +6115,20 @@ function renderSuggestionsPanel() {
   // Două secțiuni distincte: STOCKS (reacții macro) + CRYPTO (macro crypto-sensibil + momentum de preț)
   const head = (title, sub) => `<div class="op-section-head"><span class="op-sh-title">${title}</span><span class="op-sh-sub">${sub}</span></div>`;
   const out = [];
+  out.push(`<div class="wm-summary" style="margin-bottom:12px">
+    <div class="wm-stat"><b>${stockCards.length}</b> setup stocks</div>
+    <div class="wm-stat"><b>${cryptoCards.length}</b> setup crypto</div>
+    <div class="wm-stat"><b style="color:${active.length ? 'var(--bull-s)' : 'var(--t3)'}">${active.length}</b> din rezultate azi</div>
+  </div>`);
   if (active.length) out.push(renderDailyVerdict(active));
   // STOCKS
   out.push(head('📈 STOCKS', 'acțiuni/ETF favorizate de rezultatele macro de azi'));
+  const _nx = nextHighImpactEvent();
+  const _nextStr = _nx
+    ? `Următorul catalist: <b>${escHtml(_nx.event.event)}</b> în ~${_nx.minsUntil < 120 ? Math.round(_nx.minsUntil) + ' min' : Math.round(_nx.minsUntil / 60) + 'h'} — oportunitățile apar automat după publicare.`
+    : 'Niciun eveniment high-impact în calendarul încărcat momentan.';
   out.push(stockCards.length ? stockCards.join('')
-    : `<div class="op-section-empty">${active.length ? 'Niciun setup stocks cu edge clar azi — stai pe mâini.' : 'Niciun rezultat macro publicat azi încă (la CPI/NFP/FOMC etc. apar aici automat).'}</div>`);
+    : `<div class="op-section-empty">📭 <b>Niciun setup stocks cu edge azi.</b><br><span style="font-size:11.5px;line-height:1.6;display:inline-block;margin-top:6px">Cardurile apar <b>automat</b> când se publică un rezultat macro cu surpriză reală (|surprise| ≥ 3%, sau high-impact ≥ 0.8%) — <b>nu</b> le populez pe zile calme. ${_nextStr}<br><span style="opacity:.65">Gate strict deliberat: calitate peste cantitate, „stai pe mâini" când nu-i nimic.</span></span></div>`);
   // CRYPTO: carduri din macro + container momentum (populat async)
   out.push(head('🪙 CRYPTO', 'coinuri + crypto-stocks pe macro și momentum de preț'));
   if (cryptoCards.length) out.push(cryptoCards.join(''));
