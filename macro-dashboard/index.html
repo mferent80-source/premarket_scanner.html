@@ -917,7 +917,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v215</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v216</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -952,6 +952,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <div class="stat-tile" id="tile-eth"><span class="stat-label">Ξ ETH</span><span class="stat-value">—</span><span class="stat-sub">Ethereum USD</span></div>
   <div class="stat-tile" id="tile-fng"><span class="stat-label">😱 F&G</span><span class="stat-value">—</span><span class="stat-sub">Crypto Fear&Greed</span></div>
   <div class="stat-tile" id="tile-earnings" title="Mega-cap earnings în următoarele 7 zile (click → Earnings Hub)"><span class="stat-label">⚡ Earnings 7z</span><span class="stat-value">—</span><span class="stat-sub">mega-caps săptămâna asta</span></div>
+  <div class="stat-tile" id="tile-surprise" title="Economic Surprise Index — datele publicate recent bat sau ratează consensul (agregat, ponderat pe impact)"><span class="stat-label">📊 Surprise</span><span class="stat-value">—</span><span class="stat-sub">date vs așteptări (30z)</span></div>
   <div class="stat-tile" id="tile-risk" title="Risk regime composite — click pentru detalii (VIX + Yield 10Y + BTC/SPY correlation)"><span class="stat-label">🛡 Risk</span><span class="stat-value">—</span><span class="stat-sub">VIX · 10Y · BTC/SPY</span></div>
 </div>
 
@@ -2285,6 +2286,8 @@ function renderCommandCenter() {
       tc.innerHTML = `<span class="cc-label">⚖️ Cross-asset</span><span class="cc-value neut" style="font-size:16px">—</span><span class="cc-sub">date parțiale</span>`;
     }
   }
+  renderSurpriseTile();
+  snapshotDangerDaily();
   renderFreezeWindow();
 }
 
@@ -2294,7 +2297,14 @@ function drillDanger() {
   const rows = d.factors.length
     ? d.factors.map(f => `<div class="drill-corr-row"><span class="corr-arrow">▸</span> ${escHtml(f)}</div>`).join('')
     : '<div class="drill-corr-row">Niciun factor de risc activ — mediu calm.</div>';
-  const html = `<div class="drill-interp"><h4>Danger Score ${d.score}/100 — ${escHtml(d.level)}</h4>
+  let sparkHtml = '';
+  try {
+    const h = JSON.parse(localStorage.getItem('md_danger_daily') || '[]');
+    if (Array.isArray(h) && h.length >= 2) {
+      sparkHtml = `<div class="drill-chart-wrap"><div style="font-family:var(--mono);font-size:10.5px;color:var(--t2);margin-bottom:4px">EVOLUȚIE DANGER SCORE · ${h.length} zile (${escHtml(h[0].dateET)} → azi)</div>${dangerSparkSvg(h.map(x => x.score))}</div>`;
+    }
+  } catch (e) {}
+  const html = `${sparkHtml}<div class="drill-interp"><h4>Danger Score ${d.score}/100 — ${escHtml(d.level)}</h4>
       <p>Sizing sugerat: <strong>${escHtml(d.mult)}</strong> din poziția normală. Scorul agregă regimul de risc, VIX, evenimentele high-impact de azi, earnings mega-cap în săptămână și inversarea curbei.</p></div>
     <div class="drill-corr"><h4>Factori activi</h4>${rows}</div>
     <div class="risk-legend" style="margin-top:12px">0-24 CALM (1x) · 25-44 MODERAT (0.75x) · 45-69 RIDICAT (0.5x) · 70-100 PERICULOS (0.25-0.5x). Nu e un ordin — e un ghid de expunere.</div>`;
@@ -2314,6 +2324,70 @@ function drillCurve() {
       ? 'Curba e <strong>inversată</strong> (3M randează mai mult ca 10Y). Istoric, un semnal clasic de recesiune care precede slăbiciune în equities cu 6-18 luni — <strong>context de precauție</strong> pe termen mediu, nu un trigger de vânzare imediat.'
       : 'Curba e <strong>normală/pozitivă</strong> (10Y peste 3M). Consistent cu un ciclu economic sănătos — mediu de fond mai favorabil pentru equities ciclice.'}</p></div>`;
   openGenericModal('📈 Curba randamentelor 10Y-3M', 'Fed watch — semnal macro de regim', html);
+}
+
+// ============ ECONOMIC SURPRISE INDEX + DANGER HISTORY ============
+// Datele publicate recent (30z) bat sau ratează consensul — agregat ponderat pe impact.
+function computeSurpriseIndex() {
+  const now = Date.now();
+  const cutoff = now - 30 * 86400000;
+  let sum = 0, wsum = 0, n = 0;
+  for (const e of CAL_DATA) {
+    if (e.actual == null) continue;
+    const t = parseEventTime(e.time)?.getTime() || 0;
+    if (t < cutoff || t > now) continue;
+    const r = classifyResult(e.actual, e.forecast, e.event);
+    if (r.bias === 'neutral') continue;
+    const w = e.impact === 'high' ? 3 : e.impact === 'med' ? 2 : 1;
+    const dir = r.bias === 'bullish' ? 1 : -1;
+    const mag = (r.surprise != null && !isNaN(r.surprise)) ? Math.min(Math.abs(r.surprise), 100) / 100 : 0.5;
+    sum += dir * w * (0.5 + mag * 0.5);
+    wsum += w; n++;
+  }
+  if (!n || !wsum) return null;
+  return { score: sum / wsum * 100, n };
+}
+
+function renderSurpriseTile() {
+  const tile = $('tile-surprise');
+  if (!tile) return;
+  const si = computeSurpriseIndex();
+  if (!si) {
+    tile.className = 'stat-tile';
+    tile.innerHTML = `<span class="stat-label">📊 Surprise</span><span class="stat-value" style="color:var(--t3);font-size:14px">—</span><span class="stat-sub">fără rezultate recente</span>`;
+    return;
+  }
+  const s = si.score;
+  const cls = s > 15 ? 'bull' : s < -15 ? 'bear' : 'warn';
+  tile.className = 'stat-tile ' + cls;
+  const label = s > 15 ? '🟢 peste așteptări' : s < -15 ? '🔴 sub așteptări' : '⚪ în linie';
+  tile.innerHTML = `<span class="stat-label">📊 Surprise</span>
+    <span class="stat-value">${s >= 0 ? '+' : ''}${s.toFixed(0)}</span>
+    <span class="stat-sub">${label} · ${si.n} date</span>`;
+}
+
+// Snapshot zilnic Danger Score (o intrare/zi) pentru sparkline-ul istoric din drill
+function snapshotDangerDaily() {
+  try {
+    let h = JSON.parse(localStorage.getItem('md_danger_daily') || '[]');
+    if (!Array.isArray(h)) h = [];
+    const today = getNYDateHour().date;
+    const d = computeDangerScore();
+    h = h.filter(x => x && x.dateET !== today);
+    h.push({ dateET: today, score: d.score });
+    h.sort((a, b) => a.dateET < b.dateET ? -1 : 1);
+    if (h.length > 30) h = h.slice(-30);
+    localStorage.setItem('md_danger_daily', JSON.stringify(h));
+  } catch (e) {}
+}
+
+function dangerSparkSvg(vals, W = 260, H = 44) {
+  if (!vals || vals.length < 2) return '';
+  const dx = W / (vals.length - 1);
+  const pts = vals.map((v, i) => `${(i * dx).toFixed(1)},${(H - v / 100 * H).toFixed(1)}`).join(' ');
+  const last = vals[vals.length - 1];
+  const col = last >= 70 ? 'var(--bear-s)' : last >= 45 ? 'var(--warn)' : 'var(--bull-s)';
+  return `<svg width="100%" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2"/></svg>`;
 }
 
 // ============ FREEZE WINDOW — protejează execuția în jurul evenimentelor high-impact ============
