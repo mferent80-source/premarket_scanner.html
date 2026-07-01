@@ -236,6 +236,27 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .stat-sub.up { color:var(--bull-s); }
 .stat-sub.down { color:var(--bear-s); }
 
+/* ============ COMMAND CENTER — overview pre-trade (în ce mediu tranzacționez azi?) ============ */
+.command-center { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:10px; }
+.cc-cell {
+  background:linear-gradient(135deg, var(--panel), var(--panel2));
+  border:1px solid var(--b1); border-radius:var(--r); padding:11px 14px;
+  display:flex; flex-direction:column; gap:3px; position:relative; overflow:hidden;
+  box-shadow:var(--shadow-sm); cursor:pointer; transition:transform .15s var(--ease), box-shadow .15s var(--ease);
+}
+.cc-cell:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.cc-cell::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--accent); }
+.cc-cell.lvl-bull::before { background:var(--bull-s); }
+.cc-cell.lvl-warn::before { background:var(--warn); }
+.cc-cell.lvl-bear::before { background:var(--bear-s); }
+.cc-cell.lvl-neut::before { background:var(--t3); }
+.cc-label { font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--t2); font-weight:700; font-family:var(--mono); display:flex; align-items:center; gap:5px; }
+.cc-value { font-size:20px; font-weight:800; font-family:var(--head); letter-spacing:0; line-height:1.15; color:var(--t1); }
+.cc-value.bull { color:var(--bull-s); } .cc-value.warn { color:var(--warn); } .cc-value.bear { color:var(--bear-s); } .cc-value.neut { color:var(--t1); }
+.cc-sub { font-size:11px; color:var(--t3); font-family:var(--mono); line-height:1.4; }
+.cc-gauge { height:5px; border-radius:3px; background:var(--panel3); overflow:hidden; margin-top:5px; }
+.cc-gauge-fill { height:100%; border-radius:3px; transition:width .5s var(--ease); }
+
 /* Hot strip — next 24h high-impact */
 .hot-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:8px; margin-bottom:10px; }
 .hot-strip:empty { display:none; }
@@ -807,6 +828,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   header { gap:6px; padding:10px 12px; }
   header h1 { font-size:15px; }
   .stats-strip { grid-template-columns:repeat(2, 1fr); }
+  .command-center { grid-template-columns:repeat(2, 1fr); }
   .stat-value { font-size:18px; }
   .exp-wrap { grid-template-columns:1fr; }
   .filter-bar { gap:6px; padding:8px 10px; }
@@ -822,7 +844,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v209</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v210</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -838,6 +860,14 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 </header>
 
 <!-- Stats strip - macro indicators live -->
+<!-- COMMAND CENTER: overview pre-trade — în 3 sec „în ce mediu tranzacționez azi?" -->
+<div class="command-center" id="commandCenter">
+  <div class="cc-cell" id="cc-regime" onclick="drillRiskDashboard()" title="Regim de risc composite (click → detalii)"><span class="cc-label">🛡 Regim risc</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
+  <div class="cc-cell" id="cc-danger" onclick="drillDanger()" title="Danger Score al zilei — cât de periculos e mediul pentru intrări noi (sizing suggestion)"><span class="cc-label">⚠️ Danger Score</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span><div class="cc-gauge"><div class="cc-gauge-fill" style="width:0%"></div></div></div>
+  <div class="cc-cell" id="cc-curve" onclick="drillCurve()" title="Curba randamentelor 10Y-3M — inversată = semnal clasic de recesiune (risc pt equities)"><span class="cc-label">📈 Curbă 10Y-3M</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
+  <div class="cc-cell" id="cc-tilt" onclick="drillRiskDashboard()" title="Înclinația cross-asset: ce drivere împing risk-on vs risk-off acum"><span class="cc-label">⚖️ Cross-asset</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
+</div>
+
 <div class="stats-strip" id="statsStrip">
   <div class="stat-tile" id="tile-vix"><span class="stat-label">📊 VIX</span><span class="stat-value">—</span><span class="stat-sub">Volatility Index</span></div>
   <div class="stat-tile" id="tile-dxy"><span class="stat-label">💵 DXY</span><span class="stat-value">—</span><span class="stat-sub">US Dollar Index</span></div>
@@ -1997,8 +2027,181 @@ async function loadStatTiles() {
     }
   } catch (e) { /* ignore */ }
 
+  // Command Center: curba randamentelor (paralel, non-fatal)
+  await fetchYieldCurve().catch(() => {});
+
   // v193: mood-ul derivă din regimul composite (sursa unică). No-op până e gata RISK_STATE.
   applyRegimeMood();
+}
+
+// ============ COMMAND CENTER — overview pre-trade (Yield Curve + Danger Score + Cross-asset) ============
+let YIELD_CURVE = null; // { y10, y3m, spread, bp }
+
+// Curba 10Y-3M (^TNX 10Y, ^IRX 13w≈3M — ambele Yahoo ×10). Inversare = semnal clasic de recesiune.
+async function fetchYieldCurve() {
+  try {
+    const [tnx, irx] = await Promise.all([fetchYahooQuote('^TNX'), fetchYahooQuote('^IRX')]);
+    const y10 = (tnx && tnx.last != null && !tnx.proxyEtf) ? tnx.last / 10 : null;
+    const y3m = (irx && irx.last != null && !irx.proxyEtf) ? irx.last / 10 : null;
+    if (y10 == null || y3m == null || !Number.isFinite(y10) || !Number.isFinite(y3m)) { YIELD_CURVE = null; return null; }
+    const spread = y10 - y3m;
+    YIELD_CURVE = { y10, y3m, spread, bp: spread * 100 };
+    return YIELD_CURVE;
+  } catch (e) { YIELD_CURVE = null; return null; }
+}
+
+// Câte evenimente high-impact rămân AZI (de acum până la finalul zilei ET)
+function countHighImpactToday() {
+  const nyt = getNYDateHour();
+  const todayStart = parseEventTime(nyt.date + ' 00:00')?.getTime() || 0;
+  const dayEnd = todayStart + 24 * 3600000;
+  const now = Date.now();
+  return CAL_DATA.filter(e => {
+    if (e.impact !== 'high' || e.actual != null) return false;
+    const t = parseEventTime(e.time)?.getTime() || 0;
+    return t >= now && t < dayEnd;
+  }).length;
+}
+
+// Danger Score 0-100 — cât de periculos e mediul pt intrări noi. Agregă surse care EXISTĂ deja.
+function computeDangerScore() {
+  let score = 0; const factors = [];
+  // Regim de risc (0-35)
+  if (RISK_STATE && !RISK_STATE.partial && typeof RISK_STATE.composite === 'number') {
+    const c = RISK_STATE.composite;
+    const rp = c <= -8 ? 35 : c <= -5 ? 28 : c <= -2 ? 16 : c < 1 ? 8 : 2;
+    score += rp; if (rp >= 16) factors.push((RISK_STATE.label || 'regim').replace(/^[^\wA-Za-zÀ-ÿ]+/, ''));
+  }
+  // VIX bandă (0-25)
+  const vix = RISK_STATE && RISK_STATE.vix;
+  if (vix != null && !isNaN(vix)) {
+    const vp = vix >= 30 ? 25 : vix >= 25 ? 18 : vix >= 20 ? 10 : vix >= 15 ? 4 : 0;
+    score += vp; if (vp >= 10) factors.push(`VIX ${vix.toFixed(1)}`);
+  }
+  // High-impact events azi (0-25)
+  const hi = countHighImpactToday();
+  score += Math.min(25, hi * 10);
+  if (hi > 0) factors.push(`${hi} event${hi > 1 ? 'e' : ''} high azi`);
+  // Vol-week earnings mega-cap (0-10)
+  let ewCount = 0;
+  try { ewCount = getWeekEarnings(getNYDateHour().date + ' 12:00').length; } catch (e) {}
+  if (ewCount) { score += Math.min(10, ewCount * 3); factors.push(`${ewCount} earnings mega-cap`); }
+  // Curbă inversată (0-5)
+  if (YIELD_CURVE && YIELD_CURVE.spread < 0) { score += 5; factors.push('curbă inversată'); }
+  score = Math.min(100, Math.round(score));
+  let level, mult, cls;
+  if (score >= 70) { level = 'PERICULOS'; mult = '0.25–0.5x'; cls = 'bear'; }
+  else if (score >= 45) { level = 'RIDICAT'; mult = '0.5x'; cls = 'warn'; }
+  else if (score >= 25) { level = 'MODERAT'; mult = '0.75x'; cls = 'warn'; }
+  else { level = 'CALM'; mult = '1x normal'; cls = 'bull'; }
+  return { score, level, mult, cls, factors };
+}
+
+// Înclinația cross-asset din sub-scorurile RISK_STATE (ce împinge risk-on vs off)
+function crossAssetTilt() {
+  if (!RISK_STATE || RISK_STATE.partial) return null;
+  const drivers = [
+    ['VIX', RISK_STATE.vixScore], ['10Y', RISK_STATE.tenYScore],
+    ['ρ BTC/SPY', RISK_STATE.corrScore], ['F&G', RISK_STATE.fngScore], ['DXY', RISK_STATE.dxyScore]
+  ].filter(d => typeof d[1] === 'number');
+  const on = drivers.filter(d => d[1] > 0), off = drivers.filter(d => d[1] < 0);
+  const strongest = drivers.slice().sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0];
+  return { onCount: on.length, offCount: off.length, total: drivers.length, strongest };
+}
+
+function renderCommandCenter() {
+  // Regim
+  const rc = $('cc-regime');
+  if (rc && RISK_STATE) {
+    const s = RISK_STATE;
+    const cls = s.partial ? 'lvl-neut' : (s.composite >= 1 ? 'lvl-bull' : s.composite >= -2 ? 'lvl-neut' : s.composite >= -5 ? 'lvl-warn' : 'lvl-bear');
+    rc.className = 'cc-cell ' + cls;
+    const sign = s.composite >= 0 ? '+' : '';
+    const trend = getRegimeTrend(getNYDateHour().date);
+    let tstr = '';
+    if (trend && typeof trend.composite === 'number' && !s.partial) {
+      const d = s.composite - trend.composite;
+      tstr = d === 0 ? ' · → stabil' : (d > 0 ? ` · ↑+${d}` : ` · ↓${d}`);
+    }
+    rc.innerHTML = `<span class="cc-label">🛡 Regim risc</span>
+      <span class="cc-value" style="font-size:16px;color:${s.color}">${escHtml(s.label)}</span>
+      <span class="cc-sub">score ${sign}${s.composite}${tstr}</span>`;
+  }
+  // Danger Score
+  const dc = $('cc-danger');
+  if (dc) {
+    const d = computeDangerScore();
+    const clsMap = { bull: 'lvl-bull', warn: 'lvl-warn', bear: 'lvl-bear' };
+    dc.className = 'cc-cell ' + (clsMap[d.cls] || 'lvl-neut');
+    const barColor = d.cls === 'bear' ? 'var(--bear-s)' : d.cls === 'warn' ? 'var(--warn)' : 'var(--bull-s)';
+    const facts = d.factors.length ? d.factors.slice(0, 2).join(' · ') : 'mediu calm';
+    dc.innerHTML = `<span class="cc-label">⚠️ Danger Score</span>
+      <span class="cc-value ${d.cls}">${d.score}<span style="font-size:12px;color:var(--t3)">/100 · ${d.level}</span></span>
+      <span class="cc-sub">sizing ${escHtml(d.mult)} · ${escHtml(facts)}</span>
+      <div class="cc-gauge"><div class="cc-gauge-fill" style="width:${d.score}%;background:${barColor}"></div></div>`;
+  }
+  // Yield curve
+  const cc = $('cc-curve');
+  if (cc) {
+    if (YIELD_CURVE) {
+      const inv = YIELD_CURVE.spread < 0, flat = Math.abs(YIELD_CURVE.bp) < 25;
+      cc.className = 'cc-cell ' + (inv ? 'lvl-bear' : flat ? 'lvl-warn' : 'lvl-bull');
+      const label = inv ? '🔴 INVERSATĂ' : flat ? '🟡 Plată' : '🟢 Normală';
+      cc.innerHTML = `<span class="cc-label">📈 Curbă 10Y-3M</span>
+        <span class="cc-value ${inv ? 'bear' : flat ? 'warn' : 'bull'}" style="font-size:16px">${label}</span>
+        <span class="cc-sub">${YIELD_CURVE.bp >= 0 ? '+' : ''}${YIELD_CURVE.bp.toFixed(0)}bp · 10Y ${YIELD_CURVE.y10.toFixed(2)}% / 3M ${YIELD_CURVE.y3m.toFixed(2)}%</span>`;
+    } else {
+      cc.className = 'cc-cell lvl-neut';
+      cc.innerHTML = `<span class="cc-label">📈 Curbă 10Y-3M</span><span class="cc-value neut" style="font-size:16px">N/A</span><span class="cc-sub">proxy indisponibil</span>`;
+    }
+  }
+  // Cross-asset tilt
+  const tc = $('cc-tilt');
+  if (tc) {
+    const t = crossAssetTilt();
+    if (t && t.total) {
+      const net = t.onCount - t.offCount;
+      const cls = net > 0 ? 'lvl-bull' : net < 0 ? 'lvl-bear' : 'lvl-neut';
+      const valCls = net > 0 ? 'bull' : net < 0 ? 'bear' : 'neut';
+      const word = net > 0 ? 'RISK-ON tilt' : net < 0 ? 'RISK-OFF tilt' : 'ECHILIBRAT';
+      const str = t.strongest ? `${t.strongest[0]} ${t.strongest[1] > 0 ? '+' : ''}${t.strongest[1]}` : '';
+      tc.className = 'cc-cell ' + cls;
+      tc.innerHTML = `<span class="cc-label">⚖️ Cross-asset</span>
+        <span class="cc-value ${valCls}" style="font-size:16px">${word}</span>
+        <span class="cc-sub">${t.onCount}↑ / ${t.offCount}↓ drivere · dominant ${escHtml(str)}</span>`;
+    } else {
+      tc.className = 'cc-cell lvl-neut';
+      tc.innerHTML = `<span class="cc-label">⚖️ Cross-asset</span><span class="cc-value neut" style="font-size:16px">—</span><span class="cc-sub">date parțiale</span>`;
+    }
+  }
+}
+
+// Drill-down Danger Score — arată breakdown-ul (de ce scorul e X + ce înseamnă sizing-ul)
+function drillDanger() {
+  const d = computeDangerScore();
+  const rows = d.factors.length
+    ? d.factors.map(f => `<div class="drill-corr-row"><span class="corr-arrow">▸</span> ${escHtml(f)}</div>`).join('')
+    : '<div class="drill-corr-row">Niciun factor de risc activ — mediu calm.</div>';
+  const html = `<div class="drill-interp"><h4>Danger Score ${d.score}/100 — ${escHtml(d.level)}</h4>
+      <p>Sizing sugerat: <strong>${escHtml(d.mult)}</strong> din poziția normală. Scorul agregă regimul de risc, VIX, evenimentele high-impact de azi, earnings mega-cap în săptămână și inversarea curbei.</p></div>
+    <div class="drill-corr"><h4>Factori activi</h4>${rows}</div>
+    <div class="risk-legend" style="margin-top:12px">0-24 CALM (1x) · 25-44 MODERAT (0.75x) · 45-69 RIDICAT (0.5x) · 70-100 PERICULOS (0.25-0.5x). Nu e un ordin — e un ghid de expunere.</div>`;
+  openGenericModal('⚠️ Danger Score al zilei', 'Cât de periculos e mediul pentru intrări noi', html);
+}
+
+// Drill-down Yield Curve
+function drillCurve() {
+  if (!YIELD_CURVE) { openGenericModal('📈 Curba randamentelor 10Y-3M', 'indisponibil', '<div class="empty">Date indisponibile momentan (proxy CORS). Reîncearcă cu 🔄.</div>'); return; }
+  const inv = YIELD_CURVE.spread < 0;
+  const html = `<div class="drill-stats-grid">
+      <div class="drill-stat-tile"><div class="dst-label">10Y</div><div class="dst-val">${YIELD_CURVE.y10.toFixed(2)}%</div></div>
+      <div class="drill-stat-tile"><div class="dst-label">3M</div><div class="dst-val">${YIELD_CURVE.y3m.toFixed(2)}%</div></div>
+      <div class="drill-stat-tile"><div class="dst-label">Spread</div><div class="dst-val ${inv ? 'down' : 'up'}">${YIELD_CURVE.bp >= 0 ? '+' : ''}${YIELD_CURVE.bp.toFixed(0)}bp</div></div>
+    </div>
+    <div class="drill-interp"><h4>Interpretare</h4><p>${inv
+      ? 'Curba e <strong>inversată</strong> (3M randează mai mult ca 10Y). Istoric, un semnal clasic de recesiune care precede slăbiciune în equities cu 6-18 luni — <strong>context de precauție</strong> pe termen mediu, nu un trigger de vânzare imediat.'
+      : 'Curba e <strong>normală/pozitivă</strong> (10Y peste 3M). Consistent cu un ciclu economic sănătos — mediu de fond mai favorabil pentru equities ciclice.'}</p></div>`;
+  openGenericModal('📈 Curba randamentelor 10Y-3M', 'Fed watch — semnal macro de regim', html);
 }
 
 // ============ GENERIC MODAL (drill-down) ============
@@ -5613,7 +5816,7 @@ function bindEvents() {
     window._proxyErrorToastShown = false; // la retry manual eșuat, avertismentul de proxy trebuie să REAPARĂ
     _proxyResetTs = Date.now();
     await Promise.all([loadCalendar(), loadStatTiles()]);
-    computeRiskDashboard().then(() => { renderRiskTile(); applyRegimeMood(); }).catch(() => {});
+    computeRiskDashboard().then(() => { renderRiskTile(); applyRegimeMood(); renderCommandCenter(); }).catch(() => {});
   });
   $('settingsBtn').addEventListener('click', openSettings);
   $('closeSettings').addEventListener('click', closeSettings);
@@ -5882,7 +6085,7 @@ async function init() {
   }).catch(() => {});
   // Risk Dashboard composite (VIX + 10Y + BTC/SPY corr) — non-blocking, are nevoie de VIX deja încărcat
   setTimeout(() => {
-    computeRiskDashboard().then(() => { renderRiskTile(); applyRegimeMood(); }).catch(() => {});
+    computeRiskDashboard().then(() => { renderRiskTile(); applyRegimeMood(); renderCommandCenter(); }).catch(() => {});
   }, 1500);
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
   preloadAITop5().catch(() => {});
