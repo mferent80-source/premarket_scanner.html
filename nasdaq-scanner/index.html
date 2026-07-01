@@ -906,7 +906,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v121</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v122</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -1729,14 +1729,14 @@ function detectPatterns(closes){
   const minIdx=lows.indexOf(minLow);
   if(minIdx>0&&minIdx<lows.length-3){
     const secondLow=Math.min(...lows.slice(minIdx+2));
-    if(Math.abs(secondLow-minLow)/minLow<0.02&&last>avg5)
+    if(minLow>0&&Math.abs(secondLow-minLow)/minLow<0.02&&last>avg5)
       patterns.push({name:'Double Bottom',type:'bull'});
   }
 
   // Bull Flag: trend ascendent urmat de consolidare
   const first5=closes.slice(n-10,n-5);
   const last5=closes.slice(n-5);
-  const trend=((closes[n-6]-closes[n-10])/closes[n-10]*100);
+  const trend=closes[n-10]>0?((closes[n-6]-closes[n-10])/closes[n-10]*100):0;
   const consol=Math.max(...last5)-Math.min(...last5);
   const range5=closes[n-6]*0.03;
   if(trend>=3&&consol<range5)
@@ -5753,7 +5753,7 @@ async function runScan(){
           :('<span class="warn">Gap DOWN de <strong>'+gapStr+'</strong> fata de inchiderea de ieri ($'+prevClose.toFixed(2)+' -> deschidere $'+openPrice.toFixed(2)+'). Presiune vanzare.</span> <span class="muted">Support: $'+(openPrice*0.97).toFixed(2)+'. RSI: '+rsiTxt+'</span>');
         const td=isUp
           ?{entry:'$'+openPrice.toFixed(2),tp:'$'+(openPrice*1.04).toFixed(2),sl:'$'+(openPrice*0.97).toFixed(2),risc:gapAbs>=2?'MEDIU':'SCAZUT'}
-          :{entry:'$'+openPrice.toFixed(2),tp:'$'+prevClose.toFixed(2),sl:'$'+(openPrice*1.03).toFixed(2),risc:'MEDIU'};
+          :{entry:'$'+openPrice.toFixed(2),tp:'$'+prevClose.toFixed(2),sl:'$'+(openPrice*0.97).toFixed(2),risc:'MEDIU'};
         newSignals.push(makeSignal(symbol,isUp?'gap-up':'gap-down',isUp?'↑ Gap Up':'↓ Gap Down',desc,{chg24,rsi,range24pct},price,chg24,Math.min(100,gapAbs*20),gapAbs>=2?'high':'med',isUp?'scalp':'wait',td));
       }
     }
@@ -6052,7 +6052,7 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
 
   // ── Trend 7 zile din sparkline ──
   const spark=sparklineCache[symbol];
-  if(spark&&spark.length>=4){
+  if(spark&&spark.length>=4&&spark[0]>0&&spark[Math.max(0,spark.length-4)]>0){
     const w7=((spark[spark.length-1]-spark[0])/spark[0]*100);
     const w3=((spark[spark.length-1]-spark[Math.max(0,spark.length-4)])/spark[Math.max(0,spark.length-4)]*100);
     // Pullback în uptrend = cea mai bună oportunitate de cumpărare
@@ -6176,7 +6176,10 @@ function calcOpportunityScore(symbol, price, prevClose, high24, low24, chg24, ra
 
   // ── Calcul Entry / TP / SL — ATR-based (volatility-adjusted), pe direcția REALĂ (raw, nu cea capată) ──
   // ATR proxy = range zilnic; pentru NVDA (atr 5%) TP-ul va fi mult mai larg decât pentru KO (atr 1%)
-  const isBuyOpp=buyScore>sellScore;
+  // Verdict pe direcția RAW (aceeași sursă ca reasons + Entry/TP/SL) → coerență card. Sub hard-block
+  // (earnings/macro) direcția nu se mai flip-uiește artificial la egalitate de cap; block-ul e comunicat
+  // prin scorul plafonat (35) + mesajul „BLOCAT" din reasons. Fix mismatch verdict↔niveluri.
+  const isBuyOpp=isBuyRaw;
   const finalScore=isBuyOpp?Math.min(100,Math.round(buyScore)):Math.min(100,Math.round(sellScore));
   const entry=price;
   const atrProxy = Math.max((high24 - low24), price * 0.015); // floor 1.5% pentru low-vol stocks
@@ -9182,7 +9185,7 @@ function renderNewsTicker(news){
     let hl=n.headline;
     if(hl.length>130) hl=hl.slice(0,127)+'...';
     const ago=timeAgoNT(n.datetime);
-    return `<a href="${escapeHtmlNT(n.url)}" target="_blank" rel="noopener" class="news-ticker-item nti-${c.kind}">
+    return `<a href="${U.safeUrl(n.url)}" target="_blank" rel="noopener" class="news-ticker-item nti-${c.kind}">
       <span class="news-ticker-icon">${c.icon}</span>
       <span class="news-ticker-source">${escapeHtmlNT(src)}</span>
       <span class="news-ticker-headline">${escapeHtmlNT(hl)}</span>
@@ -9620,11 +9623,11 @@ function _lvRenderEarnRows(results){
     const cs=s.changePct!=null?`${s.changePct.toFixed(2)}%`:'-';
     const ps=s.price!=null?`$${s.price.toFixed(2)}`:'-';
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${i+1}</td>${_lvSymCell(s)}<td>${(s.name||'').slice(0,26)}</td>`
+    tr.innerHTML=`<td>${i+1}</td>${_lvSymCell(s)}<td>${U.escHtml((s.name||'').slice(0,26))}</td>`
       +`<td class="num"><span class="${earn.cls}">${earn.text}</span></td>`
-      +`<td>${NasdaqLosersScanner.formatTime(s.time)}</td><td class="num">${s.epsForecast||'-'}</td>`
+      +`<td>${NasdaqLosersScanner.formatTime(s.time)}</td><td class="num">${U.escHtml(String(s.epsForecast||'-'))}</td>`
       +`<td class="num">${ps}</td><td class="num ${cc}">${cs}</td><td class="num">${lowPct}</td>`
-      +`<td class="num">${NasdaqLosersScanner.formatMcap(s.marketCap)}</td><td>${s.sector||'-'}</td>`
+      +`<td class="num">${NasdaqLosersScanner.formatMcap(s.marketCap)}</td><td>${U.escHtml(s.sector||'-')}</td>`
       +_lvAiCell(s.symbol,'earn');
     tbody.appendChild(tr);
     tbody.insertAdjacentHTML('beforeend',_lvAiRow(s.symbol,'earn',12));
@@ -9643,13 +9646,13 @@ function _lvRenderLoserRows(results){
     const vr=s.avgVolume?(s.volume/s.avgVolume):0;
     const earn=NasdaqLosersScanner.formatEarnings(s.daysToEarnings,s.earningsTimestamp);
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${i+1}</td>${_lvSymCell(s)}<td>${(s.name||'').slice(0,28)}</td>`
+    tr.innerHTML=`<td>${i+1}</td>${_lvSymCell(s)}<td>${U.escHtml((s.name||'').slice(0,28))}</td>`
       +`<td class="num">$${s.price?.toFixed(2)||'-'}</td>`
       +`<td class="num neg">${s.changePct?.toFixed(2)}%</td>`
       +`<td class="num">${NasdaqLosersScanner.formatVolume(s.volume)}</td>`
       +`<td class="num ${vr>=2?'vol-hot':''}">${vr?vr.toFixed(1)+'x':'-'}</td>`
       +`<td class="num">${NasdaqLosersScanner.formatMcap(s.marketCap)}</td>`
-      +`<td class="num"><span class="${earn.cls}">${earn.text}</span></td><td>${s.sector||'-'}</td>`
+      +`<td class="num"><span class="${earn.cls}">${earn.text}</span></td><td>${U.escHtml(s.sector||'-')}</td>`
       +_lvAiCell(s.symbol,'loser');
     tbody.appendChild(tr);
     tbody.insertAdjacentHTML('beforeend',_lvAiRow(s.symbol,'loser',11));
