@@ -67,6 +67,10 @@ h1{font-size:18px;font-weight:700;letter-spacing:-.3px;background:linear-gradien
 .stat-sub{font-size:11px;color:var(--txt-d)}
 
 /* ── RISK REGIME PILL ── */
+.risk-coherence{margin-top:8px;font-size:12px;padding:7px 11px;border-radius:8px;border:1px solid var(--br);line-height:1.5;width:100%}
+.risk-coherence.coh-align{background:rgba(34,214,107,.1);border-color:rgba(34,214,107,.4);color:#22d66b}
+.risk-coherence.coh-conflict{background:rgba(212,137,44,.12);border-color:rgba(212,137,44,.45);color:#d4892c}
+.risk-coherence.coh-neutral{color:var(--txt-d)}
 .risk-bar{background:var(--panel);border:1px solid var(--br);border-radius:10px;padding:12px 16px;
   display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .risk-pill{font-size:13px;font-weight:700;padding:6px 14px;border-radius:99px;display:inline-flex;align-items:center;gap:6px;
@@ -276,7 +280,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v163</span>
+    <span class="ver-badge" id="verBadge">v164</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
     <div class="hdr-spc"></div>
@@ -304,6 +308,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
   <section class="risk-bar" id="riskBar">
     <span class="risk-pill" id="riskPill"><span>🧭</span><span id="riskPillTxt">— Risc detectat după scan —</span></span>
     <div class="risk-detail" id="riskDetail">Cyclical (XLK·XLY·XLF·XLI·XLC) vs Defensive (XLU·XLP·XLV)</div>
+    <div class="risk-coherence" id="riskCoherence"></div>
   </section>
 
   <!-- RRG — ROTAȚIE RELATIVĂ vs SPY -->
@@ -1255,6 +1260,27 @@ function render(){
   $('riskPillTxt').textContent = 'Rotație ' + regime + (regimePartial ? ' ⚠ parțial' : '') + ' (spread ' + fmtPct(spread) + ')';
   $('riskDetail').innerHTML = `Cyclicals (XLK·XLY·XLC·XLF·XLI·XLB·XLE) avg <b class="${pctClass(cycAvg)}" style="color:var(--${cycAvg>=0?'green':'red'})">${fmtPct(cycAvg)}</b>` +
     ` · Defensives (XLU·XLP·XLV) avg <b class="${pctClass(defAvg)}" style="color:var(--${defAvg>=0?'green':'red'})">${fmtPct(defAvg)}</b>`;
+
+  // C: coerență MACRO ↔ ROTAȚIE — badge-ul macro era afișat dar nefolosit; acum e gate de confluență
+  try {
+    const md = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
+    const cohEl = $('riskCoherence');
+    if (cohEl){
+      if (md && typeof md.composite === 'number' && (Date.now() - (md.ts || 0) < 24*3600000)){
+        const macroOn = md.composite >= 1, macroOff = md.composite <= -2;
+        const rotOn = regimeCls === 'on', rotOff = regimeCls === 'off';
+        let txt, cls;
+        if ((macroOn && rotOn) || (macroOff && rotOff)){ txt = `✅ <b>ALIGNED</b> — macro <b>${escHtml(md.label)}</b> confirmă rotația <b>${regime}</b> · confluență, semnal mai fiabil`; cls = 'coh-align'; }
+        else if ((macroOn && rotOff) || (macroOff && rotOn)){ txt = `⚠ <b>CONFLICT</b> — macro <b>${escHtml(md.label)}</b> vs rotație <b>${regime}</b> · divergență = risc de whipsaw, redu convingerea`; cls = 'coh-conflict'; }
+        else { txt = `➖ macro <b>${escHtml(md.label)}</b> / rotație <b>${regime}</b> · fără confluență clară`; cls = 'coh-neutral'; }
+        cohEl.className = 'risk-coherence ' + cls;
+        cohEl.innerHTML = txt;
+      } else {
+        cohEl.className = 'risk-coherence';
+        cohEl.innerHTML = '<span style="opacity:.6">Regim macro indisponibil — deschide Macro Dashboard pentru coerența macro↔rotație.</span>';
+      }
+    }
+  } catch(_){}
   // Persistă regimul de ROTAȚIE SECTORIALĂ (cyclicals−defensives) pt consum cross-page (nasdaq ca filtru).
   // ATENȚIE: `tt_risk_regime` = rotație sectorială ≠ `md_risk_regime` (regim de risc MACRO din macro-dashboard,
   // citit via lib/regime.js). Sunt concepte diferite — badge-ul 🛡 din header arată regimul macro, separat.
@@ -1398,6 +1424,14 @@ function renderRRG(){
 // ═══════════════════════════════════════════════════════════════
 //   EXPAND DRILL-DOWN (PAS 2)
 // ═══════════════════════════════════════════════════════════════
+// C: handoff către Pre-Trade Setup Builder din Macro Dashboard (observație → execuție)
+function sendToSetup(sym){
+  const d = DATA.find(x => x.sym === sym);
+  let dir = 'long';
+  if (d){ const q = rrgQuadrant(d.rsRatio, d.rsMom); if (q && (q.key === 'lag' || q.key === 'weak')) dir = 'short'; }
+  try { localStorage.setItem('md_setup_prefill', JSON.stringify({ ticker: sym, dir, ts: Date.now() })); } catch(_){}
+  window.open('../macro-dashboard/#setup', '_blank');
+}
 function renderExpandBody(d){
   const cache  = EXP_CACHE[d.sym] || {};
   const year   = cache.year;
@@ -1419,6 +1453,7 @@ function renderExpandBody(d){
           <a href="https://www.tradingview.com/symbols/AMEX-${d.sym}/" target="_blank" rel="noopener">TV</a>
           <a href="https://finance.yahoo.com/quote/${d.sym}" target="_blank" rel="noopener">YH</a>
           <a href="https://finviz.com/quote.ashx?t=${d.sym}" target="_blank" rel="noopener">FV</a>
+          <button type="button" onclick="sendToSetup('${d.sym}')" title="Trimite ${d.sym} în Pre-Trade Setup Builder (Macro Dashboard) — direcția din cadranul RRG">🎯 Setup</button>
         </span>
       </div>
       ${sparkBigSVG(closes, 60)}

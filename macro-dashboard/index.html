@@ -945,7 +945,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v219</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v220</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -2613,6 +2613,23 @@ function wireSetup() {
   }));
   $('journalRefresh')?.addEventListener('click', renderJournal);
   $('journalClear')?.addEventListener('click', clearJournal);
+}
+
+// Handoff din sector-rotation (sau altă pagină): precompletează Setup Builder cu tickerul primit
+function consumeSetupPrefill() {
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem('md_setup_prefill') || 'null'); } catch (e) {}
+  try { localStorage.removeItem('md_setup_prefill'); } catch (e) {} // consumă o singură dată
+  if (!p || !p.ticker || (Date.now() - (p.ts || 0) > 5 * 60000)) return; // doar dacă e proaspăt (<5min)
+  const inp = $('setupTicker');
+  if (!inp) return;
+  inp.value = String(p.ticker).toUpperCase();
+  if (p.dir === 'short' || p.dir === 'long') {
+    _setupDir = p.dir;
+    document.querySelectorAll('#setupDir .fb-chip').forEach(x => x.classList.toggle('active', x.dataset.dir === p.dir));
+  }
+  switchTab('setup');
+  buildSetup();
 }
 
 // ============ SIGNAL JOURNAL — măsoară ce chiar funcționează (expectancy pe date reale) ============
@@ -6788,6 +6805,7 @@ function bindEvents() {
 // ============ INIT ============
 async function init() {
   bindEvents();
+  consumeSetupPrefill(); // handoff din sector-rotation → precompletează Setup Builder
   applyToastBtnUI(); // reflectă starea muted salvată
   renderSession();
   setInterval(() => { renderSession(); applyFastPollUI(); renderFreezeWindow(); }, 30000);
