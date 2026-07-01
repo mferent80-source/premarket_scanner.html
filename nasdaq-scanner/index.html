@@ -382,6 +382,10 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 .scan-regime.rg-on{border-color:rgba(34,214,107,.4);background:rgba(34,214,107,.08);color:var(--green)}
 .scan-regime.rg-off{border-color:rgba(255,77,77,.4);background:rgba(255,77,77,.08);color:var(--red)}
 .scan-regime.rg-neu{color:var(--t2)}
+.scan-pulse{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.sp-pill{display:inline-flex;align-items:center;gap:4px;background:var(--bg2);border:1px solid var(--b1);border-radius:999px;padding:4px 11px;font-size:.68rem;font-weight:600;color:var(--t2)}
+.sp-pill b{color:var(--t1);font-size:.8rem}
+.sp-pill.sp-total{border-color:var(--accb);background:var(--accl);color:var(--acc)}
 .sig-card{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);transition:all .2s;animation:popIn .3s cubic-bezier(.34,1.56,.64,1);position:relative;}
 @keyframes popIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
 .sig-card:hover{box-shadow:var(--shh);transform:translateY(-2px);}
@@ -906,7 +910,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v123</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v124</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -5306,6 +5310,31 @@ function sendToMacroSetup(sym, dir){
 }
 window.sendToMacroSetup = sendToMacroSetup;
 
+// 🅑 Alertă de preț din card → /alerts/ (format wl_price_alerts identic cu ce creează pagina alerts)
+function alertFromSignal(coin){
+  const s=(allSignals||[]).find(x=>x.coin===coin)||(historySignals||[]).find(x=>x.coin===coin);
+  if(!s){ showToast('Semnal indisponibil','warn'); return; }
+  const parsePx=v=>{ const n=parseFloat(String(v).replace(/[$,]/g,'')); return isFinite(n)?n:null; };
+  try{
+    const raw=JSON.parse(localStorage.getItem('wl_price_alerts')||'{}');
+    if(!Array.isArray(raw[coin])) raw[coin]=[];
+    const dec=s.price>=100?2:3, rnd=v=>+v.toFixed(dec);
+    const td=s.tradeDetail, tp=td&&parsePx(td.tp), sl=td&&parsePx(td.sl), en=td&&parsePx(td.entry);
+    if(tp&&sl){
+      const isLong=tp>(en||s.price);
+      raw[coin].push({id:'nq_'+Date.now()+'_tp', lvl:rnd(tp), dir:isLong?'above':'below', rearm:false, armed:true, lastFired:null, note:`TP semnal ${s.title||s.type} (Nasdaq)`});
+      raw[coin].push({id:'nq_'+(Date.now()+1)+'_sl', lvl:rnd(sl), dir:isLong?'below':'above', rearm:false, armed:true, lastFired:null, note:`SL semnal ${s.title||s.type} (Nasdaq)`});
+      localStorage.setItem('wl_price_alerts', JSON.stringify(raw));
+      showToast(`🔔 Alerte TP ${rnd(tp)} + SL ${rnd(sl)} puse pe ${coin} — vezi în /alerts/`,'ok');
+    } else {
+      raw[coin].push({id:'nq_'+Date.now(), lvl:rnd(s.price), dir:s.chg>=0?'above':'below', rearm:false, armed:true, lastFired:null, note:`Semnal ${s.title||s.type} (Nasdaq) @ ${rnd(s.price)}`});
+      localStorage.setItem('wl_price_alerts', JSON.stringify(raw));
+      showToast(`🔔 Alertă pusă pe ${coin} @ ${rnd(s.price)} — vezi în /alerts/`,'ok');
+    }
+  }catch(e){ showToast('Nu am putut salva alerta','err'); }
+}
+window.alertFromSignal=alertFromSignal;
+
 // ═══════════════════════════════════════════════════════════════
 //  QUICK SETUP — JSON ready-to-execute (Opus 4.8, max 350 tok)
 // ═══════════════════════════════════════════════════════════════
@@ -7117,7 +7146,30 @@ function renderSignals(){
       _rgBanner=`<div class="scan-regime ${cls}">🛡 Regim macro: <b>${U.escHtml(_rg.label||'—')}</b> (score ${_rg.composite>=0?'+':''}${_rg.composite})${stale} · ${txt}</div>`;
     }
   }catch(e){}
-  container.innerHTML=_swChip+_rgBanner+`<div class="signals-grid">${source.slice(0,40).map(s=>{
+  // 🅐 Market Pulse — starea scanului in 3 sec (distributie pe tip + bull/bear + watchlist/earnings)
+  let _pulse='';
+  try{
+    const src=source||[];
+    if(src.length){
+      const byType={}; let up=0,down=0,wl=0,earn=0;
+      for(const s of src){
+        byType[s.type]=(byType[s.type]||0)+1;
+        if(s.chg>0)up++; else if(s.chg<0)down++;
+        if(typeof watchlist!=='undefined'&&watchlist.includes(s.coin))wl++;
+        if(typeof earningsSet!=='undefined'&&earningsSet.has(s.coin))earn++;
+      }
+      const typeOrder=['pump','breakout','volatility','swing','dump','rsi-low','rsi-high','volume'];
+      const typePills=typeOrder.filter(t=>byType[t]).map(t=>`<span class="sp-pill"><b>${byType[t]}</b> ${typeIcons[t]||''} ${t}</span>`).join('');
+      _pulse=`<div class="scan-pulse">`
+        +`<span class="sp-pill sp-total"><b>${src.length}</b> semnale</span>`
+        +`<span class="sp-pill"><b style="color:var(--green)">${up}</b>▲ / <b style="color:var(--red)">${down}</b>▼</span>`
+        +typePills
+        +(wl?`<span class="sp-pill">⭐ <b>${wl}</b> watchlist</span>`:'')
+        +(earn?`<span class="sp-pill">📅 <b>${earn}</b> earnings</span>`:'')
+        +`</div>`;
+    }
+  }catch(e){}
+  container.innerHTML=_swChip+_rgBanner+_pulse+`<div class="signals-grid">${source.slice(0,40).map(s=>{
     const chgStr=(s.chg>=0?'+':'')+s.chg.toFixed(2)+'%';
     const m=s.metrics||{};
     const ago=timeAgo(s.time);
@@ -7174,6 +7226,7 @@ function renderSignals(){
           <a class="btn-sig" href="${tvUrl}" target="_blank" rel="noopener">📈 TradingView</a>
           <a class="btn-sig" href="${yhUrl}" target="_blank" rel="noopener">📰 Yahoo</a>
           <a class="btn-sig btn-t212" href="https://app.trading212.com/" target="_blank" rel="noopener">📊 T212</a>
+          <button class="btn-sig" onclick="alertFromSignal('${s.coin}')" title="Pune alertă de preț (TP+SL sau preț curent) în pagina /alerts/">🔔 Alertă</button>
         </div>
         ${renderCorrelationSection(s.coin)}
         ${renderSignalAI(s,'sig')}
