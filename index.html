@@ -440,7 +440,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v482</span>
+      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v510</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -470,6 +470,16 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       <div class="w-lbl">🔄 Regim de risc</div>
       <div class="w-val" id="riskVal" style="font-size:18px">—</div>
       <div class="w-sub" id="riskSub">se calculează…</div>
+    </div>
+    <div class="widget" id="wDanger" style="display:none;cursor:pointer" onclick="location.href='macro-dashboard/'" title="Danger Score al zilei (din Macro Dashboard) — click">
+      <div class="w-lbl">⚠️ Danger Score</div>
+      <div class="w-val" id="dangerVal" style="font-size:18px">—</div>
+      <div class="w-sub" id="dangerSub">mediul zilei</div>
+    </div>
+    <div class="widget" id="wAlerts" style="display:none;cursor:pointer" onclick="location.href='alerts/'" title="Alerte de preț armate (din pagina Alerts) — click">
+      <div class="w-lbl">🔔 Alerte active</div>
+      <div class="w-val" id="alertsVal">—</div>
+      <div class="w-sub" id="alertsSub">preț armate</div>
     </div>
     <div class="widget" id="wWL">
       <div class="w-lbl">⭐ Watchlist total</div>
@@ -909,6 +919,32 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       $('riskVal').className = 'w-val ' + col;
       $('riskSub').textContent = 'spread ' + (r.spread >= 0 ? '+' : '') + r.spread + '%' + (ageH > 6 ? ' · ' + Math.round(ageH) + 'h' : '');
       $('wRisk').style.display = '';
+    } catch (e) {}
+  })();
+
+  // ── Command Center: Danger Score (din macro, md_danger_daily) ──
+  (function(){
+    try {
+      const h = JSON.parse(localStorage.getItem('md_danger_daily') || '[]');
+      if (!Array.isArray(h) || !h.length) return;
+      const s = h[h.length - 1].score;
+      if (typeof s !== 'number') return;
+      $('dangerVal').textContent = s + '/100';
+      $('dangerVal').className = 'w-val ' + (s >= 70 ? 'w-neg' : s >= 45 ? '' : 'w-pos');
+      $('dangerSub').textContent = s >= 70 ? 'PERICULOS · sizing 0.25-0.5x' : s >= 45 ? 'RIDICAT · 0.5x' : s >= 25 ? 'MODERAT · 0.75x' : 'CALM · 1x';
+      $('wDanger').style.display = '';
+    } catch (e) {}
+  })();
+
+  // ── Command Center: Alerte de preț armate (din alerts, wl_price_alerts) ──
+  (function(){
+    try {
+      const raw = JSON.parse(localStorage.getItem('wl_price_alerts') || '{}');
+      let n = 0;
+      for (const k in raw){ if (Array.isArray(raw[k])) n += raw[k].filter(a => a && a.armed !== false).length; }
+      $('alertsVal').textContent = n;
+      $('alertsSub').textContent = n ? 'preț armate · click → /alerts/' : 'niciuna activă';
+      $('wAlerts').style.display = '';
     } catch (e) {}
   })();
 
