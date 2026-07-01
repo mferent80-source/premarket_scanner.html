@@ -294,6 +294,33 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .setup-cat { background:linear-gradient(135deg, rgba(212,137,44,.12), rgba(20,26,40,.5)); border:1px solid rgba(212,137,44,.35); border-radius:var(--rs); padding:9px 14px; font-family:var(--head); font-size:12.5px; color:var(--t1); margin-bottom:6px; }
 .setup-err { padding:20px; text-align:center; color:var(--t2); font-family:var(--head); font-size:13px; }
 
+/* Watchlist × Macro — carduri */
+.wm-summary { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.wm-stat { background:var(--panel2); border:1px solid var(--b1); border-radius:var(--rs); padding:7px 13px; font-family:var(--mono); font-size:10.5px; color:var(--t2); text-transform:uppercase; letter-spacing:.3px; font-weight:700; }
+.wm-stat b { color:var(--t1); font-size:17px; font-family:var(--head); display:block; margin-bottom:1px; }
+.wm-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:10px; margin-top:12px; }
+.wm-card { background:linear-gradient(135deg, var(--panel2), rgba(20,26,40,.5)); border:1px solid var(--b1); border-radius:var(--r); padding:12px 14px; position:relative; overflow:hidden; transition:transform .15s var(--ease), box-shadow .15s var(--ease); }
+.wm-card::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--t3); }
+.wm-card.wm-growth::before { background:#8b5cf6; }
+.wm-card.wm-banks::before { background:var(--bull-s); }
+.wm-card.wm-crypto::before { background:#f7931a; }
+.wm-card.wm-energy::before { background:var(--warn); }
+.wm-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.wm-card.wm-exposed { border-color:rgba(212,137,44,.6); box-shadow:0 0 0 1px rgba(212,137,44,.25); }
+.wm-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.wm-sym { font-family:var(--head); font-weight:800; font-size:17px; color:var(--t1); letter-spacing:.3px; }
+.wm-chip { font-family:var(--mono); font-size:9.5px; font-weight:700; padding:3px 8px; border-radius:999px; text-transform:uppercase; letter-spacing:.3px; border:1px solid var(--b1); background:var(--panel3); color:var(--t2); white-space:nowrap; }
+.wm-chip-growth { background:rgba(139,92,246,.15); color:#a78bfa; border-color:rgba(139,92,246,.4); }
+.wm-chip-banks { background:var(--bull-bg); color:var(--bull-s); border-color:rgba(34,214,107,.4); }
+.wm-chip-crypto { background:rgba(247,147,26,.14); color:#f7931a; border-color:rgba(247,147,26,.4); }
+.wm-chip-energy { background:var(--warn-bg); color:var(--warn); border-color:rgba(212,137,44,.4); }
+.wm-exp-badge { margin-left:auto; font-family:var(--mono); font-size:9px; font-weight:800; padding:3px 7px; border-radius:4px; background:rgba(212,137,44,.2); color:var(--warn); border:1px solid rgba(212,137,44,.55); white-space:nowrap; }
+.wm-sens { font-family:var(--head); font-size:12px; color:var(--t2); margin-top:9px; line-height:1.45; display:flex; align-items:flex-start; gap:6px; }
+.wm-sens .wm-dir { font-weight:800; flex-shrink:0; }
+.wm-sens .wm-dir.up { color:var(--bear-s); }
+.wm-sens .wm-dir.ben { color:var(--bull-s); }
+.wm-earn { margin-top:9px; font-family:var(--mono); font-size:10.5px; color:var(--warn); background:var(--warn-bg); border:1px solid rgba(212,137,44,.3); border-radius:var(--rs); padding:5px 9px; }
+
 /* Hot strip — next 24h high-impact */
 .hot-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:8px; margin-bottom:10px; }
 .hot-strip:empty { display:none; }
@@ -917,7 +944,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <body>
 
 <header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v217</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v218</span></h1>
   <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
   <span class="status-pill" id="sessionPill">⏳ —</span>
   <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
@@ -2738,26 +2765,40 @@ function renderWatchMacro() {
   }).map(e => e.event);
   const rateEventToday = todayHigh.some(ev => /cpi|ppi|fomc|fed|rate|payroll|nfp|inflation|gdp|pce|jobless/i.test(ev));
   const earnKeys = Object.keys(EARNINGS_BY_DATE).filter(d => d >= nyt.date).sort();
+  const CHIP_LABEL = { growth: 'Growth', banks: 'Financiar', crypto: 'Crypto', energy: 'Energie', other: 'Neutru' };
 
-  if (ctxEl) ctxEl.innerHTML = `<div class="setup-hint">${todayHigh.length} eveniment(e) high-impact azi${rateEventToday ? ' · <b style="color:var(--warn)">include date rate-sensitive (CPI/Fed/NFP)</b> → growth &amp; crypto expuse' : ''}. „⚠ expus azi" = simbol sensibil + eveniment de dobânzi azi. Sensibilitatea e euristică (pe sector), nu beta real.</div>`;
-
-  el.innerHTML = syms.map(sym => {
+  let exposedCount = 0, earnCount = 0;
+  const cards = syms.map(sym => {
     const rs = rateSensitivity(sym);
     let earn = '';
     for (const d of earnKeys) {
       const hit = (EARNINGS_BY_DATE[d] || []).find(e => e.symbol === sym.toUpperCase());
-      if (hit) { earn = `📊 earnings ${d} (${hit.hour || 'amc'}) — catalist propriu`; break; }
+      if (hit) { earn = `earnings ${d} (${hit.hour || 'amc'})`; earnCount++; break; }
     }
     const exposed = rateEventToday && (rs.tag === 'growth' || rs.tag === 'crypto' || rs.tag === 'banks');
-    const badge = exposed ? '<span class="vol-week-badge">⚠ expus azi</span>' : '';
-    return `<div class="setup-check-row" style="align-items:flex-start">
-      <span class="scr-icon">${rs.icon}</span>
-      <div style="flex:1;min-width:0"><b>${escHtml(sym)}</b> ${badge}
-        <div style="font-family:var(--mono);font-size:11px;color:var(--t3);margin-top:2px">${escHtml(rs.txt)}</div>
-        ${earn ? `<div style="font-family:var(--mono);font-size:11px;color:var(--warn);margin-top:2px">${escHtml(earn)}</div>` : ''}
+    if (exposed) exposedCount++;
+    const dirCls = rs.tag === 'banks' ? 'ben' : (rs.tag === 'growth' || rs.tag === 'crypto') ? 'up' : '';
+    const dirGlyph = dirCls === 'up' ? '▲' : dirCls === 'ben' ? '▲' : '•';
+    return `<div class="wm-card wm-${rs.tag}${exposed ? ' wm-exposed' : ''}">
+      <div class="wm-head">
+        <span class="wm-sym">${escHtml(sym)}</span>
+        <span class="wm-chip wm-chip-${rs.tag}">${rs.icon} ${CHIP_LABEL[rs.tag] || 'Neutru'}</span>
+        ${exposed ? '<span class="wm-exp-badge">⚠ EXPUS AZI</span>' : ''}
       </div>
+      <div class="wm-sens"><span class="wm-dir ${dirCls}">${dirGlyph}</span> ${escHtml(rs.txt)}</div>
+      ${earn ? `<div class="wm-earn">📊 ${escHtml(earn)} — catalist propriu</div>` : ''}
     </div>`;
   }).join('');
+
+  if (ctxEl) ctxEl.innerHTML = `<div class="wm-summary">
+      <div class="wm-stat"><b>${syms.length}</b> simboluri</div>
+      <div class="wm-stat"><b style="color:${exposedCount ? 'var(--warn)' : 'var(--t1)'}">${exposedCount}</b> expuse azi</div>
+      <div class="wm-stat"><b>${earnCount}</b> cu earnings</div>
+      <div class="wm-stat"><b style="color:${rateEventToday ? 'var(--warn)' : 'var(--bull-s)'}">${todayHigh.length}</b> high-impact azi</div>
+    </div>
+    <div class="setup-hint">${rateEventToday ? '⚠ Azi sunt date rate-sensitive (CPI/Fed/NFP) → growth &amp; crypto sub presiune dacă yields urcă. ' : ''}Sensibilitatea e euristică pe sector (nu beta real). „EXPUS AZI" = simbol sensibil + eveniment de dobânzi azi.</div>`;
+
+  el.innerHTML = `<div class="wm-grid">${cards}</div>`;
 }
 
 // ============ GENERIC MODAL (drill-down) ============
