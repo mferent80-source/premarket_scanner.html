@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🩺 Suite Health — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Starea infrastructurii suitei: proxy CORS, chei API, bot server-side, sync, service worker">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🩺</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0b0f17;--bg-grad:radial-gradient(1200px 600px at 50% -200px,#142533 0%,#0b0f17 55%);
+  --panel:#141a28;--panel2:#1d2537;--panel3:#222b40;
+  --b1:#2a3247;--b2:#3a4258;
+  --t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;
+  --acc-1:#3b82f6;--acc-2:#10b981;--accent:#5bb0ff;
+  --bull-s:#22d66b;--bear-s:#ff4d4d;--warn:#d4892c;--gold:#ffd86b;--purple:#a78bfa;
+  --r:12px;--rs:8px;
+  --mono:'DM Mono',monospace;--head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+html,body{min-height:100vh}
+body{
+  font-family:var(--head);background:var(--bg);background-image:var(--bg-grad);background-attachment:fixed;
+  color:var(--t1);padding:12px;font-size:14px;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;font-variant-numeric:tabular-nums;
+}
+header{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  background:linear-gradient(180deg,rgba(20,37,51,.94),rgba(20,26,40,.97));
+  padding:12px 16px;border-radius:var(--r);
+  border:1px solid var(--b1);margin-bottom:14px;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  position:sticky;top:8px;z-index:50;
+}
+header h1{
+  font-size:18px;font-weight:800;
+  background:linear-gradient(90deg,#22d66b,#5bb0ff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-right:auto;font-family:var(--head);
+}
+.ver-badge{
+  display:inline-block;padding:3px 8px;margin-left:8px;border-radius:4px;
+  background:rgba(34,214,107,.15);color:var(--bull-s);border:1px solid rgba(34,214,107,.4);
+  font-size:11px;font-weight:700;-webkit-text-fill-color:var(--bull-s);font-family:var(--mono);
+}
+.nav-link{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--panel2);border:1px solid var(--b1);
+  padding:7px 12px;border-radius:var(--rs);
+  color:var(--t1);text-decoration:none;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.nav-link:hover{background:var(--accent);border-color:var(--accent);color:#000;transform:translateY(-1px)}
+.hint{font-family:var(--mono);font-size:11px;color:var(--t3);margin:0 0 12px 4px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+.chk{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.chk-head{display:flex;align-items:center;gap:10px}
+.chk-dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:var(--t3)}
+.chk-dot.ok{background:var(--bull-s);box-shadow:0 0 8px rgba(34,214,107,.5)}
+.chk-dot.warn{background:var(--warn);box-shadow:0 0 8px rgba(212,137,44,.5)}
+.chk-dot.err{background:var(--bear-s);box-shadow:0 0 8px rgba(255,77,77,.5)}
+.chk-dot.off{background:var(--t3);opacity:.5}
+.chk-head h2{font-size:13.5px;font-weight:800;flex:1}
+.chk-btn{background:var(--panel3);border:1px solid var(--b1);color:var(--t2);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--head)}
+.chk-btn:hover{color:var(--accent);border-color:var(--accent)}
+.chk-btn:disabled{opacity:.5;cursor:wait}
+.chk-body{font-family:var(--mono);font-size:11.5px;color:var(--t2);line-height:1.6;word-break:break-word}
+.chk-body b{color:var(--t1)}
+.chk-body .ok{color:var(--bull-s)}.chk-body .warn{color:var(--warn)}.chk-body .err{color:var(--bear-s)}
+.chk-sub{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.foot{font-family:var(--mono);font-size:10.5px;color:var(--t3);text-align:right;margin-top:14px}
+@media (max-width:550px){ .grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v1</span></h1>
+  <button class="nav-link" id="btnRunAll">▶ Rulează toate testele</button>
+  <a class="nav-link" href="../">← Hub</a>
+</header>
+
+<p class="hint">Starea infrastructurii pe care stau toate paginile. Verificările GRATIS (chei prezente, config, SW) rulează automat la deschidere;
+cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram real) rulează doar la buton — ca să nu ardă cotă degeaba.</p>
+
+<div class="grid">
+
+  <div class="chk" id="cProxy">
+    <div class="chk-head"><span class="chk-dot" id="dProxy"></span><h2>🌐 Proxy-uri CORS (Yahoo)</h2><button class="chk-btn" data-run="proxy">Testează</button></div>
+    <div class="chk-body" id="bProxy">Netestat — apasă „Testează". <span class="chk-sub">1 request Yahoo per proxy (≤5).</span></div>
+  </div>
+
+  <div class="chk" id="cFinnhub">
+    <div class="chk-head"><span class="chk-dot" id="dFinnhub"></span><h2>🔑 Finnhub</h2><button class="chk-btn" data-run="finnhub">Testează</button></div>
+    <div class="chk-body" id="bFinnhub">—</div>
+  </div>
+
+  <div class="chk" id="cAnthropic">
+    <div class="chk-head"><span class="chk-dot" id="dAnthropic"></span><h2>🤖 Anthropic (AI)</h2></div>
+    <div class="chk-body" id="bAnthropic">—</div>
+  </div>
+
+  <div class="chk" id="cTG">
+    <div class="chk-head"><span class="chk-dot" id="dTG"></span><h2>📤 Telegram</h2><button class="chk-btn" data-run="tg">Trimite test</button></div>
+    <div class="chk-body" id="bTG">—</div>
+  </div>
+
+  <div class="chk" id="cBot">
+    <div class="chk-head"><span class="chk-dot" id="dBot"></span><h2>☁️ Bot alerte server-side</h2><button class="chk-btn" data-run="bot">Verifică</button></div>
+    <div class="chk-body" id="bBot">Netestat. <span class="chk-sub">GitHub API public (60 req/h fără token) — ultimul run price-alerts.yml.</span></div>
+  </div>
+
+  <div class="chk" id="cGist">
+    <div class="chk-head"><span class="chk-dot" id="dGist"></span><h2>💾 Gist sync (nasdaq)</h2><button class="chk-btn" data-run="gist">Verifică</button></div>
+    <div class="chk-body" id="bGist">—</div>
+  </div>
+
+  <div class="chk" id="cSW">
+    <div class="chk-head"><span class="chk-dot" id="dSW"></span><h2>⚙️ Service Worker / cache</h2></div>
+    <div class="chk-body" id="bSW">—</div>
+  </div>
+
+  <div class="chk" id="cLS">
+    <div class="chk-head"><span class="chk-dot" id="dLS"></span><h2>🗄️ localStorage</h2></div>
+    <div class="chk-body" id="bLS">—</div>
+  </div>
+
+</div>
+
+<div class="foot" id="foot">—</div>
+
+<script src="../lib/data.js"></script>
+<script src="../lib/ai.js"></script>
+<script src="../lib/telegram.js"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const dot = (id, cls) => { const d = $(id); d.className = 'chk-dot' + (cls ? ' ' + cls : ''); };
+const REPO = 'mferent80-source/premarket_scanner.html';
+const WORKFLOW = 'price-alerts.yml';
+
+// ── 1. Proxy-uri CORS — ping Yahoo prin FIECARE proxy din lanț (D.orderedProxies expune {id, build}) ──
+async function runProxy(){
+  dot('dProxy'); $('bProxy').textContent = '⏳ ping pe fiecare proxy…';
+  const yahooUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=1d';
+  const host = 'query1.finance.yahoo.com';
+  const list = (window.D && D.orderedProxies) ? D.orderedProxies(host) : [];
+  if (!list.length){ dot('dProxy', 'err'); $('bProxy').innerHTML = '<span class="err">lib/data.js indisponibil</span>'; return; }
+  const rows = [];
+  let okCount = 0;
+  for (const px of list){
+    const t0 = performance.now();
+    let line;
+    try {
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), 8000);
+      const r = await fetch(px.build(yahooUrl), { headers: { 'Accept': 'application/json' }, signal: ctrl.signal });
+      clearTimeout(tm);
+      const ms = Math.round(performance.now() - t0);
+      if (r.ok){
+        okCount++;
+        const cls = ms < 2500 ? 'ok' : 'warn';
+        line = `<span class="${cls}">●</span> <b>${esc(px.id)}</b> — ${ms}ms`;
+      } else {
+        line = `<span class="err">●</span> <b>${esc(px.id)}</b> — HTTP ${r.status}`;
+      }
+    } catch (e) {
+      line = `<span class="err">●</span> <b>${esc(px.id)}</b> — ${e.name === 'AbortError' ? 'timeout 8s' : 'eroare rețea'}`;
+    }
+    rows.push(line);
+    $('bProxy').innerHTML = rows.join('<br>');
+  }
+  dot('dProxy', okCount === 0 ? 'err' : okCount === 1 ? 'warn' : 'ok');
+  $('bProxy').innerHTML = rows.join('<br>') + `<br><span class="chk-sub">${okCount}/${list.length} funcționale · primul din listă e cel preferat de health-scoring</span>`;
+}
+
+// ── 2. Finnhub — prezență + 1 request /quote (prinde 401 invalid și 429 rate-limit) ──
+async function runFinnhub(){
+  const key = localStorage.getItem('finnhub_api_key') || '';
+  if (!key){ dot('dFinnhub', 'err'); $('bFinnhub').innerHTML = '<span class="err">cheie LIPSĂ</span> — setează în nasdaq-scanner ⚙'; return; }
+  dot('dFinnhub'); $('bFinnhub').textContent = '⏳ test /quote…';
+  try {
+    const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=AAPL&token=${encodeURIComponent(key)}`);
+    if (r.status === 401){ dot('dFinnhub', 'err'); $('bFinnhub').innerHTML = '<span class="err">401 — cheie INVALIDĂ/revocată</span>'; return; }
+    if (r.status === 429){ dot('dFinnhub', 'warn'); $('bFinnhub').innerHTML = '<span class="warn">429 — rate-limit atins (60/min free)</span> · cheia e validă, doar aglomerată'; return; }
+    if (!r.ok){ dot('dFinnhub', 'warn'); $('bFinnhub').innerHTML = `<span class="warn">HTTP ${r.status}</span>`; return; }
+    const j = await r.json();
+    if (j && typeof j.c === 'number' && j.c > 0){ dot('dFinnhub', 'ok'); $('bFinnhub').innerHTML = `<span class="ok">OK</span> — quote AAPL $${j.c} · cheie validă`; }
+    else { dot('dFinnhub', 'warn'); $('bFinnhub').innerHTML = '<span class="warn">răspuns gol</span> — posibil simbol restricționat pe plan free'; }
+  } catch (e) { dot('dFinnhub', 'err'); $('bFinnhub').innerHTML = '<span class="err">eroare rețea</span>'; }
+}
+function checkFinnhubPresence(){
+  const key = localStorage.getItem('finnhub_api_key') || '';
+  if (!key){ dot('dFinnhub', 'err'); $('bFinnhub').innerHTML = '<span class="err">cheie LIPSĂ</span> — setează în nasdaq-scanner ⚙'; }
+  else { dot('dFinnhub', 'warn'); $('bFinnhub').innerHTML = `cheie prezentă (…${esc(key.slice(-4))}) — <span class="chk-sub">apasă „Testează" pt validare live</span>`; }
+}
+
+// ── 3. Anthropic — DOAR prezență (un apel real costă bani; nu-l facem dintr-o pagină de health) ──
+function checkAnthropic(){
+  if (window.AI && AI.hasKey()){ dot('dAnthropic', 'ok'); $('bAnthropic').innerHTML = '<span class="ok">cheie prezentă</span> — <span class="chk-sub">validitatea se confirmă la primul apel AI real (nu testăm aici, costă)</span>'; }
+  else { dot('dAnthropic', 'warn'); $('bAnthropic').innerHTML = '<span class="warn">cheie lipsă</span> — AI bubble/brief nu vor merge; setează într-o pagină cu ⚙ AI'; }
+}
+
+// ── 4. Telegram — config + test REAL doar la buton (trimite mesaj) ──
+function checkTG(){
+  const c = window.TG ? TG.getConfig() : { token: '', chatId: '', enabled: false };
+  if (!c.token || !c.chatId){ dot('dTG', 'err'); $('bTG').innerHTML = '<span class="err">config lipsă</span> (token/chatId) — setează în /alerts/ ⚙'; return; }
+  dot('dTG', c.enabled ? 'ok' : 'warn');
+  $('bTG').innerHTML = `config prezent · enabled: <b class="${c.enabled ? 'ok' : 'warn'}">${c.enabled ? 'DA' : 'NU (alertele client-side tac!)'}</b> — <span class="chk-sub">„Trimite test" = mesaj REAL pe Telegram</span>`;
+}
+async function runTG(){
+  $('bTG').textContent = '⏳ trimit mesaj de test…';
+  const ok = await TG.test();
+  checkTG();
+  $('bTG').innerHTML += ok ? '<br><span class="ok">✓ mesaj trimis — verifică Telegram</span>' : '<br><span class="err">✗ trimiterea a eșuat (token/chatId greșit sau bot blocat)</span>';
+  if (!ok) dot('dTG', 'err');
+}
+
+// ── 5. Bot server-side — ultimul run al workflow-ului, prin GitHub API public (repo public) ──
+async function runBot(){
+  dot('dBot'); $('bBot').textContent = '⏳ citesc ultimul run…';
+  try {
+    const r = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=1`, { headers: { 'Accept': 'application/vnd.github+json' } });
+    if (r.status === 403){ dot('dBot', 'warn'); $('bBot').innerHTML = '<span class="warn">GitHub API rate-limit (60/h fără token)</span> — reîncearcă mai târziu'; return; }
+    if (!r.ok){ dot('dBot', 'err'); $('bBot').innerHTML = `<span class="err">HTTP ${r.status}</span>`; return; }
+    const j = await r.json();
+    const run = j && j.workflow_runs && j.workflow_runs[0];
+    if (!run){ dot('dBot', 'err'); $('bBot').innerHTML = '<span class="err">niciun run găsit</span>'; return; }
+    const ageMin = Math.round((Date.now() - new Date(run.created_at).getTime()) / 60000);
+    const okRun = run.conclusion === 'success';
+    // cron */5 dar GitHub NU garantează cadența — verde <30min, galben <2h (întârzieri normale sub load)
+    const cls = (okRun && ageMin < 30) ? 'ok' : (okRun && ageMin < 120) ? 'warn' : 'err';
+    dot('dBot', cls);
+    $('bBot').innerHTML = `ultimul run: <b class="${okRun ? 'ok' : 'err'}">${esc(run.conclusion || run.status)}</b> · acum ${ageMin < 60 ? ageMin + ' min' : Math.round(ageMin/60) + 'h'}`
+      + `<br><span class="chk-sub">cron */5 UTC, GitHub poate întârzia sub load · <a href="https://github.com/${REPO}/actions" target="_blank" rel="noopener" style="color:var(--accent)">vezi Actions →</a></span>`;
+  } catch (e) { dot('dBot', 'err'); $('bBot').innerHTML = '<span class="err">eroare rețea</span>'; }
+}
+
+// ── 6. Gist sync nasdaq — config + GET gist cu token (prinde exact 401-ul cunoscut) ──
+async function runGist(){
+  let cfg = null;
+  try { cfg = JSON.parse(localStorage.getItem('gist_config_nasdaq') || 'null'); } catch (e) {}
+  const token = cfg && (cfg.token || cfg.ghToken || ''), gistId = cfg && (cfg.gistId || cfg.id || '');
+  if (!cfg || !token || !gistId){ dot('dGist', 'off'); $('bGist').innerHTML = 'neconfigurat pe acest device <span class="chk-sub">(opțional — sync-ul nasdaq între device-uri)</span>'; return; }
+  dot('dGist'); $('bGist').textContent = '⏳ verific accesul la gist…';
+  try {
+    const r = await fetch(`https://api.github.com/gists/${encodeURIComponent(gistId)}`, { headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github+json' } });
+    if (r.status === 401){ dot('dGist', 'err'); $('bGist').innerHTML = '<span class="err">401 — token EXPIRAT/revocat</span> — regenerează token-ul în GitHub → Settings → Developer settings'; return; }
+    if (r.status === 404){ dot('dGist', 'err'); $('bGist').innerHTML = '<span class="err">404 — gist-ul nu există</span> (id greșit sau șters)'; return; }
+    if (!r.ok){ dot('dGist', 'warn'); $('bGist').innerHTML = `<span class="warn">HTTP ${r.status}</span>`; return; }
+    const j = await r.json();
+    const upd = j && j.updated_at ? new Date(j.updated_at) : null;
+    dot('dGist', 'ok');
+    $('bGist').innerHTML = `<span class="ok">OK</span> — acces valid` + (upd ? ` · ultima scriere: ${upd.toLocaleString('ro-RO')}` : '');
+  } catch (e) { dot('dGist', 'err'); $('bGist').innerHTML = '<span class="err">eroare rețea</span>'; }
+}
+function checkGistPresence(){
+  let cfg = null;
+  try { cfg = JSON.parse(localStorage.getItem('gist_config_nasdaq') || 'null'); } catch (e) {}
+  if (!cfg || !(cfg.token || cfg.ghToken)){ dot('dGist', 'off'); $('bGist').innerHTML = 'neconfigurat pe acest device <span class="chk-sub">(opțional)</span>'; }
+  else { dot('dGist', 'warn'); $('bGist').innerHTML = 'config prezent — <span class="chk-sub">apasă „Verifică" pt testul de acces (prinde 401)</span>'; }
+}
+
+// ── 7. Service Worker — versiunea din sw.js LIVE vs ce controlează pagina asta ──
+async function checkSW(){
+  let live = null;
+  try {
+    const r = await fetch('../sw.js', { cache: 'no-store' });
+    if (r.ok){ const m = (await r.text()).match(/CACHE_VERSION\s*=\s*'([^']+)'/); if (m) live = m[1]; }
+  } catch (e) {}
+  const controlled = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+  if (live){
+    dot('dSW', controlled ? 'ok' : 'warn');
+    $('bSW').innerHTML = `versiune LIVE: <b>${esc(live)}</b><br>SW controlează pagina: <b class="${controlled ? 'ok' : 'warn'}">${controlled ? 'DA' : 'NU (prima vizită sau file://)'}</b>`
+      + `<br><span class="chk-sub">dacă o pagină arată versiune mai veche → hard-refresh (Ctrl+Shift+R)</span>`;
+  } else {
+    dot('dSW', 'warn');
+    $('bSW').innerHTML = '<span class="warn">sw.js indisponibil</span> (offline sau rulezi din file://)';
+  }
+}
+
+// ── 8. localStorage — utilizare aproximativă (quota tipică ~5MB) ──
+function checkLS(){
+  try {
+    let bytes = 0, n = 0;
+    for (let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      bytes += (k.length + (localStorage.getItem(k) || '').length) * 2; // UTF-16 ≈ 2 bytes/char
+      n++;
+    }
+    const mb = bytes / 1048576;
+    const cls = mb < 3 ? 'ok' : mb < 4.5 ? 'warn' : 'err';
+    dot('dLS', cls);
+    $('bLS').innerHTML = `<b class="${cls}">${mb.toFixed(2)} MB</b> estimat / ~5 MB quota tipică · ${n} chei`
+      + (mb >= 3 ? '<br><span class="chk-sub">aproape de quota → cache-urile ttd: se auto-curăță, dar fii atent la istorii mari</span>' : '');
+  } catch (e) { dot('dLS', 'warn'); $('bLS').textContent = 'necalculabil'; }
+}
+
+// ── Wiring ──
+const RUNNERS = { proxy: runProxy, finnhub: runFinnhub, tg: runTG, bot: runBot, gist: runGist };
+document.querySelectorAll('.chk-btn').forEach(b => b.addEventListener('click', async () => {
+  b.disabled = true;
+  try { await RUNNERS[b.dataset.run](); } finally { b.disabled = false; }
+}));
+$('btnRunAll').addEventListener('click', async () => {
+  const btn = $('btnRunAll');
+  btn.disabled = true; btn.textContent = '⏳ rulează…';
+  // Telegram NU intră în „toate" — trimite mesaj real; rulează-l separat, conștient.
+  try { await Promise.allSettled([runProxy(), runFinnhub(), runBot(), runGist()]); }
+  finally { btn.disabled = false; btn.textContent = '▶ Rulează toate testele'; $('foot').textContent = '🔄 ultima rulare completă: ' + new Date().toLocaleTimeString('ro-RO'); }
+});
+
+// La load: DOAR verificările gratuite (zero consum de cotă/bani/mesaje)
+checkFinnhubPresence();
+checkAnthropic();
+checkTG();
+checkGistPresence();
+checkSW();
+checkLS();
+$('foot').textContent = 'verificările gratuite au rulat la deschidere · cele cu consum așteaptă butonul';
+})();
+</script>
+<script src="../nav.js" data-nav-root="../"></script>
+</body>
+</html>
