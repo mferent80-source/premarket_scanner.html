@@ -475,7 +475,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v513</span>
+      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v514</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -876,6 +876,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 <script src="lib/ledger.js"></script>
 <script src="lib/regime.js"></script>
 <script src="lib/ai.js"></script>
+<script src="lib/telegram.js"></script>
 <script>
 // ── DASHBOARD WIDGETS ──
 // Hub-ul afișează context macro stocks (SPY + QQQ + VIX) + counts (watchlist, open trades).
@@ -2404,13 +2405,25 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     try {
       const c = JSON.parse(localStorage.getItem('pb_ai_note') || 'null');
       if (c && c.dateET === pbTodayET() && c.text){
-        box.innerHTML = `<div class="pb-ai-note">${escHtml(c.text)}</div><div class="pb-ai-meta">📦 generat azi · <a href="#" id="pbAiRegen" style="color:#5bb0ff">regenerează</a></div>`;
+        box.innerHTML = `<div class="pb-ai-note">${escHtml(c.text)}</div><div class="pb-ai-meta">📦 generat azi · <a href="#" id="pbAiRegen" style="color:#5bb0ff">regenerează</a> · <a href="#" id="pbAiTg" style="color:#5bb0ff">📤 Telegram</a></div>`;
         const rg = $('pbAiRegen'); if (rg) rg.addEventListener('click', e => { e.preventDefault(); pbGenAiNote(true); });
+        const tg = $('pbAiTg'); if (tg) tg.addEventListener('click', e => { e.preventDefault(); pbSendAiTg(tg); });
         return true;
       }
     } catch (e) {}
     return false;
   }
+  // Trimite nota AI pe Telegram (config shared tt_tg_config via lib/telegram.js; force=true — butonul E gating-ul)
+  async function pbSendAiTg(link){
+    let c = null;
+    try { c = JSON.parse(localStorage.getItem('pb_ai_note') || 'null'); } catch (e) {}
+    if (!c || !c.text){ if (link) link.textContent = '⚠ nimic de trimis'; return; }
+    if (!window.TG || !TG.getConfig().token){ if (link) link.textContent = '⚠ config TG lipsă (setează în /alerts/)'; return; }
+    if (link) link.textContent = '⏳ trimit…';
+    const ok = await TG.send(`☀️ <b>Brief de dimineață — ${escHtml(c.dateET || '')}</b>\n\n${escHtml(c.text)}`, { force: true });
+    if (link) link.textContent = ok ? '✓ trimis' : '⚠ eșec trimitere';
+  }
+
   async function pbGenAiNote(force){
     const box = $('pbBodyAi');
     if (!box) return;
@@ -2428,8 +2441,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
       const text = await AI.complete({ system, prompt, maxTokens: 700 });
       const clean = (text || '').trim();
       if (!clean){ box.innerHTML = '<div class="pb-ai-empty">AI a întors gol — reîncearcă.</div>'; return; }
-      box.innerHTML = `<div class="pb-ai-note">${escHtml(clean)}</div><div class="pb-ai-meta">generat acum · <a href="#" id="pbAiRegen" style="color:#5bb0ff">regenerează</a></div>`;
+      box.innerHTML = `<div class="pb-ai-note">${escHtml(clean)}</div><div class="pb-ai-meta">generat acum · <a href="#" id="pbAiRegen" style="color:#5bb0ff">regenerează</a> · <a href="#" id="pbAiTg" style="color:#5bb0ff">📤 Telegram</a></div>`;
       const rg = $('pbAiRegen'); if (rg) rg.addEventListener('click', e => { e.preventDefault(); pbGenAiNote(true); });
+      const tg = $('pbAiTg'); if (tg) tg.addEventListener('click', e => { e.preventDefault(); pbSendAiTg(tg); });
       try { localStorage.setItem('pb_ai_note', JSON.stringify({ dateET: today, text: clean })); } catch (e) {}
     } catch (e) {
       box.innerHTML = `<div class="pb-ai-empty">⚠ ${escHtml((e && e.message) || 'eroare AI')}</div>`;
