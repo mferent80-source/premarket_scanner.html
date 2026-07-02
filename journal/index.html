@@ -78,6 +78,11 @@ th{font-family:var(--mono);font-size:10px;color:var(--t3);text-align:right;paddi
 th:first-child,td:first-child,th.l,td.l{text-align:left}
 td{font-family:var(--mono);padding:6px 7px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right;white-space:nowrap}
 td.sym{font-family:var(--head);font-weight:800}
+/* rând colorat pe rezultat: verde=câștig, roșu=pierdere, albastru pal=în curs */
+tr.win{background:rgba(34,214,107,.07)}
+tr.loss{background:rgba(255,77,77,.07)}
+tr.openrow{background:rgba(91,176,255,.06)}
+.badge-open{display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:700;font-family:var(--mono);background:rgba(91,176,255,.15);color:var(--accent);border:1px solid rgba(91,176,255,.4)}
 .mini{display:inline-block;padding:1px 7px;border-radius:999px;font-size:9.5px;font-weight:700;font-family:var(--mono);background:var(--panel3);border:1px solid var(--b1);color:var(--t2);margin:1px}
 .act{background:transparent;border:1px solid var(--b1);color:var(--t2);border-radius:5px;padding:2px 7px;cursor:pointer;font-size:11px}
 .act:hover{color:var(--accent);border-color:var(--accent)}
@@ -93,7 +98,7 @@ td.sym{font-family:var(--head);font-weight:800}
 <body>
 
 <header>
-  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v1</span></h1>
+  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v2</span></h1>
   <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker (FAB 📓 hub) — anti-duplicat, fees=0 de completat">⬇ Import din tracker</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -104,7 +109,7 @@ td.sym{font-family:var(--head);font-weight:800}
     <label>Ticker <input id="fSym" placeholder="NVDA" autocapitalize="characters"></label>
     <label>Direcție <select id="fDir"><option value="long">LONG</option><option value="short">SHORT</option></select></label>
     <label>Entry $ <input id="fEntry" type="number" step="0.0001" min="0"></label>
-    <label>Exit $ <input id="fExit" type="number" step="0.0001" min="0"></label>
+    <label>Exit $ (gol = ÎN CURS) <input id="fExit" type="number" step="0.0001" min="0" placeholder="gol = deschisă"></label>
     <label>Size (acțiuni) <input id="fSize" type="number" step="1" min="0"></label>
     <label>Fees $ total <input id="fFees" type="number" step="0.01" min="0" value="0" title="Trade212 e «zero comision» dar are spread + FX — estimează onest"></label>
     <label>SL la intrare $ <input id="fSl" type="number" step="0.0001" min="0" title="Pentru R-multiple; gol = R necalculabil"></label>
@@ -199,19 +204,22 @@ $('btnSave').addEventListener('click', () => {
     source: $('fSrc').value, tags: selectedTags(), notes: $('fNotes').value, closeTs
   };
   if (editId){
-    // la update păstrăm regimul/openTs originale; recalculăm doar câmpurile editate
+    // la update păstrăm regimul/openTs originale; statusul URMEAZĂ exit-ul (gol = în curs)
     const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null; };
+    const exitN = num(payload.exit);
     JR.update(editId, {
       sym: String(payload.sym).trim().toUpperCase(), dir: payload.dir,
-      entry: num(payload.entry), exit: num(payload.exit), size: num(payload.size),
+      entry: num(payload.entry), exit: exitN, size: num(payload.size),
       fees: num(payload.fees) || 0, slAtEntry: num(payload.slAtEntry),
-      source: payload.source, tags: payload.tags, notes: payload.notes, closeTs
+      source: payload.source, tags: payload.tags, notes: payload.notes,
+      status: exitN != null ? 'closed' : 'open',
+      closeTs: exitN != null ? closeTs : null
     });
     resetForm(); renderAll();
     return;
   }
   const rec = JR.add(payload);
-  if (!rec){ alert('Completează minim: ticker, entry, exit, size (numere valide).'); return; }
+  if (!rec){ alert('Completează minim: ticker, entry, size (numere valide). Exit gol = execuție ÎN CURS.'); return; }
   resetForm(); renderAll();
 });
 $('btnCancel').addEventListener('click', () => { resetForm(); });
@@ -265,33 +273,50 @@ document.querySelectorAll('.seg-tab').forEach(t => t.addEventListener('click', (
 
 // ── Tabel execuții ──
 function renderTable(){
-  const entries = JR.all().slice().sort((a, b) => (b.closeTs || 0) - (a.closeTs || 0));
+  // ÎN CURS primele (după openTs desc), apoi închisele după closeTs desc
+  const entries = JR.all().slice().sort((a, b) => {
+    const ao = JR.isOpen(a) ? 1 : 0, bo = JR.isOpen(b) ? 1 : 0;
+    if (ao !== bo) return bo - ao;
+    return ao ? (b.openTs || 0) - (a.openTs || 0) : (b.closeTs || 0) - (a.closeTs || 0);
+  });
   if (!entries.length){
-    $('tblWrap').innerHTML = `<div class="empty">📭 Jurnal gol.<br>Adaugă prima execuție din formularul de sus, sau
+    $('tblWrap').innerHTML = `<div class="empty">📭 Jurnal gol.<br>Adaugă prima execuție din formularul de sus (exit gol = în curs), sau
     <b>⬇ Import din tracker</b> ca să aduci trade-urile deja închise din FAB-ul 📓 al Hub-ului.</div>`;
     return;
   }
   $('tblWrap').innerHTML = `<table>
     <thead><tr><th class="l">Închis</th><th class="l">Ticker</th><th>Dir</th><th>Entry→Exit</th><th>Size</th><th>Fees</th><th>PnL net</th><th>R</th><th class="l">Sursă</th><th class="l">Tags</th><th></th></tr></thead>
     <tbody>${entries.map(e => {
+      const open = JR.isOpen(e);
       const p = JR.pnl(e), r = JR.rMult(e);
-      return `<tr>
-        <td class="l">${e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—'}</td>
+      // rând colorat pe REZULTAT: verde=câștig, roșu=pierdere, albastru pal=în curs
+      const rowCls = open ? 'openrow' : (p != null && p >= 0 ? 'win' : 'loss');
+      return `<tr class="${rowCls}">
+        <td class="l">${open ? '<span class="badge-open">⏳ ÎN CURS</span>' : (e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—')}</td>
         <td class="sym l">${esc(e.sym)}</td>
         <td>${e.dir === 'short' ? '🔻S' : '🔺L'}</td>
-        <td>${fmt$(e.entry)}→${fmt$(e.exit)}</td>
+        <td>${fmt$(e.entry)}→${open ? '…' : fmt$(e.exit)}</td>
         <td>${e.size}</td>
         <td>${e.fees ? fmt$(e.fees) : '<span class="wrn" title="fees=0 — sigur? completează costul real">0⚠</span>'}</td>
-        <td class="${p >= 0 ? 'pos' : 'neg'}">${(p >= 0 ? '+' : '') + fmt$(p).replace('$-','-$')}</td>
+        <td class="${p == null ? '' : p >= 0 ? 'pos' : 'neg'}">${p != null ? (p >= 0 ? '+' : '') + fmt$(p).replace('$-','-$') : '—'}</td>
         <td class="${r == null ? '' : r >= 0 ? 'pos' : 'neg'}">${r != null ? (r >= 0 ? '+' : '') + r.toFixed(2) : '—'}</td>
         <td class="l" style="font-size:10px">${esc(e.source)}</td>
         <td class="l">${(e.tags || []).map(t => `<span class="mini">${esc(t)}</span>`).join('') || '—'}</td>
         <td>
+          ${open ? `<button class="act" data-close="${esc(e.id)}" title="Închide execuția — cere prețul de ieșire">✓</button>` : ''}
           <button class="act" data-edit="${esc(e.id)}">✏</button>
           <button class="act" data-del="${esc(e.id)}">🗑</button>
         </td>
       </tr>`;
     }).join('')}</tbody></table>`;
+  $('tblWrap').querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => {
+    const e = JR.all().find(x => x.id === b.dataset.close);
+    if (!e) return;
+    const v = prompt(`Preț de ieșire pentru ${e.sym} (entry ${e.entry}):`);
+    if (v == null || v === '') return;
+    if (!JR.close(e.id, v)){ alert('Preț invalid.'); return; }
+    renderAll();
+  }));
   $('tblWrap').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => {
     const e = JR.all().find(x => x.id === b.dataset.edit);
     if (e) fillForm(e);
@@ -302,7 +327,11 @@ function renderTable(){
 }
 
 function renderAll(){
-  $('ovCards').innerHTML = scHtml(JR.stats(JR.all()));
+  const allE = JR.all();
+  const nOpen = allE.filter(e => JR.isOpen(e)).length;
+  // statistica = DOAR închise (JR.stats filtrează intern); cele în curs doar se numără
+  $('ovCards').innerHTML = scHtml(JR.stats(allE))
+    + (nOpen ? `<div class="scard"><div class="lbl">⏳ ÎN CURS</div><div class="val" style="color:var(--accent)">${nOpen}</div><div class="lbl" style="margin-top:2px">nu intră în statistici până se închid</div></div>` : '');
   renderSeg();
   renderTable();
 }
