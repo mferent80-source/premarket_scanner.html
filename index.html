@@ -367,6 +367,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-hero-dot{color:var(--t3);font-weight:400}
 .pb-hero-danger{color:var(--t2);font-weight:700}
 .pb-hero-sub{font-family:var(--mono);font-size:11.5px;color:var(--t2);margin-top:6px}
+.pb-hero-track{font-family:var(--mono);font-size:10.5px;color:var(--t2);margin-top:7px;padding-top:6px;border-top:1px dashed rgba(91,176,255,.25)}
 /* Piața acum — SPY/QQQ/VIX compact în cockpit */
 .pb-mkt{display:flex;flex-wrap:wrap;gap:10px}
 .pb-mkt-cell{flex:1 1 90px;background:var(--bg4);border:1px solid var(--b1);border-radius:8px;padding:8px 11px}
@@ -480,7 +481,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v517</span>
+      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v518</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -561,6 +562,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
         <div class="pb-hero-label">☀️ VERDICTUL ZILEI</div>
         <div class="pb-hero-verdict">se compune…</div>
         <div class="pb-hero-sub">—</div>
+        <div class="pb-hero-track" id="pbHeroTrack" style="display:none"></div>
       </div>
       <div class="pb-diff" id="pbDiff" style="display:none"></div>
       <div class="pb-freeze" id="pbFreeze" style="display:none"></div>
@@ -2531,6 +2533,73 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     el.style.display = '';
   }
 
+  // ── Verdict tracker: „a avut dreptate brief-ul?" — regimul văzut dimineața vs SPY close-to-close ──
+  // Bias din regim: RISK-ON/LEAN → long; RISK-OFF/STRESS → short; NEUTRAL/CAUTIOUS → fără bias
+  // (zilele fără bias nu intră în hit-rate). Hit = SPY a închis în direcția bias-ului cu |Δ|>0.1%;
+  // zi flat (≤0.1%) = exclusă (nici hit, nici miss). ONEST: verdictul consemnat e cel de la PRIMA
+  // deschidere a hub-ului în ziua respectivă (dacă deschizi seara, aia e „dimineața" ta).
+  function pbBiasOf(label){
+    if (!label) return null;
+    if (/RISK-ON|LEAN/.test(label)) return 'long';
+    if (/RISK-OFF|STRESS/.test(label)) return 'short';
+    return null; // NEUTRAL/CAUTIOUS = fără predicție direcțională
+  }
+  function pbTrackLoad(){ try { const a = JSON.parse(localStorage.getItem('pb_verdict_track') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function pbTrackSave(a){ try { localStorage.setItem('pb_verdict_track', JSON.stringify(a.slice(-60))); } catch (e) {} }
+  function pbTrackSnapshot(){
+    const today = pbTodayET();
+    if (!today) return;
+    let regime = null;
+    try {
+      const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
+      // doar regim PROASPĂT (<12h) — un label stale de ieri consemnat ca verdictul de azi ar minți statistica
+      if (r && r.label && Date.now() - (r.ts || 0) < 12*3600000) regime = String(r.label).trim();
+    } catch (e) {}
+    if (!regime) return;
+    const arr = pbTrackLoad();
+    if (arr.some(e => e && e.dateET === today)) return; // verdictul primei deschideri rămâne (nu suprascrie)
+    arr.push({ dateET: today, regime, bias: pbBiasOf(regime), chg: null });
+    pbTrackSave(arr);
+  }
+  async function pbTrackEvaluate(){
+    const today = pbTodayET();
+    const arr = pbTrackLoad();
+    if (!arr.some(e => e && e.chg == null && e.dateET && e.dateET < today)) return false; // nimic de evaluat → zero fetch
+    const spy = await fetchYahooChart('SPY');
+    if (!spy || !spy.points || spy.points.length < 2) return false;
+    const dateOfTs = ts => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(ts * 1000)); } catch (e) { return ''; } };
+    const chgByDate = {};
+    for (let i = 1; i < spy.points.length; i++){
+      const prev = spy.points[i-1].close;
+      if (prev > 0) chgByDate[dateOfTs(spy.points[i].ts)] = (spy.points[i].close / prev - 1) * 100;
+    }
+    let touched = false;
+    arr.forEach(e => {
+      if (!e || e.chg != null || !e.dateET || e.dateET >= today) return;
+      const chg = chgByDate[e.dateET];
+      if (typeof chg !== 'number') return; // weekend/sărbătoare fără bară — rămâne neevaluată, nu intră în stats
+      e.chg = +chg.toFixed(2);
+      e.hit = (e.bias && Math.abs(chg) > 0.1) ? ((e.bias === 'long') === (chg > 0)) : null;
+      touched = true;
+    });
+    if (touched) pbTrackSave(arr);
+    return touched;
+  }
+  function pbTrackRender(){
+    const el = $('pbHeroTrack');
+    if (!el) return;
+    const arr = pbTrackLoad();
+    const done = arr.filter(e => e && typeof e.hit === 'boolean');
+    const hits = done.filter(e => e.hit).length;
+    const today = arr.find(e => e && e.dateET === pbTodayET());
+    const todayTxt = today ? (today.bias ? `azi: bias ${today.bias.toUpperCase()}` : 'azi: fără bias (neutru)') : '';
+    if (!done.length && !today){ el.style.display = 'none'; return; }
+    el.innerHTML = done.length
+      ? `📏 Brief-tracker: <b>${hits}✓/${done.length - hits}✗</b> (${Math.round(hits / done.length * 100)}%) din ${done.length} zile cu bias evaluate${done.length < 10 ? ' · <span style="color:var(--t3)">eșantion mic</span>' : ''}${todayTxt ? ' · ' + todayTxt : ''}`
+      : `📏 Brief-tracker: <span style="color:var(--t3)">hit-rate-ul apare după primele zile cu bias</span>${todayTxt ? ' · ' + todayTxt : ''}`;
+    el.style.display = '';
+  }
+
   async function pbLoadAll(){
     $('pbRefreshInfo').textContent = '⏳ se încarcă…';
     pbLoadDanger();
@@ -2549,6 +2618,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     pbRenderHero(); // recompune după ce regimul/danger sunt proaspete în localStorage
     pbSnapshotDaily(); // consemnează starea zilei (după refresh-ul surselor)
     pbRenderOvernight();
+    pbTrackSnapshot(); // verdictul zilei (regim proaspăt) — o dată/zi
+    pbTrackRender();
+    pbTrackEvaluate().then(ch => { if (ch) pbTrackRender(); }).catch(() => {}); // evaluează zilele trecute (fetch DOAR dacă e ceva pending)
     $('pbRefreshInfo').textContent = `🔄 ultim refresh: ${new Date().toLocaleTimeString('ro-RO')}`;
   }
   // Când banda de sus termină un ticker → oglindește instant în cockpit (piață + ton în erou)
