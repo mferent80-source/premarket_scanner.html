@@ -79,7 +79,7 @@ header h1{
 <body>
 
 <header>
-  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v2</span></h1>
+  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v3</span></h1>
   <button class="nav-link" id="btnRunAll">▶ Rulează toate testele</button>
   <button class="nav-link" id="btnReport" title="Copiază starea tuturor verificărilor ca raport text — lipește-l în Claude Code și el ia măsurile">📋 Raport pt Claude</button>
   <a class="nav-link" href="../">← Hub</a>
@@ -112,7 +112,7 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
 
   <div class="chk" id="cBot">
     <div class="chk-head"><span class="chk-dot" id="dBot"></span><h2>☁️ Bot alerte server-side</h2><button class="chk-btn" data-run="bot">Verifică</button></div>
-    <div class="chk-body" id="bBot">Netestat. <span class="chk-sub">GitHub API public (60 req/h fără token) — ultimul run price-alerts.yml.</span></div>
+    <div class="chk-body" id="bBot">Netestat. <span class="chk-sub">repo-ul e PRIVAT → verificarea reală cere un token fine-grained (Actions read-only) salvat local.</span></div>
   </div>
 
   <div class="chk" id="cGist">
@@ -172,7 +172,8 @@ async function runProxy(){
         line = `<span class="err">●</span> <b>${esc(px.id)}</b> — HTTP ${r.status}`;
       }
     } catch (e) {
-      line = `<span class="err">●</span> <b>${esc(px.id)}</b> — ${e.name === 'AbortError' ? 'timeout 8s' : 'eroare rețea'}`;
+      line = `<span class="err">●</span> <b>${esc(px.id)}</b> — ${e.name === 'AbortError' ? 'timeout 8s' : 'eroare rețea'}`
+        + (px.id === 'direct' ? ' <span class="chk-sub">(așteptat pe Yahoo — CORS închis; direct merge doar la Binance)</span>' : '');
     }
     rows.push(line);
     $('bProxy').innerHTML = rows.join('<br>');
@@ -223,13 +224,36 @@ async function runTG(){
   if (!ok) dot('dTG', 'err');
 }
 
-// ── 5. Bot server-side — ultimul run al workflow-ului, prin GitHub API public (repo public) ──
+// ── 5. Bot server-side — ultimul run al workflow-ului prin GitHub API.
+// ⚠ Repo-ul e PRIVAT → API-ul fără token răspunde 404 (deliberat) — NU înseamnă bot mort.
+// Soluția: token fine-grained (DOAR Actions: read, DOAR repo-ul ăsta), salvat local în tt_gh_token.
+function ghToken(){ try { return (localStorage.getItem('tt_gh_token') || '').trim(); } catch (e) { return ''; } }
+function askGhToken(){
+  const v = prompt('Token GitHub FINE-GRAINED (permisiune: Actions read-only, doar repo premarket_scanner.html).\nSe salvează DOAR pe acest device (localStorage):', ghToken());
+  if (v != null){ try { localStorage.setItem('tt_gh_token', v.trim()); } catch (e) {} runBot(); }
+}
+function ghTokLink(){ return ' <a href="#" data-ghtok style="color:var(--accent)">⚙ setează token</a>'; }
+function wireGhTok(){ const a = document.querySelector('[data-ghtok]'); if (a) a.addEventListener('click', e => { e.preventDefault(); askGhToken(); }); }
 async function runBot(){
   dot('dBot'); $('bBot').textContent = '⏳ citesc ultimul run…';
+  const tok = ghToken();
+  const headers = { 'Accept': 'application/vnd.github+json' };
+  if (tok) headers['Authorization'] = 'Bearer ' + tok;
   try {
-    const r = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=1`, { headers: { 'Accept': 'application/vnd.github+json' } });
-    if (r.status === 403){ dot('dBot', 'warn'); $('bBot').innerHTML = '<span class="warn">GitHub API rate-limit (60/h fără token)</span> — reîncearcă mai târziu'; return; }
-    if (!r.ok){ dot('dBot', 'err'); $('bBot').innerHTML = `<span class="err">HTTP ${r.status}</span>`; return; }
+    const r = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?per_page=1`, { headers });
+    if (r.status === 404 && !tok){
+      dot('dBot', 'warn');
+      $('bBot').innerHTML = '<span class="warn">repo PRIVAT — API-ul public nu vede Actions (404 e normal aici, NU = bot mort).</span>'
+        + '<br><span class="chk-sub">pt verificare reală: token fine-grained cu Actions read-only.</span>' + ghTokLink();
+      wireGhTok(); return;
+    }
+    if (r.status === 401 || (r.status === 404 && tok)){
+      dot('dBot', 'err');
+      $('bBot').innerHTML = '<span class="err">token invalid/expirat sau fără permisiunea Actions:read</span>' + ghTokLink();
+      wireGhTok(); return;
+    }
+    if (r.status === 403){ dot('dBot', 'warn'); $('bBot').innerHTML = '<span class="warn">GitHub API rate-limit</span> — reîncearcă mai târziu'; return; }
+    if (!r.ok){ dot('dBot', 'err'); $('bBot').innerHTML = `<span class="err">HTTP ${r.status}</span>` + ghTokLink(); wireGhTok(); return; }
     const j = await r.json();
     const run = j && j.workflow_runs && j.workflow_runs[0];
     if (!run){ dot('dBot', 'err'); $('bBot').innerHTML = '<span class="err">niciun run găsit</span>'; return; }
@@ -286,20 +310,34 @@ async function checkSW(){
   }
 }
 
-// ── 8. localStorage — utilizare aproximativă (quota tipică ~5MB) ──
+// ── 8. localStorage — utilizare + TOP chei după mărime + curățare cache sigur.
+// Quota reală în Chrome desktop e ~10MB pt localStorage (5MB e valoarea istorică/Safari) — praguri pe 10.
 function checkLS(){
   try {
-    let bytes = 0, n = 0;
+    let bytes = 0;
+    const items = [];
     for (let i = 0; i < localStorage.length; i++){
       const k = localStorage.key(i);
-      bytes += (k.length + (localStorage.getItem(k) || '').length) * 2; // UTF-16 ≈ 2 bytes/char
-      n++;
+      const b = (k.length + (localStorage.getItem(k) || '').length) * 2; // UTF-16 ≈ 2 bytes/char
+      bytes += b;
+      items.push({ k, b });
     }
     const mb = bytes / 1048576;
-    const cls = mb < 3 ? 'ok' : mb < 4.5 ? 'warn' : 'err';
+    const cls = mb < 6 ? 'ok' : mb < 8.5 ? 'warn' : 'err';
     dot('dLS', cls);
-    $('bLS').innerHTML = `<b class="${cls}">${mb.toFixed(2)} MB</b> estimat / ~5 MB quota tipică · ${n} chei`
-      + (mb >= 3 ? '<br><span class="chk-sub">aproape de quota → cache-urile ttd: se auto-curăță, dar fii atent la istorii mari</span>' : '');
+    items.sort((a, b) => b.b - a.b);
+    const ttdBytes = items.filter(x => x.k.indexOf('ttd:') === 0).reduce((a, x) => a + x.b, 0);
+    const top = items.slice(0, 6).map(x =>
+      `<b>${esc(x.k.length > 34 ? x.k.slice(0, 34) + '…' : x.k)}</b> ${(x.b/1024).toFixed(0)}KB`).join(' · ');
+    $('bLS').innerHTML = `<b class="${cls}">${mb.toFixed(2)} MB</b> / ~10 MB (Chrome) · ${items.length} chei`
+      + `<br><span class="chk-sub">top: ${top}</span>`
+      + `<br><button class="chk-btn" id="lsClean" style="margin-top:5px">🧹 Curăță cache ttd: (${(ttdBytes/1048576).toFixed(2)} MB — sigur, se reface singur)</button>`;
+    const btn = $('lsClean');
+    if (btn) btn.addEventListener('click', () => {
+      if (window.D && D.cacheClear) D.cacheClear();
+      else { try { const rm = []; for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if (k && k.indexOf('ttd:') === 0) rm.push(k); } rm.forEach(k => localStorage.removeItem(k)); } catch (e) {} }
+      checkLS();
+    });
   } catch (e) { dot('dLS', 'warn'); $('bLS').textContent = 'necalculabil'; }
 }
 
