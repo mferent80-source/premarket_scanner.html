@@ -580,6 +580,10 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
         <div class="pb-section-body" id="pbBodyNasdaq"><div class="pb-loading">se citesc datele…</div></div>
       </div>
       <div class="pb-section">
+        <div class="pb-section-head"><h3>🎯 Radar Smart Trade Long (READY/OK azi)</h3><span class="pb-count" id="pbCntSTL">—</span><a class="pb-go" href="./smart-trade-long/">Open STL →</a></div>
+        <div class="pb-section-body" id="pbBodySTL"><div class="pb-loading">se citește scanul de listă STL…</div></div>
+      </div>
+      <div class="pb-section">
         <div class="pb-section-head"><h3>🎯 Sugestii watchlist (din rezultate macro)</h3><span class="pb-count" id="pbCntSuggestions">—</span><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
         <div class="pb-section-body" id="pbBodySuggestions"><div class="pb-loading">se verifică sugestiile…</div></div>
       </div>
@@ -2097,6 +2101,39 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
         </tr>`).join('')}</tbody></table>`;
   }
 
+  // ── Radar Smart Trade Long — longs READY/OK azi (mereu vizibil, nu doar fallback) ──
+  // Sursă: stl_list_state (tier curent) îmbogățit cu score/preț din stl_scan_history (ultima intrare)
+  function pbLoadSTL(){
+    const body = $('pbBodySTL');
+    if (!body) return;
+    let state = {}, hist = {};
+    try { state = JSON.parse(localStorage.getItem('stl_list_state') || '{}'); } catch (e) {}
+    try { hist = JSON.parse(localStorage.getItem('stl_scan_history') || '{}'); } catch (e) {}
+    const now = Date.now();
+    const hot = Object.entries(state)
+      .filter(([s, v]) => s !== '_mode' && v && (v.tier === 'READY' || v.tier === 'OK') && now - (v.ts || 0) < 24*3600000)
+      .map(([sym, v]) => {
+        const arr = Array.isArray(hist[sym]) ? hist[sym] : [];
+        const h = arr.length ? arr[arr.length - 1] : null;
+        return { sym, tier: v.tier, score: h && typeof h.score === 'number' ? h.score : null, price: h && typeof h.price === 'number' ? h.price : null };
+      })
+      .sort((a, b) => (a.tier === 'READY' ? 0 : 1) - (b.tier === 'READY' ? 0 : 1) || (b.score || 0) - (a.score || 0))
+      .slice(0, 12);
+    $('pbCntSTL').textContent = String(hot.length);
+    if (!hot.length){
+      body.innerHTML = '<div class="pb-empty">📭 Niciun long READY/OK din STL (&lt;24h). Lasă <a href="./smart-trade-long/" style="color:#5bb0ff">Smart Trade Long</a> deschis (scan listă auto).</div>';
+      return;
+    }
+    body.innerHTML = `<table class="pb-table">
+      <thead><tr><th>Ticker</th><th>Verdict</th><th>Score</th><th>Preț</th></tr></thead>
+      <tbody>${hot.map(h => `<tr>
+        <td class="sym"><a href="./smart-trade-long/?symbol=${encodeURIComponent(h.sym)}" target="_blank">${escHtml(h.sym)}</a></td>
+        <td>${h.tier === 'READY' ? '<span class="pb-chip bull">🚀 READY</span>' : '<span class="pb-chip med">🟢 OK</span>'}</td>
+        <td>${h.score != null ? '<b>' + h.score + '</b>' : '—'}</td>
+        <td>${h.price != null ? '$' + fmtNum(h.price) : '—'}</td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+
   // ── Sugestii watchlist (din macro-dashboard auto-suggest) ──
   function pbLoadSuggestions(){
     let sg = {};
@@ -2311,6 +2348,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     pbLoadSector();
     pbRenderHero();
     pbLoadNasdaqPicks();
+    pbLoadSTL();
     pbLoadSuggestions();
     await Promise.allSettled([pbLoadRisk(), pbLoadMacroEvents(), pbLoadEarnings(), pbLoadWlEvents()]);
     pbRenderHero(); // recompune după ce regimul/danger sunt proaspete în localStorage
