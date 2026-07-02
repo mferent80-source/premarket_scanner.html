@@ -387,6 +387,11 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-sect-sym{font-family:var(--head);font-size:13px;font-weight:800;color:var(--t1);text-decoration:none}
 .pb-sect-sym:hover{color:#5bb0ff}
 .pb-sect-rs{font-family:var(--mono);font-size:10px;color:var(--t3)}
+/* Notă AI de dimineață */
+.pb-ai-note{font-size:12.5px;line-height:1.55;color:var(--t1);white-space:pre-wrap;animation:pbFade .5s var(--ease)}
+.pb-ai-empty{font-size:11.5px;color:var(--t2);font-style:italic;padding:4px 0}
+.pb-ai-meta{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:6px}
+@keyframes pbFade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 .pb-loading::before{content:"⏳ "}
 .pb-table{width:100%;border-collapse:collapse;font-size:12px}
 .pb-table th{padding:6px 7px;text-align:left;font-weight:700;font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--b1);font-family:var(--mono)}
@@ -550,6 +555,10 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
         <div class="pb-hero-sub">—</div>
       </div>
       <div class="pb-freeze" id="pbFreeze" style="display:none"></div>
+      <div class="pb-section">
+        <div class="pb-section-head"><h3>🤖 Nota AI de dimineață</h3><button class="pb-refresh-btn" id="pbAiBtn">✨ Generează</button></div>
+        <div class="pb-section-body" id="pbBodyAi"><div class="pb-ai-empty">Apasă „✨ Generează" — AI sintetizează regim + piață + calendar + sectoare + semnale într-un verdict scurt pe azi (o dată/zi, cache).</div></div>
+      </div>
       <div class="pb-section">
         <div class="pb-section-head"><h3>🛡 Regim + Danger Score</h3><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
         <div class="pb-risk-row"><span class="pb-risk-val" id="pbRiskVal">⏳ …</span><span class="pb-risk-sub" id="pbRiskSub">se calculează…</span></div>
@@ -862,6 +871,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 <script src="lib/data.js"></script>
 <script src="lib/ledger.js"></script>
 <script src="lib/regime.js"></script>
+<script src="lib/ai.js"></script>
 <script>
 // ── DASHBOARD WIDGETS ──
 // Hub-ul afișează context macro stocks (SPY + QQQ + VIX) + counts (watchlist, open trades).
@@ -2340,12 +2350,83 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
       + (stale ? `<div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:5px">📦 scan de acum ${Math.round(ageH)}h — redeschide Sector Rotation pt refresh</div>` : '');
   }
 
+  // ── Nota AI de dimineață — sintetizează contextul cockpit-ului (buton, o dată/zi, cache) ──
+  function pbAiContext(){
+    const lines = [];
+    try { const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null'); if (r && r.label) lines.push(`Regim risc macro: ${r.label} (scor ${r.composite >= 0 ? '+' : ''}${r.composite}).`); } catch (e) {}
+    try { const h = JSON.parse(localStorage.getItem('md_danger_daily') || '[]'); if (Array.isArray(h) && h.length && typeof h[h.length-1].score === 'number') lines.push(`Danger Score: ${h[h.length-1].score}/100.`); } catch (e) {}
+    const t = pbMarketTone(), m = pbMktData();
+    if (m && m.quotes){
+      const q = m.quotes, f = (k) => q[k] ? `${k} ${q[k].chgPct >= 0 ? '+' : ''}${q[k].chgPct.toFixed(2)}%` : '';
+      const parts = [f('SPY'), f('QQQ'), f('VIX')].filter(Boolean);
+      if (parts.length) lines.push(`Piața (${m.session || ''}): ${parts.join(', ')}${t ? ` — ${t.tone}` : ''}.`);
+    }
+    try {
+      const today = pbTodayET();
+      const etDateOf = dt => { try { return new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York' }).format(dt); } catch (e) { return ''; } };
+      const big = pbHardcodedEvents().filter(e => e.impact === 'high' && etDateOf(e.d) === today);
+      lines.push(big.length ? `Evenimente macro high-impact azi: ${big.map(e => `${e.event} ${e.hm} ET`).join('; ')}.` : 'Fără evenimente macro high-impact recurente azi.');
+    } catch (e) {}
+    try {
+      const s = JSON.parse(localStorage.getItem('sr_last_scan') || 'null'), reg = JSON.parse(localStorage.getItem('tt_risk_regime') || 'null');
+      if (s && Array.isArray(s.data)){
+        const byRs = [...s.data.filter(d => typeof d.rsRatio === 'number')].sort((a, b) => (b.rsRatio || 0) - (a.rsRatio || 0));
+        const lead = byRs.slice(0, 3).map(d => d.sym || d.name).filter(Boolean);
+        if (lead.length) lines.push(`Sectoare lider (RS vs SPY): ${lead.join(', ')}${reg && reg.regime ? ` — rotație ${reg.regime}` : ''}.`);
+      }
+    } catch (e) {}
+    try {
+      const st = JSON.parse(localStorage.getItem('stl_list_state') || '{}'), now = Date.now();
+      const hot = Object.entries(st).filter(([k, v]) => k !== '_mode' && v && (v.tier === 'READY' || v.tier === 'OK') && now - (v.ts || 0) < 24*3600000).map(([k, v]) => `${k}(${v.tier})`);
+      if (hot.length) lines.push(`Longs STL azi: ${hot.slice(0, 10).join(', ')}.`);
+    } catch (e) {}
+    return lines.join('\n');
+  }
+  function pbShowAiCache(){
+    const box = $('pbBodyAi');
+    if (!box) return false;
+    try {
+      const c = JSON.parse(localStorage.getItem('pb_ai_note') || 'null');
+      if (c && c.dateET === pbTodayET() && c.text){
+        box.innerHTML = `<div class="pb-ai-note">${escHtml(c.text)}</div><div class="pb-ai-meta">📦 generat azi · <a href="#" id="pbAiRegen" style="color:#5bb0ff">regenerează</a></div>`;
+        const rg = $('pbAiRegen'); if (rg) rg.addEventListener('click', e => { e.preventDefault(); pbGenAiNote(true); });
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+  async function pbGenAiNote(force){
+    const box = $('pbBodyAi');
+    if (!box) return;
+    if (!force && pbShowAiCache()) return; // deja generat azi → afișează din cache, fără apel API
+    if (!window.AI || !AI.hasKey()){
+      box.innerHTML = '<div class="pb-ai-empty">⚠ Cheia Anthropic lipsește. Setează-o într-o pagină cu AI (ex. <a href="./macro-dashboard/" style="color:#5bb0ff">Macro</a> → ⚙) — e shared între pagini.</div>';
+      return;
+    }
+    const today = pbTodayET();
+    const ctx = pbAiContext();
+    box.innerHTML = '<div class="pb-loading">🤖 AI compune nota de dimineață…</div>';
+    const system = 'Ești un trader senior care scrie o notă de desk de dimineață în română, pentru un trader retail pe acțiuni US. Maxim 6-8 rânduri, ton direct, fără hype. Structură: 1 rând verdict pe zi (risk-on/off + ce bias), 2-3 rânduri de ce (din date), 1-2 rânduri ce de urmărit azi (evenimente/niveluri), 1 rând riscul principal. Interpretează pe regim (good-news-is-bad-news când e cazul). NU inventa cifre care nu-s în context.';
+    const prompt = `Date de azi (${today}):\n${ctx}\n\nScrie nota de desk de dimineață.`;
+    try {
+      const text = await AI.complete({ system, prompt, maxTokens: 700 });
+      const clean = (text || '').trim();
+      if (!clean){ box.innerHTML = '<div class="pb-ai-empty">AI a întors gol — reîncearcă.</div>'; return; }
+      box.innerHTML = `<div class="pb-ai-note">${escHtml(clean)}</div><div class="pb-ai-meta">generat acum · <a href="#" id="pbAiRegen" style="color:#5bb0ff">regenerează</a></div>`;
+      const rg = $('pbAiRegen'); if (rg) rg.addEventListener('click', e => { e.preventDefault(); pbGenAiNote(true); });
+      try { localStorage.setItem('pb_ai_note', JSON.stringify({ dateET: today, text: clean })); } catch (e) {}
+    } catch (e) {
+      box.innerHTML = `<div class="pb-ai-empty">⚠ ${escHtml((e && e.message) || 'eroare AI')}</div>`;
+    }
+  }
+
   async function pbLoadAll(){
     $('pbRefreshInfo').textContent = '⏳ se încarcă…';
     pbLoadDanger();
     pbRenderMarket();
     pbRenderFreeze();
     pbLoadSector();
+    pbShowAiCache();
     pbRenderHero();
     pbLoadNasdaqPicks();
     pbLoadSTL();
@@ -2378,6 +2459,8 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     pbLoaded = true;
     pbLoadAll();
   });
+  const aiBtn = $('pbAiBtn');
+  if (aiBtn) aiBtn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); pbGenAiNote(false); });
   // Brief de dimineață = deschis by default (attr `open` în HTML); îl colapsăm DOAR dacă userul l-a închis explicit
   try {
     if (localStorage.getItem('pb_open') === '0') wrap.open = false;
