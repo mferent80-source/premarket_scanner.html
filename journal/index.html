@@ -99,7 +99,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body>
 
 <header>
-  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v5</span></h1>
+  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v6</span></h1>
   <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker (FAB 📓 hub) — anti-duplicat, fees=0 de completat">⬇ Import din tracker</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -152,7 +152,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <div id="tblWrap"><div class="empty">—</div></div>
 </div>
 
-<script src="../lib/journal.js?v=4"></script>
+<script src="../lib/journal.js?v=6"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -264,6 +264,7 @@ function renderSeg(){
     <thead><tr><th class="l">${seg === '__tags' ? 'tag' : seg}</th><th>n</th><th>win%</th><th>PnL net</th><th>Exp. R</th><th>PF</th><th></th></tr></thead>
     <tbody>${keys.map(k => {
       const s = by[k];
+      if (!s || !s.n) return ''; // grup fără execuții ÎNCHISE (doar deschise) — nu are statistici de afișat
       return `<tr>
         <td class="l"><b>${esc(k)}</b></td>
         <td>${s.n}</td>
