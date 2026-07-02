@@ -10,7 +10,8 @@
   // intern din pagină → cerem shell-ului să deschidă/comute tabul prin postMessage.
   if (window.self !== window.top){
     var SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/',
-                'earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/'];
+                'earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/',
+                'journal/','portfolio/','weekly/','health/'];
     var hrefToSeg = function(href){
       var abs; try { abs = new URL(href, location.href).pathname.replace(/index\.html$/, ''); } catch(_){ return null; }
       for (var i = 0; i < SEGS.length; i++){ if (abs.indexOf('/' + SEGS[i]) >= 0) return SEGS[i]; }
@@ -47,7 +48,11 @@
     { u:'market-events/',     n:'Events',   e:'📊' },
     { u:'pump-radar/',        n:'Pump',     e:'🔥' },
     { u:'markov-lab/',        n:'Markov',   e:'🔗' },
-    { u:'guide/',             n:'Ghid',     e:'📖' }
+    { u:'guide/',             n:'Ghid',     e:'📖' },
+    { u:'journal/',           n:'Journal',  e:'📓' },
+    { u:'portfolio/',         n:'Portof.',  e:'🛡️' },
+    { u:'weekly/',            n:'Weekly',   e:'📅' },
+    { u:'health/',            n:'Health',   e:'🩺' }
   ];
 
   // pagina curentă = prima sub-pagină al cărei segment apare în path; altfel = Hub ('')
