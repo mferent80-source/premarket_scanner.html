@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🛡️ Portfolio Risk Deck — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Riscul agregat al pozițiilor deschise: risc la SL cumulat, concentrare pe sector, beta vs QQQ, stress-test">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🛡️</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0b0f17;--bg-grad:radial-gradient(1200px 600px at 50% -200px,#142533 0%,#0b0f17 55%);
+  --panel:#141a28;--panel2:#1d2537;--panel3:#222b40;
+  --b1:#2a3247;--b2:#3a4258;
+  --t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;
+  --acc-1:#3b82f6;--acc-2:#10b981;--accent:#5bb0ff;
+  --bull-s:#22d66b;--bear-s:#ff4d4d;--warn:#d4892c;--gold:#ffd86b;--purple:#a78bfa;
+  --r:12px;--rs:8px;
+  --mono:'DM Mono',monospace;--head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+html,body{min-height:100vh}
+body{
+  font-family:var(--head);background:var(--bg);background-image:var(--bg-grad);background-attachment:fixed;
+  color:var(--t1);padding:12px;font-size:14px;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;font-variant-numeric:tabular-nums;
+}
+header{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  background:linear-gradient(180deg,rgba(20,37,51,.94),rgba(20,26,40,.97));
+  padding:12px 16px;border-radius:var(--r);
+  border:1px solid var(--b1);margin-bottom:14px;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  position:sticky;top:8px;z-index:50;
+}
+header h1{
+  font-size:18px;font-weight:800;
+  background:linear-gradient(90deg,#ffd86b,#ff4d4d);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-right:auto;font-family:var(--head);
+}
+.ver-badge{
+  display:inline-block;padding:3px 8px;margin-left:8px;border-radius:4px;
+  background:rgba(255,216,107,.15);color:var(--gold);border:1px solid rgba(255,216,107,.4);
+  font-size:11px;font-weight:700;-webkit-text-fill-color:var(--gold);font-family:var(--mono);
+}
+.nav-link{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--panel2);border:1px solid var(--b1);
+  padding:7px 12px;border-radius:var(--rs);
+  color:var(--t1);text-decoration:none;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.nav-link:hover{background:var(--accent);border-color:var(--accent);color:#000;transform:translateY(-1px)}
+.nav-link:disabled{opacity:.5;cursor:wait}
+.cfg{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:10px 14px;margin-bottom:12px}
+.cfg label{font-family:var(--mono);font-size:11px;color:var(--t3)}
+.cfg input{width:110px;background:var(--panel2);color:var(--t1);border:1px solid var(--b1);padding:7px 10px;border-radius:var(--rs);font-size:13px;font-family:var(--mono)}
+.cfg input:focus{outline:none;border-color:var(--accent)}
+.hint{font-family:var(--mono);font-size:10.5px;color:var(--t3);flex-basis:100%;line-height:1.5}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.cell{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:11px 14px}
+.cell .lbl{font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.05em}
+.cell .val{font-family:var(--head);font-size:19px;font-weight:800;margin-top:3px}
+.cell .sub{font-family:var(--mono);font-size:10.5px;color:var(--t2);margin-top:2px}
+.pos{color:var(--bull-s)}.neg{color:var(--bear-s)}.wrn{color:var(--warn)}
+.panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;margin-bottom:12px;overflow-x:auto}
+.panel h2{font-size:13.5px;font-weight:800;margin-bottom:9px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-family:var(--mono);font-size:10px;color:var(--t3);text-align:right;padding:6px 8px;border-bottom:1px solid var(--b1);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--mono);padding:7px 8px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right;white-space:nowrap}
+td.sym{font-family:var(--head);font-weight:800}
+td.sym a{color:var(--accent);text-decoration:none}
+.tag{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;font-family:var(--mono)}
+.tag.exp{background:rgba(255,77,77,.15);color:var(--bear-s);border:1px solid rgba(255,77,77,.4)}
+.tag.sec{background:var(--panel3);color:var(--t2);border:1px solid var(--b1);margin:2px}
+.empty{padding:26px;text-align:center;color:var(--t2);font-style:italic;font-size:13px;line-height:1.7}
+.empty a{color:var(--accent)}
+.bar{height:8px;background:var(--panel3);border-radius:999px;overflow:hidden;margin-top:6px}
+.bar>div{height:100%;border-radius:999px;transition:width .4s var(--ease)}
+.note{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5}
+.foot{font-family:var(--mono);font-size:10.5px;color:var(--t3);text-align:right;margin-top:10px}
+@media (max-width:550px){ body{padding:8px} .cell .val{font-size:16px} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛡️ Portfolio Risk Deck <span class="ver-badge" id="verBadge">v1</span></h1>
+  <button class="nav-link" id="btnScan">🔄 Scan poziții</button>
+  <a class="nav-link" href="../">← Hub</a>
+</header>
+
+<div class="cfg">
+  <label>Cont $ <input type="number" id="inAcct" min="0" step="100" placeholder="ex. 10000"></label>
+  <label>Risc/trade % <input type="number" id="inRisk" min="0.1" max="5" step="0.1" value="1"></label>
+  <span class="hint">Pozițiile vin din Trade Tracker (📓 FAB în Hub, status OPEN) — aici doar le CITESC și agregă riscul.
+  Adaugi/închizi poziții în Hub sau cu „📓 Plan" din Smart Trade Long. Pragurile de risc total (2%/4%) sunt IPOTEZE de calibrat pe contul tău.</span>
+</div>
+
+<div class="strip" id="strip" style="display:none">
+  <div class="cell"><div class="lbl">POZIȚII OPEN</div><div class="val" id="sN">—</div><div class="sub" id="sNSub">—</div></div>
+  <div class="cell"><div class="lbl">EXPUNERE (NOTIONAL)</div><div class="val" id="sNot">—</div><div class="sub" id="sNotSub">—</div></div>
+  <div class="cell"><div class="lbl">PnL NEREALIZAT</div><div class="val" id="sPnl">—</div><div class="sub">fără fees/slippage — estimare</div></div>
+  <div class="cell"><div class="lbl">⚠️ RISC LA SL CUMULAT</div><div class="val" id="sRisk">—</div><div class="sub" id="sRiskSub">—</div><div class="bar"><div id="sRiskBar" style="width:0%;background:var(--bull-s)"></div></div></div>
+  <div class="cell"><div class="lbl">STRESS: QQQ −3%</div><div class="val" id="sStress">—</div><div class="sub">estimare liniară pe β — nu scenariu real</div></div>
+</div>
+
+<div class="panel">
+  <h2>📋 Poziții deschise</h2>
+  <div id="tblWrap"><div class="empty" id="emptyBox">Apasă <b>🔄 Scan poziții</b> — citesc pozițiile OPEN din tracker + prețuri live.</div></div>
+</div>
+
+<div class="panel" id="pConc" style="display:none">
+  <h2>🏭 Concentrare pe sector</h2>
+  <div id="concBody">—</div>
+  <div class="note">Sectoarele vin din cache-ul Watchlist Monitor (Finnhub profile2, 30z). Simbol fără sector = „?" —
+  deschide-l o dată în Watchlist Monitor ca să se populeze. Corelația reală nu e doar sectorul — β-ul de mai sus e a doua lentilă.</div>
+</div>
+
+<div class="foot" id="foot">—</div>
+
+<script src="../lib/data.js"></script>
+<script src="../lib/regime.js"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: Math.abs(v) < 1 ? 4 : 2 });
+const fmtK = v => Math.abs(v) >= 1e6 ? (v/1e6).toFixed(2)+'M' : Math.abs(v) >= 1e3 ? (v/1e3).toFixed(1)+'K' : v.toFixed(0);
+
+// ── Config persistat (chei tt_ conform convenției) ──
+const K_ACCT = 'tt_pf_account', K_RISK = 'tt_pf_riskpct';
+try { $('inAcct').value = localStorage.getItem(K_ACCT) || ''; } catch (e) {}
+try { const r = localStorage.getItem(K_RISK); if (r) $('inRisk').value = r; } catch (e) {}
+$('inAcct').addEventListener('change', () => { try { localStorage.setItem(K_ACCT, $('inAcct').value); } catch (e) {} });
+$('inRisk').addEventListener('change', () => { try { localStorage.setItem(K_RISK, $('inRisk').value); } catch (e) {} });
+
+// ── Surse (read-only, scrise de alte pagini) ──
+function openPositions(){
+  try {
+    const arr = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
+    return arr.filter(p => p && p.status === 'open' && p.ticker && +p.size > 0 && +p.entry > 0);
+  } catch (e) { return []; }
+}
+// Sector din cache-ul Watchlist Monitor (Finnhub profile2) — read-only, nu re-fetch
+function sectorOf(sym){
+  try {
+    const c = JSON.parse(localStorage.getItem('wl_profile_cache') || '{}');
+    const d = c[sym];
+    return (d && d.sector) ? d.sector : (d && d.data && d.data.sector) ? d.data.sector : '';
+  } catch (e) { return ''; }
+}
+// Euristica macro-sens — replica logicii din watchlist (wlMacroSens), pe sectorul din cache
+function macroSens(sym){
+  if (/-usd$/i.test(sym)) return { tag: 'crypto', rate: true };
+  const s = (sectorOf(sym) || '').toLowerCase();
+  if (/tech|semiconductor|software|communication/.test(s)) return { tag: 'growth', rate: true };
+  if (/financ|bank|insurance/.test(s)) return { tag: 'banks', rate: false };
+  if (/energy|oil|gas/.test(s)) return { tag: 'energy', rate: false };
+  return { tag: 'other', rate: false };
+}
+function regimeComposite(){
+  try { const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null'); return (r && typeof r.composite === 'number') ? r.composite : null; } catch (e) { return null; }
+}
+function dangerMult(){
+  try {
+    const h = JSON.parse(localStorage.getItem('md_danger_daily') || '[]');
+    const s = Array.isArray(h) && h.length ? h[h.length-1].score : null;
+    if (typeof s !== 'number') return null;
+    return { score: s, mult: s >= 70 ? 0.375 : s >= 45 ? 0.5 : s >= 25 ? 0.75 : 1 };
+  } catch (e) { return null; }
+}
+
+// ── Preț live: ultima bară 1m includePrePost (același pattern ca alerts/hub) ──
+async function livePrice(sym){
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&range=1d&includePrePost=true`;
+  const j = await D.fetchJSON(url, { ttl: 30, timeout: 9000 });
+  const res = j && j.chart && j.chart.result && j.chart.result[0];
+  if (!res) return null;
+  const closes = (res.indicators && res.indicators.quote && res.indicators.quote[0] && res.indicators.quote[0].close) || [];
+  for (let i = closes.length - 1; i >= 0; i--){ if (closes[i] != null && isFinite(closes[i]) && closes[i] > 0) return closes[i]; }
+  const m = res.meta || {};
+  return m.regularMarketPrice || null;
+}
+
+// ── Beta vs QQQ pe randamente zilnice ~6 luni (estimare, declarată) ──
+function dailyRets(bars){
+  const out = [];
+  for (let i = 1; i < bars.length; i++){ if (bars[i-1].c > 0) out.push(bars[i].c / bars[i-1].c - 1); }
+  return out;
+}
+function betaOf(retsS, retsQ){
+  const n = Math.min(retsS.length, retsQ.length);
+  if (n < 30) return null; // sub 30 zile = zgomot
+  const s = retsS.slice(-n), q = retsQ.slice(-n);
+  const mS = s.reduce((a, b) => a + b, 0) / n, mQ = q.reduce((a, b) => a + b, 0) / n;
+  let cov = 0, varQ = 0;
+  for (let i = 0; i < n; i++){ cov += (s[i] - mS) * (q[i] - mQ); varQ += (q[i] - mQ) ** 2; }
+  return varQ > 0 ? cov / varQ : null;
+}
+
+// ── Scan principal ──
+async function scan(){
+  const btn = $('btnScan');
+  btn.disabled = true; btn.textContent = '⏳ scan…';
+  try {
+    const pos = openPositions();
+    if (!pos.length){
+      $('strip').style.display = 'none';
+      $('pConc').style.display = 'none';
+      $('tblWrap').innerHTML = `<div class="empty">📭 Nicio poziție OPEN în tracker.<br>
+        Adaugă din <a href="../">Hub</a> (FAB 📓 dreapta-jos) sau din <a href="../smart-trade-long/">Smart Trade Long</a> (butonul „📓 Plan" după scan).</div>`;
+      $('foot').textContent = '—';
+      return;
+    }
+    $('tblWrap').innerHTML = `<div class="empty">⏳ ${pos.length} poziții — prețuri live + β…</div>`;
+
+    // QQQ o singură dată (referința de beta)
+    let retsQ = null;
+    try { retsQ = dailyRets(await D.fetchStock('QQQ', { range: '6mo', ttl: 1800 })); } catch (e) {}
+
+    const rows = [];
+    for (const p of pos){
+      const sym = String(p.ticker).toUpperCase();
+      let last = null, beta = null;
+      try { last = await livePrice(sym); } catch (e) {}
+      if (retsQ){
+        try { beta = betaOf(dailyRets(await D.fetchStock(sym, { range: '6mo', ttl: 1800 })), retsQ); } catch (e) {}
+      }
+      const size = +p.size, entry = +p.entry, sl = +p.sl || null, tp = +p.tp || null;
+      const notional = (last ?? entry) * size;
+      const pnl = last != null ? (last - entry) * size : null;
+      // Risc la SL = ce mai poți pierde DE ACUM (last→SL); dacă SL e deja depășit → 0 + flag
+      const riskNow = (sl != null && last != null) ? Math.max(0, (last - sl) * size) : (sl != null ? (entry - sl) * size : null);
+      const slBreached = sl != null && last != null && last <= sl;
+      const r0 = (sl != null && entry > sl) ? (entry - sl) : null; // riscul inițial per acțiune
+      const rMult = (r0 && last != null) ? (last - entry) / r0 : null;
+      rows.push({ sym, size, entry, last, sl, tp, notional, pnl, riskNow, slBreached, rMult, beta, sens: macroSens(sym), sector: sectorOf(sym) || '?', notes: p.notes || '' });
+    }
+
+    render(rows);
+    $('foot').textContent = '🔄 scan: ' + new Date().toLocaleTimeString('ro-RO') + ' · prețuri = ultima bară 1m (include pre/after)';
+  } finally {
+    btn.disabled = false; btn.textContent = '🔄 Scan poziții';
+  }
+}
+
+function render(rows){
+  const acct = +($('inAcct').value) || 0;
+  const comp = regimeComposite();
+  const adverse = comp != null && comp <= -2;
+
+  // ── Tabel ──
+  $('tblWrap').innerHTML = `<table>
+    <thead><tr><th>Ticker</th><th>Size</th><th>Entry</th><th>Live</th><th>PnL</th><th>SL</th><th>Risc→SL</th><th>R</th><th>β QQQ</th><th>Sector</th></tr></thead>
+    <tbody>${rows.map(r => {
+      const pnlCls = r.pnl == null ? '' : r.pnl >= 0 ? 'pos' : 'neg';
+      const expFlag = adverse && r.sens.rate ? ' <span class="tag exp" title="Sector sensibil la dobânzi în regim macro advers — dublu risc">⚠</span>' : '';
+      return `<tr>
+        <td class="sym"><a href="https://www.tradingview.com/chart/?symbol=${esc(r.sym)}" target="_blank" rel="noopener">${esc(r.sym)}</a>${expFlag}${r.slBreached ? ' <span class="tag exp">SL DEPĂȘIT</span>' : ''}</td>
+        <td>${r.size}</td>
+        <td>${fmt$(r.entry)}</td>
+        <td>${r.last != null ? fmt$(r.last) : '<span class="wrn">n/a</span>'}</td>
+        <td class="${pnlCls}">${r.pnl != null ? (r.pnl >= 0 ? '+' : '') + fmt$(r.pnl).replace('$-','-$') : '—'}</td>
+        <td>${r.sl != null ? fmt$(r.sl) : '—'}</td>
+        <td class="${r.riskNow != null && r.riskNow > 0 ? 'neg' : ''}">${r.riskNow != null ? fmt$(r.riskNow) : '—'}</td>
+        <td>${r.rMult != null ? (r.rMult >= 0 ? '+' : '') + r.rMult.toFixed(2) + 'R' : '—'}</td>
+        <td>${r.beta != null ? r.beta.toFixed(2) : '—'}</td>
+        <td style="text-align:left;font-size:10.5px;color:var(--t2)">${esc(r.sector)}</td>
+      </tr>`;
+    }).join('')}</tbody></table>
+    <div class="note">PnL fără comision/slippage (tracker-ul nu le are — jurnalul de execuții le va avea). Risc→SL = ce mai poți pierde
+    de la prețul LIVE până la stop (gap-urile pot sări peste SL — realitatea poate fi mai rea). β pe ~6 luni randamente zilnice, n≥30.</div>`;
+
+  // ── Sumar ──
+  const totN = rows.reduce((a, r) => a + r.notional, 0);
+  const totPnl = rows.reduce((a, r) => a + (r.pnl || 0), 0);
+  const totRisk = rows.reduce((a, r) => a + (r.riskNow || 0), 0);
+  const withBeta = rows.filter(r => r.beta != null);
+  const stress = withBeta.reduce((a, r) => a + r.beta * -0.03 * r.notional, 0);
+
+  $('sN').textContent = rows.length;
+  $('sNSub').textContent = rows.filter(r => r.slBreached).length ? rows.filter(r => r.slBreached).length + ' cu SL depășit!' : 'toate peste SL';
+  $('sNot').textContent = '$' + fmtK(totN);
+  $('sNotSub').textContent = acct > 0 ? (totN / acct * 100).toFixed(0) + '% din cont' + (totN > acct ? ' (LEVIER?)' : '') : 'setează contul pt %';
+  $('sPnl').textContent = (totPnl >= 0 ? '+' : '') + fmt$(totPnl).replace('$-','-$');
+  $('sPnl').className = 'val ' + (totPnl >= 0 ? 'pos' : 'neg');
+  $('sRisk').textContent = fmt$(totRisk);
+  const dm = dangerMult();
+  if (acct > 0){
+    const pct = totRisk / acct * 100;
+    // Praguri 2%/4% = IPOTEZE de calibrat (trader.md) — nu standard universal
+    const cls = pct < 2 ? 'pos' : pct < 4 ? 'wrn' : 'neg';
+    $('sRisk').className = 'val ' + cls;
+    $('sRiskSub').textContent = pct.toFixed(1) + '% din cont' + (dm ? ` · Danger ${dm.score} → sizing ${dm.mult}x pe intrări NOI` : '');
+    $('sRiskBar').style.width = Math.min(100, pct / 4 * 100) + '%';
+    $('sRiskBar').style.background = cls === 'pos' ? 'var(--bull-s)' : cls === 'wrn' ? 'var(--warn)' : 'var(--bear-s)';
+  } else {
+    $('sRisk').className = 'val';
+    $('sRiskSub').textContent = 'setează contul pt % și praguri';
+    $('sRiskBar').style.width = '0%';
+  }
+  $('sStress').textContent = withBeta.length ? fmt$(stress).replace('$-','-$') : 'n/a (β lipsă)';
+  $('sStress').className = 'val ' + (stress < 0 ? 'neg' : '');
+  $('strip').style.display = '';
+
+  // ── Concentrare pe sector ──
+  const bySec = {};
+  rows.forEach(r => { const k = r.sector || '?'; bySec[k] = (bySec[k] || 0) + r.notional; });
+  const secs = Object.entries(bySec).sort((a, b) => b[1] - a[1]);
+  const rateCount = rows.filter(r => r.sens.rate).length;
+  let warn = '';
+  if (secs.length && totN > 0 && secs[0][1] / totN > 0.5 && rows.length >= 2)
+    warn += `<div class="note" style="color:var(--warn)">⚠ ${esc(secs[0][0])} = ${(secs[0][1]/totN*100).toFixed(0)}% din expunere — concentrare mare: mai multe poziții, un singur pariu.</div>`;
+  if (adverse && rateCount >= 3)
+    warn += `<div class="note" style="color:var(--bear-s)">⚠ ${rateCount} poziții rate-sensibile (growth/crypto) în regim macro ADVERS — corelate în jos simultan.</div>`;
+  $('concBody').innerHTML = secs.map(([s, v]) =>
+    `<span class="tag sec">${esc(s)} · $${fmtK(v)} (${totN > 0 ? (v/totN*100).toFixed(0) : 0}%)</span>`).join('') + warn;
+  $('pConc').style.display = '';
+}
+
+$('btnScan').addEventListener('click', scan);
+// auto-scan la deschidere dacă există poziții (asta e pagina de „cât risc AM acum")
+if (openPositions().length) scan();
+else $('tblWrap').innerHTML = `<div class="empty">📭 Nicio poziție OPEN în tracker.<br>
+  Adaugă din <a href="../">Hub</a> (FAB 📓 dreapta-jos) sau din <a href="../smart-trade-long/">Smart Trade Long</a> (butonul „📓 Plan").</div>`;
+})();
+</script>
+<script src="../nav.js" data-nav-root="../"></script>
+</body>
+</html>
