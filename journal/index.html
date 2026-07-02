@@ -82,7 +82,8 @@ td.sym{font-family:var(--head);font-weight:800}
 tr.win{background:rgba(34,214,107,.07)}
 tr.loss{background:rgba(255,77,77,.07)}
 tr.openrow{background:rgba(91,176,255,.06)}
-.badge-open{display:inline-block;padding:1px 8px;border-radius:999px;font-size:9.5px;font-weight:700;font-family:var(--mono);background:rgba(91,176,255,.15);color:var(--accent);border:1px solid rgba(91,176,255,.4)}
+.badge-open{display:inline-block;padding:2px 9px;border-radius:999px;font-size:9.5px;font-weight:700;font-family:var(--mono);background:rgba(91,176,255,.15);color:var(--accent);border:1px solid rgba(91,176,255,.4);cursor:pointer}
+.badge-open:hover{background:rgba(34,214,107,.2);border-color:var(--bull-s);color:var(--bull-s)}
 .mini{display:inline-block;padding:1px 7px;border-radius:999px;font-size:9.5px;font-weight:700;font-family:var(--mono);background:var(--panel3);border:1px solid var(--b1);color:var(--t2);margin:1px}
 .act{background:transparent;border:1px solid var(--b1);color:var(--t2);border-radius:5px;padding:2px 7px;cursor:pointer;font-size:11px}
 .act:hover{color:var(--accent);border-color:var(--accent)}
@@ -98,7 +99,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body>
 
 <header>
-  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v2</span></h1>
+  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v3</span></h1>
   <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker (FAB 📓 hub) — anti-duplicat, fees=0 de completat">⬇ Import din tracker</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -292,7 +293,7 @@ function renderTable(){
       // rând colorat pe REZULTAT: verde=câștig, roșu=pierdere, albastru pal=în curs
       const rowCls = open ? 'openrow' : (p != null && p >= 0 ? 'win' : 'loss');
       return `<tr class="${rowCls}">
-        <td class="l">${open ? '<span class="badge-open">⏳ ÎN CURS</span>' : (e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—')}</td>
+        <td class="l">${open ? `<span class="badge-open" data-close="${esc(e.id)}" title="Click ca să ÎNCHIZI execuția — cere prețul de ieșire">⏳ ÎN CURS · ✓ închide</span>` : (e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—')}</td>
         <td class="sym l">${esc(e.sym)}</td>
         <td>${e.dir === 'short' ? '🔻S' : '🔺L'}</td>
         <td>${fmt$(e.entry)}→${open ? '…' : fmt$(e.exit)}</td>
