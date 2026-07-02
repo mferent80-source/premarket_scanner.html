@@ -367,6 +367,14 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-hero-dot{color:var(--t3);font-weight:400}
 .pb-hero-danger{color:var(--t2);font-weight:700}
 .pb-hero-sub{font-family:var(--mono);font-size:11.5px;color:var(--t2);margin-top:6px}
+/* Piața acum — SPY/QQQ/VIX compact în cockpit */
+.pb-mkt{display:flex;flex-wrap:wrap;gap:10px}
+.pb-mkt-cell{flex:1 1 90px;background:var(--bg4);border:1px solid var(--b1);border-radius:8px;padding:8px 11px}
+.pb-mkt-lbl{font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:700}
+.pb-mkt-val{font-family:var(--head);font-size:16px;font-weight:800;color:var(--t1);line-height:1.2}
+.pb-mkt-chg{font-family:var(--mono);font-size:11px;font-weight:700}
+.pb-mkt-chg.up{color:var(--green)}.pb-mkt-chg.down{color:var(--red)}
+.pb-mkt-tone{flex:1 1 100%;font-family:var(--mono);font-size:11.5px;color:var(--t2);padding-top:2px}
 .pb-loading::before{content:"⏳ "}
 .pb-table{width:100%;border-collapse:collapse;font-size:12px}
 .pb-table th{padding:6px 7px;text-align:left;font-weight:700;font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--b1);font-family:var(--mono)}
@@ -533,6 +541,10 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
         <div class="pb-section-head"><h3>🛡 Regim + Danger Score</h3><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
         <div class="pb-risk-row"><span class="pb-risk-val" id="pbRiskVal">⏳ …</span><span class="pb-risk-sub" id="pbRiskSub">se calculează…</span></div>
         <div class="pb-risk-row"><span class="pb-risk-val" id="pbDangerVal">⏳ …</span><span class="pb-risk-sub" id="pbDangerSub">se încarcă…</span></div>
+      </div>
+      <div class="pb-section">
+        <div class="pb-section-head"><h3>📈 Piața acum</h3><span class="pb-count" id="pbMktSess">—</span><a class="pb-go" href="./nasdaq-scanner/">Open Scanner →</a></div>
+        <div class="pb-section-body"><div class="pb-mkt" id="pbBodyMkt"><div class="pb-loading">SPY · QQQ · VIX…</div></div></div>
       </div>
       <div class="pb-section">
         <div class="pb-section-head"><h3>📅 Evenimente macro azi</h3><span class="pb-count" id="pbCntEvents">—</span><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
@@ -891,12 +903,19 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     return { price, chgPct: ((price - prev) / prev) * 100 };
   };
   const dayLabel = usSession === 'weekend' ? '% ult. sesiune' : usSession === 'pre' ? '% pre' : usSession === 'after' ? '% after' : '% azi';
+  // Bus comun: banda de sus e SINGURA sursă de fetch SPY/QQQ/VIX; cockpit-ul („Piața acum") oglindește
+  // acest obiect + ascultă evenimentul, ca să nu dublăm fetch-ul/logica de sesiune.
+  window.__hubMkt = { session: usSession, dayLabel, quotes: {} };
+  const stashMkt = (key, q) => {
+    try { window.__hubMkt.quotes[key] = q; window.dispatchEvent(new CustomEvent('hub:market')); } catch (_) {}
+  };
   const renderTicker = async (sym, valEl, subEl, fmt) => {
     try {
       const q = await fetchQuote(sym);
       $(valEl).textContent = fmt(q.price);
       $(subEl).innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
       $(subEl).className = 'w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
+      stashMkt(sym, q);
     } catch (e) {
       $(subEl).textContent = 'indisponibil';
     }
@@ -911,6 +930,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       const cls = q.price >= 25 ? 'w-neg' : q.price >= 18 ? '' : 'w-pos';
       $('vixSub').innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
       $('vixVal').classList.add(cls);
+      stashMkt('VIX', q);
     } catch (e) {
       $('vixSub').textContent = 'indisponibil';
     }
@@ -2148,13 +2168,57 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     const parts = [];
     parts.push(regLabel ? `<span style="color:${rc(regLabel)}">${re(regLabel)} ${escHtml(regLabel)}</span>` : '<span style="color:var(--t3)">⚪ regim n/a</span>');
     if (dngPhrase) parts.push(`<span class="pb-hero-danger">${escHtml(dngPhrase)}</span>`);
+    const tone = pbMarketTone();
+    if (tone) parts.push(`<span style="color:${tone.cls === 'up' ? 'var(--green)' : tone.cls === 'down' ? 'var(--red)' : 'var(--t2)'}">${tone.tone}</span>`);
     el.querySelector('.pb-hero-verdict').innerHTML = parts.join('<span class="pb-hero-dot">·</span>');
     el.querySelector('.pb-hero-sub').innerHTML = evPhrase;
+  }
+
+  // Piața acum — OGLINDEȘTE window.__hubMkt (banda de sus e sursa de fetch; zero fetch dublu)
+  function pbMktData(){ try { return window.__hubMkt || null; } catch (e) { return null; } }
+  function pbMarketTone(){
+    const m = pbMktData();
+    if (!m || !m.quotes) return null;
+    const spy = m.quotes.SPY, qqq = m.quotes.QQQ, vix = m.quotes.VIX;
+    const pair = [spy, qqq].filter(Boolean);
+    if (!pair.length) return null;
+    const avg = pair.reduce((s, q) => s + q.chgPct, 0) / pair.length;
+    let tone, cls;
+    if (avg >= 0.3){ tone = 'tape ferm 🟢'; cls = 'up'; }
+    else if (avg <= -0.3){ tone = 'tape slab 🔴'; cls = 'down'; }
+    else { tone = 'tape mixt ⚪'; cls = ''; }
+    let vixNote = '';
+    if (vix){ vixNote = vix.price >= 25 ? ' · VIX ridicat (frică)' : vix.price >= 18 ? ' · VIX moderat' : ' · VIX calm'; }
+    return { avg, tone, cls, vixNote };
+  }
+  function pbRenderMarket(){
+    const box = $('pbBodyMkt');
+    if (!box) return;
+    const m = pbMktData();
+    const q = (m && m.quotes) ? m.quotes : {};
+    if (!(q.SPY || q.QQQ || q.VIX)){ box.innerHTML = '<div class="pb-loading">SPY · QQQ · VIX… (banda de sus încă încarcă)</div>'; return; }
+    const dl = (m && m.dayLabel) || '';
+    const fp = p => p >= 1000 ? '$' + p.toLocaleString('en', { maximumFractionDigits: 0 }) : '$' + p.toFixed(2);
+    const fv = p => p.toFixed(2);
+    const cell = (lbl, quote, fmt, invert) => {
+      if (!quote) return `<div class="pb-mkt-cell"><div class="pb-mkt-lbl">${lbl}</div><div class="pb-mkt-val">—</div><div class="pb-mkt-chg">n/a</div></div>`;
+      const up = quote.chgPct >= 0;
+      const cls = invert ? (up ? 'down' : 'up') : (up ? 'up' : 'down'); // VIX = semantică inversă
+      return `<div class="pb-mkt-cell"><div class="pb-mkt-lbl">${lbl}</div><div class="pb-mkt-val">${fmt(quote.price)}</div><div class="pb-mkt-chg ${cls}">${up ? '+' : ''}${quote.chgPct.toFixed(2)}${dl}</div></div>`;
+    };
+    const tone = pbMarketTone();
+    box.innerHTML = cell('SPY', q.SPY, fp, false) + cell('QQQ', q.QQQ, fp, false) + cell('VIX', q.VIX, fv, true)
+      + (tone ? `<div class="pb-mkt-tone">🌡️ ${tone.tone}${tone.vixNote}</div>` : '');
+    if (m && m.session){
+      const sess = m.session === 'pre' ? '🌅 PRE' : m.session === 'rth' ? '🟢 RTH' : m.session === 'after' ? '🌙 AFTER' : m.session === 'weekend' ? 'WEEKEND' : '🌙 CLOSED';
+      $('pbMktSess').textContent = sess;
+    }
   }
 
   async function pbLoadAll(){
     $('pbRefreshInfo').textContent = '⏳ se încarcă…';
     pbLoadDanger();
+    pbRenderMarket();
     pbRenderHero();
     pbLoadNasdaqPicks();
     pbLoadSuggestions();
@@ -2162,6 +2226,8 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     pbRenderHero(); // recompune după ce regimul/danger sunt proaspete în localStorage
     $('pbRefreshInfo').textContent = `🔄 ultim refresh: ${new Date().toLocaleTimeString('ro-RO')}`;
   }
+  // Când banda de sus termină un ticker → oglindește instant în cockpit (piață + ton în erou)
+  window.addEventListener('hub:market', () => { pbRenderMarket(); pbRenderHero(); });
 
   // Lazy + persistare stare open
   const wrap = $('pbWrap');
