@@ -375,6 +375,10 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-mkt-chg{font-family:var(--mono);font-size:11px;font-weight:700}
 .pb-mkt-chg.up{color:var(--green)}.pb-mkt-chg.down{color:var(--red)}
 .pb-mkt-tone{flex:1 1 100%;font-family:var(--mono);font-size:11.5px;color:var(--t2);padding-top:2px}
+/* Fereastră freeze — eveniment high-impact iminent */
+.pb-freeze{border-radius:10px;padding:10px 14px;margin-bottom:12px;font-family:var(--head);font-size:12.5px;font-weight:700;line-height:1.4}
+.pb-freeze.red{background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
+.pb-freeze.amber{background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:var(--warn)}
 .pb-loading::before{content:"⏳ "}
 .pb-table{width:100%;border-collapse:collapse;font-size:12px}
 .pb-table th{padding:6px 7px;text-align:left;font-weight:700;font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--b1);font-family:var(--mono)}
@@ -537,6 +541,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
         <div class="pb-hero-verdict">se compune…</div>
         <div class="pb-hero-sub">—</div>
       </div>
+      <div class="pb-freeze" id="pbFreeze" style="display:none"></div>
       <div class="pb-section">
         <div class="pb-section-head"><h3>🛡 Regim + Danger Score</h3><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
         <div class="pb-risk-row"><span class="pb-risk-val" id="pbRiskVal">⏳ …</span><span class="pb-risk-sub" id="pbRiskSub">se calculează…</span></div>
@@ -1914,7 +1919,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
         <thead><tr><th>Ticker</th><th>Data</th><th>Ora</th><th>EPS Est</th><th>Watchlist</th></tr></thead>
         <tbody>${earnings.slice(0, 12).map(e => `<tr>
           <td class="sym"><a href="https://www.tradingview.com/chart/?symbol=NASDAQ:${escHtml(e.symbol)}" target="_blank">${escHtml(e.symbol)}</a></td>
-          <td>${escHtml(e.date)}</td>
+          <td>${e.date === etToday() ? '<span class="pb-chip med">🔔 AZI</span> ' : ''}${escHtml(e.date)}</td>
           <td>${e.hour === 'bmo' ? '🌅 BMO' : (e.hour === 'amc' ? '🌙 AMC' : escHtml(e.hour))}</td>
           <td>${e.epsEst != null ? '$' + Number(e.epsEst).toFixed(2) : '—'}</td>
           <td>${e.inWatchlist ? '<span class="pb-chip bull">⭐ DA</span>' : (e.notable ? '<span class="pb-chip med">📰 notabil</span>' : '<span class="pb-chip low">mega-cap</span>')}</td>
@@ -2215,10 +2220,39 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     }
   }
 
+  // Fereastră freeze — high-impact iminent (±15min = nu deschide poziții; până în 2h = countdown catalist)
+  function pbRenderFreeze(){
+    const el = $('pbFreeze');
+    if (!el) return;
+    let events = [];
+    try { events = pbHardcodedEvents().filter(e => e.impact === 'high'); } catch (e) {}
+    const now = Date.now();
+    const upcoming = events.filter(e => e.d.getTime() > now - 15*60000).sort((a, b) => a.d - b.d);
+    const next = upcoming[0];
+    if (!next){ el.style.display = 'none'; return; }
+    const til = next.d.getTime() - now; // ms (poate fi negativ = publicat recent)
+    const roT = next.d.toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' });
+    if (til <= 15*60000 && til >= -15*60000){
+      const when = til >= 0 ? `în ${Math.max(1, Math.round(til/60000))} min` : `acum ${Math.round(-til/60000)} min`;
+      el.className = 'pb-freeze red';
+      el.innerHTML = `🚫 <b>FREEZE</b> — ${escHtml(next.event)} ${when} (${next.hm} ET / ${roT} RO). Nu deschide poziții noi până se așează volatilitatea.`;
+      el.style.display = '';
+    } else if (til > 15*60000 && til <= 2*3600000){
+      const h = Math.floor(til/3600000), mn = Math.round((til % 3600000)/60000);
+      const cd = h > 0 ? `${h}h ${mn}min` : `${mn}min`;
+      el.className = 'pb-freeze amber';
+      el.innerHTML = `⏳ Catalist în <b>${cd}</b>: ${escHtml(next.event)} (${next.hm} ET / ${roT} RO). Pregătește planul; freeze la ±15min.`;
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
   async function pbLoadAll(){
     $('pbRefreshInfo').textContent = '⏳ se încarcă…';
     pbLoadDanger();
     pbRenderMarket();
+    pbRenderFreeze();
     pbRenderHero();
     pbLoadNasdaqPicks();
     pbLoadSuggestions();
@@ -2255,6 +2289,8 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     if (localStorage.getItem('pb_open') === '0') wrap.open = false;
     else { wrap.open = true; pbEnsure(false); }
   } catch (e) { pbEnsure(false); }
+  // Countdown freeze onest fără reload complet — recompune banner-ul la fiecare minut
+  setInterval(() => { try { pbRenderFreeze(); } catch (e) {} }, 60000);
 })();
 
 // ============ SIGNAL LEDGER — scorecard (lib/ledger.js) ============
