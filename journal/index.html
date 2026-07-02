@@ -99,7 +99,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body>
 
 <header>
-  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v4</span></h1>
+  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v5</span></h1>
   <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker (FAB 📓 hub) — anti-duplicat, fees=0 de completat">⬇ Import din tracker</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -147,11 +147,21 @@ tr.openrow{background:rgba(91,176,255,.06)}
 </div>
 
 <div class="panel">
-  <h2>📜 Execuții</h2>
+  <h2>📜 Execuții <span id="diagLine" style="font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:400"></span></h2>
+  <div id="errBanner" style="display:none;background:rgba(255,77,77,.15);border:1px solid var(--bear-s);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--bear-s)"></div>
   <div id="tblWrap"><div class="empty">—</div></div>
 </div>
 
 <script src="../lib/journal.js?v=4"></script>
+<script>
+// Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
+window.onerror = function(msg, src, line){
+  try {
+    var b = document.getElementById('errBanner');
+    if (b){ b.style.display = ''; b.textContent = '⚠ EROARE JS: ' + msg + ' @ ' + (src || '').split('/').pop() + ':' + line; }
+  } catch (e) {}
+};
+</script>
 <script>
 (function(){
 'use strict';
@@ -337,8 +347,15 @@ function renderTable(){
 }
 
 function renderAll(){
+  // linia de diagnostic — spune exact ce vede pagina pe ACEST device
+  try {
+    const raw = localStorage.getItem((window.JR && JR.KEY) || 'tt_journal_v1');
+    const a = JR.all();
+    const no = a.filter(e => isOpenE(e)).length;
+    $('diagLine').textContent = `· diag: JR=${window.JR ? 'OK' : 'LIPSĂ'} · cheie ${raw == null ? 'INEXISTENTĂ pe device-ul ăsta' : 'există'} · ${a.length} execuții (${no} în curs)`;
+  } catch (e) { try { $('diagLine').textContent = '· diag: eroare ' + e.message; } catch (e2) {} }
   const allE = JR.all();
-  const nOpen = allE.filter(e => JR.isOpen(e)).length;
+  const nOpen = allE.filter(e => isOpenE(e)).length;
   // statistica = DOAR închise (JR.stats filtrează intern); cele în curs doar se numără
   $('ovCards').innerHTML = scHtml(JR.stats(allE))
     + (nOpen ? `<div class="scard"><div class="lbl">⏳ ÎN CURS</div><div class="val" style="color:var(--accent)">${nOpen}</div><div class="lbl" style="margin-top:2px">nu intră în statistici până se închid</div></div>` : '');
