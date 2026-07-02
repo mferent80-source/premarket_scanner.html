@@ -472,7 +472,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v511</span>
+      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v512</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -2206,11 +2206,12 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     let regLabel = '';
     try { const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null'); if (r && r.label) regLabel = String(r.label).trim(); } catch (e) {}
     // danger
-    let dngPhrase = '';
+    let dngPhrase = '', dngScore = null;
     try {
       const h = JSON.parse(localStorage.getItem('md_danger_daily') || '[]');
       if (Array.isArray(h) && h.length && typeof h[h.length-1].score === 'number'){
         const s = h[h.length-1].score;
+        dngScore = s;
         const band = s >= 70 ? 'PERICULOS · 0.25-0.5x' : s >= 45 ? 'RIDICAT · 0.5x' : s >= 25 ? 'MODERAT · 0.75x' : 'CALM · 1x';
         dngPhrase = `Danger ${s}/100 (${band})`;
       }
@@ -2235,7 +2236,18 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     const tone = pbMarketTone();
     if (tone) parts.push(`<span style="color:${tone.cls === 'up' ? 'var(--green)' : tone.cls === 'down' ? 'var(--red)' : 'var(--t2)'}">${tone.tone}</span>`);
     el.querySelector('.pb-hero-verdict').innerHTML = parts.join('<span class="pb-hero-dot">·</span>');
-    el.querySelector('.pb-hero-sub').innerHTML = evPhrase;
+    // rând acțional — consecința concretă pe azi (starea e degeaba fără „și deci ce fac?")
+    const act = [];
+    if (dngScore != null){
+      const mult = dngScore >= 70 ? '0.25-0.5x' : dngScore >= 45 ? '0.5x' : dngScore >= 25 ? '0.75x' : '1x';
+      act.push(`sizing ${mult}`);
+    }
+    if (bigToday.length){
+      const roT0 = bigToday[0].d.toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' });
+      act.push(`fără intrări noi ±15min de ${roT0} RO`);
+    }
+    el.querySelector('.pb-hero-sub').innerHTML = evPhrase
+      + (act.length ? `<br><span style="color:var(--crypto-2);font-weight:700">→ AZI: ${act.join(' · ')}</span>` : '');
   }
 
   // Piața acum — OGLINDEȘTE window.__hubMkt (banda de sus e sursa de fetch; zero fetch dublu)
