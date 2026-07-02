@@ -9,7 +9,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-001 | Journal consolidat de execuții (review pe trade-uri reale) | NOU: journal/ | L | P1 | făcut | ideation | 2026-07-02 |
 | I-002 | Portfolio Risk Deck (risc agregat pe pozițiile deschise) | NOU: portfolio/ | M | P1 | făcut | ideation | 2026-07-02 |
 | I-003 | Suite Health (starea infrastructurii: proxy/chei/bot/sync) | NOU: health/ | S | P2 | făcut | ideation | 2026-07-02 |
-| I-004 | Weekly Review (retrospectiva săptămânii, client-side + AI) | NOU: weekly/ | M | P3 | propus | ideation | 2026-07-02 |
+| I-004 | Weekly Review (retrospectiva săptămânii, client-side + AI) | NOU: weekly/ | M | P3 | făcut | ideation | 2026-07-02 |
 
 ## Mini-spec-uri
 

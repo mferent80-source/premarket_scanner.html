@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📅 Weekly Review — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Retrospectiva săptămânii: semnale (ledger), verdictele brief-ului, execuțiile din journal, regim + danger — cu sinteză AI la buton">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📅</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0b0f17;--bg-grad:radial-gradient(1200px 600px at 50% -200px,#142533 0%,#0b0f17 55%);
+  --panel:#141a28;--panel2:#1d2537;--panel3:#222b40;
+  --b1:#2a3247;--b2:#3a4258;
+  --t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;
+  --acc-1:#3b82f6;--acc-2:#10b981;--accent:#5bb0ff;
+  --bull-s:#22d66b;--bear-s:#ff4d4d;--warn:#d4892c;--gold:#ffd86b;--purple:#a78bfa;
+  --r:12px;--rs:8px;
+  --mono:'DM Mono',monospace;--head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+html,body{min-height:100vh}
+body{
+  font-family:var(--head);background:var(--bg);background-image:var(--bg-grad);background-attachment:fixed;
+  color:var(--t1);padding:12px;font-size:14px;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;font-variant-numeric:tabular-nums;
+}
+header{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  background:linear-gradient(180deg,rgba(20,37,51,.94),rgba(20,26,40,.97));
+  padding:12px 16px;border-radius:var(--r);
+  border:1px solid var(--b1);margin-bottom:14px;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  position:sticky;top:8px;z-index:50;
+}
+header h1{
+  font-size:18px;font-weight:800;
+  background:linear-gradient(90deg,#5bb0ff,#ffd86b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-right:auto;font-family:var(--head);
+}
+.ver-badge{
+  display:inline-block;padding:3px 8px;margin-left:8px;border-radius:4px;
+  background:rgba(91,176,255,.15);color:var(--accent);border:1px solid rgba(91,176,255,.4);
+  font-size:11px;font-weight:700;-webkit-text-fill-color:var(--accent);font-family:var(--mono);
+}
+.nav-link{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--panel2);border:1px solid var(--b1);
+  padding:7px 12px;border-radius:var(--rs);
+  color:var(--t1);text-decoration:none;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.nav-link:hover{background:var(--accent);border-color:var(--accent);color:#000;transform:translateY(-1px)}
+.nav-link:disabled{opacity:.5;cursor:wait}
+.hint{font-family:var(--mono);font-size:10.5px;color:var(--t3);margin:0 0 12px 4px;line-height:1.5}
+.panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:13px 15px;margin-bottom:12px;overflow-x:auto}
+.panel h2{font-size:13.5px;font-weight:800;margin-bottom:9px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.scard{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px 12px}
+.scard .lbl{font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:700}
+.scard .val{font-family:var(--head);font-size:17px;font-weight:800;margin-top:2px}
+.scard .sub{font-family:var(--mono);font-size:10px;color:var(--t2);margin-top:2px;line-height:1.5}
+.pos{color:var(--bull-s)}.neg{color:var(--bear-s)}.wrn{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{font-family:var(--mono);font-size:10px;color:var(--t3);text-align:right;padding:6px 7px;border-bottom:1px solid var(--b1)}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--mono);padding:6px 7px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right;white-space:nowrap}
+.empty{padding:20px;text-align:center;color:var(--t2);font-style:italic;font-size:12.5px;line-height:1.7}
+.empty a{color:var(--accent)}
+.note{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5}
+.ai-note{font-size:12.5px;line-height:1.6;color:var(--t1);white-space:pre-wrap;animation:wFade .5s var(--ease)}
+.ai-meta{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:6px}
+.ai-meta a{color:var(--accent)}
+@keyframes wFade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@media (max-width:550px){ body{padding:8px} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📅 Weekly Review <span class="ver-badge" id="verBadge">v1</span></h1>
+  <button class="nav-link" id="btnAi">🤖 Sinteză AI</button>
+  <a class="nav-link" href="../">← Hub</a>
+</header>
+
+<p class="hint">Retrospectiva ULTIMELOR 7 ZILE, din datele deja strânse de suită (ledger semnale · brief-tracker · journal execuții ·
+regim + danger). Datele brute se încarcă instant; sinteza AI e la buton (o dată/săptămână, cache). ⚠ O săptămână = eșantion mic —
+lecțiile de aici sunt indicii de urmărit, nu adevăruri.</p>
+
+<div class="panel">
+  <h2>🤖 Sinteza săptămânii</h2>
+  <div id="aiBody"><div class="empty">Apasă „🤖 Sinteză AI" — 3 secțiuni: ce a funcționat / ce a fost zgomot / de urmărit săptămâna viitoare.</div></div>
+</div>
+
+<div class="panel">
+  <h2>📡 Semnale consemnate (Signal Ledger)</h2>
+  <div id="sigBody">—</div>
+</div>
+
+<div class="panel">
+  <h2>📏 Brief-tracker (verdictele de dimineață)</h2>
+  <div id="btBody">—</div>
+</div>
+
+<div class="panel">
+  <h2>📓 Execuții închise (Journal)</h2>
+  <div id="jrBody">—</div>
+</div>
+
+<div class="panel">
+  <h2>🌡️ Contextul săptămânii (regim + danger)</h2>
+  <div id="ctxBody">—</div>
+</div>
+
+<script src="../lib/ledger.js"></script>
+<script src="../lib/journal.js"></script>
+<script src="../lib/ai.js"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 2 });
+const WEEK_MS = 7 * 24 * 3600 * 1000;
+const since = Date.now() - WEEK_MS;
+
+// Cheia de cache a sintezei = săptămâna ISO (an-Www) — o sinteză per săptămână, regenerabilă
+function isoWeekKey(){
+  const d = new Date();
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  const wk = Math.ceil(((t - y0) / 86400000 + 1) / 7);
+  return t.getUTCFullYear() + '-W' + String(wk).padStart(2, '0');
+}
+
+// ── Colectare (toate din localStorage — instant, zero fetch) ──
+const SRC_LBL = { 'wlm-strongbuy': '👁 Watchlist', 'me-early': '🌱 Events', 'stl-ready': '🎯 STL', 'nasdaq-opp80': '🚀 Nasdaq' };
+function collect(){
+  const out = { week: isoWeekKey() };
+
+  // semnale din ledger, pe sursă
+  const sigs = (window.LEDGER ? LEDGER.all() : []).filter(e => e && e.ts >= since);
+  const bySrc = {};
+  sigs.forEach(e => { (bySrc[e.src] = bySrc[e.src] || []).push(e); });
+  out.signals = { total: sigs.length, bySrc, recent: sigs.slice(-12).reverse() };
+
+  // brief-tracker
+  let bt = [];
+  try { bt = JSON.parse(localStorage.getItem('pb_verdict_track') || '[]') || []; } catch (e) {}
+  const btWeek = bt.filter(e => e && e.dateET && (Date.now() - new Date(e.dateET + 'T12:00:00Z').getTime()) < WEEK_MS + 86400000);
+  const btDone = btWeek.filter(e => typeof e.hit === 'boolean');
+  out.brief = { entries: btWeek, done: btDone.length, hits: btDone.filter(e => e.hit).length };
+
+  // execuții journal
+  const ex = (window.JR ? JR.all() : []).filter(e => e && (e.closeTs || 0) >= since);
+  out.exec = { entries: ex, stats: window.JR ? JR.stats(ex) : { n: 0 }, byTag: window.JR && ex.length ? JR.statsBy(ex, '__tags') : {} };
+
+  // context: regim + danger
+  let rh = [], dh = [];
+  try { rh = JSON.parse(localStorage.getItem('md_regime_daily') || '[]') || []; } catch (e) {}
+  try { dh = JSON.parse(localStorage.getItem('md_danger_daily') || '[]') || []; } catch (e) {}
+  out.ctx = { regimes: rh.slice(-7), dangers: dh.slice(-7) };
+  return out;
+}
+
+// ── Render brut ──
+function render(d){
+  // semnale
+  if (!d.signals.total){
+    $('sigBody').innerHTML = '<div class="empty">📭 Niciun semnal consemnat în ledger săptămâna asta (paginile consemnează automat la scan).</div>';
+  } else {
+    const srcs = Object.entries(d.signals.bySrc).sort((a, b) => b[1].length - a[1].length);
+    $('sigBody').innerHTML = `<div class="cards" style="margin-bottom:9px">${srcs.map(([s, arr]) =>
+      `<div class="scard"><div class="lbl">${esc(SRC_LBL[s] || s)}</div><div class="val">${arr.length}</div><div class="sub">${arr.slice(-4).map(e => esc(e.sym)).join(' · ')}</div></div>`).join('')}</div>
+      <div class="note">${d.signals.total} semnale în 7 zile · evaluarea la +5/+20z e în scorecard-ul din Hub (📒 Signal Ledger)</div>`;
+  }
+
+  // brief-tracker
+  if (!d.brief.entries.length){
+    $('btBody').innerHTML = '<div class="empty">📭 Niciun verdict consemnat (brief-tracker-ul pornește când deschizi hub-ul cu regim proaspăt).</div>';
+  } else {
+    const rows = d.brief.entries.map(e =>
+      `<tr><td>${esc(e.dateET)}</td><td>${esc(e.regime || '?')}</td><td>${e.bias ? e.bias.toUpperCase() : 'fără bias'}</td>
+      <td>${e.chg != null ? (e.chg >= 0 ? '+' : '') + e.chg + '%' : '—'}</td>
+      <td>${typeof e.hit === 'boolean' ? (e.hit ? '<span class="pos">✓</span>' : '<span class="neg">✗</span>') : '—'}</td></tr>`).join('');
+    $('btBody').innerHTML = `<table><thead><tr><th>Zi ET</th><th>Regim</th><th>Bias</th><th>SPY</th><th>Hit</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="note">${d.brief.done ? `${d.brief.hits}✓/${d.brief.done - d.brief.hits}✗ pe zilele cu bias evaluate` : 'nimic evaluat încă'} · zilele fără bias (NEUTRAL/CAUTIOUS) nu se numără</div>`;
+  }
+
+  // execuții
+  const s = d.exec.stats;
+  if (!s.n){
+    $('jrBody').innerHTML = '<div class="empty">📭 Nicio execuție închisă săptămâna asta în <a href="../journal/">Journal</a>.</div>';
+  } else {
+    const tags = Object.entries(d.exec.byTag).filter(([k]) => k !== '(fără tag)').sort((a, b) => a[1].pnlNet - b[1].pnlNet);
+    $('jrBody').innerHTML = `<div class="cards" style="margin-bottom:9px">
+      <div class="scard"><div class="lbl">EXECUȚII</div><div class="val">${s.n}${s.small ? ' <span class="wrn" style="font-size:11px">⚠ n&lt;10</span>' : ''}</div></div>
+      <div class="scard"><div class="lbl">PnL NET</div><div class="val ${s.pnlNet >= 0 ? 'pos' : 'neg'}">${(s.pnlNet >= 0 ? '+' : '') + fmt$(s.pnlNet).replace('$-','-$')}</div></div>
+      <div class="scard"><div class="lbl">WIN RATE</div><div class="val">${s.winPct.toFixed(0)}%</div></div>
+      <div class="scard"><div class="lbl">EXPECTANCY R</div><div class="val">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(2) + 'R' : '—'}</div></div>
+    </div>` + (tags.length ? `<div class="note">tag-uri (PnL): ${tags.map(([k, v]) => `<b>${esc(k)}</b> ${(v.pnlNet >= 0 ? '+' : '') + fmt$(v.pnlNet).replace('$-','-$')} (n=${v.n})`).join(' · ')}</div>` : '');
+  }
+
+  // context
+  const regs = d.ctx.regimes, dngs = d.ctx.dangers;
+  if (!regs.length && !dngs.length){
+    $('ctxBody').innerHTML = '<div class="empty">📭 Fără istoric regim/danger (se populează din Macro Dashboard).</div>';
+  } else {
+    const regLine = regs.length ? regs.map(r => `<span title="${esc(r.dateET)}">${esc(r.label || '?')}</span>`).join(' → ') : '—';
+    const dVals = dngs.map(x => x.score).filter(v => typeof v === 'number');
+    const dLine = dVals.length ? `min ${Math.min(...dVals)} · max ${Math.max(...dVals)} · ultim ${dVals[dVals.length-1]}` : '—';
+    $('ctxBody').innerHTML = `<div class="note" style="font-size:11px;margin-top:0">🛡 regim (zile consemnate): ${regLine}</div>
+      <div class="note" style="font-size:11px">⚠️ danger 7z: ${esc(dLine)}</div>`;
+  }
+}
+
+// ── Sinteza AI (buton, cache per săptămână ISO, non-streaming = afișare deodată) ──
+const AI_KEY = 'tt_weekly_note';
+function showAiCache(){
+  try {
+    const c = JSON.parse(localStorage.getItem(AI_KEY) || 'null');
+    if (c && c.week === isoWeekKey() && c.text){
+      $('aiBody').innerHTML = `<div class="ai-note">${esc(c.text)}</div><div class="ai-meta">📦 generat în ${esc(c.week)} · <a href="#" id="aiRegen">regenerează</a></div>`;
+      const rg = $('aiRegen'); if (rg) rg.addEventListener('click', e => { e.preventDefault(); genAi(true); });
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+function aiContext(d){
+  const L = [];
+  L.push(`Semnale (7z): ${d.signals.total} total — ` + Object.entries(d.signals.bySrc).map(([s, a]) => `${SRC_LBL[s] || s}: ${a.length} (${a.slice(-5).map(e => e.sym).join(',')})`).join(' · '));
+  L.push(`Brief-tracker: ${d.brief.done ? `${d.brief.hits} hit / ${d.brief.done - d.brief.hits} miss pe zile cu bias` : 'nimic evaluat'} din ${d.brief.entries.length} zile consemnate.`);
+  const s = d.exec.stats;
+  if (s.n){
+    L.push(`Execuții închise: ${s.n} · PnL net ${s.pnlNet.toFixed(0)}$ · win ${s.winPct.toFixed(0)}% · expectancy ${s.expectancyR != null ? s.expectancyR.toFixed(2) + 'R' : 'n/a'}.`);
+    const tags = Object.entries(d.exec.byTag).filter(([k]) => k !== '(fără tag)');
+    if (tags.length) L.push('Tag-uri execuții: ' + tags.map(([k, v]) => `${k}: ${v.n} trades, PnL ${v.pnlNet.toFixed(0)}$`).join(' · '));
+  } else L.push('Execuții închise: niciuna consemnată.');
+  if (d.ctx.regimes.length) L.push('Regim pe zile: ' + d.ctx.regimes.map(r => `${r.dateET}:${r.label}`).join(' · '));
+  const dVals = d.ctx.dangers.map(x => x.score).filter(v => typeof v === 'number');
+  if (dVals.length) L.push(`Danger 7z: ${dVals.join('→')}.`);
+  return L.join('\n');
+}
+async function genAi(force){
+  if (!force && showAiCache()) return;
+  if (!window.AI || !AI.hasKey()){
+    $('aiBody').innerHTML = '<div class="empty">⚠ Cheia Anthropic lipsește — setează într-o pagină cu AI (shared).</div>';
+    return;
+  }
+  const d = collect();
+  $('aiBody').innerHTML = '<div class="empty">🤖 AI compune retrospectiva…</div>';
+  const system = 'Ești un trading coach sobru care scrie în română retrospectiva săptămânală a unui trader retail. STRICT 3 secțiuni scurte: "✅ Ce a funcționat" / "🗑 Ce a fost zgomot" / "🎯 De urmărit săptămâna viitoare" — maxim 3 puncte per secțiune, concret, ancorat DOAR în datele primite (zero cifre inventate). Dacă eșantionul e mic (sub 10 execuții / puține semnale), spune-o explicit și ține concluziile ca INDICII, nu verdicte. Fără hype, fără sfaturi generice.';
+  try {
+    const text = await AI.complete({ system, prompt: `Săptămâna ${d.week}. Date:\n${aiContext(d)}\n\nScrie retrospectiva.`, maxTokens: 800 });
+    const clean = (text || '').trim();
+    if (!clean){ $('aiBody').innerHTML = '<div class="empty">AI a întors gol — reîncearcă.</div>'; return; }
+    try { localStorage.setItem(AI_KEY, JSON.stringify({ week: d.week, text: clean })); } catch (e) {}
+    showAiCache();
+  } catch (e) {
+    $('aiBody').innerHTML = `<div class="empty">⚠ ${esc((e && e.message) || 'eroare AI')}</div>`;
+  }
+}
+$('btnAi').addEventListener('click', () => genAi(false));
+
+// init: datele brute instant + sinteza din cache dacă e din săptămâna curentă
+render(collect());
+showAiCache();
+})();
+</script>
+<script src="../nav.js" data-nav-root="../"></script>
+</body>
+</html>
