@@ -360,6 +360,13 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-section-body{padding:8px 12px}
 .pb-empty{padding:16px;text-align:center;color:var(--t2);font-style:italic;font-size:12.5px}
 .pb-loading{padding:16px;text-align:center;color:var(--t2);font-size:12.5px}
+/* Brief de dimineață — rând-erou (verdictul zilei) */
+.pb-hero{background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(91,176,255,.06));border:1px solid rgba(247,147,26,.30);border-radius:10px;padding:12px 15px;margin-bottom:12px}
+.pb-hero-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--crypto-1);margin-bottom:5px}
+.pb-hero-verdict{font-family:var(--head);font-size:15px;font-weight:800;color:var(--t1);line-height:1.35;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pb-hero-dot{color:var(--t3);font-weight:400}
+.pb-hero-danger{color:var(--t2);font-weight:700}
+.pb-hero-sub{font-family:var(--mono);font-size:11.5px;color:var(--t2);margin-top:6px}
 .pb-loading::before{content:"⏳ "}
 .pb-table{width:100%;border-collapse:collapse;font-size:12px}
 .pb-table th{padding:6px 7px;text-align:left;font-weight:700;font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--b1);font-family:var(--mono)}
@@ -440,7 +447,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v510</span>
+      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v511</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -511,15 +518,21 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   <div id="gappersWidget" style="display:none"></div>
 
   <!-- TODAY'S PLAYBOOK — absorbit din pagina playbook (retrasă); lazy-load la primul expand -->
-  <details class="pb-wrap" id="pbWrap">
-    <summary class="pb-summary">🎯 Today's Playbook
-      <span class="pb-sum-sub">risk regime · macro azi · earnings · watchlist events · top picks · sugestii</span>
+  <details class="pb-wrap" id="pbWrap" open>
+    <summary class="pb-summary">☀️ Brief de dimineață
+      <span class="pb-sum-sub">verdictul zilei · regim + danger · macro azi · earnings · sector · top picks</span>
       <button class="pb-refresh-btn" id="pbRefreshBtn" title="Reîncarcă toate secțiunile">🔄 Refresh</button>
     </summary>
     <div class="pb-inner">
+      <div class="pb-hero" id="pbHero">
+        <div class="pb-hero-label">☀️ VERDICTUL ZILEI</div>
+        <div class="pb-hero-verdict">se compune…</div>
+        <div class="pb-hero-sub">—</div>
+      </div>
       <div class="pb-section">
-        <div class="pb-section-head"><h3>🛡 Risk Regime</h3><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
+        <div class="pb-section-head"><h3>🛡 Regim + Danger Score</h3><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
         <div class="pb-risk-row"><span class="pb-risk-val" id="pbRiskVal">⏳ …</span><span class="pb-risk-sub" id="pbRiskSub">se calculează…</span></div>
+        <div class="pb-risk-row"><span class="pb-risk-val" id="pbDangerVal">⏳ …</span><span class="pb-risk-sub" id="pbDangerSub">se încarcă…</span></div>
       </div>
       <div class="pb-section">
         <div class="pb-section-head"><h3>📅 Evenimente macro azi</h3><span class="pb-count" id="pbCntEvents">—</span><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
@@ -2066,11 +2079,87 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     }).join('');
   }
 
+  // Data ET de azi (YYYY-MM-DD) — pt staleness snapshot-uri salvate cu dateET
+  function pbTodayET(){
+    try { return new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York' }).format(new Date()); }
+    catch (e) { return ''; }
+  }
+
+  // Danger Score al zilei — refolosește md_danger_daily (scris de macro-dashboard)
+  function pbLoadDanger(){
+    try {
+      const h = JSON.parse(localStorage.getItem('md_danger_daily') || '[]');
+      if (!Array.isArray(h) || !h.length){
+        $('pbDangerVal').innerHTML = '<span style="color:var(--t3)">⚠️ Danger n/a</span>';
+        $('pbDangerSub').innerHTML = 'deschide <a href="./macro-dashboard/" style="color:#5bb0ff">Macro</a> ca să se calculeze Danger Score-ul';
+        return;
+      }
+      const last = h[h.length - 1];
+      const s = last.score;
+      if (typeof s !== 'number'){
+        $('pbDangerVal').innerHTML = '<span style="color:var(--t3)">⚠️ n/a</span>';
+        $('pbDangerSub').textContent = '';
+        return;
+      }
+      const color = s >= 70 ? '#ff4d4d' : s >= 45 ? '#d4892c' : 'var(--green)';
+      const band = s >= 70 ? 'PERICULOS · sizing 0.25-0.5x' : s >= 45 ? 'RIDICAT · 0.5x' : s >= 25 ? 'MODERAT · 0.75x' : 'CALM · 1x';
+      $('pbDangerVal').innerHTML = `<span style="color:${color}">⚠️ ${s}/100</span>`;
+      const stale = last.dateET && pbTodayET() && last.dateET !== pbTodayET();
+      $('pbDangerSub').innerHTML = band + (stale ? ` · <span style="color:var(--t3)">📦 din ${escHtml(String(last.dateET))}</span>` : '');
+    } catch (e) {
+      $('pbDangerVal').innerHTML = '<span style="color:var(--t3)">⚠️ n/a</span>';
+      $('pbDangerSub').textContent = '';
+    }
+  }
+
+  // Rând-erou: verdictul zilei = regim + danger + eveniment macro high-impact azi
+  function pbRenderHero(){
+    const el = $('pbHero');
+    if (!el) return;
+    const rc = l => /RISK-ON|LEAN/.test(l) ? 'var(--green)' : /NEUTRAL/.test(l) ? 'var(--t1)' : /CAUTIOUS/.test(l) ? '#d4892c' : /RISK-OFF|STRESS/.test(l) ? '#ff4d4d' : 'var(--t2)';
+    const re = l => /RISK-ON|LEAN/.test(l) ? '🟢' : /NEUTRAL/.test(l) ? '⚪' : /CAUTIOUS/.test(l) ? '🟠' : /RISK-OFF|STRESS/.test(l) ? '🔴' : '⚪';
+    // regim
+    let regLabel = '';
+    try { const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null'); if (r && r.label) regLabel = String(r.label).trim(); } catch (e) {}
+    // danger
+    let dngPhrase = '';
+    try {
+      const h = JSON.parse(localStorage.getItem('md_danger_daily') || '[]');
+      if (Array.isArray(h) && h.length && typeof h[h.length-1].score === 'number'){
+        const s = h[h.length-1].score;
+        const band = s >= 70 ? 'PERICULOS · 0.25-0.5x' : s >= 45 ? 'RIDICAT · 0.5x' : s >= 25 ? 'MODERAT · 0.75x' : 'CALM · 1x';
+        dngPhrase = `Danger ${s}/100 (${band})`;
+      }
+    } catch (e) {}
+    // eveniment macro high-impact azi
+    const etDateOf = dt => { try { return new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York' }).format(dt); } catch (e) { return ''; } };
+    const today = pbTodayET();
+    let bigToday = [];
+    try { bigToday = pbHardcodedEvents().filter(e => e.impact === 'high' && etDateOf(e.d) === today).sort((a, b) => a.d - b.d); } catch (e) {}
+    let evPhrase;
+    if (bigToday.length){
+      const e0 = bigToday[0];
+      const roT = e0.d.toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' });
+      evPhrase = `📅 azi: ${escHtml(e0.event)} — ${e0.hm} ET (${roT} RO)` + (bigToday.length > 1 ? ` · +${bigToday.length - 1} eveniment(e)` : '');
+    } else {
+      evPhrase = '📅 azi fără evenimente macro high-impact recurente (CPI/NFP/FOMC)';
+    }
+    // compune verdict
+    const parts = [];
+    parts.push(regLabel ? `<span style="color:${rc(regLabel)}">${re(regLabel)} ${escHtml(regLabel)}</span>` : '<span style="color:var(--t3)">⚪ regim n/a</span>');
+    if (dngPhrase) parts.push(`<span class="pb-hero-danger">${escHtml(dngPhrase)}</span>`);
+    el.querySelector('.pb-hero-verdict').innerHTML = parts.join('<span class="pb-hero-dot">·</span>');
+    el.querySelector('.pb-hero-sub').innerHTML = evPhrase;
+  }
+
   async function pbLoadAll(){
     $('pbRefreshInfo').textContent = '⏳ se încarcă…';
+    pbLoadDanger();
+    pbRenderHero();
     pbLoadNasdaqPicks();
     pbLoadSuggestions();
     await Promise.allSettled([pbLoadRisk(), pbLoadMacroEvents(), pbLoadEarnings(), pbLoadWlEvents()]);
+    pbRenderHero(); // recompune după ce regimul/danger sunt proaspete în localStorage
     $('pbRefreshInfo').textContent = `🔄 ultim refresh: ${new Date().toLocaleTimeString('ro-RO')}`;
   }
 
@@ -2095,7 +2184,11 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     pbLoaded = true;
     pbLoadAll();
   });
-  try { if (localStorage.getItem('pb_open') === '1'){ wrap.open = true; pbEnsure(false); } } catch (e) {}
+  // Brief de dimineață = deschis by default (attr `open` în HTML); îl colapsăm DOAR dacă userul l-a închis explicit
+  try {
+    if (localStorage.getItem('pb_open') === '0') wrap.open = false;
+    else { wrap.open = true; pbEnsure(false); }
+  } catch (e) { pbEnsure(false); }
 })();
 
 // ============ SIGNAL LEDGER — scorecard (lib/ledger.js) ============
