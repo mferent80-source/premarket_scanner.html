@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📓 Journal — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0b0f17;--bg-grad:radial-gradient(1200px 600px at 50% -200px,#142533 0%,#0b0f17 55%);
+  --panel:#141a28;--panel2:#1d2537;--panel3:#222b40;
+  --b1:#2a3247;--b2:#3a4258;
+  --t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;
+  --acc-1:#3b82f6;--acc-2:#10b981;--accent:#5bb0ff;
+  --bull-s:#22d66b;--bear-s:#ff4d4d;--warn:#d4892c;--gold:#ffd86b;--purple:#a78bfa;
+  --r:12px;--rs:8px;
+  --mono:'DM Mono',monospace;--head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+html,body{min-height:100vh}
+body{
+  font-family:var(--head);background:var(--bg);background-image:var(--bg-grad);background-attachment:fixed;
+  color:var(--t1);padding:12px;font-size:14px;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;font-variant-numeric:tabular-nums;
+}
+header{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  background:linear-gradient(180deg,rgba(20,37,51,.94),rgba(20,26,40,.97));
+  padding:12px 16px;border-radius:var(--r);
+  border:1px solid var(--b1);margin-bottom:14px;
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  position:sticky;top:8px;z-index:50;
+}
+header h1{
+  font-size:18px;font-weight:800;
+  background:linear-gradient(90deg,#a78bfa,#22d66b);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-right:auto;font-family:var(--head);
+}
+.ver-badge{
+  display:inline-block;padding:3px 8px;margin-left:8px;border-radius:4px;
+  background:rgba(167,139,250,.15);color:var(--purple);border:1px solid rgba(167,139,250,.4);
+  font-size:11px;font-weight:700;-webkit-text-fill-color:var(--purple);font-family:var(--mono);
+}
+.nav-link{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--panel2);border:1px solid var(--b1);
+  padding:7px 12px;border-radius:var(--rs);
+  color:var(--t1);text-decoration:none;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.nav-link:hover{background:var(--accent);border-color:var(--accent);color:#000;transform:translateY(-1px)}
+.panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:13px 15px;margin-bottom:12px;overflow-x:auto}
+.panel h2{font-size:13.5px;font-weight:800;margin-bottom:10px}
+.frm{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px}
+.frm label{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;color:var(--t3)}
+.frm input,.frm select{background:var(--panel2);color:var(--t1);border:1px solid var(--b1);padding:8px 10px;border-radius:var(--rs);font-size:13px;font-family:var(--mono);width:100%}
+.frm input:focus,.frm select:focus{outline:none;border-color:var(--accent)}
+.frm .wide{grid-column:1/-1}
+.tagrow{display:flex;flex-wrap:wrap;gap:6px;grid-column:1/-1}
+.tagchip{background:var(--panel2);border:1px solid var(--b1);color:var(--t2);padding:4px 11px;border-radius:999px;font-family:var(--mono);font-size:11px;cursor:pointer;user-select:none}
+.tagchip.on{background:rgba(167,139,250,.2);border-color:var(--purple);color:var(--purple)}
+.btn{background:linear-gradient(135deg,var(--acc-1),var(--acc-2));border:none;color:#fff;padding:9px 18px;border-radius:var(--rs);font-size:13px;font-weight:800;cursor:pointer;font-family:var(--head)}
+.btn.ghost{background:var(--panel2);border:1px solid var(--b1);color:var(--t2)}
+.btn:hover{transform:translateY(-1px)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:10px}
+.scard{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px 12px}
+.scard .lbl{font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:700}
+.scard .val{font-family:var(--head);font-size:18px;font-weight:800;margin-top:2px}
+.pos{color:var(--bull-s)}.neg{color:var(--bear-s)}.wrn{color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{font-family:var(--mono);font-size:10px;color:var(--t3);text-align:right;padding:6px 7px;border-bottom:1px solid var(--b1);white-space:nowrap}
+th:first-child,td:first-child,th.l,td.l{text-align:left}
+td{font-family:var(--mono);padding:6px 7px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right;white-space:nowrap}
+td.sym{font-family:var(--head);font-weight:800}
+.mini{display:inline-block;padding:1px 7px;border-radius:999px;font-size:9.5px;font-weight:700;font-family:var(--mono);background:var(--panel3);border:1px solid var(--b1);color:var(--t2);margin:1px}
+.act{background:transparent;border:1px solid var(--b1);color:var(--t2);border-radius:5px;padding:2px 7px;cursor:pointer;font-size:11px}
+.act:hover{color:var(--accent);border-color:var(--accent)}
+.empty{padding:24px;text-align:center;color:var(--t2);font-style:italic;font-size:13px;line-height:1.7}
+.empty a{color:var(--accent)}
+.note{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5}
+.seg-tabs{display:flex;gap:5px;margin-bottom:9px}
+.seg-tab{background:var(--panel2);border:1px solid var(--b1);color:var(--t2);padding:5px 13px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--head)}
+.seg-tab.active{background:rgba(167,139,250,.2);border-color:var(--purple);color:var(--purple)}
+@media (max-width:550px){ body{padding:8px} }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v1</span></h1>
+  <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker (FAB 📓 hub) — anti-duplicat, fees=0 de completat">⬇ Import din tracker</button>
+  <a class="nav-link" href="../">← Hub</a>
+</header>
+
+<div class="panel">
+  <h2 id="frmTitle">➕ Execuție nouă (fill închis)</h2>
+  <div class="frm">
+    <label>Ticker <input id="fSym" placeholder="NVDA" autocapitalize="characters"></label>
+    <label>Direcție <select id="fDir"><option value="long">LONG</option><option value="short">SHORT</option></select></label>
+    <label>Entry $ <input id="fEntry" type="number" step="0.0001" min="0"></label>
+    <label>Exit $ <input id="fExit" type="number" step="0.0001" min="0"></label>
+    <label>Size (acțiuni) <input id="fSize" type="number" step="1" min="0"></label>
+    <label>Fees $ total <input id="fFees" type="number" step="0.01" min="0" value="0" title="Trade212 e «zero comision» dar are spread + FX — estimează onest"></label>
+    <label>SL la intrare $ <input id="fSl" type="number" step="0.0001" min="0" title="Pentru R-multiple; gol = R necalculabil"></label>
+    <label>Sursa semnalului <select id="fSrc">
+      <option value="manual">manual / altele</option>
+      <option value="stl">🎯 Smart Trade Long</option>
+      <option value="nasdaq">🚀 Nasdaq Scanner</option>
+      <option value="macro">🌍 Macro Setup Builder</option>
+      <option value="watchlist">👁 Watchlist</option>
+      <option value="events">📊 Market Events</option>
+      <option value="pump">🚨 Pump Radar</option>
+    </select></label>
+    <label>Închis la <input id="fDate" type="date"></label>
+    <div class="tagrow" id="tagRow"></div>
+    <label class="wide">Note <input id="fNotes" placeholder="ce ai văzut, ce ai simțit, ce ai învățat"></label>
+    <div class="wide" style="display:flex;gap:8px">
+      <button class="btn" id="btnSave">💾 Salvează execuția</button>
+      <button class="btn ghost" id="btnCancel" style="display:none">✖ Anulează editarea</button>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>📊 Scorecard pe execuții (net de fees)</h2>
+  <div class="cards" id="ovCards"><div class="empty">—</div></div>
+  <div class="seg-tabs">
+    <button class="seg-tab active" data-seg="source">pe sursă</button>
+    <button class="seg-tab" data-seg="regime">pe regim</button>
+    <button class="seg-tab" data-seg="__tags">pe tag</button>
+  </div>
+  <div id="segBody">—</div>
+  <div class="note">Expectancy R = media R-multiple pe execuțiile cu SL la intrare completat. Segmentele cu n&lt;10 sunt marcate
+  „⚠ zgomot" — nu trage concluzii de acolo (trader.md). Astea-s execuțiile TALE, nu backtest: singura statistică ne-ficțiune din suită.</div>
+</div>
+
+<div class="panel">
+  <h2>📜 Execuții</h2>
+  <div id="tblWrap"><div class="empty">—</div></div>
+</div>
+
+<script src="../lib/journal.js"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: Math.abs(v) < 1 ? 4 : 2 });
+
+// Tag-uri predefinite de greșeli/execuție (click = toggle); rămân editabile ca listă în timp
+const TAGS = ['good-exec', 'fomo', 'chase', 'early-exit', 'late-exit', 'no-plan', 'oversize', 'revenge', 'contra-regim', 'news-trap'];
+let editId = null;
+
+function renderTagRow(selected){
+  $('tagRow').innerHTML = TAGS.map(t =>
+    `<span class="tagchip${selected && selected.includes(t) ? ' on' : ''}" data-tag="${esc(t)}">${esc(t)}</span>`).join('');
+  $('tagRow').querySelectorAll('.tagchip').forEach(c => c.addEventListener('click', () => c.classList.toggle('on')));
+}
+function selectedTags(){
+  return [...$('tagRow').querySelectorAll('.tagchip.on')].map(c => c.dataset.tag);
+}
+function resetForm(){
+  editId = null;
+  ['fSym','fEntry','fExit','fSize','fSl','fNotes'].forEach(id => $(id).value = '');
+  $('fFees').value = '0';
+  $('fDir').value = 'long'; $('fSrc').value = 'manual';
+  $('fDate').value = new Date().toISOString().slice(0, 10);
+  renderTagRow([]);
+  $('frmTitle').textContent = '➕ Execuție nouă (fill închis)';
+  $('btnSave').textContent = '💾 Salvează execuția';
+  $('btnCancel').style.display = 'none';
+}
+function fillForm(e){
+  editId = e.id;
+  $('fSym').value = e.sym; $('fDir').value = e.dir;
+  $('fEntry').value = e.entry; $('fExit').value = e.exit; $('fSize').value = e.size;
+  $('fFees').value = e.fees || 0; $('fSl').value = e.slAtEntry != null ? e.slAtEntry : '';
+  $('fSrc').value = e.source || 'manual'; $('fNotes').value = e.notes || '';
+  $('fDate').value = e.closeTs ? new Date(e.closeTs).toISOString().slice(0, 10) : '';
+  renderTagRow(e.tags || []);
+  $('frmTitle').textContent = '✏️ Editez ' + e.sym;
+  $('btnSave').textContent = '💾 Actualizează';
+  $('btnCancel').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+$('btnSave').addEventListener('click', () => {
+  const closeTs = $('fDate').value ? new Date($('fDate').value + 'T16:00:00').getTime() : Date.now();
+  const payload = {
+    sym: $('fSym').value, dir: $('fDir').value,
+    entry: $('fEntry').value, exit: $('fExit').value, size: $('fSize').value,
+    fees: $('fFees').value, slAtEntry: $('fSl').value || null,
+    source: $('fSrc').value, tags: selectedTags(), notes: $('fNotes').value, closeTs
+  };
+  if (editId){
+    // la update păstrăm regimul/openTs originale; recalculăm doar câmpurile editate
+    const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null; };
+    JR.update(editId, {
+      sym: String(payload.sym).trim().toUpperCase(), dir: payload.dir,
+      entry: num(payload.entry), exit: num(payload.exit), size: num(payload.size),
+      fees: num(payload.fees) || 0, slAtEntry: num(payload.slAtEntry),
+      source: payload.source, tags: payload.tags, notes: payload.notes, closeTs
+    });
+    resetForm(); renderAll();
+    return;
+  }
+  const rec = JR.add(payload);
+  if (!rec){ alert('Completează minim: ticker, entry, exit, size (numere valide).'); return; }
+  resetForm(); renderAll();
+});
+$('btnCancel').addEventListener('click', () => { resetForm(); });
+
+$('btnImport').addEventListener('click', () => {
+  const r = JR.importFromTracker();
+  alert(`Import tracker: ${r.added} adăugate · ${r.skipped} sărite (duplicate sau fără preț de ieșire).\nFees=0 la import — editează-le și completează costul real.`);
+  renderAll();
+});
+
+// ── Scorecard ──
+function scHtml(s){
+  if (!s || !s.n) return '<div class="empty">încă nimic</div>';
+  const eCls = s.expectancyR == null ? '' : s.expectancyR >= 0 ? 'pos' : 'neg';
+  return `
+    <div class="scard"><div class="lbl">EXECUȚII</div><div class="val">${s.n}${s.small ? ' <span class="wrn" style="font-size:11px">⚠ n&lt;10</span>' : ''}</div></div>
+    <div class="scard"><div class="lbl">WIN RATE</div><div class="val">${s.winPct.toFixed(0)}%</div></div>
+    <div class="scard"><div class="lbl">PnL NET</div><div class="val ${s.pnlNet >= 0 ? 'pos' : 'neg'}">${(s.pnlNet >= 0 ? '+' : '') + fmt$(s.pnlNet).replace('$-','-$')}</div></div>
+    <div class="scard"><div class="lbl">EXPECTANCY R</div><div class="val ${eCls}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(2) + 'R' : '—'}</div>
+      <div class="lbl" style="margin-top:2px">${s.nR}/${s.n} cu SL completat</div></div>
+    <div class="scard"><div class="lbl">PROFIT FACTOR</div><div class="val">${s.pf === Infinity ? '∞' : s.pf.toFixed(2)}</div></div>
+    <div class="scard"><div class="lbl">AVG WIN / LOSS</div><div class="val" style="font-size:14px">${fmt$(s.avgWin)} / ${fmt$(s.avgLoss)}</div></div>`;
+}
+let seg = 'source';
+function renderSeg(){
+  const entries = JR.all();
+  if (!entries.length){ $('segBody').innerHTML = '<div class="empty">—</div>'; return; }
+  const by = JR.statsBy(entries, seg);
+  const keys = Object.keys(by).sort((a, b) => by[b].n - by[a].n);
+  $('segBody').innerHTML = `<table>
+    <thead><tr><th class="l">${seg === '__tags' ? 'tag' : seg}</th><th>n</th><th>win%</th><th>PnL net</th><th>Exp. R</th><th>PF</th><th></th></tr></thead>
+    <tbody>${keys.map(k => {
+      const s = by[k];
+      return `<tr>
+        <td class="l"><b>${esc(k)}</b></td>
+        <td>${s.n}</td>
+        <td>${s.winPct.toFixed(0)}%</td>
+        <td class="${s.pnlNet >= 0 ? 'pos' : 'neg'}">${(s.pnlNet >= 0 ? '+' : '') + fmt$(s.pnlNet).replace('$-','-$')}</td>
+        <td class="${s.expectancyR == null ? '' : s.expectancyR >= 0 ? 'pos' : 'neg'}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(2) : '—'}</td>
+        <td>${s.pf === Infinity ? '∞' : s.pf.toFixed(2)}</td>
+        <td>${s.small ? '<span class="wrn">⚠ zgomot</span>' : ''}</td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+document.querySelectorAll('.seg-tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.seg-tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  seg = t.dataset.seg;
+  renderSeg();
+}));
+
+// ── Tabel execuții ──
+function renderTable(){
+  const entries = JR.all().slice().sort((a, b) => (b.closeTs || 0) - (a.closeTs || 0));
+  if (!entries.length){
+    $('tblWrap').innerHTML = `<div class="empty">📭 Jurnal gol.<br>Adaugă prima execuție din formularul de sus, sau
+    <b>⬇ Import din tracker</b> ca să aduci trade-urile deja închise din FAB-ul 📓 al Hub-ului.</div>`;
+    return;
+  }
+  $('tblWrap').innerHTML = `<table>
+    <thead><tr><th class="l">Închis</th><th class="l">Ticker</th><th>Dir</th><th>Entry→Exit</th><th>Size</th><th>Fees</th><th>PnL net</th><th>R</th><th class="l">Sursă</th><th class="l">Tags</th><th></th></tr></thead>
+    <tbody>${entries.map(e => {
+      const p = JR.pnl(e), r = JR.rMult(e);
+      return `<tr>
+        <td class="l">${e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—'}</td>
+        <td class="sym l">${esc(e.sym)}</td>
+        <td>${e.dir === 'short' ? '🔻S' : '🔺L'}</td>
+        <td>${fmt$(e.entry)}→${fmt$(e.exit)}</td>
+        <td>${e.size}</td>
+        <td>${e.fees ? fmt$(e.fees) : '<span class="wrn" title="fees=0 — sigur? completează costul real">0⚠</span>'}</td>
+        <td class="${p >= 0 ? 'pos' : 'neg'}">${(p >= 0 ? '+' : '') + fmt$(p).replace('$-','-$')}</td>
+        <td class="${r == null ? '' : r >= 0 ? 'pos' : 'neg'}">${r != null ? (r >= 0 ? '+' : '') + r.toFixed(2) : '—'}</td>
+        <td class="l" style="font-size:10px">${esc(e.source)}</td>
+        <td class="l">${(e.tags || []).map(t => `<span class="mini">${esc(t)}</span>`).join('') || '—'}</td>
+        <td>
+          <button class="act" data-edit="${esc(e.id)}">✏</button>
+          <button class="act" data-del="${esc(e.id)}">🗑</button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+  $('tblWrap').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => {
+    const e = JR.all().find(x => x.id === b.dataset.edit);
+    if (e) fillForm(e);
+  }));
+  $('tblWrap').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    if (confirm('Șterg execuția din jurnal?')){ JR.remove(b.dataset.del); if (editId === b.dataset.del) resetForm(); renderAll(); }
+  }));
+}
+
+function renderAll(){
+  $('ovCards').innerHTML = scHtml(JR.stats(JR.all()));
+  renderSeg();
+  renderTable();
+}
+
+resetForm();
+renderAll();
+})();
+</script>
+<script src="../nav.js" data-nav-root="../"></script>
+</body>
+</html>
