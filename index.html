@@ -379,6 +379,11 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-freeze{border-radius:10px;padding:10px 14px;margin-bottom:12px;font-family:var(--head);font-size:12.5px;font-weight:700;line-height:1.4}
 .pb-freeze.red{background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
 .pb-freeze.amber{background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:var(--warn)}
+/* Watchlist events — drill-down colapsat la coadă */
+.pb-wl-sum{cursor:pointer;list-style:none;user-select:none}
+.pb-wl-sum::-webkit-details-marker{display:none}
+.pb-wl-sum::before{content:"▸";color:var(--crypto-1);transition:transform .15s var(--ease)}
+#pbWlEvDet[open] .pb-wl-sum::before{transform:rotate(90deg)}
 /* Peste noapte — diff-ul stării vs ziua precedentă */
 .pb-diff{background:var(--bg3);border:1px solid var(--b1);border-left:3px solid #5bb0ff;border-radius:8px;padding:8px 13px;margin-bottom:12px;font-family:var(--mono);font-size:11.5px;color:var(--t2);line-height:1.5}
 .pb-diff b{color:var(--t1)}
@@ -475,7 +480,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v514</span>
+      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v515</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -585,10 +590,6 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
         <div class="pb-section-body" id="pbBodySector"><div class="pb-loading">se citește ultimul scan sectorial…</div></div>
       </div>
       <div class="pb-section">
-        <div class="pb-section-head"><h3>📌 Watchlist events (14-30 zile)</h3><span class="pb-count" id="pbCntWlEvents">—</span><span class="pb-go" style="cursor:default">earnings · dividends · splits · presentations</span></div>
-        <div class="pb-section-body" id="pbBodyWlEvents"><div class="pb-loading">se agregă events…</div></div>
-      </div>
-      <div class="pb-section">
         <div class="pb-section-head"><h3>🚀 Top picks (scan nasdaq + semnale suite)</h3><span class="pb-count" id="pbCntNasdaq">—</span><a class="pb-go" href="./nasdaq-scanner/">Open Scanner →</a></div>
         <div class="pb-section-body" id="pbBodyNasdaq"><div class="pb-loading">se citesc datele…</div></div>
       </div>
@@ -599,6 +600,12 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       <div class="pb-section">
         <div class="pb-section-head"><h3>🎯 Sugestii watchlist (din rezultate macro)</h3><span class="pb-count" id="pbCntSuggestions">—</span><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
         <div class="pb-section-body" id="pbBodySuggestions"><div class="pb-loading">se verifică sugestiile…</div></div>
+      </div>
+      <div class="pb-section">
+        <details id="pbWlEvDet">
+          <summary class="pb-section-head pb-wl-sum"><h3>📌 Watchlist events (14-30 zile)</h3><span class="pb-count" id="pbCntWlEvents">—</span><span class="pb-go" style="cursor:default">earnings · dividends · splits · presentations</span></summary>
+          <div class="pb-section-body" id="pbBodyWlEvents"><div class="pb-empty">expandează ca să se încarce events-urile watchlist (Finnhub)</div></div>
+        </details>
       </div>
       <div style="font-family:var(--mono);font-size:10.5px;color:var(--t3);text-align:right" id="pbRefreshInfo">—</div>
     </div>
@@ -2526,7 +2533,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     pbLoadNasdaqPicks();
     pbLoadSTL();
     pbLoadSuggestions();
-    await Promise.allSettled([pbLoadRisk(), pbLoadMacroEvents(), pbLoadEarnings(), pbLoadWlEvents()]);
+    // WL events = lazy (colapsat la coadă): se încarcă doar dacă drill-down-ul e deschis — economisește cota Finnhub
+    const wlDet = $('pbWlEvDet');
+    await Promise.allSettled([pbLoadRisk(), pbLoadMacroEvents(), pbLoadEarnings(), (wlDet && wlDet.open) ? pbLoadWlEvents() : Promise.resolve()]);
     pbRenderHero(); // recompune după ce regimul/danger sunt proaspete în localStorage
     pbSnapshotDaily(); // consemnează starea zilei (după refresh-ul surselor)
     pbRenderOvernight();
@@ -2558,6 +2567,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
   const aiBtn = $('pbAiBtn');
   if (aiBtn) aiBtn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); pbGenAiNote(false); });
+  // WL events lazy: se încarcă la prima expandare (re-apel = ieftin, cache 6h intern în pbLoadWlEvents)
+  const wlEvDet = $('pbWlEvDet');
+  if (wlEvDet) wlEvDet.addEventListener('toggle', () => { if (wlEvDet.open) pbLoadWlEvents(); });
   // Brief de dimineață = deschis by default (attr `open` în HTML); îl colapsăm DOAR dacă userul l-a închis explicit
   try {
     if (localStorage.getItem('pb_open') === '0') wrap.open = false;
