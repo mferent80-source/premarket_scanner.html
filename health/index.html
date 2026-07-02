@@ -79,8 +79,9 @@ header h1{
 <body>
 
 <header>
-  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v1</span></h1>
+  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v2</span></h1>
   <button class="nav-link" id="btnRunAll">▶ Rulează toate testele</button>
+  <button class="nav-link" id="btnReport" title="Copiază starea tuturor verificărilor ca raport text — lipește-l în Claude Code și el ia măsurile">📋 Raport pt Claude</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
 
@@ -315,6 +316,55 @@ $('btnRunAll').addEventListener('click', async () => {
   try { await Promise.allSettled([runProxy(), runFinnhub(), runBot(), runGist()]); }
   finally { btn.disabled = false; btn.textContent = '▶ Rulează toate testele'; $('foot').textContent = '🔄 ultima rulare completă: ' + new Date().toLocaleTimeString('ro-RO'); }
 });
+
+// ── Raport pentru Claude — starea tuturor verificărilor ca text structurat, în clipboard.
+// Fluxul: rulezi testele → 📋 Raport → lipești în Claude Code → el ia măsurile pe [PROBLEMĂ]/[ATENȚIE].
+function buildReport(){
+  const now = new Date();
+  const L = [];
+  L.push('=== RAPORT SUITE HEALTH · ' + now.toLocaleString('ro-RO') + ' ===');
+  L.push('Pagina: /health/ ' + ($('verBadge').textContent || '') + ' · URL: ' + location.href);
+  L.push('Device: ' + (navigator.userAgent || '?').slice(0, 110));
+  L.push('');
+  let untested = 0;
+  document.querySelectorAll('.chk').forEach(c => {
+    const title = (c.querySelector('h2') || {}).textContent || '?';
+    const dotCls = ((c.querySelector('.chk-dot') || {}).className || '');
+    const status = /\bok\b/.test(dotCls) ? '[OK]      '
+                 : /\bwarn\b/.test(dotCls) ? '[ATENȚIE] '
+                 : /\berr\b/.test(dotCls) ? '[PROBLEMĂ]'
+                 : /\boff\b/.test(dotCls) ? '[neconfig]'
+                 : '[netestat]';
+    if (status === '[netestat]') untested++;
+    // textul verificării, aplatizat pe o linie (fără linkuri/decor)
+    const body = ((c.querySelector('.chk-body') || {}).innerText || '').replace(/\s+/g, ' ').trim().slice(0, 220);
+    L.push(status + ' ' + title.trim() + ' — ' + body);
+  });
+  L.push('');
+  if (untested) L.push('⚠ ' + untested + ' verificări NErulate — pentru un raport complet apasă întâi „▶ Rulează toate testele".');
+  L.push('Instrucțiune: lipește raportul în Claude Code (repo premarket_scanner). Prioritate: [PROBLEMĂ] întâi, apoi [ATENȚIE].');
+  return L.join('\n');
+}
+async function copyReport(){
+  const btn = $('btnReport');
+  const txt = buildReport();
+  let ok = false;
+  try { await navigator.clipboard.writeText(txt); ok = true; }
+  catch (e) {
+    // fallback pt contexte fără Clipboard API (iframe/permisiuni): textarea temporar + execCommand
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = txt; ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      ok = document.execCommand('copy');
+      ta.remove();
+    } catch (e2) {}
+  }
+  btn.textContent = ok ? '✓ copiat — lipește la Claude' : '⚠ copierea a eșuat';
+  setTimeout(() => { btn.textContent = '📋 Raport pt Claude'; }, 3500);
+  if (!ok) { try { prompt('Copiază manual raportul:', txt); } catch (e) {} }
+}
+$('btnReport').addEventListener('click', copyReport);
 
 // La load: DOAR verificările gratuite (zero consum de cotă/bani/mesaje)
 checkFinnhubPresence();
