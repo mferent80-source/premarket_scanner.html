@@ -379,6 +379,14 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-freeze{border-radius:10px;padding:10px 14px;margin-bottom:12px;font-family:var(--head);font-size:12.5px;font-weight:700;line-height:1.4}
 .pb-freeze.red{background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
 .pb-freeze.amber{background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:var(--warn)}
+/* Sector rotation — lideri/codași din sr_last_scan */
+.pb-sect-regime{margin-bottom:8px}
+.pb-sect-grp{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--t3);margin:6px 0 3px}
+.pb-sect-row{display:flex;flex-wrap:wrap;gap:8px}
+.pb-sect-cell{display:flex;flex-direction:column;gap:1px;background:var(--bg4);border:1px solid var(--b1);border-radius:8px;padding:6px 10px;min-width:78px}
+.pb-sect-sym{font-family:var(--head);font-size:13px;font-weight:800;color:var(--t1);text-decoration:none}
+.pb-sect-sym:hover{color:#5bb0ff}
+.pb-sect-rs{font-family:var(--mono);font-size:10px;color:var(--t3)}
 .pb-loading::before{content:"⏳ "}
 .pb-table{width:100%;border-collapse:collapse;font-size:12px}
 .pb-table th{padding:6px 7px;text-align:left;font-weight:700;font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--b1);font-family:var(--mono)}
@@ -558,6 +566,10 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       <div class="pb-section">
         <div class="pb-section-head"><h3>📊 Earnings next 7 zile (watchlist + mega-caps)</h3><span class="pb-count" id="pbCntEarnings">—</span><a class="pb-go" href="./earnings-hub/">Open Earnings →</a></div>
         <div class="pb-section-body" id="pbBodyEarnings"><div class="pb-loading">calendar earnings…</div></div>
+      </div>
+      <div class="pb-section">
+        <div class="pb-section-head"><h3>🔄 Sector rotation</h3><span class="pb-count" id="pbCntSector">—</span><a class="pb-go" href="./sector-rotation/">Open Sector →</a></div>
+        <div class="pb-section-body" id="pbBodySector"><div class="pb-loading">se citește ultimul scan sectorial…</div></div>
       </div>
       <div class="pb-section">
         <div class="pb-section-head"><h3>📌 Watchlist events (14-30 zile)</h3><span class="pb-count" id="pbCntWlEvents">—</span><span class="pb-go" style="cursor:default">earnings · dividends · splits · presentations</span></div>
@@ -2248,11 +2260,55 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     }
   }
 
+  // Sector rotation — oglindește ultimul scan (sr_last_scan) + regimul de rotație (tt_risk_regime)
+  function pbLoadSector(){
+    const body = $('pbBodySector');
+    if (!body) return;
+    let scan = null, reg = null;
+    try { scan = JSON.parse(localStorage.getItem('sr_last_scan') || 'null'); } catch (e) {}
+    try { reg = JSON.parse(localStorage.getItem('tt_risk_regime') || 'null'); } catch (e) {}
+    if (!scan || !Array.isArray(scan.data) || !scan.data.length){
+      $('pbCntSector').textContent = '0';
+      body.innerHTML = '<div class="pb-empty">📭 Niciun scan sectorial salvat. Deschide <a href="./sector-rotation/" style="color:#5bb0ff">Sector Rotation</a> ca să se populeze.</div>';
+      return;
+    }
+    const rows = scan.data.filter(d => typeof d.rsRatio === 'number');
+    if (!rows.length){
+      $('pbCntSector').textContent = '0';
+      body.innerHTML = '<div class="pb-empty">📭 Scan sectorial fără RS valid — redeschide Sector Rotation.</div>';
+      return;
+    }
+    const byRs = [...rows].sort((a, b) => (b.rsRatio || 0) - (a.rsRatio || 0));
+    const leaders = byRs.slice(0, 4);
+    const laggards = byRs.slice(-2).reverse();
+    $('pbCntSector').textContent = String(rows.length);
+    const ageH = scan.ts ? (Date.now() - scan.ts) / 3600000 : null;
+    const stale = ageH != null && ageH > 12;
+    let regHtml = '';
+    if (reg && reg.regime){
+      const spread = typeof reg.spread === 'number' ? `${reg.spread >= 0 ? '+' : ''}${reg.spread}%` : '';
+      const rl = String(reg.regime);
+      const chipCls = /ON/i.test(rl) ? 'bull' : /OFF/i.test(rl) ? 'high' : 'med';
+      regHtml = `<div class="pb-sect-regime"><span class="pb-chip ${chipCls}">Rotație ${escHtml(rl)}</span> <span style="color:var(--t3);font-family:var(--mono);font-size:10.5px">cyc−def ${escHtml(spread)}</span></div>`;
+    }
+    const chip = d => {
+      const rs = typeof d.rsRatio === 'number' ? d.rsRatio.toFixed(1) : '—';
+      const w = typeof d.chg1w === 'number' ? `${d.chg1w >= 0 ? '+' : ''}${d.chg1w.toFixed(1)}%` : '';
+      const cls = (d.chg1w || 0) >= 0 ? 'up' : 'down';
+      return `<div class="pb-sect-cell"><a href="./sector-rotation/" class="pb-sect-sym">${escHtml(d.sym || d.name || '?')}</a><span class="pb-sect-rs">RS ${rs}</span><span class="pb-mkt-chg ${cls}">${w}</span></div>`;
+    };
+    body.innerHTML = regHtml
+      + `<div class="pb-sect-grp">👑 LIDERI (RS vs SPY)</div><div class="pb-sect-row">${leaders.map(chip).join('')}</div>`
+      + `<div class="pb-sect-grp">🐌 CODAȘI</div><div class="pb-sect-row">${laggards.map(chip).join('')}</div>`
+      + (stale ? `<div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:5px">📦 scan de acum ${Math.round(ageH)}h — redeschide Sector Rotation pt refresh</div>` : '');
+  }
+
   async function pbLoadAll(){
     $('pbRefreshInfo').textContent = '⏳ se încarcă…';
     pbLoadDanger();
     pbRenderMarket();
     pbRenderFreeze();
+    pbLoadSector();
     pbRenderHero();
     pbLoadNasdaqPicks();
     pbLoadSuggestions();
