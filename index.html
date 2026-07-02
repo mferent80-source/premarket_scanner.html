@@ -379,6 +379,9 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-freeze{border-radius:10px;padding:10px 14px;margin-bottom:12px;font-family:var(--head);font-size:12.5px;font-weight:700;line-height:1.4}
 .pb-freeze.red{background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
 .pb-freeze.amber{background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:var(--warn)}
+/* Peste noapte — diff-ul stării vs ziua precedentă */
+.pb-diff{background:var(--bg3);border:1px solid var(--b1);border-left:3px solid #5bb0ff;border-radius:8px;padding:8px 13px;margin-bottom:12px;font-family:var(--mono);font-size:11.5px;color:var(--t2);line-height:1.5}
+.pb-diff b{color:var(--t1)}
 /* Sector rotation — lideri/codași din sr_last_scan */
 .pb-sect-regime{margin-bottom:8px}
 .pb-sect-grp{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--t3);margin:6px 0 3px}
@@ -472,7 +475,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v512</span>
+      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v513</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -554,6 +557,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
         <div class="pb-hero-verdict">se compune…</div>
         <div class="pb-hero-sub">—</div>
       </div>
+      <div class="pb-diff" id="pbDiff" style="display:none"></div>
       <div class="pb-freeze" id="pbFreeze" style="display:none"></div>
       <div class="pb-section">
         <div class="pb-section-head"><h3>🤖 Nota AI de dimineață</h3><button class="pb-refresh-btn" id="pbAiBtn">✨ Generează</button></div>
@@ -2432,6 +2436,70 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     }
   }
 
+  // ── „Peste noapte" — ce s-a schimbat față de ziua precedentă (regim/danger/lider sectorial/READY) ──
+  // Snapshot zilnic în pb_daily_snap {cur, prev}: la schimbarea zilei ET, cur→prev; în aceeași zi
+  // cur se reîmprospătează cu ultimele valori (păstrând ce era deja prins azi dacă acum lipsește).
+  function pbCurrentState(){
+    const st = { dateET: pbTodayET(), regime: null, danger: null, leaders: [], ready: [] };
+    try { const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null'); if (r && r.label) st.regime = String(r.label).trim(); } catch (e) {}
+    try { const h = JSON.parse(localStorage.getItem('md_danger_daily') || '[]'); if (Array.isArray(h) && h.length && typeof h[h.length-1].score === 'number') st.danger = h[h.length-1].score; } catch (e) {}
+    try {
+      const s = JSON.parse(localStorage.getItem('sr_last_scan') || 'null');
+      if (s && Array.isArray(s.data)) st.leaders = [...s.data.filter(d => typeof d.rsRatio === 'number')].sort((a, b) => (b.rsRatio || 0) - (a.rsRatio || 0)).slice(0, 3).map(d => d.sym || d.name).filter(Boolean);
+    } catch (e) {}
+    try {
+      const l = JSON.parse(localStorage.getItem('stl_list_state') || '{}'), now = Date.now();
+      st.ready = Object.entries(l).filter(([k, v]) => k !== '_mode' && v && v.tier === 'READY' && now - (v.ts || 0) < 24*3600000).map(([k]) => k).sort();
+    } catch (e) {}
+    return st;
+  }
+  function pbSnapshotDaily(){
+    try {
+      const today = pbTodayET();
+      if (!today) return;
+      let store = null;
+      try { store = JSON.parse(localStorage.getItem('pb_daily_snap') || 'null'); } catch (e) {}
+      if (!store || typeof store !== 'object') store = {};
+      const st = pbCurrentState();
+      if (store.cur && store.cur.dateET === today){
+        // aceeași zi: valorile de azi deja prinse nu se pierd dacă o sursă e momentan goală
+        if (st.regime == null) st.regime = store.cur.regime;
+        if (st.danger == null) st.danger = store.cur.danger;
+        if (!st.leaders.length) st.leaders = store.cur.leaders || [];
+        if (!st.ready.length) st.ready = store.cur.ready || [];
+        store.cur = st;
+      } else {
+        if (store.cur) store.prev = store.cur; // zi nouă: starea de ieri devine referința
+        store.cur = st;
+      }
+      localStorage.setItem('pb_daily_snap', JSON.stringify(store));
+    } catch (e) {}
+  }
+  function pbRenderOvernight(){
+    const el = $('pbDiff');
+    if (!el) return;
+    let store = null;
+    try { store = JSON.parse(localStorage.getItem('pb_daily_snap') || 'null'); } catch (e) {}
+    const cur = store && store.cur, prev = store && store.prev;
+    if (!cur){ el.style.display = 'none'; return; }
+    if (!prev){
+      el.innerHTML = '🌙 <b>Peste noapte:</b> <span style="color:var(--t3)">prim snapshot azi — comparația cu ziua precedentă apare de mâine</span>';
+      el.style.display = '';
+      return;
+    }
+    const ch = [];
+    if (cur.regime && prev.regime && cur.regime !== prev.regime) ch.push(`regim <b>${escHtml(prev.regime)}</b> → <b>${escHtml(cur.regime)}</b>`);
+    if (typeof cur.danger === 'number' && typeof prev.danger === 'number' && Math.abs(cur.danger - prev.danger) >= 5){
+      const d = cur.danger - prev.danger;
+      ch.push(`Danger ${prev.danger} → ${cur.danger} (<span style="color:${d > 0 ? 'var(--red)' : 'var(--green)'}">${d > 0 ? '+' : ''}${d}</span>)`);
+    }
+    if (cur.leaders[0] && prev.leaders[0] && cur.leaders[0] !== prev.leaders[0]) ch.push(`lider sectorial <b>${escHtml(prev.leaders[0])}</b> → <b>${escHtml(cur.leaders[0])}</b>`);
+    const newReady = (cur.ready || []).filter(s => !(prev.ready || []).includes(s));
+    if (newReady.length) ch.push(`READY noi: <b>${newReady.map(escHtml).join(', ')}</b>`);
+    el.innerHTML = `🌙 <b>Peste noapte (vs ${escHtml(prev.dateET || 'ieri')}):</b> ` + (ch.length ? ch.join(' · ') : '<span style="color:var(--t3)">≈ nimic major schimbat</span>');
+    el.style.display = '';
+  }
+
   async function pbLoadAll(){
     $('pbRefreshInfo').textContent = '⏳ se încarcă…';
     pbLoadDanger();
@@ -2440,11 +2508,14 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     pbLoadSector();
     pbShowAiCache();
     pbRenderHero();
+    pbRenderOvernight(); // instant, din snapshot-ul salvat
     pbLoadNasdaqPicks();
     pbLoadSTL();
     pbLoadSuggestions();
     await Promise.allSettled([pbLoadRisk(), pbLoadMacroEvents(), pbLoadEarnings(), pbLoadWlEvents()]);
     pbRenderHero(); // recompune după ce regimul/danger sunt proaspete în localStorage
+    pbSnapshotDaily(); // consemnează starea zilei (după refresh-ul surselor)
+    pbRenderOvernight();
     $('pbRefreshInfo').textContent = `🔄 ultim refresh: ${new Date().toLocaleTimeString('ro-RO')}`;
   }
   // Când banda de sus termină un ticker → oglindește instant în cockpit (piață + ton în erou)
