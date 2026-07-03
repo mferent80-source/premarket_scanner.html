@@ -10,12 +10,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-002 | Portfolio Risk Deck (risc agregat pe pozițiile deschise) | NOU: portfolio/ | M | P1 | făcut | ideation | 2026-07-02 |
 | I-003 | Suite Health (starea infrastructurii: proxy/chei/bot/sync) | NOU: health/ | S | P2 | făcut | ideation | 2026-07-02 |
 | I-004 | Weekly Review (retrospectiva săptămânii, client-side + AI) | NOU: weekly/ | M | P3 | făcut | ideation | 2026-07-02 |
-| I-005 | Shadow tracker pe semnalele blocate de macro gate | AntiFOMO Pine | M | P1 | propus | ideation | 2026-07-03 |
-| I-006 | Earnings guard pe preset Nasdaq | AntiFOMO Pine | S | P1 | propus | ideation | 2026-07-03 |
-| I-007 | Connector Meta-Confluence (slot AntiFOMO) | AntiFOMO Pine | S | P3 | propus | ideation | 2026-07-03 |
-| I-008 | Exit alert cu payload JSON → journal | AntiFOMO Pine | S | P3 | propus | ideation | 2026-07-03 |
-| I-009 | Aliniere alerte regim cu gate-ul real + vârsta gate-ului | AntiFOMO Pine | S | P2 | propus | ideation | 2026-07-03 |
-| I-010 | Detalii macro pe toggle (dashboard Pro de ziar → nucleu) | AntiFOMO Pine | S | P3 | propus | ideation | 2026-07-03 |
+| I-005 | Shadow tracker pe semnalele blocate de macro gate | AntiFOMO Pine | M | P1 | făcut | ideation | 2026-07-03 |
+| I-006 | Earnings guard pe preset Nasdaq | AntiFOMO Pine | S | P1 | făcut | ideation | 2026-07-03 |
+| I-007 | Connector Meta-Confluence (slot AntiFOMO) | AntiFOMO Pine | S | P3 | făcut | ideation | 2026-07-03 |
+| I-008 | Exit alert cu payload JSON → journal | AntiFOMO Pine | S | P3 | făcut | ideation | 2026-07-03 |
+| I-009 | Aliniere alerte regim cu gate-ul real + vârsta gate-ului | AntiFOMO Pine | S | P2 | făcut | ideation | 2026-07-03 |
+| I-010 | Detalii macro pe toggle (dashboard Pro de ziar → nucleu) | AntiFOMO Pine | S | P3 | făcut | ideation | 2026-07-03 |
 
 ## Mini-spec-uri
 
