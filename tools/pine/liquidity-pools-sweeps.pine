@@ -1,18 +1,65 @@
 //@version=6
 // =============================================================================
-//  Liquidity Pools & Sweeps  —  v1.8  (standalone)
+//  Liquidity Pools & Sweeps  —  v2.0  (standalone)
 //  Buy-side (BSL) above swing highs, sell-side (SSL) below swing lows.
 //  Flags equal-highs/lows (EQH/EQL) and the liquidity grab when price wicks
 //  through a pool and closes back. "Talking" status dashboard.
 //
+//  v2.0 changes vs v1.9 (2026-07-03, "nu da semnale tocmai corecte" + redesign):
+//   ═══ LOGICA — 3 fixe de corectitudine a semnalelor ═══
+//   FIX #1 (grab FALS pe break-and-retest — cauza principala de semnale gresite):
+//     cu "Require close-back" ON, un pool spart CURAT (close DINCOLO de nivel,
+//     breakout real) NU era marcat si ramanea ACTIV. Cand pretul revenea mai
+//     tarziu de sus prin nivel (retest normal de breakout), conditia
+//     high>lvl & close<lvl se indeplinea si indicatorul striga "GRAB -> GO
+//     SHORT" pe un simplu retest — semnal INVERS fata de context. Acum:
+//     inchiderea dincolo de nivel fara close-back = BREAK -> poolul se
+//     INVALIDEAZA pe loc (linie gri punctata + label "break", fara alerta).
+//     Un nivel inchis dincolo e BOS/continuare, nu lichiditate de recoltat.
+//   FIX #2 (trigger mincinos in fereastra): dupa un grab, "GO LONG/SHORT ACUM"
+//     ramanea aprins TOATA fereastra evalBars chiar daca pretul recucerea
+//     nivelul imediat (grab esuat) — outcome-ul se judeca abia la finalul
+//     ferestrei. Acum: orice inchidere inapoi DINCOLO de nivelul maturat
+//     infirma grab-ul PE LOC (CONTINUATION) si triggerul trece pe "STAI".
+//   FIX #3 (metrica Edge fade masura gresit): win-ul si excursia se masurau
+//     fata de NIVEL, dar intrarea fade-ului e la CLOSE-ul barei de grab —
+//     care e DEJA dincolo de nivel prin definitia close-back. Rezultat:
+//     "rev" iesea aproape mereu true (bias optimist) si excursia includea
+//     gap-ul wick->close pe care nu-l castigi. Acum: totul fata de ENTRY
+//     (close-ul barei de grab): win = close dincolo de entry in directia
+//     fade la evalBars; med xATR = excursia fata de entry. Verdictul "Last
+//     sweep" la fel: REVERSAL OK = fade profitabil vs entry; FARA MISCARE =
+//     nici continuare, nici profit.
+//   ═══ DASHBOARD — redesign "ink + nisip" (skill frontend-design) ═══
+//     Sincron cu suita (AntiFOMO v9.14 / Confluence v1.6 / SMS v6.12 / CODE
+//     MACD v2.10 / Command Deck v1.4 / Sniper v6.5 / AGAIG v3.9.5 / Market
+//     Health v4.9): surfaces ink zebra #10141b/#151a24, FARA grila interioara
+//     (border 0) + chenar subtil #2a3145, titlu pe auriu #d9a95c, verdict +
+//     trigger = hero cu bg plin (teal #26a69a long / coral #ef5350 short /
+//     amber asteapta / ink+auriu neutru), verde/rosu vechi (#4caf50/#ff5252)
+//     -> teal/coral, "fara setup" -> "RABDARE". BSL default pe auriu-nisip
+//     #d9a95c (era #f0b429), SSL ramane cyan (identitate per-pool).
+//
+//  v1.9 changes vs v1.8:
+//   - Rand nou in dashboard: "Edge fade" - tracker de expectancy care raspunde
+//     scurt daca fade-ul (intrarea INVERS dupa grab) chiar plateste pe activul/TF
+//     asta. Inainte se vedea doar outcome-ul ULTIMULUI grab (Last sweep); acum se
+//     evalueaza FIECARE grab dintr-o coada, la evalBars bare, si se cumuleaza:
+//       wins/total (cate au revenit dincolo de nivel) + win% + mutarea medie in
+//       directia fade (xATR). Verdict: FADE OK (win>=55% si med>0) / FADE SLAB
+//       (win<=45% sau med<0) / MIXT; sub 5 grab-uri = "putine date". Tooltip
+//       explica metrica pe hover. Doar masura - nu schimba semnalele.
+//
 //  v1.8 changes vs v1.7:
-//   - Dashboard redimensionabil si mutabil, fara alta schimbare de logica:
-//       * input "Dashboard text size" (Tiny / Small / Normal / Large / Huge /
-//         Auto) scaleaza intreg tabelul. Normal = marimea din v1.7.
-//       * input "Position" extins la toate cele 9 ancore ale chartului
-//         (Top/Middle/Bottom x Left/Center/Right), nu doar cele 4 colturi.
-//       * Default Normal + Top Right => aspect identic cu v1.7. Zero atingere
-//         a verdictului, trigger-ului, culorilor sau alertelor.
+//   - Alerte fara fals-pozitiv: alert() inline trece pe freq_once_per_bar_close.
+//     Cu "Require close-back" ON, close-ul era LIVE intrabar -> un close-back de
+//     moment putea trage alerta desi la inchiderea barei grab-ul nu mai era valid.
+//     Acum trag doar pe bara inchisa (cum recomanda chiar nota din header).
+//   - cleanupATR bidirectional: un pool e considerat "departe" cand pretul se duce
+//     |xATR| in ORICE directie (inainte doar pe partea de origine -> poolurile rupte
+//     curat pe partea opusa, fara close-back, ramaneau active la infinit).
+//   - Divizari la atr protejate (atrSafe): pe active flat/ilichide atr putea fi 0 ->
+//     bslAtr/sslAtr dadeau inf in loc de na. Acum se degradeaza curat la na.
 //
 //  v1.7 changes vs v1.6:
 //   - Verdict aliniat cu trigger-ul: cat timp un grab e proaspat si neinfirmat
@@ -71,7 +118,7 @@
 //     dropped when exceeded. Swept lines/labels auto-pruned by max counts.
 // =============================================================================
 
-indicator("Liquidity Pools & Sweeps v1.8", overlay = true,
+indicator("Liquidity Pools & Sweeps v2.0", overlay = true,
      max_lines_count = 500, max_labels_count = 500, max_bars_back = 500)
 
 // ----------------------------- Inputs ----------------------------------------
@@ -100,17 +147,15 @@ evalBars     = input.int(5, "Sweep outcome lookahead (bars)", minval = 1, maxval
 grpV = "Visuals"
 showLabels = input.bool(true,  "Show labels", group = grpV)
 extendR    = input.bool(true,  "Extend pools to the right", group = grpV)
-bslCol     = input.color(#f0b429, "Buy-side (BSL)", group = grpV)
+// v2.0: default-uri pe paleta "ink + nisip" (raman configurabile)
+bslCol     = input.color(#d9a95c, "Buy-side (BSL)", group = grpV)
 sslCol     = input.color(#38bdf8, "Sell-side (SSL)", group = grpV)
-sweptCol   = input.color(#7a8699, "Swept", group = grpV)
-lblBg      = input.color(color.new(#0a0d12, 25), "Label background", group = grpV)
+sweptCol   = input.color(#707887, "Swept", group = grpV)
+lblBg      = input.color(color.new(#10141b, 25), "Label background", group = grpV)
 
 grpT = "Dashboard"
 showDash = input.bool(true, "Show status dashboard", group = grpT)
-dashPos  = input.string("Top Right", "Position", options = ["Top Left", "Top Center", "Top Right", "Middle Left", "Middle Center", "Middle Right", "Bottom Left", "Bottom Center", "Bottom Right"], group = grpT,
-     tooltip = "Muta dashboard-ul in oricare din cele 9 ancore ale chartului.")
-dashSize = input.string("Normal", "Dashboard text size", options = ["Tiny", "Small", "Normal", "Large", "Huge", "Auto"], group = grpT,
-     tooltip = "Redimensioneaza tot dashboard-ul. Normal = marimea din v1.7. Auto scaleaza cu zoom-ul chartului.")
+dashPos  = input.string("Top Right", "Position", options = ["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group = grpT)
 setupATRc = input.float(0.5, "Setup alert within xATR (Custom)", minval = 0.0, step = 0.1, group = grpT,
      tooltip = "Folosit doar pe preset Custom. If the nearest pool is closer than this (in xATR), Setup shows WATCH. Inside the equality tolerance it shows IN ZONE.")
 
@@ -120,14 +165,9 @@ int   pivotLen = preset == "Crypto" ? 8    : preset == "Nasdaq" ? 10   : pivotLe
 float eqTolATR = preset == "Crypto" ? 0.15 : preset == "Nasdaq" ? 0.08 : eqTolATRC
 float setupATR = preset == "Crypto" ? 0.7  : preset == "Nasdaq" ? 0.4  : setupATRc
 
-// ----------------------------- Dashboard size resolve ------------------------
-// szBig = randurile proeminente (titlu / verdict / trigger); szSml = detaliile.
-// Default "Normal" => szBig = size.normal, szSml = size.small => identic cu v1.7.
-szBig = dashSize == "Tiny" ? size.tiny : dashSize == "Small" ? size.small : dashSize == "Large" ? size.large : dashSize == "Huge" ? size.huge : dashSize == "Auto" ? size.auto : size.normal
-szSml = dashSize == "Tiny" ? size.tiny : dashSize == "Small" ? size.tiny  : dashSize == "Large" ? size.normal : dashSize == "Huge" ? size.large : dashSize == "Auto" ? size.auto : size.small
-
 // ----------------------------- State -----------------------------------------
 atr = ta.atr(14)
+float atrSafe = atr > 0 ? atr : na   // pe active flat/ilichide atr poate fi 0 -> impuscaturi inf la impartire
 tol = atr * eqTolATR
 
 // Active pools (parallel arrays, kept in sync by index)
@@ -152,8 +192,21 @@ int memCap = 12
 var int    lastSweepBar     = na
 var string lastSweepSide    = ""
 var float  lastSweepLvl     = na
+var float  lastSweepEntry   = na   // v2.0 FIX #3: entry-ul fade = close-ul barei de grab
 var bool   lastSweepDone    = true
 var string lastSweepOutcome = "-"
+
+// --- Expectancy tracker fade (v1.9) ---------------------------------------
+// Coada de grab-uri in asteptarea evaluarii (fiecare se judeca la evalBars bare),
+// + contoarele cumulate. Raspunde la intrebarea: "fade-ul dupa grab CHIAR plateste
+// pe activul/TF-ul asta?" - nu doar ultimul grab (ala ramane in randul Last sweep).
+var array<int>   pgBar = array.new<int>()    // bara grab-ului
+var array<bool>  pgBuy = array.new<bool>()   // true = grab buy-side (BSL/EQH) -> fade SHORT
+var array<float> pgEnt = array.new<float>()  // v2.0 FIX #3: entry-ul fade (close la grab)
+var array<float> pgAtr = array.new<float>()  // atr la momentul grab-ului (normalizare xATR)
+var int   fadeWins = 0     // grab-uri unde pretul a revenit dincolo de nivel (fade a mers)
+var int   fadeTot  = 0     // grab-uri evaluate
+var float fadeSumX = 0.0   // suma excursiei in directia fade (xATR) -> media = "cat misca" fade-ul
 
 // ----------------------------- Helpers ---------------------------------------
 f_pushCap(array<float> arr, float v, int cap) =>
@@ -236,7 +289,11 @@ if array.size(bL) > 0
         float lvl  = array.get(bV, i)
         bool  isEq = array.get(bE, i)
         bool swept = high > lvl and (requireClose ? close < lvl : true)
-        bool stale = cleanupATR > 0 and (close - lvl) < -(cleanupATR * atr)
+        // v2.0 FIX #1: inchidere PESTE nivel fara close-back = BREAK curat (BOS),
+        // nu grab. Poolul se invalideaza pe loc — altfel ramanea activ si, la
+        // revenirea pretului de sus, dadea un "grab" FALS pe un retest de breakout.
+        bool broken = requireClose and not swept and close > lvl
+        bool stale = cleanupATR > 0 and math.abs(close - lvl) > cleanupATR * atr
         if swept
             line ln = array.get(bL, i)
             line.set_x2(ln, bar_index)
@@ -246,14 +303,34 @@ if array.size(bL) > 0
                 label.new(bar_index, high, isEq ? "x EQH grab" : "x BSL grab", xloc = xloc.bar_index,
                      yloc = yloc.price, style = label.style_label_down,
                      color = lblBg, textcolor = sweptCol, size = size.tiny)
-            alert((isEq ? "EQH " : "Buy-side ") + "liquidity swept @ " + str.tostring(lvl, format.mintick), alert.freq_once_per_bar)
+            alert((isEq ? "EQH " : "Buy-side ") + "liquidity swept @ " + str.tostring(lvl, format.mintick), alert.freq_once_per_bar_close)
             bslSwept := true
             bslEqSwept := bslEqSwept or isEq
             lastSweepBar := bar_index
             lastSweepSide := isEq ? "EQH" : "BSL"
             lastSweepLvl := lvl
+            lastSweepEntry := close        // v2.0 FIX #3: entry-ul fade = close-ul de grab
             lastSweepDone := false
             lastSweepOutcome := "pending"
+            array.push(pgBar, bar_index)   // expectancy: buy-side grab -> fade SHORT
+            array.push(pgBuy, true)
+            array.push(pgEnt, close)
+            array.push(pgAtr, atr)
+            array.remove(bL, i)
+            array.remove(bV, i)
+            array.remove(bE, i)
+            array.remove(bLab, i)
+            array.remove(bCB, i)
+        else if broken
+            // v2.0 FIX #1: nivel inchis DINCOLO -> BREAK; marcheaza si scoate poolul
+            line lnb = array.get(bL, i)
+            line.set_x2(lnb, bar_index)
+            line.set_color(lnb, sweptCol)
+            line.set_style(lnb, line.style_dotted)
+            if showLabels
+                label.new(bar_index, lvl, "BSL break", xloc = xloc.bar_index,
+                     yloc = yloc.price, style = label.style_label_down,
+                     color = lblBg, textcolor = sweptCol, size = size.tiny)
             array.remove(bL, i)
             array.remove(bV, i)
             array.remove(bE, i)
@@ -276,7 +353,9 @@ if array.size(sL) > 0
         float lvl  = array.get(sV, i)
         bool  isEq = array.get(sE, i)
         bool swept = low < lvl and (requireClose ? close > lvl : true)
-        bool stale = cleanupATR > 0 and (lvl - close) < -(cleanupATR * atr)
+        // v2.0 FIX #1 (oglinda): inchidere SUB nivel fara close-back = BREAK curat
+        bool broken = requireClose and not swept and close < lvl
+        bool stale = cleanupATR > 0 and math.abs(close - lvl) > cleanupATR * atr
         if swept
             line ln = array.get(sL, i)
             line.set_x2(ln, bar_index)
@@ -286,14 +365,34 @@ if array.size(sL) > 0
                 label.new(bar_index, low, isEq ? "x EQL grab" : "x SSL grab", xloc = xloc.bar_index,
                      yloc = yloc.price, style = label.style_label_up,
                      color = lblBg, textcolor = sweptCol, size = size.tiny)
-            alert((isEq ? "EQL " : "Sell-side ") + "liquidity swept @ " + str.tostring(lvl, format.mintick), alert.freq_once_per_bar)
+            alert((isEq ? "EQL " : "Sell-side ") + "liquidity swept @ " + str.tostring(lvl, format.mintick), alert.freq_once_per_bar_close)
             sslSwept := true
             sslEqSwept := sslEqSwept or isEq
             lastSweepBar := bar_index
             lastSweepSide := isEq ? "EQL" : "SSL"
             lastSweepLvl := lvl
+            lastSweepEntry := close        // v2.0 FIX #3: entry-ul fade = close-ul de grab
             lastSweepDone := false
             lastSweepOutcome := "pending"
+            array.push(pgBar, bar_index)   // expectancy: sell-side grab -> fade LONG
+            array.push(pgBuy, false)
+            array.push(pgEnt, close)
+            array.push(pgAtr, atr)
+            array.remove(sL, i)
+            array.remove(sV, i)
+            array.remove(sE, i)
+            array.remove(sLab, i)
+            array.remove(sCB, i)
+        else if broken
+            // v2.0 FIX #1: nivel inchis DINCOLO -> BREAK; marcheaza si scoate poolul
+            line lnb = array.get(sL, i)
+            line.set_x2(lnb, bar_index)
+            line.set_color(lnb, sweptCol)
+            line.set_style(lnb, line.style_dotted)
+            if showLabels
+                label.new(bar_index, lvl, "SSL break", xloc = xloc.bar_index,
+                     yloc = yloc.price, style = label.style_label_up,
+                     color = lblBg, textcolor = sweptCol, size = size.tiny)
             array.remove(sL, i)
             array.remove(sV, i)
             array.remove(sE, i)
@@ -311,30 +410,54 @@ if array.size(sL) > 0
             line.set_x2(array.get(sL, i), bar_index)
 
 // ----------------------------- Sweep-outcome tracker -------------------------
-// After `evalBars` bars, judge if price reverted past the swept level.
+// v2.0 FIX #2: invalidare IMEDIATA — orice inchidere inapoi DINCOLO de nivelul
+// maturat, inainte de evalBars, infirma grab-ul PE LOC (CONTINUATION). Triggerul
+// GO nu mai ramane aprins pe un grab deja esuat pana la finalul ferestrei.
+if not lastSweepDone and not na(lastSweepBar) and bar_index > lastSweepBar
+    bool buySide0 = lastSweepSide == "BSL" or lastSweepSide == "EQH"
+    if buySide0 ? close > lastSweepLvl : close < lastSweepLvl
+        lastSweepOutcome := "CONTINUATION"
+        lastSweepDone := true
+// v2.0 FIX #3: verdictul final se judeca fata de ENTRY (close-ul barei de grab),
+// nu fata de nivel — fata de nivel aproape orice grab parea "REVERSAL OK" pentru
+// ca close-back-ul e deja dincolo de nivel prin definitie.
 if not lastSweepDone and not na(lastSweepBar) and (bar_index - lastSweepBar) >= evalBars
     bool buySide = lastSweepSide == "BSL" or lastSweepSide == "EQH"
-    bool reverted = buySide ? close < lastSweepLvl : close > lastSweepLvl
-    lastSweepOutcome := reverted ? "REVERSAL OK" : "CONTINUATION"
+    bool paid = not na(lastSweepEntry) and (buySide ? close < lastSweepEntry : close > lastSweepEntry)
+    lastSweepOutcome := paid ? "REVERSAL OK" : "FARA MISCARE"
     lastSweepDone := true
+
+// --- Expectancy tracker (v1.9, corectat v2.0): evalueaza FIECARE grab din coada ---
+// v2.0 FIX #3: win-ul si excursia se masoara fata de ENTRY (close-ul barei de grab),
+// NU fata de nivel. Entry-ul fade e la close, care e deja dincolo de nivel prin
+// close-back -> masurat fata de nivel, "rev" iesea aproape mereu true (bias optimist)
+// si excursia includea gap-ul wick->close pe care nu-l castigi. Un grab recucerit
+// (close dincolo de nivel) iese acum natural pe pierdere vs entry.
+if array.size(pgBar) > 0
+    while array.size(pgBar) > 0 and (bar_index - array.get(pgBar, 0)) >= evalBars
+        bool  buyG = array.get(pgBuy, 0)
+        float entG = array.get(pgEnt, 0)
+        float atrG = array.get(pgAtr, 0)
+        float atrN = atrG > 0 ? atrG : (atr > 0 ? atr : na)
+        bool  rev  = buyG ? close < entG : close > entG      // fade SHORT (buy grab) / fade LONG (sell grab), vs ENTRY
+        float exc  = na(atrN) ? na : (buyG ? (entG - close) : (close - entG)) / atrN
+        fadeTot  += 1
+        fadeWins += rev ? 1 : 0
+        fadeSumX += na(exc) ? 0.0 : exc
+        array.shift(pgBar)
+        array.shift(pgBuy)
+        array.shift(pgEnt)
+        array.shift(pgAtr)
 
 // ----------------------------- Dashboard -------------------------------------
 f_dashPos(_p) =>
-    _p == "Top Left" ? position.top_left :
-     _p == "Top Center" ? position.top_center :
-     _p == "Top Right" ? position.top_right :
-     _p == "Middle Left" ? position.middle_left :
-     _p == "Middle Center" ? position.middle_center :
-     _p == "Middle Right" ? position.middle_right :
-     _p == "Bottom Left" ? position.bottom_left :
-     _p == "Bottom Center" ? position.bottom_center :
-     _p == "Bottom Right" ? position.bottom_right :
-     position.top_right
+    _p == "Top Left" ? position.top_left : _p == "Bottom Right" ? position.bottom_right : _p == "Bottom Left" ? position.bottom_left : position.top_right
 
-var table dash = table.new(f_dashPos(dashPos), 2, 10, border_width = 1, frame_color = color.new(#0a0d12, 0), frame_width = 1)
+// v2.0: fara grila interioara (border 0), chenar exterior subtil, surface ink
+var table dash = table.new(f_dashPos(dashPos), 2, 10, border_width = 0, frame_color = color.new(#2a3145, 0), frame_width = 1)
 
 f_cell(_t, _c, _r, _txt, _tc) =>
-    table.cell(_t, _c, _r, _txt, text_color = _tc, text_size = szSml, bgcolor = color.new(#0a0d12, 20), text_halign = text.align_left)
+    table.cell(_t, _c, _r, _txt, text_color = _tc, text_size = size.small, bgcolor = _r % 2 == 0 ? color.new(#10141b, 0) : color.new(#151a24, 0), text_halign = text.align_left)
 
 if showDash and barstate.islast
     // ---- nearest pools (capture flag + creation bar IN-LOOP, no later array.get on a maybe-invalid index) ----
@@ -359,8 +482,8 @@ if showDash and barstate.islast
                 nSSLeq := array.get(sE, i)
                 nSSLcb := array.get(sCB, i)
 
-    float bslAtr = na(nBSL) ? na : (nBSL - close) / atr
-    float sslAtr = na(nSSL) ? na : (close - nSSL) / atr
+    float bslAtr = na(nBSL) ? na : (nBSL - close) / atrSafe
+    float sslAtr = na(nSSL) ? na : (close - nSSL) / atrSafe
     string bslLine = na(nBSL) ? "-" : str.tostring(nBSL, format.mintick) + "  +" + str.tostring((nBSL - close) / close * 100, "#.##") + "% / " + str.tostring(bslAtr, "#.##") + "xATR" + (nBSLeq ? "  [EQH]" : "")
     string sslLine = na(nSSL) ? "-" : str.tostring(nSSL, format.mintick) + "  -" + str.tostring((close - nSSL) / close * 100, "#.##") + "% / " + str.tostring(sslAtr, "#.##") + "xATR" + (nSSLeq ? "  [EQL]" : "")
 
@@ -371,17 +494,17 @@ if showDash and barstate.islast
 
     // ---- setup verdict (folosit de rand-verdict si de randul Setup) ----
     string setupTxt = "NEUTRAL"
-    color  setupCol = color.gray
+    color  setupCol = color.new(#5c6370, 0)
     if not na(magDist)
         if magDist <= eqTolATR
             setupTxt := "IN ZONE - grab posibil"
-            setupCol := #ff5252
+            setupCol := #f0554e
         else if magDist <= setupATR
             setupTxt := "WATCH - " + str.tostring(magDist, "#.##") + "xATR"
-            setupCol := #f0b429
+            setupCol := #f2a93b
         else
             setupTxt := "NEUTRAL - " + str.tostring(magDist, "#.##") + "xATR"
-            setupCol := color.gray
+            setupCol := color.new(#5c6370, 0)
 
     // ---- grab proaspat? (folosit de verdict SI de trigger) ----
     bool   freshGrab = not na(lastSweepBar) and (bar_index - lastSweepBar) <= evalBars
@@ -395,24 +518,26 @@ if showDash and barstate.islast
     float  magLvl   = ssCloser ? nSSL : nBSL
     string tradeDir = ssCloser ? "LONG" : "SHORT"
     string vState   = not na(magDist) and magDist <= eqTolATR ? "IN ZONE" : not na(magDist) and magDist <= setupATR ? "WATCH" : "NEUTRU"
-    color  vTxt     = color.white
-    // culoare = DIRECTIA (verde long / rosu short / gri neutru); urgenta in text
-    color  vCol  = color.new(#5a6270, 0)
+    // v2.0 HERO: culoare = DIRECTIA (teal long / coral short / ink+auriu neutru)
+    color  vTxt  = color.new(#d9a95c, 0)
+    color  vCol  = color.new(#1a2130, 0)
     string vMain = "NEUTRU\nfara pooluri active"
     string vSide = "-"
     if grabLive
         // grab proaspat neinfirmat -> verdictul se aliniaza cu trigger-ul (directia grab-ului)
-        vCol  := grabLong ? #4caf50 : #ff5252
+        vCol  := grabLong ? #26a69a : #ef5350
+        vTxt  := grabLong ? color.new(#052019, 0) : color.new(#ffffff, 0)
         vMain := "GRAB  " + (grabLong ? "▼ " : "▲ ") + lastSweepSide + "\n" + (grabLong ? "LONG activ" : "SHORT activ")
         vSide := na(lastSweepLvl) ? "-" : "@" + str.tostring(lastSweepLvl, format.mintick) + "\n" + str.tostring(bar_index - lastSweepBar) + "b"
     else if hasDir
-        vCol  := tradeDir == "LONG" ? #4caf50 : #ff5252
+        vCol  := tradeDir == "LONG" ? #26a69a : #ef5350
+        vTxt  := tradeDir == "LONG" ? color.new(#052019, 0) : color.new(#ffffff, 0)
         vMain := vState + "  " + magArr + " " + magName + "\n" + (vState == "IN ZONE" ? "grab acum -> " : "asteapta grab -> ") + tradeDir
         vSide := na(magLvl) ? "-" : "@" + str.tostring(magLvl, format.mintick) + "\n" + str.tostring(magDist, "#.##") + "xATR"
 
     // ---- doua scenarii conditionate; cel de pe partea magnetului e aprins, opusul estompat
     bool   aActive = ssCloser
-    color  dimCol  = color.new(#5a6270, 0)
+    color  dimCol  = color.new(#5c6370, 0)
     color  aTxt    = na(nSSL) ? dimCol : aActive ? sslCol : dimCol
     color  bTxt    = na(nBSL) ? dimCol : (not aActive) ? bslCol : dimCol
     string aHead   = (aActive ? "► " : "  ") + "LONG (A)"
@@ -429,53 +554,75 @@ if showDash and barstate.islast
     int magAge = ssCloser ? (na(nSSLcb) ? na : bar_index - nSSLcb) : (na(nBSLcb) ? na : bar_index - nBSLcb)
 
     // ---- last sweep + outcome ----
-    color  swpCol = lastSweepOutcome == "REVERSAL OK" ? #4caf50 : lastSweepOutcome == "CONTINUATION" ? #ff5252 : sweptCol
+    color  swpCol = lastSweepOutcome == "REVERSAL OK" ? #2ec4a6 : lastSweepOutcome == "CONTINUATION" ? #f0554e : sweptCol
     string swpTxt = na(lastSweepBar) ? "-" : lastSweepSide + " grab | " + str.tostring(bar_index - lastSweepBar) + "b | " + lastSweepOutcome
+
+    // ---- EDGE FADE (v1.9): verdict scurt = fade-ul plateste pe activul/TF asta? ----
+    // wins/total grab-uri care au revenit dincolo de nivel + mutarea medie in directia fade (xATR).
+    // 100.0 * int / int = float (evita diviziunea intreaga Pine). Sub 5 grab-uri = prea putine date.
+    string edgeTxt = "-"
+    color  edgeCol = sweptCol
+    if fadeTot < 5
+        edgeTxt := "putine date (" + str.tostring(fadeTot) + " grab)"
+        edgeCol := color.new(#5c6370, 0)
+    else
+        float wr   = 100.0 * fadeWins / fadeTot
+        float avgX = fadeSumX / fadeTot
+        string verdict = (wr >= 55 and avgX > 0) ? "FADE OK" : (wr <= 45 or avgX < 0) ? "FADE SLAB" : "MIXT"
+        edgeCol := verdict == "FADE OK" ? #2ec4a6 : verdict == "FADE SLAB" ? #f0554e : color.new(#5c6370, 0)
+        edgeTxt := verdict + "  " + str.tostring(fadeWins) + "/" + str.tostring(fadeTot) + " (" + str.tostring(wr, "#") + "%)  med " + (avgX >= 0 ? "+" : "") + str.tostring(avgX, "#.##") + "xATR"
 
     // ---- TRIGGER: pot intra ACUM sau inca astept? (raspunsul scurt, negru pe alb) ----
     // Foloseste freshGrab/grabLong calculate mai sus. Cu close-back ON, grab-ul inregistrat
     // are deja inchidere inapoi peste nivel => entry-ul fade e valid pe el.
-    string trigTxt   = "fara setup"
-    color  trigBg    = color.new(#5a6270, 0)
-    color  trigFg    = color.white
+    // v2.0: paleta casei — GO teal/coral, asteapta amber, restul ink+auriu (RABDARE)
+    string trigTxt   = "RABDARE - fara setup"
+    color  trigBg    = color.new(#1a2130, 0)
+    color  trigFg    = color.new(#d9a95c, 0)
     if freshGrab and lastSweepOutcome == "CONTINUATION"
         trigTxt := "STAI - continuation (a spart, nu intra)"
-        trigBg  := color.new(#5a6270, 0)
+        trigBg  := color.new(#1a2130, 0)
+        trigFg  := color.new(#f0554e, 0)
     else if freshGrab
         trigTxt := (grabLong ? "GO LONG ACUM" : "GO SHORT ACUM") + " - grab " + (requireClose ? "+ close-back" : "(doar wick!)")
-        trigBg  := grabLong ? #4caf50 : #ff5252
+        trigBg  := grabLong ? #26a69a : #ef5350
+        trigFg  := grabLong ? color.new(#052019, 0) : color.new(#ffffff, 0)
     else if hasDir
         trigTxt := "ASTEAPTA GRAB -> apoi " + tradeDir
-        trigBg  := #f0b429
-        trigFg  := #0a0d12
+        trigBg  := #f2a93b
+        trigFg  := #231600
 
     // ---- context comprimat: tolerance + mode + varsta magnetului ----
     string ctxTxt = preset + " | tol " + str.tostring(eqTolATR, "#.##") + "xATR | " + (requireClose ? "close-back" : "wick-only") + (onlyEqual ? " | EQ-only" : "") + (na(magAge) ? "" : " | " + str.tostring(magAge) + "b")
 
-    // ---- render ----
-    table.cell(dash, 0, 0, "LIQUIDITY MAP", text_color = color.white, text_size = szBig, bgcolor = color.new(#0a0d12, 0), text_halign = text.align_left)
-    table.cell(dash, 1, 0, syminfo.ticker + "  " + timeframe.period, text_color = color.new(#9aa4b2, 0), text_size = szSml, bgcolor = color.new(#0a0d12, 0), text_halign = text.align_right)
+    // ---- render (v2.0: titlu pe accent nisip, header ink) ----
+    table.cell(dash, 0, 0, "LIQUIDITY MAP v2.0", text_color = color.new(#d9a95c, 0), text_size = size.normal, bgcolor = color.new(#1b2130, 0), text_halign = text.align_left)
+    table.cell(dash, 1, 0, syminfo.ticker + "  " + timeframe.period, text_color = color.new(#707887, 0), text_size = size.small, bgcolor = color.new(#1b2130, 0), text_halign = text.align_right)
 
-    table.cell(dash, 0, 1, vMain, text_color = vTxt, text_size = szBig, bgcolor = vCol, text_halign = text.align_left)
-    table.cell(dash, 1, 1, vSide, text_color = vTxt, text_size = szBig, bgcolor = vCol, text_halign = text.align_right)
+    table.cell(dash, 0, 1, vMain, text_color = vTxt, text_size = size.normal, bgcolor = vCol, text_halign = text.align_left)
+    table.cell(dash, 1, 1, vSide, text_color = vTxt, text_size = size.normal, bgcolor = vCol, text_halign = text.align_right)
 
     // TRIGGER — raspunsul scurt: intri ACUM sau astepti
-    table.cell(dash, 0, 2, trigTxt, text_color = trigFg, text_size = szBig, bgcolor = trigBg, text_halign = text.align_left)
-    table.cell(dash, 1, 2, freshGrab ? str.tostring(bar_index - lastSweepBar) + "b" : "-", text_color = trigFg, text_size = szBig, bgcolor = trigBg, text_halign = text.align_right)
+    table.cell(dash, 0, 2, trigTxt, text_color = trigFg, text_size = size.normal, bgcolor = trigBg, text_halign = text.align_left)
+    table.cell(dash, 1, 2, freshGrab ? str.tostring(bar_index - lastSweepBar) + "b" : "-", text_color = trigFg, text_size = size.normal, bgcolor = trigBg, text_halign = text.align_right)
 
-    table.cell(dash, 0, 3, aHead, text_color = aTxt, text_size = szSml, bgcolor = color.new(#0a0d12, 20), text_halign = text.align_left)
-    table.cell(dash, 1, 3, aVal,  text_color = aTxt, text_size = szSml, bgcolor = color.new(#0a0d12, 20), text_halign = text.align_left)
-    table.cell(dash, 0, 4, bHead, text_color = bTxt, text_size = szSml, bgcolor = color.new(#0a0d12, 20), text_halign = text.align_left)
-    table.cell(dash, 1, 4, bVal,  text_color = bTxt, text_size = szSml, bgcolor = color.new(#0a0d12, 20), text_halign = text.align_left)
+    table.cell(dash, 0, 3, aHead, text_color = aTxt, text_size = size.small, bgcolor = color.new(#151a24, 0), text_halign = text.align_left)
+    table.cell(dash, 1, 3, aVal,  text_color = aTxt, text_size = size.small, bgcolor = color.new(#151a24, 0), text_halign = text.align_left)
+    table.cell(dash, 0, 4, bHead, text_color = bTxt, text_size = size.small, bgcolor = color.new(#10141b, 0), text_halign = text.align_left)
+    table.cell(dash, 1, 4, bVal,  text_color = bTxt, text_size = size.small, bgcolor = color.new(#10141b, 0), text_halign = text.align_left)
 
-    f_cell(dash, 0, 5, "Setup",      color.new(#9aa4b2, 0))
+    f_cell(dash, 0, 5, "Setup",      color.new(#707887, 0))
     f_cell(dash, 1, 5, setupTxt,     setupCol)
-    f_cell(dash, 0, 6, "Pools",      color.new(#9aa4b2, 0))
-    f_cell(dash, 1, 6, asymTxt,      color.white)
-    f_cell(dash, 0, 7, "Last sweep", color.new(#9aa4b2, 0))
+    f_cell(dash, 0, 6, "Pools",      color.new(#707887, 0))
+    f_cell(dash, 1, 6, asymTxt,      color.new(#d8dce5, 0))
+    f_cell(dash, 0, 7, "Last sweep", color.new(#707887, 0))
     f_cell(dash, 1, 7, swpTxt,       swpCol)
-    f_cell(dash, 0, 8, "Context",    color.new(#9aa4b2, 0))
-    f_cell(dash, 1, 8, ctxTxt,       color.white)
+    f_cell(dash, 0, 8, "Context",    color.new(#707887, 0))
+    f_cell(dash, 1, 8, ctxTxt,       color.new(#d8dce5, 0))
+    // EDGE FADE — verdict scurt: merita sa faci fade pe grab-uri pe activul/TF asta?
+    table.cell(dash, 0, 9, "Edge fade", text_color = color.new(#707887, 0), text_size = size.small, bgcolor = color.new(#151a24, 0), text_halign = text.align_left,
+         tooltip = "Fade = intri INVERS dupa grab (grab buy-side -> SHORT, sell-side -> LONG).\nv2.0: masurat fata de ENTRY (close-ul barei de grab), nu fata de nivel.\nwins/total = de cate ori close-ul era dincolo de entry in directia fade dupa " + str.tostring(evalBars) + " bare.\nmed xATR = excursia medie fata de entry, in directia fade.\nFADE OK = win>=55% SI med>0 | FADE SLAB = win<=45% SAU med<0 | sub 5 grab-uri = prea putine date.")
+    table.cell(dash, 1, 9, edgeTxt, text_color = edgeCol, text_size = size.small, bgcolor = color.new(#151a24, 0), text_halign = text.align_left)
 
 // ----------------------------- Alert conditions ------------------------------
 alertcondition(bslSwept,   "Buy-side liquidity swept",  "BSL grab")
