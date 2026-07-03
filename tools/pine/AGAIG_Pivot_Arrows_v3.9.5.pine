@@ -1,14 +1,30 @@
 //@version=6
-indicator("As Good As It Gets Pivot Arrows v3.9.4",
-     shorttitle="AGAIG v3.9.4", overlay=true,
+indicator("As Good As It Gets Pivot Arrows v3.9.5",
+     shorttitle="AGAIG v3.9.5", overlay=true,
      max_labels_count=500, max_lines_count=500,
      max_bars_back=500)
 
 // ------------------------------------------------------------
 // As Good As It Gets - Pivot Detection Indicator
 // Created by: NPR21
-// Version: 3.9.4
-// Last Updated: June 29, 2026
+// Version: 3.9.5
+// Last Updated: July 3, 2026
+//
+// v3.9.5 UPDATE (REDESIGN DASHBOARD - skill frontend-design,
+// sincron cu suita: AntiFOMO v9.14 / Confluence v1.6 / SMS
+// v6.12 / CODE MACD v2.8 / Command Deck v1.4 / Sniper v6.5):
+//   • HERO STATE. Randul "State" e unicul element cu fundal
+//     plin saturat (teal LONG / coral SHORT / ink cu auriu
+//     "RABDARE" cand nu exista inca semnal). Restul: surface
+//     ink zebra, FARA grila interioara (border 0), chenar
+//     exterior subtil.
+//   • Paleta "ink + nisip": default-urile inputurilor de
+//     culoare aliniate (dashboard bg #10141b, label #707887,
+//     value #d8dce5; sageti BUY #2ec4a6 / SELL #f0554e).
+//     Toate raman configurabile din settings.
+//   • Mode tag pe ink cu text primar (era gri generic).
+//   Semantica semnale/gate/alerte NESCHIMBATA - redesign
+//   vizual pur.
 //
 // v3.9.4 UPDATE (AUDIT FIXES - round 2):
 //   • FIX (major-swing leg-state, reziduu din v3.9.3). v3.9.3
@@ -395,11 +411,12 @@ dashPosChoice = input.string("Top Right", "Dashboard Position",
 dashSizeChoice = input.string("Small", "Dashboard Text Size",
      options=["Tiny", "Small", "Normal", "Large"],
      group=GRP_DASH)
-dashBgCol = input.color(color.rgb(30, 34, 45, 0),
+// v3.9.5: default-uri pe paleta "ink + nisip" (raman configurabile)
+dashBgCol = input.color(#10141b,
      "Background Color", group=GRP_DASH)
-dashLabelCol = input.color(color.gray, "Label Color",
+dashLabelCol = input.color(#707887, "Label Color",
      group=GRP_DASH)
-dashValCol = input.color(color.white, "Value Color",
+dashValCol = input.color(#d8dce5, "Value Color",
      group=GRP_DASH)
 bool isVert = dashLayout == "Vertical"
 
@@ -425,9 +442,10 @@ dotSizeOpt = input.string("tiny", "Dot size",
 
 // --------------- ARROW COLORS ---------------------
 string GRP_CLR = "--- Arrow Colors ---"
-confBuyColor = input.color(color.lime,
+// v3.9.5: default-uri pe paleta casei (teal/coral) - configurabile
+confBuyColor = input.color(#2ec4a6,
      "BUY arrow color", group=GRP_CLR)
-confSellColor = input.color(color.red,
+confSellColor = input.color(#f0554e,
      "SELL arrow color", group=GRP_CLR)
 arrowSizeOpt = input.string("normal", "Arrow size",
      options=["tiny","small","normal","large","huge"],
@@ -1084,29 +1102,33 @@ dashPos = switch dashPosChoice
     => position.top_right
 
 // 7 metrics -> Vertical: 2 cols x 7 rows | Horizontal: 7 cols x 2 rows
+// v3.9.5: fara grila interioara (border 0), chenar exterior subtil
 var table dash = table.new(dashPos, isVert ? 2 : 7, isVert ? 7 : 2,
-     bgcolor=dashBgCol, border_width=1,
-     border_color=color.new(color.gray, 70),
-     frame_width=1, frame_color=color.new(color.gray, 55))
+     bgcolor=dashBgCol, border_width=0,
+     frame_width=1, frame_color=color.new(#2a3145, 0))
 
-f_put(int _i, string _label, string _value, color _valCol) =>
+// v3.9.5: _bg optional (na = fundalul tabelului); zebra + hero prin el
+f_put(int _i, string _label, string _value, color _valCol, color _bg, color _lblCol) =>
     if isVert
-        table.cell(dash, 0, _i, _label, text_color=dashLabelCol,
-             text_size=dashTextSize, text_halign=text.align_left)
+        table.cell(dash, 0, _i, _label, text_color=_lblCol,
+             text_size=dashTextSize, text_halign=text.align_left,
+             bgcolor=_bg)
         table.cell(dash, 1, _i, _value, text_color=_valCol,
-             text_size=dashTextSize, text_halign=text.align_right)
+             text_size=dashTextSize, text_halign=text.align_right,
+             bgcolor=_bg)
     else
-        table.cell(dash, _i, 0, _label, text_color=dashLabelCol,
-             text_size=dashTextSize, text_halign=text.align_center)
+        table.cell(dash, _i, 0, _label, text_color=_lblCol,
+             text_size=dashTextSize, text_halign=text.align_center,
+             bgcolor=_bg)
         table.cell(dash, _i, 1, _value, text_color=_valCol,
-             text_size=dashTextSize, text_halign=text.align_center)
+             text_size=dashTextSize, text_halign=text.align_center,
+             bgcolor=_bg)
 
 if show_dashboard and barstate.islast
     string modeTxt = isConfMode ? "Confirmed" :
          isZLMode ? "Early ⚡" : "Conf + Pot"
-    string stTxt = dashDir == 1 ? "LONG" : dashDir == -1 ? "SHORT" : "FLAT"
-    color  stCol = dashDir == 1 ? confBuyColor :
-         dashDir == -1 ? confSellColor : color.gray
+    // v3.9.5: fara semnal inca = RABDARE (vocea suitei)
+    string stTxt = dashDir == 1 ? "LONG" : dashDir == -1 ? "SHORT" : "RABDARE"
     string lastTx = na(dashPrice) ? "—" :
          str.tostring(dashPrice, format.mintick)
     string barsTx = na(dashBar) ? "—" :
@@ -1114,16 +1136,25 @@ if show_dashboard and barstate.islast
     // HTF trend-gate state row.
     string gateTxt = not gateEnable ? "Off" :
          (htfBull ? "Up " : htfBear ? "Down " : "Flat ") + htfRes
-    color  gateCol = not gateEnable ? color.gray :
-         htfBull ? confBuyColor : htfBear ? confSellColor : color.gray
+    color  gateCol = not gateEnable ? color.new(#5c6370, 0) :
+         htfBull ? confBuyColor : htfBear ? confSellColor : color.new(#5c6370, 0)
 
-    f_put(0, "Mode",   modeTxt,                  dashValCol)
-    f_put(1, "Asset",  assetPreset,              dashValCol)
-    f_put(2, "Trend",  gateTxt,                  gateCol)
-    f_put(3, "State",  stTxt,                    stCol)
-    f_put(4, "Last @", lastTx,                   dashValCol)
-    f_put(5, "Bars",   barsTx,                   dashValCol)
-    f_put(6, "Pivot",  str.tostring(length_),    dashValCol)
+    // zebra ink pe randurile normale
+    color zebA = color.new(#10141b, 0)
+    color zebB = color.new(#151a24, 0)
+    // v3.9.5 HERO: State = unicul rand cu fundal plin saturat
+    color heroBg = dashDir == 1 ? color.new(#26a69a, 0) :
+         dashDir == -1 ? color.new(#ef5350, 0) : color.new(#1a2130, 0)
+    color heroFg = dashDir == 1 ? color.new(#052019, 0) :
+         dashDir == -1 ? color.new(#ffffff, 0) : color.new(#d9a95c, 0)
+
+    f_put(0, "Mode",   modeTxt,                  dashValCol, zebA, dashLabelCol)
+    f_put(1, "Asset",  assetPreset,              dashValCol, zebB, dashLabelCol)
+    f_put(2, "Trend",  gateTxt,                  gateCol,    zebA, dashLabelCol)
+    f_put(3, "State",  stTxt,                    heroFg,     heroBg, heroFg)
+    f_put(4, "Last @", lastTx,                   dashValCol, zebA, dashLabelCol)
+    f_put(5, "Bars",   barsTx,                   dashValCol, zebB, dashLabelCol)
+    f_put(6, "Pivot",  str.tostring(length_),    dashValCol, zebA, dashLabelCol)
 
 // -------------------------------------------------
 // ON-CHART MODE TAG
@@ -1142,5 +1173,5 @@ if barstate.islast
         modeTag := label.new(bar_index + 3, close, modeTxt,
              xloc=xloc.bar_index, yloc=yloc.price,
              style=label.style_label_left,
-             color=color.rgb(30, 30, 30, 20),
-             textcolor=color.white, size=size.small)
+             color=color.new(#1b2130, 20),
+             textcolor=color.new(#d8dce5, 0), size=size.small)

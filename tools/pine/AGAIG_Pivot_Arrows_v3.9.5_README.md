@@ -1,7 +1,21 @@
-# AGAIG Pivot Arrows v3.9.4 — README
+# AGAIG Pivot Arrows v3.9.5 — README
 
 Indicator Pine v6 de detecție pivoturi (BUY/SELL) cu trei moduri de semnal,
 adaptat pentru **trade rapid intraday** (15 / 30 / 60 min).
+
+## Nou în v3.9.5 — Redesign dashboard (skill frontend-design)
+Redesign **pur vizual**, sincron cu restul suitei (AntiFOMO v9.14 / Confluence Scorer
+v1.6 / SMS v6.12 / CODE MACD v2.8 / Command Deck v1.4 / Crypto Sniper v6.5). Semantica
+semnalelor / gate-ului / alertelor e neschimbată.
+
+- **Hero „State"**: rândul State e unicul element cu fundal plin saturat — teal la LONG,
+  coral la SHORT, ink cu text auriu **„RABDARE"** când nu există încă semnal (fostul FLAT).
+- **Paleta „ink + nisip"**: dashboard pe surface ink zebra (`#10141b`/`#151a24`), **fără
+  grilă interioară** (border 0), chenar exterior subtil `#2a3145`. Default-urile
+  inputurilor de culoare aliniate: dashboard bg/label/value pe ink/muted/text, săgețile
+  BUY `#2ec4a6` (teal) / SELL `#f0554e` (coral) — toate rămân configurabile din settings
+  (personalizările existente nu sunt suprascrise).
+- **Mode tag** pe ink cu text primar (era gri generic).
 
 ## Nou în v3.9.4 — Audit fixes round 2 (corectitudine)
 Audit suite-wide (3 auditori pe 9 lentile + verificare adversarială) a prins un
