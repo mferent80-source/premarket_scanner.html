@@ -1,14 +1,21 @@
 //@version=6
-indicator("As Good As It Gets Pivot Arrows v3.9.5",
-     shorttitle="AGAIG v3.9.5", overlay=true,
+indicator("As Good As It Gets Pivot Arrows v3.9.6",
+     shorttitle="AGAIG v3.9.6", overlay=true,
      max_labels_count=500, max_lines_count=500,
      max_bars_back=500)
 
 // ------------------------------------------------------------
 // As Good As It Gets - Pivot Detection Indicator
 // Created by: NPR21
-// Version: 3.9.5
-// Last Updated: July 3, 2026
+// Version: 3.9.6
+// Last Updated: July 4, 2026
+//
+// v3.9.6 UPDATE (fix din auditul suitei):
+//   • FIX input "Background Color" devenit inert in v3.9.5:
+//     zebra hardcodata (#10141b) acoperea toate celulele, deci
+//     schimbarea culorii din settings nu se vedea. Acum randul
+//     A al zebrei foloseste direct dashBgCol (inputul e din nou
+//     viu), randul B ramane accentul fix #151a24.
 //
 // v3.9.5 UPDATE (REDESIGN DASHBOARD - skill frontend-design,
 // sincron cu suita: AntiFOMO v9.14 / Confluence v1.6 / SMS
@@ -1140,7 +1147,9 @@ if show_dashboard and barstate.islast
          htfBull ? confBuyColor : htfBear ? confSellColor : color.new(#5c6370, 0)
 
     // zebra ink pe randurile normale
-    color zebA = color.new(#10141b, 0)
+    // v3.9.6: zebA = fundalul tabelului (dashBgCol din settings) — era
+    // hardcodat #10141b si facea inputul "Background Color" inert
+    color zebA = dashBgCol
     color zebB = color.new(#151a24, 0)
     // v3.9.5 HERO: State = unicul rand cu fundal plin saturat
     color heroBg = dashDir == 1 ? color.new(#26a69a, 0) :

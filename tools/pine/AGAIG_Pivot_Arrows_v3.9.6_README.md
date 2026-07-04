@@ -129,3 +129,6 @@ Sub `Trend Gate (HTF)` → **Gate Action**:
 Logica „gate trend confirmat" din v3.9.0 se suprapune conceptual cu filtrele
 tale de trend din Multi-Symbol / nasdaq-scanner. Aici e self-contained în Pine
 (EMA HTF), nu folosește același cod — e o lentilă separată, nu un dublu.
+
+## v3.9.6 (2026-07-04) — fix audit
+- **FIX input „Background Color" inert**: zebra hardcodată (#10141b) acoperea toate celulele → schimbarea culorii din settings nu se vedea. Acum rândul A al zebrei folosește direct `dashBgCol`; rândul B rămâne accentul fix #151a24.
