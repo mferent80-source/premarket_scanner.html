@@ -16,6 +16,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-008 | Exit alert cu payload JSON → journal | AntiFOMO Pine | S | P3 | făcut | ideation | 2026-07-03 |
 | I-009 | Aliniere alerte regim cu gate-ul real + vârsta gate-ului | AntiFOMO Pine | S | P2 | făcut | ideation | 2026-07-03 |
 | I-010 | Detalii macro pe toggle (dashboard Pro de ziar → nucleu) | AntiFOMO Pine | S | P3 | făcut | ideation | 2026-07-03 |
+| I-011 | Alerte filtrate pe quality score (prag preset) | ZLHMA TOP Pine | S | P1 | propus | ideation | 2026-07-04 |
+| I-012 | Preset Scalping (ZLHMA 9/20, dirHold=1) | ZLHMA TOP Pine | S | P1 | propus | ideation | 2026-07-04 |
+| I-013 | Forecast overlay RDS (durată trend HMA) | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-04 |
+| I-014 | Filtru chop ADX + volum în quality score | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-04 |
+| I-015 | Connector Meta-Confluence (dir −2..+2) | ZLHMA TOP Pine | S | P3 | propus | ideation | 2026-07-04 |
+| I-016 | Earnings guard pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-04 |
 
 ## Mini-spec-uri
 
@@ -88,3 +94,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** esențialul (hero + blockReason + 4 bare de scor + STATS) se citește în 2 secunde; onestitate pe crypto la numărul de factori.
 - **Riscuri/dependențe:** userul care vrea factorii individuali are un click în plus; numărul de rânduri devine variabil (contorul `rw` există deja, suportă).
 - **Fișiere atinse:** `pine-scripts\AntiFOMO_Pro_v9_2.pine` (inputs Display + secțiunea DASHBOARD), `AntiFOMO_Pro_v9_2_README.md`.
+
+### I-011 · Alerte filtrate pe quality score · [S] · P1
+- **Problema/golul:** ZLHMA reacționează mai repede decât ZLEMA — cross-urile și STRONG LONG/SHORT alertează și pe semnale slabe (slope mic, ribbon nealiniat, HTF contra). Azi `sigUp`/`strongLong` nu verifică `quality` din `f_quality` (L194–204 din `Zero_Lag_HMA_Dashboard_v1.pine`).
+- **Soluția:** prag `minQuality` derivat din preset (ex. Crypto 55%, Nasdaq 65%, Custom input); alertele JSON și `alertcondition` declanșează doar când `quality >= minQuality` și `dir != 0`. Dashboard arată pragul activ în rândul „Prag STRONG" sau un rând nou „Alert gate".
+- **Impact:** mai puțin zgomot Telegram/webhook; decizii mai bune pe semnale cu confluență internă suficientă. Pragurile sunt ipoteze — de validat out-of-sample.
+- **Riscuri/dependențe:** poate rata intrări rapide valoroase pe scalping; pragul trebuie toggle ON/OFF.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (inputs Preset, bloc Alerte, eventual dashboard).
+
+### I-012 · Preset Scalping · [S] · P1
+- **Problema/golul:** scriptul are doar Crypto/Nasdaq/Custom — lipsește profilul pentru TF mici unde ZLHMA e recomandat (SMI Fractal notează ZLHMA „scalping ONLY" cu 9/20). Userul trebuie să ghicească Custom manual.
+- **Soluția:** al 4-lea preset „Scalping": ZLHMA ON forțat, fast 9 / slow 20, ATR 10, slopeTh 0.04, strongM 1.6, dirHold 1, chop OFF, extTh 2.0. Hero dashboard etichetează presetul explicit.
+- **Impact:** setup instant pe 1m/5m crypto fără tuning; aliniat cu motorul zero-lag al tool-ului.
+- **Riscuri/dependențe:** pe stocks RTH spread-ul mare pe TF mic = semnale zgomotoase (avertisment în tooltip preset).
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (bloc Preset + derivări).
+
+### I-013 · Forecast overlay RDS · [M] · P2
+- **Problema/golul:** față de `SMI_Fractal_Iron_HMA_v9.pine` (L750–869), ZLHMA TOP nu oferă proiecție de durată trend — userul vede verdictul dar nu „cât mai durează tipic această fază". Diferențiere slabă față de `Zero_Lag_EMA_Dashboard_v1_4` (același dashboard, alt MA).
+- **Soluția:** port minimal RDS v4.61: array-uri `bullishDurations`/`bearishDurations` pe flip-uri HMA, forecast pe ultima bară (Real/Avg, unghi slope, toggle OFF by default). Reutilizează `hmaFast` ca linie sursă.
+- **Impact:** context temporal la intrare (trend tânăr vs matur); diferențiere clară vs ZLEMA duplicate.
+- **Riscuri/dependențe:** overhead vizual dacă nu rămâne OFF by default; sample mic pe simbol nou = „Avg: -" (de afișat explicit).
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (grup Vizual nou, logică forecast); referință `SMI_Fractal_Iron_HMA_v9.pine`.
+
+### I-014 · Filtru chop ADX + volum în quality · [M] · P2
+- **Problema/golul:** filtrul chop actual (L126–127) verifică doar `slopeSm < slopeTh` — în range ADX sub 20 HMA flip-uiește des și quality score nu penalizează volum slab sau lipsă de participare.
+- **Soluția:** `ta.dmi` pentru ADX sub prag preset; dacă ADX < prag → downgrade STRONG la LONG/SHORT sau RABDARE. Componentă nouă în `f_quality`: RVOL vs SMA(volume) sau buy% simplu (pattern din SMI L742–747). Toggle „Filtru ADX" + „Volum în quality".
+- **Impact:** mai puține whipsaw-uri în consolidare; quality reflectă participarea reală, nu doar geometria HMA.
+- **Riscuri/dependențe:** `volume` na pe forex/indici (guard obligatoriu); pragurile ADX/RVOL = ipoteze per regim.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (Filtru, f_quality, dashboard detalii).
+
+### I-015 · Connector Meta-Confluence · [S] · P3
+- **Problema/golul:** AntiFOMO, CVD PRO, Confirmation Engine exportă plot connector −3..+3 pentru `input.source` — ZLHMA TOP izolează `dir` în dashboard fără export (convenția din I-007).
+- **Soluția:** `plot(dir, "ZLHMA Dir (connector)", display=display.none)` — mapare: STRONG LONG=+2, LONG=+1, RABDARE=0, SHORT=−1, STRONG SHORT=−2; opțional al doilea plot `quality` pentru Command Deck.
+- **Impact:** ZLHMA devine lentilă în meta-verdict fără a citi manual dashboard-ul pe fiecare chart.
+- **Riscuri/dependențe:** Meta-Confluence trebuie actualizat separat cu slot nou; numele plot-ului stabil pentru companion scripts.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine`; ulterior `Meta_Confluence_v*.pine`.
+
+### I-016 · Earnings guard pe preset Nasdaq · [S] · P2
+- **Problema/golul:** pe stocks, STRONG LONG cu earnings în 1–3 zile e risc binar (model I-006 AntiFOMO) — ZLHMA TOP nu verifică `earnings.future_time`.
+- **Soluția:** pe preset Nasdaq: dacă earnings ≤ N zile, downgrade `dir` maxim la ±1 și badge „EARNINGS in Xz" în `warnTxt`; alertă `ZLHMA_EARNINGS_WARN` JSON. Inactiv pe Crypto/Scalping.
+- **Impact:** previne intrări trend agresive înainte de raport; aliniat cu convenția preset Nasdaq (pine.md §3).
+- **Riscuri/dependințe:** `earnings.future_time` poate fi `na`; guard pasiv când lipsesc date.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (Preset, rawDir/warnTxt, alerte).
