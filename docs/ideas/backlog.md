@@ -20,14 +20,22 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-012 | Preset Scalping (ZLHMA 9/20, dirHold=1) | ZLHMA TOP Pine | S | P1 | făcut | ideation | 2026-07-04 |
 | I-013 | Forecast overlay RDS (durată trend HMA) | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-04 |
 | I-014 | Filtru chop ADX + volum în quality score | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-04 |
-| I-015 | Connector Meta-Confluence (dir −2..+2) | ZLHMA TOP Pine | S | P3 | propus | ideation | 2026-07-04 |
-| I-016 | Earnings guard pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-04 |
+| I-015 | Connector Meta-Confluence (dir −2..+2) | ZLHMA TOP Pine | S | P3 | făcut | ideation | 2026-07-04 |
+| I-016 | Earnings guard pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | făcut | ideation | 2026-07-04 |
 | I-017 | Quality gate pe cross-uri BULL/BEAR | ZLHMA TOP Pine | S | P1 | făcut | ideation | 2026-07-05 |
 | I-018 | STATS expectancy pe semnale confirmate | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-05 |
 | I-019 | Semnale pullback (touch HMA + bounce) | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-05 |
-| I-020 | Payload JSON cu SL/TP ATR → journal | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
-| I-021 | Filtru sesiune RTH pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
-| I-022 | Breakdown quality în dashboard (toggle) | ZLHMA TOP Pine | S | P3 | propus | ideation | 2026-07-05 |
+| I-020 | Payload JSON cu SL/TP ATR → journal | ZLHMA TOP Pine | S | P2 | făcut | ideation | 2026-07-05 |
+| I-021 | Filtru sesiune RTH pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | făcut | ideation | 2026-07-05 |
+| I-022 | Breakdown quality în dashboard (toggle) | ZLHMA TOP Pine | S | P3 | făcut | ideation | 2026-07-05 |
+| I-029 | Trend maturity gate (RDS vs trendBars) | ZLEMA Pine | M | P1 | propus | ideation | 2026-07-05 |
+| I-030 | Exit lens: slope decay + TREND_MATURE JSON | ZLEMA Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-031 | HTF stack D+W (bias săptămânal swing) | ZLEMA Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-032 | Shadow STATS pe semnale blocate de minQual | ZLEMA Pine | M | P3 | propus | ideation | 2026-07-05 |
+| I-033 | Whipsaw cooldown (flip-uri rapide → pauză) | ZLHMA TOP Pine | S | P1 | propus | ideation | 2026-07-05 |
+| I-034 | Failed cross / fakeout detector | ZLHMA TOP Pine | M | P1 | propus | ideation | 2026-07-05 |
+| I-035 | ORB 15m + HMA (preset Scalping Nasdaq) | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-036 | Bar range expansion gate (momentum bar) | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
 | I-023 | Quality gate + minQual preset pe alerte | ZLEMA Pine | S | P1 | făcut | ideation | 2026-07-05 |
 | I-024 | Preset Swing (TF mari, motor lent) | ZLEMA Pine | S | P1 | făcut | ideation | 2026-07-05 |
 | I-025 | Semnale vizuale Early/Confirmed + pullback | ZLEMA Pine | M | P1 | făcut | ideation | 2026-07-05 |
@@ -232,3 +240,59 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** validare out-of-sample pe chart pentru motorul lent; răspunde la „merită minQual 70% pe Swing?".
 - **Riscuri/dependențe:** R aproximativ fără comision/slippage; depinde de I-025 pentru semnale confirmate.
 - **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_4.pine` (grup STATS, secțiune tracking + dashboard).
+
+### I-029 · Trend maturity gate (RDS vs trendBars) · [M] · P1
+- **Problema/golul:** ZLEMA v1.6 are RDS (Real/Avg) dar nu îl folosește la decizie — pe Swing intri adesea în trend matur (`trendBars` >> avg RDS) unde expectancy-ul scade; ZLHMA pe Scalping nu are aceeași problemă (durate mici, alt use-case).
+- **Soluția:** pe preset Swing: dacă `trendBars >= fcBullAvg * mult` (input, ex. 1.2), downgrade STRONG→LONG, penalizează `extQ` în quality, badge „MATURE" în hero; opțional blocare PB noi. Pragurile sunt ipoteze — validare out-of-sample.
+- **Impact:** previne chase-ul în swing-uri epuizate; diferențiere ZLEMA = „ciclul de viață al trendului", nu doar intrare.
+- **Riscuri/dependențe:** `fcBullAvg` instabil când sample RDS < 10; nu se portează pe ZLHMA Scalping (durate incomparabile).
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_6.pine` (Forecast RDS, rawDir/quality, dashboard, alerte).
+
+### I-030 · Exit lens: slope decay + TREND_MATURE JSON · [M] · P2
+- **Problema/golul:** ambele scripturi sunt optimizate pe intrare (BUY/STRONG/PB); ZLEMA pe 1H+ are nevoie de semnale de ieșire/reducere — slopeSm care cade sub `slopeTh` după `extended` sau după STRONG prelungit nu generează nimic. ZLHMA Scalping iese rapid din poziție — exit lens acolo e zgomot.
+- **Soluția:** alerte noi doar ZLEMA: `ZLEMA_SLOPE_DECAY` (momentum pierdut pe bară închisă), `ZLEMA_TREND_EXHAUST` (extended + slope decay + trendBars mature), JSON cu `exitHint`/`holdBars`. Fără strategy — doar avertizare pentru management manual / journal.
+- **Impact:** închide bucla intrare→ieșire pe motorul lent; complementar la ZLHMA care rămâne „trigger rapid".
+- **Riscuri/dependențe:** poate alerta prea des în chop — cere `useChop` ON pe Swing; nu e semnal short automat.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_6.pine` (bloc Alerte, f_warnTxt, eventual plot connector `exitHint` separat).
+
+### I-031 · HTF stack D+W (bias săptămânal swing) · [M] · P2
+- **Problema/golul:** `useHTF` e un singur TF (default D); pe Swing merită stack D+W — trend săptămânal vs zilnic. ZLHMA Scalping pe 1m/5m nu beneficiază de W (prea lent, prea puține bare relevante).
+- **Soluția:** al doilea filtru HTF opțional `htfTF2 = W`: STRONG doar când ambele HTF aliniate; downgrade la CONTRA pe weekly; rând „HTF stack" în dashboard. Zero request-uri în plus față de pattern-ul existent `request.security` + `[1]`.
+- **Impact:** swing-uri mai curate pe acțiuni/crypto 4H/D; rol clar ZLEMA = poziționare, ZLHMA = execuție.
+- **Riscuri/dependențe:** pe crypto W poate fi subțire pe altcoins noi; toggle OFF by default.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_6.pine` (Filtru HTF, dirPre, dashboard).
+
+### I-032 · Shadow STATS pe semnale blocate de minQual · [M] · P3
+- **Problema/golul:** model I-005 AntiFOMO — gate-ul fără feedback = tuning orb. ZLEMA cu `minQual` 70% pe Nasdaq blochează semnale fără să știi dacă ar fi câștigat; ZLHMA ar produce prea multe umbre (frecvență mare) — shadowul are sens pe motor lent.
+- **Soluția:** al doilea tracker STATS „umbra" pe `confBuyRaw && quality < minQual` (aceeași mașină SL/TP); rând dashboard „Umbra gate: N tr · exp X.XXR". Expectancy negativ = gate bun; pozitiv = prag prea strict.
+- **Impact:** validezi `minQual` out-of-sample pe chart fără journal manual; specific ZLEMA (sample mai mic, semnale mai rare).
+- **Riscuri/dependențe:** n mic per simbol; R fără comision (ca STATS existent); dublare var-uri tracker.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_6.pine` (STATS, dashboard).
+
+### I-033 · Whipsaw cooldown (flip-uri rapide → pauză) · [S] · P1
+- **Problema/golul:** ZLHMA pe Scalping cu `dirHold=1` poate genera 3–4 flip-uri în 10 bare în chop — Telegram și chart devin zgomot. ZLEMA cu `dirHold=3` pe Swing are problema mai rar; cooldown-ul agresiv i-ar întârzia intrările valoroase.
+- **Soluția:** contor flip-uri în ultimele N bare (input); dacă `flipCount >= thr`, forțează `rawDir=0` + badge „WHIPSAW" pentru K bare; alertă `ZLHMA_WHIPSAW_PAUSE` JSON informativă. Default ON pe preset Scalping, OFF altfel.
+- **Impact:** taie seria de semnale false în range pe TF mic; diferențiere microstructură ZLHMA.
+- **Riscuri/dependențe:** poate rata reversal-ul real imediat după whipsaw — K mic (2–3 bare); praguri ipoteză.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1_8.pine` (rawDir, f_warnTxt, alerte).
+
+### I-034 · Failed cross / fakeout detector · [M] · P1
+- **Problema/golul:** cross HMA confirmat care revine sub linie în 1–2 bare e pattern clasic de stop-hunt pe scalping; niciun script nu îl marchează. ZLEMA pe 1H+ are fakeout-uri mai rare și mai lente — detectorul intra-bar nu e prioritar acolo.
+- **Soluția:** după `sigUp` confirmat: dacă `close < hmaFast` în următoarele M bare (sau aceeași bară cu upper wick), label „FAKEOUT BULL" + alertă `ZLHMA_FAKEOUT_BEAR` (avertizare, nu short automat). Simetric pentru bear. Opțional scade quality temporar.
+- **Impact:** previne intrarea pe break fals pe TF mic; edge distinct ZLHMA față de „trend lifecycle" ZLEMA.
+- **Riscuri/dependențe:** pe trend violent wick-ul poate declanșa fals pozitive; M=1–2 configurabil.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1_8.pine` (Semnale, alerte, dashboard „Semnal").
+
+### I-035 · ORB 15m + HMA (preset Scalping Nasdaq) · [M] · P2
+- **Problema/golul:** pe Nasdaq 5m/15m, prima jumătate de oră are range distinct (ORB); ZLHMA Scalping nu ancorează semnalul în contextul deschiderii — STRONG în chop pre-market/RTH early e zgomot. ZLEMA Swing pe 1H+ nu are nevoie de ORB 15m.
+- **Soluția:** pe preset Scalping + simbol stocks: calculează high/low primele 15m RTH ET; STRONG long doar dacă `close > ORB high` și HMA aliniat (sau PB din ORB). Dashboard rând „ORB" cu poziție preț. Toggle; inactiv Crypto.
+- **Impact:** aliniere cu workflow stocks (deschidere → continuitate); ZLHMA devine tool de sesiune, ZLEMA de multi-bar trend.
+- **Riscuri/dependențe:** `request.security` sau `time()` session — test pe DST; pe ETF-uri lichide vs small caps comportament diferit.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1_8.pine` (Preset Scalping, Filtru nou, dashboard).
+
+### I-036 · Bar range expansion gate (momentum bar) · [S] · P2
+- **Problema/golul:** STRONG ZLHMA pe bară cu range îngust (inside bar) e adesea capcană — lipsește confirmarea de participare pe bara de semnal. ZLEMA pe Swing folosește deja persistență (`trendBars`) și slope neted — alt mecanism, fără overlap.
+- **Soluția:** pentru STRONG/cross pe Scalping: cere `high-low >= ta.sma(high-low, 10) * mult` (ex. 1.1) sau RVOL bară > 1.0; altfel downgrade la LONG. Componentă nouă în `f_qParts` („rangeQ") doar ZLHMA.
+- **Impact:** mai puține STRONG pe bare „moarte"; diferențiere micro-momentum vs macro-persistență ZLEMA.
+- **Riscuri/dependențe:** poate rata breakout-uri din compresie extremă (intenționat pe Scalping); mult ipoteză.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1_8.pine` (f_qParts, rawDir STRONG, dashboard Q range).
