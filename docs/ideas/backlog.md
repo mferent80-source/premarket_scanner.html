@@ -28,14 +28,14 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-020 | Payload JSON cu SL/TP ATR → journal | ZLHMA TOP Pine | S | P2 | făcut | ideation | 2026-07-05 |
 | I-021 | Filtru sesiune RTH pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | făcut | ideation | 2026-07-05 |
 | I-022 | Breakdown quality în dashboard (toggle) | ZLHMA TOP Pine | S | P3 | făcut | ideation | 2026-07-05 |
-| I-029 | Trend maturity gate (RDS vs trendBars) | ZLEMA Pine | M | P1 | propus | ideation | 2026-07-05 |
-| I-030 | Exit lens: slope decay + TREND_MATURE JSON | ZLEMA Pine | M | P2 | propus | ideation | 2026-07-05 |
-| I-031 | HTF stack D+W (bias săptămânal swing) | ZLEMA Pine | M | P2 | propus | ideation | 2026-07-05 |
-| I-032 | Shadow STATS pe semnale blocate de minQual | ZLEMA Pine | M | P3 | propus | ideation | 2026-07-05 |
-| I-033 | Whipsaw cooldown (flip-uri rapide → pauză) | ZLHMA TOP Pine | S | P1 | propus | ideation | 2026-07-05 |
-| I-034 | Failed cross / fakeout detector | ZLHMA TOP Pine | M | P1 | propus | ideation | 2026-07-05 |
-| I-035 | ORB 15m + HMA (preset Scalping Nasdaq) | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-05 |
-| I-036 | Bar range expansion gate (momentum bar) | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
+| I-029 | Trend maturity gate (RDS vs trendBars) | ZLEMA Pine | M | P1 | făcut | ideation | 2026-07-05 |
+| I-030 | Exit lens: slope decay + TREND_MATURE JSON | ZLEMA Pine | M | P2 | făcut | ideation | 2026-07-05 |
+| I-031 | HTF stack D+W (bias săptămânal swing) | ZLEMA Pine | M | P2 | făcut | ideation | 2026-07-05 |
+| I-032 | Shadow STATS pe semnale blocate de minQual | ZLEMA Pine | M | P3 | făcut | ideation | 2026-07-05 |
+| I-033 | Whipsaw cooldown (flip-uri rapide → pauză) | ZLHMA TOP Pine | S | P1 | făcut | ideation | 2026-07-05 |
+| I-034 | Failed cross / fakeout detector | ZLHMA TOP Pine | M | P1 | făcut | ideation | 2026-07-05 |
+| I-035 | ORB 15m + HMA (preset Scalping Nasdaq) | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-05 |
+| I-036 | Bar range expansion gate (momentum bar) | ZLHMA TOP Pine | S | P2 | făcut | ideation | 2026-07-05 |
 | I-023 | Quality gate + minQual preset pe alerte | ZLEMA Pine | S | P1 | făcut | ideation | 2026-07-05 |
 | I-024 | Preset Swing (TF mari, motor lent) | ZLEMA Pine | S | P1 | făcut | ideation | 2026-07-05 |
 | I-025 | Semnale vizuale Early/Confirmed + pullback | ZLEMA Pine | M | P1 | făcut | ideation | 2026-07-05 |
