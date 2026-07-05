@@ -28,6 +28,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-020 | Payload JSON cu SL/TP ATR → journal | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
 | I-021 | Filtru sesiune RTH pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
 | I-022 | Breakdown quality în dashboard (toggle) | ZLHMA TOP Pine | S | P3 | propus | ideation | 2026-07-05 |
+| I-023 | Quality gate + minQual preset pe alerte | ZLEMA Pine | S | P1 | propus | ideation | 2026-07-05 |
+| I-024 | Preset Swing (TF mari, motor lent) | ZLEMA Pine | S | P1 | propus | ideation | 2026-07-05 |
+| I-025 | Semnale vizuale Early/Confirmed + pullback | ZLEMA Pine | M | P1 | propus | ideation | 2026-07-05 |
+| I-026 | ADX chop + volum în quality score | ZLEMA Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-027 | Forecast RDS pe linia ZLEMA | ZLEMA Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-028 | STATS expectancy pe semnale confirmate | ZLEMA Pine | M | P2 | propus | ideation | 2026-07-05 |
 
 ## Mini-spec-uri
 
@@ -184,3 +190,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** debugging rapid al semnalelor slabe fără Data Window; învață ce componentă taie quality pe regim.
 - **Riscuri/dependențe:** +4 rânduri doar cu toggle — hero rămâne curat.
 - **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (`f_quality` refactor return struct sau funcții aux, dashboard).
+
+### I-023 · Quality gate + minQual preset pe alerte · [S] · P1
+- **Problema/golul:** `Zero_Lag_EMA_Dashboard_v1_4.pine` calculează `quality` (L173–183) dar alertele `sigUp`/`strongLong` (L317–325) și `alertcondition` (L333–339) declanșează fără prag — STRONG și cross-uri ies și la ribbon nealiniat, HTF contra, extended. ZLHMA v1.7.0 are deja `minQual` + `useQualGate`; ZLEMA e în urmă cu ~3 versiuni de features.
+- **Soluția:** `minQual` derivat din preset (Swing/Crypto/Nasdaq/Custom — praguri mai mari decât ZLHMA: motor lent = mai puține dar mai curate); `useQualGate` pe STRONG, cross BULL/BEAR, alerte JSON cu `minQual` în payload. Dashboard: rând „Alert qual".
+- **Impact:** mai puțin zgomot Telegram; aliniere cu familia dashboard MA. Pragurile sunt ipoteze — validează out-of-sample.
+- **Riscuri/dependențe:** poate rata cross-uri valoroase pe TF mic — toggle ON/OFF.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_4.pine` (Preset, Alerte L317–339, dashboard).
+
+### I-024 · Preset Swing (TF mari, motor lent) · [S] · P1
+- **Problema/golul:** ZLEMA are Crypto/Nasdaq/Custom — nu există profil pentru 1H/4H/D unde motorul EMA zero-lag strălucește (trenduri mai lungi, mai puțin zgomot decât ZLHMA). Preset Scalping din ZLHMA nu se potrivește filozofiei ZLEMA (prea rapid).
+- **Soluția:** al 4-lea preset „Swing": fast 21 / slow 55 (sau 34/89), ATR 14, slopeTh 0.07, strongM 2.0, dirHold 3, chop ON, extTh 2.8, minQual 70% Nasdaq / 60% Crypto. Hero etichetează „Swing" explicit.
+- **Impact:** setup instant pe TF mari fără tuning manual; diferențiere clară față de ZLHMA Scalping.
+- **Riscuri/dependențe:** pe 5m Swing poate fi prea lent — tooltip „recomandat 1H+".
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_4.pine` (bloc Preset + derivări).
+
+### I-025 · Semnale vizuale Early/Confirmed + pullback · [M] · P1
+- **Problema/golul:** ZLEMA v1.4 nu are deloc labeluri, plotshape sau rând „Semnal" — doar cross-uri în alerte JSON (L317–325). Userul nu vede pe chart BUY/SELL confirmat, Early, sau retest ZLEMA (pullback), deși motorul lent e ideal pentru continuation pe touch.
+- **Soluția:** port din ZLHMA v1.7.0 adaptat: grup Semnale (Early/Confirmed, labeluri, marcaje), pullback touch `zlema` ± buffer ATR, `lastSigTxt` în dashboard. Culori distincte PB vs Confirmed. Alerte `ZLEMA_BUY_CONFIRMED`, `ZLEMA_PULLBACK_BUY` etc.
+- **Impact:** paritate UX cu ZLHMA; pullback pe ZLEMA = intrări swing naturale (mai puțin chase decât pe HMA rapid).
+- **Riscuri/dependențe:** Early poate repainta — păstrează tooltip; pullback în chop necesită I-026 ADX.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_4.pine` (grup Semnale nou, alerte, dashboard).
+
+### I-026 · ADX chop + volum în quality score · [M] · P2
+- **Problema/golul:** filtrul chop actual (L105–106) verifică doar `slopeSm < slopeTh` — în range ADX sub 20 ZLEMA flip-uiește târziu dar tot iese STRONG pe spike-uri scurte; `f_quality` nu penalizează volum slab (pattern SMI L742–747, deja în ZLHMA v1.7.0).
+- **Soluția:** `ta.dmi` + downgrade STRONG la ADX < prag preset; componente `volQ`/`adxQ` în `f_quality` (guard `volume` na pe forex). Badge „CHOP" în `warnTxt`. Toggle-uri în Filtru.
+- **Impact:** mai puține whipsaw-uri în consolidare; quality reflectă participarea reală.
+- **Riscuri/dependențe:** pragurile ADX/RVOL = ipoteze per regim.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_4.pine` (Filtru, f_quality, rawDir, dashboard detalii).
+
+### I-027 · Forecast RDS pe linia ZLEMA · [M] · P2
+- **Problema/golul:** ZLEMA arată verdict + quality dar nu „cât mai durează tipic această fază" — ZLHMA v1.7.0 are RDS (I-013 făcut); ZLEMA rămâne fără context temporal, deși trendurile pe EMA sunt de regulă mai lungi (avg durations diferite de HMA).
+- **Soluția:** port minimal RDS v4.61 pe `zlema`: array-uri durate bullish/bearish, overlay Real/Avg, toggle OFF by default, rând Forecast în `showDetail`.
+- **Impact:** diferențiere vs ZLHMA (durate medii mai mari așteptate); trend tânăr vs matur la intrare swing.
+- **Riscuri/dependențe:** sample mic pe simbol nou = „Avg: -"; overhead vizual dacă nu rămâne OFF default.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_4.pine` (grup Forecast, logică RDS); referință `Zero_Lag_HMA_Dashboard_v1.pine` + `SMI_Fractal_Iron_HMA_v9.pine`.
+
+### I-028 · STATS expectancy pe semnale confirmate · [M] · P2
+- **Problema/golul:** ZLEMA livrează quality dar zero feedback „semnalele confirmate pe acest simbol au avut edge?" — AntiFOMO și ZLHMA v1.7.0 au panou STATS; validarea pragurilor minQual pe ZLEMA e imposibilă fără export manual.
+- **Soluția:** tracker price-touch pesimist pe confirmed BUY/SELL (SL = dist ZLEMA sau ATR×mult preset Swing), expectancy R + PF în dashboard, toggle OFF default, avertisment n<10.
+- **Impact:** validare out-of-sample pe chart pentru motorul lent; răspunde la „merită minQual 70% pe Swing?".
+- **Riscuri/dependențe:** R aproximativ fără comision/slippage; depinde de I-025 pentru semnale confirmate.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_EMA_Dashboard_v1_4.pine` (grup STATS, secțiune tracking + dashboard).
