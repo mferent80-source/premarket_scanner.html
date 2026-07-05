@@ -22,6 +22,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-014 | Filtru chop ADX + volum în quality score | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-04 |
 | I-015 | Connector Meta-Confluence (dir −2..+2) | ZLHMA TOP Pine | S | P3 | propus | ideation | 2026-07-04 |
 | I-016 | Earnings guard pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-04 |
+| I-017 | Quality gate pe cross-uri BULL/BEAR | ZLHMA TOP Pine | S | P1 | propus | ideation | 2026-07-05 |
+| I-018 | STATS expectancy pe semnale confirmate | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-019 | Semnale pullback (touch HMA + bounce) | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-020 | Payload JSON cu SL/TP ATR → journal | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
+| I-021 | Filtru sesiune RTH pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
+| I-022 | Breakdown quality în dashboard (toggle) | ZLHMA TOP Pine | S | P3 | propus | ideation | 2026-07-05 |
 
 ## Mini-spec-uri
 
@@ -136,3 +142,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** previne intrări trend agresive înainte de raport; aliniat cu convenția preset Nasdaq (pine.md §3).
 - **Riscuri/dependințe:** `earnings.future_time` poate fi `na`; guard pasiv când lipsesc date.
 - **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (Preset, rawDir/warnTxt, alerte).
+
+### I-017 · Quality gate pe cross-uri BULL/BEAR · [S] · P1
+- **Problema/golul:** I-011 e parțial livrat în v1.6.1 — `useQualGate` filtrează BUY/SELL confirmate și STRONG, dar `sigUp`/`sigDown` (L460–463) și `alertcondition` BULL/BEAR (L479–480) declanșează încă fără `quality >= minQual`. Pe ZLHMA rapid, cross-urile brute sunt sursa principală de zgomot Telegram.
+- **Soluția:** aceeași poartă `useQualGate` pe `ZLHMA_BULL_CROSS`/`ZLHMA_BEAR_CROSS` și pe `alertcondition`-urile aferente; opțional prag separat `minQualCross` (default = `minQual`). Dashboard: rând „Cross gate" sau extindere „Alert qual".
+- **Impact:** consistență alerte — nu mai primești cross Telegram când quality e 30% și HTF contra. Pragurile rămân ipoteze de validat out-of-sample.
+- **Riscuri/dependențe:** pe Scalping poate rata cross-uri rapide valoroase — toggle separat pentru cross vs confirmed.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (bloc Alerte L450–485).
+
+### I-018 · STATS expectancy pe semnale confirmate · [M] · P2
+- **Problema/golul:** AntiFOMO are panou STATS (expectancy R, PF, shadow gate) — ZLHMA TOP livrează verdict + quality dar zero feedback „semnalele mele pe acest simbol/TF au avut edge?". Userul nu poate valida ipotezele de prag fără export manual.
+- **Soluția:** tracker pesimist price-touch pe `confBuySig`/`confSellSig` (SL = HMA fast sau ATR×mult, TP = ATR×mult preset), contor trades + expectancy R + PF în rând STATS sub dashboard (toggle OFF by default). Avertisment n<10 obligatoriu. Fără `request.security` noi.
+- **Impact:** validare out-of-sample pe chart, fără strategy file — răspunde la „merită minQual 65% pe Nasdaq?".
+- **Riscuri/dependențe:** R aproximativ fără comision/slippage (declarat ca la AntiFOMO STATS); sample mic pe simbol nou = zgomot.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (secțiune nouă POSITION/STATS + dashboard).
+
+### I-019 · Semnale pullback (touch HMA + bounce) · [M] · P2
+- **Problema/golul:** semnalele actuale sunt cross HMA sau flip `dir` — pe trend matur userul intră des EXTINS (warnTxt) sau chase-uiește cross târziu. Lipsește tipul „retest HMA în trend" (pattern standard continuation).
+- **Soluția:** detectare touch: low/high atinge `hmaFast` ± buffer ATR în `dir != 0`, urmat de închidere în sensul trendului; label „PULLBACK BUY/SELL" + alertă JSON `ZLHMA_PULLBACK_*`. Toggle + cerință `quality >= minQual` și `not extended`. Opțional `trendBars >= 3`.
+- **Impact:** intrări mai bune în trend continuu, mai puțin FOMO pe extended; diferențiere față de ZLEMA (același dashboard, alt motor).
+- **Riscuri/dependențe:** pe chop, touch-urile multiplică semnale false — combină cu I-014 ADX sau filtru chop existent.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (grup Semnale, alerte, dashboard „Semnal").
+
+### I-020 · Payload JSON cu SL/TP ATR → journal · [S] · P2
+- **Problema/golul:** `f_json` (L343–350) trimite dir/quality/hma dar fără niveluri acționabile — bucla semnal→journal (I-001/I-008 AntiFOMO) se rupe la capătul ZLHMA: userul completează manual SL/TP.
+- **Soluția:** la `ZLHMA_BUY_CONFIRMED`/`STRONG_LONG` (și simetric SHORT): câmpuri `sl`, `tp1`, `tp2`, `slDistAtr`, `riskNote` derivate din `hmaFast`, `atr`, multiplicatori preset. Format compatibil cu `lib/journal.js`. Fără endpoint nou obligatoriu — copy-paste sau webhook existent.
+- **Impact:** journal completat în secunde; aliniere cu workflow-ul de execuție reală.
+- **Riscuri/dependențe:** SL pe HMA poate fi prea strâns pe volatile — multiplicator ATR configurabil; nu înlocuiește decizia de sizing.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (`f_json`, inputs Preset); opțional ingestie în automation (livrare separată).
+
+### I-021 · Filtru sesiune RTH pe preset Nasdaq · [S] · P2
+- **Problema/golul:** trader.md §3 — stocks au premarket/after-hours cu spread și volum distorsionat; ZLHMA pe 5m premarket generează flip-uri ZLHMA rapide fără context sesiune. AntiFOMO și `check-alerts.mjs` tratează deja diferența stocks/crypto.
+- **Soluția:** pe preset Nasdaq: input „Doar RTH (ET)" — în afara 09:30–16:00 ET downgrade `dir` la max ±1 sau blochează alertele confirmate; badge „PREMARKET"/„AH" în `warnTxt`. Inactiv pe Crypto/Scalping. Fus ET explicit în tooltip.
+- **Impact:** mai puțin zgomot pe ore subțiri; decizii aliniate cu lichiditatea executabilă.
+- **Riscuri/dependențe:** `time()` + timezone TV trebuie setat corect de user; DST — folosește `syminfo.timezone` unde e posibil.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (Preset, rawDir/warnTxt, alerte).
+
+### I-022 · Breakdown quality în dashboard (toggle) · [S] · P3
+- **Problema/golul:** `f_quality` (L221–231) compune 6 componente (slope, dist, persist, ribbon, HTF, extended) dar dashboard-ul arată doar procentul agregat — userul nu știe *de ce* quality e 42% (slope slab vs HTF contra vs extended).
+- **Soluția:** când `showDetail` ON, 3–4 rânduri compacte: SlopeQ, RibbonQ, HTF Q, ExtQ (valori % sau bare text). Respectă design.md §3 (~7 rânduri nucleu, restul pe toggle).
+- **Impact:** debugging rapid al semnalelor slabe fără Data Window; învață ce componentă taie quality pe regim.
+- **Riscuri/dependențe:** +4 rânduri doar cu toggle — hero rămâne curat.
+- **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1.pine` (`f_quality` refactor return struct sau funcții aux, dashboard).
