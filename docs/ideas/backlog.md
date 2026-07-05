@@ -36,6 +36,10 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-034 | Failed cross / fakeout detector | ZLHMA TOP Pine | M | P1 | făcut | ideation | 2026-07-05 |
 | I-035 | ORB 15m + HMA (preset Scalping Nasdaq) | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-05 |
 | I-036 | Bar range expansion gate (momentum bar) | ZLHMA TOP Pine | S | P2 | făcut | ideation | 2026-07-05 |
+| I-037 | Stretch Oscillator (dist ZLEMA/ZLHMA ATRx) | NOU: Stretch Osc Pine | M | P1 | propus | ideation | 2026-07-05 |
+| I-038 | Participation Oscillator (buy% + RVOL) | NOU: Part Osc Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-039 | Slope Phase Oscillator (accel ZLEMA) | NOU: Slope Phase Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-040 | Coil Oscillator (range percentile gate) | NOU: Coil Osc Pine | S | P3 | propus | ideation | 2026-07-05 |
 | I-023 | Quality gate + minQual preset pe alerte | ZLEMA Pine | S | P1 | făcut | ideation | 2026-07-05 |
 | I-024 | Preset Swing (TF mari, motor lent) | ZLEMA Pine | S | P1 | făcut | ideation | 2026-07-05 |
 | I-025 | Semnale vizuale Early/Confirmed + pullback | ZLEMA Pine | M | P1 | făcut | ideation | 2026-07-05 |
@@ -296,3 +300,31 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** mai puține STRONG pe bare „moarte"; diferențiere micro-momentum vs macro-persistență ZLEMA.
 - **Riscuri/dependențe:** poate rata breakout-uri din compresie extremă (intenționat pe Scalping); mult ipoteză.
 - **Fișiere atinse:** `pine-scripts\Zero_Lag_HMA_Dashboard_v1_8.pine` (f_qParts, rawDir STRONG, dashboard Q range).
+
+### I-037 · Stretch Oscillator (dist ZLEMA/ZLHMA ATRx) · [M] · P1
+- **Problema/golul:** ZLEMA/ZLHMA arată `distAtr` în dashboard overlay, dar nu există panou dedicat de mean-reversion — RS PRO măsoară reversal pe segment rolling (alt mecanism), CVD/MACD nu citesc distanța față de MA zero-lag. Userul vrea „cât de întins e prețul" ca oscilator cu zone, nu ca linie pe chart.
+- **Soluția:** indicator pane `overlay=false`: oscilator = `(close - MA) / ATR` cu selector motor ZLEMA sau ZLHMA (aceleași formule ca dashboard-urile), benzi preset (Crypto/Nasdaq/Swing/Scalping) pentru extended/fatigue, zero line, histogramă divergență față de `slopeSm`. Connector `plot(stretchCode)` −2..+2 pentru Meta-Confluence. Dashboard vertical: STRETCH %, zona, slope, alertă JSON la intrare în bandă extremă.
+- **Impact:** completare naturală a overlay-urilor — vezi pe pane când chase-ul e periculos; intrări PB mai bine temporate pe ZLEMA Swing.
+- **Riscuri/dependențe:** pragurile de bandă = ipoteze OOS; pe forex fără volum nu adaugă participare (doar distanță).
+- **Fișiere atinse:** `pine-scripts/Zero_Lag_Stretch_Oscillator_v1.pine` (nou); consumă aceleași preset-uri ca ZLEMA v1.7 / ZLHMA v1.9.
+
+### I-038 · Participation Oscillator (buy% + RVOL) · [M] · P2
+- **Problema/golul:** `f_volQ` din ZLEMA/ZLHMA intră în quality dar e îngropat — CVD PRO e order-flow cumulativ (altă axă), nu „participare pe bara curentă aliniată cu direcția". Lipsește un oscilator simplu 0–100: „banii chiar sprijină move-ul?"
+- **Soluția:** pane 0–100 din `buyPct` (close position in range) + `RVOL` vs SMA20, combinat ca în `f_volQ` dar vizibil ca oscilator cu praguri preset. Semnal: participare confirmată când oscilator > prag și `dir` dashboard connector aliniat. Inactiv/neutru 50 pe `na(volume)`.
+- **Impact:** filtru rapid înainte de cross ZLHMA — evită STRONG pe volum mort; complementar CVD (structură vs bară).
+- **Riscuri/dependențe:** buy% pe bară e aproximare; pe crypto exchange volume OK, pe stocks premarket subțire.
+- **Fișiere atinse:** `pine-scripts/Participation_Oscillator_v1.pine` (nou).
+
+### I-039 · Slope Phase Oscillator (accel ZLEMA) · [M] · P2
+- **Problema/golul:** MACD măsoară diferența de MA-uri; ZLEMA are deja `slopeSm` (viteză) dar nu **accelerația** (schimbarea slope-ului) — util pentru I-030 exit lens ca pane standalone. RS PRO = reversal segment, nu fază de momentum.
+- **Soluția:** oscilator = `slopeSm - slopeSm[n]` normalizat ATR, cu zero line și zone „accelerare / decelerare / flip". Alerte `SLOPE_PHASE_UP/DOWN` pe bară închisă. Connector pentru Meta: +1 accel bullish, −1 decel, etc.
+- **Impact:** vezi pe pane când trendul încetinește înainte ca overlay-ul ZLEMA să dea TREND_EXHAUST — timing mai bun la ieșiri swing.
+- **Riscuri/dependențe:** zgomot pe TF mici; recomandat 15m+ / Swing; praguri ipoteză.
+- **Fișiere atinse:** `pine-scripts/Slope_Phase_Oscillator_v1.pine` (nou); referință motor `Zero_Lag_EMA_Dashboard_v1_7.pine`.
+
+### I-040 · Coil Oscillator (range percentile gate) · [S] · P3
+- **Problema/golul:** Hourly Vol = skew + regim orar; Vol Regime Pro = percentilă ATR macro; ZLHMA I-036 folosește range gate intern dar nu exportă „compresie" ca oscilator reutilizabil pe orice chart. Lipsește un coil 0–100 simplu: „piața respiră sau e în arc?"
+- **Soluția:** pane: `percentile_rank(barRange, lookback)` sau `barRange / ta.highest(barRange, N)` × 100; zone <25 COIL, >75 RELEASE. Nu votează direcția — doar gate (ca HVol). JSON `COIL_BREAK` când iese din <25 cu range expansion.
+- **Impact:** pregătește breakout-uri fără a duplica Vol Regime; bun pe Scalping pre-ORB.
+- **Riscuri/dependențe:** breakout din coil poate fi fals; folosește cu ZLHMA ORB/range gate, nu singur.
+- **Fișiere atinse:** `pine-scripts/Coil_Oscillator_v1.pine` (nou).
