@@ -28,12 +28,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-020 | Payload JSON cu SL/TP ATR → journal | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
 | I-021 | Filtru sesiune RTH pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
 | I-022 | Breakdown quality în dashboard (toggle) | ZLHMA TOP Pine | S | P3 | propus | ideation | 2026-07-05 |
-| I-023 | Quality gate + minQual preset pe alerte | ZLEMA Pine | S | P1 | propus | ideation | 2026-07-05 |
-| I-024 | Preset Swing (TF mari, motor lent) | ZLEMA Pine | S | P1 | propus | ideation | 2026-07-05 |
-| I-025 | Semnale vizuale Early/Confirmed + pullback | ZLEMA Pine | M | P1 | propus | ideation | 2026-07-05 |
-| I-026 | ADX chop + volum în quality score | ZLEMA Pine | M | P2 | propus | ideation | 2026-07-05 |
-| I-027 | Forecast RDS pe linia ZLEMA | ZLEMA Pine | M | P2 | propus | ideation | 2026-07-05 |
-| I-028 | STATS expectancy pe semnale confirmate | ZLEMA Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-023 | Quality gate + minQual preset pe alerte | ZLEMA Pine | S | P1 | făcut | ideation | 2026-07-05 |
+| I-024 | Preset Swing (TF mari, motor lent) | ZLEMA Pine | S | P1 | făcut | ideation | 2026-07-05 |
+| I-025 | Semnale vizuale Early/Confirmed + pullback | ZLEMA Pine | M | P1 | făcut | ideation | 2026-07-05 |
+| I-026 | ADX chop + volum în quality score | ZLEMA Pine | M | P2 | făcut | ideation | 2026-07-05 |
+| I-027 | Forecast RDS pe linia ZLEMA | ZLEMA Pine | M | P2 | făcut | ideation | 2026-07-05 |
+| I-028 | STATS expectancy pe semnale confirmate | ZLEMA Pine | M | P2 | făcut | ideation | 2026-07-05 |
 
 ## Mini-spec-uri
 
