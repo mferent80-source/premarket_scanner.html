@@ -16,15 +16,15 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-008 | Exit alert cu payload JSON → journal | AntiFOMO Pine | S | P3 | făcut | ideation | 2026-07-03 |
 | I-009 | Aliniere alerte regim cu gate-ul real + vârsta gate-ului | AntiFOMO Pine | S | P2 | făcut | ideation | 2026-07-03 |
 | I-010 | Detalii macro pe toggle (dashboard Pro de ziar → nucleu) | AntiFOMO Pine | S | P3 | făcut | ideation | 2026-07-03 |
-| I-011 | Alerte filtrate pe quality score (prag preset) | ZLHMA TOP Pine | S | P1 | propus | ideation | 2026-07-04 |
-| I-012 | Preset Scalping (ZLHMA 9/20, dirHold=1) | ZLHMA TOP Pine | S | P1 | propus | ideation | 2026-07-04 |
-| I-013 | Forecast overlay RDS (durată trend HMA) | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-04 |
-| I-014 | Filtru chop ADX + volum în quality score | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-04 |
+| I-011 | Alerte filtrate pe quality score (prag preset) | ZLHMA TOP Pine | S | P1 | făcut | ideation | 2026-07-04 |
+| I-012 | Preset Scalping (ZLHMA 9/20, dirHold=1) | ZLHMA TOP Pine | S | P1 | făcut | ideation | 2026-07-04 |
+| I-013 | Forecast overlay RDS (durată trend HMA) | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-04 |
+| I-014 | Filtru chop ADX + volum în quality score | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-04 |
 | I-015 | Connector Meta-Confluence (dir −2..+2) | ZLHMA TOP Pine | S | P3 | propus | ideation | 2026-07-04 |
 | I-016 | Earnings guard pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-04 |
-| I-017 | Quality gate pe cross-uri BULL/BEAR | ZLHMA TOP Pine | S | P1 | propus | ideation | 2026-07-05 |
-| I-018 | STATS expectancy pe semnale confirmate | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-05 |
-| I-019 | Semnale pullback (touch HMA + bounce) | ZLHMA TOP Pine | M | P2 | propus | ideation | 2026-07-05 |
+| I-017 | Quality gate pe cross-uri BULL/BEAR | ZLHMA TOP Pine | S | P1 | făcut | ideation | 2026-07-05 |
+| I-018 | STATS expectancy pe semnale confirmate | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-05 |
+| I-019 | Semnale pullback (touch HMA + bounce) | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-05 |
 | I-020 | Payload JSON cu SL/TP ATR → journal | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
 | I-021 | Filtru sesiune RTH pe preset Nasdaq | ZLHMA TOP Pine | S | P2 | propus | ideation | 2026-07-05 |
 | I-022 | Breakdown quality în dashboard (toggle) | ZLHMA TOP Pine | S | P3 | propus | ideation | 2026-07-05 |
