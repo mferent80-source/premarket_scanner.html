@@ -88,6 +88,18 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .act{background:transparent;border:1px solid var(--b1);color:var(--t2);border-radius:5px;padding:2px 7px;cursor:pointer;font-size:11px}
 .act:hover{color:var(--accent);border-color:var(--accent)}
 .empty{padding:24px;text-align:center;color:var(--t2);font-style:italic;font-size:13px;line-height:1.7}
+/* grafic procentual win/loss — doar execuții închise; bara = semantica, textul = identitatea */
+.pct-wrap{margin:2px 0 12px}
+.pct-row{display:flex;align-items:center;gap:9px;margin:6px 0}
+.pct-lbl{font-family:var(--mono);font-size:10px;color:var(--t3);width:88px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+.pct-track{position:relative;flex:1;height:12px;background:var(--panel3);border-radius:4px}
+.pct-fill{position:absolute;top:0;left:0;bottom:0;border-radius:4px;min-width:2px}
+.pct-tick{position:absolute;top:-2px;bottom:-2px;left:50%;width:1px;background:rgba(240,244,250,.28)}
+.pct-val{font-family:var(--mono);font-size:10.5px;color:var(--t2);width:110px;flex:none}
+.pct-split{position:relative;display:flex;flex:1;height:16px;border-radius:5px;overflow:hidden;gap:2px;background:var(--panel3)}
+.pct-split .w{background:var(--bull-s)}
+.pct-split .l{background:var(--bear-s)}
+.pct-note{font-family:var(--mono);font-size:9.5px;color:var(--t3);margin-top:4px;text-align:right}
 .empty a{color:var(--accent)}
 .note{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5}
 .seg-tabs{display:flex;gap:5px;margin-bottom:9px}
@@ -99,7 +111,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body>
 
 <header>
-  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v7</span></h1>
+  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v8</span></h1>
   <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker (FAB 📓 hub) — anti-duplicat, fees=0 de completat">⬇ Import din tracker</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -136,6 +148,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <div class="panel">
   <h2>📊 Scorecard pe execuții (net de fees)</h2>
   <div class="cards" id="ovCards"><div class="empty">—</div></div>
+  <div id="pctChart"></div>
   <div class="seg-tabs">
     <button class="seg-tab active" data-seg="source">pe sursă</button>
     <button class="seg-tab" data-seg="sym">pe ticker</button>
@@ -148,7 +161,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 </div>
 
 <div class="panel">
-  <h2>📜 Execuții <span id="diagLine" style="font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:400"></span></h2>
+  <h2>⏳ Execuții în curs <span id="diagLine" style="font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:400"></span></h2>
   <div id="errBanner" style="display:none;background:rgba(255,77,77,.15);border:1px solid var(--bear-s);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--bear-s)"></div>
   <div id="tblWrap"><div class="empty">—</div></div>
 </div>
@@ -266,18 +279,24 @@ function segGroups(entries, field){
   });
   return groups;
 }
-// Drill-down: execuțiile din spatele cifrelor unui grup — dată, ticker, direcție, entry→exit, PnL, R
+// Drill-down: execuțiile ÎNCHISE din spatele cifrelor unui grup — dată, ticker, direcție,
+// entry→exit, PnL, R. Linia întreagă colorată pe rezultat (verde=câștig, roșu=pierdere).
+// Aici trăiesc și ✏/🗑 pentru închise (nu mai apar în tabelul de jos = doar cele în curs).
 function segDetailHtml(list){
   return list.slice().sort((a, b) => (b.closeTs || 0) - (a.closeTs || 0)).map(e => {
     const p = JR.pnl(e), r = JR.rMult(e);
-    return `<div style="padding:3px 0 3px 18px;font-size:10.5px">
-      <span style="color:var(--t3)">${e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—'}</span> ·
-      <b class="sym">${esc(e.sym)}</b> ${e.dir === 'short' ? '🔻S' : '🔺L'} ·
-      ${fmt$(e.entry)}→${fmt$(e.exit)} ·
-      <span class="${p >= 0 ? 'pos' : 'neg'}">${(p >= 0 ? '+' : '') + fmt$(p).replace('$-','-$')}</span>${r != null ? ` · <span class="${r >= 0 ? 'pos' : 'neg'}">${(r >= 0 ? '+' : '') + r.toFixed(2)}R</span>` : ''}${seg !== 'source' && e.source ? ` · <span style="color:var(--t3)">${esc(e.source)}</span>` : ''}
+    const win = p != null && p >= 0;
+    return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 9px;margin:3px 0;border-radius:6px;font-size:10.5px;background:${win ? 'rgba(34,214,107,.10)' : 'rgba(255,77,77,.10)'}">
+      <span style="color:var(--t3)">${e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—'}</span>
+      <b class="sym">${esc(e.sym)}</b><span>${e.dir === 'short' ? '🔻S' : '🔺L'}</span>
+      <span>${fmt$(e.entry)}→${fmt$(e.exit)}</span>
+      <span class="${win ? 'pos' : 'neg'}">${p != null ? (p >= 0 ? '+' : '') + fmt$(p).replace('$-','-$') : '—'}</span>${r != null ? `<span class="${r >= 0 ? 'pos' : 'neg'}">${(r >= 0 ? '+' : '') + r.toFixed(2)}R</span>` : ''}${seg !== 'source' && e.source ? `<span style="color:var(--t3)">${esc(e.source)}</span>` : ''}
+      <span style="margin-left:auto;white-space:nowrap"><button class="act" data-edit="${esc(e.id)}">✏</button> <button class="act" data-del="${esc(e.id)}">🗑</button></span>
     </div>`;
   }).join('');
 }
+// grupurile lăsate deschise rămân deschise și după re-render (edit/delete/save re-cheamă renderAll)
+let segOpen = new Set();
 function renderSeg(){
   const entries = JR.all();
   if (!entries.length){ $('segBody').innerHTML = '<div class="empty">—</div>'; return; }
@@ -290,8 +309,9 @@ function renderSeg(){
     <tbody>${keys.map((k, i) => {
       const s = JR.stats(groups[k]);
       if (!s || !s.n) return ''; // grup fără execuții ÎNCHISE (doar deschise) — nu are statistici de afișat
-      return `<tr data-grp="${i}" style="cursor:pointer" title="click = vezi execuțiile din grup (dată, ticker, PnL)">
-        <td class="l"><span data-arrow="${i}" style="color:var(--t3)">▸</span> <b>${esc(k)}</b></td>
+      const opened = segOpen.has(k);
+      return `<tr data-grp="${i}" data-key="${esc(k)}" style="cursor:pointer" title="click = vezi execuțiile din grup (dată, ticker, PnL)">
+        <td class="l"><span data-arrow="${i}" style="color:var(--t3)">${opened ? '▾' : '▸'}</span> <b>${esc(k)}</b></td>
         <td>${s.n}</td>
         <td>${s.winPct.toFixed(0)}%</td>
         <td class="${s.pnlNet >= 0 ? 'pos' : 'neg'}">${(s.pnlNet >= 0 ? '+' : '') + fmt$(s.pnlNet).replace('$-','-$')}</td>
@@ -299,7 +319,7 @@ function renderSeg(){
         <td>${s.pf === Infinity ? '∞' : s.pf.toFixed(2)}</td>
         <td>${s.small ? '<span class="wrn">⚠ zgomot</span>' : ''}</td>
       </tr>
-      <tr data-det="${i}" style="display:none"><td colspan="7" class="l" style="background:rgba(29,37,55,.5)">${segDetailHtml(groups[k])}</td></tr>`;
+      <tr data-det="${i}" style="display:${opened ? '' : 'none'}"><td colspan="7" class="l" style="background:rgba(29,37,55,.5)">${segDetailHtml(groups[k])}</td></tr>`;
     }).join('')}</tbody></table>`;
   // toggle drill-down pe click de rând
   $('segBody').querySelectorAll('[data-grp]').forEach(row => row.addEventListener('click', () => {
@@ -309,12 +329,41 @@ function renderSeg(){
     const show = det.style.display === 'none';
     det.style.display = show ? '' : 'none';
     if (arrow) arrow.textContent = show ? '▾' : '▸';
+    if (show) segOpen.add(row.dataset.key); else segOpen.delete(row.dataset.key);
   }));
+  // ✏/🗑 pe execuțiile închise din drill-down (singurul loc unde mai apar închisele)
+  $('segBody').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => {
+    const e = JR.all().find(x => x.id === b.dataset.edit);
+    if (e) fillForm(e);
+  }));
+  $('segBody').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    if (confirm('Șterg execuția din jurnal?')){ JR.remove(b.dataset.del); if (editId === b.dataset.del) resetForm(); renderAll(); }
+  }));
+}
+// ── Grafic procentual (doar închise): bară 100% câștig/pierdere + win% pe sursă, reper 50% ──
+function renderChart(){
+  const closed = JR.all().filter(e => e && e.exit != null);
+  if (!closed.length){ $('pctChart').innerHTML = ''; return; }
+  const s = JR.stats(closed);
+  const wp = s.winPct, lp = 100 - wp;
+  let html = `<div class="pct-row"><span class="pct-lbl">TOATE (${s.n})</span>
+    <div class="pct-split">${s.wins ? `<div class="w" style="width:${wp.toFixed(1)}%"></div>` : ''}${s.losses ? `<div class="l" style="width:${lp.toFixed(1)}%"></div>` : ''}</div>
+    <span class="pct-val">${wp.toFixed(0)}% ✓ · ${lp.toFixed(0)}% ✗</span></div>`;
+  const groups = segGroups(closed, 'source');
+  html += Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length).slice(0, 6).map(k => {
+    const gs = JR.stats(groups[k]);
+    if (!gs || !gs.n) return '';
+    return `<div class="pct-row"><span class="pct-lbl">${esc(k)}</span>
+      <div class="pct-track"><div class="pct-fill" style="width:${gs.winPct.toFixed(1)}%;background:${gs.winPct >= 50 ? 'var(--bull-s)' : 'var(--bear-s)'}"></div><div class="pct-tick"></div></div>
+      <span class="pct-val">${gs.winPct.toFixed(0)}% win · n${gs.n}${gs.small ? ' ⚠' : ''}</span></div>`;
+  }).join('');
+  $('pctChart').innerHTML = `<div class="pct-wrap">${html}<div class="pct-note">win% pe sursă · linia verticală = 50% · ⚠ = n&lt;10 (zgomot)</div></div>`;
 }
 document.querySelectorAll('.seg-tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.seg-tab').forEach(x => x.classList.remove('active'));
   t.classList.add('active');
   seg = t.dataset.seg;
+  segOpen.clear(); // cheile de grup diferă între taburi — nu are sens să le cărăm
   renderSeg();
 }));
 
@@ -326,40 +375,30 @@ const closeE = (id, v) => (window.JR && JR.close) ? JR.close(id, v)
   : (isFinite(parseFloat(v)) && parseFloat(v) > 0 ? JR.update(id, { exit: parseFloat(v), status: 'closed', closeTs: Date.now() }) : false);
 
 function renderTable(){
-  // ÎN CURS primele (după openTs desc), apoi închisele după closeTs desc
-  const entries = JR.all().slice().sort((a, b) => {
-    const ao = isOpenE(a) ? 1 : 0, bo = isOpenE(b) ? 1 : 0;
-    if (ao !== bo) return bo - ao;
-    return ao ? (b.openTs || 0) - (a.openTs || 0) : (b.closeTs || 0) - (a.closeTs || 0);
-  });
+  // DOAR cele ÎN CURS (după openTs desc) — închisele trăiesc în Scorecard (drill-down pe grup)
+  const entries = JR.all().filter(e => isOpenE(e)).sort((a, b) => (b.openTs || 0) - (a.openTs || 0));
   if (!entries.length){
-    $('tblWrap').innerHTML = `<div class="empty">📭 Jurnal gol.<br>Adaugă prima execuție din formularul de sus (exit gol = în curs), sau
+    const nAll = JR.all().length;
+    $('tblWrap').innerHTML = nAll
+      ? `<div class="empty">✅ Nicio execuție în curs.<br>Cele ${nAll} închise sunt în <b>📊 Scorecard</b> — click pe un grup (sursă/ticker/regim/tag) le desfășoară.</div>`
+      : `<div class="empty">📭 Jurnal gol.<br>Adaugă prima execuție din formularul de sus (exit gol = în curs), sau
     <b>⬇ Import din tracker</b> ca să aduci trade-urile deja închise din FAB-ul 📓 al Hub-ului.</div>`;
     return;
   }
   $('tblWrap').innerHTML = `<table>
-    <thead><tr><th class="l">Închis</th><th class="l">Ticker</th><th>Dir</th><th>Entry→Exit</th><th>Size</th><th>Fees</th><th>PnL net</th><th>R</th><th class="l">Sursă</th><th class="l">Tags</th><th></th></tr></thead>
+    <thead><tr><th class="l">Stare</th><th class="l">Deschis</th><th class="l">Ticker</th><th>Dir</th><th>Entry</th><th>Size</th><th>SL</th><th class="l">Sursă</th><th class="l">Tags</th><th></th></tr></thead>
     <tbody>${entries.map(e => {
-      const open = isOpenE(e);
-      // pnl/rMult defensiv: pe lib vechi, o intrare deschisă ar da NaN — nu le calculăm deloc pe deschise
-      const p = open ? null : JR.pnl(e), r = open ? null : JR.rMult(e);
-      // rând colorat pe REZULTAT: verde=câștig, roșu=pierdere, albastru pal=în curs
-      const rowCls = open ? 'openrow' : (p != null && p >= 0 ? 'win' : 'loss');
-      return `<tr class="${rowCls}">
-        <td class="l">${open
-          ? `<span class="badge-open">⏳ ÎN CURS</span><br><button class="act" data-close="${esc(e.id)}" style="margin-top:4px;font-weight:800;background:rgba(34,214,107,.15);border-color:var(--bull-s);color:var(--bull-s)" title="Închide execuția — cere prețul de ieșire">✓ ÎNCHIDE</button>`
-          : (e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—')}</td>
+      return `<tr class="openrow">
+        <td class="l"><span class="badge-open">⏳ ÎN CURS</span><br><button class="act" data-close="${esc(e.id)}" style="margin-top:4px;font-weight:800;background:rgba(34,214,107,.15);border-color:var(--bull-s);color:var(--bull-s)" title="Închide execuția — cere prețul de ieșire">✓ ÎNCHIDE</button></td>
+        <td class="l">${e.openTs ? new Date(e.openTs).toLocaleDateString('ro-RO') : '—'}</td>
         <td class="sym l">${esc(e.sym)}</td>
         <td>${e.dir === 'short' ? '🔻S' : '🔺L'}</td>
-        <td>${fmt$(e.entry)}→${open ? '…' : fmt$(e.exit)}</td>
+        <td>${fmt$(e.entry)}</td>
         <td>${e.size}</td>
-        <td>${e.fees ? fmt$(e.fees) : '<span class="wrn" title="fees=0 — sigur? completează costul real">0⚠</span>'}</td>
-        <td class="${p == null ? '' : p >= 0 ? 'pos' : 'neg'}">${p != null ? (p >= 0 ? '+' : '') + fmt$(p).replace('$-','-$') : '—'}</td>
-        <td class="${r == null ? '' : r >= 0 ? 'pos' : 'neg'}">${r != null ? (r >= 0 ? '+' : '') + r.toFixed(2) : '—'}</td>
+        <td>${e.slAtEntry != null ? fmt$(e.slAtEntry) : '<span class="wrn" title="fără SL la intrare — R necalculabil la închidere">—⚠</span>'}</td>
         <td class="l" style="font-size:10px">${esc(e.source)}</td>
         <td class="l">${(e.tags || []).map(t => `<span class="mini">${esc(t)}</span>`).join('') || '—'}</td>
         <td>
-          ${open ? `<button class="act" data-close="${esc(e.id)}" title="Închide execuția — cere prețul de ieșire">✓</button>` : ''}
           <button class="act" data-edit="${esc(e.id)}">✏</button>
           <button class="act" data-del="${esc(e.id)}">🗑</button>
         </td>
@@ -395,6 +434,7 @@ function renderAll(){
   // statistica = DOAR închise (JR.stats filtrează intern); cele în curs doar se numără
   $('ovCards').innerHTML = scHtml(JR.stats(allE))
     + (nOpen ? `<div class="scard"><div class="lbl">⏳ ÎN CURS</div><div class="val" style="color:var(--accent)">${nOpen}</div><div class="lbl" style="margin-top:2px">nu intră în statistici până se închid</div></div>` : '');
+  renderChart();
   renderSeg();
   renderTable();
 }
