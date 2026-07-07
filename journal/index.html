@@ -99,7 +99,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body>
 
 <header>
-  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v6</span></h1>
+  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v7</span></h1>
   <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker (FAB 📓 hub) — anti-duplicat, fees=0 de completat">⬇ Import din tracker</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -138,6 +138,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <div class="cards" id="ovCards"><div class="empty">—</div></div>
   <div class="seg-tabs">
     <button class="seg-tab active" data-seg="source">pe sursă</button>
+    <button class="seg-tab" data-seg="sym">pe ticker</button>
     <button class="seg-tab" data-seg="regime">pe regim</button>
     <button class="seg-tab" data-seg="__tags">pe tag</button>
   </div>
@@ -255,26 +256,60 @@ function scHtml(s){
     <div class="scard"><div class="lbl">AVG WIN / LOSS</div><div class="val" style="font-size:14px">${fmt$(s.avgWin)} / ${fmt$(s.avgLoss)}</div></div>`;
 }
 let seg = 'source';
+// Gruparea se face LOCAL (aceeași logică ca JR.statsBy, dar păstrează și membrii grupului
+// pentru drill-down) — nu depindem de o funcție nouă de lib (capcana cache mixt pagină/lib).
+function segGroups(entries, field){
+  const groups = {};
+  (entries || []).filter(e => e && e.exit != null).forEach(e => {
+    const keys = field === '__tags' ? (e.tags && e.tags.length ? e.tags : ['(fără tag)']) : [e[field] || '?'];
+    keys.forEach(k => { (groups[k] = groups[k] || []).push(e); });
+  });
+  return groups;
+}
+// Drill-down: execuțiile din spatele cifrelor unui grup — dată, ticker, direcție, entry→exit, PnL, R
+function segDetailHtml(list){
+  return list.slice().sort((a, b) => (b.closeTs || 0) - (a.closeTs || 0)).map(e => {
+    const p = JR.pnl(e), r = JR.rMult(e);
+    return `<div style="padding:3px 0 3px 18px;font-size:10.5px">
+      <span style="color:var(--t3)">${e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—'}</span> ·
+      <b class="sym">${esc(e.sym)}</b> ${e.dir === 'short' ? '🔻S' : '🔺L'} ·
+      ${fmt$(e.entry)}→${fmt$(e.exit)} ·
+      <span class="${p >= 0 ? 'pos' : 'neg'}">${(p >= 0 ? '+' : '') + fmt$(p).replace('$-','-$')}</span>${r != null ? ` · <span class="${r >= 0 ? 'pos' : 'neg'}">${(r >= 0 ? '+' : '') + r.toFixed(2)}R</span>` : ''}${seg !== 'source' && e.source ? ` · <span style="color:var(--t3)">${esc(e.source)}</span>` : ''}
+    </div>`;
+  }).join('');
+}
 function renderSeg(){
   const entries = JR.all();
   if (!entries.length){ $('segBody').innerHTML = '<div class="empty">—</div>'; return; }
-  const by = JR.statsBy(entries, seg);
-  const keys = Object.keys(by).sort((a, b) => by[b].n - by[a].n);
+  const groups = segGroups(entries, seg);
+  const keys = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length);
+  if (!keys.length){ $('segBody').innerHTML = '<div class="empty">încă nicio execuție închisă</div>'; return; }
+  const segLbl = seg === '__tags' ? 'tag' : seg === 'sym' ? 'ticker' : seg;
   $('segBody').innerHTML = `<table>
-    <thead><tr><th class="l">${seg === '__tags' ? 'tag' : seg}</th><th>n</th><th>win%</th><th>PnL net</th><th>Exp. R</th><th>PF</th><th></th></tr></thead>
-    <tbody>${keys.map(k => {
-      const s = by[k];
+    <thead><tr><th class="l">${segLbl}</th><th>n</th><th>win%</th><th>PnL net</th><th>Exp. R</th><th>PF</th><th></th></tr></thead>
+    <tbody>${keys.map((k, i) => {
+      const s = JR.stats(groups[k]);
       if (!s || !s.n) return ''; // grup fără execuții ÎNCHISE (doar deschise) — nu are statistici de afișat
-      return `<tr>
-        <td class="l"><b>${esc(k)}</b></td>
+      return `<tr data-grp="${i}" style="cursor:pointer" title="click = vezi execuțiile din grup (dată, ticker, PnL)">
+        <td class="l"><span data-arrow="${i}" style="color:var(--t3)">▸</span> <b>${esc(k)}</b></td>
         <td>${s.n}</td>
         <td>${s.winPct.toFixed(0)}%</td>
         <td class="${s.pnlNet >= 0 ? 'pos' : 'neg'}">${(s.pnlNet >= 0 ? '+' : '') + fmt$(s.pnlNet).replace('$-','-$')}</td>
         <td class="${s.expectancyR == null ? '' : s.expectancyR >= 0 ? 'pos' : 'neg'}">${s.expectancyR != null ? (s.expectancyR >= 0 ? '+' : '') + s.expectancyR.toFixed(2) : '—'}</td>
         <td>${s.pf === Infinity ? '∞' : s.pf.toFixed(2)}</td>
         <td>${s.small ? '<span class="wrn">⚠ zgomot</span>' : ''}</td>
-      </tr>`;
+      </tr>
+      <tr data-det="${i}" style="display:none"><td colspan="7" class="l" style="background:rgba(29,37,55,.5)">${segDetailHtml(groups[k])}</td></tr>`;
     }).join('')}</tbody></table>`;
+  // toggle drill-down pe click de rând
+  $('segBody').querySelectorAll('[data-grp]').forEach(row => row.addEventListener('click', () => {
+    const det = $('segBody').querySelector(`[data-det="${row.dataset.grp}"]`);
+    const arrow = $('segBody').querySelector(`[data-arrow="${row.dataset.grp}"]`);
+    if (!det) return;
+    const show = det.style.display === 'none';
+    det.style.display = show ? '' : 'none';
+    if (arrow) arrow.textContent = show ? '▾' : '▸';
+  }));
 }
 document.querySelectorAll('.seg-tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.seg-tab').forEach(x => x.classList.remove('active'));
