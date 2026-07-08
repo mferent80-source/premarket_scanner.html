@@ -52,12 +52,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-044 | Meta-Confluence slot Suite Code (−3..+3) | ZL Osc Suite Pine | S | P2 | făcut | ideation | 2026-07-05 |
 | I-045 | Lens gauge 4× în dashboard (breakdown vizual) | ZL Osc Suite Pine | S | P3 | făcut | ideation | 2026-07-05 |
 | I-046 | Earnings/RTH guard pe SUITE_GO (Nasdaq) | ZL Osc Suite Pine | S | P2 | făcut | ideation | 2026-07-05 |
-| I-047 | Meta-Confluence connector AMD Code (−3..+3) | AMD Phase Pine | S | P2 | propus | ideation | 2026-07-08 |
-| I-048 | Payload SL/TP din range ACCUM → journal | AMD Phase Pine | S | P2 | propus | ideation | 2026-07-08 |
-| I-049 | Shadow STATS pe reset-uri (CONTINUATION, timeout) | AMD Phase Pine | M | P2 | propus | ideation | 2026-07-08 |
-| I-050 | Preset Scalping / Swing (aliniat Coil Osc) | AMD Phase Pine | S | P1 | propus | ideation | 2026-07-08 |
-| I-051 | Earnings guard pe preset Nasdaq | AMD Phase Pine | S | P2 | propus | ideation | 2026-07-08 |
-| I-052 | Phase rail în dashboard (progres vizual ciclu) | AMD Phase Pine | S | P3 | propus | ideation | 2026-07-08 |
+| I-047 | Meta-Confluence connector AMD Code (−3..+3) | AMD Phase Pine | S | P2 | făcut | ideation | 2026-07-08 |
+| I-048 | Payload SL/TP din range ACCUM → journal | AMD Phase Pine | S | P2 | făcut | ideation | 2026-07-08 |
+| I-049 | Shadow STATS pe reset-uri (CONTINUATION, timeout) | AMD Phase Pine | M | P2 | făcut | ideation | 2026-07-08 |
+| I-050 | Preset Scalping / Swing (aliniat Coil Osc) | AMD Phase Pine | S | P1 | făcut | ideation | 2026-07-08 |
+| I-051 | Earnings guard pe preset Nasdaq | AMD Phase Pine | S | P2 | făcut | ideation | 2026-07-08 |
+| I-052 | Phase rail în dashboard (progres vizual ciclu) | AMD Phase Pine | S | P3 | făcut | ideation | 2026-07-08 |
 
 ## Mini-spec-uri
 
