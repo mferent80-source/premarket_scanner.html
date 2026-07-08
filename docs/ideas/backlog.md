@@ -36,16 +36,28 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-034 | Failed cross / fakeout detector | ZLHMA TOP Pine | M | P1 | făcut | ideation | 2026-07-05 |
 | I-035 | ORB 15m + HMA (preset Scalping Nasdaq) | ZLHMA TOP Pine | M | P2 | făcut | ideation | 2026-07-05 |
 | I-036 | Bar range expansion gate (momentum bar) | ZLHMA TOP Pine | S | P2 | făcut | ideation | 2026-07-05 |
-| I-037 | Stretch Oscillator (dist ZLEMA/ZLHMA ATRx) | NOU: Stretch Osc Pine | M | P1 | propus | ideation | 2026-07-05 |
-| I-038 | Participation Oscillator (buy% + RVOL) | NOU: Part Osc Pine | M | P2 | propus | ideation | 2026-07-05 |
-| I-039 | Slope Phase Oscillator (accel ZLEMA) | NOU: Slope Phase Pine | M | P2 | propus | ideation | 2026-07-05 |
-| I-040 | Coil Oscillator (range percentile gate) | NOU: Coil Osc Pine | S | P3 | propus | ideation | 2026-07-05 |
+| I-037 | Stretch Oscillator (dist ZLEMA/ZLHMA ATRx) | NOU: Stretch Osc Pine | M | P1 | făcut | ideation | 2026-07-05 |
+| I-038 | Participation Oscillator (buy% + RVOL) | NOU: Part Osc Pine | M | P2 | făcut | ideation | 2026-07-05 |
+| I-039 | Slope Phase Oscillator (accel ZLEMA) | NOU: Slope Phase Pine | M | P2 | făcut | ideation | 2026-07-05 |
+| I-040 | Coil Oscillator (range percentile gate) | NOU: Coil Osc Pine | S | P3 | făcut | ideation | 2026-07-05 |
 | I-023 | Quality gate + minQual preset pe alerte | ZLEMA Pine | S | P1 | făcut | ideation | 2026-07-05 |
 | I-024 | Preset Swing (TF mari, motor lent) | ZLEMA Pine | S | P1 | făcut | ideation | 2026-07-05 |
 | I-025 | Semnale vizuale Early/Confirmed + pullback | ZLEMA Pine | M | P1 | făcut | ideation | 2026-07-05 |
 | I-026 | ADX chop + volum în quality score | ZLEMA Pine | M | P2 | făcut | ideation | 2026-07-05 |
 | I-027 | Forecast RDS pe linia ZLEMA | ZLEMA Pine | M | P2 | făcut | ideation | 2026-07-05 |
 | I-028 | STATS expectancy pe semnale confirmate | ZLEMA Pine | M | P2 | făcut | ideation | 2026-07-05 |
+| I-041 | Suite vote stretch direction-aware + CHASE RISK direcțional | ZL Osc Suite Pine | S | P1 | făcut | audit | 2026-07-05 |
+| I-042 | GO gate: participare confirmată + aliniere verdict/alerte | ZL Osc Suite Pine | M | P1 | făcut | audit | 2026-07-05 |
+| I-043 | Ponderi composite per preset (Swing/Scalping) | ZL Osc Suite Pine | M | P2 | făcut | ideation | 2026-07-05 |
+| I-044 | Meta-Confluence slot Suite Code (−3..+3) | ZL Osc Suite Pine | S | P2 | făcut | ideation | 2026-07-05 |
+| I-045 | Lens gauge 4× în dashboard (breakdown vizual) | ZL Osc Suite Pine | S | P3 | făcut | ideation | 2026-07-05 |
+| I-046 | Earnings/RTH guard pe SUITE_GO (Nasdaq) | ZL Osc Suite Pine | S | P2 | făcut | ideation | 2026-07-05 |
+| I-047 | Meta-Confluence connector AMD Code (−3..+3) | AMD Phase Pine | S | P2 | propus | ideation | 2026-07-08 |
+| I-048 | Payload SL/TP din range ACCUM → journal | AMD Phase Pine | S | P2 | propus | ideation | 2026-07-08 |
+| I-049 | Shadow STATS pe reset-uri (CONTINUATION, timeout) | AMD Phase Pine | M | P2 | propus | ideation | 2026-07-08 |
+| I-050 | Preset Scalping / Swing (aliniat Coil Osc) | AMD Phase Pine | S | P1 | propus | ideation | 2026-07-08 |
+| I-051 | Earnings guard pe preset Nasdaq | AMD Phase Pine | S | P2 | propus | ideation | 2026-07-08 |
+| I-052 | Phase rail în dashboard (progres vizual ciclu) | AMD Phase Pine | S | P3 | propus | ideation | 2026-07-08 |
 
 ## Mini-spec-uri
 
@@ -328,3 +340,87 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** pregătește breakout-uri fără a duplica Vol Regime; bun pe Scalping pre-ORB.
 - **Riscuri/dependențe:** breakout din coil poate fi fals; folosește cu ZLHMA ORB/range gate, nu singur.
 - **Fișiere atinse:** `pine-scripts/Coil_Oscillator_v1.pine` (nou).
+
+### I-041 · Suite vote stretch direction-aware + CHASE RISK direcțional · [S] · P1
+- **Problema/golul:** Audit Suite v1: `suiteCode` dă +1 pe stretch când `effDir>0` dar `stretchCode` e −1/−2 (favorabil short) — vote bullish greșit. `CHASE RISK` blochează GO și pe FATIGUE SHORT când `effDir<0` (de fapt favorabil).
+- **Soluția:** stretch vote semnat pe direcție (`stretchCode * sign(effDir)`); CHASE RISK doar când stretch fatigue e **contra** direcției (`stretchCode==2 && effDir>0` sau `stretchCode==-2 && effDir<0`).
+- **Impact:** `suiteCode` și verdict aliniate cu mean-reversion real; mai puține false WAIT/CAUTION pe short în extensie bearish.
+- **Riscuri/dependențe:** comportament composite se schimbă — revalidează prag GO OOS.
+- **Fișiere atinse:** `pine-scripts/Zero_Lag_Oscillator_Suite_v1.pine`.
+
+### I-042 · GO gate: participare confirmată + aliniere verdict/alerte · [M] · P1
+- **Problema/golul:** `SUITE_GO_LONG` poate declanșa fără `partConf` (volum mort); alertele GO au prioritate în `if/else` față de FATIGUE — JSON GO când dashboard zice CHASE RISK.
+- **Soluția:** `goLongEdge` cere `partConf` (sau `partCode>0`); dedupe: verdict CHASE RISK / WAIT blochează GO; ordine alerte: risk events > GO composite.
+- **Impact:** webhook-uri mai sigure; paritate verdict ↔ Telegram.
+- **Riscuri/dependențe:** mai puține alerte GO pe forex fără volum — documentat.
+- **Fișiere atinse:** `pine-scripts/Zero_Lag_Oscillator_Suite_v1.pine`.
+
+### I-043 · Ponderi composite per preset (Swing/Scalping) · [M] · P2
+- **Problema/golul:** Ponderile 22/38/25/15 sunt fixe — Scalping ar prioritiza Coil+Part, Swing ar prioritiza Phase+Stretch.
+- **Soluția:** tabele preset: Scalping 15/40/20/25, Swing 28/30/30/12 etc.; Custom cu inputuri weight normalizate.
+- **Impact:** scor GO mai relevant pe TF mic vs swing fără a schimba lentilele individuale.
+- **Riscuri/dependențe:** ipoteze — validează OOS per preset.
+- **Fișiere atinse:** `pine-scripts/Zero_Lag_Oscillator_Suite_v1.pine`.
+
+### I-044 · Meta-Confluence slot Suite Code (−3..+3) · [S] · P2
+- **Problema/golul:** Suite exportă `suiteCode` dar Meta-Confluence nu are slot documentat; userul trebuie să lege manual 4 connectori sau unul singur.
+- **Soluția:** README + exemplu `input.source` în Confluence; eventual alias plot „ZL Suite Vote" ca la AF Verdict.
+- **Impact:** un singur wire în Meta-Confluence în loc de 4 pane-uri.
+- **Riscuri/dependențe:** depinde de I-041 pentru vote corect.
+- **Fișiere atinse:** `pine-scripts/Zero_Lag_Oscillator_Suite_v1.pine`; doc Confluence.
+
+### I-045 · Lens gauge 4× în dashboard (breakdown vizual) · [S] · P3
+- **Problema/golul:** Dashboard arată 4 rânduri text — greu de scanat rapid care lentilă trage scorul în jos.
+- **Soluția:** 4 mini-gauge-uri `█···` (ca `f_gauge` ZLEMA) pe contribuția fiecărei lentile la `suiteScore`; culoare teal/coral/amber.
+- **Impact:** citire sub 2 secunde a blocajului (ex. „participare moartă").
+- **Riscuri/dependențe:** tabel mai înalt — toggle „Detalii gauge".
+- **Fișiere atinse:** `pine-scripts/Zero_Lag_Oscillator_Suite_v1.pine`.
+
+### I-046 · Earnings/RTH guard pe SUITE_GO (Nasdaq) · [S] · P2
+- **Problema/golul:** ZLEMA/ZLHMA downgradează STRONG la earnings/off-RTH; Suite poate trimite SUITE_GO fără guard.
+- **Soluția:** pe preset Nasdaq: `earnSoon` / `offRth` → downgrade GO la CAUTION sau JSON `SUITE_GO_DOWNGRADED` cu `exitHint`.
+- **Impact:** paritate risc Nasdaq cu overlay-urile.
+- **Riscuri/dependențe:** `earnings.*` na pe crypto — guard pasiv.
+- **Fișiere atinse:** `pine-scripts/Zero_Lag_Oscillator_Suite_v1.pine`.
+
+### I-047 · Meta-Confluence connector AMD Code (−3..+3) · [S] · P2
+- **Problema/golul:** AMD v1.4 exportă doar plot-uri interne (`phase`, `manipDir`) fără contract Meta-Confluence; userul nu poate lega ciclul AMD în Command Deck / Meta-Confluence fără reimplementare manuală. Coil Osc (I-040) și AntiFOMO (I-007) au deja `plot(..., display.none)` cu cod −3..+3.
+- **Soluția:** plot ascuns `AMD Verdict (connector −3..+3)`: HUNT/ACCUM=0, MANIP LONG=+1 / SHORT=−1, DISTRIB LONG=+2 / SHORT=−2; opțional +3/−3 la confidence>70. Documentare în header + exemplu `input.source` pentru Meta-Confluence.
+- **Impact:** un singur wire în ecosistemul de confluence — știi dacă ești în sweep/post-sweep înainte de GO din ZLHMA/ZLEMA.
+- **Riscuri/dependențe:** codul trebuie stabil (fără flip intra-bar); pragurile de fază rămân ipoteze de validat OOS.
+- **Fișiere atinse:** `pine-scripts/AMD_Phase_Detector_v1.pine`; doc `Confluence_Command_Deck` / Meta-Confluence.
+
+### I-048 · Payload SL/TP din range ACCUM → journal · [S] · P2
+- **Problema/golul:** alerta `AMD_DISTRIB` JSON are `price` și `trigger`, dar nu transmite nivelurile naturale de risc din range-ul de acumulare (`accLow`/`accHigh`) — userul calculează manual SL sub sweep și TP. ZLHMA (I-020) face deja SL/TP ATR în payload pentru journal.
+- **Soluția:** la `AMD_DISTRIB` și `AMD_MANIP`, extinde `f_json` cu `sl`, `tp1`, `rangeAtr`, `invalidation` (nivel CONTINUATION) în format mintick; opțional multiplu ATR pentru TP2.
+- **Impact:** journal-ul și planurile FAB primesc setup complet la alertă — mai puține greșeli de sizing/SL pe crypto volatil.
+- **Riscuri/dependențe:** SL la marginea range-ului poate fi prea strâns pe alt-uri; etichetat ca sugestie, nu ordin. Pragurile TP = ipoteze.
+- **Fișiere atinse:** `pine-scripts/AMD_Phase_Detector_v1.pine`; opțional parser în `journal/` sau `lib/ledger.js`.
+
+### I-049 · Shadow STATS pe reset-uri (CONTINUATION, timeout) · [M] · P2
+- **Problema/golul:** Edge AMD măsoară doar cicluri DISTRIB complete; reset-urile frecvente (CONTINUATION, MANIP timeout, breakout curat) dispar fără feedback — nu știi dacă filtrele tale pierd bani sau te salvează. AntiFOMO (I-005) și ZLEMA (I-032) au shadow pe semnale blocate.
+- **Soluția:** la fiecare `doReset`, înregistrează tipul reset + preț + direcție manip; evaluează la `distribBars` „ce ar fi fost" dacă ai fi intrat la break. Dashboard toggle „Shadow" cu WR/expectancy segmentat pe tip reset (min n=10 per bucket).
+- **Impact:** calibrare empirică — poți relaxa sau strânge `maxManip`, `requireCloseBack` pe date, nu pe feeling.
+- **Riscuri/dependențe:** shadow ≠ execuție reală; sample mic pe CONTINUATION = zgomot. Praguri = ipoteze, validare OOS obligatorie.
+- **Fișiere atinse:** `pine-scripts/AMD_Phase_Detector_v1.pine`.
+
+### I-050 · Preset Scalping / Swing (aliniat Coil Osc) · [S] · P1
+- **Problema/golul:** AMD are Crypto/Nasdaq/Custom, dar Coil Oscillator (I-040) are deja Scalping/Swing cu lookback/praguri diferite; pe BTC 5m vs 4h folosești același preset Crypto — prea mult timp în HUNT pe scalping sau prea puțin filtru pe swing.
+- **Soluția:** adaugă preset **Scalping** (lookback 15, coil 2b, minAccum 4, maxManip 8) și **Swing** (lookback 40, coil 3b, minAccum 12, distrib relaxed, HTF adaptiv agresiv); aliniere numerică cu Coil Osc v1.
+- **Impact:** quick win pentru workflow-ul tău crypto — 5m și 4h nu mai împart aceleași ipoteze.
+- **Riscuri/dependențe:** pragurile noi sunt ipoteze; trebuie validate separat per TF (trader.md §1).
+- **Fișiere atinse:** `pine-scripts/AMD_Phase_Detector_v1.pine`.
+
+### I-051 · Earnings guard pe preset Nasdaq · [S] · P2
+- **Problema/golul:** pe stocks, ACCUM/MANIP în ziua de earnings e categorie de risc separată (trader.md §3); AMD Nasdaq gatează sesiunea dar nu earnings — poate declanșa sweep chiar înainte de report. AntiFOMO (I-006) și ZL Suite (I-046) au deja pattern `earnSoon`.
+- **Soluția:** pe preset Nasdaq: `earnings.future` / `earnings.actual` în fereastra ±N zile → blochează `enterAccum` + `manipEvent` sau downgrade trigger la „STAI — earnings"; JSON `earnGuard:true` în alerte.
+- **Impact:** evită trap-uri de lichiditate la earnings pe semnale ICT — risc prevenit pe stocks.
+- **Riscuri/dependențe:** `earnings.*` e na pe crypto/forex — guard pasiv off. N zile = ipoteză de validat.
+- **Fișiere atinse:** `pine-scripts/AMD_Phase_Detector_v1.pine`.
+
+### I-052 · Phase rail în dashboard (progres vizual ciclu) · [S] · P3
+- **Problema/golul:** dashboard-ul v1.4 arată ~10 rânduri text; faza curentă e în hero, dar progresul în ciclu (cât a trecut din ACCUM→MANIP→DISTRIB) cere citirea Age + trigger — lent la scanare (design.md §1 ierarhie).
+- **Soluția:** un rând „Phase rail" cu 4 segmente `H·A·M·D` stil gauge SMS: segment activ luminat, viitor muted; opțional sub-segmente maturare (ex. `████░░` în ACCUM). Toggle în `showDetail` sau mereu vizibil sub hero.
+- **Impact:** înțelegi starea în <1s fără să citești 3 rânduri — mai puțină oboseală cognitivă pe sesiuni lungi.
+- **Riscuri/dependențe:** nu adaugă semnal nou; doar vizualizare. Tabel +1 rând — verifică densitatea pe layout Orizontal.
+- **Fișiere atinse:** `pine-scripts/AMD_Phase_Detector_v1.pine`.
