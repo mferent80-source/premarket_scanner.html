@@ -34,12 +34,16 @@
       return Promise.all(ks.filter(function(k){ return k.indexOf('trading-tools') >= 0; }).map(function(k){ return caches.delete(k); }));
     }));
   }
+  jobs.push(fetch('./sw-app.js?bust=' + Date.now(), { cache: 'no-store' }).catch(function(){}));
   Promise.all(jobs).then(function(){
     try {
       localStorage.setItem('tt_suite_ok', VER);
       localStorage.setItem('tt_sw_version', VER);
     } catch(e){}
-    location.replace('./index.html?fresh=' + VER + '&t=' + Date.now());
+    document.querySelector('p').innerHTML = 'Gata — redirecționare hub <b>' + VER + '</b>…';
+    setTimeout(function(){
+      location.replace('./index.html?fresh=' + VER + '&t=' + Date.now());
+    }, 800);
   }).catch(function(){
     location.replace('./index.html?fresh=' + VER);
   });
