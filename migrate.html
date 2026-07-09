@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Actualizare cache — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+    font-family:system-ui,sans-serif;background:#0b0f17;color:#e8eef5}
+  .box{max-width:420px;text-align:center;background:#141a28;border:1px solid #2a3247;border-radius:12px;padding:28px}
+  h1{font-size:18px;margin:0 0 12px}
+  p{color:#a3adc1;font-size:14px;line-height:1.5;margin:0 0 16px}
+  .ver{font-family:ui-monospace,monospace;color:#f7931a;font-weight:700}
+  button{padding:10px 18px;border-radius:8px;border:1px solid rgba(247,147,26,.5);background:rgba(247,147,26,.15);
+    color:#f7931a;font-weight:700;cursor:pointer;font-size:14px}
+  #log{margin-top:14px;font-family:ui-monospace,monospace;font-size:11px;color:#8892a6;text-align:left;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>🔄 Curățare cache suită</h1>
+  <p>Șterge Service Worker-ul vechi și cache-urile ca să vezi versiunea <span class="ver" id="targetVer">tt-v544</span> pe site.</p>
+  <button type="button" id="btnPurge">Curăță și reîncarcă hub-ul</button>
+  <div id="log"></div>
+</div>
+<script>
+(function(){
+  var VER = 'tt-v544';
+  var log = document.getElementById('log');
+  function say(s){ log.textContent += s + '\n'; }
+  document.getElementById('targetVer').textContent = VER;
+  document.getElementById('btnPurge').addEventListener('click', function(){
+    log.textContent = '';
+    say('Pornesc curățarea…');
+    var jobs = [];
+    if ('serviceWorker' in navigator) {
+      jobs.push(navigator.serviceWorker.getRegistrations().then(function(regs){
+        say('SW găsite: ' + regs.length);
+        return Promise.all(regs.map(function(r){ return r.unregister(); }));
+      }));
+    }
+    if (window.caches && caches.keys) {
+      jobs.push(caches.keys().then(function(keys){
+        var ours = keys.filter(function(k){ return k.indexOf('trading-tools') >= 0; });
+        say('Cache-uri: ' + ours.join(', '));
+        return Promise.all(ours.map(function(k){ return caches.delete(k); }));
+      }));
+    }
+    Promise.all(jobs).then(function(){
+      try {
+        localStorage.setItem('tt_sw_ok', VER);
+        localStorage.setItem('tt_sw_version', VER);
+      } catch(e){}
+      say('Gata — redirecționare…');
+      location.replace('./index.html?fresh=' + VER + '&t=' + Date.now());
+    }).catch(function(e){
+      say('Eroare: ' + e.message);
+      location.replace('./index.html?fresh=' + VER);
+    });
+  });
+  if (location.search.indexOf('auto=1') >= 0) document.getElementById('btnPurge').click();
+})();
+</script>
+</body>
+</html>

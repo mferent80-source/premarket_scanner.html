@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script>window.SUITE_VERSION_SHORT='tt-v543';window.SUITE_VERSION='tt-v543-2026-07-09';</script>
+<script>window.SUITE_VERSION_SHORT='tt-v544';window.SUITE_VERSION='tt-v544-2026-07-09';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Trading Tools — App</title>
 <meta name="theme-color" content="#0b0f17">
@@ -47,7 +47,7 @@
 <div id="app">
   <div style="display:flex;align-items:stretch;min-width:0">
     <div id="tabbar" aria-label="Taburi deschise" style="flex:1;min-width:0"></div>
-    <span id="suiteVerShell" title="Versiune cache suită">tt-v543</span>
+    <span id="suiteVerShell" title="Versiune cache suită">tt-v544</span>
   </div>
   <div id="frames"></div>
   <nav id="dock" aria-label="Deschide pagină"></nav>
@@ -157,14 +157,14 @@
 
   // service worker — query bust ca update-ul să ajungă în PWA instalată
   if ('serviceWorker' in navigator) {
-    var swVer = window.SUITE_VERSION_SHORT || 'tt-v543';
+    var swVer = window.SUITE_VERSION_SHORT || 'tt-v544';
     var reloaded = false;
     navigator.serviceWorker.addEventListener('controllerchange', function(){
       if (reloaded) return;
       reloaded = true;
       location.reload();
     });
-    navigator.serviceWorker.register('../sw.js?v=' + swVer).then(function(reg){
+    navigator.serviceWorker.register('../sw.js?v=' + swVer, { updateViaCache: 'none' }).then(function(reg){
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       reg.addEventListener('updatefound', function(){
         var nw = reg.installing;
