@@ -111,6 +111,13 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-103 | STL gate + hint R rămas | smart-trade-long/ | M | P1 | făcut | ideation | 2026-07-09 |
 | I-104 | Nasdaq → Journal cu gate | nasdaq-scanner/ + journal/ | M | P1 | făcut | ideation | 2026-07-09 |
 | I-105 | journal_pending_trade consumer | journal/index.html | S | P2 | făcut | ideation | 2026-07-09 |
+| I-106 | Export JSON Capital Desk | lib/capital-desk.js + journal/ + equity/ | S | P2 | făcut | ideation | 2026-07-09 |
+| I-107 | Alertă Telegram risc agregat ≥4% | lib/capital-desk.js + tools/check-alerts.mjs | M | P1 | făcut | ideation | 2026-07-09 |
+| I-108 | Post-trade sync CD (snap + rescan) | lib/capital-desk.js + lib/journal.js | M | P2 | făcut | ideation | 2026-07-09 |
+| I-109 | Hub Ledger coloană estRisk | lib/hub-ledger.js | S | P3 | făcut | ideation | 2026-07-09 |
+| I-110 | Morning checklist prag risc 4% | lib/morning-check.js | S | P2 | făcut | ideation | 2026-07-09 |
+| I-111 | Portfolio banner rescan post-close | portfolio/ + lib/capital-desk.js | S | P2 | făcut | ideation | 2026-07-09 |
+| I-112 | Server flag tools/capital-risk.json | tools/capital-risk.json + check-alerts.mjs | S | P2 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -715,3 +722,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `consumePendingTrade()` la load înainte de `prefillFromQuery`.
 - **Impact:** buclă scanner→journal funcțională.
 - **Fișiere atinse:** `journal/index.html`.
+
+### I-106 · Export JSON Capital Desk · [S] · P2
+- **Problema/golul:** `CD.unified()` agregă tot dar nu poți exporta snapshot pentru backup/AI/audit.
+- **Soluția:** `CD.exportJson()` + `CD.downloadExport()` + buton 📥 pe rail Journal/Equity/header.
+- **Impact:** arhivă capital la cerere, fără CSV parțial.
+- **Fișiere atinse:** `lib/capital-desk.js`, `journal/index.html`, `equity/index.html`.
+
+### I-107 · Alertă Telegram risc agregat ≥4% · [M] · P1
+- **Problema/golul:** prag HALT 4% vizibil doar în UI — laptop închis = fără frână.
+- **Soluția:** `CD.writeRiskFlag()` + `CD.maybeNotifyRisk()` (client, 1×/zi) + `tools/capital-risk.json` armat din Review → `check-alerts.mjs`.
+- **Impact:** alertă server-side când riscul open depășește pragul.
+- **Fișiere atinse:** `lib/capital-desk.js`, `lib/hub-brief.js`, `tools/check-alerts.mjs`, `tools/capital-risk.json`.
+
+### I-108 · Post-trade sync CD · [M] · P2
+- **Problema/golul:** la închidere journal, weekly snap și risc live nu se actualizează automat.
+- **Soluția:** `JR.update` → `CD.onPostTrade()` (snap săptămână + risk flag + flag rescan).
+- **Impact:** Capital Desk reflectă imediat trade-uri închise.
+- **Fișiere atinse:** `lib/journal.js`, `lib/capital-desk.js`.
+
+### I-109 · Hub Ledger coloană estRisk · [S] · P3
+- **Problema/golul:** ledger arată performanță dar nu context de sizing la semnal.
+- **Soluția:** coloană Est.Risc = SL journal open sau 1% cont default.
+- **Impact:** semnal → sizing înainte de execuție.
+- **Fișiere atinse:** `lib/hub-ledger.js`.
+
+### I-110 · Morning checklist prag risc 4% · [S] · P2
+- **Problema/golul:** checklist verifica <2% dar nu pragul HALT 4%.
+- **Soluția:** item `riskhalt` în `MC.items()` + critic în `criticalOk()`.
+- **Impact:** dimineața vezi imediat dacă ești peste prag stop.
+- **Fișiere atinse:** `lib/morning-check.js`.
+
+### I-111 · Portfolio banner rescan post-close · [S] · P2
+- **Problema/golul:** după close journal, risc live rămâne stale până la scan manual.
+- **Soluția:** `tt_cd_rescan_v1` + banner Portfolio cu „Scan acum" după close.
+- **Impact:** reminder să re-scanezi pozițiile open.
+- **Fișiere atinse:** `portfolio/index.html`, `lib/capital-desk.js`.
+
+### I-112 · Server flag capital-risk.json · [S] · P2
+- **Problema/golul:** alertă risc necesită fișier repo ca equity-drift (laptop închis).
+- **Soluția:** `tools/capital-risk.json` cu `armed:true` + payload risc/topRisk → Telegram one-shot.
+- **Impact:** paritate cu drift alert în GitHub Actions.
+- **Fișiere atinse:** `tools/capital-risk.json`, `tools/check-alerts.mjs`.

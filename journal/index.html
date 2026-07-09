@@ -134,6 +134,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">v9</span></h1>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker — anti-duplicat, fees=0 de completat">⬇ Import tracker</button>
+  <button class="nav-link" id="btnExportCd" title="Export JSON Capital Desk (equity, risc, desk, journal)">📥 Export CD</button>
   <a class="nav-link" href="../postmortem/">🔬 Post-Mortem</a>
   <a class="nav-link" href="../portfolio/">🛡️ Portfolio</a>
   <a class="nav-link" href="../equity/">📈 Equity</a>
@@ -239,7 +240,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/telegram.js"></script>
 <script src="../lib/governor.js?v=4"></script>
 <script src="../lib/equity.js?v=5"></script>
-<script src="../lib/capital-desk.js?v=2"></script>
+<script src="../lib/capital-desk.js?v=4"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -327,6 +328,8 @@ $('btnImport').addEventListener('click', () => {
   alert(`Import tracker: ${r.added} adăugate · ${r.skipped} sărite (duplicate sau fără preț de ieșire).\nFees=0 la import — editează-le și completează costul real.`);
   renderAll();
 });
+const btnExportCd = $('btnExportCd');
+if (btnExportCd && window.CD) btnExportCd.addEventListener('click', () => CD.downloadExport());
 
 // ── Scorecard ──
 function scHtml(s){

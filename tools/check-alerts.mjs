@@ -114,6 +114,18 @@ try {
   }
 } catch (e) { /* opțional */ }
 
+// Capital risk alert (I-107) — armed via Hub Review → commit tools/capital-risk.json
+try {
+  const riskCfg = JSON.parse(readFileSync(new URL('./capital-risk.json', import.meta.url), 'utf8'));
+  if (riskCfg && riskCfg.armed && riskCfg.riskPct != null && riskCfg.riskPct >= 4) {
+    const top = Array.isArray(riskCfg.topRisk) ? riskCfg.topRisk.slice(0, 3).map(t => t.sym + ' $' + Number(t.risk || 0).toFixed(0)).join(' · ') : '';
+    await sendTelegram(`🛡️ <b>Risc agregat ≥4%</b>\nRisc @SL: <b>$${Number(riskCfg.riskUsd || 0).toFixed(0)}</b> · <b>${Number(riskCfg.riskPct).toFixed(1)}%</b> cont\n${riskCfg.openCount != null ? riskCfg.openCount + ' poz open' : ''}${top ? '\n' + top : ''}${riskCfg.verdict === 'HALTED' ? '\n🛑 Desk HALTED' : ''}`);
+    riskCfg.armed = false;
+    writeFileSync(new URL('./capital-risk.json', import.meta.url), JSON.stringify(riskCfg, null, 2) + '\n', 'utf8');
+    console.log('Capital risk alert trimis.');
+  }
+} catch (e) { /* opțional */ }
+
 // Weekend ET: bursa US e închisă complet (fără pre/after) → prețul stocks e înghețat
 // la close-ul de vineri. Sărim complet simbolurile stocks Sat/Sun ca să nu interogăm
 // degeaba și să nu trimitem alerte pe preț vechi. Crypto rămâne 24/7.

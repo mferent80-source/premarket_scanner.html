@@ -98,6 +98,7 @@ td.sym a{color:var(--accent);text-decoration:none}
 </header>
 
 <div id="capitalRail" data-cd-page="portfolio"></div>
+<div id="rescanBanner" class="note" style="display:none;margin-bottom:12px;padding:10px 14px;border:1px solid var(--warn);border-radius:var(--r);background:rgba(212,137,44,.08);color:var(--warn);line-height:1.5"></div>
 
 <div class="cfg">
   <label>Cont $ <input type="number" id="inAcct" min="0" step="100" placeholder="ex. 10000"></label>
@@ -134,7 +135,7 @@ td.sym a{color:var(--accent);text-decoration:none}
 <script src="../lib/journal.js"></script>
 <script src="../lib/governor.js"></script>
 <script src="../lib/equity.js"></script>
-<script src="../lib/capital-desk.js?v=2"></script>
+<script src="../lib/capital-desk.js?v=4"></script>
 <script src="../lib/data.js"></script>
 <script src="../lib/regime.js"></script>
 <script>
@@ -348,6 +349,8 @@ function render(rows){
       rows: rows.map(r => ({ sym: r.sym, riskNow: r.riskNow || 0 }))
     });
     CD.renderRail('capitalRail', 'portfolio', { unrealized: totPnl });
+    CD.clearRescanFlag();
+    showRescanBanner();
   }
 
   // ── Concentrare pe sector ──
@@ -368,9 +371,20 @@ function render(rows){
 function renderCapitalRailStatic(){
   if (window.CD) CD.renderRail('capitalRail', 'portfolio');
 }
-$('btnScan').addEventListener('click', scan);
+function showRescanBanner(){
+  const b = $('rescanBanner');
+  if (!b || !window.CD) return;
+  if (CD.needsPortfolioRescan && CD.needsPortfolioRescan()){
+    b.style.display = '';
+    b.innerHTML = '⚠ Journal actualizat (închidere trade) — riscul live poate fi stale. <button type="button" id="btnRescanNow" style="margin-left:8px;background:var(--warn);border:none;color:#000;padding:4px 10px;border-radius:6px;cursor:pointer;font-weight:700">Scan acum</button>';
+    const rb = $('btnRescanNow');
+    if (rb) rb.onclick = () => scan();
+  } else b.style.display = 'none';
+}
+$('btnScan').addEventListener('click', () => { if (window.CD && CD.clearRescanFlag) CD.clearRescanFlag(); scan(); });
 showMigrateBanner();
 renderCapitalRailStatic();
+showRescanBanner();
 // auto-scan la deschidere dacă există poziții (asta e pagina de „cât risc AM acum")
 if (openPositions().length) scan();
 else $('tblWrap').innerHTML = `<div class="empty">📭 Nicio poziție OPEN în Journal.<br>

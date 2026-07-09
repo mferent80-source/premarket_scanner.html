@@ -61,6 +61,7 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
   <h1>📈 Equity & Drawdown <span class="ver-badge">v5</span></h1>
   <button class="btn-ghost" id="btnRefresh" type="button">🔄 Prețuri live</button>
   <button class="btn-ghost" id="btnExport" type="button">📥 Export CSV</button>
+  <button class="btn-ghost" id="btnExportCd" type="button" title="Capital Desk JSON">📥 CD JSON</button>
   <button class="btn-ghost" id="btnReport" type="button">🖨 Raport lună</button>
   <a class="nav-link" href="../portfolio/">🛡️ Portfolio</a>
   <a class="nav-link" href="../journal/#desk">🛑 Risk Desk</a>
@@ -131,7 +132,7 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 <script src="../lib/data.js"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/equity.js?v=5"></script>
-<script src="../lib/capital-desk.js?v=2"></script>
+<script src="../lib/capital-desk.js?v=4"></script>
 <script>
 (function(){
 'use strict';
@@ -369,6 +370,14 @@ $('btnExport').onclick = () => {
   a.href = URL.createObjectURL(blob);
   a.download = 'equity-export-' + new Date().toISOString().slice(0, 10) + '.csv';
   a.click();
+};
+$('btnExportCd').onclick = () => {
+  if (!window.CD) return;
+  let unreal = 0;
+  try {
+    EQ.journalOpen().forEach(r => { if (r.unreal != null) unreal += r.unreal; });
+  } catch (e) {}
+  CD.downloadExport({ unrealized: unreal });
 };
 $('btnReport').onclick = () => {
   const w = window.open('', '_blank');
