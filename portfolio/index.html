@@ -161,7 +161,7 @@ function openPositions(){
   try {
     const j = JSON.parse(localStorage.getItem('tt_journal_v1') || '[]') || [];
     return j.filter(e => e && (e.status === 'open' || e.exit == null) && e.sym && +e.size > 0 && +e.entry > 0)
-      .map(e => ({ ticker: e.sym, entry: e.entry, sl: e.slAtEntry, tp: null, size: e.size, status: 'open', dir: e.dir || 'long', source: 'journal', notes: e.notes || '' }));
+      .map(e => ({ id: e.id, ticker: e.sym, entry: e.entry, sl: e.slAtEntry, tp: null, size: e.size, status: 'open', dir: e.dir === 'short' ? 'short' : 'long', source: 'journal', notes: e.notes || '' }));
   } catch (e) { return []; }
 }
 function trackerOpenNotInJournal(){
@@ -268,14 +268,16 @@ async function scan(){
         try { beta = betaOf(dailyRets(await D.fetchStock(sym, { range: '6mo', ttl: 1800 })), retsQ); } catch (e) {}
       }
       const size = +p.size, entry = +p.entry, sl = +p.sl || null, tp = +p.tp || null;
+      const dir = p.dir === 'short' ? 'short' : 'long';
       const notional = (last ?? entry) * size;
-      const pnl = last != null ? (last - entry) * size : null;
-      // Risc la SL = ce mai poți pierde DE ACUM (last→SL); dacă SL e deja depășit → 0 + flag
-      const riskNow = (sl != null && last != null) ? Math.max(0, (last - sl) * size) : (sl != null ? (entry - sl) * size : null);
-      const slBreached = sl != null && last != null && last <= sl;
-      const r0 = (sl != null && entry > sl) ? (entry - sl) : null; // riscul inițial per acțiune
-      const rMult = (r0 && last != null) ? (last - entry) / r0 : null;
-      rows.push({ sym, size, entry, last, sl, tp, notional, pnl, riskNow, slBreached, rMult, beta, sens: macroSens(sym), sector: sectorOf(sym) || '?', notes: p.notes || '' });
+      const pnl = last != null ? (dir === 'short' ? (entry - last) : (last - entry)) * size : null;
+      const riskNow = (sl != null && last != null)
+        ? Math.max(0, dir === 'short' ? (sl - last) * size : (last - sl) * size)
+        : (sl != null ? Math.max(0, dir === 'short' ? (sl - entry) * size : (entry - sl) * size) : null);
+      const slBreached = sl != null && last != null && (dir === 'short' ? last >= sl : last <= sl);
+      const r0 = sl != null ? Math.abs(entry - sl) : null;
+      const rMult = (r0 && last != null) ? (dir === 'short' ? (entry - last) : (last - entry)) / r0 : null;
+      rows.push({ id: p.id, sym, dir, size, entry, last, sl, tp, notional, pnl, riskNow, slBreached, rMult, beta, sens: macroSens(sym), sector: sectorOf(sym) || '?', notes: p.notes || '' });
     }
 
     render(rows);
@@ -392,6 +394,15 @@ showRescanBanner();
 if (openPositions().length) scan();
 else $('tblWrap').innerHTML = `<div class="empty">📭 Nicio poziție OPEN în Journal.<br>
   Adaugă în <a href="../journal/">Journal</a> sau importă din tracker dacă ai planuri vechi.</div>`;
+if (window.CD && CD.initListener) {
+  CD.initListener(() => {
+    if (window.ACCT) { const g = ACCT.get(); $('inAcct').value = g.value || ''; }
+    showMigrateBanner();
+    showRescanBanner();
+    if (CD.needsPortfolioRescan && CD.needsPortfolioRescan() && openPositions().length) scan();
+    else renderCapitalRailStatic();
+  });
+}
 })();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>

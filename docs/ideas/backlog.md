@@ -138,6 +138,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-130 | Equity refresh risk flag + TG | equity/index.html | S | P2 | făcut | ideation | 2026-07-09 |
 | I-131 | Smart Trade Long CD rail | smart-trade-long/ | S | P2 | făcut | ideation | 2026-07-09 |
 | I-132 | Fix Signal Ledger hub-ledger IIFE | lib/hub-ledger.js + index.html | S | P1 | făcut | ideation | 2026-07-09 |
+| I-133 | Sync Equity ↔ Portfolio ↔ Journal | equity/portfolio/journal + lib/* | M | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -904,3 +905,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** rescriere cu un singur IIFE valid; `HB_LEDGER.init/load/review`; lazy load la expand; placeholder corect; guard `inited`; fallback în `hub-brief.js`.
 - **Impact:** Signal Ledger scorecard + mini-chip funcționale din nou pe Hub.
 - **Fișiere atinse:** `lib/hub-ledger.js`, `index.html`, `lib/hub-brief.js`, `tt-v559`.
+
+### I-133 · Sync Equity Portfolio Journal · [M] · P1
+- **Problema/golul:** Equity/Portfolio/Journal nu se reîmprospătau cross-tab; PnL/risc Portfolio ignora `dir:short`; live CD stale fără banner; cont $ nu propaga notifyChange.
+- **Soluția:** `CD.initListener` pe cele 3 pagini; Portfolio fix long/short; Equity citește `readLive()` + `writeLiveRisk` la refresh; `ACCT.syncAll` + equity snapshots → `notifyChange`; banner sync stale.
+- **Impact:** cifre aliniate între pagini când Journal/Portfolio se actualizează; risc live partajat în Capital Desk.
+- **Fișiere atinse:** `equity/index.html`, `portfolio/index.html`, `journal/index.html`, `lib/equity.js`, `lib/account.js`, `lib/capital-desk.js`, `tt-v560`.

@@ -70,6 +70,7 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 </header>
 
 <div id="acctBanner" class="note" style="display:none;margin-bottom:10px;padding:10px;border:1px solid var(--warn);border-radius:var(--rs);background:rgba(212,137,44,.08)"></div>
+<div id="syncBanner" class="note" style="display:none;margin-bottom:10px;padding:10px;border:1px solid var(--accent);border-radius:var(--rs);background:rgba(91,176,255,.08)"></div>
 <div id="capitalRail" data-cd-page="equity"></div>
 <div class="hero" id="heroStrip"></div>
 
@@ -159,12 +160,31 @@ async function livePrice(sym){
   } catch (e) { return null; }
 }
 
+function pushLiveToCd(open){
+  if (!window.CD || !CD.writeLiveRisk || !open || !open.rows) return;
+  let totRisk = 0, totNotional = 0;
+  const riskRows = open.rows.map(r => {
+    const e = EQ.journalOpen().find(x => x.id === r.id) || {};
+    const dir = e.dir === 'short' ? 'short' : 'long';
+    const px = r.px, entry = r.entry, size = r.size, sl = r.sl;
+    let riskNow = null;
+    if (sl != null && px != null) riskNow = Math.max(0, dir === 'short' ? (sl - px) * size : (px - sl) * size);
+    else if (sl != null) riskNow = Math.max(0, dir === 'short' ? (sl - entry) * size : (entry - sl) * size);
+    if (riskNow) totRisk += riskNow;
+    if (px != null) totNotional += px * size;
+    return { sym: r.sym, riskNow: riskNow || 0 };
+  });
+  CD.writeLiveRisk({ totRisk, totNotional, totPnl: open.unreal, rows: riskRows });
+}
+
 async function refreshPrices(){
   const btn = $('btnRefresh');
   btn.disabled = true; btn.textContent = '⏳ …';
   const uniq = [...new Set(EQ.journalOpen().map(e => e.sym))];
   for (const sym of uniq) { livePx[sym] = await livePrice(sym); await new Promise(r => setTimeout(r, 120)); }
   btn.disabled = false; btn.textContent = '🔄 Prețuri live';
+  const open = openRowsWithPx();
+  pushLiveToCd(open);
   render(false);
 }
 
@@ -261,12 +281,26 @@ function render(doFetch){
   const dd = EQ.drawdownStats();
   const st = EQ.streaks();
   const base = EQ.baseline();
-  const open = openRowsWithPx();
+  let open = openRowsWithPx();
+  const live = window.CD && CD.readLive ? CD.readLive() : null;
+  const liveFresh = !!(live && !live.stale);
+  if (liveFresh) {
+    if (live.totPnl != null) open.unreal = live.totPnl;
+    if (live.totNotional != null) open.mktVal = live.totNotional;
+  }
   const realized = EQ.realizedTotal();
-  const estimated = dd.current + open.unreal;
+  const estimated = dd.current + (open.unreal || 0);
   const drift = EQ.drift();
   const cash = EQ.cashEstimate(open.unreal, open.mktVal || null);
   const rec = EQ.reconcileStatus();
+  const pf = window.CD ? CD.portfolioStatic() : null;
+  const syncEl = $('syncBanner');
+  if (syncEl) {
+    if (open.rows.length && pf && (pf.liveStale || !pf.live)) {
+      syncEl.style.display = '';
+      syncEl.innerHTML = 'ℹ️ PnL/risc live = ultimul scan Portfolio (>30m sau lipsă). Apasă <b>🔄 Prețuri live</b> aici sau <a href="../portfolio/" style="color:var(--accent)">Scan în Portfolio</a> pentru aliniere.';
+    } else syncEl.style.display = 'none';
+  }
 
   if (window.ACCT) {
     const divs = ACCT.divergences();
@@ -278,14 +312,13 @@ function render(doFetch){
 
   if (window.CD) CD.renderRail('capitalRail', 'equity', { unrealized: open.unreal });
 
-  const pf = window.CD ? CD.portfolioStatic() : null;
   $('heroStrip').innerHTML = [
     { l: 'Equity estimată', v: fmt$(estimated), s: 'sim + nerealizat', cls: 'accent' },
     { l: 'Cash estimat', v: fmt$(cash.cash), s: (cash.cashPct != null ? cash.cashPct.toFixed(0) + '% liber' : ''), cls: cash.cashPct != null && cash.cashPct < 10 ? 'warn' : '' },
     { l: 'Realizat', v: (realized >= 0 ? '+' : '') + fmt$(realized), s: 'journal închis', cls: '' },
-    { l: 'Nerealizat', v: open.rows.length ? (open.unreal >= 0 ? '+' : '') + fmt$(open.unreal) : '—', s: Object.keys(livePx).length ? 'live' : 'refresh', cls: '' },
+    { l: 'Nerealizat', v: open.rows.length ? (open.unreal >= 0 ? '+' : '') + fmt$(open.unreal) : '—', s: liveFresh ? 'sync Portfolio' : (Object.keys(livePx).length ? 'local live' : 'refresh'), cls: '' },
     { l: 'DD curent', v: dd.currentDdPct.toFixed(1) + '%', s: 'max ' + dd.maxDdPct.toFixed(1) + '%', cls: dd.currentDdPct > 5 ? 'warn' : '' },
-    { l: 'Risc @ SL', v: pf ? fmt$(pf.totRisk) : '—', s: pf && pf.riskPct != null ? pf.riskPct.toFixed(1) + '% · <a href="../portfolio/" style="color:var(--accent)">Portfolio</a>' : 'static entry→SL', cls: pf && pf.riskPct >= 4 ? 'warn' : '' },
+    { l: 'Risc @ SL', v: pf ? fmt$(pf.riskUse) : '—', s: pf && pf.riskPct != null ? pf.riskPct.toFixed(1) + '% · ' + (pf.liveStale || !pf.live ? 'static' : 'live') + ' · <a href="../portfolio/" style="color:var(--accent)">Portfolio</a>' : 'static entry→SL', cls: pf && pf.riskPct >= 4 ? 'warn' : '' },
     { l: 'În piață', v: open.mktVal ? fmt$(open.mktVal) : '—', s: open.dep.count + ' poz', cls: '' },
     { l: 'Streak max', v: st.maxWin + '/' + st.maxLoss, s: st.currentWin + 'W ' + st.currentLoss + 'L', cls: '' }
   ].map(c => '<div class="cell ' + c.cls + '"><div class="lbl">' + c.l + '</div><div class="val">' + c.v + '</div><div class="sub">' + c.s + '</div></div>').join('');
@@ -389,6 +422,7 @@ $('btnReport').onclick = () => {
   w.print();
 };
 
+if (window.CD && CD.initListener) CD.initListener(() => render(false));
 render();
 })();
 </script>
