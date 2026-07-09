@@ -28,6 +28,8 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
 </style>
 </head>
 <body>
+<div id="capitalRail" data-cd-page="shadow"></div>
+
 <header>
   <h1>👻 Shadow Book <span style="font-size:11px;color:var(--t3)">v2</span></h1>
   <button class="nav-link" id="btnEval">📊 Evaluează pending</button>
@@ -39,6 +41,8 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
   <textarea id="pasteJson" placeholder='{"sym":"NVDA","entry":142,"blocked":true,"blockedBy":"macro-gate","source":"zlhma"}'></textarea>
   <button class="btn" id="btnPaste">Import linii JSON</button>
 </div>
+
+<div id="cdShadowGate" style="margin-bottom:12px"></div>
 
 <div class="panel">
   <h2 style="font-size:13px;margin-bottom:8px">➕ Manual</h2>
@@ -57,11 +61,14 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Verdict filtre (ipoteze OOS)</h2><div id="edgeTbl"></div></div>
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Ultimele intrări</h2><div id="tbl"></div></div>
 
+<script src="../lib/account.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/journal.js?v=7"></script>
+<script src="../lib/governor.js?v=4"></script>
 <script src="../lib/data.js"></script>
 <script src="../lib/shadow.js?v=2"></script>
 <script src="../lib/equity.js?v=5"></script>
+<script src="../lib/capital-desk.js?v=4"></script>
 <script>
 (function(){
 const $ = id => document.getElementById(id);
@@ -75,7 +82,17 @@ function renderShadowAttr(){
       '<p class="note">Estimări pe close forward — nu garanție de edge.</p>'
     : '<p class="note">Fără shadow evaluat — loghează semnale blocate și apasă „Evaluează pending".</p>';
 }
+function renderCdGate(){
+  const el = $('cdShadowGate');
+  if (!el || !window.CD) return;
+  CD.renderRail('capitalRail', 'shadow');
+  const b = CD.unified();
+  const est = b.account > 0 ? b.account * 0.01 : 100;
+  const gate = CD.canAddRisk(est);
+  el.innerHTML = CD.gateBannerHtml(gate) + '<p class="note">Semnalele shadow = „ce-ar fi fost" dacă nu erau blocate — compară cu Capital Desk înainte de a ignora un filtru.</p>';
+}
 function render(){
+  renderCdGate();
   renderShadowAttr();
   const edge = SH.filterEdge();
   $('edgeTbl').innerHTML = edge.length ? '<table><tr><th class="l">Filtru</th><th>n</th><th>avg%</th><th>vs base</th><th>verdict</th></tr>' +

@@ -130,6 +130,13 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-122 | Portfolio export CD JSON | portfolio/index.html | S | P3 | făcut | ideation | 2026-07-09 |
 | I-123 | Weekly CD week-over-week deltas | weekly/ + lib/capital-desk.js | M | P2 | făcut | ideation | 2026-07-09 |
 | I-124 | Fix snap prev week key CD | lib/capital-desk.js | S | P3 | făcut | ideation | 2026-07-09 |
+| I-125 | Shadow Book CD rail + gate context | shadow-book/ | M | P2 | făcut | ideation | 2026-07-09 |
+| I-126 | Weekly Review CD rail | weekly/index.html | S | P2 | făcut | ideation | 2026-07-09 |
+| I-127 | Router action Portfolio la risc ridicat | lib/router.js | S | P2 | făcut | ideation | 2026-07-09 |
+| I-128 | Journal remove open → rescan flag | lib/journal.js | S | P2 | făcut | ideation | 2026-07-09 |
+| I-129 | Weekly AI context CD WoW deltas | weekly/index.html | S | P3 | făcut | ideation | 2026-07-09 |
+| I-130 | Equity refresh risk flag + TG | equity/index.html | S | P2 | făcut | ideation | 2026-07-09 |
+| I-131 | Smart Trade Long CD rail | smart-trade-long/ | S | P2 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -848,3 +855,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `getPrevWeekKey(wk)` pentru prev corect.
 - **Impact:** deltas WoW corecte.
 - **Fișiere atinse:** `lib/capital-desk.js`.
+
+### I-125 · Shadow Book + CD · [M] · P2
+- **Problema/golul:** Shadow Book evaluează filtre fără context capital/risc.
+- **Soluția:** rail CD + `canAddRisk` gate banner la load.
+- **Impact:** „dacă aș fi luat trade-ul" vs frână capital.
+- **Fișiere atinse:** `shadow-book/index.html`.
+
+### I-126 · Weekly CD rail · [S] · P2
+- **Problema/golul:** Weekly are snap CD dar nu rail live.
+- **Soluția:** `#capitalRail` + render la init.
+- **Impact:** review săptămânal cu același cockpit capital.
+- **Fișiere atinse:** `weekly/index.html`.
+
+### I-127 · Router → Portfolio action · [S] · P2
+- **Problema/golul:** risc agregat ridicat dar fără shortcut scan în actions.
+- **Soluția:** `buildActions` adaugă 🛡️ Portfolio când risc ≥2% sau gate STOP.
+- **Impact:** plan execuție → verificare risc în 1 click.
+- **Fișiere atinse:** `lib/router.js`.
+
+### I-128 · Remove open → rescan · [S] · P2
+- **Problema/golul:** ștergere poziție open nu marca Portfolio stale.
+- **Soluția:** `JR.remove` → `markRescanNeeded` dacă era open.
+- **Impact:** paritate cu add/close pentru sync live.
+- **Fișiere atinse:** `lib/journal.js`.
+
+### I-129 · AI weekly CD WoW · [S] · P3
+- **Problema/golul:** sinteza AI nu primea deltas săptămână.
+- **Soluția:** `aiContext` include `CD.weekTrend().deltas`.
+- **Impact:** retrospectivă AI cu trend capital.
+- **Fișiere atinse:** `weekly/index.html`.
+
+### I-130 · Equity risk notify · [S] · P2
+- **Problema/golul:** Equity notifica drift dar nu risc ≥4% la render.
+- **Soluția:** `writeRiskFlag` + `maybeNotifyRisk` în `render()`.
+- **Impact:** alertă TG și la deschidere Equity.
+- **Fișiere atinse:** `equity/index.html`.
+
+### I-131 · STL CD rail · [S] · P2
+- **Problema/golul:** STL are gate la save dar nu rail capital vizibil.
+- **Soluția:** `#capitalRail` + render la init.
+- **Impact:** sizing + rail în aceeași pagină.
+- **Fișiere atinse:** `smart-trade-long/index.html`.

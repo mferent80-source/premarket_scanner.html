@@ -248,6 +248,8 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
   </div>
 </header>
 
+<div id="capitalRail" data-cd-page="stl" style="max-width:1280px;margin:0 auto;padding:0 20px"></div>
+
 <main>
   <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v39</span></h1>
   <p class="lead">Scoring 6-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
@@ -1916,6 +1918,7 @@ $('lsInterval').addEventListener('change', () => {
   if (loadWL().length === 0) renderListTable(); // arată mesajul de listă goală în loc de ⏳
   if (listInterval()) setTimeout(() => runListScan(), urlSym ? 1500 : 600);
   else $('lsBody').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--txt-dd);padding:18px">auto OFF — apasă 🔍 Scan listă</td></tr>';
+  if (window.CD) CD.renderRail('capitalRail', 'stl');
 })();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>

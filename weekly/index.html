@@ -87,6 +87,8 @@ td{font-family:var(--mono);padding:6px 7px;border-bottom:1px solid rgba(42,50,71
   <a class="nav-link" href="../">← Hub</a>
 </header>
 
+<div id="capitalRail" data-cd-page="weekly"></div>
+
 <p class="hint">Retrospectiva ULTIMELOR 7 ZILE, din datele deja strânse de suită (ledger semnale · brief-tracker · journal execuții ·
 regim + danger). Datele brute se încarcă instant; sinteza AI e la buton (o dată/săptămână, cache). ⚠ O săptămână = eșantion mic —
 lecțiile de aici sunt indicii de urmărit, nu adevăruri.</p>
@@ -322,6 +324,13 @@ function aiContext(d){
   if (d.capitalDesk) {
     const cd = d.capitalDesk;
     L.push(`Capital Desk: verdict ${cd.verdict || '?'} · risc ${cd.riskPct != null ? cd.riskPct.toFixed(1) + '%' : 'n/a'} · exp.R ${cd.expR != null ? cd.expR.toFixed(2) : 'n/a'} · equity ${cd.equity != null ? cd.equity.toFixed(0) + '$' : 'n/a'}.`);
+    if (window.CD && CD.weekTrend) {
+      const tr = CD.weekTrend();
+      if (tr.deltas) {
+        const dlt = tr.deltas;
+        L.push(`CD WoW: Δrisc ${dlt.riskPct != null ? (dlt.riskPct >= 0 ? '+' : '') + dlt.riskPct.toFixed(1) + '%' : 'n/a'} · ΔDD ${dlt.ddPct != null ? (dlt.ddPct >= 0 ? '+' : '') + dlt.ddPct.toFixed(1) + 'pp' : 'n/a'} · Δexp.R ${dlt.expR != null ? (dlt.expR >= 0 ? '+' : '') + dlt.expR.toFixed(2) : 'n/a'}.`);
+      }
+    }
   }
   if (d.capitalDeskBundle && d.capitalDeskBundle.fees) {
     const f = d.capitalDeskBundle.fees;
@@ -352,6 +361,7 @@ $('btnAi').addEventListener('click', () => genAi(false));
 
 // init: datele brute instant + sinteza din cache dacă e din săptămâna curentă
 render(collect());
+if (window.CD) CD.renderRail('capitalRail', 'weekly');
 showAiCache();
 })();
 </script>

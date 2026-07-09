@@ -346,6 +346,8 @@ function render(doFetch){
   renderTables();
   EQ.writeDriftFlag();
   if (window.EQ && EQ.maybeNotifyDrift) EQ.maybeNotifyDrift();
+  if (window.CD && CD.writeRiskFlag) CD.writeRiskFlag();
+  if (window.CD && CD.maybeNotifyRisk) CD.maybeNotifyRisk();
 
   if (doFetch !== false && EQ.journalOpen().length && !Object.keys(livePx).length) refreshPrices();
 }
