@@ -6,6 +6,7 @@
 <title>👻 Signal Shadow Book — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=571">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0b0f17;--panel:#141a28;--panel2:#1d2537;--b1:#2a3247;--t1:#f0f4fa;--t3:#a3adc1;--accent:#a78bfa;--bull:#22d66b;--bear:#ff4d4d;--r:12px;--rs:8px;--mono:'DM Mono',monospace;--head:'Sora',sans-serif;color-scheme:dark}
@@ -27,11 +28,11 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
 .useful{color:var(--bull)}.costly{color:var(--bear)}
 </style>
 </head>
-<body>
+<body class="suite-page">
 <div id="capitalRail" data-cd-page="shadow"></div>
 
-<header>
-  <h1>👻 Shadow Book <span style="font-size:11px;color:var(--t3)">v2</span></h1>
+<header class="suite-cockpit">
+  <h1>👻 Shadow Book <span class="ver-badge" style="font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(167,139,250,.15);color:var(--accent);border:1px solid rgba(167,139,250,.35);font-family:var(--mono)">v3</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <button class="nav-link" id="btnEval">📊 Evaluează pending</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -111,6 +112,13 @@ $('btnEval').onclick = async () => {
 };
 render();
 })();
+</script>
+<script src="../lib/suite-version.js?v=571"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v571';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>

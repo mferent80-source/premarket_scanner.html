@@ -149,6 +149,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-141 | Macro Dashboard cockpit UI v568 | macro-ui.css + macro-dashboard | M | P1 | făcut | ideation | 2026-07-09 |
 | I-142 | Suite UI scan pages v569 | suite-ui.css + 5 scan tools + SW sync | M | P1 | făcut | ideation | 2026-07-09 |
 | I-143 | Suite UI review pages v570 | Markov/Alerts/Earnings/Weekly + encoding fix | M | P1 | făcut | ideation | 2026-07-09 |
+| I-144 | Suite UI infra pages v571 | Router/Guide/Shadow/Postmortem/Health | S | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -981,3 +982,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `suite-ui.css` pe 4 pagini + suite badge; Earnings header/title UTF-8 refăcut (v141); Markov v3.11, Alerts v60, Weekly v2; bump `tt-v570`.
 - **Impact:** UI wave complet pe tool-urile de review + automation; Earnings din nou lizibil pe mobil/desktop.
 - **Fișiere atinse:** markov-lab, alerts, earnings-hub, weekly, `lib/suite-ui.css`, `suite-version.js`, hub badges.
+
+### I-144 · Suite UI infra pages v571 · [S] · P1
+- **Problema/golul:** Router/Guide/Shadow/Postmortem/Health — ultimele pagini fără suite badge & cockpit; unele fără SW; badge hub desincronizate.
+- **Soluția:** `suite-ui.css` + `.suite-cockpit` + `#suiteBadge` pe 5 pagini; Router v6, Guide v4, Shadow v3, Postmortem v3, Health v4; SW `tt-v571` peste tot.
+- **Impact:** UI wave 100% pe paginile suitei; versiune PWA vizibilă uniform.
+- **Fișiere atinse:** router, guide, shadow-book, postmortem, health, `suite-ui.css`, hub badges.

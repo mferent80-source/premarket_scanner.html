@@ -8,6 +8,7 @@
 <meta name="description" content="Starea infrastructurii suitei: proxy CORS, chei API, bot server-side, sync, service worker">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🩺</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=571">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -76,10 +77,10 @@ header h1{
 @media (max-width:550px){ .grid{grid-template-columns:1fr} }
 </style>
 </head>
-<body>
+<body class="suite-page">
 
-<header>
-  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v3</span></h1>
+<header class="suite-cockpit">
+  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v4</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <button class="nav-link" id="btnRunAll">▶ Rulează toate testele</button>
   <button class="nav-link" id="btnReport" title="Copiază starea tuturor verificărilor ca raport text — lipește-l în Claude Code și el ia măsurile">📋 Raport pt Claude</button>
   <a class="nav-link" href="../">← Hub</a>
@@ -147,7 +148,7 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
 <script src="../lib/capital-desk.js?v=4"></script>
 <script src="../lib/ai.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/suite-version.js"></script>
+<script src="../lib/suite-version.js?v=571"></script>
 <script>
 (function(){
 'use strict';
@@ -458,6 +459,12 @@ checkEquity();
 checkLS();
 $('foot').textContent = 'verificările gratuite au rulat la deschidere · cele cu consum așteaptă butonul';
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v571';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
