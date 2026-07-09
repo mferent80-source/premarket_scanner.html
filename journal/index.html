@@ -166,6 +166,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
     </div>
     <label class="chkrow"><input type="checkbox" id="cDdOn" checked> Frână pe DD rolling (Equity curve)</label>
     <label class="chkrow"><input type="checkbox" id="cTg"> Alertă Telegram la HALTED (o dată/zi)</label>
+    <label class="chkrow"><input type="checkbox" id="cTgRisk"> Alertă Telegram la risc agregat ≥4% (o dată/zi)</label>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="btnGovSave" type="button">💾 Salvează limite</button>
       <button class="btn ghost" id="btnAcctSnap" type="button" title="Copiază ultimul snapshot din Equity & Drawdown">📈 Preia din snapshot Equity</button>
@@ -538,6 +539,7 @@ function loadGovCfg(){
   $('cWeekLoss').value = c.maxLossPctWeek != null ? c.maxLossPctWeek : 3;
   $('cDdOn').checked = c.ddRollingOn !== false;
   $('cTg').checked = !!c.tgOnHalt;
+  if ($('cTgRisk')) $('cTgRisk').checked = c.tgOnRiskHalt !== false;
 }
 $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
   const acct = +$('cAcct').value;
@@ -545,7 +547,8 @@ $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
     accountSize: acct, maxLossPctDay: +$('cLoss').value, maxTradesDay: +$('cTrades').value,
     maxOpenPositions: +$('cOpen').value, cooldownAfterLosses: +$('cCool').value,
     maxDdPctRolling: +$('cDdRoll').value, maxLossPctWeek: +$('cWeekLoss').value,
-    ddRollingOn: $('cDdOn').checked, tgOnHalt: $('cTg').checked
+    ddRollingOn: $('cDdOn').checked, tgOnHalt: $('cTg').checked,
+    tgOnRiskHalt: $('cTgRisk') ? $('cTgRisk').checked : true
   });
   if (window.ACCT) ACCT.syncAll(acct, 'governor');
   renderDesk();

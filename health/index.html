@@ -342,6 +342,11 @@ function checkEquity(){
       else if (hp.cls === 'warn' && cls === 'ok') cls = 'warn';
       parts.push('<span class="' + (hp.cls === 'err' ? 'err' : 'warn') + '">CD: ' + esc(hp.issues.join('; ')) + '</span>');
     } else parts.push('<span class="ok">Capital Desk OK</span>');
+    try {
+      const rf = JSON.parse(localStorage.getItem(CD.RISK_FLAG_KEY || 'tt_capital_risk_flag_v1') || 'null');
+      if (rf && rf.halt) parts.push('<span class="err">risc flag ' + (rf.riskPct != null ? rf.riskPct.toFixed(1) + '%' : 'HALT') + '</span>');
+      else if (rf && rf.warn) parts.push('<span class="warn">risc flag ' + rf.riskPct.toFixed(1) + '%</span>');
+    } catch (e) {}
   }
   const badge = window.SUITE_VERSION_SHORT || '?';
   parts.push('badge: <b>' + esc(badge) + '</b>');

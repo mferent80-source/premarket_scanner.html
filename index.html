@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v555'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v556'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -647,6 +647,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
   <div id="hubChecklist" class="hub-session" style="display:none;flex-direction:column;align-items:stretch;gap:6px"></div>
 
   <div id="hubFreezeTop" class="hub-freeze-top"></div>
+  <div id="hubRiskBanner" class="hub-freeze-top" style="display:none"></div>
   <section class="hub-cockpit" id="hubCockpit">
     <div>
       <div class="hub-cockpit-lbl">☀️ MORNING COCKPIT — azi tradez?</div>
@@ -1792,7 +1793,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v555';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v556';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 

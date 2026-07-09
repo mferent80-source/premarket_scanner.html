@@ -118,6 +118,11 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-110 | Morning checklist prag risc 4% | lib/morning-check.js | S | P2 | făcut | ideation | 2026-07-09 |
 | I-111 | Portfolio banner rescan post-close | portfolio/ + lib/capital-desk.js | S | P2 | făcut | ideation | 2026-07-09 |
 | I-112 | Server flag tools/capital-risk.json | tools/capital-risk.json + check-alerts.mjs | S | P2 | făcut | ideation | 2026-07-09 |
+| I-113 | Hub banner risc ≥4% + copy JSON server | index.html + lib/hub-brief.js | S | P1 | făcut | ideation | 2026-07-09 |
+| I-114 | Governor toggle TG la risc ≥4% | lib/governor.js + journal/ | S | P2 | făcut | ideation | 2026-07-09 |
+| I-115 | Weekly Review export CD JSON | weekly/index.html | S | P3 | făcut | ideation | 2026-07-09 |
+| I-116 | CD.serverRiskPayload + clipboard | lib/capital-desk.js | S | P2 | făcut | ideation | 2026-07-09 |
+| I-117 | Health afișează capital risk flag | health/index.html | S | P3 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -764,3 +769,33 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `tools/capital-risk.json` cu `armed:true` + payload risc/topRisk → Telegram one-shot.
 - **Impact:** paritate cu drift alert în GitHub Actions.
 - **Fișiere atinse:** `tools/capital-risk.json`, `tools/check-alerts.mjs`.
+
+### I-113 · Hub banner risc ≥4% · [S] · P1
+- **Problema/golul:** risc HALT vizibil doar în Portfolio/Journal — Hub dimineața nu strigă.
+- **Soluția:** `#hubRiskBanner` roșu în cockpit când `riskPct ≥ 4%` + link Portfolio/Desk.
+- **Impact:** prima pagină deschisă = vezi imediat supra-expunerea.
+- **Fișiere atinse:** `index.html`, `lib/hub-brief.js`.
+
+### I-114 · Governor toggle TG risc · [S] · P2
+- **Problema/golul:** `maybeNotifyRisk` fără opt-out ca HALTED.
+- **Soluția:** `tgOnRiskHalt` în cfg + checkbox Journal „Alertă Telegram la risc ≥4%".
+- **Impact:** control user pe spam Telegram.
+- **Fișiere atinse:** `lib/governor.js`, `journal/index.html`, `lib/capital-desk.js`.
+
+### I-115 · Weekly export CD JSON · [S] · P3
+- **Problema/golul:** weekly salvează snap CD dar nu exportă bundle complet.
+- **Soluția:** buton „📥 Export CD JSON" în `cdSnapBody`.
+- **Impact:** arhivă săptămânală capital pentru review/AI.
+- **Fișiere atinse:** `weekly/index.html`.
+
+### I-116 · serverRiskPayload clipboard · [S] · P2
+- **Problema/golul:** arming `capital-risk.json` manual = greșeli de format.
+- **Soluția:** `CD.serverRiskPayload()` + `copyServerRiskPayload()` + buton Hub „📋 JSON server".
+- **Impact:** copy-paste corect în repo pentru alertă laptop închis.
+- **Fișiere atinse:** `lib/capital-desk.js`, `lib/hub-brief.js`.
+
+### I-117 · Health risk flag · [S] · P3
+- **Problema/golul:** Health probe CD dar nu citește `tt_capital_risk_flag_v1`.
+- **Soluția:** în `checkEquity` afișează warn/err din flag local.
+- **Impact:** diagnostic capital fără F12.
+- **Fișiere atinse:** `health/index.html`.

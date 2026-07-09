@@ -218,7 +218,10 @@ function render(d){
       const delta = prev && prev.riskPct != null && cd.riskPct != null ? (cd.riskPct - prev.riskPct).toFixed(1) : null;
       $('cdSnapBody').innerHTML = '<div class="note" style="margin-top:0">💰 <b>Capital Desk snapshot</b> · verdict <b>' + esc(cd.verdict || '—') + '</b> · risc ' + (cd.riskPct != null ? cd.riskPct.toFixed(1) + '%' : '—') +
         (delta != null ? ' (Δ' + (delta >= 0 ? '+' : '') + delta + '% vs săpt. trecută)' : '') +
-        ' · exp.R ' + (cd.expR != null ? cd.expR.toFixed(2) : '—') + '</div>';
+        ' · exp.R ' + (cd.expR != null ? cd.expR.toFixed(2) : '—') +
+        ' <button type="button" id="btnWeeklyCdExport" style="margin-left:8px;background:var(--panel2);border:1px solid var(--b1);color:var(--accent);padding:3px 10px;border-radius:6px;cursor:pointer;font-size:10px">📥 Export CD JSON</button></div>';
+      const wex = $('btnWeeklyCdExport');
+      if (wex && window.CD) wex.onclick = () => CD.downloadExport();
     } else $('cdSnapBody').innerHTML = '';
   } else {
     $('eqBody').innerHTML = '<div class="empty">Modul equity indisponibil — reîncarcă pagina.</div>';
