@@ -21,10 +21,10 @@ header h1{font-size:18px;font-weight:800;background:linear-gradient(90deg,#5bb0f
 .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
 .panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:12px}
 .panel h2{font-size:13px;margin-bottom:8px;font-weight:800}
-.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:12px}
 .cell{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:12px}
 .cell .lbl{font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:4px}
-.cell .val{font-size:20px;font-weight:800;line-height:1.1}
+.cell .val{font-size:18px;font-weight:800;line-height:1.1}
 .cell .sub{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:4px}
 .cell.accent{border-color:rgba(91,176,255,.35)}
 .cell.warn{border-color:rgba(212,137,44,.45);background:rgba(212,137,44,.08)}
@@ -36,9 +36,10 @@ header h1{font-size:18px;font-weight:800;background:linear-gradient(90deg,#5bb0f
 .bar-fill{height:100%;background:var(--accent)}
 .bar-fill.neg{background:var(--bear)}
 .frm{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
-.frm input{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono)}
+.frm input,.frm select{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono)}
 .btn{background:linear-gradient(135deg,var(--accent),#3b82f6);border:none;color:#000;padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer;font-family:var(--head)}
 .btn:disabled{opacity:.5;cursor:wait}
+.btn-sm{font-size:11px;padding:6px 10px}
 .note{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5}
 .src-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-family:var(--mono);font-size:11px;border-bottom:1px solid rgba(42,50,71,.4);gap:8px}
 .src-row:last-child{border-bottom:none}
@@ -50,18 +51,29 @@ th{color:var(--t3);text-align:right;padding:6px 4px;border-bottom:1px solid var(
 th:first-child,td:first-child{text-align:left}
 td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 .drift-ok{color:var(--bull)}.drift-bad{color:var(--warn)}
+.wiz-step{padding:8px 0;border-bottom:1px solid rgba(42,50,71,.35)}
+.wiz-step:last-child{border:none}
+.hl-trade{stroke:#fff;stroke-width:2;filter:drop-shadow(0 0 4px #5bb0ff)}
 </style>
 </head>
 <body>
 <header>
-  <h1>📈 Equity & Drawdown <span class="ver-badge">v4</span></h1>
+  <h1>📈 Equity & Drawdown <span class="ver-badge">v5</span></h1>
   <button class="btn-ghost" id="btnRefresh" type="button">🔄 Prețuri live</button>
+  <button class="btn-ghost" id="btnExport" type="button">📥 Export CSV</button>
+  <button class="btn-ghost" id="btnReport" type="button">🖨 Raport lună</button>
   <a class="nav-link" href="../journal/#desk">🛑 Risk Desk</a>
   <a class="nav-link" href="../journal/">📓 Journal</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
 
+<div id="acctBanner" class="note" style="display:none;margin-bottom:10px;padding:10px;border:1px solid var(--warn);border-radius:var(--rs);background:rgba(212,137,44,.08)"></div>
 <div class="hero" id="heroStrip"></div>
+
+<div class="panel" id="wizardPanel" style="display:none">
+  <h2>🧭 Wizard reconciliere drift</h2>
+  <div id="wizardBody"></div>
+</div>
 
 <div class="panel" id="driftPanel" style="display:none">
   <h2>⚖ Reconciliere snapshot</h2>
@@ -78,50 +90,55 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 </div>
 
 <div class="grid2">
-  <div class="panel">
-    <h2>⏳ Poziții deschise (journal)</h2>
-    <div id="openCap">—</div>
-  </div>
-  <div class="panel">
-    <h2>📅 PnL săptămânal (închise)</h2>
-    <div id="weekBars">—</div>
-  </div>
+  <div class="panel"><h2>⏳ Poziții deschise (journal)</h2><div id="openCap">—</div></div>
+  <div class="panel"><h2>📅 PnL săptămânal (închise)</h2><div id="weekBars">—</div></div>
 </div>
 
 <div class="grid2">
-  <div class="panel">
-    <h2>PnL net pe sursă</h2>
-    <div id="srcBreak">—</div>
-  </div>
-  <div class="panel">
-    <h2>Distribuție R-multiple</h2>
-    <div id="rBars">—</div>
-  </div>
+  <div class="panel"><h2>PnL net pe sursă</h2><div id="srcBreak">—</div></div>
+  <div class="panel"><h2>Performanță pe regim</h2><div id="regBreak">—</div></div>
+</div>
+
+<div class="grid2">
+  <div class="panel"><h2>Distribuție R-multiple</h2><div id="rBars">—</div></div>
+  <div class="panel"><h2>Shadow vs realizat (30z)</h2><div id="shadowAttr">—</div></div>
 </div>
 
 <div class="panel">
-  <h2>📸 Snapshot-uri cont</h2>
-  <p class="note" style="margin-bottom:8px">Primul snapshot = <b>baseline</b>. Ultimele = verifici dacă simularea (baseline + PnL journal) e aliniată cu Trade212.</p>
+  <h2>📸 Snapshot-uri & evenimente capital</h2>
+  <p class="note" style="margin-bottom:8px">Primul snapshot = baseline. Depuneri/retrageri = salt pe curbă (nu PnL trading).</p>
   <div class="frm" style="margin-bottom:10px">
     <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Equity $ <input id="snapEq" type="number" min="1" step="1"></label>
     <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Notă <input id="snapNote" placeholder="Trade212"></label>
-    <button class="btn" id="btnSnap" type="button">+ Snapshot</button>
+    <button class="btn btn-sm" id="btnSnap" type="button">+ Snapshot</button>
+  </div>
+  <div class="frm" style="margin-bottom:10px">
+    <select id="capKind"><option value="deposit">Depunere</option><option value="withdraw">Retragere</option></select>
+    <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">$ <input id="capAmt" type="number" min="1" step="1"></label>
+    <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Notă <input id="capNote" placeholder="Transfer"></label>
+    <button class="btn btn-sm" id="btnCap" type="button">+ Eveniment</button>
   </div>
   <div id="snapTbl"></div>
+  <div id="capTbl" style="margin-top:10px"></div>
 </div>
 
-<script src="../lib/journal.js?v=6"></script>
-<script src="../lib/governor.js?v=2"></script>
+<script src="../lib/account.js"></script>
+<script src="../lib/journal.js?v=7"></script>
+<script src="../lib/governor.js?v=3"></script>
+<script src="../lib/shadow.js"></script>
 <script src="../lib/data.js"></script>
-<script src="../lib/equity.js?v=4"></script>
+<script src="../lib/telegram.js"></script>
+<script src="../lib/equity.js?v=5"></script>
 <script>
 (function(){
 'use strict';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+const highlightId = new URLSearchParams(location.search).get('highlight');
 
 let livePx = {};
+if (window.ACCT) ACCT.migrate();
 
 async function livePrice(sym){
   if (!window.D || !D.fetchJSON) return null;
@@ -134,23 +151,16 @@ async function livePrice(sym){
     for (let i = closes.length - 1; i >= 0; i--) {
       if (closes[i] != null && isFinite(closes[i]) && closes[i] > 0) return closes[i];
     }
-    const m = res.meta || {};
-    return m.regularMarketPrice || null;
+    return res.meta && res.meta.regularMarketPrice || null;
   } catch (e) { return null; }
 }
 
 async function refreshPrices(){
   const btn = $('btnRefresh');
-  btn.disabled = true;
-  btn.textContent = '⏳ …';
-  const open = EQ.journalOpen();
-  const uniq = [...new Set(open.map(e => e.sym))];
-  for (const sym of uniq) {
-    livePx[sym] = await livePrice(sym);
-    await new Promise(r => setTimeout(r, 120));
-  }
-  btn.disabled = false;
-  btn.textContent = '🔄 Prețuri live';
+  btn.disabled = true; btn.textContent = '⏳ …';
+  const uniq = [...new Set(EQ.journalOpen().map(e => e.sym))];
+  for (const sym of uniq) { livePx[sym] = await livePrice(sym); await new Promise(r => setTimeout(r, 120)); }
+  btn.disabled = false; btn.textContent = '🔄 Prețuri live';
   render(false);
 }
 
@@ -173,14 +183,12 @@ function drawChart(){
   const { points, start } = EQ.curve();
   const svg = $('eqChart');
   if (!points.length) {
-    svg.innerHTML = '<text x="200" y="90" fill="#8892a6" font-size="12" text-anchor="middle">Adaugă snapshot sau execuții închise în journal</text>';
-    $('chartLo').textContent = '—';
-    $('chartHi').textContent = '—';
+    svg.innerHTML = '<text x="200" y="90" fill="#8892a6" font-size="12" text-anchor="middle">Adaugă snapshot sau execuții în journal</text>';
+    $('chartLo').textContent = $('chartHi').textContent = '—';
     return;
   }
   const vals = points.map(p => p.equity);
-  const peaks = points.map(p => p.peak || p.equity);
-  const min = Math.min(start, ...vals), max = Math.max(start, ...vals, ...peaks);
+  const min = Math.min(start, ...vals), max = Math.max(start, ...vals, ...points.map(p => p.peak || p.equity));
   const span = max - min || 1;
   const y = v => (165 - ((v - min) / span) * 145).toFixed(1);
   let ddArea = '';
@@ -192,34 +200,57 @@ function drawChart(){
   const eqPts = points.map((p, i) => ((i / Math.max(1, points.length - 1)) * 400).toFixed(1) + ',' + y(p.equity)).join(' ');
   const markers = points.map((p, i) => {
     const x = (i / Math.max(1, points.length - 1)) * 400;
-    const col = p.kind === 'snapshot' ? '#ffd86b' : (p.pnlStep >= 0 ? '#22d66b' : '#ff4d4d');
-    const r = p.kind === 'snapshot' ? 3.5 : 2.5;
-    return '<circle cx="' + x + '" cy="' + y(p.equity) + '" r="' + r + '" fill="' + col + '" opacity=".9"/>';
+    let col = '#22d66b';
+    if (p.kind === 'snapshot') col = '#ffd86b';
+    else if (p.kind === 'deposit') col = '#a78bfa';
+    else if (p.kind === 'withdraw') col = '#ff9f43';
+    else if (p.pnlStep < 0) col = '#ff4d4d';
+    const r = (highlightId && p.tradeId === highlightId) ? 6 : (p.kind === 'snapshot' ? 3.5 : 2.5);
+    const cls = (highlightId && p.tradeId === highlightId) ? ' class="hl-trade"' : '';
+    return '<circle cx="' + x + '" cy="' + y(p.equity) + '" r="' + r + '" fill="' + col + '"' + cls + '/>';
   }).join('');
   const last = points[points.length - 1].equity;
-  const col = last >= start ? '#22d66b' : '#ff4d4d';
   svg.innerHTML =
     (ddArea ? '<polygon fill="rgba(255,77,77,.2)" points="' + ddArea + '400,170 0,170"/>' : '') +
     '<polyline fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1" stroke-dasharray="4 3" points="' + peakPts + '"/>' +
-    '<polyline fill="none" stroke="' + col + '" stroke-width="2.5" points="' + eqPts + '"/>' +
+    '<polyline fill="none" stroke="' + (last >= start ? '#22d66b' : '#ff4d4d') + '" stroke-width="2.5" points="' + eqPts + '"/>' +
     markers;
   $('chartLo').textContent = fmt$(min) + ' · ' + (points[0].day || '');
   $('chartHi').textContent = fmt$(max) + ' · ' + (points[points.length - 1].day || '');
 }
 
-function renderSnapTbl(){
+function renderWizard(drift, rec){
+  if (!drift.warn) { $('wizardPanel').style.display = 'none'; return; }
+  $('wizardPanel').style.display = '';
+  const steps = [
+    { t: '1. Execuții lipsă', d: rec.missing ? rec.missing + ' închise în tracker fără journal' : 'OK', ok: !rec.missing, act: rec.missing ? '<button type="button" class="btn btn-sm" id="wizImport">Import tracker</button>' : '' },
+    { t: '2. Poziții open', d: rec.openTracker ? rec.openTracker + ' open doar în tracker' : 'OK', ok: !rec.openTracker, act: rec.openTracker ? '<button type="button" class="btn btn-sm" id="wizOpen">Import open</button>' : '' },
+    { t: '3. Evenimente capital', d: rec.capitalEvents ? rec.capitalEvents + ' înregistrate' : 'Niciunul — adaugă depuneri/retrageri', ok: rec.capitalEvents > 0, act: '' },
+    { t: '4. Snapshot', d: drift.snapshotAgeDays != null ? 'Ultimul acum ' + drift.snapshotAgeDays + ' zile' : 'Lipsește', ok: drift.snapshotAgeDays != null && drift.snapshotAgeDays <= 7, act: '<button type="button" class="btn btn-sm" id="wizSnap">+ Snapshot acum</button>' }
+  ];
+  $('wizardBody').innerHTML = steps.map(s => '<div class="wiz-step"><b>' + esc(s.t) + '</b> ' + (s.ok ? '<span class="pos">✓</span>' : '<span class="drift-bad">!</span>') + '<div class="note">' + esc(s.d) + ' ' + s.act + '</div></div>').join('');
+  const imp = $('wizImport'); if (imp) imp.onclick = () => { const r = JR.importFromTracker(); alert('+' + r.added + ' importate'); render(); };
+  const op = $('wizOpen'); if (op) op.onclick = () => { const r = JR.importOpenFromTracker(); alert('+' + r.added + ' open'); render(); };
+  const sn = $('wizSnap'); if (sn) sn.onclick = () => { $('snapEq').focus(); $('snapEq').scrollIntoView({ behavior: 'smooth' }); };
+}
+
+function renderTables(){
   const snaps = EQ.snapshots().sort((a, b) => b.ts - a.ts);
   const fs = EQ.firstSnapshot();
   $('snapTbl').innerHTML = snaps.length
-    ? '<table><tr><th class="l">Zi</th><th>Equity</th><th>Notă</th><th></th></tr>' +
-      snaps.map(s => '<tr><td class="l">' + esc(s.day) + (fs && s.ts === fs.ts ? ' <span style="color:var(--gold)">★ baseline</span>' : '') + '</td><td>' + fmt$(s.equity) + '</td><td style="text-align:left;max-width:120px;overflow:hidden;text-overflow:ellipsis">' + esc(s.note || '—') + '</td><td><button type="button" data-del="' + s.ts + '" style="background:transparent;border:1px solid var(--b1);color:var(--t3);border-radius:4px;cursor:pointer;font-size:10px">✕</button></td></tr>').join('') +
-      '</table>'
-    : '<p class="note">Niciun snapshot — adaugă equity real din Trade212.</p>';
-  $('snapTbl').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
-    if (!confirm('Ștergi snapshot-ul? (dacă e primul, baseline-ul se recalculează)')) return;
-    EQ.removeSnapshot(+b.dataset.del);
-    render();
-  }));
+    ? '<table><tr><th class="l">Zi</th><th>Equity</th><th>Notă</th><th></th></tr>' + snaps.map(s =>
+      '<tr><td class="l">' + esc(s.day) + (fs && s.ts === fs.ts ? ' <span style="color:var(--gold)">★</span>' : '') + '</td><td>' + fmt$(s.equity) + '</td><td style="text-align:left">' + esc(s.note || '—') + '</td><td><button type="button" data-del-snap="' + s.ts + '" class="btn-sm" style="background:transparent;border:1px solid var(--b1);color:var(--t3);cursor:pointer">✕</button></td></tr>'
+    ).join('') + '</table>'
+    : '<p class="note">Niciun snapshot.</p>';
+  $('snapTbl').querySelectorAll('[data-del-snap]').forEach(b => b.onclick = () => { if (confirm('Ștergi?')) { EQ.removeSnapshot(+b.dataset.delSnap); render(); } });
+
+  const caps = EQ.capitalEvents().sort((a, b) => b.ts - a.ts);
+  $('capTbl').innerHTML = caps.length
+    ? '<table><tr><th class="l">Zi</th><th>Tip</th><th>$</th><th>Notă</th><th></th></tr>' + caps.map(c =>
+      '<tr><td class="l">' + esc(c.day) + '</td><td>' + (c.kind === 'withdraw' ? 'Retragere' : 'Depunere') + '</td><td class="' + (c.kind === 'withdraw' ? 'neg' : 'pos') + '">' + fmt$(c.amountUsd) + '</td><td style="text-align:left">' + esc(c.note || '') + '</td><td><button data-del-cap="' + c.ts + '" class="btn-sm" style="background:transparent;border:1px solid var(--b1);color:var(--t3);cursor:pointer">✕</button></td></tr>'
+    ).join('') + '</table>'
+    : '';
+  $('capTbl').querySelectorAll('[data-del-cap]').forEach(b => b.onclick = () => { EQ.removeCapitalEvent(+b.dataset.delCap); render(); });
 }
 
 function render(doFetch){
@@ -230,33 +261,58 @@ function render(doFetch){
   const realized = EQ.realizedTotal();
   const estimated = dd.current + open.unreal;
   const drift = EQ.drift();
+  const cash = EQ.cashEstimate(open.unreal, open.mktVal || null);
+  const rec = EQ.reconcileStatus();
+
+  if (window.ACCT) {
+    const divs = ACCT.divergences();
+    if (divs.length) {
+      $('acctBanner').style.display = '';
+      $('acctBanner').textContent = '⚠ Cont $ divergent: ' + divs.map(d => d.where + ' $' + d.value).join(', ') + ' — Risk Desk sincronizează.';
+    } else $('acctBanner').style.display = 'none';
+  }
 
   $('heroStrip').innerHTML = [
-    { l: 'Equity estimată', v: fmt$(estimated), s: open.unreal ? 'sim + nerealizat' : 'doar realizat', cls: 'accent' },
-    { l: 'Realizat (închis)', v: (realized >= 0 ? '+' : '') + fmt$(realized), s: 'din journal', cls: realized >= 0 ? '' : 'warn' },
-    { l: 'Nerealizat', v: open.rows.length ? (open.unreal >= 0 ? '+' : '') + fmt$(open.unreal) : '—', s: open.rows.length ? (Object.keys(livePx).length ? 'preț live' : 'apasă Refresh') : 'fără poziții', cls: '' },
+    { l: 'Equity estimată', v: fmt$(estimated), s: 'sim + nerealizat', cls: 'accent' },
+    { l: 'Cash estimat', v: fmt$(cash.cash), s: (cash.cashPct != null ? cash.cashPct.toFixed(0) + '% liber' : ''), cls: cash.cashPct != null && cash.cashPct < 10 ? 'warn' : '' },
+    { l: 'Realizat', v: (realized >= 0 ? '+' : '') + fmt$(realized), s: 'journal închis', cls: '' },
+    { l: 'Nerealizat', v: open.rows.length ? (open.unreal >= 0 ? '+' : '') + fmt$(open.unreal) : '—', s: Object.keys(livePx).length ? 'live' : 'refresh', cls: '' },
     { l: 'DD curent', v: dd.currentDdPct.toFixed(1) + '%', s: 'max ' + dd.maxDdPct.toFixed(1) + '%', cls: dd.currentDdPct > 5 ? 'warn' : '' },
-    { l: 'În piață acum', v: open.mktVal ? fmt$(open.mktVal) : (open.dep.count ? '…' : '—'), s: open.dep.count ? open.dep.count + ' poziții' : '', cls: '' },
-    { l: 'Streak W/L max', v: st.maxWin + ' / ' + st.maxLoss, s: 'azi: ' + st.currentWin + 'W ' + st.currentLoss + 'L', cls: '' }
+    { l: 'În piață', v: open.mktVal ? fmt$(open.mktVal) : '—', s: open.dep.count + ' poz', cls: '' },
+    { l: 'Streak max', v: st.maxWin + '/' + st.maxLoss, s: st.currentWin + 'W ' + st.currentLoss + 'L', cls: '' }
   ].map(c => '<div class="cell ' + c.cls + '"><div class="lbl">' + c.l + '</div><div class="val">' + c.v + '</div><div class="sub">' + c.s + '</div></div>').join('');
 
   $('baseLine').textContent = base.source === 'snapshot'
-    ? 'Baseline $' + base.value.toFixed(0) + ' · primul snapshot ' + base.day + (base.note ? ' (' + base.note + ')' : '') + ' + PnL închis'
-    : 'Baseline $' + base.value.toFixed(0) + ' · Risk Desk (Cont $) + PnL închis — adaugă snapshot Trade212';
+    ? 'Baseline $' + base.value.toFixed(0) + ' · snapshot ' + base.day + ' + PnL + capital'
+    : 'Baseline $' + base.value.toFixed(0) + ' · cont sincronizat — adaugă snapshot Trade212';
 
   if (drift.snapshot) {
     $('driftPanel').style.display = '';
     const cls = drift.warn ? 'drift-bad' : 'drift-ok';
-    $('driftTxt').innerHTML = 'Simulat <b>' + fmt$(drift.simulated) + '</b> vs ultimul snapshot <b>' + fmt$(drift.snapshot.equity) + '</b> (' + drift.snapshot.day + ')' +
-      ' · diferență <span class="' + cls + '">' + (drift.driftUsd >= 0 ? '+' : '') + fmt$(drift.driftUsd) + ' (' + (drift.driftPct >= 0 ? '+' : '') + drift.driftPct.toFixed(1) + '%)</span>' +
-      (drift.warn ? ' — verifică execuții lipsă, depuneri/retrageri sau fă snapshot nou.' : ' — aliniat.');
+    $('driftTxt').innerHTML = 'Sim <b>' + fmt$(drift.simulated) + '</b> vs snap <b>' + fmt$(drift.snapshot.equity) + '</b> (' + drift.snapshot.day + ') · <span class="' + cls + '">' + (drift.driftUsd >= 0 ? '+' : '') + fmt$(drift.driftUsd) + ' (' + (drift.driftPct >= 0 ? '+' : '') + drift.driftPct.toFixed(1) + '%)</span>' + (drift.stale ? ' · snapshot vechi ' + drift.snapshotAgeDays + 'z' : '');
   } else $('driftPanel').style.display = 'none';
 
-  $('openCap').innerHTML = open.rows.length
-    ? '<table><tr><th class="l">Sym</th><th>Entry</th><th>Live</th><th>Notional</th><th>PnL nereal.</th></tr>' +
-      open.rows.map(r => '<tr><td class="l">' + esc(r.sym) + '</td><td>$' + r.entry + ' ×' + r.size + '</td><td>' + (r.px != null ? '$' + r.px.toFixed(2) : '—') + '</td><td>$' + r.notional.toFixed(0) + '</td><td class="' + (r.unreal == null ? '' : r.unreal >= 0 ? 'pos' : 'neg') + '">' + (r.unreal != null ? (r.unreal >= 0 ? '+' : '') + '$' + r.unreal.toFixed(0) : '—') + '</td></tr>').join('') +
-      '</table><p class="note">Notional = entry×size la intrare. Live = Yahoo 1m pre/after.</p>'
-    : '<p class="note">Nicio execuție în curs în journal.</p>';
+  renderWizard(drift, rec);
+
+  const reg = EQ.statsByRegime();
+  $('regBreak').innerHTML = Object.keys(reg).length
+    ? Object.entries(reg).sort((a, b) => (b[1].pnl || 0) - (a[1].pnl || 0)).map(([k, s]) =>
+      '<div class="src-row"><span>' + esc(k) + (s.small ? ' ⚠' : '') + ' · n=' + s.n + (s.expectancyR != null ? ' · R̄' + s.expectancyR.toFixed(2) : '') + '</span><span class="' + (s.pnl >= 0 ? 'pos' : 'neg') + '">' + (s.pnl >= 0 ? '+' : '') + '$' + s.pnl.toFixed(0) + '</span></div>'
+    ).join('')
+    : '<p class="note">—</p>';
+
+  const sh = EQ.shadowAttribution(30);
+  $('shadowAttr').innerHTML = sh.n
+    ? '<p class="note">Journal 30z: <span class="' + (sh.journalPnl >= 0 ? 'pos' : 'neg') + '">' + fmt$(sh.journalPnl) + '</span> · shadow eval n=' + sh.n + '</p>' +
+      Object.entries(sh.filters).map(([f, v]) => '<div class="src-row"><span>' + esc(f) + '</span><span>' + v.toFixed(1) + ' R·est</span></div>').join('')
+    : '<p class="note">Fără shadow evaluat — <a href="../shadow-book/" style="color:var(--accent)">Shadow Book</a></p>';
+
+  const src = EQ.statsBySource();
+  $('srcBreak').innerHTML = Object.keys(src).length
+    ? Object.entries(src).sort((a, b) => b[1].pnl - a[1].pnl).map(([k, s]) =>
+      '<div class="src-row"><span>' + esc(k) + (s.small ? ' ⚠' : '') + '</span><span class="' + (s.pnl >= 0 ? 'pos' : 'neg') + '">' + (s.pnl >= 0 ? '+' : '') + '$' + s.pnl.toFixed(0) + '</span></div>'
+    ).join('')
+    : '<p class="note">—</p>';
 
   const weeks = EQ.weeklyPnl(8);
   const maxW = Math.max(1, ...weeks.map(w => Math.abs(w.pnl)));
@@ -264,36 +320,54 @@ function render(doFetch){
     ? weeks.map(w => '<div class="bar-row"><span style="width:52px;color:var(--t3)">' + esc(w.week.slice(5)) + '</span><div class="bar-track"><div class="bar-fill ' + (w.pnl < 0 ? 'neg' : '') + '" style="width:' + (Math.abs(w.pnl) / maxW * 100) + '%"></div></div><span class="' + (w.pnl >= 0 ? 'pos' : 'neg') + '">' + (w.pnl >= 0 ? '+' : '') + '$' + w.pnl.toFixed(0) + '</span></div>').join('')
     : '<p class="note">—</p>';
 
-  const src = EQ.statsBySource();
-  $('srcBreak').innerHTML = Object.keys(src).length
-    ? Object.entries(src).sort((a, b) => b[1].pnl - a[1].pnl).map(([k, s]) =>
-      '<div class="src-row"><span>' + esc(k) + (s.small ? ' ⚠' : '') + ' · n=' + s.n + '</span><span class="' + (s.pnl >= 0 ? 'pos' : 'neg') + '">' + (s.pnl >= 0 ? '+' : '') + '$' + s.pnl.toFixed(0) + '</span></div>'
-    ).join('')
-    : '<p class="note">—</p>';
-
   const rd = EQ.rDistribution();
   const maxN = Math.max(1, ...rd.buckets.map(b => b.n));
   $('rBars').innerHTML = rd.n
-    ? rd.buckets.map(b => '<div class="bar-row"><span style="width:72px;color:var(--t3)">' + b.label + '</span><div class="bar-track"><div class="bar-fill" style="width:' + (b.n / maxN * 100) + '%"></div></div><span>' + b.n + '</span></div>').join('') +
-      '<p class="note">n=' + rd.n + (rd.n < 10 ? ' ⚠ zgomot' : '') + (rd.avg != null ? ' · avg R ' + rd.avg.toFixed(2) : '') + '</p>'
-    : '<p class="note">Completează SL în journal pentru R-multiple.</p>';
+    ? rd.buckets.map(b => '<div class="bar-row"><span style="width:72px">' + b.label + '</span><div class="bar-track"><div class="bar-fill" style="width:' + (b.n / maxN * 100) + '%"></div></div><span>' + b.n + '</span></div>').join('') + '<p class="note">n=' + rd.n + (rd.n < 10 ? ' ⚠' : '') + '</p>'
+    : '<p class="note">Completează SL în journal.</p>';
+
+  $('openCap').innerHTML = open.rows.length
+    ? '<table><tr><th class="l">Sym</th><th>Live</th><th>PnL nereal.</th></tr>' + open.rows.map(r =>
+      '<tr><td class="l">' + esc(r.sym) + '</td><td>' + (r.px != null ? '$' + r.px.toFixed(2) : '—') + '</td><td class="' + (r.unreal >= 0 ? 'pos' : 'neg') + '">' + (r.unreal != null ? (r.unreal >= 0 ? '+' : '') + '$' + r.unreal.toFixed(0) : '—') + '</td></tr>'
+    ).join('') + '</table>'
+    : '<p class="note">Nicio poziție deschisă.</p>';
 
   drawChart();
-  renderSnapTbl();
+  renderTables();
+  EQ.writeDriftFlag();
+  if (window.EQ && EQ.maybeNotifyDrift) EQ.maybeNotifyDrift();
 
-  if (doFetch !== false && EQ.journalOpen().length && !Object.keys(livePx).length) {
-    refreshPrices();
-  }
+  if (doFetch !== false && EQ.journalOpen().length && !Object.keys(livePx).length) refreshPrices();
 }
 
 $('btnSnap').onclick = () => {
   const rec = EQ.addSnapshot($('snapEq').value, $('snapNote').value);
-  if (!rec) { alert('Introdu equity $ valid'); return; }
-  $('snapEq').value = '';
-  $('snapNote').value = '';
+  if (!rec) { alert('Equity invalid'); return; }
+  if (window.ACCT) ACCT.syncAll(rec.equity, 'snapshot');
+  $('snapEq').value = ''; $('snapNote').value = '';
+  render();
+};
+$('btnCap').onclick = () => {
+  const rec = EQ.addCapitalEvent($('capKind').value, $('capAmt').value, $('capNote').value);
+  if (!rec) { alert('Sumă invalidă'); return; }
+  $('capAmt').value = ''; $('capNote').value = '';
   render();
 };
 $('btnRefresh').onclick = () => refreshPrices();
+$('btnExport').onclick = () => {
+  const blob = new Blob([EQ.exportCsv()], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'equity-export-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+};
+$('btnReport').onclick = () => {
+  const w = window.open('', '_blank');
+  const dd = EQ.drawdownStats();
+  const dr = EQ.drift();
+  w.document.write('<html><head><title>Raport equity</title><style>body{font-family:sans-serif;padding:20px}</style></head><body><h1>Equity ' + new Date().toLocaleDateString('ro') + '</h1><p>DD: ' + dd.currentDdPct.toFixed(1) + '% (max ' + dd.maxDdPct.toFixed(1) + '%)</p><p>Drift: ' + (dr.driftPct != null ? dr.driftPct.toFixed(1) + '%' : '—') + '</p></body></html>');
+  w.print();
+};
 
 render();
 })();

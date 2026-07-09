@@ -156,7 +156,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <label>Max trade-uri/zi <input id="cTrades" type="number" min="1"></label>
       <label>Max poziții deschise <input id="cOpen" type="number" min="1"></label>
       <label>Cooldown după N pierderi <input id="cCool" type="number" min="1"></label>
+      <label>Max DD rolling % <input id="cDdRoll" type="number" min="1" step="0.5" value="10"></label>
     </div>
+    <label class="chkrow"><input type="checkbox" id="cDdOn" checked> Frână pe DD rolling (Equity curve)</label>
     <label class="chkrow"><input type="checkbox" id="cTg"> Alertă Telegram la HALTED (o dată/zi)</label>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="btnGovSave" type="button">💾 Salvează limite</button>
@@ -166,6 +168,16 @@ tr.openrow{background:rgba(91,176,255,.06)}
     <p class="note">Frână disciplinară — nu blochează brokerul. Cont $ = fallback dacă nu ai snapshot în Equity; primul snapshot e baseline-ul curbei.</p>
   </details>
 </section>
+
+<div class="panel">
+  <h2>📥 Import webhook / paste</h2>
+  <textarea id="pasteIngest" style="width:100%;min-height:72px;background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono);font-size:11px" placeholder='{"sym":"NVDA","entry":142,"exit":145,"size":10} — câte o linie JSON'></textarea>
+  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn ghost" id="btnIngest" type="button">Import linii JSON</button>
+    <button class="btn ghost" id="btnGistSync" type="button">Sync webhook gist</button>
+  </div>
+  <p class="note">Gist URL în <code>tt_journal_gist_url</code> (raw JSON). Pine → worker → gist → sync aici.</p>
+</div>
 
 <div class="panel">
   <h2 id="frmTitle">➕ Execuție nouă (fill închis)</h2>
@@ -217,10 +229,11 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <div id="tblWrap"><div class="empty">—</div></div>
 </div>
 
-<script src="../lib/journal.js?v=6"></script>
+<script src="../lib/account.js"></script>
+<script src="../lib/journal.js?v=7"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/governor.js?v=2"></script>
-<script src="../lib/equity.js?v=3"></script>
+<script src="../lib/governor.js?v=3"></script>
+<script src="../lib/equity.js?v=5"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -512,10 +525,18 @@ function loadGovCfg(){
   $('cTrades').value = c.maxTradesDay;
   $('cOpen').value = c.maxOpenPositions;
   $('cCool').value = c.cooldownAfterLosses;
+  $('cDdRoll').value = c.maxDdPctRolling != null ? c.maxDdPctRolling : 10;
+  $('cDdOn').checked = c.ddRollingOn !== false;
   $('cTg').checked = !!c.tgOnHalt;
 }
 $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
-  GV.saveCfg({ accountSize:+$('cAcct').value, maxLossPctDay:+$('cLoss').value, maxTradesDay:+$('cTrades').value, maxOpenPositions:+$('cOpen').value, cooldownAfterLosses:+$('cCool').value, tgOnHalt: $('cTg').checked });
+  const acct = +$('cAcct').value;
+  GV.saveCfg({
+    accountSize: acct, maxLossPctDay: +$('cLoss').value, maxTradesDay: +$('cTrades').value,
+    maxOpenPositions: +$('cOpen').value, cooldownAfterLosses: +$('cCool').value,
+    maxDdPctRolling: +$('cDdRoll').value, ddRollingOn: $('cDdOn').checked, tgOnHalt: $('cTg').checked
+  });
+  if (window.ACCT) ACCT.syncAll(acct, 'governor');
   renderDesk();
 });
 $('btnAcctSnap') && $('btnAcctSnap').addEventListener('click', () => {
@@ -523,8 +544,24 @@ $('btnAcctSnap') && $('btnAcctSnap').addEventListener('click', () => {
   if (!snap) { alert('Niciun snapshot în Equity. Deschide Equity → Snapshot cont și pune equity real din Trade212.'); return; }
   $('cAcct').value = snap.equity;
   GV.saveCfg({ accountSize: +snap.equity });
+  if (window.ACCT) ACCT.syncAll(+snap.equity, 'snapshot');
   renderDesk();
   alert('Cont $ setat la $' + snap.equity.toFixed(0) + ' (snapshot ' + snap.day + '). Limitele Risk Desk folosesc acum această valoare.');
+});
+$('btnIngest') && $('btnIngest').addEventListener('click', () => {
+  const n = JR.ingestText($('pasteIngest').value);
+  alert(n + ' execuții importate');
+  $('pasteIngest').value = '';
+  renderAll();
+});
+$('btnGistSync') && $('btnGistSync').addEventListener('click', () => {
+  const url = localStorage.getItem('tt_journal_gist_url');
+  if (!url) { alert('Lipsește tt_journal_gist_url în localStorage — setează URL-ul raw al gist-ului.'); return; }
+  $('btnGistSync').disabled = true;
+  JR.syncFromGist(url).then(n => {
+    alert(n + ' execuții sincronizate din gist');
+    renderAll();
+  }).catch(e => alert('Eroare sync gist: ' + (e.message || e))).finally(() => { $('btnGistSync').disabled = false; });
 });
 $('btnDeskRefresh') && $('btnDeskRefresh').addEventListener('click', renderDesk);
 $('btnTgTest') && $('btnTgTest').addEventListener('click', async () => {
@@ -532,7 +569,24 @@ $('btnTgTest') && $('btnTgTest').addEventListener('click', async () => {
   const ok = await TG.test();
   alert(ok ? 'Telegram OK' : 'Verifică token/chat în Alerts');
 });
+if (window.ACCT) ACCT.migrate();
 loadGovCfg();
+
+function prefillFromQuery(){
+  const pf = JR.prefillFromQuery();
+  if (!pf) return;
+  if (pf.sym) $('fSym').value = String(pf.sym).toUpperCase();
+  if (pf.dir) $('fDir').value = pf.dir === 'short' ? 'short' : 'long';
+  if (pf.entry != null) $('fEntry').value = pf.entry;
+  if (pf.exit != null) $('fExit').value = pf.exit;
+  if (pf.size != null) $('fSize').value = pf.size;
+  if (pf.fees != null) $('fFees').value = pf.fees;
+  if (pf.slAtEntry != null || pf.sl != null) $('fSl').value = pf.slAtEntry != null ? pf.slAtEntry : pf.sl;
+  if (pf.source || pf.src) $('fSrc').value = pf.source || pf.src;
+  if (pf.notes || pf.note) $('fNotes').value = pf.notes || pf.note || '';
+  if (pf.tags) renderTagRow(Array.isArray(pf.tags) ? pf.tags : []);
+  $('frmTitle').textContent = '➕ Execuție pre-completată (ledger/webhook)';
+}
 
 function renderAll(){
   renderDesk();
@@ -554,6 +608,7 @@ function renderAll(){
 }
 
 resetForm();
+prefillFromQuery();
 renderAll();
 if (location.hash === '#desk') {
   const el = document.getElementById('desk');

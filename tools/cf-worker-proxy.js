@@ -63,10 +63,62 @@ async function ghDispatch(env) {
   return { status: r.status, text: r.status === 204 ? 'OK (204)' : await r.text() };
 }
 
+async function handleJournalIngest(request, env) {
+  if (request.method !== 'POST') return new Response('POST only', { status: 405 });
+  const secret = request.headers.get('X-TT-Secret') || '';
+  const expected = (env && env.JOURNAL_INGEST_SECRET) || '';
+  if (!expected || secret !== expected) return new Response('unauthorized', { status: 401 });
+  let body;
+  try { body = await request.json(); } catch (e) { return new Response('invalid json', { status: 400 }); }
+  const entry = body.entry || body;
+  if (!entry || typeof entry !== 'object') return new Response('missing entry', { status: 400 });
+  const gistId = (env && env.JOURNAL_GIST_ID) || '';
+  const gistToken = (env && env.JOURNAL_GIST_TOKEN) || '';
+  if (!gistId || !gistToken) {
+    return new Response(JSON.stringify({ ok: true, queued: false, entry, note: 'Set JOURNAL_GIST_ID + JOURNAL_GIST_TOKEN for persistence' }), {
+      status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': ALLOW_ORIGIN }
+    });
+  }
+  try {
+    const g = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { 'Authorization': `Bearer ${gistToken}`, 'Accept': 'application/vnd.github+json', 'User-Agent': 'tt-proxy-ingest' }
+    });
+    const gd = await g.json();
+    const fname = Object.keys(gd.files || {})[0] || 'journal-queue.json';
+    let arr = [];
+    try { arr = JSON.parse(gd.files[fname].content || '[]'); } catch (e) { arr = []; }
+    if (!Array.isArray(arr)) arr = [];
+    arr.push(Object.assign({ ingestedAt: new Date().toISOString() }, entry));
+    const patch = await fetch(`https://api.github.com/gists/${gistId}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `Bearer ${gistToken}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json', 'User-Agent': 'tt-proxy-ingest' },
+      body: JSON.stringify({ files: { [fname]: { content: JSON.stringify(arr, null, 2) } } })
+    });
+    if (!patch.ok) return new Response(await patch.text(), { status: patch.status });
+    return new Response(JSON.stringify({ ok: true, queued: true, n: arr.length }), {
+      status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': ALLOW_ORIGIN }
+    });
+  } catch (e) {
+    return new Response('gist error: ' + e.message, { status: 500 });
+  }
+}
+
 export default {
   async fetch(request, env) {
     const u = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
+    if (u.pathname === '/journal-ingest' || u.pathname.endsWith('/journal-ingest')) {
+      if (request.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: {
+          'Access-Control-Allow-Origin': origin || ALLOW_ORIGIN,
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, X-TT-Secret'
+        }});
+      }
+      const res = await handleJournalIngest(request, env);
+      res.headers.set('Access-Control-Allow-Origin', origin || ALLOW_ORIGIN);
+      return res;
+    }
     if (origin && origin !== ALLOW_ORIGIN) return new Response('forbidden origin', { status: 403 });
 
     const target = u.searchParams.get('url');

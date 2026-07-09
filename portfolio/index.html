@@ -98,9 +98,11 @@ td.sym a{color:var(--accent);text-decoration:none}
 <div class="cfg">
   <label>Cont $ <input type="number" id="inAcct" min="0" step="100" placeholder="ex. 10000"></label>
   <label>Risc/trade % <input type="number" id="inRisk" min="0.1" max="5" step="0.1" value="1"></label>
-  <span class="hint">Pozițiile vin din Trade Tracker (📓 FAB în Hub, status OPEN) — aici doar le CITESC și agregă riscul.
-  Adaugi/închizi poziții în Hub sau cu „📓 Plan" din Smart Trade Long. Pragurile de risc total (2%/4%) sunt IPOTEZE de calibrat pe contul tău.</span>
+  <span class="hint">Pozițiile vin EXCLUSIV din Journal (📓 execuții OPEN în tt_journal_v1) — aici doar le CITESC și agregă riscul.
+  Adaugi/închizi în <a href="../journal/" style="color:var(--accent)">Journal</a> sau import din tracker. Pragurile de risc total (2%/4%) sunt IPOTEZE de calibrat pe contul tău.</span>
 </div>
+
+<div id="migrateBanner" class="note" style="display:none;margin-bottom:12px;padding:10px 14px;border:1px solid var(--warn);border-radius:var(--r);background:rgba(212,137,44,.08);color:var(--warn);line-height:1.5"></div>
 
 <div class="strip" id="strip" style="display:none">
   <div class="cell"><div class="lbl">POZIȚII OPEN</div><div class="val" id="sN">—</div><div class="sub" id="sNSub">—</div></div>
@@ -124,6 +126,7 @@ td.sym a{color:var(--accent);text-decoration:none}
 
 <div class="foot" id="foot">—</div>
 
+<script src="../lib/account.js"></script>
 <script src="../lib/data.js"></script>
 <script src="../lib/regime.js"></script>
 <script>
@@ -135,24 +138,38 @@ const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { m
 const fmtK = v => Math.abs(v) >= 1e6 ? (v/1e6).toFixed(2)+'M' : Math.abs(v) >= 1e3 ? (v/1e3).toFixed(1)+'K' : v.toFixed(0);
 
 // ── Config persistat (chei tt_ conform convenției) ──
-const K_ACCT = 'tt_pf_account', K_RISK = 'tt_pf_riskpct';
-try { $('inAcct').value = localStorage.getItem(K_ACCT) || ''; } catch (e) {}
+const K_RISK = 'tt_pf_riskpct';
+if (window.ACCT) { const g = ACCT.get(); $('inAcct').value = g.value || ''; }
+else { try { $('inAcct').value = localStorage.getItem('tt_pf_account') || ''; } catch (e) {} }
 try { const r = localStorage.getItem(K_RISK); if (r) $('inRisk').value = r; } catch (e) {}
-$('inAcct').addEventListener('change', () => { try { localStorage.setItem(K_ACCT, $('inAcct').value); } catch (e) {} });
+$('inAcct').addEventListener('change', () => { if (window.ACCT) ACCT.syncAll($('inAcct').value, 'portfolio'); else try { localStorage.setItem('tt_pf_account', $('inAcct').value); } catch (e) {} });
 $('inRisk').addEventListener('change', () => { try { localStorage.setItem(K_RISK, $('inRisk').value); } catch (e) {} });
 
 // ── Surse (read-only, scrise de alte pagini) ──
 function openPositions(){
   try {
     const j = JSON.parse(localStorage.getItem('tt_journal_v1') || '[]') || [];
-    const fromJournal = j.filter(e => e && (e.status === 'open' || e.exit == null) && e.sym && +e.size > 0 && +e.entry > 0)
-      .map(e => ({ ticker: e.sym, entry: e.entry, sl: e.slAtEntry, tp: null, size: e.size, status: 'open', dir: e.dir || 'long', source: 'journal' }));
-    if (fromJournal.length) return fromJournal;
-  } catch (e) {}
-  try {
-    const arr = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
-    return arr.filter(p => p && p.status === 'open' && p.ticker && +p.size > 0 && +p.entry > 0);
+    return j.filter(e => e && (e.status === 'open' || e.exit == null) && e.sym && +e.size > 0 && +e.entry > 0)
+      .map(e => ({ ticker: e.sym, entry: e.entry, sl: e.slAtEntry, tp: null, size: e.size, status: 'open', dir: e.dir || 'long', source: 'journal', notes: e.notes || '' }));
   } catch (e) { return []; }
+}
+function trackerOpenNotInJournal(){
+  try {
+    const plans = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
+    const openPlans = plans.filter(p => p && p.status === 'open' && p.ticker && +p.size > 0 && +p.entry > 0);
+    if (!openPlans.length) return [];
+    const j = JSON.parse(localStorage.getItem('tt_journal_v1') || '[]') || [];
+    const haveSrc = new Set(j.filter(e => e && (e.status === 'open' || e.exit == null)).map(x => x.srcId).filter(Boolean));
+    return openPlans.filter(p => !haveSrc.has(p.id));
+  } catch (e) { return []; }
+}
+function showMigrateBanner(){
+  const orphans = trackerOpenNotInJournal();
+  const el = $('migrateBanner');
+  if (!el) return;
+  if (!orphans.length){ el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.innerHTML = `⚠ ${orphans.length} poziție/open în tracker (trade_plans_v1) fără corespondent în Journal: <b>${orphans.map(p => esc(String(p.ticker).toUpperCase())).join(', ')}</b>. Portfolio citește doar Journal — <a href="../equity/" style="color:var(--accent)">importă OPEN din tracker</a> (wizard Equity) sau închide manual în <a href="../journal/" style="color:var(--accent)">Journal</a>.`;
 }
 // Sector din cache-ul Watchlist Monitor (Finnhub profile2) — read-only, nu re-fetch
 function sectorOf(sym){
@@ -220,8 +237,8 @@ async function scan(){
     if (!pos.length){
       $('strip').style.display = 'none';
       $('pConc').style.display = 'none';
-      $('tblWrap').innerHTML = `<div class="empty">📭 Nicio poziție OPEN în tracker.<br>
-        Adaugă din <a href="../">Hub</a> (FAB 📓 dreapta-jos) sau din <a href="../smart-trade-long/">Smart Trade Long</a> (butonul „📓 Plan" după scan).</div>`;
+      $('tblWrap').innerHTML = `<div class="empty">📭 Nicio poziție OPEN în Journal.<br>
+        Adaugă în <a href="../journal/">Journal</a> sau importă din tracker dacă ai planuri vechi.</div>`;
       $('foot').textContent = '—';
       return;
     }
@@ -332,10 +349,11 @@ function render(rows){
 }
 
 $('btnScan').addEventListener('click', scan);
+showMigrateBanner();
 // auto-scan la deschidere dacă există poziții (asta e pagina de „cât risc AM acum")
 if (openPositions().length) scan();
-else $('tblWrap').innerHTML = `<div class="empty">📭 Nicio poziție OPEN în tracker.<br>
-  Adaugă din <a href="../">Hub</a> (FAB 📓 dreapta-jos) sau din <a href="../smart-trade-long/">Smart Trade Long</a> (butonul „📓 Plan").</div>`;
+else $('tblWrap').innerHTML = `<div class="empty">📭 Nicio poziție OPEN în Journal.<br>
+  Adaugă în <a href="../journal/">Journal</a> sau importă din tracker dacă ai planuri vechi.</div>`;
 })();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>

@@ -76,24 +76,24 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-068 | Signal Ledger mini în mod Review | hub/index.html | S | P3 | făcut | ideation | 2026-07-09 |
 | I-069 | Version badge sync cu SW | lib/suite-version.js | S | P3 | făcut | ideation | 2026-07-09 |
 | I-070 | Journal + Risk Desk (merge Governor) | journal/ | M | P1 | făcut | user | 2026-07-09 |
-| I-071 | Evenimente capital (depuneri/retrageri) în curbă | equity/ | M | P1 | propus | ideation | 2026-07-09 |
-| I-072 | Expectancy R segmentat pe regim macro | equity/ | S | P2 | propus | ideation | 2026-07-09 |
-| I-073 | Wizard reconciliere drift (ghidat) | equity/ | M | P1 | propus | ideation | 2026-07-09 |
-| I-074 | Alertă drift equity → Telegram | equity/ + automation | S | P2 | propus | ideation | 2026-07-09 |
-| I-075 | Cash disponibil estimat (equity − expunere) | equity/ | S | P2 | propus | ideation | 2026-07-09 |
-| I-076 | Export CSV + raport lunar equity | equity/ | S | P3 | propus | ideation | 2026-07-09 |
-| I-077 | Hub cockpit pill Equity (DD + drift) | hub/index.html | S | P1 | propus | ideation | 2026-07-09 |
-| I-078 | Weekly Review + bloc Equity/DD | weekly/ | S | P2 | propus | ideation | 2026-07-09 |
-| I-079 | Webhook ingest Journal (Pine → JR) | automation | L | P1 | propus | ideation | 2026-07-09 |
-| I-080 | Poziții deschise unificate (journal-only) | portfolio/ + hub | M | P1 | propus | ideation | 2026-07-09 |
-| I-081 | Router playbook: reguli max DD + drift | router/ | M | P2 | propus | ideation | 2026-07-09 |
-| I-082 | Signal Ledger → pre-fill Journal | hub + journal/ | S | P2 | propus | ideation | 2026-07-09 |
-| I-083 | Post-Mortem ↔ highlight trade pe curbă | postmortem/ + equity/ | S | P3 | propus | ideation | 2026-07-09 |
-| I-084 | Governor: frână pe DD rolling (nu doar zi) | lib/governor.js | M | P1 | propus | ideation | 2026-07-09 |
-| I-085 | Health: snapshot stale + drift + versiune | health/ | S | P2 | propus | ideation | 2026-07-09 |
-| I-086 | Morning checklist Pro (Router gate) | hub/ + router/ | M | P2 | propus | ideation | 2026-07-09 |
-| I-087 | Cont $ sincronizat (GV ↔ EQ ↔ Portfolio) | lib/equity.js + portfolio/ | S | P1 | propus | ideation | 2026-07-09 |
-| I-088 | Shadow Book → atribuire PnL vs realizat | shadow-book/ + equity/ | M | P3 | propus | ideation | 2026-07-09 |
+| I-071 | Evenimente capital (depuneri/retrageri) în curbă | equity/ | M | P1 | făcut | ideation | 2026-07-09 |
+| I-072 | Expectancy R segmentat pe regim macro | equity/ | S | P2 | făcut | ideation | 2026-07-09 |
+| I-073 | Wizard reconciliere drift (ghidat) | equity/ | M | P1 | făcut | ideation | 2026-07-09 |
+| I-074 | Alertă drift equity → Telegram | equity/ + automation | S | P2 | făcut | ideation | 2026-07-09 |
+| I-075 | Cash disponibil estimat (equity − expunere) | equity/ | S | P2 | făcut | ideation | 2026-07-09 |
+| I-076 | Export CSV + raport lunar equity | equity/ | S | P3 | făcut | ideation | 2026-07-09 |
+| I-077 | Hub cockpit pill Equity (DD + drift) | hub/index.html | S | P1 | făcut | ideation | 2026-07-09 |
+| I-078 | Weekly Review + bloc Equity/DD | weekly/ | S | P2 | făcut | ideation | 2026-07-09 |
+| I-079 | Webhook ingest Journal (Pine → JR) | automation | L | P1 | făcut | ideation | 2026-07-09 |
+| I-080 | Poziții deschise unificate (journal-only) | portfolio/ + hub | M | P1 | făcut | ideation | 2026-07-09 |
+| I-081 | Router playbook: reguli max DD + drift | router/ | M | P2 | făcut | ideation | 2026-07-09 |
+| I-082 | Signal Ledger → pre-fill Journal | hub + journal/ | S | P2 | făcut | ideation | 2026-07-09 |
+| I-083 | Post-Mortem ↔ highlight trade pe curbă | postmortem/ + equity/ | S | P3 | făcut | ideation | 2026-07-09 |
+| I-084 | Governor: frână pe DD rolling (nu doar zi) | lib/governor.js | M | P1 | făcut | ideation | 2026-07-09 |
+| I-085 | Health: snapshot stale + drift + versiune | health/ | S | P2 | făcut | ideation | 2026-07-09 |
+| I-086 | Morning checklist Pro (Router gate) | hub/ + router/ | M | P2 | făcut | ideation | 2026-07-09 |
+| I-087 | Cont $ sincronizat (GV ↔ EQ ↔ Portfolio) | lib/equity.js + portfolio/ | S | P1 | făcut | ideation | 2026-07-09 |
+| I-088 | Shadow Book → atribuire PnL vs realizat | shadow-book/ + equity/ | M | P3 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 

@@ -44,7 +44,7 @@ try { cfg = JSON.parse(readFileSync(FILE, 'utf8')); }
 catch (e) { console.log('tools/alerts.json lipsește sau e invalid — nimic de făcut.'); process.exit(0); }
 
 const alerts = Array.isArray(cfg.alerts) ? cfg.alerts : [];
-if (!alerts.length) { console.log('Niciun alert definit în tools/alerts.json.'); process.exit(0); }
+if (!alerts.length) console.log('Niciun price alert în tools/alerts.json — verific doar equity drift (dacă e armat).');
 
 const TOKEN = process.env.TELEGRAM_TOKEN || '';
 const CHAT = process.env.TELEGRAM_CHAT_ID || '';
@@ -101,6 +101,18 @@ async function sendTelegram(html){
     return r.ok;
   } catch (e) { console.log('⚠ Telegram: ' + e.message); return false; }
 }
+
+// Equity drift alert (I-074) — armed via Hub Review → commit tools/equity-drift.json
+try {
+  const driftCfg = JSON.parse(readFileSync(new URL('./equity-drift.json', import.meta.url), 'utf8'));
+  if (driftCfg && driftCfg.armed && driftCfg.driftPct != null && Math.abs(driftCfg.driftPct) >= 2) {
+    const age = driftCfg.snapshotAgeDays != null ? driftCfg.snapshotAgeDays + 'z' : '?';
+    await sendTelegram(`⚖️ <b>Equity drift</b>\nSim: <b>$${Number(driftCfg.simulated || 0).toFixed(0)}</b> vs snapshot: <b>$${Number(driftCfg.snapshotEquity || 0).toFixed(0)}</b>\nΔ <b>${driftCfg.driftPct >= 0 ? '+' : ''}${Number(driftCfg.driftPct).toFixed(1)}%</b> · snapshot ${age}`);
+    driftCfg.armed = false;
+    writeFileSync(new URL('./equity-drift.json', import.meta.url), JSON.stringify(driftCfg, null, 2) + '\n', 'utf8');
+    console.log('Equity drift alert trimis.');
+  }
+} catch (e) { /* opțional */ }
 
 // Weekend ET: bursa US e închisă complet (fără pre/after) → prețul stocks e înghețat
 // la close-ul de vineri. Sărim complet simbolurile stocks Sat/Sun ca să nu interogăm

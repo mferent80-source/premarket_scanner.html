@@ -130,13 +130,22 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
     <div class="chk-body" id="bLS">—</div>
   </div>
 
+  <div class="chk" id="cEquity">
+    <div class="chk-head"><span class="chk-dot" id="dEquity"></span><h2>📈 Equity / snapshot</h2></div>
+    <div class="chk-body" id="bEquity">—</div>
+  </div>
+
 </div>
 
 <div class="foot" id="foot">—</div>
 
 <script src="../lib/data.js"></script>
+<script src="../lib/account.js"></script>
+<script src="../lib/journal.js?v=7"></script>
+<script src="../lib/equity.js?v=5"></script>
 <script src="../lib/ai.js"></script>
 <script src="../lib/telegram.js"></script>
+<script src="../lib/suite-version.js"></script>
 <script>
 (function(){
 'use strict';
@@ -310,6 +319,26 @@ async function checkSW(){
   }
 }
 
+// ── 8b. Equity — snapshot stale, drift, versiune badge (I-085) ──
+function checkEquity(){
+  if (!window.EQ){ dot('dEquity', 'warn'); $('bEquity').innerHTML = '<span class="warn">lib/equity.js indisponibil</span>'; return; }
+  const dr = EQ.drift();
+  const age = dr.snapshotAgeDays;
+  let cls = 'ok';
+  const parts = [];
+  if (!dr.snapshot){ cls = 'warn'; parts.push('<span class="warn">fără snapshot Trade212</span>'); }
+  else {
+    parts.push('ultim snapshot: <b>' + dr.snapshot.day + '</b>' + (age != null ? ' (' + age + ' zile)' : ''));
+    if (age != null && age > 14){ cls = 'err'; parts.push('<span class="err">STALE &gt;14z</span>'); }
+    else if (age != null && age > 7) cls = 'warn';
+  }
+  if (dr.warn) { cls = cls === 'ok' ? 'warn' : cls; parts.push('<span class="warn">drift ' + (dr.driftPct != null ? dr.driftPct.toFixed(1) + '%' : '?') + '</span>'); }
+  const badge = window.SUITE_VERSION_SHORT || '?';
+  parts.push('badge: <b>' + esc(badge) + '</b>');
+  dot('dEquity', cls);
+  $('bEquity').innerHTML = parts.join(' · ') + '<br><a href="../equity/" style="color:var(--accent)">Deschide Equity →</a> · <a href="../update.html" style="color:var(--accent)">update cache</a>';
+}
+
 // ── 8. localStorage — utilizare + TOP chei după mărime + curățare cache sigur.
 // Quota reală în Chrome desktop e ~10MB pt localStorage (5MB e valoarea istorică/Safari) — praguri pe 10.
 function checkLS(){
@@ -410,6 +439,7 @@ checkAnthropic();
 checkTG();
 checkGistPresence();
 checkSW();
+checkEquity();
 checkLS();
 $('foot').textContent = 'verificările gratuite au rulat la deschidere · cele cu consum așteaptă butonul';
 })();

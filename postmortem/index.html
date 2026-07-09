@@ -17,6 +17,13 @@ header h1{font-size:18px;font-weight:800;margin-right:auto}
 select{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono);min-width:220px}
 .btn{background:var(--accent);border:none;color:#000;padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer}
 .btn.sec{background:var(--panel2);color:var(--t2);border:1px solid var(--b1)}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;margin-top:10px}
+th{color:var(--t3);text-align:right;padding:6px;border-bottom:1px solid var(--b1)}
+th:first-child,td:first-child{text-align:left}
+td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
+.lnk{color:var(--accent);text-decoration:none;font-weight:700}
+.lnk:hover{text-decoration:underline}
+.pos{color:var(--bull)}.neg{color:var(--bear)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px}
 .cell{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px}
 .cell .lbl{font-family:var(--mono);font-size:10px;color:var(--t3)}
@@ -43,6 +50,7 @@ select{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);paddi
   <div class="grid" id="metrics"></div>
   <div id="ctx" style="margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--t2)"></div>
 </div>
+<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Execuții închise</h2><div id="tradeTbl"></div></div>
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Pattern pe eșantion</h2><div id="sugs"></div></div>
 
 <script src="../lib/journal.js?v=6"></script>
@@ -60,6 +68,14 @@ function fillSelect(){
     const mae = t.maeR != null ? ' MAE '+t.maeR.toFixed(1)+'R' : '';
     return '<option value="' + t.id + '"' + (q===t.id?' selected':'') + '>' + t.sym + ' · ' + (pnl>=0?'+':'') + pnl.toFixed(0) + '$' + mae + '</option>';
   }).join('') : '<option value="">—</option>';
+  $('tradeTbl').innerHTML = trades.length
+    ? '<table><tr><th class="l">Zi</th><th class="l">Sym</th><th>PnL</th><th class="l"></th></tr>' +
+      trades.map(t => {
+        const pnl = JR.pnl(t);
+        const day = t.closeTs ? new Date(t.closeTs).toLocaleDateString('ro-RO') : '—';
+        return '<tr><td class="l">' + day + '</td><td class="l">' + t.sym + '</td><td class="' + (pnl>=0?'pos':'neg') + '">' + (pnl>=0?'+':'') + '$' + pnl.toFixed(0) + '</td><td class="l"><a class="lnk" href="../equity/?highlight=' + encodeURIComponent(t.id) + '">Vezi pe curbă</a></td></tr>';
+      }).join('') + '</table>'
+    : '<p class="note">Nicio execuție închisă în journal.</p>';
 }
 function showAnalysis(a){
   lastAnalysis = a;

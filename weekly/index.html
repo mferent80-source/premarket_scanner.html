@@ -92,6 +92,11 @@ regim + danger). Datele brute se încarcă instant; sinteza AI e la buton (o dat
 lecțiile de aici sunt indicii de urmărit, nu adevăruri.</p>
 
 <div class="panel">
+  <h2>📈 Capital săptămânii</h2>
+  <div id="eqBody">—</div>
+</div>
+
+<div class="panel">
   <h2>🤖 Sinteza săptămânii</h2>
   <div id="aiBody"><div class="empty">Apasă „🤖 Sinteză AI" — 3 secțiuni: ce a funcționat / ce a fost zgomot / de urmărit săptămâna viitoare.</div></div>
 </div>
@@ -116,6 +121,9 @@ lecțiile de aici sunt indicii de urmărit, nu adevăruri.</p>
   <div id="ctxBody">—</div>
 </div>
 
+<script src="../lib/account.js"></script>
+<script src="../lib/equity.js?v=5"></script>
+<script src="../lib/governor.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/journal.js"></script>
 <script src="../lib/ai.js"></script>
@@ -166,11 +174,40 @@ function collect(){
   try { rh = JSON.parse(localStorage.getItem('md_regime_daily') || '[]') || []; } catch (e) {}
   try { dh = JSON.parse(localStorage.getItem('md_danger_daily') || '[]') || []; } catch (e) {}
   out.ctx = { regimes: rh.slice(-7), dangers: dh.slice(-7) };
+
+  // equity: PnL săptămână, DD, drift
+  if (window.EQ) {
+    const wk = EQ.weeklyPnl(1);
+    const cur = wk.length ? wk[wk.length - 1] : { week: out.week, pnl: 0 };
+    const dd = EQ.drawdownStats();
+    const dr = EQ.drift();
+    out.equity = { weekKey: cur.week, weekPnl: cur.pnl, current: dd.current, currentDdPct: dd.currentDdPct, maxDdPct: dd.maxDdPct, drift: dr };
+  } else out.equity = null;
   return out;
 }
 
 // ── Render brut ──
 function render(d){
+  // equity
+  if (d.equity) {
+    const eq = d.equity, dr = eq.drift || {};
+    let html = `<div class="cards">
+      <div class="scard"><div class="lbl">PnL SĂPTĂMÂNĂ</div><div class="val ${eq.weekPnl >= 0 ? 'pos' : 'neg'}">${(eq.weekPnl >= 0 ? '+' : '') + fmt$(eq.weekPnl).replace('$-','-$')}</div><div class="sub">${esc(eq.weekKey)} · journal închis</div></div>
+      <div class="scard"><div class="lbl">EQUITY SIM</div><div class="val">${fmt$(eq.current)}</div><div class="sub">baseline + realizat</div></div>
+      <div class="scard"><div class="lbl">DD CURENT</div><div class="val ${eq.currentDdPct >= 5 ? 'wrn' : ''}">${eq.currentDdPct.toFixed(1)}%</div><div class="sub">max ${eq.maxDdPct.toFixed(1)}%</div></div>`;
+    if (dr.snapshot) {
+      html += `<div class="scard"><div class="lbl">DRIFT vs SNAP</div><div class="val ${dr.warn ? 'wrn' : ''}">${dr.driftPct != null ? (dr.driftPct >= 0 ? '+' : '') + dr.driftPct.toFixed(1) + '%' : '—'}</div><div class="sub">snapshot ${dr.snapshotAgeDays != null ? dr.snapshotAgeDays + 'z' : '?'}</div></div>`;
+    } else {
+      html += `<div class="scard"><div class="lbl">DRIFT</div><div class="val">—</div><div class="sub"><a href="../equity/">adaugă snapshot</a></div></div>`;
+    }
+    html += '</div>';
+    if (!dr.snapshot) html += '<div class="note">Fără snapshot Trade212 — drift indisponibil. <a href="../equity/">Equity Curve</a></div>';
+    else if (dr.warn) html += '<div class="note wrn">⚠ Drift ≥2% — reconciliază în <a href="../equity/">Equity</a> înainte de concluzii capital.</div>';
+    $('eqBody').innerHTML = html;
+  } else {
+    $('eqBody').innerHTML = '<div class="empty">Modul equity indisponibil — reîncarcă pagina.</div>';
+  }
+
   // semnale
   if (!d.signals.total){
     $('sigBody').innerHTML = '<div class="empty">📭 Niciun semnal consemnat în ledger săptămâna asta (paginile consemnează automat la scan).</div>';
@@ -246,6 +283,12 @@ function aiContext(d){
   if (d.ctx.regimes.length) L.push('Regim pe zile: ' + d.ctx.regimes.map(r => `${r.dateET}:${r.label}`).join(' · '));
   const dVals = d.ctx.dangers.map(x => x.score).filter(v => typeof v === 'number');
   if (dVals.length) L.push(`Danger 7z: ${dVals.join('→')}.`);
+  if (d.equity) {
+    const eq = d.equity, dr = eq.drift || {};
+    L.push(`Capital: PnL săptămână ${eq.weekKey} = ${eq.weekPnl.toFixed(0)}$ · equity sim ${eq.current.toFixed(0)}$ · DD curent ${eq.currentDdPct.toFixed(1)}% (max ${eq.maxDdPct.toFixed(1)}%).`);
+    if (dr.snapshot) L.push(`Drift vs snapshot: ${dr.driftPct != null ? (dr.driftPct >= 0 ? '+' : '') + dr.driftPct.toFixed(1) + '%' : 'n/a'} (snapshot ${dr.snapshotAgeDays != null ? dr.snapshotAgeDays + ' zile' : '?'}).`);
+    else L.push('Drift: fără snapshot equity — reconciliere indisponibilă.');
+  }
   return L.join('\n');
 }
 async function genAi(force){

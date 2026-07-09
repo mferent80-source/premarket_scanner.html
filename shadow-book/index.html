@@ -53,17 +53,30 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
   <button class="btn" id="btnLog">Log shadow</button>
 </div>
 
+<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">📈 Atribuire shadow vs realizat (30z)</h2><div id="shadowAttr"></div></div>
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Verdict filtre (ipoteze OOS)</h2><div id="edgeTbl"></div></div>
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Ultimele intrări</h2><div id="tbl"></div></div>
 
 <script src="../lib/ledger.js"></script>
+<script src="../lib/journal.js?v=7"></script>
 <script src="../lib/data.js"></script>
 <script src="../lib/shadow.js?v=2"></script>
+<script src="../lib/equity.js?v=5"></script>
 <script>
 (function(){
 const $ = id => document.getElementById(id);
 const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function renderShadowAttr(){
+  if (!window.EQ || !EQ.shadowAttribution) { $('shadowAttr').innerHTML = '<p class="note">Equity.js nu e încărcat.</p>'; return; }
+  const sh = EQ.shadowAttribution(30);
+  $('shadowAttr').innerHTML = sh.n
+    ? '<p class="note">Journal 30z: <span class="' + (sh.journalPnl >= 0 ? 'useful' : 'costly') + '">' + (sh.journalPnl >= 0 ? '+' : '') + '$' + sh.journalPnl.toFixed(0) + '</span> · shadow eval n=' + sh.n + '</p>' +
+      Object.entries(sh.filters).map(([f, v]) => '<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;padding:4px 0;border-bottom:1px solid rgba(42,50,71,.4)"><span>' + esc(f) + '</span><span>' + v.toFixed(1) + ' R·est</span></div>').join('') +
+      '<p class="note">Estimări pe close forward — nu garanție de edge.</p>'
+    : '<p class="note">Fără shadow evaluat — loghează semnale blocate și apasă „Evaluează pending".</p>';
+}
 function render(){
+  renderShadowAttr();
   const edge = SH.filterEdge();
   $('edgeTbl').innerHTML = edge.length ? '<table><tr><th class="l">Filtru</th><th>n</th><th>avg%</th><th>vs base</th><th>verdict</th></tr>' +
     edge.map(e => '<tr><td class="l">' + esc(e.filter) + (e.small?' ⚠':'') + '</td><td>' + e.n + '</td><td>' + (e.avgPct!=null?e.avgPct.toFixed(2)+'%':'—') + '</td><td>' + (e.vsBaseline!=null?(e.vsBaseline>=0?'+':'')+e.vsBaseline.toFixed(2)+'%':'—') + '</td><td class="' + (e.verdict.includes('util')?'useful':'costly') + '">' + esc(e.verdict) + '</td></tr>').join('') + '</table><p class="note">Ipoteze pe close forward — nu garanție de edge.</p>' : '<p class="note">Loghează semnale blocate, apoi evaluează.</p>';
