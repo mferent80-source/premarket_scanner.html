@@ -12,21 +12,26 @@
 body{font-family:var(--head);background:var(--bg);color:var(--t1);padding:12px}
 header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border:1px solid var(--b1);border-radius:var(--r);margin-bottom:14px;background:var(--panel)}
 header h1{font-size:18px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:auto}
-.nav-link{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12px;font-weight:700}
+.nav-link{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
 .plan{font-size:28px;font-weight:900;text-align:center;padding:24px;border-radius:var(--r);margin-bottom:12px;border:2px solid var(--accent);background:rgba(91,176,255,.1)}
 .plan.stay{border-color:var(--bear);background:rgba(255,77,77,.1);color:var(--bear)}
 .panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:12px}
 .meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;font-family:var(--mono);font-size:12px}
 .meta div{background:var(--panel2);padding:10px;border-radius:var(--rs);border:1px solid var(--b1)}
-textarea{width:100%;min-height:200px;background:var(--panel2);border:1px solid var(--b1);color:var(--t1);font-family:var(--mono);font-size:11px;padding:10px;border-radius:var(--rs)}
+.rule{display:flex;gap:10px;padding:10px;border:1px solid var(--b1);border-radius:var(--rs);margin-bottom:8px;background:var(--panel2);font-size:12px}
+.rule.on{border-color:var(--accent);box-shadow:0 0 0 1px rgba(91,176,255,.3)}
+.rule .ord{font-family:var(--mono);color:var(--t3);width:24px}
+textarea{width:100%;min-height:160px;background:var(--panel2);border:1px solid var(--b1);color:var(--t1);font-family:var(--mono);font-size:11px;padding:10px;border-radius:var(--rs)}
 .btn{background:var(--accent);border:none;color:#000;padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer;margin-top:8px}
 .note{font-family:var(--mono);font-size:10px;color:var(--t3);line-height:1.5;margin-top:8px}
+details summary{cursor:pointer;font-size:13px;font-weight:700;margin-bottom:8px}
 </style>
 </head>
 <body>
 <header>
-  <h1>🧭 Regime Router</h1>
-  <button class="nav-link" id="btnEval" style="cursor:pointer;font-family:inherit">🔄 Re-evaluează</button>
+  <h1>🧭 Regime Router <span style="font-size:11px;-webkit-text-fill-color:var(--t3)">v2</span></h1>
+  <button class="nav-link" id="btnEval">🔄 Re-evaluează</button>
+  <a class="nav-link" href="../macro-dashboard/">🌍 Macro</a>
   <a class="nav-link" href="../governor/">🛑 Governor</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -35,46 +40,52 @@ textarea{width:100%;min-height:200px;background:var(--panel2);border:1px solid v
 <div class="panel"><div class="meta" id="meta"></div><ul id="reasons" style="margin-top:12px;color:var(--t2);font-size:13px;padding-left:18px"></ul></div>
 
 <div class="panel">
-  <h2 style="font-size:13px;margin-bottom:8px">📋 Playbook (JSON rules — ordine = prioritate)</h2>
-  <textarea id="rulesJson"></textarea>
-  <button class="btn" id="btnSave">💾 Salvează playbook</button>
-  <button class="btn" id="btnReset" style="background:var(--panel2);color:var(--t2);margin-left:6px">↺ Default</button>
-  <p class="note">Override explicit în journal: tag <code>broke-rules</code>. Deschide macro-dashboard dacă regim/danger lipsesc.</p>
+  <h2 style="font-size:13px;margin-bottom:8px">📜 Reguli (prioritate sus → jos)</h2>
+  <div id="ruleCards"></div>
+</div>
+
+<div class="panel">
+  <details>
+    <summary>⚙ Playbook JSON (avansat)</summary>
+    <textarea id="rulesJson"></textarea>
+    <button class="btn" id="btnSave">💾 Salvează JSON</button>
+    <button class="btn" id="btnReset" style="background:var(--panel2);color:var(--t2);margin-left:6px">↺ Default</button>
+  </details>
+  <p class="note">Regimul se normalizează din Macro (ex. „🔴 RISK-OFF" → risk-off). Override în journal: tag <code>broke-rules</code>.</p>
 </div>
 
 <script src="../lib/journal.js?v=6"></script>
-<script src="../lib/governor.js?v=1"></script>
-<script src="../lib/router.js?v=1"></script>
+<script src="../lib/governor.js?v=2"></script>
+<script src="../lib/router.js?v=2"></script>
 <script>
 (function(){
 const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function show(){
   const p = RT.evaluate();
-  const box = $('planBox');
-  box.textContent = p.strategy;
-  box.className = 'plan' + (p.strategy === 'STAY OUT' ? ' stay' : '');
+  $('planBox').textContent = p.strategy;
+  $('planBox').className = 'plan' + (p.strategy === 'STAY OUT' ? ' stay' : '');
   $('meta').innerHTML = [
-    ['Regim', p.regime],
+    ['Regim', p.regime + (p.regimeNorm ? ' (' + p.regimeNorm + ')' : '')],
     ['Danger', p.danger != null ? p.danger + '/100' : '—'],
-    ['Sizing ×', String(p.sizingMult)],
-    ['Max trades', String(p.maxTrades)],
-    ['Preset', p.chartHints],
+    ['Sizing efectiv ×', String(p.sizingMult)],
+    ['Trades rămase azi', String(p.tradesLeftToday)],
+    ['Preset chart', p.chartHints],
     ['Governor', p.governor || '—']
-  ].map(([k,v]) => '<div><div style="color:var(--t3);font-size:10px">' + k + '</div><div style="font-weight:700;margin-top:4px">' + v + '</div></div>').join('');
-  $('reasons').innerHTML = (p.reasons || []).map(r => '<li>' + r + '</li>').join('') || '<li style="list-style:none;color:var(--t3)">—</li>';
+  ].map(([k,v]) => '<div><div style="color:var(--t3);font-size:10px">' + esc(k) + '</div><div style="font-weight:700;margin-top:4px">' + esc(v) + '</div></div>').join('');
+  $('reasons').innerHTML = (p.reasons || []).map(r => '<li>' + esc(r) + '</li>').join('') || '<li style="list-style:none;color:var(--t3)">—</li>';
+  $('ruleCards').innerHTML = RT.rulesSummary().map(r =>
+    '<div class="rule' + (r.id === p.ruleId ? ' on' : '') + '"><span class="ord">#' + r.order + '</span><div><b>' + esc(r.then.strategy) + '</b> · ' + esc(r.note) + '<div style="color:var(--t3);font-size:10px;margin-top:4px">regim ' + esc(JSON.stringify(r.when.regim||['*'])) + ' · danger ' + (r.when.dangerMin??'—') + '–' + (r.when.dangerMax??'—') + '</div></div></div>'
+  ).join('');
 }
-function loadRules(){
-  $('rulesJson').value = JSON.stringify(RT.load().rules, null, 2);
-}
+function loadRules(){ $('rulesJson').value = JSON.stringify(RT.load().rules, null, 2); }
 $('btnEval').onclick = show;
 $('btnSave').onclick = () => {
   try {
     const rules = JSON.parse($('rulesJson').value);
-    if (!Array.isArray(rules)) throw new Error('rules trebuie să fie array');
-    RT.saveRules(rules);
-    show();
-    alert('Playbook salvat.');
-  } catch(e){ alert('JSON invalid: ' + e.message); }
+    if (!Array.isArray(rules)) throw new Error('array');
+    RT.saveRules(rules); show();
+  } catch(e){ alert('JSON invalid'); }
 };
 $('btnReset').onclick = () => { RT.saveRules(RT.DEFAULT_RULES.slice()); loadRules(); show(); };
 loadRules(); show();

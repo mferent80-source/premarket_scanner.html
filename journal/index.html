@@ -293,7 +293,8 @@ function segDetailHtml(list){
       <b class="sym">${esc(e.sym)}</b><span>${e.dir === 'short' ? '🔻S' : '🔺L'}</span>
       <span>${fmt$(e.entry)}→${fmt$(e.exit)}</span>
       <span class="${win ? 'pos' : 'neg'}">${p != null ? (p >= 0 ? '+' : '') + fmt$(p).replace('$-','-$') : '—'}</span>${r != null ? `<span class="${r >= 0 ? 'pos' : 'neg'}">${(r >= 0 ? '+' : '') + r.toFixed(2)}R</span>` : ''}${seg !== 'source' && e.source ? `<span style="color:var(--t3)">${esc(e.source)}</span>` : ''}
-      <span style="margin-left:auto;white-space:nowrap"><button class="act" data-edit="${esc(e.id)}">✏</button> <button class="act" data-del="${esc(e.id)}">🗑</button></span>
+      ${e.maeR!=null?`<span style="color:var(--t3)">MAE ${e.maeR.toFixed(1)}R</span>`:''}${e.mfeR!=null?`<span style="color:var(--t3)">MFE ${e.mfeR.toFixed(1)}R</span>`:''}
+      <span style="margin-left:auto;white-space:nowrap"><a class="act" href="../postmortem/?id=${encodeURIComponent(e.id)}" title="Post-mortem MAE/MFE">🔬</a> <button class="act" data-edit="${esc(e.id)}">✏</button> <button class="act" data-del="${esc(e.id)}">🗑</button></span>
     </div>`;
   }).join('');
 }

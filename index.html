@@ -474,6 +474,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 </style>
 </head>
 <body>
+<div id="govBanner" style="display:none;position:sticky;top:0;z-index:200;background:linear-gradient(90deg,#3a1010,#2a1520);border-bottom:2px solid #ff4d4d;color:#ffd0d0;padding:10px 16px;font-family:var(--head);font-size:13px;font-weight:700;text-align:center"></div>
 <div class="wrap">
 
   <header class="hero" style="position:relative">
@@ -481,7 +482,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v533</span>
+      <span title="Versiune cache suită (crește la fiecare push)" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v537</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -1025,8 +1026,9 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 <script src="lib/data.js"></script>
 <script src="lib/ledger.js"></script>
 <script src="lib/journal.js?v=6"></script>
-<script src="lib/governor.js?v=1"></script>
-<script src="lib/router.js?v=1"></script>
+<script src="lib/telegram.js"></script>
+<script src="lib/governor.js?v=2"></script>
+<script src="lib/router.js?v=2"></script>
 <script src="lib/regime.js"></script>
 <script src="lib/ai.js"></script>
 <script src="lib/telegram.js"></script>
@@ -2788,13 +2790,32 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     el.style.display = '';
   }
 
+  function pbShowGovBanner(){
+    const el = $('govBanner');
+    if (!el || !window.GV) return;
+    try {
+      const s = GV.status();
+      if (s.verdict === 'HALTED'){
+        el.style.display = '';
+        el.innerHTML = `🛑 GOVERNOR HALTED — ${escHtml(s.reasons[0] || 'limită atinsă')} · <a href="./governor/" style="color:#ffd86b">Deschide Governor</a>`;
+        GV.maybeNotifyHalted(s);
+      } else if (s.verdict === 'CAUTION'){
+        el.style.display = '';
+        el.style.background = 'linear-gradient(90deg,#2a2010,#1d2537)';
+        el.style.borderColor = '#d4892c';
+        el.style.color = '#ffe8c8';
+        el.innerHTML = `⚠️ CAUTION — buget ${s.budgetUsedPct.toFixed(0)}% · ${s.tradesRemaining} trade-uri rămase · <a href="./governor/" style="color:#ffd86b">Governor</a>`;
+      } else { el.style.display = 'none'; }
+    } catch (e) { el.style.display = 'none'; }
+  }
+
   function pbLoadProDesk(){
     try {
       if (window.RT){
         const p = RT.evaluate();
         const col = p.strategy === 'STAY OUT' ? '#ff4d4d' : 'var(--green)';
         $('pbRouteVal').innerHTML = `<span style="color:${col}">🧭 ${escHtml(p.strategy)}</span>`;
-        $('pbRouteSub').textContent = `×${p.sizingMult} sizing · max ${p.maxTrades} trades · ${p.chartHints}`;
+        $('pbRouteSub').textContent = `×${p.sizingMult} · ${p.tradesLeftToday} trades rămase · ${escHtml(p.regimeNorm || p.regime)} · ${p.chartHints}`;
       } else { $('pbRouteVal').textContent = 'Router n/a'; }
     } catch (e) { $('pbRouteVal').textContent = 'Router n/a'; }
     try {
@@ -2803,9 +2824,10 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
         const lb = GV.labelOf(s.verdict);
         const col = lb.cls === 'halted' ? '#ff4d4d' : lb.cls === 'caution' ? '#d4892c' : 'var(--green)';
         $('pbGovVal').innerHTML = `<span style="color:${col}">🛑 ${lb.text}</span>`;
-        $('pbGovSub').textContent = `PnL azi ${s.todayPnl >= 0 ? '+' : ''}$${s.todayPnl.toFixed(2)} · ${s.todayTrades}/${s.cfg.maxTradesDay} trades · ${s.openCount} deschise`;
+        $('pbGovSub').textContent = `PnL ${s.todayPnl >= 0 ? '+' : ''}$${s.todayPnl.toFixed(2)} · buget ${s.budgetUsedPct.toFixed(0)}% · ${s.tradesRemaining} rămase`;
       } else { $('pbGovVal').textContent = 'Governor n/a'; }
     } catch (e) { $('pbGovVal').textContent = 'Governor n/a'; }
+    pbShowGovBanner();
   }
 
   async function pbLoadAll(){
