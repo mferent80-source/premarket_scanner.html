@@ -144,6 +144,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-136 | Tracker module + sync complet + capital UI | lib/tracker.js + capital pages | M | P1 | făcut | ideation | 2026-07-09 |
 | I-137 | Journal-first deprecate trade_plans_v1 | lib/tracker.js + journal.js | M | P1 | făcut | ideation | 2026-07-09 |
 | I-138 | Hub cockpit UI v565 | hub-ui.css + index.html | M | P1 | făcut | ideation | 2026-07-09 |
+| I-139 | Capital trio UI v566 | capital-ui.css + journal/portfolio/equity | M | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -946,3 +947,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `hub-ui.css` v565 — hero cockpit stânga, topbar cu health/checklist/plans, deck cu cmd primul, carduri compacte (2 linii + max 4 feat), brief/ledger collapsed, dual FAB Plans+Journal, badge-uri capital actualizate; `tt-v565`.
 - **Impact:** scan dimineață mai rapid; ierarhie Plan→Scan→Execute→Review vizibilă; model UI pentru restul suitei.
 - **Fișiere atinse:** `lib/hub-ui.css`, `index.html`, `lib/hub-health.js`, `sw-app.js`.
+
+### I-139 · Capital trio UI v566 · [M] · P1
+- **Problema/golul:** Journal/Portfolio/Equity aveau header/nav/bannere disparate — nu aliniate cu cockpit Hub v565; equity rămas pe shell vechi.
+- **Soluția:** `lib/capital-ui.css` v566 — shell comun `.cap-page` + `.cap-header` + `.cap-nav` sticky (Hub|Desk|Portfolio|Equity|Journal|Router), bannere `.cap-banner`, panel polish; aplicat pe cele 3 pagini; badge-uri v11/v3/v7; bump `tt-v566`.
+- **Impact:** Capital Desk navigabil ca un modul unitar; UX consistent cu Hub; bază pentru polish Scanner/Macro.
+- **Fișiere atinse:** `lib/capital-ui.css`, `journal/index.html`, `portfolio/index.html`, `equity/index.html`, `index.html`, `sw-app.js`, `suite-version.js`, `update.html`, `migrate.html`.

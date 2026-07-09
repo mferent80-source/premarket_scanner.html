@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=565"></script>
+<script src="lib/suite-version.js?v=566"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v565'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v566'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1008,7 +1008,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 
     <a href="./journal/" data-phase="execute" target="ttools-journal" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#22d66b); --glow:rgba(167,139,250,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#22d66b);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">📓</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Execute · v10</span>
+      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Execute · v11</span>
       <h2 class="card-title">Journal & Risk Desk</h2>
       <p class="card-desc">Execuții reale + Risk Governor integrat: verdict TRADE/CAUTION/HALTED, buget zilnic, max trade-uri —
         apoi formular fill, scorecard expectancy R și review pe sursă/regim/tag.</p>
@@ -1025,7 +1025,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 
     <a href="./portfolio/" data-phase="execute" target="ttools-portfolio" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#ffd86b,#ff4d4d); --glow:rgba(255,216,107,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#ffd86b,#ff4d4d);box-shadow:0 4px 14px rgba(255,216,107,.3);color:#0a0a0a">🛡️</div>
-      <span class="card-tag" style="background:rgba(255,216,107,.15);color:#ffd86b;border:1px solid rgba(255,216,107,.4)">Portfolio · v2</span>
+      <span class="card-tag" style="background:rgba(255,216,107,.15);color:#ffd86b;border:1px solid rgba(255,216,107,.4)">Portfolio · v3</span>
       <h2 class="card-title">Portfolio Risk Deck</h2>
       <p class="card-desc">Riscul AGREGAT al pozițiilor deschise din tracker: risc-la-SL cumulat ($ și % din cont),
         PnL nerealizat, concentrare pe sector, β vs QQQ per poziție + stress-test „QQQ −3%". Prețuri live pre/after.</p>
@@ -1081,7 +1081,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 
     <a href="./equity/" data-phase="review" target="ttools-equity" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#5bb0ff,#22d66b); --glow:rgba(91,176,255,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#22d66b);box-shadow:0 4px 14px rgba(91,176,255,.3);color:#0a0a0a">📈</div>
-      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Pro · v6</span>
+      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Pro · v7</span>
       <h2 class="card-title">Equity & Drawdown</h2>
       <p class="card-desc">Curba de capital din journal + snapshot-uri manuale: max drawdown, DD curent, distribuție R-multiple, streak-uri win/loss.</p>
       <div class="features">
@@ -1800,7 +1800,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v565';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v566';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 

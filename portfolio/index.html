@@ -8,7 +8,7 @@
 <meta name="description" content="Riscul agregat al pozițiilor deschise: risc la SL cumulat, concentrare pe sector, beta vs QQQ, stress-test">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🛡️</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=564">
+<link rel="stylesheet" href="../lib/capital-ui.css?v=566">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -88,10 +88,10 @@ td.sym a{color:var(--accent);text-decoration:none}
 @media (max-width:550px){ body{padding:8px} .cell .val{font-size:16px} }
 </style>
 </head>
-<body>
+<body class="cap-page cap-portfolio">
 
-<header>
-  <h1>🛡️ Portfolio Risk Deck <span class="ver-badge" id="verBadge">v2</span></h1>
+<header class="cap-header">
+  <h1>🛡️ Portfolio Risk Deck <span class="ver-badge" id="verBadge">v3</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnScan">🔄 Scan poziții</button>
   <button class="nav-link" id="btnExportCd" title="Export JSON Capital Desk">📥 Export CD</button>
@@ -99,9 +99,21 @@ td.sym a{color:var(--accent);text-decoration:none}
   <a class="nav-link" href="../equity/">📈 Equity</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
+<div class="cap-shell">
+  <nav class="cap-nav" aria-label="Capital Desk">
+    <a class="cap-nav-hub" href="../">⌂ Hub</a>
+    <a class="cap-nav-item" href="../journal/#desk">🛑 Desk</a>
+    <a class="cap-nav-item active" href="../portfolio/">🛡️ Portfolio</a>
+    <a class="cap-nav-item" href="../equity/">📈 Equity</a>
+    <a class="cap-nav-item" href="../journal/">📓 Journal</a>
+    <span class="cap-nav-spacer"></span>
+    <a class="cap-nav-item" href="../router/">🧭 Router</a>
+  </nav>
+</div>
+<div class="cap-wrap">
 
 <div id="capitalRail" data-cd-page="portfolio"></div>
-<div id="rescanBanner" class="note" style="display:none;margin-bottom:12px;padding:10px 14px;border:1px solid var(--warn);border-radius:var(--r);background:rgba(212,137,44,.08);color:var(--warn);line-height:1.5"></div>
+<div id="rescanBanner" class="cap-banner warn"></div>
 
 <div class="cfg">
   <label>Cont $ <input type="number" id="inAcct" min="0" step="100" placeholder="ex. 10000"></label>
@@ -134,9 +146,11 @@ td.sym a{color:var(--accent);text-decoration:none}
 
 <div class="foot" id="foot">—</div>
 
+</div><!-- /.cap-wrap -->
+
 <script src="../lib/account.js"></script>
 <script src="../lib/finnhub-key.js?v=561"></script>
-<script src="../lib/suite-version.js?v=564"></script>
+<script src="../lib/suite-version.js?v=566"></script>
 <script src="../lib/journal.js?v=9"></script>
 <script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/governor.js?v=4"></script>
@@ -437,7 +451,7 @@ if (window.CD && CD.initListener) {
 <script>
 if (window.SUITE_VERSION_SHORT) { const b = document.getElementById('verBadge'); if (b) b.textContent = SUITE_VERSION_SHORT; }
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v564';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v566';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>

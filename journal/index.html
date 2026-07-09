@@ -8,7 +8,7 @@
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=564">
+<link rel="stylesheet" href="../lib/capital-ui.css?v=566">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -129,10 +129,10 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .chkrow{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:8px}
 </style>
 </head>
-<body>
+<body class="cap-page cap-journal">
 
-<header>
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">v10</span></h1>
+<header class="cap-header">
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">v11</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -142,6 +142,18 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <a class="nav-link" href="../equity/">📈 Equity</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
+<div class="cap-shell">
+  <nav class="cap-nav" aria-label="Capital Desk">
+    <a class="cap-nav-hub" href="../">⌂ Hub</a>
+    <a class="cap-nav-item active" href="./#desk">🛑 Desk</a>
+    <a class="cap-nav-item" href="../portfolio/">🛡️ Portfolio</a>
+    <a class="cap-nav-item" href="../equity/">📈 Equity</a>
+    <a class="cap-nav-item" href="./">📓 Journal</a>
+    <span class="cap-nav-spacer"></span>
+    <a class="cap-nav-item" href="../router/">🧭 Router</a>
+  </nav>
+</div>
+<div class="cap-wrap">
 
 <div id="capitalRail" data-cd-page="journal"></div>
 <div id="cdPrefillGate"></div>
@@ -238,8 +250,10 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <div id="tblWrap"><div class="empty">—</div></div>
 </div>
 
+</div><!-- /.cap-wrap -->
+
 <script src="../lib/account.js"></script>
-<script src="../lib/suite-version.js?v=564"></script>
+<script src="../lib/suite-version.js?v=566"></script>
 <script src="../lib/journal.js?v=10"></script>
 <script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/telegram.js"></script>
@@ -695,7 +709,7 @@ if (window.CD && CD.initListener) CD.initListener(renderAll);
 <script>
 if (window.SUITE_VERSION_SHORT) { const b = document.getElementById('verBadge'); if (b) b.textContent = SUITE_VERSION_SHORT; }
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v564';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v566';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
