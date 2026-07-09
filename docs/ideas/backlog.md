@@ -147,6 +147,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-139 | Capital trio UI v566 | capital-ui.css + journal/portfolio/equity | M | P1 | făcut | ideation | 2026-07-09 |
 | I-140 | Nasdaq Scanner cockpit UI v567 | scanner-ui.css + nasdaq-scanner | M | P1 | făcut | ideation | 2026-07-09 |
 | I-141 | Macro Dashboard cockpit UI v568 | macro-ui.css + macro-dashboard | M | P1 | făcut | ideation | 2026-07-09 |
+| I-142 | Suite UI scan pages v569 | suite-ui.css + 5 scan tools + SW sync | M | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -967,3 +968,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `lib/macro-ui.css` v568 — cockpit header (status + acțiuni + „⋯ Alerts"), secțiuni fold Command Center / Indicatori / Evenimente 24h (persist localStorage), tabs sticky, spacing + panel radius; pagină v221; bump `tt-v568`.
 - **Impact:** scan dimineață mai rapid (indicatori collapsed default); header mobil curat; aliniere vizuală cu Hub/Scanner.
 - **Fișiere atinse:** `lib/macro-ui.css`, `macro-dashboard/index.html`, `index.html`, `sw-app.js`, `suite-version.js`.
+
+### I-142 · Suite UI scan pages v569 · [M] · P1
+- **Problema/golul:** Watchlist/Pump/Sector/STL/Events fără suite badge, SW pe `tt-v564` pe multe pagini, header/paneluri nealiniate cu cockpit v565+.
+- **Soluția:** `lib/suite-ui.css` v569 + auto-paint `suiteBadge` în `suite-version.js`; cockpit class + badge pe 5 pagini scan; SW unificat `tt-v569` pe alerts/earnings/guide/router/weekly + paginile noi; badge hub actualizate.
+- **Impact:** versiune suită vizibilă peste tot; cache coerent; chrome comun pentru tool-urile de scan dimineață.
+- **Fișiere atinse:** `lib/suite-ui.css`, `lib/suite-version.js`, watchlist/pump/sector/stl/market-events, `sw-app.js`, hub + pagini SW stale.

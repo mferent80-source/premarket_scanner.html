@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#0b0f17">
 <title>Sector Rotation · Trading Tools</title>
 <link rel="manifest" href="../manifest.webmanifest">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=569">
 <style>
 :root{
   --bg:#0b0f17; --bg2:#11161f; --panel:#161b26; --br:#262e3d; --br2:#2f384a;
@@ -276,15 +278,16 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 }
 </style>
 </head>
-<body class="dark">
+<body class="dark suite-page">
 
-<header class="hdr">
+<header class="hdr suite-cockpit">
   <div class="hdr-in">
     <div class="brand">
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v166</span>
+    <span class="ver-badge" id="verBadge">v167</span>
+    <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
     <div class="hdr-spc"></div>
@@ -1722,10 +1725,12 @@ init();
 
 // SW register
 if ('serviceWorker' in navigator){
-  window.addEventListener('load', () => navigator.serviceWorker.register('../sw-app.js?v=tt-v564',{scope:'../',updateViaCache:'none'}).catch(()=>{}));
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v569';
+  window.addEventListener('load', () => navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {}));
 }
 </script>
 
+<script src="../lib/suite-version.js?v=569"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>

@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Smart Trade Long Stocks · Trading Tools</title>
 <meta name="description" content="Scoring 5-filter cu Entry/SL/TP auto + position sizer + insider activity widget pentru stocks">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=569">
 <style>
 :root{
   --bg:#0b0f17; --bg2:#11161f; --panel:#161b26; --br:#262e3d; --br-l:#1f2632;
@@ -232,14 +234,15 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 @media(max-width:640px){.ls-hide{display:none}}
 </style>
 </head>
-<body class="dark">
+<body class="dark suite-page">
 
-<header class="hdr">
+<header class="hdr suite-cockpit">
   <div class="hdr-inner">
     <a href="../" class="brand">
       <span class="badge">T</span>
       <span>Smart Trade Long</span>
       <small>Stocks</small>
+      <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span>
     </a>
     <div class="spacer"></div>
     <button class="btn ghost sm" id="settingsBtn" title="Setări API">⚙ Settings</button>
@@ -251,7 +254,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 <div id="capitalRail" data-cd-page="stl" style="max-width:1280px;margin:0 auto;padding:0 20px"></div>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v39</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v40</span></h1>
   <p class="lead">Scoring 6-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -1917,6 +1920,13 @@ $('lsInterval').addEventListener('change', () => {
   else $('lsBody').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--txt-dd);padding:18px">auto OFF — apasă 🔍 Scan listă</td></tr>';
   if (window.CD) CD.renderRail('capitalRail', 'stl');
 })();
+</script>
+<script src="../lib/suite-version.js?v=569"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v569';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>

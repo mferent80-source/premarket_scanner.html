@@ -8,6 +8,7 @@
 <meta name="description" content="Auto-scan stocks pentru pump/dump/vol-spike/momentum 5m cu alerte browser + Telegram">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23ef4444'/><stop offset='1' stop-color='%23facc15'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='%230b0f17'/><circle cx='16' cy='16' r='10' fill='none' stroke='url(%23g)' stroke-width='2' opacity='.55'/><circle cx='16' cy='16' r='5.5' fill='none' stroke='url(%23g)' stroke-width='2'/><circle cx='16' cy='16' r='2' fill='%23facc15'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=569">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -317,10 +318,10 @@ footer a { color:var(--accent); text-decoration:none; }
 .pr-regime.rg-neu { color:var(--t2); }
 </style>
 </head>
-<body>
+<body class="suite-page">
 
-<header>
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v121</span></h1>
+<header class="suite-cockpit">
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v122</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=pump-radar" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
@@ -1916,6 +1917,13 @@ window.validatePumpSignal = async function(symbol, btn){
 <script src="../lib/telegram.js"></script>
 <script src="../lib/ai.js"></script>
 <script src="../lib/regime.js"></script>
+<script src="../lib/suite-version.js?v=569"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v569';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
+</script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>
