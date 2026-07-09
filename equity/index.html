@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📈 Equity & Drawdown — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0b0f17;--panel:#141a28;--panel2:#1d2537;--b1:#2a3247;--t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;--accent:#5bb0ff;--bull:#22d66b;--bear:#ff4d4d;--r:12px;--rs:8px;--mono:'DM Mono',monospace;--head:'Sora',sans-serif;color-scheme:dark}
+body{font-family:var(--head);background:var(--bg);color:var(--t1);padding:12px;font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border:1px solid var(--b1);border-radius:var(--r);margin-bottom:14px;background:var(--panel)}
+header h1{font-size:18px;font-weight:800;background:linear-gradient(90deg,#5bb0ff,#22d66b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:auto}
+.nav-link{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12px;font-weight:700}
+.panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.cell{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px}
+.cell .lbl{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.cell .val{font-size:18px;font-weight:800}
+.chart{width:100%;height:160px;background:var(--panel2);border-radius:var(--rs);border:1px solid var(--b1)}
+.bar-row{display:flex;align-items:center;gap:8px;margin:5px 0;font-family:var(--mono);font-size:11px}
+.bar-track{flex:1;height:10px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;background:var(--accent)}
+.frm{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.frm input{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono)}
+.btn{background:var(--accent);border:none;color:#000;padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer}
+.note{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5}
+</style>
+</head>
+<body>
+<header>
+  <h1>📈 Equity & Drawdown</h1>
+  <a class="nav-link" href="../governor/">🛑 Governor</a>
+  <a class="nav-link" href="../journal/">📓 Journal</a>
+  <a class="nav-link" href="../">← Hub</a>
+</header>
+
+<div class="panel"><div class="strip" id="ddStrip"></div></div>
+<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Equity curve (din journal + snapshot-uri)</h2><svg class="chart" id="eqChart" viewBox="0 0 400 120" preserveAspectRatio="none"></svg></div>
+<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Distribuție R-multiple</h2><div id="rBars"></div></div>
+<div class="panel">
+  <h2 style="font-size:13px;margin-bottom:8px">Snapshot cont (manual)</h2>
+  <div class="frm">
+    <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Equity $ <input id="snapEq" type="number" min="1"></label>
+    <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Notă <input id="snapNote" placeholder="ex. reconciliere broker"></label>
+    <button class="btn" id="btnSnap">+ Snapshot</button>
+  </div>
+  <p class="note">Curba pornește de la contul din Risk Governor. Pragurile sunt ipoteze — validează out-of-sample (trader.md).</p>
+</div>
+
+<script src="../lib/journal.js?v=6"></script>
+<script src="../lib/governor.js?v=1"></script>
+<script src="../lib/equity.js?v=1"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+function drawChart(){
+  const { points, current, start } = EQ.curve();
+  const svg = $('eqChart');
+  if (!points.length){ svg.innerHTML = '<text x="200" y="60" fill="#8892a6" font-size="12" text-anchor="middle">Nicio execuție închisă încă</text>'; return; }
+  const vals = points.map(p => p.equity);
+  const min = Math.min(start, ...vals), max = Math.max(start, ...vals);
+  const span = max - min || 1;
+  const pts = points.map((p, i) => {
+    const x = (i / Math.max(1, points.length - 1)) * 400;
+    const y = 110 - ((p.equity - min) / span) * 100;
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  const col = current >= start ? '#22d66b' : '#ff4d4d';
+  svg.innerHTML = '<polyline fill="none" stroke="' + col + '" stroke-width="2" points="' + pts + '"/>';
+}
+function render(){
+  const dd = EQ.drawdownStats();
+  const st = EQ.streaks();
+  $('ddStrip').innerHTML = [
+    ['Equity curent', '$' + dd.current.toFixed(0), ''],
+    ['DD curent', dd.currentDdPct.toFixed(1) + '%', dd.currentDdPct > 5 ? 'color:#ff4d4d' : ''],
+    ['Max DD', dd.maxDdPct.toFixed(1) + '%', ''],
+    ['Zile în DD', String(dd.daysInDd), ''],
+    ['Streak W/L', st.maxWin + ' / ' + st.maxLoss, '']
+  ].map(([l,v,s]) => '<div class="cell"><div class="lbl">' + l + '</div><div class="val" style="' + s + '">' + v + '</div></div>').join('');
+  const rd = EQ.rDistribution();
+  const maxN = Math.max(1, ...rd.buckets.map(b => b.n));
+  $('rBars').innerHTML = rd.n ? rd.buckets.map(b =>
+    '<div class="bar-row"><span style="width:72px;color:var(--t3)">' + b.label + '</span><div class="bar-track"><div class="bar-fill" style="width:' + (b.n/maxN*100) + '%"></div></div><span>' + b.n + '</span></div>'
+  ).join('') + '<p class="note">n=' + rd.n + (rd.n < 10 ? ' ⚠ zgomot' : '') + ' · median=' + (rd.median != null ? rd.median.toFixed(2) + 'R' : '—') + '</p>' : '<p class="note">Completează SL la intrare în journal pentru R-multiple.</p>';
+  drawChart();
+}
+$('btnSnap').onclick = () => { EQ.addSnapshot($('snapEq').value, $('snapNote').value); render(); };
+render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔬 Trade Post-Mortem — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0b0f17;--panel:#141a28;--panel2:#1d2537;--b1:#2a3247;--t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;--accent:#5bb0ff;--bull:#22d66b;--bear:#ff4d4d;--r:12px;--rs:8px;--mono:'DM Mono',monospace;--head:'Sora',sans-serif;color-scheme:dark}
+body{font-family:var(--head);background:var(--bg);color:var(--t1);padding:12px;font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border:1px solid var(--b1);border-radius:var(--r);margin-bottom:14px;background:var(--panel)}
+header h1{font-size:18px;font-weight:800;margin-right:auto}
+.nav-link{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12px;font-weight:700}
+.panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:12px}
+select{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono);min-width:220px}
+.btn{background:var(--accent);border:none;color:#000;padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px}
+.cell{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px}
+.cell .lbl{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.cell .val{font-size:17px;font-weight:800}
+.sug{padding:8px 10px;border-radius:var(--rs);margin:6px 0;font-size:13px;border-left:3px solid var(--accent);background:var(--panel2)}
+.note{font-family:var(--mono);font-size:10px;color:var(--t3);line-height:1.5;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔬 Trade Post-Mortem</h1>
+  <a class="nav-link" href="../journal/">📓 Journal</a>
+  <a class="nav-link" href="../">← Hub</a>
+</header>
+
+<div class="panel">
+  <label style="font-family:var(--mono);font-size:11px;color:var(--t3)">Execuție închisă </label>
+  <select id="selTrade"></select>
+  <button class="btn" id="btnRun" style="margin-left:8px">Analizează MAE/MFE</button>
+  <button class="btn" id="btnAll" style="margin-left:6px;background:var(--panel2);color:var(--t2)">Sugestii pe tot setul</button>
+  <div class="grid" id="metrics"></div>
+  <div id="ctx" style="margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--t2)"></div>
+</div>
+<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Sugestii (pattern pe eșantion)</h2><div id="sugs"></div></div>
+
+<script src="../lib/journal.js?v=6"></script>
+<script src="../lib/data.js"></script>
+<script src="../lib/postmortem.js?v=1"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+function fillSelect(){
+  const trades = PM.closedTrades().sort((a,b)=>(b.closeTs||0)-(a.closeTs||0));
+  $('selTrade').innerHTML = trades.length ? trades.map(t => {
+    const pnl = JR.pnl(t);
+    return '<option value="' + t.id + '">' + t.sym + ' · ' + (pnl>=0?'+':'') + pnl.toFixed(0) + '$ · ' + (t.source||'?') + '</option>';
+  }).join('') : '<option value="">— niciun trade închis —</option>';
+}
+function showAnalysis(a){
+  if (!a){ $('metrics').innerHTML = '<p class="note">Nu s-au putut încărca bare.</p>'; return; }
+  $('metrics').innerHTML = [
+    ['Rezultat R', a.resultR!=null?a.resultR.toFixed(2)+'R':'—'],
+    ['MAE R', a.maeR!=null?a.maeR.toFixed(2)+'R':'—'],
+    ['MFE R', a.mfeR!=null?a.mfeR.toFixed(2)+'R':'—'],
+    ['Timp în profit', a.timeInProfitPct!=null?a.timeInProfitPct.toFixed(0)+'%':'—'],
+    ['Bare', String(a.bars)]
+  ].map(([l,v]) => '<div class="cell"><div class="lbl">' + l + '</div><div class="val">' + v + '</div></div>').join('');
+  $('ctx').textContent = 'Regim: ' + a.regime + ' · Danger: ' + (a.danger??'—') + ' · Sursă: ' + a.source + ' · Tags: ' + (a.tags.join(', ')||'—');
+}
+$('btnRun').onclick = async () => {
+  const id = $('selTrade').value;
+  if (!id) return;
+  const t = PM.tradeById(id);
+  $('btnRun').disabled = true;
+  try {
+    const bars = await D.fetchStock(t.sym, { range: '1mo', interval: '1h', prePost: true, ttl: 600 });
+    showAnalysis(PM.analyze(t, bars));
+  } catch(e){ showAnalysis(null); }
+  $('btnRun').disabled = false;
+};
+$('btnAll').onclick = async () => {
+  const trades = PM.closedTrades().slice(0, 25);
+  const analyses = [];
+  $('btnAll').disabled = true;
+  for (const t of trades){
+    try {
+      const bars = await D.fetchStock(t.sym, { range: '1mo', interval: '1d', ttl: 1800 });
+      const a = PM.analyze(t, bars);
+      if (a) analyses.push(a);
+    } catch(e){}
+    await new Promise(r => setTimeout(r, 80));
+  }
+  $('sugs').innerHTML = PM.suggestions(analyses).map(s => '<div class="sug">' + s.text + '</div>').join('');
+  $('btnAll').disabled = false;
+};
+fillSelect();
+})();
+</script>
+</body>
+</html>

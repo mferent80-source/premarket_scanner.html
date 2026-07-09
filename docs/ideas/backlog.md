@@ -58,6 +58,11 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-050 | Preset Scalping / Swing (aliniat Coil Osc) | AMD Phase Pine | S | P1 | făcut | ideation | 2026-07-08 |
 | I-051 | Earnings guard pe preset Nasdaq | AMD Phase Pine | S | P2 | făcut | ideation | 2026-07-08 |
 | I-052 | Phase rail în dashboard (progres vizual ciclu) | AMD Phase Pine | S | P3 | făcut | ideation | 2026-07-08 |
+| I-053 | Risk Governor (kill switch zilnic) | NOU: governor/ | M | P1 | făcut | ideation | 2026-07-09 |
+| I-054 | Equity & Drawdown Deck | NOU: equity/ | M | P1 | făcut | ideation | 2026-07-09 |
+| I-055 | Signal Shadow Book (atribuire filtre) | NOU: shadow-book/ | L | P2 | făcut | ideation | 2026-07-09 |
+| I-056 | Regime Router (playbook executabil) | NOU: router/ | M | P2 | făcut | ideation | 2026-07-09 |
+| I-057 | Trade Post-Mortem (MAE/MFE) | NOU: postmortem/ | M | P2 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 

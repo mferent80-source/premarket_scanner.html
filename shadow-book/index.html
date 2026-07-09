@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>👻 Signal Shadow Book — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0b0f17;--panel:#141a28;--panel2:#1d2537;--b1:#2a3247;--t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;--accent:#a78bfa;--bull:#22d66b;--bear:#ff4d4d;--r:12px;--rs:8px;--mono:'DM Mono',monospace;--head:'Sora',sans-serif;color-scheme:dark}
+body{font-family:var(--head);background:var(--bg);color:var(--t1);padding:12px;font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border:1px solid var(--b1);border-radius:var(--r);margin-bottom:14px;background:var(--panel)}
+header h1{font-size:18px;font-weight:800;color:var(--accent);margin-right:auto}
+.nav-link{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12px;font-weight:700}
+.panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:12px;overflow-x:auto}
+.frm{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.frm label{font-family:var(--mono);font-size:10px;color:var(--t3);display:flex;flex-direction:column;gap:3px}
+.frm input,.frm select{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono)}
+.btn{background:var(--accent);border:none;color:#000;padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
+th{color:var(--t3);text-align:right;padding:6px;border-bottom:1px solid var(--b1)}
+th:first-child,td:first-child{text-align:left}
+td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
+.note{font-family:var(--mono);font-size:10px;color:var(--t3);line-height:1.5;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>👻 Signal Shadow Book</h1>
+  <button class="nav-link" id="btnEval" style="cursor:pointer;font-family:inherit">📊 Evaluează pending</button>
+  <a class="nav-link" href="../">← Hub</a>
+</header>
+
+<div class="panel">
+  <h2 style="font-size:13px;margin-bottom:8px">➕ Semnal blocat / ratat</h2>
+  <div class="frm">
+    <label>Ticker <input id="fSym" placeholder="NVDA"></label>
+    <label>Preț <input id="fPx" type="number" step="0.01"></label>
+    <label>SL <input id="fSl" type="number" step="0.01"></label>
+    <label>Filtru <select id="fBlk">
+      <option value="macro-gate">macro-gate</option>
+      <option value="minQual">minQual</option>
+      <option value="earnings">earnings</option>
+      <option value="rth">rth-session</option>
+      <option value="danger">danger-score</option>
+      <option value="whipsaw">whipsaw-cooldown</option>
+      <option value="other">other</option>
+    </select></label>
+    <label>Sursă <select id="fSrc">
+      <option value="zlhma">ZLHMA</option>
+      <option value="zlema">ZLEMA</option>
+      <option value="amd">AMD Phase</option>
+      <option value="antifomo">AntiFOMO</option>
+      <option value="suite-go">SUITE_GO</option>
+    </select></label>
+    <label>Motiv <input id="fWhy" class="wide" placeholder="ex. regim risk-off"></label>
+  </div>
+  <button class="btn" id="btnLog">Log shadow</button>
+</div>
+
+<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Atribuire filtre (ipoteze — validează OOS)</h2><div id="filtStats"></div></div>
+<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Ultimele intrări</h2><div id="tbl"></div></div>
+
+<script src="../lib/ledger.js"></script>
+<script src="../lib/data.js"></script>
+<script src="../lib/shadow.js?v=1"></script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function render(){
+  const stats = SH.statsByFilter();
+  $('filtStats').innerHTML = Object.keys(stats).length ? '<table><tr><th class="l">Filtru</th><th>n</th><th>avg %</th><th>avg R</th><th>hit%</th></tr>' +
+    Object.entries(stats).map(([k,s]) => '<tr><td class="l">' + esc(k) + (s.small?' ⚠':'') + '</td><td>' + s.n + '</td><td>' + (s.avgPct!=null?s.avgPct.toFixed(2)+'%':'—') + '</td><td>' + (s.avgR!=null?s.avgR.toFixed(2):'—') + '</td><td>' + (s.hitPct!=null?s.hitPct.toFixed(0)+'%':'—') + '</td></tr>').join('') + '</table>' +
+    '<p class="note">Ledger semnale luate: n=' + SH.statsTaken().n + '. Evaluarea folosește close la +N zile — ipoteză, nu garanție.</p>' : '<p class="note">Niciun shadow log încă.</p>';
+  const rows = SH.all().slice(0, 40);
+  $('tbl').innerHTML = rows.length ? '<table><tr><th class="l">Zi</th><th>Sym</th><th>Filtru</th><th>Src</th><th>eval%</th><th>evalR</th></tr>' +
+    rows.map(e => '<tr><td class="l">' + esc(e.day) + '</td><td>' + esc(e.sym) + '</td><td>' + esc(e.blockedBy) + '</td><td>' + esc(e.src) + '</td><td>' + (e.evalPct!=null?e.evalPct.toFixed(2)+'%':'—') + '</td><td>' + (e.evalR!=null?e.evalR.toFixed(2):'—') + '</td></tr>').join('') + '</table>' : '<p class="note">Gol.</p>';
+}
+$('btnLog').onclick = () => {
+  SH.log({ sym: $('fSym').value, price: $('fPx').value, sl: $('fSl').value || null, blockedBy: $('fBlk').value, src: $('fSrc').value, reason: $('fWhy').value });
+  render();
+};
+$('btnEval').onclick = async () => {
+  $('btnEval').disabled = true; $('btnEval').textContent = '…';
+  await SH.evaluateAll((sym, opts) => D.fetchStock(sym, opts));
+  $('btnEval').disabled = false; $('btnEval').textContent = '📊 Evaluează pending';
+  render();
+};
+render();
+})();
+</script>
+</body>
+</html>

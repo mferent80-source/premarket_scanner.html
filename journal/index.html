@@ -113,6 +113,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <header>
   <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v8</span></h1>
   <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker (FAB 📓 hub) — anti-duplicat, fees=0 de completat">⬇ Import din tracker</button>
+  <a class="nav-link" href="../postmortem/">🔬 Post-Mortem</a>
+  <a class="nav-link" href="../equity/">📈 Equity</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
 
@@ -184,7 +186,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt
 const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: Math.abs(v) < 1 ? 4 : 2 });
 
 // Tag-uri predefinite de greșeli/execuție (click = toggle); rămân editabile ca listă în timp
-const TAGS = ['good-exec', 'fomo', 'chase', 'early-exit', 'late-exit', 'no-plan', 'oversize', 'revenge', 'contra-regim', 'news-trap'];
+const TAGS = ['good-exec', 'fomo', 'chase', 'early-exit', 'late-exit', 'no-plan', 'oversize', 'revenge', 'contra-regim', 'news-trap', 'broke-rules'];
 let editId = null;
 
 function renderTagRow(selected){

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🛑 Risk Governor — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Kill switch zilnic: buget pierdere, max trade-uri, cooldown după pierderi consecutive">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0b0f17;--bg-grad:radial-gradient(1200px 600px at 50% -200px,#2a1520 0%,#0b0f17 55%);--panel:#141a28;--panel2:#1d2537;--b1:#2a3247;--t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;--accent:#5bb0ff;--bull:#22d66b;--bear:#ff4d4d;--warn:#d4892c;--gold:#ffd86b;--r:12px;--rs:8px;--mono:'DM Mono',monospace;--head:'Sora',sans-serif;color-scheme:dark}
+body{font-family:var(--head);background:var(--bg);background-image:var(--bg-grad);color:var(--t1);padding:12px;font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:linear-gradient(180deg,rgba(42,21,32,.94),rgba(20,26,40,.97));padding:12px 16px;border-radius:var(--r);border:1px solid var(--b1);margin-bottom:14px;position:sticky;top:8px;z-index:50}
+header h1{font-size:18px;font-weight:800;background:linear-gradient(90deg,#ff4d4d,#ffd86b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:auto}
+.nav-link{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12.5px;font-weight:700}
+.panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.verdict{font-size:42px;font-weight:900;text-align:center;padding:20px;border-radius:var(--r);margin-bottom:12px}
+.verdict.trade{background:rgba(34,214,107,.12);border:2px solid var(--bull);color:var(--bull)}
+.verdict.caution{background:rgba(212,137,44,.12);border:2px solid var(--warn);color:var(--warn)}
+.verdict.halted{background:rgba(255,77,77,.15);border:2px solid var(--bear);color:var(--bear)}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.cell{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px}
+.cell .lbl{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.cell .val{font-size:20px;font-weight:800;margin-top:4px}
+.frm{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px}
+.frm label{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;color:var(--t3)}
+.frm input{background:var(--panel2);color:var(--t1);border:1px solid var(--b1);padding:8px;border-radius:var(--rs);font-family:var(--mono)}
+.btn{background:linear-gradient(135deg,#ef4444,#f59e0b);border:none;color:#fff;padding:9px 16px;border-radius:var(--rs);font-weight:800;cursor:pointer}
+.note{font-family:var(--mono);font-size:10px;color:var(--t3);line-height:1.5;margin-top:8px}
+ul.reasons{margin:8px 0 0 18px;color:var(--t2);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🛑 Risk Governor <span style="font-size:11px;-webkit-text-fill-color:var(--t3)">v1</span></h1>
+  <button class="nav-link" id="btnRefresh">🔄 Reîmprospătează</button>
+  <a class="nav-link" href="../journal/">📓 Journal</a>
+  <a class="nav-link" href="../">← Hub</a>
+</header>
+
+<div id="verdictBox" class="verdict trade">TRADE</div>
+<ul class="reasons" id="reasons"></ul>
+
+<div class="panel">
+  <div class="strip" id="strip"></div>
+</div>
+
+<div class="panel">
+  <h2 style="font-size:14px;margin-bottom:10px">⚙ Setări guvernare</h2>
+  <div class="frm">
+    <label>Cont $ <input id="cAcct" type="number" min="1"></label>
+    <label>Max pierdere %/zi <input id="cLoss" type="number" min="0.1" step="0.1"></label>
+    <label>Max trade-uri/zi <input id="cTrades" type="number" min="1" step="1"></label>
+    <label>Max poziții deschise <input id="cOpen" type="number" min="1" step="1"></label>
+    <label>Cooldown după N pierderi <input id="cCool" type="number" min="1" step="1"></label>
+  </div>
+  <div style="margin-top:10px"><button class="btn" id="btnSave">💾 Salvează setări</button></div>
+  <p class="note">Frână disciplinară — nu blochează brokerul. Date din <a href="../journal/" style="color:var(--accent)">Journal</a> (execuții reale cu fees). PnL fără fills oneste = governor orb.</p>
+</div>
+
+<script src="../lib/journal.js?v=6"></script>
+<script src="../lib/governor.js?v=1"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+function render(){
+  const s = GV.status();
+  const lb = GV.labelOf(s.verdict);
+  const box = $('verdictBox');
+  box.textContent = lb.text;
+  box.className = 'verdict ' + lb.cls;
+  $('reasons').innerHTML = s.reasons.length ? s.reasons.map(r => '<li>' + r + '</li>').join('') : '<li style="list-style:none;color:var(--t3)">Nicio restricție activă.</li>';
+  const pnlCls = s.todayPnl >= 0 ? 'color:var(--bull)' : 'color:var(--bear)';
+  $('strip').innerHTML = [
+    ['PnL azi', (s.todayPnl >= 0 ? '+' : '') + '$' + s.todayPnl.toFixed(2), pnlCls],
+    ['Buget rămas', '$' + Math.max(0, s.maxLossUsd + s.todayPnl).toFixed(2), ''],
+    ['Trade-uri azi', s.todayTrades + '/' + s.cfg.maxTradesDay, ''],
+    ['Deschise', s.openCount + '/' + s.cfg.maxOpenPositions, ''],
+    ['Pierderi consec.', String(s.consecutiveLosses), s.consecutiveLosses >= s.cfg.cooldownAfterLosses ? 'color:var(--bear)' : '']
+  ].map(([l,v,st]) => '<div class="cell"><div class="lbl">' + l + '</div><div class="val" style="' + st + '">' + v + '</div></div>').join('');
+}
+function loadCfg(){
+  const c = GV.cfg();
+  $('cAcct').value = c.accountSize;
+  $('cLoss').value = c.maxLossPctDay;
+  $('cTrades').value = c.maxTradesDay;
+  $('cOpen').value = c.maxOpenPositions;
+  $('cCool').value = c.cooldownAfterLosses;
+}
+$('btnSave').onclick = () => {
+  GV.saveCfg({
+    accountSize: +$('cAcct').value,
+    maxLossPctDay: +$('cLoss').value,
+    maxTradesDay: +$('cTrades').value,
+    maxOpenPositions: +$('cOpen').value,
+    cooldownAfterLosses: +$('cCool').value
+  });
+  render();
+};
+$('btnRefresh').onclick = render;
+loadCfg(); render();
+})();
+</script>
+</body>
+</html>
