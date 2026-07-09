@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=562"></script>
+<script src="lib/suite-version.js?v=563"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v562'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v563'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1176,8 +1176,9 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <script src="lib/data.js"></script>
 <script src="lib/ledger.js"></script>
-<script src="lib/finnhub-key.js?v=562"></script>
-<script src="lib/journal.js?v=8"></script>
+<script src="lib/finnhub-key.js?v=563"></script>
+<script src="lib/journal.js?v=9"></script>
+<script src="lib/tracker.js?v=1"></script>
 <script src="lib/telegram.js"></script>
 <script src="lib/account.js"></script>
 <script src="lib/governor.js?v=4"></script>
@@ -1631,22 +1632,11 @@ window.showFeaturesModal = function(scannerKey){
 
 // ═══════════════════════════════════════════════════════════════
 //  TRADE TRACKER — minim, replace pentru trading-journal eliminat
-//  Storage: `trade_plans_v1` = [{id, ticker, entry, sl, tp, size, status, opened, closed, pnl, notes}]
+//  Storage: trade_plans_v1 via lib/tracker.js (TT.*) — sync live → tt_journal_v1
 //  Status: 'open' | 'win' | 'loss' (manual mark)
 // ═══════════════════════════════════════════════════════════════
-const TT_KEY = 'trade_plans_v1';
-function ttLoad(){
-  try { return JSON.parse(localStorage.getItem(TT_KEY) || '[]') || []; }
-  catch(e){ return []; }
-}
-function ttSave(arr){
-  try { localStorage.setItem(TT_KEY, JSON.stringify(arr)); } catch(e){}
-}
-function ttCalcPnL(t){
-  const e = parseFloat(t.entry), exit = parseFloat(t.exit), size = parseFloat(t.size) || 0;
-  if (!e || !exit || !size) return 0;
-  return t.dir === 'short' ? (e - exit) * size : (exit - e) * size;
-}
+function ttLoad(){ return (window.TT && TT.all) ? TT.all() : []; }
+function ttCalcPnL(t){ return (window.TT && TT.calcPnL) ? TT.calcPnL(t) : 0; }
 window.openTradeTracker = function(){
   document.getElementById('ttOverlay')?.remove();
   const ov = document.createElement('div');
@@ -1737,11 +1727,9 @@ window.ttAddTrade = function(){
     status: 'open',
     opened: Date.now(),
   };
-  const arr = ttLoad();
-  arr.unshift(t);
-  ttSave(arr);
-  if (window.JR && JR.syncPlan) JR.syncPlan(t);
-  openTradeTracker(); // re-open ca să arate noul rând
+  if (window.TT && TT.add) TT.add(t);
+  else { try { localStorage.setItem('trade_plans_v1', JSON.stringify([t].concat(ttLoad()))); } catch(e){} }
+  openTradeTracker();
 };
 
 window.ttCloseTrade = function(id, status){
@@ -1753,21 +1741,26 @@ window.ttCloseTrade = function(id, status){
   const exitStr = window.prompt('Exit price (default: $' + parseFloat(defaultExit).toFixed(2) + '):', defaultExit);
   if (exitStr === null) return; // cancel
   const exit = parseFloat(exitStr) || defaultExit;
-  t.exit = exit;
-  t.status = status;
-  t.closed = Date.now();
-  // PnL: long = (exit-entry)*size, short = (entry-exit)*size
-  t.pnl = ttCalcPnL(t);
-  ttSave(arr);
-  if (window.JR && JR.syncPlan) JR.syncPlan(t);
+  const feesStr = window.prompt('Fees totale USD (spread/FX, 0 dacă necunoscut):', '0');
+  if (feesStr === null) return;
+  const fees = parseFloat(feesStr) || 0;
+  if (window.TT && TT.close) TT.close(id, status, exit, fees);
+  else {
+    t.exit = exit; t.status = status; t.closed = Date.now(); t.fees = fees;
+    t.pnl = ttCalcPnL(t);
+    try { localStorage.setItem('trade_plans_v1', JSON.stringify(arr)); } catch(e){}
+    if (window.JR && JR.syncPlan) JR.syncPlan(t);
+  }
   openTradeTracker();
 };
 
 window.ttDeleteTrade = function(id){
   if (!window.confirm('Ștergi acest trade din istoric?')) return;
-  const arr = ttLoad().filter(t => t.id !== id);
-  ttSave(arr);
-  if (window.JR && JR.unsyncPlan) JR.unsyncPlan(id);
+  if (window.TT && TT.remove) TT.remove(id);
+  else {
+    try { localStorage.setItem('trade_plans_v1', JSON.stringify(ttLoad().filter(t => t.id !== id))); } catch(e){}
+    if (window.JR && JR.unsyncPlan) JR.unsyncPlan(id);
+  }
   openTradeTracker();
 };
 
@@ -1811,7 +1804,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v562';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v563';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -2021,9 +2014,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/hub-health.js?v=562"></script>
-<script src="lib/hub-brief.js?v=562"></script>
-<script src="lib/hub-ledger.js?v=562"></script>
+<script src="lib/hub-health.js?v=563"></script>
+<script src="lib/hub-brief.js?v=563"></script>
+<script src="lib/hub-ledger.js?v=563"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {
@@ -2034,8 +2027,8 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   if (window.HUB_HEALTH) HUB_HEALTH.init();
   if (window.HB_LEDGER && HB_LEDGER.init) HB_LEDGER.init();
   if (window.FH_KEY && FH_KEY.migrate) FH_KEY.migrate();
-  if (window.JR && JR.syncAllOpenFromTracker) {
-    try { JR.syncAllOpenFromTracker(); } catch (e) { console.warn('JR sync tracker:', e); }
+  if (window.JR && JR.syncAllFromTracker) {
+    try { JR.syncAllFromTracker(); } catch (e) { console.warn('JR sync tracker:', e); }
   }
 })();
 </script>

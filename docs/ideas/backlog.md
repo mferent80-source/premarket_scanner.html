@@ -141,6 +141,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-133 | Sync Equity ↔ Portfolio ↔ Journal | equity/portfolio/journal + lib/* | M | P1 | făcut | ideation | 2026-07-09 |
 | I-134 | Audit sever suită + Hub redesign v561 | index.html + lib/hub-ui.css + fixes | L | P1 | făcut | ideation | 2026-07-09 |
 | I-135 | SW unic + Journal sync tracker live | sw-app.js + journal.js + hub/STL | M | P1 | făcut | ideation | 2026-07-09 |
+| I-136 | Tracker module + sync complet + capital UI | lib/tracker.js + capital pages | M | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -925,3 +926,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `sw-app.js` precache complet + `sw.js` alias `importScripts`; toate paginile → `sw-app.js?v=tt-v562`; `JR.syncPlan`/`unsyncPlan`/`syncAllOpenFromTracker` + wire Hub tracker + STL `savePlanToTracker`; `FH_KEY` în Nasdaq; bump `tt-v562`.
 - **Impact:** un singur cache offline; poziții open din tracker apar automat în Journal/Portfolio; cheie Finnhub unificată pe Nasdaq.
 - **Fișiere atinse:** `lib/journal.js`, `index.html`, `smart-trade-long/index.html`, `sw-app.js`, `sw.js`, `nasdaq-scanner/index.html`, alerts/guide/earnings/macro/sector-rotation, `lib/suite-version.js`, `update.html`, `migrate.html`.
+
+### I-136 · Tracker module + capital polish · [M] · P1
+- **Problema/golul:** Tracker inline în Hub; sync doar open; fees ignorate la close; Portfolio banner manual; pagini capital fără SW/reconcile vizibil; model dual tracker/journal fără modul comun.
+- **Soluția:** `lib/tracker.js` (TT.*); `JR.syncAllFromTracker` + `reconcileTracker`; fees la close Hub+Journal; `lib/capital-ui.css`; auto-sync la load Portfolio/Journal/Equity; chip reconcile; SW pe journal/portfolio/equity/router/weekly; bump `tt-v563`.
+- **Impact:** flux capital mai onest (fees), sync automat fără wizard manual, UI comun pe paginile de bani.
+- **Fișiere atinse:** `lib/tracker.js`, `lib/journal.js`, `lib/capital-ui.css`, `lib/equity.js`, `index.html`, journal/portfolio/equity/router/weekly, `smart-trade-long`, `sw-app.js`.

@@ -343,7 +343,8 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/account.js"></script>
-<script src="../lib/journal.js"></script>
+<script src="../lib/journal.js?v=9"></script>
+<script src="../lib/tracker.js?v=1"></script>
 <script src="../lib/governor.js?v=4"></script>
 <script src="../lib/equity.js?v=5"></script>
 <script src="../lib/capital-desk.js?v=4"></script>
@@ -1382,9 +1383,12 @@ function savePlanToTracker() {
       dir: 'long', notes: `STL ${effTier(r.scoreData).label} ${r.scoreData.score}/100 · risc ~$${sz.riskUSD.toFixed(0)}`,
       status: 'open', opened: Date.now(),
     };
-    arr.unshift(plan);
-    localStorage.setItem('trade_plans_v1', JSON.stringify(arr));
-    if (window.JR && JR.syncPlan) JR.syncPlan(plan);
+    if (window.TT && TT.add) TT.add(plan);
+    else {
+      arr.unshift(plan);
+      localStorage.setItem('trade_plans_v1', JSON.stringify(arr));
+      if (window.JR && JR.syncPlan) JR.syncPlan(plan);
+    }
     toast(`📓 Plan ${r.sym} salvat — vezi Trade Plans (📓) în Hub`, 'ok');
   } catch (e) { toast('Eroare la salvarea planului', 'err'); }
 }

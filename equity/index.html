@@ -6,6 +6,7 @@
 <title>📈 Equity & Drawdown — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/capital-ui.css?v=563">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -58,7 +59,8 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 </head>
 <body>
 <header>
-  <h1>📈 Equity & Drawdown <span class="ver-badge">v5</span></h1>
+  <h1>📈 Equity & Drawdown <span class="ver-badge" id="verBadge">v6</span></h1>
+  <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="btn-ghost" id="btnRefresh" type="button">🔄 Prețuri live</button>
   <button class="btn-ghost" id="btnExport" type="button">📥 Export CSV</button>
   <button class="btn-ghost" id="btnExportCd" type="button" title="Capital Desk JSON">📥 CD JSON</button>
@@ -127,12 +129,14 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 </div>
 
 <script src="../lib/account.js"></script>
-<script src="../lib/journal.js?v=7"></script>
+<script src="../lib/suite-version.js?v=563"></script>
+<script src="../lib/journal.js?v=9"></script>
+<script src="../lib/tracker.js?v=1"></script>
 <script src="../lib/governor.js?v=4"></script>
 <script src="../lib/shadow.js"></script>
 <script src="../lib/data.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/equity.js?v=5"></script>
+<script src="../lib/equity.js?v=6"></script>
 <script src="../lib/finnhub-key.js?v=561"></script>
 <script src="../lib/capital-desk.js?v=5"></script>
 <script>
@@ -254,14 +258,17 @@ function renderWizard(drift, rec){
   if (!drift.warn) { $('wizardPanel').style.display = 'none'; return; }
   $('wizardPanel').style.display = '';
   const steps = [
-    { t: '1. Execuții lipsă', d: rec.missing ? rec.missing + ' închise în tracker fără journal' : 'OK', ok: !rec.missing, act: rec.missing ? '<button type="button" class="btn btn-sm" id="wizImport">Import tracker</button>' : '' },
-    { t: '2. Poziții open', d: rec.openTracker ? rec.openTracker + ' open doar în tracker' : 'OK', ok: !rec.openTracker, act: rec.openTracker ? '<button type="button" class="btn btn-sm" id="wizOpen">Import open</button>' : '' },
+    { t: '1. Sync tracker', d: (rec.missing || rec.openOrphan) ? `${rec.missing || 0} closed · ${rec.openOrphan || 0} open lipsă` : 'OK', ok: !(rec.missing || rec.openOrphan), act: (rec.missing || rec.openOrphan) ? '<button type="button" class="btn btn-sm" id="wizSync">Sync tot</button>' : '' },
+    { t: '2. Poziții open Journal', d: rec.journalOpen != null ? rec.journalOpen + ' în curs' : '—', ok: true, act: '' },
     { t: '3. Evenimente capital', d: rec.capitalEvents ? rec.capitalEvents + ' înregistrate' : 'Niciunul — adaugă depuneri/retrageri', ok: rec.capitalEvents > 0, act: '' },
     { t: '4. Snapshot', d: drift.snapshotAgeDays != null ? 'Ultimul acum ' + drift.snapshotAgeDays + ' zile' : 'Lipsește', ok: drift.snapshotAgeDays != null && drift.snapshotAgeDays <= 7, act: '<button type="button" class="btn btn-sm" id="wizSnap">+ Snapshot acum</button>' }
   ];
   $('wizardBody').innerHTML = steps.map(s => '<div class="wiz-step"><b>' + esc(s.t) + '</b> ' + (s.ok ? '<span class="pos">✓</span>' : '<span class="drift-bad">!</span>') + '<div class="note">' + esc(s.d) + ' ' + s.act + '</div></div>').join('');
-  const imp = $('wizImport'); if (imp) imp.onclick = () => { const r = JR.importFromTracker(); alert('+' + r.added + ' importate'); render(); };
-  const op = $('wizOpen'); if (op) op.onclick = () => { const r = JR.importOpenFromTracker(); alert('+' + r.added + ' open'); render(); };
+  const sync = $('wizSync'); if (sync) sync.onclick = () => {
+    const r = JR.syncAllFromTracker ? JR.syncAllFromTracker() : { open: 0, closed: 0 };
+    alert(`Sync: +${r.open || 0} open · +${r.closed || 0} closed`);
+    render();
+  };
   const sn = $('wizSnap'); if (sn) sn.onclick = () => { $('snapEq').focus(); $('snapEq').scrollIntoView({ behavior: 'smooth' }); };
 }
 
@@ -300,6 +307,12 @@ function render(doFetch){
   const drift = EQ.drift();
   const cash = EQ.cashEstimate(open.unreal, open.mktVal || null);
   const rec = EQ.reconcileStatus();
+  const chip = $('reconcileChip');
+  if (chip) {
+    const ok = rec.syncOk != null ? rec.syncOk : !(rec.missing || rec.openOrphan);
+    chip.textContent = ok ? '✓ sync OK' : `⚠ ${rec.openOrphan || 0} open · ${rec.missing || 0} closed`;
+    chip.className = 'cap-reconcile ' + (ok ? 'ok' : 'warn');
+  }
   const pf = window.CD ? CD.portfolioStatic() : null;
   const syncEl = $('syncBanner');
   if (syncEl) {
@@ -434,8 +447,19 @@ $('btnReport').onclick = () => {
 };
 
 if (window.CD && CD.initListener) CD.initListener(() => render(false));
+if (window.JR && JR.syncAllFromTracker && JR.reconcileTracker) {
+  const rec = JR.reconcileTracker();
+  if (!rec.ok) JR.syncAllFromTracker();
+}
 render();
 })();
+</script>
+<script>
+if (window.SUITE_VERSION_SHORT) { const b = document.getElementById('verBadge'); if (b) b.textContent = SUITE_VERSION_SHORT; }
+if ('serviceWorker' in navigator) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v563';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>

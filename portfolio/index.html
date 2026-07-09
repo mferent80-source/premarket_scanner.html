@@ -8,6 +8,7 @@
 <meta name="description" content="Riscul agregat al pozițiilor deschise: risc la SL cumulat, concentrare pe sector, beta vs QQQ, stress-test">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🛡️</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/capital-ui.css?v=563">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -90,7 +91,8 @@ td.sym a{color:var(--accent);text-decoration:none}
 <body>
 
 <header>
-  <h1>🛡️ Portfolio Risk Deck <span class="ver-badge" id="verBadge">v1</span></h1>
+  <h1>🛡️ Portfolio Risk Deck <span class="ver-badge" id="verBadge">v2</span></h1>
+  <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnScan">🔄 Scan poziții</button>
   <button class="nav-link" id="btnExportCd" title="Export JSON Capital Desk">📥 Export CD</button>
   <a class="nav-link" href="../journal/">📓 Journal</a>
@@ -108,7 +110,7 @@ td.sym a{color:var(--accent);text-decoration:none}
   Adaugi/închizi în <a href="../journal/" style="color:var(--accent)">Journal</a> sau import din tracker. Pragurile de risc total (2%/4%) sunt IPOTEZE de calibrat pe contul tău.</span>
 </div>
 
-<div id="migrateBanner" class="note" style="display:none;margin-bottom:12px;padding:10px 14px;border:1px solid var(--warn);border-radius:var(--r);background:rgba(212,137,44,.08);color:var(--warn);line-height:1.5"></div>
+<div id="migrateBanner" class="cap-sync-banner"></div>
 
 <div class="strip" id="strip" style="display:none">
   <div class="cell"><div class="lbl">POZIȚII OPEN</div><div class="val" id="sN">—</div><div class="sub" id="sNSub">—</div></div>
@@ -134,9 +136,11 @@ td.sym a{color:var(--accent);text-decoration:none}
 
 <script src="../lib/account.js"></script>
 <script src="../lib/finnhub-key.js?v=561"></script>
-<script src="../lib/journal.js?v=7"></script>
+<script src="../lib/suite-version.js?v=563"></script>
+<script src="../lib/journal.js?v=9"></script>
+<script src="../lib/tracker.js?v=1"></script>
 <script src="../lib/governor.js?v=4"></script>
-<script src="../lib/equity.js?v=5"></script>
+<script src="../lib/equity.js?v=6"></script>
 <script src="../lib/capital-desk.js?v=5"></script>
 <script src="../lib/data.js"></script>
 <script src="../lib/regime.js"></script>
@@ -175,13 +179,29 @@ function trackerOpenNotInJournal(){
     return openPlans.filter(p => !haveSrc.has(p.id));
   } catch (e) { return []; }
 }
+function renderReconcileChip(){
+  const el = $('reconcileChip');
+  if (!el || !window.JR || !JR.reconcileTracker) return;
+  const r = JR.reconcileTracker();
+  el.textContent = r.ok ? '✓ sync OK' : `⚠ ${r.openOrphan} open · ${r.closedMissing} closed lipsă`;
+  el.className = 'cap-reconcile ' + (r.ok ? 'ok' : 'warn');
+  el.title = `Journal open: ${r.journalOpen} · Tracker open: ${r.trackerOpen}`;
+}
 function showMigrateBanner(){
   const orphans = trackerOpenNotInJournal();
   const el = $('migrateBanner');
   if (!el) return;
   if (!orphans.length){ el.style.display = 'none'; return; }
   el.style.display = '';
-  el.innerHTML = `⚠ ${orphans.length} poziție/open în tracker (trade_plans_v1) fără corespondent în Journal: <b>${orphans.map(p => esc(String(p.ticker).toUpperCase())).join(', ')}</b>. Portfolio citește doar Journal — <a href="../equity/" style="color:var(--accent)">importă OPEN din tracker</a> (wizard Equity) sau închide manual în <a href="../journal/" style="color:var(--accent)">Journal</a>.`;
+  el.innerHTML = `⚠ ${orphans.length} plan(uri) open în tracker fără Journal: <b>${orphans.map(p => esc(String(p.ticker).toUpperCase())).join(', ')}</b>. Portfolio citește Journal. <button type="button" class="sync-btn" id="btnAutoSync">Sync acum</button>`;
+  $('btnAutoSync')?.addEventListener('click', () => {
+    if (window.JR && JR.syncAllFromTracker) {
+      JR.syncAllFromTracker();
+      renderReconcileChip();
+      showMigrateBanner();
+      scan();
+    }
+  });
 }
 // Sector din cache-ul Watchlist Monitor (Finnhub profile2) — read-only, nu re-fetch
 function sectorOf(sym){
@@ -398,6 +418,11 @@ else $('tblWrap').innerHTML = `<div class="empty">📭 Nicio poziție OPEN în J
 if (window.CD && CD.initListener) {
   CD.initListener(() => {
     if (window.ACCT) { const g = ACCT.get(); $('inAcct').value = g.value || ''; }
+    if (window.JR && JR.syncAllFromTracker && JR.reconcileTracker) {
+      const rec = JR.reconcileTracker();
+      if (!rec.ok) JR.syncAllFromTracker();
+    }
+    renderReconcileChip();
     showMigrateBanner();
     showRescanBanner();
     if (CD.needsPortfolioRescan && CD.needsPortfolioRescan() && openPositions().length) scan();
@@ -405,6 +430,13 @@ if (window.CD && CD.initListener) {
   });
 }
 })();
+</script>
+<script>
+if (window.SUITE_VERSION_SHORT) { const b = document.getElementById('verBadge'); if (b) b.textContent = SUITE_VERSION_SHORT; }
+if ('serviceWorker' in navigator) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v563';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>

@@ -8,6 +8,7 @@
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/capital-ui.css?v=563">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -131,9 +132,10 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body>
 
 <header>
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">v9</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">v10</span></h1>
+  <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
-  <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker — anti-duplicat, fees=0 de completat">⬇ Import tracker</button>
+  <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
   <button class="nav-link" id="btnExportCd" title="Export JSON Capital Desk (equity, risc, desk, journal)">📥 Export CD</button>
   <a class="nav-link" href="../postmortem/">🔬 Post-Mortem</a>
   <a class="nav-link" href="../portfolio/">🛡️ Portfolio</a>
@@ -237,7 +239,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
 </div>
 
 <script src="../lib/account.js"></script>
-<script src="../lib/journal.js?v=7"></script>
+<script src="../lib/suite-version.js?v=563"></script>
+<script src="../lib/journal.js?v=9"></script>
+<script src="../lib/tracker.js?v=1"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/governor.js?v=4"></script>
 <script src="../lib/equity.js?v=5"></script>
@@ -324,9 +328,20 @@ $('btnSave').addEventListener('click', () => {
 });
 $('btnCancel').addEventListener('click', () => { resetForm(); });
 
+function renderReconcileChip(){
+  const el = $('reconcileChip');
+  if (!el || !JR.reconcileTracker) return;
+  const r = JR.reconcileTracker();
+  el.textContent = r.ok ? '✓ sync OK' : `⚠ ${r.openOrphan} open · ${r.closedMissing} closed`;
+  el.className = 'cap-reconcile ' + (r.ok ? 'ok' : 'warn');
+}
 $('btnImport').addEventListener('click', () => {
-  const r = JR.importFromTracker();
-  alert(`Import tracker: ${r.added} adăugate · ${r.skipped} sărite (duplicate sau fără preț de ieșire).\nFees=0 la import — editează-le și completează costul real.`);
+  const r = JR.syncAllFromTracker ? JR.syncAllFromTracker() : JR.importFromTracker();
+  const msg = r.open != null
+    ? `Sync tracker: +${r.open} open · +${r.closed} closed · ${r.skipped} sărite.`
+    : `Import: ${r.added} adăugate · ${r.skipped} sărite.`;
+  alert(msg + '\nCompletează fees reale la execuțiile importate (spread/FX).');
+  renderReconcileChip();
   renderAll();
 });
 const btnExportCd = $('btnExportCd');
@@ -487,7 +502,13 @@ function renderTable(){
     if (!e) return;
     const v = prompt(`Preț de ieșire pentru ${e.sym} (entry ${e.entry}):`);
     if (v == null || v === '') return;
-    if (!closeE(e.id, v)){ alert('Preț invalid.'); return; }
+    const feesStr = prompt('Fees totale USD (spread/FX, 0 dacă necunoscut):', String(e.fees || '0'));
+    if (feesStr === null) return;
+    const fees = parseFloat(feesStr) || 0;
+    if (window.JR && JR.close) {
+      if (!JR.close(e.id, v, null, fees)) { alert('Preț invalid.'); return; }
+    } else if (!closeE(e.id, v)) { alert('Preț invalid.'); return; }
+    else JR.update(e.id, { fees });
     renderAll();
   }));
   $('tblWrap').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => {
@@ -656,6 +677,11 @@ function renderAll(){
 
 resetForm();
 prefillFromQuery();
+if (JR.syncAllFromTracker && JR.reconcileTracker) {
+  const rec = JR.reconcileTracker();
+  if (!rec.ok) JR.syncAllFromTracker();
+}
+renderReconcileChip();
 renderAll();
 if (location.hash === '#desk') {
   const el = document.getElementById('desk');
@@ -664,6 +690,13 @@ if (location.hash === '#desk') {
 setInterval(renderDesk, 60000);
 if (window.CD && CD.initListener) CD.initListener(renderAll);
 })();
+</script>
+<script>
+if (window.SUITE_VERSION_SHORT) { const b = document.getElementById('verBadge'); if (b) b.textContent = SUITE_VERSION_SHORT; }
+if ('serviceWorker' in navigator) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v563';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
