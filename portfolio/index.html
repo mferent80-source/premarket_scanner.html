@@ -97,7 +97,7 @@ td.sym a{color:var(--accent);text-decoration:none}
   <a class="nav-link" href="../">← Hub</a>
 </header>
 
-<div id="capitalRail"></div>
+<div id="capitalRail" data-cd-page="portfolio"></div>
 
 <div class="cfg">
   <label>Cont $ <input type="number" id="inAcct" min="0" step="100" placeholder="ex. 10000"></label>
@@ -134,7 +134,7 @@ td.sym a{color:var(--accent);text-decoration:none}
 <script src="../lib/journal.js"></script>
 <script src="../lib/governor.js"></script>
 <script src="../lib/equity.js"></script>
-<script src="../lib/capital-desk.js"></script>
+<script src="../lib/capital-desk.js?v=2"></script>
 <script src="../lib/data.js"></script>
 <script src="../lib/regime.js"></script>
 <script>
@@ -342,7 +342,13 @@ function render(rows){
   $('sStress').textContent = withBeta.length ? fmt$(stress).replace('$-','-$') : 'n/a (β lipsă)';
   $('sStress').className = 'val ' + (stress < 0 ? 'neg' : '');
   $('strip').style.display = '';
-  if (window.CD) CD.renderRail('capitalRail', 'portfolio', { unrealized: totPnl });
+  if (window.CD) {
+    CD.writeLiveRisk({
+      totRisk, totNotional: totN, totPnl,
+      rows: rows.map(r => ({ sym: r.sym, riskNow: r.riskNow || 0 }))
+    });
+    CD.renderRail('capitalRail', 'portfolio', { unrealized: totPnl });
+  }
 
   // ── Concentrare pe sector ──
   const bySec = {};

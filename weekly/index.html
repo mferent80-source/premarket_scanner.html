@@ -94,6 +94,7 @@ lecțiile de aici sunt indicii de urmărit, nu adevăruri.</p>
 <div class="panel">
   <h2>📈 Capital săptămânii</h2>
   <div id="eqBody">—</div>
+  <div id="cdSnapBody" style="margin-top:10px"></div>
 </div>
 
 <div class="panel">
@@ -126,6 +127,7 @@ lecțiile de aici sunt indicii de urmărit, nu adevăruri.</p>
 <script src="../lib/governor.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/journal.js"></script>
+<script src="../lib/capital-desk.js?v=2"></script>
 <script src="../lib/ai.js"></script>
 <script>
 (function(){
@@ -183,6 +185,13 @@ function collect(){
     const dr = EQ.drift();
     out.equity = { weekKey: cur.week, weekPnl: cur.pnl, current: dd.current, currentDdPct: dd.currentDdPct, maxDdPct: dd.maxDdPct, drift: dr };
   } else out.equity = null;
+
+  if (window.CD) {
+    const snap = CD.saveWeeklySnapshot();
+    out.capitalDesk = snap.current;
+    out.capitalDeskPrev = snap.prev;
+    out.capitalDeskBundle = CD.unified();
+  } else out.capitalDesk = null;
   return out;
 }
 
@@ -204,8 +213,16 @@ function render(d){
     if (!dr.snapshot) html += '<div class="note">Fără snapshot Trade212 — drift indisponibil. <a href="../equity/">Equity Curve</a></div>';
     else if (dr.warn) html += '<div class="note wrn">⚠ Drift ≥2% — reconciliază în <a href="../equity/">Equity</a> înainte de concluzii capital.</div>';
     $('eqBody').innerHTML = html;
+    if (d.capitalDesk) {
+      const cd = d.capitalDesk, prev = d.capitalDeskPrev;
+      const delta = prev && prev.riskPct != null && cd.riskPct != null ? (cd.riskPct - prev.riskPct).toFixed(1) : null;
+      $('cdSnapBody').innerHTML = '<div class="note" style="margin-top:0">💰 <b>Capital Desk snapshot</b> · verdict <b>' + esc(cd.verdict || '—') + '</b> · risc ' + (cd.riskPct != null ? cd.riskPct.toFixed(1) + '%' : '—') +
+        (delta != null ? ' (Δ' + (delta >= 0 ? '+' : '') + delta + '% vs săpt. trecută)' : '') +
+        ' · exp.R ' + (cd.expR != null ? cd.expR.toFixed(2) : '—') + '</div>';
+    } else $('cdSnapBody').innerHTML = '';
   } else {
     $('eqBody').innerHTML = '<div class="empty">Modul equity indisponibil — reîncarcă pagina.</div>';
+    $('cdSnapBody').innerHTML = '';
   }
 
   // semnale
@@ -288,6 +305,14 @@ function aiContext(d){
     L.push(`Capital: PnL săptămână ${eq.weekKey} = ${eq.weekPnl.toFixed(0)}$ · equity sim ${eq.current.toFixed(0)}$ · DD curent ${eq.currentDdPct.toFixed(1)}% (max ${eq.maxDdPct.toFixed(1)}%).`);
     if (dr.snapshot) L.push(`Drift vs snapshot: ${dr.driftPct != null ? (dr.driftPct >= 0 ? '+' : '') + dr.driftPct.toFixed(1) + '%' : 'n/a'} (snapshot ${dr.snapshotAgeDays != null ? dr.snapshotAgeDays + ' zile' : '?'}).`);
     else L.push('Drift: fără snapshot equity — reconciliere indisponibilă.');
+  }
+  if (d.capitalDesk) {
+    const cd = d.capitalDesk;
+    L.push(`Capital Desk: verdict ${cd.verdict || '?'} · risc ${cd.riskPct != null ? cd.riskPct.toFixed(1) + '%' : 'n/a'} · exp.R ${cd.expR != null ? cd.expR.toFixed(2) : 'n/a'} · equity ${cd.equity != null ? cd.equity.toFixed(0) + '$' : 'n/a'}.`);
+  }
+  if (d.capitalDeskBundle && d.capitalDeskBundle.fees) {
+    const f = d.capitalDeskBundle.fees;
+    if (f.fees > 0) L.push(`Fees cumulative journal: ${f.fees.toFixed(0)}$ (${f.pctOfWins != null ? f.pctOfWins.toFixed(0) + '% din gross wins' : 'n/a'}).`);
   }
   return L.join('\n');
 }

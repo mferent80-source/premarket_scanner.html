@@ -94,16 +94,16 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-086 | Morning checklist Pro (Router gate) | hub/ + router/ | M | P2 | făcut | ideation | 2026-07-09 |
 | I-087 | Cont $ sincronizat (GV ↔ EQ ↔ Portfolio) | lib/equity.js + portfolio/ | S | P1 | făcut | ideation | 2026-07-09 |
 | I-088 | Shadow Book → atribuire PnL vs realizat | shadow-book/ + equity/ | M | P3 | făcut | ideation | 2026-07-09 |
-| I-089 | Capital Desk în Hub Cockpit | hub/ + lib/capital-desk.js | S | P1 | propus | ideation | 2026-07-09 |
-| I-090 | Risc LIVE vs static în Capital Desk | lib/capital-desk.js + portfolio/ | M | P1 | propus | ideation | 2026-07-09 |
-| I-091 | Buget R rămas (sizing următorului trade) | lib/capital-desk.js + governor | M | P1 | propus | ideation | 2026-07-09 |
-| I-092 | Verdict Governor în Capital Desk | lib/capital-desk.js + journal/ | S | P2 | propus | ideation | 2026-07-09 |
-| I-093 | Snapshot Capital Desk în Weekly Review | weekly/ + lib/capital-desk.js | S | P2 | propus | ideation | 2026-07-09 |
-| I-094 | Alocare risc per poziție (top 3) în CD | lib/capital-desk.js | M | P2 | propus | ideation | 2026-07-09 |
-| I-095 | Pre-trade gate CD + Router | router/ + lib/capital-desk.js | M | P1 | propus | ideation | 2026-07-09 |
-| I-096 | Auto-refresh CD cross-tab | lib/capital-desk.js + lib/journal.js | M | P3 | propus | ideation | 2026-07-09 |
-| I-097 | Fees drag + expectancy în CD | lib/capital-desk.js | S | P3 | propus | ideation | 2026-07-09 |
-| I-098 | Capital pacing săptămânal | lib/governor.js + lib/capital-desk.js | M | P2 | propus | ideation | 2026-07-09 |
+| I-089 | Capital Desk în Hub Cockpit | hub/ + lib/capital-desk.js | S | P1 | făcut | ideation | 2026-07-09 |
+| I-090 | Risc LIVE vs static în Capital Desk | lib/capital-desk.js + portfolio/ | M | P1 | făcut | ideation | 2026-07-09 |
+| I-091 | Buget R rămas (sizing următorului trade) | lib/capital-desk.js + governor | M | P1 | făcut | ideation | 2026-07-09 |
+| I-092 | Verdict Governor în Capital Desk | lib/capital-desk.js + journal/ | S | P2 | făcut | ideation | 2026-07-09 |
+| I-093 | Snapshot Capital Desk în Weekly Review | weekly/ + lib/capital-desk.js | S | P2 | făcut | ideation | 2026-07-09 |
+| I-094 | Alocare risc per poziție (top 3) în CD | lib/capital-desk.js | M | P2 | făcut | ideation | 2026-07-09 |
+| I-095 | Pre-trade gate CD + Router | router/ + lib/capital-desk.js | M | P1 | făcut | ideation | 2026-07-09 |
+| I-096 | Auto-refresh CD cross-tab | lib/capital-desk.js + lib/journal.js | M | P3 | făcut | ideation | 2026-07-09 |
+| I-097 | Fees drag + expectancy în CD | lib/capital-desk.js | S | P3 | făcut | ideation | 2026-07-09 |
+| I-098 | Capital pacing săptămânal | lib/governor.js + lib/capital-desk.js | M | P2 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 

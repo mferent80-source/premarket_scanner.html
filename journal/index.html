@@ -140,7 +140,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <a class="nav-link" href="../">← Hub</a>
 </header>
 
-<div id="capitalRail"></div>
+<div id="capitalRail" data-cd-page="journal"></div>
+<div id="cdPrefillGate"></div>
 
 <section class="desk-rail panel" id="desk">
   <div id="verdictBox" class="desk-verdict trade">TRADE</div>
@@ -160,6 +161,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <label>Max poziții deschise <input id="cOpen" type="number" min="1"></label>
       <label>Cooldown după N pierderi <input id="cCool" type="number" min="1"></label>
       <label>Max DD rolling % <input id="cDdRoll" type="number" min="1" step="0.5" value="10"></label>
+      <label>Max pierdere %/săpt <input id="cWeekLoss" type="number" min="0.5" step="0.5" value="3"></label>
     </div>
     <label class="chkrow"><input type="checkbox" id="cDdOn" checked> Frână pe DD rolling (Equity curve)</label>
     <label class="chkrow"><input type="checkbox" id="cTg"> Alertă Telegram la HALTED (o dată/zi)</label>
@@ -235,9 +237,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/account.js"></script>
 <script src="../lib/journal.js?v=7"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/governor.js?v=3"></script>
+<script src="../lib/governor.js?v=4"></script>
 <script src="../lib/equity.js?v=5"></script>
-<script src="../lib/capital-desk.js?v=1"></script>
+<script src="../lib/capital-desk.js?v=2"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -530,6 +532,7 @@ function loadGovCfg(){
   $('cOpen').value = c.maxOpenPositions;
   $('cCool').value = c.cooldownAfterLosses;
   $('cDdRoll').value = c.maxDdPctRolling != null ? c.maxDdPctRolling : 10;
+  $('cWeekLoss').value = c.maxLossPctWeek != null ? c.maxLossPctWeek : 3;
   $('cDdOn').checked = c.ddRollingOn !== false;
   $('cTg').checked = !!c.tgOnHalt;
 }
@@ -538,7 +541,8 @@ $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
   GV.saveCfg({
     accountSize: acct, maxLossPctDay: +$('cLoss').value, maxTradesDay: +$('cTrades').value,
     maxOpenPositions: +$('cOpen').value, cooldownAfterLosses: +$('cCool').value,
-    maxDdPctRolling: +$('cDdRoll').value, ddRollingOn: $('cDdOn').checked, tgOnHalt: $('cTg').checked
+    maxDdPctRolling: +$('cDdRoll').value, maxLossPctWeek: +$('cWeekLoss').value,
+    ddRollingOn: $('cDdOn').checked, tgOnHalt: $('cTg').checked
   });
   if (window.ACCT) ACCT.syncAll(acct, 'governor');
   renderDesk();
@@ -576,6 +580,17 @@ $('btnTgTest') && $('btnTgTest').addEventListener('click', async () => {
 if (window.ACCT) ACCT.migrate();
 loadGovCfg();
 
+function showPrefillGate(){
+  const el = $('cdPrefillGate');
+  if (!el || !window.CD) { if (el) el.innerHTML = ''; return; }
+  const q = new URLSearchParams(location.search);
+  if (!q.has('sym') && !q.has('prefill')) { el.innerHTML = ''; return; }
+  const acct = window.GV ? GV.cfg().accountSize : (window.ACCT ? ACCT.get().value : 10000);
+  const est = acct * 0.01;
+  const gate = CD.canAddRisk(est);
+  el.innerHTML = CD.gateBannerHtml(gate);
+}
+
 function prefillFromQuery(){
   const pf = JR.prefillFromQuery();
   if (!pf) return;
@@ -590,10 +605,12 @@ function prefillFromQuery(){
   if (pf.notes || pf.note) $('fNotes').value = pf.notes || pf.note || '';
   if (pf.tags) renderTagRow(Array.isArray(pf.tags) ? pf.tags : []);
   $('frmTitle').textContent = '➕ Execuție pre-completată (ledger/webhook)';
+  showPrefillGate();
 }
 
 function renderAll(){
   if (window.CD) CD.renderRail('capitalRail', 'journal');
+  showPrefillGate();
   renderDesk();
   // linia de diagnostic — spune exact ce vede pagina pe ACEST device
   try {
