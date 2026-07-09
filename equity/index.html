@@ -31,7 +31,7 @@ header h1{font-size:18px;font-weight:800;background:linear-gradient(90deg,#5bb0f
 </head>
 <body>
 <header>
-  <h1>📈 Equity & Drawdown <span style="font-size:11px;-webkit-text-fill-color:var(--t3)">v2</span></h1>
+  <h1>📈 Equity & Drawdown <span style="font-size:11px;-webkit-text-fill-color:var(--t3)">v3</span></h1>
   <a class="nav-link" href="../journal/#desk">🛑 Risk Desk</a>
   <a class="nav-link" href="../journal/">📓 Journal</a>
   <a class="nav-link" href="../">← Hub</a>
@@ -40,22 +40,28 @@ header h1{font-size:18px;font-weight:800;background:linear-gradient(90deg,#5bb0f
 <div class="panel"><div class="strip" id="ddStrip"></div></div>
 <div class="panel">
   <h2 style="font-size:13px;margin-bottom:8px">Equity curve + drawdown (umbră roșie)</h2>
+  <p class="note" id="baseLine" style="margin-bottom:8px">—</p>
   <svg class="chart" id="eqChart" viewBox="0 0 400 140" preserveAspectRatio="none"></svg>
+</div>
+<div class="panel">
+  <h2 style="font-size:13px;margin-bottom:8px">Capital în poziții deschise (din journal)</h2>
+  <div id="openCap">—</div>
 </div>
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">PnL net pe sursă semnal</h2><div id="srcBreak"></div></div>
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Distribuție R-multiple</h2><div id="rBars"></div></div>
 <div class="panel">
-  <h2 style="font-size:13px;margin-bottom:8px">Snapshot cont</h2>
+  <h2 style="font-size:13px;margin-bottom:8px">Snapshot cont (din Trade212)</h2>
+  <p class="note" style="margin-bottom:8px">Primul snapshot devine <b>baseline</b> pentru curbă. Snapshot-urile ulterioare = puncte de reconciliere. Fără snapshot → folosește Cont $ din Risk Desk.</p>
   <div class="frm">
     <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Equity $ <input id="snapEq" type="number" min="1"></label>
-    <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Notă <input id="snapNote"></label>
+    <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Notă <input id="snapNote" placeholder="ex. Trade212 2026-07-09"></label>
     <button class="btn" id="btnSnap">+ Snapshot</button>
   </div>
 </div>
 
 <script src="../lib/journal.js?v=6"></script>
 <script src="../lib/governor.js?v=2"></script>
-<script src="../lib/equity.js?v=2"></script>
+<script src="../lib/equity.js?v=3"></script>
 <script>
 (function(){
 const $ = id => document.getElementById(id);
@@ -83,13 +89,23 @@ function drawChart(){
 function render(){
   const dd = EQ.drawdownStats();
   const st = EQ.streaks();
+  const dep = EQ.openDeployed();
+  const base = EQ.baseline();
   $('ddStrip').innerHTML = [
-    ['Equity', '$' + dd.current.toFixed(0), ''],
+    ['Equity sim.', '$' + dd.current.toFixed(0), ''],
+    ['În poziții', dep.count ? '$' + dep.total.toFixed(0) : '—', dep.count ? 'color:var(--accent)' : ''],
     ['DD curent', dd.currentDdPct.toFixed(1) + '%', dd.currentDdPct > 5 ? 'color:#ff4d4d' : ''],
     ['Max DD', dd.maxDdPct.toFixed(1) + '%', ''],
     ['Zile în DD', String(dd.daysInDd), ''],
     ['Max streak W/L', st.maxWin + ' / ' + st.maxLoss, '']
   ].map(([l,v,s]) => '<div class="cell"><div class="lbl">' + l + '</div><div class="val" style="' + s + '">' + v + '</div></div>').join('');
+  $('baseLine').textContent = base.source === 'snapshot'
+    ? 'Baseline: $' + base.value.toFixed(0) + ' din primul snapshot (' + base.day + (base.note ? ' · ' + base.note : '') + ') + PnL închis din journal'
+    : 'Baseline: $' + base.value.toFixed(0) + ' din Risk Desk (Cont $) + PnL închis — adaugă un snapshot pentru ancorare reală';
+  $('openCap').innerHTML = dep.count
+    ? dep.rows.map(r => '<div class="src-row"><span>' + r.sym + ' · ' + r.size + ' @ $' + r.entry + '</span><span>$' + r.notional.toFixed(0) + '</span></div>').join('')
+      + '<p class="note">Total notional ' + dep.count + ' poziții: $' + dep.total.toFixed(0) + ' — nu include cash liber / depuneri.</p>'
+    : '<p class="note">Nicio execuție în curs în journal.</p>';
   const src = EQ.statsBySource();
   $('srcBreak').innerHTML = Object.keys(src).length ? Object.entries(src).sort((a,b)=>b[1].pnl-a[1].pnl).map(([k,s]) =>
     '<div class="src-row"><span>' + k + (s.small?' ⚠':'') + ' · n=' + s.n + '</span><span style="color:' + (s.pnl>=0?'#22d66b':'#ff4d4d') + '">' + (s.pnl>=0?'+':'') + '$' + s.pnl.toFixed(0) + '</span></div>'

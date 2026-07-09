@@ -160,9 +160,10 @@ tr.openrow{background:rgba(91,176,255,.06)}
     <label class="chkrow"><input type="checkbox" id="cTg"> Alertă Telegram la HALTED (o dată/zi)</label>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="btnGovSave" type="button">💾 Salvează limite</button>
+      <button class="btn ghost" id="btnAcctSnap" type="button" title="Copiază ultimul snapshot din Equity & Drawdown">📈 Preia din snapshot Equity</button>
       <button class="btn ghost" id="btnTgTest" type="button">📲 Test Telegram</button>
     </div>
-    <p class="note">Frână disciplinară — nu blochează brokerul. Limitele se aplică pe execuțiile din jurnalul de mai jos.</p>
+    <p class="note">Frână disciplinară — nu blochează brokerul. Cont $ = fallback dacă nu ai snapshot în Equity; primul snapshot e baseline-ul curbei.</p>
   </details>
 </section>
 
@@ -219,6 +220,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/journal.js?v=6"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/governor.js?v=2"></script>
+<script src="../lib/equity.js?v=3"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -515,6 +517,14 @@ function loadGovCfg(){
 $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
   GV.saveCfg({ accountSize:+$('cAcct').value, maxLossPctDay:+$('cLoss').value, maxTradesDay:+$('cTrades').value, maxOpenPositions:+$('cOpen').value, cooldownAfterLosses:+$('cCool').value, tgOnHalt: $('cTg').checked });
   renderDesk();
+});
+$('btnAcctSnap') && $('btnAcctSnap').addEventListener('click', () => {
+  const snap = window.EQ && EQ.lastSnapshot ? EQ.lastSnapshot() : null;
+  if (!snap) { alert('Niciun snapshot în Equity. Deschide Equity → Snapshot cont și pune equity real din Trade212.'); return; }
+  $('cAcct').value = snap.equity;
+  GV.saveCfg({ accountSize: +snap.equity });
+  renderDesk();
+  alert('Cont $ setat la $' + snap.equity.toFixed(0) + ' (snapshot ' + snap.day + '). Limitele Risk Desk folosesc acum această valoare.');
 });
 $('btnDeskRefresh') && $('btnDeskRefresh').addEventListener('click', renderDesk);
 $('btnTgTest') && $('btnTgTest').addEventListener('click', async () => {
