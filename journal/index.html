@@ -135,9 +135,12 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker — anti-duplicat, fees=0 de completat">⬇ Import tracker</button>
   <a class="nav-link" href="../postmortem/">🔬 Post-Mortem</a>
+  <a class="nav-link" href="../portfolio/">🛡️ Portfolio</a>
   <a class="nav-link" href="../equity/">📈 Equity</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
+
+<div id="capitalRail"></div>
 
 <section class="desk-rail panel" id="desk">
   <div id="verdictBox" class="desk-verdict trade">TRADE</div>
@@ -234,6 +237,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/telegram.js"></script>
 <script src="../lib/governor.js?v=3"></script>
 <script src="../lib/equity.js?v=5"></script>
+<script src="../lib/capital-desk.js?v=1"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -459,7 +463,7 @@ function renderTable(){
       return `<tr class="openrow">
         <td class="l"><span class="badge-open">⏳ ÎN CURS</span><br><button class="act" data-close="${esc(e.id)}" style="margin-top:4px;font-weight:800;background:rgba(34,214,107,.15);border-color:var(--bull-s);color:var(--bull-s)" title="Închide execuția — cere prețul de ieșire">✓ ÎNCHIDE</button></td>
         <td class="l">${e.openTs ? new Date(e.openTs).toLocaleDateString('ro-RO') : '—'}</td>
-        <td class="sym l">${esc(e.sym)}</td>
+        <td class="sym l"><a href="../portfolio/?sym=${encodeURIComponent(e.sym)}" style="color:var(--accent);text-decoration:none" title="Risc agregat în Portfolio">${esc(e.sym)}</a> <a class="act" href="../equity/?highlight=${encodeURIComponent(e.id)}" title="Pe equity curve">📈</a></td>
         <td>${e.dir === 'short' ? '🔻S' : '🔺L'}</td>
         <td>${fmt$(e.entry)}</td>
         <td>${e.size}</td>
@@ -589,6 +593,7 @@ function prefillFromQuery(){
 }
 
 function renderAll(){
+  if (window.CD) CD.renderRail('capitalRail', 'journal');
   renderDesk();
   // linia de diagnostic — spune exact ce vede pagina pe ACEST device
   try {

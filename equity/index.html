@@ -62,12 +62,14 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
   <button class="btn-ghost" id="btnRefresh" type="button">🔄 Prețuri live</button>
   <button class="btn-ghost" id="btnExport" type="button">📥 Export CSV</button>
   <button class="btn-ghost" id="btnReport" type="button">🖨 Raport lună</button>
+  <a class="nav-link" href="../portfolio/">🛡️ Portfolio</a>
   <a class="nav-link" href="../journal/#desk">🛑 Risk Desk</a>
   <a class="nav-link" href="../journal/">📓 Journal</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
 
 <div id="acctBanner" class="note" style="display:none;margin-bottom:10px;padding:10px;border:1px solid var(--warn);border-radius:var(--rs);background:rgba(212,137,44,.08)"></div>
+<div id="capitalRail"></div>
 <div class="hero" id="heroStrip"></div>
 
 <div class="panel" id="wizardPanel" style="display:none">
@@ -129,6 +131,7 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 <script src="../lib/data.js"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/equity.js?v=5"></script>
+<script src="../lib/capital-desk.js?v=1"></script>
 <script>
 (function(){
 'use strict';
@@ -272,12 +275,16 @@ function render(doFetch){
     } else $('acctBanner').style.display = 'none';
   }
 
+  if (window.CD) CD.renderRail('capitalRail', 'equity', { unrealized: open.unreal });
+
+  const pf = window.CD ? CD.portfolioStatic() : null;
   $('heroStrip').innerHTML = [
     { l: 'Equity estimată', v: fmt$(estimated), s: 'sim + nerealizat', cls: 'accent' },
     { l: 'Cash estimat', v: fmt$(cash.cash), s: (cash.cashPct != null ? cash.cashPct.toFixed(0) + '% liber' : ''), cls: cash.cashPct != null && cash.cashPct < 10 ? 'warn' : '' },
     { l: 'Realizat', v: (realized >= 0 ? '+' : '') + fmt$(realized), s: 'journal închis', cls: '' },
     { l: 'Nerealizat', v: open.rows.length ? (open.unreal >= 0 ? '+' : '') + fmt$(open.unreal) : '—', s: Object.keys(livePx).length ? 'live' : 'refresh', cls: '' },
     { l: 'DD curent', v: dd.currentDdPct.toFixed(1) + '%', s: 'max ' + dd.maxDdPct.toFixed(1) + '%', cls: dd.currentDdPct > 5 ? 'warn' : '' },
+    { l: 'Risc @ SL', v: pf ? fmt$(pf.totRisk) : '—', s: pf && pf.riskPct != null ? pf.riskPct.toFixed(1) + '% · <a href="../portfolio/" style="color:var(--accent)">Portfolio</a>' : 'static entry→SL', cls: pf && pf.riskPct >= 4 ? 'warn' : '' },
     { l: 'În piață', v: open.mktVal ? fmt$(open.mktVal) : '—', s: open.dep.count + ' poz', cls: '' },
     { l: 'Streak max', v: st.maxWin + '/' + st.maxLoss, s: st.currentWin + 'W ' + st.currentLoss + 'L', cls: '' }
   ].map(c => '<div class="cell ' + c.cls + '"><div class="lbl">' + c.l + '</div><div class="val">' + c.v + '</div><div class="sub">' + c.s + '</div></div>').join('');
@@ -327,10 +334,12 @@ function render(doFetch){
     : '<p class="note">Completează SL în journal.</p>';
 
   $('openCap').innerHTML = open.rows.length
-    ? '<table><tr><th class="l">Sym</th><th>Live</th><th>PnL nereal.</th></tr>' + open.rows.map(r =>
-      '<tr><td class="l">' + esc(r.sym) + '</td><td>' + (r.px != null ? '$' + r.px.toFixed(2) : '—') + '</td><td class="' + (r.unreal >= 0 ? 'pos' : 'neg') + '">' + (r.unreal != null ? (r.unreal >= 0 ? '+' : '') + '$' + r.unreal.toFixed(0) : '—') + '</td></tr>'
-    ).join('') + '</table>'
-    : '<p class="note">Nicio poziție deschisă.</p>';
+    ? '<table><tr><th class="l">Sym</th><th>Live</th><th>PnL nereal.</th><th>Risc SL</th><th></th></tr>' + open.rows.map(r => {
+      const pfRow = pf && pf.rows ? pf.rows.find(x => x.id === r.id) : null;
+      const risk = pfRow && pfRow.riskAtSl != null ? pfRow.riskAtSl : null;
+      return '<tr><td class="l"><a href="../journal/?sym=' + encodeURIComponent(r.sym) + '" style="color:var(--accent);text-decoration:none">' + esc(r.sym) + '</a></td><td>' + (r.px != null ? '$' + r.px.toFixed(2) : '—') + '</td><td class="' + (r.unreal >= 0 ? 'pos' : 'neg') + '">' + (r.unreal != null ? (r.unreal >= 0 ? '+' : '') + '$' + r.unreal.toFixed(0) : '—') + '</td><td class="neg">' + (risk != null ? fmt$(risk) : '—') + '</td><td><a href="../portfolio/?sym=' + encodeURIComponent(r.sym) + '" style="color:var(--accent);font-size:10px">🛡️</a></td></tr>';
+    }).join('') + '</table><p class="note">Risc SL = static la entry (live în <a href="../portfolio/" style="color:var(--accent)">Portfolio</a>).</p>'
+    : '<p class="note">Nicio poziție deschisă — adaugă în <a href="../journal/" style="color:var(--accent)">Journal</a>.</p>';
 
   drawChart();
   renderTables();

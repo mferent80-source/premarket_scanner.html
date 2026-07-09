@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (înregistrare separată ca să ocolească sw.js vechi din cache)
-const CACHE_VERSION = 'tt-v551-2026-07-09';
+const CACHE_VERSION = 'tt-v552-2026-07-09';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -41,6 +41,7 @@ const PRECACHE = [
   './lib/account.js',
   './lib/governor.js',
   './lib/equity.js',
+  './lib/capital-desk.js',
   './lib/morning-check.js',
   './lib/shadow.js',
   './lib/router.js',
