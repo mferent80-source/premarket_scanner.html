@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Actualizare Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<style>
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+    font-family:system-ui,sans-serif;background:#0b0f17;color:#e8eef5}
+  .box{text-align:center;max-width:360px}
+  h1{font-size:16px;margin:0 0 8px}
+  p{color:#a3adc1;font-size:13px;margin:0}
+  .ver{color:#f7931a;font-family:ui-monospace,monospace;font-weight:700}
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>🔄 Actualizare suită…</h1>
+  <p>Curăț cache vechi → <span class="ver" id="ver">tt-v549</span></p>
+</div>
+<script>
+(function(){
+  var VER = 'tt-v549';
+  document.getElementById('ver').textContent = VER;
+  var jobs = [];
+  if ('serviceWorker' in navigator) {
+    jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+      return Promise.all(rs.map(function(r){ return r.unregister(); }));
+    }));
+  }
+  if (window.caches && caches.keys) {
+    jobs.push(caches.keys().then(function(ks){
+      return Promise.all(ks.filter(function(k){ return k.indexOf('trading-tools') >= 0; }).map(function(k){ return caches.delete(k); }));
+    }));
+  }
+  Promise.all(jobs).then(function(){
+    try {
+      localStorage.setItem('tt_suite_ok', VER);
+      localStorage.setItem('tt_sw_version', VER);
+    } catch(e){}
+    location.replace('./index.html?fresh=' + VER + '&t=' + Date.now());
+  }).catch(function(){
+    location.replace('./index.html?fresh=' + VER);
+  });
+})();
+</script>
+</body>
+</html>
