@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=554"></script>
+<script src="lib/suite-version.js?v=559"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v558'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v559'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -756,11 +756,11 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
     <div class="pb-inner">
       <div class="pb-section">
         <div class="pb-section-head"><h3>📊 Scorecard per sursă</h3><span class="pb-count" id="slCnt">—</span></div>
-        <div class="pb-section-body" id="slScorecard"><div class="pb-loading">se evaluează semnalele…</div></div>
+        <div class="pb-section-body" id="slScorecard"><div class="pb-empty">Apasă pentru a deschide — evaluarea +5/+20z pornește la expand.</div></div>
       </div>
       <div class="pb-section">
         <div class="pb-section-head"><h3>🕐 Ultimele semnale</h3><button class="pb-go" id="slClearBtn" style="cursor:pointer;background:transparent">🗑 Golește registrul</button></div>
-        <div class="pb-section-body" id="slRecent"><div class="pb-loading">…</div></div>
+        <div class="pb-section-body" id="slRecent"><div class="pb-empty">—</div></div>
       </div>
     </div>
   </details>
@@ -1793,7 +1793,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v558';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v559';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -2002,7 +2002,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 </script>
 <script src="lib/hub-health.js?v=554"></script>
 <script src="lib/hub-brief.js?v=554"></script>
-<script src="lib/hub-ledger.js?v=555"></script>
+<script src="lib/hub-ledger.js?v=559"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {
@@ -2011,6 +2011,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   }
   if (window.HB) HB.init();
   if (window.HUB_HEALTH) HUB_HEALTH.init();
+  if (window.HB_LEDGER && HB_LEDGER.init) HB_LEDGER.init();
 })();
 </script>
 <script src="nav.js" data-nav-root="./"></script>

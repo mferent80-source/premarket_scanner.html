@@ -137,6 +137,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-129 | Weekly AI context CD WoW deltas | weekly/index.html | S | P3 | făcut | ideation | 2026-07-09 |
 | I-130 | Equity refresh risk flag + TG | equity/index.html | S | P2 | făcut | ideation | 2026-07-09 |
 | I-131 | Smart Trade Long CD rail | smart-trade-long/ | S | P2 | făcut | ideation | 2026-07-09 |
+| I-132 | Fix Signal Ledger hub-ledger IIFE | lib/hub-ledger.js + index.html | S | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -897,3 +898,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `#capitalRail` + render la init.
 - **Impact:** sizing + rail în aceeași pagină.
 - **Fișiere atinse:** `smart-trade-long/index.html`.
+
+### I-132 · Fix Signal Ledger load · [S] · P1
+- **Problema/golul:** `lib/hub-ledger.js` avea IIFE dublu neînchis (syntax error) → scriptul nu rula → UI blocat pe „se evaluează…", `HB_LEDGER`/`HB_SL_MINI` absente.
+- **Soluția:** rescriere cu un singur IIFE valid; `HB_LEDGER.init/load/review`; lazy load la expand; placeholder corect; guard `inited`; fallback în `hub-brief.js`.
+- **Impact:** Signal Ledger scorecard + mini-chip funcționale din nou pe Hub.
+- **Fișiere atinse:** `lib/hub-ledger.js`, `index.html`, `lib/hub-brief.js`, `tt-v559`.
