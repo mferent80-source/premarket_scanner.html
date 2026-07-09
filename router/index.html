@@ -3,131 +3,130 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🧭 Regime Router — Trading Tools</title>
+<title>🧭 Regime Router Pro — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0b0f17;--bg2:#141a28;--bg3:#1d2537;--bg4:#222b40;
-  --b1:#2a3247;--b2:#3a4560;
-  --t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;
+  --b1:#2a3247;--t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;
   --accent:#5bb0ff;--crypto-1:#f7931a;--crypto-2:#ffd86b;
   --bull:#22d66b;--bear:#ff4d4d;--warn:#d4892c;--gold:#ffd86b;
   --r:12px;--rs:8px;--gap:10px;
   --mono:'DM Mono',monospace;--head:'Sora',sans-serif;
   --ease:cubic-bezier(.4,0,.2,1);
+  --sticky-top:64px;
   color-scheme:dark;
 }
 body{font-family:var(--head);background:var(--bg);color:var(--t1);padding:12px;font-variant-numeric:tabular-nums;min-height:100vh}
 a{color:inherit}
+.fd-wrap{max-width:1440px;margin:0 auto}
 
-/* ── Top bar ── */
-.fd-top{
-  display:flex;flex-wrap:wrap;align-items:center;gap:var(--gap);
-  padding:11px 14px;border:1px solid var(--b1);border-radius:var(--r);
-  background:linear-gradient(180deg,rgba(21,34,56,.95),rgba(20,26,40,.98));
-  position:sticky;top:8px;z-index:60;margin-bottom:var(--gap);
-}
-.fd-top h1{
-  font-size:17px;font-weight:800;margin-right:auto;
-  background:linear-gradient(90deg,var(--accent),var(--crypto-2));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-}
-.fd-ver{font-size:10px;-webkit-text-fill-color:var(--t3);font-weight:600}
+.fd-top{display:flex;flex-wrap:wrap;align-items:center;gap:var(--gap);padding:10px 14px;border:1px solid var(--b1);border-radius:var(--r);background:linear-gradient(180deg,rgba(21,34,56,.96),rgba(20,26,40,.98));position:sticky;top:8px;z-index:70;margin-bottom:var(--gap)}
+.fd-top h1{font-size:16px;font-weight:800;margin-right:auto;background:linear-gradient(90deg,var(--accent),var(--crypto-2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.fd-ver{font-size:10px;-webkit-text-fill-color:var(--t3)}
 .fd-nav{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.fd-link{
-  background:var(--bg3);border:1px solid var(--b1);padding:6px 11px;border-radius:var(--rs);
-  color:var(--t1);text-decoration:none;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;
-  transition:border-color .15s var(--ease),color .15s var(--ease);
-}
+.fd-link{background:var(--bg3);border:1px solid var(--b1);padding:6px 10px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:border-color .15s}
 .fd-link:hover{border-color:var(--accent);color:var(--accent)}
-.fd-link.primary{background:linear-gradient(135deg,rgba(91,176,255,.25),rgba(255,216,107,.12));border-color:rgba(91,176,255,.45)}
+.fd-link.primary{background:linear-gradient(135deg,rgba(91,176,255,.22),rgba(255,216,107,.1));border-color:rgba(91,176,255,.4)}
+.fd-pill{font-family:var(--mono);font-size:9px;padding:4px 8px;border-radius:999px;border:1px solid var(--b1);color:var(--t3)}
+.fd-pill.live{border-color:rgba(34,214,107,.35);color:var(--bull)}
 
-/* ── Freeze banner ── */
-.fd-freeze{display:none;border-radius:var(--r);padding:10px 14px;margin-bottom:var(--gap);font-family:var(--mono);font-size:12px;font-weight:700;line-height:1.4}
+.fd-mode{display:inline-flex;border:1px solid var(--b1);border-radius:var(--rs);overflow:hidden;margin-left:4px}
+.fd-mode button{background:var(--bg3);border:none;color:var(--t3);padding:6px 10px;font-size:10px;font-weight:800;cursor:pointer;font-family:var(--mono)}
+.fd-mode button.on{background:rgba(247,147,26,.15);color:var(--crypto-2)}
+
+.fd-freeze{display:none;border-radius:var(--r);padding:10px 14px;margin-bottom:var(--gap);font-family:var(--mono);font-size:12px;font-weight:700}
 .fd-freeze.red{display:block;background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
 .fd-freeze.amber{display:block;background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:var(--warn)}
 
-/* ── Hero verdict (Front Desk) ── */
-.fd-hero{
-  background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(91,176,255,.07));
-  border:1px solid rgba(247,147,26,.28);border-radius:var(--r);
-  padding:14px 16px;margin-bottom:var(--gap);
-  display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
-}
+.fd-hero{background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(91,176,255,.07));border:1px solid rgba(247,147,26,.28);border-radius:var(--r);padding:14px 16px;margin-bottom:var(--gap);display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
 .fd-hero.stay{background:linear-gradient(135deg,rgba(255,77,77,.12),rgba(20,26,40,.5));border-color:rgba(255,77,77,.45)}
-.fd-hero-lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--crypto-1);margin-bottom:5px}
+.fd-hero-lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--crypto-1);margin-bottom:4px}
 .fd-hero.stay .fd-hero-lbl{color:var(--bear)}
-.fd-hero-strat{font-size:24px;font-weight:900;line-height:1.15;letter-spacing:-.02em}
-.fd-hero-meta{font-family:var(--mono);font-size:11.5px;color:var(--t2);margin-top:6px;line-height:1.45}
-.fd-go{text-align:right;min-width:120px}
-.fd-go-num{font-size:40px;font-weight:900;line-height:1}
+.fd-hero-strat{font-size:26px;font-weight:900;line-height:1.1;letter-spacing:-.02em}
+.fd-hero-rule{font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:5px;font-weight:700}
+.fd-hero-meta{font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:6px;line-height:1.45}
+.fd-blockers{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.fd-block{font-family:var(--mono);font-size:9px;font-weight:800;padding:4px 8px;border-radius:5px;border:1px solid var(--b1)}
+.fd-block.bear{background:rgba(255,77,77,.12);color:var(--bear);border-color:rgba(255,77,77,.35)}
+.fd-block.warn{background:rgba(212,137,44,.1);color:var(--warn);border-color:rgba(212,137,44,.35)}
+.fd-go{text-align:right;min-width:110px}
+.fd-go-num{font-size:38px;font-weight:900;line-height:1}
 .fd-go-num.go{color:var(--bull)}.fd-go-num.caution{color:var(--warn)}.fd-go-num.nogo{color:var(--bear)}
 .fd-go-lbl{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:4px}
 .fd-go-track{height:6px;background:var(--bg3);border-radius:4px;margin-top:8px;overflow:hidden;border:1px solid var(--b1)}
-.fd-go-fill{height:100%;border-radius:4px;transition:width .35s var(--ease)}
+.fd-go-fill{height:100%;border-radius:4px;transition:width .35s}
 
-/* ── Command strip ── */
-.fd-cmd{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin-bottom:var(--gap)}
-@media(max-width:900px){.fd-cmd{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:550px){.fd-cmd{grid-template-columns:1fr}}
-.fd-cell{
-  background:linear-gradient(135deg,var(--bg2),var(--bg3));
-  border:1px solid var(--b1);border-radius:var(--r);padding:11px 13px;
-  position:relative;overflow:hidden;cursor:default;
-}
+.fd-timeline{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px;margin-bottom:var(--gap)}
+.fd-tl-lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:6px}
+.fd-tl-track{position:relative;height:8px;background:var(--bg4);border-radius:4px;overflow:visible;display:flex}
+.fd-tl-seg{height:100%;border-right:1px solid rgba(0,0,0,.3)}
+.fd-tl-seg.pre{background:rgba(91,176,255,.25);flex:1.25}
+.fd-tl-seg.open{background:rgba(34,214,107,.28);flex:5}
+.fd-tl-seg.after{background:rgba(255,216,107,.2);flex:1.25}
+.fd-tl-seg.closed{background:rgba(163,173,193,.12);flex:2.5}
+.fd-tl-seg.on{filter:brightness(1.35)}
+.fd-tl-dot{position:absolute;top:50%;width:10px;height:10px;border-radius:50%;background:var(--crypto-2);border:2px solid var(--bg2);transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(255,216,107,.5);transition:left .4s}
+.fd-tl-tags{display:flex;justify-content:space-between;font-family:var(--mono);font-size:8px;color:var(--t3);margin-top:4px}
+
+.fd-actions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--gap)}
+.fd-act{display:inline-flex;flex-direction:column;align-items:flex-start;padding:8px 12px;border-radius:var(--rs);border:1px solid var(--b1);background:var(--bg2);text-decoration:none;font-size:11px;font-weight:800;color:var(--t1);cursor:pointer;font-family:inherit;transition:transform .15s,border-color .15s}
+.fd-act:hover{transform:translateY(-1px);border-color:var(--accent)}
+.fd-act.primary{background:linear-gradient(135deg,rgba(91,176,255,.18),rgba(255,216,107,.08));border-color:rgba(91,176,255,.4)}
+.fd-act.warn{border-color:rgba(255,77,77,.4);color:#ffb3b3}
+.fd-act.stale{border-color:rgba(212,137,44,.4);color:var(--warn)}
+.fd-act .sub{font-family:var(--mono);font-size:9px;font-weight:500;color:var(--t3);margin-top:2px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.fd-cmd{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--gap);margin-bottom:var(--gap)}
+@media(max-width:1000px){.fd-cmd{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:550px){.fd-cmd{grid-template-columns:1fr 1fr}}
+.fd-cell{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px;position:relative;overflow:hidden}
 .fd-cell::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
-.fd-cell.lvl-ok::before{background:var(--bull)}
-.fd-cell.lvl-warn::before{background:var(--warn)}
-.fd-cell.lvl-bear::before{background:var(--bear)}
-.fd-cell.lvl-neut::before{background:var(--t3)}
-.fd-cell-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);font-weight:700}
-.fd-cell-val{font-size:18px;font-weight:800;margin-top:3px;line-height:1.2}
-.fd-cell-sub{font-family:var(--mono);font-size:10px;color:var(--t2);margin-top:3px}
-.fd-gauge{height:4px;background:var(--bg4);border-radius:3px;margin-top:6px;overflow:hidden}
+.fd-cell.lvl-ok::before{background:var(--bull)}.fd-cell.lvl-warn::before{background:var(--warn)}.fd-cell.lvl-bear::before{background:var(--bear)}.fd-cell.lvl-neut::before{background:var(--t3)}
+.fd-cell-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);font-weight:700}
+.fd-cell-val{font-size:16px;font-weight:800;margin-top:2px;line-height:1.2}
+.fd-cell-sub{font-family:var(--mono);font-size:9.5px;color:var(--t2);margin-top:3px}
+.fd-gauge{height:4px;background:var(--bg4);border-radius:3px;margin-top:5px;overflow:hidden}
 .fd-gauge>i{display:block;height:100%;border-radius:3px}
+.fd-spark{margin-top:5px;opacity:.9}
 
-/* ── Two-column desk ── */
-.fd-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:var(--gap);align-items:start}
+.fd-match{background:var(--bg2);border:2px solid var(--accent);border-radius:var(--r);padding:12px 14px;margin-bottom:var(--gap);box-shadow:0 0 0 1px rgba(91,176,255,.15)}
+.fd-match.stay{border-color:var(--bear);box-shadow:0 0 0 1px rgba(255,77,77,.15)}
+.fd-match-hd{font-family:var(--mono);font-size:10px;color:var(--accent);font-weight:800;margin-bottom:6px}
+.fd-match.stay .fd-match-hd{color:var(--bear)}
+.fd-match-body{font-size:14px;font-weight:800}
+.fd-match-sub{font-family:var(--mono);font-size:10px;color:var(--t2);margin-top:5px;line-height:1.45}
+.fd-cf{margin-top:8px;padding:8px 10px;background:rgba(212,137,44,.08);border:1px solid rgba(212,137,44,.25);border-radius:var(--rs);font-family:var(--mono);font-size:10px;color:var(--warn)}
+
+.fd-layout{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(0,1.1fr);gap:var(--gap);align-items:start}
 @media(max-width:1100px){.fd-layout{grid-template-columns:1fr}}
+.fd-sticky{position:sticky;top:calc(var(--sticky-top) + 8px)}
+@media(max-width:1100px){.fd-sticky{position:static}}
 
 .fd-section{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:var(--gap);overflow:hidden}
-.fd-sec-head{
-  display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid var(--b1);
-  background:var(--bg3);
-}
-.fd-sec-head h2{font-size:12.5px;font-weight:800;flex:1;margin:0}
-.fd-sec-go{font-size:10.5px;font-weight:700;color:var(--t3);text-decoration:none;padding:3px 8px;border:1px solid var(--b1);border-radius:5px}
+.fd-sec-head{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--b1);background:var(--bg3)}
+.fd-sec-head h2{font-size:12px;font-weight:800;flex:1;margin:0}
+.fd-sec-go{font-size:10px;font-weight:700;color:var(--t3);text-decoration:none;padding:3px 8px;border:1px solid var(--b1);border-radius:5px}
 .fd-sec-go:hover{color:var(--accent);border-color:var(--accent)}
 .fd-sec-body{padding:10px 12px}
 
-/* Market row */
 .fd-mkt{display:flex;flex-wrap:wrap;gap:8px}
-.fd-mkt-cell{flex:1 1 88px;background:var(--bg4);border:1px solid var(--b1);border-radius:var(--rs);padding:8px 10px}
+.fd-mkt-cell{flex:1 1 85px;background:var(--bg4);border:1px solid var(--b1);border-radius:var(--rs);padding:8px}
 .fd-mkt-lbl{font-family:var(--mono);font-size:9px;color:var(--t3);font-weight:700}
-.fd-mkt-val{font-size:15px;font-weight:800;margin-top:2px}
-.fd-mkt-chg{font-family:var(--mono);font-size:10.5px;font-weight:700;margin-top:2px}
+.fd-mkt-val{font-size:14px;font-weight:800;margin-top:2px}
+.fd-mkt-chg{font-family:var(--mono);font-size:10px;font-weight:700;margin-top:2px}
 .fd-mkt-chg.up{color:var(--bull)}.fd-mkt-chg.down{color:var(--bear)}
-.fd-tone{flex:1 1 100%;font-family:var(--mono);font-size:11px;color:var(--t2);padding-top:2px}
-
-/* Flags + mods */
-.fd-flags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
-.fd-flag{font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 7px;border-radius:5px;border:1px solid var(--b1);background:var(--bg3)}
-.fd-flag.ok{color:var(--bull);border-color:rgba(34,214,107,.35)}
-.fd-flag.warn{color:var(--warn);border-color:rgba(212,137,44,.35)}
-.fd-flag.bear{color:var(--bear);border-color:rgba(255,77,77,.35)}
+.fd-tone{flex:1 1 100%;font-family:var(--mono);font-size:10.5px;color:var(--t2)}
 .fd-mods{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.fd-mod{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:5px;background:rgba(91,176,255,.1);color:var(--accent);border:1px solid rgba(91,176,255,.22)}
+.fd-mod{font-family:var(--mono);font-size:9px;padding:3px 7px;border-radius:5px;background:rgba(91,176,255,.1);color:var(--accent);border:1px solid rgba(91,176,255,.2)}
 
-/* Mini grid context */
 .fd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-@media(max-width:550px){.fd-grid{grid-template-columns:1fr}}
-.fd-kv{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rs);padding:8px 9px}
-.fd-kv .k{font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em}
-.fd-kv .v{font-size:12px;font-weight:700;margin-top:3px;word-break:break-word}
+.fd-kv{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rs);padding:8px}
+.fd-kv .k{font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase}
+.fd-kv .v{font-size:11.5px;font-weight:700;margin-top:3px}
 
-/* Sector */
 .fd-sect-grp{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--t3);margin:6px 0 4px}
 .fd-chips{display:flex;flex-wrap:wrap;gap:5px}
 .fd-chip{font-family:var(--mono);font-size:10px;padding:4px 7px;border-radius:5px;background:var(--bg4);border:1px solid var(--b1)}
@@ -135,69 +134,64 @@ a{color:inherit}
 .fd-chip-reg{display:inline-block;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:800;margin-bottom:6px}
 .fd-chip-reg.on{background:rgba(34,214,107,.12);color:var(--bull);border:1px solid rgba(34,214,107,.35)}
 .fd-chip-reg.off{background:rgba(255,77,77,.12);color:var(--bear);border:1px solid rgba(255,77,77,.35)}
-.fd-chip-reg.neut{background:rgba(163,173,193,.12);color:var(--t2);border:1px solid var(--b1)}
+.fd-chip-reg.neut{background:rgba(163,173,193,.1);color:var(--t2);border:1px solid var(--b1)}
 
-/* Reasons */
-.fd-reasons{list-style:none;font-size:12.5px;color:var(--t2);line-height:1.5}
-.fd-reasons li{padding:5px 0;border-bottom:1px solid rgba(42,50,71,.4)}
-.fd-reasons li:last-child{border-bottom:none}
-.fd-guards{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
-.fd-guard{font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:6px;background:rgba(255,77,77,.12);color:var(--bear);border:1px solid rgba(255,77,77,.25)}
+.fd-reasons{list-style:none;font-size:12px;color:var(--t2);line-height:1.5}
+.fd-reasons li{padding:4px 0;border-bottom:1px solid rgba(42,50,71,.35)}
+.fd-guards{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.fd-guard{font-family:var(--mono);font-size:9px;padding:4px 7px;border-radius:5px;background:rgba(255,77,77,.1);color:var(--bear);border:1px solid rgba(255,77,77,.22)}
 
-/* Rules (playbook column) */
-.fd-rule{
-  display:flex;gap:8px;padding:9px 10px;border:1px solid var(--b1);border-radius:var(--rs);
-  margin-bottom:7px;background:var(--bg3);font-size:11.5px;align-items:flex-start;
-  transition:border-color .15s var(--ease);
-}
-.fd-rule.on{border-color:var(--accent);box-shadow:0 0 0 1px rgba(91,176,255,.25)}
-.fd-rule.pass:not(.on){border-color:rgba(34,214,107,.22)}
-.fd-rule.fail{opacity:.78}
-.fd-rule .ord{font-family:var(--mono);color:var(--t3);width:20px;flex-shrink:0;font-size:10px}
-.fd-rule .acts{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
-.fd-rule .acts button{background:var(--bg2);border:1px solid var(--b1);color:var(--t2);width:24px;height:20px;border-radius:4px;cursor:pointer;font-size:9px}
-.fd-badge{font-family:var(--mono);font-size:8px;padding:2px 5px;border-radius:4px;margin-left:5px;vertical-align:middle}
+.fd-rule{display:flex;gap:8px;padding:8px 9px;border:1px solid var(--b1);border-radius:var(--rs);margin-bottom:6px;background:var(--bg3);font-size:11px;align-items:flex-start}
+.fd-rule.on{border-color:var(--accent);background:rgba(91,176,255,.06)}
+.fd-rule.fail{opacity:.75}
+.fd-rule .ord{font-family:var(--mono);color:var(--t3);width:18px;font-size:9px}
+.fd-rule .acts{display:flex;flex-direction:column;gap:2px}
+.fd-rule .acts button{background:var(--bg2);border:1px solid var(--b1);color:var(--t2);width:22px;height:18px;border-radius:3px;cursor:pointer;font-size:8px}
+.fd-badge{font-family:var(--mono);font-size:8px;padding:2px 5px;border-radius:4px;margin-left:4px}
 .fd-badge.ok{background:rgba(34,214,107,.15);color:var(--bull)}
-.fd-badge.no{background:rgba(255,77,77,.12);color:var(--bear)}
+.fd-badge.no{background:rgba(255,77,77,.1);color:var(--bear)}
 .fd-badge.hit{background:rgba(91,176,255,.2);color:var(--accent)}
 
-/* Settings */
-.chkrow{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--t2);margin:6px 0}
-textarea{width:100%;min-height:140px;background:var(--bg3);border:1px solid var(--b1);color:var(--t1);font-family:var(--mono);font-size:11px;padding:10px;border-radius:var(--rs)}
-.btn{
-  background:linear-gradient(135deg,var(--accent),#7ec4ff);border:none;color:#0a1020;
-  padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer;font-family:inherit;font-size:11.5px;
-}
-.btn.sm{padding:6px 10px;font-size:11px}
+.mode-morning .fd-deep-only{display:none!important}
+.mode-morning .fd-rule:not(.on){display:none}
+.mode-morning .fd-rules-more{display:block;font-family:var(--mono);font-size:10px;color:var(--t3);text-align:center;padding:6px;cursor:pointer}
+
+.chkrow{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--t2);margin:5px 0}
+textarea{width:100%;min-height:120px;background:var(--bg3);border:1px solid var(--b1);color:var(--t1);font-family:var(--mono);font-size:11px;padding:8px;border-radius:var(--rs)}
+.btn{background:linear-gradient(135deg,var(--accent),#7ec4ff);border:none;color:#0a1020;padding:7px 12px;border-radius:var(--rs);font-weight:800;cursor:pointer;font-family:inherit;font-size:11px}
+.btn.sm{padding:5px 10px;font-size:10px}
 .btn.ghost{background:var(--bg3);color:var(--t2);border:1px solid var(--b1)}
 .btn-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.note{font-family:var(--mono);font-size:10px;color:var(--t3);line-height:1.5;margin-top:8px}
-details summary{cursor:pointer;font-size:12px;font-weight:700;margin-bottom:8px;color:var(--t2)}
+.note{font-family:var(--mono);font-size:10px;color:var(--t3);line-height:1.5;margin-top:6px}
+details summary{cursor:pointer;font-size:11px;font-weight:700;color:var(--t2)}
 
-/* Sources footer */
-.fd-foot{
-  margin-top:4px;padding:10px 12px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
-}
-.fd-foot-hd{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:6px}
+.fd-foot{margin-top:4px;padding:10px 12px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r)}
+.fd-foot-hd{display:flex;flex-wrap:wrap;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--t3);margin-bottom:5px}
 .fd-srcs{display:flex;flex-wrap:wrap;gap:5px}
-.fd-src{font-family:var(--mono);font-size:9px;padding:4px 8px;border-radius:5px;background:var(--bg3);border:1px solid var(--b1);text-decoration:none;color:var(--t2)}
+.fd-src{font-family:var(--mono);font-size:9px;padding:4px 7px;border-radius:5px;background:var(--bg3);border:1px solid var(--b1);text-decoration:none;color:var(--t2)}
 .fd-src.fresh{border-color:rgba(34,214,107,.3);color:var(--bull)}
 .fd-src.aging{border-color:rgba(212,137,44,.3);color:var(--warn)}
 .fd-src.stale,.fd-src.missing{border-color:rgba(255,77,77,.25);color:var(--bear)}
-
 .ok{color:var(--bull)}.warn{color:var(--warn)}.bear{color:var(--bear)}
+@media(prefers-reduced-motion:reduce){.fd-go-fill,.fd-tl-dot,.fd-act{transition:none}}
 </style>
 </head>
 <body>
+<div class="fd-wrap mode-morning" id="fdWrap">
 
 <header class="fd-top">
-  <h1>🧭 Regime Router <span class="fd-ver">Front Desk · v4</span></h1>
+  <h1>🧭 Regime Router <span class="fd-ver">Pro Desk · v5</span></h1>
+  <span class="fd-pill live" id="fdLive">live</span>
   <nav class="fd-nav">
-    <button class="fd-link primary" id="btnEval">🔄 Re-evaluează</button>
-    <a class="fd-link" href="../governor/">🛑 Governor</a>
-    <a class="fd-link" href="../macro-dashboard/">🌍 Macro</a>
-    <a class="fd-link" href="../journal/">📓 Journal</a>
-    <a class="fd-link" href="../">← Hub</a>
+    <div class="fd-mode">
+      <button type="button" id="modeMorning" class="on">☀️ Morning</button>
+      <button type="button" id="modeDeep">🔬 Deep</button>
+    </div>
+    <button class="fd-link primary" id="btnEval">🔄</button>
+    <a class="fd-link" href="../governor/">Governor</a>
+    <a class="fd-link" href="../macro-dashboard/">Macro</a>
+    <a class="fd-link" href="../journal/">Journal</a>
+    <a class="fd-link" href="../">Hub</a>
   </nav>
 </header>
 
@@ -205,125 +199,122 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;margin-bottom:8px;
 
 <section class="fd-hero" id="fdHero">
   <div>
-    <div class="fd-hero-lbl">☀️ PLANUL DE EXECUȚIE · ET <span id="fdClock">—</span></div>
+    <div class="fd-hero-lbl">PLAN EXECUȚIE · <span id="fdClock">—</span></div>
     <div class="fd-hero-strat" id="fdStrat">—</div>
+    <div class="fd-hero-rule" id="fdRuleLine">—</div>
     <div class="fd-hero-meta" id="fdMeta">—</div>
+    <div class="fd-blockers" id="fdBlockers"></div>
   </div>
   <div class="fd-go">
     <div class="fd-go-num" id="fdGoNum">—</div>
-    <div class="fd-go-lbl" id="fdGoLbl">GO Score</div>
-    <div class="fd-go-track"><div class="fd-go-fill" id="fdGoFill" style="width:0"></div></div>
+    <div class="fd-go-lbl" id="fdGoLbl">GO</div>
+    <div class="fd-go-track"><div class="fd-go-fill" id="fdGoFill"></div></div>
   </div>
 </section>
 
+<div class="fd-timeline" id="fdTimeline"></div>
+<div class="fd-actions" id="fdActions"></div>
 <div class="fd-cmd" id="fdCmd"></div>
 
+<div class="fd-match" id="fdMatch"></div>
+
 <div class="fd-layout">
-  <main class="fd-main">
+  <aside class="fd-side fd-sticky">
     <section class="fd-section">
-      <div class="fd-sec-head">
-        <h2>📈 Piața &amp; tape</h2>
-        <a class="fd-sec-go" href="../">Hub quotes →</a>
-      </div>
-      <div class="fd-sec-body" id="fdMarket"></div>
-    </section>
-
-    <section class="fd-section">
-      <div class="fd-sec-head">
-        <h2>🛡 Regim · Danger · Macro</h2>
-        <a class="fd-sec-go" href="../macro-dashboard/">Macro →</a>
-      </div>
-      <div class="fd-sec-body" id="fdRisk"></div>
-    </section>
-
-    <section class="fd-section">
-      <div class="fd-sec-head">
-        <h2>🔄 Sector rotation</h2>
-        <a class="fd-sec-go" href="../sector-rotation/">Scan →</a>
-      </div>
-      <div class="fd-sec-body" id="fdSector"></div>
-    </section>
-
-    <section class="fd-section">
-      <div class="fd-sec-head"><h2>📋 De ce acest plan</h2></div>
-      <div class="fd-sec-body">
-        <div class="fd-guards" id="fdGuards"></div>
-        <ul class="fd-reasons" id="fdReasons"></ul>
-      </div>
-    </section>
-  </main>
-
-  <aside class="fd-side">
-    <section class="fd-section">
-      <div class="fd-sec-head">
-        <h2>📜 Playbook · audit</h2>
-        <span style="font-family:var(--mono);font-size:10px;color:var(--t3)">sus → jos</span>
-      </div>
+      <div class="fd-sec-head"><h2>📜 Playbook</h2><span style="font-family:var(--mono);font-size:9px;color:var(--t3)">audit</span></div>
       <div class="fd-sec-body">
         <div id="fdRules"></div>
+        <div class="fd-rules-more fd-deep-only" id="btnShowDeep" style="display:none">+ reguli ascunse · apasă Deep mode</div>
         <div class="btn-row">
-          <button class="btn sm" id="btnAddRule">＋ Regulă</button>
-          <button class="btn sm ghost" id="btnReset">↺ Default</button>
+          <button class="btn sm" id="btnAddRule">＋</button>
+          <button class="btn sm ghost" id="btnReset">↺</button>
         </div>
       </div>
     </section>
-
-    <section class="fd-section">
-      <div class="fd-sec-head"><h2>⚙ Guards globale</h2></div>
+    <section class="fd-section fd-deep-only">
+      <div class="fd-sec-head"><h2>⚙ Guards</h2></div>
       <div class="fd-sec-body">
-        <label class="chkrow"><input type="checkbox" id="setEarn"> Earnings watchlist → STAY OUT</label>
-        <label class="chkrow"><input type="checkbox" id="setMacro"> Macro high-impact freeze</label>
-        <button class="btn sm" id="btnSaveSettings">💾 Salvează</button>
-        <p class="note">Sesiune: pre ×0.55 · RTH ×1 · after ×0.65. Override disciplinar: tag <code>broke-rules</code> în journal.</p>
+        <label class="chkrow"><input type="checkbox" id="setEarn"> Earnings → STAY OUT</label>
+        <label class="chkrow"><input type="checkbox" id="setMacro"> Macro freeze</label>
+        <button class="btn sm" id="btnSaveSettings">💾</button>
       </div>
     </section>
-
-    <section class="fd-section">
+    <section class="fd-section fd-deep-only">
       <div class="fd-sec-body">
-        <details>
-          <summary>Playbook JSON (avansat)</summary>
-          <textarea id="rulesJson"></textarea>
-          <button class="btn sm" id="btnSave">💾 Salvează JSON</button>
-        </details>
+        <details><summary>JSON avansat</summary><textarea id="rulesJson"></textarea><button class="btn sm" id="btnSave">💾 JSON</button></details>
       </div>
     </section>
   </aside>
+
+  <main class="fd-main fd-deep-only" id="fdMain">
+    <section class="fd-section">
+      <div class="fd-sec-head"><h2>📈 Piață</h2><a class="fd-sec-go" href="../">Hub →</a></div>
+      <div class="fd-sec-body" id="fdMarket"></div>
+    </section>
+    <section class="fd-section">
+      <div class="fd-sec-head"><h2>🛡 Regim · Macro</h2><a class="fd-sec-go" href="../macro-dashboard/">→</a></div>
+      <div class="fd-sec-body" id="fdRisk"></div>
+    </section>
+    <section class="fd-section">
+      <div class="fd-sec-head"><h2>🔄 Sectoare</h2><a class="fd-sec-go" href="../sector-rotation/">→</a></div>
+      <div class="fd-sec-body" id="fdSector"></div>
+    </section>
+    <section class="fd-section">
+      <div class="fd-sec-head"><h2>📋 Motive complete</h2></div>
+      <div class="fd-sec-body">
+        <div class="fd-guards" id="fdGuards"></div>
+        <ul class="fd-reasons" id="fdReasons"></ul>
+        <p class="note">Router = playbook disciplinar, nu semnal de intrare. Verifică setup-ul pe chart înainte de execuție.</p>
+      </div>
+    </section>
+  </main>
 </div>
 
-<footer class="fd-foot">
-  <div class="fd-foot-hd"><span>📡 Surse date</span><span>verde = proaspăt · galben = învechit · roșu = stale</span></div>
+<footer class="fd-foot fd-deep-only">
+  <div class="fd-foot-hd"><span>Surse</span><span id="fdUpdated">—</span></div>
   <div class="fd-srcs" id="fdSources"></div>
 </footer>
+</div>
 
 <script src="../lib/journal.js?v=6"></script>
 <script src="../lib/governor.js?v=2"></script>
-<script src="../lib/router.js?v=4"></script>
+<script src="../lib/router.js?v=5"></script>
 <script>
 (function(){
 'use strict';
+const UI_KEY = 'tt_router_ui_v1';
 const $ = id => document.getElementById(id);
 const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
+function loadUi(){
+  try { return JSON.parse(localStorage.getItem(UI_KEY) || '{"mode":"morning"}'); }
+  catch(e){ return { mode: 'morning' }; }
+}
+function saveUi(o){ try { localStorage.setItem(UI_KEY, JSON.stringify(o)); } catch(e){} }
+function setMode(mode){
+  const w = $('fdWrap');
+  w.className = 'fd-wrap mode-' + mode;
+  $('modeMorning').className = mode === 'morning' ? 'on' : '';
+  $('modeDeep').className = mode === 'deep' ? 'on' : '';
+  saveUi({ mode });
+}
+
 function fmtWhen(w){
   const p = [];
-  if (w.regim) p.push('regim ' + JSON.stringify(w.regim));
+  if (w.regim) p.push(JSON.stringify(w.regim));
   if (w.session) p.push(w.session.join(','));
-  if (w.dangerMin != null || w.dangerMax != null) p.push('D ' + (w.dangerMin??'—') + '–' + (w.dangerMax??'—'));
-  if (w.macroHigh) p.push('macro');
-  if (w.earningsToday) p.push('earn');
-  if (w.sectorRot) p.push('sector');
-  return p.join(' · ') || '*';
+  if (w.dangerMin != null || w.dangerMax != null) p.push('D'+(w.dangerMin??'')+'-'+(w.dangerMax??''));
+  return p.join('·') || '*';
 }
 function fmtPct(x, inv){
-  if (x == null) return '—';
+  if (x == null) return '<span style="color:var(--t3)">—</span>';
   const up = x >= 0;
   const cls = inv ? (up ? 'down' : 'up') : (up ? 'up' : 'down');
-  return '<span class="fd-mkt-chg ' + cls + '">' + (up ? '+' : '') + x.toFixed(2) + '%</span>';
+  return '<span class="fd-mkt-chg '+cls+'">'+(up?'+':'')+x.toFixed(2)+'%</span>';
 }
 function fmtUsd(n){
   if (n == null || isNaN(n)) return '—';
-  const cls = n >= 0 ? 'ok' : 'bear';
-  return '<span class="' + cls + '">' + (n >= 0 ? '+' : '') + '$' + n.toFixed(2) + '</span>';
+  return '<span class="'+(n>=0?'ok':'bear')+'">'+(n>=0?'+':'')+'$'+n.toFixed(2)+'</span>';
 }
 function barCol(s){
   if (s == null) return 'var(--t3)';
@@ -334,168 +325,171 @@ function barCol(s){
 }
 function padTime(d){
   try {
-    const p = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false, hour:'2-digit', minute:'2-digit' })
-      .formatToParts(d).reduce((o,x)=>(o[x.type]=x.value,o),{});
+    const p = new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',hour12:false,hour:'2-digit',minute:'2-digit'}).formatToParts(d).reduce((o,x)=>(o[x.type]=x.value,o),{});
     return String(parseInt(p.hour,10)%24).padStart(2,'0')+':'+String(parseInt(p.minute,10)).padStart(2,'0');
   } catch(e){ return '?'; }
 }
-function cmdCell(lbl, val, sub, lvl, gauge){
-  return '<div class="fd-cell lvl-' + (lvl||'neut') + '">' +
-    '<div class="fd-cell-lbl">' + esc(lbl) + '</div>' +
-    '<div class="fd-cell-val">' + val + '</div>' +
-    (sub ? '<div class="fd-cell-sub">' + sub + '</div>' : '') +
-    (gauge != null ? '<div class="fd-gauge"><i style="width:' + gauge + '%;background:' + barCol(gauge) + '"></i></div>' : '') +
-  '</div>';
+function cmdCell(lbl, val, sub, lvl, gauge, spark){
+  return '<div class="fd-cell lvl-'+(lvl||'neut')+'"><div class="fd-cell-lbl">'+esc(lbl)+'</div><div class="fd-cell-val">'+val+'</div>'+
+    (sub?'<div class="fd-cell-sub">'+sub+'</div>':'')+
+    (gauge!=null?'<div class="fd-gauge"><i style="width:'+gauge+'%;background:'+barCol(gauge)+'"></i></div>':'')+
+    (spark||'')+'</div>';
+}
+
+function renderTimeline(tl){
+  if (!tl) return;
+  const segs = ['pre','open','after','closed'].map(id => {
+    const on = tl.active === id || (id === 'closed' && (tl.active === 'closed' || tl.active === 'weekend'));
+    return '<div class="fd-tl-seg '+id+(on?' on':'')+'"></div>';
+  }).join('');
+  $('fdTimeline').innerHTML =
+    '<div class="fd-tl-lbl"><span>Sesiune ET</span><span>'+esc(tl.untilLabel||'')+' · '+esc(tl.countdown||'')+'</span></div>'+
+    '<div class="fd-tl-track">'+segs+'<div class="fd-tl-dot" style="left:'+(tl.marker||0)+'%"></div></div>'+
+    '<div class="fd-tl-tags"><span>04:00</span><span>09:30</span><span>16:00</span><span>20:00</span></div>';
+}
+
+function renderActions(actions){
+  $('fdActions').innerHTML = (actions||[]).map(a => {
+    const cls = 'fd-act'+(a.primary?' primary':'')+(a.warn?' warn':'')+(a.stale?' stale':'')+(a.ghost?'':'');
+    if (a.copy){
+      return '<button type="button" class="'+cls+'" data-copy="'+esc(a.copy)+'">'+esc(a.label)+(a.sub?'<span class="sub">'+esc(a.sub)+'</span>':'')+'</button>';
+    }
+    return '<a class="'+cls+'" href="'+(a.href||'#')+'">'+esc(a.label)+(a.sub?'<span class="sub">'+esc(a.sub)+'</span>':'')+'</a>';
+  }).join('');
+  $('fdActions').querySelectorAll('[data-copy]').forEach(b => {
+    b.onclick = () => {
+      const txt = b.dataset.copy;
+      const done = () => { const lbl = b.querySelector('.sub'); b.childNodes[0].textContent = '✓ Copiat preset'; setTimeout(() => { b.childNodes[0].textContent = txt.split('·')[0].trim() || '📊 Preset'; }, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done).catch(() => alert(txt));
+      else alert(txt);
+    };
+  });
 }
 
 function renderDesk(p, c){
   const stay = p.strategy === 'STAY OUT';
   const sd = c.sessionDetail || {};
-  const mf = c.macroFreeze || {};
   const gd = c.governorDetail || {};
   const db = c.dangerBand || {};
 
-  $('fdClock').textContent = (sd.timeET || '—') + ' · ' + (c.weekday || '');
-  $('fdHero').className = 'fd-hero' + (stay ? ' stay' : '');
+  $('fdClock').textContent = (sd.timeET||'—')+' · '+(c.weekday||'')+' · '+(c.day||'');
+  $('fdLive').textContent = '● '+new Date(p.evaluatedAt||Date.now()).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+  $('fdUpdated').textContent = 'eval '+new Date(p.evaluatedAt||Date.now()).toLocaleString('ro-RO');
+
+  $('fdHero').className = 'fd-hero'+(stay?' stay':'');
   $('fdStrat').textContent = p.strategy;
-  $('fdMeta').textContent = [
-    p.goLabel,
-    '×' + p.sizingMult + ' sizing',
-    'max ' + p.maxTrades + ' trades',
-    p.presetLabel || p.preset,
-    p.chartHints
-  ].filter(Boolean).join(' · ');
+  $('fdRuleLine').textContent = p.ruleOrder ? ('Regulă #'+p.ruleOrder+(p.matchedNote?' · '+p.matchedNote:'')) : 'Fără regulă matched';
+  $('fdMeta').textContent = [p.goLabel,'×'+p.sizingMult,'max '+p.maxTrades+' trades',p.presetLabel,p.chartHints].filter(Boolean).join(' · ');
+
+  $('fdBlockers').innerHTML = (p.blockers||[]).map(b => '<span class="fd-block '+esc(b.cls)+'">'+esc(b.text)+'</span>').join('');
 
   $('fdGoNum').textContent = p.goScore;
-  $('fdGoNum').className = 'fd-go-num ' + (p.goCls || 'caution');
-  $('fdGoLbl').textContent = p.goLabel + ' · GO ' + p.goScore;
-  const gCol = p.goCls === 'go' ? 'var(--bull)' : p.goCls === 'caution' ? 'var(--warn)' : 'var(--bear)';
-  $('fdGoFill').style.width = (p.goScore || 0) + '%';
+  $('fdGoNum').className = 'fd-go-num '+(p.goCls||'caution');
+  $('fdGoLbl').textContent = p.goLabel+' · '+p.goScore+'/100';
+  const gCol = p.goCls==='go'?'var(--bull)':p.goCls==='caution'?'var(--warn)':'var(--bear)';
+  $('fdGoFill').style.width = (p.goScore||0)+'%';
   $('fdGoFill').style.background = gCol;
 
-  const freeze = $('fdFreeze');
-  if (mf.message){
-    freeze.className = 'fd-freeze ' + (mf.active ? 'red' : 'amber');
-    freeze.textContent = (mf.active ? '🚫 ' : '⏳ ') + mf.message;
-    freeze.style.display = 'block';
-  } else { freeze.style.display = 'none'; }
+  const mf = c.macroFreeze||{};
+  const fr = $('fdFreeze');
+  if (mf.message){ fr.className='fd-freeze '+(mf.active?'red':'amber'); fr.textContent=(mf.active?'🚫 ':'⏳ ')+mf.message; fr.style.display='block'; }
+  else fr.style.display='none';
 
-  const sessLvl = c.session === 'open' ? 'ok' : (c.session === 'pre' || c.session === 'after') ? 'warn' : 'neut';
-  const regLvl = c.regimeNorm === 'risk-on' ? 'ok' : (c.regimeNorm === 'risk-off' ? 'bear' : 'warn');
-  const govLvl = c.governor === 'HALTED' ? 'bear' : c.governor === 'CAUTION' ? 'warn' : 'ok';
+  renderTimeline(p.timeline);
+  renderActions(p.actions);
+
+  const sessLvl = c.session==='open'?'ok':(c.session==='pre'||c.session==='after')?'warn':'neut';
+  const regLvl = c.regimeNorm==='risk-on'?'ok':c.regimeNorm==='risk-off'?'bear':'warn';
+  const govLvl = c.governor==='HALTED'?'bear':c.governor==='CAUTION'?'warn':'ok';
+  const j = c.journal||{};
   $('fdCmd').innerHTML =
-    cmdCell('Sesiune ET', esc(c.sessionLabel), (sd.untilLabel || '') + ' · ' + (sd.countdown || '—'), sessLvl) +
-    cmdCell('Regim macro', esc(c.regime), (c.composite != null ? 'comp ' + (c.composite >= 0 ? '+' : '') + c.composite.toFixed(1) : '—') + (c.regimeStreak ? ' · ' + c.regimeStreak + 'd streak' : ''), regLvl) +
-    cmdCell('Danger', c.danger != null ? c.danger + '<span style="font-size:12px;color:var(--t3)">/100</span>' : '—', esc(db.label || '—') + (c.dangerDelta != null ? ' · ' + (c.dangerDelta > 0 ? '+' : '') + c.dangerDelta + ' vs ieri' : ''), c.danger >= 70 ? 'bear' : c.danger >= 45 ? 'warn' : 'ok', c.danger) +
-    cmdCell('Governor', esc(c.governor || '—'), fmtUsd(gd.todayPnl) + ' · ' + (c.tradesRemaining != null ? c.tradesRemaining + ' trades rămase' : '—'), govLvl);
+    cmdCell('Sesiune', esc(c.sessionLabel), sd.countdown||'—', sessLvl) +
+    cmdCell('Regim', esc(c.regime), (c.composite!=null?(c.composite>=0?'+':'')+c.composite.toFixed(1):'—'), regLvl) +
+    cmdCell('Danger', c.danger!=null?c.danger+'<span style="font-size:11px;color:var(--t3)">/100</span>':'—', esc(db.label||'')+(c.dangerDelta!=null?' · '+(c.dangerDelta>0?'+':'')+c.dangerDelta:'') , c.danger>=70?'bear':c.danger>=45?'warn':'ok', c.danger, p.dangerSpark?'<div class="fd-spark">'+p.dangerSpark+'</div>':'') +
+    cmdCell('Governor', esc(c.governor||'—'), (c.tradesRemaining!=null?c.tradesRemaining+' left':'—'), govLvl) +
+    cmdCell('Journal', String(j.closed||0)+' / '+String(j.open||0), fmtUsd(j.todayPnl), 'neut');
 
-  const flags = (c.flags || []).map(f => '<span class="fd-flag ' + esc(f.cls) + '">' + esc(f.text) + '</span>').join('');
-  const fp = p => p >= 1000 ? '$' + p.toFixed(0) : '$' + p.toFixed(2);
-  const mktNote = !(c.market && c.market.source)
-    ? '<div class="note">Deschide Hub o dată ca să populezi SPY/QQQ/VIX (cache local).</div>' : '';
-  $('fdMarket').innerHTML = (flags ? '<div class="fd-flags">' + flags + '</div>' : '') +
-    '<div class="fd-mkt">' +
-      '<div class="fd-mkt-cell"><div class="fd-mkt-lbl">SPY</div><div class="fd-mkt-val">' + (c.spyPrice != null ? fp(c.spyPrice) : '—') + '</div>' + fmtPct(c.spyChg, false) + '</div>' +
-      '<div class="fd-mkt-cell"><div class="fd-mkt-lbl">QQQ</div><div class="fd-mkt-val">' + (c.qqqPrice != null ? fp(c.qqqPrice) : '—') + '</div>' + fmtPct(c.qqqChg, false) + '</div>' +
-      '<div class="fd-mkt-cell"><div class="fd-mkt-lbl">VIX</div><div class="fd-mkt-val">' + (c.vixPrice != null ? c.vixPrice.toFixed(2) : '—') + '</div>' + fmtPct(c.vixChg, true) + '</div>' +
-      (c.marketTone ? '<div class="fd-tone">🌡️ ' + esc(c.marketTone.text) + (c.vixLevel ? ' · VIX ' + esc(c.vixLevel) : '') + (c.market && c.market.source ? ' · ' + esc(c.market.source) + (c.market.ageMin != null ? ' ' + c.market.ageMin + 'm' : '') : '') + '</div>' : '') +
-    '</div>' +
-    '<div class="fd-mods">' + [
-      c.dangerMultPreview != null && c.dangerMultPreview !== 1 ? 'danger ×' + c.dangerMultPreview : null,
-      c.sessionMultPreview != null && c.sessionMultPreview !== 1 ? 'sesiune ×' + c.sessionMultPreview : null,
-      'efectiv ×' + p.sizingMult
-    ].filter(Boolean).map(m => '<span class="fd-mod">' + esc(m) + '</span>').join('') + '</div>' + mktNote;
+  const m = $('fdMatch');
+  m.className = 'fd-match'+(stay?' stay':'');
+  let matchHtml = '<div class="fd-match-hd">'+(stay?'⛔ EXECUȚIE BLOCATĂ':'✅ REGULA ACTIVĂ')+'</div>'+
+    '<div class="fd-match-body">'+esc(p.strategy)+'</div>'+
+    '<div class="fd-match-sub">#'+(p.ruleOrder||'?')+' · ×'+p.sizingMult+' · '+p.maxTrades+' trades max · '+esc(p.presetLabel||'')+'</div>';
+  if (p.counterfactual){
+    matchHtml += '<div class="fd-cf">Fără guards: #'+p.counterfactual.ruleOrder+' → '+esc(p.counterfactual.strategy)+' (×'+(p.counterfactual.sizingMult||'?')+')</div>';
+  }
+  m.innerHTML = matchHtml;
 
-  const macroList = (c.macroEvents || []).length
-    ? (c.macroEvents || []).map(e => '<div class="fd-kv"><div class="k">HIGH · ' + padTime(e.d) + ' ET</div><div class="v warn">' + esc(e.event) + '</div></div>').join('')
-    : '<div class="note">Niciun macro high-impact azi.</div>';
-  const earnTxt = c.earningsWlToday
-    ? '<span class="warn">' + c.earningsWlToday + ' · ' + esc((c.earningsSymbols||[]).join(', ')) + '</span>'
-    : '<span class="ok">0 ticker(e)</span>';
-  $('fdRisk').innerHTML = '<div class="fd-grid">' +
-    '<div class="fd-kv"><div class="k">Regim normalizat</div><div class="v">' + esc(c.regimeNorm) + '</div></div>' +
-    '<div class="fd-kv"><div class="k">Vârstă regim</div><div class="v">' + (c.regimeAgeMin != null ? c.regimeAgeMin + 'm' : '—') + '</div></div>' +
-    '<div class="fd-kv"><div class="k">Earnings WL azi</div><div class="v">' + earnTxt + '</div></div>' +
-    '<div class="fd-kv"><div class="k">Journal azi</div><div class="v">' + (c.journal ? c.journal.closed + ' închise · ' + c.journal.open + ' deschise' : '—') + '</div></div>' +
-    '</div><div style="margin-top:10px">' + macroList + '</div>';
+  const fp = v => v>=1000?'$'+v.toFixed(0):'$'+v.toFixed(2);
+  $('fdMarket').innerHTML = '<div class="fd-mkt">'+
+    '<div class="fd-mkt-cell"><div class="fd-mkt-lbl">SPY</div><div class="fd-mkt-val">'+(c.spyPrice!=null?fp(c.spyPrice):'—')+'</div>'+fmtPct(c.spyChg,false)+'</div>'+
+    '<div class="fd-mkt-cell"><div class="fd-mkt-lbl">QQQ</div><div class="fd-mkt-val">'+(c.qqqPrice!=null?fp(c.qqqPrice):'—')+'</div>'+fmtPct(c.qqqChg,false)+'</div>'+
+    '<div class="fd-mkt-cell"><div class="fd-mkt-lbl">VIX</div><div class="fd-mkt-val">'+(c.vixPrice!=null?c.vixPrice.toFixed(2):'—')+'</div>'+fmtPct(c.vixChg,true)+'</div>'+
+    (c.marketTone?'<div class="fd-tone">🌡️ '+esc(c.marketTone.text)+(c.market&&c.market.source?' · '+esc(c.market.source):'')+'</div>':'')+
+    '</div><div class="fd-mods">'+['danger ×'+p.dangerMult,'sesiune ×'+p.sessionMult,'efectiv ×'+p.sizingMult].map(x=>'<span class="fd-mod">'+x+'</span>').join('')+'</div>';
 
-  const rotCls = c.sectorRotationCls === 'on' ? 'on' : c.sectorRotationCls === 'off' ? 'off' : 'neut';
-  const chip = row => {
-    const w = typeof row.chg1w === 'number' ? (row.chg1w >= 0 ? '+' : '') + row.chg1w.toFixed(1) + '%' : '';
-    return '<span class="fd-chip ' + ((row.chg1w||0) >= 0 ? 'up' : 'down') + '">' + esc(row.sym) + (row.rs != null ? ' RS' + row.rs.toFixed(1) : '') + (w ? ' ' + w : '') + '</span>';
-  };
-  $('fdSector').innerHTML =
-    (c.sectorRotation ? '<span class="fd-chip-reg ' + rotCls + '">Rotație ' + esc(c.sectorRotation) + '</span>' : '') +
-    (c.sectorSpread != null ? '<span style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-left:6px">spread ' + (c.sectorSpread >= 0 ? '+' : '') + c.sectorSpread.toFixed(2) + '%</span>' : '') +
-    ((c.sectorLeaderRows || []).length
-      ? '<div class="fd-sect-grp">👑 Lideri</div><div class="fd-chips">' + c.sectorLeaderRows.map(chip).join('') + '</div>' +
-        ((c.sectorLaggardRows || []).length ? '<div class="fd-sect-grp">🐌 Codași</div><div class="fd-chips">' + c.sectorLaggardRows.map(chip).join('') + '</div>' : '') +
-        (c.sectorScanAgeH != null ? '<div class="note">Scan acum ' + Math.round(c.sectorScanAgeH) + 'h în urmă' + (c.sectorScanAgeH > 12 ? ' — refresh recomandat' : '') + '</div>' : '')
-      : '<div class="note">Fără scan salvat. Deschide <a href="../sector-rotation/" style="color:var(--accent)">Sector Rotation</a>.</div>');
+  const earnTxt = c.earningsWlToday?'<span class="warn">'+c.earningsWlToday+' · '+esc((c.earningsSymbols||[]).join(', '))+'</span>':'<span class="ok">0</span>';
+  $('fdRisk').innerHTML = '<div class="fd-grid">'+
+    '<div class="fd-kv"><div class="k">Norm</div><div class="v">'+esc(c.regimeNorm)+'</div></div>'+
+    '<div class="fd-kv"><div class="k">Streak</div><div class="v">'+(c.regimeStreak||'—')+'d</div></div>'+
+    '<div class="fd-kv"><div class="k">Earnings WL</div><div class="v">'+earnTxt+'</div></div>'+
+    '<div class="fd-kv"><div class="k">Macro</div><div class="v">'+(c.macroEvents&&c.macroEvents.length?c.macroEvents.map(e=>padTime(e.d)+' '+e.event).join(', '):'—')+'</div></div>'+
+    '</div>';
 
-  $('fdGuards').innerHTML = (p.guards || []).map(g => '<span class="fd-guard">🛡 ' + esc(g) + '</span>').join('');
-  $('fdReasons').innerHTML = (p.reasons || []).map(r => '<li>' + esc(r) + '</li>').join('') || '<li style="color:var(--t3)">—</li>';
+  const rotCls = c.sectorRotationCls==='on'?'on':c.sectorRotationCls==='off'?'off':'neut';
+  const chip = row => '<span class="fd-chip '+((row.chg1w||0)>=0?'up':'down')+'">'+esc(row.sym)+(row.rs!=null?' RS'+row.rs.toFixed(1):'')+'</span>';
+  $('fdSector').innerHTML = (c.sectorRotation?'<span class="fd-chip-reg '+rotCls+'">'+esc(c.sectorRotation)+'</span>':'')+
+    ((c.sectorLeaderRows||[]).length?'<div class="fd-sect-grp">Lideri</div><div class="fd-chips">'+c.sectorLeaderRows.map(chip).join('')+'</div>':'<div class="note">Fără scan sectorial.</div>');
 
-  const audit = p.audit || [];
-  $('fdRules').innerHTML = RT.rulesSummary().map(r => {
-    const a = audit.find(x => x.id === r.id) || {};
-    const hit = p.ruleId === r.id;
-    const cls = 'fd-rule' + (hit ? ' on' : '') + (a.match ? ' pass' : ' fail');
-    const badge = hit ? '<span class="fd-badge hit">MATCH</span>' : (a.match ? '<span class="fd-badge ok">OK</span>' : '<span class="fd-badge no">' + esc((a.fails||[]).join(',')) + '</span>');
-    return '<div class="' + cls + '"><span class="ord">#' + r.order + '</span><div style="flex:1"><b>' + esc(r.then.strategy) + '</b>' + badge +
-      '<div style="color:var(--t3);font-size:10px;margin-top:3px">' + esc(r.note) + '</div>' +
-      '<div style="color:var(--t3);font-size:9px;margin-top:2px;font-family:var(--mono)">' + esc(fmtWhen(r.when)) + '</div></div>' +
-      '<div class="acts"><button type="button" data-up="' + esc(r.id) + '">▲</button><button type="button" data-down="' + esc(r.id) + '">▼</button><button type="button" data-del="' + esc(r.id) + '" style="color:var(--bear)">✕</button></div></div>';
+  $('fdGuards').innerHTML = (p.guards||[]).map(g=>'<span class="fd-guard">🛡 '+esc(g)+'</span>').join('');
+  $('fdReasons').innerHTML = (p.reasons||[]).map(r=>'<li>'+esc(r)+'</li>').join('')||'<li style="color:var(--t3)">—</li>';
+
+  const audit = p.audit||[];
+  const rules = RT.rulesSummary();
+  const hidden = loadUi().mode === 'morning' ? rules.filter(r => r.id !== p.ruleId).length : 0;
+  $('fdRules').innerHTML = rules.map(r => {
+    const a = audit.find(x=>x.id===r.id)||{};
+    const hit = p.ruleId===r.id;
+    const cls = 'fd-rule'+(hit?' on':'')+(!hit && !a.match?' fail':'');
+    const badge = hit?'<span class="fd-badge hit">MATCH</span>':(a.match?'<span class="fd-badge ok">OK</span>':'<span class="fd-badge no">'+esc((a.fails||[]).join(','))+'</span>');
+    return '<div class="'+cls+'"><span class="ord">#'+r.order+'</span><div style="flex:1"><b>'+esc(r.then.strategy)+'</b>'+badge+
+      '<div style="color:var(--t3);font-size:9px;margin-top:2px">'+esc(r.note)+'</div></div>'+
+      '<div class="acts fd-deep-only"><button data-up="'+esc(r.id)+'">▲</button><button data-down="'+esc(r.id)+'">▼</button><button data-del="'+esc(r.id)+'">✕</button></div></div>';
   }).join('');
+  $('btnShowDeep').style.display = hidden > 0 ? 'block' : 'none';
+  $('btnShowDeep').textContent = '+'+hidden+' reguli · treci pe Deep mode';
 
-  $('fdRules').querySelectorAll('[data-up]').forEach(b => b.onclick = () => { RT.moveRule(b.dataset.up, 'up'); show(); loadRules(); });
-  $('fdRules').querySelectorAll('[data-down]').forEach(b => b.onclick = () => { RT.moveRule(b.dataset.down, 'down'); show(); loadRules(); });
-  $('fdRules').querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
-    if (confirm('Ștergi regula?')) { RT.removeRule(b.dataset.del); show(); loadRules(); }
-  });
+  $('fdRules').querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{RT.moveRule(b.dataset.up,'up');show();loadRules();});
+  $('fdRules').querySelectorAll('[data-down]').forEach(b=>b.onclick=()=>{RT.moveRule(b.dataset.down,'down');show();loadRules();});
+  $('fdRules').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{if(confirm('Ștergi?')){RT.removeRule(b.dataset.del);show();loadRules();}});
 
-  $('fdSources').innerHTML = (c.sources || []).map(s =>
-    '<a class="fd-src ' + esc(s.status) + '" href="' + esc(s.href) + '">' + esc(s.label) + ' · ' + esc(s.ageLabel || '—') + '</a>'
-  ).join('');
+  $('fdSources').innerHTML = (c.sources||[]).map(s=>'<a class="fd-src '+esc(s.status)+'" href="'+esc(s.href)+'">'+esc(s.label)+' · '+esc(s.ageLabel||'—')+'</a>').join('');
 }
 
 function show(){
   const p = RT.evaluate();
-  const c = p.context || RT.buildContext();
-  renderDesk(p, c);
+  renderDesk(p, p.context || RT.buildContext());
 }
 
 function loadSettings(){
-  const s = RT.load().settings || RT.DEFAULT_SETTINGS;
+  const s = RT.load().settings||RT.DEFAULT_SETTINGS;
   $('setEarn').checked = !!s.earningsGuard;
   $('setMacro').checked = !!s.macroFreezeHigh;
 }
 function loadRules(){ $('rulesJson').value = JSON.stringify(RT.load().rules, null, 2); }
 
 $('btnEval').onclick = show;
-$('btnSave').onclick = () => {
-  try {
-    const rules = JSON.parse($('rulesJson').value);
-    if (!Array.isArray(rules)) throw new Error('array');
-    RT.saveRules(rules); show();
-  } catch(e){ alert('JSON invalid'); }
-};
-$('btnReset').onclick = () => {
-  if (!confirm('Resetezi playbook-ul la default v3?')) return;
-  RT.saveRules(RT.DEFAULT_RULES.slice()); loadRules(); show();
-};
-$('btnSaveSettings').onclick = () => {
-  RT.saveSettings({ earningsGuard: $('setEarn').checked, macroFreezeHigh: $('setMacro').checked });
-  show();
-};
-$('btnAddRule').onclick = () => {
-  RT.addRule({ when: { regim: ['neutral'], dangerMax: 60 }, then: { strategy: 'Manual', sizingMult: 0.5, maxTrades: 2, preset: 'manual' }, note: 'Regulă custom' });
-  loadRules(); show();
-};
+$('modeMorning').onclick = () => { setMode('morning'); show(); };
+$('modeDeep').onclick = () => { setMode('deep'); show(); };
+$('btnShowDeep').onclick = () => { setMode('deep'); show(); };
+$('btnSave').onclick = () => { try { RT.saveRules(JSON.parse($('rulesJson').value)); show(); } catch(e){ alert('JSON invalid'); } };
+$('btnReset').onclick = () => { if(confirm('Reset default?')){ RT.saveRules(RT.DEFAULT_RULES.slice()); loadRules(); show(); } };
+$('btnSaveSettings').onclick = () => { RT.saveSettings({ earningsGuard:$('setEarn').checked, macroFreezeHigh:$('setMacro').checked }); show(); };
+$('btnAddRule').onclick = () => { RT.addRule({ when:{regim:['neutral'],dangerMax:60}, then:{strategy:'Manual',sizingMult:0.5,maxTrades:2,preset:'manual'}, note:'Custom' }); loadRules(); show(); };
 
+setMode(loadUi().mode || 'morning');
 loadSettings(); loadRules(); show();
 setInterval(show, 60000);
-window.addEventListener('storage', e => { if (e && /^md_|^tt_|^sr_|^pb_wl|^tt_hub/.test(e.key || '')) show(); });
+window.addEventListener('storage', e => { if (e && /^md_|^tt_|^sr_|^pb_wl|^tt_hub/.test(e.key||'')) show(); });
 })();
 </script>
 </body>
