@@ -918,13 +918,13 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
     <a href="./router/" target="ttools-router" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#5bb0ff,#ffd86b); --glow:rgba(91,176,255,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#ffd86b);box-shadow:0 4px 14px rgba(91,176,255,.3);color:#0a0a0a">🧭</div>
-      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Pro · v1</span>
+      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Pro · v3</span>
       <h2 class="card-title">Regime Router</h2>
-      <p class="card-desc">Playbook executabil: regim + danger → strategie permisă (ZLHMA Scalping / ZLEMA Swing / AMD / STAY OUT), sizing mult și max trades — integrat cu Governor.</p>
+      <p class="card-desc">Context multi-sursă (macro, earnings WL, sesiune ET, sector, SPY) + GO score 0–100 → playbook executabil cu audit reguli, guards globale și preset chart.</p>
       <div class="features">
         <span class="feat ai">📋 Playbook</span>
-        <span class="feat risk">🎯 Plan azi</span>
-        <span class="feat data">⚙ Preset</span>
+        <span class="feat risk">🎯 GO Score</span>
+        <span class="feat data">📡 Context</span>
       </div>
       <div class="card-cta" style="color:#5bb0ff"><span>Deschide Router</span><span class="arrow">→</span></div>
     </a>
@@ -1028,7 +1028,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 <script src="lib/journal.js?v=6"></script>
 <script src="lib/telegram.js"></script>
 <script src="lib/governor.js?v=2"></script>
-<script src="lib/router.js?v=2"></script>
+<script src="lib/router.js?v=3"></script>
 <script src="lib/regime.js"></script>
 <script src="lib/ai.js"></script>
 <script src="lib/telegram.js"></script>
@@ -2814,8 +2814,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
       if (window.RT){
         const p = RT.evaluate();
         const col = p.strategy === 'STAY OUT' ? '#ff4d4d' : 'var(--green)';
-        $('pbRouteVal').innerHTML = `<span style="color:${col}">🧭 ${escHtml(p.strategy)}</span>`;
-        $('pbRouteSub').textContent = `×${p.sizingMult} · ${p.tradesLeftToday} trades rămase · ${escHtml(p.regimeNorm || p.regime)} · ${p.chartHints}`;
+        const goCol = p.goCls === 'go' ? '#22d66b' : p.goCls === 'caution' ? '#d4892c' : '#ff4d4d';
+        $('pbRouteVal').innerHTML = `<span style="color:${col}">🧭 ${escHtml(p.strategy)}</span> <span style="color:${goCol};font-size:12px;font-weight:700">GO ${p.goScore}</span>`;
+        $('pbRouteSub').textContent = `${escHtml(p.goLabel || '—')} · ×${p.sizingMult} · ${p.tradesLeftToday} trades · ${escHtml(p.regimeNorm || p.regime)} · ${escHtml(p.presetLabel || p.preset)}`;
       } else { $('pbRouteVal').textContent = 'Router n/a'; }
     } catch (e) { $('pbRouteVal').textContent = 'Router n/a'; }
     try {
