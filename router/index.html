@@ -8,151 +8,292 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0b0f17;--bg-grad:radial-gradient(1200px 600px at 50% -200px,#152238 0%,#0b0f17 55%);--panel:#141a28;--panel2:#1d2537;--b1:#2a3247;--t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;--accent:#5bb0ff;--bull:#22d66b;--bear:#ff4d4d;--gold:#ffd86b;--warn:#d4892c;--r:12px;--rs:8px;--mono:'DM Mono',monospace;--head:'Sora',sans-serif;color-scheme:dark}
-body{font-family:var(--head);background:var(--bg);background-image:var(--bg-grad);color:var(--t1);padding:12px;font-variant-numeric:tabular-nums}
-header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border:1px solid var(--b1);border-radius:var(--r);margin-bottom:14px;background:linear-gradient(180deg,rgba(21,34,56,.94),rgba(20,26,40,.97));position:sticky;top:8px;z-index:50}
-header h1{font-size:18px;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:auto}
-.nav-link{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
-.top{display:grid;grid-template-columns:1fr 200px;gap:12px;margin-bottom:12px}
-@media(max-width:720px){.top{grid-template-columns:1fr}}
-.plan{font-size:26px;font-weight:900;text-align:center;padding:20px;border-radius:var(--r);border:2px solid var(--accent);background:rgba(91,176,255,.1);display:flex;flex-direction:column;gap:6px;justify-content:center}
-.plan.stay{border-color:var(--bear);background:rgba(255,77,77,.1);color:var(--bear)}
-.plan .sub{font-size:12px;font-weight:600;color:var(--t3);-webkit-text-fill-color:var(--t3)}
-.go-box{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px;text-align:center}
-.go-score{font-size:42px;font-weight:900;line-height:1}
-.go-score.go{color:var(--bull)}
-.go-score.caution{color:var(--warn)}
-.go-score.nogo{color:var(--bear)}
-.go-lbl{font-family:var(--mono);font-size:11px;color:var(--t3);margin-top:6px}
-.go-track{height:8px;background:var(--panel2);border-radius:6px;margin-top:10px;overflow:hidden;border:1px solid var(--b1)}
-.go-fill{height:100%;border-radius:6px;transition:width .35s}
-.panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:12px}
-.panel h2{font-size:13px;margin-bottom:10px;font-weight:800}
-.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-family:var(--mono);font-size:11px}
-.meta div{background:var(--panel2);padding:9px;border-radius:var(--rs);border:1px solid var(--b1)}
-.meta .k{color:var(--t3);font-size:9px;text-transform:uppercase;letter-spacing:.04em}
-.meta .v{font-weight:700;margin-top:3px;word-break:break-word}
-.rule{display:flex;gap:8px;padding:10px;border:1px solid var(--b1);border-radius:var(--rs);margin-bottom:8px;background:var(--panel2);font-size:12px;align-items:flex-start}
-.rule.on{border-color:var(--accent);box-shadow:0 0 0 1px rgba(91,176,255,.3)}
-.rule.pass{border-color:rgba(34,214,107,.35)}
-.rule.fail{opacity:.72}
-.rule .ord{font-family:var(--mono);color:var(--t3);width:22px;flex-shrink:0}
-.rule .acts{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
-.rule .acts button{background:var(--panel);border:1px solid var(--b1);color:var(--t2);width:26px;height:22px;border-radius:4px;cursor:pointer;font-size:10px}
-.rule .badge{font-family:var(--mono);font-size:9px;padding:2px 6px;border-radius:4px;margin-left:6px}
-.badge.ok{background:rgba(34,214,107,.15);color:var(--bull)}
-.badge.no{background:rgba(255,77,77,.12);color:var(--bear)}
-.badge.hit{background:rgba(91,176,255,.2);color:var(--accent)}
-textarea{width:100%;min-height:160px;background:var(--panel2);border:1px solid var(--b1);color:var(--t1);font-family:var(--mono);font-size:11px;padding:10px;border-radius:var(--rs)}
-.btn{background:var(--accent);border:none;color:#000;padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer;margin-top:8px;font-family:inherit;font-size:12px}
-.btn.sm{padding:6px 10px;margin-top:0;font-size:11px}
-.btn.ghost{background:var(--panel2);color:var(--t2);border:1px solid var(--b1)}
-.note{font-family:var(--mono);font-size:10px;color:var(--t3);line-height:1.5;margin-top:8px}
-details summary{cursor:pointer;font-size:13px;font-weight:700;margin-bottom:8px}
+:root{
+  --bg:#0b0f17;--bg2:#141a28;--bg3:#1d2537;--bg4:#222b40;
+  --b1:#2a3247;--b2:#3a4560;
+  --t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;
+  --accent:#5bb0ff;--crypto-1:#f7931a;--crypto-2:#ffd86b;
+  --bull:#22d66b;--bear:#ff4d4d;--warn:#d4892c;--gold:#ffd86b;
+  --r:12px;--rs:8px;--gap:10px;
+  --mono:'DM Mono',monospace;--head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+body{font-family:var(--head);background:var(--bg);color:var(--t1);padding:12px;font-variant-numeric:tabular-nums;min-height:100vh}
+a{color:inherit}
+
+/* ── Top bar ── */
+.fd-top{
+  display:flex;flex-wrap:wrap;align-items:center;gap:var(--gap);
+  padding:11px 14px;border:1px solid var(--b1);border-radius:var(--r);
+  background:linear-gradient(180deg,rgba(21,34,56,.95),rgba(20,26,40,.98));
+  position:sticky;top:8px;z-index:60;margin-bottom:var(--gap);
+}
+.fd-top h1{
+  font-size:17px;font-weight:800;margin-right:auto;
+  background:linear-gradient(90deg,var(--accent),var(--crypto-2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.fd-ver{font-size:10px;-webkit-text-fill-color:var(--t3);font-weight:600}
+.fd-nav{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fd-link{
+  background:var(--bg3);border:1px solid var(--b1);padding:6px 11px;border-radius:var(--rs);
+  color:var(--t1);text-decoration:none;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:border-color .15s var(--ease),color .15s var(--ease);
+}
+.fd-link:hover{border-color:var(--accent);color:var(--accent)}
+.fd-link.primary{background:linear-gradient(135deg,rgba(91,176,255,.25),rgba(255,216,107,.12));border-color:rgba(91,176,255,.45)}
+
+/* ── Freeze banner ── */
+.fd-freeze{display:none;border-radius:var(--r);padding:10px 14px;margin-bottom:var(--gap);font-family:var(--mono);font-size:12px;font-weight:700;line-height:1.4}
+.fd-freeze.red{display:block;background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
+.fd-freeze.amber{display:block;background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:var(--warn)}
+
+/* ── Hero verdict (Front Desk) ── */
+.fd-hero{
+  background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(91,176,255,.07));
+  border:1px solid rgba(247,147,26,.28);border-radius:var(--r);
+  padding:14px 16px;margin-bottom:var(--gap);
+  display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+}
+.fd-hero.stay{background:linear-gradient(135deg,rgba(255,77,77,.12),rgba(20,26,40,.5));border-color:rgba(255,77,77,.45)}
+.fd-hero-lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--crypto-1);margin-bottom:5px}
+.fd-hero.stay .fd-hero-lbl{color:var(--bear)}
+.fd-hero-strat{font-size:24px;font-weight:900;line-height:1.15;letter-spacing:-.02em}
+.fd-hero-meta{font-family:var(--mono);font-size:11.5px;color:var(--t2);margin-top:6px;line-height:1.45}
+.fd-go{text-align:right;min-width:120px}
+.fd-go-num{font-size:40px;font-weight:900;line-height:1}
+.fd-go-num.go{color:var(--bull)}.fd-go-num.caution{color:var(--warn)}.fd-go-num.nogo{color:var(--bear)}
+.fd-go-lbl{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:4px}
+.fd-go-track{height:6px;background:var(--bg3);border-radius:4px;margin-top:8px;overflow:hidden;border:1px solid var(--b1)}
+.fd-go-fill{height:100%;border-radius:4px;transition:width .35s var(--ease)}
+
+/* ── Command strip ── */
+.fd-cmd{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap);margin-bottom:var(--gap)}
+@media(max-width:900px){.fd-cmd{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:550px){.fd-cmd{grid-template-columns:1fr}}
+.fd-cell{
+  background:linear-gradient(135deg,var(--bg2),var(--bg3));
+  border:1px solid var(--b1);border-radius:var(--r);padding:11px 13px;
+  position:relative;overflow:hidden;cursor:default;
+}
+.fd-cell::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+.fd-cell.lvl-ok::before{background:var(--bull)}
+.fd-cell.lvl-warn::before{background:var(--warn)}
+.fd-cell.lvl-bear::before{background:var(--bear)}
+.fd-cell.lvl-neut::before{background:var(--t3)}
+.fd-cell-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);font-weight:700}
+.fd-cell-val{font-size:18px;font-weight:800;margin-top:3px;line-height:1.2}
+.fd-cell-sub{font-family:var(--mono);font-size:10px;color:var(--t2);margin-top:3px}
+.fd-gauge{height:4px;background:var(--bg4);border-radius:3px;margin-top:6px;overflow:hidden}
+.fd-gauge>i{display:block;height:100%;border-radius:3px}
+
+/* ── Two-column desk ── */
+.fd-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:var(--gap);align-items:start}
+@media(max-width:1100px){.fd-layout{grid-template-columns:1fr}}
+
+.fd-section{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:var(--gap);overflow:hidden}
+.fd-sec-head{
+  display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid var(--b1);
+  background:var(--bg3);
+}
+.fd-sec-head h2{font-size:12.5px;font-weight:800;flex:1;margin:0}
+.fd-sec-go{font-size:10.5px;font-weight:700;color:var(--t3);text-decoration:none;padding:3px 8px;border:1px solid var(--b1);border-radius:5px}
+.fd-sec-go:hover{color:var(--accent);border-color:var(--accent)}
+.fd-sec-body{padding:10px 12px}
+
+/* Market row */
+.fd-mkt{display:flex;flex-wrap:wrap;gap:8px}
+.fd-mkt-cell{flex:1 1 88px;background:var(--bg4);border:1px solid var(--b1);border-radius:var(--rs);padding:8px 10px}
+.fd-mkt-lbl{font-family:var(--mono);font-size:9px;color:var(--t3);font-weight:700}
+.fd-mkt-val{font-size:15px;font-weight:800;margin-top:2px}
+.fd-mkt-chg{font-family:var(--mono);font-size:10.5px;font-weight:700;margin-top:2px}
+.fd-mkt-chg.up{color:var(--bull)}.fd-mkt-chg.down{color:var(--bear)}
+.fd-tone{flex:1 1 100%;font-family:var(--mono);font-size:11px;color:var(--t2);padding-top:2px}
+
+/* Flags + mods */
+.fd-flags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.fd-flag{font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 7px;border-radius:5px;border:1px solid var(--b1);background:var(--bg3)}
+.fd-flag.ok{color:var(--bull);border-color:rgba(34,214,107,.35)}
+.fd-flag.warn{color:var(--warn);border-color:rgba(212,137,44,.35)}
+.fd-flag.bear{color:var(--bear);border-color:rgba(255,77,77,.35)}
+.fd-mods{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.fd-mod{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:5px;background:rgba(91,176,255,.1);color:var(--accent);border:1px solid rgba(91,176,255,.22)}
+
+/* Mini grid context */
+.fd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(max-width:550px){.fd-grid{grid-template-columns:1fr}}
+.fd-kv{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rs);padding:8px 9px}
+.fd-kv .k{font-family:var(--mono);font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em}
+.fd-kv .v{font-size:12px;font-weight:700;margin-top:3px;word-break:break-word}
+
+/* Sector */
+.fd-sect-grp{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--t3);margin:6px 0 4px}
+.fd-chips{display:flex;flex-wrap:wrap;gap:5px}
+.fd-chip{font-family:var(--mono);font-size:10px;padding:4px 7px;border-radius:5px;background:var(--bg4);border:1px solid var(--b1)}
+.fd-chip.up{color:var(--bull)}.fd-chip.down{color:var(--bear)}
+.fd-chip-reg{display:inline-block;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:800;margin-bottom:6px}
+.fd-chip-reg.on{background:rgba(34,214,107,.12);color:var(--bull);border:1px solid rgba(34,214,107,.35)}
+.fd-chip-reg.off{background:rgba(255,77,77,.12);color:var(--bear);border:1px solid rgba(255,77,77,.35)}
+.fd-chip-reg.neut{background:rgba(163,173,193,.12);color:var(--t2);border:1px solid var(--b1)}
+
+/* Reasons */
+.fd-reasons{list-style:none;font-size:12.5px;color:var(--t2);line-height:1.5}
+.fd-reasons li{padding:5px 0;border-bottom:1px solid rgba(42,50,71,.4)}
+.fd-reasons li:last-child{border-bottom:none}
+.fd-guards{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.fd-guard{font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:6px;background:rgba(255,77,77,.12);color:var(--bear);border:1px solid rgba(255,77,77,.25)}
+
+/* Rules (playbook column) */
+.fd-rule{
+  display:flex;gap:8px;padding:9px 10px;border:1px solid var(--b1);border-radius:var(--rs);
+  margin-bottom:7px;background:var(--bg3);font-size:11.5px;align-items:flex-start;
+  transition:border-color .15s var(--ease);
+}
+.fd-rule.on{border-color:var(--accent);box-shadow:0 0 0 1px rgba(91,176,255,.25)}
+.fd-rule.pass:not(.on){border-color:rgba(34,214,107,.22)}
+.fd-rule.fail{opacity:.78}
+.fd-rule .ord{font-family:var(--mono);color:var(--t3);width:20px;flex-shrink:0;font-size:10px}
+.fd-rule .acts{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
+.fd-rule .acts button{background:var(--bg2);border:1px solid var(--b1);color:var(--t2);width:24px;height:20px;border-radius:4px;cursor:pointer;font-size:9px}
+.fd-badge{font-family:var(--mono);font-size:8px;padding:2px 5px;border-radius:4px;margin-left:5px;vertical-align:middle}
+.fd-badge.ok{background:rgba(34,214,107,.15);color:var(--bull)}
+.fd-badge.no{background:rgba(255,77,77,.12);color:var(--bear)}
+.fd-badge.hit{background:rgba(91,176,255,.2);color:var(--accent)}
+
+/* Settings */
 .chkrow{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--t2);margin:6px 0}
-ul.reasons{margin:8px 0 0 18px;color:var(--t2);font-size:13px}
-.guards{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.guard{font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:6px;background:rgba(255,77,77,.12);color:var(--bear);border:1px solid rgba(255,77,77,.25)}
-.ctx-warn{color:var(--warn)}
-.ctx-ok{color:var(--bull)}
-.ctx-bear{color:var(--bear)}
-.ctx-live{display:flex;flex-direction:column;gap:10px}
-.ctx-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;color:var(--t3)}
-.ctx-clock{font-size:15px;font-weight:800;color:var(--t1)}
-.ctx-flags{display:flex;flex-wrap:wrap;gap:5px}
-.ctx-flag{font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 7px;border-radius:5px;border:1px solid var(--b1);background:var(--panel2)}
-.ctx-flag.ok{color:var(--bull);border-color:rgba(34,214,107,.35)}
-.ctx-flag.warn{color:var(--warn);border-color:rgba(212,137,44,.35)}
-.ctx-flag.bear{color:var(--bear);border-color:rgba(255,77,77,.35)}
-.ctx-banner{padding:10px 12px;border-radius:var(--rs);font-size:12px;font-weight:700;font-family:var(--mono);display:none}
-.ctx-banner.freeze{display:block;background:rgba(255,77,77,.12);border:1px solid rgba(255,77,77,.35);color:var(--bear)}
-.ctx-banner.soon{display:block;background:rgba(212,137,44,.1);border:1px solid rgba(212,137,44,.35);color:var(--warn)}
-.ctx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
-.ctx-card{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:11px}
-.ctx-card.wide{grid-column:1/-1}
-.ctx-card h3{font-size:11px;font-weight:800;color:var(--t3);margin-bottom:8px;letter-spacing:.03em}
-.ctx-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;margin-bottom:5px}
-.ctx-row .lbl{font-family:var(--mono);font-size:10px;color:var(--t3)}
-.ctx-row .val{font-weight:700;text-align:right}
-.ctx-big{font-size:18px;font-weight:900;line-height:1.2}
-.ctx-bar{height:7px;background:var(--panel);border-radius:5px;overflow:hidden;border:1px solid var(--b1);margin-top:6px}
-.ctx-bar>i{display:block;height:100%;border-radius:5px;transition:width .35s}
-.ctx-sess{height:5px;background:var(--panel);border-radius:4px;overflow:hidden;margin-top:8px;border:1px solid var(--b1)}
-.ctx-sess>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:4px}
-.ctx-mkt{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
-.ctx-mkt-cell{background:var(--panel);border:1px solid var(--b1);border-radius:6px;padding:8px 6px;text-align:center}
-.ctx-mkt-cell .sym{font-family:var(--mono);font-size:9px;color:var(--t3)}
-.ctx-mkt-cell .px{font-size:13px;font-weight:800;margin-top:2px}
-.ctx-mkt-cell .chg{font-family:var(--mono);font-size:10px;margin-top:2px}
-.ctx-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
-.ctx-chip{font-family:var(--mono);font-size:10px;padding:4px 7px;border-radius:5px;background:var(--panel);border:1px solid var(--b1)}
-.ctx-chip.up{color:var(--bull)}
-.ctx-chip.down{color:var(--bear)}
-.ctx-ev{list-style:none;font-family:var(--mono);font-size:10px;color:var(--t2)}
-.ctx-ev li{padding:4px 0;border-bottom:1px solid rgba(42,50,71,.45)}
-.ctx-ev li:last-child{border-bottom:none}
-.ctx-sources{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
-.ctx-src{font-family:var(--mono);font-size:9px;padding:4px 8px;border-radius:5px;background:var(--panel2);border:1px solid var(--b1);text-decoration:none;color:var(--t2)}
-.ctx-src.fresh{border-color:rgba(34,214,107,.3);color:var(--bull)}
-.ctx-src.aging{border-color:rgba(212,137,44,.3);color:var(--warn)}
-.ctx-src.stale,.ctx-src.missing{border-color:rgba(255,77,77,.25);color:var(--bear)}
-.ctx-mod{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.ctx-mod span{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:5px;background:rgba(91,176,255,.1);color:var(--accent);border:1px solid rgba(91,176,255,.25)}
+textarea{width:100%;min-height:140px;background:var(--bg3);border:1px solid var(--b1);color:var(--t1);font-family:var(--mono);font-size:11px;padding:10px;border-radius:var(--rs)}
+.btn{
+  background:linear-gradient(135deg,var(--accent),#7ec4ff);border:none;color:#0a1020;
+  padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer;font-family:inherit;font-size:11.5px;
+}
+.btn.sm{padding:6px 10px;font-size:11px}
+.btn.ghost{background:var(--bg3);color:var(--t2);border:1px solid var(--b1)}
+.btn-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.note{font-family:var(--mono);font-size:10px;color:var(--t3);line-height:1.5;margin-top:8px}
+details summary{cursor:pointer;font-size:12px;font-weight:700;margin-bottom:8px;color:var(--t2)}
+
+/* Sources footer */
+.fd-foot{
+  margin-top:4px;padding:10px 12px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
+}
+.fd-foot-hd{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:6px}
+.fd-srcs{display:flex;flex-wrap:wrap;gap:5px}
+.fd-src{font-family:var(--mono);font-size:9px;padding:4px 8px;border-radius:5px;background:var(--bg3);border:1px solid var(--b1);text-decoration:none;color:var(--t2)}
+.fd-src.fresh{border-color:rgba(34,214,107,.3);color:var(--bull)}
+.fd-src.aging{border-color:rgba(212,137,44,.3);color:var(--warn)}
+.fd-src.stale,.fd-src.missing{border-color:rgba(255,77,77,.25);color:var(--bear)}
+
+.ok{color:var(--bull)}.warn{color:var(--warn)}.bear{color:var(--bear)}
 </style>
 </head>
 <body>
-<header>
-  <h1>🧭 Regime Router <span style="font-size:11px;-webkit-text-fill-color:var(--t3)">v3</span></h1>
-  <button class="nav-link" id="btnEval">🔄 Re-evaluează</button>
-  <a class="nav-link" href="../macro-dashboard/">🌍 Macro</a>
-  <a class="nav-link" href="../governor/">🛑 Governor</a>
-  <a class="nav-link" href="../">← Hub</a>
+
+<header class="fd-top">
+  <h1>🧭 Regime Router <span class="fd-ver">Front Desk · v4</span></h1>
+  <nav class="fd-nav">
+    <button class="fd-link primary" id="btnEval">🔄 Re-evaluează</button>
+    <a class="fd-link" href="../governor/">🛑 Governor</a>
+    <a class="fd-link" href="../macro-dashboard/">🌍 Macro</a>
+    <a class="fd-link" href="../journal/">📓 Journal</a>
+    <a class="fd-link" href="../">← Hub</a>
+  </nav>
 </header>
 
-<div class="top">
-  <div id="planBox" class="plan">
-    <div id="planStrat">—</div>
-    <div class="sub" id="planSub">—</div>
+<div id="fdFreeze" class="fd-freeze"></div>
+
+<section class="fd-hero" id="fdHero">
+  <div>
+    <div class="fd-hero-lbl">☀️ PLANUL DE EXECUȚIE · ET <span id="fdClock">—</span></div>
+    <div class="fd-hero-strat" id="fdStrat">—</div>
+    <div class="fd-hero-meta" id="fdMeta">—</div>
   </div>
-  <div class="go-box">
-    <div id="goScore" class="go-score">—</div>
-    <div class="go-lbl" id="goLbl">GO Score</div>
-    <div class="go-track"><div class="go-fill" id="goFill" style="width:0;background:var(--accent)"></div></div>
+  <div class="fd-go">
+    <div class="fd-go-num" id="fdGoNum">—</div>
+    <div class="fd-go-lbl" id="fdGoLbl">GO Score</div>
+    <div class="fd-go-track"><div class="fd-go-fill" id="fdGoFill" style="width:0"></div></div>
   </div>
+</section>
+
+<div class="fd-cmd" id="fdCmd"></div>
+
+<div class="fd-layout">
+  <main class="fd-main">
+    <section class="fd-section">
+      <div class="fd-sec-head">
+        <h2>📈 Piața &amp; tape</h2>
+        <a class="fd-sec-go" href="../">Hub quotes →</a>
+      </div>
+      <div class="fd-sec-body" id="fdMarket"></div>
+    </section>
+
+    <section class="fd-section">
+      <div class="fd-sec-head">
+        <h2>🛡 Regim · Danger · Macro</h2>
+        <a class="fd-sec-go" href="../macro-dashboard/">Macro →</a>
+      </div>
+      <div class="fd-sec-body" id="fdRisk"></div>
+    </section>
+
+    <section class="fd-section">
+      <div class="fd-sec-head">
+        <h2>🔄 Sector rotation</h2>
+        <a class="fd-sec-go" href="../sector-rotation/">Scan →</a>
+      </div>
+      <div class="fd-sec-body" id="fdSector"></div>
+    </section>
+
+    <section class="fd-section">
+      <div class="fd-sec-head"><h2>📋 De ce acest plan</h2></div>
+      <div class="fd-sec-body">
+        <div class="fd-guards" id="fdGuards"></div>
+        <ul class="fd-reasons" id="fdReasons"></ul>
+      </div>
+    </section>
+  </main>
+
+  <aside class="fd-side">
+    <section class="fd-section">
+      <div class="fd-sec-head">
+        <h2>📜 Playbook · audit</h2>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--t3)">sus → jos</span>
+      </div>
+      <div class="fd-sec-body">
+        <div id="fdRules"></div>
+        <div class="btn-row">
+          <button class="btn sm" id="btnAddRule">＋ Regulă</button>
+          <button class="btn sm ghost" id="btnReset">↺ Default</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="fd-section">
+      <div class="fd-sec-head"><h2>⚙ Guards globale</h2></div>
+      <div class="fd-sec-body">
+        <label class="chkrow"><input type="checkbox" id="setEarn"> Earnings watchlist → STAY OUT</label>
+        <label class="chkrow"><input type="checkbox" id="setMacro"> Macro high-impact freeze</label>
+        <button class="btn sm" id="btnSaveSettings">💾 Salvează</button>
+        <p class="note">Sesiune: pre ×0.55 · RTH ×1 · after ×0.65. Override disciplinar: tag <code>broke-rules</code> în journal.</p>
+      </div>
+    </section>
+
+    <section class="fd-section">
+      <div class="fd-sec-body">
+        <details>
+          <summary>Playbook JSON (avansat)</summary>
+          <textarea id="rulesJson"></textarea>
+          <button class="btn sm" id="btnSave">💾 Salvează JSON</button>
+        </details>
+      </div>
+    </section>
+  </aside>
 </div>
 
-<div class="panel">
-  <h2>📡 Context live</h2>
-  <div class="ctx-live" id="ctxLive"></div>
-  <div class="guards" id="guards"></div>
-  <ul class="reasons" id="reasons"></ul>
-</div>
-
-<div class="panel">
-  <h2>📜 Reguli — audit (prioritate sus → jos)</h2>
-  <div id="ruleCards"></div>
-  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn sm" id="btnAddRule">＋ Regulă nouă</button>
-    <button class="btn sm ghost" id="btnReset">↺ Playbook default</button>
-  </div>
-</div>
-
-<div class="panel">
-  <h2>⚙ Setări globale</h2>
-  <label class="chkrow"><input type="checkbox" id="setEarn"> Guard earnings watchlist (STAY OUT)</label>
-  <label class="chkrow"><input type="checkbox" id="setMacro"> Freeze macro high-impact (NFP/CPI/FOMC)</label>
-  <button class="btn sm" id="btnSaveSettings">💾 Salvează setări</button>
-  <p class="note">Guards globale suprascriu regula matched. Sesiune: pre ×0.55 · RTH ×1 · after ×0.65 · închis ×0.</p>
-</div>
-
-<div class="panel">
-  <details>
-    <summary>⚙ Playbook JSON (avansat)</summary>
-    <textarea id="rulesJson"></textarea>
-    <button class="btn" id="btnSave">💾 Salvează JSON</button>
-  </details>
-  <p class="note">Condiții <code>when</code>: regim, dangerMin/Max, compositeMin/Max, session, macroHigh, earningsToday, sectorRot, hourMin/Max, weekday, spyChgMin/Max, governorMax. Override disciplinar în journal: tag <code>broke-rules</code>.</p>
-</div>
+<footer class="fd-foot">
+  <div class="fd-foot-hd"><span>📡 Surse date</span><span>verde = proaspăt · galben = învechit · roșu = stale</span></div>
+  <div class="fd-srcs" id="fdSources"></div>
+</footer>
 
 <script src="../lib/journal.js?v=6"></script>
 <script src="../lib/governor.js?v=2"></script>
@@ -164,182 +305,164 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
 function fmtWhen(w){
-  const parts = [];
-  if (w.regim) parts.push('regim ' + JSON.stringify(w.regim));
-  if (w.session) parts.push('sesiune ' + w.session.join(','));
-  if (w.dangerMin != null || w.dangerMax != null) parts.push('danger ' + (w.dangerMin??'—') + '–' + (w.dangerMax??'—'));
-  if (w.macroHigh) parts.push('macroHigh');
-  if (w.earningsToday) parts.push('earnings ' + w.earningsToday);
-  if (w.sectorRot) parts.push('sector ' + w.sectorRot.join(','));
-  if (w.spyChgMin != null || w.spyChgMax != null) parts.push('SPY ' + (w.spyChgMin??'—') + '–' + (w.spyChgMax??'—'));
-  if (w.governorMax) parts.push('gov≤' + w.governorMax);
-  return parts.join(' · ') || '*';
+  const p = [];
+  if (w.regim) p.push('regim ' + JSON.stringify(w.regim));
+  if (w.session) p.push(w.session.join(','));
+  if (w.dangerMin != null || w.dangerMax != null) p.push('D ' + (w.dangerMin??'—') + '–' + (w.dangerMax??'—'));
+  if (w.macroHigh) p.push('macro');
+  if (w.earningsToday) p.push('earn');
+  if (w.sectorRot) p.push('sector');
+  return p.join(' · ') || '*';
 }
-
 function fmtPct(x, inv){
-  if (x == null) return '<span style="color:var(--t3)">—</span>';
+  if (x == null) return '—';
   const up = x >= 0;
-  const cls = inv ? (up ? 'ctx-bear' : 'ctx-ok') : (up ? 'ctx-ok' : 'ctx-bear');
-  return '<span class="' + cls + '">' + (up ? '+' : '') + x.toFixed(2) + '%</span>';
+  const cls = inv ? (up ? 'down' : 'up') : (up ? 'up' : 'down');
+  return '<span class="fd-mkt-chg ' + cls + '">' + (up ? '+' : '') + x.toFixed(2) + '%</span>';
 }
 function fmtUsd(n){
   if (n == null || isNaN(n)) return '—';
-  return (n >= 0 ? '+' : '') + '$' + n.toFixed(2);
+  const cls = n >= 0 ? 'ok' : 'bear';
+  return '<span class="' + cls + '">' + (n >= 0 ? '+' : '') + '$' + n.toFixed(2) + '</span>';
 }
-function barColor(score){
-  if (score == null) return 'var(--t3)';
-  if (score >= 70) return 'var(--bear)';
-  if (score >= 45) return 'var(--warn)';
-  if (score >= 25) return 'var(--gold)';
+function barCol(s){
+  if (s == null) return 'var(--t3)';
+  if (s >= 70) return 'var(--bear)';
+  if (s >= 45) return 'var(--warn)';
+  if (s >= 25) return 'var(--gold)';
   return 'var(--bull)';
 }
-function renderContext(c, p){
+function padTime(d){
+  try {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false, hour:'2-digit', minute:'2-digit' })
+      .formatToParts(d).reduce((o,x)=>(o[x.type]=x.value,o),{});
+    return String(parseInt(p.hour,10)%24).padStart(2,'0')+':'+String(parseInt(p.minute,10)).padStart(2,'0');
+  } catch(e){ return '?'; }
+}
+function cmdCell(lbl, val, sub, lvl, gauge){
+  return '<div class="fd-cell lvl-' + (lvl||'neut') + '">' +
+    '<div class="fd-cell-lbl">' + esc(lbl) + '</div>' +
+    '<div class="fd-cell-val">' + val + '</div>' +
+    (sub ? '<div class="fd-cell-sub">' + sub + '</div>' : '') +
+    (gauge != null ? '<div class="fd-gauge"><i style="width:' + gauge + '%;background:' + barCol(gauge) + '"></i></div>' : '') +
+  '</div>';
+}
+
+function renderDesk(p, c){
+  const stay = p.strategy === 'STAY OUT';
   const sd = c.sessionDetail || {};
   const mf = c.macroFreeze || {};
-  const db = c.dangerBand || {};
   const gd = c.governorDetail || {};
-  const j = c.journal || {};
-  const flags = (c.flags || []).map(f => '<span class="ctx-flag ' + esc(f.cls) + '">' + esc(f.text) + '</span>').join('');
-  const bannerCls = mf.active ? 'freeze' : (mf.state === 'soon' ? 'soon' : '');
-  const banner = mf.message ? '<div class="ctx-banner ' + bannerCls + '">' + (mf.active ? '🚫 ' : '⏳ ') + esc(mf.message) + '</div>' : '';
+  const db = c.dangerBand || {};
 
-  const mktCell = (sym, price, chg, inv) => {
-    const dl = (c.market && c.market.dayLabel) ? '<span style="color:var(--t3);font-size:8px">' + esc(c.market.dayLabel) + '</span>' : '';
-    return '<div class="ctx-mkt-cell"><div class="sym">' + sym + '</div><div class="px">' + (price != null ? (price >= 100 ? '$' + price.toFixed(0) : '$' + price.toFixed(2)) : '—') + '</div><div class="chg">' + fmtPct(chg, inv) + dl + '</div></div>';
-  };
+  $('fdClock').textContent = (sd.timeET || '—') + ' · ' + (c.weekday || '');
+  $('fdHero').className = 'fd-hero' + (stay ? ' stay' : '');
+  $('fdStrat').textContent = p.strategy;
+  $('fdMeta').textContent = [
+    p.goLabel,
+    '×' + p.sizingMult + ' sizing',
+    'max ' + p.maxTrades + ' trades',
+    p.presetLabel || p.preset,
+    p.chartHints
+  ].filter(Boolean).join(' · ');
 
-  const sectorChip = row => {
-    const w = typeof row.chg1w === 'number' ? (row.chg1w >= 0 ? '+' : '') + row.chg1w.toFixed(1) + '%' : '';
-    const cls = (row.chg1w || 0) >= 0 ? 'up' : 'down';
-    return '<span class="ctx-chip ' + cls + '">' + esc(row.sym) + (row.rs != null ? ' RS' + row.rs.toFixed(1) : '') + (w ? ' ' + w : '') + '</span>';
-  };
+  $('fdGoNum').textContent = p.goScore;
+  $('fdGoNum').className = 'fd-go-num ' + (p.goCls || 'caution');
+  $('fdGoLbl').textContent = p.goLabel + ' · GO ' + p.goScore;
+  const gCol = p.goCls === 'go' ? 'var(--bull)' : p.goCls === 'caution' ? 'var(--warn)' : 'var(--bear)';
+  $('fdGoFill').style.width = (p.goScore || 0) + '%';
+  $('fdGoFill').style.background = gCol;
 
-  const macroEv = (c.macroEvents || []).length
-    ? '<ul class="ctx-ev">' + c.macroEvents.map(e => {
-        const t = e.d ? _padTime(e.d) : '?';
-        return '<li><span class="ctx-warn">HIGH</span> ' + esc(e.event) + ' · ' + t + ' ET</li>';
-      }).join('') + '</ul>'
-    : '<div style="font-family:var(--mono);font-size:10px;color:var(--t3)">Niciun eveniment macro high azi</div>';
+  const freeze = $('fdFreeze');
+  if (mf.message){
+    freeze.className = 'fd-freeze ' + (mf.active ? 'red' : 'amber');
+    freeze.textContent = (mf.active ? '🚫 ' : '⏳ ') + mf.message;
+    freeze.style.display = 'block';
+  } else { freeze.style.display = 'none'; }
 
-  const earnLine = c.earningsWlToday
-    ? '<span class="ctx-warn">' + c.earningsWlToday + ' ticker(e): ' + esc((c.earningsSymbols||[]).join(', ')) + '</span>'
-    : '<span class="ctx-ok">0 pe watchlist</span>';
+  const sessLvl = c.session === 'open' ? 'ok' : (c.session === 'pre' || c.session === 'after') ? 'warn' : 'neut';
+  const regLvl = c.regimeNorm === 'risk-on' ? 'ok' : (c.regimeNorm === 'risk-off' ? 'bear' : 'warn');
+  const govLvl = c.governor === 'HALTED' ? 'bear' : c.governor === 'CAUTION' ? 'warn' : 'ok';
+  $('fdCmd').innerHTML =
+    cmdCell('Sesiune ET', esc(c.sessionLabel), (sd.untilLabel || '') + ' · ' + (sd.countdown || '—'), sessLvl) +
+    cmdCell('Regim macro', esc(c.regime), (c.composite != null ? 'comp ' + (c.composite >= 0 ? '+' : '') + c.composite.toFixed(1) : '—') + (c.regimeStreak ? ' · ' + c.regimeStreak + 'd streak' : ''), regLvl) +
+    cmdCell('Danger', c.danger != null ? c.danger + '<span style="font-size:12px;color:var(--t3)">/100</span>' : '—', esc(db.label || '—') + (c.dangerDelta != null ? ' · ' + (c.dangerDelta > 0 ? '+' : '') + c.dangerDelta + ' vs ieri' : ''), c.danger >= 70 ? 'bear' : c.danger >= 45 ? 'warn' : 'ok', c.danger) +
+    cmdCell('Governor', esc(c.governor || '—'), fmtUsd(gd.todayPnl) + ' · ' + (c.tradesRemaining != null ? c.tradesRemaining + ' trades rămase' : '—'), govLvl);
 
-  const dangerDelta = c.dangerDelta != null
-    ? '<span class="' + (c.dangerDelta > 0 ? 'ctx-bear' : c.dangerDelta < 0 ? 'ctx-ok' : '') + '">' + (c.dangerDelta > 0 ? '+' : '') + c.dangerDelta + ' vs ieri</span>'
-    : '';
-
-  const sessCls = c.session === 'open' ? 'ctx-ok' : (c.session === 'pre' || c.session === 'after') ? 'ctx-warn' : '';
-  const govCls = c.governor === 'HALTED' ? 'ctx-bear' : c.governor === 'CAUTION' ? 'ctx-warn' : 'ctx-ok';
-  const mods = [
-    c.dangerMultPreview != null && c.dangerMultPreview !== 1 ? 'danger ×' + c.dangerMultPreview : null,
-    c.sessionMultPreview != null && c.sessionMultPreview !== 1 ? 'sesiune ×' + c.sessionMultPreview : null,
-    p && p.sizingMult != null ? 'efectiv ×' + p.sizingMult : null
-  ].filter(Boolean);
-
-  return banner +
-    '<div class="ctx-head"><span class="ctx-clock">' + esc(sd.timeET || '—') + ' ET · ' + esc(c.weekday || '') + ' · ' + esc(c.day) + '</span><span>actualizat ' + new Date(c.builtAt || Date.now()).toLocaleTimeString('ro-RO') + '</span></div>' +
-    (flags ? '<div class="ctx-flags">' + flags + '</div>' : '') +
-    '<div class="ctx-grid">' +
-      '<section class="ctx-card"><h3>⏱ Sesiune</h3>' +
-        '<div class="ctx-big ' + sessCls + '">' + esc(c.sessionLabel) + '</div>' +
-        '<div class="ctx-row"><span class="lbl">' + esc(sd.untilLabel || '—') + '</span><span class="val">' + esc(sd.countdown || '—') + '</span></div>' +
-        (c.session === 'pre' || c.session === 'open' || c.session === 'after' ? '<div class="ctx-sess"><i style="width:' + (sd.progress || 0) + '%"></i></div>' : '') +
-        (c.market && c.market.source ? '<div class="ctx-row" style="margin-top:8px"><span class="lbl">Piață hub</span><span class="val" style="font-size:10px">' + esc(c.market.source) + (c.market.ageMin != null ? ' · ' + c.market.ageMin + 'm' : '') + '</span></div>' : '<div class="ctx-row" style="margin-top:8px"><span class="lbl">Piață</span><span class="val ctx-warn" style="font-size:10px">deschide Hub pt quotes</span></div>') +
-      '</section>' +
-      '<section class="ctx-card"><h3>🛡 Regim macro</h3>' +
-        '<div class="ctx-big" style="color:' + esc(c.regimeColor || 'var(--t1)') + '">' + esc(c.regime) + '</div>' +
-        '<div class="ctx-row"><span class="lbl">Normalizat</span><span class="val">' + esc(c.regimeNorm) + '</span></div>' +
-        '<div class="ctx-row"><span class="lbl">Composite</span><span class="val">' + (c.composite != null ? (c.composite >= 0 ? '+' : '') + c.composite.toFixed(1) : '—') + '</span></div>' +
-        '<div class="ctx-row"><span class="lbl">Streak</span><span class="val">' + (c.regimeStreak ? c.regimeStreak + ' zile' : '—') + '</span></div>' +
-        '<div class="ctx-row"><span class="lbl">Vârstă date</span><span class="val">' + (c.regimeAgeMin != null ? c.regimeAgeMin + 'm' : '—') + '</span></div>' +
-      '</section>' +
-      '<section class="ctx-card"><h3>⚠️ Danger score</h3>' +
-        '<div class="ctx-big" style="color:' + barColor(c.danger) + '">' + (c.danger != null ? c.danger + '<span style="font-size:12px;color:var(--t3)">/100</span>' : '—') + '</div>' +
-        '<div class="ctx-row"><span class="lbl">' + esc(db.label || '—') + '</span><span class="val">' + dangerDelta + '</span></div>' +
-        (c.danger != null ? '<div class="ctx-bar"><i style="width:' + c.danger + '%;background:' + barColor(c.danger) + '"></i></div>' : '') +
-        (db.mult != null ? '<div class="ctx-row" style="margin-top:6px"><span class="lbl">Sizing hint</span><span class="val">×' + db.mult + '</span></div>' : '') +
-      '</section>' +
-      '<section class="ctx-card wide"><h3>📈 Piață · ' + (c.marketTone ? esc(c.marketTone.text) : '—') + (c.vixLevel ? ' · VIX ' + esc(c.vixLevel) : '') + '</h3>' +
-        '<div class="ctx-mkt">' + mktCell('SPY', c.spyPrice, c.spyChg, false) + mktCell('QQQ', c.qqqPrice, c.qqqChg, false) + mktCell('VIX', c.vixPrice, c.vixChg, true) + '</div>' +
-        (mods.length ? '<div class="ctx-mod">' + mods.map(m => '<span>' + esc(m) + '</span>').join('') + '</div>' : '') +
-      '</section>' +
-      '<section class="ctx-card"><h3>📅 Macro azi</h3>' + macroEv + '</section>' +
-      '<section class="ctx-card"><h3>📣 Earnings WL</h3><div class="ctx-row"><span class="lbl">Azi</span><span class="val">' + earnLine + '</span></div>' +
-        (c.earningsCacheAgeH != null ? '<div class="ctx-row"><span class="lbl">Cache WL</span><span class="val">' + Math.round(c.earningsCacheAgeH) + 'h</span></div>' : '') +
-      '</section>' +
-      '<section class="ctx-card wide"><h3>🔄 Sector rotation' + (c.sectorRotation ? ' · ' + esc(c.sectorRotation) : '') + (c.sectorSpread != null ? ' <span style="font-weight:400;color:var(--t3)">spread ' + (c.sectorSpread >= 0 ? '+' : '') + c.sectorSpread.toFixed(2) + '%</span>' : '') + '</h3>' +
-        ((c.sectorLeaderRows || []).length ? '<div style="font-size:10px;color:var(--t3);margin-bottom:4px">👑 Lideri</div><div class="ctx-chips">' + c.sectorLeaderRows.map(sectorChip).join('') + '</div>' : '<div style="font-size:10px;color:var(--t3)">Fără scan — <a href="../sector-rotation/" style="color:var(--accent)">Sector Rotation</a></div>') +
-        ((c.sectorLaggardRows || []).length ? '<div style="font-size:10px;color:var(--t3);margin:8px 0 4px">🐌 Codași</div><div class="ctx-chips">' + c.sectorLaggardRows.map(sectorChip).join('') + '</div>' : '') +
-        (c.sectorScanAgeH != null ? '<div class="ctx-row" style="margin-top:8px"><span class="lbl">Scan</span><span class="val' + (c.sectorScanAgeH > 12 ? ' ctx-warn' : '') + '">' + Math.round(c.sectorScanAgeH) + 'h în urmă</span></div>' : '') +
-      '</section>' +
-      '<section class="ctx-card"><h3>🛑 Governor</h3>' +
-        '<div class="ctx-big ' + govCls + '">' + esc(c.governor || '—') + '</div>' +
-        '<div class="ctx-row"><span class="lbl">PnL azi</span><span class="val">' + fmtUsd(gd.todayPnl) + '</span></div>' +
-        '<div class="ctx-row"><span class="lbl">Buget</span><span class="val">' + (gd.budgetUsedPct != null ? gd.budgetUsedPct.toFixed(0) + '%' : '—') + '</span></div>' +
-        '<div class="ctx-row"><span class="lbl">Trades</span><span class="val">' + (gd.todayTrades != null ? gd.todayTrades + ' · ' + (c.tradesRemaining != null ? c.tradesRemaining + ' rămase' : '—') : '—') + '</span></div>' +
-        '<div class="ctx-row"><span class="lbl">Deschise</span><span class="val">' + (gd.openCount != null ? gd.openCount : '—') + (gd.consecutiveLosses ? ' · ' + gd.consecutiveLosses + ' L streak' : '') + '</span></div>' +
-      '</section>' +
-      '<section class="ctx-card"><h3>📓 Journal azi</h3>' +
-        '<div class="ctx-row"><span class="lbl">Închise</span><span class="val">' + (j.closed || 0) + '</span></div>' +
-        '<div class="ctx-row"><span class="lbl">Deschise</span><span class="val">' + (j.open || 0) + '</span></div>' +
-        '<div class="ctx-row"><span class="lbl">PnL închise</span><span class="val">' + fmtUsd(j.todayPnl) + '</span></div>' +
-      '</section>' +
+  const flags = (c.flags || []).map(f => '<span class="fd-flag ' + esc(f.cls) + '">' + esc(f.text) + '</span>').join('');
+  const fp = p => p >= 1000 ? '$' + p.toFixed(0) : '$' + p.toFixed(2);
+  const mktNote = !(c.market && c.market.source)
+    ? '<div class="note">Deschide Hub o dată ca să populezi SPY/QQQ/VIX (cache local).</div>' : '';
+  $('fdMarket').innerHTML = (flags ? '<div class="fd-flags">' + flags + '</div>' : '') +
+    '<div class="fd-mkt">' +
+      '<div class="fd-mkt-cell"><div class="fd-mkt-lbl">SPY</div><div class="fd-mkt-val">' + (c.spyPrice != null ? fp(c.spyPrice) : '—') + '</div>' + fmtPct(c.spyChg, false) + '</div>' +
+      '<div class="fd-mkt-cell"><div class="fd-mkt-lbl">QQQ</div><div class="fd-mkt-val">' + (c.qqqPrice != null ? fp(c.qqqPrice) : '—') + '</div>' + fmtPct(c.qqqChg, false) + '</div>' +
+      '<div class="fd-mkt-cell"><div class="fd-mkt-lbl">VIX</div><div class="fd-mkt-val">' + (c.vixPrice != null ? c.vixPrice.toFixed(2) : '—') + '</div>' + fmtPct(c.vixChg, true) + '</div>' +
+      (c.marketTone ? '<div class="fd-tone">🌡️ ' + esc(c.marketTone.text) + (c.vixLevel ? ' · VIX ' + esc(c.vixLevel) : '') + (c.market && c.market.source ? ' · ' + esc(c.market.source) + (c.market.ageMin != null ? ' ' + c.market.ageMin + 'm' : '') : '') + '</div>' : '') +
     '</div>' +
-    '<div class="ctx-head" style="margin-top:4px"><span>Surse date</span><span style="font-size:10px">verde = proaspăt · galben = învechit · roșu = stale/lipsește</span></div><div class="ctx-sources">' + (c.sources || []).map(s => '<a class="ctx-src ' + esc(s.status) + '" href="' + esc(s.href) + '">' + esc(s.label) + ' · ' + esc(s.ageLabel || '—') + '</a>').join('') + '</div>';
-}
-function _padTime(d){
-  try {
-    const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false, hour:'2-digit', minute:'2-digit' });
-    const p = fmt.formatToParts(d).reduce((o, x) => (o[x.type]=x.value, o), {});
-    return String(parseInt(p.hour,10)%24).padStart(2,'0') + ':' + String(parseInt(p.minute,10)).padStart(2,'0');
-  } catch(e){ return '?'; }
+    '<div class="fd-mods">' + [
+      c.dangerMultPreview != null && c.dangerMultPreview !== 1 ? 'danger ×' + c.dangerMultPreview : null,
+      c.sessionMultPreview != null && c.sessionMultPreview !== 1 ? 'sesiune ×' + c.sessionMultPreview : null,
+      'efectiv ×' + p.sizingMult
+    ].filter(Boolean).map(m => '<span class="fd-mod">' + esc(m) + '</span>').join('') + '</div>' + mktNote;
+
+  const macroList = (c.macroEvents || []).length
+    ? (c.macroEvents || []).map(e => '<div class="fd-kv"><div class="k">HIGH · ' + padTime(e.d) + ' ET</div><div class="v warn">' + esc(e.event) + '</div></div>').join('')
+    : '<div class="note">Niciun macro high-impact azi.</div>';
+  const earnTxt = c.earningsWlToday
+    ? '<span class="warn">' + c.earningsWlToday + ' · ' + esc((c.earningsSymbols||[]).join(', ')) + '</span>'
+    : '<span class="ok">0 ticker(e)</span>';
+  $('fdRisk').innerHTML = '<div class="fd-grid">' +
+    '<div class="fd-kv"><div class="k">Regim normalizat</div><div class="v">' + esc(c.regimeNorm) + '</div></div>' +
+    '<div class="fd-kv"><div class="k">Vârstă regim</div><div class="v">' + (c.regimeAgeMin != null ? c.regimeAgeMin + 'm' : '—') + '</div></div>' +
+    '<div class="fd-kv"><div class="k">Earnings WL azi</div><div class="v">' + earnTxt + '</div></div>' +
+    '<div class="fd-kv"><div class="k">Journal azi</div><div class="v">' + (c.journal ? c.journal.closed + ' închise · ' + c.journal.open + ' deschise' : '—') + '</div></div>' +
+    '</div><div style="margin-top:10px">' + macroList + '</div>';
+
+  const rotCls = c.sectorRotationCls === 'on' ? 'on' : c.sectorRotationCls === 'off' ? 'off' : 'neut';
+  const chip = row => {
+    const w = typeof row.chg1w === 'number' ? (row.chg1w >= 0 ? '+' : '') + row.chg1w.toFixed(1) + '%' : '';
+    return '<span class="fd-chip ' + ((row.chg1w||0) >= 0 ? 'up' : 'down') + '">' + esc(row.sym) + (row.rs != null ? ' RS' + row.rs.toFixed(1) : '') + (w ? ' ' + w : '') + '</span>';
+  };
+  $('fdSector').innerHTML =
+    (c.sectorRotation ? '<span class="fd-chip-reg ' + rotCls + '">Rotație ' + esc(c.sectorRotation) + '</span>' : '') +
+    (c.sectorSpread != null ? '<span style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-left:6px">spread ' + (c.sectorSpread >= 0 ? '+' : '') + c.sectorSpread.toFixed(2) + '%</span>' : '') +
+    ((c.sectorLeaderRows || []).length
+      ? '<div class="fd-sect-grp">👑 Lideri</div><div class="fd-chips">' + c.sectorLeaderRows.map(chip).join('') + '</div>' +
+        ((c.sectorLaggardRows || []).length ? '<div class="fd-sect-grp">🐌 Codași</div><div class="fd-chips">' + c.sectorLaggardRows.map(chip).join('') + '</div>' : '') +
+        (c.sectorScanAgeH != null ? '<div class="note">Scan acum ' + Math.round(c.sectorScanAgeH) + 'h în urmă' + (c.sectorScanAgeH > 12 ? ' — refresh recomandat' : '') + '</div>' : '')
+      : '<div class="note">Fără scan salvat. Deschide <a href="../sector-rotation/" style="color:var(--accent)">Sector Rotation</a>.</div>');
+
+  $('fdGuards').innerHTML = (p.guards || []).map(g => '<span class="fd-guard">🛡 ' + esc(g) + '</span>').join('');
+  $('fdReasons').innerHTML = (p.reasons || []).map(r => '<li>' + esc(r) + '</li>').join('') || '<li style="color:var(--t3)">—</li>';
+
+  const audit = p.audit || [];
+  $('fdRules').innerHTML = RT.rulesSummary().map(r => {
+    const a = audit.find(x => x.id === r.id) || {};
+    const hit = p.ruleId === r.id;
+    const cls = 'fd-rule' + (hit ? ' on' : '') + (a.match ? ' pass' : ' fail');
+    const badge = hit ? '<span class="fd-badge hit">MATCH</span>' : (a.match ? '<span class="fd-badge ok">OK</span>' : '<span class="fd-badge no">' + esc((a.fails||[]).join(',')) + '</span>');
+    return '<div class="' + cls + '"><span class="ord">#' + r.order + '</span><div style="flex:1"><b>' + esc(r.then.strategy) + '</b>' + badge +
+      '<div style="color:var(--t3);font-size:10px;margin-top:3px">' + esc(r.note) + '</div>' +
+      '<div style="color:var(--t3);font-size:9px;margin-top:2px;font-family:var(--mono)">' + esc(fmtWhen(r.when)) + '</div></div>' +
+      '<div class="acts"><button type="button" data-up="' + esc(r.id) + '">▲</button><button type="button" data-down="' + esc(r.id) + '">▼</button><button type="button" data-del="' + esc(r.id) + '" style="color:var(--bear)">✕</button></div></div>';
+  }).join('');
+
+  $('fdRules').querySelectorAll('[data-up]').forEach(b => b.onclick = () => { RT.moveRule(b.dataset.up, 'up'); show(); loadRules(); });
+  $('fdRules').querySelectorAll('[data-down]').forEach(b => b.onclick = () => { RT.moveRule(b.dataset.down, 'down'); show(); loadRules(); });
+  $('fdRules').querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    if (confirm('Ștergi regula?')) { RT.removeRule(b.dataset.del); show(); loadRules(); }
+  });
+
+  $('fdSources').innerHTML = (c.sources || []).map(s =>
+    '<a class="fd-src ' + esc(s.status) + '" href="' + esc(s.href) + '">' + esc(s.label) + ' · ' + esc(s.ageLabel || '—') + '</a>'
+  ).join('');
 }
 
 function show(){
   const p = RT.evaluate();
   const c = p.context || RT.buildContext();
-  const stay = p.strategy === 'STAY OUT';
-
-  $('planBox').className = 'plan' + (stay ? ' stay' : '');
-  $('planStrat').textContent = p.strategy;
-  $('planSub').textContent = '×' + p.sizingMult + ' sizing · max ' + p.maxTrades + ' trades · ' + (p.presetLabel || p.preset) + ' · ' + (p.chartHints || '');
-
-  $('goScore').textContent = p.goScore;
-  $('goScore').className = 'go-score ' + (p.goCls || 'caution');
-  $('goLbl').textContent = p.goLabel + ' · GO Score';
-  const fillCol = p.goCls === 'go' ? 'var(--bull)' : p.goCls === 'caution' ? 'var(--warn)' : 'var(--bear)';
-  $('goFill').style.width = (p.goScore || 0) + '%';
-  $('goFill').style.background = fillCol;
-
-  $('ctxLive').innerHTML = renderContext(c, p);
-  $('guards').innerHTML = (p.guards || []).map(g => '<span class="guard">🛡 ' + esc(g) + '</span>').join('');
-  $('reasons').innerHTML = (p.reasons || []).map(r => '<li>' + esc(r) + '</li>').join('') || '<li style="list-style:none;color:var(--t3)">—</li>';
-
-  const audit = p.audit || [];
-  const rules = RT.rulesSummary();
-  $('ruleCards').innerHTML = rules.map((r, i) => {
-    const a = audit.find(x => x.id === r.id) || {};
-    const hit = p.ruleId === r.id;
-    const cls = 'rule' + (hit ? ' on' : '') + (a.match ? ' pass' : ' fail');
-    const badge = hit ? '<span class="badge hit">MATCH</span>' : (a.match ? '<span class="badge ok">OK</span>' : '<span class="badge no">fail: ' + esc((a.fails||[]).join(', ')) + '</span>');
-    return '<div class="' + cls + '">' +
-      '<span class="ord">#' + r.order + '</span>' +
-      '<div style="flex:1"><b>' + esc(r.then.strategy) + '</b>' + badge +
-      '<div style="color:var(--t3);font-size:10px;margin-top:4px">' + esc(r.note) + '</div>' +
-      '<div style="color:var(--t3);font-size:10px;margin-top:2px;font-family:var(--mono)">' + esc(fmtWhen(r.when)) + '</div></div>' +
-      '<div class="acts">' +
-      '<button type="button" data-up="' + esc(r.id) + '" title="Sus">▲</button>' +
-      '<button type="button" data-down="' + esc(r.id) + '" title="Jos">▼</button>' +
-      '<button type="button" data-del="' + esc(r.id) + '" title="Șterge" style="color:var(--bear)">✕</button>' +
-      '</div></div>';
-  }).join('');
-
-  $('ruleCards').querySelectorAll('[data-up]').forEach(b => b.onclick = () => { RT.moveRule(b.dataset.up, 'up'); show(); loadRules(); });
-  $('ruleCards').querySelectorAll('[data-down]').forEach(b => b.onclick = () => { RT.moveRule(b.dataset.down, 'down'); show(); loadRules(); });
-  $('ruleCards').querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
-    if (confirm('Ștergi regula ' + b.dataset.del + '?')) { RT.removeRule(b.dataset.del); show(); loadRules(); }
-  });
+  renderDesk(p, c);
 }
 
 function loadSettings(){
@@ -347,7 +470,6 @@ function loadSettings(){
   $('setEarn').checked = !!s.earningsGuard;
   $('setMacro').checked = !!s.macroFreezeHigh;
 }
-
 function loadRules(){ $('rulesJson').value = JSON.stringify(RT.load().rules, null, 2); }
 
 $('btnEval').onclick = show;
@@ -359,20 +481,15 @@ $('btnSave').onclick = () => {
   } catch(e){ alert('JSON invalid'); }
 };
 $('btnReset').onclick = () => {
-  if (!confirm('Resetezi playbook-ul la regulile default v3?')) return;
-  RT.saveRules(RT.DEFAULT_RULES.slice());
-  loadRules(); show();
+  if (!confirm('Resetezi playbook-ul la default v3?')) return;
+  RT.saveRules(RT.DEFAULT_RULES.slice()); loadRules(); show();
 };
 $('btnSaveSettings').onclick = () => {
   RT.saveSettings({ earningsGuard: $('setEarn').checked, macroFreezeHigh: $('setMacro').checked });
   show();
 };
 $('btnAddRule').onclick = () => {
-  RT.addRule({
-    when: { regim: ['neutral'], dangerMax: 60 },
-    then: { strategy: 'Manual', sizingMult: 0.5, maxTrades: 2, preset: 'manual' },
-    note: 'Regulă custom'
-  });
+  RT.addRule({ when: { regim: ['neutral'], dangerMax: 60 }, then: { strategy: 'Manual', sizingMult: 0.5, maxTrades: 2, preset: 'manual' }, note: 'Regulă custom' });
   loadRules(); show();
 };
 
