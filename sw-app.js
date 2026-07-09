@@ -1,5 +1,5 @@
-// Service Worker v2 — sw-app.js (înregistrare separată ca să ocolească sw.js vechi din cache)
-const CACHE_VERSION = 'tt-v561-2026-07-09';
+// Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
+const CACHE_VERSION = 'tt-v562-2026-07-09';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -7,17 +7,27 @@ const PRECACHE = [
   './index.html',
   './shell/',
   './shell/index.html',
+  './sw-app.js',
+  './nav.js',
   './lib/hub-ui.css',
   './lib/finnhub-key.js',
-  './nav.js',
+  './nasdaq-scanner/',
   './nasdaq-scanner/index.html',
+  './market-events/',
   './market-events/index.html',
+  './watchlist-monitor/',
   './watchlist-monitor/index.html',
+  './smart-trade-long/',
   './smart-trade-long/index.html',
+  './pump-radar/',
   './pump-radar/index.html',
+  './earnings-hub/',
   './earnings-hub/index.html',
+  './sector-rotation/',
   './sector-rotation/index.html',
+  './macro-dashboard/',
   './macro-dashboard/index.html',
+  './markov-lab/',
   './markov-lab/index.html',
   './lib/markov.js',
   './lib/indicators.js',
@@ -32,17 +42,28 @@ const PRECACHE = [
   './lib/sound.js',
   './lib/utils.js',
   './lib/watchlist.js',
+  './alerts/',
   './alerts/index.html',
+  './guide/',
   './guide/index.html',
+  './health/',
   './health/index.html',
+  './portfolio/',
   './portfolio/index.html',
+  './journal/',
   './journal/index.html',
   './lib/journal.js',
+  './weekly/',
   './weekly/index.html',
+  './governor/',
   './governor/index.html',
+  './equity/',
   './equity/index.html',
+  './shadow-book/',
   './shadow-book/index.html',
+  './router/',
   './router/index.html',
+  './postmortem/',
   './postmortem/index.html',
   './lib/account.js',
   './lib/governor.js',
@@ -97,20 +118,26 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
 
   const hubEntry = isHubEntry(url, req);
-  const fetchOpts = { cache: 'reload' };
+  const isHtml = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
+  const fetchOpts = (hubEntry || isHtml) ? { cache: 'reload' } : {};
 
   e.respondWith(
     fetch(req, fetchOpts).then(res => {
-      if (res && res.status === 200 && res.type === 'basic' && !hubEntry) {
+      if (res && res.status === 200 && res.type === 'basic') {
         const copy = res.clone();
         caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(() => {});
       }
       return res;
     }).catch(() => {
-      if (hubEntry) {
-        return new Response('Offline — reconectează-te pentru hub.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
-      }
-      return caches.match(req).then(r => r || new Response('', { status: 504, statusText: 'offline' }));
+      return caches.match(req).then(r => {
+        if (r) return r;
+        if (hubEntry || isHtml) {
+          return caches.match('./index.html').then(fb =>
+            fb || new Response('Offline — reconectează-te pentru hub.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+          );
+        }
+        return new Response('', { status: 504, statusText: 'offline' });
+      });
     })
   );
 });

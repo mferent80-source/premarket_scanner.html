@@ -140,6 +140,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-132 | Fix Signal Ledger hub-ledger IIFE | lib/hub-ledger.js + index.html | S | P1 | făcut | ideation | 2026-07-09 |
 | I-133 | Sync Equity ↔ Portfolio ↔ Journal | equity/portfolio/journal + lib/* | M | P1 | făcut | ideation | 2026-07-09 |
 | I-134 | Audit sever suită + Hub redesign v561 | index.html + lib/hub-ui.css + fixes | L | P1 | făcut | ideation | 2026-07-09 |
+| I-135 | SW unic + Journal sync tracker live | sw-app.js + journal.js + hub/STL | M | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -918,3 +919,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `lib/hub-ui.css` (topbar sticky, command deck, cockpit polish); `lib/finnhub-key.js`; sync script `?v=`; Health → `sw-app.js`; escape sym CD/tracker; HALT TG blocat când `liveStale`; `sw-app` precache hub+shell.
 - **Impact:** UX cockpit-first, audit 🔴 adresate pe axa capital/infra; deploy `tt-v561`.
 - **Fișiere atinse:** `index.html`, `lib/hub-ui.css`, `lib/finnhub-key.js`, `lib/hub-brief.js`, `lib/hub-health.js`, `lib/capital-desk.js`, `sw-app.js`, `health/index.html`, `equity/portfolio/shell`.
+
+### I-135 · SW unic + Journal sync tracker · [M] · P1
+- **Problema/golul:** două SW (`sw.js` vs `sw-app.js`) cu precache diferit; 6 pagini scanner pe SW vechi; `trade_plans_v1` și `tt_journal_v1` desincronizate (Portfolio citește doar Journal); Nasdaq `fh_key` izolat de `finnhub_api_key`.
+- **Soluția:** `sw-app.js` precache complet + `sw.js` alias `importScripts`; toate paginile → `sw-app.js?v=tt-v562`; `JR.syncPlan`/`unsyncPlan`/`syncAllOpenFromTracker` + wire Hub tracker + STL `savePlanToTracker`; `FH_KEY` în Nasdaq; bump `tt-v562`.
+- **Impact:** un singur cache offline; poziții open din tracker apar automat în Journal/Portfolio; cheie Finnhub unificată pe Nasdaq.
+- **Fișiere atinse:** `lib/journal.js`, `index.html`, `smart-trade-long/index.html`, `sw-app.js`, `sw.js`, `nasdaq-scanner/index.html`, alerts/guide/earnings/macro/sector-rotation, `lib/suite-version.js`, `update.html`, `migrate.html`.

@@ -1212,6 +1212,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 <div class="toast" id="toast"></div>
 </div>
 
+<script src="../lib/finnhub-key.js"></script>
 <script>
 // ── CONSTANTS ──
 const FINNHUB = 'https://finnhub.io/api/v1';
@@ -1411,15 +1412,19 @@ let gapSignals=[];   // signals from gap scanner
 let heatmapCatFilter=null; // active category filter
 
 // API key management
-function getApiKey(){ return localStorage.getItem('fh_key')||document.getElementById('apiKeyInp').value.trim(); }
+function getApiKey(){
+  const inp=(document.getElementById('apiKeyInp')||{value:''}).value.trim();
+  return (window.FH_KEY&&FH_KEY.get?FH_KEY.get():'')||inp;
+}
 function saveApiKey(){
   const v=(document.getElementById('apiKeyInp')||{value:''}).value.trim();
-  if(v) localStorage.setItem('fh_key',v); // NU suprascrie cu string gol!
+  if(v&&(window.FH_KEY&&FH_KEY.set)) FH_KEY.set(v);
 }
 // Restaurează cheia din localStorage la încărcare
 // Restaurare directă (DOM gata când scriptul rulează)
 (function(){
-  const k=localStorage.getItem('fh_key');
+  if(window.FH_KEY&&FH_KEY.migrate) FH_KEY.migrate();
+  const k=(window.FH_KEY&&FH_KEY.get)?FH_KEY.get():localStorage.getItem('fh_key');
   const inp=document.getElementById('apiKeyInp');
   if(k&&inp) inp.value=k;
   try{watchlist=JSON.parse(localStorage.getItem('wl_stocks')||'[]');}catch(e){watchlist=[];}
@@ -10108,7 +10113,8 @@ function renderTopLosers(){
 
 // Înregistrează service worker-ul (cache + offline) — scope: ../
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('../sw.js',{scope:'../'}).catch(e => console.warn('SW register failed:', e));
+  const swVer='tt-v562';
+  navigator.serviceWorker.register('../sw-app.js?v='+swVer,{scope:'../',updateViaCache:'none'}).catch(e => console.warn('SW register failed:', e));
 }
 
 // În PWA standalone, ascunde butonul "← Hub" (fallback JS robust peste CSS)

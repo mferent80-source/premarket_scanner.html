@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=561"></script>
+<script src="lib/suite-version.js?v=562"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v561'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v562'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1176,8 +1176,8 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <script src="lib/data.js"></script>
 <script src="lib/ledger.js"></script>
-<script src="lib/finnhub-key.js?v=561"></script>
-<script src="lib/journal.js?v=7"></script>
+<script src="lib/finnhub-key.js?v=562"></script>
+<script src="lib/journal.js?v=8"></script>
 <script src="lib/telegram.js"></script>
 <script src="lib/account.js"></script>
 <script src="lib/governor.js?v=4"></script>
@@ -1645,7 +1645,7 @@ function ttSave(arr){
 function ttCalcPnL(t){
   const e = parseFloat(t.entry), exit = parseFloat(t.exit), size = parseFloat(t.size) || 0;
   if (!e || !exit || !size) return 0;
-  return (exit - e) * size; // long-only pentru stocks; pentru short, user inversează entry/exit manual
+  return t.dir === 'short' ? (e - exit) * size : (exit - e) * size;
 }
 window.openTradeTracker = function(){
   document.getElementById('ttOverlay')?.remove();
@@ -1740,6 +1740,7 @@ window.ttAddTrade = function(){
   const arr = ttLoad();
   arr.unshift(t);
   ttSave(arr);
+  if (window.JR && JR.syncPlan) JR.syncPlan(t);
   openTradeTracker(); // re-open ca să arate noul rând
 };
 
@@ -1756,8 +1757,9 @@ window.ttCloseTrade = function(id, status){
   t.status = status;
   t.closed = Date.now();
   // PnL: long = (exit-entry)*size, short = (entry-exit)*size
-  t.pnl = t.dir === 'short' ? (t.entry - exit) * t.size : (exit - t.entry) * t.size;
+  t.pnl = ttCalcPnL(t);
   ttSave(arr);
+  if (window.JR && JR.syncPlan) JR.syncPlan(t);
   openTradeTracker();
 };
 
@@ -1765,6 +1767,7 @@ window.ttDeleteTrade = function(id){
   if (!window.confirm('Ștergi acest trade din istoric?')) return;
   const arr = ttLoad().filter(t => t.id !== id);
   ttSave(arr);
+  if (window.JR && JR.unsyncPlan) JR.unsyncPlan(id);
   openTradeTracker();
 };
 
@@ -1808,7 +1811,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v561';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v562';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -2018,9 +2021,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/hub-health.js?v=561"></script>
-<script src="lib/hub-brief.js?v=561"></script>
-<script src="lib/hub-ledger.js?v=561"></script>
+<script src="lib/hub-health.js?v=562"></script>
+<script src="lib/hub-brief.js?v=562"></script>
+<script src="lib/hub-ledger.js?v=562"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {
@@ -2031,6 +2034,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   if (window.HUB_HEALTH) HUB_HEALTH.init();
   if (window.HB_LEDGER && HB_LEDGER.init) HB_LEDGER.init();
   if (window.FH_KEY && FH_KEY.migrate) FH_KEY.migrate();
+  if (window.JR && JR.syncAllOpenFromTracker) {
+    try { JR.syncAllOpenFromTracker(); } catch (e) { console.warn('JR sync tracker:', e); }
+  }
 })();
 </script>
 <script src="nav.js" data-nav-root="./"></script>

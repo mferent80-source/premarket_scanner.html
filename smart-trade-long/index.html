@@ -1375,14 +1375,16 @@ function savePlanToTracker() {
     const arr = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
     // anti-duplicat: două click-uri = două planuri identice în tracker fără asta
     if (arr.some(p => p.ticker === r.sym && p.status === 'open') && !confirm(`Există deja un plan OPEN pe ${r.sym} în tracker. Adaug încă unul?`)) return;
-    arr.unshift({
+    const plan = {
       id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       ticker: r.sym, size: sz.shares || 0,
       entry: +entry.toFixed(2), sl: +sl.toFixed(2), tp: +tp2.toFixed(2),
       dir: 'long', notes: `STL ${effTier(r.scoreData).label} ${r.scoreData.score}/100 · risc ~$${sz.riskUSD.toFixed(0)}`,
       status: 'open', opened: Date.now(),
-    });
+    };
+    arr.unshift(plan);
     localStorage.setItem('trade_plans_v1', JSON.stringify(arr));
+    if (window.JR && JR.syncPlan) JR.syncPlan(plan);
     toast(`📓 Plan ${r.sym} salvat — vezi Trade Plans (📓) în Hub`, 'ok');
   } catch (e) { toast('Eroare la salvarea planului', 'err'); }
 }
