@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (înregistrare separată ca să ocolească sw.js vechi din cache)
-const CACHE_VERSION = 'tt-v556-2026-07-09';
+const CACHE_VERSION = 'tt-v557-2026-07-09';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [

@@ -123,6 +123,13 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-115 | Weekly Review export CD JSON | weekly/index.html | S | P3 | făcut | ideation | 2026-07-09 |
 | I-116 | CD.serverRiskPayload + clipboard | lib/capital-desk.js | S | P2 | făcut | ideation | 2026-07-09 |
 | I-117 | Health afișează capital risk flag | health/index.html | S | P3 | făcut | ideation | 2026-07-09 |
+| I-118 | Capital Desk rail pe Router | router/index.html | S | P2 | făcut | ideation | 2026-07-09 |
+| I-119 | Router cmd strip celulă Capital | router/index.html | S | P2 | făcut | ideation | 2026-07-09 |
+| I-120 | Post-Mortem + CD rail + context desk | postmortem/index.html | M | P2 | făcut | ideation | 2026-07-09 |
+| I-121 | Journal add open → rescan Portfolio | lib/journal.js | S | P2 | făcut | ideation | 2026-07-09 |
+| I-122 | Portfolio export CD JSON | portfolio/index.html | S | P3 | făcut | ideation | 2026-07-09 |
+| I-123 | Weekly CD week-over-week deltas | weekly/ + lib/capital-desk.js | M | P2 | făcut | ideation | 2026-07-09 |
+| I-124 | Fix snap prev week key CD | lib/capital-desk.js | S | P3 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -799,3 +806,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** în `checkEquity` afișează warn/err din flag local.
 - **Impact:** diagnostic capital fără F12.
 - **Fișiere atinse:** `health/index.html`.
+
+### I-118 · CD rail pe Router · [S] · P2
+- **Problema/golul:** Router e pagina de plan execuție dar fără rail Capital Desk.
+- **Soluția:** `#capitalRail` + `CD.renderRail('router')` la eval.
+- **Impact:** plan + risc + R în aceeași pagină.
+- **Fișiere atinse:** `router/index.html`.
+
+### I-119 · Router cmd Capital · [S] · P2
+- **Problema/golul:** strip cmd are Journal/Governor dar nu risc% agregat.
+- **Soluția:** celulă `CD.hubCmdCell()` în `#fdCmd`.
+- **Impact:** paritate cu Hub command strip.
+- **Fișiere atinse:** `router/index.html`.
+
+### I-120 · Post-Mortem + CD · [M] · P2
+- **Problema/golul:** PM arată MAE/MFE fără context capital curent.
+- **Soluția:** rail CD + context desk/risc/R rămas în analiză.
+- **Impact:** review trade cu frână capital vizibilă.
+- **Fișiere atinse:** `postmortem/index.html`.
+
+### I-121 · Journal open → rescan · [S] · P2
+- **Problema/golul:** poziție nouă open nu marca Portfolio stale.
+- **Soluția:** `JR.add` open → `CD.markRescanNeeded`.
+- **Impact:** banner rescan și după intrare, nu doar close.
+- **Fișiere atinse:** `lib/journal.js`.
+
+### I-122 · Portfolio export CD · [S] · P3
+- **Problema/golul:** export CD doar Journal/Equity.
+- **Soluția:** buton header Portfolio `CD.downloadExport()`.
+- **Impact:** export după scan live inclus.
+- **Fișiere atinse:** `portfolio/index.html`.
+
+### I-123 · Weekly CD WoW deltas · [M] · P2
+- **Problema/golul:** snap săptămânal fără comparație vizuală vs săptămâna trecută.
+- **Soluția:** `CD.weekTrend()` + 4 carduri Δ risc/DD/exp.R/equity.
+- **Impact:** trend capital în Weekly Review.
+- **Fișiere atinse:** `lib/capital-desk.js`, `weekly/index.html`.
+
+### I-124 · Fix prev week snap · [S] · P3
+- **Problema/golul:** `saveWeeklySnapshot` folosea `store[wk-1]` invalid.
+- **Soluția:** `getPrevWeekKey(wk)` pentru prev corect.
+- **Impact:** deltas WoW corecte.
+- **Fișiere atinse:** `lib/capital-desk.js`.

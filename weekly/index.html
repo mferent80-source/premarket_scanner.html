@@ -215,11 +215,21 @@ function render(d){
     $('eqBody').innerHTML = html;
     if (d.capitalDesk) {
       const cd = d.capitalDesk, prev = d.capitalDeskPrev;
-      const delta = prev && prev.riskPct != null && cd.riskPct != null ? (cd.riskPct - prev.riskPct).toFixed(1) : null;
+      const trend = window.CD && CD.weekTrend ? CD.weekTrend() : { deltas: null };
+      const dlt = trend.deltas || {};
+      const fmtDpct = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+      const fmtDpp = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(1) + 'pp';
+      const fmtDr = v => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + 'R';
+      const fmtDusd = v => v == null ? '—' : (v >= 0 ? '+' : '') + fmt$(v).replace('$-','-$');
       $('cdSnapBody').innerHTML = '<div class="note" style="margin-top:0">💰 <b>Capital Desk snapshot</b> · verdict <b>' + esc(cd.verdict || '—') + '</b> · risc ' + (cd.riskPct != null ? cd.riskPct.toFixed(1) + '%' : '—') +
-        (delta != null ? ' (Δ' + (delta >= 0 ? '+' : '') + delta + '% vs săpt. trecută)' : '') +
         ' · exp.R ' + (cd.expR != null ? cd.expR.toFixed(2) : '—') +
-        ' <button type="button" id="btnWeeklyCdExport" style="margin-left:8px;background:var(--panel2);border:1px solid var(--b1);color:var(--accent);padding:3px 10px;border-radius:6px;cursor:pointer;font-size:10px">📥 Export CD JSON</button></div>';
+        ' <button type="button" id="btnWeeklyCdExport" style="margin-left:8px;background:var(--panel2);border:1px solid var(--b1);color:var(--accent);padding:3px 10px;border-radius:6px;cursor:pointer;font-size:10px">📥 Export CD JSON</button></div>' +
+        (prev ? '<div class="cards" style="margin-top:8px">' +
+          '<div class="scard"><div class="lbl">Δ RISC</div><div class="val">' + fmtDpct(dlt.riskPct) + '</div><div class="sub">vs ' + esc(trend.prevKey || 'săpt. trecută') + '</div></div>' +
+          '<div class="scard"><div class="lbl">Δ DD</div><div class="val">' + fmtDpp(dlt.ddPct) + '</div></div>' +
+          '<div class="scard"><div class="lbl">Δ EXP.R</div><div class="val">' + fmtDr(dlt.expR) + '</div></div>' +
+          '<div class="scard"><div class="lbl">Δ EQUITY</div><div class="val">' + fmtDusd(dlt.equity) + '</div></div>' +
+        '</div>' : '<div class="note">Prima săptămână cu snap CD — comparația apare de săptămâna viitoare.</div>');
       const wex = $('btnWeeklyCdExport');
       if (wex && window.CD) wex.onclick = () => CD.downloadExport();
     } else $('cdSnapBody').innerHTML = '';

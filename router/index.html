@@ -196,6 +196,7 @@ details summary{cursor:pointer;font-size:11px;font-weight:700;color:var(--t2)}
 </header>
 
 <div id="fdFreeze" class="fd-freeze"></div>
+<div id="capitalRail" data-cd-page="router"></div>
 
 <section class="fd-hero" id="fdHero">
   <div>
@@ -410,7 +411,11 @@ function renderDesk(p, c){
     cmdCell('Regim', esc(c.regime), (c.composite!=null?(c.composite>=0?'+':'')+c.composite.toFixed(1):'—'), regLvl) +
     cmdCell('Danger', c.danger!=null?c.danger+'<span style="font-size:11px;color:var(--t3)">/100</span>':'—', esc(db.label||'')+(c.dangerDelta!=null?' · '+(c.dangerDelta>0?'+':'')+c.dangerDelta:'') , c.danger>=70?'bear':c.danger>=45?'warn':'ok', c.danger, p.dangerSpark?'<div class="fd-spark">'+p.dangerSpark+'</div>':'') +
     cmdCell('Governor', esc(c.governor||'—'), (c.tradesRemaining!=null?c.tradesRemaining+' left':'—'), govLvl) +
-    cmdCell('Journal', String(j.closed||0)+' / '+String(j.open||0), fmtUsd(j.todayPnl), 'neut');
+    cmdCell('Journal', String(j.closed||0)+' / '+String(j.open||0), fmtUsd(j.todayPnl), 'neut') +
+    (window.CD && CD.hubCmdCell ? (function(){
+      const cc = CD.hubCmdCell();
+      return cmdCell('Capital', cc.val, cc.sub, cc.lvl === 'bear' ? 'bear' : cc.lvl === 'warn' ? 'warn' : 'ok');
+    })() : '');
 
   const m = $('fdMatch');
   m.className = 'fd-match'+(stay?' stay':'');
@@ -471,6 +476,7 @@ function renderDesk(p, c){
 function show(){
   const p = RT.evaluate();
   renderDesk(p, p.context || RT.buildContext());
+  if (window.CD) CD.renderRail('capitalRail', 'router');
 }
 
 function loadSettings(){

@@ -92,6 +92,7 @@ td.sym a{color:var(--accent);text-decoration:none}
 <header>
   <h1>🛡️ Portfolio Risk Deck <span class="ver-badge" id="verBadge">v1</span></h1>
   <button class="nav-link" id="btnScan">🔄 Scan poziții</button>
+  <button class="nav-link" id="btnExportCd" title="Export JSON Capital Desk">📥 Export CD</button>
   <a class="nav-link" href="../journal/">📓 Journal</a>
   <a class="nav-link" href="../equity/">📈 Equity</a>
   <a class="nav-link" href="../">← Hub</a>
@@ -382,6 +383,8 @@ function showRescanBanner(){
   } else b.style.display = 'none';
 }
 $('btnScan').addEventListener('click', () => { if (window.CD && CD.clearRescanFlag) CD.clearRescanFlag(); scan(); });
+const btnExportCd = $('btnExportCd');
+if (btnExportCd && window.CD) btnExportCd.addEventListener('click', () => CD.downloadExport());
 showMigrateBanner();
 renderCapitalRailStatic();
 showRescanBanner();

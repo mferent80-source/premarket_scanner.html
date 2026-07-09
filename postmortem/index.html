@@ -41,6 +41,7 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
   <a class="nav-link" href="../">← Hub</a>
 </header>
 
+<div id="capitalRail" data-cd-page="postmortem" style="margin-bottom:12px"></div>
 <div class="panel">
   <select id="selTrade"></select>
   <button class="btn" id="btnRun" style="margin-left:8px">Analizează MAE/MFE</button>
@@ -53,7 +54,11 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Execuții închise</h2><div id="tradeTbl"></div></div>
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Pattern pe eșantion</h2><div id="sugs"></div></div>
 
-<script src="../lib/journal.js?v=6"></script>
+<script src="../lib/account.js"></script>
+<script src="../lib/journal.js?v=7"></script>
+<script src="../lib/governor.js?v=4"></script>
+<script src="../lib/equity.js?v=5"></script>
+<script src="../lib/capital-desk.js?v=4"></script>
 <script src="../lib/data.js"></script>
 <script src="../lib/postmortem.js?v=2"></script>
 <script>
@@ -86,7 +91,15 @@ function showAnalysis(a){
     ['MFE R', a.mfeR!=null?a.mfeR.toFixed(2)+'R':'—'],
     ['Timp în profit', a.timeInProfitPct!=null?a.timeInProfitPct.toFixed(0)+'%':'—']
   ].map(([l,v]) => '<div class="cell"><div class="lbl">' + l + '</div><div class="val">' + v + '</div></div>').join('');
-  $('ctx').textContent = 'Regim: ' + a.regime + ' · Danger: ' + (a.danger??'—') + ' · Sursă: ' + a.source;
+  let ctx = 'Regim: ' + a.regime + ' · Danger: ' + (a.danger??'—') + ' · Sursă: ' + a.source;
+  if (window.CD) {
+    const b = CD.unified();
+    const gv = b.governor || {};
+    ctx += ' · Desk acum: ' + (gv.label || '—') + ' · Risc ' + (b.portfolio.riskPct != null ? b.portfolio.riskPct.toFixed(1) + '%' : '—');
+    if (b.rBudget && b.rBudget.rLeft != null) ctx += ' · R rămas ' + b.rBudget.rLeft.toFixed(1);
+  }
+  $('ctx').textContent = ctx;
+  if (window.CD) CD.renderRail('capitalRail', 'postmortem');
 }
 $('btnRun').onclick = async () => {
   const id = $('selTrade').value; if (!id) return;
@@ -123,6 +136,7 @@ $('btnAll').onclick = async () => {
   $('progBar').style.width = '0';
 };
 fillSelect();
+if (window.CD) CD.renderRail('capitalRail', 'postmortem');
 if (new URLSearchParams(location.search).get('id')) $('btnRun').click();
 })();
 </script>
