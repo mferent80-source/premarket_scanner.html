@@ -4,7 +4,7 @@
 // IMPORTANT: bump CACHE_VERSION manual la fiecare release semnificativ — invalidare automată în clienți.
 // SW are scope `/` (rădăcina repo-ului), deci controlează Hub + toate sub-paginile.
 // PRECACHE = toate cele 11 pagini din Hub → se instalează offline odată cu Hub-ul (instalare PWA).
-const CACHE_VERSION = 'tt-v544-2026-07-09';
+const CACHE_VERSION = 'tt-v545-2026-07-09';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 // Resurse statice pre-cache-uite la instalare
@@ -82,8 +82,7 @@ const PRECACHE = [
 ];
 
 self.addEventListener('install', e => {
-  // Activează imediat noua versiune fără să aștepte tab-urile vechi
-  self.skipWaiting();
+  // Nu skipWaiting aici — evită reload loop; migrate.html poate trimite SKIP_WAITING manual
   // Precache REZILIENT: fiecare pagină se adaugă independent. `addAll` e atomic —
   // dacă O SINGURĂ pagină eșuează la fetch, NICIUNA nu se cache-uiește. Cu `add` per item
   // + catch, toate paginile din Hub se instalează offline chiar dacă una pică temporar.

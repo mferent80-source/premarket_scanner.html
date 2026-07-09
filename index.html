@@ -2,18 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script>window.SUITE_VERSION_SHORT='tt-v544';window.SUITE_VERSION='tt-v544-2026-07-09';</script>
-<script>
-(function(){
-  var VER='tt-v544';
-  if(localStorage.getItem('tt_sw_ok')===VER)return;
-  if(!('serviceWorker'in navigator)){try{localStorage.setItem('tt_sw_ok',VER);}catch(e){}return;}
-  Promise.all([
-    navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister();}));}),
-    caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k.indexOf('trading-tools')>=0;}).map(function(k){return caches.delete(k);}));})
-  ]).then(function(){try{localStorage.setItem('tt_sw_ok',VER);}catch(e){}location.reload();});
-})();
-</script>
+<script>window.SUITE_VERSION_SHORT='tt-v545';window.SUITE_VERSION='tt-v545-2026-07-09';</script>
 <script>
   /* Aplicație instalată (standalone) → deschide shell-ul cu taburi. Doar la top-level (NU în iframe-ul shell-ului, ca să nu se nesteze). */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
@@ -555,7 +544,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span id="suiteVerBadge" title="Versiune cache suită" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v544</span>
+      <span id="suiteVerBadge" title="Versiune cache suită" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v545</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -1765,27 +1754,10 @@ window.ttDeleteTrade = function(id){
   };
 })();
 
-// Service worker — query bust ca browserul să nu țină sw.js vechi (badge tt-v544+)
-if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v544';
-  let reloaded = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloaded) return;
-    reloaded = true;
-    location.reload();
-  });
-  navigator.serviceWorker.register('./sw.js?v=' + swVer, { updateViaCache: 'none' }).then(reg => {
-    if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    reg.addEventListener('updatefound', () => {
-      const nw = reg.installing;
-      if (!nw) return;
-      nw.addEventListener('statechange', () => {
-        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-          nw.postMessage({ type: 'SKIP_WAITING' });
-        }
-      });
-    });
-  }).catch(e => console.warn('SW register failed:', e));
+// Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
+if ('serviceWorker' in navigator && window.self === window.top) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v545';
+  navigator.serviceWorker.register('./sw.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
 // În PWA standalone, ascunde footer-ul cu link-uri externe (GitHub + README)
@@ -1977,10 +1949,10 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/suite-version.js?v=544"></script>
-<script src="lib/hub-health.js?v=544"></script>
-<script src="lib/hub-brief.js?v=544"></script>
-<script src="lib/hub-ledger.js?v=544"></script>
+<script src="lib/suite-version.js?v=545"></script>
+<script src="lib/hub-health.js?v=545"></script>
+<script src="lib/hub-brief.js?v=545"></script>
+<script src="lib/hub-ledger.js?v=545"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {
