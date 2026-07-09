@@ -94,7 +94,7 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 </div>
 
 <div class="grid2">
-  <div class="panel"><h2>⏳ Poziții deschise (journal)</h2><div id="openCap">—</div></div>
+  <div class="panel"><h2>📂 Poziții deschise (journal)</h2><p class="note" style="margin-bottom:8px">Nu intră pe equity curve până la închidere — aici vezi PnL nerealizat (live după 🔄 Refresh).</p><div id="openCap">—</div></div>
   <div class="panel"><h2>📅 PnL săptămânal (închise)</h2><div id="weekBars">—</div></div>
 </div>
 
@@ -180,12 +180,18 @@ function pushLiveToCd(open){
 async function refreshPrices(){
   const btn = $('btnRefresh');
   btn.disabled = true; btn.textContent = '⏳ …';
-  const uniq = [...new Set(EQ.journalOpen().map(e => e.sym))];
-  for (const sym of uniq) { livePx[sym] = await livePrice(sym); await new Promise(r => setTimeout(r, 120)); }
-  btn.disabled = false; btn.textContent = '🔄 Prețuri live';
-  const open = openRowsWithPx();
-  pushLiveToCd(open);
-  render(false);
+  try {
+    const uniq = [...new Set(EQ.journalOpen().map(e => e.sym))];
+    for (const sym of uniq) {
+      try { livePx[sym] = await livePrice(sym); } catch (e) { livePx[sym] = null; }
+      await new Promise(r => setTimeout(r, 120));
+    }
+    const open = openRowsWithPx();
+    pushLiveToCd(open);
+  } finally {
+    btn.disabled = false; btn.textContent = '🔄 Prețuri live';
+    render(false);
+  }
 }
 
 function openRowsWithPx(){
@@ -367,13 +373,17 @@ function render(doFetch){
     ? rd.buckets.map(b => '<div class="bar-row"><span style="width:72px">' + b.label + '</span><div class="bar-track"><div class="bar-fill" style="width:' + (b.n / maxN * 100) + '%"></div></div><span>' + b.n + '</span></div>').join('') + '<p class="note">n=' + rd.n + (rd.n < 10 ? ' ⚠' : '') + '</p>'
     : '<p class="note">Completează SL în journal.</p>';
 
+  const hasLive = open.rows.some(r => r.px != null);
   $('openCap').innerHTML = open.rows.length
-    ? '<table><tr><th class="l">Sym</th><th>Live</th><th>PnL nereal.</th><th>Risc SL</th><th></th></tr>' + open.rows.map(r => {
+    ? '<table><tr><th class="l">Sym</th><th>Entry</th><th>Live</th><th>PnL nereal.</th><th>Risc SL</th><th></th></tr>' + open.rows.map(r => {
       const pfRow = pf && pf.rows ? pf.rows.find(x => x.id === r.id) : null;
       const risk = pfRow && pfRow.riskAtSl != null ? pfRow.riskAtSl : null;
-      return '<tr><td class="l"><a href="../journal/?sym=' + encodeURIComponent(r.sym) + '" style="color:var(--accent);text-decoration:none">' + esc(r.sym) + '</a></td><td>' + (r.px != null ? '$' + r.px.toFixed(2) : '—') + '</td><td class="' + (r.unreal >= 0 ? 'pos' : 'neg') + '">' + (r.unreal != null ? (r.unreal >= 0 ? '+' : '') + '$' + r.unreal.toFixed(0) : '—') + '</td><td class="neg">' + (risk != null ? fmt$(risk) : '—') + '</td><td><a href="../portfolio/?sym=' + encodeURIComponent(r.sym) + '" style="color:var(--accent);font-size:10px">🛡️</a></td></tr>';
-    }).join('') + '</table><p class="note">Risc SL = static la entry (live în <a href="../portfolio/" style="color:var(--accent)">Portfolio</a>).</p>'
-    : '<p class="note">Nicio poziție deschisă — adaugă în <a href="../journal/" style="color:var(--accent)">Journal</a>.</p>';
+      const unrealCell = r.unreal != null
+        ? '<span class="' + (r.unreal >= 0 ? 'pos' : 'neg') + '">' + (r.unreal >= 0 ? '+' : '') + '$' + r.unreal.toFixed(0) + '</span>'
+        : '<span style="color:var(--t3)">apasă Refresh</span>';
+      return '<tr><td class="l"><a href="../journal/?sym=' + encodeURIComponent(r.sym) + '" style="color:var(--accent);text-decoration:none">' + esc(r.sym) + '</a></td><td>$' + r.entry.toFixed(2) + '</td><td>' + (r.px != null ? '$' + r.px.toFixed(2) : '—') + '</td><td>' + unrealCell + '</td><td class="neg">' + (risk != null ? fmt$(risk) : '—') + '</td><td><a href="../portfolio/?sym=' + encodeURIComponent(r.sym) + '" style="color:var(--accent);font-size:10px">🛡️</a></td></tr>';
+    }).join('') + '</table><p class="note">' + (hasLive ? 'Live local' : 'Ticker + entry afișate imediat') + ' · risc SL static la entry (live în <a href="../portfolio/" style="color:var(--accent)">Portfolio</a>) · <b>închide în Journal</b> ca să apară pe curbă.</p>'
+    : '<p class="note">Nicio poziție OPEN în Journal — adaugă execuție fără preț exit sau importă din tracker (wizard drift).</p>';
 
   drawChart();
   renderTables();
