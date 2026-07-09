@@ -76,6 +76,24 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-068 | Signal Ledger mini în mod Review | hub/index.html | S | P3 | făcut | ideation | 2026-07-09 |
 | I-069 | Version badge sync cu SW | lib/suite-version.js | S | P3 | făcut | ideation | 2026-07-09 |
 | I-070 | Journal + Risk Desk (merge Governor) | journal/ | M | P1 | făcut | user | 2026-07-09 |
+| I-071 | Evenimente capital (depuneri/retrageri) în curbă | equity/ | M | P1 | propus | ideation | 2026-07-09 |
+| I-072 | Expectancy R segmentat pe regim macro | equity/ | S | P2 | propus | ideation | 2026-07-09 |
+| I-073 | Wizard reconciliere drift (ghidat) | equity/ | M | P1 | propus | ideation | 2026-07-09 |
+| I-074 | Alertă drift equity → Telegram | equity/ + automation | S | P2 | propus | ideation | 2026-07-09 |
+| I-075 | Cash disponibil estimat (equity − expunere) | equity/ | S | P2 | propus | ideation | 2026-07-09 |
+| I-076 | Export CSV + raport lunar equity | equity/ | S | P3 | propus | ideation | 2026-07-09 |
+| I-077 | Hub cockpit pill Equity (DD + drift) | hub/index.html | S | P1 | propus | ideation | 2026-07-09 |
+| I-078 | Weekly Review + bloc Equity/DD | weekly/ | S | P2 | propus | ideation | 2026-07-09 |
+| I-079 | Webhook ingest Journal (Pine → JR) | automation | L | P1 | propus | ideation | 2026-07-09 |
+| I-080 | Poziții deschise unificate (journal-only) | portfolio/ + hub | M | P1 | propus | ideation | 2026-07-09 |
+| I-081 | Router playbook: reguli max DD + drift | router/ | M | P2 | propus | ideation | 2026-07-09 |
+| I-082 | Signal Ledger → pre-fill Journal | hub + journal/ | S | P2 | propus | ideation | 2026-07-09 |
+| I-083 | Post-Mortem ↔ highlight trade pe curbă | postmortem/ + equity/ | S | P3 | propus | ideation | 2026-07-09 |
+| I-084 | Governor: frână pe DD rolling (nu doar zi) | lib/governor.js | M | P1 | propus | ideation | 2026-07-09 |
+| I-085 | Health: snapshot stale + drift + versiune | health/ | S | P2 | propus | ideation | 2026-07-09 |
+| I-086 | Morning checklist Pro (Router gate) | hub/ + router/ | M | P2 | propus | ideation | 2026-07-09 |
+| I-087 | Cont $ sincronizat (GV ↔ EQ ↔ Portfolio) | lib/equity.js + portfolio/ | S | P1 | propus | ideation | 2026-07-09 |
+| I-088 | Shadow Book → atribuire PnL vs realizat | shadow-book/ + equity/ | M | P3 | propus | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -442,3 +460,129 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** înțelegi starea în <1s fără să citești 3 rânduri — mai puțină oboseală cognitivă pe sesiuni lungi.
 - **Riscuri/dependențe:** nu adaugă semnal nou; doar vizualizare. Tabel +1 rând — verifică densitatea pe layout Orizontal.
 - **Fișiere atinse:** `pine-scripts/AMD_Phase_Detector_v1.pine`.
+
+### I-071 · Evenimente capital (depuneri/retrageri) în curbă · [M] · P1
+- **Problema/golul:** Equity v4 arată drift față de snapshot dar atribuie orice diferență la „execuții lipsă" — depunerile/retragerile din Trade212 distorsionează curba fără să fie modelate. `EQ.curve()` (L116–147 din `lib/equity.js`) adună doar PnL din journal + snapshot-uri brute; un +$2000 deposit arată ca performanță falsă, o retragere ca drawdown artificial.
+- **Soluția:** tip nou de eveniment în `tt_equity_snapshots_v1` sau cheie separată `tt_equity_events_v1`: `{ kind:'deposit'|'withdraw', amountUsd, ts, day, note }`. La construirea curbei, evenimentele se aplică ca salt discret (nu trade), cu marker galben distinct de snapshot/trade. Formular în `equity/index.html` „+ Depunere / Retragere" lângă snapshot.
+- **Impact:** reconcilierea drift devine onestă — diferența sim vs Trade212 se explică fără să corupți expectancy-ul. Decizie mai bună: știi dacă equity a crescut din skill sau din capital injectat.
+- **Riscuri/dependențe:** userul trebuie să înregistreze manual evenimentele (fără broker API); ordinea eveniment vs trade în aceeași zi = ambiguitate (afișată explicit).
+- **Fișiere atinse:** `lib/equity.js`, `equity/index.html`.
+
+### I-072 · Expectancy R segmentat pe regim macro · [S] · P2
+- **Problema/golul:** Equity v4 are `statsBySource()` și `rDistribution()` dar zero segmentare pe `regime` — deși `JR.statsBy(entries, 'regime')` există în `lib/journal.js` (L125–137) și fiecare execuție capturează `md_risk_regime` la intrare. Un trader profesionist nu judecă expectancy agregat: pragul „bun" în RISK-ON poate fi zgomot în RISK-OFF (trader.md §1).
+- **Soluția:** panou nou în Equity „Performanță pe regim" — tabel compact: regim → n, expectancy R, PnL net, avertisment n<10 per bucket. Refolosește `JR.statsBy(JR.all().filter(closed), 'regime')` din `lib/equity.js` (deja importă journal).
+- **Impact:** tai sizing-ul sau sursele de semnal care pierd bani DOAR în regimul în care tradezi azi; aliniere cu Router și macro gate.
+- **Riscuri/dependențe:** regimul la intrare poate fi `?` dacă macro-dashboard nu a fost deschis — bucket separat „necunoscut"; pragurile de acțiune = ipoteze, validare OOS.
+- **Fișiere atinse:** `lib/equity.js`, `equity/index.html`.
+
+### I-073 · Wizard reconciliere drift (ghidat) · [M] · P1
+- **Problema/golul:** `EQ.drift()` (L174–186) afișează warn la |drift|≥2% dar nu spune CE să faci — userul vede text static „verifică execuții lipsă, depuneri/retrageri". Profesioniștii au un ritual de reconciliere, nu un paragraf.
+- **Soluția:** wizard în 3 pași când `drift.warn`: (1) checklist execuții deschise/închise neînregistrate (compară `trade_plans_v1` închise vs journal, buton import `JR.importFromTracker`), (2) evenimente capital lipsă (link la I-071), (3) „snapshot nou acum" sau „accept drift X%". Scor progres vizual; la final opțional ajustare automată baseline dacă user confirmă.
+- **Impact:** timp câștigat la reconciliere săptămânală; încredere în curbă înainte de decizii de sizing.
+- **Riscuri/dependențe:** import tracker aduce fees=0 — wizard trebuie să ceară completare fees; nu auto-corecta fără confirmare explicită.
+- **Fișiere atinse:** `equity/index.html`, `lib/equity.js`, `lib/journal.js` (read-only import).
+
+### I-074 · Alertă drift equity → Telegram · [S] · P2
+- **Problema/golul:** drift warn e vizibil doar dacă deschizi Equity — la fel cum alertele de preț merg pe Telegram prin `tools/check-alerts.mjs` chiar cu laptopul închis, dar nimeni nu te trezește când simularea s-a desincronizat de Trade212 cu >2%.
+- **Soluția:** extensie client-side: la load Equity/Hub (mod Review), dacă `EQ.drift().warn`, scrie `tt_equity_drift_alert_v1` cu timestamp; un nou tip în `tools/alerts.json` (`kind:'equity_drift'`, prag%, maxAge snapshot zile) verificat de `check-alerts.mjs` → mesaj Telegram „Equity drift +4.2% — ultim snapshot acum 12 zile". Alternativ: reminder local în Hub Review fără server (fallback dacă nu vrei Actions).
+- **Impact:** previne să tradezi pe o curbă mincinoasă săptămâni întregi; risc prevenit la sursa PnL.
+- **Riscuri/dependențe:** serverul nu vede localStorage — necesită fie user care deschide suita (scrie flag), fie snapshot manual exportat (limitare declarată); pragul 2% e ipoteză.
+- **Fișiere atinse:** `lib/equity.js`, `tools/check-alerts.mjs`, `tools/alerts.json`, `index.html` (hub Review), `.github/workflows/price-alerts.yml`.
+
+### I-075 · Cash disponibil estimat (equity − expunere) · [S] · P2
+- **Problema/golul:** hero Equity v4 arată „În piață acum" (notional/mktVal) dar nu „cât cash liber rămâne pentru următorul trade" — Portfolio are `tt_pf_account` separat de baseline EQ/GV; un profesionist calculează: equity estimată − valoare de piață poziții = dry powder.
+- **Soluția:** celulă hero „Cash estimat" = `estimatedEquity − open.mktVal` (sau `− open.dep.total` dacă lipsesc prețuri live), cu subtext „fără marjă/leverage — estimare Trade212 cash". Culoare warn dacă cash < 10% din equity (concentrare).
+- **Impact:** decizie sizing imediată fără să deschizi brokerul; previne supra-alocarea când crezi că ai capital dar e deja în poziții.
+- **Riscuri/dependențe:** Trade212 poate avea FX/reserve nevizibile; etichetat ca estimare, nu sold broker.
+- **Fișiere atinse:** `equity/index.html`, `lib/equity.js`.
+
+### I-076 · Export CSV + raport lunar equity · [S] · P3
+- **Problema/golul:** toate datele Equity trăiesc în localStorage — nu poți arhiva luna, trimite contabilului sau compara în Excel. Weekly Review (I-004 făcut) nu include curba de capital.
+- **Soluția:** buton „Export CSV" în `equity/index.html`: fișier cu sheet-uri logice (curve points, snapshots, weekly PnL, stats by source/regime) sau un CSV simplu cu coloane `day,equity,kind,pnlStep,note`. Opțional „Raport lună" — pagină print-friendly cu hero + chart SVG + DD stats pentru luna curentă ET.
+- **Impact:** arhivă profesională + review offline; timp câștigat la taxe/audit personal.
+- **Riscuri/dependențe:** export manual la buton (nu cron); date sensibile — avertisment în UI.
+- **Fișiere atinse:** `equity/index.html`, `lib/equity.js`.
+
+### I-077 · Hub cockpit pill Equity (DD + drift) · [S] · P1
+- **Problema/golul:** Morning Cockpit (I-058 făcut) arată regim, danger, governor — dar zero capital: trebuie să intri în Equity ca să vezi DD% sau drift. `lib/router.js` citește governor dar nu `EQ.*`; hub-ul nu știe dacă ești în drawdown de 8% în timp ce verdictul zice GO.
+- **Soluția:** pill compact în `#hubCockpit` (mod Review + opțional RTH): „Equity $X · DD Y% · drift ±Z%" citit din `lib/equity.js` (lazy load script). Culoare warn/bear la DD>prag sau `drift.warn`. Link direct `equity/`.
+- **Impact:** o privire dimineața = știi dacă poți risca azi; previne revenge trading în DD profund.
+- **Riscuri/dependențe:** fără snapshot, drift e invizibil — pill arată doar DD simulat + hint „adaugă snapshot".
+- **Fișiere atinse:** `index.html`, `lib/hub-brief.js`, `lib/equity.js`, `sw-app.js` (precache).
+
+### I-078 · Weekly Review + bloc Equity/DD · [S] · P2
+- **Problema/golul:** `weekly/index.html` agregă ledger + brief + journal + regim (L142–169) dar nu equity: săptămâna poate fi +$ pe trades dar −% pe DD sau drift ne-reconciliat — lecția importantă se pierde.
+- **Soluția:** secțiune nouă „📈 Capital săptămânii": PnL săptămână din `EQ.weeklyPnl(1)`, DD max/curent din `EQ.drawdownStats()`, drift vs ultimul snapshot, vârsta snapshot-ului (zile). Include în promptul AI al sintezei (3 bullets: capital vs semnale).
+- **Impact:** review-ul săptămânal devine complet — nu doar „am respectat brief-ul?" ci „mi-am crescut capitalul onest?".
+- **Riscuri/dependențe:** eșantion 7 zile = zgomot (avertisment existent); depinde de journal completat.
+- **Fișiere atinse:** `weekly/index.html`, `lib/equity.js`, `lib/ai.js`.
+
+### I-079 · Webhook ingest Journal (Pine → JR) · [L] · P1
+- **Problema/golul:** Pine trimite JSON la intrare/ieșire (I-008/I-020 făcut) dar PWA nu are endpoint de ingestie — verificat: nu există handler webhook în repo, doar paste manual în journal/shadow-book. Bucla semnal→execuție→equity rămâne manuală exact când contează (închideri rapide).
+- **Soluția:** CF Worker (`tools/cf-worker-proxy.js` extins sau worker nou) cu `POST /journal-ingest`: validează secret, parsează payload Pine compatibil `lib/journal.js`, append în gist/repo JSON sau returnează QR pentru paste — fază 1: gist partajat citit de PWA la sync; fază 2: Telegram forward cu buton deep-link. Client: buton „Sync webhook" în journal.
+- **Impact:** execuții închise în secunde fără tastare; equity curve la zi fără drift artificial.
+- **Riscuri/dependențe:** TradingView webhook = plan plătit; securitate secret; PnL tot fără slippage real dacă exit din tracker e touch-price (declarat); gist 401 istoric — Health trebuie verde.
+- **Fișiere atinse:** `tools/cf-worker-proxy.js`, `lib/journal.js`, `journal/index.html`, `tools/check-alerts.mjs` (opțional notificare).
+
+### I-080 · Poziții deschise unificate (journal-only) · [M] · P1
+- **Problema/golul:** `portfolio/index.html` citește journal apoi fallback `trade_plans_v1` (L145–155); hub FAB 📓 scrie încă în tracker; Equity și Governor citesc doar `tt_journal_v1`. Două surse = risc agregat greșit când tracker și journal divergă (I-002 făcut parțial).
+- **Soluția:** Portfolio și stress-test citesc EXCLUSIV journal open; tracker rămâne pentru planificare dar la „open" face `JR.add` automat (sau banner „migrează în journal"). Hub FAB: la salvare plan deschis → sync JR. Deprecare vizuală `trade_plans_v1` pentru poziții (read-only archive).
+- **Impact:** o singură listă de poziții pentru Portfolio, Equity nerealizat, Governor `maxOpenPositions` — risc prevenit la sursă.
+- **Riscuri/dependențe:** useri cu planuri doar în tracker trebuie migrați (`JR.importFromTracker` extins pentru open); breaking change gradual cu banner.
+- **Fișiere atinse:** `portfolio/index.html`, `index.html` (FAB tracker), `lib/journal.js`, `lib/governor.js`.
+
+### I-081 · Router playbook: reguli max DD + drift · [M] · P2
+- **Problema/golul:** `lib/router.js` integrează governor (L343) dar nu equity drawdown sau drift — playbook-ul poate recomanda GO când ești în DD 12% sau simularea e desincronizată de 5% față de Trade212.
+- **Soluția:** reguli noi în `tt_router_playbook_v2`: `equityDdPct > X → STAY`, `driftPct > Y → REVIEW_ONLY`, `snapshotAgeDays > Z → WARN`. `RT.evaluate()` citește `EQ.drawdownStats()` + `EQ.drift()` lazy. Acțiuni în morning command strip.
+- **Impact:** playbook executabil devine capital-aware, nu doar macro/session; decizie „azi tradez?" profesională.
+- **Riscuri/dependențe:** pragurile X/Y/Z = ipoteze per cont; fără snapshot, drift rule e inactivă (declarat).
+- **Fișiere atinse:** `lib/router.js`, `router/index.html`, `lib/equity.js`.
+
+### I-082 · Signal Ledger → pre-fill Journal · [S] · P2
+- **Problema/golul:** semnalele din `lib/ledger.js` (+5/+20z) și hub Signal Ledger nu au cale one-click spre execuție — userul recreează manual sym/entry/source în journal după ce a intrat în Trade212.
+- **Soluția:** pe fiecare rând ledger (hub mini + pagina alerts): buton „📓 Planifică execuție" → deschide `journal/` cu query/hash `?prefill=sym,source,srcId` și formular pre-completat (sym, source, regime curent, notes cu link ledger). La salvare, `srcId` leagă execuția de semnal pentru statsBy source.
+- **Impact:** timp câștigat; trasabilitate semnal→bani completă în Equity breakdown.
+- **Riscuri/dependențe:** prețul de fill rămâne manual (semnal ≠ execuție); nu auto-deschiide poziție.
+- **Fișiere atinse:** `index.html`, `lib/hub-ledger.js`, `journal/index.html`, `lib/journal.js`.
+
+### I-083 · Post-Mortem ↔ highlight trade pe curbă · [S] · P3
+- **Problema/golul:** `lib/postmortem.js` calculează MAE/MFE per trade dar Equity chart nu evidențiază trade-ul analizat — două pagini, zero legătură vizuală.
+- **Soluția:** din postmortem, link „Vezi pe curbă" → `equity/?highlight=tradeId`; chart SVG desenează cerc mare + tooltip pe punctul `kind:'trade'` cu MAE/MFE/R. Invers: click pe marker trade în Equity → link postmortem dacă există analiză.
+- **Impact:** review-ul unui trade prost devine contextual în istoricul capitalului — învățare mai rapidă.
+- **Riscuri/dependențe:** trade fără `closeTs` ordonat corect poate rata highlight; minim cosmetic.
+- **Fișiere atinse:** `postmortem/index.html`, `equity/index.html`, `lib/equity.js`, `lib/postmortem.js`.
+
+### I-084 · Governor: frână pe DD rolling (nu doar zi) · [M] · P1
+- **Problema/golul:** `GV.status()` (L78–100 din `lib/governor.js`) oprește doar pe pierdere ZILNICĂ și consecutive losses — un drawdown de 15% acumulat în 2 săptămâni nu declanșează HALTED deși e regula #1 a money management-ului profesionist.
+- **Soluția:** config nou `maxDdPctRolling` (ex. 10%) citit din `EQ.drawdownStats().currentDdPct`; la depășire → verdict HALTED sau CAUTION cu reason „DD rolling X%". Opțional: max DD de la peak snapshot (nu sim) dacă există snapshot recent.
+- **Impact:** frână disciplinară la nivel de cont, aliniată cu equity curve — previne spirala în DD lung.
+- **Riscuri/dependențe:** DD simulat fără snapshot = mai puțin fiabil; prag = ipoteză; nu blochează brokerul (ca acum).
+- **Fișiere atinse:** `lib/governor.js`, `journal/index.html` (Risk Desk), `lib/equity.js`, `lib/router.js`.
+
+### I-085 · Health: snapshot stale + drift + versiune · [S] · P2
+- **Problema/golul:** I-003 Health verifică proxy/chei/bot dar nu capital data hygiene: snapshot equity vechi de 30 zile + drift warn + badge `tt-v550` vs `CACHE_VERSION` SW = failure modes silențioase care strică Equity și Governor.
+- **Soluția:** 3 probe noi în `health/index.html`: (1) vârsta ultimului snapshot EQ (roșu >14 zile), (2) `EQ.drift().warn` (galben), (3) match `suite-version.js` vs `sw-app.js` CACHE_VERSION. Acțiuni: link equity, link `update.html`.
+- **Impact:** prinde desincronizarea înainte să tradezi pe date moarte; complement I-069.
+- **Riscuri/dependențe:** necesită load `lib/equity.js` în health; fără snapshot, doar versiunea SW e testabilă.
+- **Fișiere atinse:** `health/index.html`, `lib/equity.js`, `lib/suite-version.js`, `lib/hub-health.js`.
+
+### I-086 · Morning checklist Pro (Router gate) · [M] · P2
+- **Problema/golul:** Hub are workflow cards pe fază (I-061) și cockpit, dar nu checklist executabil „am făcut pașii?" — Router dă verdict STAY/GO dar nu bifează: macro proaspăt, earnings scan, governor ok, equity reconciliat.
+- **Soluția:** checklist persistent `tt_morning_check_v1` în hub (mod Pre/RTH): 6–8 itemi auto-bifați când sursa e proaspătă (regimeAgeMin<360, governor TRADE, drift ok, health verde) + itemi manuali (earnings WL verificat). Router verdict = STAY dacă item critic nebifat. Vizual: progress ring în cockpit.
+- **Impact:** ritual dimineață profesional fără Notion; previne trading pe autopilot când ai sărit macro sau equity.
+- **Riscuri/dependențe:** auto-bifare greșită dacă date stale — fiecare item arată vârsta sursei; nu înlocuiește Router, îl completează.
+- **Fișiere atinse:** `index.html`, `lib/hub-brief.js`, `lib/router.js`, `lib/hub-health.js`.
+
+### I-087 · Cont $ sincronizat (GV ↔ EQ ↔ Portfolio) · [S] · P1
+- **Problema/golul:** trei locuri pentru „mărime cont": `GV.cfg().accountSize` (`tt_governor_cfg_v1`), `EQ.baseline()` (snapshot sau governor fallback L90–96), `tt_pf_account` în Portfolio — pot diverge; Governor calculează buget zilnic pe un cont, Equity pe altul.
+- **Soluția:** sursă unică `tt_account_size_v1` (sau baseline snapshot primul) cu sync: la schimbare în Risk Desk → propagă la GV, Portfolio, EQ fallback. Banner în Equity/Portfolio când diferă >1% față de sursă canonică.
+- **Impact:** quick win — toate calculele de % risc și DD pe aceeași bază; decizie sizing coerentă.
+- **Riscuri/dependențe:** primul snapshot devine canonical dacă există — documentat; migrare one-time la load.
+- **Fișiere atinse:** `lib/governor.js`, `lib/equity.js`, `portfolio/index.html`, `journal/index.html` (#desk).
+
+### I-088 · Shadow Book → atribuire PnL vs realizat · [M] · P3
+- **Problema/golul:** Shadow Book (`lib/shadow.js`) măsoară semnale blocate dar nu leagă de equity realizat — nu știi dacă filtrul macro ți-a salvat $X sau ți-a tăiat $Y luna asta comparativ cu journal.
+- **Soluția:** panou în shadow-book sau equity: pentru fiecare filtru cu shadow evaluat, estimează PnL shadow vs PnL journal pe aceeași perioadă/surse; metrică „filter edge USD" (ipoteză, n<10 warn). Opțional: contribuție la Weekly Review AI.
+- **Impact:** validezi empiric filtrele suitei cu banii tăi, nu doar cu R pe chart Pine; aliniere I-005/I-055 la nivel PWA.
+- **Riscuri/dependențe:** shadow PnL = simulare price-touch, nu execuție (trader.md §2); perioade aliniate manual; praguri = ipoteze OOS.
+- **Fișiere atinse:** `lib/shadow.js`, `shadow-book/index.html`, `lib/equity.js`, `weekly/index.html`.
