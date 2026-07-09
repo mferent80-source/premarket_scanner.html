@@ -6,7 +6,7 @@
 <title>📈 Equity & Drawdown — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=563">
+<link rel="stylesheet" href="../lib/capital-ui.css?v=564">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -129,9 +129,9 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 </div>
 
 <script src="../lib/account.js"></script>
-<script src="../lib/suite-version.js?v=563"></script>
-<script src="../lib/journal.js?v=9"></script>
-<script src="../lib/tracker.js?v=1"></script>
+<script src="../lib/suite-version.js?v=564"></script>
+<script src="../lib/journal.js?v=10"></script>
+<script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/governor.js?v=4"></script>
 <script src="../lib/shadow.js"></script>
 <script src="../lib/data.js"></script>
@@ -447,7 +447,8 @@ $('btnReport').onclick = () => {
 };
 
 if (window.CD && CD.initListener) CD.initListener(() => render(false));
-if (window.JR && JR.syncAllFromTracker && JR.reconcileTracker) {
+if (window.TT && TT.migrateLegacy) TT.migrateLegacy();
+else if (window.JR && JR.syncAllFromTracker && JR.reconcileTracker) {
   const rec = JR.reconcileTracker();
   if (!rec.ok) JR.syncAllFromTracker();
 }
@@ -457,7 +458,7 @@ render();
 <script>
 if (window.SUITE_VERSION_SHORT) { const b = document.getElementById('verBadge'); if (b) b.textContent = SUITE_VERSION_SHORT; }
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v563';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v564';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>

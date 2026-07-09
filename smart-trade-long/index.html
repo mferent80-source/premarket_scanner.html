@@ -343,8 +343,8 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/account.js"></script>
-<script src="../lib/journal.js?v=9"></script>
-<script src="../lib/tracker.js?v=1"></script>
+<script src="../lib/journal.js?v=10"></script>
+<script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/governor.js?v=4"></script>
 <script src="../lib/equity.js?v=5"></script>
 <script src="../lib/capital-desk.js?v=4"></script>
@@ -1358,9 +1358,7 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
 }
 
 // ─────────────────────── PLAN → TRADE TRACKER (Hub) ───────────────────────
-// Scrie planul curent în `trade_plans_v1` — storage-ul FAB-ului 📓 din Hub, schema
-// identică cu ttAddTrade de acolo. Închide cercul semnal → plan → tracking PnL
-// fără pagină nouă. Shares = sizer-ul curent (cont + % risc din inputuri).
+// Scrie planul în Journal (source:tracker) via TT.* — același flux ca Hub FAB 📓.
 function savePlanToTracker() {
   const r = state.lastResult;
   if (!r) return;
@@ -1373,23 +1371,16 @@ function savePlanToTracker() {
     if (gate.caution && !gate.halt) toast('⚠ ' + gate.reasons.slice(0, 2).join(' · '), 'warn');
   }
   try {
-    const arr = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
-    // anti-duplicat: două click-uri = două planuri identice în tracker fără asta
-    if (arr.some(p => p.ticker === r.sym && p.status === 'open') && !confirm(`Există deja un plan OPEN pe ${r.sym} în tracker. Adaug încă unul?`)) return;
+    if (window.TT && TT.hasOpen && TT.hasOpen(r.sym) && !confirm(`Există deja un plan OPEN pe ${r.sym}. Adaug încă unul?`)) return;
     const plan = {
-      id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       ticker: r.sym, size: sz.shares || 0,
       entry: +entry.toFixed(2), sl: +sl.toFixed(2), tp: +tp2.toFixed(2),
       dir: 'long', notes: `STL ${effTier(r.scoreData).label} ${r.scoreData.score}/100 · risc ~$${sz.riskUSD.toFixed(0)}`,
-      status: 'open', opened: Date.now(),
+      opened: Date.now(),
     };
     if (window.TT && TT.add) TT.add(plan);
-    else {
-      arr.unshift(plan);
-      localStorage.setItem('trade_plans_v1', JSON.stringify(arr));
-      if (window.JR && JR.syncPlan) JR.syncPlan(plan);
-    }
-    toast(`📓 Plan ${r.sym} salvat — vezi Trade Plans (📓) în Hub`, 'ok');
+    else if (window.JR) JR.add({ sym: r.sym, entry: plan.entry, size: plan.size, slAtEntry: plan.sl, tpAtEntry: plan.tp, source: 'tracker', notes: plan.notes });
+    toast(`📓 Plan ${r.sym} salvat în Journal — vezi Trade Plans (📓) în Hub`, 'ok');
   } catch (e) { toast('Eroare la salvarea planului', 'err'); }
 }
 

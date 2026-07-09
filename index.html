@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=563"></script>
+<script src="lib/suite-version.js?v=564"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v563'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v564'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1176,9 +1176,9 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <script src="lib/data.js"></script>
 <script src="lib/ledger.js"></script>
-<script src="lib/finnhub-key.js?v=563"></script>
-<script src="lib/journal.js?v=9"></script>
-<script src="lib/tracker.js?v=1"></script>
+<script src="lib/finnhub-key.js?v=564"></script>
+<script src="lib/journal.js?v=10"></script>
+<script src="lib/tracker.js?v=2"></script>
 <script src="lib/telegram.js"></script>
 <script src="lib/account.js"></script>
 <script src="lib/governor.js?v=4"></script>
@@ -1632,7 +1632,7 @@ window.showFeaturesModal = function(scannerKey){
 
 // ═══════════════════════════════════════════════════════════════
 //  TRADE TRACKER — minim, replace pentru trading-journal eliminat
-//  Storage: trade_plans_v1 via lib/tracker.js (TT.*) — sync live → tt_journal_v1
+//  Storage: Journal-first via lib/tracker.js (TT.*) — tt_journal_v1 = sursa unică
 //  Status: 'open' | 'win' | 'loss' (manual mark)
 // ═══════════════════════════════════════════════════════════════
 function ttLoad(){ return (window.TT && TT.all) ? TT.all() : []; }
@@ -1718,17 +1718,14 @@ window.ttAddTrade = function(){
   const entry = parseFloat(v('ttEntry'));
   if (!ticker || !size || !entry) { alert('Ticker, Size și Entry sunt obligatorii'); return; }
   const t = {
-    id: 't_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
     ticker, size, entry,
     sl: parseFloat(v('ttSL')) || null,
     tp: parseFloat(v('ttTP')) || null,
     dir: v('ttDir') || 'long',
     notes: v('ttNotes') || '',
-    status: 'open',
     opened: Date.now(),
   };
   if (window.TT && TT.add) TT.add(t);
-  else { try { localStorage.setItem('trade_plans_v1', JSON.stringify([t].concat(ttLoad()))); } catch(e){} }
   openTradeTracker();
 };
 
@@ -1745,22 +1742,12 @@ window.ttCloseTrade = function(id, status){
   if (feesStr === null) return;
   const fees = parseFloat(feesStr) || 0;
   if (window.TT && TT.close) TT.close(id, status, exit, fees);
-  else {
-    t.exit = exit; t.status = status; t.closed = Date.now(); t.fees = fees;
-    t.pnl = ttCalcPnL(t);
-    try { localStorage.setItem('trade_plans_v1', JSON.stringify(arr)); } catch(e){}
-    if (window.JR && JR.syncPlan) JR.syncPlan(t);
-  }
   openTradeTracker();
 };
 
 window.ttDeleteTrade = function(id){
   if (!window.confirm('Ștergi acest trade din istoric?')) return;
   if (window.TT && TT.remove) TT.remove(id);
-  else {
-    try { localStorage.setItem('trade_plans_v1', JSON.stringify(ttLoad().filter(t => t.id !== id))); } catch(e){}
-    if (window.JR && JR.unsyncPlan) JR.unsyncPlan(id);
-  }
   openTradeTracker();
 };
 
@@ -1804,7 +1791,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v563';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v564';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -2014,9 +2001,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/hub-health.js?v=563"></script>
-<script src="lib/hub-brief.js?v=563"></script>
-<script src="lib/hub-ledger.js?v=563"></script>
+<script src="lib/hub-health.js?v=564"></script>
+<script src="lib/hub-brief.js?v=564"></script>
+<script src="lib/hub-ledger.js?v=564"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {
@@ -2027,8 +2014,8 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   if (window.HUB_HEALTH) HUB_HEALTH.init();
   if (window.HB_LEDGER && HB_LEDGER.init) HB_LEDGER.init();
   if (window.FH_KEY && FH_KEY.migrate) FH_KEY.migrate();
-  if (window.JR && JR.syncAllFromTracker) {
-    try { JR.syncAllFromTracker(); } catch (e) { console.warn('JR sync tracker:', e); }
+  if (window.TT && TT.migrateLegacy) {
+    try { TT.migrateLegacy(); } catch (e) { console.warn('TT migrate:', e); }
   }
 })();
 </script>

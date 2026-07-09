@@ -1,81 +1,81 @@
-ï»¿# Backup automat â€” Trading Tools (CITEÈ˜TE ÃNTÃ‚I)
+# Backup automat — Trading Tools (CITE?TE ÎNTÂI)
 
-EÈ™ti un agent (Claude Code) pornit Ã®n `E:\Backup-Claude\`. Acest folder e un **sistem de backup
-automat** pentru munca userului (Marius) la trading tools. CiteÈ™te regulile Ã®nainte de a face orice.
+E?ti un agent (Claude Code) pornit în `E:\Backup-Claude\`. Acest folder e un **sistem de backup
+automat** pentru munca userului (Marius) la trading tools. Cite?te regulile înainte de a face orice.
 
-## âš ï¸ DIRECTIVÄ‚ OBLIGATORIE
+## ?? DIRECTIVÃ OBLIGATORIE
 
-**Orice proiect, fiÈ™ier sau unealtÄƒ NOUÄ‚ la care lucrezi pentru user â†’ adaug-o Ã®n
-`_config\watchlist.json` (È™i Ã®n `watchlist.sample.json` din repo) ca sÄƒ intre AUTOMAT Ã®n backup-ul de
-aici, cu pÄƒstrarea celor 3 versiuni.** Nu lÄƒsa muncÄƒ importantÄƒ Ã®n afara backup-ului. Reflexul, cÃ¢nd
-creezi ceva nou semnificativ: Ã®ntÃ¢i adaugÄƒ-l Ã®n watchlist, apoi lucreazÄƒ.
+**Orice proiect, fi?ier sau unealtã NOUÃ la care lucrezi pentru user › adaug-o în
+`_config\watchlist.json` (?i în `watchlist.sample.json` din repo) ca sã intre AUTOMAT în backup-ul de
+aici, cu pãstrarea celor 3 versiuni.** Nu lãsa muncã importantã în afara backup-ului. Reflexul, când
+creezi ceva nou semnificativ: întâi adaugã-l în watchlist, apoi lucreazã.
 
-**PÄƒstreazÄƒ structura existentÄƒ.** Folderele de aici È™i gruparea pe categorii rÄƒmÃ¢n cum sunt â€” NU
-redenumi, NU reorganiza, NU comasa È™i NU È™terge categorii existente. PoÈ›i DOAR sÄƒ adaugi o categorie
-nouÄƒ cÃ¢nd apare un tip de muncÄƒ nou (un folder nou + item Ã®n watchlist), fÄƒrÄƒ sÄƒ atingi ce existÄƒ deja.
+**Pãstreazã structura existentã.** Folderele de aici ?i gruparea pe categorii rãmân cum sunt — NU
+redenumi, NU reorganiza, NU comasa ?i NU ?terge categorii existente. Po?i DOAR sã adaugi o categorie
+nouã când apare un tip de muncã nou (un folder nou + item în watchlist), fãrã sã atingi ce existã deja.
 
-**Rutare Pine:** orice cod Pine (TradingView, fiÈ™iere `.pine`, indicatori/strategii/dashboard-uri) merge
-EXCLUSIV Ã®n categoria `pine-scripts` â€” È™i DOAR acolo. Nu-l amesteca Ã®n `crypto-scanner`, `premarket-suite`
-sau altÄƒ categorie. CÃ¢nd apare un folder/fiÈ™ier Pine local, adaugÄƒ-l Ã®n watchlist cu `"category": "pine-scripts"`.
+**Rutare Pine:** orice cod Pine (TradingView, fi?iere `.pine`, indicatori/strategii/dashboard-uri) merge
+EXCLUSIV în categoria `pine-scripts` — ?i DOAR acolo. Nu-l amesteca în `crypto-scanner`, `premarket-suite`
+sau altã categorie. Când apare un folder/fi?ier Pine local, adaugã-l în watchlist cu `"category": "pine-scripts"`.
 
 ## Ce e aici
 
-La finalul fiecÄƒrui task, un hook `Stop` din `~/.claude/settings.json` ruleazÄƒ `_backup.ps1`, care
-salveazÄƒ pe categorii ce s-a schimbat È™i **pÄƒstreazÄƒ DOAR ultimele 3 versiuni** per item (restul È™terse).
+La finalul fiecãrui task, un hook `Stop` din `~/.claude/settings.json` ruleazã `_backup.ps1`, care
+salveazã pe categorii ce s-a schimbat ?i **pãstreazã DOAR ultimele 3 versiuni** per item (restul ?terse).
 
 ```
 E:\Backup-Claude\
-â”œâ”€â”€ _backup.ps1          â† entry (apelat de hook; iese mereu cu 0, non-blocant)
-â”œâ”€â”€ _backup-lib.ps1      â† funcÈ›iile (hash, snapshot, rotaÈ›ie, excludere secrete)
-â”œâ”€â”€ _config\watchlist.json   â† sursele urmÄƒrite (fiÈ™ier sau folder + categorie + excluderi)
-â”œâ”€â”€ _state\hashes.json       â† ultimul hash per item (detecÈ›ie â€s-a schimbat?")
-â”œâ”€â”€ _log\backup-log.txt      â† jurnal: ce, cÃ¢nd, acÈ›iune
-â”œâ”€â”€ crypto-scanner\      â† max 3 snapshot-uri (.html timestamped) ale Crypto Scanner Pro
-â”œâ”€â”€ premarket-suite\     â† max 3 arhive .zip ale repo-ului premarket_scanner
-â”œâ”€â”€ docs-specs\          â† max 3 arhive .zip cu spec/plan-uri
-â””â”€â”€ pine-scripts\        â† gol pÃ¢nÄƒ se adaugÄƒ o cale Pine
++¦¦ _backup.ps1          ‹ entry (apelat de hook; iese mereu cu 0, non-blocant)
++¦¦ _backup-lib.ps1      ‹ func?iile (hash, snapshot, rota?ie, excludere secrete)
++¦¦ _config\watchlist.json   ‹ sursele urmãrite (fi?ier sau folder + categorie + excluderi)
++¦¦ _state\hashes.json       ‹ ultimul hash per item (detec?ie „s-a schimbat?")
++¦¦ _log\backup-log.txt      ‹ jurnal: ce, când, ac?iune
++¦¦ crypto-scanner\      ‹ max 3 snapshot-uri (.html timestamped) ale Crypto Scanner Pro
++¦¦ premarket-suite\     ‹ max 3 arhive .zip ale repo-ului premarket_scanner
++¦¦ docs-specs\          ‹ max 3 arhive .zip cu spec/plan-uri
+L¦¦ pine-scripts\        ‹ gol pânã se adaugã o cale Pine
 ```
 
-## REGULA CARDINALÄ‚
+## REGULA CARDINALÃ
 
-**Maxim 3 versiuni per item. Ãntotdeauna. Restul se È™terg.** Nu schimba asta fÄƒrÄƒ cerere explicitÄƒ.
+**Maxim 3 versiuni per item. Întotdeauna. Restul se ?terg.** Nu schimba asta fãrã cerere explicitã.
 
-## Sursa de adevÄƒr (NU edita aici orbeÈ™te)
+## Sursa de adevãr (NU edita aici orbe?te)
 
-Scripturile de aici sunt **copii deployate**. Sursa versionatÄƒ Ã®n git e Ã®n repo:
+Scripturile de aici sunt **copii deployate**. Sursa versionatã în git e în repo:
 `C:\Users\Cimin\premarket_scanner\tools\backup-system\` (`_backup-lib.ps1`, `_backup.ps1`,
 `_backup.tests.ps1`, `watchlist.sample.json`).
 
 **Flux corect la orice modificare a sistemului:**
-1. Editezi Ã®n repo (`tools\backup-system\`), NU direct pe E:.
-2. Rulezi testele: `powershell -NoProfile -ExecutionPolicy Bypass -File "tools\backup-system\_backup.tests.ps1"` â†’ trebuie `0 FAIL`.
-3. Redeployezi pe E: copiind `_backup.ps1`, `_backup-lib.ps1` (È™i `watchlist.sample.json` â†’ `_config\watchlist.json`).
-4. Scripturile `.ps1` se salveazÄƒ **UTF-8 cu BOM** (PowerShell 5.1 le citeÈ™te fÄƒrÄƒ BOM ca ANSI â†’ stricÄƒ diacriticele din log).
+1. Editezi în repo (`tools\backup-system\`), NU direct pe E:.
+2. Rulezi testele: `powershell -NoProfile -ExecutionPolicy Bypass -File "tools\backup-system\_backup.tests.ps1"` › trebuie `0 FAIL`.
+3. Redeployezi pe E: copiind `_backup.ps1`, `_backup-lib.ps1` (?i `watchlist.sample.json` › `_config\watchlist.json`).
+4. Scripturile `.ps1` se salveazã **UTF-8 cu BOM** (PowerShell 5.1 le cite?te fãrã BOM ca ANSI › stricã diacriticele din log).
 
 ## Cum adaugi ceva nou la backup
 
-AdaugÄƒ un item Ã®n `_config\watchlist.json` (È™i Ã®n `watchlist.sample.json` din repo):
+Adaugã un item în `_config\watchlist.json` (?i în `watchlist.sample.json` din repo):
 `{ "name": "...", "category": "...", "path": "C:\\...", "type": "file" | "folder", "exclude": [] }`
 
-**REGULÄ‚ â€” niciodatÄƒ cÄƒi din `.claude\worktrees\` Ã®n watchlist.** Worktree-urile git sunt
-temporare (se curÄƒÈ›Äƒ) â†’ calea devine moartÄƒ È™i backup-ul dÄƒ â€LIPSÄ‚" la fiecare rulare. DacÄƒ un
-fiÈ™ier de protejat trÄƒieÈ™te Ã®ntr-un worktree, consolideazÄƒ-l ÃNTÃ‚I Ã®ntr-o cale stabilÄƒ din repo
-main (ex. `tools\pine\`, `tools\backup-system\`), comite Ã®n git, ABIA APOI pune calea stabilÄƒ Ã®n
-watchlist. `premarket-suite` oricum exclude `.claude\worktrees`, deci munca de acolo nu intrÄƒ Ã®n zip.
+**REGULÃ — niciodatã cãi din `.claude\worktrees\` în watchlist.** Worktree-urile git sunt
+temporare (se curã?ã) › calea devine moartã ?i backup-ul dã „LIPSÃ" la fiecare rulare. Dacã un
+fi?ier de protejat trãie?te într-un worktree, consolideazã-l ÎNTÂI într-o cale stabilã din repo
+main (ex. `tools\pine\`, `tools\backup-system\`), comite în git, ABIA APOI pune calea stabilã în
+watchlist. `premarket-suite` oricum exclude `.claude\worktrees`, deci munca de acolo nu intrã în zip.
 
-**REGULÄ‚ â€” fÄƒrÄƒ cÄƒi/foldere inexistente Ã®n watchlist.** Ãnainte de a adÄƒuga un item, verificÄƒ pe
-disc cÄƒ `path` existÄƒ. Un item cÄƒtre un folder care nu existÄƒ (ex. un `docs\` neapÄƒrut Ã®ncÄƒ) produce
-â€LIPSÄ‚" la fiecare backup â€” adaugÄƒ-l doar cÃ¢nd chiar existÄƒ.
+**REGULÃ — fãrã cãi/foldere inexistente în watchlist.** Înainte de a adãuga un item, verificã pe
+disc cã `path` existã. Un item cãtre un folder care nu existã (ex. un `docs\` neapãrut încã) produce
+„LIPSÃ" la fiecare backup — adaugã-l doar când chiar existã.
 
-## Reguli de siguranÈ›Äƒ
+## Reguli de siguran?ã
 
-- NU pune secrete Ã®n watchlist; scriptul oricum exclude tipare gen `*.key`, `.env`, `sk-ant-*`, `ghp_*`.
-- NU modifica/È™terge snapshot-urile manual decÃ¢t la cerere â€” sunt copia de siguranÈ›Äƒ a userului.
-- Rulare manualÄƒ oricÃ¢nd: `powershell -NoProfile -ExecutionPolicy Bypass -File "E:\Backup-Claude\_backup.ps1"`.
+- NU pune secrete în watchlist; scriptul oricum exclude tipare gen `*.key`, `.env`, `sk-ant-*`, `ghp_*`.
+- NU modifica/?terge snapshot-urile manual decât la cerere — sunt copia de siguran?ã a userului.
+- Rulare manualã oricând: `powershell -NoProfile -ExecutionPolicy Bypass -File "E:\Backup-Claude\_backup.ps1"`.
 
 ## Context proiect
 
-Munca principalÄƒ e Ã®n repo-ul `C:\Users\Cimin\premarket_scanner` (suitÄƒ PWA trading-tools) + un scanner
-crypto standalone â€Crypto Scanner Pro" Ã®n `C:\Users\Cimin\Downloads\` (È›inut intenÈ›ionat separat).
-Limba de lucru: romÃ¢nÄƒ (cu diacritice). Userul È›ine mult la: versionare la fiecare modificare È™i
-pÄƒstrarea celor 3 versiuni de backup.
+Munca principalã e în repo-ul `C:\Users\Cimin\premarket_scanner` (suitã PWA trading-tools) + un scanner
+crypto standalone „Crypto Scanner Pro" în `C:\Users\Cimin\Downloads\` (?inut inten?ionat separat).
+Limba de lucru: românã (cu diacritice). Userul ?ine mult la: versionare la fiecare modificare ?i
+pãstrarea celor 3 versiuni de backup.

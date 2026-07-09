@@ -142,6 +142,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-134 | Audit sever suită + Hub redesign v561 | index.html + lib/hub-ui.css + fixes | L | P1 | făcut | ideation | 2026-07-09 |
 | I-135 | SW unic + Journal sync tracker live | sw-app.js + journal.js + hub/STL | M | P1 | făcut | ideation | 2026-07-09 |
 | I-136 | Tracker module + sync complet + capital UI | lib/tracker.js + capital pages | M | P1 | făcut | ideation | 2026-07-09 |
+| I-137 | Journal-first deprecate trade_plans_v1 | lib/tracker.js + journal.js | M | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -929,6 +930,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 
 ### I-136 · Tracker module + capital polish · [M] · P1
 - **Problema/golul:** Tracker inline în Hub; sync doar open; fees ignorate la close; Portfolio banner manual; pagini capital fără SW/reconcile vizibil; model dual tracker/journal fără modul comun.
-- **Soluția:** `lib/tracker.js` (TT.*); `JR.syncAllFromTracker` + `reconcileTracker`; fees la close Hub+Journal; `lib/capital-ui.css`; auto-sync la load Portfolio/Journal/Equity; chip reconcile; SW pe journal/portfolio/equity/router/weekly; bump `tt-v563`.
+- **Soluția:** `lib/tracker.js` (TT.*); `JR.syncAllFromTracker` + `reconcileTracker`; fees la close Hub+Journal; `lib/capital-ui.css`; auto-sync la load Portfolio/Journal/Equity; chip reconcile; SW pe journal/portfolio/equity/router/weekly; bump `tt-v564`.
 - **Impact:** flux capital mai onest (fees), sync automat fără wizard manual, UI comun pe paginile de bani.
 - **Fișiere atinse:** `lib/tracker.js`, `lib/journal.js`, `lib/capital-ui.css`, `lib/equity.js`, `index.html`, journal/portfolio/equity/router/weekly, `smart-trade-long`, `sw-app.js`.
+
+### I-137 · Journal-first model unic · [M] · P1
+- **Problema/golul:** Model dual `trade_plans_v1` + `tt_journal_v1` — risc desincronizare, Portfolio/Journal nu partajeau același ID, TP pierdut la sync.
+- **Soluția:** `TT.*` journal-first (read/write direct JR); `tpAtEntry` în schema journal; `TT.migrateLegacy()` arhivează + golește `trade_plans_v1`; Hub/STL fără id `t_*` local; reconcile pe legacy pending only; bump `tt-v564`.
+- **Impact:** o singură sursă de adevăr pentru capital; Trade Plans = view peste Journal; migrare automată la load.
+- **Fișiere atinse:** `lib/tracker.js`, `lib/journal.js`, `lib/equity.js`, `index.html`, portfolio/journal/equity, `smart-trade-long`.

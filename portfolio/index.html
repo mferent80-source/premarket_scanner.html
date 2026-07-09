@@ -8,7 +8,7 @@
 <meta name="description" content="Riscul agregat al pozițiilor deschise: risc la SL cumulat, concentrare pe sector, beta vs QQQ, stress-test">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🛡️</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=563">
+<link rel="stylesheet" href="../lib/capital-ui.css?v=564">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -136,9 +136,9 @@ td.sym a{color:var(--accent);text-decoration:none}
 
 <script src="../lib/account.js"></script>
 <script src="../lib/finnhub-key.js?v=561"></script>
-<script src="../lib/suite-version.js?v=563"></script>
+<script src="../lib/suite-version.js?v=564"></script>
 <script src="../lib/journal.js?v=9"></script>
-<script src="../lib/tracker.js?v=1"></script>
+<script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/governor.js?v=4"></script>
 <script src="../lib/equity.js?v=6"></script>
 <script src="../lib/capital-desk.js?v=5"></script>
@@ -170,20 +170,23 @@ function openPositions(){
   } catch (e) { return []; }
 }
 function trackerOpenNotInJournal(){
-  try {
-    const plans = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
-    const openPlans = plans.filter(p => p && p.status === 'open' && p.ticker && +p.size > 0 && +p.entry > 0);
-    if (!openPlans.length) return [];
-    const j = JSON.parse(localStorage.getItem('tt_journal_v1') || '[]') || [];
-    const haveSrc = new Set(j.filter(e => e && (e.status === 'open' || e.exit == null)).map(x => x.srcId).filter(Boolean));
-    return openPlans.filter(p => !haveSrc.has(p.id));
-  } catch (e) { return []; }
+  if (window.JR && JR.reconcileTracker) {
+    const r = JR.reconcileTracker();
+    if (!r.openOrphan) return [];
+    try {
+      const plans = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
+      const j = JSON.parse(localStorage.getItem('tt_journal_v1') || '[]') || [];
+      const haveSrc = new Set(j.filter(e => e && (e.status === 'open' || e.exit == null)).map(x => x.srcId).filter(Boolean));
+      return plans.filter(p => p && p.status === 'open' && !haveSrc.has(p.id));
+    } catch (e) { return []; }
+  }
+  return [];
 }
 function renderReconcileChip(){
   const el = $('reconcileChip');
   if (!el || !window.JR || !JR.reconcileTracker) return;
   const r = JR.reconcileTracker();
-  el.textContent = r.ok ? '✓ sync OK' : `⚠ ${r.openOrphan} open · ${r.closedMissing} closed lipsă`;
+  el.textContent = r.journalFirst ? '✓ Journal' : (r.ok ? '✓ sync OK' : `⚠ ${r.openOrphan} open · ${r.closedMissing} closed`);
   el.className = 'cap-reconcile ' + (r.ok ? 'ok' : 'warn');
   el.title = `Journal open: ${r.journalOpen} · Tracker open: ${r.trackerOpen}`;
 }
@@ -193,14 +196,13 @@ function showMigrateBanner(){
   if (!el) return;
   if (!orphans.length){ el.style.display = 'none'; return; }
   el.style.display = '';
-  el.innerHTML = `⚠ ${orphans.length} plan(uri) open în tracker fără Journal: <b>${orphans.map(p => esc(String(p.ticker).toUpperCase())).join(', ')}</b>. Portfolio citește Journal. <button type="button" class="sync-btn" id="btnAutoSync">Sync acum</button>`;
+  el.innerHTML = `⚠ ${orphans.length} plan(uri) legacy fără Journal: <b>${orphans.map(p => esc(String(p.ticker).toUpperCase())).join(', ')}</b>. <button type="button" class="sync-btn" id="btnAutoSync">Migrează acum</button>`;
   $('btnAutoSync')?.addEventListener('click', () => {
-    if (window.JR && JR.syncAllFromTracker) {
-      JR.syncAllFromTracker();
-      renderReconcileChip();
-      showMigrateBanner();
-      scan();
-    }
+    if (window.TT && TT.migrateLegacy) TT.migrateLegacy();
+    else if (window.JR && JR.syncAllFromTracker) JR.syncAllFromTracker();
+    renderReconcileChip();
+    showMigrateBanner();
+    scan();
   });
 }
 // Sector din cache-ul Watchlist Monitor (Finnhub profile2) — read-only, nu re-fetch
@@ -418,7 +420,8 @@ else $('tblWrap').innerHTML = `<div class="empty">📭 Nicio poziție OPEN în J
 if (window.CD && CD.initListener) {
   CD.initListener(() => {
     if (window.ACCT) { const g = ACCT.get(); $('inAcct').value = g.value || ''; }
-    if (window.JR && JR.syncAllFromTracker && JR.reconcileTracker) {
+    if (window.TT && TT.migrateLegacy) TT.migrateLegacy();
+    else if (window.JR && JR.syncAllFromTracker && JR.reconcileTracker) {
       const rec = JR.reconcileTracker();
       if (!rec.ok) JR.syncAllFromTracker();
     }
@@ -434,7 +437,7 @@ if (window.CD && CD.initListener) {
 <script>
 if (window.SUITE_VERSION_SHORT) { const b = document.getElementById('verBadge'); if (b) b.textContent = SUITE_VERSION_SHORT; }
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v563';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v564';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>

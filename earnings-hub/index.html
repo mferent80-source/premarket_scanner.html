@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📅 Earnings Hub — Trading Tools</title>
+<title>?? Earnings Hub � Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <meta name="description" content="Calendar earnings 30 zile + EPS history + AI verdict + insider clusters + alerte -48h">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23a855f7'/><stop offset='1' stop-color='%23ec4899'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='%230b0f17'/><rect x='8' y='10' width='16' height='14' rx='2' fill='none' stroke='url(%23g)' stroke-width='2'/><line x1='8' y1='15' x2='24' y2='15' stroke='url(%23g)' stroke-width='2'/><line x1='12' y1='8' x2='12' y2='12' stroke='url(%23g)' stroke-width='2' stroke-linecap='round'/><line x1='20' y1='8' x2='20' y2='12' stroke='url(%23g)' stroke-width='2' stroke-linecap='round'/></svg>">
@@ -102,7 +102,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .stat-value { font-size:19px; font-weight:800; letter-spacing:-.3px; font-family:var(--head); }
 .stat-sub { font-size:10px; color:var(--t3); font-family:var(--mono); }
 
-/* Hot strip — top urgent watchlist earnings */
+/* Hot strip � top urgent watchlist earnings */
 .hot-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:8px; margin-bottom:10px; }
 .hot-strip:empty { display:none; }
 .hot-card { background:linear-gradient(135deg, rgba(168,85,247,.13), rgba(20,26,40,.62)); border:1px solid rgba(168,85,247,.42); border-radius:var(--r); padding:10px 13px; display:flex; flex-direction:column; gap:3px; cursor:pointer; transition:transform .15s var(--ease), box-shadow .15s var(--ease); box-shadow:var(--shadow-sm); }
@@ -284,38 +284,38 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body>
 
 <header>
-  <h1>📅 Earnings Hub <span class="ver-badge" id="verBadge">tt-v140</span></h1>
-  <span class="status-pill" id="sessionPill">— · sesiune</span>
+  <h1>?? Earnings Hub <span class="ver-badge" id="verBadge">tt-v140</span></h1>
+  <span class="status-pill" id="sessionPill">� � sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
-  <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
-  <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
-  <button class="icon-btn" id="tgBtn" title="Telegram alerts">📡</button>
-  <button class="icon-btn" id="setBtn" title="Setări">⚙</button>
-  <button class="primary" id="scanBtn">🔄 Scanează</button>
-  <a class="nav-link" href="../guide/?page=earnings-hub" title="Ghid features pagina asta">📖</a>
-  <a class="nav-link" href="../">← Hub</a>
+  <button class="icon-btn" id="soundBtn" title="Sunet alerte">??</button>
+  <button class="icon-btn" id="notifBtn" title="Notific�ri browser">??</button>
+  <button class="icon-btn" id="tgBtn" title="Telegram alerts">??</button>
+  <button class="icon-btn" id="setBtn" title="Set�ri">?</button>
+  <button class="primary" id="scanBtn">?? Scaneaz�</button>
+  <a class="nav-link" href="../guide/?page=earnings-hub" title="Ghid features pagina asta">??</a>
+  <a class="nav-link" href="../">� Hub</a>
 </header>
 
 <div class="stats-strip">
   <div class="stat-tile">
     <div class="stat-label">Total 30 zile</div>
-    <div class="stat-value" id="stTotal">—</div>
+    <div class="stat-value" id="stTotal">�</div>
     <div class="stat-sub" id="stTotalSub">earnings programate</div>
   </div>
   <div class="stat-tile bull">
-    <div class="stat-label">⭐ Watchlist</div>
-    <div class="stat-value" id="stWatch">—</div>
+    <div class="stat-label">? Watchlist</div>
+    <div class="stat-value" id="stWatch">�</div>
     <div class="stat-sub" id="stWatchSub">din lista ta</div>
   </div>
   <div class="stat-tile warn">
-    <div class="stat-label">⏰ Sub 48h</div>
-    <div class="stat-value" id="stSoon">—</div>
+    <div class="stat-label">? Sub 48h</div>
+    <div class="stat-value" id="stSoon">�</div>
     <div class="stat-sub" id="stSoonSub">iminente</div>
   </div>
   <div class="stat-tile gold">
-    <div class="stat-label">🧠 Bias bullish</div>
-    <div class="stat-value" id="stBull">—</div>
-    <div class="stat-sub" id="stBullSub">cu beat rate ≥60%</div>
+    <div class="stat-label">?? Bias bullish</div>
+    <div class="stat-value" id="stBull">�</div>
+    <div class="stat-sub" id="stBullSub">cu beat rate ?60%</div>
   </div>
 </div>
 
@@ -323,24 +323,24 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 
 <div class="filter-bar">
   <div class="fb-chips" id="fbChips">
-    <span class="fb-chip active" data-f="all">📅 Toate <b id="cnt-all">—</b></span>
-    <span class="fb-chip" data-f="watch">⭐ Watchlist <b id="cnt-watch">—</b></span>
-    <span class="fb-chip" data-f="48h">⏰ &lt;48h <b id="cnt-48h">—</b></span>
-    <span class="fb-chip" data-f="7d">📆 7 zile <b id="cnt-7d">—</b></span>
-    <span class="fb-chip" data-f="bmo">🌅 BMO <b id="cnt-bmo">—</b></span>
-    <span class="fb-chip" data-f="amc">🌙 AMC <b id="cnt-amc">—</b></span>
-    <span class="fb-chip" data-f="eu">🇪🇺 EU ADR <b id="cnt-eu">—</b></span>
-    <span class="fb-chip" data-f="us-pure">🇺🇸 US pur <b id="cnt-us">—</b></span>
+    <span class="fb-chip active" data-f="all">?? Toate <b id="cnt-all">�</b></span>
+    <span class="fb-chip" data-f="watch">? Watchlist <b id="cnt-watch">�</b></span>
+    <span class="fb-chip" data-f="48h">? &lt;48h <b id="cnt-48h">�</b></span>
+    <span class="fb-chip" data-f="7d">?? 7 zile <b id="cnt-7d">�</b></span>
+    <span class="fb-chip" data-f="bmo">?? BMO <b id="cnt-bmo">�</b></span>
+    <span class="fb-chip" data-f="amc">?? AMC <b id="cnt-amc">�</b></span>
+    <span class="fb-chip" data-f="eu">???? EU ADR <b id="cnt-eu">�</b></span>
+    <span class="fb-chip" data-f="us-pure">???? US pur <b id="cnt-us">�</b></span>
   </div>
-  <input type="search" id="searchInp" placeholder="Caută ticker…" maxlength="6" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="eh_no_autofill">
-  <button id="searchClear" title="Golește search" style="display:none">✖</button>
-  <span class="fb-count" id="fbCount">— / —</span>
+  <input type="search" id="searchInp" placeholder="Caut� ticker�" maxlength="6" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="eh_no_autofill">
+  <button id="searchClear" title="Gole?te search" style="display:none">?</button>
+  <span class="fb-count" id="fbCount">� / �</span>
 </div>
 
 <div class="panel-box">
   <div class="panel-head">
-    <h3>📊 Calendar earnings 30 zile</h3>
-    <span class="panel-sub" id="lastScan">Niciun scan încă</span>
+    <h3>?? Calendar earnings 30 zile</h3>
+    <span class="panel-sub" id="lastScan">Niciun scan �nc�</span>
   </div>
   <div class="scanner-wrap">
     <table id="mainTable">
@@ -348,7 +348,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
         <tr>
           <th style="width:32px"></th>
           <th class="left" data-sort="symbol">Ticker</th>
-          <th data-sort="date">Data · Oră</th>
+          <th data-sort="date">Data � Or�</th>
           <th data-sort="zile">Zile</th>
           <th data-sort="epsEst">EPS est</th>
           <th data-sort="epsPrev">EPS prev act</th>
@@ -357,15 +357,15 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
           <th data-sort="verdict">AI verdict</th>
           <th data-sort="action">Sugestie</th>
           <th>Insider 60z</th>
-          <th>Acțiuni</th>
+          <th>Ac?iuni</th>
         </tr>
       </thead>
       <tbody id="mainBody">
         <tr><td colspan="12"><div class="empty">
-          <div class="empty-icon">📅</div>
-          <div class="empty-title">Nu s-a făcut încă scan</div>
-          <div class="empty-sub">Apasă <b>🔄 Scanează</b> ca să încarci calendarul earnings 30 zile.
-            Cere o cheie Finnhub gratuită din <b>⚙ Setări</b> dacă nu ai una (shared cu nasdaq-scanner/smart-trade-long/pump-radar).</div>
+          <div class="empty-icon">??</div>
+          <div class="empty-title">Nu s-a f�cut �nc� scan</div>
+          <div class="empty-sub">Apas� <b>?? Scaneaz�</b> ca s� �ncarci calendarul earnings 30 zile.
+            Cere o cheie Finnhub gratuit� din <b>? Set�ri</b> dac� nu ai una (shared cu nasdaq-scanner/smart-trade-long/pump-radar).</div>
         </div></td></tr>
       </tbody>
     </table>
@@ -373,23 +373,23 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 </div>
 
 <footer>
-  <span>Date: Finnhub /calendar/earnings, /stock/earnings, /stock/insider-transactions · reacții post-earnings via Yahoo charts</span>
-  <span>Earnings Hub · partea suite Trading Tools</span>
+  <span>Date: Finnhub /calendar/earnings, /stock/earnings, /stock/insider-transactions � reac?ii post-earnings via Yahoo charts</span>
+  <span>Earnings Hub � partea suite Trading Tools</span>
 </footer>
 
 <!-- Settings modal -->
 <div class="modal-bg" id="setModal">
   <div class="modal">
-    <h2>⚙ Setări Earnings Hub</h2>
+    <h2>? Set�ri Earnings Hub</h2>
     <div class="mod-row">
       <label>Finnhub API key (shared cu celelalte pagini)</label>
-      <input type="text" id="setFinnhub" placeholder="d…">
-      <span class="hint">Gratuit pe <a href="https://finnhub.io/register" target="_blank" style="color:var(--accent)">finnhub.io/register</a>. Limită 60/min — suficient pentru earnings (cache local).</span>
+      <input type="text" id="setFinnhub" placeholder="d�">
+      <span class="hint">Gratuit pe <a href="https://finnhub.io/register" target="_blank" style="color:var(--accent)">finnhub.io/register</a>. Limit� 60/min � suficient pentru earnings (cache local).</span>
     </div>
     <div class="mod-row">
-      <label>Anthropic API key (Claude — shared cu nasdaq-scanner)</label>
-      <input type="password" id="setAnthropic" placeholder="sk-ant-…">
-      <span class="hint">Pentru butonul 🤖 din expand row. Cheia de pe <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. ≈ $0.05–0.10 / analiză (claude-opus-4-8).</span>
+      <label>Anthropic API key (Claude � shared cu nasdaq-scanner)</label>
+      <input type="password" id="setAnthropic" placeholder="sk-ant-�">
+      <span class="hint">Pentru butonul ?? din expand row. Cheia de pe <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. ? $0.05�0.10 / analiz� (claude-opus-4-8).</span>
     </div>
     <div class="mod-row">
       <label>Auto-refresh</label>
@@ -397,31 +397,31 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
         <option value="0">OFF (manual)</option>
         <option value="900">La fiecare 15 min</option>
         <option value="1800" selected>La fiecare 30 min</option>
-        <option value="3600">La fiecare 1 oră</option>
+        <option value="3600">La fiecare 1 or�</option>
       </select>
-      <span class="hint">Calendarul earnings nu se mișcă des — 30 min e suficient.</span>
+      <span class="hint">Calendarul earnings nu se mi?c� des � 30 min e suficient.</span>
     </div>
     <div class="mod-row">
-      <label>Prag alerte (zile rămase)</label>
+      <label>Prag alerte (zile r�mase)</label>
       <select id="setThr">
-        <option value="1">≤ 1 zi (24h)</option>
-        <option value="2" selected>≤ 2 zile (48h)</option>
-        <option value="3">≤ 3 zile (72h)</option>
-        <option value="7">≤ 7 zile (săptămână)</option>
+        <option value="1">? 1 zi (24h)</option>
+        <option value="2" selected>? 2 zile (48h)</option>
+        <option value="3">? 3 zile (72h)</option>
+        <option value="7">? 7 zile (s�pt�m�n�)</option>
       </select>
-      <span class="hint">Watchlist intersect → alertă dacă earnings sub pragul setat.</span>
+      <span class="hint">Watchlist intersect � alert� dac� earnings sub pragul setat.</span>
     </div>
     <div class="mod-row">
       <label>Telegram (shared cu watchlist-monitor + pump-radar)</label>
-      <input type="text" id="setTgToken" placeholder="Bot token (123456:ABC…)">
+      <input type="text" id="setTgToken" placeholder="Bot token (123456:ABC�)">
       <input type="text" id="setTgChat" placeholder="Chat ID (numeric sau @canal)" style="margin-top:4px">
-      <label class="mod-toggle"><input type="checkbox" id="setTgOn"> Activează alerte Telegram</label>
-      <span class="hint">Cum obții bot token: scrie <b>@BotFather</b> pe Telegram → <code>/newbot</code>. Cum afli chat ID: scrie un mesaj botului → <code>https://api.telegram.org/bot[TOKEN]/getUpdates</code> → ia numărul din <code>chat.id</code>.</span>
-      <button id="setTgTest" class="ghost" style="align-self:flex-start; margin-top:6px;">🧪 Trimite test</button>
+      <label class="mod-toggle"><input type="checkbox" id="setTgOn"> Activeaz� alerte Telegram</label>
+      <span class="hint">Cum ob?ii bot token: scrie <b>@BotFather</b> pe Telegram � <code>/newbot</code>. Cum afli chat ID: scrie un mesaj botului � <code>https://api.telegram.org/bot[TOKEN]/getUpdates</code> � ia num�rul din <code>chat.id</code>.</span>
+      <button id="setTgTest" class="ghost" style="align-self:flex-start; margin-top:6px;">?? Trimite test</button>
     </div>
     <div class="mod-foot">
-      <button class="ghost" id="setCancel">Anulează</button>
-      <button class="primary" id="setSave">💾 Salvează</button>
+      <button class="ghost" id="setCancel">Anuleaz�</button>
+      <button class="primary" id="setSave">?? Salveaz�</button>
     </div>
   </div>
 </div>
@@ -433,12 +433,12 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <script>
 'use strict';
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  CONFIG + CONSTANTS
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 const VER = 'tt-v140-2026-06-29';
 const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
-const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar — { token, chatId, enabled }
+const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar � { token, chatId, enabled }
 const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
 const CFG_KEY_LS     = 'eh_cfg';               // local: { auto, threshold, sound, notif }
 const SEEN_KEY_LS    = 'eh_seen';              // dedupe alerte: { "SYM_YYYY-MM-DD": ts }
@@ -446,8 +446,8 @@ const HIST_CACHE_LS  = 'eh_hist_cache';        // cache local pentru EPS history
 const INS_CACHE_LS   = 'eh_insider_cache';     // cache insider 30z pre-earning (TTL 6h)
 const HIST_TTL_MS    = 6 * 3600 * 1000;
 
-// ADR-uri europene cunoscute listate pe NYSE/NASDAQ — pentru identificare tickere foreign in calendar.
-// Sursa: top ADR-uri active (UK, Germania, Olanda, Elveția, Franța, etc.). Nu exhaustivă, dar acoperă majoritatea relevante.
+// ADR-uri europene cunoscute listate pe NYSE/NASDAQ � pentru identificare tickere foreign in calendar.
+// Sursa: top ADR-uri active (UK, Germania, Olanda, Elve?ia, Fran?a, etc.). Nu exhaustiv�, dar acoper� majoritatea relevante.
 const EU_ADRS = new Set([
   // UK
   'AZN','GSK','BP','SHEL','UL','DEO','VOD','BTI','HSBC','BCS','NWG','LYG','LSXMA','PSO','RIO','BHP','RELX','ERJ','SMFG',
@@ -455,25 +455,25 @@ const EU_ADRS = new Set([
   'ASML','NXPI','PHG','ING','STLA','ABN','HEIA','LYB','RDS',
   // Germania
   'SAP','DB','SIEGY','BAYRY','BMWYY','VWAGY','MBGYY','PSHG','ADDYY','HNNMY',
-  // Elveția
+  // Elve?ia
   'NVS','RHHBY','NSRGY','UBS','CS','ABB','ZURVY',
-  // Franța
+  // Fran?a
   'SNY','LVMUY','TTE','BNPQY','SAN','ATEYY','ESLOY','AIQUY','MC','SU',
   // Danemarca/Suedia/Finlanda
   'NVO','ERIC','NOK','VLVLY','CARL','MAERSK',
   // Italia/Spania
   'E','STM','LUX','SAN','TEF','BBVA','REPYY','TIT',
   // Belgia/Irlanda/Norvegia
-  // Scoase MDT/ACN/ABBV/MDLZ: NU sunt ADR-uri europene (Medtronic/Accenture incorporate în Irlanda
-  // dar listare comună directă pe NYSE; AbbVie + Mondelez sunt companii US pure) → strica counts 🇪🇺/us-pure.
+  // Scoase MDT/ACN/ABBV/MDLZ: NU sunt ADR-uri europene (Medtronic/Accenture incorporate �n Irlanda
+  // dar listare comun� direct� pe NYSE; AbbVie + Mondelez sunt companii US pure) � strica counts ????/us-pure.
   'BUD','BFLY','EQNR','TEL','SDRL','RYAAY','ICLR','CRH',
 ]);
 function isEuAdr(symbol){ return EU_ADRS.has(symbol); }
-const SEEN_TTL_MS    = 14 * 24 * 3600 * 1000;  // 14 zile — auto-curățare alerte vechi
+const SEEN_TTL_MS    = 14 * 24 * 3600 * 1000;  // 14 zile � auto-cur�?are alerte vechi
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  STATE
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 let calendar = [];           // [{ symbol, name, date, hour, epsEst, epsPrev, ... }]
 let watchlist = [];          // ["AAPL", "MSFT", ...]
 let tgConfig = { token:'', chatId:'', enabled:false };
@@ -491,9 +491,9 @@ const $ = id => document.getElementById(id);
 const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  STORAGE I/O
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 function loadCfg(){
   try { const v = JSON.parse(localStorage.getItem(CFG_KEY_LS) || '{}'); cfg = Object.assign(cfg, v); } catch(e){}
   try { const v = JSON.parse(localStorage.getItem(TG_KEY_LS) || '{}'); tgConfig = Object.assign(tgConfig, v); } catch(e){}
@@ -508,7 +508,7 @@ function setFinnhubKey(k){ try { localStorage.setItem(FINNHUB_KEY_LS, k || ''); 
 function loadSeen(){
   let m = {};
   try { m = JSON.parse(localStorage.getItem(SEEN_KEY_LS) || '{}') || {}; } catch(e){ m = {}; }
-  // curăță intrările expirate
+  // cur�?� intr�rile expirate
   const cut = Date.now() - SEEN_TTL_MS;
   let changed = false;
   for (const k of Object.keys(m)) if (m[k] < cut) { delete m[k]; changed = true; }
@@ -525,7 +525,7 @@ function loadCache(lsKey){
 }
 function saveCache(lsKey, obj){
   try {
-    // prune la PERSIST (TTL-ul aplicat lazy doar la citire lăsa cheile vechi să se acumuleze nelimitat) + cap 120
+    // prune la PERSIST (TTL-ul aplicat lazy doar la citire l�sa cheile vechi s� se acumuleze nelimitat) + cap 120
     const cut = Date.now() - HIST_TTL_MS;
     for (const k of Object.keys(obj)) if (obj[k] && obj[k].ts && obj[k].ts < cut) delete obj[k];
     const sorted = Object.keys(obj).sort((a, b) => ((obj[a] && obj[a].ts) || 0) - ((obj[b] && obj[b].ts) || 0));
@@ -534,9 +534,9 @@ function saveCache(lsKey, obj){
   } catch(e){}
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  MARKET SESSION (NYSE DST-aware via Intl)
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 function nyDateParts(d = new Date()){
   const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', weekday:'short' });
   const parts = Object.fromEntries(fmt.formatToParts(d).map(p => [p.type, p.value]));
@@ -547,35 +547,35 @@ function updateSessionPill(){
   const minOfDay = p.h * 60 + p.min;
   const weekend = p.dow === 'Sat' || p.dow === 'Sun';
   let label = '', cls = '';
-  if (weekend) { label = '🏖 Weekend'; cls = 'closed'; }
-  else if (minOfDay < 240) { label = '🌙 Pre-open'; cls = 'closed'; }
-  else if (minOfDay < 570) { label = '🌅 Pre-market'; cls = 'closed'; }
-  else if (minOfDay < 960) { label = '🟢 Live · regular'; cls = 'live'; }
-  else if (minOfDay < 1200) { label = '🌙 After-hours'; cls = 'closed'; }
-  else { label = '🌃 Închis'; cls = 'closed'; }
+  if (weekend) { label = '?? Weekend'; cls = 'closed'; }
+  else if (minOfDay < 240) { label = '?? Pre-open'; cls = 'closed'; }
+  else if (minOfDay < 570) { label = '?? Pre-market'; cls = 'closed'; }
+  else if (minOfDay < 960) { label = '?? Live � regular'; cls = 'live'; }
+  else if (minOfDay < 1200) { label = '?? After-hours'; cls = 'closed'; }
+  else { label = '?? �nchis'; cls = 'closed'; }
   const el = $('sessionPill'); el.textContent = label; el.className = 'status-pill ' + cls;
 }
 setInterval(updateSessionPill, 30000);
 
 function todayISO(){ const p = nyDateParts(); return `${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`; }
 function isoPlus(days){
-  // aritmetică pur calendaristică ancorată pe ziua ET de azi (aritmetica UTC pe `new Date()`
-  // dădea off-by-one seara, când data UTC ≠ data ET)
+  // aritmetic� pur calendaristic� ancorat� pe ziua ET de azi (aritmetica UTC pe `new Date()`
+  // d�dea off-by-one seara, c�nd data UTC ? data ET)
   const t = new Date(todayISO() + 'T00:00:00Z');
   t.setUTCDate(t.getUTCDate() + days);
   return t.toISOString().slice(0, 10);
 }
 function daysBetween(isoFrom, isoTo){
-  // diferență în zile calendaristice, ignorând ora
+  // diferen?� �n zile calendaristice, ignor�nd ora
   const a = new Date(isoFrom + 'T00:00:00Z').getTime();
   const b = new Date(isoTo   + 'T00:00:00Z').getTime();
   return Math.round((b - a) / 86400000);
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  CORS proxy chain (Yahoo) — pentru reaction bias
-// ═══════════════════════════════════════════════════════════════
-// Lanț aliniat suite (market-events v220): allorigins NU trimite CORS pe github.io → scos.
+// ===============================================================
+//  CORS proxy chain (Yahoo) � pentru reaction bias
+// ===============================================================
+// Lan? aliniat suite (market-events v220): allorigins NU trimite CORS pe github.io � scos.
 const CORS_PROXIES = [
   { name:'codetabs',     build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: t => t },
   { name:'corsproxy.io', build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),               extract: t => t },
@@ -583,7 +583,7 @@ const CORS_PROXIES = [
 ];
 let _proxyIdx = 0;
 async function proxyGetJSON(targetUrl, timeoutMs = 8000, ttl = 0){
-  // strat de date comun (lib/data.js): proxy health per-host + dedup; ttl=0 = fără date stale
+  // strat de date comun (lib/data.js): proxy health per-host + dedup; ttl=0 = f�r� date stale
   if (window.D && D.fetchJSON) return D.fetchJSON(targetUrl, { ttl, timeout: timeoutMs });
   const n = CORS_PROXIES.length;
   for (let k = 0; k < n; k++){
@@ -603,9 +603,9 @@ async function proxyGetJSON(targetUrl, timeoutMs = 8000, ttl = 0){
   return null;
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  FINNHUB API
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 async function finnhub(path, params = {}){
   const key = getFinnhubKey();
   if (!key) return { __noKey:true };
@@ -627,11 +627,11 @@ async function fetchEarningsCalendar(){
   if (d.__noKey) return { ok:false, reason:'noKey' };
   if (d.__err) return { ok:false, reason:'err:' + d.__err };
   const arr = (d && Array.isArray(d.earningsCalendar)) ? d.earningsCalendar : [];
-  // filtru: US (Finnhub global returnează și BR/EU — păstrăm doar exchange-uri US sau tickere simple fără sufix)
+  // filtru: US (Finnhub global returneaz� ?i BR/EU � p�str�m doar exchange-uri US sau tickere simple f�r� sufix)
   // Finnhub /calendar/earnings nu pune `exchange` explicit, dar tickerul are sufix pt non-US (ex: "TICKER.HK")
-  // Filtru STRICT US: ticker 1-5 caractere, doar litere mari (eventual cifre), fără puncte/sufixe.
+  // Filtru STRICT US: ticker 1-5 caractere, doar litere mari (eventual cifre), f�r� puncte/sufixe.
   // Asta taie din 1400+ WW la ~300-400 entries pur americane (NYSE/NASDAQ).
-  // În plus: trebuie să aibă measurable data (epsEstimate SAU revenueEstimate).
+  // �n plus: trebuie s� aib� measurable data (epsEstimate SAU revenueEstimate).
   const filtered = arr.filter(e => {
     if (!e || !e.symbol) return false;
     if (!/^[A-Z][A-Z0-9]{0,4}$/.test(e.symbol)) return false;
@@ -653,8 +653,8 @@ async function fetchHistEarnings(symbol){
   return sorted;
 }
 
-// Fereastră extinsă la 60z — free tier Finnhub indexează rar tranzacții într-o singură lună,
-// 60z dă semnal mai consistent. Cache păstrat pe (symbol+earningsDate).
+// Fereastr� extins� la 60z � free tier Finnhub indexeaz� rar tranzac?ii �ntr-o singur� lun�,
+// 60z d� semnal mai consistent. Cache p�strat pe (symbol+earningsDate).
 async function fetchInsider30(symbol, earningsDate){
   const key = `${symbol}_${earningsDate}`;
   const cache = loadCache(INS_CACHE_LS);
@@ -672,12 +672,12 @@ async function fetchInsider30(symbol, earningsDate){
   return arr;
 }
 
-// Helper temporar: șterge cache insider — apelabil din Console dacă vrei să forțezi refetch
-window.clearInsiderCache = function(){ try { localStorage.removeItem(INS_CACHE_LS); console.log('[eh] insider cache șters — refresh pagina'); } catch(e){} };
+// Helper temporar: ?terge cache insider � apelabil din Console dac� vrei s� for?ezi refetch
+window.clearInsiderCache = function(){ try { localStorage.removeItem(INS_CACHE_LS); console.log('[eh] insider cache ?ters � refresh pagina'); } catch(e){} };
 
-// ═══════════════════════════════════════════════════════════════
-//  EPS analytics — beat rate + AI verdict
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
+//  EPS analytics � beat rate + AI verdict
+// ===============================================================
 function analyzeHist(hist){
   // hist: array of { period, actual, estimate, surprise, surprisePrc }
   if (!Array.isArray(hist) || hist.length === 0) return { n:0, beats:0, beatRate:null, avgSurpPct:null, lastSurpPct:null, lastActual:null, verdict:'na' };
@@ -711,21 +711,21 @@ function analyzeHist(hist){
 }
 
 const VERDICT_META = {
-  'high-beat':   { icon:'🚀', label:'HIGH BEAT' },
-  'likely-beat': { icon:'🟢', label:'LIKELY BEAT' },
-  'mixt':        { icon:'🟡', label:'MIXT' },
-  'likely-miss': { icon:'🔴', label:'LIKELY MISS' },
-  'na':          { icon:'⚪', label:'N/A' },
+  'high-beat':   { icon:'??', label:'HIGH BEAT' },
+  'likely-beat': { icon:'??', label:'LIKELY BEAT' },
+  'mixt':        { icon:'??', label:'MIXT' },
+  'likely-miss': { icon:'??', label:'LIKELY MISS' },
+  'na':          { icon:'?', label:'N/A' },
 };
 
-// Sugestie acțiune derivată din EPS verdict + insider + reacție medie istorică + zile rămase.
-// NU înlocuiește un trade plan — e doar un tag rapid pentru filtrare vizuală.
+// Sugestie ac?iune derivat� din EPS verdict + insider + reac?ie medie istoric� + zile r�mase.
+// NU �nlocuie?te un trade plan � e doar un tag rapid pentru filtrare vizual�.
 const ACTION_META = {
-  'buy':   { icon:'🚀', label:'BUY',   tip:'Pattern beat puternic + insider/reacție pozitivă. Cumpărare pre-earnings cu R:R rezonabil.' },
-  'watch': { icon:'🟢', label:'WATCH', tip:'Setup pozitiv dar mai slab — așteaptă confirmare (insider activ sau pullback la suport).' },
-  'wait':  { icon:'🟡', label:'WAIT',  tip:'Mix de semnale. Mai bine aștepți post-earnings (gap up/down) decât să intri orb.' },
-  'avoid': { icon:'🔴', label:'AVOID', tip:'Pattern miss istoric + insider bear sau reacție negativă. Risc asimetric.' },
-  'skip':  { icon:'⏭', label:'SKIP',  tip:'Date insuficiente pentru o opinie — sari peste.' },
+  'buy':   { icon:'??', label:'BUY',   tip:'Pattern beat puternic + insider/reac?ie pozitiv�. Cump�rare pre-earnings cu R:R rezonabil.' },
+  'watch': { icon:'??', label:'WATCH', tip:'Setup pozitiv dar mai slab � a?teapt� confirmare (insider activ sau pullback la suport).' },
+  'wait':  { icon:'??', label:'WAIT',  tip:'Mix de semnale. Mai bine a?tep?i post-earnings (gap up/down) dec�t s� intri orb.' },
+  'avoid': { icon:'??', label:'AVOID', tip:'Pattern miss istoric + insider bear sau reac?ie negativ�. Risc asimetric.' },
+  'skip':  { icon:'?', label:'SKIP',  tip:'Date insuficiente pentru o opinie � sari peste.' },
 };
 function computeAction(e, avgReact){
   const v = (e.ana && e.ana.verdict) || 'na';
@@ -743,15 +743,15 @@ function computeAction(e, avgReact){
   return 'wait';
 }
 
-// Clasificare aliniată cu suita (smart-trade-long/watchlist-monitor): P = buy real;
-// A = award/grant (acțiuni GRATIS, nu decizie de cumpărare) → EXCLUS; S/D/F/G = sell-like.
-// Free tier Finnhub omite des codul → fallback pe semnul `change`.
+// Clasificare aliniat� cu suita (smart-trade-long/watchlist-monitor): P = buy real;
+// A = award/grant (ac?iuni GRATIS, nu decizie de cump�rare) � EXCLUS; S/D/F/G = sell-like.
+// Free tier Finnhub omite des codul � fallback pe semnul `change`.
 function analyzeInsider(rows){
-  if (!Array.isArray(rows) || rows.length === 0) return { ok:false, txt:'—', verdict:'na' };
+  if (!Array.isArray(rows) || rows.length === 0) return { ok:false, txt:'�', verdict:'na' };
   let buys = 0, sells = 0, netShares = 0;
   for (const r of rows){
     const chg = +r.change || 0;
-    // clasificarea vine din lib/insider.js — sursa unică pe toată suita
+    // clasificarea vine din lib/insider.js � sursa unic� pe toat� suita
     const kind = (window.INS && INS.classify) ? INS.classify(r) : null;
     const absQty = Math.abs(chg);
     if (kind === 'buy'){ buys++; netShares += absQty; }
@@ -763,23 +763,23 @@ function analyzeInsider(rows){
   return { ok:true, txt:`${buys}B/${sells}S`, verdict, buys, sells, netShares, rows };
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  SCAN
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 async function runScan(){
   if (scanInflight) return;
   scanInflight = true;
   const dot = $('scanDot'), st = $('scanState'), btn = $('scanBtn');
-  dot.className = 'status-dot load'; st.textContent = 'încarc calendar…'; btn.disabled = true;
+  dot.className = 'status-dot load'; st.textContent = '�ncarc calendar�'; btn.disabled = true;
 
   const cal = await fetchEarningsCalendar();
   if (!cal.ok){
     if (cal.reason === 'noKey'){
-      dot.className = 'status-dot err'; st.textContent = 'lipsește Finnhub key';
-      renderEmpty('Lipsește cheia Finnhub', 'Apasă ⚙ Setări → adaugă cheia (gratuită pe finnhub.io). Shared cu nasdaq-scanner, smart-trade-long, pump-radar.');
+      dot.className = 'status-dot err'; st.textContent = 'lipse?te Finnhub key';
+      renderEmpty('Lipse?te cheia Finnhub', 'Apas� ? Set�ri � adaug� cheia (gratuit� pe finnhub.io). Shared cu nasdaq-scanner, smart-trade-long, pump-radar.');
     } else {
       dot.className = 'status-dot err'; st.textContent = 'eroare calendar (' + cal.reason + ')';
-      renderEmpty('Eroare la încărcare', `Finnhub a returnat ${escHtml(cal.reason)}. Verifică cheia + rate-limit (60/min) sau încearcă peste 1 min.`);
+      renderEmpty('Eroare la �nc�rcare', `Finnhub a returnat ${escHtml(cal.reason)}. Verific� cheia + rate-limit (60/min) sau �ncearc� peste 1 min.`);
     }
     scanInflight = false; btn.disabled = false; return;
   }
@@ -794,17 +794,17 @@ async function runScan(){
       hour: (e.hour || '').toLowerCase(),   // 'bmo' | 'amc' | 'dmh' | ''
       year: e.year, quarter: e.quarter,
       epsEst: (e.epsEstimate != null ? +e.epsEstimate : null),
-      // epsAct scos: era „pt cele deja raportate" dar .filter(e=>e.zile>=0) de mai jos taie tot trecutul → niciodată citit (cod mort).
+      // epsAct scos: era �pt cele deja raportate" dar .filter(e=>e.zile>=0) de mai jos taie tot trecutul � niciodat� citit (cod mort).
       revEst: (e.revenueEstimate != null ? +e.revenueEstimate : null),
       zile,
       // calc dupa hist:
       hist:null, ana:{ verdict:'na' }, insider:null,
     };
-  }).filter(e => e.zile >= 0); // doar viitoare (zile = 0 înseamnă „azi" → păstrăm)
+  }).filter(e => e.zile >= 0); // doar viitoare (zile = 0 �nseamn� �azi" � p�str�m)
 
-  // Dedup pe symbol — Finnhub poate întoarce aceeași companie de mai multe ori (quartere/intrări
+  // Dedup pe symbol � Finnhub poate �ntoarce aceea?i companie de mai multe ori (quartere/intr�ri
   // multiple). data-sym trebuie UNIC, altfel querySelector('tr[data-sym=X]') la expand/star/focus
-  // prinde mereu primul rând. Păstrăm earnings-ul cel mai apropiat (zile minim).
+  // prinde mereu primul r�nd. P�str�m earnings-ul cel mai apropiat (zile minim).
   const _bySym = new Map();
   for (const e of calendar) { const p = _bySym.get(e.symbol); if (!p || e.zile < p.zile) _bySym.set(e.symbol, e); }
   calendar = [..._bySym.values()];
@@ -812,9 +812,9 @@ async function runScan(){
   // sort cronologic implicit
   calendar.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.symbol.localeCompare(b.symbol)));
 
-  // 2: pentru watchlist intersect + top 30 dupa data → load hist EPS în paralel cu un cap de concurency
+  // 2: pentru watchlist intersect + top 30 dupa data � load hist EPS �n paralel cu un cap de concurency
   const targets = pickHistTargets();
-  st.textContent = `EPS history (${targets.length})…`;
+  st.textContent = `EPS history (${targets.length})�`;
   await throttledMap(targets, 4, async sym => {
     const hist = await fetchHistEarnings(sym);
     if (hist){
@@ -822,7 +822,7 @@ async function runScan(){
     }
   });
 
-  // 3: insider pre-load larg — toate watchlist ≤21z + top 30 după proximitate (zile ≤14).
+  // 3: insider pre-load larg � toate watchlist ?21z + top 30 dup� proximitate (zile ?14).
   // Limita 30 = cap pentru rate limit Finnhub free (60/min).
   const insSet = new Set();
   const insTargets = [];
@@ -830,7 +830,7 @@ async function runScan(){
   const upcoming = calendar.slice().sort((a, b) => a.zile - b.zile);
   for (const e of upcoming){ if (insTargets.length >= 30) break; if (e.zile < 0 || e.zile > 14) continue; if (!insSet.has(e.symbol)){ insSet.add(e.symbol); insTargets.push(e); } }
   if (insTargets.length){
-    st.textContent = `Insider (${insTargets.length})…`;
+    st.textContent = `Insider (${insTargets.length})�`;
     await throttledMap(insTargets, 3, async e => {
       const rows = await fetchInsider30(e.symbol, e.date);
       e.insider = analyzeInsider(rows);
@@ -847,13 +847,13 @@ async function runScan(){
   renderAll();
 }
 
-// Selectează tickerele pt care merită fetch hist EPS:
+// Selecteaz� tickerele pt care merit� fetch hist EPS:
 // - toate cele din watchlist
-// - + primele ~25 după data (limităm rate limit Finnhub 60/min)
+// - + primele ~25 dup� data (limit�m rate limit Finnhub 60/min)
 function pickHistTargets(){
   const set = new Set();
   for (const e of calendar) if (watchlist.includes(e.symbol)) set.add(e.symbol);
-  // adaugă maxim 25 dintre cele mai apropiate temporal
+  // adaug� maxim 25 dintre cele mai apropiate temporal
   const upcoming = calendar.slice().sort((a, b) => a.zile - b.zile).map(e => e.symbol);
   for (const s of upcoming){ if (set.size >= 30) break; set.add(s); }
   return Array.from(set);
@@ -867,9 +867,9 @@ async function throttledMap(arr, concurrency, fn){
   await Promise.all(workers);
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  ALERTS -48h
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 function detectAndNotify(){
   const seen = loadSeen();
   const newOnes = [];
@@ -887,17 +887,17 @@ function detectAndNotify(){
   for (const e of newOnes){
     toast({
       cls:'urgent',
-      sym:`⏰ ${e.symbol}`,
-      sub:`Raportează în ${e.zile} zile (${e.date}${e.hour ? ' · ' + e.hour.toUpperCase() : ''}) · ${verdictLabel(e.ana.verdict)}`,
+      sym:`? ${e.symbol}`,
+      sub:`Raporteaz� �n ${e.zile} zile (${e.date}${e.hour ? ' � ' + e.hour.toUpperCase() : ''}) � ${verdictLabel(e.ana.verdict)}`,
       onclick: () => focusRow(e.symbol),
     });
   }
 
   // 2) Browser notification
   if (cfg.notif && 'Notification' in window && Notification.permission === 'granted'){
-    const head = newOnes.length === 1 ? `📅 ${newOnes[0].symbol} earnings în ${newOnes[0].zile}z` : `📅 ${newOnes.length} earnings iminente`;
-    const body = newOnes.map(e => `${e.symbol} · ${e.zile}z · ${e.date}`).join('\n');
-    try { new Notification(head, { body, icon:'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%230b0f17"/><text x="50%" y="60%" font-size="40" text-anchor="middle" fill="%23a855f7">📅</text></svg>' }); } catch(e){}
+    const head = newOnes.length === 1 ? `?? ${newOnes[0].symbol} earnings �n ${newOnes[0].zile}z` : `?? ${newOnes.length} earnings iminente`;
+    const body = newOnes.map(e => `${e.symbol} � ${e.zile}z � ${e.date}`).join('\n');
+    try { new Notification(head, { body, icon:'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%230b0f17"/><text x="50%" y="60%" font-size="40" text-anchor="middle" fill="%23a855f7">??</text></svg>' }); } catch(e){}
   }
 
   // 3) Beep
@@ -905,18 +905,18 @@ function detectAndNotify(){
 
   // 4) Telegram grouped
   if (tgConfig.enabled && tgConfig.token && tgConfig.chatId){
-    const lines = newOnes.map(e => `• <b>${e.symbol}</b> · ${e.zile}z (${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''}) · EPS est ${fmtNum(e.epsEst)} · ${verdictLabel(e.ana.verdict)}`);
-    const msg = `<b>📅 Earnings Hub — ${newOnes.length} alertă${newOnes.length > 1 ? 'e' : ''} ≤${cfg.threshold}z</b>\n` + lines.join('\n');
+    const lines = newOnes.map(e => `� <b>${e.symbol}</b> � ${e.zile}z (${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''}) � EPS est ${fmtNum(e.epsEst)} � ${verdictLabel(e.ana.verdict)}`);
+    const msg = `<b>?? Earnings Hub � ${newOnes.length} alert�${newOnes.length > 1 ? 'e' : ''} ?${cfg.threshold}z</b>\n` + lines.join('\n');
     sendTelegram(msg);
   }
 }
 
-function fmtNum(n, d = 2){ if (n == null || isNaN(n)) return '—'; return (+n).toFixed(d); }
+function fmtNum(n, d = 2){ if (n == null || isNaN(n)) return '�'; return (+n).toFixed(d); }
 function verdictLabel(v){ const m = VERDICT_META[v] || VERDICT_META.na; return `${m.icon} ${m.label}`; }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  SOUND + TELEGRAM
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 let _audioCtx = null;
 function beep(){
   try {
@@ -933,13 +933,13 @@ function beep(){
     });
   } catch(e){}
 }
-async function sendTelegram(text){  // → lib/telegram.js (TG.*); config în memorie păstrat
+async function sendTelegram(text){  // � lib/telegram.js (TG.*); config �n memorie p�strat
   return TG.send(text, { token: tgConfig.token, chatId: tgConfig.chatId, force: true });
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  TOAST
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 function toast({ cls = '', sym = '', sub = '', onclick = null, ttl = 7000 } = {}){
   const wrap = $('toasts'); if (!wrap) return;
   const el = document.createElement('div'); el.className = 'toast ' + cls;
@@ -954,9 +954,9 @@ function focusRow(sym){
   if (row){ row.scrollIntoView({ behavior:'smooth', block:'center' }); row.style.background = 'rgba(168,85,247,.18)'; setTimeout(() => { row.style.background = ''; }, 1600); }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  RENDER
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 function renderAll(){
   updateAlertBtns();
   renderStats();
@@ -972,8 +972,8 @@ function renderStats(){
   $('stWatch').textContent = wl;
   $('stSoon').textContent = soon;
   $('stBull').textContent = bull;
-  $('stSoonSub').textContent = `prag ≤${cfg.threshold}z`;
-  // Counts pe chip-urile de filter — afișează direct (X)
+  $('stSoonSub').textContent = `prag ?${cfg.threshold}z`;
+  // Counts pe chip-urile de filter � afi?eaz� direct (X)
   const _48h = calendar.filter(e => e.zile >= 0 && e.zile <= 2).length;
   const _7d = calendar.filter(e => e.zile >= 0 && e.zile <= 7).length;
   const _bmo = calendar.filter(e => e.hour === 'bmo').length;
@@ -998,8 +998,8 @@ function renderHotStrip(){
     const v = VERDICT_META[(e.ana && e.ana.verdict) || 'na'];
     return `<div class="hot-card ${urgent ? 'urgent' : ''}" onclick="focusRow('${e.symbol}')">
       <div class="hc-top"><span class="hc-sym">${e.symbol}</span><span class="hc-when ${urgent ? 'urgent' : ''}">${e.zile === 0 ? 'AZI' : e.zile + 'z'}</span></div>
-      <div class="hc-mid">${e.date}${e.hour ? ' · ' + e.hour.toUpperCase() : ''} · EPS est ${fmtNum(e.epsEst)}</div>
-      <div class="hc-verdict">${v.icon} ${v.label}${e.insider && e.insider.ok ? ' · 👔 ' + e.insider.txt : ''}</div>
+      <div class="hc-mid">${e.date}${e.hour ? ' � ' + e.hour.toUpperCase() : ''} � EPS est ${fmtNum(e.epsEst)}</div>
+      <div class="hc-verdict">${v.icon} ${v.label}${e.insider && e.insider.ok ? ' � ?? ' + e.insider.txt : ''}</div>
     </div>`;
   }).join('');
 }
@@ -1049,22 +1049,22 @@ function renderTable(){
   $('fbCount').textContent = `${filtered.length} / ${calendar.length}`;
 
   if (!sorted.length){
-    let title = 'Niciun rezultat', sub = 'Schimbă filtrele de mai sus.';
+    let title = 'Niciun rezultat', sub = 'Schimb� filtrele de mai sus.';
     if (filterText){
-      title = `Niciun ticker conține "${escHtml(filterText)}"`;
-      sub = `Apasă ✖ lângă search ca să cureți filtrul, sau scrie alt ticker.`;
+      title = `Niciun ticker con?ine "${escHtml(filterText)}"`;
+      sub = `Apas� ? l�ng� search ca s� cure?i filtrul, sau scrie alt ticker.`;
     } else if (filterMode === 'watch' && !watchlist.length){
-      title = 'Watchlist gol'; sub = 'Adaugă tickere în watchlist (⭐ pe rând, sau din nasdaq-scanner / watchlist-monitor).';
+      title = 'Watchlist gol'; sub = 'Adaug� tickere �n watchlist (? pe r�nd, sau din nasdaq-scanner / watchlist-monitor).';
     } else if (filterMode === 'watch'){
-      title = 'Niciun ticker watchlist cu earnings'; sub = `Ai ${watchlist.length} tickere în watchlist, dar niciunul nu raportează în 30 zile.`;
-    } else if (filterMode === '48h'){ title = 'Niciun ticker în 48h'; sub = `Nu există tickere cu earnings ≤2 zile din ${calendar.length} total.`; }
-    else if (filterMode === '7d'){ title = 'Niciun ticker în 7 zile'; sub = `Nu există tickere cu earnings ≤7 zile din ${calendar.length} total.`; }
-    else if (filterMode === 'bmo'){ title = 'Niciun BMO'; sub = `Finnhub nu marchează cu „bmo" (before market open). Verifică cu 🌙 AMC sau 📅 Toate.`; }
-    else if (filterMode === 'amc'){ title = 'Niciun AMC'; sub = `Finnhub nu marchează cu „amc" (after market close). Încearcă 🌅 BMO sau 📅 Toate.`; }
-    else if (filterMode === 'eu'){ title = 'Niciun ADR european'; sub = `Niciun ticker din lista EU ADR (ASML, SAP, NVO, NVS, AZN, GSK, etc.) nu raportează în 30 zile.`; }
-    else if (filterMode === 'us-pure'){ title = 'Lista goală'; sub = `Toate tickere din calendar sunt ADR-uri europene? Improbabil — verifică logica.`; }
+      title = 'Niciun ticker watchlist cu earnings'; sub = `Ai ${watchlist.length} tickere �n watchlist, dar niciunul nu raporteaz� �n 30 zile.`;
+    } else if (filterMode === '48h'){ title = 'Niciun ticker �n 48h'; sub = `Nu exist� tickere cu earnings ?2 zile din ${calendar.length} total.`; }
+    else if (filterMode === '7d'){ title = 'Niciun ticker �n 7 zile'; sub = `Nu exist� tickere cu earnings ?7 zile din ${calendar.length} total.`; }
+    else if (filterMode === 'bmo'){ title = 'Niciun BMO'; sub = `Finnhub nu marcheaz� cu �bmo" (before market open). Verific� cu ?? AMC sau ?? Toate.`; }
+    else if (filterMode === 'amc'){ title = 'Niciun AMC'; sub = `Finnhub nu marcheaz� cu �amc" (after market close). �ncearc� ?? BMO sau ?? Toate.`; }
+    else if (filterMode === 'eu'){ title = 'Niciun ADR european'; sub = `Niciun ticker din lista EU ADR (ASML, SAP, NVO, NVS, AZN, GSK, etc.) nu raporteaz� �n 30 zile.`; }
+    else if (filterMode === 'us-pure'){ title = 'Lista goal�'; sub = `Toate tickere din calendar sunt ADR-uri europene? Improbabil � verific� logica.`; }
     tbody.innerHTML = `<tr><td colspan="12"><div class="empty">
-      <div class="empty-icon">🔍</div>
+      <div class="empty-icon">??</div>
       <div class="empty-title">${escHtml(title)}</div>
       <div class="empty-sub">${sub}</div>
     </div></td></tr>`;
@@ -1077,10 +1077,10 @@ function renderTable(){
     try { html += renderRow(sorted[i]); }
     catch(err){ if (!firstErr) firstErr = { sym:sorted[i] && sorted[i].symbol, msg:err.message, e:sorted[i] }; console.error('[render] eroare la ticker', sorted[i] && sorted[i].symbol, err); }
   }
-  // Bandă diagnostic DOAR la eroare de render (era permanentă — rest din sesiunea de debugging v108-110)
-  const debugBanner = firstErr ? `<tr style="background:#11161f"><td colspan="12" style="padding:6px 10px;font-family:var(--mono);font-size:10px;color:#f88;border-bottom:1px solid var(--b1)">⚠ EROARE render pe ${escHtml(firstErr.sym || '?')}: ${escHtml(firstErr.msg || '?')} · filterMode=${filterMode} · sorted=${sorted.length}</td></tr>` : '';
+  // Band� diagnostic DOAR la eroare de render (era permanent� � rest din sesiunea de debugging v108-110)
+  const debugBanner = firstErr ? `<tr style="background:#11161f"><td colspan="12" style="padding:6px 10px;font-family:var(--mono);font-size:10px;color:#f88;border-bottom:1px solid var(--b1)">? EROARE render pe ${escHtml(firstErr.sym || '?')}: ${escHtml(firstErr.msg || '?')} � filterMode=${filterMode} � sorted=${sorted.length}</td></tr>` : '';
   tbody.innerHTML = debugBanner + html;
-  // expand state restore (in caz de re-render după sort)
+  // expand state restore (in caz de re-render dup� sort)
   if (expandedSym){
     const e = calendar.find(x => x.symbol === expandedSym);
     if (e){
@@ -1094,10 +1094,10 @@ function renderRow(e){
   try {
   const isW = watchlist.includes(e.symbol);
   const verdict = VERDICT_META[(e.ana && e.ana.verdict) || 'na'];
-  const beatRate = (e.ana && e.ana.beatRate != null) ? Math.round(e.ana.beatRate * 100) + '%' : '—';
-  const lastSurp = (e.ana && e.ana.lastSurpPct != null) ? (e.ana.lastSurpPct >= 0 ? '+' : '') + e.ana.lastSurpPct.toFixed(1) + '%' : '—';
+  const beatRate = (e.ana && e.ana.beatRate != null) ? Math.round(e.ana.beatRate * 100) + '%' : '�';
+  const lastSurp = (e.ana && e.ana.lastSurpPct != null) ? (e.ana.lastSurpPct >= 0 ? '+' : '') + e.ana.lastSurpPct.toFixed(1) + '%' : '�';
   const surpCls = (e.ana && e.ana.lastSurpPct != null) ? (e.ana.lastSurpPct > 0 ? 'up' : e.ana.lastSurpPct < 0 ? 'down' : 'neut') : 'neut';
-  const epsPrev = (e.hist && e.hist[0] && e.hist[0].actual != null) ? e.hist[0].actual.toFixed(2) : '—';
+  const epsPrev = (e.hist && e.hist[0] && e.hist[0].actual != null) ? e.hist[0].actual.toFixed(2) : '�';
   const zile = e.zile === 0 ? '<span class="badge warn">AZI</span>' : `<b>${e.zile}z</b>`;
   const hourCell = e.hour ? `<span class="when-h">${e.hour.toUpperCase()}</span>` : '';
   const insiderHtml = insiderCell(e);
@@ -1105,7 +1105,7 @@ function renderRow(e){
   const actKey = computeAction(e, e.avgReact != null ? e.avgReact : null);
   const act = ACTION_META[actKey] || ACTION_META.skip;
   return `<tr class="clickable ${rowClass(e)}" data-sym="${e.symbol}" onclick="toggleExpand('${e.symbol}')">
-    <td><button class="star-btn ${isW ? 'on' : ''}" onclick="event.stopPropagation(); toggleStar('${e.symbol}')">${isW ? '★' : '☆'}</button></td>
+    <td><button class="star-btn ${isW ? 'on' : ''}" onclick="event.stopPropagation(); toggleStar('${e.symbol}')">${isW ? '?' : '?'}</button></td>
     <td class="left"><div class="sym-name">${e.symbol}</div><div class="sym-sector">Q${e.quarter || '?'} ${e.year || ''}</div></td>
     <td><div class="when-cell"><span class="when-d">${e.date}</span>${hourCell}</div></td>
     <td>${zile}</td>
@@ -1122,36 +1122,36 @@ function renderRow(e){
     </td>
   </tr>`;
   } catch(err){
-    console.error('[renderRow] eșuat pentru', e && e.symbol, '|', err.message, '|', e);
-    return `<tr><td colspan="12" style="background:rgba(255,77,77,.08);color:#f88;padding:8px;font-family:var(--mono);font-size:11px">⚠ Eroare render <b>${escHtml((e && e.symbol) || '?')}</b>: ${escHtml(err.message || 'unknown')}</td></tr>`;
+    console.error('[renderRow] e?uat pentru', e && e.symbol, '|', err.message, '|', e);
+    return `<tr><td colspan="12" style="background:rgba(255,77,77,.08);color:#f88;padding:8px;font-family:var(--mono);font-size:11px">? Eroare render <b>${escHtml((e && e.symbol) || '?')}</b>: ${escHtml(err.message || 'unknown')}</td></tr>`;
   }
 }
 
 function insiderCell(e){
   if (!e.insider){
     const k = getFinnhubKey();
-    return k ? '<span class="ins na">—</span>' : '<span class="ins na" title="Configurează Finnhub key">⚙</span>';
+    return k ? '<span class="ins na">�</span>' : '<span class="ins na" title="Configureaz� Finnhub key">?</span>';
   }
   const v = e.insider.verdict;
-  const ic = v === 'bull' ? '🟢' : v === 'bear' ? '🔴' : '⚪';
+  const ic = v === 'bull' ? '??' : v === 'bear' ? '??' : '?';
   return `<span class="ins ${v === 'bull' ? 'bull' : v === 'bear' ? 'bear' : 'neut'}" title="insider 60z pre-earnings">${ic} ${e.insider.txt}</span>`;
 }
 
 function renderEmpty(title, sub){
   $('mainBody').innerHTML = `<tr><td colspan="12"><div class="empty">
-    <div class="empty-icon">⚠</div>
+    <div class="empty-icon">?</div>
     <div class="empty-title">${escHtml(title)}</div>
     <div class="empty-sub">${sub}</div>
   </div></td></tr>`;
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  EXPANDED ROW (lazy load: hist + insider + reaction bias)
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 window.toggleExpand = function(sym){
   const tr = document.querySelector(`tr[data-sym="${sym}"]`);
   if (!tr) return;
-  // dacă era deja expandat → colapsare
+  // dac� era deja expandat � colapsare
   if (expandedSym === sym){
     const next = tr.nextElementSibling;
     if (next && next.classList.contains('expanded-row')) next.remove();
@@ -1172,22 +1172,22 @@ function injectExpandedRow(tr, e){
   row.innerHTML = `<td colspan="12">
     <div class="exp-wrap">
       <div class="exp-box">
-        <div class="exp-title">📊 EPS history (ultimele 8 trim.)</div>
-        <div id="exp-hist-${e.symbol}"><div class="exp-loading">se încarcă…</div></div>
+        <div class="exp-title">?? EPS history (ultimele 8 trim.)</div>
+        <div id="exp-hist-${e.symbol}"><div class="exp-loading">se �ncarc�</div></div>
       </div>
       <div class="exp-box">
-        <div class="exp-title">🧠 Statistici + reacție post-earnings</div>
-        <div id="exp-stats-${e.symbol}"><div class="exp-loading">…</div></div>
+        <div class="exp-title">?? Statistici + reac?ie post-earnings</div>
+        <div id="exp-stats-${e.symbol}"><div class="exp-loading">�</div></div>
       </div>
       <div class="exp-box">
-        <div class="exp-title">👔 Insider activity (60 zile pre-earnings)</div>
-        <div id="exp-ins-${e.symbol}"><div class="exp-loading">se încarcă…</div></div>
+        <div class="exp-title">?? Insider activity (60 zile pre-earnings)</div>
+        <div id="exp-ins-${e.symbol}"><div class="exp-loading">se �ncarc�</div></div>
       </div>
     </div>
     <div class="exp-ai-bar">
-      <button class="ai-btn" id="ai-btn-${e.symbol}" onclick="event.stopPropagation(); analyzeEarningWithAI('${e.symbol}', this)">🤖 Analizează cu AI (Claude)</button>
-      <button class="ai-btn" id="qs-btn-${e.symbol}" onclick="event.stopPropagation(); runEHQuickSetup('${e.symbol}', this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">🎯 Quick Setup (Opus 4.8)</button>
-      <span class="ai-hint">AI = analiză narativă pre-earnings. Quick Setup = JSON ready-to-execute pentru play pe data release.</span>
+      <button class="ai-btn" id="ai-btn-${e.symbol}" onclick="event.stopPropagation(); analyzeEarningWithAI('${e.symbol}', this)">?? Analizeaz� cu AI (Claude)</button>
+      <button class="ai-btn" id="qs-btn-${e.symbol}" onclick="event.stopPropagation(); runEHQuickSetup('${e.symbol}', this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">?? Quick Setup (Opus 4.8)</button>
+      <span class="ai-hint">AI = analiz� narativ� pre-earnings. Quick Setup = JSON ready-to-execute pentru play pe data release.</span>
     </div>
     <div class="exp-ai" id="ai-result-${e.symbol}" data-done="0"></div>
     <div class="exp-ai" id="qs-result-${e.symbol}" data-done="0"></div>
@@ -1199,13 +1199,13 @@ async function loadExpandedDetails(e){
   // 1) hist
   if (!e.hist) e.hist = await fetchHistEarnings(e.symbol);
   if (e.hist) e.ana = analyzeHist(e.hist);
-  // 2) reaction bias — Yahoo chart 2y + data reală de raportare (Nasdaq) per trimestru
+  // 2) reaction bias � Yahoo chart 2y + data real� de raportare (Nasdaq) per trimestru
   let reactions = null;
   if (e.hist && e.hist.length){
     reactions = await fetchReactionBias(e.symbol, e.hist, e.hour);
   }
-  e.reactions = reactions;  // folosit și în buildAiPrompt (istoric per trimestru)
-  // 3) insider — forțez re-evaluare dacă pre-load a returnat ok:false (cache între timp populat)
+  e.reactions = reactions;  // folosit ?i �n buildAiPrompt (istoric per trimestru)
+  // 3) insider � for?ez re-evaluare dac� pre-load a returnat ok:false (cache �ntre timp populat)
   if (!e.insider || !e.insider.ok){
     const rows = await fetchInsider30(e.symbol, e.date);
     e.insider = analyzeInsider(rows);
@@ -1217,25 +1217,25 @@ async function loadExpandedDetails(e){
 
   if (histBox){
     if (!e.hist || !e.hist.length){
-      histBox.innerHTML = '<div class="exp-loading">Fără date istorice.</div>';
+      histBox.innerHTML = '<div class="exp-loading">F�r� date istorice.</div>';
     } else {
       const rows = e.hist.map(h => {
         const beat = (h.actual != null && h.estimate != null) ? (h.actual > h.estimate ? 'beat' : h.actual < h.estimate ? 'miss' : 'flat') : 'flat';
-        const surp = h.surprisePrc != null ? (h.surprisePrc >= 0 ? '+' : '') + h.surprisePrc.toFixed(1) + '%' : '—';
+        const surp = h.surprisePrc != null ? (h.surprisePrc >= 0 ? '+' : '') + h.surprisePrc.toFixed(1) + '%' : '�';
         const rk = h.period;
         const re = (reactions && reactions[rk] != null) ? reactions[rk] : null;
         const reCls = re == null ? 'flat' : (re > 0.5 ? 'up' : re < -0.5 ? 'dn' : 'flat');
-        const reTxt = re == null ? '—' : (re >= 0 ? '+' : '') + re.toFixed(1) + '%';
+        const reTxt = re == null ? '�' : (re >= 0 ? '+' : '') + re.toFixed(1) + '%';
         return `<tr>
           <td>${escHtml(h.period)}</td>
-          <td>${h.estimate != null ? h.estimate.toFixed(2) : '—'}</td>
-          <td class="${beat}">${h.actual != null ? h.actual.toFixed(2) : '—'}</td>
+          <td>${h.estimate != null ? h.estimate.toFixed(2) : '�'}</td>
+          <td class="${beat}">${h.actual != null ? h.actual.toFixed(2) : '�'}</td>
           <td class="${beat}">${surp}</td>
           <td class="exp-react ${reCls}">${reTxt}</td>
         </tr>`;
       }).join('');
       histBox.innerHTML = `<table class="exp-hist">
-        <thead><tr><th>Perioadă</th><th>Est</th><th>Act</th><th>Surp</th><th title="Δ% în ziua raportării reale (Nasdaq dateReported); fără dată confirmată → —">Reacție 1z</th></tr></thead>
+        <thead><tr><th>Perioad�</th><th>Est</th><th>Act</th><th>Surp</th><th title="?% �n ziua raport�rii reale (Nasdaq dateReported); f�r� dat� confirmat� � �">Reac?ie 1z</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
     }
@@ -1246,45 +1246,45 @@ async function loadExpandedDetails(e){
     const rArr = reactions ? Object.values(reactions).filter(v => v != null) : [];
     const avgReact = rArr.length ? (rArr.reduce((s, v) => s + v, 0) / rArr.length) : null;
     e.avgReact = avgReact;  // pentru computeAction la update cells
-    const beatRate = a.beatRate != null ? (a.beatRate * 100).toFixed(0) + '%' : '—';
+    const beatRate = a.beatRate != null ? (a.beatRate * 100).toFixed(0) + '%' : '�';
     const v = VERDICT_META[a.verdict || 'na'];
     statsBox.innerHTML = `
       <div class="exp-stat-row"><span>AI verdict</span><span>${v.icon} ${v.label}</span></div>
       <div class="exp-stat-row"><span>Beats / total</span><span>${(a.beats || 0)}/${(a.n || 0)}</span></div>
       <div class="exp-stat-row"><span>Beat rate</span><span>${beatRate}</span></div>
-      <div class="exp-stat-row"><span>Surprise medie</span><span>${a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : '—'}</span></div>
-      <div class="exp-stat-row"><span>Reacție medie 1z</span><span class="${avgReact == null ? '' : avgReact > 0 ? 'exp-react up' : 'exp-react dn'}">${avgReact != null ? (avgReact >= 0 ? '+' : '') + avgReact.toFixed(2) + '% (n=' + rArr.length + ')' : '—'}</span></div>
-      <div class="exp-stat-row"><span>Sursă</span><span>Finnhub + Yahoo</span></div>
+      <div class="exp-stat-row"><span>Surprise medie</span><span>${a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : '�'}</span></div>
+      <div class="exp-stat-row"><span>Reac?ie medie 1z</span><span class="${avgReact == null ? '' : avgReact > 0 ? 'exp-react up' : 'exp-react dn'}">${avgReact != null ? (avgReact >= 0 ? '+' : '') + avgReact.toFixed(2) + '% (n=' + rArr.length + ')' : '�'}</span></div>
+      <div class="exp-stat-row"><span>Surs�</span><span>Finnhub + Yahoo</span></div>
     `;
   }
 
   if (insBox){
     if (!e.insider || !e.insider.ok){
-      insBox.innerHTML = '<div class="exp-loading">Fără date insider (sau cheie lipsă).</div>';
+      insBox.innerHTML = '<div class="exp-loading">F�r� date insider (sau cheie lips�).</div>';
     } else {
       const top = (e.insider.rows || []).slice(0, 12);
-      const verdictTxt = e.insider.verdict === 'bull' ? '🟢 Bullish' : e.insider.verdict === 'bear' ? '🔴 Bearish' : '⚪ Neutru';
+      const verdictTxt = e.insider.verdict === 'bull' ? '?? Bullish' : e.insider.verdict === 'bear' ? '?? Bearish' : '? Neutru';
       const list = top.map(t => {
         const code = (t.transactionCode || '').toUpperCase();
         const kind = (window.INS && INS.classify) ? INS.classify(t) : null; // lib/insider.js
         const cls = kind === 'buy' ? 'buy' : kind === 'sell' ? 'sell' : '';
         return `<div class="exp-ins-row ${cls}">
           <span class="ti">${escHtml(code || '?')}</span>
-          <span class="nm">${escHtml(t.name || '—')}</span>
-          <span class="qy">${(t.change || 0).toLocaleString('en-US')}@${t.transactionPrice ? '$' + t.transactionPrice.toFixed(2) : '—'}</span>
-          <span class="dt">${escHtml(t.transactionDate || '—')}</span>
+          <span class="nm">${escHtml(t.name || '�')}</span>
+          <span class="qy">${(t.change || 0).toLocaleString('en-US')}@${t.transactionPrice ? '$' + t.transactionPrice.toFixed(2) : '�'}</span>
+          <span class="dt">${escHtml(t.transactionDate || '�')}</span>
         </div>`;
       }).join('');
       insBox.innerHTML = `
         <div class="exp-stat-row"><span>Verdict</span><span>${verdictTxt}</span></div>
-        <div class="exp-stat-row"><span>Cumpărări / vânzări</span><span>${e.insider.buys}B / ${e.insider.sells}S</span></div>
-        <div class="exp-stat-row"><span>Net acțiuni</span><span>${e.insider.netShares.toLocaleString('en-US')}</span></div>
-        <div class="exp-ins-list" style="margin-top:6px;">${list || '<div class="exp-loading">Fără tranzacții recente.</div>'}</div>
+        <div class="exp-stat-row"><span>Cump�r�ri / v�nz�ri</span><span>${e.insider.buys}B / ${e.insider.sells}S</span></div>
+        <div class="exp-stat-row"><span>Net ac?iuni</span><span>${e.insider.netShares.toLocaleString('en-US')}</span></div>
+        <div class="exp-ins-list" style="margin-top:6px;">${list || '<div class="exp-loading">F�r� tranzac?ii recente.</div>'}</div>
       `;
     }
   }
 
-  // Update țintit pe celulele Sugestie + Insider via data-col (robust la schimbări de coloane).
+  // Update ?intit pe celulele Sugestie + Insider via data-col (robust la schimb�ri de coloane).
   try {
     const tr = document.querySelector(`tr[data-sym="${e.symbol}"]`);
     if (tr){
@@ -1300,22 +1300,22 @@ async function loadExpandedDetails(e){
   } catch(err){ console.warn('[eh] update cells failed:', err); }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  REACTION BIAS (Yahoo chart daily 2y + date REALE de raportare)
-// ═══════════════════════════════════════════════════════════════
-// h.period (Finnhub /stock/earnings) = sfârșitul trimestrului FISCAL (ex: 2024-12-31),
-// NU data raportării — raportul vine la 3-6 săptămâni DUPĂ. Reacția se măsoară pe ziua
-// raportării reale (Nasdaq earnings-surprise → dateReported, acoperă ~4 trimestre).
-// Fără dată reală → reacție absentă (onest), nu mișcarea de după quarter-end.
+// ===============================================================
+// h.period (Finnhub /stock/earnings) = sf�r?itul trimestrului FISCAL (ex: 2024-12-31),
+// NU data raport�rii � raportul vine la 3-6 s�pt�m�ni DUP�. Reac?ia se m�soar� pe ziua
+// raport�rii reale (Nasdaq earnings-surprise � dateReported, acoper� ~4 trimestre).
+// F�r� dat� real� � reac?ie absent� (onest), nu mi?carea de dup� quarter-end.
 const _MONTHS_EN = { Jan:1, Feb:2, Mar:3, Apr:4, May:5, Jun:6, Jul:7, Aug:8, Sep:9, Oct:10, Nov:11, Dec:12 };
 function _parseUSDate(s){
-  // "Jan 30, 2025" → "2025-01-30"
+  // "Jan 30, 2025" � "2025-01-30"
   const m = /^([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})$/.exec(String(s || '').trim());
   if (!m || !_MONTHS_EN[m[1].slice(0, 3)]) return null;
   return `${m[3]}-${String(_MONTHS_EN[m[1].slice(0, 3)]).padStart(2, '0')}-${String(+m[2]).padStart(2, '0')}`;
 }
 function _parseFiscalQtr(s){
-  // "Dec/2024" → "2024-12"
+  // "Dec/2024" � "2024-12"
   const m = /^([A-Za-z]{3})[a-z]*\/(\d{4})$/.exec(String(s || '').trim());
   if (!m || !_MONTHS_EN[m[1].slice(0, 3)]) return null;
   return `${m[2]}-${String(_MONTHS_EN[m[1].slice(0, 3)]).padStart(2, '0')}`;
@@ -1324,7 +1324,7 @@ async function fetchReportDates(symbol){
   const d = await proxyGetJSON(`https://api.nasdaq.com/api/company/${symbol}/earnings-surprise`, 9000, 6 * 3600 * 1000);
   const rows = (d && d.data && d.data.earningsSurpriseTable && Array.isArray(d.data.earningsSurpriseTable.rows))
     ? d.data.earningsSurpriseTable.rows : [];
-  const map = {};   // "YYYY-MM" (fiscal qtr end) → "YYYY-MM-DD" (data raportării)
+  const map = {};   // "YYYY-MM" (fiscal qtr end) � "YYYY-MM-DD" (data raport�rii)
   for (const r of rows){
     const fq = _parseFiscalQtr(r.fiscalQtrEnd);
     const dr = _parseUSDate(r.dateReported);
@@ -1341,7 +1341,7 @@ async function fetchReactionBias(symbol, hist, hour){
   if (!r || !r.timestamp || !r.indicators || !r.indicators.quote) return null;
   const ts = r.timestamp;
   const closes = r.indicators.quote[0].close || [];
-  const dateToClose = {};   // ISO date → close
+  const dateToClose = {};   // ISO date � close
   const datesSorted = [];
   for (let i = 0; i < ts.length; i++){
     if (closes[i] == null) continue;
@@ -1350,38 +1350,38 @@ async function fetchReactionBias(symbol, hist, hour){
     datesSorted.push(iso);
   }
   const pct = (before, after) => (before > 0 && after > 0) ? ((after - before) / before) * 100 : null;
-  // Shift YYYY-MM cu n luni — pt companii cu an fiscal decalat (AAPL/NVDA), quarter-end-ul
-  // calendaristic de la Finnhub poate diferi cu o lună de fiscalQtrEnd-ul Nasdaq → matchuim tolerant.
+  // Shift YYYY-MM cu n luni � pt companii cu an fiscal decalat (AAPL/NVDA), quarter-end-ul
+  // calendaristic de la Finnhub poate diferi cu o lun� de fiscalQtrEnd-ul Nasdaq � matchuim tolerant.
   const shiftYM = (ym, n) => { const p = ym.split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 1 + n, 1)).toISOString().slice(0, 7); };
   const map = {};
   for (const h of hist){
     if (!h.period) continue;
     const pm = h.period.slice(0, 7);
     const reported = repDates[pm] || repDates[shiftYM(pm, 1)] || repDates[shiftYM(pm, -1)];
-    if (!reported) continue;   // fără dată reală de raportare (nici ±1 lună) → fără reacție
+    if (!reported) continue;   // f�r� dat� real� de raportare (nici �1 lun�) � f�r� reac?ie
     let idx = -1;
     for (let i = 0; i < datesSorted.length; i++){
       if (datesSorted[i] >= reported){ idx = i; break; }
     }
     if (idx < 1 || idx >= datesSorted.length) continue;
-    // Reacția post-raport pe ziua CORECTĂ în funcție de ora raportării:
-    //   m1 = close(D-1)→close(D)   — mișcarea din ziua raportului
-    //   m2 = close(D)→close(D+1)   — mișcarea din ziua următoare
-    // BMO (before market open): raportul iese dimineața → reacția se vede în ziua D  → m1.
-    // AMC (after market close):  raportul iese seara    → reacția se vede în ziua D+1 → m2.
-    // Istoricul Finnhub /stock/earnings NU conține ora pe trimestru; folosim `hour` al
-    // evenimentului curent ca proxy (companiile raportează de regulă consistent BMO/AMC).
-    // Dacă `hour` lipsește, păstrăm euristica veche (ziua cu mișcarea mai mare în |valoare|) —
-    // APROXIMARE: poate umfla optimist reacția prin alegerea zilei „mai spectaculoase".
+    // Reac?ia post-raport pe ziua CORECT� �n func?ie de ora raport�rii:
+    //   m1 = close(D-1)�close(D)   � mi?carea din ziua raportului
+    //   m2 = close(D)�close(D+1)   � mi?carea din ziua urm�toare
+    // BMO (before market open): raportul iese diminea?a � reac?ia se vede �n ziua D  � m1.
+    // AMC (after market close):  raportul iese seara    � reac?ia se vede �n ziua D+1 � m2.
+    // Istoricul Finnhub /stock/earnings NU con?ine ora pe trimestru; folosim `hour` al
+    // evenimentului curent ca proxy (companiile raporteaz� de regul� consistent BMO/AMC).
+    // Dac� `hour` lipse?te, p�str�m euristica veche (ziua cu mi?carea mai mare �n |valoare|) �
+    // APROXIMARE: poate umfla optimist reac?ia prin alegerea zilei �mai spectaculoase".
     const m1 = pct(dateToClose[datesSorted[idx - 1]], dateToClose[datesSorted[idx]]);
     const m2 = (idx + 1 < datesSorted.length) ? pct(dateToClose[datesSorted[idx]], dateToClose[datesSorted[idx + 1]]) : null;
     let re;
     if (hour === 'bmo'){
-      re = m1;                                   // raport dimineața → reacția în ziua D
+      re = m1;                                   // raport diminea?a � reac?ia �n ziua D
     } else if (hour === 'amc' || hour === 'dmh'){
-      re = (m2 != null) ? m2 : m1;               // raport seara → reacția în D+1 (fallback D)
+      re = (m2 != null) ? m2 : m1;               // raport seara � reac?ia �n D+1 (fallback D)
     } else {
-      // ora necunoscută → euristică (aproximare, vezi comentariul de mai sus)
+      // ora necunoscut� � euristic� (aproximare, vezi comentariul de mai sus)
       re = (m1 == null) ? m2 : (m2 != null && Math.abs(m2) > Math.abs(m1)) ? m2 : m1;
     }
     if (re != null) map[h.period] = re;
@@ -1389,9 +1389,9 @@ async function fetchReactionBias(symbol, hist, hour){
   return map;
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  STAR / WATCHLIST
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 window.toggleStar = function(sym){
   const idx = watchlist.indexOf(sym);
   if (idx === -1) watchlist.push(sym); else watchlist.splice(idx, 1);
@@ -1399,21 +1399,21 @@ window.toggleStar = function(sym){
   renderAll();
 };
 
-// ═══════════════════════════════════════════════════════════════
-//  AI BUBBLE — Claude API (shared key cu nasdaq-scanner)
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
+//  AI BUBBLE � Claude API (shared key cu nasdaq-scanner)
+// ===============================================================
 const ANTHROPIC_KEY_LS = 'anthropic_api_key';
 const AI_CACHE_LS = 'eh_ai_cache_v1';
 const AI_CACHE_TTL_MS = 60 * 60 * 1000;
 
-const AI_SYSTEM = `Eşti analist financiar român pentru un trader activ pe Nasdaq via Trade 212 (long-only stocks).
+const AI_SYSTEM = `E�ti analist financiar rom�n pentru un trader activ pe Nasdaq via Trade 212 (long-only stocks).
 Reguli stricte:
-- Răspunde DOAR în română.
-- Maxim 7 rânduri, fără introduceri ("Iată...", "Pe baza datelor...").
-- Recomandă explicit: "BUY pre-earnings cu entry $X / SL $Y / TP $Z" SAU "AŞTEAPTĂ post-earnings (gap în direcţia X)" SAU "SKIP — risc asimetric".
-- Argumentează în maxim 2 propoziţii: pattern beat/miss istoric + insider/reacţie.
-- Identifică UN risc principal într-o singură propoziţie.
-- Fără markdown, fără emoji, fără bold. Text plat, scurt, direct.`;
+- R�spunde DOAR �n rom�n�.
+- Maxim 7 r�nduri, f�r� introduceri ("Iat�...", "Pe baza datelor...").
+- Recomand� explicit: "BUY pre-earnings cu entry $X / SL $Y / TP $Z" SAU "A�TEAPT� post-earnings (gap �n direc�ia X)" SAU "SKIP � risc asimetric".
+- Argumenteaz� �n maxim 2 propozi�ii: pattern beat/miss istoric + insider/reac�ie.
+- Identific� UN risc principal �ntr-o singur� propozi�ie.
+- F�r� markdown, f�r� emoji, f�r� bold. Text plat, scurt, direct.`;
 
 function getAnthropicKey(){ try { return localStorage.getItem(ANTHROPIC_KEY_LS) || ''; } catch(e){ return ''; } }
 function setAnthropicKey(k){ try { if (k) localStorage.setItem(ANTHROPIC_KEY_LS, k); else localStorage.removeItem(ANTHROPIC_KEY_LS); } catch(e){} }
@@ -1445,31 +1445,31 @@ function buildAiPrompt(e){
   const ar = e.avgReact != null ? (e.avgReact >= 0 ? '+' : '') + e.avgReact.toFixed(2) + '%' : 'N/A';
   let histLines = '';
   if (Array.isArray(e.hist) && e.hist.length){
-    histLines = '\nEPS ISTORIC (ultimele 8 trim. — perioadă / est / actual / surpriză% / reacţie 1z):\n' +
+    histLines = '\nEPS ISTORIC (ultimele 8 trim. � perioad� / est / actual / surpriz�% / reac�ie 1z):\n' +
       e.hist.map(h => {
         const re = (e.reactions && e.reactions[h.period] != null) ? (e.reactions[h.period] >= 0 ? '+' : '') + e.reactions[h.period].toFixed(1) + '%' : 'N/A';
         const surp = h.surprisePrc != null ? (h.surprisePrc >= 0 ? '+' : '') + h.surprisePrc.toFixed(1) + '%' : 'N/A';
-        return `  ${h.period}: est ${h.estimate != null ? h.estimate.toFixed(2) : 'N/A'} / act ${h.actual != null ? h.actual.toFixed(2) : 'N/A'} / ${surp} / reacţie ${re}`;
+        return `  ${h.period}: est ${h.estimate != null ? h.estimate.toFixed(2) : 'N/A'} / act ${h.actual != null ? h.actual.toFixed(2) : 'N/A'} / ${surp} / reac�ie ${re}`;
       }).join('\n');
   }
   let insLines = '';
   if (e.insider && e.insider.ok){
-    insLines = `\nINSIDER 60 ZILE PRE-EARNINGS: ${e.insider.buys} cumpărări / ${e.insider.sells} vânzări · net acţiuni ${e.insider.netShares.toLocaleString('en-US')} · verdict ${e.insider.verdict}`;
+    insLines = `\nINSIDER 60 ZILE PRE-EARNINGS: ${e.insider.buys} cump�r�ri / ${e.insider.sells} v�nz�ri � net ac�iuni ${e.insider.netShares.toLocaleString('en-US')} � verdict ${e.insider.verdict}`;
   } else {
-    insLines = '\nINSIDER: fără date sau lipsă tranzacţii înregistrate în 60z.';
+    insLines = '\nINSIDER: f�r� date sau lips� tranzac�ii �nregistrate �n 60z.';
   }
   const actNow = ACTION_META[computeAction(e, e.avgReact)] || ACTION_META.skip;
-  return `Analiză rapidă pentru ${e.symbol} — earnings programat ${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''} (în ${e.zile} zile de azi ${today}).
+  return `Analiz� rapid� pentru ${e.symbol} � earnings programat ${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''} (�n ${e.zile} zile de azi ${today}).
 
 DATE STRUCTURATE:
 - EPS estimate trim. curent: ${e.epsEst != null ? e.epsEst.toFixed(2) : 'N/A'} ${a.lastActual != null ? '(prev act ' + a.lastActual.toFixed(2) + ')' : ''}
-- Pattern istoric: ${a.beats || 0} beats / ${a.n || 0} (beat rate ${beatRate}), surpriză medie ${avgSurp}, ultima surpriză ${lastSurp}
-- Reacţie medie 1z post-earnings (istoric): ${ar}
+- Pattern istoric: ${a.beats || 0} beats / ${a.n || 0} (beat rate ${beatRate}), surpriz� medie ${avgSurp}, ultima surpriz� ${lastSurp}
+- Reac�ie medie 1z post-earnings (istoric): ${ar}
 - Tag derivat algoritmic: ${actNow.icon} ${actNow.label}${histLines}${insLines}
 
-CONTEXT: ${watchlist.includes(e.symbol) ? 'tickerul ESTE pe watchlist-ul traderului.' : 'tickerul nu e pe watchlist.'} Trader long-only, Trade 212, fonduri limitate — conservator.
+CONTEXT: ${watchlist.includes(e.symbol) ? 'tickerul ESTE pe watchlist-ul traderului.' : 'tickerul nu e pe watchlist.'} Trader long-only, Trade 212, fonduri limitate � conservator.
 
-Întrebare: ce face traderul cu ${e.symbol} acum (pre-earnings)? Confirmă sau contestă tagul algoritmic.`;
+�ntrebare: ce face traderul cu ${e.symbol} acum (pre-earnings)? Confirm� sau contest� tagul algoritmic.`;
 }
 
 window.analyzeEarningWithAI = async function(symbol, btn){
@@ -1477,25 +1477,25 @@ window.analyzeEarningWithAI = async function(symbol, btn){
   const container = $('ai-result-' + symbol); if (!container) return;
   if (container.dataset.done === '1'){
     container.innerHTML = ''; container.dataset.done = '0';
-    if (btn) btn.textContent = '🤖 Analizează cu AI (Claude)';
+    if (btn) btn.textContent = '?? Analizeaz� cu AI (Claude)';
     return;
   }
   const key = getAnthropicKey();
   if (!key){
-    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>⚠ Lipsește cheia Anthropic</b></div>Adaugă cheia în ⚙ Setări → câmpul „Anthropic API key". O obţii de la console.anthropic.com/settings/keys.</div>`;
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>? Lipse?te cheia Anthropic</b></div>Adaug� cheia �n ? Set�ri � c�mpul �Anthropic API key". O ob�ii de la console.anthropic.com/settings/keys.</div>`;
     container.dataset.done = '1'; return;
   }
   const ck = `${symbol}_${e.date}_${(e.ana && e.ana.verdict) || 'na'}`;
   const cached = aiCacheGet(ck);
   if (cached){
-    renderAiBubble(container, cached.text, cached.model + ' · cache');
+    renderAiBubble(container, cached.text, cached.model + ' � cache');
     container.dataset.done = '1';
-    if (btn) btn.textContent = '🤖 Ascunde analiză';
+    if (btn) btn.textContent = '?? Ascunde analiz�';
     return;
   }
-  if (btn){ btn.disabled = true; btn.textContent = '⏳ Se generează…'; }
-  // Fără streaming vizual (obositor) — spinner + cronometru, răspunsul apare DEODATĂ cu fade-in.
-  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-4-8</span></div><div style="padding:10px;text-align:center;color:var(--t3)"><span style="font-size:20px;animation:pulse 1.4s infinite">🤖</span><div style="margin-top:6px;font-size:12.5px">Analizez… <span id="ai-timer-${symbol}">0.0s</span></div></div></div>`;
+  if (btn){ btn.disabled = true; btn.textContent = '? Se genereaz�'; }
+  // F�r� streaming vizual (obositor) � spinner + cronometru, r�spunsul apare DEODAT� cu fade-in.
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-4-8</span></div><div style="padding:10px;text-align:center;color:var(--t3)"><span style="font-size:20px;animation:pulse 1.4s infinite">??</span><div style="margin-top:6px;font-size:12.5px">Analizez� <span id="ai-timer-${symbol}">0.0s</span></div></div></div>`;
   container.dataset.done = '1';
 
   const prompt = buildAiPrompt(e);
@@ -1503,7 +1503,7 @@ window.analyzeEarningWithAI = async function(symbol, btn){
   const timer = setInterval(() => { const el = $('ai-timer-' + symbol); if (el) el.textContent = ((Date.now() - t0) / 1000).toFixed(1) + 's'; }, 100);
   try {
     const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), 180000);  // un request blocat nu ține bula la infinit
+    const to = setTimeout(() => ctrl.abort(), 180000);  // un request blocat nu ?ine bula la infinit
     let resp;
     try {
       resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1530,21 +1530,21 @@ window.analyzeEarningWithAI = async function(symbol, btn){
     const data = await resp.json();
     const full = data?.content?.[0]?.text || '';
     aiCacheSet(ck, full, 'claude-opus-4-8');
-    renderAiBubble(container, full, 'claude-opus-4-8 · ' + ((Date.now() - t0) / 1000).toFixed(1) + 's · ' + new Date().toLocaleTimeString('ro-RO'));
-    if (btn) btn.textContent = '🤖 Ascunde analiză';
+    renderAiBubble(container, full, 'claude-opus-4-8 � ' + ((Date.now() - t0) / 1000).toFixed(1) + 's � ' + new Date().toLocaleTimeString('ro-RO'));
+    if (btn) btn.textContent = '?? Ascunde analiz�';
   } catch(err){
-    const msg = (err && err.name === 'AbortError') ? 'timeout 180s — reîncearcă' : (err.message || 'unknown');
-    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare AI</b><span class="ai-meta">${escHtml(msg)}</span></div>Verifică cheia (sk-ant-…), creditul rămas în consolă sau încearcă peste 1 min.</div>`;
-    if (btn) btn.textContent = '🤖 Reîncearcă';
+    const msg = (err && err.name === 'AbortError') ? 'timeout 180s � re�ncearc�' : (err.message || 'unknown');
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>? Eroare AI</b><span class="ai-meta">${escHtml(msg)}</span></div>Verific� cheia (sk-ant-�), creditul r�mas �n consol� sau �ncearc� peste 1 min.</div>`;
+    if (btn) btn.textContent = '?? Re�ncearc�';
   } finally {
     clearInterval(timer);
     if (btn) btn.disabled = false;
   }
 };
 
-// ═══════════════════════════════════════════════════════════════
-//  QUICK SETUP — JSON ready-to-execute pentru earnings play (Opus 4.8)
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
+//  QUICK SETUP � JSON ready-to-execute pentru earnings play (Opus 4.8)
+// ===============================================================
 const EH_QS_CACHE_KEY = 'eh_qs_cache_v1';
 const EH_QS_TTL = 60*60*1000; // 1h
 function ehQsCacheGet(sym){
@@ -1560,26 +1560,26 @@ function ehQsCacheSet(sym,data){
 window.runEHQuickSetup = async function(symbol, btn){
   const e = calendar.find(x => x.symbol === symbol);
   const container = $('qs-result-' + symbol); if (!container) return;
-  if (!e){ container.innerHTML = '<div class="ai-bubble error"><div class="ai-head"><b>⚠ Date earnings lipsă</b></div>Re-deschide expand row sau scan din nou.</div>'; return; }
+  if (!e){ container.innerHTML = '<div class="ai-bubble error"><div class="ai-head"><b>? Date earnings lips�</b></div>Re-deschide expand row sau scan din nou.</div>'; return; }
   if (container.dataset.done === '1'){
     container.innerHTML = ''; container.dataset.done = '0';
-    if (btn) btn.textContent = '🎯 Quick Setup (Opus 4.8)';
+    if (btn) btn.textContent = '?? Quick Setup (Opus 4.8)';
     return;
   }
   const key = getAnthropicKey();
   if (!key){
-    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>⚠ Lipsește cheia Anthropic</b></div>Setează în ⚙ Setări.</div>`;
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>? Lipse?te cheia Anthropic</b></div>Seteaz� �n ? Set�ri.</div>`;
     container.dataset.done = '1'; return;
   }
   const cached = ehQsCacheGet(symbol);
   if (cached){
-    renderEHQuickSetup(container, cached, '💾 cache 1h', symbol);
+    renderEHQuickSetup(container, cached, '?? cache 1h', symbol);
     container.dataset.done = '1';
-    if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
+    if (btn) btn.textContent = '?? Ascunde Quick Setup';
     return;
   }
-  if (btn){ btn.disabled = true; btn.textContent = '⏳ Opus 4.8 gândește (5-15s)…'; }
-  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">🎯 Quick Setup · Opus 4.8</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:6px;font-size:12.5px">Generez JSON pre-earnings setup… <span id="qs-timer-${symbol}">0.0s</span></div></div></div>`;
+  if (btn){ btn.disabled = true; btn.textContent = '? Opus 4.8 g�nde?te (5-15s)�'; }
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">?? Quick Setup � Opus 4.8</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">??</span><div style="margin-top:6px;font-size:12.5px">Generez JSON pre-earnings setup� <span id="qs-timer-${symbol}">0.0s</span></div></div></div>`;
   container.dataset.done = '1';
   const _qsT0 = Date.now();
   const _qsTimer = setInterval(() => { const el = $('qs-timer-' + symbol); if (el) el.textContent = ((Date.now() - _qsT0) / 1000).toFixed(1) + 's'; }, 100);
@@ -1591,31 +1591,31 @@ window.runEHQuickSetup = async function(symbol, btn){
     ? `${e.insider.verdict} (${e.insider.buys}B/${e.insider.sells}S, net ${e.insider.netShares >= 0 ? '+' : ''}${e.insider.netShares})`
     : 'N/A';
 
-  const userPrompt = `Earnings play setup pentru ${symbol} — raport în ${e.zile} zile (${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''}).
+  const userPrompt = `Earnings play setup pentru ${symbol} � raport �n ${e.zile} zile (${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''}).
 - EPS estimate trim. curent: ${e.epsEst != null ? '$' + e.epsEst.toFixed(2) : 'N/A'}
 - Beat rate istoric: ${beatRate} (${a.beats}/${a.n})
-- Surpriză medie istorică: ${a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : 'N/A'}
-- Ultima surpriză: ${a.lastSurpPct != null ? (a.lastSurpPct >= 0 ? '+' : '') + a.lastSurpPct.toFixed(1) + '%' : 'N/A'}
-- Reacţie medie 1z post-earnings: ${avgReact}
+- Surpriz� medie istoric�: ${a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : 'N/A'}
+- Ultima surpriz�: ${a.lastSurpPct != null ? (a.lastSurpPct >= 0 ? '+' : '') + a.lastSurpPct.toFixed(1) + '%' : 'N/A'}
+- Reac�ie medie 1z post-earnings: ${avgReact}
 - Tag algoritmic: ${(ACTION_META[computeAction(e, e.avgReact)] || ACTION_META.skip).label}
 - Insider 60z pre-earnings: ${insiderTxt}
-- ⭐ Watchlist: ${watchlist.includes(symbol) ? 'da' : 'nu'}
+- ? Watchlist: ${watchlist.includes(symbol) ? 'da' : 'nu'}
 
-Output STRICT JSON (un singur obiect, niciun text înainte/după):
-{"entry":<număr|null>,"sl":<număr|null>,"tp1":<număr|null>,"tp2":<număr|null>,"sizing_pct":<număr 1-3>,"timeframe":"<pre-earnings|post-earnings|skip>","risk":"<one-liner max 50 chars>","confidence":"<HIGH|MED|LOW>","reasoning":"<3-5 propoziții, max 400 chars, raționament EXPLICIT earnings play>","invalidation":"<trigger care anulează, max 120 chars>","catalysts":"<events imediate pre/post-earnings, max 120 chars>"}
+Output STRICT JSON (un singur obiect, niciun text �nainte/dup�):
+{"entry":<num�r|null>,"sl":<num�r|null>,"tp1":<num�r|null>,"tp2":<num�r|null>,"sizing_pct":<num�r 1-3>,"timeframe":"<pre-earnings|post-earnings|skip>","risk":"<one-liner max 50 chars>","confidence":"<HIGH|MED|LOW>","reasoning":"<3-5 propozi?ii, max 400 chars, ra?ionament EXPLICIT earnings play>","invalidation":"<trigger care anuleaz�, max 120 chars>","catalysts":"<events imediate pre/post-earnings, max 120 chars>"}
 
 REGULI SPECIFICE EARNINGS:
-- Pre-earnings (entry ÎNAINTE de raport) e risc MAXIM — sizing MAX 2% cont, doar dacă beat rate>=70% și insider bullish și surpriză medie pozitivă. Altfel timeframe:"skip".
-- Post-earnings (entry DUPĂ raport) e mai sigur: pe IV crush + reacție inițială clară. Sizing 2-3%.
-- Dacă pretul curent NU e cunoscut (nu avem yet), pune entry/sl/tp1/tp2: null și explică în reasoning că vei stabili la deschidere.
-- TP1: +1×reacţie medie istorică, TP2: +2× (sau target tehnic dacă există)
-- SL: -1.5× reacţie medie istorică sau lvl tehnic important
-- sizing_pct: MAX 3 (earnings = volatility extremă, risc dublu)
-- timeframe: "pre-earnings" (long entry înainte de release cu hold prin), "post-earnings" (entry pe reacția inițială), "skip" (setup prost: miss pattern + insider bear)
-- risk: cea mai mare amenințare (ex: "Miss EPS + sell-off pre-market 4%+")
-- confidence: HIGH = beat≥80% + insider bull + surpriză medie pozitivă; MED = mixt; LOW = sub 50% sau date insuficiente
-- reasoning: explică EXPLICIT — pattern istoric (beats vs misses), insider activity ca semnal, reacţia 1z medie ca proxy de volatilitate aşteptată, decizia pre/post-earnings. Sfat practic dacă să intri sau să aştepţi.
-- invalidation: trigger clar (ex: "Earnings MISS sau guidance dezamăgitor → exit la deschidere")
+- Pre-earnings (entry �NAINTE de raport) e risc MAXIM � sizing MAX 2% cont, doar dac� beat rate>=70% ?i insider bullish ?i surpriz� medie pozitiv�. Altfel timeframe:"skip".
+- Post-earnings (entry DUP� raport) e mai sigur: pe IV crush + reac?ie ini?ial� clar�. Sizing 2-3%.
+- Dac� pretul curent NU e cunoscut (nu avem yet), pune entry/sl/tp1/tp2: null ?i explic� �n reasoning c� vei stabili la deschidere.
+- TP1: +1�reac�ie medie istoric�, TP2: +2� (sau target tehnic dac� exist�)
+- SL: -1.5� reac�ie medie istoric� sau lvl tehnic important
+- sizing_pct: MAX 3 (earnings = volatility extrem�, risc dublu)
+- timeframe: "pre-earnings" (long entry �nainte de release cu hold prin), "post-earnings" (entry pe reac?ia ini?ial�), "skip" (setup prost: miss pattern + insider bear)
+- risk: cea mai mare amenin?are (ex: "Miss EPS + sell-off pre-market 4%+")
+- confidence: HIGH = beat?80% + insider bull + surpriz� medie pozitiv�; MED = mixt; LOW = sub 50% sau date insuficiente
+- reasoning: explic� EXPLICIT � pattern istoric (beats vs misses), insider activity ca semnal, reac�ia 1z medie ca proxy de volatilitate a�teptat�, decizia pre/post-earnings. Sfat practic dac� s� intri sau s� a�tep�i.
+- invalidation: trigger clar (ex: "Earnings MISS sau guidance dezam�gitor � exit la deschidere")
 - catalysts: alte events relevante (analyst upgrades, macro events overlap, sector momentum)`;
 
   try {
@@ -1644,7 +1644,7 @@ REGULI SPECIFICE EARNINGS:
     const start = text.indexOf('{'); const end = text.lastIndexOf('}');
     if (start < 0 || end < 0 || end <= start) throw new Error('Format JSON invalid: ' + text.slice(0, 120));
     const setup = JSON.parse(text.slice(start, end + 1));
-    // Validare anti-halucinare (LONG-only): numere pozitive + SL<entry<TP1<TP2 — altfel respinge.
+    // Validare anti-halucinare (LONG-only): numere pozitive + SL<entry<TP1<TP2 � altfel respinge.
     for (const k of ['entry', 'sl', 'tp1', 'tp2']){
       if (setup[k] != null){ setup[k] = +setup[k]; if (!isFinite(setup[k]) || setup[k] <= 0) setup[k] = null; }
     }
@@ -1652,16 +1652,16 @@ REGULI SPECIFICE EARNINGS:
       const bad = (setup.sl != null && setup.sl >= setup.entry)
         || (setup.tp1 != null && setup.tp1 <= setup.entry)
         || (setup.tp1 != null && setup.tp2 != null && setup.tp2 <= setup.tp1);
-      if (bad) throw new Error('Setup AI incoerent (LONG cere SL < entry < TP1 < TP2) — re-rulează');
+      if (bad) throw new Error('Setup AI incoerent (LONG cere SL < entry < TP1 < TP2) � re-ruleaz�');
     }
     setup.sizing_pct = (setup.sizing_pct != null && isFinite(+setup.sizing_pct)) ? Math.min(3, Math.max(0, +setup.sizing_pct)) : null;
     ehQsCacheSet(symbol, setup);
-    renderEHQuickSetup(container, setup, '✓ ' + new Date().toLocaleTimeString('ro-RO'), symbol);
-    if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
+    renderEHQuickSetup(container, setup, '? ' + new Date().toLocaleTimeString('ro-RO'), symbol);
+    if (btn) btn.textContent = '?? Ascunde Quick Setup';
   } catch (err){
-    const msg = (err && err.name === 'AbortError') ? 'timeout 180s — reîncearcă' : (err.message || 'unknown');
-    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare Quick Setup</b><span class="ai-meta">${escHtml(msg)}</span></div>Verifică cheia, creditul sau încearcă peste 1 min.</div>`;
-    if (btn) btn.textContent = '🎯 Reîncearcă';
+    const msg = (err && err.name === 'AbortError') ? 'timeout 180s � re�ncearc�' : (err.message || 'unknown');
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>? Eroare Quick Setup</b><span class="ai-meta">${escHtml(msg)}</span></div>Verific� cheia, creditul sau �ncearc� peste 1 min.</div>`;
+    if (btn) btn.textContent = '?? Re�ncearc�';
   } finally {
     clearInterval(_qsTimer);
     if (btn) btn.disabled = false;
@@ -1670,25 +1670,25 @@ REGULI SPECIFICE EARNINGS:
 
 function renderEHQuickSetup(container, setup, sourceLabel, symbol){
   const confColor = setup.confidence === 'HIGH' ? 'var(--bull-s)' : (setup.confidence === 'MED' ? 'var(--gold)' : 'var(--bear-s)');
-  const fmt$ = n => (n != null && !isNaN(n)) ? '$' + Number(n).toFixed(2) : '—';
-  const pctOf = (a, b) => (a != null && b != null && b !== 0) ? ((a - b) / b * 100).toFixed(2) : '—';
-  const slPct = setup.entry && setup.sl ? pctOf(setup.sl, setup.entry) : '—';
-  const tp1Pct = setup.entry && setup.tp1 ? pctOf(setup.tp1, setup.entry) : '—';
-  const tp2Pct = setup.entry && setup.tp2 ? pctOf(setup.tp2, setup.entry) : '—';
-  // fără Math.abs — un SL inversat trebuie să se VADĂ (negativ), nu să fie mascat
-  const rr = (setup.entry && setup.sl && setup.tp2 && setup.entry > setup.sl) ? ((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '—';
-  const tfLabel = setup.timeframe === 'skip' ? '⏭ SKIP' : (setup.timeframe === 'pre-earnings' ? '⚠ Pre-earnings' : '🎯 Post-earnings');
+  const fmt$ = n => (n != null && !isNaN(n)) ? '$' + Number(n).toFixed(2) : '�';
+  const pctOf = (a, b) => (a != null && b != null && b !== 0) ? ((a - b) / b * 100).toFixed(2) : '�';
+  const slPct = setup.entry && setup.sl ? pctOf(setup.sl, setup.entry) : '�';
+  const tp1Pct = setup.entry && setup.tp1 ? pctOf(setup.tp1, setup.entry) : '�';
+  const tp2Pct = setup.entry && setup.tp2 ? pctOf(setup.tp2, setup.entry) : '�';
+  // f�r� Math.abs � un SL inversat trebuie s� se VAD� (negativ), nu s� fie mascat
+  const rr = (setup.entry && setup.sl && setup.tp2 && setup.entry > setup.sl) ? ((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '�';
+  const tfLabel = setup.timeframe === 'skip' ? '? SKIP' : (setup.timeframe === 'pre-earnings' ? '? Pre-earnings' : '?? Post-earnings');
   container.innerHTML = `<div class="ai-bubble" style="background:linear-gradient(180deg, rgba(247,147,26,.10), rgba(20,26,40,.4));border-color:rgba(247,147,26,.4)">
     <div class="ai-head">
-      <span class="ai-meta">🎯 Quick Setup · Opus 4.8 · ${sourceLabel}</span>
-      <button class="ai-rerun" onclick="event.stopPropagation(); rerunEHQuickSetup('${symbol}')">↻ Re-rulează</button>
+      <span class="ai-meta">?? Quick Setup � Opus 4.8 � ${sourceLabel}</span>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunEHQuickSetup('${symbol}')">? Re-ruleaz�</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px">
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Entry</div><div style="font-size:17px;font-weight:800;color:var(--t1)">${fmt$(setup.entry)}</div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Stop Loss</div><div style="font-size:17px;font-weight:800;color:var(--bear-s)">${fmt$(setup.sl)} <span style="font-size:10.5px;font-weight:600">${slPct}%</span></div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP1</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp1)} <span style="font-size:10.5px;font-weight:600">${tp1Pct}%</span></div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP2</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp2)} <span style="font-size:10.5px;font-weight:600">${tp2Pct}%</span></div></div>
-      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Sizing</div><div style="font-size:17px;font-weight:800;color:var(--accent)">${setup.sizing_pct != null ? setup.sizing_pct + '% cont' : '—'}</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Sizing</div><div style="font-size:17px;font-weight:800;color:var(--accent)">${setup.sizing_pct != null ? setup.sizing_pct + '% cont' : '�'}</div></div>
       <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">R:R</div><div style="font-size:17px;font-weight:800;color:var(--t1)">1 : ${rr}</div></div>
     </div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12.5px">
@@ -1696,17 +1696,17 @@ function renderEHQuickSetup(container, setup, sourceLabel, symbol){
       <div><span style="color:var(--t3)">Confidence:</span> <strong style="color:${confColor}">${escHtml(setup.confidence || 'N/A')}</strong></div>
     </div>
     ${setup.reasoning ? `<div style="margin-top:10px;padding:10px 12px;background:rgba(91,176,255,.08);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:12px;line-height:1.55">
-      <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">🧠 Raționament</div>
+      <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">?? Ra?ionament</div>
       ${escHtml(setup.reasoning)}
     </div>` : ''}
     <div style="margin-top:8px;padding:8px 10px;background:rgba(255,77,77,.08);border-left:3px solid var(--bear-s);border-radius:0 6px 6px 0;font-size:12px">
-      <strong style="color:var(--bear-s)">⚠ Risc principal:</strong> ${escHtml(setup.risk || 'N/A')}
+      <strong style="color:var(--bear-s)">? Risc principal:</strong> ${escHtml(setup.risk || 'N/A')}
     </div>
     ${setup.invalidation ? `<div style="margin-top:7px;padding:7px 10px;background:rgba(247,147,26,.07);border-left:3px solid var(--warn);border-radius:0 6px 6px 0;font-size:11.5px">
-      <strong style="color:var(--warn)">🚫 Invalidare:</strong> ${escHtml(setup.invalidation)}
+      <strong style="color:var(--warn)">?? Invalidare:</strong> ${escHtml(setup.invalidation)}
     </div>` : ''}
     ${setup.catalysts ? `<div style="margin-top:7px;padding:7px 10px;background:rgba(34,214,107,.07);border-left:3px solid var(--bull-s);border-radius:0 6px 6px 0;font-size:11.5px">
-      <strong style="color:var(--bull-s)">⚡ Catalist:</strong> ${escHtml(setup.catalysts)}
+      <strong style="color:var(--bull-s)">? Catalist:</strong> ${escHtml(setup.catalysts)}
     </div>` : ''}
   </div>`;
 }
@@ -1716,18 +1716,18 @@ window.rerunEHQuickSetup = function(symbol){
   const container = $('qs-result-' + symbol);
   if (container){ container.dataset.done = '0'; container.innerHTML = ''; }
   const btn = $('qs-btn-' + symbol);
-  if (btn) btn.textContent = '🎯 Quick Setup (Opus 4.8)';
+  if (btn) btn.textContent = '?? Quick Setup (Opus 4.8)';
   runEHQuickSetup(symbol, btn);
 };
 
 function renderAiBubble(container, text, meta){
-  const safe = escHtml(text || '(răspuns gol)');
+  const safe = escHtml(text || '(r�spuns gol)');
   container.innerHTML = `<div class="ai-bubble">
     <div class="ai-head">
       <span class="ai-meta">${escHtml(meta)}</span>
-      <button class="ai-rerun" onclick="event.stopPropagation(); rerunAi(this)">↻ Rerun</button>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunAi(this)">? Rerun</button>
     </div>${safe}</div>`;
-  // fade-in — răspunsul apare deodată, nu token-cu-token
+  // fade-in � r�spunsul apare deodat�, nu token-cu-token
   const b = container.firstElementChild;
   if (b){ b.style.opacity = '0'; b.style.transition = 'opacity .45s ease'; requestAnimationFrame(() => { b.style.opacity = '1'; }); }
 }
@@ -1744,9 +1744,9 @@ window.rerunAi = function(btn){
   analyzeEarningWithAI(sym, $('ai-btn-' + sym));
 };
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  ALERT BUTTONS
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 function updateAlertBtns(){
   $('soundBtn').className = 'icon-btn ' + (cfg.sound ? 'on' : 'off');
   $('notifBtn').className = 'icon-btn ' + (cfg.notif ? 'on' : 'off');
@@ -1758,20 +1758,20 @@ $('soundBtn').addEventListener('click', () => {
   if (cfg.sound) beep();
 });
 $('notifBtn').addEventListener('click', async () => {
-  if (!('Notification' in window)) { toast({ cls:'urgent', sym:'❌ Nesuportat', sub:'Browserul nu suportă notificări native.' }); return; }
-  if (Notification.permission === 'denied') { toast({ cls:'urgent', sym:'🚫 Refuzat', sub:'Notificările sunt blocate din setările browser-ului.' }); return; }
+  if (!('Notification' in window)) { toast({ cls:'urgent', sym:'? Nesuportat', sub:'Browserul nu suport� notific�ri native.' }); return; }
+  if (Notification.permission === 'denied') { toast({ cls:'urgent', sym:'?? Refuzat', sub:'Notific�rile sunt blocate din set�rile browser-ului.' }); return; }
   if (Notification.permission !== 'granted'){
     const p = await Notification.requestPermission();
     if (p !== 'granted'){ cfg.notif = false; saveCfg(); updateAlertBtns(); return; }
   }
   cfg.notif = !cfg.notif; saveCfg(); updateAlertBtns();
-  if (cfg.notif) try { new Notification('📅 Earnings Hub', { body:'Notificările sunt active.' }); } catch(e){}
+  if (cfg.notif) try { new Notification('?? Earnings Hub', { body:'Notific�rile sunt active.' }); } catch(e){}
 });
 $('tgBtn').addEventListener('click', () => $('setBtn').click());
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  SETTINGS modal
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 function openSettings(){
   $('setFinnhub').value = getFinnhubKey();
   $('setAnthropic').value = getAnthropicKey();
@@ -1798,23 +1798,23 @@ $('setSave').addEventListener('click', () => {
   saveCfg(); saveTg(); updateAlertBtns();
   closeSettings();
   rescheduleAuto();
-  // Forțează re-render tabelul (workaround: la unele setări lista vizuală dispare — refresh manual era nevoie)
+  // For?eaz� re-render tabelul (workaround: la unele set�ri lista vizual� dispare � refresh manual era nevoie)
   if (calendar.length) renderAll();
-  toast({ cls:'ok', sym:'💾 Salvat', sub:'Setările au fost actualizate.' });
+  toast({ cls:'ok', sym:'?? Salvat', sub:'Set�rile au fost actualizate.' });
 });
 $('setTgTest').addEventListener('click', async () => {
   const token = $('setTgToken').value.trim(), chat = $('setTgChat').value.trim();
-  if (!token || !chat){ toast({ cls:'urgent', sym:'⚠ Lipsesc câmpuri', sub:'Completează Bot token + Chat ID întâi.' }); return; }
+  if (!token || !chat){ toast({ cls:'urgent', sym:'? Lipsesc c�mpuri', sub:'Completeaz� Bot token + Chat ID �nt�i.' }); return; }
   const prevToken = tgConfig.token, prevChat = tgConfig.chatId;
   tgConfig.token = token; tgConfig.chatId = chat;
-  const ok = await sendTelegram('🧪 <b>Test Earnings Hub</b>\nAlertele Telegram funcționează ✅');
+  const ok = await sendTelegram('?? <b>Test Earnings Hub</b>\nAlertele Telegram func?ioneaz� ?');
   tgConfig.token = prevToken; tgConfig.chatId = prevChat;
-  toast({ cls: ok ? 'ok' : 'urgent', sym: ok ? '✅ Test OK' : '❌ Test eșuat', sub: ok ? 'Mesajul a ajuns pe Telegram.' : 'Verifică Token + Chat ID. CORS/HTTPS oferite de Telegram.' });
+  toast({ cls: ok ? 'ok' : 'urgent', sym: ok ? '? Test OK' : '? Test e?uat', sub: ok ? 'Mesajul a ajuns pe Telegram.' : 'Verific� Token + Chat ID. CORS/HTTPS oferite de Telegram.' });
 });
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  FILTERS + SORT bindings
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 $('fbChips').addEventListener('click', e => {
   const chip = e.target.closest('.fb-chip'); if (!chip) return;
   document.querySelectorAll('.fb-chip').forEach(c => c.classList.remove('active'));
@@ -1823,7 +1823,7 @@ $('fbChips').addEventListener('click', e => {
   renderTable();
 });
 $('searchInp').addEventListener('input', e => {
-  // Permite doar litere + cifre (ASCII). Strict — fără spațiu, ghilimele, etc.
+  // Permite doar litere + cifre (ASCII). Strict � f�r� spa?iu, ghilimele, etc.
   const cleaned = (e.target.value || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
   if (cleaned !== e.target.value) e.target.value = cleaned;
   filterText = cleaned;
@@ -1846,9 +1846,9 @@ document.querySelectorAll('thead th[data-sort]').forEach(th => {
 
 $('scanBtn').addEventListener('click', runScan);
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  AUTO-SCAN scheduling (self-reschedule)
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 function rescheduleAuto(){
   clearTimeout(_autoTimer);
   if (!cfg.auto) return;
@@ -1859,11 +1859,11 @@ function rescheduleAuto(){
   }, cfg.auto * 1000);
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  SHELL VISIBILITY (PWA): pauza polling cand iframe-ul e in fundal
 //  Shell-ul trimite postMessage({ ttShellVisible:true|false }).
 //  FARA mesaj => _shellHidden ramane false => zero schimbare in browser normal.
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 window.addEventListener('message', e => {
   if (e.origin !== location.origin) return;
   if (!e.data || typeof e.data.ttShellVisible !== 'boolean') return;
@@ -1878,13 +1878,13 @@ window.addEventListener('message', e => {
   }
 });
 
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 //  INIT
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 function init(){
   $('verBadge').textContent = VER.replace(/-\d{4}-\d{2}-\d{2}$/, '');
-  // Forțează golire search input — Chrome autofill îl populează cu ultima valoare folosită.
-  // Triplu trigger ca să prindem și autofill întârziat.
+  // For?eaz� golire search input � Chrome autofill �l populeaz� cu ultima valoare folosit�.
+  // Triplu trigger ca s� prindem ?i autofill �nt�rziat.
   const _si = $('searchInp');
   if (_si){
     _si.value = ''; filterText = '';
@@ -1894,7 +1894,7 @@ function init(){
   loadCfg();
   updateAlertBtns();
   updateSessionPill();
-  // listener cross-tab: dacă wl_stocks se schimbă (din nasdaq sau watchlist-monitor), re-render
+  // listener cross-tab: dac� wl_stocks se schimb� (din nasdaq sau watchlist-monitor), re-render
   window.addEventListener('storage', e => {
     if (e.key === WL_KEY_LS){
       try { watchlist = JSON.parse(e.newValue || '[]').map(s => String(s).toUpperCase()); } catch(_){ }
@@ -1902,16 +1902,16 @@ function init(){
     }
   });
   rescheduleAuto();
-  // primul scan automat dacă există cheia
+  // primul scan automat dac� exist� cheia
   if (getFinnhubKey()) runScan();
-  else renderEmpty('Lipsește cheia Finnhub', 'Apasă ⚙ Setări → adaugă cheia (gratuită pe finnhub.io). Aceeași cheie folosită deja de nasdaq-scanner / smart-trade-long / pump-radar.');
+  else renderEmpty('Lipse?te cheia Finnhub', 'Apas� ? Set�ri � adaug� cheia (gratuit� pe finnhub.io). Aceea?i cheie folosit� deja de nasdaq-scanner / smart-trade-long / pump-radar.');
 }
 
 document.addEventListener('DOMContentLoaded', init);
 
 // Service worker register (auto-update silent)
 if ('serviceWorker' in navigator){
-  navigator.serviceWorker.register('../sw-app.js?v=tt-v563',{scope:'../',updateViaCache:'none'}).catch(() => {});
+  navigator.serviceWorker.register('../sw-app.js?v=tt-v564',{scope:'../',updateViaCache:'none'}).catch(() => {});
 }
 </script>
 <script src="../lib/telegram.js"></script>
