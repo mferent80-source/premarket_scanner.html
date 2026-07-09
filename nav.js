@@ -26,7 +26,9 @@
       var seg = hrefToSeg(href);
       if (seg === null) return; // nu e pagină din suite → comportament normal
       e.preventDefault(); e.stopPropagation();
-      try { parent.postMessage({ ttOpen: seg }, location.origin); } catch(_){}
+      var hash = '';
+      try { hash = (new URL(href, location.href).hash || '').replace(/^#/, ''); } catch(_){}
+      try { parent.postMessage({ ttOpen: seg, ttHash: hash }, location.origin); } catch(_){}
     }, true);
     return; // în iframe NU afișăm dock-ul
   }

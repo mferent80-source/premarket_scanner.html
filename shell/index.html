@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script>window.SUITE_VERSION_SHORT='tt-v546';window.SUITE_VERSION='tt-v546-2026-07-09';</script>
+<script>window.SUITE_VERSION_SHORT='tt-v547';window.SUITE_VERSION='tt-v547-2026-07-09';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Trading Tools — App</title>
 <meta name="theme-color" content="#0b0f17">
@@ -47,7 +47,7 @@
 <div id="app">
   <div style="display:flex;align-items:stretch;min-width:0">
     <div id="tabbar" aria-label="Taburi deschise" style="flex:1;min-width:0"></div>
-    <span id="suiteVerShell" title="Versiune cache suită">tt-v546</span>
+    <span id="suiteVerShell" title="Versiune cache suită">tt-v547</span>
   </div>
   <div id="frames"></div>
   <nav id="dock" aria-label="Deschide pagină"></nav>
@@ -148,11 +148,38 @@
     });
   }
 
-  // paginile (din iframe) cer deschiderea unui tab prin postMessage (vezi nav.js)
+  var EXTRA_PAGES = {
+    'router/':       { n:'Router', e:'🧭' },
+    'equity/':       { n:'Equity', e:'📈' },
+    'shadow-book/':  { n:'Shadow', e:'👻' },
+    'postmortem/':   { n:'PM',     e:'🔬' },
+    'governor/':     { n:'Gov',    e:'🛑' }
+  };
+  function ensurePage(u){
+    if (byU[u] !== undefined) return;
+    var m = EXTRA_PAGES[u] || { n: (u.replace(/\/$/, '') || 'page'), e: '📄' };
+    var p = { u: u, n: m.n, e: m.e };
+    PAGES.push(p);
+    byU[u] = p;
+  }
+  function applyFrameHash(u, hash){
+    if (!hash || !frames[u]) return;
+    var f = frames[u];
+    var go = function(){ try { f.contentWindow.location.hash = hash; } catch(_){} };
+    try {
+      if (f.contentDocument && f.contentDocument.readyState === 'complete') go();
+      else f.addEventListener('load', go, { once: true });
+    } catch(_){ f.addEventListener('load', go, { once: true }); }
+  }
+
+  // paginile (din iframe) cer deschiderea unui tab prin postMessage (vezi nav.js + hub head)
   window.addEventListener('message', function(e){
-    if (e.origin !== location.origin) return; // iframe-urile suitei sunt same-origin → ignoră mesaje terțe
+    if (e.origin !== location.origin) return;
     var d = e.data;
-    if (d && d.ttOpen !== undefined && byU[d.ttOpen] !== undefined) setActive(d.ttOpen);
+    if (!d || d.ttOpen === undefined) return;
+    ensurePage(d.ttOpen);
+    setActive(d.ttOpen);
+    if (d.ttHash) applyFrameHash(d.ttOpen, d.ttHash);
   });
 
   // init: creează iframe-urile pentru taburile salvate, activează ultimul activ
@@ -161,7 +188,7 @@
 
   // service worker — înregistrare simplă, fără auto-reload (evită loop în PWA)
   if ('serviceWorker' in navigator) {
-    var swVer = window.SUITE_VERSION_SHORT || 'tt-v546';
+    var swVer = window.SUITE_VERSION_SHORT || 'tt-v547';
     navigator.serviceWorker.register('../sw.js?v=' + swVer, { updateViaCache: 'none' }).catch(function(){});
   }
   if (window.SUITE_VERSION_SHORT) {

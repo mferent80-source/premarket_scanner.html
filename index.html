@@ -2,11 +2,39 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script>window.SUITE_VERSION_SHORT='tt-v546';window.SUITE_VERSION='tt-v546-2026-07-09';</script>
+<script>window.SUITE_VERSION_SHORT='tt-v547';window.SUITE_VERSION='tt-v547-2026-07-09';</script>
 <script>
-  /* Aplicație instalată (standalone) → deschide shell-ul cu taburi. Doar la top-level (NU în iframe-ul shell-ului, ca să nu se nesteze). */
+  /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
+  (function(){
+    if (window.self === window.top) return;
+    var SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/','journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
+    function seg(href){
+      try {
+        var p = new URL(href, location.href).pathname;
+        for (var i = 0; i < SEGS.length; i++) if (p.indexOf('/' + SEGS[i]) >= 0) return SEGS[i];
+        if (/\/premarket_scanner\.html\/?$/.test(p)) return '';
+      } catch(e){}
+      return null;
+    }
+    document.addEventListener('click', function(e){
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a) return;
+      var h = a.getAttribute('href') || '';
+      if (/^(https?:|mailto:|tel:|javascript:)/i.test(h) || h.charAt(0) === '#') return;
+      var s = seg(h);
+      if (s === null) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      var hash = '';
+      try { hash = (new URL(h, location.href).hash || '').replace(/^#/, ''); } catch(e2){}
+      parent.postMessage({ ttOpen: s, ttHash: hash }, location.origin);
+    }, true);
+  })();
+</script>
+<script>
+  /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/');
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v547'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -544,7 +572,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span id="suiteVerBadge" title="Versiune cache suită" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v546</span>
+      <span id="suiteVerBadge" title="Versiune cache suită" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v547</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -1756,7 +1784,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v546';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v547';
   navigator.serviceWorker.register('./sw.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1963,10 +1991,10 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/suite-version.js?v=546"></script>
-<script src="lib/hub-health.js?v=546"></script>
-<script src="lib/hub-brief.js?v=546"></script>
-<script src="lib/hub-ledger.js?v=546"></script>
+<script src="lib/suite-version.js?v=547"></script>
+<script src="lib/hub-health.js?v=547"></script>
+<script src="lib/hub-brief.js?v=547"></script>
+<script src="lib/hub-ledger.js?v=547"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {
