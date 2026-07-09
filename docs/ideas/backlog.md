@@ -104,6 +104,13 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-096 | Auto-refresh CD cross-tab | lib/capital-desk.js + lib/journal.js | M | P3 | făcut | ideation | 2026-07-09 |
 | I-097 | Fees drag + expectancy în CD | lib/capital-desk.js | S | P3 | făcut | ideation | 2026-07-09 |
 | I-098 | Capital pacing săptămânal | lib/governor.js + lib/capital-desk.js | M | P2 | făcut | ideation | 2026-07-09 |
+| I-099 | Hub cmd strip celulă Capital (CD) | lib/hub-brief.js + lib/capital-desk.js | S | P1 | făcut | ideation | 2026-07-09 |
+| I-100 | Morning checklist risc/săpt/live | lib/morning-check.js | S | P2 | făcut | ideation | 2026-07-09 |
+| I-101 | Health probe Capital Desk | health/ + lib/capital-desk.js | S | P2 | făcut | ideation | 2026-07-09 |
+| I-102 | Router blockers capital-aware | lib/router.js | S | P1 | făcut | ideation | 2026-07-09 |
+| I-103 | STL gate + hint R rămas | smart-trade-long/ | M | P1 | făcut | ideation | 2026-07-09 |
+| I-104 | Nasdaq → Journal cu gate | nasdaq-scanner/ + journal/ | M | P1 | făcut | ideation | 2026-07-09 |
+| I-105 | journal_pending_trade consumer | journal/index.html | S | P2 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -666,3 +673,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** previne death by thousand cuts; review săptămânal aliniat cu disciplina zilnică.
 - **Riscuri/dependențe:** prag = ipoteză; săptămâna = ISO week ET.
 - **Fișiere atinse:** `lib/governor.js`, `lib/capital-desk.js`, `journal/index.html`, `lib/router.js`.
+
+### I-099 · Hub cmd strip celulă Capital · [S] · P1
+- **Problema/golul:** Cockpit avea strip CD dar command strip încă arăta doar Equity separat — două surse de adevăr dimineața.
+- **Soluția:** `CD.hubCmdCell()` în `renderHubCmd` — risc% + R rămas + verdict Desk.
+- **Impact:** scan rapid al command strip = capital + disciplină fără scroll.
+- **Fișiere atinse:** `lib/hub-brief.js`, `lib/capital-desk.js`.
+
+### I-100 · Morning checklist risc/săpt/live · [S] · P2
+- **Problema/golul:** MC (I-086) nu includea risc agregat, buget săptămână, prospățime scan live.
+- **Soluția:** 3 itemi auto-bifați din `CD.unified()` + `GV.weekBudgetUsedPct`; `criticalOk` include `risk`.
+- **Impact:** ritual dimineață complet capital-aware.
+- **Fișiere atinse:** `lib/morning-check.js`.
+
+### I-101 · Health probe Capital Desk · [S] · P2
+- **Problema/golul:** Health verifica equity/drift dar nu CD holistic (risc%, HALTED, live stale).
+- **Soluția:** `CD.healthProbe()` în `checkEquity`.
+- **Impact:** prinde desincronizare capital înainte de sesiune.
+- **Fișiere atinse:** `health/index.html`, `lib/capital-desk.js`.
+
+### I-102 · Router blockers capital-aware · [S] · P1
+- **Problema/golul:** Gate CD în `reasons` dar nu în blockers vizibile cockpit.
+- **Soluția:** `buildContext` + `computeBlockers` cu `cdRiskPct`, `cdGateHalt`, `cdRLeft`.
+- **Impact:** GO score și blockers reflectă riscul real open.
+- **Fișiere atinse:** `lib/router.js`.
+
+### I-103 · STL gate + hint R rămas · [M] · P1
+- **Problema/golul:** I-095 incomplet pe STL — plan salvat fără gate, fără context R desk.
+- **Soluția:** `savePlanToTracker` confirmă `CD.canAddRisk`; sizer arată R rămas/open/trade.
+- **Impact:** sizing aliniat cu Capital Desk înainte de tracker.
+- **Fișiere atinse:** `smart-trade-long/index.html`.
+
+### I-104 · Nasdaq → Journal cu gate · [M] · P1
+- **Problema/golul:** `saveToJournal` dead hook fără redirect și fără gate.
+- **Soluția:** estimează risc, gate CD, deschide Journal cu prefill + `journal_pending_trade`.
+- **Impact:** semnal scanner → execuție cu frână capital.
+- **Fișiere atinse:** `nasdaq-scanner/index.html`, `journal/index.html`.
+
+### I-105 · journal_pending_trade consumer · [S] · P2
+- **Problema/golul:** pending trade salvat de scanner dar Journal nu-l consuma.
+- **Soluția:** `consumePendingTrade()` la load înainte de `prefillFromQuery`.
+- **Impact:** buclă scanner→journal funcțională.
+- **Fișiere atinse:** `journal/index.html`.

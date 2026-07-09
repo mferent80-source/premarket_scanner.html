@@ -9196,19 +9196,37 @@ function toggleDarkMode(){
 // la load și deschide form-ul pre-completat. Cross-app pe același origin (GitHub Pages).
 function saveToJournal(payload){
   try{
+    const sym = String(payload.symbol || payload.coin || payload.sym || '').toUpperCase();
+    const entry = parseFloat(payload.entry || payload.price);
+    const sl = parseFloat(payload.sl || payload.stopLoss);
+    const size = parseFloat(payload.size || payload.shares);
+    let estRisk = parseFloat(payload.riskUsd || payload.estRisk);
+    if (!isFinite(estRisk) && isFinite(entry) && isFinite(sl) && isFinite(size) && entry > sl)
+      estRisk = (entry - sl) * size;
+    if (window.CD && CD.canAddRisk && isFinite(estRisk)) {
+      const gate = CD.canAddRisk(estRisk);
+      if (gate.halt && !confirm('Capital Desk STOP:\n' + gate.reasons.join('\n') + '\n\nSalvezi în Journal oricum?')) return;
+    }
     const trade = {
       source: 'nasdaq-scanner',
-      type: 'stock', // pentru nasdaq = acțiuni Trade 212
+      type: 'stock',
       direction: 'long',
+      sym, symbol: sym,
+      entry: isFinite(entry) ? entry : null,
+      sl: isFinite(sl) ? sl : null,
+      size: isFinite(size) ? size : null,
+      notes: payload.notes || 'Nasdaq scanner setup',
       ...payload,
       timestamp: Date.now()
     };
     localStorage.setItem('journal_pending_trade', JSON.stringify(trade));
-    // Pagina trading-journal a fost ELIMINATĂ din suite (2026-05) — link-ul ducea la 404.
-    // Setup-ul rămâne salvat local (journal_pending_trade) + în Setup Journal-ul paginii.
+    const q = new URLSearchParams({ sym, source: 'nasdaq', notes: trade.notes || '' });
+    if (isFinite(entry)) q.set('prefill', encodeURIComponent(JSON.stringify({ sym, entry, slAtEntry: sl, size, source: 'nasdaq', notes: trade.notes })));
+    const url = '../journal/?' + q.toString();
     if(typeof showToast==='function'){
-      showToast(`📓 Setup ${trade.symbol||trade.coin} salvat în jurnalul local (tab Journal)`, 'ok');
+      showToast(`📓 ${sym} → Journal` + (estRisk ? ` (risc ~$${estRisk.toFixed(0)})` : ''), 'ok');
     }
+    try { window.open(url, 'ttools-journal'); } catch(e){ location.href = url; }
   }catch(e){
     if(typeof showToast==='function') showToast('❌ Salvare jurnal: '+e.message, 'err');
   }
@@ -10836,6 +10854,11 @@ setTimeout(_updateGistStatusN, 500);
 <script src="../lib/data.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
+<script src="../lib/account.js"></script>
+<script src="../lib/journal.js"></script>
+<script src="../lib/governor.js?v=4"></script>
+<script src="../lib/equity.js?v=5"></script>
+<script src="../lib/capital-desk.js?v=2"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>

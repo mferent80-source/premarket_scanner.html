@@ -143,6 +143,8 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
 <script src="../lib/account.js"></script>
 <script src="../lib/journal.js?v=7"></script>
 <script src="../lib/equity.js?v=5"></script>
+<script src="../lib/governor.js?v=4"></script>
+<script src="../lib/capital-desk.js?v=2"></script>
 <script src="../lib/ai.js"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/suite-version.js"></script>
@@ -333,10 +335,18 @@ function checkEquity(){
     else if (age != null && age > 7) cls = 'warn';
   }
   if (dr.warn) { cls = cls === 'ok' ? 'warn' : cls; parts.push('<span class="warn">drift ' + (dr.driftPct != null ? dr.driftPct.toFixed(1) + '%' : '?') + '</span>'); }
+  if (window.CD && CD.healthProbe){
+    const hp = CD.healthProbe();
+    if (hp.issues.length){
+      if (hp.cls === 'err') cls = 'err';
+      else if (hp.cls === 'warn' && cls === 'ok') cls = 'warn';
+      parts.push('<span class="' + (hp.cls === 'err' ? 'err' : 'warn') + '">CD: ' + esc(hp.issues.join('; ')) + '</span>');
+    } else parts.push('<span class="ok">Capital Desk OK</span>');
+  }
   const badge = window.SUITE_VERSION_SHORT || '?';
   parts.push('badge: <b>' + esc(badge) + '</b>');
   dot('dEquity', cls);
-  $('bEquity').innerHTML = parts.join(' · ') + '<br><a href="../equity/" style="color:var(--accent)">Deschide Equity →</a> · <a href="../update.html" style="color:var(--accent)">update cache</a>';
+  $('bEquity').innerHTML = parts.join(' · ') + '<br><a href="../equity/" style="color:var(--accent)">Deschide Equity →</a> · <a href="../journal/" style="color:var(--accent)">Capital Desk →</a> · <a href="../update.html" style="color:var(--accent)">update cache</a>';
 }
 
 // ── 8. localStorage — utilizare + TOP chei după mărime + curățare cache sigur.

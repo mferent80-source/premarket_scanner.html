@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=553"></script>
+<script src="lib/suite-version.js?v=554"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v553'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v554'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1166,9 +1166,9 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 <script src="lib/account.js"></script>
 <script src="lib/governor.js?v=4"></script>
 <script src="lib/equity.js?v=5"></script>
-<script src="lib/capital-desk.js?v=2"></script>
+<script src="lib/capital-desk.js?v=3"></script>
 <script src="lib/morning-check.js"></script>
-<script src="lib/router.js?v=7"></script>
+<script src="lib/router.js?v=8"></script>
 <script src="lib/regime.js"></script>
 <script src="lib/ai.js"></script>
 <script src="lib/telegram.js"></script>
@@ -1792,7 +1792,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v553';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v554';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1999,9 +1999,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/hub-health.js?v=553"></script>
-<script src="lib/hub-brief.js?v=553"></script>
-<script src="lib/hub-ledger.js?v=553"></script>
+<script src="lib/hub-health.js?v=554"></script>
+<script src="lib/hub-brief.js?v=554"></script>
+<script src="lib/hub-ledger.js?v=554"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {

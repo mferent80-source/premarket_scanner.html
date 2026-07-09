@@ -580,18 +580,37 @@ $('btnTgTest') && $('btnTgTest').addEventListener('click', async () => {
 if (window.ACCT) ACCT.migrate();
 loadGovCfg();
 
-function showPrefillGate(){
+function showPrefillGate(force){
   const el = $('cdPrefillGate');
   if (!el || !window.CD) { if (el) el.innerHTML = ''; return; }
   const q = new URLSearchParams(location.search);
-  if (!q.has('sym') && !q.has('prefill')) { el.innerHTML = ''; return; }
+  if (!force && !q.has('sym') && !q.has('prefill')) { el.innerHTML = ''; return; }
   const acct = window.GV ? GV.cfg().accountSize : (window.ACCT ? ACCT.get().value : 10000);
   const est = acct * 0.01;
   const gate = CD.canAddRisk(est);
   el.innerHTML = CD.gateBannerHtml(gate);
 }
 
+function consumePendingTrade(){
+  try {
+    const raw = localStorage.getItem('journal_pending_trade');
+    if (!raw) return false;
+    const t = JSON.parse(raw);
+    localStorage.removeItem('journal_pending_trade');
+    if (t.sym || t.symbol || t.ticker) $('fSym').value = String(t.sym || t.symbol || t.ticker).toUpperCase();
+    if (t.entry != null) $('fEntry').value = t.entry;
+    if (t.size != null || t.shares != null) $('fSize').value = t.size != null ? t.size : t.shares;
+    if (t.sl != null || t.stopLoss != null) $('fSl').value = t.sl != null ? t.sl : t.stopLoss;
+    if (t.source) $('fSrc').value = t.source === 'nasdaq-scanner' ? 'nasdaq' : t.source;
+    if (t.notes) $('fNotes').value = t.notes;
+    $('frmTitle').textContent = '➕ Execuție pre-completată (scanner/tracker)';
+    showPrefillGate(true);
+    return true;
+  } catch (e) { return false; }
+}
+
 function prefillFromQuery(){
+  if (consumePendingTrade()) return;
   const pf = JR.prefillFromQuery();
   if (!pf) return;
   if (pf.sym) $('fSym').value = String(pf.sym).toUpperCase();

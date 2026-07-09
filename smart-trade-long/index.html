@@ -340,6 +340,11 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 <script src="../lib/data.js"></script>
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
+<script src="../lib/account.js"></script>
+<script src="../lib/journal.js"></script>
+<script src="../lib/governor.js?v=4"></script>
+<script src="../lib/equity.js?v=5"></script>
+<script src="../lib/capital-desk.js?v=2"></script>
 <script src="../lib/telegram.js"></script>
 <script>
 'use strict';
@@ -1108,6 +1113,12 @@ function render(sym, scoreData, insiderData, earnInfo, prePost) {
   if (sz.capped) {
     sizerCapNote = `<div style="margin-top:10px;padding:8px 11px;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);border-radius:8px;font-size:12px;color:var(--yellow);line-height:1.5">⚠ Riscul de ${fmt$(riskUSD)} ar cere <strong>${fmtNum(sz.sharesRaw)}</strong> shares — peste cont (fără leverage pe T212 cash). Redus la <strong>${fmtNum(shares)}</strong> shares; riscul real la SL devine <strong>${fmt$(shares * riskShare)}</strong> (${acct > 0 ? (shares * riskShare / acct * 100).toFixed(2) : '—'}% din cont).</div>`;
   }
+  if (window.CD && CD.unified) {
+    const rb = CD.unified().rBudget;
+    if (rb && rb.rLeft != null) {
+      sizerCapNote += `<div style="margin-top:8px;padding:8px 11px;background:rgba(91,176,255,.08);border:1px solid rgba(91,176,255,.25);border-radius:8px;font-size:12px;color:var(--blue);line-height:1.5">💰 Capital Desk: <strong>${rb.rLeft.toFixed(1)}R</strong> rămas azi · open ≈ <strong>${rb.openR != null ? rb.openR.toFixed(1) : '—'}R</strong> · trade-ul ăsta ≈ <strong>${rb.rUsd > 0 ? (riskUSD / rb.rUsd).toFixed(1) : '—'}R</strong></div>`;
+    }
+  }
   const positionValue = shares * entry;
   const positionPct = positionValue / acct * 100;
 
@@ -1353,6 +1364,11 @@ function savePlanToTracker() {
   const atrV = r.scoreData.atr || 0, entry = r.scoreData.last;
   const sl = entry - 1.5 * atrV, tp2 = entry + 2 * atrV;
   const sz = calcShares(entry, sl);
+  if (window.CD && CD.canAddRisk) {
+    const gate = CD.canAddRisk(sz.riskUSD);
+    if (gate.halt && !confirm('Capital Desk STOP:\n' + gate.reasons.join('\n') + '\n\nSalvezi planul oricum?')) return;
+    if (gate.caution && !gate.halt) toast('⚠ ' + gate.reasons.slice(0, 2).join(' · '), 'warn');
+  }
   try {
     const arr = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
     // anti-duplicat: două click-uri = două planuri identice în tracker fără asta
