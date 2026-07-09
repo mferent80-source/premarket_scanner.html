@@ -8,116 +8,293 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0b0f17;--panel:#141a28;--panel2:#1d2537;--b1:#2a3247;--t1:#f0f4fa;--t3:#a3adc1;--accent:#5bb0ff;--bull:#22d66b;--bear:#ff4d4d;--r:12px;--rs:8px;--mono:'DM Mono',monospace;--head:'Sora',sans-serif;color-scheme:dark}
-body{font-family:var(--head);background:var(--bg);color:var(--t1);padding:12px;font-variant-numeric:tabular-nums}
-header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border:1px solid var(--b1);border-radius:var(--r);margin-bottom:14px;background:var(--panel)}
+:root{
+  --bg:#0b0f17;--panel:#141a28;--panel2:#1d2537;--b1:#2a3247;--t1:#f0f4fa;--t2:#cdd5e2;--t3:#a3adc1;
+  --accent:#5bb0ff;--bull:#22d66b;--bear:#ff4d4d;--warn:#d4892c;--gold:#ffd86b;
+  --r:12px;--rs:8px;--mono:'DM Mono',monospace;--head:'Sora',sans-serif;color-scheme:dark
+}
+body{font-family:var(--head);background:var(--bg);color:var(--t1);padding:12px;font-variant-numeric:tabular-nums;min-height:100vh}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;border:1px solid var(--b1);border-radius:var(--r);margin-bottom:14px;background:linear-gradient(180deg,rgba(20,37,51,.9),var(--panel))}
 header h1{font-size:18px;font-weight:800;background:linear-gradient(90deg,#5bb0ff,#22d66b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:auto}
-.nav-link{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12px;font-weight:700}
+.ver-badge{font-size:10px;-webkit-text-fill-color:var(--t3);font-family:var(--mono)}
+.nav-link,.btn-ghost{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
 .panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:12px}
-.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
-.cell{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px}
-.cell .lbl{font-family:var(--mono);font-size:10px;color:var(--t3)}
-.cell .val{font-size:18px;font-weight:800}
-.chart{width:100%;height:180px;background:var(--panel2);border-radius:var(--rs);border:1px solid var(--b1)}
+.panel h2{font-size:13px;margin-bottom:8px;font-weight:800}
+.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.cell{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:12px}
+.cell .lbl{font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:4px}
+.cell .val{font-size:20px;font-weight:800;line-height:1.1}
+.cell .sub{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:4px}
+.cell.accent{border-color:rgba(91,176,255,.35)}
+.cell.warn{border-color:rgba(212,137,44,.45);background:rgba(212,137,44,.08)}
+.chart-wrap{position:relative;background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:8px 8px 4px}
+.chart{width:100%;height:200px;display:block}
+.chart-lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--t3);margin-top:4px}
 .bar-row{display:flex;align-items:center;gap:8px;margin:5px 0;font-family:var(--mono);font-size:11px}
-.bar-track{flex:1;height:10px;background:var(--panel3,#222b40);border-radius:4px;overflow:hidden}
+.bar-track{flex:1;height:10px;background:#222b40;border-radius:4px;overflow:hidden}
 .bar-fill{height:100%;background:var(--accent)}
+.bar-fill.neg{background:var(--bear)}
 .frm{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
 .frm input{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono)}
-.btn{background:var(--accent);border:none;color:#000;padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer}
+.btn{background:linear-gradient(135deg,var(--accent),#3b82f6);border:none;color:#000;padding:8px 14px;border-radius:var(--rs);font-weight:800;cursor:pointer;font-family:var(--head)}
+.btn:disabled{opacity:.5;cursor:wait}
 .note{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:8px;line-height:1.5}
-.src-row{display:flex;justify-content:space-between;padding:5px 0;font-family:var(--mono);font-size:11px;border-bottom:1px solid rgba(42,50,71,.4)}
+.src-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-family:var(--mono);font-size:11px;border-bottom:1px solid rgba(42,50,71,.4);gap:8px}
+.src-row:last-child{border-bottom:none}
+.pos{color:var(--bull)}.neg{color:var(--bear)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:720px){.grid2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+th{color:var(--t3);text-align:right;padding:6px 4px;border-bottom:1px solid var(--b1);font-weight:600}
+th:first-child,td:first-child{text-align:left}
+td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
+.drift-ok{color:var(--bull)}.drift-bad{color:var(--warn)}
 </style>
 </head>
 <body>
 <header>
-  <h1>📈 Equity & Drawdown <span style="font-size:11px;-webkit-text-fill-color:var(--t3)">v3</span></h1>
+  <h1>📈 Equity & Drawdown <span class="ver-badge">v4</span></h1>
+  <button class="btn-ghost" id="btnRefresh" type="button">🔄 Prețuri live</button>
   <a class="nav-link" href="../journal/#desk">🛑 Risk Desk</a>
   <a class="nav-link" href="../journal/">📓 Journal</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
 
-<div class="panel"><div class="strip" id="ddStrip"></div></div>
+<div class="hero" id="heroStrip"></div>
+
+<div class="panel" id="driftPanel" style="display:none">
+  <h2>⚖ Reconciliere snapshot</h2>
+  <p class="note" id="driftTxt"></p>
+</div>
+
 <div class="panel">
-  <h2 style="font-size:13px;margin-bottom:8px">Equity curve + drawdown (umbră roșie)</h2>
+  <h2>Equity curve + drawdown</h2>
   <p class="note" id="baseLine" style="margin-bottom:8px">—</p>
-  <svg class="chart" id="eqChart" viewBox="0 0 400 140" preserveAspectRatio="none"></svg>
-</div>
-<div class="panel">
-  <h2 style="font-size:13px;margin-bottom:8px">Capital în poziții deschise (din journal)</h2>
-  <div id="openCap">—</div>
-</div>
-<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">PnL net pe sursă semnal</h2><div id="srcBreak"></div></div>
-<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Distribuție R-multiple</h2><div id="rBars"></div></div>
-<div class="panel">
-  <h2 style="font-size:13px;margin-bottom:8px">Snapshot cont (din Trade212)</h2>
-  <p class="note" style="margin-bottom:8px">Primul snapshot devine <b>baseline</b> pentru curbă. Snapshot-urile ulterioare = puncte de reconciliere. Fără snapshot → folosește Cont $ din Risk Desk.</p>
-  <div class="frm">
-    <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Equity $ <input id="snapEq" type="number" min="1"></label>
-    <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Notă <input id="snapNote" placeholder="ex. Trade212 2026-07-09"></label>
-    <button class="btn" id="btnSnap">+ Snapshot</button>
+  <div class="chart-wrap">
+    <svg class="chart" id="eqChart" viewBox="0 0 400 180" preserveAspectRatio="none"></svg>
+    <div class="chart-lbl"><span id="chartLo">—</span><span id="chartHi">—</span></div>
   </div>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>⏳ Poziții deschise (journal)</h2>
+    <div id="openCap">—</div>
+  </div>
+  <div class="panel">
+    <h2>📅 PnL săptămânal (închise)</h2>
+    <div id="weekBars">—</div>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>PnL net pe sursă</h2>
+    <div id="srcBreak">—</div>
+  </div>
+  <div class="panel">
+    <h2>Distribuție R-multiple</h2>
+    <div id="rBars">—</div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>📸 Snapshot-uri cont</h2>
+  <p class="note" style="margin-bottom:8px">Primul snapshot = <b>baseline</b>. Ultimele = verifici dacă simularea (baseline + PnL journal) e aliniată cu Trade212.</p>
+  <div class="frm" style="margin-bottom:10px">
+    <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Equity $ <input id="snapEq" type="number" min="1" step="1"></label>
+    <label style="font-family:var(--mono);font-size:10px;color:var(--t3)">Notă <input id="snapNote" placeholder="Trade212"></label>
+    <button class="btn" id="btnSnap" type="button">+ Snapshot</button>
+  </div>
+  <div id="snapTbl"></div>
 </div>
 
 <script src="../lib/journal.js?v=6"></script>
 <script src="../lib/governor.js?v=2"></script>
-<script src="../lib/equity.js?v=3"></script>
+<script src="../lib/data.js"></script>
+<script src="../lib/equity.js?v=4"></script>
 <script>
 (function(){
+'use strict';
 const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+let livePx = {};
+
+async function livePrice(sym){
+  if (!window.D || !D.fetchJSON) return null;
+  const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?interval=1m&range=1d&includePrePost=true';
+  try {
+    const j = await D.fetchJSON(url, { ttl: 45, timeout: 9000 });
+    const res = j && j.chart && j.chart.result && j.chart.result[0];
+    if (!res) return null;
+    const closes = (res.indicators && res.indicators.quote && res.indicators.quote[0] && res.indicators.quote[0].close) || [];
+    for (let i = closes.length - 1; i >= 0; i--) {
+      if (closes[i] != null && isFinite(closes[i]) && closes[i] > 0) return closes[i];
+    }
+    const m = res.meta || {};
+    return m.regularMarketPrice || null;
+  } catch (e) { return null; }
+}
+
+async function refreshPrices(){
+  const btn = $('btnRefresh');
+  btn.disabled = true;
+  btn.textContent = '⏳ …';
+  const open = EQ.journalOpen();
+  const uniq = [...new Set(open.map(e => e.sym))];
+  for (const sym of uniq) {
+    livePx[sym] = await livePrice(sym);
+    await new Promise(r => setTimeout(r, 120));
+  }
+  btn.disabled = false;
+  btn.textContent = '🔄 Prețuri live';
+  render(false);
+}
+
+function openRowsWithPx(){
+  const dep = EQ.openDeployed();
+  let unreal = 0, mktVal = 0;
+  const rows = dep.rows.map(r => {
+    const e = EQ.journalOpen().find(x => x.id === r.id) || {};
+    const px = livePx[r.sym];
+    const u = px != null ? EQ.unrealizedOf(e, px) : null;
+    const mv = px != null ? px * r.size : null;
+    if (u != null) unreal += u;
+    if (mv != null) mktVal += mv;
+    return { ...r, px, unreal: u, mktVal: mv };
+  });
+  return { rows, unreal, mktVal, dep };
+}
+
 function drawChart(){
-  const { points, current, start } = EQ.curve();
+  const { points, start } = EQ.curve();
   const svg = $('eqChart');
-  if (!points.length){ svg.innerHTML = '<text x="200" y="70" fill="#8892a6" font-size="12" text-anchor="middle">Nicio execuție închisă</text>'; return; }
+  if (!points.length) {
+    svg.innerHTML = '<text x="200" y="90" fill="#8892a6" font-size="12" text-anchor="middle">Adaugă snapshot sau execuții închise în journal</text>';
+    $('chartLo').textContent = '—';
+    $('chartHi').textContent = '—';
+    return;
+  }
   const vals = points.map(p => p.equity);
   const peaks = points.map(p => p.peak || p.equity);
   const min = Math.min(start, ...vals), max = Math.max(start, ...vals, ...peaks);
   const span = max - min || 1;
-  const y = v => (130 - ((v - min) / span) * 110).toFixed(1);
+  const y = v => (165 - ((v - min) / span) * 145).toFixed(1);
   let ddArea = '';
   points.forEach((p, i) => {
     const x = (i / Math.max(1, points.length - 1)) * 400;
-    if (p.equity < (p.peak || p.equity)){
-      ddArea += x.toFixed(1) + ',' + y(p.equity) + ' ';
-    }
+    if (p.equity < (p.peak || p.equity)) ddArea += x.toFixed(1) + ',' + y(p.equity) + ' ';
   });
-  const pts = points.map((p, i) => ((i / Math.max(1, points.length - 1)) * 400).toFixed(1) + ',' + y(p.equity)).join(' ');
-  const col = current >= start ? '#22d66b' : '#ff4d4d';
-  svg.innerHTML = (ddArea ? '<polygon fill="rgba(255,77,77,.25)" points="' + ddArea + '400,130 0,130"/>' : '') +
-    '<polyline fill="none" stroke="' + col + '" stroke-width="2" points="' + pts + '"/>';
+  const peakPts = points.map((p, i) => ((i / Math.max(1, points.length - 1)) * 400).toFixed(1) + ',' + y(p.peak || p.equity)).join(' ');
+  const eqPts = points.map((p, i) => ((i / Math.max(1, points.length - 1)) * 400).toFixed(1) + ',' + y(p.equity)).join(' ');
+  const markers = points.map((p, i) => {
+    const x = (i / Math.max(1, points.length - 1)) * 400;
+    const col = p.kind === 'snapshot' ? '#ffd86b' : (p.pnlStep >= 0 ? '#22d66b' : '#ff4d4d');
+    const r = p.kind === 'snapshot' ? 3.5 : 2.5;
+    return '<circle cx="' + x + '" cy="' + y(p.equity) + '" r="' + r + '" fill="' + col + '" opacity=".9"/>';
+  }).join('');
+  const last = points[points.length - 1].equity;
+  const col = last >= start ? '#22d66b' : '#ff4d4d';
+  svg.innerHTML =
+    (ddArea ? '<polygon fill="rgba(255,77,77,.2)" points="' + ddArea + '400,170 0,170"/>' : '') +
+    '<polyline fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1" stroke-dasharray="4 3" points="' + peakPts + '"/>' +
+    '<polyline fill="none" stroke="' + col + '" stroke-width="2.5" points="' + eqPts + '"/>' +
+    markers;
+  $('chartLo').textContent = fmt$(min) + ' · ' + (points[0].day || '');
+  $('chartHi').textContent = fmt$(max) + ' · ' + (points[points.length - 1].day || '');
 }
-function render(){
+
+function renderSnapTbl(){
+  const snaps = EQ.snapshots().sort((a, b) => b.ts - a.ts);
+  const fs = EQ.firstSnapshot();
+  $('snapTbl').innerHTML = snaps.length
+    ? '<table><tr><th class="l">Zi</th><th>Equity</th><th>Notă</th><th></th></tr>' +
+      snaps.map(s => '<tr><td class="l">' + esc(s.day) + (fs && s.ts === fs.ts ? ' <span style="color:var(--gold)">★ baseline</span>' : '') + '</td><td>' + fmt$(s.equity) + '</td><td style="text-align:left;max-width:120px;overflow:hidden;text-overflow:ellipsis">' + esc(s.note || '—') + '</td><td><button type="button" data-del="' + s.ts + '" style="background:transparent;border:1px solid var(--b1);color:var(--t3);border-radius:4px;cursor:pointer;font-size:10px">✕</button></td></tr>').join('') +
+      '</table>'
+    : '<p class="note">Niciun snapshot — adaugă equity real din Trade212.</p>';
+  $('snapTbl').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    if (!confirm('Ștergi snapshot-ul? (dacă e primul, baseline-ul se recalculează)')) return;
+    EQ.removeSnapshot(+b.dataset.del);
+    render();
+  }));
+}
+
+function render(doFetch){
   const dd = EQ.drawdownStats();
   const st = EQ.streaks();
-  const dep = EQ.openDeployed();
   const base = EQ.baseline();
-  $('ddStrip').innerHTML = [
-    ['Equity sim.', '$' + dd.current.toFixed(0), ''],
-    ['În poziții', dep.count ? '$' + dep.total.toFixed(0) : '—', dep.count ? 'color:var(--accent)' : ''],
-    ['DD curent', dd.currentDdPct.toFixed(1) + '%', dd.currentDdPct > 5 ? 'color:#ff4d4d' : ''],
-    ['Max DD', dd.maxDdPct.toFixed(1) + '%', ''],
-    ['Zile în DD', String(dd.daysInDd), ''],
-    ['Max streak W/L', st.maxWin + ' / ' + st.maxLoss, '']
-  ].map(([l,v,s]) => '<div class="cell"><div class="lbl">' + l + '</div><div class="val" style="' + s + '">' + v + '</div></div>').join('');
+  const open = openRowsWithPx();
+  const realized = EQ.realizedTotal();
+  const estimated = dd.current + open.unreal;
+  const drift = EQ.drift();
+
+  $('heroStrip').innerHTML = [
+    { l: 'Equity estimată', v: fmt$(estimated), s: open.unreal ? 'sim + nerealizat' : 'doar realizat', cls: 'accent' },
+    { l: 'Realizat (închis)', v: (realized >= 0 ? '+' : '') + fmt$(realized), s: 'din journal', cls: realized >= 0 ? '' : 'warn' },
+    { l: 'Nerealizat', v: open.rows.length ? (open.unreal >= 0 ? '+' : '') + fmt$(open.unreal) : '—', s: open.rows.length ? (Object.keys(livePx).length ? 'preț live' : 'apasă Refresh') : 'fără poziții', cls: '' },
+    { l: 'DD curent', v: dd.currentDdPct.toFixed(1) + '%', s: 'max ' + dd.maxDdPct.toFixed(1) + '%', cls: dd.currentDdPct > 5 ? 'warn' : '' },
+    { l: 'În piață acum', v: open.mktVal ? fmt$(open.mktVal) : (open.dep.count ? '…' : '—'), s: open.dep.count ? open.dep.count + ' poziții' : '', cls: '' },
+    { l: 'Streak W/L max', v: st.maxWin + ' / ' + st.maxLoss, s: 'azi: ' + st.currentWin + 'W ' + st.currentLoss + 'L', cls: '' }
+  ].map(c => '<div class="cell ' + c.cls + '"><div class="lbl">' + c.l + '</div><div class="val">' + c.v + '</div><div class="sub">' + c.s + '</div></div>').join('');
+
   $('baseLine').textContent = base.source === 'snapshot'
-    ? 'Baseline: $' + base.value.toFixed(0) + ' din primul snapshot (' + base.day + (base.note ? ' · ' + base.note : '') + ') + PnL închis din journal'
-    : 'Baseline: $' + base.value.toFixed(0) + ' din Risk Desk (Cont $) + PnL închis — adaugă un snapshot pentru ancorare reală';
-  $('openCap').innerHTML = dep.count
-    ? dep.rows.map(r => '<div class="src-row"><span>' + r.sym + ' · ' + r.size + ' @ $' + r.entry + '</span><span>$' + r.notional.toFixed(0) + '</span></div>').join('')
-      + '<p class="note">Total notional ' + dep.count + ' poziții: $' + dep.total.toFixed(0) + ' — nu include cash liber / depuneri.</p>'
+    ? 'Baseline $' + base.value.toFixed(0) + ' · primul snapshot ' + base.day + (base.note ? ' (' + base.note + ')' : '') + ' + PnL închis'
+    : 'Baseline $' + base.value.toFixed(0) + ' · Risk Desk (Cont $) + PnL închis — adaugă snapshot Trade212';
+
+  if (drift.snapshot) {
+    $('driftPanel').style.display = '';
+    const cls = drift.warn ? 'drift-bad' : 'drift-ok';
+    $('driftTxt').innerHTML = 'Simulat <b>' + fmt$(drift.simulated) + '</b> vs ultimul snapshot <b>' + fmt$(drift.snapshot.equity) + '</b> (' + drift.snapshot.day + ')' +
+      ' · diferență <span class="' + cls + '">' + (drift.driftUsd >= 0 ? '+' : '') + fmt$(drift.driftUsd) + ' (' + (drift.driftPct >= 0 ? '+' : '') + drift.driftPct.toFixed(1) + '%)</span>' +
+      (drift.warn ? ' — verifică execuții lipsă, depuneri/retrageri sau fă snapshot nou.' : ' — aliniat.');
+  } else $('driftPanel').style.display = 'none';
+
+  $('openCap').innerHTML = open.rows.length
+    ? '<table><tr><th class="l">Sym</th><th>Entry</th><th>Live</th><th>Notional</th><th>PnL nereal.</th></tr>' +
+      open.rows.map(r => '<tr><td class="l">' + esc(r.sym) + '</td><td>$' + r.entry + ' ×' + r.size + '</td><td>' + (r.px != null ? '$' + r.px.toFixed(2) : '—') + '</td><td>$' + r.notional.toFixed(0) + '</td><td class="' + (r.unreal == null ? '' : r.unreal >= 0 ? 'pos' : 'neg') + '">' + (r.unreal != null ? (r.unreal >= 0 ? '+' : '') + '$' + r.unreal.toFixed(0) : '—') + '</td></tr>').join('') +
+      '</table><p class="note">Notional = entry×size la intrare. Live = Yahoo 1m pre/after.</p>'
     : '<p class="note">Nicio execuție în curs în journal.</p>';
+
+  const weeks = EQ.weeklyPnl(8);
+  const maxW = Math.max(1, ...weeks.map(w => Math.abs(w.pnl)));
+  $('weekBars').innerHTML = weeks.length
+    ? weeks.map(w => '<div class="bar-row"><span style="width:52px;color:var(--t3)">' + esc(w.week.slice(5)) + '</span><div class="bar-track"><div class="bar-fill ' + (w.pnl < 0 ? 'neg' : '') + '" style="width:' + (Math.abs(w.pnl) / maxW * 100) + '%"></div></div><span class="' + (w.pnl >= 0 ? 'pos' : 'neg') + '">' + (w.pnl >= 0 ? '+' : '') + '$' + w.pnl.toFixed(0) + '</span></div>').join('')
+    : '<p class="note">—</p>';
+
   const src = EQ.statsBySource();
-  $('srcBreak').innerHTML = Object.keys(src).length ? Object.entries(src).sort((a,b)=>b[1].pnl-a[1].pnl).map(([k,s]) =>
-    '<div class="src-row"><span>' + k + (s.small?' ⚠':'') + ' · n=' + s.n + '</span><span style="color:' + (s.pnl>=0?'#22d66b':'#ff4d4d') + '">' + (s.pnl>=0?'+':'') + '$' + s.pnl.toFixed(0) + '</span></div>'
-  ).join('') : '<p class="note">—</p>';
+  $('srcBreak').innerHTML = Object.keys(src).length
+    ? Object.entries(src).sort((a, b) => b[1].pnl - a[1].pnl).map(([k, s]) =>
+      '<div class="src-row"><span>' + esc(k) + (s.small ? ' ⚠' : '') + ' · n=' + s.n + '</span><span class="' + (s.pnl >= 0 ? 'pos' : 'neg') + '">' + (s.pnl >= 0 ? '+' : '') + '$' + s.pnl.toFixed(0) + '</span></div>'
+    ).join('')
+    : '<p class="note">—</p>';
+
   const rd = EQ.rDistribution();
   const maxN = Math.max(1, ...rd.buckets.map(b => b.n));
-  $('rBars').innerHTML = rd.n ? rd.buckets.map(b =>
-    '<div class="bar-row"><span style="width:72px;color:var(--t3)">' + b.label + '</span><div class="bar-track"><div class="bar-fill" style="width:' + (b.n/maxN*100) + '%"></div></div><span>' + b.n + '</span></div>'
-  ).join('') + '<p class="note">n=' + rd.n + (rd.n < 10 ? ' ⚠ zgomot' : '') + '</p>' : '<p class="note">Completează SL în journal.</p>';
+  $('rBars').innerHTML = rd.n
+    ? rd.buckets.map(b => '<div class="bar-row"><span style="width:72px;color:var(--t3)">' + b.label + '</span><div class="bar-track"><div class="bar-fill" style="width:' + (b.n / maxN * 100) + '%"></div></div><span>' + b.n + '</span></div>').join('') +
+      '<p class="note">n=' + rd.n + (rd.n < 10 ? ' ⚠ zgomot' : '') + (rd.avg != null ? ' · avg R ' + rd.avg.toFixed(2) : '') + '</p>'
+    : '<p class="note">Completează SL în journal pentru R-multiple.</p>';
+
   drawChart();
+  renderSnapTbl();
+
+  if (doFetch !== false && EQ.journalOpen().length && !Object.keys(livePx).length) {
+    refreshPrices();
+  }
 }
-$('btnSnap').onclick = () => { EQ.addSnapshot($('snapEq').value, $('snapNote').value); render(); };
+
+$('btnSnap').onclick = () => {
+  const rec = EQ.addSnapshot($('snapEq').value, $('snapNote').value);
+  if (!rec) { alert('Introdu equity $ valid'); return; }
+  $('snapEq').value = '';
+  $('snapNote').value = '';
+  render();
+};
+$('btnRefresh').onclick = () => refreshPrices();
+
 render();
 })();
 </script>
