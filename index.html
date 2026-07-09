@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=560"></script>
+<script src="lib/suite-version.js?v=561"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v560'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v561'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -45,6 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="lib/hub-ui.css?v=561">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -581,8 +582,20 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
     <p style="margin-top:14px;font-size:13px;color:var(--t2)">🪙 Pentru crypto → <a href="https://mferent80-source.github.io/scanner/" target="_blank" rel="noopener" style="color:var(--crypto-2);font-weight:600;text-decoration:none;border-bottom:1px dotted var(--crypto-2)">Scanner Hub crypto</a></p>
   </header>
 
+  <div class="hub-shell">
+  <nav class="hub-topbar" aria-label="Navigare rapidă">
+    <a class="hub-top-primary" href="./router/">🧭 Router</a>
+    <a href="./journal/#desk">🛑 Desk</a>
+    <a href="./portfolio/">🛡️ Portfolio</a>
+    <a href="./equity/">📈 Equity</a>
+    <a href="./journal/">📓 Journal</a>
+    <a href="./health/">🩺 Health</a>
+    <span class="hub-top-spacer"></span>
+    <a href="./guide/">📖 Guide</a>
+  </nav>
+
   <!-- DASHBOARD: SPY + QQQ + VIX + Watchlist stocks + Open trades -->
-  <section class="dash" id="dashWidgets">
+  <section class="dash hub-deck" id="dashWidgets">
     <div class="widget" id="wSPY">
       <div class="w-lbl">SPY (S&amp;P 500)</div>
       <div class="w-val" id="spyVal">—</div>
@@ -1143,6 +1156,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
       </div>
   </section>
 </main>
+  </div><!-- /.hub-shell -->
 
   <!-- F3 Trade tracker FAB — buton flotant pentru deschidere modal -->
   <a class="tt-fab journal-fab" href="./journal/#desk" title="Journal & Risk Desk">📓</a>
@@ -1162,14 +1176,15 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <script src="lib/data.js"></script>
 <script src="lib/ledger.js"></script>
-<script src="lib/journal.js?v=6"></script>
+<script src="lib/finnhub-key.js?v=561"></script>
+<script src="lib/journal.js?v=7"></script>
 <script src="lib/telegram.js"></script>
 <script src="lib/account.js"></script>
 <script src="lib/governor.js?v=4"></script>
 <script src="lib/equity.js?v=5"></script>
-<script src="lib/capital-desk.js?v=4"></script>
+<script src="lib/capital-desk.js?v=5"></script>
 <script src="lib/morning-check.js"></script>
-<script src="lib/router.js?v=8"></script>
+<script src="lib/router.js?v=9"></script>
 <script src="lib/regime.js"></script>
 <script src="lib/ai.js"></script>
 <script src="lib/telegram.js"></script>
@@ -1700,7 +1715,7 @@ function ttRenderRow(t){
        <button onclick="ttDeleteTrade('${t.id}')" title="Șterge">🗑</button>`
     : `<button onclick="ttDeleteTrade('${t.id}')" title="Șterge">🗑</button>`;
   return `<div class="tt-row s-${t.status}">
-    <div class="tt-tk">${t.ticker}</div>
+    <div class="tt-tk">${String(t.ticker || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</div>
     <div class="tt-meta">${meta}${t.notes ? '<br><i style="color:var(--t3);font-size:10px">' + String(t.notes).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])) + '</i>' : ''}</div>
     <div class="tt-act">${actions}</div>
   </div>`;
@@ -1793,7 +1808,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v560';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v561';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1845,7 +1860,10 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 
   function $(id) { return document.getElementById(id); }
   function fmtNum(n) { return Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
-  function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || ''; }
+  function getFinnhubKey() {
+    if (window.FH_KEY && FH_KEY.get) return FH_KEY.get();
+    return localStorage.getItem('finnhub_api_key') || localStorage.getItem('fh_key') || '';
+  }
 
   function getNYSESession() {
     const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false });
@@ -2000,9 +2018,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/hub-health.js?v=554"></script>
-<script src="lib/hub-brief.js?v=554"></script>
-<script src="lib/hub-ledger.js?v=560"></script>
+<script src="lib/hub-health.js?v=561"></script>
+<script src="lib/hub-brief.js?v=561"></script>
+<script src="lib/hub-ledger.js?v=561"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {
@@ -2012,6 +2030,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   if (window.HB) HB.init();
   if (window.HUB_HEALTH) HUB_HEALTH.init();
   if (window.HB_LEDGER && HB_LEDGER.init) HB_LEDGER.init();
+  if (window.FH_KEY && FH_KEY.migrate) FH_KEY.migrate();
 })();
 </script>
 <script src="nav.js" data-nav-root="./"></script>

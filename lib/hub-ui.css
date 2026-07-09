@@ -1,0 +1,188 @@
+/* hub-ui.css v561 — layout command deck + cockpit polish (Hub index.html) */
+
+.hub-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.hub-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  margin: 0 0 14px;
+  background: rgba(11, 15, 23, 0.88);
+  border: 1px solid var(--b1);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.hub-topbar a {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--t2);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.hub-topbar a:hover {
+  color: var(--t1);
+  border-color: var(--b2);
+  background: var(--bg3);
+}
+
+.hub-topbar a.hub-top-primary {
+  color: #5bb0ff;
+  border-color: rgba(91, 176, 255, 0.35);
+  background: rgba(91, 176, 255, 0.1);
+}
+
+.hub-topbar .hub-top-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+.hub-deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.hub-deck .widget {
+  margin: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.hub-deck .hub-cmd {
+  grid-column: 1 / -1;
+  margin: 0;
+  gap: 8px;
+}
+
+.hub-deck .hub-cmd-cell {
+  border-radius: 12px;
+  transition: transform 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+.hub-deck .hub-cmd-cell:hover {
+  transform: translateY(-1px);
+  border-color: var(--b2);
+}
+
+.hub-cockpit {
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin: 0 0 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.hub-cockpit .hub-strat {
+  font-size: clamp(20px, 4vw, 26px);
+  letter-spacing: -0.02em;
+}
+
+.hub-session {
+  margin: 0 0 10px;
+  border-radius: 12px;
+  background: rgba(20, 26, 40, 0.65);
+}
+
+.hub-search {
+  margin: 8px auto 16px;
+}
+
+.hub-shell .pb-wrap {
+  border-radius: 14px;
+}
+
+.hub-shell .pb-wrap:not([open]) .pb-summary {
+  opacity: 0.92;
+}
+
+.hub-shell .wf-section {
+  margin-top: 32px;
+}
+
+.hub-shell .wf-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--t2);
+  font-size: 12px;
+}
+
+.hub-shell .wf-head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--b1), transparent);
+}
+
+.hub-shell .card {
+  border-radius: 16px;
+  min-height: 220px;
+}
+
+.hub-shell .card:hover {
+  transform: translateY(-4px);
+}
+
+.hero {
+  padding: 20px 0 12px !important;
+}
+
+.hero h1 {
+  font-size: clamp(28px, 5vw, 38px) !important;
+}
+
+.hero .lead {
+  font-size: 14px !important;
+  max-width: 560px;
+}
+
+@media (max-width: 720px) {
+  .hub-cockpit {
+    grid-template-columns: 1fr !important;
+  }
+
+  .hub-go {
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .hub-go-num {
+    font-size: 28px !important;
+  }
+
+  .hub-topbar {
+    top: 0;
+    border-radius: 0;
+    margin-left: -16px;
+    margin-right: -16px;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-shell .card:hover,
+  .hub-deck .hub-cmd-cell:hover {
+    transform: none;
+  }
+}

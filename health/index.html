@@ -307,7 +307,7 @@ function checkGistPresence(){
 async function checkSW(){
   let live = null;
   try {
-    const r = await fetch('../sw.js', { cache: 'no-store' });
+    const r = await fetch('../sw-app.js', { cache: 'no-store' });
     if (r.ok){ const m = (await r.text()).match(/CACHE_VERSION\s*=\s*'([^']+)'/); if (m) live = m[1]; }
   } catch (e) {}
   const controlled = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
@@ -317,7 +317,7 @@ async function checkSW(){
       + `<br><span class="chk-sub">dacă o pagină arată versiune mai veche → hard-refresh (Ctrl+Shift+R)</span>`;
   } else {
     dot('dSW', 'warn');
-    $('bSW').innerHTML = '<span class="warn">sw.js indisponibil</span> (offline sau rulezi din file://)';
+    $('bSW').innerHTML = '<span class="warn">sw-app.js indisponibil</span> (offline sau rulezi din file://)';
   }
 }
 

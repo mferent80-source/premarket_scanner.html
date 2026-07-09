@@ -139,6 +139,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-131 | Smart Trade Long CD rail | smart-trade-long/ | S | P2 | făcut | ideation | 2026-07-09 |
 | I-132 | Fix Signal Ledger hub-ledger IIFE | lib/hub-ledger.js + index.html | S | P1 | făcut | ideation | 2026-07-09 |
 | I-133 | Sync Equity ↔ Portfolio ↔ Journal | equity/portfolio/journal + lib/* | M | P1 | făcut | ideation | 2026-07-09 |
+| I-134 | Audit sever suită + Hub redesign v561 | index.html + lib/hub-ui.css + fixes | L | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -911,3 +912,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `CD.initListener` pe cele 3 pagini; Portfolio fix long/short; Equity citește `readLive()` + `writeLiveRisk` la refresh; `ACCT.syncAll` + equity snapshots → `notifyChange`; banner sync stale.
 - **Impact:** cifre aliniate între pagini când Journal/Portfolio se actualizează; risc live partajat în Capital Desk.
 - **Fișiere atinse:** `equity/index.html`, `portfolio/index.html`, `journal/index.html`, `lib/equity.js`, `lib/account.js`, `lib/capital-desk.js`, `tt-v560`.
+
+### I-134 · Audit sever + Hub redesign · [L] · P1
+- **Problema/golul:** Hub aglomerat, chei Finnhub fragmentate (`fh_key` vs `finnhub_api_key`), lib cache bust inconsistent, Health verifică SW greșit, XSS parțial tracker, risc HALT pe date stale.
+- **Soluția:** `lib/hub-ui.css` (topbar sticky, command deck, cockpit polish); `lib/finnhub-key.js`; sync script `?v=`; Health → `sw-app.js`; escape sym CD/tracker; HALT TG blocat când `liveStale`; `sw-app` precache hub+shell.
+- **Impact:** UX cockpit-first, audit 🔴 adresate pe axa capital/infra; deploy `tt-v561`.
+- **Fișiere atinse:** `index.html`, `lib/hub-ui.css`, `lib/finnhub-key.js`, `lib/hub-brief.js`, `lib/hub-health.js`, `lib/capital-desk.js`, `sw-app.js`, `health/index.html`, `equity/portfolio/shell`.

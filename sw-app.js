@@ -1,8 +1,14 @@
 // Service Worker v2 — sw-app.js (înregistrare separată ca să ocolească sw.js vechi din cache)
-const CACHE_VERSION = 'tt-v560-2026-07-09';
+const CACHE_VERSION = 'tt-v561-2026-07-09';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
+  './',
+  './index.html',
+  './shell/',
+  './shell/index.html',
+  './lib/hub-ui.css',
+  './lib/finnhub-key.js',
   './nav.js',
   './nasdaq-scanner/index.html',
   './market-events/index.html',
@@ -66,6 +72,7 @@ function isHubEntry(url, req) {
 }
 
 self.addEventListener('install', e => {
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then(c =>
       Promise.all(PRECACHE.map(u =>
