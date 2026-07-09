@@ -8,7 +8,8 @@
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=566">
+<link rel="stylesheet" href="../lib/capital-ui.css?v=575">
+<script src="../lib/suite-version.js?v=575"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -127,12 +128,25 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .desk-cfg label{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;color:var(--t3)}
 .desk-cfg input{background:var(--panel2);color:var(--t1);border:1px solid var(--b1);padding:7px;border-radius:var(--rs);font-family:var(--mono)}
 .chkrow{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:8px}
+.dd-alert{background:linear-gradient(135deg,rgba(255,77,77,.12),var(--panel));border:1px solid var(--bear-s);border-radius:var(--r);padding:11px 14px;margin-bottom:12px;font-size:12px;color:var(--bear-s);line-height:1.5}
+.dd-cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:10px 0}
+.dd-cat{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:9px 11px}
+.dd-cat .lbl{font-family:var(--mono);font-size:9.5px;color:var(--t3)}
+.dd-cat .val{font-size:15px;font-weight:800;margin-top:2px}
+.dd-cat .sub{font-family:var(--mono);font-size:9px;color:var(--t3);margin-top:2px}
+.rolling-dd{height:140px;position:relative;margin-top:8px}
+.rolling-dd canvas{width:100%;height:100%}
+.rolling-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:var(--t2);margin-top:6px}
+.rolling-legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.badge-unreal{display:inline-block;padding:2px 8px;border-radius:999px;font-size:9px;font-weight:700;background:rgba(212,137,44,.15);color:var(--warn);border:1px solid rgba(212,137,44,.35)}
+.badge-mark{display:inline-block;padding:1px 6px;border-radius:4px;font-size:8px;font-weight:700;background:rgba(91,176,255,.12);color:var(--accent);border:1px solid rgba(91,176,255,.3);margin-left:4px}
+.open-panel{border-color:rgba(91,176,255,.35);background:linear-gradient(180deg,rgba(91,176,255,.06),var(--panel))}
 </style>
 </head>
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">v12</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v575</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v575</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -187,8 +201,38 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <button class="btn ghost" id="btnTgTest" type="button">📲 Test Telegram</button>
     </div>
     <p class="note">Frână disciplinară — nu blochează brokerul. Cont $ = fallback dacă nu ai snapshot în Equity; primul snapshot e baseline-ul curbei.</p>
+    <details style="margin-top:12px;border-top:1px solid var(--b1);padding-top:10px">
+      <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--t2)">📉 Alerte DD · Notificări · Raport săptămânal</summary>
+      <div class="frm" style="margin-top:8px">
+        <label>Alertă DD toate ($) <input id="jDdAll" type="number" min="0" step="50" value="0" title="0=off"></label>
+        <label>DD STL ($) <input id="jDdStl" type="number" min="0" step="50" value="0"></label>
+        <label>DD Nasdaq ($) <input id="jDdNasdaq" type="number" min="0" step="50" value="0"></label>
+        <label>DD Macro ($) <input id="jDdMacro" type="number" min="0" step="50" value="0"></label>
+        <label>DD Altele ($) <input id="jDdOther" type="number" min="0" step="50" value="0" title="manual, tracker, pump…"></label>
+        <label>Email raport <input id="jWeeklyEmail" type="email" placeholder="fallback mailto"></label>
+      </div>
+      <label class="chkrow"><input type="checkbox" id="jDdNotify"> 🔔 Notificare browser la alertă DD</label>
+      <label class="chkrow"><input type="checkbox" id="jWeeklyOn"> 📬 Raport săptămânal automat (Telegram → email)</label>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost" id="btnDdNotify" type="button">Activează notificări</button>
+        <button class="btn ghost" id="btnWeeklyNow" type="button">📤 Trimite raport acum</button>
+        <button class="btn" id="btnJournalSettings" type="button">💾 Salvează setări journal</button>
+      </div>
+      <p class="note" id="jWeeklyLbl">Telegram: folosește tt_tg_config (Alerts). Raportul include stats + DD pe sursă/regim + verdict Risk Desk.</p>
+    </details>
   </details>
 </section>
+
+<div id="ddAlertHost"></div>
+
+<div class="panel open-panel" id="openPanel">
+  <h2>⏳ Execuții în curs <span id="diagLine" style="font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:400"></span>
+    <button class="btn ghost" id="btnRefreshMarks" type="button" style="float:right;font-size:10px;padding:4px 10px">↻ Prețuri</button>
+  </h2>
+  <div id="openUnrealSum" style="font-family:var(--mono);font-size:10px;color:var(--t3);margin:-4px 0 8px"></div>
+  <div id="errBanner" style="display:none;background:rgba(255,77,77,.15);border:1px solid var(--bear-s);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--bear-s)"></div>
+  <div id="tblWrap"><div class="empty">—</div></div>
+</div>
 
 <div class="panel">
   <h2>📥 Import webhook / paste</h2>
@@ -210,6 +254,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
     <label>Size (acțiuni) <input id="fSize" type="number" step="1" min="0"></label>
     <label>Fees $ total <input id="fFees" type="number" step="0.01" min="0" value="0" title="Trade212 e «zero comision» dar are spread + FX — estimează onest"></label>
     <label>SL la intrare $ <input id="fSl" type="number" step="0.0001" min="0" title="Pentru R-multiple; gol = R necalculabil"></label>
+    <label id="fMarkLbl" style="display:none">Mark $ (manual, PnL nerealizat) <input id="fMark" type="number" step="0.0001" min="0" placeholder="opțional — grid/API down"></label>
     <label>Sursa semnalului <select id="fSrc">
       <option value="manual">manual / altele</option>
       <option value="stl">🎯 Smart Trade Long</option>
@@ -232,6 +277,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <div class="panel">
   <h2>📊 Scorecard pe execuții (net de fees)</h2>
   <div class="cards" id="ovCards"><div class="empty">—</div></div>
+  <h2 style="margin-top:14px;font-size:12px">📉 Max Drawdown pe categorii</h2>
+  <div class="dd-cats" id="ddCats"></div>
+  <div id="rollingDdHost"></div>
   <div id="pctChart"></div>
   <div class="seg-tabs">
     <button class="seg-tab active" data-seg="source">pe sursă</button>
@@ -244,23 +292,16 @@ tr.openrow{background:rgba(91,176,255,.06)}
   „⚠ zgomot" — nu trage concluzii de acolo (trader.md). Astea-s execuțiile TALE, nu backtest: singura statistică ne-ficțiune din suită.</div>
 </div>
 
-<div class="panel">
-  <h2>⏳ Execuții în curs <span id="diagLine" style="font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:400"></span></h2>
-  <div id="errBanner" style="display:none;background:rgba(255,77,77,.15);border:1px solid var(--bear-s);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--bear-s)"></div>
-  <div id="tblWrap"><div class="empty">—</div></div>
-</div>
-
 </div><!-- /.cap-wrap -->
 
-<script src="../lib/capital-time.js?v=572"></script>
-<script src="../lib/account.js?v=572"></script>
-<script src="../lib/suite-version.js?v=572"></script>
-<script src="../lib/journal.js?v=10"></script>
+<script src="../lib/capital-time.js?v=575"></script>
+<script src="../lib/account.js?v=575"></script>
+<script src="../lib/journal.js?v=13"></script>
 <script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/governor.js?v=5"></script>
-<script src="../lib/equity.js?v=7"></script>
-<script src="../lib/capital-desk.js?v=6"></script>
+<script src="../lib/governor.js?v=7"></script>
+<script src="../lib/equity.js?v=9"></script>
+<script src="../lib/capital-desk.js?v=8"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -280,6 +321,216 @@ const fmt$ = v => (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { m
 // Tag-uri predefinite de greșeli/execuție (click = toggle); rămân editabile ca listă în timp
 const TAGS = ['good-exec', 'fomo', 'chase', 'early-exit', 'late-exit', 'no-plan', 'oversize', 'revenge', 'contra-regim', 'news-trap', 'broke-rules'];
 let editId = null;
+let openPriceCache = {};
+let _marksBusy = false;
+const DD_NOTIFY_KEY = 'journal_desk_dd_notify_state';
+
+function journalSettings(){ return JR.getSettings ? JR.getSettings() : {}; }
+function loadJournalSettingsUi(){
+  const s = journalSettings();
+  if ($('jDdAll')) $('jDdAll').value = s.ddAlertAll || 0;
+  if ($('jDdStl')) $('jDdStl').value = s.ddAlertStl || 0;
+  if ($('jDdNasdaq')) $('jDdNasdaq').value = s.ddAlertNasdaq || 0;
+  if ($('jDdMacro')) $('jDdMacro').value = s.ddAlertMacro || 0;
+  if ($('jDdOther')) $('jDdOther').value = s.ddAlertOther || 0;
+  if ($('jWeeklyEmail')) $('jWeeklyEmail').value = s.weeklyReportEmail || '';
+  if ($('jDdNotify')) $('jDdNotify').checked = !!s.ddNotifyBrowser;
+  if ($('jWeeklyOn')) $('jWeeklyOn').checked = !!s.weeklyReportEnabled;
+  if ($('jWeeklyLbl') && s.lastWeeklyReportTs) {
+    $('jWeeklyLbl').textContent = 'Ultimul raport: ' + new Date(s.lastWeeklyReportTs).toLocaleString('ro-RO') + ' · Telegram din tt_tg_config';
+  }
+}
+function saveJournalSettingsUi(){
+  if (!JR.saveSettings) return;
+  JR.saveSettings({
+    ddAlertAll: +($('jDdAll')?.value || 0),
+    ddAlertStl: +($('jDdStl')?.value || 0),
+    ddAlertNasdaq: +($('jDdNasdaq')?.value || 0),
+    ddAlertMacro: +($('jDdMacro')?.value || 0),
+    ddAlertOther: +($('jDdOther')?.value || 0),
+    weeklyReportEmail: ($('jWeeklyEmail')?.value || '').trim(),
+    ddNotifyBrowser: !!$('jDdNotify')?.checked,
+    weeklyReportEnabled: !!$('jWeeklyOn')?.checked
+  });
+  renderDdAlert();
+}
+function _sourceAlertKey(src){
+  if (src === 'stl') return 'ddAlertStl';
+  if (src === 'nasdaq') return 'ddAlertNasdaq';
+  if (src === 'macro') return 'ddAlertMacro';
+  return 'ddAlertOther';
+}
+function renderDdAlert(){
+  const host = $('ddAlertHost');
+  if (!host || !JR.maxDrawdown) return;
+  const s = journalSettings();
+  const closed = JR.closedOnly(JR.all());
+  const checks = [
+    { key: 'ddAlertAll', label: 'Toate', subset: closed },
+    { key: 'ddAlertStl', label: 'STL', subset: closed.filter(e => e.source === 'stl') },
+    { key: 'ddAlertNasdaq', label: 'Nasdaq', subset: closed.filter(e => e.source === 'nasdaq') },
+    { key: 'ddAlertMacro', label: 'Macro', subset: closed.filter(e => e.source === 'macro') },
+    { key: 'ddAlertOther', label: 'Altele', subset: closed.filter(e => !['stl','nasdaq','macro'].includes(e.source)) }
+  ];
+  const breached = checks.filter(c => s[c.key] > 0 && c.subset.length && JR.maxDrawdown(c.subset) >= s[c.key]);
+  if (!breached.length) { host.innerHTML = ''; return; }
+  if (s.ddNotifyBrowser && 'Notification' in window && Notification.permission === 'granted') {
+    const nkey = breached.map(c => c.label + ':' + JR.maxDrawdown(c.subset).toFixed(2)).join('|');
+    let prev = {};
+    try { prev = JSON.parse(localStorage.getItem(DD_NOTIFY_KEY) || '{}'); } catch (e) {}
+    if (!(prev.lastKey === nkey && Date.now() - (prev.ts || 0) < 3600000)) {
+      try {
+        new Notification('📓 Journal — Alertă Max Drawdown', {
+          body: breached.map(c => c.label + ': −$' + JR.maxDrawdown(c.subset).toFixed(2)).join('\n'),
+          tag: 'journal-desk-dd'
+        });
+        localStorage.setItem(DD_NOTIFY_KEY, JSON.stringify({ lastKey: nkey, ts: Date.now() }));
+      } catch (e) {}
+    }
+  }
+  host.innerHTML = '<div class="dd-alert">🚨 <strong>Alertă Max Drawdown</strong> — ' +
+    breached.map(c => '<strong>' + esc(c.label) + '</strong>: −$' + JR.maxDrawdown(c.subset).toFixed(2) + ' (prag $' + s[c.key] + ')').join(' · ') + '</div>';
+}
+function renderDdCats(){
+  const host = $('ddCats');
+  if (!host || !JR.maxDrawdown) return;
+  const closed = JR.closedOnly(JR.all());
+  if (!closed.length) { host.innerHTML = '<div class="note">DD pe categorii după prima execuție închisă.</div>'; return; }
+  const srcDd = JR.drawdownByField(closed, 'source');
+  const regDd = JR.drawdownByField(closed, 'regime');
+  let html = '<div class="dd-cat"><div class="lbl">🌐 TOATE</div><div class="val neg">−$' + JR.maxDrawdown(closed).toFixed(2) + '</div><div class="sub">rolling 30z: −$' + JR.rollingDdAt(closed, Date.now(), 30).toFixed(2) + '</div></div>';
+  Object.keys(srcDd).sort((a, b) => srcDd[b] - srcDd[a]).forEach(k => {
+    const sub = closed.filter(e => (e.source || '?') === k);
+    html += '<div class="dd-cat"><div class="lbl">📡 ' + esc(k) + '</div><div class="val neg">−$' + srcDd[k].toFixed(2) + '</div><div class="sub">30z: −$' + JR.rollingDdAt(sub, Date.now(), 30).toFixed(2) + ' · n' + sub.length + '</div></div>';
+  });
+  Object.keys(regDd).sort((a, b) => regDd[b] - regDd[a]).slice(0, 4).forEach(k => {
+    const sub = closed.filter(e => (e.regime || '?') === k);
+    html += '<div class="dd-cat"><div class="lbl">🌍 ' + esc(k) + '</div><div class="val neg">−$' + regDd[k].toFixed(2) + '</div><div class="sub">regim · n' + sub.length + '</div></div>';
+  });
+  host.innerHTML = html;
+}
+function renderRollingDdHost(){
+  const host = $('rollingDdHost');
+  if (!host || !JR.rollingDdAt) return;
+  const closed = JR.closedOnly(JR.all());
+  if (closed.length < 2) { host.innerHTML = ''; return; }
+  host.innerHTML = '<div class="rolling-dd"><canvas id="rollingDdCanvas"></canvas></div><div class="rolling-legend" id="rollingLegend"></div>';
+  const cats = [
+    { label: 'Toate', color: '#5bb0ff', filter: () => true },
+    { label: 'stl', color: '#a78bfa', filter: e => e.source === 'stl' },
+    { label: 'nasdaq', color: '#22d66b', filter: e => e.source === 'nasdaq' },
+    { label: 'macro', color: '#ffd86b', filter: e => e.source === 'macro' }
+  ];
+  const legend = cats.map(c => {
+    const sub = closed.filter(c.filter);
+    const dd30 = JR.rollingDdAt(sub, Date.now(), 30);
+    return '<span><i style="background:' + c.color + '"></i>' + c.label + ': <strong>−$' + dd30.toFixed(0) + '</strong></span>';
+  }).join('');
+  $('rollingLegend').innerHTML = legend;
+  setTimeout(drawRollingDdChart, 20);
+}
+function drawRollingDdChart(){
+  const canvas = $('rollingDdCanvas');
+  if (!canvas || !JR.rollingDdAt) return;
+  const closed = JR.closedOnly(JR.all());
+  const cats = [
+    { color: '#5bb0ff', filter: () => true },
+    { color: '#a78bfa', filter: e => e.source === 'stl' },
+    { color: '#22d66b', filter: e => e.source === 'nasdaq' },
+    { color: '#ffd86b', filter: e => e.source === 'macro' }
+  ].map(c => {
+    const sub = closed.filter(c.filter);
+    const series = [];
+    for (let d = 30; d >= 0; d--) series.push({ ts: Date.now() - d * 86400000, dd: JR.rollingDdAt(sub, Date.now() - d * 86400000, 30) });
+    return { ...c, series };
+  });
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height, pad = { t: 10, b: 18, l: 40, r: 8 };
+  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const yMax = Math.max(...cats.flatMap(c => c.series.map(p => p.dd)), 1) * 1.1;
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = '#2a3247'; ctx.fillStyle = '#a3adc1'; ctx.font = '9px DM Mono,monospace';
+  for (let i = 0; i <= 3; i++) {
+    const y = pad.t + ch * i / 3;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.textAlign = 'right'; ctx.fillText('−$' + (yMax - yMax * i / 3).toFixed(0), pad.l - 4, y + 3);
+  }
+  const n = cats[0].series.length, xStep = cw / Math.max(n - 1, 1);
+  cats.forEach(cat => {
+    ctx.strokeStyle = cat.color; ctx.lineWidth = 2; ctx.beginPath();
+    cat.series.forEach((p, i) => {
+      const x = pad.l + i * xStep, y = pad.t + ch * (p.dd / yMax);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  });
+}
+async function fetchLiveMarks(syms){
+  const key = localStorage.getItem('finnhub_api_key') || localStorage.getItem('fh_key') || '';
+  if (!key) return {};
+  const map = {};
+  await Promise.all(syms.map(async sym => {
+    try {
+      const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(sym) + '&token=' + encodeURIComponent(key));
+      const d = await r.json();
+      if (isFinite(d.c)) map[sym] = d.c;
+    } catch (e) {}
+  }));
+  return map;
+}
+async function refreshMarks(){
+  if (_marksBusy) return;
+  const open = JR.all().filter(e => isOpenE(e));
+  if (!open.length) return;
+  _marksBusy = true;
+  try {
+    openPriceCache = await fetchLiveMarks([...new Set(open.map(e => String(e.sym).toUpperCase()))]);
+    renderTable();
+  } finally { _marksBusy = false; }
+}
+async function requestDdNotifications(){
+  if (!('Notification' in window)) { alert('Browserul nu suportă notificări.'); return; }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    JR.saveSettings({ ddNotifyBrowser: true });
+    if ($('jDdNotify')) $('jDdNotify').checked = true;
+    alert('✅ Notificări DD activate.');
+  } else alert('Refuzat — activează din setările browserului.');
+}
+async function sendWeeklyReport(manual){
+  const text = JR.weeklyReportText ? JR.weeklyReportText() : '';
+  let sent = false, via = '';
+  if (window.TG) {
+    const ok = await TG.send(text.replace(/</g, '').replace(/>/g, ''), { force: true, parseMode: '' });
+    if (ok) { sent = true; via = 'Telegram'; }
+  }
+  const email = journalSettings().weeklyReportEmail;
+  if (!sent && email) {
+    const sub = encodeURIComponent('Journal Risk Desk — ' + new Date().toISOString().slice(0, 10));
+    window.open('mailto:' + email + '?subject=' + sub + '&body=' + encodeURIComponent(text), '_blank');
+    sent = true; via = 'Email';
+  }
+  if (!sent && manual) { alert('Configurează Telegram (Alerts) sau email în setări journal.'); return; }
+  if (sent) {
+    JR.saveSettings({ lastWeeklyReportTs: Date.now() });
+    loadJournalSettingsUi();
+    if (manual) alert('✅ Raport trimis via ' + via);
+  }
+}
+function checkWeeklyReport(){
+  const s = journalSettings();
+  if (!s.weeklyReportEnabled) return;
+  if (Date.now() - (s.lastWeeklyReportTs || 0) < 7 * 86400000) return;
+  sendWeeklyReport(false);
+}
+function toggleMarkField(){
+  const show = !$('fExit').value.trim();
+  if ($('fMarkLbl')) $('fMarkLbl').style.display = show ? '' : 'none';
+}
 
 function renderTagRow(selected){
   $('tagRow').innerHTML = TAGS.map(t =>
@@ -291,7 +542,7 @@ function selectedTags(){
 }
 function resetForm(){
   editId = null;
-  ['fSym','fEntry','fExit','fSize','fSl','fNotes'].forEach(id => $(id).value = '');
+  ['fSym','fEntry','fExit','fSize','fSl','fNotes','fMark'].forEach(id => { if ($(id)) $(id).value = ''; });
   $('fFees').value = '0';
   $('fDir').value = 'long'; $('fSrc').value = 'manual';
   $('fDate').value = new Date().toISOString().slice(0, 10);
@@ -299,20 +550,24 @@ function resetForm(){
   $('frmTitle').textContent = '➕ Execuție nouă (fill închis)';
   $('btnSave').textContent = '💾 Salvează execuția';
   $('btnCancel').style.display = 'none';
+  toggleMarkField();
 }
 function fillForm(e){
   editId = e.id;
   $('fSym').value = e.sym; $('fDir').value = e.dir;
-  $('fEntry').value = e.entry; $('fExit').value = e.exit; $('fSize').value = e.size;
+  $('fEntry').value = e.entry; $('fExit').value = e.exit != null ? e.exit : ''; $('fSize').value = e.size;
   $('fFees').value = e.fees || 0; $('fSl').value = e.slAtEntry != null ? e.slAtEntry : '';
+  if ($('fMark')) $('fMark').value = e.markPrice != null ? e.markPrice : '';
   $('fSrc').value = e.source || 'manual'; $('fNotes').value = e.notes || '';
   $('fDate').value = e.closeTs ? new Date(e.closeTs).toISOString().slice(0, 10) : '';
   renderTagRow(e.tags || []);
   $('frmTitle').textContent = '✏️ Editez ' + e.sym;
   $('btnSave').textContent = '💾 Actualizează';
   $('btnCancel').style.display = '';
+  toggleMarkField();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+$('fExit') && $('fExit').addEventListener('input', toggleMarkField);
 
 $('btnSave').addEventListener('click', () => {
   const closeTs = $('fDate').value ? new Date($('fDate').value + 'T16:00:00').getTime() : Date.now();
@@ -326,13 +581,15 @@ $('btnSave').addEventListener('click', () => {
     // la update păstrăm regimul/openTs originale; statusul URMEAZĂ exit-ul (gol = în curs)
     const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null; };
     const exitN = num(payload.exit);
+    const markN = num($('fMark')?.value);
     JR.update(editId, {
       sym: String(payload.sym).trim().toUpperCase(), dir: payload.dir,
       entry: num(payload.entry), exit: exitN, size: num(payload.size),
       fees: num(payload.fees) || 0, slAtEntry: num(payload.slAtEntry),
       source: payload.source, tags: payload.tags, notes: payload.notes,
       status: exitN != null ? 'closed' : 'open',
-      closeTs: exitN != null ? closeTs : null
+      closeTs: exitN != null ? closeTs : null,
+      markPrice: exitN == null && markN > 0 ? markN : null
     });
     resetForm(); renderAll();
     return;
@@ -349,7 +606,10 @@ $('btnSave').addEventListener('click', () => {
     const gate = CD.canAddRisk(est);
     if (gate.halt && !confirm('Capital Desk STOP:\n' + gate.reasons.join('\n') + '\n\nSalvezi execuția oricum?')) return;
   }
-  const rec = JR.add(payload);
+  const markRaw = $('fMark')?.value;
+  const rec = JR.add(Object.assign({}, payload, {
+    markPrice: exitN == null && markRaw ? markRaw : null
+  }));
   if (!rec){ alert('Completează minim: ticker, entry, size (numere valide). Exit gol = execuție ÎN CURS.'); return; }
   resetForm(); renderAll();
 });
@@ -505,25 +765,39 @@ function renderTable(){
     <b>⬇ Import din tracker</b> ca să aduci trade-urile deja închise din FAB-ul 📓 al Hub-ului.</div>`;
     return;
   }
+  let totalUnreal = 0, hasUnreal = false;
   $('tblWrap').innerHTML = `<table>
-    <thead><tr><th class="l">Stare</th><th class="l">Deschis</th><th class="l">Ticker</th><th>Dir</th><th>Entry</th><th>Size</th><th>SL</th><th class="l">Sursă</th><th class="l">Tags</th><th></th></tr></thead>
+    <thead><tr><th class="l">Stare</th><th class="l">Deschis</th><th class="l">Ticker</th><th>Dir</th><th>Entry</th><th>Mark</th><th>≈PnL</th><th>Size</th><th>SL</th><th class="l">Sursă</th><th class="l">Tags</th><th></th></tr></thead>
     <tbody>${entries.map(e => {
+      const mk = JR.markPriceFor ? JR.markPriceFor(e, openPriceCache) : null;
+      const unreal = mk && JR.unrealizedPnl ? JR.unrealizedPnl(e, mk.price) : null;
+      if (unreal != null) { totalUnreal += unreal; hasUnreal = true; }
+      const unrealCell = unreal != null
+        ? `<span class="badge-unreal">${unreal >= 0 ? '+' : ''}${fmt$(unreal).replace('$-','-$')}</span>${mk.manual ? '<span class="badge-mark">MARK</span>' : ''}`
+        : '<span style="color:var(--t3)">—</span>';
+      const markCell = mk ? fmt$(mk.price) + (mk.manual ? '<span class="badge-mark">M</span>' : '') : (e.markPrice ? fmt$(e.markPrice) : '—');
       return `<tr class="openrow">
         <td class="l"><span class="badge-open">⏳ ÎN CURS</span><br><button class="act" data-close="${esc(e.id)}" style="margin-top:4px;font-weight:800;background:rgba(34,214,107,.15);border-color:var(--bull-s);color:var(--bull-s)" title="Închide execuția — cere prețul de ieșire">✓ ÎNCHIDE</button></td>
         <td class="l">${e.openTs ? new Date(e.openTs).toLocaleDateString('ro-RO') : '—'}</td>
         <td class="sym l"><a href="../portfolio/?sym=${encodeURIComponent(e.sym)}" style="color:var(--accent);text-decoration:none" title="Risc agregat în Portfolio">${esc(e.sym)}</a> <a class="act" href="../equity/?highlight=${encodeURIComponent(e.id)}" title="Pe equity curve">📈</a></td>
         <td>${e.dir === 'short' ? '🔻S' : '🔺L'}</td>
         <td>${fmt$(e.entry)}</td>
+        <td>${markCell}</td>
+        <td>${unrealCell}</td>
         <td>${e.size}</td>
         <td>${e.slAtEntry != null ? fmt$(e.slAtEntry) : '<span class="wrn" title="fără SL la intrare — R necalculabil la închidere">—⚠</span>'}</td>
         <td class="l" style="font-size:10px">${esc(e.source)}</td>
         <td class="l">${(e.tags || []).map(t => `<span class="mini">${esc(t)}</span>`).join('') || '—'}</td>
         <td>
           <button class="act" data-edit="${esc(e.id)}">✏</button>
+          <button class="act" data-mark="${esc(e.id)}" title="Mark manual">$</button>
           <button class="act" data-del="${esc(e.id)}">🗑</button>
         </td>
       </tr>`;
     }).join('')}</tbody></table>`;
+  if ($('openUnrealSum')) {
+    $('openUnrealSum').textContent = hasUnreal ? 'PnL nerealizat total: ' + (totalUnreal >= 0 ? '+' : '') + fmt$(totalUnreal).replace('$-','-$') + ' (Finnhub sau mark manual)' : '';
+  }
   $('tblWrap').querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => {
     const e = JR.all().find(x => x.id === b.dataset.close);
     if (!e) return;
@@ -541,6 +815,16 @@ function renderTable(){
   $('tblWrap').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => {
     const e = JR.all().find(x => x.id === b.dataset.edit);
     if (e) fillForm(e);
+  }));
+  $('tblWrap').querySelectorAll('[data-mark]').forEach(b => b.addEventListener('click', ev => {
+    ev.stopPropagation();
+    const e = JR.all().find(x => x.id === b.dataset.mark);
+    if (!e) return;
+    const v = prompt('Mark price pentru ' + e.sym + ':', e.markPrice || '');
+    if (v == null) return;
+    const n = parseFloat(v);
+    JR.update(e.id, { markPrice: isFinite(n) && n > 0 ? n : null });
+    renderTable();
   }));
   $('tblWrap').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
     if (confirm('Șterg execuția din jurnal?')){ JR.remove(b.dataset.del); if (editId === b.dataset.del) resetForm(); renderAll(); }
@@ -685,6 +969,7 @@ function renderAll(){
   if (window.CD) CD.renderRail('capitalRail', 'journal');
   showPrefillGate();
   renderDesk();
+  renderDdAlert();
   // linia de diagnostic — spune exact ce vede pagina pe ACEST device
   try {
     const raw = localStorage.getItem((window.JR && JR.KEY) || 'tt_journal_v1');
@@ -697,11 +982,18 @@ function renderAll(){
   // statistica = DOAR închise (JR.stats filtrează intern); cele în curs doar se numără
   $('ovCards').innerHTML = scHtml(JR.stats(allE))
     + (nOpen ? `<div class="scard"><div class="lbl">⏳ ÎN CURS</div><div class="val" style="color:var(--accent)">${nOpen}</div><div class="lbl" style="margin-top:2px">nu intră în statistici până se închid</div></div>` : '');
+  renderDdCats();
+  renderRollingDdHost();
   renderChart();
   renderSeg();
   renderTable();
 }
 
+$('btnJournalSettings') && $('btnJournalSettings').addEventListener('click', saveJournalSettingsUi);
+$('btnDdNotify') && $('btnDdNotify').addEventListener('click', requestDdNotifications);
+$('btnWeeklyNow') && $('btnWeeklyNow').addEventListener('click', () => sendWeeklyReport(true));
+$('btnRefreshMarks') && $('btnRefreshMarks').addEventListener('click', refreshMarks);
+loadJournalSettingsUi();
 resetForm();
 prefillFromQuery();
 if (window.TT && TT.migrateLegacy) TT.migrateLegacy();
@@ -716,15 +1008,41 @@ if (location.hash === '#desk') {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 setInterval(renderDesk, 60000);
+setTimeout(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 500);
+setInterval(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 60000);
+setTimeout(checkWeeklyReport, 2500);
+setInterval(checkWeeklyReport, 3600000);
+window.addEventListener('resize', () => { if ($('rollingDdCanvas')) drawRollingDdChart(); });
 if (window.CD && CD.initListener) CD.initListener(renderAll);
 })();
 </script>
 <script>
-if (window.SUITE_VERSION_SHORT) { const b = document.getElementById('verBadge'); if (b) b.textContent = SUITE_VERSION_SHORT; }
-if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v572';
-  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
-}
+(function(){
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v575';
+  var full = window.SUITE_VERSION || 'tt-v575-2026-07-09';
+  ['verBadge','suiteBadge'].forEach(function(id){
+    var b = document.getElementById(id); if (b) b.textContent = ver;
+  });
+  var cacheName = 'trading-tools-' + full;
+  try {
+    var seen = localStorage.getItem('tt_sw_seen_ver');
+    if (seen !== full && window.caches && caches.keys) {
+      caches.keys().then(function(ks){
+        return Promise.all(ks.filter(function(k){ return k.indexOf('trading-tools-') === 0 && k !== cacheName; }).map(function(k){ return caches.delete(k); }));
+      }).then(function(){
+        localStorage.setItem('tt_sw_seen_ver', full);
+        if (seen) location.reload();
+      });
+    } else if (!seen) localStorage.setItem('tt_sw_seen_ver', full);
+  } catch(e){}
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('../sw-app.js?v=' + ver, { scope: '../', updateViaCache: 'none' })
+      .then(function(reg){ reg.update(); return navigator.serviceWorker.ready; })
+      .then(function(reg){
+        if (reg && reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }).catch(function(){});
+  }
+})();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
