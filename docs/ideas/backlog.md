@@ -148,6 +148,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-140 | Nasdaq Scanner cockpit UI v567 | scanner-ui.css + nasdaq-scanner | M | P1 | făcut | ideation | 2026-07-09 |
 | I-141 | Macro Dashboard cockpit UI v568 | macro-ui.css + macro-dashboard | M | P1 | făcut | ideation | 2026-07-09 |
 | I-142 | Suite UI scan pages v569 | suite-ui.css + 5 scan tools + SW sync | M | P1 | făcut | ideation | 2026-07-09 |
+| I-143 | Suite UI review pages v570 | Markov/Alerts/Earnings/Weekly + encoding fix | M | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -974,3 +975,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `lib/suite-ui.css` v569 + auto-paint `suiteBadge` în `suite-version.js`; cockpit class + badge pe 5 pagini scan; SW unificat `tt-v569` pe alerts/earnings/guide/router/weekly + paginile noi; badge hub actualizate.
 - **Impact:** versiune suită vizibilă peste tot; cache coerent; chrome comun pentru tool-urile de scan dimineață.
 - **Fișiere atinse:** `lib/suite-ui.css`, `lib/suite-version.js`, watchlist/pump/sector/stl/market-events, `sw-app.js`, hub + pagini SW stale.
+
+### I-143 · Suite UI review/automation pages v570 · [M] · P1
+- **Problema/golul:** Markov/Alerts/Earnings/Weekly fără suite badge & cockpit; Earnings Hub header corupt (mojibake emoji); Alerts SW hardcoded.
+- **Soluția:** `suite-ui.css` pe 4 pagini + suite badge; Earnings header/title UTF-8 refăcut (v141); Markov v3.11, Alerts v60, Weekly v2; bump `tt-v570`.
+- **Impact:** UI wave complet pe tool-urile de review + automation; Earnings din nou lizibil pe mobil/desktop.
+- **Fișiere atinse:** markov-lab, alerts, earnings-hub, weekly, `lib/suite-ui.css`, `suite-version.js`, hub badges.

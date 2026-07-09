@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>?? Earnings Hub � Trading Tools</title>
+<title>⚡ Earnings Hub — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <meta name="description" content="Calendar earnings 30 zile + EPS history + AI verdict + insider clusters + alerte -48h">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23a855f7'/><stop offset='1' stop-color='%23ec4899'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='%230b0f17'/><rect x='8' y='10' width='16' height='14' rx='2' fill='none' stroke='url(%23g)' stroke-width='2'/><line x1='8' y1='15' x2='24' y2='15' stroke='url(%23g)' stroke-width='2'/><line x1='12' y1='8' x2='12' y2='12' stroke='url(%23g)' stroke-width='2' stroke-linecap='round'/><line x1='20' y1='8' x2='20' y2='12' stroke='url(%23g)' stroke-width='2' stroke-linecap='round'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=570">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -281,19 +282,19 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 .spark.up path { stroke:var(--bull-s); } .spark.dn path { stroke:var(--bear-s); } .spark.flat path { stroke:var(--t3); }
 </style>
 </head>
-<body>
+<body class="suite-page">
 
-<header>
-  <h1>?? Earnings Hub <span class="ver-badge" id="verBadge">tt-v140</span></h1>
-  <span class="status-pill" id="sessionPill">� � sesiune</span>
+<header class="suite-cockpit">
+  <h1>⚡ Earnings Hub <span class="ver-badge" id="verBadge">v141</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <span class="status-pill" id="sessionPill">⏳ sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
-  <button class="icon-btn" id="soundBtn" title="Sunet alerte">??</button>
-  <button class="icon-btn" id="notifBtn" title="Notific�ri browser">??</button>
-  <button class="icon-btn" id="tgBtn" title="Telegram alerts">??</button>
-  <button class="icon-btn" id="setBtn" title="Set�ri">?</button>
-  <button class="primary" id="scanBtn">?? Scaneaz�</button>
-  <a class="nav-link" href="../guide/?page=earnings-hub" title="Ghid features pagina asta">??</a>
-  <a class="nav-link" href="../">� Hub</a>
+  <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
+  <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
+  <button class="icon-btn" id="tgBtn" title="Telegram alerts">📡</button>
+  <button class="icon-btn" id="setBtn" title="Setări">⚙</button>
+  <button class="primary" id="scanBtn">🔄 Scanează</button>
+  <a class="nav-link" href="../guide/?page=earnings-hub" title="Ghid features pagina asta">📖</a>
+  <a class="nav-link" href="../">← Hub</a>
 </header>
 
 <div class="stats-strip">
@@ -1911,9 +1912,11 @@ document.addEventListener('DOMContentLoaded', init);
 
 // Service worker register (auto-update silent)
 if ('serviceWorker' in navigator){
-  navigator.serviceWorker.register('../sw-app.js?v=tt-v569',{scope:'../',updateViaCache:'none'}).catch(() => {});
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v570';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
+<script src="../lib/suite-version.js?v=570"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>

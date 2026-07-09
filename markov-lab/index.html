@@ -8,6 +8,7 @@
 <meta name="description" content="Model Markov Chain pe randament normalizat la volatilitate — matrice de tranziție, probabilități next-state, backtest walk-forward cu test de edge (chi² + log-loss vs baseline)">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><circle cx='9' cy='16' r='3' fill='none' stroke='%235bb0ff' stroke-width='2'/><circle cx='23' cy='9' r='3' fill='none' stroke='%2322d66b' stroke-width='2'/><circle cx='23' cy='23' r='3' fill='none' stroke='%23ff4d4d' stroke-width='2'/><path d='M12 15 L20 10 M12 17 L20 22' stroke='%238892a6' stroke-width='1.5'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=570">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -95,9 +96,11 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 @keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
-<body>
+<body class="suite-page">
 
-<h1>🔗 Markov Lab <span class="ver">v3.10</span> <a href="../" class="hub-link" title="Înapoi la Hub">← Hub</a></h1>
+<header class="suite-cockpit mk-header">
+<h1>🔗 Markov Lab <span class="ver">v3.11</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <a href="../" class="hub-link" title="Înapoi la Hub">← Hub</a></h1>
+</header>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
   Detectează regim <b>calm / normal / volatil</b>, bate baseline-urile (rolling-20 & EWMA, out-of-sample), și măsoară onest tendința direcțională a fiecărui regim. Folosit ca filtru de risc în pump-radar.<br>
@@ -867,6 +870,13 @@ $('hmm').addEventListener('click', () => { saveCfg(); runHMM(); });
 // la load: restaurează setările salvate, apoi analiză de regim (acțiunea principală)
 restoreCfg();
 runHMM();
+</script>
+<script src="../lib/suite-version.js?v=570"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v570';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
