@@ -84,7 +84,7 @@ const PRECACHE = [
 ];
 
 self.addEventListener('install', e => {
-  // Nu skipWaiting aici — evită reload loop; migrate.html poate trimite SKIP_WAITING manual
+  self.skipWaiting(); // activează SW nou imediat după install (update.html curăță cache vechi)
   // Precache REZILIENT: fiecare pagină se adaugă independent. `addAll` e atomic —
   // dacă O SINGURĂ pagină eșuează la fetch, NICIUNA nu se cache-uiește. Cu `add` per item
   // + catch, toate paginile din Hub se instalează offline chiar dacă una pică temporar.
