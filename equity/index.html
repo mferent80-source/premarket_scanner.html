@@ -60,7 +60,7 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 <body class="cap-page cap-equity">
 
 <header class="cap-header">
-  <h1>📈 Equity & Drawdown <span class="ver-badge" id="verBadge">v7</span></h1>
+  <h1>📈 Equity & Drawdown <span class="ver-badge" id="verBadge">v8</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="btn-ghost" id="btnRefresh" type="button">🔄 Prețuri live</button>
   <button class="btn-ghost" id="btnExport" type="button">📥 Export CSV</button>
@@ -143,17 +143,18 @@ td{padding:6px 4px;border-bottom:1px solid rgba(42,50,71,.35);text-align:right}
 
 </div><!-- /.cap-wrap -->
 
-<script src="../lib/account.js"></script>
+<script src="../lib/capital-time.js?v=572"></script>
+<script src="../lib/account.js?v=572"></script>
 <script src="../lib/suite-version.js?v=571"></script>
 <script src="../lib/journal.js?v=10"></script>
 <script src="../lib/tracker.js?v=2"></script>
-<script src="../lib/governor.js?v=4"></script>
+<script src="../lib/governor.js?v=5"></script>
 <script src="../lib/shadow.js"></script>
 <script src="../lib/data.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/equity.js?v=6"></script>
+<script src="../lib/equity.js?v=7"></script>
 <script src="../lib/finnhub-key.js?v=561"></script>
-<script src="../lib/capital-desk.js?v=5"></script>
+<script src="../lib/capital-desk.js?v=6"></script>
 <script>
 (function(){
 'use strict';
@@ -360,7 +361,7 @@ function render(doFetch){
 
   $('baseLine').textContent = base.source === 'snapshot'
     ? 'Baseline $' + base.value.toFixed(0) + ' · snapshot ' + base.day + ' + PnL + capital'
-    : 'Baseline $' + base.value.toFixed(0) + ' · cont sincronizat — adaugă snapshot Trade212';
+    : 'Baseline $' + base.value.toFixed(0) + ' · cont risc $' + (window.ACCT ? ACCT.get().value.toFixed(0) : base.value.toFixed(0)) + ' — adaugă snapshot Trade212';
 
   if (drift.snapshot) {
     $('driftPanel').style.display = '';
@@ -473,7 +474,7 @@ render();
 <script>
 if (window.SUITE_VERSION_SHORT) { const b = document.getElementById('verBadge'); if (b) b.textContent = SUITE_VERSION_SHORT; }
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v571';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v572';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>

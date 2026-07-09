@@ -150,6 +150,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-142 | Suite UI scan pages v569 | suite-ui.css + 5 scan tools + SW sync | M | P1 | făcut | ideation | 2026-07-09 |
 | I-143 | Suite UI review pages v570 | Markov/Alerts/Earnings/Weekly + encoding fix | M | P1 | făcut | ideation | 2026-07-09 |
 | I-144 | Suite UI infra pages v571 | Router/Guide/Shadow/Postmortem/Health | S | P1 | făcut | ideation | 2026-07-09 |
+| I-145 | Capital audit fixes v572 | account/CD/GV/EQ/journal + CT | M | P1 | făcut | audit | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -988,3 +989,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `suite-ui.css` + `.suite-cockpit` + `#suiteBadge` pe 5 pagini; Router v6, Guide v4, Shadow v3, Postmortem v3, Health v4; SW `tt-v571` peste tot.
 - **Impact:** UI wave 100% pe paginile suitei; versiune PWA vizibilă uniform.
 - **Fișiere atinse:** router, guide, shadow-book, postmortem, health, `suite-ui.css`, hub badges.
+
+### I-145 · Capital audit fixes v572 · [M] · P1
+- **Problema/golul:** audit sever capital: `ACCT.get()` blocat pe primul snapshot; risc stale subestimat; PnL săptămână desincronizat GV↔CD; duplicate open; drift Router 3% vs EQ 2%.
+- **Soluția:** `lib/capital-time.js` (CT.*); `ACCT.get()` cont curent vs `getBaseline()`; CD stale `max(static,live)`; depuneri/retrageri → `adjustForCapitalEvent`; journal gate + duplicate warn; Router drift 2%; SW `tt-v572`.
+- **Impact:** sizing/governor/gate pe bani reali aliniați; capital gata de producție după audit.
+- **Fișiere atinse:** account, capital-time, governor, capital-desk, equity, journal, tracker, router, morning-check, pagini capital + hub.
