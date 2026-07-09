@@ -63,6 +63,18 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-055 | Signal Shadow Book (atribuire filtre) | NOU: shadow-book/ | L | P2 | făcut | ideation | 2026-07-09 |
 | I-056 | Regime Router (playbook executabil) | NOU: router/ | M | P2 | făcut | ideation | 2026-07-09 |
 | I-057 | Trade Post-Mortem (MAE/MFE) | NOU: postmortem/ | M | P2 | făcut | ideation | 2026-07-09 |
+| I-058 | Hub Morning Cockpit above-the-fold | hub/index.html | M | P1 | făcut | ideation | 2026-07-09 |
+| I-059 | Pro Desk strip parity Router Morning | hub/index.html | M | P1 | făcut | ideation | 2026-07-09 |
+| I-060 | Brief pe tier-uri (Tier1 / Tier2) | hub/index.html | S | P1 | făcut | ideation | 2026-07-09 |
+| I-061 | Card grid pe fază workflow | hub/index.html | S | P2 | făcut | ideation | 2026-07-09 |
+| I-062 | Command strip unificat în dash | hub/index.html | M | P1 | făcut | ideation | 2026-07-09 |
+| I-063 | Extract lib/hub-brief.js | hub/index.html | L | P2 | făcut | ideation | 2026-07-09 |
+| I-064 | Journal-first FAB + Portfolio | hub + portfolio/ | S | P2 | făcut | ideation | 2026-07-09 |
+| I-065 | Health pill în dash | hub/index.html | S | P2 | făcut | ideation | 2026-07-09 |
+| I-066 | Overnight diff promovat în hero | hub/index.html | S | P2 | făcut | ideation | 2026-07-09 |
+| I-067 | Hub session mode (Pre/RTH/Review) | hub/index.html | M | P2 | făcut | ideation | 2026-07-09 |
+| I-068 | Signal Ledger mini în mod Review | hub/index.html | S | P3 | făcut | ideation | 2026-07-09 |
+| I-069 | Version badge sync cu SW | lib/suite-version.js | S | P3 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 

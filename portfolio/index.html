@@ -144,6 +144,12 @@ $('inRisk').addEventListener('change', () => { try { localStorage.setItem(K_RISK
 // ── Surse (read-only, scrise de alte pagini) ──
 function openPositions(){
   try {
+    const j = JSON.parse(localStorage.getItem('tt_journal_v1') || '[]') || [];
+    const fromJournal = j.filter(e => e && (e.status === 'open' || e.exit == null) && e.sym && +e.size > 0 && +e.entry > 0)
+      .map(e => ({ ticker: e.sym, entry: e.entry, sl: e.slAtEntry, tp: null, size: e.size, status: 'open', dir: e.dir || 'long', source: 'journal' }));
+    if (fromJournal.length) return fromJournal;
+  } catch (e) {}
+  try {
     const arr = JSON.parse(localStorage.getItem('trade_plans_v1') || '[]') || [];
     return arr.filter(p => p && p.status === 'open' && p.ticker && +p.size > 0 && +p.entry > 0);
   } catch (e) { return []; }
