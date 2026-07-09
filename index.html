@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=567"></script>
+<script src="lib/suite-version.js?v=568"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v567'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v568'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -792,7 +792,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
     <div class="wf-grid">
 <a href="./macro-dashboard/" data-phase="plan" target="ttools-macro" rel="noopener" class="card" style="--accent:linear-gradient(90deg,var(--crypto-2),#5bb0ff); --glow:rgba(255,216,107,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,var(--crypto-2),#5bb0ff);box-shadow:0 4px 14px rgba(255,216,107,.3);color:#1a1a1a">🌍</div>
-      <span class="card-tag" style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.4)">Macro · v191</span>
+      <span class="card-tag" style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.4)">Macro · v221</span>
       <h2 class="card-title">Macro Dashboard</h2>
       <p class="card-desc">Calendar economic 14 zile (FOMC/CPI/NFP) + știri macro &amp; crypto + AI Daily Brief —
         context decizional pentru Nasdaq și piața crypto.</p>
@@ -1800,7 +1800,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v567';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v568';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 

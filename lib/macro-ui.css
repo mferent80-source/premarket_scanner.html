@@ -1,0 +1,244 @@
+/* macro-ui.css v568 — cockpit + fold sections (I-141) */
+
+.macro-page {
+  padding: 10px 12px 24px;
+}
+
+.macro-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* ── Cockpit header ── */
+.macro-cockpit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--b1);
+  background: rgba(11, 15, 23, 0.94);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.38);
+}
+
+.macro-cockpit h1 {
+  margin-right: auto;
+}
+
+.macro-cockpit .macro-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: min(100%, 300px);
+}
+
+.macro-cockpit .macro-status-row,
+.macro-cockpit .macro-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.macro-cockpit .macro-actions-primary,
+.macro-cockpit .macro-actions-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.macro-cockpit .suite-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #5bb0ff;
+  background: rgba(91, 176, 255, 0.12);
+  border: 1px solid rgba(91, 176, 255, 0.35);
+  margin-left: 4px;
+  vertical-align: middle;
+  -webkit-text-fill-color: #5bb0ff;
+}
+
+.macro-cockpit .macro-actions-more {
+  margin-left: auto;
+}
+
+.macro-cockpit .macro-actions-more > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 6px 11px;
+  border-radius: var(--rs);
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--b1);
+  background: var(--panel2);
+  color: var(--t2);
+  font-family: var(--mono);
+}
+
+.macro-cockpit .macro-actions-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.macro-cockpit .macro-actions-more[open] > summary,
+.macro-cockpit .macro-actions-more > summary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.macro-cockpit .macro-actions-more .macro-actions-secondary {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px dashed var(--b1);
+  background: var(--panel2);
+}
+
+/* ── Collapsible overview blocks ── */
+.macro-fold {
+  margin-bottom: 10px;
+  border: 1px solid var(--b1);
+  border-radius: 14px;
+  background: rgba(20, 26, 40, 0.55);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.macro-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--head);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--t1);
+  background: linear-gradient(180deg, rgba(20, 37, 51, 0.55), rgba(20, 26, 40, 0.35));
+  border-bottom: 1px solid transparent;
+  user-select: none;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.macro-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.macro-fold > summary::after {
+  content: "▾";
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--t3);
+  transition: transform 0.15s;
+}
+
+.macro-fold:not([open]) > summary::after {
+  transform: rotate(-90deg);
+}
+
+.macro-fold[open] > summary {
+  border-bottom-color: var(--b1);
+}
+
+.macro-fold > summary:hover {
+  color: var(--accent);
+}
+
+.macro-fold-hint {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--t3);
+}
+
+.macro-fold-body {
+  padding: 10px 10px 12px;
+}
+
+.macro-fold-body .command-center,
+.macro-fold-body .stats-strip {
+  margin-bottom: 0;
+}
+
+.macro-fold-body .hot-strip {
+  margin: 0;
+}
+
+/* ── Sticky tabs + spacing ── */
+.macro-page .tabs-row {
+  position: sticky;
+  top: 58px;
+  z-index: 55;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  padding: 6px;
+  gap: 5px;
+}
+
+.macro-page .tab-btn {
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 11.5px;
+}
+
+.macro-page .filter-bar {
+  margin-bottom: 10px;
+  border-radius: 12px;
+}
+
+.macro-page .panel-box {
+  border-radius: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+}
+
+.macro-page .panel-head {
+  border-radius: 14px 14px 0 0;
+}
+
+.macro-page .freeze-banner {
+  margin-bottom: 10px;
+  border-radius: 12px;
+}
+
+@media (max-width: 640px) {
+  .macro-page {
+    padding: 8px;
+  }
+
+  .macro-cockpit {
+    border-radius: 0;
+    margin-left: -4px;
+    margin-right: -4px;
+  }
+
+  .macro-page .tabs-row {
+    top: 0;
+    border-radius: 10px;
+  }
+
+  .macro-cockpit .macro-actions-more {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .macro-fold > summary::after {
+    transition: none;
+  }
+}

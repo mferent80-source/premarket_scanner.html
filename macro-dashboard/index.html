@@ -8,6 +8,7 @@
 <meta name="description" content="Calendar economic + știri macro/crypto + AI Daily Brief pentru Nasdaq și piața crypto">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%233b82f6'/><stop offset='1' stop-color='%2310b981'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='%230b0f17'/><circle cx='16' cy='16' r='8' fill='none' stroke='url(%23g)' stroke-width='2'/><line x1='16' y1='8' x2='16' y2='24' stroke='url(%23g)' stroke-width='1.5'/><line x1='8' y1='16' x2='24' y2='16' stroke='url(%23g)' stroke-width='1.5'/><ellipse cx='16' cy='16' rx='4' ry='8' fill='none' stroke='url(%23g)' stroke-width='1.5'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/macro-ui.css?v=568">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -942,50 +943,76 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 }
 </style>
 </head>
-<body>
+<body class="macro-page">
 
-<header>
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v220</span></h1>
-  <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
-  <span class="status-pill" id="sessionPill">⏳ —</span>
-  <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
-  <button class="icon-btn" id="soundBtn" title="Sunet alerte (beep)">🔊</button>
-  <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
-  <button class="icon-btn" id="toastBtn" title="Mesaje pop-up în pagină (info/success)">💬</button>
-  <button class="icon-btn" id="tgBtn" title="Telegram alerts">📡</button>
-  <button class="icon-btn" id="refreshBtn" title="Reîncarcă datele">🔄</button>
-  <button class="icon-btn" id="alertsLogBtn" title="Jurnal alerte istoric">📜<span class="al-badge" id="alBadge" style="display:none">0</span></button>
-  <button class="icon-btn" id="guideBtn" title="Ghid funcționalități">📖</button>
-  <button class="icon-btn" id="settingsBtn" title="Setări">⚙</button>
-  <a href="../" class="nav-link">← Hub</a>
+<div class="macro-wrap">
+
+<header class="macro-cockpit">
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v221</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <div class="macro-toolbar">
+    <div class="macro-status-row">
+      <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
+      <span class="status-pill" id="sessionPill">⏳ —</span>
+      <span class="fast-poll-pill" id="fastPollPill" style="display:none">FAST-POLL · result watch</span>
+    </div>
+    <div class="macro-actions-row">
+      <div class="macro-actions-primary">
+        <button class="icon-btn" id="refreshBtn" title="Reîncarcă datele">🔄</button>
+        <button class="icon-btn" id="alertsLogBtn" title="Jurnal alerte istoric">📜<span class="al-badge" id="alBadge" style="display:none">0</span></button>
+        <button class="icon-btn" id="guideBtn" title="Ghid funcționalități">📖</button>
+        <button class="icon-btn" id="settingsBtn" title="Setări">⚙</button>
+        <a href="../" class="nav-link">← Hub</a>
+      </div>
+      <details class="macro-actions-more">
+        <summary>⋯ Alerts</summary>
+        <div class="macro-actions-secondary">
+          <button class="icon-btn" id="soundBtn" title="Sunet alerte (beep)">🔊</button>
+          <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
+          <button class="icon-btn" id="toastBtn" title="Mesaje pop-up în pagină (info/success)">💬</button>
+          <button class="icon-btn" id="tgBtn" title="Telegram alerts">📡</button>
+        </div>
+      </details>
+    </div>
+  </div>
 </header>
 
-<!-- Stats strip - macro indicators live -->
-<!-- COMMAND CENTER: overview pre-trade — în 3 sec „în ce mediu tranzacționez azi?" -->
-<div class="command-center" id="commandCenter">
-  <div class="cc-cell" id="cc-regime" onclick="drillRiskDashboard()" title="Regim de risc composite (click → detalii)"><span class="cc-label">🛡 Regim risc</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
-  <div class="cc-cell" id="cc-danger" onclick="drillDanger()" title="Danger Score al zilei — cât de periculos e mediul pentru intrări noi (sizing suggestion)"><span class="cc-label">⚠️ Danger Score</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span><div class="cc-gauge"><div class="cc-gauge-fill" style="width:0%"></div></div></div>
-  <div class="cc-cell" id="cc-curve" onclick="drillCurve()" title="Curba randamentelor 10Y-3M — inversată = semnal clasic de recesiune (risc pt equities)"><span class="cc-label">📈 Curbă 10Y-3M</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
-  <div class="cc-cell" id="cc-tilt" onclick="drillRiskDashboard()" title="Înclinația cross-asset: ce drivere împing risk-on vs risk-off acum"><span class="cc-label">⚖️ Cross-asset</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
-</div>
+<details class="macro-fold macro-fold-cc" open>
+  <summary>🎛 Command Center <span class="macro-fold-hint">regim · danger · curbă · cross-asset</span></summary>
+  <div class="macro-fold-body">
+    <div class="command-center" id="commandCenter">
+      <div class="cc-cell" id="cc-regime" onclick="drillRiskDashboard()" title="Regim de risc composite (click → detalii)"><span class="cc-label">🛡 Regim risc</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
+      <div class="cc-cell" id="cc-danger" onclick="drillDanger()" title="Danger Score al zilei — cât de periculos e mediul pentru intrări noi (sizing suggestion)"><span class="cc-label">⚠️ Danger Score</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span><div class="cc-gauge"><div class="cc-gauge-fill" style="width:0%"></div></div></div>
+      <div class="cc-cell" id="cc-curve" onclick="drillCurve()" title="Curba randamentelor 10Y-3M — inversată = semnal clasic de recesiune (risc pt equities)"><span class="cc-label">📈 Curbă 10Y-3M</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
+      <div class="cc-cell" id="cc-tilt" onclick="drillRiskDashboard()" title="Înclinația cross-asset: ce drivere împing risk-on vs risk-off acum"><span class="cc-label">⚖️ Cross-asset</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
+    </div>
+  </div>
+</details>
 
-<!-- FREEZE WINDOW: protejeaza executia in jurul evenimentelor high-impact -->
 <div class="freeze-banner" id="freezeBanner" style="display:none"></div>
 
-<div class="stats-strip" id="statsStrip">
-  <div class="stat-tile" id="tile-vix"><span class="stat-label">📊 VIX</span><span class="stat-value">—</span><span class="stat-sub">Volatility Index</span></div>
-  <div class="stat-tile" id="tile-dxy"><span class="stat-label">💵 DXY</span><span class="stat-value">—</span><span class="stat-sub">US Dollar Index</span></div>
-  <div class="stat-tile" id="tile-10y"><span class="stat-label">📈 10Y</span><span class="stat-value">—</span><span class="stat-sub">Treasury Yield</span></div>
-  <div class="stat-tile" id="tile-btc"><span class="stat-label">₿ BTC</span><span class="stat-value">—</span><span class="stat-sub">Bitcoin USD</span></div>
-  <div class="stat-tile" id="tile-eth"><span class="stat-label">Ξ ETH</span><span class="stat-value">—</span><span class="stat-sub">Ethereum USD</span></div>
-  <div class="stat-tile" id="tile-fng"><span class="stat-label">😱 F&G</span><span class="stat-value">—</span><span class="stat-sub">Crypto Fear&Greed</span></div>
-  <div class="stat-tile" id="tile-earnings" title="Mega-cap earnings în următoarele 7 zile (click → Earnings Hub)"><span class="stat-label">⚡ Earnings 7z</span><span class="stat-value">—</span><span class="stat-sub">mega-caps săptămâna asta</span></div>
-  <div class="stat-tile" id="tile-surprise" title="Economic Surprise Index — datele publicate recent bat sau ratează consensul (agregat, ponderat pe impact)"><span class="stat-label">📊 Surprise</span><span class="stat-value">—</span><span class="stat-sub">date vs așteptări (30z)</span></div>
-  <div class="stat-tile" id="tile-risk" title="Risk regime composite — click pentru detalii (VIX + Yield 10Y + BTC/SPY correlation)"><span class="stat-label">🛡 Risk</span><span class="stat-value">—</span><span class="stat-sub">VIX · 10Y · BTC/SPY</span></div>
-</div>
+<details class="macro-fold macro-fold-stats">
+  <summary>📊 Indicatori live <span class="macro-fold-hint">VIX · DXY · BTC · Risk tile</span></summary>
+  <div class="macro-fold-body">
+    <div class="stats-strip" id="statsStrip">
+      <div class="stat-tile" id="tile-vix"><span class="stat-label">📊 VIX</span><span class="stat-value">—</span><span class="stat-sub">Volatility Index</span></div>
+      <div class="stat-tile" id="tile-dxy"><span class="stat-label">💵 DXY</span><span class="stat-value">—</span><span class="stat-sub">US Dollar Index</span></div>
+      <div class="stat-tile" id="tile-10y"><span class="stat-label">📈 10Y</span><span class="stat-value">—</span><span class="stat-sub">Treasury Yield</span></div>
+      <div class="stat-tile" id="tile-btc"><span class="stat-label">₿ BTC</span><span class="stat-value">—</span><span class="stat-sub">Bitcoin USD</span></div>
+      <div class="stat-tile" id="tile-eth"><span class="stat-label">Ξ ETH</span><span class="stat-value">—</span><span class="stat-sub">Ethereum USD</span></div>
+      <div class="stat-tile" id="tile-fng"><span class="stat-label">😱 F&G</span><span class="stat-value">—</span><span class="stat-sub">Crypto Fear&Greed</span></div>
+      <div class="stat-tile" id="tile-earnings" title="Mega-cap earnings în următoarele 7 zile (click → Earnings Hub)"><span class="stat-label">⚡ Earnings 7z</span><span class="stat-value">—</span><span class="stat-sub">mega-caps săptămâna asta</span></div>
+      <div class="stat-tile" id="tile-surprise" title="Economic Surprise Index — datele publicate recent bat sau ratează consensul (agregat, ponderat pe impact)"><span class="stat-label">📊 Surprise</span><span class="stat-value">—</span><span class="stat-sub">date vs așteptări (30z)</span></div>
+      <div class="stat-tile" id="tile-risk" title="Risk regime composite — click pentru detalii (VIX + Yield 10Y + BTC/SPY correlation)"><span class="stat-label">🛡 Risk</span><span class="stat-value">—</span><span class="stat-sub">VIX · 10Y · BTC/SPY</span></div>
+    </div>
+  </div>
+</details>
 
-<!-- Hot strip - next 24h high-impact events -->
-<div class="hot-strip" id="hotStrip"></div>
+<details class="macro-fold macro-fold-hot" open>
+  <summary>🔥 Evenimente 24h <span class="macro-fold-hint">high-impact următoarele ore</span></summary>
+  <div class="macro-fold-body">
+    <div class="hot-strip" id="hotStrip"></div>
+  </div>
+</details>
 
 <!-- Tabs -->
 <div class="tabs-row">
@@ -1183,6 +1210,8 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
     <div class="op-body" id="opBody"></div>
   </div>
 </div>
+
+</div><!-- /.macro-wrap -->
 
 <!-- Alerts Log Modal — jurnal istoric alerte primite -->
 <div class="modal" id="alertsLogModal">
@@ -1462,6 +1491,8 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <div id="toasts"></div>
 
+<script src="../lib/suite-version.js?v=568"></script>
+<script src="../lib/suite-version.js?v=568"></script>
 <script>
 // ============ CONFIG ============
 // (constanta VERSION a fost eliminată — era „v147", desincronizată cu ver-badge-ul
@@ -6842,9 +6873,26 @@ async function init() {
   }
 }
 
+// Suite badge + fold persistence
+if (window.SUITE_VERSION_SHORT) {
+  const sb = document.getElementById('suiteBadge');
+  if (sb) sb.textContent = window.SUITE_VERSION_SHORT;
+}
+document.querySelectorAll('.macro-fold').forEach(el => {
+  const tag = [...el.classList].find(c => c.startsWith('macro-fold-'));
+  if (!tag) return;
+  const key = 'macro_fold_' + tag;
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved !== null) el.open = saved === '1';
+    el.addEventListener('toggle', () => localStorage.setItem(key, el.open ? '1' : '0'));
+  } catch (e) {}
+});
+
 // Register service worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('../sw-app.js?v=tt-v564',{scope:'../',updateViaCache:'none'}).catch(() => {});
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v568';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 
 init();

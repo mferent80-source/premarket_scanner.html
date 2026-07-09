@@ -146,6 +146,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-138 | Hub cockpit UI v565 | hub-ui.css + index.html | M | P1 | făcut | ideation | 2026-07-09 |
 | I-139 | Capital trio UI v566 | capital-ui.css + journal/portfolio/equity | M | P1 | făcut | ideation | 2026-07-09 |
 | I-140 | Nasdaq Scanner cockpit UI v567 | scanner-ui.css + nasdaq-scanner | M | P1 | făcut | ideation | 2026-07-09 |
+| I-141 | Macro Dashboard cockpit UI v568 | macro-ui.css + macro-dashboard | M | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -960,3 +961,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `lib/scanner-ui.css` v567 — header sticky cockpit, status row + acțiuni primare + „⋯ Tools" collapsible; suite badge `tt-v567`; polish `.sig-card`/`.reco-card` dark; pagină v127; bump `tt-v567`.
 - **Impact:** header scanabil pe mobil; versiune suită vizibilă; model UI reutilizabil pentru Macro.
 - **Fișiere atinse:** `lib/scanner-ui.css`, `nasdaq-scanner/index.html`, `index.html`, `sw-app.js`, `suite-version.js`.
+
+### I-141 · Macro Dashboard cockpit UI v568 · [M] · P1
+- **Problema/golul:** Macro dens — header cu 12 butoane, Command Center + 9 tile-uri + hot strip tot deschise, tabs pierdute la scroll, fără suite badge.
+- **Soluția:** `lib/macro-ui.css` v568 — cockpit header (status + acțiuni + „⋯ Alerts"), secțiuni fold Command Center / Indicatori / Evenimente 24h (persist localStorage), tabs sticky, spacing + panel radius; pagină v221; bump `tt-v568`.
+- **Impact:** scan dimineață mai rapid (indicatori collapsed default); header mobil curat; aliniere vizuală cu Hub/Scanner.
+- **Fișiere atinse:** `lib/macro-ui.css`, `macro-dashboard/index.html`, `index.html`, `sw-app.js`, `suite-version.js`.
