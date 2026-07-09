@@ -145,6 +145,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-137 | Journal-first deprecate trade_plans_v1 | lib/tracker.js + journal.js | M | P1 | făcut | ideation | 2026-07-09 |
 | I-138 | Hub cockpit UI v565 | hub-ui.css + index.html | M | P1 | făcut | ideation | 2026-07-09 |
 | I-139 | Capital trio UI v566 | capital-ui.css + journal/portfolio/equity | M | P1 | făcut | ideation | 2026-07-09 |
+| I-140 | Nasdaq Scanner cockpit UI v567 | scanner-ui.css + nasdaq-scanner | M | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -953,3 +954,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `lib/capital-ui.css` v566 — shell comun `.cap-page` + `.cap-header` + `.cap-nav` sticky (Hub|Desk|Portfolio|Equity|Journal|Router), bannere `.cap-banner`, panel polish; aplicat pe cele 3 pagini; badge-uri v11/v3/v7; bump `tt-v566`.
 - **Impact:** Capital Desk navigabil ca un modul unitar; UX consistent cu Hub; bază pentru polish Scanner/Macro.
 - **Fișiere atinse:** `lib/capital-ui.css`, `journal/index.html`, `portfolio/index.html`, `equity/index.html`, `index.html`, `sw-app.js`, `suite-version.js`, `update.html`, `migrate.html`.
+
+### I-140 · Nasdaq Scanner cockpit UI v567 · [M] · P1
+- **Problema/golul:** Header scanner cu 15+ butoane pe un rând, fără suite badge, carduri fără depth în dark mode — inconsistent cu Hub/Capital v565+.
+- **Soluția:** `lib/scanner-ui.css` v567 — header sticky cockpit, status row + acțiuni primare + „⋯ Tools" collapsible; suite badge `tt-v567`; polish `.sig-card`/`.reco-card` dark; pagină v127; bump `tt-v567`.
+- **Impact:** header scanabil pe mobil; versiune suită vizibilă; model UI reutilizabil pentru Macro.
+- **Fișiere atinse:** `lib/scanner-ui.css`, `nasdaq-scanner/index.html`, `index.html`, `sw-app.js`, `suite-version.js`.

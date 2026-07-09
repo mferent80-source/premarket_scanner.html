@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=566"></script>
+<script src="lib/suite-version.js?v=567"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v566'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v567'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -847,7 +847,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 <a href="./nasdaq-scanner/" data-phase="scan" target="ttools-nasdaq" rel="noopener" class="card nasdaq" data-phase="scan">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('nasdaq')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon">📈</div>
-      <span class="card-tag">Stocks · v110</span>
+      <span class="card-tag">Stocks · v127</span>
       <h2 class="card-title">Nasdaq Opportunity Scanner</h2>
       <p class="card-desc">Scaner top Nasdaq + ETF-uri cu AI Briefing, Early Buy,
         Multi-TF, Earnings Calendar, signal log + auto-scan.</p>
@@ -1800,7 +1800,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v566';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v567';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
