@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script>window.SUITE_VERSION_SHORT='tt-v545';window.SUITE_VERSION='tt-v545-2026-07-09';</script>
+<script>window.SUITE_VERSION_SHORT='tt-v546';window.SUITE_VERSION='tt-v546-2026-07-09';</script>
 <script>
   /* Aplicație instalată (standalone) → deschide shell-ul cu taburi. Doar la top-level (NU în iframe-ul shell-ului, ca să nu se nesteze). */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
@@ -544,7 +544,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span id="suiteVerBadge" title="Versiune cache suită" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v545</span>
+      <span id="suiteVerBadge" title="Versiune cache suită" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v546</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -1929,30 +1929,44 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 // doar focus() — fără reload. Dacă fila a fost închisă, o redeschidem.
 (function(){
   const wins = {};
+  const SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/',
+    'earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/',
+    'journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
+  const segFromHref = href => {
+    try {
+      const p = new URL(href, location.href).pathname;
+      for (const s of SEGS) if (p.includes('/' + s)) return s;
+    } catch(e){}
+    return null;
+  };
   const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   document.addEventListener('click', function(e){
-    if (e.target.closest('.card-info-btn')) return;        // ℹ deschide modalul, nu pagina
+    if (e.target.closest('.card-info-btn')) return;
     const a = e.target.closest('a.card[target]');
     if (!a) return;
     const name = a.getAttribute('target') || '';
-    if (!name.startsWith('ttools-')) return;               // doar paginile interne din suite
+    if (!name.startsWith('ttools-')) return;
     e.preventDefault();
-    // În aplicația instalată (PWA standalone): navighează în ACEEAȘI fereastră ca să rămână
-    // în app (window.open cu target ar sări în browser). În browser: păstrează multi-tab.
-    if (isStandalone()){ location.href = a.href; return; }
-    const existing = wins[name];
-    if (existing && !existing.closed){
-      try { existing.focus(); return; } catch(_){}          // adu în față, fără reload
+    const seg = segFromHref(a.href);
+    if (window.self !== window.top && seg !== null) {
+      try { parent.postMessage({ ttOpen: seg }, location.origin); } catch(_){}
+      return;
     }
-    const w = window.open(a.href, name);                    // nu e deschisă → deschide
-    if (w){ wins[name] = w; try { w.focus(); } catch(_){} }
+    if (isStandalone()) { location.href = a.href; return; }
+    const existing = wins[name];
+    if (existing && !existing.closed) {
+      try { existing.focus(); return; } catch(_){}
+    }
+    const w = window.open(a.href, name);
+    if (!w) location.href = a.href;
+    else { wins[name] = w; try { w.focus(); } catch(_){} }
   });
 })();
 </script>
-<script src="lib/suite-version.js?v=545"></script>
-<script src="lib/hub-health.js?v=545"></script>
-<script src="lib/hub-brief.js?v=545"></script>
-<script src="lib/hub-ledger.js?v=545"></script>
+<script src="lib/suite-version.js?v=546"></script>
+<script src="lib/hub-health.js?v=546"></script>
+<script src="lib/hub-brief.js?v=546"></script>
+<script src="lib/hub-ledger.js?v=546"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {

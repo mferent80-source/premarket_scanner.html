@@ -11,11 +11,12 @@
   if (window.self !== window.top){
     var SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/',
                 'earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/',
-                'journal/','portfolio/','weekly/','health/'];
+                'journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
     var hrefToSeg = function(href){
       var abs; try { abs = new URL(href, location.href).pathname.replace(/index\.html$/, ''); } catch(_){ return null; }
       for (var i = 0; i < SEGS.length; i++){ if (abs.indexOf('/' + SEGS[i]) >= 0) return SEGS[i]; }
-      return /\/$/.test(abs) ? '' : null; // se termină cu „/” fără segment cunoscut = Hub
+      if (/\/premarket_scanner\.html\/?$/.test(abs)) return '';
+      return null;
     };
     document.addEventListener('click', function(e){
       var a = e.target.closest && e.target.closest('a[href]');
@@ -25,7 +26,7 @@
       var seg = hrefToSeg(href);
       if (seg === null) return; // nu e pagină din suite → comportament normal
       e.preventDefault(); e.stopPropagation();
-      try { parent.postMessage({ ttOpen: seg }, '*'); } catch(_){}
+      try { parent.postMessage({ ttOpen: seg }, location.origin); } catch(_){}
     }, true);
     return; // în iframe NU afișăm dock-ul
   }
@@ -51,6 +52,10 @@
     { u:'guide/',             n:'Ghid',     e:'📖' },
     { u:'journal/',           n:'Journal',  e:'📓' },
     { u:'portfolio/',         n:'Portof.',  e:'🛡️' },
+    { u:'router/',            n:'Router',   e:'🧭' },
+    { u:'equity/',            n:'Equity',   e:'📈' },
+    { u:'shadow-book/',       n:'Shadow',   e:'👻' },
+    { u:'postmortem/',        n:'PM',       e:'🔬' },
     { u:'weekly/',            n:'Weekly',   e:'📅' },
     { u:'health/',            n:'Health',   e:'🩺' }
   ];
