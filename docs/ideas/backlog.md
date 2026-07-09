@@ -94,6 +94,16 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-086 | Morning checklist Pro (Router gate) | hub/ + router/ | M | P2 | făcut | ideation | 2026-07-09 |
 | I-087 | Cont $ sincronizat (GV ↔ EQ ↔ Portfolio) | lib/equity.js + portfolio/ | S | P1 | făcut | ideation | 2026-07-09 |
 | I-088 | Shadow Book → atribuire PnL vs realizat | shadow-book/ + equity/ | M | P3 | făcut | ideation | 2026-07-09 |
+| I-089 | Capital Desk în Hub Cockpit | hub/ + lib/capital-desk.js | S | P1 | propus | ideation | 2026-07-09 |
+| I-090 | Risc LIVE vs static în Capital Desk | lib/capital-desk.js + portfolio/ | M | P1 | propus | ideation | 2026-07-09 |
+| I-091 | Buget R rămas (sizing următorului trade) | lib/capital-desk.js + governor | M | P1 | propus | ideation | 2026-07-09 |
+| I-092 | Verdict Governor în Capital Desk | lib/capital-desk.js + journal/ | S | P2 | propus | ideation | 2026-07-09 |
+| I-093 | Snapshot Capital Desk în Weekly Review | weekly/ + lib/capital-desk.js | S | P2 | propus | ideation | 2026-07-09 |
+| I-094 | Alocare risc per poziție (top 3) în CD | lib/capital-desk.js | M | P2 | propus | ideation | 2026-07-09 |
+| I-095 | Pre-trade gate CD + Router | router/ + lib/capital-desk.js | M | P1 | propus | ideation | 2026-07-09 |
+| I-096 | Auto-refresh CD cross-tab | lib/capital-desk.js + lib/journal.js | M | P3 | propus | ideation | 2026-07-09 |
+| I-097 | Fees drag + expectancy în CD | lib/capital-desk.js | S | P3 | propus | ideation | 2026-07-09 |
+| I-098 | Capital pacing săptămânal | lib/governor.js + lib/capital-desk.js | M | P2 | propus | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -586,3 +596,73 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** validezi empiric filtrele suitei cu banii tăi, nu doar cu R pe chart Pine; aliniere I-005/I-055 la nivel PWA.
 - **Riscuri/dependențe:** shadow PnL = simulare price-touch, nu execuție (trader.md §2); perioade aliniate manual; praguri = ipoteze OOS.
 - **Fișiere atinse:** `lib/shadow.js`, `shadow-book/index.html`, `lib/equity.js`, `weekly/index.html`.
+
+### I-089 · Capital Desk în Hub Cockpit · [S] · P1
+- **Problema/golul:** `lib/capital-desk.js` (tt-v552) afișează rail-ul doar pe Journal/Equity/Portfolio — Hub-ul are pill Equity parțial (`EQ.hubSummary`) dar nu același set de 8 celule; dimineața deschizi Hub, nu vezi risc @ SL agregat sau exp. R fără să intri în 3 pagini.
+- **Soluția:** strip compact în `#hubCockpit` (mod Pre + Review): 4 celule cheie din `CD.railCells()` — equity est., DD%, risc @ SL%, exp. R — restul la click „Capital Desk →". Lazy-load `capital-desk.js` ca equity pill.
+- **Impact:** o privire = capital + disciplină; aliniere vizuală cu cele 3 tool-uri deja legate.
+- **Riscuri/dependențe:** fără scan Portfolio, riscul e static (declarat); hub încărcat deja greu — max 4 celule.
+- **Fișiere atinse:** `index.html`, `lib/hub-brief.js`, `lib/capital-desk.js`, `sw-app.js`.
+
+### I-090 · Risc LIVE vs static în Capital Desk · [M] · P1
+- **Problema/golul:** CD calculează `portfolioStatic()` (entry→SL); Portfolio după scan are `riskNow` la preț live — un profesionist vede $800 static dar $1.2K live când prețul s-a îndepărtat de SL; două numere diferite pe pagini diferite = încredere zero.
+- **Soluția:** `CD.unified({ liveRisk, liveExposure })` opțional; Portfolio la `render()` scrie `tt_cd_live_v1` în LS; CD citește și afișează „Risc @ SL" cu subtext „live/static" + delta warn dacă live > static × 1.25. Fallback static dacă scan >30min sau lipsă.
+- **Impact:** riscul agregat devine același peste tot; previne sub-estimarea în trailing winners sau SL depășit.
+- **Riscuri/dependențe:** necesită scan periodic sau manual; prețuri Yahoo = estimare (trader.md §2).
+- **Fișiere atinse:** `lib/capital-desk.js`, `portfolio/index.html`, `journal/index.html`, `equity/index.html`.
+
+### I-091 · Buget R rămas (sizing următorului trade) · [M] · P1
+- **Problema/golul:** Risk Desk arată buget $ zilnic consumat, dar traderul profesionist gândește în R-multiple: „mai am 1.5R azi?" și „pozițiile open consumă deja 2.3R". CD nu traduce bugetul în R.
+- **Soluția:** celulă CD „R rămas azi" = `(maxLossUsd − |todayLoss|) / rUsd` unde `rUsd` = mediană `|entry−sl|×size` pe ultimele N închise cu SL (min 5, altfel fallback 1% cont). Subtext: „open ≈ X R" din suma risc@SL / rUsd. Link sizing în Smart Trade Long prefill.
+- **Impact:** decizie imediată „mai intru sau nu?" fără calculator extern; aliniere journal→governor→CD.
+- **Riscuri/dependențe:** rUsd e ipoteză dacă n<10; poziții fără SL excluse din R open (warn).
+- **Fișiere atinse:** `lib/capital-desk.js`, `lib/governor.js`, `smart-trade-long/index.html`.
+
+### I-092 · Verdict Governor în Capital Desk · [S] · P2
+- **Problema/golul:** CD arată capital dar nu verdictul TRADE/CAUTION/HALTED — userul vede DD 3% și risc 2% verzi dar e HALTED pe pierderi consecutive; informația e în Risk Desk, nu în rail-ul comun.
+- **Soluția:** celulă „DESK" în `CD.railCells()`: icon + `GV.status().verdict`, culoare verdict, subtext „N pierderi consec." sau „DD roll X%". Click → `journal/#desk`.
+- **Impact:** capital + permisiune de trade într-un singur rând — ritual profesionist.
+- **Riscuri/dependențe:** GV trebuie încărcat (deja pe journal); pe equity/portfolio lazy-load governor.js mic.
+- **Fișiere atinse:** `lib/capital-desk.js`, `equity/index.html`, `portfolio/index.html`.
+
+### I-093 · Snapshot Capital Desk în Weekly Review · [S] · P2
+- **Problema/golul:** Weekly Review are bloc Equity (I-078 făcut) dar nu capturează starea Capital Desk la momentul review-ului — peste 2 săptămâni nu știi ce risc% aveai când ai luat decizia greșită.
+- **Soluția:** la generare weekly, salvează `CD.unified()` în `tt_weekly_capital_v1[weekKey]`; secțiune „Capital Desk snapshot" cu cele 8 valori + delta față de săptămâna trecută; include în prompt AI (3 bullets capital discipline).
+- **Impact:** review retrospectiv onest — nu doar PnL ci și expunerea/riscul din momentul deciziilor.
+- **Riscuri/dependențe:** static vs live risk — salvează ambele dacă I-090 există.
+- **Fișiere atinse:** `weekly/index.html`, `lib/capital-desk.js`, `lib/ai.js`.
+
+### I-094 · Alocare risc per poziție (top 3) în CD · [M] · P2
+- **Problema/golul:** CD arată risc total dar nu concentrarea: 80% din risc @ SL într-un singur ticker e invizibil până deschizi Portfolio tabelul complet.
+- **Soluția:** sub-rail sau expand în CD: 3 bare „SYM · $risk · Z% din risc total" sortate desc; click → `portfolio/?sym=`. Warn dacă top1 >50% risc.
+- **Impact:** previne „un singur pariu cu 5 poziții" — lentila concentrare fără scan beta.
+- **Riscuri/dependențe:** doar poziții cu SL; mesaj dacă `noSl > 0`.
+- **Fișiere atinse:** `lib/capital-desk.js`, `portfolio/index.html`.
+
+### I-095 · Pre-trade gate CD + Router · [M] · P1
+- **Problema/golul:** Router e macro/session-aware, CD e capital-aware, dar la intrare (STL, Nasdaq row → journal prefill) nimeni nu spune „STOP: risc open + trade nou > 4% cont".
+- **Soluția:** `CD.canAddRisk(estRiskUsd)` → { ok, reasons[] }; Router `RT.evaluate()` include CD checks; banner roșu pe prefill journal și în command strip când `!ok`. Parametru `estRiskUsd` din sizing STL sau 1% cont default.
+- **Impact:** frână înainte de click Trade212 — decizie profesională la sursă, nu după fill.
+- **Riscuri/dependențe:** estRiskUsd = ipoteză până la SL setat; praguri calibrabile (trader.md §1).
+- **Fișiere atinse:** `lib/capital-desk.js`, `lib/router.js`, `journal/index.html`, `smart-trade-long/index.html`, `nasdaq-scanner/index.html`.
+
+### I-096 · Auto-refresh CD cross-tab · [M] · P3
+- **Problema/golul:** salvezi execuție în Journal → Equity și Portfolio rămân cu rail vechi până la refresh manual; în shell cu taburi multiple, numerele diverg secunde întregi.
+- **Soluția:** `BroadcastChannel('tt-capital-desk')` la `JR.save`/`JR.add`/`JR.close`; listener pe fiecare pagină cu CD → `CD.renderRail()`. Fallback `storage` event pe `tt_journal_v1`.
+- **Impact:** o singură adevăr capital în timp real în PWA multi-tab.
+- **Riscuri/dependențe:** Safari vechi fără BroadcastChannel → storage only.
+- **Fișiere atinse:** `lib/capital-desk.js`, `lib/journal.js`.
+
+### I-097 · Fees drag + expectancy în CD · [S] · P3
+- **Problema/golul:** CD arată exp. R și realizat dar nu „cât mănâncă fees din PnL" — Trade212 spread/FX poate face expectancy R pozitiv dar PnL net slab (trader.md §2).
+- **Soluția:** celulă sau subtext CD: „Fees YTD $X · Z% din |PnL brut|" din suma `fees` pe închise; warn dacă fees > 15% din gross wins.
+- **Impact:** onestitate execuție — nu te minți că ești profitabil pe R dacă fees te mănâncă.
+- **Riscuri/dependențe:** fees incomplete la import tracker — banner „completează fees".
+- **Fișiere atinse:** `lib/capital-desk.js`, `lib/journal.js`.
+
+### I-098 · Capital pacing săptămânal · [M] · P2
+- **Problema/golul:** Governor limitează pierderea ZILNICĂ; un profesionist are și plafon săptămânal (ex. −3% cont) — poți pierde 1%/zi L-V și ești la −5% fără HALTED.
+- **Soluția:** config `maxLossPctWeek` în GV; CD celulă „Săptămâna" cu bară `EQ.weeklyPnl(1)` vs buget; la depășire → CAUTION/HALTED ca DD rolling. Router rule opțională.
+- **Impact:** previne death by thousand cuts; review săptămânal aliniat cu disciplina zilnică.
+- **Riscuri/dependențe:** prag = ipoteză; săptămâna = ISO week ET.
+- **Fișiere atinse:** `lib/governor.js`, `lib/capital-desk.js`, `journal/index.html`, `lib/router.js`.
