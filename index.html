@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=564"></script>
+<script src="lib/suite-version.js?v=565"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v564'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v565'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=561">
+<link rel="stylesheet" href="lib/hub-ui.css?v=565">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -568,18 +568,24 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 <div id="govBanner" style="display:none;position:sticky;top:0;z-index:200;background:linear-gradient(90deg,#3a1010,#2a1520);border-bottom:2px solid #ff4d4d;color:#ffd0d0;padding:10px 16px;font-family:var(--head);font-size:13px;font-weight:700;text-align:center"></div>
 <div class="wrap">
 
-  <header class="hero" style="position:relative">
+  <header class="hero hub-hero" style="position:relative">
     <button id="pwaInstallBtn" onclick="installPWA()" style="display:none;position:absolute;top:0;right:0;padding:7px 14px;border-radius:8px;font-size:.7rem;font-weight:700;border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);color:#f7931a;cursor:pointer;align-items:center;gap:5px;">📱 Instalează</button>
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
       <span id="suiteVerBadge" title="Versiune cache suită" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">…</span>
     </div>
-    <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
-    <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
-    <p class="lead">Hub dedicat acțiunilor (Nasdaq + ETF-uri). Scanner pre-market, calendar de
-      evenimente și paginile crypto support — toate construite local, rulează în browser.</p>
-    <p style="margin-top:14px;font-size:13px;color:var(--t2)">🪙 Pentru crypto → <a href="https://mferent80-source.github.io/scanner/" target="_blank" rel="noopener" style="color:var(--crypto-2);font-weight:600;text-decoration:none;border-bottom:1px dotted var(--crypto-2)">Scanner Hub crypto</a></p>
+    <h1>Cockpit <span class="accent">stocks</span></h1>
+    <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:4px"></span>
+    <p class="lead">Plan → Scan → Execute → Review. Capital Desk, semnale și execuții într-un singur hub local.</p>
+    <p class="hub-hero-crypto">🪙 Crypto → <a href="https://mferent80-source.github.io/scanner/" target="_blank" rel="noopener" style="color:var(--crypto-2);font-weight:600;text-decoration:none;border-bottom:1px dotted var(--crypto-2)">Scanner Hub</a></p>
+    <div class="hub-hero-aside">
+      <div class="hub-hero-actions">
+        <a class="primary" href="./router/">🧭 Router</a>
+        <button type="button" class="primary" onclick="openTradeTracker()" title="Trade Plans">📋 Plans</button>
+        <a href="./journal/#desk">🛑 Desk</a>
+      </div>
+    </div>
   </header>
 
   <div class="hub-shell">
@@ -591,27 +597,30 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
     <a href="./journal/">📓 Journal</a>
     <a href="./health/">🩺 Health</a>
     <span class="hub-top-spacer"></span>
+    <button type="button" class="hub-top-pill" id="hubHealthPill" title="Suite Health">🩺 …</button>
+    <span id="hubCheckPct" class="hub-top-pill" title="Morning checklist" style="cursor:default">✓ …</span>
+    <button type="button" class="hub-top-pill" onclick="openTradeTracker()" title="Trade Plans">📋</button>
     <a href="./guide/">📖 Guide</a>
   </nav>
 
-  <!-- DASHBOARD: SPY + QQQ + VIX + Watchlist stocks + Open trades -->
+  <!-- DASHBOARD: command deck + piață + watchlist -->
   <section class="dash hub-deck" id="dashWidgets">
-    <div class="widget" id="wSPY">
+    <div class="hub-cmd" id="hubCmd"><div class="hub-cmd-cell lvl-neut"><div class="hub-cmd-lbl">Desk</div><div class="hub-cmd-val">⏳</div></div></div>
+    <div class="widget hub-market" id="wSPY">
       <div class="w-lbl">SPY (S&amp;P 500)</div>
       <div class="w-val" id="spyVal">—</div>
       <div class="w-sub" id="spySub">se încarcă…</div>
     </div>
-    <div class="widget" id="wQQQ">
+    <div class="widget hub-market" id="wQQQ">
       <div class="w-lbl">QQQ (Nasdaq 100)</div>
       <div class="w-val" id="qqqVal">—</div>
       <div class="w-sub" id="qqqSub">se încarcă…</div>
     </div>
-    <div class="widget" id="wVIX">
+    <div class="widget hub-market" id="wVIX">
       <div class="w-lbl">VIX (volatilitate)</div>
       <div class="w-val" id="vixVal">—</div>
       <div class="w-sub" id="vixSub">se încarcă…</div>
     </div>
-    <div class="hub-cmd" id="hubCmd"><div class="hub-cmd-cell lvl-neut"><div class="hub-cmd-lbl">Desk</div><div class="hub-cmd-val">⏳</div></div></div>
     <div class="widget" id="wAlerts" style="display:none;cursor:pointer" onclick="location.href='alerts/'" title="Alerte de preț armate (din pagina Alerts) — click">
       <div class="w-lbl">🔔 Alerte active</div>
       <div class="w-val" id="alertsVal">—</div>
@@ -654,8 +663,6 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
       <button type="button" id="hubModeRth" class="on">📈 RTH</button>
       <button type="button" id="hubModeReview">🔬 Review</button>
     </div>
-    <button type="button" class="hub-health-pill" id="hubHealthPill" title="Suite Health">🩺 …</button>
-    <span id="hubCheckPct" class="hub-health-pill" title="Morning checklist" style="cursor:default">✓ …</span>
   </div>
   <div id="hubChecklist" class="hub-session" style="display:none;flex-direction:column;align-items:stretch;gap:6px"></div>
 
@@ -687,7 +694,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
   </section>
 
   <!-- TODAY'S PLAYBOOK — absorbit din pagina playbook (retrasă); lazy-load la primul expand -->
-  <details class="pb-wrap" id="pbWrap" open>
+  <details class="pb-wrap" id="pbWrap">
     <summary class="pb-summary">☀️ Brief de dimineață
       <span class="pb-sum-sub">verdictul zilei · regim + danger · macro azi · earnings · sector · top picks</span>
       <button class="pb-refresh-btn" id="pbRefreshBtn" title="Reîncarcă toate secțiunile">🔄 Refresh</button>
@@ -1001,7 +1008,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 
     <a href="./journal/" data-phase="execute" target="ttools-journal" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#22d66b); --glow:rgba(167,139,250,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#22d66b);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">📓</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Execute · v9</span>
+      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Execute · v10</span>
       <h2 class="card-title">Journal & Risk Desk</h2>
       <p class="card-desc">Execuții reale + Risk Governor integrat: verdict TRADE/CAUTION/HALTED, buget zilnic, max trade-uri —
         apoi formular fill, scorecard expectancy R și review pe sursă/regim/tag.</p>
@@ -1018,7 +1025,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 
     <a href="./portfolio/" data-phase="execute" target="ttools-portfolio" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#ffd86b,#ff4d4d); --glow:rgba(255,216,107,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#ffd86b,#ff4d4d);box-shadow:0 4px 14px rgba(255,216,107,.3);color:#0a0a0a">🛡️</div>
-      <span class="card-tag" style="background:rgba(255,216,107,.15);color:#ffd86b;border:1px solid rgba(255,216,107,.4)">Portfolio · v1</span>
+      <span class="card-tag" style="background:rgba(255,216,107,.15);color:#ffd86b;border:1px solid rgba(255,216,107,.4)">Portfolio · v2</span>
       <h2 class="card-title">Portfolio Risk Deck</h2>
       <p class="card-desc">Riscul AGREGAT al pozițiilor deschise din tracker: risc-la-SL cumulat ($ și % din cont),
         PnL nerealizat, concentrare pe sector, β vs QQQ per poziție + stress-test „QQQ −3%". Prețuri live pre/after.</p>
@@ -1074,7 +1081,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 
     <a href="./equity/" data-phase="review" target="ttools-equity" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#5bb0ff,#22d66b); --glow:rgba(91,176,255,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#22d66b);box-shadow:0 4px 14px rgba(91,176,255,.3);color:#0a0a0a">📈</div>
-      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Pro · v1</span>
+      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Pro · v6</span>
       <h2 class="card-title">Equity & Drawdown</h2>
       <p class="card-desc">Curba de capital din journal + snapshot-uri manuale: max drawdown, DD curent, distribuție R-multiple, streak-uri win/loss.</p>
       <div class="features">
@@ -1158,8 +1165,10 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 </main>
   </div><!-- /.hub-shell -->
 
-  <!-- F3 Trade tracker FAB — buton flotant pentru deschidere modal -->
-  <a class="tt-fab journal-fab" href="./journal/#desk" title="Journal & Risk Desk">📓</a>
+  <div class="hub-fabs" aria-label="Acțiuni rapide">
+    <button type="button" class="tt-fab tt-fab-plans" onclick="openTradeTracker()" title="Trade Plans">📋</button>
+    <a class="tt-fab journal-fab" href="./journal/#desk" title="Journal & Risk Desk">📓</a>
+  </div>
 
   <footer>
     <div>Bacău, România</div>
@@ -1176,7 +1185,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <script src="lib/data.js"></script>
 <script src="lib/ledger.js"></script>
-<script src="lib/finnhub-key.js?v=564"></script>
+<script src="lib/finnhub-key.js?v=565"></script>
 <script src="lib/journal.js?v=10"></script>
 <script src="lib/tracker.js?v=2"></script>
 <script src="lib/telegram.js"></script>
@@ -1791,7 +1800,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v564';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v565';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -2001,9 +2010,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/hub-health.js?v=564"></script>
-<script src="lib/hub-brief.js?v=564"></script>
-<script src="lib/hub-ledger.js?v=564"></script>
+<script src="lib/hub-health.js?v=565"></script>
+<script src="lib/hub-brief.js?v=565"></script>
+<script src="lib/hub-ledger.js?v=565"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {

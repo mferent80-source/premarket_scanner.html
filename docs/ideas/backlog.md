@@ -143,6 +143,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-135 | SW unic + Journal sync tracker live | sw-app.js + journal.js + hub/STL | M | P1 | făcut | ideation | 2026-07-09 |
 | I-136 | Tracker module + sync complet + capital UI | lib/tracker.js + capital pages | M | P1 | făcut | ideation | 2026-07-09 |
 | I-137 | Journal-first deprecate trade_plans_v1 | lib/tracker.js + journal.js | M | P1 | făcut | ideation | 2026-07-09 |
+| I-138 | Hub cockpit UI v565 | hub-ui.css + index.html | M | P1 | făcut | ideation | 2026-07-09 |
 
 ## Mini-spec-uri
 
@@ -939,3 +940,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `TT.*` journal-first (read/write direct JR); `tpAtEntry` în schema journal; `TT.migrateLegacy()` arhivează + golește `trade_plans_v1`; Hub/STL fără id `t_*` local; reconcile pe legacy pending only; bump `tt-v564`.
 - **Impact:** o singură sursă de adevăr pentru capital; Trade Plans = view peste Journal; migrare automată la load.
 - **Fișiere atinse:** `lib/tracker.js`, `lib/journal.js`, `lib/equity.js`, `index.html`, portfolio/journal/equity, `smart-trade-long`.
+
+### I-138 · Hub cockpit UI v565 · [M] · P1
+- **Problema/golul:** Hub dens — hero centrat, brief/ledger deschise implicit, command deck sub piață, FAB doar Journal, carduri înalte cu mult zgomot.
+- **Soluția:** `hub-ui.css` v565 — hero cockpit stânga, topbar cu health/checklist/plans, deck cu cmd primul, carduri compacte (2 linii + max 4 feat), brief/ledger collapsed, dual FAB Plans+Journal, badge-uri capital actualizate; `tt-v565`.
+- **Impact:** scan dimineață mai rapid; ierarhie Plan→Scan→Execute→Review vizibilă; model UI pentru restul suitei.
+- **Fișiere atinse:** `lib/hub-ui.css`, `index.html`, `lib/hub-health.js`, `sw-app.js`.
