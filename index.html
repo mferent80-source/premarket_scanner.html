@@ -1028,7 +1028,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 <script src="lib/journal.js?v=6"></script>
 <script src="lib/telegram.js"></script>
 <script src="lib/governor.js?v=2"></script>
-<script src="lib/router.js?v=3"></script>
+<script src="lib/router.js?v=4"></script>
 <script src="lib/regime.js"></script>
 <script src="lib/ai.js"></script>
 <script src="lib/telegram.js"></script>
@@ -1098,7 +1098,12 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   // acest obiect + ascultă evenimentul, ca să nu dublăm fetch-ul/logica de sesiune.
   window.__hubMkt = { session: usSession, dayLabel, quotes: {} };
   const stashMkt = (key, q) => {
-    try { window.__hubMkt.quotes[key] = q; window.dispatchEvent(new CustomEvent('hub:market')); } catch (_) {}
+    try {
+      window.__hubMkt.quotes[key] = q;
+      window.__hubMkt.ts = Date.now();
+      localStorage.setItem('tt_hub_mkt_v1', JSON.stringify({ session: window.__hubMkt.session, dayLabel: window.__hubMkt.dayLabel, quotes: window.__hubMkt.quotes, ts: window.__hubMkt.ts }));
+      window.dispatchEvent(new CustomEvent('hub:market'));
+    } catch (_) {}
   };
   const renderTicker = async (sym, valEl, subEl, fmt) => {
     try {

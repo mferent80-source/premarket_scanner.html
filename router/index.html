@@ -55,6 +55,49 @@ ul.reasons{margin:8px 0 0 18px;color:var(--t2);font-size:13px}
 .guard{font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:6px;background:rgba(255,77,77,.12);color:var(--bear);border:1px solid rgba(255,77,77,.25)}
 .ctx-warn{color:var(--warn)}
 .ctx-ok{color:var(--bull)}
+.ctx-bear{color:var(--bear)}
+.ctx-live{display:flex;flex-direction:column;gap:10px}
+.ctx-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;color:var(--t3)}
+.ctx-clock{font-size:15px;font-weight:800;color:var(--t1)}
+.ctx-flags{display:flex;flex-wrap:wrap;gap:5px}
+.ctx-flag{font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 7px;border-radius:5px;border:1px solid var(--b1);background:var(--panel2)}
+.ctx-flag.ok{color:var(--bull);border-color:rgba(34,214,107,.35)}
+.ctx-flag.warn{color:var(--warn);border-color:rgba(212,137,44,.35)}
+.ctx-flag.bear{color:var(--bear);border-color:rgba(255,77,77,.35)}
+.ctx-banner{padding:10px 12px;border-radius:var(--rs);font-size:12px;font-weight:700;font-family:var(--mono);display:none}
+.ctx-banner.freeze{display:block;background:rgba(255,77,77,.12);border:1px solid rgba(255,77,77,.35);color:var(--bear)}
+.ctx-banner.soon{display:block;background:rgba(212,137,44,.1);border:1px solid rgba(212,137,44,.35);color:var(--warn)}
+.ctx-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.ctx-card{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:11px}
+.ctx-card.wide{grid-column:1/-1}
+.ctx-card h3{font-size:11px;font-weight:800;color:var(--t3);margin-bottom:8px;letter-spacing:.03em}
+.ctx-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;margin-bottom:5px}
+.ctx-row .lbl{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.ctx-row .val{font-weight:700;text-align:right}
+.ctx-big{font-size:18px;font-weight:900;line-height:1.2}
+.ctx-bar{height:7px;background:var(--panel);border-radius:5px;overflow:hidden;border:1px solid var(--b1);margin-top:6px}
+.ctx-bar>i{display:block;height:100%;border-radius:5px;transition:width .35s}
+.ctx-sess{height:5px;background:var(--panel);border-radius:4px;overflow:hidden;margin-top:8px;border:1px solid var(--b1)}
+.ctx-sess>i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:4px}
+.ctx-mkt{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
+.ctx-mkt-cell{background:var(--panel);border:1px solid var(--b1);border-radius:6px;padding:8px 6px;text-align:center}
+.ctx-mkt-cell .sym{font-family:var(--mono);font-size:9px;color:var(--t3)}
+.ctx-mkt-cell .px{font-size:13px;font-weight:800;margin-top:2px}
+.ctx-mkt-cell .chg{font-family:var(--mono);font-size:10px;margin-top:2px}
+.ctx-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.ctx-chip{font-family:var(--mono);font-size:10px;padding:4px 7px;border-radius:5px;background:var(--panel);border:1px solid var(--b1)}
+.ctx-chip.up{color:var(--bull)}
+.ctx-chip.down{color:var(--bear)}
+.ctx-ev{list-style:none;font-family:var(--mono);font-size:10px;color:var(--t2)}
+.ctx-ev li{padding:4px 0;border-bottom:1px solid rgba(42,50,71,.45)}
+.ctx-ev li:last-child{border-bottom:none}
+.ctx-sources{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.ctx-src{font-family:var(--mono);font-size:9px;padding:4px 8px;border-radius:5px;background:var(--panel2);border:1px solid var(--b1);text-decoration:none;color:var(--t2)}
+.ctx-src.fresh{border-color:rgba(34,214,107,.3);color:var(--bull)}
+.ctx-src.aging{border-color:rgba(212,137,44,.3);color:var(--warn)}
+.ctx-src.stale,.ctx-src.missing{border-color:rgba(255,77,77,.25);color:var(--bear)}
+.ctx-mod{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ctx-mod span{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:5px;background:rgba(91,176,255,.1);color:var(--accent);border:1px solid rgba(91,176,255,.25)}
 </style>
 </head>
 <body>
@@ -80,7 +123,7 @@ ul.reasons{margin:8px 0 0 18px;color:var(--t2);font-size:13px}
 
 <div class="panel">
   <h2>📡 Context live</h2>
-  <div class="meta" id="ctxMeta"></div>
+  <div class="ctx-live" id="ctxLive"></div>
   <div class="guards" id="guards"></div>
   <ul class="reasons" id="reasons"></ul>
 </div>
@@ -113,7 +156,7 @@ ul.reasons{margin:8px 0 0 18px;color:var(--t2);font-size:13px}
 
 <script src="../lib/journal.js?v=6"></script>
 <script src="../lib/governor.js?v=2"></script>
-<script src="../lib/router.js?v=3"></script>
+<script src="../lib/router.js?v=4"></script>
 <script>
 (function(){
 'use strict';
@@ -133,21 +176,124 @@ function fmtWhen(w){
   return parts.join(' · ') || '*';
 }
 
-function ctxCells(c){
-  const sessCls = c.session === 'open' ? 'ctx-ok' : (c.session === 'closed' || c.session === 'weekend') ? '' : 'ctx-warn';
-  return [
-    ['Sesiune ET', '<span class="' + sessCls + '">' + esc(c.sessionLabel) + '</span>'],
-    ['Regim', esc(c.regime) + (c.regimeNorm ? ' <span style="color:var(--t3)">(' + esc(c.regimeNorm) + ')</span>' : '')],
-    ['Danger', c.danger != null ? c.danger + '/100' : '—'],
-    ['Composite', c.composite != null ? c.composite.toFixed(1) : '—'],
-    ['Streak regim', c.regimeStreak ? c.regimeStreak + ' zile' : '—'],
-    ['Macro azi', c.macroHighToday ? '<span class="ctx-warn">HIGH</span>' : (c.macroMedToday ? 'med' : '—')],
-    ['Earnings WL', c.earningsWlToday ? '<span class="ctx-warn">' + c.earningsWlToday + ' (' + esc((c.earningsSymbols||[]).join(', ')) + ')</span>' : '0'],
-    ['Sector rot', esc(c.sectorRotation || '—')],
-    ['SPY/Q/VIX', [c.spyChg, c.qqqChg, c.vixChg].map(x => x != null ? (x>=0?'+':'') + x.toFixed(2) + '%' : '—').join(' · ')],
-    ['Governor', esc(c.governor || '—')],
-    ['Trades rămase', c.tradesRemaining != null ? String(c.tradesRemaining) : '—']
-  ].map(([k,v]) => '<div><div class="k">' + k + '</div><div class="v">' + v + '</div></div>').join('');
+function fmtPct(x, inv){
+  if (x == null) return '<span style="color:var(--t3)">—</span>';
+  const up = x >= 0;
+  const cls = inv ? (up ? 'ctx-bear' : 'ctx-ok') : (up ? 'ctx-ok' : 'ctx-bear');
+  return '<span class="' + cls + '">' + (up ? '+' : '') + x.toFixed(2) + '%</span>';
+}
+function fmtUsd(n){
+  if (n == null || isNaN(n)) return '—';
+  return (n >= 0 ? '+' : '') + '$' + n.toFixed(2);
+}
+function barColor(score){
+  if (score == null) return 'var(--t3)';
+  if (score >= 70) return 'var(--bear)';
+  if (score >= 45) return 'var(--warn)';
+  if (score >= 25) return 'var(--gold)';
+  return 'var(--bull)';
+}
+function renderContext(c, p){
+  const sd = c.sessionDetail || {};
+  const mf = c.macroFreeze || {};
+  const db = c.dangerBand || {};
+  const gd = c.governorDetail || {};
+  const j = c.journal || {};
+  const flags = (c.flags || []).map(f => '<span class="ctx-flag ' + esc(f.cls) + '">' + esc(f.text) + '</span>').join('');
+  const bannerCls = mf.active ? 'freeze' : (mf.state === 'soon' ? 'soon' : '');
+  const banner = mf.message ? '<div class="ctx-banner ' + bannerCls + '">' + (mf.active ? '🚫 ' : '⏳ ') + esc(mf.message) + '</div>' : '';
+
+  const mktCell = (sym, price, chg, inv) => {
+    const dl = (c.market && c.market.dayLabel) ? '<span style="color:var(--t3);font-size:8px">' + esc(c.market.dayLabel) + '</span>' : '';
+    return '<div class="ctx-mkt-cell"><div class="sym">' + sym + '</div><div class="px">' + (price != null ? (price >= 100 ? '$' + price.toFixed(0) : '$' + price.toFixed(2)) : '—') + '</div><div class="chg">' + fmtPct(chg, inv) + dl + '</div></div>';
+  };
+
+  const sectorChip = row => {
+    const w = typeof row.chg1w === 'number' ? (row.chg1w >= 0 ? '+' : '') + row.chg1w.toFixed(1) + '%' : '';
+    const cls = (row.chg1w || 0) >= 0 ? 'up' : 'down';
+    return '<span class="ctx-chip ' + cls + '">' + esc(row.sym) + (row.rs != null ? ' RS' + row.rs.toFixed(1) : '') + (w ? ' ' + w : '') + '</span>';
+  };
+
+  const macroEv = (c.macroEvents || []).length
+    ? '<ul class="ctx-ev">' + c.macroEvents.map(e => {
+        const t = e.d ? _padTime(e.d) : '?';
+        return '<li><span class="ctx-warn">HIGH</span> ' + esc(e.event) + ' · ' + t + ' ET</li>';
+      }).join('') + '</ul>'
+    : '<div style="font-family:var(--mono);font-size:10px;color:var(--t3)">Niciun eveniment macro high azi</div>';
+
+  const earnLine = c.earningsWlToday
+    ? '<span class="ctx-warn">' + c.earningsWlToday + ' ticker(e): ' + esc((c.earningsSymbols||[]).join(', ')) + '</span>'
+    : '<span class="ctx-ok">0 pe watchlist</span>';
+
+  const dangerDelta = c.dangerDelta != null
+    ? '<span class="' + (c.dangerDelta > 0 ? 'ctx-bear' : c.dangerDelta < 0 ? 'ctx-ok' : '') + '">' + (c.dangerDelta > 0 ? '+' : '') + c.dangerDelta + ' vs ieri</span>'
+    : '';
+
+  const sessCls = c.session === 'open' ? 'ctx-ok' : (c.session === 'pre' || c.session === 'after') ? 'ctx-warn' : '';
+  const govCls = c.governor === 'HALTED' ? 'ctx-bear' : c.governor === 'CAUTION' ? 'ctx-warn' : 'ctx-ok';
+  const mods = [
+    c.dangerMultPreview != null && c.dangerMultPreview !== 1 ? 'danger ×' + c.dangerMultPreview : null,
+    c.sessionMultPreview != null && c.sessionMultPreview !== 1 ? 'sesiune ×' + c.sessionMultPreview : null,
+    p && p.sizingMult != null ? 'efectiv ×' + p.sizingMult : null
+  ].filter(Boolean);
+
+  return banner +
+    '<div class="ctx-head"><span class="ctx-clock">' + esc(sd.timeET || '—') + ' ET · ' + esc(c.weekday || '') + ' · ' + esc(c.day) + '</span><span>actualizat ' + new Date(c.builtAt || Date.now()).toLocaleTimeString('ro-RO') + '</span></div>' +
+    (flags ? '<div class="ctx-flags">' + flags + '</div>' : '') +
+    '<div class="ctx-grid">' +
+      '<section class="ctx-card"><h3>⏱ Sesiune</h3>' +
+        '<div class="ctx-big ' + sessCls + '">' + esc(c.sessionLabel) + '</div>' +
+        '<div class="ctx-row"><span class="lbl">' + esc(sd.untilLabel || '—') + '</span><span class="val">' + esc(sd.countdown || '—') + '</span></div>' +
+        (c.session === 'pre' || c.session === 'open' || c.session === 'after' ? '<div class="ctx-sess"><i style="width:' + (sd.progress || 0) + '%"></i></div>' : '') +
+        (c.market && c.market.source ? '<div class="ctx-row" style="margin-top:8px"><span class="lbl">Piață hub</span><span class="val" style="font-size:10px">' + esc(c.market.source) + (c.market.ageMin != null ? ' · ' + c.market.ageMin + 'm' : '') + '</span></div>' : '<div class="ctx-row" style="margin-top:8px"><span class="lbl">Piață</span><span class="val ctx-warn" style="font-size:10px">deschide Hub pt quotes</span></div>') +
+      '</section>' +
+      '<section class="ctx-card"><h3>🛡 Regim macro</h3>' +
+        '<div class="ctx-big" style="color:' + esc(c.regimeColor || 'var(--t1)') + '">' + esc(c.regime) + '</div>' +
+        '<div class="ctx-row"><span class="lbl">Normalizat</span><span class="val">' + esc(c.regimeNorm) + '</span></div>' +
+        '<div class="ctx-row"><span class="lbl">Composite</span><span class="val">' + (c.composite != null ? (c.composite >= 0 ? '+' : '') + c.composite.toFixed(1) : '—') + '</span></div>' +
+        '<div class="ctx-row"><span class="lbl">Streak</span><span class="val">' + (c.regimeStreak ? c.regimeStreak + ' zile' : '—') + '</span></div>' +
+        '<div class="ctx-row"><span class="lbl">Vârstă date</span><span class="val">' + (c.regimeAgeMin != null ? c.regimeAgeMin + 'm' : '—') + '</span></div>' +
+      '</section>' +
+      '<section class="ctx-card"><h3>⚠️ Danger score</h3>' +
+        '<div class="ctx-big" style="color:' + barColor(c.danger) + '">' + (c.danger != null ? c.danger + '<span style="font-size:12px;color:var(--t3)">/100</span>' : '—') + '</div>' +
+        '<div class="ctx-row"><span class="lbl">' + esc(db.label || '—') + '</span><span class="val">' + dangerDelta + '</span></div>' +
+        (c.danger != null ? '<div class="ctx-bar"><i style="width:' + c.danger + '%;background:' + barColor(c.danger) + '"></i></div>' : '') +
+        (db.mult != null ? '<div class="ctx-row" style="margin-top:6px"><span class="lbl">Sizing hint</span><span class="val">×' + db.mult + '</span></div>' : '') +
+      '</section>' +
+      '<section class="ctx-card wide"><h3>📈 Piață · ' + (c.marketTone ? esc(c.marketTone.text) : '—') + (c.vixLevel ? ' · VIX ' + esc(c.vixLevel) : '') + '</h3>' +
+        '<div class="ctx-mkt">' + mktCell('SPY', c.spyPrice, c.spyChg, false) + mktCell('QQQ', c.qqqPrice, c.qqqChg, false) + mktCell('VIX', c.vixPrice, c.vixChg, true) + '</div>' +
+        (mods.length ? '<div class="ctx-mod">' + mods.map(m => '<span>' + esc(m) + '</span>').join('') + '</div>' : '') +
+      '</section>' +
+      '<section class="ctx-card"><h3>📅 Macro azi</h3>' + macroEv + '</section>' +
+      '<section class="ctx-card"><h3>📣 Earnings WL</h3><div class="ctx-row"><span class="lbl">Azi</span><span class="val">' + earnLine + '</span></div>' +
+        (c.earningsCacheAgeH != null ? '<div class="ctx-row"><span class="lbl">Cache WL</span><span class="val">' + Math.round(c.earningsCacheAgeH) + 'h</span></div>' : '') +
+      '</section>' +
+      '<section class="ctx-card wide"><h3>🔄 Sector rotation' + (c.sectorRotation ? ' · ' + esc(c.sectorRotation) : '') + (c.sectorSpread != null ? ' <span style="font-weight:400;color:var(--t3)">spread ' + (c.sectorSpread >= 0 ? '+' : '') + c.sectorSpread.toFixed(2) + '%</span>' : '') + '</h3>' +
+        ((c.sectorLeaderRows || []).length ? '<div style="font-size:10px;color:var(--t3);margin-bottom:4px">👑 Lideri</div><div class="ctx-chips">' + c.sectorLeaderRows.map(sectorChip).join('') + '</div>' : '<div style="font-size:10px;color:var(--t3)">Fără scan — <a href="../sector-rotation/" style="color:var(--accent)">Sector Rotation</a></div>') +
+        ((c.sectorLaggardRows || []).length ? '<div style="font-size:10px;color:var(--t3);margin:8px 0 4px">🐌 Codași</div><div class="ctx-chips">' + c.sectorLaggardRows.map(sectorChip).join('') + '</div>' : '') +
+        (c.sectorScanAgeH != null ? '<div class="ctx-row" style="margin-top:8px"><span class="lbl">Scan</span><span class="val' + (c.sectorScanAgeH > 12 ? ' ctx-warn' : '') + '">' + Math.round(c.sectorScanAgeH) + 'h în urmă</span></div>' : '') +
+      '</section>' +
+      '<section class="ctx-card"><h3>🛑 Governor</h3>' +
+        '<div class="ctx-big ' + govCls + '">' + esc(c.governor || '—') + '</div>' +
+        '<div class="ctx-row"><span class="lbl">PnL azi</span><span class="val">' + fmtUsd(gd.todayPnl) + '</span></div>' +
+        '<div class="ctx-row"><span class="lbl">Buget</span><span class="val">' + (gd.budgetUsedPct != null ? gd.budgetUsedPct.toFixed(0) + '%' : '—') + '</span></div>' +
+        '<div class="ctx-row"><span class="lbl">Trades</span><span class="val">' + (gd.todayTrades != null ? gd.todayTrades + ' · ' + (c.tradesRemaining != null ? c.tradesRemaining + ' rămase' : '—') : '—') + '</span></div>' +
+        '<div class="ctx-row"><span class="lbl">Deschise</span><span class="val">' + (gd.openCount != null ? gd.openCount : '—') + (gd.consecutiveLosses ? ' · ' + gd.consecutiveLosses + ' L streak' : '') + '</span></div>' +
+      '</section>' +
+      '<section class="ctx-card"><h3>📓 Journal azi</h3>' +
+        '<div class="ctx-row"><span class="lbl">Închise</span><span class="val">' + (j.closed || 0) + '</span></div>' +
+        '<div class="ctx-row"><span class="lbl">Deschise</span><span class="val">' + (j.open || 0) + '</span></div>' +
+        '<div class="ctx-row"><span class="lbl">PnL închise</span><span class="val">' + fmtUsd(j.todayPnl) + '</span></div>' +
+      '</section>' +
+    '</div>' +
+    '<div class="ctx-head" style="margin-top:4px"><span>Surse date</span><span style="font-size:10px">verde = proaspăt · galben = învechit · roșu = stale/lipsește</span></div><div class="ctx-sources">' + (c.sources || []).map(s => '<a class="ctx-src ' + esc(s.status) + '" href="' + esc(s.href) + '">' + esc(s.label) + ' · ' + esc(s.ageLabel || '—') + '</a>').join('') + '</div>';
+}
+function _padTime(d){
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false, hour:'2-digit', minute:'2-digit' });
+    const p = fmt.formatToParts(d).reduce((o, x) => (o[x.type]=x.value, o), {});
+    return String(parseInt(p.hour,10)%24).padStart(2,'0') + ':' + String(parseInt(p.minute,10)).padStart(2,'0');
+  } catch(e){ return '?'; }
 }
 
 function show(){
@@ -166,7 +312,7 @@ function show(){
   $('goFill').style.width = (p.goScore || 0) + '%';
   $('goFill').style.background = fillCol;
 
-  $('ctxMeta').innerHTML = ctxCells(c);
+  $('ctxLive').innerHTML = renderContext(c, p);
   $('guards').innerHTML = (p.guards || []).map(g => '<span class="guard">🛡 ' + esc(g) + '</span>').join('');
   $('reasons').innerHTML = (p.reasons || []).map(r => '<li>' + esc(r) + '</li>').join('') || '<li style="list-style:none;color:var(--t3)">—</li>';
 
@@ -231,6 +377,8 @@ $('btnAddRule').onclick = () => {
 };
 
 loadSettings(); loadRules(); show();
+setInterval(show, 60000);
+window.addEventListener('storage', e => { if (e && /^md_|^tt_|^sr_|^pb_wl|^tt_hub/.test(e.key || '')) show(); });
 })();
 </script>
 </body>
