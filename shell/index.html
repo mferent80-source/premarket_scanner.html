@@ -2,6 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
+<script>window.SUITE_VERSION_SHORT='tt-v543';window.SUITE_VERSION='tt-v543-2026-07-09';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Trading Tools — App</title>
 <meta name="theme-color" content="#0b0f17">
@@ -16,6 +17,9 @@
   #tabbar{flex:0 0 auto;display:flex;gap:3px;overflow-x:auto;padding:calc(6px + env(safe-area-inset-top,0px)) 6px 0;
     background:#0d1320;border-bottom:1px solid #1e2942;scrollbar-width:none}
   #tabbar::-webkit-scrollbar{display:none}
+  #suiteVerShell{flex:0 0 auto;align-self:center;margin:0 8px 4px 4px;padding:3px 8px;border-radius:6px;
+    font-size:10px;font-weight:700;font-family:ui-monospace,monospace;color:#f7931a;
+    border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);white-space:nowrap}
   .tab{flex:0 0 auto;display:flex;align-items:center;gap:6px;max-width:170px;padding:8px 9px;border-radius:9px 9px 0 0;
     background:#141d30;border:1px solid #1e2942;border-bottom:none;color:#9aa4b2;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
   .tab.active{background:#1b2740;color:#fff}
@@ -41,7 +45,10 @@
 </head>
 <body>
 <div id="app">
-  <div id="tabbar" aria-label="Taburi deschise"></div>
+  <div style="display:flex;align-items:stretch;min-width:0">
+    <div id="tabbar" aria-label="Taburi deschise" style="flex:1;min-width:0"></div>
+    <span id="suiteVerShell" title="Versiune cache suită">tt-v543</span>
+  </div>
   <div id="frames"></div>
   <nav id="dock" aria-label="Deschide pagină"></nav>
 </div>
@@ -148,8 +155,32 @@
   open.forEach(ensureFrame);
   setActive(active);
 
-  // service worker (offline + install)
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(function(){});
+  // service worker — query bust ca update-ul să ajungă în PWA instalată
+  if ('serviceWorker' in navigator) {
+    var swVer = window.SUITE_VERSION_SHORT || 'tt-v543';
+    var reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if (reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register('../sw.js?v=' + swVer).then(function(reg){
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      reg.addEventListener('updatefound', function(){
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function(){
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            nw.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+    }).catch(function(){});
+  }
+  if (window.SUITE_VERSION_SHORT) {
+    var vb = document.getElementById('suiteVerShell');
+    if (vb) vb.textContent = window.SUITE_VERSION_SHORT;
+  }
 
   // manifest inline — aplicația pornește în shell, scope = rădăcina suite-ului
   var icon192 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='38' fill='%23f7931a'/%3E%3Ctext y='128' x='96' text-anchor='middle' font-size='96'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E";

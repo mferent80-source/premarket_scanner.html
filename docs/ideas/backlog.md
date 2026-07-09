@@ -75,6 +75,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-067 | Hub session mode (Pre/RTH/Review) | hub/index.html | M | P2 | făcut | ideation | 2026-07-09 |
 | I-068 | Signal Ledger mini în mod Review | hub/index.html | S | P3 | făcut | ideation | 2026-07-09 |
 | I-069 | Version badge sync cu SW | lib/suite-version.js | S | P3 | făcut | ideation | 2026-07-09 |
+| I-070 | Journal + Risk Desk (merge Governor) | journal/ | M | P1 | făcut | user | 2026-07-09 |
 
 ## Mini-spec-uri
 

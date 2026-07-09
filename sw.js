@@ -4,7 +4,7 @@
 // IMPORTANT: bump CACHE_VERSION manual la fiecare release semnificativ — invalidare automată în clienți.
 // SW are scope `/` (rădăcina repo-ului), deci controlează Hub + toate sub-paginile.
 // PRECACHE = toate cele 11 pagini din Hub → se instalează offline odată cu Hub-ul (instalare PWA).
-const CACHE_VERSION = 'tt-v542-2026-07-09';
+const CACHE_VERSION = 'tt-v543-2026-07-09';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 // Resurse statice pre-cache-uite la instalare
@@ -114,9 +114,13 @@ self.addEventListener('fetch', e => {
   // Cache doar GET (nu POST / PUT etc.)
   if (req.method !== 'GET') return;
 
+  // HTML / hub: bypass HTTP cache browser ca badge-ul și hub-ul să nu rămână pe versiune veche
+  const isHtml = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
+  const fetchOpts = isHtml ? { cache: 'reload' } : {};
+
   // Strategie network-first: încearcă rețeaua, salvează în cache, fallback la cache offline
   e.respondWith(
-    fetch(req).then(res => {
+    fetch(req, fetchOpts).then(res => {
       // Cache doar răspunsuri valide (status 200 + same-origin via res.type 'basic') — protejează împotriva
       // cache-poisoning pe WiFi public unde MITM ar putea injecta răspunsuri arbitrare cu opaque type.
       if (res && res.status === 200 && res.type === 'basic') {
@@ -134,4 +138,8 @@ self.addEventListener('fetch', e => {
       return new Response('', { status: 504, statusText: 'offline' });
     }))
   );
+});
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });

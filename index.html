@@ -2,6 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
+<script>window.SUITE_VERSION_SHORT='tt-v543';window.SUITE_VERSION='tt-v543-2026-07-09';</script>
 <script>
   /* Aplicație instalată (standalone) → deschide shell-ul cu taburi. Doar la top-level (NU în iframe-ul shell-ului, ca să nu se nesteze). */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
@@ -543,7 +544,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
     <div class="brand">
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
-      <span id="suiteVerBadge" title="Versiune cache suită" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v542</span>
+      <span id="suiteVerBadge" title="Versiune cache suită" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">tt-v543</span>
     </div>
     <h1>Suite <span class="accent">stocks trading</span><br>Nasdaq + Events</h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:6px"></span>
@@ -633,7 +634,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
     </div>
     <div class="hub-cockpit-actions">
       <a class="primary" href="./router/">🧭 Router Deep →</a>
-      <a href="./governor/">🛑 Governor</a>
+      <a href="./journal/#desk">🛑 Risk Desk</a>
       <a href="./portfolio/">🛡️ Portfolio</a>
       <a href="./journal/">📓 Journal</a>
     </div>
@@ -656,7 +657,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
       <div class="pb-section" id="pbProDesk" style="margin-top:0">
         <div class="pb-section-head"><h3>🎯 Pro Desk — azi tradez?</h3>
           <a class="pb-go" href="./router/">Router →</a>
-          <a class="pb-go" href="./governor/" style="margin-left:6px">Governor →</a>
+          <a class="pb-go" href="./journal/#desk" style="margin-left:6px">Risk Desk →</a>
         </div>
         <div class="pb-risk-row"><span class="pb-risk-val" id="pbRouteVal">⏳ …</span><span class="pb-risk-sub" id="pbRouteSub">Regime Router</span></div>
         <div class="pb-risk-row"><span class="pb-risk-val" id="pbGovVal">⏳ …</span><span class="pb-risk-sub" id="pbGovSub">Risk Governor</span></div>
@@ -770,19 +771,6 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
         <span>Deschide Sector Rotation</span>
         <span class="arrow">→</span>
       </div>
-    </a>
-
-    <a href="./governor/" data-phase="plan" target="ttools-governor" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#ff4d4d,#ffd86b); --glow:rgba(255,77,77,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#ff4d4d,#f59e0b);box-shadow:0 4px 14px rgba(255,77,77,.3);color:#fff">🛑</div>
-      <span class="card-tag" style="background:rgba(255,77,77,.15);color:#ff4d4d;border:1px solid rgba(255,77,77,.4)">Pro · v1</span>
-      <h2 class="card-title">Risk Governor</h2>
-      <p class="card-desc">Kill switch zilnic: buget pierdere %, max trade-uri, max poziții, cooldown după pierderi consecutive — frână disciplinară pe execuțiile din Journal.</p>
-      <div class="features">
-        <span class="feat risk">🛑 HALTED</span>
-        <span class="feat data">📓 PnL azi</span>
-        <span class="feat alert">⚠️ Cooldown</span>
-      </div>
-      <div class="card-cta" style="color:#ff4d4d"><span>Deschide Governor</span><span class="arrow">→</span></div>
     </a>
 
     <a href="./router/" data-phase="plan" target="ttools-router" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#5bb0ff,#ffd86b); --glow:rgba(91,176,255,.18)">
@@ -967,14 +955,14 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 
     <a href="./journal/" data-phase="execute" target="ttools-journal" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#22d66b); --glow:rgba(167,139,250,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#22d66b);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">📓</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Journal · v1</span>
-      <h2 class="card-title">Journal — execuții reale</h2>
-      <p class="card-desc">Jurnalul fill-urilor ÎNCHISE cu fees: PnL net, expectancy R, profit factor —
-        segmentat pe sursa semnalului / regim / tag-uri de greșeli (fomo, chase, early-exit…). Import din Trade Tracker.</p>
+      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Execute · v9</span>
+      <h2 class="card-title">Journal & Risk Desk</h2>
+      <p class="card-desc">Execuții reale + Risk Governor integrat: verdict TRADE/CAUTION/HALTED, buget zilnic, max trade-uri —
+        apoi formular fill, scorecard expectancy R și review pe sursă/regim/tag.</p>
       <div class="features">
-        <span class="feat risk">💰 PnL net real</span>
+        <span class="feat risk">🛑 Risk Desk</span>
+        <span class="feat risk">💰 PnL net</span>
         <span class="feat data">📊 Expectancy R</span>
-        <span class="feat ai">🏷 Tags greșeli</span>
       </div>
       <div class="card-cta" style="color:#a78bfa">
         <span>Deschide Journal</span>
@@ -1124,7 +1112,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 </main>
 
   <!-- F3 Trade tracker FAB — buton flotant pentru deschidere modal -->
-  <a class="tt-fab journal-fab" href="./journal/" title="Journal — execuții reale">📓</a>
+  <a class="tt-fab journal-fab" href="./journal/#desk" title="Journal & Risk Desk">📓</a>
 
   <footer>
     <div>Bacău, România</div>
@@ -1766,9 +1754,27 @@ window.ttDeleteTrade = function(id){
   };
 })();
 
-// Înregistrează service worker-ul (cache + offline)
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW register failed:', e));
+// Service worker — query bust ca browserul să nu țină sw.js vechi (badge tt-v543+)
+if ('serviceWorker' in navigator) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v543';
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
+  navigator.serviceWorker.register('./sw.js?v=' + swVer).then(reg => {
+    if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+          nw.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+  }).catch(e => console.warn('SW register failed:', e));
 }
 
 // În PWA standalone, ascunde footer-ul cu link-uri externe (GitHub + README)
@@ -1960,10 +1966,10 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/suite-version.js"></script>
-<script src="lib/hub-health.js"></script>
-<script src="lib/hub-brief.js?v=1"></script>
-<script src="lib/hub-ledger.js?v=1"></script>
+<script src="lib/suite-version.js?v=543"></script>
+<script src="lib/hub-health.js?v=543"></script>
+<script src="lib/hub-brief.js?v=543"></script>
+<script src="lib/hub-ledger.js?v=543"></script>
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {

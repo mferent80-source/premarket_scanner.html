@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>📓 Journal — Trading Tools</title>
+<title>📓 Journal & Risk Desk — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
@@ -106,17 +106,65 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .seg-tab{background:var(--panel2);border:1px solid var(--b1);color:var(--t2);padding:5px 13px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--head)}
 .seg-tab.active{background:rgba(167,139,250,.2);border-color:var(--purple);color:var(--purple)}
 @media (max-width:550px){ body{padding:8px} }
+/* Risk Desk rail (fost Governor) */
+.desk-rail{position:sticky;top:8px;z-index:40;margin-bottom:14px}
+.desk-verdict{font-size:36px;font-weight:900;text-align:center;padding:16px;border-radius:var(--r);margin-bottom:10px;font-family:var(--head)}
+.desk-verdict.trade{background:rgba(34,214,107,.12);border:2px solid var(--bull-s);color:var(--bull-s)}
+.desk-verdict.caution{background:rgba(212,137,44,.12);border:2px solid var(--warn);color:var(--warn)}
+.desk-verdict.halted{background:rgba(255,77,77,.15);border:2px solid var(--bear-s);color:var(--bear-s)}
+.desk-budget .lbl{font-family:var(--mono);font-size:10px;color:var(--t3);display:flex;justify-content:space-between;margin-bottom:6px}
+.desk-budget .track{height:12px;background:var(--panel2);border-radius:8px;overflow:hidden;border:1px solid var(--b1)}
+.desk-budget .fill{height:100%;border-radius:8px;transition:width .3s}
+.desk-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}
+.desk-cell{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:9px 10px}
+.desk-cell .lbl{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.desk-cell .val{font-size:18px;font-weight:800;margin-top:3px}
+.desk-reasons{margin:8px 0 0 18px;color:var(--t2);font-size:12.5px;line-height:1.45}
+.desk-today{margin-top:10px;font-size:11px}
+.desk-cfg summary{cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--t2);padding:8px 0}
+.desk-cfg .frm{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:8px}
+.desk-cfg label{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;color:var(--t3)}
+.desk-cfg input{background:var(--panel2);color:var(--t1);border:1px solid var(--b1);padding:7px;border-radius:var(--rs);font-family:var(--mono)}
+.chkrow{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:8px}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>📓 Journal — execuții reale <span class="ver-badge" id="verBadge">v8</span></h1>
-  <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker (FAB 📓 hub) — anti-duplicat, fees=0 de completat">⬇ Import din tracker</button>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">v9</span></h1>
+  <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
+  <button class="nav-link" id="btnImport" title="Aduce execuțiile ÎNCHISE din Trade Tracker — anti-duplicat, fees=0 de completat">⬇ Import tracker</button>
   <a class="nav-link" href="../postmortem/">🔬 Post-Mortem</a>
   <a class="nav-link" href="../equity/">📈 Equity</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
+
+<section class="desk-rail panel" id="desk">
+  <div id="verdictBox" class="desk-verdict trade">TRADE</div>
+  <div class="desk-budget">
+    <div class="lbl"><span>Buget pierdere zilnic</span><span id="budgetLbl">—</span></div>
+    <div class="track"><div class="fill" id="budgetFill" style="width:0;background:var(--bull-s)"></div></div>
+  </div>
+  <ul class="desk-reasons" id="deskReasons"></ul>
+  <div class="desk-strip" id="deskStrip"></div>
+  <div class="desk-today" id="deskToday"></div>
+  <details class="desk-cfg" style="margin-top:10px">
+    <summary>⚙ Limite Risk Governor</summary>
+    <div class="frm">
+      <label>Cont $ <input id="cAcct" type="number" min="1"></label>
+      <label>Max pierdere %/zi <input id="cLoss" type="number" min="0.1" step="0.1"></label>
+      <label>Max trade-uri/zi <input id="cTrades" type="number" min="1"></label>
+      <label>Max poziții deschise <input id="cOpen" type="number" min="1"></label>
+      <label>Cooldown după N pierderi <input id="cCool" type="number" min="1"></label>
+    </div>
+    <label class="chkrow"><input type="checkbox" id="cTg"> Alertă Telegram la HALTED (o dată/zi)</label>
+    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="btnGovSave" type="button">💾 Salvează limite</button>
+      <button class="btn ghost" id="btnTgTest" type="button">📲 Test Telegram</button>
+    </div>
+    <p class="note">Frână disciplinară — nu blochează brokerul. Limitele se aplică pe execuțiile din jurnalul de mai jos.</p>
+  </details>
+</section>
 
 <div class="panel">
   <h2 id="frmTitle">➕ Execuție nouă (fill închis)</h2>
@@ -169,6 +217,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 </div>
 
 <script src="../lib/journal.js?v=6"></script>
+<script src="../lib/telegram.js"></script>
+<script src="../lib/governor.js?v=2"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -424,7 +474,58 @@ function renderTable(){
   }));
 }
 
+function renderDesk(){
+  if (!window.GV) return;
+  const s = GV.status();
+  const lb = GV.labelOf(s.verdict);
+  $('verdictBox').textContent = lb.text;
+  $('verdictBox').className = 'desk-verdict ' + lb.cls;
+  $('deskReasons').innerHTML = s.reasons.length ? s.reasons.map(r => '<li>' + esc(r) + '</li>').join('') : '<li style="list-style:none;color:var(--t3)">Nicio restricție activă.</li>';
+  const used = Math.min(100, s.budgetUsedPct || 0);
+  const fillCol = used >= 100 ? 'var(--bear-s)' : used >= 75 ? 'var(--warn)' : 'var(--bull-s)';
+  $('budgetFill').style.width = used + '%';
+  $('budgetFill').style.background = fillCol;
+  $('budgetLbl').textContent = '$' + s.budgetLeftUsd.toFixed(0) + ' rămas din −$' + s.maxLossUsd.toFixed(0) + ' (' + used.toFixed(0) + '% consumat)';
+  const pnlCls = s.todayPnl >= 0 ? 'pos' : 'neg';
+  $('deskStrip').innerHTML = [
+    ['PnL azi', (s.todayPnl >= 0 ? '+' : '') + '$' + s.todayPnl.toFixed(2), pnlCls],
+    ['Trade-uri rămase', s.tradesRemaining + ' / ' + s.cfg.maxTradesDay, ''],
+    ['Deschise', s.openCount + '/' + s.cfg.maxOpenPositions, ''],
+    ['Pierderi consec.', String(s.consecutiveLosses), s.consecutiveLosses >= s.cfg.cooldownAfterLosses ? 'neg' : '']
+  ].map(([l,v,cls]) => '<div class="desk-cell"><div class="lbl">' + l + '</div><div class="val ' + cls + '">' + v + '</div></div>').join('');
+  const today = GV.todayEntries();
+  $('deskToday').innerHTML = today.length ? '<table><tr><th class="l">Sym</th><th>Status</th><th>PnL</th><th>Sursă</th></tr>' +
+    today.map(e => {
+      const p = GV.pnlOf(e);
+      const st = e.exit == null ? 'OPEN' : (p >= 0 ? 'WIN' : 'LOSS');
+      return '<tr><td class="l">' + esc(e.sym) + '</td><td>' + st + '</td><td class="' + (p==null?'':p>=0?'pos':'neg') + '">' + (p!=null?(p>=0?'+':'')+'$'+p.toFixed(2):'—') + '</td><td>' + esc(e.source||'?') + '</td></tr>';
+    }).join('') + '</table>' : '<p class="note">Nicio execuție azi în journal.</p>';
+  if (s.verdict === 'HALTED') GV.maybeNotifyHalted(s);
+}
+function loadGovCfg(){
+  if (!window.GV) return;
+  const c = GV.cfg();
+  $('cAcct').value = c.accountSize;
+  $('cLoss').value = c.maxLossPctDay;
+  $('cTrades').value = c.maxTradesDay;
+  $('cOpen').value = c.maxOpenPositions;
+  $('cCool').value = c.cooldownAfterLosses;
+  $('cTg').checked = !!c.tgOnHalt;
+}
+$('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
+  GV.saveCfg({ accountSize:+$('cAcct').value, maxLossPctDay:+$('cLoss').value, maxTradesDay:+$('cTrades').value, maxOpenPositions:+$('cOpen').value, cooldownAfterLosses:+$('cCool').value, tgOnHalt: $('cTg').checked });
+  renderDesk();
+});
+$('btnDeskRefresh') && $('btnDeskRefresh').addEventListener('click', renderDesk);
+$('btnTgTest') && $('btnTgTest').addEventListener('click', async () => {
+  if (!window.TG) { alert('Telegram nu e încărcat'); return; }
+  const ok = await TG.test();
+  alert(ok ? 'Telegram OK' : 'Verifică token/chat în Alerts');
+});
+loadGovCfg();
+
 function renderAll(){
+  renderDesk();
   // linia de diagnostic — spune exact ce vede pagina pe ACEST device
   try {
     const raw = localStorage.getItem((window.JR && JR.KEY) || 'tt_journal_v1');
@@ -444,6 +545,11 @@ function renderAll(){
 
 resetForm();
 renderAll();
+if (location.hash === '#desk') {
+  const el = document.getElementById('desk');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+setInterval(renderDesk, 60000);
 })();
 </script>
 <script src="../nav.js" data-nav-root="../"></script>
