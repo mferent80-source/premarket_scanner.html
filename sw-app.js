@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v590-2026-07-10';
+const CACHE_VERSION = 'tt-v591-2026-07-10';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [

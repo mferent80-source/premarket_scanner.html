@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=589"></script>
+<script src="lib/suite-version.js?v=591"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=590">
+<link rel="stylesheet" href="lib/hub-ui.css?v=591">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -581,46 +581,50 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   <button id="pwaInstallBtn" onclick="installPWA()" style="display:none;position:fixed;top:12px;right:12px;z-index:220;padding:7px 14px;border-radius:8px;font-size:.7rem;font-weight:700;border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);color:#f7931a;cursor:pointer;">📱 Instalează</button>
   <div id="hubHealthPill" hidden aria-hidden="true"></div>
   <span id="hubCheckPct" hidden aria-hidden="true"></span>
-  <span id="suiteVerBadge" hidden aria-hidden="true">…</span>
+
+  <header class="hub-head-compact">
+    <div class="hub-head-brand">
+      <span class="brand-dot"></span>
+      <span>Trading Tools</span>
+      <span id="suiteVerBadge" class="hub-ver-badge" title="Versiune suită">…</span>
+    </div>
+    <h1 class="hub-head-title">Cockpit <span class="accent">stocks</span></h1>
+  </header>
 
   <div class="hub-shell">
-  <div class="hub-jr-strip" id="hubJrStrip" aria-label="Journal status"></div>
-
-  <!-- Deck compact: Router GO + piață + aux -->
-  <section class="dash hub-deck hub-deck-v2" id="dashWidgets">
+  <section class="hub-dash-panel" id="dashWidgets">
+    <div class="hub-jr-strip" id="hubJrStrip" aria-label="Journal status"></div>
     <div class="hub-cmd hub-cmd-slim" id="hubCmd"><div class="hub-cmd-cell lvl-neut"><div class="hub-cmd-lbl">GO</div><div class="hub-cmd-val">⏳</div></div></div>
-    <div class="hub-mkt-row">
-      <div class="hub-mkt-pill hub-market" id="wSPY">
-        <span class="hub-mkt-sym">SPY</span>
-        <span class="hub-mkt-val" id="spyVal">—</span>
-        <span class="hub-mkt-sub" id="spySub">…</span>
+    <div class="hub-dash-row-6">
+      <div class="hub-dash-cell hub-market" id="wSPY">
+        <span class="hub-dash-lbl">SPY</span>
+        <span class="hub-dash-val" id="spyVal">—</span>
+        <span class="hub-dash-sub" id="spySub">…</span>
       </div>
-      <div class="hub-mkt-pill hub-market" id="wQQQ">
-        <span class="hub-mkt-sym">QQQ</span>
-        <span class="hub-mkt-val" id="qqqVal">—</span>
-        <span class="hub-mkt-sub" id="qqqSub">…</span>
+      <div class="hub-dash-cell hub-market" id="wQQQ">
+        <span class="hub-dash-lbl">QQQ</span>
+        <span class="hub-dash-val" id="qqqVal">—</span>
+        <span class="hub-dash-sub" id="qqqSub">…</span>
       </div>
-      <div class="hub-mkt-pill hub-market" id="wVIX">
-        <span class="hub-mkt-sym">VIX</span>
-        <span class="hub-mkt-val" id="vixVal">—</span>
-        <span class="hub-mkt-sub" id="vixSub">…</span>
+      <div class="hub-dash-cell hub-market" id="wVIX">
+        <span class="hub-dash-lbl">VIX</span>
+        <span class="hub-dash-val" id="vixVal">—</span>
+        <span class="hub-dash-sub" id="vixSub">…</span>
       </div>
-    </div>
-    <div class="hub-aux-row">
-      <div class="hub-aux-pill" id="wAlerts" style="display:none;cursor:pointer" onclick="location.href='alerts/'" title="Alerte preț armate">
-        <span class="hub-aux-lbl">🔔 Alerte</span>
-        <span class="hub-aux-val" id="alertsVal">—</span>
-        <span class="hub-aux-sub" id="alertsSub">—</span>
+      <div class="hub-dash-cell" id="wAlerts" style="display:none;cursor:pointer" onclick="location.href='alerts/'" title="Alerte preț armate">
+        <span class="hub-dash-lbl">🔔 Alerte</span>
+        <span class="hub-dash-val" id="alertsVal">—</span>
+        <span class="hub-dash-sub" id="alertsSub">—</span>
       </div>
-      <div class="hub-aux-pill" id="wWL">
-        <span class="hub-aux-lbl">⭐ WL</span>
-        <span class="hub-aux-val" id="wlVal">—</span>
-        <span class="hub-aux-sub" id="wlSub">—</span>
+      <div class="hub-dash-cell" id="wWL">
+        <span class="hub-dash-lbl">⭐ WL</span>
+        <span class="hub-dash-val" id="wlVal">—</span>
+        <span class="hub-dash-sub" id="wlSub">—</span>
       </div>
-      <div class="hub-aux-pill" id="wWLBreakdown">
-        <span class="hub-aux-lbl">Breakdown</span>
-        <span class="hub-aux-val hub-aux-val-sm" id="wlBreakdownVal">—</span>
-        <span class="hub-aux-sub" id="wlBreakdownSub">—</span>
+      <div class="hub-dash-cell" id="wWLBreakdown">
+        <span class="hub-dash-lbl">Mix</span>
+        <span class="hub-dash-val hub-dash-val-sm" id="wlBreakdownVal">—</span>
+        <span class="hub-dash-sub" id="wlBreakdownSub">—</span>
       </div>
     </div>
   </section>
@@ -1262,7 +1266,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
       const q = await fetchQuote(sym);
       $(valEl).textContent = fmt(q.price);
       $(subEl).innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
-      $(subEl).className = 'hub-mkt-sub w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
+      $(subEl).className = 'hub-dash-sub w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
       stashMkt(sym, q);
     } catch (e) {
       $(subEl).textContent = 'indisponibil';
@@ -1277,7 +1281,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
       $('vixVal').textContent = fmtVix(q.price);
       const cls = q.price >= 25 ? 'w-neg' : q.price >= 18 ? '' : 'w-pos';
       $('vixSub').innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
-      $('vixSub').className = 'hub-mkt-sub w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
+      $('vixSub').className = 'hub-dash-sub w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
       $('vixVal').classList.add(cls);
       stashMkt('VIX', q);
     } catch (e) {
