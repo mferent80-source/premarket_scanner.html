@@ -151,6 +151,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-143 | Suite UI review pages v570 | Markov/Alerts/Earnings/Weekly + encoding fix | M | P1 | făcut | ideation | 2026-07-09 |
 | I-144 | Suite UI infra pages v571 | Router/Guide/Shadow/Postmortem/Health | S | P1 | făcut | ideation | 2026-07-09 |
 | I-145 | Capital audit fixes v572 | account/CD/GV/EQ/journal + CT | M | P1 | făcut | audit | 2026-07-09 |
+| I-146 | Exec tab — ledger închise cu filtre | journal/ | M | P1 | propus | ideation | 2026-07-10 |
+| I-147 | Închidere one-click cu preț live | journal/ | S | P1 | propus | ideation | 2026-07-10 |
+| I-148 | Tab badges cross-state (Desk/Portfolio/Capital) | journal/ | S | P2 | propus | ideation | 2026-07-10 |
+| I-149 | Capital tab „lite" (usage minimal) | journal/ | S | P2 | propus | ideation | 2026-07-10 |
+| I-150 | Strip contextual sticky sub tab-uri | journal/ | M | P2 | propus | ideation | 2026-07-10 |
+| I-151 | Extract lib/journal-page.js (spargere monolit) | journal/ | L | P3 | propus | ideation | 2026-07-10 |
 
 ## Mini-spec-uri
 
@@ -995,3 +1001,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Soluția:** `lib/capital-time.js` (CT.*); `ACCT.get()` cont curent vs `getBaseline()`; CD stale `max(static,live)`; depuneri/retrageri → `adjustForCapitalEvent`; journal gate + duplicate warn; Router drift 2%; SW `tt-v572`.
 - **Impact:** sizing/governor/gate pe bani reali aliniați; capital gata de producție după audit.
 - **Fișiere atinse:** account, capital-time, governor, capital-desk, equity, journal, tracker, router, morning-check, pagini capital + hub.
+
+### I-146 · Exec tab — ledger închise cu filtre · [M] · P1
+- **Problema/golul:** tab Execuții arată DOAR pozițiile OPEN (`renderTable` L867); închisele sunt accesibile doar din Scorecard pe tab Desk, prin drill-down pe sursă/ticker/regim/tag. Pentru review post-trade („ce am închis azi?", edit tag-uri după lecție, link Post-Mortem) trebuie să sari tab + să cauți grupul corect — fricțiune mare exact când vrei să înveți din execuții reale (trader.md §1: segmentare utilă doar dacă o poți citi rapid).
+- **Soluția:** sub-tab sau toggle „În curs / Închise" în `#exec`: tabel închise sortat `closeTs` desc cu coloane sym, PnL net, R, sursă, regim, tags, butoane ✏/🔬 PM. Filtre rapide (azi / 7z / sursă). Păstrează Scorecard pe Desk ca agregat; Exec devine ledger operațional complet.
+- **Impact:** review zilnic fără vânătoare în segmente; tag-uri de greșeli completate după închidere, nu doar la intrare.
+- **Riscuri/dependențe:** tabel lung = nevoie paginare sau „ultimele 50"; n mic pe filtre = avertisment zgomot (deja convenție JR.stats).
+- **Fișiere atinse:** `journal/index.html`, opțional `lib/journal.js` (helper `listClosed(filters)`).
+
+### I-147 · Închidere one-click cu preț live · [S] · P1
+- **Problema/golul:** butonul „ÎNCHIDE" folosește `prompt()` pentru exit și fees (L910–917) — fără prefill din `openPriceCache` / `JR.markPriceFor`, fără TP/SL ca referință, ușor de greșit prețul la închidere rapidă (trader.md §2: fill real ≠ preț din cap).
+- **Soluția:** panou inline sau sheet la click Închide: câmp exit pre-completat cu ultimul mark live (buton „↻ refresh"), fees, tag-uri opționale post-trade, preview PnL net înainte de confirm. Păstrează fallback manual dacă API down.
+- **Impact:** închideri mai oneste și mai rapide; mai puțin PnL fictiv în journal.
+- **Riscuri/dependențe:** preț live poate fi pre/after — etichetat; nu înlocuiește fill-ul brokerului.
+- **Fișiere atinse:** `journal/index.html`, refolosește `fetchLiveMarks` / `openPriceCache`.
+
+### I-148 · Tab badges cross-state (Desk/Portfolio/Capital) · [S] · P2
+- **Problema/golul:** `#jrTabCapWarn` e populat la drift (L1103), dar `#jrTabPfWarn` există și nu e legat; Desk nu arată HALTED pe tab. Cu 4 tab-uri, stările critice (risc ≥4%, verdict HALTED, snapshot vechi) sunt invizibile până intri în tabul potrivit (design.md: stări obligatorii, badge doar pe acționabil).
+- **Soluția:** în `renderAll`, un singur `updateTabBadges()`: Portfolio `!` când `CD.portfolio.riskPct ≥ 4` sau `liveStale`; Desk `!` când `GV.status().verdict === 'HALTED'`; Capital deja drift. Tooltip pe badge cu motiv scurt.
+- **Impact:** vezi dintr-o privire unde e problema fără să parcurgi 4 tab-uri dimineața.
+- **Riscuri/dependențe:** badge fatigue dacă prea multe — max 1 badge per tab, doar acționabil.
+- **Fișiere atinse:** `journal/index.html`, `lib/capital-desk.js`, `lib/governor.js`.
+
+### I-149 · Capital tab „lite" (usage minimal) · [S] · P2
+- **Problema/golul:** tab Capital e full drill-down reconciliere (hero + 9 rânduri + snapshot + evenimente) — corect pentru audit, dar userul folosește capital minimal: vrea doar să știe dacă snapshot-ul e proaspăt și drift OK, fără să parcurgă tabelul la fiecare deschidere.
+- **Soluția:** toggle persistent `tt_journal_cap_mode`: **Lite** = 3 celule (snap age, drift %, estimat total) + buton „+ Snapshot rapid" + link „deschide drill-down"; **Full** = UI actual. Default Lite dacă ultimul snapshot <14z și drift OK.
+- **Impact:** mai puțină oboseală cognitivă; reconcilierea profundă rămâne la un click când contează.
+- **Riscuri/dependențe:** nu ascunde drift warn — Lite tot arată roșu/galben pe drift și snapshot stale.
+- **Fișiere atinse:** `journal/index.html`, `lib/equity.js` (read-only), `lib/journal.js` SETTINGS_KEY extins.
+
+### I-150 · Strip contextual sticky sub tab-uri · [M] · P2
+- **Problema/golul:** `capitalRail` e sus, tab-urile dedesubt, conținutul schimbă contextul — la Exec nu vezi verdictul Desk; la Desk nu vezi riscul Portfolio fără scroll. Informație duplicată între rail CD și panouri (design.md: consolidare într-o sursă vizuală).
+- **Soluția:** bandă sub `jr-tabs`, sticky: `VERDICT · Risc @SL X% · N open · Drift Y%` — fiecare segment clickabil → tab relevant. Se actualizează în `renderAll` din `CD.unified()`. Pe mobil: 2 rânduri max, fără badge-uri decorative.
+- **Impact:** Journal se simte ca un singur command center, nu 4 pagini lipite.
+- **Riscuri/dependențe:** overlap cu rail CD — fie rail devine minimal pe journal, fie strip înlocuiește celulele redundante (alege una, nu ambele pline).
+- **Fișiere atinse:** `journal/index.html`, `lib/capital-ui.css`, `lib/capital-desk.js`.
+
+### I-151 · Extract lib/journal-page.js (spargere monolit) · [L] · P3
+- **Problema/golul:** `journal/index.html` are ~1350 linii cu logică Desk + Exec + Capital inline; `portfolio-risk.js` e extras (v581) dar restul rămâne monolit — orice fix pe un tab riscă regresii pe altele; greu de testat și de extins (inginer: duplicat vs `lib/`).
+- **Soluția:** extracție incrementală în `lib/journal-desk.js`, `lib/journal-exec.js`, `lib/journal-capital-panel.js` — pagina rămâne shell HTML + `JR.initPage()`. Ordine: Exec (închide + tabel), Capital panel, Desk scorecard. Fără schimbare UX.
+- **Impact:** viitoarele I-146..I-150 se implementează mai sigur; mentenanță pe workflow-ul tău central.
+- **Riscuri/dependențe:** efort L fără valoare vizibilă imediată — de făcut după features user-facing sau în paralel cu I-146.
+- **Fișiere atinse:** `journal/index.html`, `lib/journal-*.js` (noi), `sw-app.js` precache.
