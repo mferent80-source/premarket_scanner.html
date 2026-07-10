@@ -2390,6 +2390,8 @@ function persistHubMacroSnapshot() {
     }
     const ew = countEarningsNextDays(7);
     const si = computeSurpriseIndex();
+    const earnTile = getStatTileVal('tile-earnings');
+    const surpTile = getStatTileVal('tile-surprise');
     const snap = {
       ts: Date.now(),
       dateET: nyt.date,
@@ -2416,8 +2418,20 @@ function persistHubMacroSnapshot() {
         btc: getStatTileVal('tile-btc'),
         eth: getStatTileVal('tile-eth'),
         fng: getStatTileVal('tile-fng'),
-        earnings: { count: ew.unique, symbols: (ew.symbols || []).slice(0, 5) },
-        surprise: si ? { score: si.score, n: si.n } : null
+        earnings: {
+          count: ew.unique,
+          symbols: (ew.symbols || []).slice(0, 5),
+          v: earnTile.v || String(ew.unique || 0),
+          sub: earnTile.sub || 'mega-cap 7z',
+          cls: earnTile.cls || (ew.unique >= 3 ? 'warn' : ew.unique >= 1 ? 'gold' : '')
+        },
+        surprise: si ? {
+          score: si.score,
+          n: si.n,
+          v: surpTile.v || ((si.score >= 0 ? '+' : '') + si.score.toFixed(0)),
+          sub: surpTile.sub || (si.n + ' date'),
+          cls: surpTile.cls || (si.score > 15 ? 'bull' : si.score < -15 ? 'bear' : 'warn')
+        } : (surpTile.v ? surpTile : null)
       }
     };
     localStorage.setItem('md_hub_macro_v1', JSON.stringify(snap));
@@ -5955,20 +5969,16 @@ function renderEarningsTile() {
   const valEl = tile.querySelector('.stat-value');
   const subEl = tile.querySelector('.stat-sub');
   if (!count) {
+    tile.className = 'stat-tile';
     valEl.textContent = '0';
     subEl.textContent = 'fără mega-caps · 7z';
     return;
   }
+  tile.className = 'stat-tile ' + (unique >= 3 ? 'warn' : 'gold');
   valEl.textContent = unique;
+  valEl.style.color = '';
+  tile.style.borderColor = '';
   subEl.textContent = symbols.length ? symbols.slice(0, 5).join(' · ') + (symbols.length > 5 ? '…' : '') : 'mega-caps · 7z';
-  // High-vol când ≥3 unique
-  if (unique >= 3) {
-    valEl.style.color = 'var(--warn)';
-    tile.style.borderColor = 'rgba(212,137,44,.4)';
-  } else {
-    valEl.style.color = '';
-    tile.style.borderColor = '';
-  }
   // Click → deschide Earnings Hub
   if (!tile.dataset.bound) {
     tile.dataset.bound = '1';
