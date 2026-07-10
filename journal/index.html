@@ -8,8 +8,8 @@
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=577">
-<script src="../lib/suite-version.js?v=577"></script>
+<link rel="stylesheet" href="../lib/capital-ui.css?v=578">
+<script src="../lib/suite-version.js?v=578"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -107,6 +107,23 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .seg-tabs{display:flex;gap:5px;margin-bottom:9px}
 .seg-tab{background:var(--panel2);border:1px solid var(--b1);color:var(--t2);padding:5px 13px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--head)}
 .seg-tab.active{background:rgba(167,139,250,.2);border-color:var(--purple);color:var(--purple)}
+.jr-workspace{margin-bottom:12px}
+.jr-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;background:var(--panel2);border:1px solid var(--b1);border-radius:var(--r)}
+.jr-tab{background:transparent;border:1px solid var(--b1);color:var(--t2);padding:8px 14px;border-radius:var(--rs);font-size:12px;font-weight:800;cursor:pointer;font-family:var(--head)}
+.jr-tab:hover{border-color:var(--accent);color:var(--t1)}
+.jr-tab.active{background:rgba(91,176,255,.14);border-color:rgba(91,176,255,.45);color:var(--accent)}
+.jr-tab .jr-warn{display:inline-block;margin-left:4px;color:var(--warn);font-size:10px}
+.jr-pane{display:none}
+.jr-pane.active{display:block}
+.cap-hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+.cap-hero .scard{border-radius:var(--rs)}
+.cap-drill table{width:100%}
+.cap-drill tr[data-cap-row]{cursor:pointer}
+.cap-drill tr[data-cap-row]:hover td{background:rgba(91,176,255,.06)}
+.cap-drill .cap-sum td{font-weight:800;border-top:2px solid var(--b1)}
+.cap-drill-det td{background:rgba(29,37,55,.55);padding:8px 10px!important;text-align:left!important}
+.cap-drill-det .cap-line{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0;font-size:10.5px;border-bottom:1px solid rgba(42,50,71,.35)}
+.cap-drill-det .cap-line:last-child{border:none}
 @media (max-width:550px){ body{padding:8px} }
 .desk-rail{position:sticky;top:52px;z-index:40;margin-bottom:14px}
 .desk-verdict{font-weight:900;text-align:center;font-family:var(--head)}
@@ -145,23 +162,23 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v577</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v577</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v578</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v578</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
   <button class="nav-link" id="btnExportCd" title="Export JSON Capital Desk (equity, risc, desk, journal)">📥 Export CD</button>
   <a class="nav-link" href="../postmortem/">🔬 Post-Mortem</a>
   <a class="nav-link" href="../portfolio/">🛡️ Portfolio</a>
-  <a class="nav-link" href="#capital">⚖ Capital</a>
+  <a class="nav-link" href="#capital" data-jtab-link="capital">⚖ Capital</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
 <div class="cap-shell">
   <nav class="cap-nav" aria-label="Capital Desk">
     <a class="cap-nav-hub" href="../">⌂ Hub</a>
-    <a class="cap-nav-item active" href="./#desk">🛑 Desk</a>
+    <a class="cap-nav-item active" href="#desk" data-jtab-link="desk">🛑 Desk</a>
     <a class="cap-nav-item" href="../portfolio/">🛡️ Portfolio</a>
-    <a class="cap-nav-item" href="#capital">⚖ Capital</a>
-    <a class="cap-nav-item" href="./">📓 Journal</a>
+    <a class="cap-nav-item" href="#capital" data-jtab-link="capital">⚖ Capital</a>
+    <a class="cap-nav-item" href="#exec" data-jtab-link="exec">📓 Execuții</a>
     <span class="cap-nav-spacer"></span>
     <a class="cap-nav-item" href="../router/">🧭 Router</a>
   </nav>
@@ -170,6 +187,16 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 <div id="capitalRail" data-cd-page="journal"></div>
 <div id="cdPrefillGate"></div>
+
+<div class="jr-workspace">
+  <div class="jr-tabs" role="tablist" aria-label="Journal workspace">
+    <button type="button" class="jr-tab active" data-jtab="desk" role="tab" aria-selected="true">🛑 Desk</button>
+    <button type="button" class="jr-tab" data-jtab="exec" role="tab">📓 Execuții</button>
+    <button type="button" class="jr-tab" data-jtab="capital" role="tab" id="jrTabCapital">⚖ Capital <span class="jr-warn" id="jrTabCapWarn" style="display:none">!</span></button>
+  </div>
+</div>
+
+<div id="jpaneDesk" class="jr-pane active" data-jpane="desk">
 
 <section class="desk-rail panel" id="desk">
   <div class="desk-deck">
@@ -203,7 +230,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <button class="btn ghost" id="btnAcctSnap" type="button" title="Copiază ultimul snapshot Trade212 din secțiunea Capital">📈 Preia din snapshot</button>
       <button class="btn ghost" id="btnTgTest" type="button">📲 Test Telegram</button>
     </div>
-    <p class="note">Frână disciplinară — nu blochează brokerul. Cont $ = fallback manual; snapshot Trade212 în <a href="#capital" style="color:var(--accent)">Capital</a> aliniază sizing + drift.</p>
+    <p class="note">Frână disciplinară — nu blochează brokerul. Cont $ = fallback manual; tab <a href="#capital" data-jtab-link="capital" style="color:var(--accent)">Capital</a> → drill-down reconciliere.</p>
     <details style="margin-top:12px;border-top:1px solid var(--b1);padding-top:10px">
       <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--t2)">📉 Alerte DD · Notificări · Raport săptămânal</summary>
       <div class="frm" style="margin-top:8px">
@@ -226,25 +253,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
   </details>
 </section>
 
-<section class="panel" id="capital">
-  <h2>⚖ Capital & reconciliere</h2>
-  <p class="note" id="capDriftTxt">—</p>
-  <p class="note" id="capBaseLine" style="margin-bottom:10px">—</p>
-  <div class="frm" style="margin-bottom:10px">
-    <label>Equity $ (Trade212) <input id="jrSnapEq" type="number" min="1" step="1" placeholder="din cont"></label>
-    <label>Notă <input id="jrSnapNote" placeholder="Trade212"></label>
-    <div style="display:flex;align-items:flex-end"><button class="btn ghost" id="btnJrSnap" type="button">+ Snapshot</button></div>
-  </div>
-  <div class="frm" style="margin-bottom:10px">
-    <label>Eveniment <select id="jrCapKind"><option value="deposit">Depunere</option><option value="withdraw">Retragere</option></select></label>
-    <label>$ <input id="jrCapAmt" type="number" min="1" step="1"></label>
-    <label>Notă <input id="jrCapNote" placeholder="Transfer"></label>
-    <div style="display:flex;align-items:flex-end"><button class="btn ghost" id="btnJrCap" type="button">+ Eveniment</button></div>
-  </div>
-  <div id="jrSnapTbl"></div>
-  <div id="jrCapTbl" style="margin-top:10px"></div>
-  <p class="note">Primul snapshot = baseline curbă + DD rolling. Depuneri/retrageri = salt pe curbă (nu PnL trading). Drift ≥2% → verifică journal + evenimente capital.</p>
-</section>
+</div><!-- /jpaneDesk -->
+
+<div id="jpaneExec" class="jr-pane" data-jpane="exec">
 
 <div id="ddAlertHost"></div>
 
@@ -314,6 +325,39 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <div class="note">Expectancy R = media R-multiple pe execuțiile cu SL la intrare completat. Segmentele cu n&lt;10 sunt marcate
   „⚠ zgomot" — nu trage concluzii de acolo (trader.md). Astea-s execuțiile TALE, nu backtest: singura statistică ne-ficțiune din suită.</div>
 </div>
+
+</div><!-- /jpaneExec -->
+
+<div id="jpaneCapital" class="jr-pane" data-jpane="capital">
+
+<section class="panel" id="capital">
+  <h2>⚖ Capital — drill-down reconciliere</h2>
+  <p class="note" id="capDriftTxt">—</p>
+  <div class="cap-hero" id="capHero"></div>
+  <h2 style="font-size:12px;margin:12px 0 8px">🔍 De unde vine suma</h2>
+  <div class="cap-drill" id="capDrill"></div>
+  <p class="note" id="capBaseLine" style="margin-top:10px">—</p>
+</section>
+
+<section class="panel">
+  <h2>📸 Snapshot & evenimente</h2>
+  <div class="frm" style="margin-bottom:10px">
+    <label>Equity $ (Trade212 total) <input id="jrSnapEq" type="number" min="1" step="1" placeholder="cash + poziții"></label>
+    <label>Notă <input id="jrSnapNote" placeholder="Trade212"></label>
+    <div style="display:flex;align-items:flex-end"><button class="btn ghost" id="btnJrSnap" type="button">+ Snapshot</button></div>
+  </div>
+  <div class="frm" style="margin-bottom:10px">
+    <label>Eveniment <select id="jrCapKind"><option value="deposit">Depunere</option><option value="withdraw">Retragere</option></select></label>
+    <label>$ <input id="jrCapAmt" type="number" min="1" step="1"></label>
+    <label>Notă <input id="jrCapNote" placeholder="Transfer"></label>
+    <div style="display:flex;align-items:flex-end"><button class="btn ghost" id="btnJrCap" type="button">+ Eveniment</button></div>
+  </div>
+  <div id="jrSnapTbl"></div>
+  <div id="jrCapTbl" style="margin-top:10px"></div>
+  <p class="note">Click pe rândurile din drill-down pentru detalii. Snapshot = total cont; drift compară Sim (journal) vs ultimul snapshot.</p>
+</section>
+
+</div><!-- /jpaneCapital -->
 
 </div><!-- /.cap-wrap -->
 
@@ -910,6 +954,85 @@ $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
 });
 function fmtUsd0(v){ return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
+let capDrillOpen = new Set();
+let jTab = 'desk';
+
+function calcUnrealizedTotal(){
+  let tot = 0, n = 0;
+  JR.all().filter(isOpenE).forEach(e => {
+    const mk = JR.markPriceFor ? JR.markPriceFor(e, openPriceCache) : null;
+    const u = mk && JR.unrealizedPnl ? JR.unrealizedPnl(e, mk.price) : null;
+    if (u != null) { tot += u; n++; }
+  });
+  return { tot, n };
+}
+
+function capTradeLineHtml(e){
+  const p = JR.pnl(e), r = JR.rMult(e);
+  const win = p != null && p >= 0;
+  return '<div class="cap-line"><span style="color:var(--t3)">' + (e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—') + '</span><b>' + esc(e.sym) + '</b><span>' + (p != null ? (p >= 0 ? '+' : '') + fmtUsd0(p) : '—') + '</span>' + (r != null ? '<span class="' + (r >= 0 ? 'pos' : 'neg') + '">' + (r >= 0 ? '+' : '') + r.toFixed(2) + 'R</span>' : '') + '</div>';
+}
+
+function renderCapitalDrill(){
+  const el = $('capDrill');
+  if (!el || !window.EQ) { if (el) el.innerHTML = '—'; return; }
+  const base = EQ.baseline();
+  const realized = EQ.realizedTotal();
+  const caps = EQ.capitalEvents();
+  const capNet = caps.reduce((s, c) => s + (c.kind === 'withdraw' ? -c.amountUsd : c.amountUsd), 0);
+  const dd = EQ.drawdownStats();
+  const drift = EQ.drift();
+  const unreal = calcUnrealizedTotal();
+  const acct = window.ACCT ? ACCT.get().value : (window.GV ? GV.cfg().accountSize : null);
+  const closed = JR.all().filter(e => e && e.exit != null).sort((a, b) => (b.closeTs || 0) - (a.closeTs || 0));
+  const openRows = JR.all().filter(isOpenE);
+
+  const rows = [
+    { id: 'base', lbl: 'Baseline (primul snapshot)', val: base.value, sign: '', det: base.source === 'snapshot' ? 'Snapshot ' + (base.day || '—') + (base.note ? ' · ' + base.note : '') : 'Cont manual / governor — adaugă snapshot ★' },
+    { id: 'pnl', lbl: 'PnL realizat (închis)', val: realized, sign: realized >= 0 ? '+' : '', det: closed.length ? closed.slice(0, 20).map(capTradeLineHtml).join('') + (closed.length > 20 ? '<p class="note">+' + (closed.length - 20) + ' mai vechi…</p>' : '') : '<span class="note">Nicio execuție închisă</span>' },
+    { id: 'cev', lbl: 'Evenimente capital (net)', val: capNet, sign: capNet >= 0 ? '+' : '', det: caps.length ? caps.map(c => '<div class="cap-line"><span>' + esc(c.day) + '</span><b>' + (c.kind === 'withdraw' ? 'Retragere' : 'Depunere') + '</b><span class="' + (c.kind === 'withdraw' ? 'neg' : 'pos') + '">' + fmtUsd0(c.amountUsd) + '</span></div>').join('') : '<span class="note">Niciun eveniment — adaugă depuneri/retrageri</span>' },
+    { id: 'sim', lbl: '= Simulat (curbă journal)', val: dd.current, sign: '', sum: true },
+    { id: 'snap', lbl: 'Snapshot Trade212 (ultim)', val: drift.snapshot ? drift.snapshot.equity : null, sign: '', det: drift.snapshot ? 'Înregistrat ' + drift.snapshot.day + (drift.snapshot.note ? ' · ' + esc(drift.snapshot.note) : '') : 'Lipsește — pune totalul din app' },
+    { id: 'drf', lbl: 'Drift (Sim − Snap)', val: drift.driftUsd, sign: drift.driftUsd != null && drift.driftUsd >= 0 ? '+' : '', warn: drift.warn, det: 'Sub 2% = OK. Peste = journal incomplet, snapshot vechi, sau poziții open (vezi mai jos).' },
+    { id: 'unr', lbl: 'Nerealizat (open, nu în Sim)', val: unreal.tot, sign: unreal.tot >= 0 ? '+' : '', det: openRows.length ? openRows.map(e => {
+      const mk = JR.markPriceFor ? JR.markPriceFor(e, openPriceCache) : null;
+      const u = mk && JR.unrealizedPnl ? JR.unrealizedPnl(e, mk.price) : null;
+      return '<div class="cap-line"><b>' + esc(e.sym) + '</b><span>' + (u != null ? (u >= 0 ? '+' : '') + fmtUsd0(u) : 'refresh preț') + '</span></div>';
+    }).join('') : '<span class="note">Nicio poziție open</span>' },
+    { id: 'est', lbl: '= Estimat total (Sim + open)', val: dd.current + unreal.tot, sign: '', sum: true, det: 'Asta se apropie de totalul Trade212 dacă prețurile live sunt OK.' },
+    { id: 'acct', lbl: 'Cont $ (Risk Desk)', val: acct, sign: '', det: 'Folosit la % risc / buget zilnic — <a href="#desk" data-jtab-link="desk" style="color:var(--accent)">Desk → Preia din snapshot</a>' }
+  ];
+
+  let html = '<table><thead><tr><th class="l">Componentă</th><th>Valoare</th><th></th></tr></thead><tbody>';
+  rows.forEach((r, i) => {
+    if (r.val == null && r.id !== 'drf') {
+      html += '<tr><td class="l">' + esc(r.lbl) + '</td><td class="wrn">—</td><td></td></tr>';
+      return;
+    }
+    const opened = capDrillOpen.has(r.id);
+    const v = r.val != null ? r.val : 0;
+    const cls = r.warn ? 'wrn' : (r.sum ? '' : (v >= 0 ? 'pos' : 'neg'));
+    const disp = r.id === 'drf' && drift.driftUsd == null ? '—' : (r.sign && v !== 0 ? r.sign : '') + fmtUsd0(v);
+    html += '<tr data-cap-row="' + r.id + '" data-cap-idx="' + i + '" class="' + (r.sum ? 'cap-sum' : '') + '"><td class="l"><span style="color:var(--t3)">' + (r.det ? (opened ? '▾' : '▸') + ' ' : '') + '</span>' + esc(r.lbl) + '</td><td class="' + cls + '">' + disp + (r.id === 'drf' && drift.driftPct != null ? ' <span class="note">(' + (drift.driftPct >= 0 ? '+' : '') + drift.driftPct.toFixed(1) + '%)</span>' : '') + '</td><td></td></tr>';
+    if (r.det) html += '<tr class="cap-drill-det" data-cap-det="' + r.id + '" style="display:' + (opened ? '' : 'none') + '"><td colspan="3">' + r.det + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+  el.querySelectorAll('[data-cap-row]').forEach(row => {
+    const id = row.dataset.capRow;
+    const det = el.querySelector('[data-cap-det="' + id + '"]');
+    if (!det) return;
+    row.addEventListener('click', () => {
+      const show = det.style.display === 'none';
+      det.style.display = show ? '' : 'none';
+      const arrow = row.querySelector('span');
+      if (arrow && arrow.textContent.match(/[▸▾]/)) arrow.textContent = (show ? '▾' : '▸') + ' ';
+      if (show) capDrillOpen.add(id); else capDrillOpen.delete(id);
+    });
+  });
+  el.querySelectorAll('[data-jtab-link]').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); setJTab(a.dataset.jtabLink); }));
+}
+
 function renderCapitalPanel(){
   if (!window.EQ) {
     $('capDriftTxt').textContent = 'Modul equity indisponibil — reîncarcă pagina.';
@@ -920,12 +1043,30 @@ function renderCapitalPanel(){
   $('capBaseLine').textContent = base.source === 'snapshot'
     ? 'Baseline ' + fmtUsd0(base.value) + ' · snapshot ' + base.day + ' + PnL închis + capital'
     : 'Baseline ' + fmtUsd0(base.value) + ' · cont risc — adaugă primul snapshot Trade212';
+  const unreal = calcUnrealizedTotal();
+  const dd = EQ.drawdownStats();
+  if ($('capHero')) {
+    $('capHero').innerHTML = [
+      { l: 'SIMULAT', v: fmtUsd0(dd.current), c: '' },
+      { l: 'SNAPSHOT', v: drift.snapshot ? fmtUsd0(drift.snapshot.equity) : '—', c: drift.stale ? 'wrn' : '' },
+      { l: 'DRIFT', v: drift.driftPct != null ? (drift.driftPct >= 0 ? '+' : '') + drift.driftPct.toFixed(1) + '%' : '—', c: drift.warn ? 'wrn' : 'pos' },
+      { l: 'NEREALIZAT', v: unreal.n ? (unreal.tot >= 0 ? '+' : '') + fmtUsd0(unreal.tot) : '—', c: '' },
+      { l: 'ESTIMAT', v: fmtUsd0(dd.current + unreal.tot), c: 'accent' }
+    ].map(x => {
+      const st = x.c === 'accent' ? ' style="color:var(--accent)"' : '';
+      const cls = x.c && x.c !== 'accent' ? ' ' + x.c : '';
+      return '<div class="scard"><div class="lbl">' + x.l + '</div><div class="val' + cls + '"' + st + '>' + x.v + '</div></div>';
+    }).join('');
+  }
+  const tw = $('jrTabCapWarn');
+  if (tw) tw.style.display = drift.warn ? '' : 'none';
   if (drift.snapshot) {
     const cls = drift.warn ? 'wrn' : 'pos';
-    $('capDriftTxt').innerHTML = 'Sim <b>' + fmtUsd0(drift.simulated) + '</b> vs snap <b>' + fmtUsd0(drift.snapshot.equity) + '</b> (' + drift.snapshot.day + ') · <span class="' + cls + '">' + (drift.driftUsd >= 0 ? '+' : '') + fmtUsd0(drift.driftUsd) + ' (' + (drift.driftPct >= 0 ? '+' : '') + drift.driftPct.toFixed(1) + '%)</span>' + (drift.stale ? ' · snapshot vechi ' + drift.snapshotAgeDays + 'z' : '');
+    $('capDriftTxt').innerHTML = 'Sim <b>' + fmtUsd0(drift.simulated) + '</b> vs snap <b>' + fmtUsd0(drift.snapshot.equity) + '</b> (' + drift.snapshot.day + ') · <span class="' + cls + '">' + (drift.driftUsd >= 0 ? '+' : '') + fmtUsd0(drift.driftUsd) + ' (' + (drift.driftPct >= 0 ? '+' : '') + drift.driftPct.toFixed(1) + '%)</span>' + (drift.stale ? ' · snapshot vechi ' + drift.snapshotAgeDays + 'z' : '') + ' · click rânduri pentru detalii.';
   } else {
-    $('capDriftTxt').innerHTML = '<span class="wrn">Fără snapshot Trade212 — drift indisponibil.</span>';
+    $('capDriftTxt').innerHTML = '<span class="wrn">Fără snapshot Trade212 — adaugă totalul din app mai jos.</span>';
   }
+  renderCapitalDrill();
   const snaps = EQ.snapshots().sort((a, b) => b.ts - a.ts);
   const fs = EQ.firstSnapshot();
   $('jrSnapTbl').innerHTML = snaps.length
@@ -965,7 +1106,7 @@ $('btnJrCap') && $('btnJrCap').addEventListener('click', () => {
 
 $('btnAcctSnap') && $('btnAcctSnap').addEventListener('click', () => {
   const snap = window.EQ && EQ.lastSnapshot ? EQ.lastSnapshot() : null;
-  if (!snap) { alert('Niciun snapshot. Scroll la Capital → + Snapshot cu equity real din Trade212.'); return; }
+  if (!snap) { alert('Niciun snapshot. Tab Capital → + Snapshot cu total Trade212.'); return; }
   $('cAcct').value = snap.equity;
   GV.saveCfg({ accountSize: +snap.equity });
   if (window.ACCT) ACCT.syncAll(+snap.equity, 'snapshot');
@@ -1080,12 +1221,40 @@ else if (JR.syncAllFromTracker && JR.reconcileTracker) {
   const rec = JR.reconcileTracker();
   if (!rec.ok) JR.syncAllFromTracker();
 }
+function setJTab(name){
+  const valid = { desk: 1, exec: 1, capital: 1 };
+  if (!valid[name]) name = 'desk';
+  jTab = name;
+  document.querySelectorAll('.jr-tab').forEach(t => {
+    const on = t.dataset.jtab === name;
+    t.classList.toggle('active', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  document.querySelectorAll('.jr-pane').forEach(p => p.classList.toggle('active', p.dataset.jpane === name));
+  document.querySelectorAll('.cap-nav-item[data-jtab-link]').forEach(a => a.classList.toggle('active', a.dataset.jtabLink === name));
+  if (location.hash !== '#' + name) {
+    try { history.replaceState(null, '', '#' + name); } catch (e) { location.hash = name; }
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.querySelectorAll('.jr-tab').forEach(t => t.addEventListener('click', () => setJTab(t.dataset.jtab)));
+document.querySelectorAll('[data-jtab-link]').forEach(a => a.addEventListener('click', ev => {
+  const tab = a.dataset.jtabLink;
+  if (!tab) return;
+  ev.preventDefault();
+  setJTab(tab);
+}));
+
 renderReconcileChip();
 renderAll();
-if (location.hash === '#desk' || location.hash === '#capital') {
-  const el = document.getElementById(location.hash.slice(1));
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function hashToJTab(h){
+  const x = (h || '').replace('#', '');
+  if (x === 'capital' || x === 'exec' || x === 'desk') return x;
+  if (x === 'journal') return 'exec';
+  return 'desk';
 }
+setJTab(hashToJTab(location.hash));
+window.addEventListener('hashchange', () => setJTab(hashToJTab(location.hash)));
 setInterval(renderDesk, 60000);
 setTimeout(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 500);
 setInterval(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 60000);
@@ -1097,8 +1266,8 @@ if (window.CD && CD.initListener) CD.initListener(renderAll);
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v577';
-  var full = window.SUITE_VERSION || 'tt-v577-2026-07-10';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v578';
+  var full = window.SUITE_VERSION || 'tt-v578-2026-07-10';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });
