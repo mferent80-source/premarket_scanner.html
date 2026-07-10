@@ -8,8 +8,8 @@
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=578">
-<script src="../lib/suite-version.js?v=578"></script>
+<link rel="stylesheet" href="../lib/capital-ui.css?v=592">
+<script src="../lib/suite-version.js?v=592"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -288,6 +288,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
   </details>
 </section>
 
+<section class="desk-macro-rail panel" id="deskMacroRail" aria-label="Macro context"></section>
+
 <div id="ddAlertHost"></div>
 
 <div class="panel desk-scorecard">
@@ -494,6 +496,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/governor.js?v=7"></script>
+<script src="../lib/macro-context.js?v=592"></script>
+<script src="../lib/desk-macro-rail.js?v=592"></script>
 <script src="../lib/equity.js?v=9"></script>
 <script src="../lib/capital-desk.js?v=9"></script>
 <script src="../lib/data.js"></script>
@@ -1057,6 +1061,7 @@ function renderDesk(){
       return '<tr><td class="l">' + esc(e.sym) + '</td><td>' + st + '</td><td class="' + (p==null?'':p>=0?'pos':'neg') + '">' + (p!=null?(p>=0?'+':'')+'$'+p.toFixed(2):'—') + '</td><td>' + esc(e.source||'?') + '</td></tr>';
     }).join('') + '</table>' : '<p class="note">Nicio execuție azi în journal.</p>';
   if (s.verdict === 'HALTED') GV.maybeNotifyHalted(s);
+  if (window.DMR && DMR.render) DMR.render();
 }
 function loadGovCfg(){
   if (!window.GV) return;

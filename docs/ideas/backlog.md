@@ -164,7 +164,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-156 | R săptămână în strip contextual | journal/ | S | P2 | făcut | user | 2026-07-10 |
 | I-157 | Hub card grid Journal-centric | index.html | M | P1 | făcut | user | 2026-07-10 |
 | I-158 | Hub strip Journal + deck compact + cockpit fold | index.html + hub-brief.js | M | P1 | făcut | user | 2026-07-10 |
-| I-159 | Macro Rail în Journal Desk (context-only) | journal/ + lib/macro-context.js | M | P1 | aprobat | user | 2026-07-10 |
+| I-159 | Macro Rail în Journal Desk (context-only) | journal/ + lib/macro-context.js | M | P1 | făcut | user | 2026-07-10 |
 
 ## Mini-spec-uri
 
