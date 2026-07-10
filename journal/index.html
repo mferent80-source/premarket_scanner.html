@@ -163,7 +163,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v579</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v579</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v580</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v580</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -286,16 +286,6 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <div id="openUnrealSum" style="font-family:var(--mono);font-size:10px;color:var(--t3);margin:-4px 0 8px"></div>
   <div id="errBanner" style="display:none;background:rgba(255,77,77,.15);border:1px solid var(--bear-s);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--bear-s)"></div>
   <div id="tblWrap"><div class="empty">—</div></div>
-</div>
-
-<div class="panel">
-  <h2>📥 Import webhook / paste</h2>
-  <textarea id="pasteIngest" style="width:100%;min-height:72px;background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono);font-size:11px" placeholder='{"sym":"NVDA","entry":142,"exit":145,"size":10} — câte o linie JSON'></textarea>
-  <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn ghost" id="btnIngest" type="button">Import linii JSON</button>
-    <button class="btn ghost" id="btnGistSync" type="button">Sync webhook gist</button>
-  </div>
-  <p class="note">Gist URL în <code>tt_journal_gist_url</code> (raw JSON). Pine → worker → gist → sync aici.</p>
 </div>
 
 <div class="panel">
@@ -1115,21 +1105,6 @@ $('btnAcctSnap') && $('btnAcctSnap').addEventListener('click', () => {
   renderDesk();
   alert('Cont $ setat la $' + snap.equity.toFixed(0) + ' (snapshot ' + snap.day + '). Baseline curbă = primul snapshot; sizing risc folosește contul curent.');
 });
-$('btnIngest') && $('btnIngest').addEventListener('click', () => {
-  const n = JR.ingestText($('pasteIngest').value);
-  alert(n + ' execuții importate');
-  $('pasteIngest').value = '';
-  renderAll();
-});
-$('btnGistSync') && $('btnGistSync').addEventListener('click', () => {
-  const url = localStorage.getItem('tt_journal_gist_url');
-  if (!url) { alert('Lipsește tt_journal_gist_url în localStorage — setează URL-ul raw al gist-ului.'); return; }
-  $('btnGistSync').disabled = true;
-  JR.syncFromGist(url).then(n => {
-    alert(n + ' execuții sincronizate din gist');
-    renderAll();
-  }).catch(e => alert('Eroare sync gist: ' + (e.message || e))).finally(() => { $('btnGistSync').disabled = false; });
-});
 $('btnDeskRefresh') && $('btnDeskRefresh').addEventListener('click', renderDesk);
 $('btnTgTest') && $('btnTgTest').addEventListener('click', async () => {
   if (!window.TG) { alert('Telegram nu e încărcat'); return; }
@@ -1182,7 +1157,7 @@ function prefillFromQuery(){
   if (pf.source || pf.src) $('fSrc').value = pf.source || pf.src;
   if (pf.notes || pf.note) $('fNotes').value = pf.notes || pf.note || '';
   if (pf.tags) renderTagRow(Array.isArray(pf.tags) ? pf.tags : []);
-  $('frmTitle').textContent = '➕ Execuție pre-completată (ledger/webhook)';
+  $('frmTitle').textContent = '➕ Execuție pre-completată (scanner/ledger)';
   showPrefillGate();
 }
 
@@ -1268,8 +1243,8 @@ if (window.CD && CD.initListener) CD.initListener(renderAll);
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v579';
-  var full = window.SUITE_VERSION || 'tt-v579-2026-07-10';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v580';
+  var full = window.SUITE_VERSION || 'tt-v580-2026-07-10';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });
