@@ -1,4 +1,4 @@
-/* hub-ui.css v565 — cockpit hub (I-138) */
+/* hub-ui.css v586 — cockpit hub wide layout */
 
 .hub-shell {
   display: flex;
@@ -104,7 +104,7 @@
   grid-column: 1;
   margin: 0 !important;
   font-size: 13px !important;
-  max-width: 520px;
+  max-width: min(720px, 100%);
   color: var(--t3);
 }
 
@@ -206,6 +206,15 @@
   }
 }
 
+@media (min-width: 1400px) {
+  .hub-deck {
+    grid-template-columns: repeat(8, 1fr);
+  }
+  .hub-deck .hub-market {
+    grid-column: span 2;
+  }
+}
+
 /* ── Cockpit ── */
 .hub-cockpit {
   border-radius: 16px;
@@ -281,6 +290,20 @@
 .hub-shell .wf-grid {
   grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
   gap: 12px;
+}
+
+@media (min-width: 1280px) {
+  .hub-shell .wf-grid {
+    grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+    gap: 14px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .hub-shell .wf-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
 }
 
 .hub-shell .card {
