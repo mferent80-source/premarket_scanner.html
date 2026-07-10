@@ -163,6 +163,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-155 | Export CSV execuții din header Journal | journal/ | S | P2 | făcut | user | 2026-07-10 |
 | I-156 | R săptămână în strip contextual | journal/ | S | P2 | făcut | user | 2026-07-10 |
 | I-157 | Hub card grid Journal-centric | index.html | M | P1 | făcut | user | 2026-07-10 |
+| I-158 | Hub strip Journal + deck compact + cockpit fold | index.html + hub-brief.js | M | P1 | făcut | user | 2026-07-10 |
 
 ## Mini-spec-uri
 

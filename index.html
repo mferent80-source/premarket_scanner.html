@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=587"></script>
+<script src="lib/suite-version.js?v=588"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=587">
+<link rel="stylesheet" href="lib/hub-ui.css?v=588">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -386,8 +386,10 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .hub-health-pill.ok{border-color:rgba(34,214,107,.35);color:var(--green)}
 .hub-health-pill.warn{border-color:rgba(212,137,44,.35);color:#d4892c}
 .hub-health-pill.err{border-color:rgba(255,77,77,.35);color:#ff4d4d}
-.hub-cmd{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:12px 0;grid-column:1/-1}
-@media(max-width:900px){.hub-cmd{grid-template-columns:repeat(3,1fr)}}
+.hub-cmd{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0;grid-column:1/-1}
+.hub-cmd-slim .hub-cmd-val{font-size:15px}
+.hub-cmd-slim .hub-cmd-cell{padding:8px 10px}
+@media(max-width:900px){.hub-cmd{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:550px){.hub-cmd{grid-template-columns:1fr 1fr}}
 .hub-cmd-cell{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--b1);border-radius:10px;padding:10px 12px;position:relative;overflow:hidden}
 .hub-cmd-cell::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--indigo,#5bb0ff)}
@@ -611,43 +613,44 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     <a href="./guide/">📖 Guide</a>
   </nav>
 
-  <!-- DASHBOARD: command deck + piață + watchlist -->
-  <section class="dash hub-deck" id="dashWidgets">
-    <div class="hub-cmd" id="hubCmd"><div class="hub-cmd-cell lvl-neut"><div class="hub-cmd-lbl">Desk</div><div class="hub-cmd-val">⏳</div></div></div>
-    <div class="widget hub-market" id="wSPY">
-      <div class="w-lbl">SPY (S&amp;P 500)</div>
-      <div class="w-val" id="spyVal">—</div>
-      <div class="w-sub" id="spySub">se încarcă…</div>
+  <div class="hub-jr-strip" id="hubJrStrip" aria-label="Journal status"></div>
+
+  <!-- Deck compact: Router GO + piață + aux -->
+  <section class="dash hub-deck hub-deck-v2" id="dashWidgets">
+    <div class="hub-cmd hub-cmd-slim" id="hubCmd"><div class="hub-cmd-cell lvl-neut"><div class="hub-cmd-lbl">GO</div><div class="hub-cmd-val">⏳</div></div></div>
+    <div class="hub-mkt-row">
+      <div class="hub-mkt-pill hub-market" id="wSPY">
+        <span class="hub-mkt-sym">SPY</span>
+        <span class="hub-mkt-val" id="spyVal">—</span>
+        <span class="hub-mkt-sub" id="spySub">…</span>
+      </div>
+      <div class="hub-mkt-pill hub-market" id="wQQQ">
+        <span class="hub-mkt-sym">QQQ</span>
+        <span class="hub-mkt-val" id="qqqVal">—</span>
+        <span class="hub-mkt-sub" id="qqqSub">…</span>
+      </div>
+      <div class="hub-mkt-pill hub-market" id="wVIX">
+        <span class="hub-mkt-sym">VIX</span>
+        <span class="hub-mkt-val" id="vixVal">—</span>
+        <span class="hub-mkt-sub" id="vixSub">…</span>
+      </div>
     </div>
-    <div class="widget hub-market" id="wQQQ">
-      <div class="w-lbl">QQQ (Nasdaq 100)</div>
-      <div class="w-val" id="qqqVal">—</div>
-      <div class="w-sub" id="qqqSub">se încarcă…</div>
-    </div>
-    <div class="widget hub-market" id="wVIX">
-      <div class="w-lbl">VIX (volatilitate)</div>
-      <div class="w-val" id="vixVal">—</div>
-      <div class="w-sub" id="vixSub">se încarcă…</div>
-    </div>
-    <div class="widget" id="wAlerts" style="display:none;cursor:pointer" onclick="location.href='alerts/'" title="Alerte de preț armate (din pagina Alerts) — click">
-      <div class="w-lbl">🔔 Alerte active</div>
-      <div class="w-val" id="alertsVal">—</div>
-      <div class="w-sub" id="alertsSub">preț armate</div>
-    </div>
-    <div class="widget" id="wWL">
-      <div class="w-lbl">⭐ Watchlist total</div>
-      <div class="w-val" id="wlVal">—</div>
-      <div class="w-sub" id="wlSub">salvat local</div>
-    </div>
-    <div class="widget" id="wWLBreakdown">
-      <div class="w-lbl">Breakdown</div>
-      <div class="w-val" id="wlBreakdownVal" style="font-size:14px;line-height:1.4;font-weight:700">—</div>
-      <div class="w-sub" id="wlBreakdownSub">click → spre pagina respectivă</div>
-    </div>
-    <div class="widget" id="wSession">
-      <div class="w-lbl" id="sessionLbl">Trading session</div>
-      <div class="w-val" id="sessionVal" style="font-size:18px">—</div>
-      <div class="w-sub" id="sessionSub">se calculează…</div>
+    <div class="hub-aux-row">
+      <div class="hub-aux-pill" id="wAlerts" style="display:none;cursor:pointer" onclick="location.href='alerts/'" title="Alerte preț armate">
+        <span class="hub-aux-lbl">🔔 Alerte</span>
+        <span class="hub-aux-val" id="alertsVal">—</span>
+        <span class="hub-aux-sub" id="alertsSub">—</span>
+      </div>
+      <div class="hub-aux-pill" id="wWL">
+        <span class="hub-aux-lbl">⭐ WL</span>
+        <span class="hub-aux-val" id="wlVal">—</span>
+        <span class="hub-aux-sub" id="wlSub">—</span>
+      </div>
+      <div class="hub-aux-pill" id="wWLBreakdown">
+        <span class="hub-aux-lbl">Breakdown</span>
+        <span class="hub-aux-val hub-aux-val-sm" id="wlBreakdownVal">—</span>
+        <span class="hub-aux-sub" id="wlBreakdownSub">—</span>
+      </div>
     </div>
   </section>
 
@@ -676,7 +679,9 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 
   <div id="hubFreezeTop" class="hub-freeze-top"></div>
   <div id="hubRiskBanner" class="hub-freeze-top" style="display:none"></div>
-  <section class="hub-cockpit" id="hubCockpit">
+  <details class="hub-cockpit-fold" id="hubCockpitWrap">
+    <summary class="hub-cockpit-sum" id="hubCockpitSum">☀️ Morning — se încarcă…</summary>
+  <section class="hub-cockpit hub-cockpit-inner" id="hubCockpit">
     <div>
       <div class="hub-cockpit-lbl">☀️ MORNING COCKPIT — azi tradez?</div>
       <div class="hub-strat" id="hubStrat">se evaluează…</div>
@@ -700,6 +705,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
       <a href="./journal/">📓 Journal</a>
     </div>
   </section>
+  </details>
 
   <!-- TODAY'S PLAYBOOK — absorbit din pagina playbook (retrasă); lazy-load la primul expand -->
   <details class="pb-wrap" id="pbWrap">
@@ -1194,6 +1200,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 <script src="lib/ledger.js"></script>
 <script src="lib/finnhub-key.js?v=565"></script>
 <script src="lib/journal.js?v=10"></script>
+<script src="lib/journal-insights.js?v=587"></script>
 <script src="lib/tracker.js?v=2"></script>
 <script src="lib/telegram.js"></script>
 <script src="lib/capital-time.js?v=575"></script>
@@ -1284,7 +1291,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
       const q = await fetchQuote(sym);
       $(valEl).textContent = fmt(q.price);
       $(subEl).innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
-      $(subEl).className = 'w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
+      $(subEl).className = 'hub-mkt-sub w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
       stashMkt(sym, q);
     } catch (e) {
       $(subEl).textContent = 'indisponibil';
@@ -1299,6 +1306,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
       $('vixVal').textContent = fmtVix(q.price);
       const cls = q.price >= 25 ? 'w-neg' : q.price >= 18 ? '' : 'w-pos';
       $('vixSub').innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
+      $('vixSub').className = 'hub-mkt-sub w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
       $('vixVal').classList.add(cls);
       stashMkt('VIX', q);
     } catch (e) {
@@ -1471,10 +1479,9 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
       const minsUntilTomorrowPre = (24 * 60 - minutesNow) + PRE_OPEN;
       sub = 'Pre-market in ' + Math.floor(minsUntilTomorrowPre / 60) + 'h';
     }
-    $('sessionLbl').textContent = label;
-    $('sessionVal').textContent = value;
-    $('sessionVal').style.color = color || '';
-    $('sessionSub').textContent = sub;
+    if ($('sessionLbl')) $('sessionLbl').textContent = label;
+    if ($('sessionVal')) { $('sessionVal').textContent = value; $('sessionVal').style.color = color || ''; }
+    if ($('sessionSub')) $('sessionSub').textContent = sub;
   }
   updateSessionTimer();
   setInterval(updateSessionTimer, 1000); // tick fiecare secundă
