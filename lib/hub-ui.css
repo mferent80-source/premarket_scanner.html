@@ -1,4 +1,4 @@
-/* hub-ui.css v586 — cockpit hub wide layout */
+/* hub-ui.css v587 — cockpit hub journal-centric cards */
 
 .hub-shell {
   display: flex;
@@ -386,6 +386,64 @@
 /* ── Legacy section subdued ── */
 .hub-shell .wf-section[data-wf="legacy"] .wf-head {
   opacity: 0.65;
+}
+
+/* ── Journal hub cards (I-157) ── */
+.hub-shell .wf-section[data-wf="journal"] {
+  margin-top: 12px;
+}
+
+.hub-shell .wf-section[data-wf="journal"] .wf-head {
+  color: #c4b5fd;
+}
+
+.hub-shell .wf-grid-journal .card-hero {
+  grid-column: 1 / -1;
+  border-color: rgba(167, 139, 250, 0.35);
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(34, 214, 107, 0.06));
+}
+
+.hub-shell .card-jtab {
+  padding: 12px 14px 11px;
+  gap: 6px;
+}
+
+.hub-shell .card-jtab .card-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 17px;
+  border-radius: 9px;
+}
+
+.hub-shell .card-jtab .card-title {
+  font-size: 15px;
+}
+
+.hub-shell .card-jtab .card-desc {
+  font-size: 11px;
+  -webkit-line-clamp: 2;
+}
+
+.hub-shell .card-jtab .features,
+.hub-shell .card-jtab .card-cta .arrow {
+  display: none;
+}
+
+.hub-shell .card-jtab .card-cta {
+  padding-top: 6px;
+  margin-top: 0;
+  border-top: none;
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+@media (min-width: 900px) {
+  .hub-shell .wf-grid-journal {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .hub-shell .wf-grid-journal .card-hero {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 720px) {

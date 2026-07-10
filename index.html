@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=586"></script>
+<script src="lib/suite-version.js?v=587"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=586">
+<link rel="stylesheet" href="lib/hub-ui.css?v=587">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -432,8 +432,12 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .wf-head{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--b1)}
 .wf-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
 body[data-hub-mode="pre"] .card[data-phase="review"]{opacity:.55}
+body[data-hub-mode="pre"] .card[data-phase="execute"]{opacity:.75}
 body[data-hub-mode="rth"] .card[data-phase="plan"]{opacity:.85}
+body[data-hub-mode="rth"] .card[data-phase="review"]{opacity:.7}
 body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
+body[data-hub-mode="review"] .card[data-phase="execute"]{opacity:.55}
+body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 .tt-fab.journal-fab{background:linear-gradient(135deg,#a78bfa,#22d66b);box-shadow:0 6px 20px rgba(167,139,250,.35)}
 
 /* === TODAY'S PLAYBOOK (absorbit din pagina playbook, retrasă 2026-06-11) === */
@@ -581,7 +585,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
     </div>
     <h1>Cockpit <span class="accent">stocks</span></h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:4px"></span>
-    <p class="lead">Plan → Scan → Execute → Review. Capital Desk, semnale și execuții într-un singur hub local.</p>
+    <p class="lead">Journal central → Plan → Scan → Review. Desk, execuții, capital și risc într-un singur flux local.</p>
     <p class="hub-hero-crypto">🪙 Crypto → <a href="https://mferent80-source.github.io/scanner/" target="_blank" rel="noopener" style="color:var(--crypto-2);font-weight:600;text-decoration:none;border-bottom:1px dotted var(--crypto-2)">Scanner Hub</a></p>
     <div class="hub-hero-aside">
       <div class="hub-hero-actions">
@@ -791,9 +795,68 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
 
   <main id="hubCards">
 
+  <section class="wf-section" data-wf="journal">
+    <div class="wf-head">📓 Journal & Risk — hub central</div>
+    <div class="wf-grid wf-grid-journal">
+    <a href="./journal/" data-phase="journal" target="ttools-journal" rel="noopener" class="card card-hero" style="--accent:linear-gradient(90deg,#a78bfa,#22d66b); --glow:rgba(167,139,250,.22)">
+      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#22d66b);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">📓</div>
+      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Hub · v585</span>
+      <h2 class="card-title">Journal & Risk Desk</h2>
+      <p class="card-desc">Singurul loc pentru execuții reale: Desk (verdict GO/HALT), Execuții open/închise, Portfolio (risc @ SL, β), Capital (equity + drift). Workspace v2, leak report, export CSV.</p>
+      <div class="features">
+        <span class="feat risk">🛑 Risk Desk</span>
+        <span class="feat risk">🛡️ Portfolio live</span>
+        <span class="feat data">⚖ Capital & drift</span>
+        <span class="feat tool">📥 CSV + leak</span>
+      </div>
+      <div class="card-cta" style="color:#a78bfa">
+        <span>Deschide Journal</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+    <a href="./journal/#desk" data-phase="journal" class="card card-jtab" style="--accent:linear-gradient(90deg,#ff4d4d,#d4892c); --glow:rgba(255,77,77,.15)">
+      <div class="card-icon" style="background:linear-gradient(135deg,#ff4d4d,#d4892c);box-shadow:0 4px 12px rgba(255,77,77,.25);color:#fff;font-size:16px">🛑</div>
+      <h2 class="card-title">Desk</h2>
+      <p class="card-desc">Verdict TRADE/CAUTION/HALTED, scorecard R, limite Governor.</p>
+      <div class="card-cta" style="color:#ff7d6b"><span>Risk Desk →</span></div>
+    </a>
+    <a href="./journal/#exec" data-phase="journal" class="card card-jtab" style="--accent:linear-gradient(90deg,#5bb0ff,#a78bfa); --glow:rgba(91,176,255,.15)">
+      <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#a78bfa);box-shadow:0 4px 12px rgba(91,176,255,.25);color:#fff;font-size:16px">⚡</div>
+      <h2 class="card-title">Execuții</h2>
+      <p class="card-desc">Open/închise, închidere ritual, badge earnings ≤48h.</p>
+      <div class="card-cta" style="color:#5bb0ff"><span>Ledger →</span></div>
+    </a>
+    <a href="./journal/#portfolio" data-phase="journal" class="card card-jtab" style="--accent:linear-gradient(90deg,#22d66b,#5bdcb0); --glow:rgba(34,214,107,.15)">
+      <div class="card-icon" style="background:linear-gradient(135deg,#22d66b,#5bdcb0);box-shadow:0 4px 12px rgba(34,214,107,.25);color:#000;font-size:16px">🛡️</div>
+      <h2 class="card-title">Portfolio</h2>
+      <p class="card-desc">Risc agregat @ SL, sector, β vs QQQ, prețuri live.</p>
+      <div class="card-cta" style="color:var(--green)"><span>Risc live →</span></div>
+    </a>
+    <a href="./journal/#capital" data-phase="journal" class="card card-jtab" style="--accent:linear-gradient(90deg,var(--crypto-1),var(--crypto-2)); --glow:rgba(247,147,26,.15)">
+      <div class="card-icon" style="background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));box-shadow:0 4px 12px rgba(247,147,26,.25);color:#1a1a1a;font-size:16px">⚖</div>
+      <h2 class="card-title">Capital</h2>
+      <p class="card-desc">Equity sim vs snapshot Trade212, drift, evenimente capital.</p>
+      <div class="card-cta" style="color:var(--crypto-2)"><span>Reconciliere →</span></div>
+    </a>
+    </div>
+  </section>
+
   <section class="wf-section" data-wf="plan">
-    <div class="wf-head">📋 Plan — context & risc</div>
+    <div class="wf-head">📋 Plan — gate & context</div>
     <div class="wf-grid">
+<a href="./router/" data-phase="plan" target="ttools-router" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#5bb0ff,#ffd86b); --glow:rgba(91,176,255,.18)">
+      <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#ffd86b);box-shadow:0 4px 14px rgba(91,176,255,.3);color:#0a0a0a">🧭</div>
+      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Pro · v6</span>
+      <h2 class="card-title">Regime Router</h2>
+      <p class="card-desc">Pro Desk: Morning/Deep mode, blockers, timeline sesiune, action rail, counterfactual guards, danger sparkline, playbook sticky.</p>
+      <div class="features">
+        <span class="feat ai">📋 Playbook</span>
+        <span class="feat risk">🎯 GO Score</span>
+        <span class="feat data">📡 Context</span>
+      </div>
+      <div class="card-cta" style="color:#5bb0ff"><span>Deschide Router</span><span class="arrow">→</span></div>
+    </a>
+
 <a href="./macro-dashboard/" data-phase="plan" target="ttools-macro" rel="noopener" class="card" style="--accent:linear-gradient(90deg,var(--crypto-2),#5bb0ff); --glow:rgba(255,216,107,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,var(--crypto-2),#5bb0ff);box-shadow:0 4px 14px rgba(255,216,107,.3);color:#1a1a1a">🌍</div>
       <span class="card-tag" style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.4)">Macro · v221</span>
@@ -830,23 +893,10 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
       </div>
     </a>
 
-    <a href="./router/" data-phase="plan" target="ttools-router" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#5bb0ff,#ffd86b); --glow:rgba(91,176,255,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#ffd86b);box-shadow:0 4px 14px rgba(91,176,255,.3);color:#0a0a0a">🧭</div>
-      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Pro · v6</span>
-      <h2 class="card-title">Regime Router</h2>
-      <p class="card-desc">Pro Desk: Morning/Deep mode, blockers, timeline sesiune, action rail, counterfactual guards, danger sparkline, playbook sticky.</p>
-      <div class="features">
-        <span class="feat ai">📋 Playbook</span>
-        <span class="feat risk">🎯 GO Score</span>
-        <span class="feat data">📡 Context</span>
-      </div>
-      <div class="card-cta" style="color:#5bb0ff"><span>Deschide Router</span><span class="arrow">→</span></div>
-    </a>
-
         </div>
   </section>
   <section class="wf-section" data-wf="scan">
-    <div class="wf-head">🔍 Scan — oportunități</div>
+    <div class="wf-head">🔍 Scan — setup & watchlist</div>
     <div class="wf-grid">
 <a href="./nasdaq-scanner/" data-phase="scan" target="ttools-nasdaq" rel="noopener" class="card nasdaq" data-phase="scan">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('nasdaq')" title="Vezi toate funcționalitățile">ℹ</button>
@@ -866,25 +916,6 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
       </div>
       <div class="card-cta">
         <span>Deschide scanner</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./earnings-hub/" data-phase="scan" target="ttools-earnings" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a855f7,#ec4899); --glow:rgba(168,85,247,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a855f7,#ec4899);box-shadow:0 4px 14px rgba(168,85,247,.3);color:#fff">📅</div>
-      <span class="card-tag" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3)">Earnings · v141</span>
-      <h2 class="card-title">Earnings Hub</h2>
-      <p class="card-desc">Calendar earnings 30 zile cu EPS history (8 trim.), AI verdict beats/misses,
-        insider clusters pre-earnings + reaction bias istoric. Alerte -48h pe watchlist (notif/sunet/Telegram).</p>
-      <div class="features">
-        <span class="feat data">📅 Calendar 30d Finnhub</span>
-        <span class="feat data">📊 EPS history + reacții</span>
-        <span class="feat ai">🧠 AI verdict 5 tier-uri</span>
-        <span class="feat alert">⏰ Alerte ≤48h watchlist</span>
-        <span class="feat data">👔 Insider 30z pre-earnings</span>
-      </div>
-      <div class="card-cta" style="color:#a855f7">
-        <span>Deschide Earnings Hub</span>
         <span class="arrow">→</span>
       </div>
     </a>
@@ -909,7 +940,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
       </div>
     </a>
 
-    <a href="./watchlist-monitor/" data-phase="scan" target="ttools-watchlist" rel="noopener" class="card journal" data-phase="scan" style="--accent:linear-gradient(90deg,var(--green),#5bdcb0); --glow:rgba(34,214,107,.18)">
+    <a href="./watchlist-monitor/" data-phase="scan" target="ttools-watchlist" rel="noopener" class="card" data-phase="scan" style="--accent:linear-gradient(90deg,var(--green),#5bdcb0); --glow:rgba(34,214,107,.18)">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('watchlist')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon" style="background:linear-gradient(135deg,var(--green),#5bdcb0);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#000">👁️</div>
       <span class="card-tag" style="background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)">Watchlist · v151</span>
@@ -926,6 +957,25 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
       </div>
       <div class="card-cta" style="color:var(--green)">
         <span>Deschide watchlist</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a href="./earnings-hub/" data-phase="scan" target="ttools-earnings" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a855f7,#ec4899); --glow:rgba(168,85,247,.18)">
+      <div class="card-icon" style="background:linear-gradient(135deg,#a855f7,#ec4899);box-shadow:0 4px 14px rgba(168,85,247,.3);color:#fff">📅</div>
+      <span class="card-tag" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3)">Earnings · v141</span>
+      <h2 class="card-title">Earnings Hub</h2>
+      <p class="card-desc">Calendar earnings 30 zile cu EPS history (8 trim.), AI verdict beats/misses,
+        insider clusters pre-earnings + reaction bias istoric. Alerte -48h pe watchlist (notif/sunet/Telegram).</p>
+      <div class="features">
+        <span class="feat data">📅 Calendar 30d Finnhub</span>
+        <span class="feat data">📊 EPS history + reacții</span>
+        <span class="feat ai">🧠 AI verdict 5 tier-uri</span>
+        <span class="feat alert">⏰ Alerte ≤48h watchlist</span>
+        <span class="feat data">👔 Insider 30z pre-earnings</span>
+      </div>
+      <div class="card-cta" style="color:#a855f7">
+        <span>Deschide Earnings Hub</span>
         <span class="arrow">→</span>
       </div>
     </a>
@@ -991,7 +1041,7 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
         </div>
   </section>
   <section class="wf-section" data-wf="execute">
-    <div class="wf-head">⚡ Execute — poziții & alerte</div>
+    <div class="wf-head">🔔 Alerte — în sesiune</div>
     <div class="wf-grid">
 <a href="./alerts/" data-phase="execute" target="ttools-alerts" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#d4892c,#ffd86b); --glow:rgba(212,137,44,.20)">
       <div class="card-icon" style="background:linear-gradient(135deg,#d4892c,#ffd86b);box-shadow:0 4px 14px rgba(212,137,44,.3);color:#1a1a1a">🔔</div>
@@ -1010,45 +1060,11 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
       </div>
     </a>
 
-    <a href="./journal/" data-phase="execute" target="ttools-journal" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#22d66b); --glow:rgba(167,139,250,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#22d66b);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">📓</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Execute · v12</span>
-      <h2 class="card-title">Journal & Risk Desk</h2>
-      <p class="card-desc">Hub central: Desk + Execuții + Capital + Portfolio (risc agregat live, β, sector).
-        Verdict TRADE/CAUTION/HALTED, reconciliere equity, scorecard expectancy R.</p>
-      <div class="features">
-        <span class="feat risk">🛑 Risk Desk</span>
-        <span class="feat risk">🛡️ Risc @ SL</span>
-        <span class="feat data">⚖ Capital</span>
-      </div>
-      <div class="card-cta" style="color:#a78bfa">
-        <span>Deschide Journal</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
         </div>
   </section>
   <section class="wf-section" data-wf="review">
-    <div class="wf-head">📊 Review — lecții & infrastructură</div>
+    <div class="wf-head">📊 Review — lecții & post-trade</div>
     <div class="wf-grid">
-<a href="./guide/" data-phase="review" target="ttools-guide" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.20)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">📖</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Guide · v4</span>
-      <h2 class="card-title">Ghid Features Complet</h2>
-      <p class="card-desc">Index cu toate features pe 10 pagini cu search live + 3 view-uri:
-        per pagină, pe categorii (AI/Alerts/Charts/Risk/etc), changelog timeline. Badge "NOU" pe features <7 zile.</p>
-      <div class="features">
-        <span class="feat data">📄 By page</span>
-        <span class="feat ai">🏷 By category</span>
-        <span class="feat viz">🕐 Changelog</span>
-      </div>
-      <div class="card-cta" style="color:#a78bfa">
-        <span>Deschide Guide</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
     <a href="./weekly/" data-phase="review" target="ttools-weekly" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#5bb0ff,#ffd86b); --glow:rgba(91,176,255,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#ffd86b);box-shadow:0 4px 14px rgba(91,176,255,.3);color:#0a0a0a">📅</div>
       <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Weekly · v2</span>
@@ -1066,19 +1082,6 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
       </div>
     </a>
 
-    <a href="./shadow-book/" data-phase="review" target="ttools-shadow" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#fff">👻</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Pro · v3</span>
-      <h2 class="card-title">Signal Shadow Book</h2>
-      <p class="card-desc">Semnale blocate/ratate (macro gate, minQual, earnings…): atribuire filtre — ce ți-a salvat sau costat edge-ul, evaluat pe close forward.</p>
-      <div class="features">
-        <span class="feat data">👻 Shadow</span>
-        <span class="feat ai">🔬 Filtre</span>
-        <span class="feat alert">📊 Atribuire</span>
-      </div>
-      <div class="card-cta" style="color:#a78bfa"><span>Deschide Shadow Book</span><span class="arrow">→</span></div>
-    </a>
-
     <a href="./postmortem/" data-phase="review" target="ttools-postmortem" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#22d66b,#a78bfa); --glow:rgba(34,214,107,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#22d66b,#a78bfa);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#0a0a0a">🔬</div>
       <span class="card-tag" style="background:rgba(34,214,107,.15);color:#22d66b;border:1px solid rgba(34,214,107,.4)">Pro · v3</span>
@@ -1090,6 +1093,19 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
         <span class="feat ai">💡 Sugestii</span>
       </div>
       <div class="card-cta" style="color:#22d66b"><span>Deschide Post-Mortem</span><span class="arrow">→</span></div>
+    </a>
+
+    <a href="./shadow-book/" data-phase="review" target="ttools-shadow" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.18)">
+      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#fff">👻</div>
+      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Pro · v3</span>
+      <h2 class="card-title">Signal Shadow Book</h2>
+      <p class="card-desc">Semnale blocate/ratate (macro gate, minQual, earnings…): atribuire filtre — ce ți-a salvat sau costat edge-ul, evaluat pe close forward.</p>
+      <div class="features">
+        <span class="feat data">👻 Shadow</span>
+        <span class="feat ai">🔬 Filtre</span>
+        <span class="feat alert">📊 Atribuire</span>
+      </div>
+      <div class="card-cta" style="color:#a78bfa"><span>Deschide Shadow Book</span><span class="arrow">→</span></div>
     </a>
 
     <a href="./health/" data-phase="review" target="ttools-health" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#22d66b,#5bb0ff); --glow:rgba(34,214,107,.18)">
@@ -1105,6 +1121,23 @@ body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
       </div>
       <div class="card-cta" style="color:#22d66b">
         <span>Deschide Health</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a href="./guide/" data-phase="review" target="ttools-guide" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.20)">
+      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">📖</div>
+      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Guide · v4</span>
+      <h2 class="card-title">Ghid Features Complet</h2>
+      <p class="card-desc">Index cu toate features pe 10 pagini cu search live + 3 view-uri:
+        per pagină, pe categorii (AI/Alerts/Charts/Risk/etc), changelog timeline. Badge "NOU" pe features &lt;7 zile.</p>
+      <div class="features">
+        <span class="feat data">📄 By page</span>
+        <span class="feat ai">🏷 By category</span>
+        <span class="feat viz">🕐 Changelog</span>
+      </div>
+      <div class="card-cta" style="color:#a78bfa">
+        <span>Deschide Guide</span>
         <span class="arrow">→</span>
       </div>
     </a>
