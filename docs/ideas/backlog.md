@@ -157,6 +157,11 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-149 | Capital tab „lite" (usage minimal) | journal/ | S | P2 | făcut | ideation | 2026-07-10 |
 | I-150 | Strip contextual sticky sub tab-uri | journal/ | M | P2 | făcut | ideation | 2026-07-10 |
 | I-151 | Extract lib/journal-workspace.js (spargere monolit) | journal/ | L | P3 | făcut | ideation | 2026-07-10 |
+| I-152 | Ritual la închidere (reguli + repeta setup) | journal/ | S | P1 | făcut | user | 2026-07-10 |
+| I-153 | Leak report lunar pe tag-uri greșeală | journal/ | S | P1 | făcut | user | 2026-07-10 |
+| I-154 | Badge earnings ≤48h pe OPEN (Exec + Portfolio) | journal/ + lib/journal-insights.js | S | P1 | făcut | user | 2026-07-10 |
+| I-155 | Export CSV execuții din header Journal | journal/ | S | P2 | făcut | user | 2026-07-10 |
+| I-156 | R săptămână în strip contextual | journal/ | S | P2 | făcut | user | 2026-07-10 |
 
 ## Mini-spec-uri
 
@@ -1043,3 +1048,38 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** viitoarele I-146..I-150 se implementează mai sigur; mentenanță pe workflow-ul tău central.
 - **Riscuri/dependențe:** efort L fără valoare vizibilă imediată — de făcut după features user-facing sau în paralel cu I-146.
 - **Fișiere atinse:** `journal/index.html`, `lib/journal-*.js` (noi), `sw-app.js` precache.
+
+### I-152 · Ritual la închidere (reguli + repeta setup) · [S] · P1
+- **Problema/golul:** închiderea era doar exit + fees + tag-uri — fără reflexie structurată pe respectarea planului și pe repetabilitatea setup-ului.
+- **Soluția:** panou close: checkbox „Am respectat planul", select „Repeta setup?" (da/nu/poate); persistă `ruleOk`, `wouldRepeat` pe execuție + în CSV.
+- **Impact:** review post-trade mai disciplinat; date pentru leak report și expectancy pe comportament.
+- **Riscuri/dependențe:** câmpuri opționale — nu blochează închiderea.
+- **Fișiere atinse:** `journal/index.html`, `lib/journal-workspace.js`, `lib/journal-insights.js`.
+
+### I-153 · Leak report lunar pe tag-uri greșeală · [S] · P1
+- **Problema/golul:** tag-urile leak existau dar nu se agregau vizual — greu să vezi ce te costă lunar.
+- **Soluția:** panou `leakReportHost` pe Desk; `JI.leakReportMonth()` pe tag-uri LEAK din închideri luna curentă (n + PnL per tag).
+- **Impact:** feedback imediat pe obiceiuri costisitoare (FOMO, revenge, oversize…).
+- **Riscuri/dependențe:** n mic = zgomot (notă în UI).
+- **Fișiere atinse:** `journal/index.html`, `lib/journal-insights.js`.
+
+### I-154 · Badge earnings ≤48h pe OPEN · [S] · P1
+- **Problema/golul:** pozițiile open nu avertizau pe earnings iminent — risc binar nevizibil în Journal/Portfolio.
+- **Soluția:** `JI.refreshEarningsCalendar()` via Finnhub; badge `EARN AZI` / `EARN Nz` pe rânduri OPEN în Exec + Portfolio.
+- **Impact:** aliniere cu earnings guard din scanner/STL; decizie mai bună pre-raport.
+- **Riscuri/dependențe:** necesită cheie Finnhub; fără cheie badge-urile rămân goale.
+- **Fișiere atinse:** `lib/journal-insights.js`, `lib/journal-workspace.js`, `lib/portfolio-risk.js`, `journal/index.html`.
+
+### I-155 · Export CSV execuții · [S] · P2
+- **Problema/golul:** nu exista export rapid al ledger-ului pentru analiză externă sau backup.
+- **Soluția:** buton **📥 CSV** în header → `JI.downloadCsv()` cu toate câmpurile execuției incl. `ruleOk`, `wouldRepeat`.
+- **Impact:** portabilitate date; audit offline.
+- **Riscuri/dependențe:** CSV injection guard pe celule.
+- **Fișiere atinse:** `journal/index.html`, `lib/journal-insights.js`.
+
+### I-156 · R săptămână în strip contextual · [S] · P2
+- **Problema/golul:** strip-ul avea Desk/Risc/Open/Drift dar nu R realizat săptămânal — metrică centrală pentru pacing.
+- **Soluția:** al 5-lea cel: net R din închideri săptămânii (cu SL); warning când lossR ≥ budget (`weeklyRBudget`, default 5R).
+- **Impact:** pacing săptămânal vizibil fără să deschizi Governor/Weekly.
+- **Riscuri/dependențe:** necesită `slAtEntry` pe execuții pentru R valid.
+- **Fișiere atinse:** `lib/journal-workspace.js`, `lib/journal-insights.js`, `lib/journal.js`.

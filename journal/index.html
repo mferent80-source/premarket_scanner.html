@@ -169,7 +169,11 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .tag.exp{background:rgba(255,77,77,.15);color:var(--bear-s);border:1px solid rgba(255,77,77,.4)}
 .tag.sec{background:var(--panel3);color:var(--t2);border:1px solid var(--b1);margin:2px}
 .jr-ws-v2 #capitalRail{display:none}
-.jr-ctx-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
+.jr-ctx-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:8px}
+.leak-rows{display:flex;flex-direction:column;gap:6px}
+.leak-row{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px}
+.leak-n{color:var(--t3);min-width:28px}
+.desk-leak{padding:11px 14px}
 .jr-ctx-cell{background:var(--panel);border:1px solid var(--b1);border-radius:var(--rs);padding:8px 10px;cursor:pointer;text-align:left;font-family:inherit;color:inherit}
 .jr-ctx-cell:hover{border-color:var(--accent)}
 .jr-ctx-lbl{display:block;font-family:var(--mono);font-size:9px;color:var(--t3);font-weight:700}
@@ -187,11 +191,12 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v583</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v583</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v584</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v584</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
   <button class="nav-link" id="btnExportCd" title="Export JSON Capital Desk (equity, risc, desk, journal)">📥 Export CD</button>
+  <button class="nav-link" id="btnJrCsv" title="Export execuții CSV">📥 CSV</button>
   <button class="nav-link" id="btnWsRevert" title="Revino la UI Journal v581 (workspace v2 off)">↩ Clasic</button>
   <a class="nav-link" href="../postmortem/">🔬 Post-Mortem</a>
   <a class="nav-link" href="#portfolio" data-jtab-link="portfolio">🛡️ Portfolio</a>
@@ -282,6 +287,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 </section>
 
 <div id="ddAlertHost"></div>
+
+<div class="panel desk-leak" id="leakReportHost"></div>
 
 <div class="panel desk-scorecard">
   <h2>📊 Scorecard execuții (net de fees)</h2>
@@ -423,7 +430,13 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <label>Fees $ <input id="jrCloseFees" type="number" step="0.01" min="0" value="0"></label>
       <label style="align-self:flex-end"><button type="button" class="btn ghost" id="jrCloseRefresh">↻ Preț live</button></label>
     </div>
-    <p class="note">Tag-uri post-trade (opțional):</p>
+    <label class="chkrow"><input type="checkbox" id="jrCloseRuleOk"> ✅ Am respectat planul / regulile</label>
+    <label style="display:flex;flex-direction:column;gap:4px;font-family:var(--mono);font-size:10px;color:var(--t3);margin:8px 0">Repeta setup-ul?
+      <select id="jrCloseRepeat" style="background:var(--panel2);color:var(--t1);border:1px solid var(--b1);padding:8px;border-radius:var(--rs);font-family:var(--mono)">
+        <option value="">—</option><option value="yes">Da</option><option value="no">Nu</option><option value="maybe">Poate</option>
+      </select>
+    </label>
+    <p class="note">Tag lecție (opțional):</p>
     <div class="tagrow" id="jrCloseTagRow"></div>
     <p id="jrClosePreview" class="note">—</p>
     <div style="display:flex;gap:8px;margin-top:10px">
@@ -474,15 +487,17 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 <script src="../lib/capital-time.js?v=576"></script>
 <script src="../lib/account.js?v=576"></script>
-<script src="../lib/journal.js?v=15"></script>
+<script src="../lib/finnhub-key.js?v=561"></script>
+<script src="../lib/journal.js?v=16"></script>
+<script src="../lib/journal-insights.js?v=584"></script>
 <script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/governor.js?v=7"></script>
 <script src="../lib/equity.js?v=9"></script>
 <script src="../lib/capital-desk.js?v=9"></script>
 <script src="../lib/data.js"></script>
-<script src="../lib/portfolio-risk.js?v=582"></script>
-<script src="../lib/journal-workspace.js?v=583"></script>
+<script src="../lib/portfolio-risk.js?v=584"></script>
+<script src="../lib/journal-workspace.js?v=584"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -803,6 +818,7 @@ function renderReconcileChip(){
   el.textContent = r.ok ? '✓ sync OK' : `⚠ ${r.openOrphan} open · ${r.closedMissing} closed`;
   el.className = 'cap-reconcile ' + (r.ok ? 'ok' : 'warn');
 }
+$('btnJrCsv') && $('btnJrCsv').addEventListener('click', () => { if (window.JI && JI.downloadCsv) JI.downloadCsv(); });
 $('btnImport').addEventListener('click', () => {
   const r = JR.syncAllFromTracker ? JR.syncAllFromTracker() : JR.importFromTracker();
   const msg = r.open != null
@@ -1303,6 +1319,11 @@ function renderAll(){
     JWS.updateTabBadges();
     JWS.renderContextStrip();
   }
+  if (window.JI) {
+    JI.renderLeakPanel('leakReportHost');
+    const openSyms = [...new Set(JR.all().filter(isOpenE).map(e => e.sym))];
+    if (openSyms.length) JI.refreshEarningsCalendar(openSyms).then(() => { if (jTab === 'exec' || jTab === 'portfolio') renderTable(); });
+  }
   renderDdAlert();
   // linia de diagnostic — spune exact ce vede pagina pe ACEST device
   try {
@@ -1412,8 +1433,8 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v583';
-  var full = window.SUITE_VERSION || 'tt-v583-2026-07-10';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v584';
+  var full = window.SUITE_VERSION || 'tt-v584-2026-07-10';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });
