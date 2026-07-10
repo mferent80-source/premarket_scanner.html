@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=588"></script>
+<script src="lib/suite-version.js?v=589"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=588">
+<link rel="stylesheet" href="lib/hub-ui.css?v=589">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -587,30 +587,22 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     </div>
     <h1>Cockpit <span class="accent">stocks</span></h1>
     <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:4px"></span>
-    <p class="lead">Journal central → Plan → Scan → Review. Desk, execuții, capital și risc într-un singur flux local.</p>
+    <p class="lead">Journal central → Plan → Scan → Review.</p>
     <p class="hub-hero-crypto">🪙 Crypto → <a href="https://mferent80-source.github.io/scanner/" target="_blank" rel="noopener" style="color:var(--crypto-2);font-weight:600;text-decoration:none;border-bottom:1px dotted var(--crypto-2)">Scanner Hub</a></p>
-    <div class="hub-hero-aside">
-      <div class="hub-hero-actions">
-        <a class="primary" href="./router/">🧭 Router</a>
-        <button type="button" class="primary" onclick="openTradeTracker()" title="Trade Plans">📋 Plans</button>
-        <a href="./journal/#desk">🛑 Desk</a>
-      </div>
-    </div>
   </header>
 
   <div class="hub-shell">
   <nav class="hub-topbar" aria-label="Navigare rapidă">
-    <a class="hub-top-primary" href="./router/">🧭 Router</a>
+    <a class="hub-top-primary" href="./journal/">📓 Journal</a>
     <a href="./journal/#desk">🛑 Desk</a>
+    <a href="./journal/#exec">⚡ Exec</a>
     <a href="./journal/#portfolio">🛡️ Portfolio</a>
     <a href="./journal/#capital">⚖ Capital</a>
-    <a href="./journal/">📓 Journal</a>
-    <a href="./health/">🩺 Health</a>
+    <a href="./router/">🧭 Router</a>
     <span class="hub-top-spacer"></span>
-    <button type="button" class="hub-top-pill" id="hubHealthPill" title="Suite Health">🩺 …</button>
+    <button type="button" class="hub-top-pill" id="hubHealthPill" title="Suite Health — click">🩺 …</button>
     <span id="hubCheckPct" class="hub-top-pill" title="Morning checklist" style="cursor:default">✓ …</span>
     <button type="button" class="hub-top-pill" onclick="openTradeTracker()" title="Trade Plans">📋</button>
-    <a href="./guide/">📖 Guide</a>
   </nav>
 
   <div class="hub-jr-strip" id="hubJrStrip" aria-label="Journal status"></div>
