@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=599"></script>
+<script src="lib/suite-version.js?v=600"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=599">
+<link rel="stylesheet" href="lib/hub-ui.css?v=600">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -594,39 +594,6 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   <div class="hub-shell">
   <section class="hub-dash-panel" id="dashWidgets">
     <section class="hub-tableau" id="hubTableau" aria-label="Command tableau"></section>
-    <div class="hub-cmd hub-cmd-slim" id="hubCmd"><div class="hub-cmd-cell lvl-neut"><div class="hub-cmd-lbl">GO</div><div class="hub-cmd-val">⏳</div></div></div>
-    <div class="hub-dash-row-6">
-      <div class="hub-dash-cell hub-market" id="wSPY">
-        <span class="hub-dash-lbl">SPY</span>
-        <span class="hub-dash-val" id="spyVal">—</span>
-        <span class="hub-dash-sub" id="spySub">…</span>
-      </div>
-      <div class="hub-dash-cell hub-market" id="wQQQ">
-        <span class="hub-dash-lbl">QQQ</span>
-        <span class="hub-dash-val" id="qqqVal">—</span>
-        <span class="hub-dash-sub" id="qqqSub">…</span>
-      </div>
-      <div class="hub-dash-cell hub-market" id="wVIX">
-        <span class="hub-dash-lbl">VIX</span>
-        <span class="hub-dash-val" id="vixVal">—</span>
-        <span class="hub-dash-sub" id="vixSub">…</span>
-      </div>
-      <div class="hub-dash-cell" id="wAlerts" style="display:none;cursor:pointer" onclick="location.href='alerts/'" title="Alerte preț armate">
-        <span class="hub-dash-lbl">🔔 Alerte</span>
-        <span class="hub-dash-val" id="alertsVal">—</span>
-        <span class="hub-dash-sub" id="alertsSub">—</span>
-      </div>
-      <div class="hub-dash-cell" id="wWL">
-        <span class="hub-dash-lbl">⭐ WL</span>
-        <span class="hub-dash-val" id="wlVal">—</span>
-        <span class="hub-dash-sub" id="wlSub">—</span>
-      </div>
-      <div class="hub-dash-cell" id="wWLBreakdown">
-        <span class="hub-dash-lbl">Mix</span>
-        <span class="hub-dash-val hub-dash-val-sm" id="wlBreakdownVal">—</span>
-        <span class="hub-dash-sub" id="wlBreakdownSub">—</span>
-      </div>
-    </div>
   </section>
 
   <!-- Search bar live filter pe carduri -->
@@ -1261,28 +1228,50 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
       window.dispatchEvent(new CustomEvent('hub:market')); if (window.HB) HB.renderCockpit();
     } catch (_) {}
   };
-  const renderTicker = async (sym, valEl, subEl, fmt) => {
+  const applyMktQuote = (sym, valEl, subEl, fmt, wrapId, invert) => {
+    const q = window.__hubMkt && window.__hubMkt.quotes && window.__hubMkt.quotes[sym];
+    if (!q) return;
+    const v = $(valEl), s = $(subEl);
+    if (!v || !s) return;
+    v.textContent = fmt(q.price);
+    s.innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + (window.__hubMkt.dayLabel || dayLabel);
+    const up = invert ? q.chgPct < 0 : q.chgPct >= 0;
+    s.className = 'ht-m-sub w-sub ' + (up ? 'w-pos' : 'w-neg');
+    const wrap = wrapId ? $(wrapId) : null;
+    if (wrap) wrap.className = wrap.className.replace(/\blvl-\w+/g, '').trim() + ' lvl-' + (up ? 'ok' : 'bear');
+  };
+  window.hubRestoreMarketWidgets = function(){
+    applyMktQuote('SPY', 'spyVal', 'spySub', fmtP, 'wSPY', false);
+    applyMktQuote('QQQ', 'qqqVal', 'qqqSub', fmtP, 'wQQQ', false);
+    applyMktQuote('VIX', 'vixVal', 'vixSub', fmtVix, 'wVIX', true);
+  };
+  const renderTicker = async (sym, valEl, subEl, fmt, wrapId, invert) => {
     try {
       const q = await fetchQuote(sym);
       $(valEl).textContent = fmt(q.price);
       $(subEl).innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
-      $(subEl).className = 'hub-dash-sub w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
+      const up = invert ? q.chgPct < 0 : q.chgPct >= 0;
+      $(subEl).className = 'ht-m-sub w-sub ' + (up ? 'w-pos' : 'w-neg');
+      if (wrapId) {
+        const w = $(wrapId);
+        if (w) w.className = w.className.replace(/\blvl-\w+/g, '').trim() + ' lvl-' + (up ? 'ok' : 'bear');
+      }
       stashMkt(sym, q);
     } catch (e) {
       $(subEl).textContent = 'indisponibil';
     }
   };
-  renderTicker('SPY', 'spyVal', 'spySub', fmtP);
-  renderTicker('QQQ', 'qqqVal', 'qqqSub', fmtP);
-  // VIX = volatility index (^VIX); inversat ca semantică (VIX sus = teamă = "neg" pentru portofoliu)
+  renderTicker('SPY', 'spyVal', 'spySub', fmtP, 'wSPY', false);
+  renderTicker('QQQ', 'qqqVal', 'qqqSub', fmtP, 'wQQQ', false);
   (async () => {
     try {
-      const q = await fetchQuote('%5EVIX'); // ^VIX URL-encoded
+      const q = await fetchQuote('%5EVIX');
       $('vixVal').textContent = fmtVix(q.price);
-      const cls = q.price >= 25 ? 'w-neg' : q.price >= 18 ? '' : 'w-pos';
+      const up = q.chgPct < 0;
       $('vixSub').innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
-      $('vixSub').className = 'hub-dash-sub w-sub ' + (q.chgPct >= 0 ? 'w-pos' : 'w-neg');
-      $('vixVal').classList.add(cls);
+      $('vixSub').className = 'ht-m-sub w-sub ' + (up ? 'w-pos' : 'w-neg');
+      const w = $('wVIX');
+      if (w) w.className = w.className.replace(/\blvl-\w+/g, '').trim() + ' lvl-' + (q.price >= 25 ? 'bear' : q.price >= 18 ? 'warn' : up ? 'ok' : 'bear');
       stashMkt('VIX', q);
     } catch (e) {
       $('vixSub').textContent = 'indisponibil';
@@ -1322,18 +1311,6 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     } catch (e) {}
   })();
 
-  // ── Command Center: Alerte de preț armate (din alerts, wl_price_alerts) ──
-  (function(){
-    try {
-      const raw = JSON.parse(localStorage.getItem('wl_price_alerts') || '{}');
-      let n = 0;
-      for (const k in raw){ if (Array.isArray(raw[k])) n += raw[k].filter(a => a && a.armed !== false).length; }
-      $('alertsVal').textContent = n;
-      $('alertsSub').textContent = n ? 'preț armate · click → /alerts/' : 'niciuna activă';
-      $('wAlerts').style.display = '';
-    } catch (e) {}
-  })();
-
   // ── Watchlist UNIFICAT (stocks + crypto) — cross-page aggregation ──
   // Stocks: `wl_stocks` (din nasdaq-scanner)
   // Crypto: `scanner_cfg.watchlist` (din crypto-scanner — comma-separated string)
@@ -1352,56 +1329,74 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     cryptoWL = [...dashSet];
   } catch(e) {}
 
-  const total = stockWL.length + cryptoWL.length;
-  $('wlVal').textContent = total;
-  $('wlSub').textContent = total === 0 ? 'gol — adaugă coin-uri în scanere'
-    : total === 1 ? '1 simbol urmărit' : total + ' simboluri urmărite';
+  window.__hubWlData = { stockWL, cryptoWL };
 
-  // Breakdown pe categorii cu cross-link
-  // stocks → Watchlist Monitor (pagina unde chiar VEZI lista, cu prețuri/monitorizare), nu nasdaq-scanner
-  const stocksLink = '<a href="./watchlist-monitor/" target="_blank" style="color:var(--crypto-2);text-decoration:none">📈 ' + stockWL.length + ' stocks</a>';
-  // crypto locuiește la Scanner Hub (split mai 2026) — link extern, nu folder local
-  const cryptoLink = '<a href="https://mferent80-source.github.io/scanner/" target="_blank" style="color:#5bb0ff;text-decoration:none">🪙 ' + cryptoWL.length + ' crypto</a>';
-  $('wlBreakdownVal').innerHTML = stocksLink + ' · ' + cryptoLink;
+  window.hubRefreshAuxWidgets = function(){
+    try {
+      const raw = JSON.parse(localStorage.getItem('wl_price_alerts') || '{}');
+      let n = 0;
+      for (const k in raw){ if (Array.isArray(raw[k])) n += raw[k].filter(a => a && a.armed !== false).length; }
+      const av = $('alertsVal'), as = $('alertsSub'), wa = $('wAlerts');
+      if (av) av.textContent = n;
+      if (as) as.textContent = n ? 'preț armate' : 'niciuna activă';
+      if (wa) wa.style.display = n ? '' : 'none';
+    } catch (e) {}
+    let sw = [], cw = [];
+    try { sw = JSON.parse(localStorage.getItem('wl_stocks') || '[]') || []; } catch(e) {}
+    try {
+      const scfg = JSON.parse(localStorage.getItem('scanner_cfg') || '{}');
+      if (typeof scfg.watchlist === 'string' && scfg.watchlist.trim()) {
+        cw = scfg.watchlist.split(/[,\s]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+      }
+      const dash = JSON.parse(localStorage.getItem('dash_watchlist') || '[]') || [];
+      const dashSet = new Set(cw);
+      dash.forEach(c => { if (c && typeof c === 'string') dashSet.add(c.toUpperCase()); });
+      cw = [...dashSet];
+    } catch(e) {}
+    window.__hubWlData = { stockWL: sw, cryptoWL: cw };
+    const total = sw.length + cw.length;
+    const wv = $('wlVal'), ws = $('wlSub');
+    if (wv) wv.textContent = total;
+    if (ws) ws.textContent = total === 0 ? 'gol — adaugă în scanere' : total === 1 ? '1 simbol' : total + ' simboluri';
+    const stocksLink = '<a href="./watchlist-monitor/" target="_blank" style="color:var(--crypto-2);text-decoration:none">📈 ' + sw.length + ' stocks</a>';
+    const cryptoLink = '<a href="https://mferent80-source.github.io/scanner/" target="_blank" style="color:#5bb0ff;text-decoration:none">🪙 ' + cw.length + ' crypto</a>';
+    const wbv = $('wlBreakdownVal'), wbs = $('wlBreakdownSub');
+    if (wbv) wbv.innerHTML = stocksLink + ' · ' + cryptoLink;
+    const top = sw.slice(0, 3).concat(cw.slice(0, 3)).filter(Boolean);
+    if (wbs) wbs.textContent = top.length ? 'Ex: ' + top.slice(0, 4).join(' · ') : 'click → listă';
+  };
 
-  // Sample top simbol pentru sub-text (din ce există)
-  const top = stockWL.slice(0, 3).concat(cryptoWL.slice(0, 3)).filter(Boolean);
-  $('wlBreakdownSub').textContent = top.length ? 'Ex: ' + top.slice(0, 4).join(' · ') : 'click → spre pagina respectivă';
-
-  // Popover cu LISTA COMPLETĂ la click pe widget (linkurile din val navighează normal — le excludem)
-  (function(){
+  window.hubWireAuxWidgets = function(){
     const w = $('wWLBreakdown');
-    if (!w) return;
+    if (!w || w.dataset.wired) return;
+    w.dataset.wired = '1';
     const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     let pop = null;
-    w.style.cursor = 'pointer';
-    w.title = 'Click → lista completă a simbolurilor (fără să pleci din hub)';
     w.addEventListener('click', e => {
-      if (e.target.closest('a')) return; // click pe link = navigare, nu popover
+      if (e.target.closest('a')) return;
       e.stopPropagation();
       if (pop){ pop.remove(); pop = null; return; }
+      const d = window.__hubWlData || { stockWL: [], cryptoWL: [] };
       const chip = (s, c) => `<span style="display:inline-block;background:var(--bg4);border:1px solid var(--b1);border-radius:6px;padding:2px 8px;margin:2px;font-family:var(--mono);font-size:11px;color:${c}">${esc(s)}</span>`;
       pop = document.createElement('div');
-      // ⚠ .widget are overflow:hidden → un copil absolut sub widget era TĂIAT complet (bug v519:
-      // „popup-ul nu se deschide" — handler-ul rula, dar popover-ul era clipat invizibil).
-      // Fix: atașat pe <body>, poziționat pe coordonatele widget-ului în document.
       pop.style.cssText = 'position:absolute;min-width:230px;max-width:320px;max-height:260px;overflow:auto;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;box-shadow:var(--sh);padding:10px;z-index:999;text-align:left';
       pop.innerHTML =
-        `<div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:4px">📈 STOCKS (${stockWL.length})</div>`
-        + (stockWL.length ? stockWL.map(s => chip(s, 'var(--crypto-2)')).join('') : '<span style="color:var(--t3);font-size:11px;font-style:italic">gol</span>')
-        + `<div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin:8px 0 4px">🪙 CRYPTO (${cryptoWL.length})</div>`
-        + (cryptoWL.length ? cryptoWL.map(s => chip(s, '#5bb0ff')).join('') : '<span style="color:var(--t3);font-size:11px;font-style:italic">gol</span>');
+        `<div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:4px">📈 STOCKS (${d.stockWL.length})</div>`
+        + (d.stockWL.length ? d.stockWL.map(s => chip(s, 'var(--crypto-2)')).join('') : '<span style="color:var(--t3);font-size:11px;font-style:italic">gol</span>')
+        + `<div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin:8px 0 4px">🪙 CRYPTO (${d.cryptoWL.length})</div>`
+        + (d.cryptoWL.length ? d.cryptoWL.map(s => chip(s, '#5bb0ff')).join('') : '<span style="color:var(--t3);font-size:11px;font-style:italic">gol</span>');
       const r = w.getBoundingClientRect();
       pop.style.left = Math.max(8, Math.min(r.left + window.scrollX, window.scrollX + document.documentElement.clientWidth - 330)) + 'px';
       pop.style.top = (r.bottom + window.scrollY + 6) + 'px';
       document.body.appendChild(pop);
-      // închidere la click în afara widget-ului ȘI a popover-ului (nu mai e copil al widget-ului!)
       document.addEventListener('click', function closer(ev){
         if (!pop){ document.removeEventListener('click', closer); return; }
         if (!w.contains(ev.target) && !pop.contains(ev.target)){ pop.remove(); pop = null; document.removeEventListener('click', closer); }
       });
     });
-  })();
+  };
+
+  hubRefreshAuxWidgets();
 
   // ── Trading session timer (countdown live pre-market / regular / after / closed) ──
   // NYSE/Nasdaq trading hours (ET): pre-market 04:00-09:30, regular 09:30-16:00, after 16:00-20:00
@@ -2000,11 +1995,11 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/macro-context.js?v=599"></script>
-<script src="lib/event-tape.js?v=599"></script>
-<script src="lib/hub-tableau.js?v=599"></script>
+<script src="lib/macro-context.js?v=600"></script>
+<script src="lib/event-tape.js?v=600"></script>
+<script src="lib/hub-tableau.js?v=600"></script>
 <script src="lib/hub-health.js?v=565"></script>
-<script src="lib/hub-brief.js?v=599"></script>
+<script src="lib/hub-brief.js?v=600"></script>
 <script src="lib/hub-ledger.js?v=565"></script>
 <script>
 (function(){
