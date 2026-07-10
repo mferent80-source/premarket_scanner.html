@@ -151,12 +151,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-143 | Suite UI review pages v570 | Markov/Alerts/Earnings/Weekly + encoding fix | M | P1 | făcut | ideation | 2026-07-09 |
 | I-144 | Suite UI infra pages v571 | Router/Guide/Shadow/Postmortem/Health | S | P1 | făcut | ideation | 2026-07-09 |
 | I-145 | Capital audit fixes v572 | account/CD/GV/EQ/journal + CT | M | P1 | făcut | audit | 2026-07-09 |
-| I-146 | Exec tab — ledger închise cu filtre | journal/ | M | P1 | propus | ideation | 2026-07-10 |
-| I-147 | Închidere one-click cu preț live | journal/ | S | P1 | propus | ideation | 2026-07-10 |
-| I-148 | Tab badges cross-state (Desk/Portfolio/Capital) | journal/ | S | P2 | propus | ideation | 2026-07-10 |
-| I-149 | Capital tab „lite" (usage minimal) | journal/ | S | P2 | propus | ideation | 2026-07-10 |
-| I-150 | Strip contextual sticky sub tab-uri | journal/ | M | P2 | propus | ideation | 2026-07-10 |
-| I-151 | Extract lib/journal-page.js (spargere monolit) | journal/ | L | P3 | propus | ideation | 2026-07-10 |
+| I-146 | Exec tab — ledger închise cu filtre | journal/ | M | P1 | făcut | ideation | 2026-07-10 |
+| I-147 | Închidere one-click cu preț live | journal/ | S | P1 | făcut | ideation | 2026-07-10 |
+| I-148 | Tab badges cross-state (Desk/Portfolio/Capital) | journal/ | S | P2 | făcut | ideation | 2026-07-10 |
+| I-149 | Capital tab „lite" (usage minimal) | journal/ | S | P2 | făcut | ideation | 2026-07-10 |
+| I-150 | Strip contextual sticky sub tab-uri | journal/ | M | P2 | făcut | ideation | 2026-07-10 |
+| I-151 | Extract lib/journal-workspace.js (spargere monolit) | journal/ | L | P3 | făcut | ideation | 2026-07-10 |
 
 ## Mini-spec-uri
 

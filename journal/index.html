@@ -168,16 +168,31 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .tag{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;font-family:var(--mono)}
 .tag.exp{background:rgba(255,77,77,.15);color:var(--bear-s);border:1px solid rgba(255,77,77,.4)}
 .tag.sec{background:var(--panel3);color:var(--t2);border:1px solid var(--b1);margin:2px}
+.jr-ws-v2 #capitalRail{display:none}
+.jr-ctx-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
+.jr-ctx-cell{background:var(--panel);border:1px solid var(--b1);border-radius:var(--rs);padding:8px 10px;cursor:pointer;text-align:left;font-family:inherit;color:inherit}
+.jr-ctx-cell:hover{border-color:var(--accent)}
+.jr-ctx-lbl{display:block;font-family:var(--mono);font-size:9px;color:var(--t3);font-weight:700}
+.jr-ctx-val{display:block;font-size:13px;font-weight:800;margin-top:2px}
+.jr-ctx-cell.pos .jr-ctx-val{color:var(--bull-s)}
+.jr-ctx-cell.neg .jr-ctx-val{color:var(--bear-s)}
+.jr-ctx-cell.wrn .jr-ctx-val{color:var(--warn)}
+.exec-subtabs,.exec-filters,.cap-mode-tabs{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px}
+.jr-sheet-wrap{position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.jr-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.jr-sheet{position:relative;z-index:1;width:min(480px,100%);margin:12px;border-radius:var(--r);max-height:90vh;overflow:auto}
+@media (max-width:550px){.jr-ctx-strip{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v581</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v581</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v582</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v582</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
   <button class="nav-link" id="btnExportCd" title="Export JSON Capital Desk (equity, risc, desk, journal)">📥 Export CD</button>
+  <button class="nav-link" id="btnWsRevert" title="Revino la UI Journal v581 (workspace v2 off)">↩ Clasic</button>
   <a class="nav-link" href="../postmortem/">🔬 Post-Mortem</a>
   <a class="nav-link" href="#portfolio" data-jtab-link="portfolio">🛡️ Portfolio</a>
   <a class="nav-link" href="#capital" data-jtab-link="capital">⚖ Capital</a>
@@ -201,11 +216,12 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 <div class="jr-workspace">
   <div class="jr-tabs" role="tablist" aria-label="Journal workspace">
-    <button type="button" class="jr-tab active" data-jtab="desk" role="tab" aria-selected="true">🛑 Desk</button>
-    <button type="button" class="jr-tab" data-jtab="exec" role="tab">📓 Execuții</button>
+    <button type="button" class="jr-tab active" data-jtab="desk" role="tab" aria-selected="true" id="jrTabDesk">🛑 Desk <span class="jr-warn" id="jrTabDeskWarn" style="display:none">!</span></button>
+    <button type="button" class="jr-tab" data-jtab="exec" role="tab" id="jrTabExec">📓 Execuții <span class="jr-warn" id="jrTabExecWarn" style="display:none">!</span></button>
     <button type="button" class="jr-tab" data-jtab="portfolio" role="tab" id="jrTabPortfolio">🛡 Portfolio <span class="jr-warn" id="jrTabPfWarn" style="display:none">!</span></button>
     <button type="button" class="jr-tab" data-jtab="capital" role="tab" id="jrTabCapital">⚖ Capital <span class="jr-warn" id="jrTabCapWarn" style="display:none">!</span></button>
   </div>
+  <div id="jrCtxStrip" class="jr-ctx-strip" aria-label="Context workspace"></div>
 </div>
 
 <div id="jpaneDesk" class="jr-pane active" data-jpane="desk">
@@ -291,9 +307,21 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <div id="jpaneExec" class="jr-pane" data-jpane="exec">
 
 <div class="panel open-panel" id="openPanel">
-  <h2>⏳ Execuții în curs <span id="diagLine" style="font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:400"></span>
+  <h2><span id="openPanelTitle">⏳ Execuții în curs</span> <span id="diagLine" style="font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:400"></span>
     <button class="btn ghost" id="btnRefreshMarks" type="button" style="float:right;font-size:10px;padding:4px 10px">↻ Prețuri</button>
   </h2>
+  <div class="exec-subtabs" id="execSubtabs">
+    <button type="button" class="seg-tab active" data-exec-view="open">În curs</button>
+    <button type="button" class="seg-tab" data-exec-view="closed">Închise</button>
+  </div>
+  <div class="exec-filters" id="execClosedFilters" style="display:none">
+    <button type="button" class="seg-tab active" data-exec-filter="all">Toate</button>
+    <button type="button" class="seg-tab" data-exec-filter="today">Azi</button>
+    <button type="button" class="seg-tab" data-exec-filter="7d">7z</button>
+    <button type="button" class="seg-tab" data-exec-filter="stl">STL</button>
+    <button type="button" class="seg-tab" data-exec-filter="nasdaq">Nasdaq</button>
+    <button type="button" class="seg-tab" data-exec-filter="macro">Macro</button>
+  </div>
   <div id="openUnrealSum" style="font-family:var(--mono);font-size:10px;color:var(--t3);margin:-4px 0 8px"></div>
   <div id="errBanner" style="display:none;background:rgba(255,77,77,.15);border:1px solid var(--bear-s);border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--bear-s)"></div>
   <div id="tblWrap"><div class="empty">—</div></div>
@@ -333,6 +361,28 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 <div id="jpaneCapital" class="jr-pane" data-jpane="capital">
 
+<div class="cap-mode-tabs">
+  <button type="button" class="seg-tab active" data-cap-mode="lite">Lite</button>
+  <button type="button" class="seg-tab" data-cap-mode="full">Full drill-down</button>
+</div>
+
+<div id="capLitePanel">
+  <section class="panel">
+    <h2>⚖ Capital — Lite</h2>
+    <p class="note" id="capLiteHint">—</p>
+    <div class="cap-hero" id="capLiteHero"></div>
+    <div class="frm" style="margin-top:10px">
+      <label>Equity $ (Trade212) <input id="jrSnapEqLite" type="number" min="1" step="1" placeholder="total cont"></label>
+      <label>Notă <input id="jrSnapNoteLite" placeholder="Trade212"></label>
+      <div style="display:flex;align-items:flex-end;gap:8px">
+        <button class="btn ghost" id="btnJrSnapLite" type="button">+ Snapshot</button>
+        <button class="btn ghost" id="btnCapExpand" type="button">🔍 Drill-down complet</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="capFullPanel">
 <section class="panel" id="capital">
   <h2>⚖ Capital — drill-down reconciliere</h2>
   <p class="note" id="capDriftTxt">—</p>
@@ -359,8 +409,29 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <div id="jrCapTbl" style="margin-top:10px"></div>
   <p class="note">Click pe rândurile din drill-down pentru detalii. Snapshot = total cont; drift compară Sim (journal) vs ultimul snapshot.</p>
 </section>
+</div><!-- /capFullPanel -->
 
 </div><!-- /jpaneCapital -->
+
+<div id="jrCloseSheet" class="jr-sheet-wrap" style="display:none" role="dialog" aria-labelledby="jrCloseTitle">
+  <div class="jr-sheet-backdrop" id="jrCloseBackdrop"></div>
+  <div class="jr-sheet panel">
+    <h2 id="jrCloseTitle">✓ Închide execuția</h2>
+    <p id="jrCloseSym" class="note" style="margin-top:0">—</p>
+    <div class="frm" style="margin-top:10px">
+      <label>Exit $ <input id="jrCloseExit" type="number" step="0.0001" min="0"></label>
+      <label>Fees $ <input id="jrCloseFees" type="number" step="0.01" min="0" value="0"></label>
+      <label style="align-self:flex-end"><button type="button" class="btn ghost" id="jrCloseRefresh">↻ Preț live</button></label>
+    </div>
+    <p class="note">Tag-uri post-trade (opțional):</p>
+    <div class="tagrow" id="jrCloseTagRow"></div>
+    <p id="jrClosePreview" class="note">—</p>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button type="button" class="btn" id="jrCloseConfirm">Confirmă închiderea</button>
+      <button type="button" class="btn ghost" id="jrCloseCancel">Anulează</button>
+    </div>
+  </div>
+</div>
 
 <div id="jpanePortfolio" class="jr-pane" data-jpane="portfolio">
 
@@ -403,14 +474,15 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 <script src="../lib/capital-time.js?v=576"></script>
 <script src="../lib/account.js?v=576"></script>
-<script src="../lib/journal.js?v=13"></script>
+<script src="../lib/journal.js?v=14"></script>
 <script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/governor.js?v=7"></script>
 <script src="../lib/equity.js?v=9"></script>
 <script src="../lib/capital-desk.js?v=9"></script>
 <script src="../lib/data.js"></script>
-<script src="../lib/portfolio-risk.js?v=581"></script>
+<script src="../lib/portfolio-risk.js?v=582"></script>
+<script src="../lib/journal-workspace.js?v=582"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -864,6 +936,7 @@ const closeE = (id, v) => (window.JR && JR.close) ? JR.close(id, v)
   : (isFinite(parseFloat(v)) && parseFloat(v) > 0 ? JR.update(id, { exit: parseFloat(v), status: 'closed', closeTs: Date.now() }) : false);
 
 function renderTable(){
+  if (window.JWS && JWS.enabled() && JWS.renderExecTable()) return;
   // DOAR cele ÎN CURS (după openTs desc) — închisele trăiesc în Scorecard (drill-down pe grup)
   const entries = JR.all().filter(e => isOpenE(e)).sort((a, b) => (b.openTs || 0) - (a.openTs || 0));
   if (!entries.length){
@@ -1080,6 +1153,10 @@ function renderCapitalPanel(){
     $('capDriftTxt').textContent = 'Modul equity indisponibil — reîncarcă pagina.';
     return;
   }
+  if (window.JWS && JWS.enabled()) {
+    JWS.applyCapitalMode();
+    if (JWS.renderCapitalLite) JWS.renderCapitalLite();
+  }
   const base = EQ.baseline();
   const drift = EQ.drift();
   $('capBaseLine').textContent = base.source === 'snapshot'
@@ -1128,15 +1205,20 @@ function renderCapitalPanel(){
   if (EQ.maybeNotifyDrift) EQ.maybeNotifyDrift();
 }
 
-$('btnJrSnap') && $('btnJrSnap').addEventListener('click', () => {
+function doJrSnapshot(eqVal, noteVal){
   if (!window.EQ) return;
-  const rec = EQ.addSnapshot($('jrSnapEq').value, $('jrSnapNote').value);
+  const rec = EQ.addSnapshot(eqVal, noteVal);
   if (!rec) { alert('Equity invalid'); return; }
   if (window.ACCT) ACCT.syncAll(rec.equity, 'snapshot');
-  $('jrSnapEq').value = ''; $('jrSnapNote').value = '';
-  $('cAcct').value = rec.equity;
-  if (window.GV) GV.saveCfg({ accountSize: +rec.equity });
+  $('jrSnapEq') && ($('jrSnapEq').value = '');
+  $('jrSnapEqLite') && ($('jrSnapEqLite').value = '');
   renderAll();
+}
+$('btnJrSnap') && $('btnJrSnap').addEventListener('click', () => {
+  doJrSnapshot($('jrSnapEq').value, $('jrSnapNote').value);
+});
+$('btnJrSnapLite') && $('btnJrSnapLite').addEventListener('click', () => {
+  doJrSnapshot($('jrSnapEqLite').value, $('jrSnapNoteLite').value);
 });
 $('btnJrCap') && $('btnJrCap').addEventListener('click', () => {
   if (!window.EQ) return;
@@ -1212,11 +1294,15 @@ function prefillFromQuery(){
 }
 
 function renderAll(){
-  if (window.CD) CD.renderRail('capitalRail', jTab === 'portfolio' ? 'portfolio' : 'journal');
+  if (window.CD && !(window.JWS && JWS.enabled())) CD.renderRail('capitalRail', jTab === 'portfolio' ? 'portfolio' : 'journal');
   showPrefillGate();
   renderDesk();
   renderCapitalPanel();
   if (window.PF) PF.onJournalUpdate({ activeTab: jTab });
+  if (window.JWS && JWS.enabled()) {
+    JWS.updateTabBadges();
+    JWS.renderContextStrip();
+  }
   renderDdAlert();
   // linia de diagnostic — spune exact ce vede pagina pe ACEST device
   try {
@@ -1267,7 +1353,8 @@ function setJTab(name){
     try { history.replaceState(null, '', wantHash); } catch (e) { location.hash = wantHash.replace('#', ''); }
   }
   if (name === 'portfolio' && window.PF) PF.onTabActivate();
-  if (window.CD) CD.renderRail('capitalRail', name === 'portfolio' ? 'portfolio' : 'journal');
+  if (window.CD && !(window.JWS && JWS.enabled())) CD.renderRail('capitalRail', name === 'portfolio' ? 'portfolio' : 'journal');
+  if (window.JWS && JWS.enabled()) { JWS.updateTabBadges(); JWS.renderContextStrip(); }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 window.setJTab = setJTab;
@@ -1279,6 +1366,14 @@ document.querySelectorAll('[data-jtab-link]').forEach(a => a.addEventListener('c
   setJTab(tab);
 }));
 
+if (window.JWS) {
+  JWS.init({
+    $, esc, fmt$, TAGS, isOpenE, closeE, openPriceCache,
+    fillForm, renderAll, calcUnrealizedTotal,
+    renderCapitalPanel,
+    refreshMarks: async () => { await refreshMarks(); }
+  });
+}
 renderReconcileChip();
 renderAll();
 function hashToJTab(h){
@@ -1317,8 +1412,8 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v581';
-  var full = window.SUITE_VERSION || 'tt-v581-2026-07-10';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v582';
+  var full = window.SUITE_VERSION || 'tt-v582-2026-07-10';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });
