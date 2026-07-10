@@ -165,6 +165,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-157 | Hub card grid Journal-centric | index.html | M | P1 | făcut | user | 2026-07-10 |
 | I-158 | Hub strip Journal + deck compact + cockpit fold | index.html + hub-brief.js | M | P1 | făcut | user | 2026-07-10 |
 | I-159 | Macro Rail în Journal Desk (context-only) | journal/ + lib/macro-context.js | M | P1 | făcut | user | 2026-07-10 |
+| I-160 | Hub Command Tableau + event tape 7z | index.html + lib/hub-tableau.js | M | P1 | făcut | user | 2026-07-10 |
 
 ## Mini-spec-uri
 
@@ -1094,3 +1095,10 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Riscuri/dependențe:** cache gol = mesaj + link Macro; Governor **context-only** în v1 (fără auto-CAUTION/HALT); calendar hardcodat de sincronizat anual cu Macro.
 - **Fișiere atinse:** `journal/index.html`, `lib/macro-context.js` (nou), `lib/desk-macro-rail.js` (nou), `lib/capital-ui.css`, opțional `lib/hub-brief.js` (refactor calendar).
 - **Spec:** `docs/superpowers/specs/2026-07-10-macro-rail-desk-design.md`
+
+### I-160 · Hub Command Tableau + event tape · [M] · P1
+- **Problema/golul:** hub fragmentat (strip journal, checklist ascuns, evenimente doar în Brief/Macro) — userul vrea un singur tablou cu nav + status + bandă evenimente high-impact cu lifecycle.
+- **Soluția:** `#hubTableau` 3 rânduri: status (regim, workflow, morning check, health), nav chips, event tape scroll (7z → 24h → LIVE → rezultat din `md_seen_actual`, dispare +12h); `MCTX` rename fix coliziune `MC` morning-check.
+- **Impact:** intrare dimineață într-un singur viewport; evenimente macro vizibile fără Macro open.
+- **Riscuri/dependențe:** rezultate necesită Macro rulat o dată (`md_seen_actual`); fără actual → fallback dispare T+12h de la ora programată.
+- **Fișiere atinse:** `lib/hub-tableau.js`, `lib/event-tape.js`, `lib/hub-ui.css`, `index.html`, `lib/macro-context.js` (MCTX), `lib/hub-brief.js`, `sw-app.js`.

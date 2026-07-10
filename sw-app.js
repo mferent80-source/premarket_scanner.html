@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v592-2026-07-10';
+const CACHE_VERSION = 'tt-v593-2026-07-10';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -84,6 +84,8 @@ const PRECACHE = [
   './lib/postmortem.js',
   './lib/suite-version.js',
   './lib/macro-context.js',
+  './lib/event-tape.js',
+  './lib/hub-tableau.js',
   './lib/desk-macro-rail.js',
   './lib/hub-brief.js',
   './lib/hub-ledger.js',

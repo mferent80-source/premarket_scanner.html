@@ -306,7 +306,148 @@
   .hub-dash-row-6 { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* ── Journal strip (paritate jr-ctx-strip) ── */
+/* ── Command tableau (I-160) ── */
+.hub-tableau {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.ht-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ht-row.ht-status {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--b1);
+  background: linear-gradient(180deg, rgba(20, 37, 51, 0.5), rgba(20, 26, 40, 0.88));
+}
+
+.ht-reg {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ht-c, var(--t1));
+  white-space: nowrap;
+}
+
+.ht-reg.na { color: var(--t3); font-weight: 600; }
+.ht-reg.na a { color: var(--accent, #5bb0ff); }
+.ht-muted { font-weight: 500; color: var(--t3); font-size: 10px; }
+
+.ht-flow {
+  flex: 1 1 180px;
+  font-size: 10px;
+  color: var(--t3);
+  font-family: var(--mono);
+  min-width: 0;
+}
+
+.ht-pill {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--b1);
+  background: var(--bg2);
+  color: var(--t2);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ht-check { color: var(--t2); }
+.ht-check.ok { color: var(--green); border-color: rgba(34, 214, 107, 0.35); }
+.ht-health.ok { color: var(--green); }
+.ht-health.warn { color: #d4892c; }
+.ht-health.bad { color: #ff4d4d; }
+
+.ht-row.ht-nav {
+  gap: 5px;
+}
+
+.ht-nav-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--b1);
+  background: var(--bg2);
+  color: var(--t2);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.ht-nav-chip:hover {
+  border-color: var(--accent, #5bb0ff);
+  color: var(--t1);
+}
+
+.ht-row.ht-tape {
+  border: 1px solid var(--b1);
+  border-radius: 10px;
+  background: rgba(20, 26, 40, 0.75);
+  padding: 6px 8px;
+  min-height: 40px;
+}
+
+.ht-tape-host { width: 100%; min-width: 0; }
+
+.ht-tape-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.ht-tape-card {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--b1);
+  background: var(--bg2);
+  font-family: var(--mono);
+  font-size: 10px;
+  max-width: 280px;
+}
+
+.ht-tape-card.ph-scheduled { border-color: rgba(163, 173, 193, 0.35); color: var(--t2); }
+.ht-tape-card.ph-imminent { border-color: rgba(212, 137, 44, 0.45); color: #d4892c; }
+.ht-tape-card.ph-live { border-color: rgba(255, 77, 77, 0.5); color: #ff6b6b; animation: ht-pulse 1.2s ease infinite; }
+.ht-tape-card.ph-result { border-color: rgba(34, 214, 107, 0.4); color: var(--green); }
+
+@keyframes ht-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
+}
+
+.ht-tape-pulse { color: #ff4d4d; font-weight: 900; }
+.ht-tape-title { font-weight: 800; color: var(--t1); }
+.ht-tape-meta { color: var(--t3); font-size: 9px; }
+.ht-tape-empty { font-size: 10px; color: var(--t3); padding: 4px 2px; }
+.ht-tape-empty a { color: var(--accent, #5bb0ff); }
+
+@media (max-width: 720px) {
+  .ht-flow { flex: 1 1 100%; order: 3; }
+  .ht-nav-chip { padding: 4px 8px; font-size: 9px; }
+}
+
+/* ── Journal strip (legacy fallback) ── */
 .hub-jr-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
