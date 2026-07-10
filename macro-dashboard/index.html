@@ -2359,6 +2359,69 @@ function renderCommandCenter() {
   renderSurpriseTile();
   snapshotDangerDaily();
   renderFreezeWindow();
+  persistHubMacroSnapshot();
+}
+
+// Snapshot pentru Hub Command Tableau (citește MCTX.hubSnapshot în lib/macro-context.js)
+function persistHubMacroSnapshot() {
+  try {
+    const nyt = getNYDateHour();
+    const d = computeDangerScore();
+    const t = crossAssetTilt();
+    const trend = getRegimeTrend(nyt.date);
+    let trendStr = '';
+    if (RISK_STATE && trend && typeof trend.composite === 'number' && !RISK_STATE.partial) {
+      const delta = RISK_STATE.composite - trend.composite;
+      trendStr = delta === 0 ? '→ stabil' : (delta > 0 ? '↑+' + delta : '↓' + delta);
+    }
+    let curveLabel = null, curveSub = null;
+    if (YIELD_CURVE) {
+      const inv = YIELD_CURVE.spread < 0, flat = Math.abs(YIELD_CURVE.bp) < 25;
+      curveLabel = inv ? 'INVERSATĂ' : flat ? 'Plată' : 'Normală';
+      curveSub = (YIELD_CURVE.bp >= 0 ? '+' : '') + YIELD_CURVE.bp.toFixed(0) + 'bp · 10Y ' +
+        YIELD_CURVE.y10.toFixed(2) + '% / 3M ' + YIELD_CURVE.y3m.toFixed(2) + '%';
+    }
+    let tiltWord = null, tiltSub = null;
+    if (t && t.total) {
+      const net = t.onCount - t.offCount;
+      tiltWord = net > 0 ? 'RISK-ON tilt' : net < 0 ? 'RISK-OFF tilt' : 'ECHILIBRAT';
+      const dom = t.strongest ? t.strongest[0] + ' ' + (t.strongest[1] > 0 ? '+' : '') + t.strongest[1] : '';
+      tiltSub = t.onCount + '↑ / ' + t.offCount + '↓ drivere · dominant ' + dom;
+    }
+    const ew = countEarningsNextDays(7);
+    const si = computeSurpriseIndex();
+    const snap = {
+      ts: Date.now(),
+      dateET: nyt.date,
+      regime: RISK_STATE ? {
+        label: RISK_STATE.label,
+        composite: RISK_STATE.composite,
+        trend: trendStr,
+        partial: !!RISK_STATE.partial,
+        held: !!RISK_STATE.held,
+        breakdown: RISK_STATE.partial ? null :
+          'VIX ' + (RISK_STATE.vixScore >= 0 ? '+' : '') + RISK_STATE.vixScore +
+          ' · 10Y ' + (RISK_STATE.tenYScore >= 0 ? '+' : '') + RISK_STATE.tenYScore +
+          ' · ρ ' + (RISK_STATE.corrScore >= 0 ? '+' : '') + RISK_STATE.corrScore +
+          ' · F&G ' + (RISK_STATE.fngScore >= 0 ? '+' : '') + RISK_STATE.fngScore +
+          ' · DXY ' + (RISK_STATE.dxyScore >= 0 ? '+' : '') + RISK_STATE.dxyScore
+      } : null,
+      danger: { score: d.score, level: d.level, mult: d.mult, factors: d.factors, cls: d.cls },
+      curve: YIELD_CURVE ? { label: curveLabel, sub: curveSub, bp: YIELD_CURVE.bp } : null,
+      tilt: t && t.total ? { word: tiltWord, sub: tiltSub } : null,
+      tiles: {
+        vix: getStatTileVal('tile-vix'),
+        dxy: getStatTileVal('tile-dxy'),
+        tenY: getStatTileVal('tile-10y'),
+        btc: getStatTileVal('tile-btc'),
+        eth: getStatTileVal('tile-eth'),
+        fng: getStatTileVal('tile-fng'),
+        earnings: { count: ew.unique, symbols: (ew.symbols || []).slice(0, 5) },
+        surprise: si ? { score: si.score, n: si.n } : null
+      }
+    };
+    localStorage.setItem('md_hub_macro_v1', JSON.stringify(snap));
+  } catch (e) {}
 }
 
 // Drill-down Danger Score — arată breakdown-ul (de ce scorul e X + ce înseamnă sizing-ul)
