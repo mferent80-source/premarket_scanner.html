@@ -10124,6 +10124,32 @@ function renderTopLosers(){
 }
 // ═══════════════════════════════════════════════════════════════
 
+// Deep-link ?sym=SPY din Hub tableau (I-160)
+(function(){
+  const params = new URLSearchParams(location.search);
+  const sym = (params.get('sym') || '').trim().toUpperCase().replace(/[^A-Z.-]/g, '');
+  if (!sym) return;
+  const TV_PREFIX = { SPY: 'AMEX', QQQ: 'NASDAQ', DIA: 'AMEX', IWM: 'AMEX' };
+  function tvUrl(s){
+    const p = TV_PREFIX[s] || 'NASDAQ';
+    return 'https://www.tradingview.com/chart/?symbol=' + p + ':' + encodeURIComponent(s);
+  }
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      const inp = document.getElementById('wlInp');
+      if (inp) inp.value = sym;
+      if (typeof watchlist !== 'undefined' && Array.isArray(watchlist) && !watchlist.includes(sym)){
+        watchlist.push(sym);
+        try { localStorage.setItem('wl_stocks', JSON.stringify(watchlist)); } catch(e){}
+        if (typeof syncWatchlistToShared === 'function') syncWatchlistToShared();
+        if (typeof renderWatchlistChips === 'function') renderWatchlistChips();
+      }
+      window.open(tvUrl(sym), '_blank', 'noopener');
+      if (typeof showToast === 'function') showToast('📈 ' + sym + ' → TradingView', 'ok');
+    }, 500);
+  });
+})();
+
 // Suite badge (versiune PWA globală)
 if(window.SUITE_VERSION_SHORT){
   const sb=document.getElementById('suiteBadge');

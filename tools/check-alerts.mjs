@@ -126,6 +126,41 @@ try {
   }
 } catch (e) { /* opțional */ }
 
+// Hub stale morning digest (I-160) — 1×/zi 07-09 ET, din fișiere repo + items opțional
+try {
+  const DIGEST_FILE = new URL('./hub-stale-digest.json', import.meta.url);
+  const etDayKey = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  const etHour = () => parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }), 10);
+  let dig = { enabled: true, lastSent: null, items: [] };
+  try { dig = JSON.parse(readFileSync(DIGEST_FILE, 'utf8')); } catch (e) {}
+  if (dig.enabled !== false && etHour() >= 7 && etHour() <= 9 && dig.lastSent !== etDayKey()) {
+    const lines = [];
+    try {
+      const drift = JSON.parse(readFileSync(new URL('./equity-drift.json', import.meta.url), 'utf8'));
+      if (drift && drift.snapshotAgeDays != null && drift.snapshotAgeDays > 7)
+        lines.push('Equity snapshot ' + drift.snapshotAgeDays + 'z' + (drift.driftPct != null ? ' · drift ' + Number(drift.driftPct).toFixed(1) + '%' : ''));
+      else if (drift && drift.driftPct != null && Math.abs(drift.driftPct) >= 2)
+        lines.push('Equity drift ' + (drift.driftPct >= 0 ? '+' : '') + Number(drift.driftPct).toFixed(1) + '%');
+    } catch (e) {}
+    try {
+      const risk = JSON.parse(readFileSync(new URL('./capital-risk.json', import.meta.url), 'utf8'));
+      if (risk && risk.riskPct != null && risk.riskPct >= 2)
+        lines.push('Risc agregat ' + Number(risk.riskPct).toFixed(1) + '%' + (risk.verdict === 'HALTED' ? ' · Desk HALTED' : ''));
+    } catch (e) {}
+    if (Array.isArray(dig.items)) {
+      dig.items.forEach(it => { if (it && it.label) lines.push(it.label); });
+    }
+    if (lines.length) {
+      const ok = await sendTelegram('☀️ <b>Hub morning digest</b>\n' + lines.map(l => '• ' + tgEsc(l)).join('\n'));
+      if (ok) {
+        dig.lastSent = etDayKey();
+        writeFileSync(DIGEST_FILE, JSON.stringify(dig, null, 2) + '\n', 'utf8');
+        console.log('Hub morning digest trimis.');
+      }
+    }
+  }
+} catch (e) { /* opțional */ }
+
 // Weekend ET: bursa US e închisă complet (fără pre/after) → prețul stocks e înghețat
 // la close-ul de vineri. Sărim complet simbolurile stocks Sat/Sun ca să nu interogăm
 // degeaba și să nu trimitem alerte pe preț vechi. Crypto rămâne 24/7.

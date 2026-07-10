@@ -2,7 +2,9 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="../lib/suite-version.js?v=575"></script>
+<script src="../lib/suite-version.js?v=605"></script>
+<script src="../lib/macro-context.js?v=605"></script>
+<script src="../lib/hub-state.js?v=605"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Trading Tools — App</title>
 <meta name="theme-color" content="#0b0f17">
@@ -20,6 +22,11 @@
   #suiteVerShell{flex:0 0 auto;align-self:center;margin:0 8px 4px 4px;padding:3px 8px;border-radius:6px;
     font-size:10px;font-weight:700;font-family:ui-monospace,monospace;color:#f7931a;
     border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);white-space:nowrap}
+  #shellStaleNav{flex:0 0 auto;align-self:center;margin:0 4px 4px 0;padding:3px 8px;border-radius:6px;
+    font-size:10px;font-weight:700;font-family:ui-monospace,monospace;text-decoration:none;
+    border:1px solid rgba(212,137,44,.45);background:rgba(212,137,44,.14);color:#d4892c;white-space:nowrap}
+  #shellStaleNav.err{border-color:rgba(255,77,77,.5);background:rgba(255,77,77,.14);color:#ff6b6b}
+  #shellStaleNav[hidden]{display:none}
   .tab{flex:0 0 auto;display:flex;align-items:center;gap:6px;max-width:170px;padding:8px 9px;border-radius:9px 9px 0 0;
     background:#141d30;border:1px solid #1e2942;border-bottom:none;color:#9aa4b2;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
   .tab.active{background:#1b2740;color:#fff}
@@ -47,6 +54,7 @@
 <div id="app">
   <div style="display:flex;align-items:stretch;min-width:0">
     <div id="tabbar" aria-label="Taburi deschise" style="flex:1;min-width:0"></div>
+    <a href="../health/" id="shellStaleNav" hidden aria-hidden="true" title="Date învechite">📦</a>
     <span id="suiteVerShell" title="Versiune cache suită">…</span>
   </div>
   <div id="frames"></div>
@@ -193,6 +201,12 @@
     var vb = document.getElementById('suiteVerShell');
     if (vb) vb.textContent = window.SUITE_VERSION_SHORT;
   }
+  function shellStaleTick(){
+    if (window.HS && HS.renderStaleNav) HS.renderStaleNav('shellStaleNav');
+  }
+  shellStaleTick();
+  setInterval(shellStaleTick, 60000);
+  window.addEventListener('storage', shellStaleTick);
 
   // manifest inline — aplicația pornește în shell, scope = rădăcina suite-ului
   var icon192 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='38' fill='%23f7931a'/%3E%3Ctext y='128' x='96' text-anchor='middle' font-size='96'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E";

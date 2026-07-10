@@ -44,10 +44,12 @@ jobs:
 
       - name: Persistă starea (one-shot consumate / re-arm dezarmate)
         run: |
-          if ! git diff --quiet tools/alerts.json; then
-            git config user.name 'github-actions[bot]'
-            git config user.email 'github-actions[bot]@users.noreply.github.com'
-            git add tools/alerts.json
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          CHANGED=0
+          if ! git diff --quiet tools/alerts.json; then git add tools/alerts.json; CHANGED=1; fi
+          if ! git diff --quiet tools/hub-stale-digest.json; then git add tools/hub-stale-digest.json; CHANGED=1; fi
+          if [ "$CHANGED" = "1" ]; then
             git commit -m 'chore(alerts): stare actualizata dupa verificare [skip ci]'
             git push
           fi
