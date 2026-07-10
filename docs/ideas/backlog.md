@@ -164,6 +164,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-156 | R săptămână în strip contextual | journal/ | S | P2 | făcut | user | 2026-07-10 |
 | I-157 | Hub card grid Journal-centric | index.html | M | P1 | făcut | user | 2026-07-10 |
 | I-158 | Hub strip Journal + deck compact + cockpit fold | index.html + hub-brief.js | M | P1 | făcut | user | 2026-07-10 |
+| I-159 | Macro Rail în Journal Desk (context-only) | journal/ + lib/macro-context.js | M | P1 | aprobat | user | 2026-07-10 |
 
 ## Mini-spec-uri
 
@@ -1085,3 +1086,11 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** pacing săptămânal vizibil fără să deschizi Governor/Weekly.
 - **Riscuri/dependențe:** necesită `slAtEntry` pe execuții pentru R valid.
 - **Fișiere atinse:** `lib/journal-workspace.js`, `lib/journal-insights.js`, `lib/journal.js`.
+
+### I-159 · Macro Rail în Journal Desk · [M] · P1
+- **Problema/golul:** Desk arată Governor (TRADE/HALT) dar nu contextul macro live — userul sare Hub → Macro → Journal dimineața; `hub-brief.js` citește cache Macro doar pe hub.
+- **Soluția:** secțiune `desk-macro-rail` pe tab Desk (între verdict și scorecard): bar regim+danger, panou Acțiune azi (sizing + ferestre fără entry), calendar 3 evenimente; modul `lib/macro-context.js` read-only din `md_risk_regime`/`md_danger_daily`; Macro rămâne writer + deep dive.
+- **Impact:** decizie sizing/timing lângă Governor fără tab switching; timp câștigat dimineața.
+- **Riscuri/dependențe:** cache gol = mesaj + link Macro; Governor **context-only** în v1 (fără auto-CAUTION/HALT); calendar hardcodat de sincronizat anual cu Macro.
+- **Fișiere atinse:** `journal/index.html`, `lib/macro-context.js` (nou), `lib/desk-macro-rail.js` (nou), `lib/capital-ui.css`, opțional `lib/hub-brief.js` (refactor calendar).
+- **Spec:** `docs/superpowers/specs/2026-07-10-macro-rail-desk-design.md`
