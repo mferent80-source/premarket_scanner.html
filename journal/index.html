@@ -126,6 +126,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .cap-drill-det .cap-line:last-child{border:none}
 @media (max-width:550px){ body{padding:8px} }
 .desk-rail{position:sticky;top:52px;z-index:40;margin-bottom:14px}
+.desk-scorecard .cards{grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}
 .desk-verdict{font-weight:900;text-align:center;font-family:var(--head)}
 .desk-verdict.trade{background:rgba(34,214,107,.12);border:2px solid var(--bull-s);color:var(--bull-s)}
 .desk-verdict.caution{background:rgba(212,137,44,.12);border:2px solid var(--warn);color:var(--warn)}
@@ -162,7 +163,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v578</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v578</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v579</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v579</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -253,11 +254,30 @@ tr.openrow{background:rgba(91,176,255,.06)}
   </details>
 </section>
 
+<div id="ddAlertHost"></div>
+
+<div class="panel desk-scorecard">
+  <h2>📊 Scorecard execuții (net de fees)</h2>
+  <p class="note" style="margin:-4px 0 10px">Context pentru verdict Desk — expectancy, DD pe sursă, drill-down pe grup.</p>
+  <div class="cards" id="ovCards"><div class="empty">—</div></div>
+  <h2 style="margin-top:14px;font-size:12px">📉 Max Drawdown pe categorii</h2>
+  <div class="dd-cats" id="ddCats"></div>
+  <div id="rollingDdHost"></div>
+  <div id="pctChart"></div>
+  <div class="seg-tabs">
+    <button class="seg-tab active" data-seg="source">pe sursă</button>
+    <button class="seg-tab" data-seg="sym">pe ticker</button>
+    <button class="seg-tab" data-seg="regime">pe regim</button>
+    <button class="seg-tab" data-seg="__tags">pe tag</button>
+  </div>
+  <div id="segBody">—</div>
+  <div class="note">Expectancy R = media R-multiple pe execuțiile cu SL la intrare completat. Segmentele cu n&lt;10 sunt marcate
+  „⚠ zgomot" — nu trage concluzii de acolo (trader.md). Astea-s execuțiile TALE, nu backtest: singura statistică ne-ficțiune din suită.</div>
+</div>
+
 </div><!-- /jpaneDesk -->
 
 <div id="jpaneExec" class="jr-pane" data-jpane="exec">
-
-<div id="ddAlertHost"></div>
 
 <div class="panel open-panel" id="openPanel">
   <h2>⏳ Execuții în curs <span id="diagLine" style="font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:400"></span>
@@ -306,24 +326,6 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <button class="btn ghost" id="btnCancel" style="display:none">✖ Anulează editarea</button>
     </div>
   </div>
-</div>
-
-<div class="panel">
-  <h2>📊 Scorecard pe execuții (net de fees)</h2>
-  <div class="cards" id="ovCards"><div class="empty">—</div></div>
-  <h2 style="margin-top:14px;font-size:12px">📉 Max Drawdown pe categorii</h2>
-  <div class="dd-cats" id="ddCats"></div>
-  <div id="rollingDdHost"></div>
-  <div id="pctChart"></div>
-  <div class="seg-tabs">
-    <button class="seg-tab active" data-seg="source">pe sursă</button>
-    <button class="seg-tab" data-seg="sym">pe ticker</button>
-    <button class="seg-tab" data-seg="regime">pe regim</button>
-    <button class="seg-tab" data-seg="__tags">pe tag</button>
-  </div>
-  <div id="segBody">—</div>
-  <div class="note">Expectancy R = media R-multiple pe execuțiile cu SL la intrare completat. Segmentele cu n&lt;10 sunt marcate
-  „⚠ zgomot" — nu trage concluzii de acolo (trader.md). Astea-s execuțiile TALE, nu backtest: singura statistică ne-ficțiune din suită.</div>
 </div>
 
 </div><!-- /jpaneExec -->
@@ -1266,8 +1268,8 @@ if (window.CD && CD.initListener) CD.initListener(renderAll);
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v578';
-  var full = window.SUITE_VERSION || 'tt-v578-2026-07-10';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v579';
+  var full = window.SUITE_VERSION || 'tt-v579-2026-07-10';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });
