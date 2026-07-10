@@ -4752,7 +4752,12 @@ function getStatTileVal(id) {
   const tile = $(id);
   const v = tile?.querySelector('.stat-value')?.textContent || '';
   const sub = tile?.querySelector('.stat-sub')?.textContent || '';
-  return { v: v.trim(), sub: sub.trim() };
+  let cls = '';
+  if (tile) {
+    const m = String(tile.className || '').match(/\b(bull|bear|warn|gold|high)\b/);
+    cls = m ? m[1] : '';
+  }
+  return { v: v.trim(), sub: sub.trim(), cls };
 }
 
 // ============ F1 — CONTEXT BRIEF EXTINS (earnings / watchlist / memorie zi-la-zi / trend regim) ============
