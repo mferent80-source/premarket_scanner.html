@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=589">
+<link rel="stylesheet" href="lib/hub-ui.css?v=590">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -78,7 +78,7 @@ body{
   background-image:var(--bg-grad);
   background-attachment:fixed;
   line-height:1.5;
-  padding:24px clamp(12px,2.5vw,36px) 80px;
+  padding:14px clamp(12px,2.5vw,36px) 80px;
   -webkit-font-smoothing:antialiased;
   font-variant-numeric:tabular-nums;
 }
@@ -578,33 +578,12 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 <div id="govBanner" style="display:none;position:sticky;top:0;z-index:200;background:linear-gradient(90deg,#3a1010,#2a1520);border-bottom:2px solid #ff4d4d;color:#ffd0d0;padding:10px 16px;font-family:var(--head);font-size:13px;font-weight:700;text-align:center"></div>
 <div class="wrap">
 
-  <header class="hero hub-hero" style="position:relative">
-    <button id="pwaInstallBtn" onclick="installPWA()" style="display:none;position:absolute;top:0;right:0;padding:7px 14px;border-radius:8px;font-size:.7rem;font-weight:700;border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);color:#f7931a;cursor:pointer;align-items:center;gap:5px;">📱 Instalează</button>
-    <div class="brand">
-      <span class="brand-dot"></span>
-      <span>Trading Tools</span>
-      <span id="suiteVerBadge" title="Versiune cache suită" style="font-family:var(--mono,monospace);font-size:10px;font-weight:700;color:var(--crypto-1,#f7931a);border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);padding:2px 7px;border-radius:6px;margin-left:8px">…</span>
-    </div>
-    <h1>Cockpit <span class="accent">stocks</span></h1>
-    <span data-regime-badge="macro-dashboard/" style="display:inline-block;margin-top:4px"></span>
-    <p class="lead">Journal central → Plan → Scan → Review.</p>
-    <p class="hub-hero-crypto">🪙 Crypto → <a href="https://mferent80-source.github.io/scanner/" target="_blank" rel="noopener" style="color:var(--crypto-2);font-weight:600;text-decoration:none;border-bottom:1px dotted var(--crypto-2)">Scanner Hub</a></p>
-  </header>
+  <button id="pwaInstallBtn" onclick="installPWA()" style="display:none;position:fixed;top:12px;right:12px;z-index:220;padding:7px 14px;border-radius:8px;font-size:.7rem;font-weight:700;border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);color:#f7931a;cursor:pointer;">📱 Instalează</button>
+  <div id="hubHealthPill" hidden aria-hidden="true"></div>
+  <span id="hubCheckPct" hidden aria-hidden="true"></span>
+  <span id="suiteVerBadge" hidden aria-hidden="true">…</span>
 
   <div class="hub-shell">
-  <nav class="hub-topbar" aria-label="Navigare rapidă">
-    <a class="hub-top-primary" href="./journal/">📓 Journal</a>
-    <a href="./journal/#desk">🛑 Desk</a>
-    <a href="./journal/#exec">⚡ Exec</a>
-    <a href="./journal/#portfolio">🛡️ Portfolio</a>
-    <a href="./journal/#capital">⚖ Capital</a>
-    <a href="./router/">🧭 Router</a>
-    <span class="hub-top-spacer"></span>
-    <button type="button" class="hub-top-pill" id="hubHealthPill" title="Suite Health — click">🩺 …</button>
-    <span id="hubCheckPct" class="hub-top-pill" title="Morning checklist" style="cursor:default">✓ …</span>
-    <button type="button" class="hub-top-pill" onclick="openTradeTracker()" title="Trade Plans">📋</button>
-  </nav>
-
   <div class="hub-jr-strip" id="hubJrStrip" aria-label="Journal status"></div>
 
   <!-- Deck compact: Router GO + piață + aux -->
@@ -1176,7 +1155,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   </div>
 
   <footer>
-    <div>Bacău, România</div>
+    <div>Bacău, România · <span id="suiteVerFoot" title="Versiune suită">…</span></div>
     <div class="foot-row">
       <a href="https://github.com/mferent80-source" target="_blank" rel="noopener">GitHub</a>
       <span>·</span>
@@ -2023,8 +2002,11 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 <script>
 (function(){
   if (window.SUITE_VERSION_SHORT) {
+    const v = window.SUITE_VERSION_SHORT;
     const b = document.getElementById('suiteVerBadge');
-    if (b) b.textContent = window.SUITE_VERSION_SHORT;
+    if (b) b.textContent = v;
+    const f = document.getElementById('suiteVerFoot');
+    if (f) f.textContent = v;
   }
   if (window.HB) HB.init();
   if (window.HUB_HEALTH) HUB_HEALTH.init();
