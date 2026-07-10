@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=600"></script>
+<script src="lib/suite-version.js?v=601"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=600">
+<link rel="stylesheet" href="lib/hub-ui.css?v=601">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -1366,36 +1366,6 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     if (wbs) wbs.textContent = top.length ? 'Ex: ' + top.slice(0, 4).join(' · ') : 'click → listă';
   };
 
-  window.hubWireAuxWidgets = function(){
-    const w = $('wWLBreakdown');
-    if (!w || w.dataset.wired) return;
-    w.dataset.wired = '1';
-    const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-    let pop = null;
-    w.addEventListener('click', e => {
-      if (e.target.closest('a')) return;
-      e.stopPropagation();
-      if (pop){ pop.remove(); pop = null; return; }
-      const d = window.__hubWlData || { stockWL: [], cryptoWL: [] };
-      const chip = (s, c) => `<span style="display:inline-block;background:var(--bg4);border:1px solid var(--b1);border-radius:6px;padding:2px 8px;margin:2px;font-family:var(--mono);font-size:11px;color:${c}">${esc(s)}</span>`;
-      pop = document.createElement('div');
-      pop.style.cssText = 'position:absolute;min-width:230px;max-width:320px;max-height:260px;overflow:auto;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;box-shadow:var(--sh);padding:10px;z-index:999;text-align:left';
-      pop.innerHTML =
-        `<div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:4px">📈 STOCKS (${d.stockWL.length})</div>`
-        + (d.stockWL.length ? d.stockWL.map(s => chip(s, 'var(--crypto-2)')).join('') : '<span style="color:var(--t3);font-size:11px;font-style:italic">gol</span>')
-        + `<div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin:8px 0 4px">🪙 CRYPTO (${d.cryptoWL.length})</div>`
-        + (d.cryptoWL.length ? d.cryptoWL.map(s => chip(s, '#5bb0ff')).join('') : '<span style="color:var(--t3);font-size:11px;font-style:italic">gol</span>');
-      const r = w.getBoundingClientRect();
-      pop.style.left = Math.max(8, Math.min(r.left + window.scrollX, window.scrollX + document.documentElement.clientWidth - 330)) + 'px';
-      pop.style.top = (r.bottom + window.scrollY + 6) + 'px';
-      document.body.appendChild(pop);
-      document.addEventListener('click', function closer(ev){
-        if (!pop){ document.removeEventListener('click', closer); return; }
-        if (!w.contains(ev.target) && !pop.contains(ev.target)){ pop.remove(); pop = null; document.removeEventListener('click', closer); }
-      });
-    });
-  };
-
   hubRefreshAuxWidgets();
 
   // ── Trading session timer (countdown live pre-market / regular / after / closed) ──
@@ -1995,11 +1965,11 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/macro-context.js?v=600"></script>
-<script src="lib/event-tape.js?v=600"></script>
-<script src="lib/hub-tableau.js?v=600"></script>
+<script src="lib/macro-context.js?v=601"></script>
+<script src="lib/event-tape.js?v=601"></script>
+<script src="lib/hub-tableau.js?v=601"></script>
 <script src="lib/hub-health.js?v=565"></script>
-<script src="lib/hub-brief.js?v=600"></script>
+<script src="lib/hub-brief.js?v=601"></script>
 <script src="lib/hub-ledger.js?v=565"></script>
 <script>
 (function(){
