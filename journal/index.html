@@ -170,10 +170,12 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .tag.sec{background:var(--panel3);color:var(--t2);border:1px solid var(--b1);margin:2px}
 .jr-ws-v2 #capitalRail{display:none}
 .jr-ctx-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:8px}
-.leak-rows{display:flex;flex-direction:column;gap:6px}
-.leak-row{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px}
-.leak-n{color:var(--t3);min-width:28px}
-.desk-leak{padding:11px 14px}
+.leak-bar{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:-2px 0 10px;padding:6px 10px;background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs)}
+.leak-lbl{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--t3);letter-spacing:.04em;white-space:nowrap}
+.leak-chips{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.leak-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-family:var(--mono);font-size:10px;font-weight:600;background:var(--panel3);border:1px solid var(--b1);white-space:nowrap}
+.leak-chip b{font-weight:700;color:var(--t3)}
+.leak-chip .pos,.leak-chip .neg{font-weight:700}
 .jr-ctx-cell{background:var(--panel);border:1px solid var(--b1);border-radius:var(--rs);padding:8px 10px;cursor:pointer;text-align:left;font-family:inherit;color:inherit}
 .jr-ctx-cell:hover{border-color:var(--accent)}
 .jr-ctx-lbl{display:block;font-family:var(--mono);font-size:9px;color:var(--t3);font-weight:700}
@@ -191,7 +193,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v584</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v584</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v585</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v585</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -288,10 +290,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 <div id="ddAlertHost"></div>
 
-<div class="panel desk-leak" id="leakReportHost"></div>
-
 <div class="panel desk-scorecard">
   <h2>📊 Scorecard execuții (net de fees)</h2>
+  <div id="leakReportHost" class="leak-bar" style="display:none" title="Tag-uri leak la închidere — cost lunar"></div>
   <p class="note" style="margin:-4px 0 10px">Context pentru verdict Desk — expectancy, DD pe sursă, drill-down pe grup.</p>
   <div class="cards" id="ovCards"><div class="empty">—</div></div>
   <h2 style="margin-top:14px;font-size:12px">📉 Max Drawdown pe categorii</h2>
@@ -489,7 +490,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/account.js?v=576"></script>
 <script src="../lib/finnhub-key.js?v=561"></script>
 <script src="../lib/journal.js?v=16"></script>
-<script src="../lib/journal-insights.js?v=584"></script>
+<script src="../lib/journal-insights.js?v=585"></script>
 <script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/governor.js?v=7"></script>
@@ -1433,8 +1434,8 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v584';
-  var full = window.SUITE_VERSION || 'tt-v584-2026-07-10';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v585';
+  var full = window.SUITE_VERSION || 'tt-v585-2026-07-10';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });
