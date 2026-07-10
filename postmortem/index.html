@@ -80,7 +80,7 @@ function fillSelect(){
       trades.map(t => {
         const pnl = JR.pnl(t);
         const day = t.closeTs ? new Date(t.closeTs).toLocaleDateString('ro-RO') : '—';
-        return '<tr><td class="l">' + day + '</td><td class="l">' + t.sym + '</td><td class="' + (pnl>=0?'pos':'neg') + '">' + (pnl>=0?'+':'') + '$' + pnl.toFixed(0) + '</td><td class="l"><a class="lnk" href="../equity/?highlight=' + encodeURIComponent(t.id) + '">Vezi pe curbă</a></td></tr>';
+        return '<tr><td class="l">' + day + '</td><td class="l">' + t.sym + '</td><td class="' + (pnl>=0?'pos':'neg') + '">' + (pnl>=0?'+':'') + '$' + pnl.toFixed(0) + '</td><td class="l"><a class="lnk" href="../journal/?sym=' + encodeURIComponent(t.sym) + '">Journal</a></td></tr>';
       }).join('') + '</table>'
     : '<p class="note">Nicio execuție închisă în journal.</p>';
 }

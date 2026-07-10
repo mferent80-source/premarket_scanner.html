@@ -8,8 +8,8 @@
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=575">
-<script src="../lib/suite-version.js?v=575"></script>
+<link rel="stylesheet" href="../lib/capital-ui.css?v=577">
+<script src="../lib/suite-version.js?v=577"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -108,21 +108,20 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .seg-tab{background:var(--panel2);border:1px solid var(--b1);color:var(--t2);padding:5px 13px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:var(--head)}
 .seg-tab.active{background:rgba(167,139,250,.2);border-color:var(--purple);color:var(--purple)}
 @media (max-width:550px){ body{padding:8px} }
-/* Risk Desk rail (fost Governor) */
-.desk-rail{position:sticky;top:8px;z-index:40;margin-bottom:14px}
-.desk-verdict{font-size:36px;font-weight:900;text-align:center;padding:16px;border-radius:var(--r);margin-bottom:10px;font-family:var(--head)}
+.desk-rail{position:sticky;top:52px;z-index:40;margin-bottom:14px}
+.desk-verdict{font-weight:900;text-align:center;font-family:var(--head)}
 .desk-verdict.trade{background:rgba(34,214,107,.12);border:2px solid var(--bull-s);color:var(--bull-s)}
 .desk-verdict.caution{background:rgba(212,137,44,.12);border:2px solid var(--warn);color:var(--warn)}
 .desk-verdict.halted{background:rgba(255,77,77,.15);border:2px solid var(--bear-s);color:var(--bear-s)}
 .desk-budget .lbl{font-family:var(--mono);font-size:10px;color:var(--t3);display:flex;justify-content:space-between;margin-bottom:6px}
 .desk-budget .track{height:12px;background:var(--panel2);border-radius:8px;overflow:hidden;border:1px solid var(--b1)}
 .desk-budget .fill{height:100%;border-radius:8px;transition:width .3s}
-.desk-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}
-.desk-cell{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:9px 10px}
+.desk-cell{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:11px 12px}
 .desk-cell .lbl{font-family:var(--mono);font-size:10px;color:var(--t3)}
-.desk-cell .val{font-size:18px;font-weight:800;margin-top:3px}
-.desk-reasons{margin:8px 0 0 18px;color:var(--t2);font-size:12.5px;line-height:1.45}
-.desk-today{margin-top:10px;font-size:11px}
+.desk-cell .val{font-size:clamp(15px,1.4vw,20px);font-weight:800;margin-top:4px}
+.desk-reasons{margin:0;padding-left:18px;color:var(--t2);font-size:12px;line-height:1.45}
+.desk-today{font-size:11px;background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px 12px}
+.desk-today table{width:100%}
 .desk-cfg summary{cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--t2);padding:8px 0}
 .desk-cfg .frm{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:8px}
 .desk-cfg label{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;color:var(--t3)}
@@ -146,14 +145,14 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v575</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v575</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v577</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v577</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
   <button class="nav-link" id="btnExportCd" title="Export JSON Capital Desk (equity, risc, desk, journal)">📥 Export CD</button>
   <a class="nav-link" href="../postmortem/">🔬 Post-Mortem</a>
   <a class="nav-link" href="../portfolio/">🛡️ Portfolio</a>
-  <a class="nav-link" href="../equity/">📈 Equity</a>
+  <a class="nav-link" href="#capital">⚖ Capital</a>
   <a class="nav-link" href="../">← Hub</a>
 </header>
 <div class="cap-shell">
@@ -161,7 +160,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
     <a class="cap-nav-hub" href="../">⌂ Hub</a>
     <a class="cap-nav-item active" href="./#desk">🛑 Desk</a>
     <a class="cap-nav-item" href="../portfolio/">🛡️ Portfolio</a>
-    <a class="cap-nav-item" href="../equity/">📈 Equity</a>
+    <a class="cap-nav-item" href="#capital">⚖ Capital</a>
     <a class="cap-nav-item" href="./">📓 Journal</a>
     <span class="cap-nav-spacer"></span>
     <a class="cap-nav-item" href="../router/">🧭 Router</a>
@@ -173,15 +172,19 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <div id="cdPrefillGate"></div>
 
 <section class="desk-rail panel" id="desk">
-  <div id="verdictBox" class="desk-verdict trade">TRADE</div>
-  <div class="desk-budget">
-    <div class="lbl"><span>Buget pierdere zilnic</span><span id="budgetLbl">—</span></div>
-    <div class="track"><div class="fill" id="budgetFill" style="width:0;background:var(--bull-s)"></div></div>
+  <div class="desk-deck">
+    <div id="verdictBox" class="desk-verdict trade">TRADE</div>
+    <div class="desk-budget-block">
+      <div class="desk-budget">
+        <div class="lbl"><span>Buget pierdere zilnic</span><span id="budgetLbl">—</span></div>
+        <div class="track"><div class="fill" id="budgetFill" style="width:0;background:var(--bull-s)"></div></div>
+      </div>
+      <ul class="desk-reasons" id="deskReasons"></ul>
+    </div>
+    <div class="desk-strip" id="deskStrip"></div>
+    <div class="desk-today" id="deskToday"></div>
   </div>
-  <ul class="desk-reasons" id="deskReasons"></ul>
-  <div class="desk-strip" id="deskStrip"></div>
-  <div class="desk-today" id="deskToday"></div>
-  <details class="desk-cfg" style="margin-top:10px">
+  <details class="desk-cfg" style="margin-top:12px">
     <summary>⚙ Limite Risk Governor</summary>
     <div class="frm">
       <label>Cont $ <input id="cAcct" type="number" min="1"></label>
@@ -197,10 +200,10 @@ tr.openrow{background:rgba(91,176,255,.06)}
     <label class="chkrow"><input type="checkbox" id="cTgRisk"> Alertă Telegram la risc agregat ≥4% (o dată/zi)</label>
     <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="btnGovSave" type="button">💾 Salvează limite</button>
-      <button class="btn ghost" id="btnAcctSnap" type="button" title="Copiază ultimul snapshot din Equity & Drawdown">📈 Preia din snapshot Equity</button>
+      <button class="btn ghost" id="btnAcctSnap" type="button" title="Copiază ultimul snapshot Trade212 din secțiunea Capital">📈 Preia din snapshot</button>
       <button class="btn ghost" id="btnTgTest" type="button">📲 Test Telegram</button>
     </div>
-    <p class="note">Frână disciplinară — nu blochează brokerul. Cont $ = fallback dacă nu ai snapshot în Equity; primul snapshot e baseline-ul curbei.</p>
+    <p class="note">Frână disciplinară — nu blochează brokerul. Cont $ = fallback manual; snapshot Trade212 în <a href="#capital" style="color:var(--accent)">Capital</a> aliniază sizing + drift.</p>
     <details style="margin-top:12px;border-top:1px solid var(--b1);padding-top:10px">
       <summary style="cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--t2)">📉 Alerte DD · Notificări · Raport săptămânal</summary>
       <div class="frm" style="margin-top:8px">
@@ -221,6 +224,26 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <p class="note" id="jWeeklyLbl">Telegram: folosește tt_tg_config (Alerts). Raportul include stats + DD pe sursă/regim + verdict Risk Desk.</p>
     </details>
   </details>
+</section>
+
+<section class="panel" id="capital">
+  <h2>⚖ Capital & reconciliere</h2>
+  <p class="note" id="capDriftTxt">—</p>
+  <p class="note" id="capBaseLine" style="margin-bottom:10px">—</p>
+  <div class="frm" style="margin-bottom:10px">
+    <label>Equity $ (Trade212) <input id="jrSnapEq" type="number" min="1" step="1" placeholder="din cont"></label>
+    <label>Notă <input id="jrSnapNote" placeholder="Trade212"></label>
+    <div style="display:flex;align-items:flex-end"><button class="btn ghost" id="btnJrSnap" type="button">+ Snapshot</button></div>
+  </div>
+  <div class="frm" style="margin-bottom:10px">
+    <label>Eveniment <select id="jrCapKind"><option value="deposit">Depunere</option><option value="withdraw">Retragere</option></select></label>
+    <label>$ <input id="jrCapAmt" type="number" min="1" step="1"></label>
+    <label>Notă <input id="jrCapNote" placeholder="Transfer"></label>
+    <div style="display:flex;align-items:flex-end"><button class="btn ghost" id="btnJrCap" type="button">+ Eveniment</button></div>
+  </div>
+  <div id="jrSnapTbl"></div>
+  <div id="jrCapTbl" style="margin-top:10px"></div>
+  <p class="note">Primul snapshot = baseline curbă + DD rolling. Depuneri/retrageri = salt pe curbă (nu PnL trading). Drift ≥2% → verifică journal + evenimente capital.</p>
 </section>
 
 <div id="ddAlertHost"></div>
@@ -294,14 +317,14 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 </div><!-- /.cap-wrap -->
 
-<script src="../lib/capital-time.js?v=575"></script>
-<script src="../lib/account.js?v=575"></script>
+<script src="../lib/capital-time.js?v=576"></script>
+<script src="../lib/account.js?v=576"></script>
 <script src="../lib/journal.js?v=13"></script>
 <script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/governor.js?v=7"></script>
 <script src="../lib/equity.js?v=9"></script>
-<script src="../lib/capital-desk.js?v=8"></script>
+<script src="../lib/capital-desk.js?v=9"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -779,7 +802,7 @@ function renderTable(){
       return `<tr class="openrow">
         <td class="l"><span class="badge-open">⏳ ÎN CURS</span><br><button class="act" data-close="${esc(e.id)}" style="margin-top:4px;font-weight:800;background:rgba(34,214,107,.15);border-color:var(--bull-s);color:var(--bull-s)" title="Închide execuția — cere prețul de ieșire">✓ ÎNCHIDE</button></td>
         <td class="l">${e.openTs ? new Date(e.openTs).toLocaleDateString('ro-RO') : '—'}</td>
-        <td class="sym l"><a href="../portfolio/?sym=${encodeURIComponent(e.sym)}" style="color:var(--accent);text-decoration:none" title="Risc agregat în Portfolio">${esc(e.sym)}</a> <a class="act" href="../equity/?highlight=${encodeURIComponent(e.id)}" title="Pe equity curve">📈</a></td>
+        <td class="sym l"><a href="../portfolio/?sym=${encodeURIComponent(e.sym)}" style="color:var(--accent);text-decoration:none" title="Risc agregat în Portfolio">${esc(e.sym)}</a></td>
         <td>${e.dir === 'short' ? '🔻S' : '🔺L'}</td>
         <td>${fmt$(e.entry)}</td>
         <td>${markCell}</td>
@@ -885,9 +908,64 @@ $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
   if (window.ACCT) ACCT.syncAll(acct, 'governor');
   renderDesk();
 });
+function fmtUsd0(v){ return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+
+function renderCapitalPanel(){
+  if (!window.EQ) {
+    $('capDriftTxt').textContent = 'Modul equity indisponibil — reîncarcă pagina.';
+    return;
+  }
+  const base = EQ.baseline();
+  const drift = EQ.drift();
+  $('capBaseLine').textContent = base.source === 'snapshot'
+    ? 'Baseline ' + fmtUsd0(base.value) + ' · snapshot ' + base.day + ' + PnL închis + capital'
+    : 'Baseline ' + fmtUsd0(base.value) + ' · cont risc — adaugă primul snapshot Trade212';
+  if (drift.snapshot) {
+    const cls = drift.warn ? 'wrn' : 'pos';
+    $('capDriftTxt').innerHTML = 'Sim <b>' + fmtUsd0(drift.simulated) + '</b> vs snap <b>' + fmtUsd0(drift.snapshot.equity) + '</b> (' + drift.snapshot.day + ') · <span class="' + cls + '">' + (drift.driftUsd >= 0 ? '+' : '') + fmtUsd0(drift.driftUsd) + ' (' + (drift.driftPct >= 0 ? '+' : '') + drift.driftPct.toFixed(1) + '%)</span>' + (drift.stale ? ' · snapshot vechi ' + drift.snapshotAgeDays + 'z' : '');
+  } else {
+    $('capDriftTxt').innerHTML = '<span class="wrn">Fără snapshot Trade212 — drift indisponibil.</span>';
+  }
+  const snaps = EQ.snapshots().sort((a, b) => b.ts - a.ts);
+  const fs = EQ.firstSnapshot();
+  $('jrSnapTbl').innerHTML = snaps.length
+    ? '<table><tr><th class="l">Zi</th><th>Equity</th><th>Notă</th><th></th></tr>' + snaps.map(s =>
+      '<tr><td class="l">' + esc(s.day) + (fs && s.ts === fs.ts ? ' ★' : '') + '</td><td>' + fmtUsd0(s.equity) + '</td><td class="l">' + esc(s.note || '—') + '</td><td><button type="button" data-del-snap="' + s.ts + '" class="act">✕</button></td></tr>'
+    ).join('') + '</table>'
+    : '<p class="note">Niciun snapshot.</p>';
+  $('jrSnapTbl').querySelectorAll('[data-del-snap]').forEach(b => b.onclick = () => { if (confirm('Ștergi snapshot?')) { EQ.removeSnapshot(+b.dataset.delSnap); renderAll(); } });
+  const caps = EQ.capitalEvents().sort((a, b) => b.ts - a.ts);
+  $('jrCapTbl').innerHTML = caps.length
+    ? '<table><tr><th class="l">Zi</th><th>Tip</th><th>$</th><th>Notă</th><th></th></tr>' + caps.map(c =>
+      '<tr><td class="l">' + esc(c.day) + '</td><td>' + (c.kind === 'withdraw' ? 'Retragere' : 'Depunere') + '</td><td class="' + (c.kind === 'withdraw' ? 'neg' : 'pos') + '">' + fmtUsd0(c.amountUsd) + '</td><td class="l">' + esc(c.note || '') + '</td><td><button data-del-cap="' + c.ts + '" class="act">✕</button></td></tr>'
+    ).join('') + '</table>'
+    : '';
+  $('jrCapTbl').querySelectorAll('[data-del-cap]').forEach(b => b.onclick = () => { EQ.removeCapitalEvent(+b.dataset.delCap); renderAll(); });
+  if (EQ.writeDriftFlag) EQ.writeDriftFlag();
+  if (EQ.maybeNotifyDrift) EQ.maybeNotifyDrift();
+}
+
+$('btnJrSnap') && $('btnJrSnap').addEventListener('click', () => {
+  if (!window.EQ) return;
+  const rec = EQ.addSnapshot($('jrSnapEq').value, $('jrSnapNote').value);
+  if (!rec) { alert('Equity invalid'); return; }
+  if (window.ACCT) ACCT.syncAll(rec.equity, 'snapshot');
+  $('jrSnapEq').value = ''; $('jrSnapNote').value = '';
+  $('cAcct').value = rec.equity;
+  if (window.GV) GV.saveCfg({ accountSize: +rec.equity });
+  renderAll();
+});
+$('btnJrCap') && $('btnJrCap').addEventListener('click', () => {
+  if (!window.EQ) return;
+  const rec = EQ.addCapitalEvent($('jrCapKind').value, $('jrCapAmt').value, $('jrCapNote').value);
+  if (!rec) { alert('Sumă invalidă'); return; }
+  $('jrCapAmt').value = ''; $('jrCapNote').value = '';
+  renderAll();
+});
+
 $('btnAcctSnap') && $('btnAcctSnap').addEventListener('click', () => {
   const snap = window.EQ && EQ.lastSnapshot ? EQ.lastSnapshot() : null;
-  if (!snap) { alert('Niciun snapshot în Equity. Deschide Equity → Snapshot cont și pune equity real din Trade212.'); return; }
+  if (!snap) { alert('Niciun snapshot. Scroll la Capital → + Snapshot cu equity real din Trade212.'); return; }
   $('cAcct').value = snap.equity;
   GV.saveCfg({ accountSize: +snap.equity });
   if (window.ACCT) ACCT.syncAll(+snap.equity, 'snapshot');
@@ -969,6 +1047,7 @@ function renderAll(){
   if (window.CD) CD.renderRail('capitalRail', 'journal');
   showPrefillGate();
   renderDesk();
+  renderCapitalPanel();
   renderDdAlert();
   // linia de diagnostic — spune exact ce vede pagina pe ACEST device
   try {
@@ -1003,8 +1082,8 @@ else if (JR.syncAllFromTracker && JR.reconcileTracker) {
 }
 renderReconcileChip();
 renderAll();
-if (location.hash === '#desk') {
-  const el = document.getElementById('desk');
+if (location.hash === '#desk' || location.hash === '#capital') {
+  const el = document.getElementById(location.hash.slice(1));
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 setInterval(renderDesk, 60000);
@@ -1018,8 +1097,8 @@ if (window.CD && CD.initListener) CD.initListener(renderAll);
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v575';
-  var full = window.SUITE_VERSION || 'tt-v575-2026-07-09';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v577';
+  var full = window.SUITE_VERSION || 'tt-v577-2026-07-10';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });

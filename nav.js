@@ -55,7 +55,7 @@
     { u:'journal/',           n:'Journal',  e:'📓' },
     { u:'portfolio/',         n:'Portof.',  e:'🛡️' },
     { u:'router/',            n:'Router',   e:'🧭' },
-    { u:'equity/',            n:'Equity',   e:'📈' },
+    { u:'journal/#capital',   n:'Capital',  e:'⚖' },
     { u:'shadow-book/',       n:'Shadow',   e:'👻' },
     { u:'postmortem/',        n:'PM',       e:'🔬' },
     { u:'weekly/',            n:'Weekly',   e:'📅' },

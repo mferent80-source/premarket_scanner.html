@@ -1,4 +1,4 @@
-/* capital-ui.css v566 — shell comun Journal / Portfolio / Equity (I-139) */
+/* capital-ui.css v577 — shell comun Journal / Portfolio / Equity (I-139) */
 
 .cap-page {
   background-image: radial-gradient(1200px 600px at 50% -200px, #142533 0%, #0b0f17 55%);
@@ -8,6 +8,23 @@
 .cap-wrap {
   max-width: 1100px;
   margin: 0 auto;
+}
+
+/* Journal — full bleed (Desk command deck) */
+.cap-journal.cap-page {
+  padding: 8px clamp(8px, 1.2vw, 18px);
+}
+.cap-journal .cap-wrap {
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0;
+}
+.cap-journal header.cap-header,
+.cap-journal .cap-shell {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 /* ── Top header ── */
@@ -253,16 +270,69 @@
   background: rgba(20, 26, 40, 0.65);
 }
 
-/* Journal desk polish */
+/* Journal desk — command deck full width */
 .cap-journal .desk-rail {
   top: 96px;
   border-radius: 14px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  width: 100%;
 }
-
+.cap-journal .desk-deck {
+  display: grid;
+  grid-template-columns: minmax(130px, 168px) minmax(200px, 1.1fr) minmax(260px, 1fr) minmax(280px, 1.4fr);
+  gap: 12px;
+  align-items: stretch;
+  width: 100%;
+}
 .cap-journal .desk-verdict {
-  font-size: clamp(28px, 5vw, 36px);
+  font-size: clamp(22px, 2.2vw, 40px);
   border-radius: 12px;
+  margin: 0;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+}
+.cap-journal .desk-budget-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  min-width: 0;
+}
+.cap-journal .desk-strip {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0;
+}
+.cap-journal .desk-today {
+  margin: 0;
+  min-width: 0;
+  overflow-x: auto;
+}
+.cap-journal .cd-cells {
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+}
+@media (max-width: 1100px) {
+  .cap-journal .desk-deck {
+    grid-template-columns: minmax(120px, 150px) 1fr 1fr;
+    grid-template-areas:
+      "verdict budget budget"
+      "stats stats today";
+  }
+  .cap-journal .desk-deck .desk-verdict { grid-area: verdict; }
+  .cap-journal .desk-deck .desk-budget-block { grid-area: budget; }
+  .cap-journal .desk-deck .desk-strip { grid-area: stats; }
+  .cap-journal .desk-deck .desk-today { grid-area: today; }
+}
+@media (max-width: 720px) {
+  .cap-journal .desk-deck {
+    grid-template-columns: 1fr;
+    grid-template-areas: none;
+  }
+  .cap-journal .desk-strip { grid-template-columns: 1fr 1fr; }
 }
 
 /* Equity chart panel */

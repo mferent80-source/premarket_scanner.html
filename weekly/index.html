@@ -211,11 +211,11 @@ function render(d){
     if (dr.snapshot) {
       html += `<div class="scard"><div class="lbl">DRIFT vs SNAP</div><div class="val ${dr.warn ? 'wrn' : ''}">${dr.driftPct != null ? (dr.driftPct >= 0 ? '+' : '') + dr.driftPct.toFixed(1) + '%' : '—'}</div><div class="sub">snapshot ${dr.snapshotAgeDays != null ? dr.snapshotAgeDays + 'z' : '?'}</div></div>`;
     } else {
-      html += `<div class="scard"><div class="lbl">DRIFT</div><div class="val">—</div><div class="sub"><a href="../equity/">adaugă snapshot</a></div></div>`;
+      html += `<div class="scard"><div class="lbl">DRIFT</div><div class="val">—</div><div class="sub"><a href="../journal/#capital">adaugă snapshot</a></div></div>`;
     }
     html += '</div>';
-    if (!dr.snapshot) html += '<div class="note">Fără snapshot Trade212 — drift indisponibil. <a href="../equity/">Equity Curve</a></div>';
-    else if (dr.warn) html += '<div class="note wrn">⚠ Drift ≥2% — reconciliază în <a href="../equity/">Equity</a> înainte de concluzii capital.</div>';
+    if (!dr.snapshot) html += '<div class="note">Fără snapshot Trade212 — drift indisponibil. <a href="../journal/#capital">Journal → Capital</a></div>';
+    else if (dr.warn) html += '<div class="note wrn">⚠ Drift ≥2% — reconciliază în <a href="../journal/#capital">Journal → Capital</a> înainte de concluzii capital.</div>';
     $('eqBody').innerHTML = html;
     if (d.capitalDesk) {
       const cd = d.capitalDesk, prev = d.capitalDeskPrev;
