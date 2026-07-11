@@ -166,6 +166,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-158 | Hub strip Journal + deck compact + cockpit fold | index.html + hub-brief.js | M | P1 | făcut | user | 2026-07-10 |
 | I-159 | Macro Rail în Journal Desk (context-only) | journal/ + lib/macro-context.js | M | P1 | făcut | user | 2026-07-10 |
 | I-160 | Hub Command Tableau + event tape 7z | index.html + lib/hub-tableau.js | M | P1 | făcut | user | 2026-07-10 |
+| I-161 | Gappers WL-aware + strip în tableau Pre | index.html + lib/hub-gappers.js | M | P1 | propus | ideation | 2026-07-11 |
+| I-162 | Hub session mode cu layout real (Pre/RTH/Review) | index.html + lib/hub-brief.js + hub-ui.css | M | P2 | propus | ideation | 2026-07-11 |
+| I-163 | Extract hub-market.js + hub-gappers.js din monolit | index.html + lib/*.js | L | P2 | propus | ideation | 2026-07-11 |
+| I-164 | Sync stale digest → hub-stale-digest.json (1-click) | lib/hub-state.js + health/ + tools/ | S | P2 | propus | ideation | 2026-07-11 |
+| I-165 | Event tape + earnings WL (48h) | lib/event-tape.js + lib/hub-brief.js | S | P1 | propus | ideation | 2026-07-11 |
+| I-166 | Gapper chip → Nasdaq Scanner + Journal prefill | lib/hub-gappers.js + journal/ | S | P1 | propus | ideation | 2026-07-11 |
 
 ## Mini-spec-uri
 
@@ -1102,3 +1108,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** intrare dimineață într-un singur viewport; evenimente macro vizibile fără Macro open.
 - **Riscuri/dependențe:** rezultate necesită Macro rulat o dată (`md_seen_actual`); fără actual → fallback dispare T+12h de la ora programată.
 - **Fișiere atinse:** `lib/hub-tableau.js`, `lib/event-tape.js`, `lib/hub-ui.css`, `index.html`, `lib/macro-context.js` (MCTX), `lib/hub-brief.js`, `sw-app.js`.
+
+### I-161 · Gappers WL-aware + strip în tableau Pre · [M] · P1
+- **Problema/golul:** widgetul gappers (~150 linii inline în `index.html` L1793+) scanează un univers fix de ~50 tickere via Finnhub `/quote`, ignoră `wl_stocks`; apare sub search, nu în `#hubTableau`; linkurile merg pe TradingView extern, nu în suită; fără badge earnings (I-154 e doar în Journal).
+- **Soluția:** extracție `lib/hub-gappers.js` (HG.*): univers = union mega-caps + watchlist; în mod Pre/AH randare bandă compactă sub event tape (`#hubGappersSlot`) sau chip-row în gold bar; badge `EARN` dacă simbolul e în cache-ul earnings din Brief; tooltip „premarket — spread/liquidity” (trader.md §2).
+- **Impact:** dimineața vezi imediat gap-uri relevante pentru WL, nu doar mega-caps; mai puține tab-uri externe.
+- **Riscuri/dependențe:** rate-limit Finnhub free (păstrează cache 60s + batch 8); pragul 3% e ipoteză — de validat out-of-sample.
+- **Fișiere atinse:** `lib/hub-gappers.js` (nou), `lib/hub-tableau.js`, `lib/hub-ui.css`, `index.html`, `sw-app.js`.
+
+### I-162 · Hub session mode cu layout real · [M] · P2
+- **Problema/golul:** `applyHubSessionMode()` (`hub-brief.js` L992) setează doar `body[data-hub-mode]` + deschide `pbTier2` în Review; checklistul apare la fel în Pre/RTH; card grid și brief rămân identice — modurile 🌅 Pre / 📈 RTH / 🔬 Review nu schimbă ce vezi above-the-fold.
+- **Soluția:** CSS + logică per mod: **Pre** — gappers promoted, brief collapsed, checklist expanded, ascunde secțiunea Review (ledger/weekly); **RTH** — tableau full, brief închis, cards scan vizibile; **Review** — ledger mini deschis, equity pill prominent, gappers ascuns, weekly card highlighted. Persistă `hub_session_mode` (deja există).
+- **Impact:** un singur toggle îți rearanjează hub-ul pe workflow-ul zilei, nu doar o etichetă.
+- **Riscuri/dependențe:** regresii responsive pe 550px; test manual pe cele 3 moduri.
+- **Fișiere atinse:** `lib/hub-brief.js`, `lib/hub-ui.css`, `index.html`.
+
+### I-163 · Extract hub-market.js + hub-gappers.js · [L] · P2
+- **Problema/golul:** `index.html` are ~2000 linii: `hubRefreshMarketQuotes` + fetch SPY/QQQ/VIX (L1200+), gappers IIFE (L1793+), tracker modal, feature modal — logică duplicată față de `lib/`; `renderHubJournalStrip` referă `#hubJrStrip` inexistent (dead code post-I-160).
+- **Soluția:** `lib/hub-market.js` (HM.*) — bus `__hubMkt`, `hubRefreshMarketQuotes`, `hubRestoreMarketWidgets`; `lib/hub-gappers.js` (HG.*); curățare `hubJrStrip` + `renderHubCmd` stub; pagina rămâne shell HTML + `HB.init()`.
+- **Impact:** mentenanță sigură pe zona cea mai atinsă a suitei; I-161/I-166 se implementează pe module, nu pe monolit.
+- **Riscuri/dependențe:** efort L fără UX nou vizibil — de făcut înainte sau împreună cu I-161.
+- **Fișiere atinse:** `lib/hub-market.js`, `lib/hub-gappers.js`, `index.html`, `lib/hub-brief.js`, `sw-app.js`.
+
+### I-164 · Sync stale digest → hub-stale-digest.json · [S] · P2
+- **Problema/golul:** `HS.exportDigestForBot()` scrie `tt_hub_stale_digest_export_v1` în LS și note „paste into hub-stale-digest.json", dar `tools/hub-stale-digest.json` are `items: []` mereu; `check-alerts.mjs` L129 trimite digest server doar dacă `dig.items` e populat manual — clientul trimite TG local, serverul nu vede macro stale / piață veche.
+- **Soluția:** buton în Health (sau pill 📦 stale): „📋 Copiază digest server" → JSON `{ items: HS.staleAudit().items }` gata de lipit/commit; opțional workflow doc în Health „commit hub-stale-digest.json". Paritate cu `CD.copyServerRiskPayload()`.
+- **Impact:** digest Telegram 07-09 ET include și macro/piață stale fără edit manual în repo.
+- **Riscuri/dependențe:** tot manual (copy-paste) dacă nu vrei gist write; fără secrete în JSON exportat.
+- **Fișiere atinse:** `lib/hub-state.js`, `health/index.html`, `tools/hub-stale-digest.json`, `tools/check-alerts.mjs` (doc only).
+
+### I-165 · Event tape + earnings WL (48h) · [S] · P1
+- **Problema/golul:** `ET.buildItems()` (`event-tape.js`) citește doar `MCTX.hardcodedEvents()` (macro CPI/FOMC/NFP); earnings din watchlist apar doar în Brief tier2 (lazy) — banda „Evenimente" din tableau nu arată „NVDA earn mâine" deși `pbLoadEarnings` / `JI.refreshEarningsCalendar` au deja date Finnhub.
+- **Soluția:** `ET.mergeWlEarnings()` — citește cache LS partajat (ex. `pb_earnings_cache` sau helper din `journal-insights.js`); chip-uri `EARN · SYM · 1d` în scroll-ul `#hubGoldEvents`, phase `imminent` dacă ≤48h; click → `earnings-hub/` sau scanner sym.
+- **Impact:** risc binar earnings vizibil în același viewport cu CPI/FOMC dimineața.
+- **Riscuri/dependențe:** fără cheie Finnhub = bandă macro-only (fallback OK); nu agrega earnings low-impact — doar WL + mega-cap.
+- **Fișiere atinse:** `lib/event-tape.js`, `lib/hub-brief.js`, `lib/journal-insights.js` (helper read-only), `lib/hub-ui.css`.
+
+### I-166 · Gapper chip → Nasdaq Scanner + Journal prefill · [S] · P1
+- **Problema/golul:** gapper chips (L1901) deschid `tradingview.com` în tab nou — ruptura workflow Hub → Scan → Exec; I-104 (Nasdaq → Journal) există invers, nu și Hub gappers → suită.
+- **Soluția:** click principal → `./nasdaq-scanner/?sym=SYM`; long-click sau buton mic „📓" → `journal/?prefill` cu `source:'hub-gapper'`, `notes` cu gap% + sesiune ET; respectă gate CD/Router (banner dacă HALT, nu blochează navigarea).
+- **Impact:** de la gapper la chart/score în suită + plan journal în 1–2 click-uri.
+- **Riscuri/dependențe:** prețul Finnhub poate diferi de Yahoo din scanner (afișează ambele la prefill); spread premarket — mențiune în tooltip.
+- **Fișiere atinse:** `lib/hub-gappers.js`, `nasdaq-scanner/index.html`, `journal/index.html`, `lib/journal.js`.
