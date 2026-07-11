@@ -1,10 +1,21 @@
 # -*- coding: utf-8 -*-
+"""
+Migrare istorică v542 — NU rula pe index.html curent (v607+).
+
+Hub-ul folosește acum: hub-tableau.js (command deck), hub-market.js (SPY/QQQ/VIX),
+hub-gappers.js, hub-brief.js (cockpit via HT.render). Fără hubSessionBar / hubHealthPill.
+"""
 import pathlib
 import re
+import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 p = ROOT / "index.html"
 html = p.read_text(encoding="utf-8")
+
+if 'id="hubTableau"' in html or 'lib/hub-tableau.js' in html:
+    print("Abort: index.html e deja v600+ (hub-tableau). Script v542 nu se aplică.", file=sys.stderr)
+    sys.exit(1)
 
 HUB_CSS = r"""
 /* === HUB COCKPIT v542 === */
@@ -94,18 +105,8 @@ old_dash_end = """    <div class="widget" id="wRisk" style="display:none">
 if old_dash_end in html:
     html = html.replace(old_dash_end, "    <div class=\"hub-cmd\" id=\"hubCmd\"><div class=\"hub-cmd-cell lvl-neut\"><div class=\"hub-cmd-lbl\">Desk</div><div class=\"hub-cmd-val\">⏳</div></div></div>\n")
 
-# Session bar + cockpit before brief
+# Session + cockpit before brief (legacy v542 — înlocuit de hub-tableau.js în v600+)
 COCKPIT_BLOCK = """
-  <div class="hub-session" id="hubSessionBar">
-    <span class="hub-session-lbl">Mod sesiune</span>
-    <div class="hub-mode">
-      <button type="button" id="hubModePre">🌅 Pre</button>
-      <button type="button" id="hubModeRth" class="on">📈 RTH</button>
-      <button type="button" id="hubModeReview">🔬 Review</button>
-    </div>
-    <button type="button" class="hub-health-pill" id="hubHealthPill" title="Suite Health">🩺 …</button>
-  </div>
-
   <div id="hubFreezeTop" class="hub-freeze-top"></div>
   <section class="hub-cockpit" id="hubCockpit">
     <div>

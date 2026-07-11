@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=606"></script>
+<script src="lib/suite-version.js?v=607"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=606">
+<link rel="stylesheet" href="lib/hub-ui.css?v=607">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -111,32 +111,6 @@ h1 .accent{
 .lead{
   font-size:clamp(15px,2vw,18px);color:var(--t2);max-width:640px;margin:0 auto;
 }
-
-/* Search bar pe Hub (similar crypto Hub) */
-.hub-search{margin:18px auto 24px;max-width:480px;position:relative}
-.hub-search input{
-  width:100%;padding:11px 14px 11px 40px;
-  background:var(--bg2);border:1px solid var(--b1);border-radius:11px;
-  color:var(--t1);font-size:13px;font-family:inherit;
-  transition:all .15s var(--ease);
-}
-.hub-search input::placeholder{color:var(--t3)}
-.hub-search input:focus{outline:none;border-color:var(--crypto-1);box-shadow:0 4px 16px rgba(247,147,26,.18)}
-.hub-search::before{
-  content:"🔍";position:absolute;left:13px;top:50%;transform:translateY(-50%);
-  font-size:15px;opacity:.8;pointer-events:none;
-}
-.hub-search-clear{
-  position:absolute;right:9px;top:50%;transform:translateY(-50%);
-  background:var(--bg3);border:1px solid var(--b1);
-  color:var(--t3);padding:3px 8px;border-radius:6px;
-  font-size:10px;cursor:pointer;font-family:inherit;display:none;
-}
-.hub-search-clear:hover{color:var(--t1)}
-.hub-search.has-text .hub-search-clear{display:inline-block}
-.card.hidden-by-search{display:none}
-.hub-no-results{text-align:center;padding:36px 20px;color:var(--t3);font-size:13px;display:none}
-.hub-no-results.visible{display:block}
 
 /* Tools grid */
 .grid{
@@ -294,72 +268,6 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   footer{display:none}
 }
 
-/* PRE-MARKET / AFTER-HOURS GAPPERS WIDGET */
-.gappers-panel {
-  background:linear-gradient(135deg, rgba(212,137,44,.12), rgba(255,216,107,.06));
-  border:1px solid rgba(212,137,44,.4); border-radius:var(--rs);
-  padding:14px 18px; margin-bottom:18px; box-shadow:var(--sh);
-}
-.gappers-head {
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  margin-bottom:10px; padding-bottom:9px; border-bottom:1px solid rgba(212,137,44,.25);
-}
-.gappers-head h3 {
-  font-family:var(--head); font-size:14px; font-weight:800; color:var(--t1);
-  flex:1; margin:0;
-}
-.gappers-session-pill {
-  font-family:var(--mono); font-size:11px; padding:3px 9px;
-  background:rgba(212,137,44,.18); color:#d4892c; border:1px solid rgba(212,137,44,.45);
-  border-radius:999px; font-weight:700;
-}
-.gappers-status {
-  font-family:var(--mono); font-size:11px; color:var(--t3); margin-left:auto;
-}
-.gappers-list {
-  display:flex; flex-wrap:wrap; gap:8px;
-}
-.gapper-chip {
-  display:inline-flex; align-items:center; gap:6px;
-  background:var(--bg2); border:1px solid var(--b1); border-radius:6px;
-  padding:7px 11px; cursor:pointer; text-decoration:none;
-  font-family:var(--mono); transition:all .15s ease;
-}
-.gapper-chip:hover { transform:translateY(-1px); border-color:#5bb0ff; box-shadow:0 2px 8px rgba(91,176,255,.2); }
-.gapper-chip .gp-sym { font-weight:800; font-size:13px; color:#5bb0ff; }
-.gapper-chip .gp-pct { font-weight:800; font-size:12.5px; }
-.gapper-chip .gp-pct.up { color:#22d66b; }
-.gapper-chip .gp-pct.down { color:#ff4d4d; }
-.gapper-chip .gp-price { font-size:11px; color:var(--t2); }
-.gappers-empty {
-  font-family:var(--head); font-size:13px; color:var(--t2); font-style:italic;
-  padding:8px 0;
-}
-
-/* DASHBOARD WIDGETS */
-.dash{
-  display:grid;gap:12px;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  margin-top:32px;margin-bottom:8px;
-}
-.widget{
-  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rs);
-  padding:14px 16px;display:flex;flex-direction:column;gap:6px;
-  font-family:var(--mono);box-shadow:var(--sh);
-  transition:border-color .15s var(--ease), transform .15s var(--ease);
-  position:relative;overflow:hidden;
-}
-.widget::before{
-  content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
-  background:linear-gradient(180deg,var(--crypto-1),var(--crypto-2));opacity:.7;
-}
-.widget:hover{border-color:var(--b2);transform:translateY(-1px)}
-.w-lbl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;font-weight:600}
-.w-val{font-size:22px;font-weight:800;color:var(--t1);font-family:var(--head);letter-spacing:-0.01em}
-.w-sub{font-size:11px;color:var(--t2);font-weight:500}
-.w-pos{color:var(--green)}
-.w-neg{color:#ff4d4d}
-
 @media (max-width:560px){
   body{padding:16px 12px 60px}
   .hero{padding:32px 0 24px}
@@ -377,15 +285,6 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
 
 /* === HUB COCKPIT v542 === */
-.hub-session{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 6px;padding:8px 12px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rs)}
-.hub-session-lbl{font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:700;margin-right:4px}
-.hub-mode{display:inline-flex;border:1px solid var(--b1);border-radius:8px;overflow:hidden}
-.hub-mode button{background:var(--bg3);border:none;color:var(--t3);padding:6px 11px;font-size:10px;font-weight:800;cursor:pointer;font-family:var(--mono)}
-.hub-mode button.on{background:rgba(247,147,26,.15);color:var(--crypto-2)}
-.hub-health-pill{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:800;padding:5px 10px;border-radius:999px;border:1px solid var(--b1);cursor:pointer;background:var(--bg3);color:var(--t2)}
-.hub-health-pill.ok{border-color:rgba(34,214,107,.35);color:var(--green)}
-.hub-health-pill.warn{border-color:rgba(212,137,44,.35);color:#d4892c}
-.hub-health-pill.err{border-color:rgba(255,77,77,.35);color:#ff4d4d}
 .hub-cmd{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0;grid-column:1/-1}
 .hub-cmd-slim .hub-cmd-val{font-size:15px}
 .hub-cmd-slim .hub-cmd-cell{padding:8px 10px}
@@ -1146,341 +1045,9 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 <script src="lib/router.js?v=9"></script>
 <script src="lib/regime.js"></script>
 <script src="lib/ai.js"></script>
-<script src="lib/telegram.js"></script>
+<script src="lib/hub-market.js?v=607"></script>
+<script src="lib/hub-search.js?v=607"></script>
 <script>
-// ── DASHBOARD WIDGETS ──
-// Hub-ul afișează context macro stocks (SPY + QQQ + VIX) + counts (watchlist, open trades).
-// Citește localStorage pentru data scrisă de nasdaq-scanner / journal pe același origin.
-(function(){
-  const $ = id => document.getElementById(id);
-
-  // Yahoo Finance via CORS proxy (same approach as nasdaq-scanner) — quote endpoint pentru SPY/QQQ/VIX
-  // Folosesc API-ul public quote care nu necesită cheie. Fallback la chart endpoint dacă quote eșuează.
-  const fmtP = p => p >= 1000 ? '$' + p.toLocaleString('en', {maximumFractionDigits: 0}) : '$' + p.toFixed(2);
-  const fmtVix = p => p.toFixed(2);
-  const CORS = (u) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u);
-  // v41: sesiunea US (ET) — decide cum citim prețul "live" și referința în pre/after-market.
-  const usSession = (() => {
-    try {
-      const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false, weekday:'short', hour:'2-digit', minute:'2-digit' }).formatToParts(new Date()).map(x => [x.type, x.value]));
-      if (p.weekday === 'Sat' || p.weekday === 'Sun') return 'weekend';
-      const mins = (+p.hour) * 60 + (+p.minute);
-      if (mins >= 240 && mins < 570) return 'pre';      // 04:00–09:30 ET
-      if (mins >= 570 && mins < 960) return 'rth';      // 09:30–16:00 ET
-      if (mins >= 960 && mins < 1200) return 'after';   // 16:00–20:00 ET
-      return 'closed';
-    } catch (e) { return 'rth'; }
-  })();
-  const fetchQuote = async (sym) => {
-    // v41 FIX „premarket nu e live": includePrePost + citim ULTIMA bară 5m (extended) ca preț curent.
-    // ÎNAINTE: interval=1d&range=1d + meta.regularMarketPrice = close-ul regular ÎNGHEȚAT în pre/after
-    // → widget-ul arăta prețul de ieri, nu cel live din premarket. (aliniat cu nasdaq-scanner)
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1m&range=1d&includePrePost=true`;
-    // strat de date comun (lib/data.js): proxy health per-host + fallback + cache 30s.
-    let data;
-    if (window.D && D.fetchJSON) {
-      data = await D.fetchJSON(url, { ttl: 30 });
-    } else {
-      const ctrl = new AbortController();
-      const to = setTimeout(() => ctrl.abort(), 9000);
-      try {
-        const r = await fetch(CORS(url), { signal: ctrl.signal });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        data = await r.json();
-      } finally { clearTimeout(to); }
-    }
-    const res = data?.chart?.result?.[0];
-    const meta = res?.meta;
-    if (!meta) throw new Error('no meta');
-    // preț LIVE = ultima bară non-null (sursa cea mai proaspătă, ca alerts v44 — meta.preMarketPrice
-    // vine GOL pe destule simboluri). Fallback: meta extended pre/post (early premarket fără bare) → regular.
-    const closes = res?.indicators?.quote?.[0]?.close || [];
-    let bar = null;
-    for (let i = closes.length - 1; i >= 0; i--) { if (closes[i] != null) { bar = closes[i]; break; } }
-    const price = bar
-      ?? (usSession === 'pre' ? meta.preMarketPrice : usSession === 'after' ? meta.postMarketPrice : null)
-      ?? meta.regularMarketPrice;
-    // În PREMARKET cu range=1d, chartPreviousClose = close N−2; close-ul de ieri (N−1) e regularMarketPrice.
-    // În rth/after, chartPreviousClose e corect close-ul de ieri.
-    const prev = usSession === 'pre'
-      ? (meta.regularMarketPrice ?? meta.chartPreviousClose)
-      : (meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice);
-    if (!price || !prev) throw new Error('no price');
-    return { price, chgPct: ((price - prev) / prev) * 100 };
-  };
-  const dayLabel = usSession === 'weekend' ? '% ult. sesiune' : usSession === 'pre' ? '% pre' : usSession === 'after' ? '% after' : '% azi';
-  // Bus comun: banda de sus e SINGURA sursă de fetch SPY/QQQ/VIX; cockpit-ul („Piața acum") oglindește
-  // acest obiect + ascultă evenimentul, ca să nu dublăm fetch-ul/logica de sesiune.
-  window.__hubMkt = { session: usSession, dayLabel, quotes: {} };
-  const stashMkt = (key, q) => {
-    try {
-      window.__hubMkt.quotes[key] = q;
-      window.__hubMkt.ts = Date.now();
-      localStorage.setItem('tt_hub_mkt_v1', JSON.stringify({ session: window.__hubMkt.session, dayLabel: window.__hubMkt.dayLabel, quotes: window.__hubMkt.quotes, ts: window.__hubMkt.ts }));
-      window.dispatchEvent(new CustomEvent('hub:market')); if (window.HB) HB.renderCockpit();
-    } catch (_) {}
-  };
-  const applyMktQuote = (sym, valEl, subEl, fmt, wrapId, invert) => {
-    const q = window.__hubMkt && window.__hubMkt.quotes && window.__hubMkt.quotes[sym];
-    if (!q) return;
-    const v = $(valEl), s = $(subEl);
-    if (!v || !s) return;
-    v.textContent = fmt(q.price);
-    s.innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + (window.__hubMkt.dayLabel || dayLabel);
-    const up = invert ? q.chgPct < 0 : q.chgPct >= 0;
-    s.className = 'ht-m-sub w-sub ' + (up ? 'w-pos' : 'w-neg');
-    const wrap = wrapId ? $(wrapId) : null;
-    if (wrap && window.HS) HS.setCardLvl(wrap, HS.marketQuoteLvl(sym, q));
-    else if (wrap) wrap.className = wrap.className.replace(/\blvl-\w+/g, '').trim() + ' lvl-' + (up ? 'ok' : 'bear');
-    if (window.HS) HS.renderStaleNav();
-  };
-  window.hubRestoreMarketWidgets = function(){
-    applyMktQuote('SPY', 'spyVal', 'spySub', fmtP, 'wSPY', false);
-    applyMktQuote('QQQ', 'qqqVal', 'qqqSub', fmtP, 'wQQQ', false);
-    applyMktQuote('VIX', 'vixVal', 'vixSub', fmtVix, 'wVIX', true);
-  };
-  window.hubRefreshMarketQuotes = async function(){
-    await renderTicker('SPY', 'spyVal', 'spySub', fmtP, 'wSPY', false);
-    await renderTicker('QQQ', 'qqqVal', 'qqqSub', fmtP, 'wQQQ', false);
-    try {
-      const q = await fetchQuote('%5EVIX');
-      $('vixVal').textContent = fmtVix(q.price);
-      const up = q.chgPct < 0;
-      $('vixSub').innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
-      $('vixSub').className = 'ht-m-sub w-sub ' + (up ? 'w-pos' : 'w-neg');
-      const w = $('wVIX');
-      if (w && window.HS) HS.setCardLvl(w, HS.marketQuoteLvl('VIX', q));
-      else if (w) w.className = w.className.replace(/\blvl-\w+/g, '').trim() + ' lvl-' + (q.price >= 25 ? 'bear' : q.price >= 18 ? 'warn' : up ? 'ok' : 'bear');
-      stashMkt('VIX', q);
-    } catch (e) {
-      const vs = $('vixSub');
-      if (vs) vs.textContent = 'indisponibil';
-    }
-  };
-  const renderTicker = async (sym, valEl, subEl, fmt, wrapId, invert) => {
-    try {
-      const q = await fetchQuote(sym);
-      $(valEl).textContent = fmt(q.price);
-      $(subEl).innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
-      const up = invert ? q.chgPct < 0 : q.chgPct >= 0;
-      $(subEl).className = 'ht-m-sub w-sub ' + (up ? 'w-pos' : 'w-neg');
-      if (wrapId) {
-        const w = $(wrapId);
-        if (w && window.HS) HS.setCardLvl(w, HS.marketQuoteLvl(sym, q));
-        else if (w) w.className = w.className.replace(/\blvl-\w+/g, '').trim() + ' lvl-' + (up ? 'ok' : 'bear');
-      }
-      stashMkt(sym, q);
-    } catch (e) {
-      $(subEl).textContent = 'indisponibil';
-    }
-  };
-  renderTicker('SPY', 'spyVal', 'spySub', fmtP, 'wSPY', false);
-  renderTicker('QQQ', 'qqqVal', 'qqqSub', fmtP, 'wQQQ', false);
-  (async () => {
-    try {
-      const q = await fetchQuote('%5EVIX');
-      $('vixVal').textContent = fmtVix(q.price);
-      const up = q.chgPct < 0;
-      $('vixSub').innerHTML = (q.chgPct >= 0 ? '+' : '') + q.chgPct.toFixed(2) + dayLabel;
-      $('vixSub').className = 'ht-m-sub w-sub ' + (up ? 'w-pos' : 'w-neg');
-      const w = $('wVIX');
-      if (w && window.HS) HS.setCardLvl(w, HS.marketQuoteLvl('VIX', q));
-      else if (w) w.className = w.className.replace(/\blvl-\w+/g, '').trim() + ' lvl-' + (q.price >= 25 ? 'bear' : q.price >= 18 ? 'warn' : up ? 'ok' : 'bear');
-      stashMkt('VIX', q);
-    } catch (e) {
-      $('vixSub').textContent = 'indisponibil';
-    }
-  })();
-
-  // ── Regim de risc (din sector-rotation: cyclicals vs defensives, via localStorage) ──
-  // Complementar cu VIX: VIX = nivel volatilitate; regimul = rotație risk-on/off.
-  (function(){
-    try {
-      const raw = localStorage.getItem('tt_risk_regime');
-      if (!raw) return;
-      const r = JSON.parse(raw);
-      if (!r || !r.regime) return;
-      const ageH = (Date.now() - (r.t || 0)) / 3600000;
-      if (ageH > 48) return;  // prea vechi → ascuns (deschide Sector Rotation ca să-l reîmprospătezi)
-      const col = r.cls === 'on' ? 'w-pos' : (r.cls === 'off' ? 'w-neg' : '');
-      const icon = r.cls === 'on' ? '🟢' : (r.cls === 'off' ? '🔴' : '⚪');
-      const rv = $('riskVal'), rs = $('riskSub'), wr = $('wRisk');
-      if (rv) { rv.textContent = icon + ' ' + r.regime; rv.className = 'w-val ' + col; }
-      if (rs) rs.textContent = 'spread ' + (r.spread >= 0 ? '+' : '') + r.spread + '%' + (ageH > 6 ? ' · ' + Math.round(ageH) + 'h' : '');
-      if (wr) wr.style.display = '';
-    } catch (e) {}
-  })();
-
-  // ── Command Center: Danger Score (din macro, md_danger_daily) ──
-  (function(){
-    try {
-      const h = JSON.parse(localStorage.getItem('md_danger_daily') || '[]');
-      if (!Array.isArray(h) || !h.length) return;
-      const s = h[h.length - 1].score;
-      if (typeof s !== 'number') return;
-      const dv = $('dangerVal'), ds = $('dangerSub'), wd = $('wDanger');
-      if (dv) { dv.textContent = s + '/100'; dv.className = 'w-val ' + (s >= 70 ? 'w-neg' : s >= 45 ? '' : 'w-pos'); }
-      if (ds) ds.textContent = s >= 70 ? 'PERICULOS · sizing 0.25-0.5x' : s >= 45 ? 'RIDICAT · 0.5x' : s >= 25 ? 'MODERAT · 0.75x' : 'CALM · 1x';
-      if (wd) wd.style.display = '';
-    } catch (e) {}
-  })();
-
-  // ── Watchlist UNIFICAT (stocks + crypto) — cross-page aggregation ──
-  // Stocks: `wl_stocks` (din nasdaq-scanner)
-  // Crypto: `scanner_cfg.watchlist` (din crypto-scanner — comma-separated string)
-  //         + `dash_watchlist` (dashboard panel separat din crypto-scanner)
-  let stockWL = [], cryptoWL = [];
-  try { stockWL = JSON.parse(localStorage.getItem('wl_stocks') || '[]') || []; } catch(e) {}
-  try {
-    const scfg = JSON.parse(localStorage.getItem('scanner_cfg') || '{}');
-    if (typeof scfg.watchlist === 'string' && scfg.watchlist.trim()) {
-      cryptoWL = scfg.watchlist.split(/[,\s]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
-    }
-    // Dedup cu dash_watchlist (unele coin-uri pot fi în ambele)
-    const dash = JSON.parse(localStorage.getItem('dash_watchlist') || '[]') || [];
-    const dashSet = new Set(cryptoWL);
-    dash.forEach(c => { if (c && typeof c === 'string') dashSet.add(c.toUpperCase()); });
-    cryptoWL = [...dashSet];
-  } catch(e) {}
-
-  window.__hubWlData = { stockWL, cryptoWL };
-
-  window.hubRefreshAuxWidgets = function(){
-    try {
-      const raw = JSON.parse(localStorage.getItem('wl_price_alerts') || '{}');
-      let n = 0;
-      for (const k in raw){ if (Array.isArray(raw[k])) n += raw[k].filter(a => a && a.armed !== false).length; }
-      const av = $('alertsVal'), as = $('alertsSub'), wa = $('wAlerts');
-      if (av) av.textContent = n;
-      if (as) as.textContent = n ? 'preț armate' : 'niciuna activă';
-      if (wa) wa.style.display = n ? '' : 'none';
-    } catch (e) {}
-    let sw = [], cw = [];
-    try { sw = JSON.parse(localStorage.getItem('wl_stocks') || '[]') || []; } catch(e) {}
-    try {
-      const scfg = JSON.parse(localStorage.getItem('scanner_cfg') || '{}');
-      if (typeof scfg.watchlist === 'string' && scfg.watchlist.trim()) {
-        cw = scfg.watchlist.split(/[,\s]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
-      }
-      const dash = JSON.parse(localStorage.getItem('dash_watchlist') || '[]') || [];
-      const dashSet = new Set(cw);
-      dash.forEach(c => { if (c && typeof c === 'string') dashSet.add(c.toUpperCase()); });
-      cw = [...dashSet];
-    } catch(e) {}
-    window.__hubWlData = { stockWL: sw, cryptoWL: cw };
-    const total = sw.length + cw.length;
-    const wv = $('wlVal'), ws = $('wlSub');
-    if (wv) wv.textContent = total;
-    if (ws) ws.textContent = total === 0 ? 'gol — adaugă în scanere' : total === 1 ? '1 simbol' : total + ' simboluri';
-    const stocksLink = '<a href="./watchlist-monitor/" target="_blank" style="color:var(--crypto-2);text-decoration:none">📈 ' + sw.length + ' stocks</a>';
-    const cryptoLink = '<a href="https://mferent80-source.github.io/scanner/" target="_blank" style="color:#5bb0ff;text-decoration:none">🪙 ' + cw.length + ' crypto</a>';
-    const wbv = $('wlBreakdownVal'), wbs = $('wlBreakdownSub');
-    if (wbv) wbv.innerHTML = stocksLink + ' · ' + cryptoLink;
-    const top = sw.slice(0, 3).concat(cw.slice(0, 3)).filter(Boolean);
-    if (wbs) wbs.textContent = top.length ? 'Ex: ' + top.slice(0, 4).join(' · ') : 'click → listă';
-  };
-
-  hubRefreshAuxWidgets();
-
-  // ── Trading session timer (countdown live pre-market / regular / after / closed) ──
-  // NYSE/Nasdaq trading hours (ET): pre-market 04:00-09:30, regular 09:30-16:00, after 16:00-20:00
-  function getETNow() {
-    const fmt = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-    });
-    const parts = fmt.formatToParts(new Date()).reduce((o, p) => { o[p.type] = p.value; return o; }, {});
-    return {
-      hour: parseInt(parts.hour, 10) % 24,
-      minute: parseInt(parts.minute, 10),
-      second: parseInt(parts.second, 10),
-      day: new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })).getDay(),
-    };
-  }
-  function fmtCountdown(ms) {
-    if (ms <= 0) return 'acum';
-    const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-    if (h > 0) return h + 'h ' + String(m).padStart(2, '0') + 'm';
-    return m + 'm ' + String(sec).padStart(2, '0') + 's';
-  }
-  function updateSessionTimer() {
-    const et = getETNow();
-    const isWeekend = et.day === 0 || et.day === 6;
-    const minutesNow = et.hour * 60 + et.minute;
-    const PRE_OPEN = 4 * 60, REG_OPEN = 9 * 60 + 30, REG_CLOSE = 16 * 60, AFTER_CLOSE = 20 * 60;
-
-    let label, value, sub, color = '';
-    if (isWeekend) {
-      label = '🛌 Weekend'; value = 'Closed';
-      sub = 'Markets reopen Monday 04:00 ET pre-market';
-    } else if (minutesNow < PRE_OPEN) {
-      label = '🌙 Overnight'; value = 'Closed';
-      sub = 'Pre-market in ' + fmtCountdown((PRE_OPEN - minutesNow) * 60000 - et.second * 1000);
-    } else if (minutesNow < REG_OPEN) {
-      label = '🌅 Pre-market'; value = 'OPEN';
-      sub = 'Regular open in ' + fmtCountdown((REG_OPEN - minutesNow) * 60000 - et.second * 1000);
-      color = 'var(--crypto-2)';
-    } else if (minutesNow < REG_CLOSE) {
-      label = '🟢 Regular session'; value = 'OPEN';
-      sub = 'Closes in ' + fmtCountdown((REG_CLOSE - minutesNow) * 60000 - et.second * 1000);
-      color = 'var(--green)';
-    } else if (minutesNow < AFTER_CLOSE) {
-      label = '🌆 After-hours'; value = 'OPEN';
-      sub = 'After closes in ' + fmtCountdown((AFTER_CLOSE - minutesNow) * 60000 - et.second * 1000);
-      color = 'var(--crypto-2)';
-    } else {
-      label = '🌙 Overnight'; value = 'Closed';
-      const minsUntilTomorrowPre = (24 * 60 - minutesNow) + PRE_OPEN;
-      sub = 'Pre-market in ' + Math.floor(minsUntilTomorrowPre / 60) + 'h';
-    }
-    if ($('sessionLbl')) $('sessionLbl').textContent = label;
-    if ($('sessionVal')) { $('sessionVal').textContent = value; $('sessionVal').style.color = color || ''; }
-    if ($('sessionSub')) $('sessionSub').textContent = sub;
-    const sp = $('hubSessionPill');
-    if (sp) {
-      const shortLbl = label.replace(/^.\s*/, '');
-      sp.textContent = sub ? shortLbl + ' · ' + sub : shortLbl;
-      sp.className = 'hub-session-pill' + (color === 'var(--green)' ? ' rth' : (color ? ' ext' : ''));
-    }
-    if (window.HB && HB.updateSessionPill) HB.updateSessionPill();
-  }
-  updateSessionTimer();
-  setInterval(updateSessionTimer, 1000); // tick fiecare secundă
-})();
-
-// ═══════════════════════════════════════════════════════════════
-//  Search hub — filtru live pe carduri (similar scanner-hub crypto)
-// ═══════════════════════════════════════════════════════════════
-(function setupHubSearch() {
-  const input = document.getElementById('hubSearch');
-  const clearBtn = document.getElementById('hubSearchClear');
-  const wrap = document.getElementById('hubSearchWrap');
-  const cards = document.querySelectorAll('#hubCards .card, #hubCards .wf-grid .card');
-  const noResults = document.getElementById('hubNoResults');
-  if (!input) return;
-  // Pre-extract text searchable per card
-  const searchableCards = Array.from(cards).map(card => {
-    const heading = card.querySelector('.card-title')?.textContent || '';
-    const desc = card.querySelector('.card-desc')?.textContent || '';
-    const features = Array.from(card.querySelectorAll('.feat')).map(f => f.textContent).join(' ');
-    return { el: card, text: (heading + ' ' + desc + ' ' + features).toLowerCase() };
-  });
-  function applySearch() {
-    const q = input.value.trim().toLowerCase();
-    wrap.classList.toggle('has-text', !!q);
-    let visible = 0;
-    for (const sc of searchableCards) {
-      const match = !q || sc.text.includes(q);
-      sc.el.classList.toggle('hidden-by-search', !match);
-      if (match) visible++;
-    }
-    noResults.classList.toggle('visible', q && visible === 0);
-  }
-  input.addEventListener('input', applySearch);
-  clearBtn.addEventListener('click', () => { input.value = ''; applySearch(); input.focus(); });
-  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { input.value = ''; applySearch(); } });
-})();
-
 // ═══════════════════════════════════════════════════════════════
 //  FEATURES MODAL — listă completă funcționalități per scanner
 //  Click ℹ pe orice card → modal cu toate features grupate pe categorii
@@ -1830,13 +1397,13 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/macro-context.js?v=606"></script>
-<script src="lib/event-tape.js?v=606"></script>
-<script src="lib/hub-state.js?v=606"></script>
-<script src="lib/hub-gappers.js?v=606"></script>
-<script src="lib/hub-tableau.js?v=606"></script>
-<script src="lib/hub-health.js?v=606"></script>
-<script src="lib/hub-brief.js?v=606"></script>
+<script src="lib/macro-context.js?v=607"></script>
+<script src="lib/event-tape.js?v=607"></script>
+<script src="lib/hub-state.js?v=607"></script>
+<script src="lib/hub-gappers.js?v=607"></script>
+<script src="lib/hub-tableau.js?v=607"></script>
+<script src="lib/hub-health.js?v=607"></script>
+<script src="lib/hub-brief.js?v=607"></script>
 <script src="lib/hub-ledger.js?v=565"></script>
 <script>
 (function(){
@@ -1847,16 +1414,16 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     const f = document.getElementById('suiteVerFoot');
     if (f) f.textContent = v;
   }
+  if (window.HM) HM.init();
   if (window.HG) HG.init();
   if (window.HB) HB.init();
+  if (window.HSEARCH) HSEARCH.init();
   if (window.HUB_HEALTH) HUB_HEALTH.init();
   if (window.HS) HS.renderStaleNav();
   window.addEventListener('hub:market', () => {
     if (window.HS){ HS.patchMarketCards(); HS.renderStaleNav('hubStaleNav'); }
   });
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && typeof hubRefreshMarketQuotes === 'function') hubRefreshMarketQuotes();
-  });
+
   if (window.HB_LEDGER && HB_LEDGER.init) HB_LEDGER.init();
   if (window.FH_KEY && FH_KEY.migrate) FH_KEY.migrate();
   if (window.TT && TT.migrateLegacy) {

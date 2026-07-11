@@ -168,8 +168,8 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-160 | Hub Command Tableau + event tape 7z | index.html + lib/hub-tableau.js | M | P1 | făcut | user | 2026-07-10 |
 | I-161 | Gappers WL-aware + strip în tableau Pre | index.html + lib/hub-gappers.js | M | P1 | făcut | ideation | 2026-07-11 |
 | I-162 | Hub session mode cu layout real (Pre/RTH/Review) | index.html + lib/hub-brief.js + hub-ui.css | M | P2 | făcut | ideation | 2026-07-11 |
-| I-163 | Extract hub-market.js + hub-gappers.js din monolit | index.html + lib/*.js | L | P2 | propus | ideation | 2026-07-11 |
-| I-164 | Sync stale digest → hub-stale-digest.json (1-click) | lib/hub-state.js + health/ + tools/ | S | P2 | propus | ideation | 2026-07-11 |
+| I-163 | Extract hub-market.js + hub-gappers.js din monolit | index.html + lib/*.js | L | P2 | făcut | ideation | 2026-07-11 |
+| I-164 | Sync stale digest → hub-stale-digest.json (1-click) | lib/hub-state.js + health/ + tools/ | S | P2 | făcut | ideation | 2026-07-11 |
 | I-165 | Event tape + earnings WL (48h) | lib/event-tape.js + lib/hub-brief.js | S | P1 | făcut | ideation | 2026-07-11 |
 | I-166 | Gapper chip → Nasdaq Scanner + Journal prefill | lib/hub-gappers.js + journal/ | S | P1 | făcut | ideation | 2026-07-11 |
 

@@ -137,7 +137,7 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
   </div>
 
   <div class="chk" id="cHubStale">
-    <div class="chk-head"><span class="chk-dot" id="dHubStale"></span><h2>📦 Hub stale audit</h2></div>
+    <div class="chk-head"><span class="chk-dot" id="dHubStale"></span><h2>📦 Hub stale audit</h2><button class="chk-btn" id="btnCopyStaleDigest" type="button" title="Copiază JSON pentru tools/hub-stale-digest.json">📋 Digest server</button></div>
     <div class="chk-body" id="bHubStale">—</div>
   </div>
 
@@ -154,9 +154,9 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
 <script src="../lib/capital-desk.js?v=6"></script>
 <script src="../lib/ai.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/suite-version.js?v=605"></script>
-<script src="../lib/macro-context.js?v=605"></script>
-<script src="../lib/hub-state.js?v=605"></script>
+<script src="../lib/suite-version.js?v=607"></script>
+<script src="../lib/macro-context.js?v=607"></script>
+<script src="../lib/hub-state.js?v=607"></script>
 <script>
 (function(){
 'use strict';
@@ -345,7 +345,23 @@ function checkHubStale(){
   }
   $('bHubStale').innerHTML = a.items.map(i =>
     '<span class="' + i.cls + '">' + esc(i.label) + '</span> · <a href="../' + i.href.replace(/^\.\//, '') + '" style="color:var(--accent)">fix →</a>'
-  ).join('<br>');
+  ).join('<br>') + '<div class="chk-sub" style="margin-top:8px">Digest server 07-09 ET: apasă <b>📋 Digest server</b> → lipește în <code>tools/hub-stale-digest.json</code></div>';
+}
+
+const btnStaleDigest = $('btnCopyStaleDigest');
+if (btnStaleDigest){
+  btnStaleDigest.addEventListener('click', async () => {
+    if (!window.HS || !HS.copyStaleDigestPayload){
+      btnStaleDigest.textContent = '✗ indisponibil';
+      setTimeout(() => { btnStaleDigest.textContent = '📋 Digest server'; }, 2000);
+      return;
+    }
+    btnStaleDigest.disabled = true;
+    const ok = await HS.copyStaleDigestPayload();
+    btnStaleDigest.textContent = ok ? '✓ copiat' : '✗ eșec';
+    btnStaleDigest.disabled = false;
+    setTimeout(() => { btnStaleDigest.textContent = '📋 Digest server'; }, 2500);
+  });
 }
 
 // ── 8b. Equity — snapshot stale, drift, versiune badge (I-085) ──
