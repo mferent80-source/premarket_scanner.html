@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=605"></script>
+<script src="lib/suite-version.js?v=606"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=605">
+<link rel="stylesheet" href="lib/hub-ui.css?v=606">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -579,8 +579,6 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 <div class="wrap">
 
   <button id="pwaInstallBtn" onclick="installPWA()" style="display:none;position:fixed;top:12px;right:12px;z-index:220;padding:7px 14px;border-radius:8px;font-size:.7rem;font-weight:700;border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);color:#f7931a;cursor:pointer;">📱 Instalează</button>
-  <div id="hubHealthPill" hidden aria-hidden="true"></div>
-  <span id="hubCheckPct" hidden aria-hidden="true"></span>
 
   <header class="hub-head-compact">
     <div class="hub-head-brand">
@@ -590,6 +588,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
       <a href="./health/" id="hubStaleNav" class="hub-stale-nav" hidden aria-hidden="true" title="Date învechite">📦</a>
     </div>
     <h1 class="hub-head-title">Cockpit <span class="accent">stocks</span></h1>
+    <span id="hubSessionPill" class="hub-session-pill" title="Sesiune NYSE (ET)">se încarcă…</span>
   </header>
 
   <div class="hub-shell">
@@ -597,28 +596,20 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     <section class="hub-tableau" id="hubTableau" aria-label="Command tableau"></section>
   </section>
 
-  <!-- Search bar live filter pe carduri -->
-  <div class="hub-search" id="hubSearchWrap">
-    <input type="text" id="hubSearch" placeholder="Caută rapid: nasdaq, watchlist, events, AI, gappers, screener..." autocomplete="off">
-    <button class="hub-search-clear" id="hubSearchClear" type="button">×</button>
-  </div>
-  <div class="hub-no-results" id="hubNoResults">
-    🤷 Nimic nu corespunde căutării. Încearcă „nasdaq", „watchlist", „events"…
-  </div>
+  <div id="hubChecklist" class="hub-checklist-panel" style="display:none" aria-label="Morning checklist"></div>
 
-  <!-- Pre-market / After-Hours gappers widget (apare doar in PM + AH session) -->
-  <div id="gappersWidget" style="display:none"></div>
-
-
-  <div class="hub-session" id="hubSessionBar">
-    <span class="hub-session-lbl">Mod sesiune</span>
-    <div class="hub-mode">
-      <button type="button" id="hubModePre">🌅 Pre</button>
-      <button type="button" id="hubModeRth" class="on">📈 RTH</button>
-      <button type="button" id="hubModeReview">🔬 Review</button>
+  <details class="hub-search-fold" id="hubSearchFold">
+    <summary class="hub-search-sum">🔍 Caută tool-uri</summary>
+    <div class="hub-search-body">
+      <div class="hub-search" id="hubSearchWrap">
+        <input type="text" id="hubSearch" placeholder="nasdaq, watchlist, journal, macro, scanner…" autocomplete="off">
+        <button class="hub-search-clear" id="hubSearchClear" type="button">×</button>
+      </div>
+      <div class="hub-no-results" id="hubNoResults">
+        🤷 Nimic nu corespunde căutării.
+      </div>
     </div>
-  </div>
-  <div id="hubChecklist" class="hub-session" style="display:none;flex-direction:column;align-items:stretch;gap:6px"></div>
+  </details>
 
   <div id="hubFreezeTop" class="hub-freeze-top"></div>
   <div id="hubRiskBanner" class="hub-freeze-top" style="display:none"></div>
@@ -1445,6 +1436,13 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     if ($('sessionLbl')) $('sessionLbl').textContent = label;
     if ($('sessionVal')) { $('sessionVal').textContent = value; $('sessionVal').style.color = color || ''; }
     if ($('sessionSub')) $('sessionSub').textContent = sub;
+    const sp = $('hubSessionPill');
+    if (sp) {
+      const shortLbl = label.replace(/^.\s*/, '');
+      sp.textContent = sub ? shortLbl + ' · ' + sub : shortLbl;
+      sp.className = 'hub-session-pill' + (color === 'var(--green)' ? ' rth' : (color ? ' ext' : ''));
+    }
+    if (window.HB && HB.updateSessionPill) HB.updateSessionPill();
   }
   updateSessionTimer();
   setInterval(updateSessionTimer, 1000); // tick fiecare secundă
@@ -1790,163 +1788,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 }
 </script>
 
-<script>
-// ============ PRE-MARKET / AFTER-HOURS GAPPERS WIDGET ============
-// Apare doar in PM (04:00-09:30 ET) sau AH (16:00-20:00 ET). Hide in RTH si Closed.
-// Sursa: Finnhub /quote (no proxy CORS) pentru universe ~50 active stocks.
-// Refresh 60s. Cache LS 'pm_gappers_cache' 60s.
-(function() {
-  const GAPPER_UNIVERSE = [
-    // Mega-caps
-    'AAPL','MSFT','NVDA','GOOGL','AMZN','META','TSLA','AVGO','AMD','NFLX',
-    // High-beta / volatile
-    'PLTR','SMCI','COIN','MSTR','RIVN','LCID','MARA','RIOT','HOOD','SOFI',
-    'GME','AMC','HUT','BITF','CIFR',
-    // Solar / EV
-    'ENPH','FSLR','RUN','SEDG','NIO','XPEV','LI',
-    // Fintech
-    'AFRM','UPST','SQ','PYPL',
-    // Travel / consumer
-    'UBER','LYFT','DASH','ABNB','LULU','NKE',
-    // Pharma / biotech volatile
-    'MRNA','BNTX','PFE','LLY',
-    // Energy
-    'XOM','CVX','OXY','DVN',
-    // Banks
-    'JPM','BAC','GS','C',
-    // Crypto-adjacent
-    'IBIT','FBTC','ARKK',
-    // Tech other
-    'CRWD','SNOW','DDOG','NET','SHOP',
-    // Small caps frequent PM movers
-    'IDCC','AMRX'
-  ];
-  const CACHE_KEY = 'pm_gappers_cache';
-  const CACHE_TTL = 60000;
-  const MIN_GAP_PCT = 3;
-  const TOP_N = 8;
-  const REFRESH_MS = 60000;
-  let refreshTimer = null;
 
-  function $(id) { return document.getElementById(id); }
-  function fmtNum(n) { return Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
-  function getFinnhubKey() {
-    if (window.FH_KEY && FH_KEY.get) return FH_KEY.get();
-    return localStorage.getItem('finnhub_api_key') || localStorage.getItem('fh_key') || '';
-  }
-
-  function getNYSESession() {
-    const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false });
-    const parts = fmt.formatToParts(new Date());
-    const wd = parts.find(p=>p.type==='weekday')?.value || '';
-    const h = parseInt(parts.find(p=>p.type==='hour')?.value, 10) || 0;
-    const m = parseInt(parts.find(p=>p.type==='minute')?.value, 10) || 0;
-    const mins = h*60 + m;
-    if (wd==='Sat' || wd==='Sun') return { state:'closed', label:'🛑 Weekend' };
-    if (mins >= 240 && mins < 570) return { state:'pre', label:'🌅 Pre-Market' };
-    if (mins >= 570 && mins < 960) return { state:'open', label:'🟢 NYSE OPEN' };
-    if (mins >= 960 && mins < 1200) return { state:'after', label:'🌙 After-Hours' };
-    return { state:'closed', label:'🛑 Closed' };
-  }
-
-  async function fetchQuote(sym, key) {
-    try {
-      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${encodeURIComponent(key)}`);
-      if (!r.ok) return null;
-      const d = await r.json();
-      if (d?.c == null || d.c === 0 || d?.pc == null || d.pc === 0) return null;
-      const gapPct = ((d.c - d.pc) / d.pc) * 100;
-      return { sym, price: d.c, prev: d.pc, gapPct };
-    } catch (e) { return null; }
-  }
-
-  async function fetchAllGappers() {
-    const key = getFinnhubKey();
-    if (!key) return { gappers: [], reason: 'no_key' };
-    // Cache check
-    try {
-      const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-      if (c && Date.now() - c.ts < CACHE_TTL) return { gappers: c.data, reason: 'cache' };
-    } catch (e) {}
-    // Throttle: 8 in paralel ca să nu spamăm rate limit (60/min Finnhub free)
-    const results = [];
-    const batchSize = 8;
-    for (let i = 0; i < GAPPER_UNIVERSE.length; i += batchSize) {
-      const batch = GAPPER_UNIVERSE.slice(i, i + batchSize);
-      const batchResults = await Promise.all(batch.map(s => fetchQuote(s, key)));
-      results.push(...batchResults.filter(Boolean));
-      if (i + batchSize < GAPPER_UNIVERSE.length) await new Promise(r => setTimeout(r, 50));
-    }
-    const gappers = results.filter(g => Math.abs(g.gapPct) >= MIN_GAP_PCT)
-                           .sort((a, b) => Math.abs(b.gapPct) - Math.abs(a.gapPct))
-                           .slice(0, TOP_N);
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: gappers })); } catch (e) {}
-    return { gappers, reason: 'fresh' };
-  }
-
-  function renderWidget(session, gappers, reason) {
-    const widget = $('gappersWidget');
-    if (!widget) return;
-    const html = `<div class="gappers-panel">
-      <div class="gappers-head">
-        <h3>🌅 Top gappers — ${session.state === 'pre' ? 'Pre-Market' : 'After-Hours'}</h3>
-        <span class="gappers-session-pill">${session.label}</span>
-        <span class="gappers-status" id="gappersStatus">${reason === 'cache' ? '⏱ cache 60s' : '🔄 ' + new Date().toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' })}</span>
-      </div>
-      ${gappers.length === 0
-        ? `<div class="gappers-empty">📭 Niciun gapper ≥${MIN_GAP_PCT}% în acest moment. Scan din universe ${GAPPER_UNIVERSE.length} stocks.</div>`
-        : `<div class="gappers-list">${gappers.map(g => {
-            const dir = g.gapPct >= 0 ? 'up' : 'down';
-            const arrow = g.gapPct >= 0 ? '▲' : '▼';
-            return `<a class="gapper-chip" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(g.sym)}" target="_blank" title="${g.sym} · ${fmtNum(g.price)} (prev close ${fmtNum(g.prev)})">
-              <span class="gp-sym">${g.sym}</span>
-              <span class="gp-pct ${dir}">${arrow} ${(g.gapPct>=0?'+':'')+g.gapPct.toFixed(2)}%</span>
-              <span class="gp-price">$${fmtNum(g.price)}</span>
-            </a>`;
-          }).join('')}</div>`
-      }
-    </div>`;
-    widget.innerHTML = html;
-    widget.style.display = 'block';
-  }
-
-  async function tick() {
-    const session = getNYSESession();
-    const widget = $('gappersWidget');
-    if (!widget) return;
-    // Hide in RTH si Closed
-    if (session.state !== 'pre' && session.state !== 'after') {
-      widget.style.display = 'none';
-      widget.innerHTML = '';
-      return;
-    }
-    // Verifica cheie Finnhub
-    if (!getFinnhubKey()) {
-      widget.innerHTML = `<div class="gappers-panel"><div class="gappers-head"><h3>🌅 Pre-Market Gappers</h3></div><div class="gappers-empty">⚠ Cheia Finnhub lipsește. Setează în <a href="./macro-dashboard/" style="color:#5bb0ff">Macro Dashboard → ⚙ Setări</a> sau direct cu <code>localStorage.setItem('finnhub_api_key','...')</code>.</div></div>`;
-      widget.style.display = 'block';
-      return;
-    }
-    const { gappers, reason } = await fetchAllGappers();
-    renderWidget(session, gappers, reason);
-  }
-
-  function scheduleRefresh() {
-    if (refreshTimer) clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(async () => {
-      await tick();
-      scheduleRefresh();
-    }, REFRESH_MS);
-  }
-
-  tick();
-  scheduleRefresh();
-
-  // Refresh imediat când tab redevine vizibil
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) tick();
-  });
-})();
-</script>
 <script>
 // ── O SINGURĂ FILĂ per pagină ──
 // Cardurile au target numit (ttools-*). Default, re-click reîncarcă fila existentă
@@ -1988,12 +1830,13 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script src="lib/macro-context.js?v=605"></script>
-<script src="lib/event-tape.js?v=605"></script>
-<script src="lib/hub-state.js?v=605"></script>
-<script src="lib/hub-tableau.js?v=605"></script>
-<script src="lib/hub-health.js?v=605"></script>
-<script src="lib/hub-brief.js?v=605"></script>
+<script src="lib/macro-context.js?v=606"></script>
+<script src="lib/event-tape.js?v=606"></script>
+<script src="lib/hub-state.js?v=606"></script>
+<script src="lib/hub-gappers.js?v=606"></script>
+<script src="lib/hub-tableau.js?v=606"></script>
+<script src="lib/hub-health.js?v=606"></script>
+<script src="lib/hub-brief.js?v=606"></script>
 <script src="lib/hub-ledger.js?v=565"></script>
 <script>
 (function(){
@@ -2004,6 +1847,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     const f = document.getElementById('suiteVerFoot');
     if (f) f.textContent = v;
   }
+  if (window.HG) HG.init();
   if (window.HB) HB.init();
   if (window.HUB_HEALTH) HUB_HEALTH.init();
   if (window.HS) HS.renderStaleNav();
