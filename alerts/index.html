@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🔔 Price Alerts — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
-<meta name="description" content="Custom price alerts pe stocks + crypto cu polling 60s + notify combo (toast + beep + browser + Telegram)">
+<meta name="description" content="Custom price alerts pe stocks + crypto cu polling 30s + notify combo (toast + beep + browser + Telegram)">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=575">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=609">
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -417,11 +417,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v60</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v61</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
+  <button class="icon-btn" id="tgBtn" title="Configurează Telegram pentru price alerts">📡</button>
   <button class="icon-btn" id="hdrMenuBtn" title="Mai multe acțiuni">⋯</button>
   <a href="../" class="nav-link">← Hub</a>
 </header>
@@ -507,7 +508,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </div>
   <div id="symSearchResults" style="display:none;flex-direction:column;gap:3px;margin:8px 0 0"></div>
   <div class="add-hint af-hint" id="addHint" style="display:none">
-    <b>📊 Referință (pași ±%)</b> = prețul live din momentul adăugării devine <b>referința (0%)</b>; primești o alertă la fiecare pas de ±X% (ex: 1%) față de ea, sus pe verde / jos pe roșu. Bară simetrică centrată pe referință + max/min atinse + următorul nivel. Buton 🔄 pe rând = re-ancorează referința la prețul curent (ex: după ce intri în trade). Bifează <b>📉 Trailing din vârf</b> ca referința să urmeze automat maximul → te anunță doar când prețul scade X% din vârf (trailing-stop mental, ideal pt gestionat un trade în profit). <b>📅 Variația zilei ±%</b> = te anunță când simbolul a urcat SAU coborât cu cel puțin X% pe ziua curentă (față de închiderea de ieri) — prinde mișcările mari ale zilei. <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. <b>⚓ Ancoră</b> = ancoră FIXĂ la prețul de creare (nu se mută) cu Δ% afișat + bară de progres spre țintă + R:R; te anunță la <b>4 evenimente</b>: 🪜 fiecare pas cumulat de ±X% din ancoră, 🎯 ținta atinsă, 🔔 aproape de țintă (≥90%), 🛑 stopul atins. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 60s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram.
+    <b>📊 Referință (pași ±%)</b> = prețul live din momentul adăugării devine <b>referința (0%)</b>; primești o alertă la fiecare pas de ±X% (ex: 1%) față de ea, sus pe verde / jos pe roșu. Bară simetrică centrată pe referință + max/min atinse + următorul nivel. Buton 🔄 pe rând = re-ancorează referința la prețul curent (ex: după ce intri în trade). Bifează <b>📉 Trailing din vârf</b> ca referința să urmeze automat maximul → te anunță doar când prețul scade X% din vârf (trailing-stop mental, ideal pt gestionat un trade în profit). <b>📅 Variația zilei ±%</b> = te anunță când simbolul a urcat SAU coborât cu cel puțin X% pe ziua curentă (față de închiderea de ieri) — prinde mișcările mari ale zilei. <b>$ Preț prag</b> = alertă când prețul atinge un nivel fix (sus/jos). <b>% Mișcare ±</b> = alertă la orice mișcare de ±X% față de prețul live din momentul setării (sus SAU jos); cu ↻ re-arm se re-ancorează după fiecare declanșare → te anunță la fiecare pas de X%. <b>⚓ Ancoră</b> = ancoră FIXĂ la prețul de creare (nu se mută) cu Δ% afișat + bară de progres spre țintă + R:R; te anunță la <b>4 evenimente</b>: 🪜 fiecare pas cumulat de ±X% din ancoră, 🎯 ținta atinsă, 🔔 aproape de țintă (≥90%), 🛑 stopul atins. Storage UNIFICAT cu Watchlist Monitor — o singură listă, vizibilă din ambele pagini. Polling 30s (orice simbol, inclusiv crypto BTC-USD/ETH-USD/SOL-USD). Notify: toast persistent + sunet + browser + Telegram (📡 în header).
   </div>
 </details>
 
@@ -619,7 +620,40 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </div>
 </div>
 
-<script src="../lib/data.js"></script>
+<!-- Modal Telegram -->
+<div class="modal-ov" id="tgModal" style="display:none">
+  <div class="modal">
+    <div class="modal-head"><h3>📡 Telegram — Price Alerts</h3><button class="icon-btn" id="tgClose" title="Închide">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:11px;color:var(--t3);line-height:1.55;font-family:var(--mono)">
+        1. Bot cu <b style="color:var(--t2)">@BotFather</b> → <i>token</i>.<br>
+        2. Scrie botului, apoi <span style="color:var(--accent)">api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> → <i>chat.id</i>.
+      </div>
+      <div class="modal-field">
+        <label>Bot token</label>
+        <input type="text" id="tgToken" placeholder="123456789:ABC-DEF..." autocomplete="off">
+      </div>
+      <div class="modal-field">
+        <label>Chat ID</label>
+        <input type="text" id="tgChatId" placeholder="123456789" autocomplete="off">
+      </div>
+      <div class="modal-check">
+        <input type="checkbox" id="tgEnabled">
+        <label for="tgEnabled">Activează alertele Telegram la declanșare</label>
+      </div>
+      <div id="tgMsg" style="font-size:11px;font-family:var(--mono);color:var(--t3);min-height:14px"></div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" id="tgTest">🧪 Test</button>
+      <button type="button" id="tgCancel">Anulează</button>
+      <button type="button" class="primary" id="tgSave">💾 Salvează</button>
+    </div>
+  </div>
+</div>
+
+<script src="../lib/suite-version.js?v=609"></script>
+<script src="../lib/data.js?v=609"></script>
+<script src="../lib/telegram.js"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -662,8 +696,8 @@ function _alertToJsonInner(sym, a) {
   return { symbol: sym, level: a.lvl, dir: a.dir, rearm: !!a.rearm, armed: a.armed !== false, note: a.note || '' };
 }
 
-function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || ''; }
-function getTgConfig() { try { return JSON.parse(localStorage.getItem('tt_tg_config') || '{}'); } catch (e) { return {}; } }
+function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || localStorage.getItem('fh_key') || ''; }
+function getTgConfig() { return (window.TG && TG.getConfig) ? TG.getConfig() : (() => { try { return JSON.parse(localStorage.getItem('tt_tg_config') || '{}'); } catch (e) { return {}; } })(); }
 // fetch cu timeout — fără el un request blocat oprește lanțul de polling PENTRU TOTDEAUNA
 // (schedulePoll re-armează timerul abia după ce pollPrices se termină)
 async function fetchT(url, timeoutMs = 9000) {
@@ -846,10 +880,11 @@ function showBrowserNotif(title, body) {
   // icon ca data-URI (SVG 🔔) — `/favicon.ico` absolut dădea 404 pe GitHub Pages (site sub /premarket_scanner.html/)
   try { new Notification(title, { body, icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🔔</text></svg>" }); } catch (e) {}
 }
-async function sendTelegram(msg) {  // → lib/telegram.js (TG.*); gating pe enabled păstrat
+async function sendTelegram(msg) {
+  if (!window.TG || !TG.send) return false;
   const cfg = getTgConfig();
-  if (!cfg.enabled || !cfg.token || !cfg.chatId) return;
-  return TG.send(msg, { token: cfg.token, chatId: cfg.chatId, force: true });
+  if (!cfg.enabled || !cfg.token || !cfg.chatId) return false;
+  return TG.send(msg, { force: true });
 }
 
 // ============ PRICE FETCH ============
@@ -1619,6 +1654,9 @@ function render() {
   $('btnPause').title = pollPaused ? 'Reia polling' : 'Pauză polling';
   $('soundBtn').style.color = soundEnabled ? 'var(--bull-s)' : '';
   $('notifBtn').style.color = notifEnabled ? 'var(--bull-s)' : '';
+  const tgCfg = getTgConfig();
+  const tgb = $('tgBtn');
+  if (tgb) tgb.style.color = (tgCfg.enabled && tgCfg.token && tgCfg.chatId) ? 'var(--bull-s)' : '';
   const _pb = $('popupBtn');
   if (_pb) {
     _pb.textContent = popupMode === 'off' ? '🚫' : popupMode === 'stay' ? '📌' : '💬';
@@ -1970,6 +2008,41 @@ $('soundBtn').addEventListener('click', () => {
   if (soundEnabled) playBeep();
 });
 
+function openTgModal() {
+  const c = getTgConfig();
+  $('tgToken').value = c.token || '';
+  $('tgChatId').value = c.chatId || '';
+  $('tgEnabled').checked = !!c.enabled;
+  $('tgMsg').textContent = '';
+  $('tgModal').style.display = 'flex';
+}
+function closeTgModal() { $('tgModal').style.display = 'none'; }
+function saveTgModal() {
+  if (!window.TG || !TG.setConfig) return;
+  const token = $('tgToken').value.trim();
+  const chatId = $('tgChatId').value.trim();
+  const enabled = $('tgEnabled').checked;
+  TG.setConfig(token, chatId, enabled);
+  $('tgMsg').textContent = '✓ salvat';
+  $('tgMsg').style.color = 'var(--bull-s)';
+  render();
+}
+$('tgBtn').addEventListener('click', openTgModal);
+$('tgClose').addEventListener('click', closeTgModal);
+$('tgCancel').addEventListener('click', closeTgModal);
+$('tgSave').addEventListener('click', () => { saveTgModal(); setTimeout(closeTgModal, 600); });
+$('tgTest').addEventListener('click', async () => {
+  if (!window.TG) return;
+  const token = $('tgToken').value.trim();
+  const chatId = $('tgChatId').value.trim();
+  if (!token || !chatId) { $('tgMsg').textContent = '⚠ token + chat ID'; $('tgMsg').style.color = 'var(--warn)'; return; }
+  $('tgMsg').textContent = '…';
+  const ok = await TG.send('✅ Test Price Alerts — conexiune Telegram OK.', { token, chatId, force: true });
+  $('tgMsg').textContent = ok ? '✓ test trimis' : '✗ eșec (verifică token/chat)';
+  $('tgMsg').style.color = ok ? 'var(--bull-s)' : 'var(--bear-s)';
+});
+$('tgModal').addEventListener('click', e => { if (e.target === $('tgModal')) closeTgModal(); });
+
 $('notifBtn').addEventListener('click', async () => {
   if (!('Notification' in window)) { toast('⚠ Browser-ul nu suportă notificări', 'warn'); return; }
   if (notifEnabled) {
@@ -2274,14 +2347,12 @@ setInterval(() => { if (!document.hidden) pullFromGitHub(true); }, 120000);
 setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
 
 </script>
-<script src="../lib/suite-version.js?v=575"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v575';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v609';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
-<script src="../lib/telegram.js"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>
