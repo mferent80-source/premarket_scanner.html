@@ -145,11 +145,15 @@ self.addEventListener('fetch', e => {
     fetch(req, fetchOpts).then(res => {
       if (res && res.status === 200 && res.type === 'basic') {
         const copy = res.clone();
-        caches.open(CACHE_NAME).then(c => c.put(req, copy)).catch(() => {});
+        // cheia de cache = pathname FARA query — paginile cer lib-urile cu
+        // ?v=NNN (cache-busting), dar precache-ul e queryless; fara
+        // normalizare se acumulau 2 copii/fisier si fallback-ul offline
+        // nu gasea niciodata varianta ceruta
+        caches.open(CACHE_NAME).then(c => c.put(new Request(url.origin + url.pathname), copy)).catch(() => {});
       }
       return res;
     }).catch(() => {
-      return caches.match(req).then(r => {
+      return caches.match(req, { ignoreSearch: true }).then(r => {
         if (r) return r;
         if (hubEntry || isHtml) {
           return caches.match('./index.html').then(fb =>
