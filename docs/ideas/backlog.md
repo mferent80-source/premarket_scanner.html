@@ -178,6 +178,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-170 | Setup în strip contextual (jr-ctx) | journal/ + lib/journal-workspace.js | S | P2 | propus | ideation | 2026-07-12 |
 | I-171 | Legătură draft setup → execuție (setupDraftId) | journal/ + lib/journal.js | M | P1 | propus | ideation | 2026-07-12 |
 | I-172 | Plan vs Real — expectancy draft vs exec macro | journal/ + lib/journal-insights.js | M | P2 | propus | ideation | 2026-07-12 |
+| I-173 | Setup: verdict GO / WAIT / SKIP în verdict bar | journal/ + lib/setup-builder.js | S | P1 | propus | ideation | 2026-07-12 |
+| I-174 | Setup: câștig $ la TP1/2/3 (oglindă pierdere SL) | lib/setup-builder.js + journal/index.html | S | P2 | propus | ideation | 2026-07-12 |
+| I-175 | Setup: confirm execuție când R:R 20z &lt; 1 | lib/setup-builder.js + journal/index.html | S | P1 | propus | ideation | 2026-07-12 |
+| I-176 | Setup: banner galben R:R marginal (1–2:1) | lib/setup-builder.js + journal/index.html | S | P2 | propus | ideation | 2026-07-12 |
+| I-177 | Setup: persistă rrStruct + pierdere SL în draft | lib/setup-builder.js + md_signal_journal | S | P2 | propus | ideation | 2026-07-12 |
+| I-178 | Setup: mini hartă entry/SL/TP vs hi20/lo20 | lib/setup-builder.js + journal/index.html | M | P2 | propus | ideation | 2026-07-12 |
 
 ## Mini-spec-uri
 
@@ -1198,3 +1204,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** vezi dacă planning-ul chiar se traduce în bani sau doar în hârtie; decizie să continui/nu workflow-ul Setup.
 - **Riscuri/dependențe:** metrici pe eșantion mic = ipoteze, nu adevăr; draft ≠ execuție (slippage, deviere SL) — explicat explicit.
 - **Fișiere atinse:** `lib/journal-insights.js`, `lib/setup-builder.js`, `journal/index.html`.
+
+### I-173 · Setup: verdict GO / WAIT / SKIP în verdict bar · [S] · P1
+- **Problema/golul:** după bannerul R:R 20z (&lt;1) userul tot interpretează manual checklist-ul (confluență, Danger, regim); lipsește un verdict unic — „intru / aștept / nu" — deși I-170 propune GO/WAIT doar în strip contextual.
+- **Soluția:** badge mare în `.setup-verdict`: **GO** (verde) dacă confluență ≥ prag + R:R 20z ≥1 + Danger &lt;45; **WAIT** (galben) dacă R:R 1–2 sau confluență marginală; **SKIP** (roșu) dacă R:R &lt;1 sau headroom 20z zero. Reguli afișate în tooltip; nu blochează butoanele (doar context).
+- **Impact:** decizie în 2 secunde fără să citești 6 rânduri; aliniere cu întrebarea userului „mă avertizează că nu e trade bun?".
+- **Riscuri/dependențe:** pragurile sunt ipoteze de calibrat (trader.md) — etichetat „schelet reguli, nu garanție"; nu înlocuiește graficul.
+- **Fișiere atinse:** `lib/setup-builder.js`, `journal/index.html`.
+
+### I-174 · Setup: câștig $ la TP1/2/3 (oglindă pierdere SL) · [S] · P2
+- **Problema/golul:** tile-ul „Pierdere la SL" arată clar $ și % cont la stop, dar TP1/2/3 afișează doar preț — userul nu vede imediat cât câștigă la 1R/2R/3R pe poziția calculată.
+- **Soluția:** sub fiecare TP (sau tile dedicat „Profit la TP"): `+ $XXX (+Y% cont)` = `shareN × distanță TP`; culoare bull; la fel ca formula pierderii SL deja în `renderSetup`.
+- **Impact:** simetrie risc/reward în $ — compari instant pierderea la SL cu câștigul la TP1 fără calcul mental.
+- **Riscuri/dependențe:** TP-urile sunt ținte teoretice 1/2/3R, nu ordine; rotunjire acțiuni = mică diferență față de risc țintă.
+- **Fișiere atinse:** `lib/setup-builder.js`, `journal/index.html`.
+
+### I-175 · Setup: confirm execuție când R:R 20z &lt; 1 · [S] · P1
+- **Problema/golul:** bannerul roșu R:R avertizează, dar „➕ Deschide execuție" merge fără fricțiune — ușor să ignori avertismentul în momentul FOMO.
+- **Soluția:** la click `sbOpenExec` când `rrStruct &lt; 1` sau headroom 20z ≤0: `confirm()` cu rezumat (R:R, pierdere SL $) + opțiune „Continuă oricum" / Anulează; draft-ul și alertele SL rămân fără gate.
+- **Impact:** fricțiune intenționată pe acțiunea care costă bani reali; păstrează libertatea dar forțează o pauză.
+- **Riscuri/dependențe:** prea multe confirm-uri = oboseală — doar pe execuție, nu pe salvare draft; user power-user poate dezactiva în settings (viitor).
+- **Fișiere atinse:** `lib/setup-builder.js`, `journal/index.html`.
+
+### I-176 · Setup: banner galben R:R marginal (1–2:1) · [S] · P2
+- **Problema/golul:** acum există banner roșu doar pentru R:R &lt;1; zona 1–2:1 (headroom limitat dar nu catastrofal) rămâne doar cu culoare pe tile — ușor de ratat.
+- **Soluția:** clasă `.setup-rr-warn--soft` (galben/warn): „R:R marginal (1.4:1) — headroom limitat; reduce sizing sau TP devreme"; fără același ton ca SKIP.
+- **Impact:** gradație clară roșu/galben/verde pe structură 20z; mai puține false SKIP pe trades 1.2:1 acceptabile cu sizing mic.
+- **Riscuri/dependențe:** pragul 2:1 e ipoteză — configurabil în journal settings (legat de I-167 Governor sync).
+- **Fișiere atinse:** `lib/setup-builder.js`, `journal/index.html`.
+
+### I-177 · Setup: persistă rrStruct + pierdere SL în draft · [S] · P2
+- **Problema/golul:** `_lastSetup` calculează `lossAtSl`/`rrStruct` dar draft-urile `md_signal_journal` nu le salvează — la reevaluare Signal Journal nu poate filtra „câte draft-uri erau SKIP structural".
+- **Soluția:** la `saveLastSetup` persistă `rrStruct`, `lossAtSl`, `lossAtSlPct`, `verdict` (după I-173); în listă draft badge „R:R 0.24" roșu; sort opțional după R:R.
+- **Impact:** analytics pe calitatea planificării, nu doar pe outcome; bază pentru I-172 Plan vs Real.
+- **Riscuri/dependențe:** draft-uri vechi fără câmpuri — fallback „n/a"; reevaluarea close-only rămâne separată de R:R la intrare.
+- **Fișiere atinse:** `lib/setup-builder.js`, `journal/index.html`.
+
+### I-178 · Setup: mini hartă entry/SL/TP vs hi20/lo20 · [M] · P2
+- **Problema/golul:** R:R 20z e un număr abstract (0.24:1) — userul nu vede vizual cât de aproape e entry de hi20/lo20 față de SL pe aceeași scală.
+- **Soluția:** bandă orizontală compactă (CSS sau canvas 320×48): markere Entry, SL, TP1–3, hi20/lo20 pe axa preț; zonă roșie sub SL, verde spre TP; inspirat din smart-trade-long headroom dar minimal.
+- **Impact:** înțelegere instantanee de ce 0.24:1 e slab; reduce întrebări repetate despre structură.
+- **Riscuri/dependențe:** efort M pe layout mobil; date doar daily close — nu intraday wick.
+- **Fișiere atinse:** `lib/setup-builder.js`, `journal/index.html` (CSS `.setup-map`).
