@@ -224,7 +224,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v614</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v614</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v615</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v615</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -369,6 +369,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <button class="btn" id="setupBtn" type="button">Construiește setup</button>
     </div>
     <div class="setup-hint" id="setupFormHint"><b>ATR</b> — SL la 1.5×ATR (tehnic). <b>% Fix</b> — SL la distanță fixă față de entry. <b>Risc %</b> controlează doar sizing-ul, nu poziția SL în modul ATR.</div>
+    <div id="setupToast" style="display:none;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-family:var(--mono);font-size:11px"></div>
     <div id="setupResult"></div>
   </div>
 </section>
@@ -573,8 +574,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/equity.js?v=9"></script>
 <script src="../lib/capital-desk.js?v=9"></script>
 <script src="../lib/data.js"></script>
-<script src="../lib/setup-levels.js?v=614"></script>
-<script src="../lib/setup-builder.js?v=614"></script>
+<script src="../lib/setup-levels.js?v=615"></script>
+<script src="../lib/setup-builder.js?v=615"></script>
 <script src="../lib/portfolio-risk.js?v=584"></script>
 <script src="../lib/journal-workspace.js?v=584"></script>
 <script>
@@ -1485,7 +1486,7 @@ function hashToJTab(h){
   return 'desk';
 }
 function sbToast(msg, kind){
-  const b = $('errBanner');
+  const b = $('setupToast') || $('errBanner');
   if (!b) return;
   b.style.display = '';
   b.style.borderColor = kind === 'error' ? 'var(--bear-s)' : kind === 'warn' ? 'var(--warn)' : 'var(--bull-s)';
@@ -1521,7 +1522,10 @@ setJTab(hashToJTab(location.hash));
 if (!consumeSetupExecPrefill() && (location.hash === '#setup' || localStorage.getItem('md_setup_prefill'))) {
   if (window.SB) SB.consumePrefill();
 }
-window.addEventListener('hashchange', () => setJTab(hashToJTab(location.hash)));
+window.addEventListener('hashchange', () => {
+  setJTab(hashToJTab(location.hash));
+  if (location.hash === '#setup' && localStorage.getItem('md_setup_prefill') && window.SB) SB.consumePrefill();
+});
 setInterval(renderDesk, 60000);
 setTimeout(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 500);
 setInterval(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 60000);
@@ -1550,8 +1554,8 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v614';
-  var full = window.SUITE_VERSION || 'tt-v614-2026-07-12';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v615';
+  var full = window.SUITE_VERSION || 'tt-v615-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });
