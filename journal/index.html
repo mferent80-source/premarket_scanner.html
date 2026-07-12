@@ -8,8 +8,8 @@
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=619">
-<script src="../lib/suite-version.js?v=619"></script>
+<link rel="stylesheet" href="../lib/capital-ui.css?v=620">
+<script src="../lib/suite-version.js?v=620"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -200,7 +200,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .setup-inp input{width:82px;font-family:var(--mono);background:var(--panel2);color:var(--t1);border:1px solid var(--b1);padding:7px;border-radius:var(--rs)}
 .setup-hint{font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:10px;line-height:1.5}
 #setupResult{margin-top:14px}
-.setup-verdict{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(135deg,var(--panel2),rgba(91,176,255,.05));border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.setup-verdict{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:linear-gradient(135deg,var(--panel2),rgba(91,176,255,.05));border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
 .setup-verdict .sv-tag{font-family:var(--mono);font-size:11px;color:var(--t2);font-weight:700}
 .setup-verdict .sv-px{font-family:var(--head);font-size:26px;font-weight:800;color:var(--t1);line-height:1.1}
 .setup-verdict .sv-meta{font-family:var(--mono);font-size:12px;color:var(--t2)}
@@ -219,6 +219,25 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .setup-cat{background:linear-gradient(135deg,rgba(212,137,44,.12),rgba(20,26,40,.5));border:1px solid rgba(212,137,44,.35);border-radius:var(--rs);padding:9px 14px;font-family:var(--head);font-size:12.5px;color:var(--t1);margin-bottom:6px}
 .setup-rr-warn{background:rgba(255,77,77,.12);border:1px solid rgba(255,77,77,.45);border-radius:var(--rs);padding:11px 14px;margin-bottom:12px;font-family:var(--head);font-size:12.5px;color:var(--t1);line-height:1.55}
 .setup-rr-warn strong{color:var(--bear-s)}
+.setup-rr-warn--soft{background:rgba(212,137,44,.12);border-color:rgba(212,137,44,.45)}
+.setup-rr-warn--soft strong{color:var(--warn)}
+.setup-verdict-badge{font-family:var(--head);font-size:15px;font-weight:800;padding:8px 14px;border-radius:var(--rs);flex-shrink:0}
+.setup-verdict-badge.go{background:rgba(34,214,107,.18);border:1px solid var(--bull-s);color:var(--bull-s)}
+.setup-verdict-badge.wait{background:rgba(212,137,44,.15);border:1px solid var(--warn);color:var(--warn)}
+.setup-verdict-badge.skip{background:rgba(255,77,77,.15);border:1px solid var(--bear-s);color:var(--bear-s)}
+.setup-freeze{display:none;border-radius:var(--rs);padding:10px 14px;margin-bottom:10px;font-family:var(--head);font-size:12.5px;font-weight:700;line-height:1.45}
+.setup-freeze.freeze{background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
+.setup-freeze.soon{background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.45);color:var(--warn)}
+.setup-map{position:relative;height:48px;background:var(--panel3);border:1px solid var(--b1);border-radius:var(--rs);margin-bottom:4px}
+.setup-map-track{position:absolute;inset:8px 10px}
+.setup-map-zone{position:absolute;top:0;bottom:0;background:rgba(91,176,255,.1);border-radius:2px}
+.setup-map-marker{position:absolute;top:-2px;width:2px;height:calc(100% + 4px);transform:translateX(-50%);border-radius:1px}
+.setup-map-marker.sl{background:var(--bear-s)}
+.setup-map-marker.entry{background:var(--accent);width:3px}
+.setup-map-marker.tp{background:var(--bull-s);opacity:.7}
+.setup-map-marker.z20{background:var(--warn);width:3px;opacity:.85}
+.setup-map-labels{display:flex;justify-content:space-between;font-size:9px;font-family:var(--mono);color:var(--t3);margin-bottom:12px;padding:0 10px}
+.setup-desk-badge{font-size:10px;color:var(--warn);font-family:var(--mono);padding:2px 6px;border:1px solid var(--warn);border-radius:4px}
 .setup-err{padding:20px;text-align:center;color:var(--t2);font-family:var(--head);font-size:13px}
 .setup-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 </style>
@@ -226,7 +245,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v619</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v619</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v620</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v620</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -355,6 +374,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <h2>🎯 Pre-Trade Setup Builder</h2>
   <p class="note" style="margin:-4px 0 12px">SL din ATR sau % fix · R:R + sizing pe Danger Score · draft-uri evaluate separat de execuțiile reale.</p>
   <div class="setup-wrap">
+    <div id="setupFreezeBanner" class="setup-freeze" style="display:none"></div>
     <div class="setup-form">
       <input id="setupTicker" type="text" placeholder="Ticker (ex: NVDA, AAPL, BTC-USD)" autocomplete="off">
       <div class="setup-dir" id="setupDir">
@@ -368,6 +388,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <label class="setup-inp" id="setupSlPctWrap"><span>SL %</span><input id="setupSlPct" type="number" min="0.1" step="0.25" value="2"></label>
       <label class="setup-inp"><span>Cont $</span><input id="setupAccount" type="number" min="0" step="500" value="10000"></label>
       <label class="setup-inp"><span>Risc %</span><input id="setupRisk" type="number" min="0.1" step="0.25" value="1"></label>
+      <button class="btn ghost" id="setupDeskSync" type="button" title="Preia cont și risc/trade din Desk (Governor)">↻ Desk</button>
+      <span id="setupDeskBadge" class="setup-desk-badge" style="display:none" title="Valorile diferă de Desk">≠ Desk</span>
       <button class="btn" id="setupBtn" type="button">Construiește setup</button>
     </div>
     <div class="setup-hint" id="setupFormHint"><b>ATR</b> — SL la 1.5×ATR (tehnic). <b>% Fix</b> — SL la distanță fixă față de entry. <b>Risc %</b> controlează doar sizing-ul, nu poziția SL în modul ATR.</div>
@@ -380,6 +402,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <h2>📓 Signal Journal (draft-uri setup)</h2>
   <p class="note" style="margin:-4px 0 10px">Expectancy pe draft-uri salvate — win-rate / PF pe închidere SL sau TP (close-only).</p>
   <div id="journalScorecard"></div>
+  <div id="planVsRealHost"></div>
   <div class="setup-section-h" style="margin-top:6px">Setup-uri salvate
     <button class="btn ghost" id="journalRefresh" type="button" title="Reevaluează cu prețuri live" style="margin-left:8px;padding:4px 10px;font-size:11px">↻ Reevaluează</button>
     <button class="btn ghost" id="journalClear" type="button" title="Șterge toate draft-urile" style="margin-left:4px;padding:4px 10px;font-size:11px">🗑 Golește</button>
@@ -415,6 +438,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <div class="panel">
   <h2 id="frmTitle">➕ Execuție nouă (fill închis)</h2>
   <div class="frm">
+    <input type="hidden" id="fSetupDraftId" value="">
     <label>Ticker <input id="fSym" placeholder="NVDA" autocapitalize="characters"></label>
     <label>Direcție <select id="fDir"><option value="long">LONG</option><option value="short">SHORT</option></select></label>
     <label>Entry $ <input id="fEntry" type="number" step="0.0001" min="0"></label>
@@ -576,10 +600,10 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/equity.js?v=9"></script>
 <script src="../lib/capital-desk.js?v=9"></script>
 <script src="../lib/data.js"></script>
-<script src="../lib/setup-levels.js?v=619"></script>
-<script src="../lib/setup-builder.js?v=619"></script>
+<script src="../lib/setup-levels.js?v=620"></script>
+<script src="../lib/setup-builder.js?v=620"></script>
 <script src="../lib/portfolio-risk.js?v=584"></script>
-<script src="../lib/journal-workspace.js?v=584"></script>
+<script src="../lib/journal-workspace.js?v=620"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -820,7 +844,7 @@ function selectedTags(){
 }
 function resetForm(){
   editId = null;
-  ['fSym','fEntry','fExit','fSize','fSl','fNotes','fMark'].forEach(id => { if ($(id)) $(id).value = ''; });
+  ['fSym','fEntry','fExit','fSize','fSl','fNotes','fMark','fSetupDraftId'].forEach(id => { if ($(id)) $(id).value = ''; });
   $('fFees').value = '0';
   $('fDir').value = 'long'; $('fSrc').value = 'manual';
   $('fDate').value = new Date().toISOString().slice(0, 10);
@@ -886,7 +910,8 @@ $('btnSave').addEventListener('click', () => {
   }
   const markRaw = $('fMark')?.value;
   const rec = JR.add(Object.assign({}, payload, {
-    markPrice: exitN == null && markRaw ? markRaw : null
+    markPrice: exitN == null && markRaw ? markRaw : null,
+    setupDraftId: ($('fSetupDraftId')?.value || '').trim() || null
   }));
   if (!rec){ alert('Completează minim: ticker, entry, size (numere valide). Exit gol = execuție ÎN CURS.'); return; }
   resetForm(); renderAll();
@@ -1457,7 +1482,10 @@ function setJTab(name){
     try { history.replaceState(null, '', wantHash); } catch (e) { location.hash = wantHash.replace('#', ''); }
   }
   if (name === 'portfolio' && window.PF) PF.onTabActivate();
-  if (name === 'setup' && window.SB) window.SB.renderSignalJournal();
+  if (name === 'setup' && window.SB) {
+    window.SB.renderSignalJournal();
+    if (window.SB.onSetupTabActivate) window.SB.onSetupTabActivate();
+  }
   if (window.CD && !(window.JWS && JWS.enabled())) CD.renderRail('capitalRail', name === 'portfolio' ? 'portfolio' : 'journal');
   if (window.JWS && JWS.enabled()) { JWS.updateTabBadges(); JWS.renderContextStrip(); }
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1556,8 +1584,8 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v619';
-  var full = window.SUITE_VERSION || 'tt-v619-2026-07-12';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v620';
+  var full = window.SUITE_VERSION || 'tt-v620-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });

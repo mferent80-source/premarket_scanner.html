@@ -172,18 +172,18 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-164 | Sync stale digest → hub-stale-digest.json (1-click) | lib/hub-state.js + health/ + tools/ | S | P2 | făcut | ideation | 2026-07-11 |
 | I-165 | Event tape + earnings WL (48h) | lib/event-tape.js + lib/hub-brief.js | S | P1 | făcut | ideation | 2026-07-11 |
 | I-166 | Gapper chip → Nasdaq Scanner + Journal prefill | lib/hub-gappers.js + journal/ | S | P1 | făcut | ideation | 2026-07-11 |
-| I-167 | Setup: Cont$/Risc% din Desk (Governor sync) | journal/ + lib/setup-builder.js | S | P1 | propus | ideation | 2026-07-12 |
-| I-168 | Setup: FREEZE / eveniment macro banner | journal/ + lib/setup-builder.js | S | P1 | propus | ideation | 2026-07-12 |
-| I-169 | Setup: cataliști earnings în checklist | journal/ + lib/setup-builder.js | S | P1 | propus | ideation | 2026-07-12 |
-| I-170 | Setup în strip contextual (jr-ctx) | journal/ + lib/journal-workspace.js | S | P2 | propus | ideation | 2026-07-12 |
-| I-171 | Legătură draft setup → execuție (setupDraftId) | journal/ + lib/journal.js | M | P1 | propus | ideation | 2026-07-12 |
-| I-172 | Plan vs Real — expectancy draft vs exec macro | journal/ + lib/journal-insights.js | M | P2 | propus | ideation | 2026-07-12 |
-| I-173 | Setup: verdict GO / WAIT / SKIP în verdict bar | journal/ + lib/setup-builder.js | S | P1 | propus | ideation | 2026-07-12 |
-| I-174 | Setup: câștig $ la TP1/2/3 (oglindă pierdere SL) | lib/setup-builder.js + journal/index.html | S | P2 | propus | ideation | 2026-07-12 |
-| I-175 | Setup: confirm execuție când R:R 20z &lt; 1 | lib/setup-builder.js + journal/index.html | S | P1 | propus | ideation | 2026-07-12 |
-| I-176 | Setup: banner galben R:R marginal (1–2:1) | lib/setup-builder.js + journal/index.html | S | P2 | propus | ideation | 2026-07-12 |
-| I-177 | Setup: persistă rrStruct + pierdere SL în draft | lib/setup-builder.js + md_signal_journal | S | P2 | propus | ideation | 2026-07-12 |
-| I-178 | Setup: mini hartă entry/SL/TP vs hi20/lo20 | lib/setup-builder.js + journal/index.html | M | P2 | propus | ideation | 2026-07-12 |
+| I-167 | Setup: Cont$/Risc% din Desk (Governor sync) | journal/ + lib/setup-builder.js | S | P1 | făcut | ideation | 2026-07-12 |
+| I-168 | Setup: FREEZE / eveniment macro banner | journal/ + lib/setup-builder.js | S | P1 | făcut | ideation | 2026-07-12 |
+| I-169 | Setup: cataliști earnings în checklist | journal/ + lib/setup-builder.js | S | P1 | făcut | ideation | 2026-07-12 |
+| I-170 | Setup în strip contextual (jr-ctx) | journal/ + lib/journal-workspace.js | S | P2 | făcut | ideation | 2026-07-12 |
+| I-171 | Legătură draft setup → execuție (setupDraftId) | journal/ + lib/journal.js | M | P1 | făcut | ideation | 2026-07-12 |
+| I-172 | Plan vs Real — expectancy draft vs exec macro | journal/ + lib/journal-insights.js | M | P2 | făcut | ideation | 2026-07-12 |
+| I-173 | Setup: verdict GO / WAIT / SKIP în verdict bar | journal/ + lib/setup-builder.js | S | P1 | făcut | ideation | 2026-07-12 |
+| I-174 | Setup: câștig $ la TP1/2/3 (oglindă pierdere SL) | lib/setup-builder.js + journal/index.html | S | P2 | făcut | ideation | 2026-07-12 |
+| I-175 | Setup: confirm execuție când R:R 20z &lt; 1 | lib/setup-builder.js + journal/index.html | S | P1 | făcut | ideation | 2026-07-12 |
+| I-176 | Setup: banner galben R:R marginal (1–2:1) | lib/setup-builder.js + journal/index.html | S | P2 | făcut | ideation | 2026-07-12 |
+| I-177 | Setup: persistă rrStruct + pierdere SL în draft | lib/setup-builder.js + md_signal_journal | S | P2 | făcut | ideation | 2026-07-12 |
+| I-178 | Setup: mini hartă entry/SL/TP vs hi20/lo20 | lib/setup-builder.js + journal/index.html | M | P2 | făcut | ideation | 2026-07-12 |
 
 ## Mini-spec-uri
 
