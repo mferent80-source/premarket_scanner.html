@@ -271,6 +271,8 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .setup-form { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .setup-form #setupTicker { flex:1; min-width:180px; font-family:var(--mono); text-transform:uppercase; font-size:14px; padding:9px 12px; letter-spacing:.5px; }
 .setup-dir { display:flex; gap:4px; }
+.setup-slmode { display:flex; gap:4px; }
+#setupSlPctWrap { display:none; }
 .setup-inp { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--t2); font-family:var(--mono); font-weight:700; }
 .setup-inp input { width:82px; font-family:var(--mono); }
 .setup-hint { font-size:11px; color:var(--t3); font-family:var(--mono); margin-top:10px; line-height:1.5; }
@@ -948,7 +950,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <div class="macro-wrap">
 
 <header class="macro-cockpit">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v221</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v225</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1029,7 +1031,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <!-- Tab: Pre-Trade Setup Builder -->
 <div class="tab-content" id="tab-setup">
   <div class="panel-box">
-    <div class="panel-head"><h3>🎯 Pre-Trade Setup Builder</h3><span class="panel-sub">niveluri + R:R + sizing pe regim × ATR + checklist</span></div>
+    <div class="panel-head"><h3>🎯 Pre-Trade Setup Builder</h3><span class="panel-sub">SL din ATR sau % fix · R:R + sizing pe regim + checklist</span></div>
     <div class="setup-wrap">
       <div class="setup-form">
         <input id="setupTicker" type="text" placeholder="Ticker (ex: NVDA, AAPL, BTC-USD)" autocomplete="off">
@@ -1037,11 +1039,16 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
           <button class="fb-chip active" data-dir="long">📈 LONG</button>
           <button class="fb-chip" data-dir="short">📉 SHORT</button>
         </div>
+        <div class="setup-slmode" id="setupSlMode" title="Mod calcul Stop Loss">
+          <button type="button" class="fb-chip active" data-mode="atr">📐 ATR</button>
+          <button type="button" class="fb-chip" data-mode="pct">% Fix</button>
+        </div>
+        <label class="setup-inp" id="setupSlPctWrap"><span>SL %</span><input id="setupSlPct" type="number" min="0.1" step="0.25" value="2"></label>
         <label class="setup-inp"><span>Cont $</span><input id="setupAccount" type="number" min="0" step="500" value="10000"></label>
         <label class="setup-inp"><span>Risc %</span><input id="setupRisk" type="number" min="0.1" step="0.25" value="1"></label>
         <button class="primary" id="setupBtn">Construiește setup</button>
       </div>
-      <div class="setup-hint">Nivelurile (S/R, MA, ATR) vin din chart-ul 1y real. Sizing-ul se ajustează pe Danger Score-ul zilei. Entry/SL/TP nu sunt ordine — sunt un schelet de plan pe care îl validezi tu.</div>
+      <div class="setup-hint" id="setupFormHint"><b>ATR</b> — SL la 1.5×ATR (tehnic). <b>% Fix</b> — SL la distanță fixă față de entry; schimbarea SL % mută stopul. <b>Risc %</b> controlează mereu doar sizing-ul (câte acțiuni), nu poziția SL în modul ATR.</div>
       <div id="setupResult"></div>
     </div>
   </div>
@@ -1492,6 +1499,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <div id="toasts"></div>
 
 <script src="../lib/suite-version.js?v=575"></script>
+<script src="../lib/data.js?v=610"></script>
 <script>
 // ============ CONFIG ============
 // (constanta VERSION a fost eliminată — era „v147", desincronizată cu ver-badge-ul
@@ -1811,12 +1819,16 @@ function addTickerToWatchlist(ticker) {
 }
 // CORS proxy chain pentru Yahoo Finance (Yahoo nu permite CORS direct).
 // Toate proxy-urile sunt teren mișcător — încercăm 5-6 variante și marcăm dead-uri.
-// Lanț aliniat cu restul suitei — scoase: allorigins ×2 (fără header CORS pe
-// github.io) și proxy.cors.sh (cere API key → 403) — ardeau încercări + erori în consolă.
+// Lanț aliniat cu lib/data.js — citește tt_custom_proxy din LS (sau default worker).
+function getCustomProxyUrl() {
+  try {
+    return ((localStorage.getItem('tt_custom_proxy') || 'https://tt-proxy.mferent80.workers.dev') + '').trim().replace(/\/+$/, '');
+  } catch (e) { return 'https://tt-proxy.mferent80.workers.dev'; }
+}
 const CORS_PROXIES = [
   // Worker-ul PROPRIU (Cloudflare, doar al lui Marius) PRIMUL — 2026-06-12 toate
   // proxy-urile free au picat simultan (codetabs 400, corsproxy 403, cors.lol 429)
-  { build: u => 'https://tt-proxy.mferent80.workers.dev/?url=' + encodeURIComponent(u), extract: r => r.text() },
+  { build: u => getCustomProxyUrl() + '/?url=' + encodeURIComponent(u), extract: r => r.text() },
   { build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: r => r.text() },
   { build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u), extract: r => r.text() },
   { build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u), extract: r => r.text() }
@@ -1936,7 +1948,7 @@ async function fetchViaProxy(url, timeoutMs=9000) {
       const r = await fetch(p.build(url), { signal: ctrl.signal });
       clearTimeout(t);
       if (!r.ok) {
-        if ([400, 408, 429, 502, 503, 504].includes(r.status)) PROXY_DEAD.add(idx);
+        if ([400, 403, 408, 429, 502, 503, 504].includes(r.status)) PROXY_DEAD.add(idx);
         lastError = `HTTP ${r.status} proxy ${idx}`;
         continue;
       }
@@ -2004,16 +2016,55 @@ async function fetchCryptoChartFromCoinGecko(coinId, days = 60) {
 async function fetchBtcChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('bitcoin'); }
 async function fetchEthChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('ethereum'); }
 
-// Helper unified: încearcă în ordine Yahoo proxy → CoinGecko (crypto) → Finnhub ETF candle → TwelveData ETF
+// Crypto -USD → Binance USDT (fără proxy, CORS ok) + CoinGecko ca plasă
+const CRYPTO_BINANCE_MAP = {
+  'BTC-USD':'BTCUSDT','ETH-USD':'ETHUSDT','SOL-USD':'SOLUSDT','BNB-USD':'BNBUSDT',
+  'XRP-USD':'XRPUSDT','ADA-USD':'ADAUSDT','DOGE-USD':'DOGEUSDT','AVAX-USD':'AVAXUSDT',
+  'LINK-USD':'LINKUSDT','DOT-USD':'DOTUSDT','LTC-USD':'LTCUSDT','MATIC-USD':'MATICUSDT'
+};
+const CRYPTO_COINGECKO_MAP = {
+  'BTC-USD':'bitcoin','ETH-USD':'ethereum','SOL-USD':'solana','BNB-USD':'binancecoin',
+  'XRP-USD':'ripple','ADA-USD':'cardano','DOGE-USD':'dogecoin','AVAX-USD':'avalanche-2',
+  'LINK-USD':'chainlink','DOT-USD':'polkadot','LTC-USD':'litecoin','MATIC-USD':'matic-network'
+};
+async function fetchCryptoChartFromBinance(pair, days = 90) {
+  try {
+    const limit = Math.min(1000, Math.max(30, days));
+    const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(pair)}&interval=1d&limit=${limit}`);
+    if (!r.ok) return null;
+    const j = await r.json();
+    if (!Array.isArray(j) || j.length < 5) return null;
+    const points = j.map(k => ({ ts: Math.floor(k[0] / 1000), close: parseFloat(k[4]) }))
+      .filter(p => Number.isFinite(p.close) && p.close > 0);
+    if (points.length < 5) return null;
+    return { points, meta: { regularMarketPrice: points[points.length - 1].close } };
+  } catch (e) { return null; }
+}
+
+// Helper unified: Yahoo proxy → Binance/CoinGecko (crypto) → Finnhub candle → TwelveData
 async function fetchChartWithFallback(yahooSym, days = 90) {
   let d = await fetchYahooChart30d(yahooSym);
-  if (d?.points?.length) return d;
-  if (yahooSym === 'BTC-USD') { d = await fetchBtcChartFromCoinGecko(); if (d?.points?.length) return d; }
-  if (yahooSym === 'ETH-USD') { d = await fetchEthChartFromCoinGecko(); if (d?.points?.length) return d; }
+  if (d?.points?.length >= 5) return d;
+  const isCrypto = /-USD$/i.test(yahooSym);
+  if (isCrypto) {
+    const bnb = CRYPTO_BINANCE_MAP[yahooSym];
+    if (bnb) { d = await fetchCryptoChartFromBinance(bnb, days); if (d?.points?.length >= 5) return d; }
+    const cgId = CRYPTO_COINGECKO_MAP[yahooSym];
+    if (cgId) { d = await fetchCryptoChartFromCoinGecko(cgId, Math.min(days, 365)); if (d?.points?.length >= 5) return d; }
+  }
   const etf = ETF_PROXY_MAP[yahooSym];
-  if (etf) { d = await fetchFinnhubCandle(etf, days); if (d?.points?.length) return d; }
+  if (etf) { d = await fetchFinnhubCandle(etf, days); if (d?.points?.length >= 5) return d; }
   const tdSym = TWELVEDATA_SYMBOL_MAP[yahooSym];
-  if (tdSym) { d = await fetchTwelveDataChart(tdSym, days); if (d?.points?.length) return d; }
+  if (tdSym) { d = await fetchTwelveDataChart(tdSym, days); if (d?.points?.length >= 5) return d; }
+  // Stocks individuale (NVDA, AAPL…): Finnhub candle → TwelveData direct
+  if (!isCrypto && !yahooSym.startsWith('^') && !/=F$/.test(yahooSym)) {
+    d = await fetchFinnhubCandle(yahooSym, days);
+    if (d?.points?.length >= 5) return d;
+    if (getTwelveDataKey()) {
+      d = await fetchTwelveDataChart(yahooSym, days);
+      if (d?.points?.length >= 5) return d;
+    }
+  }
   return null;
 }
 
@@ -2587,9 +2638,20 @@ function renderFreezeWindow() {
 // ============ PRE-TRADE SETUP BUILDER — ticker → nivel + R:R + sizing pe regim + checklist ============
 let _setupDir = 'long';
 let _lastSetup = null; // ultimul setup construit (pt salvare în jurnal)
+let _setupLevels = null; // { ticker, L } — cache niveluri pt re-render sizing fără re-fetch
 // Multiplicator de sizing derivat din Danger Score (mediu periculos → poziții mai mici)
 function dangerSizeMult(score) {
   return score >= 70 ? 0.35 : score >= 45 ? 0.5 : score >= 25 ? 0.75 : 1;
+}
+function getSetupSlMode() {
+  return document.querySelector('#setupSlMode .fb-chip.active')?.dataset.mode || 'atr';
+}
+function getSetupSlPct() {
+  return Math.max(0.1, parseFloat($('setupSlPct')?.value) || 2);
+}
+function syncSetupSlPctUI() {
+  const wrap = $('setupSlPctWrap');
+  if (wrap) wrap.style.display = getSetupSlMode() === 'pct' ? 'flex' : 'none';
 }
 
 // Catalisti apropiati pentru un ticker: earnings (EARNINGS_BY_DATE) + urmatorul macro high-impact
@@ -2616,27 +2678,49 @@ function findSetupCatalysts(ticker) {
 
 async function buildSetup() {
   const resultEl = $('setupResult');
-  const ticker = ($('setupTicker').value || '').trim().toUpperCase();
-  if (!ticker) { resultEl.innerHTML = '<div class="setup-err">Introdu un ticker (ex: NVDA, AAPL, BTC-USD).</div>'; return; }
+  const raw = ($('setupTicker').value || '').trim().toUpperCase();
+  if (!raw) { resultEl.innerHTML = '<div class="setup-err">Introdu un ticker (ex: NVDA, AAPL, BTC sau BTC-USD).</div>'; return; }
+  const ticker = tickerToYahoo(raw); // BTC→BTC-USD, SOL→SOL-USD etc.
+  if (ticker !== raw) { const inp = $('setupTicker'); if (inp) inp.value = ticker; }
   const account = parseFloat($('setupAccount').value) || 0;
   const riskPct = parseFloat($('setupRisk').value) || 1;
   resultEl.innerHTML = `<div class="setup-err">⏳ Calculez nivelurile pentru <b>${escHtml(ticker)}</b>…</div>`;
   let L = null;
   try { L = await fetchBriefLevels(ticker); } catch (e) { L = null; }
   if (!L || L.last == null) {
-    resultEl.innerHTML = `<div class="setup-err">❌ Nu am găsit date pentru <b>${escHtml(ticker)}</b>. Verifică simbolul (crypto: <code>BTC-USD</code>, ETF/stocks: <code>SPY</code>, <code>NVDA</code>).</div>`;
+    resultEl.innerHTML = `<div class="setup-err">❌ Nu am găsit date pentru <b>${escHtml(ticker)}</b>. Verifică simbolul (crypto: <code>BTC-USD</code>, stocks: <code>NVDA</code>). Dacă e corect, proxy-ul Yahoo poate fi blocat — încearcă 🔄 Retry din Setări sau setează cheie <b>Finnhub</b>/<b>TwelveData</b> în ⚙.</div>`;
     return;
   }
+  _setupLevels = { ticker, L };
   renderSetup(ticker, _setupDir, L, account, riskPct);
+}
+
+// Re-render fără re-fetch: sizing (Cont/Risc), SL/TP în mod % fix
+function refreshSetupDisplay() {
+  if (!_setupLevels?.L) return;
+  const account = parseFloat($('setupAccount').value) || 0;
+  const riskPct = parseFloat($('setupRisk').value) || 1;
+  renderSetup(_setupLevels.ticker, _setupDir, _setupLevels.L, account, riskPct);
 }
 
 function renderSetup(ticker, dir, L, account, riskPct) {
   const isLong = dir === 'long';
   const isCrypto = /-USD$/i.test(ticker);
+  const slMode = getSetupSlMode();
+  const slPctFix = getSetupSlPct();
   const fmt = v => v == null ? '—' : (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 1 ? v.toFixed(2) : v.toFixed(4));
   const entry = L.last;
   const atrAbs = L.atrPct != null ? entry * L.atrPct / 100 : entry * 0.02; // fallback 2%/zi
-  const r = 1.5 * atrAbs; // risc pe trade = 1.5×ATR
+  let r, slSub, modeTag;
+  if (slMode === 'pct') {
+    r = entry * (slPctFix / 100);
+    slSub = `SL fix ${slPctFix}% · distanță $${fmt(r)}/unit`;
+    modeTag = `SL ${slPctFix}%`;
+  } else {
+    r = 1.5 * atrAbs;
+    slSub = `1.5×ATR · distanță $${fmt(r)}/unit (${(r / entry * 100).toFixed(1)}% preț)`;
+    modeTag = 'ATR';
+  }
   const sl = isLong ? entry - r : entry + r;
   const tp1 = isLong ? entry + r : entry - r;
   const tp2 = isLong ? entry + 2 * r : entry - 2 * r;
@@ -2675,19 +2759,23 @@ function renderSetup(ticker, dir, L, account, riskPct) {
   }
   const catalysts = findSetupCatalysts(ticker);
   const okCount = checks.filter(c => c.ok).length;
-  _lastSetup = { ticker, dir, entry, sl, tp1, tp2, tp3, r, atrPct: L.atrPct, dangerScore: danger.score, confluence: okCount, totalChecks: checks.length };
+  _lastSetup = { ticker, dir, entry, sl, tp1, tp2, tp3, r, slMode, slPct: slMode === 'pct' ? slPctFix : null, atrPct: L.atrPct, dangerScore: danger.score, confluence: okCount, totalChecks: checks.length };
+
+  const footHint = slMode === 'pct'
+    ? `⚠ Entry/SL/TP = schelet din SL fix ${slPctFix}% (TP la 1/2/3R). Sizing pe Danger Score. NU sunt ordine — validează pe grafic.`
+    : '⚠ Entry/SL/TP = schelet din ATR real (1.5×ATR risc, TP la 1/2/3R). Sizing pe Danger Score-ul zilei. NU sunt ordine — validează cu propriul plan și confirmă pe grafic.';
 
   $('setupResult').innerHTML = `
     <div class="setup-verdict">
       <div>
-        <div class="sv-tag">${escHtml(ticker)} · ${isLong ? '📈 LONG' : '📉 SHORT'} · confluență ${okCount}/${checks.length}</div>
+        <div class="sv-tag">${escHtml(ticker)} · ${isLong ? '📈 LONG' : '📉 SHORT'} · ${escHtml(modeTag)} · confluență ${okCount}/${checks.length}</div>
         <div class="sv-px">$${fmt(entry)}</div>
         <div class="sv-meta">${L.chgPct >= 0 ? '+' : ''}${L.chgPct.toFixed(2)}% azi · ATR≈${L.atrPct != null ? L.atrPct.toFixed(1) : '—'}%/zi</div>
       </div>
     </div>
     <div class="setup-grid">
       <div class="setup-tile entry"><div class="st-label">Entry</div><div class="st-val">$${fmt(entry)}</div><div class="st-sub">preț curent</div></div>
-      <div class="setup-tile sl"><div class="st-label">Stop Loss</div><div class="st-val">$${fmt(sl)}</div><div class="st-sub">1.5×ATR · risc $${fmt(r)} (${(r / entry * 100).toFixed(1)}%)</div></div>
+      <div class="setup-tile sl"><div class="st-label">Stop Loss</div><div class="st-val">$${fmt(sl)}</div><div class="st-sub">${slSub}</div></div>
       <div class="setup-tile tp"><div class="st-label">TP1 · 1R</div><div class="st-val">$${fmt(tp1)}</div></div>
       <div class="setup-tile tp"><div class="st-label">TP2 · 2R</div><div class="st-val">$${fmt(tp2)}</div></div>
       <div class="setup-tile tp"><div class="st-label">TP3 · 3R</div><div class="st-val">$${fmt(tp3)}</div></div>
@@ -2705,7 +2793,7 @@ function renderSetup(ticker, dir, L, account, riskPct) {
       <button class="primary" onclick="saveLastSetup()">📓 Salvează în jurnal</button>
       <button class="ghost" onclick="alertFromSetup()" title="Pune alerte de preț pe SL și TP1 în pagina /alerts/">🔔 Alertă SL+TP în /alerts/</button>
     </div>
-    <div class="setup-hint" style="margin-top:10px">⚠ Entry/SL/TP = schelet din ATR real (1.5×ATR risc, TP la 1/2/3R). Sizing pe Danger Score-ul zilei. NU sunt ordine — validează cu propriul plan și confirmă pe grafic.</div>`;
+    <div class="setup-hint" style="margin-top:10px">${footHint}</div>`;
 }
 
 function wireSetup() {
@@ -2713,10 +2801,23 @@ function wireSetup() {
   if (btn) btn.addEventListener('click', buildSetup);
   const inp = $('setupTicker');
   if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') buildSetup(); });
+  syncSetupSlPctUI();
+  document.querySelectorAll('#setupSlMode .fb-chip').forEach(c => c.addEventListener('click', () => {
+    document.querySelectorAll('#setupSlMode .fb-chip').forEach(x => x.classList.toggle('active', x === c));
+    syncSetupSlPctUI();
+    if (_setupLevels?.L) refreshSetupDisplay();
+  }));
+  ['setupAccount', 'setupRisk', 'setupSlPct'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener('input', refreshSetupDisplay);
+    el.addEventListener('change', refreshSetupDisplay);
+  });
   document.querySelectorAll('#setupDir .fb-chip').forEach(c => c.addEventListener('click', () => {
     _setupDir = c.dataset.dir;
     document.querySelectorAll('#setupDir .fb-chip').forEach(x => x.classList.toggle('active', x === c));
-    if (($('setupTicker').value || '').trim()) buildSetup();
+    if (_setupLevels?.L) refreshSetupDisplay();
+    else if (($('setupTicker').value || '').trim()) buildSetup();
   }));
   $('journalRefresh')?.addEventListener('click', renderJournal);
   $('journalClear')?.addEventListener('click', clearJournal);
@@ -4458,18 +4559,26 @@ async function getReactionSeries(sym) {
   const c = _reactionSeriesCache.get(sym);
   if (c && Date.now() - c.ts < 30 * 60000) return c.points;
   let points = null;
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=2y`;
-    const data = await fetchViaProxy(url);
-    const r = data?.chart?.result?.[0];
-    const closes = r?.indicators?.quote?.[0]?.close || [];
-    const ts = r?.timestamp || [];
-    points = closes.map((cl, i) => ({ ts: ts[i], close: cl })).filter(p => p.close != null && p.ts != null);
-    if (points.length < 30) {
-      const fb = await fetchChartWithFallback(sym, 730);
-      points = (fb?.points || []).filter(p => p && p.close != null && p.ts != null);
-    }
-  } catch (e) { points = null; }
+  if (window.D?.fetchStock) {
+    try {
+      const bars = await D.fetchStock(sym, { range: '2y', interval: '1d', ttl: 1800 });
+      if (bars?.length >= 30) points = bars.map(b => ({ ts: Math.floor(b.t / 1000), close: b.c })).filter(p => p.close != null && p.ts != null);
+    } catch (e) { /* următorul sursă */ }
+  }
+  if (!points || points.length < 30) {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=2y`;
+      const data = await fetchViaProxy(url);
+      const r = data?.chart?.result?.[0];
+      const closes = r?.indicators?.quote?.[0]?.close || [];
+      const ts = r?.timestamp || [];
+      points = closes.map((cl, i) => ({ ts: ts[i], close: cl })).filter(p => p.close != null && p.ts != null);
+    } catch (e) { /* următorul sursă */ }
+  }
+  if (!points || points.length < 30) {
+    const fb = await fetchChartWithFallback(sym, 730);
+    points = (fb?.points || []).filter(p => p && p.close != null && p.ts != null);
+  }
   if (!points || points.length < 30) points = null;
   _reactionSeriesCache.set(sym, { ts: Date.now(), points });
   return points;
@@ -4860,21 +4969,34 @@ const _briefLevelsCache = new Map(); // sym → { ts, data }
 // Fetch chart 1y (≥200 bare pt MA200) + calcul niveluri din closes
 async function fetchBriefLevels(sym) {
   const cached = _briefLevelsCache.get(sym);
-  if (cached && Date.now() - cached.ts < 10*60000) return cached.data;
+  if (cached) {
+    const ttl = cached.data ? 10 * 60000 : 90000; // eșecurile se reîncearcă după 90s
+    if (Date.now() - cached.ts < ttl) return cached.data;
+  }
   let points = null;
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1y`;
-    const data = await fetchViaProxy(url);
-    const r = data?.chart?.result?.[0];
-    const closes = r?.indicators?.quote?.[0]?.close || [];
-    const ts = r?.timestamp || [];
-    points = closes.map((c, i) => ({ ts: ts[i], close: c })).filter(p => p.close != null);
-    if (points.length < 5) {
-      // fallback (crypto via CoinGecko, ETF via Finnhub/TwelveData)
-      const fb = await fetchChartWithFallback(sym, 250);
-      points = fb?.points || null;
-    }
-  } catch (e) { points = null; }
+  // 1) lib/data.js — proxy health-scoring (același lanț ca alerts/nasdaq)
+  if (window.D?.fetchStock) {
+    try {
+      const bars = await D.fetchStock(sym, { range: '1y', interval: '1d', ttl: 600 });
+      if (bars?.length >= 5) points = bars.map(b => ({ ts: Math.floor(b.t / 1000), close: b.c }));
+    } catch (e) { /* următorul sursă */ }
+  }
+  // 2) Yahoo 1y via proxy chain inline
+  if (!points || points.length < 5) {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1y`;
+      const data = await fetchViaProxy(url);
+      const r = data?.chart?.result?.[0];
+      const closes = r?.indicators?.quote?.[0]?.close || [];
+      const ts = r?.timestamp || [];
+      points = closes.map((c, i) => ({ ts: ts[i], close: c })).filter(p => p.close != null);
+    } catch (e) { /* următorul sursă */ }
+  }
+  // 3) Fallback fără proxy: Binance/CoinGecko (crypto), Finnhub/TwelveData (stocks)
+  if (!points || points.length < 5) {
+    const fb = await fetchChartWithFallback(sym, 365);
+    points = fb?.points || null;
+  }
   if (!points || points.length < 5) { _briefLevelsCache.set(sym, { ts: Date.now(), data: null }); return null; }
 
   const cl = points.map(p => p.close);

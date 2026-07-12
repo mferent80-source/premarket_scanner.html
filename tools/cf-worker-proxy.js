@@ -37,6 +37,12 @@
 // ═══════════════════════════════════════════════════════════════════
 const ALLOW_HOSTS = /^(query1|query2)\.finance\.yahoo\.com$|^api\.coingecko\.com$/;
 const ALLOW_ORIGIN = 'https://mferent80-source.github.io';
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // file://, curl, cron — fără header Origin
+  if (origin === ALLOW_ORIGIN) return true;
+  // Dev local (Live Server, python -m http.server etc.)
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+}
 
 // Repo + workflow care se declanșează din cron (workflow-ul are `workflow_dispatch:`).
 const GH_OWNER = 'mferent80-source';
@@ -119,7 +125,7 @@ export default {
       res.headers.set('Access-Control-Allow-Origin', origin || ALLOW_ORIGIN);
       return res;
     }
-    if (origin && origin !== ALLOW_ORIGIN) return new Response('forbidden origin', { status: 403 });
+    if (origin && !isAllowedOrigin(origin)) return new Response('forbidden origin', { status: 403 });
 
     const target = u.searchParams.get('url');
     let t;
