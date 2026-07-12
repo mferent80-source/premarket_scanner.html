@@ -8,8 +8,8 @@
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=615">
-<script src="../lib/suite-version.js?v=615"></script>
+<link rel="stylesheet" href="../lib/capital-ui.css?v=617">
+<script src="../lib/suite-version.js?v=617"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -224,7 +224,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v615</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v615</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v617</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v617</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -574,8 +574,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/equity.js?v=9"></script>
 <script src="../lib/capital-desk.js?v=9"></script>
 <script src="../lib/data.js"></script>
-<script src="../lib/setup-levels.js?v=615"></script>
-<script src="../lib/setup-builder.js?v=615"></script>
+<script src="../lib/setup-levels.js?v=617"></script>
+<script src="../lib/setup-builder.js?v=617"></script>
 <script src="../lib/portfolio-risk.js?v=584"></script>
 <script src="../lib/journal-workspace.js?v=584"></script>
 <script>
@@ -1455,7 +1455,7 @@ function setJTab(name){
     try { history.replaceState(null, '', wantHash); } catch (e) { location.hash = wantHash.replace('#', ''); }
   }
   if (name === 'portfolio' && window.PF) PF.onTabActivate();
-  if (name === 'setup' && window.SB) SB.renderSignalJournal();
+  if (name === 'setup' && window.SB) window.SB.renderSignalJournal();
   if (window.CD && !(window.JWS && JWS.enabled())) CD.renderRail('capitalRail', name === 'portfolio' ? 'portfolio' : 'journal');
   if (window.JWS && JWS.enabled()) { JWS.updateTabBadges(); JWS.renderContextStrip(); }
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1469,22 +1469,6 @@ document.querySelectorAll('[data-jtab-link]').forEach(a => a.addEventListener('c
   setJTab(tab);
 }));
 
-if (window.JWS) {
-  JWS.init({
-    $, esc, fmt$, TAGS, isOpenE, closeE, openPriceCache,
-    fillForm, renderAll, calcUnrealizedTotal,
-    renderCapitalPanel,
-    refreshMarks: async () => { await refreshMarks(); }
-  });
-}
-renderReconcileChip();
-renderAll();
-function hashToJTab(h){
-  const x = (h || '').replace('#', '').split('&')[0];
-  if (x === 'capital' || x === 'exec' || x === 'desk' || x === 'portfolio' || x === 'setup') return x;
-  if (x === 'journal') return 'setup';
-  return 'desk';
-}
 function sbToast(msg, kind){
   const b = $('setupToast') || $('errBanner');
   if (!b) return;
@@ -1496,35 +1480,51 @@ function sbToast(msg, kind){
   clearTimeout(sbToast._t);
   sbToast._t = setTimeout(() => { b.style.display = 'none'; }, 4500);
 }
+if (window.SB) {
+  window.SB.init({
+    $, escHtml: esc,
+    toast: sbToast,
+    onTabSetup: () => setJTab('setup'),
+    onOpenExec: (s) => {
+      resetForm();
+      window.SB.prefillExecForm(s);
+      setJTab('exec');
+    }
+  });
+}
+if (window.JWS) {
+  JWS.init({
+    $, esc, fmt$, TAGS, isOpenE, closeE, openPriceCache,
+    fillForm, renderAll, calcUnrealizedTotal,
+    renderCapitalPanel,
+    refreshMarks: async () => { await refreshMarks(); }
+  });
+}
+renderReconcileChip();
+try { renderAll(); } catch (e) { console.error('renderAll', e); }
+function hashToJTab(h){
+  const x = (h || '').replace('#', '').split('&')[0];
+  if (x === 'capital' || x === 'exec' || x === 'desk' || x === 'portfolio' || x === 'setup') return x;
+  if (x === 'journal') return 'setup';
+  return 'desk';
+}
 function consumeSetupExecPrefill(){
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem('jr_setup_exec_prefill') || 'null'); } catch (e) {}
   try { localStorage.removeItem('jr_setup_exec_prefill'); } catch (e) {}
   if (!raw?.s || (Date.now() - (raw.ts || 0) > 5 * 60000)) return false;
   resetForm();
-  if (window.SB) SB.prefillExecForm(raw.s);
+  if (window.SB) window.SB.prefillExecForm(raw.s);
   setJTab('exec');
   return true;
 }
-if (window.SB) {
-  SB.init({
-    $, escHtml: esc,
-    toast: sbToast,
-    onTabSetup: () => setJTab('setup'),
-    onOpenExec: (s) => {
-      resetForm();
-      SB.prefillExecForm(s);
-      setJTab('exec');
-    }
-  });
-}
 setJTab(hashToJTab(location.hash));
 if (!consumeSetupExecPrefill() && (location.hash === '#setup' || localStorage.getItem('md_setup_prefill'))) {
-  if (window.SB) SB.consumePrefill();
+  if (window.SB) window.SB.consumePrefill();
 }
 window.addEventListener('hashchange', () => {
   setJTab(hashToJTab(location.hash));
-  if (location.hash === '#setup' && localStorage.getItem('md_setup_prefill') && window.SB) SB.consumePrefill();
+  if (location.hash === '#setup' && localStorage.getItem('md_setup_prefill') && window.SB) window.SB.consumePrefill();
 });
 setInterval(renderDesk, 60000);
 setTimeout(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 500);
@@ -1554,8 +1554,8 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v615';
-  var full = window.SUITE_VERSION || 'tt-v615-2026-07-12';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v617';
+  var full = window.SUITE_VERSION || 'tt-v617-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });
