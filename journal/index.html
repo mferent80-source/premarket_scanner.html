@@ -8,8 +8,8 @@
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=621">
-<script src="../lib/suite-version.js?v=621"></script>
+<link rel="stylesheet" href="../lib/capital-ui.css?v=622">
+<script src="../lib/suite-version.js?v=622"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -245,7 +245,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v621</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v621</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v622</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v622</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -590,8 +590,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/capital-time.js?v=576"></script>
 <script src="../lib/account.js?v=576"></script>
 <script src="../lib/finnhub-key.js?v=561"></script>
-<script src="../lib/journal.js?v=16"></script>
-<script src="../lib/journal-insights.js?v=621"></script>
+<script src="../lib/journal.js?v=622"></script>
+<script src="../lib/journal-insights.js?v=622"></script>
 <script src="../lib/tracker.js?v=2"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/governor.js?v=7"></script>
@@ -600,8 +600,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/equity.js?v=9"></script>
 <script src="../lib/capital-desk.js?v=9"></script>
 <script src="../lib/data.js"></script>
-<script src="../lib/setup-levels.js?v=621"></script>
-<script src="../lib/setup-builder.js?v=621"></script>
+<script src="../lib/setup-levels.js?v=622"></script>
+<script src="../lib/setup-builder.js?v=622"></script>
 <script src="../lib/portfolio-risk.js?v=584"></script>
 <script src="../lib/journal-workspace.js?v=620"></script>
 <script>
@@ -899,12 +899,25 @@ $('btnSave').addEventListener('click', () => {
   const symU = String(payload.sym || '').trim().toUpperCase();
   const entryN = parseFloat(payload.entry), sizeN = parseFloat(payload.size), slN = parseFloat(payload.slAtEntry);
   const exitN = payload.exit === '' || payload.exit == null ? null : parseFloat(payload.exit);
+  let allowDupOpen = false;
   if (exitN == null && JR.findOpen && JR.findOpen(symU)) {
     if (!confirm(symU + ' e deja OPEN în journal. Adaugi a doua poziție pe același ticker?')) return;
+    allowDupOpen = true;
+  }
+  if (window.SB && SB.freezeWarnForSym && exitN == null) {
+    const fw = SB.freezeWarnForSym(symU);
+    if (fw && !confirm('⛔ ' + (fw.kind === 'post-earn' ? 'POST-EARNINGS' : fw.kind === 'freeze' ? 'FREEZE' : 'POST-EVENT') + ': ' + fw.text + '\n\nSalvezi execuția OPEN oricum?')) return;
+  }
+  if (global.GV && GV.status && exitN == null) {
+    const gst = GV.status();
+    if (gst.verdict === 'HALTED' && !confirm('🛑 Desk HALTED:\n' + (gst.reasons || []).slice(0, 3).join('\n') + '\n\nSalvezi execuția oricum?')) return;
   }
   if (window.CD && CD.canAddRisk && exitN == null && entryN > 0 && sizeN > 0) {
+    const dir = payload.dir || $('fDir')?.value || 'long';
     let est = entryN * sizeN * 0.01;
-    if (isFinite(slN) && slN > 0) est = Math.max(0, (entryN - slN) * sizeN);
+    if (isFinite(slN) && slN > 0) {
+      est = dir === 'short' ? Math.max(0, (slN - entryN) * sizeN) : Math.max(0, (entryN - slN) * sizeN);
+    }
     const gate = CD.canAddRisk(est);
     if (gate.halt && !confirm('Capital Desk STOP:\n' + gate.reasons.join('\n') + '\n\nSalvezi execuția oricum?')) return;
   }
@@ -912,7 +925,7 @@ $('btnSave').addEventListener('click', () => {
   const rec = JR.add(Object.assign({}, payload, {
     markPrice: exitN == null && markRaw ? markRaw : null,
     setupDraftId: ($('fSetupDraftId')?.value || '').trim() || null
-  }));
+  }), allowDupOpen ? { allowDupOpen: true } : {});
   if (!rec){ alert('Completează minim: ticker, entry, size (numere valide). Exit gol = execuție ÎN CURS.'); return; }
   resetForm(); renderAll();
 });
@@ -1584,8 +1597,8 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v621';
-  var full = window.SUITE_VERSION || 'tt-v621-2026-07-12';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v622';
+  var full = window.SUITE_VERSION || 'tt-v622-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });
