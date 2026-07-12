@@ -50,7 +50,8 @@
     Promise.all(jobs).then(function(){
       try {
         localStorage.setItem('tt_sw_ok', VER);
-        localStorage.setItem('tt_sw_version', VER);
+        // versiunea SW o raporteaza SW-ul nou (GET_VERSION), nu o hardcodam
+        localStorage.removeItem('tt_sw_version');
       } catch(e){}
       say('Gata — redirecționare…');
       location.replace('./index.html?fresh=' + VER + '&t=' + Date.now());

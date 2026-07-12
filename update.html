@@ -38,7 +38,10 @@
   Promise.all(jobs).then(function(){
     try {
       localStorage.setItem('tt_suite_ok', VER);
-      localStorage.setItem('tt_sw_version', VER);
+      // tt_sw_version NU se mai scrie hardcodat (producea warning fals
+      // "cache vechi") — dupa purge SW-ul nou raporteaza versiunea reala
+      // prin GET_VERSION la urmatorul load al hub-ului
+      localStorage.removeItem('tt_sw_version');
     } catch(e){}
     document.querySelector('p').innerHTML = 'Gata — redirecționare hub <b>' + VER + '</b>…';
     setTimeout(function(){
