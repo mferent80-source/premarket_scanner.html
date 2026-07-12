@@ -1448,7 +1448,7 @@ function sendToSetup(sym, dirOverride){
   let dir = dirOverride || 'long';
   if (!dirOverride){ const d = DATA.find(x => x.sym === sym); if (d){ const q = rrgQuadrant(d.rsRatio, d.rsMom); if (q && (q.key === 'lag' || q.key === 'weak')) dir = 'short'; } }
   try { localStorage.setItem('md_setup_prefill', JSON.stringify({ ticker: sym, dir, ts: Date.now() })); } catch(_){}
-  window.open('../macro-dashboard/#setup', '_blank');
+  window.open('../journal/#setup', '_blank');
 }
 function renderExpandBody(d){
   const cache  = EXP_CACHE[d.sym] || {};

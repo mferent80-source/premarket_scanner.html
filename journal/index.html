@@ -8,8 +8,8 @@
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/capital-ui.css?v=593">
-<script src="../lib/suite-version.js?v=593"></script>
+<link rel="stylesheet" href="../lib/capital-ui.css?v=614">
+<script src="../lib/suite-version.js?v=614"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -188,12 +188,43 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .jr-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55)}
 .jr-sheet{position:relative;z-index:1;width:min(480px,100%);margin:12px;border-radius:var(--r);max-height:90vh;overflow:auto}
 @media (max-width:550px){.jr-ctx-strip{grid-template-columns:repeat(2,1fr)}}
+.fb-chip{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:5px 11px;border-radius:999px;font-size:11.5px;font-weight:700;font-family:var(--head);cursor:pointer;transition:all .15s var(--ease)}
+.fb-chip:hover{border-color:var(--accent);color:var(--accent);background:rgba(91,176,255,.06)}
+.fb-chip.active{background:var(--accent);border-color:var(--accent);color:#000}
+.setup-wrap{padding:14px 0}
+.setup-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.setup-form #setupTicker{flex:1;min-width:180px;font-family:var(--mono);text-transform:uppercase;font-size:14px;padding:9px 12px;letter-spacing:.5px;background:var(--panel2);color:var(--t1);border:1px solid var(--b1);border-radius:var(--rs)}
+.setup-dir,.setup-slmode{display:flex;gap:4px}
+#setupSlPctWrap{display:none}
+.setup-inp{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2);font-family:var(--mono);font-weight:700}
+.setup-inp input{width:82px;font-family:var(--mono);background:var(--panel2);color:var(--t1);border:1px solid var(--b1);padding:7px;border-radius:var(--rs)}
+.setup-hint{font-size:11px;color:var(--t3);font-family:var(--mono);margin-top:10px;line-height:1.5}
+#setupResult{margin-top:14px}
+.setup-verdict{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(135deg,var(--panel2),rgba(91,176,255,.05));border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.setup-verdict .sv-tag{font-family:var(--mono);font-size:11px;color:var(--t2);font-weight:700}
+.setup-verdict .sv-px{font-family:var(--head);font-size:26px;font-weight:800;color:var(--t1);line-height:1.1}
+.setup-verdict .sv-meta{font-family:var(--mono);font-size:12px;color:var(--t2)}
+.setup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px;margin-bottom:8px}
+.setup-tile{background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px 12px}
+.setup-tile .st-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--t2);font-weight:700;font-family:var(--mono)}
+.setup-tile .st-val{font-size:17px;font-weight:800;font-family:var(--head);margin-top:3px;color:var(--t1)}
+.setup-tile .st-sub{font-size:10.5px;color:var(--t3);font-family:var(--mono);margin-top:2px}
+.setup-tile.entry{border-color:rgba(91,176,255,.5)}
+.setup-tile.sl{border-color:rgba(255,77,77,.5)}.setup-tile.sl .st-val{color:var(--bear-s)}
+.setup-tile.tp{border-color:rgba(34,214,107,.4)}.setup-tile.tp .st-val{color:var(--bull-s)}
+.setup-section-h{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--t2);font-weight:700;font-family:var(--mono);margin:14px 0 8px}
+.setup-check{display:flex;flex-direction:column;gap:6px}
+.setup-check-row{display:flex;align-items:center;gap:8px;font-family:var(--head);font-size:12.5px;color:var(--t1);background:var(--panel2);border:1px solid var(--b1);border-radius:var(--rs);padding:8px 12px}
+.setup-check-row .scr-note{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--t3)}
+.setup-cat{background:linear-gradient(135deg,rgba(212,137,44,.12),rgba(20,26,40,.5));border:1px solid rgba(212,137,44,.35);border-radius:var(--rs);padding:9px 14px;font-family:var(--head);font-size:12.5px;color:var(--t1);margin-bottom:6px}
+.setup-err{padding:20px;text-align:center;color:var(--t2);font-family:var(--head);font-size:13px}
+.setup-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 </style>
 </head>
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v585</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v585</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v614</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v614</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -209,6 +240,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
   <nav class="cap-nav" aria-label="Capital Desk">
     <a class="cap-nav-hub" href="../">⌂ Hub</a>
     <a class="cap-nav-item active" href="#desk" data-jtab-link="desk">🛑 Desk</a>
+    <a class="cap-nav-item" href="#setup" data-jtab-link="setup">🎯 Setup</a>
     <a class="cap-nav-item" href="#portfolio" data-jtab-link="portfolio">🛡️ Portfolio</a>
     <a class="cap-nav-item" href="#capital" data-jtab-link="capital">⚖ Capital</a>
     <a class="cap-nav-item" href="#exec" data-jtab-link="exec">📓 Execuții</a>
@@ -224,6 +256,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <div class="jr-workspace">
   <div class="jr-tabs" role="tablist" aria-label="Journal workspace">
     <button type="button" class="jr-tab active" data-jtab="desk" role="tab" aria-selected="true" id="jrTabDesk">🛑 Desk <span class="jr-warn" id="jrTabDeskWarn" style="display:none">!</span></button>
+    <button type="button" class="jr-tab" data-jtab="setup" role="tab" id="jrTabSetup">🎯 Setup</button>
     <button type="button" class="jr-tab" data-jtab="exec" role="tab" id="jrTabExec">📓 Execuții <span class="jr-warn" id="jrTabExecWarn" style="display:none">!</span></button>
     <button type="button" class="jr-tab" data-jtab="portfolio" role="tab" id="jrTabPortfolio">🛡 Portfolio <span class="jr-warn" id="jrTabPfWarn" style="display:none">!</span></button>
     <button type="button" class="jr-tab" data-jtab="capital" role="tab" id="jrTabCapital">⚖ Capital <span class="jr-warn" id="jrTabCapWarn" style="display:none">!</span></button>
@@ -314,6 +347,45 @@ tr.openrow{background:rgba(91,176,255,.06)}
 
 </div><!-- /jpaneDesk -->
 
+<div id="jpaneSetup" class="jr-pane" data-jpane="setup">
+
+<section class="panel">
+  <h2>🎯 Pre-Trade Setup Builder</h2>
+  <p class="note" style="margin:-4px 0 12px">SL din ATR sau % fix · R:R + sizing pe Danger Score · draft-uri evaluate separat de execuțiile reale.</p>
+  <div class="setup-wrap">
+    <div class="setup-form">
+      <input id="setupTicker" type="text" placeholder="Ticker (ex: NVDA, AAPL, BTC-USD)" autocomplete="off">
+      <div class="setup-dir" id="setupDir">
+        <button type="button" class="fb-chip active" data-dir="long">📈 LONG</button>
+        <button type="button" class="fb-chip" data-dir="short">📉 SHORT</button>
+      </div>
+      <div class="setup-slmode" id="setupSlMode" title="Mod calcul Stop Loss">
+        <button type="button" class="fb-chip active" data-mode="atr">📐 ATR</button>
+        <button type="button" class="fb-chip" data-mode="pct">% Fix</button>
+      </div>
+      <label class="setup-inp" id="setupSlPctWrap"><span>SL %</span><input id="setupSlPct" type="number" min="0.1" step="0.25" value="2"></label>
+      <label class="setup-inp"><span>Cont $</span><input id="setupAccount" type="number" min="0" step="500" value="10000"></label>
+      <label class="setup-inp"><span>Risc %</span><input id="setupRisk" type="number" min="0.1" step="0.25" value="1"></label>
+      <button class="btn" id="setupBtn" type="button">Construiește setup</button>
+    </div>
+    <div class="setup-hint" id="setupFormHint"><b>ATR</b> — SL la 1.5×ATR (tehnic). <b>% Fix</b> — SL la distanță fixă față de entry. <b>Risc %</b> controlează doar sizing-ul, nu poziția SL în modul ATR.</div>
+    <div id="setupResult"></div>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>📓 Signal Journal (draft-uri setup)</h2>
+  <p class="note" style="margin:-4px 0 10px">Expectancy pe draft-uri salvate — win-rate / PF pe închidere SL sau TP (close-only).</p>
+  <div id="journalScorecard"></div>
+  <div class="setup-section-h" style="margin-top:6px">Setup-uri salvate
+    <button class="btn ghost" id="journalRefresh" type="button" title="Reevaluează cu prețuri live" style="margin-left:8px;padding:4px 10px;font-size:11px">↻ Reevaluează</button>
+    <button class="btn ghost" id="journalClear" type="button" title="Șterge toate draft-urile" style="margin-left:4px;padding:4px 10px;font-size:11px">🗑 Golește</button>
+  </div>
+  <div id="journalList"></div>
+</section>
+
+</div><!-- /jpaneSetup -->
+
 <div id="jpaneExec" class="jr-pane" data-jpane="exec">
 
 <div class="panel open-panel" id="openPanel">
@@ -352,7 +424,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
       <option value="manual">manual / altele</option>
       <option value="stl">🎯 Smart Trade Long</option>
       <option value="nasdaq">🚀 Nasdaq Scanner</option>
-      <option value="macro">🌍 Macro Setup Builder</option>
+      <option value="macro">🎯 Setup Builder</option>
       <option value="watchlist">👁 Watchlist</option>
       <option value="events">📊 Market Events</option>
       <option value="pump">🚨 Pump Radar</option>
@@ -501,6 +573,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/equity.js?v=9"></script>
 <script src="../lib/capital-desk.js?v=9"></script>
 <script src="../lib/data.js"></script>
+<script src="../lib/setup-levels.js?v=614"></script>
+<script src="../lib/setup-builder.js?v=614"></script>
 <script src="../lib/portfolio-risk.js?v=584"></script>
 <script src="../lib/journal-workspace.js?v=584"></script>
 <script>
@@ -1363,7 +1437,7 @@ else if (JR.syncAllFromTracker && JR.reconcileTracker) {
   if (!rec.ok) JR.syncAllFromTracker();
 }
 function setJTab(name){
-  const valid = { desk: 1, exec: 1, capital: 1, portfolio: 1 };
+  const valid = { desk: 1, setup: 1, exec: 1, capital: 1, portfolio: 1 };
   if (!valid[name]) name = 'desk';
   jTab = name;
   document.querySelectorAll('.jr-tab').forEach(t => {
@@ -1380,6 +1454,7 @@ function setJTab(name){
     try { history.replaceState(null, '', wantHash); } catch (e) { location.hash = wantHash.replace('#', ''); }
   }
   if (name === 'portfolio' && window.PF) PF.onTabActivate();
+  if (name === 'setup' && window.SB) SB.renderSignalJournal();
   if (window.CD && !(window.JWS && JWS.enabled())) CD.renderRail('capitalRail', name === 'portfolio' ? 'portfolio' : 'journal');
   if (window.JWS && JWS.enabled()) { JWS.updateTabBadges(); JWS.renderContextStrip(); }
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1405,11 +1480,47 @@ renderReconcileChip();
 renderAll();
 function hashToJTab(h){
   const x = (h || '').replace('#', '').split('&')[0];
-  if (x === 'capital' || x === 'exec' || x === 'desk' || x === 'portfolio') return x;
-  if (x === 'journal') return 'exec';
+  if (x === 'capital' || x === 'exec' || x === 'desk' || x === 'portfolio' || x === 'setup') return x;
+  if (x === 'journal') return 'setup';
   return 'desk';
 }
+function sbToast(msg, kind){
+  const b = $('errBanner');
+  if (!b) return;
+  b.style.display = '';
+  b.style.borderColor = kind === 'error' ? 'var(--bear-s)' : kind === 'warn' ? 'var(--warn)' : 'var(--bull-s)';
+  b.style.color = b.style.borderColor;
+  b.style.background = kind === 'error' ? 'rgba(255,77,77,.15)' : kind === 'warn' ? 'rgba(212,137,44,.15)' : 'rgba(34,214,107,.12)';
+  b.textContent = msg;
+  clearTimeout(sbToast._t);
+  sbToast._t = setTimeout(() => { b.style.display = 'none'; }, 4500);
+}
+function consumeSetupExecPrefill(){
+  let raw = null;
+  try { raw = JSON.parse(localStorage.getItem('jr_setup_exec_prefill') || 'null'); } catch (e) {}
+  try { localStorage.removeItem('jr_setup_exec_prefill'); } catch (e) {}
+  if (!raw?.s || (Date.now() - (raw.ts || 0) > 5 * 60000)) return false;
+  resetForm();
+  if (window.SB) SB.prefillExecForm(raw.s);
+  setJTab('exec');
+  return true;
+}
+if (window.SB) {
+  SB.init({
+    $, escHtml: esc,
+    toast: sbToast,
+    onTabSetup: () => setJTab('setup'),
+    onOpenExec: (s) => {
+      resetForm();
+      SB.prefillExecForm(s);
+      setJTab('exec');
+    }
+  });
+}
 setJTab(hashToJTab(location.hash));
+if (!consumeSetupExecPrefill() && (location.hash === '#setup' || localStorage.getItem('md_setup_prefill'))) {
+  if (window.SB) SB.consumePrefill();
+}
 window.addEventListener('hashchange', () => setJTab(hashToJTab(location.hash)));
 setInterval(renderDesk, 60000);
 setTimeout(() => { if (JR.all().some(e => isOpenE(e))) refreshMarks(); }, 500);
@@ -1439,8 +1550,8 @@ document.addEventListener('click', ev => {
 </script>
 <script>
 (function(){
-  var ver = window.SUITE_VERSION_SHORT || 'tt-v585';
-  var full = window.SUITE_VERSION || 'tt-v585-2026-07-10';
+  var ver = window.SUITE_VERSION_SHORT || 'tt-v614';
+  var full = window.SUITE_VERSION || 'tt-v614-2026-07-12';
   ['verBadge','suiteBadge'].forEach(function(id){
     var b = document.getElementById(id); if (b) b.textContent = ver;
   });
