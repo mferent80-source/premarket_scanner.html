@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v620-2026-07-12';
+const CACHE_VERSION = 'tt-v621-2026-07-12';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -168,4 +168,12 @@ self.addEventListener('fetch', e => {
 
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
+  // raporteaza versiunea REALA a SW-ului activ — hub-health o compara cu
+  // versiunea paginii; inainte pagina isi scria propria versiune si o
+  // compara cu ea insasi (check tautologic, un SW vechi nu era prins)
+  if (e.data && e.data.type === 'GET_VERSION') {
+    const reply = { type: 'SW_VERSION', version: CACHE_VERSION };
+    if (e.ports && e.ports[0]) e.ports[0].postMessage(reply);
+    else if (e.source) e.source.postMessage(reply);
+  }
 });
