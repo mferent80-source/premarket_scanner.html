@@ -172,6 +172,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-164 | Sync stale digest → hub-stale-digest.json (1-click) | lib/hub-state.js + health/ + tools/ | S | P2 | făcut | ideation | 2026-07-11 |
 | I-165 | Event tape + earnings WL (48h) | lib/event-tape.js + lib/hub-brief.js | S | P1 | făcut | ideation | 2026-07-11 |
 | I-166 | Gapper chip → Nasdaq Scanner + Journal prefill | lib/hub-gappers.js + journal/ | S | P1 | făcut | ideation | 2026-07-11 |
+| I-167 | Setup: Cont$/Risc% din Desk (Governor sync) | journal/ + lib/setup-builder.js | S | P1 | propus | ideation | 2026-07-12 |
+| I-168 | Setup: FREEZE / eveniment macro banner | journal/ + lib/setup-builder.js | S | P1 | propus | ideation | 2026-07-12 |
+| I-169 | Setup: cataliști earnings în checklist | journal/ + lib/setup-builder.js | S | P1 | propus | ideation | 2026-07-12 |
+| I-170 | Setup în strip contextual (jr-ctx) | journal/ + lib/journal-workspace.js | S | P2 | propus | ideation | 2026-07-12 |
+| I-171 | Legătură draft setup → execuție (setupDraftId) | journal/ + lib/journal.js | M | P1 | propus | ideation | 2026-07-12 |
+| I-172 | Plan vs Real — expectancy draft vs exec macro | journal/ + lib/journal-insights.js | M | P2 | propus | ideation | 2026-07-12 |
 
 ## Mini-spec-uri
 
@@ -1150,3 +1156,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** de la gapper la chart/score în suită + plan journal în 1–2 click-uri.
 - **Riscuri/dependențe:** prețul Finnhub poate diferi de Yahoo din scanner (afișează ambele la prefill); spread premarket — mențiune în tooltip.
 - **Fișiere atinse:** `lib/hub-gappers.js`, `nasdaq-scanner/index.html`, `journal/index.html`, `lib/journal.js`.
+
+### I-167 · Setup: Cont$/Risc% din Desk (Governor sync) · [S] · P1
+- **Problema/golul:** tab Setup are `setupAccount`/`setupRisk` hardcodate (10k / 1%) — nealiniate cu `#cAcct` / `#cLoss` din Desk și cu snapshot-ul Capital; sizing-ul ATR poate recomanda o poziție pe un cont fictiv.
+- **Soluția:** la `SB.init` și la focus tab Setup: buton „Preia din Desk" + auto-fill din Governor (`GV`/`cAcct`) și risc % implicit (ex. `cLoss` sau 1% dacă gol); badge când valorile diferă de Desk.
+- **Impact:** sizing coerent cu frâna zilnică; mai puține erori de oversize înainte de execuție.
+- **Riscuri/dependențe:** user poate vrea override manual — păstrează editarea liberă; fără snapshot Trade212 încă folosește fallback manual.
+- **Fișiere atinse:** `lib/setup-builder.js`, `journal/index.html`, `lib/governor.js` (read-only).
+
+### I-168 · Setup: FREEZE / eveniment macro banner · [S] · P1
+- **Problema/golul:** Macro avea `renderFreezeWindow` (±15 min high-impact = fără intrări); după migrare în Journal, Setup nu avertizează — userul poate construi sizing în fereastra interzisă de Desk/Router.
+- **Soluția:** bandă deasupra formularului Setup: ⛔ FREEZE / ⏳ countdown la următorul eveniment high-impact, citit din `MCTX.eventsUpcoming` + aceeași logică de prag ca Macro; link „deschide Macro" pentru detalii.
+- **Impact:** previne planificarea de intrări noi contra propriului playbook macro; aliniere cu I-159 (Desk) și Router.
+- **Riscuri/dependențe:** calendar hardcodat în MCTX poate fi stale — afișează vârsta cache-ului; nu blochează brokerul, doar context.
+- **Fișiere atinse:** `lib/setup-builder.js`, `lib/macro-context.js`, `journal/index.html`.
+
+### I-169 · Setup: cataliști earnings în checklist · [S] · P1
+- **Problema/golul:** la migrare s-a pierdut `findSetupCatalysts` din Macro (earnings din `EARNINGS_BY_DATE`); `SB.findCatalysts` vede doar evenimente macro generice — pentru stocks din WL lipsește „NVDA earnings mâine" în checklist.
+- **Soluția:** extinde `findCatalysts` cu helper read-only din `JI.refreshEarningsCalendar` / cache `pb_earnings` (deja folosit în I-154); rând în checklist + eventual chip în verdict.
+- **Impact:** decizie mai bună pe gap risk; paritate cu ce avea Setup în Macro.
+- **Riscuri/dependențe:** fără cheie Finnhub = fallback silențios; earnings = catalist binar — mențiune spread/gap (trader.md §2).
+- **Fișiere atinse:** `lib/setup-builder.js`, `lib/journal-insights.js`, `lib/macro-context.js`.
+
+### I-170 · Setup în strip contextual (jr-ctx) · [S] · P2
+- **Problema/golul:** `JWS.renderContextStrip` acoperă Desk/Portfolio/Exec/Capital dar nu tab Setup — după handoff din Scanner/Pump userul nu vede confluența/Danger fără să deruleze la rezultat.
+- **Soluția:** al 6-lea cel (sau înlocuire dinamică pe tab Setup): ticker activ, confluență X/Y, Danger score, verdict GO/WAIT derivat din checklist + Governor.
+- **Impact:** scan vizual instant pe tab-ul unde lucrezi; mai puțin tab-switching.
+- **Riscuri/dependențe:** strip aglomerat pe mobil — collapse la 2 celule sub 550px.
+- **Fișiere atinse:** `lib/journal-workspace.js`, `lib/setup-builder.js`, `journal/index.html`.
+
+### I-171 · Legătură draft setup → execuție (setupDraftId) · [M] · P1
+- **Problema/golul:** coexistă `md_signal_journal` (draft-uri) și `tt_journal_v1` (execuții reale) fără ID comun — „Deschide execuție" prefill-uiește formularul dar nu leagă planul de fill-ul real; la review nu știi dacă execuția a respectat draft-ul.
+- **Soluția:** câmp `setupDraftId` pe execuție JR; la `SB.openExec` setează ID-ul draftului salvat sau creează draft auto; în Signal Journal, badge „→ execuție" când există match; la close ritual (I-152) compară SL/size plan vs real.
+- **Impact:** închide bucla plan → execuție → review; baza pentru leak analysis pe „am deviat de la plan".
+- **Riscuri/dependențe:** execuții manuale fără draft rămân fără link — OK; migrare veche fără câmp.
+- **Fișiere atinse:** `lib/journal.js`, `lib/setup-builder.js`, `lib/journal-workspace.js`, `journal/index.html`.
+
+### I-172 · Plan vs Real — expectancy draft vs exec macro · [M] · P2
+- **Problema/golul:** Signal Journal calculează expectancy pe draft-uri (close-only, in-sample); Desk scorecard pe execuții reale — nimeni nu compară „planul meu ATR" vs „ce am executat efectiv" pe `source=macro`.
+- **Soluția:** panou compact sub Signal Journal: două coloane Plan (md_signal_journal) vs Real (JR filtrat macro/setup) — win%, expectancy R, PF; banner „n&lt;10 = zgomot" per trader.md; disclaimer evaluare close-only pe draft.
+- **Impact:** vezi dacă planning-ul chiar se traduce în bani sau doar în hârtie; decizie să continui/nu workflow-ul Setup.
+- **Riscuri/dependențe:** metrici pe eșantion mic = ipoteze, nu adevăr; draft ≠ execuție (slippage, deviere SL) — explicat explicit.
+- **Fișiere atinse:** `lib/journal-insights.js`, `lib/setup-builder.js`, `journal/index.html`.
