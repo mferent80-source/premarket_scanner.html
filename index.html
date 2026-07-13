@@ -61,6 +61,7 @@
   --teal:#22d66b;   --teall:rgba(34,214,107,.12);   --tealb:rgba(34,214,107,.4);
   --green:#22d66b;
   --bull-s:var(--green); /* alias: era folosit nedefinit → element necolorat */
+  --red:#ff4d4d; --warn:#d4892c; /* folosite in .pb-mkt-chg.down/.pb-freeze.amber + hub-brief inline — erau NEdefinite → procente negative albe */
   --mono:'DM Mono',monospace; --head:'Sora',sans-serif;
   --r:14px; --rs:10px;
   --sh:0 1px 2px rgba(0,0,0,.3);
@@ -198,6 +199,7 @@ h1 .accent{
 .feat.auto { background:rgba(34,214,107,.12); color:var(--green); border-color:rgba(34,214,107,.35); }
 .feat.ai { background:rgba(139,111,255,.12); color:#a78bfa; border-color:rgba(139,111,255,.3); }
 .feat.viz { background:rgba(255,216,107,.12); color:var(--crypto-2); border-color:rgba(255,216,107,.35); }
+.feat.risk { background:rgba(212,137,44,.12); color:#d4892c; border-color:rgba(212,137,44,.35); } /* folosit de 6 chips (Risk Desk etc.), nu avea regula → gri generic */
 
 /* Info button ℹ️ — top-right pe card, deschide modal cu lista completă */
 .card-info-btn{
@@ -1048,7 +1050,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 <script src="lib/router.js?v=9"></script>
 <script src="lib/regime.js"></script>
 <script src="lib/ai.js"></script>
-<script src="lib/hub-market.js?v=616"></script>
+<script src="lib/hub-market.js?v=626"></script>
 <script src="lib/hub-search.js?v=608"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -1177,7 +1179,7 @@ window.showFeaturesModal = function(scannerKey){
     </div>`;
   });
   html += `<div class="fl-cta">
-    <a href="${data.url}" class="primary" target="${(data.url||'').replace(/[\\W_]/g,'_').replace(/_+$/,'')||'_blank'}" rel="noopener">🚀 Deschide scanner</a>
+    <a href="${data.url}" class="primary" target="tt_${(data.url||'').replace(/[^a-zA-Z0-9]/g,'')||'blank'}" rel="noopener">🚀 Deschide scanner</a><!-- numele care incep cu _ sunt invalide ca browsing-context -> browserul le trata ca _blank si dedup-ul de file nu functiona -->
     <button type="button" data-close>Închide</button>
   </div></div>`;
   ov.innerHTML = html;
@@ -1253,7 +1255,17 @@ function ttRenderRow(t){
   const dirIcon = t.dir === 'short' ? '📉' : '📈';
   const meta = t.status === 'open'
     ? `<b>${dirIcon} $${parseFloat(t.entry).toFixed(2)}</b> · SL <b>$${t.sl ? parseFloat(t.sl).toFixed(2) : '—'}</b> · TP <b>$${t.tp ? parseFloat(t.tp).toFixed(2) : '—'}</b> · R:R ${r}<br>Size ${t.size} · ${new Date(t.opened).toLocaleDateString('ro-RO')}`
-    : `<b>${t.status === 'win' ? '✅ WIN' : '❌ LOSS'}</b> · Entry <b>$${parseFloat(t.entry).toFixed(2)}</b> → Exit <b>$${parseFloat(t.exit).toFixed(2)}</b> · PnL <b style="color:${t.pnl >= 0 ? 'var(--green)' : '#ff4d4d'}">${t.pnl >= 0 ? '+' : ''}$${parseFloat(t.pnl).toFixed(2)}</b><br>Size ${t.size} · ${new Date(t.closed || t.opened).toLocaleDateString('ro-RO')}`;
+    : (() => {
+        // pnl null (JR.pnl necalculabil) trecea de `null >= 0` ca true -> "+$NaN" pe VERDE;
+        // un LOSS afisat verde induce in eroare la scanarea vizuala a listei
+        const pnlN = Number(t.pnl);
+        const pnlHtml = Number.isFinite(pnlN)
+          ? `<b style="color:${pnlN >= 0 ? 'var(--green)' : '#ff4d4d'}">${pnlN >= 0 ? '+' : ''}$${pnlN.toFixed(2)}</b>`
+          : '<b style="color:var(--t3)">—</b>';
+        const exitN = parseFloat(t.exit);
+        const exitTxt = Number.isFinite(exitN) ? '$' + exitN.toFixed(2) : '—';
+        return `<b>${t.status === 'win' ? '✅ WIN' : '❌ LOSS'}</b> · Entry <b>$${parseFloat(t.entry).toFixed(2)}</b> → Exit <b>${exitTxt}</b> · PnL ${pnlHtml}<br>Size ${t.size} · ${new Date(t.closed || t.opened).toLocaleDateString('ro-RO')}`;
+      })();
   const actions = t.status === 'open'
     ? `<button class="tt-win" onclick="ttCloseTrade('${t.id}','win')" title="Marcat WIN cu prețul TP">✅ Win</button>
        <button class="tt-loss" onclick="ttCloseTrade('${t.id}','loss')" title="Marcat LOSS cu prețul SL">❌ Loss</button>
@@ -1401,13 +1413,13 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 })();
 </script>
 <script src="lib/macro-context.js?v=619"></script>
-<script src="lib/event-tape.js?v=618"></script>
-<script src="lib/hub-state.js?v=619"></script>
-<script src="lib/hub-card-live.js?v=608"></script>
-<script src="lib/hub-gappers.js?v=617"></script>
-<script src="lib/hub-tableau.js?v=608"></script>
+<script src="lib/event-tape.js?v=626"></script>
+<script src="lib/hub-state.js?v=626"></script>
+<script src="lib/hub-card-live.js?v=626"></script>
+<script src="lib/hub-gappers.js?v=626"></script>
+<script src="lib/hub-tableau.js?v=626"></script>
 <script src="lib/hub-health.js?v=621"></script>
-<script src="lib/hub-brief.js?v=619"></script>
+<script src="lib/hub-brief.js?v=626"></script>
 <script src="lib/hub-ledger.js?v=621"></script>
 <script>
 (function(){
