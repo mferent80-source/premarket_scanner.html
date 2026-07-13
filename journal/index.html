@@ -930,7 +930,7 @@ $('btnSave').addEventListener('click', () => {
     const fw = SB.freezeWarnForSym(symU);
     if (fw && !confirm('⛔ ' + (fw.kind === 'post-earn' ? 'POST-EARNINGS' : fw.kind === 'freeze' ? 'FREEZE' : 'POST-EVENT') + ': ' + fw.text + '\n\nSalvezi execuția OPEN oricum?')) return;
   }
-  if (global.GV && GV.status && exitN == null) {
+  if (window.GV && GV.status && exitN == null) {
     const gst = GV.status();
     const tags = selectedTags();
     if (gst.verdict === 'HALTED' && !tags.includes('broke-rules')) {
