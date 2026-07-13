@@ -268,8 +268,12 @@ async function runBot(){
       wireGhTok(); return;
     }
     if (r.status === 401 || (r.status === 404 && tok)){
-      dot('dBot', 'err');
-      $('bBot').innerHTML = '<span class="err">token invalid/expirat sau fără permisiunea Actions:read</span>' + ghTokLink();
+      // token expirat / fără Actions:read → NU putem confirma statusul, dar
+      // NU = bot mort (botul rulează server-side independent de acest check).
+      // warn onest, nu err — altfel Health alarmează roșu degeaba.
+      dot('dBot', 'warn');
+      $('bBot').innerHTML = '<span class="warn">token expirat / fără Actions:read — statusul nu se poate verifica, dar botul rulează independent</span>'
+        + '<br><span class="chk-sub">verificare manuală: <a href="https://github.com/' + REPO + '/actions" target="_blank" rel="noopener" style="color:var(--accent)">Actions →</a> · sau reînnoiește tokenul</span>' + ghTokLink();
       wireGhTok(); return;
     }
     if (r.status === 403){ dot('dBot', 'warn'); $('bBot').innerHTML = '<span class="warn">GitHub API rate-limit</span> — reîncearcă mai târziu'; return; }
