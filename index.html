@@ -45,7 +45,7 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=608">
+<link rel="stylesheet" href="lib/hub-ui.css?v=630">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
@@ -1041,13 +1041,13 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 <script src="lib/journal-insights.js?v=618"></script>
 <script src="lib/tracker.js?v=2"></script>
 <script src="lib/telegram.js"></script>
-<script src="lib/capital-time.js?v=575"></script>
+<script src="lib/capital-time.js?v=630"></script>
 <script src="lib/account.js?v=575"></script>
-<script src="lib/governor.js?v=5"></script>
+<script src="lib/governor.js?v=630"></script>
 <script src="lib/equity.js?v=7"></script>
 <script src="lib/capital-desk.js?v=6"></script>
 <script src="lib/morning-check.js"></script>
-<script src="lib/router.js?v=9"></script>
+<script src="lib/router.js?v=630"></script>
 <script src="lib/regime.js"></script>
 <script src="lib/ai.js"></script>
 <script src="lib/hub-market.js?v=626"></script>
@@ -1413,13 +1413,13 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 })();
 </script>
 <script src="lib/macro-context.js?v=619"></script>
-<script src="lib/event-tape.js?v=626"></script>
+<script src="lib/event-tape.js?v=630"></script>
 <script src="lib/hub-state.js?v=626"></script>
 <script src="lib/hub-card-live.js?v=626"></script>
-<script src="lib/hub-gappers.js?v=626"></script>
-<script src="lib/hub-tableau.js?v=626"></script>
+<script src="lib/hub-gappers.js?v=630"></script>
+<script src="lib/hub-tableau.js?v=630"></script>
 <script src="lib/hub-health.js?v=621"></script>
-<script src="lib/hub-brief.js?v=627"></script>
+<script src="lib/hub-brief.js?v=630"></script>
 <script src="lib/hub-ledger.js?v=621"></script>
 <script>
 (function(){
@@ -1430,22 +1430,23 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     const f = document.getElementById('suiteVerFoot');
     if (f) f.textContent = v;
   }
-  if (window.HM) HM.init();
-  if (window.HG) HG.init();
-  if (window.HB) HB.init();
-  if (window.HSEARCH) HSEARCH.init();
-  if (window.HCL) HCL.init();
-  if (window.HUB_HEALTH) HUB_HEALTH.init();
-  if (window.HS) HS.renderStaleNav();
+  // fiecare init izolat — o excepție într-un modul nu mai omoară init-urile
+  // ulterioare (hub parțial mort silențios)
+  const boot = (name, fn) => { try { fn(); } catch (e) { console.warn('init ' + name + ':', e); } };
+  if (window.HM) boot('HM', () => HM.init());
+  if (window.HG) boot('HG', () => HG.init());
+  if (window.HB) boot('HB', () => HB.init());
+  if (window.HSEARCH) boot('HSEARCH', () => HSEARCH.init());
+  if (window.HCL) boot('HCL', () => HCL.init());
+  if (window.HUB_HEALTH) boot('HUB_HEALTH', () => HUB_HEALTH.init());
+  if (window.HS) boot('HS', () => HS.renderStaleNav());
   window.addEventListener('hub:market', () => {
-    if (window.HS){ HS.patchMarketCards(); HS.renderStaleNav('hubStaleNav'); }
+    if (window.HS){ try { HS.patchMarketCards(); HS.renderStaleNav('hubStaleNav'); } catch (e) {} }
   });
 
-  if (window.HB_LEDGER && HB_LEDGER.init) HB_LEDGER.init();
-  if (window.FH_KEY && FH_KEY.migrate) FH_KEY.migrate();
-  if (window.TT && TT.migrateLegacy) {
-    try { TT.migrateLegacy(); } catch (e) { console.warn('TT migrate:', e); }
-  }
+  if (window.HB_LEDGER && HB_LEDGER.init) boot('HB_LEDGER', () => HB_LEDGER.init());
+  if (window.FH_KEY && FH_KEY.migrate) boot('FH_KEY', () => FH_KEY.migrate());
+  if (window.TT && TT.migrateLegacy) boot('TT', () => TT.migrateLegacy());
 })();
 </script>
 <script src="nav.js" data-nav-root="./"></script>
