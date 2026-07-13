@@ -416,13 +416,37 @@ function checkLS(){
     const ttdBytes = items.filter(x => x.k.indexOf('ttd:') === 0).reduce((a, x) => a + x.b, 0);
     const top = items.slice(0, 6).map(x =>
       `<b>${esc(x.k.length > 34 ? x.k.slice(0, 34) + '…' : x.k)}</b> ${(x.b/1024).toFixed(0)}KB`).join(' · ');
+    // Curățare PROFUNDĂ: prinde cache-uri regenerabile/expirate care NU au
+    // prefix ttd: (salt_eb2 pe dată de la Salt Bank, ce_eb_cache de la
+    // crypto-events — cross-tool pe același github.io origin — + *_cache mari).
+    // Astea umplu quota de 10MB și încetinesc TOATE paginile (setItem →
+    // QuotaExceededError → cache eșuat silențios → refetch + reparse la init).
+    const todayMinus = d => new Date(Date.now() - d*864e5).toISOString().slice(0,10);
+    const isDeepCandidate = k => {
+      const m = /^salt_eb2_(\d{4}-\d{2}-\d{2})$/.exec(k);
+      if (m) return m[1] < todayMinus(2); // early-bird Salt vechi (>2 zile)
+      if (k.indexOf('ttd:') === 0) return true;
+      if (/^ce_eb_cache/.test(k)) return true;
+      if (k === 'wl_hist_cache') return true;
+      return false;
+    };
+    const deep = items.filter(x => isDeepCandidate(x.k));
+    const deepBytes = deep.reduce((a, x) => a + x.b, 0);
     $('bLS').innerHTML = `<b class="${cls}">${mb.toFixed(2)} MB</b> / ~10 MB (Chrome) · ${items.length} chei`
       + `<br><span class="chk-sub">top: ${top}</span>`
-      + `<br><button class="chk-btn" id="lsClean" style="margin-top:5px">🧹 Curăță cache ttd: (${(ttdBytes/1048576).toFixed(2)} MB — sigur, se reface singur)</button>`;
+      + `<br><button class="chk-btn" id="lsClean" style="margin-top:5px">🧹 Curăță cache ttd: (${(ttdBytes/1048576).toFixed(2)} MB — sigur)</button>`
+      + (deepBytes > ttdBytes ? `<br><button class="chk-btn err" id="lsDeep" style="margin-top:5px">🧨 Curăță tot cache-ul regenerabil (${(deepBytes/1048576).toFixed(2)} MB — ${deep.length} chei, se refac singure)</button>` : '');
     const btn = $('lsClean');
     if (btn) btn.addEventListener('click', () => {
       if (window.D && D.cacheClear) D.cacheClear();
       else { try { const rm = []; for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if (k && k.indexOf('ttd:') === 0) rm.push(k); } rm.forEach(k => localStorage.removeItem(k)); } catch (e) {} }
+      checkLS();
+    });
+    const deepBtn = $('lsDeep');
+    if (deepBtn) deepBtn.addEventListener('click', () => {
+      const lista = deep.map(x => x.k + ' (' + (x.b/1024).toFixed(0) + 'KB)').join('\n');
+      if (!confirm('Șterg ' + deep.length + ' chei de cache (' + (deepBytes/1048576).toFixed(2) + ' MB)? Se refac singure la următoarea folosire.\n\n' + lista)) return;
+      deep.forEach(x => { try { localStorage.removeItem(x.k); } catch (e) {} });
       checkLS();
     });
   } catch (e) { dot('dLS', 'warn'); $('bLS').textContent = 'necalculabil'; }
