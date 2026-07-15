@@ -422,6 +422,51 @@ td.left { text-align:left; padding-left:14px; }
   cursor:help;
 }
 
+/* Badge static „doar high impact" (înlocuiește chip-urile de impact) */
+.fb-only-high {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--high-bg); color:var(--high);
+  border:1px solid rgba(239,68,68,.5); border-radius:999px;
+  padding:5px 11px; font-family:var(--head); font-size:11.5px; font-weight:800;
+  letter-spacing:.2px; cursor:help;
+}
+
+/* Rezumat inline „cum influențează piața" (sub numele evenimentului, după publicare) */
+.evt-verdict {
+  display:inline-flex; align-items:center; flex-wrap:wrap; gap:6px;
+  padding:3px 9px; border-radius:6px;
+  font-family:var(--mono); font-size:10.5px; font-weight:700; line-height:1.35;
+  border:1px solid var(--b1); background:var(--panel2); color:var(--t2);
+  cursor:help; max-width:100%;
+}
+.evt-verdict.bullish { border-color:rgba(34,214,107,.45); background:rgba(34,214,107,.08); color:#8ff0bb; }
+.evt-verdict.bearish { border-color:rgba(255,77,77,.45);  background:rgba(255,77,77,.08);  color:#ffb0b0; }
+.evt-verdict.neutral { border-color:var(--b2); background:var(--panel3); color:var(--t2); }
+.evt-verdict b { font-weight:800; }
+.evt-sec-wrap { display:inline-flex; flex-wrap:wrap; gap:4px; }
+.evt-sec {
+  font-family:var(--mono); font-size:9.5px; font-weight:800; letter-spacing:.3px;
+  background:rgba(91,176,255,.12); color:#9ecbff; border:1px solid rgba(91,176,255,.3);
+  padding:1px 5px; border-radius:3px;
+}
+
+/* Banner verdict în capul expand-row (versiunea bogată) */
+.exp-verdict {
+  border:1px solid var(--b1); border-left-width:4px; border-radius:8px;
+  padding:11px 14px; margin-bottom:12px; background:var(--panel2);
+}
+.exp-verdict.bullish { border-left-color:var(--green); }
+.exp-verdict.bearish { border-left-color:var(--red); }
+.exp-verdict.neutral { border-left-color:var(--t3); }
+.exp-verdict .ev-head { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:5px; }
+.exp-verdict .ev-verdict { font-family:var(--head); font-size:16px; font-weight:800; color:var(--t1); }
+.exp-verdict .ev-bias { font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.4px; }
+.exp-verdict .ev-surp { font-family:var(--mono); font-size:11px; font-weight:700; color:var(--t3); margin-left:auto; }
+.exp-verdict .ev-nums { font-family:var(--mono); font-size:11px; color:var(--t2); margin-bottom:6px; font-variant-numeric:tabular-nums; }
+.exp-verdict .ev-nums b { color:var(--t1); font-weight:800; }
+.exp-verdict .ev-infl { font-family:var(--head); font-size:12.5px; font-weight:800; color:var(--t1); margin-bottom:3px; }
+.exp-verdict .ev-tip { font-family:var(--body,inherit); font-size:11.5px; line-height:1.5; color:var(--t2); }
+
 /* Box istoric în expand row */
 .exp-history-box { margin-top:14px; }
 .exp-hist-head { display:flex; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
@@ -950,7 +995,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <div class="macro-wrap">
 
 <header class="macro-cockpit">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v227</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v228</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1042,10 +1087,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   <div class="filter-bar">
     <div class="fb-group">
       <span class="fb-label">Impact:</span>
-      <button class="fb-chip active" data-impact="all">Toate</button>
-      <button class="fb-chip" data-impact="high">🔴 High</button>
-      <button class="fb-chip" data-impact="med">🟡 Med</button>
-      <button class="fb-chip" data-impact="low">⚪ Low</button>
+      <span class="fb-only-high" title="Calendarul afișează exclusiv evenimente high-impact (macro care mișcă piața). Med/Low sunt filtrate complet.">🔴 Doar High impact</span>
     </div>
     <div class="fb-group">
       <span class="fb-label">Țară:</span>
@@ -1319,6 +1361,15 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <ul>
           <li>Click pe VIX / DXY / 10Y / BTC / ETH / F&G → modal cu chart 30d SVG + 6-7 stats + interpretare nivel + 3 corelații cheie.</li>
           <li>F&G special: fetch <code>alternative.me/fng/?limit=30</code>.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>🔴 Calendar hard high-impact + influență piață <span style="opacity:.6;font-weight:600">(v228)</span></h4>
+        <ul>
+          <li>Calendarul afișează <b>exclusiv evenimente high-impact</b> (CPI/NFP/FOMC/GDP…). Med/Low sunt tăiate la sursă — chip-urile de impact au fost eliminate.</li>
+          <li>După publicare, sub numele evenimentului apare un <b>rezumat inline</b>: verdict (BEAT/MISS/HOT/COOL) + surprise % + frază „cum influențează piața" (risk-on/off → asseturi) + tickere sectoriale reactive.</li>
+          <li>În expand (🔍) un <b>banner verdict</b> bogat: verdict mare + bias + Actual/Forecast/Prev + nuanța influenței (ex: NFP prea tare = frică de amânare tăieri).</li>
         </ul>
       </div>
 
@@ -3321,6 +3372,11 @@ async function loadCalendar() {
     return t && t.getTime() >= now - RESULTS_RETAIN_MS;
   });
 
+  // HARD HIGH-IMPACT: calendarul e strict pe evenimentele care mișcă piața (CPI/NFP/FOMC/GDP...).
+  // Med/Low sunt tăiate complet la sursă — nu doar ascunse cu un filtru UI. Alertele oricum
+  // vizau deja doar high-impact, deci nu pierdem nimic funcțional; câștigăm un tabel curat.
+  CAL_DATA = CAL_DATA.filter(e => e.impact === 'high');
+
   renderHotStrip();
   renderCalendar();
   LAST_SCAN_AT = Date.now();
@@ -3454,10 +3510,11 @@ function renderCalendar() {
     const u = e.unit ? ' ' + escHtml(e.unit) : '';
     const fcst = e.forecast != null ? escHtml(String(e.forecast)) + u : '—';
     const prev = e.previous != null ? escHtml(String(e.previous)) + u : '—';
+    // Rezultatul: îl calculăm o dată aici și-l refolosim și la rezumatul inline de sub eveniment.
+    const r = e.actual != null ? classifyResult(e.actual, e.forecast, e.event) : null;
     let actHtml = '<span class="act-flat">—</span>';
     let resultBias = null;
-    if (e.actual != null) {
-      const r = classifyResult(e.actual, e.forecast, e.event);
+    if (r) {
       resultBias = r.bias;
       const cls = r.cls === 'beat' ? 'act-pos' : (r.cls === 'miss' ? 'act-neg' : 'act-flat');
       actHtml = `<span class="${cls}" title="${escHtml(r.verdict)}">${r.icon} ${escHtml(String(e.actual))}${u}</span>`;
@@ -3475,6 +3532,15 @@ function renderCalendar() {
         <div class="evt-name">${escHtml(e.event)}</div>
         ${(() => {
           const parts = [];
+          // Rezumat inline „cum influențează piața" — apare DUPĂ publicarea rezultatului.
+          if (r) {
+            const inf = marketInfluence(e.event, r);
+            const surp = (r.surprise != null && !isNaN(r.surprise)) ? ` · <b>${r.surprise >= 0 ? '+' : ''}${r.surprise.toFixed(1)}% surprise</b>` : '';
+            const sec = getSectorImpact(e.event);
+            const tk = sec ? [...new Set(sec.flatMap(s => s.tickers))].slice(0, 4) : [];
+            const secHtml = tk.length ? `<span class="evt-sec-wrap">${tk.map(t => `<span class="evt-sec">${escHtml(t)}</span>`).join('')}</span>` : '';
+            parts.push(`<div class="evt-verdict ${r.bias}" title="${escHtml(inf.tip)}"><span class="evv-tag">${inf.tag}${surp}</span>${secHtml}</div>`);
+          }
           const hist = getHistoryFor(e.event, 8);
           if (hist.length >= 3) parts.push(`<span class="evt-spark-wrap">${renderMiniSparkline(hist, e.event)}<span class="evt-spark-cnt">${hist.length}×</span></span>`);
           // Vol Week: doar pentru evenimente high-impact + ≥3 mega-cap earnings în aceeași săpt.
@@ -4085,6 +4151,20 @@ function buildExpandHTML(event) {
   const sectors = getSectorImpact(event.event);
   const cm = COUNTRY_META[event.country] || { name: event.country, flag:'🌐' };
   const dt = fmtEventDateTime(event.time);
+  // Banner verdict — versiunea „bogată" a rezumatului inline (partea din față a PAS 2).
+  let verdictBanner = '';
+  if (event.actual != null) {
+    const r = classifyResult(event.actual, event.forecast, event.event);
+    const inf = marketInfluence(event.event, r);
+    const surp = (r.surprise != null && !isNaN(r.surprise)) ? `${r.surprise >= 0 ? '+' : ''}${r.surprise.toFixed(2)}%` : '—';
+    const biasLbl = r.bias === 'bullish' ? '🟢 BULL' : (r.bias === 'bearish' ? '🔴 BEAR' : '⚪ NEUTRAL');
+    verdictBanner = `<div class="exp-verdict ${r.bias}">
+      <div class="ev-head"><span class="ev-verdict">${r.icon} ${escHtml(r.verdict)}</span><span class="ev-bias">${biasLbl}</span><span class="ev-surp">surprise ${surp}</span></div>
+      <div class="ev-nums">Actual <b>${escHtml(String(event.actual))}</b> · Forecast ${event.forecast ?? '—'} · Prev ${event.previous ?? '—'}</div>
+      <div class="ev-infl">${inf.tag}</div>
+      <div class="ev-tip">${escHtml(inf.tip)}</div>
+    </div>`;
+  }
   const sectorsHTML = sectors ? `<div class="sector-grid">${sectors.map(s => `
     <div class="sector-row">
       <span class="sector-icon">${s.icon}</span>
@@ -4097,6 +4177,7 @@ function buildExpandHTML(event) {
   const histHTML = hist.length >= 3 ? buildHistoryBoxHTML(event, hist) : '';
 
   return `<div class="exp-wrap">
+    ${verdictBanner}
     <div class="exp-box">
       <div class="ai-bar">
         <button class="btn-ai primary">🤖 Analiză AI Claude</button>
@@ -5687,6 +5768,31 @@ function classifyResult(actual, forecast, eventName) {
   return { verdict:'BELOW', icon:'🔴', cls:'miss', surprise, bias:'bearish' };
 }
 
+// Traduce (tip eveniment + bias) într-o frază scurtă „cum influențează piața".
+// tag = eticheta compactă pentru rând; tip = tooltip cu nuanța (unele beat-uri nu-s liniar bullish).
+function marketInfluence(eventName, r) {
+  if (!r || r.bias === 'neutral') {
+    return { tag: '≈ in-line → impact redus', tip: 'Rezultat aproape de consensus — piața de obicei nu se mișcă semnificativ.' };
+  }
+  const n = (eventName || '').toLowerCase();
+  const isInfl  = /cpi|ppi|inflation|pce|price index/i.test(n);
+  const isRates = /fomc|fed|rate decision|interest rate|central bank/i.test(n);
+  const isMacro = /payroll|nfp|unemployment|jobless|claims|gdp|retail|pmi|ism|industrial|durable|confidence|housing/i.test(n);
+  const bull = r.bias === 'bullish';
+  if (isInfl) return bull
+    ? { tag: '🔻 inflație → risk-ON · 🔺SPY/QQQ/BTC · 🔻yields', tip: 'Inflație sub așteptări = presiune mai mică pe Fed → bullish stocks & crypto, bearish dolar/yields.' }
+    : { tag: '🔺 inflație → risk-OFF · 🔻SPY/QQQ/BTC · 🔺yields', tip: 'Inflație peste așteptări = Fed mai hawkish → bearish stocks/growth & crypto, bullish dolar/yields; aur mixt.' };
+  if (isRates) return bull
+    ? { tag: '🕊️ dovish → risk-ON · 🔺stocks/crypto', tip: 'Decizie/ton mai blând decât se aștepta → bullish risk assets, bearish dolar.' }
+    : { tag: '🦅 hawkish → risk-OFF · 🔻stocks/crypto', tip: 'Decizie/ton mai dur decât se aștepta → bearish risk assets, bullish dolar.' };
+  if (isMacro) return bull
+    ? { tag: '💪 economie tare → 🔺ciclice/SPY', tip: 'Date peste așteptări = bullish ciclice. Atenție: dacă e „prea tare", poate amâna tăierile de dobândă (contra-reacție).' }
+    : { tag: '🩸 economie slabă → 🔻ciclice', tip: 'Date sub așteptări = bearish ciclice. Uneori bullish bonds/growth pe speranța tăierilor de dobândă.' };
+  return bull
+    ? { tag: '🔺 bullish → risk-ON', tip: 'Rezultat pozitiv vs consensus.' }
+    : { tag: '🔻 bearish → risk-OFF', tip: 'Rezultat negativ vs consensus.' };
+}
+
 function buildResultTgMessage(events) {
   const lines = [`📊 <b>Macro Dashboard</b> · rezultate publicate`];
   for (const { e, r } of events) {
@@ -6400,13 +6506,7 @@ function bindEvents() {
   });
   $('tgBtn').addEventListener('click', openSettings);
 
-  // Filter chips
-  document.querySelectorAll('.fb-chip[data-impact]').forEach(c => c.addEventListener('click', () => {
-    document.querySelectorAll('.fb-chip[data-impact]').forEach(x => x.classList.remove('active'));
-    c.classList.add('active');
-    if (c.dataset.impact !== 'all') c.classList.add(c.dataset.impact);
-    CFG.impactFilter = c.dataset.impact; saveCfg(); renderCalendar();
-  }));
+  // Filtrul de impact a fost eliminat: calendarul e hard high-impact la sursă (vezi loadCalendar).
   document.querySelectorAll('.fb-chip[data-country]').forEach(c => c.addEventListener('click', () => {
     document.querySelectorAll('.fb-chip[data-country]').forEach(x => x.classList.remove('active'));
     c.classList.add('active');
@@ -6540,12 +6640,7 @@ function bindEvents() {
     if (h) { e.preventDefault(); e.stopPropagation(); drillBriefSection(h); }
   });
 
-  // Restaurez chip-uri active din CFG
-  if (CFG.impactFilter !== 'all') {
-    document.querySelectorAll('.fb-chip[data-impact]').forEach(x => x.classList.remove('active'));
-    const target = document.querySelector(`.fb-chip[data-impact="${CFG.impactFilter}"]`);
-    if (target) { target.classList.add('active'); target.classList.add(CFG.impactFilter); }
-  }
+  // Restaurez chip-uri active din CFG (doar țara — impactul e fix high-impact)
   if (CFG.countryFilter !== 'all') {
     document.querySelectorAll('.fb-chip[data-country]').forEach(x => x.classList.remove('active'));
     const target = document.querySelector(`.fb-chip[data-country="${CFG.countryFilter}"]`);
