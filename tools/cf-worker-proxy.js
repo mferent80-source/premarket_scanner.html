@@ -35,7 +35,7 @@
 // Securitate proxy: acceptă DOAR host-urile din ALLOW (Yahoo + CoinGecko) și DOAR
 // origin-ul GitHub Pages al suitei (sau lipsă origin — ex. test din terminal).
 // ═══════════════════════════════════════════════════════════════════
-const ALLOW_HOSTS = /^(query1|query2)\.finance\.yahoo\.com$|^api\.coingecko\.com$/;
+const ALLOW_HOSTS = /^(query1|query2)\.finance\.yahoo\.com$|^api\.coingecko\.com$|^nfs\.faireconomy\.media$/;
 const ALLOW_ORIGIN = 'https://mferent80-source.github.io';
 function isAllowedOrigin(origin) {
   if (!origin) return true; // file://, curl, cron — fără header Origin
@@ -132,11 +132,17 @@ export default {
     try { t = new URL(target); } catch (e) { return new Response('bad url', { status: 400 }); }
     if (t.protocol !== 'https:' || !ALLOW_HOSTS.test(t.host)) return new Response('host not allowed', { status: 403 });
 
+    // faireconomy (ForexFactory) e în spatele Cloudflare și refuză UA-uri non-browser →
+    // pentru host-ul ăsta trimitem un UA complet de Chrome; restul rămân pe UA-ul intern.
+    const isFF = t.host === 'nfs.faireconomy.media';
+    const ua = isFF
+      ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+      : 'Mozilla/5.0 (TradingTools CF Worker)';
     let upstream;
     try {
       upstream = await fetch(t.toString(), {
-        headers: { 'User-Agent': 'Mozilla/5.0 (TradingTools CF Worker)' },
-        cf: { cacheTtl: 20, cacheEverything: true },
+        headers: { 'User-Agent': ua, 'Accept': isFF ? 'application/json,text/plain,*/*' : '*/*' },
+        cf: { cacheTtl: isFF ? 120 : 20, cacheEverything: true },   // FF feed se schimbă rar → cache 2 min
         signal: AbortSignal.timeout(15000)   // un upstream lent (Yahoo) nu mai ține conexiunea la infinit
       });
     } catch (e) {

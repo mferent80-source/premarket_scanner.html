@@ -995,7 +995,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <div class="macro-wrap">
 
 <header class="macro-cockpit">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v229</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v230</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1365,7 +1365,17 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
       </div>
 
       <div class="guide-section">
-        <h4>📡 Sursă reală forecast/actual: FMP <span style="opacity:.6;font-weight:600">(v229)</span></h4>
+        <h4>📡 Sursă reală forecast/actual: ForexFactory <span style="opacity:.6;font-weight:600">(v230)</span></h4>
+        <ul>
+          <li>FMP free tier a paywallat economic_calendar (403) → sursă primară acum <b>ForexFactory</b> (faireconomy.media, GRATUIT, cu forecast/previous/actual).</li>
+          <li>E în spatele Cloudflare → merge DOAR prin <b>worker-ul propriu</b> (Cloudflare→Cloudflare). Necesită host-ul <code>nfs.faireconomy.media</code> în <code>cf-worker-proxy.js</code> + <b>redeploy worker o dată</b>.</li>
+          <li>Lanț surse: <b>ForexFactory → FMP (dacă ai plan plătit) → Finnhub (premium) → hardcoded</b>. Feed-uri last/this/next week; currency→country; ora convertită la ET.</li>
+          <li>Status „⚠️ Worker trebuie redeployat" = host-ul nu e încă în worker.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>📡 Sursă forecast/actual: FMP <span style="opacity:.6;font-weight:600">(v229)</span></h4>
         <ul>
           <li><b>Cauza „nu apărea forecast/rezultate":</b> Finnhub <code>/calendar/economic</code> e PREMIUM → 403 pe free → fallback hardcoded cu valori goale.</li>
           <li><b>Fix:</b> sursă nouă <b>FMP</b> <code>/api/v3/economic_calendar</code> (free 250 req/zi) cu forecast/previous/actual/impact reale. Lanț: FMP → Finnhub (dacă premium) → hardcoded (doar program).</li>
@@ -1984,6 +1994,56 @@ function mapFmpEvents(events) {
     unit: '',
     source: 'fmp'
   })).filter(e => e.time && e.country);
+}
+
+// ============ FOREXFACTORY (sursă GRATUITĂ forecast/previous/actual, prin worker) ============
+// Feed public faireconomy.media (last/this/next week), în spatele Cloudflare → merge DOAR
+// prin worker-ul propriu (Cloudflare→Cloudflare trece; proxy-urile publice iau 522/429).
+// Necesită host-ul adăugat în cf-worker-proxy.js + worker redeployat o dată.
+const FF_CCY_COUNTRY = { USD:'US', EUR:'EU', GBP:'GB', JPY:'JP', CNY:'CN', AUD:'AU', CAD:'CA', NZD:'NZ', CHF:'CH' };
+// FF livrează data cu offset (ex. „...T12:30:00-04:00") = instant absolut. Îl convertim la
+// wall-clock ET, fiindcă parseEventTime re-aplică offset-ul ET (deci vrem componente ET).
+function ffToEtWallClock(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const p = new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York', hour12:false,
+    year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }).formatToParts(d);
+  const g = t => (p.find(x => x.type === t) || {}).value || '';
+  const hh = g('hour') === '24' ? '00' : g('hour'); // en-CA poate da 24:00 la miezul nopții
+  return `${g('year')}-${g('month')}-${g('day')} ${hh}:${g('minute')}`;
+}
+function mapFfEvents(events) {
+  const clean = v => (v == null || v === '' || v === '-') ? null : String(v);
+  return events.map(e => ({
+    time: ffToEtWallClock(e.date),
+    country: FF_CCY_COUNTRY[(e.country || '').toUpperCase()] || (e.country || '').toUpperCase().slice(0,2),
+    event: e.title || 'Unknown',
+    impact: normalizeImpact(e.impact),
+    forecast: clean(e.forecast),
+    previous: clean(e.previous),
+    actual: clean(e.actual),
+    unit: '',
+    source: 'forexfactory'
+  })).filter(e => e.time && e.country);
+}
+async function fetchForexFactory() {
+  const proxy = getCustomProxyUrl();
+  const feeds = ['ff_calendar_lastweek.json', 'ff_calendar_thisweek.json', 'ff_calendar_nextweek.json'];
+  let all = [], anyOk = false, needsDeploy = false;
+  for (const f of feeds) {
+    try {
+      const url = 'https://nfs.faireconomy.media/' + f;
+      const r = await fetch(proxy + '/?url=' + encodeURIComponent(url));
+      const txt = await r.text();
+      if (r.status === 403 && /host not allowed/i.test(txt)) { needsDeploy = true; continue; }
+      if (!r.ok) continue;
+      const arr = JSON.parse(txt);
+      if (Array.isArray(arr)) { all = all.concat(arr); anyOk = true; }
+    } catch (e) { /* sar peste feed-ul ăsta */ }
+  }
+  if (anyOk) return { state: 'ok', events: all };
+  if (needsDeploy) return { state: 'needsdeploy' };
+  return { state: 'error' };
 }
 function getTgConfig() { try { return JSON.parse(localStorage.getItem('tt_tg_config') || '{}'); } catch(e) { return {}; } }
 
@@ -3383,10 +3443,25 @@ async function loadCalendar() {
   const to = new Date(Date.now() + 14*86400000).toISOString().slice(0,10);
   const t = new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
   let sourceOk = false;
-  let fmpNote = ''; // hint despre FMP când cădem pe altă sursă
+  let srcNote = ''; // hint despre sursele reale când cădem pe fallback
 
-  // ── Sursă 1: FMP economic_calendar (REALĂ pe free tier: forecast/prev/actual) ──
-  const fmp = await fetchFmpEconomic(from, to);
+  // ── Sursă 1: ForexFactory prin worker (GRATUIT: forecast/previous/actual) ──
+  const ff = await fetchForexFactory();
+  if (ff.state === 'ok' && ff.events.length) {
+    CAL_DATA = mapFfEvents(ff.events);
+    if (CAL_DATA.length) {
+      sourceOk = true;
+      $('calStatus').textContent = `✅ ForexFactory · ${CAL_DATA.length} evenimente cu forecast/actual · ${t}`;
+    }
+  } else if (ff.state === 'needsdeploy') {
+    srcNote = `⚠️ Worker-ul tău trebuie redeployat cu host-ul faireconomy (vezi instrucțiuni). `;
+  } else if (ff.state === 'error') {
+    srcNote = `⚠️ ForexFactory inaccesibil (worker/Cloudflare). `;
+  }
+
+  // ── Sursă 2: FMP economic_calendar (dacă ai cheie cu acces plătit) ──
+  let fmpNote = '';
+  const fmp = sourceOk ? { state: 'skip' } : await fetchFmpEconomic(from, to);
   if (fmp.state === 'ok' && fmp.events.length) {
     CAL_DATA = mapFmpEvents(fmp.events);
     if (CAL_DATA.length) {
@@ -3401,7 +3476,7 @@ async function loadCalendar() {
     fmpNote = `⚠️ FMP eroare (${escHtml(fmp.msg || '?')}). `;
   } // 'nokey' → fără cheie FMP, tăcut
 
-  // ── Sursă 2: Finnhub /calendar/economic (PREMIUM — merge doar pe plan plătit) ──
+  // ── Sursă 3: Finnhub /calendar/economic (PREMIUM — merge doar pe plan plătit) ──
   if (!sourceOk && key && Date.now() >= +(localStorage.getItem('fh_econ_403_until') || 0)) {
     try {
       const url = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${encodeURIComponent(key)}`;
@@ -3428,10 +3503,10 @@ async function loadCalendar() {
     } catch (e) { /* ignore, fallback */ }
   }
 
-  // ── Sursă 3: fallback hardcoded (doar date/ore recurente, FĂRĂ forecast/actual) ──
+  // ── Sursă 4: fallback hardcoded (doar date/ore recurente, FĂRĂ forecast/actual) ──
   if (!sourceOk) {
     CAL_DATA = hardcodedCalendar();
-    const why = getFmpKey() ? fmpNote : '💡 Adaugă o cheie FMP gratuită în ⚙️ Setări ca să vezi forecast + rezultate reale. ';
+    const why = srcNote || fmpNote || '💡 Sursa reală (ForexFactory) merge prin worker-ul tău — redeployează-l cu host-ul faireconomy. ';
     $('calStatus').innerHTML = `${why}📦 Fallback hardcoded (doar programul evenimentelor, fără valori). ${CAL_DATA.length} evenimente.`;
   }
 
