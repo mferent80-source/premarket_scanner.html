@@ -184,6 +184,11 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-176 | Setup: banner galben R:R marginal (1–2:1) | lib/setup-builder.js + journal/index.html | S | P2 | făcut | ideation | 2026-07-12 |
 | I-177 | Setup: persistă rrStruct + pierdere SL în draft | lib/setup-builder.js + md_signal_journal | S | P2 | făcut | ideation | 2026-07-12 |
 | I-178 | Setup: mini hartă entry/SL/TP vs hi20/lo20 | lib/setup-builder.js + journal/index.html | M | P2 | făcut | ideation | 2026-07-12 |
+| I-179 | Expected move pre-event inline (mișcarea tipică din istoric) | macro-dashboard/index.html | M | P1 | propus | ideation | 2026-07-15 |
+| I-180 | Reacția REALĂ azi vs tipic (post-event, intraday) | macro-dashboard/index.html | M | P1 | propus | ideation | 2026-07-15 |
+| I-181 | Calibrare surprise-magnitude → mărime reacție (bucketing) | macro-dashboard/index.html | M | P2 | propus | ideation | 2026-07-15 |
+| I-182 | Alerte gate pe z-score surprise (peste zgomotul propriu) | macro-dashboard/ + tools/check-alerts.mjs | M | P2 | propus | ideation | 2026-07-15 |
+| I-183 | Influență regime-aware (marketInfluence × md_risk_regime) | macro-dashboard/index.html | S | P3 | propus | ideation | 2026-07-15 |
 
 ## Mini-spec-uri
 
@@ -1246,3 +1251,38 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** înțelegere instantanee de ce 0.24:1 e slab; reduce întrebări repetate despre structură.
 - **Riscuri/dependențe:** efort M pe layout mobil; date doar daily close — nu intraday wick.
 - **Fișiere atinse:** `lib/setup-builder.js`, `journal/index.html` (CSS `.setup-map`).
+
+### I-179 · Expected move pre-event inline (mișcarea tipică din istoric) · [M] · P1
+- **Problema/golul:** `computeAssetReaction` calculează deja mișcarea median zi-0 pe QQQ/BTC, dar rulează DOAR în expand și DOAR după publicare (`enrichEventReaction`). Pentru evenimentele high-impact care VIN, rândul arată doar sparkline + „VOL WEEK" — traderul nu vede cât se mișcă tipic piața la acel event ÎNAINTE, deci nu-și poate calibra sizing-ul/hedge-ul (exact ce cere trader.md §3 „sizing înainte de event").
+- **Soluția:** pe rândurile viitoare high-impact (actual==null), un badge inline „reacție tipică: QQQ ±0.6% · BTC ±1.1% (n=12)" calculat lazy din istoric (reutilizează `computeAssetReaction`, cache pe eveniment). Doar magnitudinea (±), nu direcția, ca să nu sugereze un pariu.
+- **Impact:** decizie de sizing/expunere mai bună înainte de CPI/NFP/FOMC; mută informația din expand (2 click-uri) direct în scanare.
+- **Riscuri/dependențe:** n mic per eveniment → afișează „n=X" și ascunde badge-ul sub n≥5 (trader.md §1 eșantion insuficient = zgomot); cost de calcul → lazy + cache; mișcarea median ascunde whipsaw-ul intraday (avertisment în tooltip, deja folosit).
+- **Fișiere atinse:** `macro-dashboard/index.html` (`renderCalendar`, `computeAssetReaction`, cache nou).
+
+### I-180 · Reacția REALĂ azi vs tipic (post-event, intraday) · [M] · P1
+- **Problema/golul:** după publicare pagina arată reacția ISTORICĂ (median pe publicările trecute) și un bias teoretic din `marketInfluence` — dar NU cât s-a mișcat de fapt SPY/QQQ/BTC de la ora release-ului de azi. Bucla „cum influențează piața" rămâne pe așteptare, nu pe realitate; traderul nu vede dacă piața a confirmat sau a ignorat printul.
+- **Soluția:** pentru rezultatele publicate în ultimele ~6h, fetch intraday (Finnhub `resolution=`, deja folosit la ~L2070, sau Yahoo `interval=5m`) și afișează în banner-ul verdict „reacția REALĂ azi: QQQ +0.4% de la 15:30 (tipic +0.6%)" + un indicator confirmă/infirmă biasul.
+- **Impact:** feedback loop închis — validează pe loc dacă influența prezisă s-a materializat; input direct pentru jurnal/„ce a mișcat piața azi".
+- **Riscuri/dependențe:** date intraday pot lipsi/întârzia pe proxy CORS (fallback „indisponibil"); fus orar release (ET) trebuie aliniat cu barele (trader.md §3, DST); doar RTH pentru stocks, 24/7 pentru crypto.
+- **Fișiere atinse:** `macro-dashboard/index.html` (`buildExpandHTML`/banner nou, funcție `computeTodayReaction`).
+
+### I-181 · Calibrare surprise-magnitude → mărime reacție (bucketing) · [M] · P2
+- **Problema/golul:** clasificarea e binară pe direcție (BEAT/MISS) + un procent de surprise, dar nu leagă MĂRIMEA surprizei de MĂRIMEA reacției. Un +0.1% surprise și un +2% surprise arată la fel de „important", deși istoric mișcă piața complet diferit.
+- **Soluția:** per eveniment, bucketing |surprise%| vs |mișcare zi-0| pe istoric (ex: 3 cupe mic/mediu/mare) → la un print nou estimează banda de mișcare așteptată („surprise +1.8% ≈ cupa mare → QQQ istoric ±0.9%, n=7"). Pur descriptiv, nu semnal.
+- **Impact:** distinge „miss care contează" de „miss de zgomot"; ierarhizează atenția pe rezultate.
+- **Riscuri/dependențe:** **IPOTEZĂ statistică** — necesită n≥10 per cupă altfel e zgomot (trader.md §1); relația surprise→reacție nu e stabilă între regimuri (segmentează pe `md_risk_regime` dacă n permite); de validat out-of-sample, NU „îmbunătățire garantată".
+- **Fișiere atinse:** `macro-dashboard/index.html` (extensie pe `classifyResult`/`buildHistoryBoxHTML`).
+
+### I-182 · Alerte gate pe z-score surprise (peste zgomotul propriu al evenimentului) · [M] · P2
+- **Problema/golul:** alertele Telegram se declanșează pe high-impact sub un prag fix de surprise (`SUGGESTION_HIGH_MIN_PCT`, `SUGGESTION_TRIGGER_SURPRISE_PCT`). Un prag absolut tratează la fel un eveniment volatil (surprise ±3% normal) și unul stabil (±0.3% = șoc real) → alertă falsă pe primul, ratare pe al doilea.
+- **Soluția:** pe lângă pragul absolut, calculează z-score-ul surprizei vs deviația standard istorică a acelui eveniment; alertează/sugerează doar când |z|≥ prag (ex 1.5) — „mare pentru acest event", nu „mare în absolut".
+- **Impact:** mai puține alerte-zgomot, prinde șocurile relative reale; sizing-ul reacționează la ce e neobișnuit.
+- **Riscuri/dependențe:** **IPOTEZĂ** — pragul z e de validat out-of-sample; necesită istoric suficient per eveniment (fallback pe pragul absolut sub n≥10); logica trebuie oglindită client + `tools/check-alerts.mjs` (server) ca să nu diveargă.
+- **Fișiere atinse:** `macro-dashboard/index.html` (`checkAlerts`/`computeAndStoreSuggestion`), `tools/check-alerts.mjs`.
+
+### I-183 · Influență regime-aware (marketInfluence × md_risk_regime) · [S] · P3
+- **Problema/golul:** `marketInfluence` e static — „CPI hot = risk-off" mereu, indiferent de contextul zilei. Dar același print reacționează diferit dacă piața e deja risk-off vs risk-on; suita are `md_risk_regime` în localStorage, neatins de fraza de influență.
+- **Soluția:** adaugă o linie contextuală scurtă sub tag-ul de influență care citește regimul curent: „azi risk-off deja → CPI hot amplifică vânzarea" / „risk-on → reacția poate fi mai domoală"; culoare pe convenția semantică existentă.
+- **Impact:** influența devine condiționată de context, nu absolută; aliniere cu tema mood a paginii.
+- **Riscuri/dependențe:** regimul e o euristică, nu adevăr — formulare cu „poate/tinde", nu deterministă; dependență de prospețimea `md_risk_regime` (afișează vârsta dacă e stale).
+- **Fișiere atinse:** `macro-dashboard/index.html` (`marketInfluence`/randare inline + banner).
