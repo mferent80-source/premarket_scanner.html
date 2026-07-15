@@ -995,7 +995,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <div class="macro-wrap">
 
 <header class="macro-cockpit">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v230</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v231</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -2028,21 +2028,30 @@ function mapFfEvents(events) {
 }
 async function fetchForexFactory() {
   const proxy = getCustomProxyUrl();
-  const feeds = ['ff_calendar_lastweek.json', 'ff_calendar_thisweek.json', 'ff_calendar_nextweek.json'];
-  let all = [], anyOk = false, needsDeploy = false;
+  // Doar thisweek + nextweek EXISTĂ (lastweek dă 404). thisweek acoperă și rezultatele
+  // publicate mai devreme în săptămână → fereastra de retenție 72h e ok.
+  const feeds = ['ff_calendar_thisweek.json', 'ff_calendar_nextweek.json'];
+  let all = [], anyOk = false, needsDeploy = false, challenged = false;
   for (const f of feeds) {
-    try {
-      const url = 'https://nfs.faireconomy.media/' + f;
-      const r = await fetch(proxy + '/?url=' + encodeURIComponent(url));
-      const txt = await r.text();
-      if (r.status === 403 && /host not allowed/i.test(txt)) { needsDeploy = true; continue; }
-      if (!r.ok) continue;
-      const arr = JSON.parse(txt);
-      if (Array.isArray(arr)) { all = all.concat(arr); anyOk = true; }
-    } catch (e) { /* sar peste feed-ul ăsta */ }
+    // 2 încercări: dacă Cloudflare dă un challenge HTML (intermitent), reîncercăm o dată
+    // cu cache-buster ca să nu prindem un răspuns vechi din cache-ul worker-ului.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const url = 'https://nfs.faireconomy.media/' + f;
+        const cb = attempt ? '&_r=' + Math.floor(Date.now() / 1000) : '';
+        const r = await fetch(proxy + '/?url=' + encodeURIComponent(url) + cb);
+        const txt = await r.text();
+        if (r.status === 403 && /host not allowed/i.test(txt)) { needsDeploy = true; break; }
+        if (!r.ok) break; // 404 etc. → nu mai reîncerc feed-ul
+        let arr = null;
+        try { arr = JSON.parse(txt); } catch (pe) { challenged = true; continue; } // HTML challenge → retry
+        if (Array.isArray(arr)) { all = all.concat(arr); anyOk = true; break; }
+      } catch (e) { /* network → retry o dată */ }
+    }
   }
   if (anyOk) return { state: 'ok', events: all };
   if (needsDeploy) return { state: 'needsdeploy' };
+  if (challenged) return { state: 'challenge' };
   return { state: 'error' };
 }
 function getTgConfig() { try { return JSON.parse(localStorage.getItem('tt_tg_config') || '{}'); } catch(e) { return {}; } }
@@ -3455,6 +3464,8 @@ async function loadCalendar() {
     }
   } else if (ff.state === 'needsdeploy') {
     srcNote = `⚠️ Worker-ul tău trebuie redeployat cu host-ul faireconomy (vezi instrucțiuni). `;
+  } else if (ff.state === 'challenge') {
+    srcNote = `⚠️ ForexFactory a dat un challenge Cloudflare (intermitent) — apasă 🔄 din nou peste câteva secunde. `;
   } else if (ff.state === 'error') {
     srcNote = `⚠️ ForexFactory inaccesibil (worker/Cloudflare). `;
   }
