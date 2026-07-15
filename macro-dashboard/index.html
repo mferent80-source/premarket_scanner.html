@@ -995,7 +995,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <div class="macro-wrap">
 
 <header class="macro-cockpit">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v228</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v229</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1365,6 +1365,16 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
       </div>
 
       <div class="guide-section">
+        <h4>📡 Sursă reală forecast/actual: FMP <span style="opacity:.6;font-weight:600">(v229)</span></h4>
+        <ul>
+          <li><b>Cauza „nu apărea forecast/rezultate":</b> Finnhub <code>/calendar/economic</code> e PREMIUM → 403 pe free → fallback hardcoded cu valori goale.</li>
+          <li><b>Fix:</b> sursă nouă <b>FMP</b> <code>/api/v3/economic_calendar</code> (free 250 req/zi) cu forecast/previous/actual/impact reale. Lanț: FMP → Finnhub (dacă premium) → hardcoded (doar program).</li>
+          <li>CORS: fetch direct; dacă browserul blochează, doar prin worker-ul propriu (cheia nu trece prin proxy-uri publice). Paywall/eroare = mesaj clar în status, fără eșec tăcut.</li>
+          <li>Cheie FMP în ⚙️ Setări (<code>fmp_api_key</code>); istoricul (sparkline + reacție) se refetch din FMP.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
         <h4>🔴 Calendar hard high-impact + influență piață <span style="opacity:.6;font-weight:600">(v228)</span></h4>
         <ul>
           <li>Calendarul afișează <b>exclusiv evenimente high-impact</b> (CPI/NFP/FOMC/GDP…). Med/Low sunt tăiate la sursă — chip-urile de impact au fost eliminate.</li>
@@ -1408,7 +1418,8 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
       <div class="guide-section">
         <h4>🔑 Configurare</h4>
         <ul>
-          <li><b>Finnhub key:</b> obligatorie pentru calendar economic + earnings. Free tier 60req/min.</li>
+          <li><b>FMP key (recomandat pt calendar):</b> sursa REALĂ de forecast/previous/actual pe calendarul economic. Free 250 req/zi la <a href="https://site.financialmodelingprep.com/developer/docs" target="_blank" style="color:var(--accent)">financialmodelingprep.com</a>. Fără ea calendarul arată doar programul evenimentelor, fără valori. LS <code>fmp_api_key</code>.</li>
+          <li><b>Finnhub key:</b> earnings + quote-uri + crypto news. Calendarul economic Finnhub e PREMIUM (403 pe free) → folosește FMP pentru calendar. Free tier 60req/min.</li>
           <li><b>Anthropic key:</b> opțională, doar pentru AI brief + AI bubble + AI news.</li>
           <li>Shared cu nasdaq-scanner / earnings-hub (LS <code>finnhub_api_key</code> + <code>anthropic_api_key</code>).</li>
           <li><b>Telegram:</b> token + chatId + toggle în Setări (shared cu watchlist-monitor / pump-radar / earnings-hub).</li>
@@ -1431,6 +1442,10 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
     <div class="modal-section" style="margin-top:0;padding-top:0;border-top:none">
       <h4>🔑 API Keys</h4>
       <div class="modal-row">
+        <label>FMP key:</label>
+        <input type="text" id="setFmpKey" placeholder="Financial Modeling Prep · free 250 req/zi">
+      </div>
+      <div class="modal-row">
         <label>Finnhub key:</label>
         <input type="text" id="setFinnhubKey" placeholder="ex. c123abc...">
       </div>
@@ -1442,7 +1457,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
         <label>TwelveData key:</label>
         <input type="text" id="setTwelvedataKey" placeholder="opțional · pentru chart 30z indices">
       </div>
-      <div class="modal-note">Cheile sunt persistate local (localStorage), nu trimise nicăieri în afară de API-urile respective. Finnhub și Anthropic sunt SHARED cu nasdaq-scanner / earnings-hub / pump-radar.<br>Crypto news folosește <b>Finnhub crypto + Reddit r/CryptoCurrency + Cointelegraph RSS</b> (free, fără cheie extra).<br><b>TwelveData</b> (opțional, 8 req/min · 800/zi free) — chart 30z fallback pentru indices când Yahoo proxy pică. ⚠ Free plan doar US stocks → pentru VIX/DXY/10Y folosim ETF echivalente (VXX/UUP/IEF). Registration: <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--accent)">twelvedata.com/pricing</a> → plan FREE.</div>
+      <div class="modal-note">Cheile sunt persistate local (localStorage), nu trimise nicăieri în afară de API-urile respective. <b>FMP</b> (<code>fmp_api_key</code>) = sursa reală de forecast/previous/actual pe calendar (free 250 req/zi, <a href="https://site.financialmodelingprep.com/developer/docs" target="_blank" style="color:var(--accent)">înregistrare</a>). Finnhub și Anthropic sunt SHARED cu nasdaq-scanner / earnings-hub / pump-radar.<br>Crypto news folosește <b>Finnhub crypto + Reddit r/CryptoCurrency + Cointelegraph RSS</b> (free, fără cheie extra).<br><b>TwelveData</b> (opțional, 8 req/min · 800/zi free) — chart 30z fallback pentru indices când Yahoo proxy pică. ⚠ Free plan doar US stocks → pentru VIX/DXY/10Y folosim ETF echivalente (VXX/UUP/IEF). Registration: <a href="https://twelvedata.com/pricing" target="_blank" style="color:var(--accent)">twelvedata.com/pricing</a> → plan FREE.</div>
     </div>
 
     <div class="modal-section">
@@ -1917,7 +1932,59 @@ function updateClearAllBtn() {
 }
 
 function getFinnhubKey() { return localStorage.getItem('finnhub_api_key') || ''; }
+function getFmpKey() { return localStorage.getItem('fmp_api_key') || ''; }
 function getAnthropicKey() { return localStorage.getItem('anthropic_api_key') || ''; }
+
+// ============ FMP ECONOMIC CALENDAR (sursă reală forecast/prev/actual pe free tier) ============
+// Finnhub /calendar/economic e PREMIUM → 403 pe free (fallback-ul hardcoded n-are valori).
+// FMP /api/v3/economic_calendar întoarce event/country/previous/estimate/actual/impact,
+// disponibil pe planul free (250 req/zi). Răspuns paywall/eroare = obiect cu „Error Message",
+// nu array → îl detectăm și degradăm curat, fără să ardem în tăcere.
+// Fetch: direct întâi (FMP permite CORS); dacă browserul blochează, DOAR prin worker-ul propriu
+// al lui Marius (cheia nu trece prin proxy-uri publice).
+async function fetchFmpEconomic(from, to) {
+  const key = getFmpKey();
+  if (!key) return { state: 'nokey' };
+  const url = `https://financialmodelingprep.com/api/v3/economic_calendar?from=${from}&to=${to}&apikey=${encodeURIComponent(key)}`;
+  const parse = (data) => {
+    if (Array.isArray(data)) return { state: 'ok', events: data };
+    // FMP întoarce {"Error Message": "..."} la cheie invalidă sau endpoint în afara planului
+    const msg = (data && (data['Error Message'] || data.error || data.message)) || '';
+    if (/invalid api key/i.test(msg)) return { state: 'badkey', msg: 'cheie invalidă' };
+    if (/limit|premium|plan|exclusive|upgrade|subscription|not available|legacy/i.test(msg)) return { state: 'paywall', msg };
+    return { state: 'error', msg: msg || 'răspuns neap.' };
+  };
+  try {
+    const r = await fetch(url);
+    if (r.status === 401) return { state: 'badkey', msg: 'cheie invalidă (401)' };
+    if (r.status === 403 || r.status === 402) return { state: 'paywall', msg: `HTTP ${r.status}` };
+    if (r.ok) return parse(await r.json());
+    return { state: 'error', msg: `HTTP ${r.status}` };
+  } catch (e) {
+    // CORS/network → încearcă prin worker-ul propriu (nu prin lanțul public — protejăm cheia)
+    try {
+      const pu = getCustomProxyUrl() + '/?url=' + encodeURIComponent(url);
+      const r2 = await fetch(pu);
+      if (r2.ok) { try { return parse(JSON.parse(await r2.text())); } catch (pe) { return { state: 'error', msg: 'JSON invalid via proxy' }; } }
+      return { state: 'error', msg: `proxy HTTP ${r2.status}` };
+    } catch (e2) { return { state: 'error', msg: 'network' }; }
+  }
+}
+
+// Normalizează un event FMP la forma internă CAL_DATA.
+function mapFmpEvents(events) {
+  return events.map(e => ({
+    time: (e.date || '').slice(0,16).replace('T',' '),
+    country: (e.country || '').toUpperCase().slice(0,2),
+    event: e.event || 'Unknown',
+    impact: normalizeImpact(e.impact),
+    forecast: e.estimate ?? null,
+    previous: e.previous ?? null,
+    actual: e.actual ?? null,
+    unit: '',
+    source: 'fmp'
+  })).filter(e => e.time && e.country);
+}
 function getTgConfig() { try { return JSON.parse(localStorage.getItem('tt_tg_config') || '{}'); } catch(e) { return {}; } }
 
 // ============ NYSE SESSION (DST-aware) ============
@@ -3309,18 +3376,33 @@ async function loadCalendar() {
   CAL_DATA = [];
 
   const key = getFinnhubKey();
-  // Cerem și ultimele 4 zile către Finnhub ca să includem evenimentele cu rezultat publicat
-  // (altfel Finnhub returnează doar evenimente >= from, deci rezultatele de ieri/alaltăieri lipseau cu totul).
+  // Cerem și ultimele 4 zile ca să includem evenimentele cu rezultat publicat
+  // (altfel sursa returnează doar evenimente >= from, deci rezultatele de ieri/alaltăieri lipseau cu totul).
   // Filtrul ulterior cu RESULTS_RETAIN_MS=72h taie ce nu intră în fereastra de retenție.
   const from = new Date(Date.now() - 4*86400000).toISOString().slice(0,10);
   const to = new Date(Date.now() + 14*86400000).toISOString().slice(0,10);
-  let finnhubOk = false;
+  const t = new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+  let sourceOk = false;
+  let fmpNote = ''; // hint despre FMP când cădem pe altă sursă
 
-  // după primul 403 (free tier n-are /calendar/economic) nu mai încercăm 24h —
-  // fallback-ul hardcoded e oricum calea normală; flag shared cu hub-ul
-  if (key && Date.now() < +(localStorage.getItem('fh_econ_403_until') || 0)) {
-    // skip direct la fallback
-  } else if (key) {
+  // ── Sursă 1: FMP economic_calendar (REALĂ pe free tier: forecast/prev/actual) ──
+  const fmp = await fetchFmpEconomic(from, to);
+  if (fmp.state === 'ok' && fmp.events.length) {
+    CAL_DATA = mapFmpEvents(fmp.events);
+    if (CAL_DATA.length) {
+      sourceOk = true;
+      $('calStatus').textContent = `✅ FMP · ${CAL_DATA.length} evenimente cu forecast/actual · ${t}`;
+    }
+  } else if (fmp.state === 'badkey') {
+    fmpNote = `⚠️ Cheia FMP e invalidă — verific-o în ⚙️ Setări. `;
+  } else if (fmp.state === 'paywall') {
+    fmpNote = `⚠️ Cheia FMP nu are acces la economic_calendar (${escHtml(fmp.msg || 'plan')}) — endpoint-ul cere plan plătit. `;
+  } else if (fmp.state === 'error') {
+    fmpNote = `⚠️ FMP eroare (${escHtml(fmp.msg || '?')}). `;
+  } // 'nokey' → fără cheie FMP, tăcut
+
+  // ── Sursă 2: Finnhub /calendar/economic (PREMIUM — merge doar pe plan plătit) ──
+  if (!sourceOk && key && Date.now() >= +(localStorage.getItem('fh_econ_403_until') || 0)) {
     try {
       const url = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${encodeURIComponent(key)}`;
       const r = await fetch(url);
@@ -3340,19 +3422,17 @@ async function loadCalendar() {
             unit: e.unit || '',
             source: 'finnhub'
           })).filter(e => e.time && e.country);
-          finnhubOk = true;
+          if (CAL_DATA.length) { sourceOk = true; $('calStatus').textContent = `✅ Finnhub · ${CAL_DATA.length} evenimente · ${t}`; }
         }
       }
-    } catch (e) {
-      // ignore, fallback
-    }
+    } catch (e) { /* ignore, fallback */ }
   }
 
-  if (!finnhubOk) {
+  // ── Sursă 3: fallback hardcoded (doar date/ore recurente, FĂRĂ forecast/actual) ──
+  if (!sourceOk) {
     CAL_DATA = hardcodedCalendar();
-    $('calStatus').innerHTML = `📦 Fallback hardcoded (Finnhub /calendar/economic = ${key ? 'eroare/premium' : 'fără cheie'}). ${CAL_DATA.length} evenimente estimative.`;
-  } else {
-    $('calStatus').textContent = `✅ Finnhub · ${CAL_DATA.length} evenimente · ${new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}`;
+    const why = getFmpKey() ? fmpNote : '💡 Adaugă o cheie FMP gratuită în ⚙️ Setări ca să vezi forecast + rezultate reale. ';
+    $('calStatus').innerHTML = `${why}📦 Fallback hardcoded (doar programul evenimentelor, fără valori). ${CAL_DATA.length} evenimente.`;
   }
 
   // Merge cu rezultatele salvate local: dacă Finnhub returnează acum actual=null
@@ -5021,6 +5101,7 @@ function switchTab(name) {
 
 // ============ SETTINGS MODAL ============
 function openSettings() {
+  $('setFmpKey').value = getFmpKey();
   $('setFinnhubKey').value = getFinnhubKey();
   $('setAnthropicKey').value = getAnthropicKey();
   $('setTwelvedataKey').value = getTwelveDataKey();
@@ -5035,9 +5116,12 @@ function openSettings() {
 function closeSettings() { $('settingsModal').classList.remove('show'); }
 
 function saveSettingsHandler() {
+  const fmpk = $('setFmpKey').value.trim();
   const fk = $('setFinnhubKey').value.trim();
   const ak = $('setAnthropicKey').value.trim();
   const tdk = $('setTwelvedataKey').value.trim();
+  if (fmpk) localStorage.setItem('fmp_api_key', fmpk);
+  else localStorage.removeItem('fmp_api_key');
   if (fk) localStorage.setItem('finnhub_api_key', fk);
   if (ak) localStorage.setItem('anthropic_api_key', ak);
   if (tdk) localStorage.setItem('twelvedata_api_key', tdk);
@@ -5057,7 +5141,12 @@ function saveSettingsHandler() {
   closeSettings();
   toast('✅ Setări salvate', 'success');
   scheduleAutoRefresh();
+  // Cheia FMP poate fi nouă/schimbată → invalidează istoricul ca sparkline-urile + reacția
+  // să se refacă din noua sursă, apoi reîncarcă calendarul.
+  try { localStorage.removeItem(HISTORICAL_CACHE_KEY); } catch (e) {}
+  HISTORICAL_BY_EVENT = {};
   loadCalendar();
+  loadHistoricalEvents().then(() => { if (Object.keys(HISTORICAL_BY_EVENT).length) renderCalendar(); });
 }
 
 async function tgTestHandler() {
@@ -5239,18 +5328,32 @@ function normalizeEventName(name) {
 // → index pe nume normalizat. Cache LS 24h.
 async function loadHistoricalEvents() {
   if (Object.keys(HISTORICAL_BY_EVENT).length) return; // deja încărcat (din cache LS sau fetch anterior)
+  // FMP acceptă max 90 zile/request → cerem 3 ferestre consecutive ca să acoperim ~9 luni de istoric.
+  // Fallback pe Finnhub (premium) dacă nu e cheie FMP.
+  let events = [];
+  if (getFmpKey()) {
+    const now = Date.now();
+    for (let w = 1; w <= 3; w++) {
+      const f = new Date(now - w*88*86400000).toISOString().slice(0,10);
+      const tt = new Date(now - (w-1)*88*86400000 - 86400000).toISOString().slice(0,10);
+      const res = await fetchFmpEconomic(f, tt);
+      if (res.state === 'ok') events = events.concat(res.events);
+      else break; // paywall/eroare → nu mai insistăm
+    }
+  }
   const key = getFinnhubKey();
-  if (!key) return;
-  if (Date.now() < +(localStorage.getItem('fh_econ_403_until') || 0)) return; // economic = premium, nu arde call-ul
+  if (!events.length && key && Date.now() >= +(localStorage.getItem('fh_econ_403_until') || 0)) {
+    try {
+      const from = new Date(Date.now() - 400*86400000).toISOString().slice(0,10);
+      const to = new Date(Date.now() - 1*86400000).toISOString().slice(0,10);
+      const url = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${encodeURIComponent(key)}`;
+      const r = await fetch(url);
+      if (r.status === 403) { try { localStorage.setItem('fh_econ_403_until', String(Date.now() + 24*3600000)); } catch (e2) {} }
+      if (r.ok) { const data = await r.json(); events = data?.economicCalendar || data?.economic || []; }
+    } catch (e) { /* silent — sparkline pur opțional */ }
+  }
+  if (!events.length) return;
   try {
-    const from = new Date(Date.now() - 400*86400000).toISOString().slice(0,10);
-    const to = new Date(Date.now() - 1*86400000).toISOString().slice(0,10);
-    const url = `https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${encodeURIComponent(key)}`;
-    const r = await fetch(url);
-    if (r.status === 403) { try { localStorage.setItem('fh_econ_403_until', String(Date.now() + 24*3600000)); } catch (e2) {} }
-    if (!r.ok) return;
-    const data = await r.json();
-    const events = data?.economicCalendar || data?.economic || [];
     const map = {};
     for (const e of events) {
       if (e.actual == null) continue;
