@@ -995,7 +995,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <div class="macro-wrap">
 
 <header class="macro-cockpit">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v231</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v232</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -3452,16 +3452,14 @@ async function loadCalendar() {
   const to = new Date(Date.now() + 14*86400000).toISOString().slice(0,10);
   const t = new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
   let sourceOk = false;
+  let srcLabel = ''; // sursa reușită — status-ul final îl scriem după filtrul high-impact
   let srcNote = ''; // hint despre sursele reale când cădem pe fallback
 
   // ── Sursă 1: ForexFactory prin worker (GRATUIT: forecast/previous/actual) ──
   const ff = await fetchForexFactory();
   if (ff.state === 'ok' && ff.events.length) {
     CAL_DATA = mapFfEvents(ff.events);
-    if (CAL_DATA.length) {
-      sourceOk = true;
-      $('calStatus').textContent = `✅ ForexFactory · ${CAL_DATA.length} evenimente cu forecast/actual · ${t}`;
-    }
+    if (CAL_DATA.length) { sourceOk = true; srcLabel = 'ForexFactory'; }
   } else if (ff.state === 'needsdeploy') {
     srcNote = `⚠️ Worker-ul tău trebuie redeployat cu host-ul faireconomy (vezi instrucțiuni). `;
   } else if (ff.state === 'challenge') {
@@ -3475,10 +3473,7 @@ async function loadCalendar() {
   const fmp = sourceOk ? { state: 'skip' } : await fetchFmpEconomic(from, to);
   if (fmp.state === 'ok' && fmp.events.length) {
     CAL_DATA = mapFmpEvents(fmp.events);
-    if (CAL_DATA.length) {
-      sourceOk = true;
-      $('calStatus').textContent = `✅ FMP · ${CAL_DATA.length} evenimente cu forecast/actual · ${t}`;
-    }
+    if (CAL_DATA.length) { sourceOk = true; srcLabel = 'FMP'; }
   } else if (fmp.state === 'badkey') {
     fmpNote = `⚠️ Cheia FMP e invalidă — verific-o în ⚙️ Setări. `;
   } else if (fmp.state === 'paywall') {
@@ -3508,7 +3503,7 @@ async function loadCalendar() {
             unit: e.unit || '',
             source: 'finnhub'
           })).filter(e => e.time && e.country);
-          if (CAL_DATA.length) { sourceOk = true; $('calStatus').textContent = `✅ Finnhub · ${CAL_DATA.length} evenimente · ${t}`; }
+          if (CAL_DATA.length) { sourceOk = true; srcLabel = 'Finnhub'; }
         }
       }
     } catch (e) { /* ignore, fallback */ }
@@ -3542,6 +3537,11 @@ async function loadCalendar() {
   // Med/Low sunt tăiate complet la sursă — nu doar ascunse cu un filtru UI. Alertele oricum
   // vizau deja doar high-impact, deci nu pierdem nimic funcțional; câștigăm un tabel curat.
   CAL_DATA = CAL_DATA.filter(e => e.impact === 'high');
+
+  // Status final: reflectă câte evenimente high-impact chiar apar în tabel (nu totalul brut de la sursă).
+  if (sourceOk && srcLabel) {
+    $('calStatus').textContent = `✅ ${srcLabel} · ${CAL_DATA.length} evenimente high-impact cu forecast/actual · ${t}`;
+  }
 
   renderHotStrip();
   renderCalendar();
