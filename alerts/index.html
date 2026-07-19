@@ -8,7 +8,7 @@
 <meta name="description" content="Custom price alerts pe stocks + crypto cu polling 30s + notify combo (toast + beep + browser + Telegram). News Watch demo pe același ecran.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=639">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=640">
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -463,7 +463,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v63</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v64</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -603,9 +603,9 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </summary>
   <div class="section-body">
     <div class="nw-banner">
-      <b>Client + server.</b> Local: poll în browser. <b>☁️ News</b> urcă watches pe GitHub → botul
-      <code>check-news-watch.mjs</code> (cron ~5 min) verifică Finnhub și trimite pe <b>Telegram</b> cu laptopul închis.
-      Același token ☁️ ca la price alerts. Secret Actions: <code>FINNHUB_API_KEY</code>.
+      <b>Client + server.</b> Local: poll în browser. <b>☁️ News</b> urcă pe GitHub → bot Telegram (~5 min).
+      <b>Auto:</b> la <b>+ Adaugă</b> price alert pe un ticker nou, se creează și news watch (dacă nu există).
+      Secret Actions: <code>FINNHUB_API_KEY</code>.
     </div>
     <div class="nw-form" id="nwForm">
       <div class="fld">
@@ -751,8 +751,8 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=639"></script>
-<script src="../lib/data.js?v=639"></script>
+<script src="../lib/suite-version.js?v=640"></script>
+<script src="../lib/data.js?v=640"></script>
 <script src="../lib/telegram.js"></script>
 <script>
 // ============ CONFIG ============
@@ -2052,18 +2052,22 @@ $('btnAdd').addEventListener('click', () => {
   }
   persistAlerts(); render();
   const wasTrail = kind === 'ref' && $('inpTrail').checked;
+  // Paritate News Watch: primul price-alert pe un ticker → auto-watch știri (dacă nu există deja)
+  let nwLinked = false;
+  try { nwLinked = typeof nwEnsureFromPriceSymbol === 'function' && !!nwEnsureFromPriceSymbol(sym); } catch (e) { console.warn('[nw auto]', e); }
+  const nwTag = nwLinked ? ' · 📰 news watch' : '';
   $('inpSym').value = ''; $('inpThr').value = ''; $('inpNote').value = ''; $('inpTarget').value = ''; $('inpStop').value = ''; $('inpTrail').checked = false; updateFormMode(); asClearSearch();
   toast(kind === 'ref'
     ? (wasTrail
-      ? `✓ Trailing: ${sym} · alertă la −${thr}% din vârf${_lastPrice[sym] == null ? ' · vârf de la primul check' : ' · 🔝$' + fmtPx(_lastPrice[sym], sym)}`
-      : `✓ Referință: ${sym} · pași ±${thr}%${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · 📊$' + fmtPx(_lastPrice[sym], sym)}`)
+      ? `✓ Trailing: ${sym} · alertă la −${thr}% din vârf${_lastPrice[sym] == null ? ' · vârf de la primul check' : ' · 🔝$' + fmtPx(_lastPrice[sym], sym)}${nwTag}`
+      : `✓ Referință: ${sym} · pași ±${thr}%${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · 📊$' + fmtPx(_lastPrice[sym], sym)}${nwTag}`)
     : kind === 'anchor'
-    ? `✓ Ancoră: ${sym} 🎯$${fmtPx(anchorTgt, sym)} · pas ±${thr}%${rearm ? ' · ↻' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · ⚓$' + fmtPx(_lastPrice[sym], sym)}`
+    ? `✓ Ancoră: ${sym} 🎯$${fmtPx(anchorTgt, sym)} · pas ±${thr}%${rearm ? ' · ↻' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · ⚓$' + fmtPx(_lastPrice[sym], sym)}${nwTag}`
     : kind === 'pct'
-    ? `✓ Alert mișcare: ${sym} ±${thr}%${rearm ? ' · ↻ re-arm' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · de la $' + fmtPx(_lastPrice[sym], sym)}`
+    ? `✓ Alert mișcare: ${sym} ±${thr}%${rearm ? ' · ↻ re-arm' : ''}${_lastPrice[sym] == null ? ' · se ancorează la primul check' : ' · de la $' + fmtPx(_lastPrice[sym], sym)}${nwTag}`
     : kind === 'day'
-    ? `✓ Variația zilei: ${sym} ±${thr}%${rearm ? ' · ↻ re-arm' : ''}`
-    : `✓ Alert adăugat: ${sym} ${dir === 'above' ? '▲' : '▼'} $${fmtPx(thr, sym)}${rearm ? ' · ↻ re-arm' : ''}`, 'success');
+    ? `✓ Variația zilei: ${sym} ±${thr}%${rearm ? ' · ↻ re-arm' : ''}${nwTag}`
+    : `✓ Alert adăugat: ${sym} ${dir === 'above' ? '▲' : '▼'} $${fmtPx(thr, sym)}${rearm ? ' · ↻ re-arm' : ''}${nwTag}`, 'success');
   autoSync(); // auto-sync ☁️ pe GitHub (debounce)
   pollPrices(); // immediate check
 });
@@ -2433,9 +2437,9 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// NEWS WATCH DEMO (v62)
-// Contract (localStorage `tt_news_watch_v1`) = viitor tools/news-watch.json
-// Câmpuri păstrate 1:1 ca să nu refacem UI când mutăm poll-ul pe Actions.
+// NEWS WATCH (v63+) — client + server
+// Contract (localStorage `tt_news_watch_v1`) = tools/news-watch.json
+// Auto-link: la +Adaugă price alert pe un ticker nou → nwEnsureFromPriceSymbol
 // ═══════════════════════════════════════════════════════════════════
 const NW_KEY = 'tt_news_watch_v1';
 const NW_SEEN_CAP = 300;
@@ -2444,6 +2448,39 @@ let nwState = { version: 1, watches: [] };
 let nwTimers = {};          // id → timeout handle
 let nwLastHits = {};        // id → [{id,headline,url,source,datetime,isNew}]
 let nwBusy = false;
+
+/** La price-alert nou: creează news watch pe același simbol dacă lipsește. Returnează true dacă a adăugat. */
+function nwEnsureFromPriceSymbol(sym) {
+  sym = String(sym || '').toUpperCase().trim();
+  if (!sym || !/^[A-Z0-9.\-]{1,16}$/.test(sym)) return false;
+  try {
+    if (!nwState || !Array.isArray(nwState.watches)) nwLoad();
+  } catch (e) { nwState = { version: 1, watches: [] }; }
+  if (nwState.watches.some(w => String(w.symbol || '').toUpperCase() === sym)) return false;
+  const kind = (typeof isCrypto === 'function' && isCrypto(sym)) ? 'crypto' : 'stock';
+  const w = {
+    id: 'nw_' + uid(),
+    symbol: sym,
+    kind,
+    keywords: [],
+    intervalMin: 15,
+    sources: kind === 'crypto' ? ['finnhub-crypto'] : ['finnhub'],
+    seen: [],
+    lastCheck: null,
+    armed: true,
+    fromPriceAlert: true
+  };
+  nwState.watches.push(w);
+  nwSave();
+  if (typeof nwRender === 'function') nwRender();
+  if (typeof nwSchedule === 'function') nwSchedule();
+  if (typeof nwAutoSync === 'function') nwAutoSync();
+  // check știri în background (nu blochează toast-ul de price)
+  if (typeof nwCheckOne === 'function') {
+    nwCheckOne(w).then(() => { nwSave(); if (typeof nwRender === 'function') nwRender(); }).catch(() => {});
+  }
+  return true;
+}
 
 function nwLoad() {
   try {
@@ -2872,7 +2909,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v639';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v640';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
