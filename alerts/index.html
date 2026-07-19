@@ -8,7 +8,7 @@
 <meta name="description" content="Custom price alerts pe stocks + crypto cu polling 30s + notify combo (toast + beep + browser + Telegram). News Watch demo pe același ecran.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=642">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=643">
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -381,6 +381,28 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   background:rgba(167,139,250,.08); border:1px solid rgba(167,139,250,.25); border-radius:var(--rs);
 }
 .nw-banner b { color:#c4b5fd; }
+/* Setări News Desk — panou vizibil (nu se pierde în form) */
+.nw-settings-panel {
+  background:linear-gradient(135deg, rgba(167,139,250,.12), rgba(91,176,255,.06));
+  border:1px solid rgba(167,139,250,.4);
+  border-radius:var(--r);
+  padding:12px 14px;
+  margin-bottom:12px;
+}
+.nw-settings-panel .nw-set-head {
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin-bottom:10px; font-family:var(--head); font-weight:800; font-size:13.5px; color:#e9d5ff;
+}
+.nw-settings-panel .nw-set-head span.sub {
+  font-weight:500; font-size:11px; color:var(--t3); font-family:var(--mono);
+}
+.nw-settings-panel .nw-form {
+  border-bottom:none; margin-bottom:0; padding:0;
+}
+.nw-settings-panel select, .nw-settings-panel input {
+  background:var(--panel); color:var(--t1); border:1px solid var(--b2);
+  border-radius:8px; padding:7px 10px; font-size:12.5px; min-height:36px;
+}
 
 /* Modal editare alertă */
 .modal-ov {
@@ -463,12 +485,13 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v66</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v67</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
   <button class="icon-btn" id="tgBtn" title="Configurează Telegram pentru price alerts">📡</button>
+  <button class="icon-btn" id="btnNwSettings" title="Deschide Setări News Desk (digest, quiet hours, filtru)">⚙</button>
   <button class="icon-btn" id="hdrMenuBtn" title="Mai multe acțiuni">⋯</button>
   <a href="../" class="nav-link">← Hub</a>
 </header>
@@ -485,6 +508,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   <div class="hm-item"><button id="ghSyncBtn" title="☁️ URCĂ pe GitHub — comite alertele locale în tools/alerts.json (server-side + sync cross-device). Click-dreapta = setează/schimbă token-ul">☁️</button><span class="hm-lbl">Urcă pe GitHub</span></div>
   <div class="hm-item"><button id="pullBtn" title="⬇️ ADU de pe GitHub — trage lista de pe alt device (laptop↔telefon). GitHub = sursa de adevăr; se face și automat la deschidere">⬇️</button><span class="hm-lbl">Adu de pe GitHub</span></div>
   <div class="hm-sep"></div>
+  <div class="hm-item"><button id="btnNwSettingsMenu" title="Setări News Desk">⚙</button><span class="hm-lbl">Setări News Desk</span></div>
   <a href="../guide/?page=alerts" class="hm-item" title="Ghid features pagina asta"><span class="hm-ico">📖</span><span class="hm-lbl">Ghid pagina asta</span></a>
 </div>
 
@@ -605,45 +629,53 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
     <div class="nw-banner">
       <b>News Desk pro:</b> doar știri mari + severity · digest Telegram · quiet hours · earnings pre-pack · EU→US map · gap alert auto · portfolio filter.
       <b>☁️ News</b> urcă setări + watches pe server. Secret: <code>FINNHUB_API_KEY</code>.
+      Apasă <b>⚙</b> din header dacă nu vezi panoul de setări.
     </div>
-    <div class="nw-form" id="nwSettings" style="flex-wrap:wrap;margin-bottom:8px">
-      <div class="fld">
-        <label>Mod filtru</label>
-        <select id="nwMode">
-          <option value="loose">Loose</option>
-          <option value="normal" selected>Normal</option>
-          <option value="strict">Strict (surse top)</option>
-        </select>
+    <div class="nw-settings-panel" id="nwSettingsPanel">
+      <div class="nw-set-head">
+        ⚙ Setări News Desk
+        <span class="sub" id="nwSetSummary">mode normal · digest ON</span>
       </div>
-      <div class="fld">
-        <label title="Un mesaj batch pe Telegram în loc de flood">Digest</label>
-        <select id="nwDigest">
-          <option value="1" selected>ON</option>
-          <option value="0">OFF</option>
-        </select>
+      <div class="nw-form" id="nwSettings">
+        <div class="fld">
+          <label>Mod filtru</label>
+          <select id="nwMode">
+            <option value="loose">Loose</option>
+            <option value="normal" selected>Normal</option>
+            <option value="strict">Strict (surse top)</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label title="Un mesaj batch pe Telegram în loc de flood">Digest TG</label>
+          <select id="nwDigest">
+            <option value="1" selected>ON</option>
+            <option value="0">OFF</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label title="23:00–07:00 Europe/Bucharest — doar scor ≥8 + earnings T-1/T0">Quiet 23–07</label>
+          <select id="nwQuiet">
+            <option value="1" selected>ON</option>
+            <option value="0">OFF</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label title="Doar tickere care au deja price alert">Portfolio only</label>
+          <select id="nwPortfolio">
+            <option value="0" selected>OFF</option>
+            <option value="1">ON</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label title="La earnings T-1/T0 creează day alert ±% pe price alerts">Auto gap</label>
+          <select id="nwGap">
+            <option value="1" selected>ON ±3%</option>
+            <option value="0">OFF</option>
+          </select>
+        </div>
+        <button type="button" class="primary" id="nwSaveSettingsBtn" title="Salvează local + urcă pe server dacă ai token">💾 Salvează setări</button>
+        <button type="button" id="nwPushFromSettings" title="Urcă setări + watches pe GitHub acum">☁️ Urcă pe server</button>
       </div>
-      <div class="fld">
-        <label title="23:00–07:00 Europe/Bucharest — doar scor ≥8 + earnings T-1/T0">Quiet hours</label>
-        <select id="nwQuiet">
-          <option value="1" selected>ON</option>
-          <option value="0">OFF</option>
-        </select>
-      </div>
-      <div class="fld">
-        <label title="Doar tickere care au deja price alert">Portfolio only</label>
-        <select id="nwPortfolio">
-          <option value="0" selected>OFF</option>
-          <option value="1">ON</option>
-        </select>
-      </div>
-      <div class="fld">
-        <label title="La earnings T-1/T0 creează day alert ±% pe price alerts">Auto gap</label>
-        <select id="nwGap">
-          <option value="1" selected>ON ±3%</option>
-          <option value="0">OFF</option>
-        </select>
-      </div>
-      <button type="button" class="primary" id="nwSaveSettingsBtn" title="Salvează setările local + auto-sync ☁️">💾 Setări</button>
     </div>
     <div class="nw-form" id="nwForm">
       <div class="fld">
@@ -2585,6 +2617,23 @@ function nwSyncSettingsUI() {
   if ($('nwQuiet')) $('nwQuiet').value = s.quietHours?.enabled ? '1' : '0';
   if ($('nwPortfolio')) $('nwPortfolio').value = s.portfolioOnly ? '1' : '0';
   if ($('nwGap')) $('nwGap').value = s.autoGapAlert ? '1' : '0';
+  const sum = $('nwSetSummary');
+  if (sum) {
+    sum.textContent =
+      `mode ${s.mode || 'normal'} · digest ${s.digest ? 'ON' : 'OFF'} · quiet ${s.quietHours?.enabled ? 'ON' : 'OFF'}` +
+      ` · gap ${s.autoGapAlert ? 'ON' : 'OFF'}`;
+  }
+}
+function nwFocusSettings() {
+  const sec = $('nwSection');
+  if (sec) sec.open = true;
+  const panel = $('nwSettingsPanel') || $('nwSettings');
+  if (panel) {
+    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    panel.style.outline = '2px solid #a78bfa';
+    setTimeout(() => { panel.style.outline = ''; }, 1800);
+  }
+  toast('⚙ Setări News Desk — panoul de mai jos', 'info');
 }
 function nwReadSettingsFromUI() {
   const prev = nwSettings();
@@ -3166,10 +3215,25 @@ function nwInit() {
   $('nwSaveSettingsBtn')?.addEventListener('click', () => {
     nwReadSettingsFromUI();
     nwSave();
+    nwSyncSettingsUI();
     nwRender();
     nwAutoSync();
     toast(`💾 Setări: ${nwSettings().mode} · digest ${nwSettings().digest ? 'ON' : 'OFF'} · quiet ${nwSettings().quietHours.enabled ? 'ON' : 'OFF'}`, 'success');
   });
+  $('nwPushFromSettings')?.addEventListener('click', () => {
+    nwReadSettingsFromUI();
+    nwSave();
+    nwPushGitHub({ silent: false });
+  });
+  $('btnNwSettings')?.addEventListener('click', nwFocusSettings);
+  $('btnNwSettingsMenu')?.addEventListener('click', () => {
+    const m = $('hdrMenu');
+    if (m) m.style.display = 'none';
+    nwFocusSettings();
+  });
+  // asigură secțiunea News deschisă (unele browsere țin <details> închis din sesiune)
+  const nwSec = $('nwSection');
+  if (nwSec) nwSec.open = true;
   $('nwCheckBtn')?.addEventListener('click', () => nwCheckAll({ quiet: false }));
   $('nwPushBtn')?.addEventListener('click', () => nwPushGitHub({ silent: false }));
   $('nwPullBtn')?.addEventListener('click', () => nwPullGitHub({ silent: false }));
@@ -3230,7 +3294,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v642';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v643';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
