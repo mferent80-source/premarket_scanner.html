@@ -8,7 +8,7 @@
 <meta name="description" content="Custom price alerts pe stocks + crypto cu polling 30s + notify combo (toast + beep + browser + Telegram). News Watch demo pe același ecran.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=640">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=641">
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -463,7 +463,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v64</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v65</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -603,9 +603,8 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </summary>
   <div class="section-body">
     <div class="nw-banner">
-      <b>Client + server.</b> Local: poll în browser. <b>☁️ News</b> urcă pe GitHub → bot Telegram (~5 min).
-      <b>Auto:</b> la <b>+ Adaugă</b> price alert pe un ticker nou, se creează și news watch (dacă nu există).
-      Secret Actions: <code>FINNHUB_API_KEY</code>.
+      <b>Doar știri mari</b> (earnings, guidance, M&A, upgrade/downgrade, FDA, halt…) + <b>📅 earnings viitoare</b> ca alerte (T-14 / T-1 / AZI).
+      Local: poll browser · <b>☁️ News</b> → bot Telegram. Auto-watch la <b>+ Adaugă</b> price. Secret: <code>FINNHUB_API_KEY</code>.
     </div>
     <div class="nw-form" id="nwForm">
       <div class="fld">
@@ -2437,17 +2436,121 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// NEWS WATCH (v63+) — client + server
+// NEWS WATCH (v65+) — client + server · big-news filter + earnings events
 // Contract (localStorage `tt_news_watch_v1`) = tools/news-watch.json
 // Auto-link: la +Adaugă price alert pe un ticker nou → nwEnsureFromPriceSymbol
 // ═══════════════════════════════════════════════════════════════════
 const NW_KEY = 'tt_news_watch_v1';
 const NW_SEEN_CAP = 300;
+const NW_EVENT_SEEN_CAP = 80;
 const NW_HL_SHOW = 5;
+const NW_BIG_MIN = 5;
+const NW_EARN_HORIZON = 21;
 let nwState = { version: 1, watches: [] };
 let nwTimers = {};          // id → timeout handle
-let nwLastHits = {};        // id → [{id,headline,url,source,datetime,isNew}]
+let nwLastHits = {};        // id → [{id,headline,url,source,datetime,isNew,score,tags,big}]
 let nwBusy = false;
+
+// Scor „știre mare" — paritate cu tools/check-news-watch.mjs
+const NW_BIG_KW = [
+  ['raises guidance', 9], ['cuts guidance', 9], ['lowers guidance', 9],
+  ['raises full-year', 8], ['cuts full-year', 8],
+  ['beat estimates', 7], ['misses estimates', 7], ['miss estimates', 7],
+  ['earnings', 5], ['eps ', 4], ['revenue', 3], ['guidance', 6], ['outlook', 4],
+  ['beats', 5], ['misses', 5], ['topped estimates', 6], ['fell short', 5],
+  ['acquisition', 7], ['acquire', 6], ['merger', 7], ['buyout', 7],
+  ['takeover', 7], ['to buy ', 5], ['all-cash deal', 7],
+  ['upgrade', 5], ['downgrade', 5], ['price target', 4], ['initiates coverage', 5],
+  ['stock split', 6], ['buyback', 5], ['share repurchase', 5], ['dividend', 4],
+  ['spin-off', 6], ['spinoff', 6], ['delist', 7],
+  ['ceo resign', 7], ['cfo resign', 7], ['steps down', 5], ['appointed ceo', 5],
+  ['sec charges', 7], ['sec probe', 6], ['lawsuit', 5], ['investigation', 6], ['fraud', 7],
+  ['fda approval', 8], ['fda rejects', 8], ['fda ', 5],
+  ['trading halt', 7], ['halted', 5], ['bankruptcy', 9], ['chapter 11', 9],
+  ['short squeeze', 6], [' plunges', 4], [' surges', 3], ['soars', 3],
+  ['spot etf', 7], ['etf approval', 8], ['hacked', 7], ['exploit', 6],
+  ['delisting', 6], ['sec approves', 8]
+];
+const NW_NOISE_RE = [
+  /what to watch/i, /stocks? to watch/i, /top \d+ stocks/i, /best stocks/i,
+  /stock movers/i, /pre-?market movers/i, /after-?hours movers/i,
+  /why (this|shares|the stock)/i, /\d+ things /i, /here are \d+/i,
+  /roundup/i, /morning brief/i, /closing bell/i, /stock of the day/i,
+  /market wrap/i, /midday update/i, /these stocks/i, /could be a/i,
+  /might be/i, /are hot/i, /zacks rank/i, /according to tipranks/i,
+  /most active stocks/i, /gainers and losers/i, /stocks moving/i,
+  /weekly recap/i, /daily recap/i, /newsletter/i
+];
+const NW_QUALITY_SRC = [
+  ['reuters', 3], ['bloomberg', 3], ['wall street journal', 3], ['wsj', 2],
+  ['financial times', 3], ['cnbc', 2], ['barron', 2], ['associated press', 2],
+  ['dow jones', 2], ['marketwatch', 1], ['coindesk', 2], ['the block', 2]
+];
+function nwScoreArticle(a) {
+  const headline = String(a.headline || '');
+  const text = (headline + ' ' + (a.summary || '')).toLowerCase();
+  const src = String(a.source || '').toLowerCase();
+  if (NW_NOISE_RE.some(re => re.test(text))) return { score: 0, tags: ['noise'], big: false };
+  let score = 0;
+  const tags = [];
+  for (const [kw, pts] of NW_BIG_KW) {
+    if (text.includes(kw)) { score += pts; if (tags.length < 6) tags.push(kw.trim()); }
+  }
+  for (const [s, pts] of NW_QUALITY_SRC) {
+    if (src.includes(s)) { score += pts; tags.push('src'); break; }
+  }
+  if (headline.length < 22) score -= 2;
+  return { score, tags: [...new Set(tags)].slice(0, 5), big: score >= NW_BIG_MIN };
+}
+function nwDaysUntil(iso) {
+  const t = Date.parse(String(iso).slice(0, 10) + 'T12:00:00Z');
+  if (!Number.isFinite(t)) return null;
+  const today = Date.parse(new Date().toISOString().slice(0, 10) + 'T12:00:00Z');
+  return Math.round((t - today) / 864e5);
+}
+function nwHourLabel(h) {
+  h = String(h || '').toLowerCase();
+  if (h === 'bmo') return 'BMO';
+  if (h === 'amc') return 'AMC';
+  if (h === 'dmh') return 'during';
+  return h ? h.toUpperCase() : '—';
+}
+let _nwEarnCache = { ts: 0, bySym: null }; // { SYM: nearest event }
+async function nwLoadEarningsMap() {
+  if (_nwEarnCache.bySym && Date.now() - _nwEarnCache.ts < 30 * 60e3) return _nwEarnCache.bySym;
+  const key = getFinnhubKey();
+  if (!key) return null;
+  const from = nwIsoDate(new Date());
+  const to = nwIsoDate(new Date(Date.now() + NW_EARN_HORIZON * 864e5));
+  const url = `https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&token=${encodeURIComponent(key)}`;
+  try {
+    const r = await fetchT(url, 15000);
+    if (!r.ok) return _nwEarnCache.bySym;
+    const j = await r.json();
+    const arr = Array.isArray(j?.earningsCalendar) ? j.earningsCalendar : [];
+    const bySym = {};
+    for (const e of arr) {
+      if (!e || !e.symbol || !e.date) continue;
+      const s = String(e.symbol).toUpperCase();
+      const row = {
+        date: String(e.date).slice(0, 10),
+        hour: e.hour || '',
+        epsEstimate: e.epsEstimate ?? null,
+        revenueEstimate: e.revenueEstimate ?? null,
+        dLeft: nwDaysUntil(e.date)
+      };
+      if (row.dLeft == null || row.dLeft < 0) continue;
+      if (!bySym[s] || row.date < bySym[s].date) bySym[s] = row;
+    }
+    _nwEarnCache = { ts: Date.now(), bySym };
+    return bySym;
+  } catch (e) { return _nwEarnCache.bySym; }
+}
+async function nwFetchEarnings(sym) {
+  const base = String(sym || '').toUpperCase().replace(/-USD$/, '').replace(/USDT$/, '');
+  const map = await nwLoadEarningsMap();
+  return (map && map[base]) || null;
+}
 
 /** La price-alert nou: creează news watch pe același simbol dacă lipsește. Returnează true dacă a adăugat. */
 function nwEnsureFromPriceSymbol(sym) {
@@ -2561,16 +2664,22 @@ function nwRender() {
     return;
   }
   list.innerHTML = nwState.watches.map(w => {
-    const hits = nwLastHits[w.id] || [];
+    const hits = (nwLastHits[w.id] || []).filter(h => h.big !== false);
     const hlHtml = hits.length
       ? `<div class="nw-headlines">${hits.slice(0, NW_HL_SHOW).map(h =>
           `<a class="nw-hl${h.isNew ? ' new' : ''}" href="${escHtml(h.url || '#')}" target="_blank" rel="noopener">
-            ${h.isNew ? '🆕 ' : ''}${escHtml(h.headline || '(fără titlu)')}
-            <span class="nw-hl-meta">${escHtml(h.source || '—')} · ${escHtml(nwFmtWhen(h.datetime))}</span>
+            ${h.isNew ? '⭐ ' : ''}${escHtml(h.headline || '(fără titlu)')}
+            <span class="nw-hl-meta">${escHtml(h.source || '—')} · sc${h.score || '—'} · ${escHtml(nwFmtWhen(h.datetime))}</span>
           </a>`).join('')}</div>`
-      : `<div class="nw-meta" style="margin-top:4px">Fără headlines încă — apasă 🔄 pe card sau Check now.</div>`;
+      : `<div class="nw-meta" style="margin-top:4px">Fără știri mari încă — apasă 🔄 pe card sau Check now.</div>`;
     const kw = (w.keywords || []).join(', ') || '— (auto din simbol)';
     const last = w.lastCheck ? nwFmtWhen(Date.parse(w.lastCheck) / 1000) : 'niciodată';
+    const ne = w.nextEarnings;
+    const earnHtml = ne && ne.date
+      ? `<div class="nw-kw" style="color:var(--gold)">📅 Earnings ${escHtml(ne.date)} (${escHtml(nwHourLabel(ne.hour))})` +
+        (ne.dLeft != null ? ` · ${ne.dLeft === 0 ? 'AZI' : ne.dLeft === 1 ? 'MÂINE' : 'T-' + ne.dLeft}` : '') +
+        `</div>`
+      : '';
     return `<div class="nw-card" data-nwid="${escHtml(w.id)}">
       <div class="nw-card-top">
         <span class="nw-sym">${escHtml(w.symbol)}</span>
@@ -2582,7 +2691,8 @@ function nwRender() {
           <button type="button" class="danger" data-nw-act="del" data-id="${escHtml(w.id)}" title="Șterge">🗑</button>
         </div>
       </div>
-      <div class="nw-kw">keywords: ${escHtml(kw)}</div>
+      <div class="nw-kw">filter: ⭐ big only · keywords: ${escHtml(kw)}</div>
+      ${earnHtml}
       ${hlHtml}
     </div>`;
   }).join('');
@@ -2590,39 +2700,91 @@ function nwRender() {
 async function nwCheckOne(w, { quiet } = {}) {
   const arts = await nwFetchArticles(w);
   const seen = new Set(w.seen || []);
+  const eventSeen = new Set(w.eventSeen || []);
   const mapped = arts.map(a => {
     const id = nwArticleId(a);
+    const sc = nwScoreArticle(a);
     return {
       id, headline: a.headline || '', url: a.url || '', source: a.source || '',
-      datetime: a.datetime || 0, isNew: !seen.has(id)
+      datetime: a.datetime || 0, isNew: !seen.has(id),
+      score: sc.score, tags: sc.tags, big: sc.big
     };
   });
-  const fresh = mapped.filter(x => x.isNew);
-  // marchează seen (toate din batch, ca să nu re-apară)
+  // seen pe tot batch-ul (și noise) ca să nu reapară
   for (const m of mapped) seen.add(m.id);
+  const freshBig = mapped
+    .filter(x => x.isNew && x.big)
+    .sort((a, b) => (b.score - a.score) || ((b.datetime || 0) - (a.datetime || 0)));
   w.seen = [...seen].slice(-NW_SEEN_CAP);
   w.lastCheck = new Date().toISOString();
-  w.lastNewCount = fresh.length;
-  nwLastHits[w.id] = mapped;
-  if (fresh.length && !quiet) {
-    const top = fresh[0];
-    toast(`📰 ${w.symbol}: ${fresh.length} știre${fresh.length > 1 ? 'i' : ''} nouă — ${top.headline.slice(0, 80)}`, 'info');
-    // browser notify (dacă userul le-a activat pentru price alerts)
+  w.lastNewCount = freshBig.length;
+  nwLastHits[w.id] = mapped.filter(m => m.big);
+
+  // Earnings viitoare (stock only) — toast + Telegram pe faze noi
+  if (w.kind !== 'crypto') {
+    try {
+      const earn = await nwFetchEarnings(w.symbol);
+      if (earn) {
+        w.nextEarnings = { date: earn.date, hour: earn.hour, dLeft: earn.dLeft };
+        const phases = [];
+        if (earn.dLeft <= 14) phases.push('disc');
+        if (earn.dLeft <= 1) phases.push('t1');
+        if (earn.dLeft === 0) phases.push('t0');
+        const base = String(w.symbol).toUpperCase().replace(/-USD$/, '').replace(/USDT$/, '');
+        let fired = null;
+        for (const phase of phases) {
+          const key = `earn:${base}:${earn.date}:${phase}`;
+          if (eventSeen.has(key)) continue;
+          eventSeen.add(key);
+          // reține faza cea mai urgentă
+          if (!fired || ({ t0: 3, t1: 2, disc: 1 })[phase] > ({ t0: 3, t1: 2, disc: 1 })[fired.phase]) {
+            fired = { ...earn, phase };
+          }
+        }
+        w.eventSeen = [...eventSeen].slice(-NW_EVENT_SEEN_CAP);
+        if (fired && !quiet) {
+          const whenTxt = fired.dLeft === 0 ? 'AZI' : fired.dLeft === 1 ? 'MÂINE' : `în ${fired.dLeft} zile`;
+          toast(`📅 ${w.symbol}: Earnings ${fired.date} (${nwHourLabel(fired.hour)}) — ${whenTxt}`, 'info');
+          try {
+            if (localStorage.getItem(NOTIF_KEY) === '1' && Notification.permission === 'granted') {
+              new Notification(`📅 ${w.symbol} earnings`, { body: `${fired.date} ${nwHourLabel(fired.hour)} · ${whenTxt}`, tag: 'nw-ev-' + w.id });
+            }
+          } catch (e) {}
+          try {
+            const tg = getTgConfig();
+            if (tg && tg.token && tg.chatId && window.TG && TG.send) {
+              const emoji = fired.dLeft <= 1 ? '🚨' : '📅';
+              TG.send(
+                `${emoji} <b>Event · ${tgEsc(w.symbol)}</b>\n` +
+                `Earnings <b>${tgEsc(fired.date)}</b> (${tgEsc(nwHourLabel(fired.hour))}) — <b>${tgEsc(whenTxt)}</b>\n` +
+                `<i>alertă din News Watch (browser)</i>`
+              );
+            }
+          } catch (e) {}
+        }
+      }
+    } catch (e) { console.warn('[nw earn]', w.symbol, e); }
+  }
+
+  if (freshBig.length && !quiet) {
+    const top = freshBig[0];
+    toast(`⭐ ${w.symbol}: ${freshBig.length} știre${freshBig.length > 1 ? 'i' : ''} mare — ${top.headline.slice(0, 80)}`, 'info');
     try {
       if (localStorage.getItem(NOTIF_KEY) === '1' && Notification.permission === 'granted') {
-        new Notification(`📰 ${w.symbol}`, { body: top.headline.slice(0, 120), tag: 'nw-' + w.id });
+        new Notification(`⭐ ${w.symbol}`, { body: top.headline.slice(0, 120), tag: 'nw-' + w.id });
       }
     } catch (e) {}
-    // Telegram opțional (aceleași credentials ca price) — doar headlines noi
     try {
       const tg = getTgConfig();
       if (tg && tg.token && tg.chatId && window.TG && TG.send) {
-        const lines = fresh.slice(0, 3).map(h => `• <a href="${tgEsc(h.url)}">${tgEsc(h.headline.slice(0, 100))}</a>`).join('\n');
-        TG.send(`📰 <b>News Watch · ${tgEsc(w.symbol)}</b>\n${lines}`);
+        const lines = freshBig.slice(0, 3).map(h =>
+          `• <a href="${tgEsc(h.url)}">${tgEsc(h.headline.slice(0, 100))}</a> <i>sc${h.score}</i>`
+        ).join('\n');
+        TG.send(`⭐ <b>Big News · ${tgEsc(w.symbol)}</b>\n${lines}`);
       }
     } catch (e) {}
   }
-  return fresh.length;
+  return freshBig.length;
 }
 async function nwCheckAll({ quiet } = {}) {
   if (nwBusy) { if (!quiet) toast('News watch: deja în curs…', 'info'); return; }
@@ -2712,6 +2874,8 @@ function nwNormalizeWatch(w) {
     intervalMin: Math.max(5, Number(w.intervalMin) || 15),
     sources: Array.isArray(w.sources) ? w.sources : (w.kind === 'crypto' ? ['finnhub-crypto'] : ['finnhub']),
     seen: Array.isArray(w.seen) ? w.seen : [],
+    eventSeen: Array.isArray(w.eventSeen) ? w.eventSeen : [],
+    nextEarnings: w.nextEarnings || null,
     lastCheck: w.lastCheck || null,
     armed: w.armed !== false
   };
@@ -2763,23 +2927,33 @@ async function nwPushGitHub(opts = {}) {
           const remote = JSON.parse(b64deutf8(String(cur.content || '').replace(/\n/g, '')));
           // păstrăm seen de pe server dacă local e gol (botul a acumulat)
           (remote.watches || []).forEach(rw => {
-            if (rw && rw.id && Array.isArray(rw.seen) && rw.seen.length)
-              remoteSeen[rw.id] = { seen: rw.seen, lastCheck: rw.lastCheck };
+            if (rw && rw.id)
+              remoteSeen[rw.id] = {
+                seen: Array.isArray(rw.seen) ? rw.seen : [],
+                eventSeen: Array.isArray(rw.eventSeen) ? rw.eventSeen : [],
+                nextEarnings: rw.nextEarnings || null,
+                lastCheck: rw.lastCheck
+              };
           });
         } catch (e) {}
       }
-      // merge seen: preferă uniunea local ∪ remote
+      // merge seen + eventSeen: uniune local ∪ remote (botul acumulează pe server)
       const watches = nwState.watches.map(w => {
         const n = nwNormalizeWatch(w);
         const r = remoteSeen[n.id];
         if (r) {
-          const set = new Set([...(n.seen || []), ...(r.seen || [])]);
-          n.seen = [...set].slice(-NW_SEEN_CAP);
+          n.seen = [...new Set([...(n.seen || []), ...(r.seen || [])])].slice(-NW_SEEN_CAP);
+          n.eventSeen = [...new Set([...(n.eventSeen || []), ...(r.eventSeen || [])])].slice(-NW_EVENT_SEEN_CAP);
           if (!n.lastCheck && r.lastCheck) n.lastCheck = r.lastCheck;
+          if (!n.nextEarnings && r.nextEarnings) n.nextEarnings = r.nextEarnings;
         }
         return n;
       });
-      const out = { _doc: 'News Watch server-side — gestionat din /alerts/.', version: 1, watches };
+      const out = {
+        _doc: 'News Watch server-side — big news filter + earnings events. Gestionat din /alerts/.',
+        version: 1,
+        watches
+      };
       const body = {
         message: `chore(news-watch): ${silent ? 'auto-sync' : 'sync'} din /alerts/ (${watches.length} watches)`,
         content: b64utf8(JSON.stringify(out, null, 2) + '\n'),
@@ -2855,10 +3029,10 @@ function nwInit() {
   $('nwExportBtn')?.addEventListener('click', nwExportContract);
   $('nwClearSeenBtn')?.addEventListener('click', () => {
     if (!nwState.watches.length) return;
-    if (!confirm('Resetez seen pe toate watches? Headlines vechi pot re-apărea ca „noi”.')) return;
+    if (!confirm('Resetez seen pe știri (nu pe earnings)? Headlines vechi pot re-apărea ca „noi”.')) return;
     nwState.watches.forEach(w => { w.seen = []; });
     nwSave(); nwRender(); nwAutoSync();
-    toast('🧹 seen cleared', 'info');
+    toast('🧹 seen cleared (eventSeen păstrat)', 'info');
   });
   $('nwList')?.addEventListener('click', e => {
     const btn = e.target.closest('[data-nw-act]');
@@ -2909,7 +3083,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v640';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v641';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
