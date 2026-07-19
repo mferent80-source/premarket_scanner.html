@@ -58,6 +58,9 @@ jobs:
           if ! git diff --quiet tools/alerts.json; then git add tools/alerts.json; CHANGED=1; fi
           if ! git diff --quiet tools/hub-stale-digest.json; then git add tools/hub-stale-digest.json; CHANGED=1; fi
           if ! git diff --quiet tools/news-watch.json; then git add tools/news-watch.json; CHANGED=1; fi
+          if ! git diff --quiet tools/news-audit.jsonl 2>/dev/null; then
+            if [ -f tools/news-audit.jsonl ]; then git add tools/news-audit.jsonl; CHANGED=1; fi
+          fi
           if [ "$CHANGED" = "1" ]; then
             git commit -m 'chore(alerts): stare actualizata dupa verificare [skip ci]'
             git push

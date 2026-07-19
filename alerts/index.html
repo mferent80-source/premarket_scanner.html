@@ -8,7 +8,7 @@
 <meta name="description" content="Custom price alerts pe stocks + crypto cu polling 30s + notify combo (toast + beep + browser + Telegram). News Watch demo pe același ecran.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=641">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=642">
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -463,7 +463,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v65</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v66</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -603,13 +603,56 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </summary>
   <div class="section-body">
     <div class="nw-banner">
-      <b>Doar știri mari</b> (earnings, guidance, M&A, upgrade/downgrade, FDA, halt…) + <b>📅 earnings viitoare</b> ca alerte (T-14 / T-1 / AZI).
-      Local: poll browser · <b>☁️ News</b> → bot Telegram. Auto-watch la <b>+ Adaugă</b> price. Secret: <code>FINNHUB_API_KEY</code>.
+      <b>News Desk pro:</b> doar știri mari + severity · digest Telegram · quiet hours · earnings pre-pack · EU→US map · gap alert auto · portfolio filter.
+      <b>☁️ News</b> urcă setări + watches pe server. Secret: <code>FINNHUB_API_KEY</code>.
+    </div>
+    <div class="nw-form" id="nwSettings" style="flex-wrap:wrap;margin-bottom:8px">
+      <div class="fld">
+        <label>Mod filtru</label>
+        <select id="nwMode">
+          <option value="loose">Loose</option>
+          <option value="normal" selected>Normal</option>
+          <option value="strict">Strict (surse top)</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label title="Un mesaj batch pe Telegram în loc de flood">Digest</label>
+        <select id="nwDigest">
+          <option value="1" selected>ON</option>
+          <option value="0">OFF</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label title="23:00–07:00 Europe/Bucharest — doar scor ≥8 + earnings T-1/T0">Quiet hours</label>
+        <select id="nwQuiet">
+          <option value="1" selected>ON</option>
+          <option value="0">OFF</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label title="Doar tickere care au deja price alert">Portfolio only</label>
+        <select id="nwPortfolio">
+          <option value="0" selected>OFF</option>
+          <option value="1">ON</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label title="La earnings T-1/T0 creează day alert ±% pe price alerts">Auto gap</label>
+        <select id="nwGap">
+          <option value="1" selected>ON ±3%</option>
+          <option value="0">OFF</option>
+        </select>
+      </div>
+      <button type="button" class="primary" id="nwSaveSettingsBtn" title="Salvează setările local + auto-sync ☁️">💾 Setări</button>
     </div>
     <div class="nw-form" id="nwForm">
       <div class="fld">
         <label>Simbol</label>
         <input type="text" id="nwSym" placeholder="NVDA / BTC" maxlength="20" autocomplete="off">
+      </div>
+      <div class="fld">
+        <label title="Pentru EU: NFLX pentru NFC.F">News symbol</label>
+        <input type="text" id="nwNewsSym" placeholder="auto / NFLX" maxlength="16" autocomplete="off">
       </div>
       <div class="fld">
         <label>Tip</label>
@@ -633,6 +676,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
       </div>
       <button type="button" class="primary" id="nwAddBtn">+ Watch</button>
     </div>
+    <div id="nwCalStrip" class="nw-banner" style="margin-top:0;font-size:11.5px;opacity:.95">📅 Risk calendar: —</div>
     <div class="nw-toolbar">
       <button type="button" id="nwCheckBtn" title="Verifică acum toate watches (browser)">🔄 Check now</button>
       <button type="button" id="nwPushBtn" title="☁️ URCĂ watches pe GitHub (tools/news-watch.json) — bot server + Telegram">☁️ News</button>
@@ -2436,7 +2480,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// NEWS WATCH (v65+) — client + server · big-news filter + earnings events
+// NEWS WATCH (v66+) — pro desk: severity, digest settings, EU map, earnings
 // Contract (localStorage `tt_news_watch_v1`) = tools/news-watch.json
 // Auto-link: la +Adaugă price alert pe un ticker nou → nwEnsureFromPriceSymbol
 // ═══════════════════════════════════════════════════════════════════
@@ -2444,14 +2488,21 @@ const NW_KEY = 'tt_news_watch_v1';
 const NW_SEEN_CAP = 300;
 const NW_EVENT_SEEN_CAP = 80;
 const NW_HL_SHOW = 5;
-const NW_BIG_MIN = 5;
 const NW_EARN_HORIZON = 21;
-let nwState = { version: 1, watches: [] };
-let nwTimers = {};          // id → timeout handle
-let nwLastHits = {};        // id → [{id,headline,url,source,datetime,isNew,score,tags,big}]
+const NW_MODE_MIN = { strict: 8, normal: 5, loose: 3 };
+const NW_EU_MAP = { 'NFC.F': 'NFLX', 'NFC.DE': 'NFLX', 'RHM.DE': 'RNMBY', 'RHM.F': 'RNMBY' };
+const NW_STRICT_SRC = ['reuters', 'bloomberg', 'wall street journal', 'wsj', 'financial times', 'cnbc', 'dow jones', 'associated press', 'barron'];
+const NW_DEFAULT_SETTINGS = {
+  mode: 'normal', digest: true,
+  quietHours: { enabled: true, startHour: 23, endHour: 7, tz: 'Europe/Bucharest' },
+  maxTelegramPerRun: 8, portfolioOnly: false, autoGapAlert: true, gapPct: 3,
+  dailyDigestHour: 8, weeklyDigestDow: 1, postEarnFollowH: 6
+};
+let nwState = { version: 2, settings: { ...NW_DEFAULT_SETTINGS }, watches: [] };
+let nwTimers = {};
+let nwLastHits = {};
 let nwBusy = false;
 
-// Scor „știre mare" — paritate cu tools/check-news-watch.mjs
 const NW_BIG_KW = [
   ['raises guidance', 9], ['cuts guidance', 9], ['lowers guidance', 9],
   ['raises full-year', 8], ['cuts full-year', 8],
@@ -2486,11 +2537,35 @@ const NW_QUALITY_SRC = [
   ['financial times', 3], ['cnbc', 2], ['barron', 2], ['associated press', 2],
   ['dow jones', 2], ['marketwatch', 1], ['coindesk', 2], ['the block', 2]
 ];
+function nwSettings() {
+  return { ...NW_DEFAULT_SETTINGS, ...(nwState.settings || {}), quietHours: { ...NW_DEFAULT_SETTINGS.quietHours, ...(nwState.settings?.quietHours || {}) } };
+}
+function nwMinScore() { return NW_MODE_MIN[nwSettings().mode] ?? 5; }
+function nwResolveNewsSym(w) {
+  if (w.newsSymbol) return String(w.newsSymbol).toUpperCase();
+  const s = String(w.symbol || '').toUpperCase();
+  return NW_EU_MAP[s] || s.replace(/-USD$/, '').replace(/USDT$/, '');
+}
+function nwClassifySev(tags, score, text) {
+  const t = (tags || []).join(' ') + ' ' + String(text || '').toLowerCase();
+  if (/guidance|raises full|cuts full|lowers guidance|raises guidance/.test(t)) return { sev: 'GUIDANCE', why: 'guidance — gap risk' };
+  if (/acquisition|merger|buyout|takeover/.test(t)) return { sev: 'M&A', why: 'deal — binary' };
+  if (/lawsuit|sec charges|sec probe|fraud|investigation/.test(t)) return { sev: 'LEGAL', why: 'legal/reg risk' };
+  if (/upgrade|downgrade|price target|initiates/.test(t)) return { sev: 'ANALYST', why: 'rating/target' };
+  if (/fda|approval/.test(t)) return { sev: 'PRODUCT', why: 'product/reg' };
+  if (/halt|bankruptcy|chapter/.test(t)) return { sev: 'EXTREME', why: 'structure event' };
+  if (/spot etf|hacked|exploit|delisting/.test(t)) return { sev: 'CRYPTO', why: 'crypto catalyst' };
+  if (/earnings|eps|beats|misses|revenue/.test(t)) return { sev: 'EARNINGS', why: 'results-related' };
+  return { sev: 'CATALYST', why: score >= 10 ? 'high-score' : 'material news' };
+}
 function nwScoreArticle(a) {
   const headline = String(a.headline || '');
   const text = (headline + ' ' + (a.summary || '')).toLowerCase();
   const src = String(a.source || '').toLowerCase();
-  if (NW_NOISE_RE.some(re => re.test(text))) return { score: 0, tags: ['noise'], big: false };
+  if (NW_NOISE_RE.some(re => re.test(text))) return { score: 0, tags: ['noise'], big: false, sev: '', why: '' };
+  if (nwSettings().mode === 'strict' && !NW_STRICT_SRC.some(s => src.includes(s))) {
+    return { score: 0, tags: ['src-gate'], big: false, sev: '', why: '' };
+  }
   let score = 0;
   const tags = [];
   for (const [kw, pts] of NW_BIG_KW) {
@@ -2500,7 +2575,44 @@ function nwScoreArticle(a) {
     if (src.includes(s)) { score += pts; tags.push('src'); break; }
   }
   if (headline.length < 22) score -= 2;
-  return { score, tags: [...new Set(tags)].slice(0, 5), big: score >= NW_BIG_MIN };
+  const { sev, why } = nwClassifySev(tags, score, text);
+  return { score, tags: [...new Set(tags)].slice(0, 5), big: score >= nwMinScore(), sev, why };
+}
+function nwSyncSettingsUI() {
+  const s = nwSettings();
+  if ($('nwMode')) $('nwMode').value = s.mode || 'normal';
+  if ($('nwDigest')) $('nwDigest').value = s.digest ? '1' : '0';
+  if ($('nwQuiet')) $('nwQuiet').value = s.quietHours?.enabled ? '1' : '0';
+  if ($('nwPortfolio')) $('nwPortfolio').value = s.portfolioOnly ? '1' : '0';
+  if ($('nwGap')) $('nwGap').value = s.autoGapAlert ? '1' : '0';
+}
+function nwReadSettingsFromUI() {
+  const prev = nwSettings();
+  nwState.settings = {
+    ...prev,
+    mode: $('nwMode')?.value || 'normal',
+    digest: $('nwDigest')?.value !== '0',
+    quietHours: { ...prev.quietHours, enabled: $('nwQuiet')?.value !== '0' },
+    portfolioOnly: $('nwPortfolio')?.value === '1',
+    autoGapAlert: $('nwGap')?.value !== '0',
+    gapPct: prev.gapPct || 3
+  };
+}
+function nwUpdateCalStrip() {
+  const el = $('nwCalStrip');
+  if (!el) return;
+  const rows = (nwState.watches || [])
+    .filter(w => w.nextEarnings?.date)
+    .map(w => ({ sym: w.symbol, ...w.nextEarnings }))
+    .sort((a, b) => (a.dLeft ?? 99) - (b.dLeft ?? 99));
+  if (!rows.length) {
+    el.textContent = '📅 Risk calendar: niciun earnings pe watches (check / pull server).';
+    return;
+  }
+  el.innerHTML = '📅 Risk calendar: ' + rows.slice(0, 8).map(r =>
+    `<b>${escHtml(r.sym)}</b> ${escHtml(r.date)} ${escHtml(nwHourLabel(r.hour))}` +
+    (r.dLeft != null ? ` T-${r.dLeft}` : '')
+  ).join(' · ');
 }
 function nwDaysUntil(iso) {
   const t = Date.parse(String(iso).slice(0, 10) + 'T12:00:00Z');
@@ -2565,10 +2677,12 @@ function nwEnsureFromPriceSymbol(sym) {
     id: 'nw_' + uid(),
     symbol: sym,
     kind,
+    newsSymbol: NW_EU_MAP[sym] || undefined,
     keywords: [],
     intervalMin: 15,
     sources: kind === 'crypto' ? ['finnhub-crypto'] : ['finnhub'],
     seen: [],
+    eventSeen: [],
     lastCheck: null,
     armed: true,
     fromPriceAlert: true
@@ -2588,8 +2702,15 @@ function nwEnsureFromPriceSymbol(sym) {
 function nwLoad() {
   try {
     const j = JSON.parse(localStorage.getItem(NW_KEY) || 'null');
-    if (j && Array.isArray(j.watches)) nwState = { version: j.version || 1, watches: j.watches };
-  } catch (e) { nwState = { version: 1, watches: [] }; }
+    if (j && Array.isArray(j.watches)) {
+      nwState = {
+        version: j.version || 2,
+        settings: { ...NW_DEFAULT_SETTINGS, ...(j.settings || {}), quietHours: { ...NW_DEFAULT_SETTINGS.quietHours, ...(j.settings?.quietHours || {}) } },
+        watches: j.watches,
+        _meta: j._meta || {}
+      };
+    }
+  } catch (e) { nwState = { version: 2, settings: { ...NW_DEFAULT_SETTINGS }, watches: [] }; }
 }
 function nwSave() {
   try { localStorage.setItem(NW_KEY, JSON.stringify(nwState)); } catch (e) {}
@@ -2630,13 +2751,12 @@ async function nwFetchArticles(w) {
     list = Array.isArray(j) ? j : [];
     list = list.filter(a => nwMatchKw((a.headline || '') + ' ' + (a.summary || ''), kws));
   } else {
-    const sym = String(w.symbol || '').toUpperCase().replace(/-USD$/, '').replace(/USDT$/, '');
+    const sym = nwResolveNewsSym(w);
     const url = `https://finnhub.io/api/v1/company-news?symbol=${encodeURIComponent(sym)}&from=${nwIsoDate(from)}&to=${nwIsoDate(to)}&token=${encodeURIComponent(key)}`;
     const r = await fetchT(url, 12000);
-    if (!r.ok) throw new Error('Finnhub company-news HTTP ' + r.status);
+    if (!r.ok) throw new Error('Finnhub company-news HTTP ' + r.status + ' (' + sym + ')');
     const j = await r.json();
     list = Array.isArray(j) ? j : [];
-    // keywords opționale restrâng; fără keywords → tot feed-ul pe ticker
     if ((w.keywords || []).length) list = list.filter(a => nwMatchKw((a.headline || '') + ' ' + (a.summary || ''), kws));
   }
   // sort newest first
@@ -2668,34 +2788,39 @@ function nwRender() {
     const hlHtml = hits.length
       ? `<div class="nw-headlines">${hits.slice(0, NW_HL_SHOW).map(h =>
           `<a class="nw-hl${h.isNew ? ' new' : ''}" href="${escHtml(h.url || '#')}" target="_blank" rel="noopener">
-            ${h.isNew ? '⭐ ' : ''}${escHtml(h.headline || '(fără titlu)')}
-            <span class="nw-hl-meta">${escHtml(h.source || '—')} · sc${h.score || '—'} · ${escHtml(nwFmtWhen(h.datetime))}</span>
+            ${h.isNew ? '⭐ ' : ''}<b style="color:var(--gold);font-size:10px">${escHtml(h.sev || '')}</b> ${escHtml(h.headline || '(fără titlu)')}
+            <span class="nw-hl-meta">${escHtml(h.why || '')} · sc${h.score || '—'} · ${escHtml(h.source || '—')} · ${escHtml(nwFmtWhen(h.datetime))}</span>
           </a>`).join('')}</div>`
       : `<div class="nw-meta" style="margin-top:4px">Fără știri mari încă — apasă 🔄 pe card sau Check now.</div>`;
     const kw = (w.keywords || []).join(', ') || '— (auto din simbol)';
     const last = w.lastCheck ? nwFmtWhen(Date.parse(w.lastCheck) / 1000) : 'niciodată';
+    const newsSym = nwResolveNewsSym(w);
+    const via = newsSym !== String(w.symbol || '').toUpperCase().replace(/USDT$/, '').replace(/-USD$/, '')
+      ? ` · news:${escHtml(newsSym)}` : '';
     const ne = w.nextEarnings;
     const earnHtml = ne && ne.date
       ? `<div class="nw-kw" style="color:var(--gold)">📅 Earnings ${escHtml(ne.date)} (${escHtml(nwHourLabel(ne.hour))})` +
         (ne.dLeft != null ? ` · ${ne.dLeft === 0 ? 'AZI' : ne.dLeft === 1 ? 'MÂINE' : 'T-' + ne.dLeft}` : '') +
+        (ne.epsEstimate != null ? ` · EPS ${escHtml(String(ne.epsEstimate))}` : '') +
         `</div>`
       : '';
     return `<div class="nw-card" data-nwid="${escHtml(w.id)}">
       <div class="nw-card-top">
         <span class="nw-sym">${escHtml(w.symbol)}</span>
         <span class="nw-kind ${w.kind === 'crypto' ? 'crypto' : 'stock'}">${w.kind === 'crypto' ? 'crypto' : 'stock'}</span>
-        <span class="nw-meta">⏱ ${w.intervalMin || 15}m · seen ${(w.seen || []).length} · last ${escHtml(last)}</span>
+        <span class="nw-meta">⏱ ${w.intervalMin || 15}m · seen ${(w.seen || []).length} · last ${escHtml(last)}${via}</span>
         <div class="nw-actions">
           <button type="button" data-nw-act="check" data-id="${escHtml(w.id)}" title="Check acum">🔄</button>
           <button type="button" data-nw-act="arm" data-id="${escHtml(w.id)}" title="Arm/pause auto">${w.armed === false ? '▶️' : '⏸'}</button>
           <button type="button" class="danger" data-nw-act="del" data-id="${escHtml(w.id)}" title="Șterge">🗑</button>
         </div>
       </div>
-      <div class="nw-kw">filter: ⭐ big only · keywords: ${escHtml(kw)}</div>
+      <div class="nw-kw">⭐ ${escHtml(nwSettings().mode)} · keywords: ${escHtml(kw)}</div>
       ${earnHtml}
       ${hlHtml}
     </div>`;
   }).join('');
+  nwUpdateCalStrip();
 }
 async function nwCheckOne(w, { quiet } = {}) {
   const arts = await nwFetchArticles(w);
@@ -2707,7 +2832,7 @@ async function nwCheckOne(w, { quiet } = {}) {
     return {
       id, headline: a.headline || '', url: a.url || '', source: a.source || '',
       datetime: a.datetime || 0, isNew: !seen.has(id),
-      score: sc.score, tags: sc.tags, big: sc.big
+      score: sc.score, tags: sc.tags, big: sc.big, sev: sc.sev, why: sc.why
     };
   });
   // seen pe tot batch-ul (și noise) ca să nu reapară
@@ -2768,17 +2893,17 @@ async function nwCheckOne(w, { quiet } = {}) {
 
   if (freshBig.length && !quiet) {
     const top = freshBig[0];
-    toast(`⭐ ${w.symbol}: ${freshBig.length} știre${freshBig.length > 1 ? 'i' : ''} mare — ${top.headline.slice(0, 80)}`, 'info');
+    toast(`⭐ ${w.symbol}: ${freshBig.length} ${top.sev || 'big'} — ${top.headline.slice(0, 70)}`, 'info');
     try {
       if (localStorage.getItem(NOTIF_KEY) === '1' && Notification.permission === 'granted') {
-        new Notification(`⭐ ${w.symbol}`, { body: top.headline.slice(0, 120), tag: 'nw-' + w.id });
+        new Notification(`⭐ ${w.symbol} · ${top.sev || ''}`, { body: (top.why ? top.why + ' · ' : '') + top.headline.slice(0, 100), tag: 'nw-' + w.id });
       }
     } catch (e) {}
     try {
       const tg = getTgConfig();
-      if (tg && tg.token && tg.chatId && window.TG && TG.send) {
+      if (tg && tg.token && tg.chatId && window.TG && TG.send && !nwSettings().digest) {
         const lines = freshBig.slice(0, 3).map(h =>
-          `• <a href="${tgEsc(h.url)}">${tgEsc(h.headline.slice(0, 100))}</a> <i>sc${h.score}</i>`
+          `• <code>${tgEsc(h.sev)}</code> <a href="${tgEsc(h.url)}">${tgEsc(h.headline.slice(0, 100))}</a>\n  <i>${tgEsc(h.why)} · sc${h.score}</i>`
         ).join('\n');
         TG.send(`⭐ <b>Big News · ${tgEsc(w.symbol)}</b>\n${lines}`);
       }
@@ -2824,10 +2949,7 @@ function nwAddFromForm() {
   let sym = ($('nwSym').value || '').trim().toUpperCase();
   if (!sym) { toast('Simbol lipsă', 'warn'); return; }
   const kind = $('nwKind').value === 'crypto' ? 'crypto' : 'stock';
-  // normalize ușor
-  if (kind === 'crypto' && !/USDT$|-USD$|USD$/.test(sym) && sym.length <= 6) {
-    // BTC → lăsăm BTC; keywords auto extrag base
-  }
+  const newsSymbol = ($('nwNewsSym')?.value || '').trim().toUpperCase() || (NW_EU_MAP[sym] || '');
   const kwRaw = ($('nwKw').value || '').split(',').map(s => s.trim()).filter(Boolean);
   const intervalMin = parseInt($('nwInterval').value, 10) || 15;
   if (nwState.watches.some(w => w.symbol === sym && w.kind === kind)) {
@@ -2837,10 +2959,12 @@ function nwAddFromForm() {
     id: 'nw_' + uid(),
     symbol: sym,
     kind,
+    newsSymbol: newsSymbol || undefined,
     keywords: kwRaw,
     intervalMin,
     sources: kind === 'crypto' ? ['finnhub-crypto'] : ['finnhub'],
     seen: [],
+    eventSeen: [],
     lastCheck: null,
     armed: true
   };
@@ -2851,8 +2975,8 @@ function nwAddFromForm() {
   nwAutoSync();
   $('nwSym').value = '';
   $('nwKw').value = '';
-  toast('📰 Watch adăugat: ' + sym + ' · ☁️ urcă pe server dacă ai token', 'success');
-  // first check imediat (browser)
+  if ($('nwNewsSym')) $('nwNewsSym').value = '';
+  toast('📰 Watch adăugat: ' + sym + (newsSymbol ? ' → ' + newsSymbol : '') + ' · ☁️ sync', 'success');
   nwCheckOne(w).then(() => { nwSave(); nwRender(); }).catch(e => toast('📰 ' + (e.message || e), 'warn'));
 }
 function nwExportContract() {
@@ -2866,10 +2990,14 @@ function nwExportContract() {
   toast('📤 Export news-watch.json', 'success');
 }
 function nwNormalizeWatch(w) {
+  const newsSymbol = w.newsSymbol
+    ? String(w.newsSymbol).toUpperCase()
+    : (NW_EU_MAP[String(w.symbol || '').toUpperCase()] || undefined);
   return {
     id: w.id || ('nw_' + uid()),
     symbol: String(w.symbol || '').toUpperCase(),
     kind: w.kind === 'crypto' ? 'crypto' : 'stock',
+    newsSymbol: newsSymbol || undefined,
     keywords: Array.isArray(w.keywords) ? w.keywords : [],
     intervalMin: Math.max(5, Number(w.intervalMin) || 15),
     sources: Array.isArray(w.sources) ? w.sources : (w.kind === 'crypto' ? ['finnhub-crypto'] : ['finnhub']),
@@ -2881,9 +3009,12 @@ function nwNormalizeWatch(w) {
   };
 }
 function nwPayloadForServer() {
+  nwReadSettingsFromUI();
   return {
-    _doc: 'News Watch server-side — gestionat din /alerts/ → 📰 News Watch (☁️ News).',
-    version: 1,
+    _doc: 'News Watch pro desk — big filter, digest, quiet hours, earnings pre-pack, EU map. Gestionat din /alerts/.',
+    version: 2,
+    settings: nwSettings(),
+    _meta: nwState._meta || {},
     watches: nwState.watches.map(nwNormalizeWatch)
   };
 }
@@ -2949,9 +3080,12 @@ async function nwPushGitHub(opts = {}) {
         }
         return n;
       });
+      nwReadSettingsFromUI();
       const out = {
-        _doc: 'News Watch server-side — big news filter + earnings events. Gestionat din /alerts/.',
-        version: 1,
+        _doc: 'News Watch pro desk — big filter, digest, quiet hours, earnings pre-pack, EU map. Gestionat din /alerts/.',
+        version: 2,
+        settings: nwSettings(),
+        _meta: nwState._meta || {},
         watches
       };
       const body = {
@@ -3005,12 +3139,17 @@ async function nwPullGitHub(opts = {}) {
       remote = await g.json();
     }
     const list = Array.isArray(remote.watches) ? remote.watches.map(nwNormalizeWatch) : [];
-    // merge cu local: remote e sursa de adevăr pe listă; păstrăm hits UI
+    if (remote.settings) {
+      nwState.settings = { ...NW_DEFAULT_SETTINGS, ...remote.settings, quietHours: { ...NW_DEFAULT_SETTINGS.quietHours, ...(remote.settings.quietHours || {}) } };
+    }
+    if (remote._meta) nwState._meta = remote._meta;
+    nwState.version = remote.version || 2;
     nwState.watches = list;
     nwSave();
+    nwSyncSettingsUI();
     nwRender();
     nwSchedule();
-    if (!silent) toast(`⬇️ News: ${list.length} watches de pe GitHub`, 'success');
+    if (!silent) toast(`⬇️ News: ${list.length} watches · mode ${nwSettings().mode}`, 'success');
     return true;
   } catch (e) {
     if (!silent) toast('❌ News pull: ' + e.message, 'error');
@@ -3019,10 +3158,18 @@ async function nwPullGitHub(opts = {}) {
 }
 function nwInit() {
   nwLoad();
+  nwSyncSettingsUI();
   nwRender();
   nwSchedule();
   $('nwAddBtn')?.addEventListener('click', nwAddFromForm);
   $('nwSym')?.addEventListener('keypress', e => { if (e.key === 'Enter') nwAddFromForm(); });
+  $('nwSaveSettingsBtn')?.addEventListener('click', () => {
+    nwReadSettingsFromUI();
+    nwSave();
+    nwRender();
+    nwAutoSync();
+    toast(`💾 Setări: ${nwSettings().mode} · digest ${nwSettings().digest ? 'ON' : 'OFF'} · quiet ${nwSettings().quietHours.enabled ? 'ON' : 'OFF'}`, 'success');
+  });
   $('nwCheckBtn')?.addEventListener('click', () => nwCheckAll({ quiet: false }));
   $('nwPushBtn')?.addEventListener('click', () => nwPushGitHub({ silent: false }));
   $('nwPullBtn')?.addEventListener('click', () => nwPullGitHub({ silent: false }));
@@ -3083,7 +3230,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v641';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v642';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
