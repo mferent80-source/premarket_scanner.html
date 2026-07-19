@@ -7,6 +7,7 @@
 # ⚠ GitHub NU garantează cadența pe cron programat — sub încărcare poate sări/întârzia
 #   (observat empiric ~1 rulare/1-2h chiar și cu */15). */5 = "cât de des poate", nu fix 5min.
 # Necesită secrets: TELEGRAM_TOKEN + TELEGRAM_CHAT_ID
+#   (+ FINNHUB_API_KEY pentru News Watch — opțional; fără el skip pe news)
 #   (repo → Settings → Secrets and variables → Actions → New repository secret)
 # Test manual: tab-ul Actions → Price Alerts → Run workflow.
 # ═══════════════════════════════════════════════════════════════════
@@ -36,19 +37,27 @@ jobs:
         with:
           node-version: 20
 
-      - name: Verifică alertele
+      - name: Verifică alertele de preț
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: node tools/check-alerts.mjs
 
-      - name: Persistă starea (one-shot consumate / re-arm dezarmate)
+      - name: Verifică News Watch
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+        run: node tools/check-news-watch.mjs
+
+      - name: Persistă starea (price + news + digest)
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           CHANGED=0
           if ! git diff --quiet tools/alerts.json; then git add tools/alerts.json; CHANGED=1; fi
           if ! git diff --quiet tools/hub-stale-digest.json; then git add tools/hub-stale-digest.json; CHANGED=1; fi
+          if ! git diff --quiet tools/news-watch.json; then git add tools/news-watch.json; CHANGED=1; fi
           if [ "$CHANGED" = "1" ]; then
             git commit -m 'chore(alerts): stare actualizata dupa verificare [skip ci]'
             git push

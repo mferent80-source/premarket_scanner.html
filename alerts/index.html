@@ -8,7 +8,7 @@
 <meta name="description" content="Custom price alerts pe stocks + crypto cu polling 30s + notify combo (toast + beep + browser + Telegram). News Watch demo pe același ecran.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=638">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=639">
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -463,7 +463,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v62</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v63</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -598,14 +598,14 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <details class="section trig-details nw-demo" id="nwSection" open>
   <summary class="section-head">
     <span class="trig-caret">▸</span>
-    <h3>📰 News Watch <span style="font-weight:400;font-size:10.5px;color:var(--t3)">· demo client · contract = viitor tools/news-watch.json</span></h3>
+    <h3>📰 News Watch <span style="font-weight:400;font-size:10.5px;color:var(--t3)">· client + server Telegram · tools/news-watch.json</span></h3>
     <span class="count" id="cntNw">0</span>
   </summary>
   <div class="section-body">
     <div class="nw-banner">
-      <b>De ce aici?</b> Lângă price alerts — același ecran de „urmăresc X”. Demo-ul rulează <b>doar în browser</b> (localStorage + Finnhub).
-      Schema e deja cea de producție: când mutăm pe GitHub Actions, UI-ul rămâne, poll-ul trece pe server + Telegram.
-      <b>Nu aruncăm codul</b> — doar adăugăm `check-news-watch.mjs`.
+      <b>Client + server.</b> Local: poll în browser. <b>☁️ News</b> urcă watches pe GitHub → botul
+      <code>check-news-watch.mjs</code> (cron ~5 min) verifică Finnhub și trimite pe <b>Telegram</b> cu laptopul închis.
+      Același token ☁️ ca la price alerts. Secret Actions: <code>FINNHUB_API_KEY</code>.
     </div>
     <div class="nw-form" id="nwForm">
       <div class="fld">
@@ -635,8 +635,10 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
       <button type="button" class="primary" id="nwAddBtn">+ Watch</button>
     </div>
     <div class="nw-toolbar">
-      <button type="button" id="nwCheckBtn" title="Verifică acum toate watches">🔄 Check now</button>
-      <button type="button" id="nwExportBtn" title="Export JSON — shape-ul pentru botul server">📤 Export contract</button>
+      <button type="button" id="nwCheckBtn" title="Verifică acum toate watches (browser)">🔄 Check now</button>
+      <button type="button" id="nwPushBtn" title="☁️ URCĂ watches pe GitHub (tools/news-watch.json) — bot server + Telegram">☁️ News</button>
+      <button type="button" id="nwPullBtn" title="⬇️ ADU watches de pe GitHub (păstrează seen de la bot)">⬇️ News</button>
+      <button type="button" id="nwExportBtn" title="Export JSON local">📤 Export</button>
       <button type="button" id="nwClearSeenBtn" title="Resetează seen (poți re-primi aceleași headlines)">🧹 Clear seen</button>
       <span class="nw-status" id="nwStatus">—</span>
     </div>
@@ -749,8 +751,8 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=638"></script>
-<script src="../lib/data.js?v=638"></script>
+<script src="../lib/suite-version.js?v=639"></script>
+<script src="../lib/data.js?v=639"></script>
 <script src="../lib/telegram.js"></script>
 <script>
 // ============ CONFIG ============
@@ -2647,29 +2649,162 @@ function nwAddFromForm() {
   nwSave();
   nwRender();
   nwSchedule();
+  nwAutoSync();
   $('nwSym').value = '';
   $('nwKw').value = '';
-  toast('📰 Watch adăugat: ' + sym + ' · demo client', 'success');
-  // first check imediat
+  toast('📰 Watch adăugat: ' + sym + ' · ☁️ urcă pe server dacă ai token', 'success');
+  // first check imediat (browser)
   nwCheckOne(w).then(() => { nwSave(); nwRender(); }).catch(e => toast('📰 ' + (e.message || e), 'warn'));
 }
 function nwExportContract() {
-  const payload = {
-    version: 1,
-    _comment: 'Contract demo = viitor tools/news-watch.json. Server va citi watches + seen, trimite Telegram, commit state.',
-    watches: nwState.watches.map(w => ({
-      id: w.id, symbol: w.symbol, kind: w.kind, keywords: w.keywords || [],
-      intervalMin: w.intervalMin || 15, sources: w.sources || [],
-      seen: w.seen || [], lastCheck: w.lastCheck, armed: w.armed !== false
-    }))
-  };
+  const payload = nwPayloadForServer();
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'news-watch.json';
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('📤 Export news-watch.json (contract server)', 'success');
+  toast('📤 Export news-watch.json', 'success');
+}
+function nwNormalizeWatch(w) {
+  return {
+    id: w.id || ('nw_' + uid()),
+    symbol: String(w.symbol || '').toUpperCase(),
+    kind: w.kind === 'crypto' ? 'crypto' : 'stock',
+    keywords: Array.isArray(w.keywords) ? w.keywords : [],
+    intervalMin: Math.max(5, Number(w.intervalMin) || 15),
+    sources: Array.isArray(w.sources) ? w.sources : (w.kind === 'crypto' ? ['finnhub-crypto'] : ['finnhub']),
+    seen: Array.isArray(w.seen) ? w.seen : [],
+    lastCheck: w.lastCheck || null,
+    armed: w.armed !== false
+  };
+}
+function nwPayloadForServer() {
+  return {
+    _doc: 'News Watch server-side — gestionat din /alerts/ → 📰 News Watch (☁️ News).',
+    version: 1,
+    watches: nwState.watches.map(nwNormalizeWatch)
+  };
+}
+const NW_GH_PATH = 'tools/news-watch.json';
+let _nwSyncBusy = false;
+let _nwAutoTimer = null;
+function nwAutoSync() {
+  if (!localStorage.getItem(GH_TOKEN_KEY)) return;
+  if (_nwAutoTimer) clearTimeout(_nwAutoTimer);
+  _nwAutoTimer = setTimeout(() => { _nwAutoTimer = null; nwPushGitHub({ silent: true }); }, 2000);
+}
+async function nwPushGitHub(opts = {}) {
+  const silent = !!opts.silent;
+  let token = localStorage.getItem(GH_TOKEN_KEY) || '';
+  if (!token) {
+    if (silent) return false;
+    token = ghAskToken();
+    if (!token) { toast('☁️ News anulat — fără token', 'info'); return false; }
+  }
+  if (_nwSyncBusy) return false;
+  _nwSyncBusy = true;
+  const btn = $('nwPushBtn');
+  if (btn && !silent) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const api = `https://api.github.com/repos/${GH_REPO}/contents/${NW_GH_PATH}`;
+    const hdr = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' };
+    let lastErr = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const g = await fetch(api + '?ref=main', { headers: hdr });
+      if (g.status === 401 || g.status === 403) throw new Error('token invalid — click-dreapta pe ☁️ (price) pt re-setare');
+      let sha = null;
+      let remoteSeen = {};
+      if (g.status === 404) {
+        // fișier nou pe branch — PUT fără sha
+      } else if (!g.ok) {
+        throw new Error('GitHub GET HTTP ' + g.status);
+      } else {
+        const cur = await g.json();
+        sha = cur.sha;
+        try {
+          const remote = JSON.parse(b64deutf8(String(cur.content || '').replace(/\n/g, '')));
+          // păstrăm seen de pe server dacă local e gol (botul a acumulat)
+          (remote.watches || []).forEach(rw => {
+            if (rw && rw.id && Array.isArray(rw.seen) && rw.seen.length)
+              remoteSeen[rw.id] = { seen: rw.seen, lastCheck: rw.lastCheck };
+          });
+        } catch (e) {}
+      }
+      // merge seen: preferă uniunea local ∪ remote
+      const watches = nwState.watches.map(w => {
+        const n = nwNormalizeWatch(w);
+        const r = remoteSeen[n.id];
+        if (r) {
+          const set = new Set([...(n.seen || []), ...(r.seen || [])]);
+          n.seen = [...set].slice(-NW_SEEN_CAP);
+          if (!n.lastCheck && r.lastCheck) n.lastCheck = r.lastCheck;
+        }
+        return n;
+      });
+      const out = { _doc: 'News Watch server-side — gestionat din /alerts/.', version: 1, watches };
+      const body = {
+        message: `chore(news-watch): ${silent ? 'auto-sync' : 'sync'} din /alerts/ (${watches.length} watches)`,
+        content: b64utf8(JSON.stringify(out, null, 2) + '\n'),
+        branch: 'main'
+      };
+      if (sha) body.sha = sha;
+      const p = await fetch(api, {
+        method: 'PUT',
+        headers: { ...hdr, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (p.status === 409) { lastErr = new Error('conflict 409'); continue; }
+      if (!p.ok) throw new Error('GitHub PUT HTTP ' + p.status + ' ' + (await p.text()).slice(0, 120));
+      const j = await p.json();
+      nwState.watches = watches;
+      nwSave();
+      nwRender();
+      if (!silent) toast(`☁️ News: ${watches.length} watches pe server · ${String((j.commit || {}).sha || '').slice(0, 7)}`, 'success');
+      else toast(`☁️ News auto-sync: ${watches.length} watches`, 'info');
+      return true;
+    }
+    throw lastErr || new Error('conflict persistent');
+  } catch (e) {
+    if (!silent) toast('❌ News sync: ' + e.message, 'error');
+    else console.warn('☁️ news auto-sync:', e.message);
+    return false;
+  } finally {
+    _nwSyncBusy = false;
+    if (btn && !silent) { btn.disabled = false; btn.textContent = '☁️ News'; }
+  }
+}
+async function nwPullGitHub(opts = {}) {
+  const silent = !!opts.silent;
+  let token = localStorage.getItem(GH_TOKEN_KEY) || '';
+  // pull merge și pe raw public (fără token) — seen + watches de pe main
+  try {
+    let remote = null;
+    if (token) {
+      const api = `https://api.github.com/repos/${GH_REPO}/contents/${NW_GH_PATH}?ref=main`;
+      const g = await fetch(api, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' } });
+      if (g.status === 404) { if (!silent) toast('⬇️ News: încă gol pe server', 'info'); return false; }
+      if (!g.ok) throw new Error('GitHub GET HTTP ' + g.status);
+      const cur = await g.json();
+      remote = JSON.parse(b64deutf8(String(cur.content || '').replace(/\n/g, '')));
+    } else {
+      const raw = `https://raw.githubusercontent.com/${GH_REPO}/main/${NW_GH_PATH}?t=${Date.now()}`;
+      const g = await fetch(raw);
+      if (!g.ok) throw new Error('raw HTTP ' + g.status);
+      remote = await g.json();
+    }
+    const list = Array.isArray(remote.watches) ? remote.watches.map(nwNormalizeWatch) : [];
+    // merge cu local: remote e sursa de adevăr pe listă; păstrăm hits UI
+    nwState.watches = list;
+    nwSave();
+    nwRender();
+    nwSchedule();
+    if (!silent) toast(`⬇️ News: ${list.length} watches de pe GitHub`, 'success');
+    return true;
+  } catch (e) {
+    if (!silent) toast('❌ News pull: ' + e.message, 'error');
+    return false;
+  }
 }
 function nwInit() {
   nwLoad();
@@ -2678,12 +2813,14 @@ function nwInit() {
   $('nwAddBtn')?.addEventListener('click', nwAddFromForm);
   $('nwSym')?.addEventListener('keypress', e => { if (e.key === 'Enter') nwAddFromForm(); });
   $('nwCheckBtn')?.addEventListener('click', () => nwCheckAll({ quiet: false }));
+  $('nwPushBtn')?.addEventListener('click', () => nwPushGitHub({ silent: false }));
+  $('nwPullBtn')?.addEventListener('click', () => nwPullGitHub({ silent: false }));
   $('nwExportBtn')?.addEventListener('click', nwExportContract);
   $('nwClearSeenBtn')?.addEventListener('click', () => {
     if (!nwState.watches.length) return;
     if (!confirm('Resetez seen pe toate watches? Headlines vechi pot re-apărea ca „noi”.')) return;
     nwState.watches.forEach(w => { w.seen = []; });
-    nwSave(); nwRender();
+    nwSave(); nwRender(); nwAutoSync();
     toast('🧹 seen cleared', 'info');
   });
   $('nwList')?.addEventListener('click', e => {
@@ -2696,24 +2833,25 @@ function nwInit() {
     if (act === 'del') {
       nwState.watches = nwState.watches.filter(x => x.id !== id);
       delete nwLastHits[id];
-      nwSave(); nwRender(); nwSchedule();
+      nwSave(); nwRender(); nwSchedule(); nwAutoSync();
       toast('Watch șters', 'info');
     } else if (act === 'arm') {
       w.armed = w.armed === false ? true : false;
-      nwSave(); nwRender(); nwSchedule();
+      nwSave(); nwRender(); nwSchedule(); nwAutoSync();
       toast(w.armed ? '▶️ ' + w.symbol + ' armed' : '⏸ ' + w.symbol + ' paused', 'info');
     } else if (act === 'check') {
       nwCheckOne(w).then(() => { nwSave(); nwRender(); nwSetStatus(w.symbol + ' checked'); })
         .catch(err => toast('📰 ' + (err.message || err), 'warn'));
     }
   });
-  // auto kind hint: USDT / -USD → crypto
   $('nwSym')?.addEventListener('change', () => {
     const s = ($('nwSym').value || '').toUpperCase();
     if (/USDT$|-USD$/.test(s) || ['BTC','ETH','SOL','ONDO','DOGE','XRP','ADA'].includes(s)) {
       $('nwKind').value = 'crypto';
     }
   });
+  // pull silent la deschidere (ca price) — lista server + seen de la bot
+  nwPullGitHub({ silent: true });
 }
 
 // ============ INIT ============
@@ -2734,7 +2872,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v638';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v639';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
