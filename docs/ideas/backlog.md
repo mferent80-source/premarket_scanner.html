@@ -189,6 +189,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-181 | Calibrare surprise-magnitude → mărime reacție (bucketing) | macro-dashboard/index.html | M | P2 | propus | ideation | 2026-07-15 |
 | I-182 | Alerte gate pe z-score surprise (peste zgomotul propriu) | macro-dashboard/ + tools/check-alerts.mjs | M | P2 | propus | ideation | 2026-07-15 |
 | I-183 | Influență regime-aware (marketInfluence × md_risk_regime) | macro-dashboard/index.html | S | P3 | propus | ideation | 2026-07-15 |
+| I-184 | EXPECT net de fee (input fee round-trip) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
+| I-185 | VERIF lead-time (avansul mediu în bare al avertismentelor) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
+| I-186 | Rând CE FAC? (acțiune pe stare, pattern VolRegime) | PPST Deck Pine | S | P2 | propus | ideation | 2026-07-22 |
+| I-187 | Dash compact pe toggle (nucleu ≤7 rânduri) | PPST Deck Pine | S | P2 | propus | ideation | 2026-07-22 |
+| I-188 | Connector Meta-Confluence (plot cod −2..+2) | PPST Deck Pine | S | P3 | propus | ideation | 2026-07-22 |
+| I-189 | MATUR + base-rate split pe direcție (BULL vs BEAR) | PPST Deck Pine | S | P3 | propus | ideation | 2026-07-22 |
 
 ## Mini-spec-uri
 
@@ -1286,3 +1292,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** influența devine condiționată de context, nu absolută; aliniere cu tema mood a paginii.
 - **Riscuri/dependențe:** regimul e o euristică, nu adevăr — formulare cu „poate/tinde", nu deterministă; dependență de prospețimea `md_risk_regime` (afișează vârsta dacă e stale).
 - **Fișiere atinse:** `macro-dashboard/index.html` (`marketInfluence`/randare inline + banner).
+
+### I-184 · EXPECT net de fee (input fee round-trip) · [S] · P1
+- **Problema/golul:** rândul EXPECT din `PPST_Deck_v1_1.pine` arată expectancy BRUT %/segment; fee-ul (~0.1–0.2% round-trip Pionex) e doar o mențiune în README. Per trader.md §2, PnL fără costuri e ficțiune — un „permis +0.12%/flip" arată verde deși e sub apă după comisioane.
+- **Soluția:** input `feeRT` (default 0.15%) în grupul Deck; EXPECT afișează media NET (brut − fee) și colorează după net, nu după brut. Opțional în paranteză și brutul. Zero atingere a logicii de bază — doar aritmetică pe acumulatoarele existente `expSumPerm/expCntPerm`.
+- **Impact:** verdictul „sistemul face bani pe simbolul ăsta" devine direct citibil; previne exact iluzia expectancy-pozitiv-dar-sub-fee. Fee-ul default e ipoteză — de setat per exchange.
+- **Riscuri/dependențe:** fee-ul real diferă pe maker/taker și pe exchange (input, nu constantă); slippage tot nemodelat (declarat în tooltip).
+- **Fișiere atinse:** `pine-scripts\PPST-DECK\PPST_Deck_v1_1.pine` (inputs Deck + rând EXPECT), README.
+
+### I-185 · VERIF lead-time (avansul mediu în bare al avertismentelor) · [S] · P1
+- **Problema/golul:** promisiunea deck-ului e „anticipează flip-ul cu 1–2 bare", dar VERIF măsoară doar DACĂ flip-ul a venit în ≤N bare, nu CÂT avans real a oferit avertismentul. Un VERIF de 80% cu avans mediu 0–1 bare nu-ți lasă timp să acționezi — informația decisivă lipsește.
+- **Soluția:** la fiecare hit din trackerul VERIF (blocurile `vHits1/vHits2` există deja), acumulează și `bar_index - warnBar` într-o sumă separată per treaptă; rândurile VERIF afișează „% vs baza (avans mediu X.Xb)". Doar citire pe starea existentă.
+- **Impact:** deosebești avertisment utilizabil (avans 2–3 bare = timp de decizie) de avertisment simultan cu flip-ul (avans 0 = decorativ); completează exact metrica pentru care există dash-ul.
+- **Riscuri/dependențe:** n mic la început = medie-zgomot (afișat lângă n, ca acum); niciun risc de logică.
+- **Fișiere atinse:** `pine-scripts\PPST-DECK\PPST_Deck_v1_1.pine` (secțiunea VERIF + rândurile 8–9 din dash), README.
+
+### I-186 · Rând CE FAC? (acțiune pe stare, pattern VolRegime) · [S] · P2
+- **Problema/golul:** dash-ul dă stare (BULL - SLABESTE, FLIP IMINENT, REVERSED BLOCAT) dar traducerea în acțiune rămâne în capul userului la fiecare citire; VolRegime are deja rândul „CE FAC?" ca pattern de casă care s-a dovedit util.
+- **Soluția:** rând nou derivat DOAR din stările existente: BULL/BEAR sănătos → „tine pozitia"; SLABESTE → „nu adauga, strange stopul"; IMINENT → „pregateste iesirea la close sub stop"; REVERSED permis → „intrare noua (verifica EXPECT)"; REVERSED blocat → „doar iesire, nu intrare"; MATUR >100% + SLABESTE → „trend batran, ia profit partial". Text mut/amber/orange consecvent cu hero-ul.
+- **Impact:** citirea dash-ului scade de la interpretare la execuție — util mai ales pe 1h unde decizia se ia în minute; consecvență cu restul suitei META.
+- **Riscuri/dependențe:** formulările sunt reguli de casă, nu semnale noi (niciun prag nou); +1 rând — de combinat cu I-187 ca să nu crească ziarul.
+- **Fișiere atinse:** `pine-scripts\PPST-DECK\PPST_Deck_v1_1.pine` (dashboard, +1 rând), README.
+
+### I-187 · Dash compact pe toggle (nucleu ≤7 rânduri) · [S] · P2
+- **Problema/golul:** design.md §3 — max ~7 rânduri vizibile by default; dash-ul are 11. EXPECT/VERIF/MATUR/SETUP sunt diagnostic (le citești o dată pe zi), nu decizie (le citești la fiecare bară) — azi plătești zgomot vizual permanent pentru ele.
+- **Soluția:** input „Arata diagnostic" (default ON la început, userul decide): OFF ascunde MATUR, EXPECT, VERIF SLB/IMN, SETUP → nucleu 6 rânduri (hero, STOP, PRESIUNE, FILTRU, FLIP, DIST). Tabelul se dimensionează pe numărul de rânduri active.
+- **Impact:** citire în 2 secunde pe chart aglomerat (are deja stats panel-ul original jos-dreapta); diagnosticul rămâne la un click.
+- **Riscuri/dependențe:** minime — doar afișare; atenție la indexarea rândurilor când unele lipsesc (contor de rând, pattern folosit deja în AntiFOMO).
+- **Fișiere atinse:** `pine-scripts\PPST-DECK\PPST_Deck_v1_1.pine` (inputs Deck + secțiunea DASHBOARD), README.
+
+### I-188 · Connector Meta-Confluence (plot cod −2..+2) · [S] · P3
+- **Problema/golul:** convenția casei (CVD PRO, Confirmation Engine, IronRod, AntiFOMO — I-007/I-015/I-044 toate făcute): tool-urile mature exportă un plot connector pentru `input.source`; PPST Deck își ține starea izolată pe chart și nu poate fi lentilă în Meta-Confluence/Command Deck.
+- **Soluția:** plot `display.none` „PPST Deck (connector)": BULL sănătos=+2, BULL cu SLABESTE/IMINENT=+1, BEAR cu SLABESTE/IMINENT=−1, BEAR sănătos=−2 (avertismentele DEGRADEAZĂ încrederea în direcție — semantica documentată în README). Doar citire pe stările deck.
+- **Impact:** flip-ul anticipat devine vizibil în meta-verdict fără chart switch; aliniere cu restul familiei.
+- **Riscuri/dependențe:** slotul în Meta-Confluence e livrare separată (alt fișier, contract v2); numele plot-ului trebuie să rămână stabil.
+- **Fișiere atinse:** `pine-scripts\PPST-DECK\PPST_Deck_v1_1.pine` (un plot), README; ulterior `Meta_Confluence_v*.pine` (separat).
+
+### I-189 · MATUR + base-rate split pe direcție (BULL vs BEAR) · [S] · P3
+- **Problema/golul:** `avgSeg` agregă segmentele bull și bear într-o singură medie, dar pe crypto asimetria e regula (trenduri bull lente, prăbușiri bear rapide) — MATUR „120%" pe un segment bull comparat cu o medie trasă în jos de segmente bear scurte e o alarmă falsă, iar base-rate-ul VERIF suferă la fel.
+- **Soluția:** acumulatoare separate `segSumBull/segCntBull` și `segSumBear/segCntBear` (arhivate în blocul `realFlip` existent, după `prevDir`); MATUR și base-rate folosesc media direcției segmentului CURENT, cu fallback pe media agregată sub n=5 pe direcție (eșantion insuficient = zgomot, afișat).
+- **Impact:** MATUR și „vs baza" devin comparabile cu ce trăiește segmentul, nu cu o medie amestecată — mai puține alarme false de „trend bătrân" pe bull runs.
+- **Riscuri/dependențe:** n per direcție se înjumătățește — fallback-ul agregat e obligatoriu; doar strat de citire, zero logică de bază.
+- **Fișiere atinse:** `pine-scripts\PPST-DECK\PPST_Deck_v1_1.pine` (secțiunea segmente + MATUR/base-rate + dash), README.
