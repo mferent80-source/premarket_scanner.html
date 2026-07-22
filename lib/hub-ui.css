@@ -43,7 +43,7 @@
 }
 
 .hub-ver-badge {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--crypto-1, #f7931a);
   border: 1px solid rgba(247, 147, 26, 0.35);
@@ -55,7 +55,7 @@
 }
 
 .hub-stale-nav {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   text-decoration: none;
   padding: 1px 7px;
@@ -255,7 +255,7 @@
 
 .ht-card.ht-compact { grid-column: span 2; min-height: 42px; padding: 5px 8px; }
 .ht-card.ht-compact .ht-m-val { font-size: 11px; }
-.ht-card.ht-compact .ht-m-lbl { font-size: 7px; }
+.ht-card.ht-compact .ht-m-lbl { font-size: 9px; }
 
 .ht-span-6 { grid-column: span 6 !important; }
 .ht-span-12 { grid-column: 1 / -1 !important; }
@@ -347,6 +347,7 @@
   font-family: var(--head);
   font-weight: 900;
   letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums; /* cifrele nu mai „respiră" lateral la refresh */
 }
 .ht-go-num.go-go { color: var(--green); }
 .ht-go-num.go-caution { color: #d4892c; }
@@ -518,7 +519,7 @@ a.ht-card.ht-market:hover {
 .ht-gold-ev-lbl {
   flex: 0 0 auto;
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -568,7 +569,7 @@ a.ht-card.ht-market:hover {
 .ht-gappers-lbl {
   flex: 0 0 auto;
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -659,7 +660,7 @@ a.ht-card.ht-market:hover {
 .ht-gap-trad.thin { color: var(--t3); opacity: .75; }
 
 .ht-gap-earn {
-  font-size: 7px;
+  font-size: 9px;
   font-weight: 800;
   color: #d4892c;
   border: 1px solid rgba(212, 137, 44, 0.4);
@@ -787,13 +788,13 @@ a.ht-card.ht-market:hover {
 }
 
 .ht-n-ico { font-size: 15px; line-height: 1; }
-.ht-n-lbl { font-size: 8px; font-weight: 700; letter-spacing: 0.02em; }
+.ht-n-lbl { font-size: 9px; font-weight: 700; letter-spacing: 0.02em; }
 
 .ht-metric { min-height: 40px; }
 
 .ht-m-lbl {
   font-family: var(--mono);
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   color: var(--t3);
   text-transform: uppercase;
@@ -807,6 +808,7 @@ a.ht-card.ht-market:hover {
   color: var(--t1);
   margin-top: 2px;
   line-height: 1.15;
+  font-variant-numeric: tabular-nums; /* lățime stabilă la refresh per minut */
 }
 
 
@@ -843,7 +845,7 @@ a.ht-card.ht-market:hover {
 .ht-ev.ph-result { border-color: rgba(34, 214, 107, 0.35); }
 .ht-ev.ph-result .ht-ev-meta { color: var(--green); }
 .ht-ev-empty { font-size: 10px; color: var(--t3); padding: 8px 4px; }
-.ht-ev a.ht-ev { text-decoration: none; color: inherit; }
+a.ht-ev { text-decoration: none; color: inherit; } /* era .ht-ev a.ht-ev — selector mort (nu există ancoră imbricată) */
 
 @keyframes ht-ev-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -1023,7 +1025,7 @@ body[data-hub-mode="pre"] .hub-cockpit-fold:not([open]) .hub-cockpit-sum {
   background: rgba(20, 26, 40, 0.85) !important;
   border: 1px solid var(--b1);
   color: var(--t1);
-  font-size: 13px;
+  font-size: 16px; /* sub 16px, iOS Safari face auto-zoom la focus */
   font-family: inherit;
   transition: border-color 0.15s var(--ease);
 }
@@ -1384,4 +1386,5 @@ body[data-hub-mode="pre"] .hub-cockpit-fold:not([open]) .hub-cockpit-sum {
   .hub-deck .hub-cmd-cell:hover {
     transform: none;
   }
+  .ht-ev-dot { animation: none; } /* pulsul infinit al dot-ului live se oprește */
 }

@@ -42,7 +42,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0b0f17">
 <title>Stocks Trading Tools — Nasdaq + Events</title>
-<meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
+<meta name="description" content="Suite stocks trading: Nasdaq Scanner, Market Events, Journal & Risk Desk, Macro Dashboard — cockpit decizional stocks-only">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="lib/hub-ui.css?v=664">
@@ -293,21 +293,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 }
 
 
-/* === HUB COCKPIT v542 === */
-.hub-cmd{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0;grid-column:1/-1}
-.hub-cmd-slim .hub-cmd-val{font-size:15px}
-.hub-cmd-slim .hub-cmd-cell{padding:8px 10px}
-@media(max-width:900px){.hub-cmd{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:550px){.hub-cmd{grid-template-columns:1fr 1fr}}
-.hub-cmd-cell{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--b1);border-radius:10px;padding:10px 12px;position:relative;overflow:hidden}
-.hub-cmd-cell::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--indigo,#5bb0ff)}
-.hub-cmd-cell.lvl-ok::before{background:var(--green)}.hub-cmd-cell.lvl-warn::before{background:#d4892c}.hub-cmd-cell.lvl-bear::before{background:#ff4d4d}
-.hub-cmd-lbl{font-family:var(--mono);font-size:9px;text-transform:uppercase;color:var(--t3);font-weight:700}
-.hub-cmd-val{font-size:17px;font-weight:800;margin-top:2px;line-height:1.2}
-.hub-cmd-sub{font-family:var(--mono);font-size:9.5px;color:var(--t2);margin-top:3px}
-.hub-cmd-dim{font-size:11px;color:var(--t3)}
-.hub-cmd-spark{margin-top:4px;opacity:.9}
-.hub-cmd-val .go-go{color:var(--green)}.hub-cmd-val .go-caution{color:#d4892c}.hub-cmd-val .go-nogo{color:#ff4d4d}
+/* (blocul CSS .hub-cmd* „HUB COCKPIT v542" șters — markup-ul nu mai e generat de niciun modul; audit 2026-07-22) */
 .hub-cockpit{background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(91,176,255,.07));border:1px solid rgba(247,147,26,.28);border-radius:12px;padding:14px 16px;margin:10px 0 14px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
 .hub-cockpit.stay{background:linear-gradient(135deg,rgba(255,77,77,.12),rgba(20,26,40,.5));border-color:rgba(255,77,77,.45)}
 .hub-cockpit-lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--crypto-1);margin-bottom:4px}
@@ -750,7 +736,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   <section class="wf-section" data-wf="scan">
     <div class="wf-head">🔍 Scan — setup & watchlist</div>
     <div class="wf-grid">
-<a href="./nasdaq-scanner/" data-phase="scan" target="ttools-nasdaq" rel="noopener" class="card nasdaq" data-phase="scan">
+<a href="./nasdaq-scanner/" data-phase="scan" target="ttools-nasdaq" rel="noopener" class="card nasdaq">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('nasdaq')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon">📈</div>
       <span class="card-tag">Stocks · v127</span>
@@ -792,7 +778,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
       </div>
     </a>
 
-    <a href="./watchlist-monitor/" data-phase="scan" target="ttools-watchlist" rel="noopener" class="card" data-phase="scan" style="--accent:linear-gradient(90deg,var(--green),#5bdcb0); --glow:rgba(34,214,107,.18)">
+    <a href="./watchlist-monitor/" data-phase="scan" target="ttools-watchlist" rel="noopener" class="card" style="--accent:linear-gradient(90deg,var(--green),#5bdcb0); --glow:rgba(34,214,107,.18)">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('watchlist')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon" style="background:linear-gradient(135deg,var(--green),#5bdcb0);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#000">👁️</div>
       <span class="card-tag" style="background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)">Watchlist · v151</span>
@@ -832,7 +818,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
       </div>
     </a>
 
-    <a href="./market-events/" data-phase="scan" target="ttools-events" rel="noopener" class="card events" data-phase="scan">
+    <a href="./market-events/" data-phase="scan" target="ttools-events" rel="noopener" class="card events">
       <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('market-events')" title="Vezi toate funcționalitățile">ℹ</button>
       <div class="card-icon">📉</div>
       <span class="card-tag">Events · v246</span>
@@ -1170,8 +1156,11 @@ window.showFeaturesModal = function(scannerKey){
   const ov = document.createElement('div');
   ov.id = 'flOverlay';
   ov.className = 'fl-overlay';
-  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
-  let html = `<div class="fl-modal">
+  const closeOv = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') closeOv(); };
+  document.addEventListener('keydown', onKey);
+  ov.addEventListener('click', e => { if (e.target === ov) closeOv(); });
+  let html = `<div class="fl-modal" role="dialog" aria-modal="true" aria-label="Funcționalități scanner">
     <div class="fl-head">
       <div>
         <h3>${data.title}</h3>
@@ -1193,7 +1182,7 @@ window.showFeaturesModal = function(scannerKey){
   </div></div>`;
   ov.innerHTML = html;
   document.body.appendChild(ov);
-  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeOv));
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -1202,12 +1191,14 @@ window.showFeaturesModal = function(scannerKey){
 //  Status: 'open' | 'win' | 'loss' (manual mark)
 // ═══════════════════════════════════════════════════════════════
 function ttLoad(){ return (window.TT && TT.all) ? TT.all() : []; }
-function ttCalcPnL(t){ return (window.TT && TT.calcPnL) ? TT.calcPnL(t) : 0; }
 window.openTradeTracker = function(){
   document.getElementById('ttOverlay')?.remove();
   const ov = document.createElement('div');
   ov.id = 'ttOverlay'; ov.className = 'tt-overlay';
-  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  const closeOv = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+  const onKey = e => { if (e.key === 'Escape') closeOv(); };
+  document.addEventListener('keydown', onKey);
+  ov.addEventListener('click', e => { if (e.target === ov) closeOv(); });
 
   const trades = ttLoad();
   const open = trades.filter(t => t.status === 'open');
@@ -1217,7 +1208,7 @@ window.openTradeTracker = function(){
   const totalPnL = closed.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
 
   ov.innerHTML = `
-    <div class="tt-modal">
+    <div class="tt-modal" role="dialog" aria-modal="true" aria-label="Trade Plans">
       <div class="tt-head">
         <div>
           <h3>📓 Trade Plans</h3>
@@ -1254,7 +1245,7 @@ window.openTradeTracker = function(){
       </div>
     </div>`;
   document.body.appendChild(ov);
-  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeOv));
   // preview de risc live la fiecare tastă (I-207) — sizing vizibil ÎNAINTE de salvare
   ['ttEntry', 'ttSL', 'ttTP', 'ttSize', 'ttDir'].forEach(id => {
     const el = document.getElementById(id);
