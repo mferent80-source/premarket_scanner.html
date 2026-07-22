@@ -1332,13 +1332,50 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 }
 .el-sens-btn.active{border-color:rgba(91,176,255,.5); color:#5bb0ff; background:rgba(91,176,255,.1)}
 #elDiagSlot{margin:0 0 8px}
+/* Countdown ORB */
+.el-clock{
+  margin:0 0 8px; padding:8px 12px; border-radius:10px;
+  border:1px solid var(--border); background:rgba(20,26,40,.9);
+}
+.el-clock.pre{border-color:rgba(247,147,26,.35)}
+.el-clock.orb{border-color:rgba(34,214,107,.4); background:rgba(34,214,107,.06)}
+.el-clock-main{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.el-clock-lab{font-size:11px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; color:var(--muted)}
+.el-clock.orb .el-clock-lab{color:#22d66b}
+.el-clock.pre .el-clock-lab{color:var(--crypto-1)}
+.el-clock-left{font-size:18px; font-weight:800; font-variant-numeric:tabular-nums; font-family:ui-monospace,DM Mono,monospace; color:var(--text)}
+.el-clock-sub{font-size:10.5px; color:var(--muted); margin-top:2px}
+.el-clock-bar{margin-top:6px; height:4px; border-radius:2px; background:rgba(42,50,71,.9); overflow:hidden}
+.el-clock-bar span{display:block; height:100%; background:linear-gradient(90deg,var(--crypto-1),#22d66b); border-radius:2px; transition:width .4s}
+.el-nm-stats{font-size:10.5px; color:var(--muted); margin:6px 0 0; font-variant-numeric:tabular-nums}
+.el-nm-stats b{color:#5bb0ff}
+.el-nm-noise{color:#d4892c; font-weight:700}
+/* Mode Scan / Trade */
+.el-mode-row{display:flex; gap:6px; flex-wrap:wrap; margin:0 0 8px}
+.el-mode-btn{
+  appearance:none; cursor:pointer; padding:5px 12px; border-radius:999px;
+  font-size:11px; font-weight:800; border:1px solid var(--border);
+  background:var(--panel2); color:var(--muted);
+}
+.el-mode-btn.active{border-color:rgba(34,214,107,.5); color:#22d66b; background:rgba(34,214,107,.1)}
+.el-mode-btn[data-mode="scan"].active{border-color:rgba(91,176,255,.5); color:#5bb0ff; background:rgba(91,176,255,.1)}
+/* Near-miss pe rail când 0 FIRE */
+.el-near-rail-title{
+  grid-column:1/-1; font-size:10px; font-weight:800; letter-spacing:.4px;
+  text-transform:uppercase; color:#5bb0ff; margin:4px 0 0;
+}
+.el-card.near-miss{border-style:dashed; border-color:rgba(91,176,255,.4); opacity:.95}
+.el-card.near-miss .el-card-state{background:rgba(91,176,255,.15); color:#5bb0ff}
+.el-desk.quiet-empty .el-heat,
+.el-desk.quiet-empty .el-sector-chips{display:none}
+.el-desk.quiet-empty .el-kbd-hint{opacity:.5}
 </style>
 </head>
 <body class="suite-page">
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v256</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v258</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1410,6 +1447,10 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
       <button type="button" class="ghost" id="elDensityBtn" title="Densitate compactă pe rail (mai multe carduri)">▦ Compact</button>
     </div>
   </div>
+  <div class="el-mode-row" id="elModeRow">
+    <button type="button" class="el-mode-btn active" data-mode="scan" title="Discovery: ARMED + near-miss + funnel">🔬 Scan</button>
+    <button type="button" class="el-mode-btn" data-mode="trade" title="Doar FIRE + MANAGE — desk de execuție">▶ Trade</button>
+  </div>
   <div class="el-sens-row" id="elSensRow" title="Praguri FIRE (ipoteze)">
     <label>Sens</label>
     <button type="button" class="el-sens-btn" data-sens="strict" title="T≥4 Σ≥8">Strict</button>
@@ -1417,6 +1458,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
     <button type="button" class="el-sens-btn" data-sens="wide" title="T≥2 Σ≥4 — mai multe semnale">Wide</button>
   </div>
   <div class="el-sticky-zone" id="elStickyZone">
+  <div id="elClockSlot"></div>
   <div class="el-strip" id="elStrip">
     <span class="el-pill fire">FIRE <span class="n" id="elCntFire">0</span></span>
     <span class="el-pill manage">MANAGE <span class="n" id="elCntManage">0</span></span>
@@ -1425,6 +1467,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
   </div>
   <!-- Funnel + de ce 0 FIRE + near-miss -->
   <div id="elDiagSlot"></div>
+  <div id="elNmSlot"></div>
   <!-- Risc concentrare sector (ex. 3+ FIRE pe Technology) -->
   <div class="el-risk-banner" id="elRiskBanner" role="status">
     <span class="el-risk-ico">⚠</span>
@@ -1439,7 +1482,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
     Focus: <strong id="elFocusName">—</strong>
     <button type="button" id="elFocusClear">✕ Toate sectoarele</button>
   </div>
-  <p class="el-kbd-hint"><kbd>S</kbd> scan · <kbd>1</kbd>–<kbd>9</kbd> sector · <kbd>Esc</kbd> clear · <kbd>C</kbd> compact · <kbd>G</kbd> group</p>
+  <p class="el-kbd-hint"><kbd>S</kbd> scan · <kbd>T</kbd> trade mode · <kbd>1</kbd>–<kbd>9</kbd> sector · <kbd>Esc</kbd> clear · <kbd>C</kbd> compact · <kbd>G</kbd> group · <kbd>W</kbd> wide</p>
   </div><!-- /el-sticky-zone -->
   <div class="el-fire-rail" id="elFireRail">
     <div class="el-empty" id="elEmpty">Se încarcă structure daily pe watchlist, apoi trigger pe bare 5m închise…</div>
@@ -1454,7 +1497,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
       <div class="el-fire-log-empty">Niciun me-fire încă — apar după primul FIRE pe bare 5m închise.</div>
     </div>
   </div>
-  <p class="el-note">Soft gates: max <b>2 FIRE/sector</b> · RS vs SPY (slab → demote) · concentrație ≥3 → banner + Telegram (1×/zi) · sticky strip · hero FIRE · WL colapsat în PRE. Praguri = ipoteze.</p>
+  <p class="el-note">Countdown ORB · <b>Scan/Trade</b> · WL-first PRE · near-miss pe rail la 0 FIRE · Near→FIRE 30m · focus sector salvat · Soft: cap 2/sector · RS/SPY. Praguri = ipoteze.</p>
 </section>
 
 <!-- ============================================== -->
@@ -1706,9 +1749,9 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/me-early-bird.js?v=256"></script>
-<script src="../lib/early-long.js?v=256"></script>
-<script src="../lib/me-desk.js?v=256"></script>
+<script src="../lib/me-early-bird.js?v=258"></script>
+<script src="../lib/early-long.js?v=258"></script>
+<script src="../lib/me-desk.js?v=258"></script>
 <script>
 // Flag shell-pause: default vizibil. FĂRĂ mesaj de la shell → comportament IDENTIC actual.
 // Pauza polling-urilor de fundal e opt-in DOAR la ttShellVisible:false (vezi secțiunea „SHELL VISIBILITY" jos).
@@ -4882,10 +4925,14 @@ let elUniverseMeta = null;
 let elGroupBySector = localStorage.getItem('me_el_group_sector') !== '0'; // default ON
 let elCompact = localStorage.getItem('me_el_compact') === '1';
 let elSensMode = localStorage.getItem('me_el_sens') || 'normal'; // strict|normal|wide
+let elDeskMode = localStorage.getItem('me_el_mode') || 'scan'; // scan | trade
 let elSectorMap = null;
-let elSectorFocus = null; // null = toate; string = un sector
-let elRiskDominant = null; // sector dominant pentru banner
+let elSectorFocus = localStorage.getItem('me_el_sector_focus') || null; // persisted
+if (elSectorFocus === '' || elSectorFocus === 'null') elSectorFocus = null;
+let elRiskDominant = null;
 let elLastFunnel = null;
+let elClockTimer = null;
+let elWlFirstOnly = false; // set true after first structure-empty TOT scan in PRE
 
 function elApplySens(){
   if (window.MED && MED.applySensitivity && window.EL && EL.CFG) {
@@ -4900,15 +4947,50 @@ function elPaintSens(){
   });
 }
 
+function elPaintMode(){
+  document.querySelectorAll('.el-mode-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-mode') === elDeskMode);
+  });
+}
+
+function elPaintClock(){
+  const slot = document.getElementById('elClockSlot');
+  if (!slot || !window.MED || !MED.sessionClock) return;
+  const clk = MED.sessionClock(Date.now(), (window.EL && EL.CFG) || {});
+  slot.innerHTML = MED.clockHtml(clk);
+}
+
 function elPaintDiag(results){
   const slot = document.getElementById('elDiagSlot');
+  const nmSlot = document.getElementById('elNmSlot');
   if (!slot || !window.MED || !MED.funnelStats) return;
   const path = (window.EL && EL.sessionPath) ? EL.sessionPath() : '';
   const fun = MED.funnelStats(results || elLastResults || [], (window.EL && EL.CFG) || {}, path);
   elLastFunnel = fun;
+  // track near→fire
+  const fires = (results || []).filter(r => r && r.state === 'FIRE').map(r => r.symbol);
+  let nmSt = null;
+  if (MED.trackNearMiss) nmSt = MED.trackNearMiss(fun.near, fires);
   slot.innerHTML = MED.funnelHtml(fun);
+  if (nmSlot && MED.nmStatsHtml) nmSlot.innerHTML = MED.nmStatsHtml(nmSt || MED.nearMissStats());
   const desk = document.getElementById('elDesk');
   if (desk) desk.classList.toggle('quiet-empty', !!(fun && fun.quiet));
+}
+
+function elNearMissCardsHtml(nearList){
+  if (!nearList || !nearList.length) return '';
+  const cards = nearList.slice(0, 8).map(n => {
+    return `<article class="el-card near-miss" data-sym="${elEsc(n.symbol)}">
+      <div><span class="el-card-sym">${elEsc(n.symbol)}</span><span class="el-card-state">NEAR</span></div>
+      <div class="el-card-px">T${n.t}/${n.needT} · Σ${n.total}/${n.needTot}</div>
+      <div class="el-card-reason">${elEsc((n.reason || 'aproape de FIRE').slice(0, 80))}</div>
+      <div class="el-card-actions">
+        <button type="button" onclick="wlAddSymbol && wlAddSymbol('${elEsc(n.symbol)}')">👁 WL</button>
+        <button type="button" onclick="window.open('../nasdaq-scanner/?symbol=${encodeURIComponent(n.symbol)}','_blank')">Scanner</button>
+      </div>
+    </article>`;
+  }).join('');
+  return `<div class="el-near-rail-title">Near-miss · aproape de FIRE (nu e entry)</div>${cards}`;
 }
 
 function elCardHtml(r){
@@ -4945,6 +5027,10 @@ function elCardHtml(r){
 
 function elSetSectorFocus(sec){
   elSectorFocus = sec || null;
+  try {
+    if (elSectorFocus) localStorage.setItem('me_el_sector_focus', elSectorFocus);
+    else localStorage.removeItem('me_el_sector_focus');
+  } catch(_){}
   elRenderRail(elLastResults);
 }
 
@@ -5025,6 +5111,8 @@ function elRenderRail(results){
   }
   elPaintCounts(results);
   elPaintSens();
+  elPaintMode();
+  elPaintClock();
   elPaintDiag(results);
   const btnG = document.getElementById('elGroupSector');
   if (btnG) {
@@ -5039,7 +5127,12 @@ function elRenderRail(results){
   if (!rail) { elRenderFireLog(); return; }
 
   let list = results || [];
-  if (elFilterActive) list = list.filter(r => r.state === 'FIRE' || r.state === 'ARMED' || r.state === 'MANAGE');
+  // Trade mode: doar FIRE + MANAGE
+  if (elDeskMode === 'trade') {
+    list = list.filter(r => r.state === 'FIRE' || r.state === 'MANAGE');
+  } else if (elFilterActive) {
+    list = list.filter(r => r.state === 'FIRE' || r.state === 'ARMED' || r.state === 'MANAGE');
+  }
   // atașează sector
   if (window.EL && EL.sectorOf) {
     list.forEach(r => { r.sector = r.sector || EL.sectorOf(r.symbol, elSectorMap); });
@@ -5047,8 +5140,18 @@ function elRenderRail(results){
   const groupsAll = (window.EL && EL.groupBySector)
     ? EL.groupBySector(list, elSectorMap || (EL.loadSectorMap && EL.loadSectorMap()))
     : [];
-  elPaintSectorChips(groupsAll);
-  elPaintHeat(groupsAll);
+  const fireCount = (results || []).filter(r => r && r.state === 'FIRE').length;
+  const quiet = fireCount === 0;
+  // quiet: mute heat/chips (Scan mode still shows funnel)
+  if (!quiet) {
+    elPaintSectorChips(groupsAll);
+    elPaintHeat(groupsAll);
+  } else {
+    const chips = document.getElementById('elSectorChips');
+    const heat = document.getElementById('elHeat');
+    if (chips) chips.innerHTML = '';
+    if (heat) heat.innerHTML = '';
+  }
   elPaintRiskBanner(groupsAll, list);
   elPaintFocusBar();
 
@@ -5058,16 +5161,25 @@ function elRenderRail(results){
   // hero = best FIRE
   if (window.MED && MED.markHero) MED.markHero(list);
 
+  // 0 FIRE + Scan mode → near-miss pe rail
+  const nearCards = (quiet && elDeskMode === 'scan' && elLastFunnel && elLastFunnel.near && elLastFunnel.near.length)
+    ? elNearMissCardsHtml(elLastFunnel.near)
+    : '';
+
   if (!list.length) {
     const path = (window.EL && EL.sessionPath) ? EL.sessionPath() : '';
-    let tip = 'Niciun FIRE/ARMED/MANAGE — vezi funnel-ul de mai sus (de ce + near-miss).';
-    if (path === 'pre_orb') tip = 'PRE: 0 FIRE e des normal — ORB după 09:30 ET. Urmărește near-miss / ARMED; sau treci pe <b>Wide</b>.';
-    if (path === 'closed') tip = 'Sesiune închisă — trigger 5m e inactiv. Revino în PRE/RTH.';
-    if (path === 'late') tip = 'După 10:15 ET (late): fără ORB fresh. Așteaptă VWAP/HL sau Wide.';
-    rail.innerHTML = `<div class="el-empty">${elSectorFocus
-      ? `Nimic activ pe <b>${elEsc(elSectorFocus)}</b> — click ✕ Toate sectoarele.`
-      : tip}</div>`;
-  } else if (elGroupBySector && groupsAll.length) {
+    let tip = 'Niciun FIRE/ARMED/MANAGE — vezi funnel + near-miss.';
+    if (elDeskMode === 'trade') tip = 'Trade mode: zero FIRE/MANAGE. Treci pe <b>Scan</b> pentru near-miss / ARMED.';
+    if (path === 'pre_orb') tip = 'PRE: 0 FIRE e normal — countdown → Open. Near-miss pe rail / funnel; ORB după 09:30 ET.';
+    if (path === 'closed') tip = 'Sesiune închisă — trigger 5m inactiv.';
+    if (path === 'late') tip = 'Late RTH: fără ORB fresh. VWAP/HL sau Wide.';
+    rail.innerHTML = (nearCards || '') + (nearCards ? '' : `<div class="el-empty">${elSectorFocus
+      ? `Nimic pe <b>${elEsc(elSectorFocus)}</b>.`
+      : tip}</div>`);
+    if (nearCards && list.length === 0) {
+      // already set near cards
+    }
+  } else if (elGroupBySector && groupsAll.length && elDeskMode !== 'trade') {
     const groups = elSectorFocus
       ? groupsAll.filter(g => g.sector === elSectorFocus)
       : groupsAll;
@@ -5090,7 +5202,7 @@ function elRenderRail(results){
         + `<span class="el-sec-stats"><b class="fire">${g.fire}</b> FIRE · <b class="armed">${g.armed}</b> ARM · ${g.n}</span></button>`
         + take.map(elCardHtml).join('');
     }
-    rail.innerHTML = html || `<div class="el-empty">Gol după grupare sector.</div>`;
+    rail.innerHTML = (nearCards || '') + (html || `<div class="el-empty">Gol după grupare sector.</div>`);
     rail.querySelectorAll('.el-sector-head').forEach(h => {
       h.addEventListener('click', () => {
         const s = h.getAttribute('data-sector');
@@ -5104,14 +5216,22 @@ function elRenderRail(results){
       || (rank[a.state] ?? 9) - (rank[b.state] ?? 9)
       || ((b.score && b.score.total) || 0) - ((a.score && a.score.total) || 0)
     );
-    rail.innerHTML = list.slice(0, elCompact ? 32 : 24).map(elCardHtml).join('');
+    rail.innerHTML = (nearCards || '') + list.slice(0, elCompact ? 32 : 24).map(elCardHtml).join('');
   }
   elRenderFireLog();
 }
 
-async function elBuildHotList(){
+async function elBuildHotList(opts){
+  opts = opts || {};
   const wl = (typeof watchlist !== 'undefined' ? watchlist : []).map(w => w.symbol).filter(Boolean);
-  // refolosește lastLosers din scan movers dacă există
+  const path = (window.EL && EL.sessionPath) ? EL.sessionPath() : '';
+  // WL-first: în PRE sau după scan fără structure — skip gappers grei
+  const wlOnly = opts.wlOnly || elWlFirstOnly || (path === 'pre_orb' && wl.length > 0 && !opts.forceTot);
+  if (wlOnly && wl.length) {
+    const items = wl.slice(0, 40).map(s => ({ symbol: s, src: 'wl' }));
+    elUniverseMeta = { wl: wl.length, gap: 0, reclaim: 0, total: items.length, wlFirst: true };
+    return { items, meta: elUniverseMeta };
+  }
   let losersPrefetch = null;
   try {
     if (typeof lastLosers !== 'undefined' && Array.isArray(lastLosers) && lastLosers.length) {
@@ -5142,10 +5262,13 @@ async function elDeskRefresh(opts){
   elApplySens(); // praguri Strict/Normal/Wide pe EL.CFG
 
   try {
-    const uni = await elBuildHotList();
-    const items = uni.items || [];
-    const syms = items.map(i => i.symbol);
-    const srcMap = {};
+    // PRE + WL: primul scan e WL-first (rapid); force / RTH → TOT
+    const path0 = (window.EL && EL.sessionPath) ? EL.sessionPath() : '';
+    const preferWl = path0 === 'pre_orb' && !opts.forceTot && !opts.force;
+    let uni = await elBuildHotList({ wlOnly: preferWl, forceTot: opts.forceTot });
+    let items = uni.items || [];
+    let syms = items.map(i => i.symbol);
+    let srcMap = {};
     items.forEach(i => { srcMap[i.symbol] = i.src; });
 
     if (!syms.length) {
@@ -5254,17 +5377,50 @@ async function elDeskRefresh(opts){
       if (MED.attachRelativeSpy) results = MED.attachRelativeSpy(results, spyChg);
       if (MED.markHero) MED.markHero(results);
     }
+    // PRE WL-first: dacă zero structure, un al doilea pass TOT o dată (nu la fiecare poll)
+    const structOk = results.some(r => r.structure && r.structure.ok);
+    if (preferWl && !structOk && !elWlFirstOnly && !opts.structureOnly) {
+      elWlFirstOnly = false;
+      // expand TOT once
+      uni = await elBuildHotList({ forceTot: true });
+      items = uni.items || [];
+      syms = items.map(i => i.symbol);
+      srcMap = {};
+      items.forEach(i => { srcMap[i.symbol] = i.src; });
+      // only scan symbols not already done
+      const have = new Set(results.map(r => r.symbol));
+      const extra = items.filter(i => !have.has(i.symbol));
+      if (extra.length) {
+        const eb2 = {};
+        extra.forEach(i => { eb2[i.symbol] = wlEarlyCache[i.symbol]?.eb || null; });
+        let more = await EL.scanList(extra, {
+          ebMap: eb2, srcMap, earnMap: elBuildEarnMap(),
+          regime: EL.readRegimeFromStorage(), concurrency: 3
+        });
+        if (EL.sectorOf) more.forEach(r => { r.sector = EL.sectorOf(r.symbol, elSectorMap); });
+        let combined = results.concat(more);
+        if (window.MED) {
+          if (MED.applySectorFireCap) combined = MED.applySectorFireCap(combined, 2);
+          if (MED.attachRelativeSpy) combined = MED.attachRelativeSpy(combined, spyChg);
+          if (MED.markHero) MED.markHero(combined);
+        }
+        results = combined;
+      }
+    }
     elLastResults = results;
     elRenderRail(results);
     elApplyPreModeWl();
     const c = EL.counts(results);
     const newFires = results.filter(r => r && r._becameFire);
+    const tag = (uni.meta && uni.meta.wlFirst) ? 'WL-first' : 'TOT';
     if (newFires.length) {
       showToast(`▶ ${newFires.length} FIRE nou: ${newFires.map(r => r.symbol).join(', ')}`, 'success');
     } else if (c.FIRE) {
-      showToast(`▶ ${c.FIRE} FIRE activ · hot ${uni.meta.total}`, 'success');
+      showToast(`▶ ${c.FIRE} FIRE · ${tag} ${uni.meta.total}`, 'success');
     } else if (c.ARMED) {
-      showToast(`⚡ ${c.ARMED} ARMED pe hot-list (${uni.meta.total})`, 'success');
+      showToast(`⚡ ${c.ARMED} ARMED · ${tag} ${uni.meta.total}`, 'success');
+    } else if (elLastFunnel && elLastFunnel.nearT) {
+      showToast(`Near-miss ${elLastFunnel.nearT} · 0 FIRE (${tag})`, 'warn');
     }
   } catch (e) {
     console.warn('elDeskRefresh', e);
@@ -5315,6 +5471,22 @@ function elBindKeyboard(){
       elRenderRail(elLastResults);
       return;
     }
+    if (e.key === 't' || e.key === 'T') {
+      e.preventDefault();
+      elDeskMode = elDeskMode === 'trade' ? 'scan' : 'trade';
+      try { localStorage.setItem('me_el_mode', elDeskMode); } catch(_){}
+      elPaintMode();
+      elRenderRail(elLastResults);
+      return;
+    }
+    if (e.key === 'w' || e.key === 'W') {
+      e.preventDefault();
+      elSensMode = elSensMode === 'wide' ? 'normal' : 'wide';
+      try { localStorage.setItem('me_el_sens', elSensMode); } catch(_){}
+      elPaintSens();
+      elDeskRefresh({ force: true, forceTot: true });
+      return;
+    }
     if (/^[1-9]$/.test(e.key)) {
       e.preventDefault();
       const chips = document.querySelectorAll('#elSectorChips .el-sec-chip');
@@ -5351,8 +5523,15 @@ function elBindDesk(){
       elSensMode = b.getAttribute('data-sens') || 'normal';
       try { localStorage.setItem('me_el_sens', elSensMode); } catch(_){}
       elPaintSens();
-      // re-scan ca pragurile noi să se aplice pe evaluate
-      elDeskRefresh({ force: true });
+      elDeskRefresh({ force: true, forceTot: true });
+    });
+  });
+  document.querySelectorAll('.el-mode-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      elDeskMode = b.getAttribute('data-mode') || 'scan';
+      try { localStorage.setItem('me_el_mode', elDeskMode); } catch(_){}
+      elPaintMode();
+      elRenderRail(elLastResults);
     });
   });
   document.getElementById('elFocusClear')?.addEventListener('click', () => elSetSectorFocus(null));
@@ -5399,6 +5578,10 @@ function elBindDesk(){
   if (fa) fa.classList.toggle('on', elFilterActive);
   elApplySens();
   elPaintSens();
+  elPaintMode();
+  elPaintClock();
+  if (elClockTimer) clearInterval(elClockTimer);
+  elClockTimer = setInterval(elPaintClock, 1000);
   elRenderFireLog();
 }
 
@@ -6568,7 +6751,7 @@ function renderSectorHeatmap() {
 // Heatmap-urile sunt randate direct din scanLosers (în finally) — fără monkey-patch.
 </script>
 
-<script src="../lib/suite-version.js?v=652"></script>
+<script src="../lib/suite-version.js?v=654"></script>
 <script>
 if ('serviceWorker' in navigator) {
   const swVer = window.SUITE_VERSION_SHORT || 'tt-v652';
