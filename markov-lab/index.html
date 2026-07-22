@@ -8,19 +8,19 @@
 <meta name="description" content="Model Markov Chain pe randament normalizat la volatilitate — matrice de tranziție, probabilități next-state, backtest walk-forward cu test de edge (chi² + log-loss vs baseline)">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><circle cx='9' cy='16' r='3' fill='none' stroke='%235bb0ff' stroke-width='2'/><circle cx='23' cy='9' r='3' fill='none' stroke='%2322d66b' stroke-width='2'/><circle cx='23' cy='23' r='3' fill='none' stroke='%23ff4d4d' stroke-width='2'/><path d='M12 15 L20 10 M12 17 L20 22' stroke='%238892a6' stroke-width='1.5'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=575">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=664">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
-  --bg:#0b0f17;
+  --bg:#070b11;
   --bg-grad:radial-gradient(1200px 600px at 50% -200px, #14202c 0%, #0b0f17 55%);
-  --panel:#141a28; --panel2:#1d2537; --panel3:#222b40;
-  --b1:#2a3247; --b2:#3a4258;
-  --t1:#e8eef5; --t2:#c1c9d6; --t3:#8892a6;
-  --bull-s:#22d66b; --bull:#1ba858; --bull-bg:rgba(34,214,107,.12);
-  --bear-s:#ff4d4d; --bear:#cc3434; --bear-bg:rgba(255,77,77,.12);
+  --panel:#171f30; --panel2:#222c44; --panel3:#222b40;
+  --b1:#4a5874; --b2:#3a4258;
+  --t1:#fafbfc; --t2:#eef2f8; --t3:#d0d8e6;
+  --bull-s:#3aeb88; --bull:#1ba858; --bull-bg:rgba(34,214,107,.12);
+  --bear-s:#ff6b6b; --bear:#cc3434; --bear-bg:rgba(255,77,77,.12);
   --warn:#d4892c; --warn-bg:rgba(212,137,44,.15);
-  --vol:#a78bfa; --accent:#5bb0ff;
+  --vol:#a78bfa; --accent:#8ac8ff;
   --mom:var(--accent); /* alias: era folosit nedefinit */
   --r:12px; --rs:8px;
   --mono:'DM Mono',monospace; --head:'Sora',sans-serif;
@@ -31,7 +31,7 @@ body {
   font-family:var(--head);
   background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
   color:var(--t1); padding:14px; font-size:13px;
-  -webkit-font-smoothing:antialiased; font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:auto; font-variant-numeric:tabular-nums;
   max-width:1080px; margin:0 auto;
 }
 a { color:var(--accent); text-decoration:none; }
@@ -871,10 +871,10 @@ $('hmm').addEventListener('click', () => { saveCfg(); runHMM(); });
 restoreCfg();
 runHMM();
 </script>
-<script src="../lib/suite-version.js?v=575"></script>
+<script src="../lib/suite-version.js?v=664"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v575';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v664';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>

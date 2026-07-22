@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=654"></script>
+<script src="lib/suite-version.js?v=664"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v575'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v664'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -45,15 +45,15 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Crypto Scanner, Market Events, Crypto Events">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=630">
+<link rel="stylesheet" href="lib/hub-ui.css?v=664">
 <style>
 /* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
 :root{
-  --bg:#0b0f17;
-  --bg-grad:radial-gradient(1200px 600px at 50% -200px, #141c2e 0%, #0b0f17 55%);
-  --bg2:#141a28; --bg3:#1d2537; --bg4:#222b40;
-  --b1:#2a3247; --b2:#3a4257;
-  --t1:#e8eef5; --t2:#c1c9d6; --t3:#8892a6;
+  --bg:#070b11;
+  --bg-grad:radial-gradient(1200px 600px at 50% -200px, #121a28 0%, #070b11 58%);
+  --bg2:#171f30; --bg3:#222c44; --bg4:#2c3854;
+  --b1:#4a5874; --b2:#62708c;
+  --t1:#fafbfc; --t2:#eef2f8; --t3:#d0d8e6;
   /* Paleta crypto BTC orange/gold */
   --crypto-1:#f7931a; --crypto-2:#ffd86b;
   --indigo:#5bb0ff; --indigol:rgba(91,176,255,.12); --indigob:rgba(91,176,255,.4);
@@ -80,9 +80,16 @@ body{
   background-attachment:fixed;
   line-height:1.5;
   padding:14px clamp(12px,2.5vw,36px) 80px;
-  -webkit-font-smoothing:antialiased;
+  -webkit-font-smoothing:auto;
+  -moz-osx-font-smoothing:auto;
+  text-rendering:geometricPrecision;
+  font-weight:400;
   font-variant-numeric:tabular-nums;
 }
+/* Hub anti-ceață: carduri/lead/meta */
+.lead,.brand,.card-desc,.card-tag,.feat,.pb-diff,.tt-stats span,.fl-item .fl-txt{color:var(--t2)!important;opacity:1!important}
+.card-title,.pb-mkt-val,.pb-hero-verdict,h1,h2,h3{color:var(--t1)!important;opacity:1!important}
+.card{background:linear-gradient(180deg,var(--bg2) 0%,#121a28 100%)!important}
 .wrap{width:100%;max-width:var(--hub-max);margin:0 auto}
 @media (min-width:1280px){:root{--hub-max:1520px}}
 @media (min-width:1600px){:root{--hub-max:1680px}}
@@ -1358,7 +1365,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v575';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v664';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 

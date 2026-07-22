@@ -12,20 +12,20 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
-  --bg:#0b0f17;
+  --bg:#070b11;
   --bg-grad:radial-gradient(1200px 600px at 50% -200px, #142533 0%, #0b0f17 55%);
-  --panel:#141a28; --panel2:#1d2537; --panel3:#222b40;
-  --b1:#2a3247; --b2:#3a4258;
-  --t1:#f0f4fa; --t2:#cdd5e2; --t3:#a3adc1;
+  --panel:#171f30; --panel2:#222c44; --panel3:#222b40;
+  --b1:#4a5874; --b2:#3a4258;
+  --t1:#fafbfc; --t2:#eef2f8; --t3:#d0d8e6;
   --acc-1:#3b82f6; --acc-2:#10b981;
-  --bull-s:#22d66b; --bull:#1ba858; --bull-bg:rgba(34,214,107,.12);
-  --bear-s:#ff4d4d; --bear:#cc3434; --bear-bg:rgba(255,77,77,.12);
+  --bull-s:#3aeb88; --bull:#1ba858; --bull-bg:rgba(34,214,107,.12);
+  --bear-s:#ff6b6b; --bear:#cc3434; --bear-bg:rgba(255,77,77,.12);
   --warn:#d4892c; --warn-bg:rgba(212,137,44,.15);
   --gold:#ffd86b; --gold-bg:rgba(255,216,107,.12);
   --high:#ef4444; --high-bg:rgba(239,68,68,.15);
   --med:#f59e0b; --med-bg:rgba(245,158,11,.13);
   --low:#64748b; --low-bg:rgba(100,116,139,.13);
-  --accent:#5bb0ff;
+  --accent:#8ac8ff;
   --shadow-sm:0 1px 2px rgba(0,0,0,.3);
   --shadow:0 4px 14px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.2);
   --r:12px; --rs:8px;
@@ -38,7 +38,7 @@ body {
   font-family:var(--head);
   background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
   color:var(--t1); font-size:14px;
-  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  -webkit-font-smoothing:auto; -moz-osx-font-smoothing:grayscale;
   text-rendering:optimizeLegibility;
   font-variant-numeric:tabular-nums;
   transition:background-image .8s ease;
@@ -1534,7 +1534,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <div id="toasts"></div>
 
-<script src="../lib/suite-version.js?v=614"></script>
+<script src="../lib/suite-version.js?v=664"></script>
 <script src="../lib/data.js?v=610"></script>
 <script src="../lib/setup-levels.js?v=614"></script>
 <script>
@@ -3009,9 +3009,9 @@ function drawSparkline(points, w=620, h=160) {
     <line x1="${padL}" y1="${padT}" x2="${padL+innerW}" y2="${padT}" stroke="#2a3247" stroke-width="0.5"/>
     <line x1="${padL}" y1="${padT+innerH/2}" x2="${padL+innerW}" y2="${padT+innerH/2}" stroke="#2a3247" stroke-width="0.5" stroke-dasharray="2,3"/>
     <line x1="${padL}" y1="${padT+innerH}" x2="${padL+innerW}" y2="${padT+innerH}" stroke="#2a3247" stroke-width="0.5"/>
-    <text x="${padL-4}" y="${padT+4}" text-anchor="end" fill="#8892a6" font-size="10" font-family="DM Mono, monospace">${yLabelHigh}</text>
-    <text x="${padL-4}" y="${padT+innerH/2+4}" text-anchor="end" fill="#8892a6" font-size="10" font-family="DM Mono, monospace">${yLabelMid}</text>
-    <text x="${padL-4}" y="${padT+innerH+4}" text-anchor="end" fill="#8892a6" font-size="10" font-family="DM Mono, monospace">${yLabelLow}</text>
+    <text x="${padL-4}" y="${padT+4}" text-anchor="end" fill="#d0d8e6" font-size="10" font-family="DM Mono, monospace">${yLabelHigh}</text>
+    <text x="${padL-4}" y="${padT+innerH/2+4}" text-anchor="end" fill="#d0d8e6" font-size="10" font-family="DM Mono, monospace">${yLabelMid}</text>
+    <text x="${padL-4}" y="${padT+innerH+4}" text-anchor="end" fill="#d0d8e6" font-size="10" font-family="DM Mono, monospace">${yLabelLow}</text>
     <text x="${padL}" y="${h-6}" text-anchor="start" fill="#64748b" font-size="9.5" font-family="DM Mono, monospace">${ds}</text>
     <text x="${padL+innerW/2}" y="${h-6}" text-anchor="middle" fill="#64748b" font-size="9.5" font-family="DM Mono, monospace">${dm}</text>
     <text x="${padL+innerW}" y="${h-6}" text-anchor="end" fill="#64748b" font-size="9.5" font-family="DM Mono, monospace">${de}</text>
@@ -6899,7 +6899,7 @@ document.querySelectorAll('.macro-fold').forEach(el => {
 
 // Register service worker
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v575';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v664';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 
