@@ -1335,12 +1335,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Riscuri/dependențe:** n per direcție se înjumătățește — fallback-ul agregat e obligatoriu; doar strat de citire, zero logică de bază.
 - **Fișiere atinse:** `pine-scripts\PPST-DECK\PPST_Deck_v1_1.pine` (secțiunea segmente + MATUR/base-rate + dash), README.
 
-| I-190 | Ratchet vs presiune de pret (diagnostic PRESIUNE) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
-| I-191 | CHOP / densitate flip (ultimele N bare) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
-| I-192 | JSON exit-context (matur, bars_since, stop_atr) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
-| I-193 | MFE/MAE pe segment (din flip entry) | PPST Deck Pine | M | P2 | propus | ideation | 2026-07-22 |
-| I-194 | Preset Crypto/Nasdaq DOAR pe praguri deck | PPST Deck Pine | S | P2 | propus | ideation | 2026-07-22 |
-| I-195 | Guard n mic pe VERIF/EXPECT (zgomot explicit) | PPST Deck Pine | S | P2 | propus | ideation | 2026-07-22 |
+| I-190 | Ratchet vs presiune de pret (diagnostic PRESIUNE) | PPST Deck Pine | S | P1 | făcut | ideation | 2026-07-22 |
+| I-191 | CHOP / densitate flip (ultimele N bare) | PPST Deck Pine | S | P1 | făcut | ideation | 2026-07-22 |
+| I-192 | JSON exit-context (matur, bars_since, stop_atr) | PPST Deck Pine | S | P1 | făcut | ideation | 2026-07-22 |
+| I-193 | MFE/MAE pe segment (din flip entry) | PPST Deck Pine | M | P2 | făcut | ideation | 2026-07-22 |
+| I-194 | Preset Crypto/Nasdaq DOAR pe praguri deck | PPST Deck Pine | S | P2 | făcut | ideation | 2026-07-22 |
+| I-195 | Guard n mic pe VERIF/EXPECT (zgomot explicit) | PPST Deck Pine | S | P2 | făcut | ideation | 2026-07-22 |
 
 ### I-190 · Ratchet vs presiune de pret · [S] · P1
 - **Problema/golul:** README v1.1 admite ca SLABESTE se aprinde si cand stopul urca spre pret (ratchet SuperTrend), nu doar cand vanzatorii imping pretul spre stop — traderul nu stie care e cazul. Fara asta, PRESIUNE% minteste pe „intentie".
