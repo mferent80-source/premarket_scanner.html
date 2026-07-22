@@ -1152,7 +1152,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v248</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v249</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1241,7 +1241,7 @@
       <div class="el-fire-log-empty">Niciun me-fire încă — apar după primul FIRE pe bare 5m închise.</div>
     </div>
   </div>
-  <p class="el-note">Hibrid PRE+ORB (până 10:15 ET) · bare <b>5m închise</b> (anti-repaint) · univers acum = <b>watchlist</b> · praguri = ipoteze. Live = rail sus · istoric = <code>me-fire</code> log (+ scorecard Hub).</p>
+  <p class="el-note">Hibrid PRE+ORB (≤10:15 ET) · bare <b>5m închise</b> · univers <b>TOT</b>: 👁 WL + 📡 gappers (bandă gap) + 🔄 reclaim (losers ieri). Praguri = ipoteze. Live = rail · istoric = <code>me-fire</code>.</p>
 </section>
 
 <!-- ============================================== -->
@@ -1493,7 +1493,7 @@
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/early-long.js?v=248"></script>
+<script src="../lib/early-long.js?v=249"></script>
 <script>
 // Flag shell-pause: default vizibil. FĂRĂ mesaj de la shell → comportament IDENTIC actual.
 // Pauza polling-urilor de fundal e opt-in DOAR la ttShellVisible:false (vezi secțiunea „SHELL VISIBILITY" jos).
@@ -1524,7 +1524,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v248 · Early Long Desk + me-fire log vizibil + Earnings/Scan tabs</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v249 · Early Long Desk · univers TOT (WL+gap+reclaim) · me-fire log</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -2133,6 +2133,10 @@ async function scanLosers() {
     const tbody = $('loserResults');
     // Cache lista pentru re-render după toggle selecție și pentru comparația AI
     lastLosers = losers;
+    // I-198: snap losers (nu gainers) → mâine devin candidați reclaim pe Desk
+    if (!gain && window.EL && typeof EL.rememberDayLosers === 'function') {
+      EL.rememberDayLosers(losers.map(s => s.symbol));
+    }
     // La rescan, păstrăm doar selecțiile ale căror simboluri sunt încă în listă
     const visible = new Set(losers.map(s => s.symbol));
     [...loserSelected].forEach(sym => { if (!visible.has(sym)) loserSelected.delete(sym); });
@@ -4885,10 +4889,18 @@ function elRenderFireLog(){
   }).join('');
 }
 
+let elUniverseMeta = null;
+
 function elRenderRail(results){
   const rail = document.getElementById('elFireRail');
   const meta = document.getElementById('elSessionMeta');
-  if (meta && window.EL) meta.innerHTML = `<strong>${elEsc(EL.sessionLabel())}</strong> · path <strong>${elEsc(EL.sessionPath())}</strong> · WL ${watchlist.length}`;
+  if (meta && window.EL) {
+    const um = elUniverseMeta;
+    const uTxt = um
+      ? ` · hot ${um.total} (WL ${um.wl} · gap ${um.gap} · reclaim ${um.reclaim})`
+      : '';
+    meta.innerHTML = `<strong>${elEsc(EL.sessionLabel())}</strong> · path <strong>${elEsc(EL.sessionPath())}</strong>${uTxt}`;
+  }
   elPaintCounts(results);
   if (!rail) { elRenderFireLog(); return; }
   let list = results || [];
@@ -4896,12 +4908,30 @@ function elRenderRail(results){
   // pe desk: FIRE+MANAGE first, max ~24 cards; IDLE only if filter off
   if (!list.length) {
     rail.innerHTML = `<div class="el-empty">${elFilterActive
-      ? 'Niciun FIRE/ARMED/MANAGE pe watchlist acum — normal. Structure daily → ARMED; trigger 5m închis → FIRE. Adaugă simboluri sau apasă ▶ Scan 5m.'
-      : 'Niciun rezultat. Populează watchlist-ul și rulează Scan 5m.'}</div>`;
+      ? 'Niciun FIRE/ARMED/MANAGE pe universul TOT acum — normal. 🌱 daily sau soft gap/reclaim → ARMED; trigger 5m închis → FIRE. Apasă ▶ Scan 5m.'
+      : 'Niciun rezultat. Rulează Scan 5m (WL + gappers + reclaim).'}</div>`;
   } else {
     rail.innerHTML = list.slice(0, 24).map(elCardHtml).join('');
   }
   elRenderFireLog();
+}
+
+async function elBuildHotList(){
+  const wl = (typeof watchlist !== 'undefined' ? watchlist : []).map(w => w.symbol).filter(Boolean);
+  // refolosește lastLosers din scan movers dacă există
+  let losersPrefetch = null;
+  try {
+    if (typeof lastLosers !== 'undefined' && Array.isArray(lastLosers) && lastLosers.length) {
+      losersPrefetch = lastLosers.map(s => ({
+        symbol: s.symbol,
+        changePct: s.changePct != null ? s.changePct : s.regularMarketChangePercent,
+        mcap: s.marketCap || s.mcap || null
+      }));
+    }
+  } catch(_){}
+  const uni = await EL.buildUniverse({ watchlist: wl, losers: losersPrefetch || undefined });
+  elUniverseMeta = uni.meta;
+  return uni;
 }
 
 async function elDeskRefresh(opts){
@@ -4912,54 +4942,87 @@ async function elDeskRefresh(opts){
     return;
   }
   if (elBusy) return;
-  const syms = (typeof watchlist !== 'undefined' ? watchlist : []).map(w => w.symbol).filter(Boolean);
-  if (!syms.length) {
-    elLastResults = [];
-    elRenderRail([]);
-    const rail = document.getElementById('elFireRail');
-    if (rail) rail.innerHTML = '<div class="el-empty">Watchlist gol — adaugă simboluri pe Desk, apoi Scan 5m.</div>';
-    return;
-  }
-  // structure-only: paint ARMED from daily without 5m fetch
-  if (opts.structureOnly) {
-    const painted = syms.map(sym => {
-      const eb = wlEarlyCache[sym]?.eb || null;
-      const st = EL.structureFromEb(eb);
-      const state = st.ok ? 'ARMED' : (st.ran || st.reason && String(st.reason).indexOf('🥀') >= 0 ? 'DEAD' : 'IDLE');
-      return {
-        symbol: sym, state, path: EL.sessionPath(), sessionLabel: EL.sessionLabel(),
-        structure: st, trigger: { score: 0, tags: ['pending-5m'], detail: {} },
-        regime: { score: 0, tags: [] }, earnings: { block: false, penalty: 0 },
-        score: { structure: st.score, trigger: 0, regime: 0, penalty: 0, total: st.score },
-        reason: st.ok ? 'ARMED (structure) · așteaptă Scan 5m' : (st.reason || 'idle'),
-        tags: [], price: st.price || null, ts: Date.now()
-      };
-    });
-    elLastResults = painted;
-    elRenderRail(painted);
-    return;
-  }
+
   elBusy = true;
   const btn = document.getElementById('elScanBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ 5m…'; }
+  if (btn) { btn.disabled = true; btn.textContent = opts.structureOnly ? '⏳…' : '⏳ TOT…'; }
+
   try {
+    const uni = await elBuildHotList();
+    const items = uni.items || [];
+    const syms = items.map(i => i.symbol);
+    const srcMap = {};
+    items.forEach(i => { srcMap[i.symbol] = i.src; });
+
+    if (!syms.length) {
+      elLastResults = [];
+      elRenderRail([]);
+      const rail = document.getElementById('elFireRail');
+      if (rail) rail.innerHTML = '<div class="el-empty">Univers gol — adaugă pe watchlist sau așteaptă gappers Yahoo.</div>';
+      return;
+    }
+
+    // structure-only: rapid pe daily (doar WL are cache early)
+    if (opts.structureOnly) {
+      const painted = syms.map(sym => {
+        const eb = wlEarlyCache[sym]?.eb || null;
+        const st = EL.structureFromEb(eb);
+        const src = srcMap[sym] || 'wl';
+        let state = 'IDLE';
+        if (st.ok) state = 'ARMED';
+        else if (st.ran || (st.reason && String(st.reason).indexOf('🥀') >= 0)) state = 'DEAD';
+        // gap/reclaim fără daily: pending scan full
+        if (!st.ok && src !== 'wl') {
+          return {
+            symbol: sym, state: 'IDLE', path: EL.sessionPath(), sessionLabel: EL.sessionLabel(),
+            universeSrc: src,
+            structure: { ok: false, score: 0, reason: 'pending soft ' + src },
+            trigger: { score: 0, tags: ['pending-5m'], detail: {} },
+            regime: { score: 0, tags: [] }, earnings: { block: false, penalty: 0 },
+            score: { structure: 0, trigger: 0, regime: 0, penalty: 0, total: 0 },
+            reason: src === 'gap' ? '📡 gap · așteaptă Scan 5m' : '🔄 reclaim · așteaptă Scan 5m',
+            tags: [src], price: null, ts: Date.now()
+          };
+        }
+        return {
+          symbol: sym, state, path: EL.sessionPath(), sessionLabel: EL.sessionLabel(),
+          universeSrc: src,
+          structure: st, trigger: { score: 0, tags: ['pending-5m'], detail: {} },
+          regime: { score: 0, tags: [] }, earnings: { block: false, penalty: 0 },
+          score: { structure: st.score, trigger: 0, regime: 0, penalty: 0, total: st.score },
+          reason: st.ok ? 'ARMED (structure) · așteaptă Scan 5m' : (st.reason || 'idle'),
+          tags: [src], price: st.price || null, ts: Date.now()
+        };
+      });
+      elLastResults = painted;
+      elRenderRail(painted);
+      return;
+    }
+
     const ebMap = {};
     syms.forEach(s => { ebMap[s] = wlEarlyCache[s]?.eb || null; });
-    // dacă lipsește structure, încearcă daily rapid pe max 8
-    const missing = syms.filter(s => !ebMap[s]).slice(0, 8);
+    // daily structure pe max 16 din hot-list (pool 4)
+    const missing = syms.filter(s => !ebMap[s]).slice(0, 16);
     if (missing.length && typeof getScanner === 'function' && typeof computeEarlyBird === 'function') {
       const scanner = getScanner();
-      await Promise.all(missing.map(async s => {
-        try {
-          const hist = await scanner._fetchDailyHistory(s);
-          const eb = hist ? computeEarlyBird(hist, wlExtPct, ebSeen[s]?.anchor) : null;
-          wlEarlyCache[s] = { eb, ts: Date.now() };
-          ebMap[s] = eb;
-        } catch(_){}
-      }));
+      const q = missing.slice();
+      const worker = async () => {
+        while (q.length) {
+          const s = q.shift();
+          try {
+            const hist = await scanner._fetchDailyHistory(s);
+            const eb = hist ? computeEarlyBird(hist, wlExtPct, ebSeen[s]?.anchor) : null;
+            wlEarlyCache[s] = { eb, ts: Date.now() };
+            ebMap[s] = eb;
+          } catch(_){}
+        }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
     }
-    const results = await EL.scanList(syms, {
+
+    const results = await EL.scanList(items, {
       ebMap,
+      srcMap,
       earnMap: elBuildEarnMap(),
       regime: EL.readRegimeFromStorage(),
       concurrency: 3
@@ -4967,7 +5030,8 @@ async function elDeskRefresh(opts){
     elLastResults = results;
     elRenderRail(results);
     const c = EL.counts(results);
-    if (c.FIRE) showToast(`▶ ${c.FIRE} FIRE pe Desk (5m închis)`, 'success');
+    if (c.FIRE) showToast(`▶ ${c.FIRE} FIRE · univers TOT (${uni.meta.total} hot)`, 'success');
+    else if (c.ARMED) showToast(`⚡ ${c.ARMED} ARMED pe hot-list (${uni.meta.total})`, 'success');
   } catch (e) {
     console.warn('elDeskRefresh', e);
     const rail = document.getElementById('elFireRail');
@@ -4986,14 +5050,14 @@ function elBindDesk(){
     e.currentTarget.textContent = elFilterActive ? 'Filtru activ' : 'Toate stările';
     elRenderRail(elLastResults);
   });
-  // poll soft la 60s pe Desk (doar dacă tab vizibil și WL are simboluri)
+  // poll soft la 90s pe Desk (univers TOT e mai greu — nu 60s)
   if (elTimer) clearInterval(elTimer);
   elTimer = setInterval(() => {
     if (document.hidden || typeof _shellHidden !== 'undefined' && _shellHidden) return;
     const deskOn = document.getElementById('elPanelDesk')?.classList.contains('active');
-    if (!deskOn || !watchlist.length) return;
+    if (!deskOn) return;
     elDeskRefresh({ force: false });
-  }, 60000);
+  }, 90000);
   // meta sesiune + log istoric imediat (chiar fără scan)
   if (window.EL) {
     const meta = document.getElementById('elSessionMeta');
@@ -5011,7 +5075,7 @@ async function runAll() {
   // Evaluează alertele după ce datele sunt proaspete. Dedup edge-triggered (se re-armează singur
   // când condiția redevine falsă), deci NU golim setul aici — altfel re-spam la fiecare refresh.
   setTimeout(meAlertsEvaluate, 200);
-  // Desk: structure + 5m pe WL
+  // Desk: univers TOT + 5m (după losers ca să avem prefetch + snap yday)
   if (typeof wlEnsureEarlyData === 'function' && watchlist.length) {
     wlEnsureEarlyData(false).then(() => elDeskRefresh({ force: false }));
   } else {
