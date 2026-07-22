@@ -1291,13 +1291,54 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
   display:inline-block; padding:1px 5px; margin:0 1px; border-radius:4px;
   border:1px solid var(--border); background:var(--panel2); font-size:9px; font-weight:700;
 }
+/* Funnel + near-miss (util când 0 FIRE) */
+.el-funnel{
+  margin:0 0 10px; padding:10px 12px; border-radius:10px;
+  border:1px solid var(--border); background:rgba(20,26,40,.85);
+}
+.el-funnel.quiet{border-color:rgba(91,176,255,.25); background:rgba(91,176,255,.04)}
+.el-fun-steps{display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px; margin-bottom:6px}
+.el-fun-step{
+  display:inline-flex; flex-direction:column; align-items:center; min-width:42px;
+  padding:4px 8px; border-radius:8px; background:var(--panel2); border:1px solid var(--border);
+  font-size:9px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.3px;
+}
+.el-fun-step b{font-size:14px; color:var(--text); font-variant-numeric:tabular-nums}
+.el-fun-step.zero b{color:var(--muted); opacity:.5}
+.el-fun-arr{color:var(--muted); font-size:12px; opacity:.5}
+.el-fun-path{font-size:10.5px; color:var(--muted); margin-bottom:6px; font-variant-numeric:tabular-nums}
+.el-fun-path b{color:var(--crypto-1)}
+.el-fun-why{margin:0; padding-left:16px; font-size:11px; color:var(--t2,var(--muted)); line-height:1.45}
+.el-fun-why li{margin:2px 0}
+.el-near-title{font-size:10px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; color:#5bb0ff; margin:8px 0 4px}
+.el-near-list{display:flex; flex-direction:column; gap:3px}
+.el-near-row{
+  display:grid; grid-template-columns:56px 88px 1fr; gap:6px; align-items:center;
+  font-size:10.5px; padding:4px 6px; border-radius:6px; background:var(--bg);
+  border:1px solid var(--border-soft); font-variant-numeric:tabular-nums;
+}
+.el-near-row .sym{font-weight:800; color:#5bb0ff}
+.el-near-row .sc{color:var(--crypto-1); font-weight:700; font-size:10px}
+.el-near-row .why{color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+/* Quiet mode: 0 FIRE → ascunde heat dens */
+.el-desk.quiet-empty .el-heat{opacity:.55}
+.el-desk.quiet-empty .el-sector-chips{opacity:.7}
+.el-sens-row{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0 0 8px}
+.el-sens-row label{font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.3px}
+.el-sens-btn{
+  appearance:none; cursor:pointer; padding:4px 10px; border-radius:999px;
+  font-size:10.5px; font-weight:700; border:1px solid var(--border);
+  background:var(--panel2); color:var(--muted);
+}
+.el-sens-btn.active{border-color:rgba(91,176,255,.5); color:#5bb0ff; background:rgba(91,176,255,.1)}
+#elDiagSlot{margin:0 0 8px}
 </style>
 </head>
 <body class="suite-page">
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v255</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v256</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1369,6 +1410,12 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
       <button type="button" class="ghost" id="elDensityBtn" title="Densitate compactă pe rail (mai multe carduri)">▦ Compact</button>
     </div>
   </div>
+  <div class="el-sens-row" id="elSensRow" title="Praguri FIRE (ipoteze)">
+    <label>Sens</label>
+    <button type="button" class="el-sens-btn" data-sens="strict" title="T≥4 Σ≥8">Strict</button>
+    <button type="button" class="el-sens-btn active" data-sens="normal" title="T≥3 Σ≥6">Normal</button>
+    <button type="button" class="el-sens-btn" data-sens="wide" title="T≥2 Σ≥4 — mai multe semnale">Wide</button>
+  </div>
   <div class="el-sticky-zone" id="elStickyZone">
   <div class="el-strip" id="elStrip">
     <span class="el-pill fire">FIRE <span class="n" id="elCntFire">0</span></span>
@@ -1376,6 +1423,8 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
     <span class="el-pill armed">ARMED <span class="n" id="elCntArmed">0</span></span>
     <span class="el-pill dead">DEAD/IDLE <span class="n" id="elCntIdle">0</span></span>
   </div>
+  <!-- Funnel + de ce 0 FIRE + near-miss -->
+  <div id="elDiagSlot"></div>
   <!-- Risc concentrare sector (ex. 3+ FIRE pe Technology) -->
   <div class="el-risk-banner" id="elRiskBanner" role="status">
     <span class="el-risk-ico">⚠</span>
@@ -1657,9 +1706,9 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/me-early-bird.js?v=255"></script>
-<script src="../lib/early-long.js?v=255"></script>
-<script src="../lib/me-desk.js?v=255"></script>
+<script src="../lib/me-early-bird.js?v=256"></script>
+<script src="../lib/early-long.js?v=256"></script>
+<script src="../lib/me-desk.js?v=256"></script>
 <script>
 // Flag shell-pause: default vizibil. FĂRĂ mesaj de la shell → comportament IDENTIC actual.
 // Pauza polling-urilor de fundal e opt-in DOAR la ttShellVisible:false (vezi secțiunea „SHELL VISIBILITY" jos).
@@ -1690,7 +1739,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v255 · Desk pro: cap sector · RS/SPY · heat · sticky · hero · kbd</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v256 · Funnel diagnostic · near-miss · sens Strict/Normal/Wide</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -4832,9 +4881,35 @@ function elRenderFireLog(){
 let elUniverseMeta = null;
 let elGroupBySector = localStorage.getItem('me_el_group_sector') !== '0'; // default ON
 let elCompact = localStorage.getItem('me_el_compact') === '1';
+let elSensMode = localStorage.getItem('me_el_sens') || 'normal'; // strict|normal|wide
 let elSectorMap = null;
 let elSectorFocus = null; // null = toate; string = un sector
 let elRiskDominant = null; // sector dominant pentru banner
+let elLastFunnel = null;
+
+function elApplySens(){
+  if (window.MED && MED.applySensitivity && window.EL && EL.CFG) {
+    return MED.applySensitivity(EL.CFG, elSensMode);
+  }
+  return null;
+}
+
+function elPaintSens(){
+  document.querySelectorAll('.el-sens-btn').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-sens') === elSensMode);
+  });
+}
+
+function elPaintDiag(results){
+  const slot = document.getElementById('elDiagSlot');
+  if (!slot || !window.MED || !MED.funnelStats) return;
+  const path = (window.EL && EL.sessionPath) ? EL.sessionPath() : '';
+  const fun = MED.funnelStats(results || elLastResults || [], (window.EL && EL.CFG) || {}, path);
+  elLastFunnel = fun;
+  slot.innerHTML = MED.funnelHtml(fun);
+  const desk = document.getElementById('elDesk');
+  if (desk) desk.classList.toggle('quiet-empty', !!(fun && fun.quiet));
+}
 
 function elCardHtml(r){
   const st = r.state || 'IDLE';
@@ -4949,6 +5024,8 @@ function elRenderRail(results){
     meta.innerHTML = `<strong>${elEsc(EL.sessionLabel())}</strong> · path <strong>${elEsc(EL.sessionPath())}</strong>${uTxt}${gTxt}${fTxt ? elEsc(fTxt) : ''}`;
   }
   elPaintCounts(results);
+  elPaintSens();
+  elPaintDiag(results);
   const btnG = document.getElementById('elGroupSector');
   if (btnG) {
     btnG.textContent = elGroupBySector ? '🏭 Pe sector' : '📋 Listă';
@@ -4982,11 +5059,14 @@ function elRenderRail(results){
   if (window.MED && MED.markHero) MED.markHero(list);
 
   if (!list.length) {
+    const path = (window.EL && EL.sessionPath) ? EL.sessionPath() : '';
+    let tip = 'Niciun FIRE/ARMED/MANAGE — vezi funnel-ul de mai sus (de ce + near-miss).';
+    if (path === 'pre_orb') tip = 'PRE: 0 FIRE e des normal — ORB după 09:30 ET. Urmărește near-miss / ARMED; sau treci pe <b>Wide</b>.';
+    if (path === 'closed') tip = 'Sesiune închisă — trigger 5m e inactiv. Revino în PRE/RTH.';
+    if (path === 'late') tip = 'După 10:15 ET (late): fără ORB fresh. Așteaptă VWAP/HL sau Wide.';
     rail.innerHTML = `<div class="el-empty">${elSectorFocus
       ? `Nimic activ pe <b>${elEsc(elSectorFocus)}</b> — click ✕ Toate sectoarele.`
-      : (elFilterActive
-        ? 'Niciun FIRE/ARMED/MANAGE pe universul TOT acum — normal. Apasă ▶ Scan 5m.'
-        : 'Niciun rezultat. Rulează Scan 5m.')}</div>`;
+      : tip}</div>`;
   } else if (elGroupBySector && groupsAll.length) {
     const groups = elSectorFocus
       ? groupsAll.filter(g => g.sector === elSectorFocus)
@@ -5059,6 +5139,7 @@ async function elDeskRefresh(opts){
   elBusy = true;
   const btn = document.getElementById('elScanBtn');
   if (btn) { btn.disabled = true; btn.textContent = opts.structureOnly ? '⏳…' : '⏳ TOT…'; }
+  elApplySens(); // praguri Strict/Normal/Wide pe EL.CFG
 
   try {
     const uni = await elBuildHotList();
@@ -5265,6 +5346,15 @@ function elBindDesk(){
     try { localStorage.setItem('me_el_compact', elCompact ? '1' : '0'); } catch(_){}
     elRenderRail(elLastResults);
   });
+  document.querySelectorAll('.el-sens-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      elSensMode = b.getAttribute('data-sens') || 'normal';
+      try { localStorage.setItem('me_el_sens', elSensMode); } catch(_){}
+      elPaintSens();
+      // re-scan ca pragurile noi să se aplice pe evaluate
+      elDeskRefresh({ force: true });
+    });
+  });
   document.getElementById('elFocusClear')?.addEventListener('click', () => elSetSectorFocus(null));
   document.getElementById('elRiskFocusBtn')?.addEventListener('click', () => {
     if (elRiskDominant) elSetSectorFocus(elRiskDominant);
@@ -5307,6 +5397,8 @@ function elBindDesk(){
   }
   const fa = document.getElementById('elFilterArmed');
   if (fa) fa.classList.toggle('on', elFilterActive);
+  elApplySens();
+  elPaintSens();
   elRenderFireLog();
 }
 
