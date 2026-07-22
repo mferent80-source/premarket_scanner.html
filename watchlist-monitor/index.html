@@ -554,30 +554,110 @@ table.no-pre .col-pre { display:none; }
 @keyframes aiFade { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
 .ai-meta { font-size:9.5px; color:var(--t3); font-family:var(--mono); margin-bottom:6px; display:flex; gap:8px; align-items:center; }
 
-/* Mobile */
+/* ── Responsive: anti-suprapunere pe ecran îngust ── */
+@media (max-width:1100px) {
+  .wlm-desk-hint { display:none !important; }
+  .hide-tablet { display:none !important; }
+  #wlTable thead th, #wlTable td { padding:8px 5px; font-size:12px; }
+  #wlTable .action-btn { padding:3px 6px; font-size:10px; margin:1px; }
+}
+@media (max-width:900px) {
+  /* spark + RSI încă pe ecran mediu, ascundem pre/after dublu dens */
+  .hide-mid { display:none !important; }
+  .wlm-desk-bar { position:static; top:auto; }
+  header { position:relative; top:0; }
+}
 @media (max-width:760px) {
-  body { padding:8px; font-size:12px; }
-  header { padding:8px 11px; gap:6px; position:relative; top:0; }
-  header h1 { font-size:13px; width:100%; margin-right:0; }
+  body { padding:8px; font-size:13px; }
+  header {
+    padding:8px 10px; gap:6px; position:relative; top:0;
+    flex-wrap:wrap;
+  }
+  header h1 { font-size:13px; width:100%; margin-right:0; white-space:normal; }
+  header h1 .ver-badge, header h1 .suite-badge { white-space:nowrap; }
   .nav-link { font-size:10.5px; padding:4px 8px; }
-  th, td { padding:5px 4px; font-size:10px; }
-  .hide-mobile { display:none !important; }
-  .add-bar { padding:9px 11px; gap:6px; }
-  .stats-strip { grid-template-columns:repeat(2,1fr); }
-  .scanner-wrap { max-height:calc(100vh - 380px); }
-  .spark { width:48px; height:18px; }
+  .hide-mobile, .hide-tablet, .hide-mid { display:none !important; }
+  .add-bar {
+    padding:8px 10px; gap:6px; flex-wrap:wrap;
+  }
+  .add-bar input[type=text] { min-width:0; width:100%; flex:1 1 100%; }
+  .stats-strip { grid-template-columns:repeat(2,1fr); gap:6px; }
+  .stat-tile { padding:8px 10px; }
+  .stat-value { font-size:18px; }
+  .stat-sub { font-size:10px; }
+  .wlm-desk-bar {
+    position:static; flex-wrap:wrap; gap:6px; padding:8px;
+  }
+  .wlm-mode-btn, .wlm-sens-btn { font-size:11px; padding:5px 9px; }
+  .wlm-funnel { padding:8px; }
+  .wlm-fun-step { min-width:36px; padding:3px 5px; }
+  .wlm-fun-step b { font-size:13px; }
+  .wlm-heat { gap:4px; }
+  .wlm-heat-chip { font-size:10.5px !important; padding:3px 8px; }
+  .filter-bar { padding:8px; gap:6px; }
+  .fb-chip { font-size:10.5px; padding:4px 8px; }
+  .fb-count { width:100%; margin-left:0; text-align:right; }
+  .filter-bar input[type=text] { width:100%; max-width:none; }
+  /* Tabel: doar Ticker | Preț | Δ | Score | Verdict | ⋮ */
+  .scanner-wrap { max-height:none; min-height:200px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  #wlTable { min-width:0; width:100%; table-layout:fixed; }
+  #wlTable thead th {
+    padding:8px 4px; font-size:10px; letter-spacing:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  #wlTable td {
+    padding:8px 4px; font-size:11.5px;
+    overflow:hidden; vertical-align:top;
+  }
+  #wlTable td.left { padding-left:8px; width:28%; }
+  #wlTable .td-price { width:14%; font-size:12px; white-space:nowrap; }
+  #wlTable .td-score { width:12%; font-size:14px; }
+  #wlTable .sym-name {
+    font-size:13px; display:flex; flex-wrap:wrap; align-items:center; gap:3px;
+    line-height:1.25;
+  }
+  #wlTable .sym-sector {
+    font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+  }
+  #wlTable .pre-price, #wlTable .anchor-tag, #wlTable .perf-tag { font-size:10px !important; }
+  #wlTable .verdict {
+    font-size:9.5px; padding:3px 5px; display:inline-block; max-width:100%;
+    white-space:normal; line-height:1.2;
+  }
+  /* Actions: doar iconițe, wrap pe vertical */
+  #wlTable td:last-child {
+    width:52px; white-space:normal;
+  }
+  #wlTable td:last-child .action-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:28px; height:26px; padding:0; margin:1px; font-size:12px;
+  }
+  #wlTable .act-setup, #wlTable .act-news { display:none !important; }
+  .spark { width:40px; height:16px; }
+  #wlTable .spark-trend-pct { font-size:10px !important; }
   .hot-strip { grid-template-columns:1fr; }
   .detail-grid { grid-template-columns:1fr; gap:12px; }
-  tbody tr.detail-row > td { padding:11px 12px !important; }
-  .filter-bar { padding:8px 10px; gap:7px; }
+  tbody tr.detail-row > td { padding:11px 10px !important; }
   .toast-wrap { right:8px; bottom:8px; left:8px; max-width:none; }
+  .wlm-soft-tag { font-size:9px !important; padding:1px 4px !important; }
+  /* soft tags sub ticker, nu pe aceeași linie cu simbolul */
+  #wlTable .sym-name .wlm-soft-tag { flex:0 0 auto; }
+}
+@media (max-width:480px) {
+  .stats-strip { grid-template-columns:1fr 1fr; }
+  #wlTable thead th:nth-child(3),
+  #wlTable tbody td:nth-child(3) { /* Δ Zi păstrat */ }
+  /* pe telefon foarte mic: verdict scurtat via CSS — ascunde emoji-heavy stretch */
+  #wlTable .verdict { font-size:9px; letter-spacing:-.2px; }
+  header .nav-link:nth-of-type(n+3) { display:none; } /* păstrează Hub + Ghid */
+  .wlm-sens-btn { font-size:10px; padding:4px 7px; }
 }
 </style>
 </head>
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v159</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v160</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -692,15 +772,15 @@ table.no-pre .col-pre { display:none; }
         <th data-sort="price">Preț</th>
         <th data-sort="chg">Δ Zi</th>
         <th data-sort="preChg" class="col-pre" id="thPre" title="Mișcarea în pre-market / after-hours (doar simboluri US)">🌅 Pre</th>
-        <th data-sort="trend" title="Trend pe perioada selectată — click pe antet sortează, dropdown-ul schimbă perioada">📈 <select id="sparkDaysSel" class="spark-days-sel" onclick="event.stopPropagation()" onchange="setSparkDays(this.value)"><option value="1">1z</option><option value="7" selected>7z</option><option value="15">15z</option><option value="30">30z</option></select></th>
+        <th data-sort="trend" class="hide-mid" title="Trend pe perioada selectată — click pe antet sortează, dropdown-ul schimbă perioada">📈 <select id="sparkDaysSel" class="spark-days-sel" onclick="event.stopPropagation()" onchange="setSparkDays(this.value)"><option value="1">1z</option><option value="7" selected>7z</option><option value="15">15z</option><option value="30">30z</option></select></th>
         <th data-sort="rvol" class="hide-mobile" title="Volum relativ: ultima zi vs media 20 zile. Intraday volumul parțial e proiectat la sesiunea întreagă (~); în primele 45 min nu se evaluează">RVOL</th>
-        <th data-sort="rsi">RSI</th>
+        <th data-sort="rsi" class="hide-mid">RSI</th>
         <th data-sort="ma50" class="hide-mobile">vs MA50</th>
         <th data-sort="ma200" class="hide-mobile">vs MA200</th>
-        <th data-sort="alpha" class="hide-mobile" title="Alpha 30 zile vs QQQ — cât bate (sau nu) indicele Nasdaq-100">α QQQ</th>
+        <th data-sort="alpha" class="hide-mobile hide-tablet" title="Alpha 30 zile vs QQQ — cât bate (sau nu) indicele Nasdaq-100">α QQQ</th>
         <th data-sort="score">Score</th>
         <th data-sort="verdict">Verdict</th>
-        <th>Actions</th>
+        <th>⋮</th>
       </tr>
     </thead>
     <tbody id="resultsBody">
@@ -3359,19 +3439,19 @@ function render(){
       <td class="td-price">${fmtUSD(r.price)}</td>
       <td>${fmtChgCell(r.chg)}</td>
       <td class="col-pre">${r.preChg != null ? `${fmtChgCell(r.preChg)}<span class="pre-price">$${r.prePrice.toFixed(2)}${r.preVol ? ' · ' + fmtVol(r.preVol) : ''}</span>` : '<span class="cell-num muted">—</span>'}</td>
-      <td title="${r.trendSel != null ? `trend ${sparkDays} ${sparkDays === 1 ? 'zi' : 'zile'}: ` + fmtPct(r.trendSel, 1) : 'fără date'}">${buildSparkline(r.spark, { n: sparkBars() }) || '<span class="cell-num muted">—</span>'}<span class="spark-trend-pct ${trCls}" style="color:${r.trendSel == null ? 'var(--t3)' : r.trendSel >= 0 ? 'var(--bull-s)' : 'var(--bear-s)'}">${r.trendSel != null ? fmtPct(r.trendSel, 1) : ''}</span></td>
+      <td class="hide-mid" title="${r.trendSel != null ? `trend ${sparkDays} ${sparkDays === 1 ? 'zi' : 'zile'}: ` + fmtPct(r.trendSel, 1) : 'fără date'}">${buildSparkline(r.spark, { n: sparkBars() }) || '<span class="cell-num muted">—</span>'}<span class="spark-trend-pct ${trCls}" style="color:${r.trendSel == null ? 'var(--t3)' : r.trendSel >= 0 ? 'var(--bull-s)' : 'var(--bear-s)'}">${r.trendSel != null ? fmtPct(r.trendSel, 1) : ''}</span></td>
       <td class="hide-mobile" title="volum vs media 20 zile${r.rvolProj ? ' — ~ = proiectat la sesiunea întreagă (zi în desfășurare)' : ''}">${r.rvol != null ? (r.rvol >= 1.5 ? `<span class="badge ${(r.chg ?? 0) >= 0 ? 'up' : 'down'}">${r.rvolProj ? '~' : ''}${r.rvol.toFixed(1)}×</span>` : `<span class="cell-num ${r.rvol < 0.5 ? 'muted' : ''}">${r.rvolProj ? '~' : ''}${r.rvol.toFixed(1)}×</span>`) : '<span class="cell-num muted">—</span>'}<span class="pre-price">${fmtVol(r.vol)}</span></td>
-      <td>${fmtRsiCell(r.rsi)}</td>
+      <td class="hide-mid">${fmtRsiCell(r.rsi)}</td>
       <td class="hide-mobile">${fmtMaCell(r.ma50)}</td>
       <td class="hide-mobile">${fmtMaCell(r.ma200)}</td>
-      <td class="hide-mobile" title="alpha 30z vs QQQ">${r.alpha == null ? '<span class="cell-num muted">—</span>' : `<b class="cell-num ${r.alpha >= 0 ? 'up' : 'down'}">${fmtPct(r.alpha, 1)}</b>`}</td>
+      <td class="hide-mobile hide-tablet" title="alpha 30z vs QQQ">${r.alpha == null ? '<span class="cell-num muted">—</span>' : `<b class="cell-num ${r.alpha >= 0 ? 'up' : 'down'}">${fmtPct(r.alpha, 1)}</b>`}</td>
       <td class="td-score" style="color:${scoreColor(r.score)}">${r.score}</td>
       <td><span class="verdict ${r.verdict}">${r.verdictTxt}</span></td>
-      <td onclick="event.stopPropagation()">
-        <a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener">📈 TV</a>
-        <button class="action-btn" onclick="wlToSetup('${r.symbol}')" title="Pre-Trade Setup Builder în Macro (Entry/SL/TP + sizing pe Danger Score)">📐 Setup</button>
-        <button class="action-btn" onclick="wlShowNews('${r.symbol}')" title="De ce mișcă? Știri 7 zile (Finnhub)">📰</button>
-        <button class="action-btn del" onclick="removeFromWl('${r.symbol}')">🗑</button>
+      <td class="td-actions" onclick="event.stopPropagation()">
+        <a class="action-btn act-tv" href="${tvUrl}" target="_blank" rel="noopener" title="TradingView">📈</a>
+        <button class="action-btn act-setup" onclick="wlToSetup('${r.symbol}')" title="Setup">📐</button>
+        <button class="action-btn act-news" onclick="wlShowNews('${r.symbol}')" title="News">📰</button>
+        <button class="action-btn del act-del" onclick="removeFromWl('${r.symbol}')" title="Șterge">🗑</button>
       </td>
     </tr>`;
   }).join('') + unscanned.map(s => `<tr style="opacity:.55">
@@ -3381,15 +3461,15 @@ function render(){
     </td>
     <td colspan="2" style="color:var(--t3);font-style:italic">apasă SCAN ↻</td>
     <td class="col-pre"></td>
-    <td></td>
+    <td class="hide-mid"></td>
     <td class="hide-mobile"></td>
-    <td></td>
+    <td class="hide-mid"></td>
     <td class="hide-mobile"></td>
     <td class="hide-mobile"></td>
-    <td class="hide-mobile"></td>
+    <td class="hide-mobile hide-tablet"></td>
     <td></td>
     <td><span class="verdict hold">⏳ PENDING</span></td>
-    <td><button class="action-btn del" onclick="removeFromWl('${s}')">🗑</button></td>
+    <td class="td-actions"><button class="action-btn del act-del" onclick="removeFromWl('${s}')" title="Șterge">🗑</button></td>
   </tr>`).join('');
 
   if (!html){
@@ -3689,10 +3769,10 @@ scheduleNextScan();
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
-<script src="../lib/suite-version.js?v=662"></script>
+<script src="../lib/suite-version.js?v=663"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v662';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v663';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
