@@ -8,7 +8,7 @@
 <meta name="description" content="Auto-scan stocks tale cu alerte la STRONG semnale noi">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23f7931a'/><stop offset='1' stop-color='%23ffd86b'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='%230b0f17'/><circle cx='16' cy='16' r='9' fill='none' stroke='url(%23g)' stroke-width='2'/><circle cx='16' cy='16' r='3' fill='%23ffd86b'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=575">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=660">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
@@ -131,9 +131,9 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .stat-tile.warn::before { background:var(--warn); }
 .stat-tile.bear::before { background:var(--bear-s); }
 .stat-tile.gold::before { background:var(--crypto-2); }
-.stat-label { font-size:10.5px; color:var(--t2); text-transform:uppercase; letter-spacing:.35px; font-weight:700; font-family:var(--mono); }
-.stat-value { font-size:20px; font-weight:800; letter-spacing:-.3px; font-family:var(--head); color:var(--t1); }
-.stat-sub { font-size:10.5px; color:var(--t2); font-family:var(--mono); font-weight:500; }
+.stat-label { font-size:11px; color:var(--t1); text-transform:uppercase; letter-spacing:.3px; font-weight:800; font-family:var(--mono); }
+.stat-value { font-size:22px; font-weight:800; letter-spacing:-.3px; font-family:var(--head); color:var(--t1); }
+.stat-sub { font-size:11.5px; color:var(--t1); font-family:var(--mono); font-weight:600; opacity:.92; }
 
 /* Panel-box base */
 .panel-box {
@@ -154,30 +154,30 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 
 /* Tabel */
 .scanner-wrap { overflow:auto; max-height:calc(100vh - 240px); min-height:320px; }
-table { width:100%; border-collapse:collapse; font-size:12px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
 thead { position:sticky; top:0; z-index:5; background:var(--panel); box-shadow:0 1px 0 var(--b1); }
 thead th {
-  padding:9px 6px; text-align:center; font-weight:700; font-size:11px;
-  letter-spacing:.3px; text-transform:uppercase; cursor:pointer; user-select:none;
-  border-bottom:1px solid var(--b1); color:var(--t2); font-family:var(--head);
-  background:var(--panel);
+  padding:10px 6px; text-align:center; font-weight:800; font-size:11.5px;
+  letter-spacing:.25px; text-transform:uppercase; cursor:pointer; user-select:none;
+  border-bottom:1px solid var(--b1); color:var(--t1); font-family:var(--head);
+  background:var(--panel2);
 }
-thead th:hover { color:var(--t1); }
+thead th:hover { color:var(--accent); }
 thead th.left { text-align:left; padding-left:14px; }
 tbody tr { cursor:pointer; border-bottom:1px solid var(--b1); transition:background .12s var(--ease); }
-tbody tr:nth-child(even) { background:rgba(255,255,255,.02); }
-td { padding:8px 6px; text-align:center; vertical-align:middle; font-family:var(--mono); color:var(--t1); }
+tbody tr:nth-child(even) { background:rgba(255,255,255,.025); }
+td { padding:9px 6px; text-align:center; vertical-align:middle; font-family:var(--mono); color:var(--t1); }
 td.left { text-align:left; padding-left:14px; }
 
-.sym-name { font-weight:800; font-size:13.5px; letter-spacing:-.2px; font-family:var(--head); color:var(--t1); }
-.sym-sector { color:var(--t2); font-size:10.5px; font-family:var(--mono); font-weight:500; }
-.td-score { font-size:15px; font-weight:800; font-family:var(--mono); letter-spacing:-.3px; }
-.td-price { font-size:12.5px; font-weight:700; color:var(--t1); }
-.cell-num { font-family:var(--mono); font-weight:600; color:var(--t2); }
+.sym-name { font-weight:800; font-size:14.5px; letter-spacing:-.2px; font-family:var(--head); color:var(--t1); }
+.sym-sector { color:var(--t1); font-size:11.5px; font-family:var(--mono); font-weight:600; opacity:.9; }
+.td-score { font-size:16px; font-weight:800; font-family:var(--mono); letter-spacing:-.3px; }
+.td-price { font-size:13.5px; font-weight:700; color:var(--t1); }
+.cell-num { font-family:var(--mono); font-weight:700; color:var(--t1); }
 .cell-num.up { color:var(--bull-s); }
 .cell-num.down { color:var(--bear-s); }
 .cell-num.warn { color:var(--warn); }
-.cell-num.muted { color:var(--t2); opacity:.75; font-weight:500; }
+.cell-num.muted { color:var(--t2); opacity:1; font-weight:600; }
 
 .badge {
   display:inline-block; padding:2px 7px; border-radius:4px; font-weight:700; font-size:10px;
@@ -446,7 +446,20 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 
 /* Premarket / after-hours (F-pre) */
 table.no-pre .col-pre { display:none; }
-.pre-price { display:block; font-size:10.5px; color:var(--t2); margin-top:1px; font-weight:500; }
+.pre-price { display:block; font-size:11px; color:var(--t1); margin-top:1px; font-weight:600; opacity:.88; }
+.anchor-tag { font-size:10.5px !important; color:var(--t1) !important; font-weight:700 !important; }
+.perf-tag { font-size:10.5px !important; }
+.earn-tag, .ins-tag { font-size:10.5px !important; font-weight:800 !important; }
+.wlm-soft-tag { font-size:9.5px !important; padding:2px 6px !important; }
+.spark-trend-pct { font-size:11px !important; font-weight:700 !important; color:inherit; }
+.wlm-heat-chip { font-size:12px !important; color:var(--t1) !important; font-weight:700 !important; }
+.wlm-fun-meta, .wlm-near-title, .wlm-desk-hint { color:var(--t1) !important; font-weight:700 !important; }
+.corr-banner, .wl-regime, .wl-pulse { color:var(--t1) !important; font-size:13px !important; font-weight:600 !important; }
+.fb-count, .fb-toggle { color:var(--t1) !important; font-weight:700 !important; }
+.add-bar label, #wlMeta { color:var(--t1) !important; font-weight:700 !important; }
+.status-pill { color:var(--t1) !important; font-weight:700 !important; font-size:11.5px !important; }
+.panel-head h3 { font-size:13px !important; color:var(--t1) !important; }
+.panel-head .panel-sub { color:var(--t1) !important; opacity:.9; font-weight:700 !important; font-size:12px !important; }
 #sessionPill.live { border-color:rgba(34,214,107,.45); color:var(--bull-s); }
 #sessionPill.pre  { border-color:rgba(212,137,44,.45); color:var(--warn); }
 
@@ -516,7 +529,7 @@ table.no-pre .col-pre { display:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v157</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v158</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -3628,10 +3641,10 @@ scheduleNextScan();
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
-<script src="../lib/suite-version.js?v=660"></script>
+<script src="../lib/suite-version.js?v=661"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v660';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v661';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
