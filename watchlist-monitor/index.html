@@ -516,7 +516,7 @@ table.no-pre .col-pre { display:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v155</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v156</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -585,9 +585,9 @@ table.no-pre .col-pre { display:none; }
   <button type="button" class="wlm-mode-btn active" data-mode="scan" title="Discovery: tot + funnel + near-miss">🔬 Scan</button>
   <button type="button" class="wlm-mode-btn" data-mode="trade" title="Doar acționabile: STRONG BUY + BUY + near-miss">🎯 Trade</button>
   <span class="wlm-desk-sep" aria-hidden="true"></span>
-  <button type="button" class="wlm-sens-btn" data-sens="strict" title="Focus Trade: doar SB + near (bandă îngustă). Verdictul rămâne pe scorul fix 75/60">Focus Strict</button>
-  <button type="button" class="wlm-sens-btn active" data-sens="normal" title="Focus Trade: SB + BUY + near. Scor/verdict neschimbat (SB≥75 · BUY≥60)">Focus Normal</button>
-  <button type="button" class="wlm-sens-btn" data-sens="wide" title="Focus Trade: include și HOLD ridicat ca near. Scor/verdict neschimbat">Focus Wide</button>
+  <button type="button" class="wlm-sens-btn" data-sens="strict" title="Trade: scor≥72 (SB + near). Verdict motor fix SB≥75">Focus Strict</button>
+  <button type="button" class="wlm-sens-btn active" data-sens="normal" title="Trade: scor≥60 (SB+BUY+near). Motor SB≥75">Focus Normal</button>
+  <button type="button" class="wlm-sens-btn" data-sens="wide" title="Trade: scor≥58 + near de la 65. Motor neschimbat">Focus Wide</button>
   <span class="wlm-desk-hint" id="wlmDeskHint">scor fix SB≥75 · tag-uri soft (fără demote)</span>
 </div>
 
@@ -687,7 +687,7 @@ window.showWlFeatures = function(){
       { e: '🎚', t: '<b>Focus Strict/Normal/Wide</b> — doar lățime near + Trade filter; NU rescrie SB/BUY' },
       { e: '📊', t: '<b>Funnel</b> OK → BuyZ → Near → BUY → SB + „de ce 0 SB" + near-miss (compact pe Trade când ai SB)' },
       { e: '⚡', t: '<b>Near-miss</b> — bandă Focus (ex. 70–74 Normal); chip ⚡ Near; track Near→SB 30m' },
-      { e: '🛡', t: '<b>Soft gates TAG-ONLY</b> — max 2 SB/sector + α-weak pe SB: doar tag/avertisment, <b>fără demote</b> (alerte 1:1 cu scorul)' },
+      { e: '🛡', t: '<b>Soft gates TAG-ONLY</b> pe UI; <b>alert policy</b> (modal 📡): skip TG pe soft tags / ER≤2z, quiet hours 21–03 ET, group risk în TG. LEDGER scrie tot SB-ul pt OOS' },
       { e: '🏭', t: '<b>Sector heat</b> — chip-uri SB/BUY pe industrie Finnhub; click filtrează, click din nou resetează' },
       { e: 'α', t: '<b>Alpha vs QQQ</b> — coloană + metrică „α QQQ 30z": cât bate stockul indicele Nasdaq-100 pe 30 zile (verde = outperformance). Un STRONG BUY cu alpha negativ = atenție, mișcă mai slab decât piața' },
       { e: 'β', t: '<b>Beta vs QQQ</b> — în detalii: cât amplifică stockul mișcarea indicelui (~120 zile de randamente); β 2 = mișcă dublu → la aceeași sumă investită ai risc dublu. Portocaliu la β≥1.5' },
@@ -728,7 +728,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v153 · Cockpit A · tag-only soft · contrast</div></div>
+    <div class="sub">v156 · alert policy · gates ME parity</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -797,15 +797,29 @@ const WLM_CORE = { sb: 75, buy: 60, hold: 40, sell: 25 };
  * tradeMin: scor minim vizibil în Trade · nearLo: prag near-miss (sub SB)
  */
 const WLM_FOCUS = {
-  strict: { tradeMin: 70, nearLo: 72, label: 'Strict', hint: 'Trade: near strâns + SB' },
+  // Strict: doar SB + near (nearLo = tradeMin) — aliniat cu copy UI
+  strict: { tradeMin: 72, nearLo: 72, label: 'Strict', hint: 'Trade: SB + near strâns' },
   normal: { tradeMin: 60, nearLo: 70, label: 'Normal', hint: 'Trade: SB+BUY+near' },
-  wide:   { tradeMin: 55, nearLo: 65, label: 'Wide',   hint: 'Trade: mai larg (HOLD ridicat ca near)' }
+  wide:   { tradeMin: 58, nearLo: 65, label: 'Wide',   hint: 'Trade: BUY slab + near larg' }
 };
-const WLM_SOFT = { maxSbPerSector: 2, alphaWeak: -2 }; // tag-only
+const WLM_SOFT = { maxSbPerSector: 2, alphaWeak: -2 }; // tag-only pe UI
+const ALERT_POL_KEY = 'wlm_alert_policy_v1';
+/** Policy alerte (ipoteze) — nu schimbă verdictul, doar canalul sunet/TG/notif */
+let alertPolicy = {
+  skipSoftTags: true,   // nu alarma pe cap-sector / α-weak
+  skipEarnDays: 2,      // ER ≤ N zile → skip alert verdict
+  quietHours: true,     // 21:00–03:00 ET fără TG/notif (sunet local OK)
+  groupRiskInTg: true   // include cluster sector în body TG
+};
+try {
+  const ap = JSON.parse(localStorage.getItem(ALERT_POL_KEY) || 'null');
+  if (ap && typeof ap === 'object') alertPolicy = Object.assign(alertPolicy, ap);
+} catch (e) {}
 let deskMode = 'scan'; // scan | trade
 let sensMode = 'normal';
 let filterSector = ''; // click pe heat chip
 let lastNmStats = null;
+let wlmBootstrapScan = true; // primul scan live după load = fără breakout toast spam
 try {
   const dm = localStorage.getItem(DESK_MODE_KEY);
   if (dm === 'scan' || dm === 'trade') deskMode = dm;
@@ -1370,7 +1384,12 @@ window.showTgConfig = function(){
       </div>
     </div>
     <label class="fb-toggle" style="margin-bottom:8px"><input type="checkbox" id="tgEnabled" ${tgConfig.enabled ? 'checked' : ''}> activează alertele Telegram (verdict)</label>
-    <label class="fb-toggle" style="margin-bottom:13px" title="un singur mesaj/zi la intrarea în after-hours (16:00 ET): distribuție verdicte, top movers ↑/↓, schimbările de verdict, lista STRONG BUY — necesită pagina deschisă"><input type="checkbox" id="tgDigest" ${digestCfg.enabled ? 'checked' : ''}> 📰 digest zilnic la închiderea pieței</label>
+    <label class="fb-toggle" style="margin-bottom:8px" title="un singur mesaj/zi la intrarea în after-hours (16:00 ET)"><input type="checkbox" id="tgDigest" ${digestCfg.enabled ? 'checked' : ''}> 📰 digest zilnic la închiderea pieței</label>
+    <div style="font-size:10px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin:10px 0 6px">Policy calitate alertă (verdict neschimbat)</div>
+    <label class="fb-toggle" style="margin-bottom:6px" title="nu trimite sunet/TG/notif pe SB cu tag cap-sector sau α-weak (LEDGER tot scrie)"><input type="checkbox" id="polSkipSoft" ${alertPolicy.skipSoftTags ? 'checked' : ''}> 🛡 skip alerte pe soft tags (cap-sector / α-weak)</label>
+    <label class="fb-toggle" style="margin-bottom:6px" title="nu alarma SB dacă earnings e în ≤N zile"><input type="checkbox" id="polSkipEarn" ${alertPolicy.skipEarnDays > 0 ? 'checked' : ''}> 📅 skip alerte lângă earnings (≤2z)</label>
+    <label class="fb-toggle" style="margin-bottom:6px" title="21:00–03:00 ET: fără TG/notif (sunet local rămâne)"><input type="checkbox" id="polQuiet" ${alertPolicy.quietHours ? 'checked' : ''}> 🌙 quiet hours 21–03 ET (fără TG)</label>
+    <label class="fb-toggle" style="margin-bottom:12px" title="în body TG: peeri SB pe același sector + hint sizing 1/N"><input type="checkbox" id="polCluster" ${alertPolicy.groupRiskInTg ? 'checked' : ''}> 🏭 group risk în mesaj TG</label>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="primary" id="tgSave">💾 Salvează</button><button type="button" id="tgTest">🧪 Trimite test</button><span id="tgMsg" style="font-size:11px;font-family:var(--mono)"></span></div>
   </div>`;
   document.body.appendChild(ov);
@@ -1384,11 +1403,15 @@ window.showTgConfig = function(){
     moveAlert.enabled = document.getElementById('tgMoveEnabled').checked;
     moveAlert.pct = Math.max(0.2, Math.min(20, parseFloat(document.getElementById('tgMovePct').value) || 1));
     digestCfg.enabled = !!document.getElementById('tgDigest')?.checked;
+    alertPolicy.skipSoftTags = !!document.getElementById('polSkipSoft')?.checked;
+    alertPolicy.skipEarnDays = document.getElementById('polSkipEarn')?.checked ? 2 : 0;
+    alertPolicy.quietHours = !!document.getElementById('polQuiet')?.checked;
+    alertPolicy.groupRiskInTg = !!document.getElementById('polCluster')?.checked;
     try { localStorage.setItem(TG_KEY, JSON.stringify(tgConfig)); } catch(e){}
     try { localStorage.setItem(ALERT_LEVEL_KEY, alertLevel); } catch(e){}
     try { localStorage.setItem(MOVE_ALERT_KEY, JSON.stringify(moveAlert)); } catch(e){}
     try { localStorage.setItem(DIGEST_CFG_KEY, JSON.stringify(digestCfg)); } catch(e){}
-    // tocmai activat → sincronizează starea cu ultimul scan (baseline), alertele pornesc de la următorul
+    try { localStorage.setItem(ALERT_POL_KEY, JSON.stringify(alertPolicy)); } catch(e){}
     if (moveAlert.enabled && !prevMoveEnabled) baselineAnchorAlerts();
     updateAlertButtons();
   };
@@ -2311,10 +2334,10 @@ function scoreStock(d){
     const p = aboveMa200 >= 10 ? 18 : aboveMa200 >= 0 ? 9 : aboveMa200 >= -10 ? -8 : -18;
     score += p; bd.push({ l: `Preț vs MA200 (${(aboveMa200 >= 0 ? '+' : '') + aboveMa200.toFixed(1)}%)`, p });
   }
-  // Golden cross / death cross hint (MA50 > MA200 = bullish structural)
+  // Structură MA50 vs MA200 (NU e eveniment de cross recent — bias structural bull/bear)
   if (ma50 && ma200) {
     const p = ma50 > ma200 ? 6 : -6;
-    score += p; bd.push({ l: ma50 > ma200 ? 'Golden cross (MA50 > MA200)' : 'Death cross (MA50 < MA200)', p });
+    score += p; bd.push({ l: ma50 > ma200 ? 'Structură bull (MA50 > MA200)' : 'Structură bear (MA50 < MA200)', p });
   }
   // RSI: sweet 40-65, OB > 70 risc, OS < 30 bounce candidate
   if (rsi != null) {
@@ -2501,8 +2524,9 @@ async function runScan(){
   // Alerte de preț manuale — niveluri exacte peste/sub (C)
   checkPriceAlerts(newResults);
 
-  // Detect breakout-uri structurale (52s high, cross MA50/200) → toast + Telegram (F6-nou)
-  detectBreakouts(newResults, hadPrior);
+  // Breakout alerts — skip pe bootstrap (cache→live) ca să nu spameze după reload
+  if (!wlmBootstrapScan) detectBreakouts(newResults, hadPrior);
+  wlmBootstrapScan = false;
 
   // Coloana Pre/After: vizibilă doar în sesiunea extinsă (F-pre)
   $('wlTable')?.classList.toggle('no-pre', !extended);
@@ -2536,48 +2560,111 @@ async function runScan(){
 //    'buy'        = a intrat în BUY sau mai bun (venind de sub BUY)
 //    'upgrade'    = orice upgrade de tier care aterizează la BUY+
 // ═══════════════════════════════════════════════════════════════
+/** Quiet hours 21:00–03:00 ET — fără TG/notif (sunet local rămâne). */
+function wlmIsQuietHoursET(){
+  try {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: '2-digit', hour12: false }).formatToParts(new Date());
+    const h = +(p.find(x => x.type === 'hour') || {}).value;
+    return h >= 21 || h < 3;
+  } catch (e) { return false; }
+}
+
+function wlmEarnDays(sym){
+  const e = (typeof earningsMap !== 'undefined' && earningsMap[sym]) ? earningsMap[sym] : null;
+  if (!e || !e.date) return null;
+  return daysUntil(e.date);
+}
+
+/** Soft-tag / ER / regim — policy pe canalul de alertă (verdict neschimbat). */
+function wlmAlertBlocked(r){
+  const reasons = [];
+  if (alertPolicy.skipSoftTags) {
+    if (r.sectorCap || (r.softTags || []).includes('cap-sector')) reasons.push('cap-sector');
+    if (r.alphaWeak || (r.softTags || []).includes('α-weak')) reasons.push('α-weak');
+  }
+  if (alertPolicy.skipEarnDays > 0) {
+    const d = wlmEarnDays(r.symbol);
+    if (d != null && d >= 0 && d <= alertPolicy.skipEarnDays) reasons.push('ER ' + d + 'z');
+  }
+  if (_wlRgComp != null && _wlRgComp <= -2 && r.verdict === 'strong-buy') {
+    // regim advers: nu blocăm hard, dar marcăm în TG
+    r._rgOff = true;
+  }
+  return reasons;
+}
+
+function wlmSectorClusterNote(r, list){
+  const sec = sectorOf(r.symbol) || 'Necunoscut';
+  const peers = (list || []).filter(x => x && x.verdict === 'strong-buy' && (sectorOf(x.symbol) || 'Necunoscut') === sec).map(x => x.symbol);
+  if (peers.length < 2) return '';
+  return ` · ⚠ cluster ${sec}: ${peers.slice(0, 6).join(', ')} (sizing 1/${peers.length})`;
+}
+
 function detectAndNotifyAlerts(newResults){
   let lastSeen = {};
   try { lastSeen = JSON.parse(localStorage.getItem(LAST_SEEN_KEY) || '{}'); } catch(e){}
-  // curăță simbolurile scoase din watchlist — altfel cheia crește nelimitat
   Object.keys(lastSeen).forEach(s => { if (!watchlist.includes(s)) delete lastSeen[s]; });
+
+  // Asigură soft tags pe lista curentă (sector poate fi deja în map)
+  annotateWlmFlags(newResults);
 
   const BUY_RANK = VERDICT_RANK['buy'];
   const fresh = [];
+  const softSkipped = [];
   newResults.forEach(r => {
-    if (r.price == null) return; // fetch eșuat — nu actualiza istoricul
+    if (r.price == null) return;
     const prev = lastSeen[r.symbol];
     const curRank = VERDICT_RANK[r.verdict] ?? 2;
     const prevRank = (prev != null) ? (VERDICT_RANK[prev] ?? 2) : null;
     let hit = false;
     if (alertLevel === 'strong-buy') hit = r.verdict === 'strong-buy' && prev !== 'strong-buy';
-    else if (alertLevel === 'buy')   hit = curRank >= BUY_RANK && (prevRank == null || prevRank < BUY_RANK);
-    else /* upgrade */                hit = curRank >= BUY_RANK && prevRank != null && curRank > prevRank;
-    if (hit) fresh.push(r);
-    // Signal ledger (lib/ledger.js): orice STRONG BUY NOU intră în registru,
-    // indiferent de pragul de alertă ales — scorecard-ul din Hub îl evaluează la +5/+20z.
-    if (window.LEDGER && r.verdict === 'strong-buy' && prev !== 'strong-buy') LEDGER.log('wlm-strongbuy', r.symbol, (r.livePrice != null ? r.livePrice : r.price), '🚀 STRONG BUY');
+    // buy: doar când exista prev (evită spam pe simbol nou deja BUY)
+    else if (alertLevel === 'buy') hit = curRank >= BUY_RANK && prevRank != null && prevRank < BUY_RANK;
+    else hit = curRank >= BUY_RANK && prevRank != null && curRank > prevRank;
+
+    if (hit) {
+      const block = wlmAlertBlocked(r);
+      if (block.length) softSkipped.push({ r, block });
+      else fresh.push(r);
+    }
+    // LEDGER mereu pe SB nou (OOS) — inclusiv soft-tagged
+    if (window.LEDGER && r.verdict === 'strong-buy' && prev !== 'strong-buy') {
+      const soft = (r.softTags || []).join('+') || '';
+      LEDGER.log('wlm-strongbuy', r.symbol, (r.livePrice != null ? r.livePrice : r.price), '🚀 SB' + (soft ? ' ·' + soft : ''));
+    }
     lastSeen[r.symbol] = r.verdict;
   });
   try { localStorage.setItem(LAST_SEEN_KEY, JSON.stringify(lastSeen)); } catch(e){}
 
-  if (!fresh.length) return;
+  if (!fresh.length && !softSkipped.length) return;
 
-  // Sunet (F7)
-  if (soundEnabled) beep();
+  const quiet = alertPolicy.quietHours && wlmIsQuietHoursET();
 
-  // Telegram (F7) — verdictul real, nu hardcodat STRONG BUY
-  if (tgConfig.enabled && tgConfig.token && tgConfig.chatId){
-    const lines = fresh.slice(0, 8).map(r => `${r.verdictTxt} <b>${r.symbol}</b> — $${r.price.toFixed(2)} · score ${r.score}${r.chg != null ? ' · zi ' + (r.chg >= 0 ? '+' : '') + r.chg.toFixed(2) + '%' : ''}`);
-    const more = fresh.length > 8 ? `\n…și ${fresh.length - 8} mai multe` : '';
-    sendTelegram(`<b>👁 Watchlist Monitor — semnal nou (${fresh.length})</b>\n${lines.join('\n')}${more}`);
-  }
+  // Sunet local (chiar în quiet hours — e pe device)
+  if (fresh.length && soundEnabled) beep();
 
-  // Browser notification
-  if (notifEnabled && ('Notification' in window) && Notification.permission === 'granted'){
-    const list = fresh.slice(0, 5).map(r => `${r.symbol} (${r.verdictTxt} · ${r.score})`).join(', ');
-    const more = fresh.length > 5 ? ` și ${fresh.length - 5} mai multe` : '';
-    new Notification('🔔 Semnal nou (' + fresh.length + ')', { body: list + more, tag: 'wl-alert' });
+  // TG + notif — respectă quiet hours
+  if (fresh.length && !quiet) {
+    if (tgConfig.enabled && tgConfig.token && tgConfig.chatId){
+      const lines = fresh.slice(0, 8).map(r => {
+        const soft = (r.softTags || []).length ? ' · ' + r.softTags.join(',') : '';
+        const er = wlmEarnDays(r.symbol);
+        const erT = (er != null && er <= 7) ? ` · ER ${er}z` : '';
+        const cluster = alertPolicy.groupRiskInTg ? wlmSectorClusterNote(r, newResults) : '';
+        const rg = r._rgOff ? ' · ⚠ regim advers' : '';
+        return `${r.verdictTxt} <b>${r.symbol}</b> — $${r.price.toFixed(2)} · sc ${r.score}${r.chg != null ? ' · zi ' + (r.chg >= 0 ? '+' : '') + r.chg.toFixed(2) + '%' : ''}${soft}${erT}${rg}${cluster}`;
+      });
+      const more = fresh.length > 8 ? `\n…și ${fresh.length - 8} mai multe` : '';
+      const skipN = softSkipped.length ? `\n<small>filtrate policy: ${softSkipped.length} (soft/ER)</small>` : '';
+      sendTelegram(`<b>👁 Watchlist — semnal (${fresh.length})</b>\n${lines.join('\n')}${more}${skipN}`);
+    }
+    if (notifEnabled && ('Notification' in window) && Notification.permission === 'granted'){
+      const list = fresh.slice(0, 5).map(r => `${r.symbol} (${r.verdictTxt} · ${r.score})`).join(', ');
+      const more = fresh.length > 5 ? ` și ${fresh.length - 5} mai multe` : '';
+      new Notification('🔔 Semnal nou (' + fresh.length + ')', { body: list + more, tag: 'wl-alert' });
+    }
+  } else if (fresh.length && quiet) {
+    setStatus('ok', `quiet hours ET · ${fresh.length} semnal(e) reținute (fără TG)`);
   }
 }
 
@@ -3506,6 +3593,19 @@ try { priceAlerts = JSON.parse(localStorage.getItem(PRICE_ALERT_KEY) || '{}') ||
 try { anchorMap = JSON.parse(localStorage.getItem(ANCHOR_KEY) || '{}') || {}; } catch(e){ anchorMap = {}; }
 try { const dc = JSON.parse(localStorage.getItem(DIGEST_CFG_KEY) || 'null'); if (dc && typeof dc === 'object') digestCfg.enabled = !!dc.enabled; } catch(e){}
 loadResultsCache(); // F4-extra — populează tabelul din cache înainte de primul scan
+// Seed lastSeen din cache ca primul scan live să nu spam-uiască toate SB-urile ca „noi”
+try {
+  let ls = JSON.parse(localStorage.getItem(LAST_SEEN_KEY) || '{}');
+  if (!ls || typeof ls !== 'object') ls = {};
+  let seeded = false;
+  (results || []).forEach(r => {
+    if (r && r.symbol && r.verdict && ls[r.symbol] == null) {
+      ls[r.symbol] = r.verdict;
+      seeded = true;
+    }
+  });
+  if (seeded) localStorage.setItem(LAST_SEEN_KEY, JSON.stringify(ls));
+} catch (e) {}
 corrClusters = computeCorrClusters(results); // D — banner-ul apare și din cache
 try { const pc = _profAll(); watchlist.forEach(s => { if (pc[s]) sectorMap[s] = pc[s].data; }); } catch(e){} // F — sectoarele din cache, înainte de primul scan
 $('notifBtn').style.opacity = notifEnabled ? '1' : '.5';
@@ -3528,10 +3628,10 @@ scheduleNextScan();
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
-<script src="../lib/suite-version.js?v=658"></script>
+<script src="../lib/suite-version.js?v=659"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v658';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v659';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>

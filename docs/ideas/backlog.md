@@ -202,6 +202,9 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-200 | LEDGER me-fire + A/B vs me-early daily + scorecard | market-events/ + hub | M | P2 | făcut | ideation | 2026-07-22 |
 | I-201 | Extract monolit ME incremental (shell + tabs Context/Scan) | market-events/ + lib/ | L | P2 | făcut | ideation | 2026-07-22 |
 | I-202 | Watchlist Desk — funnel / near-miss / Scan·Trade / sens / soft gates (parity Early Long) | watchlist-monitor/ | M | P1 | făcut | ideation | 2026-07-22 |
+| I-203 | ME soft gates pre-TG + TG dedupe + toast edge + elWlFirstOnly + confirm-bar | market-events/ + lib/ | M | P1 | făcut | ideation | 2026-07-22 |
+| I-204 | WLM alert policy (soft tags, ER, quiet hours, group risk TG) | watchlist-monitor/ | M | P1 | făcut | ideation | 2026-07-22 |
+| I-205 | Shadow ledger me-fire-raw vs me-fire (OOS soft gates) | lib/early-long.js + ledger | S | P2 | făcut | ideation | 2026-07-22 |
 
 ## Mini-spec-uri
 

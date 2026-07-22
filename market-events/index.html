@@ -1378,7 +1378,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v260</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v261</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -4935,7 +4935,8 @@ if (elSectorFocus === '' || elSectorFocus === 'null') elSectorFocus = null;
 let elRiskDominant = null;
 let elLastFunnel = null;
 let elClockTimer = null;
-let elWlFirstOnly = false; // set true after first structure-empty TOT scan in PRE
+let elWlFirstOnly = false; // set true after first structure-empty TOT expand (PRE)
+try { if (sessionStorage.getItem('me_el_wl_first_done') === '1') elWlFirstOnly = true; } catch (e) {}
 
 function elApplySens(){
   if (window.MED && MED.applySensitivity && window.EL && EL.CFG) {
@@ -5361,52 +5362,68 @@ async function elDeskRefresh(opts){
       if (still.length) elSectorMap = await EL.enrichSectorsYahoo(still, elSectorMap);
     }
 
+    // sector map + SPY chg pentru soft gates ÎN scanList (înainte de TG/LEDGER)
+    const spyChg = (typeof lastSentiment !== 'undefined' && lastSentiment && lastSentiment.spy)
+      ? lastSentiment.spy.chgPct : null;
+    const sectorForScan = {};
+    items.forEach(i => {
+      const s = i.symbol;
+      sectorForScan[s] = (EL.sectorOf ? EL.sectorOf(s, elSectorMap) : null) || elSectorMap[s] || 'Necunoscut';
+    });
     let results = await EL.scanList(items, {
       ebMap,
       srcMap,
       earnMap: elBuildEarnMap(),
       regime: EL.readRegimeFromStorage(),
-      concurrency: 3
+      concurrency: 3,
+      sectorMap: sectorForScan,
+      spyChg,
+      maxFirePerSector: 2
     });
-    // atașează sector pe fiecare rezultat
     if (EL.sectorOf) {
-      results.forEach(r => { r.sector = EL.sectorOf(r.symbol, elSectorMap); });
+      results.forEach(r => { if (!r.sector) r.sector = EL.sectorOf(r.symbol, elSectorMap); });
     }
-    // Soft gates (MED): cap 2 FIRE/sector + RS vs SPY
-    const spyChg = (typeof lastSentiment !== 'undefined' && lastSentiment && lastSentiment.spy)
-      ? lastSentiment.spy.chgPct : null;
-    if (window.MED) {
-      if (MED.applySectorFireCap) results = MED.applySectorFireCap(results, 2);
-      if (MED.attachRelativeSpy) results = MED.attachRelativeSpy(results, spyChg);
-      if (MED.markHero) MED.markHero(results);
-    }
-    // PRE WL-first: dacă zero structure, un al doilea pass TOT o dată (nu la fiecare poll)
+    // PRE WL-first: expand TOT O SINGURĂ DATĂ per sesiune (elWlFirstOnly)
     const structOk = results.some(r => r.structure && r.structure.ok);
     if (preferWl && !structOk && !elWlFirstOnly && !opts.structureOnly) {
-      elWlFirstOnly = false;
-      // expand TOT once
+      elWlFirstOnly = true; // armat — nu re-expanda la fiecare poll 90s
+      try { sessionStorage.setItem('me_el_wl_first_done', '1'); } catch (e) {}
       uni = await elBuildHotList({ forceTot: true });
       items = uni.items || [];
       syms = items.map(i => i.symbol);
       srcMap = {};
       items.forEach(i => { srcMap[i.symbol] = i.src; });
-      // only scan symbols not already done
       const have = new Set(results.map(r => r.symbol));
       const extra = items.filter(i => !have.has(i.symbol));
       if (extra.length) {
         const eb2 = {};
         extra.forEach(i => { eb2[i.symbol] = wlEarlyCache[i.symbol]?.eb || null; });
+        const sec2 = {};
+        extra.forEach(i => {
+          sec2[i.symbol] = (EL.sectorOf ? EL.sectorOf(i.symbol, elSectorMap) : null) || 'Necunoscut';
+        });
         let more = await EL.scanList(extra, {
           ebMap: eb2, srcMap, earnMap: elBuildEarnMap(),
-          regime: EL.readRegimeFromStorage(), concurrency: 3
+          regime: EL.readRegimeFromStorage(), concurrency: 3,
+          sectorMap: sec2, spyChg, maxFirePerSector: 2
         });
-        if (EL.sectorOf) more.forEach(r => { r.sector = EL.sectorOf(r.symbol, elSectorMap); });
+        if (EL.sectorOf) more.forEach(r => { if (!r.sector) r.sector = EL.sectorOf(r.symbol, elSectorMap); });
+        // re-cap pe univers combinat + sync state final (fără re-TG — side-effects deja pe pass-uri)
         let combined = results.concat(more);
-        if (window.MED) {
-          if (MED.applySectorFireCap) combined = MED.applySectorFireCap(combined, 2);
-          if (MED.attachRelativeSpy) combined = MED.attachRelativeSpy(combined, spyChg);
-          if (MED.markHero) MED.markHero(combined);
-        }
+        if (window.MED && MED.applySectorFireCap) combined = MED.applySectorFireCap(combined, 2);
+        if (window.MED && MED.attachRelativeSpy) combined = MED.attachRelativeSpy(combined, spyChg);
+        if (window.MED && MED.markHero) MED.markHero(combined);
+        try {
+          const st = JSON.parse(localStorage.getItem('me_el_states_v1') || '{}');
+          combined.forEach(r => {
+            if (!r || !r.symbol || !st[r.symbol]) return;
+            st[r.symbol].state = r.state;
+            st[r.symbol].sectorCap = !!r.sectorCap;
+            st[r.symbol].rsWeak = !!r.rsWeak;
+            if (r.state !== 'FIRE') r._becameFire = false;
+          });
+          localStorage.setItem('me_el_states_v1', JSON.stringify(st));
+        } catch (e) {}
         results = combined;
       }
     }
@@ -5416,13 +5433,12 @@ async function elDeskRefresh(opts){
     const c = EL.counts(results);
     const newFires = results.filter(r => r && r._becameFire);
     const tag = (uni.meta && uni.meta.wlFirst) ? 'WL-first' : 'TOT';
+    // Toast DOAR pe edge FIRE nou (nu pe fiecare poll steady-state)
     if (newFires.length) {
       showToast(`▶ ${newFires.length} FIRE nou: ${newFires.map(r => r.symbol).join(', ')}`, 'success');
-    } else if (c.FIRE) {
-      showToast(`▶ ${c.FIRE} FIRE · ${tag} ${uni.meta.total}`, 'success');
-    } else if (c.ARMED) {
-      showToast(`⚡ ${c.ARMED} ARMED · ${tag} ${uni.meta.total}`, 'success');
-    } else if (elLastFunnel && elLastFunnel.nearT) {
+    } else if (opts.force && !c.FIRE && c.ARMED) {
+      showToast(`⚡ ${c.ARMED} ARMED · 0 FIRE (${tag})`, 'warn');
+    } else if (opts.force && elLastFunnel && elLastFunnel.nearT && !c.FIRE) {
       showToast(`Near-miss ${elLastFunnel.nearT} · 0 FIRE (${tag})`, 'warn');
     }
   } catch (e) {
@@ -6754,10 +6770,10 @@ function renderSectorHeatmap() {
 // Heatmap-urile sunt randate direct din scanLosers (în finally) — fără monkey-patch.
 </script>
 
-<script src="../lib/suite-version.js?v=657"></script>
+<script src="../lib/suite-version.js?v=659"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v657';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v659';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
