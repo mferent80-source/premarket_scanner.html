@@ -616,7 +616,8 @@ a.ht-card.ht-market:hover {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  flex-wrap: wrap; /* rândul tradability (I-209) trece pe linia a doua */
+  gap: 1px 4px;
   padding: 3px 7px;
   border-radius: 6px;
   border: 1px solid rgba(255, 190, 50, 0.3);
@@ -641,7 +642,21 @@ a.ht-card.ht-market:hover {
 }
 
 .ht-gap-pct.up { color: var(--green); font-weight: 800; }
-.ht-gap-pct.down { color: #ff4d4d; font-weight: 800; }
+.ht-gap-pct.down { color: var(--red, #ff4d4d); font-weight: 800; }
+
+/* I-209 — rând tradability pe chip gapper (participare + poziție în range) */
+.ht-gap-trad {
+  display: block;
+  flex-basis: 100%;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--t3);
+  margin-top: 1px;
+}
+.ht-gap-trad.up { color: var(--green); }
+.ht-gap-trad.down { color: var(--red, #ff4d4d); }
+.ht-gap-trad.thin { color: var(--t3); opacity: .75; }
 
 .ht-gap-earn {
   font-size: 7px;
