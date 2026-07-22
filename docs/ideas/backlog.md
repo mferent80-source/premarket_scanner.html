@@ -1334,3 +1334,52 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** MATUR și „vs baza" devin comparabile cu ce trăiește segmentul, nu cu o medie amestecată — mai puține alarme false de „trend bătrân" pe bull runs.
 - **Riscuri/dependențe:** n per direcție se înjumătățește — fallback-ul agregat e obligatoriu; doar strat de citire, zero logică de bază.
 - **Fișiere atinse:** `pine-scripts\PPST-DECK\PPST_Deck_v1_1.pine` (secțiunea segmente + MATUR/base-rate + dash), README.
+
+| I-190 | Ratchet vs presiune de pret (diagnostic PRESIUNE) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
+| I-191 | CHOP / densitate flip (ultimele N bare) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
+| I-192 | JSON exit-context (matur, bars_since, stop_atr) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
+| I-193 | MFE/MAE pe segment (din flip entry) | PPST Deck Pine | M | P2 | propus | ideation | 2026-07-22 |
+| I-194 | Preset Crypto/Nasdaq DOAR pe praguri deck | PPST Deck Pine | S | P2 | propus | ideation | 2026-07-22 |
+| I-195 | Guard n mic pe VERIF/EXPECT (zgomot explicit) | PPST Deck Pine | S | P2 | propus | ideation | 2026-07-22 |
+
+### I-190 · Ratchet vs presiune de pret · [S] · P1
+- **Problema/golul:** README v1.1 admite ca SLABESTE se aprinde si cand stopul urca spre pret (ratchet SuperTrend), nu doar cand vanzatorii imping pretul spre stop — traderul nu stie care e cazul. Fara asta, PRESIUNE% minteste pe „intentie".
+- **Solutia:** pe stratul deck, descompune scaderea de distanta in doua contributii (miscarea Trailingsl vs miscarea close) pe barele din shrinkBars; rand optional „PRESIUNE · ratchet X% / pret Y%" sau badge pe STOP. Zero feedback in Trend/TUp/TDown.
+- **Impact:** decizie mai buna pe FLIP IMINENT — daca e 90% ratchet pe trend puternic, nu panichezi; daca e pret, iesirea e urgenta.
+- **Riscuri/dependente:** pe bare cu ambele miscari e aproximare (declarata); nu e semnal nou, e diagnostic.
+- **Fisiere atinse:** `pine-scripts/PPST-DECK/PPST_Deck_v1_1.pine` (doar bloc deck + eventual JSON field), README.
+
+### I-191 · CHOP / densitate flip · [S] · P1
+- **Problema/golul:** pe range, flip-uri dese + SLABESTE zgomotos; EXPECT poate parea ok pe n mic de segmente scurte. Nu exista un semnal de „nu tranzactiona flip-uri aici" din densitate.
+- **Solutia:** contor read-only: flip-uri in ultimele N bare (input, default 20) + densitate vs media istorica; rand CHOP sau culoare pe SETUP/hero subtila cand densitatea depaseste prag. Nu blocheaza semnalele — doar citire.
+- **Impact:** previne overtrading pe chop; completeaza VERIF (care judeca avertismentele, nu piata).
+- **Riscuri/dependente:** pragul de densitate e ipoteza (trader.md); pe TF foarte mici totul e dens — de legat de preset deck I-194.
+- **Fisiere atinse:** `PPST_Deck_v1_*.pine` (deck), README.
+
+### I-192 · JSON exit-context · [S] · P1
+- **Problema/golul:** payload-ul FLIP_* are close/stop/pres_pct/permis, dar botul/relay-ul nu stie cat de batran e trendul, cat e stopul in ATR, sau bars_since — info pe care dashboard-ul o are deja si pe care un exit-manager o vrea fara al doilea indicator.
+- **Solutia:** extinde f_json cu campuri optionale (sau mereu): `bars_since`, `matur_pct`, `stop_atr` (= |close-stop|/atr), `pres_pct` deja exista; eventual `event_prev` nu. Nu schimba cand tragi alerta, doar payload-ul.
+- **Impact:** un singur webhook PPST poate face sizing/exit pe maturitate + distanta stop; paritate mai buna cu ce vezi pe chart.
+- **Riscuri/dependente:** breaking change daca consumerii sunt stricti pe schema — bump `ver` la 1.2; documenteaza campurile noi ca additive.
+- **Fisiere atinse:** `PPST_Deck_v1_*.pine` (f_json + alerte), README; eventual parser in `tools/` daca exista consumator deck.
+
+### I-193 · MFE/MAE pe segment · [M] · P2
+- **Problema/golul:** EXPECT da media % la close-to-close pe flip; nu spune daca pe drum pretul a mers +2R in favoarea ta apoi a dat inapoi (MFE) sau te-a ars dupa intrare (MAE). Fara asta nu stii daca trailing manual ar fi salvat bani.
+- **Solutia:** de la bare de flip (segEntry/segDir deja in deck), track high/low extrem pe segment in directia semnata; la flip urmator arhiveaza MFE% si MAE%; rand EXPECT extins sau sub-rand „MFE/MAE mediu". Doar citire de OHLC + starea de flip.
+- **Impact:** valideaza daca merita sa tii pana la flip opus vs sa iei partial la MFE tipic; pe trader.md e metrica de realitate a edge-ului.
+- **Riscuri/dependente:** n mic = zgomot (I-195); MFE/MAE pe bare e pe high/low (optimistic pe wick) — declarat.
+- **Fisiere atinse:** `PPST_Deck_v1_*.pine` (bloc EXPECT), README.
+
+### I-194 · Preset Crypto/Nasdaq pe praguri deck · [S] · P2
+- **Problema/golul:** conventia casei cere Crypto/Nasdaq/Custom, dar PPST are doar Custom manual pe nShrink/pragImn/verifBars. Userul retuneaza pe fiecare clasa de active; parametrii SuperTrend raman neatinsi daca vrem regula de aur stricta pe baza.
+- **Solutia:** selector Preset care seteaza DOAR inputurile Deck (ex. Crypto: nShrink 2, pragImn 70, verif 5; Nasdaq: nShrink 3, pragImn 75, verif 5; Custom = manual). Optional afiseaza in SETUP. Zero schimbare pe prd/Factor/Pd/filtre.
+- **Impact:** setup rapid aliniat cu restul suitei; pragurile raman ipoteze de validat pe VERIF/EXPECT.
+- **Riscuri/dependente:** daca userul vrea preset si pe SuperTrend, e livrare separata (atinge logica semnalelor) — aici e explicit doar deck.
+- **Fisiere atinse:** `PPST_Deck_v1_*.pine` (inputs Deck), README.
+
+### I-195 · Guard n mic pe VERIF/EXPECT · [S] · P2
+- **Problema/golul:** trader.md: n≥10 minim; azi „78% vs baza" sau „+0.4%/flip n=3" arata ca dovezi pe eșantion zgomot.
+- **Solutia:** daca n < 10 pe VERIF sau EXPECT, text amber „n=3 zgomot" / „eșantion insuficient" in loc de verdict colorat bull/bear; nu ascunde numarul, doar degradeaza increderea vizuala.
+- **Impact:** previne curve-fitting mental pe chart scurt; onestitate de trader pe panou.
+- **Riscuri/dependente:** minime; pragul 10 e conventie casa, nu magie.
+- **Fisiere atinse:** `PPST_Deck_v1_*.pine` (celule VERIF/EXPECT), README.
