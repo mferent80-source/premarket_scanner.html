@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=666"></script>
+<script src="lib/suite-version.js?v=667"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v666'));
+    location.replace('shell/?v=' + (window.SUITE_VERSION_SHORT || 'tt-v667'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1440,7 +1440,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v666';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v667';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1501,7 +1501,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 <script src="lib/hub-gappers.js?v=666"></script>
 <script src="lib/hub-tableau.js?v=666"></script>
 <script src="lib/hub-health.js?v=666"></script>
-<script src="lib/hub-brief.js?v=666"></script>
+<script src="lib/hub-brief.js?v=667"></script>
 <script src="lib/hub-ledger.js?v=666"></script>
 <script>
 (function(){
