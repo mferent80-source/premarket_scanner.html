@@ -7,49 +7,64 @@
 <meta name="theme-color" content="#0b0f17">
 <style>
   body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
-    font-family:system-ui,sans-serif;background:#0b0f17;color:#e8eef5}
-  .box{text-align:center;max-width:360px}
+    font-family:system-ui,sans-serif;background:#070b11;color:#fafbfc}
+  .box{text-align:center;max-width:400px}
   h1{font-size:16px;margin:0 0 8px}
-  p{color:#a3adc1;font-size:13px;margin:0}
+  p{color:#eef2f8;font-size:13px;margin:0;line-height:1.5}
   .ver{color:#f7931a;font-family:ui-monospace,monospace;font-weight:700}
-  a{color:#5bb0ff;font-size:13px}
+  a{color:#8ac8ff;font-size:13px}
+  .log{margin-top:14px;font-size:11px;color:#d0d8e6;font-family:ui-monospace,monospace;text-align:left}
 </style>
 </head>
 <body>
 <div class="box">
-  <h1>Actualizare suitaâ€¦</h1>
-  <p>Curat cache vechi â†’ <span class="ver" id="ver">tt-v657</span></p>
-  <p style="margin-top:12px"><a id="go" href="./index.html">Deschide hub daca nu redirecteaza</a></p>
+  <h1>Actualizare suită…</h1>
+  <p>Curăț cache vechi (inclusiv Watch/Events goale) → <span class="ver" id="ver">tt-v665</span></p>
+  <p class="log" id="log">pornesc…</p>
+  <p style="margin-top:14px"><a id="go" href="./index.html">Deschide hub dacă nu redirectează</a></p>
 </div>
 <script>
 (function(){
-  var VER = 'tt-v664';
+  var VER = 'tt-v665';
+  var log = document.getElementById('log');
+  function say(t){ if(log) log.textContent = t; }
   document.getElementById('ver').textContent = VER;
   document.getElementById('go').href = './index.html?fresh=' + VER + '&t=' + Date.now();
   var jobs = [];
+
+  // 1) Unregister ALL service workers
   if ('serviceWorker' in navigator) {
     jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+      say('SW: ' + rs.length + ' înregistrări…');
       return Promise.all(rs.map(function(r){ return r.unregister(); }));
     }));
   }
+  // 2) Delete ALL caches (nu doar trading-tools)
   if (window.caches && caches.keys) {
     jobs.push(caches.keys().then(function(ks){
-      return Promise.all(ks.filter(function(k){ return k.indexOf('trading-tools') >= 0; }).map(function(k){ return caches.delete(k); }));
+      say('Cache: șterg ' + ks.length + '…');
+      return Promise.all(ks.map(function(k){ return caches.delete(k); }));
     }));
   }
+  // 3) Bust critical files
   jobs.push(fetch('./sw-app.js?bust=' + Date.now(), { cache: 'no-store' }).catch(function(){}));
   jobs.push(fetch('./lib/suite-version.js?bust=' + Date.now(), { cache: 'no-store' }).catch(function(){}));
+  jobs.push(fetch('./lib/suite-ui.css?bust=' + Date.now(), { cache: 'no-store' }).catch(function(){}));
+  jobs.push(fetch('./watchlist-monitor/index.html?bust=' + Date.now(), { cache: 'no-store' }).catch(function(){}));
+  jobs.push(fetch('./market-events/index.html?bust=' + Date.now(), { cache: 'no-store' }).catch(function(){}));
+
   Promise.all(jobs).then(function(){
     try {
       localStorage.setItem('tt_suite_ok', VER);
       localStorage.removeItem('tt_sw_version');
     } catch(e){}
-    document.querySelector('p').innerHTML = 'Gata â€” redirect hub <b class="ver">' + VER + '</b>â€¦';
+    say('Gata — redirect hub ' + VER);
     setTimeout(function(){
       location.replace('./index.html?fresh=' + VER + '&t=' + Date.now());
-    }, 800);
+    }, 600);
   }).catch(function(){
-    location.replace('./index.html?fresh=' + VER);
+    say('Parțial — deschid hub…');
+    location.replace('./index.html?fresh=' + VER + '&t=' + Date.now());
   });
 })();
 </script>

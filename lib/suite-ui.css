@@ -1,6 +1,5 @@
-/* suite-ui.css v664 — chrome comun + MAX-CLARITY anti-ceață (hub-wide) */
+/* suite-ui.css v665 — chrome comun + clarity ușoară (fără override-uri grele pe tabele) */
 
-/* ── Tokeni default (paginile pot suprascrie pe :root; fallback-uri clare) ── */
 :root {
   --suite-bg: #070b11;
   --suite-panel: #171f30;
@@ -10,9 +9,6 @@
   --suite-t2: #eef2f8;
   --suite-t3: #d0d8e6;
   --suite-accent: #8ac8ff;
-  --suite-bull: #3aeb88;
-  --suite-bear: #ff6b6b;
-  --suite-warn: #f0a84a;
 }
 
 .suite-page {
@@ -24,12 +20,15 @@
   font-weight: 400;
 }
 
-.suite-page,
-.suite-page body,
+/* Tokeni clari pe suite-page (pagina poate suprascrie pe :root înainte) */
 body.suite-page {
-  -webkit-font-smoothing: auto !important;
-  -moz-osx-font-smoothing: auto !important;
-  text-rendering: geometricPrecision;
+  --t1: #fafbfc;
+  --t2: #eef2f8;
+  --t3: #d0d8e6;
+  --text: #fafbfc;
+  --muted: #d0d8e6;
+  --text-dim: #d0d8e6;
+  --accent: var(--accent, #8ac8ff);
 }
 
 .suite-page .suite-wrap {
@@ -37,7 +36,7 @@ body.suite-page {
   margin: 0 auto;
 }
 
-/* Sticky cockpit — FĂRĂ backdrop-blur (blur = ceață pe text) */
+/* Sticky cockpit — solid, FĂRĂ backdrop-blur */
 .suite-page header.suite-cockpit,
 .suite-page .topbar.suite-cockpit,
 .suite-page .hdr.suite-cockpit {
@@ -51,17 +50,11 @@ body.suite-page {
   -webkit-backdrop-filter: none !important;
 }
 
-.suite-page header.suite-cockpit {
-  background: #171f30 !important;
-  border: 1px solid var(--b1, var(--suite-border));
-  color: var(--t1, var(--suite-t1));
-}
-
+.suite-page header.suite-cockpit,
 .suite-page .topbar.suite-cockpit {
   background: #171f30 !important;
   border: 1px solid var(--b1, var(--suite-border));
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  color: var(--t1, var(--suite-t1));
 }
 
 .suite-page .hdr.suite-cockpit,
@@ -92,23 +85,19 @@ body.suite-page {
   -webkit-text-fill-color: #8ac8ff;
 }
 
-/* Panel / bar polish */
 .suite-page .add-bar,
 .suite-page .thr-bar,
 .suite-page .panel-box,
 .suite-page .card,
 .suite-page .scan-bar,
 .suite-page .stat,
-.suite-page .heat-card {
+.suite-page .heat-card,
+.suite-page .panel {
   border-radius: 14px;
 }
 
 .suite-page .tabs-row {
   border-radius: 12px;
-}
-
-.suite-page .panel {
-  border-radius: 14px;
 }
 
 .suite-page header.suite-cockpit.mk-header {
@@ -125,13 +114,7 @@ body.suite-page {
   margin-left: auto;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   MAX-CLARITY — text sharp pe toată suita (.suite-page)
-   Fără opacity pe litere · fundaluri solide pe tabele · contrast ridicat
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Text secundar / meta — nu mai gri spălat */
-.suite-page,
+/* Clarity ușoară — fără !important pe tabele (evită layout rot / pagini albe) */
 .suite-page label,
 .suite-page .muted,
 .suite-page .sub,
@@ -140,144 +123,38 @@ body.suite-page {
 .suite-page .stat-label,
 .suite-page .stat-sub,
 .suite-page .panel-sub,
-.suite-page .subtitle,
-.suite-page th,
-.suite-page .th,
-.suite-page thead th {
+.suite-page .subtitle {
   color: var(--t2, var(--suite-t2));
+  opacity: 1;
 }
 
-.suite-page,
-.suite-page p,
-.suite-page td,
-.suite-page .num,
-.suite-page .value,
-.suite-page h1,
-.suite-page h2,
-.suite-page h3,
-.suite-page h4 {
-  color: var(--t1, var(--suite-t1));
-}
-
-/* Forțează contrast pe tokeni frecvenți dacă pagina a lăsat gri vechi */
-.suite-page {
-  --t1: #fafbfc;
-  --t2: #eef2f8;
-  --t3: #d0d8e6;
-  --text: #fafbfc;
-  --muted: #d0d8e6;
-  --text-dim: #d0d8e6;
-}
-
-/* Tabele: solid + sharp (nu wash alpha) */
-.suite-page table {
-  border-collapse: separate;
-  border-spacing: 0;
-  -webkit-font-smoothing: auto;
-  text-rendering: geometricPrecision;
-}
-.suite-page thead th {
-  background: #1e2a40 !important;
-  color: #ffffff !important;
-  font-weight: 800 !important;
-  letter-spacing: 0 !important;
-  opacity: 1 !important;
-  text-shadow: none !important;
-  -webkit-font-smoothing: auto !important;
-}
-.suite-page tbody td {
-  color: #f5f8fc !important;
-  opacity: 1 !important;
-  text-shadow: none !important;
-  -webkit-font-smoothing: auto !important;
-  font-weight: 600;
-}
-.suite-page tbody tr {
-  background: #0e1522;
-}
-.suite-page tbody tr:nth-child(even) {
-  background: #131c2c;
-}
-.suite-page tbody tr:hover {
-  background: #1a2740;
-}
-
-/* Fără blur pe orice element sticky din suite */
-.suite-page [class*="sticky"],
-.suite-page .sticky,
 .suite-page header,
-.suite-page .topbar {
+.suite-page .topbar,
+.suite-page [class*="sticky"],
+.suite-page .sticky {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
-/* Labels / chips / empty — lizibile */
-.suite-page .empty,
-.suite-page .empty-title,
-.suite-page .empty-sub,
-.suite-page [class*="empty"] {
-  color: var(--t2, #eef2f8) !important;
-  opacity: 1 !important;
-}
-.suite-page .nav-link,
-.suite-page button:not(.primary):not(:disabled) {
-  color: var(--t1, #fafbfc);
-  font-weight: 600;
-}
-.suite-page input,
-.suite-page select,
-.suite-page textarea {
-  color: var(--t1, #fafbfc) !important;
-  background: var(--panel2, #222c44);
-  border-color: var(--b1, #4a5874);
-}
 .suite-page input::placeholder,
 .suite-page textarea::placeholder {
-  color: #b8c4d6 !important;
-  opacity: 1 !important;
+  color: #b8c4d6;
+  opacity: 1;
 }
 
-/* Hardcoded GitHub greys → tokeni clari (dacă apar inline) */
-.suite-page [style*="#8892a6"],
-.suite-page [style*="#8b949e"],
-.suite-page [style*="#6e7681"],
-.suite-page [style*="#a3adc1"] {
-  color: #d0d8e6 !important;
-}
-
-/* Status / pills */
-.suite-page .status-pill,
-.suite-page .status {
-  color: #f5f8fc !important;
+.suite-page .status-pill {
+  color: var(--t1, var(--suite-t1));
   font-weight: 600;
-  opacity: 1 !important;
-}
-
-/* Card titles on hub-like layouts */
-.suite-page .card-title,
-.suite-page .card-tag,
-.suite-page .feat {
-  opacity: 1 !important;
 }
 
 @media (max-width: 640px) {
   .suite-page {
     padding: 8px;
   }
-
   .suite-page header.suite-cockpit,
   .suite-page .topbar.suite-cockpit {
     border-radius: 0;
     margin-left: -4px;
     margin-right: -4px;
-  }
-
-  .suite-page thead th {
-    font-size: 10px !important;
-    padding: 8px 4px !important;
-  }
-  .suite-page tbody td {
-    font-size: 11.5px !important;
-    padding: 8px 4px !important;
   }
 }
