@@ -205,6 +205,11 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-203 | ME soft gates pre-TG + TG dedupe + toast edge + elWlFirstOnly + confirm-bar | market-events/ + lib/ | M | P1 | făcut | ideation | 2026-07-22 |
 | I-204 | WLM alert policy (soft tags, ER, quiet hours, group risk TG) | watchlist-monitor/ | M | P1 | făcut | ideation | 2026-07-22 |
 | I-205 | Shadow ledger me-fire-raw vs me-fire (OOS soft gates) | lib/early-long.js + ledger | S | P2 | făcut | ideation | 2026-07-22 |
+| I-206 | Data Trust gate — GO score degradat pe date stale/parțiale | index.html + lib/hub-state.js + lib/hub-brief.js | S | P1 | propus | ideation | 2026-07-22 |
+| I-207 | Risc $ + buget R live în formularul Trade Plans | index.html + lib/capital-desk.js | S | P1 | propus | ideation | 2026-07-22 |
+| I-208 | lib/suite-sessions.js — sesiune NYSE unică + sărbători/half-days | lib/* + hub + router | M | P1 | propus | ideation | 2026-07-22 |
+| I-209 | Gapper tradability — RVOL + context range pe chip-urile gappers | lib/hub-gappers.js | M | P2 | propus | ideation | 2026-07-22 |
+| I-210 | Sursă unică evenimente high-impact (MCTX) + flag approx + expirare | lib/macro-context.js + lib/router.js + lib/event-tape.js | M | P1 | propus | ideation | 2026-07-22 |
 
 ## Mini-spec-uri
 
@@ -1435,3 +1440,38 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** viteză de iterație + testabilitate.
 - **Riscuri/dependențe:** scope creep; face-se **după** vertical slice funcțional, nu înainte.
 - **Fișiere atinse:** market-events/index.html, lib/*.js noi, sw-app.js.
+
+### I-206 · Data Trust gate — GO score degradat pe date stale/parțiale · [S] · P1
+- **Problema/golul:** cockpit-ul afișează GO score ferm chiar când inputurile sunt compromise: sweep-ul de gappers parțial e cachetat ca „fresh" (hub-gappers.js:105-120), quotes au un singur timestamp global (hub-market stashMkt), `tt_risk_regime` e citit fără vârstă (hub-card-live.js:18-22), `equityAgeDays` NaN trece de toate pragurile (hub-state.js:385-390). Auditul din 2026-07-22 a arătat că `HS.staleAudit()` există deja dar rezultatul lui NU intră în GO score — un trader vede „GO 78" calculat din date posibil vechi de ore.
+- **Soluția:** un rând „Încredere date: N/M surse fresh" în Morning Cockpit, alimentat din `HS.staleAudit()` extins (per-quote ts, vârstă tt_risk_regime, flag partial pe gappers). Când sub prag (ex. <70% surse fresh), GO score primește sufix vizual „*" + tooltip cu sursele stale și nivelul coboară o treaptă (go→caution). Nu se schimbă formula GO, doar prezentarea onestă a încrederii.
+- **Impact:** previne exact decizia pe care auditul a marcat-o periculoasă — verdict ferm pe date degradate; regula de trader „nu tranzacționa pe date pe care nu le poți valida" devine vizibilă în 2 secunde.
+- **Riscuri/dependențe:** depinde de fix-urile de staleness din audit (ts per-quote, reason:'partial' pe gappers); pragul „70% fresh" e ipoteză de UI, nu de semnal.
+- **Fișiere atinse:** lib/hub-state.js (staleAudit extins), lib/hub-brief.js (renderHubCockpit), lib/hub-tableau.js (card GO), lib/hub-gappers.js (flag partial).
+
+### I-207 · Risc $ + buget R live în formularul Trade Plans · [S] · P1
+- **Problema/golul:** formularul FAB „Trade Plans" (index.html:1233-1247) cere entry/SL/TP/size dar nu arată NIMIC despre risc: nici pierderea $ la SL, nici raportarea la bugetul R rămas pe azi/săptămână pe care `CD.unified()` îl calculează deja pentru cockpit. Auditul a găsit și că un SL pe partea greșită a entry-ului trece nevalidat — formularul e orb la exact ce contează.
+- **Soluția:** sub câmpurile formularului, un rând live (recalculat la input): „Risc: $X (Y% cont) · Buget R rămas azi: Z" din `CD.unified()` + `ACCT.get()`; roșu când riscul depășește bugetul, cu confirmare explicită la submit (soft block, nu hard — decizia rămâne a traderului). Include validarea direcțională din audit (long: SL < entry < TP) ca parte a aceluiași rând de feedback.
+- **Impact:** sizing-ul devine vizibil ÎNAINTE de salvarea planului, nu după, în singurul loc din hub unde se introduc planuri; previne pierderea „am planificat fără să mă uit la buget".
+- **Riscuri/dependențe:** `CD`/`ACCT` pot lipsi la load parțial (guard existent `window.TT` e model); nu înlocuiește Setup Builder din Journal — e mirror-ul lui minim pe FAB.
+- **Fișiere atinse:** index.html (tt-form + ttAddTrade), lib/capital-desk.js (read-only, refolosit), lib/tracker.js (persistă riskUsd în plan).
+
+### I-208 · lib/suite-sessions.js — sesiune NYSE unică + sărbători/half-days · [M] · P1
+- **Problema/golul:** patru implementări paralele de „sesiune NYSE" cu aceleași praguri copiate (hub-market.js:10 usSession, hub-market.js:238 pill timer, hub-gappers.js:43 getNYSESession, router.js:78 _etNow) și DOUĂ vocabulare divergente ('rth' vs 'open'); niciuna nu știe de sărbători US — pe 4 iulie hub-ul arată „🟢 RTH", gappers rulează sweep-uri pe un premarket inexistent, „% azi" etichetează closes vechi.
+- **Soluția:** modul unic `lib/suite-sessions.js` (SES.*): un singur `session()` cu vocabular canonic ('pre'/'rth'/'after'/'closed'/'weekend'/'holiday'), listă statică sărbători NYSE + half-days 2026-2027 (13:00 close), helper `nextOpen()`/`minutesTo()`. Cele 4 implementări devin consumatori; pill-ul afișează „🎌 Închis — Independence Day" în loc de RTH fals. Expirarea listei semnalată explicit (pattern din I-210), nu tăcut.
+- **Impact:** elimină o clasă întreagă de date etichetate greșit în zilele speciale (~10 zile/an în care hub-ul minte azi) + o singură sursă de adevăr pentru orice tool viitor.
+- **Riscuri/dependențe:** migrarea celor 4 call-site-uri cere atenție la vocabular ('open'→'rth' în router/hub-state); lista de sărbători cere întreținere anuală (semnalată la expirare).
+- **Fișiere atinse:** lib/suite-sessions.js (nou), lib/hub-market.js, lib/hub-gappers.js, lib/router.js, lib/hub-state.js (sessionLvl), index.html + sw-app.js (precache).
+
+### I-209 · Gapper tradability — RVOL + context range pe chip-urile gappers · [M] · P2
+- **Problema/golul:** chip-urile de gappers arată doar gap% — dar un gap +6% pe volum premarket anemic e netradabil (spread mare, fill imposibil), în timp ce +3% cu RVOL 4x e setup-ul real. Universul e mega-caps + WL (decizie documentată), deci datele de volum există pe Yahoo chart; azi chip-ul nu distinge tradabil de capcană.
+- **Soluția:** pentru top gappers (max 6, deja plafonat), un fetch suplimentar Yahoo chart 1d/5m: RVOL premarket vs media 20 zile la aceeași oră + poziția prețului în range-ul premarket (sus = ține gap-ul, jos = fade). Chip-ul primește un al doilea rând compact „RVOL 3.2x · ține" / „RVOL 0.4x · fade" cu culoare semantică. Praguri = ipoteze de validat pe ledger (me-fire există ca model de A/B).
+- **Impact:** transformă gappers-ul din listă de procente într-un filtru de tradabilitate — exact diferența dintre „văd gap-ul" și „merită deschis chart-ul".
+- **Riscuri/dependențe:** +6 fetch-uri chart per sweep (batch, cache 60s existent); RVOL premarket pe Yahoo poate fi incomplet pe unele simboluri (declarat „RVOL n/a", nu inventat); pragurile RVOL sunt ipoteze — avertisment obligatoriu.
+- **Fișiere atinse:** lib/hub-gappers.js, lib/data.js (refolosit fetchJSON chart), lib/hub-ui.css (rând secundar chip).
+
+### I-210 · Sursă unică evenimente high-impact (MCTX) + flag approx + expirare · [M] · P1
+- **Problema/golul:** două liste de evenimente macro trăiesc în paralel: `MCTX.hardcodedEvents()` (macro-context.js:26-33, cu FOMC Press Conference 14:30) și lista inline duplicată din router.js:105-111 (FĂRĂ Press Conference) — auditul a confirmat că în fereastra 14:15-14:45 ET din ziua FOMC, pbFreeze strigă „🚫 FREEZE" în timp ce hubFreezeTop tace, pe aceeași pagină. În plus PPI/Retail/ISM sunt date SINTETICE (derivate aritmetic din CPI/zi-fixă) servite identic cu cele reale, iar calendarul expiră tăcut la 2026-12-16 („fără evenimente" fals liniștitor în 2027).
+- **Soluția:** MCTX devine singura sursă: router consumă `MCTX.hardcodedEvents()` în buildContext (își păstrează doar logica de ferestre), evenimentele derivate primesc `approx:true` afișat cu „~" în tape/brief/freeze, iar după ultima dată cunoscută TOATE consumatoarele afișează „⚠ calendar macro expirat — actualizează MCTX" în loc de liniște. Un singur loc de întreținut la fiecare an nou.
+- **Impact:** elimină mesajele contradictorii de freeze în exact minutele cele mai periculoase ale lunii (FOMC presser) și onestitate pe datele aproximate — trader-ul știe când „PPI azi" e estimare, nu fapt.
+- **Riscuri/dependențe:** router.js:100-101 documentează deja o divergență istorică din duplicare (DST) — migrarea trebuie să păstreze semantica ferestrelor router (±min diferite pe tipuri); flag-ul approx atinge 3 consumatori (tape/brief/freeze).
+- **Fișiere atinse:** lib/macro-context.js (approx + expirare), lib/router.js (consumă MCTX), lib/event-tape.js + lib/hub-brief.js (afișare „~" și banner expirare).
