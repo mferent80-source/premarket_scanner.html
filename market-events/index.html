@@ -1032,13 +1032,109 @@
 .heat-row .val{font-variant-numeric:tabular-nums; color:#e6edf3; font-weight:700; text-align:right; min-width:60px}
 .heat-row .meta{font-size:9.5px; color:#fff; position:absolute; left:6px; top:50%; transform:translateY(-50%); text-shadow:0 1px 2px rgba(0,0,0,.5)}
 .heat-empty{padding:14px; text-align:center; color:#8b949e; font-size:11px; font-style:italic}
+
+/* === Early Long Desk (I-196/I-197) === */
+.el-tabs{
+  display:flex; gap:6px; flex-wrap:wrap; align-items:center;
+  margin:0 0 12px; padding:4px; background:var(--panel); border:1px solid var(--border);
+  border-radius:var(--radius); box-shadow:var(--shadow-sm);
+}
+.el-tab{
+  appearance:none; border:1px solid transparent; background:transparent; color:var(--muted);
+  font:600 12px/1 inherit; padding:9px 14px; border-radius:var(--radius-sm); cursor:pointer;
+  transition:all .15s var(--ease);
+}
+.el-tab:hover{color:var(--text); background:var(--panel2)}
+.el-tab.active{
+  color:#0b0f17; background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));
+  border-color:transparent; box-shadow:0 2px 8px rgba(247,147,26,.25);
+}
+.el-tab .el-tab-count{
+  display:inline-block; min-width:16px; margin-left:6px; padding:1px 6px; border-radius:999px;
+  font-size:10px; font-weight:800; background:rgba(0,0,0,.2); color:inherit;
+}
+.el-tab-panel{display:none}
+.el-tab-panel.active{display:block}
+.el-desk{
+  background:linear-gradient(180deg,rgba(30,38,57,.9),rgba(20,26,40,.95));
+  border:1px solid var(--border); border-radius:var(--radius); padding:14px;
+  margin-bottom:12px; box-shadow:var(--shadow);
+}
+.el-desk-head{
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:12px;
+}
+.el-desk-title{
+  font-size:13px; font-weight:800; letter-spacing:.4px; text-transform:uppercase;
+  background:linear-gradient(90deg,var(--crypto-1),var(--crypto-2));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-right:auto;
+}
+.el-desk-meta{font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums}
+.el-desk-meta strong{color:var(--text)}
+.el-strip{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px}
+.el-pill{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 12px; border-radius:999px; font-size:11px; font-weight:800;
+  border:1px solid var(--border); background:var(--panel2); color:var(--text);
+  font-variant-numeric:tabular-nums;
+}
+.el-pill .n{font-size:15px; font-family:ui-monospace,DM Mono,monospace}
+.el-pill.fire{background:rgba(34,214,107,.12); border-color:rgba(34,214,107,.45); color:#22d66b}
+.el-pill.manage{background:rgba(91,176,255,.12); border-color:rgba(91,176,255,.4); color:#5bb0ff}
+.el-pill.armed{background:rgba(247,147,26,.12); border-color:rgba(247,147,26,.45); color:var(--crypto-1)}
+.el-pill.dead{background:rgba(136,146,166,.1); border-color:var(--border); color:var(--muted)}
+.el-fire-rail{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px; min-height:72px;
+}
+.el-card{
+  background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:12px 12px 10px; position:relative; overflow:hidden;
+  transition:border-color .15s, transform .15s;
+}
+.el-card:hover{transform:translateY(-1px); border-color:var(--border-soft)}
+.el-card.FIRE{border-color:rgba(34,214,107,.55); box-shadow:0 0 0 1px rgba(34,214,107,.15)}
+.el-card.ARMED{border-color:rgba(247,147,26,.4)}
+.el-card.MANAGE{border-color:rgba(91,176,255,.4)}
+.el-card.DEAD{opacity:.72}
+.el-card-sym{font-weight:800; font-size:15px; color:#5bb0ff; letter-spacing:.3px}
+.el-card-state{
+  display:inline-block; margin-left:6px; padding:2px 7px; border-radius:6px;
+  font-size:10px; font-weight:800; letter-spacing:.3px; vertical-align:middle;
+}
+.el-card.FIRE .el-card-state{background:rgba(34,214,107,.2); color:#22d66b}
+.el-card.ARMED .el-card-state{background:rgba(247,147,26,.18); color:var(--crypto-1)}
+.el-card.MANAGE .el-card-state{background:rgba(91,176,255,.18); color:#5bb0ff}
+.el-card.DEAD .el-card-state,.el-card.IDLE .el-card-state{background:rgba(136,146,166,.15); color:var(--muted)}
+.el-card-px{font-variant-numeric:tabular-nums; font-size:13px; font-weight:700; margin-top:4px}
+.el-card-reason{font-size:10.5px; color:var(--muted); margin-top:6px; line-height:1.35; min-height:2.6em}
+.el-card-score{font-size:10px; color:var(--muted); margin-top:6px; font-variant-numeric:tabular-nums}
+.el-card-score b{color:var(--text)}
+.el-card-actions{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap}
+.el-card-actions button{
+  font-size:10px; font-weight:700; padding:4px 8px; border-radius:6px;
+  background:var(--panel2); border:1px solid var(--border); color:var(--text); cursor:pointer;
+}
+.el-card-actions button:hover{border-color:var(--accent); color:#fff; background:var(--accent)}
+.el-empty{
+  grid-column:1/-1; text-align:center; padding:22px 12px; color:var(--muted);
+  font-size:12px; font-style:italic; border:1px dashed var(--border); border-radius:var(--radius-sm);
+}
+.el-desk-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+.el-desk-actions button.primary{
+  background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; color:#fff;
+  padding:7px 12px; border-radius:var(--radius-sm); font-weight:700; font-size:11px; cursor:pointer;
+}
+.el-desk-actions button.ghost{
+  background:var(--panel2); border:1px solid var(--border); color:var(--text);
+  padding:7px 12px; border-radius:var(--radius-sm); font-weight:700; font-size:11px; cursor:pointer;
+}
+.el-note{font-size:10px; color:var(--muted); margin-top:10px; line-height:1.4}
 </style>
 </head>
 <body class="suite-page">
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v246</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v247</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1088,6 +1184,36 @@
     <div class="sent-value" id="senti-vix-price">—</div>
     <div class="sent-sub" id="senti-vix-chg">—</div>
   </div>
+</section>
+
+<!-- === Tabs: Desk (Early Long) · Context (Earnings) · Scan (Movers) === -->
+<nav class="el-tabs" id="elTabs" role="tablist" aria-label="Market Events views">
+  <button type="button" class="el-tab active" data-el-tab="desk" role="tab" aria-selected="true">▶ Desk <span class="el-tab-count" id="elTabFire">0</span></button>
+  <button type="button" class="el-tab" data-el-tab="context" role="tab" aria-selected="false">📅 Context</button>
+  <button type="button" class="el-tab" data-el-tab="scan" role="tab" aria-selected="false">📉 Scan</button>
+</nav>
+
+<div class="el-tab-panel active" id="elPanelDesk" role="tabpanel">
+<!-- Early Long Desk -->
+<section class="el-desk" id="elDesk" aria-label="Early Long Desk">
+  <div class="el-desk-head">
+    <div class="el-desk-title">Early Long Desk</div>
+    <div class="el-desk-meta" id="elSessionMeta">sesiune…</div>
+    <div class="el-desk-actions">
+      <button type="button" class="primary" id="elScanBtn" title="Scan trigger 5m pe watchlist (bare închise)">▶ Scan 5m</button>
+      <button type="button" class="ghost" id="elFilterArmed" title="Arată ARMED + FIRE + MANAGE">Filtru activ</button>
+    </div>
+  </div>
+  <div class="el-strip" id="elStrip">
+    <span class="el-pill fire">FIRE <span class="n" id="elCntFire">0</span></span>
+    <span class="el-pill manage">MANAGE <span class="n" id="elCntManage">0</span></span>
+    <span class="el-pill armed">ARMED <span class="n" id="elCntArmed">0</span></span>
+    <span class="el-pill dead">DEAD/IDLE <span class="n" id="elCntIdle">0</span></span>
+  </div>
+  <div class="el-fire-rail" id="elFireRail">
+    <div class="el-empty" id="elEmpty">Se încarcă structure daily pe watchlist, apoi trigger pe bare 5m închise…</div>
+  </div>
+  <p class="el-note">Hibrid PRE+ORB (până 10:15 ET) · bare <b>5m închise</b> (anti-repaint) · univers acum = <b>watchlist</b> · praguri = ipoteze (LEDGER <code>me-fire</code>). Earnings/macro gates pe FIRE.</p>
 </section>
 
 <!-- ============================================== -->
@@ -1159,9 +1285,11 @@
   <!-- Container grid orizontal cu celule de simboluri (auto-fill ~170px → ~6-8 col pe desktop, ~4 rânduri pentru 30 simboluri) -->
   <div id="wlTbody" class="wl-grid"></div>
 </section>
+</div><!-- /elPanelDesk -->
 
-<!-- Grid 2 coloane: Earnings + Top Losers side-by-side (stack pe mobile) -->
-<div class="events-grid">
+<div class="el-tab-panel" id="elPanelContext" role="tabpanel">
+<!-- Grid: Earnings (Context) -->
+<div class="events-grid" style="grid-template-columns:1fr">
 
 <!-- ============================================== -->
 <!-- TABEL 1: EARNINGS COMING UP - DIN TOATĂ PIAȚA  -->
@@ -1240,6 +1368,12 @@
   </div>
 </section>
 
+</div><!-- /events-grid context -->
+</div><!-- /elPanelContext -->
+
+<div class="el-tab-panel" id="elPanelScan" role="tabpanel">
+<div class="events-grid" style="grid-template-columns:1fr">
+
 <!-- ============================================== -->
 <!-- TABEL 2: TOP LOSERS NASDAQ                     -->
 <!-- ============================================== -->
@@ -1312,9 +1446,9 @@
   </div>
 </section>
 
-</div><!-- /events-grid -->
+</div><!-- /events-grid scan movers -->
 
-<!-- === Heatmaps: Volume + Sector (sub Earnings + Top Losers) === -->
+<!-- === Heatmaps: Volume + Sector (sub Top Losers) === -->
 <section class="heat-grid">
   <div class="heat-section section-vol">
     <h2>📊 Volume Heatmap (movers)</h2>
@@ -1325,11 +1459,13 @@
     <div class="heat-list" id="sectorHeatmap"><div class="heat-empty">se încarcă…</div></div>
   </div>
 </section>
+</div><!-- /elPanelScan -->
 
 <script src="../lib/data.js"></script>
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/telegram.js"></script>
+<script src="../lib/early-long.js?v=247"></script>
 <script>
 // Flag shell-pause: default vizibil. FĂRĂ mesaj de la shell → comportament IDENTIC actual.
 // Pauza polling-urilor de fundal e opt-in DOAR la ttShellVisible:false (vezi secțiunea „SHELL VISIBILITY" jos).
@@ -1360,7 +1496,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v245 · Earnings + Losers/Gainers + 📰 Catalyst + 🌱 Early (început de drum)/🏃 A fugit/🌳 Confirmat + 🌅 Premarket</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v247 · Early Long Desk (ARMED/FIRE 5m) + Earnings Context + Movers Scan + 🌱 daily structure</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -3360,7 +3496,10 @@ async function wlEnsureEarlyData(force){
   if (wlEarlyLoading) return;
   const fresh = (s) => wlEarlyCache[s] && (Date.now() - wlEarlyCache[s].ts < 10 * 60 * 1000);
   const need = watchlist.filter(w => force || !fresh(w.symbol));
-  if (!need.length) return;
+  if (!need.length) {
+    if (typeof elDeskRefresh === 'function') elDeskRefresh({ structureOnly: true });
+    return;
+  }
   wlEarlyLoading = true;
   const status = document.getElementById('wlStatus');
   if (status){ status.style.display = 'block'; status.textContent = `🌱 Calculez early-bird... (0/${need.length})`; }
@@ -3424,6 +3563,8 @@ async function wlEnsureEarlyData(force){
   try { localStorage.setItem(EB_SEEN_KEY, JSON.stringify(ebSeen)); } catch(_){}
   if (ebAlertsOn && newlyEarly.length) wlNotifyEarly(newlyEarly);
   if (ebAlertsOn && newlyWilting.length) wlNotifyWilting(newlyWilting);
+  // Early Long Desk: după structure daily, rulează trigger 5m pe WL
+  if (typeof elDeskRefresh === 'function') elDeskRefresh({ force: !!force });
 }
 function wlNotifyWilting(items){
   const list = items.map(x => x.symbol).join(', ');
@@ -4589,6 +4730,204 @@ function renderMarketSession(state) {
 }
 
 // ============================================================
+// EARLY LONG DESK UI (I-196) + motor EL (I-197) pe watchlist
+// ============================================================
+let elLastResults = [];
+let elBusy = false;
+let elFilterActive = true; // ARMED+FIRE+MANAGE by default
+let elTimer = null;
+
+function elEsc(s){
+  return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function elInitTabs(){
+  const tabs = document.querySelectorAll('#elTabs .el-tab');
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-el-tab');
+      tabs.forEach(b => {
+        const on = b === btn;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      document.getElementById('elPanelDesk')?.classList.toggle('active', id === 'desk');
+      document.getElementById('elPanelContext')?.classList.toggle('active', id === 'context');
+      document.getElementById('elPanelScan')?.classList.toggle('active', id === 'scan');
+      try { localStorage.setItem('me_el_tab', id); } catch(_){}
+      if (id === 'desk' && !elLastResults.length) elDeskRefresh({ force: false });
+    });
+  });
+  try {
+    const saved = localStorage.getItem('me_el_tab');
+    if (saved && saved !== 'desk') {
+      const b = document.querySelector(`#elTabs .el-tab[data-el-tab="${saved}"]`);
+      if (b) b.click();
+    }
+  } catch(_){}
+}
+
+function elBuildEarnMap(){
+  const map = {};
+  try {
+    (lastEarnings || []).forEach(s => {
+      if (!s || !s.symbol) return;
+      map[String(s.symbol).toUpperCase()] = {
+        daysToEarnings: s.daysToEarnings,
+        when: s.time || s.earningsTime || null
+      };
+    });
+  } catch(_){}
+  // din eb / WL nu avem always earn — ok
+  return map;
+}
+
+function elPaintCounts(results){
+  const c = (window.EL && EL.counts) ? EL.counts(results) : { FIRE:0, MANAGE:0, ARMED:0, DEAD:0, IDLE:0 };
+  const set = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = String(n); };
+  set('elCntFire', c.FIRE || 0);
+  set('elCntManage', c.MANAGE || 0);
+  set('elCntArmed', c.ARMED || 0);
+  set('elCntIdle', (c.DEAD || 0) + (c.IDLE || 0));
+  set('elTabFire', c.FIRE || 0);
+  return c;
+}
+
+function elCardHtml(r){
+  const st = r.state || 'IDLE';
+  const px = r.price != null ? (+r.price).toFixed(r.price < 1 ? 4 : 2) : '—';
+  const sc = r.score || {};
+  const inv = r.invalid != null ? (+r.invalid).toFixed(2) : '—';
+  const tags = (r.tags || []).slice(0, 6).map(t => elEsc(t)).join(' · ');
+  return `<article class="el-card ${elEsc(st)}" data-sym="${elEsc(r.symbol)}">
+    <div><span class="el-card-sym">${elEsc(r.symbol)}</span><span class="el-card-state">${elEsc(st)}</span></div>
+    <div class="el-card-px">${px}${r.firePrice && st === 'MANAGE' ? ` · fire ${(+r.firePrice).toFixed(2)}` : ''}</div>
+    <div class="el-card-reason">${elEsc(r.reason || '')}${tags ? '<br>' + tags : ''}</div>
+    <div class="el-card-score">S <b>${sc.structure|0}</b> + T <b>${sc.trigger|0}</b> + R <b>${sc.regime|0}</b> − P <b>${sc.penalty|0}</b> = <b>${sc.total|0}</b> · inv ${inv}</div>
+    <div class="el-card-actions">
+      <button type="button" onclick="wlAddSymbol && wlAddSymbol('${elEsc(r.symbol)}')">👁 WL</button>
+      <button type="button" onclick="window.open('../nasdaq-scanner/?symbol=${encodeURIComponent(r.symbol)}','_blank')">Scanner</button>
+      <button type="button" onclick="window.open('../journal/?symbol=${encodeURIComponent(r.symbol)}','_blank')">Journal</button>
+    </div>
+  </article>`;
+}
+
+function elRenderRail(results){
+  const rail = document.getElementById('elFireRail');
+  const meta = document.getElementById('elSessionMeta');
+  if (meta && window.EL) meta.innerHTML = `<strong>${elEsc(EL.sessionLabel())}</strong> · path <strong>${elEsc(EL.sessionPath())}</strong> · WL ${watchlist.length}`;
+  elPaintCounts(results);
+  if (!rail) return;
+  let list = results || [];
+  if (elFilterActive) list = list.filter(r => r.state === 'FIRE' || r.state === 'ARMED' || r.state === 'MANAGE');
+  // pe desk: FIRE+MANAGE first, max ~24 cards; IDLE only if filter off
+  if (!list.length) {
+    rail.innerHTML = `<div class="el-empty">${elFilterActive
+      ? 'Niciun FIRE/ARMED/MANAGE pe watchlist acum — normal. Structure daily → ARMED; trigger 5m închis → FIRE. Adaugă simboluri sau apasă ▶ Scan 5m.'
+      : 'Niciun rezultat. Populează watchlist-ul și rulează Scan 5m.'}</div>`;
+    return;
+  }
+  rail.innerHTML = list.slice(0, 24).map(elCardHtml).join('');
+}
+
+async function elDeskRefresh(opts){
+  opts = opts || {};
+  if (!window.EL) {
+    const rail = document.getElementById('elFireRail');
+    if (rail) rail.innerHTML = '<div class="el-empty">Motor EL neîncărcat (lib/early-long.js)</div>';
+    return;
+  }
+  if (elBusy) return;
+  const syms = (typeof watchlist !== 'undefined' ? watchlist : []).map(w => w.symbol).filter(Boolean);
+  if (!syms.length) {
+    elLastResults = [];
+    elRenderRail([]);
+    const rail = document.getElementById('elFireRail');
+    if (rail) rail.innerHTML = '<div class="el-empty">Watchlist gol — adaugă simboluri pe Desk, apoi Scan 5m.</div>';
+    return;
+  }
+  // structure-only: paint ARMED from daily without 5m fetch
+  if (opts.structureOnly) {
+    const painted = syms.map(sym => {
+      const eb = wlEarlyCache[sym]?.eb || null;
+      const st = EL.structureFromEb(eb);
+      const state = st.ok ? 'ARMED' : (st.ran || st.reason && String(st.reason).indexOf('🥀') >= 0 ? 'DEAD' : 'IDLE');
+      return {
+        symbol: sym, state, path: EL.sessionPath(), sessionLabel: EL.sessionLabel(),
+        structure: st, trigger: { score: 0, tags: ['pending-5m'], detail: {} },
+        regime: { score: 0, tags: [] }, earnings: { block: false, penalty: 0 },
+        score: { structure: st.score, trigger: 0, regime: 0, penalty: 0, total: st.score },
+        reason: st.ok ? 'ARMED (structure) · așteaptă Scan 5m' : (st.reason || 'idle'),
+        tags: [], price: st.price || null, ts: Date.now()
+      };
+    });
+    elLastResults = painted;
+    elRenderRail(painted);
+    return;
+  }
+  elBusy = true;
+  const btn = document.getElementById('elScanBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 5m…'; }
+  try {
+    const ebMap = {};
+    syms.forEach(s => { ebMap[s] = wlEarlyCache[s]?.eb || null; });
+    // dacă lipsește structure, încearcă daily rapid pe max 8
+    const missing = syms.filter(s => !ebMap[s]).slice(0, 8);
+    if (missing.length && typeof getScanner === 'function' && typeof computeEarlyBird === 'function') {
+      const scanner = getScanner();
+      await Promise.all(missing.map(async s => {
+        try {
+          const hist = await scanner._fetchDailyHistory(s);
+          const eb = hist ? computeEarlyBird(hist, wlExtPct, ebSeen[s]?.anchor) : null;
+          wlEarlyCache[s] = { eb, ts: Date.now() };
+          ebMap[s] = eb;
+        } catch(_){}
+      }));
+    }
+    const results = await EL.scanList(syms, {
+      ebMap,
+      earnMap: elBuildEarnMap(),
+      regime: EL.readRegimeFromStorage(),
+      concurrency: 3
+    });
+    elLastResults = results;
+    elRenderRail(results);
+    const c = EL.counts(results);
+    if (c.FIRE) showToast(`▶ ${c.FIRE} FIRE pe Desk (5m închis)`, 'success');
+  } catch (e) {
+    console.warn('elDeskRefresh', e);
+    const rail = document.getElementById('elFireRail');
+    if (rail) rail.innerHTML = `<div class="el-empty">Eroare scan: ${elEsc(e.message || e)}</div>`;
+  } finally {
+    elBusy = false;
+    if (btn) { btn.disabled = false; btn.textContent = '▶ Scan 5m'; }
+  }
+}
+
+function elBindDesk(){
+  elInitTabs();
+  document.getElementById('elScanBtn')?.addEventListener('click', () => elDeskRefresh({ force: true }));
+  document.getElementById('elFilterArmed')?.addEventListener('click', (e) => {
+    elFilterActive = !elFilterActive;
+    e.currentTarget.textContent = elFilterActive ? 'Filtru activ' : 'Toate stările';
+    elRenderRail(elLastResults);
+  });
+  // poll soft la 60s pe Desk (doar dacă tab vizibil și WL are simboluri)
+  if (elTimer) clearInterval(elTimer);
+  elTimer = setInterval(() => {
+    if (document.hidden || typeof _shellHidden !== 'undefined' && _shellHidden) return;
+    const deskOn = document.getElementById('elPanelDesk')?.classList.contains('active');
+    if (!deskOn || !watchlist.length) return;
+    elDeskRefresh({ force: false });
+  }, 60000);
+  // meta sesiune imediat
+  if (window.EL) {
+    const meta = document.getElementById('elSessionMeta');
+    if (meta) meta.innerHTML = `<strong>${elEsc(EL.sessionLabel())}</strong> · path <strong>${elEsc(EL.sessionPath())}</strong>`;
+  }
+}
+
+// ============================================================
 // AUTO-RUN AMÂNDOUĂ LA START
 // ============================================================
 async function runAll() {
@@ -4597,6 +4936,12 @@ async function runAll() {
   // Evaluează alertele după ce datele sunt proaspete. Dedup edge-triggered (se re-armează singur
   // când condiția redevine falsă), deci NU golim setul aici — altfel re-spam la fiecare refresh.
   setTimeout(meAlertsEvaluate, 200);
+  // Desk: structure + 5m pe WL
+  if (typeof wlEnsureEarlyData === 'function' && watchlist.length) {
+    wlEnsureEarlyData(false).then(() => elDeskRefresh({ force: false }));
+  } else {
+    elDeskRefresh({ force: false });
+  }
 }
 
 $('scanEarnBtn').addEventListener('click', scanEarnings);
@@ -4609,6 +4954,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 $('refreshAllBtn').addEventListener('click', runAll);
 
 window.addEventListener('DOMContentLoaded', () => {
+  elBindDesk();
   setTimeout(runAll, 200);
 });
 

@@ -195,10 +195,10 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-187 | Dash compact pe toggle (nucleu ≤7 rânduri) | PPST Deck Pine | S | P2 | făcut | ideation | 2026-07-22 |
 | I-188 | Connector Meta-Confluence (plot cod −2..+2) | PPST Deck Pine | S | P3 | propus | ideation | 2026-07-22 |
 | I-189 | MATUR + base-rate split pe direcție (BULL vs BEAR) | PPST Deck Pine | S | P3 | făcut | ideation | 2026-07-22 |
-| I-196 | Early Long Desk — shell UI stări ARMED/FIRE/MANAGE/DEAD + FIRE rail | market-events/ | M | P1 | aprobat | ideation | 2026-07-22 |
-| I-197 | `lib/early-long.js` — structure daily + trigger 5m (bare închise, anti-repaint) | market-events/ + lib/ | L | P1 | aprobat | ideation | 2026-07-22 |
+| I-196 | Early Long Desk — shell UI stări ARMED/FIRE/MANAGE/DEAD + FIRE rail | market-events/ | M | P1 | făcut | ideation | 2026-07-22 |
+| I-197 | `lib/early-long.js` — structure daily + trigger 5m (bare închise, anti-repaint) | market-events/ + lib/ | L | P1 | făcut | ideation | 2026-07-22 |
 | I-198 | Univers TOT: WL + pre-gappers RVOL + reclaim losers ieri | market-events/ + lib/ | M | P1 | aprobat | ideation | 2026-07-22 |
-| I-199 | Gates earnings/macro/regime pe FIRE (hibrid PRE+ORB / daily) | market-events/ + lib/ | M | P1 | aprobat | ideation | 2026-07-22 |
+| I-199 | Gates earnings/macro/regime pe FIRE (hibrid PRE+ORB / daily) | market-events/ + lib/ | M | P1 | făcut | ideation | 2026-07-22 |
 | I-200 | LEDGER me-fire + A/B vs me-early daily + scorecard | market-events/ + hub | M | P2 | aprobat | ideation | 2026-07-22 |
 | I-201 | Extract monolit ME incremental (shell + tabs Context/Scan) | market-events/ + lib/ | L | P2 | aprobat | ideation | 2026-07-22 |
 

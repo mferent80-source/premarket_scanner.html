@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v643-2026-07-19';
+const CACHE_VERSION = 'tt-v644-2026-07-22';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -88,6 +88,7 @@ const PRECACHE = [
   './lib/macro-context.js',
   './lib/event-tape.js',
   './lib/hub-gappers.js',
+  './lib/early-long.js',
   './lib/hub-market.js',
   './lib/hub-search.js',
   './lib/hub-card-live.js',
