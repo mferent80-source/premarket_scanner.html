@@ -118,12 +118,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 
 /* Stats strip */
 .stats-strip {
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(135px,1fr));
-  gap:8px; margin-bottom:10px;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:6px; margin-bottom:8px;
 }
 .stat-tile {
   background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
-  padding:10px 14px; display:flex; flex-direction:column; gap:2px;
+  padding:8px 12px; display:flex; flex-direction:column; gap:1px;
   position:relative; overflow:hidden; box-shadow:var(--shadow-sm);
 }
 .stat-tile::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); }
@@ -153,7 +153,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .panel-head .panel-sub { font-size:11px; color:var(--t2); margin-left:auto; font-weight:600; }
 
 /* Tabel */
-.scanner-wrap { overflow:auto; max-height:calc(100vh - 320px); min-height:280px; }
+.scanner-wrap { overflow:auto; max-height:calc(100vh - 240px); min-height:320px; }
 table { width:100%; border-collapse:collapse; font-size:12px; }
 thead { position:sticky; top:0; z-index:5; background:var(--panel); box-shadow:0 1px 0 var(--b1); }
 thead th {
@@ -268,10 +268,11 @@ tbody tr.v-strong-sell{ border-left-color:var(--bear-s); }
 tbody tr.flash-up { animation:flashUp 1.5s var(--ease); }
 tbody tr.flash-dn { animation:flashDn 1.5s var(--ease); }
 
-/* Hot strip (F3) */
-.hot-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:8px; margin-bottom:10px; }
+/* Hot strip (F3) — compact; pe Scan cu SB e ascuns (tabelul e sursa de adevăr) */
+.hot-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:6px; margin-bottom:8px; }
 .hot-strip:empty { display:none; }
-.hot-card { background:linear-gradient(135deg,rgba(34,214,107,.13),rgba(20,26,40,.62)); border:1px solid rgba(34,214,107,.42); border-radius:var(--r); padding:10px 13px; display:flex; flex-direction:column; gap:3px; cursor:pointer; transition:transform .15s var(--ease),box-shadow .15s var(--ease); box-shadow:var(--shadow-sm); }
+body.wlm-has-sb.wlm-scan .hot-strip { display:none; }
+.hot-card { background:linear-gradient(135deg,rgba(34,214,107,.13),rgba(20,26,40,.62)); border:1px solid rgba(34,214,107,.42); border-radius:var(--r); padding:8px 11px; display:flex; flex-direction:column; gap:2px; cursor:pointer; transition:transform .15s var(--ease),box-shadow .15s var(--ease); box-shadow:var(--shadow-sm); }
 .hot-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
 .hot-card.hc-buy { background:linear-gradient(135deg,rgba(34,214,107,.07),rgba(20,26,40,.6)); border-color:rgba(34,214,107,.25); }
 .hot-card .hc-top { display:flex; align-items:center; gap:6px; }
@@ -309,47 +310,63 @@ body.wlm-trade:not(.wlm-zero-sb) #wlmSectorHeat { display:none; }
 .wlm-desk-sep { width:1px; height:18px; background:var(--b2); margin:0 2px; }
 .wlm-desk-hint { font-size:11px; color:var(--t2); font-family:var(--mono); margin-left:auto; font-weight:600; }
 .wlm-funnel {
-  background:var(--panel); border:1px solid rgba(34,214,107,.28); border-radius:var(--r);
-  padding:10px 12px; margin-bottom:10px; box-shadow:var(--shadow-sm);
+  background:var(--panel); border:1px solid rgba(58,235,136,.35); border-radius:var(--r);
+  padding:8px 10px; margin-bottom:8px; box-shadow:var(--shadow-sm);
 }
-.wlm-funnel.quiet { border-color:rgba(91,176,255,.25); background:rgba(91,176,255,.04); }
-.wlm-fun-steps { display:flex; flex-wrap:wrap; align-items:center; gap:6px 4px; margin-bottom:6px; }
-.wlm-fun-step { display:inline-flex; flex-direction:column; align-items:center; min-width:44px;
-  padding:4px 8px; border-radius:8px; background:var(--panel2); border:1px solid var(--b1); }
+.wlm-funnel.quiet { border-color:rgba(126,192,255,.4); background:rgba(126,192,255,.06); }
+.wlm-fun-steps { display:flex; flex-wrap:wrap; align-items:center; gap:4px 3px; margin-bottom:4px; }
+.wlm-fun-step { display:inline-flex; flex-direction:column; align-items:center; min-width:40px;
+  padding:3px 7px; border-radius:7px; background:var(--panel2); border:1px solid var(--b1); }
 .wlm-fun-step b { font-family:var(--mono); font-size:15px; font-weight:800; color:var(--t1); line-height:1.1; }
 .wlm-fun-step span { font-size:10px; color:var(--t2); text-transform:uppercase; letter-spacing:.3px; font-weight:700; }
-.wlm-fun-step.zero b { color:var(--t2); opacity:.7; }
+.wlm-fun-step.zero b { color:var(--t2); opacity:.8; }
 .wlm-fun-step.hit b { color:var(--bull-s); }
-.wlm-fun-arr { color:var(--t2); font-size:12px; opacity:.75; }
-.wlm-fun-meta { font-size:11.5px; color:var(--t1); font-family:var(--mono); line-height:1.5; font-weight:500; }
-.wlm-fun-why { margin:6px 0 0; padding-left:16px; font-size:11.5px; color:var(--t1); font-family:var(--mono); }
-.wlm-fun-why li { margin-bottom:3px; }
-.wlm-near { margin-top:8px; border-top:1px dashed var(--b2); padding-top:8px; }
-.wlm-near-title { font-size:10.5px; color:var(--t2); text-transform:uppercase; letter-spacing:.35px; margin-bottom:5px; font-weight:800; }
-.wlm-near-list { display:flex; flex-direction:column; gap:4px; }
-.wlm-near-row {
-  display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:11px; font-family:var(--mono);
-  padding:5px 8px; border-radius:7px; background:var(--panel2); border:1px solid var(--b1); cursor:pointer;
+.wlm-fun-arr { color:var(--t2); font-size:12px; opacity:.8; }
+.wlm-fun-meta { font-size:12px; color:var(--t1); font-family:var(--mono); line-height:1.4; font-weight:600; }
+.wlm-fun-why { margin:4px 0 0; padding-left:16px; font-size:12px; color:var(--t1); font-family:var(--mono); }
+.wlm-fun-why li { margin-bottom:2px; }
+/* Near-miss: o linie compactă; expand la click pe titlu */
+.wlm-near { margin-top:6px; border-top:1px solid var(--b1); padding-top:6px; }
+.wlm-near-title {
+  font-size:11.5px; color:var(--t1); letter-spacing:.2px; margin-bottom:0; font-weight:800;
+  cursor:pointer; user-select:none; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
 }
-.wlm-near-row:hover { border-color:var(--accent); }
-.wlm-near-row .sym { font-weight:800; color:var(--t1); min-width:52px; }
-.wlm-near-row .sc { color:var(--crypto-2); font-weight:700; }
-.wlm-near-row .gap { color:var(--t2); font-weight:600; }
-.wlm-near-row .why { color:var(--t1); flex:1; min-width:120px; font-size:11px; }
-.wlm-nm-stats { font-size:11px; color:var(--t2); font-family:var(--mono); margin-top:6px; font-weight:500; }
-.wlm-nm-stats b { color:var(--t1); font-weight:800; }
+.wlm-near-title .wlm-near-count {
+  font-size:11px; font-weight:700; color:var(--crypto-2); background:rgba(255,216,107,.12);
+  border:1px solid rgba(255,216,107,.4); padding:1px 7px; border-radius:999px; font-family:var(--mono);
+}
+.wlm-near-title .wlm-near-tog { font-size:10.5px; color:var(--accent); font-weight:700; margin-left:auto; }
+.wlm-near-list { display:none; flex-direction:column; gap:3px; margin-top:6px; }
+.wlm-near.open .wlm-near-list { display:flex; }
+.wlm-near-row {
+  display:grid; grid-template-columns:56px 52px 44px 1fr; gap:8px; align-items:center;
+  font-size:12px; font-family:var(--mono); padding:5px 8px; border-radius:6px;
+  background:var(--panel2); border:1px solid var(--b1); cursor:pointer; color:var(--t1);
+}
+.wlm-near-row:hover { border-color:var(--accent); background:rgba(126,192,255,.08); }
+.wlm-near-row .sym { font-weight:800; color:var(--t1); }
+.wlm-near-row .sc { color:var(--crypto-2); font-weight:800; }
+.wlm-near-row .gap { color:var(--t2); font-weight:700; }
+.wlm-near-row .why { color:var(--t2); font-size:11.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.wlm-nm-stats { font-size:11.5px; color:var(--t1); font-family:var(--mono); margin-top:5px; font-weight:600; }
+.wlm-nm-stats b { color:var(--accent); font-weight:800; }
 .wlm-nm-noise { color:var(--warn); }
+/* când ai SB: near + nm-stats ascunse până la expand (economie spațiu — tabela e prioritară) */
+body.wlm-has-sb .wlm-near:not(.open) .wlm-nm-inline { display:inline; }
+body.wlm-has-sb .wlm-funnel .wlm-fun-why { display:none; }
 .wlm-heat {
-  display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;
+  display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;
 }
 .wlm-heat:empty { display:none; }
+body.wlm-has-sb.wlm-scan .wlm-heat { margin-bottom:6px; }
 .wlm-heat-chip {
-  display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px;
-  background:var(--panel2); border:1px solid var(--b1); font-size:10.5px; font-family:var(--mono);
-  cursor:pointer; color:var(--t2);
+  display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px;
+  background:var(--panel2); border:1px solid var(--b1); font-size:11.5px; font-family:var(--mono);
+  cursor:pointer; color:var(--t1); font-weight:600;
 }
-.wlm-heat-chip:hover, .wlm-heat-chip.active { border-color:var(--accent); color:var(--accent); }
-.wlm-heat-chip b { color:var(--bull-s); }
+.wlm-heat-chip:hover, .wlm-heat-chip.active { border-color:var(--accent); color:var(--accent); background:rgba(126,192,255,.1); }
+.wlm-heat-chip b { color:var(--bull-s); font-weight:800; }
+.wlm-heat-chip span { color:var(--t2); }
 .wlm-soft-tag {
   display:inline-block; margin-left:4px; font-size:8.5px; font-weight:700; font-family:var(--mono);
   padding:1px 5px; border-radius:4px; vertical-align:middle;
@@ -387,7 +404,7 @@ tbody tr.detail-row > td { background:var(--panel3); padding:14px 18px !importan
 .detail-links { margin-top:12px; display:flex; gap:7px; flex-wrap:wrap; }
 
 /* Filter bar (F5) */
-.filter-bar { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:9px 12px; margin-bottom:10px; display:flex; gap:9px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow-sm); }
+.filter-bar { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:7px 10px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow-sm); }
 .fb-chips { display:flex; gap:5px; flex-wrap:wrap; }
 .fb-chip { background:var(--panel2); border:1px solid var(--b1); color:var(--t1); padding:4px 10px; border-radius:999px; font-size:11px; font-weight:700; font-family:var(--head); }
 .fb-chip:hover { border-color:var(--accent); color:var(--accent); background:rgba(91,176,255,.06); transform:none; }
@@ -457,14 +474,14 @@ table.no-pre .col-pre { display:none; }
 .tg-field input { padding:7px 10px; font-size:12px; font-family:var(--mono); }
 
 /* Corelație / concentrare (D) */
-.corr-banner { background:rgba(212,137,44,.10); border:1px solid rgba(212,137,44,.4); border-radius:var(--r); padding:9px 13px; margin-bottom:10px; font-size:11.5px; color:var(--t2); line-height:1.5; }
-.corr-banner b { color:var(--warn); }
-.wl-regime.rg-on { background:rgba(34,214,107,.09); border-color:rgba(34,214,107,.4); color:var(--bull-s); }
+.corr-banner { background:rgba(240,168,74,.12); border:1px solid rgba(240,168,74,.45); border-radius:var(--r); padding:8px 12px; margin-bottom:8px; font-size:12.5px; color:var(--t1); line-height:1.45; font-weight:500; }
+.corr-banner b { color:var(--warn); font-weight:800; }
+.wl-regime.rg-on { background:rgba(58,235,136,.1); border-color:rgba(58,235,136,.45); color:var(--t1); }
 .wl-regime.rg-on b { color:var(--bull-s); }
-.wl-regime.rg-off { background:rgba(255,77,77,.10); border-color:rgba(255,77,77,.45); color:var(--bear-s); }
+.wl-regime.rg-off { background:rgba(255,107,107,.12); border-color:rgba(255,107,107,.45); color:var(--t1); }
 .wl-regime.rg-off b { color:var(--bear-s); }
-.wl-regime.rg-neu { color:var(--t2); }
-.wl-pulse { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+.wl-regime.rg-neu { color:var(--t1); background:rgba(126,192,255,.06); border-color:var(--b1); }
+.wl-pulse { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; font-size:12px; color:var(--t1); }
 .wl-pp { display:inline-flex; align-items:center; gap:4px; background:var(--panel2); border:1px solid var(--b1); border-radius:999px; padding:4px 11px; font-size:11px; font-weight:600; color:var(--t2); font-family:var(--mono); }
 .wl-pp b { color:var(--t1); font-size:12.5px; }
 .wl-pp.wl-pp-total { border-color:rgba(91,176,255,.5); background:rgba(91,176,255,.1); color:var(--accent); }
@@ -499,7 +516,7 @@ table.no-pre .col-pre { display:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v154</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v155</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -931,37 +948,62 @@ function wlmFunnelHtml(fun){
     `<span class="wlm-fun-step${s.v ? (s.hit && s.lab === 'SB' ? ' hit' : '') : ' zero'}"><b>${s.v}</b><span>${s.lab}</span></span>`
     + (i < steps.length - 1 ? '<span class="wlm-fun-arr">→</span>' : '')
   ).join('');
-  const whyHtml = (fun.why || []).slice(0, 4).map(w => `<li>${wlEsc(w)}</li>`).join('');
+  // why doar când 0 SB (altfel e zgomot — vezi stats + tabel)
+  const whyHtml = (fun.sb === 0 && fun.why && fun.why.length)
+    ? `<ul class="wlm-fun-why">${fun.why.slice(0, 3).map(w => `<li>${wlEsc(w)}</li>`).join('')}</ul>`
+    : (fun.cap || fun.aw)
+      ? `<div class="wlm-fun-meta" style="margin-top:3px">⚠ tag soft: ${fun.cap} cap-sector · ${fun.aw} α-weak (fără demote)</div>`
+      : '';
+  const nm = lastNmStats;
+  const rateTxt = (nm && nm.n) ? (nm.rate == null ? '—' : nm.rate + '%') : null;
+  const nmShort = rateTxt != null
+    ? `Near→SB 30m <b>${rateTxt}</b> (${nm.hit}/${nm.n})`
+    : '';
+  // Near: colapsat când ai SB (economie spațiu din captură); deschis auto doar la 0 SB
   let nearHtml = '';
   if (fun.nearList && fun.nearList.length) {
-    nearHtml = '<div class="wlm-near"><div class="wlm-near-title">Near-miss (aproape de STRONG BUY)</div><div class="wlm-near-list">'
-      + fun.nearList.map(x =>
-        `<div class="wlm-near-row" onclick="scrollToRow('${x.symbol}')" title="scroll la rând">
-          <span class="sym">${wlEsc(x.symbol)}</span>
-          <span class="sc">${x.score}/${x.need}</span>
-          <span class="gap">−${x.gap}pt</span>
-          <span class="why">${wlEsc(x.why)}</span>
-        </div>`
-      ).join('')
-      + '</div></div>';
+    const openByDefault = fun.sb === 0;
+    const nShow = fun.nearList.slice(0, 6);
+    nearHtml = `<div class="wlm-near${openByDefault ? ' open' : ''}" id="wlmNearBlock">
+      <div class="wlm-near-title" onclick="toggleWlmNear()" title="arată / ascunde near-miss">
+        <span>⚡ Near-miss</span>
+        <span class="wlm-near-count">${fun.near}</span>
+        ${nmShort ? `<span class="wlm-nm-inline" style="font-size:11px;color:var(--t2);font-weight:600">${nmShort}</span>` : ''}
+        <span class="wlm-near-tog" id="wlmNearTog">${openByDefault ? 'ascunde ▴' : 'arată ▾'}</span>
+      </div>
+      <div class="wlm-near-list">
+        ${nShow.map(x =>
+          `<div class="wlm-near-row" onclick="scrollToRow('${x.symbol}')" title="${wlEsc(x.why)}">
+            <span class="sym">${wlEsc(x.symbol)}</span>
+            <span class="sc">${x.score}/${x.need}</span>
+            <span class="gap">−${x.gap}</span>
+            <span class="why">${wlEsc(x.why)}</span>
+          </div>`
+        ).join('')}
+      </div>
+    </div>`;
+  } else if (nmShort) {
+    nearHtml = `<div class="wlm-nm-stats">${nmShort}</div>`;
   }
-  const nm = lastNmStats;
-  let nmHtml = '';
-  if (nm && nm.n) {
-    const rateTxt = nm.rate == null ? '—' : nm.rate + '%';
-    const warn = nm.noise ? ' <span class="wlm-nm-noise">n&lt;10 zgomot</span>' : '';
-    nmHtml = `<div class="wlm-nm-stats">Near→SB 30m: <b>${rateTxt}</b> · hit ${nm.hit}/${nm.n} · pending ${nm.pending}${warn}</div>`;
-  } else {
-    nmHtml = '<div class="wlm-nm-stats">Near→SB 30m: <b>—</b> (fără eșantion — se umple pe măsură ce treci pe near-miss)</div>';
-  }
+  // meta scurt — fără dublură cu desk-hint
+  const meta = fun.sb === 0
+    ? `Focus <b>${wlEsc(fun.sens)}</b> · near≥${fun.nearLo} · motor SB≥${fun.minSb}`
+    : `Focus <b>${wlEsc(fun.sens)}</b> · ${fun.sb} SB · ${fun.buy} BUY · near ${fun.near}`;
   return `<div class="wlm-funnel${fun.quiet ? ' quiet' : ''}" id="wlmFunnel">
     <div class="wlm-fun-steps">${stepsHtml}</div>
-    <div class="wlm-fun-meta">motor <b>SB≥${fun.minSb} · BUY≥${fun.minBuy}</b> · Focus <b>${wlEsc(fun.sens)}</b> (near≥${fun.nearLo}) · soft tags: max ${WLM_SOFT.maxSbPerSector}/sector · α≤${WLM_SOFT.alphaWeak} (fără demote)</div>
-    ${whyHtml ? `<ul class="wlm-fun-why">${whyHtml}</ul>` : ''}
+    <div class="wlm-fun-meta">${meta}</div>
+    ${whyHtml}
     ${nearHtml}
-    ${nmHtml}
   </div>`;
 }
+
+window.toggleWlmNear = function(){
+  const el = document.getElementById('wlmNearBlock');
+  if (!el) return;
+  el.classList.toggle('open');
+  const tog = document.getElementById('wlmNearTog');
+  if (tog) tog.textContent = el.classList.contains('open') ? 'ascunde ▴' : 'arată ▾';
+};
 
 function loadNmTrack(){
   try {
@@ -1012,19 +1054,21 @@ function renderWlmDesk(){
   const hint = $('wlmDeskHint');
   const f = focusTh();
   const c = WLM_CORE;
-  if (hint) hint.textContent = `motor SB≥${c.sb} · Focus ${f.label} · ${deskMode === 'trade' ? 'Trade' : 'Scan'} · tags soft (fără demote)`;
+  if (hint) hint.textContent = `Focus ${f.label} · ${deskMode === 'trade' ? 'Trade' : 'Scan'}`;
   document.body.classList.toggle('wlm-trade', deskMode === 'trade');
+  document.body.classList.toggle('wlm-scan', deskMode === 'scan');
   document.querySelectorAll('.wlm-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === deskMode));
   document.querySelectorAll('.wlm-sens-btn').forEach(b => b.classList.toggle('active', b.dataset.sens === sensMode));
 
   if (!results.length) {
-    document.body.classList.remove('wlm-zero-sb');
+    document.body.classList.remove('wlm-zero-sb', 'wlm-has-sb');
     if (slot) slot.innerHTML = '';
     if (heat) heat.innerHTML = '';
     return;
   }
   const fun = wlmFunnelStats(results);
   document.body.classList.toggle('wlm-zero-sb', fun.sb === 0);
+  document.body.classList.toggle('wlm-has-sb', fun.sb > 0);
   const sbSyms = results.filter(r => r.verdict === 'strong-buy').map(r => r.symbol);
   trackWlmNearMiss(fun.nearList, sbSyms);
   if (slot) slot.innerHTML = wlmFunnelHtml(fun);
@@ -1048,7 +1092,7 @@ function renderWlmDesk(){
       const lab = x.sec.length > 18 ? x.sec.slice(0, 17) + '…' : x.sec;
       const act = filterSector === x.sec ? ' active' : '';
       return `<button type="button" class="wlm-heat-chip${act}" data-sec="${wlEsc(x.sec)}" title="${wlEsc(x.sec)}: ${x.sb} SB · ${x.buy} BUY">
-        ${wlEsc(lab)} <b>${x.sb}</b><span style="color:var(--t3)">/${x.n}</span>
+        ${wlEsc(lab)} <b>${x.sb}</b><span>/${x.n}</span>
       </button>`;
     }).join('');
     heat.querySelectorAll('.wlm-heat-chip').forEach(ch => {
@@ -3484,10 +3528,10 @@ scheduleNextScan();
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
-<script src="../lib/suite-version.js?v=657"></script>
+<script src="../lib/suite-version.js?v=658"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v657';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v658';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
