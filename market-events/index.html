@@ -1128,13 +1128,31 @@
   padding:7px 12px; border-radius:var(--radius-sm); font-weight:700; font-size:11px; cursor:pointer;
 }
 .el-note{font-size:10px; color:var(--muted); margin-top:10px; line-height:1.4}
+/* Log LEDGER me-fire — istoric vizibil pe Desk */
+.el-fire-log{margin-top:14px; border-top:1px solid var(--border); padding-top:12px}
+.el-fire-log-head{
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:8px;
+  font-size:11px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; color:#22d66b;
+}
+.el-fire-log-head span.sub{font-weight:600; text-transform:none; letter-spacing:0; color:var(--muted); font-size:10.5px}
+.el-fire-log-list{display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto}
+.el-fire-log-row{
+  display:grid; grid-template-columns:64px 56px 1fr auto; gap:8px; align-items:center;
+  padding:7px 10px; background:var(--bg); border:1px solid var(--border-soft); border-radius:8px;
+  font-size:11px; font-variant-numeric:tabular-nums;
+}
+.el-fire-log-row .sym{font-weight:800; color:#5bb0ff}
+.el-fire-log-row .px{font-weight:700; color:var(--text)}
+.el-fire-log-row .tier{color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.el-fire-log-row .when{color:var(--muted); font-size:10px; text-align:right}
+.el-fire-log-empty{padding:12px; text-align:center; color:var(--muted); font-size:11px; font-style:italic}
 </style>
 </head>
 <body class="suite-page">
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v247</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v248</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1213,7 +1231,17 @@
   <div class="el-fire-rail" id="elFireRail">
     <div class="el-empty" id="elEmpty">Se încarcă structure daily pe watchlist, apoi trigger pe bare 5m închise…</div>
   </div>
-  <p class="el-note">Hibrid PRE+ORB (până 10:15 ET) · bare <b>5m închise</b> (anti-repaint) · univers acum = <b>watchlist</b> · praguri = ipoteze (LEDGER <code>me-fire</code>). Earnings/macro gates pe FIRE.</p>
+  <!-- Istoric LEDGER me-fire — același registru ca Hub scorecard -->
+  <div class="el-fire-log" id="elFireLog" aria-label="Istoric semnale me-fire">
+    <div class="el-fire-log-head">
+      ▶ me-fire log
+      <span class="sub" id="elFireLogSub">ultimele semnale din LEDGER (local)</span>
+    </div>
+    <div class="el-fire-log-list" id="elFireLogList">
+      <div class="el-fire-log-empty">Niciun me-fire încă — apar după primul FIRE pe bare 5m închise.</div>
+    </div>
+  </div>
+  <p class="el-note">Hibrid PRE+ORB (până 10:15 ET) · bare <b>5m închise</b> (anti-repaint) · univers acum = <b>watchlist</b> · praguri = ipoteze. Live = rail sus · istoric = <code>me-fire</code> log (+ scorecard Hub).</p>
 </section>
 
 <!-- ============================================== -->
@@ -1465,7 +1493,7 @@
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/early-long.js?v=247"></script>
+<script src="../lib/early-long.js?v=248"></script>
 <script>
 // Flag shell-pause: default vizibil. FĂRĂ mesaj de la shell → comportament IDENTIC actual.
 // Pauza polling-urilor de fundal e opt-in DOAR la ttShellVisible:false (vezi secțiunea „SHELL VISIBILITY" jos).
@@ -1496,7 +1524,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v247 · Early Long Desk (ARMED/FIRE 5m) + Earnings Context + Movers Scan + 🌱 daily structure</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v248 · Early Long Desk + me-fire log vizibil + Earnings/Scan tabs</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -4812,12 +4840,57 @@ function elCardHtml(r){
   </article>`;
 }
 
+function elFmtWhen(ts){
+  if (!ts) return '—';
+  try {
+    return new Intl.DateTimeFormat('ro-RO', {
+      timeZone: 'America/New_York',
+      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false
+    }).format(new Date(ts)) + ' ET';
+  } catch (e) {
+    return new Date(ts).toLocaleString('ro-RO');
+  }
+}
+
+/** Istoric LEDGER me-fire — vizibil pe Desk (același registru ca Hub). */
+function elRenderFireLog(){
+  const listEl = document.getElementById('elFireLogList');
+  const sub = document.getElementById('elFireLogSub');
+  if (!listEl) return;
+  if (!window.LEDGER || typeof LEDGER.all !== 'function') {
+    listEl.innerHTML = '<div class="el-fire-log-empty">LEDGER indisponibil</div>';
+    return;
+  }
+  const all = LEDGER.all().filter(e => e && e.src === 'me-fire');
+  // cele mai noi primele, max 40
+  const rows = all.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 40);
+  const today = (window.EL && EL.etParts) ? EL.etParts().dateStr : (LEDGER.etDay ? LEDGER.etDay() : '');
+  const todayN = rows.filter(r => r.day === today).length;
+  if (sub) sub.textContent = todayN
+    ? `${todayN} azi · ${rows.length} total afișate (max 40)`
+    : `${rows.length} în log · 0 azi ET`;
+  if (!rows.length) {
+    listEl.innerHTML = '<div class="el-fire-log-empty">Niciun me-fire încă — apar după primul FIRE pe bare 5m închise (dedupe 1×/simbol/zi ET).</div>';
+    return;
+  }
+  listEl.innerHTML = rows.map(e => {
+    const px = e.price != null ? (+e.price).toFixed(e.price < 1 ? 4 : 2) : '—';
+    const isToday = e.day === today;
+    return `<div class="el-fire-log-row" style="${isToday ? 'border-color:rgba(34,214,107,.35)' : ''}">
+      <span class="sym">${elEsc(e.sym)}</span>
+      <span class="px">${px}</span>
+      <span class="tier" title="${elEsc(e.tier || '')}">${elEsc(e.tier || '▶ FIRE')}</span>
+      <span class="when">${elEsc(elFmtWhen(e.ts))}</span>
+    </div>`;
+  }).join('');
+}
+
 function elRenderRail(results){
   const rail = document.getElementById('elFireRail');
   const meta = document.getElementById('elSessionMeta');
   if (meta && window.EL) meta.innerHTML = `<strong>${elEsc(EL.sessionLabel())}</strong> · path <strong>${elEsc(EL.sessionPath())}</strong> · WL ${watchlist.length}`;
   elPaintCounts(results);
-  if (!rail) return;
+  if (!rail) { elRenderFireLog(); return; }
   let list = results || [];
   if (elFilterActive) list = list.filter(r => r.state === 'FIRE' || r.state === 'ARMED' || r.state === 'MANAGE');
   // pe desk: FIRE+MANAGE first, max ~24 cards; IDLE only if filter off
@@ -4825,9 +4898,10 @@ function elRenderRail(results){
     rail.innerHTML = `<div class="el-empty">${elFilterActive
       ? 'Niciun FIRE/ARMED/MANAGE pe watchlist acum — normal. Structure daily → ARMED; trigger 5m închis → FIRE. Adaugă simboluri sau apasă ▶ Scan 5m.'
       : 'Niciun rezultat. Populează watchlist-ul și rulează Scan 5m.'}</div>`;
-    return;
+  } else {
+    rail.innerHTML = list.slice(0, 24).map(elCardHtml).join('');
   }
-  rail.innerHTML = list.slice(0, 24).map(elCardHtml).join('');
+  elRenderFireLog();
 }
 
 async function elDeskRefresh(opts){
@@ -4920,11 +4994,12 @@ function elBindDesk(){
     if (!deskOn || !watchlist.length) return;
     elDeskRefresh({ force: false });
   }, 60000);
-  // meta sesiune imediat
+  // meta sesiune + log istoric imediat (chiar fără scan)
   if (window.EL) {
     const meta = document.getElementById('elSessionMeta');
     if (meta) meta.innerHTML = `<strong>${elEsc(EL.sessionLabel())}</strong> · path <strong>${elEsc(EL.sessionPath())}</strong>`;
   }
+  elRenderFireLog();
 }
 
 // ============================================================
