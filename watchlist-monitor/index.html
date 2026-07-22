@@ -267,6 +267,73 @@ tbody tr.flash-dn { animation:flashDn 1.5s var(--ease); }
 .hot-card .hc-chg { font-size:11px; }
 .hot-card .hc-verdict { font-size:9px; font-weight:800; font-family:var(--head); letter-spacing:.3px; margin-top:2px; }
 
+/* Desk layer (parity Early Long Desk) — funnel / mode / sens / near-miss */
+.wlm-desk-bar {
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
+  padding:8px 12px; margin-bottom:10px; box-shadow:var(--shadow-sm);
+}
+.wlm-mode-btn, .wlm-sens-btn {
+  background:var(--panel2); border:1px solid var(--b1); color:var(--t2);
+  padding:5px 11px; border-radius:999px; font-size:10.5px; font-weight:700;
+  font-family:var(--head); cursor:pointer;
+}
+.wlm-mode-btn:hover, .wlm-sens-btn:hover { border-color:var(--accent); color:var(--accent); transform:none; }
+.wlm-mode-btn.active { background:var(--accent); border-color:var(--accent); color:#000; }
+.wlm-sens-btn.active { background:rgba(255,216,107,.18); border-color:var(--crypto-2); color:var(--crypto-2); }
+.wlm-desk-sep { width:1px; height:18px; background:var(--b2); margin:0 2px; }
+.wlm-desk-hint { font-size:10px; color:var(--t3); font-family:var(--mono); margin-left:auto; }
+.wlm-funnel {
+  background:var(--panel); border:1px solid rgba(34,214,107,.28); border-radius:var(--r);
+  padding:10px 12px; margin-bottom:10px; box-shadow:var(--shadow-sm);
+}
+.wlm-funnel.quiet { border-color:rgba(91,176,255,.25); background:rgba(91,176,255,.04); }
+.wlm-fun-steps { display:flex; flex-wrap:wrap; align-items:center; gap:6px 4px; margin-bottom:6px; }
+.wlm-fun-step { display:inline-flex; flex-direction:column; align-items:center; min-width:44px;
+  padding:4px 8px; border-radius:8px; background:var(--panel2); border:1px solid var(--b1); }
+.wlm-fun-step b { font-family:var(--mono); font-size:15px; font-weight:800; color:var(--t1); line-height:1.1; }
+.wlm-fun-step span { font-size:9px; color:var(--t3); text-transform:uppercase; letter-spacing:.3px; }
+.wlm-fun-step.zero b { color:var(--t3); opacity:.55; }
+.wlm-fun-step.hit b { color:var(--bull-s); }
+.wlm-fun-arr { color:var(--t3); font-size:12px; opacity:.6; }
+.wlm-fun-meta { font-size:10.5px; color:var(--t2); font-family:var(--mono); line-height:1.45; }
+.wlm-fun-why { margin:6px 0 0; padding-left:16px; font-size:10.5px; color:var(--t2); font-family:var(--mono); }
+.wlm-fun-why li { margin-bottom:2px; }
+.wlm-near { margin-top:8px; border-top:1px dashed var(--b2); padding-top:8px; }
+.wlm-near-title { font-size:9.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px; font-weight:700; }
+.wlm-near-list { display:flex; flex-direction:column; gap:4px; }
+.wlm-near-row {
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:11px; font-family:var(--mono);
+  padding:5px 8px; border-radius:7px; background:var(--panel2); border:1px solid var(--b1); cursor:pointer;
+}
+.wlm-near-row:hover { border-color:var(--accent); }
+.wlm-near-row .sym { font-weight:800; color:var(--t1); min-width:52px; }
+.wlm-near-row .sc { color:var(--crypto-2); font-weight:700; }
+.wlm-near-row .gap { color:var(--t3); }
+.wlm-near-row .why { color:var(--t2); flex:1; min-width:120px; font-size:10px; }
+.wlm-nm-stats { font-size:10px; color:var(--t3); font-family:var(--mono); margin-top:6px; }
+.wlm-nm-stats b { color:var(--t1); }
+.wlm-nm-noise { color:var(--warn); }
+.wlm-heat {
+  display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;
+}
+.wlm-heat:empty { display:none; }
+.wlm-heat-chip {
+  display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px;
+  background:var(--panel2); border:1px solid var(--b1); font-size:10.5px; font-family:var(--mono);
+  cursor:pointer; color:var(--t2);
+}
+.wlm-heat-chip:hover, .wlm-heat-chip.active { border-color:var(--accent); color:var(--accent); }
+.wlm-heat-chip b { color:var(--bull-s); }
+.wlm-soft-tag {
+  display:inline-block; margin-left:4px; font-size:8.5px; font-weight:700; font-family:var(--mono);
+  padding:1px 5px; border-radius:4px; vertical-align:middle;
+  background:rgba(255,176,32,.12); color:var(--warn); border:1px solid rgba(255,176,32,.35);
+}
+body.wlm-trade .hot-strip .hot-card.hc-buy { opacity:.55; }
+body.wlm-trade .stats-strip .stat-tile.warn,
+body.wlm-trade .stats-strip .stat-tile.bear { opacity:.45; }
+
 /* Detail expand (F4) */
 tbody tr.data-row { cursor:pointer; }
 tbody tr.data-row.is-open { background:rgba(91,176,255,.06); }
@@ -407,7 +474,7 @@ table.no-pre .col-pre { display:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v151</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v152</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -471,6 +538,21 @@ table.no-pre .col-pre { display:none; }
   </div>
 </div>
 
+<!-- Desk bar — Scan/Trade + sensibilitate (parity Early Long Desk) -->
+<div class="wlm-desk-bar" id="wlmDeskBar">
+  <button type="button" class="wlm-mode-btn active" data-mode="scan" title="Discovery: tot + funnel + near-miss">🔬 Scan</button>
+  <button type="button" class="wlm-mode-btn" data-mode="trade" title="Doar acționabile: STRONG BUY + BUY + near-miss">🎯 Trade</button>
+  <span class="wlm-desk-sep" aria-hidden="true"></span>
+  <button type="button" class="wlm-sens-btn" data-sens="strict" title="STRONG ≥80 · BUY ≥65 — mai puține semnale">Strict</button>
+  <button type="button" class="wlm-sens-btn active" data-sens="normal" title="STRONG ≥75 · BUY ≥60 — default">Normal</button>
+  <button type="button" class="wlm-sens-btn" data-sens="wide" title="STRONG ≥70 · BUY ≥55 — mai multe semnale">Wide</button>
+  <span class="wlm-desk-hint" id="wlmDeskHint">praguri Normal · soft gates sector/α</span>
+</div>
+
+<!-- Funnel + near-miss (gol când nu există scan) -->
+<div id="wlmFunnelSlot"></div>
+<div class="wlm-heat" id="wlmSectorHeat" title="STRONG BUY pe sector — click filtrează"></div>
+
 <!-- Hot strip (F3) -->
 <div class="hot-strip" id="hotStrip"></div>
 
@@ -480,6 +562,7 @@ table.no-pre .col-pre { display:none; }
     <button type="button" class="fb-chip active" data-fv="all">Toate</button>
     <button type="button" class="fb-chip" data-fv="strong-buy">🚀 Strong Buy</button>
     <button type="button" class="fb-chip" data-fv="buy">📈 Buy</button>
+    <button type="button" class="fb-chip" data-fv="near" title="Aproape de STRONG BUY (score sub prag)">⚡ Near</button>
     <button type="button" class="fb-chip" data-fv="hold">📊 Hold</button>
     <button type="button" class="fb-chip" data-fv="sell">📉 Sell/Avoid</button>
   </div>
@@ -557,7 +640,12 @@ window.showWlFeatures = function(){
       { e: '📈', t: '<b>RSI 14</b> sweet 40-65 (+10), OB/OS penalty' },
       { e: '⚡', t: '<b>Day momentum</b> chg% scoring' },
       { e: '🔊', t: '<b>RVOL</b> — volum relativ vs media 20 zile, coloană + în scor direcțional: volum mare pe creștere = acumulare (+), pe scădere = distribuție (−), anemic = penalizare mică. Intraday volumul parțial e <b>proiectat</b> la sesiunea întreagă (prefix ~); în primele 45 min nu se evaluează (prea zgomotos)' },
-      { e: '🎯', t: '<b>Verdict 5-tier</b>: 🚀 STRONG BUY ≥75 / 📈 BUY 60-74 / 📊 HOLD / 📉 SELL / 🔴 AVOID' },
+      { e: '🎯', t: '<b>Verdict 5-tier</b>: 🚀 STRONG BUY / 📈 BUY / 📊 HOLD / 📉 SELL / 🔴 AVOID — praguri din <b>sens</b> (Strict 80/65 · Normal 75/60 · Wide 70/55)' },
+      { e: '🔬', t: '<b>Desk Scan/Trade</b> — Scan = discovery (tot + funnel); Trade = doar SB + BUY + near-miss (zgomot ↓). Persistat local' },
+      { e: '📊', t: '<b>Funnel</b> OK → BuyZ → Near → BUY → SB + „de ce 0 SB" + listă near-miss clickable' },
+      { e: '⚡', t: '<b>Near-miss</b> — score la ≤5pt de pragul SB; chip filtru ⚡ Near; track Near→SB 30m (hit rate local)' },
+      { e: '🛡', t: '<b>Soft gates</b> — max 2 SB/sector (al 3-lea+ demotat BUY + tag cap-sector); SB cu α vs QQQ ≤−2 → demote α-weak (diversificare, nu bug motor)' },
+      { e: '🏭', t: '<b>Sector heat</b> — chip-uri SB/BUY pe industrie Finnhub; click filtrează, click din nou resetează' },
       { e: 'α', t: '<b>Alpha vs QQQ</b> — coloană + metrică „α QQQ 30z": cât bate stockul indicele Nasdaq-100 pe 30 zile (verde = outperformance). Un STRONG BUY cu alpha negativ = atenție, mișcă mai slab decât piața' },
       { e: 'β', t: '<b>Beta vs QQQ</b> — în detalii: cât amplifică stockul mișcarea indicelui (~120 zile de randamente); β 2 = mișcă dublu → la aceeași sumă investită ai risc dublu. Portocaliu la β≥1.5' },
       { e: '⚠️', t: '<b>Warning concentrare</b> — banner când ≥3 stocks din listă au corelație ≥0.8 între ele pe ~60 zile: mișcă împreună = practic o singură poziție (diversificare falsă). Calculat local din datele existente, zero request-uri' },
@@ -579,9 +667,9 @@ window.showWlFeatures = function(){
       { e: '📈', t: '<b>Sparkline per rând</b> + trend % colorat — perioada selectabilă din dropdown-ul din antet (1z/7z/15z/30z, default 7z, persistată), coloană sortabilă' },
       { e: '💥', t: '<b>Flash rând</b> verde/roșu când score-ul se schimbă ±2 la re-scan' },
       { e: '🎨', t: '<b>Bară verdict</b> colorată în stânga fiecărui rând (5 nivele)' },
-      { e: '🔥', t: '<b>Hot strip</b> — top 3 stocks cu score ≥55 ca card-uri sus, click → scroll la rând' },
+      { e: '🔥', t: '<b>Hot strip</b> — top scoruri ca card-uri sus (prag legat de sens; în Trade doar near/SB), click → scroll la rând' },
       { e: '🔎', t: '<b>Click pe rând → detalii</b>: sparkline 60z, MA50/MA200 abs, dist max/min 52s, ATR, compoziție score, plan long ref-ATR, link-uri TV/Yahoo/Finviz' },
-      { e: '🧰', t: '<b>Filtre live</b> — chip-uri pe verdict, căutare ticker, „doar movers |Δ|≥2%", contor vizibile/total' },
+      { e: '🧰', t: '<b>Filtre live</b> — chip-uri pe verdict + Near, căutare ticker, „doar movers |Δ|≥2%", sector heat, contor vizibile/total' },
       { e: '⏱', t: '<b>Countdown</b> până la următorul auto-scan în header' },
       { e: '📋', t: '<b>Jurnal + toast</b> la fiecare schimbare de verdict (orice nivel), badge cu schimbări necitite' },
       { e: '⚡', t: '<b>Adăugare rapidă</b> — butoane tickere populare în empty-state + „📥 din Scanner" (top picks buy-side din nasdaq-scanner)' },
@@ -597,7 +685,7 @@ window.showWlFeatures = function(){
   ];
   let html = `<div class="fl-modal">
     <div class="fl-head"><div><h3>👁 Watchlist Monitor</h3>
-    <div class="sub">v150 · Stocks dedicated · auto-scan continuu</div></div>
+    <div class="sub">v152 · Desk Scan/Trade + funnel + soft gates</div></div>
     <button class="fl-close" type="button" data-close>×</button></div>`;
   sections.forEach(s => {
     html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`;
@@ -652,6 +740,302 @@ let autoSec = 60, nextScanAt = 0; // F6 countdown
 let verdictLog = [], unseenChanges = 0; // F6 jurnal schimbări [{sym,from,to,fromTxt,toTxt,dir,ts}]
 const VERDICT_RANK = { 'strong-buy': 4, 'buy': 3, 'hold': 2, 'sell': 1, 'strong-sell': 0 };
 const VERDICT_TXT  = { 'strong-buy': '🚀 STRONG BUY', 'buy': '📈 BUY', 'hold': '📊 HOLD', 'sell': '📉 SELL', 'strong-sell': '🔴 AVOID' };
+
+// ── Desk layer (parity Early Long) — Scan/Trade + sens + funnel + soft gates ──
+const DESK_MODE_KEY = 'wlm_desk_mode_v1';
+const SENS_KEY = 'wlm_sens_v1';
+const NM_KEY = 'wlm_nearmiss_track_v1';
+const NM_WINDOW_MS = 30 * 60 * 1000;
+const WLM_SENS = {
+  strict: { sb: 80, buy: 65, hold: 40, sell: 25, label: 'Strict', hint: 'puține semnale, calitate' },
+  normal: { sb: 75, buy: 60, hold: 40, sell: 25, label: 'Normal', hint: 'default' },
+  wide:   { sb: 70, buy: 55, hold: 35, sell: 22, label: 'Wide',   hint: 'mai multe BUY/SB (zgomot↑)' }
+};
+const WLM_SOFT = { maxSbPerSector: 2, alphaWeak: -2 }; // ipoteze — soft demote
+let deskMode = 'scan'; // scan | trade
+let sensMode = 'normal';
+let filterSector = ''; // click pe heat chip
+let lastNmStats = null;
+try {
+  const dm = localStorage.getItem(DESK_MODE_KEY);
+  if (dm === 'scan' || dm === 'trade') deskMode = dm;
+  const sm = localStorage.getItem(SENS_KEY);
+  if (WLM_SENS[sm]) sensMode = sm;
+} catch (e) {}
+
+function sensTh(){ return WLM_SENS[sensMode] || WLM_SENS.normal; }
+
+function verdictFromScore(score){
+  const t = sensTh();
+  if (score >= t.sb) return { verdict: 'strong-buy', verdictTxt: '🚀 STRONG BUY' };
+  if (score >= t.buy) return { verdict: 'buy', verdictTxt: '📈 BUY' };
+  if (score >= t.hold) return { verdict: 'hold', verdictTxt: '📊 HOLD' };
+  if (score >= t.sell) return { verdict: 'sell', verdictTxt: '📉 SELL' };
+  return { verdict: 'strong-sell', verdictTxt: '🔴 AVOID' };
+}
+
+/** Re-aplică praguri sens pe rezultate deja scanate (fără re-fetch). */
+function reapplySensToResults(){
+  const t = sensTh();
+  results.forEach(r => {
+    if (r.price == null || r.score == null) return;
+    // scorul brut e stabil; soft tags se re-aplică după
+    const v = verdictFromScore(r.score);
+    r.verdict = v.verdict;
+    r.verdictTxt = v.verdictTxt;
+    r.sectorCap = false;
+    r.alphaWeak = false;
+    r.softTags = [];
+  });
+  applyWlmSoftGates(results);
+}
+
+/**
+ * Soft gates (ca ME Desk):
+ * 1) max N STRONG BUY pe același sector → restul demotați la BUY + tag cap-sector
+ * 2) SB cu α vs QQQ ≤ alphaWeak → demote BUY + tag α-weak
+ */
+function applyWlmSoftGates(list){
+  const maxPer = WLM_SOFT.maxSbPerSector;
+  const bySec = new Map();
+  (list || []).forEach(r => {
+    if (!r || r.verdict !== 'strong-buy') return;
+    const sec = sectorOf(r.symbol) || 'Necunoscut';
+    if (!bySec.has(sec)) bySec.set(sec, []);
+    bySec.get(sec).push(r);
+  });
+  bySec.forEach(arr => {
+    arr.sort((a, b) => (b.score || 0) - (a.score || 0));
+    arr.forEach((r, i) => {
+      if (i < maxPer) return;
+      r.verdict = 'buy';
+      r.verdictTxt = '📈 BUY';
+      r.sectorCap = true;
+      r.softTags = (r.softTags || []).concat(['cap-sector']);
+    });
+  });
+  (list || []).forEach(r => {
+    if (!r || r.verdict !== 'strong-buy') return;
+    if (r.alpha != null && r.alpha <= WLM_SOFT.alphaWeak) {
+      r.verdict = 'buy';
+      r.verdictTxt = '📈 BUY';
+      r.alphaWeak = true;
+      r.softTags = (r.softTags || []).concat(['α-weak']);
+    }
+  });
+  return list;
+}
+
+function isNearMiss(r){
+  if (!r || r.price == null || r.score == null) return false;
+  if (r.verdict === 'strong-buy') return false;
+  const t = sensTh();
+  // aproape de SB: score în [sb-5, sb) sau BUY cu score ≥ sb-5
+  return r.score >= t.sb - 5 && r.score < t.sb;
+}
+
+function nearMissWhy(r){
+  const t = sensTh();
+  const gap = t.sb - (r.score || 0);
+  const bits = [];
+  bits.push(`−${gap}pt până la SB≥${t.sb}`);
+  if (r.alpha != null && r.alpha < 0) bits.push(`α ${r.alpha.toFixed(1)}%`);
+  if (r.rsi != null && r.rsi > 70) bits.push(`RSI ${r.rsi.toFixed(0)} OB`);
+  if (r.ma50 != null && r.ma50 < 0) bits.push('sub MA50');
+  if (r.sectorCap) bits.push('cap sector');
+  if (r.alphaWeak) bits.push('α-weak demote');
+  return bits.join(' · ');
+}
+
+function wlmFunnelStats(list){
+  const t = sensTh();
+  const rows = (list || []).filter(r => r && r.price != null);
+  const n = rows.length;
+  let buyZ = 0, near = 0, sb = 0, buy = 0, hold = 0, sell = 0, cap = 0, aw = 0, err = 0;
+  const nearList = [];
+  (list || []).forEach(r => {
+    if (!r) return;
+    if (r.price == null) { err++; return; }
+    if (r.score >= t.buy) buyZ++;
+    if (r.verdict === 'strong-buy') sb++;
+    else if (r.verdict === 'buy') buy++;
+    else if (r.verdict === 'hold') hold++;
+    else sell++;
+    if (r.sectorCap) cap++;
+    if (r.alphaWeak) aw++;
+    if (isNearMiss(r)) {
+      near++;
+      nearList.push({
+        symbol: r.symbol,
+        score: r.score,
+        need: t.sb,
+        gap: t.sb - r.score,
+        why: nearMissWhy(r),
+        verdict: r.verdict
+      });
+    }
+  });
+  nearList.sort((a, b) => a.gap - b.gap || b.score - a.score);
+  const why = [];
+  if (!n) why.push('Niciun rând valid — apasă SCAN sau verifică proxy-urile.');
+  else if (!sb) {
+    why.push(`0 STRONG BUY (prag ≥${t.sb}, sens ${t.label}).`);
+    if (near) why.push(`${near} near-miss la ≤5pt de SB — vezi lista.`);
+    else if (buy) why.push(`${buy} BUY sub near-zone — așteaptă scor / sens Wide.`);
+    else if (buyZ === 0) why.push('Nimic în zona BUY (≥' + t.buy + ') — lista e defensivă / HOLD-SELL.');
+    if (cap) why.push(`${cap} demotați de soft-gate cap sector (max ${WLM_SOFT.maxSbPerSector}/sector).`);
+    if (aw) why.push(`${aw} demotați de soft-gate α-weak (α≤${WLM_SOFT.alphaWeak}% vs QQQ).`);
+  } else {
+    if (cap || aw) why.push(`Soft gates: ${cap} cap-sector · ${aw} α-weak (nu greșește motorul — diversificare).`);
+  }
+  return {
+    n, buyZ, near, sb, buy, hold, sell, cap, aw, err,
+    nearList: nearList.slice(0, 8),
+    minSb: t.sb, minBuy: t.buy, sens: t.label,
+    quiet: sb === 0,
+    why
+  };
+}
+
+function wlmFunnelHtml(fun){
+  if (!fun || !results.length) return '';
+  const steps = [
+    { lab: 'OK', v: fun.n, hit: fun.n > 0 },
+    { lab: 'BuyZ', v: fun.buyZ, hit: fun.buyZ > 0 },
+    { lab: 'Near', v: fun.near, hit: fun.near > 0 },
+    { lab: 'BUY', v: fun.buy, hit: fun.buy > 0 },
+    { lab: 'SB', v: fun.sb, hit: fun.sb > 0 }
+  ];
+  const stepsHtml = steps.map((s, i) =>
+    `<span class="wlm-fun-step${s.v ? (s.hit && s.lab === 'SB' ? ' hit' : '') : ' zero'}"><b>${s.v}</b><span>${s.lab}</span></span>`
+    + (i < steps.length - 1 ? '<span class="wlm-fun-arr">→</span>' : '')
+  ).join('');
+  const whyHtml = (fun.why || []).slice(0, 4).map(w => `<li>${wlEsc(w)}</li>`).join('');
+  let nearHtml = '';
+  if (fun.nearList && fun.nearList.length) {
+    nearHtml = '<div class="wlm-near"><div class="wlm-near-title">Near-miss (aproape de STRONG BUY)</div><div class="wlm-near-list">'
+      + fun.nearList.map(x =>
+        `<div class="wlm-near-row" onclick="scrollToRow('${x.symbol}')" title="scroll la rând">
+          <span class="sym">${wlEsc(x.symbol)}</span>
+          <span class="sc">${x.score}/${x.need}</span>
+          <span class="gap">−${x.gap}pt</span>
+          <span class="why">${wlEsc(x.why)}</span>
+        </div>`
+      ).join('')
+      + '</div></div>';
+  }
+  const nm = lastNmStats;
+  let nmHtml = '';
+  if (nm && nm.n) {
+    const rateTxt = nm.rate == null ? '—' : nm.rate + '%';
+    const warn = nm.noise ? ' <span class="wlm-nm-noise">n&lt;10 zgomot</span>' : '';
+    nmHtml = `<div class="wlm-nm-stats">Near→SB 30m: <b>${rateTxt}</b> · hit ${nm.hit}/${nm.n} · pending ${nm.pending}${warn}</div>`;
+  } else {
+    nmHtml = '<div class="wlm-nm-stats">Near→SB 30m: <b>—</b> (fără eșantion — se umple pe măsură ce treci pe near-miss)</div>';
+  }
+  return `<div class="wlm-funnel${fun.quiet ? ' quiet' : ''}" id="wlmFunnel">
+    <div class="wlm-fun-steps">${stepsHtml}</div>
+    <div class="wlm-fun-meta">sens <b>${wlEsc(fun.sens)}</b> · SB≥${fun.minSb} · BUY≥${fun.minBuy} · soft: max ${WLM_SOFT.maxSbPerSector}/sector · α≤${WLM_SOFT.alphaWeak} demote</div>
+    ${whyHtml ? `<ul class="wlm-fun-why">${whyHtml}</ul>` : ''}
+    ${nearHtml}
+    ${nmHtml}
+  </div>`;
+}
+
+function loadNmTrack(){
+  try {
+    const o = JSON.parse(localStorage.getItem(NM_KEY) || '{}');
+    return o && typeof o === 'object' ? o : {};
+  } catch (e) { return {}; }
+}
+function saveNmTrack(t){
+  try { localStorage.setItem(NM_KEY, JSON.stringify(t)); } catch (e) {}
+}
+function trackWlmNearMiss(funnelNear, sbSymbols){
+  const now = Date.now();
+  const track = loadNmTrack();
+  const sbSet = new Set((sbSymbols || []).map(s => String(s).toUpperCase()));
+  Object.keys(track).forEach(k => {
+    if (now - (track[k].ts || 0) > 24 * 3600000) delete track[k];
+  });
+  (funnelNear || []).forEach(n => {
+    const sym = String(n.symbol || '').toUpperCase();
+    if (!sym) return;
+    if (!track[sym] || now - track[sym].ts > NM_WINDOW_MS) {
+      track[sym] = { ts: now, score: n.score, hit: false };
+    }
+  });
+  Object.keys(track).forEach(sym => {
+    if (track[sym].hit) return;
+    if (sbSet.has(sym) && now - track[sym].ts <= NM_WINDOW_MS) {
+      track[sym].hit = true;
+      track[sym].hitTs = now;
+    }
+  });
+  saveNmTrack(track);
+  let n = 0, hit = 0, pending = 0;
+  Object.keys(track).forEach(k => {
+    const e = track[k];
+    if (now - (e.ts || 0) > 24 * 3600000) return;
+    n++;
+    if (e.hit) hit++;
+    else if (now - e.ts <= NM_WINDOW_MS) pending++;
+  });
+  lastNmStats = { n, hit, pending, rate: n ? Math.round((hit / n) * 100) : null, noise: n < 10 };
+  return lastNmStats;
+}
+
+function renderWlmDesk(){
+  const slot = $('wlmFunnelSlot');
+  const heat = $('wlmSectorHeat');
+  const hint = $('wlmDeskHint');
+  const t = sensTh();
+  if (hint) hint.textContent = `praguri ${t.label} (SB≥${t.sb}) · soft gates sector/α · mod ${deskMode === 'trade' ? 'Trade' : 'Scan'}`;
+  document.body.classList.toggle('wlm-trade', deskMode === 'trade');
+  document.querySelectorAll('.wlm-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === deskMode));
+  document.querySelectorAll('.wlm-sens-btn').forEach(b => b.classList.toggle('active', b.dataset.sens === sensMode));
+
+  if (!results.length) {
+    if (slot) slot.innerHTML = '';
+    if (heat) heat.innerHTML = '';
+    return;
+  }
+  const fun = wlmFunnelStats(results);
+  const sbSyms = results.filter(r => r.verdict === 'strong-buy').map(r => r.symbol);
+  trackWlmNearMiss(fun.nearList, sbSyms);
+  if (slot) slot.innerHTML = wlmFunnelHtml(fun);
+
+  // Heat pe sector: SB + BUY
+  if (heat) {
+    const by = new Map();
+    results.forEach(r => {
+      if (!r || r.price == null) return;
+      if (r.verdict !== 'strong-buy' && r.verdict !== 'buy') return;
+      const sec = sectorOf(r.symbol) || 'Necunoscut';
+      if (!by.has(sec)) by.set(sec, { sb: 0, buy: 0, n: 0 });
+      const g = by.get(sec);
+      g.n++;
+      if (r.verdict === 'strong-buy') g.sb++; else g.buy++;
+    });
+    const rows = [...by.entries()].map(([sec, g]) => ({ sec, ...g }))
+      .sort((a, b) => (b.sb * 2 + b.buy) - (a.sb * 2 + a.buy) || b.n - a.n)
+      .slice(0, 8);
+    heat.innerHTML = rows.map(x => {
+      const lab = x.sec.length > 18 ? x.sec.slice(0, 17) + '…' : x.sec;
+      const act = filterSector === x.sec ? ' active' : '';
+      return `<button type="button" class="wlm-heat-chip${act}" data-sec="${wlEsc(x.sec)}" title="${wlEsc(x.sec)}: ${x.sb} SB · ${x.buy} BUY">
+        ${wlEsc(lab)} <b>${x.sb}</b><span style="color:var(--t3)">/${x.n}</span>
+      </button>`;
+    }).join('');
+    heat.querySelectorAll('.wlm-heat-chip').forEach(ch => {
+      ch.addEventListener('click', () => {
+        const s = ch.dataset.sec || '';
+        filterSector = (filterSector === s) ? '' : s;
+        render();
+      });
+    });
+  }
+}
 
 function loadWatchlist(){
   try { watchlist = JSON.parse(localStorage.getItem(WL_KEY) || '[]'); }
@@ -1920,12 +2304,8 @@ function scoreStock(d){
 
   score = Math.max(0, Math.min(100, Math.round(score)));
 
-  let verdict, verdictTxt;
-  if (score >= 75) { verdict = 'strong-buy'; verdictTxt = '🚀 STRONG BUY'; }
-  else if (score >= 60) { verdict = 'buy'; verdictTxt = '📈 BUY'; }
-  else if (score >= 40) { verdict = 'hold'; verdictTxt = '📊 HOLD'; }
-  else if (score >= 25) { verdict = 'sell'; verdictTxt = '📉 SELL'; }
-  else { verdict = 'strong-sell'; verdictTxt = '🔴 AVOID'; }
+  const vv = verdictFromScore(score);
+  const verdict = vv.verdict, verdictTxt = vv.verdictTxt;
 
   return { score, verdict, verdictTxt, chg, rsi, ma50, ma200, aboveMa50, aboveMa200, atrPct, rvol, rvolProj, breakdown: bd };
 }
@@ -2061,6 +2441,8 @@ async function runScan(){
   const thPre = $('thPre'); if (thPre) thPre.textContent = sess.state === 'post' ? '🌆 After' : '🌅 Pre';
 
   results = newResults;
+  // Soft gates (sector cap / α-weak) — re-aplicate și în render când vin profile Finnhub
+  applyWlmSoftGates(results);
   lastScanTs = Date.now();
   corrClusters = computeCorrClusters(results); // D — warning concentrare (zero request-uri)
   persistResults(); // F4-extra — cache pt afișare instantă la următorul reload
@@ -2410,7 +2792,22 @@ function updateStats(){
 }
 
 function scoreColor(s){
-  return s >= 75 ? 'var(--bull-s)' : s >= 60 ? 'var(--crypto-2)' : s >= 40 ? 'var(--warn)' : 'var(--bear-s)';
+  const t = sensTh();
+  return s >= t.sb ? 'var(--bull-s)' : s >= t.buy ? 'var(--crypto-2)' : s >= t.hold ? 'var(--warn)' : 'var(--bear-s)';
+}
+
+/** Verdict din score + soft gates (idempotent — safe la fiecare render). */
+function normalizeResultsVerdicts(){
+  results.forEach(r => {
+    if (!r || r.price == null || r.score == null) return;
+    const v = verdictFromScore(r.score);
+    r.verdict = v.verdict;
+    r.verdictTxt = v.verdictTxt;
+    r.sectorCap = false;
+    r.alphaWeak = false;
+    r.softTags = [];
+  });
+  applyWlmSoftGates(results);
 }
 window.scrollToRow = function(sym){
   const el = $('wlrow-' + sym);
@@ -2610,15 +3007,19 @@ function buildDetailRow(r){
 function renderHotStrip(){
   const box = $('hotStrip');
   if (!box) return;
-  const hot = results.filter(r => r.price != null && r.score >= 55)
-    .sort((a, b) => b.score - a.score).slice(0, 3);
+  const t = sensTh();
+  // Scan: top score ≥ buy-5; Trade: doar SB + near-miss (zgomot ↓)
+  const minHot = deskMode === 'trade' ? t.sb - 5 : Math.max(50, t.buy - 5);
+  const hot = results.filter(r => r.price != null && r.score >= minHot)
+    .sort((a, b) => b.score - a.score).slice(0, deskMode === 'trade' ? 4 : 3);
   if (!hot.length){ box.innerHTML = ''; return; }
   box.innerHTML = hot.map(r => {
-    const sc = r.score, isStrong = sc >= 75;
+    const sc = r.score, isStrong = r.verdict === 'strong-buy';
+    const near = isNearMiss(r);
     const chgCls = (r.chg ?? 0) >= 0 ? 'up' : 'down';
     return `<div class="hot-card ${isStrong ? '' : 'hc-buy'}" onclick="scrollToRow('${r.symbol}')" title="vezi în tabel">
       <div class="hc-top">
-        <span class="hc-fire">${isStrong ? '🔥' : '⭐'}</span>
+        <span class="hc-fire">${isStrong ? '🔥' : near ? '⚡' : '⭐'}</span>
         <span class="hc-sym">${r.symbol}</span>
         <span class="hc-score" style="color:${scoreColor(sc)}">${sc}</span>
       </div>
@@ -2627,13 +3028,15 @@ function renderHotStrip(){
         <span class="hc-chg" style="color:${chgCls === 'up' ? 'var(--bull-s)' : 'var(--bear-s)'}">${fmtPct(r.chg, 2)}</span>
       </div>
       ${buildSparkline(r.spark)}
-      <div class="hc-verdict" style="color:${scoreColor(sc)}">${r.verdictTxt}</div>
+      <div class="hc-verdict" style="color:${scoreColor(sc)}">${r.verdictTxt}${near && !isStrong ? ' · near' : ''}</div>
     </div>`;
   }).join('');
 }
 
 function render(){
+  if (results.length) normalizeResultsVerdicts();
   updateStats();
+  renderWlmDesk();
   renderHotStrip();
   updateCorrBanner();
   updateRegimeBanner();
@@ -2650,20 +3053,29 @@ function render(){
         <div class="qa-btns">${popBtns}<button class="qa-btn scanner" type="button" onclick="addFromScanner()">📥 Top picks din Nasdaq Scanner</button></div>
       </div>
     </td></tr>`;
+    const slot = $('wlmFunnelSlot'); if (slot) slot.innerHTML = '';
+    const heat = $('wlmSectorHeat'); if (heat) heat.innerHTML = '';
     return;
   }
 
-  // Filtre (F5)
+  // Filtre (F5) + Desk: Trade mode + near + sector heat
   const filtered = results.filter(r => {
     if (filterText && !r.symbol.includes(filterText)) return false;
+    if (filterSector && (sectorOf(r.symbol) || 'Necunoscut') !== filterSector) return false;
+    // Trade: doar acționabile (SB + BUY + near-miss)
+    if (deskMode === 'trade') {
+      const act = r.verdict === 'strong-buy' || r.verdict === 'buy' || isNearMiss(r);
+      if (!act) return false;
+    }
     if (filterVerdict !== 'all'){
       if (filterVerdict === 'sell'){ if (r.verdict !== 'sell' && r.verdict !== 'strong-sell') return false; }
+      else if (filterVerdict === 'near'){ if (!isNearMiss(r)) return false; }
       else if (r.verdict !== filterVerdict) return false;
     }
     if (filterMovers && (r.chg == null || Math.abs(r.chg) < 2)) return false;
     return true;
   });
-  const filterActive = filterVerdict !== 'all' || filterMovers || !!filterText;
+  const filterActive = filterVerdict !== 'all' || filterMovers || !!filterText || !!filterSector || deskMode === 'trade';
 
   // Trend pe perioada selectată din dropdown (col. 📈) — calculat din spark, fără re-fetch
   results.forEach(r => { r.trendSel = trendPct(r.spark, sparkBars()); });
@@ -2682,9 +3094,9 @@ function render(){
     return sortAsc ? va - vb : vb - va;
   });
 
-  // Show watchlist symbols nescanate ca rows placeholder (doar dacă nu filtrăm pe verdict/movers)
+  // Show watchlist symbols nescanate ca rows placeholder (doar dacă nu filtrăm pe verdict/movers/trade)
   const scanned = new Set(results.map(r => r.symbol));
-  const unscanned = (filterVerdict === 'all' && !filterMovers)
+  const unscanned = (filterVerdict === 'all' && !filterMovers && deskMode === 'scan' && !filterSector)
     ? watchlist.filter(s => !scanned.has(s) && (!filterText || s.includes(filterText)))
     : [];
 
@@ -2692,7 +3104,8 @@ function render(){
   const fbCountEl = $('fbCount');
   if (fbCountEl){
     const vis = sorted.length + unscanned.length;
-    fbCountEl.textContent = filterActive ? `${vis} / ${watchlist.length} vizibile` : `${watchlist.length} stocks`;
+    const modeTag = deskMode === 'trade' ? ' · Trade' : '';
+    fbCountEl.textContent = filterActive ? `${vis} / ${watchlist.length} vizibile${modeTag}` : `${watchlist.length} stocks`;
     fbCountEl.style.color = (filterActive && vis === 0) ? 'var(--warn)' : 'var(--t3)';
   }
 
@@ -2706,10 +3119,14 @@ function render(){
     const trCls = r.trendSel == null ? '' : r.trendSel >= 0 ? 'up' : 'down';
     const flashCls = r.flashDir > 0 ? ' flash-up' : r.flashDir < 0 ? ' flash-dn' : '';
     const openCls = openDetail === r.symbol ? ' is-open' : '';
+    const near = isNearMiss(r);
+    const softTags = (r.softTags || []).map(t =>
+      `<span class="wlm-soft-tag" title="soft gate">${wlEsc(t)}</span>`
+    ).join('') + (near ? `<span class="wlm-soft-tag" title="aproape de STRONG BUY" style="border-color:rgba(255,216,107,.45);color:var(--crypto-2);background:rgba(255,216,107,.1)">near</span>` : '');
     const perfTag = r.perf ? `<div class="perf-tag ${r.perf.gain >= 0 ? 'pos' : 'neg'}" title="de la primul semnal ${r.perf.entryVerdict === 'strong-buy' ? 'STRONG BUY' : 'BUY'}: intrare $${r.perf.entryPrice.toFixed(2)}">${r.perf.entryVerdict === 'strong-buy' ? '🚀' : '📈'} ${fmtPct(r.perf.gain, 1)} · ${r.perf.days}z</div>` : '';
     return `<tr id="wlrow-${r.symbol}" class="data-row v-${r.verdict}${flashCls}${openCls}" onclick="toggleDetail('${r.symbol}')">
       <td class="left">
-        <div class="sym-name"><span class="row-caret">▸</span>${r.symbol}</div>
+        <div class="sym-name"><span class="row-caret">▸</span>${r.symbol}${softTags}</div>
         <div class="sym-sector">${wlEsc(sectorOf(r.symbol)) || 'Stocks'} · ${exLabel(r.symbol)}</div>
         ${earnBadge(r.symbol)}${insBadge(r.symbol)}${alertBadge(r.symbol)}${wlExposedTag(r.symbol)}
         ${perfTag}
@@ -2752,9 +3169,17 @@ function render(){
   </tr>`).join('');
 
   if (!html){
-    html = (filterActive && results.length)
-      ? '<tr><td colspan="13" class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Niciun stock nu se potrivește filtrului</div><div class="empty-sub">Schimbă chip-ul de verdict, golește căutarea sau dezactivează „doar movers".</div></td></tr>'
-      : '<tr><td colspan="13" class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Apasă SCAN pentru a popula datele</div></td></tr>';
+    if (filterActive && results.length) {
+      const fun = wlmFunnelStats(results);
+      const tip = deskMode === 'trade' && fun.sb === 0
+        ? `Trade e gol pe SB — normal dacă lista e defensivă. Vezi funnel (Near ${fun.near} · BUY ${fun.buy}) sau treci pe 🔬 Scan / sens Wide.`
+        : filterVerdict === 'near'
+          ? 'Niciun near-miss acum — nimeni la ≤5pt de pragul STRONG BUY.'
+          : 'Schimbă chip-ul de verdict, golește căutarea, debifează movers sau resetează filtrul de sector (click din nou pe chip-ul activ).';
+      html = `<tr><td colspan="13" class="empty"><div class="empty-icon">${deskMode === 'trade' ? '🎯' : '🔍'}</div><div class="empty-title">Niciun stock nu se potrivește filtrului</div><div class="empty-sub">${tip}</div></td></tr>`;
+    } else {
+      html = '<tr><td colspan="13" class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Apasă SCAN pentru a popula datele</div></td></tr>';
+    }
   }
   tbody.innerHTML = html;
 
@@ -2814,6 +3239,25 @@ $('fbSearch').addEventListener('input', e => {
   render();
 });
 $('fbMovers').addEventListener('change', e => { filterMovers = e.target.checked; render(); });
+
+// Desk: Scan/Trade + sensibilitate
+document.querySelectorAll('.wlm-mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    deskMode = btn.dataset.mode === 'trade' ? 'trade' : 'scan';
+    try { localStorage.setItem(DESK_MODE_KEY, deskMode); } catch (e) {}
+    render();
+  });
+});
+document.querySelectorAll('.wlm-sens-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const s = btn.dataset.sens;
+    if (!WLM_SENS[s]) return;
+    sensMode = s;
+    try { localStorage.setItem(SENS_KEY, sensMode); } catch (e) {}
+    reapplySensToResults();
+    render();
+  });
+});
 
 // Jurnal schimbări (F6)
 $('changesBtn').addEventListener('click', () => window.showChangesLog());
@@ -3008,10 +3452,10 @@ scheduleNextScan();
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
-<script src="../lib/suite-version.js?v=652"></script>
+<script src="../lib/suite-version.js?v=655"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v575';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v655';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>

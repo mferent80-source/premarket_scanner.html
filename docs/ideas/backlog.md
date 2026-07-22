@@ -201,6 +201,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-199 | Gates earnings/macro/regime pe FIRE (hibrid PRE+ORB / daily) | market-events/ + lib/ | M | P1 | făcut | ideation | 2026-07-22 |
 | I-200 | LEDGER me-fire + A/B vs me-early daily + scorecard | market-events/ + hub | M | P2 | făcut | ideation | 2026-07-22 |
 | I-201 | Extract monolit ME incremental (shell + tabs Context/Scan) | market-events/ + lib/ | L | P2 | făcut | ideation | 2026-07-22 |
+| I-202 | Watchlist Desk — funnel / near-miss / Scan·Trade / sens / soft gates (parity Early Long) | watchlist-monitor/ | M | P1 | făcut | ideation | 2026-07-22 |
 
 ## Mini-spec-uri
 
