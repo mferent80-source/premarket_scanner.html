@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
@@ -9,11 +9,11 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   /* === Paleta unificată cu crypto-events + scanner-hub (orange/gold BTC) === */
   :root {
-    /* High-clarity — paritate Watchlist (mai puțin „ceață") */
-    --bg:#080c12; --panel:#161d2e; --panel2:#202a42; --border:#445272; --border-soft:#35415c;
-    --text:#f8fafc; --muted:#c5cedd; --text-dim:#c5cedd; --t2:#e8eef7;
+    /* Max-clarity — zero ceață pe etichete/meta (paritate WATCH) */
+    --bg:#070b11; --panel:#171f30; --panel2:#222c44; --border:#4a5874; --border-soft:#3a4660;
+    --text:#fafbfc; --muted:#d0d8e6; --text-dim:#d0d8e6; --t2:#eef2f8; --t1:#fafbfc;
     --bull-s:#3aeb88; --bear-s:#ff6b6b; --warn:#f0a84a;
-    --accent:#7ec0ff; --accent2:#a890ff;
+    --accent:#8ac8ff; --accent2:#b49dff;
     --crypto-1:#f7931a; --crypto-2:#ffd86b;
     --radius:12px; --radius-sm:8px;
     --ease:cubic-bezier(.4,0,.2,1);
@@ -23,16 +23,17 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
     background: var(--bg);
-    background-image: radial-gradient(1100px 520px at 50% -180px, #101826 0%, #080c12 58%);
+    background-image: radial-gradient(1100px 520px at 50% -180px, #121a28 0%, #070b11 58%);
     background-attachment: fixed;
     color: var(--text);
     padding: 12px;
-    font-size: 13.5px;
+    font-size: 14px;
     min-height: 100vh;
     -webkit-font-smoothing: subpixel-antialiased;
     -moz-osx-font-smoothing: auto;
     text-rendering: optimizeLegibility;
     font-variant-numeric: tabular-nums;
+    font-weight: 450;
   }
 
   /* === Sticky header bar (înlocuiește h1 + subtitle + global-config) === */
@@ -81,7 +82,7 @@
   .topbar button.primary:hover { filter: brightness(1.08); color: #fff; }
 
   /* === Backward compat — vechiul subtitle e folosit pe mobile (afișăm inline-block doar dacă apare) === */
-  .subtitle { font-size: 11px; color: var(--muted); margin-bottom: 10px; padding: 0 4px; }
+  .subtitle { font-size: 12px; color: var(--t2); margin-bottom: 10px; padding: 0 4px; font-weight: 600; }
 
   section {
     background: var(--panel);
@@ -120,7 +121,7 @@
     border: 1px solid var(--border-soft);
   }
   .ctrl { display: flex; flex-direction: column; gap: 3px; }
-  label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  label { font-size: 11px; color: var(--t2); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; }
   input, select {
     background: var(--panel2);
     border: 1px solid var(--border);
@@ -152,12 +153,13 @@
   button:disabled { background: #484f58; cursor: not-allowed; }
   
   .status {
-    padding: 6px 10px;
+    padding: 7px 11px;
     background: var(--bg);
     border-radius: var(--radius-sm);
     margin-bottom: 8px;
-    font-size: 11px;
-    color: var(--muted);
+    font-size: 12.5px;
+    color: var(--text);
+    font-weight: 500;
     border-left: 3px solid var(--accent);
     border-top: 1px solid var(--border-soft);
     border-right: 1px solid var(--border-soft);
@@ -181,17 +183,18 @@
     border-bottom: 1px solid var(--border-soft);
   }
   th {
-    background: rgba(20,26,40,.6);
+    background: var(--panel2);
     font-weight: 700;
-    font-size: 10px;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.3px;
     white-space: nowrap;
-    color: var(--muted);
+    color: var(--t2);
     position: sticky;
     top: 0;
     z-index: 10;
   }
+  td { color: var(--text); font-size: 12.5px; }
   .section-earnings th { color: #d2a8ff; }
   .section-losers th { color: var(--bear-s); }
   .section-watchlist th { color: var(--accent); }
@@ -207,17 +210,17 @@
   
   .earn-hot { background: #f8514920; color: #ff7b72; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
   .earn-warm { background: #d2a8ff20; color: #d2a8ff; font-weight: 600; padding: 2px 6px; border-radius: 3px; }
-  .earn-soon { color: #8b949e; }
+  .earn-soon { color: var(--t2); }
   .earn-far { color: #484f58; font-size: 11px; }
   
   .time-bmo { background: #1f6feb20; color: #79c0ff; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 600; }
   .time-amc { background: #f0883e20; color: #f0883e; padding: 1px 5px; border-radius: 3px; font-size: 10px; font-weight: 600; }
-  .time-unk { color: #6e7681; font-size: 10px; }
+  .time-unk { color: var(--muted); font-size: 10px; }
   
   .empty {
     padding: 20px;
     text-align: center;
-    color: #8b949e;
+    color: var(--t2);
     font-style: italic;
   }
   
@@ -233,7 +236,7 @@
   }
 .hub-back{
   display:inline-flex;align-items:center;gap:6px;
-  font-size:12px;font-weight:600;color:#8b949e;text-decoration:none;
+  font-size:12px;font-weight:600;color:var(--t2);text-decoration:none;
   padding:6px 12px;border:1px solid #30363d;border-radius:8px;
   background:#161b22;margin-bottom:14px;
   transition:all .15s;
@@ -277,7 +280,7 @@
   display:flex;align-items:center;gap:8px;
 }
 .ai-modal-sub{
-  font-size:11px;color:#8b949e;margin-bottom:14px;line-height:1.6;
+  font-size:11px;color:var(--t2);margin-bottom:14px;line-height:1.6;
 }
 .ai-modal-result{
   background:#0d1117;border:1px solid #30363d;border-radius:8px;
@@ -285,7 +288,7 @@
   white-space:pre-wrap;min-height:80px;max-height:60vh;overflow-y:auto;
 }
 .ai-modal-meta{
-  font-size:10px;color:#6e7681;margin-top:10px;font-family:monospace;
+  font-size:10px;color:var(--muted);margin-top:10px;font-family:monospace;
 }
 .ai-modal-actions{
   display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;
@@ -307,7 +310,7 @@
 }
 .ai-key-modal input[type=text]:focus{border-color:#1f6feb}
 .ai-key-modal .ai-test-result{
-  font-size:11px;margin-bottom:10px;min-height:18px;color:#8b949e;
+  font-size:11px;margin-bottom:10px;min-height:18px;color:var(--t2);
 }
 
 /* === Sentiment row (stare de piață: Session + SPY + QQQ + VIX) === */
@@ -330,9 +333,9 @@
 .sent-card.spy::before { background: #5bb0ff; }
 .sent-card.qqq::before { background: #8b6fff; }
 .sent-card.vix::before { background: var(--bar-color, var(--warn)); }
-.sent-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+.sent-label { font-size: 11.5px; color: var(--t2); text-transform: uppercase; letter-spacing: .35px; margin-bottom: 4px; font-weight: 700; }
 .sent-value { font-size: 22px; font-weight: 700; letter-spacing: -.5px; }
-.sent-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.sent-sub { font-size: 12.5px; color: var(--text); margin-top: 2px; font-weight: 600; }
 .sent-sub.up { color: var(--bull-s); font-weight: 700; }
 .sent-sub.down { color: var(--bear-s); font-weight: 700; }
 
@@ -398,7 +401,7 @@
 
 /* Earnings collapse */
 .section h2{cursor:pointer;user-select:none}
-.section h2 .collapse-arrow{display:inline-block;transition:transform .2s;font-size:11px;color:#6e7681;margin-right:4px}
+.section h2 .collapse-arrow{display:inline-block;transition:transform .2s;font-size:11px;color:var(--muted);margin-right:4px}
 .section.collapsed h2 .collapse-arrow{transform:rotate(-90deg)}
 .section.collapsed .controls,
 .section.collapsed .status,
@@ -451,9 +454,9 @@
   cursor:pointer;font-size:12px;transition:all .12s}
 .wl-sr-item:hover{border-color:#1f6feb;background:#161b22}
 .wl-sr-sym{font-family:monospace;font-weight:700;color:#79c0ff}
-.wl-sr-name{color:#8b949e;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wl-sr-ex{color:#6e7681;font-size:10px;font-family:monospace}
-.wl-sr-empty{padding:7px 10px;color:#8b949e;font-size:11px}
+.wl-sr-name{color:var(--t2);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wl-sr-ex{color:var(--muted);font-size:10px;font-family:monospace}
+.wl-sr-empty{padding:7px 10px;color:var(--t2);font-size:11px}
 .wl-add-btn,.wl-refresh-btn,.wl-sync-btn{
   padding:6px 9px;border:none;color:#fff;border-radius:6px;
   font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0;
@@ -497,7 +500,7 @@
 .wl-compare-bar .btn-cmp-go{background:#8957e5;color:#fff}
 .wl-compare-bar .btn-cmp-go:hover{background:#a371f7}
 .wl-compare-bar .btn-cmp-go:disabled{opacity:.5;cursor:wait}
-.wl-compare-bar .btn-cmp-clear{background:#21262d;color:#8b949e;border:1px solid #30363d}
+.wl-compare-bar .btn-cmp-clear{background:#21262d;color:var(--t2);border:1px solid #30363d}
 .wl-compare-bar .btn-cmp-clear:hover{background:#30363d;color:#e6edf3}
 
 /* === Bara floating pentru comparație Top Losers (similar cu wl, dar roșu) === */
@@ -575,7 +578,7 @@
 }
 .wl-filters{display:flex;gap:3px;flex-wrap:wrap}
 .wl-fbtn{
-  padding:3px 7px;background:#0d1117;border:1px solid #30363d;color:#8b949e;
+  padding:3px 7px;background:#0d1117;border:1px solid #30363d;color:var(--t2);
   border-radius:11px;font-size:10px;font-weight:600;cursor:pointer;transition:all .12s;
 }
 .wl-fbtn:hover{color:#e6edf3;border-color:#388bfd}
@@ -586,12 +589,12 @@
   border-radius:5px;font-size:10px;cursor:pointer;outline:none;
 }
 .wl-sort select:focus{border-color:#1f6feb}
-.wl-group-toggle{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:10px;color:#8b949e}
+.wl-group-toggle{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:10px;color:var(--t2)}
 .wl-group-toggle input[type=checkbox]{cursor:pointer;accent-color:#1f6feb;width:12px;height:12px}
 
 /* Early-bird filter: accent verde + input prag anti-extins */
 .wl-fbtn[data-filter="early"].active{background:#1a7f37;border-color:#2ea043;color:#fff}
-.wl-ext{display:inline-flex;align-items:center;gap:2px;font-size:10px;color:#8b949e;white-space:nowrap}
+.wl-ext{display:inline-flex;align-items:center;gap:2px;font-size:10px;color:var(--t2);white-space:nowrap}
 .wl-ext input{
   width:36px;padding:2px 4px;background:#0d1117;border:1px solid #30363d;color:#e6edf3;
   border-radius:5px;font-size:10px;text-align:center;outline:none;
@@ -697,12 +700,12 @@
 .aichat-msg{max-width:85%;padding:8px 11px;border-radius:11px;font-size:12px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
 .aichat-msg.user{align-self:flex-end;background:linear-gradient(135deg,#0891b2,#0e7490);color:#fff;border-bottom-right-radius:3px}
 .aichat-msg.assistant{align-self:flex-start;background:#21262d;color:#e6edf3;border:1px solid #30363d;border-bottom-left-radius:3px}
-.aichat-msg.system{align-self:center;background:transparent;color:#6e7681;font-size:10px;font-style:italic;border:1px dashed #30363d;padding:6px 10px}
+.aichat-msg.system{align-self:center;background:transparent;color:var(--muted);font-size:10px;font-style:italic;border:1px dashed #30363d;padding:6px 10px}
 .aichat-msg.error{align-self:center;background:#3d1418;color:#ff6b6b;border:1px solid #5c1d23}
-.aichat-empty{text-align:center;color:#6e7681;font-size:11px;padding:20px 8px;line-height:1.6}
+.aichat-empty{text-align:center;color:var(--muted);font-size:11px;padding:20px 8px;line-height:1.6}
 .aichat-empty kbd{background:#21262d;border:1px solid #30363d;border-radius:4px;padding:1px 6px;font-family:monospace;font-size:10px;color:#79c0ff}
 .aichat-cmds{padding:6px 10px;background:#161b22;border-top:1px solid #30363d;display:flex;gap:5px;flex-wrap:wrap;font-size:10px}
-.aichat-cmd{background:#21262d;border:1px solid #30363d;color:#8b949e;padding:3px 7px;border-radius:5px;cursor:pointer;font-family:monospace;font-weight:700}
+.aichat-cmd{background:#21262d;border:1px solid #30363d;color:var(--t2);padding:3px 7px;border-radius:5px;cursor:pointer;font-family:monospace;font-weight:700}
 .aichat-cmd:hover{background:#1f6feb20;color:#79c0ff;border-color:#388bfd}
 .aichat-input-row{padding:10px;border-top:1px solid #30363d;background:#161b22;display:flex;gap:6px;align-items:flex-end}
 .aichat-input{flex:1;border:1px solid #30363d;border-radius:10px;padding:8px 10px;font-size:12px;background:#0d1117;color:#e6edf3;resize:none;min-height:36px;max-height:120px;outline:none;font-family:inherit}
@@ -779,11 +782,11 @@
   font-variant-numeric:tabular-nums;
 }
 .wl-d-row:last-child{border-bottom:none}
-.wl-d-row .lbl{color:#8b949e; font-size:10.5px}
+.wl-d-row .lbl{color:var(--t2); font-size:10.5px}
 .wl-d-row .val{font-weight:700; font-size:11px}
 .wl-d-row .val.pos{color:#3fb950}
 .wl-d-row .val.neg{color:#ff6b6b}
-.wl-d-row .val.muted{color:#8b949e}
+.wl-d-row .val.muted{color:var(--t2)}
 .wl-d-spark{margin-top:6px; padding:4px; background:#161b22; border-radius:5px}
 .wl-d-rsi-bar{
   position:relative; height:8px; background:linear-gradient(90deg,#1f6feb 0%,#1f6feb 30%,#21262d 30%,#21262d 70%,#f0883e 70%,#f0883e 100%);
@@ -805,7 +808,7 @@
   font-size:10px; font-weight:700; text-decoration:none;
 }
 .wl-d-links a:hover{background:#30363d; color:#79c0ff}
-.wl-d-loading{padding:14px; text-align:center; color:#8b949e; font-size:11px}
+.wl-d-loading{padding:14px; text-align:center; color:var(--t2); font-size:11px}
 .wl-d-ins-list{margin-top:6px; max-height:160px; overflow-y:auto}
 .wl-d-ins-list .ins-row{
   display:grid; grid-template-columns: 1fr auto auto; gap:6px; padding:3px 0;
@@ -814,8 +817,8 @@
 .wl-d-ins-list .ins-row.buy{border-left:2px solid #3fb950; padding-left:4px}
 .wl-d-ins-list .ins-row.sell{border-left:2px solid #ff6b6b; padding-left:4px}
 .wl-d-ins-list .ins-row .ins-name{color:#c9d1d9; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.wl-d-ins-list .ins-row .ins-qty{color:#8b949e; font-variant-numeric:tabular-nums}
-.wl-d-ins-list .ins-row .ins-date{color:#6e7681; font-size:9.5px}
+.wl-d-ins-list .ins-row .ins-qty{color:var(--t2); font-variant-numeric:tabular-nums}
+.wl-d-ins-list .ins-row .ins-date{color:var(--muted); font-size:9.5px}
 .btn-row-wl-detail{background:rgba(137,87,229,.18); color:#b392f0; border-color:rgba(137,87,229,.5)}
 .btn-row-wl-detail.open{background:#8957e5; color:#fff}
 .wl-cell .sym{cursor:pointer}
@@ -834,7 +837,7 @@
   position:sticky; top:0; letter-spacing:.3px;
 }
 .wl-sbs-table .sbs-label{
-  text-align:left; color:#8b949e; font-weight:700; font-size:10.5px;
+  text-align:left; color:var(--t2); font-weight:700; font-size:10.5px;
   background:rgba(255,255,255,.02);
 }
 .wl-sbs-table td.sbs-best{
@@ -850,7 +853,7 @@
   display:inline-flex;align-items:center;gap:5px;
   background:#21262d;border:1px solid #30363d;
   padding:4px 8px;border-radius:8px;font-size:10.5px;
-  color:#8b949e;
+  color:var(--t2);
 }
 .ai-autoscan-wrap.active{border-color:#8957e5;color:#d2a8ff}
 .ai-autoscan-wrap select{
@@ -861,7 +864,7 @@
 .ai-autoscan-wrap select option{background:#161b22;color:#e6edf3}
 .ai-autoscan-wrap .as-dot{
   width:7px;height:7px;border-radius:50%;
-  background:#6e7681;flex-shrink:0;
+  background:var(--muted);flex-shrink:0;
 }
 .ai-autoscan-wrap.active .as-dot{
   background:#8957e5;box-shadow:0 0 6px #8957e5;
@@ -880,14 +883,14 @@
 #aiAutoScanPanel.show{display:block}
 #aiAutoScanPanel .as-hdr{display:flex;align-items:center;gap:6px;margin-bottom:8px;padding-bottom:7px;border-bottom:1px solid #30363d}
 #aiAutoScanPanel .as-title{font-weight:800;color:#d2a8ff;font-size:12px}
-#aiAutoScanPanel .as-meta{font-size:9.5px;color:#6e7681;margin-left:auto}
-#aiAutoScanPanel .as-close{background:transparent;border:none;color:#6e7681;cursor:pointer;font-size:14px;padding:0 4px;font-family:inherit}
+#aiAutoScanPanel .as-meta{font-size:9.5px;color:var(--muted);margin-left:auto}
+#aiAutoScanPanel .as-close{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;font-family:inherit}
 #aiAutoScanPanel .as-close:hover{color:#ff6b6b}
 #aiAutoScanPanel .as-content{white-space:pre-wrap;line-height:1.55;color:#c9d1d9}
 
 /* Position Sizer Trade 212 — form grid */
 .sizer-form{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-bottom:14px}
-.sizer-form label{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;display:block}
+.sizer-form label{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;display:block}
 .sizer-form input{
   width:100%;padding:7px 9px;background:#0d1117;border:1px solid #30363d;
   color:#e6edf3;border-radius:6px;font-size:12px;font-family:monospace;outline:none;
@@ -897,7 +900,7 @@
 .sizer-side{display:flex;gap:5px}
 .sizer-side button{
   flex:1;padding:7px;border-radius:6px;border:1px solid #30363d;
-  background:#21262d;color:#8b949e;font-weight:700;cursor:pointer;
+  background:#21262d;color:var(--t2);font-weight:700;cursor:pointer;
   font-size:11px;font-family:inherit;
 }
 .sizer-side button.active.long {background:rgba(63,185,80,.20);border-color:#3fb950;color:#3fb950}
@@ -907,7 +910,7 @@
   padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;font-size:12px;
 }
 .sizer-results .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.sizer-results .label{color:#8b949e;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px}
+.sizer-results .label{color:var(--t2);font-size:10.5px;text-transform:uppercase;letter-spacing:.3px}
 .sizer-results .val{font-weight:800;font-variant-numeric:tabular-nums}
 .sizer-results .val.up{color:#3fb950}
 .sizer-results .val.down{color:#ff6b6b}
@@ -922,7 +925,7 @@
 }
 .alert-row .alert-summary{flex:1;min-width:140px;font-family:monospace;color:#e6edf3}
 .alert-row .alert-toggle{
-  background:#21262d;border:1px solid #30363d;color:#8b949e;
+  background:#21262d;border:1px solid #30363d;color:var(--t2);
   padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;
 }
 .alert-row .alert-toggle.on{background:#3fb950;border-color:#3fb950;color:#000}
@@ -943,7 +946,7 @@
   background:linear-gradient(135deg,#1f6feb,#8957e5);color:#fff;
   border:none;padding:5px 11px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;
 }
-.alerts-empty{padding:14px;text-align:center;color:#8b949e;font-size:11px;font-style:italic}
+.alerts-empty{padding:14px;text-align:center;color:var(--t2);font-size:11px;font-style:italic}
 
 /* === Pachet D: search bar + shortcuts + AI presets + saved === */
 .global-search{
@@ -953,7 +956,7 @@
   transition:border-color .15s, box-shadow .15s;
 }
 .global-search:focus{border-color:#8957e5;box-shadow:0 0 0 3px rgba(137,87,229,.18)}
-.global-search::placeholder{color:#8b949e}
+.global-search::placeholder{color:var(--t2)}
 
 .shortcuts-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12px}
 .shortcuts-grid kbd{
@@ -983,15 +986,15 @@
   cursor:pointer;transition:background .12s;
 }
 .saved-row:hover{background:#21262d}
-.saved-row .saved-meta{display:flex;gap:8px;align-items:center;font-size:10px;color:#8b949e;margin-bottom:3px}
+.saved-row .saved-meta{display:flex;gap:8px;align-items:center;font-size:10px;color:var(--t2);margin-bottom:3px}
 .saved-row .saved-sym{color:#79c0ff;font-weight:800;font-family:monospace}
 .saved-row .saved-preview{color:#e6edf3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .saved-row .saved-del{
-  float:right;background:transparent;border:none;color:#8b949e;
+  float:right;background:transparent;border:none;color:var(--t2);
   cursor:pointer;padding:0 5px;font-size:13px;font-family:inherit;
 }
 .saved-row .saved-del:hover{color:#ff6b6b}
-.saved-empty{padding:18px;text-align:center;color:#8b949e;font-size:11px;font-style:italic}
+.saved-empty{padding:18px;text-align:center;color:var(--t2);font-size:11px;font-style:italic}
 
 /* === Ver-badge lângă h1 === */
 .ver-badge{
@@ -1034,7 +1037,7 @@
 .heat-row.cool .bar{background:linear-gradient(90deg,#3fb950 0%, #56d364 100%)}
 .heat-row .val{font-variant-numeric:tabular-nums; color:#e6edf3; font-weight:700; text-align:right; min-width:60px}
 .heat-row .meta{font-size:9.5px; color:#fff; position:absolute; left:6px; top:50%; transform:translateY(-50%); text-shadow:0 1px 2px rgba(0,0,0,.5)}
-.heat-empty{padding:14px; text-align:center; color:#8b949e; font-size:11px; font-style:italic}
+.heat-empty{padding:14px; text-align:center; color:var(--t2); font-size:11px; font-style:italic}
 
 /* === Early Long Desk (I-196/I-197) === */
 .el-tabs{
@@ -1043,8 +1046,8 @@
   border-radius:var(--radius); box-shadow:var(--shadow-sm);
 }
 .el-tab{
-  appearance:none; border:1px solid transparent; background:transparent; color:var(--muted);
-  font:600 12px/1 inherit; padding:9px 14px; border-radius:var(--radius-sm); cursor:pointer;
+  appearance:none; border:1px solid transparent; background:transparent; color:var(--t2);
+  font:700 12.5px/1 inherit; padding:9px 14px; border-radius:var(--radius-sm); cursor:pointer;
   transition:all .15s var(--ease);
 }
 .el-tab:hover{color:var(--text); background:var(--panel2)}
@@ -1071,8 +1074,8 @@
   background:linear-gradient(90deg,var(--crypto-1),var(--crypto-2));
   -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-right:auto;
 }
-.el-desk-meta{font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums}
-.el-desk-meta strong{color:var(--text)}
+.el-desk-meta{font-size:12.5px; color:var(--t2); font-variant-numeric:tabular-nums; font-weight:600}
+.el-desk-meta strong{color:var(--text); font-weight:800}
 .el-strip{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px}
 .el-pill{
   display:inline-flex; align-items:center; gap:6px;
@@ -1303,15 +1306,15 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 .el-fun-steps{display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px; margin-bottom:6px}
 .el-fun-step{
   display:inline-flex; flex-direction:column; align-items:center; min-width:42px;
-  padding:4px 8px; border-radius:8px; background:var(--panel2); border:1px solid var(--border);
-  font-size:10px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:.3px;
+  padding:5px 8px; border-radius:8px; background:var(--panel2); border:1px solid var(--border);
+  font-size:10.5px; font-weight:800; color:var(--t2); text-transform:uppercase; letter-spacing:.3px;
 }
-.el-fun-step b{font-size:15px; color:var(--text); font-variant-numeric:tabular-nums; font-weight:800}
-.el-fun-step.zero b{color:var(--t2); opacity:.75}
-.el-fun-arr{color:var(--t2); font-size:12px; opacity:.8}
-.el-fun-path{font-size:11.5px; color:var(--text); margin-bottom:6px; font-variant-numeric:tabular-nums; font-weight:500}
+.el-fun-step b{font-size:16px; color:var(--text); font-variant-numeric:tabular-nums; font-weight:800}
+.el-fun-step.zero b{color:var(--t2); opacity:.85}
+.el-fun-arr{color:var(--t2); font-size:13px; opacity:.9; font-weight:700}
+.el-fun-path{font-size:12.5px; color:var(--text); margin-bottom:6px; font-variant-numeric:tabular-nums; font-weight:600}
 .el-fun-path b{color:var(--crypto-1)}
-.el-fun-why{margin:0; padding-left:16px; font-size:12px; color:var(--text); line-height:1.5}
+.el-fun-why{margin:0; padding-left:16px; font-size:13px; color:var(--text); line-height:1.5; font-weight:500}
 .el-fun-why li{margin:2px 0}
 .el-near-title{font-size:10px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; color:var(--accent); margin:8px 0 4px}
 .el-near-list{display:flex; flex-direction:column; gap:3px}
@@ -1322,15 +1325,17 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 }
 .el-near-row .sym{font-weight:800; color:var(--accent)}
 .el-near-row .sc{color:var(--crypto-1); font-weight:700; font-size:10px}
-.el-near-row .why{color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.el-near-row .why{color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:500}
+.el-empty{color:var(--text) !important; font-size:13px !important; font-style:normal !important; font-weight:600}
+.el-kbd-hint{color:var(--t2) !important; font-size:11.5px !important; font-weight:600}
 /* Quiet mode: 0 FIRE → ascunde heat dens */
 .el-desk.quiet-empty .el-heat{opacity:.55}
 .el-desk.quiet-empty .el-sector-chips{opacity:.7}
 .el-sens-row{display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0 0 8px}
 .el-sens-row label{font-size:10px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:.3px}
 .el-sens-btn{
-  appearance:none; cursor:pointer; padding:4px 10px; border-radius:999px;
-  font-size:11px; font-weight:700; border:1px solid var(--border);
+  appearance:none; cursor:pointer; padding:5px 11px; border-radius:999px;
+  font-size:12px; font-weight:700; border:1px solid var(--border);
   background:var(--panel2); color:var(--text);
 }
 .el-sens-btn.active{border-color:rgba(107,184,255,.55); color:var(--accent); background:rgba(107,184,255,.12)}
@@ -1343,21 +1348,26 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 .el-clock.pre{border-color:rgba(247,147,26,.4)}
 .el-clock.orb{border-color:rgba(46,230,122,.45); background:rgba(46,230,122,.07)}
 .el-clock-main{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
-.el-clock-lab{font-size:11.5px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; color:var(--t2)}
+.el-clock-lab{font-size:12px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; color:var(--text)}
 .el-clock.orb .el-clock-lab{color:var(--bull-s)}
 .el-clock.pre .el-clock-lab{color:var(--crypto-1)}
-.el-clock-left{font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; font-family:ui-monospace,DM Mono,monospace; color:var(--text)}
-.el-clock-sub{font-size:11.5px; color:var(--t2); margin-top:2px; font-weight:500}
+.el-clock-left{font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; font-family:ui-monospace,DM Mono,monospace; color:var(--text)}
+.el-clock-sub{font-size:12.5px; color:var(--t2); margin-top:2px; font-weight:600}
 .el-clock-bar{margin-top:6px; height:4px; border-radius:2px; background:rgba(58,70,96,.9); overflow:hidden}
 .el-clock-bar span{display:block; height:100%; background:linear-gradient(90deg,var(--crypto-1),var(--bull-s)); border-radius:2px; transition:width .4s}
-.el-nm-stats{font-size:11.5px; color:var(--t2); margin:6px 0 0; font-variant-numeric:tabular-nums; font-weight:500}
+.el-nm-stats{font-size:12.5px; color:var(--text); margin:6px 0 0; font-variant-numeric:tabular-nums; font-weight:600}
 .el-nm-stats b{color:var(--accent); font-weight:800}
+/* anti-ceață global pe restul UI ME (etichete/empty) */
+.wl-d-row .lbl, .wl-grp-row, .wl-ext, .wl-group-toggle, .heat-empty,
+.compact-table .time-bmo, .compact-table .time-amc { color: var(--t2) !important; }
+.empty, .wl-empty, [class*="empty"] { color: var(--t2) !important; }
+.num, .sym { font-weight: 700; }
 .el-nm-noise{color:var(--warn); font-weight:700}
 /* Mode Scan / Trade */
 .el-mode-row{display:flex; gap:6px; flex-wrap:wrap; margin:0 0 8px}
 .el-mode-btn{
-  appearance:none; cursor:pointer; padding:5px 12px; border-radius:999px;
-  font-size:11.5px; font-weight:800; border:1px solid var(--border);
+  appearance:none; cursor:pointer; padding:6px 13px; border-radius:999px;
+  font-size:12.5px; font-weight:800; border:1px solid var(--border);
   background:var(--panel2); color:var(--text);
 }
 .el-mode-btn.active{border-color:rgba(46,230,122,.55); color:var(--bull-s); background:rgba(46,230,122,.12)}
@@ -1378,7 +1388,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v261</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v262</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1516,7 +1526,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
     <button class="wl-refresh-btn" id="wlSelectAllBtn" style="background:#8957e5" onclick="wlSelectAllVisible()" title="Selectează / deselectează tot ce e vizibil">☑</button>
     <button class="wl-refresh-btn" style="background:#1f6feb" onclick="wlSendAllToScanners()" title="Trimite tot watchlist-ul în Watchlist Monitor + Smart Trade">📊</button>
     <button class="wl-sync-btn" onclick="wlSyncModal()" title="Sync GitHub Gist">☁️</button>
-    <button class="wl-sync-btn" onclick="wlBadgesDebug()" title="🐛 Diagnostic: câte simboluri ating fiecare prag de badge nou (insider/RSI/RVOL)" style="background:#6e7681">🐛</button>
+    <button class="wl-sync-btn" onclick="wlBadgesDebug()" title="🐛 Diagnostic: câte simboluri ating fiecare prag de badge nou (insider/RSI/RVOL)" style="background:var(--muted)">🐛</button>
   </div>
   <div id="wlSearchResults" class="wl-search-results"></div>
 
@@ -1563,7 +1573,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
   </div>
 
   <!-- Legendă badge-uri — pagina are multe glyphs; un rând discret scutește ghicitul -->
-  <div style="font-size:.6rem;color:var(--muted,#6e7681);margin:4px 2px 0;line-height:1.6">
+  <div style="font-size:.6rem;color:var(--muted,var(--muted));margin:4px 2px 0;line-height:1.6">
     🌱 early (început de drum) · 🏃 a fugit (Δzi&gt;3% sau +3% de la min 5z — posibil 🌱 mâine) · 🌳 confirmat (cross făcut) · 🥀 invalidat · 🏛️ insider cluster · ⚡Nz earnings · 🔊 RVOL≥2× · 🌅 pre-market
   </div>
 
@@ -2518,7 +2528,7 @@ function showAiKeyModal(onSuccess){
         <button id="anthCancelBtn">✕ Anulează</button>
       </div>
       ${existing ? '<div style="margin-top:10px;padding-top:10px;border-top:1px solid #30363d;display:flex;justify-content:flex-end"><button id="anthDeleteBtn" style="background:#3d1418;border-color:#5c1d23;color:#ff6b6b">🗑️ Șterge cheia</button></div>' : ''}
-      <div style="margin-top:10px;font-size:10px;color:#6e7681;line-height:1.5">💡 Cheia se salvează doar local (localStorage), nu se trimite la GitHub. Costuri: claude-opus-4-8 ≈ $0.05–0.10 per analiză.</div>
+      <div style="margin-top:10px;font-size:10px;color:var(--muted);line-height:1.5">💡 Cheia se salvează doar local (localStorage), nu se trimite la GitHub. Costuri: claude-opus-4-8 ≈ $0.05–0.10 per analiză.</div>
     </div>`;
   document.body.appendChild(ov);
   setTimeout(() => document.getElementById('anthKeyInp')?.focus(), 100);
@@ -2546,7 +2556,7 @@ function showAiKeyModal(onSuccess){
     const b = document.getElementById('anthTestBtn');
     if (!k) { r.innerHTML = '<span style="color:#ff6b6b">Introdu cheia mai întâi.</span>'; return; }
     b.textContent = '⏳ Testez...'; b.disabled = true;
-    r.innerHTML = '<span style="color:#8b949e">Conectare la Anthropic...</span>';
+    r.innerHTML = '<span style="color:var(--t2)">Conectare la Anthropic...</span>';
     try {
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -3280,7 +3290,7 @@ window.wlSideBySide = async function(){
     }
     html += '</tr>';
   }
-  html += '</tbody></table></div><div style="font-size:10px;color:#8b949e;padding:8px;text-align:center">🟢 = cel mai bun pe rând · 🔴 = cel mai prost · RSI: verde=oversold, roșu=overheated · ATR%: mai puțin = mai bine (risc mai mic)</div>';
+  html += '</tbody></table></div><div style="font-size:10px;color:var(--t2);padding:8px;text-align:center">🟢 = cel mai bun pe rând · 🔴 = cel mai prost · RSI: verde=oversold, roșu=overheated · ATR%: mai puțin = mai bine (risc mai mic)</div>';
   document.getElementById('wlSbsContent').innerHTML = html;
 };
 
@@ -3467,13 +3477,13 @@ function wlSyncModal(){
       <div class="ai-modal-title">☁️ Sync Watchlist (GitHub Gist)</div>
       <div class="ai-modal-sub">Token + Gist ID privat — partajat între device-uri. Ultim sync: ${lastSync}</div>
 
-      <div style="font-size:11px;color:#8b949e;margin-bottom:6px">GitHub Personal Access Token (scope: <strong>gist</strong>)</div>
+      <div style="font-size:11px;color:var(--t2);margin-bottom:6px">GitHub Personal Access Token (scope: <strong>gist</strong>)</div>
       <input id="meTokenInp" type="password" placeholder="ghp_..." value="${(cfg.token||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 11px;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;font-size:12px;font-family:monospace;outline:none;margin-bottom:10px" />
 
-      <div style="font-size:11px;color:#8b949e;margin-bottom:6px">Gist ID (gol = creează unul nou)</div>
+      <div style="font-size:11px;color:var(--t2);margin-bottom:6px">Gist ID (gol = creează unul nou)</div>
       <input id="meGistIdInp" type="text" placeholder="ex: a1b2c3d4..." value="${(cfg.gistId||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 11px;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;font-size:12px;font-family:monospace;outline:none;margin-bottom:10px" />
 
-      <div style="font-size:10px;color:#6e7681;margin-bottom:14px;line-height:1.5">💡 Generează token la <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:#79c0ff">github.com/settings/tokens</a> (scope: <strong>gist</strong> only). Pe device 1 lasă Gist ID gol → 🆕 Creează. Pe device 2 lipești ID-ul + 🔽 Pull.</div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.5">💡 Generează token la <a href="https://github.com/settings/tokens?type=beta" target="_blank" style="color:#79c0ff">github.com/settings/tokens</a> (scope: <strong>gist</strong> only). Pe device 1 lasă Gist ID gol → 🆕 Creează. Pe device 2 lipești ID-ul + 🔽 Pull.</div>
 
       <div class="ai-modal-actions">
         <button id="meSaveBtn" class="primary">💾 Salvează</button>
@@ -4102,7 +4112,7 @@ function _wlDetailHtml(w){
   // RSI bar visual: 0=stânga, 100=dreapta, zone albastră 0-30, neutră 30-70, portocalie 70-100
   const rsiBarHtml = (rsi != null) ? `
     <div class="wl-d-rsi-bar"><div class="knob" style="left:${Math.max(0, Math.min(100, rsi)).toFixed(0)}%"></div></div>
-    <div style="display:flex;justify-content:space-between;font-size:9px;color:#6e7681;margin-top:2px">
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:2px">
       <span>0</span><span>30</span><span>70</span><span>100</span>
     </div>` : '';
 
@@ -4125,7 +4135,7 @@ function _wlDetailHtml(w){
           <div class="wl-d-row"><span class="lbl">📊 vs SPY 90d</span><span class="val ${rel90 != null ? (rel90 >= 0 ? 'pos' : 'neg') : 'muted'}">${rel90 != null ? (rel90 >= 0 ? '+' : '') + rel90.toFixed(2) + '%' : '—'}</span></div>
           <div class="wl-d-row"><span class="lbl">📊 vs SPY 1y</span><span class="val ${rel252 != null ? (rel252 >= 0 ? 'pos' : 'neg') : 'muted'}">${rel252 != null ? (rel252 >= 0 ? '+' : '') + rel252.toFixed(2) + '%' : '—'}</span></div>
         ` : '<div class="wl-d-row"><span class="lbl muted" style="font-size:9.5px">📊 vs SPY: încărc benchmark...</span></div>'}
-        <div class="wl-d-spark">${_wlSparkBig(c)}<div style="font-size:9px;color:#6e7681;text-align:center;margin-top:2px">Sparkline 60z</div></div>
+        <div class="wl-d-spark">${_wlSparkBig(c)}<div style="font-size:9px;color:var(--muted);text-align:center;margin-top:2px">Sparkline 60z</div></div>
       </div>
       <!-- Box 2: Indicatori tehnici -->
       <div>
@@ -6330,7 +6340,7 @@ function meSizerCalc(){
   meSaveSizerPrefs({ symbol: sym, sl, tp, acct, risk: riskPct });
   const out = document.getElementById('szResults');
   if (!entry || !sl || !acct || !riskPct) {
-    out.innerHTML = '<div class="row" style="grid-column:1 / -1; color:#8b949e; font-style:italic;">Completează entry, SL, cont și risc.</div>';
+    out.innerHTML = '<div class="row" style="grid-column:1 / -1; color:var(--t2); font-style:italic;">Completează entry, SL, cont și risc.</div>';
     return;
   }
   let warn = '';
@@ -6344,7 +6354,7 @@ function meSizerCalc(){
   // Gardă div-by-zero: SL === entry → slDist 0 → shares Infinity, plan „valid" cu poziție
   // infinită. Guard-ul de sus prinde doar valori falsy, nu egalitatea entry==sl.
   if (slDist === 0) {
-    out.innerHTML = '<div class="row" style="grid-column:1 / -1; color:#8b949e; font-style:italic;">⚠ SL nu poate fi egal cu entry (distanță 0 → poziție infinită). Alege un SL diferit.</div>';
+    out.innerHTML = '<div class="row" style="grid-column:1 / -1; color:var(--t2); font-style:italic;">⚠ SL nu poate fi egal cu entry (distanță 0 → poziție infinită). Alege un SL diferit.</div>';
     return;
   }
   const slDistPct = (slDist / entry) * 100;
@@ -6751,7 +6761,7 @@ function renderSectorHeatmap() {
 
   const worstChg = Math.abs(arr[0].avgChg) || 1;
   // Header info despre ce key folosim (ca utilizatorul să știe)
-  const headerNote = `<div style="font-size:9.5px;color:#6e7681;margin-bottom:6px;font-style:italic">grupare: ${labelInfo}</div>`;
+  const headerNote = `<div style="font-size:9.5px;color:var(--muted);margin-bottom:6px;font-style:italic">grupare: ${labelInfo}</div>`;
   const rowsHtml = arr.slice(0, 10).map(a => {
     const widthPct = Math.min(100, (Math.abs(a.avgChg) / worstChg) * 100);
     const labelShort = a.name.length > 18 ? a.name.slice(0, 17) + '…' : a.name;
@@ -6770,10 +6780,10 @@ function renderSectorHeatmap() {
 // Heatmap-urile sunt randate direct din scanLosers (în finally) — fără monkey-patch.
 </script>
 
-<script src="../lib/suite-version.js?v=659"></script>
+<script src="../lib/suite-version.js?v=660"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v659';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v660';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>

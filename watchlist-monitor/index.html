@@ -12,17 +12,17 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
-  /* High-clarity text — mai puțin „ceață" pe etichete/meta */
-  --bg:#080c12;
-  --bg-grad:radial-gradient(1100px 520px at 50% -180px, #101826 0%, #080c12 58%);
-  --panel:#161d2e; --panel2:#202a42; --panel3:#2a3550;
-  --b1:#445272; --b2:#5c6a88;
-  --t1:#f8fafc; --t2:#e8eef7; --t3:#c5cedd;
+  /* Max-clarity — paritate ME (zero ceață) */
+  --bg:#070b11;
+  --bg-grad:radial-gradient(1100px 520px at 50% -180px, #121a28 0%, #070b11 58%);
+  --panel:#171f30; --panel2:#222c44; --panel3:#2c3854;
+  --b1:#4a5874; --b2:#62708c;
+  --t1:#fafbfc; --t2:#eef2f8; --t3:#d0d8e6;
   --crypto-1:#f7931a; --crypto-2:#ffd86b;
   --bull-s:#3aeb88; --bull:#2ed474; --bull-bg:rgba(58,235,136,.16);
   --bear-s:#ff6b6b; --bear:#f05050; --bear-bg:rgba(255,107,107,.16);
   --warn:#f0a84a; --warn-bg:rgba(240,168,74,.18);
-  --accent:#7ec0ff;
+  --accent:#8ac8ff;
   --shadow-sm:0 1px 2px rgba(0,0,0,.35);
   --shadow:0 4px 16px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.25);
   --r:12px; --rs:8px;
@@ -34,12 +34,12 @@ html,body { min-height:100vh; }
 body {
   font-family:var(--head);
   background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
-  color:var(--t1); padding:12px; font-size:13.5px;
-  /* subpixel pe dark = mai puțin „fum" decât antialiased pe gri deschis */
+  color:var(--t1); padding:12px; font-size:14px;
   -webkit-font-smoothing:subpixel-antialiased;
   -moz-osx-font-smoothing:auto;
   text-rendering:optimizeLegibility;
   font-variant-numeric:tabular-nums;
+  font-weight:450;
 }
 
 /* Header sticky */
@@ -516,7 +516,7 @@ table.no-pre .col-pre { display:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v156</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v157</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -3628,10 +3628,10 @@ scheduleNextScan();
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
-<script src="../lib/suite-version.js?v=659"></script>
+<script src="../lib/suite-version.js?v=660"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v659';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v660';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
