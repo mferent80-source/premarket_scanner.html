@@ -190,11 +190,11 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-182 | Alerte gate pe z-score surprise (peste zgomotul propriu) | macro-dashboard/ + tools/check-alerts.mjs | M | P2 | propus | ideation | 2026-07-15 |
 | I-183 | Influență regime-aware (marketInfluence × md_risk_regime) | macro-dashboard/index.html | S | P3 | propus | ideation | 2026-07-15 |
 | I-184 | EXPECT net de fee (input fee round-trip) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
-| I-185 | VERIF lead-time (avansul mediu în bare al avertismentelor) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
-| I-186 | Rând CE FAC? (acțiune pe stare, pattern VolRegime) | PPST Deck Pine | S | P2 | propus | ideation | 2026-07-22 |
-| I-187 | Dash compact pe toggle (nucleu ≤7 rânduri) | PPST Deck Pine | S | P2 | propus | ideation | 2026-07-22 |
+| I-185 | VERIF lead-time (avansul mediu în bare al avertismentelor) | PPST Deck Pine | S | P1 | făcut | ideation | 2026-07-22 |
+| I-186 | Rând CE FAC? (acțiune pe stare, pattern VolRegime) | PPST Deck Pine | S | P2 | făcut | ideation | 2026-07-22 |
+| I-187 | Dash compact pe toggle (nucleu ≤7 rânduri) | PPST Deck Pine | S | P2 | făcut | ideation | 2026-07-22 |
 | I-188 | Connector Meta-Confluence (plot cod −2..+2) | PPST Deck Pine | S | P3 | propus | ideation | 2026-07-22 |
-| I-189 | MATUR + base-rate split pe direcție (BULL vs BEAR) | PPST Deck Pine | S | P3 | propus | ideation | 2026-07-22 |
+| I-189 | MATUR + base-rate split pe direcție (BULL vs BEAR) | PPST Deck Pine | S | P3 | făcut | ideation | 2026-07-22 |
 
 ## Mini-spec-uri
 
