@@ -1118,6 +1118,30 @@
   grid-column:1/-1; text-align:center; padding:22px 12px; color:var(--muted);
   font-size:12px; font-style:italic; border:1px dashed var(--border); border-radius:var(--radius-sm);
 }
+/* Group-by sector pe FIRE rail */
+.el-sector-block{grid-column:1/-1; display:contents}
+.el-sector-head{
+  grid-column:1/-1; display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  margin:10px 0 4px; padding:7px 10px; border-radius:8px;
+  background:rgba(29,37,55,.75); border:1px solid var(--border);
+  font-size:11px; font-weight:800; letter-spacing:.2px; color:var(--text);
+}
+.el-sector-head:first-child{margin-top:0}
+.el-sector-head .el-sec-name{
+  background:linear-gradient(90deg,var(--crypto-1),var(--crypto-2));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.el-sector-head .el-sec-stats{
+  margin-left:auto; font-weight:600; color:var(--muted); font-variant-numeric:tabular-nums; font-size:10.5px;
+}
+.el-sector-head .el-sec-stats b.fire{color:#22d66b}
+.el-sector-head .el-sec-stats b.armed{color:var(--crypto-1)}
+.el-card-sector{
+  display:inline-block; margin-left:6px; padding:1px 6px; border-radius:999px;
+  font-size:9px; font-weight:700; color:var(--muted); background:rgba(136,146,166,.12);
+  border:1px solid var(--border-soft); max-width:110px; overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap; vertical-align:middle;
+}
 .el-desk-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
 .el-desk-actions button.primary{
   background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; color:#fff;
@@ -1152,7 +1176,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v251</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v252</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1218,8 +1242,9 @@
     <div class="el-desk-title">Early Long Desk</div>
     <div class="el-desk-meta" id="elSessionMeta">sesiune…</div>
     <div class="el-desk-actions">
-      <button type="button" class="primary" id="elScanBtn" title="Scan trigger 5m pe watchlist (bare închise)">▶ Scan 5m</button>
+      <button type="button" class="primary" id="elScanBtn" title="Scan trigger 5m pe univers TOT (bare închise)">▶ Scan 5m</button>
       <button type="button" class="ghost" id="elFilterArmed" title="Arată ARMED + FIRE + MANAGE">Filtru activ</button>
+      <button type="button" class="ghost" id="elGroupSector" title="Grupează cardurile pe sector (Technology, Energy…)">🏭 Pe sector</button>
     </div>
   </div>
   <div class="el-strip" id="elStrip">
@@ -1241,7 +1266,7 @@
       <div class="el-fire-log-empty">Niciun me-fire încă — apar după primul FIRE pe bare 5m închise.</div>
     </div>
   </div>
-  <p class="el-note">Hibrid PRE+ORB (≤10:15 ET) · bare <b>5m închise</b> · univers <b>TOT</b>: 👁 WL + 📡 gappers (bandă gap) + 🔄 reclaim (losers ieri). Praguri = ipoteze. Live = rail · istoric = <code>me-fire</code>.</p>
+  <p class="el-note">Hibrid PRE+ORB (≤10:15 ET) · bare <b>5m închise</b> · univers <b>TOT</b>: 👁 WL + 📡 gappers + 🔄 reclaim · grupare <b>🏭 pe sector</b> (default ON). Praguri = ipoteze. Live = rail · istoric = <code>me-fire</code>.</p>
 </section>
 
 <!-- ============================================== -->
@@ -1493,8 +1518,8 @@
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/me-early-bird.js?v=251"></script>
-<script src="../lib/early-long.js?v=251"></script>
+<script src="../lib/me-early-bird.js?v=252"></script>
+<script src="../lib/early-long.js?v=252"></script>
 <script>
 // Flag shell-pause: default vizibil. FĂRĂ mesaj de la shell → comportament IDENTIC actual.
 // Pauza polling-urilor de fundal e opt-in DOAR la ttShellVisible:false (vezi secțiunea „SHELL VISIBILITY" jos).
@@ -1525,7 +1550,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v251 · Early Long · TOT · me-fire log + Telegram FIRE</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v252 · Early Long · TOT · grupare sector · me-fire</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -4619,25 +4644,6 @@ function elPaintCounts(results){
   return c;
 }
 
-function elCardHtml(r){
-  const st = r.state || 'IDLE';
-  const px = r.price != null ? (+r.price).toFixed(r.price < 1 ? 4 : 2) : '—';
-  const sc = r.score || {};
-  const inv = r.invalid != null ? (+r.invalid).toFixed(2) : '—';
-  const tags = (r.tags || []).slice(0, 6).map(t => elEsc(t)).join(' · ');
-  return `<article class="el-card ${elEsc(st)}" data-sym="${elEsc(r.symbol)}">
-    <div><span class="el-card-sym">${elEsc(r.symbol)}</span><span class="el-card-state">${elEsc(st)}</span></div>
-    <div class="el-card-px">${px}${r.firePrice && st === 'MANAGE' ? ` · fire ${(+r.firePrice).toFixed(2)}` : ''}</div>
-    <div class="el-card-reason">${elEsc(r.reason || '')}${tags ? '<br>' + tags : ''}</div>
-    <div class="el-card-score">S <b>${sc.structure|0}</b> + T <b>${sc.trigger|0}</b> + R <b>${sc.regime|0}</b> − P <b>${sc.penalty|0}</b> = <b>${sc.total|0}</b> · inv ${inv}</div>
-    <div class="el-card-actions">
-      <button type="button" onclick="wlAddSymbol && wlAddSymbol('${elEsc(r.symbol)}')">👁 WL</button>
-      <button type="button" onclick="window.open('../nasdaq-scanner/?symbol=${encodeURIComponent(r.symbol)}','_blank')">Scanner</button>
-      <button type="button" onclick="window.open('../journal/?symbol=${encodeURIComponent(r.symbol)}','_blank')">Journal</button>
-    </div>
-  </article>`;
-}
-
 function elFmtWhen(ts){
   if (!ts) return '—';
   try {
@@ -4684,6 +4690,31 @@ function elRenderFireLog(){
 }
 
 let elUniverseMeta = null;
+let elGroupBySector = localStorage.getItem('me_el_group_sector') !== '0'; // default ON
+let elSectorMap = null;
+
+function elCardHtml(r){
+  const st = r.state || 'IDLE';
+  const px = r.price != null ? (+r.price).toFixed(r.price < 1 ? 4 : 2) : '—';
+  const sc = r.score || {};
+  const inv = r.invalid != null ? (+r.invalid).toFixed(2) : '—';
+  const tags = (r.tags || []).slice(0, 6).map(t => elEsc(t)).join(' · ');
+  const sec = r.sector || (window.EL && EL.sectorOf ? EL.sectorOf(r.symbol, elSectorMap) : '');
+  const secChip = (!elGroupBySector && sec && sec !== 'Necunoscut')
+    ? `<span class="el-card-sector" title="${elEsc(sec)}">${elEsc(sec.length > 14 ? sec.slice(0, 13) + '…' : sec)}</span>`
+    : '';
+  return `<article class="el-card ${elEsc(st)}" data-sym="${elEsc(r.symbol)}" data-sector="${elEsc(sec || '')}">
+    <div><span class="el-card-sym">${elEsc(r.symbol)}</span><span class="el-card-state">${elEsc(st)}</span>${secChip}</div>
+    <div class="el-card-px">${px}${r.firePrice && st === 'MANAGE' ? ` · fire ${(+r.firePrice).toFixed(2)}` : ''}</div>
+    <div class="el-card-reason">${elEsc(r.reason || '')}${tags ? '<br>' + tags : ''}</div>
+    <div class="el-card-score">S <b>${sc.structure|0}</b> + T <b>${sc.trigger|0}</b> + R <b>${sc.regime|0}</b> − P <b>${sc.penalty|0}</b> = <b>${sc.total|0}</b> · inv ${inv}</div>
+    <div class="el-card-actions">
+      <button type="button" onclick="wlAddSymbol && wlAddSymbol('${elEsc(r.symbol)}')">👁 WL</button>
+      <button type="button" onclick="window.open('../nasdaq-scanner/?symbol=${encodeURIComponent(r.symbol)}','_blank')">Scanner</button>
+      <button type="button" onclick="window.open('../journal/?symbol=${encodeURIComponent(r.symbol)}','_blank')">Journal</button>
+    </div>
+  </article>`;
+}
 
 function elRenderRail(results){
   const rail = document.getElementById('elFireRail');
@@ -4693,18 +4724,42 @@ function elRenderRail(results){
     const uTxt = um
       ? ` · hot ${um.total} (WL ${um.wl} · gap ${um.gap} · reclaim ${um.reclaim})`
       : '';
-    meta.innerHTML = `<strong>${elEsc(EL.sessionLabel())}</strong> · path <strong>${elEsc(EL.sessionPath())}</strong>${uTxt}`;
+    const gTxt = elGroupBySector ? ' · 🏭 sector' : '';
+    meta.innerHTML = `<strong>${elEsc(EL.sessionLabel())}</strong> · path <strong>${elEsc(EL.sessionPath())}</strong>${uTxt}${gTxt}`;
   }
   elPaintCounts(results);
+  const btnG = document.getElementById('elGroupSector');
+  if (btnG) {
+    btnG.textContent = elGroupBySector ? '🏭 Pe sector' : '📋 Listă';
+    btnG.style.borderColor = elGroupBySector ? 'rgba(247,147,26,.5)' : '';
+  }
   if (!rail) { elRenderFireLog(); return; }
   let list = results || [];
   if (elFilterActive) list = list.filter(r => r.state === 'FIRE' || r.state === 'ARMED' || r.state === 'MANAGE');
-  // pe desk: FIRE+MANAGE first, max ~24 cards; IDLE only if filter off
   if (!list.length) {
     rail.innerHTML = `<div class="el-empty">${elFilterActive
       ? 'Niciun FIRE/ARMED/MANAGE pe universul TOT acum — normal. 🌱 daily sau soft gap/reclaim → ARMED; trigger 5m închis → FIRE. Apasă ▶ Scan 5m.'
       : 'Niciun rezultat. Rulează Scan 5m (WL + gappers + reclaim).'}</div>`;
+  } else if (elGroupBySector && window.EL && typeof EL.groupBySector === 'function') {
+    const groups = EL.groupBySector(list, elSectorMap || EL.loadSectorMap());
+    // max ~28 carduri total, păstrăm ordine sector
+    let budget = 28;
+    let html = '';
+    for (const g of groups) {
+      if (budget <= 0) break;
+      const take = g.items.slice(0, budget);
+      budget -= take.length;
+      html += `<div class="el-sector-head"><span class="el-sec-name">${elEsc(g.sector)}</span>`
+        + `<span class="el-sec-stats"><b class="fire">${g.fire}</b> FIRE · <b class="armed">${g.armed}</b> ARM · ${g.n}</span></div>`
+        + take.map(elCardHtml).join('');
+    }
+    rail.innerHTML = html || `<div class="el-empty">Gol după grupare sector.</div>`;
   } else {
+    const rank = { FIRE: 0, MANAGE: 1, ARMED: 2, DEAD: 3, IDLE: 4 };
+    list = list.slice().sort((a, b) =>
+      (rank[a.state] ?? 9) - (rank[b.state] ?? 9)
+      || ((b.score && b.score.total) || 0) - ((a.score && a.score.total) || 0)
+    );
     rail.innerHTML = list.slice(0, 24).map(elCardHtml).join('');
   }
   elRenderFireLog();
@@ -4814,6 +4869,22 @@ async function elDeskRefresh(opts){
       await Promise.all([worker(), worker(), worker(), worker()]);
     }
 
+    // Sector: ingest din earnings/losers + seed + Finnhub lipsă
+    elSectorMap = EL.loadSectorMap ? EL.loadSectorMap() : {};
+    try {
+      if (typeof lastEarnings !== 'undefined' && lastEarnings.length) EL.rememberSectors(lastEarnings, elSectorMap);
+      if (typeof lastLosers !== 'undefined' && lastLosers.length) EL.rememberSectors(lastLosers, elSectorMap);
+    } catch(_){}
+    const fhKey = () => {
+      try {
+        if (window.FH_KEY && FH_KEY.get) return FH_KEY.get();
+        return localStorage.getItem('finnhub_api_key') || localStorage.getItem('fh_key') || '';
+      } catch (e) { return ''; }
+    };
+    if (EL.enrichSectorsFinnhub) {
+      elSectorMap = await EL.enrichSectorsFinnhub(syms, fhKey, elSectorMap);
+    }
+
     const results = await EL.scanList(items, {
       ebMap,
       srcMap,
@@ -4821,6 +4892,10 @@ async function elDeskRefresh(opts){
       regime: EL.readRegimeFromStorage(),
       concurrency: 3
     });
+    // atașează sector pe fiecare rezultat
+    if (EL.sectorOf) {
+      results.forEach(r => { r.sector = EL.sectorOf(r.symbol, elSectorMap); });
+    }
     elLastResults = results;
     elRenderRail(results);
     const c = EL.counts(results);
@@ -4850,6 +4925,11 @@ function elBindDesk(){
     e.currentTarget.textContent = elFilterActive ? 'Filtru activ' : 'Toate stările';
     elRenderRail(elLastResults);
   });
+  document.getElementById('elGroupSector')?.addEventListener('click', () => {
+    elGroupBySector = !elGroupBySector;
+    try { localStorage.setItem('me_el_group_sector', elGroupBySector ? '1' : '0'); } catch(_){}
+    elRenderRail(elLastResults);
+  });
   // poll soft la 90s pe Desk (univers TOT e mai greu — nu 60s)
   if (elTimer) clearInterval(elTimer);
   elTimer = setInterval(() => {
@@ -4860,6 +4940,7 @@ function elBindDesk(){
   }, 90000);
   // meta sesiune + log istoric imediat (chiar fără scan)
   if (window.EL) {
+    elSectorMap = EL.loadSectorMap();
     const meta = document.getElementById('elSessionMeta');
     if (meta) meta.innerHTML = `<strong>${elEsc(EL.sessionLabel())}</strong> · path <strong>${elEsc(EL.sessionPath())}</strong>`;
   }
