@@ -195,6 +195,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-187 | Dash compact pe toggle (nucleu ≤7 rânduri) | PPST Deck Pine | S | P2 | făcut | ideation | 2026-07-22 |
 | I-188 | Connector Meta-Confluence (plot cod −2..+2) | PPST Deck Pine | S | P3 | propus | ideation | 2026-07-22 |
 | I-189 | MATUR + base-rate split pe direcție (BULL vs BEAR) | PPST Deck Pine | S | P3 | făcut | ideation | 2026-07-22 |
+| I-196 | Early Long Desk — shell UI stări ARMED/FIRE/MANAGE/DEAD + FIRE rail | market-events/ | M | P1 | aprobat | ideation | 2026-07-22 |
+| I-197 | `lib/early-long.js` — structure daily + trigger 5m (bare închise, anti-repaint) | market-events/ + lib/ | L | P1 | aprobat | ideation | 2026-07-22 |
+| I-198 | Univers TOT: WL + pre-gappers RVOL + reclaim losers ieri | market-events/ + lib/ | M | P1 | aprobat | ideation | 2026-07-22 |
+| I-199 | Gates earnings/macro/regime pe FIRE (hibrid PRE+ORB / daily) | market-events/ + lib/ | M | P1 | aprobat | ideation | 2026-07-22 |
+| I-200 | LEDGER me-fire + A/B vs me-early daily + scorecard | market-events/ + hub | M | P2 | aprobat | ideation | 2026-07-22 |
+| I-201 | Extract monolit ME incremental (shell + tabs Context/Scan) | market-events/ + lib/ | L | P2 | aprobat | ideation | 2026-07-22 |
 
 ## Mini-spec-uri
 
@@ -1383,3 +1389,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** previne curve-fitting mental pe chart scurt; onestitate de trader pe panou.
 - **Riscuri/dependente:** minime; pragul 10 e conventie casa, nu magie.
 - **Fisiere atinse:** `PPST_Deck_v1_*.pine` (celule VERIF/EXPECT), README.
+
+### I-196 · Early Long Desk — shell UI stări + FIRE rail · [M] · P1
+- **Problema/golul:** Market Events ascunde early-ul în filtre WL + badge-uri; topbar aglomerat; earnings/losers fură above-the-fold. Traderul nu vede instant ARMED/FIRE. Decizie user 2026-07-22: hibrid 1C, univers TOT, bare 5m, același URL cu tabs, UI-first apoi motor.
+- **Soluția:** redesign above-the-fold pe market-events/: strip stări (ARMED/FIRE/MANAGE/DEAD), FIRE rail dominant, daily 🌱 mapat la ARMED (reuse logică până vine I-197). Tabs: **Desk** (default) · **Context** (earnings) · **Scan** (losers/gainers/heatmaps). Topbar tăiat (proxy/AI → ⚙). Fără motor 5m încă — stub stări + empty FIRE onest.
+- **Impact:** decizie vizibilă în 2 secunde; contract UI pe care I-197 se lipește fără redesign.
+- **Riscuri/dependențe:** riscul de „UI goală" — empty state explicit „FIRE după motor 5m"; nu inventa FIRE fals din daily.
+- **Fișiere atinse:** market-events/index.html, lib/suite-ui.css (doar dacă pattern partajat), sw-app.js + badge v247, guide opțional.
+
+### I-197 · lib/early-long.js — structure daily + trigger 5m · [L] · P1
+- **Problema/golul:** computeEarlyBird e daily-only → lag structural; nu există ORB/VWAP/HL pe 5m; cache 10 min + pool 4 e lag de produs. User: bare 5m **închise** (anti-repaint).
+- **Soluția:** modul lib/early-long.js (EL.*): (1) structure = port/refinament din daily early (arming); (2) trigger pe OHLC 5m Yahoo chart — ORB 5m/15m, reclaim VWAP, first HL + impuls vol pe 2–3 bare verzi; doar bara **închisă**; score Structure+Trigger+Regime−Penalties; FIRE doar Trigger≥3 și total≥prag. Hot-list poll 5–8s pe candidați, 20–30s rest. Ipoteze praguri — OOS via I-200.
+- **Impact:** early long real la open/pre fără a aștepta cross daily; lag max ~5m onest.
+- **Riscuri/dependențe:** proxy CORS Yahoo; premarket volume incomplet pe unele simboluri; rate limit → hot-list cap 30–50; repaint zero pe bare închise (acceptat).
+- **Fișiere atinse:** lib/early-long.js (nou), market-events/index.html, eventual lib/data.js dacă există helper chart, sw-app.js.
+
+### I-198 · Univers TOT: WL + pre-gappers + reclaim · [M] · P1
+- **Problema/golul:** day_losers/gainers = mișcare deja făcută; early pe WL-only ratează setup-uri noi; user a cerut **TOT**.
+- **Soluția:** builder de univers: (A) wl_stocks + WL ME; (B) pre-gappers cu filtre mcap/RVOL/gap band (anti-chase pe gap +8%); (C) losers **ieri** care reclaim pre/open (nu loser-ul de azi). Cap hard pe hot-list; dedupe; earnings flag pe chip.
+- **Impact:** feed de candidați înainte de mișcare, nu după.
+- **Riscuri/dependențe:** screener Yahoo + quotes; zgomot small-cap — min mcap/vol obligatoriu; I-199 gates pe FIRE.
+- **Fișiere atinse:** lib/early-long.js sau lib/early-universe.js, market-events/index.html, ref lib/hub-gappers.js pattern.
+
+### I-199 · Gates earnings/macro/regime (hibrid PRE+ORB / daily) · [M] · P1
+- **Problema/golul:** long blind pre-earnings AMC/BMO sau pe RISK-OFF = edge negativ; hibrid 1C cere path PRE+ORB dimineața și structure daily restul zilei.
+- **Soluția:** session clock ET: PRE 04:00–09:29 + RTH open window 09:30–10:15 = path trigger 5m; după 10:15 structure daily + trigger doar pe reclaim/HL (fără ORB fresh). Gates: earnings BMO same-day / AMC overnight → block sau score −∞ pe FIRE; VIX/md_risk_regime soft/hard; penalti extensie ATR. Afișaj gate pe chip.
+- **Impact:** previne long-uri sinucigașe pe event; aliniază sesiunea cu trader.md §3.
+- **Riscuri/dependențe:** calendar Nasdaq (deja pe pagină); cache macro poate lipsi — fallback NEUTRAL + label „regime n/a".
+- **Fișiere atinse:** lib/early-long.js, lib/macro-context.js (read-only), earnings din ME.
+
+### I-200 · LEDGER me-fire + A/B vs me-early · [M] · P2
+- **Problema/golul:** me-early daily există; fără me-fire pe 5m nu poți valida dacă redesign-ul bate vechiul 🌱.
+- **Soluția:** LEDGER.log me-fire la tranziție ARMED→FIRE (preț pe close bara 5m); păstrează me-early pentru A/B; scorecard hub +5/+20 bare 5m și +1/+5 zile; n<10 → „zgomot" (trader.md).
+- **Impact:** dovadă empirică, nu vibe; permite recalibrare praguri OOS.
+- **Riscuri/dependențe:** localStorage LEDGER; fill ≠ close bar (declarat).
+- **Fișiere atinse:** lib/ledger.js (dacă schema surse), market-events/, hub scorecard.
+
+### I-201 · Extract monolit ME incremental · [L] · P2
+- **Problema/golul:** ~5.4k linii într-un fișier; orice schimbare early riscă regresii earnings/AI.
+- **Soluția:** după F1–F2 stabile, extrage: fetch/history helpers, early-long (I-197), heatmaps, AI row — pagina = shell + tabs. Fără big-bang rewrite.
+- **Impact:** viteză de iterație + testabilitate.
+- **Riscuri/dependențe:** scope creep; face-se **după** vertical slice funcțional, nu înainte.
+- **Fișiere atinse:** market-events/index.html, lib/*.js noi, sw-app.js.
