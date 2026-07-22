@@ -1522,8 +1522,10 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
     if (f) f.textContent = v;
   }
   // fiecare init izolat — o excepție într-un modul nu mai omoară init-urile
-  // ulterioare (hub parțial mort silențios)
-  const boot = (name, fn) => { try { fn(); } catch (e) { console.warn('init ' + name + ':', e); } };
+  // ulterioare (hub parțial mort silențios); modulele picate se AFIȘEAZĂ,
+  // altfel „se încarcă…" rămânea pe ecran pentru totdeauna fără explicație
+  const bootFails = [];
+  const boot = (name, fn) => { try { fn(); } catch (e) { console.warn('init ' + name + ':', e); bootFails.push(name); } };
   if (window.HM) boot('HM', () => HM.init());
   if (window.HG) boot('HG', () => HG.init());
   if (window.HB) boot('HB', () => HB.init());
@@ -1531,6 +1533,20 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   if (window.HCL) boot('HCL', () => HCL.init());
   if (window.HUB_HEALTH) boot('HUB_HEALTH', () => HUB_HEALTH.init());
   if (window.HS) boot('HS', () => HS.renderStaleNav());
+  // plasă de siguranță: dacă hub-brief a picat, tableau-ul rămânea shell gol
+  // (singurul lui declanșator era lanțul HB.init → HT.render)
+  if (window.HT) boot('HT', () => HT.render());
+  // module așteptate dar neîncărcate deloc (404/cache) — tot „picate" sunt
+  [['HM','hub-market'],['HB','hub-brief'],['HT','hub-tableau'],['HS','hub-state']].forEach(([g, n]) => {
+    if (!window[g]) bootFails.push(n);
+  });
+  if (bootFails.length){
+    const b = document.createElement('div');
+    b.style.cssText = 'background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3;border-radius:10px;padding:9px 12px;margin:8px 0;font-family:var(--mono);font-size:12px;font-weight:700';
+    b.textContent = '⚠ Module hub picate: ' + bootFails.join(', ') + ' — reîncarcă cu Ctrl+F5; dacă persistă, vezi Health.';
+    const shell = document.querySelector('.hub-shell');
+    if (shell) shell.insertBefore(b, shell.firstChild);
+  }
   window.addEventListener('hub:market', () => {
     if (window.HS){ try { HS.patchMarketCards(); HS.renderStaleNav('hubStaleNav'); } catch (e) {} }
   });
