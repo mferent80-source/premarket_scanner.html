@@ -1232,13 +1232,72 @@
 .el-fire-log-row .tier{color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .el-fire-log-row .when{color:var(--muted); font-size:10px; text-align:right}
 .el-fire-log-empty{padding:12px; text-align:center; color:var(--muted); font-size:11px; font-style:italic}
+/* Sticky toolbar Desk (strip + risk + chips) */
+.el-sticky-zone{
+  position:sticky; top:4px; z-index:20;
+  margin:0 -6px 10px; padding:8px 6px 6px;
+  background:linear-gradient(180deg,rgba(20,26,40,.97) 70%,rgba(20,26,40,.85));
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  border-bottom:1px solid transparent;
+}
+.el-desk.scrolled .el-sticky-zone{border-bottom-color:var(--border); box-shadow:0 6px 16px rgba(0,0,0,.25)}
+/* Heatmap sector */
+.el-heat{
+  display:flex; flex-direction:column; gap:3px; margin:0 0 10px;
+  max-height:120px; overflow-y:auto;
+}
+.el-heat-row{
+  display:grid; grid-template-columns:88px 1fr 36px; gap:6px; align-items:center;
+  appearance:none; border:0; background:transparent; color:var(--muted);
+  font:600 10px/1 inherit; cursor:pointer; padding:2px 0; text-align:left;
+}
+.el-heat-row:hover .el-heat-lab{color:var(--text)}
+.el-heat-row.active .el-heat-lab{color:var(--crypto-1)}
+.el-heat-lab{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.el-heat-track{height:6px; border-radius:3px; background:rgba(42,50,71,.8); overflow:hidden}
+.el-heat-bar{
+  display:block; height:100%; border-radius:3px;
+  background:linear-gradient(90deg,rgba(247,147,26,.7),rgba(34,214,107,.85));
+}
+.el-heat-n{font-variant-numeric:tabular-nums; font-size:10px; text-align:right}
+.el-heat-n b.f{color:#22d66b}
+/* Hero first FIRE */
+.el-card.hero{
+  grid-column:span 2; min-height:120px;
+  border-color:rgba(34,214,107,.7) !important;
+  box-shadow:0 0 0 1px rgba(34,214,107,.25), 0 8px 24px rgba(34,214,107,.12);
+  background:linear-gradient(135deg,rgba(34,214,107,.08),var(--bg) 55%);
+}
+.el-card.hero .el-card-sym{font-size:18px}
+.el-card.hero .el-card-state{font-size:11px; padding:3px 9px}
+@media (max-width:640px){.el-card.hero{grid-column:span 1}}
+.el-badge-soft{
+  display:inline-block; margin-left:4px; padding:1px 5px; border-radius:4px;
+  font-size:9px; font-weight:800; vertical-align:middle;
+}
+.el-badge-soft.cap{background:rgba(212,137,44,.2); color:#f0b429}
+.el-badge-soft.rs{background:rgba(255,77,77,.15); color:#ff6b6b}
+.el-badge-soft.rsok{background:rgba(34,214,107,.12); color:#22d66b}
+.el-rs{font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; margin-left:6px}
+.el-rs.pos{color:#22d66b}.el-rs.neg{color:#ff6b6b}
+/* WL colapsat în PRE */
+body.el-pre-mode #wlSection.el-wl-collapsed .wl-grid,
+body.el-pre-mode #wlSection.el-wl-collapsed .wl-toolbar,
+body.el-pre-mode #wlSection.el-wl-collapsed .wl-add-row,
+body.el-pre-mode #wlSection.el-wl-collapsed #wlSearchResults{display:none !important}
+body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(-90deg); display:inline-block}
+.el-kbd-hint{font-size:9.5px; color:var(--muted); margin:0 0 8px; font-family:ui-monospace,DM Mono,monospace}
+.el-kbd-hint kbd{
+  display:inline-block; padding:1px 5px; margin:0 1px; border-radius:4px;
+  border:1px solid var(--border); background:var(--panel2); font-size:9px; font-weight:700;
+}
 </style>
 </head>
 <body class="suite-page">
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v253</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v254</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1310,6 +1369,7 @@
       <button type="button" class="ghost" id="elDensityBtn" title="Densitate compactă pe rail (mai multe carduri)">▦ Compact</button>
     </div>
   </div>
+  <div class="el-sticky-zone" id="elStickyZone">
   <div class="el-strip" id="elStrip">
     <span class="el-pill fire">FIRE <span class="n" id="elCntFire">0</span></span>
     <span class="el-pill manage">MANAGE <span class="n" id="elCntManage">0</span></span>
@@ -1324,10 +1384,14 @@
   </div>
   <!-- Chip-uri sector clickabile -->
   <div class="el-sector-chips" id="elSectorChips" aria-label="Filtru rapid sector"></div>
+  <!-- Heatmap mini FIRE/ARM pe sector -->
+  <div class="el-heat" id="elHeat" aria-label="Heatmap sector"></div>
   <div class="el-focus-bar" id="elFocusBar">
     Focus: <strong id="elFocusName">—</strong>
     <button type="button" id="elFocusClear">✕ Toate sectoarele</button>
   </div>
+  <p class="el-kbd-hint"><kbd>S</kbd> scan · <kbd>1</kbd>–<kbd>9</kbd> sector · <kbd>Esc</kbd> clear · <kbd>C</kbd> compact · <kbd>G</kbd> group</p>
+  </div><!-- /el-sticky-zone -->
   <div class="el-fire-rail" id="elFireRail">
     <div class="el-empty" id="elEmpty">Se încarcă structure daily pe watchlist, apoi trigger pe bare 5m închise…</div>
   </div>
@@ -1341,7 +1405,7 @@
       <div class="el-fire-log-empty">Niciun me-fire încă — apar după primul FIRE pe bare 5m închise.</div>
     </div>
   </div>
-  <p class="el-note">Hibrid PRE+ORB · bare <b>5m închise</b> · univers <b>TOT</b> · <b>🏭 sector</b> (click pe header/chip = focus) · banner concentrație dacă ≥3 FIRE pe un sector. Praguri = ipoteze.</p>
+  <p class="el-note">Soft gates: max <b>2 FIRE/sector</b> · RS vs SPY (slab → demote) · concentrație ≥3 → banner + Telegram (1×/zi) · sticky strip · hero FIRE · WL colapsat în PRE. Praguri = ipoteze.</p>
 </section>
 
 <!-- ============================================== -->
@@ -1593,8 +1657,9 @@
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/me-early-bird.js?v=253"></script>
-<script src="../lib/early-long.js?v=253"></script>
+<script src="../lib/me-early-bird.js?v=254"></script>
+<script src="../lib/early-long.js?v=254"></script>
+<script src="../lib/me-desk.js?v=254"></script>
 <script>
 // Flag shell-pause: default vizibil. FĂRĂ mesaj de la shell → comportament IDENTIC actual.
 // Pauza polling-urilor de fundal e opt-in DOAR la ttShellVisible:false (vezi secțiunea „SHELL VISIBILITY" jos).
@@ -1625,7 +1690,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v253 · Early Long · sector focus + risk banner · compact</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v254 · Desk pro: cap sector · RS/SPY · heat · sticky · hero · kbd</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -4781,9 +4846,18 @@ function elCardHtml(r){
   const secChip = (!elGroupBySector && sec && sec !== 'Necunoscut')
     ? `<span class="el-card-sector" title="${elEsc(sec)}">${elEsc(sec.length > 14 ? sec.slice(0, 13) + '…' : sec)}</span>`
     : '';
-  return `<article class="el-card ${elEsc(st)}" data-sym="${elEsc(r.symbol)}" data-sector="${elEsc(sec || '')}">
-    <div><span class="el-card-sym">${elEsc(r.symbol)}</span><span class="el-card-state">${elEsc(st)}</span>${secChip}</div>
-    <div class="el-card-px">${px}${r.firePrice && st === 'MANAGE' ? ` · fire ${(+r.firePrice).toFixed(2)}` : ''}</div>
+  const capB = r.sectorCap ? '<span class="el-badge-soft cap" title="Soft gate: max 2 FIRE/sector">CAP</span>' : '';
+  let rsHtml = '';
+  if (r.rsSpy != null && isFinite(r.rsSpy)) {
+    const cls = r.rsSpy >= 0 ? 'pos' : 'neg';
+    rsHtml = `<span class="el-rs ${cls}" title="day % − SPY %">RS ${r.rsSpy >= 0 ? '+' : ''}${r.rsSpy.toFixed(1)}</span>`;
+    if (r.rsWeak) rsHtml += '<span class="el-badge-soft rs">RS−</span>';
+    else if (r.rsSpy >= 0) rsHtml += '<span class="el-badge-soft rsok">RS+</span>';
+  }
+  const hero = r.hero ? ' hero' : '';
+  return `<article class="el-card ${elEsc(st)}${hero}" data-sym="${elEsc(r.symbol)}" data-sector="${elEsc(sec || '')}">
+    <div><span class="el-card-sym">${elEsc(r.symbol)}</span><span class="el-card-state">${elEsc(st)}</span>${capB}${secChip}${rsHtml}</div>
+    <div class="el-card-px">${px}${r.firePrice && st === 'MANAGE' ? ` · fire ${(+r.firePrice).toFixed(2)}` : ''}${r.dayChg != null ? ` · day ${r.dayChg >= 0 ? '+' : ''}${r.dayChg.toFixed(1)}%` : ''}</div>
     <div class="el-card-reason">${elEsc(r.reason || '')}${tags ? '<br>' + tags : ''}</div>
     <div class="el-card-score">S <b>${sc.structure|0}</b> + T <b>${sc.trigger|0}</b> + R <b>${sc.regime|0}</b> − P <b>${sc.penalty|0}</b> = <b>${sc.total|0}</b> · inv ${inv}</div>
     <div class="el-card-actions">
@@ -4822,24 +4896,30 @@ function elPaintRiskBanner(groups, activeList){
   const ban = document.getElementById('elRiskBanner');
   const txt = document.getElementById('elRiskText');
   if (!ban || !txt) return;
-  const fires = (activeList || []).filter(r => r.state === 'FIRE');
   elRiskDominant = null;
-  if (fires.length < 2) { ban.classList.remove('show'); return; }
-  // dominant: max FIRE pe un sector
-  let best = null;
-  (groups || []).forEach(g => {
-    if (!best || g.fire > best.fire) best = g;
-  });
-  if (!best || best.fire < 3) {
-    // sau ≥50% din FIRE pe un singur sector (min 2)
-    const share = best && fires.length ? best.fire / fires.length : 0;
-    if (!best || best.fire < 2 || share < 0.5) { ban.classList.remove('show'); return; }
-  }
-  elRiskDominant = best.sector;
-  const pct = Math.round(best.fire / fires.length * 100);
-  txt.innerHTML = `Concentrare sectorială: <b>${elEsc(best.sector)}</b> are <b>${best.fire}</b> din <b>${fires.length}</b> FIRE (${pct}%). `
+  const stats = (window.MED && MED.concentrationStats)
+    ? MED.concentrationStats(groups, activeList)
+    : null;
+  if (!stats) { ban.classList.remove('show'); return; }
+  elRiskDominant = stats.sector;
+  txt.innerHTML = `Concentrare sectorială: <b>${elEsc(stats.sector)}</b> are <b>${stats.fire}</b> din <b>${stats.totalFire}</b> FIRE (${stats.pct}%). `
     + `Risc corelație — nu oversize pe același theme.`;
   ban.classList.add('show');
+  // Telegram 1×/zi pe concentrație
+  if (window.MED && window.TG) MED.maybeTelegramConcentration(stats, TG);
+}
+
+function elPaintHeat(groups){
+  const el = document.getElementById('elHeat');
+  if (!el) return;
+  if (!window.MED || !groups || !groups.length) { el.innerHTML = ''; return; }
+  el.innerHTML = MED.heatmapHtml(groups, { focus: elSectorFocus });
+  el.querySelectorAll('.el-heat-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const s = btn.getAttribute('data-sector');
+      elSetSectorFocus(elSectorFocus === s ? null : s);
+    });
+  });
 }
 
 function elPaintFocusBar(){
@@ -4891,12 +4971,15 @@ function elRenderRail(results){
     ? EL.groupBySector(list, elSectorMap || (EL.loadSectorMap && EL.loadSectorMap()))
     : [];
   elPaintSectorChips(groupsAll);
+  elPaintHeat(groupsAll);
   elPaintRiskBanner(groupsAll, list);
   elPaintFocusBar();
 
   if (elSectorFocus) {
     list = list.filter(r => (r.sector || '') === elSectorFocus);
   }
+  // hero = best FIRE
+  if (window.MED && MED.markHero) MED.markHero(list);
 
   if (!list.length) {
     rail.innerHTML = `<div class="el-empty">${elSectorFocus
@@ -4910,9 +4993,16 @@ function elRenderRail(results){
       : groupsAll;
     let budget = elCompact ? 36 : 28;
     let html = '';
+    // hero first if present
+    const hero = list.find(r => r.hero);
+    if (hero && !elSectorFocus) {
+      html += elCardHtml(hero);
+      budget -= 1;
+    }
     for (const g of groups) {
       if (budget <= 0) break;
-      const take = g.items.slice(0, budget);
+      const items = g.items.filter(r => !hero || r.symbol !== hero.symbol || elSectorFocus);
+      const take = items.slice(0, budget);
       budget -= take.length;
       const act = elSectorFocus === g.sector ? ' active' : '';
       html += `<button type="button" class="el-sector-head${act}" data-sector="${elEsc(g.sector)}">`
@@ -4930,7 +5020,8 @@ function elRenderRail(results){
   } else {
     const rank = { FIRE: 0, MANAGE: 1, ARMED: 2, DEAD: 3, IDLE: 4 };
     list = list.slice().sort((a, b) =>
-      (rank[a.state] ?? 9) - (rank[b.state] ?? 9)
+      (b.hero ? 1 : 0) - (a.hero ? 1 : 0)
+      || (rank[a.state] ?? 9) - (rank[b.state] ?? 9)
       || ((b.score && b.score.total) || 0) - ((a.score && a.score.total) || 0)
     );
     rail.innerHTML = list.slice(0, elCompact ? 32 : 24).map(elCardHtml).join('');
@@ -5057,8 +5148,13 @@ async function elDeskRefresh(opts){
     if (EL.enrichSectorsFinnhub) {
       elSectorMap = await EL.enrichSectorsFinnhub(syms, fhKey, elSectorMap);
     }
+    // Yahoo fallback dacă încă lipsesc sectoare
+    if (EL.enrichSectorsYahoo) {
+      const still = syms.filter(s => !elSectorMap[s] || elSectorMap[s] === 'Necunoscut');
+      if (still.length) elSectorMap = await EL.enrichSectorsYahoo(still, elSectorMap);
+    }
 
-    const results = await EL.scanList(items, {
+    let results = await EL.scanList(items, {
       ebMap,
       srcMap,
       earnMap: elBuildEarnMap(),
@@ -5069,8 +5165,17 @@ async function elDeskRefresh(opts){
     if (EL.sectorOf) {
       results.forEach(r => { r.sector = EL.sectorOf(r.symbol, elSectorMap); });
     }
+    // Soft gates (MED): cap 2 FIRE/sector + RS vs SPY
+    const spyChg = (typeof lastSentiment !== 'undefined' && lastSentiment && lastSentiment.spy)
+      ? lastSentiment.spy.chgPct : null;
+    if (window.MED) {
+      if (MED.applySectorFireCap) results = MED.applySectorFireCap(results, 2);
+      if (MED.attachRelativeSpy) results = MED.attachRelativeSpy(results, spyChg);
+      if (MED.markHero) MED.markHero(results);
+    }
     elLastResults = results;
     elRenderRail(results);
+    elApplyPreModeWl();
     const c = EL.counts(results);
     const newFires = results.filter(r => r && r._becameFire);
     if (newFires.length) {
@@ -5088,6 +5193,57 @@ async function elDeskRefresh(opts){
     elBusy = false;
     if (btn) { btn.disabled = false; btn.textContent = '▶ Scan 5m'; }
   }
+}
+
+function elApplyPreModeWl(){
+  const pre = (typeof etMarketState === 'function' && etMarketState() === 'PRE');
+  document.body.classList.toggle('el-pre-mode', !!pre);
+  const wl = document.getElementById('wlSection');
+  if (!wl) return;
+  // în PRE: WL colapsat by default (Desk domină); user poate expanda click pe h2
+  if (pre && !wl.dataset.elUserOpen) wl.classList.add('el-wl-collapsed');
+  else if (!pre) wl.classList.remove('el-wl-collapsed');
+}
+
+function elBindKeyboard(){
+  document.addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    const deskOn = document.getElementById('elPanelDesk')?.classList.contains('active');
+    if (!deskOn && e.key !== 'Escape') return;
+    if (e.key === 's' || e.key === 'S') {
+      e.preventDefault();
+      elDeskRefresh({ force: true });
+      return;
+    }
+    if (e.key === 'Escape') {
+      if (elSectorFocus) { e.preventDefault(); elSetSectorFocus(null); }
+      return;
+    }
+    if (e.key === 'c' || e.key === 'C') {
+      e.preventDefault();
+      elCompact = !elCompact;
+      try { localStorage.setItem('me_el_compact', elCompact ? '1' : '0'); } catch(_){}
+      elRenderRail(elLastResults);
+      return;
+    }
+    if (e.key === 'g' || e.key === 'G') {
+      e.preventDefault();
+      elGroupBySector = !elGroupBySector;
+      try { localStorage.setItem('me_el_group_sector', elGroupBySector ? '1' : '0'); } catch(_){}
+      elRenderRail(elLastResults);
+      return;
+    }
+    if (/^[1-9]$/.test(e.key)) {
+      e.preventDefault();
+      const chips = document.querySelectorAll('#elSectorChips .el-sec-chip');
+      const idx = parseInt(e.key, 10) - 1;
+      if (chips[idx]) {
+        const s = chips[idx].getAttribute('data-sector');
+        elSetSectorFocus(elSectorFocus === s ? null : s);
+      }
+    }
+  });
 }
 
 function elBindDesk(){
@@ -5116,6 +5272,26 @@ function elBindDesk(){
   document.getElementById('elFireLogToggle')?.addEventListener('click', () => {
     document.getElementById('elFireLog')?.classList.toggle('collapsed');
   });
+  // PRE: click pe h2 WL = expand/collapse
+  const wl = document.getElementById('wlSection');
+  if (wl) {
+    const h2 = wl.querySelector('h2');
+    if (h2) {
+      h2.addEventListener('click', () => {
+        if (!document.body.classList.contains('el-pre-mode')) return;
+        const open = wl.classList.toggle('el-wl-collapsed') === false;
+        wl.dataset.elUserOpen = open ? '1' : '';
+        if (!open) delete wl.dataset.elUserOpen;
+      }, true);
+    }
+  }
+  elBindKeyboard();
+  elApplyPreModeWl();
+  // sticky shadow pe scroll
+  window.addEventListener('scroll', () => {
+    const desk = document.getElementById('elDesk');
+    if (desk) desk.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
   // poll soft la 90s pe Desk
   if (elTimer) clearInterval(elTimer);
   elTimer = setInterval(() => {
