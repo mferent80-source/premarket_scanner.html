@@ -12,17 +12,20 @@
   h1{font-size:16px;margin:0 0 8px}
   p{color:#a3adc1;font-size:13px;margin:0}
   .ver{color:#f7931a;font-family:ui-monospace,monospace;font-weight:700}
+  a{color:#5bb0ff;font-size:13px}
 </style>
 </head>
 <body>
 <div class="box">
-  <h1>🔄 Actualizare suită…</h1>
-  <p>Curăț cache vechi → <span class="ver" id="ver">tt-v605</span></p>
+  <h1>Actualizare suita…</h1>
+  <p>Curat cache vechi → <span class="ver" id="ver">tt-v652</span></p>
+  <p style="margin-top:12px"><a id="go" href="./index.html">Deschide hub daca nu redirecteaza</a></p>
 </div>
 <script>
 (function(){
-  var VER = 'tt-v605';
+  var VER = 'tt-v652';
   document.getElementById('ver').textContent = VER;
+  document.getElementById('go').href = './index.html?fresh=' + VER + '&t=' + Date.now();
   var jobs = [];
   if ('serviceWorker' in navigator) {
     jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){
@@ -35,15 +38,13 @@
     }));
   }
   jobs.push(fetch('./sw-app.js?bust=' + Date.now(), { cache: 'no-store' }).catch(function(){}));
+  jobs.push(fetch('./lib/suite-version.js?bust=' + Date.now(), { cache: 'no-store' }).catch(function(){}));
   Promise.all(jobs).then(function(){
     try {
       localStorage.setItem('tt_suite_ok', VER);
-      // tt_sw_version NU se mai scrie hardcodat (producea warning fals
-      // "cache vechi") — dupa purge SW-ul nou raporteaza versiunea reala
-      // prin GET_VERSION la urmatorul load al hub-ului
       localStorage.removeItem('tt_sw_version');
     } catch(e){}
-    document.querySelector('p').innerHTML = 'Gata — redirecționare hub <b>' + VER + '</b>…';
+    document.querySelector('p').innerHTML = 'Gata — redirect hub <b class="ver">' + VER + '</b>…';
     setTimeout(function(){
       location.replace('./index.html?fresh=' + VER + '&t=' + Date.now());
     }, 800);
