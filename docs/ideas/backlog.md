@@ -205,11 +205,11 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-203 | ME soft gates pre-TG + TG dedupe + toast edge + elWlFirstOnly + confirm-bar | market-events/ + lib/ | M | P1 | făcut | ideation | 2026-07-22 |
 | I-204 | WLM alert policy (soft tags, ER, quiet hours, group risk TG) | watchlist-monitor/ | M | P1 | făcut | ideation | 2026-07-22 |
 | I-205 | Shadow ledger me-fire-raw vs me-fire (OOS soft gates) | lib/early-long.js + ledger | S | P2 | făcut | ideation | 2026-07-22 |
-| I-206 | Data Trust gate — GO score degradat pe date stale/parțiale | index.html + lib/hub-state.js + lib/hub-brief.js | S | P1 | propus | ideation | 2026-07-22 |
-| I-207 | Risc $ + buget R live în formularul Trade Plans | index.html + lib/capital-desk.js | S | P1 | propus | ideation | 2026-07-22 |
-| I-208 | lib/suite-sessions.js — sesiune NYSE unică + sărbători/half-days | lib/* + hub + router | M | P1 | propus | ideation | 2026-07-22 |
-| I-209 | Gapper tradability — RVOL + context range pe chip-urile gappers | lib/hub-gappers.js | M | P2 | propus | ideation | 2026-07-22 |
-| I-210 | Sursă unică evenimente high-impact (MCTX) + flag approx + expirare | lib/macro-context.js + lib/router.js + lib/event-tape.js | M | P1 | propus | ideation | 2026-07-22 |
+| I-206 | Data Trust gate — GO score degradat pe date stale/parțiale | index.html + lib/hub-state.js + lib/hub-brief.js | S | P1 | făcut | ideation | 2026-07-22 |
+| I-207 | Risc $ + buget R live în formularul Trade Plans | index.html + lib/capital-desk.js | S | P1 | făcut | ideation | 2026-07-22 |
+| I-208 | lib/suite-sessions.js — sesiune NYSE unică + sărbători/half-days | lib/* + hub + router | M | P1 | făcut | ideation | 2026-07-22 |
+| I-209 | Gapper tradability — RVOL + context range pe chip-urile gappers | lib/hub-gappers.js | M | P2 | făcut | ideation | 2026-07-22 |
+| I-210 | Sursă unică evenimente high-impact (MCTX) + flag approx + expirare | lib/macro-context.js + lib/router.js + lib/event-tape.js | M | P1 | făcut | ideation | 2026-07-22 |
 
 ## Mini-spec-uri
 
