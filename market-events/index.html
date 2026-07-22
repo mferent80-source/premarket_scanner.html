@@ -9,11 +9,11 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   /* === Paleta unificată cu crypto-events + scanner-hub (orange/gold BTC) === */
   :root {
-    /* Cockpit A — același contrast ca Watchlist (lizibil all-day) */
-    --bg:#090d14; --panel:#151c2c; --panel2:#1e2740; --border:#3a4660; --border-soft:#2a3348;
-    --text:#f0f4fa; --muted:#9aa5b8; --text-dim:#9aa5b8; --t2:#d5dce8;
-    --bull-s:#2ee67a; --bear-s:#ff5c5c; --warn:#e09a3a;
-    --accent:#6bb8ff; --accent2:#9a7fff;
+    /* High-clarity — paritate Watchlist (mai puțin „ceață") */
+    --bg:#080c12; --panel:#161d2e; --panel2:#202a42; --border:#445272; --border-soft:#35415c;
+    --text:#f8fafc; --muted:#c5cedd; --text-dim:#c5cedd; --t2:#e8eef7;
+    --bull-s:#3aeb88; --bear-s:#ff6b6b; --warn:#f0a84a;
+    --accent:#7ec0ff; --accent2:#a890ff;
     --crypto-1:#f7931a; --crypto-2:#ffd86b;
     --radius:12px; --radius-sm:8px;
     --ease:cubic-bezier(.4,0,.2,1);
@@ -23,21 +23,23 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
     background: var(--bg);
-    background-image: radial-gradient(1100px 520px at 50% -180px, #121a2a 0%, #090d14 58%);
+    background-image: radial-gradient(1100px 520px at 50% -180px, #101826 0%, #080c12 58%);
     background-attachment: fixed;
     color: var(--text);
     padding: 12px;
-    font-size: 13px;
+    font-size: 13.5px;
     min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
+    -webkit-font-smoothing: subpixel-antialiased;
+    -moz-osx-font-smoothing: auto;
+    text-rendering: optimizeLegibility;
     font-variant-numeric: tabular-nums;
   }
 
   /* === Sticky header bar (înlocuiește h1 + subtitle + global-config) === */
   .topbar {
     display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-    background: linear-gradient(180deg, rgba(30,38,57,.85), rgba(20,26,40,.92));
-    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: linear-gradient(180deg, #1a2336, #161d2e);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
     padding: 11px 16px; border-radius: var(--radius);
     border: 1px solid var(--border); margin-bottom: 12px;
     box-shadow: var(--shadow);
@@ -1302,14 +1304,14 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 .el-fun-step{
   display:inline-flex; flex-direction:column; align-items:center; min-width:42px;
   padding:4px 8px; border-radius:8px; background:var(--panel2); border:1px solid var(--border);
-  font-size:9px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:.3px;
+  font-size:10px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:.3px;
 }
 .el-fun-step b{font-size:15px; color:var(--text); font-variant-numeric:tabular-nums; font-weight:800}
-.el-fun-step.zero b{color:var(--muted); opacity:.55}
-.el-fun-arr{color:var(--muted); font-size:12px; opacity:.55}
-.el-fun-path{font-size:10.5px; color:var(--t2); margin-bottom:6px; font-variant-numeric:tabular-nums}
+.el-fun-step.zero b{color:var(--t2); opacity:.75}
+.el-fun-arr{color:var(--t2); font-size:12px; opacity:.8}
+.el-fun-path{font-size:11.5px; color:var(--text); margin-bottom:6px; font-variant-numeric:tabular-nums; font-weight:500}
 .el-fun-path b{color:var(--crypto-1)}
-.el-fun-why{margin:0; padding-left:16px; font-size:11px; color:var(--t2); line-height:1.45}
+.el-fun-why{margin:0; padding-left:16px; font-size:12px; color:var(--text); line-height:1.5}
 .el-fun-why li{margin:2px 0}
 .el-near-title{font-size:10px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; color:var(--accent); margin:8px 0 4px}
 .el-near-list{display:flex; flex-direction:column; gap:3px}
@@ -1320,7 +1322,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 }
 .el-near-row .sym{font-weight:800; color:var(--accent)}
 .el-near-row .sc{color:var(--crypto-1); font-weight:700; font-size:10px}
-.el-near-row .why{color:var(--t2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.el-near-row .why{color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 /* Quiet mode: 0 FIRE → ascunde heat dens */
 .el-desk.quiet-empty .el-heat{opacity:.55}
 .el-desk.quiet-empty .el-sector-chips{opacity:.7}
@@ -1328,8 +1330,8 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 .el-sens-row label{font-size:10px; font-weight:700; color:var(--t2); text-transform:uppercase; letter-spacing:.3px}
 .el-sens-btn{
   appearance:none; cursor:pointer; padding:4px 10px; border-radius:999px;
-  font-size:10.5px; font-weight:700; border:1px solid var(--border);
-  background:var(--panel2); color:var(--t2);
+  font-size:11px; font-weight:700; border:1px solid var(--border);
+  background:var(--panel2); color:var(--text);
 }
 .el-sens-btn.active{border-color:rgba(107,184,255,.55); color:var(--accent); background:rgba(107,184,255,.12)}
 #elDiagSlot{margin:0 0 8px}
@@ -1341,22 +1343,22 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 .el-clock.pre{border-color:rgba(247,147,26,.4)}
 .el-clock.orb{border-color:rgba(46,230,122,.45); background:rgba(46,230,122,.07)}
 .el-clock-main{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
-.el-clock-lab{font-size:11px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; color:var(--t2)}
+.el-clock-lab{font-size:11.5px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; color:var(--t2)}
 .el-clock.orb .el-clock-lab{color:var(--bull-s)}
 .el-clock.pre .el-clock-lab{color:var(--crypto-1)}
-.el-clock-left{font-size:18px; font-weight:800; font-variant-numeric:tabular-nums; font-family:ui-monospace,DM Mono,monospace; color:var(--text)}
-.el-clock-sub{font-size:10.5px; color:var(--muted); margin-top:2px}
+.el-clock-left{font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; font-family:ui-monospace,DM Mono,monospace; color:var(--text)}
+.el-clock-sub{font-size:11.5px; color:var(--t2); margin-top:2px; font-weight:500}
 .el-clock-bar{margin-top:6px; height:4px; border-radius:2px; background:rgba(58,70,96,.9); overflow:hidden}
 .el-clock-bar span{display:block; height:100%; background:linear-gradient(90deg,var(--crypto-1),var(--bull-s)); border-radius:2px; transition:width .4s}
-.el-nm-stats{font-size:10.5px; color:var(--t2); margin:6px 0 0; font-variant-numeric:tabular-nums}
-.el-nm-stats b{color:var(--accent)}
+.el-nm-stats{font-size:11.5px; color:var(--t2); margin:6px 0 0; font-variant-numeric:tabular-nums; font-weight:500}
+.el-nm-stats b{color:var(--accent); font-weight:800}
 .el-nm-noise{color:var(--warn); font-weight:700}
 /* Mode Scan / Trade */
 .el-mode-row{display:flex; gap:6px; flex-wrap:wrap; margin:0 0 8px}
 .el-mode-btn{
   appearance:none; cursor:pointer; padding:5px 12px; border-radius:999px;
-  font-size:11px; font-weight:800; border:1px solid var(--border);
-  background:var(--panel2); color:var(--t2);
+  font-size:11.5px; font-weight:800; border:1px solid var(--border);
+  background:var(--panel2); color:var(--text);
 }
 .el-mode-btn.active{border-color:rgba(46,230,122,.55); color:var(--bull-s); background:rgba(46,230,122,.12)}
 .el-mode-btn[data-mode="scan"].active{border-color:rgba(107,184,255,.55); color:var(--accent); background:rgba(107,184,255,.12)}
@@ -1376,7 +1378,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v259</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v260</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -6752,10 +6754,10 @@ function renderSectorHeatmap() {
 // Heatmap-urile sunt randate direct din scanLosers (în finally) — fără monkey-patch.
 </script>
 
-<script src="../lib/suite-version.js?v=656"></script>
+<script src="../lib/suite-version.js?v=657"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v656';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v657';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
