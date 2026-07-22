@@ -1152,7 +1152,7 @@
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v249</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v250</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1493,7 +1493,7 @@
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/early-long.js?v=249"></script>
+<script src="../lib/early-long.js?v=250"></script>
 <script>
 // Flag shell-pause: default vizibil. FĂRĂ mesaj de la shell → comportament IDENTIC actual.
 // Pauza polling-urilor de fundal e opt-in DOAR la ttShellVisible:false (vezi secțiunea „SHELL VISIBILITY" jos).
@@ -1524,7 +1524,7 @@ window.showMeFeatures = function(){
   ];
   let html = '<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;color:var(--text);font-family:inherit">';
   html += '<div style="display:flex;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)">';
-  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v249 · Early Long Desk · univers TOT (WL+gap+reclaim) · me-fire log</div></div>';
+  html += '<div><h3 style="font-size:1rem;font-weight:800;margin:0;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));-webkit-background-clip:text;color:transparent">📊 Market Events</h3><div style="font-size:.62rem;color:var(--muted);margin-top:3px">v250 · Early Long · TOT · me-fire log + Telegram FIRE</div></div>';
   html += '<button onclick="document.getElementById(\'flOverlay\').remove()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer">×</button></div>';
   sections.forEach(s => {
     html += '<div style="margin-bottom:12px"><div style="font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:7px">'+s.title+'</div>';
@@ -5030,8 +5030,14 @@ async function elDeskRefresh(opts){
     elLastResults = results;
     elRenderRail(results);
     const c = EL.counts(results);
-    if (c.FIRE) showToast(`▶ ${c.FIRE} FIRE · univers TOT (${uni.meta.total} hot)`, 'success');
-    else if (c.ARMED) showToast(`⚡ ${c.ARMED} ARMED pe hot-list (${uni.meta.total})`, 'success');
+    const newFires = results.filter(r => r && r._becameFire);
+    if (newFires.length) {
+      showToast(`▶ ${newFires.length} FIRE nou: ${newFires.map(r => r.symbol).join(', ')}`, 'success');
+    } else if (c.FIRE) {
+      showToast(`▶ ${c.FIRE} FIRE activ · hot ${uni.meta.total}`, 'success');
+    } else if (c.ARMED) {
+      showToast(`⚡ ${c.ARMED} ARMED pe hot-list (${uni.meta.total})`, 'success');
+    }
   } catch (e) {
     console.warn('elDeskRefresh', e);
     const rail = document.getElementById('elFireRail');
