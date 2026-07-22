@@ -1242,6 +1242,7 @@ window.openTradeTracker = function(){
             <option value="short">📉 Short</option>
           </select>
         </div>
+        <div class="col-full" id="ttRiskRow" style="font-family:var(--mono);font-size:11px;color:var(--t3);line-height:1.5">Risc: — <span style="opacity:.7">(completează Entry + SL + Size)</span></div>
         <div class="col-full"><label>Notes (opțional)</label><input id="ttNotes" placeholder="Setup descriere, motiv intrare…" maxlength="200"></div>
         <div class="col-full"><button type="submit">+ Adaugă plan</button></div>
       </form>
@@ -1252,7 +1253,65 @@ window.openTradeTracker = function(){
     </div>`;
   document.body.appendChild(ov);
   ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+  // preview de risc live la fiecare tastă (I-207) — sizing vizibil ÎNAINTE de salvare
+  ['ttEntry', 'ttSL', 'ttTP', 'ttSize', 'ttDir'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.addEventListener('input', ttRiskPreview); el.addEventListener('change', ttRiskPreview); }
+  });
+  ttRiskPreview();
   document.getElementById('ttTicker')?.focus();
+};
+
+// Coerența direcțională a planului: long = SL sub entry, TP peste; short invers.
+// Un SL pe partea greșită = plan FĂRĂ protecție, iar Math.abs din R:R îl masca.
+function ttPlanIssues(entry, sl, tp, dir){
+  const issues = [];
+  const short = dir === 'short';
+  if (Number.isFinite(sl)) {
+    if (!short && sl >= entry) issues.push('SL (' + sl + ') trebuie SUB entry la long');
+    if (short && sl <= entry) issues.push('SL (' + sl + ') trebuie PESTE entry la short');
+  }
+  if (Number.isFinite(tp)) {
+    if (!short && tp <= entry) issues.push('TP (' + tp + ') trebuie PESTE entry la long');
+    if (short && tp >= entry) issues.push('TP (' + tp + ') trebuie SUB entry la short');
+  }
+  return issues;
+}
+
+window.ttRiskPreview = function(){
+  const row = document.getElementById('ttRiskRow');
+  if (!row) return;
+  const num = id => parseFloat((document.getElementById(id)?.value || '').trim());
+  const entry = num('ttEntry'), sl = num('ttSL'), size = num('ttSize');
+  const dir = document.getElementById('ttDir')?.value || 'long';
+  if (!Number.isFinite(entry) || !Number.isFinite(sl) || !Number.isFinite(size) || entry <= 0 || size <= 0) {
+    row.innerHTML = 'Risc: — <span style="opacity:.7">(completează Entry + SL + Size)</span>';
+    return;
+  }
+  const issues = ttPlanIssues(entry, sl, num('ttTP'), dir);
+  if (issues.length) {
+    row.innerHTML = '<span style="color:#ff4d4d;font-weight:700">⚠ ' + issues.join(' · ') + '</span>';
+    return;
+  }
+  const riskUsd = Math.abs(entry - sl) * size;
+  let html = 'Risc la SL: <b style="color:var(--t1)">$' + riskUsd.toFixed(2) + '</b>';
+  if (window.ACCT && ACCT.get) {
+    const acct = ACCT.get().value;
+    if (acct > 0) {
+      const pct = riskUsd / acct * 100;
+      html += ' <b style="color:' + (pct >= 2 ? '#ff4d4d' : pct >= 1 ? '#d4892c' : 'var(--green)') + '">(' + pct.toFixed(2) + '% cont)</b>';
+    }
+  }
+  if (window.CD && CD.canAddRisk) {
+    try {
+      const g = CD.canAddRisk(riskUsd);
+      const b = CD.unified();
+      if (b.rBudget && b.rBudget.rLeft != null) html += ' · Buget R rămas azi: <b style="color:var(--t1)">' + b.rBudget.rLeft.toFixed(1) + 'R</b>';
+      if (g.halt) html += '<br><span style="color:#ff4d4d;font-weight:700">⛔ ' + g.reasons.join(' · ') + '</span>';
+      else if (g.caution) html += '<br><span style="color:#d4892c;font-weight:700">⚠ ' + g.reasons.join(' · ') + '</span>';
+    } catch (e) {}
+  }
+  row.innerHTML = html;
 };
 
 function ttRenderRow(t){
@@ -1260,8 +1319,11 @@ function ttRenderRow(t){
     ? Math.abs((t.tp - t.entry) / (t.entry - t.sl)).toFixed(2) + 'R'
     : '—';
   const dirIcon = t.dir === 'short' ? '📉' : '📈';
+  // planuri vechi salvate cu SL pe partea greșită (înainte de validare) — marcate vizibil
+  const slBad = ttPlanIssues(parseFloat(t.entry), parseFloat(t.sl), parseFloat(t.tp), t.dir).length
+    ? ' <b style="color:#ff4d4d">⚠ SL/TP invers</b>' : '';
   const meta = t.status === 'open'
-    ? `<b>${dirIcon} $${parseFloat(t.entry).toFixed(2)}</b> · SL <b>$${t.sl ? parseFloat(t.sl).toFixed(2) : '—'}</b> · TP <b>$${t.tp ? parseFloat(t.tp).toFixed(2) : '—'}</b> · R:R ${r}<br>Size ${t.size} · ${new Date(t.opened).toLocaleDateString('ro-RO')}`
+    ? `<b>${dirIcon} $${parseFloat(t.entry).toFixed(2)}</b> · SL <b>$${t.sl ? parseFloat(t.sl).toFixed(2) : '—'}</b> · TP <b>$${t.tp ? parseFloat(t.tp).toFixed(2) : '—'}</b> · R:R ${r}${slBad}<br>Size ${t.size} · ${new Date(t.opened).toLocaleDateString('ro-RO')}`
     : (() => {
         // pnl null (JR.pnl necalculabil) trecea de `null >= 0` ca true -> "+$NaN" pe VERDE;
         // un LOSS afisat verde induce in eroare la scanarea vizuala a listei
@@ -1291,15 +1353,32 @@ window.ttAddTrade = function(){
   const size = parseFloat(v('ttSize'));
   const entry = parseFloat(v('ttEntry'));
   if (!ticker || !size || !entry) { alert('Ticker, Size și Entry sunt obligatorii'); return; }
+  // valorile ≤0 treceau de check-ul de mai sus doar dacă erau exact 0
+  if (size <= 0 || entry <= 0) { alert('Size și Entry trebuie să fie pozitive'); return; }
+  const sl = parseFloat(v('ttSL'));
+  const tp = parseFloat(v('ttTP'));
+  const dir = v('ttDir') || 'long';
+  const issues = ttPlanIssues(entry, sl, tp, dir);
+  if (issues.length) { alert('⚠ Plan refuzat:\n· ' + issues.join('\n· ')); return; }
+  // pre-trade gate (CD): riscul planului vs riscul deja deschis + verdictul Desk
+  if (Number.isFinite(sl) && window.CD && CD.canAddRisk) {
+    try {
+      const g = CD.canAddRisk(Math.abs(entry - sl) * size);
+      if ((g.halt || g.caution) && !window.confirm((g.halt ? '⛔' : '⚠') + ' ' + g.reasons.join('\n') + '\n\nSalvezi planul oricum?')) return;
+    } catch (e) {}
+  }
   const t = {
     ticker, size, entry,
-    sl: parseFloat(v('ttSL')) || null,
-    tp: parseFloat(v('ttTP')) || null,
-    dir: v('ttDir') || 'long',
+    sl: Number.isFinite(sl) ? sl : null,
+    tp: Number.isFinite(tp) ? tp : null,
+    dir,
     notes: v('ttNotes') || '',
     opened: Date.now(),
   };
-  if (window.TT && TT.add) TT.add(t);
+  // TT.add întoarce null când journal.js lipsește — planul NU e salvat; fără
+  // check-ul ăsta modalul se redeschidea gol și userul credea că a salvat
+  const saved = (window.TT && TT.add) ? TT.add(t) : null;
+  if (!saved) { alert('⚠ Tracker indisponibil (journal.js/tracker.js neîncărcat) — planul NU a fost salvat.'); return; }
   openTradeTracker();
 };
 
@@ -1311,7 +1390,10 @@ window.ttCloseTrade = function(id, status){
   const defaultExit = status === 'win' ? (t.tp || t.entry) : (t.sl || t.entry);
   const exitStr = window.prompt('Preț FILL real la ieșire (nu TP/SL plan — default: $' + parseFloat(defaultExit).toFixed(2) + '):', defaultExit);
   if (exitStr === null) return; // cancel
-  const exit = parseFloat(exitStr) || defaultExit;
+  const exitN = parseFloat(exitStr);
+  // input neparsabil ("abc") cădea tăcut pe default — acum refuză explicit
+  if (!Number.isFinite(exitN) || exitN <= 0) { alert('Preț de ieșire invalid — trade-ul NU a fost închis.'); return; }
+  const exit = exitN;
   const feesStr = window.prompt('Fees totale USD (spread/FX, 0 dacă necunoscut):', '0');
   if (feesStr === null) return;
   const fees = parseFloat(feesStr) || 0;

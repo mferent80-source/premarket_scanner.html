@@ -1,5 +1,5 @@
-// Service Worker v2 â€” sw-app.js (SW unic pentru Ă®ntreaga suitÄ)
-const CACHE_VERSION = 'tt-v665-2026-07-22';
+// Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
+const CACHE_VERSION = 'tt-v666-2026-07-22';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -49,6 +49,7 @@ const PRECACHE = [
   './lib/sound.js',
   './lib/utils.js',
   './lib/watchlist.js',
+  './lib/suite-sessions.js',
   './alerts/',
   './alerts/index.html',
   './guide/',
@@ -120,7 +121,9 @@ self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(c =>
       Promise.all(PRECACHE.map(u =>
-        c.add(new Request(u, { cache: 'reload' })).catch(() => {})
+        // eșecul de precache nu mai e înghițit mut — un typo în listă
+        // înseamnă offline parțial rupt fără niciun semnal
+        c.add(new Request(u, { cache: 'reload' })).catch(err => console.warn('[SW] precache fail:', u, err && err.message))
       ))
     )
   );
@@ -148,10 +151,10 @@ self.addEventListener('fetch', e => {
     fetch(req, fetchOpts).then(res => {
       if (res && res.status === 200 && res.type === 'basic') {
         const copy = res.clone();
-        // cheia de cache = pathname FARA query â€” paginile cer lib-urile cu
-        // ?v=NNN (cache-busting), dar precache-ul e queryless; fara
-        // normalizare se acumulau 2 copii/fisier si fallback-ul offline
-        // nu gasea niciodata varianta ceruta
+        // cheia de cache = pathname FĂRĂ query — paginile cer lib-urile cu
+        // ?v=NNN (cache-busting), dar precache-ul e queryless; fără
+        // normalizare se acumulau 2 copii/fișier și fallback-ul offline
+        // nu găsea niciodată varianta cerută
         caches.open(CACHE_NAME).then(c => c.put(new Request(url.origin + url.pathname), copy)).catch(() => {});
       }
       return res;
@@ -160,7 +163,7 @@ self.addEventListener('fetch', e => {
         if (r) return r;
         if (hubEntry || isHtml) {
           return caches.match('./index.html').then(fb =>
-            fb || new Response('Offline â€” reconecteazÄ-te pentru hub.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+            fb || new Response('Offline — reconectează-te pentru hub.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
           );
         }
         return new Response('', { status: 504, statusText: 'offline' });
@@ -171,9 +174,9 @@ self.addEventListener('fetch', e => {
 
 self.addEventListener('message', e => {
   if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
-  // raporteaza versiunea REALA a SW-ului activ â€” hub-health o compara cu
-  // versiunea paginii; inainte pagina isi scria propria versiune si o
-  // compara cu ea insasi (check tautologic, un SW vechi nu era prins)
+  // raportează versiunea REALĂ a SW-ului activ — hub-health o compară cu
+  // versiunea paginii; înainte pagina își scria propria versiune și o
+  // compara cu ea însăși (check tautologic, un SW vechi nu era prins)
   if (e.data && e.data.type === 'GET_VERSION') {
     const reply = { type: 'SW_VERSION', version: CACHE_VERSION };
     if (e.ports && e.ports[0]) e.ports[0].postMessage(reply);
