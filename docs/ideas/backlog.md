@@ -222,6 +222,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-220 | Quick-add templates din WL / Journal open | alerts/ | M | P2 | propus | ideation | 2026-07-23 |
 | I-221 | Client notify policy (sesiune + quiet hours pe UI) | alerts/ | S | P2 | propus | ideation | 2026-07-23 |
 | I-222 | Density compact + multi-select bulk (snooze/arm/delete) | alerts/ | M | P2 | propus | ideation | 2026-07-23 |
+| I-223 | DEMO unificat Alerts I-217…222 (toggle bar, v70) | alerts/ | M | P1 | propus | ideation | 2026-07-23 |
 
 ## Mini-spec-uri
 
@@ -1573,3 +1574,10 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** curățenie vizuală + operații de sesiune (pre-close, pre-weekend) în 2 tap-uri.
 - **Riscuri/dependențe:** compatibil cu I-219 (checkbox pe card sau pe sub-regulă); nu schimba schema storage.
 - **Fișiere atinse:** alerts/index.html (render rows, bulk handlers, CSS density).
+
+### I-223 · DEMO unificat Alerts I-217…222 (toggle bar) · [M] · P1
+- **Problema/golul:** cele 6 idei pe Alerts trebuie văzute împreună înainte de a decide ce rămâne — fără 6 PR-uri separate.
+- **Soluția:** pe `alerts/` v70: bară 🧪 DEMO cu checkbox per feature (tabs / almost / group / templates / notify / bulk+density), persist `pa_desk_demo_v1`. Toate ON by default; debifezi ce nu vrei. Suite `tt-v700`.
+- **Impact:** decizie de product pe UI real, nu pe mini-spec.
+- **Riscuri/dependențe:** după alegere, se curăță bară demo + codul feature-urilor respinse.
+- **Fișiere atinse:** alerts/index.html, lib/suite-version.js, sw-app.js.
