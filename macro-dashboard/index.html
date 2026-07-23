@@ -1535,8 +1535,9 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <div id="toasts"></div>
 
-<script src="../lib/suite-version.js?v=673"></script>
+<script src="../lib/suite-version.js?v=691"></script>
 <script src="../lib/data.js?v=674"></script>
+<script src="../lib/quote-bus.js?v=691"></script>
 <script src="../lib/setup-levels.js?v=614"></script>
 <script>
 // ============ CONFIG ============
@@ -2273,7 +2274,22 @@ const TWELVEDATA_USES_ETF_PROXY = new Set(['^VIX', 'DX-Y.NYB', '^TNX']);
 
 // Refolosim fetchYahooChart30d (range=3mo merge stabil prin proxy)
 // — range=5d eșuează intermitent pe Yahoo via codetabs/corsproxy.
+function quoteBusKey(symbol) {
+  if (symbol === '^VIX') return 'VIX';
+  if (symbol === 'SPY' || symbol === 'QQQ') return symbol;
+  return null;
+}
 async function fetchYahooQuote(symbol) {
+  // I-214: VIX/SPY/QQQ din quote bus (hub a încălzit deja) — tile instant
+  const bk = quoteBusKey(symbol);
+  if (bk && window.QB) {
+    try {
+      const hit = QB.get(bk, 45000);
+      if (hit && Number.isFinite(hit.price)) {
+        return { last: hit.price, chgPct: Number.isFinite(hit.chgPct) ? hit.chgPct : 0, prevClose: hit.price, fromBus: true };
+      }
+    } catch (e) {}
+  }
   // Pentru crypto: încercăm întâi CoinGecko (no proxy)
   if (symbol === 'BTC-USD' || symbol === 'ETH-USD') {
     const cg = await fetchCryptoFromCoinGecko();
@@ -2291,7 +2307,11 @@ async function fetchYahooQuote(symbol) {
     const sameDay = lastPt != null && last && Math.abs(last - lastPt) / last < 0.0005;
     const prevClose = (sameDay ? prevPt : lastPt) ?? data.meta?.chartPreviousClose ?? last;
     const chgPct = prevClose ? ((last - prevClose) / prevClose) * 100 : 0;
-    return { last, chgPct, prevClose };
+    const out = { last, chgPct, prevClose };
+    if (bk && window.QB && Number.isFinite(last)) {
+      try { QB.set(bk, { price: last, chgPct, src: 'macro' }); } catch (e) {}
+    }
+    return out;
   }
   // Yahoo a picat → fallback ETF proxy via Finnhub (no proxy)
   const etfSym = ETF_PROXY_MAP[symbol];
