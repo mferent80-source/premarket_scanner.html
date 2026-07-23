@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v668-2026-07-22';
+const CACHE_VERSION = 'tt-v669-2026-07-23';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -118,15 +118,30 @@ function isHubEntry(url, req) {
 
 self.addEventListener('install', e => {
   self.skipWaiting();
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(c =>
-      Promise.all(PRECACHE.map(u =>
-        // eșecul de precache nu mai e înghițit mut — un typo în listă
+  e.waitUntil((async () => {
+    // precache INCREMENTAL: la bump de versiune, ce există în cache-ul vechi
+    // se COPIAZĂ (zero rețea), doar ce lipsește se descarcă — înainte, fiecare
+    // bump re-descărca toate cele ~100 fișiere (~6MB) cu cache:'reload', în
+    // paralel cu încărcarea paginii. Prospețimea o asigură runtime-ul:
+    // fiecare fetch reușit face cachePut peste copia veche.
+    const fresh = await caches.open(CACHE_NAME);
+    const oldKey = (await caches.keys()).filter(k => k.startsWith('trading-tools-') && k !== CACHE_NAME).pop();
+    const old = oldKey ? await caches.open(oldKey) : null;
+    await Promise.all(PRECACHE.map(async u => {
+      try {
+        if (old) {
+          const hit = await old.match(u, { ignoreSearch: true });
+          if (hit) { await fresh.put(u, hit); return; }
+        }
+        // 'no-cache' = revalidare ETag (304 dacă neschimbat), nu re-download orb
+        await fresh.add(new Request(u, { cache: 'no-cache' }));
+      } catch (err) {
+        // eșecul de precache nu e înghițit mut — un typo în listă
         // înseamnă offline parțial rupt fără niciun semnal
-        c.add(new Request(u, { cache: 'reload' })).catch(err => console.warn('[SW] precache fail:', u, err && err.message))
-      ))
-    )
-  );
+        console.warn('[SW] precache fail:', u, err && err.message);
+      }
+    }));
+  })());
 });
 
 self.addEventListener('activate', e => {
