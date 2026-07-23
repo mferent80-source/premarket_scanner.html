@@ -214,7 +214,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-212 | Un singur ecran de decizie (anti-dublură cockpit/brief/tableau) | hub (index + hub-brief + hub-tableau) | M | P1 | făcut | ideation | 2026-07-23 |
 | I-213 | Context handoff suite-wide (sym + regim + buget R) | lib/suite-context.js + hub + journal + nasdaq | M | P1 | făcut | ideation | 2026-07-23 |
 | I-214 | Quote bus unificat (cache live partajat cross-pagini) | lib/data.js + hub-market + consumers | L | P2 | propus | ideation | 2026-07-23 |
-| I-215 | Hub layout per sesiune agresiv (Pre/RTH/AH/Review) | hub + hub-ui.css + SES | M | P2 | propus | ideation | 2026-07-23 |
+| I-215 | Hub layout per sesiune agresiv (Pre/RTH/AH/Review) | hub + hub-ui.css + SES | M | P2 | făcut | ideation | 2026-07-23 |
 | I-216 | Platform health strip + auto-degrade pe date | hub + hub-health.js | S | P2 | făcut | ideation | 2026-07-23 |
 
 ## Mini-spec-uri
@@ -1511,11 +1511,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Fișiere atinse:** lib/data.js, lib/hub-market.js, macro-dashboard, portfolio/journal live, watchlist-monitor (opțional).
 
 ### I-215 · Hub layout per sesiune agresiv (Pre/RTH/AH/Review) · [M] · P2
+- **Status:** făcut (tt-v689) — bar LAYOUT Auto/Pre/RTH/AH/Review; CSS order pe `data-hub-slot`; launch chips reordered; checklist auto Pre; ledger auto Review; gappers promote Pre/AH.
 - **Problema/golul:** I-067/I-162 au mode pe body dar layout-ul rămâne majoritar același (opacity pe cards); Pre nu promovează gappers+earnings, RTH nu promovează open risk+GO, Review nu promovează ledger/weekly. data-hub-mode e slab folosit ca layout real.
 - **Soluția:** 4 template-uri CSS/DOM: Pre = gappers+event tape+checklist; RTH = open positions risk + GO + freeze; AH = after gappers + PnL day; Review = Signal Ledger + weekly link + equity drift. Card grid se filtrează/reordonează, nu doar opacity.
 - **Impact:** hub-ul se simte ca platformă pe oră, nu ca homepage statică de tool-uri.
 - **Riscuri/dependențe:** SES (I-208) trebuie sursă unică; preferințe user „lock layout" opțional.
-- **Fișiere atinse:** index.html, lib/hub-brief.js, lib/hub-ui.css, lib/suite-sessions.js.
+- **Fișiere atinse:** index.html, lib/hub-brief.js, lib/hub-ui.css, lib/hub-tableau.js, sw-app.js.
 
 ### I-216 · Platform health strip + auto-degrade pe date · [S] · P2
 - **Problema/golul:** I-206 degradă GO pe trust, Health e pagină separată, hubStaleNav e un 📦 ascuns. Când proxy-ul e mort, hub-ul arată încă panouri „se încarcă…" fără mesaj de platformă.

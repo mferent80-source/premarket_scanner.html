@@ -1,10 +1,165 @@
-/* hub-ui.css v679 — hub dens + launch pad (mai puțin scroll) */
+/* hub-ui.css v689 — hub dens + I-215 layout pe sesiune */
 
 .hub-shell {
   display: flex;
   flex-direction: column;
   gap: 0;
   width: 100%;
+}
+
+/* ── I-215 Session layout bar + slot order ── */
+.hub-sess-bar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;
+  margin:0 0 8px;padding:6px 8px;
+  border-radius:10px;border:1px solid var(--b1);
+  background:linear-gradient(180deg,rgba(20,26,40,.75),rgba(12,16,24,.55));
+  order:1;
+}
+.hub-sess-lbl{
+  font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.1em;
+  color:var(--t3);margin-right:2px;min-width:5.5rem;
+}
+.hub-sess-btn{
+  font-family:var(--mono);font-size:10.5px;font-weight:700;
+  padding:4px 9px;border-radius:7px;cursor:pointer;
+  border:1px solid var(--b2,#3a4258);background:var(--bg3,#222c44);
+  color:var(--t2);transition:border-color .12s,color .12s,background .12s;
+}
+.hub-sess-btn:hover{border-color:var(--accent,#8ac8ff);color:var(--t1)}
+.hub-sess-btn.on{
+  border-color:rgba(247,147,26,.55);
+  background:rgba(247,147,26,.14);
+  color:var(--crypto-2,#ffd86b);
+}
+.hub-sess-btn[data-hub-mode-set="auto"].on{
+  border-color:rgba(91,176,255,.45);
+  background:rgba(91,176,255,.12);
+  color:#8ac8ff;
+}
+.ht-pill.ht-mode.soft{
+  opacity:.85;
+  border-color:rgba(247,147,26,.28);
+}
+
+/* default slot order (flex) */
+.hub-shell > [data-hub-slot="sess"]{order:1}
+.hub-shell > [data-hub-slot="decision"]{order:10}
+.hub-shell > [data-hub-slot="checklist"]{order:20}
+.hub-shell > [data-hub-slot="launch"]{order:30}
+.hub-shell > [data-hub-slot="search"]{order:40}
+.hub-shell > [data-hub-slot="cockpit"]{order:50}
+.hub-shell > [data-hub-slot="brief"]{order:60}
+.hub-shell > [data-hub-slot="ledger"]{order:70}
+.hub-shell > [data-hub-slot="catalog"]{order:80}
+.hub-launch{display:flex;flex-wrap:wrap}
+
+/* ── PRE: gappers + events + checklist first ── */
+body[data-hub-mode="pre"] .hub-shell > [data-hub-slot="checklist"]{order:12}
+body[data-hub-mode="pre"] .hub-shell > [data-hub-slot="launch"]{order:14}
+body[data-hub-mode="pre"] .hub-shell > [data-hub-slot="ledger"]{order:85;opacity:.55}
+body[data-hub-mode="pre"] .hub-shell > [data-hub-slot="brief"]{order:75;opacity:.85}
+body[data-hub-mode="pre"] .ht-gappers-slot{
+  order:-1;display:block!important;
+  margin:4px 0 6px;padding:6px 0 2px;
+  border-top:1px dashed rgba(247,147,26,.25);
+}
+body[data-hub-mode="pre"] .ht-gold-bar{
+  display:flex;flex-direction:column;gap:6px;
+}
+body[data-hub-mode="pre"] .ht-gold-ev-wrap{
+  order:0;
+}
+body[data-hub-mode="pre"] .hub-checklist-panel{
+  border-color:rgba(247,147,26,.35)!important;
+  background:linear-gradient(180deg,rgba(247,147,26,.08),rgba(20,26,40,.5))!important;
+}
+body[data-hub-mode="pre"] #hubCatalogFold[open] .wf-section[data-wf="review"]{
+  opacity:.4;order:9;
+}
+body[data-hub-mode="pre"] #hubCatalogFold[open] .wf-section[data-wf="scan"]{order:1}
+body[data-hub-mode="pre"] #hubCatalogFold[open] .wf-section[data-wf="plan"]{order:2}
+
+/* ── RTH: decision surface primary, risk/GO, no checklist ── */
+body[data-hub-mode="rth"] .hub-shell > [data-hub-slot="checklist"]{display:none!important}
+body[data-hub-mode="rth"] .hub-shell > [data-hub-slot="decision"]{order:10}
+body[data-hub-mode="rth"] .hub-shell > [data-hub-slot="launch"]{order:15}
+body[data-hub-mode="rth"] .hub-shell > [data-hub-slot="cockpit"]{order:18}
+body[data-hub-mode="rth"] .hub-shell > [data-hub-slot="ledger"]{order:80;opacity:.5}
+body[data-hub-mode="rth"] .hub-na{
+  box-shadow:0 0 0 1px rgba(34,214,107,.2),0 8px 28px rgba(0,0,0,.35);
+}
+body[data-hub-mode="rth"] .hub-freeze-top.red,
+body[data-hub-mode="rth"] .hub-freeze-top.amber{
+  font-size:13px;padding:11px 14px;
+}
+body[data-hub-mode="rth"] #hubCatalogFold[open] .wf-section[data-wf="journal"]{order:1}
+body[data-hub-mode="rth"] #hubCatalogFold[open] .wf-section[data-wf="plan"]{order:2}
+body[data-hub-mode="rth"] #hubCatalogFold[open] .wf-section[data-wf="scan"]{order:3}
+body[data-hub-mode="rth"] #hubCatalogFold[open] .wf-section[data-wf="review"]{opacity:.45;order:9}
+
+/* ── AFTER-HOURS: gappers AH + PnL path (portfolio/journal) ── */
+body[data-hub-mode="after"] .hub-shell > [data-hub-slot="checklist"]{display:none!important}
+body[data-hub-mode="after"] .hub-shell > [data-hub-slot="launch"]{order:12}
+body[data-hub-mode="after"] .hub-shell > [data-hub-slot="cockpit"]{order:16}
+body[data-hub-mode="after"] .hub-shell > [data-hub-slot="ledger"]{order:55;opacity:.9}
+body[data-hub-mode="after"] .ht-gappers-slot{
+  display:block!important;margin:4px 0 6px;
+  border-top:1px dashed rgba(167,139,250,.3);
+}
+body[data-hub-mode="after"] .hub-sess-bar{
+  border-color:rgba(167,139,250,.3);
+}
+body[data-hub-mode="after"] #hubCatalogFold[open] .wf-section[data-wf="journal"]{order:1}
+body[data-hub-mode="after"] #hubCatalogFold[open] .wf-section[data-wf="review"]{order:2}
+body[data-hub-mode="after"] #hubCatalogFold[open] .wf-section[data-wf="scan"]{order:3;opacity:.7}
+
+/* ── REVIEW: ledger + weekly + equity, hide search ── */
+body[data-hub-mode="review"] .hub-shell > [data-hub-slot="ledger"]{
+  order:12;
+  opacity:1;
+  border-color:rgba(91,176,255,.4);
+  box-shadow:0 4px 20px rgba(91,176,255,.12);
+}
+body[data-hub-mode="review"] .hub-shell > [data-hub-slot="launch"]{order:14}
+body[data-hub-mode="review"] .hub-shell > [data-hub-slot="cockpit"]{order:18}
+body[data-hub-mode="review"] .hub-shell > [data-hub-slot="brief"]{order:20}
+body[data-hub-mode="review"] .hub-shell > [data-hub-slot="checklist"]{display:none!important}
+body[data-hub-mode="review"] .hub-search-fold{display:none}
+body[data-hub-mode="review"] .ht-gappers-slot{display:none!important}
+body[data-hub-mode="review"] #hubEqPill,
+body[data-hub-mode="review"] .hub-cockpit-sum{
+  font-weight:800;
+}
+body[data-hub-mode="review"] .hub-launch-chip[data-launch="weekly"]{
+  border-color:rgba(91,176,255,.5)!important;
+  background:rgba(91,176,255,.14)!important;
+  color:#8ac8ff!important;
+  font-weight:800;
+}
+body[data-hub-mode="review"] #hubCatalogFold[open] .wf-section[data-wf="review"]{order:1}
+body[data-hub-mode="review"] #hubCatalogFold[open] .wf-section[data-wf="journal"]{order:2}
+body[data-hub-mode="review"] #hubCatalogFold[open] .wf-section[data-wf="scan"],
+body[data-hub-mode="review"] #hubCatalogFold[open] .wf-section[data-wf="execute"]{
+  opacity:.45;order:8;
+}
+body[data-hub-mode="review"] #hubCatalogFold[open] .wf-section[data-wf="plan"]{opacity:.55;order:7}
+
+/* catalog sections as flex for reordering when open */
+#hubCards{
+  display:flex;flex-direction:column;
+}
+#hubCards .wf-section{order:5}
+
+/* card phase dim — fallback when catalog open */
+body[data-hub-mode="pre"] .card[data-phase="review"]{opacity:.5}
+body[data-hub-mode="rth"] .card[data-phase="review"]{opacity:.55}
+body[data-hub-mode="after"] .card[data-phase="scan"]{opacity:.75}
+body[data-hub-mode="review"] .card[data-phase="scan"],
+body[data-hub-mode="review"] .card[data-phase="execute"]{opacity:.5}
+
+@media (max-width:560px){
+  .hub-sess-lbl{width:100%;margin-bottom:2px}
+  .hub-sess-btn{flex:1 1 auto;text-align:center;padding:5px 6px;font-size:10px}
 }
 
 /* ── I-212 Decision surface (health + NA + date live) ── */

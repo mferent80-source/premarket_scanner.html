@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=688"></script>
+<script src="lib/suite-version.js?v=689"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -46,7 +46,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="lib/suite-ui.css?v=678">
-<link rel="stylesheet" href="lib/hub-ui.css?v=688">
+<link rel="stylesheet" href="lib/hub-ui.css?v=689">
 <style>
 /* === Hub shell aliniat Macro (suite-ui.css) — full-bleed + tokeni canonic ── */
 :root{
@@ -319,13 +319,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .wf-section{margin-top:28px}
 .wf-head{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--b1)}
 .wf-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-body[data-hub-mode="pre"] .card[data-phase="review"]{opacity:.55}
-body[data-hub-mode="pre"] .card[data-phase="execute"]{opacity:.75}
-body[data-hub-mode="rth"] .card[data-phase="plan"]{opacity:.85}
-body[data-hub-mode="rth"] .card[data-phase="review"]{opacity:.7}
-body[data-hub-mode="review"] .card[data-phase="scan"]{opacity:.55}
-body[data-hub-mode="review"] .card[data-phase="execute"]{opacity:.55}
-body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
+/* I-215: opacity slabă înlocuită de layout real în hub-ui.css (order/hide/promote) */
 .tt-fab.journal-fab{background:linear-gradient(135deg,#a78bfa,#22d66b);box-shadow:0 6px 20px rgba(167,139,250,.35)}
 
 /* === TODAY'S PLAYBOOK (absorbit din pagina playbook, retrasă 2026-06-11) === */
@@ -489,8 +483,18 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   </header>
 
   <div class="hub-shell">
+  <!-- I-215: layout bar — Auto urmează SES; lock forțează template-ul -->
+  <div class="hub-sess-bar" id="hubSessBar" data-hub-slot="sess" role="group" aria-label="Layout pe sesiune">
+    <span class="hub-sess-lbl" id="hubSessLbl">LAYOUT</span>
+    <button type="button" class="hub-sess-btn" data-hub-mode-set="auto" title="Urmează sesiunea NYSE (SES)">⟳ Auto</button>
+    <button type="button" class="hub-sess-btn" data-hub-mode-set="pre" title="Pre-market: gappers + events + checklist">🌅 Pre</button>
+    <button type="button" class="hub-sess-btn" data-hub-mode-set="rth" title="RTH: risk open + GO + freeze">📈 RTH</button>
+    <button type="button" class="hub-sess-btn" data-hub-mode-set="after" title="After-hours: gappers AH + PnL zi">🌙 AH</button>
+    <button type="button" class="hub-sess-btn" data-hub-mode-set="review" title="Review: ledger + weekly + equity">🔬 Review</button>
+  </div>
+
   <!-- I-212 Decision surface: health → CTA → date live -->
-  <div class="hub-decision" id="hubDecision">
+  <div class="hub-decision" id="hubDecision" data-hub-slot="decision">
   <!-- I-216 Platform health strip -->
   <div class="hub-platform-strip" id="hubPlatformStrip" aria-label="Platform health" hidden></div>
 
@@ -512,25 +516,26 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   </section>
   </div><!-- /.hub-decision -->
 
-  <div id="hubChecklist" class="hub-checklist-panel" style="display:none" aria-label="Morning checklist"></div>
+  <div id="hubChecklist" class="hub-checklist-panel" data-hub-slot="checklist" style="display:none" aria-label="Morning checklist"></div>
 
-  <!-- Launch pad — tool-uri cheie fără scroll pe catalog -->
-  <nav class="hub-launch" id="hubLaunch" aria-label="Launch rapid">
-    <a class="hub-launch-chip pri" href="./journal/#desk">🛑 Desk</a>
-    <a class="hub-launch-chip pri" href="./router/">🧭 Router</a>
-    <a class="hub-launch-chip pri" href="./macro-dashboard/">🌍 Macro</a>
-    <a class="hub-launch-chip pri" href="./nasdaq-scanner/">📡 Nasdaq</a>
-    <a class="hub-launch-chip" href="./journal/#portfolio">🛡️ Portfolio</a>
-    <a class="hub-launch-chip" href="./journal/">📓 Journal</a>
-    <a class="hub-launch-chip" href="./watchlist-monitor/">👁 WL</a>
-    <a class="hub-launch-chip" href="./smart-trade-long/">🎯 STL</a>
-    <a class="hub-launch-chip" href="./market-events/">📅 Events</a>
-    <a class="hub-launch-chip" href="./alerts/">🔔 Alerts</a>
-    <a class="hub-launch-chip" href="./sector-rotation/">🔄 Sector</a>
-    <a class="hub-launch-chip" href="./health/">💚 Health</a>
+  <!-- Launch pad — tool-uri cheie; I-215 reordonează chips pe sesiune -->
+  <nav class="hub-launch" id="hubLaunch" data-hub-slot="launch" aria-label="Launch rapid">
+    <a class="hub-launch-chip pri" data-launch="desk" href="./journal/#desk">🛑 Desk</a>
+    <a class="hub-launch-chip pri" data-launch="router" href="./router/">🧭 Router</a>
+    <a class="hub-launch-chip pri" data-launch="macro" href="./macro-dashboard/">🌍 Macro</a>
+    <a class="hub-launch-chip pri" data-launch="nasdaq" href="./nasdaq-scanner/">📡 Nasdaq</a>
+    <a class="hub-launch-chip" data-launch="portfolio" href="./journal/#portfolio">🛡️ Portfolio</a>
+    <a class="hub-launch-chip" data-launch="journal" href="./journal/">📓 Journal</a>
+    <a class="hub-launch-chip" data-launch="wl" href="./watchlist-monitor/">👁 WL</a>
+    <a class="hub-launch-chip" data-launch="stl" href="./smart-trade-long/">🎯 STL</a>
+    <a class="hub-launch-chip" data-launch="events" href="./market-events/">📅 Events</a>
+    <a class="hub-launch-chip" data-launch="alerts" href="./alerts/">🔔 Alerts</a>
+    <a class="hub-launch-chip" data-launch="sector" href="./sector-rotation/">🔄 Sector</a>
+    <a class="hub-launch-chip" data-launch="weekly" href="./weekly/">📅 Weekly</a>
+    <a class="hub-launch-chip" data-launch="health" href="./health/">💚 Health</a>
   </nav>
 
-  <details class="hub-search-fold" id="hubSearchFold">
+  <details class="hub-search-fold" id="hubSearchFold" data-hub-slot="search">
     <summary class="hub-search-sum">🔍 Caută tool-uri</summary>
     <div class="hub-search-body">
       <div class="hub-search" id="hubSearchWrap">
@@ -543,7 +548,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     </div>
   </details>
 
-  <details class="hub-cockpit-fold hub-detail-fold" id="hubCockpitWrap">
+  <details class="hub-cockpit-fold hub-detail-fold" id="hubCockpitWrap" data-hub-slot="cockpit">
     <summary class="hub-cockpit-sum" id="hubCockpitSum">🧭 Detalii Router / GO — se încarcă…</summary>
   <section class="hub-cockpit hub-cockpit-inner" id="hubCockpit">
     <div>
@@ -573,7 +578,7 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   </details>
 
   <!-- Brief — taburi mici grupate (fără stivă lungă de secțiuni) -->
-  <details class="pb-wrap hub-detail-fold" id="pbWrap">
+  <details class="pb-wrap hub-detail-fold" id="pbWrap" data-hub-slot="brief">
     <summary class="pb-summary">📋 Brief detaliat
       <span class="pb-sum-sub">Desk · Piață · Scan · AI</span>
       <button class="pb-refresh-btn" id="pbRefreshBtn" title="Reîncarcă toate secțiunile">🔄</button>
@@ -670,8 +675,8 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     </div>
   </details>
 
-  <!-- SIGNAL LEDGER — scorecard-ul scannerelor (lib/ledger.js); lazy la expand -->
-  <details class="pb-wrap" id="slWrap">
+  <!-- SIGNAL LEDGER — scorecard-ul scannerelor (lib/ledger.js); lazy la expand · I-215 Review promote -->
+  <details class="pb-wrap" id="slWrap" data-hub-slot="ledger">
     <summary class="pb-summary">📒 Signal Ledger
       <span class="pb-sum-sub">care scanner face bani? — semnale evaluate la +5/+20 zile de tranzacționare</span>
       <button class="pb-refresh-btn" id="slRefreshBtn" title="Reevaluează semnalele">🔄 Refresh</button>
@@ -688,8 +693,8 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     </div>
   </details>
 
-  <!-- Catalog pliat: pe full-bleed nu mai forțează scroll de 3+ ecrane -->
-  <details class="hub-catalog-fold" id="hubCatalogFold">
+  <!-- Catalog pliat: pe full-bleed nu mai forțează scroll de 3+ ecrane · I-215 filtre pe sesiune -->
+  <details class="hub-catalog-fold" id="hubCatalogFold" data-hub-slot="catalog">
     <summary class="hub-catalog-sum">🧰 Catalog tool-uri <span class="hub-catalog-hint">carduri detaliate · expandă când cauți ceva rar</span></summary>
   <main id="hubCards">
 
@@ -1564,9 +1569,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 <script defer src="lib/hub-state.js?v=668"></script>
 <script defer src="lib/hub-card-live.js?v=666"></script>
 <script defer src="lib/hub-gappers.js?v=684"></script>
-<script defer src="lib/hub-tableau.js?v=688"></script>
+<script defer src="lib/hub-tableau.js?v=689"></script>
 <script defer src="lib/hub-health.js?v=687"></script>
-<script defer src="lib/hub-brief.js?v=688"></script>
+<script defer src="lib/hub-brief.js?v=689"></script>
 <script defer src="lib/hub-next-action.js?v=686"></script>
 <script defer src="lib/hub-ledger.js?v=666"></script>
 <script>
