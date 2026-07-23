@@ -183,13 +183,18 @@ function htmlNetworkFirst(e, req, url) {
   });
 }
 
-// Assets (lib/*.js?v=, CSS, nav.js): network-first cu fallback offline
-function assetFetch(e, req, url) {
-  return fetch(req).then(res => cachePut(url, res)).catch(() =>
-    caches.match(req, { ignoreSearch: true }).then(r =>
-      r || new Response('', { status: 504, statusText: 'offline' })
-    )
-  );
+// Assets (lib/*.js?v=, CSS, nav.js): stale-while-revalidate — servește
+// instant din cache, refresh-ul merge în fundal (vizita URMĂTOARE prinde
+// versiunea nouă). Compromis asumat: imediat după un update, o pagină
+// poate rula O dată lib-ul vechi; se auto-vindecă la refresh.
+function assetSWR(e, req, url) {
+  return caches.match(req, { ignoreSearch: true }).then(hit => {
+    const net = fetch(req).then(res => cachePut(url, res)).catch(() =>
+      hit || new Response('', { status: 504, statusText: 'offline' })
+    );
+    if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
+    return net;
+  });
 }
 
 self.addEventListener('fetch', e => {
@@ -200,7 +205,7 @@ self.addEventListener('fetch', e => {
 
   // isHubEntry acoperă deja navigate + *.html + accept: text/html
   if (isHubEntry(url, req)) e.respondWith(htmlNetworkFirst(e, req, url));
-  else e.respondWith(assetFetch(e, req, url));
+  else e.respondWith(assetSWR(e, req, url));
 });
 
 self.addEventListener('message', e => {
