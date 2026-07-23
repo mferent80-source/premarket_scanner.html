@@ -344,7 +344,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 <div class="toast" id="toast"></div>
 
 <script src="../lib/data.js"></script>
-<script src="../lib/quote-bus.js?v=696"></script>
+<script src="../lib/quote-bus.js?v=697"></script>
 <script src="../lib/suite-context.js?v=686"></script>
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
@@ -1969,7 +1969,7 @@ function resolveStlSym() {
 function paintStlFocus(sym, source) {
   const host = document.getElementById('stlFocusStrip');
   if (!host || !sym) return;
-  const hit = qbHit(sym, false) || (window.QB && QB.getAny ? QB.getAny(sym) : null);
+  const hit = (window.QB && QB.getAny ? QB.getAny(sym) : null) || qbHit(sym, 24 * 3600 * 1000);
   let priceLine = '';
   if (hit && Number.isFinite(hit.price)) {
     const age = hit.ts ? Math.round((Date.now() - hit.ts) / 1000) : null;
@@ -2035,10 +2035,10 @@ function paintStlFocus(sym, source) {
   if (window.CD) CD.renderRail('capitalRail', 'stl');
 })();
 </script>
-<script src="../lib/suite-version.js?v=696"></script>
+<script src="../lib/suite-version.js?v=697"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v696';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v697';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
