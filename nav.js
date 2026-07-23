@@ -1,4 +1,5 @@
-// Suite bottom dock — navigare pe toate tool-urile, jos-centru, pe ORICE pagină.
+// Suite bottom nav — jos-centru, pe ORICE pagină (nu doar PWA).
+// Bara scurtă (principale) + buton „Toate” → grilă completă grupată.
 // Include: <script src="<root>nav.js" data-nav-root="<root>"></script>
 //   Hub: data-nav-root="./"   · sub-pagini: data-nav-root="../"
 // În shell (iframe): fără dock — click pe link intern → postMessage către shell.
@@ -20,34 +21,25 @@
       for (var i = 0; i < SEGS.length; i++) {
         if (abs.indexOf('/' + SEGS[i]) >= 0) return SEGS[i];
       }
-      if (/\/premarket_scanner\.html\/?$/.test(abs) || /\/$/.test(abs) && abs.indexOf('/journal') < 0) {
-        // hub root rough
-        if (abs.indexOf('/macro-dashboard') < 0 && abs.indexOf('/nasdaq') < 0) {
-          try {
-            var u = new URL(href, location.href);
-            if (/premarket_scanner\.html\/?$/.test(u.pathname) || /premarket_scanner\.html\/index\.html$/.test(u.pathname))
-              return '';
-          } catch (_) {}
-        }
-      }
+      try {
+        var u = new URL(href, location.href);
+        if (/premarket_scanner\.html\/?$/.test(u.pathname) || /premarket_scanner\.html\/index\.html$/.test(u.pathname))
+          return '';
+      } catch (_) {}
       return null;
     };
     document.addEventListener('click', function (e) {
       var a = e.target.closest && e.target.closest('a[href]');
       if (!a) return;
       var href = a.getAttribute('href') || '';
-      if (/^(https?:|mailto:|tel:|javascript:)/i.test(href) && href.indexOf(location.host) < 0 && !/^\.\.?\//.test(href) && href.charAt(0) !== '#') {
-        // external absolute — leave; relative suite links continue
-      }
       if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
       if (href.charAt(0) === '#' && href.indexOf('/') < 0) return;
       var seg = hrefToSeg(href);
       if (seg === null && /^\.\.?\//.test(href)) {
-        // try again with path segments
         for (var j = 0; j < SEGS.length; j++) {
           if (href.indexOf(SEGS[j]) >= 0) { seg = SEGS[j]; break; }
         }
-        if (href === '../' || href === './' || /index\.html$/.test(href) && href.indexOf('/') <= 2) seg = '';
+        if (href === '../' || href === './' || (/index\.html$/.test(href) && href.indexOf('/') <= 2)) seg = '';
       }
       if (seg === null) return;
       e.preventDefault();
@@ -63,30 +55,70 @@
   var root = (s && s.getAttribute('data-nav-root')) || './';
   if (root.slice(-1) !== '/' && root !== './' && root !== '../') root += '/';
 
-  // Toate tool-urile (ordine workflow: hub → plan → scan → exec → review)
-  var PAGES = [
+  // Grupe complete — TOATE tool-urile din suite
+  var GROUPS = [
+    {
+      title: 'Hub & plan',
+      items: [
+        { u: '', n: 'Hub', e: '🏠' },
+        { u: 'router/', n: 'Router', e: '🧭' },
+        { u: 'macro-dashboard/', n: 'Macro', e: '🌍' },
+        { u: 'sector-rotation/', n: 'Sector', e: '🔄' }
+      ]
+    },
+    {
+      title: 'Scan',
+      items: [
+        { u: 'nasdaq-scanner/', n: 'Nasdaq', e: '📈' },
+        { u: 'smart-trade-long/', n: 'Smart Long', e: '🚀' },
+        { u: 'watchlist-monitor/', n: 'Watchlist', e: '👁' },
+        { u: 'market-events/', n: 'Events', e: '📊' },
+        { u: 'pump-radar/', n: 'Pump Radar', e: '🔥' },
+        { u: 'earnings-hub/', n: 'Earnings', e: '📅' },
+        { u: 'markov-lab/', n: 'Markov', e: '🔗' },
+        { u: 'alerts/', n: 'Alerts', e: '🔔' }
+      ]
+    },
+    {
+      title: 'Capital & exec',
+      items: [
+        { u: 'journal/', n: 'Journal', e: '📓' },
+        { u: 'journal/#desk', n: 'Risk Desk', e: '🛑' },
+        { u: 'journal/#exec', n: 'Execuții', e: '⚡' },
+        { u: 'journal/#portfolio', n: 'Portfolio', e: '🛡' },
+        { u: 'journal/#capital', n: 'Capital', e: '⚖' }
+      ]
+    },
+    {
+      title: 'Review',
+      items: [
+        { u: 'weekly/', n: 'Weekly', e: '🗓' },
+        { u: 'postmortem/', n: 'Post-Mortem', e: '🔬' },
+        { u: 'shadow-book/', n: 'Shadow Book', e: '👻' },
+        { u: 'health/', n: 'Health', e: '💚' },
+        { u: 'guide/', n: 'Ghid', e: '📖' },
+        { u: 'hub-demo/', n: 'Hub Demo', e: '🧪' }
+      ]
+    }
+  ];
+
+  // Bara scurtă (mereu vizibilă) — restul e în panoul „Toate”
+  var QUICK = [
     { u: '', n: 'Hub', e: '🏠' },
     { u: 'router/', n: 'Router', e: '🧭' },
     { u: 'macro-dashboard/', n: 'Macro', e: '🌍' },
-    { u: 'sector-rotation/', n: 'Sector', e: '🔄' },
     { u: 'nasdaq-scanner/', n: 'Nasdaq', e: '📈' },
-    { u: 'smart-trade-long/', n: 'STL', e: '🚀' },
-    { u: 'watchlist-monitor/', n: 'Watch', e: '👁' },
-    { u: 'market-events/', n: 'Events', e: '📊' },
-    { u: 'pump-radar/', n: 'Pump', e: '🔥' },
-    { u: 'earnings-hub/', n: 'Earn', e: '📅' },
-    { u: 'alerts/', n: 'Alerts', e: '🔔' },
     { u: 'journal/', n: 'Journal', e: '📓' },
     { u: 'journal/#desk', n: 'Desk', e: '🛑' },
-    { u: 'journal/#portfolio', n: 'Port', e: '🛡' },
-    { u: 'journal/#capital', n: 'Cap', e: '⚖' },
-    { u: 'markov-lab/', n: 'Markov', e: '🔗' },
-    { u: 'weekly/', n: 'Weekly', e: '🗓' },
-    { u: 'postmortem/', n: 'PM', e: '🔬' },
-    { u: 'shadow-book/', n: 'Shadow', e: '👻' },
-    { u: 'health/', n: 'Health', e: '💚' },
-    { u: 'guide/', n: 'Ghid', e: '📖' }
+    { u: 'alerts/', n: 'Alerts', e: '🔔' },
+    { u: 'health/', n: 'Health', e: '💚' }
   ];
+
+  function flatPages() {
+    var out = [];
+    GROUPS.forEach(function (g) { g.items.forEach(function (it) { out.push(it); }); });
+    return out;
+  }
 
   function detectActive() {
     var path = location.pathname.replace(/index\.html$/, '');
@@ -95,72 +127,148 @@
       if (hash === 'portfolio' || hash.indexOf('portfolio') === 0) return 'journal/#portfolio';
       if (hash === 'capital' || hash.indexOf('capital') === 0) return 'journal/#capital';
       if (hash === 'desk' || hash.indexOf('desk') === 0) return 'journal/#desk';
+      if (hash === 'exec' || hash.indexOf('exec') === 0) return 'journal/#exec';
       return 'journal/';
     }
-    for (var i = 1; i < PAGES.length; i++) {
-      var u = PAGES[i].u;
-      if (u.indexOf('#') >= 0) continue;
-      if (u && path.indexOf('/' + u) >= 0) return u;
+    if (path.indexOf('/hub-demo') >= 0) return 'hub-demo/';
+    var all = flatPages();
+    for (var i = 0; i < all.length; i++) {
+      var u = all[i].u;
+      if (!u || u.indexOf('#') >= 0) continue;
+      if (path.indexOf('/' + u) >= 0) return u;
     }
     return '';
   }
 
-  var activeU = detectActive();
-
   if (document.getElementById('tt-dock')) return;
+
+  var activeU = detectActive();
 
   var css = document.createElement('style');
   css.id = 'tt-dock-css';
   css.textContent =
-    '#tt-dock{position:fixed;left:50%;transform:translateX(-50%);' +
+    '#tt-dock-wrap{position:fixed;left:50%;transform:translateX(-50%);' +
     'bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:2147483646;' +
-    'display:flex;gap:2px;justify-content:flex-start;align-items:stretch;' +
-    'max-width:min(980px,calc(100vw - 12px));width:max-content;max-width:min(980px,calc(100vw - 12px));' +
-    'overflow-x:auto;overflow-y:hidden;' +
+    'display:flex;flex-direction:column;align-items:center;gap:6px;' +
+    'width:min(720px,calc(100vw - 12px));pointer-events:none}' +
+    '#tt-dock-wrap *{pointer-events:auto}' +
+    /* panou TOATE tool-urile */
+    '#tt-dock-panel{display:none;width:100%;max-height:min(58vh,420px);overflow:auto;' +
+    'background:linear-gradient(180deg,rgba(20,37,51,.98),rgba(11,15,23,.99));' +
+    'border:1px solid #4a5874;border-radius:14px;padding:10px 10px 8px;' +
+    'box-shadow:0 12px 36px rgba(0,0,0,.5);scrollbar-width:thin}' +
+    '#tt-dock-wrap.tt-open #tt-dock-panel{display:block}' +
+    '#tt-dock-panel .tt-g{margin-bottom:8px}' +
+    '#tt-dock-panel .tt-g:last-child{margin-bottom:0}' +
+    '#tt-dock-panel .tt-gt{font-family:\'DM Mono\',ui-monospace,monospace;font-size:9px;font-weight:800;' +
+    'letter-spacing:.08em;text-transform:uppercase;color:#8b95ab;margin:0 0 5px 2px}' +
+    '#tt-dock-panel .tt-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}' +
+    '@media(min-width:520px){#tt-dock-panel .tt-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}' +
+    '@media(min-width:700px){#tt-dock-panel .tt-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}' +
+    '#tt-dock-panel a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;' +
+    'padding:8px 4px;border-radius:10px;text-decoration:none;color:#eef2f8;font-size:9.5px;font-weight:700;' +
+    'font-family:\'DM Mono\',ui-monospace,system-ui,sans-serif;border:1px solid #3a4560;background:rgba(34,44,68,.65);' +
+    'min-height:52px;text-align:center;line-height:1.15}' +
+    '#tt-dock-panel a:hover{border-color:#8ac8ff;background:rgba(138,200,255,.12);color:#fff}' +
+    '#tt-dock-panel a.tt-active{color:#0b0f17;background:linear-gradient(135deg,#f7931a,#ffd86b);border-color:transparent}' +
+    '#tt-dock-panel a .tt-ico{font-size:16px;line-height:1}' +
+    '#tt-dock-panel a .tt-lbl{opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
+    /* bară scurtă */
+    '#tt-dock{display:flex;gap:3px;align-items:stretch;justify-content:center;flex-wrap:nowrap;' +
+    'width:100%;overflow-x:auto;scrollbar-width:none;' +
     'background:linear-gradient(180deg,rgba(20,37,51,.97),rgba(11,15,23,.98));' +
-    'border:1px solid #4a5874;border-radius:16px;' +
-    'padding:5px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch;' +
-    'box-shadow:0 8px 28px rgba(0,0,0,.45),0 0 0 1px rgba(0,0,0,.2)}' +
+    'border:1px solid #4a5874;border-radius:16px;padding:5px 6px;' +
+    'box-shadow:0 8px 28px rgba(0,0,0,.45)}' +
     '#tt-dock::-webkit-scrollbar{display:none}' +
-    '#tt-dock a{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;' +
-    'min-width:48px;padding:4px 6px;border-radius:10px;text-decoration:none;color:#c8d0e0;' +
-    'font-family:\'DM Mono\',ui-monospace,system-ui,sans-serif;font-size:9px;font-weight:700;' +
-    'line-height:1.15;transition:background .12s,color .12s,border-color .12s;border:1px solid transparent}' +
-    '#tt-dock a:hover{color:#fafbfc;background:rgba(138,200,255,.1);border-color:rgba(138,200,255,.25)}' +
-    '#tt-dock a .tt-ico{font-size:15px;line-height:1}' +
-    '#tt-dock a .tt-lbl{letter-spacing:.02em;white-space:nowrap;opacity:.92}' +
-    '#tt-dock a.tt-active{color:#0b0f17;background:linear-gradient(135deg,#f7931a,#ffd86b);border-color:transparent}' +
-    '#tt-dock a.tt-active .tt-lbl{opacity:1}' +
-    'body.tt-has-dock{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))!important}' +
-    /* FABs hub deasupra dock-ului */
-    'body.tt-has-dock .tt-fab,body.tt-has-dock .hub-fabs .tt-fab,body.tt-has-dock .hub-fabs{bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}' +
-    '@media (max-width:480px){#tt-dock a{min-width:44px;padding:4px 5px;font-size:8.5px}#tt-dock a .tt-ico{font-size:14px}}';
+    '#tt-dock a,#tt-dock button.tt-more{flex:1 1 0;min-width:0;max-width:72px;display:flex;flex-direction:column;' +
+    'align-items:center;justify-content:center;gap:1px;padding:5px 4px;border-radius:10px;' +
+    'text-decoration:none;color:#c8d0e0;font-family:\'DM Mono\',ui-monospace,system-ui,sans-serif;' +
+    'font-size:8.5px;font-weight:700;line-height:1.1;border:1px solid transparent;background:transparent;cursor:pointer}' +
+    '#tt-dock a:hover,#tt-dock button.tt-more:hover{color:#fafbfc;background:rgba(138,200,255,.1);border-color:rgba(138,200,255,.25)}' +
+    '#tt-dock a .tt-ico,#tt-dock button.tt-more .tt-ico{font-size:15px;line-height:1}' +
+    '#tt-dock a .tt-lbl,#tt-dock button.tt-more .tt-lbl{letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
+    '#tt-dock a.tt-active{color:#0b0f17;background:linear-gradient(135deg,#f7931a,#ffd86b)}' +
+    '#tt-dock button.tt-more.tt-open{color:#ffd86b;border-color:rgba(247,147,26,.45);background:rgba(247,147,26,.12)}' +
+    'body.tt-has-dock{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}' +
+    'body.tt-has-dock.tt-nav-open{padding-bottom:calc(min(58vh,420px) + 80px + env(safe-area-inset-bottom,0px))!important}' +
+    'body.tt-has-dock .tt-fab,body.tt-has-dock .hub-fabs .tt-fab,body.tt-has-dock .hub-fabs{bottom:calc(76px + env(safe-area-inset-bottom,0px))!important}' +
+    '#tt-dock-scrim{display:none;position:fixed;inset:0;z-index:2147483645;background:rgba(0,0,0,.35)}' +
+    '#tt-dock-wrap.tt-open ~ #tt-dock-scrim,body.tt-nav-open #tt-dock-scrim{display:block}';
   document.head.appendChild(css);
 
+  var scrim = document.createElement('div');
+  scrim.id = 'tt-dock-scrim';
+  scrim.setAttribute('aria-hidden', 'true');
+
+  var wrap = document.createElement('div');
+  wrap.id = 'tt-dock-wrap';
+
+  // panel full
+  var panel = document.createElement('div');
+  panel.id = 'tt-dock-panel';
+  panel.setAttribute('role', 'navigation');
+  panel.setAttribute('aria-label', 'Toate tool-urile');
+  panel.innerHTML = GROUPS.map(function (g) {
+    return '<div class="tt-g"><div class="tt-gt">' + g.title + '</div><div class="tt-grid">' +
+      g.items.map(function (p) {
+        var act = p.u === activeU ? ' tt-active' : '';
+        return '<a class="' + (act ? 'tt-active' : '') + '" href="' + root + p.u + '" data-u="' + p.u + '">' +
+          '<span class="tt-ico" aria-hidden="true">' + p.e + '</span>' +
+          '<span class="tt-lbl">' + p.n + '</span></a>';
+      }).join('') + '</div></div>';
+  }).join('');
+
+  // bară quick
   var bar = document.createElement('nav');
   bar.id = 'tt-dock';
-  bar.setAttribute('aria-label', 'Navigare tool-uri suite');
-  bar.innerHTML = PAGES.map(function (p) {
-    var active = p.u === activeU ? ' tt-active' : '';
-    return '<a class="' + (active ? 'tt-active' : '') + '" href="' + root + p.u + '" title="' + p.n + '">' +
+  bar.setAttribute('aria-label', 'Navigare rapidă suite');
+  bar.innerHTML = QUICK.map(function (p) {
+    var act = p.u === activeU ? ' tt-active' : '';
+    return '<a class="' + (act ? 'tt-active' : '') + '" href="' + root + p.u + '" data-u="' + p.u + '" title="' + p.n + '">' +
       '<span class="tt-ico" aria-hidden="true">' + p.e + '</span>' +
       '<span class="tt-lbl">' + p.n + '</span></a>';
-  }).join('');
-  document.body.appendChild(bar);
+  }).join('') +
+    '<button type="button" class="tt-more" id="ttDockMore" aria-expanded="false" aria-controls="tt-dock-panel" title="Toate tool-urile">' +
+    '<span class="tt-ico" aria-hidden="true">▦</span><span class="tt-lbl">Toate</span></button>';
+
+  wrap.appendChild(panel);
+  wrap.appendChild(bar);
+  document.body.appendChild(scrim);
+  document.body.appendChild(wrap);
   document.body.classList.add('tt-has-dock');
 
-  // scroll la item-ul activ
-  var act = bar.querySelector('a.tt-active');
-  if (act && act.scrollIntoView) {
-    try { act.scrollIntoView({ inline: 'center', block: 'nearest' }); } catch (_) {}
+  function setOpen(open) {
+    wrap.classList.toggle('tt-open', open);
+    document.body.classList.toggle('tt-nav-open', open);
+    var btn = document.getElementById('ttDockMore');
+    if (btn) {
+      btn.classList.toggle('tt-open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
   }
 
-  // hash change pe journal → re-marchează activ
-  window.addEventListener('hashchange', function () {
-    var now = detectActive();
-    bar.querySelectorAll('a').forEach(function (a, idx) {
-      var u = PAGES[idx] && PAGES[idx].u;
-      a.classList.toggle('tt-active', u === now);
+  function paintActive(now) {
+    wrap.querySelectorAll('a[data-u]').forEach(function (a) {
+      a.classList.toggle('tt-active', a.getAttribute('data-u') === now);
     });
+  }
+
+  document.getElementById('ttDockMore').addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(!wrap.classList.contains('tt-open'));
+  });
+  scrim.addEventListener('click', function () { setOpen(false); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') setOpen(false);
+  });
+  // la navigare din panou, închide (page unload or same-page hash)
+  panel.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (a) setTimeout(function () { setOpen(false); }, 50);
+  });
+
+  window.addEventListener('hashchange', function () {
+    paintActive(detectActive());
   });
 })();
