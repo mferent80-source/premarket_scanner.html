@@ -216,13 +216,13 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-214 | Quote bus unificat (cache live partajat cross-pagini) | lib/quote-bus.js + hub-market | L | P2 | făcut | ideation | 2026-07-23 |
 | I-215 | Hub layout per sesiune agresiv (Pre/RTH/AH/Review) | hub + hub-ui.css + SES | M | P2 | făcut | ideation | 2026-07-23 |
 | I-216 | Platform health strip + auto-degrade pe date | hub + hub-health.js | S | P2 | făcut | ideation | 2026-07-23 |
-| I-217 | Tabs Preț / News / Istoric — focus pe lista de alerte | alerts/ | S | P1 | propus | ideation | 2026-07-23 |
-| I-218 | Rail „Almost fire" (top-N proximitate) | alerts/ | M | P1 | propus | ideation | 2026-07-23 |
-| I-219 | Group-by-symbol (card per ticker, reguli nested) | alerts/ | M | P1 | propus | ideation | 2026-07-23 |
-| I-220 | Quick-add templates din WL / Journal open | alerts/ | M | P2 | propus | ideation | 2026-07-23 |
-| I-221 | Client notify policy (sesiune + quiet hours pe UI) | alerts/ | S | P2 | propus | ideation | 2026-07-23 |
-| I-222 | Density compact + multi-select bulk (snooze/arm/delete) | alerts/ | M | P2 | propus | ideation | 2026-07-23 |
-| I-223 | DEMO unificat Alerts I-217…222 (toggle bar, v70) | alerts/ | M | P1 | propus | ideation | 2026-07-23 |
+| I-217 | Tabs Preț / News / Istoric — focus pe lista de alerte | alerts/ | S | P1 | făcut | ideation | 2026-07-23 |
+| I-218 | Rail „Almost fire" (top-N proximitate) | alerts/ | M | P1 | făcut | ideation | 2026-07-23 |
+| I-219 | Group-by-symbol (card per ticker, reguli nested) | alerts/ | M | P1 | făcut | ideation | 2026-07-23 |
+| I-220 | Quick-add templates din WL / Journal open | alerts/ | M | P2 | făcut | ideation | 2026-07-23 |
+| I-221 | Client notify policy (sesiune + quiet hours pe UI) | alerts/ | S | P2 | făcut | ideation | 2026-07-23 |
+| I-222 | Density compact + multi-select bulk (snooze/arm/delete) | alerts/ | M | P2 | făcut | ideation | 2026-07-23 |
+| I-223 | DEMO unificat Alerts I-217…222 (toggle bar) — scos; features permanente v72 | alerts/ | M | P1 | respins | ideation | 2026-07-23 |
 
 ## Mini-spec-uri
 

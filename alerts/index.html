@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🔔 Price Alerts — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
-<meta name="description" content="Custom price alerts pe stocks + crypto cu polling 30s + notify combo (toast + beep + browser + Telegram). News Watch demo pe același ecran.">
+<meta name="description" content="Price alerts stocks + crypto (poll 30s), tabs Preț/News/Istoric, almost-fire, group layout, notify UI, bulk actions, Telegram.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
@@ -526,17 +526,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 }
 .sync-banner .sb-x:hover { color:var(--bear-s); background:transparent; transform:none; }
 
-/* ═══ DEMO desk I-217…222 ═══════════════════════════════════════ */
-.demo-bar {
-  display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;
-  background:var(--panel2);
-  border:1px solid rgba(255,216,107,.4); border-radius:12px;
-  padding:9px 12px; margin-bottom:10px; font-family:var(--mono); font-size:11.5px; color:var(--t1); font-weight:600;
-}
-.demo-bar .demo-lbl { font-weight:800; color:var(--gold); letter-spacing:.04em; }
-.demo-bar label { display:inline-flex; align-items:center; gap:5px; cursor:pointer; user-select:none; white-space:nowrap; color:var(--t1); }
-.demo-bar input { width:15px; height:15px; accent-color:var(--gold); cursor:pointer; }
-.demo-bar .demo-hint { color:var(--t2); margin-left:auto; font-size:11px; font-weight:500; }
+/* Desk layout (tabs / almost / group / bulk) — permanent, fără demo */
 .desk-tabs {
   display:flex; gap:6px; margin-bottom:14px; padding:5px;
   background:var(--panel); border:1px solid var(--b1); border-radius:999px;
@@ -611,18 +601,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .sym-card-head .sc-chg.down { color:var(--bear-s); }
 .sym-card .al-table { margin:0; }
 .sym-card .al-table td.al-tk a { display:none; } /* ticker e pe head */
-body.desk-compact .al-kind, body.desk-compact .al-note { display:none; }
-body.desk-compact .al-table th:nth-child(2),
-body.desk-compact .al-table td.al-entry,
-body.desk-compact .al-table th:nth-child(3),
-body.desk-compact .al-table td.al-num:not(.al-day-col) { }
+body.desk-compact .al-kind,
+body.desk-compact .al-note { display:none; }
 body.desk-compact .al-table th:nth-child(2),
 body.desk-compact .al-table th:nth-child(3),
 body.desk-compact .al-table td.al-entry,
-body.desk-compact .al-table td.al-num:first-of-type { display:none; }
-@media (max-width:768px) {
-  body.desk-compact .al-table tr.al-row { grid-template-areas: "sym thr actions" "cur delta delta" !important; }
-}
+body.desk-compact .al-table td:nth-child(3) { display:none; }
 .bulk-cb { width:16px; height:16px; margin-right:6px; vertical-align:middle; cursor:pointer; accent-color:var(--accent); }
 .bulk-bar {
   display:none; position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:1800;
@@ -681,7 +665,7 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v71</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v72</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -714,18 +698,6 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
   <a href="../guide/?page=alerts" class="hm-item" title="Ghid features pagina asta"><span class="hm-ico">📖</span><span class="hm-lbl">Ghid pagina asta</span></a>
   <div class="hm-sep"></div>
   <div class="hm-item"><button id="notifyPolicyBtn" title="Politică notificări UI (I-221)">🌙</button><span class="hm-lbl">Notify UI policy</span></div>
-</div>
-
-<!-- 🧪 DEMO I-217…222 — toggles ca să vezi ce lași -->
-<div class="demo-bar" id="demoBar" title="Activează/dezactivează fiecare idee din demo">
-  <span class="demo-lbl">🧪 DEMO</span>
-  <label><input type="checkbox" data-desk-feat="tabs" checked> Tabs</label>
-  <label><input type="checkbox" data-desk-feat="almost" checked> Almost-fire</label>
-  <label><input type="checkbox" data-desk-feat="group" checked> Group</label>
-  <label><input type="checkbox" data-desk-feat="templates" checked> Templates</label>
-  <label><input type="checkbox" data-desk-feat="notify" checked> Notify policy</label>
-  <label><input type="checkbox" data-desk-feat="bulk" checked> Bulk+density</label>
-  <span class="demo-hint">bifează ce vrei · se salvează local</span>
 </div>
 
 <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni Alerts">
@@ -1085,8 +1057,8 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=701"></script>
-<script src="../lib/data.js?v=701"></script>
+<script src="../lib/suite-version.js?v=702"></script>
+<script src="../lib/data.js?v=702"></script>
 <script src="../lib/telegram.js"></script>
 <script>
 // ============ CONFIG ============
@@ -1279,17 +1251,29 @@ async function loadServerHist(){
 // Cross-tab: dacă watchlist-monitor (sau alt tab) modifică alertele, re-randăm.
 window.addEventListener('storage', e => { if (e.key === ALERTS_KEY) { priceAlerts = loadAlerts(); render(); } });
 
-// ============ DESK DEMO prefs (I-217…222) ============
-const DESK_KEY = 'pa_desk_demo_v1';
+// ============ DESK prefs (tabs / layout / density / notify) — permanente ============
+const DESK_KEY = 'pa_desk_v1';
 const NOTIFY_POLICY_KEY = 'pa_notify_policy_v1'; // always | quiet | rth
 function deskLoad() {
-  const d = { tabs:true, almost:true, group:true, templates:true, notify:true, bulk:true, layout:'group', density:'comfort', tab:'price' };
-  try { Object.assign(d, JSON.parse(localStorage.getItem(DESK_KEY) || '{}')); } catch (e) {}
+  const d = { layout: 'group', density: 'comfort', tab: 'price' };
+  try {
+    // migrare one-shot din cheia demo (dacă există)
+    const raw = localStorage.getItem(DESK_KEY) || localStorage.getItem('pa_desk_demo_v1') || '{}';
+    const o = JSON.parse(raw);
+    if (o && typeof o === 'object') {
+      if (o.layout === 'list' || o.layout === 'group') d.layout = o.layout;
+      if (o.density === 'compact' || o.density === 'comfort') d.density = o.density;
+      if (o.tab === 'price' || o.tab === 'news' || o.tab === 'hist') d.tab = o.tab;
+    }
+  } catch (e) {}
   return d;
 }
-function deskSave( partial) {
+function deskSave(partial) {
   const d = Object.assign(deskLoad(), partial || {});
-  try { localStorage.setItem(DESK_KEY, JSON.stringify(d)); } catch (e) {}
+  try {
+    localStorage.setItem(DESK_KEY, JSON.stringify({ layout: d.layout, density: d.density, tab: d.tab }));
+    localStorage.removeItem('pa_desk_demo_v1'); // demo scos definitiv
+  } catch (e) {}
   return d;
 }
 let desk = deskLoad();
@@ -1297,7 +1281,6 @@ let bulkMode = false;
 const bulkSelected = new Set(); // keys "SYM|id"
 function bulkKey(sym, id) { return String(sym) + '|' + String(id); }
 function getNotifyPolicy() {
-  if (!desk.notify) return 'always';
   try { return localStorage.getItem(NOTIFY_POLICY_KEY) || 'always'; } catch (e) { return 'always'; }
 }
 function setNotifyPolicy(p) {
@@ -1306,24 +1289,23 @@ function setNotifyPolicy(p) {
 /** Quiet 23:00–07:00 Europe/Bucharest */
 function isQuietHoursRO() {
   try {
-    const p = new Intl.DateTimeFormat('en-GB', { timeZone:'Europe/Bucharest', hour:'2-digit', hour12:false }).formatToParts(new Date());
+    const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Bucharest', hour: '2-digit', hour12: false }).formatToParts(new Date());
     const h = parseInt(p.find(x => x.type === 'hour')?.value, 10) || 0;
     return h >= 23 || h < 7;
   } catch (e) { return false; }
 }
-/** UI notify gate (I-221): always | quiet (mute beep/browser in quiet hours) | rth (mute stocks UI outside RTH; crypto always) */
+/** UI notify: always | quiet (fără beep/browser 23–07 RO) | rth (stocks US doar RTH; crypto/EU mereu) */
 function uiNotifyAllowed(channel, sym) {
   const pol = getNotifyPolicy();
-  if (pol === 'always' || !desk.notify) return true;
+  if (pol === 'always') return true;
   if (pol === 'quiet') {
     if (!isQuietHoursRO()) return true;
-    // quiet: allow silent toast, block beep + browser; TG server independent (caller decides)
     return channel === 'toast' || channel === 'tg';
   }
   if (pol === 'rth') {
     const s = String(sym || '').toUpperCase();
-    if (!s || isCrypto(s) || s.includes('.')) return true; // crypto + EU: always UI
-    return marketSession().cls === 'open'; // US stocks: only RTH
+    if (!s || isCrypto(s) || s.includes('.')) return true;
+    return marketSession().cls === 'open';
   }
   return true;
 }
@@ -1896,7 +1878,7 @@ function rowHtml(sym, a) {
 
   const bk = bulkKey(sym, a.id);
   const checked = bulkSelected.has(bk) ? ' checked' : '';
-  const cb = (bulkMode && desk.bulk) ? `<input type="checkbox" class="bulk-cb" data-bulk="${escHtml(bk)}"${checked} title="Selectează">` : '';
+  const cb = bulkMode ? `<input type="checkbox" class="bulk-cb" data-bulk="${escHtml(bk)}"${checked} title="Selectează">` : '';
   return `<tr class="al-row${snoozed ? ' snoozed' : ''}${hot ? ' hot' : ''}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}" id="alrow-${escHtml(a.id)}">
     <td class="al-tk">
       ${cb}<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${cur != null ? sessTag(sym) : ''}${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}
@@ -1930,7 +1912,7 @@ const AL_THEAD = `<thead><tr>
 // I-219: layout group = card per symbol; list = tabel plat
 function renderActiveGroup(bodyEl, groupRows, ico, emptyMsg) {
   if (!groupRows.length) { bodyEl.innerHTML = `<div class="empty"><span class="ico">${ico}</span>${emptyMsg}</div>`; return; }
-  const useGroup = desk.group && desk.layout === 'group';
+  const useGroup = desk.layout === 'group';
   if (!useGroup) {
     bodyEl.innerHTML = `<div class="al-wrap"><table class="al-table">${AL_THEAD}<tbody>${groupRows.map(({ sym, a }) => rowHtml(sym, a)).join('')}</tbody></table></div>`;
   } else {
@@ -2137,14 +2119,13 @@ function renderPulse(activeRows) {
 function renderAlmostRail(activeRows) {
   const el = $('almostRail');
   if (!el) return;
-  if (!desk.almost) { el.classList.remove('show'); el.innerHTML = ''; return; }
   const cand = activeRows
     .filter(r => {
       const a = r.a;
       if (a.snoozeUntil && a.snoozeUntil > Date.now()) return false;
       if (a.armed === false) return false;
       const s = proximityScore(r.sym, a);
-      return isFinite(s) && s < 1.5; // bandă largă demo; sub 0.5 = hot
+      return isFinite(s) && s < 1.5; // top bandă; <0.5% = hot
     })
     .map(r => ({ ...r, score: proximityScore(r.sym, r.a) }))
     .sort((a, b) => a.score - b.score)
@@ -2198,70 +2179,46 @@ function updateBulkBar() {
   if (!bar) return;
   const n = bulkSelected.size;
   if ($('bulkCount')) $('bulkCount').textContent = n;
-  if (bulkMode && desk.bulk && n > 0) bar.classList.add('show');
+  if (bulkMode && n > 0) bar.classList.add('show');
   else bar.classList.remove('show');
-  document.body.classList.toggle('desk-selecting', !!(bulkMode && desk.bulk));
+  document.body.classList.toggle('desk-selecting', !!bulkMode);
 }
 
 function applyDensity() {
-  document.body.classList.toggle('desk-compact', desk.density === 'compact' && desk.bulk);
-  // density feature lives under bulk+density toggle
-  if (!desk.bulk) document.body.classList.remove('desk-compact');
-  else document.body.classList.toggle('desk-compact', desk.density === 'compact');
+  document.body.classList.toggle('desk-compact', desk.density === 'compact');
 }
 
 function applyDeskTab(tab) {
-  desk = deskSave({ tab });
-  const useTabs = desk.tabs;
+  desk = deskSave({ tab: tab || 'price' });
+  const t = desk.tab;
   const tabsEl = $('deskTabs');
-  if (tabsEl) tabsEl.style.display = useTabs ? 'flex' : 'none';
-  const showAll = !useTabs;
   const tp = $('tabPrice'), tn = $('tabNews'), th = $('tabHist');
-  if (tp) tp.hidden = showAll ? false : tab !== 'price';
-  if (tn) tn.hidden = showAll ? false : tab !== 'news';
-  if (th) th.hidden = showAll ? false : tab !== 'hist';
+  if (tp) tp.hidden = t !== 'price';
+  if (tn) tn.hidden = t !== 'news';
+  if (th) th.hidden = t !== 'hist';
   if (tabsEl) {
     tabsEl.querySelectorAll('[data-tab]').forEach(btn => {
-      btn.classList.toggle('on', btn.getAttribute('data-tab') === tab);
+      btn.classList.toggle('on', btn.getAttribute('data-tab') === t);
     });
-  }
-  // fără tabs: arată tot pe un scroll (comportament clasic)
-  if (showAll) {
-    if (tp) tp.hidden = false;
-    if (tn) tn.hidden = false;
-    if (th) th.hidden = false;
   }
 }
 
 function applyDeskChrome() {
   desk = deskLoad();
-  // demo checkboxes
-  document.querySelectorAll('[data-desk-feat]').forEach(inp => {
-    const k = inp.getAttribute('data-desk-feat');
-    inp.checked = !!desk[k];
-  });
-  const qa = $('quickAdd'); if (qa) qa.style.display = desk.templates ? 'flex' : 'none';
-  const vt = $('viewTools'); if (vt) vt.style.display = (desk.group || desk.bulk) ? 'flex' : 'none';
   if ($('btnLayoutGroup')) {
     $('btnLayoutGroup').classList.toggle('on', desk.layout === 'group');
     $('btnLayoutList').classList.toggle('on', desk.layout === 'list');
-    $('btnLayoutGroup').style.display = desk.group ? '' : 'none';
-    $('btnLayoutList').style.display = desk.group ? '' : 'none';
   }
   if ($('btnDensityComfort')) {
     $('btnDensityComfort').classList.toggle('on', desk.density === 'comfort');
     $('btnDensityCompact').classList.toggle('on', desk.density === 'compact');
-    const showDen = desk.bulk;
-    $('btnDensityComfort').parentElement.style.display = showDen ? '' : 'none';
   }
   if ($('btnBulkMode')) {
-    $('btnBulkMode').style.display = desk.bulk ? '' : 'none';
     $('btnBulkMode').classList.toggle('on', bulkMode);
     $('btnBulkMode').textContent = bulkMode ? '☑ Select' : '☐ Select';
   }
   applyDensity();
   applyDeskTab(desk.tab || 'price');
-  if (!desk.almost) { const ar = $('almostRail'); if (ar) { ar.classList.remove('show'); ar.innerHTML = ''; } }
   if (!bulkMode) { bulkSelected.clear(); updateBulkBar(); }
 }
 
@@ -2818,7 +2775,7 @@ $('popupBtn').addEventListener('click', () => {
 });
 
 $('testBtn').addEventListener('click', () => {
-  toast('🧪 Test alert: AAPL ▲ $200.00 atins (DEMO)', 'success', { persist: true });
+  toast('🧪 Test alert: AAPL ▲ $200.00 atins', 'success', { persist: true });
   playBeep();
   showBrowserNotif('🧪 TEST Price Alerts', 'Notificările funcționează.');
 });
@@ -3864,7 +3821,7 @@ function nwInit() {
   nwPullGitHub({ silent: true });
 }
 
-// ============ DESK DEMO wiring (I-217…222) ============
+// ============ DESK wiring (tabs, layout, bulk, templates, notify) ============
 function listWlSyms() {
   try {
     const a = JSON.parse(localStorage.getItem('wl_stocks') || '[]');
@@ -3896,18 +3853,7 @@ function batchAddAlerts(syms, factory, label) {
   toast(`✅ ${n} alerte adăugate (${label})`, 'success');
   pollPrices();
 }
-function wireDeskDemo() {
-  // feature toggles
-  document.querySelectorAll('[data-desk-feat]').forEach(inp => {
-    inp.addEventListener('change', () => {
-      const k = inp.getAttribute('data-desk-feat');
-      desk = deskSave({ [k]: inp.checked });
-      if (k === 'group' && !inp.checked) desk = deskSave({ layout: 'list' });
-      if (k === 'bulk' && !inp.checked) { bulkMode = false; bulkSelected.clear(); }
-      applyDeskChrome();
-      render();
-    });
-  });
+function wireDesk() {
   // tabs
   $('deskTabs')?.querySelectorAll('[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => applyDeskTab(btn.getAttribute('data-tab')));
@@ -3969,7 +3915,7 @@ function wireDeskDemo() {
   $('bulkCancel')?.addEventListener('click', () => {
     bulkMode = false; bulkSelected.clear(); applyDeskChrome(); render();
   });
-  // templates
+  // templates (praguri = ipoteze default, notate pe alertă)
   $('qaWlRef')?.addEventListener('click', () => {
     batchAddAlerts(listWlSyms(), sym => ({
       id: uid(), kind: 'ref', pct: 1, base: _lastPrice[sym] ?? null, lastStep: 0, hi: 0, lo: 0, armed: true, lastFired: null, note: 'template WL ref1%'
@@ -3993,9 +3939,9 @@ function wireDeskDemo() {
     const labels = { always: 'Always (toate canalele UI)', quiet: 'Quiet 23–07 RO (fără beep/browser)', rth: 'RTH only pe stocks US' };
     toast('🌙 Notify UI: ' + labels[next], 'info');
   });
-  // ⚙ news → tab news
-  $('btnNwSettings')?.addEventListener('click', () => { if (desk.tabs) applyDeskTab('news'); }, true);
-  $('btnNwSettingsMenu')?.addEventListener('click', () => { if (desk.tabs) applyDeskTab('news'); }, true);
+  // ⚙ news → tab News
+  $('btnNwSettings')?.addEventListener('click', () => { applyDeskTab('news'); }, true);
+  $('btnNwSettingsMenu')?.addEventListener('click', () => { applyDeskTab('news'); }, true);
   // deep link ?tab=
   try {
     const t = new URLSearchParams(location.search).get('tab');
@@ -4007,7 +3953,7 @@ function wireDeskDemo() {
 // ============ INIT ============
 // Paint instant din cache prețuri (înainte de rețea) — poll-ul actualizează după
 const _pxHydrated = hydratePricesFromCache();
-wireDeskDemo();
+wireDesk();
 render();
 if (_pxHydrated) {
   try {
