@@ -210,6 +210,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-208 | lib/suite-sessions.js — sesiune NYSE unică + sărbători/half-days | lib/* + hub + router | M | P1 | făcut | ideation | 2026-07-22 |
 | I-209 | Gapper tradability — RVOL + context range pe chip-urile gappers | lib/hub-gappers.js | M | P2 | făcut | ideation | 2026-07-22 |
 | I-210 | Sursă unică evenimente high-impact (MCTX) + flag approx + expirare | lib/macro-context.js + lib/router.js + lib/event-tape.js | M | P1 | făcut | ideation | 2026-07-22 |
+| I-211 | Next Action rail — un singur CTA contextual pe hub | hub (index + hub-state + hub-tableau) | M | P1 | propus | ideation | 2026-07-23 |
+| I-212 | Un singur ecran de decizie (anti-dublură cockpit/brief/tableau) | hub (index + hub-brief + hub-tableau) | M | P1 | propus | ideation | 2026-07-23 |
+| I-213 | Context handoff suite-wide (sym + regim + buget R) | lib/ + hub + scanner + journal | M | P1 | propus | ideation | 2026-07-23 |
+| I-214 | Quote bus unificat (cache live partajat cross-pagini) | lib/data.js + hub-market + consumers | L | P2 | propus | ideation | 2026-07-23 |
+| I-215 | Hub layout per sesiune agresiv (Pre/RTH/AH/Review) | hub + hub-ui.css + SES | M | P2 | propus | ideation | 2026-07-23 |
+| I-216 | Platform health strip + auto-degrade pe date | hub + hub-health + hub-state | S | P2 | propus | ideation | 2026-07-23 |
 
 ## Mini-spec-uri
 
@@ -1475,3 +1481,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** elimină mesajele contradictorii de freeze în exact minutele cele mai periculoase ale lunii (FOMC presser) și onestitate pe datele aproximate — trader-ul știe când „PPI azi" e estimare, nu fapt.
 - **Riscuri/dependențe:** router.js:100-101 documentează deja o divergență istorică din duplicare (DST) — migrarea trebuie să păstreze semantica ferestrelor router (±min diferite pe tipuri); flag-ul approx atinge 3 consumatori (tape/brief/freeze).
 - **Fișiere atinse:** lib/macro-context.js (approx + expirare), lib/router.js (consumă MCTX), lib/event-tape.js + lib/hub-brief.js (afișare „~" și banner expirare).
+
+### I-211 · Next Action rail — un singur CTA contextual pe hub · [M] · P1
+- **Problema/golul:** hub-ul are GO score, Router, Desk, freeze, gappers, brief, checklist — dar nu spune explicit „acum fă X". Traderul scanează 6 panouri ca să decidă următorul click. Verificat: HT.NAV are linkuri, cockpit-ul are 4 acțiuni, brief-ul are zeci de „Open →" — nicio ierarhie „următorul pas".
+- **Soluția:** un rail persistent above-the-fold (sub session pill / pe tableau): o linie + un buton primar derivat din stare (ex. FREEZE→„stai / deschide Macro", gappers pe WL→„deschide TSLA pe Nasdaq", HALTED→„Risk Desk", GO + buget R>0→„Router Deep", date stale→„Health / refresh"). Regulile = mapare deterministă pe HS.hubState + SES + CD, nu AI.
+- **Impact:** reduce hub-ul de la „catalog de stări" la „OS de decizie" — 1 acțiune clară în <2s.
+- **Riscuri/dependențe:** prioritatea regulilor trebuie ordonată (siguranță > capital > oportunitate); fără n-uri pe ledger, CTA-urile de setup rămân ipoteze de UX.
+- **Fișiere atinse:** index.html, lib/hub-state.js, lib/hub-tableau.js, lib/hub-ui.css.
+
+### I-212 · Un singur ecran de decizie (anti-dublură cockpit/brief/tableau) · [M] · P1
+- **Problema/golul:** aceleași semnale apar de 2–3 ori: GO în cockpit + brief Pro Desk + tableau; regim în tableau + brief + card-live; capital în CD strip + equity pill + Desk. hub-brief.js ~86KB + hub-tableau + cockpit fold = densitate de ziar, nu de terminal. I-060/I-158/I-160 au adăugat straturi; consolidarea lipsește.
+- **Soluția:** un „Decision Surface" canonic: tableau = singura grilă live; cockpit fold devine detalii/expand; brief se reduce la tier evenimente + AI (fără re-afișare GO/regim). Elimină dublura vizuală, nu logica din HS/RT/CD.
+- **Impact:** scan vizual mai rapid, mai puțin badge fatigue (design.md §1), menține sursele de date.
+- **Riscuri/dependențe:** regresie pe utilizatori care deschid brief ca ritual matinal — păstrează expand + refresh.
+- **Fișiere atinse:** index.html, lib/hub-brief.js, lib/hub-tableau.js, lib/hub-ui.css.
+
+### I-213 · Context handoff suite-wide (sym + regim + buget R) · [M] · P1
+- **Problema/golul:** navigarea hub→scanner→journal pierde contextul: gapper chip trimite ?sym= dar nu regim/GO/buget R; Scanner→Journal prefill există parțial; nu există un pachet „session context" pe care orice pagină îl citește.
+- **Soluția:** cheie localStorage versionată `tt_ctx_v1` scrisă de hub (și actualizată de tool-uri): {sym, source, regime, goScore, rLeft, ts}. Consumatori: nasdaq-scanner (banner context), journal (prefill + gate), STL, market-events. Linkurile din hub/gappers/ledger scriu context înainte de navigare.
+- **Impact:** workflow continuu fără re-introducere; sizing și gate capital rămân vizibile pe ținta de execuție.
+- **Riscuri/dependențe:** stale context dacă ts>30–60m (afişează 📦 / ignoră); nu înlocuiește JR/CD — doar transport UI.
+- **Fișiere atinse:** lib/utils.js sau lib nou context.js, index.html, hub-gappers, journal, nasdaq-scanner, sw-app.js.
+
+### I-214 · Quote bus unificat (cache live partajat cross-pagini) · [L] · P2
+- **Problema/golul:** SPY/QQQ/VIX și simboluri WL sunt re-fetch-uite pe hub, macro, scanner, portfolio cu TTL/chei diferite; broadcastChannel/storage events nu unifică prețurile. Perf live e pe simbol×pagină, nu pe suită.
+- **Soluția:** strat D.quotes / bus pe localStorage+BroadcastChannel: un writer (hub sau worker-ish tab) ține setul hot (indici + open journal + WL top); paginile citesc sync din bus, revalidatează doar la miss/stale. Aliniat la D.fetchJSON + pin proxy (tt-v674).
+- **Impact:** latență percepută mai mică pe toate paginile live; mai puțină presiune pe proxy/Yahoo.
+- **Riscuri/dependențe:** multi-tab race; quota LS; trebuie invalidare onestă (ts per quote deja model în hub-market).
+- **Fișiere atinse:** lib/data.js, lib/hub-market.js, macro-dashboard, portfolio/journal live, watchlist-monitor (opțional).
+
+### I-215 · Hub layout per sesiune agresiv (Pre/RTH/AH/Review) · [M] · P2
+- **Problema/golul:** I-067/I-162 au mode pe body dar layout-ul rămâne majoritar același (opacity pe cards); Pre nu promovează gappers+earnings, RTH nu promovează open risk+GO, Review nu promovează ledger/weekly. data-hub-mode e slab folosit ca layout real.
+- **Soluția:** 4 template-uri CSS/DOM: Pre = gappers+event tape+checklist; RTH = open positions risk + GO + freeze; AH = after gappers + PnL day; Review = Signal Ledger + weekly link + equity drift. Card grid se filtrează/reordonează, nu doar opacity.
+- **Impact:** hub-ul se simte ca platformă pe oră, nu ca homepage statică de tool-uri.
+- **Riscuri/dependențe:** SES (I-208) trebuie sursă unică; preferințe user „lock layout" opțional.
+- **Fișiere atinse:** index.html, lib/hub-brief.js, lib/hub-ui.css, lib/suite-sessions.js.
+
+### I-216 · Platform health strip + auto-degrade pe date · [S] · P2
+- **Problema/golul:** I-206 degradă GO pe trust, Health e pagină separată, hubStaleNav e un 📦 ascuns. Când proxy-ul e mort, hub-ul arată încă panouri „se încarcă…" fără mesaj de platformă.
+- **Soluția:** strip sub header: proxy OK/slow/down · Finnhub · vârsta SPY · trust N/M — din HS.staleAudit + HUB_HEALTH. La down: panourile live intră în mode „cached only" (etichetă 📦, fără spinner infinit).
+- **Impact:** traderul știe dacă poate avea încredere în ecran înainte de a citi GO; reduce decizii pe UI „loading etern".
+- **Riscuri/dependențe:** nu spam pe fiecare tick — update 30–60s; aliniat I-206.
+- **Fișiere atinse:** index.html, lib/hub-health.js, lib/hub-state.js, lib/hub-ui.css.
