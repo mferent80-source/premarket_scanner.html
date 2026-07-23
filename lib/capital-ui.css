@@ -1,46 +1,41 @@
-/* capital-ui.css v577 — shell comun Journal / Portfolio / Equity (I-139) */
+/* capital-ui.css v678 — shell comun Journal / Portfolio / Equity
+ * Layout Macro: full-bleed pe TOATE paginile capital (nu doar journal) */
 
 .cap-page {
   background-image: radial-gradient(1200px 600px at 50% -200px, #142533 0%, #0b0f17 55%);
   background-attachment: fixed;
+  padding: 8px clamp(8px, 1.2vw, 18px) 24px;
 }
 
+/* Full-bleed ca macro-wrap pe tot capital trio */
 .cap-wrap {
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-/* Journal — full bleed (Desk command deck) */
-.cap-journal.cap-page {
-  padding: 8px clamp(8px, 1.2vw, 18px);
-}
-.cap-journal .cap-wrap {
   max-width: none !important;
   width: 100% !important;
   margin: 0 !important;
   padding: 0;
 }
-.cap-journal header.cap-header,
-.cap-journal .cap-shell {
+.cap-page header.cap-header,
+.cap-page .cap-shell {
   width: 100%;
   margin-left: 0;
   margin-right: 0;
 }
 
-/* ── Top header ── */
+/* ── Top header — solid Macro (fără blur) ── */
 .cap-page header.cap-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  margin-bottom: 0;
-  border-radius: 14px 14px 0 0;
-  border-bottom: none;
-  background: rgba(11, 15, 23, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: none;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--b1, #4a5874);
+  border-bottom: 1px solid var(--b1, #4a5874);
+  background: linear-gradient(180deg, rgba(20, 37, 51, 0.94), rgba(20, 26, 40, 0.97));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   position: sticky;
   top: 0;
   z-index: 60;

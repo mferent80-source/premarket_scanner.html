@@ -1,77 +1,125 @@
-/* suite-ui.css v665 — chrome comun + clarity ușoară (fără override-uri grele pe tabele) */
+/* suite-ui.css v678 — shell layout MACRO pe toată suita
+ * Sursă canonică: macro-dashboard (full-bleed, sticky solid, radial bg, r=14).
+ * Pagini: body.suite-page | body.hub-page | body.cap-page | body.macro-page
+ */
 
 :root {
   --suite-bg: #070b11;
+  --suite-bg-grad: radial-gradient(1200px 600px at 50% -200px, #142533 0%, #0b0f17 55%);
   --suite-panel: #171f30;
   --suite-panel2: #222c44;
+  --suite-panel3: #222b40;
   --suite-border: #4a5874;
+  --suite-border2: #3a4258;
   --suite-t1: #fafbfc;
   --suite-t2: #eef2f8;
   --suite-t3: #d0d8e6;
   --suite-accent: #8ac8ff;
+  --suite-r: 14px;
+  --suite-rs: 8px;
+  --suite-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --suite-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --suite-pad-x: clamp(8px, 1.2vw, 18px);
+  --suite-pad-y: 8px;
+  --mono: 'DM Mono', ui-monospace, monospace;
+  --head: 'Sora', system-ui, sans-serif;
 }
 
-.suite-page {
-  padding: 10px 12px 24px;
+/* ── Shell comun (layout Macro) ── */
+body.suite-page,
+body.hub-page,
+body.cap-page,
+body.macro-page {
+  padding: var(--suite-pad-y) var(--suite-pad-x) 24px !important;
+  background: var(--bg, var(--suite-bg));
+  background-image: var(--bg-grad, var(--suite-bg-grad));
+  background-attachment: fixed;
   color: var(--t1, var(--suite-t1));
   -webkit-font-smoothing: auto;
-  -moz-osx-font-smoothing: auto;
-  text-rendering: geometricPrecision;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: tabular-nums;
   font-weight: 400;
+  min-height: 100vh;
 }
 
-/* Tokeni clari pe suite-page (pagina poate suprascrie pe :root înainte) */
-body.suite-page {
-  --t1: #fafbfc;
-  --t2: #eef2f8;
-  --t3: #d0d8e6;
+/* Tokeni clari (pagina poate suprascrie pe :root înainte de acest fișier) */
+body.suite-page,
+body.hub-page,
+body.cap-page {
+  --t1: var(--t1, #fafbfc);
+  --t2: var(--t2, #eef2f8);
+  --t3: var(--t3, #d0d8e6);
   --text: #fafbfc;
   --muted: #d0d8e6;
   --text-dim: #d0d8e6;
   --accent: var(--accent, #8ac8ff);
+  --r: var(--r, 14px);
+  --rs: var(--rs, 8px);
 }
 
-.suite-page .suite-wrap {
-  max-width: 1120px;
-  margin: 0 auto;
+/* Full-bleed wrap — ca .macro-wrap (fără max-width îngust) */
+.suite-wrap,
+.macro-wrap,
+.hub-wrap,
+.cap-wrap,
+body.hub-page .wrap,
+body.suite-page .fd-wrap,
+body.suite-page .app-wrap {
+  max-width: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0;
 }
 
-/* Sticky cockpit — solid, FĂRĂ backdrop-blur */
-.suite-page header.suite-cockpit,
-.suite-page .topbar.suite-cockpit,
-.suite-page .hdr.suite-cockpit {
+/* ── Sticky cockpit / header — solid, FĂRĂ blur (pattern Macro) ── */
+body.suite-page header.suite-cockpit,
+body.suite-page .topbar.suite-cockpit,
+body.suite-page .hdr.suite-cockpit,
+body.suite-page header:not(.no-suite-shell),
+body.suite-page .fd-top,
+body.hub-page .hub-head-compact,
+body.cap-page header.cap-header {
   position: sticky;
   top: 0;
   z-index: 60;
   margin-bottom: 12px;
-  border-radius: 14px;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.35);
+  border-radius: var(--suite-r);
+  border: 1px solid var(--b1, var(--suite-border));
+  background: linear-gradient(180deg, rgba(20, 37, 51, 0.94), rgba(20, 26, 40, 0.97)) !important;
+  box-shadow: var(--suite-shadow);
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
-.suite-page header.suite-cockpit,
-.suite-page .topbar.suite-cockpit {
-  background: #171f30 !important;
-  border: 1px solid var(--b1, var(--suite-border));
-  color: var(--t1, var(--suite-t1));
+/* Hub header: trece de la underline la cockpit Macro */
+body.hub-page .hub-head-compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  border-bottom: none;
+  background: linear-gradient(180deg, rgba(20, 37, 51, 0.94), rgba(20, 26, 40, 0.97));
 }
 
-.suite-page .hdr.suite-cockpit,
-.suite-page .fd-top.suite-cockpit {
+body.suite-page .hdr.suite-cockpit,
+body.suite-page .fd-top.suite-cockpit {
   border-bottom: 1px solid var(--br, var(--suite-border));
-  background: #171f30 !important;
 }
 
-.suite-page .fd-top.suite-cockpit {
+body.suite-page .fd-top {
   top: 0;
-  border: 1px solid var(--b1, var(--suite-border));
+  padding: 10px 14px;
+  margin-bottom: 12px;
 }
 
+/* Badge suite (albastru Macro, nu orange forțat) */
 .suite-badge {
   display: inline-flex;
   align-items: center;
-  font-family: var(--mono, 'DM Mono', monospace);
+  font-family: var(--mono);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.2px;
@@ -85,76 +133,150 @@ body.suite-page {
   -webkit-text-fill-color: #8ac8ff;
 }
 
-.suite-page .add-bar,
-.suite-page .thr-bar,
-.suite-page .panel-box,
-.suite-page .card,
-.suite-page .scan-bar,
-.suite-page .stat,
-.suite-page .heat-card,
-.suite-page .panel {
-  border-radius: 14px;
+/* Panouri / carduri — radius + umbră Macro */
+body.suite-page .panel-box,
+body.suite-page .card,
+body.suite-page .panel,
+body.suite-page .add-bar,
+body.suite-page .thr-bar,
+body.suite-page .scan-bar,
+body.suite-page .stat,
+body.suite-page .heat-card,
+body.suite-page .stat-tile,
+body.hub-page .card,
+body.hub-page .panel,
+body.hub-page .pb-wrap,
+body.hub-page .hub-cockpit,
+body.hub-page .ht-card,
+body.cap-page .panel,
+body.cap-page .card {
+  border-radius: var(--suite-r);
 }
 
-.suite-page .tabs-row {
+body.suite-page .tabs-row,
+body.suite-page .filter-bar {
   border-radius: 12px;
 }
 
-.suite-page header.suite-cockpit.mk-header {
+body.suite-page header.suite-cockpit.mk-header {
   display: block;
   padding: 12px 14px;
 }
 
-.suite-page header.suite-cockpit.mk-header h1 {
+body.suite-page header.suite-cockpit.mk-header h1 {
   margin: 0;
   flex-wrap: wrap;
 }
 
-.suite-page header.suite-cockpit.mk-header .hub-link {
+body.suite-page header.suite-cockpit.mk-header .hub-link {
   margin-left: auto;
 }
 
-/* Clarity ușoară — fără !important pe tabele (evită layout rot / pagini albe) */
-.suite-page label,
-.suite-page .muted,
-.suite-page .sub,
-.suite-page .meta,
-.suite-page .hint,
-.suite-page .stat-label,
-.suite-page .stat-sub,
-.suite-page .panel-sub,
-.suite-page .subtitle {
+/* Clarity — text pe --t2, fără ceață */
+body.suite-page label,
+body.suite-page .muted,
+body.suite-page .sub,
+body.suite-page .meta,
+body.suite-page .hint,
+body.suite-page .stat-label,
+body.suite-page .stat-sub,
+body.suite-page .panel-sub,
+body.suite-page .subtitle,
+body.hub-page .card-desc,
+body.hub-page .lead {
   color: var(--t2, var(--suite-t2));
   opacity: 1;
 }
 
-.suite-page header,
-.suite-page .topbar,
-.suite-page [class*="sticky"],
-.suite-page .sticky {
+body.suite-page header,
+body.suite-page .topbar,
+body.suite-page [class*="sticky"],
+body.suite-page .sticky {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
-.suite-page input::placeholder,
-.suite-page textarea::placeholder {
+body.suite-page input::placeholder,
+body.suite-page textarea::placeholder {
   color: #b8c4d6;
   opacity: 1;
 }
 
-.suite-page .status-pill {
+body.suite-page .status-pill {
   color: var(--t1, var(--suite-t1));
   font-weight: 600;
 }
 
+/* Panel Macro-like pe suite (dacă există .panel-box) */
+body.suite-page .panel-box {
+  border: 1px solid var(--b1, var(--suite-border));
+  background: var(--panel, var(--suite-panel));
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+body.suite-page .panel-head {
+  border-radius: var(--suite-r) var(--suite-r) 0 0;
+  background: linear-gradient(180deg, rgba(20, 37, 51, 0.55), rgba(20, 26, 40, 0.35));
+  border-bottom: 1px solid var(--b1, var(--suite-border));
+}
+
+/* Fold sections (pattern macro-fold) pe orice details.suite-fold */
+.suite-fold {
+  margin-bottom: 10px;
+  border: 1px solid var(--b1, var(--suite-border));
+  border-radius: var(--suite-r);
+  background: rgba(20, 26, 40, 0.55);
+  overflow: hidden;
+  box-shadow: var(--suite-shadow-sm);
+}
+
+.suite-fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--head);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--t1, var(--suite-t1));
+  background: linear-gradient(180deg, rgba(20, 37, 51, 0.55), rgba(20, 26, 40, 0.35));
+  user-select: none;
+}
+
+.suite-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.suite-fold > summary::after {
+  content: "▾";
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--t3, var(--suite-t3));
+}
+
+.suite-fold:not([open]) > summary::after {
+  transform: rotate(-90deg);
+}
+
+.suite-fold[open] > summary {
+  border-bottom: 1px solid var(--b1, var(--suite-border));
+}
+
 @media (max-width: 640px) {
-  .suite-page {
-    padding: 8px;
+  body.suite-page,
+  body.hub-page,
+  body.cap-page,
+  body.macro-page {
+    padding: 8px !important;
   }
-  .suite-page header.suite-cockpit,
-  .suite-page .topbar.suite-cockpit {
-    border-radius: 0;
-    margin-left: -4px;
-    margin-right: -4px;
+
+  body.suite-page header.suite-cockpit,
+  body.suite-page .topbar.suite-cockpit,
+  body.hub-page .hub-head-compact {
+    border-radius: 12px;
   }
 }

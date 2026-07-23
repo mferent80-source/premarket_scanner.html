@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=677"></script>
+<script src="lib/suite-version.js?v=678"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -45,55 +45,47 @@
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Market Events, Journal & Risk Desk, Macro Dashboard — cockpit decizional stocks-only">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/hub-ui.css?v=666">
+<link rel="stylesheet" href="lib/suite-ui.css?v=678">
+<link rel="stylesheet" href="lib/hub-ui.css?v=678">
 <style>
-/* === Reskin DARK orange/gold (paleta scanner-hub) — păstrăm tot HTML + JS === */
+/* === Hub shell aliniat Macro (suite-ui.css) — full-bleed + tokeni canonic ── */
 :root{
   --bg:#070b11;
-  --bg-grad:radial-gradient(1200px 600px at 50% -200px, #121a28 0%, #070b11 58%);
+  --bg-grad:radial-gradient(1200px 600px at 50% -200px, #142533 0%, #0b0f17 55%);
   --bg2:#171f30; --bg3:#222c44; --bg4:#2c3854;
-  --b1:#4a5874; --b2:#62708c;
+  --panel:#171f30; --panel2:#222c44; --panel3:#222b40;
+  --b1:#4a5874; --b2:#3a4258;
   --t1:#fafbfc; --t2:#eef2f8; --t3:#d0d8e6;
-  /* Paleta crypto BTC orange/gold */
   --crypto-1:#f7931a; --crypto-2:#ffd86b;
   --indigo:#5bb0ff; --indigol:rgba(91,176,255,.12); --indigob:rgba(91,176,255,.4);
   --blue:#5bb0ff;   --bluel:rgba(91,176,255,.12);   --blueb:rgba(91,176,255,.4);
   --teal:#22d66b;   --teall:rgba(34,214,107,.12);   --tealb:rgba(34,214,107,.4);
   --green:#22d66b;
-  --bull-s:var(--green); /* alias: era folosit nedefinit → element necolorat */
-  --red:#ff4d4d; --warn:#d4892c; /* folosite in .pb-mkt-chg.down/.pb-freeze.amber + hub-brief inline — erau NEdefinite → procente negative albe */
+  --bull-s:var(--green);
+  --red:#ff4d4d; --warn:#d4892c;
+  --accent:#8ac8ff;
   --mono:'DM Mono',monospace; --head:'Sora',sans-serif;
-  --r:14px; --rs:10px;
+  --r:14px; --rs:8px;
   --sh:0 1px 2px rgba(0,0,0,.3);
   --shh:0 8px 24px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.2);
   --ease:cubic-bezier(.4,0,.2,1);
   color-scheme:dark;
-  --hub-max:1280px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{min-height:100vh}
-body{
+body.hub-page{
   font-family:var(--head);
   color:var(--t1);
-  background:var(--bg);
-  background-image:var(--bg-grad);
-  background-attachment:fixed;
   line-height:1.5;
-  padding:14px clamp(12px,2.5vw,36px) 80px;
-  -webkit-font-smoothing:auto;
-  -moz-osx-font-smoothing:auto;
-  text-rendering:geometricPrecision;
-  font-weight:400;
-  font-variant-numeric:tabular-nums;
+  /* padding + bg vin din suite-ui (layout Macro) */
+  padding-bottom:48px !important;
 }
 /* Hub anti-ceață: carduri/lead/meta */
 .lead,.brand,.card-desc,.card-tag,.feat,.pb-diff,.tt-stats span,.fl-item .fl-txt{color:var(--t2)!important;opacity:1!important}
 .card-title,.pb-mkt-val,.pb-hero-verdict,h1,h2,h3{color:var(--t1)!important;opacity:1!important}
 .card{background:linear-gradient(180deg,var(--bg2) 0%,#121a28 100%)!important}
-.wrap{width:100%;max-width:var(--hub-max);margin:0 auto}
-@media (min-width:1280px){:root{--hub-max:1520px}}
-@media (min-width:1600px){:root{--hub-max:1680px}}
-@media (min-width:1920px){:root{--hub-max:1840px}}
+/* full-bleed Macro — fără max-width îngust */
+.wrap{width:100%;max-width:none;margin:0}
 
 /* Header — aerisit, similar scanner-hub crypto */
 .hero{text-align:center;padding:32px 0 28px}
@@ -468,9 +460,9 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 @media (max-width:560px){.tt-form{grid-template-columns:1fr}.tt-row{grid-template-columns:1fr;gap:6px}.tt-row .tt-act{justify-content:flex-end}}
 </style>
 </head>
-<body>
+<body class="hub-page">
 <div id="govBanner" style="display:none;position:sticky;top:0;z-index:200;background:linear-gradient(90deg,#3a1010,#2a1520);border-bottom:2px solid #ff4d4d;color:#ffd0d0;padding:10px 16px;font-family:var(--head);font-size:13px;font-weight:700;text-align:center"></div>
-<div class="wrap">
+<div class="wrap hub-wrap">
 
   <button id="pwaInstallBtn" onclick="installPWA()" style="display:none;position:fixed;top:12px;right:12px;z-index:220;padding:7px 14px;border-radius:8px;font-size:.7rem;font-weight:700;border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);color:#f7931a;cursor:pointer;">📱 Instalează</button>
 
