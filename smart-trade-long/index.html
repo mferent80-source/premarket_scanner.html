@@ -252,9 +252,10 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 </header>
 
 <div id="capitalRail" data-cd-page="stl" style="max-width:1280px;margin:0 auto;padding:0 20px"></div>
+<div id="stlFocusStrip" hidden role="status" aria-live="polite" style="max-width:1280px;margin:8px auto 0;padding:0 20px"></div>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v40</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v41</span></h1>
   <p class="lead">Scoring 6-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
@@ -343,6 +344,8 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 <div class="toast" id="toast"></div>
 
 <script src="../lib/data.js"></script>
+<script src="../lib/quote-bus.js?v=696"></script>
+<script src="../lib/suite-context.js?v=686"></script>
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/capital-time.js?v=630"></script>
@@ -499,6 +502,23 @@ function adx(highs, lows, closes, period = 14) {
   return avgDX;
 }
 
+// ─────────────────────── QUOTE BUS (I-214) ───────────────────────
+function qbHit(sym, maxAgeMs) {
+  if (!window.QB) return null;
+  try {
+    const q = QB.get(String(sym || '').toUpperCase(), maxAgeMs != null ? maxAgeMs : 30000);
+    return q && Number.isFinite(q.price) && q.price > 0 ? q : null;
+  } catch (e) { return null; }
+}
+function qbWrite(sym, price, chgPct, src) {
+  if (!window.QB || !Number.isFinite(price) || price <= 0) return;
+  try {
+    const o = { price: price, src: src || 'stl' };
+    if (Number.isFinite(chgPct)) o.chgPct = chgPct;
+    QB.set(String(sym).toUpperCase(), o);
+  } catch (e) {}
+}
+
 // ─────────────────────── DATA FETCH ───────────────────────
 async function fetchViaProxy(url, timeoutMs = 9000, ttl = 0) {
   // strat de date comun (lib/data.js): proxy health per-host + dedup; ttl=0 = fără date
@@ -616,6 +636,11 @@ async function fetchPrePost(sym) {
   if (/\./.test(sym)) return null;            // EU (.DE/.PA/.L…) — fără extended-hours pe Yahoo
   const sess = marketSession();
   if (sess !== 'pre' && sess !== 'after') return null;
+  // bus hit pe extended: preț rapid din hub/nasdaq
+  const hit = qbHit(sym, 45000);
+  if (hit) {
+    return { sess, px: hit.price, prev: hit.price, chg: Number.isFinite(hit.chgPct) ? hit.chgPct : 0, fromBus: true };
+  }
   try {
     const j = await fetchViaProxy(`${YAHOO_BASE}${sym}?interval=5m&range=1d&includePrePost=true`, 9000, 60);
     const r = j?.chart?.result?.[0];
@@ -623,7 +648,9 @@ async function fetchPrePost(sym) {
     const px = closes[closes.length - 1];
     const prev = r?.meta?.regularMarketPrice ?? r?.meta?.chartPreviousClose;
     if (!px || !prev) return null;
-    return { sess, px, prev, chg: (px / prev - 1) * 100 };
+    const chg = (px / prev - 1) * 100;
+    qbWrite(sym, px, chg, 'stl-prepost');
+    return { sess, px, prev, chg };
   } catch (e) { return null; }
 }
 
@@ -633,6 +660,18 @@ async function fetchPrePost(sym) {
 // pagina alerts: ultima bară non-null = prețul live; prev = close-ul de ieri pe bursa proprie
 // (EU → chartPreviousClose mereu; US → regularMarketPrice în premarket, altfel chartPreviousClose).
 async function fetchLivePrice(sym) {
+  // I-214: preț din bus (hub/journal/nasdaq) — list scan mai rapid
+  const hit = qbHit(sym, 30000);
+  if (hit) {
+    const sess = /\./.test(sym) ? 'eu' : marketSession();
+    return {
+      last: hit.price,
+      prev: hit.price,
+      chg: Number.isFinite(hit.chgPct) ? hit.chgPct : null,
+      sess: sess,
+      fromBus: true
+    };
+  }
   try {
     const j = await fetchViaProxy(`${YAHOO_BASE}${sym}?interval=1m&range=1d&includePrePost=true`, 9000, 30);
     const r = j?.chart?.result?.[0];
@@ -648,7 +687,9 @@ async function fetchLivePrice(sym) {
     const prev = (isEU
       ? (m.chartPreviousClose ?? m.regularMarketPrice)
       : (sess === 'pre' ? (m.regularMarketPrice ?? m.chartPreviousClose) : (m.chartPreviousClose ?? m.regularMarketPrice))) ?? last;
-    return { last, prev, chg: prev > 0 ? (last / prev - 1) * 100 : null, sess: isEU ? 'eu' : sess };
+    const chg = prev > 0 ? (last / prev - 1) * 100 : null;
+    qbWrite(sym, last, chg, 'stl-live');
+    return { last, prev, chg, sess: isEU ? 'eu' : sess };
   } catch (e) { return null; }
 }
 // Badge sesiune lângă prețul live din listă (confirmă vizual că e extended/regular).
@@ -1580,15 +1621,28 @@ async function scan(sym, isAuto) {
   scanBtn.textContent = '⏳ Se scanează…';
   // scan ales de user → deschide panoul; refresh-ul auto 5min NU forțează expand
   if (!isAuto) state.resCollapsed = false;
-  if (!state.resCollapsed) resultArea.innerHTML = `<div class="loading"><div class="spinner"></div><div>Fetch Yahoo + Finnhub pentru <strong>${sym}</strong>…</div></div>`;
+  const busPx = qbHit(sym, 120000);
+  const busHint = busPx
+    ? ` · bus $${busPx.price >= 100 ? busPx.price.toFixed(1) : busPx.price.toFixed(2)}`
+    : '';
+  if (!state.resCollapsed) resultArea.innerHTML = `<div class="loading"><div class="spinner"></div><div>Fetch Yahoo + Finnhub pentru <strong>${sym}</strong>${busHint}…</div></div>`;
 
   try {
     const [yahoo, ins, earn, spy, prePost] = await Promise.all([fetchYahoo(sym), fetchInsiders(sym), getEarningsInfo(sym), fetchSpyCloses(), fetchPrePost(sym)]);
     if (yahoo.closes.length < 50) throw new Error(`Doar ${yahoo.closes.length} bare disponibile (min 50)`);
+    // scrie pe bus close-ul daily + pre/post dacă există (pentru journal/hub)
+    try {
+      const lastClose = yahoo.closes[yahoo.closes.length - 1];
+      const prevC = yahoo.closes.length > 1 ? yahoo.closes[yahoo.closes.length - 2] : lastClose;
+      const chgD = prevC > 0 ? (lastClose / prevC - 1) * 100 : undefined;
+      if (prePost && prePost.px) qbWrite(sym, prePost.px, prePost.chg, 'stl-scan');
+      else qbWrite(sym, lastClose, chgD, 'stl-scan');
+    } catch (e) {}
     const scoreData = computeScore(yahoo, spy);
     recordScanHistory(sym, scoreData); // înainte de render — istoricul include și scanul curent
     render(sym, scoreData, ins, earn, prePost);
     toast(`✓ ${sym} · Score ${scoreData.score}/100`, 'ok');
+    paintStlFocus(sym, 'scan');
   } catch (e) {
     resultArea.innerHTML = `
       <div class="empty-state">
@@ -1896,6 +1950,53 @@ $('lsInterval').addEventListener('change', () => {
   toast(listInterval() ? `Auto-scan listă: ${listInterval()} min` : 'Auto-scan listă oprit');
 });
 
+// ─────────────────────── FOCUS / DEEPLINK ───────────────────────
+function resolveStlSym() {
+  const p = new URLSearchParams(location.search);
+  let sym = (p.get('symbol') || p.get('sym') || '').toUpperCase().trim().replace(/[^A-Z0-9.\-]/g, '');
+  let source = sym ? 'url' : '';
+  if (!sym && window.SCTX && SCTX.read) {
+    try {
+      const ctx = SCTX.read({ maxAgeMs: 60 * 60 * 1000 });
+      if (ctx && ctx.sym) {
+        sym = String(ctx.sym).toUpperCase().replace(/[^A-Z0-9.\-]/g, '');
+        source = 'ctx';
+      }
+    } catch (e) {}
+  }
+  return { sym: sym || '', source: source, fromUrl: !!(p.get('symbol') || p.get('sym')) };
+}
+function paintStlFocus(sym, source) {
+  const host = document.getElementById('stlFocusStrip');
+  if (!host || !sym) return;
+  const hit = qbHit(sym, false) || (window.QB && QB.getAny ? QB.getAny(sym) : null);
+  let priceLine = '';
+  if (hit && Number.isFinite(hit.price)) {
+    const age = hit.ts ? Math.round((Date.now() - hit.ts) / 1000) : null;
+    const chg = Number.isFinite(hit.chgPct)
+      ? `<span style="color:${hit.chgPct >= 0 ? 'var(--green)' : 'var(--red)'}">${hit.chgPct >= 0 ? '+' : ''}${hit.chgPct.toFixed(2)}%</span>`
+      : '';
+    const ageTxt = age != null ? (age < 120 ? age + 's pe bus' : '📦 ' + Math.round(age / 60) + 'm') : 'bus';
+    priceLine = `<div style="font-family:var(--mono,monospace);font-size:15px;font-weight:700;margin-top:4px">$${hit.price >= 100 ? hit.price.toFixed(1) : hit.price.toFixed(2)} ${chg} <span style="font-size:11px;color:var(--txt-dd);font-weight:600">${ageTxt}</span></div>`;
+  } else {
+    priceLine = `<div style="font-size:12px;color:var(--txt-dd);margin-top:4px">Preț bus: încă nu — scanul aduce Yahoo + nivele ATR.</div>`;
+  }
+  const srcLbl = source === 'url' ? 'DIN LINK' : (source === 'scan' ? 'DUPĂ SCAN' : 'DIN CONTEXT');
+  host.hidden = false;
+  host.innerHTML = `<div style="padding:12px 14px;border-radius:12px;border:1.5px solid rgba(247,147,26,.5);background:linear-gradient(135deg,rgba(247,147,26,.16),rgba(20,26,40,.92))">
+    <div style="font-family:var(--mono,monospace);font-size:10px;font-weight:800;letter-spacing:.1em;color:#ffd86b">🎯 FOCUS STL · ${srcLbl}</div>
+    <div style="font-size:22px;font-weight:800;color:var(--txt)">${sym}</div>
+    ${priceLine}
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+      <a href="../nasdaq-scanner/?sym=${encodeURIComponent(sym)}" style="font-size:11px;font-weight:700;padding:6px 11px;border-radius:8px;border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);color:#8ac8ff;text-decoration:none">📡 Nasdaq</a>
+      <a href="../journal/?sym=${encodeURIComponent(sym)}#exec" style="font-size:11px;font-weight:700;padding:6px 11px;border-radius:8px;border:1px solid var(--b1,#4a5874);background:var(--bg3,#222c44);color:var(--txt);text-decoration:none">📓 Journal</a>
+      <button type="button" id="stlFocusDismiss" style="font-size:11px;font-weight:700;padding:6px 11px;border-radius:8px;border:1px solid var(--b1,#4a5874);background:var(--bg3,#222c44);color:var(--txt);cursor:pointer">Ascunde</button>
+    </div>
+  </div>`;
+  const btn = document.getElementById('stlFocusDismiss');
+  if (btn) btn.onclick = () => { host.hidden = true; host.innerHTML = ''; };
+}
+
 // ─────────────────────── INIT ───────────────────────
 (function init() {
   // Force dark
@@ -1906,11 +2007,23 @@ $('lsInterval').addEventListener('change', () => {
   const savedRisk = localStorage.getItem(LS_RISK); if (savedRisk) riskPctEl.value = savedRisk;
   const savedAuto = localStorage.getItem(LS_AUTO) === '1';
   autoScan.checked = savedAuto; if (savedAuto) startAuto();
-  // Symbol din query (?symbol=XXX) are prioritate — hook din Macro Dashboard → scanează direct
-  const urlSym = (new URLSearchParams(location.search).get('symbol') || '').toUpperCase().trim();
+  // Symbol: ?symbol= / ?sym= / context suite / last saved
+  const resolved = resolveStlSym();
+  const urlSym = resolved.sym;
   const savedSym = localStorage.getItem(LS_LAST);
-  if (urlSym) { symInput.value = urlSym; setTimeout(() => scan(urlSym), 200); }
-  else if (savedSym) { symInput.value = savedSym; }
+  if (urlSym) {
+    symInput.value = urlSym;
+    paintStlFocus(urlSym, resolved.source || 'url');
+    if (window.SCTX && SCTX.write && resolved.fromUrl) {
+      try { SCTX.write({ sym: urlSym, source: 'stl-deeplink', href: location.href }); } catch (e) {}
+    }
+    const bus = qbHit(urlSym, 120000);
+    if (bus) toast(`🎯 ${urlSym} · bus $${bus.price.toFixed(2)} — scanez…`, 'ok');
+    else toast(`🎯 Focus: ${urlSym} — scanez…`, 'ok');
+    setTimeout(() => scan(urlSym), 200);
+  } else if (savedSym) {
+    symInput.value = savedSym;
+  }
   renderWL();
   renderScorecard();   // afișează scorecardul agregat din istoricul existent încă de la deschidere
   // List scan: restaurează intervalul + primul scan automat (după deep-scanul din URL, dacă există)
@@ -1922,10 +2035,10 @@ $('lsInterval').addEventListener('change', () => {
   if (window.CD) CD.renderRail('capitalRail', 'stl');
 })();
 </script>
-<script src="../lib/suite-version.js?v=673"></script>
+<script src="../lib/suite-version.js?v=696"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v665';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v696';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>

@@ -1504,7 +1504,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Fișiere atinse:** lib/utils.js sau lib nou context.js, index.html, hub-gappers, journal, nasdaq-scanner, sw-app.js.
 
 ### I-214 · Quote bus unificat (cache live partajat cross-pagini) · [L] · P2
-- **Status:** făcut nucleu + adopție (tt-v690…692) — hub/macro/journal/portfolio + nasdaq-scanner (`fhQuote`, VIX, extended, deeplink `?sym=` pe bus).
+- **Status:** făcut nucleu + adopție (tt-v690…696) — hub/macro/journal/portfolio + nasdaq + STL (`?symbol=`/`?sym=`, bus live, focus strip).
 - **Problema/golul:** SPY/QQQ/VIX și simboluri WL sunt re-fetch-uite pe hub, macro, scanner, portfolio cu TTL/chei diferite; broadcastChannel/storage events nu unifică prețurile. Perf live e pe simbol×pagină, nu pe suită.
 - **Soluția:** strat D.quotes / bus pe localStorage+BroadcastChannel: un writer (hub sau worker-ish tab) ține setul hot (indici + open journal + WL top); paginile citesc sync din bus, revalidatează doar la miss/stale. Aliniat la D.fetchJSON + pin proxy (tt-v674).
 - **Impact:** latență percepută mai mică pe toate paginile live; mai puțină presiune pe proxy/Yahoo.
