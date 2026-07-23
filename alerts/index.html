@@ -485,7 +485,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v67</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v68</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -826,8 +826,8 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=673"></script>
-<script src="../lib/data.js?v=674"></script>
+<script src="../lib/suite-version.js?v=698"></script>
+<script src="../lib/data.js?v=698"></script>
 <script src="../lib/telegram.js"></script>
 <script>
 // ============ CONFIG ============
@@ -967,17 +967,28 @@ let HISTORY = (() => { try { const h = JSON.parse(localStorage.getItem(HIST_KEY)
 function persistHistory(){ try { localStorage.setItem(HIST_KEY, JSON.stringify(HISTORY.slice(0, MAX_TRIGGERED_HISTORY))); } catch (e) {} }
 
 // Istoricul botului SERVER-SIDE (tools/alerts.json → `triggered`, scris de GitHub
-// Actions): alertele declanșate cu laptopul ÎNCHIS nu apăreau nicăieri în UI — le
-// citim din raw.githubusercontent (repo public, CORS ok; CDN cache ~5 min) și le
-// afișăm cu ☁️ în aceeași listă. Read-only: trăiesc în repo, nu se șterg de aici.
+// Actions): alertele declanșate cu laptopul ÎNCHIS nu apăreau nicăieri în UI.
+// Repo-ul e PRIVAT → raw.githubusercontent.com / api.github.com dau 404 fără token.
+// Sursa PUBLICĂ de citire: GitHub Pages (același fișier, CORS ok, cache scurt).
+const GH_PAGES_BASE = 'https://mferent80-source.github.io/premarket_scanner.html';
+const PAGES_ALERTS_URL = GH_PAGES_BASE + '/tools/alerts.json';
 const RAW_ALERTS_URL = 'https://raw.githubusercontent.com/mferent80-source/premarket_scanner.html/main/tools/alerts.json';
+// Citește tools/alerts.json: Pages (public) → raw (dacă repo devine public) → null
+async function fetchAlertsJsonPublic() {
+  for (const url of [PAGES_ALERTS_URL + '?_=' + Date.now(), RAW_ALERTS_URL + '?_=' + Date.now()]) {
+    try {
+      const r = await fetchT(url, 9000);
+      if (r && r.ok) return await r.json();
+    } catch (e) {}
+  }
+  return null;
+}
 let SERVER_HIST = [];
 let _histView = []; // lista combinată local+☁️ exact cum e randată (referință pt acțiuni)
 async function loadServerHist(){
   try {
-    const r = await fetchT(RAW_ALERTS_URL, 9000);
-    if (!r.ok) return;
-    const j = await r.json();
+    const j = await fetchAlertsJsonPublic();
+    if (!j) return;
     SERVER_HIST = (Array.isArray(j?.triggered) ? j.triggered : []).map(t => {
       const kind = t.kind === 'anchor' ? 'anchor' : t.kind === 'ref' ? 'ref' : t.kind === 'day' ? 'day' : (t.kind === 'pct' ? 'pct' : 'price');
       return { sym: String(t.symbol || '').toUpperCase(), kind, sub: t.sub || '', lvl: Number(t.level), pct: Number(t.pct), base: Number(t.base), target: Number(t.target), stop: Number(t.stop), moved: Number(t.moved), prog: Number(t.prog), step: Number(t.step), trail: !!t.trail, dd: Number(t.dd), peak: Number(t.peak), dc: Number(t.dc),
@@ -1208,6 +1219,13 @@ async function pollPrices() {
       if (p.prev > 0) changes[sym] = (p.last - p.prev) / p.prev * 100;
     }
   }));
+  const priced = Object.keys(prices).length;
+  const failedPx = unique.length - priced;
+  if (failedPx > 0) sessionNote += ` · ⚠ ${failedPx}/${unique.length} fără preț`;
+  if (unique.length && !priced && !_warnedNoKey) {
+    _warnedNoKey = true;
+    toast('⚠ Niciun preț live — verifică rețeaua / proxy (tt-proxy) sau cheia Finnhub', 'warn');
+  }
   priceAlerts = loadAlerts(); // re-sync după await-uri (fetch-urile durează — alt tab putea scrie)
   const fired = [];
   let changed = false;
@@ -2416,11 +2434,11 @@ function serverToMap(arr) {
   (arr || []).forEach(s => { const sym = String(s.symbol || '').toUpperCase(); if (!sym) return; (m[sym] = m[sym] || []).push(serverAlertToLocal(s)); });
   return m;
 }
-// Citește tools/alerts.json FRESH: Contents API (cu token dacă există) cu fallback pe raw (CDN ~5min)
+// Citește tools/alerts.json: Contents API (token, fresh) → GitHub Pages (public) → raw
 async function fetchServerAlertsObj() {
   const token = localStorage.getItem(GH_TOKEN_KEY) || '';
-  // Doar CU token lovim Contents API (fresh). Fără token sărim direct la raw CDN: cererea
-  // anonimă pe api.github.com consumă degeaba cota de 60/h (raw e suficient, ~5min lag).
+  // Doar CU token lovim Contents API (fresh, fără lag de deploy Pages).
+  // Fără token: Pages e sursa publică (repo privat → raw/api 404 anonim).
   if (token) {
     try {
       const hdr = { 'Accept': 'application/vnd.github+json', 'Authorization': 'Bearer ' + token };
@@ -2430,8 +2448,7 @@ async function fetchServerAlertsObj() {
       if (r.ok) { const j = await r.json(); return JSON.parse(b64deutf8(String(j.content || '').replace(/\n/g, ''))); }
     } catch (e) {}
   }
-  try { const r = await fetchT(RAW_ALERTS_URL + '?_=' + Date.now(), 9000); if (r.ok) return await r.json(); } catch (e) {}
-  return null;
+  return fetchAlertsJsonPublic();
 }
 async function pullFromGitHub(isAuto) {
   // Latch anti-race: dacă un push/pull e în zbor, pull-ul auto sare (altfel ar putea suprascrie
@@ -3171,7 +3188,7 @@ async function nwPushGitHub(opts = {}) {
 async function nwPullGitHub(opts = {}) {
   const silent = !!opts.silent;
   let token = localStorage.getItem(GH_TOKEN_KEY) || '';
-  // pull merge și pe raw public (fără token) — seen + watches de pe main
+  // pull: API (token) → GitHub Pages public → raw (repo privat = 404 fără token)
   try {
     let remote = null;
     if (token) {
@@ -3182,9 +3199,11 @@ async function nwPullGitHub(opts = {}) {
       const cur = await g.json();
       remote = JSON.parse(b64deutf8(String(cur.content || '').replace(/\n/g, '')));
     } else {
+      const pages = `${GH_PAGES_BASE}/${NW_GH_PATH}?t=${Date.now()}`;
       const raw = `https://raw.githubusercontent.com/${GH_REPO}/main/${NW_GH_PATH}?t=${Date.now()}`;
-      const g = await fetch(raw);
-      if (!g.ok) throw new Error('raw HTTP ' + g.status);
+      let g = await fetch(pages);
+      if (!g.ok) g = await fetch(raw);
+      if (!g.ok) throw new Error('pages/raw HTTP ' + g.status);
       remote = await g.json();
     }
     const list = Array.isArray(remote.watches) ? remote.watches.map(nwNormalizeWatch) : [];
