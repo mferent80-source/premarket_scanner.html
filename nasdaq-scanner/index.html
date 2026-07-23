@@ -912,7 +912,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v127</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v128</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -1224,7 +1224,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 <div class="toast" id="toast"></div>
 </div>
 
-<script src="../lib/suite-version.js?v=673"></script>
+<script src="../lib/suite-version.js?v=674"></script>
 <script src="../lib/finnhub-key.js"></script>
 <script>
 // ── CONSTANTS ──
@@ -3286,7 +3286,7 @@ function showInfoModal(){
     
     {cat:'data', bg:'#f1f5f9', border:'#cbd5e1', titleColor:'#334155', textColor:'#475569', emoji:'⚡', title:'Performance — limite și optimizări',
       content:'• <strong>Finnhub free tier</strong>: 50 calls/min. Scanner-ul e configurat să respecte limita, dar dacă spammezi tab-uri (insider, squeeze, sectoare consecutiv), poți atinge 429.<br>'+
-        '• <strong>Yahoo Pre/After-Hours</strong>: 80+ stocks în batch-uri de 5. ~10 secunde primul fetch. Cache 3 min.<br>'+
+        '• <strong>Yahoo Pre/After-Hours</strong>: 80+ stocks pool de 6 + SWR cache. Primul paint din cache, refresh progresiv.<br>'+
         '• <strong>Anthropic API</strong>: nu există limit hard pentru analize individuale, dar <strong>nu spamma 20 simultan</strong> — vei primi 429.<br>'+
         '• <strong>Telegram bot</strong>: 30 messages/secundă max. Pump Radar respectă această limită.'},
     
@@ -4607,121 +4607,145 @@ async function fetchExtendedHours(){
   const symbols=[...new Set([...wlSet, ...EXTENDED_WATCH])];
   
   const session=getMarketSession();
-  const results=[];
-  
-  // Batch in groups of 5 to avoid overwhelming Yahoo
-  const BATCH=5;
-  for(let i=0;i<symbols.length;i+=BATCH){
-    const batch=symbols.slice(i,i+BATCH);
-    const batchResults=await Promise.all(batch.map(async sym=>{
-      try{
-        // cache-buster: proxy-urile cache-uiesc URL identic și servesc prețuri vechi.
-        const yahooUrl='https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=5m&range=1d&includePrePost=true&_='+Date.now();
-        let data=null;
-        // 1) lib/data.js — ACELAȘI request ca fetchYahooCandles (5m/1d/prePost), deci
-        //    același cacheKey nq:5m:SYM → un singur fetch servește și Extended și
-        //    Pump Radar în fereastra de 30s. Buster-ul rămâne în URL (anti-stale proxy).
-        if(window.D && D.fetchJSON){
-          try{ data=await D.fetchJSON(yahooUrl,{ ttl:30, timeout:8000, cacheKey:`nq:5m:${sym}`, validate:d=>d&&d.chart }); }catch(e){}
-        }
-        // 2) fallback: direct întâi (dacă CORS permite), apoi lanțul local de proxy-uri.
-        if(!data){
-          const _cands=[yahooUrl].concat((typeof yahooProxies!=='undefined'?yahooProxies:[]).map(p=>p+encodeURIComponent(yahooUrl)));
-          for(const u of _cands){
-            try{
-              const r=await fetch(u,{signal:AbortSignal.timeout(6000)});
-              if(!r.ok) continue;
-              data=await r.json();
-              if(data) break;
-            }catch(e){}
-          }
-        }
-        if(!data) return null;
-        const result=data?.chart?.result?.[0];
-        if(!result||!result.meta) return null;
-        const meta=result.meta;
-        
-        const prevClose=meta.chartPreviousClose||meta.previousClose;
-        const regularPrice=meta.regularMarketPrice;
-        // Yahoo NU populează preMarketPrice/postMarketPrice pe toate simbolurile (ex. ASTS); barele
-        // ÎNSĂ au prețul live → fallback pe ultima bară din afara sesiunii regulare.
-        const _ts=result.timestamp||[], _cl=result.indicators?.quote?.[0]?.close||[];
-        const _reg0=meta.tradingPeriods?.regular?.[0]||{}; const _rs=_reg0.start||0, _re=_reg0.end||0;
-        let _extBar=null;
-        for(let j=_ts.length-1;j>=0;j--){ if(_cl[j]!=null && (_ts[j]<_rs || _ts[j]>=_re)){ _extBar=_cl[j]; break; } }
-        const preMarketPrice=meta.preMarketPrice ?? (session.session==='premarket' ? _extBar : null);
-        const postMarketPrice=meta.postMarketPrice ?? (session.session==='afterhours' ? _extBar : null);
-        
-        // Determine which extended price is relevant
-        // Referința Δpre = regularMarketPrice (în premarket = close-ul de IERI).
-        // NU chartPreviousClose: cu range=1d în premarket acela e close-ul de
-        // ALALTĂIERI (verificat empiric pe TSLA — gap fals; bug-ul v121 din suite).
-        const preRef=regularPrice||prevClose;
-        let extPrice=null, extLabel='', extPct=0;
-        if(session.session==='premarket' && preMarketPrice){
-          extPrice=preMarketPrice; extLabel='Pre';
-          extPct=((preMarketPrice-preRef)/preRef)*100;
-        } else if(session.session==='afterhours' && postMarketPrice){
-          extPrice=postMarketPrice; extLabel='After';
-          extPct=((postMarketPrice-regularPrice)/regularPrice)*100;
-        } else {
-          // Outside extended hours — show whichever was last
-          if(postMarketPrice && Math.abs(postMarketPrice-regularPrice)>regularPrice*0.001){
-            extPrice=postMarketPrice; extLabel='After (last)';
-            extPct=((postMarketPrice-regularPrice)/regularPrice)*100;
-          } else if(preMarketPrice && Math.abs(preMarketPrice-preRef)>preRef*0.001){
-            extPrice=preMarketPrice; extLabel='Pre (last)';
-            extPct=((preMarketPrice-preRef)/preRef)*100;
-          } else {
-            return null; // No extended movement
-          }
-        }
-        
-        if(!extPrice||!isFinite(extPct)) return null;
-
-        // Volume during extended hours — sum of bars outside regular hours
-        const timestamps=result.timestamp||[];
-        const volumes=result.indicators?.quote?.[0]?.volume||[];
-        const tradingPeriods=meta.tradingPeriods?.regular?.[0];
-        const regStart=tradingPeriods?.start||0;
-        const regEnd=tradingPeriods?.end||0;
-
-        let extVol=0;
-        for(let j=0;j<timestamps.length;j++){
-          if(timestamps[j]<regStart || timestamps[j]>=regEnd){
-            extVol+=volumes[j]||0;
-          }
-        }
-
-        // Sanity check: mișcări extended hours pe volum extrem de mic = trade unic la "ASK + 5%",
-        // nu semnal real. Filtrăm out symbol-urile cu volume < 10K shares în extended.
-        // Watchlist-ul e exempt (userul vrea să vadă oricum mișcările).
-        const MIN_EXT_VOL = 10000;
-        const isWl = wlSet.has(sym);
-        if(!isWl && extVol < MIN_EXT_VOL) return null;
-
-        return {
-          symbol:sym,
-          regularPrice:regularPrice,
-          prevClose:prevClose,
-          extPrice:extPrice,
-          extLabel:extLabel,
-          extPct:extPct,
-          extVol:extVol,
-          lowVolume: extVol < MIN_EXT_VOL, // marker pentru UI: arată warning
-          regularChange:((regularPrice-prevClose)/prevClose)*100,
-          isWatchlist:isWl,
-          earningsToday:earningsSet&&earningsSet.has(sym)
-        };
-      }catch(e){ return null; }
-    }));
-    results.push(...batchResults.filter(Boolean));
-    if(currentTab==='extended') renderExtendedHours(); // Progressive render
-    await new Promise(r=>setTimeout(r,80));
+  // progressive: arată cache-ul vechi cât rulează scanul (nu ecran gol)
+  if(currentTab==='extended' && extendedCache.data && extendedCache.data.length){
+    renderExtendedHours();
   }
-  
-  extendedCache={data:results, session:session.session, ts:Date.now(), fetching:false};
-  if(currentTab==='extended') renderExtendedHours();
+  const results=[];
+  let done=0, lastPaint=0;
+
+  // v128: pool de 6 (era batch secvențial de 5 + sleep 80ms). Pe ~80–100
+  // simboluri batch-ul vechi = 16–20 valuri × (proxy + 80ms) → 30–90s când
+  // un proxy atârna. Pool-ul ține 6 în zbor, SWR din D.fetchJSON servește
+  // cache-ul expirat instant, progressive render la fiecare 6 rezultate.
+  const CONC=6;
+
+  async function fetchOneExt(sym){
+    try{
+      // cache-buster: proxy-urile cache-uiesc URL identic și servesc prețuri vechi.
+      const yahooUrl='https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=5m&range=1d&includePrePost=true&_='+Date.now();
+      let data=null;
+      // 1) lib/data.js — ACELAȘI request ca fetchYahooCandles (5m/1d/prePost), deci
+      //    același cacheKey nq:5m:SYM → un singur fetch servește și Extended și
+      //    Pump Radar în fereastra de 30s. Buster-ul rămâne în URL (anti-stale proxy).
+      //    SWR: la TTL expirat returnează cache vechi + revalidează (ui nu așteaptă).
+      if(window.D && D.fetchJSON){
+        try{ data=await D.fetchJSON(yahooUrl,{ ttl:30, timeout:7000, cacheKey:`nq:5m:${sym}`, validate:d=>d&&d.chart }); }catch(e){}
+      }
+      // 2) fallback: direct întâi (dacă CORS permite), apoi lanțul local de proxy-uri.
+      if(!data){
+        const _cands=[yahooUrl].concat((typeof yahooProxies!=='undefined'?yahooProxies:[]).map(p=>p+encodeURIComponent(yahooUrl)));
+        for(const u of _cands){
+          try{
+            const r=await fetch(u,{signal:AbortSignal.timeout(5000)});
+            if(!r.ok) continue;
+            data=await r.json();
+            if(data) break;
+          }catch(e){}
+        }
+      }
+      if(!data) return null;
+      const result=data?.chart?.result?.[0];
+      if(!result||!result.meta) return null;
+      const meta=result.meta;
+        
+      const prevClose=meta.chartPreviousClose||meta.previousClose;
+      const regularPrice=meta.regularMarketPrice;
+      // Yahoo NU populează preMarketPrice/postMarketPrice pe toate simbolurile (ex. ASTS); barele
+      // ÎNSĂ au prețul live → fallback pe ultima bară din afara sesiunii regulare.
+      const _ts=result.timestamp||[], _cl=result.indicators?.quote?.[0]?.close||[];
+      const _reg0=meta.tradingPeriods?.regular?.[0]||{}; const _rs=_reg0.start||0, _re=_reg0.end||0;
+      let _extBar=null;
+      for(let j=_ts.length-1;j>=0;j--){ if(_cl[j]!=null && (_ts[j]<_rs || _ts[j]>=_re)){ _extBar=_cl[j]; break; } }
+      const preMarketPrice=meta.preMarketPrice ?? (session.session==='premarket' ? _extBar : null);
+      const postMarketPrice=meta.postMarketPrice ?? (session.session==='afterhours' ? _extBar : null);
+        
+      // Determine which extended price is relevant
+      // Referința Δpre = regularMarketPrice (în premarket = close-ul de IERI).
+      // NU chartPreviousClose: cu range=1d în premarket acela e close-ul de
+      // ALALTĂIERI (verificat empiric pe TSLA — gap fals; bug-ul v121 din suite).
+      const preRef=regularPrice||prevClose;
+      let extPrice=null, extLabel='', extPct=0;
+      if(session.session==='premarket' && preMarketPrice){
+        extPrice=preMarketPrice; extLabel='Pre';
+        extPct=((preMarketPrice-preRef)/preRef)*100;
+      } else if(session.session==='afterhours' && postMarketPrice){
+        extPrice=postMarketPrice; extLabel='After';
+        extPct=((postMarketPrice-regularPrice)/regularPrice)*100;
+      } else {
+        // Outside extended hours — show whichever was last
+        if(postMarketPrice && Math.abs(postMarketPrice-regularPrice)>regularPrice*0.001){
+          extPrice=postMarketPrice; extLabel='After (last)';
+          extPct=((postMarketPrice-regularPrice)/regularPrice)*100;
+        } else if(preMarketPrice && Math.abs(preMarketPrice-preRef)>preRef*0.001){
+          extPrice=preMarketPrice; extLabel='Pre (last)';
+          extPct=((preMarketPrice-preRef)/preRef)*100;
+        } else {
+          return null; // No extended movement
+        }
+      }
+        
+      if(!extPrice||!isFinite(extPct)) return null;
+
+      // Volume during extended hours — sum of bars outside regular hours
+      const timestamps=result.timestamp||[];
+      const volumes=result.indicators?.quote?.[0]?.volume||[];
+      const tradingPeriods=meta.tradingPeriods?.regular?.[0];
+      const regStart=tradingPeriods?.start||0;
+      const regEnd=tradingPeriods?.end||0;
+
+      let extVol=0;
+      for(let j=0;j<timestamps.length;j++){
+        if(timestamps[j]<regStart || timestamps[j]>=regEnd){
+          extVol+=volumes[j]||0;
+        }
+      }
+
+      // Sanity check: mișcări extended hours pe volum extrem de mic = trade unic la "ASK + 5%",
+      // nu semnal real. Filtrăm out value-urile cu volume < 10K shares în extended.
+      // Watchlist-ul e exempt (userul vrea să vadă oricum mișcările).
+      const MIN_EXT_VOL = 10000;
+      const isWl = wlSet.has(sym);
+      if(!isWl && extVol < MIN_EXT_VOL) return null;
+
+      return {
+        symbol:sym,
+        regularPrice:regularPrice,
+        prevClose:prevClose,
+        extPrice:extPrice,
+        extLabel:extLabel,
+        extPct:extPct,
+        extVol:extVol,
+        lowVolume: extVol < MIN_EXT_VOL, // marker pentru UI: arată warning
+        regularChange:((regularPrice-prevClose)/prevClose)*100,
+        isWatchlist:isWl,
+        earningsToday:earningsSet&&earningsSet.has(sym)
+      };
+    }catch(e){ return null; }
+  }
+
+  let jobIdx=0;
+  const worker=async()=>{
+    while(jobIdx<symbols.length){
+      const sym=symbols[jobIdx++];
+      const row=await fetchOneExt(sym);
+      done++;
+      if(row) results.push(row);
+      // progressive: la fiecare 6 rezultate (sau la final) re-randează
+      if(currentTab==='extended' && (results.length-lastPaint>=6 || done===symbols.length)){
+        lastPaint=results.length;
+        extendedCache={data:results.slice(), session:session.session, ts:Date.now(), fetching:true};
+        renderExtendedHours();
+      }
+      await new Promise(r=>setTimeout(r,35)); // stagger mic anti-burst pe worker/Yahoo
+    }
+  };
+  try{
+    await Promise.all(Array.from({length:Math.min(CONC, symbols.length)}, ()=>worker()));
+  } finally {
+    extendedCache={data:results, session:session.session, ts:Date.now(), fetching:false};
+    if(currentTab==='extended') renderExtendedHours();
+  }
 }
 
 // Pas 4: filtru "doar gappers stricti" (≥3%) — toggle persistent
