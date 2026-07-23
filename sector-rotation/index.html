@@ -286,7 +286,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v167</span>
+    <span class="ver-badge" id="verBadge">v168</span>
     <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
@@ -448,7 +448,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
   </div>
 </div>
 
-<script src="../lib/data.js"></script>
+<script src="../lib/data.js?v=672"></script>
 <script src="../lib/regime.js"></script>
 <script>
 'use strict';
@@ -461,7 +461,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   v158: RRG varianta carduri pe 4 cadrane (toggle scatter↔cadrane, persistat).
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v166';
+const VER = 'v168';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -505,8 +505,12 @@ let _proxyIdx = 0;
 let _deadProxies = new Set();
 
 async function proxyGetJSON(targetUrl, timeoutMs = 9000){
-  // strat de date comun (lib/data.js): proxy health per-host + dedup
-  if (window.D && D.fetchJSON) { const j = await D.fetchJSON(targetUrl, { ttl: 0, timeout: timeoutMs }); if (j != null) return j; }
+  // strat de date comun (lib/data.js): proxy health per-host + dedup + cooldown.
+  // Dacă D a încercat deja (custom + codetabs + corsproxy + cors.lol + direct) și
+  // a picat, NU mai reluăm ACELEAȘI proxy-uri free în lanțul local — dubla
+  // trecere doar dubla timpul de eșec (~30s în plus per simbol când proxy-urile
+  // atârnă de pe IP-ul lui Marius → „scan-ul nu finalizează").
+  if (window.D && D.fetchJSON) { return await D.fetchJSON(targetUrl, { ttl: 0, timeout: timeoutMs }); }
   const n = CORS_PROXIES.length;
   for (let k = 0; k < n; k++){
     const pi = (_proxyIdx + k) % n;
@@ -1184,12 +1188,18 @@ async function runScan(){
   let okCount = 0;
   try {
     // v156: benchmark SPY întâi → forță relativă vs piață (rotația reală e relativă, nu absolută)
+    $('statTime').textContent = 'SPY (benchmark)…';
     SPY = await fetchSectorChart('SPY');
     await sleep(180);
     const spyChg1w = SPY ? pctOf(SPY.closes, 5) : null;
     const spyChg1m = SPY ? pctOf(SPY.closes, 21) : null;
     const results = [];
+    let si = 0;
     for (const s of SECTORS){
+      // progres vizibil per simbol — un scan lent (proxy-uri în cooldown) se
+      // vede că AVANSEAZĂ, nu pare înghețat pe „Scanare"
+      si++;
+      $('statTime').textContent = `${s.sym} · ${si}/${SECTORS.length}`;
       const c = await fetchSectorChart(s.sym);
       if (c){
         okCount++;
@@ -1730,7 +1740,7 @@ if ('serviceWorker' in navigator){
 }
 </script>
 
-<script src="../lib/suite-version.js?v=671"></script>
+<script src="../lib/suite-version.js?v=672"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>
