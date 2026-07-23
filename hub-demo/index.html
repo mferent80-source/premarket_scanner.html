@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hub Platform Demo — Trading Tools</title>
+<title>Hub Platform Demo v2 — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
-<meta name="description" content="Demo izolat: Next Action + ecran de decizie + health strip — fără a modifica hub-ul de producție">
+<meta name="description" content="Demo v2: Next Action rafinat, scară de reguli, layout sesiune — fără a modifica hub-ul live">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='16' text-anchor='middle'>🧪</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="../lib/suite-version.js?v=675"></script>
+<script src="../lib/suite-version.js?v=676"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -21,17 +21,16 @@
   --mono:'DM Mono',ui-monospace,monospace;--head:'Sora',system-ui,sans-serif;
 }
 html,body{min-height:100vh;background:var(--bg);color:var(--t1);font-family:var(--head)}
-body{padding:14px 16px 48px;background-image:radial-gradient(900px 420px at 50% -80px,#1a2838 0%,#0b0f17 55%)}
+body{padding:12px 14px 40px;background-image:radial-gradient(900px 420px at 50% -80px,#1a2838 0%,#0b0f17 55%)}
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
-
-.wrap{max-width:1100px;margin:0 auto}
+.wrap{max-width:1080px;margin:0 auto}
 
 .demo-banner{
-  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
-  background:linear-gradient(90deg,rgba(247,147,26,.16),rgba(91,176,255,.10));
-  border:1px solid rgba(247,147,26,.4);border-radius:var(--r);
-  padding:10px 14px;margin-bottom:14px;font-size:13px;line-height:1.45
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
+  background:linear-gradient(90deg,rgba(247,147,26,.14),rgba(91,176,255,.08));
+  border:1px solid rgba(247,147,26,.38);border-radius:var(--r);
+  padding:9px 12px;margin-bottom:10px;font-size:12.5px;line-height:1.4
 }
 .demo-banner b{color:var(--crypto-2)}
 .demo-banner .tag{
@@ -39,20 +38,18 @@ a:hover{text-decoration:underline}
   padding:3px 8px;border-radius:5px;background:rgba(247,147,26,.2);color:var(--crypto-2);
   border:1px solid rgba(247,147,26,.45)
 }
-.demo-banner .links{margin-left:auto;display:flex;flex-wrap:wrap;gap:8px}
+.demo-banner .links{margin-left:auto;display:flex;flex-wrap:wrap;gap:6px}
 .demo-banner .links a{
-  font-size:12px;font-weight:700;padding:5px 10px;border-radius:7px;
+  font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:7px;
   border:1px solid var(--b1);background:var(--bg3);color:var(--t1);text-decoration:none
 }
 .demo-banner .links a:hover{border-color:var(--crypto-1);color:var(--crypto-2)}
 
-header{
-  display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px
-}
-header h1{font-size:20px;font-weight:800}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
+header h1{font-size:18px;font-weight:800}
 header h1 span{color:var(--crypto-1)}
 .ver-badge{
-  font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;
+  font-family:var(--mono);font-size:10.5px;font-weight:700;padding:3px 7px;border-radius:5px;
   background:rgba(91,176,255,.12);color:var(--accent);border:1px solid rgba(91,176,255,.35)
 }
 .session-pill{
@@ -61,163 +58,194 @@ header h1 span{color:var(--crypto-1)}
 }
 .session-pill.pre,.session-pill.after{border-color:rgba(247,147,26,.4);color:var(--crypto-2)}
 .session-pill.rth{border-color:rgba(34,214,107,.4);color:var(--green)}
-.session-pill.review,.session-pill.closed,.session-pill.weekend{color:var(--t3)}
+.session-pill.closed,.session-pill.weekend{color:var(--t3)}
 
-/* Health strip I-216 */
-.health-strip{
-  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
-  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
-  padding:8px 12px;margin-bottom:12px;font-family:var(--mono);font-size:11px
+/* Scenario controls — sus, ca să schimbi rapid */
+.controls{
+  background:var(--bg2);border:1px dashed rgba(212,137,44,.45);border-radius:var(--r);
+  padding:10px 12px;margin-bottom:12px
 }
-.health-strip .hs-lbl{color:var(--t3);font-weight:700;margin-right:4px}
+.controls h3{font-size:11px;font-weight:800;font-family:var(--mono);color:var(--warn);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.controls p{font-size:11.5px;color:var(--t3);margin-bottom:8px;line-height:1.4}
+.seg{display:flex;flex-wrap:wrap;gap:5px}
+.seg button{
+  font-family:var(--mono);font-size:10.5px;font-weight:700;padding:5px 9px;border-radius:6px;
+  border:1px solid var(--b1);background:var(--bg3);color:var(--t2);cursor:pointer
+}
+.seg button.on{background:rgba(247,147,26,.16);border-color:rgba(247,147,26,.55);color:var(--crypto-2)}
+.seg button:hover{border-color:var(--accent)}
+
+/* Health */
+.health-strip{
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:7px 10px;margin-bottom:10px;font-family:var(--mono);font-size:10.5px
+}
+.health-strip .hs-lbl{color:var(--t3);font-weight:700;margin-right:2px}
 .hs-chip{
-  display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:6px;
+  display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:5px;
   background:var(--bg3);border:1px solid var(--b2);color:var(--t2)
 }
-.hs-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--t3)}
-.hs-chip.ok .dot{background:var(--green);box-shadow:0 0 6px rgba(34,214,107,.5)}
-.hs-chip.warn .dot{background:var(--warn);box-shadow:0 0 6px rgba(212,137,44,.5)}
-.hs-chip.err .dot{background:var(--red);box-shadow:0 0 6px rgba(255,77,77,.5)}
-.hs-chip.ok{border-color:rgba(34,214,107,.3)}
+.hs-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--t3)}
+.hs-chip.ok .dot{background:var(--green);box-shadow:0 0 5px rgba(34,214,107,.45)}
+.hs-chip.warn .dot{background:var(--warn)}
+.hs-chip.err .dot{background:var(--red)}
+.hs-chip.ok{border-color:rgba(34,214,107,.28)}
 .hs-chip.warn{border-color:rgba(212,137,44,.35)}
 .hs-chip.err{border-color:rgba(255,77,77,.4)}
 
-/* Next Action I-211 */
+/* Sticky Next Action */
+.na-sticky{position:sticky;top:8px;z-index:40;margin-bottom:12px}
 .next-action{
   display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
-  background:linear-gradient(135deg,rgba(247,147,26,.12),rgba(91,176,255,.08));
-  border:1.5px solid rgba(247,147,26,.4);border-radius:var(--r);
-  padding:14px 16px;margin-bottom:14px
+  background:linear-gradient(135deg,rgba(247,147,26,.12),rgba(20,26,40,.92));
+  border:1.5px solid rgba(247,147,26,.42);border-radius:var(--r);
+  padding:12px 14px;backdrop-filter:blur(8px);box-shadow:0 8px 28px rgba(0,0,0,.35)
 }
 .next-action.prio-halt{
-  background:linear-gradient(135deg,rgba(255,77,77,.16),rgba(20,26,40,.5));
-  border-color:rgba(255,77,77,.5)
+  background:linear-gradient(135deg,rgba(255,77,77,.18),rgba(20,26,40,.94));
+  border-color:rgba(255,77,77,.55)
 }
 .next-action.prio-warn{
-  background:linear-gradient(135deg,rgba(212,137,44,.14),rgba(20,26,40,.4));
-  border-color:rgba(212,137,44,.45)
+  background:linear-gradient(135deg,rgba(212,137,44,.14),rgba(20,26,40,.94));
+  border-color:rgba(212,137,44,.5)
 }
 .next-action.prio-ok{
-  background:linear-gradient(135deg,rgba(34,214,107,.10),rgba(91,176,255,.08));
-  border-color:rgba(34,214,107,.4)
+  background:linear-gradient(135deg,rgba(34,214,107,.12),rgba(20,26,40,.94));
+  border-color:rgba(34,214,107,.45)
 }
-.na-kicker{font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--crypto-1);margin-bottom:4px}
+.na-kicker{font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--crypto-1);margin-bottom:3px}
 .next-action.prio-halt .na-kicker{color:var(--red)}
 .next-action.prio-warn .na-kicker{color:var(--warn)}
 .next-action.prio-ok .na-kicker{color:var(--green)}
-.na-title{font-size:18px;font-weight:800;line-height:1.2}
-.na-why{font-family:var(--mono);font-size:11.5px;color:var(--t2);margin-top:6px;line-height:1.45}
-.na-rule{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:6px}
+.na-title{font-size:17px;font-weight:800;line-height:1.2}
+.na-why{font-size:12.5px;color:var(--t2);margin-top:5px;line-height:1.4}
+.na-meta{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:5px}
 .na-cta{
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  padding:12px 18px;border-radius:10px;font-weight:800;font-size:13px;
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:11px 16px;border-radius:9px;font-weight:800;font-size:12.5px;
   border:none;cursor:pointer;text-decoration:none;white-space:nowrap;
   background:var(--crypto-1);color:#0a0a0a;font-family:var(--head)
 }
 .na-cta:hover{filter:brightness(1.08);text-decoration:none;color:#0a0a0a}
 .next-action.prio-halt .na-cta{background:var(--red);color:#fff}
 .next-action.prio-ok .na-cta{background:var(--green);color:#0a0a0a}
-.na-sec{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.na-sec{display:flex;flex-direction:column;gap:5px;align-items:stretch}
 .na-sec a.sec{
   font-size:11px;font-weight:700;color:var(--t2);padding:5px 10px;border-radius:7px;
-  border:1px solid var(--b1);background:var(--bg3);text-decoration:none
+  border:1px solid var(--b1);background:var(--bg3);text-decoration:none;text-align:center
 }
 .na-sec a.sec:hover{border-color:var(--accent);color:var(--accent)}
 
-/* Decision surface I-212 */
-.decision{
+/* Rule ladder */
+.ladder{
   background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
-  padding:12px;margin-bottom:14px
+  padding:10px 12px;margin-bottom:12px
 }
-.decision-head{
-  display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px
+.ladder h2{font-size:10.5px;font-weight:800;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.ladder-row{
+  display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;
+  padding:6px 8px;border-radius:7px;margin-bottom:4px;font-size:12px;border:1px solid transparent
 }
-.decision-head h2{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);font-family:var(--mono)}
-.decision-head .note{font-family:var(--mono);font-size:10.5px;color:var(--t3);margin-left:auto}
+.ladder-row .ord{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--t3)}
+.ladder-row .name{color:var(--t2)}
+.ladder-row .name b{color:var(--t1);font-weight:700}
+.ladder-row .st{font-family:var(--mono);font-size:10px;font-weight:700}
+.ladder-row.fired{background:rgba(247,147,26,.1);border-color:rgba(247,147,26,.35)}
+.ladder-row.fired .name b{color:var(--crypto-2)}
+.ladder-row.fired .st{color:var(--crypto-2)}
+.ladder-row.pass .st{color:var(--t3)}
+.ladder-row.block .st{color:var(--red)}
+.ladder-note{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:6px;line-height:1.4}
 
-.grid{
-  display:grid;grid-template-columns:repeat(6,1fr);gap:8px
-}
-@media (max-width:900px){.grid{grid-template-columns:repeat(3,1fr)}}
-@media (max-width:550px){.grid{grid-template-columns:repeat(2,1fr)}.next-action{grid-template-columns:1fr}}
-
-.cell{
-  background:var(--bg3);border:1px solid var(--b2);border-radius:10px;padding:10px 11px;
-  display:flex;flex-direction:column;gap:3px;min-height:78px;text-decoration:none;color:inherit;
-  transition:border-color .15s,transform .12s
-}
-a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decoration:none}
-.cell.hero{grid-column:span 2;min-height:96px;background:linear-gradient(160deg,rgba(91,176,255,.08),var(--bg3))}
-.cell .lbl{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.04em}
-.cell .val{font-size:20px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}
-.cell.hero .val{font-size:26px}
-.cell .sub{font-family:var(--mono);font-size:10.5px;color:var(--t2);line-height:1.35}
-.cell.lvl-ok{border-color:rgba(34,214,107,.35)}.cell.lvl-ok .val{color:var(--green)}
-.cell.lvl-bear{border-color:rgba(255,77,77,.4)}.cell.lvl-bear .val{color:var(--red)}
-.cell.lvl-warn{border-color:rgba(212,137,44,.4)}.cell.lvl-warn .val{color:var(--warn)}
-.cell.lvl-neut .val{color:var(--t1)}
-
-/* Gappers strip (session-aware) */
+/* Gappers */
 .gappers{
-  display:none;flex-wrap:wrap;gap:6px;align-items:center;
-  margin:0 0 12px;padding:8px 10px;background:rgba(247,147,26,.06);
-  border:1px dashed rgba(247,147,26,.3);border-radius:var(--r)
+  display:none;flex-wrap:wrap;gap:5px;align-items:center;
+  margin:0 0 10px;padding:7px 10px;background:rgba(247,147,26,.05);
+  border:1px dashed rgba(247,147,26,.28);border-radius:var(--r)
 }
 .gappers.show{display:flex}
 .gappers .g-lbl{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--crypto-2)}
 .g-chip{
-  font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:6px;
+  font-family:var(--mono);font-size:10.5px;padding:3px 7px;border-radius:5px;
   background:var(--bg3);border:1px solid var(--b1);color:var(--t1);text-decoration:none
 }
 .g-chip:hover{border-color:var(--crypto-1)}
 .g-chip .up{color:var(--green)}.g-chip .dn{color:var(--red)}
+.g-chip.muted{opacity:.55}
 
-/* Context handoff I-213 */
+/* Decision */
+.decision{
+  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
+  padding:10px;margin-bottom:12px
+}
+.decision-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}
+.decision-head h2{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);font-family:var(--mono)}
+.decision-head .note{font-family:var(--mono);font-size:10px;color:var(--t3);margin-left:auto}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:7px}
+@media (max-width:900px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media (max-width:550px){
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .next-action{grid-template-columns:1fr}
+  .na-sec{flex-direction:row;flex-wrap:wrap}
+  .cell.hero{grid-column:span 2}
+}
+.cell{
+  background:var(--bg3);border:1px solid var(--b2);border-radius:9px;padding:8px 10px;
+  display:flex;flex-direction:column;gap:2px;min-height:72px;text-decoration:none;color:inherit;
+  transition:border-color .15s,transform .12s
+}
+a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decoration:none}
+.cell.hero{grid-column:span 2;min-height:88px;background:linear-gradient(160deg,rgba(91,176,255,.07),var(--bg3))}
+.cell .lbl{font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--t3);letter-spacing:.04em}
+.cell .val{font-size:18px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}
+.cell.hero .val{font-size:24px}
+.cell .sub{font-family:var(--mono);font-size:10px;color:var(--t2);line-height:1.3}
+.cell.lvl-ok{border-color:rgba(34,214,107,.32)}.cell.lvl-ok .val{color:var(--green)}
+.cell.lvl-bear{border-color:rgba(255,77,77,.38)}.cell.lvl-bear .val{color:var(--red)}
+.cell.lvl-warn{border-color:rgba(212,137,44,.38)}.cell.lvl-warn .val{color:var(--warn)}
+.cell.degraded{opacity:.72}
+.cell.degraded::after{content:'📦';font-size:10px;opacity:.7;margin-top:2px}
+
+/* Context */
 .ctx-box{
   background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);
-  padding:12px 14px;margin-bottom:14px
+  padding:10px 12px;margin-bottom:12px
 }
-.ctx-box h3{font-size:12px;font-weight:800;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.ctx-box h3{font-size:10.5px;font-weight:800;font-family:var(--mono);color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
 .ctx-pre{
-  font-family:var(--mono);font-size:11px;color:var(--t2);background:var(--bg);border:1px solid var(--b2);
-  border-radius:8px;padding:10px;overflow:auto;white-space:pre-wrap;line-height:1.5
+  font-family:var(--mono);font-size:10.5px;color:var(--t2);background:var(--bg);border:1px solid var(--b2);
+  border-radius:7px;padding:8px;overflow:auto;white-space:pre-wrap;line-height:1.45;max-height:140px
 }
-.ctx-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.ctx-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .btn{
-  font-family:var(--head);font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;
+  font-family:var(--head);font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:7px;
   border:1px solid var(--b1);background:var(--bg3);color:var(--t1);cursor:pointer
 }
 .btn:hover{border-color:var(--accent);color:var(--accent)}
-.btn.primary{background:rgba(91,176,255,.15);border-color:rgba(91,176,255,.4);color:var(--accent)}
+.btn.primary{background:rgba(91,176,255,.12);border-color:rgba(91,176,255,.4);color:var(--accent)}
 
-/* Demo controls */
-.controls{
-  background:var(--bg2);border:1px dashed var(--b1);border-radius:var(--r);
-  padding:12px 14px;margin-bottom:14px
+details.compare-fold{margin-bottom:12px}
+details.compare-fold > summary{
+  cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--t3);
+  padding:8px 10px;border:1px dashed var(--b1);border-radius:8px;list-style:none
 }
-.controls h3{font-size:12px;font-weight:800;font-family:var(--mono);color:var(--warn);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
-.controls p{font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.45}
-.seg{display:flex;flex-wrap:wrap;gap:6px}
-.seg button{
-  font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 11px;border-radius:7px;
-  border:1px solid var(--b1);background:var(--bg3);color:var(--t2);cursor:pointer
-}
-.seg button.on{background:rgba(247,147,26,.15);border-color:rgba(247,147,26,.5);color:var(--crypto-2)}
-.seg button:hover{border-color:var(--accent)}
-
-.compare{
-  display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px
-}
+details.compare-fold[open] > summary{color:var(--crypto-2);border-color:rgba(247,147,26,.35);margin-bottom:8px}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media (max-width:700px){.compare{grid-template-columns:1fr}}
-.cmp{
-  background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px
-}
-.cmp h3{font-size:12px;font-weight:800;margin-bottom:8px}
+.cmp{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:10px 12px}
+.cmp h3{font-size:11.5px;font-weight:800;margin-bottom:6px}
 .cmp.old h3{color:var(--t3)}.cmp.new h3{color:var(--crypto-2)}
-.cmp ul{margin:0 0 0 16px;font-size:12.5px;color:var(--t2);line-height:1.55}
-.cmp li{margin-bottom:4px}
+.cmp ul{margin:0 0 0 15px;font-size:12px;color:var(--t2);line-height:1.5}
+.cmp li{margin-bottom:3px}
 
-.foot{font-family:var(--mono);font-size:10.5px;color:var(--t3);text-align:right;margin-top:8px}
+.feedback{
+  background:rgba(91,176,255,.06);border:1px solid rgba(91,176,255,.25);border-radius:var(--r);
+  padding:10px 12px;margin-bottom:10px;font-size:12.5px;color:var(--t2);line-height:1.45
+}
+.feedback b{color:var(--accent)}
+
+.foot{font-family:var(--mono);font-size:10px;color:var(--t3);text-align:right}
 .muted{color:var(--t3)}
 </style>
 </head>
@@ -225,106 +253,114 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
 <div class="wrap">
 
   <div class="demo-banner">
-    <span class="tag">DEMO v1</span>
+    <span class="tag">DEMO v2</span>
     <div>
-      <b>Hub Platform</b> — propuneri I-211…I-216 pe date reale din browser (localStorage).
-      <span class="muted">Hub-ul de producție nu e modificat.</span>
+      <b>Hub Platform</b> — rafinare reguli + copy + layout.
+      <span class="muted">Producția e neatinsă.</span>
     </div>
     <div class="links">
       <a href="../">← Hub live</a>
-      <a href="../docs/ideas/backlog.md" target="_blank" rel="noopener">Backlog idei</a>
+      <a href="https://mferent80-source.github.io/premarket_scanner.html/hub-demo/">Link public</a>
     </div>
   </div>
 
   <header>
     <h1>Cockpit <span>platform</span></h1>
-    <span class="ver-badge" id="verBadge">demo-v1</span>
-    <span class="ver-badge" id="suiteBadge" title="Versiune suită">—</span>
+    <span class="ver-badge">demo-v2</span>
+    <span class="ver-badge" id="suiteBadge">—</span>
     <span class="session-pill" id="sessionPill">…</span>
   </header>
 
-  <!-- I-216 health strip -->
-  <div class="health-strip" id="healthStrip" aria-label="Platform health">
-    <span class="hs-lbl">PLATFORM</span>
-  </div>
-
-  <!-- I-211 next action -->
-  <section class="next-action" id="nextAction" aria-label="Next action">
-    <div>
-      <div class="na-kicker">NEXT ACTION</div>
-      <div class="na-title" id="naTitle">se evaluează…</div>
-      <div class="na-why" id="naWhy">—</div>
-      <div class="na-rule" id="naRule">—</div>
-    </div>
-    <div class="na-sec">
-      <a class="na-cta" id="naCta" href="../router/">Deschide →</a>
-      <a class="sec" id="naSec" href="../journal/#desk">Desk →</a>
+  <section class="controls">
+    <h3>Scenarii demo</h3>
+    <p>Apasă un sim ca să vezi ce CTA câștigă. <b style="color:var(--t2)">Live</b> = localStorage real de pe device.</p>
+    <div class="seg" id="scenarioSeg">
+      <button type="button" data-sc="live" class="on">Live</button>
+      <button type="button" data-sc="pre">Pre + gappers</button>
+      <button type="button" data-sc="halt">HALTED</button>
+      <button type="button" data-sc="risk">Risc ≥4%</button>
+      <button type="button" data-sc="freeze">Macro freeze</button>
+      <button type="button" data-sc="stale">Date stale</button>
+      <button type="button" data-sc="manage">CAUTION + open</button>
+      <button type="button" data-sc="go">GO curat</button>
+      <button type="button" data-sc="review">Review / AH</button>
     </div>
   </section>
 
-  <!-- session gappers (I-215 Pre/AH) -->
+  <div class="health-strip" id="healthStrip" aria-label="Platform health"></div>
+
+  <div class="na-sticky">
+    <section class="next-action" id="nextAction" aria-label="Next action">
+      <div>
+        <div class="na-kicker" id="naKicker">NEXT ACTION</div>
+        <div class="na-title" id="naTitle">se evaluează…</div>
+        <div class="na-why" id="naWhy">—</div>
+        <div class="na-meta" id="naMeta">—</div>
+      </div>
+      <div class="na-sec">
+        <a class="na-cta" id="naCta" href="../router/">Deschide →</a>
+        <a class="sec" id="naSec" href="../journal/#desk">Alternativă →</a>
+      </div>
+    </section>
+  </div>
+
+  <section class="ladder" aria-label="Scară de reguli">
+    <h2>Scară de prioritate (prima regulă adevărată câștigă)</h2>
+    <div id="ladderBody"></div>
+    <div class="ladder-note" id="ladderNote">—</div>
+  </section>
+
   <div class="gappers" id="gappersStrip"></div>
 
-  <!-- I-212 single decision surface -->
   <section class="decision" aria-label="Decision surface">
     <div class="decision-head">
       <h2>Decision surface</h2>
-      <span class="note">o grilă · fără dublură cockpit/brief/tableau</span>
+      <span class="note" id="gridNote">o grilă · fără dublură</span>
     </div>
     <div class="grid" id="decisionGrid"></div>
   </section>
 
-  <!-- I-213 context -->
   <section class="ctx-box">
     <h3>Context handoff · tt_ctx_v1</h3>
     <div class="ctx-pre" id="ctxPre">—</div>
     <div class="ctx-actions">
-      <button type="button" class="btn primary" id="btnWriteCtx">Scrie context din Next Action</button>
-      <button type="button" class="btn" id="btnClearCtx">Șterge tt_ctx_v1</button>
-      <a class="btn" href="../journal/" id="btnOpenJournal">Deschide Journal cu context</a>
+      <button type="button" class="btn primary" id="btnWriteCtx">Scrie din Next Action</button>
+      <button type="button" class="btn" id="btnClearCtx">Șterge</button>
+      <a class="btn" href="../journal/" id="btnOpenJournal">Journal</a>
+      <a class="btn" href="../nasdaq-scanner/" id="btnOpenScan">Scanner</a>
     </div>
   </section>
 
-  <!-- Demo scenario controls -->
-  <section class="controls">
-    <h3>🧪 Controale demo (doar pe pagina asta)</h3>
-    <p>Forțează un scenariu ca să vezi cum se schimbă Next Action + layout. „Live” = date reale din localStorage (ce a scris suita pe device-ul tău).</p>
-    <div class="seg" id="scenarioSeg">
-      <button type="button" data-sc="live" class="on">Live data</button>
-      <button type="button" data-sc="pre">Sim: Pre + gappers</button>
-      <button type="button" data-sc="halt">Sim: HALTED</button>
-      <button type="button" data-sc="freeze">Sim: Macro freeze</button>
-      <button type="button" data-sc="stale">Sim: Date stale</button>
-      <button type="button" data-sc="go">Sim: GO curat</button>
-      <button type="button" data-sc="review">Sim: Review (after)</button>
-    </div>
-  </section>
-
-  <div class="compare">
-    <div class="cmp old">
-      <h3>Hub azi (producție)</h3>
-      <ul>
-        <li>Tableau + Cockpit fold + Brief fold = aceleași semnale de 2–3 ori</li>
-        <li>Multe linkuri, fără „acum fă X”</li>
-        <li>Health ascuns (📦 / pagina Health)</li>
-        <li>Navigare pierde context (sym/regim/R)</li>
-      </ul>
-    </div>
-    <div class="cmp new">
-      <h3>Demo platformă (propunere)</h3>
-      <ul>
-        <li><b>Next Action</b> — un CTA prioritar (I-211)</li>
-        <li><b>Decision surface</b> — o grilă canonică (I-212)</li>
-        <li><b>Health strip</b> — încredere înainte de GO (I-216)</li>
-        <li><b>tt_ctx_v1</b> — handoff spre Journal/Scanner (I-213)</li>
-      </ul>
-    </div>
+  <div class="feedback">
+    <b>Feedback rapid:</b> spune-mi ce regulă e greșită (ex. „în Pre vreau checklist înainte de gappers”,
+    „stale e prea agresiv”, „CAUTION+open e OK”). Ajustăm tot pe demo, apoi mutăm pe hub.
   </div>
 
-  <p class="foot">
-    După ce validezi demo-ul: implementăm pe hub-ul real (fără big-bang) ·
-    <span id="footTs">—</span>
-  </p>
+  <details class="compare-fold">
+    <summary>Azi vs propunere (compară)</summary>
+    <div class="compare">
+      <div class="cmp old">
+        <h3>Hub producție</h3>
+        <ul>
+          <li>Tableau + Cockpit + Brief = aceleași semnale de 2–3 ori</li>
+          <li>Fără „acum fă X”</li>
+          <li>Health ascuns</li>
+          <li>Context se pierde la navigare</li>
+        </ul>
+      </div>
+      <div class="cmp new">
+        <h3>Demo v2</h3>
+        <ul>
+          <li>Next Action sticky + scară de reguli vizibilă</li>
+          <li>O grilă de decizie (degraded când stale)</li>
+          <li>Health strip mereu vizibil</li>
+          <li>tt_ctx_v1 la click CTA</li>
+        </ul>
+      </div>
+    </div>
+  </details>
+
+  <p class="foot"><span id="footTs">—</span></p>
 </div>
 
 <script>
@@ -335,6 +371,7 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
   const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const CTX_KEY = 'tt_ctx_v1';
   const DEMO_SC_KEY = 'tt_hub_demo_scenario_v1';
+  const RISK_HALT = 4;
 
   let scenario = 'live';
   try { scenario = localStorage.getItem(DEMO_SC_KEY) || 'live'; } catch (e) {}
@@ -357,84 +394,91 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
     } catch (e) { return 'closed'; }
   }
 
+  function ageMin(ts) {
+    if (!Number.isFinite(ts) || ts <= 0) return null;
+    // accept sec or ms
+    const t = ts < 1e12 ? ts * 1000 : ts;
+    return (Date.now() - t) / 60000;
+  }
+
   function readLiveState() {
     const sess = usSession();
     const mkt = lsJson('tt_hub_mkt_v1') || {};
     const quotes = mkt.quotes || {};
     const router = lsJson('tt_router_state_v1') || {};
-    const gov = lsJson('tt_governor_state_v1') || lsJson('tt_gv_state_v1') || {};
+    const gov = lsJson('tt_governor_state_v1') || {};
     const cdLive = lsJson('tt_cd_live_v1') || {};
     const regime = lsJson('md_risk_regime') || lsJson('tt_risk_regime') || {};
-    const danger = lsJson('md_danger_score') || {};
+    const dangerSnap = lsJson('md_danger_daily') || lsJson('md_danger_score') || null;
     const gappers = lsJson('pm_gappers_cache') || {};
-    const equity = lsJson('tt_equity_v1') || {};
 
     let openN = 0;
     try {
       const jr = lsJson('tt_journal_v1');
       if (Array.isArray(jr)) openN = jr.filter(e => e && (e.status === 'open' || e.open === true)).length;
     } catch (e) {}
+    if (!openN && Number.isFinite(gov.openCount)) openN = gov.openCount;
 
-    const goScore = router.goScore != null ? router.goScore : (router.payload && router.payload.goScore);
-    const goLabel = router.goLabel || (router.payload && router.payload.goLabel) || '—';
-    const goCls = router.goCls || (router.payload && router.payload.goCls) || 'caution';
-    const strategy = router.strategy || (router.payload && router.payload.strategy) || '—';
-    const freeze = !!(router.context && router.context.macroFreeze && router.context.macroFreeze.active)
-      || !!(router.macroFreeze && router.macroFreeze.active);
+    const goScore = router.goScore != null ? router.goScore : null;
+    const goLabel = router.goLabel || '—';
+    const goCls = router.goCls || (goScore == null ? 'neut' : 'caution');
+    const strategy = router.strategy || '—';
+    const ctx = router.context || {};
+    const mf = ctx.macroFreeze || router.macroFreeze || {};
+    const freeze = !!mf.active;
+    const freezeSoon = !freeze && mf.state === 'soon';
 
-    let verdict = gov.verdict || gov.label || '—';
-    if (gov.state && gov.state.verdict) verdict = gov.state.verdict;
+    let verdict = gov.verdict || '—';
+    const govReasons = Array.isArray(gov.reasons) ? gov.reasons : [];
 
-    const riskPct = cdLive.riskPct != null ? cdLive.riskPct : (cdLive.totRisk != null ? null : null);
-    // risk from unified-ish shapes
     let risk = null, riskStale = false;
     if (typeof cdLive.riskPct === 'number') { risk = cdLive.riskPct; riskStale = !!cdLive.stale; }
-    else if (cdLive.portfolio && typeof cdLive.portfolio.riskPct === 'number') {
-      risk = cdLive.portfolio.riskPct; riskStale = !!cdLive.portfolio.liveStale;
+    else if (typeof cdLive.totRisk === 'number' && cdLive.accountSize > 0) {
+      risk = cdLive.totRisk / cdLive.accountSize * 100;
+      riskStale = !!cdLive.stale;
     }
 
     const spy = quotes.SPY || null;
     const qqq = quotes.QQQ || null;
     const vix = quotes.VIX || null;
-    const mktAgeMin = mkt.ts ? (Date.now() - mkt.ts) / 60000 : null;
+    const mktAgeMin = mkt.ts ? ageMin(mkt.ts) : (spy && spy.ts ? ageMin(spy.ts) : null);
 
     let regLabel = regime.label || regime.regime || null;
-    let regAgeMin = null;
-    if (regime.t) regAgeMin = (Date.now() - regime.t) / 60000;
-    else if (regime.ts) regAgeMin = (Date.now() - regime.ts) / 60000;
+    let regAgeMin = ageMin(regime.t || regime.ts || regime.updatedAt);
 
-    const dangerScore = danger.score != null ? danger.score : (danger.danger && danger.danger.score);
+    let dangerScore = null;
+    if (Array.isArray(dangerSnap) && dangerSnap.length) {
+      const last = dangerSnap[dangerSnap.length - 1];
+      if (last && typeof last.score === 'number') dangerScore = last.score;
+    } else if (dangerSnap && typeof dangerSnap.score === 'number') dangerScore = dangerSnap.score;
+    else if (ctx.danger != null && typeof ctx.danger === 'number') dangerScore = ctx.danger;
+    else if (router.danger != null) dangerScore = router.danger;
+
     const gapList = Array.isArray(gappers.data) ? gappers.data : [];
-    const gapAgeMin = gappers.ts ? (Date.now() - gappers.ts) / 60000 : null;
+    const gapAgeMin = ageMin(gappers.ts);
+    const gapsFresh = gapList.length > 0 && (gapAgeMin == null || gapAgeMin < 15);
 
-    // trust: simple fraction of key sources fresh
-    const checks = [];
-    checks.push({ id: 'spy', ok: spy && spy.ts && Date.now() - spy.ts < 15 * 60000, label: 'SPY' });
-    checks.push({ id: 'router', ok: !!router && (goScore != null || router.ts), label: 'Router' });
-    checks.push({ id: 'regime', ok: !!regLabel && (regAgeMin == null || regAgeMin < 12 * 60), label: 'Regim' });
-    checks.push({ id: 'gov', ok: !!verdict && verdict !== '—', label: 'Desk' });
+    const checks = [
+      { id: 'spy', label: 'SPY', ok: !!(spy && spy.ts && ageMin(spy.ts) < 15) },
+      { id: 'router', label: 'Router', ok: goScore != null && (router.evaluatedAt ? ageMin(router.evaluatedAt) < 24 * 60 : true) },
+      { id: 'regime', label: 'Regim', ok: !!regLabel && (regAgeMin == null || regAgeMin < 12 * 60) },
+      { id: 'gov', label: 'Desk', ok: !!verdict && verdict !== '—' }
+    ];
     const freshN = checks.filter(c => c.ok).length;
     const trustPct = Math.round(100 * freshN / checks.length);
 
     return {
       session: sess,
       goScore: goScore != null ? goScore : '—',
-      goLabel, goCls, strategy, freeze,
-      verdict,
-      riskPct: risk,
-      riskStale,
+      goLabel, goCls, strategy,
+      freeze, freezeSoon,
+      verdict, govReasons,
+      riskPct: risk, riskStale,
       openN,
-      spy, qqq, vix,
-      mktAgeMin,
-      regLabel,
-      regAgeMin,
-      dangerScore,
-      gapList,
-      gapAgeMin,
-      gapPartial: !!gappers.partial,
-      trustPct,
-      trustChecks: checks,
-      proxyHint: null,
+      spy, qqq, vix, mktAgeMin,
+      regLabel, regAgeMin, dangerScore,
+      gapList, gapAgeMin, gapsFresh, gapPartial: !!gappers.partial,
+      trustPct, trustChecks: checks,
       source: 'live'
     };
   }
@@ -444,116 +488,234 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
     s.source = scenario;
     if (scenario === 'live') return s;
 
+    // reset noisy fields for clean sims
+    s.freeze = false; s.freezeSoon = false; s.riskStale = false;
+
     if (scenario === 'pre') {
       s.session = 'pre';
-      s.gapList = s.gapList.length ? s.gapList : [
-        { sym: 'NVDA', gapPct: 4.2 }, { sym: 'TSLA', gapPct: -3.8 }, { sym: 'AMD', gapPct: 3.1 }
+      s.verdict = 'TRADE';
+      s.goCls = 'caution'; s.goScore = 52; s.goLabel = 'WAIT';
+      s.strategy = 'SCAN PRE';
+      s.gapList = [
+        { sym: 'NVDA', gapPct: 4.2, inWl: true },
+        { sym: 'TSLA', gapPct: -3.8 },
+        { sym: 'AMD', gapPct: 3.1 }
       ];
-      s.goCls = 'caution'; s.goScore = 55; s.goLabel = 'WAIT';
+      s.gapsFresh = true; s.gapAgeMin = 2;
+      s.trustPct = 100; s.mktAgeMin = 3; s.regAgeMin = 15;
+      s.trustChecks = (s.trustChecks || []).map(c => ({ ...c, ok: true }));
+      s.riskPct = 1.0; s.openN = 1;
     }
     if (scenario === 'halt') {
-      s.verdict = 'HALTED'; s.goCls = 'nogo'; s.goScore = 22; s.goLabel = 'NO-GO';
-      s.riskPct = 4.6; s.strategy = 'STAY OUT';
+      s.session = 'rth';
+      s.verdict = 'HALTED';
+      s.goCls = 'nogo'; s.goScore = 18; s.goLabel = 'NO-GO';
+      s.strategy = 'STAY OUT';
+      s.riskPct = 2.1; // halt e de la governor, nu neapărat risc 4%
+      s.govReasons = ['pierdere zilnică ≥ prag', 'max trades atins'];
+      s.gapList = []; s.gapsFresh = false;
+      s.trustPct = 100; s.mktAgeMin = 2;
+    }
+    if (scenario === 'risk') {
+      s.session = 'rth';
+      s.verdict = 'CAUTION';
+      s.goCls = 'caution'; s.goScore = 48; s.goLabel = 'SIZE DOWN';
+      s.strategy = 'REDUCE';
+      s.riskPct = 4.7; s.openN = 4;
+      s.gapList = []; s.gapsFresh = false;
+      s.trustPct = 100; s.mktAgeMin = 4;
     }
     if (scenario === 'freeze') {
-      s.freeze = true; s.session = 'rth';
-      s.goCls = 'nogo'; s.goScore = 30; s.goLabel = 'FREEZE';
+      s.session = 'rth'; s.freeze = true;
+      s.verdict = 'CAUTION';
+      s.goCls = 'nogo'; s.goScore = 28; s.goLabel = 'FREEZE';
       s.strategy = 'STAY OUT';
+      s.riskPct = 1.5;
+      s.gapList = [{ sym: 'NVDA', gapPct: 5 }]; // gapper există dar freeze bate
+      s.gapsFresh = true;
+      s.trustPct = 100; s.mktAgeMin = 2;
     }
     if (scenario === 'stale') {
+      s.session = 'rth';
+      s.verdict = 'TRADE';
+      s.goCls = 'go'; s.goScore = 74; s.goLabel = 'GO'; // GO „fals” pe date moarte
+      s.strategy = 'TREND LONG';
       s.mktAgeMin = 95; s.regAgeMin = 900; s.trustPct = 25;
       s.trustChecks = (s.trustChecks || []).map(c => ({ ...c, ok: false }));
-      s.spy = s.spy || { price: 500, chgPct: 0.1, ts: Date.now() - 2 * 3600000 };
-      s.riskStale = true;
+      s.spy = { price: 548.2, chgPct: 0.12, ts: Date.now() - 2 * 3600000 };
+      s.qqq = { price: 480.1, chgPct: 0.08, ts: Date.now() - 2 * 3600000 };
+      s.vix = { price: 16.4, chgPct: -0.3, ts: Date.now() - 2 * 3600000 };
+      s.riskStale = true; s.riskPct = 1.8;
+      s.gapList = []; s.gapsFresh = false;
+    }
+    if (scenario === 'manage') {
+      s.session = 'rth';
+      s.verdict = 'CAUTION';
+      s.goCls = 'caution'; s.goScore = 44; s.goLabel = 'WAIT';
+      s.strategy = 'MEAN REV';
+      s.openN = 3; s.riskPct = 2.4;
+      s.gapList = []; s.gapsFresh = false;
+      s.trustPct = 100; s.mktAgeMin = 5; s.regAgeMin = 30;
+      s.trustChecks = (s.trustChecks || []).map(c => ({ ...c, ok: true }));
     }
     if (scenario === 'go') {
-      s.session = 'rth'; s.freeze = false; s.verdict = 'TRADE';
-      s.goCls = 'go'; s.goScore = 78; s.goLabel = 'GO'; s.strategy = 'TREND LONG';
-      s.riskPct = 1.2; s.trustPct = 100;
+      s.session = 'rth';
+      s.verdict = 'TRADE';
+      s.goCls = 'go'; s.goScore = 78; s.goLabel = 'GO';
+      s.strategy = 'TREND LONG';
+      s.riskPct = 1.1; s.openN = 1;
+      s.gapList = []; s.gapsFresh = false;
+      s.trustPct = 100; s.mktAgeMin = 2; s.regAgeMin = 20;
       s.trustChecks = (s.trustChecks || []).map(c => ({ ...c, ok: true }));
-      s.mktAgeMin = 2; s.regAgeMin = 20;
     }
     if (scenario === 'review') {
-      s.session = 'after'; s.goCls = 'caution'; s.goScore = 40; s.goLabel = 'REVIEW';
+      s.session = 'after';
+      s.verdict = 'TRADE';
+      s.goCls = 'caution'; s.goScore = 38; s.goLabel = 'REVIEW';
+      s.strategy = '—';
+      s.openN = 2; s.riskPct = 1.6;
+      // AH cu gappers: intenționat GOALE ca să câștige regula de review
+      // (sim separat pre arată gappers)
+      s.gapList = []; s.gapsFresh = false;
+      s.trustPct = 75; s.mktAgeMin = 8;
     }
     return s;
   }
 
-  // Priority: safety > capital > data trust > opportunity > default
-  function nextAction(st) {
-    if (st.verdict === 'HALTED' || st.goCls === 'nogo' && Number(st.riskPct) >= 4) {
-      return {
+  /**
+   * Scara: safety → capital → data → opportunity → manage → go → review → default
+   * Returnează { action, ladder[] } unde ladder e pentru UI.
+   */
+  function evaluate(st) {
+    const steps = [];
+    const add = (id, name, active, blockedBy) => {
+      steps.push({ id, name, active: !!active, blockedBy: blockedBy || null });
+    };
+
+    const isHalt = st.verdict === 'HALTED';
+    const riskHot = Number.isFinite(st.riskPct) && st.riskPct >= RISK_HALT;
+    const trustBad = st.trustPct < 50 || (st.mktAgeMin != null && st.mktAgeMin > 45);
+    const canOpp = (st.session === 'pre' || st.session === 'after') && st.gapsFresh && st.gapList.length;
+    const manageOpen = st.openN > 0 && (st.verdict === 'CAUTION' || st.goCls === 'caution' || st.goCls === 'nogo') && !isHalt && !riskHot;
+    const goClean = st.goCls === 'go' && st.verdict === 'TRADE' && !st.freeze && !trustBad && !riskHot;
+    const reviewSess = st.session === 'after' || st.session === 'closed' || st.session === 'weekend';
+
+    // Evaluate which would fire (for ladder display we mark active if condition true,
+    // and the winner is first active not blocked by higher priority — actually first active wins)
+    add('halt', '1 · Desk HALTED', isHalt);
+    add('risk', '2 · Risc agregat ≥ ' + RISK_HALT + '%', riskHot);
+    add('freeze', '3 · Macro FREEZE activ', st.freeze);
+    add('trust', '4 · Date slabe (trust / SPY vechi)', trustBad);
+    add('gap', '5 · Gappers proaspeți (Pre/AH)', canOpp);
+    add('manage', '6 · CAUTION + poziții open → manage', manageOpen);
+    add('go', '7 · GO curat + Desk TRADE', goClean);
+    add('review', '8 · Sesiune review (AH/closed/weekend)', reviewSess);
+    add('default', '9 · Default caution / planifică', true);
+
+    let winnerId = 'default';
+    for (const step of steps) {
+      if (step.active) { winnerId = step.id; break; }
+    }
+    steps.forEach(s => { s.fired = s.id === winnerId; });
+
+    let action;
+    if (winnerId === 'halt') {
+      action = {
         prio: 'halt',
-        title: 'STOP — Desk HALTED / risc maxim',
-        why: 'Capital sau Governor blochează trade-ul. Nu căuta setup-uri.',
-        rule: 'regula: safety · HALTED / risc ≥ 4%',
+        kicker: 'STOP · SAFETY',
+        title: 'Desk e HALTED — zero trade nou',
+        why: (st.govReasons && st.govReasons[0])
+          ? st.govReasons[0]
+          : 'Governor a blocat ziua. Nu căuta setup-uri; verifică motivele pe Desk.',
         cta: { label: 'Deschide Risk Desk', href: '../journal/#desk' },
-        sec: { label: 'Capital →', href: '../journal/#capital' }
+        sec: { label: 'Capital / DD →', href: '../journal/#capital' }
       };
-    }
-    if (st.freeze) {
-      return {
+    } else if (winnerId === 'risk') {
+      action = {
         prio: 'halt',
-        title: 'FREEZE macro — stai pe mâini',
-        why: 'Eveniment high-impact în fereastră. Setup-urile pot fi zgomot.',
-        rule: 'regula: safety · macro freeze',
-        cta: { label: 'Vezi calendar Macro', href: '../macro-dashboard/' },
-        sec: { label: 'Router →', href: '../router/' }
+        kicker: 'STOP · CAPITAL',
+        title: 'Risc @ SL ' + st.riskPct.toFixed(1) + '% — peste prag',
+        why: 'Bugetul de risc e plin sau depășit. Reduce / închide înainte de orice setup nou.',
+        cta: { label: 'Portfolio live', href: '../journal/#portfolio' },
+        sec: { label: 'Desk →', href: '../journal/#desk' }
       };
-    }
-    if (st.trustPct < 50 || (st.mktAgeMin != null && st.mktAgeMin > 30)) {
-      return {
+    } else if (winnerId === 'freeze') {
+      action = {
+        prio: 'halt',
+        kicker: 'STOP · MACRO',
+        title: 'FREEZE pe eveniment — stai pe mâini',
+        why: 'High-impact în fereastră. Gap-urile și scan-urile pot fi zgomot până trece fereastra.',
+        cta: { label: 'Calendar Macro', href: '../macro-dashboard/' },
+        sec: { label: 'Router context →', href: '../router/' }
+      };
+    } else if (winnerId === 'trust') {
+      action = {
         prio: 'warn',
-        title: 'Date slabe — nu te baza pe GO',
-        why: 'Încredere surse ' + st.trustPct + '% · piețe ' + (st.mktAgeMin != null ? Math.round(st.mktAgeMin) + 'm' : '?') + '. Reîmprospătează înainte de decizie.',
-        rule: 'regula: data trust · I-216 / I-206',
+        kicker: 'VERIFY · DATA',
+        title: 'Nu te baza pe GO — date slabe',
+        why: 'Trust ' + st.trustPct + '%' +
+          (st.mktAgeMin != null ? ' · piețe acum ' + Math.round(st.mktAgeMin) + 'm' : '') +
+          '. Reîmprospătează sursele înainte de orice decizie.',
         cta: { label: 'Suite Health', href: '../health/' },
         sec: { label: 'Macro refresh →', href: '../macro-dashboard/' }
       };
-    }
-    if ((st.session === 'pre' || st.session === 'after') && st.gapList && st.gapList.length) {
+    } else if (winnerId === 'gap') {
       const g = st.gapList[0];
       const sym = g.sym || g.symbol || '—';
       const pct = g.gapPct != null ? ((g.gapPct >= 0 ? '+' : '') + Number(g.gapPct).toFixed(1) + '%') : '';
-      return {
+      const wl = g.inWl ? ' · pe watchlist' : '';
+      action = {
         prio: 'ok',
-        title: 'Gapper de urmărit: ' + sym + ' ' + pct,
-        why: 'Sesiune ' + st.session + ' · top din cache gappers. Verifică lichiditate/spread înainte de plan.',
-        rule: 'regula: opportunity · pre/AH gappers',
-        cta: { label: 'Deschide ' + sym + ' pe Nasdaq', href: '../nasdaq-scanner/?sym=' + encodeURIComponent(sym) },
-        sec: { label: 'Planifică în Journal →', href: '../journal/?sym=' + encodeURIComponent(sym) },
+        kicker: 'OPPORTUNITY · ' + String(st.session).toUpperCase(),
+        title: 'Urmărește ' + sym + ' ' + pct,
+        why: 'Top gapper din cache' + wl + '. Verifică spread/volum, apoi plan — nu market-order orb.',
+        cta: { label: 'Deschide ' + sym, href: '../nasdaq-scanner/?sym=' + encodeURIComponent(sym) },
+        sec: { label: 'Plan în Journal →', href: '../journal/?sym=' + encodeURIComponent(sym) },
         ctxSym: sym,
         ctxSource: 'hub-demo-gapper'
       };
-    }
-    if (st.goCls === 'go' && st.verdict !== 'HALTED' && st.verdict !== 'CAUTION') {
-      return {
+    } else if (winnerId === 'manage') {
+      action = {
+        prio: 'warn',
+        kicker: 'MANAGE · OPEN',
+        title: st.openN + ' open · regim CAUTION',
+        why: 'Ai poziții și semnalul nu e GO. Prioritate: gestionează riscul existent, nu adăuga size.',
+        cta: { label: 'Execuții open', href: '../journal/#exec' },
+        sec: { label: 'Portfolio →', href: '../journal/#portfolio' }
+      };
+    } else if (winnerId === 'go') {
+      action = {
         prio: 'ok',
-        title: 'GO activ — confirmă playbook-ul',
-        why: 'Scor ' + st.goScore + ' · ' + (st.strategy || st.goLabel) + '. Următorul pas e Router Deep, nu scan la întâmplare.',
-        rule: 'regula: default GO path',
+        kicker: 'GO · PLAYBOOK',
+        title: 'GO ' + st.goScore + ' — confirmă playbook-ul',
+        why: (st.strategy && st.strategy !== '—' ? st.strategy + ' · ' : '') +
+          'Următorul pas e Router Deep (reguli + sizing), nu scan la întâmplare.',
         cta: { label: 'Router Deep', href: '../router/' },
         sec: { label: 'STL radar →', href: '../smart-trade-long/' }
       };
-    }
-    if (st.session === 'after' || st.session === 'closed' || st.session === 'weekend') {
-      return {
+    } else if (winnerId === 'review') {
+      action = {
         prio: 'warn',
-        title: 'Mod review — închide ziua corect',
-        why: 'Sesiune ' + st.session + '. Verifică execuții, PnL, lecții — nu forța setup-uri.',
-        rule: 'regula: session · review',
-        cta: { label: 'Signal Ledger / Journal', href: '../journal/#exec' },
+        kicker: 'REVIEW · SESSION',
+        title: 'Închide ziua corect',
+        why: 'Sesiune ' + st.session + '. Execuții, PnL, greșeli — nu forța setup-uri out-of-hours fără plan.',
+        cta: { label: 'Journal / execuții', href: '../journal/#exec' },
         sec: { label: 'Weekly →', href: '../weekly/' }
       };
+    } else {
+      action = {
+        prio: 'warn',
+        kicker: 'PLAN · CAUTION',
+        title: 'Filtrează — nu forța size full',
+        why: 'GO ' + st.goScore + ' (' + st.goLabel + ') · Desk ' + st.verdict +
+          '. Preferă watchlist + plan mic până se aliniază regimul.',
+        cta: { label: 'Router / morning', href: '../router/' },
+        sec: { label: 'Watchlist →', href: '../watchlist-monitor/' }
+      };
     }
-    return {
-      prio: 'warn',
-      title: 'Azi e CAUTION — filtrează, nu forța',
-      why: 'GO ' + st.goScore + ' (' + st.goLabel + ') · Desk ' + st.verdict + '. Preferă watchlist + plan, nu size full.',
-      rule: 'regula: default caution',
-      cta: { label: 'Morning pe Router', href: '../router/' },
-      sec: { label: 'Watchlist →', href: '../watchlist-monitor/' }
-    };
+
+    action.ruleId = winnerId;
+    return { action, ladder: steps, winnerId };
   }
 
   function fmtPx(q) {
@@ -574,6 +736,7 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
   function goLvl(cls) {
     if (cls === 'go') return 'ok';
     if (cls === 'nogo') return 'bear';
+    if (cls === 'neut') return 'neut';
     return 'warn';
   }
   function deskLvl(v) {
@@ -587,7 +750,8 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
     const tag = opts.href ? 'a' : 'div';
     const href = opts.href ? ' href="' + esc(opts.href) + '"' : '';
     const hero = opts.hero ? ' hero' : '';
-    return '<' + tag + href + ' class="cell' + hero + ' lvl-' + (opts.lvl || 'neut') + '">' +
+    const deg = opts.degraded ? ' degraded' : '';
+    return '<' + tag + href + ' class="cell' + hero + deg + ' lvl-' + (opts.lvl || 'neut') + '">' +
       '<span class="lbl">' + esc(opts.lbl) + '</span>' +
       '<span class="val">' + opts.val + '</span>' +
       (opts.sub != null ? '<span class="sub">' + esc(opts.sub) + '</span>' : '') +
@@ -595,18 +759,18 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
   }
 
   function paintHealth(st) {
-    const el = $('healthStrip');
-    const mktCls = (st.mktAgeMin != null && st.mktAgeMin > 30) ? 'err' : (st.mktAgeMin != null && st.mktAgeMin > 10) ? 'warn' : 'ok';
+    const mktCls = (st.mktAgeMin != null && st.mktAgeMin > 45) ? 'err' : (st.mktAgeMin != null && st.mktAgeMin > 12) ? 'warn' : (st.mktAgeMin == null ? 'warn' : 'ok');
     const trustCls = st.trustPct < 50 ? 'err' : st.trustPct < 75 ? 'warn' : 'ok';
-    const regCls = (st.regAgeMin != null && st.regAgeMin > 12 * 60) ? 'warn' : 'ok';
+    const regCls = (st.regAgeMin != null && st.regAgeMin > 12 * 60) ? 'warn' : (st.regLabel ? 'ok' : 'warn');
+    const riskCls = (st.riskPct != null && st.riskPct >= RISK_HALT) ? 'err' : (st.riskPct != null && st.riskPct >= 2) ? 'warn' : 'ok';
     const chips = [
       { cls: trustCls, t: 'Trust ' + st.trustPct + '%' },
       { cls: mktCls, t: 'SPY ' + (st.mktAgeMin != null ? Math.round(st.mktAgeMin) + 'm' : 'n/a') },
-      { cls: regCls, t: 'Regim ' + (st.regLabel ? String(st.regLabel).replace(/^[^\s]+\s*/, '').slice(0, 18) : 'n/a') },
-      { cls: st.freeze ? 'err' : 'ok', t: st.freeze ? 'FREEZE' : 'No freeze' },
-      { cls: st.riskStale ? 'warn' : 'ok', t: st.riskStale ? 'Risc stale' : 'Risc ' + (st.riskPct != null ? st.riskPct.toFixed(1) + '%' : '—') }
+      { cls: regCls, t: st.regLabel ? String(st.regLabel).replace(/^[^\s]+\s*/, '').slice(0, 16) : 'Regim n/a' },
+      { cls: st.freeze ? 'err' : (st.freezeSoon ? 'warn' : 'ok'), t: st.freeze ? 'FREEZE' : (st.freezeSoon ? 'catalyst' : 'No freeze') },
+      { cls: riskCls, t: st.riskPct != null ? ('Risc ' + st.riskPct.toFixed(1) + '%' + (st.riskStale ? ' ⏳' : '')) : 'Risc —' }
     ];
-    el.innerHTML = '<span class="hs-lbl">PLATFORM</span>' + chips.map(c =>
+    $('healthStrip').innerHTML = '<span class="hs-lbl">PLATFORM</span>' + chips.map(c =>
       '<span class="hs-chip ' + c.cls + '"><span class="dot"></span>' + esc(c.t) + '</span>'
     ).join('');
   }
@@ -618,58 +782,73 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
     pill.className = 'session-pill ' + (st.session || '');
   }
 
-  function paintNext(st, na) {
+  function paintNext(st, action) {
     const box = $('nextAction');
-    box.className = 'next-action prio-' + (na.prio || 'warn');
-    $('naTitle').textContent = na.title;
-    $('naWhy').textContent = na.why;
-    $('naRule').textContent = na.rule + ' · scenario=' + st.source;
+    box.className = 'next-action prio-' + (action.prio || 'warn');
+    $('naKicker').textContent = action.kicker || 'NEXT ACTION';
+    $('naTitle').textContent = action.title;
+    $('naWhy').textContent = action.why;
+    $('naMeta').textContent = 'regulă #' + action.ruleId + ' · scenario=' + st.source;
     const cta = $('naCta');
-    cta.textContent = na.cta.label;
-    cta.href = na.cta.href;
+    cta.textContent = action.cta.label;
+    cta.href = action.cta.href;
     const sec = $('naSec');
-    sec.textContent = na.sec.label;
-    sec.href = na.sec.href;
-    window.__demoNa = na;
+    sec.textContent = action.sec.label;
+    sec.href = action.sec.href;
+    window.__demoNa = action;
+  }
+
+  function paintLadder(ladder, winnerId) {
+    const el = $('ladderBody');
+    el.innerHTML = ladder.map(s => {
+      const cls = s.fired ? 'fired' : (s.active ? 'pass' : 'pass');
+      const st = s.fired ? '▶ WIN' : (s.active ? 'true' : '—');
+      return '<div class="ladder-row ' + cls + '">' +
+        '<span class="ord">' + (s.fired ? '●' : '○') + '</span>' +
+        '<span class="name">' + (s.fired ? '<b>' + esc(s.name) + '</b>' : esc(s.name)) + '</span>' +
+        '<span class="st">' + st + '</span></div>';
+    }).join('');
+    $('ladderNote').textContent = 'Prima condiție adevărată de sus în jos devine Next Action. Restul e ignorat (chiar dacă e și el true). Winner: ' + winnerId + '.';
   }
 
   function paintGrid(st) {
-    const g = $('decisionGrid');
+    const degraded = st.trustPct < 50 || (st.mktAgeMin != null && st.mktAgeMin > 45);
+    $('gridNote').textContent = degraded ? 'date degradate · valorile pot fi vechi 📦' : 'o grilă · fără dublură cockpit/brief';
     const reg = st.regLabel ? String(st.regLabel).replace(/^[^\s]+\s*/, '') : '—';
+    const g = $('decisionGrid');
     g.innerHTML = [
-      cell({ hero: true, lbl: 'GO', val: esc(String(st.goScore)), sub: st.goLabel + (st.strategy && st.strategy !== '—' ? ' · ' + st.strategy : ''), lvl: goLvl(st.goCls), href: '../router/' }),
-      cell({ hero: true, lbl: 'Desk', val: esc(String(st.verdict)), sub: 'Governor verdict', lvl: deskLvl(st.verdict), href: '../journal/#desk' }),
-      cell({ hero: true, lbl: 'Regim', val: esc(reg), sub: st.regAgeMin != null ? Math.round(st.regAgeMin) + 'm age' : 'din cache suite', lvl: /OFF|STRESS/i.test(reg) ? 'bear' : /ON|LEAN/i.test(reg) ? 'ok' : 'neut', href: '../macro-dashboard/' }),
-      cell({ lbl: 'Danger', val: esc(String(st.dangerScore != null ? st.dangerScore : '—')), sub: '/100', lvl: st.dangerScore >= 70 ? 'bear' : st.dangerScore >= 40 ? 'warn' : 'ok', href: '../macro-dashboard/' }),
-      cell({ lbl: 'Risc @ SL', val: st.riskPct != null ? st.riskPct.toFixed(1) + '%' : '—', sub: st.riskStale ? 'stale' : 'agregat', lvl: st.riskPct >= 4 ? 'bear' : st.riskPct >= 2 ? 'warn' : 'ok', href: '../journal/#portfolio' }),
+      cell({ hero: true, lbl: 'GO', val: esc(String(st.goScore)), sub: st.goLabel + (st.strategy && st.strategy !== '—' ? ' · ' + st.strategy : ''), lvl: goLvl(st.goCls), href: '../router/', degraded }),
+      cell({ hero: true, lbl: 'Desk', val: esc(String(st.verdict)), sub: 'Governor', lvl: deskLvl(st.verdict), href: '../journal/#desk' }),
+      cell({ hero: true, lbl: 'Regim', val: esc(reg), sub: st.regAgeMin != null ? Math.round(st.regAgeMin) + 'm' : 'cache suite', lvl: /OFF|STRESS/i.test(reg) ? 'bear' : /ON|LEAN/i.test(reg) ? 'ok' : 'neut', href: '../macro-dashboard/', degraded: st.regAgeMin != null && st.regAgeMin > 12 * 60 }),
+      cell({ lbl: 'Danger', val: esc(String(st.dangerScore != null ? st.dangerScore : '—')), sub: '/100', lvl: st.dangerScore >= 70 ? 'bear' : st.dangerScore >= 40 ? 'warn' : (st.dangerScore != null ? 'ok' : 'neut'), href: '../macro-dashboard/' }),
+      cell({ lbl: 'Risc @ SL', val: st.riskPct != null ? st.riskPct.toFixed(1) + '%' : '—', sub: st.riskStale ? 'stale' : 'agregat', lvl: st.riskPct >= RISK_HALT ? 'bear' : st.riskPct >= 2 ? 'warn' : 'ok', href: '../journal/#portfolio' }),
       cell({ lbl: 'Open', val: String(st.openN), sub: 'poziții', lvl: st.openN >= 5 ? 'warn' : 'neut', href: '../journal/#exec' }),
-      cell({ lbl: 'SPY', val: esc(fmtPx(st.spy)), sub: fmtChg(st.spy), lvl: mktLvl(st.spy, false), href: '../nasdaq-scanner/?sym=SPY' }),
-      cell({ lbl: 'QQQ', val: esc(fmtPx(st.qqq)), sub: fmtChg(st.qqq), lvl: mktLvl(st.qqq, false), href: '../nasdaq-scanner/?sym=QQQ' }),
-      cell({ lbl: 'VIX', val: st.vix && Number.isFinite(st.vix.price) ? st.vix.price.toFixed(2) : '—', sub: fmtChg(st.vix), lvl: mktLvl(st.vix, true), href: '../macro-dashboard/' })
+      cell({ lbl: 'SPY', val: esc(fmtPx(st.spy)), sub: fmtChg(st.spy), lvl: mktLvl(st.spy, false), href: '../nasdaq-scanner/?sym=SPY', degraded }),
+      cell({ lbl: 'QQQ', val: esc(fmtPx(st.qqq)), sub: fmtChg(st.qqq), lvl: mktLvl(st.qqq, false), href: '../nasdaq-scanner/?sym=QQQ', degraded }),
+      cell({ lbl: 'VIX', val: st.vix && Number.isFinite(st.vix.price) ? st.vix.price.toFixed(2) : '—', sub: fmtChg(st.vix), lvl: mktLvl(st.vix, true), href: '../macro-dashboard/', degraded })
     ].join('');
   }
 
-  function paintGappers(st) {
+  function paintGappers(st, winnerId) {
     const el = $('gappersStrip');
     const show = (st.session === 'pre' || st.session === 'after') && st.gapList && st.gapList.length;
     el.className = 'gappers' + (show ? ' show' : '');
     if (!show) { el.innerHTML = ''; return; }
-    el.innerHTML = '<span class="g-lbl">GAPPERS</span>' + st.gapList.slice(0, 6).map(g => {
-      const sym = g.sym || g.symbol || '?';
-      const pct = g.gapPct != null ? Number(g.gapPct) : null;
-      const cls = pct != null && pct >= 0 ? 'up' : 'dn';
-      const txt = pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%' : '';
-      return '<a class="g-chip" href="../nasdaq-scanner/?sym=' + encodeURIComponent(sym) + '">' +
-        esc(sym) + ' <span class="' + cls + '">' + esc(txt) + '</span></a>';
-    }).join('');
+    const dim = winnerId !== 'gap'; // gappers vizibile dar nu câștigă (ex. freeze)
+    el.innerHTML = '<span class="g-lbl">GAPPERS' + (dim ? ' (nu e prioritate acum)' : '') + '</span>' +
+      st.gapList.slice(0, 6).map(g => {
+        const sym = g.sym || g.symbol || '?';
+        const pct = g.gapPct != null ? Number(g.gapPct) : null;
+        const cls = pct != null && pct >= 0 ? 'up' : 'dn';
+        const txt = pct != null ? (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%' : '';
+        return '<a class="g-chip' + (dim ? ' muted' : '') + '" href="../nasdaq-scanner/?sym=' + encodeURIComponent(sym) + '">' +
+          esc(sym) + (g.inWl ? '★' : '') + ' <span class="' + cls + '">' + esc(txt) + '</span></a>';
+      }).join('');
   }
 
-  function readCtx() {
-    return lsJson(CTX_KEY);
-  }
   function paintCtx() {
-    const c = readCtx();
-    $('ctxPre').textContent = c ? JSON.stringify(c, null, 2) : '(gol — apasă „Scrie context din Next Action”)';
+    const c = lsJson(CTX_KEY);
+    $('ctxPre').textContent = c ? JSON.stringify(c, null, 2) : '(gol — click pe CTA sau „Scrie din Next Action”)';
   }
 
   function writeCtxFromNa(st, na) {
@@ -683,6 +862,9 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
       verdict: st.verdict,
       regime: st.regLabel,
       riskPct: st.riskPct,
+      openN: st.openN,
+      trustPct: st.trustPct,
+      ruleId: na.ruleId,
       sym: na.ctxSym || null,
       source: na.ctxSource || 'hub-demo',
       nextAction: na.title,
@@ -694,18 +876,18 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
 
   function render() {
     const st = applyScenario(readLiveState());
-    const na = nextAction(st);
+    const { action, ladder, winnerId } = evaluate(st);
     paintSession(st);
     paintHealth(st);
-    paintNext(st, na);
-    paintGappers(st);
+    paintNext(st, action);
+    paintLadder(ladder, winnerId);
+    paintGappers(st, winnerId);
     paintGrid(st);
     paintCtx();
-    $('footTs').textContent = 'render ' + new Date().toLocaleTimeString('ro-RO') + ' · ' + st.source;
+    $('footTs').textContent = 'demo-v2 · ' + new Date().toLocaleTimeString('ro-RO') + ' · ' + st.source + ' · win=' + winnerId;
     window.__demoState = st;
   }
 
-  // scenario buttons
   document.getElementById('scenarioSeg').addEventListener('click', e => {
     const b = e.target.closest('button[data-sc]');
     if (!b) return;
@@ -719,19 +901,14 @@ a.cell:hover{border-color:var(--accent);transform:translateY(-1px);text-decorati
   });
 
   $('btnWriteCtx').addEventListener('click', () => {
-    const st = window.__demoState || applyScenario(readLiveState());
-    const na = window.__demoNa || nextAction(st);
-    writeCtxFromNa(st, na);
+    writeCtxFromNa(window.__demoState || applyScenario(readLiveState()), window.__demoNa || evaluate(applyScenario(readLiveState())).action);
   });
   $('btnClearCtx').addEventListener('click', () => {
     try { localStorage.removeItem(CTX_KEY); } catch (e) {}
     paintCtx();
   });
   $('naCta').addEventListener('click', () => {
-    // la click CTA scriem context automat (demo handoff)
-    const st = window.__demoState || applyScenario(readLiveState());
-    const na = window.__demoNa || nextAction(st);
-    writeCtxFromNa(st, na);
+    writeCtxFromNa(window.__demoState || applyScenario(readLiveState()), window.__demoNa || evaluate(applyScenario(readLiveState())).action);
   });
 
   if (window.SUITE_VERSION_SHORT) {
