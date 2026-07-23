@@ -439,6 +439,25 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 
 .refresh-info { font-family:var(--mono); font-size:11px; color:var(--t3); margin-top:8px; text-align:right; }
 
+/* Banner sync: citire publică (Pages) fără token de push */
+.sync-banner {
+  display:none; align-items:center; gap:10px; flex-wrap:wrap;
+  background:rgba(91,176,255,.08); border:1px solid rgba(91,176,255,.35);
+  border-radius:var(--rs); padding:8px 12px; margin-bottom:10px;
+  font-family:var(--mono); font-size:11.5px; color:var(--t2); line-height:1.4;
+}
+.sync-banner.show { display:flex; }
+.sync-banner b { color:#8ac8ff; font-weight:700; }
+.sync-banner button {
+  margin-left:auto; padding:4px 10px; font-size:11px;
+  background:rgba(91,176,255,.15); border-color:rgba(91,176,255,.4); color:#8ac8ff;
+}
+.sync-banner button:hover { background:var(--accent); color:#000; }
+.sync-banner .sb-x {
+  margin-left:0; padding:2px 8px; background:transparent; border:none; color:var(--t3); font-size:14px;
+}
+.sync-banner .sb-x:hover { color:var(--bear-s); background:transparent; transform:none; }
+
 /* Toasts */
 #toasts { position:fixed; bottom:14px; right:14px; display:flex; flex-direction:column; gap:6px; z-index:2000; max-width:400px; pointer-events:none; }
 #toasts > * { pointer-events:auto; }
@@ -485,7 +504,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v68</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v69</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -495,6 +514,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   <button class="icon-btn" id="hdrMenuBtn" title="Mai multe acțiuni">⋯</button>
   <a href="../" class="nav-link">← Hub</a>
 </header>
+
+<div id="syncBanner" class="sync-banner" role="status" aria-live="polite">
+  <span id="syncBannerMsg"><b>📥 Citire publică</b> (GitHub Pages) · push ☁️ necesită token</span>
+  <button type="button" id="syncBannerToken" title="Setează token GitHub pentru push">+ Token</button>
+  <button type="button" class="sb-x" id="syncBannerDismiss" title="Ascunde pe sesiunea asta">✕</button>
+</div>
 
 <!-- Acțiuni secundare ale header-ului — popover „⋯" (recuperează spațiu, mai ales pe telefon).
      Butoanele își păstrează ID-urile → toate listener-ele rămân legate; eticheta e span separat,
@@ -826,8 +851,8 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=698"></script>
-<script src="../lib/data.js?v=698"></script>
+<script src="../lib/suite-version.js?v=699"></script>
+<script src="../lib/data.js?v=699"></script>
 <script src="../lib/telegram.js"></script>
 <script>
 // ============ CONFIG ============
@@ -1174,8 +1199,56 @@ async function fetchPrice(symbol) {
 // ============ POLL CYCLE ============
 // Semantică IDENTICĂ cu checkPriceAlerts din watchlist-monitor: one-shot → alerta
 // dispare la fire; re-arm → se dezarmează și se re-armează cu histerezis 0.3%.
-const _lastPrice = {}; // preț curent per simbol (doar pentru UI — NU se persistă în storage)
+const _lastPrice = {}; // preț curent per simbol (UI; + cache localStorage 20s+ pt paint instant la reload)
 const _lastChange = {}; // variația zilei % per simbol = (last - prevClose)/prevClose (pt sortare după creștere)
+// Cache prețuri pe device — paint instant la reload; poll-ul rețea rămâne sursa de adevăr pt fire
+const PX_CACHE_KEY = 'pa_px_cache_v1';
+const PX_CACHE_TTL_MS = 20000;      // sub 20s = „proaspăt" (afişare fără 📦)
+const PX_CACHE_PAINT_MS = 900000;  // max 15 min pt paint la reload (apoi se aruncă)
+function loadPxCache() {
+  try { const o = JSON.parse(localStorage.getItem(PX_CACHE_KEY) || '{}'); return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; }
+  catch (e) { return {}; }
+}
+function savePxCache(map) {
+  try { localStorage.setItem(PX_CACHE_KEY, JSON.stringify(map)); }
+  catch (e) {
+    try {
+      const keys = Object.keys(map).map(k => ({ k, t: map[k]?.ts || 0 })).sort((a, b) => a.t - b.t);
+      keys.slice(0, Math.max(5, Math.floor(keys.length / 3))).forEach(x => delete map[x.k]);
+      localStorage.setItem(PX_CACHE_KEY, JSON.stringify(map));
+    } catch (e2) {}
+  }
+}
+function stashPxCache(prices, changes) {
+  const c = loadPxCache();
+  const now = Date.now();
+  Object.keys(prices).forEach(sym => {
+    const u = String(sym).toUpperCase();
+    c[u] = { last: prices[sym], chg: changes[u] != null ? changes[u] : c[u]?.chg, ts: now };
+  });
+  Object.keys(c).forEach(k => { if (now - (c[k]?.ts || 0) > PX_CACHE_PAINT_MS) delete c[k]; });
+  savePxCache(c);
+}
+/** Paint instant din cache (nu declanșează alerte — doar UI). */
+function hydratePricesFromCache() {
+  const c = loadPxCache();
+  const now = Date.now();
+  let n = 0;
+  Object.keys(c).forEach(sym => {
+    const e = c[sym];
+    if (!e || !Number.isFinite(e.last) || now - (e.ts || 0) > PX_CACHE_PAINT_MS) return;
+    _lastPrice[sym] = e.last;
+    if (Number.isFinite(e.chg)) _lastChange[sym] = e.chg;
+    n++;
+  });
+  return n;
+}
+function pxCacheAgeMs(sym) {
+  try {
+    const e = loadPxCache()[String(sym).toUpperCase()];
+    return e && e.ts ? Date.now() - e.ts : null;
+  } catch (e) { return null; }
+}
 let _pollBusy = false; // v41: latch anti re-entrancy — apelurile manuale (add/edit/pull/visibility) se pot suprapune peste cel programat → dublu fire/notificare
 async function pollPrices() {
   if (pollPaused || _pollBusy) return;
@@ -1226,6 +1299,7 @@ async function pollPrices() {
     _warnedNoKey = true;
     toast('⚠ Niciun preț live — verifică rețeaua / proxy (tt-proxy) sau cheia Finnhub', 'warn');
   }
+  if (priced) stashPxCache(prices, changes);
   priceAlerts = loadAlerts(); // re-sync după await-uri (fetch-urile durează — alt tab putea scrie)
   const fired = [];
   let changed = false;
@@ -2317,12 +2391,32 @@ $('exportBtn').addEventListener('click', async () => {
 const GH_TOKEN_KEY = 'gh_repo_token';
 const GH_REPO = 'mferent80-source/premarket_scanner.html';
 const GH_PATH = 'tools/alerts.json';
+const SYNC_BANNER_DISMISS_KEY = 'pa_sync_banner_dismiss_v1';
+
+/** Banner: citire publică (Pages) OK fără token; push ☁️ cere PAT. */
+function updateSyncBanner() {
+  const el = $('syncBanner');
+  if (!el) return;
+  const token = localStorage.getItem(GH_TOKEN_KEY) || '';
+  let dismissed = false;
+  try { dismissed = sessionStorage.getItem(SYNC_BANNER_DISMISS_KEY) === '1'; } catch (e) {}
+  if (token || dismissed) {
+    el.classList.remove('show');
+    return;
+  }
+  const msg = $('syncBannerMsg');
+  if (msg) {
+    msg.innerHTML = '<b>📥 Citire publică</b> (GitHub Pages) · lista + istoric ☁️ se încarcă fără token · pentru <b>push ☁️</b> (urcare alerte) setează token';
+  }
+  el.classList.add('show');
+}
 
 function ghAskToken() {
   const t = prompt('Token GitHub (fine-grained PAT):\n1. github.com/settings/personal-access-tokens → Generate new token\n2. Repository access: Only select repositories → premarket_scanner.html\n3. Permissions → Contents: Read and write\n\nLipește token-ul (gol = șterge):', localStorage.getItem(GH_TOKEN_KEY) || '');
   if (t === null) return null;
   const v = t.trim();
   try { if (v) localStorage.setItem(GH_TOKEN_KEY, v); else localStorage.removeItem(GH_TOKEN_KEY); } catch (e) {}
+  try { updateSyncBanner(); } catch (e) {}
   return v || null;
 }
 // UTF-8 ↔ base64 (btoa/atob direct se îneacă pe diacritice/emoji din _doc)
@@ -3296,18 +3390,35 @@ function nwInit() {
 }
 
 // ============ INIT ============
+// Paint instant din cache prețuri (înainte de rețea) — poll-ul actualizează după
+const _pxHydrated = hydratePricesFromCache();
 render();
+if (_pxHydrated) {
+  try {
+    const ages = Object.keys(_lastPrice).map(s => pxCacheAgeMs(s)).filter(a => a != null);
+    const maxAge = ages.length ? Math.max(...ages) : 0;
+    if (maxAge > PX_CACHE_TTL_MS && $('refreshInfo')) {
+      $('refreshInfo').textContent = `📦 prețuri din cache (~${Math.round(maxAge / 1000)}s) · se reîmprospătează…`;
+    }
+  } catch (e) {}
+}
+updateSyncBanner();
+$('syncBannerToken')?.addEventListener('click', () => { ghAskToken(); });
+$('syncBannerDismiss')?.addEventListener('click', () => {
+  try { sessionStorage.setItem(SYNC_BANNER_DISMISS_KEY, '1'); } catch (e) {}
+  updateSyncBanner();
+});
 schedulePoll();       // timerul recurent de poll — independent de pull (rulează chiar dacă pull-ul atârnă)
 loadServerHist();
 nwInit();             // News Watch demo (v62)
 // Întâi tragem lista de pe GitHub, ABIA APOI primul poll → primul check folosește lista proaspătă
 // (înainte pollPrices rula în paralel cu pull-ul pe lista veche). Fallback: poll oricum dacă pull pică.
-pullFromGitHub(true).then(() => pollPrices()).catch(() => pollPrices()); // auto-sync laptop↔telefon
+pullFromGitHub(true).then(() => { updateSyncBanner(); return pollPrices(); }).catch(() => pollPrices()); // auto-sync laptop↔telefon
 // v56: auto-pull PERIODIC al listei (nu doar la deschidere) — altfel un device cu pagina deja
 // deschisă nu prelua niciodată modificările făcute pe alt device decât la refresh manual.
-// 120s = ~30 req/h pe Contents API (bine sub limita 5000/h cu token); fără token cade pe raw (cache ~5min).
+// 120s = ~30 req/h pe Contents API (bine sub limita 5000/h cu token); fără token cade pe Pages.
 setInterval(() => { if (!document.hidden) pullFromGitHub(true); }, 120000);
-// istoricul ☁️ se împrospătează rar — botul rulează la 15 min, CDN-ul raw ține ~5 min
+// istoricul ☁️ se împrospătează rar — botul rulează la 15 min; Pages cache scurt
 setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
 
 </script>

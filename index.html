@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=698"></script>
+<script src="lib/suite-version.js?v=699"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -46,7 +46,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="lib/suite-ui.css?v=678">
-<link rel="stylesheet" href="lib/hub-ui.css?v=698">
+<link rel="stylesheet" href="lib/hub-ui.css?v=699">
 <style>
 /* === Hub shell aliniat Macro (suite-ui.css) — full-bleed + tokeni canonic ── */
 :root{
@@ -1119,8 +1119,8 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
-<script defer src="lib/data.js?v=698"></script>
-<script defer src="lib/quote-bus.js?v=698"></script>
+<script defer src="lib/data.js?v=699"></script>
+<script defer src="lib/quote-bus.js?v=699"></script>
 <script defer src="lib/suite-context.js?v=686"></script>
 <script defer src="lib/ledger.js?v=666"></script>
 <script defer src="lib/finnhub-key.js?v=666"></script>
@@ -1138,7 +1138,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 <script defer src="lib/router.js?v=666"></script>
 <script defer src="lib/regime.js?v=666"></script>
 <script defer src="lib/ai.js?v=666"></script>
-<script defer src="lib/hub-market.js?v=698"></script>
+<script defer src="lib/hub-market.js?v=699"></script>
 <script defer src="lib/hub-search.js?v=679"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
@@ -1593,8 +1593,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 <script defer src="lib/hub-card-live.js?v=666"></script>
 <script defer src="lib/hub-gappers.js?v=684"></script>
 <script defer src="lib/hub-tableau.js?v=689"></script>
-<script defer src="lib/hub-health.js?v=698"></script>
-<script defer src="lib/hub-brief.js?v=698"></script>
+<script defer src="lib/hub-health.js?v=699"></script>
+<!-- hub-brief.js (~105KB) — LAZY: nu blochează parse-ul HNA/ledger; se încarcă după first paint
+     sau imediat dacă Morning Brief e deschis / userul îl deschide -->
 <script defer src="lib/hub-next-action.js?v=686"></script>
 <script defer src="lib/hub-ledger.js?v=666"></script>
 <script>
@@ -1616,17 +1617,16 @@ window.addEventListener('DOMContentLoaded', function(){
   const boot = (name, fn) => { try { fn(); } catch (e) { console.warn('init ' + name + ':', e); bootFails.push(name); } };
   if (window.HM) boot('HM', () => HM.init());
   if (window.HG) boot('HG', () => HG.init());
-  if (window.HB) boot('HB', () => HB.init());
+  // HB: lazy (vezi loadHubBrief mai jos) — nu e în lanțul defer critical
   if (window.HSEARCH) boot('HSEARCH', () => HSEARCH.init());
   if (window.HCL) boot('HCL', () => HCL.init());
   if (window.HUB_HEALTH) boot('HUB_HEALTH', () => HUB_HEALTH.init());
   if (window.HS) boot('HS', () => HS.renderStaleNav());
-  // plasă de siguranță: dacă hub-brief a picat, tableau-ul rămânea shell gol
-  // (singurul lui declanșator era lanțul HB.init → HT.render)
+  // tableau + next-action FĂRĂ a aștepta hub-brief (105KB) — first paint mai rapid
   if (window.HT) boot('HT', () => HT.render());
   if (window.HNA) boot('HNA', () => HNA.init());
-  // module așteptate dar neîncărcate deloc (404/cache) — tot „picate" sunt
-  [['HM','hub-market'],['HB','hub-brief'],['HT','hub-tableau'],['HS','hub-state']].forEach(([g, n]) => {
+  // module așteptate dar neîncărcate deloc (404/cache) — HB e lazy, nu e eșec la boot
+  [['HM','hub-market'],['HT','hub-tableau'],['HS','hub-state']].forEach(([g, n]) => {
     if (!window[g]) bootFails.push(n);
   });
   if (bootFails.length){
@@ -1640,11 +1640,59 @@ window.addEventListener('DOMContentLoaded', function(){
     if (window.HS){ try { HS.patchMarketCards(); HS.renderStaleNav('hubStaleNav'); } catch (e) {} }
     if (window.HNA){ try { HNA.render(); } catch (e) {} }
     if (window.HUB_HEALTH && HUB_HEALTH.renderStrip){ try { HUB_HEALTH.renderStrip(); } catch (e) {} }
+    if (window.HB && HB.renderCockpit){ try { HB.renderCockpit(); } catch (e) {} }
   });
 
   if (window.HB_LEDGER && HB_LEDGER.init) boot('HB_LEDGER', () => HB_LEDGER.init());
   if (window.FH_KEY && FH_KEY.migrate) boot('FH_KEY', () => FH_KEY.migrate());
   if (window.TT && TT.migrateLegacy) boot('TT', () => TT.migrateLegacy());
+
+  // ── Lazy hub-brief.js (~105KB Morning Brief + cockpit + pre5) ──────────
+  // First paint = market/tableau/next-action fără a parsa 105KB.
+  // Load: idle (timeout 1.2s) SAU imediat dacă pb_open=1 SAU la expand Morning Brief.
+  let _hbPromise = null;
+  function loadHubBrief(reason) {
+    if (window.HB && window.HB.init) return Promise.resolve(window.HB);
+    if (_hbPromise) return _hbPromise;
+    _hbPromise = new Promise(function (resolve, reject) {
+      const s = document.createElement('script');
+      s.src = 'lib/hub-brief.js?v=699';
+      s.async = true;
+      s.onload = function () {
+        try {
+          if (window.HB && HB.init) HB.init();
+          // re-paint tableau cu session mode real (HB.sessionMode)
+          if (window.HT && HT.render) HT.render();
+        } catch (e) { console.warn('init HB (lazy):', e); }
+        resolve(window.HB);
+      };
+      s.onerror = function () {
+        _hbPromise = null;
+        console.warn('hub-brief.js load failed', reason || '');
+        reject(new Error('hub-brief load failed'));
+      };
+      document.body.appendChild(s);
+    });
+    return _hbPromise;
+  }
+  window.loadHubBrief = loadHubBrief;
+  // Expand Morning Brief înainte de load → încarcă imediat
+  const pbWrap = document.getElementById('pbWrap');
+  if (pbWrap) {
+    pbWrap.addEventListener('toggle', function () {
+      if (pbWrap.open) loadHubBrief('pb-open');
+    }, true);
+  }
+  // Preferință: brief era deschis ultima oară → load prioritar
+  let wantBriefSoon = false;
+  try { wantBriefSoon = localStorage.getItem('pb_open') === '1'; } catch (e) {}
+  if (wantBriefSoon) {
+    loadHubBrief('pb_pref');
+  } else if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(function () { loadHubBrief('idle'); }, { timeout: 1200 });
+  } else {
+    setTimeout(function () { loadHubBrief('timeout'); }, 200);
+  }
 });
 </script>
 <script defer src="nav.js?v=682" data-nav-root="./"></script>
