@@ -608,8 +608,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/capital-time.js?v=630"></script>
 <script src="../lib/account.js?v=625"></script>
 <script src="../lib/finnhub-key.js?v=625"></script>
-<script src="../lib/suite-context.js?v=684"></script>
-<script src="../lib/journal.js?v=684"></script>
+<script src="../lib/suite-context.js?v=685"></script>
+<script src="../lib/journal.js?v=685"></script>
+<script src="../lib/suite-version.js?v=685"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
 <script src="../lib/tracker.js?v=625"></script>
 <script src="../lib/telegram.js?v=625"></script>
@@ -1416,7 +1417,8 @@ function showPrefillGate(force){
   const el = $('cdPrefillGate');
   if (!el || !window.CD) { if (el) el.innerHTML = ''; return; }
   const q = new URLSearchParams(location.search);
-  if (!force && !q.has('sym') && !q.has('prefill')) { el.innerHTML = ''; return; }
+  const hasCtx = !!(window.SCTX && SCTX.read && SCTX.read({ maxAgeMs: 60 * 60 * 1000 }));
+  if (!force && !q.has('sym') && !q.has('prefill') && !hasCtx) { el.innerHTML = ''; return; }
   const acct = window.GV ? GV.cfg().accountSize : (window.ACCT ? ACCT.get().value : 10000);
   const entryN = parseFloat($('fEntry')?.value), sizeN = parseFloat($('fSize')?.value), slN = parseFloat($('fSl')?.value);
   const dir = $('fDir')?.value || 'long';
@@ -1466,38 +1468,68 @@ function consumePendingTrade(){
   } catch (e) { return false; }
 }
 
+function applySuiteContext(){
+  // banner mereu dacă există tt_ctx_v1 (chiar pe tab Desk)
+  let ctx = null;
+  if (window.SCTX && SCTX.mountBanner) {
+    try { ctx = SCTX.mountBanner('sctxBanner', { showClear: true }); } catch (e) {}
+  }
+  // fallback vizibil dacă mount eșuează dar ctx există
+  const host = $('sctxBanner');
+  if (host && window.SCTX && SCTX.read) {
+    try {
+      if (!ctx) ctx = SCTX.read({ maxAgeMs: 60 * 60 * 1000 });
+      if (ctx && !host.innerHTML) {
+        SCTX.injectBannerStyles && SCTX.injectBannerStyles();
+        host.style.display = 'block';
+        host.innerHTML = SCTX.bannerHtml(ctx, { showClear: true });
+        const btn = host.querySelector('[data-sctx-clear]');
+        if (btn) btn.onclick = function () { SCTX.clear(); host.innerHTML = ''; host.style.display = 'none'; };
+      }
+    } catch (e) {}
+  }
+  return ctx;
+}
+
 function prefillFromQuery(){
   if (consumePendingTrade()) return;
-  // banner context suite (I-213) — keep până la clear explicit
-  if (window.SCTX && SCTX.mountBanner) {
-    try { SCTX.mountBanner('sctxBanner', { showClear: true }); } catch (e) {}
-  }
+  const ctx = applySuiteContext();
   const pf = JR.prefillFromQuery();
-  if (!pf) return;
-  if (pf.sym) $('fSym').value = String(pf.sym).toUpperCase();
-  if (pf.dir) $('fDir').value = pf.dir === 'short' ? 'short' : 'long';
-  if (pf.entry != null) $('fEntry').value = pf.entry;
-  if (pf.exit != null) $('fExit').value = pf.exit;
-  if (pf.size != null) $('fSize').value = pf.size;
-  if (pf.fees != null) $('fFees').value = pf.fees;
-  if (pf.slAtEntry != null || pf.sl != null) $('fSl').value = pf.slAtEntry != null ? pf.slAtEntry : pf.sl;
-  if (pf.source || pf.src) {
-    const src = pf.source || pf.src;
-    const el = $('fSrc');
-    if (el) {
-      // mapează surse hub → opțiuni formular dacă există
-      const map = { 'hub-gapper': 'other', 'hub-next': 'other', 'hub-next-gapper': 'other', 'hub-ctx': 'other' };
-      el.value = map[src] || src;
-    }
+  if (!pf && !ctx) return;
+  // preferă pf din query/ctx
+  const data = pf || {
+    sym: ctx && ctx.sym,
+    source: ctx && ctx.source,
+    notes: ctx && (ctx.notes || ctx.nextAction),
+    _fromCtx: true
+  };
+  if (data.sym && $('fSym')) $('fSym').value = String(data.sym).toUpperCase();
+  if (data.dir && $('fDir')) $('fDir').value = data.dir === 'short' ? 'short' : 'long';
+  if (data.entry != null && $('fEntry')) $('fEntry').value = data.entry;
+  if (data.exit != null && $('fExit')) $('fExit').value = data.exit;
+  if (data.size != null && $('fSize')) $('fSize').value = data.size;
+  if (data.fees != null && $('fFees')) $('fFees').value = data.fees;
+  if ((data.slAtEntry != null || data.sl != null) && $('fSl'))
+    $('fSl').value = data.slAtEntry != null ? data.slAtEntry : data.sl;
+  if ((data.source || data.src) && $('fSrc')) {
+    const src = data.source || data.src;
+    const map = {
+      'hub-gapper': 'other', 'hub-next': 'other', 'hub-next-gapper': 'other',
+      'hub-ctx': 'other', 'nasdaq-deeplink': 'nasdaq'
+    };
+    try { $('fSrc').value = map[src] || src; } catch (e) {}
   }
-  if (pf.notes || pf.note) $('fNotes').value = pf.notes || pf.note || '';
-  if (pf.tags) renderTagRow(Array.isArray(pf.tags) ? pf.tags : []);
-  $('frmTitle').textContent = pf._fromCtx
-    ? '➕ Execuție din context hub'
-    : '➕ Execuție pre-completată (scanner/ledger)';
-  // deschide tab exec dacă vine prefill cu sym
-  if (pf.sym && typeof setJTab === 'function') {
-    try { setJTab('exec'); } catch (e) {}
+  if ((data.notes || data.note) && $('fNotes'))
+    $('fNotes').value = data.notes || data.note || '';
+  if (data.tags) renderTagRow(Array.isArray(data.tags) ? data.tags : []);
+  if ($('frmTitle')) {
+    $('frmTitle').textContent = (data._fromCtx || (ctx && !pf) || (pf && pf._fromCtx))
+      ? '➕ Execuție din context hub'
+      : '➕ Execuție pre-completată (scanner/ledger)';
+  }
+  // deschide Exec ca să vezi formularul (altfel rămâi pe Desk)
+  if (data.sym || (ctx && ctx.sym) || (ctx && ctx.nextAction)) {
+    try { if (typeof setJTab === 'function') setJTab('exec'); } catch (e) {}
   }
   showPrefillGate(true);
 }
@@ -1545,7 +1577,6 @@ $('btnWeeklyNow') && $('btnWeeklyNow').addEventListener('click', () => sendWeekl
 $('btnRefreshMarks') && $('btnRefreshMarks').addEventListener('click', refreshMarks);
 loadJournalSettingsUi();
 resetForm();
-prefillFromQuery();
 if (window.TT && TT.migrateLegacy) TT.migrateLegacy();
 else if (JR.syncAllFromTracker && JR.reconcileTracker) {
   const rec = JR.reconcileTracker();
@@ -1636,6 +1667,8 @@ function consumeSetupExecPrefill(){
   return true;
 }
 setJTab(hashToJTab(location.hash));
+// I-213: după ce setJTab există — banner + prefill + eventual tab Exec
+try { prefillFromQuery(); } catch (e) { console.warn('prefill', e); }
 if (!consumeSetupExecPrefill() && (location.hash === '#setup' || localStorage.getItem('md_setup_prefill'))) {
   if (window.SB) window.SB.consumePrefill();
 }
