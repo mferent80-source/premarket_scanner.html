@@ -145,10 +145,12 @@ self.addEventListener('fetch', e => {
 
   const hubEntry = isHubEntry(url, req);
   const isHtml = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
-  const fetchOpts = (hubEntry || isHtml) ? { cache: 'reload' } : {};
+  // fără cache:'reload' pe navigări — HTTP cache-ul browserului revalidează
+  // cu ETag/304, deci re-download integral DOAR când fișierul chiar s-a
+  // schimbat (înainte: macro = 377KB re-descărcați la fiecare vizită)
 
   e.respondWith(
-    fetch(req, fetchOpts).then(res => {
+    fetch(req).then(res => {
       if (res && res.status === 200 && res.type === 'basic') {
         const copy = res.clone();
         // cheia de cache = pathname FĂRĂ query — paginile cer lib-urile cu
