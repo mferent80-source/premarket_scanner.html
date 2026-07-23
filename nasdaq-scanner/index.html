@@ -1225,7 +1225,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 <div class="toast" id="toast"></div>
 </div>
 
-<script src="../lib/suite-version.js?v=692"></script>
+<script src="../lib/suite-version.js?v=693"></script>
 <script src="../lib/finnhub-key.js"></script>
 <script>
 // ── CONSTANTS ──
@@ -10187,7 +10187,8 @@ function renderTopLosers(){
 }
 // ═══════════════════════════════════════════════════════════════
 
-// Deep-link ?sym=SPY din Hub tableau (I-160) + context suite I-213 + quote bus I-214
+// Deep-link ?sym=SPY din Hub (I-160) + context I-213 + quote bus I-214
+// UX: bandă mare „FOCUS SYM” sub header — mereu vizibilă pe ?sym= (nu depinde de bus).
 (function(){
   const params = new URLSearchParams(location.search);
   const TV_PREFIX = { SPY: 'AMEX', QQQ: 'NASDAQ', DIA: 'AMEX', IWM: 'AMEX' };
@@ -10195,20 +10196,78 @@ function renderTopLosers(){
     const p = TV_PREFIX[s] || 'NASDAQ';
     return 'https://www.tradingview.com/chart/?symbol=' + p + ':' + encodeURIComponent(s);
   }
-  function busQuoteLine(sym) {
-    if (!window.QB) return '';
+  function busHit(sym) {
+    if (!window.QB) return null;
     try {
-      const hit = QB.getAny ? QB.getAny(sym) : QB.get(sym, false);
-      if (!hit || !Number.isFinite(hit.price)) return '';
+      return (QB.getAny && QB.getAny(sym)) || QB.get(sym, false) || null;
+    } catch (e) { return null; }
+  }
+  function insertAfterHeader(el) {
+    const hdr = document.querySelector('.scanner-cockpit') || document.querySelector('.hdr');
+    const app = document.querySelector('.app') || document.body;
+    if (hdr && hdr.parentNode) hdr.parentNode.insertBefore(el, hdr.nextSibling);
+    else app.insertBefore(el, app.firstChild);
+  }
+  function paintFocusStrip(sym) {
+    if (!sym) return;
+    let el = document.getElementById('nqFocusStrip');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'nqFocusStrip';
+      el.setAttribute('role', 'status');
+      insertAfterHeader(el);
+    }
+    const hit = busHit(sym);
+    let priceHtml = '';
+    if (hit && Number.isFinite(hit.price)) {
       const age = hit.ts ? Math.round((Date.now() - hit.ts) / 1000) : null;
       const chg = Number.isFinite(hit.chgPct)
-        ? ((hit.chgPct >= 0 ? '+' : '') + hit.chgPct.toFixed(2) + '%')
+        ? '<span style="color:' + (hit.chgPct >= 0 ? 'var(--green,#22d66b)' : 'var(--red,#ff4d4d)') + '">'
+          + (hit.chgPct >= 0 ? '+' : '') + hit.chgPct.toFixed(2) + '%</span>'
         : '';
-      const stale = age != null && age > 120 ? ' · 📦' + Math.round(age / 60) + 'm' : (age != null ? ' · ' + age + 's' : '');
-      return '<span style="font-family:var(--mono,monospace);font-size:11px;font-weight:700;margin-left:8px;color:var(--crypto-2,#ffd86b)">'
-        + '$' + (hit.price >= 100 ? hit.price.toFixed(1) : hit.price.toFixed(2))
-        + (chg ? ' ' + chg : '') + stale + ' · bus</span>';
-    } catch (e) { return ''; }
+      const ageTxt = age != null
+        ? (age < 120 ? age + 's pe bus' : '📦 ' + Math.round(age / 60) + 'm pe bus')
+        : 'pe bus';
+      priceHtml =
+        '<div class="nq-focus-price">$'
+        + (hit.price >= 100 ? hit.price.toFixed(1) : hit.price.toFixed(2))
+        + ' ' + chg
+        + ' <span class="nq-focus-meta">' + ageTxt + '</span></div>';
+    } else {
+      priceHtml =
+        '<div class="nq-focus-price nq-focus-miss">'
+        + 'Fără preț pe bus încă — normal dacă nu ai deschis Hub-ul recent. '
+        + 'Scanul / Finnhub aduc prețul la primul fetch.</div>';
+    }
+    el.innerHTML =
+      '<style id="nq-focus-css">'
+      + '#nqFocusStrip{margin:8px 0 12px;padding:12px 14px;border-radius:12px;'
+      + 'border:1.5px solid rgba(247,147,26,.45);'
+      + 'background:linear-gradient(135deg,rgba(247,147,26,.14),rgba(20,26,40,.92));'
+      + 'font-family:var(--head,Sora,sans-serif);}'
+      + '#nqFocusStrip .nq-focus-k{font-family:var(--mono,monospace);font-size:10px;font-weight:800;'
+      + 'letter-spacing:.1em;color:var(--crypto-2,#ffd86b);margin-bottom:4px}'
+      + '#nqFocusStrip .nq-focus-sym{font-size:22px;font-weight:800;color:var(--t1,#fafbfc);letter-spacing:-.02em}'
+      + '#nqFocusStrip .nq-focus-price{margin-top:6px;font-family:var(--mono,monospace);font-size:15px;font-weight:700;color:var(--t1)}'
+      + '#nqFocusStrip .nq-focus-miss{font-size:12px;font-weight:500;color:var(--t2,#c8d0dc);line-height:1.4}'
+      + '#nqFocusStrip .nq-focus-meta{font-size:11px;font-weight:600;color:var(--t3,#9aa8bc);margin-left:6px}'
+      + '#nqFocusStrip .nq-focus-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}'
+      + '#nqFocusStrip .nq-focus-acts a, #nqFocusStrip .nq-focus-acts button{'
+      + 'font-size:11px;font-weight:700;padding:6px 11px;border-radius:8px;border:1px solid var(--b1,#4a5874);'
+      + 'background:var(--bg3,#222c44);color:var(--t1);text-decoration:none;cursor:pointer;font-family:inherit}'
+      + '#nqFocusStrip .nq-focus-acts a.pri{border-color:rgba(91,176,255,.45);background:rgba(91,176,255,.12);color:#8ac8ff}'
+      + '</style>'
+      + '<div class="nq-focus-k">FOCUS DIN LINK · ?sym=</div>'
+      + '<div class="nq-focus-sym">' + sym + '</div>'
+      + priceHtml
+      + '<div class="nq-focus-acts">'
+      + '<a class="pri" href="' + tvUrl(sym) + '" target="_blank" rel="noopener">📈 TradingView</a>'
+      + '<a href="../journal/?sym=' + encodeURIComponent(sym) + '#exec">📓 Journal Exec</a>'
+      + '<a href="../smart-trade-long/?symbol=' + encodeURIComponent(sym) + '">🎯 STL</a>'
+      + '<button type="button" id="nqFocusDismiss">Ascunde</button>'
+      + '</div>';
+    const btn = document.getElementById('nqFocusDismiss');
+    if (btn) btn.onclick = function () { el.remove(); };
   }
   function paintCtxBanner(sym) {
     if (!(window.SCTX && SCTX.mountBanner)) return;
@@ -10216,27 +10275,9 @@ function renderTopLosers(){
     if (!host) {
       host = document.createElement('div');
       host.id = 'sctxBanner';
-      const app = document.querySelector('.app') || document.body;
-      const hdr = document.querySelector('.scanner-cockpit') || document.querySelector('.hdr');
-      if (hdr && hdr.parentNode) hdr.parentNode.insertBefore(host, hdr.nextSibling);
-      else app.insertBefore(host, app.firstChild);
+      insertAfterHeader(host);
     }
     SCTX.mountBanner(host, { showClear: true });
-    // I-214: preț din bus pe deeplink, fără a aștepta scan
-    if (sym) {
-      const line = busQuoteLine(sym);
-      if (line) {
-        let qel = document.getElementById('nqBusQuote');
-        if (!qel) {
-          qel = document.createElement('div');
-          qel.id = 'nqBusQuote';
-          qel.style.cssText = 'margin:4px 0 8px;padding:6px 10px;border-radius:8px;border:1px solid rgba(247,147,26,.3);background:rgba(247,147,26,.08);font-size:12px;';
-          host.insertAdjacentElement('afterend', qel);
-        }
-        qel.innerHTML = '<b>' + sym + '</b>' + line
-          + ' <a href="' + tvUrl(sym) + '" target="_blank" rel="noopener" style="margin-left:8px;color:#5bb0ff;font-size:11px">TV →</a>';
-      }
-    }
   }
   function resolveSym() {
     let sym = (params.get('sym') || '').trim().toUpperCase().replace(/[^A-Z.-]/g, '');
@@ -10251,6 +10292,8 @@ function renderTopLosers(){
   window.addEventListener('load', function(){
     setTimeout(function(){
       const sym = resolveSym();
+      // pe ?sym= din URL: bandă mare mereu (chiar fără preț pe bus)
+      if (params.get('sym') && sym) paintFocusStrip(sym);
       paintCtxBanner(sym);
       if (!sym) return;
       if (window.SCTX && SCTX.write) {
@@ -10264,22 +10307,15 @@ function renderTopLosers(){
         if (typeof syncWatchlistToShared === 'function') syncWatchlistToShared();
         if (typeof renderWatchlistChips === 'function') renderWatchlistChips();
       }
-      // preț bus în toast (dacă hub a încălzit simbolul)
-      let busHint = '';
-      if (window.QB) {
-        try {
-          const hit = QB.get(sym, 120000);
-          if (hit) busHint = ' · bus $' + hit.price.toFixed(2);
-        } catch (e) {}
+      // Nu mai deschidem TV automat (confuz + popup blocked) — buton pe bandă
+      if (params.get('sym') && typeof showToast === 'function') {
+        const hit = busHit(sym);
+        const busHint = hit && hit.price ? (' · bus $' + hit.price.toFixed(2)) : '';
+        showToast('🎯 Focus: ' + sym + busHint + ' — vezi banda portocalie sus', 'ok');
+      } else if (sym && typeof showToast === 'function') {
+        showToast('📎 Context: ' + sym, 'ok');
       }
-      // doar pe ?sym= din URL deschidem TV (nu pe fiecare visită cu ctx residual)
-      if (params.get('sym')) {
-        window.open(tvUrl(sym), '_blank', 'noopener');
-        if (typeof showToast === 'function') showToast('📈 ' + sym + ' → TradingView' + busHint, 'ok');
-      } else if (typeof showToast === 'function') {
-        showToast('📎 Context: ' + sym + busHint, 'ok');
-      }
-    }, 500);
+    }, 400);
   });
 })();
 
