@@ -957,6 +957,9 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   </div>
 </div>
 
+<!-- FOCUS deep-link ?sym= / context suite — umplut de JS; hidden până există ticker -->
+<div id="nqFocusStrip" hidden role="status" aria-live="polite"></div>
+
 <!-- LIVE NEWS TICKER -->
 <div class="news-ticker" id="newsTicker">
   <div class="news-ticker-label"><span class="news-ticker-dot"></span>LIVE NEWS</div>
@@ -1225,7 +1228,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 <div class="toast" id="toast"></div>
 </div>
 
-<script src="../lib/suite-version.js?v=693"></script>
+<script src="../lib/suite-version.js?v=694"></script>
 <script src="../lib/finnhub-key.js"></script>
 <script>
 // ── CONSTANTS ──
@@ -10188,9 +10191,11 @@ function renderTopLosers(){
 // ═══════════════════════════════════════════════════════════════
 
 // Deep-link ?sym=SPY din Hub (I-160) + context I-213 + quote bus I-214
-// UX: bandă mare „FOCUS SYM” sub header — mereu vizibilă pe ?sym= (nu depinde de bus).
+// Banda #nqFocusStrip e în HTML (după header). Apare doar când există ticker
+// (URL ?sym= SAU context suite cu .sym). Fără ticker = scanner normal, fără bandă.
 (function(){
   const params = new URLSearchParams(location.search);
+  const fromUrl = !!(params.get('sym') || '').trim();
   const TV_PREFIX = { SPY: 'AMEX', QQQ: 'NASDAQ', DIA: 'AMEX', IWM: 'AMEX' };
   function tvUrl(s){
     const p = TV_PREFIX[s] || 'NASDAQ';
@@ -10203,20 +10208,19 @@ function renderTopLosers(){
     } catch (e) { return null; }
   }
   function insertAfterHeader(el) {
+    const strip = document.getElementById('nqFocusStrip');
+    if (strip && strip.parentNode) {
+      strip.parentNode.insertBefore(el, strip.nextSibling);
+      return;
+    }
     const hdr = document.querySelector('.scanner-cockpit') || document.querySelector('.hdr');
     const app = document.querySelector('.app') || document.body;
     if (hdr && hdr.parentNode) hdr.parentNode.insertBefore(el, hdr.nextSibling);
     else app.insertBefore(el, app.firstChild);
   }
-  function paintFocusStrip(sym) {
-    if (!sym) return;
-    let el = document.getElementById('nqFocusStrip');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'nqFocusStrip';
-      el.setAttribute('role', 'status');
-      insertAfterHeader(el);
-    }
+  function paintFocusStrip(sym, source) {
+    const el = document.getElementById('nqFocusStrip');
+    if (!el || !sym) return;
     const hit = busHit(sym);
     let priceHtml = '';
     if (hit && Number.isFinite(hit.price)) {
@@ -10236,28 +10240,35 @@ function renderTopLosers(){
     } else {
       priceHtml =
         '<div class="nq-focus-price nq-focus-miss">'
-        + 'Fără preț pe bus încă — normal dacă nu ai deschis Hub-ul recent. '
-        + 'Scanul / Finnhub aduc prețul la primul fetch.</div>';
+        + 'Preț pe bus: încă nu — deschide Hub-ul o dată (încălzește SPY/gappers) sau pornește scanul.</div>';
     }
+    const srcLbl = source === 'url' ? 'DIN LINK · ?sym=' + sym : 'DIN CONTEXT SUITE';
+    if (!document.getElementById('nq-focus-css')) {
+      const st = document.createElement('style');
+      st.id = 'nq-focus-css';
+      st.textContent =
+        '#nqFocusStrip{display:block;margin:8px 12px 12px;padding:12px 14px;border-radius:12px;'
+        + 'border:1.5px solid rgba(247,147,26,.55);'
+        + 'background:linear-gradient(135deg,rgba(247,147,26,.18),rgba(20,26,40,.95));'
+        + 'font-family:var(--head,Sora,sans-serif);box-shadow:0 4px 20px rgba(247,147,26,.12)}'
+        + '#nqFocusStrip[hidden]{display:none!important}'
+        + '#nqFocusStrip .nq-focus-k{font-family:var(--mono,monospace);font-size:10px;font-weight:800;'
+        + 'letter-spacing:.1em;color:#ffd86b;margin-bottom:4px}'
+        + '#nqFocusStrip .nq-focus-sym{font-size:24px;font-weight:800;color:#fafbfc;letter-spacing:-.02em}'
+        + '#nqFocusStrip .nq-focus-price{margin-top:6px;font-family:var(--mono,monospace);font-size:15px;font-weight:700;color:#fafbfc}'
+        + '#nqFocusStrip .nq-focus-miss{font-size:12px;font-weight:500;color:#c8d0dc;line-height:1.4}'
+        + '#nqFocusStrip .nq-focus-meta{font-size:11px;font-weight:600;color:#9aa8bc;margin-left:6px}'
+        + '#nqFocusStrip .nq-focus-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}'
+        + '#nqFocusStrip .nq-focus-acts a, #nqFocusStrip .nq-focus-acts button{'
+        + 'font-size:11px;font-weight:700;padding:6px 11px;border-radius:8px;border:1px solid #4a5874;'
+        + 'background:#222c44;color:#fafbfc;text-decoration:none;cursor:pointer;font-family:inherit}'
+        + '#nqFocusStrip .nq-focus-acts a.pri{border-color:rgba(91,176,255,.45);background:rgba(91,176,255,.12);color:#8ac8ff}';
+      document.head.appendChild(st);
+    }
+    el.hidden = false;
+    el.removeAttribute('hidden');
     el.innerHTML =
-      '<style id="nq-focus-css">'
-      + '#nqFocusStrip{margin:8px 0 12px;padding:12px 14px;border-radius:12px;'
-      + 'border:1.5px solid rgba(247,147,26,.45);'
-      + 'background:linear-gradient(135deg,rgba(247,147,26,.14),rgba(20,26,40,.92));'
-      + 'font-family:var(--head,Sora,sans-serif);}'
-      + '#nqFocusStrip .nq-focus-k{font-family:var(--mono,monospace);font-size:10px;font-weight:800;'
-      + 'letter-spacing:.1em;color:var(--crypto-2,#ffd86b);margin-bottom:4px}'
-      + '#nqFocusStrip .nq-focus-sym{font-size:22px;font-weight:800;color:var(--t1,#fafbfc);letter-spacing:-.02em}'
-      + '#nqFocusStrip .nq-focus-price{margin-top:6px;font-family:var(--mono,monospace);font-size:15px;font-weight:700;color:var(--t1)}'
-      + '#nqFocusStrip .nq-focus-miss{font-size:12px;font-weight:500;color:var(--t2,#c8d0dc);line-height:1.4}'
-      + '#nqFocusStrip .nq-focus-meta{font-size:11px;font-weight:600;color:var(--t3,#9aa8bc);margin-left:6px}'
-      + '#nqFocusStrip .nq-focus-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}'
-      + '#nqFocusStrip .nq-focus-acts a, #nqFocusStrip .nq-focus-acts button{'
-      + 'font-size:11px;font-weight:700;padding:6px 11px;border-radius:8px;border:1px solid var(--b1,#4a5874);'
-      + 'background:var(--bg3,#222c44);color:var(--t1);text-decoration:none;cursor:pointer;font-family:inherit}'
-      + '#nqFocusStrip .nq-focus-acts a.pri{border-color:rgba(91,176,255,.45);background:rgba(91,176,255,.12);color:#8ac8ff}'
-      + '</style>'
-      + '<div class="nq-focus-k">FOCUS DIN LINK · ?sym=</div>'
+      '<div class="nq-focus-k">🎯 FOCUS ' + srcLbl + '</div>'
       + '<div class="nq-focus-sym">' + sym + '</div>'
       + priceHtml
       + '<div class="nq-focus-acts">'
@@ -10267,9 +10278,13 @@ function renderTopLosers(){
       + '<button type="button" id="nqFocusDismiss">Ascunde</button>'
       + '</div>';
     const btn = document.getElementById('nqFocusDismiss');
-    if (btn) btn.onclick = function () { el.remove(); };
+    if (btn) btn.onclick = function () {
+      el.hidden = true;
+      el.setAttribute('hidden', '');
+      el.innerHTML = '';
+    };
   }
-  function paintCtxBanner(sym) {
+  function paintCtxBanner() {
     if (!(window.SCTX && SCTX.mountBanner)) return;
     let host = document.getElementById('sctxBanner');
     if (!host) {
@@ -10281,42 +10296,48 @@ function renderTopLosers(){
   }
   function resolveSym() {
     let sym = (params.get('sym') || '').trim().toUpperCase().replace(/[^A-Z.-]/g, '');
+    let source = sym ? 'url' : '';
     if (!sym && window.SCTX && SCTX.read) {
       try {
         const ctx = SCTX.read({ maxAgeMs: 60 * 60 * 1000 });
-        if (ctx && ctx.sym) sym = String(ctx.sym).toUpperCase().replace(/[^A-Z.-]/g, '');
+        if (ctx && ctx.sym) {
+          sym = String(ctx.sym).toUpperCase().replace(/[^A-Z.-]/g, '');
+          source = 'ctx';
+        }
       } catch (e) {}
     }
-    return sym;
+    return { sym: sym || '', source: source };
   }
-  window.addEventListener('load', function(){
-    setTimeout(function(){
-      const sym = resolveSym();
-      // pe ?sym= din URL: bandă mare mereu (chiar fără preț pe bus)
-      if (params.get('sym') && sym) paintFocusStrip(sym);
-      paintCtxBanner(sym);
-      if (!sym) return;
-      if (window.SCTX && SCTX.write) {
-        try { SCTX.write({ sym: sym, source: params.get('source') || 'nasdaq-deeplink', href: location.href }); } catch (e) {}
-      }
-      const inp = document.getElementById('wlInp');
-      if (inp) inp.value = sym;
-      if (typeof watchlist !== 'undefined' && Array.isArray(watchlist) && !watchlist.includes(sym)){
-        watchlist.push(sym);
-        try { localStorage.setItem('wl_stocks', JSON.stringify(watchlist)); } catch(e){}
-        if (typeof syncWatchlistToShared === 'function') syncWatchlistToShared();
-        if (typeof renderWatchlistChips === 'function') renderWatchlistChips();
-      }
-      // Nu mai deschidem TV automat (confuz + popup blocked) — buton pe bandă
-      if (params.get('sym') && typeof showToast === 'function') {
-        const hit = busHit(sym);
-        const busHint = hit && hit.price ? (' · bus $' + hit.price.toFixed(2)) : '';
-        showToast('🎯 Focus: ' + sym + busHint + ' — vezi banda portocalie sus', 'ok');
-      } else if (sym && typeof showToast === 'function') {
-        showToast('📎 Context: ' + sym, 'ok');
-      }
-    }, 400);
-  });
+  function runFocus() {
+    const r = resolveSym();
+    paintCtxBanner();
+    if (!r.sym) return;
+    paintFocusStrip(r.sym, r.source || 'url');
+    if (window.SCTX && SCTX.write && fromUrl) {
+      try { SCTX.write({ sym: r.sym, source: params.get('source') || 'nasdaq-deeplink', href: location.href }); } catch (e) {}
+    }
+    const inp = document.getElementById('wlInp');
+    if (inp) inp.value = r.sym;
+    if (typeof watchlist !== 'undefined' && Array.isArray(watchlist) && !watchlist.includes(r.sym)){
+      watchlist.push(r.sym);
+      try { localStorage.setItem('wl_stocks', JSON.stringify(watchlist)); } catch(e){}
+      if (typeof syncWatchlistToShared === 'function') syncWatchlistToShared();
+      if (typeof renderWatchlistChips === 'function') renderWatchlistChips();
+    }
+    if (typeof showToast === 'function') {
+      const hit = busHit(r.sym);
+      const busHint = hit && hit.price ? (' · $' + hit.price.toFixed(2)) : '';
+      if (fromUrl) showToast('🎯 Focus: ' + r.sym + busHint + ' — bandă portocalie sub header', 'ok');
+      else showToast('📎 Context ticker: ' + r.sym + busHint, 'ok');
+    }
+  }
+  // rulează devreme + pe load (în caz că SCTX/QB se încarcă după inline script)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(runFocus, 50); });
+  } else {
+    setTimeout(runFocus, 50);
+  }
+  window.addEventListener('load', function () { setTimeout(runFocus, 300); });
 })();
 
 // Suite badge (versiune PWA globală)
