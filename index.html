@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=687"></script>
+<script src="lib/suite-version.js?v=688"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -46,7 +46,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="lib/suite-ui.css?v=678">
-<link rel="stylesheet" href="lib/hub-ui.css?v=687">
+<link rel="stylesheet" href="lib/hub-ui.css?v=688">
 <style>
 /* === Hub shell aliniat Macro (suite-ui.css) — full-bleed + tokeni canonic ── */
 :root{
@@ -489,13 +489,15 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   </header>
 
   <div class="hub-shell">
+  <!-- I-212 Decision surface: health → CTA → date live -->
+  <div class="hub-decision" id="hubDecision">
   <!-- I-216 Platform health strip -->
   <div class="hub-platform-strip" id="hubPlatformStrip" aria-label="Platform health" hidden></div>
 
   <div id="hubFreezeTop" class="hub-freeze-top"></div>
   <div id="hubRiskBanner" class="hub-freeze-top" style="display:none"></div>
 
-  <!-- I-211 Next Action — PRIMUL pe ecran (decizie înainte de grila mare) -->
+  <!-- I-211 Next Action — verdictul acționabil (unic) -->
   <section class="hub-na prio-warn" id="hubNextAction" aria-label="Next action" hidden>
     <div class="hub-na-main">
       <div class="hub-na-kicker">NEXT ACTION</div>
@@ -505,8 +507,10 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   </section>
 
   <section class="hub-dash-panel" id="dashWidgets">
+    <div class="hub-decision-lbl">DATE LIVE</div>
     <section class="hub-tableau" id="hubTableau" aria-label="Command tableau"></section>
   </section>
+  </div><!-- /.hub-decision -->
 
   <div id="hubChecklist" class="hub-checklist-panel" style="display:none" aria-label="Morning checklist"></div>
 
@@ -539,11 +543,11 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
     </div>
   </details>
 
-  <details class="hub-cockpit-fold" id="hubCockpitWrap">
-    <summary class="hub-cockpit-sum" id="hubCockpitSum">☀️ Morning — se încarcă…</summary>
+  <details class="hub-cockpit-fold hub-detail-fold" id="hubCockpitWrap">
+    <summary class="hub-cockpit-sum" id="hubCockpitSum">🧭 Detalii Router / GO — se încarcă…</summary>
   <section class="hub-cockpit hub-cockpit-inner" id="hubCockpit">
     <div>
-      <div class="hub-cockpit-lbl">☀️ MORNING COCKPIT — azi tradez?</div>
+      <div class="hub-cockpit-lbl">🧭 ROUTER DETAIL (expandat)</div>
       <div class="hub-strat" id="hubStrat">se evaluează…</div>
       <div class="hub-rule" id="hubRule">—</div>
       <div class="hub-meta" id="hubMeta">—</div>
@@ -569,9 +573,9 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   </details>
 
   <!-- Brief — taburi mici grupate (fără stivă lungă de secțiuni) -->
-  <details class="pb-wrap" id="pbWrap">
-    <summary class="pb-summary">☀️ Brief de dimineață
-      <span class="pb-sum-sub">taburi: Desk · Piață · Scan · AI</span>
+  <details class="pb-wrap hub-detail-fold" id="pbWrap">
+    <summary class="pb-summary">📋 Brief detaliat
+      <span class="pb-sum-sub">Desk · Piață · Scan · AI</span>
       <button class="pb-refresh-btn" id="pbRefreshBtn" title="Reîncarcă toate secțiunile">🔄</button>
     </summary>
     <div class="pb-inner">
@@ -1560,9 +1564,9 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 <script defer src="lib/hub-state.js?v=668"></script>
 <script defer src="lib/hub-card-live.js?v=666"></script>
 <script defer src="lib/hub-gappers.js?v=684"></script>
-<script defer src="lib/hub-tableau.js?v=679"></script>
+<script defer src="lib/hub-tableau.js?v=688"></script>
 <script defer src="lib/hub-health.js?v=687"></script>
-<script defer src="lib/hub-brief.js?v=680"></script>
+<script defer src="lib/hub-brief.js?v=688"></script>
 <script defer src="lib/hub-next-action.js?v=686"></script>
 <script defer src="lib/hub-ledger.js?v=666"></script>
 <script>
