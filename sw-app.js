@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v670-2026-07-23';
+const CACHE_VERSION = 'tt-v671-2026-07-23';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -185,7 +185,11 @@ function htmlNetworkFirst(e, req, url) {
       caches.match(req, { ignoreSearch: true }).then(hit => { if (hit) finish(hit); });
       // fără hit în cache nu avem ce servi — lăsăm rețeaua să termine
     }, HTML_NET_TIMEOUT_MS);
-    const net = fetch(req).then(res => {
+    // 'no-cache' = revalidare ETag la ORIGINE (304 aproape gratuit dacă
+    // pagina nu s-a schimbat, conținut proaspăt instant dacă s-a schimbat);
+    // modul default lovea HTTP cache-ul browserului (max-age=600) și ținea
+    // suita cu ~10 min în urmă după fiecare deploy
+    const net = fetch(req, { cache: 'no-cache' }).then(res => {
       clearTimeout(timer);
       finish(res);
       // net e ținut de e.waitUntil → put-ul apucă să se persiste chiar
@@ -210,7 +214,10 @@ function htmlNetworkFirst(e, req, url) {
 // poate rula O dată lib-ul vechi; se auto-vindecă la refresh.
 function assetSWR(e, req, url) {
   return caches.match(req, { ignoreSearch: true }).then(hit => {
-    const net = fetch(req).then(res => cachePut(url, res)).catch(() =>
+    // refresh-ul din fundal cu 'no-cache': revalidare ETag la origine, nu
+    // HTTP cache-ul browserului — altfel cache-ul SW re-primea 10 min
+    // același conținut vechi și suita rămânea mereu cu un deploy în urmă
+    const net = fetch(req, { cache: 'no-cache' }).then(res => cachePut(url, res)).catch(() =>
       hit || new Response('', { status: 504, statusText: 'offline' })
     );
     if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
