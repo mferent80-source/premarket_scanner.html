@@ -215,7 +215,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-213 | Context handoff suite-wide (sym + regim + buget R) | lib/suite-context.js + hub + journal + nasdaq | M | P1 | făcut | ideation | 2026-07-23 |
 | I-214 | Quote bus unificat (cache live partajat cross-pagini) | lib/data.js + hub-market + consumers | L | P2 | propus | ideation | 2026-07-23 |
 | I-215 | Hub layout per sesiune agresiv (Pre/RTH/AH/Review) | hub + hub-ui.css + SES | M | P2 | propus | ideation | 2026-07-23 |
-| I-216 | Platform health strip + auto-degrade pe date | hub + hub-health + hub-state | S | P2 | propus | ideation | 2026-07-23 |
+| I-216 | Platform health strip + auto-degrade pe date | hub + hub-health.js | S | P2 | făcut | ideation | 2026-07-23 |
 
 ## Mini-spec-uri
 

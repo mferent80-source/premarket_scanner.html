@@ -7,6 +7,43 @@
   width: 100%;
 }
 
+/* ── I-216 Platform health strip ── */
+.hub-platform-strip{
+  display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;
+  margin:0 0 8px;padding:7px 10px;
+  border-radius:10px;border:1px solid var(--b1);
+  background:linear-gradient(180deg,rgba(20,37,51,.55),rgba(20,26,40,.4));
+  font-family:var(--mono);font-size:10.5px;
+}
+.hub-platform-strip[hidden]{display:none!important}
+.hub-platform-strip .hps-lbl{
+  font-weight:800;letter-spacing:.08em;color:var(--t3);margin-right:4px;font-size:9.5px;
+}
+.hps-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 8px;border-radius:6px;
+  border:1px solid var(--b2,#3a4258);background:var(--bg3,#222c44);
+  color:var(--t2);text-decoration:none;font-weight:700;white-space:nowrap;
+  transition:border-color .12s,color .12s;
+}
+a.hps-chip:hover{border-color:var(--accent,#8ac8ff);color:var(--accent,#8ac8ff);text-decoration:none}
+.hps-dot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex:0 0 auto}
+.hps-chip.ok{border-color:rgba(34,214,107,.35)}
+.hps-chip.ok .hps-dot{background:var(--green,#22d66b);box-shadow:0 0 5px rgba(34,214,107,.45)}
+.hps-chip.warn{border-color:rgba(212,137,44,.4)}
+.hps-chip.warn .hps-dot{background:#d4892c}
+.hps-chip.err{border-color:rgba(255,77,77,.45)}
+.hps-chip.err .hps-dot{background:#ff4d4d;box-shadow:0 0 5px rgba(255,77,77,.4)}
+.hps-chip.neut .hps-dot{background:var(--t3)}
+.hps-more{
+  margin-left:auto;font-weight:700;font-size:10px;color:var(--accent,#8ac8ff);
+  text-decoration:none;padding:2px 6px;
+}
+.hps-more:hover{text-decoration:underline}
+@media(max-width:560px){
+  .hps-more{width:100%;margin-left:0;text-align:right}
+}
+
 /* ── I-211 Next Action ── */
 .hub-na {
   display: grid;
