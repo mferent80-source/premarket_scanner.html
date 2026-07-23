@@ -1225,7 +1225,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 <div class="toast" id="toast"></div>
 </div>
 
-<script src="../lib/suite-version.js?v=674"></script>
+<script src="../lib/suite-version.js?v=692"></script>
 <script src="../lib/finnhub-key.js"></script>
 <script>
 // ── CONSTANTS ──
@@ -2187,8 +2187,28 @@ async function fhGet(url, retry=true){
 }
 
 async function fhQuote(symbol,key){
+  // I-214: bus cross-pagini (hub/journal) — Finnhub skip dacă quote <30s
+  const sk = String(symbol || '').toUpperCase();
+  if (window.QB && sk) {
+    try {
+      const hit = QB.get(sk, 30000);
+      if (hit && Number.isFinite(hit.price) && hit.price > 0) {
+        return {
+          c: hit.price,
+          dp: Number.isFinite(hit.chgPct) ? hit.chgPct : 0,
+          d: 0,
+          pc: hit.price,
+          t: Math.floor((hit.ts || Date.now()) / 1000),
+          fromBus: true
+        };
+      }
+    } catch (e) {}
+  }
   const d=await fhGet(`${FINNHUB}/quote?symbol=${symbol}&token=${key}`);
   if(!d||d.c===null||d.c===0) throw new Error('Date invalide');
+  if (window.QB && sk && Number.isFinite(d.c)) {
+    try { QB.set(sk, { price: d.c, chgPct: d.dp, src: 'nasdaq-fh' }); } catch (e) {}
+  }
   return d;
 }
 
@@ -2471,11 +2491,24 @@ function renderEarningsCalendar(){
 // ── VIX / MARKET SENTIMENT ──
 async function fetchVIX(key){
   try{
-    const d=await fhGet(`${FINNHUB}/quote?symbol=^VIX&token=${key}`);
-    if(!d||!d.c) return;
-    const vix=d.c;
+    let vix = null, fromBus = false;
+    if (window.QB) {
+      try {
+        const hit = QB.get('VIX', 45000);
+        if (hit && Number.isFinite(hit.price)) { vix = hit.price; fromBus = true; }
+      } catch (e) {}
+    }
+    if (vix == null) {
+      const d=await fhGet(`${FINNHUB}/quote?symbol=^VIX&token=${key}`);
+      if(!d||!d.c) return;
+      vix=d.c;
+      if (window.QB) {
+        try { QB.set('VIX', { price: vix, chgPct: d.dp, src: 'nasdaq-vix' }); } catch (e) {}
+      }
+    }
     const score=Math.max(0,Math.min(100,Math.round(100-(vix-10)/30*100)));
     renderSentiment(score,vix);
+    if (fromBus && typeof log === 'function') log('📦 VIX din quote bus','info');
   }catch(e){ log('⚠️ VIX: '+e.message,'warn'); }
 }
 function renderSentiment(score,vix){
@@ -4708,6 +4741,11 @@ async function fetchExtendedHours(){
       const MIN_EXT_VOL = 10000;
       const isWl = wlSet.has(sym);
       if(!isWl && extVol < MIN_EXT_VOL) return null;
+
+      // I-214: scrie preț extended pe bus (hub gappers / journal citesc)
+      if (window.QB && Number.isFinite(extPrice)) {
+        try { QB.set(sym, { price: extPrice, chgPct: extPct, src: 'nasdaq-ext' }); } catch (e) {}
+      }
 
       return {
         symbol:sym,
@@ -10149,7 +10187,7 @@ function renderTopLosers(){
 }
 // ═══════════════════════════════════════════════════════════════
 
-// Deep-link ?sym=SPY din Hub tableau (I-160) + context suite I-213
+// Deep-link ?sym=SPY din Hub tableau (I-160) + context suite I-213 + quote bus I-214
 (function(){
   const params = new URLSearchParams(location.search);
   const TV_PREFIX = { SPY: 'AMEX', QQQ: 'NASDAQ', DIA: 'AMEX', IWM: 'AMEX' };
@@ -10157,7 +10195,22 @@ function renderTopLosers(){
     const p = TV_PREFIX[s] || 'NASDAQ';
     return 'https://www.tradingview.com/chart/?symbol=' + p + ':' + encodeURIComponent(s);
   }
-  function paintCtxBanner() {
+  function busQuoteLine(sym) {
+    if (!window.QB) return '';
+    try {
+      const hit = QB.getAny ? QB.getAny(sym) : QB.get(sym, false);
+      if (!hit || !Number.isFinite(hit.price)) return '';
+      const age = hit.ts ? Math.round((Date.now() - hit.ts) / 1000) : null;
+      const chg = Number.isFinite(hit.chgPct)
+        ? ((hit.chgPct >= 0 ? '+' : '') + hit.chgPct.toFixed(2) + '%')
+        : '';
+      const stale = age != null && age > 120 ? ' · 📦' + Math.round(age / 60) + 'm' : (age != null ? ' · ' + age + 's' : '');
+      return '<span style="font-family:var(--mono,monospace);font-size:11px;font-weight:700;margin-left:8px;color:var(--crypto-2,#ffd86b)">'
+        + '$' + (hit.price >= 100 ? hit.price.toFixed(1) : hit.price.toFixed(2))
+        + (chg ? ' ' + chg : '') + stale + ' · bus</span>';
+    } catch (e) { return ''; }
+  }
+  function paintCtxBanner(sym) {
     if (!(window.SCTX && SCTX.mountBanner)) return;
     let host = document.getElementById('sctxBanner');
     if (!host) {
@@ -10169,6 +10222,21 @@ function renderTopLosers(){
       else app.insertBefore(host, app.firstChild);
     }
     SCTX.mountBanner(host, { showClear: true });
+    // I-214: preț din bus pe deeplink, fără a aștepta scan
+    if (sym) {
+      const line = busQuoteLine(sym);
+      if (line) {
+        let qel = document.getElementById('nqBusQuote');
+        if (!qel) {
+          qel = document.createElement('div');
+          qel.id = 'nqBusQuote';
+          qel.style.cssText = 'margin:4px 0 8px;padding:6px 10px;border-radius:8px;border:1px solid rgba(247,147,26,.3);background:rgba(247,147,26,.08);font-size:12px;';
+          host.insertAdjacentElement('afterend', qel);
+        }
+        qel.innerHTML = '<b>' + sym + '</b>' + line
+          + ' <a href="' + tvUrl(sym) + '" target="_blank" rel="noopener" style="margin-left:8px;color:#5bb0ff;font-size:11px">TV →</a>';
+      }
+    }
   }
   function resolveSym() {
     let sym = (params.get('sym') || '').trim().toUpperCase().replace(/[^A-Z.-]/g, '');
@@ -10183,7 +10251,7 @@ function renderTopLosers(){
   window.addEventListener('load', function(){
     setTimeout(function(){
       const sym = resolveSym();
-      paintCtxBanner();
+      paintCtxBanner(sym);
       if (!sym) return;
       if (window.SCTX && SCTX.write) {
         try { SCTX.write({ sym: sym, source: params.get('source') || 'nasdaq-deeplink', href: location.href }); } catch (e) {}
@@ -10196,12 +10264,20 @@ function renderTopLosers(){
         if (typeof syncWatchlistToShared === 'function') syncWatchlistToShared();
         if (typeof renderWatchlistChips === 'function') renderWatchlistChips();
       }
+      // preț bus în toast (dacă hub a încălzit simbolul)
+      let busHint = '';
+      if (window.QB) {
+        try {
+          const hit = QB.get(sym, 120000);
+          if (hit) busHint = ' · bus $' + hit.price.toFixed(2);
+        } catch (e) {}
+      }
       // doar pe ?sym= din URL deschidem TV (nu pe fiecare visită cu ctx residual)
       if (params.get('sym')) {
         window.open(tvUrl(sym), '_blank', 'noopener');
-        if (typeof showToast === 'function') showToast('📈 ' + sym + ' → TradingView', 'ok');
+        if (typeof showToast === 'function') showToast('📈 ' + sym + ' → TradingView' + busHint, 'ok');
       } else if (typeof showToast === 'function') {
-        showToast('📎 Context: ' + sym, 'ok');
+        showToast('📎 Context: ' + sym + busHint, 'ok');
       }
     }, 500);
   });
@@ -10960,6 +11036,7 @@ setTimeout(_updateGistStatusN, 500);
 </script>
 <script src="../lib/utils.js"></script>
 <script src="../lib/data.js"></script>
+<script src="../lib/quote-bus.js?v=692"></script>
 <script src="../lib/suite-context.js?v=685"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
