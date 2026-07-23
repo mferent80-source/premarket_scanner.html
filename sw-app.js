@@ -137,41 +137,70 @@ self.addEventListener('activate', e => {
   );
 });
 
+// peste acest prag, o navigare pe rețea lentă e servită din cache (dacă
+// există) — rețeaua continuă în fundal și actualizează cache-ul; datele
+// vii se împrospătează oricum din JS-ul paginii
+const HTML_NET_TIMEOUT_MS = 3500;
+
+// cheia de cache = pathname FĂRĂ query — paginile cer lib-urile cu ?v=NNN
+// (cache-busting), dar precache-ul e queryless; fără normalizare se
+// acumulau 2 copii/fișier și fallback-ul offline nu găsea varianta cerută
+function cachePut(url, res) {
+  if (res && res.status === 200 && res.type === 'basic') {
+    const copy = res.clone();
+    caches.open(CACHE_NAME).then(c => c.put(new Request(url.origin + url.pathname), copy)).catch(() => {});
+  }
+  return res;
+}
+
+// HTML: network-first cu timeout — fără cache:'reload' (revalidare ETag/304,
+// re-download integral doar când pagina chiar s-a schimbat; înainte macro =
+// 377KB re-descărcați la fiecare vizită). Fetch-ul care nu „pică", doar
+// durează (net lent), nu mai ține pagina albă la infinit.
+function htmlNetworkFirst(e, req, url) {
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = r => { if (!settled) { settled = true; resolve(r); } };
+    const timer = setTimeout(() => {
+      caches.match(req, { ignoreSearch: true }).then(hit => { if (hit) finish(hit); });
+      // fără hit în cache nu avem ce servi — lăsăm rețeaua să termine
+    }, HTML_NET_TIMEOUT_MS);
+    const net = fetch(req).then(res => {
+      clearTimeout(timer);
+      cachePut(url, res);
+      finish(res);
+      return res;
+    }).catch(() => {
+      clearTimeout(timer);
+      return caches.match(req, { ignoreSearch: true }).then(hit => {
+        if (hit) { finish(hit); return; }
+        return caches.match('./index.html').then(fb => {
+          finish(fb || new Response('Offline — reconectează-te pentru hub.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }));
+        });
+      });
+    });
+    e.waitUntil(net.catch(() => {}));
+  });
+}
+
+// Assets (lib/*.js?v=, CSS, nav.js): network-first cu fallback offline
+function assetFetch(e, req, url) {
+  return fetch(req).then(res => cachePut(url, res)).catch(() =>
+    caches.match(req, { ignoreSearch: true }).then(r =>
+      r || new Response('', { status: 504, statusText: 'offline' })
+    )
+  );
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (req.method !== 'GET') return;
 
-  const hubEntry = isHubEntry(url, req);
-  const isHtml = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
-  // fără cache:'reload' pe navigări — HTTP cache-ul browserului revalidează
-  // cu ETag/304, deci re-download integral DOAR când fișierul chiar s-a
-  // schimbat (înainte: macro = 377KB re-descărcați la fiecare vizită)
-
-  e.respondWith(
-    fetch(req).then(res => {
-      if (res && res.status === 200 && res.type === 'basic') {
-        const copy = res.clone();
-        // cheia de cache = pathname FĂRĂ query — paginile cer lib-urile cu
-        // ?v=NNN (cache-busting), dar precache-ul e queryless; fără
-        // normalizare se acumulau 2 copii/fișier și fallback-ul offline
-        // nu găsea niciodată varianta cerută
-        caches.open(CACHE_NAME).then(c => c.put(new Request(url.origin + url.pathname), copy)).catch(() => {});
-      }
-      return res;
-    }).catch(() => {
-      return caches.match(req, { ignoreSearch: true }).then(r => {
-        if (r) return r;
-        if (hubEntry || isHtml) {
-          return caches.match('./index.html').then(fb =>
-            fb || new Response('Offline — reconectează-te pentru hub.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
-          );
-        }
-        return new Response('', { status: 504, statusText: 'offline' });
-      });
-    })
-  );
+  // isHubEntry acoperă deja navigate + *.html + accept: text/html
+  if (isHubEntry(url, req)) e.respondWith(htmlNetworkFirst(e, req, url));
+  else e.respondWith(assetFetch(e, req, url));
 });
 
 self.addEventListener('message', e => {
