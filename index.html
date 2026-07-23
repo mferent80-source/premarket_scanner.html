@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=682"></script>
+<script src="lib/suite-version.js?v=683"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -46,7 +46,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="lib/suite-ui.css?v=678">
-<link rel="stylesheet" href="lib/hub-ui.css?v=679">
+<link rel="stylesheet" href="lib/hub-ui.css?v=683">
 <style>
 /* === Hub shell aliniat Macro (suite-ui.css) — full-bleed + tokeni canonic ── */
 :root{
@@ -510,6 +510,15 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 
   <div id="hubFreezeTop" class="hub-freeze-top"></div>
   <div id="hubRiskBanner" class="hub-freeze-top" style="display:none"></div>
+
+  <!-- I-211 Next Action — un CTA contextual (safety > capital > data > opportunity) -->
+  <section class="hub-na prio-warn" id="hubNextAction" aria-label="Next action" hidden>
+    <div class="hub-na-main">
+      <div class="hub-na-kicker">NEXT ACTION</div>
+      <div class="hub-na-title">se evaluează…</div>
+      <div class="hub-na-why">—</div>
+    </div>
+  </section>
 
   <!-- Launch pad — tool-uri cheie fără scroll pe catalog -->
   <nav class="hub-launch" id="hubLaunch" aria-label="Launch rapid">
@@ -1550,6 +1559,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 <script defer src="lib/hub-tableau.js?v=679"></script>
 <script defer src="lib/hub-health.js?v=666"></script>
 <script defer src="lib/hub-brief.js?v=680"></script>
+<script defer src="lib/hub-next-action.js?v=683"></script>
 <script defer src="lib/hub-ledger.js?v=666"></script>
 <script>
 // init-ul rulează la DOMContentLoaded — lib-urile sunt acum `defer` (nu mai
@@ -1578,6 +1588,7 @@ window.addEventListener('DOMContentLoaded', function(){
   // plasă de siguranță: dacă hub-brief a picat, tableau-ul rămânea shell gol
   // (singurul lui declanșator era lanțul HB.init → HT.render)
   if (window.HT) boot('HT', () => HT.render());
+  if (window.HNA) boot('HNA', () => HNA.init());
   // module așteptate dar neîncărcate deloc (404/cache) — tot „picate" sunt
   [['HM','hub-market'],['HB','hub-brief'],['HT','hub-tableau'],['HS','hub-state']].forEach(([g, n]) => {
     if (!window[g]) bootFails.push(n);
@@ -1591,6 +1602,7 @@ window.addEventListener('DOMContentLoaded', function(){
   }
   window.addEventListener('hub:market', () => {
     if (window.HS){ try { HS.patchMarketCards(); HS.renderStaleNav('hubStaleNav'); } catch (e) {} }
+    if (window.HNA){ try { HNA.render(); } catch (e) {} }
   });
 
   if (window.HB_LEDGER && HB_LEDGER.init) boot('HB_LEDGER', () => HB_LEDGER.init());

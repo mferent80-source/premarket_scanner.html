@@ -210,7 +210,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-208 | lib/suite-sessions.js — sesiune NYSE unică + sărbători/half-days | lib/* + hub + router | M | P1 | făcut | ideation | 2026-07-22 |
 | I-209 | Gapper tradability — RVOL + context range pe chip-urile gappers | lib/hub-gappers.js | M | P2 | făcut | ideation | 2026-07-22 |
 | I-210 | Sursă unică evenimente high-impact (MCTX) + flag approx + expirare | lib/macro-context.js + lib/router.js + lib/event-tape.js | M | P1 | făcut | ideation | 2026-07-22 |
-| I-211 | Next Action rail — un singur CTA contextual pe hub | hub (index + hub-state + hub-tableau) | M | P1 | propus | ideation | 2026-07-23 |
+| I-211 | Next Action rail — un singur CTA contextual pe hub | hub (index + hub-next-action.js) | M | P1 | făcut | ideation | 2026-07-23 |
 | I-212 | Un singur ecran de decizie (anti-dublură cockpit/brief/tableau) | hub (index + hub-brief + hub-tableau) | M | P1 | propus | ideation | 2026-07-23 |
 | I-213 | Context handoff suite-wide (sym + regim + buget R) | lib/ + hub + scanner + journal | M | P1 | propus | ideation | 2026-07-23 |
 | I-214 | Quote bus unificat (cache live partajat cross-pagini) | lib/data.js + hub-market + consumers | L | P2 | propus | ideation | 2026-07-23 |
