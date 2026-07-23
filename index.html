@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=679"></script>
+<script src="lib/suite-version.js?v=680"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -337,10 +337,20 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 .pb-sum-sub{font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--t3);flex:1}
 .pb-refresh-btn{background:var(--bg3);border:1px solid var(--b1);color:var(--t2);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--head);font-weight:700}
 .pb-refresh-btn:hover{color:var(--crypto-2);border-color:var(--crypto-1)}
-.pb-inner{padding:12px 14px;border-top:1px solid var(--b1)}
-.pb-section{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;margin-bottom:10px;overflow:hidden}
-.pb-section-head{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--b1)}
-.pb-section-head h3{font-family:var(--head);font-size:13px;font-weight:800;color:var(--t1);flex:1;margin:0}
+.pb-inner{padding:10px 12px;border-top:1px solid var(--b1)}
+/* Taburi Brief — mici, grupate (ca Macro tabs) */
+.pb-tabbar{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 10px;padding:5px;background:var(--bg3);border:1px solid var(--b1);border-radius:10px}
+.pb-tab{font-family:var(--mono);font-size:10.5px;font-weight:800;padding:6px 10px;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--t3);cursor:pointer;font-family:var(--mono)}
+.pb-tab:hover{color:var(--t1);border-color:var(--b1)}
+.pb-tab.on{background:rgba(247,147,26,.14);border-color:rgba(247,147,26,.4);color:var(--crypto-2)}
+.pb-tab-panel{display:none}
+.pb-tab-panel.on{display:block}
+.pb-tab-panel[hidden]{display:none!important}
+.pb-tab-panel.on[hidden]{display:block!important}
+.pb-foot-meta{font-family:var(--mono);font-size:10px;color:var(--t3);text-align:right;margin-top:6px}
+.pb-section{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.pb-section-head{display:flex;align-items:center;gap:8px;padding:7px 11px;border-bottom:1px solid var(--b1)}
+.pb-section-head h3{font-family:var(--head);font-size:12px;font-weight:800;color:var(--t1);flex:1;margin:0}
 .pb-count{background:var(--bg4);color:var(--t1);padding:1px 9px;border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:700;border:1px solid var(--b1)}
 .pb-go{border:1px solid var(--b1);color:var(--t2);padding:3px 10px;font-size:11px;border-radius:5px;font-family:var(--head);font-weight:700;text-decoration:none}
 .pb-go:hover{color:#5bb0ff;border-color:#5bb0ff}
@@ -348,9 +358,9 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
 .pb-empty{padding:16px;text-align:center;color:var(--t2);font-style:italic;font-size:12.5px}
 .pb-loading{padding:16px;text-align:center;color:var(--t2);font-size:12.5px}
 /* Brief de dimineață — rând-erou (verdictul zilei) */
-.pb-hero{background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(91,176,255,.06));border:1px solid rgba(247,147,26,.30);border-radius:10px;padding:12px 15px;margin-bottom:12px}
-.pb-hero-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--crypto-1);margin-bottom:5px}
-.pb-hero-verdict{font-family:var(--head);font-size:15px;font-weight:800;color:var(--t1);line-height:1.35;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pb-hero{background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(91,176,255,.06));border:1px solid rgba(247,147,26,.30);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.pb-hero-label{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--crypto-1);margin-bottom:4px}
+.pb-hero-verdict{font-family:var(--head);font-size:13.5px;font-weight:800;color:var(--t1);line-height:1.3;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .pb-hero-dot{color:var(--t3);font-weight:400}
 .pb-hero-danger{color:var(--t2);font-weight:700}
 .pb-hero-sub{font-family:var(--mono);font-size:11.5px;color:var(--t2);margin-top:6px}
@@ -546,11 +556,11 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
   </section>
   </details>
 
-  <!-- TODAY'S PLAYBOOK — absorbit din pagina playbook (retrasă); lazy-load la primul expand -->
+  <!-- Brief — taburi mici grupate (fără stivă lungă de secțiuni) -->
   <details class="pb-wrap" id="pbWrap">
     <summary class="pb-summary">☀️ Brief de dimineață
-      <span class="pb-sum-sub">verdictul zilei · regim + danger · macro azi · earnings · sector · top picks</span>
-      <button class="pb-refresh-btn" id="pbRefreshBtn" title="Reîncarcă toate secțiunile">🔄 Refresh</button>
+      <span class="pb-sum-sub">taburi: Desk · Piață · Scan · AI</span>
+      <button class="pb-refresh-btn" id="pbRefreshBtn" title="Reîncarcă toate secțiunile">🔄</button>
     </summary>
     <div class="pb-inner">
       <div class="pb-diff-hero" id="pbDiffHero"></div>
@@ -560,63 +570,87 @@ body[data-hub-mode="review"] .card[data-phase="plan"]{opacity:.65}
         <div class="pb-hero-sub">—</div>
         <div class="pb-hero-track" id="pbHeroTrack" style="display:none"></div>
       </div>
-      <div class="pb-section" id="pbProDesk" style="margin-top:0">
-        <div class="pb-section-head"><h3>🎯 Pro Desk — azi tradez?</h3>
-          <a class="pb-go" href="./router/">Router →</a>
-          <a class="pb-go" href="./journal/#desk" style="margin-left:6px">Risk Desk →</a>
-        </div>
-        <div class="pb-risk-row"><span class="pb-risk-val" id="pbRouteVal">⏳ …</span><span class="pb-risk-sub" id="pbRouteSub">Regime Router</span></div>
-        <div class="pb-risk-row"><span class="pb-risk-val" id="pbGovVal">⏳ …</span><span class="pb-risk-sub" id="pbGovSub">Risk Governor</span></div>
-      </div>
       <div class="pb-diff" id="pbDiff" style="display:none"></div>
       <div class="pb-freeze" id="pbFreeze" style="display:none"></div>
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>🛡 Regim + Danger Score</h3><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
-        <div class="pb-risk-row"><span class="pb-risk-val" id="pbRiskVal">⏳ …</span><span class="pb-risk-sub" id="pbRiskSub">se calculează…</span></div>
-        <div class="pb-risk-row"><span class="pb-risk-val" id="pbDangerVal">⏳ …</span><span class="pb-risk-sub" id="pbDangerSub">se încarcă…</span></div>
+
+      <div class="pb-tabbar" role="tablist" aria-label="Secțiuni brief">
+        <button type="button" class="pb-tab on" role="tab" data-pb-tab="desk" aria-selected="true">🎯 Desk</button>
+        <button type="button" class="pb-tab" role="tab" data-pb-tab="piata" aria-selected="false">📈 Piață</button>
+        <button type="button" class="pb-tab" role="tab" data-pb-tab="scan" aria-selected="false">🚀 Scan</button>
+        <button type="button" class="pb-tab" role="tab" data-pb-tab="ai" aria-selected="false">🤖 AI</button>
       </div>
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>📈 Piața acum</h3><span class="pb-count" id="pbMktSess">—</span><a class="pb-go" href="./nasdaq-scanner/">Open Scanner →</a></div>
-        <div class="pb-section-body"><div class="pb-mkt" id="pbBodyMkt"><div class="pb-loading">SPY · QQQ · VIX…</div></div></div>
+
+      <!-- Tab Desk: Pro Desk + regim/danger -->
+      <div class="pb-tab-panel on" data-pb-panel="desk" role="tabpanel">
+        <div class="pb-section" id="pbProDesk" style="margin-top:0">
+          <div class="pb-section-head"><h3>🎯 Pro Desk — azi tradez?</h3>
+            <a class="pb-go" href="./router/">Router →</a>
+            <a class="pb-go" href="./journal/#desk" style="margin-left:6px">Risk Desk →</a>
+          </div>
+          <div class="pb-risk-row"><span class="pb-risk-val" id="pbRouteVal">⏳ …</span><span class="pb-risk-sub" id="pbRouteSub">Regime Router</span></div>
+          <div class="pb-risk-row"><span class="pb-risk-val" id="pbGovVal">⏳ …</span><span class="pb-risk-sub" id="pbGovSub">Risk Governor</span></div>
+        </div>
+        <div class="pb-section">
+          <div class="pb-section-head"><h3>🛡 Regim + Danger</h3><a class="pb-go" href="./macro-dashboard/">Macro →</a></div>
+          <div class="pb-risk-row"><span class="pb-risk-val" id="pbRiskVal">⏳ …</span><span class="pb-risk-sub" id="pbRiskSub">se calculează…</span></div>
+          <div class="pb-risk-row"><span class="pb-risk-val" id="pbDangerVal">⏳ …</span><span class="pb-risk-sub" id="pbDangerSub">se încarcă…</span></div>
+        </div>
       </div>
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>📅 Evenimente macro azi</h3><span class="pb-count" id="pbCntEvents">—</span><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
-        <div class="pb-section-body" id="pbBodyEvents"><div class="pb-loading">calendar economic…</div></div>
+
+      <!-- Tab Piață: quotes + calendar -->
+      <div class="pb-tab-panel" data-pb-panel="piata" role="tabpanel" hidden>
+        <div class="pb-section" style="margin-top:0">
+          <div class="pb-section-head"><h3>📈 Piața acum</h3><span class="pb-count" id="pbMktSess">—</span><a class="pb-go" href="./nasdaq-scanner/">Scanner →</a></div>
+          <div class="pb-section-body"><div class="pb-mkt" id="pbBodyMkt"><div class="pb-loading">SPY · QQQ · VIX…</div></div></div>
+        </div>
+        <div class="pb-section">
+          <div class="pb-section-head"><h3>📅 Evenimente azi</h3><span class="pb-count" id="pbCntEvents">—</span><a class="pb-go" href="./macro-dashboard/">Macro →</a></div>
+          <div class="pb-section-body" id="pbBodyEvents"><div class="pb-loading">calendar economic…</div></div>
+        </div>
       </div>
-      <details class="pb-tier2" id="pbTier2">
-        <summary class="pb-tier-sum">📂 Mai mult azi — earnings · sector · picks · STL · sugestii · WL events · AI</summary>
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>🤖 Nota AI de dimineață</h3><button class="pb-refresh-btn" id="pbAiBtn">✨ Generează</button></div>
-        <div class="pb-section-body" id="pbBodyAi"><div class="pb-ai-empty">Apasă „✨ Generează" — AI sintetizează regim + piață + calendar + sectoare + semnale într-un verdict scurt pe azi (o dată/zi, cache).</div></div>
+
+      <!-- Tab Scan: earnings · sector · picks · STL · sugestii · WL -->
+      <div class="pb-tab-panel" data-pb-panel="scan" role="tabpanel" hidden>
+        <div class="pb-section" style="margin-top:0">
+          <div class="pb-section-head"><h3>📊 Earnings 7z</h3><span class="pb-count" id="pbCntEarnings">—</span><a class="pb-go" href="./earnings-hub/">Earnings →</a></div>
+          <div class="pb-section-body" id="pbBodyEarnings"><div class="pb-loading">calendar earnings…</div></div>
+        </div>
+        <div class="pb-section">
+          <div class="pb-section-head"><h3>🔄 Sector</h3><span class="pb-count" id="pbCntSector">—</span><a class="pb-go" href="./sector-rotation/">Sector →</a></div>
+          <div class="pb-section-body" id="pbBodySector"><div class="pb-loading">scan sectorial…</div></div>
+        </div>
+        <div class="pb-section">
+          <div class="pb-section-head"><h3>🚀 Top picks</h3><span class="pb-count" id="pbCntNasdaq">—</span><a class="pb-go" href="./nasdaq-scanner/">Scanner →</a></div>
+          <div class="pb-section-body" id="pbBodyNasdaq"><div class="pb-loading">semnale…</div></div>
+        </div>
+        <div class="pb-section">
+          <div class="pb-section-head"><h3>🎯 STL READY/OK</h3><span class="pb-count" id="pbCntSTL">—</span><a class="pb-go" href="./smart-trade-long/">STL →</a></div>
+          <div class="pb-section-body" id="pbBodySTL"><div class="pb-loading">scan listă…</div></div>
+        </div>
+        <div class="pb-section">
+          <div class="pb-section-head"><h3>🎯 Sugestii WL</h3><span class="pb-count" id="pbCntSuggestions">—</span><a class="pb-go" href="./macro-dashboard/">Macro →</a></div>
+          <div class="pb-section-body" id="pbBodySuggestions"><div class="pb-loading">sugestii…</div></div>
+        </div>
+        <div class="pb-section">
+          <details id="pbWlEvDet">
+            <summary class="pb-section-head pb-wl-sum"><h3>📌 WL events 14–30z</h3><span class="pb-count" id="pbCntWlEvents">—</span></summary>
+            <div class="pb-section-body" id="pbBodyWlEvents"><div class="pb-empty">expandează pentru Finnhub</div></div>
+          </details>
+        </div>
       </div>
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>📊 Earnings next 7 zile (watchlist + mega-caps)</h3><span class="pb-count" id="pbCntEarnings">—</span><a class="pb-go" href="./earnings-hub/">Open Earnings →</a></div>
-        <div class="pb-section-body" id="pbBodyEarnings"><div class="pb-loading">calendar earnings…</div></div>
+
+      <!-- Tab AI -->
+      <div class="pb-tab-panel" data-pb-panel="ai" role="tabpanel" hidden>
+        <div class="pb-section" style="margin-top:0">
+          <div class="pb-section-head"><h3>🤖 Nota AI</h3><button class="pb-refresh-btn" id="pbAiBtn" type="button">✨ Generează</button></div>
+          <div class="pb-section-body" id="pbBodyAi"><div class="pb-ai-empty">Apasă „✨ Generează" — verdict scurt pe azi (cache 1×/zi).</div></div>
+        </div>
       </div>
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>🔄 Sector rotation</h3><span class="pb-count" id="pbCntSector">—</span><a class="pb-go" href="./sector-rotation/">Open Sector →</a></div>
-        <div class="pb-section-body" id="pbBodySector"><div class="pb-loading">se citește ultimul scan sectorial…</div></div>
-      </div>
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>🚀 Top picks (scan nasdaq + semnale suite)</h3><span class="pb-count" id="pbCntNasdaq">—</span><a class="pb-go" href="./nasdaq-scanner/">Open Scanner →</a></div>
-        <div class="pb-section-body" id="pbBodyNasdaq"><div class="pb-loading">se citesc datele…</div></div>
-      </div>
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>🎯 Radar Smart Trade Long (READY/OK azi)</h3><span class="pb-count" id="pbCntSTL">—</span><a class="pb-go" href="./smart-trade-long/">Open STL →</a></div>
-        <div class="pb-section-body" id="pbBodySTL"><div class="pb-loading">se citește scanul de listă STL…</div></div>
-      </div>
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>🎯 Sugestii watchlist (din rezultate macro)</h3><span class="pb-count" id="pbCntSuggestions">—</span><a class="pb-go" href="./macro-dashboard/">Open Macro →</a></div>
-        <div class="pb-section-body" id="pbBodySuggestions"><div class="pb-loading">se verifică sugestiile…</div></div>
-      </div>
-      <div class="pb-section">
-        <details id="pbWlEvDet">
-          <summary class="pb-section-head pb-wl-sum"><h3>📌 Watchlist events (14-30 zile)</h3><span class="pb-count" id="pbCntWlEvents">—</span><span class="pb-go" style="cursor:default">earnings · dividends · splits · presentations</span></summary>
-          <div class="pb-section-body" id="pbBodyWlEvents"><div class="pb-empty">expandează ca să se încarce events-urile watchlist (Finnhub)</div></div>
-        </details>
-      </div>
-      </details>
-      <div style="font-family:var(--mono);font-size:10.5px;color:var(--t3);text-align:right" id="pbRefreshInfo">—</div>
+
+      <!-- stub pt cod vechi care aștepta pbTier2 -->
+      <details class="pb-tier2" id="pbTier2" style="display:none" hidden aria-hidden="true"></details>
+
+      <div class="pb-foot-meta" id="pbRefreshInfo">—</div>
     </div>
   </details>
 
@@ -1515,7 +1549,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 <script defer src="lib/hub-gappers.js?v=674"></script>
 <script defer src="lib/hub-tableau.js?v=679"></script>
 <script defer src="lib/hub-health.js?v=666"></script>
-<script defer src="lib/hub-brief.js?v=667"></script>
+<script defer src="lib/hub-brief.js?v=680"></script>
 <script defer src="lib/hub-ledger.js?v=666"></script>
 <script>
 // init-ul rulează la DOMContentLoaded — lib-urile sunt acum `defer` (nu mai
