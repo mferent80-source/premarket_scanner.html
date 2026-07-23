@@ -213,7 +213,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-211 | Next Action rail — un singur CTA contextual pe hub | hub (index + hub-next-action.js) | M | P1 | făcut | ideation | 2026-07-23 |
 | I-212 | Un singur ecran de decizie (anti-dublură cockpit/brief/tableau) | hub (index + hub-brief + hub-tableau) | M | P1 | făcut | ideation | 2026-07-23 |
 | I-213 | Context handoff suite-wide (sym + regim + buget R) | lib/suite-context.js + hub + journal + nasdaq | M | P1 | făcut | ideation | 2026-07-23 |
-| I-214 | Quote bus unificat (cache live partajat cross-pagini) | lib/data.js + hub-market + consumers | L | P2 | propus | ideation | 2026-07-23 |
+| I-214 | Quote bus unificat (cache live partajat cross-pagini) | lib/quote-bus.js + hub-market | L | P2 | făcut | ideation | 2026-07-23 |
 | I-215 | Hub layout per sesiune agresiv (Pre/RTH/AH/Review) | hub + hub-ui.css + SES | M | P2 | făcut | ideation | 2026-07-23 |
 | I-216 | Platform health strip + auto-degrade pe date | hub + hub-health.js | S | P2 | făcut | ideation | 2026-07-23 |
 
@@ -1504,11 +1504,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Fișiere atinse:** lib/utils.js sau lib nou context.js, index.html, hub-gappers, journal, nasdaq-scanner, sw-app.js.
 
 ### I-214 · Quote bus unificat (cache live partajat cross-pagini) · [L] · P2
+- **Status:** făcut nucleu (tt-v690) — `lib/quote-bus.js` (QB.get/set/ensure + BroadcastChannel + LS `tt_quotes_v1`); hub-market scrie bus + citește hit <30s. Consumatori macro/journal/scanner: adoptare treptată via `QB.get` / `D.quotes`.
 - **Problema/golul:** SPY/QQQ/VIX și simboluri WL sunt re-fetch-uite pe hub, macro, scanner, portfolio cu TTL/chei diferite; broadcastChannel/storage events nu unifică prețurile. Perf live e pe simbol×pagină, nu pe suită.
 - **Soluția:** strat D.quotes / bus pe localStorage+BroadcastChannel: un writer (hub sau worker-ish tab) ține setul hot (indici + open journal + WL top); paginile citesc sync din bus, revalidatează doar la miss/stale. Aliniat la D.fetchJSON + pin proxy (tt-v674).
 - **Impact:** latență percepută mai mică pe toate paginile live; mai puțină presiune pe proxy/Yahoo.
 - **Riscuri/dependențe:** multi-tab race; quota LS; trebuie invalidare onestă (ts per quote deja model în hub-market).
-- **Fișiere atinse:** lib/data.js, lib/hub-market.js, macro-dashboard, portfolio/journal live, watchlist-monitor (opțional).
+- **Fișiere atinse:** lib/quote-bus.js, lib/hub-market.js, index.html, sw-app.js.
 
 ### I-215 · Hub layout per sesiune agresiv (Pre/RTH/AH/Review) · [M] · P2
 - **Status:** făcut (tt-v689) — bar LAYOUT Auto/Pre/RTH/AH/Review; CSS order pe `data-hub-slot`; launch chips reordered; checklist auto Pre; ledger auto Review; gappers promote Pre/AH.
