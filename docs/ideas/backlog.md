@@ -216,6 +216,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-214 | Quote bus unificat (cache live partajat cross-pagini) | lib/quote-bus.js + hub-market | L | P2 | făcut | ideation | 2026-07-23 |
 | I-215 | Hub layout per sesiune agresiv (Pre/RTH/AH/Review) | hub + hub-ui.css + SES | M | P2 | făcut | ideation | 2026-07-23 |
 | I-216 | Platform health strip + auto-degrade pe date | hub + hub-health.js | S | P2 | făcut | ideation | 2026-07-23 |
+| I-217 | Tabs Preț / News / Istoric — focus pe lista de alerte | alerts/ | S | P1 | propus | ideation | 2026-07-23 |
+| I-218 | Rail „Almost fire" (top-N proximitate) | alerts/ | M | P1 | propus | ideation | 2026-07-23 |
+| I-219 | Group-by-symbol (card per ticker, reguli nested) | alerts/ | M | P1 | propus | ideation | 2026-07-23 |
+| I-220 | Quick-add templates din WL / Journal open | alerts/ | M | P2 | propus | ideation | 2026-07-23 |
+| I-221 | Client notify policy (sesiune + quiet hours pe UI) | alerts/ | S | P2 | propus | ideation | 2026-07-23 |
+| I-222 | Density compact + multi-select bulk (snooze/arm/delete) | alerts/ | M | P2 | propus | ideation | 2026-07-23 |
 
 ## Mini-spec-uri
 
@@ -1525,3 +1531,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** traderul știe dacă poate avea încredere în ecran înainte de a citi GO; reduce decizii pe UI „loading etern".
 - **Riscuri/dependențe:** nu spam pe fiecare tick — update 30–60s; aliniat I-206.
 - **Fișiere atinse:** index.html, lib/hub-health.js, lib/hub-state.js, lib/hub-ui.css.
+
+### I-217 · Tabs Preț / News / Istoric — focus pe lista de alerte · [S] · P1
+- **Problema/golul:** pe `alerts/index.html` (v69) coabitează 3 produse pe un singur scroll: form add + pulse + crypto/stocks + **News Watch `open` by default** (panou setări + form + listă) + istoric triggered. La deschidere, ecranul de pe telefon e dominat de News Desk, nu de prețurile care pot sări în 30s. Header-ul amestecă butoane price (⏸🔊🔔📡) cu ⚙ News.
+- **Soluția:** 3 taburi sticky sub header (persist `localStorage`): **Preț** (add + pulse + filter + crypto/stocks + refreshInfo) · **News** (întreg blocul nw-*) · **Istoric** (triggered local+☁️). Default = Preț. Count-uri pe tab (n alerte / n watches / n fires). ⚙ din header activează tab News + panou setări.
+- **Impact:** ierarhie clară (design.md §1) — o decizie pe ecran; News rămâne la un tap, nu fură first paint.
+- **Riscuri/dependențe:** deep-link `?tab=news` pentru linkuri din guide; nu mută contractul `tt_news_watch_v1` / server.
+- **Fișiere atinse:** alerts/index.html (markup + CSS tabs + init tab state).
+
+### I-218 · Rail „Almost fire" (top-N proximitate) · [M] · P1
+- **Problema/golul:** `proximityScore` + sort „🎯 aproape" + chip filter `near` există, dar lista e lungă (12+ reguli pe stocks/crypto mixte); traderul nu vede în 1s *care* 2–3 alerte sunt la <0.5% de trigger. Pulse spune doar „⏰ N aproape", fără simboluri.
+- **Soluția:** sub pulse (sau pe sticky sub filter): rail orizontal scrollabil cu max 5 carduri compacte din sortare pe `proximityScore` (finite, armed, non-snoozed): ticker · preț live · „încă X%" · tip (ref/day/prag) · acțiuni mini (😴 snooze 1h · ⏸ disarm). Click pe card → scroll/highlight rândul din listă. Gol: rail ascuns.
+- **Impact:** reduce scanarea tabelei la „următoarele fire posibile" — decizie de armare/snooze înainte de beep.
+- **Riscuri/dependențe:** pragul 0.5% e deja în filter near (ipoteză UX, nu semnal de trading); pe weekend stocks US throttled — cardul arată 📦/sesiune.
+- **Fișiere atinse:** alerts/index.html (`proximityScore`, `renderPulse`/`render`, CSS rail).
+
+### I-219 · Group-by-symbol (card per ticker, reguli nested) · [M] · P1
+- **Problema/golul:** storage-ul e deja `{ SYM: [alert, …] }` dar `render` aplatizează la un rând per alertă — INTC cu ref 1% + day 3% = 2 rânduri cu același preț duplicat, badge sesiune duplicat, acțiuni separate. Pe mobil (grid `.al-row`) lista se lungește artificial.
+- **Soluția:** toggle layout **Grupat / Listă** (default Grupat): un card per simbol cu header (sym · preț · Δ% zi · sessTag · vârsta cache 📦) și sub-rânduri doar pentru reguli (tip, prag/pas, bară progres, rearm, snooze, delete). Sortare carduri pe min(proximity) sau pe growth. Listă = comportamentul actual.
+- **Impact:** scanare pe „ce urmăresc" (tickere), nu pe „câte reguli am creat"; mai puțin zgomot vizual.
+- **Riscuri/dependențe:** acțiunile pe alertă (edit/re-anchor/snooze) rămân pe sub-rând; bulk pe simbol = viitor I-222.
+- **Fișiere atinse:** alerts/index.html (`renderActiveGroup`, CSS card group).
+
+### I-220 · Quick-add templates din WL / Journal open · [M] · P2
+- **Problema/golul:** add-form cere ticker + tip + prag manual; watchlist (`wl_stocks`) și execuțiile open din journal (`tt_journal_v1` / TT) există pe device dar pagina Alerts nu le propune. Fluxul real e „am 6 pe WL, vreau ref ±1% pe toate" — azi = 6× add.
+- **Soluția:** în summary add-form (când e închis sau deasupra): chips one-tap — „📊 Ref 1% pe WL (N)", „📅 Day ±3% pe open Journal (M)", „📉 Trail 2% pe open cu R>0". Confirmă un modal scurt (listă simboluri + exclude) apoi scrie în `wl_price_alerts` + autoSync. Nu inventează praguri magice — template-urile sunt configurabile (localStorage).
+- **Impact:** timp de armare de la minute la secunde după scan matinal; aliniere cu journal open (risc pe poziții).
+- **Riscuri/dependențe:** pragurile template = ipoteze (trader.md §1) — label „default 1%, schimbă în setări"; duplicate pe același sym se merge/skip cu confirmare.
+- **Fișiere atinse:** alerts/index.html (UI chips + batch add), citire LS journal/WL (read-only).
+
+### I-221 · Client notify policy (sesiune + quiet hours pe UI) · [S] · P2
+- **Problema/golul:** poll-ul rulează 30s; la fire se fac toast+beep+browser+TG indiferent de oră. Noaptea (RO) un day-alert pe EU sau crypto flood-uiește UI-ul deși botul server are quiet pe News. Stocks US deja throttle weekend/closed pentru *fetch*, dar notify pe crypto 03:00 RO e zgomot. WLM are policy (I-204) — Alerts UI nu.
+- **Soluția:** panou mic în ⋯ meniu: **Notify UI** = Always / RTH only (stocks; crypto separat toggle) / Quiet 23–07 RO (doar toast silent, fără beep/browser; TG rămâne dacă e forțat de user). Persist `pa_notify_policy_v1`. Server-side check-alerts neschimbat (plasa 24/7).
+- **Impact:** mai puțin stress nocturn; pagina rămâne utilă ca monitor fără să urle.
+- **Riscuri/dependențe:** nu confunda cu snipping alerte pe server — doar canal UI; documentează că TG server e independent.
+- **Fișiere atinse:** alerts/index.html (`toast`/`playBeep`/`showBrowserNotif`/`sendTelegram` gates).
+
+### I-222 · Density compact + multi-select bulk (snooze/arm/delete) · [M] · P2
+- **Problema/golul:** fiecare rând activ e dens (kind line, bară progres, max/min, note, 4–6 butoane) — pe 12 simboluri × 1–2 reguli = scroll greu pe telefon. Operațiile pe listă (snooze overnight pe toate stocks US, disarm weekend) se fac una câte una.
+- **Soluția:** (1) toggle densitate **Comfort / Compact** — compact ascunde barele de progres + note (title tooltip), un singur rând mono; (2) mode Select: checkbox pe rând/card → bară sticky „N selectate: 😴 1h · ⏸ disarm · 🗑 delete · ☁️ sync". Confirm pe delete.
+- **Impact:** curățenie vizuală + operații de sesiune (pre-close, pre-weekend) în 2 tap-uri.
+- **Riscuri/dependențe:** compatibil cu I-219 (checkbox pe card sau pe sub-regulă); nu schimba schema storage.
+- **Fișiere atinse:** alerts/index.html (render rows, bulk handlers, CSS density).
