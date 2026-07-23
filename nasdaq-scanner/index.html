@@ -10149,18 +10149,45 @@ function renderTopLosers(){
 }
 // ═══════════════════════════════════════════════════════════════
 
-// Deep-link ?sym=SPY din Hub tableau (I-160)
+// Deep-link ?sym=SPY din Hub tableau (I-160) + context suite I-213
 (function(){
   const params = new URLSearchParams(location.search);
-  const sym = (params.get('sym') || '').trim().toUpperCase().replace(/[^A-Z.-]/g, '');
-  if (!sym) return;
   const TV_PREFIX = { SPY: 'AMEX', QQQ: 'NASDAQ', DIA: 'AMEX', IWM: 'AMEX' };
   function tvUrl(s){
     const p = TV_PREFIX[s] || 'NASDAQ';
     return 'https://www.tradingview.com/chart/?symbol=' + p + ':' + encodeURIComponent(s);
   }
+  function paintCtxBanner() {
+    if (!(window.SCTX && SCTX.mountBanner)) return;
+    let host = document.getElementById('sctxBanner');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'sctxBanner';
+      const app = document.querySelector('.app') || document.body;
+      const hdr = document.querySelector('.scanner-cockpit') || document.querySelector('.hdr');
+      if (hdr && hdr.parentNode) hdr.parentNode.insertBefore(host, hdr.nextSibling);
+      else app.insertBefore(host, app.firstChild);
+    }
+    SCTX.mountBanner(host, { showClear: true });
+  }
+  function resolveSym() {
+    let sym = (params.get('sym') || '').trim().toUpperCase().replace(/[^A-Z.-]/g, '');
+    if (!sym && window.SCTX && SCTX.read) {
+      try {
+        const ctx = SCTX.read({ maxAgeMs: 60 * 60 * 1000 });
+        if (ctx && ctx.sym) sym = String(ctx.sym).toUpperCase().replace(/[^A-Z.-]/g, '');
+      } catch (e) {}
+    }
+    return sym;
+  }
   window.addEventListener('load', function(){
     setTimeout(function(){
+      const sym = resolveSym();
+      paintCtxBanner();
+      if (!sym) return;
+      if (window.SCTX && SCTX.write) {
+        try { SCTX.write({ sym: sym, source: params.get('source') || 'nasdaq-deeplink', href: location.href }); } catch (e) {}
+      }
       const inp = document.getElementById('wlInp');
       if (inp) inp.value = sym;
       if (typeof watchlist !== 'undefined' && Array.isArray(watchlist) && !watchlist.includes(sym)){
@@ -10169,8 +10196,13 @@ function renderTopLosers(){
         if (typeof syncWatchlistToShared === 'function') syncWatchlistToShared();
         if (typeof renderWatchlistChips === 'function') renderWatchlistChips();
       }
-      window.open(tvUrl(sym), '_blank', 'noopener');
-      if (typeof showToast === 'function') showToast('📈 ' + sym + ' → TradingView', 'ok');
+      // doar pe ?sym= din URL deschidem TV (nu pe fiecare visită cu ctx residual)
+      if (params.get('sym')) {
+        window.open(tvUrl(sym), '_blank', 'noopener');
+        if (typeof showToast === 'function') showToast('📈 ' + sym + ' → TradingView', 'ok');
+      } else if (typeof showToast === 'function') {
+        showToast('📎 Context: ' + sym, 'ok');
+      }
     }, 500);
   });
 })();
@@ -10928,6 +10960,7 @@ setTimeout(_updateGistStatusN, 500);
 </script>
 <script src="../lib/utils.js"></script>
 <script src="../lib/data.js"></script>
+<script src="../lib/suite-context.js?v=684"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
 <script src="../lib/capital-time.js?v=630"></script>

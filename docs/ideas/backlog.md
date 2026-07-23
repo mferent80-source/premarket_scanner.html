@@ -212,7 +212,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-210 | Sursă unică evenimente high-impact (MCTX) + flag approx + expirare | lib/macro-context.js + lib/router.js + lib/event-tape.js | M | P1 | făcut | ideation | 2026-07-22 |
 | I-211 | Next Action rail — un singur CTA contextual pe hub | hub (index + hub-next-action.js) | M | P1 | făcut | ideation | 2026-07-23 |
 | I-212 | Un singur ecran de decizie (anti-dublură cockpit/brief/tableau) | hub (index + hub-brief + hub-tableau) | M | P1 | propus | ideation | 2026-07-23 |
-| I-213 | Context handoff suite-wide (sym + regim + buget R) | lib/ + hub + scanner + journal | M | P1 | propus | ideation | 2026-07-23 |
+| I-213 | Context handoff suite-wide (sym + regim + buget R) | lib/suite-context.js + hub + journal + nasdaq | M | P1 | făcut | ideation | 2026-07-23 |
 | I-214 | Quote bus unificat (cache live partajat cross-pagini) | lib/data.js + hub-market + consumers | L | P2 | propus | ideation | 2026-07-23 |
 | I-215 | Hub layout per sesiune agresiv (Pre/RTH/AH/Review) | hub + hub-ui.css + SES | M | P2 | propus | ideation | 2026-07-23 |
 | I-216 | Platform health strip + auto-degrade pe date | hub + hub-health + hub-state | S | P2 | propus | ideation | 2026-07-23 |

@@ -286,6 +286,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <div class="cap-wrap">
 
 <div id="capitalRail" data-cd-page="journal"></div>
+<div id="sctxBanner" style="display:none"></div>
 <div id="cdPrefillGate"></div>
 
 <div class="jr-workspace">
@@ -607,7 +608,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/capital-time.js?v=630"></script>
 <script src="../lib/account.js?v=625"></script>
 <script src="../lib/finnhub-key.js?v=625"></script>
-<script src="../lib/journal.js?v=625"></script>
+<script src="../lib/suite-context.js?v=684"></script>
+<script src="../lib/journal.js?v=684"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
 <script src="../lib/tracker.js?v=625"></script>
 <script src="../lib/telegram.js?v=625"></script>
@@ -1466,6 +1468,10 @@ function consumePendingTrade(){
 
 function prefillFromQuery(){
   if (consumePendingTrade()) return;
+  // banner context suite (I-213) — keep până la clear explicit
+  if (window.SCTX && SCTX.mountBanner) {
+    try { SCTX.mountBanner('sctxBanner', { showClear: true }); } catch (e) {}
+  }
   const pf = JR.prefillFromQuery();
   if (!pf) return;
   if (pf.sym) $('fSym').value = String(pf.sym).toUpperCase();
@@ -1475,11 +1481,25 @@ function prefillFromQuery(){
   if (pf.size != null) $('fSize').value = pf.size;
   if (pf.fees != null) $('fFees').value = pf.fees;
   if (pf.slAtEntry != null || pf.sl != null) $('fSl').value = pf.slAtEntry != null ? pf.slAtEntry : pf.sl;
-  if (pf.source || pf.src) $('fSrc').value = pf.source || pf.src;
+  if (pf.source || pf.src) {
+    const src = pf.source || pf.src;
+    const el = $('fSrc');
+    if (el) {
+      // mapează surse hub → opțiuni formular dacă există
+      const map = { 'hub-gapper': 'other', 'hub-next': 'other', 'hub-next-gapper': 'other', 'hub-ctx': 'other' };
+      el.value = map[src] || src;
+    }
+  }
   if (pf.notes || pf.note) $('fNotes').value = pf.notes || pf.note || '';
   if (pf.tags) renderTagRow(Array.isArray(pf.tags) ? pf.tags : []);
-  $('frmTitle').textContent = '➕ Execuție pre-completată (scanner/ledger)';
-  showPrefillGate();
+  $('frmTitle').textContent = pf._fromCtx
+    ? '➕ Execuție din context hub'
+    : '➕ Execuție pre-completată (scanner/ledger)';
+  // deschide tab exec dacă vine prefill cu sym
+  if (pf.sym && typeof setJTab === 'function') {
+    try { setJTab('exec'); } catch (e) {}
+  }
+  showPrefillGate(true);
 }
 
 function renderAll(){
