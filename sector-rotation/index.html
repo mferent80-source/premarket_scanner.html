@@ -286,7 +286,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v168</span>
+    <span class="ver-badge" id="verBadge">v169</span>
     <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
@@ -461,7 +461,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   v158: RRG varianta carduri pe 4 cadrane (toggle scatter↔cadrane, persistat).
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v168';
+const VER = 'v169';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -1188,38 +1188,46 @@ async function runScan(){
   let okCount = 0;
   try {
     // v156: benchmark SPY întâi → forță relativă vs piață (rotația reală e relativă, nu absolută)
-    $('statTime').textContent = 'SPY (benchmark)…';
-    SPY = await fetchSectorChart('SPY');
-    await sleep(180);
+    // v169: fetch PARALEL cu pool de 3 — secvențial, un proxy lent (6-8s per
+    // răspuns, dar cu succes, deci fără cooldown) însemna 13 × latență ≈
+    // minute întregi de „merge greu". SPY intră în același pool; forța
+    // relativă se calculează oricum abia după ce totul e descărcat.
+    const results = [];
+    const jobs = [{ sym: 'SPY', bench: true }].concat(SECTORS);
+    let jobIdx = 0, done = 0;
+    $('statTime').textContent = `0/${jobs.length}…`;
+    const lift = async () => {
+      while (jobIdx < jobs.length){
+        const j = jobs[jobIdx++];
+        const c = await fetchSectorChart(j.sym);
+        done++;
+        // progres vizibil per simbol — un scan lent se vede că AVANSEAZĂ
+        $('statTime').textContent = `${j.sym} · ${done}/${jobs.length}`;
+        if (j.bench){
+          SPY = c;
+        } else if (c){
+          okCount++;
+          results.push({
+            sym: j.sym, name: j.name, group: j.group,
+            price: c.price,
+            chg1d: pctOf(c.closes, 1),
+            chg1w: pctOf(c.closes, 5),
+            chg1m: pctOf(c.closes, 21),
+            chg3m: pctOf(c.closes, 63),
+            chgYTD: pctYTD(c.closes, c.times),
+            closes: c.closes,
+            vols: c.vols,
+            highs: c.highs,
+            lows: c.lows,
+            times: c.times,
+          });
+        }
+        await sleep(120);   // stagger mic anti-burst pe worker/Yahoo
+      }
+    };
+    await Promise.all([lift(), lift(), lift()]);
     const spyChg1w = SPY ? pctOf(SPY.closes, 5) : null;
     const spyChg1m = SPY ? pctOf(SPY.closes, 21) : null;
-    const results = [];
-    let si = 0;
-    for (const s of SECTORS){
-      // progres vizibil per simbol — un scan lent (proxy-uri în cooldown) se
-      // vede că AVANSEAZĂ, nu pare înghețat pe „Scanare"
-      si++;
-      $('statTime').textContent = `${s.sym} · ${si}/${SECTORS.length}`;
-      const c = await fetchSectorChart(s.sym);
-      if (c){
-        okCount++;
-        results.push({
-          sym: s.sym, name: s.name, group: s.group,
-          price: c.price,
-          chg1d: pctOf(c.closes, 1),
-          chg1w: pctOf(c.closes, 5),
-          chg1m: pctOf(c.closes, 21),
-          chg3m: pctOf(c.closes, 63),
-          chgYTD: pctYTD(c.closes, c.times),
-          closes: c.closes,
-          vols: c.vols,
-          highs: c.highs,
-          lows: c.lows,
-          times: c.times,
-        });
-      }
-      await sleep(180);
-    }
     // v156: forță relativă vs SPY + metrici RRG per sector
     for (const d of results){
       d.rsChg1w = (d.chg1w != null && spyChg1w != null) ? d.chg1w - spyChg1w : null;
@@ -1740,7 +1748,7 @@ if ('serviceWorker' in navigator){
 }
 </script>
 
-<script src="../lib/suite-version.js?v=672"></script>
+<script src="../lib/suite-version.js?v=673"></script>
 <script src="../nav.js" data-nav-root="../"></script>
 </body>
 </html>
