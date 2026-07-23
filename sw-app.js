@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v669-2026-07-23';
+const CACHE_VERSION = 'tt-v670-2026-07-23';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -160,12 +160,17 @@ const HTML_NET_TIMEOUT_MS = 3500;
 // cheia de cache = pathname FĂRĂ query — paginile cer lib-urile cu ?v=NNN
 // (cache-busting), dar precache-ul e queryless; fără normalizare se
 // acumulau 2 copii/fișier și fallback-ul offline nu găsea varianta cerută
+// Întoarce o promisiune care se încheie DUPĂ ce put-ul e persistat — cine
+// rulează în fundal trebuie s-o dea la e.waitUntil, altfel SW-ul poate fi
+// omorât înainte să se scrie cache-ul (refresh-ul nu s-ar aplica niciodată
+// pe sesiuni scurte, ex. mobil).
 function cachePut(url, res) {
-  if (res && res.status === 200 && res.type === 'basic') {
-    const copy = res.clone();
-    caches.open(CACHE_NAME).then(c => c.put(new Request(url.origin + url.pathname), copy)).catch(() => {});
-  }
-  return res;
+  if (!(res && res.status === 200 && res.type === 'basic')) return Promise.resolve(res);
+  const copy = res.clone();
+  return caches.open(CACHE_NAME)
+    .then(c => c.put(new Request(url.origin + url.pathname), copy))
+    .catch(() => {})
+    .then(() => res);
 }
 
 // HTML: network-first cu timeout — fără cache:'reload' (revalidare ETag/304,
@@ -182,9 +187,10 @@ function htmlNetworkFirst(e, req, url) {
     }, HTML_NET_TIMEOUT_MS);
     const net = fetch(req).then(res => {
       clearTimeout(timer);
-      cachePut(url, res);
       finish(res);
-      return res;
+      // net e ținut de e.waitUntil → put-ul apucă să se persiste chiar
+      // dacă răspunsul a fost deja livrat
+      return cachePut(url, res);
     }).catch(() => {
       clearTimeout(timer);
       return caches.match(req, { ignoreSearch: true }).then(hit => {
