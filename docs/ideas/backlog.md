@@ -223,6 +223,11 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-221 | Client notify policy (sesiune + quiet hours pe UI) | alerts/ | S | P2 | făcut | ideation | 2026-07-23 |
 | I-222 | Density compact + multi-select bulk (snooze/arm/delete) | alerts/ | M | P2 | făcut | ideation | 2026-07-23 |
 | I-223 | DEMO unificat Alerts I-217…222 (toggle bar) — scos; features permanente v72 | alerts/ | M | P1 | respins | ideation | 2026-07-23 |
+| I-224 | Semnal dublu EARLY + CONFIRMED (praguri co-existente) | RS PRO Pine | M | P2 | propus | ideation | 2026-07-26 |
+| I-225 | Re-entry pe pullback la segment (populează tier +2) | RS PRO Pine | M | P1 | propus | ideation | 2026-07-26 |
+| I-226 | Failed-reversal (fakeout) → semnal de continuare | RS PRO Pine | M | P2 | propus | ideation | 2026-07-26 |
+| I-227 | Semnal EXHAUSTION (matur + respingere fitil, anticipativ) | RS PRO Pine | S | P3 | propus | ideation | 2026-07-26 |
+| I-228 | Breakdown statistici pe tip de semnal (R PE TIP) | RS PRO Pine | S | P1 | propus | ideation | 2026-07-26 |
 
 ## Mini-spec-uri
 
@@ -1581,3 +1586,38 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** decizie de product pe UI real, nu pe mini-spec.
 - **Riscuri/dependențe:** după alegere, se curăță bară demo + codul feature-urilor respinse.
 - **Fișiere atinse:** alerts/index.html, lib/suite-version.js, sw-app.js.
+
+### I-224 · Semnal dublu EARLY + CONFIRMED (praguri co-existente) · [M] · P2
+- **Problema/golul:** RS PRO v2.7 are UN singur tip de semnal: flip-ul pragului (`revThresh × ATR`). „Enable Early Entry" e un *override* — comută pragul la 1.2×ATR pentru TOT (semnale + tracker + statistici), deci ori ai semnale rapide, ori confirmate, niciodată ambele; când comuți, statisticile amestecă două regimuri incomparabile.
+- **Soluția:** două triggere co-existente pe aceeași bară de calcul: EARLY la `earlyRevThresh` (label gol/mic, alertă proprie) și CONFIRMED la pragul plin (comportamentul actual). JSON-ul primește câmp `"sig":"early|conf"`; trackerul intră o singură dată (pe tipul ales ca „principal" din input), celălalt tip rămâne informativ + alertă. Dashboard: rândul SEMNAL arată tipul.
+- **Impact:** aproape dublezi semnalele de reversal fără să pierzi eticheta de calitate — vezi devreme ȘI știi când e confirmat; alegerea „pe care intru" devine măsurabilă, nu o setare oarbă.
+- **Riscuri/dependențe:** early = mai multe false positive prin construcție (avertisment în tooltip); depinde de I-228 ca cele două tipuri să aibă statistici separate, altfel nu afli niciodată dacă early are edge.
+- **Fișiere atinse:** `pine-scripts\META-CONFLUENCE-SUITE\RS_PRO_v2_7.pine` (secțiunile CORE CALC, LABELS, ALERTS, dashboard SEMNAL), `RS_PRO_*_README.md`.
+
+### I-225 · Re-entry pe pullback la segment (populează tier +2) · [M] · P1
+- **Problema/golul:** semnalul intern apare DOAR pe bara de flip (`bullRev`/`bearRev`) → într-un trend de 80 de bare ai o singură intrare, la început; dacă ai ratat-o, RS PRO nu-ți mai oferă nimic. Efect secundar documentat în README v2.7: bucket-ul „+2" din R PE TIER e matematic gol (tier-ul la semnal e mereu 3).
+- **Soluția:** a doua cale de intrare: în trend stabilit, low/high atinge `rollSeg` ± buffer (ex. 0.25×ATR, input) și bara închide înapoi în sensul trendului → semnal RE-ENTRY (label distinct, alertă `RE_LONG`/`RE_SHORT`). Intră în tracker cu `openTier := rsMag` REAL la acel moment (±2/±1) — exact ce-i lipsește rândului R PE TIER ca să valideze empiric pragurile de export. Gate opțional: doar cu `riskLvl <= 1` (nu re-intra pe trend muribund).
+- **Impact:** mai multe semnale exact în trendurile sănătoase (unde expectancy e cel mai probabil pozitiv), plus activează azi validarea pragurilor ±2/±3 — rândul din v2.7 #4 devine util, nu teoretic.
+- **Riscuri/dependențe:** pe chop, atingerile de segment se înmulțesc (buffer + cerință de close direcțional obligatorii); statisticile v-next NU-s comparabile cu v2.7 (intră o populație nouă de trade-uri) — de menționat la bump; praguri = ipoteze de validat out-of-sample.
+- **Fișiere atinse:** `pine-scripts\META-CONFLUENCE-SUITE\RS_PRO_v2_7.pine` (FILTER CONDITIONS, POSITION TRACKING — intrare nouă, LABELS, ALERTS, export `openTier`), `RS_PRO_*_README.md` (scoate limitarea cunoscută).
+
+### I-226 · Failed-reversal (fakeout) → semnal de continuare · [M] · P2
+- **Problema/golul:** un reversal declanșat care se întoarce în câteva bare e azi doar un LOSS în statistici — informația „a fost capcană" moare acolo, deși fakeout-ul e printre cele mai puternice setup-uri (cei prinși pe partea greșită alimentează mișcarea de continuare). Pattern-ul e deja validat ca idee în casă: I-034 „failed cross detector" pe ZLHMA (făcut).
+- **Soluția:** după un flip, dacă prețul re-traversează segmentul înapoi în ≤N bare (input, default 5) și trendul re-flipuiește, semnalul de pe NOUL flip primește eticheta FAILED-REV (label distinct, alertă proprie, câmp `"sig":"fakeout"` în JSON). Nu e un trigger nou de calcul — e o clasificare a flip-ului existent, deci zero risc pe motor.
+- **Impact:** semnale suplimentare exact în situațiile în care motorul de bază tocmai a greșit — complementar, nu redundant; dacă bucket-ul lui de stats (I-228) iese peste media semnalelor normale, devine tipul preferat de intrare.
+- **Riscuri/dependențe:** frecvență mică (depinde de asset/TF — poate dura până strângi n≥10); N=5 e ipoteză; depinde de I-228 pentru bucket separat.
+- **Fișiere atinse:** `pine-scripts\META-CONFLUENCE-SUITE\RS_PRO_v2_7.pine` (TREND AGE / flip logic — flag fakeout, LABELS, ALERTS), `RS_PRO_*_README.md`.
+
+### I-227 · Semnal EXHAUSTION (matur + respingere fitil, anticipativ) · [S] · P3
+- **Problema/golul:** APPROACH e doar un label informativ la <20% din prag, iar over-extended (maturity>150%) doar o alertă — niciunul nu e un semnal acționabil. Reversal-ul confirmat cere 2×ATR mișcare contra (Intraday) — pe mișcările violente ești anunțat târziu, iar userul vrea semnale mai devreme.
+- **Soluția:** semnal EXHAUSTION când se aliniază trei condiții pe bară închisă: `maturity > 150%` (cu maturity-gate v2.7 #5 activ), `pctToRev < 20%` ȘI bara respinge (fitil contra-trend ≥ x% din range + close contra trendului). Label distinct amber, alertă proprie, câmp `"sig":"exhaust"`. NU intră în trackerul principal — bucket separat (I-228), pentru că e counter-trend anticipativ, altă clasă de risc.
+- **Impact:** intrare cu 1–2×ATR mai aproape de vârf pe reversal-urile trendurilor mature — exact focusul tool-ului („Reversal Focus") extins de la confirmare la anticipare.
+- **Riscuri/dependențe:** counter-trend fără confirmarea pragului = win rate mai mic prin construcție (ipoteză, de validat pe bucket separat, n≥10); inactiv sub 10 eșantioane în `trendDurs` (maturity nefiabil — gate-ul v2.7 #5 se respectă).
+- **Fișiere atinse:** `pine-scripts\META-CONFLUENCE-SUITE\RS_PRO_v2_7.pine` (REVERSAL METRICS, LABELS, ALERTS), `RS_PRO_*_README.md`.
+
+### I-228 · Breakdown statistici pe tip de semnal (R PE TIP) · [S] · P1
+- **Problema/golul:** trackerul v2.7 agregă totul într-un singur W/L/BE + expectancy; orice tip nou de semnal (I-224/225/226/227) ar intra în aceeași găleată și n-ai putea răspunde la singura întrebare care contează: „care tip de semnal face bani pe simbolul/TF-ul meu?". Fără asta, „mai multe semnale" = mai mult zgomot nemăsurat (trader.md §1: segmentează, nu agrega).
+- **Soluția:** infrastructura de validare, livrată ÎNAINTEA tipurilor noi: `openSigType` (int) setat la intrare + acumulatoare sumR/count per tip (pattern identic cu `tierSumR3/tierCnt3` din v2.7 #4 — cost minim). Rând nou „R PE TIP: CONF x.xxR (n) / RE ... / FAKE ..." vizibil doar când există ≥2 tipuri active; avertisment „n<10 = zgomot" pe bucket-urile subțiri.
+- **Impact:** fiecare idee de semnal nou devine o ipoteză testabilă pe chart, nu o credință; tai după 2–3 săptămâni tipurile care nu performează (regula casei: validează cu date, taie ce nu folosești).
+- **Riscuri/dependențe:** niciun risc pe motor (doar contorizare); rândul crește dashboard-ul cu 1 — intră sub secțiunea STATISTICI (deja pe toggle compact).
+- **Fișiere atinse:** `pine-scripts\META-CONFLUENCE-SUITE\RS_PRO_v2_7.pine` (POSITION TRACKING — acumulatoare, dashboard STATISTICI), `RS_PRO_*_README.md`.
