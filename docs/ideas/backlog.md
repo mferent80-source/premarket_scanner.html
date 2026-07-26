@@ -223,11 +223,11 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-221 | Client notify policy (sesiune + quiet hours pe UI) | alerts/ | S | P2 | făcut | ideation | 2026-07-23 |
 | I-222 | Density compact + multi-select bulk (snooze/arm/delete) | alerts/ | M | P2 | făcut | ideation | 2026-07-23 |
 | I-223 | DEMO unificat Alerts I-217…222 (toggle bar) — scos; features permanente v72 | alerts/ | M | P1 | respins | ideation | 2026-07-23 |
-| I-224 | Semnal dublu EARLY + CONFIRMED (praguri co-existente) | RS PRO Pine | M | P2 | propus | ideation | 2026-07-26 |
-| I-225 | Re-entry pe pullback la segment (populează tier +2) | RS PRO Pine | M | P1 | propus | ideation | 2026-07-26 |
+| I-224 | Semnal dublu EARLY + CONFIRMED (praguri co-existente) | RS PRO Pine | M | P2 | făcut | ideation | 2026-07-26 |
+| I-225 | Re-entry pe pullback la segment (populează tier +2) | RS PRO Pine | M | P1 | făcut | ideation | 2026-07-26 |
 | I-226 | Failed-reversal (fakeout) → semnal de continuare | RS PRO Pine | M | P2 | propus | ideation | 2026-07-26 |
 | I-227 | Semnal EXHAUSTION (matur + respingere fitil, anticipativ) | RS PRO Pine | S | P3 | propus | ideation | 2026-07-26 |
-| I-228 | Breakdown statistici pe tip de semnal (R PE TIP) | RS PRO Pine | S | P1 | propus | ideation | 2026-07-26 |
+| I-228 | Breakdown statistici pe tip de semnal (R PE TIP) | RS PRO Pine | S | P1 | făcut | ideation | 2026-07-26 |
 | I-229 | Rând „RS pe HTF" (ciclu reversal 1h pe chart 15m) | RS PRO Pine | M | P2 | propus | user | 2026-07-26 |
 
 ## Mini-spec-uri
