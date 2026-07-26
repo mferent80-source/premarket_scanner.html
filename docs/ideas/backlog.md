@@ -228,6 +228,7 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-226 | Failed-reversal (fakeout) → semnal de continuare | RS PRO Pine | M | P2 | propus | ideation | 2026-07-26 |
 | I-227 | Semnal EXHAUSTION (matur + respingere fitil, anticipativ) | RS PRO Pine | S | P3 | propus | ideation | 2026-07-26 |
 | I-228 | Breakdown statistici pe tip de semnal (R PE TIP) | RS PRO Pine | S | P1 | propus | ideation | 2026-07-26 |
+| I-229 | Rând „RS pe HTF" (ciclu reversal 1h pe chart 15m) | RS PRO Pine | M | P2 | propus | user | 2026-07-26 |
 
 ## Mini-spec-uri
 
@@ -1621,3 +1622,10 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** fiecare idee de semnal nou devine o ipoteză testabilă pe chart, nu o credință; tai după 2–3 săptămâni tipurile care nu performează (regula casei: validează cu date, taie ce nu folosești).
 - **Riscuri/dependențe:** niciun risc pe motor (doar contorizare); rândul crește dashboard-ul cu 1 — intră sub secțiunea STATISTICI (deja pe toggle compact).
 - **Fișiere atinse:** `pine-scripts\META-CONFLUENCE-SUITE\RS_PRO_v2_7.pine` (POSITION TRACKING — acumulatoare, dashboard STATISTICI), `RS_PRO_*_README.md`.
+
+### I-229 · Rând „RS pe HTF" (ciclu reversal 1h pe chart 15m) · [M] · P2
+- **Problema/golul:** filtrul HTF actual (EMA200) e binar — spune doar ALIGNED/AGAINST, nu UNDE în ciclul de reversal e TF-ul superior. Un LONG pe 15m cu 1h la „fitil 85%, risc HIGH" arată azi identic în panou cu unul la „fitil 20%, trend tânăr" — deși sunt trade-uri complet diferite. Alternativa zero-cod (layout multi-chart TV) există, dar nu leagă citirea de momentul semnalului.
+- **Soluția:** motorul RS (rollSeg recursiv + ATR + trendDurs) împachetat într-o funcție evaluată prin `request.security` pe un TF de context configurabil (default 60), cu variantă confirmată anti-repaint (`[1]` + lookahead_on, pattern-ul HTF existent). UN rând compact în dashboard: `RS 1h: BULL · risc LOW · fitil 34%`, toggle default OFF. DOAR afișare — trackerul/statisticile NU se portează pe HTF; warm-up ATR insuficient pe HTF → „—" afișat onest.
+- **Impact:** decizia pe 15m se judecă contra ciclului de reversal al 1h, nu contra unui binar EMA200 — previne intrările long exact când etajul superior e gata să flipuiască (categoria de pierdere pe care EMA200 n-o vede).
+- **Riscuri/dependențe:** efort real M (refactor motor în funcție, nu rând cosmetic); 1 request.security nou (tuple); pe simboluri cu istoric scurt rândul stă gol; valoarea depinde de rutina reală „chart 15m condiționat de 1h" — dacă userul ține oricum multi-chart, rămâne doar confort.
+- **Fișiere atinse:** `pine-scripts\META-CONFLUENCE-SUITE\RS_PRO_v2_7.pine` (CORE CALC → funcție, HTF FETCH, dashboard), `RS_PRO_*_README.md`.
