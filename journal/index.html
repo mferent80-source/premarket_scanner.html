@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=678">
 <link rel="stylesheet" href="../lib/capital-ui.css?v=678">
-<script src="../lib/suite-version.js?v=678"></script>
+<script src="../lib/suite-version.js?v=707"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -259,7 +259,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v625</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v625</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v707</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v707</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -619,8 +619,8 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/desk-macro-rail.js?v=628"></script>
 <script src="../lib/equity.js?v=625"></script>
 <script src="../lib/capital-desk.js?v=625"></script>
-<script src="../lib/data.js?v=672"></script>
-<script src="../lib/quote-bus.js?v=697"></script>
+<script src="../lib/data.js?v=707"></script>
+<script src="../lib/quote-bus.js?v=707"></script>
 <script src="../lib/setup-levels.js?v=625"></script>
 <script src="../lib/setup-builder.js?v=625"></script>
 <script src="../lib/portfolio-risk.js?v=697"></script>
@@ -792,17 +792,72 @@ function drawRollingDdChart(){
     ctx.stroke();
   });
 }
+// Mark prices pentru open positions — bus → Finnhub → Yahoo (D.fetchJSON).
+// Înainte: doar Finnhub fără timeout; fără cheie → {} → PnL nerealizat mereu „—”.
 async function fetchLiveMarks(syms){
-  const key = localStorage.getItem('finnhub_api_key') || localStorage.getItem('fh_key') || '';
-  if (!key) return {};
+  const key = (window.FH_KEY && FH_KEY.get) ? FH_KEY.get()
+    : (localStorage.getItem('finnhub_api_key') || localStorage.getItem('fh_key') || '');
   const map = {};
-  await Promise.all(syms.map(async sym => {
-    try {
-      const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(sym) + '&token=' + encodeURIComponent(key));
-      const d = await r.json();
-      if (isFinite(d.c)) map[sym] = d.c;
-    } catch (e) {}
-  }));
+  const list = (syms || []).map(s => String(s).toUpperCase()).filter(Boolean);
+  if (!list.length) return map;
+
+  // 1) Quote bus (hub/alerts/nasdaq) — instant, zero rețea
+  if (window.QB) {
+    list.forEach(sym => {
+      try {
+        const hit = QB.get(sym, 45000);
+        if (hit && Number.isFinite(hit.price) && hit.price > 0) map[sym] = hit.price;
+      } catch (e) {}
+    });
+  }
+
+  const missing = list.filter(s => map[s] == null);
+  if (!missing.length) return map;
+
+  // 2) Finnhub (cu timeout) + 3) Yahoo via data.js — paralel, pool mic
+  const CONC = 6;
+  let idx = 0;
+  async function one(sym) {
+    if (key) {
+      try {
+        const ctrl = new AbortController();
+        const to = setTimeout(() => ctrl.abort(), 6000);
+        const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + encodeURIComponent(sym) + '&token=' + encodeURIComponent(key), { signal: ctrl.signal });
+        clearTimeout(to);
+        if (r.ok) {
+          const d = await r.json();
+          if (d && isFinite(d.c) && d.c > 0) {
+            map[sym] = d.c;
+            if (window.QB) try { QB.set(sym, { price: d.c, chgPct: d.dp, src: 'journal-fh' }); } catch (e2) {}
+            return;
+          }
+        }
+      } catch (e) {}
+    }
+    if (window.D && D.fetchJSON) {
+      try {
+        const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + encodeURIComponent(sym) + '?interval=1m&range=1d&includePrePost=true';
+        const j = await D.fetchJSON(url, { ttl: 30, timeout: 6000, swr: true, maxStale: 600, cacheKey: 'jr:mk:' + sym, validate: d => d && d.chart });
+        const res = j && j.chart && j.chart.result && j.chart.result[0];
+        const meta = res && res.meta;
+        let last = null;
+        const closes = (res && res.indicators && res.indicators.quote && res.indicators.quote[0] && res.indicators.quote[0].close) || [];
+        for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { last = closes[i]; break; }
+        if (last == null && meta) last = meta.regularMarketPrice ?? meta.preMarketPrice ?? meta.postMarketPrice ?? null;
+        if (Number.isFinite(last) && last > 0) {
+          map[sym] = last;
+          if (window.QB) try { QB.set(sym, { price: last, src: 'journal-yh' }); } catch (e2) {}
+        }
+      } catch (e) {}
+    }
+  }
+  async function worker() {
+    while (idx < missing.length) {
+      const i = idx++;
+      await one(missing[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONC, missing.length) }, () => worker()));
   return map;
 }
 async function refreshMarks(){
@@ -811,8 +866,12 @@ async function refreshMarks(){
   if (!open.length) return;
   _marksBusy = true;
   try {
-    openPriceCache = await fetchLiveMarks([...new Set(open.map(e => String(e.sym).toUpperCase()))]);
+    const fresh = await fetchLiveMarks([...new Set(open.map(e => String(e.sym).toUpperCase()))]);
+    // merge: nu șterge prețuri vechi dacă un sim a picat la fetch
+    openPriceCache = Object.assign({}, openPriceCache, fresh);
     renderTable();
+    try { renderDesk(); } catch (e) {}
+    if (window.JWS && JWS.renderContextStrip) try { JWS.renderContextStrip(); } catch (e) {}
   } finally { _marksBusy = false; }
 }
 async function requestDdNotifications(){

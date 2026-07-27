@@ -181,7 +181,7 @@ details summary{cursor:pointer;font-size:11px;font-weight:700;color:var(--t2)}
 <div class="fd-wrap mode-morning" id="fdWrap">
 
 <header class="fd-top suite-cockpit">
-  <h1>🧭 Regime Router <span class="fd-ver">Pro Desk · v6</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🧭 Regime Router <span class="fd-ver">Pro Desk · v7</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="fd-pill live" id="fdLive">live</span>
   <nav class="fd-nav">
     <div class="fd-mode">
@@ -278,6 +278,9 @@ details summary{cursor:pointer;font-size:11px;font-weight:700;color:var(--t2)}
 </footer>
 </div>
 
+<script src="../lib/suite-version.js?v=707"></script>
+<script src="../lib/data.js?v=707"></script>
+<script src="../lib/quote-bus.js?v=707"></script>
 <script src="../lib/capital-time.js?v=630"></script>
 <script src="../lib/account.js?v=575"></script>
 <script src="../lib/journal.js?v=7"></script>
@@ -285,7 +288,7 @@ details summary{cursor:pointer;font-size:11px;font-weight:700;color:var(--t2)}
 <script src="../lib/equity.js?v=7"></script>
 <script src="../lib/capital-desk.js?v=6"></script>
 <script src="../lib/suite-sessions.js?v=666"></script>
-<script src="../lib/router.js?v=666"></script>
+<script src="../lib/router.js?v=707"></script>
 <script>
 (function(){
 'use strict';
@@ -477,9 +480,74 @@ function renderDesk(p, c){
 }
 
 function show(){
-  const p = RT.evaluate();
-  renderDesk(p, p.context || RT.buildContext());
-  if (window.CD) CD.renderRail('capitalRail', 'router');
+  if (!window.RT || !RT.evaluate) {
+    try {
+      const st = $('fdStrat');
+      if (st && st.textContent === '—') st.textContent = '⚠ router.js neîncărcat — Ctrl+F5';
+    } catch (e) {}
+    return;
+  }
+  try {
+    const p = RT.evaluate();
+    renderDesk(p, p.context || RT.buildContext());
+    if (window.CD) CD.renderRail('capitalRail', 'router');
+  } catch (e) {
+    console.error('router show:', e);
+    try {
+      const st = $('fdStrat');
+      if (st) st.textContent = '⚠ evaluare eșuată — vezi consolă';
+    } catch (e2) {}
+  }
+}
+
+// Încarcă SPY/QQQ/VIX dacă lipsesc din hub-cache + bus — altfel „Piață" rămâne pe —
+async function ensureMarketQuotes(){
+  if (!window.D || !D.fetchJSON) return false;
+  const need = [];
+  [['SPY','SPY'],['QQQ','QQQ'],['VIX','%5EVIX']].forEach(([key, ysym]) => {
+    let has = false;
+    try {
+      if (window.QB && QB.get(key, 90000)) has = true;
+      else {
+        const c = JSON.parse(localStorage.getItem('tt_hub_mkt_v1') || 'null');
+        if (c && c.quotes && c.quotes[key] && Number.isFinite(c.quotes[key].price)
+            && Date.now() - (c.quotes[key].ts || c.ts || 0) < 10 * 60000) has = true;
+      }
+    } catch (e) {}
+    if (!has) need.push({ key, ysym });
+  });
+  if (!need.length) return false;
+  let any = false;
+  await Promise.all(need.map(async ({ key, ysym }) => {
+    try {
+      const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + ysym + '?interval=1m&range=1d&includePrePost=true';
+      const j = await D.fetchJSON(url, { ttl: 45, timeout: 6000, swr: true, maxStale: 900, cacheKey: 'rt:mkt:' + key, validate: d => d && d.chart });
+      const res = j && j.chart && j.chart.result && j.chart.result[0];
+      if (!res || !res.meta) return;
+      const meta = res.meta;
+      const closes = (res.indicators && res.indicators.quote && res.indicators.quote[0] && res.indicators.quote[0].close) || [];
+      let price = null;
+      for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { price = closes[i]; break; }
+      if (price == null) price = meta.regularMarketPrice;
+      if (!Number.isFinite(price) || price <= 0) return;
+      const prev = meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice ?? price;
+      const chgPct = prev ? ((price - prev) / prev) * 100 : 0;
+      if (window.QB) try { QB.set(key, { price, chgPct, src: 'router' }); } catch (e2) {}
+      // scrie și în cache-ul hub ca RT.buildContext să-l vadă
+      try {
+        const raw = JSON.parse(localStorage.getItem('tt_hub_mkt_v1') || 'null') || { quotes: {}, ts: Date.now() };
+        if (!raw.quotes) raw.quotes = {};
+        raw.quotes[key] = { price, chgPct, ts: Date.now() };
+        raw.ts = Date.now();
+        localStorage.setItem('tt_hub_mkt_v1', JSON.stringify(raw));
+        if (!window.__hubMkt) window.__hubMkt = { quotes: {}, ts: Date.now() };
+        window.__hubMkt.quotes = Object.assign({}, window.__hubMkt.quotes || {}, raw.quotes);
+        window.__hubMkt.ts = raw.ts;
+      } catch (e3) {}
+      any = true;
+    } catch (e) {}
+  }));
+  return any;
 }
 
 function loadSettings(){
@@ -500,14 +568,20 @@ $('btnAddRule').onclick = () => { RT.addRule({ when:{regim:['neutral'],dangerMax
 
 setMode(loadUi().mode || 'morning');
 loadSettings(); loadRules(); show();
+// Market live în fundal — show() din nou când vin SPY/QQQ/VIX
+ensureMarketQuotes().then(ok => { if (ok) show(); }).catch(() => {});
 setInterval(show, 60000);
+setInterval(() => { ensureMarketQuotes().then(ok => { if (ok) show(); }).catch(() => {}); }, 120000);
 window.addEventListener('storage', e => { if (e && /^md_|^tt_|^sr_|^pb_wl|^tt_hub/.test(e.key||'')) show(); });
+if (window.SUITE_VERSION_SHORT) {
+  const sb = document.getElementById('suiteBadge');
+  if (sb) sb.textContent = window.SUITE_VERSION_SHORT;
+}
 })();
 </script>
-<script src="../lib/suite-version.js?v=673"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v664';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v707';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
