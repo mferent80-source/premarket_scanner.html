@@ -996,7 +996,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 <div class="macro-wrap">
 
 <header class="macro-cockpit">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v232</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v233</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1535,10 +1535,10 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <div id="toasts"></div>
 
-<script src="../lib/suite-version.js?v=697"></script>
-<script src="../lib/data.js?v=674"></script>
-<script src="../lib/quote-bus.js?v=697"></script>
-<script src="../lib/setup-levels.js?v=614"></script>
+<script src="../lib/suite-version.js?v=704"></script>
+<script src="../lib/data.js?v=704"></script>
+<script src="../lib/quote-bus.js?v=704"></script>
+<script src="../lib/setup-levels.js?v=704"></script>
 <script>
 // ============ CONFIG ============
 // (constanta VERSION a fost eliminată — era „v147", desincronizată cu ver-badge-ul
@@ -2081,7 +2081,15 @@ function renderSession() {
 }
 
 // ============ PROXY FETCH ============
-async function fetchViaProxy(url, timeoutMs=9000) {
+// Preferă lib/data.js (health-scoring + progressive timeout + SWR) — altfel lanț local.
+// Înainte: 9s × 4 proxy free pe hang = 30s+ pe tile; codetabs atârna frecvent.
+async function fetchViaProxy(url, timeoutMs=6000) {
+  if (window.D && D.fetchJSON) {
+    try {
+      const j = await D.fetchJSON(url, { ttl: 90, timeout: timeoutMs, swr: true, maxStale: 3600 });
+      if (j != null) return j;
+    } catch (e) { /* fallback lanț local */ }
+  }
   // Reset proxies marcate dead la fiecare 5 min (poate s-au reabilitat între timp)
   if (Date.now() - _proxyResetTs > 5*60000) { PROXY_DEAD.clear(); PROXY_TIMEOUTS.clear(); _proxyResetTs = Date.now(); }
   const tried = new Set();
@@ -2092,9 +2100,13 @@ async function fetchViaProxy(url, timeoutMs=9000) {
     if (tried.has(idx)) continue;
     tried.add(idx);
     const p = CORS_PROXIES[idx];
+    // Timeout progresiv: prima încercare moare repede (proxy free hung), restul mai răbdătoare
+    const to = attempt === 0 ? Math.min(timeoutMs, 4000)
+      : attempt === 1 ? Math.min(timeoutMs, 6000)
+      : Math.max(timeoutMs, 8000);
     try {
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), timeoutMs);
+      const t = setTimeout(() => ctrl.abort(), to);
       const r = await fetch(p.build(url), { signal: ctrl.signal });
       clearTimeout(t);
       if (!r.ok) {
@@ -2114,9 +2126,7 @@ async function fetchViaProxy(url, timeoutMs=9000) {
       try { return JSON.parse(txt); } catch (e) { return txt; }
     } catch (e) {
       if (e.name === 'AbortError') {
-        // Timeout tranzitoriu ≠ proxy mort: nu-l omorâm din prima (altfel o pană de rețea
-        // care dă timeout pe toate le-ar bloca pe 5 min). Dar un proxy constant lent → dead
-        // temporar după 2 timeout-uri consecutive, ca să nu risipim ~9s la fiecare fetch.
+        // Timeout tranzitoriu ≠ proxy mort: 2 strikes → dead temporar
         const strikes = (PROXY_TIMEOUTS.get(idx) || 0) + 1;
         PROXY_TIMEOUTS.set(idx, strikes);
         if (strikes >= 2) PROXY_DEAD.add(idx);
@@ -2977,7 +2987,14 @@ async function fetchYahooChart30d(symbol) {
   if (cached && Date.now() - cached.ts < 10*60000) return cached.data;
   try {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=3mo`;
-    const data = await fetchViaProxy(url);
+    // D.fetchJSON: health-score + SWR (paint din cache expirat) — fără el tile-urile stăteau pe N/A
+    // cât timp codetabs/corsproxy ardeau 9s fiecare.
+    let data = null;
+    if (window.D && D.fetchJSON) {
+      data = await D.fetchJSON(url, { ttl: 120, timeout: 6000, swr: true, maxStale: 3600, cacheKey: 'md:y30:' + symbol });
+    } else {
+      data = await fetchViaProxy(url, 6000);
+    }
     const r = data?.chart?.result?.[0];
     if (!r) return null;
     const closes = r.indicators?.quote?.[0]?.close || [];
@@ -5569,6 +5586,9 @@ function countEarningsNextDays(days = 7) {
 // ============ RISK DASHBOARD (composite VIX + Yield 10Y + BTC/SPY correlation) ============
 let RISK_STATE = null; // { vix, vixScore, tenY, tenYDelta30, tenYScore, corr, corrScore, composite, label, color, ts }
 const RISK_CACHE_TTL = 15*60*1000; // 15 min
+// true după paintFromCache — următorul computeRiskDashboard NU short-circuit pe TTL
+// (altfel un regim din LS de acum 5 min blochează revalidarea live la reload)
+let _riskFromCachePaint = false;
 
 function pearsonCorr(xs, ys) {
   const n = Math.min(xs.length, ys.length);
@@ -5605,7 +5625,8 @@ function returnsFromAligned(aligned) {
 }
 
 async function computeRiskDashboard() {
-  if (RISK_STATE && Date.now() - RISK_STATE.ts < RISK_CACHE_TTL) return RISK_STATE;
+  if (RISK_STATE && !_riskFromCachePaint && Date.now() - RISK_STATE.ts < RISK_CACHE_TTL) return RISK_STATE;
+  _riskFromCachePaint = false;
   try {
     // Folosim fetchChartWithFallback (Yahoo proxy → CoinGecko/ETF Finnhub/TwelveData) pentru tot.
     // fetchYahooQuote rămâne pentru valori curente cu fallback ETF/CoinGecko.
@@ -6862,12 +6883,55 @@ function bindEvents() {
   if (CFG.notif) $('notifBtn').style.color = 'var(--bull-s)';
 }
 
+// Paint instant din localStorage — fără rețea. Command Center / regim nu mai stau pe
+// „se încarcă..." 5–20s până termină proxy-ul. Rețeaua revalidează după.
+function paintFromCache() {
+  try {
+    const r = JSON.parse(localStorage.getItem('md_risk_regime') || 'null');
+    if (r && r.label && String(r.label).trim() && Number.isFinite(r.composite)
+        && (Date.now() - (r.ts || 0)) < 6 * 3600000) {
+      RISK_STATE = {
+        label: r.label,
+        composite: r.composite,
+        color: r.color || 'var(--t1)',
+        held: !!r.held,
+        partial: !!r.partial,
+        validCount: typeof r.validCount === 'number' ? r.validCount : 5,
+        ts: r.ts || Date.now(),
+        vixScore: 0, tenYScore: 0, corrScore: 0, fngScore: 0, dxyScore: 0,
+        vixLabel: '📦 cache', tenYLabel: '—', corrLabel: '—', fngLabel: '—', dxyLabel: '—',
+        vix: NaN, tenY: null, tenYDelta30: null, corr: null, fng: null, dxy: null
+      };
+    }
+  } catch (e) {}
+  try {
+    const snap = JSON.parse(localStorage.getItem('md_hub_macro_v1') || 'null');
+    if (snap && snap.ts && (Date.now() - snap.ts) < 6 * 3600000 && snap.curve
+        && Number.isFinite(snap.curve.bp) && /10Y\s+([\d.]+)%\s*\/\s*3M\s+([\d.]+)%/.test(snap.curve.sub || '')) {
+      const m = (snap.curve.sub || '').match(/10Y\s+([\d.]+)%\s*\/\s*3M\s+([\d.]+)%/);
+      if (m) {
+        const y10 = parseFloat(m[1]), y3m = parseFloat(m[2]);
+        if (Number.isFinite(y10) && Number.isFinite(y3m)) {
+          YIELD_CURVE = { y10, y3m, spread: y10 - y3m, bp: snap.curve.bp };
+        }
+      }
+    }
+  } catch (e) {}
+  if (RISK_STATE) {
+    _riskFromCachePaint = true;
+    try { renderRiskTile(); } catch (e) {}
+    try { applyRegimeMood(); } catch (e) {}
+    try { renderCommandCenter(); } catch (e) {}
+  }
+}
+
 // ============ INIT ============
 async function init() {
   bindEvents();
   if (redirectSetupPrefill()) return;
   applyToastBtnUI(); // reflectă starea muted salvată
   renderSession();
+  paintFromCache(); // Instant: regim/danger din LS — hub + CC nu așteaptă proxy
   setInterval(() => { renderSession(); applyFastPollUI(); renderFreezeWindow(); }, 30000);
   cleanupSeen(); // sterge entries SEEN >7z
   cleanupSeenActual(); // sterge entries SEEN_ACTUAL >7z
@@ -6878,6 +6942,24 @@ async function init() {
   renderSuggestionsPanel(); // restore sugestii salvate (din LS) la load
   renderEarningsTile(); // restore tile din LS cache dacă există
   updateAlertsBadge(); // badge pe butonul 📜 cu entries nevăzute
+  // Risk composite — IMEDIAT după tiles (fără delay artificial 1.5s).
+  // F&G e deja pe tile din loadStatTiles; cache LS e afișat; revalidate live.
+  computeRiskDashboard().then(() => {
+    renderRiskTile(); applyRegimeMood(); renderCommandCenter();
+  }).catch(() => {
+    // dacă rețeaua pică, lasă paintFromCache; marchează onest dacă nu avem nimic
+    if (!RISK_STATE) {
+      const tile = $('tile-risk');
+      if (tile) {
+        const sub = tile.querySelector('.stat-sub');
+        if (sub) sub.textContent = '⚠ date live indisponibile — 🔄 retry';
+      }
+      const rc = $('cc-regime');
+      if (rc && /se încarcă/i.test(rc.textContent || '')) {
+        rc.querySelector('.cc-sub') && (rc.querySelector('.cc-sub').textContent = 'proxy/rețea — 🔄');
+      }
+    }
+  });
   // Fetch istoric ultimele 13 luni în background (sparkline + expand history).
   // Non-blocking, re-render calendar după ce vine să apară sparkline-urile.
   loadHistoricalEvents().then(() => {
@@ -6890,10 +6972,6 @@ async function init() {
       renderCalendar(); // re-render ca să apară vol-week badge-urile
     }
   }).catch(() => {});
-  // Risk Dashboard composite (VIX + 10Y + BTC/SPY corr) — non-blocking, are nevoie de VIX deja încărcat
-  setTimeout(() => {
-    computeRiskDashboard().then(() => { renderRiskTile(); applyRegimeMood(); renderCommandCenter(); }).catch(() => {});
-  }, 1500);
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
   preloadAITop5().catch(() => {});
   // Auto-trigger Daily Brief dacă e după 08:00 ET și nu există brief pentru azi
