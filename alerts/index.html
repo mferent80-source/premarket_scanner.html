@@ -355,7 +355,6 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   .al-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0; }
   .al-table th, .al-table td { padding:7px 6px; font-size:12px; }
   .al-tk a { font-size:13px; }
-  .al-kind { font-size:9.5px; max-width:90px; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
   .al-num { font-size:12px; } .al-now { font-size:13px; }
   .al-table th:nth-child(2),
   .al-table td:nth-child(2) { display:none; } /* Evol% pe mobil: Δ zi + dist e destul */
@@ -532,27 +531,25 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 }
 .almost-rail.show { display:flex; }
 .almost-lbl {
-  flex:0 0 auto; font-family:var(--mono); font-size:10px; font-weight:800; color:var(--warn);
+  flex:0 0 auto; font-family:var(--mono); font-size:10px; font-weight:800; color:var(--bull-s);
   text-transform:uppercase; letter-spacing:.04em; padding:0 4px 0 2px; white-space:nowrap;
 }
 .almost-chip {
   flex:0 0 auto; display:inline-flex; align-items:center; gap:5px;
   padding:5px 10px; border-radius:999px; cursor:pointer; white-space:nowrap;
-  background:var(--panel2); border:1px solid rgba(212,137,44,.4); color:var(--t1);
+  background:var(--panel2); border:1px solid rgba(34,214,107,.35); color:var(--t1);
   font-family:var(--mono); font-size:11.5px; font-weight:700; line-height:1.2;
   transition:border-color .12s, background .12s;
 }
-.almost-chip:hover { border-color:var(--warn); background:rgba(212,137,44,.12); transform:none; }
-.almost-chip.hot {
-  border-color:rgba(255,77,77,.55); background:rgba(255,77,77,.1); color:#ffb3b3;
-}
+.almost-chip:hover { border-color:var(--bull-s); background:rgba(34,214,107,.1); transform:none; }
+.almost-chip.up { border-color:rgba(34,214,107,.45); }
+.almost-chip.down { border-color:rgba(255,77,77,.4); background:rgba(255,77,77,.06); }
 .almost-chip b { font-weight:800; color:inherit; }
-.almost-chip .ac-d { color:var(--warn); font-weight:800; }
-.almost-chip.hot .ac-d { color:#ff8a8a; }
+.almost-chip .ac-d.up { color:var(--bull-s); font-weight:800; }
+.almost-chip .ac-d.down { color:var(--bear-s); font-weight:800; }
 .almost-chip .ac-px { color:var(--t3); font-weight:600; font-size:10.5px; }
-/* Listă comfort = mereu o singură linie (desk + mobil) */
-.al-kind { display:inline; margin-left:6px; font-size:10.5px; color:var(--t3); white-space:nowrap; }
-.al-note { display:none; } /* pe listă 1-linie: nota rămâne în title pe ticker */
+/* Listă 1-linie — fără etichetă tip „±1% de la ancoră" pe rând */
+.al-note { display:none; }
 .al-tgt { display:inline; }
 .al-dist { display:inline; margin-left:5px; }
 .al-table td.al-tk { vertical-align:middle; padding-top:8px; padding-bottom:8px; }
@@ -614,7 +611,7 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v74</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v75</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -656,7 +653,7 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 </nav>
 
 <div id="tabPrice" class="desk-panel">
-<div class="almost-rail" id="almostRail" aria-label="Aproape de declanșare · top movers"></div>
+<div class="almost-rail" id="almostRail" aria-label="Top gainers pe alertele active"></div>
 <div class="view-tools" id="viewTools">
   <div class="vt-group">
     <button type="button" id="btnBulkMode" title="Selectează mai multe alerte">☐ Select</button>
@@ -992,9 +989,9 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=708"></script>
-<script src="../lib/data.js?v=708"></script>
-<script src="../lib/quote-bus.js?v=708"></script>
+<script src="../lib/suite-version.js?v=709"></script>
+<script src="../lib/data.js?v=709"></script>
+<script src="../lib/quote-bus.js?v=709"></script>
 <script src="../lib/telegram.js"></script>
 <script>
 // ============ CONFIG ============
@@ -1828,27 +1825,21 @@ function rowHtml(sym, a) {
   const loMark = isRef ? a.lo : a.cLo;
   const hiLoTip = (hiMark || loMark) ? `de la creare: max ${fmtPct(hiMark)} · min ${fmtPct(loMark)}` : '';
 
-  // Descrierea tipului de alertă (sub-linie sub ticker)
-  let kindHtml;
-  if (isRef && a.trail) kindHtml = `📉 −${a.pct}% trailing din vârf`;
-  else if (isRef) kindHtml = `±${a.pct}%/pas · 📊 referință`;
-  else if (isAnchor) kindHtml = `⚓ ancoră · pas ±${a.pct}%${a.target != null ? ' · 🎯$' + fmtPx(a.target, sym) : ''}${a.stop != null ? ' · 🛑$' + fmtPx(a.stop, sym) : ''}`;
-  else if (isPct) kindHtml = `±${a.pct}% mișcare de la ancoră`;
-  else if (isDay) kindHtml = `📅 ±${a.pct}% variația zilei`;
-  else kindHtml = `${a.dir === 'above' ? '▲ peste' : '▼ sub'} prag`;
-  kindHtml += stateBadge;
-
-  // Prag / țintă + distanța până la declanșare
+  // Prag scurt (fără „cât % până la fire" — inutil pe listă)
   const h = triggerHint(sym, a, cur);
-  const ok = h.score != null && isFinite(h.score);
-  const hot = ok && h.score < 0.5;
-  const distTip = ok ? `${h.score.toFixed(2)}% până la ${h.target}` : 'cât mai are până la declanșare';
-  const distTxt = ok ? `${hot ? '⏰ ' : ''}${h.score.toFixed(2)}% până` : '—';
+  let thrShort;
+  if (isRef && a.trail) thrShort = `📉 −${a.pct}% trail`;
+  else if (isRef) thrShort = `📊 ±${a.pct}%`;
+  else if (isAnchor) thrShort = a.target != null ? `🎯 $${fmtPx(a.target, sym)}` : (a.stop != null ? `🛑 $${fmtPx(a.stop, sym)}` : `⚓ ±${a.pct}%`);
+  else if (isPct) thrShort = `±${a.pct}%`;
+  else if (isDay) thrShort = `📅 ±${a.pct}%`;
+  else thrShort = `${a.dir === 'above' ? '▲' : '▼'} $${fmtPx(a.lvl, sym)}`;
+  thrShort += stateBadge;
 
-  // Meta creare → tooltip pe prețul de intrare
   const bornStr = fmtBorn(a.addedAt);
   const ageStr = a.addedAt ? ' · activă ' + fmtAge(a.addedAt) : '';
-  const entryTip = baseCreate != null ? `creat ${bornStr}${ageStr}` : 'fără preț de intrare salvat';
+  const entryTip = baseCreate != null ? `creat ${bornStr}${ageStr}` : '';
+  const thrTip = [h.target || '', a.note || '', entryTip].filter(Boolean).join(' · ');
 
   const snoozed = a.snoozeUntil && a.snoozeUntil > Date.now();
   const snzRem = snoozed ? Math.ceil((a.snoozeUntil - Date.now()) / 60000) : 0;
@@ -1857,18 +1848,15 @@ function rowHtml(sym, a) {
   const bk = bulkKey(sym, a.id);
   const checked = bulkSelected.has(bk) ? ' checked' : '';
   const cb = bulkMode ? `<input type="checkbox" class="bulk-cb" data-bulk="${escHtml(bk)}"${checked} title="Selectează">` : '';
-  const tkTitle = [kindHtml.replace(/<[^>]+>/g, ''), a.note || '', entryTip].filter(Boolean).join(' · ');
-  return `<tr class="al-row${snoozed ? ' snoozed' : ''}${hot ? ' hot' : ''}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}" id="alrow-${escHtml(a.id)}">
-    <td class="al-tk" title="${escHtml(tkTitle)}">
+  return `<tr class="al-row${snoozed ? ' snoozed' : ''}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}" id="alrow-${escHtml(a.id)}">
+    <td class="al-tk" title="${escHtml([a.note || '', entryTip].filter(Boolean).join(' · '))}">
       ${cb}<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${cur != null ? sessTag(sym) : ''}${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}
-      <span class="al-kind">${kindHtml}</span>
     </td>
     <td class="al-num ${evCls}"${hiLoTip ? ` title="${hiLoTip}"` : ''}>${deltaCreate == null ? '—' : fmtPct(deltaCreate)}</td>
     <td class="al-num ${dayCls}">${dayChg == null ? '—' : fmtPct(dayChg)}</td>
     <td class="al-now ${dayCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</td>
-    <td class="al-trig" title="${distTip}">
-      <span class="al-tgt">${h.target || '—'}</span>
-      <span class="al-dist ${hot ? 'warn' : ''}">${distTxt}</span>
+    <td class="al-trig" title="${escHtml(thrTip)}">
+      <span class="al-tgt">${thrShort}</span>
     </td>
     <td class="al-act">
       <button class="icon-btn" data-action="snooze" title="😴 Amână alerta (1h / 4h / până la deschidere)" style="${snoozed ? 'color:var(--warn);border-color:rgba(212,137,44,.4)' : 'opacity:.6'}">😴</button>
@@ -1881,9 +1869,9 @@ function rowHtml(sym, a) {
   </tr>`;
 }
 
-// Cap de tabel — listă 1-linie (fără col. preț intrare)
+// Cap de tabel — listă 1-linie
 const AL_THEAD = `<thead><tr>
-  <th>Ticker</th><th>Evol. %</th><th>Δ zi</th><th>Acum</th><th>Prag · dist</th><th></th>
+  <th>Ticker</th><th>Evol. %</th><th>Δ zi</th><th>Acum</th><th>Prag</th><th></th>
 </tr></thead>`;
 
 // Doar LISTĂ pe o linie (v74 — group scoasă)
@@ -2055,50 +2043,52 @@ function renderPulse(activeRows) {
   const chgs = symSet.map(s => ({ sym: s, c: _lastChange[s] })).filter(x => x.c != null);
   const ups = chgs.filter(x => x.c > 0).length, downs = chgs.filter(x => x.c < 0).length;
   const top = chgs.slice().sort((a, b) => b.c - a.c)[0];
-  const near = activeRows.filter(r => proximityScore(r.sym, r.a) < 0.5).length;     // < 0.5% până la declanșare
   const segs = [`<span class="pulse-seg">📊 <b>${activeRows.length}</b> ${activeRows.length === 1 ? 'alertă' : 'alerte'}</span>`];
   if (chgs.length) { segs.push(`<span class="pulse-seg up">▲ ${ups} azi</span>`); segs.push(`<span class="pulse-seg down">▼ ${downs} azi</span>`); }
   if (top && top.c != null) segs.push(`<span class="pulse-seg ${top.c >= 0 ? 'up' : 'down'}">🔝 <b>${escHtml(top.sym)}</b> ${(top.c >= 0 ? '+' : '') + top.c.toFixed(2)}%</span>`);
-  if (near) segs.push(`<span class="pulse-seg near">⏰ <b>${near}</b> aproape de declanșare</span>`);
   el.innerHTML = segs.join('');
   el.style.display = 'flex';
 }
 
-// v74: almost-rail = o linie de chip-uri mici (câte încape pe ecran + scroll)
-// Sortare: cele mai apropiate de fire; max 12 ca să umple bine un telefon lat / desk
+// v75: Top Gainers pe simbolurile cu alerte active (variația zilei) — o linie chip-uri
 function renderAlmostRail(activeRows) {
   const el = $('almostRail');
   if (!el) return;
-  const cand = activeRows
-    .filter(r => {
-      const a = r.a;
-      if (a.snoozeUntil && a.snoozeUntil > Date.now()) return false;
-      if (a.armed === false) return false;
-      const s = proximityScore(r.sym, a);
-      return isFinite(s) && s < 2.5;
-    })
-    .map(r => ({ ...r, score: proximityScore(r.sym, r.a) }))
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 12);
+  // un chip per simbol (nu per alertă), sortat după Δ zi desc
+  const bySym = {};
+  activeRows.forEach(({ sym, a }) => {
+    const u = String(sym).toUpperCase();
+    if (!bySym[u]) bySym[u] = a; // prima alertă = țintă scroll
+  });
+  const cand = Object.keys(bySym)
+    .map(sym => ({
+      sym,
+      a: bySym[sym],
+      chg: _lastChange[sym],
+      px: _lastPrice[sym]
+    }))
+    .filter(x => x.chg != null && isFinite(x.chg))
+    .sort((a, b) => b.chg - a.chg)
+    .slice(0, 14);
   if (!cand.length) { el.classList.remove('show'); el.innerHTML = ''; return; }
-  el.innerHTML = '<span class="almost-lbl">⏰ Aproape</span>' + cand.map(({ sym, a, score }) => {
-    const hot = score < 0.5;
-    const px = _lastPrice[sym];
-    const h = triggerHint(sym, a, px);
-    return `<button type="button" class="almost-chip${hot ? ' hot' : ''}" data-goto-id="${escHtml(a.id)}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}" title="${escHtml(h.target || '')} · click → rând">
-      <b>${escHtml(sym)}</b><span class="ac-d">${score.toFixed(1)}%</span>${px != null ? `<span class="ac-px">$${fmtPx(px, sym)}</span>` : ''}
+  el.innerHTML = '<span class="almost-lbl">🚀 Gainers</span>' + cand.map(({ sym, a, chg, px }) => {
+    const up = chg >= 0;
+    const cls = up ? 'up' : 'down';
+    return `<button type="button" class="almost-chip ${cls}" data-goto-id="${escHtml(a.id)}" data-sym="${escHtml(sym)}" title="Δ zi ${fmtPct(chg)} · click → listă">
+      <b>${escHtml(sym)}</b><span class="ac-d ${cls}">${fmtPct(chg)}</span>${px != null ? `<span class="ac-px">$${fmtPx(px, sym)}</span>` : ''}
     </button>`;
   }).join('');
   el.classList.add('show');
   el.querySelectorAll('.almost-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      const id = chip.dataset.gotoId || chip.dataset.id;
-      const row = document.getElementById('alrow-' + id);
-      if (row) {
+      const id = chip.dataset.gotoId;
+      const row = id ? document.getElementById('alrow-' + id) : null;
+      const first = row || document.querySelector(`[data-sym="${chip.dataset.sym}"]`);
+      if (first) {
         applyDeskTab('price');
-        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        row.style.outline = '2px solid var(--warn)';
-        setTimeout(() => { row.style.outline = ''; }, 1800);
+        first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        first.style.outline = '2px solid var(--bull-s)';
+        setTimeout(() => { first.style.outline = ''; }, 1800);
       }
     });
   });
