@@ -235,12 +235,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-233 | MAE pe segment (durerea maximă până la exit) | JMA Deck Pine | M | P2 | făcut | ideation | 2026-07-27 |
 | I-234 | Dash standard casă: 9 poziții + 6 mărimi + toggle detalii | JMA Deck Pine | S | P2 | făcut | ideation | 2026-07-27 |
 | I-235 | Rând „CE FAC?" (acțiune per stare, pattern VolRegime) | JMA Deck Pine | S | P3 | făcut | ideation | 2026-07-27 |
-| I-236 | Dash standard casă: 6 mărimi text + toggle „Arată detalii" (nucleu ~7 benzi) | LCD Pine | S | P1 | propus | ideation | 2026-07-27 |
-| I-237 | Mod spot + tracker expectancy split L/S | LCD Pine | M | P1 | propus | ideation | 2026-07-27 |
-| I-238 | Rând CE FAC? spot-aware (acțiune per stare; PLAN rămâne nivelele) | LCD Pine | S | P2 | propus | ideation | 2026-07-27 |
-| I-239 | PING zilnic anti-snapshot + `time_utc` în toate payload-urile | LCD Pine | S | P2 | propus | ideation | 2026-07-27 |
-| I-240 | Alerte TOUCH_VAH / TOUCH_VAL (retesturile din PLAN) | LCD Pine | S | P2 | propus | ideation | 2026-07-27 |
-| I-241 | Detector ACCEPTARE peste/sub VA (N close-uri consecutive) | LCD Pine | M | P3 | propus | ideation | 2026-07-27 |
+| I-236 | Dash standard casă: 6 mărimi text + toggle „Arată detalii" (nucleu ~7 benzi) | LCD Pine | S | P1 | făcut | ideation | 2026-07-27 |
+| I-237 | Mod spot + tracker expectancy split L/S | LCD Pine | M | P1 | făcut | ideation | 2026-07-27 |
+| I-238 | Rând CE FAC? spot-aware (acțiune per stare; PLAN rămâne nivelele) | LCD Pine | S | P2 | făcut | ideation | 2026-07-27 |
+| I-239 | PING zilnic anti-snapshot + `time_utc` în toate payload-urile | LCD Pine | S | P2 | făcut | ideation | 2026-07-27 |
+| I-240 | Alerte TOUCH_VAH / TOUCH_VAL (retesturile din PLAN) | LCD Pine | S | P2 | făcut | ideation | 2026-07-27 |
+| I-241 | Detector ACCEPTARE peste/sub VA (N close-uri consecutive) | LCD Pine | M | P3 | făcut | ideation | 2026-07-27 |
 
 ## Mini-spec-uri
 
