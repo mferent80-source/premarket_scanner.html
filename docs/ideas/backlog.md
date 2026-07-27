@@ -229,12 +229,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-227 | Semnal EXHAUSTION (matur + respingere fitil, anticipativ) | RS PRO Pine | S | P3 | propus | ideation | 2026-07-26 |
 | I-228 | Breakdown statistici pe tip de semnal (R PE TIP) | RS PRO Pine | S | P1 | făcut | ideation | 2026-07-26 |
 | I-229 | Rând „RS pe HTF" (ciclu reversal 1h pe chart 15m) | RS PRO Pine | M | P2 | propus | user | 2026-07-26 |
-| I-230 | EXPECT split pe direcție (spot: doar UP e încasabil) | JMA Deck Pine | S | P1 | propus | ideation | 2026-07-27 |
-| I-231 | VERIF lead-time (avansul mediu în bare al avertismentelor) | JMA Deck Pine | S | P1 | propus | ideation | 2026-07-27 |
-| I-232 | PING zilnic pe webhook (anti-snapshot: ver + setări) | JMA Deck Pine | S | P2 | propus | ideation | 2026-07-27 |
-| I-233 | MAE pe segment (durerea maximă până la exit) | JMA Deck Pine | M | P2 | propus | ideation | 2026-07-27 |
-| I-234 | Dash standard casă: 9 poziții + 6 mărimi + toggle detalii | JMA Deck Pine | S | P2 | propus | ideation | 2026-07-27 |
-| I-235 | Rând „CE FAC?" (acțiune per stare, pattern VolRegime) | JMA Deck Pine | S | P3 | propus | ideation | 2026-07-27 |
+| I-230 | EXPECT split pe direcție (spot: doar UP e încasabil) | JMA Deck Pine | S | P1 | făcut | ideation | 2026-07-27 |
+| I-231 | VERIF lead-time (avansul mediu în bare al avertismentelor) | JMA Deck Pine | S | P1 | făcut | ideation | 2026-07-27 |
+| I-232 | PING zilnic pe webhook (anti-snapshot: ver + setări) | JMA Deck Pine | S | P2 | făcut | ideation | 2026-07-27 |
+| I-233 | MAE pe segment (durerea maximă până la exit) | JMA Deck Pine | M | P2 | făcut | ideation | 2026-07-27 |
+| I-234 | Dash standard casă: 9 poziții + 6 mărimi + toggle detalii | JMA Deck Pine | S | P2 | făcut | ideation | 2026-07-27 |
+| I-235 | Rând „CE FAC?" (acțiune per stare, pattern VolRegime) | JMA Deck Pine | S | P3 | făcut | ideation | 2026-07-27 |
 
 ## Mini-spec-uri
 
