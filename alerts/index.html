@@ -665,7 +665,7 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v72</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v73</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -1057,8 +1057,9 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=702"></script>
-<script src="../lib/data.js?v=702"></script>
+<script src="../lib/suite-version.js?v=706"></script>
+<script src="../lib/data.js?v=706"></script>
+<script src="../lib/quote-bus.js?v=706"></script>
 <script src="../lib/telegram.js"></script>
 <script>
 // ============ CONFIG ============
@@ -1403,7 +1404,13 @@ async function fetchPriceYahoo(symbol) {
   try {
     // v44: interval=1m (nu 5m) → ultima bară e proaspătă la ≤1 min (verificat live pe ASTS: prețul
     // premarket LIVE e DOAR în ultima bară; meta.preMarketPrice vine gol pe destule simboluri).
-    const j = await D.fetchJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1m&range=1d&includePrePost=true`, { ttl: 20, timeout: 9000 });
+    // v73: SWR + timeout 6s + cacheKey — poll-ul nu mai atârnă 9s×N pe proxy free hung.
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1m&range=1d&includePrePost=true`;
+    const j = await D.fetchJSON(yahooUrl, {
+      ttl: 20, timeout: 6000, swr: true, maxStale: 300,
+      cacheKey: 'pa:y1m:' + String(symbol).toUpperCase(),
+      validate: d => d && d.chart
+    });
     const res = j?.chart?.result?.[0];
     if (!res) return null;
     const m = res.meta || {};
@@ -1450,6 +1457,21 @@ async function fetchPriceBinance(symbol) {
 }
 async function fetchPrice(symbol) {
   const s = symbol.toUpperCase();
+  // Quote bus (hub/nasdaq) — hit <30s, zero rețea. pc din chg% (nu price=pc → chg 0).
+  if (window.QB) {
+    try {
+      const busKey = s.replace(/-USD$/, '').replace(/USDT$/, '') || s;
+      const keys = [s, busKey, s === 'BTC-USD' || s === 'BTC' ? 'BTC' : null].filter(Boolean);
+      for (const k of keys) {
+        const hit = QB.get(k, 30000);
+        if (hit && Number.isFinite(hit.price) && hit.price > 0) {
+          const chg = Number.isFinite(hit.chgPct) ? hit.chgPct : 0;
+          const prev = Math.abs(chg) > 1e-6 ? hit.price / (1 + chg / 100) : hit.price;
+          return { last: hit.price, prev, fromBus: true };
+        }
+      }
+    } catch (e) {}
+  }
   // Crypto cunoscute (BTC/ETH/SOL): v49 — Binance daily-kline ÎNTÂI (variația zilei = open
   // 00:00 UTC, consistent cu restul USDT) → Yahoo XXX-USD plasă (tot chartPreviousClose =
   // ziua) → CoinGecko ultim resort (rolling-24h: doar dacă pică AMBELE, prețul rămâne corect,
@@ -1555,13 +1577,34 @@ async function pollPrices() {
   }
   const prices = {};
   const changes = {};   // variația zilei % per simbol (din prevClose-ul fiecărui fetch)
-  await Promise.all(unique.map(async sym => {
-    const p = await fetchPrice(sym);
-    if (p?.last != null) {
-      prices[sym] = p.last;
-      if (p.prev > 0) changes[sym] = (p.last - p.prev) / p.prev * 100;
+  // Pool CONC=8 — Promise.all pe 40 sim ≠ 40×Yahoo simultan pe proxy (rate-limit/hang).
+  // Throttle Finnhub e per-request; Yahoo merge prin D health-score.
+  const CONC = 8;
+  let _qi = 0;
+  async function _pxWorker() {
+    while (_qi < unique.length) {
+      const i = _qi++;
+      const sym = unique[i];
+      try {
+        const p = await fetchPrice(sym);
+        if (p?.last != null) {
+          prices[sym] = p.last;
+          if (p.prev > 0) changes[sym] = (p.last - p.prev) / p.prev * 100;
+          // publică pe bus pt hub/nasdaq
+          if (window.QB && Number.isFinite(p.last)) {
+            try {
+              QB.set(sym, {
+                price: p.last,
+                chgPct: p.prev > 0 ? (p.last - p.prev) / p.prev * 100 : 0,
+                src: 'alerts'
+              });
+            } catch (e2) {}
+          }
+        }
+      } catch (e) {}
     }
-  }));
+  }
+  await Promise.all(Array.from({ length: Math.min(CONC, unique.length || 1) }, () => _pxWorker()));
   const priced = Object.keys(prices).length;
   const failedPx = unique.length - priced;
   if (failedPx > 0) sessionNote += ` · ⚠ ${failedPx}/${unique.length} fără preț`;
@@ -3975,9 +4018,11 @@ $('syncBannerDismiss')?.addEventListener('click', () => {
 schedulePoll();       // timerul recurent de poll — independent de pull (rulează chiar dacă pull-ul atârnă)
 loadServerHist();
 nwInit();             // News Watch demo (v62)
-// Întâi tragem lista de pe GitHub, ABIA APOI primul poll → primul check folosește lista proaspătă
-// (înainte pollPrices rula în paralel cu pull-ul pe lista veche). Fallback: poll oricum dacă pull pică.
-pullFromGitHub(true).then(() => { updateSyncBanner(); return pollPrices(); }).catch(() => pollPrices()); // auto-sync laptop↔telefon
+// v73: poll lista LOCALĂ IMEDIAT — alertele pe device nu mai așteaptă GitHub (pull poate
+// atârna 9–18s pe API/Pages → primul check era târziu, UI pe ⏳, fire întârziat).
+// Pull în paralel; dacă lista se schimbă, pullFromGitHub cheamă deja pollPrices().
+pollPrices();
+pullFromGitHub(true).then(() => { updateSyncBanner(); }).catch(() => { updateSyncBanner(); });
 // v56: auto-pull PERIODIC al listei (nu doar la deschidere) — altfel un device cu pagina deja
 // deschisă nu prelua niciodată modificările făcute pe alt device decât la refresh manual.
 // 120s = ~30 req/h pe Contents API (bine sub limita 5000/h cu token); fără token cade pe Pages.
