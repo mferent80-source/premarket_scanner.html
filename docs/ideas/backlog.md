@@ -235,6 +235,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-233 | MAE pe segment (durerea maximă până la exit) | JMA Deck Pine | M | P2 | făcut | ideation | 2026-07-27 |
 | I-234 | Dash standard casă: 9 poziții + 6 mărimi + toggle detalii | JMA Deck Pine | S | P2 | făcut | ideation | 2026-07-27 |
 | I-235 | Rând „CE FAC?" (acțiune per stare, pattern VolRegime) | JMA Deck Pine | S | P3 | făcut | ideation | 2026-07-27 |
+| I-236 | Dash standard casă: 6 mărimi text + toggle „Arată detalii" (nucleu ~7 benzi) | LCD Pine | S | P1 | propus | ideation | 2026-07-27 |
+| I-237 | Mod spot + tracker expectancy split L/S | LCD Pine | M | P1 | propus | ideation | 2026-07-27 |
+| I-238 | Rând CE FAC? spot-aware (acțiune per stare; PLAN rămâne nivelele) | LCD Pine | S | P2 | propus | ideation | 2026-07-27 |
+| I-239 | PING zilnic anti-snapshot + `time_utc` în toate payload-urile | LCD Pine | S | P2 | propus | ideation | 2026-07-27 |
+| I-240 | Alerte TOUCH_VAH / TOUCH_VAL (retesturile din PLAN) | LCD Pine | S | P2 | propus | ideation | 2026-07-27 |
+| I-241 | Detector ACCEPTARE peste/sub VA (N close-uri consecutive) | LCD Pine | M | P3 | propus | ideation | 2026-07-27 |
 
 ## Mini-spec-uri
 
@@ -1677,3 +1683,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** disciplină consistentă la flip-urile de la 3 dimineața; regula „filtrul păzește doar intrările" devine vizibilă exact când contează.
 - **Riscuri/dependențe:** text prescriptiv = disciplină, nu predicție (de spus în README); +1 rând — se leagă de I-234.
 - **Fișiere atinse:** `pine-scripts\JMA-DECK\JMA_Deck_v1_6.pine` (secțiunea DASHBOARD), `JMA_Deck_v1_6_README.md`.
+
+### I-236 · Dash standard casă: 6 mărimi text + toggle „Arată detalii" · [S] · P1
+- **Problema/golul:** standardul obligatoriu al casei (design.md §3–4b) cere mărime de text `Auto…Huge` (toate 6) — LCD v1.1 are doar 4 (`Tiny/Small/Normal/Large`, label „Marime corp"), fără `Auto` și `Huge`; pozițiile 3×3 există deja, deci acolo e conform. În plus, 18 benzi mereu vizibile, deși REPER/TINTE/FLUX sunt citire de context/review, nu de execuție (recomandarea: ~7 vizibile).
+- **Soluția:** inputul standard de mărime cu toate 6 opțiunile + toggle „Arată detalii" (default ON = comportament neschimbat; OFF = nucleul de execuție: SETUP, hero, context, BIAS, GATE, TRACKER, PLAN). Tabelul se recrează la schimbarea compact/full (`var lastLayout`, pattern §4b).
+- **Impact:** consecvență cu suita META/JMA/PPST + citire în 2 secunde în trade; detaliile la un click când analizezi profilul.
+- **Riscuri/dependențe:** recreare tabel la schimbare (pattern cunoscut); zero risc pe motorul profilului.
+- **Fișiere atinse:** `pine-scripts\liquidity-command-deck-v1.1.pine` (inputs Dashboard + secțiunea 7 DASHBOARD), README-ul aferent.
+
+### I-237 · Mod spot + tracker expectancy split L/S · [M] · P1
+- **Problema/golul:** tracker-ul agregă GO LONG și GO SHORT într-un singur `n/W%/expR` — pe Pionex spot short-ul nu e încasabil (e cel mult ieșire), deci un „exp +0.3R" verde poate fi cărat integral de short-uri netranzacționabile; verdictul de culoare minte exact pe contul real. Pattern validat în casă: I-230 (făcut, JMA Deck).
+- **Soluția:** acumulatoare separate L/S în tracker (n/W/sumR per direcție), rândul Tracker afișează ambele populații; input „Mod spot" (default ON) — culoarea verdictului de tracker judecă DOAR populația LONG, cu amber automat sub n=10. GO SHORT pe spot rămâne semnal de ieșire (se leagă de I-238).
+- **Impact:** expectancy-ul afișat = cel încasabil în contul real; „tranzacționez profilul ăsta?" nu mai e păcălit de edge-ul short inaccesibil.
+- **Riscuri/dependențe:** n per bucket se înjumătățește → avertisment n<10 obligatoriu (trader.md §1); doar stratul de citire — motorul profilului și semnalul neatinse.
+- **Fișiere atinse:** `pine-scripts\liquidity-command-deck-v1.1.pine` (secțiunile 3/5a/5g tracker + dashboard), README-ul aferent.
+
+### I-238 · Rând CE FAC? spot-aware · [S] · P2
+- **Problema/golul:** PLAN dă nivelele (țintă/SL/retest), dar traducerea stării în acțiune trăiește în capul userului; pe spot, „GO SHORT" citit literal e o eroare de cont — nicăieri nu scrie „= ieși din long, nu shorta". Pattern validat: I-186 (PPST Deck), I-235 (JMA Deck).
+- **Soluția:** rând „CE FAC?" mapat pe starea hero + Mod spot (I-237): GO LONG→„intra/tine long"; GO SHORT pe spot→„iesi din long - NU shorta" (pe margin: „flip short"); VETO HTF→„nu intra - HTF contra"; TRANZIT LVN→„nu intra in vid - astept destinatia"; RABDARE→„astept |scor|>=2". PLAN rămâne neatins — CE FAC? e acțiunea, PLAN e nivelele.
+- **Impact:** disciplină consistentă sub presiune; asimetria spot devine vizibilă exact în starea în care contează.
+- **Riscuri/dependențe:** +1 bandă (intră în nucleul din I-236); text prescriptiv = disciplină, nu predicție (de spus în README).
+- **Fișiere atinse:** `pine-scripts\liquidity-command-deck-v1.1.pine` (secțiunea 7 DASHBOARD), README-ul aferent.
+
+### I-239 · PING zilnic anti-snapshot + `time_utc` în toate payload-urile · [S] · P2
+- **Problema/golul:** capcana snapshot TV (validată la JMA — I-232 făcut) se aplică identic: alerta îngheață scriptul + inputurile la creare și nu afli din exterior ce rulează până la primul GO — care pe LCD poate veni la zile distanță. În plus, payload-urile actuale (`f_json`) n-au NICIUN timestamp — relay-ul/journal-ul nu poate ancora evenimentul în timp (lecția `time_utc` = ora de close, JMA v1.6 M3).
+- **Soluția:** event nou `PING` o dată pe zi (prima bară închisă a zilei UTC, toggle propriu default ON) cu `ver` + setările cheie (preset, ancoră, gLen, VA%, prag LVN, gate); + câmp `time_utc` (ora de CLOSE a barei evaluate) adăugat în TOATE evenimentele existente.
+- **Impact:** failure mode-ul „alertele tac/mint și nu știi" detectat în ≤24h; evenimentele devin ancorabile în journal.
+- **Riscuri/dependențe:** +1 mesaj/zi/chart (filtrabil după `event`); schema JSON se extinde aditiv — relay-ul existent nu se strică.
+- **Fișiere atinse:** `pine-scripts\liquidity-command-deck-v1.1.pine` (inputs Tracker & Alerte + `f_json` + secțiunea 5g), README-ul aferent.
+
+### I-240 · Alerte TOUCH_VAH / TOUCH_VAL (retesturile din PLAN) · [S] · P2
+- **Problema/golul:** PLAN-ul recomandă explicit „astept... retest VAH/VAL" (liniile din v1.1 există exact pentru asta), dar alerta de atingere există DOAR pe POC (`alTouch`) — pentru retestul pe muchii stai cu ochii pe chart, exact vigilența manuală pe care alertele trebuiau s-o elimine.
+- **Soluția:** extensia mecanismului TOUCH existent la VAH și VAL: aceeași detecție de cross pe bara închisă, evenimente `TOUCH_VAH`/`TOUCH_VAL`, sub toggle-ul `alTouch` existent (sau unul propriu „Alerte muchii VA").
+- **Impact:** bucla PLAN→alertă se închide; retesturile devin notificări cu nivel exact, nu pândă pe chart.
+- **Riscuri/dependențe:** zgomot pe range-uri înguste unde prețul taie des muchiile (VA se recalculează pe fiecare bară — muchiile se mișcă); de documentat în README.
+- **Fișiere atinse:** `pine-scripts\liquidity-command-deck-v1.1.pine` (secțiunea 5g alerte), README-ul aferent.
+
+### I-241 · Detector ACCEPTARE peste/sub VA (N close-uri consecutive) · [M] · P3
+- **Problema/golul:** PLAN folosește conceptul „astept acceptare sus/jos", dar scriptul nu-l definește și nu-l detectează nicăieri — decizia cheie a playbook-ului de profil (breakout acceptat = continuare vs excursie = fade la retest) rămâne pe ochiul userului.
+- **Soluția:** definiție operațională: N close-uri consecutive de bare închise peste VAH (sub VAL) = „ACCEPTAT SUS (JOS)" — N input, default 3; contextul din banda 2 afișează „ACCEPTAT SUS (3b)", evenimente JSON `ACCEPT_UP`/`ACCEPT_DN` la prima bară care confirmă.
+- **Impact:** „peste VA" se desparte în acceptat vs excursie — exact distincția pe care PLAN-ul o cere azi fără s-o poată măsura.
+- **Riscuri/dependențe:** N și definiția pe close sunt ipoteze de validat out-of-sample (trader.md §1); muchiile VA se mișcă cu profilul → acceptarea se evaluează contra VA curentă (declarat explicit).
+- **Fișiere atinse:** `pine-scripts\liquidity-command-deck-v1.1.pine` (secțiunile 5f/5g + banda context), README-ul aferent.
