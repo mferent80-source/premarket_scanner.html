@@ -229,6 +229,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 | I-227 | Semnal EXHAUSTION (matur + respingere fitil, anticipativ) | RS PRO Pine | S | P3 | propus | ideation | 2026-07-26 |
 | I-228 | Breakdown statistici pe tip de semnal (R PE TIP) | RS PRO Pine | S | P1 | făcut | ideation | 2026-07-26 |
 | I-229 | Rând „RS pe HTF" (ciclu reversal 1h pe chart 15m) | RS PRO Pine | M | P2 | propus | user | 2026-07-26 |
+| I-230 | EXPECT split pe direcție (spot: doar UP e încasabil) | JMA Deck Pine | S | P1 | propus | ideation | 2026-07-27 |
+| I-231 | VERIF lead-time (avansul mediu în bare al avertismentelor) | JMA Deck Pine | S | P1 | propus | ideation | 2026-07-27 |
+| I-232 | PING zilnic pe webhook (anti-snapshot: ver + setări) | JMA Deck Pine | S | P2 | propus | ideation | 2026-07-27 |
+| I-233 | MAE pe segment (durerea maximă până la exit) | JMA Deck Pine | M | P2 | propus | ideation | 2026-07-27 |
+| I-234 | Dash standard casă: 9 poziții + 6 mărimi + toggle detalii | JMA Deck Pine | S | P2 | propus | ideation | 2026-07-27 |
+| I-235 | Rând „CE FAC?" (acțiune per stare, pattern VolRegime) | JMA Deck Pine | S | P3 | propus | ideation | 2026-07-27 |
 
 ## Mini-spec-uri
 
@@ -1629,3 +1635,45 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** decizia pe 15m se judecă contra ciclului de reversal al 1h, nu contra unui binar EMA200 — previne intrările long exact când etajul superior e gata să flipuiască (categoria de pierdere pe care EMA200 n-o vede).
 - **Riscuri/dependențe:** efort real M (refactor motor în funcție, nu rând cosmetic); 1 request.security nou (tuple); pe simboluri cu istoric scurt rândul stă gol; valoarea depinde de rutina reală „chart 15m condiționat de 1h" — dacă userul ține oricum multi-chart, rămâne doar confort.
 - **Fișiere atinse:** `pine-scripts\META-CONFLUENCE-SUITE\RS_PRO_v2_7.pine` (CORE CALC → funcție, HTF FETCH, dashboard), `RS_PRO_*_README.md`.
+
+### I-230 · EXPECT split pe direcție (spot: doar UP e încasabil) · [S] · P1
+- **Problema/golul:** pe Pionex spot nu se poate shorta — segmentele DOWN sunt doar ieșiri. EXPECT „permis" (JMA Deck v1.6) amestecă ambele direcții: pe un chart în downtrend, verdictul verde poate fi cărat integral de segmente SHORT netranzacționabile. Gate-ul „EXPECT verde → simbolul merită" poate aproba simboluri cu edge neîncasabil.
+- **Soluția:** populațiile permis/blocat sparte pe direcție (UP vs DOWN); input „Mod spot" (default ON) face ca verdictul de culoare vs fee să judece DOAR populația UP; rândul afișează ambele („long +0.5% n21 · short +0.3% n16"). Mod spot OFF = comportamentul de azi (conturi cu margin).
+- **Impact:** verdictul de fee devine cel încasabil în contul real — „tranzacționez simbolul ăsta?" nu mai e păcălit de edge-ul short inaccesibil.
+- **Riscuri/dependențe:** n per bucket se înjumătățește → avertisment n<10 obligatoriu (trader.md §1); rând mai dens (se leagă de I-234). Doar stratul de citire — logica JMA neatinsă.
+- **Fișiere atinse:** `pine-scripts\JMA-DECK\JMA_Deck_v1_6.pine` (secțiunea EXPECT + rândul 7 dashboard), `JMA_Deck_v1_6_README.md`.
+
+### I-231 · VERIF lead-time (avansul mediu în bare al avertismentelor) · [S] · P1
+- **Problema/golul:** VERIF spune că 78% din avertismente sunt urmate de flip în ≤5 bare, dar nu spune CÂND vine flip-ul în medie: 78% cu lead de 1 bară ≠ 78% cu lead de 4 bare — primul abia lasă timp de un ordin, al doilea dă o seară întreagă pe 1h. Pattern validat în casă: I-185 (făcut, PPST Deck).
+- **Soluția:** la fiecare hit se acumulează distanța `flip − avertisment` per treaptă; rândurile VERIF primesc sufixul „· lead X.Xb"; amber când lead-ul mediu ≤1 bară (avertisment fără timp de reacție).
+- **Impact:** răspunde la „pot acționa pe SLABESTE/IMINENT (stop strâns, ordin pregătit) sau sunt confirmări târzii?" — per simbol/TF.
+- **Riscuri/dependențe:** lead-ul există doar pe hits; n mic la început. Doar stratul de citire.
+- **Fișiere atinse:** `pine-scripts\JMA-DECK\JMA_Deck_v1_6.pine` (secțiunea VERIF + rândurile 8–9), `JMA_Deck_v1_6_README.md`.
+
+### I-232 · PING zilnic pe webhook (anti-snapshot: ver + setări) · [S] · P2
+- **Problema/golul:** capcana snapshot TV a mușcat deja o dată (alerta rula ≤v1.3 cu v1.5 în editor) și e pe cale să se repete (v1.5 live, v1.6 pe disc): alerta îngheață scriptul + inputurile la creare și nu există nicio cale să afli din exterior ce rulează efectiv până la primul eveniment — care poate veni după zile.
+- **Soluția:** event nou `PING`, o dată pe zi (prima bară închisă a zilei UTC, toggle propriu în grupul Alerte JSON), cu `ver` + setările cheie (len, filtLen, fee, praguri). Jurnalul webhook-ului arată zilnic ce versiune/setări rulează alerta.
+- **Impact:** failure mode-ul cel mai scump („alertele mint și nu știi") detectat în max 24h, nu la primul flip ratat.
+- **Riscuri/dependențe:** +1 mesaj/zi/chart (filtrabil după `event`); pe alerte fără webhook devine zgomot → toggle separat. Doar stratul de alerte.
+- **Fișiere atinse:** `pine-scripts\JMA-DECK\JMA_Deck_v1_6.pine` (inputs + secțiunea ALERTE JSON), `JMA_Deck_v1_6_README.md`.
+
+### I-233 · MAE pe segment (durerea maximă până la exit) · [M] · P2
+- **Problema/golul:** flip-trading-ul nu are SL — ieșirea e la flip-ul opus. EXPECT dă media capăt-la-capăt, dar nu cât suferi în interior: `+0.4%/flip` cu excursie adversă medie −0.8% e alt trade decât `+0.4%` cu −3% (al doilea scutură poziția sau dictează sizing mic).
+- **Soluția:** per segment se urmărește excursia adversă maximă față de entry (semnată în direcția segmentului); media pe populația „permis" ca sufix pe EXPECT sau rând propriu: „MAE −1.3%". Metodologia (close-uri vs hi/lo) declarată explicit în README.
+- **Impact:** sizing informat pe Pionex + demascarea expectancy-ului „bun" obținut prin drawdown-uri intra-segment urâte.
+- **Riscuri/dependențe:** încă un număr pe un dash plin (candidat pt toggle-ul din I-234); MAE pe hi/lo nu e perfect executabil (aproximare declarată). Doar stratul de citire.
+- **Fișiere atinse:** `pine-scripts\JMA-DECK\JMA_Deck_v1_6.pine` (secțiunea EXPECT + dashboard), `JMA_Deck_v1_6_README.md`.
+
+### I-234 · Dash standard casă: 9 poziții + 6 mărimi + toggle detalii · [S] · P2
+- **Problema/golul:** standardul obligatoriu al casei (design.md §3–4b, aplicat în suita META) cere poziție pe grila 3×3 și 6 mărimi de text — JMA Deck are 4 poziții și 2 mărimi; plus 11 rânduri mereu vizibile, deși MATUR/EXPECT/VERIF×2 sunt citire de review, nu de execuție (recomandarea: nucleu ~7).
+- **Soluția:** inputurile standard de poziție/mărime din suita META + toggle „Arată validarea" (default ON — comportament neschimbat; OFF = nucleul de execuție: hero, PANTA, DECEL, FILTRU, FLIP, DIST, SETUP).
+- **Impact:** consecvență cu restul suitei + citire în 2 secunde în trade; validarea la un click când evaluezi un simbol nou.
+- **Riscuri/dependențe:** recreare tabel la schimbarea layout-ului (pattern cunoscut); zero risc pe logică.
+- **Fișiere atinse:** `pine-scripts\JMA-DECK\JMA_Deck_v1_6.pine` (inputs Dashboard + secțiunea DASHBOARD), `JMA_Deck_v1_6_README.md`.
+
+### I-235 · Rând „CE FAC?" (acțiune per stare, pattern VolRegime) · [S] · P3
+- **Problema/golul:** deck-ul dă starea (BULL-SLABESTE, REVERSED (BLOCAT)…), dar traducerea în acțiune trăiește în capul userului; sub presiune, „SLABESTE = ies sau aștept?" primește răspunsuri inconsistente. Pattern validat: I-186 (făcut, PPST Deck) + rândul CE FAC? din VolRegime.
+- **Soluția:** rând „CE FAC?" mapat pur pe starea hero + filtru: BULL→„ține long" · SLABESTE→„strânge stop, nu adăuga" · IMINENT→„pregătește ieșirea la close" · REVERSED permis→„flip la close" · REVERSED blocat→„doar ieși — NU intra invers" · WARM-UP→„așteaptă". Zero logică nouă — mapare de afișare.
+- **Impact:** disciplină consistentă la flip-urile de la 3 dimineața; regula „filtrul păzește doar intrările" devine vizibilă exact când contează.
+- **Riscuri/dependențe:** text prescriptiv = disciplină, nu predicție (de spus în README); +1 rând — se leagă de I-234.
+- **Fișiere atinse:** `pine-scripts\JMA-DECK\JMA_Deck_v1_6.pine` (secțiunea DASHBOARD), `JMA_Deck_v1_6_README.md`.
