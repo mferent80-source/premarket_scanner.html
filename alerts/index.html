@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🔔 Price Alerts — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
-<meta name="description" content="Price alerts stocks + crypto (poll 30s), tabs Preț/News/Istoric, almost-fire, group layout, notify UI, bulk actions, Telegram.">
+<meta name="description" content="Price alerts stocks + crypto (poll 30s), listă 1-linie, almost-fire chips, tabs Preț/News/Istoric, bulk, Telegram.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
@@ -335,64 +335,31 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .al-table tbody tr { transition:background .12s; }
 .al-table tbody tr:hover { background:rgba(126,200,255,.08); }
 .al-row.snoozed { opacity:.72; }
-.al-table td.al-tk { text-align:left; vertical-align:top; min-width:150px; padding-top:10px; }
-.al-tk a { font-family:var(--mono); font-weight:800; font-size:17px; letter-spacing:.2px; color:var(--accent); text-decoration:none; }
+.al-table td.al-tk { text-align:left; vertical-align:middle; min-width:110px; padding-top:7px; padding-bottom:7px; }
+.al-tk a { font-family:var(--mono); font-weight:800; font-size:14px; letter-spacing:.2px; color:var(--accent); text-decoration:none; }
 .al-tk a:hover { text-decoration:underline; color:#a8dbff; }
-.al-kind { display:block; font-family:var(--mono); font-size:11.5px; color:var(--t2); margin-top:4px; white-space:normal; line-height:1.4; font-weight:600; }
-.al-note { display:block; font-size:12px; color:var(--t3); font-style:normal; margin-top:3px; white-space:normal; line-height:1.35; font-weight:500; }
-.al-entry { font-family:var(--mono); font-size:13.5px; font-weight:700; color:var(--t2); }
-.al-num { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--t2); }
+.al-entry { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t2); }
+.al-num { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t2); }
 .al-num.up { color:var(--bull-s); } .al-num.down { color:var(--bear-s); }
-.al-now { font-family:var(--mono); font-size:15.5px; font-weight:800; color:var(--t1); }
+.al-now { font-family:var(--mono); font-size:13.5px; font-weight:800; color:var(--t1); }
 .al-now.up { color:var(--bull-s); } .al-now.down { color:var(--bear-s); }
-.al-trig { text-align:right; }
-.al-tgt { display:block; font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t1); }
-.al-dist { display:block; font-family:var(--mono); font-size:11.5px; color:var(--t2); margin-top:3px; font-weight:600; }
+.al-trig { text-align:right; white-space:nowrap; }
+.al-tgt { font-family:var(--mono); font-size:11.5px; font-weight:700; color:var(--t1); }
+.al-dist { font-family:var(--mono); font-size:11px; color:var(--t2); font-weight:600; }
 .al-dist.warn { color:var(--warn); font-weight:800; }
-/* acțiuni */
+.al-table td { padding:7px 8px; }
 .al-act { white-space:nowrap; text-align:right; }
-.al-act .icon-btn { padding:4px 6px; }
+.al-act .icon-btn { padding:3px 5px; font-size:12px; }
+/* Comfort 1-linie pe mobil: tabel orizontal (scroll dacă e nevoie), NU card multi-rând */
 @media (max-width:768px) {
-  .al-table th, .al-table td { padding:9px 7px; }
-  .al-tk { min-width:120px; padding-top:9px; }
-  .al-tk a { font-size:15px; }
-  .al-num { font-size:12.5px; } .al-now { font-size:13.5px; }
-}
-/* ── Telefon îngust: tabelul de alerte active devine CARDURI — zero scroll orizontal.
-   Card pe 3 rânduri ca să nimic nu iasă din ecran:
-     rând 1: [ticker + tip/notă] stânga · [preț acum] dreapta
-     rând 2: Evol% · Δ ult. zi · prag/distanță (cele 3 numerice)
-     rând 3: acțiunile (😴 🔄/↻ ✎ 🗑) pe lățime întreagă, aliniate dreapta.
-   Butoanele au rând propriu — înainte împărțeau linia cu numericele și, cu `nowrap`
-   + grid `auto` fără `min-width:0`, împingeau cardul peste lățimea telefonului.
-   Toate celulele primesc `min-width:0` ca grid-ul să se poată micșora sub conținut.
-   „Preț intrare" e ascuns pe telefon (Evol% exprimă deja mișcarea față de intrare). ── */
-@media (max-width:600px) {
-  .al-wrap { overflow-x:visible; margin:0; }              /* nu mai forțăm scroll orizontal */
-  .al-table thead { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
-  .al-table, .al-table tbody { display:block; width:100%; }
-  .al-table tr.al-row {
-    display:grid; gap:5px 10px; align-items:center;
-    grid-template-columns:auto auto minmax(0,1fr);    /* minmax(0,1fr) = se poate strânge sub conținut */
-    grid-template-areas:
-      "tk   tk   now"
-      "ev   day  trig"
-      "act  act  act";
-    padding:11px 8px; border-bottom:1px solid rgba(42,50,71,.45);
-  }
-  .al-table tr.al-row:last-child { border-bottom:none; }
-  .al-table td { display:block; padding:0; border:none; text-align:left; white-space:nowrap; min-width:0; }
-  .al-table td.al-tk { grid-area:tk; min-width:0; padding-top:0; overflow:hidden; }
-  .al-table td.al-entry { display:none; }                 /* Preț intrare — ascuns pe telefon */
-  .al-table td:nth-child(3) { grid-area:ev; }             /* Evol. % de la intrare */
-  .al-table td:nth-child(4) { grid-area:day; }            /* Δ ultima zi */
-  .al-table td.al-now { grid-area:now; text-align:right; font-size:16px; align-self:center; }
-  .al-table td.al-trig { grid-area:trig; text-align:right; }  /* prag·distanță aliniat sub „preț acum" */
-  .al-table td.al-act { grid-area:act; text-align:right; padding-top:2px; }
-  .al-table td.al-act .icon-btn { padding:5px 8px; }      /* puțin mai mari — au acum rând propriu */
-  /* micro-etichete: fără capul de tabel, marchează ce e fiecare procent */
-  .al-table td:nth-child(3)::before { content:"Evol "; color:var(--t3); font-size:9px; font-weight:700; font-family:var(--mono); }
-  .al-table td:nth-child(4)::before { content:"Zi "; color:var(--t3); font-size:9px; font-weight:700; font-family:var(--mono); }
+  .al-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0; }
+  .al-table th, .al-table td { padding:7px 6px; font-size:12px; }
+  .al-tk a { font-size:13px; }
+  .al-kind { font-size:9.5px; max-width:90px; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; }
+  .al-num { font-size:12px; } .al-now { font-size:13px; }
+  .al-table th:nth-child(2),
+  .al-table td:nth-child(2) { display:none; } /* Evol% pe mobil: Δ zi + dist e destul */
+  .al-act .icon-btn { padding:4px 6px; }
 }
 
 /* Badge sesiune per grup (crypto 24/7 vs stocks cu sesiune) */
@@ -548,7 +515,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .desk-tabs button.on .tab-cnt { background:rgba(126,200,255,.28); color:#fff; }
 .desk-panel[hidden] { display:none !important; }
 .view-tools {
-  display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px;
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:8px;
 }
 .view-tools .vt-group {
   display:inline-flex; gap:2px; padding:2px; background:var(--panel); border:1px solid var(--b1); border-radius:8px;
@@ -558,55 +525,38 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 }
 .view-tools .vt-group button.on { background:var(--panel3); color:var(--t1); box-shadow:inset 0 0 0 1px var(--b2); }
 .view-tools .vt-group button:hover { transform:none; background:var(--panel2); color:var(--t1); }
-.quick-add {
-  display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px;
-  padding:10px 12px; background:var(--panel); border:1px solid var(--b1); border-radius:14px;
-  box-shadow:0 2px 8px rgba(0,0,0,.2);
-}
-.quick-add .qa-lbl { font-family:var(--mono); font-size:10.5px; font-weight:800; color:var(--t2); text-transform:uppercase; letter-spacing:.05em; margin-right:4px; }
-.quick-add .qa-chip {
-  padding:7px 12px; font-size:12px; font-weight:700; border-radius:999px;
-  background:var(--panel2); border:1px solid rgba(126,200,255,.45); color:#b8e0ff; cursor:pointer;
-}
-.quick-add .qa-chip:hover { background:var(--accent); color:#061018; border-color:var(--accent); transform:none; }
-.quick-add .qa-chip:disabled { opacity:.45; cursor:not-allowed; }
+/* Almost / top movers — o linie de chip-uri mici (ca top gainers), scroll pe mobil */
 .almost-rail {
-  display:none; gap:8px; overflow-x:auto; padding:4px 0 10px; margin-bottom:4px;
-  scrollbar-width:thin;
+  display:none; align-items:center; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  padding:6px 0 10px; margin-bottom:2px; scrollbar-width:thin; flex-wrap:nowrap;
 }
 .almost-rail.show { display:flex; }
-.almost-card {
-  flex:0 0 auto; min-width:148px; max-width:180px; padding:10px 12px;
-  background:var(--panel); border:1px solid rgba(212,137,44,.45); border-radius:10px;
-  cursor:pointer; transition:border-color .15s, transform .12s;
+.almost-lbl {
+  flex:0 0 auto; font-family:var(--mono); font-size:10px; font-weight:800; color:var(--warn);
+  text-transform:uppercase; letter-spacing:.04em; padding:0 4px 0 2px; white-space:nowrap;
 }
-.almost-card:hover { border-color:var(--warn); transform:translateY(-1px); }
-.almost-card .ac-sym { font-weight:800; font-size:13px; color:var(--t1); }
-.almost-card .ac-dist { font-family:var(--mono); font-size:16px; font-weight:800; color:var(--warn); margin:4px 0 2px; }
-.almost-card .ac-meta { font-family:var(--mono); font-size:10.5px; color:var(--t3); line-height:1.35; }
-.almost-card .ac-acts { display:flex; gap:4px; margin-top:6px; }
-.almost-card .ac-acts button { padding:3px 7px; font-size:11px; }
-.sym-card {
-  background:var(--panel2); border:1px solid var(--b1); border-radius:14px; margin-bottom:10px; overflow:hidden;
-  box-shadow:0 2px 6px rgba(0,0,0,.2);
+.almost-chip {
+  flex:0 0 auto; display:inline-flex; align-items:center; gap:5px;
+  padding:5px 10px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  background:var(--panel2); border:1px solid rgba(212,137,44,.4); color:var(--t1);
+  font-family:var(--mono); font-size:11.5px; font-weight:700; line-height:1.2;
+  transition:border-color .12s, background .12s;
 }
-.sym-card-head {
-  display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 14px;
-  background:var(--panel3); border-bottom:1px solid var(--b1); font-weight:700;
+.almost-chip:hover { border-color:var(--warn); background:rgba(212,137,44,.12); transform:none; }
+.almost-chip.hot {
+  border-color:rgba(255,77,77,.55); background:rgba(255,77,77,.1); color:#ffb3b3;
 }
-.sym-card-head .sc-sym { font-size:15px; color:var(--t1); font-weight:800; text-decoration:none; }
-.sym-card-head .sc-px { font-family:var(--mono); font-size:14px; font-weight:800; color:var(--t1); }
-.sym-card-head .sc-chg { font-family:var(--mono); font-size:13px; font-weight:700; }
-.sym-card-head .sc-chg.up { color:var(--bull-s); }
-.sym-card-head .sc-chg.down { color:var(--bear-s); }
-.sym-card .al-table { margin:0; }
-.sym-card .al-table td.al-tk a { display:none; } /* ticker e pe head */
-body.desk-compact .al-kind,
-body.desk-compact .al-note { display:none; }
-body.desk-compact .al-table th:nth-child(2),
-body.desk-compact .al-table th:nth-child(3),
-body.desk-compact .al-table td.al-entry,
-body.desk-compact .al-table td:nth-child(3) { display:none; }
+.almost-chip b { font-weight:800; color:inherit; }
+.almost-chip .ac-d { color:var(--warn); font-weight:800; }
+.almost-chip.hot .ac-d { color:#ff8a8a; }
+.almost-chip .ac-px { color:var(--t3); font-weight:600; font-size:10.5px; }
+/* Listă comfort = mereu o singură linie (desk + mobil) */
+.al-kind { display:inline; margin-left:6px; font-size:10.5px; color:var(--t3); white-space:nowrap; }
+.al-note { display:none; } /* pe listă 1-linie: nota rămâne în title pe ticker */
+.al-tgt { display:inline; }
+.al-dist { display:inline; margin-left:5px; }
+.al-table td.al-tk { vertical-align:middle; padding-top:8px; padding-bottom:8px; }
+body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 .bulk-cb { width:16px; height:16px; margin-right:6px; vertical-align:middle; cursor:pointer; accent-color:var(--accent); }
 .bulk-bar {
   display:none; position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:1800;
@@ -617,7 +567,6 @@ body.desk-compact .al-table td:nth-child(3) { display:none; }
 .bulk-bar.show { display:flex; }
 .bulk-bar .bb-n { font-family:var(--mono); color:#8ac8ff; }
 .bulk-bar button { padding:6px 10px; font-size:12px; }
-body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 
 /* Toasts */
 #toasts { position:fixed; bottom:14px; right:14px; display:flex; flex-direction:column; gap:6px; z-index:2000; max-width:400px; pointer-events:none; }
@@ -665,7 +614,7 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v73</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v74</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -707,26 +656,12 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 </nav>
 
 <div id="tabPrice" class="desk-panel">
-<div class="quick-add" id="quickAdd">
-  <span class="qa-lbl">Quick-add</span>
-  <button type="button" class="qa-chip" id="qaWlRef" title="Ref ±1% pe fiecare din watchlist">📊 Ref 1% pe WL</button>
-  <button type="button" class="qa-chip" id="qaJrDay" title="Day ±3% pe pozițiile open din Journal">📅 Day 3% pe open</button>
-  <button type="button" class="qa-chip" id="qaJrTrail" title="Trail −2% din vârf pe open Journal">📉 Trail 2% pe open</button>
-</div>
+<div class="almost-rail" id="almostRail" aria-label="Aproape de declanșare · top movers"></div>
 <div class="view-tools" id="viewTools">
-  <div class="vt-group" role="group" aria-label="Layout listă">
-    <button type="button" id="btnLayoutGroup" class="on" title="Card per simbol">Grupat</button>
-    <button type="button" id="btnLayoutList" title="Un rând per alertă">Listă</button>
-  </div>
-  <div class="vt-group" role="group" aria-label="Densitate">
-    <button type="button" id="btnDensityComfort" class="on">Comfort</button>
-    <button type="button" id="btnDensityCompact">Compact</button>
-  </div>
   <div class="vt-group">
     <button type="button" id="btnBulkMode" title="Selectează mai multe alerte">☐ Select</button>
   </div>
 </div>
-<div class="almost-rail" id="almostRail" aria-label="Almost fire"></div>
 
 <!-- Add new alert — drill-down colapsat by default (nu ocupă spațiu cât nu adaugi) -->
 <details class="add-form" id="addForm">
@@ -1057,9 +992,9 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=706"></script>
-<script src="../lib/data.js?v=706"></script>
-<script src="../lib/quote-bus.js?v=706"></script>
+<script src="../lib/suite-version.js?v=708"></script>
+<script src="../lib/data.js?v=708"></script>
+<script src="../lib/quote-bus.js?v=708"></script>
 <script src="../lib/telegram.js"></script>
 <script>
 // ============ CONFIG ============
@@ -1256,14 +1191,12 @@ window.addEventListener('storage', e => { if (e.key === ALERTS_KEY) { priceAlert
 const DESK_KEY = 'pa_desk_v1';
 const NOTIFY_POLICY_KEY = 'pa_notify_policy_v1'; // always | quiet | rth
 function deskLoad() {
-  const d = { layout: 'group', density: 'comfort', tab: 'price' };
+  // v74: doar LISTĂ pe o linie (comfort) — group/compact scoase din UI
+  const d = { layout: 'list', density: 'comfort', tab: 'price' };
   try {
-    // migrare one-shot din cheia demo (dacă există)
     const raw = localStorage.getItem(DESK_KEY) || localStorage.getItem('pa_desk_demo_v1') || '{}';
     const o = JSON.parse(raw);
     if (o && typeof o === 'object') {
-      if (o.layout === 'list' || o.layout === 'group') d.layout = o.layout;
-      if (o.density === 'compact' || o.density === 'comfort') d.density = o.density;
       if (o.tab === 'price' || o.tab === 'news' || o.tab === 'hist') d.tab = o.tab;
     }
   } catch (e) {}
@@ -1271,9 +1204,11 @@ function deskLoad() {
 }
 function deskSave(partial) {
   const d = Object.assign(deskLoad(), partial || {});
+  d.layout = 'list';
+  d.density = 'comfort';
   try {
     localStorage.setItem(DESK_KEY, JSON.stringify({ layout: d.layout, density: d.density, tab: d.tab }));
-    localStorage.removeItem('pa_desk_demo_v1'); // demo scos definitiv
+    localStorage.removeItem('pa_desk_demo_v1');
   } catch (e) {}
   return d;
 }
@@ -1922,68 +1857,39 @@ function rowHtml(sym, a) {
   const bk = bulkKey(sym, a.id);
   const checked = bulkSelected.has(bk) ? ' checked' : '';
   const cb = bulkMode ? `<input type="checkbox" class="bulk-cb" data-bulk="${escHtml(bk)}"${checked} title="Selectează">` : '';
+  const tkTitle = [kindHtml.replace(/<[^>]+>/g, ''), a.note || '', entryTip].filter(Boolean).join(' · ');
   return `<tr class="al-row${snoozed ? ' snoozed' : ''}${hot ? ' hot' : ''}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}" id="alrow-${escHtml(a.id)}">
-    <td class="al-tk">
+    <td class="al-tk" title="${escHtml(tkTitle)}">
       ${cb}<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${cur != null ? sessTag(sym) : ''}${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}
-      <span class="al-kind">${kindHtml}</span>${a.note ? `<span class="al-note">${escHtml(a.note)}</span>` : ''}
+      <span class="al-kind">${kindHtml}</span>
     </td>
-    <td class="al-entry" title="${entryTip}">${baseCreate != null ? '$' + fmtPx(baseCreate, sym) : '—'}</td>
     <td class="al-num ${evCls}"${hiLoTip ? ` title="${hiLoTip}"` : ''}>${deltaCreate == null ? '—' : fmtPct(deltaCreate)}</td>
     <td class="al-num ${dayCls}">${dayChg == null ? '—' : fmtPct(dayChg)}</td>
     <td class="al-now ${dayCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</td>
-    <td class="al-trig">
+    <td class="al-trig" title="${distTip}">
       <span class="al-tgt">${h.target || '—'}</span>
-      <span class="al-dist ${hot ? 'warn' : ''}" title="${distTip}">${distTxt}</span>
+      <span class="al-dist ${hot ? 'warn' : ''}">${distTxt}</span>
     </td>
     <td class="al-act">
       <button class="icon-btn" data-action="snooze" title="😴 Amână alerta (1h / 4h / până la deschidere)" style="${snoozed ? 'color:var(--warn);border-color:rgba(212,137,44,.4)' : 'opacity:.6'}">😴</button>
       ${isRef
-        ? `<button class="icon-btn" data-action="reanchor" title="🔄 Re-ancorează referința la prețul curent (resetează 0%, pașii și max/min)">🔄</button>`
-        : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT — click pt oprire (one-shot)' : 'One-shot — click pt ↻ re-arm'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>`}
-      <button class="icon-btn" data-action="edit" title="Editează alerta (modal complet)">✎</button>
+        ? `<button class="icon-btn" data-action="reanchor" title="🔄 Re-ancorează referința la prețul curent">🔄</button>`
+        : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT' : 'One-shot → ↻ re-arm'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>`}
+      <button class="icon-btn" data-action="edit" title="Editează">✎</button>
       <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
     </td>
   </tr>`;
 }
 
-// Capul de tabel comun celor două grupuri (crypto/stocks)
+// Cap de tabel — listă 1-linie (fără col. preț intrare)
 const AL_THEAD = `<thead><tr>
-  <th>Ticker</th><th>Preț intrare</th><th>Evol. %</th><th>Δ ult. zi</th><th>Preț acum</th><th>Prag · distanță</th><th></th>
+  <th>Ticker</th><th>Evol. %</th><th>Δ zi</th><th>Acum</th><th>Prag · dist</th><th></th>
 </tr></thead>`;
 
-// Randează un grup (crypto/stocks) ca tabel + leagă acțiunile pe rândurile lui
-// I-219: layout group = card per symbol; list = tabel plat
+// Doar LISTĂ pe o linie (v74 — group scoasă)
 function renderActiveGroup(bodyEl, groupRows, ico, emptyMsg) {
   if (!groupRows.length) { bodyEl.innerHTML = `<div class="empty"><span class="ico">${ico}</span>${emptyMsg}</div>`; return; }
-  const useGroup = desk.layout === 'group';
-  if (!useGroup) {
-    bodyEl.innerHTML = `<div class="al-wrap"><table class="al-table">${AL_THEAD}<tbody>${groupRows.map(({ sym, a }) => rowHtml(sym, a)).join('')}</tbody></table></div>`;
-  } else {
-    const map = {};
-    groupRows.forEach(r => { (map[r.sym] = map[r.sym] || []).push(r); });
-    // păstrează ordinea primului rând din groupRows (deja sortat)
-    const order = [];
-    groupRows.forEach(r => { if (!order.includes(r.sym)) order.push(r.sym); });
-    bodyEl.innerHTML = order.map(sym => {
-      const rows = map[sym];
-      const cur = _lastPrice[sym];
-      const dayChg = _lastChange[sym];
-      const dayCls = dayChg == null ? '' : (dayChg >= 0 ? 'up' : 'down');
-      const n = rows.length;
-      const minProx = Math.min(...rows.map(r => proximityScore(sym, r.a)));
-      const proxTxt = isFinite(minProx) ? minProx.toFixed(2) + '% până' : '—';
-      return `<div class="sym-card" data-sym-card="${escHtml(sym)}">
-        <div class="sym-card-head">
-          <a class="sc-sym" href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>
-          ${cur != null ? sessTag(sym) : ''}
-          <span class="sc-px">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</span>
-          <span class="sc-chg ${dayCls}">${dayChg == null ? '—' : fmtPct(dayChg)}</span>
-          <span style="font-family:var(--mono);font-size:10.5px;color:var(--t3);margin-left:auto">${n} reg · ⏰ ${proxTxt}</span>
-        </div>
-        <div class="al-wrap"><table class="al-table">${AL_THEAD}<tbody>${rows.map(({ a }) => rowHtml(sym, a)).join('')}</tbody></table></div>
-      </div>`;
-    }).join('');
-  }
+  bodyEl.innerHTML = `<div class="al-wrap"><table class="al-table">${AL_THEAD}<tbody>${groupRows.map(({ sym, a }) => rowHtml(sym, a)).join('')}</tbody></table></div>`;
   bindActiveActions(bodyEl);
   // bulk checkboxes
   bodyEl.querySelectorAll('.bulk-cb').forEach(cb => {
@@ -2158,7 +2064,8 @@ function renderPulse(activeRows) {
   el.style.display = 'flex';
 }
 
-// I-218: rail top-N almost fire
+// v74: almost-rail = o linie de chip-uri mici (câte încape pe ecran + scroll)
+// Sortare: cele mai apropiate de fire; max 12 ca să umple bine un telefon lat / desk
 function renderAlmostRail(activeRows) {
   const el = $('almostRail');
   if (!el) return;
@@ -2168,37 +2075,24 @@ function renderAlmostRail(activeRows) {
       if (a.snoozeUntil && a.snoozeUntil > Date.now()) return false;
       if (a.armed === false) return false;
       const s = proximityScore(r.sym, a);
-      return isFinite(s) && s < 1.5; // top bandă; <0.5% = hot
+      return isFinite(s) && s < 2.5;
     })
     .map(r => ({ ...r, score: proximityScore(r.sym, r.a) }))
     .sort((a, b) => a.score - b.score)
-    .slice(0, 5);
+    .slice(0, 12);
   if (!cand.length) { el.classList.remove('show'); el.innerHTML = ''; return; }
-  el.innerHTML = cand.map(({ sym, a, score }) => {
-    const h = triggerHint(sym, a, _lastPrice[sym]);
+  el.innerHTML = '<span class="almost-lbl">⏰ Aproape</span>' + cand.map(({ sym, a, score }) => {
     const hot = score < 0.5;
-    return `<div class="almost-card${hot ? ' hot' : ''}" data-goto-id="${escHtml(a.id)}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}">
-      <div class="ac-sym">${escHtml(sym)}${hot ? ' 🔥' : ''}</div>
-      <div class="ac-dist">${score.toFixed(2)}%</div>
-      <div class="ac-meta">${escHtml(h.target || '—')}<br>${_lastPrice[sym] != null ? '$' + fmtPx(_lastPrice[sym], sym) : '⏳'}</div>
-      <div class="ac-acts">
-        <button type="button" data-ac="snooze" title="Snooze 1h">😴</button>
-        <button type="button" data-ac="goto" title="Sari la rând">↓</button>
-      </div>
-    </div>`;
+    const px = _lastPrice[sym];
+    const h = triggerHint(sym, a, px);
+    return `<button type="button" class="almost-chip${hot ? ' hot' : ''}" data-goto-id="${escHtml(a.id)}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}" title="${escHtml(h.target || '')} · click → rând">
+      <b>${escHtml(sym)}</b><span class="ac-d">${score.toFixed(1)}%</span>${px != null ? `<span class="ac-px">$${fmtPx(px, sym)}</span>` : ''}
+    </button>`;
   }).join('');
   el.classList.add('show');
-  el.querySelectorAll('.almost-card').forEach(card => {
-    card.addEventListener('click', e => {
-      if (e.target.closest('[data-ac="snooze"]')) {
-        e.stopPropagation();
-        const sym = card.dataset.sym, id = card.dataset.id;
-        priceAlerts = loadAlerts();
-        const al = (priceAlerts[sym] || []).find(x => x.id === id);
-        if (al) { al.snoozeUntil = Date.now() + 3600000; persistAlerts(); render(); autoSync(); toast(`😴 ${sym} snooze 1h`, 'info'); }
-        return;
-      }
-      const id = card.dataset.gotoId || card.dataset.id;
+  el.querySelectorAll('.almost-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const id = chip.dataset.gotoId || chip.dataset.id;
       const row = document.getElementById('alrow-' + id);
       if (row) {
         applyDeskTab('price');
@@ -2228,7 +2122,8 @@ function updateBulkBar() {
 }
 
 function applyDensity() {
-  document.body.classList.toggle('desk-compact', desk.density === 'compact');
+  // v74: mereu comfort 1-linie — fără compact multi-mod
+  document.body.classList.remove('desk-compact');
 }
 
 function applyDeskTab(tab) {
@@ -2248,14 +2143,6 @@ function applyDeskTab(tab) {
 
 function applyDeskChrome() {
   desk = deskLoad();
-  if ($('btnLayoutGroup')) {
-    $('btnLayoutGroup').classList.toggle('on', desk.layout === 'group');
-    $('btnLayoutList').classList.toggle('on', desk.layout === 'list');
-  }
-  if ($('btnDensityComfort')) {
-    $('btnDensityComfort').classList.toggle('on', desk.density === 'comfort');
-    $('btnDensityCompact').classList.toggle('on', desk.density === 'compact');
-  }
   if ($('btnBulkMode')) {
     $('btnBulkMode').classList.toggle('on', bulkMode);
     $('btnBulkMode').textContent = bulkMode ? '☑ Select' : '☐ Select';
@@ -3901,11 +3788,7 @@ function wireDesk() {
   $('deskTabs')?.querySelectorAll('[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => applyDeskTab(btn.getAttribute('data-tab')));
   });
-  // layout / density / bulk
-  $('btnLayoutGroup')?.addEventListener('click', () => { desk = deskSave({ layout: 'group' }); applyDeskChrome(); render(); });
-  $('btnLayoutList')?.addEventListener('click', () => { desk = deskSave({ layout: 'list' }); applyDeskChrome(); render(); });
-  $('btnDensityComfort')?.addEventListener('click', () => { desk = deskSave({ density: 'comfort' }); applyDeskChrome(); render(); });
-  $('btnDensityCompact')?.addEventListener('click', () => { desk = deskSave({ density: 'compact' }); applyDeskChrome(); render(); });
+  // bulk only (listă + comfort 1-linie sunt fixe v74)
   $('btnBulkMode')?.addEventListener('click', () => {
     bulkMode = !bulkMode;
     if (!bulkMode) bulkSelected.clear();
@@ -3957,22 +3840,6 @@ function wireDesk() {
   });
   $('bulkCancel')?.addEventListener('click', () => {
     bulkMode = false; bulkSelected.clear(); applyDeskChrome(); render();
-  });
-  // templates (praguri = ipoteze default, notate pe alertă)
-  $('qaWlRef')?.addEventListener('click', () => {
-    batchAddAlerts(listWlSyms(), sym => ({
-      id: uid(), kind: 'ref', pct: 1, base: _lastPrice[sym] ?? null, lastStep: 0, hi: 0, lo: 0, armed: true, lastFired: null, note: 'template WL ref1%'
-    }), '📊 Ref ±1% pe WL');
-  });
-  $('qaJrDay')?.addEventListener('click', () => {
-    batchAddAlerts(listOpenJournalSyms(), () => ({
-      id: uid(), kind: 'day', pct: 3, rearm: true, armed: true, lastFired: null, note: 'template open day3%'
-    }), '📅 Day ±3% pe Journal open');
-  });
-  $('qaJrTrail')?.addEventListener('click', () => {
-    batchAddAlerts(listOpenJournalSyms(), sym => ({
-      id: uid(), kind: 'ref', trail: true, pct: 2, base: _lastPrice[sym] ?? null, peak: _lastPrice[sym] ?? null, trailFired: false, armed: true, lastFired: null, note: 'template trail2%'
-    }), '📉 Trail −2% pe Journal open');
   });
   // notify policy
   $('notifyPolicyBtn')?.addEventListener('click', () => {
