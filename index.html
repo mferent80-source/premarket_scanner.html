@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=703"></script>
+<script src="lib/suite-version.js?v=712"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -44,9 +44,12 @@
 <title>Stocks Trading Tools — Nasdaq + Events</title>
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Market Events, Journal & Risk Desk, Macro Dashboard — cockpit decizional stocks-only">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="lib/suite-ui.css?v=678">
-<link rel="stylesheet" href="lib/hub-ui.css?v=703">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="lib/suite-ui.css?v=712">
+<link rel="stylesheet" href="lib/hub-ui.css?v=712">
 <style>
 /* === Hub shell aliniat Macro (suite-ui.css) — full-bleed + tokeni canonic ── */
 :root{
@@ -475,7 +478,6 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
       <span class="brand-dot"></span>
       <span>Trading Tools</span>
       <span id="suiteVerBadge" class="hub-ver-badge" title="Versiune suită">…</span>
-      <a href="./hub-demo/" class="hub-ver-badge" style="text-decoration:none;margin-left:4px" title="Demo platformă hub (I-211…I-216) — nu modifică hub-ul live">🧪 demo</a>
       <a href="./health/" id="hubStaleNav" class="hub-stale-nav" hidden aria-hidden="true" title="Date învechite">📦</a>
     </div>
     <h1 class="hub-head-title">Cockpit <span class="accent">stocks</span></h1>
@@ -1119,27 +1121,19 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
-<script defer src="lib/data.js?v=703"></script>
-<script defer src="lib/quote-bus.js?v=703"></script>
-<script defer src="lib/suite-context.js?v=686"></script>
-<script defer src="lib/ledger.js?v=666"></script>
-<script defer src="lib/finnhub-key.js?v=666"></script>
-<script defer src="lib/journal.js?v=666"></script>
-<script defer src="lib/journal-insights.js?v=666"></script>
-<script defer src="lib/tracker.js?v=666"></script>
-<script defer src="lib/telegram.js?v=666"></script>
-<script defer src="lib/capital-time.js?v=666"></script>
-<script defer src="lib/account.js?v=666"></script>
-<script defer src="lib/governor.js?v=666"></script>
-<script defer src="lib/equity.js?v=666"></script>
-<script defer src="lib/capital-desk.js?v=666"></script>
-<script defer src="lib/morning-check.js?v=666"></script>
-<script defer src="lib/suite-sessions.js?v=666"></script>
-<script defer src="lib/router.js?v=666"></script>
-<script defer src="lib/regime.js?v=666"></script>
-<script defer src="lib/ai.js?v=666"></script>
-<script defer src="lib/hub-market.js?v=703"></script>
-<script defer src="lib/hub-search.js?v=679"></script>
+<!-- CRITICAL path — first paint cockpit (GO / market / next action). Restul la idle. -->
+<script defer src="lib/data.js?v=712"></script>
+<script defer src="lib/quote-bus.js?v=712"></script>
+<script defer src="lib/finnhub-key.js?v=712"></script>
+<script defer src="lib/suite-sessions.js?v=712"></script>
+<script defer src="lib/governor.js?v=712"></script>
+<script defer src="lib/router.js?v=712"></script>
+<script defer src="lib/hub-market.js?v=712"></script>
+<script defer src="lib/hub-state.js?v=712"></script>
+<script defer src="lib/hub-tableau.js?v=712"></script>
+<script defer src="lib/hub-next-action.js?v=712"></script>
+<script defer src="lib/macro-context.js?v=712"></script>
+<script defer src="lib/hub-gappers.js?v=712"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 //  FEATURES MODAL — listă completă funcționalități per scanner
@@ -1587,21 +1581,8 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
   });
 })();
 </script>
-<script defer src="lib/macro-context.js?v=666"></script>
-<script defer src="lib/event-tape.js?v=666"></script>
-<script defer src="lib/hub-state.js?v=668"></script>
-<script defer src="lib/hub-card-live.js?v=666"></script>
-<script defer src="lib/hub-gappers.js?v=711"></script>
-<script defer src="lib/hub-tableau.js?v=689"></script>
-<script defer src="lib/hub-health.js?v=703"></script>
-<!-- hub-brief.js (~105KB) — LAZY: nu blochează parse-ul HNA/ledger; se încarcă după first paint
-     sau imediat dacă Morning Brief e deschis / userul îl deschide -->
-<script defer src="lib/hub-next-action.js?v=703"></script>
-<script defer src="lib/hub-ledger.js?v=666"></script>
 <script>
-// init-ul rulează la DOMContentLoaded — lib-urile sunt acum `defer` (nu mai
-// blochează randarea; ~400KB JS se parsau înainte ca hero-ul să apară), iar
-// defer garantează ordinea și execuția ÎNAINTE de DOMContentLoaded
+// init-ul rulează la DOMContentLoaded — doar critical path e deja `defer`
 window.addEventListener('DOMContentLoaded', function(){
   if (window.SUITE_VERSION_SHORT) {
     const v = window.SUITE_VERSION_SHORT;
@@ -1610,24 +1591,17 @@ window.addEventListener('DOMContentLoaded', function(){
     const f = document.getElementById('suiteVerFoot');
     if (f) f.textContent = v;
   }
-  // fiecare init izolat — o excepție într-un modul nu mai omoară init-urile
-  // ulterioare (hub parțial mort silențios); modulele picate se AFIȘEAZĂ,
-  // altfel „se încarcă…" rămânea pe ecran pentru totdeauna fără explicație
   const bootFails = [];
   const boot = (name, fn) => { try { fn(); } catch (e) { console.warn('init ' + name + ':', e); bootFails.push(name); } };
-  // 1) Tableau ÎNAINTE de market — creează #spyVal/#qqqVal/#vixVal.
-  //    Înainte HM.init rula primul → restoreMarketWidgets pe DOM inexistent.
+  // Tableau ÎNAINTE de market (creează #spyVal…)
   if (window.HT) boot('HT', () => HT.render());
   if (window.HM) boot('HM', () => HM.init());
-  // 2) HG.init pornește refresh 60s (HT.render doar tick o dată)
-  if (window.HG) boot('HG', () => HG.init());
-  // HB: lazy (vezi loadHubBrief mai jos) — nu e în lanțul defer critical
-  if (window.HSEARCH) boot('HSEARCH', () => HSEARCH.init());
-  if (window.HCL) boot('HCL', () => HCL.init());
-  if (window.HUB_HEALTH) boot('HUB_HEALTH', () => HUB_HEALTH.init());
+  // Gappers: NU la boot — sweep Yahoo 30 sim bloca first paint 5–15s pe pre
+  // (HG.init e amânat după secondary load / idle)
   if (window.HS) boot('HS', () => HS.renderStaleNav());
   if (window.HNA) boot('HNA', () => HNA.init());
-  // module așteptate dar neîncărcate deloc (404/cache) — HB e lazy, nu e eșec la boot
+  if (window.FH_KEY && FH_KEY.migrate) boot('FH_KEY', () => FH_KEY.migrate());
+
   [['HM','hub-market'],['HT','hub-tableau'],['HS','hub-state']].forEach(([g, n]) => {
     if (!window[g]) bootFails.push(n);
   });
@@ -1645,32 +1619,71 @@ window.addEventListener('DOMContentLoaded', function(){
     if (window.HB && HB.renderCockpit){ try { HB.renderCockpit(); } catch (e) {} }
   });
 
-  if (window.HB_LEDGER && HB_LEDGER.init) boot('HB_LEDGER', () => HB_LEDGER.init());
-  if (window.FH_KEY && FH_KEY.migrate) boot('FH_KEY', () => FH_KEY.migrate());
-  if (window.TT && TT.migrateLegacy) boot('TT', () => TT.migrateLegacy());
+  // ── Secondary libs (~200KB) după first paint — capital/journal/health/search ──
+  const SEC_V = '712';
+  const SECONDARY = [
+    'lib/suite-context.js?v=' + SEC_V,
+    'lib/ledger.js?v=' + SEC_V,
+    'lib/journal.js?v=' + SEC_V,
+    'lib/account.js?v=' + SEC_V,
+    'lib/capital-time.js?v=' + SEC_V,
+    'lib/equity.js?v=' + SEC_V,
+    'lib/capital-desk.js?v=' + SEC_V,
+    'lib/event-tape.js?v=' + SEC_V,
+    'lib/hub-health.js?v=' + SEC_V,
+    'lib/hub-card-live.js?v=' + SEC_V,
+    'lib/hub-search.js?v=' + SEC_V,
+    'lib/hub-ledger.js?v=' + SEC_V,
+    'lib/telegram.js?v=' + SEC_V,
+    'lib/tracker.js?v=' + SEC_V,
+    'lib/morning-check.js?v=' + SEC_V,
+    'lib/regime.js?v=' + SEC_V
+  ];
+  function loadScript(src){
+    return new Promise(function(resolve, reject){
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){ reject(new Error(src)); };
+      document.body.appendChild(s);
+    });
+  }
+  function loadSecondary(){
+    // paralel — browser limitează concurrent connections
+    return Promise.all(SECONDARY.map(function(src){
+      return loadScript(src).catch(function(e){ console.warn('secondary', e); });
+    })).then(function(){
+      if (window.HUB_HEALTH) boot('HUB_HEALTH', () => HUB_HEALTH.init());
+      if (window.HCL) boot('HCL', () => HCL.init());
+      if (window.HSEARCH) boot('HSEARCH', () => HSEARCH.init());
+      if (window.HB_LEDGER && HB_LEDGER.init) boot('HB_LEDGER', () => HB_LEDGER.init());
+      if (window.TT && TT.migrateLegacy) boot('TT', () => TT.migrateLegacy());
+      // gappers după secondary (D e deja ok; amână rețeaua grea)
+      if (window.HG) boot('HG', () => HG.init());
+      // re-render tableau cu CD/EQ dacă au apărut
+      if (window.HT && HT.render) try { HT.render(); } catch (e) {}
+      if (window.HNA && HNA.render) try { HNA.render(); } catch (e) {}
+    });
+  }
 
-  // ── Lazy hub-brief.js (~105KB Morning Brief + cockpit + pre5) ──────────
-  // First paint = market/tableau/next-action fără a parsa 105KB.
-  // Load: idle scurt (400ms) SAU imediat dacă pb_open=1 / user expand.
+  // ── hub-brief.js (~105KB) — lazy ──
   let _hbPromise = null;
   function loadHubBrief(reason) {
     if (window.HB && window.HB.init && window.HB.refresh) return Promise.resolve(window.HB);
     if (window.HB && window.HB.init && !_hbPromise) {
-      // deja parse-uit (ex. cache) dar init neapelat
       try { HB.init(); } catch (e) { console.warn('init HB (cached):', e); }
       return Promise.resolve(window.HB);
     }
     if (_hbPromise) return _hbPromise;
     _hbPromise = new Promise(function (resolve, reject) {
       const s = document.createElement('script');
-      s.src = 'lib/hub-brief.js?v=703';
+      s.src = 'lib/hub-brief.js?v=712';
       s.async = true;
       s.onload = function () {
         try {
           if (window.HB && HB.init) HB.init();
-          // re-paint tableau cu session mode real (HB.sessionMode)
           if (window.HT && HT.render) HT.render();
-          // force refresh dacă brief e deschis (race toggle-before-load)
           const pb = document.getElementById('pbWrap');
           if (pb && pb.open && window.HB && HB.refresh) HB.refresh();
         } catch (e) { console.warn('init HB (lazy):', e); }
@@ -1679,7 +1692,6 @@ window.addEventListener('DOMContentLoaded', function(){
       s.onerror = function () {
         _hbPromise = null;
         console.warn('hub-brief.js load failed', reason || '');
-        // semnalează userului — fără asta brief rămâne pe „se compune…" tăcut
         try {
           const hero = document.querySelector('#pbHero .pb-hero-verdict');
           if (hero && /compune|încarcă|se /i.test(hero.textContent || '')) {
@@ -1693,14 +1705,12 @@ window.addEventListener('DOMContentLoaded', function(){
     return _hbPromise;
   }
   window.loadHubBrief = loadHubBrief;
-  // Expand Morning Brief înainte de load → încarcă imediat
   const pbWrap = document.getElementById('pbWrap');
   if (pbWrap) {
     pbWrap.addEventListener('toggle', function () {
       if (pbWrap.open) loadHubBrief('pb-open');
     }, true);
   }
-  // Refresh button pe summary funcționează și înainte de HB (încarcă + refresh)
   const pbRefEarly = document.getElementById('pbRefreshBtn');
   if (pbRefEarly) {
     pbRefEarly.addEventListener('click', function (e) {
@@ -1712,18 +1722,27 @@ window.addEventListener('DOMContentLoaded', function(){
       }).catch(function () {});
     }, true);
   }
-  // Preferință deschis SAU mereu după first paint scurt — cockpit/brief nu mai așteaptă 1.2s idle
-  let wantBriefSoon = false;
-  try { wantBriefSoon = localStorage.getItem('pb_open') === '1'; } catch (e) {}
-  if (wantBriefSoon) {
-    loadHubBrief('pb_pref');
-  } else if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(function () { loadHubBrief('idle'); }, { timeout: 400 });
+
+  // Secondary + brief: după first paint (idle / 1.5s max) — nu blochează hero
+  function afterPaint(){
+    loadSecondary().then(function(){
+      let wantBriefSoon = false;
+      try { wantBriefSoon = localStorage.getItem('pb_open') === '1'; } catch (e) {}
+      if (wantBriefSoon) loadHubBrief('pb_pref');
+      else if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(function () { loadHubBrief('idle'); }, { timeout: 2500 });
+      } else {
+        setTimeout(function () { loadHubBrief('timeout'); }, 800);
+      }
+    });
+  }
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(afterPaint, { timeout: 1500 });
   } else {
-    setTimeout(function () { loadHubBrief('timeout'); }, 150);
+    setTimeout(afterPaint, 400);
   }
 });
 </script>
-<script defer src="nav.js?v=682" data-nav-root="./"></script>
+<script defer src="nav.js?v=712" data-nav-root="./"></script>
 </body>
 </html>
