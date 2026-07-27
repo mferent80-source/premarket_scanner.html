@@ -611,7 +611,7 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v75</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v76</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -989,9 +989,9 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=709"></script>
-<script src="../lib/data.js?v=709"></script>
-<script src="../lib/quote-bus.js?v=709"></script>
+<script src="../lib/suite-version.js?v=710"></script>
+<script src="../lib/data.js?v=710"></script>
+<script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script>
 // ============ CONFIG ============
@@ -1337,9 +1337,10 @@ async function fetchPriceYahoo(symbol) {
     // v44: interval=1m (nu 5m) → ultima bară e proaspătă la ≤1 min (verificat live pe ASTS: prețul
     // premarket LIVE e DOAR în ultima bară; meta.preMarketPrice vine gol pe destule simboluri).
     // v73: SWR + timeout 6s + cacheKey — poll-ul nu mai atârnă 9s×N pe proxy free hung.
+    // v76: ttl scurt 15s + fără SWR pe chg — un SWR vechi dădea 0% pe un device și 0.7% pe altul.
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1m&range=1d&includePrePost=true`;
     const j = await D.fetchJSON(yahooUrl, {
-      ttl: 20, timeout: 6000, swr: true, maxStale: 300,
+      ttl: 15, timeout: 6000, swr: false,
       cacheKey: 'pa:y1m:' + String(symbol).toUpperCase(),
       validate: d => d && d.chart
     });
@@ -1357,15 +1358,29 @@ async function fetchPriceYahoo(symbol) {
     // fallback când NU sunt bare (ex. premarket f. devreme, fără tranzacții): meta extended → regular
     if (last == null) last = ses === 'pre' ? (m.preMarketPrice ?? null) : ses === 'after' ? (m.postMarketPrice ?? null) : null;
     if (last == null) last = m.regularMarketPrice ?? null;
-    if (last == null) return null;
-    // prev = close de IERI. EU: bursa proprie → mereu chartPreviousClose (close-ul de ieri pe bursa
-    // lor); regularMarketPrice ar fi prețul live de azi → „variația zilei" ar ieși ~0.00% (bug fix).
-    // US: păstrăm logica pe sesiunea US (în premarket regularMarketPrice = close-ul de ieri, fiindcă
-    // bursa US n-a deschis; chartPreviousClose cu range=1d poate fi N−2 acolo).
-    const prev = (isEU
-      ? (m.chartPreviousClose ?? m.regularMarketPrice)
-      : (ses === 'pre' ? (m.regularMarketPrice ?? m.chartPreviousClose) : (m.chartPreviousClose ?? m.regularMarketPrice))) ?? last;
-    return { last, prev };
+    if (last == null || !Number.isFinite(last)) return null;
+
+    // ── Baseline variația zilei (close IERI) ──
+    // Prefer meta.chartPreviousClose / previousClose — nu reconstrui din chg 0 fals.
+    // RTH: regularMarketChangePercent e sursa Yahoo oficială (evită last≈prev → 0% fals).
+    let prev = null;
+    if (isEU) {
+      prev = m.chartPreviousClose ?? m.previousClose ?? null;
+    } else if (ses === 'pre') {
+      // pre: regularMarketPrice = close ieri (bursa n-a deschis)
+      prev = m.regularMarketPrice ?? m.chartPreviousClose ?? m.previousClose ?? null;
+    } else if (ses === 'rth' && Number.isFinite(m.regularMarketChangePercent) && Number.isFinite(m.regularMarketPrice)) {
+      // RTH: folosește % oficial + preț regular (nu ultima bară 1m care poate fi zgomot)
+      last = m.regularMarketPrice;
+      const pct = m.regularMarketChangePercent;
+      prev = Math.abs(pct) > 1e-9 ? last / (1 + pct / 100) : (m.chartPreviousClose ?? m.previousClose ?? last);
+      return { last, prev, src: 'yahoo-rth' };
+    } else {
+      // after / closed: chartPreviousClose = close sesiunea anterioară
+      prev = m.chartPreviousClose ?? m.previousClose ?? m.regularMarketPrice ?? null;
+    }
+    if (prev == null || !Number.isFinite(prev) || prev <= 0) prev = last;
+    return { last, prev, src: 'yahoo' };
   } catch (e) { return null; }
 }
 // Binance pentru perechile USDT (ONDOUSDT, PEPEUSDT etc.) — stil Pionex/Binance,
@@ -1389,16 +1404,19 @@ async function fetchPriceBinance(symbol) {
 }
 async function fetchPrice(symbol) {
   const s = symbol.toUpperCase();
-  // Quote bus (hub/nasdaq) — hit <30s, zero rețea. pc din chg% (nu price=pc → chg 0).
+  // Quote bus: DOAR dacă are chgPct EXPLICIT (finite). Fără chgPct (journal/hub parțial)
+  // sau chgPct undefined → prev=price → Δ zi 0% FALS (incident COKE tel 0% vs desk 0.7%).
   if (window.QB) {
     try {
       const busKey = s.replace(/-USD$/, '').replace(/USDT$/, '') || s;
       const keys = [s, busKey, s === 'BTC-USD' || s === 'BTC' ? 'BTC' : null].filter(Boolean);
       for (const k of keys) {
-        const hit = QB.get(k, 30000);
-        if (hit && Number.isFinite(hit.price) && hit.price > 0) {
-          const chg = Number.isFinite(hit.chgPct) ? hit.chgPct : 0;
-          const prev = Math.abs(chg) > 1e-6 ? hit.price / (1 + chg / 100) : hit.price;
+        const hit = QB.get(k, 20000);
+        if (hit && Number.isFinite(hit.price) && hit.price > 0
+            && typeof hit.chgPct === 'number' && Number.isFinite(hit.chgPct)) {
+          const prev = Math.abs(hit.chgPct) > 1e-9
+            ? hit.price / (1 + hit.chgPct / 100)
+            : hit.price;
           return { last: hit.price, prev, fromBus: true };
         }
       }
@@ -1413,11 +1431,12 @@ async function fetchPrice(symbol) {
   if (s === 'SOL-USD' || s === 'SOL') return (await fetchPriceBinance('SOLUSDT')) || (await fetchPriceYahoo('SOL-USD')) || fetchPriceCoinGecko('solana');
   // Perechi Binance USDT: Binance direct, Yahoo (ONDOUSDT→ONDO-USD) ca plasă
   if (/USDT$/.test(s)) return (await fetchPriceBinance(s)) || fetchPriceYahoo(s.replace(/USDT$/, '-USD'));
-  // Stocks/ETF: în PRE/AFTER-market (și în orele „închis", unde Finnhub /quote free dă close-ul
-  // regular ÎNGHEȚAT) → Yahoo includePrePost ÎNTÂI (ca botul server-side). DOAR în orele regular
-  // Finnhub e ok și mai rapid (fără proxy), cu Yahoo ca plasă.
-  if (marketSession().cls === 'open') return (await fetchPriceFinnhub(s)) || fetchPriceYahoo(s);
-  return (await fetchPriceYahoo(s)) || fetchPriceFinnhub(s);
+  // Stocks: Yahoo ÎNTÂI mereu pt Δ zi corect (pre/AH + includePrePost). Finnhub free
+  // noaptea dă close înghețat → last≈pc → 0% pe un device când pe altul Yahoo dă 0.7%.
+  // Finnhub rămâne fallback rapid doar dacă Yahoo pică.
+  const yh = await fetchPriceYahoo(s);
+  if (yh && yh.last != null) return yh;
+  return fetchPriceFinnhub(s);
 }
 
 // ============ POLL CYCLE ============
@@ -1448,7 +1467,14 @@ function stashPxCache(prices, changes) {
   const now = Date.now();
   Object.keys(prices).forEach(sym => {
     const u = String(sym).toUpperCase();
-    c[u] = { last: prices[sym], chg: changes[u] != null ? changes[u] : c[u]?.chg, ts: now };
+    // v76: scrie chg DOAR din poll-ul curent — nu păstra chg vechi 0% lângă preț nou
+    // (telefonul afișa 0% din cache/bus, desk 0.7% din Yahoo fresh).
+    const chg = changes[u];
+    c[u] = {
+      last: prices[sym],
+      chg: (chg != null && Number.isFinite(chg)) ? chg : null,
+      ts: now
+    };
   });
   Object.keys(c).forEach(k => { if (now - (c[k]?.ts || 0) > PX_CACHE_PAINT_MS) delete c[k]; });
   savePxCache(c);
@@ -1521,15 +1547,13 @@ async function pollPrices() {
         const p = await fetchPrice(sym);
         if (p?.last != null) {
           prices[sym] = p.last;
-          if (p.prev > 0) changes[sym] = (p.last - p.prev) / p.prev * 100;
-          // publică pe bus pt hub/nasdaq
-          if (window.QB && Number.isFinite(p.last)) {
+          if (p.prev > 0 && Number.isFinite(p.prev) && Number.isFinite(p.last)) {
+            changes[sym] = (p.last - p.prev) / p.prev * 100;
+          }
+          // publică pe bus DOAR cu chg real (nu forța 0 — otrăvește alte tab-uri/device)
+          if (window.QB && Number.isFinite(p.last) && changes[sym] != null) {
             try {
-              QB.set(sym, {
-                price: p.last,
-                chgPct: p.prev > 0 ? (p.last - p.prev) / p.prev * 100 : 0,
-                src: 'alerts'
-              });
+              QB.set(sym, { price: p.last, chgPct: changes[sym], src: 'alerts' });
             } catch (e2) {}
           }
         }
