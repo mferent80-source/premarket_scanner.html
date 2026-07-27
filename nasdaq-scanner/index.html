@@ -913,7 +913,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v128</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v129</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -1228,8 +1228,13 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
 <div class="toast" id="toast"></div>
 </div>
 
-<script src="../lib/suite-version.js?v=697"></script>
+<script src="../lib/suite-version.js?v=705"></script>
 <script src="../lib/finnhub-key.js"></script>
+<!-- data/quote-bus ÎNAINTE de scriptul mare — altfel D/QB lipseau pe first paint/scan
+     (erau la final de body, după ~600KB JS inline). -->
+<script src="../lib/data.js?v=705"></script>
+<script src="../lib/quote-bus.js?v=705"></script>
+<script src="../lib/suite-context.js?v=705"></script>
 <script>
 // ── CONSTANTS ──
 const FINNHUB = 'https://finnhub.io/api/v1';
@@ -2196,11 +2201,20 @@ async function fhQuote(symbol,key){
     try {
       const hit = QB.get(sk, 30000);
       if (hit && Number.isFinite(hit.price) && hit.price > 0) {
+        const chgPct = Number.isFinite(hit.chgPct) ? hit.chgPct : 0;
+        // pc reconstruit din chg% — înainte pc=price → chg24 mereu 0 din bus
+        // (toate semnalele pe SPY/QQQ/WL din hub ieșeau neutre/moarte)
+        const pc = (Math.abs(chgPct) > 1e-6)
+          ? hit.price / (1 + chgPct / 100)
+          : hit.price;
         return {
           c: hit.price,
-          dp: Number.isFinite(hit.chgPct) ? hit.chgPct : 0,
-          d: 0,
-          pc: hit.price,
+          dp: chgPct,
+          d: hit.price - pc,
+          pc,
+          h: hit.price,
+          l: hit.price,
+          o: hit.price,
           t: Math.floor((hit.ts || Date.now()) / 1000),
           fromBus: true
         };
@@ -2250,7 +2264,8 @@ async function fetchYahooDailyCloses(symbol, days){
   //    fallback (lib neîncărcat sau toate proxy-urile lui picate → null).
   if (window.D && D.fetchJSON) {
     try {
-      const data = await D.fetchJSON(yahooUrl, { ttl: 300, timeout: 8000, cacheKey: `nq:daily:${symbol}:${range}`, validate: d => d && d.chart });
+      // SWR: RSI/sparkline din cache expirat instant — fără el Faza 2 aștepta 8s×N pe proxy
+      const data = await D.fetchJSON(yahooUrl, { ttl: 300, timeout: 6000, swr: true, maxStale: 3600, cacheKey: `nq:daily:${symbol}:${range}`, validate: d => d && d.chart });
       const closes = data?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
       if (Array.isArray(closes)) {
         _harvestDailyVol(data, closes, symbol);
@@ -2312,36 +2327,48 @@ async function fhCandles(symbol,key){
   return [];
 }
 
-// Fetch DOAR quotes mai întâi (1 call/stock) — rapid, fără rate limit
+// Fetch quotes — pool paralel (CONC=6). _fhThrottle (48/min) rămâne global.
+// Înainte: secvențial → 30 sim ~30s, gainers 150 sim ~3min. Acum ~6× mai rapid.
 async function fetchAllQuotes(symbols, key, onProgress, preFetched){
-  const results=[];
-  for(let i=0;i<symbols.length;i++){
-    if(!running) break;
-    // Reutilizează quote-ul din pre-fetch (gainers/losers/volatile) → evită re-fetch duplicat
-    if(preFetched && preFetched[symbols[i]]){
-      results.push({symbol:symbols[i], q:preFetched[symbols[i]]});
-      if(onProgress) onProgress(i+1,symbols.length,symbols[i]);
-      continue;
+  const n = symbols.length;
+  if (!n) return [];
+  const slots = new Array(n);
+  let next = 0, done = 0;
+  const CONC = 6;
+  async function one(i){
+    const sym = symbols[i];
+    if (preFetched && preFetched[sym]) {
+      slots[i] = { symbol: sym, q: preFetched[sym] };
+      return;
     }
-    try{
-      const d=await fhQuote(symbols[i],key);
-      results.push({symbol:symbols[i], q:d});
-    }catch(e){
-      if(e.message.includes('429')){
+    try {
+      const d = await fhQuote(sym, key);
+      slots[i] = { symbol: sym, q: d };
+    } catch (e) {
+      if (e.message && e.message.includes('429')) {
         log('⏳ Rate limit — aștept 10s...','warn');
         await sleep(10000);
-        try{
-          const d=await fhQuote(symbols[i],key);
-          results.push({symbol:symbols[i], q:d});
-        }catch(e2){ log(`⚠️ Skip ${symbols[i]}: ${e2.message}`,'warn'); }
+        try {
+          const d = await fhQuote(sym, key);
+          slots[i] = { symbol: sym, q: d };
+        } catch (e2) { log(`⚠️ Skip ${sym}: ${e2.message}`,'warn'); }
       } else {
-        log(`⚠️ ${symbols[i]}: ${e.message}`,'warn');
+        log(`⚠️ ${sym}: ${e.message}`,'warn');
       }
     }
-    if(onProgress) onProgress(i+1,symbols.length,symbols[i]);
-    // sleep(120) eliminat: _fhThrottle (48/min) face deja spacing-ul → era dublă întârziere redundantă
   }
-  return results;
+  async function worker(){
+    while (true) {
+      if (!running) break;
+      const i = next++;
+      if (i >= n) break;
+      await one(i);
+      done++;
+      if (onProgress) onProgress(done, n, symbols[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONC, n) }, () => worker()));
+  return slots.filter(Boolean);
 }
 
 // ── EARNINGS CALENDAR ──
@@ -9429,7 +9456,8 @@ window.addEventListener('load',()=>setTimeout(initNewsTicker, 800));
 window.addEventListener('load', ()=>setTimeout(() => {
   loadNasdaqUiState();
   rebuildNasdaqPresetSelect(); // F3
-  // Re-render după restore ca tab-ul/filter-ul nou să fie reflected
+  // Snapshot scan (dacă early paint a eșuat) + re-render după tab/filter restore
+  try{ paintFromLastScan(); }catch(e){}
   if (typeof renderSignals === 'function') renderSignals();
   // Save și pe sortSelect change (renderSignals e called prin onchange existent)
   const sortSel = document.getElementById('sortSelect');
@@ -10340,11 +10368,46 @@ function renderTopLosers(){
   window.addEventListener('load', function () { setTimeout(runFocus, 300); });
 })();
 
+// Instant paint din ultimul scan (nasdaq_last_scan) — UI nu mai e gol până la ▶ Start.
+// Datele sunt snapshot (max 6h); Pornește Scanner = live.
+function paintFromLastScan(){
+  try{
+    const raw=JSON.parse(localStorage.getItem('nasdaq_last_scan')||'null');
+    if(!raw||!raw.timestamp||(Date.now()-raw.timestamp)>6*3600000) return;
+    const ageMin=Math.max(1, Math.round((Date.now()-raw.timestamp)/60000));
+    if(Array.isArray(raw.signals)&&raw.signals.length&&!allSignals.length){
+      allSignals=raw.signals.map(s=>({
+        coin:s.coin, type:s.type||'pump', title:s.title||s.type||'—',
+        price:s.price, chg:s.chg, strength:s.strength||50,
+        priority:s.priority||'med',
+        desc:'📦 Snapshot de acum '+ageMin+'m — apasă ▶ Pornește pentru date live',
+        time:raw.timestamp, tradeDetail:null, sugg:'wait'
+      }));
+      historySignals=allSignals.slice();
+    }
+    if(Array.isArray(raw.opportunities)&&raw.opportunities.length&&!allOpportunities.length){
+      allOpportunities=raw.opportunities.map(o=>({
+        symbol:o.symbol, score:o.score, isBuy:!!o.isBuy, price:o.price,
+        chg24:o.chg24, rsi:o.rsi, earlyScore:0, fromCache:true
+      }));
+    }
+    if(allSignals.length||allOpportunities.length){
+      try{ if(typeof updateStats==='function') updateStats(allSignals); }catch(e){}
+      try{ renderSignals(); }catch(e){}
+      try{ log('📦 Snapshot scan: '+allSignals.length+' semnale · acum '+ageMin+'m — ▶ pentru live','info'); }catch(e){}
+      const st=document.getElementById('statusTxt');
+      if(st && !running) st.textContent='CACHE · '+ageMin+'m';
+    }
+  }catch(e){}
+}
+
 // Suite badge (versiune PWA globală)
 if(window.SUITE_VERSION_SHORT){
   const sb=document.getElementById('suiteBadge');
   if(sb) sb.textContent=window.SUITE_VERSION_SHORT;
 }
+// Snapshot scan early (DOM signals există deja în HTML static)
+try{ paintFromLastScan(); }catch(e){}
 
 // Înregistrează service worker-ul (cache + offline) — scope: ../
 if('serviceWorker' in navigator){
@@ -11092,9 +11155,7 @@ setTimeout(_updateGistStatusN, 500);
 })();
 </script>
 <script src="../lib/utils.js"></script>
-<script src="../lib/data.js"></script>
-<script src="../lib/quote-bus.js?v=697"></script>
-<script src="../lib/suite-context.js?v=685"></script>
+<!-- data.js / quote-bus / suite-context: încărcate ÎNAINTE de scriptul principal (v129) -->
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
 <script src="../lib/capital-time.js?v=630"></script>
