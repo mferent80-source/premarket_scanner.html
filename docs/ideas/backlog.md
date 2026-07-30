@@ -1726,12 +1726,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Riscuri/dependențe:** N și definiția pe close sunt ipoteze de validat out-of-sample (trader.md §1); muchiile VA se mișcă cu profilul → acceptarea se evaluează contra VA curentă (declarat explicit).
 - **Fișiere atinse:** `pine-scripts\liquidity-command-deck-v1.1.pine` (secțiunile 5f/5g + banda context), README-ul aferent.
 
-| I-242 | VERDICT vs TRIGGER (banner + permisiune de intrare) | MM Range Pine | S | P1 | propus | ideation | 2026-07-30 |
-| I-243 | ACTIUNE in limba de trade (CE FAC? + motiv blocaj) | MM Range Pine | S | P1 | propus | ideation | 2026-07-30 |
-| I-244 | Checklist confluenta (Matrix/MTF/IMIM/OB) pe un rand | MM Range Pine | S | P1 | propus | ideation | 2026-07-30 |
-| I-245 | Mod compact (~7 randuri nucleu) pe dash | MM Range Pine | S | P2 | propus | ideation | 2026-07-30 |
-| I-246 | Scara semnal unificata (fara salturi 1->2 doar din OB) | MM Range Pine | M | P1 | propus | ideation | 2026-07-30 |
-| I-247 | OB row: doar zone relevante + distanta la retest | MM Range Pine | S | P2 | propus | ideation | 2026-07-30 |
+| I-242 | VERDICT vs TRIGGER (banner + permisiune de intrare) | MM Range Pine | S | P1 | facut | ideation | 2026-07-30 |
+| I-243 | ACTIUNE in limba de trade (CE FAC? + motiv blocaj) | MM Range Pine | S | P1 | facut | ideation | 2026-07-30 |
+| I-244 | Checklist confluenta (Matrix/MTF/IMIM/OB) pe un rand | MM Range Pine | S | P1 | facut | ideation | 2026-07-30 |
+| I-245 | Mod compact (~7 randuri nucleu) pe dash | MM Range Pine | S | P2 | facut | ideation | 2026-07-30 |
+| I-246 | Scara semnal unificata (fara salturi 1->2 doar din OB) | MM Range Pine | M | P1 | facut | ideation | 2026-07-30 |
+| I-247 | OB row: doar zone relevante + distanta la retest | MM Range Pine | S | P2 | facut | ideation | 2026-07-30 |
 
 ### I-242 · VERDICT vs TRIGGER (banner + permisiune de intrare) · [S] · P1
 - **Problema/golul:** hero-ul MM (`f_sigLabel`) amesteca starea (IN DEMAND, WATCH, BREAKOUT) cu permisiunea de a actiona (`>>> BUY ACUM <<<`). Verde pe banner e citit ca "intru acum" chiar cand e WATCH sau WAIT OB — exact confuzia pe care pattern-ul casei (feedback_dashboard_verdict_pattern + PA Deck) o rezolva prin despartire.
@@ -1774,3 +1774,6 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** stii daca astepti un retest real aproape sau OB-uri moarte departe.
 - **Riscuri/dependente:** filtrul overlap schimba semnalele daca e pe motor (declarat); pe afisare-only e safe.
 - **Fisiere atinse:** `market-matrix-range-zones-v2_3_0.pine` (scan OB, `f_obStsTxt`, optional filter in loop), README.
+
+### Status update 2026-07-30
+I-242..I-247 implementate in Market Matrix Range Zones **v2.4.0** (pine-scripts\GROK PINE\market-matrix-range-zones-v2_4_0.pine).
