@@ -1828,3 +1828,52 @@ I-242..I-247 implementate in Market Matrix Range Zones **v2.4.0** (pine-scripts\
 
 ### Status update 2026-07-30
 I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 6 marimi + recreate).
+
+| I-254 | PB cere stretch recent (sau OFF by default) | ZL DistRev Pine | S | P1 | propus | ideation | 2026-07-30 |
+| I-255 | Scor quality REVERSE dedicat (fara slope pe flip) | ZL DistRev Pine | M | P1 | propus | ideation | 2026-07-30 |
+| I-256 | CE FAC? + BLOCKED alerts OFF by default | ZL DistRev Pine | S | P1 | propus | ideation | 2026-07-30 |
+| I-257 | STATS expectancy pe FADE vs SNAP vs PB | ZL DistRev Pine | M | P2 | propus | ideation | 2026-07-30 |
+| I-258 | Mod motor: REV-only / TREND-only / BOTH | ZL DistRev Pine | S | P2 | propus | ideation | 2026-07-30 |
+| I-259 | Shadow ledger DistRev → shadow-book/journal | ZL DistRev + PWA | M | P2 | propus | ideation | 2026-07-30 |
+
+### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
+- **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
+- **Solutia:** (A) PB default OFF pe preset Crypto/Scalping, sau (B) PB cere `barsSinceExt` pe directia opusa ≤ N bare (retest dupa stretch). Toggle + tooltip „continuare, nu reverse". Prag N = ipoteza OOS (trader.md).
+- **Impact:** mai putine PB false; semnalele de reverse raman lizibile pe panou.
+- **Riscuri/dependente:** mai putine re-entry pe trend curat; userul poate re-ON PB pe Swing.
+- **Fisiere atinse:** `pine-scripts/GROK PINE/ZL_Distance_Reversal_Deck_v1_0_3.pine` (pbLongRaw/pbShortRaw, preset defaults), README.
+
+### I-255 · Scor quality REVERSE dedicat (fara slope pe flip) · [M] · P1
+- **Problema/golul:** audit R1/Y2/Y4 — quality de trend pe bare de flip; `extQ` penalizeaza extended in timp ce reverse vrea stretch. v1.0.3 a salvat FADE cu `quality[1]`, dar scorul tot nu e „calitate mean-reversion".
+- **Solutia:** `revScore` 0–100 din: |dist| vs ext/fatigue, bars in stretch, slope flip confirmed, optional part/RVOL, HTF stack (nu cere align cu bias-ul vechi). Gate FADE/SNAP pe `revScore`; quality trend ramane pentru PB/dash BIAS. Afisare Q rev pe dash. Praguri = ipoteze OOS.
+- **Impact:** gate aliniat cu intentia scriptului; mai putine false negatives pe fade real.
+- **Riscuri/dependente:** al doilea scor de invatat; nu confunda cu minQual trend din Crypto ZL.
+- **Fisiere atinse:** `ZL_Distance_Reversal_Deck_v1_0_3.pine` (f_quality / gateOkRev / dash QUALITY), README, AUDIT note.
+
+### I-256 · CE FAC? + BLOCKED alerts OFF by default · [S] · P1
+- **Problema/golul:** dash are BIAS/ZONE/WARN dar nu o actiune unica (pattern I-242/243 MM Range, I-248 OF3D — facute pe alte tool-uri). Alertele BLOCKED (audit Y9) pot spama webhook-ul pe orice would-fire esuat.
+- **Solutia:** rand **CE FAC?** pe hero: RABDARE / REV LONG SNAP / NU SHORT (HTF) / Q LOW etc. pe bara confirmata. Input „Alerte BLOCKED" default **OFF**; WARN fatigue optional. Text ASCII ca restul suitei.
+- **Impact:** citire 1s pe panou; Telegram mai curat.
+- **Riscuri/dependente:** text prescriptiv = disciplina nu predictie; +1 rand dash (compact include CE FAC?).
+- **Fisiere atinse:** `ZL_Distance_Reversal_Deck_v1_0_3.pine` (dash + alerte), README.
+
+### I-257 · STATS expectancy pe FADE vs SNAP vs PB · [M] · P2
+- **Problema/golul:** nu stii care tier merita webhook — fara n / W% / expR pe FADE vs SNAP vs PB, „prefer SNAP" e estetica. Pattern: I-018/I-028/I-253 facute pe alte Pine.
+- **Solutia:** tracker pe close confirmat, exit la reverse-cross ZL sau timeout bare + friction R pe preset; tabela n/W%/expR pe 3 populatii; n<10 = zgomot explicit. Optional shadow pe blocked (minQual).
+- **Impact:** decizie data pe tier-uri (ipoteze validate OOS, nu edge garantat).
+- **Riscuri/dependente:** STATS = aproximare fill; pe crypto funding nementionat.
+- **Fisiere atinse:** `ZL_Distance_Reversal_Deck_v1_0_3.pine` (STATS + dash detalii), README.
+
+### I-258 · Mod motor: REV-only / TREND-only / BOTH · [S] · P2
+- **Problema/golul:** acelasi script amesteca mean-reversion (FADE/SNAP) cu continuare (PB) + bias STRONG — userul nu stie ce „modul" citeste pe HERO.
+- **Solutia:** input Mode = `Reverse` | `Trend PB` | `Both` (default Both). Reverse = doar FADE/SNAP/WARN; Trend = doar PB + BIAS; Both = actual. Filtreaza alerte + plotshape + CE FAC? (I-256).
+- **Impact:** un panou, intentie clara; reduce confuzia bull/stretch.
+- **Riscuri/dependente:** zero pe calcule de baza; doar gating afisare/semnale.
+- **Fisiere atinse:** `ZL_Distance_Reversal_Deck_v1_0_3.pine` (inputs Semnale + fire*), README.
+
+### I-259 · Shadow ledger DistRev → shadow-book/journal · [M] · P2
+- **Problema/golul:** evenimentele `ZL_DISTREV_*` exista in JSON dar nu intra sistematic in PWA shadow-book/journal (I-055/I-079 facute ca infrastructura — de verificat consumul pe tip event). Fara ledger, OOS pe reverse e manual.
+- **Solutia:** mapare event DistRev in ingest existent (check-alerts / webhook journal): tip FADE/SNAP/PB/BLOCKED + distAtr/qualityPrev/preset; card mini in shadow-book „Reverse fades (7z)". Nu duplica motorul Pine.
+- **Impact:** pipeline validare OOS fara Excel; legatura Pine → disciplina suitei.
+- **Riscuri/dependente:** schema relay; plan TV webhook; sa nu dubleze alertele Crypto ZL.
+- **Fisiere atinse:** `tools/check-alerts.mjs` sau ingest journal, `shadow-book/`, optional `lib/telegram.js` parse; README DistRev (schema event).
