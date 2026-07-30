@@ -1725,3 +1725,52 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 - **Impact:** „peste VA" se desparte în acceptat vs excursie — exact distincția pe care PLAN-ul o cere azi fără s-o poată măsura.
 - **Riscuri/dependențe:** N și definiția pe close sunt ipoteze de validat out-of-sample (trader.md §1); muchiile VA se mișcă cu profilul → acceptarea se evaluează contra VA curentă (declarat explicit).
 - **Fișiere atinse:** `pine-scripts\liquidity-command-deck-v1.1.pine` (secțiunile 5f/5g + banda context), README-ul aferent.
+
+| I-242 | VERDICT vs TRIGGER (banner + permisiune de intrare) | MM Range Pine | S | P1 | propus | ideation | 2026-07-30 |
+| I-243 | ACTIUNE in limba de trade (CE FAC? + motiv blocaj) | MM Range Pine | S | P1 | propus | ideation | 2026-07-30 |
+| I-244 | Checklist confluenta (Matrix/MTF/IMIM/OB) pe un rand | MM Range Pine | S | P1 | propus | ideation | 2026-07-30 |
+| I-245 | Mod compact (~7 randuri nucleu) pe dash | MM Range Pine | S | P2 | propus | ideation | 2026-07-30 |
+| I-246 | Scara semnal unificata (fara salturi 1->2 doar din OB) | MM Range Pine | M | P1 | propus | ideation | 2026-07-30 |
+| I-247 | OB row: doar zone relevante + distanta la retest | MM Range Pine | S | P2 | propus | ideation | 2026-07-30 |
+
+### I-242 · VERDICT vs TRIGGER (banner + permisiune de intrare) · [S] · P1
+- **Problema/golul:** hero-ul MM (`f_sigLabel`) amesteca starea (IN DEMAND, WATCH, BREAKOUT) cu permisiunea de a actiona (`>>> BUY ACUM <<<`). Verde pe banner e citit ca "intru acum" chiar cand e WATCH sau WAIT OB — exact confuzia pe care pattern-ul casei (feedback_dashboard_verdict_pattern + PA Deck) o rezolva prin despartire.
+- **Solutia:** doua randuri: (1) VERDICT = context (ex. "DEMAND + MTF BULL + OB retest" / "SUPPLY, MTF neutru"); (2) TRIGGER = doar permisiunea pe bara confirmata: GO LONG / GO SHORT / ASTEAPTA / STAI / PREGATESTE LIMIT. Latch pe `barstate.isconfirmed` ca sa nu clipeasca intrabar. Hero-ul actual devine VERDICT; TRIGGER inlocuieste dublura COD+sigShort cand e redundanta.
+- **Impact:** scanare in 1 s: stii daca piata e "interesanta" vs "pot apasa butonul".
+- **Riscuri/dependente:** +1 rand (se leaga de I-245 compact); textul VERDICT trebuie scurt (max ~40 caractere).
+- **Fisiere atinse:** `pine-scripts\GROK PINE\market-matrix-range-zones-v2_3_0.pine` (`f_sigLabel`, dashboard hero/COD, `f_actionCore`), README.
+
+### I-243 · ACTIUNE in limba de trade (CE FAC? + motiv blocaj) · [S] · P1
+- **Problema/golul:** `f_actionCore` produce fraze lungi tip "LONG acum | SL x | TP y | RR z +OB" sau "Long invalidat de MTF/consens IMIM" — nu spune CARE filtru a blocat (MTF? IMIM? requireOb?). Sub presiune, "BLOCAT" fara motiv = re-verifici manual MTF/IMIM/OB.
+- **Solutia:** template scurt pe 2 segmente: (A) verb: INTRA / ASTEAPTA / STAI / PREGATESTE LIMIT; (B) motiv un singur token: "MTF 4H DN" / "IMIM -1.5" / "fara OB" / "scor OB 52<65" / "RR 1:2.1 SL.. TP..". Pattern CE FAC? validat I-235/I-238 pe deck-uri.
+- **Impact:** zero ambiguitate pe BLOCAT/WAIT OB; ACTIUNE devine sursa unica de "ce fac acum".
+- **Riscuri/dependente:** text prescriptiv = disciplina, nu predictie (README); lungimea pe layout Orizontal.
+- **Fisiere atinse:** `market-matrix-range-zones-v2_3_0.pine` (`f_actionCore`, rand ACTIUNE), README.
+
+### I-244 · Checklist confluenta (Matrix/MTF/IMIM/OB) pe un rand · [S] · P1
+- **Problema/golul:** codurile 1/2/3/-3 apar ca etichete, dar nu vezi de ce e BUY vs STRONG vs MATRIX+OB. Rândurile DEMAND, MTF, CONSENS, OB sunt separate — reconstruirea ladder-ului e munca mentala pe fiecare bara.
+- **Solutia:** un rand "CONF" cu 4 chip-uri ASCII: `MX OK|NO` · `MTF OK|NO` · `IM OK|NO` · `OB OK|NO` (sau `MX·MTF·IM·OB` cu culori pe celule). MATRIX+OB = toate OK; STRONG = MX+MTF+IM fara OB; BLOCAT = MX OK + (MTF|IM) NO. Zero logica noua de semnal — doar oglinda pe `baseSig`/`bullObTouch`/`canLong`.
+- **Impact:** intelegi scara in o privire; debug rapid cand semnalul "pare gresit".
+- **Riscuri/dependente:** densitate pe mobile; chip-urile trebuie ASCII (feedback_pine_ascii_strings).
+- **Fisiere atinse:** `market-matrix-range-zones-v2_3_0.pine` (dashboard dupa COD), README.
+
+### I-245 · Mod compact (~7 randuri nucleu) pe dash · [S] · P2
+- **Problema/golul:** dash full are ~12+ randuri (header, hero, COD, RANGE, POZITIE, DEMAND, SUPPLY, OB, R:R x2, MTF, CONSENS, ACTIUNE) — peste densitatea casei (~7 vizibile, design.md §3). In trade, R:R MID + detalii preturi sunt zgomot.
+- **Solutia:** toggle "Mod compact" (pattern PA Deck `modCmp`): nucleu = VERDICT, TRIGGER/ACTIUNE, RANGE gauge, CONF checklist (I-244), OB pe o linie, MTF+IMIM pe o linie. OFF = full ca acum. Detalii DEMAND/SUPPLY preturi, R:R MID, STATS raman pe full/detail.
+- **Impact:** citire 2s pe chart aglomerat; full pentru setup review.
+- **Riscuri/dependente:** recreate table la compact/full; aliniere cu I-242/I-244.
+- **Fisiere atinse:** `market-matrix-range-zones-v2_3_0.pine` (inputs Dashboard + bucla `f_put`), README.
+
+### I-246 · Scara semnal unificata (fara salturi 1->2 doar din OB) · [M] · P1
+- **Problema/golul:** `f_applyOb` face: BUY (1) + retest OB cu scor sub prag → STRONG (2) chiar fara `consStrongLong`. STRONG isi pierde sensul "consens IMIM puternic"; MATRIX+OB (3) e singurul tier clar. In plus requireOb transforma 1/2 in WAIT OB (12) dar nu 11 (WATCH) — near-zone + requireOb e ambigua.
+- **Solutia:** ladder explicita documentata: (a) base 1 = zona+filtre; (b) base 2 = DOAR `consStrong*` (IMIM), OB nu promoveaza la 2; (c) base 3 = (1 sau 2) + OB retest + scor>=prag (optional: OB pe zona matrix overlap); (d) requireOb pe 1/2 → 12, pe 11 → mesaj "aproape, asteapta zona+OB". Dashboard/COD reflecta ladder-ul; pragul scor = ipoteza OOS (trader.md).
+- **Impact:** etichetele STRONG/MATRIX+OB devin de incredere; mai putine false "STRONG" pe retest slab.
+- **Riscuri/dependente:** schimba frecventa semnalelor (comportament) — de anuntat in README + STATS comparativ; valida OOS n>=10 pe tier.
+- **Fisiere atinse:** `market-matrix-range-zones-v2_3_0.pine` (`f_applyOb`, `f_calcBaseSig`, labels, alerte), README.
+
+### I-247 · OB row: doar zone relevante + distanta la retest · [S] · P2
+- **Problema/golul:** `f_obStsTxt` afiseaza "OB+ 3 BB+ 1 | OB- 2 BB- 0" sau retest — nu spune cat e pana la cel mai apropiat OB pe directia corecta (long → OB+ sub pret), nici daca OB-urile sunt in afara range-ului matrix (zgomot).
+- **Solutia:** cand nu e retest: "OB+ @ dist X (sc N) · in/out matrix"; cand e retest: pastreaza scorul. Optional input "Doar OB care se suprapun cu demand/supply" (filtrare la scanare, nu doar afisare). Distanta in pret + % range.
+- **Impact:** stii daca astepti un retest real aproape sau OB-uri moarte departe.
+- **Riscuri/dependente:** filtrul overlap schimba semnalele daca e pe motor (declarat); pe afisare-only e safe.
+- **Fisiere atinse:** `market-matrix-range-zones-v2_3_0.pine` (scan OB, `f_obStsTxt`, optional filter in loop), README.
