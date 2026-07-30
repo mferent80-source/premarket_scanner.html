@@ -1777,3 +1777,51 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 
 ### Status update 2026-07-30
 I-242..I-247 implementate in Market Matrix Range Zones **v2.4.0** (pine-scripts\GROK PINE\market-matrix-range-zones-v2_4_0.pine).
+| I-248 | CE FAC? + VERDICT pe OF3D (ZL x profil) | OF 3D Delta Pine | S | P1 | propus | ideation | 2026-07-30 |
+| I-249 | Confluenta ZL+POC ca tier MAX (alerta dedicata) | OF 3D Delta Pine | S | P1 | propus | ideation | 2026-07-30 |
+| I-250 | POC/VA pe fiecare bara (nu doar snapshot islast) | OF 3D Delta Pine | M | P1 | propus | ideation | 2026-07-30 |
+| I-251 | PING zilnic anti-snapshot + time_utc in JSON | OF 3D Delta Pine | S | P2 | propus | ideation | 2026-07-30 |
+| I-252 | Mod compact dash + toggle detalii profil | OF 3D Delta Pine | S | P2 | propus | ideation | 2026-07-30 |
+| I-253 | STATS expectancy pe ZL cross vs ZL+POC | OF 3D Delta Pine | M | P2 | propus | ideation | 2026-07-30 |
+
+### I-248 · CE FAC? + VERDICT pe OF3D (ZL x profil) · [S] · P1
+- **Problema/golul:** dash-ul arata BIAS/POC/ZL DIR separat — userul recompune mental "pot intra?". Pattern casei (PA Deck, MM Range I-242/243 facute) cere VERDICT (context) vs TRIGGER/CE FAC? (permisiune).
+- **Solutia:** doua randuri: VERDICT = "peste POC + delta bull + ZL LONG"; TRIGGER/CE FAC? = GO LONG / ASTEAPTA / STAI + motiv (Q low / sub POC / delta contra). Latch pe bara confirmata.
+- **Impact:** citire 1s; disciplina pe confluenta ZL x profil fara sa deschizi setarile.
+- **Riscuri/dependente:** +2 randuri (se leaga de I-252 compact); text prescriptiv = disciplina nu predictie.
+- **Fisiere atinse:** `pine-scripts\GROK PINE\order-flow-3d-delta-profile-v1_1.pine`, README.
+
+### I-249 · Confluenta ZL+POC ca tier MAX (alerta dedicata) · [S] · P1
+- **Problema/golul:** filtrele POC/delta/VA pot bloca sau permite silent cross-ul ZL, dar nu exista eveniment "confluenta maxima" — botul/journalul nu pot scorea separat setup-urile grele de cele pure ZL.
+- **Solutia:** eveniment `OF3D_ZL_POC_MAX_LONG/SHORT` cand cross sau STRONG ZL + close de partea corecta a POC + (optional) delta aliniat + Q>=min. Prioritate peste cross simplu in coalesce. Praguri = ipoteze OOS (trader.md).
+- **Impact:** semnale rare dar clare pentru webhook; comparatie expectancy pe tier.
+- **Riscuri/dependente:** daca POC e doar snapshot islast (vezi I-250), pe istoric rar; pe live e util.
+- **Fisiere atinse:** `order-flow-3d-delta-profile-v1_1.pine` (alerte + f_json), README.
+
+### I-250 · POC/VA pe fiecare bara (nu doar snapshot islast) · [M] · P1
+- **Problema/golul:** profilul 3D se deseneaza pe `barstate.islast`; `pocLvl` se actualizeaza doar acolo — alertele POC/VA pe bare istorice sunt aproape moarte, iar pe live POC "sare" la recalcul.
+- **Solutia:** extrage calculul bin-urilor (fara polyline) pe fiecare bara confirmata din bufferul `Arrays` — scrie `pocLvl/vaHi/vaLo/delta` series-like in `var` la close; randarea 3D ramane pe islast. Optional throttle (la N bare) daca CPU doare.
+- **Impact:** alerte POC/VA si filtrele de confluenta devin reale pe tot graficul; STATS posibil (I-253).
+- **Riscuri/dependente:** cost O(prd x buckets) per bara — pe Length 200+Buckets 50 poate incetini; fallback throttle.
+- **Fisiere atinse:** `order-flow-3d-delta-profile-v1_1.pine` (motor profil + alerte).
+
+### I-251 · PING zilnic anti-snapshot + time_utc in JSON · [S] · P2
+- **Problema/golul:** alertele TV ingheata scriptul la creare — fara PING nu stii daca ruleaza v1.0 sau v1.1 / ce preset. Pattern validat: I-232/I-239 (JMA/LCD facute).
+- **Solutia:** event `OF3D_PING` o data/zi UTC (toggle), payload cu ver, preset, zLen, minQual, prd, buckets; + `time_utc` pe toate event-urile.
+- **Impact:** failure mode "alerta veche pe chart" detectat in <=24h.
+- **Riscuri/dependente:** +1 mesaj/zi; schema JSON aditiva.
+- **Fisiere atinse:** `order-flow-3d-delta-profile-v1_1.pine` (Alerte + f_json).
+
+### I-252 · Mod compact dash + toggle detalii profil · [S] · P2
+- **Problema/golul:** dupa ZL, dash-ul are multe randuri (BIAS, ZL x2, POC, VA, DELTA, LEN, NOTE) — peste densitatea casei ~7.
+- **Solutia:** Mod compact: header + VERDICT/TRIGGER (I-248) sau BIAS+ZL DIR + POC + CE FAC?; full = VA/DELTA/LEN/NOTE/gates. design.md §3.
+- **Impact:** scanare pe chart aglomerat cu profil 3D.
+- **Riscuri/dependente:** recreate table la compact; zero pe motor.
+- **Fisiere atinse:** `order-flow-3d-delta-profile-v1_1.pine` (Dashboard inputs + f_put).
+
+### I-253 · STATS expectancy pe ZL cross vs ZL+POC · [M] · P2
+- **Problema/golul:** nu stii daca filtrul POC/delta imbunatateste edge-ul sau doar taie semnale — fara n/W%/expR pe tier, "confluenta" e estetica.
+- **Solutia:** tracker price-touch (ca MM Range/ZLEMA) pe populatii: ZL-only vs ZL+POC vs ZL+POC+delta; friction pe preset; n<10 = zgomot explicit. Depinde de I-250 pentru n util pe istoric.
+- **Impact:** decizie data-driven pe filtrele de confluenta (ipoteze validate OOS).
+- **Riscuri/dependente:** STATS = aproximare nu fill real; n mic pe MAX tier.
+- **Fisiere atinse:** `order-flow-3d-delta-profile-v1_1.pine` (STATS + dash), README.
