@@ -1829,12 +1829,12 @@ I-242..I-247 implementate in Market Matrix Range Zones **v2.4.0** (pine-scripts\
 ### Status update 2026-07-30
 I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 6 marimi + recreate).
 
-| I-254 | PB cere stretch recent (sau OFF by default) | ZL DistRev Pine | S | P1 | propus | ideation | 2026-07-30 |
-| I-255 | Scor quality REVERSE dedicat (fara slope pe flip) | ZL DistRev Pine | M | P1 | propus | ideation | 2026-07-30 |
-| I-256 | CE FAC? + BLOCKED alerts OFF by default | ZL DistRev Pine | S | P1 | propus | ideation | 2026-07-30 |
-| I-257 | STATS expectancy pe FADE vs SNAP vs PB | ZL DistRev Pine | M | P2 | propus | ideation | 2026-07-30 |
-| I-258 | Mod motor: REV-only / TREND-only / BOTH | ZL DistRev Pine | S | P2 | propus | ideation | 2026-07-30 |
-| I-259 | Shadow ledger DistRev → shadow-book/journal | ZL DistRev + PWA | M | P2 | propus | ideation | 2026-07-30 |
+| I-254 | PB cere stretch recent (sau OFF by default) | ZL DistRev Pine | S | P1 | facut | ideation | 2026-07-30 |
+| I-255 | Scor quality REVERSE dedicat (fara slope pe flip) | ZL DistRev Pine | M | P1 | facut | ideation | 2026-07-30 |
+| I-256 | CE FAC? + BLOCKED alerts OFF by default | ZL DistRev Pine | S | P1 | facut | ideation | 2026-07-30 |
+| I-257 | STATS expectancy pe FADE vs SNAP vs PB | ZL DistRev Pine | M | P2 | facut | ideation | 2026-07-30 |
+| I-258 | Mod motor: REV-only / TREND-only / BOTH | ZL DistRev Pine | S | P2 | facut | ideation | 2026-07-30 |
+| I-259 | Shadow ledger DistRev → shadow-book/journal | ZL DistRev + PWA | M | P2 | facut | ideation | 2026-07-30 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -1877,3 +1877,6 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 - **Impact:** pipeline validare OOS fara Excel; legatura Pine → disciplina suitei.
 - **Riscuri/dependente:** schema relay; plan TV webhook; sa nu dubleze alertele Crypto ZL.
 - **Fisiere atinse:** `tools/check-alerts.mjs` sau ingest journal, `shadow-book/`, optional `lib/telegram.js` parse; README DistRev (schema event).
+
+### Status update 2026-07-30
+I-254..I-259 implementate in ZL Distance Reversal Deck **v1.1.0** + shadow.js v3 / shadow-book v4 / CACHE tt-v716.

@@ -32,14 +32,15 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
 <div id="capitalRail" data-cd-page="shadow"></div>
 
 <header class="suite-cockpit">
-  <h1>👻 Shadow Book <span class="ver-badge" style="font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(167,139,250,.15);color:var(--accent);border:1px solid rgba(167,139,250,.35);font-family:var(--mono)">v3</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>👻 Shadow Book <span class="ver-badge" style="font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(167,139,250,.15);color:var(--accent);border:1px solid rgba(167,139,250,.35);font-family:var(--mono)">v4</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <button class="nav-link" id="btnEval">📊 Evaluează pending</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
 
 <div class="panel">
   <h2 style="font-size:13px;margin-bottom:8px">📥 Import JSON Pine (blocked/shadow)</h2>
-  <textarea id="pasteJson" placeholder='{"sym":"NVDA","entry":142,"blocked":true,"blockedBy":"macro-gate","source":"zlhma"}'></textarea>
+  <textarea id="pasteJson" placeholder='{"deck":"ZL_DISTREV","event":"ZL_DISTREV_BLOCKED","symbol":"BTCUSDT","side":"LONG","blocked":true,"blockedBy":"Q_REV","price":"64000","src":"distrev"}'></textarea>
+  <p class="note">Acceptă și payload DistRev (`ZL_DISTREV_*`, deck ZL_DISTREV) — blocked + REV/PB/WARN → ledger shadow (I-259).</p>
   <button class="btn" id="btnPaste">Import linii JSON</button>
 </div>
 
@@ -51,8 +52,8 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
     <label>Ticker <input id="fSym"></label>
     <label>Preț <input id="fPx" type="number" step="0.01"></label>
     <label>SL <input id="fSl" type="number" step="0.01"></label>
-    <label>Filtru <select id="fBlk"><option value="macro-gate">macro-gate</option><option value="minQual">minQual</option><option value="earnings">earnings</option><option value="whipsaw">whipsaw</option></select></label>
-    <label>Sursă <select id="fSrc"><option value="zlhma">ZLHMA</option><option value="zlema">ZLEMA</option><option value="amd">AMD</option></select></label>
+    <label>Filtru <select id="fBlk"><option value="macro-gate">macro-gate</option><option value="minQual">minQual</option><option value="Q_REV">Q_REV (DistRev)</option><option value="HTF">HTF</option><option value="LATE">LATE</option><option value="earnings">earnings</option><option value="whipsaw">whipsaw</option></select></label>
+    <label>Sursă <select id="fSrc"><option value="distrev">DistRev</option><option value="zlhma">ZLHMA</option><option value="zlema">ZLEMA</option><option value="amd">AMD</option></select></label>
     <label>Motiv <input id="fWhy"></label>
   </div>
   <button class="btn" id="btnLog">Log shadow</button>
@@ -68,7 +69,7 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
 <script src="../lib/journal.js?v=7"></script>
 <script src="../lib/governor.js?v=630"></script>
 <script src="../lib/data.js"></script>
-<script src="../lib/shadow.js?v=2"></script>
+<script src="../lib/shadow.js?v=3"></script>
 <script src="../lib/equity.js?v=7"></script>
 <script src="../lib/capital-desk.js?v=6"></script>
 <script>
