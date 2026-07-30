@@ -1777,12 +1777,12 @@ Regulă: ideile `respins`/`făcut` NU se repropun (nici reformulate).
 
 ### Status update 2026-07-30
 I-242..I-247 implementate in Market Matrix Range Zones **v2.4.0** (pine-scripts\GROK PINE\market-matrix-range-zones-v2_4_0.pine).
-| I-248 | CE FAC? + VERDICT pe OF3D (ZL x profil) | OF 3D Delta Pine | S | P1 | propus | ideation | 2026-07-30 |
-| I-249 | Confluenta ZL+POC ca tier MAX (alerta dedicata) | OF 3D Delta Pine | S | P1 | propus | ideation | 2026-07-30 |
-| I-250 | POC/VA pe fiecare bara (nu doar snapshot islast) | OF 3D Delta Pine | M | P1 | propus | ideation | 2026-07-30 |
-| I-251 | PING zilnic anti-snapshot + time_utc in JSON | OF 3D Delta Pine | S | P2 | propus | ideation | 2026-07-30 |
-| I-252 | Mod compact dash + toggle detalii profil | OF 3D Delta Pine | S | P2 | propus | ideation | 2026-07-30 |
-| I-253 | STATS expectancy pe ZL cross vs ZL+POC | OF 3D Delta Pine | M | P2 | propus | ideation | 2026-07-30 |
+| I-248 | CE FAC? + VERDICT pe OF3D (ZL x profil) | OF 3D Delta Pine | S | P1 | facut | ideation | 2026-07-30 |
+| I-249 | Confluenta ZL+POC ca tier MAX (alerta dedicata) | OF 3D Delta Pine | S | P1 | facut | ideation | 2026-07-30 |
+| I-250 | POC/VA pe fiecare bara (nu doar snapshot islast) | OF 3D Delta Pine | M | P1 | facut | ideation | 2026-07-30 |
+| I-251 | PING zilnic anti-snapshot + time_utc in JSON | OF 3D Delta Pine | S | P2 | facut | ideation | 2026-07-30 |
+| I-252 | Mod compact dash + toggle detalii profil | OF 3D Delta Pine | S | P2 | facut | ideation | 2026-07-30 |
+| I-253 | STATS expectancy pe ZL cross vs ZL+POC | OF 3D Delta Pine | M | P2 | facut | ideation | 2026-07-30 |
 
 ### I-248 · CE FAC? + VERDICT pe OF3D (ZL x profil) · [S] · P1
 - **Problema/golul:** dash-ul arata BIAS/POC/ZL DIR separat — userul recompune mental "pot intra?". Pattern casei (PA Deck, MM Range I-242/243 facute) cere VERDICT (context) vs TRIGGER/CE FAC? (permisiune).
@@ -1825,3 +1825,6 @@ I-242..I-247 implementate in Market Matrix Range Zones **v2.4.0** (pine-scripts\
 - **Impact:** decizie data-driven pe filtrele de confluenta (ipoteze validate OOS).
 - **Riscuri/dependente:** STATS = aproximare nu fill real; n mic pe MAX tier.
 - **Fisiere atinse:** `order-flow-3d-delta-profile-v1_1.pine` (STATS + dash), README.
+
+### Status update 2026-07-30
+I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 6 marimi + recreate).
