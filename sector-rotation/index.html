@@ -286,7 +286,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v169</span>
+    <span class="ver-badge" id="verBadge">v170</span>
     <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
@@ -968,7 +968,7 @@ async function callAnthropicStream(systemPrompt, userPrompt, maxTokens=600){
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'x-api-key':key,
                 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-      body: JSON.stringify({ model:'claude-opus-4-8', max_tokens:maxTokens, stream:true,
+      body: JSON.stringify({ model:'claude-opus-5', max_tokens:maxTokens, stream:true,
                              system:systemPrompt, messages:[{ role:'user', content:userPrompt }] }),
       signal: ctrl.signal,
     });
@@ -1120,7 +1120,7 @@ function renderAIBubble(sym, text, fromCache, elapsed){
   const html = linkTickersInAI(escHtml(text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>'), sym);
   box.innerHTML = `<div class="ai-body appear">${html}</div>
     <div class="ai-meta">
-      <span>🤖 claude-opus-4-8</span>
+      <span>🤖 claude-opus-5</span>
       ${fromCache ? '<span>⚡ din cache (1h)</span>' : `<span>⏱ ${elapsed || '?'} s</span>`}
       <span>${new Date().toLocaleTimeString('ro-RO')}</span>
     </div>`;
@@ -1550,7 +1550,7 @@ function renderExpandBody(d){
   const aiInitial = ai && ai.text
     ? `<div class="ai-body appear">${escHtml(ai.text).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')}</div>
        <div class="ai-meta">
-         <span>🤖 claude-opus-4-8</span>
+         <span>🤖 claude-opus-5</span>
          <span>⚡ ${Date.now() - ai.ts < 60*60*1000 ? 'din cache (1h)' : 'expirat — apasă Rerun'}</span>
          <span>${new Date(ai.ts).toLocaleTimeString('ro-RO')}</span>
        </div>`

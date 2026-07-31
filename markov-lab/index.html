@@ -99,7 +99,7 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 <body class="suite-page">
 
 <header class="suite-cockpit mk-header">
-<h1>🔗 Markov Lab <span class="ver">v3.11</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <a href="../" class="hub-link" title="Înapoi la Hub">← Hub</a></h1>
+<h1>🔗 Markov Lab <span class="ver">v3.12</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <a href="../" class="hub-link" title="Înapoi la Hub">← Hub</a></h1>
 </header>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>
@@ -715,7 +715,7 @@ function renderHMM(meta, ohlc){
 
   // buton interpretare AI (citește window.__mkRegimeData setat la finalul render-ului)
   html += `<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--b1)">
-    <button id="mkAiBtn" onclick="interpretRegimeAI(this)" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f;font-weight:700;border:none;padding:9px 16px;border-radius:var(--rs);cursor:pointer;font-family:var(--head)">🧠 Interpretare AI + direcție (Opus 4.8)</button>
+    <button id="mkAiBtn" onclick="interpretRegimeAI(this)" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);color:#06121f;font-weight:700;border:none;padding:9px 16px;border-radius:var(--rs);cursor:pointer;font-family:var(--head)">🧠 Interpretare AI + direcție (Opus 5)</button>
     <span class="muted" style="font-size:11px;margin-left:8px">înclinație LONG/SHORT/NEUTRU <b>derivată</b> din autocorelație + ultima mișcare (cu încredere onestă, nu fabricată)</span>
     <div id="mkAiResult" style="margin-top:10px"></div>
   </div>`;
@@ -817,7 +817,7 @@ window.interpretRegimeAI = async function(btn){
   const t0 = Date.now();
   const tmr = setInterval(() => { const s = document.getElementById('mkAiSecs'); if (s) s.textContent = Math.round((Date.now() - t0) / 1000) + 's'; }, 500);
   try {
-    await AI.stream({ prompt, system, model: 'claude-opus-4-8', maxTokens: 400 },
+    await AI.stream({ prompt, system, model: 'claude-opus-5', maxTokens: 400 },
       tok => { full += tok; }); // doar acumulează — fără update vizual per token
     box.innerHTML = `<div class="verdict mk-fadein" style="background:var(--panel3);border:1px solid var(--b1);white-space:pre-wrap;line-height:1.5">🧠 ${mkEsc(full)}</div>`;
   } catch(e){ box.innerHTML = `<div class="verdict bad">Eroare AI: ${mkEsc(e.message || e)}</div>`; }

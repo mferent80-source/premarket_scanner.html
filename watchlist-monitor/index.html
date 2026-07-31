@@ -657,7 +657,7 @@ table.no-pre .col-pre { display:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v161</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v162</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -863,7 +863,7 @@ window.showWlFeatures = function(){
       { e: '📰', t: '<b>News catalyst</b> — buton 📰 pe rând și în detalii: ultimele 8 știri din 7 zile (Finnhub, cheia shared) — răspunde la „de ce mișcă?". On-demand, zero cost dacă nu apeși' },
       { e: '👔', t: '<b>Insider 90 zile</b> — badge pe rând: „👔 N× buy" verde la cluster (≥2 persoane distincte au cumpărat) / „👔 selling" roșu; lista tranzacțiilor în detalii (nume, shares @ preț, data). Finnhub, cache 12h. Cluster buy + BUY tehnic = confluență serioasă' },
       { e: '📊', t: '<b>Analyst consensus</b> — în detalii: % analiști pe Buy (nr total + direcția vs luna trecută). Finnhub recommendation trends, fetch doar la click pe rând, cache 24h' },
-      { e: '🤖', t: '<b>AI verdict</b> (claude-opus-4-8) — buton 🤖 în detalii: verdict LONG/AȘTEAPTĂ/SKIP + plan ancorat EXCLUSIV pe nivelurile reale calculate (Entry/SL/TP ref ATR, MA, 52s) — anti-halucinare. Cache 1h + Rerun; cheia shared `anthropic_api_key`' },
+      { e: '🤖', t: '<b>AI verdict</b> (claude-opus-5) — buton 🤖 în detalii: verdict LONG/AȘTEAPTĂ/SKIP + plan ancorat EXCLUSIV pe nivelurile reale calculate (Entry/SL/TP ref ATR, MA, 52s) — anti-halucinare. Cache 1h + Rerun; cheia shared `anthropic_api_key`' },
       { e: '🎯', t: '<b>Hook Smart Trade Long</b> — buton în detalii: deschide pagina Smart Trade Long cu simbolul prefill (scoring 5-filtre, niveluri ATR, position sizer pe contul tău, insider widget)' },
     ]},
   ];
@@ -1868,7 +1868,7 @@ window.wlShowNews = function(sym){
     .catch(e => { area.innerHTML = '❌ Eroare Finnhub: ' + wlEsc(e.message); });
 };
 
-// ── AI verdict (B) — claude-opus-4-8, cheia shared `anthropic_api_key` ──
+// ── AI verdict (B) — claude-opus-5, cheia shared `anthropic_api_key` ──
 // Non-streaming (afișare deodată cu fade-in + cronometru), cache LS 1h + Rerun.
 // Prompt ANCORAT pe prețurile reale calculate (anti-halucinare Entry/SL/TP).
 const AI_CACHE_KEY = 'wl_ai_cache';
@@ -1880,9 +1880,9 @@ function _aiSave(sym, text){ const all = _aiAll(); all[sym] = { ts: Date.now(), 
 function _aiHtml(text){ return wlEsc(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>'); }
 // Conținutul zonei AI la (re)render — supraviețuiește re-render-ului de la fiecare scan
 function aiAreaHtml(sym){
-  if (_aiLoading[sym]) return `<div class="ai-box"><div class="ai-meta">🤖 claude-opus-4-8 · analizez… <span id="aiTimer-${sym}">0s</span></div></div>`;
+  if (_aiLoading[sym]) return `<div class="ai-box"><div class="ai-meta">🤖 claude-opus-5 · analizez… <span id="aiTimer-${sym}">0s</span></div></div>`;
   const c = _aiFresh(sym);
-  if (c) return `<div class="ai-box"><div class="ai-meta">🤖 claude-opus-4-8 · ${fmtAge(c.ts)}<button type="button" class="action-btn" style="margin-left:auto;font-size:9px" onclick="wlAskAI('${sym}', true)">↻ Rerun</button></div><div>${_aiHtml(c.text)}</div></div>`;
+  if (c) return `<div class="ai-box"><div class="ai-meta">🤖 claude-opus-5 · ${fmtAge(c.ts)}<button type="button" class="action-btn" style="margin-left:auto;font-size:9px" onclick="wlAskAI('${sym}', true)">↻ Rerun</button></div><div>${_aiHtml(c.text)}</div></div>`;
   return '';
 }
 function buildAiPrompt(r){
@@ -1935,7 +1935,7 @@ window.wlAskAI = async function(sym, force){
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 700, messages: [{ role: 'user', content: buildAiPrompt(r) }] })
+      body: JSON.stringify({ model: 'claude-opus-5', max_tokens: 700, messages: [{ role: 'user', content: buildAiPrompt(r) }] })
     });
     if (!resp.ok){
       const j = await resp.json().catch(() => ({}));
@@ -3297,7 +3297,7 @@ function buildDetailRow(r){
           <a class="action-btn" href="${yhUrl}" target="_blank" rel="noopener">📊 Yahoo</a>
           ${sym.includes('.') ? '' : `<a class="action-btn" href="${fvUrl}" target="_blank" rel="noopener">📊 Finviz</a>`}
           <button class="action-btn" onclick="wlShowNews('${sym}')">📰 News 7z</button>
-          <button class="action-btn" style="border-color:rgba(91,176,255,.4);color:var(--accent)" onclick="wlAskAI('${sym}')" title="Verdict AI (claude-opus-4-8) ancorat pe datele reale de mai sus — cache 1h">🤖 AI</button>
+          <button class="action-btn" style="border-color:rgba(91,176,255,.4);color:var(--accent)" onclick="wlAskAI('${sym}')" title="Verdict AI (claude-opus-5) ancorat pe datele reale de mai sus — cache 1h">🤖 AI</button>
           <a class="action-btn" style="border-color:rgba(255,216,107,.4);color:var(--crypto-2)" href="../smart-trade-long/?symbol=${encodeURIComponent(sym)}" target="_blank" rel="noopener" title="Deschide Smart Trade Long cu simbolul prefill — scoring 5-filtre + position sizer + insider">🎯 Smart Trade</a>
         </div>
         <div id="aiArea-${sym}">${aiAreaHtml(sym)}</div>

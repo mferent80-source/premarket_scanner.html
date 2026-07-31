@@ -285,7 +285,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>⚡ Earnings Hub <span class="ver-badge" id="verBadge">v141</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>⚡ Earnings Hub <span class="ver-badge" id="verBadge">v142</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="sessionPill">⏳ sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -390,7 +390,7 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
     <div class="mod-row">
       <label>Anthropic API key (Claude � shared cu nasdaq-scanner)</label>
       <input type="password" id="setAnthropic" placeholder="sk-ant-�">
-      <span class="hint">Pentru butonul ?? din expand row. Cheia de pe <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. ? $0.05�0.10 / analiz� (claude-opus-4-8).</span>
+      <span class="hint">Pentru butonul ?? din expand row. Cheia de pe <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. ? $0.05�0.10 / analiz� (claude-opus-5).</span>
     </div>
     <div class="mod-row">
       <label>Auto-refresh</label>
@@ -1187,7 +1187,7 @@ function injectExpandedRow(tr, e){
     </div>
     <div class="exp-ai-bar">
       <button class="ai-btn" id="ai-btn-${e.symbol}" onclick="event.stopPropagation(); analyzeEarningWithAI('${e.symbol}', this)">?? Analizeaz� cu AI (Claude)</button>
-      <button class="ai-btn" id="qs-btn-${e.symbol}" onclick="event.stopPropagation(); runEHQuickSetup('${e.symbol}', this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">?? Quick Setup (Opus 4.8)</button>
+      <button class="ai-btn" id="qs-btn-${e.symbol}" onclick="event.stopPropagation(); runEHQuickSetup('${e.symbol}', this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">?? Quick Setup (Opus 5)</button>
       <span class="ai-hint">AI = analiz� narativ� pre-earnings. Quick Setup = JSON ready-to-execute pentru play pe data release.</span>
     </div>
     <div class="exp-ai" id="ai-result-${e.symbol}" data-done="0"></div>
@@ -1496,7 +1496,7 @@ window.analyzeEarningWithAI = async function(symbol, btn){
   }
   if (btn){ btn.disabled = true; btn.textContent = '? Se genereaz�'; }
   // F�r� streaming vizual (obositor) � spinner + cronometru, r�spunsul apare DEODAT� cu fade-in.
-  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-4-8</span></div><div style="padding:10px;text-align:center;color:var(--t3)"><span style="font-size:20px;animation:pulse 1.4s infinite">??</span><div style="margin-top:6px;font-size:12.5px">Analizez� <span id="ai-timer-${symbol}">0.0s</span></div></div></div>`;
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-5</span></div><div style="padding:10px;text-align:center;color:var(--t3)"><span style="font-size:20px;animation:pulse 1.4s infinite">??</span><div style="margin-top:6px;font-size:12.5px">Analizez� <span id="ai-timer-${symbol}">0.0s</span></div></div></div>`;
   container.dataset.done = '1';
 
   const prompt = buildAiPrompt(e);
@@ -1516,7 +1516,7 @@ window.analyzeEarningWithAI = async function(symbol, btn){
           'anthropic-dangerous-direct-browser-access':'true',
         },
         body: JSON.stringify({
-          model:'claude-opus-4-8',
+          model:'claude-opus-5',
           max_tokens:600,
           system:[{ type:'text', text:AI_SYSTEM, cache_control:{ type:'ephemeral' } }],
           messages:[{ role:'user', content:prompt }],
@@ -1530,8 +1530,8 @@ window.analyzeEarningWithAI = async function(symbol, btn){
     }
     const data = await resp.json();
     const full = data?.content?.[0]?.text || '';
-    aiCacheSet(ck, full, 'claude-opus-4-8');
-    renderAiBubble(container, full, 'claude-opus-4-8 � ' + ((Date.now() - t0) / 1000).toFixed(1) + 's � ' + new Date().toLocaleTimeString('ro-RO'));
+    aiCacheSet(ck, full, 'claude-opus-5');
+    renderAiBubble(container, full, 'claude-opus-5 � ' + ((Date.now() - t0) / 1000).toFixed(1) + 's � ' + new Date().toLocaleTimeString('ro-RO'));
     if (btn) btn.textContent = '?? Ascunde analiz�';
   } catch(err){
     const msg = (err && err.name === 'AbortError') ? 'timeout 180s � re�ncearc�' : (err.message || 'unknown');
@@ -1544,7 +1544,7 @@ window.analyzeEarningWithAI = async function(symbol, btn){
 };
 
 // ===============================================================
-//  QUICK SETUP � JSON ready-to-execute pentru earnings play (Opus 4.8)
+//  QUICK SETUP � JSON ready-to-execute pentru earnings play (Opus 5)
 // ===============================================================
 const EH_QS_CACHE_KEY = 'eh_qs_cache_v1';
 const EH_QS_TTL = 60*60*1000; // 1h
@@ -1564,7 +1564,7 @@ window.runEHQuickSetup = async function(symbol, btn){
   if (!e){ container.innerHTML = '<div class="ai-bubble error"><div class="ai-head"><b>? Date earnings lips�</b></div>Re-deschide expand row sau scan din nou.</div>'; return; }
   if (container.dataset.done === '1'){
     container.innerHTML = ''; container.dataset.done = '0';
-    if (btn) btn.textContent = '?? Quick Setup (Opus 4.8)';
+    if (btn) btn.textContent = '?? Quick Setup (Opus 5)';
     return;
   }
   const key = getAnthropicKey();
@@ -1579,8 +1579,8 @@ window.runEHQuickSetup = async function(symbol, btn){
     if (btn) btn.textContent = '?? Ascunde Quick Setup';
     return;
   }
-  if (btn){ btn.disabled = true; btn.textContent = '? Opus 4.8 g�nde?te (5-15s)�'; }
-  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">?? Quick Setup � Opus 4.8</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">??</span><div style="margin-top:6px;font-size:12.5px">Generez JSON pre-earnings setup� <span id="qs-timer-${symbol}">0.0s</span></div></div></div>`;
+  if (btn){ btn.disabled = true; btn.textContent = '? Opus 5 g�nde?te (5-15s)�'; }
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">?? Quick Setup � Opus 5</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">??</span><div style="margin-top:6px;font-size:12.5px">Generez JSON pre-earnings setup� <span id="qs-timer-${symbol}">0.0s</span></div></div></div>`;
   container.dataset.done = '1';
   const _qsT0 = Date.now();
   const _qsTimer = setInterval(() => { const el = $('qs-timer-' + symbol); if (el) el.textContent = ((Date.now() - _qsT0) / 1000).toFixed(1) + 's'; }, 100);
@@ -1632,7 +1632,7 @@ REGULI SPECIFICE EARNINGS:
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true'
         },
-        body: JSON.stringify({ model: 'claude-opus-4-8', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] }),
+        body: JSON.stringify({ model: 'claude-opus-5', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] }),
         signal: ctrl.signal,
       });
     } finally { clearTimeout(to); }
@@ -1681,7 +1681,7 @@ function renderEHQuickSetup(container, setup, sourceLabel, symbol){
   const tfLabel = setup.timeframe === 'skip' ? '? SKIP' : (setup.timeframe === 'pre-earnings' ? '? Pre-earnings' : '?? Post-earnings');
   container.innerHTML = `<div class="ai-bubble" style="background:linear-gradient(180deg, rgba(247,147,26,.10), rgba(20,26,40,.4));border-color:rgba(247,147,26,.4)">
     <div class="ai-head">
-      <span class="ai-meta">?? Quick Setup � Opus 4.8 � ${sourceLabel}</span>
+      <span class="ai-meta">?? Quick Setup � Opus 5 � ${sourceLabel}</span>
       <button class="ai-rerun" onclick="event.stopPropagation(); rerunEHQuickSetup('${symbol}')">? Re-ruleaz�</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px">
@@ -1717,7 +1717,7 @@ window.rerunEHQuickSetup = function(symbol){
   const container = $('qs-result-' + symbol);
   if (container){ container.dataset.done = '0'; container.innerHTML = ''; }
   const btn = $('qs-btn-' + symbol);
-  if (btn) btn.textContent = '?? Quick Setup (Opus 4.8)';
+  if (btn) btn.textContent = '?? Quick Setup (Opus 5)';
   runEHQuickSetup(symbol, btn);
 };
 
