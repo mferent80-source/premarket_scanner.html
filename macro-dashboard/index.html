@@ -100,27 +100,29 @@ body[data-mood="risk-off"] header h1 { background:linear-gradient(90deg, var(--b
 body[data-mood="stress"] header h1 { background:linear-gradient(90deg, #ff5555, #ffaaaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 body[data-mood="mixed"] header h1 { background:linear-gradient(90deg, var(--warn), var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 
-/* Panel-uri tinted subtle */
+/* Panel-uri tinted subtle (v234: .tabs-row → .cockpit; .sec e exclusă deliberat —
+   shorthand-ul border-color ar suprascrie bordura de sus colorată a secțiunii) */
 body[data-mood="risk-on"] .panel-box,
 body[data-mood="risk-on"] .stat-tile,
 body[data-mood="risk-on"] .filter-bar,
-body[data-mood="risk-on"] .tabs-row { border-color:rgba(34,214,107,.22); }
+body[data-mood="risk-on"] .cockpit { border-color:rgba(34,214,107,.22); }
 
 body[data-mood="risk-off"] .panel-box,
 body[data-mood="risk-off"] .stat-tile,
 body[data-mood="risk-off"] .filter-bar,
-body[data-mood="risk-off"] .tabs-row { border-color:rgba(255,77,77,.22); }
+body[data-mood="risk-off"] .cockpit { border-color:rgba(255,77,77,.22); }
 
 body[data-mood="stress"] .panel-box,
 body[data-mood="stress"] .stat-tile,
 body[data-mood="stress"] .filter-bar,
-body[data-mood="stress"] .tabs-row {
+body[data-mood="stress"] .cockpit {
   border-color:rgba(255,77,77,.45);
   box-shadow:0 1px 2px rgba(0,0,0,.3), 0 0 12px rgba(255,77,77,.15);
 }
 
 body[data-mood="mixed"] .panel-box,
-body[data-mood="mixed"] .stat-tile { border-color:rgba(212,137,44,.22); }
+body[data-mood="mixed"] .stat-tile,
+body[data-mood="mixed"] .cockpit { border-color:rgba(212,137,44,.22); }
 
 /* Panel head gradient per mood */
 body[data-mood="risk-on"] .panel-head { background:linear-gradient(180deg, rgba(20,55,30,.5), rgba(20,26,40,.4)); }
@@ -337,14 +339,8 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .hot-card .hc-when { margin-left:auto; font-family:var(--mono); font-weight:700; font-size:11.5px; color:#fca5a5; white-space:nowrap; }
 .hot-card .hc-mid { font-family:var(--mono); font-size:11.5px; color:var(--t2); margin-top:1px; }
 
-/* Tabs row */
-.tabs-row { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:5px; box-shadow:var(--shadow-sm); }
-.tab-btn { background:transparent; border:1px solid transparent; color:var(--t1); padding:8px 15px; border-radius:var(--rs); font-size:13px; font-weight:700; font-family:var(--head); letter-spacing:.2px; cursor:pointer; transition:all .15s var(--ease); }
-.tab-btn:hover { background:var(--panel2); border-color:var(--b1); color:var(--t1); transform:none; }
-.tab-btn.active { background:linear-gradient(135deg, var(--acc-1), var(--acc-2)); color:#fff; border-color:transparent; box-shadow:0 2px 6px rgba(59,130,246,.3); }
-.tab-btn.active:hover { color:#fff; filter:brightness(1.08); }
-.tab-content { display:none; }
-.tab-content.active { display:block; }
+/* (v234) CSS-ul taburilor (.tabs-row/.tab-btn/.tab-content) a fost ELIMINAT —
+   pagina e „ziar" scrollabil, nu mai are taburi. */
 
 /* Filter bar */
 .filter-bar { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:9px 12px; margin-bottom:10px; display:flex; gap:9px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow-sm); }
@@ -961,33 +957,192 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   .exp-wrap { grid-template-columns:1fr; }
   .filter-bar { gap:6px; padding:8px 10px; }
   .filter-bar input[type=text] { width:100%; }
-  .tab-btn { padding:7px 11px; font-size:11.5px; }
   thead th, td { padding:7px 5px; font-size:11.5px; }
   td.left { padding-left:10px; }
   .scanner-wrap { max-height:none; }
   .evt-name { font-size:12px; }
   /* Tap targets ≥40px pe mobil (evită mis-tap-urile dimineața) */
-  .icon-btn, .action-btn, .nav-link, .tab-btn, button.primary, button.ghost, button { min-height:40px; }
+  .icon-btn, .action-btn, .nav-link, button.primary, button.ghost, button { min-height:40px; }
   .fb-chip { min-height:36px; }
   .cc-cell { min-height:62px; }
   /* Card-view pt tabelul de calendar (8 coloane nu încap la 360px) */
-  #tab-calendar thead { display:none; }
-  #tab-calendar table, #tab-calendar tbody { display:block; width:100%; }
-  #tab-calendar tbody tr.clickable { display:flex; flex-wrap:wrap; align-items:center; gap:3px 8px; border:1px solid var(--b1); border-left-width:3px; border-radius:var(--rs); margin-bottom:8px; padding:9px 11px; }
-  #tab-calendar tbody tr.expanded-row { display:block; }
-  #tab-calendar tbody tr.clickable td { display:inline-flex; align-items:center; padding:0 !important; border:none !important; text-align:left !important; width:auto; min-height:0; }
-  #tab-calendar tbody tr.clickable td:nth-child(3) { order:1; flex:1 1 100%; }
-  #tab-calendar tbody tr.clickable td:nth-child(1) { order:2; font-size:11px; color:var(--t2); }
-  #tab-calendar tbody tr.clickable td:nth-child(2) { order:3; }
-  #tab-calendar tbody tr.clickable td:nth-child(4) { order:4; margin-left:auto; }
-  #tab-calendar tbody tr.clickable td:nth-child(5) { order:5; }
-  #tab-calendar tbody tr.clickable td:nth-child(6) { order:6; }
-  #tab-calendar tbody tr.clickable td:nth-child(7) { order:7; }
-  #tab-calendar tbody tr.clickable td:nth-child(8) { order:8; margin-left:auto; }
-  #tab-calendar tbody tr.clickable td:nth-child(5)::before { content:"F:"; color:var(--t3); font-family:var(--mono); font-size:10px; margin-right:3px; }
-  #tab-calendar tbody tr.clickable td:nth-child(6)::before { content:"P:"; color:var(--t3); font-family:var(--mono); font-size:10px; margin-right:3px; }
-  #tab-calendar tbody tr.clickable td:nth-child(7)::before { content:"A:"; color:var(--t3); font-family:var(--mono); font-size:10px; margin-right:3px; }
-  #tab-calendar .when-h { display:inline; margin-left:5px; }
+  #sec-calendar thead { display:none; }
+  #sec-calendar table, #sec-calendar tbody { display:block; width:100%; }
+  #sec-calendar tbody tr.clickable { display:flex; flex-wrap:wrap; align-items:center; gap:3px 8px; border:1px solid var(--b1); border-left-width:3px; border-radius:var(--rs); margin-bottom:8px; padding:9px 11px; }
+  #sec-calendar tbody tr.expanded-row { display:block; }
+  #sec-calendar tbody tr.clickable td { display:inline-flex; align-items:center; padding:0 !important; border:none !important; text-align:left !important; width:auto; min-height:0; }
+  #sec-calendar tbody tr.clickable td:nth-child(3) { order:1; flex:1 1 100%; }
+  #sec-calendar tbody tr.clickable td:nth-child(1) { order:2; font-size:11px; color:var(--t2); }
+  #sec-calendar tbody tr.clickable td:nth-child(2) { order:3; }
+  #sec-calendar tbody tr.clickable td:nth-child(4) { order:4; margin-left:auto; }
+  #sec-calendar tbody tr.clickable td:nth-child(5) { order:5; }
+  #sec-calendar tbody tr.clickable td:nth-child(6) { order:6; }
+  #sec-calendar tbody tr.clickable td:nth-child(7) { order:7; }
+  #sec-calendar tbody tr.clickable td:nth-child(8) { order:8; margin-left:auto; }
+  #sec-calendar tbody tr.clickable td:nth-child(5)::before { content:"F:"; color:var(--t3); font-family:var(--mono); font-size:10px; margin-right:3px; }
+  #sec-calendar tbody tr.clickable td:nth-child(6)::before { content:"P:"; color:var(--t3); font-family:var(--mono); font-size:10px; margin-right:3px; }
+  #sec-calendar tbody tr.clickable td:nth-child(7)::before { content:"A:"; color:var(--t3); font-family:var(--mono); font-size:10px; margin-right:3px; }
+  #sec-calendar .when-h { display:inline; margin-left:5px; }
+}
+
+/* ==================================================================== */
+/* ===== v234 „ZIARUL DE DIMINEAȚĂ" — layout nou (schelet task 2) ===== */
+/* ==================================================================== */
+
+/* Culori de accent pentru bordura de sus a secțiunilor (mapate pe paleta paginii) */
+:root {
+  --sec-cal:var(--acc-1);
+  --sec-news:#a78bfa;
+  --sec-crypto:#fb923c;
+  --sec-op:var(--bull-s);
+  --sec-wl:var(--acc-2);
+}
+
+/* Lățime „ziar" — suite-ui.css forțează full-bleed cu !important, deci și aici e nevoie */
+body.macro-page .macro-wrap { max-width:1560px !important; width:100% !important; margin:0 auto !important; }
+
+/* ===== TOPBAR sticky (fostul header) ===== */
+.macro-cockpit.topbar-sticky { top:0; z-index:60; margin-bottom:14px; }
+
+/* ===== COCKPIT (semafor + gauge + KPI) ===== */
+.cockpit {
+  display:grid; grid-template-columns:minmax(340px,1.3fr) auto 2.2fr; gap:18px; align-items:center;
+  background:var(--panel); border:1px solid var(--b1); border-radius:var(--r);
+  padding:18px 22px; margin-bottom:14px; box-shadow:var(--shadow-sm);
+}
+.cockpit:empty { display:none; }
+.semaphore { display:flex; gap:14px; align-items:flex-start; }
+.semaphore .sicon { font-size:34px; line-height:1; margin-top:2px; color:var(--t3); }
+.semaphore .slabel { font-family:var(--mono); font-size:9.5px; letter-spacing:2px; color:var(--t3); }
+.semaphore .sstance { font-size:22px; font-weight:800; letter-spacing:.3px; margin:2px 0 4px; color:var(--t1); font-family:var(--head); }
+.semaphore .ssub { font-size:12px; color:var(--t2); line-height:1.55; }
+.semaphore .ssub b { color:var(--t1); }
+/* stări semafor — clasa se pune de JS în task 3 */
+.semaphore.sem-on .sicon  { color:var(--bull-s); text-shadow:0 0 18px rgba(58,235,136,.5); }
+.semaphore.sem-on .sstance { color:var(--bull-s); }
+.semaphore.sem-off .sicon { color:var(--bear-s); text-shadow:0 0 18px rgba(255,107,107,.55); }
+.semaphore.sem-off .sstance { color:var(--bear-s); }
+.semaphore.sem-mixed .sicon { color:var(--warn); text-shadow:0 0 18px rgba(212,137,44,.5); }
+.semaphore.sem-mixed .sstance { color:var(--warn); }
+
+.gaugebox { text-align:center; }
+.gauge { width:180px; height:116px; }
+.gauge:empty { display:none; }
+.gauge .gv { font-size:27px; font-weight:800; fill:var(--t1); font-family:var(--head); }
+.gauge .gl { font-size:10.5px; fill:var(--t3); font-family:var(--mono); }
+
+.kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(98px,1fr)); gap:9px; }
+.kpi { background:var(--panel2); border:1px solid var(--b1); border-radius:11px; padding:9px 8px; text-align:center; }
+.kpi .kv { font-size:20px; font-weight:800; color:var(--t1); font-family:var(--head); }
+.kpi .kl { font-size:9.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.8px; font-family:var(--mono); margin-top:2px; }
+.kpi .kd { font-family:var(--mono); font-size:9.5px; margin-top:1px; }
+.kpi.k-bad .kv  { color:var(--bear-s); }
+.kpi.k-warn .kv { color:var(--warn); }
+.kpi.k-good .kv { color:var(--bull-s); }
+/* .up/.dn generice — regulile existente scoped (.stat-sub.up etc.) au specificitate mai mare, deci nu se strică nimic */
+.up { color:var(--bull-s); }
+.dn { color:var(--bear-s); }
+
+/* ===== HERO BRIEF ===== */
+.hero {
+  background:linear-gradient(170deg, rgba(59,130,246,.10), rgba(16,185,129,.045) 55%, transparent);
+  border:1px solid rgba(59,130,246,.30); border-radius:var(--r);
+  padding:28px 34px 24px; margin-bottom:14px; box-shadow:0 10px 44px rgba(0,0,0,.4);
+}
+.brief-meta-line { display:flex; flex-wrap:wrap; align-items:center; gap:10px; font-family:var(--mono); font-size:10.5px; color:var(--t3); margin-bottom:14px; }
+.brief-meta-line .bh-date { font-family:var(--mono); font-size:10.5px; color:var(--t3); }
+.brief-meta-line .bh-status { font-family:var(--mono); font-size:10.5px; color:var(--t2); }
+.brief-meta-line .spacer { flex:1; }
+.ghost-sm {
+  background:transparent; border:1px solid var(--b1); color:var(--t2); border-radius:var(--rs);
+  padding:3px 10px; font-size:10.5px; font-family:var(--mono); cursor:pointer; transition:all .15s var(--ease);
+}
+.ghost-sm:hover { border-color:var(--b2); color:var(--t1); }
+
+h1.headline {
+  font-size:34px; line-height:1.2; font-weight:800; letter-spacing:-.4px; margin-bottom:6px; max-width:21em;
+  background:linear-gradient(92deg, var(--accent), var(--bull-s));
+  -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent;
+  font-family:var(--head);
+}
+h1.headline:empty { display:none; }
+.standfirst { font-size:14.5px; color:var(--t2); line-height:1.6; margin-bottom:20px; max-width:60em; }
+.standfirst:empty { display:none; }
+
+/* Reperele brief-ului (populate în task 4) */
+.repere { display:grid; grid-template-columns:1fr 1fr; gap:8px 26px; }
+.rep { padding:14px 16px; border-radius:11px; border:1px solid transparent; }
+.rep:hover { background:var(--panel); border-color:var(--b1); }
+.rep h3 { font-size:13px; font-weight:800; color:var(--t1); letter-spacing:.6px; margin-bottom:8px; display:flex; align-items:center; gap:8px; cursor:pointer; font-family:var(--head); }
+.rep h3::after { content:"⤵ detaliază"; font-family:var(--mono); font-size:9.5px; color:var(--t3); opacity:0; transition:opacity .15s; font-weight:400; }
+.rep h3:hover::after { opacity:1; }
+.rep h3:hover { color:var(--accent); }
+.rep p { font-size:14.5px; line-height:1.8; color:var(--t3); letter-spacing:.1px; }
+.tk { color:var(--accent); font-weight:700; cursor:pointer; border-bottom:1px dotted rgba(138,200,255,.4); }
+.num { font-family:var(--mono); font-size:13px; }
+
+/* Brief-body trăiește ACUM în interiorul hero-ului — fără panel propriu (dublu chenar) */
+.hero .brief-body { background:transparent; border:none; padding:0; min-height:0; box-shadow:none; }
+.hero .brief-body.loading { min-height:180px; }
+.hero .brief-body.error { background:rgba(255,77,77,.06); border:1px solid rgba(255,77,77,.35); padding:16px 18px; border-radius:var(--r); }
+
+/* Verdict 3 celule (populat în task 4) */
+.verdict { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:20px; border-top:1px solid var(--b1); padding-top:18px; }
+.v-cell { border-radius:11px; padding:13px 14px; text-align:center; border:1px solid var(--b1); background:var(--panel2); }
+.v-cell .lb { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:var(--t2); }
+.v-cell .val { font-size:17px; font-weight:800; margin-top:4px; color:var(--t1); font-family:var(--head); }
+.v-cell.v-bull { background:rgba(58,235,136,.08); border-color:rgba(58,235,136,.32); }
+.v-cell.v-bull .val { color:var(--bull-s); }
+.v-cell.v-bear { background:rgba(255,107,107,.08); border-color:rgba(255,107,107,.32); }
+.v-cell.v-bear .val { color:var(--bear-s); }
+.v-cell.v-neut { background:rgba(212,137,44,.07); border-color:rgba(212,137,44,.30); }
+.v-cell.v-neut .val { color:var(--warn); }
+
+/* ===== SECȚIUNI (top-border colorat, stil „card de ziar") ===== */
+.sec {
+  background:var(--panel); border:1px solid var(--b1); border-top:3px solid var(--acc-1);
+  border-radius:var(--r); padding:16px 22px; margin-bottom:12px; box-shadow:var(--shadow-sm);
+}
+.sec.s-cal    { border-top-color:var(--sec-cal); }
+.sec.s-news   { border-top-color:var(--sec-news); }
+.sec.s-crypto { border-top-color:var(--sec-crypto); }
+.sec.s-op     { border-top-color:var(--sec-op); }
+.sec.s-wl     { border-top-color:var(--sec-wl); }
+.sec-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+.sec-head h2 { font-size:15px; font-weight:800; letter-spacing:.2px; font-family:var(--head); color:var(--t1); }
+.sec-head .cnt { font-family:var(--mono); font-size:10px; color:var(--t3); }
+.sec-head .sec-more { margin-left:auto; }
+
+/* Secțiuni condensate: colapsat = max-height + fade; expandat = tot.
+   ATENȚIE: clasa .collapsed se pune de JS în task 5 — în task 2 secțiunile pornesc expandate. */
+.sec.collapsed .sec-body { max-height:340px; overflow:hidden; position:relative; }
+.sec.collapsed .sec-body::after {
+  content:""; position:absolute; inset:auto 0 0 0; height:70px;
+  background:linear-gradient(transparent, var(--bg, #0b1020)); pointer-events:none;
+}
+.sec .sec-more.open { color:var(--acc-1); }
+
+/* Griduri reutilizabile pentru conținutul secțiunilor (folosite de task 5) */
+.newsgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:2px 26px; }
+.opgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:10px; }
+.chip {
+  font-family:var(--mono); font-size:11.5px; background:var(--panel2); border:1px solid var(--b1);
+  border-radius:999px; padding:5px 12px; cursor:pointer; transition:border-color .15s var(--ease);
+}
+.chip:hover { border-color:var(--b2); }
+.chip b { color:var(--t1); }
+
+/* Containerul cu datele „legacy" (statsStrip/commandCenter/hotStrip) — invizibil, dar populat de JS */
+#legacyData { display:none; }
+
+@media (max-width:900px) {
+  .cockpit { grid-template-columns:1fr; }
+  .gaugebox { text-align:left; }
+  .repere { grid-template-columns:1fr; }
+  h1.headline { font-size:25px; }
+  .verdict { grid-template-columns:1fr; }
+  .hero { padding:20px 18px 18px; }
+  .sec { padding:14px 14px; }
 }
 </style>
 </head>
@@ -995,7 +1150,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 
 <div class="macro-wrap">
 
-<header class="macro-cockpit">
+<header class="macro-cockpit topbar-sticky">
   <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v233</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
@@ -1024,67 +1179,63 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
   </div>
 </header>
 
-<details class="macro-fold macro-fold-cc" open>
-  <summary>🎛 Command Center <span class="macro-fold-hint">regim · danger · curbă · cross-asset</span></summary>
-  <div class="macro-fold-body">
-    <div class="command-center" id="commandCenter">
-      <div class="cc-cell" id="cc-regime" onclick="drillRiskDashboard()" title="Regim de risc composite (click → detalii)"><span class="cc-label">🛡 Regim risc</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
-      <div class="cc-cell" id="cc-danger" onclick="drillDanger()" title="Danger Score al zilei — cât de periculos e mediul pentru intrări noi (sizing suggestion)"><span class="cc-label">⚠️ Danger Score</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span><div class="cc-gauge"><div class="cc-gauge-fill" style="width:0%"></div></div></div>
-      <div class="cc-cell" id="cc-curve" onclick="drillCurve()" title="Curba randamentelor 10Y-3M — inversată = semnal clasic de recesiune (risc pt equities)"><span class="cc-label">📈 Curbă 10Y-3M</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
-      <div class="cc-cell" id="cc-tilt" onclick="drillRiskDashboard()" title="Înclinația cross-asset: ce drivere împing risk-on vs risk-off acum"><span class="cc-label">⚖️ Cross-asset</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
-    </div>
-  </div>
-</details>
-
 <div class="freeze-banner" id="freezeBanner" style="display:none"></div>
 
-<details class="macro-fold macro-fold-stats">
-  <summary>📊 Indicatori live <span class="macro-fold-hint">VIX · DXY · BTC · Risk tile</span></summary>
-  <div class="macro-fold-body">
-    <div class="stats-strip" id="statsStrip">
-      <div class="stat-tile" id="tile-vix"><span class="stat-label">📊 VIX</span><span class="stat-value">—</span><span class="stat-sub">Volatility Index</span></div>
-      <div class="stat-tile" id="tile-dxy"><span class="stat-label">💵 DXY</span><span class="stat-value">—</span><span class="stat-sub">US Dollar Index</span></div>
-      <div class="stat-tile" id="tile-10y"><span class="stat-label">📈 10Y</span><span class="stat-value">—</span><span class="stat-sub">Treasury Yield</span></div>
-      <div class="stat-tile" id="tile-btc"><span class="stat-label">₿ BTC</span><span class="stat-value">—</span><span class="stat-sub">Bitcoin USD</span></div>
-      <div class="stat-tile" id="tile-eth"><span class="stat-label">Ξ ETH</span><span class="stat-value">—</span><span class="stat-sub">Ethereum USD</span></div>
-      <div class="stat-tile" id="tile-fng"><span class="stat-label">😱 F&G</span><span class="stat-value">—</span><span class="stat-sub">Crypto Fear&Greed</span></div>
-      <div class="stat-tile" id="tile-earnings" title="Mega-cap earnings în următoarele 7 zile (click → Earnings Hub)"><span class="stat-label">⚡ Earnings 7z</span><span class="stat-value">—</span><span class="stat-sub">mega-caps săptămâna asta</span></div>
-      <div class="stat-tile" id="tile-surprise" title="Economic Surprise Index — datele publicate recent bat sau ratează consensul (agregat, ponderat pe impact)"><span class="stat-label">📊 Surprise</span><span class="stat-value">—</span><span class="stat-sub">date vs așteptări (30z)</span></div>
-      <div class="stat-tile" id="tile-risk" title="Risk regime composite — click pentru detalii (VIX + Yield 10Y + BTC/SPY correlation)"><span class="stat-label">🛡 Risk</span><span class="stat-value">—</span><span class="stat-sub">VIX · 10Y · BTC/SPY</span></div>
-    </div>
+<!-- ============ COCKPIT — semafor de regim + gauge apetit de risc + KPI live ============
+     Cele 3 containere pornesc GOALE; JS-ul din task 3 le populează din datele deja
+     calculate de fetch-urile existente (rămase în #legacyData, la finalul paginii). -->
+<div class="cockpit" id="cockpit">
+  <div class="semaphore" id="ckSemaphore"></div>
+  <div class="gaugebox">
+    <svg viewBox="0 0 180 116" class="gauge" id="ckGauge" role="img" aria-label="apetit de risc"></svg>
   </div>
-</details>
-
-<details class="macro-fold macro-fold-hot" open>
-  <summary>🔥 Evenimente 24h <span class="macro-fold-hint">high-impact următoarele ore</span></summary>
-  <div class="macro-fold-body">
-    <div class="hot-strip" id="hotStrip"></div>
-  </div>
-</details>
-
-<!-- Tabs -->
-<div class="tabs-row">
-  <button class="tab-btn active" data-tab="calendar">📅 Calendar economic</button>
-  <button class="tab-btn" data-tab="macroNews">📰 Macro News</button>
-  <button class="tab-btn" data-tab="cryptoNews">₿ Crypto News</button>
-  <button class="tab-btn" data-tab="brief">🤖 AI Daily Brief</button>
-  <button class="tab-btn" data-tab="opportunities">💡 Oportunități<span class="op-badge" id="opBadge" style="display:none">0</span></button>
-  <button class="tab-btn" data-tab="watchmacro">👁 Watchlist</button>
+  <div class="kpis" id="ckKpis"></div>
 </div>
 
-<!-- Tab: Watchlist × Macro sensitivity -->
-<div class="tab-content" id="tab-watchmacro">
-  <div class="panel-box">
-    <div class="panel-head"><h3>👁 Watchlist × Macro</h3><span class="panel-sub">expunerea pozițiilor tale la evenimentele de azi</span></div>
-    <div class="setup-wrap">
-      <div id="watchMacroCtx"></div>
-      <div id="watchMacroList"></div>
+<!-- ============ HERO — AI Daily Brief ca articol de ziar ============ -->
+<div class="hero" id="heroBrief">
+  <div class="brief-meta-line">
+    <span class="bh-date" id="briefDate">—</span>
+    <span class="bh-status" id="briefStatus">—</span>
+    <span class="spacer"></span>
+    <!-- briefGenBtn rămâne în DOM dar ascuns: auto-gen-ul îl face inutil,
+         îl păstrăm ca fallback pentru cazul „fără cheie" (task 4). -->
+    <button class="primary" id="briefGenBtn" style="display:none">🚀 Generează brief</button>
+    <button class="ghost-sm" id="briefRerunBtn" title="Re-generează (șterge cache)">↻ Rerun</button>
+    <button class="ghost-sm" id="briefArchiveBtn" title="Brief-urile din ultimele 7 zile — compară ce a zis AI-ul cu ce a făcut piața">📜 Arhiva 7 zile</button>
+  </div>
+
+  <!-- Titlul + intro-ul narativ — populate de parser-ul din task 4 -->
+  <h1 class="headline" id="briefHeadline"></h1>
+  <p class="standfirst" id="briefStandfirst" style="display:none"></p>
+
+  <div class="brief-big-events" id="briefBigEvents" style="display:none"></div>
+  <!-- briefMeta rămâne în DOM (renderBriefMeta scrie în el), dar ascuns:
+       informația lui e acum în KPI-urile din cockpit. Id-ul se păstrează pt compat. -->
+  <div class="brief-meta" id="briefMeta" style="display:none"></div>
+
+  <div class="brief-body" id="briefBody">
+    <div class="brief-empty">
+      <div class="bp-icon">📋</div>
+      <h4>Niciun brief generat încă</h4>
+      <p>Brief-ul agregă <strong>top high-impact events azi</strong>, <strong>sentiment macro/crypto</strong>, <strong>valori curente VIX/DXY/BTC/ETH</strong> și generează un context decizional cross-asset prin Claude opus-5.</p>
+      <p>Auto-trigger la prima încărcare după <strong>08:00 ET</strong>. Cache 12h per zi.</p>
+      <div class="next-time" id="briefNextTime"></div>
     </div>
   </div>
+
+  <!-- Verdictul pe 3 celule (stocks / crypto / risc) — populat în task 4 -->
+  <div class="verdict" id="briefVerdict" style="display:none"></div>
 </div>
 
-<!-- Tab: Calendar economic -->
-<div class="tab-content active" id="tab-calendar">
+<!-- ============ SECȚIUNEA 1 — Calendar economic ============ -->
+<section class="sec s-cal" id="sec-calendar">
+  <div class="sec-head">
+    <h2>📅 Calendar economic</h2>
+    <span class="cnt" id="secCnt-calendar"></span>
+    <button class="ghost-sm sec-more" data-sec="calendar">arată tot ↓</button>
+  </div>
+  <div class="sec-body">
   <div class="filter-bar">
     <div class="fb-group">
       <span class="fb-label">Impact:</span>
@@ -1128,10 +1279,17 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
       </table>
     </div>
   </div>
-</div>
+  </div><!-- /.sec-body -->
+</section>
 
-<!-- Tab: Macro News -->
-<div class="tab-content" id="tab-macroNews">
+<!-- ============ SECȚIUNEA 2 — Macro News ============ -->
+<section class="sec s-news" id="sec-macroNews">
+  <div class="sec-head">
+    <h2>📰 Macro news</h2>
+    <span class="cnt" id="secCnt-macroNews"></span>
+    <button class="ghost-sm sec-more" data-sec="macroNews">arată tot ↓</button>
+  </div>
+  <div class="sec-body">
   <div class="filter-bar">
     <div class="fb-group">
       <span class="fb-label">Sentiment:</span>
@@ -1151,10 +1309,17 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
     </div>
     <div id="mnList" class="news-wrap" style="padding:10px"></div>
   </div>
-</div>
+  </div><!-- /.sec-body -->
+</section>
 
-<!-- Tab: Crypto News -->
-<div class="tab-content" id="tab-cryptoNews">
+<!-- ============ SECȚIUNEA 3 — Crypto News ============ -->
+<section class="sec s-crypto" id="sec-cryptoNews">
+  <div class="sec-head">
+    <h2>₿ Crypto news</h2>
+    <span class="cnt" id="secCnt-cryptoNews"></span>
+    <button class="ghost-sm sec-more" data-sec="cryptoNews">arată tot ↓</button>
+  </div>
+  <div class="sec-body">
   <div class="filter-bar">
     <div class="fb-group">
       <span class="fb-label">Filtru:</span>
@@ -1174,41 +1339,18 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
     </div>
     <div id="cnList" class="news-wrap" style="padding:10px"></div>
   </div>
-</div>
+  </div><!-- /.sec-body -->
+</section>
 
-<!-- Tab: AI Daily Brief -->
-<div class="tab-content" id="tab-brief">
-  <div class="brief-wrap">
-    <div class="brief-head">
-      <div>
-        <div class="bh-title">🤖 AI Daily Brief</div>
-        <div class="bh-date" id="briefDate">—</div>
-      </div>
-      <span class="bh-status" id="briefStatus">—</span>
-      <div class="bh-actions">
-        <button class="primary" id="briefGenBtn">🚀 Generează brief</button>
-        <button class="ghost" id="briefRerunBtn" title="Re-generează (șterge cache)">↻ Rerun</button>
-        <button class="ghost" id="briefArchiveBtn" title="Brief-urile din ultimele 7 zile — compară ce a zis AI-ul cu ce a făcut piața">📜</button>
-      </div>
-    </div>
-
-    <div class="brief-meta" id="briefMeta"></div>
-    <div class="brief-big-events" id="briefBigEvents" style="display:none"></div>
-
-    <div class="brief-body" id="briefBody">
-      <div class="brief-empty">
-        <div class="bp-icon">📋</div>
-        <h4>Niciun brief generat încă</h4>
-        <p>Brief-ul agregă <strong>top high-impact events azi</strong>, <strong>sentiment macro/crypto</strong>, <strong>valori curente VIX/DXY/BTC/ETH</strong> și generează un context decizional cross-asset prin Claude opus-5.</p>
-        <p>Auto-trigger la prima încărcare după <strong>08:00 ET</strong>. Cache 12h per zi.</p>
-        <div class="next-time" id="briefNextTime"></div>
-      </div>
-    </div>
+<!-- ============ SECȚIUNEA 4 — Oportunități (sugestii pe sector din rezultatele evenimentelor) ============ -->
+<section class="sec s-op" id="sec-opportunities">
+  <div class="sec-head">
+    <h2>💡 Oportunități</h2>
+    <span class="cnt" id="secCnt-opportunities"></span>
+    <span class="op-badge" id="opBadge" style="display:none">0</span>
+    <button class="ghost-sm sec-more" data-sec="opportunities">arată tot ↓</button>
   </div>
-</div>
-
-<!-- Tab: Oportunități — sugestii de cumpărare pe sector din rezultatele evenimentelor -->
-<div class="tab-content" id="tab-opportunities">
+  <div class="sec-body">
   <div class="op-wrap">
     <div class="op-head">
       <div>
@@ -1219,6 +1361,51 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
     </div>
     <div class="op-body" id="opBody"></div>
   </div>
+  </div><!-- /.sec-body -->
+</section>
+
+<!-- ============ SECȚIUNEA 5 — Watchlist × Macro ============ -->
+<section class="sec s-wl" id="sec-watchlist">
+  <div class="sec-head">
+    <h2>👁 Watchlist × Macro</h2>
+    <span class="cnt" id="secCnt-watchlist"></span>
+    <button class="ghost-sm sec-more" data-sec="watchlist">arată tot ↓</button>
+  </div>
+  <div class="sec-body">
+  <div class="panel-box">
+    <div class="panel-head"><h3>👁 Watchlist × Macro</h3><span class="panel-sub">expunerea pozițiilor tale la evenimentele de azi</span></div>
+    <div class="setup-wrap">
+      <div id="watchMacroCtx"></div>
+      <div id="watchMacroList"></div>
+    </div>
+  </div>
+  </div><!-- /.sec-body -->
+</section>
+
+<!-- ============ LEGACY DATA — invizibil, dar VIU ============
+     Fold-urile „🎛 Command Center", „📊 Indicatori live" și „🔥 Evenimente 24h" au dispărut
+     ca elemente vizibile, dar markup-ul lor rămâne aici: fetch-urile și render-ele existente
+     (renderCommandCenter / loadStatTiles / renderHotStrip) scriu în continuare în aceste
+     id-uri, iar cockpit-ul de sus își ia datele de aici. ZERO modificări în JS-ul lor. -->
+<div id="legacyData" style="display:none">
+  <div class="command-center" id="commandCenter">
+    <div class="cc-cell" id="cc-regime" onclick="drillRiskDashboard()" title="Regim de risc composite (click → detalii)"><span class="cc-label">🛡 Regim risc</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
+    <div class="cc-cell" id="cc-danger" onclick="drillDanger()" title="Danger Score al zilei — cât de periculos e mediul pentru intrări noi (sizing suggestion)"><span class="cc-label">⚠️ Danger Score</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span><div class="cc-gauge"><div class="cc-gauge-fill" style="width:0%"></div></div></div>
+    <div class="cc-cell" id="cc-curve" onclick="drillCurve()" title="Curba randamentelor 10Y-3M — inversată = semnal clasic de recesiune (risc pt equities)"><span class="cc-label">📈 Curbă 10Y-3M</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
+    <div class="cc-cell" id="cc-tilt" onclick="drillRiskDashboard()" title="Înclinația cross-asset: ce drivere împing risk-on vs risk-off acum"><span class="cc-label">⚖️ Cross-asset</span><span class="cc-value">—</span><span class="cc-sub">se încarcă...</span></div>
+  </div>
+  <div class="stats-strip" id="statsStrip">
+    <div class="stat-tile" id="tile-vix"><span class="stat-label">📊 VIX</span><span class="stat-value">—</span><span class="stat-sub">Volatility Index</span></div>
+    <div class="stat-tile" id="tile-dxy"><span class="stat-label">💵 DXY</span><span class="stat-value">—</span><span class="stat-sub">US Dollar Index</span></div>
+    <div class="stat-tile" id="tile-10y"><span class="stat-label">📈 10Y</span><span class="stat-value">—</span><span class="stat-sub">Treasury Yield</span></div>
+    <div class="stat-tile" id="tile-btc"><span class="stat-label">₿ BTC</span><span class="stat-value">—</span><span class="stat-sub">Bitcoin USD</span></div>
+    <div class="stat-tile" id="tile-eth"><span class="stat-label">Ξ ETH</span><span class="stat-value">—</span><span class="stat-sub">Ethereum USD</span></div>
+    <div class="stat-tile" id="tile-fng"><span class="stat-label">😱 F&G</span><span class="stat-value">—</span><span class="stat-sub">Crypto Fear&Greed</span></div>
+    <div class="stat-tile" id="tile-earnings" title="Mega-cap earnings în următoarele 7 zile (click → Earnings Hub)"><span class="stat-label">⚡ Earnings 7z</span><span class="stat-value">—</span><span class="stat-sub">mega-caps săptămâna asta</span></div>
+    <div class="stat-tile" id="tile-surprise" title="Economic Surprise Index — datele publicate recent bat sau ratează consensul (agregat, ponderat pe impact)"><span class="stat-label">📊 Surprise</span><span class="stat-value">—</span><span class="stat-sub">date vs așteptări (30z)</span></div>
+    <div class="stat-tile" id="tile-risk" title="Risk regime composite — click pentru detalii (VIX + Yield 10Y + BTC/SPY correlation)"><span class="stat-label">🛡 Risk</span><span class="stat-value">—</span><span class="stat-sub">VIX · 10Y · BTC/SPY</span></div>
+  </div>
+  <div class="hot-strip" id="hotStrip"></div>
 </div>
 
 </div><!-- /.macro-wrap -->
@@ -5211,7 +5398,11 @@ function initBriefTab() {
 }
 
 // ============ TABS ============
+// TEMP v234: eliminat definitiv in task 5.
+// Tab bar-ul a disparut din HTML (layout „ziar"), deci functia nu mai e apelata de nicaieri.
+// O pastram doar ca sa nu rupem eventuale apeluri ramase; guard-ul de mai jos o face inofensiva.
 function switchTab(name) {
+  if (!name) return;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + name));
   // Lazy load news
