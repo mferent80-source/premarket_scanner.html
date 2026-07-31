@@ -1118,7 +1118,10 @@ h1.headline:empty { display:none; }
 .sec.collapsed .sec-body { max-height:340px; overflow:hidden; position:relative; }
 .sec.collapsed .sec-body::after {
   content:""; position:absolute; inset:auto 0 0 0; height:70px;
-  background:linear-gradient(transparent, var(--bg, #0b1020)); pointer-events:none;
+  /* Fade-ul merge spre fundalul SECȚIUNII (--panel, opac), NU spre --bg:
+     secțiunea nu e transparentă, deci un gradient spre culoarea paginii ar
+     lăsa o bandă vizibil mai închisă la baza secțiunilor colapsate. */
+  background:linear-gradient(transparent, var(--panel)); pointer-events:none;
 }
 .sec .sec-more.open { color:var(--acc-1); }
 
