@@ -6472,8 +6472,19 @@ function isCryptoSector(sec) {
 // vizual în cockpit. Idempotent — apelabil oricând (init, refresh, orice update RISK_STATE/tiles).
 
 // Snapshot zilnic al valorilor KPI (VIX/DXY/10Y/BTC/F&G) — sursa pentru delta „azi vs referință".
-// Referință = valorile de la primul load al zilei PRECEDENTE (afișat azi/mâine) sau, dacă azi
-// s-a mai încărcat deja o dată, valorile de la primul load de azi (delta intra-zi). LS: md_kpi_snapshot.
+// Referință = valorile de la ULTIMUL snapshot al zilei PRECEDENTE, înghețată (`ref`) o singură
+// dată — la primul render din ziua curentă — și păstrată NESCHIMBATĂ pe tot parcursul zilei.
+// LS: md_kpi_snapshot = { date, vals, ref }.
+//
+// Fix round 1 (review, CRITICAL): renderCockpit() e apelat de mai multe ori pe încărcare
+// (loadStatTiles → computeRiskDashboard().then → paintFromCache etc). Varianta inițială recalcula
+// referința la fiecare apel: primul apel din zi scria snapshotul zilei și întorcea referința de
+// ieri (delta corectă); al DOILEA apel găsea deja `snap.date === today` și trecea pe ramura
+// „sameDay" (referință = valorile chiar din primul apel, la câteva sute de ms distanță) → deltele
+// deveneau „→ 0" PERMANENT după prima randare. Acum referința (`ref`) se scrie o singură dată la
+// trecerea de zi și rămâne fixă; `vals` (valorile de azi) se completează progresiv (merge, nu
+// suprascrie cu null) pe măsură ce proxy-urile revin — fără să atingă `ref` — ca referința de
+// mâine să pornească din cele mai complete date posibile ale zilei de azi.
 function kpiSnapshot() {
   const today = getNYDateHour().date;
   let snap = null;
@@ -6486,16 +6497,29 @@ function kpiSnapshot() {
     teny: parseTileValue('tile-10y'), btc: parseTileValue('tile-btc'),
     fng: parseTileValue('tile-fng')
   };
+  const hasReal = Object.values(vals).some(v => v != null);
+
   if (!snap || snap.date !== today) {
-    // prima încărcare a zilei (cu cel puțin o valoare reală) → devine referința de „ieri" pt mâine
-    if (Object.values(vals).some(v => v != null)) {
-      const prev = snap; // snapshot-ul zilei precedente (dacă există)
-      try { localStorage.setItem('md_kpi_snapshot', JSON.stringify({ date: today, vals })); } catch (e) {}
-      return { vals, prev: prev ? prev.vals : null };
-    }
-    return { vals, prev: null };
+    // Trecere de zi (sau prima rulare vreodată). Fără date reale încă → NU scriem (evităm să
+    // îngheț un `ref` fals sau să pierdem snapshotul vechi înainte să avem ceva cu care să-l
+    // înlocuim); mai încercăm la următorul apel al lui renderCockpit().
+    if (!hasReal) return { vals, ref: null };
+    const ref = snap ? snap.vals : null; // ultimele valori cunoscute din ziua precedentă
+    try { localStorage.setItem('md_kpi_snapshot', JSON.stringify({ date: today, vals, ref })); } catch (e) {}
+    return { vals, ref };
   }
-  return { vals, prev: null, sameDay: snap.vals }; // delta intra-zi față de primul load de azi
+
+  // Aceeași zi ca ultimul snapshot — `ref` rămâne cel înghețat, NU se recalculează.
+  // Completăm golurile din `vals` (proxy revenit) fără să schimbăm `ref`.
+  let changed = false;
+  const mergedVals = { ...snap.vals };
+  for (const k of Object.keys(vals)) {
+    if (mergedVals[k] == null && vals[k] != null) { mergedVals[k] = vals[k]; changed = true; }
+  }
+  if (changed) {
+    try { localStorage.setItem('md_kpi_snapshot', JSON.stringify({ date: today, vals: mergedVals, ref: snap.ref ?? null })); } catch (e) {}
+  }
+  return { vals, ref: snap.ref ?? null };
 }
 
 // Etichetă delta colorată (▲/▼) — `invert`=true înseamnă că o creștere e REA (VIX/DXY/10Y).
@@ -6554,7 +6578,11 @@ function renderCockpit() {
   const col = (RISK_STATE && RISK_STATE.color) ? RISK_STATE.color : 'var(--t3)';
   const ang = Math.PI * pct / 100; // 0 la pct=0 (capăt stânga) .. π la pct=100 (capăt dreapta)
   const x = 90 - 70 * Math.cos(ang), y = 92 - 70 * Math.sin(ang);
-  const large = pct > 50 ? 1 : 0; // arcul de valoare trece de jumătate de cerc → large-arc-flag=1
+  // Fix round 1 (review): arcul de valoare are unghi central π·pct/100 ∈ [0, π] — adică MAX 180°,
+  // deci e mereu arcul minor (nu poate depăși jumătate de cerc). large-arc-flag e CONSTANT 0; varianta
+  // veche `pct > 50 ? 1 : 0` amesteca procentul gauge-ului cu unghiul real al arcului SVG și rupea
+  // desenul (sweep de facto >180° vizual) în toate stările RISK-ON (composite ≥1 ⇒ pct ≥55).
+  const large = 0;
   gauge.innerHTML = `<path d="M 20 92 A 70 70 0 1 1 160 92" fill="none" stroke="rgba(255,255,255,.09)" stroke-width="12" stroke-linecap="round"/>
     <path d="M 20 92 A 70 70 0 ${large} 1 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round"/>
     <text x="90" y="84" text-anchor="middle" class="gv">${pct}%</text>
@@ -6562,8 +6590,8 @@ function renderCockpit() {
 
   // --- KPI-uri VIX/DXY/10Y/BTC/F&G cu delta — click → drillStatTile(id), mecanismul existent
   // de la fostele tile-* (TILE_DRILL_META, secțiunea DRILL DOWN: STAT TILES ~linia 3079)
-  const { vals, prev, sameDay } = kpiSnapshot();
-  const ref = prev || sameDay || {};
+  const { vals, ref: refVals } = kpiSnapshot();
+  const ref = refVals || {}; // referință înghețată (ziua precedentă) — vezi kpiSnapshot()
   const sev = (v, warnAt, badAt, invert) => v == null ? '' : (invert ? (v >= badAt ? 'k-bad' : v >= warnAt ? 'k-warn' : 'k-good') : (v <= badAt ? 'k-bad' : v <= warnAt ? 'k-warn' : 'k-good'));
   const tiles = [
     { id:'tile-vix', l:'VIX', v:vals.vix, r:ref.vix, dec:2, cls:sev(vals.vix, 18, 25, true), invert:true },
@@ -7309,6 +7337,10 @@ async function init() {
     if (Object.keys(EARNINGS_BY_DATE).length) {
       renderEarningsTile();
       renderCalendar(); // re-render ca să apară vol-week badge-urile
+      // Fix round 1 (review, IMPORTANT): al 8-lea KPI „Earnings 7z" oglindește #tile-earnings —
+      // fără acest apel, pe un prim load fără cache rămânea „—" toată sesiunea (renderEarningsTile()
+      // nu re-randa cockpit-ul).
+      renderCockpit();
     }
   }).catch(() => {});
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
