@@ -280,12 +280,91 @@ footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px
 .spark { width:80px; height:24px; display:block; margin:0 auto; }
 .spark path { fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
 .spark.up path { stroke:var(--bull-s); } .spark.dn path { stroke:var(--bear-s); } .spark.flat path { stroke:var(--t3); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" v144 — limbajul de componente din macro-dashboard / hub
+   (topbar panou sticky · chip-uri glass · bordura colorata de sectiune)
+   CSS-only: HTML-ul si JS-ul raman neatinse (data-f + clasa .active
+   functioneaza exact ca inainte). Regula casei: fundal SOLID pe sticky,
+   FARA backdrop-filter (blur-ul strica randarea textului).
+   Pagina e dark-only (n-are toggle light) -> fara scope pe tema.
+   Comentariile din blocul asta sunt fara diacritice intentionat:
+   fisierul are mojibake preexistent, nu-l atingem.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --eh-sec-panel:var(--acc-1);  /* Calendar earnings 30 zile — panoul principal */
+  --eh-sec-filter:var(--warn);  /* Bara de filtre                               */
+  --eh-sec-hist:#3b82f6;        /* expand: EPS history                          */
+  --eh-sec-stat:#6ee7b7;        /* expand: Statistici + reactie                 */
+  --eh-sec-ins:#10b981;         /* expand: Insider activity                     */
+}
+
+/* ── 1. TOPBAR: panou sticky solid, pe un singur rand.
+      sticky/top/z-index/border + backdrop-filter:none vin din lib/suite-ui.css
+      (body.suite-page header.suite-cockpit); aici doar fundalul solid, umbra
+      mare si ritmul de padding. Specificitatea (0,2,1) o egaleaza pe cea din
+      suite-ui, dar <style>-ul paginii e dupa <link> -> castiga pe ordinea
+      cascadei (inclusiv peste background !important).
+      h1 are deja margin-right:auto -> actiunile raman impinse la dreapta. ── */
+body.suite-page header.suite-cockpit{
+  position:sticky; top:0; z-index:60;
+  flex-wrap:nowrap; gap:8px 10px;
+  padding:10px 14px; margin:0 0 12px;
+  border-radius:var(--r);
+  background:rgba(11,15,23,.94)!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+}
+body.suite-page header.suite-cockpit h1{
+  min-width:0; overflow:hidden; text-overflow:ellipsis;
+}
+body.suite-page header.suite-cockpit .status-pill,
+body.suite-page header.suite-cockpit .icon-btn,
+body.suite-page header.suite-cockpit .nav-link,
+body.suite-page header.suite-cockpit button{ flex:0 0 auto; }
+@media (max-width:760px){
+  /* mobil: randul se rupe natural — titlu + pills sus, actiunile dedesubt */
+  body.suite-page header.suite-cockpit{ flex-wrap:wrap; padding:9px 11px; }
+  body.suite-page header.suite-cockpit h1{ white-space:normal; overflow:visible; }
+}
+
+/* ── 2. CHIP-URI de filtru: glass, activ = gradient acc-1→acc-2 (violet→roz,
+      perechea de accent a paginii). Clasele si data-f raman identice. ── */
+.fb-chip{
+  background:rgba(255,255,255,.035);
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.fb-chip.active{
+  background:linear-gradient(135deg,var(--acc-1),var(--acc-2));
+  border-color:transparent; color:#fff;
+  box-shadow:0 2px 12px rgba(168,85,247,.32);
+}
+.fb-chip.active:hover{
+  background:linear-gradient(135deg,var(--acc-1),var(--acc-2));
+  border-color:transparent; color:#fff;
+}
+
+/* ── 3. Bordura colorata sus — semnatura sectiunilor de ziar.
+      Doar pe cardurile REALE (fundal + chenar propriu).
+      .stats-strip / .hot-strip sunt grid-uri transparente -> NU primesc bordura
+      (ar fi orfana): .stat-tile are deja dunga de 3px pe stanga (::before),
+      iar .hot-card are chenar violet/rosu propriu. ── */
+.panel-box  { border-top:3px solid var(--eh-sec-panel); }
+.filter-bar { border-top:3px solid var(--eh-sec-filter); }
+/* Randul expandat: cele 3 casete de detaliu primesc fiecare semnatura ei */
+.exp-wrap .exp-box:nth-child(1){ border-top:3px solid var(--eh-sec-hist); }
+.exp-wrap .exp-box:nth-child(2){ border-top:3px solid var(--eh-sec-stat); }
+.exp-wrap .exp-box:nth-child(3){ border-top:3px solid var(--eh-sec-ins); }
+
+/* ── 4. Consecventa de forma — umbra pe blocul mare (restul erau deja var(--r)).
+      Elementele mici (badges / verdict / action / butoane) raman neatinse. ── */
+.panel-box{ box-shadow:0 4px 18px rgba(0,0,0,.28); }
 </style>
 </head>
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>⚡ Earnings Hub <span class="ver-badge" id="verBadge">v143</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>⚡ Earnings Hub <span class="ver-badge" id="verBadge">v144</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="sessionPill">⏳ sesiune</span>
   <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
