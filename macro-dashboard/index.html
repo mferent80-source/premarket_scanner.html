@@ -4752,13 +4752,13 @@ async function enrichEventReaction(event, exTr) {
 // ============ DRILL DOWN: BRIEF SECTIONS (AI follow-up) ============
 let _sectionAiCache = (() => { try { return JSON.parse(localStorage.getItem('md_section_ai_cache') || '{}'); } catch (e) { return {}; } })();
 const SECTION_AI_TTL = 12 * 3600 * 1000;
-// v201: aliniate la cele 5 secțiuni ale desk-note-ului (cheia = primele 8 chars din heading, vezi getSectionPrompt)
+// v234: aliniate la cele 4 secțiuni ale editorialului nou (cheia = primele 8 chars din heading, vezi getSectionPrompt)
+// Cheile vechi (Verdict/De ce/Azi de urmarit/Oportunitati/Risc principal) au dispărut din promptul AI_SYSTEM_BRIEF — șterse.
 const SECTION_PROMPTS = {
-  'Verdict': 'Aprofundează verdictul: ce date concrete (macro/news/calendar/niveluri) sunt factorul decisiv pentru bias, și ce nivel/eveniment numeric ar inversa teza pe stocks și pe crypto.',
-  'De ce': 'Pentru fiecare factor: detaliază faptul-ancoră (numere exacte, sector/asset afectat, cu cât) și cum se conectează cu ce faci azi. Fără teorie generală.',
-  'Azi de urmarit': 'Pentru fiecare event: scenariu bullish-surpriză + bearish-surpriză + nivelul concret pe SPY/QQQ/BTC ca răspuns + cât % típic se mișcă piața la asemenea event. Sizing înainte de event.',
-  'Oportunitati': 'Pentru fiecare pick: setup tehnic complet din nivelurile live (Entry/SL/TP din ATR real), faptul-ancoră de azi, sizing (% cont) corelat cu ⭐, management (trailing, scaling la TP1/TP2), invalidare. Dacă lista era goală, ce catalist/nivel ar debloca un setup.',
-  'Risc principal': 'Detaliază riscul-cheie: probabilitate estimativă (%) + ce asset se mișcă cel mai mult + hedge concret (puts, inverse ETF, GLD, defense, cash). Plus 1 wildcard care nu e în preț.'
+  'Ce s-a intamplat peste noapte': 'Detaliază geopolitica și piețele externe: ce s-a schimbat exact (cine a spus/decis ce, cu ce cifre), pe cine lovește direct (țară/sector/asset) și ce implicații concrete are pentru stocks și crypto azi și în zilele următoare.',
+  'Ce misca piata azi': 'Pentru fiecare eveniment/earnings de azi: scenariu narativ bull (citire peste așteptări → ce se întâmplă) și scenariu bear (citire sub așteptări → ce se întâmplă), plus orice simbol din watchlist-ul userului atins de acest eveniment.',
+  'Schimbari de regim': 'Explică mai adânc driverele compozitului de risc (VIX, 10Y, corelație BTC/SPY, F&G, DXY) — care dintre ele a mișcat cel mai mult scorul și de ce, și ce fapt/nivel concret ar trebui să se întâmple ca regimul să se schimbe din nou (îmbunătățire sau deteriorare).',
+  'La ce sa fii atent': 'Detaliază fiecare punct de urmărit: nivelul narativ exact (din NIVELURI TEHNICE LIVE) care contează, catalistul/ora la care poate apărea mișcarea, și ce simbol din watchlist e cel mai expus. Elaborează și riscul principal: probabilitate estimativă + hedge concret.'
 };
 
 function getSectionPrompt(title) {
@@ -4903,6 +4903,17 @@ VERDICT: STOCKS <LONG|SHORT|NEUTRAL|DEFENSIV> · CRYPTO <LONG|SHORT|NEUTRAL|DEFE
 
 LUNGIME: 500-700 cuvinte total. Romana 100% (tickere si termeni consacrati raman in original), tickere bold **AAPL**, paragrafe curgatoare (nu bullets).`;
 
+// v234 fix round 1: valori românizate frecvente -> valorile canonice (LONG/SHORT/NEUTRAL/DEFENSIV)
+// asteptate de dirCls in renderBrief — normalizat AICI, o singura sursa de adevar (arhiva + live).
+function normalizeVerdictDir(v) {
+  const up = String(v || '').toUpperCase().trim();
+  if (up.startsWith('NEUTR')) return 'NEUTRAL';     // NEUTRU / NEUTRAL
+  if (up.startsWith('DEFENSIV')) return 'DEFENSIV'; // DEFENSIV / DEFENSIVA / DEFENSIVĂ
+  if (up.startsWith('LONG')) return 'LONG';
+  if (up.startsWith('SHORT')) return 'SHORT';
+  return up;
+}
+
 // v234: desparte headline / standfirst / corp / verdict din output-ul AI
 function parseBriefOutput(full) {
   const lines = full.trim().split('\n');
@@ -4917,10 +4928,13 @@ function parseBriefOutput(full) {
   }
   standfirst = sf.join(' ');
   let body = lines.slice(bodyStart);
-  const vIdx = body.findIndex(l => /^\s*VERDICT:/i.test(l));
+  // v234 fix round 1: regex tolerant — linia poate fi bold-ata integral (**VERDICT: ...**), separatorul
+  // poate veni ca '-'/'–' in loc de '·', iar valorile individuale pot fi bold-ate ("**STOCKS LONG**").
+  const vIdx = body.findIndex(l => /^\s*\**\s*VERDICT/i.test(l));
   if (vIdx >= 0) {
-    const m = body[vIdx].match(/VERDICT:\s*STOCKS\s+([A-ZĂÂÎȘȚa-z-]+)\s*·\s*CRYPTO\s+([A-ZĂÂÎȘȚa-z-]+)\s*·\s*RISC\s+([a-zA-Z-]+)/i);
-    if (m) verdict = { stocks: m[1].toUpperCase(), crypto: m[2].toUpperCase(), risc: m[3].toLowerCase() };
+    const rawLine = body[vIdx].replace(/\*/g, ''); // strip bold inainte de match — vezi caz (a)/(b) din audit
+    const m = rawLine.match(/VERDICT:\s*STOCKS\s+([A-ZĂÂÎȘȚa-z-]+)\s*[·|\-–]\s*CRYPTO\s+([A-ZĂÂÎȘȚa-z-]+)\s*[·|\-–]\s*RISC\s+([a-zA-ZăâîșțĂÂÎȘȚ-]+)/i);
+    if (m) verdict = { stocks: normalizeVerdictDir(m[1]), crypto: normalizeVerdictDir(m[2]), risc: m[3].toLowerCase() };
     body = body.slice(0, vIdx);
   }
   return { headline, standfirst, text: body.join('\n').trim(), verdict };
@@ -4951,7 +4965,7 @@ function archiveBrief(brief) {
     try { arc = JSON.parse(localStorage.getItem('md_brief_archive') || '[]'); } catch (e) {}
     if (!Array.isArray(arc)) arc = [];
     arc = arc.filter(b => b && b.dateET !== brief.dateET);
-    arc.push({ dateET: brief.dateET, generatedAt: brief.generatedAt, text: brief.text, mood: brief.mood, headline: brief.headline || '' });
+    arc.push({ dateET: brief.dateET, generatedAt: brief.generatedAt, text: brief.text, mood: brief.mood, headline: brief.headline || '', verdict: brief.verdict || null });
     arc.sort((a, b) => (a.generatedAt || 0) - (b.generatedAt || 0));
     if (arc.length > 7) arc = arc.slice(-7);
     localStorage.setItem('md_brief_archive', JSON.stringify(arc));
@@ -5028,7 +5042,11 @@ function getPrevThesis(todayDateET) {
   const verdM = txt.match(/##[^\n]*Verdict[^\n]*\n+([^\n#]+)/i);
   // v234: brief-urile noi (fara linia TL;DR de tip desk note) fac fallback pe headline
   const tldr = (tldrM ? tldrM[1].replace(/\*/g, '').trim() : '') || last.headline || '';
-  const verdict = verdM ? verdM[1].replace(/\*/g, '').trim() : '';
+  // v234 fix round 1: brief-urile noi salveaza obiectul verdict in arhiva (nu mai exista sectiunea
+  // "## Verdict" veche) — reconstruiesc stringul din obiect; fallback pe regex-ul vechi pt arhive vechi.
+  const verdict = last.verdict
+    ? `STOCKS ${last.verdict.stocks} · CRYPTO ${last.verdict.crypto} · RISC ${last.verdict.risc}`
+    : (verdM ? verdM[1].replace(/\*/g, '').trim() : '');
   if (!tldr && !verdict) return null;
   return { dateET: last.dateET, tldr, verdict };
 }
