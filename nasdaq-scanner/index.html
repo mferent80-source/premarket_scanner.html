@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
+<link rel="stylesheet" href="../lib/theme-light.css?v=734">
+<script src="../lib/theme.js?v=734"></script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#f4f6ff">
@@ -935,11 +938,11 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   padding:10px 14px;
   margin:0 0 12px;
   border-radius:var(--r);
-  box-shadow:0 10px 32px rgba(0,0,0,.38);
+  box-shadow:var(--topbar-shadow);
 }
 /* fundal solid — DOAR pe dark; în light rămâne exact cum era (scanner-ui.css) */
 body.dark .hdr.scanner-cockpit{
-  background:rgba(11,15,23,.94);
+  background:var(--topbar-bg);
   /* fara backdrop-filter: scanner-ui.css il seteaza deja pe none */
 }
 /* pe desktop lat: status + acțiuni pe UN rând, împinse la dreapta.
@@ -9403,17 +9406,14 @@ function toggleDarkMode(){
   const btn = document.getElementById('darkModeBtn');
   if(btn) btn.textContent = isDark ? '☀️' : '🌙';
 }
-// REVIZUIT: dark FORȚAT PERMANENT (Marius cere consistency cu Hub-ul). Toggle-ul light rămâne în code dar
-// dark se reactivează automat la fiecare load — light este temporar într-o sesiune.
+// REVIZUIT v734: tema NU mai e forțată aici — sursa de adevăr e lib/theme.js (localStorage['tt_theme']),
+// comună pe toată suita. theme.js pune/scoate `body.dark` după tema rezolvată, iar dacă apeși toggle-ul
+// de mai sus (darkModeBtn / tasta „t"), un MutationObserver din theme.js persistă alegerea suite-wide.
+// Fallback (theme.js indisponibil): comportamentul vechi — dark forțat.
 (function(){
+  if (window.TTTheme) { window.TTTheme.sync(); return; }
   document.body.classList.add('dark');
-  // Forțăm '1' în storage ca să nu mai apară comportament inconsistent dacă alt cod citește darkMode
   try { localStorage.setItem('darkMode', '1'); } catch(e){}
-  // Ascund butonul de toggle (nu mai are sens dacă dark e mereu forțat la refresh)
-  setTimeout(() => {
-    const btn = document.getElementById('darkModeBtn');
-    if (btn) btn.style.display = 'none';
-  }, 0);
 })();
 
 // ── SCANNER → JOURNAL HOOK ──

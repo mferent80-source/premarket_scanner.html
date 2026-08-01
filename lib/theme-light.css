@@ -1,0 +1,354 @@
+/* theme-light.css — tema deschisă suite-wide (paletă „hârtie caldă")
+ * ------------------------------------------------------------------
+ * Se încarcă pe TOATE paginile. Nu face nimic în dark; tot ce e aici e scopat
+ * pe `:root[data-theme="light"]`, pe care îl scrie lib/theme.js în <head>.
+ *
+ * De ce funcționează fără să atingem paletele existente:
+ *   `:root[data-theme="light"]` = specificitate (0,1,1) > `:root` (0,1,0) din
+ *   <style>-ul fiecărei pagini, deci bate indiferent de ordinea în cascadă.
+ *
+ * Paleta de referință (market-breadth dashboard):
+ *   surface-0 #f4f4f2 · surface-1 #fcfcfb · surface-2 #ffffff
+ *   ink #0b0b0b · ink2 #52514e · muted #8a8984 · border #e6e5e1
+ */
+
+/* ── tokeni care lipsesc din paginile dark (definiți ca default dark) ── */
+:root {
+  --topbar-bg: rgba(11, 15, 23, .94);
+  --topbar-shadow: 0 10px 32px rgba(0, 0, 0, .38);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT — remap complet al tokenilor folosiți în suită
+   ═══════════════════════════════════════════════════════════════════ */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* ── suprafețe ── */
+  --bg: #f4f4f2;
+  --bg-grad: radial-gradient(1200px 600px at 50% -200px, #ffffff 0%, #f4f4f2 58%);
+  --bg1: #fcfcfb;
+  --bg2: #fcfcfb;
+  --bg3: #ffffff;
+  --bg4: #efeeea;
+  --panel: #fcfcfb;
+  --panel2: #ffffff;
+  --panel3: #f7f6f3;
+
+  /* ── borduri (b1 = mai vizibilă, b2 = fină; păstrăm ierarhia din dark) ── */
+  --b1: #d8d7d1;
+  --b2: #e6e5e1;
+  --br: #e6e5e1;
+  --br2: #d8d7d1;
+  --br-l: #efeeea;
+  --border: #d8d7d1;
+  --border-soft: #e6e5e1;
+
+  /* ── text ── */
+  --t1: #0b0b0b;
+  --t2: #3f3e3a;
+  --t3: #6b6a65;
+  --text: #0b0b0b;
+  --muted: #6b6a65;
+  --text-dim: #8a8984;
+  --txt: #0b0b0b;
+  --txt-d: #52514e;
+  --txt-dd: #8a8984;
+
+  /* ── accente (aliniate la paleta light deja folosită în nasdaq-scanner,
+        ca tintele rgba() ale ei — --accl/--greenl/--redl... — să se potrivească) ── */
+  --accent: #1d6fd0;
+  --accent2: #6d3fd4;
+  --acc: #2563eb;
+  --acc-1: #2563eb;
+  --acc-2: #059669;
+  --blue: #2563eb;
+  --indigo: #4f46e5;
+  --purple: #7c3aed;
+  --teal: #0d9488;
+  --cyan: #0891b2;
+  --orange: #ea580c;
+  --yellow: #a16207;
+
+  /* ── semantice: variantele dark (#3aeb88, #ff6b6b, #ffd86b) sunt invizibile
+        pe fundal deschis → variante întunecate, contrast ≥ 4.5:1 pe #fcfcfb ── */
+  --green: #059669;
+  --emerald: #059669;
+  --emerald-l: #047857;
+  --red: #dc2626;
+  --bull-s: #059669;
+  --bull: #047857;
+  --bull-bg: rgba(5, 150, 105, .10);
+  --bear-s: #dc2626;
+  --bear: #b91c1c;
+  --bear-bg: rgba(220, 38, 38, .10);
+  --warn: #b45309;
+  --warn-bg: rgba(180, 83, 9, .12);
+  --gold: #b45309;
+  --gold-bg: rgba(180, 83, 9, .12);
+  --crypto-1: #b45309;
+  --crypto-2: #a16207;
+  --high: #dc2626;
+  --high-bg: rgba(220, 38, 38, .10);
+  --med: #b45309;
+  --med-bg: rgba(180, 83, 9, .12);
+  --low: #64748b;
+  --low-bg: rgba(100, 116, 139, .10);
+  --vol: #7c3aed;
+  --vol-bg: rgba(124, 58, 237, .10);
+  --mom: #2563eb;
+  --mom-bg: rgba(37, 99, 235, .10);
+
+  /* ── umbre: pe hârtie, umbre calde și discrete ── */
+  --glow: rgba(180, 83, 9, .10);
+  --sh: 0 1px 2px rgba(24, 22, 18, .08);
+  --shh: 0 8px 24px rgba(24, 22, 18, .12), 0 1px 2px rgba(24, 22, 18, .06);
+  --shadow-sm: 0 1px 2px rgba(24, 22, 18, .08);
+  --shadow: 0 4px 14px rgba(24, 22, 18, .10), 0 1px 2px rgba(24, 22, 18, .06);
+
+  /* ── topbar sticky ── */
+  --topbar-bg: rgba(252, 252, 251, .94);
+  --topbar-shadow: 0 6px 18px rgba(24, 22, 18, .10);
+
+  /* ── lib/suite-ui.css ── */
+  --suite-bg: #f4f4f2;
+  --suite-bg-grad: radial-gradient(1200px 600px at 50% -200px, #ffffff 0%, #f4f4f2 58%);
+  --suite-panel: #fcfcfb;
+  --suite-panel2: #ffffff;
+  --suite-panel3: #f7f6f3;
+  --suite-border: #d8d7d1;
+  --suite-border2: #e6e5e1;
+  --suite-t1: #0b0b0b;
+  --suite-t2: #3f3e3a;
+  --suite-t3: #6b6a65;
+  --suite-accent: #1d6fd0;
+  --suite-shadow: 0 4px 14px rgba(24, 22, 18, .10), 0 1px 2px rgba(24, 22, 18, .06);
+  --suite-shadow-sm: 0 1px 2px rgba(24, 22, 18, .08);
+
+  /* ── accente de secțiune care erau pastel (invizibile pe alb) ── */
+  --al-sec-hist: #0d9488;
+  --eh-sec-stat: #0d9488;
+  --wl-sec-funnel: #0d9488;
+  --nq-sec-macro: #0d9488;
+  --pr-sec-thr: #0d9488;
+  --pr-sec-stat: #0d9488;
+  --sr-sec-spark: #0d9488;
+  --me-sec-vol: #0d9488;
+}
+
+:root[data-theme="dark"] { color-scheme: dark; }
+
+/* suite-ui.css setează --text/--muted/--text-dim HARDCODAT pe <body>, iar
+   definițiile pe body bat :root pentru tot ce e înăuntru → override explicit. */
+:root[data-theme="light"] body.suite-page,
+:root[data-theme="light"] body.hub-page,
+:root[data-theme="light"] body.cap-page,
+:root[data-theme="light"] body.macro-page {
+  --text: #0b0b0b;
+  --muted: #6b6a65;
+  --text-dim: #8a8984;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Butonul de comutare (injectat de theme.js)
+   ═══════════════════════════════════════════════════════════════════ */
+.tt-theme-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--rs, 8px);
+  border: 1px solid var(--b1, var(--border, #4a5874));
+  background: var(--panel2, var(--bg3, #222c44));
+  color: var(--t1, var(--text, #fafbfc));
+  font-family: inherit;
+  transition: filter .15s ease, transform .15s ease;
+}
+.tt-theme-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+.tt-theme-btn:focus-visible { outline: 2px solid var(--accent, #8ac8ff); outline-offset: 2px; }
+
+.tt-theme-btn.tt-theme-btn-float {
+  position: fixed;
+  right: 14px;
+  bottom: 14px;
+  z-index: 9000;
+  width: 38px;
+  height: 38px;
+  box-shadow: var(--shadow, 0 4px 14px rgba(0, 0, 0, .35));
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Corecții structurale pentru light (suita e scrisă dark-first)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* banda cockpit (lib/cockpit.js injectează CSS dark-only cu culori literale) */
+:root[data-theme="light"] .ckb-band {
+  background: #fcfcfb !important;
+  border-color: #d8d7d1 !important;
+  color: #0b0b0b !important;
+}
+:root[data-theme="light"] .ckb-lbl,
+:root[data-theme="light"] .ckb-sub,
+:root[data-theme="light"] .ckb-flat { color: #6b6a65 !important; }
+:root[data-theme="light"] .ckb-sub b { color: #0b0b0b !important; }
+:root[data-theme="light"] .ckb-up { color: #059669 !important; }
+:root[data-theme="light"] .ckb-dn { color: #dc2626 !important; }
+:root[data-theme="light"] .ckb-sep { background: #e6e5e1 !important; }
+:root[data-theme="light"] .ckb-dot { text-shadow: none !important; }
+:root[data-theme="light"] .ckb-gauge .ckb-gv { fill: #0b0b0b !important; }
+:root[data-theme="light"] .ckb-gauge .ckb-gl { fill: #6b6a65 !important; }
+:root[data-theme="light"] .ckb-link {
+  color: #1d6fd0 !important;
+  border-color: rgba(29, 111, 208, .35) !important;
+  background: rgba(29, 111, 208, .07) !important;
+}
+:root[data-theme="light"] .ckb-link:hover { background: rgba(29, 111, 208, .16) !important; }
+:root[data-theme="light"] .ckb-stale { color: #b45309 !important; }
+
+/* scanner-ui.css: cockpitul are gradient dark literal */
+:root[data-theme="light"] .scanner-cockpit {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .96), rgba(248, 248, 245, .97));
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   AUDIT LIGHT — selectori STRUCTURALI cu culori dark literale
+   (suita e scrisă dark-first; aici mutăm pe hârtie doar ce rupe vizibil
+   light-ul: panouri, headere, tabele, rânduri. Decorativele rămân.)
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root[data-theme="light"] {
+  --tt-glass: linear-gradient(180deg, rgba(255, 255, 255, .95), rgba(248, 247, 244, .90));
+  --tt-glass-soft: rgba(255, 255, 255, .70);
+}
+
+/* ── plasă de siguranță: nasdaq-scanner are `class="dark"` în markup-ul <body>
+      (fallback dacă JS pică). Definițiile lui pe body ar bate :root, deci le
+      re-suprascriem pe ACELAȘI element, cu specificitate mai mare. ── */
+:root[data-theme="light"] body.dark {
+  --bg: #f4f4f2; --bg2: #fcfcfb; --bg3: #ffffff; --bg4: #efeeea;
+  --panel: #fcfcfb; --panel2: #ffffff; --panel3: #f7f6f3;
+  --b1: #d8d7d1; --b2: #e6e5e1;
+  --t1: #0b0b0b; --t2: #3f3e3a; --t3: #6b6a65;
+  --acc: #2563eb; --accl: rgba(37, 99, 235, .08); --accb: rgba(37, 99, 235, .22);
+  --green: #059669; --greenl: rgba(5, 150, 105, .08); --greenb: rgba(5, 150, 105, .22);
+  --red: #dc2626; --redl: rgba(220, 38, 38, .08); --redb: rgba(220, 38, 38, .22);
+  --gold: #b45309; --goldl: rgba(180, 83, 9, .08); --goldb: rgba(180, 83, 9, .22);
+  --cyan: #0891b2; --cyanl: rgba(8, 145, 178, .07);
+  --purple: #7c3aed; --purpll: rgba(124, 58, 237, .08); --purplb: rgba(124, 58, 237, .22);
+  --orange: #ea580c; --orangl: rgba(234, 88, 12, .08);
+  --teal: #0d9488; --teall: rgba(13, 148, 136, .08); --tealb: rgba(13, 148, 136, .22);
+  --crypto-1: #b45309; --crypto-2: #a16207;
+  --sh: 0 1px 2px rgba(24, 22, 18, .08);
+  --shh: 0 8px 24px rgba(24, 22, 18, .12), 0 1px 2px rgba(24, 22, 18, .06);
+  background-image: radial-gradient(1200px 600px at 50% -200px, #ffffff 0%, #f4f4f2 58%);
+}
+
+/* ── lib/suite-ui.css + macro-ui + scanner-ui + capital-ui: „glass" dark ── */
+:root[data-theme="light"] body.suite-page header.suite-cockpit,
+:root[data-theme="light"] body.suite-page .topbar.suite-cockpit,
+:root[data-theme="light"] body.suite-page .hdr.suite-cockpit,
+:root[data-theme="light"] body.suite-page header:not(.no-suite-shell),
+:root[data-theme="light"] body.suite-page .fd-top,
+:root[data-theme="light"] body.hub-page .hub-head-compact,
+:root[data-theme="light"] body.cap-page header.cap-header,
+:root[data-theme="light"] .cap-page header.cap-header,
+:root[data-theme="light"] .macro-cockpit {
+  background: var(--topbar-bg) !important;
+  box-shadow: var(--topbar-shadow) !important;
+}
+:root[data-theme="light"] body.suite-page .panel-head,
+:root[data-theme="light"] .suite-fold,
+:root[data-theme="light"] .suite-fold > summary,
+:root[data-theme="light"] .macro-fold,
+:root[data-theme="light"] .macro-fold > summary,
+:root[data-theme="light"] .cap-shell,
+:root[data-theme="light"] .cap-page .cfg,
+:root[data-theme="light"] .cap-journal .desk-macro-rail,
+:root[data-theme="light"] .cap-journal .dmr-chip,
+:root[data-theme="light"] .cap-equity .chart-wrap,
+:root[data-theme="light"] .hub-sess-bar,
+:root[data-theme="light"] .hub-pre5-steps li,
+:root[data-theme="light"] .hub-platform-strip,
+:root[data-theme="light"] .hub-launch,
+:root[data-theme="light"] .hub-catalog-fold,
+:root[data-theme="light"] .hub-dash-panel,
+:root[data-theme="light"] .hub-cockpit-fold,
+:root[data-theme="light"] .hub-checklist-panel,
+:root[data-theme="light"] .hub-search-fold,
+:root[data-theme="light"] .hub-search input,
+:root[data-theme="light"] .hub-card-live,
+:root[data-theme="light"] .ht-gold-bar .ht-ev,
+:root[data-theme="light"] .sig-metrics .metric,
+:root[data-theme="light"] .reco-stat,
+:root[data-theme="light"] .trade-detail {
+  background: var(--tt-glass) !important;
+}
+:root[data-theme="light"] .ht-gold-bar .ht-ev:hover { background: rgba(255, 255, 255, .99) !important; }
+
+/* accente păstrate, doar baza trece pe hârtie */
+:root[data-theme="light"] .hub-pre5,
+:root[data-theme="light"] body[data-hub-mode="pre"] .hub-checklist-panel {
+  background: linear-gradient(180deg, rgba(180, 83, 9, .10), rgba(255, 255, 255, .95)) !important;
+}
+:root[data-theme="light"] .hub-na { background: linear-gradient(135deg, rgba(180, 83, 9, .10), rgba(255, 255, 255, .95)) !important; }
+:root[data-theme="light"] .hub-na.prio-halt { background: linear-gradient(135deg, rgba(220, 38, 38, .14), rgba(255, 255, 255, .95)) !important; }
+:root[data-theme="light"] .hub-na.prio-warn { background: linear-gradient(135deg, rgba(180, 83, 9, .12), rgba(255, 255, 255, .95)) !important; }
+:root[data-theme="light"] .hub-na.prio-ok { background: linear-gradient(135deg, rgba(5, 150, 105, .12), rgba(255, 255, 255, .95)) !important; }
+
+/* ── hub (index.html): cardurile aveau gradient dark literal ── */
+:root[data-theme="light"] .card {
+  background: linear-gradient(180deg, #ffffff 0%, #f7f6f3 100%) !important;
+}
+
+/* ── alerts: bara de taburi „glass" ── */
+:root[data-theme="light"] .desk-tabs {
+  background: rgba(255, 255, 255, .92);
+  border-color: var(--b1);
+  box-shadow: 0 6px 18px rgba(24, 22, 18, .10);
+}
+
+/* ── watchlist-monitor: panouri + tabel complet hardcodate dark ── */
+:root[data-theme="light"] .panel-box { background: #fcfcfb; border-color: var(--b1); }
+:root[data-theme="light"] .panel-head { background: #f4f4f2; border-bottom-color: var(--b1); }
+:root[data-theme="light"] .panel-head h3 { color: #0b0b0b !important; }
+:root[data-theme="light"] .panel-head .panel-sub { color: #52514e !important; }
+:root[data-theme="light"] .scanner-wrap,
+:root[data-theme="light"] #wlTable { background: #ffffff; }
+:root[data-theme="light"] #wlTable thead th { background: #f4f4f2; color: #0b0b0b; border-bottom-color: var(--b1); }
+:root[data-theme="light"] #wlTable thead th:hover { background: #eceae5; color: #1d6fd0; }
+:root[data-theme="light"] #wlTable tbody tr,
+:root[data-theme="light"] #wlTable tbody tr.v-strong-buy,
+:root[data-theme="light"] #wlTable tbody tr.v-strong-sell { background: #ffffff; }
+:root[data-theme="light"] #wlTable tbody tr:nth-child(even),
+:root[data-theme="light"] #wlTable tbody tr.v-strong-buy:nth-child(even) { background: #faf9f7; }
+:root[data-theme="light"] #wlTable tbody tr:hover,
+:root[data-theme="light"] #wlTable tbody tr.v-strong-buy:hover { background: #f0efeb; }
+:root[data-theme="light"] #wlTable .td-score,
+:root[data-theme="light"] #wlTable .td-price,
+:root[data-theme="light"] #wlTable .cell-num { color: #0b0b0b; }
+:root[data-theme="light"] #wlTable .cell-num.down { color: #dc2626; }
+:root[data-theme="light"] #wlTable .cell-num.warn { color: #b45309; }
+:root[data-theme="light"] #wlTable .pre-price,
+:root[data-theme="light"] .pre-price { color: #52514e !important; }
+:root[data-theme="light"] #wlTable .action-btn { color: #0b0b0b; border-color: var(--b1); }
+:root[data-theme="light"] #wlTable .spark-trend-pct,
+:root[data-theme="light"] .anchor-tag { color: #3f3e3a !important; }
+:root[data-theme="light"] .wlm-heat-chip,
+:root[data-theme="light"] .wlm-fun-meta,
+:root[data-theme="light"] .wlm-near-title,
+:root[data-theme="light"] .wlm-desk-hint,
+:root[data-theme="light"] .corr-banner,
+:root[data-theme="light"] .wl-regime,
+:root[data-theme="light"] .wl-pulse,
+:root[data-theme="light"] .fb-count,
+:root[data-theme="light"] .fb-toggle,
+:root[data-theme="light"] .add-bar label,
+:root[data-theme="light"] #wlMeta,
+:root[data-theme="light"] .status-pill { color: #3f3e3a !important; }
+:root[data-theme="light"] .wlm-desk-bar { background: var(--tt-glass); }
