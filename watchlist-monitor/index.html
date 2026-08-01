@@ -652,12 +652,88 @@ table.no-pre .col-pre { display:none; }
   header .nav-link:nth-of-type(n+3) { display:none; } /* păstrează Hub + Ghid */
   .wlm-sens-btn { font-size:10px; padding:4px 7px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" v164 — limbajul de componente din macro-dashboard / hub
+   (topbar panou sticky · pill-uri glass · bordură colorată de secțiune)
+   CSS-only: HTML-ul, id-urile și JS-ul rămân neatinse (.active, data-mode,
+   data-fv funcționează identic). Regula casei: fundal SOLID pe sticky,
+   FĂRĂ backdrop-filter (blur-ul strică randarea textului).
+   NB: badge-ul de regim (data-regime-badge) NU se ascunde aici — spre
+   deosebire de nasdaq-scanner, pagina asta nu are bandă cockpit CKB, deci
+   badge-ul e singura afișare a regimului de risc.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Accentele de bordură-sus + gradientul de pill activ (paleta suitei) */
+:root {
+  --wl-acc-1:#3b82f6;          /* albastru suită — pill activ / tabel  */
+  --wl-acc-2:#0ea5e9;          /* capătul gradientului de pill activ   */
+  --wl-sec-add:#10b981;        /* bara de adăugare ticker              */
+  --wl-sec-desk:#a78bfa;       /* desk bar (Scan/Trade + sensibilitate)*/
+  --wl-sec-funnel:#6ee7b7;     /* funnel + near-miss                   */
+  --wl-sec-filter:var(--warn); /* bara de filtre pe verdict            */
+  --wl-sec-table:#3b82f6;      /* tabelul „Watchlist live"             */
+}
+
+/* ── 1. TOPBAR: panou sticky. sticky/top/z-index/border vin din
+      lib/suite-ui.css (body.suite-page header.suite-cockpit); aici doar
+      fundalul solid al macro-ului și umbra mare. Specificitatea (0,2,1)
+      egalează suite-ui, dar <style>-ul paginii e după <link> → câștigă pe
+      ordinea cascadei (inclusiv peste `background:...!important`).
+      Headerul are 15 acțiuni → rămâne flex-wrap:wrap (nowrap le-ar strivi);
+      h1 are deja margin-right:auto, deci acțiunile stau la dreapta. ── */
+body.suite-page header.suite-cockpit {
+  gap:8px 10px;
+  padding:10px 14px;
+  border-radius:var(--r);
+  background:rgba(11,15,23,.94)!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+}
+body.suite-page header.suite-cockpit h1 { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+body.suite-page header.suite-cockpit .nav-link,
+body.suite-page header.suite-cockpit .status-pill,
+body.suite-page header.suite-cockpit button,
+body.suite-page header.suite-cockpit select { flex:0 0 auto; }
+@media (max-width:760px) {
+  /* mobil: titlu pe rând propriu (regula existentă la 760px) — fără clipping */
+  body.suite-page header.suite-cockpit { padding:9px 11px; }
+  body.suite-page header.suite-cockpit h1 { overflow:visible; text-overflow:clip; }
+}
+
+/* ── 2. Pill-uri de navigare internă: activ = gradient albastru, text alb.
+      Se aplică doar pe axa „ce văd" (mod Scan/Trade + filtru pe verdict).
+      `.wlm-sens-btn.active` rămâne AURIU intenționat: e o altă axă
+      (sensibilitatea), iar culoarea distinctă o ține citibilă separat. ── */
+.fb-chip, .wlm-mode-btn {
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.fb-chip.active, .wlm-mode-btn.active {
+  background:linear-gradient(135deg,var(--wl-acc-1),var(--wl-acc-2));
+  border-color:transparent; color:#fff;
+  box-shadow:0 2px 12px rgba(59,130,246,.32);
+}
+
+/* ── 3. Bordură colorată sus — semnătura secțiunilor de ziar (.sec din macro).
+      Doar pe blocurile care SUNT carduri (fundal + border propriu).
+      `.stats-strip`, `.hot-strip` și `.wlm-heat` sunt containere transparente
+      → nu primesc bordură orfană (lecția de la alerts); `.stat-tile` are deja
+      dunga proprie de 3px pe stânga, iar `.hot-card` are chenar verde. ── */
+.add-bar        { border-top:3px solid var(--wl-sec-add);    border-radius:var(--r); }
+.wlm-desk-bar   { border-top:3px solid var(--wl-sec-desk);   border-radius:var(--r); }
+.wlm-funnel     { border-top:3px solid var(--wl-sec-funnel); border-radius:var(--r); }
+.filter-bar     { border-top:3px solid var(--wl-sec-filter); border-radius:var(--r); }
+.panel-box.scanner-wrap { border-top:3px solid var(--wl-sec-table); border-radius:var(--r); }
+
+/* ── 4. Consecvență de formă — umbra „card mare" pe tabel (`.panel-box` avea
+      box-shadow:none). Radius-urile celorlalte blocuri erau deja var(--r).
+      Chips / pills / butoane / inputs rămân exact cum sunt. ── */
+.panel-box.scanner-wrap { box-shadow:0 4px 18px rgba(0,0,0,.28); }
 </style>
 </head>
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v163</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v164</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
