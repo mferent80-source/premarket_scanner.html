@@ -1461,7 +1461,7 @@ h1.headline:empty { display:none; }
           <li><b>Semafor de regim:</b> aceeași sursă ca 🛡 Risk Dashboard (composite VIX+10Y+corel.BTC/SPY+F&G+DXY) — click → drill-down cu explicația scorului.</li>
           <li><b>Gauge apetit de risc:</b> arc semicircular 0-100%, derivat din composite-ul [-10..+10]. Culoarea urmează regimul (verde/galben/roșu).</li>
           <li><b>KPI-uri cu deltă:</b> VIX, DXY, 10Y, BTC, F&G — fiecare cu Δ față de referința din LS (nu doar valoarea brută). Click pe orice KPI → același modal drill-down (chart 30d + stats + corelații) ca la stat tiles.</li>
-          <li>Cockpit-ul e sticky sub topbar la scroll — rămâne vizibil cât citești editorialul de mai jos.</li>
+          <li>Bara de titlu (topbar) e sticky la scroll; cockpit-ul e primul bloc chiar sub ea (nu e el însuși sticky) — rămâne la vedere cât nu ai derulat prea mult în jos.</li>
         </ul>
       </div>
 
@@ -6403,8 +6403,8 @@ function checkResults() {
   });
   if (suggestionsAdded) {
     persistSuggestions();
-    renderSuggestionsPanel(); // actualizează tab-ul Oportunități + badge (fără popup care sare)
-    toast('💡 Oportunități noi pe sector — vezi tab-ul „Oportunități"', 'success');
+    renderSuggestionsPanel(); // actualizează secțiunea Oportunități + badge (fără popup care sare)
+    toast('💡 Oportunități noi pe sector — vezi secțiunea 💡 Oportunități', 'success');
   }
 
   // Curăță flash după animație
@@ -6455,7 +6455,7 @@ function computeAndStoreSuggestion(event, result, key) {
   return true;
 }
 
-// Badge cu numărul de oportunități active pe tab-ul „💡 Oportunități"
+// Badge cu numărul de oportunități active pe secțiunea „💡 Oportunități"
 function updateOpBadge(n) {
   const b = $('opBadge');
   const secCnt = $('secCnt-opportunities');
@@ -6465,7 +6465,7 @@ function updateOpBadge(n) {
   else b.style.display = 'none';
 }
 
-// Randează tab-ul Oportunități: sugestiile grupate pe sector (din rezultatele evenimentelor)
+// Randează secțiunea Oportunități: sugestiile grupate pe sector (din rezultatele evenimentelor)
 function renderSuggestionsPanel() {
   const body = $('opBody');
   if (!body) return;
