@@ -113,9 +113,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .seg-tab.active{background:rgba(167,139,250,.2);border-color:var(--purple);color:var(--purple)}
 .jr-workspace{margin-bottom:12px}
 .jr-tabs{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;background:var(--panel2);border:1px solid var(--b1);border-radius:var(--r)}
-.jr-tab{background:transparent;border:1px solid var(--b1);color:var(--t2);padding:8px 14px;border-radius:var(--rs);font-size:12px;font-weight:800;cursor:pointer;font-family:var(--head)}
+.jr-tab{background:rgba(255,255,255,.035);border:1px solid var(--b1);color:var(--t2);padding:8px 14px;border-radius:var(--rs);font-size:12px;font-weight:800;cursor:pointer;font-family:var(--head);transition:background .15s var(--ease),color .15s var(--ease),border-color .15s var(--ease)}
 .jr-tab:hover{border-color:var(--accent);color:var(--t1)}
-.jr-tab.active{background:rgba(91,176,255,.14);border-color:rgba(91,176,255,.45);color:var(--accent)}
+.jr-tab.active{background:linear-gradient(135deg,#a78bfa,#22d66b);border-color:transparent;color:#0a0a0a;box-shadow:0 2px 12px rgba(167,139,250,.32)}
 .jr-tab .jr-warn{display:inline-block;margin-left:4px;color:var(--warn);font-size:10px}
 .jr-pane{display:none}
 .jr-pane.active{display:block}
@@ -192,9 +192,9 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .jr-sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55)}
 .jr-sheet{position:relative;z-index:1;width:min(480px,100%);margin:12px;border-radius:var(--r);max-height:90vh;overflow:auto}
 @media (max-width:550px){.jr-ctx-strip{grid-template-columns:repeat(2,1fr)}}
-.fb-chip{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:5px 11px;border-radius:999px;font-size:11.5px;font-weight:700;font-family:var(--head);cursor:pointer;transition:all .15s var(--ease)}
+.fb-chip{background:rgba(255,255,255,.035);border:1px solid var(--b1);color:var(--t1);padding:5px 11px;border-radius:999px;font-size:11.5px;font-weight:700;font-family:var(--head);cursor:pointer;transition:all .15s var(--ease)}
 .fb-chip:hover{border-color:var(--accent);color:var(--accent);background:rgba(91,176,255,.06)}
-.fb-chip.active{background:var(--accent);border-color:var(--accent);color:#000}
+.fb-chip.active{background:linear-gradient(135deg,#5bb0ff,#a78bfa);border-color:transparent;color:#0a0a0a;box-shadow:0 2px 10px rgba(91,176,255,.3)}
 .setup-wrap{padding:14px 0}
 .setup-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .setup-form #setupTicker{flex:1;min-width:180px;font-family:var(--mono);text-transform:uppercase;font-size:14px;padding:9px 12px;letter-spacing:.5px;background:var(--panel2);color:var(--t1);border:1px solid var(--b1);border-radius:var(--rs)}
@@ -257,12 +257,25 @@ tr.openrow{background:rgba(91,176,255,.06)}
 .jr-fees-banner{display:none;border-radius:var(--rs);padding:10px 14px;margin-bottom:10px;font-family:var(--mono);font-size:11.5px;background:rgba(212,137,44,.12);border:1px solid rgba(212,137,44,.45);color:var(--warn);line-height:1.45}
 .setup-err{padding:20px;text-align:center;color:var(--t2);font-family:var(--head);font-size:13px}
 .setup-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" — bordură colorată de secțiune, per workspace (topbar-ul
+   e .cap-header, stilizat extern în lib/capital-ui.css — deja theme-aware
+   prin theme-light.css, nu se atinge aici). CSS-only: HTML/JS neatinse.
+   Culorile reiau EXACT accentele deja folosite pentru taburile astea în
+   hub (index.html → card-jtab): desk roșu/chihlimbar, exec albastru/violet,
+   portfolio verde/teal, capital portocaliu (crypto). ── */
+#jpaneDesk .panel{ border-top:3px solid #ff4d4d; }
+#jpaneSetup .panel{ border-top:3px solid #a78bfa; }
+#jpaneExec .panel{ border-top:3px solid #5bb0ff; }
+#jpanePortfolio .panel{ border-top:3px solid #22d66b; }
+#jpaneCapital .panel{ border-top:3px solid var(--crypto-1); }
 </style>
 </head>
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v734</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v707</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v735</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v737</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>

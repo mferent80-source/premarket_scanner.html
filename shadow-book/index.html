@@ -18,6 +18,16 @@ header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px
 header h1{font-size:18px;font-weight:800;color:var(--accent);margin-right:auto}
 .nav-link{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
 .panel{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:12px;overflow-x:auto}
+
+/* ── ALINIERE „ZIAR" — topbar panou sticky + bordură de secțiune.
+      Tratament minimal (pagină mică): un singur accent (violet, culoarea
+      badge-ului paginii) pe cardurile reale. CSS-only, HTML/JS neatinse. ── */
+header.suite-cockpit{
+  position:sticky; top:0; z-index:60;
+  background:var(--topbar-bg); box-shadow:var(--topbar-shadow);
+  padding:10px 14px; margin:0 0 12px;
+}
+.panel{ border-top:3px solid var(--accent); }
 .frm{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
 .frm label{font-family:var(--mono);font-size:10px;color:var(--t3);display:flex;flex-direction:column;gap:3px}
 .frm input,.frm select,textarea{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono)}
@@ -35,7 +45,7 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
 <div id="capitalRail" data-cd-page="shadow"></div>
 
 <header class="suite-cockpit">
-  <h1>👻 Shadow Book <span class="ver-badge" style="font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(167,139,250,.15);color:var(--accent);border:1px solid rgba(167,139,250,.35);font-family:var(--mono)">v5</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>👻 Shadow Book <span class="ver-badge" style="font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(167,139,250,.15);color:var(--accent);border:1px solid rgba(167,139,250,.35);font-family:var(--mono)">v6</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <button class="nav-link" id="btnEval">📊 Evaluează pending</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>

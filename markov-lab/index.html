@@ -97,12 +97,29 @@ code { font-family:var(--mono); background:var(--panel3); padding:1px 5px; borde
 .mk-fadein { animation:mkFade .5s ease; }
 @keyframes mkFade { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" — topbar panou sticky + bordură colorată de secțiune
+   (limbajul comun din macro-dashboard/hub/pump-radar). CSS-only: HTML și
+   JS rămân neatinse. Fundal SOLID pe sticky, FĂRĂ backdrop-filter.
+   Pagina e un singur flux de panouri generate identic (control → analiză
+   → self-test/sweep/batch) → un accent unic (violet, culoarea butoanelor
+   HMM/analiză) e suficient; nu forțez distincții artificiale pe conținut
+   dinamic identic structural. ── */
+body.suite-page header.suite-cockpit{
+  position:sticky; top:0; z-index:60;
+  border-radius:var(--r);
+  background:var(--topbar-bg);
+  box-shadow:var(--topbar-shadow);
+  padding:10px 14px; margin:0 0 14px;
+}
+.panel{ border-top:3px solid #a78bfa; }
 </style>
 </head>
 <body class="suite-page">
 
 <header class="suite-cockpit mk-header">
-<h1>🔗 Markov Lab <span class="ver">v3.12</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <a href="../" class="hub-link" title="Înapoi la Hub">← Hub</a></h1>
+<h1>🔗 Markov Lab <span class="ver">v3.13</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <a href="../" class="hub-link" title="Înapoi la Hub">← Hub</a></h1>
 </header>
 <p class="sub">
   <b>Detecție de regim de volatilitate cu HMM gaussian</b> — „Markov-ul care chiar funcționează".<br>

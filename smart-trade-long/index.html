@@ -20,6 +20,8 @@
   --crypto-1:#f7931a; --crypto-2:#ffd86b;
   --shadow-sm:0 1px 2px rgba(0,0,0,.3);
   --shadow:0 4px 14px rgba(0,0,0,.4);
+  /* paleta „ziar" — pagina nu avea acc-1/warn/violet/teal proprii */
+  --acc-1:var(--acc); --warn:#d4892c;
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;overflow-x:hidden}
@@ -30,9 +32,10 @@ body{background:radial-gradient(1200px 600px at 70% -10%, rgba(247,147,26,.07), 
   min-height:100vh;font-variant-numeric:tabular-nums;
 }
 
-/* HEADER */
-.hdr{background:linear-gradient(180deg, rgba(22,27,38,.7), rgba(11,15,23,0));
-  border-bottom:1px solid var(--br-l);backdrop-filter:blur(8px);position:sticky;top:0;z-index:50}
+/* HEADER — panou sticky SOLID, urmărește tema (era gradient cu fade + blur,
+   invizibil pe temă deschisă și interzis de regula casei „fără backdrop-filter") */
+.hdr{background:var(--topbar-bg);
+  border-bottom:1px solid var(--br-l);backdrop-filter:none;position:sticky;top:0;z-index:60;box-shadow:var(--topbar-shadow)}
 .hdr-inner{max-width:1280px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;color:var(--txt);text-decoration:none}
 .brand .badge{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));
@@ -235,6 +238,17 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 .ls-tier{display:inline-block;padding:2px 9px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.4px}
 .ls-earn{font-size:10px;color:var(--red);font-weight:700;margin-left:5px}
 @media(max-width:640px){.ls-hide{display:none}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" — bordură colorată de secțiune (topbar-ul .hdr e mai sus,
+   lângă restul header-ului). CSS-only: HTML/JS neatinse. Doar cardurile
+   REALE (fundal+chenar propriu) primesc dungă; .filter are deja border-left
+   semantic (ok/partial/fail) și rămâne neatins. ── */
+.scan-bar{ border-top:3px solid #10b981; }              /* verde — bara de control a scanului */
+.res-details summary{ border-top:3px solid #6ee7b7; }   /* teal — rezultatul restrâns/extins */
+.grid .card{ border-top:3px solid var(--acc-1); }        /* albastru — cardurile generice din grid */
+.grid .card.verdict-card{ border-top:3px solid var(--warn); } /* chihlimbar — hero-ul verdictului */
+#aiSetupCard{ border-top:3px solid #a78bfa; }            /* violet — AI Quick Setup */
 </style>
 </head>
 <body class="dark suite-page">
@@ -258,7 +272,7 @@ h1{font-size:28px;margin:0 0 4px;background:linear-gradient(90deg,var(--crypto-1
 <div id="stlFocusStrip" hidden role="status" aria-live="polite" style="max-width:1280px;margin:8px auto 0;padding:0 20px"></div>
 
 <main>
-  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v44</span></h1>
+  <h1>🎯 Smart Trade Long <span style="font-size:11px;font-weight:700;color:var(--blue);border:1px solid rgba(91,176,255,.4);background:rgba(91,176,255,.12);padding:2px 7px;border-radius:5px;vertical-align:middle;margin-left:6px" title="Versiune build (crește la fiecare push)">v45</span></h1>
   <p class="lead">Scoring 6-filter cu Entry/SL/TP auto din ATR + position sizer + insider activity ultimele 90 zile.
     Dă verdict clar înainte de fiecare trade.</p>
 
