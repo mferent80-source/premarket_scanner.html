@@ -2612,6 +2612,9 @@ async function loadStatTiles() {
 
   // v193: mood-ul derivă din regimul composite (sursa unică). No-op până e gata RISK_STATE.
   applyRegimeMood();
+  // Cockpit: KPI-urile VIX/DXY/10Y/BTC/F&G tocmai s-au reîmprospătat — re-randează imediat
+  // (Danger/Curbă/regim se actualizează separat, când vine computeRiskDashboard()).
+  renderCockpit();
 }
 
 // ============ COMMAND CENTER — overview pre-trade (Yield Curve + Danger Score + Cross-asset) ============
@@ -6462,6 +6465,145 @@ function isCryptoSector(sec) {
   return cryptoTk.length >= sec.tickers.length / 2;
 }
 
+// ============ COCKPIT (v234 — semafor regim + gauge apetit risc + KPI delte) ============
+// Cele 3 containere (#ckSemaphore / #ckGauge / #ckKpis, markup din task 2) pornesc goale.
+// renderCockpit() NU introduce fetch-uri noi — citește RISK_STATE + tile-urile ascunse din
+// #legacyData (deja populate de loadStatTiles()/computeRiskDashboard()) și doar re-randează
+// vizual în cockpit. Idempotent — apelabil oricând (init, refresh, orice update RISK_STATE/tiles).
+
+// Snapshot zilnic al valorilor KPI (VIX/DXY/10Y/BTC/F&G) — sursa pentru delta „azi vs referință".
+// Referință = valorile de la primul load al zilei PRECEDENTE (afișat azi/mâine) sau, dacă azi
+// s-a mai încărcat deja o dată, valorile de la primul load de azi (delta intra-zi). LS: md_kpi_snapshot.
+function kpiSnapshot() {
+  const today = getNYDateHour().date;
+  let snap = null;
+  try { snap = JSON.parse(localStorage.getItem('md_kpi_snapshot') || 'null'); } catch (e) {}
+  // ATENȚIE: parseTileValue (NU getStatTileVal) — getStatTileVal întoarce { v: string, sub, cls }
+  // (textul brut din .stat-value, ex. "18.45" sau "N/A"), inutilizabil direct în scădere numerică.
+  // parseTileValue(id) citește .stat-value, strip $/, și face parseFloat → număr sau null.
+  const vals = {
+    vix: parseTileValue('tile-vix'), dxy: parseTileValue('tile-dxy'),
+    teny: parseTileValue('tile-10y'), btc: parseTileValue('tile-btc'),
+    fng: parseTileValue('tile-fng')
+  };
+  if (!snap || snap.date !== today) {
+    // prima încărcare a zilei (cu cel puțin o valoare reală) → devine referința de „ieri" pt mâine
+    if (Object.values(vals).some(v => v != null)) {
+      const prev = snap; // snapshot-ul zilei precedente (dacă există)
+      try { localStorage.setItem('md_kpi_snapshot', JSON.stringify({ date: today, vals })); } catch (e) {}
+      return { vals, prev: prev ? prev.vals : null };
+    }
+    return { vals, prev: null };
+  }
+  return { vals, prev: null, sameDay: snap.vals }; // delta intra-zi față de primul load de azi
+}
+
+// Etichetă delta colorată (▲/▼) — `invert`=true înseamnă că o creștere e REA (VIX/DXY/10Y).
+function fmtDelta(cur, ref, dec, invert) {
+  if (cur == null || ref == null) return '';
+  const d = cur - ref;
+  if (!isFinite(d) || d === 0) return '<span class="kd">→ 0</span>';
+  const up = d > 0;
+  const good = invert ? !up : up;
+  return `<span class="kd ${good ? 'up' : 'dn'}">${up ? '▲' : '▼'} ${up ? '+' : ''}${d.toFixed(dec)}</span>`;
+}
+
+function renderCockpit() {
+  const sem = $('ckSemaphore'), kpis = $('ckKpis'), gauge = $('ckGauge');
+  if (!sem || !kpis || !gauge) return; // markup lipsă — defensiv, nu ar trebui să se întâmple
+
+  // --- SEMAFOR din RISK_STATE — click → același drill ca fostul cc-regime/tile-risk (finding audit)
+  sem.style.cursor = 'pointer';
+  sem.title = 'Regim de risc composite — click pentru detalii (VIX + 10Y + BTC/SPY corr + F&G + DXY)';
+  sem.onclick = drillRiskDashboard;
+  if (RISK_STATE && RISK_STATE.label) {
+    const s = RISK_STATE;
+    const sign = s.composite >= 0 ? '+' : '';
+    let trendStr = '';
+    // getRegimeTrend(dateET) întoarce ultima intrare din istoricul zilnic — { dateET, composite,
+    // label } — NU { prevLabel, delta } cum sugera schița din brief. Delta se calculează aici.
+    const trend = getRegimeTrend(getNYDateHour().date);
+    if (trend && typeof trend.composite === 'number' && !s.partial) {
+      const delta = s.composite - trend.composite;
+      const dir = delta > 0 ? '<span class="up">↑ ameliorare</span>' : delta < 0 ? '<span class="dn">↓ deteriorare</span>' : '→ stabil';
+      trendStr = ` · ieri ${escHtml(trend.label || '—')} ${dir}`;
+    }
+    // Cheile trebuie să fie etichetele REALE din computeRiskDashboard() (cu emoji, benzi LEAN
+    // ON/CAUTIOUS/DATE PARȚIALE) — schița din brief folosea chei fictive (RISK-ON/MIXED/...)
+    // care nu ar fi găsit niciodată un match.
+    const advice = {
+      '🟢 RISK-ON': 'Mediu favorabil — sizing normal, urmează trendul.',
+      '🟢 LEAN ON': 'Mediu favorabil cu rezervă — sizing normal-moderat.',
+      '⚪ NEUTRAL': 'Selectiv — poziții mai mici, stopuri strânse.',
+      '🟡 CAUTIOUS': 'Redu expunerea — sizing 40-60%, hedge parțial.',
+      '🔴 RISK-OFF': 'Cash-heavy, defensiv, fără poziții noi agresive azi.',
+      '⛔ STRESS': 'Stai deoparte — capital preservation, nu e ziua ta.',
+      '⚪ DATE PARȚIALE': `Doar ${s.validCount ?? '?'}/5 surse au date reale — nu ajusta sizing pe regim.`
+    }[s.label] || '';
+    sem.innerHTML = `<div class="sicon" style="color:${s.color};text-shadow:0 0 18px ${s.color}">◆</div>
+      <div><div class="slabel">REGIM DE RISC</div>
+      <div class="sstance" style="color:${s.color}">${escHtml(s.label)}</div>
+      <div class="ssub">scor <b>${sign}${s.composite}</b>${trendStr} · ${escHtml(advice)}</div></div>`;
+  } else {
+    sem.innerHTML = `<div class="sicon" style="color:var(--t3)">◆</div><div><div class="slabel">REGIM DE RISC</div><div class="sstance" style="color:var(--t3)">—</div><div class="ssub">se calculează…</div></div>`;
+  }
+
+  // --- GAUGE apetit de risc: composite [-10..+10] → [0..100]% pe un semicerc
+  const pct = (RISK_STATE && typeof RISK_STATE.composite === 'number')
+    ? Math.max(0, Math.min(100, Math.round((RISK_STATE.composite + 10) * 5))) : 50;
+  const col = (RISK_STATE && RISK_STATE.color) ? RISK_STATE.color : 'var(--t3)';
+  const ang = Math.PI * pct / 100; // 0 la pct=0 (capăt stânga) .. π la pct=100 (capăt dreapta)
+  const x = 90 - 70 * Math.cos(ang), y = 92 - 70 * Math.sin(ang);
+  const large = pct > 50 ? 1 : 0; // arcul de valoare trece de jumătate de cerc → large-arc-flag=1
+  gauge.innerHTML = `<path d="M 20 92 A 70 70 0 1 1 160 92" fill="none" stroke="rgba(255,255,255,.09)" stroke-width="12" stroke-linecap="round"/>
+    <path d="M 20 92 A 70 70 0 ${large} 1 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round"/>
+    <text x="90" y="84" text-anchor="middle" class="gv">${pct}%</text>
+    <text x="90" y="103" text-anchor="middle" class="gl">apetit de risc${RISK_STATE ? '' : ' (estimare)'}</text>`;
+
+  // --- KPI-uri VIX/DXY/10Y/BTC/F&G cu delta — click → drillStatTile(id), mecanismul existent
+  // de la fostele tile-* (TILE_DRILL_META, secțiunea DRILL DOWN: STAT TILES ~linia 3079)
+  const { vals, prev, sameDay } = kpiSnapshot();
+  const ref = prev || sameDay || {};
+  const sev = (v, warnAt, badAt, invert) => v == null ? '' : (invert ? (v >= badAt ? 'k-bad' : v >= warnAt ? 'k-warn' : 'k-good') : (v <= badAt ? 'k-bad' : v <= warnAt ? 'k-warn' : 'k-good'));
+  const tiles = [
+    { id:'tile-vix', l:'VIX', v:vals.vix, r:ref.vix, dec:2, cls:sev(vals.vix, 18, 25, true), invert:true },
+    { id:'tile-dxy', l:'DXY', v:vals.dxy, r:ref.dxy, dec:2, cls:'', invert:true },
+    { id:'tile-10y', l:'10Y', v:vals.teny, r:ref.teny, dec:2, cls:'', invert:true, suf:'%' },
+    { id:'tile-btc', l:'BTC', v:vals.btc, r:ref.btc, dec:0, cls:'', invert:false, fmt: v => v >= 1000 ? (v/1000).toFixed(1) + 'k' : String(v) },
+    { id:'tile-fng', l:'Fear&Greed', v:vals.fng, r:ref.fng, dec:0, cls:sev(vals.fng, 40, 25, false), invert:false }
+  ];
+  let html = tiles.map(t => {
+    const disp = t.v == null ? '—' : (t.fmt ? t.fmt(t.v) : t.v.toFixed(t.dec)) + (t.suf || '');
+    const meta = TILE_DRILL_META[t.id];
+    const title = meta ? `${meta.label} — click pentru detalii (chart 30z)` : '';
+    return `<div class="kpi ${t.cls}" onclick="drillStatTile('${t.id}')" style="cursor:pointer" title="${escHtml(title)}"><div class="kv">${disp}</div><div class="kl">${t.l}</div>${fmtDelta(t.v, t.r, t.dec, t.invert)}</div>`;
+  }).join('');
+
+  // Danger + Curbă — calculate direct din computeDangerScore()/YIELD_CURVE (nu din textContent-ul
+  // cc-danger/cc-curve: acelea conțin etichete lungi „62/100 · RIDICAT" care nu încap curat
+  // în tile-ul scurt de KPI). Funcțiile sunt pure/sincrone — sigur de apelat oricând.
+  const dg = computeDangerScore();
+  const dgCls = dg.cls === 'bear' ? 'k-bad' : dg.cls === 'warn' ? 'k-warn' : dg.cls === 'bull' ? 'k-good' : '';
+  html += `<div class="kpi ${dgCls}" onclick="drillDanger()" style="cursor:pointer" title="Danger Score — click pentru detalii"><div class="kv">${dg.score}</div><div class="kl">Danger</div></div>`;
+  let curveDisp = '—', curveCls = '';
+  if (YIELD_CURVE) {
+    const inv = YIELD_CURVE.spread < 0, flat = Math.abs(YIELD_CURVE.bp) < 25;
+    curveDisp = (YIELD_CURVE.bp >= 0 ? '+' : '') + YIELD_CURVE.bp.toFixed(0) + 'bp';
+    curveCls = inv ? 'k-bad' : flat ? 'k-warn' : 'k-good';
+  }
+  html += `<div class="kpi ${curveCls}" onclick="drillCurve()" style="cursor:pointer" title="Curba 10Y-3M — click pentru detalii"><div class="kv">${curveDisp}</div><div class="kl">Curbă 10Y-3M</div></div>`;
+
+  // Al 8-lea KPI: Earnings 7z — oglindește #tile-earnings (populat de renderEarningsTile din
+  // countEarningsNextDays), click deschide Earnings Hub — exact ce făcea vechiul tile (~linia 6141).
+  const earnTile = $('tile-earnings');
+  const earnVal = earnTile?.querySelector('.stat-value')?.textContent?.trim() || '—';
+  const earnSub = earnTile?.querySelector('.stat-sub')?.textContent?.trim() || 'Earnings mega-cap în 7 zile';
+  const earnCls = /\bwarn\b/.test(earnTile?.className || '') ? 'k-warn' : '';
+  html += `<div class="kpi ${earnCls}" onclick="window.open('../earnings-hub/', '_blank')" style="cursor:pointer" title="${escHtml(earnSub)} — click → Earnings Hub"><div class="kv">${escHtml(earnVal)}</div><div class="kl">Earnings 7z</div></div>`;
+
+  kpis.innerHTML = html;
+}
+
 // ============ SURSĂ CRYPTO MOMENTUM (independentă de macro) ============
 // Gate de calitate intrinsec: listăm DOAR setupuri clare, susținute de FAPTE de preț reale azi —
 // breakout peste maximul de 20 zile sau breakdown sub minim, confirmat de o mișcare semnificativă,
@@ -6848,7 +6990,7 @@ function bindEvents() {
     window._proxyErrorToastShown = false; // la retry manual eșuat, avertismentul de proxy trebuie să REAPARĂ
     _proxyResetTs = Date.now();
     await Promise.all([loadCalendar(), loadStatTiles()]);
-    computeRiskDashboard().then(() => { renderRiskTile(); applyRegimeMood(); renderCommandCenter(); }).catch(() => {});
+    computeRiskDashboard().then(() => { renderRiskTile(); applyRegimeMood(); renderCommandCenter(); renderCockpit(); }).catch(() => {});
   });
   $('settingsBtn').addEventListener('click', openSettings);
   $('closeSettings').addEventListener('click', closeSettings);
@@ -7117,6 +7259,9 @@ function paintFromCache() {
     try { applyRegimeMood(); } catch (e) {}
     try { renderCommandCenter(); } catch (e) {}
   }
+  // Cockpit: paint instant din cache (regim + Danger/Curbă dacă RISK_STATE a venit din LS mai sus;
+  // KPI-urile VIX/DXY/... rămân „—" până termină loadStatTiles() — renderCockpit e defensiv la asta).
+  try { renderCockpit(); } catch (e) {}
 }
 
 // ============ INIT ============
@@ -7139,7 +7284,7 @@ async function init() {
   // Risk composite — IMEDIAT după tiles (fără delay artificial 1.5s).
   // F&G e deja pe tile din loadStatTiles; cache LS e afișat; revalidate live.
   computeRiskDashboard().then(() => {
-    renderRiskTile(); applyRegimeMood(); renderCommandCenter();
+    renderRiskTile(); applyRegimeMood(); renderCommandCenter(); renderCockpit();
   }).catch(() => {
     // dacă rețeaua pică, lasă paintFromCache; marchează onest dacă nu avem nimic
     if (!RISK_STATE) {
