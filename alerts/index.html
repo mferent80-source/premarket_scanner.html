@@ -606,12 +606,92 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
   .icon-btn { padding:4px 7px; }                            /* butoane puțin mai mici pe telefon */
   .px-sess { font-size:8px; padding:1px 4px; margin-left:4px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" v77 — limbajul de componente din macro-dashboard / hub
+   (topbar panou sticky · taburi glass · bordură colorată de secțiune)
+   CSS-only: HTML-ul și JS-ul rămân neatinse (data-tab + clasa .on
+   funcționează exact ca înainte). Regula casei: fundal SOLID pe sticky,
+   FĂRĂ backdrop-filter (blur-ul strică randarea textului).
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Accentele de bordură-sus, mapate ca --sec-* din macro (paleta paginii) */
+:root {
+  --al-sec-price:var(--acc-1);   /* tab Preț — alerte active   */
+  --al-sec-news:#a78bfa;         /* tab News Watch             */
+  --al-sec-hist:#6ee7b7;         /* tab Istoric / triggered    */
+  --al-sec-add:#10b981;          /* formularul de adăugare     */
+  --al-sec-rail:var(--warn);     /* rail-ul „aproape de prag"  */
+}
+
+/* ── 1. TOPBAR: panou sticky pe UN singur rând (ca .macro-cockpit.topbar-sticky).
+      sticky/top/z-index/border vin din lib/suite-ui.css (body.suite-page header);
+      aici doar fundalul solid al macro-ului, umbra mare și rândul unic.
+      #hdrMenu e position:fixed (poziționat din JS la click) → sticky-ul nu-l rupe,
+      iar z-index-ul lui (3500) rămâne peste header (60). ── */
+body.suite-page header.suite-cockpit {
+  flex-wrap:nowrap;
+  gap:8px 10px;
+  padding:10px 14px;
+  border-radius:var(--r);
+  background:rgba(11,15,23,.94)!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+}
+body.suite-page header.suite-cockpit h1 {
+  min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+/* status-pill împinge acțiunile la dreapta (h1 are deja margin-right:auto) */
+body.suite-page header.suite-cockpit .icon-btn,
+body.suite-page header.suite-cockpit .nav-link,
+body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
+@media (max-width:760px) {
+  /* mobil: rândul se rupe natural — titlu + pill sus, acțiunile dedesubt */
+  body.suite-page header.suite-cockpit { flex-wrap:wrap; padding:9px 11px; }
+  body.suite-page header.suite-cockpit h1 { font-size:16px; white-space:normal; overflow:visible; }
+}
+
+/* ── 2. TABURI: pill-uri pe fundal glass. Activ = gradient acc-1→acc-2, text alb.
+      Clasele rămân identice (.desk-tabs button.on) — doar pielea se schimbă. ── */
+.desk-tabs {
+  background:rgba(18,26,40,.92);
+  border-color:var(--b2);
+  box-shadow:0 8px 24px rgba(0,0,0,.34);
+}
+.desk-tabs button {
+  min-height:40px; letter-spacing:-.01em;
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.desk-tabs button:hover { background:rgba(255,255,255,.05); border-color:var(--b2); color:var(--t1); }
+.desk-tabs button.on {
+  background:linear-gradient(135deg,var(--acc-1),var(--acc-2));
+  border-color:transparent; color:#fff;
+  box-shadow:0 2px 12px rgba(59,130,246,.32);
+}
+.desk-tabs button.on:hover { background:linear-gradient(135deg,var(--acc-1),var(--acc-2)); border-color:transparent; }
+.desk-tabs button.on .tab-cnt { background:rgba(255,255,255,.22); color:#fff; }
+
+/* ── 3. Bordură colorată sus — semnătura secțiunilor de ziar (.sec din macro).
+      Containerele reale sunt cardurile .section din interiorul fiecărui
+      .desk-panel (panourile de tab sunt transparente, fără fundal propriu). ── */
+#tabPrice .section { border-top:3px solid var(--al-sec-price); border-radius:var(--r); }
+#tabNews  .section { border-top:3px solid var(--al-sec-news);  border-radius:var(--r); }
+#tabHist  .section { border-top:3px solid var(--al-sec-hist);  border-radius:var(--r); }
+.add-form {
+  border-top:3px solid var(--al-sec-add);
+  border-radius:var(--r);
+}
+/* rail-ul „aproape de prag" nu e un card (fundal transparent) → accent lateral subtil */
+.almost-rail.show { border-left:3px solid var(--al-sec-rail); padding-left:9px; }
+
+/* ── 4. Consecvență de formă — radius unic pe blocurile mari.
+      Chips / pills / butoane / inputs rămân exact cum sunt. ── */
+.sync-banner, .bulk-bar { border-radius:var(--r); }
 </style>
 </head>
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v76</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v77</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
