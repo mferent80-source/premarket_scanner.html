@@ -465,6 +465,106 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .tt-stats{display:flex;gap:12px;padding:10px 12px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;margin-bottom:12px;font-size:12px;font-family:var(--mono);flex-wrap:wrap}
 .tt-stats span{color:var(--t2)}.tt-stats b{color:var(--t1);font-weight:800}
 @media (max-width:560px){.tt-form{grid-template-columns:1fr}.tt-row{grid-template-columns:1fr;gap:6px}.tt-row .tt-act{justify-content:flex-end}}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" v238 — limbajul de componente din macro-dashboard
+   (topbar panou sticky · hero Next Action · bordură colorată de secțiune)
+   CSS-only: HTML-ul și JS-ul rămân neatinse. Regula casei: fundal SOLID
+   pe sticky, FĂRĂ blur (blur-ul strică randarea textului).
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Accentele de bordură-sus, mapate ca --sec-* din macro (paleta paginii) */
+:root{
+  --hub-sec-sess:#3b82f6;            /* layout / sesiune   */
+  --hub-sec-live:#a78bfa;            /* date live (tableau)*/
+  --hub-sec-pre:var(--warn);         /* checklist pre-mkt  */
+  --hub-sec-tools:#10b981;           /* catalog tool-uri   */
+  --hub-sec-router:var(--crypto-1);  /* router / GO detail */
+  --hub-sec-brief:#38bdf8;           /* brief detaliat     */
+  --hub-sec-ledger:#2dd4bf;          /* signal ledger      */
+}
+
+/* ── 1. TOPBAR: panou sticky pe UN singur rând (ca .macro-cockpit.topbar-sticky).
+      Sticky/z-index/border vin deja din suite-ui (body.hub-page .hub-head-compact);
+      aici doar fundalul solid al macro-ului, umbra mare și rândul unic. ── */
+body.hub-page .hub-head-compact{
+  flex-wrap:nowrap;
+  gap:8px 12px;
+  padding:9px 14px;
+  border-radius:var(--r);
+  background:rgba(11,15,23,.94)!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+}
+body.hub-page .hub-head-compact .hub-head-brand{flex:0 0 auto}
+body.hub-page .hub-head-compact .hub-head-title{
+  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+body.hub-page .hub-head-compact .hub-session-pill{margin-left:auto;flex:0 1 auto}
+@media (max-width:700px){
+  /* mobil: rândul se rupe natural — brand+titlu sus, pill dedesubt */
+  body.hub-page .hub-head-compact{flex-wrap:wrap;padding:8px 10px}
+  body.hub-page .hub-head-compact .hub-head-title{white-space:normal;overflow:visible}
+  body.hub-page .hub-head-compact .hub-session-pill{margin-left:0;max-width:100%}
+}
+
+/* ── 2. HERO Next Action — forma hero-ului din macro (radius/umbră/padding).
+      Semantica priorităților rămâne intactă: .prio-halt/.prio-warn/.prio-ok
+      își păstrează culorile; gradientul albastru-verde e DOAR starea neutră.
+      Selectori fără prefix `body.hub-page` ca regulile pe sesiune
+      (body[data-hub-mode="rth"] .hub-na) să rămână mai specifice. ── */
+.hub-na{
+  border-radius:var(--r);
+  padding:14px 16px;
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+}
+.hub-na:not(.prio-halt):not(.prio-warn):not(.prio-ok){
+  border-color:rgba(59,130,246,.30);
+  background:linear-gradient(170deg,rgba(59,130,246,.10),rgba(16,185,129,.045) 55%,transparent);
+}
+/* .hub-na-title rămâne alb: la 15px gradient-text-ul pierde din lizibilitate */
+
+/* ── 3. Bordură colorată sus — semnătura secțiunilor de ziar (.sec din macro).
+      Prefixul `body.hub-page .hub-shell` ridică specificitatea peste regulile
+      pe sesiune (body[data-hub-mode="…"] .X) ca accentul să nu fie înlocuit. ── */
+body.hub-page .hub-shell .hub-sess-bar{
+  border-top:3px solid var(--hub-sec-sess);
+  border-radius:var(--r);
+}
+body.hub-page .hub-shell .hub-dash-panel{
+  border-top:3px solid var(--hub-sec-live);
+  border-radius:var(--r);
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
+}
+body.hub-page .hub-shell .hub-pre5{
+  border-top:3px solid var(--hub-sec-pre);
+  border-radius:var(--r);
+}
+body.hub-page .hub-shell .hub-catalog-fold,
+body.hub-page .hub-shell .hub-catalog-fold[open]{
+  border-top:3px solid var(--hub-sec-tools);
+  border-radius:var(--r);
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
+}
+body.hub-page .hub-shell .hub-cockpit-fold{
+  border-top:3px solid var(--hub-sec-router);
+  border-radius:var(--r);
+}
+.hub-shell #pbWrap{
+  border-top:3px solid var(--hub-sec-brief);
+  border-radius:var(--r);
+}
+.hub-shell #slWrap{
+  border-top:3px solid var(--hub-sec-ledger);
+  border-radius:var(--r);
+}
+
+/* ── 4. Consecvență de formă — radius unic pe blocurile mari (pills/chips/butoane
+      rămân neatinse). Banda #ckBand și interiorul tableau-ului nu se ating. ── */
+body.hub-page .hub-shell .hub-launch,
+body.hub-page .hub-shell .hub-checklist-panel,
+body.hub-page .hub-shell .hub-platform-strip{
+  border-radius:var(--r);
+}
 </style>
 </head>
 <body class="hub-page">
