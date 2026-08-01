@@ -1058,6 +1058,11 @@ h1.headline {
 }
 h1.headline:empty { display:none; }
 .standfirst { font-size:14.5px; color:var(--t2); line-height:1.6; margin-bottom:20px; max-width:60em; }
+/* Rândul „ieri vs piața" — validare retroactivă a verdictului, discret sub titlu */
+.brief-yesterday { font-family:var(--mono); font-size:11px; color:var(--t2); margin:-10px 0 16px; }
+.brief-yesterday .by-ok { color:var(--bull-s); font-weight:700; }
+.brief-yesterday .by-bad { color:var(--bear-s); font-weight:700; }
+.brief-yesterday .by-flat { color:var(--warn); font-weight:700; }
 .standfirst:empty { display:none; }
 
 /* Reperele brief-ului (populate în task 4) */
@@ -1152,7 +1157,7 @@ h1.headline:empty { display:none; }
 <div class="macro-wrap">
 
 <header class="macro-cockpit topbar-sticky">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v236</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v237</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1209,6 +1214,8 @@ h1.headline:empty { display:none; }
   <!-- Titlul + intro-ul narativ — populate de parser-ul din task 4 -->
   <h1 class="headline" id="briefHeadline"></h1>
   <p class="standfirst" id="briefStandfirst" style="display:none"></p>
+  <!-- Validare onestă: verdictul de ieri vs ce a făcut piața (populat async din arhivă + Yahoo) -->
+  <div class="brief-yesterday" id="briefYesterday" style="display:none"></div>
 
   <div class="brief-big-events" id="briefBigEvents" style="display:none"></div>
   <!-- briefMeta rămâne în DOM (renderBriefMeta scrie în el), dar ascuns:
@@ -4436,6 +4443,10 @@ Analizează scurt conform sistemului. Fii direct. Dacă știrea e zgomot/ireleva
 // thinking+text împreună. Helper-ul ăsta e partajat de 6 apelanți cu bugete de 500-1200,
 // care ar ieși trunchiați → default = disabled (paritate cu opus-4-8). Doar brief-ul
 // matinal (raționament lung, buget 4000) cere allowThinking=true.
+// Telemetru: stop_reason-ul ULTIMULUI stream (message_delta) — 'end_turn' = complet,
+// 'max_tokens' = trunchiat (thinking+text au atins plafonul). Consumat de generateBrief.
+let _lastStopReason = null;
+
 async function callAnthropicStream(systemPrompt, userPrompt, onChunk, maxTokens=700, allowThinking=false) {
   const key = getAnthropicKey();
   if (!key) throw new Error('Lipsă Anthropic key (Setări ⚙)');
@@ -4487,6 +4498,10 @@ async function callAnthropicStream(systemPrompt, userPrompt, onChunk, maxTokens=
           if (evt.type === 'content_block_delta' && evt.delta?.text) {
             full += evt.delta.text;
             onChunk(full);
+          } else if (evt.type === 'message_start') {
+            _lastStopReason = null; // stream nou → resetăm telemetrul
+          } else if (evt.type === 'message_delta' && evt.delta?.stop_reason) {
+            _lastStopReason = evt.delta.stop_reason;
           }
         } catch (e) { /* ignore parse errors */ }
       }
@@ -5377,17 +5392,22 @@ Genereaza editorialul de dimineata conform structurii (headline + standfirst + 4
     // v234: headline / standfirst / verdict parsate din output — vezi parseBriefOutput().
     // v193: AI-ul NU mai suprascrie tema — regimul composite (🛡) e sursa unică; mood rămâne doar informativ (null acum).
     const parsed = parseBriefOutput(full);
+    const stopReason = _lastStopReason; // capturat de callAnthropicStream (message_delta)
     const brief = {
       dateET: nyt.date, generatedAt: Date.now(),
       text: parsed.text, headline: parsed.headline, standfirst: parsed.standfirst,
-      verdict: parsed.verdict, mood: null,
+      verdict: parsed.verdict, mood: null, stopReason,
       ctx: { eventsCount: ctx.eventsCount, hiCount: ctx.hiCount, tiles: ctx.tilesList, bigEvents: ctx.bigEvents }
     };
     saveBriefCache(brief);
     archiveBrief(brief); // 📜 arhiva 7 zile — validare retroactivă
     snapshotRegimeDaily(nyt.date); // F1: reține composite-ul de azi pt trendul de mâine
     renderBrief(brief); // afișează deodată cu fade-in
-    toast(`✅ Brief generat în ${Math.round((Date.now() - startMs)/1000)}s`, 'success');
+    if (stopReason === 'max_tokens') {
+      toast('⚠ Brief trunchiat (max_tokens) — apasă ↻ Rerun; dacă persistă, cere bump de buget', 'warn');
+    } else {
+      toast(`✅ Brief generat în ${Math.round((Date.now() - startMs)/1000)}s`, 'success');
+    }
   } catch (e) {
     clearInterval(tickTimer);
     renderBriefError('❌ Eroare AI: ' + e.message);
@@ -5450,7 +5470,9 @@ function renderBrief(brief) {
 
   body.innerHTML = wrapBriefRepere(formatBriefText(brief.text));
   $('briefDate').textContent = `${brief.dateET} · generat ${new Date(brief.generatedAt).toLocaleString('ro-RO', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}`;
-  $('briefStatus').textContent = `✅ cache · ${Math.round((Date.now() - brief.generatedAt) / 60000)}min în urmă`;
+  // Telemetru trunchiere: stop_reason ≠ end_turn = brief incomplet (thinking+text au atins plafonul)
+  const truncFlag = brief.stopReason && brief.stopReason !== 'end_turn' ? ` · ⚠ ${brief.stopReason}` : '';
+  $('briefStatus').textContent = `✅ cache · ${Math.round((Date.now() - brief.generatedAt) / 60000)}min în urmă${truncFlag}`;
   renderBriefMeta(brief);
 
   // v234: card verdict pe 3 celule (stocks / crypto / risc) — brief vechi nu are brief.verdict → rămâne ascuns
@@ -5491,6 +5513,58 @@ function renderBriefEmpty() {
 // v234: nu mai există fereastră orară — un singur brief/zi, generat la prima deschidere a zilei ET.
 function shouldAutoGenerateBrief() {
   return !(loadBriefCache()?.dateET === getNYDateHour().date);
+}
+
+// ============ IERI VS PIATA (v237 — validare onestă a verdictului de ieri) ============
+// Compară verdictul brief-ului precedent cu mișcarea reală: QQQ (stocks, zile de bursă ET)
+// și BTC-USD (crypto, zile UTC — candelele daily Yahoo pe crypto sunt pe zile UTC).
+async function fetchDayClosePct(symbol, dateStr, utcDays) {
+  try {
+    const j = await fetchViaProxy(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=10d&interval=1d`, 8000);
+    const r = j?.chart?.result?.[0];
+    const ts = r?.timestamp || [];
+    const closes = r?.indicators?.quote?.[0]?.close || [];
+    if (!ts.length || !closes.length) return null;
+    const dateOf = t => utcDays
+      ? new Date(t * 1000).toISOString().slice(0, 10)
+      : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(t * 1000));
+    for (let i = 1; i < ts.length; i++) {
+      if (dateOf(ts[i]) === dateStr && isFinite(closes[i]) && isFinite(closes[i-1]) && closes[i-1] !== 0) {
+        return (closes[i] - closes[i-1]) / closes[i-1] * 100;
+      }
+    }
+    return null; // ziua nu e în fereastra de 10d (weekend/sărbătoare pe QQQ) → nu inventăm
+  } catch (e) { return null; }
+}
+
+function verdictMark(dir, pct) {
+  if (pct == null || !isFinite(pct)) return '';
+  if (Math.abs(pct) < 0.15) return ' <span class="by-flat">≈</span>'; // mișcare prea mică pt a valida/invalida
+  if (dir === 'LONG') return pct > 0 ? ' <span class="by-ok">✓</span>' : ' <span class="by-bad">✗</span>';
+  if (dir === 'SHORT' || dir === 'DEFENSIV') return pct < 0 ? ' <span class="by-ok">✓</span>' : ' <span class="by-bad">✗</span>';
+  return ''; // NEUTRAL: nu pretindem merit — doar arătăm mișcarea
+}
+
+async function renderYesterdayCheck() {
+  const el = $('briefYesterday');
+  if (!el) return;
+  let arc = [];
+  try { arc = JSON.parse(localStorage.getItem('md_brief_archive') || '[]'); } catch (e) {}
+  if (!Array.isArray(arc)) return;
+  const today = getNYDateHour().date;
+  const prev = [...arc].reverse().find(b => b && b.dateET !== today && b.verdict);
+  if (!prev) return; // fără brief anterior cu verdict → rândul rămâne ascuns
+  const [qqq, btc] = await Promise.all([
+    fetchDayClosePct('QQQ', prev.dateET, false),
+    fetchDayClosePct('BTC-USD', prev.dateET, true)
+  ]);
+  if (qqq == null && btc == null) return; // fără date → onest: nu afișăm nimic
+  const fmt = p => p == null ? '—' : `${p >= 0 ? '+' : ''}${p.toFixed(1)}%`;
+  const parts = [];
+  if (qqq != null) parts.push(`STOCKS ${escHtml(prev.verdict.stocks || '—')} → QQQ ${fmt(qqq)}${verdictMark(prev.verdict.stocks, qqq)}`);
+  if (btc != null) parts.push(`CRYPTO ${escHtml(prev.verdict.crypto || '—')} → BTC ${fmt(btc)}${verdictMark(prev.verdict.crypto, btc)}`);
+  el.innerHTML = `📜 Ieri (${escHtml(prev.dateET)}): ${parts.join(' · ')}`;
+  el.style.display = '';
 }
 
 function initBriefTab() {
@@ -7441,6 +7515,7 @@ async function init() {
   cleanupSeen(); // sterge entries SEEN >7z
   cleanupSeenActual(); // sterge entries SEEN_ACTUAL >7z
   initBriefTab(); // afișează brief cached dacă există
+  renderYesterdayCheck().catch(() => {}); // 📜 ieri vs piața — async, nu blochează init-ul
   initSections(); // v234: secțiunile pornesc colapsate + toggle „arată tot"
   // v234: fără taburi, News + Watchlist × Macro sunt vizibile direct pe pagină —
   // lazy-load-ul care înainte trăia la deschiderea tabului se mută aici. TTL-urile interne
