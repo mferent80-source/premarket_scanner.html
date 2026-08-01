@@ -276,6 +276,91 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
   .spark-mini{display:none}
   td,th{padding:9px 8px;font-size:12.5px}
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" v172 — limbajul de componente din macro-dashboard / hub
+   (topbar panou sticky · chip-uri glass · bordură colorată de secțiune)
+   CSS-only: HTML-ul, id-urile și JS-ul rămân neatinse (data-sort/data-rrgview
+   + clasa .active funcționează exact ca înainte). Regula casei: fundal SOLID
+   pe sticky, FĂRĂ backdrop-filter (blur-ul strică randarea textului).
+   Pagina e dark-only (body are doar clasa "dark" statică, fără toggle light)
+   → fără scope pe temă.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --sr-sec-risk:#3b82f6;      /* Risc regim (Cyclical vs Defensive)    */
+  --sr-sec-rrg:#a78bfa;       /* RRG — rotație relativă vs SPY         */
+  --sr-sec-table:#10b981;     /* Tabel sectoare — panoul principal     */
+  --sr-sec-spark:#6ee7b7;     /* expand: Sparkline                     */
+  --sr-sec-stats:#3b82f6;     /* expand: Statistici                    */
+  --sr-sec-hold:#10b981;      /* expand: Top 5 holdings                */
+  --sr-sec-ai:#d4892c;        /* expand: Verdict AI Claude              */
+  --sr-acc-1:var(--teal);     /* perechea de accent a paginii           */
+  --sr-acc-2:var(--emerald);  /* (identică cu gradientul din h1/.btn-a) */
+}
+
+/* ── 1. TOPBAR: panou sticky solid.
+      .hdr avea deja position:sticky/top/z-index în CSS-ul paginii — aici îl
+      transformăm din bară edge-to-edge într-un panou rotunjit (bordură pe tot
+      conturul + umbră mare), cu fundal SOLID (fără gradientul + blur-ul
+      original, care strica randarea textului la scroll). Padding-ul intern
+      rămâne pe .hdr-in (nu-l dublăm — .hdr n-avea padding propriu). z-index
+      60 aliniat cu restul suitei (era 50). .hdr-in are deja flex-wrap:wrap,
+      deci elementele nu se strivesc pe ecrane mici. ── */
+body.suite-page header.hdr.suite-cockpit{
+  position:sticky; top:0; z-index:60;
+  border:1px solid var(--br);
+  border-radius:14px;
+  margin:0 0 12px;
+  background:rgba(11,15,23,.94)!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+  backdrop-filter:none!important; -webkit-backdrop-filter:none!important;
+}
+.hdr-in{ padding:10px 14px; }
+@media (max-width:760px){
+  .hdr-in{ padding:9px 11px; gap:7px 8px; }
+}
+
+/* ── 2. CHIP-URI de filtru: glass, activ = gradient teal→emerald al paginii
+      (aceeași pereche ca h1 și butonul .btn-a). O singură clasă .sort-chip
+      deservește ambele grupuri (data-sort pe tabelul de sectoare + data-rrgview
+      pe toggle-ul RRG) — se schimbă doar pielea, data-* și JS rămân identice. ── */
+.sort-chip{
+  background:rgba(255,255,255,.035);
+  transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
+.sort-chip.active{
+  background:linear-gradient(135deg,var(--sr-acc-1),var(--sr-acc-2));
+  border-color:transparent; color:#fff;
+  box-shadow:0 2px 12px rgba(8,145,178,.32);
+}
+.sort-chip.active:hover{
+  background:linear-gradient(135deg,var(--sr-acc-1),var(--sr-acc-2));
+  border-color:transparent; color:#fff;
+}
+
+/* ── 3. Bordură colorată sus — semnătura secțiunilor de ziar.
+      Doar pe cardurile REALE (fundal + chenar propriu). .stats și .heatmap
+      sunt grid-uri transparente → NU primesc bordură (ar fi orfană): .stat
+      are deja dunga ::before pe stânga, iar .heat-card are fundal colorat
+      comandat de stare. Rândul expandat din tabel: cele 3 casete (Sparkline/
+      Statistici/Holdings, în ordinea din renderExpandBody) + bula AI primesc
+      fiecare semnătura ei. ── */
+.risk-bar   { border-top:3px solid var(--sr-sec-risk); }
+.rrg-wrap   { border-top:3px solid var(--sr-sec-rrg); }
+.table-wrap { border-top:3px solid var(--sr-sec-table); }
+.exp-box .exp-card:nth-child(1){ border-top:3px solid var(--sr-sec-spark); }
+.exp-box .exp-card:nth-child(2){ border-top:3px solid var(--sr-sec-stats); }
+.exp-box .exp-card:nth-child(3){ border-top:3px solid var(--sr-sec-hold); }
+.exp-ai     { border-top:3px solid var(--sr-sec-ai); }
+
+/* ── 4. Consecvență de formă — radius unic pe cardurile mari (10px, ca .stat/
+      .heat-card/.rrg-wrap/.table-wrap). .exp-card și .exp-ai erau singurele
+      la 9px hardcodat — acum aliniate. Cele 3 panouri principale primesc și
+      umbră de „card mare" (nu aveau deloc). Elementele mici (pills/butoane/
+      inputs/hold-row) rămân neatinse. ── */
+.exp-card, .exp-ai{ border-radius:10px; }
+.risk-bar, .rrg-wrap, .table-wrap{ box-shadow:0 4px 18px rgba(0,0,0,.28); }
 </style>
 </head>
 <body class="dark suite-page">
@@ -286,7 +371,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v171</span>
+    <span class="ver-badge" id="verBadge">v172</span>
     <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
@@ -461,7 +546,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   v158: RRG varianta carduri pe 4 cadrane (toggle scatter↔cadrane, persistat).
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v171';
+const VER = 'v172';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
