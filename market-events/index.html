@@ -1388,7 +1388,7 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v264</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v265</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -2769,7 +2769,9 @@ ${AI_GROUNDING}`;
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-opus-5', max_tokens: 800, messages: [{ role: 'user', content: userPrompt }] })
+        // thinking disabled: pe opus-5 omiterea = adaptive ACTIV → ar consuma din max_tokens
+        // și content[0] ar fi bloc `thinking`, nu `text`. Paritate cu opus-4-8.
+        body: JSON.stringify({ model: 'claude-opus-5', max_tokens: 800, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: userPrompt }] })
       });
       if (!resp.ok) { const j = await resp.json().catch(() => ({ error: { message: 'HTTP ' + resp.status } })); throw new Error(j.error?.message || ('HTTP ' + resp.status)); }
       const data = await resp.json();

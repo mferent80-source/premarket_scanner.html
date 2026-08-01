@@ -913,7 +913,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v130</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v131</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -3579,7 +3579,9 @@ async function showAIBriefing(){
       const resp=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
         headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model:'claude-opus-5',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+        // thinking disabled: pe opus-5 omiterea = adaptive ACTIV → ar consuma din max_tokens
+        // și content[0] ar fi bloc `thinking`, nu `text`. Paritate cu opus-4-8.
+        body:JSON.stringify({model:'claude-opus-5',max_tokens:1500,thinking:{type:'disabled'},messages:[{role:'user',content:prompt}]})
       });
       const data=await resp.json();
       if(data.content?.[0]?.text){
@@ -5142,6 +5144,9 @@ async function aiCallStream(prompt, opts, onDelta, onDone, onError){
   const body={
     model:'claude-opus-5',
     max_tokens:opts.maxTokens||1024,
+    // Pe opus-5 omiterea lui `thinking` = adaptive ACTIV (nu ca pe opus-4-8) — pe bugetele
+    // de aici (600-1024) ar mânca din max_tokens și ar trunchia răspunsul. Paritate cu 4-8.
+    thinking:{type:'disabled'},
     stream:true,
     system,
     messages
@@ -5526,7 +5531,9 @@ Reguli:
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-opus-5',max_tokens:800,messages:[{role:'user',content:userPrompt}]})
+      // thinking disabled: pe opus-5 omiterea = adaptive ACTIV → ar consuma din max_tokens
+      // și content[0] ar fi bloc `thinking`, nu `text`. Paritate cu opus-4-8.
+      body:JSON.stringify({model:'claude-opus-5',max_tokens:800,thinking:{type:'disabled'},messages:[{role:'user',content:userPrompt}]})
     });
     if(!resp.ok){
       const j=await resp.json().catch(()=>({error:{message:'HTTP '+resp.status}}));
@@ -9138,6 +9145,10 @@ Reguli:
       body: JSON.stringify({
         model: 'claude-opus-5',
         max_tokens: 2000,
+        // Ruta e peste pragul de 1500, dar are exact același defect: cu adaptive activ
+        // content[0] devine bloc `thinking`, iar `data.content[0].text` de mai jos ar fi
+        // undefined → aruncă "Răspuns gol" pe fiecare apel. Paritate cu opus-4-8.
+        thinking: { type: 'disabled' },
         messages: [{ role: 'user', content: prompt }]
       })
     });

@@ -657,7 +657,7 @@ table.no-pre .col-pre { display:none; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v162</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v163</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -1935,7 +1935,9 @@ window.wlAskAI = async function(sym, force){
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: 'claude-opus-5', max_tokens: 700, messages: [{ role: 'user', content: buildAiPrompt(r) }] })
+      // thinking disabled: pe opus-5 omiterea = adaptive ACTIV → ar consuma din max_tokens
+      // și content[0] ar fi bloc `thinking`, nu `text`. Paritate cu opus-4-8.
+      body: JSON.stringify({ model: 'claude-opus-5', max_tokens: 700, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: buildAiPrompt(r) }] })
     });
     if (!resp.ok){
       const j = await resp.json().catch(() => ({}));

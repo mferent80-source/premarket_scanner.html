@@ -919,7 +919,6 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .exp-info .info-val { color:var(--t1); font-weight:700; font-family:var(--mono); font-size:12px; }
 
 /* Daily Brief */
-.brief-wrap { display:grid; grid-template-columns:1fr; gap:10px; }
 .brief-head { background:linear-gradient(135deg, rgba(59,130,246,.12), rgba(16,185,129,.06)); border:1px solid rgba(59,130,246,.35); border-radius:var(--r); padding:14px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
 .brief-head .bh-title { font-size:18px; font-weight:800; color:var(--t1); font-family:var(--head); }
 .brief-head .bh-date { font-size:12.5px; color:var(--t1); font-family:var(--mono); }
@@ -1017,12 +1016,6 @@ body.macro-page .macro-wrap { max-width:1560px !important; width:100% !important
 .semaphore .ssub { font-size:12px; color:var(--t2); line-height:1.55; }
 .semaphore .ssub b { color:var(--t1); }
 /* stări semafor — clasa se pune de JS în task 3 */
-.semaphore.sem-on .sicon  { color:var(--bull-s); text-shadow:0 0 18px rgba(58,235,136,.5); }
-.semaphore.sem-on .sstance { color:var(--bull-s); }
-.semaphore.sem-off .sicon { color:var(--bear-s); text-shadow:0 0 18px rgba(255,107,107,.55); }
-.semaphore.sem-off .sstance { color:var(--bear-s); }
-.semaphore.sem-mixed .sicon { color:var(--warn); text-shadow:0 0 18px rgba(212,137,44,.5); }
-.semaphore.sem-mixed .sstance { color:var(--warn); }
 
 .gaugebox { text-align:center; }
 .gauge { width:180px; height:116px; }
@@ -1160,7 +1153,7 @@ h1.headline:empty { display:none; }
 <div class="macro-wrap">
 
 <header class="macro-cockpit topbar-sticky">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v234</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v235</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1533,7 +1526,7 @@ h1.headline:empty { display:none; }
           <li>Orele din text sunt convertite la <b>ora României</b> (ET + 7h), nu ET brut.</li>
           <li><b>↻ Rerun:</b> șterge cache-ul zilei și regenerează brief-ul (cu confirm — consumă din nou cheia Anthropic).</li>
           <li><b>📜 Arhiva 7 zile:</b> brief-urile anterioare, arhivate automat la fiecare generare — validare onestă a ce a zis AI-ul vs ce a făcut piața ulterior.</li>
-          <li>Cache LS 12h cheia dateET.</li>
+          <li>Cache LS pe cheia dateET — un singur brief pe zi (rerun manual îl înlocuiește).</li>
         </ul>
       </div>
 
@@ -3520,6 +3513,24 @@ function formatBriefText(text) {
   return out.join('\n');
 }
 
+// spec §2.3 — corpul brief-ului pe 2 coloane: fiecare secțiune (heading + conținutul până la
+// următorul heading) devine un `.rep` într-un container `.repere` (pe mobil cade la 1 coloană,
+// vezi @media). Post-procesare pe HTML-ul deja produs de formatBriefText — heading-ul rămâne
+// EXACT același element `.brief-section-h` cu data-section, ca să nu atingem nici delegarea de
+// click de pe #briefBody, nici drillBriefSection (care inserează `.brief-section-followup` cu
+// insertAdjacentElement('afterend') → follow-up-ul aterizează în interiorul aceluiași `.rep`).
+// Nu se aplică în arhivă (5023) — acolo layout-ul rămâne liniar.
+function wrapBriefRepere(html) {
+  const M = '<div class="brief-section-h"';
+  const first = html.indexOf(M);
+  if (first === -1) return html;            // brief fără heading-uri ## → îl las neatins
+  const intro = html.slice(0, first);       // ce e înainte de primul heading (de regulă gol)
+  const parts = html.slice(first).split(M).filter(s => s.length);
+  return intro + '<div class="repere">' +
+         parts.map(p => `<div class="rep">${M}${p}</div>`).join('') +
+         '</div>';
+}
+
 async function drillTicker(ticker) {
   openGenericModal('📊 ' + ticker, 'Aduc datele Yahoo Finance...', '<div class="drill-loading"><div class="dl-icon">📈</div><div>Se încarcă...</div></div>');
   try {
@@ -4421,7 +4432,12 @@ Analizează scurt conform sistemului. Fii direct. Dacă știrea e zgomot/ireleva
 }
 
 // ============ AI BUBBLE (Claude streaming) ============
-async function callAnthropicStream(systemPrompt, userPrompt, onChunk, maxTokens=700) {
+// allowThinking: pe claude-opus-5 OMITEREA parametrului `thinking` = adaptive ACTIV (spre
+// deosebire de opus-4-8, unde omiterea = fără thinking), iar max_tokens plafonează
+// thinking+text împreună. Helper-ul ăsta e partajat de 6 apelanți cu bugete de 500-1200,
+// care ar ieși trunchiați → default = disabled (paritate cu opus-4-8). Doar brief-ul
+// matinal (raționament lung, buget 4000) cere allowThinking=true.
+async function callAnthropicStream(systemPrompt, userPrompt, onChunk, maxTokens=700, allowThinking=false) {
   const key = getAnthropicKey();
   if (!key) throw new Error('Lipsă Anthropic key (Setări ⚙)');
   // Timeout dur pe TOT stream-ul: fără el, un stream blocat (rețea/API) ținea bula
@@ -4442,6 +4458,8 @@ async function callAnthropicStream(systemPrompt, userPrompt, onChunk, maxTokens=
         model: 'claude-opus-5',
         max_tokens: maxTokens,
         stream: true,
+        // vezi nota de la semnătură: fără allowThinking trimitem explicit disabled
+        ...(allowThinking ? {} : { thinking: { type: 'disabled' } }),
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       }),
@@ -4978,7 +4996,12 @@ function parseBriefOutput(full) {
     if (m) verdict = { stocks: normalizeVerdictDir(m[1]), crypto: normalizeVerdictDir(m[2]), risc: m[3].toLowerCase() };
     body = body.slice(0, vIdx);
   }
-  return { headline, standfirst, text: body.join('\n').trim(), verdict };
+  let text = body.join('\n').trim();
+  // Guard: brief fără niciun heading `##` → bucla de mai sus înghite TOT corpul în standfirst
+  // și `text` iese gol, deci hero-ul ar afișa un subtitlu-mamut peste un body gol. În cazul
+  // ăla mutăm standfirst-ul înapoi în text (pragul de 240 ch. = mai mult decât un standfirst real).
+  if (!text && standfirst.length > 240) { text = standfirst; standfirst = ''; }
+  return { headline, standfirst, text, verdict };
 }
 
 function getNYDateHour() {
@@ -5347,7 +5370,9 @@ Genereaza editorialul de dimineata conform structurii (headline + standfirst + 4
     // Streaming silentios — NU update-uim DOM-ul la fiecare chunk (e obositor)
     // v234: editorial narativ (headline + standfirst + 4 secțiuni + VERDICT, 500-700 cuvinte)
     // → 2600 tokens ajung cu marjă (diacriticele românești = mai multe tokenuri).
-    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, () => {}, 2600);
+    // Singura rută cu raționament lung: păstrăm adaptive thinking (allowThinking=true) și
+    // ridicăm bugetul 2600→4000, fiindcă pe opus-5 max_tokens acoperă thinking + text.
+    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, () => {}, 4000, true);
     clearInterval(tickTimer);
 
     // v234: headline / standfirst / verdict parsate din output — vezi parseBriefOutput().
@@ -5424,7 +5449,7 @@ function renderBrief(brief) {
     else { sfEl.style.display = 'none'; sfEl.textContent = ''; }
   }
 
-  body.innerHTML = formatBriefText(brief.text);
+  body.innerHTML = wrapBriefRepere(formatBriefText(brief.text));
   $('briefDate').textContent = `${brief.dateET} · generat ${new Date(brief.generatedAt).toLocaleString('ro-RO', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}`;
   $('briefStatus').textContent = `✅ cache · ${Math.round((Date.now() - brief.generatedAt) / 60000)}min în urmă`;
   renderBriefMeta(brief);
@@ -5438,7 +5463,7 @@ function renderBrief(brief) {
       vEl.style.display = '';
       vEl.innerHTML = `<div class="v-cell ${dirCls(v.stocks)}"><div class="lb">STOCKS</div><div class="val">${dirIcon(v.stocks)} ${escHtml(v.stocks)}</div></div>
         <div class="v-cell ${dirCls(v.crypto)}"><div class="lb">CRYPTO</div><div class="val">${dirIcon(v.crypto)} ${escHtml(v.crypto)}</div></div>
-        <div class="v-cell ${v.risc === 'agresiv' || v.risc === 'normal' ? 'v-good' : 'v-bad'}"><div class="lb">RISC</div><div class="val">${escHtml(v.risc.toUpperCase())}</div></div>`;
+        <div class="v-cell ${v.risc === 'agresiv' || v.risc === 'normal' ? 'v-good' : 'v-warn'}"><div class="lb">RISC</div><div class="val">${escHtml(v.risc.toUpperCase())}</div></div>`;
     } else { vEl.style.display = 'none'; vEl.innerHTML = ''; }
   }
   // v193: regimul composite (🛡) e sursa unică a temei — AI-ul nu mai suprascrie. (brief.mood = doar informativ)

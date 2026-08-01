@@ -286,7 +286,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
       <span class="brand-icon">🌐</span>
       <h1>Sector Rotation</h1>
     </div>
-    <span class="ver-badge" id="verBadge">v170</span>
+    <span class="ver-badge" id="verBadge">v171</span>
     <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span>
     <span class="pill" id="sessionPill"><span class="dot"></span><span id="sessionTxt">…</span></span>
     <span data-regime-badge="../macro-dashboard/" title="Regim de risc MACRO (din Macro Dashboard) — distinct de regimul de rotație sectorială de mai jos"></span>
@@ -461,7 +461,7 @@ tr.expanded-row td{background:var(--bg2);padding:0;border-bottom:1px solid var(-
 //   v158: RRG varianta carduri pe 4 cadrane (toggle scatter↔cadrane, persistat).
 // ═══════════════════════════════════════════════════════════════
 
-const VER = 'v169';
+const VER = 'v171';
 
 // Top 5 holdings per SPDR sector ETF (date aprox Q4 2025 — schimbarea e lentă, lunile întregi)
 // Yahoo tickers — Berkshire e BRK-B (NU BRK.B), Google e GOOGL/GOOG (ambele clase)
@@ -968,7 +968,10 @@ async function callAnthropicStream(systemPrompt, userPrompt, maxTokens=600){
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'x-api-key':key,
                 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      // thinking disabled: pe opus-5 omiterea = adaptive ACTIV (nu ca pe opus-4-8), iar
+      // toți apelanții de aici au bugete mici (≤600) → ar ieși trunchiat. Paritate cu 4-8.
       body: JSON.stringify({ model:'claude-opus-5', max_tokens:maxTokens, stream:true,
+                             thinking:{ type:'disabled' },
                              system:systemPrompt, messages:[{ role:'user', content:userPrompt }] }),
       signal: ctrl.signal,
     });
