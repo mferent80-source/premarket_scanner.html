@@ -2,6 +2,8 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
+<link rel="stylesheet" href="../lib/theme-light.css?v=736">
+<script src="../lib/theme.js?v=736"></script>
 <script src="../lib/suite-version.js?v=673"></script>
 <script src="../lib/macro-context.js?v=619"></script>
 <script src="../lib/hub-state.js?v=626"></script>
@@ -12,12 +14,20 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
+  /* ── tokeni de bază: nume identice cu cele mapate în lib/theme-light.css
+        (--bg/--panel/--panel2/--b1/--t1/--t3…), ca :root[data-theme="light"]
+        să le suprascrie automat — shell-ul nu are alt :root propriu. ── */
+  :root{
+    --bg:#0b0f17; --panel:#0d1320; --panel2:#141d30; --panel3:#1b2740;
+    --b1:#1e2942; --b2:#1e2942;
+    --t1:#e6edf3; --t3:#9aa4b2;
+  }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background:#0b0f17;color:#e6edf3;font-family:system-ui,-apple-system,sans-serif;overflow:hidden}
+  html,body{height:100%;background:var(--bg);color:var(--t1);font-family:system-ui,-apple-system,sans-serif;overflow:hidden}
   #app{display:flex;flex-direction:column;height:100dvh;height:100vh}
   /* ── bara de taburi (sus) ── */
   #tabbar{flex:0 0 auto;display:flex;gap:3px;overflow-x:auto;padding:calc(6px + env(safe-area-inset-top,0px)) 6px 0;
-    background:#0d1320;border-bottom:1px solid #1e2942;scrollbar-width:none}
+    background:var(--panel);border-bottom:1px solid var(--b1);scrollbar-width:none}
   #tabbar::-webkit-scrollbar{display:none}
   #suiteVerShell{flex:0 0 auto;align-self:center;margin:0 8px 4px 4px;padding:3px 8px;border-radius:6px;
     font-size:10px;font-weight:700;font-family:ui-monospace,monospace;color:#f7931a;
@@ -28,24 +38,24 @@
   #shellStaleNav.err{border-color:rgba(255,77,77,.5);background:rgba(255,77,77,.14);color:#ff6b6b}
   #shellStaleNav[hidden]{display:none}
   .tab{flex:0 0 auto;display:flex;align-items:center;gap:6px;max-width:170px;padding:8px 9px;border-radius:9px 9px 0 0;
-    background:#141d30;border:1px solid #1e2942;border-bottom:none;color:#9aa4b2;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
-  .tab.active{background:#1b2740;color:#fff}
+    background:var(--panel2);border:1px solid var(--b1);border-bottom:none;color:var(--t3);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .tab.active{background:var(--panel3);color:var(--t1)}
   .tab .i{font-size:14px;line-height:1}
   .tab .tx{overflow:hidden;text-overflow:ellipsis;max-width:96px}
   .tab .cl{opacity:.55;font-size:12px;line-height:1;padding:2px 4px;border-radius:5px;margin-left:1px}
   .tab .cl:hover{opacity:1;background:rgba(255,255,255,.12);color:#ff6b6b}
   /* ── zona cu pagini (iframe-uri) ── */
-  #frames{flex:1 1 auto;position:relative;background:#0b0f17;min-height:0}
-  #frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:#0b0f17}
+  #frames{flex:1 1 auto;position:relative;background:var(--bg);min-height:0}
+  #frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:var(--bg)}
   #frames iframe.active{display:block}
   /* ── dock lansator (jos) ── */
   #dock{flex:0 0 auto;display:flex;gap:2px;overflow-x:auto;justify-content:safe center;
-    padding:5px 6px calc(5px + env(safe-area-inset-bottom,0px));background:rgba(11,15,23,.96);
-    border-top:1px solid rgba(255,255,255,.10);scrollbar-width:none;box-shadow:0 -6px 20px rgba(0,0,0,.35)}
+    padding:5px 6px calc(5px + env(safe-area-inset-bottom,0px));background:var(--panel);
+    border-top:1px solid var(--b1);scrollbar-width:none;box-shadow:0 -6px 20px rgba(0,0,0,.35)}
   #dock::-webkit-scrollbar{display:none}
   #dock a{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:54px;padding:5px 7px;
-    border-radius:10px;color:#9aa4b2;text-decoration:none;font-size:9.5px;font-weight:600;cursor:pointer}
-  #dock a:hover{color:#e6edf3;background:rgba(255,255,255,.06)}
+    border-radius:10px;color:var(--t3);text-decoration:none;font-size:9.5px;font-weight:600;cursor:pointer}
+  #dock a:hover{color:var(--t1);background:rgba(255,255,255,.06)}
   #dock a.cur{color:#0b0f17;background:linear-gradient(135deg,#f7931a,#ffd86b)}
   #dock a .i{font-size:17px;line-height:1}
 </style>
