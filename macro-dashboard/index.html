@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>🌍 Macro Dashboard — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
-<meta name="description" content="Calendar economic + știri macro/crypto + AI Daily Brief pentru Nasdaq și piața crypto">
+<meta name="description" content="Ziar de dimineață macro: cockpit regim + gauge risc + AI Daily Brief narativ, calendar economic și știri macro/crypto pentru Nasdaq și piața crypto">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%233b82f6'/><stop offset='1' stop-color='%2310b981'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='%230b0f17'/><circle cx='16' cy='16' r='8' fill='none' stroke='url(%23g)' stroke-width='2'/><line x1='16' y1='8' x2='16' y2='24' stroke='url(%23g)' stroke-width='1.5'/><line x1='8' y1='16' x2='24' y2='16' stroke='url(%23g)' stroke-width='1.5'/><ellipse cx='16' cy='16' rx='4' ry='8' fill='none' stroke='url(%23g)' stroke-width='1.5'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=678">
@@ -100,7 +100,7 @@ body[data-mood="risk-off"] header h1 { background:linear-gradient(90deg, var(--b
 body[data-mood="stress"] header h1 { background:linear-gradient(90deg, #ff5555, #ffaaaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 body[data-mood="mixed"] header h1 { background:linear-gradient(90deg, var(--warn), var(--gold)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 
-/* Panel-uri tinted subtle (v234: .tabs-row → .cockpit; .sec e exclusă deliberat —
+/* Panel-uri tinted subtle (.sec e exclusă deliberat —
    shorthand-ul border-color ar suprascrie bordura de sus colorată a secțiunii) */
 body[data-mood="risk-on"] .panel-box,
 body[data-mood="risk-on"] .stat-tile,
@@ -781,7 +781,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .toast.error { border-left-color:var(--bear-s); }
 @keyframes slideIn { from { transform:translateX(20px); opacity:0; } to { transform:translateX(0); opacity:1; } }
 
-/* Placeholder tab */
+/* Placeholder gol */
 .placeholder { padding:40px 24px; text-align:center; color:var(--t2); background:var(--panel); border:1px dashed var(--b1); border-radius:var(--r); font-family:var(--head); }
 .placeholder .ph-icon { font-size:48px; margin-bottom:12px; opacity:.5; }
 .placeholder h4 { font-size:16px; color:var(--t1); margin-bottom:8px; font-weight:800; }
@@ -835,7 +835,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .sector-ticker { background:var(--panel3); border:1px solid var(--b2); padding:3px 8px; border-radius:4px; font-size:11.5px; font-weight:700; font-family:var(--mono); color:var(--t1); text-decoration:none; transition:all .15s var(--ease); }
 .sector-ticker:hover { border-color:var(--accent); color:var(--accent); }
 
-/* Tab Oportunități */
+/* Secțiunea Oportunități */
 .op-badge { display:inline-block; min-width:16px; padding:0 4px; margin-left:5px; border-radius:8px; background:var(--bull-s); color:#04130a; font-size:10px; font-weight:800; line-height:16px; text-align:center; font-family:var(--mono); vertical-align:middle; }
 .op-wrap { display:flex; flex-direction:column; gap:14px; }
 .op-head { display:flex; align-items:flex-start; gap:12px; }
@@ -1160,7 +1160,7 @@ h1.headline:empty { display:none; }
 <div class="macro-wrap">
 
 <header class="macro-cockpit topbar-sticky">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v233</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v234</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1453,7 +1453,17 @@ h1.headline:empty { display:none; }
       <button class="ghost icon-btn" id="closeGuide">✖</button>
     </div>
     <div class="guide-body">
-      <p class="guide-intro">Dashboard macro pentru trader Nasdaq + crypto: calendar economic + news + AI Daily Brief + alerte + result detection. Toate datele live din Finnhub + Yahoo + alternative.me + Reddit.</p>
+      <p class="guide-intro">Ziar de dimineață pentru trader Nasdaq + crypto: sus un <b>cockpit</b> live (semafor de regim + gauge de apetit risc + KPI-uri cu deltă), apoi un <b>editorial AI</b> narativ cu verdict, urmat de secțiuni condensate (calendar, știri, oportunități, watchlist) care se deschid complet cu „arată tot". Fără taburi — totul curge într-o singură pagină scrollabilă. Toate datele live din Finnhub + Yahoo + alternative.me + Reddit.</p>
+
+      <div class="guide-section">
+        <h4>🚦 Cockpit — semafor + gauge + KPI</h4>
+        <ul>
+          <li><b>Semafor de regim:</b> aceeași sursă ca 🛡 Risk Dashboard (composite VIX+10Y+corel.BTC/SPY+F&G+DXY) — click → drill-down cu explicația scorului.</li>
+          <li><b>Gauge apetit de risc:</b> arc semicircular 0-100%, derivat din composite-ul [-10..+10]. Culoarea urmează regimul (verde/galben/roșu).</li>
+          <li><b>KPI-uri cu deltă:</b> VIX, DXY, 10Y, BTC, F&G — fiecare cu Δ față de referința din LS (nu doar valoarea brută). Click pe orice KPI → același modal drill-down (chart 30d + stats + corelații) ca la stat tiles.</li>
+          <li>Cockpit-ul e sticky sub topbar la scroll — rămâne vizibil cât citești editorialul de mai jos.</li>
+        </ul>
+      </div>
 
       <div class="guide-section">
         <h4>📅 Calendar economic</h4>
@@ -1520,7 +1530,19 @@ h1.headline:empty { display:none; }
           <li>Editorial narativ 500-700 cuvinte: headline + standfirst + 4 secțiuni (🌍 Ce s-a întâmplat peste noapte / ⚡ Ce mișcă piața azi / 🔮 Schimbări de regim / 👁 La ce să fii atent) + card verdict (STOCKS / CRYPTO / RISC). Primește <b>regimul de risc oficial</b> ca input (nu-l recalculează). Fără Entry/SL/TP — nivelurile se spun narativ, exclusiv din date live.</li>
           <li><b>Drill-down:</b> click pe heading secțiune → AI follow-up 400-700 cuvinte cu prompt specific per secțiune (cache 12h).</li>
           <li><b>Ticker auto-link:</b> 100+ tickere în brief sunt clickable → modal cu chart Yahoo + 7 stats + linkuri TV/Yahoo/Finviz.</li>
-          <li>Cache LS 12h cheia dateET. Rerun cu confirm.</li>
+          <li>Orele din text sunt convertite la <b>ora României</b> (ET + 7h), nu ET brut.</li>
+          <li><b>↻ Rerun:</b> șterge cache-ul zilei și regenerează brief-ul (cu confirm — consumă din nou cheia Anthropic).</li>
+          <li><b>📜 Arhiva 7 zile:</b> brief-urile anterioare, arhivate automat la fiecare generare — validare onestă a ce a zis AI-ul vs ce a făcut piața ulterior.</li>
+          <li>Cache LS 12h cheia dateET.</li>
+        </ul>
+      </div>
+
+      <div class="guide-section">
+        <h4>📂 Secțiuni condensate — „arată tot"</h4>
+        <ul>
+          <li>Calendar, Știri macro, Știri crypto, Oportunități și Watchlist pornesc <b>colapsate</b> (câteva rânduri + fade spre fundal) sub editorialul AI.</li>
+          <li>Buton <b>„arată tot ↓"</b> pe fiecare secțiune → expandare completă; devine „restrânge ↑" la click ulterior.</li>
+          <li>Contorul de lângă titlul secțiunii arată câte rezultate/evenimente sunt disponibile, chiar și colapsat.</li>
         </ul>
       </div>
 
@@ -5305,7 +5327,7 @@ ${ctx.tilesList}
 === REGIM DE RISC (oficial — deja calculat din VIX+10Y+corel.BTC/SPY+F&G+DXY; FOLOSESTE-L, nu-l recalcula. TRENDUL ieri→azi = info de sizing) ===
 ${regimeLine}
 
-=== NIVELURI TEHNICE LIVE (preturi reale azi — foloseste EXCLUSIV acestea pentru Entry/SL/TP) ===
+=== NIVELURI TEHNICE LIVE (preturi reale azi — foloseste EXCLUSIV acestea pentru mentiuni narative de niveluri, tip "sub $X accelereaza"/"tine zona $Y", FARA Entry/SL/TP) ===
 ${ctx.levelsList}
 
 Genereaza editorialul de dimineata conform structurii (headline + standfirst + 4 sectiuni + VERDICT, 500-700 cuvinte).`;
@@ -7313,7 +7335,7 @@ function bindEvents() {
     }
   });
 
-  // Brief tab buttons
+  // Butoanele din bara brief-ului (generate/rerun/arhivă)
   $('briefGenBtn').addEventListener('click', () => generateBrief(false));
   $('briefArchiveBtn')?.addEventListener('click', showBriefArchive);
   $('briefRerunBtn').addEventListener('click', () => {
