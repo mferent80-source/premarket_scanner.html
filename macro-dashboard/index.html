@@ -1015,7 +1015,6 @@ body.macro-page .macro-wrap { max-width:1560px !important; width:100% !important
 .semaphore .sstance { font-size:22px; font-weight:800; letter-spacing:.3px; margin:2px 0 4px; color:var(--t1); font-family:var(--head); }
 .semaphore .ssub { font-size:12px; color:var(--t2); line-height:1.55; }
 .semaphore .ssub b { color:var(--t1); }
-/* stări semafor — clasa se pune de JS în task 3 */
 
 .gaugebox { text-align:center; }
 .gauge { width:180px; height:116px; }
@@ -1153,7 +1152,7 @@ h1.headline:empty { display:none; }
 <div class="macro-wrap">
 
 <header class="macro-cockpit topbar-sticky">
-  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v235</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro Dashboard <span class="ver-badge" id="verBadge">v236</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1631,7 +1630,7 @@ h1.headline:empty { display:none; }
           <li><b>Click pe news card</b> → AI expand inline.</li>
           <li><b>Click pe heading secțiune brief</b> → AI follow-up detaliat.</li>
           <li><b>Click pe ticker auto-link în brief</b> → modal stock cu chart.</li>
-          <li>Toate cache-urile au TTL configurat (6h news/AI, 12h brief/sections, 24h historical/suggestions, 6h earnings).</li>
+          <li>Toate cache-urile au TTL configurat (6h news/AI, brief 1x/zi + 12h sections, 24h historical/suggestions, 6h earnings).</li>
         </ul>
       </div>
 
@@ -5275,7 +5274,7 @@ async function buildBriefContext() {
 async function generateBrief(force=false) {
   const nyt = getNYDateHour();
   const cached = loadBriefCache();
-  if (!force && cached && cached.dateET === nyt.date && (Date.now() - cached.generatedAt) < 12*3600000) {
+  if (!force && cached && cached.dateET === nyt.date) {
     renderBrief(cached);
     return;
   }
