@@ -945,7 +945,7 @@ tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left
 .brief-empty .bp-icon { font-size:56px; opacity:.5; margin-bottom:14px; }
 .brief-empty h4 { font-size:17px; color:var(--t1); font-weight:800; margin-bottom:8px; }
 .brief-empty p { font-size:13.5px; max-width:520px; margin:0 auto; line-height:1.7; color:var(--t2); }
-.brief-empty .next-time { margin-top:14px; font-family:var(--mono); font-size:12.5px; color:var(--accent); }
+.brief-empty .ghost-sm { margin-top:10px; }
 
 @media (max-width:640px) {
   body { padding:8px; font-size:13px; }
@@ -1097,6 +1097,13 @@ h1.headline:empty { display:none; }
 .v-cell.v-bear .val { color:var(--bear-s); }
 .v-cell.v-neut { background:rgba(212,137,44,.07); border-color:rgba(212,137,44,.30); }
 .v-cell.v-neut .val { color:var(--warn); }
+/* v234: aliasuri folosite de parseBriefOutput (LONG/SHORT/NEUTRAL/DEFENSIV → good/bad/warn) */
+.v-cell.v-good { background:rgba(58,235,136,.08); border-color:rgba(58,235,136,.32); }
+.v-cell.v-good .val { color:var(--bull-s); }
+.v-cell.v-bad { background:rgba(255,107,107,.08); border-color:rgba(255,107,107,.32); }
+.v-cell.v-bad .val { color:var(--bear-s); }
+.v-cell.v-warn { background:rgba(212,137,44,.07); border-color:rgba(212,137,44,.30); }
+.v-cell.v-warn .val { color:var(--warn); }
 
 /* ===== SECȚIUNI (top-border colorat, stil „card de ziar") ===== */
 .sec {
@@ -1221,9 +1228,7 @@ h1.headline:empty { display:none; }
     <div class="brief-empty">
       <div class="bp-icon">📋</div>
       <h4>Niciun brief generat încă</h4>
-      <p>Brief-ul agregă <strong>top high-impact events azi</strong>, <strong>sentiment macro/crypto</strong>, <strong>valori curente VIX/DXY/BTC/ETH</strong> și generează un context decizional cross-asset prin Claude opus-5.</p>
-      <p>Auto-trigger la prima încărcare după <strong>08:00 ET</strong>. Cache 12h per zi.</p>
-      <div class="next-time" id="briefNextTime"></div>
+      <p>Se generează automat la prima deschidere a zilei. Adaugă cheia Anthropic în ⚙ Setări pentru brief.</p>
     </div>
   </div>
 
@@ -1512,8 +1517,8 @@ h1.headline:empty { display:none; }
       <div class="guide-section">
         <h4>🤖 AI Daily Brief</h4>
         <ul>
-          <li><b>Auto-trigger 08:00 ET</b> (DST-aware via Intl.DateTimeFormat) cu cheia Anthropic configurată.</li>
-          <li>Desk note SCURT ~450-600 cuvinte, 5 secțiuni: 🎯 Verdict / 🔑 De ce / 📅 Azi de urmărit / 💡 Oportunități / ⚠️ Risc principal. Primește <b>regimul de risc oficial</b> ca input (nu-l recalculează). Picks-urile trec un <b>gate de calitate</b> (doar setupuri cu fapt-ancoră concret + nivel live: max 1-2 stocks + 1-2 crypto) + ⭐ Trade of the day + ⛔ Avoid.</li>
+          <li><b>Auto-trigger la prima deschidere a zilei</b> (dată ET, DST-aware via Intl.DateTimeFormat) cu cheia Anthropic configurată — fără fereastră orară, un singur brief/zi.</li>
+          <li>Editorial narativ 500-700 cuvinte: headline + standfirst + 4 secțiuni (🌍 Ce s-a întâmplat peste noapte / ⚡ Ce mișcă piața azi / 🔮 Schimbări de regim / 👁 La ce să fii atent) + card verdict (STOCKS / CRYPTO / RISC). Primește <b>regimul de risc oficial</b> ca input (nu-l recalculează). Fără Entry/SL/TP — nivelurile se spun narativ, exclusiv din date live.</li>
           <li><b>Drill-down:</b> click pe heading secțiune → AI follow-up 400-700 cuvinte cu prompt specific per secțiune (cache 12h).</li>
           <li><b>Ticker auto-link:</b> 100+ tickere în brief sunt clickable → modal cu chart Yahoo + 7 stats + linkuri TV/Yahoo/Finviz.</li>
           <li>Cache LS 12h cheia dateET. Rerun cu confirm.</li>
@@ -4870,42 +4875,56 @@ async function preloadAITop5() {
 }
 
 // ============ AI DAILY BRIEF ============
-const AI_SYSTEM_BRIEF = `Esti trade strategist senior pentru un trader stocks Nasdaq + crypto (Pionex, Trade212).
-Genereaza un DESK NOTE matinal in romana, SCURT si la obiect — TINTA ~450-600 cuvinte, format de masa de tranzactionare (nu eseu). Fara umplutura, fara disclaimere, fara teorie generala. Daca o informatie nu schimba ce faci AZI, NU o scrie. Fiecare lucru apare O SINGURA DATA.
+// v234: prompt editorial (nu desk note tehnic) — headline+standfirst+4 sectiuni+VERDICT, parsate de parseBriefOutput().
+const AI_SYSTEM_BRIEF = `Esti un analist de piata care ii explica dimineata unui prieten inteligent (trader retail pe Nasdaq + crypto) CE SE INTAMPLA si DE CE — ca un editorial de ziar financiar, nu ca un desk note tehnic.
 
-REGIMUL DE RISC e DEJA CALCULAT si ti se da in context ("REGIM DE RISC (oficial)"). FOLOSESTE-L ca atare — NU-l recalcula, NU vota alt mood, NU scrie nicio linie MARKET_MOOD. Brief-ul tau explica si exploateaza regimul dat. Daca ti se da TRENDUL regimului (ieri→azi), foloseste DIRECTIA la sizing: deteriorare rapida (↓) = redu risc mai agresiv decat nivelul static; stabilizare/ameliorare (↑) dintr-un nivel jos = poti reintra gradual.
+TON: clar, direct, uman. Zero jargon neexplicat — daca folosesti un termen tehnic (yields, hawkish, ETF outflows), explica-l scurt in paranteza. Zero disclaimere, zero umplutura. Povestea din spatele cifrelor conteaza: geopolitica, deciziile bancilor centrale, schimbarile de sentiment — leaga-le cauzal ("X s-a intamplat, DE ACEEA Y scade").
 
-CONTINUITATE: daca ti se da "TEZA DE IERI", compar-o cu teza de azi. Daca s-a schimbat biasul (ex. ieri STOCKS LONG, azi NEUTRAL), spune EXPLICIT intr-un rand ce s-a schimbat si de ce (ce fapt nou). Daca e la fel, confirma scurt ("teza de ieri se mentine").
+REGIMUL DE RISC e DEJA CALCULAT ("REGIM DE RISC (oficial)"). FOLOSESTE-L, nu-l recalcula, nu scrie MARKET_MOOD. Trendul lui (ieri→azi) e material pentru sectiunea de schimbari de regim.
 
-WATCHLIST: daca primesti "WATCHLIST-UL MEU", cand un event / nivel tehnic / earnings atinge un simbol de acolo, PRIORITIZEAZA-l in sectiunile "Azi de urmarit" si "Oportunitati" (e mai actionabil pentru user decat SPY/QQQ generic).
+ORE: converteste TOATE orele la ora Romaniei (ET + 7h; ex. 08:30 ET = "15:30 ora ta"). NU folosi "ET" in text.
 
-GOOD NEWS = BAD NEWS: nu citi rezultatele mecanic (BEAT=bullish). Intr-un regim dominat de frica de dobanzi (10Y in crestere, DXY puternic, VIX ridicat), un BEAT de crestere (NFP/PMI/GDP/retail hot) poate fi BEARISH pentru Nasdaq — creste asteptarile de rate/yields, loveste growth-ul. Invers, date de crestere slabe pot fi bullish („bad news is good news") daca aduc sperante de taieri. Leaga interpretarea fiecarui rezultat de REGIMUL curent, nu doar de semnul surprizei.
+FARA Entry/SL/TP, fara tabele de praguri. Nivelurile importante se spun narativ ("sub $180 corectia accelereaza", "BTC tine greu zona 115k") si DOAR din "NIVELURI TEHNICE LIVE" — zero cifre inventate. Daca nu ai un nivel, nu-l scrie.
 
-STRUCTURA — un TL;DR pe un rand, apoi EXACT aceste 5 sectiuni (markdown ## pentru headings), scurte:
+STRUCTURA OBLIGATORIE a raspunsului (exact in ordinea asta):
+Linia 1: un HEADLINE de ziar, max 90 caractere, fara markdown, fara doua puncte la inceput — carligul zilei.
+Linia 2: STANDFIRST — 1-2 propozitii care rezuma povestea si miza zilei.
+Apoi EXACT 4 sectiuni cu headinguri markdown FIXE (nu le reformula):
+## 🌍 Ce s-a intamplat peste noapte
+Geopolitica si pietele externe: negocieri, conflicte, decizii, Asia/Europa, moves overnight. Ce fapte NOI au aparut si pe cine lovesc.
+## ⚡ Ce misca piata azi
+Evenimentele si earnings-urile de AZI (din context), cu ora Romaniei si ce inseamna o citire buna/proasta — narativ, nu tabel. Watchlist-ul userului are prioritate cand e atins.
+## 🔮 Schimbari de regim
+Regimul oficial + trendul lui, explicat pe intelesul omului: ce s-a schimbat fata de ieri si DE CE (compara cu TEZA DE IERI daca exista — daca biasul s-a schimbat, spune explicit ce fapt nou l-a schimbat; daca nu, "teza de ieri se mentine").
+## 👁 La ce sa fii atent
+2-4 lucruri concrete de urmarit (watchlist prioritar, niveluri narative, catalisti), inclusiv UN risc principal care ar rasturna povestea zilei.
+Ultima linie, EXACT formatul (o singura linie, nimic dupa ea):
+VERDICT: STOCKS <LONG|SHORT|NEUTRAL|DEFENSIV> · CRYPTO <LONG|SHORT|NEUTRAL|DEFENSIV> · RISC <agresiv|normal|redus|cash-heavy>
 
-**TL;DR:** un SINGUR rand care comprima toata teza zilei (bias stocks + bias crypto + singurul lucru de urmarit azi). E primul lucru pe care il citesc — sa fie suficient de sec sa pot decide fara sa citesc restul.
+LUNGIME: 500-700 cuvinte total. Romana 100% (tickere si termeni consacrati raman in original), tickere bold **AAPL**, paragrafe curgatoare (nu bullets).`;
 
-## 🎯 Verdict
-1-2 randuri: porneste de la regimul oficial dat, apoi BIAS transant pe o linie:
-**STOCKS: LONG / SHORT / NEUTRAL** · **CRYPTO: LONG / SHORT / NEUTRAL** + nivel risc (agresiv / normal / redus / cash-heavy).
-
-## 🔑 De ce
-3-4 bullets, fiecare cu un FAPT-ANCORA concret din date (rezultat publicat azi / event / stire / nivel tehnic rupt). Fara fapt verificabil → nu-l scrie. Numere cand le ai. Zero memorie/feeling.
-
-## 📅 Azi de urmarit
-Evenimentele MARI din "EVENIMENTE ECONOMICE AZI" sunt prioritatea — pune-le PRIMELE, cate un rand fiecare:
-**Eveniment** · ora ET · consensus → **prag bull:** ce citire/reactie confirma LONG · **prag bear:** ce o invalideaza.
-Apoi, daca mai e loc, 1 nivel-cheie pe SPY/QQQ/BTC (din NIVELURI TEHNICE LIVE). Daca fereastra de evenimente e goala, spune-o explicit intr-un rand ("Azi fara evenimente macro mari") si treci mai departe — NU inventa evenimente.
-
-## 💡 Oportunitati
-MAX 1-2 stocks + 1-2 crypto, DOAR cu edge real (catalist concret + nivel live). Un singur rand per pick:
-**TICKER** dir (LONG/SHORT) ⭐1-5 · fapt-ancora scurt · Entry ~$X / SL ~$Y / TP ~$Z (EXCLUSIV din "NIVELURI TEHNICE LIVE"; fara nivel live → scrie "fara nivel" si dai doar directia).
-Daca nu exista setup clar pe o categorie, scrie un singur rand: "Niciun setup [stocks/crypto] cu edge azi". La final: **⭐ Trade of the day** (1 idee) + **⛔ Avoid** (1 rand).
-
-## ⚠️ Risc principal
-UN rand: lucrul care reverseaza teza azi (event-surpriza / headline / nivel rupt) + cum te aperi (hedge / cash).
-
-STIL: romana 100% (doar tickere + termeni tehnici RSI/ATR/EPS in original), bullets scurte, tickere bold **AAPL**, numere concrete DOAR cand le ai din date (daca lipseste, spune-o, NU inventa). Entry/SL/TP EXCLUSIV din "NIVELURI TEHNICE LIVE" (construieste SL/TP din ATR-ul real dat). Niciun ticker fara nivel live nu primeste cifre inventate.`;
+// v234: desparte headline / standfirst / corp / verdict din output-ul AI
+function parseBriefOutput(full) {
+  const lines = full.trim().split('\n');
+  let headline = '', standfirst = '', verdict = null;
+  let bodyStart = 0;
+  if (lines[0] && !lines[0].startsWith('#') && !/^VERDICT:/i.test(lines[0])) { headline = lines[0].replace(/^\*+|\*+$/g, '').trim(); bodyStart = 1; }
+  // standfirst = liniile pana la primul heading ##
+  const sf = [];
+  while (bodyStart < lines.length && !lines[bodyStart].startsWith('##')) {
+    if (lines[bodyStart].trim()) sf.push(lines[bodyStart].trim());
+    bodyStart++;
+  }
+  standfirst = sf.join(' ');
+  let body = lines.slice(bodyStart);
+  const vIdx = body.findIndex(l => /^\s*VERDICT:/i.test(l));
+  if (vIdx >= 0) {
+    const m = body[vIdx].match(/VERDICT:\s*STOCKS\s+([A-ZĂÂÎȘȚa-z-]+)\s*·\s*CRYPTO\s+([A-ZĂÂÎȘȚa-z-]+)\s*·\s*RISC\s+([a-zA-Z-]+)/i);
+    if (m) verdict = { stocks: m[1].toUpperCase(), crypto: m[2].toUpperCase(), risc: m[3].toLowerCase() };
+    body = body.slice(0, vIdx);
+  }
+  return { headline, standfirst, text: body.join('\n').trim(), verdict };
+}
 
 function getNYDateHour() {
   const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
@@ -4932,7 +4951,7 @@ function archiveBrief(brief) {
     try { arc = JSON.parse(localStorage.getItem('md_brief_archive') || '[]'); } catch (e) {}
     if (!Array.isArray(arc)) arc = [];
     arc = arc.filter(b => b && b.dateET !== brief.dateET);
-    arc.push({ dateET: brief.dateET, generatedAt: brief.generatedAt, text: brief.text, mood: brief.mood });
+    arc.push({ dateET: brief.dateET, generatedAt: brief.generatedAt, text: brief.text, mood: brief.mood, headline: brief.headline || '' });
     arc.sort((a, b) => (a.generatedAt || 0) - (b.generatedAt || 0));
     if (arc.length > 7) arc = arc.slice(-7);
     localStorage.setItem('md_brief_archive', JSON.stringify(arc));
@@ -4945,7 +4964,7 @@ function showBriefArchive() {
   const items = arc.slice().reverse(); // cel mai recent primul
   const html = items.length
     ? items.map((b, i) => `<details ${i === 0 ? 'open' : ''} style="margin-bottom:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:10px;padding:10px 14px">
-        <summary style="cursor:pointer;font-weight:700">${escHtml(b.dateET)} · generat ${new Date(b.generatedAt).toLocaleString('ro-RO', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}${b.mood ? ' · mood ' + escHtml(b.mood) : ''}</summary>
+        <summary style="cursor:pointer;font-weight:700">${escHtml(b.dateET)} · generat ${new Date(b.generatedAt).toLocaleString('ro-RO', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}${b.headline ? ' · ' + escHtml(b.headline) : (b.mood ? ' · mood ' + escHtml(b.mood) : '')}</summary>
         <div style="margin-top:10px;font-size:13px;line-height:1.6">${formatBriefText(b.text)}</div>
       </details>`).join('')
     : '<div style="padding:18px;color:var(--t3)">Niciun brief arhivat încă — arhiva se umple automat la fiecare brief generat (păstrează ultimele 7 zile).</div>';
@@ -5007,7 +5026,8 @@ function getPrevThesis(todayDateET) {
   const txt = last.text;
   const tldrM = txt.match(/TL;DR[:\s*]*([^\n]+)/i);
   const verdM = txt.match(/##[^\n]*Verdict[^\n]*\n+([^\n#]+)/i);
-  const tldr = tldrM ? tldrM[1].replace(/\*/g, '').trim() : '';
+  // v234: brief-urile noi (fara linia TL;DR de tip desk note) fac fallback pe headline
+  const tldr = (tldrM ? tldrM[1].replace(/\*/g, '').trim() : '') || last.headline || '';
   const verdict = verdM ? verdM[1].replace(/\*/g, '').trim() : '';
   if (!tldr && !verdict) return null;
   return { dateET: last.dateET, tldr, verdict };
@@ -5251,7 +5271,7 @@ ${regimeLine}
 === NIVELURI TEHNICE LIVE (preturi reale azi — foloseste EXCLUSIV acestea pentru Entry/SL/TP) ===
 ${ctx.levelsList}
 
-Genereaza desk note-ul matinal conform structurii (scurt, ~450-600 cuvinte).`;
+Genereaza editorialul de dimineata conform structurii (headline + standfirst + 4 sectiuni + VERDICT, 500-700 cuvinte).`;
 
   const bodyEl = $('briefBody');
   const statusEl = $('briefStatus');
@@ -5266,33 +5286,25 @@ Genereaza desk note-ul matinal conform structurii (scurt, ~450-600 cuvinte).`;
 
   try {
     // Streaming silentios — NU update-uim DOM-ul la fiecare chunk (e obositor)
-    // v201: desk note scurt (5 secțiuni, ~450-600 cuvinte) → 2200 tokens ajung cu marjă
-    // (diacriticele românești = mai multe tokenuri). Înainte erau 6000 pt 8 secțiuni dense.
-    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, () => {}, 2200);
+    // v234: editorial narativ (headline + standfirst + 4 secțiuni + VERDICT, 500-700 cuvinte)
+    // → 2600 tokens ajung cu marjă (diacriticele românești = mai multe tokenuri).
+    const full = await callAnthropicStream(AI_SYSTEM_BRIEF, prompt, () => {}, 2600);
     clearInterval(tickTimer);
 
-    // Parse MARKET_MOOD din prima linie
-    let mood = null;
-    let cleanText = full;
-    const moodMatch = full.match(/^MARKET_MOOD:\s*(risk-on|risk-off|mixed|stress)/i);
-    if (moodMatch) {
-      mood = moodMatch[1].toLowerCase();
-      cleanText = full.replace(/^MARKET_MOOD:.*?\n+/i, '').trim();
-      // v193: AI-ul NU mai suprascrie tema — regimul composite (🛡) e sursa unică; mood rămâne doar informativ.
-    }
-
+    // v234: headline / standfirst / verdict parsate din output — vezi parseBriefOutput().
+    // v193: AI-ul NU mai suprascrie tema — regimul composite (🛡) e sursa unică; mood rămâne doar informativ (null acum).
+    const parsed = parseBriefOutput(full);
     const brief = {
-      dateET: nyt.date,
-      generatedAt: Date.now(),
-      text: cleanText,
-      mood,
+      dateET: nyt.date, generatedAt: Date.now(),
+      text: parsed.text, headline: parsed.headline, standfirst: parsed.standfirst,
+      verdict: parsed.verdict, mood: null,
       ctx: { eventsCount: ctx.eventsCount, hiCount: ctx.hiCount, tiles: ctx.tilesList, bigEvents: ctx.bigEvents }
     };
     saveBriefCache(brief);
     archiveBrief(brief); // 📜 arhiva 7 zile — validare retroactivă
     snapshotRegimeDaily(nyt.date); // F1: reține composite-ul de azi pt trendul de mâine
     renderBrief(brief); // afișează deodată cu fade-in
-    toast(`✅ Brief generat în ${Math.round((Date.now() - startMs)/1000)}s · mood: ${mood || 'auto'}`, 'success');
+    toast(`✅ Brief generat în ${Math.round((Date.now() - startMs)/1000)}s`, 'success');
   } catch (e) {
     clearInterval(tickTimer);
     renderBriefError('❌ Eroare AI: ' + e.message);
@@ -5338,12 +5350,38 @@ function renderBrief(brief) {
   // Fade-in smooth
   void body.offsetWidth; // force reflow ca animația să se re-trigger
   body.classList.add('appear');
+
+  // v234: headline — text nou are brief.headline; brief vechi (fără câmp) → fallback pe prima linie din text (fără crash)
+  const headlineEl = $('briefHeadline');
+  if (headlineEl) {
+    const fallbackHeadline = (brief.text || '').split('\n')[0].replace(/^#+\s*/, '').replace(/\*+/g, '').trim();
+    headlineEl.textContent = brief.headline || fallbackHeadline;
+  }
+
+  // v234: standfirst — doar text nou; brief vechi nu are câmpul → rămâne ascuns (display:none inline din HTML)
+  const sfEl = $('briefStandfirst');
+  if (sfEl) {
+    if (brief.standfirst) { sfEl.style.display = ''; sfEl.textContent = brief.standfirst; }
+    else { sfEl.style.display = 'none'; sfEl.textContent = ''; }
+  }
+
   body.innerHTML = formatBriefText(brief.text);
   $('briefDate').textContent = `${brief.dateET} · generat ${new Date(brief.generatedAt).toLocaleString('ro-RO', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit' })}`;
   $('briefStatus').textContent = `✅ cache · ${Math.round((Date.now() - brief.generatedAt) / 60000)}min în urmă`;
   renderBriefMeta(brief);
-  const nextTimeEl = $('briefNextTime');
-  if (nextTimeEl) nextTimeEl.textContent = '';
+
+  // v234: card verdict pe 3 celule (stocks / crypto / risc) — brief vechi nu are brief.verdict → rămâne ascuns
+  const v = brief.verdict, vEl = $('briefVerdict');
+  if (vEl) {
+    if (v) {
+      const dirIcon = d => d === 'LONG' ? '↗' : d === 'SHORT' || d === 'DEFENSIV' ? '↘' : '→';
+      const dirCls = d => d === 'LONG' ? 'v-good' : d === 'SHORT' || d === 'DEFENSIV' ? 'v-bad' : 'v-warn';
+      vEl.style.display = '';
+      vEl.innerHTML = `<div class="v-cell ${dirCls(v.stocks)}"><div class="lb">STOCKS</div><div class="val">${dirIcon(v.stocks)} ${escHtml(v.stocks)}</div></div>
+        <div class="v-cell ${dirCls(v.crypto)}"><div class="lb">CRYPTO</div><div class="val">${dirIcon(v.crypto)} ${escHtml(v.crypto)}</div></div>
+        <div class="v-cell ${v.risc === 'agresiv' || v.risc === 'normal' ? 'v-good' : 'v-bad'}"><div class="lb">RISC</div><div class="val">${escHtml(v.risc.toUpperCase())}</div></div>`;
+    } else { vEl.style.display = 'none'; vEl.innerHTML = ''; }
+  }
   // v193: regimul composite (🛡) e sursa unică a temei — AI-ul nu mai suprascrie. (brief.mood = doar informativ)
 }
 
@@ -5357,36 +5395,19 @@ function renderBriefError(msg) {
 
 function renderBriefEmpty() {
   const body = $('briefBody');
+  const hasKey = !!getAnthropicKey();
   body.innerHTML = `<div class="brief-empty">
     <div class="bp-icon">📋</div>
     <h4>Niciun brief generat încă</h4>
-    <p>Brief-ul agregă <strong>top high-impact events azi</strong>, <strong>sentiment macro/crypto</strong>, <strong>valori curente VIX/DXY/BTC/ETH</strong> și generează un context decizional cross-asset prin Claude opus-5.</p>
-    <p>Auto-trigger la prima încărcare după <strong>08:00 ET</strong>. Cache 12h per zi.</p>
-    <div class="next-time" id="briefNextTime"></div>
+    <p>Se generează automat la prima deschidere a zilei. Adaugă cheia Anthropic în ⚙ Setări pentru brief.</p>
+    ${hasKey ? '' : '<button class="ghost-sm" id="briefEmptySettingsBtn" type="button">⚙ Deschide Setări</button>'}
   </div>`;
-  updateBriefNextTime();
+  if (!hasKey) $('briefEmptySettingsBtn')?.addEventListener('click', openSettings);
 }
 
-function updateBriefNextTime() {
-  const nyt = getNYDateHour();
-  const el = $('briefNextTime');
-  if (!el) return;
-  if (nyt.hour >= 8) {
-    el.textContent = '✅ Fereastra de generare e activă (după 08:00 ET). Apasă butonul pentru a genera.';
-  } else {
-    const left = (8 - nyt.hour - 1) * 60 + (60 - nyt.minute);
-    const h = Math.floor(left / 60);
-    const m = left % 60;
-    el.textContent = `⏰ Următorul auto-trigger: 08:00 ET (în ${h}h ${m}min)`;
-  }
-}
-
+// v234: nu mai există fereastră orară — un singur brief/zi, generat la prima deschidere a zilei ET.
 function shouldAutoGenerateBrief() {
-  const nyt = getNYDateHour();
-  if (nyt.hour < 8) return false;
-  const cached = loadBriefCache();
-  if (cached && cached.dateET === nyt.date) return false;
-  return true;
+  return !(loadBriefCache()?.dateET === getNYDateHour().date);
 }
 
 function initBriefTab() {
@@ -7345,7 +7366,7 @@ async function init() {
   }).catch(() => {});
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
   preloadAITop5().catch(() => {});
-  // Auto-trigger Daily Brief dacă e după 08:00 ET și nu există brief pentru azi
+  // Auto-trigger Daily Brief: o singură dată/zi, la prima deschidere a zilei (fără fereastră orară)
   if (shouldAutoGenerateBrief() && getAnthropicKey()) {
     setTimeout(() => generateBrief(false).catch(() => {}), 3000);
   }
