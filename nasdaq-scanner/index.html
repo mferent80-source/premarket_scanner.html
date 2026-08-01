@@ -902,6 +902,102 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   vertical-align:middle;font-family:-apple-system,BlinkMacSystemFont,Inter,sans-serif;
   -webkit-text-fill-color:#000 !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" v133 — limbajul de componente din macro-dashboard / hub
+   (topbar panou sticky · taburi glass · bordură colorată de secțiune)
+   CSS-only: HTML-ul, id-urile și JS-ul rămân neatinse (onclick, .act,
+   setTab() funcționează identic). Regula casei: fundal SOLID pe sticky,
+   FĂRĂ backdrop-filter (blur-ul strică randarea textului).
+   Pagina are dark/light toggle (body.dark) → tot ce depinde de fundal e
+   scope-at pe `body.dark`; accentele de bordură folosesc culori literale
+   care se citesc bine pe ambele teme.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Accentele de secțiune + gradientul taburilor (paleta suitei, nu tokenii temei,
+   ca să arate identic în dark și light) */
+:root{
+  --nq-acc-1:#3b82f6;              /* albastru suită — activ tab / config */
+  --nq-acc-2:#0ea5e9;              /* capătul gradientului de tab activ    */
+  --nq-sec-cfg:#3b82f6;            /* Configurare Scanner                  */
+  --nq-sec-macro:#6ee7b7;          /* bandă macro (VIX/SPY/QQQ/DXY/10Y)    */
+  --nq-sec-ai:#a78bfa;             /* AI Market Summary                    */
+  --nq-sec-earn:#10b981;           /* Earnings Calendar                    */
+  --nq-sec-log:#f0a84a;            /* Log scanner                          */
+}
+
+/* ── 1. TOPBAR: panou sticky. sticky/top/z-index/border/radius vin din
+      lib/scanner-ui.css (.scanner-cockpit); aici doar fundalul solid al
+      macro-ului, umbra mare și rândul unic pe desktop.
+      Selector `.hdr.scanner-cockpit` (0,2,0) ca să bată `.hdr` (0,1,0)
+      din blocul de mai sus, care resetează padding/margin. ── */
+.hdr.scanner-cockpit{
+  padding:10px 14px;
+  margin:0 0 12px;
+  border-radius:var(--r);
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+}
+/* fundal solid — DOAR pe dark; în light rămâne exact cum era (scanner-ui.css) */
+body.dark .hdr.scanner-cockpit{
+  background:rgba(11,15,23,.94);
+  /* fara backdrop-filter: scanner-ui.css il seteaza deja pe none */
+}
+/* pe desktop lat: status + acțiuni pe UN rând, împinse la dreapta.
+   Sub 1280px rămâne stiva pe 2 rânduri din scanner-ui (mobil intens folosit). */
+@media (min-width:1280px){
+  .hdr.scanner-cockpit .hdr-toolbar{
+    flex-direction:row; align-items:center; justify-content:flex-end;
+    flex-wrap:wrap; gap:6px 10px;
+  }
+  .hdr.scanner-cockpit .hdr-actions-row{margin-left:auto}
+}
+/* grid-ul de la ≥1280px anula margin-bottom-ul headerului — păstrăm asta */
+@media (min-width:1280px){
+  .app > .hdr.scanner-cockpit{margin-bottom:0}
+}
+
+/* ── 2. Dedup badge de regim: banda cockpit (#ckBand, ../lib/cockpit.js) de sub
+      header arată ACELAȘI regim de risc, mai bogat (composite + danger + vechime).
+      Badge-ul mic din brand devine redundant → ascuns doar pe pagina asta.
+      Decizie aprobată la review-ul CKB. Pe watchlist-monitor NU se ascunde
+      (acolo nu există bandă CKB, badge-ul e singura afișare a regimului). ── */
+.hdr.scanner-cockpit [data-regime-badge]{display:none}
+
+/* ── 3. TABURI: pill-uri pe fundal glass. Activ = gradient albastru, text alb.
+      Clasele (.tab / .tab.act / .tabs-secondary) și onclick-urile rămân
+      identice — se schimbă doar pielea. ── */
+body.dark .tabs{
+  background:rgba(18,26,40,.92);
+  border-color:var(--b1);   /* pe nasdaq --b2 e MAI inchis decat --b1 (invers fata de alerts) */
+  box-shadow:0 8px 24px rgba(0,0,0,.34);
+}
+.tabs{border-radius:var(--r)}
+.tab{transition:background .15s,color .15s,box-shadow .15s}
+body.dark .tab:hover:not(.act){background:rgba(255,255,255,.05);color:var(--t1)}
+.tab.act{
+  background:linear-gradient(135deg,var(--nq-acc-1),var(--nq-acc-2));
+  color:#fff; box-shadow:0 2px 12px rgba(59,130,246,.32);
+}
+/* tab-urile secundare colorate inline (style="color:...") își păstrează culoarea
+   când NU sunt active; când devin .act, regula de sus le face albe — dar inline
+   style bate CSS-ul, așa că forțăm alb doar pe activ. */
+.tabs .tab.act, .tabs-secondary .tab.act{color:#fff !important}
+
+/* ── 4. Bordură colorată sus — semnătura secțiunilor de ziar (.sec din macro).
+      Doar pe blocurile care SUNT carduri (au fundal + border propriu).
+      `.stats` / `.filter-bar` / `#signalsContainer` sunt containere transparente
+      → nu primesc bordură orfană (lecția de la alerts); `.stat` are deja
+      dunga proprie de 2px (::after), iar cardurile de semnal au .sig-stripe. ── */
+.control-panel{border-top:3px solid var(--nq-sec-cfg); border-radius:var(--r)}
+.macro-bar{border-top:3px solid var(--nq-sec-macro); border-radius:var(--r)}
+.ai-summary-panel{border-top:3px solid var(--nq-sec-ai); border-radius:var(--r)}
+.earn-cal{border-top:3px solid var(--nq-sec-earn); border-radius:var(--r)}
+.log-panel{border-top:3px solid var(--nq-sec-log); border-radius:var(--r)}
+
+/* ── 5. Consecvență de formă — radius unic + umbră pe blocurile mari.
+      Chips / ftag-uri / butoane / inputs rămân exact cum sunt. ── */
+.news-ticker, .sentiment-bar{border-radius:var(--r)}
+body.dark .control-panel, body.dark .log-panel{box-shadow:0 4px 18px rgba(0,0,0,.28)}
 </style>
 </head>
 <body class="dark suite-page">
@@ -913,7 +1009,7 @@ body{font-family:var(--head);background:var(--bg);color:var(--t1);min-height:100
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v132</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v133</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
