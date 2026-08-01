@@ -4030,7 +4030,10 @@ function quickSentiment(text) {
   return 'neut';
 }
 
-async function fetchMacroNews() {
+async function fetchMacroNews(force = false) {
+  // Guard TTL real (fostul comentariu era aspirațional — funcția fetch-uia necondiționat).
+  // force=true pt. butonul 🔄 (reîmprospătare manuală explicită).
+  if (!force && _newsLoadedAt.macro && Date.now() - _newsLoadedAt.macro < NEWS_CACHE_TTL) return;
   const key = getFinnhubKey();
   if (!key) {
     $('mnStatus').textContent = '⚠ Lipsă Finnhub key (Setări ⚙)';
@@ -4071,7 +4074,8 @@ async function fetchMacroNews() {
   }
 }
 
-async function fetchCryptoNews() {
+async function fetchCryptoNews(force = false) {
+  if (!force && _newsLoadedAt.crypto && Date.now() - _newsLoadedAt.crypto < NEWS_CACHE_TTL) return;
   $('cnStatus').textContent = '⏳ Se încarcă...';
   $('cnList').innerHTML = '<div class="news-loading">⏳ Aduc știri crypto (Finnhub + Reddit + Cointelegraph)...</div>';
   const fhKey = getFinnhubKey();
@@ -5479,8 +5483,23 @@ function refreshSecFold(name) {
   const btn = sec.querySelector('.sec-more');
   if (!body || !btn) return;
   const fits = body.scrollHeight <= 340;
-  btn.style.display = fits ? 'none' : '';
-  if (fits) { sec.classList.remove('collapsed'); btn.classList.remove('open'); }
+  if (fits) {
+    // Încape fără colaps — butonul e zgomot: îl ascundem și resetăm starea/labelul.
+    sec.classList.remove('collapsed');
+    btn.classList.remove('open');
+    btn.textContent = 'arată tot ↓';
+    btn.style.display = 'none';
+  } else {
+    // Conținutul a crescut peste prag (ex. render async ulterior injectează carduri) — dacă
+    // butonul fusese ascuns anterior de ramura `fits`, secțiunea rămăsese fără .collapsed
+    // (= vizual deja expandată). Nu impunem o stare nouă (cel mai puțin surprinzător e să
+    // păstrăm ce vede userul), doar sincronizăm textul/clasa cu starea REALĂ — altfel butonul
+    // reapare cu „arată tot ↓” peste o secțiune deja expandată și primul click o colapsează.
+    btn.style.display = '';
+    const isCollapsed = sec.classList.contains('collapsed');
+    btn.textContent = isCollapsed ? 'arată tot ↓' : 'restrânge ↑';
+    btn.classList.toggle('open', !isCollapsed);
+  }
 }
 
 // ============ SETTINGS MODAL ============
@@ -6920,6 +6939,7 @@ function handleAddSectorTickers(key, secIdx) {
   persistSuggestions();
   toast(`✓ ${added} ${added === 1 ? 'ticker adăugat' : 'tickere adăugate'} la watchlist (${sec.label})`, 'success');
   renderSuggestionsPanel();
+  renderWatchMacro(); // fără taburi, secțiunea Watchlist e mereu vizibilă — trebuie reîmprospătată la fiecare add
 }
 
 // Analiză AI on-demand per sector: conectează rezultatul macro la sector + recomandă acțiuni concrete
@@ -6986,6 +7006,7 @@ function handleAddSuggestionTicker(key, ticker) {
   persistSuggestions();
   toast(`✓ ${ticker} adăugat la watchlist`, 'success');
   renderSuggestionsPanel();
+  renderWatchMacro(); // fără taburi, secțiunea Watchlist e mereu vizibilă — trebuie reîmprospătată la fiecare add
 }
 
 function handleDismissSuggestion(key) {
@@ -7047,6 +7068,11 @@ function scheduleAutoRefresh() {
   _refreshTimer = setTimeout(async () => {
     await loadCalendar(); // loadCalendar() apelează deja checkResults() la final — nu-l mai dublăm aici
     if (!_fastPollActive) await loadStatTiles(); // în fast-poll skip stat tiles ca să nu burst proxy
+    // v234: fără taburi (deci fără trigger-ul vechi „intrarea pe tab"), news-urile trebuie
+    // reîmprospătate din ciclul de auto-refresh — guard-ul TTL din fetch* le face no-op
+    // dacă cache-ul e încă proaspăt, deci apelul necondiționat aici e ieftin.
+    fetchMacroNews();
+    fetchCryptoNews();
     scheduleAutoRefresh();
   }, interval * 1000);
 }
@@ -7220,7 +7246,7 @@ function bindEvents() {
     mnSearchTimer = setTimeout(() => { CFG.mnSearch = e.target.value.trim(); saveCfg(); renderMacroNews(); }, 200);
   });
   $('mnSearch').value = CFG.mnSearch;
-  $('mnRefresh').addEventListener('click', () => { _newsLoadedAt.macro = 0; fetchMacroNews(); });
+  $('mnRefresh').addEventListener('click', () => fetchMacroNews(true));
 
   // Crypto News chips + search + refresh
   document.querySelectorAll('.fb-chip[data-cnFilter]').forEach(c => c.addEventListener('click', () => {
@@ -7235,7 +7261,7 @@ function bindEvents() {
     cnSearchTimer = setTimeout(() => { CFG.cnSearch = e.target.value.trim(); saveCfg(); renderCryptoNews(); }, 200);
   });
   $('cnSearch').value = CFG.cnSearch;
-  $('cnRefresh').addEventListener('click', () => { _newsLoadedAt.crypto = 0; fetchCryptoNews(); });
+  $('cnRefresh').addEventListener('click', () => fetchCryptoNews(true));
 
   // Restaurez chip-uri news active
   if (CFG.mnFilter !== 'all') {
