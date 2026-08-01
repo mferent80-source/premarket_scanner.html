@@ -316,12 +316,97 @@ footer a { color:var(--accent); text-decoration:none; }
 .pr-regime.rg-off { background:rgba(255,77,77,.10); border-color:rgba(255,77,77,.45); color:var(--bear-s); }
 .pr-regime.rg-off b { color:var(--bear-s); }
 .pr-regime.rg-neu { color:var(--t2); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" v124 — limbajul de componente din macro-dashboard / hub
+   (topbar panou sticky · chip-uri glass · bordură colorată de secțiune)
+   CSS-only: HTML-ul și JS-ul rămân neatinse (data-f + clasa .active
+   funcționează exact ca înainte). Regula casei: fundal SOLID pe sticky,
+   FĂRĂ backdrop-filter (blur-ul strică randarea textului).
+   Pagina e dark-only (n-are toggle light) → fără scope pe temă.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --pr-sec-thr:#6ee7b7;         /* Praguri pump/dump/vol (configurare) */
+  --pr-sec-filter:var(--warn);  /* Bara de filtre                      */
+  --pr-sec-radar:#3b82f6;       /* Radar live — panoul principal       */
+  --pr-sec-bars:#a78bfa;        /* expand: Detalii 5m                  */
+  --pr-sec-stat:#6ee7b7;        /* expand: Statistici scan             */
+  --pr-sec-ins:#10b981;         /* expand: Insider 60z                 */
+  --pr-acc-1:#ef4444;           /* perechea de accent a paginii        */
+  --pr-acc-2:#f97316;           /* (identică cu butonul SCAN .danger)  */
+}
+
+/* ── 1. TOPBAR: panou sticky solid.
+      sticky/top/z-index/border + backdrop-filter:none vin din lib/suite-ui.css
+      (body.suite-page header.suite-cockpit); aici doar fundalul solid, umbra
+      mare și ritmul de padding. Specificitatea (0,2,1) o egalează pe cea din
+      suite-ui, dar <style>-ul paginii e după <link> → câștigă pe ordinea
+      cascadei (inclusiv peste background !important).
+      Rămâne flex-wrap:wrap DELIBERAT: headerul are 15 elemente (h1 + 4 nav +
+      ℹ + 3 status-pills + label/select Auto + SCAN + 3 icon-butoane);
+      nowrap le-ar strivi ilizibil. h1 are deja margin-right:auto → acțiunile
+      stau împinse la dreapta oricum. ── */
+body.suite-page header.suite-cockpit{
+  position:sticky; top:0; z-index:60;
+  flex-wrap:wrap; gap:8px 10px;
+  padding:10px 14px; margin:0 0 12px;
+  border-radius:var(--r);
+  background:rgba(11,15,23,.94)!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+}
+body.suite-page header.suite-cockpit h1{ min-width:0; }
+body.suite-page header.suite-cockpit .status-pill,
+body.suite-page header.suite-cockpit .nav-link,
+body.suite-page header.suite-cockpit button,
+body.suite-page header.suite-cockpit select{ flex:0 0 auto; }
+@media (max-width:760px){
+  body.suite-page header.suite-cockpit{ padding:9px 11px; gap:7px 8px; }
+  body.suite-page header.suite-cockpit h1{ white-space:normal; }
+}
+
+/* ── 2. CHIP-URI de filtru: glass, activ = gradient acc-1→acc-2 al paginii
+      (roșu→portocaliu, aceeași pereche ca butonul SCAN).
+      Clasele și data-f rămân identice — se schimbă doar pielea. ── */
+.fb-chip{
+  background:rgba(255,255,255,.035);
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.fb-chip.active{
+  background:linear-gradient(135deg,var(--pr-acc-1),var(--pr-acc-2));
+  border-color:transparent; color:#fff;
+  box-shadow:0 2px 12px rgba(239,68,68,.32);
+}
+.fb-chip.active:hover{
+  background:linear-gradient(135deg,var(--pr-acc-1),var(--pr-acc-2));
+  border-color:transparent; color:#fff;
+}
+
+/* ── 3. Bordură colorată sus — semnătura secțiunilor de ziar.
+      Doar pe cardurile REALE (fundal + chenar propriu).
+      .stats-strip / .hot-strip sunt grid-uri transparente → NU primesc bordură
+      (ar fi orfană): .stat-tile are deja dunga de 3px pe stânga (::before), iar
+      .hot-card are chenar propriu colorat pe stare. #prRegimeBanner (.pr-regime)
+      e o bandă de avertizare cu chenar comandat de regim → rămâne neatinsă. ── */
+.thr-bar   { border-top:3px solid var(--pr-sec-thr); }
+.filter-bar{ border-top:3px solid var(--pr-sec-filter); }
+.panel-box { border-top:3px solid var(--pr-sec-radar); }
+/* Rândul expandat: cele 3 casete de detaliu primesc fiecare semnătura ei */
+.exp-wrap .exp-box:nth-child(1){ border-top:3px solid var(--pr-sec-bars); }
+.exp-wrap .exp-box:nth-child(2){ border-top:3px solid var(--pr-sec-stat); }
+.exp-wrap .exp-box:nth-child(3){ border-top:3px solid var(--pr-sec-ins); }
+
+/* ── 4. Consecvență de formă — radius unic + umbră pe blocurile mari.
+      .exp-box era singurul la 6px hardcodat. Elementele mici
+      (badges / .al / .act / .ins / butoane) rămân neatinse. ── */
+.exp-box  { border-radius:var(--rs); }
+.panel-box{ box-shadow:0 4px 18px rgba(0,0,0,.28); }
 </style>
 </head>
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v123</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v124</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=pump-radar" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
