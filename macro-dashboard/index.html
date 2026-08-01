@@ -339,8 +339,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .hot-card .hc-when { margin-left:auto; font-family:var(--mono); font-weight:700; font-size:11.5px; color:#fca5a5; white-space:nowrap; }
 .hot-card .hc-mid { font-family:var(--mono); font-size:11.5px; color:var(--t2); margin-top:1px; }
 
-/* (v234) CSS-ul taburilor (.tabs-row/.tab-btn/.tab-content) a fost ELIMINAT —
-   pagina e „ziar" scrollabil, nu mai are taburi. */
+/* (v234) CSS-ul vechilor taburi a fost ELIMINAT — pagina e „ziar" scrollabil, nu mai are taburi. */
 
 /* Filter bar */
 .filter-bar { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:9px 12px; margin-bottom:10px; display:flex; gap:9px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow-sm); }
@@ -3026,9 +3025,12 @@ function renderWatchMacro() {
   if (!el) return;
   const wl = readWatchlist();
   const syms = (Array.isArray(wl) ? wl : []).map(t => typeof t === 'string' ? t : (t && (t.symbol || t.ticker) || '')).filter(Boolean);
+  const secCntWl = $('secCnt-watchlist');
+  if (secCntWl) secCntWl.textContent = `${syms.length} simboluri`;
   if (!syms.length) {
     if (ctxEl) ctxEl.innerHTML = '';
     el.innerHTML = '<div class="setup-err">Watchlist gol. Adaugă simboluri în <b>watchlist-monitor</b> (cheia <code>wl_stocks</code> e partajată).</div>';
+    refreshSecFold('watchlist');
     return;
   }
   const nyt = getNYDateHour();
@@ -3073,6 +3075,7 @@ function renderWatchMacro() {
     <div class="setup-hint">${rateEventToday ? '⚠ Azi sunt date rate-sensitive (CPI/Fed/NFP) → growth &amp; crypto sub presiune dacă yields urcă. ' : ''}Sensibilitatea e euristică pe sector (nu beta real). „EXPUS AZI" = simbol sensibil + eveniment de dobânzi azi.</div>`;
 
   el.innerHTML = `<div class="wm-grid">${cards}</div>`;
+  refreshSecFold('watchlist');
 }
 
 // ============ GENERIC MODAL (drill-down) ============
@@ -3890,9 +3893,12 @@ function renderCalendar() {
   const arr = applyFilters();
   const tbody = $('calBody');
   $('filterCount').textContent = `${arr.length} / ${CAL_DATA.length}`;
+  const secCntCal = $('secCnt-calendar');
+  if (secCntCal) secCntCal.textContent = `${arr.length} evenimente`;
 
   if (!arr.length) {
     tbody.innerHTML = `<tr><td colspan="8" class="empty"><div class="empty-icon">📭</div>Niciun eveniment care să corespundă filtrelor.</td></tr>`;
+    refreshSecFold('calendar');
     return;
   }
 
@@ -3963,6 +3969,7 @@ function renderCalendar() {
       <td>${tvBtn}<button class="action-btn" data-act="expand" title="Detalii (PAS 2)">🔍</button></td>
     </tr>`;
   }).join('');
+  refreshSecFold('calendar');
 }
 
 function quickTickerFor(e) {
@@ -4202,11 +4209,15 @@ function renderMacroNews() {
     return true;
   });
   $('mnCount').textContent = `${arr.length} / ${MACRO_NEWS.length}`;
+  const secCntMn = $('secCnt-macroNews');
+  if (secCntMn) secCntMn.textContent = `${arr.length} știri`;
   if (!arr.length) {
     $('mnList').innerHTML = '<div class="news-empty">📭 Nicio știre care să corespundă filtrelor.</div>';
+    refreshSecFold('macroNews');
     return;
   }
   $('mnList').innerHTML = arr.map(n => renderNewsCard(n, 'macro')).join('');
+  refreshSecFold('macroNews');
 }
 
 function renderCryptoNews() {
@@ -4219,11 +4230,15 @@ function renderCryptoNews() {
     return true;
   });
   $('cnCount').textContent = `${arr.length} / ${CRYPTO_NEWS.length}`;
+  const secCntCn = $('secCnt-cryptoNews');
+  if (secCntCn) secCntCn.textContent = `${arr.length} știri`;
   if (!arr.length) {
     $('cnList').innerHTML = '<div class="news-empty">📭 Nicio știre care să corespundă filtrelor.</div>';
+    refreshSecFold('cryptoNews');
     return;
   }
   $('cnList').innerHTML = arr.map(n => renderNewsCard(n, 'crypto')).join('');
+  refreshSecFold('cryptoNews');
 }
 
 // Acceptă doar http(s) — blochează javascript:/data: dintr-un feed RSS necontrolat (Cointelegraph
@@ -5442,21 +5457,30 @@ function initBriefTab() {
   }
 }
 
-// ============ TABS ============
-// TEMP v234: eliminat definitiv in task 5.
-// Tab bar-ul a disparut din HTML (layout „ziar"), deci functia nu mai e apelata de nicaieri.
-// O pastram doar ca sa nu rupem eventuale apeluri ramase; guard-ul de mai jos o face inofensiva.
-function switchTab(name) {
-  if (!name) return;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + name));
-  // Lazy load news
-  const now = Date.now();
-  if (name === 'macroNews' && now - _newsLoadedAt.macro > NEWS_CACHE_TTL) fetchMacroNews();
-  if (name === 'cryptoNews' && now - _newsLoadedAt.crypto > NEWS_CACHE_TTL) fetchCryptoNews();
-  if (name === 'watchmacro') renderWatchMacro();
-  if (name === 'brief') initBriefTab();
-  if (name === 'opportunities') renderSuggestionsPanel(); // refresh starea watchlist/added la deschidere
+// ============ SECTIUNI ZIAR (v234 — colapsare cu „arata tot") ============
+function initSections() {
+  // Cele 5 secțiuni pornesc colapsate (max-height 340px + fade) — utilizatorul expandează la nevoie.
+  document.querySelectorAll('.sec').forEach(sec => sec.classList.add('collapsed'));
+  document.querySelectorAll('.sec-more').forEach(btn => btn.addEventListener('click', () => {
+    const sec = btn.closest('.sec');
+    const open = sec.classList.toggle('collapsed') === false;
+    btn.textContent = open ? 'restrânge ↑' : 'arată tot ↓';
+    btn.classList.toggle('open', open);
+  }));
+}
+
+// O secțiune cu conținut mai mic decât max-height-ul de colaps (340px) nu are ce „arăta tot" —
+// butonul devine zgomot. scrollHeight reflectă înălțimea totală a conținutului indiferent de
+// overflow:hidden aplicat de .collapsed, deci verificarea e validă oricare ar fi starea curentă.
+function refreshSecFold(name) {
+  const sec = $('sec-' + name);
+  if (!sec) return;
+  const body = sec.querySelector('.sec-body');
+  const btn = sec.querySelector('.sec-more');
+  if (!body || !btn) return;
+  const fits = body.scrollHeight <= 340;
+  btn.style.display = fits ? 'none' : '';
+  if (fits) { sec.classList.remove('collapsed'); btn.classList.remove('open'); }
 }
 
 // ============ SETTINGS MODAL ============
@@ -6393,6 +6417,8 @@ function computeAndStoreSuggestion(event, result, key) {
 // Badge cu numărul de oportunități active pe tab-ul „💡 Oportunități"
 function updateOpBadge(n) {
   const b = $('opBadge');
+  const secCnt = $('secCnt-opportunities');
+  if (secCnt) secCnt.textContent = n > 0 ? `${n} active` : '';
   if (!b) return;
   if (n > 0) { b.textContent = n; b.style.display = 'inline-block'; }
   else b.style.display = 'none';
@@ -6494,6 +6520,7 @@ function renderSuggestionsPanel() {
 
   if (active.length) enrichOpportunityPrices(); // confluență preț live → marchează card ferm/de urmărit
   renderCryptoMomentum(); // sursă crypto independentă (breakout/breakdown cu mișcare) → secțiunea CRYPTO
+  refreshSecFold('opportunities');
 }
 
 // Un card-sector e „crypto" dacă iconul e ₿/🪙 sau majoritatea tickerelor sunt crypto (coin -USD / crypto-stocks)
@@ -6762,6 +6789,7 @@ async function renderCryptoMomentum() {
     host.innerHTML = scanned === 0
       ? `<div class="op-section-empty">⚠ Nu am putut încărca datele crypto (proxy/rețea). Reîncearcă în câteva momente — nu înseamnă că nu există setupuri.</div>`
       : `<div class="op-section-empty">Niciun setup crypto momentum clar acum (verificat ${scanned} coinuri) — niciunul nu rupe maximul/minimul de 20 zile cu mișcare ≥ ${MOMO_MIN_MOVE}%. Piață în range = stai pe mâini.</div>`;
+    refreshSecFold('opportunities');
     return;
   }
   host.innerHTML = opps.map(buildCryptoMomoCard).join('');
@@ -6771,6 +6799,7 @@ async function renderCryptoMomentum() {
       toast(`✓ ${btn.dataset.ticker} adăugat la watchlist`, 'success');
       renderSuggestionsPanel();
     }));
+  refreshSecFold('opportunities');
 }
 
 // Completează Δ% azi pe fiecare ticker + marcaj confluență ✅/⚠ față de teza sectorului
@@ -7033,8 +7062,6 @@ function applyToastBtnUI() {
 
 // ============ EVENT HANDLERS ============
 function bindEvents() {
-  // Tabs
-  document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
   // Oportunități — curăță tot
   $('opClearBtn')?.addEventListener('click', () => {
     const n = Object.values(MD_SUGGESTIONS).filter(s => !s.dismissed).length;
@@ -7342,7 +7369,14 @@ async function init() {
   cleanupSeen(); // sterge entries SEEN >7z
   cleanupSeenActual(); // sterge entries SEEN_ACTUAL >7z
   initBriefTab(); // afișează brief cached dacă există
+  initSections(); // v234: secțiunile pornesc colapsate + toggle „arată tot"
+  // v234: fără taburi, News + Watchlist × Macro sunt vizibile direct pe pagină —
+  // lazy-load-ul care înainte trăia la deschiderea tabului se mută aici. TTL-urile interne
+  // (_newsLoadedAt / NEWS_CACHE_TTL) previn refetch dacă e cache proaspăt.
+  fetchMacroNews();
+  fetchCryptoNews();
   await Promise.all([loadCalendar(), loadStatTiles()]);
+  renderWatchMacro(); // depinde de CAL_DATA (evenimente high-impact azi) — abia populat mai sus
   scheduleAutoRefresh();
   scheduleAlertCheck(); // verificare alerte la fiecare 60s
   renderSuggestionsPanel(); // restore sugestii salvate (din LS) la load
@@ -7380,6 +7414,7 @@ async function init() {
       // fără acest apel, pe un prim load fără cache rămânea „—" toată sesiunea (renderEarningsTile()
       // nu re-randa cockpit-ul).
       renderCockpit();
+      renderWatchMacro(); // earn count-ul din carduri depinde de EARNINGS_BY_DATE, abia venit fresh
     }
   }).catch(() => {});
   // Pre-load AI pe top 5 high-impact events în background (non-blocking)
@@ -7390,21 +7425,11 @@ async function init() {
   }
 }
 
-// Suite badge + fold persistence
+// Suite badge
 if (window.SUITE_VERSION_SHORT) {
   const sb = document.getElementById('suiteBadge');
   if (sb) sb.textContent = window.SUITE_VERSION_SHORT;
 }
-document.querySelectorAll('.macro-fold').forEach(el => {
-  const tag = [...el.classList].find(c => c.startsWith('macro-fold-'));
-  if (!tag) return;
-  const key = 'macro_fold_' + tag;
-  try {
-    const saved = localStorage.getItem(key);
-    if (saved !== null) el.open = saved === '1';
-    el.addEventListener('toggle', () => localStorage.setItem(key, el.open ? '1' : '0'));
-  } catch (e) {}
-});
 
 // Register service worker
 if ('serviceWorker' in navigator) {
