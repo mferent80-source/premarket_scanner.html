@@ -1382,13 +1382,100 @@ body.el-pre-mode #wlSection.el-wl-collapsed h2 .collapse-arrow{transform:rotate(
 .el-desk.quiet-empty .el-heat,
 .el-desk.quiet-empty .el-sector-chips{display:none}
 .el-desk.quiet-empty .el-kbd-hint{opacity:.5}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" v267 — limbajul de componente din macro-dashboard / hub
+   (topbar panou sticky · taburi glass · bordură colorată de secțiune)
+   CSS-only: HTML-ul și JS-ul rămân neatinse (data-el-tab + clasa .active
+   funcționează exact ca înainte). Regula casei: fundal SOLID pe sticky,
+   FĂRĂ backdrop-filter (blur-ul strică randarea textului).
+   Pagina e dark-only (n-are toggle light) → nu e nevoie de scope pe temă.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Accentele de bordură-sus (paleta „ziar": albastru/verde/violet/chihlimbar/teal).
+   --me-acc-* = perechea de accent a paginii (orange/gold BTC, identitatea ME). */
+:root{
+  --me-sec-desk:#3b82f6;      /* Early Long Desk — motorul paginii */
+  --me-sec-wl:#10b981;        /* Watchlist personal                */
+  --me-sec-earn:#a78bfa;      /* Earnings Calendar (tab Context)   */
+  --me-sec-lose:var(--warn);  /* Top Losers (tab Scan)             */
+  --me-sec-vol:#6ee7b7;       /* Volume Heatmap                    */
+  --me-sec-sector:#a78bfa;    /* Sector Heatmap                    */
+  --me-acc-1:var(--crypto-1);
+  --me-acc-2:var(--crypto-2);
+}
+
+/* ── 1. TOPBAR: panou sticky solid (ca .macro-cockpit.topbar-sticky).
+      sticky/top/z-index/border vin din lib/suite-ui.css pe .topbar.suite-cockpit;
+      aici doar fundalul solid, umbra mare și ritmul de padding.
+      Specificitatea (0,3,0) o egalează pe cea din suite-ui, dar <style>-ul paginii
+      e după <link> → câștigă pe ordinea cascadei (inclusiv peste background !important).
+      Rămâne flex-wrap:wrap DELIBERAT: headerul are 14 elemente (h1 + 2 nav + ℹ +
+      proxy input + counter + Sizer + LIVE + Alerte + 📚 + search + auto-scan +
+      🔑 AI + Refresh); nowrap le-ar strivi ilizibil. h1 are deja margin-right:auto,
+      deci acțiunile stau împinse la dreapta oricum. ── */
+body.suite-page .topbar.suite-cockpit{
+  position:sticky; top:0; z-index:60;
+  flex-wrap:wrap; gap:8px 10px;
+  padding:10px 14px; margin:0 0 12px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:rgba(11,15,23,.94)!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.38);
+}
+body.suite-page .topbar.suite-cockpit h1{ min-width:0; }
+body.suite-page .topbar.suite-cockpit .nav-link,
+body.suite-page .topbar.suite-cockpit button,
+body.suite-page .topbar.suite-cockpit .live-indicator,
+body.suite-page .topbar.suite-cockpit .selection-counter,
+body.suite-page .topbar.suite-cockpit .ai-autoscan-wrap{ flex:0 0 auto; }
+@media (max-width:760px){
+  body.suite-page .topbar.suite-cockpit{ padding:9px 11px; gap:7px 8px; }
+  body.suite-page .topbar.suite-cockpit h1{ font-size:14px; }
+}
+
+/* ── 2. TABURI: pill-uri pe fundal glass. Activ = gradient acc-1→acc-2 al paginii
+      (orange/gold BTC — aceeași pereche ca titlul, identitatea Market Events).
+      Clasele și data-el-tab rămân identice — se schimbă doar pielea. ── */
+.el-tabs{
+  background:rgba(18,26,40,.92);
+  border-color:var(--border);
+  border-radius:14px;
+  box-shadow:0 8px 24px rgba(0,0,0,.34);
+}
+.el-tab{ min-height:38px; letter-spacing:-.01em; }
+.el-tab:not(.active):hover{ background:rgba(255,255,255,.05); border-color:var(--border-soft); color:var(--text); }
+.el-tab.active{
+  background:linear-gradient(135deg,var(--me-acc-1),var(--me-acc-2));
+  border-color:transparent; color:#0b0f17;
+  box-shadow:0 2px 12px rgba(247,147,26,.32);
+}
+.el-tab.active .el-tab-count{ background:rgba(0,0,0,.24); color:#0b0f17; }
+
+/* ── 3. Bordură colorată sus — semnătura secțiunilor de ziar.
+      Doar pe cardurile REALE (au fundal + chenar propriu). Wrapperele
+      transparente/de grid (.el-tab-panel, .events-grid, .heat-grid, .sentiment)
+      NU primesc bordură — ar fi orfană (lecția de la alerts). ── */
+.el-desk          { border-top:3px solid var(--me-sec-desk); }
+.section-watchlist{ border-top:3px solid var(--me-sec-wl); }
+.section-earnings { border-top:3px solid var(--me-sec-earn); }
+.section-losers   { border-top:3px solid var(--me-sec-lose); }
+.heat-section.section-vol   { border-top:3px solid var(--me-sec-vol); }
+.heat-section.section-sector{ border-top:3px solid var(--me-sec-sector); }
+
+/* ── 4. Consecvență de formă — radius unic pe blocurile mari.
+      .section-watchlist și .heat-section erau singurele la 10px hardcodat.
+      Elementele mici (chips / pills / butoane / inputs) rămân neatinse. ── */
+.section-watchlist,
+.heat-section{ border-radius:var(--radius); }
+.heat-section{ box-shadow:var(--shadow-sm); }
 </style>
 </head>
 <body class="suite-page">
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v266</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v267</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
