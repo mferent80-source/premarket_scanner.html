@@ -1836,9 +1836,9 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-258 | Mod motor: REV-only / TREND-only / BOTH | ZL DistRev Pine | S | P2 | facut | ideation | 2026-07-30 |
 | I-259 | Shadow ledger DistRev → shadow-book/journal | ZL DistRev + PWA | M | P2 | facut | ideation | 2026-07-30 |
 
-| I-260 | TREND PATH DESK v1 — motor leg + dual PROGRESS (timp/preț) + nucleu dash | NOU: Trend Path Desk Pine | L | P1 | propus | ideation | 2026-08-03 |
-| I-261 | FLIP STATS — densitate, failed flip, clustering, time-to-flip | Trend Path Desk Pine | M | P1 | propus | ideation | 2026-08-03 |
-| I-262 | NEXT base-rates — P(next phase | state) + path board | Trend Path Desk Pine | M | P1 | propus | ideation | 2026-08-03 |
+| I-260 | TREND PATH DESK v1 — motor leg + dual PROGRESS (timp/preț) + nucleu dash | NOU: Trend Path Desk Pine | L | P1 | facut | ideation | 2026-08-03 |
+| I-261 | FLIP STATS — densitate, failed flip, clustering, time-to-flip | Trend Path Desk Pine | M | P1 | facut | ideation | 2026-08-03 |
+| I-262 | NEXT base-rates — P(next phase | state) + path board | Trend Path Desk Pine | M | P1 | facut | ideation | 2026-08-03 |
 | I-263 | VELOCITY + DECAY + EXTENSION rail (faza dinamică a legului) | Trend Path Desk Pine | M | P2 | propus | ideation | 2026-08-03 |
 | I-264 | PLAYBOOK rows — ADD/HOLD/TRIM mapate pe progress×flip×next (fără semnal entry) | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-08-03 |
 | I-265 | PATH COMPARE — HTF path vs LTF path (aliniere, nu multi-TF score) | Trend Path Desk Pine | M | P3 | propus | ideation | 2026-08-03 |
@@ -2000,3 +2000,8 @@ I-260..I-265 propuse (ideation): familie nouă **Trend Path Desk** — independe
 
 ### Status update 2026-08-03 (b)
 I-266..I-271 propuse (ideation) pe **Trend Anatomy Lab** (`deck:"TLAB"`). Temele: pragul motorului ales cu date (I-266), segmentare pe regim (I-267), costuri reale (I-268), sinteză utilizabilă (I-269), refolosire cross-suită (I-270), walk-forward (I-271). Semnalată suprapunerea I-261/I-262 cu ce e deja implementat în TLAB v1.2.
+
+### Status update 2026-08-03 (PATH P1)
+I-260, I-261, I-262 implementate in **Trend Path Desk v1.0** (pine-scripts\TREND-PATH-DESK\Trend_Path_Desk_v1_0.pine).
+Motor: EMA+ATR band pe close confirmat (potrivit semnale 15m-1h). Crypto+Nasdaq presets + RTH stats.
+I-263..I-265 raman propus.
