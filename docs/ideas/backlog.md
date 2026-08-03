@@ -1849,6 +1849,12 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-270 | Biblioteca Pine TraderStats refolosibila in toata suita | NOU: TraderStats Library | M | P2 | propus | ideation | 2026-08-03 |
 | I-271 | Validare IS/OOS pe percentile si conversie (walk-forward) | Trend Anatomy Lab Pine | M | P2 | propus | ideation | 2026-08-03 |
 
+| I-272 | RAMAS PRET - cat mai e pana la miscarea tipica (oglinda PANA LA FLIP pe pret) | Trend Path Desk Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-273 | STOP DIN ISTORIC - MAE tipic pe runuri care chiar au mers (fara semnal entry) | Trend Path Desk Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-274 | O SINGURA LINIE DECIZIE - ADD/HOLD/TRIM/NO-ADD (inlocuieste CE FACI verbos) | Trend Path Desk Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-275 | HTF pe o linie - aliniere path LTF vs HTF (doar dir + faza, zero multi-score) | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-08-03 |
+| I-276 | ASCUNDE ZGOMOTUL - in CHOP: doar verdict, fara NEXT/detalii flip | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-08-03 |
+
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
 - **Solutia:** (A) PB default OFF pe preset Crypto/Scalping, sau (B) PB cere `barsSinceExt` pe directia opusa ≤ N bare (retest dupa stretch). Toggle + tooltip „continuare, nu reverse". Prag N = ipoteza OOS (trader.md).
@@ -2005,3 +2011,50 @@ I-266..I-271 propuse (ideation) pe **Trend Anatomy Lab** (`deck:"TLAB"`). Temele
 I-260, I-261, I-262 implementate in **Trend Path Desk v1.0** (pine-scripts\TREND-PATH-DESK\Trend_Path_Desk_v1_0.pine).
 Motor: EMA+ATR band pe close confirmat (potrivit semnale 15m-1h). Crypto+Nasdaq presets + RTH stats.
 I-263..I-265 raman propus.
+
+## Mini-spec-uri I-272..I-276 · PATH anti-zgomot (2026-08-03)
+
+> Principiu: daca nu schimba ADD/HOLD/TRIM/stop/target, nu intra in dash.
+> Excluse ca zgomot (NU propunem): culori extra, alerte de entry, AI text, multi-simbol path scanner,
+> velocity rail cu 3 metrici separate (I-263 se pastreaza doar daca e 1 cifra "inca produce?"), sparkline.
+
+### I-272 · RAMAS PRET (oglinda flip pe pret) · [S] · P1
+- **Problema/golul:** dash-ul are "PANA LA FLIP" pe timp, dar traderul isi pune TP pe pret. Fara "cat mai e pana la amplitudinea tipica", bara Pret e abstracta (62% din ce?).
+- **Solutia:** un rand (sau sub-linie pe Pret): `RAMAS PRET: med X xATR · 3/4 Y` = max(0, medianAmp - curAmp) si p75 - curAmp, in x volat + optional % pret. Aceeasi limba ca "PANA LA FLIP". Zero metrici noi de motor - doar afisare din array-uri existente.
+- **Impact:** target tipic din istoric, nu din pofta; reduce chase cand ramas pret ~0 dar timp inca "verde".
+- **Riscuri/dependente:** median amp pe n mic minte (acelasi guard thin); pe gap stocks amplitudinea e zgomotoasa - eticheta "tipic, nu TP ferm".
+- **Fisiere atinse:** `pine-scripts\TREND-PATH-DESK\Trend_Path_Desk_v1_0.pine`, README.
+
+### I-273 · STOP DIN ISTORIC (MAE pe runuri bune) · [S] · P1
+- **Problema/golul:** management fara referinta de stop = stop emotional. TLAB are MAE pe runuri bune; PATH nu ofera cifra de "cat retrage un leg care chiar a mers" dupa confirmarea path-ului.
+- **Solutia:** din MFE/MAE de la confirmare (deja in array-uri daca exista; altfel calculeaza la flip): media MAE doar unde MFE >= pragBun (ex 2x ATR). Un rand: `STOP REF: ~0.8x vol (runuri care au mers)`. Nu emite alerta de SL, nu muta ordine - doar referinta.
+- **Impact:** previne stop prea strans (scos din trade-uri bune) sau prea larg (bleed).
+- **Riscuri/dependente:** n pe "runuri bune" poate fi <10 - afiseaza "insuficient"; ipoteza pragBun de validat OOS.
+- **Fisiere atinse:** PATH pine + README.
+
+### I-274 · O SINGURA LINIE DECIZIE · [S] · P1
+- **Problema/golul:** "CE FACI ACUM" e fraza lunga; I-264 playbook multi-regula risca sa devina al 2-lea dashboard. Traderul vrea 1 token: ADD / HOLD / TRIM / NO-ADD.
+- **Solutia:** inlocuieste CE FACI cu **DECIZIE: HOLD** (+ motiv scurt 3-6 cuvinte). Reguli minime, deterministe, pe bare confirmate: NO-ADD daca CHOP sau thin; TRIM daca PREA DEPARTE sau (TARZIU si timp>>pret); ADD doar INCEPUT/JUMATATE + echilibru ok + next continua dominant + nu CHOP; altfel HOLD. Zero webhook entry.
+- **Impact:** citire 1 secunda; disciplineaza add-uri; reduce zgomotul de text.
+- **Riscuri/dependente:** regulile = ipoteze de desk (nu edge); tentația de a le lega de alerte entry = de refuzat.
+- **Fisiere atinse:** PATH pine (inlocuieste citire), README. I-264 devine redundant daca I-274 se face - la implementare marcheaza I-264 facut sau absorbit.
+
+### I-275 · HTF pe o linie (lean I-265) · [S] · P2
+- **Problema/golul:** I-265 multi-TF full e greu si zgomotos. Nevoia reala: "sunt pe pullback in trend mare sau pe counter-path?"
+- **Solutia:** un singur request.security HTF: doar dir + faza (sau P_time bucket). Rand: `HTF: SUS JUMATATE · aliniat` / `contra - PB zone` / `contra - nu adauga`. Fara stats complete pe HTF.
+- **Impact:** context add pe 15m in trend 1h; previne "noul bull" pe LTF care e doar pullback.
+- **Riscuri/dependente:** lag HTF pe close; plafon security; pe crypto HTF 4h vs 1h - input TF.
+- **Fisiere atinse:** PATH pine. La livrare: I-265 poate fi marcat absorbit/facut.
+
+### I-276 · ASCUNDE ZGOMOTUL in CHOP · [S] · P2
+- **Problema/golul:** pe density CHOP, NEXT si detaliile de flip arata procente care arata "precise" dar regimul e random - zgomot periculos.
+- **Solutia:** daca regim = piata agitate: colapseaza NEXT + frecventa/false; ramane TREND + PANA LA FLIP (optional estompat) + DECIZIE NO-ADD + un rand "CHOP - procente ascunse". Toggle "arata mereu detaliile" default OFF in chop.
+- **Impact:** previne decizii pe base-rates invalide in chop; dash mai curat exact cand conteaza.
+- **Riscuri/dependente:** prag density = ipoteza; user poate vrea detaliile - de aia toggle.
+- **Fisiere atinse:** PATH pine, README.
+
+### Nota pe I-263 (velocity rail)
+Nu se repropune ca rail cu 3 metrici. Daca se face: **o singura** cifra "Inca produce? DA/NU" din vel recent vs prima jumatate - altfel e zgomot. Status ramane propus, implementare lean only.
+
+### Status update 2026-08-03 (PATH anti-zgomot)
+I-272..I-276 propuse. Focus: ramas pret, stop ref, o decizie, HTF 1 linie, hide in chop.
