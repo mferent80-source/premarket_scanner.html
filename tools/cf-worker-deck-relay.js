@@ -1,6 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════
 // DECK RELAY CU MEMORIE — Cloudflare Worker pentru familia de deck-uri Pine
-// (JMA, PPST, ZLTOP, LCD etc. — dialectul standard deck/ver/event/ticker/tf).
+// (JMA, PPST, ZLTOP, LCD, TPL etc. — dialectul standard deck/ver/event/ticker/tf).
+// Worker-ul e AGNOSTIC de familie: orice payload cu deck+ticker+tf+event se
+// stocheaza — un deck nou (ex. TPL, 2026-08-03) intra fara nicio modificare aici.
 //
 // CE FACE:
 //   1. PRIMESTE webhook-urile TradingView (POST cu JSON-ul alertei).
