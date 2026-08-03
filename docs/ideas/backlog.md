@@ -1840,8 +1840,8 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-261 | FLIP STATS — densitate, failed flip, clustering, time-to-flip | Trend Path Desk Pine | M | P1 | facut | ideation | 2026-08-03 |
 | I-262 | NEXT base-rates — P(next phase | state) + path board | Trend Path Desk Pine | M | P1 | facut | ideation | 2026-08-03 |
 | I-263 | VELOCITY + DECAY + EXTENSION rail (faza dinamică a legului) | Trend Path Desk Pine | M | P2 | propus | ideation | 2026-08-03 |
-| I-264 | PLAYBOOK rows — ADD/HOLD/TRIM mapate pe progress×flip×next (fără semnal entry) | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-08-03 |
-| I-265 | PATH COMPARE — HTF path vs LTF path (aliniere, nu multi-TF score) | Trend Path Desk Pine | M | P3 | propus | ideation | 2026-08-03 |
+| I-264 | PLAYBOOK rows — ADD/HOLD/TRIM mapate pe progress×flip×next (fără semnal entry) | Trend Path Desk Pine | S | P2 | facut | ideation | 2026-08-03 |
+| I-265 | PATH COMPARE — HTF path vs LTF path (aliniere, nu multi-TF score) | Trend Path Desk Pine | M | P3 | facut | ideation | 2026-08-03 |
 | I-266 | Calibrator de prag ZigZag (3 motoare paralele, 4 cifre fiecare) | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
 | I-267 | Segmentare statistici pe regim de volatilitate la startul runului | Trend Anatomy Lab Pine | M | P1 | propus | ideation | 2026-08-03 |
 | I-268 | Conversie NET de costuri + prag minim de rentabilitate | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
@@ -1849,11 +1849,11 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-270 | Biblioteca Pine TraderStats refolosibila in toata suita | NOU: TraderStats Library | M | P2 | propus | ideation | 2026-08-03 |
 | I-271 | Validare IS/OOS pe percentile si conversie (walk-forward) | Trend Anatomy Lab Pine | M | P2 | propus | ideation | 2026-08-03 |
 
-| I-272 | RAMAS PRET - cat mai e pana la miscarea tipica (oglinda PANA LA FLIP pe pret) | Trend Path Desk Pine | S | P1 | propus | ideation | 2026-08-03 |
-| I-273 | STOP DIN ISTORIC - MAE tipic pe runuri care chiar au mers (fara semnal entry) | Trend Path Desk Pine | S | P1 | propus | ideation | 2026-08-03 |
-| I-274 | O SINGURA LINIE DECIZIE - ADD/HOLD/TRIM/NO-ADD (inlocuieste CE FACI verbos) | Trend Path Desk Pine | S | P1 | propus | ideation | 2026-08-03 |
-| I-275 | HTF pe o linie - aliniere path LTF vs HTF (doar dir + faza, zero multi-score) | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-08-03 |
-| I-276 | ASCUNDE ZGOMOTUL - in CHOP: doar verdict, fara NEXT/detalii flip | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-08-03 |
+| I-280 | RAMAS PRET - cat mai e pana la miscarea tipica (oglinda PANA LA FLIP pe pret) | Trend Path Desk Pine | S | P1 | facut | ideation | 2026-08-03 |
+| I-281 | STOP DIN ISTORIC - MAE tipic pe runuri care chiar au mers (fara semnal entry) | Trend Path Desk Pine | S | P1 | facut | ideation | 2026-08-03 |
+| I-282 | O SINGURA LINIE DECIZIE - ADD/HOLD/TRIM/NO-ADD (inlocuieste CE FACI verbos) | Trend Path Desk Pine | S | P1 | facut | ideation | 2026-08-03 |
+| I-283 | HTF pe o linie - aliniere path LTF vs HTF (doar dir + faza, zero multi-score) | Trend Path Desk Pine | S | P2 | facut | ideation | 2026-08-03 |
+| I-284 | ASCUNDE ZGOMOTUL - in CHOP: doar verdict, fara NEXT/detalii flip | Trend Path Desk Pine | S | P2 | facut | ideation | 2026-08-03 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -2012,41 +2012,41 @@ I-260, I-261, I-262 implementate in **Trend Path Desk v1.0** (pine-scripts\TREND
 Motor: EMA+ATR band pe close confirmat (potrivit semnale 15m-1h). Crypto+Nasdaq presets + RTH stats.
 I-263..I-265 raman propus.
 
-## Mini-spec-uri I-272..I-276 · PATH anti-zgomot (2026-08-03)
+## Mini-spec-uri I-280..I-284 · PATH anti-zgomot (2026-08-03)
 
 > Principiu: daca nu schimba ADD/HOLD/TRIM/stop/target, nu intra in dash.
 > Excluse ca zgomot (NU propunem): culori extra, alerte de entry, AI text, multi-simbol path scanner,
 > velocity rail cu 3 metrici separate (I-263 se pastreaza doar daca e 1 cifra "inca produce?"), sparkline.
 
-### I-272 · RAMAS PRET (oglinda flip pe pret) · [S] · P1
+### I-280 · RAMAS PRET (oglinda flip pe pret) · [S] · P1
 - **Problema/golul:** dash-ul are "PANA LA FLIP" pe timp, dar traderul isi pune TP pe pret. Fara "cat mai e pana la amplitudinea tipica", bara Pret e abstracta (62% din ce?).
 - **Solutia:** un rand (sau sub-linie pe Pret): `RAMAS PRET: med X xATR · 3/4 Y` = max(0, medianAmp - curAmp) si p75 - curAmp, in x volat + optional % pret. Aceeasi limba ca "PANA LA FLIP". Zero metrici noi de motor - doar afisare din array-uri existente.
 - **Impact:** target tipic din istoric, nu din pofta; reduce chase cand ramas pret ~0 dar timp inca "verde".
 - **Riscuri/dependente:** median amp pe n mic minte (acelasi guard thin); pe gap stocks amplitudinea e zgomotoasa - eticheta "tipic, nu TP ferm".
 - **Fisiere atinse:** `pine-scripts\TREND-PATH-DESK\Trend_Path_Desk_v1_0.pine`, README.
 
-### I-273 · STOP DIN ISTORIC (MAE pe runuri bune) · [S] · P1
+### I-281 · STOP DIN ISTORIC (MAE pe runuri bune) · [S] · P1
 - **Problema/golul:** management fara referinta de stop = stop emotional. TLAB are MAE pe runuri bune; PATH nu ofera cifra de "cat retrage un leg care chiar a mers" dupa confirmarea path-ului.
 - **Solutia:** din MFE/MAE de la confirmare (deja in array-uri daca exista; altfel calculeaza la flip): media MAE doar unde MFE >= pragBun (ex 2x ATR). Un rand: `STOP REF: ~0.8x vol (runuri care au mers)`. Nu emite alerta de SL, nu muta ordine - doar referinta.
 - **Impact:** previne stop prea strans (scos din trade-uri bune) sau prea larg (bleed).
 - **Riscuri/dependente:** n pe "runuri bune" poate fi <10 - afiseaza "insuficient"; ipoteza pragBun de validat OOS.
 - **Fisiere atinse:** PATH pine + README.
 
-### I-274 · O SINGURA LINIE DECIZIE · [S] · P1
+### I-282 · O SINGURA LINIE DECIZIE · [S] · P1
 - **Problema/golul:** "CE FACI ACUM" e fraza lunga; I-264 playbook multi-regula risca sa devina al 2-lea dashboard. Traderul vrea 1 token: ADD / HOLD / TRIM / NO-ADD.
 - **Solutia:** inlocuieste CE FACI cu **DECIZIE: HOLD** (+ motiv scurt 3-6 cuvinte). Reguli minime, deterministe, pe bare confirmate: NO-ADD daca CHOP sau thin; TRIM daca PREA DEPARTE sau (TARZIU si timp>>pret); ADD doar INCEPUT/JUMATATE + echilibru ok + next continua dominant + nu CHOP; altfel HOLD. Zero webhook entry.
 - **Impact:** citire 1 secunda; disciplineaza add-uri; reduce zgomotul de text.
 - **Riscuri/dependente:** regulile = ipoteze de desk (nu edge); tentația de a le lega de alerte entry = de refuzat.
 - **Fisiere atinse:** PATH pine (inlocuieste citire), README. I-264 devine redundant daca I-274 se face - la implementare marcheaza I-264 facut sau absorbit.
 
-### I-275 · HTF pe o linie (lean I-265) · [S] · P2
+### I-283 · HTF pe o linie (lean I-265) · [S] · P2
 - **Problema/golul:** I-265 multi-TF full e greu si zgomotos. Nevoia reala: "sunt pe pullback in trend mare sau pe counter-path?"
 - **Solutia:** un singur request.security HTF: doar dir + faza (sau P_time bucket). Rand: `HTF: SUS JUMATATE · aliniat` / `contra - PB zone` / `contra - nu adauga`. Fara stats complete pe HTF.
 - **Impact:** context add pe 15m in trend 1h; previne "noul bull" pe LTF care e doar pullback.
 - **Riscuri/dependente:** lag HTF pe close; plafon security; pe crypto HTF 4h vs 1h - input TF.
 - **Fisiere atinse:** PATH pine. La livrare: I-265 poate fi marcat absorbit/facut.
 
-### I-276 · ASCUNDE ZGOMOTUL in CHOP · [S] · P2
+### I-284 · ASCUNDE ZGOMOTUL in CHOP · [S] · P2
 - **Problema/golul:** pe density CHOP, NEXT si detaliile de flip arata procente care arata "precise" dar regimul e random - zgomot periculos.
 - **Solutia:** daca regim = piata agitate: colapseaza NEXT + frecventa/false; ramane TREND + PANA LA FLIP (optional estompat) + DECIZIE NO-ADD + un rand "CHOP - procente ascunse". Toggle "arata mereu detaliile" default OFF in chop.
 - **Impact:** previne decizii pe base-rates invalide in chop; dash mai curat exact cand conteaza.
@@ -2057,15 +2057,22 @@ I-263..I-265 raman propus.
 Nu se repropune ca rail cu 3 metrici. Daca se face: **o singura** cifra "Inca produce? DA/NU" din vel recent vs prima jumatate - altfel e zgomot. Status ramane propus, implementare lean only.
 
 ### Status update 2026-08-03 (PATH anti-zgomot)
-I-272..I-276 propuse. Focus: ramas pret, stop ref, o decizie, HTF 1 linie, hide in chop.
+I-280..I-284 propuse. Focus: ramas pret, stop ref, o decizie, HTF 1 linie, hide in chop.
 
 ### Status update 2026-08-03 (c)
 **I-266 facut** (TLAB v1.5): calibrator cu doua motoare "lite" in paralel (0.66x / 1.5x fata de pragul activ) — `f_lite()` foloseste faptul ca in Pine fiecare LOC DE APEL isi are propriile variabile `var`, deci un singur bloc de cod deserveste toate pragurile. Arata n · mediana · conversie 2xATR · taxa de confirmare pentru fiecare prag.
 
 Tot in v1.5, din sectiunea "Idei" a livrarii precedente (sursa `tcc-idei`, implementate direct la cererea userului „fa toate"):
-| I-272 | Sparkline pe ultimele N durate (DERIVA arata CA, sparkline arata CUM) | Trend Anatomy Lab Pine | S | P2 | facut | tcc-idei | 2026-08-03 |
-| I-273 | Prag dependent de TIMEFRAME in preset (nu doar de piata) | Trend Anatomy Lab Pine | S | P1 | facut | tcc-idei | 2026-08-03 |
-| I-274 | Port design "bara in coloana ei" pe JMA / PPST / ZLHMA | JMA + PPST + ZLHMA Pine | M | P2 | facut | tcc-idei | 2026-08-03 |
+| I-277 | Sparkline pe ultimele N durate (DERIVA arata CA, sparkline arata CUM) | Trend Anatomy Lab Pine | S | P2 | facut | tcc-idei | 2026-08-03 |
+| I-278 | Prag dependent de TIMEFRAME in preset (nu doar de piata) | Trend Anatomy Lab Pine | S | P1 | facut | tcc-idei | 2026-08-03 |
+| I-279 | Port design "bara in coloana ei" pe JMA / PPST / ZLHMA | JMA + PPST + ZLHMA Pine | M | P2 | facut | tcc-idei | 2026-08-03 |
 
 - **I-273 problema/solutia:** 1.5xATR pe 1h crypto = pullback de ~1.8% => 5822 "trenduri" de 3 bare pe ONDOUSDT.P (constatat pe screenshot real). Pragul devine functie de `timeframe.in_seconds`: Crypto 2.5 / 3.5 / 3.0 / 2.5 pe benzile <=15m / <=1h / <=4h / peste. Valorile sunt IPOTEZE calibrate pentru mediana de 10-20 bare — de validat pe fiecare simbol in randul "jumatate tin sub".
 - **I-274 problema/solutia:** Pine da o singura culoare per celula; bara tinuta langa cifra nu poate fi colorata semantic si nu se aliniaza (font proportional). Toate cele trei deck-uri primesc randul `ETICHETA | BARA | VALOARE`. Bare noi: JMA MATUR/VERIF SLB/VERIF IMN; PPST MATUR/VERIF SLB/VERIF IMN; ZLHMA Varsta trend. Logica de semnale NEATINSA in toate trei; doar `ver` din JSON creste.
+
+### Status update 2026-08-03 (PATH v1.3)
+I-280..I-284 + absorbite I-264/I-265 lean implementate in Trend Path Desk **v1.3**.
+I-263 (velocity rail) lasat propus — neimplementat ca rail (anti-zgomot).
+
+### Status update 2026-08-03 (ID fix)
+PATH anti-zgomot renumerotate **I-280..I-284** (evita coliziune cu TLAB tcc-idei). I-263 velocity ramane propus.
