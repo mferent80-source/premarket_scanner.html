@@ -1842,6 +1842,12 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-263 | VELOCITY + DECAY + EXTENSION rail (faza dinamică a legului) | Trend Path Desk Pine | M | P2 | propus | ideation | 2026-08-03 |
 | I-264 | PLAYBOOK rows — ADD/HOLD/TRIM mapate pe progress×flip×next (fără semnal entry) | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-08-03 |
 | I-265 | PATH COMPARE — HTF path vs LTF path (aliniere, nu multi-TF score) | Trend Path Desk Pine | M | P3 | propus | ideation | 2026-08-03 |
+| I-266 | Calibrator de prag ZigZag (3 motoare paralele, 4 cifre fiecare) | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-267 | Segmentare statistici pe regim de volatilitate la startul runului | Trend Anatomy Lab Pine | M | P1 | propus | ideation | 2026-08-03 |
+| I-268 | Conversie NET de costuri + prag minim de rentabilitate | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-269 | CARD DE CALIBRARE — laboratorul condensat in 4 parametri | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-270 | Biblioteca Pine TraderStats refolosibila in toata suita | NOU: TraderStats Library | M | P2 | propus | ideation | 2026-08-03 |
+| I-271 | Validare IS/OOS pe percentile si conversie (walk-forward) | Trend Anatomy Lab Pine | M | P2 | propus | ideation | 2026-08-03 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -1937,3 +1943,60 @@ I-254..I-259 implementate in ZL Distance Reversal Deck **v1.1.0** + shadow.js v3
 
 ### Status update 2026-08-03
 I-260..I-265 propuse (ideation): familie nouă **Trend Path Desk** — independentă de TLAB. Focus: PROGRESS dual, FLIP stats, NEXT base-rates, velocity/decay, playbook management, compare HTF.
+
+---
+
+> **Familie `deck:"TLAB"` — Trend Anatomy Lab.** Instrument de MĂSURARE, non-scop explicit:
+> zero semnale de intrare, zero verdict 5 stări, zero scor de confluență. Orice idee care
+> adaugă un trigger de intrare încalcă specul și se respinge din oficiu.
+>
+> **Suprapunere semnalată cu I-260..I-265:** TLAB v1.2 a implementat deja matricea de
+> tranziție de regim (≈ I-262 NEXT base-rates) și `P(FLIP <= X bare)` (≈ I-261 time-to-flip).
+> Separarea „Path Desk independent de TLAB" nu mai ține. De decis: ori Path Desk se
+> restrânge la ce e cu adevărat distinct (PROGRESS dual timp/preț, PLAYBOOK de management),
+> ori se renunță la familie și crește TLAB. I-266..I-271 sunt alese să NU dubleze I-260..265.
+
+### I-266 · Calibrator de prag ZigZag · [S] · P1
+- **Problema/golul:** `pragATR = 1.5` e un default ales orb, dar determină tot — n, durata mediană, conversia, cost lag. Nu ai cum să evaluezi dacă e potrivit fără să schimbi manual inputul și să reții cifrele din cap.
+- **Soluția:** trei motoare ZigZag în paralel (prag setat, ×0.66, ×1.5), fiecare producând doar 4 cifre: n, durata mediană, conversia la 2×ATR, cost lag. Bloc CALIBRATOR de 4 rânduri în laborator care le pune alături. Nu alege pragul — arată compromisul.
+- **Impact:** pragul devine decizie cu date. Dacă la 1.0 obții n dublu și cost lag 35% în loc de 54%, ai găsit un parametru mai bun instant.
+- **Riscuri/dependențe:** triplează suprafața de audit a motorului; motoarele secundare strict read-only (fără linii pe chart, fără alerte, fără push în array-urile principale).
+- **Fișiere atinse:** `pine-scripts/TREND-ANATOMY-LAB/Trend_Anatomy_Lab_v1_2.pine`, README.
+
+### I-267 · Segmentare pe regim de volatilitate la startul runului · [M] · P1
+- **Problema/golul:** trader.md §1 cere segmentare pe regim. TLAB agregă acum trenduri născute în compresie cu trenduri născute în expansiune într-o singură mediană care nu descrie niciuna. Pe crypto diferența e mare.
+- **Soluția:** la fiecare start de run se îngheață regimul (percentila ATR pe lookback lung → SQUEEZE / NORMAL / EXPANSION), lângă `atr_start` care deja se stochează. Toggle „segmentează pe regim" care sparge coloanele UP/DN în trei benzi. Nucleul primește un rând: regimul curent + anatomia trendurilor născute în el.
+- **Impact:** răspunde la „trendurile care pornesc din starea în care e piața ACUM țin cât?" — mai relevant decât media pe tot istoricul.
+- **Riscuri/dependențe:** n se împarte la trei → chihlimbarul de eșantion insuficient devine regula pe TF mari. Pragurile de regim sunt ipoteze de validat out-of-sample, nu îmbunătățiri garantate.
+- **Fișiere atinse:** `Trend_Anatomy_Lab_v1_2.pine` (array `aRegSeq` + filtrare în funcțiile statistice), README.
+
+### I-268 · Conversie NET de costuri + prag minim de rentabilitate · [S] · P1
+- **Problema/golul:** trader.md §2 — „PnL fără costuri e ficțiune". Tabelul de conversie raportează brut, ca și cum ai încasa tot. Cu fee dus-întors + slippage + funding pe perpetuals, o parte din runurile numărate ca reușite sunt neutre. Tool-ul se vinde pe onestitate și tace exact aici.
+- **Soluția:** input de cost total (fee % dus-întors + slippage estimat), convertit în ×ATR. Pragul efectiv de conversie devine `k×ATR + cost`, afișat ca a doua citire. Plus rând nou: pragul minim de ATR sub care runul median nu acoperă costurile — dacă depășește amplitudinea mediană, simbolul/TF-ul nu e tranzacționabil mecanic.
+- **Impact:** filtrează simboluri și timeframe-uri întregi înainte să pierzi luni pe ele.
+- **Riscuri/dependențe:** funding-ul nu e disponibil în Pine → input estimat, marcat explicit ca estimare; costul în ×ATR variază cu volatilitatea, deci cifra e orientativă.
+- **Fișiere atinse:** `Trend_Anatomy_Lab_v1_2.pine` (grup input COSTURI + rânduri NET), README.
+
+### I-269 · CARD DE CALIBRARE — laboratorul condensat în 4 parametri · [S] · P1
+- **Problema/golul:** cu laboratorul pornit sunt ~54 de rânduri fără ierarhie (design.md §1: „dacă totul strigă, nimic nu se aude"). Deschizi tool-ul ca să-ți setezi regulile, dar trebuie să recompui mental din 6 secțiuni răspunsul la „ce fac cu simbolul ăsta?".
+- **Soluția:** card de 4 rânduri în capul laboratorului, text mai mare, care traduce tot ce e dedesubt în parametri copiabili: durata tipică de ținut, target realist (cel mai mare k×ATR cu conversie peste 50%), stop minim (MAE-ul runurilor bune rotunjit în sus), verdict de hazard. Restul secțiunilor rămân ca justificare, nu ca răspuns.
+- **Impact:** singura idee care schimbă CUM folosești tool-ul, nu ce calculează. Sesiune de citit tabele → privire de 5 secunde.
+- **Riscuri/dependențe:** un card care rezumă poate ascunde nuanța — trebuie să moștenească chihlimbarul componentei celei mai slabe, nu să afișeze curat peste date proaste.
+- **Fișiere atinse:** `Trend_Anatomy_Lab_v1_2.pine` (bloc CARD + prioritate de culoare), README.
+
+### I-270 · Bibliotecă Pine TraderStats · [M] · P2
+- **Problema/golul:** `f_percAt` / `f_rank` / `f_sorted` / `f_hazard` / `f_phi` / `f_semn` sunt complet generice și n-au nimic de-a face cu TLAB. Aceleași calcule se rescriu în ZLHMA (STATS pe tier), PPST (expectancy), RS PRO, Confluence Scorer — fiecare cu propriul risc de int-division sau index float.
+- **Soluția:** `library("TraderStats")` publicată pe contul TV, cu funcțiile exportate. Deck-urile o importă cu o linie. TLAB = primul consumator; restul migrează pe rând, la următorul bump al fiecăruia, nu big-bang (pattern I-workflow pachete).
+- **Impact:** un bug de percentilă se repară o dată, nu de șapte ori. Scripturile viitoare pornesc cu statistică corectă.
+- **Riscuri/dependențe:** bibliotecile TV sunt PUBLICE — doar matematică generică, zero logică proprietară (e cazul aici); o schimbare afectează toți consumatorii → versionare obligatorie; migrarea celorlalte deck-uri e efort separat, neinclus în M.
+- **Fișiere atinse:** nou `TraderStats_Library_v1_0.pine`; apoi `Trend_Anatomy_Lab_*.pine` ca prim consumator.
+
+### I-271 · Validare IS/OOS pe percentile și conversie · [M] · P2
+- **Problema/golul:** trader.md §1 cere walk-forward. TLAB calculează percentilele pe TOT istoricul și le folosește ca etalon pentru trendul curent — in-sample clasic. Nimeni nu verifică dacă percentilele din prima jumătate descriau corect a doua. DERIVA prinde doar deplasarea medianei, nu degradarea conversiei sau a hazardului.
+- **Soluția:** split la `statOosBars` (pattern validat în ZLHMA v3.1.0): percentile și conversie calculate pe IS, apoi măsurat cât de bine descriu OOS. Două rânduri — eroarea pe durata mediană și pe conversia la 2×ATR — cu warn peste prag.
+- **Impact:** îți spune dacă ai voie să te bazezi pe cifrele tool-ului. Fără asta, tot dashboard-ul e o afirmație netestată.
+- **Riscuri/dependențe:** înjumătățește n pe fiecare segment → pe TF mari devine nefolosibil și trebuie să afișeze onest „insuficient"; suprapunere parțială cu DERIVA, de evitat duplicarea vizuală.
+- **Fișiere atinse:** `Trend_Anatomy_Lab_v1_2.pine` (split IS/OOS + bloc DERIVA extins), README.
+
+### Status update 2026-08-03 (b)
+I-266..I-271 propuse (ideation) pe **Trend Anatomy Lab** (`deck:"TLAB"`). Temele: pragul motorului ales cu date (I-266), segmentare pe regim (I-267), costuri reale (I-268), sinteză utilizabilă (I-269), refolosire cross-suită (I-270), walk-forward (I-271). Semnalată suprapunerea I-261/I-262 cu ce e deja implementat în TLAB v1.2.
