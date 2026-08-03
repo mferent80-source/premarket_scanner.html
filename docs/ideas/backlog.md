@@ -1863,6 +1863,9 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-291 | Varsta pe extrem (toggle) - unifica definitia varstei cu duratele istorice | Trend Anatomy Lab Pine | S | P1 | facut | tcc-idei | 2026-08-03 |
 | I-292 | Pragurile hazardului (plat/panta) ca inputuri, nu constante | Trend Anatomy Lab Pine | S | P2 | facut | tcc-idei | 2026-08-03 |
 | I-293 | Teste de sanitate automate: traiectorie monotona + alternanta + conversie | Trend Anatomy Lab Pine | S | P1 | facut | tcc-idei | 2026-08-03 |
+| I-294 | Diagnostic temporar: percentila varstei noua vs veche (cat umfla lag-ul) | Trend Anatomy Lab Pine | S | P3 | facut | tcc-idei | 2026-08-03 |
+| I-295 | Camp sanity ok/fail in payload-urile JSON (teste trecute pe incremental) | Trend Anatomy Lab Pine | M | P2 | facut | tcc-idei | 2026-08-03 |
+| I-296 | Validare countdown la 3 varste (p25/p50/p75) + profilul erorii | Trend Anatomy Lab Pine | M | P2 | facut | tcc-idei | 2026-08-03 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -2151,3 +2154,10 @@ TLAB **v2.2** = ideile din auditul v2.1, implementate la cererea "REPARA PLUS FA
 - **I-292** hzPlatPP (8) / hzPantaPP (15) ca inputuri in gS — de hzPlatPP atarna si garda countdown-ului.
 - **I-293** sectiune TESTE DE SANITATE pe pagina Validare: traiectorie monotona (ar fi prins 🔴-ul din v2.1), alternanta |nU-nD|<=1 (testul care a validat manual v1.7), conversie descrescatoare 1x->6x (punctul "ramane neverificat" din v1.7 — acum se verifica singur). Banner rosu daca pica oricare.
 Retentie: v1_9 sters (raman v2_0/v2_1/v2_2).
+
+### Status update 2026-08-03 (i)
+TLAB **v2.3** = ideile din livrarea v2.2, implementate la "fa" (I-294..I-296, sursa tcc-idei):
+- **I-294** rand diagnostic "varsta: noua vs veche" (OFF implicit, grup MOTOR) — percentila cu ambele definitii + "lag-ul umfla cu N pp"; se porneste cateva zile, se stinge dupa convingere.
+- **I-295** camp `"sanity":"ok"/"fail"` in AMBELE payload-uri. Consecinta arhitecturala: testele I-293 au trecut de pe full-scan la randare pe INCREMENTAL (O(1) per flip, doar trendul proaspat inchis) — full-scan per flip ar fi fost O(n^2) pe praguri degenerate (5822 trenduri). Conversia ramane pe randare dar NECONDITIONAT de pagina (alertele citesc starea).
+- **I-296** f_validCd parametrizat pe percentila; validare la p25/p50/p75 + profilul erorii (uniform vs concentrat pe batrani — doua concluzii de trading diferite). Verdictul general ramane pe mediana.
+Retentie: v2_0 sters (raman v2_1/v2_2/v2_3).
