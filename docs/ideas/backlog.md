@@ -1842,7 +1842,7 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-263 | VELOCITY + DECAY + EXTENSION rail (faza dinamică a legului) | Trend Path Desk Pine | M | P2 | propus | ideation | 2026-08-03 |
 | I-264 | PLAYBOOK rows — ADD/HOLD/TRIM mapate pe progress×flip×next (fără semnal entry) | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-08-03 |
 | I-265 | PATH COMPARE — HTF path vs LTF path (aliniere, nu multi-TF score) | Trend Path Desk Pine | M | P3 | propus | ideation | 2026-08-03 |
-| I-266 | Calibrator de prag ZigZag (3 motoare paralele, 4 cifre fiecare) | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-266 | Calibrator de prag ZigZag (3 motoare paralele, 4 cifre fiecare) | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
 | I-267 | Segmentare statistici pe regim de volatilitate la startul runului | Trend Anatomy Lab Pine | M | P1 | propus | ideation | 2026-08-03 |
 | I-268 | Conversie NET de costuri + prag minim de rentabilitate | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
 | I-269 | CARD DE CALIBRARE — laboratorul condensat in 4 parametri | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
@@ -2058,3 +2058,14 @@ Nu se repropune ca rail cu 3 metrici. Daca se face: **o singura** cifra "Inca pr
 
 ### Status update 2026-08-03 (PATH anti-zgomot)
 I-272..I-276 propuse. Focus: ramas pret, stop ref, o decizie, HTF 1 linie, hide in chop.
+
+### Status update 2026-08-03 (c)
+**I-266 facut** (TLAB v1.5): calibrator cu doua motoare "lite" in paralel (0.66x / 1.5x fata de pragul activ) — `f_lite()` foloseste faptul ca in Pine fiecare LOC DE APEL isi are propriile variabile `var`, deci un singur bloc de cod deserveste toate pragurile. Arata n · mediana · conversie 2xATR · taxa de confirmare pentru fiecare prag.
+
+Tot in v1.5, din sectiunea "Idei" a livrarii precedente (sursa `tcc-idei`, implementate direct la cererea userului „fa toate"):
+| I-272 | Sparkline pe ultimele N durate (DERIVA arata CA, sparkline arata CUM) | Trend Anatomy Lab Pine | S | P2 | facut | tcc-idei | 2026-08-03 |
+| I-273 | Prag dependent de TIMEFRAME in preset (nu doar de piata) | Trend Anatomy Lab Pine | S | P1 | facut | tcc-idei | 2026-08-03 |
+| I-274 | Port design "bara in coloana ei" pe JMA / PPST / ZLHMA | JMA + PPST + ZLHMA Pine | M | P2 | facut | tcc-idei | 2026-08-03 |
+
+- **I-273 problema/solutia:** 1.5xATR pe 1h crypto = pullback de ~1.8% => 5822 "trenduri" de 3 bare pe ONDOUSDT.P (constatat pe screenshot real). Pragul devine functie de `timeframe.in_seconds`: Crypto 2.5 / 3.5 / 3.0 / 2.5 pe benzile <=15m / <=1h / <=4h / peste. Valorile sunt IPOTEZE calibrate pentru mediana de 10-20 bare — de validat pe fiecare simbol in randul "jumatate tin sub".
+- **I-274 problema/solutia:** Pine da o singura culoare per celula; bara tinuta langa cifra nu poate fi colorata semantic si nu se aliniaza (font proportional). Toate cele trei deck-uri primesc randul `ETICHETA | BARA | VALOARE`. Bare noi: JMA MATUR/VERIF SLB/VERIF IMN; PPST MATUR/VERIF SLB/VERIF IMN; ZLHMA Varsta trend. Logica de semnale NEATINSA in toate trei; doar `ver` din JSON creste.
