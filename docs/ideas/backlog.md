@@ -2138,3 +2138,6 @@ I-285..I-290 propuse — pachet „cat mai are pana la flip" pentru TLAB. Nucleu
 - I-290 a cerut singura modificare reala de motor: `aCurPath` acumuleaza amplitudinea la fiecare bara inchisa a trendului curent, iar la flip se extrag reperele 25/50/75% si bufferul se goleste. Push-ul e plasat DUPA actualizarea extremului si INAINTE de blocul de inregistrare, ca sa nu atinga ordinea „citeste metricile inainte de flip".
 - `p90` se calcula in doua locuri (scara countdown + „cum se termina"); ramas unul singur, `p90Dur`.
 - Tabel 100 -> 120 randuri: pachetul adauga ~8 randuri, iar garda din `f_c` taia silentios peste limita.
+
+### Status update 2026-08-03 (g)
+TLAB **v2.1** = patch de audit peste v2.0 (fixuri, fara numere de idee). 🔴 pe I-290: reperele de traiectorie 25/50/75%% se luau din TOT bufferul, inclusiv barele de lag extrem→confirmare unde amplitudinea e inghetata la cea finala — "cat DRUM mai are" iesea sistematic subestimat (reperul de 75%% ≈ amplitudinea finala ⇒ rest ≈ 0). Fix: reperele se iau doar din primele `dur` bare. Plus 2×🟡: countdown afisa mediana sub nCondMin (acum "-"), si "1 din 4 sub/peste" aparea duplicat (referinta + randul de interval). Limitare documentata, nemodificata: varsta curenta include lag-ul de confirmare, durata istorica nu — mismatch mostenit din v1.2, comun tuturor probabilitatilor conditionate.
