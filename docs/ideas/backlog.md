@@ -1866,6 +1866,9 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-294 | Diagnostic temporar: percentila varstei noua vs veche (cat umfla lag-ul) | Trend Anatomy Lab Pine | S | P3 | facut | tcc-idei | 2026-08-03 |
 | I-295 | Camp sanity ok/fail in payload-urile JSON (teste trecute pe incremental) | Trend Anatomy Lab Pine | M | P2 | facut | tcc-idei | 2026-08-03 |
 | I-296 | Validare countdown la 3 varste (p25/p50/p75) + profilul erorii | Trend Anatomy Lab Pine | M | P2 | facut | tcc-idei | 2026-08-03 |
+| I-297 | Diagnosticul de varsta se stinge singur dupa N flips | Trend Anatomy Lab Pine | S | P3 | facut | tcc-idei | 2026-08-03 |
+| I-298 | Relay: prefix ⚠ pe sanity fail (snippet — sursa worker nu e pe disc) | Automation (CF worker) | S | P2 | facut | tcc-idei | 2026-08-03 |
+| I-299 | Port "Cat mai are" + garda hazard pe ZLHMA TOP (motorul lui, nu ZigZag) | ZLHMA TOP Pine | L | P2 | facut | tcc-idei | 2026-08-03 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -2161,3 +2164,9 @@ TLAB **v2.3** = ideile din livrarea v2.2, implementate la "fa" (I-294..I-296, su
 - **I-295** camp `"sanity":"ok"/"fail"` in AMBELE payload-uri. Consecinta arhitecturala: testele I-293 au trecut de pe full-scan la randare pe INCREMENTAL (O(1) per flip, doar trendul proaspat inchis) — full-scan per flip ar fi fost O(n^2) pe praguri degenerate (5822 trenduri). Conversia ramane pe randare dar NECONDITIONAT de pagina (alertele citesc starea).
 - **I-296** f_validCd parametrizat pe percentila; validare la p25/p50/p75 + profilul erorii (uniform vs concentrat pe batrani — doua concluzii de trading diferite). Verdictul general ramane pe mediana.
 Retentie: v2_0 sters (raman v2_1/v2_2/v2_3).
+
+### Status update 2026-08-03 (j)
+I-297..I-299 facute la "fa idei":
+- **I-297** TLAB **v2.4**: `cmpAutoOff` (30) — diagnosticul de varsta numara flip-urile vazute cu toggle-ul ON si se stinge singur cu memento. Nota: contorul se recalculeaza pe tot istoricul la reload, deci pe simboluri cu istoric lung apare deja oprit — corect.
+- **I-298** snippet gata de lipit in `pine-scripts/TREND-ANATOMY-LAB/TLAB_RELAY_SANITY_SNIPPET.md` — prefix "⚠ SANITY FAIL" pe `sanity==="fail"`, NU filtrare; camp absent != fail (deck-urile vechi nu-l trimit). BLOCAJ cunoscut: sursa workerului CF nu e pe disc (ca la JMA I4/ZLHMA) — aplicarea = lipit manual in dashboardul Cloudflare + test curl din snippet.
+- **I-299** ZLHMA TOP **v3.4.0**: rand "Cat mai are" pe motorul ZLHMA (durate de run pe verdict, fereastra rulanta fcSamples=50, NU ZigZag) — mediana conditionata + interval p25-p75, bara care SE GOLESTE, garda dubla (hazard plat `cdPlatPP`=8pp / `cdMinN`=10). JSON aditiv `remain_med` (null sub garda) — alerta NU se recreeaza (payload dinamic). Doar layout Vertical. ATENTIE: esantion rulant mic => countdown mai adaptiv dar mai zgomotos decat TLAB; cifrele NU se compara intre ele.
