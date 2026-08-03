@@ -1854,12 +1854,12 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-282 | O SINGURA LINIE DECIZIE - ADD/HOLD/TRIM/NO-ADD (inlocuieste CE FACI verbos) | Trend Path Desk Pine | S | P1 | facut | ideation | 2026-08-03 |
 | I-283 | HTF pe o linie - aliniere path LTF vs HTF (doar dir + faza, zero multi-score) | Trend Path Desk Pine | S | P2 | facut | ideation | 2026-08-03 |
 | I-284 | ASCUNDE ZGOMOTUL - in CHOP: doar verdict, fara NEXT/detalii flip | Trend Path Desk Pine | S | P2 | facut | ideation | 2026-08-03 |
-| I-285 | CAT MAI ARE - viata ramasa mediana conditionata, cu bara care se goleste | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
-| I-286 | Banda de incertitudine pe countdown (p25/p50/p75 din viata ramasa) | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
-| I-287 | Garda de onestitate: countdown-ul se stinge cand varsta nu prezice | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
-| I-288 | Bara cu repere de percentila (unde esti pe scara vietii trendului) | Trend Anatomy Lab Pine | S | P2 | propus | ideation | 2026-08-03 |
-| I-289 | Cat de bine a prezis countdown-ul - eroare mediana, out-of-sample | Trend Anatomy Lab Pine | M | P2 | propus | ideation | 2026-08-03 |
-| I-290 | Traiectorie stocata (amp la 25/50/75% din durata) - drum ramas fara bias | Trend Anatomy Lab Pine | M | P3 | propus | ideation | 2026-08-03 |
+| I-285 | CAT MAI ARE - viata ramasa mediana conditionata, cu bara care se goleste | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
+| I-286 | Banda de incertitudine pe countdown (p25/p50/p75 din viata ramasa) | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
+| I-287 | Garda de onestitate: countdown-ul se stinge cand varsta nu prezice | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
+| I-288 | Bara cu repere de percentila (unde esti pe scara vietii trendului) | Trend Anatomy Lab Pine | S | P2 | facut | ideation | 2026-08-03 |
+| I-289 | Cat de bine a prezis countdown-ul - eroare mediana, out-of-sample | Trend Anatomy Lab Pine | M | P2 | facut | ideation | 2026-08-03 |
+| I-290 | Traiectorie stocata (amp la 25/50/75% din durata) - drum ramas fara bias | Trend Anatomy Lab Pine | M | P3 | facut | ideation | 2026-08-03 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -2130,3 +2130,11 @@ PATH anti-zgomot renumerotate **I-280..I-284** (evita coliziune cu TLAB tcc-idei
 
 ### Status update 2026-08-03 (e)
 I-285..I-290 propuse — pachet „cat mai are pana la flip" pentru TLAB. Nucleul e I-285 (viata ramasa mediana conditionata, care inlocuieste `p75 - curDur`) impreuna cu I-287 (garda pe hazard plat): fara garda, countdown-ul contrazice vizual verdictul „VARSTA NU CONTEAZA" pe care tool-ul il calculeaza singur. I-280 (RAMAS PRET) e ruda conceptuala pe Trend Path Desk, dar pe alt motor si alt tool — nu e repropunere. NEPROPUS deliberat: alerta pe countdown („a intrat in zona de flip") — ar fi de facto semnal de iesire, exact non-scopul TLAB.
+
+### Status update 2026-08-03 (f)
+**I-285..I-290 facut** — TLAB **v2.0** (`Trend_Anatomy_Lab_v2_0.pine`), toate sase intr-o singura livrare la cererea „fa tot". Ce merita retinut peste mini-specuri:
+- `f_ramas(s, lo)` nu mai sorteaza nimic: `s` vine deja sortat din blocul de randare, iar filtrarea `d >= lo` PASTREAZA ordinea, deci subsetul e sortat gratis. Intoarce p25/p50/p75 + n intr-un singur pas.
+- Blocul countdown se calculeaza DUPA hazard, nu langa restul citirii — garda I-287 depinde de `hzPlat`, care nu exista mai devreme.
+- I-290 a cerut singura modificare reala de motor: `aCurPath` acumuleaza amplitudinea la fiecare bara inchisa a trendului curent, iar la flip se extrag reperele 25/50/75% si bufferul se goleste. Push-ul e plasat DUPA actualizarea extremului si INAINTE de blocul de inregistrare, ca sa nu atinga ordinea „citeste metricile inainte de flip".
+- `p90` se calcula in doua locuri (scara countdown + „cum se termina"); ramas unul singur, `p90Dur`.
+- Tabel 100 -> 120 randuri: pachetul adauga ~8 randuri, iar garda din `f_c` taia silentios peste limita.
