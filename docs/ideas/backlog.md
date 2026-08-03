@@ -1854,6 +1854,12 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-282 | O SINGURA LINIE DECIZIE - ADD/HOLD/TRIM/NO-ADD (inlocuieste CE FACI verbos) | Trend Path Desk Pine | S | P1 | facut | ideation | 2026-08-03 |
 | I-283 | HTF pe o linie - aliniere path LTF vs HTF (doar dir + faza, zero multi-score) | Trend Path Desk Pine | S | P2 | facut | ideation | 2026-08-03 |
 | I-284 | ASCUNDE ZGOMOTUL - in CHOP: doar verdict, fara NEXT/detalii flip | Trend Path Desk Pine | S | P2 | facut | ideation | 2026-08-03 |
+| I-285 | CAT MAI ARE - viata ramasa mediana conditionata, cu bara care se goleste | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-286 | Banda de incertitudine pe countdown (p25/p50/p75 din viata ramasa) | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-287 | Garda de onestitate: countdown-ul se stinge cand varsta nu prezice | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-288 | Bara cu repere de percentila (unde esti pe scara vietii trendului) | Trend Anatomy Lab Pine | S | P2 | propus | ideation | 2026-08-03 |
+| I-289 | Cat de bine a prezis countdown-ul - eroare mediana, out-of-sample | Trend Anatomy Lab Pine | M | P2 | propus | ideation | 2026-08-03 |
+| I-290 | Traiectorie stocata (amp la 25/50/75% din durata) - drum ramas fara bias | Trend Anatomy Lab Pine | M | P3 | propus | ideation | 2026-08-03 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -2079,3 +2085,48 @@ PATH anti-zgomot renumerotate **I-280..I-284** (evita coliziune cu TLAB tcc-idei
 
 ### Status update 2026-08-03 (d)
 **I-267 + I-271 facut** (TLAB v1.7, ca reparatii de audit). I-267: regimul de volatilitate (percentila ATR pe 200 bare -> COMPRESIE/NORMAL/EXPANSIUNE) se INGHEATA la startul fiecarui trend, langa ATR-ul de normalizare; sectiune cu durata mediana + conversie pe fiecare regim. I-271: walk-forward prima jumatate vs a doua pe durata mediana si conversie 2xATR, cu warn peste prag. Restul reparatiilor din audit (praguri scoase ca inputuri, funding = rata 8h x durata masurata, card cu tinta NETA, garda de decalaj sub 40%, cod mort, tabel 80->100 randuri) nu au numar de idee — sunt fixuri, nu features.
+
+### I-285 · CAT MAI ARE — viata ramasa mediana conditionata · [S] · P1
+- **Problema/golul:** TLAB v1.9 are un singur rand care raspunde la „cat mai are": `de obicei mai tine ~X bare`, calculat ca `p75Dur - curDur` cu `math.max(0, ...)`. Cifra se prabuseste la 0 exact pe trendurile care trec de percentila 75 — adica fix pe cele pe care contezi — si de acolo raporteaza „0 bare" la infinit. E singurul rand important din nucleu fara bara, deci ochiul il si sare.
+- **Solutia:** viata ramasa MEDIANA, conditionata pe varsta atinsa: dintre trendurile istorice care au tinut cel putin `curDur` bare, mediana duratei lor, minus `curDur`. Cifra nu ajunge niciodata la zero si e definita pe toata scara. Bara insotitoare se GOLESTE (`█████···` = cat mai are), raportata la viata ramasa de la startul trendului — invers fata de toate barele existente, care se umplu; asta codifica vizual „ramane", nu „consumat".
+- **Impact:** raspunde direct la decizia „mai tin sau ies", cu o cifra care ramane onesta pe trendurile batrane. Are si un efect contraintuitiv util: pe distributii cu coada grea viata ramasa CRESTE cu varsta, deci bara poate sa nu scada — iar aia e informatia, nu un bug.
+- **Riscuri/dependente:** n conditionat scade cu varsta (la un trend in percentila 95 raman ~5% din cazuri) — se leaga obligatoriu de `nCondMin` si de I-287. Depinde de sortarea existenta `sDurCur`, deja calculata o singura data in blocul de randare.
+- **Fisiere atinse:** `pine-scripts/TREND-ANATOMY-LAB/Trend_Anatomy_Lab_v1_9.pine` (functie noua langa `f_flip`/`f_hazard`, randul `ramas` din sectiunea UNDE ESTI), `TREND_ANATOMY_LAB_README.md`.
+
+### I-286 · Banda de incertitudine pe countdown · [S] · P1
+- **Problema/golul:** orice countdown cu o singura cifra („mai are 6 bare") minte prin precizie falsa. Distributia duratelor pe care TLAB o masoara singur are coada grea — mediana si extremele sunt la ordine de marime distanta, iar sectiunea „CUM SE TERMINA CEL DE ACUM" o spune deja, dar in alt limbaj si in alta parte a dashboardului.
+- **Solutia:** countdown-ul afiseaza p25 / p50 / p75 din viata ramasa conditionata: „mai are ~6 bare · 1 din 4 se termina in 2 · 1 din 4 trece de 19". Pe bara, mediana e un marcaj distinct, iar banda p25-p75 un caracter diferit de umplere — un interval, nu un punct.
+- **Impact:** trece decizia de la „mai are 6 bare" la „intre 2 si 19, cel mai probabil 6" — forma in care se poate seta o iesire pe timp fara sa astepti determinism.
+- **Riscuri/dependente:** trei cifre pe un rand aglomereaza; coloana REFERINTA le poate prelua. Depinde de I-285 (aceeasi functie, alte percentile).
+- **Fisiere atinse:** `Trend_Anatomy_Lab_v1_9.pine` (acelasi rand + coloana REFERINTA), README.
+
+### I-287 · Garda de onestitate: countdown-ul se stinge cand varsta nu prezice · [S] · P1
+- **Problema/golul:** TLAB detecteaza deja `hzPlat` si scrie „VARSTA NU CONTEAZA — un trend batran nu e mai aproape de final". Un countdown afisat cu aceeasi greutate vizuala langa acel verdict il contrazice: bara sugereaza un ceas care merge spre zero, cand datele spun ca nu exista ceas. E exact genul de element care transforma tool-ul in deck de semnale pe usa din dos — non-scopul lui declarat.
+- **Solutia:** countdown-ul are trei stari: ACTIV (hazard cu panta clara si n conditionat peste `nCondMin`), GRI — „varsta nu prezice; cifra e media, nu un ceas" (hazard plat), si „prea putine cazuri" (n conditionat sub prag, tipic pe trendurile foarte batrane). In starile 2 si 3 bara NU se deseneaza deloc, nu se coloreaza doar altfel.
+- **Impact:** previne exact pierderea pe care tool-ul a fost construit sa o previna — iesirea pe un ceas inventat. E si conditia ca I-285/I-286 sa intre fara sa strice contractul tool-ului.
+- **Riscuri/dependente:** pe simboluri cu hazard plat randul va fi gri mai tot timpul; asta e rezultatul corect, nu o lipsa. Refoloseste `hzPlat`, `hzVerdict`, `nCondMin`.
+- **Fisiere atinse:** `Trend_Anatomy_Lab_v1_9.pine` (blocul de randare al sectiunii UNDE ESTI), README (capitolul de capcane).
+
+### I-288 · Bara cu repere de percentila · [S] · P2
+- **Problema/golul:** nucleul are doua bare de progres (timp si pret) raportate la MEDIANA ca 100%, plus doua randuri de rang („a tinut mai mult ca 72%"). Ca sa afli daca esti aproape de zona rara trebuie sa citesti trei randuri si sa le compui in cap; scara nu e vizibila nicaieri.
+- **Solutia:** o bara unica „unde esti pe scara vietii", cu reperele p25/p50/p75/p90 marcate in interiorul ei si pozitia curenta ca un caracter distinct. O singura privire spune si cat ai consumat, si cat de neobisnuit e.
+- **Impact:** comprima trei randuri intr-unul si face vizibila trecerea in zona rara, care azi apare doar ca token text in hero.
+- **Riscuri/dependente:** fontul proportional al tabelelor TV — reperele trebuie sa aiba aceeasi latime ca umplerea, altfel bara se strambă; se testeaza pe ambele teme. Barele existente NU se scot pana nu se confirma ca noua se citeste mai bine.
+- **Fisiere atinse:** `Trend_Anatomy_Lab_v1_9.pine` (`f_bara` — varianta cu repere), README.
+
+### I-289 · Cat de bine a prezis countdown-ul · [M] · P2
+- **Problema/golul:** I-285 introduce o predictie („mai are ~X bare"), iar TLAB nu are niciun mecanism care sa o tina de rau daca greseste sistematic. Percentilele se calculeaza in-sample; walk-forward-ul existent (I-271) verifica durata mediana si conversia, nu acuratetea countdown-ului.
+- **Solutia:** pentru fiecare trend incheiat se retine ce ar fi prezis countdown-ul la jumatatea vietii lui si cat a tinut de fapt; un rand raporteaza eroarea mediana absoluta si bias-ul (subestimeaza / supraestimeaza), calculate pe a doua jumatate a esantionului. Sub un n minim se afiseaza „prea putine cazuri", nu o cifra.
+- **Impact:** singura cale prin care countdown-ul ramane masuratoare si nu devine folclor: iti spune singur cand nu merita crezut pe simbolul asta.
+- **Riscuri/dependente:** cere un array in plus per directie (predictia la jumatate) — de verificat contra limitelor de array; depinde de I-285.
+- **Fisiere atinse:** `Trend_Anatomy_Lab_v1_9.pine` (motorul ZigZag + sectiunea VALIDARE), README.
+
+### I-290 · Traiectorie stocata — drum ramas fara bias de selectie · [M] · P3
+- **Problema/golul:** decizia de onestitate din v1.2 e inca valabila: amplitudinea stocata per trend e cea FINALA, deci nu se poate raspunde la „cat DRUM mai are" fara sa selectezi trendurile care au ajuns mari (bias spre continuare). Oglinda pe pret a countdown-ului lipseste tocmai de-asta — nu din uitare.
+- **Solutia:** motorul retine, pentru fiecare trend, amplitudinea atinsa la 25%, 50% si 75% din durata lui finala (trei floats in plus). Cu ele se raspunde corect: „trendurile care la varsta ta ajunsesera cam pe unde esti tu au mai facut median inca Y x ATR" — conditionare pe amplitudinea-la-momentul-t, nu pe cea finala.
+- **Impact:** completeaza countdown-ul cu moneda care conteaza la fel de mult (pretul), fara sa reintroduca bias-ul respins deliberat in v1.2.
+- **Riscuri/dependente:** durata finala nu se stie decat la inchidere, deci amplitudinile intermediare se retin pe un buffer si se consolideaza la flip — singura parte din pachet care atinge zona critica de cod, unde ordinea „citeste metricile INAINTE de flip" nu e negociabila. De facut DUPA ce I-285..I-287 sunt validate pe date.
+- **Fisiere atinse:** `Trend_Anatomy_Lab_v1_9.pine` (motorul ZigZag, sectiunea UNDE ESTI), README, SPEC.
+
+### Status update 2026-08-03 (e)
+I-285..I-290 propuse — pachet „cat mai are pana la flip" pentru TLAB. Nucleul e I-285 (viata ramasa mediana conditionata, care inlocuieste `p75 - curDur`) impreuna cu I-287 (garda pe hazard plat): fara garda, countdown-ul contrazice vizual verdictul „VARSTA NU CONTEAZA" pe care tool-ul il calculeaza singur. I-280 (RAMAS PRET) e ruda conceptuala pe Trend Path Desk, dar pe alt motor si alt tool — nu e repropunere. NEPROPUS deliberat: alerta pe countdown („a intrat in zona de flip") — ar fi de facto semnal de iesire, exact non-scopul TLAB.
