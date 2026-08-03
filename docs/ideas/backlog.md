@@ -1836,6 +1836,13 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-258 | Mod motor: REV-only / TREND-only / BOTH | ZL DistRev Pine | S | P2 | facut | ideation | 2026-07-30 |
 | I-259 | Shadow ledger DistRev → shadow-book/journal | ZL DistRev + PWA | M | P2 | facut | ideation | 2026-07-30 |
 
+| I-260 | TREND PATH DESK v1 — motor leg + dual PROGRESS (timp/preț) + nucleu dash | NOU: Trend Path Desk Pine | L | P1 | propus | ideation | 2026-08-03 |
+| I-261 | FLIP STATS — densitate, failed flip, clustering, time-to-flip | Trend Path Desk Pine | M | P1 | propus | ideation | 2026-08-03 |
+| I-262 | NEXT base-rates — P(next phase | state) + path board | Trend Path Desk Pine | M | P1 | propus | ideation | 2026-08-03 |
+| I-263 | VELOCITY + DECAY + EXTENSION rail (faza dinamică a legului) | Trend Path Desk Pine | M | P2 | propus | ideation | 2026-08-03 |
+| I-264 | PLAYBOOK rows — ADD/HOLD/TRIM mapate pe progress×flip×next (fără semnal entry) | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-08-03 |
+| I-265 | PATH COMPARE — HTF path vs LTF path (aliniere, nu multi-TF score) | Trend Path Desk Pine | M | P3 | propus | ideation | 2026-08-03 |
+
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
 - **Solutia:** (A) PB default OFF pe preset Crypto/Scalping, sau (B) PB cere `barsSinceExt` pe directia opusa ≤ N bare (retest dupa stretch). Toggle + tooltip „continuare, nu reverse". Prag N = ipoteza OOS (trader.md).
@@ -1880,3 +1887,53 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 
 ### Status update 2026-07-30
 I-254..I-259 implementate in ZL Distance Reversal Deck **v1.1.0** + shadow.js v3 / shadow-book v4 / CACHE tt-v716.
+
+## Mini-spec-uri I-260..I-265 · Trend Path Desk (concept independent, 2026-08-03)
+
+> **Familie nouă `deck:"PATH"`.** Independentă de TLAB / RDS / PPST / ZLHMA. Nu reutilizează zigzag-ul TLAB ca produs;
+> poate folosi un motor leg simplu propriu. Instrument de **navigare pe drumul trendului**, nu de semnal.
+
+### I-260 · TREND PATH DESK v1 — motor + dual PROGRESS + nucleu · [L] · P1
+- **Problema/golul:** tool-urile existente răspund la „e bull/bear?" sau „cât a ținut istoric un leg?" (TLAB, RDS). Lipsește un instrument care să răspundă **unde ești pe drumul curent** în două axe: timp consumat vs preț produs. Un trader profesionist nu întreabă „e trend?"; întreabă „cât din path-ul tipic am mâncat și mai merită să adaug?".
+- **Soluția:** indicator Pine v6 nou `Trend_Path_Desk_v1_0.pine` în `pine-scripts\TREND-PATH-DESK\`. Motor leg: direcție din close vs EMA/ATR band sau SuperTrend-like (alegere implementare: band ATR pe EMA mid — simplu, anti-repaint pe close). La fiecare flip confirmat pe bare închise: push durată, amplitudine ×ATR start, MFE de la confirmare. **PROGRESS dual live:** `P_time = curDur / medianDur_dir` și `P_price = curAmp / medianAmp_dir` (cap la 2.0 afișat). Nucleu dash (~7 rânduri): PATH CURENT · P_TIME · P_PRICE · DIVERGENȚĂ (timp>>preț = „ars timp") · n eșantion · footer bare închise. Zero `strategy()`, zero alerte de intrare în v1 nucleu.
+- **Impact:** decizie ADD/HOLD pe cifre de path, nu pe sentiment; previne chase când P_time>1.2 și P_price deja >1.0.
+- **Riscuri/dependențe:** medianele pe n<30 = zgomot (chihlimbar obligatoriu); pragul de flip e ipoteză de calibrat; nu confunda cu TLAB (altă întrebare: anatomie vs progress pe path).
+- **Fișiere atinse:** `pine-scripts\TREND-PATH-DESK\Trend_Path_Desk_v1_0.pine` (nou), `*_README.md`, `*_SPEC.md`.
+
+### I-261 · FLIP STATS — densitate, failed flip, clustering · [M] · P1
+- **Problema/golul:** „trendul e vechi" nu spune dacă piața e într-un regim de flip des (chop) sau de hold lung. Whipsaw-ul e deja tratat ca cooldown pe semnale (I-033 făcut pe ZLHMA); lipsește **statistica de flip ca proprietate a pieței**, nu ca filtru de alertă.
+- **Soluția:** secțiune FLIP pe PATH: (1) **flip density** = flip-uri / 100 bare (rolling + full sample); (2) **time-to-flip** median/p75 după un leg de vârstă similară; (3) **failed flip** = prețul re-intră în legul anterior în ≤K bare după flip (K input) — rate %; (4) **cluster score** = max flip-uri într-o fereastră W. Verdict: `CHOP-REGIME` / `TREND-REGIME` / `MIXED` din densitate vs mediană istorică (praguri = ipoteze, OOS).
+- **Impact:** pe densitate mare → size down / skip add; pe failed-flip high → nu crede primul flip (continuare mai probabilă). Risc redus pe whipsaw fără a genera semnal.
+- **Riscuri/dependențe:** K și W sunt ipoteze; pe TF foarte mic n explodează; eșantion per bucket de vârstă poate fi sub 10.
+- **Fișiere atinse:** `Trend_Path_Desk_v1_0.pine` (secțiune FLIP + array-uri), README.
+
+### I-262 · NEXT base-rates — P(next | state) + path board · [M] · P1
+- **Problema/golul:** traderul vrea „ce urmează tipic?" — nu predicție ML, ci **base rate condiționat** pe starea curentă (progress bucket × direcție). Azi nimeni în suită nu afișează o matrice „din starea X, în Y% din cazuri a urmat Z".
+- **Soluția:** bucket-uri pe P_time: EARLY (<0.4) / MID (0.4–0.9) / LATE (0.9–1.3) / OVER (>1.3). La fiecare leg încheiat, etichetează starea la 25%/50%/75% din viața legului și ce s-a întâmplat **next**: CONTINUARE (încă ≥H bare), SOFT-FLIP (failed), HARD-FLIP (leg opus confirmat), STALL (durată crește, amp stagnează). Tabel NEXT: pentru starea curentă, P(continuare), P(flip), P(stall) + „path board" text: `NEXT tipic: CONTINUARE 54% | FLIP 28% | STALL 18% (n=41)`. Guard n<15 → „INSUFICIENT".
+- **Impact:** înlocuiește superstiția „e târziu, iese" cu frecvențe măsurate pe simbol+TF; aliniat trader.md (sample size, fără false precision).
+- **Riscuri/dependențe:** bucket-urile sunt ipoteze; look-ahead zero (etichetare doar pe leguri închise); pe regim schimbat (DERIVA-like) base rates pot minți — mențiune în UI.
+- **Fișiere atinse:** `Trend_Path_Desk_v1_0.pine` (matrice NEXT), README.
+
+### I-263 · VELOCITY + DECAY + EXTENSION · [M] · P2
+- **Problema/golul:** progress static (timp/preț) nu arată **dacă path-ul încă produce**. Un leg LATE cu viteză în creștere e alt animal decât LATE cu decay.
+- **Soluția:** pe legul curent: **velocity** = Δamp / Δbare pe ultimele L bare (×ATR); **decay** = velocity acum vs velocity din prima jumătate a legului; **extension** = curAmp / p75_amp (cât de întins vs coada grea). Rail pe dash: `VEL ↑/↓ · DECAY 0.6 · EXT p82`. Comută CITIRE: `LATE+DECAY` → protejează; `EARLY+VEL↑` → path se formează.
+- **Impact:** distinge „matur productiv" de „mort pe picioare"; previne add pe decay și panica pe late cu vel încă bună.
+- **Riscuri/dependențe:** L mic = zgomot; pe gap bars velocity se distorsionează (declarat pe stocks).
+- **Fișiere atinse:** `Trend_Path_Desk_v1_0.pine` (rail VEL/DECAY/EXT), README.
+
+### I-264 · PLAYBOOK rows — ADD/HOLD/TRIM mapate pe stare · [S] · P2
+- **Problema/golul:** dash-urile au „CE FAC?" pe semnale (MM/OF/DistRev — făcute). PATH nu trebuie să spună BUY; trebuie să spună **ce faci cu o poziție deja aliniată cu path-ul**.
+- **Soluția:** un rând PLAYBOOK (nu entry): reguli deterministe pe (P_time, P_price, flip density, next dominant, decay): ex. `ADD ok` doar EARLY/MID + P_price sub p60 + densitate flip sub mediană + next=CONTINUARE dominant; `HOLD` default; `TRIM/protect` pe OVER sau LATE+DECAY sau NEXT=FLIP dominant; `NO ADD — chop` pe CHOP-REGIME. Text ASCII, OFF-able. **Nu emite alertă de intrare.**
+- **Impact:** disciplină pe management (add/trim) fără a transforma tool-ul în signal generator (păstrează non-scopul de măsurare/navigare).
+- **Riscuri/dependențe:** regulile = ipoteze de desk, nu edge; userul le validează pe journal; tentația de a le lega de webhook = de refuzat în v1.
+- **Fișiere atinse:** `Trend_Path_Desk_v1_0.pine` (rând PLAYBOOK), README.
+
+### I-265 · PATH COMPARE HTF vs LTF · [M] · P3
+- **Problema/golul:** multi-TF scoring există peste tot (confluence). Lipsește **comparația de path**: „pe 1H sunt LATE, pe 15m EARLY" = pullback în trend HTF, nu noul bull 15m.
+- **Soluția:** un singur `request.security` pe HTF ales (input): doar P_time_HTF, P_price_HTF, dir_HTF (3 valori, bare confirmate). Rând COMPARE: `LTF MID / HTF LATE · ALIGN` sau `CONTRA · LTF early in HTF late = PB zone`. Nu full stats pe HTF (cost + repaint risk).
+- **Impact:** context de add pe pullback vs chase pe counter-path; o linie, maxim semnal de context.
+- **Riscuri/dependențe:** plafon security calls; HTF pe close confirmă lag; n pe HTF mai mic.
+- **Fișiere atinse:** `Trend_Path_Deck` / `Trend_Path_Desk_v1_*.pine`, README.
+
+### Status update 2026-08-03
+I-260..I-265 propuse (ideation): familie nouă **Trend Path Desk** — independentă de TLAB. Focus: PROGRESS dual, FLIP stats, NEXT base-rates, velocity/decay, playbook management, compare HTF.
