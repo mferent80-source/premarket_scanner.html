@@ -1860,6 +1860,9 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-288 | Bara cu repere de percentila (unde esti pe scara vietii trendului) | Trend Anatomy Lab Pine | S | P2 | facut | ideation | 2026-08-03 |
 | I-289 | Cat de bine a prezis countdown-ul - eroare mediana, out-of-sample | Trend Anatomy Lab Pine | M | P2 | facut | ideation | 2026-08-03 |
 | I-290 | Traiectorie stocata (amp la 25/50/75% din durata) - drum ramas fara bias | Trend Anatomy Lab Pine | M | P3 | facut | ideation | 2026-08-03 |
+| I-291 | Varsta pe extrem (toggle) - unifica definitia varstei cu duratele istorice | Trend Anatomy Lab Pine | S | P1 | facut | tcc-idei | 2026-08-03 |
+| I-292 | Pragurile hazardului (plat/panta) ca inputuri, nu constante | Trend Anatomy Lab Pine | S | P2 | facut | tcc-idei | 2026-08-03 |
+| I-293 | Teste de sanitate automate: traiectorie monotona + alternanta + conversie | Trend Anatomy Lab Pine | S | P1 | facut | tcc-idei | 2026-08-03 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -2141,3 +2144,10 @@ I-285..I-290 propuse — pachet „cat mai are pana la flip" pentru TLAB. Nucleu
 
 ### Status update 2026-08-03 (g)
 TLAB **v2.1** = patch de audit peste v2.0 (fixuri, fara numere de idee). 🔴 pe I-290: reperele de traiectorie 25/50/75%% se luau din TOT bufferul, inclusiv barele de lag extrem→confirmare unde amplitudinea e inghetata la cea finala — "cat DRUM mai are" iesea sistematic subestimat (reperul de 75%% ≈ amplitudinea finala ⇒ rest ≈ 0). Fix: reperele se iau doar din primele `dur` bare. Plus 2×🟡: countdown afisa mediana sub nCondMin (acum "-"), si "1 din 4 sub/peste" aparea duplicat (referinta + randul de interval). Limitare documentata, nemodificata: varsta curenta include lag-ul de confirmare, durata istorica nu — mismatch mostenit din v1.2, comun tuturor probabilitatilor conditionate.
+
+### Status update 2026-08-03 (h)
+TLAB **v2.2** = ideile din auditul v2.1, implementate la cererea "REPARA PLUS FA SI IDEILE" (sursa tcc-idei, I-291..I-293):
+- **I-291 varsta pe extrem** (toggle ON): varsta curenta = zzExtBar - zzStartBar, ca duratele istorice; lag-ul apare separat "(+N de la varf)". Aplicat identic in dashboard SI in alerte (altfel ar raporta percentile diferite pt acelasi trend). Consecinta de citire: pe pullback varsta INGHEATA — corect statistic. OFF = comportamentul v2.1.
+- **I-292** hzPlatPP (8) / hzPantaPP (15) ca inputuri in gS — de hzPlatPP atarna si garda countdown-ului.
+- **I-293** sectiune TESTE DE SANITATE pe pagina Validare: traiectorie monotona (ar fi prins 🔴-ul din v2.1), alternanta |nU-nD|<=1 (testul care a validat manual v1.7), conversie descrescatoare 1x->6x (punctul "ramane neverificat" din v1.7 — acum se verifica singur). Banner rosu daca pica oricare.
+Retentie: v1_9 sters (raman v2_0/v2_1/v2_2).
