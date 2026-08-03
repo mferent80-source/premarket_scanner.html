@@ -1844,8 +1844,8 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-265 | PATH COMPARE — HTF path vs LTF path (aliniere, nu multi-TF score) | Trend Path Desk Pine | M | P3 | propus | ideation | 2026-08-03 |
 | I-266 | Calibrator de prag ZigZag (3 motoare paralele, 4 cifre fiecare) | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
 | I-267 | Segmentare statistici pe regim de volatilitate la startul runului | Trend Anatomy Lab Pine | M | P1 | propus | ideation | 2026-08-03 |
-| I-268 | Conversie NET de costuri + prag minim de rentabilitate | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
-| I-269 | CARD DE CALIBRARE — laboratorul condensat in 4 parametri | Trend Anatomy Lab Pine | S | P1 | propus | ideation | 2026-08-03 |
+| I-268 | Conversie NET de costuri + prag minim de rentabilitate | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
+| I-269 | CARD DE CALIBRARE — laboratorul condensat in 4 parametri | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
 | I-270 | Biblioteca Pine TraderStats refolosibila in toata suita | NOU: TraderStats Library | M | P2 | propus | ideation | 2026-08-03 |
 | I-271 | Validare IS/OOS pe percentile si conversie (walk-forward) | Trend Anatomy Lab Pine | M | P2 | propus | ideation | 2026-08-03 |
 
