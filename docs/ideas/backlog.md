@@ -1869,6 +1869,13 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-297 | Diagnosticul de varsta se stinge singur dupa N flips | Trend Anatomy Lab Pine | S | P3 | facut | tcc-idei | 2026-08-03 |
 | I-298 | Relay: prefix ⚠ pe sanity fail (snippet — sursa worker nu e pe disc) | Automation (CF worker) | S | P2 | facut | tcc-idei | 2026-08-03 |
 | I-299 | Port "Cat mai are" + garda hazard pe ZLHMA TOP (motorul lui, nu ZigZag) | ZLHMA TOP Pine | L | P2 | facut | tcc-idei | 2026-08-03 |
+| I-300 | FLIP LAB v1 — motor statistic pe sursa externa (input.source), nu ZigZag intern | NOU: Flip Lab Pine | L | P1 | propus | ideation | 2026-08-04 |
+| I-301 | Curba de hazard pe bucket-uri de varsta (nu doar verdictul binar) | Flip Lab Pine | M | P1 | propus | ideation | 2026-08-04 |
+| I-302 | Calibrare probabilitati: reliability + Brier + skill score vs base rate | Flip Lab Pine | M | P1 | propus | ideation | 2026-08-04 |
+| I-303 | Comparator de motoare pe 3 surse — automatizeaza VALIDARE_JMA_vs_TPL.md | Flip Lab Pine | M | P2 | propus | ideation | 2026-08-04 |
+| I-304 | EV de a mai sta N bare (P continua x drum ramas - P flip x give-back - costuri) | Flip Lab Pine | M | P2 | propus | ideation | 2026-08-04 |
+| I-305 | Hazard stratificat pe covariate fara look-ahead (regim / pullback / HTF) | Flip Lab Pine | L | P2 | propus | ideation | 2026-08-04 |
+| I-306 | Kaplan-Meier cu cenzurare (runul curent intra in estimare) + rand naiv vs KM | Flip Lab Pine | M | P3 | propus | ideation | 2026-08-04 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -2170,3 +2177,57 @@ I-297..I-299 facute la "fa idei":
 - **I-297** TLAB **v2.4**: `cmpAutoOff` (30) — diagnosticul de varsta numara flip-urile vazute cu toggle-ul ON si se stinge singur cu memento. Nota: contorul se recalculeaza pe tot istoricul la reload, deci pe simboluri cu istoric lung apare deja oprit — corect.
 - **I-298** snippet gata de lipit in `pine-scripts/TREND-ANATOMY-LAB/TLAB_RELAY_SANITY_SNIPPET.md` — prefix "⚠ SANITY FAIL" pe `sanity==="fail"`, NU filtrare; camp absent != fail (deck-urile vechi nu-l trimit). BLOCAJ cunoscut: sursa workerului CF nu e pe disc (ca la JMA I4/ZLHMA) — aplicarea = lipit manual in dashboardul Cloudflare + test curl din snippet.
 - **I-299** ZLHMA TOP **v3.4.0**: rand "Cat mai are" pe motorul ZLHMA (durate de run pe verdict, fereastra rulanta fcSamples=50, NU ZigZag) — mediana conditionata + interval p25-p75, bara care SE GOLESTE, garda dubla (hazard plat `cdPlatPP`=8pp / `cdMinN`=10). JSON aditiv `remain_med` (null sub garda) — alerta NU se recreeaza (payload dinamic). Doar layout Vertical. ATENTIE: esantion rulant mic => countdown mai adaptiv dar mai zgomotos decat TLAB; cifrele NU se compara intre ele.
+
+### I-300 · FLIP LAB v1 — motor statistic pe sursa externa · [L] · P1
+- **Problema/golul:** TLAB masoara trenduri definite de ZigZag ATR intern, dar userul tranzactioneaza flip-uri de deck (JMA 1h len 7, PPST, ZLHMA, TPL, VTOB, ST-LR). Cele doua populatii nu coincid — "durata mediana 14 bare" a ZigZag-ului nu e durata trade-ului real. Porturile per-deck (I-299 pe ZLHMA, remain_med pe TPL) rezolva cate un caz si dubleaza motorul in 6 fisiere; I-270 (biblioteca TraderStats) e propus din 2026-08-03 si nefacut.
+- **Solutia:** script nou care primeste flip-ul prin `input.source` (conectat manual in TV, mecanismul deja folosit la Meta-Confluence cu 8 surse). Flip = schimbare de semn a sursei, citita pe bara inchisa. Peste el ruleaza corpul statistic cunoscut: durate, percentile, viata ramasa conditionata, MFE/MAE de la confirmare, conversie 1x..6x ATR, costuri nete. Populatia masurata = fix semnalele pe care userul intra.
+- **Impact:** cifrele devin parametri de management direct utilizabili pe deck-ul pe care esti, nu prin analogie cu alt motor. Un singur corp statistic pentru toata familia de deck-uri (rezolva I-270 in practica).
+- **Riscuri/dependente:** fiecare deck trebuie sa exporte o serie — `plot(dir, "FLIP LAB source", display=display.none)` aditiv, pattern-ul RS PRO ("RS Entry Signal v1"). Mosteneste repaint-ul gazdei: daca sursa conectata repicteaza, cifrele repicteaza. TV cere ambele indicatoare pe acelasi chart. NOTA de onestitate pentru livrare: statistica e prin definitie pe bara inchisa — "zero lag" se refera la motorul de flip (sursa), nu la statistica.
+- **Fisiere atinse:** NOU `pine-scripts/FLIP-LAB/Flip_Lab_v1_0.pine` + `FLIP_LAB_README.md`; +1 linie export in `JMA-DECK/`, `PPST-DECK/`, `ZLHMA-TOP/`, `TPL-DECK/`, `VTOB-DECK/`, `ST-LR-DECK/`.
+
+### I-301 · Curba de hazard pe bucket-uri de varsta · [M] · P1
+- **Problema/golul:** TLAB reduce toata dependenta de varsta la un verdict in trei cuvinte (`VARSTA NU CONTEAZA` / `TRENDURILE BATRANE CHIAR MOR` / `CU CAT TINE MAI MULT...`), calculat pe panta medie. Curba h(t) = P(flip la t | a ajuns la t) nu e vizibila nicaieri, deci nu se poate sti UNDE anume e periculos. Un profil 8%/8%/9% si unul 5%/6%/22% ies ambele "nu conteaza" pe panta medie.
+- **Solutia:** 5 bucket-uri de varsta cu hazardul empiric in fiecare, ca bare (regula casei: bara in coloana ei), plus marcarea bucket-ului curent. Sub `nCondMin` bucket-ul tace cu "-", nu afiseaza procent inventat.
+- **Impact:** transforma un verdict binar in harta care se foloseste efectiv la trimming.
+- **Riscuri/dependente:** cu ~100 runuri ies ~20/bucket — la limita n>=10 din trader.md. Numarul de bucket-uri ar trebui input, nu constanta. Portabil ulterior in TLAB.
+- **Fisiere atinse:** `Flip_Lab_v1_0.pine`.
+
+### I-302 · Calibrare probabilitati — reliability + Brier + skill vs base rate · [M] · P1
+- **Problema/golul:** golul cel mai serios din toata suita de Pine. TLAB valideaza countdown-ul (I-289/I-296: eroare mediana in bare, walk-forward), dar NICIO probabilitate nu e validata. "Sansa sa se intoarca in 3 bare = 31%" nu e verificata niciodata contra realizarilor. O probabilitate necalibrata e folclor cu zecimale — si apare in payload-ul JSON, deci pleaca mai departe pe relay.
+- **Solutia:** reliability pe bucket-uri (din cazurile in care modelul a zis ~30%, in cate s-a intamplat efectiv?), Brier score, si randul decisiv: **skill score fata de base rate** (1 - BS/BS_base). Daca modelul zice 31% iar rata neconditionata e 30%, skill ~ 0 si scriptul scrie asta explicit. Estimare pe prima jumatate a esantionului, scor pe a doua — walk-forward, pattern I-289/I-296.
+- **Impact:** singurul mecanism prin care restul cifrelor raman masuratori si nu devin decor. Poate invalida sectiuni intregi din dashboard — asta e scopul, nu efectul secundar (feedback_onestitate_valoare).
+- **Riscuri/dependente:** cere stocare pereche (prezis, realizat) per run — de verificat contra limitelor de array. Rezultatul poate fi demoralizant si corect in acelasi timp.
+- **Fisiere atinse:** `Flip_Lab_v1_0.pine` (pagina Validare).
+
+### I-303 · Comparator de motoare pe 3 surse · [M] · P2
+- **Problema/golul:** `pine-scripts/TPL-DECK/VALIDARE_JMA_vs_TPL.md` e o procedura MANUALA de minim o saptamana: pornesti ambele deck-uri pe acelasi webhook, numeri flip-urile, imperechezi la +/-2 bare, calculezi overlap si lead. Rezultatul: ~10-20 flip-uri per deck, "la limita lui n=10" prin propria recunoastere a documentului. Aceleasi cifre se pot calcula pe chart, pe tot istoricul.
+- **Solutia:** 3 `input.source` in paralel prin acelasi motor. Tabel cu, per sursa: numar de flip-uri, durata mediana, conversie la 2x ATR, expectancy neta de costuri; plus overlap % la +/-N bare si cine conduce cu cate bare — exact criteriile de decizie din document.
+- **Impact:** raspunde la "TPL e al doilea ceas care arata aceeasi ora?" pe sute de flip-uri in loc de 10-20.
+- **Riscuri/dependente:** CAPCANA de declarat in dash: istoricul a sugerat setarile, deci comparatia pe istoric e in-sample. NU inlocuieste saptamana out-of-sample din document — o precede, eliminand candidatii clar inferiori inainte sa pierzi o saptamana pe ei. Un deck care iese mai bun in-sample tot trebuie confirmat OOS.
+- **Fisiere atinse:** `Flip_Lab_v1_0.pine` (pagina Comparator), nota in `VALIDARE_JMA_vs_TPL.md`.
+
+### I-304 · EV de a mai sta N bare · [M] · P2
+- **Problema/golul:** ingredientele exista imprastiate — P(continua) in TLAB, drum ramas median (I-290), cat cedezi din varf pana confirmi iesirea, costuri reale — dar nimic nu le compune intr-o cifra. TREND PATH DESK da ADD/HOLD/TRIM din reguli-ipoteza declarate ca atare, nu dintr-un calcul.
+- **Solutia:** un rand `EV sa mai stai N bare` = P(continua) x drum ramas median - P(flip) x give-back mediu - costuri, exprimat in xATR. Cand e negativ, motivul se scrie in clar ("give-back-ul mananca drumul ramas").
+- **Impact:** o cifra comparabila intre simboluri si TF-uri care inglobeaza si costurile — decizia de management, nu descrierea ei.
+- **Riscuri/dependente:** e DE FACTO semnal de iesire, exact non-scopul pe care TLAB il refuza deliberat. Pentru un tool nou e o decizie de scop, de luat constient de user, nu de strecurat. Zero alerte pe el, indiferent de decizie. Depinde de I-302: un EV construit din probabilitati necalibrate e mai periculos decat lipsa lui.
+- **Fisiere atinse:** `Flip_Lab_v1_0.pine`.
+
+### I-305 · Hazard stratificat pe covariate fara look-ahead · [L] · P2
+- **Problema/golul:** toate probabilitatile din suita conditioneaza EXCLUSIV pe durata — decizie deliberata din TLAB v1.2, ca sa evite bias-ul de selectie pe amplitudine finala (capcana 3 din README). Dar la 60% din durata tipica, "la extrem nou" si "in pullback de 4 bare" au hazard diferit si sunt tratate identic.
+- **Solutia:** stratificare pe covariate cunoscute la momentul t, deci fara look-ahead: regim de volatilitate (infrastructura exista — I-267), pullback in curs da/nu, aliniere HTF. NU regresie Cox (nerezonabil in Pine) — bucket-uri discrete cu garda stricta de n.
+- **Impact:** prima imbunatatire de putere predictiva reala, nu de prezentare.
+- **Riscuri/dependente:** n se imparte la 4-6 — pe majoritatea simbolurilor sectiunea va tacea, si asta e rezultatul corect. De facut DOAR dupa I-302: fara calibrare adaugi complexitate nevalidata peste probabilitati nevalidate.
+- **Fisiere atinse:** `Flip_Lab_v1_0.pine`.
+
+### I-306 · Kaplan-Meier cu cenzurare · [M] · P3
+- **Problema/golul:** toate cifrele din suita (TLAB, PATH, ZLHMA, TPL) se calculeaza exclusiv pe runuri INCHISE. Runul curent — care e cel mai lung dintre toate fix in momentul in care intrebi "cat mai are" — e aruncat. E right-censoring ignorat, si biaseaza mediana in jos sistematic.
+- **Solutia:** estimator Kaplan-Meier pentru S(t), cu runul curent inclus ca observatie cenzurata; viata ramasa mediana devine t* cu S(t*)/S(varsta) = 0.5. Plus un rand comparativ "naiv vs KM" care arata cat biasa metoda veche.
+- **Impact:** ONEST: mic pe n mare (pe TLAB cu 100+ runuri diferenta va fi sub o bara), real pe fereastra rulanta — pe ZLHMA I-299 (fcSamples=50) un singur run lung deschis conteaza. P3 fix din motivul asta.
+- **Riscuri/dependente:** rigoare statistica pentru castig mic; de facut ultimul din pachet. Daca randul comparativ arata constant sub 1 bara diferenta, ideea se marcheaza respinsa pe date, nu pe pareri.
+- **Fisiere atinse:** `Flip_Lab_v1_0.pine`.
+
+### Status update 2026-08-04 (a)
+I-300..I-306 propuse — pachet FLIP LAB, tool NOU (`deck:"FLIP"`). Contextul care justifica un tool nou in loc de inca o pagina in TLAB: cererea userului ("pine statistic cu flip / cat mai are / durata medie, zero-lag no-repaint, dash explicit") e ~80% deja acoperita de TLAB v2.4 + TREND PATH DESK v1.5 + I-299, si i s-a spus asta explicit. Golul real e ALTUL: motorul. TLAB isi defineste singur trendul (ZigZag ATR), userul tranzactioneaza flip-uri de deck — deci statistica descrie alta populatie decat trade-urile lui. I-300 muta motorul pe `input.source`, ceea ce face corpul statistic refolosibil peste toata familia (rezolva I-270 in practica, fara Pine library).
+Recomandarea de scop pentru v1: **I-300 + I-301 + I-302**. Fara I-302 (calibrare) ar fi al patrulea dashboard cu cifre nevalidate.
+NEPROPUS deliberat: pooling multi-simbol (ar cere `request.security` pe N simboluri — coliziune directa cu cerinta "zero-lag no-repaint" si cu regula de casa zero `request.security` din TLAB). I-304 (EV) marcat explicit ca decizie de SCOP, nu de features: e de facto semnal de iesire, exact ce TLAB refuza.
