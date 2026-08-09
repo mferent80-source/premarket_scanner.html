@@ -1878,9 +1878,9 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-306 | Kaplan-Meier cu cenzurare (runul curent intra in estimare) + rand naiv vs KM | Flip Lab Pine | M | P3 | propus | ideation | 2026-08-04 |
 | I-307 | Path Efficiency Meter — ER Kaufman + rugozitate path (nu stretch/coil) | NOU: Path Eff Pine | M | P1 | făcut | ideation | 2026-08-09 |
 | I-308 | Serial Dependence Lab — autocorelare lag-1 + persistenta de semn | NOU: Serial Dep Pine | M | P1 | făcut | ideation | 2026-08-09 |
-| I-309 | Jump & Realized-Vol Anatomy — RV vs BV, flag jump vs vol continua | NOU: Jump Vol Pine | M | P1 | propus | ideation | 2026-08-09 |
-| I-310 | Return Shape Desk — skew/kurtosis rolling pe returnuri (nu CBOE:SKEW) | NOU: Shape Desk Pine | S | P2 | propus | ideation | 2026-08-09 |
-| I-311 | Half-Life Mean-Reversion — OU half-life pe z-score distanta | NOU: Half-Life Pine | M | P2 | propus | ideation | 2026-08-09 |
+| I-309 | Jump & Realized-Vol Anatomy — RV vs BV, flag jump vs vol continua | NOU: Jump Vol Pine | M | P1 | făcut | ideation | 2026-08-09 |
+| I-310 | Return Shape Desk — skew/kurtosis rolling pe returnuri (nu CBOE:SKEW) | NOU: Shape Desk Pine | S | P2 | făcut | ideation | 2026-08-09 |
+| I-311 | Half-Life Mean-Reversion — OU half-life pe z-score distanta | NOU: Half-Life Pine | M | P2 | făcut | ideation | 2026-08-09 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -2284,3 +2284,11 @@ User: „ok fa dar sa fie independent nu legat de meta con".
 - **I-307 facut:** `pine-scripts/PATH-EFFICIENCY/Path_Efficiency_Meter_v1_0.pine` + README. Pane, dash 9 pos + 6 size, preset-uri, alerte JSON, **zero connector Meta**, zero `request.security`.
 - **I-308 facut:** `pine-scripts/SERIAL-DEP/Serial_Dependence_Lab_v1_0.pine` + README. Aceeasi conventie; regim MOM/MR/IND; **zero connector Meta**.
 - I-309..I-311 raman `propus` (necerute in livrare).
+
+### Status update 2026-08-09 (c) — I-309..I-311 + suite integrata
+User: „da merg si ele si se integreaza pune".
+- **I-309 facut:** `pine-scripts/JUMP-VOL/Jump_Realized_Vol_v1_0.pine` + README (RV vs BV, JUMP_HEAVY/DIFFUSIVE).
+- **I-310 facut:** `pine-scripts/SHAPE-DESK/Return_Shape_Desk_v1_0.pine` + README (skew/kurt, size context).
+- **I-311 facut:** `pine-scripts/HALF-LIFE/Half_Life_MR_v1_0.pine` + README (AR(1) half-life).
+- **Integrare:** `pine-scripts/STAT-CONTEXT-SUITE/Stat_Context_Suite_v1_0.pine` + `STAT_CONTEXT_SUITE_README.md` — cele 5 lentile + playbook composit (CONTINUATION/FADE/STABILIZE/STAND_DOWN/…) + size hint. **Zero Meta-Confluence** pe tot pachetul.
+- Familia completa I-307..I-311 = `făcut`.
