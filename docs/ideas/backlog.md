@@ -2300,3 +2300,44 @@ User: un singur folder; fond alerta lizibil; audit complex pe logica de trade + 
 - **UI:** hero text alb pe fond saturat GO/FADE/STOP; CE FAC pe acelasi ton; bgcolor pane dupa playbook.
 - **Logic fix:** FADE cere stretch; jump histerezis exit; coreReady cu serReady+HL; playbook hold anti-spam; mute soft alerte; conf %; labels RO; FADE_WAIT.
 - Praguri raman ipoteze OOS.
+
+### Status update 2026-08-09 (e) — sugestii instrument trend/swing/reversal (user)
+User: instrument profesionist trend/directie/swing/reversal + "cat mai are", ceva NOU, rezultate bune/sigure.
+Verificat pe disc: TLAB/PATH/STAT/ZLHMA/SMS/PPST acopera deja trend + maturity + path; AntiFOMO are AVWAP/Chandelier pe langa setup (nu desk dedicat).
+
+**Recomandare principala (deja in backlog, NECONSTRUIT):** I-300..I-306 Flip Lab — e exact "cat mai are" statistic cu hazard/EV/calibrare.
+
+**Excluse din repropunere:** TLAB "cat mai are", PATH legs, STAT playbook, Stretch/Coil, SMS BOS/CHoCH, PPST, Flip Lab (propus).
+
+| I-312 | Multi-Anchored VWAP Desk — Session/Week/Swing AVWAP + σ + residual | NOU: AVWAP Desk Pine | M | P1 | propus | ideation | 2026-08-09 |
+| I-313 | Measured Move Projection Desk — impuls AB + % complete + 1.0/1.272/1.618 | NOU: MM Desk Pine | M | P1 | propus | ideation | 2026-08-09 |
+| I-314 | Session Range Budget — IB + ADR consumat + "room left" in zi/sesiune | NOU: Range Budget Pine | M | P2 | propus | ideation | 2026-08-09 |
+| I-315 | Invalidation Clock — distanta la swing/Chandelier invalidare + stare swing | NOU: Inv Clock Pine | M | P2 | propus | ideation | 2026-08-09 |
+
+#### I-312 · Multi-Anchored VWAP Desk · [M] · P1
+- **Problema/golul:** AVWAP e in AntiFOMO ca feature de setup, nu ca instrument de navigare institutional (session/week/swing + bande σ + "cat pana la mean").
+- **Solutia:** desk dedicat: 2–3 ancore (RTH open / week open / last confirmed swing), AVWAP + ±1/2σ, distanta ATR si z, stare ABOVE/INSIDE/BELOW value, alerte pe reclaim/loss of AVWAP (confirmed). Nu entry generator.
+- **Impact:** bias institutional clar + pullback vs chase; complement la STAT (context) si PATH (path EMA).
+- **Riscuri:** volume 0 pe unele crypto → fallback HLC; ancore gresite pe 24/7.
+- **Fisiere:** `pine-scripts/AVWAP-DESK/` (nou).
+
+#### I-313 · Measured Move Projection Desk · [M] · P1
+- **Problema/golul:** ai maturity pe durata (TLAB) si path pe EMA flip (PATH), dar nu proiectie clasica de impuls (measured move) cu % consum din picioare AB.
+- **Solutia:** detecteaza impuls confirmat (swing structure, nu ZigZag liber), proiecteaza 100/127/161%, arata % complete, bare in impuls vs mediana istorica, stare IMPULSE/PAUSE/EXHAUST. Zero Meta connector.
+- **Impact:** "cat mai are" pe pret (tinte), nu doar pe timp; folosit pe desk-uri futures de decenii.
+- **Riscuri:** pivot definition = ipoteza OOS; nu e semnal de entry.
+- **Fisiere:** `pine-scripts/MM-DESK/` (nou).
+
+#### I-314 · Session Range Budget · [M] · P2
+- **Problema/golul:** ORB exista, dar lipseste "bugetul zilei": cat din range-ul tipic e deja consumat.
+- **Solutia:** Initial Balance (primele N min), ADR/ATR zilei, % range used, room left, extensii IB 1.0/1.5/2.0; stare TREND_DAY vs BALANCED. Preset Crypto (rolling 24h) vs Nasdaq RTH.
+- **Impact:** evita chase dupa ce ziua e "consumata"; size down pe extensie.
+- **Riscuri:** crypto 24/7 — definitie sesiune arbitrara; n mic pe ADR.
+- **Fisiere:** `pine-scripts/RANGE-BUDGET/` (nou).
+
+#### I-315 · Invalidation Clock · [M] · P2
+- **Problema/golul:** Chandelier e in AntiFOMO ca trailing dupa TP; SMS arata structura; lipseste un ceas simplu "cat ATR pana se invalideaza swing-ul".
+- **Solutia:** stare swing HH/HL/LH/LL + linie invalidare (swing opposite sau Chandelier), distanta %, bare de la pivot, alerta pe break confirmat = REVERSAL_THREAT / CONFIRMED. Navigare, nu entry.
+- **Impact:** directie + reversal obiectiv; "cat mai are pana la invalidare".
+- **Riscuri:** overlap partial SMS; tine focus pe distanta/timp, nu pe OB/FVG.
+- **Fisiere:** `pine-scripts/INV-CLOCK/` (nou).
