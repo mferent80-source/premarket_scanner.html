@@ -1876,6 +1876,11 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-304 | EV de a mai sta N bare (P continua x drum ramas - P flip x give-back - costuri) | Flip Lab Pine | M | P2 | propus | ideation | 2026-08-04 |
 | I-305 | Hazard stratificat pe covariate fara look-ahead (regim / pullback / HTF) | Flip Lab Pine | L | P2 | propus | ideation | 2026-08-04 |
 | I-306 | Kaplan-Meier cu cenzurare (runul curent intra in estimare) + rand naiv vs KM | Flip Lab Pine | M | P3 | propus | ideation | 2026-08-04 |
+| I-307 | Path Efficiency Meter — ER Kaufman + rugozitate path (nu stretch/coil) | NOU: Path Eff Pine | M | P1 | propus | ideation | 2026-08-09 |
+| I-308 | Serial Dependence Lab — autocorelare lag-1 + persistenta de semn | NOU: Serial Dep Pine | M | P1 | propus | ideation | 2026-08-09 |
+| I-309 | Jump & Realized-Vol Anatomy — RV vs BV, flag jump vs vol continua | NOU: Jump Vol Pine | M | P1 | propus | ideation | 2026-08-09 |
+| I-310 | Return Shape Desk — skew/kurtosis rolling pe returnuri (nu CBOE:SKEW) | NOU: Shape Desk Pine | S | P2 | propus | ideation | 2026-08-09 |
+| I-311 | Half-Life Mean-Reversion — OU half-life pe z-score distanta | NOU: Half-Life Pine | M | P2 | propus | ideation | 2026-08-09 |
 
 ### I-254 · PB cere stretch recent (sau OFF by default) · [S] · P1
 - **Problema/golul:** audit v1.0.3 Y3 — PB trage pe orice crossover in banda `pbZone` cand bias e aliniat, **fara** stretch anterior. Pe chop langa MA genereaza zgomot si confunda HERO cu FADE/SNAP (mean-reversion).
@@ -2231,3 +2236,45 @@ I-297..I-299 facute la "fa idei":
 I-300..I-306 propuse — pachet FLIP LAB, tool NOU (`deck:"FLIP"`). Contextul care justifica un tool nou in loc de inca o pagina in TLAB: cererea userului ("pine statistic cu flip / cat mai are / durata medie, zero-lag no-repaint, dash explicit") e ~80% deja acoperita de TLAB v2.4 + TREND PATH DESK v1.5 + I-299, si i s-a spus asta explicit. Golul real e ALTUL: motorul. TLAB isi defineste singur trendul (ZigZag ATR), userul tranzactioneaza flip-uri de deck — deci statistica descrie alta populatie decat trade-urile lui. I-300 muta motorul pe `input.source`, ceea ce face corpul statistic refolosibil peste toata familia (rezolva I-270 in practica, fara Pine library).
 Recomandarea de scop pentru v1: **I-300 + I-301 + I-302**. Fara I-302 (calibrare) ar fi al patrulea dashboard cu cifre nevalidate.
 NEPROPUS deliberat: pooling multi-simbol (ar cere `request.security` pe N simboluri — coliziune directa cu cerinta "zero-lag no-repaint" si cu regula de casa zero `request.security` din TLAB). I-304 (EV) marcat explicit ca decizie de SCOP, nu de features: e de facto semnal de iesire, exact ce TLAB refuza.
+
+### I-307 · Path Efficiency Meter — ER Kaufman + rugozitate · [M] · P1
+- **Problema/golul:** suita masoara *cat de departe* e pretul de MA (Stretch Osc I-037 facut) si *cat de strans* e range-ul (Coil I-040 facut), dar nu *cat de curat* e drumul: un +2 ATR pe o linie dreapta e trend tradabil; acelasi +2 ATR pe un path dintat e chop costisitor. Verificat pe inventar Pine: `ta.ema/sma/atr/rsi` domina; zero Efficiency Ratio / path roughness dedicat (grep hurst/entropy/efficiency pe `pine-scripts` — doar SKEW macro CBOE in AntiFOMO).
+- **Solutia:** indicator nou: ER = |close−close[n]| / sum(|Δclose|) pe fereastra N; rugozitate = 1−ER (sau path length / chord). Dashboard: ER curent + percentila pe 200b, verdict EFFICIENT / MIXED / NOISY, connector −2..+2 pentru Meta-Confluence. Plot ER ascuns by default. Zero `request.security`.
+- **Impact:** gate de regim complementary la ADX/Coil: blocheaza chase-ul pe „trend" care e de fapt zgomot cu drift mic net. Reduce whipsaw pe ZLHMA/JMA cand slope exista dar path-ul e haotic.
+- **Riscuri/dependente:** ER e lagging pe N mare; pe gap-uri ER se umfla (declarat pe stocks). Pragurile EFFICIENT/NOISY = ipoteze OOS (trader.md §1). Nu e semnal de directie — doar calitatea path-ului.
+- **Fisiere atinse:** NOU `pine-scripts/PATH-EFFICIENCY/Path_Efficiency_Meter_v1_0.pine` + README; optional slot Meta-Confluence.
+
+### I-308 · Serial Dependence Lab — autocorelare + semn · [M] · P1
+- **Problema/golul:** decizia „continua vs fade" e azi pe confluence de MA/structure, nu pe dependenta seriala masurata. Daca lag-1 pe returnuri e pozitiv si persistent, chase/continuation are baza statistica; daca e negativ, fade/mean-reversion e regimul. Markov-lab din PWA e pe stari de scor, nu pe seria de pret a chart-ului. Niciun Pine din inventar nu expune rolling autocorr / sign-persistence ca verdict.
+- **Solutia:** tool nou pe close (sau `input.source`): ρ₁ pe fereastra W, p-hat semne consecutive (runs), streak curent vs p50/p75 istoric. Verdict: MOMENTUM_REGIME / INDEPENDENT / MEANREV_REGIME + n minim (tacere daca n<W). Connector pentru deck-uri. Dash ~6 randuri (ρ, streak, verdict, sample age).
+- **Impact:** alege playbook-ul (PPST chase vs ZL Distance reverse) pe evidenta per-simbol/TF, nu pe instinct. Previne aplicarea stretch-fade pe regim de momentum serial.
+- **Riscuri/dependente:** ρ pe ferestre scurte e zgomot; regimul se schimba — afiseaza varsta regimului (bare de la flip verdict). Fara p-values clasice (limitare Pine); pragurile pe |ρ| = ipoteze. Zero semnal entry — doar regim.
+- **Fisiere atinse:** NOU `pine-scripts/SERIAL-DEP/Serial_Dependence_Lab_v1_0.pine` + README.
+
+### I-309 · Jump & Realized-Vol Anatomy — RV vs BV · [M] · P1
+- **Problema/golul:** VolRegime / ATR / Coil trateaza volatilitatea ca o singura dimensiune. Un move mare de gap/news (jump) e alt risc decat vol continua de trend. pe stocks: earnings/gap sar peste SL (trader.md §2); pe crypto: wick-uri de lichidare. Nu exista in Pine-suite descompunere realized-variance vs continuous/jump proxy.
+- **Solutia:** pe bare: r_t = log(c/c[1]); RV = sum r² pe N; BV proxy = sum |r_t|·|r_{t-1}| (bipower-style); jump ratio = max(0, RV−c·BV)/RV. Dashboard: RV, BV, jump%, flag JUMP_HEAVY / DIFFUSIVE, plus „range expansion e jump?" pe bara curenta ( |r| vs p95 |r|). Alerta optionala pe jump flag (OFF default).
+- **Impact:** dupa jump → nu tradezi ca pe breakout de trend (astepti re-stabilizare); in regim diffusive → ATR trailing are sens. Separare de Coil (care e percentila range, nu natura socului).
+- **Riscuri/dependente:** BV pe TF mici e zgomotos; pe daily n mic. Constanta c e calibrare (ipoteza). Nu e predictor de directie. Pe sesiuni cu gap overnight, jump% va fi structural mai mare pe stocks — eticheta pe preset Nasdaq.
+- **Fisiere atinse:** NOU `pine-scripts/JUMP-VOL/Jump_Realized_Vol_v1_0.pine` + README.
+
+### I-310 · Return Shape Desk — skew/kurtosis rolling · [S] · P2
+- **Problema/golul:** AntiFOMO consuma CBOE:SKEW (indice de tail pe SPX options) ca factor macro — nu descrie distributia returnurilor *simbolului de pe chart*. Fat tails + skew negativ pe un long = riscul de left-tail e subestimat de expectancy pe medie.
+- **Solutia:** pe r_t: rolling mean/std/skew/excess kurtosis; percentila |r| curent in distributia ferestrei; verdict SYMMETRIC / LEFT_TAIL / RIGHT_TAIL / FAT. Dash dens (5–6 randuri). Fara request.security. Poate alimenta sizing mental („azi left-tail → taie size"), nu entry.
+- **Impact:** context de risc pe simbol inainte de chase; completeaza STATS expectancy (care e pe setup, nu pe forma distributiei).
+- **Riscuri/dependente:** skew/kurt pe W<60 e instabil — garda n; excess kurtosis pe preturi pe tick-uri rare e zgomot. P2: utilitate de context, nu gate principal.
+- **Fisiere atinse:** NOU `pine-scripts/SHAPE-DESK/Return_Shape_Desk_v1_0.pine` + README.
+
+### I-311 · Half-Life Mean-Reversion — OU pe z-score · [M] · P2
+- **Problema/golul:** Stretch Osc spune *cat* de departe e pretul; Flip/TLAB spun *cat mai tine trendul*. Lipseste: *cat de repede* se inchide stretch-ul in regim de mean-reversion (half-life). Fara asta, fade pe stretch „3 ATR" poate tine 3 bare sau 40 — sizing/timeout gresit.
+- **Solutia:** z = (close − MA) / σ; regresie AR(1) pe z pe fereastra W → φ; half-life = ln(2)/ln(1/|φ|) daca φ∈(0,1). Dashboard: HL in bare, φ, R², verdict FAST_MR / SLOW_MR / NOT_MR (φ≥1 sau R² mic → tace). Compara HL cu „bars in stretch" curent. Connector optional.
+- **Impact:** timeout/TP pe fade aliniat la viteza reala de mean-reversion a simbolului; evita fade pe serii care nu revin (random walk / momentum).
+- **Riscuri/dependente:** AR(1) pe z e aproximare OU; pe trend puternic NOT_MR e raspunsul corect (nu forta fade). Depinde conceptual de existenta Stretch (I-037) dar e tool separat. Praguri φ/R² = ipoteze OOS.
+- **Fisiere atinse:** NOU `pine-scripts/HALF-LIFE/Half_Life_MR_v1_0.pine` + README.
+
+### Status update 2026-08-09 (statistici Pine noi)
+I-307..I-311 propuse — cinci tool-uri NOU pe familii statistice **absente** din inventarul `pine-scripts` (verificat: EMA/SMA/ATR/RSI/confluence/SMC/hazard-TLAB/Flip Lab propus; zero ER/autocorr/RV-BV/return-shape/OU half-life ca indicator dedicat). Cererea: „statistici pentru un Pine diferit de tot ce avem".
+Acoperire: backlog prin I-306; inventar nume + frecventa ta.*; trader.md + design.md; labs TLAB/PATH/JMA/PPST/ZLHMA/VTOB.
+**Excluse (nu repropuse):** Flip Lab I-300..306 (propus), Stretch/Coil/Participation/Slope (I-037..040 facut), STATS expectancy pe semnale (deja in deck-uri), CBOE SKEW macro (AntiFOMO).
+**NEPROPUS deliberat:** Hurst formal (esantion + lag multiplu greu in Pine fara overfitting), cointegration multi-simbol (request.security), entropy Shannon pe bins (fragil pe n mic).
+Recomandare start: **I-307 + I-308** (regim de calitate path + regim continuation/fade) — se lipesc pe Meta-Confluence si pe alegerea deck-ului; I-309 dupa daca vrei context de soc/jump.
