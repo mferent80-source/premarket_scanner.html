@@ -2292,3 +2292,11 @@ User: „da merg si ele si se integreaza pune".
 - **I-311 facut:** `pine-scripts/HALF-LIFE/Half_Life_MR_v1_0.pine` + README (AR(1) half-life).
 - **Integrare:** `pine-scripts/STAT-CONTEXT-SUITE/Stat_Context_Suite_v1_0.pine` + `STAT_CONTEXT_SUITE_README.md` — cele 5 lentile + playbook composit (CONTINUATION/FADE/STABILIZE/STAND_DOWN/…) + size hint. **Zero Meta-Confluence** pe tot pachetul.
 - Familia completa I-307..I-311 = `făcut`.
+
+### Status update 2026-08-09 (d) — un folder + audit v1.1
+User: un singur folder; fond alerta lizibil; audit complex pe logica de trade + imbunatatiri.
+- **Folder unic:** `pine-scripts/STAT-CONTEXT-SUITE/` (lentile mutata in `lenses/`; foldere top-level PATH/SERIAL/JUMP/SHAPE/HALF sterse).
+- **Produs:** `Stat_Context_Suite_v1_1.pine` + README + `AUDIT_v1_1.md`.
+- **UI:** hero text alb pe fond saturat GO/FADE/STOP; CE FAC pe acelasi ton; bgcolor pane dupa playbook.
+- **Logic fix:** FADE cere stretch; jump histerezis exit; coreReady cu serReady+HL; playbook hold anti-spam; mute soft alerte; conf %; labels RO; FADE_WAIT.
+- Praguri raman ipoteze OOS.
