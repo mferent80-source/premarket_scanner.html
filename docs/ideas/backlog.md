@@ -1872,7 +1872,7 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-300 | FLIP LAB v1 â€” motor statistic pe sursa externa (input.source), nu ZigZag intern | NOU: Flip Lab Pine | L | P1 | facut | ideation | 2026-08-04 |
 | I-301 | Curba de hazard pe bucket-uri de varsta (nu doar verdictul binar) | Flip Lab Pine | M | P1 | facut | ideation | 2026-08-04 |
 | I-302 | Calibrare probabilitati: reliability + Brier + skill score vs base rate | Flip Lab Pine | M | P1 | facut | ideation | 2026-08-04 |
-| I-303 | Comparator de motoare pe 3 surse Ă˘â‚¬â€ť automatizeaza VALIDARE_JMA_vs_TPL.md | Flip Lab Pine | M | P2 | propus | ideation | 2026-08-04 |
+| I-303 | Comparator de motoare pe 3 surse Ă˘â‚¬â€ť automatizeaza VALIDARE_JMA_vs_TPL.md | Flip Lab Pine | M | P2 | facut | ideation | 2026-08-04 |
 | I-304 | EV de a mai sta N bare (P continua x drum ramas - P flip x give-back - costuri) | Flip Lab Pine | M | P2 | facut | ideation | 2026-08-04 |
 | I-305 | Hazard stratificat pe covariate fara look-ahead (regim / pullback / HTF) | Flip Lab Pine | L | P2 | propus | ideation | 2026-08-04 |
 | I-306 | Kaplan-Meier cu cenzurare (runul curent intra in estimare) + rand naiv vs KM | Flip Lab Pine | M | P3 | propus | ideation | 2026-08-04 |
@@ -2375,3 +2375,7 @@ User: â€žFA SI FA SI LINIILE SA SE VADA CA ACUM NU E DECAT UN DASH".
 - **v1.1:** pine-scripts/FLIP-LAB/Flip_Lab_v1_1.pine â€” overlay=true; linii ENTRY/MFE/MAE/TGT/EMA default ON; markere flip; fundal directie; dash pastrat.
 - **I-316 facut:** export `FLIP LAB source` pe JMA v2.6, PPST v1.8, ZLHMA v3.4.0, PATH v1.7.
 - README actualizat.
+### Status update 2026-08-09 (i) — Flip Lab v1.2 I-303 Comparator
+User: „OK GATA FA URMATORUL" (dupa v1.1 linii).
+- **I-303 facut:** Flip_Lab_v1_2.pine — 3 motoare A/B/C, pagina Comparator: n flips, dur med, conv 2xATR, exp net, overlap +/-N, lead, winner; capcana IN-SAMPLE pe dash.
+- README actualizat. Urmeaza I-306 apoi I-305.
