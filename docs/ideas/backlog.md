@@ -1876,8 +1876,8 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-304 | EV de a mai sta N bare (P continua x drum ramas - P flip x give-back - costuri) | Flip Lab Pine | M | P2 | propus | ideation | 2026-08-04 |
 | I-305 | Hazard stratificat pe covariate fara look-ahead (regim / pullback / HTF) | Flip Lab Pine | L | P2 | propus | ideation | 2026-08-04 |
 | I-306 | Kaplan-Meier cu cenzurare (runul curent intra in estimare) + rand naiv vs KM | Flip Lab Pine | M | P3 | propus | ideation | 2026-08-04 |
-| I-307 | Path Efficiency Meter — ER Kaufman + rugozitate path (nu stretch/coil) | NOU: Path Eff Pine | M | P1 | propus | ideation | 2026-08-09 |
-| I-308 | Serial Dependence Lab — autocorelare lag-1 + persistenta de semn | NOU: Serial Dep Pine | M | P1 | propus | ideation | 2026-08-09 |
+| I-307 | Path Efficiency Meter — ER Kaufman + rugozitate path (nu stretch/coil) | NOU: Path Eff Pine | M | P1 | făcut | ideation | 2026-08-09 |
+| I-308 | Serial Dependence Lab — autocorelare lag-1 + persistenta de semn | NOU: Serial Dep Pine | M | P1 | făcut | ideation | 2026-08-09 |
 | I-309 | Jump & Realized-Vol Anatomy — RV vs BV, flag jump vs vol continua | NOU: Jump Vol Pine | M | P1 | propus | ideation | 2026-08-09 |
 | I-310 | Return Shape Desk — skew/kurtosis rolling pe returnuri (nu CBOE:SKEW) | NOU: Shape Desk Pine | S | P2 | propus | ideation | 2026-08-09 |
 | I-311 | Half-Life Mean-Reversion — OU half-life pe z-score distanta | NOU: Half-Life Pine | M | P2 | propus | ideation | 2026-08-09 |
@@ -2277,4 +2277,10 @@ I-307..I-311 propuse — cinci tool-uri NOU pe familii statistice **absente** di
 Acoperire: backlog prin I-306; inventar nume + frecventa ta.*; trader.md + design.md; labs TLAB/PATH/JMA/PPST/ZLHMA/VTOB.
 **Excluse (nu repropuse):** Flip Lab I-300..306 (propus), Stretch/Coil/Participation/Slope (I-037..040 facut), STATS expectancy pe semnale (deja in deck-uri), CBOE SKEW macro (AntiFOMO).
 **NEPROPUS deliberat:** Hurst formal (esantion + lag multiplu greu in Pine fara overfitting), cointegration multi-simbol (request.security), entropy Shannon pe bins (fragil pe n mic).
-Recomandare start: **I-307 + I-308** (regim de calitate path + regim continuation/fade) — se lipesc pe Meta-Confluence si pe alegerea deck-ului; I-309 dupa daca vrei context de soc/jump.
+Recomandare start: **I-307 + I-308** (regim de calitate path + regim continuation/fade).
+
+### Status update 2026-08-09 (b) — I-307 + I-308 implementate independent
+User: „ok fa dar sa fie independent nu legat de meta con".
+- **I-307 facut:** `pine-scripts/PATH-EFFICIENCY/Path_Efficiency_Meter_v1_0.pine` + README. Pane, dash 9 pos + 6 size, preset-uri, alerte JSON, **zero connector Meta**, zero `request.security`.
+- **I-308 facut:** `pine-scripts/SERIAL-DEP/Serial_Dependence_Lab_v1_0.pine` + README. Aceeasi conventie; regim MOM/MR/IND; **zero connector Meta**.
+- I-309..I-311 raman `propus` (necerute in livrare).
