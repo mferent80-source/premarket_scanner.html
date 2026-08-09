@@ -2350,3 +2350,23 @@ User: â€žFA 1" (Flip Lab).
 - **I-304 facut:** EV stay N bare (Ă—ATR, costuri) â€” FARA alerte pe EV.
 - Export: `plot(dirSign, "FLIP LAB source")` pe `JMA-DECK/JMA_Deck_v2_6.pine`.
 - **Raman propuse:** I-303 comparator, I-305 hazard stratificat, I-306 KM.
+
+### Status update 2026-08-09 (g) — idei post Flip Lab v1.0 in backlog
+User: „PUNE IDEILE" (cele 4 din livrarea Flip Lab).
+- **I-316 NOU propus:** export `FLIP LAB source` pe PPST / ZLHMA / PATH (+ restul din I-300 daca lipsesc).
+- **I-303, I-305, I-306** raman `propus` (deja in tabel) — confirmate ca urmatorul pachet Flip Lab v1.1, nu repropuse ca ID-uri noi.
+
+| I-316 | Export FLIP LAB source pe PPST + ZLHMA + PATH (+ TPL/VTOB/ST-LR) | Flip Lab + deck-uri Pine | S | P1 | propus | tcc-idei | 2026-08-09 |
+
+#### I-316 · Export FLIP LAB source pe deck-uri · [S] · P1
+- **Problema/golul:** v1.0 exporta doar pe `JMA_Deck_v2_6` (`plot(dirSign, "FLIP LAB source")`). Fara acelasi plot pe PPST / ZLHMA / PATH / TPL / VTOB / ST-LR, Flip Lab Extern nu se leaga de deck-ul real pe care userul trade-uieste.
+- **Solutia:** +1 linie `plot(<dir>, title="FLIP LAB source", display=display.none)` pe versiunea curenta a fiecarui deck (semn +1/−1 sau serie cu semn = directie). README Flip Lab: lista deck-uri exportate. Fara bump de logica, doar export.
+- **Impact:** Flip Lab masoara populatia corecta pe orice deck din familie, nu doar JMA.
+- **Riscuri/dependente:** pe overlay, `display.none` tot poate aparea in Scale Currency (acceptat ca la connector META). Numele plotului trebuie IDENTIC pe toate deck-urile.
+- **Fisiere atinse:** `PPST-DECK/*` latest, `ZLHMA-TOP/*` latest, `TREND-PATH-DESK/*` latest, optional `TPL-DECK/`, `VTOB-DECK/`, `ST-LR-DECK/`; `FLIP-LAB/FLIP_LAB_README.md`.
+
+#### Urmatorul pachet Flip Lab v1.1 (deja in backlog — nu ID-uri noi)
+- **I-303** [M] P2 — Comparator 3 surse (overlap / lead / mediana durata / conv 2xATR).
+- **I-306** [M] P3 — Kaplan-Meier + cenzurare run curent + rand naiv vs KM.
+- **I-305** [L] P2 — Hazard stratificat (regim vol / pullback / HTF) dupa ce I-302 e pe chart (deja facut).
+Ordine recomandata build: **I-316 → I-303 → I-306 → I-305**.
