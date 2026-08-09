@@ -1869,7 +1869,7 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-297 | Diagnosticul de varsta se stinge singur dupa N flips | Trend Anatomy Lab Pine | S | P3 | facut | tcc-idei | 2026-08-03 |
 | I-298 | Relay: prefix âš  pe sanity fail (snippet â€” sursa worker nu e pe disc) | Automation (CF worker) | S | P2 | facut | tcc-idei | 2026-08-03 |
 | I-299 | Port "Cat mai are" + garda hazard pe ZLHMA TOP (motorul lui, nu ZigZag) | ZLHMA TOP Pine | L | P2 | facut | tcc-idei | 2026-08-03 |
-| I-300 | FLIP LAB v1 â€” motor statistic pe sursa externa (input.source), nu ZigZag intern | NOU: Flip Lab Pine | L | P1 | propus | ideation | 2026-08-04 |
+| I-300 | FLIP LAB v1 — motor statistic pe sursa externa (input.source), nu ZigZag intern | NOU: Flip Lab Pine | L | P1 | facut | ideation | 2026-08-04 |
 | I-301 | Curba de hazard pe bucket-uri de varsta (nu doar verdictul binar) | Flip Lab Pine | M | P1 | facut | ideation | 2026-08-04 |
 | I-302 | Calibrare probabilitati: reliability + Brier + skill score vs base rate | Flip Lab Pine | M | P1 | facut | ideation | 2026-08-04 |
 | I-303 | Comparator de motoare pe 3 surse â€” automatizeaza VALIDARE_JMA_vs_TPL.md | Flip Lab Pine | M | P2 | propus | ideation | 2026-08-04 |
