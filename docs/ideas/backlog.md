@@ -2309,7 +2309,7 @@ Verificat pe disc: TLAB/PATH/STAT/ZLHMA/SMS/PPST acopera deja trend + maturity +
 
 **Excluse din repropunere:** TLAB "cat mai are", PATH legs, STAT playbook, Stretch/Coil, SMS BOS/CHoCH, PPST, Flip Lab (propus).
 
-| I-312 | Multi-Anchored VWAP Desk Ă˘â‚¬â€ť Session/Week/Swing AVWAP + ÄŽÂ + residual | NOU: AVWAP Desk Pine | M | P1 | propus | ideation | 2026-08-09 |
+| I-312 | Multi-Anchored VWAP Desk Ă˘â‚¬â€ť Session/Week/Swing AVWAP + ÄŽÂ + residual | NOU: AVWAP Desk Pine | M | P1 | facut | ideation | 2026-08-09 |
 | I-313 | Measured Move Projection Desk Ă˘â‚¬â€ť impuls AB + % complete + 1.0/1.272/1.618 | NOU: MM Desk Pine | M | P1 | propus | ideation | 2026-08-09 |
 | I-314 | Session Range Budget Ă˘â‚¬â€ť IB + ADR consumat + "room left" in zi/sesiune | NOU: Range Budget Pine | M | P2 | propus | ideation | 2026-08-09 |
 | I-315 | Invalidation Clock Ă˘â‚¬â€ť distanta la swing/Chandelier invalidare + stare swing | NOU: Inv Clock Pine | M | P2 | propus | ideation | 2026-08-09 |
@@ -2375,6 +2375,12 @@ User: â€žFA SI FA SI LINIILE SA SE VADA CA ACUM NU E DECAT UN DASH".
 - **v1.1:** pine-scripts/FLIP-LAB/Flip_Lab_v1_1.pine â€” overlay=true; linii ENTRY/MFE/MAE/TGT/EMA default ON; markere flip; fundal directie; dash pastrat.
 - **I-316 facut:** export `FLIP LAB source` pe JMA v2.6, PPST v1.8, ZLHMA v3.4.0, PATH v1.7.
 - README actualizat.
+### Status update 2026-08-10 — I-312 AVWAP Desk v1.0
+User: „fa 312 atunci".
+- **I-312 facut:** `pine-scripts/AVWAP-DESK/AVWAP_Desk_v1_0.pine` + `AVWAP_DESK_README.md`.
+- 3 ancore (Sesiune / Saptamana / Swing), AVWAP + σ, dist ATR + z, stare DEASUPRA/IN BANDA/SUB, alerte reclaim/pierdere pe close, dash explicit, linii OFF default, zero plot pret / zero Meta / zero request.security.
+- I-313..I-315 raman `propus`.
+
 ### Status update 2026-08-09 (i) — Flip Lab v1.2 I-303 Comparator
 User: „OK GATA FA URMATORUL" (dupa v1.1 linii).
 - **I-303 facut:** Flip_Lab_v1_2.pine — 3 motoare A/B/C, pagina Comparator: n flips, dur med, conv 2xATR, exp net, overlap +/-N, lead, winner; capcana IN-SAMPLE pe dash.
