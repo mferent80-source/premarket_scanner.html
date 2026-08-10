@@ -1,4 +1,4 @@
-# Backlog de idei Ă˘â‚¬â€ť trading suite
+﻿# Backlog de idei Ă˘â‚¬â€ť trading suite
 
 Ä‚Ĺ˝ntreÄŚâ€şinut de skill-ul `trading-ideation`. Statusuri: `propus` Ă‚Â· `aprobat` Ă‚Â· `fĂ„Âcut` Ă‚Â· `respins`.
 SursĂ„Â: `ideation` (generat de skill) Ă‚Â· `tcc-idei` (din secÄŚâ€şiunile Ă˘â‚¬ĹľIdei" ale trading-code-craft) Ă‚Â· `user`.
@@ -2310,7 +2310,7 @@ Verificat pe disc: TLAB/PATH/STAT/ZLHMA/SMS/PPST acopera deja trend + maturity +
 **Excluse din repropunere:** TLAB "cat mai are", PATH legs, STAT playbook, Stretch/Coil, SMS BOS/CHoCH, PPST, Flip Lab (propus).
 
 | I-312 | Multi-Anchored VWAP Desk Ă˘â‚¬â€ť Session/Week/Swing AVWAP + ÄŽÂ + residual | NOU: AVWAP Desk Pine | M | P1 | facut | ideation | 2026-08-09 |
-| I-313 | Measured Move Projection Desk Ă˘â‚¬â€ť impuls AB + % complete + 1.0/1.272/1.618 | NOU: MM Desk Pine | M | P1 | propus | ideation | 2026-08-09 |
+| I-313 | Measured Move Projection Desk — impuls AB + % complete + 1.0/1.272/1.618 | NOU: MM Desk Pine | M | P1 | facut | ideation | 2026-08-09 |
 | I-314 | Session Range Budget Ă˘â‚¬â€ť IB + ADR consumat + "room left" in zi/sesiune | NOU: Range Budget Pine | M | P2 | propus | ideation | 2026-08-09 |
 | I-315 | Invalidation Clock Ă˘â‚¬â€ť distanta la swing/Chandelier invalidare + stare swing | NOU: Inv Clock Pine | M | P2 | propus | ideation | 2026-08-09 |
 
@@ -2391,11 +2391,11 @@ Mod: suită pe stratul **navigare value / timp** (AVWAP + Flip + goluri rămase)
 Acoperire: backlog prin I-316; AVWAP_Desk_v1_0 + README; Flip Lab v1.4 pe disc; inventar premarket (journal, alerts, shadow-book, relay); fără re-propunere I-312/316 (făcut), I-313..315 (deja propus), I-300..304 (făcut).
 Notă: I-305/I-306 apar încă `propus` în tabel dar sunt livrate în Flip Lab v1.3–v1.4 pe disc — de sincronizat status la cerere, nu repropuse.
 
-| I-317 | Consensus multi-ancora AVWAP (2/3) + alertă ALINIAT | AVWAP Desk Pine | S | P1 | propus | ideation | 2026-08-10 |
+| I-317 | Consensus multi-ancora AVWAP (2/3) + alertă ALINIAT | AVWAP Desk Pine | S | P1 | facut | ideation | 2026-08-10 |
 | I-318 | Curbă AVWAP pe istoric (segmente line, fără plot) | AVWAP Desk Pine | M | P2 | propus | ideation | 2026-08-10 |
 | I-319 | Ancoră Event (time/earnings manual) pe AVWAP | AVWAP Desk Pine | S | P2 | propus | ideation | 2026-08-10 |
-| I-320 | Playbook Value×Time — AVWAP z + Flip Lab remain pe un verdict | NOU: glue Pine sau pagină dash dual | M | P1 | propus | ideation | 2026-08-10 |
-| I-321 | STATS pe reclaim: n / W% / med hold după reclaim (n minim) | AVWAP Desk Pine | M | P2 | propus | ideation | 2026-08-10 |
+| I-320 | Playbook Value×Time — AVWAP z + Flip Lab remain pe un verdict | NOU: glue Pine sau pagină dash dual | M | P1 | facut | ideation | 2026-08-10 |
+| I-321 | STATS pe reclaim: n / W% / med hold după reclaim (n minim) | AVWAP Desk Pine | M | P2 | facut | ideation | 2026-08-10 |
 | I-322 | Relay/journal: tag pe AVWAP_RECLAIM / AVWAP_LOST | Automation + journal PWA | M | P2 | propus | ideation | 2026-08-10 |
 | I-323 | Soft-mute alerte flip când |z| AVWAP ≥ chase (context value) | Flip Lab + AVWAP / relay | S | P2 | propus | ideation | 2026-08-10 |
 | I-324 | Navigation Suite shell — un CE FAC din 312+313+314+315 | NOU: suite glue Pine | L | P3 | propus | ideation | 2026-08-10 |
@@ -2458,3 +2458,10 @@ Notă: I-305/I-306 apar încă `propus` în tabel dar sunt livrate în Flip Lab 
 
 **Deja în backlog (nu repropuse):** I-313 Measured Move, I-314 Range Budget, I-315 Invalidation Clock.
 **Recomandare build acum:** I-317 → I-320 → I-313 (P1 măsurare preț) → I-321.
+
+### Status update 2026-08-10 (c) — build recomandat I-317→320→313→321
+User: „fa" (dupa ordinea recomandata).
+- **I-317+I-321 facut:** `AVWAP_Desk_v1_1.pine` — consensus multi-ancora + alerta AVWAP_ALIGN; pagina Stats reclaim.
+- **I-320 facut:** `VALUE-TIME-DESK/Value_Time_Desk_v1_0.pine` — 4 cadrane value×timp, leaga FLIP LAB source.
+- **I-313 facut:** `MM-DESK/Measured_Move_Desk_v1_0.pine` — AB + 1.0/1.272/1.618, IMPULSE/PAUSE/EXHAUST.
+- README-uri pe fiecare folder. I-314/I-315/I-318/I-319/I-322..324 raman propus.
