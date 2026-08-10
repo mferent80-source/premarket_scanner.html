@@ -78,23 +78,47 @@ export default {
 
       // dialectul de familie cere minim deck+ticker+tf+event; ce nu-l are
       // (alerte straine) se forwardeaza dar nu se stocheaza
-      const { deck, ticker, tf, event } = payload || {};
+      // I-322: normalizeaza journal_tag din payload sau din event (AVWAP/SLEV/FLIP)
+      const body = payload && typeof payload === 'object' ? { ...payload } : {};
+      if (!body.journal_tag && body.event && typeof body.event === 'string') {
+        const map = {
+          AVWAP_RECLAIM: 'value_reclaim',
+          AVWAP_LOST: 'value_lost',
+          AVWAP_ALIGN: 'value_align',
+          SOURCE_FLIP: 'source_flip',
+          SLEV_PDH_BREAK: 'pdh_break',
+          SLEV_PDH_LOST: 'pdh_lost',
+          SLEV_PDL_BREAK: 'pdl_break',
+          SLEV_PDL_RECLAIM: 'pdl_reclaim',
+        };
+        if (map[body.event]) body.journal_tag = map[body.event];
+      }
+      // I-323 light: daca payload are mute_hint=1 sau z_abs >= z_mute, marcheaza forward_soft
+      // (relay-ul vechi Telegram poate ignora; stocarea KV pastreaza tot)
+      if (body.mute_hint === 1 || body.mute_hint === true || body.mute_hint === '1') {
+        body.forward_soft = true;
+      }
+      const { deck, ticker, tf, event } = body;
       let stored = false;
       if (env.DECK_KV && deck && ticker && tf && event) {
         const key = `${deck}:${ticker}:${tf}:${event === 'PING' ? 'ping' : 'last'}`;
-        await env.DECK_KV.put(key, JSON.stringify({ ...payload, received_at: new Date().toISOString() }), { expirationTtl: KV_TTL_SEC });
+        await env.DECK_KV.put(key, JSON.stringify({ ...body, received_at: new Date().toISOString() }), { expirationTtl: KV_TTL_SEC });
         stored = true;
       }
+      // rebind payload for forward
+      payload = body;
 
-      // lantul spre relay-ul vechi (Telegram) — best-effort, nu blocheaza stocarea
+      // lantul spre relay-ul vechi (Telegram) — best-effort; skip daca forward_soft (I-323)
       let forwarded = null;
-      if (env.FORWARD_URL) {
+      if (env.FORWARD_URL && !body.forward_soft) {
         try {
           const r = await fetch(env.FORWARD_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
           forwarded = r.status;
         } catch (e) { forwarded = 'error: ' + (e && e.message); }
+      } else if (body.forward_soft) {
+        forwarded = 'skipped_soft';
       }
-      return json({ stored, forwarded }, 200, origin);
+      return json({ stored, forwarded, journal_tag: body.journal_tag || null }, 200, origin);
     }
 
     // ── GET /latest — ultimele payload-uri (pt. pagina de familie) ───

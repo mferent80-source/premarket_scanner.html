@@ -2396,8 +2396,8 @@ Notă: I-305/I-306 apar încă `propus` în tabel dar sunt livrate în Flip Lab 
 | I-319 | Ancoră Event (time/earnings manual) pe AVWAP | AVWAP Desk Pine | S | P2 | facut | ideation | 2026-08-10 |
 | I-320 | Playbook Value×Time — AVWAP z + Flip Lab remain pe un verdict | NOU: glue Pine sau pagină dash dual | M | P1 | facut | ideation | 2026-08-10 |
 | I-321 | STATS pe reclaim: n / W% / med hold după reclaim (n minim) | AVWAP Desk Pine | M | P2 | facut | ideation | 2026-08-10 |
-| I-322 | Relay/journal: tag pe AVWAP_RECLAIM / AVWAP_LOST | Automation + journal PWA | M | P2 | propus | ideation | 2026-08-10 |
-| I-323 | Soft-mute alerte flip când |z| AVWAP ≥ chase (context value) | Flip Lab + AVWAP / relay | S | P2 | propus | ideation | 2026-08-10 |
+| I-322 | Relay/journal: tag pe AVWAP_RECLAIM / AVWAP_LOST | Automation + journal PWA | M | P2 | facut | ideation | 2026-08-10 |
+| I-323 | Soft-mute alerte flip când |z| AVWAP ≥ chase (context value) | Flip Lab + AVWAP / relay | S | P2 | facut | ideation | 2026-08-10 |
 | I-324 | Navigation Suite shell — un CE FAC din 312+313+314+315 | NOU: suite glue Pine | L | P3 | facut | ideation | 2026-08-10 |
 
 #### I-317 · Consensus multi-ancora AVWAP (2/3) · [S] · P1
@@ -2483,3 +2483,8 @@ User: „FA ALT DESK".
 - **I-325 facut:** `pine-scripts/SESSION-LEVELS/Session_Levels_Desk_v1_0.pine` + README.
 - Nivele open/PDH/PDL/PDC/mid/overnight; dist ×ATR; CE FAC; alerte break/reclaim pe close.
 - Completare pachet navigare (dupa 312–315, V×T, Nav Shell).
+### Status update 2026-08-10 (g) — SLEV v1.1 + I-322/323 light
+User: „fa" (gap fill, stats PDH, automation).
+- **SLEV v1.1:** gap open vs PDC + STATS hold dupa break PDH (`Session_Levels_Desk_v1_1.pine`).
+- **I-322 facut (light):** `cf-worker-deck-relay.js` normalizeaza `journal_tag` din event (AVWAP/SLEV/FLIP); payload-urile pot trimite journal_tag.
+- **I-323 facut (light):** Flip Lab mute flip daca |z| EMA×ATR mare (default OFF); relay skip forward daca `forward_soft`/`mute_hint`.
