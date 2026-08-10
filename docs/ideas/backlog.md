@@ -2385,3 +2385,76 @@ User: „fa 312 atunci".
 User: „OK GATA FA URMATORUL" (dupa v1.1 linii).
 - **I-303 facut:** Flip_Lab_v1_2.pine — 3 motoare A/B/C, pagina Comparator: n flips, dur med, conv 2xATR, exp net, overlap +/-N, lead, winner; capcana IN-SAMPLE pe dash.
 - README actualizat. Urmeaza I-306 apoi I-305.
+### Status update 2026-08-10 (b) — ideation post AVWAP Desk
+User: „fa idei".
+Mod: suită pe stratul **navigare value / timp** (AVWAP + Flip + goluri rămase).
+Acoperire: backlog prin I-316; AVWAP_Desk_v1_0 + README; Flip Lab v1.4 pe disc; inventar premarket (journal, alerts, shadow-book, relay); fără re-propunere I-312/316 (făcut), I-313..315 (deja propus), I-300..304 (făcut).
+Notă: I-305/I-306 apar încă `propus` în tabel dar sunt livrate în Flip Lab v1.3–v1.4 pe disc — de sincronizat status la cerere, nu repropuse.
+
+| I-317 | Consensus multi-ancora AVWAP (2/3) + alertă ALINIAT | AVWAP Desk Pine | S | P1 | propus | ideation | 2026-08-10 |
+| I-318 | Curbă AVWAP pe istoric (segmente line, fără plot) | AVWAP Desk Pine | M | P2 | propus | ideation | 2026-08-10 |
+| I-319 | Ancoră Event (time/earnings manual) pe AVWAP | AVWAP Desk Pine | S | P2 | propus | ideation | 2026-08-10 |
+| I-320 | Playbook Value×Time — AVWAP z + Flip Lab remain pe un verdict | NOU: glue Pine sau pagină dash dual | M | P1 | propus | ideation | 2026-08-10 |
+| I-321 | STATS pe reclaim: n / W% / med hold după reclaim (n minim) | AVWAP Desk Pine | M | P2 | propus | ideation | 2026-08-10 |
+| I-322 | Relay/journal: tag pe AVWAP_RECLAIM / AVWAP_LOST | Automation + journal PWA | M | P2 | propus | ideation | 2026-08-10 |
+| I-323 | Soft-mute alerte flip când |z| AVWAP ≥ chase (context value) | Flip Lab + AVWAP / relay | S | P2 | propus | ideation | 2026-08-10 |
+| I-324 | Navigation Suite shell — un CE FAC din 312+313+314+315 | NOU: suite glue Pine | L | P3 | propus | ideation | 2026-08-10 |
+
+#### I-317 · Consensus multi-ancora AVWAP (2/3) · [S] · P1
+- **Problema/golul:** dash Ancore arată deja nAb/nBe, dar hero/alerte rulează doar pe focus — userul ratează când 2–3 ancore sunt aliniate (bias institutional mai puternic) sau când focusul e singur pe o parte.
+- **Soluția:** stare CONSENSUS_UP / CONSENSUS_DN / MIXED pe ≥2 ancore active; rând hero + alertă opțională `AVWAP_ALIGN` pe confirmed, default ON soft (nu spam pe fiecare bară — doar la schimbare de consensus).
+- **Impact:** mai puține chase pe o singură ancoră „optimistă"; citire 1s a aliniamentului.
+- **Riscuri/dependente:** pe sample scurt după reset, stările sar; cere ≥2 ancore ON.
+- **Fișiere atinse:** `pine-scripts/AVWAP-DESK/AVWAP_Desk_v1_0.pine` (sau v1.1), README.
+
+#### I-318 · Curbă AVWAP pe istoric · [M] · P2
+- **Problema/golul:** v1.0 desenează doar nivelul curent ancoră→acum (linie orizontală la valoarea live). Nu vezi path-ul value-ului pe sesiune (cum s-a deplasat AVWAP).
+- **Soluția:** pe ancora focus, lanț de `line` pe ultimele N bare (sau de la ancoră) mid ± opțional 1σ; cap max_lines; toggle OFF default. Fără `plot()` (Scale Currency).
+- **Impact:** vezi reclaim pe path real, nu doar pe nivelul static curent.
+- **Riscuri:** cost de linii TV; N mare pe TF mic umple max_lines.
+- **Fișiere atinse:** `AVWAP-DESK/*`, README.
+
+#### I-319 · Ancoră Event (time/earnings) · [S] · P2
+- **Problema/golul:** ancorele sunt calendar (zi/săptămână/swing). Evenimente (earnings, FOMC, listare) mută value-ul de la un moment care nu e session open.
+- **Soluția:** input `timestamp` / „ancorează de la bara selectată" (sau data/ora) → a 4-a ancoră EVENT cu același motor AVWAP+σ; preset Nasdaq leagă mental de earnings-hub (fără request.security).
+- **Impact:** value post-event corectă; evit „session AVWAP vechi" după gap.
+- **Riscuri:** input greșit = value falsă; crypto 24/7 — user alege explicit.
+- **Fișiere atinse:** `AVWAP-DESK/*`; opțional notă în `earnings-hub/` (fără implementare automată).
+
+#### I-320 · Playbook Value×Time · [M] · P1
+- **Problema/golul:** Flip Lab răspunde „cât mai ține pe timp/flip"; AVWAP răspunde „unde ești vs value". Separat pe chart, verdicturile se contrazic des (trend bătrân dar IN BANDA, sau DEASUPRA EXTINS dar EV stay+).
+- **Soluția:** mini-desk sau pagină dual care combină pe close: stare AVWAP (focus) + stare Flip (age/pFlip/EV) → 4 cadrane (ex. VALUE_OK+TIME_OK / CHASE+TIME_LATE / …) + un singur **CE FAC?**. Fără entry generator. Poate fi v1.x pe AVWAP care citește `input.source` Flip dir+age SAU overlay text-only pe ambele.
+- **Impact:** o propoziție de navigare în loc de două dash-uri de împăcat mental.
+- **Riscuri:** cuplare fragilă prin input.source; praguri cadran = ipoteze OOS (trader.md).
+- **Fișiere atinse:** nou `pine-scripts/VALUE-TIME-DESK/` sau extensie AVWAP/FLIP; README-uri ambele.
+
+#### I-321 · STATS pe reclaim · [M] · P2
+- **Problema/golul:** reclaim e alertă curată dar fără n/W%/hold — „reclaim = bun" e estetică (pattern I-257 pe alte deck-uri).
+- **Soluția:** arhivă pe reclaim confirmat: MFE/MAE pe orizont H bare, n, % care au atins +1×ATR, med hold până la re-loss; „—" sub nCondMin. Fără alerte pe EV.
+- **Impact:** decide dacă merită webhook pe reclaim pe simbolul/TF-ul tău (ipoteză OOS).
+- **Riscuri:** in-sample pe setări; n mic pe TF mare.
+- **Fișiere atinse:** `AVWAP-DESK/*`, README.
+
+#### I-322 · Relay/journal tag pe AVWAP events · [M] · P2
+- **Problema/golul:** JSON `AVWAP_RECLAIM`/`LOST` există; journal/shadow-book nu le leagă — contextul value se pierde la review.
+- **Soluția:** în relay (`cf-worker-deck-relay` / check-alerts) sau pe client journal: la event AVWAP, tag `value_reclaim` / `value_lost` + z + anchor pe ticker; card în journal insights.
+- **Impact:** postmortem leagă PnL de context value, nu doar de flip deck.
+- **Riscuri:** schema payload trebuie stabilă; spam dacă user lasă toate ancorele.
+- **Fișiere atinse:** `tools/cf-worker-deck-relay.js`, `lib/journal.js` / `journal-insights.js`, `alerts/`.
+
+#### I-323 · Soft-mute flip când |z| AVWAP mare · [S] · P2
+- **Problema/golul:** Flip Lab alertează SOURCE_FLIP indiferent dacă prețul e la 2.5σ peste value — notificare de „continuare" pe chase.
+- **Soluția:** (A) pe relay: dacă ultimul AVWAP z pe același symbol e ≥ chase, prefix/mute flip; sau (B) pe Flip Lab input.source opțional „value z" din AVWAP export. Default OFF (nu schimba comportamentul).
+- **Impact:** mai puține alerte pe extensie goală; protejează atenția.
+- **Riscuri:** nevoie de export z din AVWAP sau stare partajată; false mute pe trend vertical legitim.
+- **Fișiere atinse:** `AVWAP-DESK/*` (export z), `FLIP-LAB/*` sau relay; `tools/check-alerts.mjs`.
+
+#### I-324 · Navigation Suite shell · [L] · P3
+- **Problema/golul:** I-312..315 sunt piese de navigare separate; fără shell, userul tot jonglează 4 dash-uri.
+- **Soluția:** după ce 313–315 există: un indicator-shell cu 4 rânduri (Value / Measured / Range budget / Invalidation) + un singur CE FAC din priorități fixe (invalidare > range epuizat > chase value > MM exhaust). Zero Meta.
+- **Impact:** cockpit de navigare; timp de citire ↓.
+- **Riscuri:** depinde de I-313..315; monolit dacă nu e doar orchestrator de stări.
+- **Fișiere atinse:** `pine-scripts/NAV-SUITE/` (nou); consumă stări din cele 4 desk-uri (input.source sau copiere logică minimală).
+
+**Deja în backlog (nu repropuse):** I-313 Measured Move, I-314 Range Budget, I-315 Invalidation Clock.
+**Recomandare build acum:** I-317 → I-320 → I-313 (P1 măsurare preț) → I-321.
