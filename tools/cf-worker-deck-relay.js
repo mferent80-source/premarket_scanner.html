@@ -76,49 +76,57 @@ export default {
       try { payload = await req.json(); }
       catch { return json({ error: 'body-ul nu e JSON' }, 400, origin); }
 
-      // dialectul de familie cere minim deck+ticker+tf+event; ce nu-l are
-      // (alerte straine) se forwardeaza dar nu se stocheaza
-      // I-322: normalizeaza journal_tag din payload sau din event (AVWAP/SLEV/FLIP)
+      // dialect: deck + (ticker|symbol) + tf + event
+      // Pine emite de obicei "symbol"; PATH uneori "ticker" — acceptam ambele (audit fix)
       const body = payload && typeof payload === 'object' ? { ...payload } : {};
-      if (!body.journal_tag && body.event && typeof body.event === 'string') {
-        const map = {
-          AVWAP_RECLAIM: 'value_reclaim',
-          AVWAP_LOST: 'value_lost',
-          AVWAP_ALIGN: 'value_align',
-          SOURCE_FLIP: 'source_flip',
-          SLEV_PDH_BREAK: 'pdh_break',
-          SLEV_PDH_LOST: 'pdh_lost',
-          SLEV_PDL_BREAK: 'pdl_break',
-          SLEV_PDL_RECLAIM: 'pdl_reclaim',
-        };
-        if (map[body.event]) body.journal_tag = map[body.event];
-      }
-      // I-323 light: daca payload are mute_hint=1 sau z_abs >= z_mute, marcheaza forward_soft
-      // (relay-ul vechi Telegram poate ignora; stocarea KV pastreaza tot)
-      if (body.mute_hint === 1 || body.mute_hint === true || body.mute_hint === '1') {
-        body.forward_soft = true;
-      }
-      const { deck, ticker, tf, event } = body;
+      const deck = body.deck;
+      const ticker = body.ticker || body.symbol;
+      const tf = body.tf;
+      const event = body.event;
+      if (ticker && !body.ticker) body.ticker = ticker;
+      if (ticker && !body.symbol) body.symbol = ticker;
+
+      // I-322: journal_tag din event (overwrite pe allowlist — nu lasa client sa minta event-ul)
+      const tagMap = {
+        AVWAP_RECLAIM: 'value_reclaim',
+        AVWAP_LOST: 'value_lost',
+        AVWAP_ALIGN: 'value_align',
+        SOURCE_FLIP: 'source_flip',
+        SLEV_PDH_BREAK: 'pdh_break',
+        SLEV_PDH_LOST: 'pdh_lost',
+        SLEV_PDL_BREAK: 'pdl_break',
+        SLEV_PDL_RECLAIM: 'pdl_reclaim',
+        SLEV_OPEN_UP: 'open_up',
+        SLEV_OPEN_DN: 'open_dn',
+      };
+      if (event && tagMap[event]) body.journal_tag = tagMap[event];
+
+      // I-323: soft-mute pe mute_hint SAU z_ema/z_abs >= z_mute
+      const zMute = Number(body.z_mute != null ? body.z_mute : (env.Z_MUTE || 2));
+      const zAbs = Number(body.z_abs != null ? body.z_abs : (body.z_ema != null ? body.z_ema : NaN));
+      const muteHint = body.mute_hint === 1 || body.mute_hint === true || body.mute_hint === '1';
+      const softByZ = Number.isFinite(zAbs) && Number.isFinite(zMute) && Math.abs(zAbs) >= zMute;
+      const forwardSoft = muteHint || softByZ || body.forward_soft === true || body.forward_soft === 1 || body.forward_soft === '1';
+      if (forwardSoft) body.forward_soft = true;
+
       let stored = false;
       if (env.DECK_KV && deck && ticker && tf && event) {
         const key = `${deck}:${ticker}:${tf}:${event === 'PING' ? 'ping' : 'last'}`;
         await env.DECK_KV.put(key, JSON.stringify({ ...body, received_at: new Date().toISOString() }), { expirationTtl: KV_TTL_SEC });
         stored = true;
       }
-      // rebind payload for forward
       payload = body;
 
-      // lantul spre relay-ul vechi (Telegram) — best-effort; skip daca forward_soft (I-323)
       let forwarded = null;
-      if (env.FORWARD_URL && !body.forward_soft) {
+      if (env.FORWARD_URL && !forwardSoft) {
         try {
           const r = await fetch(env.FORWARD_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
           forwarded = r.status;
         } catch (e) { forwarded = 'error: ' + (e && e.message); }
-      } else if (body.forward_soft) {
+      } else if (forwardSoft) {
         forwarded = 'skipped_soft';
       }
-      return json({ stored, forwarded, journal_tag: body.journal_tag || null }, 200, origin);
+      return json({ stored, forwarded, journal_tag: body.journal_tag || null, ticker }, 200, origin);
     }
 
     // ── GET /latest — ultimele payload-uri (pt. pagina de familie) ───
