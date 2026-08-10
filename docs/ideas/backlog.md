@@ -1839,7 +1839,7 @@ I-248..I-253 implementate in OF 3D Delta Profile **v1.2** (+ dash 3x3 pozitii / 
 | I-260 | TREND PATH DESK v1 Ă˘â‚¬â€ť motor leg + dual PROGRESS (timp/preÄŚâ€ş) + nucleu dash | NOU: Trend Path Desk Pine | L | P1 | facut | ideation | 2026-08-03 |
 | I-261 | FLIP STATS Ă˘â‚¬â€ť densitate, failed flip, clustering, time-to-flip | Trend Path Desk Pine | M | P1 | facut | ideation | 2026-08-03 |
 | I-262 | NEXT base-rates Ă˘â‚¬â€ť P(next phase | state) + path board | Trend Path Desk Pine | M | P1 | facut | ideation | 2026-08-03 |
-| I-263 | VELOCITY + DECAY + EXTENSION rail (faza dinamicĂ„Â a legului) | Trend Path Desk Pine | M | P2 | propus | ideation | 2026-08-03 |
+| I-263 | VELOCITY + DECAY + EXTENSION rail (faza dinamicĂ„Â a legului) | Trend Path Desk Pine | M | P2 | facut | ideation | 2026-08-03 |
 | I-264 | PLAYBOOK rows Ă˘â‚¬â€ť ADD/HOLD/TRIM mapate pe progressÄ‚â€”flipÄ‚â€”next (fĂ„ÂrĂ„Â semnal entry) | Trend Path Desk Pine | S | P2 | facut | ideation | 2026-08-03 |
 | I-265 | PATH COMPARE Ă˘â‚¬â€ť HTF path vs LTF path (aliniere, nu multi-TF score) | Trend Path Desk Pine | M | P3 | facut | ideation | 2026-08-03 |
 | I-266 | Calibrator de prag ZigZag (3 motoare paralele, 4 cifre fiecare) | Trend Anatomy Lab Pine | S | P1 | facut | ideation | 2026-08-03 |
@@ -2488,3 +2488,7 @@ User: „fa" (gap fill, stats PDH, automation).
 - **SLEV v1.1:** gap open vs PDC + STATS hold dupa break PDH (`Session_Levels_Desk_v1_1.pine`).
 - **I-322 facut (light):** `cf-worker-deck-relay.js` normalizeaza `journal_tag` din event (AVWAP/SLEV/FLIP); payload-urile pot trimite journal_tag.
 - **I-323 facut (light):** Flip Lab mute flip daca |z| EMA×ATR mare (default OFF); relay skip forward daca `forward_soft`/`mute_hint`.
+### Status update 2026-08-10 (h) — I-263 PATH v1.8
+User: „urmatorul instrument".
+- **I-263 facut:** `Trend_Path_Desk_v1_8.pine` — rail VEL/DECAY/EXT pe leg + CITIRE VEL; REF MGMT foloseste decay/ext.
+- Retentie PATH: sters v1.5; raman v1.6/v1.7/v1.8. README actualizat.
