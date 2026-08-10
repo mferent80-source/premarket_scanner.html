@@ -2475,3 +2475,11 @@ User: „FA" (idei dupa 314/315).
 - **I-318+I-319 facut:** `AVWAP_Desk_v1_2.pine` — curba path pe N bare; ancora Event (input.time).
 - **I-324 light facut:** `NAV-SUITE/Nav_Shell_v1_0.pine` — CE FAC prioritizat INV>Range>Value>MM.
 - Retentie AVWAP: v1.0 sters; raman v1.1 + v1.2. I-322/323 raman propus.
+
+| I-325 | Session Levels Desk — Open/PDH/PDL/PDC/MID/ONH/ONL + dist ATR + reclaim | NOU: Session Levels Pine | M | P1 | facut | craft | 2026-08-10 |
+
+### Status update 2026-08-10 (f) — I-325 Session Levels Desk
+User: „FA ALT DESK".
+- **I-325 facut:** `pine-scripts/SESSION-LEVELS/Session_Levels_Desk_v1_0.pine` + README.
+- Nivele open/PDH/PDL/PDC/mid/overnight; dist ×ATR; CE FAC; alerte break/reclaim pe close.
+- Completare pachet navigare (dupa 312–315, V×T, Nav Shell).
