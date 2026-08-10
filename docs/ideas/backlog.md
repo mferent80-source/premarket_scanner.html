@@ -1,4 +1,4 @@
-﻿# Backlog de idei Ă˘â‚¬â€ť trading suite
+# Backlog de idei Ă˘â‚¬â€ť trading suite
 
 Ä‚Ĺ˝ntreÄŚâ€şinut de skill-ul `trading-ideation`. Statusuri: `propus` Ă‚Â· `aprobat` Ă‚Â· `fĂ„Âcut` Ă‚Â· `respins`.
 SursĂ„Â: `ideation` (generat de skill) Ă‚Â· `tcc-idei` (din secÄŚâ€şiunile Ă˘â‚¬ĹľIdei" ale trading-code-craft) Ă‚Â· `user`.
@@ -2311,8 +2311,8 @@ Verificat pe disc: TLAB/PATH/STAT/ZLHMA/SMS/PPST acopera deja trend + maturity +
 
 | I-312 | Multi-Anchored VWAP Desk Ă˘â‚¬â€ť Session/Week/Swing AVWAP + ÄŽÂ + residual | NOU: AVWAP Desk Pine | M | P1 | facut | ideation | 2026-08-09 |
 | I-313 | Measured Move Projection Desk — impuls AB + % complete + 1.0/1.272/1.618 | NOU: MM Desk Pine | M | P1 | facut | ideation | 2026-08-09 |
-| I-314 | Session Range Budget Ă˘â‚¬â€ť IB + ADR consumat + "room left" in zi/sesiune | NOU: Range Budget Pine | M | P2 | propus | ideation | 2026-08-09 |
-| I-315 | Invalidation Clock Ă˘â‚¬â€ť distanta la swing/Chandelier invalidare + stare swing | NOU: Inv Clock Pine | M | P2 | propus | ideation | 2026-08-09 |
+| I-314 | Session Range Budget Ă˘â‚¬â€ť IB + ADR consumat + "room left" in zi/sesiune | NOU: Range Budget Pine | M | P2 | facut | ideation | 2026-08-09 |
+| I-315 | Invalidation Clock Ă˘â‚¬â€ť distanta la swing/Chandelier invalidare + stare swing | NOU: Inv Clock Pine | M | P2 | facut | ideation | 2026-08-09 |
 
 #### I-312 Ă‚Â· Multi-Anchored VWAP Desk Ă‚Â· [M] Ă‚Â· P1
 - **Problema/golul:** AVWAP e in AntiFOMO ca feature de setup, nu ca instrument de navigare institutional (session/week/swing + bande ÄŽÂ + "cat pana la mean").
@@ -2465,3 +2465,8 @@ User: „fa" (dupa ordinea recomandata).
 - **I-320 facut:** `VALUE-TIME-DESK/Value_Time_Desk_v1_0.pine` — 4 cadrane value×timp, leaga FLIP LAB source.
 - **I-313 facut:** `MM-DESK/Measured_Move_Desk_v1_0.pine` — AB + 1.0/1.272/1.618, IMPULSE/PAUSE/EXHAUST.
 - README-uri pe fiecare folder. I-314/I-315/I-318/I-319/I-322..324 raman propus.
+### Status update 2026-08-10 (d) — I-314 + I-315
+User: „FA" (continuare navigation suite).
+- **I-314 facut:** `pine-scripts/RANGE-BUDGET/Session_Range_Budget_v1_0.pine` + README — IB, ADR %, room left, extensii 1.0/1.5/2.0, TREND_DAY/BALANCED.
+- **I-315 facut:** `pine-scripts/INV-CLOCK/Invalidation_Clock_v1_0.pine` + README — HH/HL/LH/LL, inv swing/Chandelier, THREAT/CONFIRMED.
+- Pachet navigare 312–315 complet pe disc (plus V×T I-320). I-318/319/322–324 raman propus.
