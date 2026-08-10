@@ -2392,13 +2392,13 @@ Acoperire: backlog prin I-316; AVWAP_Desk_v1_0 + README; Flip Lab v1.4 pe disc; 
 Notă: I-305/I-306 apar încă `propus` în tabel dar sunt livrate în Flip Lab v1.3–v1.4 pe disc — de sincronizat status la cerere, nu repropuse.
 
 | I-317 | Consensus multi-ancora AVWAP (2/3) + alertă ALINIAT | AVWAP Desk Pine | S | P1 | facut | ideation | 2026-08-10 |
-| I-318 | Curbă AVWAP pe istoric (segmente line, fără plot) | AVWAP Desk Pine | M | P2 | propus | ideation | 2026-08-10 |
-| I-319 | Ancoră Event (time/earnings manual) pe AVWAP | AVWAP Desk Pine | S | P2 | propus | ideation | 2026-08-10 |
+| I-318 | Curbă AVWAP pe istoric (segmente line, fără plot) | AVWAP Desk Pine | M | P2 | facut | ideation | 2026-08-10 |
+| I-319 | Ancoră Event (time/earnings manual) pe AVWAP | AVWAP Desk Pine | S | P2 | facut | ideation | 2026-08-10 |
 | I-320 | Playbook Value×Time — AVWAP z + Flip Lab remain pe un verdict | NOU: glue Pine sau pagină dash dual | M | P1 | facut | ideation | 2026-08-10 |
 | I-321 | STATS pe reclaim: n / W% / med hold după reclaim (n minim) | AVWAP Desk Pine | M | P2 | facut | ideation | 2026-08-10 |
 | I-322 | Relay/journal: tag pe AVWAP_RECLAIM / AVWAP_LOST | Automation + journal PWA | M | P2 | propus | ideation | 2026-08-10 |
 | I-323 | Soft-mute alerte flip când |z| AVWAP ≥ chase (context value) | Flip Lab + AVWAP / relay | S | P2 | propus | ideation | 2026-08-10 |
-| I-324 | Navigation Suite shell — un CE FAC din 312+313+314+315 | NOU: suite glue Pine | L | P3 | propus | ideation | 2026-08-10 |
+| I-324 | Navigation Suite shell — un CE FAC din 312+313+314+315 | NOU: suite glue Pine | L | P3 | facut | ideation | 2026-08-10 |
 
 #### I-317 · Consensus multi-ancora AVWAP (2/3) · [S] · P1
 - **Problema/golul:** dash Ancore arată deja nAb/nBe, dar hero/alerte rulează doar pe focus — userul ratează când 2–3 ancore sunt aliniate (bias institutional mai puternic) sau când focusul e singur pe o parte.
@@ -2470,3 +2470,8 @@ User: „FA" (continuare navigation suite).
 - **I-314 facut:** `pine-scripts/RANGE-BUDGET/Session_Range_Budget_v1_0.pine` + README — IB, ADR %, room left, extensii 1.0/1.5/2.0, TREND_DAY/BALANCED.
 - **I-315 facut:** `pine-scripts/INV-CLOCK/Invalidation_Clock_v1_0.pine` + README — HH/HL/LH/LL, inv swing/Chandelier, THREAT/CONFIRMED.
 - Pachet navigare 312–315 complet pe disc (plus V×T I-320). I-318/319/322–324 raman propus.
+### Status update 2026-08-10 (e) — I-318/319/324 light
+User: „FA" (idei dupa 314/315).
+- **I-318+I-319 facut:** `AVWAP_Desk_v1_2.pine` — curba path pe N bare; ancora Event (input.time).
+- **I-324 light facut:** `NAV-SUITE/Nav_Shell_v1_0.pine` — CE FAC prioritizat INV>Range>Value>MM.
+- Retentie AVWAP: v1.0 sters; raman v1.1 + v1.2. I-322/323 raman propus.
