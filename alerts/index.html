@@ -55,7 +55,7 @@
 html,body { min-height:100vh; }
 body, body.suite-page {
   font-family:var(--head); background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
-  color:var(--t1); padding:12px; font-size:14.5px; line-height:1.45; font-weight:500;
+  color:var(--t1); padding:12px; font-size:13.5px; line-height:1.5; font-weight:400;
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
   text-rendering:optimizeLegibility; font-variant-numeric:tabular-nums;
 }
@@ -753,40 +753,145 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 @media (prefers-reduced-motion: reduce) {
   button, .card, .almost-chip { transition:none !important; }
 }
+
+/* ── 6. Structură gestiune: o bară, text liniștit, fără 800 / emoji / card-uri teanc ── */
+body.al-page {
+  font-size:13.5px;
+  font-weight:400;
+  line-height:1.5;
+  letter-spacing:0;
+  padding:0 0 64px;
+}
+body.al-page header.suite-cockpit.al-topbar {
+  position:sticky; top:0; z-index:60;
+  margin:0; width:100%; max-width:none;
+  border-radius:0; border:none;
+  border-bottom:1px solid var(--b1);
+  background:var(--bg) !important;
+  box-shadow:none;
+  padding:0 1.15rem;
+  min-height:52px;
+  gap:8px 12px;
+  flex-wrap:nowrap;
+}
+body.al-page header.al-topbar h1 {
+  font-size:15px; font-weight:600; letter-spacing:0;
+  margin-right:8px; flex:0 0 auto;
+}
+body.al-page header.al-topbar .desk-tabs {
+  background:transparent; border:none; box-shadow:none;
+  padding:0; margin:0; gap:2px; position:static;
+  border-radius:0; flex:1 1 auto; min-width:0;
+}
+body.al-page header.al-topbar .desk-tabs button {
+  flex:0 0 auto; min-height:32px; padding:5px 11px;
+  font-size:13px; font-weight:500; letter-spacing:0;
+  background:transparent; border:none; border-radius:6px; color:var(--t3);
+  box-shadow:none;
+}
+body.al-page header.al-topbar .desk-tabs button:hover {
+  background:var(--panel2); color:var(--t1); border:none;
+}
+body.al-page header.al-topbar .desk-tabs button.on,
+body.al-page header.al-topbar .desk-tabs button.on:hover {
+  background:var(--panel2); color:var(--t1); border:none; box-shadow:none;
+}
+body.al-page header.al-topbar .desk-tabs button.on .tab-cnt,
+body.al-page header.al-topbar .desk-tabs .tab-cnt {
+  background:transparent; color:var(--t3); font-weight:500; padding:0 0 0 4px;
+}
+body.al-page header.al-topbar .desk-tabs button.on .tab-cnt { color:var(--t2); }
+.al-desk { margin:0; padding:0.85rem 1.15rem 0; }
+.al-kpis {
+  background:transparent; border:none; border-bottom:1px solid var(--b1);
+  border-radius:0; padding:0.35rem 0 0.7rem; margin:0 0 0.85rem;
+  gap:0.85rem 1.15rem; box-shadow:none;
+}
+.al-kpi > span { font-weight:400; color:var(--t3); font-size:12.5px; }
+.al-kpi > b { font-weight:600; font-size:13px; }
+.al-bot {
+  border-left-width:3px; font-size:13px; font-weight:400; line-height:1.45;
+  padding:8px 10px; margin-bottom:10px;
+}
+.al-bot b { font-weight:600; }
+#pulseBar { display:none !important; }
+body.al-page button,
+body.al-page .nav-link,
+body.al-page .hint-btn,
+body.al-page .filter-bar .chip {
+  font-weight:600;
+}
+body.al-page button.primary { font-weight:600; }
+body.al-page input, body.al-page select { font-weight:400; }
+.add-form h3, .section-head h3, .modal-head h3, .nw-set-head, .nw-sym {
+  font-weight:600 !important; letter-spacing:0;
+}
+.section-head h3 { font-size:14px; }
+.add-form { border-top:1px solid var(--b1) !important; box-shadow:none; }
+#tabPrice .section,
+#tabNews .section,
+#tabHist .section {
+  border-top:1px solid var(--b1) !important;
+  box-shadow:none;
+  border-radius:8px;
+}
+.section-head {
+  background:transparent;
+  padding:10px 12px 8px;
+}
+.section-body { padding:4px 10px 10px; }
+.al-table { font-size:13px; }
+.al-table th {
+  font-size:11px; font-weight:600; letter-spacing:.03em;
+  color:var(--t3); text-transform:uppercase; padding:6px 8px 8px;
+}
+.al-tk a { font-weight:600; font-size:13px; letter-spacing:0; }
+.al-now, .al-num, .al-entry, .al-tgt { font-weight:500; }
+.al-now { font-size:13px; }
+.empty { font-weight:400; font-size:13px; padding:22px 12px; }
+.empty .ico { display:none; }
+.almost-lbl { font-weight:600; letter-spacing:.04em; color:var(--t3); }
+.filter-bar #filterInp { font-weight:400; }
+@media (max-width:760px) {
+  body.al-page header.suite-cockpit.al-topbar {
+    flex-wrap:wrap; padding:8px 12px; min-height:0;
+  }
+  body.al-page header.al-topbar .desk-tabs { flex:1 1 100%; order:3; }
+  .al-desk { padding:0.7rem 0.85rem 0; }
+}
 </style>
 </head>
-<body class="suite-page">
+<body class="suite-page al-page">
 
-<header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v80</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
-  <span class="status-pill" id="pollStatus">⏳ —</span>
+<header class="suite-cockpit al-topbar">
+  <h1>Alerte <span class="ver-badge" id="verBadge">v81</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
+    <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
+    <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
+    <button type="button" data-tab="hist">Istoric <span class="tab-cnt" id="tabCntHist">0</span></button>
+  </nav>
+  <span class="status-pill" id="pollStatus">—</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
   <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
   <button class="icon-btn" id="tgBtn" title="Configurează Telegram pentru price alerts">📡</button>
   <button class="icon-btn" id="btnNwSettings" title="Deschide Setări News Desk (digest, quiet hours, filtru)">⚙</button>
   <button class="icon-btn" id="hdrMenuBtn" title="Mai multe acțiuni">⋯</button>
-  <a href="../" class="nav-link">← Hub</a>
+  <a href="../" class="nav-link">Hub</a>
 </header>
 
 <div class="al-desk">
-  <div class="al-page-head">
-    <div>
-      <h2>Desk alerte</h2>
-      <p>Botul ☁️ verifică la 5 min cu laptopul închis. Pagina poll-uiește doar cât e deschisă.</p>
-    </div>
-  </div>
   <div class="al-kpis" id="alKpis" aria-label="Rezumat alerte">
     <div class="al-kpi"><span>Active</span><b id="kpiActive">0</b></div>
     <div class="al-kpi"><span>Crypto</span><b id="kpiCrypto">0</b></div>
     <div class="al-kpi"><span>Stocks</span><b id="kpiStocks">0</b></div>
-    <div class="al-kpi"><span>☁️ azi</span><b id="kpiCloudToday">—</b></div>
+    <div class="al-kpi"><span>Azi</span><b id="kpiCloudToday">—</b></div>
     <div class="al-kpi" id="kpiBotWrap"><span>Bot</span><b id="kpiBot">…</b></div>
     <div class="al-kpi" id="kpiTgWrap"><span>Telegram</span><b id="kpiTg">…</b></div>
   </div>
   <div class="al-bot" id="alBotBar" role="status">
-    <span class="al-bot-ico" id="alBotIco">☁️</span>
-    <div class="al-bot-txt" id="alBotTxt">Se citește starea botului de pe GitHub…</div>
+    <span class="al-bot-ico" id="alBotIco"></span>
+    <div class="al-bot-txt" id="alBotTxt"></div>
     <div class="al-bot-act">
       <a class="nav-link" href="../health/" title="Suite Health — ultimul run Actions">Health</a>
     </div>
@@ -817,12 +922,6 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
   <div class="hm-item"><button id="notifyPolicyBtn" title="Politică notificări UI (I-221)">🌙</button><span class="hm-lbl">Notify UI policy</span></div>
 </div>
 
-<nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni Alerts">
-  <button type="button" data-tab="price" class="on">💰 Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
-  <button type="button" data-tab="news">📰 News <span class="tab-cnt" id="tabCntNews">0</span></button>
-  <button type="button" data-tab="hist">✅ Istoric <span class="tab-cnt" id="tabCntHist">0</span></button>
-</nav>
-
 <div id="tabPrice" class="desk-panel">
 <div class="almost-rail" id="almostRail" aria-label="Top gainers pe alertele active"></div>
 <div class="view-tools" id="viewTools">
@@ -834,10 +933,10 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 <!-- Add new alert — drill-down colapsat by default (nu ocupă spațiu cât nu adaugi) -->
 <details class="add-form" id="addForm">
   <summary class="add-form-head">
-    <div class="af-title"><span class="trig-caret">▸</span><h3>➕ Adaugă alertă nouă</h3></div>
+    <div class="af-title"><span class="trig-caret">▸</span><h3>Adaugă alertă</h3></div>
     <div style="display:flex;gap:6px">
-      <button type="button" id="btnAdv" class="hint-btn" title="Arată tipurile vechi de alertă (preț prag, mișcare %, ancoră). Default: doar 📊 Referință.">⚙️ Avansat</button>
-      <button type="button" id="btnHint" class="hint-btn">ℹ️ Cum funcționează</button>
+      <button type="button" id="btnAdv" class="hint-btn" title="Arată tipurile vechi de alertă (preț prag, mișcare %, ancoră). Default: doar Referință.">Avansat</button>
+      <button type="button" id="btnHint" class="hint-btn">Cum funcționează</button>
     </div>
   </summary>
   <div class="add-row">
@@ -906,34 +1005,34 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 
 <!-- Filtru rapid -->
 <div id="filterBar" class="filter-bar" style="display:none">
-  <input type="text" id="filterInp" placeholder="🔎 Filtrează după ticker / notă…" autocomplete="off">
+  <input type="text" id="filterInp" placeholder="Caută ticker sau notă" autocomplete="off">
   <button type="button" class="chip active" data-fmode="all">Toate</button>
-  <button type="button" class="chip" data-fmode="up">▲ azi</button>
-  <button type="button" class="chip" data-fmode="down">▼ azi</button>
-  <button type="button" class="chip" data-fmode="near">⏰ aproape</button>
+  <button type="button" class="chip" data-fmode="up">Sus azi</button>
+  <button type="button" class="chip" data-fmode="down">Jos azi</button>
+  <button type="button" class="chip" data-fmode="near">Aproape</button>
 </div>
 
 <!-- Active alerts — crypto (24/7) -->
 <div class="section" id="secCrypto">
   <div class="section-head">
-    <h3>🪙 Crypto active</h3>
-    <span class="sess-badge open" id="sessCrypto" title="Crypto se verifică non-stop, inclusiv noaptea și weekendul">🟢 24/7</span>
+    <h3>Crypto</h3>
+    <span class="sess-badge open" id="sessCrypto" title="Crypto se verifică non-stop, inclusiv noaptea și weekendul">24/7</span>
     <span class="count" id="cntCrypto">0</span>
   </div>
   <div class="section-body" id="bodyCrypto">
-    <div class="empty"><span class="ico">🪙</span>Nicio alertă crypto. Adaugă una de mai sus (BTC-USD, ETH-USD, ONDOUSDT…).</div>
+    <div class="empty">Nicio alertă crypto. Adaugă una de mai sus (BTC-USD, ETH-USD, ONDOUSDT).</div>
   </div>
 </div>
 
 <!-- Active alerts — stocks (cu sesiune) -->
 <div class="section" id="secStocks">
   <div class="section-head">
-    <h3>📈 Stocks active</h3>
+    <h3>Stocks</h3>
     <span class="sess-badge" id="sessStocks" title="Sesiunea bursei US (ET)">⏳</span>
     <span class="count" id="cntStocks">0</span>
   </div>
   <div class="section-body" id="bodyStocks">
-    <div class="empty"><span class="ico">📈</span>Nicio alertă pe stocks. Adaugă una de mai sus (AAPL, NVDA…).</div>
+    <div class="empty">Nicio alertă pe stocks. Adaugă una de mai sus (AAPL, NVDA).</div>
   </div>
 </div>
 
@@ -945,7 +1044,7 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 <details class="section trig-details nw-demo" id="nwSection" open>
   <summary class="section-head">
     <span class="trig-caret">▸</span>
-    <h3>📰 News Watch <span style="font-weight:400;font-size:10.5px;color:var(--t3)">· client + server Telegram · tools/news-watch.json</span></h3>
+    <h3>News Watch <span style="font-weight:400;font-size:12px;color:var(--t3)">client + server</span></h3>
     <span class="count" id="cntNw">0</span>
   </summary>
   <div class="section-body">
@@ -1052,7 +1151,7 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 <details class="section trig-details" id="trigSection" open>
   <summary class="section-head">
     <span class="trig-caret">▸</span>
-    <h3>✅ Triggered <span style="font-weight:400;font-size:10.5px;color:var(--t3)" title="Local (pagina deschisă) + ☁️ botul server-side">· ultimele 50 · local + ☁️ bot</span></h3>
+    <h3>Istoric <span style="font-weight:400;font-size:12px;color:var(--t3)" title="Local (pagina deschisă) + botul server-side">ultimele 50 · local + server</span></h3>
     <span class="count" id="cntTriggered">0</span>
     <button id="btnClearTriggered" class="danger" style="font-size:11.5px">🗑 Clear</button>
   </summary>
@@ -1160,7 +1259,7 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=740"></script>
+<script src="../lib/suite-version.js?v=741"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
@@ -1382,19 +1481,12 @@ function renderBotDesk() {
     return;
   }
   if (lastFire) {
-    bar.className = 'al-bot show ok';
-    if (ico) ico.textContent = '☁️';
-    const nSrv = SERVER_ALERT_N != null ? SERVER_ALERT_N : '—';
-    txt.innerHTML = '<b>Bot live.</b> Ultima ☁️ ' + relAge(lastFire) +
-      (lastSym ? (' · ' + lastSym) : '') +
-      ' · ' + cloudToday + ' azi · ' + nSrv + ' alerte pe server.' +
-      (SERVER_BOT && SERVER_BOT.lastCheck ? ' Check ' + relAge(SERVER_BOT.lastCheck) + '.' : '') +
-      ' Dacă nu vezi mesaje pe telefon: deschide botul (nu e pe mute) — tokenul din 📡 e doar pentru pagina deschisă.';
+    bar.className = 'al-bot';
+    if (ico) ico.textContent = '';
     return;
   }
-  bar.className = 'al-bot show warn';
-  if (ico) ico.textContent = '⏳';
-  txt.innerHTML = '<b>Nicio declanșare ☁️ recentă în fișierul public.</b> Workflow-ul rulează; pragurile 1% re-arm se trag doar la o mișcare nouă de la ultima ancoră.';
+  bar.className = 'al-bot';
+  if (ico) ico.textContent = '';
 }
 async function loadServerHist(){
   try {
@@ -2588,7 +2680,7 @@ let advancedMode = localStorage.getItem(ADVANCED_KEY) === '1';
 function applyAdvanced() {
   $('wrapKind').style.display = advancedMode ? '' : 'none';
   if (!advancedMode) $('inpKind').value = 'ref';   // mod simplu → mereu Referință
-  $('btnAdv').textContent = advancedMode ? '⚙️ Avansat ✓' : '⚙️ Avansat';
+  $('btnAdv').textContent = advancedMode ? 'Avansat · on' : 'Avansat';
   $('btnAdv').style.color = advancedMode ? 'var(--bull-s)' : '';
   $('btnAdv').style.borderColor = advancedMode ? 'var(--bull-s)' : '';
   updateFormMode();
