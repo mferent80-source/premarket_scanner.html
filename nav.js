@@ -144,6 +144,14 @@
 
   var activeU = detectActive();
 
+  if (!document.getElementById('tt-plex')) {
+    var plex = document.createElement('link');
+    plex.id = 'tt-plex';
+    plex.rel = 'stylesheet';
+    plex.href = root + 'lib/plex.css?v=743';
+    document.head.appendChild(plex);
+  }
+
   var css = document.createElement('style');
   css.id = 'tt-dock-css';
   css.textContent =
@@ -160,17 +168,17 @@
     '#tt-dock-wrap.tt-open #tt-dock-panel{display:block}' +
     '#tt-dock-panel .tt-g{margin-bottom:8px}' +
     '#tt-dock-panel .tt-g:last-child{margin-bottom:0}' +
-    '#tt-dock-panel .tt-gt{font-family:\'DM Mono\',ui-monospace,monospace;font-size:9px;font-weight:800;' +
-    'letter-spacing:.08em;text-transform:uppercase;color:#8b95ab;margin:0 0 5px 2px}' +
+    '#tt-dock-panel .tt-gt{font-family:\'IBM Plex Sans\',system-ui,sans-serif;font-size:10px;font-weight:600;' +
+    'letter-spacing:.04em;text-transform:uppercase;color:#8b929e;margin:0 0 5px 2px}' +
     '#tt-dock-panel .tt-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}' +
     '@media(min-width:520px){#tt-dock-panel .tt-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}' +
     '@media(min-width:700px){#tt-dock-panel .tt-grid{grid-template-columns:repeat(6,minmax(0,1fr))}}' +
     '#tt-dock-panel a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;' +
-    'padding:8px 4px;border-radius:10px;text-decoration:none;color:#eef2f8;font-size:9.5px;font-weight:700;' +
-    'font-family:\'DM Mono\',ui-monospace,system-ui,sans-serif;border:1px solid #3a4560;background:rgba(34,44,68,.65);' +
+    'padding:8px 4px;border-radius:10px;text-decoration:none;color:#e6e8ec;font-size:10px;font-weight:600;' +
+    'font-family:\'IBM Plex Sans\',system-ui,sans-serif;border:1px solid #3a4250;background:rgba(34,40,48,.72);' +
     'min-height:52px;text-align:center;line-height:1.15}' +
-    '#tt-dock-panel a:hover{border-color:#8ac8ff;background:rgba(138,200,255,.12);color:#fff}' +
-    '#tt-dock-panel a.tt-active{color:#0b0f17;background:linear-gradient(135deg,#f7931a,#ffd86b);border-color:transparent}' +
+    '#tt-dock-panel a:hover{border-color:#8a9aab;background:rgba(110,130,148,.16);color:#e6e8ec}' +
+    '#tt-dock-panel a.tt-active{color:#14181f;background:#6e8294;border-color:transparent}' +
     '#tt-dock-panel a .tt-ico{font-size:16px;line-height:1}' +
     '#tt-dock-panel a .tt-lbl{opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
     /* bară scurtă */
@@ -182,13 +190,13 @@
     '#tt-dock::-webkit-scrollbar{display:none}' +
     '#tt-dock a,#tt-dock button.tt-more{flex:1 1 0;min-width:0;max-width:72px;display:flex;flex-direction:column;' +
     'align-items:center;justify-content:center;gap:1px;padding:5px 4px;border-radius:10px;' +
-    'text-decoration:none;color:#c8d0e0;font-family:\'DM Mono\',ui-monospace,system-ui,sans-serif;' +
-    'font-size:8.5px;font-weight:700;line-height:1.1;border:1px solid transparent;background:transparent;cursor:pointer}' +
-    '#tt-dock a:hover,#tt-dock button.tt-more:hover{color:#fafbfc;background:rgba(138,200,255,.1);border-color:rgba(138,200,255,.25)}' +
+    'text-decoration:none;color:#b4bac4;font-family:\'IBM Plex Sans\',system-ui,sans-serif;' +
+    'font-size:9px;font-weight:500;line-height:1.15;border:1px solid transparent;background:transparent;cursor:pointer}' +
+    '#tt-dock a:hover,#tt-dock button.tt-more:hover{color:#e6e8ec;background:rgba(110,130,148,.14);border-color:rgba(138,154,171,.28)}' +
     '#tt-dock a .tt-ico,#tt-dock button.tt-more .tt-ico{font-size:15px;line-height:1}' +
     '#tt-dock a .tt-lbl,#tt-dock button.tt-more .tt-lbl{letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
-    '#tt-dock a.tt-active{color:#0b0f17;background:linear-gradient(135deg,#f7931a,#ffd86b)}' +
-    '#tt-dock button.tt-more.tt-open{color:#ffd86b;border-color:rgba(247,147,26,.45);background:rgba(247,147,26,.12)}' +
+    '#tt-dock a.tt-active{color:#14181f;background:#6e8294}' +
+    '#tt-dock button.tt-more.tt-open{color:#c4b08a;border-color:rgba(138,154,171,.4);background:rgba(110,130,148,.16)}' +
     'body.tt-has-dock{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}' +
     'body.tt-has-dock.tt-nav-open{padding-bottom:calc(min(58vh,420px) + 80px + env(safe-area-inset-bottom,0px))!important}' +
     'body.tt-has-dock .tt-fab,body.tt-has-dock .hub-fabs .tt-fab,body.tt-has-dock .hub-fabs{bottom:calc(76px + env(safe-area-inset-bottom,0px))!important}' +

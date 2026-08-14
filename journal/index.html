@@ -10,10 +10,10 @@
 <meta name="theme-color" content="#0b0f17">
 <meta name="description" content="Jurnal de execuții reale: fills cu fees, sursa semnalului, tag-uri de greșeli, expectancy pe execuții segmentat pe sursă/regim/tag">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>📓</text></svg>">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/plex.css?v=743">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=678">
 <link rel="stylesheet" href="../lib/capital-ui.css?v=678">
-<script src="../lib/suite-version.js?v=707"></script>
+<script src="../lib/suite-version.js?v=743"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -24,7 +24,7 @@
   --acc-1:#3b82f6;--acc-2:#10b981;--accent:#8ac8ff;
   --bull-s:#3aeb88;--bear-s:#ff6b6b;--warn:#d4892c;--gold:#ffd86b;--purple:#a78bfa;
   --r:12px;--rs:8px;
-  --mono:'DM Mono',monospace;--head:'Sora',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;--head:'IBM Plex Sans',system-ui,sans-serif;
   --ease:cubic-bezier(.4,0,.2,1);
   color-scheme:dark;
 }
@@ -275,7 +275,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <body class="cap-page cap-journal">
 
 <header class="cap-header">
-  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v735</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">tt-v737</span></h1>
+  <h1>📓 Journal & Risk Desk <span class="ver-badge" id="verBadge">tt-v736</span> <span class="ver-badge" id="suiteBadge" style="margin-left:4px" title="Versiune suită PWA">—</span></h1>
   <span class="cap-reconcile" id="reconcileChip" title="Stare sync tracker ↔ journal">—</span>
   <button class="nav-link" id="btnDeskRefresh" title="Reîmprospătează verdictul Risk Desk">🔄 Desk</button>
   <button class="nav-link" id="btnImport" title="Sync complet tracker → journal (open + closed)">⬇ Sync tracker</button>
@@ -792,7 +792,7 @@ function drawRollingDdChart(){
   const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
   const yMax = Math.max(...cats.flatMap(c => c.series.map(p => p.dd)), 1) * 1.1;
   ctx.clearRect(0, 0, W, H);
-  ctx.strokeStyle = '#2a3247'; ctx.fillStyle = '#a3adc1'; ctx.font = '9px DM Mono,monospace';
+  ctx.strokeStyle = '#2a3247'; ctx.fillStyle = '#a3adc1'; ctx.font = '9px "IBM Plex Mono",monospace';
   for (let i = 0; i <= 3; i++) {
     const y = pad.t + ch * i / 3;
     ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
