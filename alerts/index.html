@@ -689,12 +689,58 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 /* ── 4. Consecvență de formă — radius unic pe blocurile mari.
       Chips / pills / butoane / inputs rămân exact cum sunt. ── */
 .sync-banner, .bulk-bar { border-radius:var(--r); }
+
+/* ── 5. Desk (gestiune: page-head + totaluri) — ierarhie, nu paletă nouă ── */
+.al-desk { margin:0 0 12px; }
+.al-page-head {
+  display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
+  gap:8px 14px; margin-bottom:8px;
+}
+.al-page-head h2 {
+  margin:0; font-size:15px; font-weight:750; letter-spacing:-.02em; color:var(--t1);
+}
+.al-page-head p {
+  margin:3px 0 0; font-size:12px; color:var(--t3); font-weight:500; max-width:52ch;
+}
+.al-kpis {
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px;
+  padding:8px 12px; margin-bottom:8px;
+  background:var(--panel2); border:1px solid var(--b1); border-radius:var(--r);
+  font-size:12px;
+}
+.al-kpi { display:flex; align-items:baseline; gap:6px; white-space:nowrap; }
+.al-kpi > span { color:var(--t3); font-weight:600; }
+.al-kpi > b { font-family:var(--mono); font-weight:800; color:var(--t1); font-variant-numeric:tabular-nums; }
+.al-kpi.ok > b { color:var(--bull-s); }
+.al-kpi.warn > b { color:var(--warn); }
+.al-kpi.bad > b { color:var(--bear-s); }
+.al-bot {
+  display:none; align-items:flex-start; gap:10px; flex-wrap:wrap;
+  padding:9px 12px; margin-bottom:10px;
+  background:var(--panel); border:1px solid var(--b1); border-left:4px solid var(--accent);
+  border-radius:var(--r); font-size:12.5px; line-height:1.45; color:var(--t2);
+}
+.al-bot.show { display:flex; }
+.al-bot.ok { border-left-color:var(--bull-s); }
+.al-bot.warn { border-left-color:var(--warn); }
+.al-bot.bad { border-left-color:var(--bear-s); }
+.al-bot b { color:var(--t1); }
+.al-bot .al-bot-ico { font-size:16px; line-height:1.2; flex:0 0 auto; }
+.al-bot .al-bot-txt { flex:1 1 220px; min-width:0; }
+.al-bot .al-bot-act { display:flex; gap:6px; flex-wrap:wrap; }
+@media (max-width:550px) {
+  .al-kpis { gap:8px 12px; padding:8px 10px; }
+  .al-page-head h2 { font-size:14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  button, .card, .almost-chip { transition:none !important; }
+}
 </style>
 </head>
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v78</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v79</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -704,6 +750,30 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
   <button class="icon-btn" id="hdrMenuBtn" title="Mai multe acțiuni">⋯</button>
   <a href="../" class="nav-link">← Hub</a>
 </header>
+
+<div class="al-desk">
+  <div class="al-page-head">
+    <div>
+      <h2>Desk alerte</h2>
+      <p>Botul ☁️ verifică la 5 min cu laptopul închis. Pagina poll-uiește doar cât e deschisă.</p>
+    </div>
+  </div>
+  <div class="al-kpis" id="alKpis" aria-label="Rezumat alerte">
+    <div class="al-kpi"><span>Active</span><b id="kpiActive">0</b></div>
+    <div class="al-kpi"><span>Crypto</span><b id="kpiCrypto">0</b></div>
+    <div class="al-kpi"><span>Stocks</span><b id="kpiStocks">0</b></div>
+    <div class="al-kpi"><span>☁️ azi</span><b id="kpiCloudToday">—</b></div>
+    <div class="al-kpi" id="kpiBotWrap"><span>Bot</span><b id="kpiBot">…</b></div>
+    <div class="al-kpi" id="kpiTgWrap"><span>Telegram</span><b id="kpiTg">…</b></div>
+  </div>
+  <div class="al-bot" id="alBotBar" role="status">
+    <span class="al-bot-ico" id="alBotIco">☁️</span>
+    <div class="al-bot-txt" id="alBotTxt">Se citește starea botului de pe GitHub…</div>
+    <div class="al-bot-act">
+      <a class="nav-link" href="../health/" title="Suite Health — ultimul run Actions">Health</a>
+    </div>
+  </div>
+</div>
 
 <div id="syncBanner" class="sync-banner" role="status" aria-live="polite">
   <span id="syncBannerMsg"><b>📥 Citire publică</b> (GitHub Pages) · push ☁️ necesită token</span>
@@ -964,7 +1034,7 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 <details class="section trig-details" id="trigSection" open>
   <summary class="section-head">
     <span class="trig-caret">▸</span>
-    <h3>✅ Triggered <span style="font-weight:400;font-size:10.5px;color:var(--t3)" title="Alertele one-shot declanșate de watchlist-monitor dispar din listă fără să treacă pe aici">· ultimele 50 · istoric local paginii</span></h3>
+    <h3>✅ Triggered <span style="font-weight:400;font-size:10.5px;color:var(--t3)" title="Local (pagina deschisă) + ☁️ botul server-side">· ultimele 50 · local + ☁️ bot</span></h3>
     <span class="count" id="cntTriggered">0</span>
     <button id="btnClearTriggered" class="danger" style="font-size:11.5px">🗑 Clear</button>
   </summary>
@@ -1072,7 +1142,7 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=710"></script>
+<script src="../lib/suite-version.js?v=739"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
@@ -1231,11 +1301,89 @@ async function fetchAlertsJsonPublic() {
   return null;
 }
 let SERVER_HIST = [];
+let SERVER_BOT = null;     // tools/alerts.json → `_bot` (scris de check-alerts.mjs)
+let SERVER_ALERT_N = null; // câte alerte are botul pe GitHub
 let _histView = []; // lista combinată local+☁️ exact cum e randată (referință pt acțiuni)
+function relAge(ts) {
+  if (!ts) return '—';
+  const t = typeof ts === 'number' ? ts : Date.parse(ts);
+  if (!Number.isFinite(t)) return '—';
+  const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (m < 1) return 'acum';
+  if (m < 60) return m + ' min';
+  if (m < 1440) return Math.round(m / 60) + 'h';
+  return Math.round(m / 1440) + 'z';
+}
+function renderBotDesk() {
+  const kT = $('kpiCloudToday'), kB = $('kpiBot'), kG = $('kpiTg');
+  const wrapB = $('kpiBotWrap'), wrapG = $('kpiTgWrap');
+  const bar = $('alBotBar'), txt = $('alBotTxt'), ico = $('alBotIco');
+  const cloudToday = SERVER_HIST.filter(h => h.ts && (Date.now() - h.ts) < 86400000).length;
+  if (kT) kT.textContent = SERVER_HIST.length ? String(cloudToday) : '—';
+  const kpiTwrap = kT && kT.parentElement;
+  if (kpiTwrap) {
+    kpiTwrap.classList.toggle('ok', cloudToday > 0);
+    kpiTwrap.classList.toggle('warn', SERVER_HIST.length > 0 && cloudToday === 0);
+  }
+  if (kB) {
+    if (SERVER_BOT && SERVER_BOT.lastCheck) {
+      const age = (Date.now() - Date.parse(SERVER_BOT.lastCheck)) / 60000;
+      kB.textContent = relAge(SERVER_BOT.lastCheck);
+      if (wrapB) { wrapB.classList.toggle('ok', age < 20); wrapB.classList.toggle('warn', age >= 20 && age < 90); wrapB.classList.toggle('bad', age >= 90); }
+    } else if (SERVER_HIST.length) {
+      const last = SERVER_HIST[0] && SERVER_HIST[0].ts;
+      kB.textContent = last ? ('fire ' + relAge(last)) : 'live';
+      if (wrapB) { wrapB.classList.add('ok'); wrapB.classList.remove('warn', 'bad'); }
+    } else {
+      kB.textContent = '…';
+    }
+  }
+  if (kG) {
+    if (SERVER_BOT && SERVER_BOT.lastTelegramOk === true) {
+      kG.textContent = 'OK';
+      if (wrapG) { wrapG.classList.add('ok'); wrapG.classList.remove('warn', 'bad'); }
+    } else if (SERVER_BOT && SERVER_BOT.lastTelegramOk === false) {
+      kG.textContent = 'FAIL';
+      if (wrapG) { wrapG.classList.add('bad'); wrapG.classList.remove('ok', 'warn'); }
+    } else if (cloudToday > 0) {
+      kG.textContent = 'trimis';
+      if (wrapG) { wrapG.classList.add('ok'); wrapG.classList.remove('warn', 'bad'); }
+    } else {
+      kG.textContent = '—';
+    }
+  }
+  if (!bar || !txt) return;
+  const lastFire = (SERVER_BOT && SERVER_BOT.lastFire) || (SERVER_HIST[0] && SERVER_HIST[0].ts);
+  const lastSym = SERVER_HIST[0] ? SERVER_HIST[0].sym : '';
+  if (SERVER_BOT && SERVER_BOT.lastTelegramOk === false) {
+    bar.className = 'al-bot show bad';
+    if (ico) ico.textContent = '⚠';
+    txt.innerHTML = '<b>Botul a declanșat, Telegram a eșuat.</b> ' +
+      (SERVER_BOT.lastTelegramErr ? ('Eroare: ' + String(SERVER_BOT.lastTelegramErr).slice(0, 120) + '. ') : '') +
+      'Verifică TELEGRAM_TOKEN / CHAT_ID în GitHub Secrets. Alertele sunt în tab-ul Istoric (☁️).';
+    return;
+  }
+  if (lastFire) {
+    bar.className = 'al-bot show ok';
+    if (ico) ico.textContent = '☁️';
+    const nSrv = SERVER_ALERT_N != null ? SERVER_ALERT_N : '—';
+    txt.innerHTML = '<b>Bot live.</b> Ultima ☁️ ' + relAge(lastFire) +
+      (lastSym ? (' · ' + lastSym) : '') +
+      ' · ' + cloudToday + ' azi · ' + nSrv + ' alerte pe server.' +
+      (SERVER_BOT && SERVER_BOT.lastCheck ? ' Check ' + relAge(SERVER_BOT.lastCheck) + '.' : '') +
+      ' Dacă nu vezi mesaje pe telefon: deschide botul (nu e pe mute) — tokenul din 📡 e doar pentru pagina deschisă.';
+    return;
+  }
+  bar.className = 'al-bot show warn';
+  if (ico) ico.textContent = '⏳';
+  txt.innerHTML = '<b>Nicio declanșare ☁️ recentă în fișierul public.</b> Workflow-ul rulează; pragurile 1% re-arm se trag doar la o mișcare nouă de la ultima ancoră.';
+}
 async function loadServerHist(){
   try {
     const j = await fetchAlertsJsonPublic();
     if (!j) return;
+    SERVER_BOT = (j._bot && typeof j._bot === 'object') ? j._bot : SERVER_BOT;
+    SERVER_ALERT_N = Array.isArray(j.alerts) ? j.alerts.length : SERVER_ALERT_N;
     SERVER_HIST = (Array.isArray(j?.triggered) ? j.triggered : []).map(t => {
       const kind = t.kind === 'anchor' ? 'anchor' : t.kind === 'ref' ? 'ref' : t.kind === 'day' ? 'day' : (t.kind === 'pct' ? 'pct' : 'price');
       return { sym: String(t.symbol || '').toUpperCase(), kind, sub: t.sub || '', lvl: Number(t.level), pct: Number(t.pct), base: Number(t.base), target: Number(t.target), stop: Number(t.stop), moved: Number(t.moved), prog: Number(t.prog), step: Number(t.step), trail: !!t.trail, dd: Number(t.dd), peak: Number(t.peak), dc: Number(t.dc),
@@ -2280,6 +2428,10 @@ function render() {
   const stockView = filterActive ? stockRows.filter(matchesFilter) : stockRows;
   $('cntCrypto').textContent = filterActive ? `${cryptoView.length}/${cryptoRows.length}` : cryptoRows.length;
   $('cntStocks').textContent = filterActive ? `${stockView.length}/${stockRows.length}` : stockRows.length;
+  if ($('kpiActive')) $('kpiActive').textContent = allActive.length;
+  if ($('kpiCrypto')) $('kpiCrypto').textContent = cryptoRows.length;
+  if ($('kpiStocks')) $('kpiStocks').textContent = stockRows.length;
+  try { renderBotDesk(); } catch (e) {}
   $('filterBar').style.display = rows.length ? 'flex' : 'none';
   renderActiveGroup($('bodyCrypto'), cryptoView, '🪙', filterActive ? 'Nicio alertă crypto care să se potrivească filtrului.' : 'Nicio alertă crypto. Adaugă una de mai sus (BTC-USD, ETH-USD, ONDOUSDT…).');
   renderActiveGroup($('bodyStocks'), stockView, '📈', filterActive ? 'Niciun stock care să se potrivească filtrului.' : 'Nicio alertă pe stocks. Adaugă una de mai sus (AAPL, NVDA…).');
@@ -3992,7 +4144,7 @@ pullFromGitHub(true).then(() => { updateSyncBanner(); }).catch(() => { updateSyn
 // 120s = ~30 req/h pe Contents API (bine sub limita 5000/h cu token); fără token cade pe Pages.
 setInterval(() => { if (!document.hidden) pullFromGitHub(true); }, 120000);
 // istoricul ☁️ se împrospătează rar — botul rulează la 15 min; Pages cache scurt
-setInterval(() => { if (!document.hidden) loadServerHist(); }, 600000);
+setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 
 </script>
 <script>

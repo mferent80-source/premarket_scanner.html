@@ -89,17 +89,36 @@ async function fetchPrice(sym){
 }
 
 const tgEsc = s => String(s ?? '').replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function sendTelegram(html){
-  if (!TOKEN || !CHAT) { console.log('⚠ TELEGRAM_TOKEN/TELEGRAM_CHAT_ID lipsesc din secrets — mesaj nesent:\n' + html); return false; }
-  try {
-    const r = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: CHAT, text: html, parse_mode: 'HTML', disable_web_page_preview: true }),
-      signal: AbortSignal.timeout(10000)
-    });
-    if (!r.ok) console.log('⚠ Telegram HTTP ' + r.status + ': ' + await r.text());
-    return r.ok;
-  } catch (e) { console.log('⚠ Telegram: ' + e.message); return false; }
+  if (!TOKEN || !CHAT) { console.log('⚠ TELEGRAM_TOKEN/TELEGRAM_CHAT_ID lipsesc din secrets — mesaj nesent:\n' + html); return { ok: false, err: 'secrets lipsesc' }; }
+  const post = (text, parseMode) => fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: CHAT, text, parse_mode: parseMode || undefined, disable_web_page_preview: true }),
+    signal: AbortSignal.timeout(10000)
+  });
+  let lastErr = '';
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await post(html, 'HTML');
+      if (r.ok) { console.log('Telegram OK'); return { ok: true, err: null }; }
+      lastErr = 'HTTP ' + r.status + ': ' + (await r.text()).slice(0, 240);
+      console.log('⚠ Telegram ' + lastErr);
+      // HTML invalid (notă/simbol) → o dată ca text simplu
+      if (r.status === 400 && i === 0) {
+        const plain = String(html).replace(/<[^>]+>/g, '');
+        const r2 = await post(plain, undefined);
+        if (r2.ok) { console.log('Telegram OK (plain fallback)'); return { ok: true, err: null }; }
+        lastErr = 'HTTP ' + r2.status + ' plain: ' + (await r2.text()).slice(0, 240);
+      }
+      await sleep(r.status === 429 ? 1600 : 700);
+    } catch (e) {
+      lastErr = e.message || String(e);
+      console.log('⚠ Telegram: ' + lastErr);
+      await sleep(700);
+    }
+  }
+  return { ok: false, err: lastErr || 'send failed' };
 }
 
 // Equity drift alert (I-074) — armed via Hub Review → commit tools/equity-drift.json
@@ -151,7 +170,7 @@ try {
       dig.items.forEach(it => { if (it && it.label) lines.push(it.label); });
     }
     if (lines.length) {
-      const ok = await sendTelegram('☀️ <b>Hub morning digest</b>\n' + lines.map(l => '• ' + tgEsc(l)).join('\n'));
+      const ok = (await sendTelegram('☀️ <b>Hub morning digest</b>\n' + lines.map(l => '• ' + tgEsc(l)).join('\n'))).ok;
       if (ok) {
         dig.lastSent = etDayKey();
         writeFileSync(DIGEST_FILE, JSON.stringify(dig, null, 2) + '\n', 'utf8');
@@ -352,14 +371,31 @@ if (fired.length){
     : f.kind === 'day'
     ? `📅 <b>${tgEsc(f.sym)}</b> variația zilei ${f.dc >= 0 ? '▲' : '▼'} ${f.dc >= 0 ? '+' : ''}${f.dc.toFixed(2)}% (prag ±${f.pct}%) → $${f.price.toFixed(dec(f.sym))}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
     : `${f.dir === 'below' ? '▼' : '▲'} <b>${tgEsc(f.sym)}</b> $${f.price.toFixed(dec(f.sym))} — prag $${Number(f.lvl).toFixed(dec(f.sym))}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`);
-  await sendTelegram(`🔔 <b>Price Alert (server-side · ${fired.length})</b>\n${lines.join('\n')}`);
-  console.log(`🔔 ${fired.length} alerte declanșate.`);
+  const tg = await sendTelegram(`🔔 <b>Price Alert (server-side · ${fired.length})</b>\n${lines.join('\n')}`);
+  cfg._bot = {
+    lastCheck: new Date().toISOString(),
+    lastFire: new Date().toISOString(),
+    lastTelegramOk: !!tg.ok,
+    lastTelegramErr: tg.ok ? null : (tg.err || 'send failed'),
+    firedThisRun: fired.length,
+    symbols: uniq.length
+  };
+  changed = true;
+  if (!tg.ok) console.log('⚠ Telegram FAILED after retries — alerta e în triggered, pagina o arată pe ☁️.');
+  console.log(`🔔 ${fired.length} alerte declanșate · Telegram ${tg.ok ? 'OK' : 'FAIL'}.`);
 } else {
   console.log('Niciun prag atins.');
 }
 
 if (changed){
   cfg.alerts = kept;
+  if (!cfg._bot) {
+    cfg._bot = { lastCheck: new Date().toISOString(), lastFire: null, lastTelegramOk: null, lastTelegramErr: null, firedThisRun: 0, symbols: uniq.length };
+  } else if (!fired.length) {
+    cfg._bot.lastCheck = new Date().toISOString();
+    cfg._bot.symbols = uniq.length;
+    cfg._bot.firedThisRun = 0;
+  }
   writeFileSync(FILE, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
   console.log('Stare actualizată în tools/alerts.json (workflow-ul o comite înapoi).');
 }
