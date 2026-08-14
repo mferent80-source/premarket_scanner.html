@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v741-2026-08-14';
+const CACHE_VERSION = 'tt-v742-2026-08-14';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -16,6 +16,13 @@ const PRECACHE = [
   './lib/scanner-ui.css',
   './lib/macro-ui.css',
   './lib/suite-ui.css',
+  './lib/plex.css',
+  './lib/fonts/ibm-plex-sans-400.woff2',
+  './lib/fonts/ibm-plex-sans-400-ext.woff2',
+  './lib/fonts/ibm-plex-sans-600.woff2',
+  './lib/fonts/ibm-plex-sans-600-ext.woff2',
+  './lib/fonts/ibm-plex-mono-400.woff2',
+  './lib/fonts/ibm-plex-mono-400-ext.woff2',
   './lib/theme-light.css',
   './lib/theme.js',
   './lib/finnhub-key.js',
