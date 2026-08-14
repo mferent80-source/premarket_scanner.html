@@ -935,27 +935,41 @@ body.al-page input, body.al-page select { font-weight:400; }
   .add-form[open] #btnHint { display:none; }
   .add-form .hint-btn { padding:4px 8px; font-size:11.5px; min-height:28px; }
   .add-form > .add-row {
-    flex-wrap:nowrap; align-items:stretch; gap:6px;
-    margin:8px 8px 8px;
+    display:grid; grid-template-columns:1fr auto; align-items:end;
+    gap:10px; margin:10px; flex-wrap:unset;
   }
   .add-form .add-row > div {
-    flex-direction:row; flex-wrap:nowrap; align-items:center;
-    padding:0; background:transparent; border:none; border-radius:0;
-    gap:4px;
+    flex-direction:column; flex-wrap:nowrap; align-items:stretch;
+    padding:8px 10px; background:var(--panel2); border:1px solid var(--b1);
+    border-radius:10px; gap:5px; min-width:0;
   }
-  .add-form .add-row label { display:none; }
-  .add-form .add-row .sym-input { width:7.2em; min-height:36px; font-size:13px; }
-  .add-form .add-row .price-input { width:4.6em; min-height:36px; font-size:13px; }
-  .add-form .add-row .search-btn { min-height:36px; padding:0 8px; margin:0; border-radius:8px; }
-  .add-form .add-row .dir-select { width:5.5em; min-height:36px; font-size:12px; }
+  .add-form .add-row > div:has(.sym-input),
+  .add-form .add-row #wrapKind,
+  .add-form .add-row #wrapTarget,
+  .add-form .add-row #wrapStop,
+  .add-form .add-row #wrapDir { grid-column:1 / -1; }
+  .add-form .add-row label {
+    display:block; width:auto; font-size:11px; color:var(--t2);
+    text-transform:uppercase; letter-spacing:.04em;
+  }
+  .add-form .add-row .sym-input {
+    width:100%; min-width:0; min-height:40px; font-size:15px;
+  }
+  .add-form .add-row .price-input {
+    width:100%; min-width:0; min-height:40px; font-size:15px;
+  }
+  .add-form .add-row .search-btn {
+    min-height:40px; padding:0 12px; margin:0; border-radius:8px; flex:0 0 auto;
+  }
+  .add-form .add-row .dir-select { width:100%; min-height:40px; font-size:14px; }
   .add-form .add-row > div:has(.note-input) { display:none; }
   .add-form .add-row > .add-btn,
   .add-form .add-row .add-btn {
-    min-height:36px; padding:0 12px; font-size:13px; border-radius:8px;
-    white-space:nowrap; align-self:stretch; margin:0;
+    min-height:40px; padding:0 16px; font-size:14px; border-radius:10px;
+    white-space:nowrap; align-self:end; margin:0;
   }
-  .add-form > .add-opts { margin:0 8px 8px; }
-  .add-form > #symSearchResults { margin-left:8px; margin-right:8px; }
+  .add-form > .add-opts { margin:0 10px 10px; }
+  .add-form > #symSearchResults { margin-left:10px; margin-right:10px; }
   .filter-bar #filterInp, .filter-bar .chip { font-size:14px; font-weight:600; }
 }
 </style>
@@ -963,7 +977,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v84</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v85</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1363,7 +1377,7 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=745"></script>
+<script src="../lib/suite-version.js?v=746"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
