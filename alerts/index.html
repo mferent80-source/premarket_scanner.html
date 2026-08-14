@@ -7,38 +7,53 @@
 <link rel="stylesheet" href="../lib/theme-light.css?v=734">
 <script src="../lib/theme.js?v=734"></script>
 <title>🔔 Price Alerts — Trading Tools</title>
-<meta name="theme-color" content="#0b0f17">
+<meta name="theme-color" content="#14181f">
 <meta name="description" content="Price alerts stocks + crypto (poll 30s), listă 1-linie, almost-fire chips, tabs Preț/News/Istoric, bulk, Telegram.">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%230b0f17'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314181f'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
-  /* Contrast mai tare, fără „ceață" pe text / panouri */
-  --bg:#06090f;
-  --bg-grad:radial-gradient(900px 420px at 50% -120px, #101a28 0%, #06090f 62%);
-  --panel:#121a28;
-  --panel2:#1a2436;
-  --panel3:#243044;
-  --b1:#5a6b88;
-  --b2:#3d4d68;
-  --t1:#ffffff;
-  --t2:#e8eef8;
-  --t3:#b8c4d8;
-  --acc-1:#3b82f6; --acc-2:#10b981; --accent:#7ec8ff;
-  --bull-s:#3aeb88; --bull-bg:rgba(34,214,107,.14);
-  --bear-s:#ff7a7a; --bear-bg:rgba(255,77,77,.14);
-  --warn:#e8a03a; --warn-bg:rgba(232,160,58,.16);
-  --gold:#ffd86b;
-  --shadow:0 4px 16px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.04) inset;
-  --r:14px; --rs:10px;
+  /* Desk institutional: oțel, fără neon / alb pur / auriu pe titlu */
+  --bg:#14181f;
+  --bg-grad:linear-gradient(180deg, #181c24 0%, #14181f 28%);
+  --panel:#1b2028;
+  --panel2:#222830;
+  --panel3:#2a303a;
+  --b1:#3a4250;
+  --b2:#2e3542;
+  --t1:#e6e8ec;
+  --t2:#b4bac4;
+  --t3:#8b929e;
+  --accent:#8a9aab;
+  --acc-1:#6e8294;
+  --acc-2:#6e8294;
+  --on-accent:#14181f;
+  --bull-s:#5f9a74;
+  --bull-bg:rgba(95,154,116,.14);
+  --bear-s:#c46b6b;
+  --bear-bg:rgba(196,107,107,.14);
+  --warn:#c4a056;
+  --warn-bg:rgba(196,160,86,.14);
+  --gold:#c4b08a;
+  --suite-bg:#14181f;
+  --suite-t1:#e6e8ec;
+  --suite-t2:#b4bac4;
+  --suite-t3:#8b929e;
+  --topbar-bg:rgba(27,32,40,.96);
+  --topbar-shadow:0 8px 22px rgba(10,12,16,.35);
+  --shadow:0 4px 14px rgba(10,12,16,.28),0 1px 0 rgba(255,255,255,.03) inset;
+  --r:12px; --rs:8px;
   --mono:'DM Mono',ui-monospace,monospace; --head:'Sora',system-ui,sans-serif;
   --ease:cubic-bezier(.4,0,.2,1);
   color-scheme:dark;
 }
+:root[data-theme="light"] {
+  --on-accent:#ffffff;
+}
 html,body { min-height:100vh; }
-body {
+body, body.suite-page {
   font-family:var(--head); background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
   color:var(--t1); padding:12px; font-size:14.5px; line-height:1.45; font-weight:500;
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
@@ -53,47 +68,49 @@ header {
   position:sticky; top:8px; z-index:50;
 }
 header h1 {
-  font-size:18px; font-weight:800;
-  color:var(--gold); /* text solid, lizibil — fără -webkit-text-fill transparent */
+  font-size:18px; font-weight:700;
+  color:var(--t1);
   margin-right:auto; font-family:var(--head);
   letter-spacing:-.02em;
 }
 .ver-badge {
   display:inline-block; padding:3px 8px; margin-left:8px; border-radius:6px;
-  background:rgba(232,160,58,.18); color:var(--gold); border:1px solid rgba(232,160,58,.5);
+  background:var(--panel3); color:var(--t3); border:1px solid var(--b1);
   font-size:11px; font-weight:700; font-family:var(--mono);
 }
 .status-pill {
   font-family:var(--mono); font-size:12px; padding:4px 10px; background:var(--panel2);
-  border-radius:999px; border:1px solid var(--b1); color:var(--t1); font-weight:600;
+  border-radius:999px; border:1px solid var(--b1); color:var(--t2); font-weight:600;
 }
-.status-pill.live { color:var(--bull-s); border-color:rgba(58,235,136,.55); background:rgba(34,214,107,.1); }
-.status-pill.live::before { content:"🟢 "; }
-.status-pill.paused { color:var(--warn); border-color:rgba(232,160,58,.55); background:var(--warn-bg); }
+.status-pill.live { color:var(--bull-s); border-color:var(--bull-s); background:var(--bull-bg); }
+.status-pill.live::before { content:""; }
+.status-pill.paused { color:var(--warn); border-color:var(--warn); background:var(--warn-bg); }
 .status-pill.paused::before { content:"⏸ "; }
 
 button {
   background:var(--panel2); color:var(--t1); border:1px solid var(--b1);
   padding:7px 12px; border-radius:var(--rs); font-size:12.5px; font-family:inherit;
-  cursor:pointer; font-weight:700; transition:all .15s var(--ease);
+  cursor:pointer; font-weight:700; transition:background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease);
 }
-button:hover { background:var(--accent); border-color:var(--accent); color:#061018; transform:translateY(-1px); }
+button:hover { background:var(--panel3); border-color:var(--accent); color:var(--t1); }
+button:active { transform:translateY(1px); }
 button.primary {
-  background:linear-gradient(135deg, var(--acc-1), #0d9488);
-  border-color:transparent; color:#fff; box-shadow:0 2px 10px rgba(59,130,246,.35);
+  background:var(--acc-1);
+  border-color:transparent; color:var(--on-accent); box-shadow:none;
   font-weight:800;
 }
+button.primary:hover { background:var(--accent); color:var(--on-accent); border-color:transparent; }
 button.danger {
-  background:rgba(255,77,77,.16); color:var(--bear-s); border-color:rgba(255,122,122,.5);
+  background:var(--bear-bg); color:var(--bear-s); border-color:var(--bear-s);
 }
-button.danger:hover { background:var(--bear-s); color:#fff; }
+button.danger:hover { background:var(--bear-s); color:var(--on-accent); }
 button.icon-btn { padding:5px 9px; font-size:14px; }
 input, select {
   background:var(--panel3); color:var(--t1); border:1px solid var(--b1);
   padding:8px 12px; border-radius:var(--rs); font-size:13.5px; font-family:inherit; font-weight:600;
 }
 input::placeholder { color:var(--t3); opacity:1; }
-input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(126,200,255,.28); background:var(--panel2); }
+input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent); background:var(--panel2); }
 
 .nav-link {
   display:inline-flex; align-items:center; gap:5px;
@@ -101,7 +118,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   padding:7px 12px; border-radius:var(--rs);
   color:var(--t1); text-decoration:none; font-size:12.5px; font-weight:700;
 }
-.nav-link:hover { background:var(--accent); border-color:var(--accent); color:#061018; }
+.nav-link:hover { background:var(--panel3); border-color:var(--accent); color:var(--t1); }
 
 /* Dropdown „⋯" header — strânge acțiunile secundare (popup/sort/test/export/sync/pull/ghid)
    ca header-ul să nu mai fie un șir lung de iconițe (mai ales pe telefon). */
@@ -166,7 +183,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   background:var(--panel3); color:var(--t1); border:1px solid var(--b1); border-radius:999px;
   white-space:nowrap; transition:background .15s,color .15s,border-color .15s;
 }
-.hint-btn:hover { background:rgba(126,200,255,.16); color:var(--accent); border-color:rgba(126,200,255,.45); transform:none; }
+.hint-btn:hover { background:var(--panel3); color:var(--accent); border-color:var(--accent); transform:none; }
 .add-row { display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; }
 /* fiecare câmp = „tab" rotunjit încadrat */
 .add-row > div {
@@ -203,8 +220,8 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 }
 /* butonul +Adaugă fără chip de label — ocupă înălțimea rândului */
 .add-row > .add-btn {
-  background:linear-gradient(135deg, var(--acc-1), #0d9488);
-  border:none; color:#fff; box-shadow:0 2px 10px rgba(59,130,246,.3);
+  background:var(--acc-1);
+  border:none; color:var(--on-accent); box-shadow:none;
 }
 .add-hint {
   font-size:12px; color:var(--t2); margin-top:10px; font-family:var(--mono); line-height:1.5;
@@ -246,7 +263,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   background:var(--panel2); color:var(--t1); border:1px solid var(--b1); cursor:pointer; transition:all .15s var(--ease);
 }
 .filter-bar .chip:hover { color:var(--t1); border-color:var(--accent); background:var(--panel3); transform:none; }
-.filter-bar .chip.active { background:var(--accent); color:#061018; border-color:var(--accent); font-weight:800; }
+.filter-bar .chip.active { background:var(--acc-1); color:var(--on-accent); border-color:var(--acc-1); font-weight:800; }
 
 /* Sections */
 .section {
@@ -282,7 +299,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   font-family:var(--head); font-size:12.5px;
 }
 .alert-row:last-child { border-bottom:none; }
-.alert-row:hover { background:rgba(91,176,255,.04); }
+.alert-row:hover { background:color-mix(in srgb, var(--accent) 6%, transparent); }
 .alert-row.snoozed { opacity:.5; }
 .snz-badge { font-size:10px; color:var(--warn); font-family:var(--mono); font-weight:700; margin-left:4px; }
 /* Meniu snooze (popover lângă butonul 😴) */
@@ -294,9 +311,9 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .snooze-menu button { text-align:left; background:transparent; border:none; padding:8px 10px; border-radius:6px; font-size:12.5px; font-weight:600; color:var(--t1); }
 .snooze-menu button:hover { background:var(--panel3); color:var(--t1); transform:none; }
 .snooze-menu button.danger { color:var(--bear-s); }
-.snooze-menu button.danger:hover { background:rgba(255,77,77,.12); color:var(--bear-s); }
-.alert-row.triggered { background:rgba(34,214,107,.06); border-left:3px solid var(--bull-s); padding-left:9px; }
-.alert-row.triggered.bear { background:rgba(255,77,77,.06); border-left-color:var(--bear-s); }
+.snooze-menu button.danger:hover { background:var(--bear-bg); color:var(--bear-s); }
+.alert-row.triggered { background:var(--bull-bg); border-left:3px solid var(--bull-s); padding-left:9px; }
+.alert-row.triggered.bear { background:var(--bear-bg); border-left-color:var(--bear-s); }
 
 .alert-sym {
   font-family:var(--mono); font-weight:800; color:var(--accent); font-size:13.5px;
@@ -310,8 +327,8 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .alert-current.down { color:var(--bear-s); }
 /* badge sesiune lipit de prețul curent (stocks US): arată dacă prețul e PRE/AFT/RTH live */
 .px-sess { display:inline-block; margin-left:5px; font-family:var(--mono); font-size:9px; font-weight:700; padding:1px 5px; border-radius:999px; vertical-align:middle; border:1px solid var(--b1); color:var(--t3); white-space:nowrap; }
-.px-sess.open { color:var(--bull-s); border-color:rgba(34,214,107,.4); background:rgba(34,214,107,.08); }
-.px-sess.pre { color:var(--warn); border-color:rgba(212,137,44,.4); background:rgba(212,137,44,.1); }
+.px-sess.open { color:var(--bull-s); border-color:var(--bull-s); background:var(--bull-bg); }
+.px-sess.pre { color:var(--warn); border-color:var(--warn); background:var(--warn-bg); }
 .px-sess.closed { color:var(--t3); }
 .alert-delta { font-family:var(--mono); font-size:11.5px; color:var(--t2); }
 .alert-delta.close { color:var(--warn); font-weight:700; }
@@ -336,11 +353,11 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 }
 .al-table tbody tr:last-child td { border-bottom:none; }
 .al-table tbody tr { transition:background .12s; }
-.al-table tbody tr:hover { background:rgba(126,200,255,.08); }
+.al-table tbody tr:hover { background:color-mix(in srgb, var(--accent) 8%, transparent); }
 .al-row.snoozed { opacity:.72; }
 .al-table td.al-tk { text-align:left; vertical-align:middle; min-width:110px; padding-top:7px; padding-bottom:7px; }
 .al-tk a { font-family:var(--mono); font-weight:800; font-size:14px; letter-spacing:.2px; color:var(--accent); text-decoration:none; }
-.al-tk a:hover { text-decoration:underline; color:#a8dbff; }
+.al-tk a:hover { text-decoration:underline; color:var(--t1); }
 .al-entry { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t2); }
 .al-num { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t2); }
 .al-num.up { color:var(--bull-s); } .al-num.down { color:var(--bear-s); }
@@ -369,13 +386,13 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   font-family:var(--mono); font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px;
   background:var(--panel3); color:var(--t2); border:1px solid var(--b1); white-space:nowrap;
 }
-.sess-badge.open { color:var(--bull-s); border-color:rgba(34,214,107,.4); background:rgba(34,214,107,.1); }
-.sess-badge.pre { color:var(--warn); border-color:rgba(212,137,44,.4); background:rgba(212,137,44,.12); }
+.sess-badge.open { color:var(--bull-s); border-color:var(--bull-s); background:var(--bull-bg); }
+.sess-badge.pre { color:var(--warn); border-color:var(--warn); background:var(--warn-bg); }
 .sess-badge.closed { color:var(--t3); }
 
 /* ── News Watch demo (v62) — contract pregătit pt bot server ── */
-.nw-demo { border-left:3px solid rgba(167,139,250,.55); }
-.nw-demo > summary.section-head h3 { color:#c4b5fd; }
+.nw-demo { border-left:3px solid var(--accent); }
+.nw-demo > summary.section-head h3 { color:var(--t1); }
 .nw-form {
   display:flex; flex-wrap:wrap; gap:8px; align-items:flex-end;
   padding:10px 0 12px; border-bottom:1px solid var(--b1); margin-bottom:10px;
@@ -398,8 +415,8 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   font-size:10.5px; font-family:var(--mono); font-weight:700; padding:2px 7px; border-radius:999px;
   border:1px solid var(--b2); color:var(--t2);
 }
-.nw-kind.stock { color:#60a5fa; border-color:rgba(96,165,250,.4); background:rgba(96,165,250,.1); }
-.nw-kind.crypto { color:#f7931a; border-color:rgba(247,147,26,.4); background:rgba(247,147,26,.1); }
+.nw-kind.stock { color:var(--accent); border-color:var(--b1); background:var(--panel3); }
+.nw-kind.crypto { color:var(--gold); border-color:var(--b1); background:var(--warn-bg); }
 .nw-meta { font-size:11px; font-family:var(--mono); color:var(--t3); }
 .nw-kw { font-size:11.5px; color:var(--t2); }
 .nw-actions { display:flex; gap:6px; margin-left:auto; }
@@ -410,25 +427,25 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   border:1px solid transparent; text-decoration:none; color:var(--t1);
   font-size:12.5px; line-height:1.35; transition:border-color .12s var(--ease);
 }
-.nw-hl:hover { border-color:rgba(167,139,250,.45); }
+.nw-hl:hover { border-color:var(--accent); }
 .nw-hl .nw-hl-meta { display:block; margin-top:3px; font-size:10.5px; font-family:var(--mono); color:var(--t3); }
-.nw-hl.new { border-left:3px solid #a78bfa; background:rgba(167,139,250,.08); }
+.nw-hl.new { border-left:3px solid var(--accent); background:color-mix(in srgb, var(--accent) 10%, transparent); }
 .nw-banner {
   font-size:11.5px; color:var(--t2); line-height:1.45; padding:8px 10px; margin-bottom:10px;
-  background:rgba(167,139,250,.08); border:1px solid rgba(167,139,250,.25); border-radius:var(--rs);
+  background:var(--panel3); border:1px solid var(--b1); border-radius:var(--rs);
 }
-.nw-banner b { color:#c4b5fd; }
+.nw-banner b { color:var(--t1); }
 /* Setări News Desk — panou vizibil (nu se pierde în form) */
 .nw-settings-panel {
-  background:linear-gradient(135deg, rgba(167,139,250,.12), rgba(91,176,255,.06));
-  border:1px solid rgba(167,139,250,.4);
+  background:var(--panel2);
+  border:1px solid var(--b1);
   border-radius:var(--r);
   padding:12px 14px;
   margin-bottom:12px;
 }
 .nw-settings-panel .nw-set-head {
   display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-  margin-bottom:10px; font-family:var(--head); font-weight:800; font-size:13.5px; color:#e9d5ff;
+  margin-bottom:10px; font-family:var(--head); font-weight:800; font-size:13.5px; color:var(--t1);
 }
 .nw-settings-panel .nw-set-head span.sub {
   font-weight:500; font-size:11px; color:var(--t3); font-family:var(--mono);
@@ -470,26 +487,26 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 
 .alert-trigger-info {
   grid-column:1/-1; font-size:11.5px; color:var(--bull-s); font-family:var(--mono);
-  background:rgba(34,214,107,.06); padding:4px 8px; border-radius:4px; margin-top:5px;
+  background:var(--bull-bg); padding:4px 8px; border-radius:4px; margin-top:5px;
 }
-.alert-row.bear .alert-trigger-info { color:var(--bear-s); background:rgba(255,77,77,.06); }
+.alert-row.bear .alert-trigger-info { color:var(--bear-s); background:var(--bear-bg); }
 
 .refresh-info { font-family:var(--mono); font-size:12px; color:var(--t2); margin-top:8px; text-align:right; font-weight:600; }
 
 /* Banner sync: citire publică (Pages) fără token de push */
 .sync-banner {
   display:none; align-items:center; gap:10px; flex-wrap:wrap;
-  background:rgba(91,176,255,.08); border:1px solid rgba(91,176,255,.35);
+  background:var(--panel2); border:1px solid var(--b1);
   border-radius:var(--rs); padding:8px 12px; margin-bottom:10px;
   font-family:var(--mono); font-size:11.5px; color:var(--t2); line-height:1.4;
 }
 .sync-banner.show { display:flex; }
-.sync-banner b { color:#8ac8ff; font-weight:700; }
+.sync-banner b { color:var(--t1); font-weight:700; }
 .sync-banner button {
   margin-left:auto; padding:4px 10px; font-size:11px;
-  background:rgba(91,176,255,.15); border-color:rgba(91,176,255,.4); color:#8ac8ff;
+  background:var(--panel3); border-color:var(--b1); color:var(--t1);
 }
-.sync-banner button:hover { background:var(--accent); color:#000; }
+.sync-banner button:hover { background:var(--acc-1); color:var(--on-accent); }
 .sync-banner .sb-x {
   margin-left:0; padding:2px 8px; background:transparent; border:none; color:var(--t3); font-size:14px;
 }
@@ -507,14 +524,14 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 }
 .desk-tabs button:hover { background:var(--panel2); transform:none; color:var(--t1); }
 .desk-tabs button.on {
-  background:rgba(126,200,255,.16); border-color:rgba(126,200,255,.5); color:#b8e0ff;
-  box-shadow:0 1px 0 rgba(255,255,255,.06) inset;
+  background:var(--panel3); border-color:var(--accent); color:var(--t1);
+  box-shadow:none;
 }
 .desk-tabs .tab-cnt {
   display:inline-block; min-width:20px; margin-left:5px; padding:2px 7px; border-radius:999px;
   background:var(--panel3); font-size:11px; font-family:var(--mono); font-weight:800; color:var(--t1);
 }
-.desk-tabs button.on .tab-cnt { background:rgba(126,200,255,.28); color:#fff; }
+.desk-tabs button.on .tab-cnt { background:var(--acc-1); color:var(--on-accent); }
 .desk-panel[hidden] { display:none !important; }
 .view-tools {
   display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:8px;
@@ -540,13 +557,13 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .almost-chip {
   flex:0 0 auto; display:inline-flex; align-items:center; gap:5px;
   padding:5px 10px; border-radius:999px; cursor:pointer; white-space:nowrap;
-  background:var(--panel2); border:1px solid rgba(34,214,107,.35); color:var(--t1);
+  background:var(--panel2); border:1px solid var(--b1); color:var(--t1);
   font-family:var(--mono); font-size:11.5px; font-weight:700; line-height:1.2;
   transition:border-color .12s, background .12s;
 }
-.almost-chip:hover { border-color:var(--bull-s); background:rgba(34,214,107,.1); transform:none; }
-.almost-chip.up { border-color:rgba(34,214,107,.45); }
-.almost-chip.down { border-color:rgba(255,77,77,.4); background:rgba(255,77,77,.06); }
+.almost-chip:hover { border-color:var(--accent); background:var(--panel3); transform:none; }
+.almost-chip.up { border-color:var(--bull-s); }
+.almost-chip.down { border-color:var(--bear-s); background:var(--bear-bg); }
 .almost-chip b { font-weight:800; color:inherit; }
 .almost-chip .ac-d.up { color:var(--bull-s); font-weight:800; }
 .almost-chip .ac-d.down { color:var(--bear-s); font-weight:800; }
@@ -565,7 +582,7 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
   border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.5); font-size:12.5px; font-weight:700;
 }
 .bulk-bar.show { display:flex; }
-.bulk-bar .bb-n { font-family:var(--mono); color:#8ac8ff; }
+.bulk-bar .bb-n { font-family:var(--mono); color:var(--accent); }
 .bulk-bar button { padding:6px 10px; font-size:12px; }
 
 /* Toasts */
@@ -620,11 +637,11 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 
 /* Accentele de bordură-sus, mapate ca --sec-* din macro (paleta paginii) */
 :root {
-  --al-sec-price:var(--acc-1);   /* tab Preț — alerte active   */
-  --al-sec-news:#a78bfa;         /* tab News Watch             */
-  --al-sec-hist:#6ee7b7;         /* tab Istoric / triggered    */
-  --al-sec-add:#10b981;          /* formularul de adăugare     */
-  --al-sec-rail:var(--warn);     /* rail-ul „aproape de prag"  */
+  --al-sec-price:var(--accent);
+  --al-sec-news:var(--accent);
+  --al-sec-hist:var(--bull-s);
+  --al-sec-add:var(--accent);
+  --al-sec-rail:var(--warn);
 }
 
 /* ── 1. TOPBAR: panou sticky pe UN singur rând (ca .macro-cockpit.topbar-sticky).
@@ -642,6 +659,7 @@ body.suite-page header.suite-cockpit {
 }
 body.suite-page header.suite-cockpit h1 {
   min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  color:var(--t1);
 }
 /* status-pill împinge acțiunile la dreapta (h1 are deja margin-right:auto) */
 body.suite-page header.suite-cockpit .icon-btn,
@@ -656,22 +674,22 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 /* ── 2. TABURI: pill-uri pe fundal glass. Activ = gradient acc-1→acc-2, text alb.
       Clasele rămân identice (.desk-tabs button.on) — doar pielea se schimbă. ── */
 .desk-tabs {
-  background:rgba(18,26,40,.92);
+  background:var(--panel);
   border-color:var(--b2);
-  box-shadow:0 8px 24px rgba(0,0,0,.34);
+  box-shadow:var(--shadow);
 }
 .desk-tabs button {
   min-height:40px; letter-spacing:-.01em;
   transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
 }
-.desk-tabs button:hover { background:rgba(255,255,255,.05); border-color:var(--b2); color:var(--t1); }
+.desk-tabs button:hover { background:var(--panel3); border-color:var(--b2); color:var(--t1); }
 .desk-tabs button.on {
-  background:linear-gradient(135deg,var(--acc-1),var(--acc-2));
-  border-color:transparent; color:#fff;
-  box-shadow:0 2px 12px rgba(59,130,246,.32);
+  background:var(--acc-1);
+  border-color:transparent; color:var(--on-accent);
+  box-shadow:none;
 }
-.desk-tabs button.on:hover { background:linear-gradient(135deg,var(--acc-1),var(--acc-2)); border-color:transparent; }
-.desk-tabs button.on .tab-cnt { background:rgba(255,255,255,.22); color:#fff; }
+.desk-tabs button.on:hover { background:var(--accent); border-color:transparent; color:var(--on-accent); }
+.desk-tabs button.on .tab-cnt { background:color-mix(in srgb, var(--on-accent) 18%, transparent); color:var(--on-accent); }
 
 /* ── 3. Bordură colorată sus — semnătura secțiunilor de ziar (.sec din macro).
       Containerele reale sunt cardurile .section din interiorul fiecărui
@@ -740,7 +758,7 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v79</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🔔 Price Alerts <span class="ver-badge" id="verBadge">v80</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="status-pill" id="pollStatus">⏳ —</span>
   <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
   <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -1142,7 +1160,7 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=739"></script>
+<script src="../lib/suite-version.js?v=740"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
@@ -2117,7 +2135,7 @@ function rowHtml(sym, a) {
       <button class="icon-btn" data-action="snooze" title="😴 Amână alerta (1h / 4h / până la deschidere)" style="${snoozed ? 'color:var(--warn);border-color:rgba(212,137,44,.4)' : 'opacity:.6'}">😴</button>
       ${isRef
         ? `<button class="icon-btn" data-action="reanchor" title="🔄 Re-ancorează referința la prețul curent">🔄</button>`
-        : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT' : 'One-shot → ↻ re-arm'}" style="${a.rearm ? 'color:var(--bull-s);border-color:rgba(34,214,107,.4)' : 'opacity:.5'}">↻</button>`}
+        : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT' : 'One-shot → ↻ re-arm'}" style="${a.rearm ? 'color:var(--bull-s);border-color:var(--bull-s)' : 'opacity:.5'}">↻</button>`}
       <button class="icon-btn" data-action="edit" title="Editează">✎</button>
       <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
     </td>
@@ -2572,7 +2590,7 @@ function applyAdvanced() {
   if (!advancedMode) $('inpKind').value = 'ref';   // mod simplu → mereu Referință
   $('btnAdv').textContent = advancedMode ? '⚙️ Avansat ✓' : '⚙️ Avansat';
   $('btnAdv').style.color = advancedMode ? 'var(--bull-s)' : '';
-  $('btnAdv').style.borderColor = advancedMode ? 'rgba(34,214,107,.4)' : '';
+  $('btnAdv').style.borderColor = advancedMode ? 'var(--bull-s)' : '';
   updateFormMode();
 }
 $('btnAdv').addEventListener('click', (e) => {
@@ -3352,7 +3370,7 @@ function nwFocusSettings() {
   const panel = $('nwSettingsPanel') || $('nwSettings');
   if (panel) {
     panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    panel.style.outline = '2px solid #a78bfa';
+    panel.style.outline = '2px solid var(--accent)';
     setTimeout(() => { panel.style.outline = ''; }, 1800);
   }
   toast('⚙ Setări News Desk — panoul de mai jos', 'info');
