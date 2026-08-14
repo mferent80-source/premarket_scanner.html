@@ -801,6 +801,10 @@ body.al-page header.al-topbar .desk-tabs .tab-cnt {
   background:transparent; color:var(--t3); font-weight:500; padding:0 0 0 4px;
 }
 body.al-page header.al-topbar .desk-tabs button.on .tab-cnt { color:var(--t2); }
+.al-fold-btn { display:none; }
+.al-hdr-acts {
+  display:flex; align-items:center; gap:8px; flex:0 0 auto;
+}
 .al-desk { margin:0; padding:0.85rem 1.15rem 0; }
 .al-kpis {
   background:transparent; border:none; border-bottom:1px solid var(--b1);
@@ -853,34 +857,103 @@ body.al-page input, body.al-page select { font-weight:400; }
 .almost-lbl { font-weight:600; letter-spacing:.04em; color:var(--t3); }
 .filter-bar #filterInp { font-weight:400; }
 @media (max-width:760px) {
-  body.al-page header.suite-cockpit.al-topbar {
-    flex-wrap:wrap; padding:8px 12px; min-height:0;
+  body.al-page {
+    font-size:14.5px; font-weight:500; color:var(--t1);
   }
-  body.al-page header.al-topbar .desk-tabs { flex:1 1 100%; order:3; }
-  .al-desk { padding:0.7rem 0.85rem 0; }
+  body.al-page header.suite-cockpit.al-topbar {
+    flex-wrap:wrap; padding:8px 12px; min-height:0; align-items:center;
+  }
+  body.al-page header.al-topbar h1 {
+    font-size:16.5px; font-weight:700; flex:1 1 auto; min-width:0;
+  }
+  body.al-page header.al-topbar .ver-badge,
+  body.al-page header.al-topbar .suite-badge {
+    font-size:12px; font-weight:700; color:var(--t2);
+  }
+  body.al-page header.al-topbar .status-pill {
+    font-size:13px; font-weight:700; color:var(--t1); order:2;
+  }
+  .al-fold-btn {
+    display:inline-flex; align-items:center; gap:6px; order:3;
+    min-height:36px; padding:6px 11px; font-size:13.5px; font-weight:700;
+    color:var(--t1); background:var(--panel2); border:1px solid var(--b1);
+  }
+  header.al-topbar.is-open { padding-bottom:0; }
+  header.al-topbar.is-open .al-fold-caret { transform:rotate(180deg); }
+  .al-fold-caret { display:inline-block; transition:transform .15s var(--ease); }
+  body.al-page header.al-topbar .desk-tabs {
+    flex:1 1 100%; order:4;
+  }
+  body.al-page header.al-topbar .desk-tabs button {
+    font-size:14px; font-weight:600; color:var(--t2); min-height:36px;
+  }
+  body.al-page header.al-topbar .desk-tabs button.on {
+    font-weight:700; color:var(--t1);
+  }
+  .al-hdr-acts {
+    display:none; flex:1 1 100%; order:5; flex-wrap:wrap;
+    gap:8px; padding:10px; margin-top:6px;
+    background:var(--panel); border:1px solid var(--b1);
+    border-radius:var(--rs) var(--rs) 0 0;
+  }
+  header.al-topbar.is-open .al-hdr-acts { display:flex; }
+  .al-desk {
+    display:none; padding:8px 10px 10px; margin:0 12px 10px;
+    background:var(--panel); border:1px solid var(--b1); border-top:none;
+    border-radius:0 0 var(--rs) var(--rs);
+  }
+  header.al-topbar.is-open ~ .al-desk { display:block; }
+  .al-kpis { gap:8px 14px; padding:0.2rem 0 0.55rem; }
+  .al-kpi > span { font-weight:600; color:var(--t2); font-size:13px; }
+  .al-kpi > b { font-weight:700; font-size:14.5px; color:var(--t1); }
+  .al-bot { font-size:14px; font-weight:500; color:var(--t1); }
+  .al-bot b { font-weight:700; }
+  #almostRail, .almost-rail { display:none !important; }
+  .section-head h3 { font-size:15.5px; font-weight:700 !important; color:var(--t1); }
+  .section-head .count { font-size:13px; font-weight:800; color:var(--t1); }
+  .sess-badge { font-size:12px; font-weight:700; }
+  .al-table { font-size:14px; }
+  .al-table th {
+    font-size:12px; font-weight:700; color:var(--t2); letter-spacing:.02em;
+  }
+  .al-table th, .al-table td { padding:9px 7px; font-size:14px; }
+  .al-table td.al-tk a { font-weight:700; font-size:15px; color:var(--t1); }
+  .al-table .al-now { font-weight:700; font-size:15px; }
+  .al-table .al-num, .al-table .al-tgt, .al-table .al-entry, .al-table .al-dist {
+    font-weight:600; color:var(--t1); font-size:14px;
+  }
+  .empty { font-weight:500; font-size:14.5px; color:var(--t2); }
+  .add-form h3 { font-size:15.5px; font-weight:700 !important; }
+  .filter-bar #filterInp, .filter-bar .chip { font-size:14px; font-weight:600; }
+  .add-form > summary.add-form-head { font-weight:600; }
 }
 </style>
 </head>
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v82</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v83</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
     <button type="button" data-tab="hist">Istoric <span class="tab-cnt" id="tabCntHist">0</span></button>
   </nav>
   <span class="status-pill" id="pollStatus">—</span>
-  <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
-  <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
-  <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
-  <button class="icon-btn" id="tgBtn" title="Configurează Telegram pentru price alerts">📡</button>
-  <button class="icon-btn" id="btnNwSettings" title="Deschide Setări News Desk (digest, quiet hours, filtru)">⚙</button>
-  <button class="icon-btn" id="hdrMenuBtn" title="Mai multe acțiuni">⋯</button>
-  <a href="../" class="nav-link">Hub</a>
+  <button type="button" class="al-fold-btn" id="alFoldBtn" aria-expanded="false" aria-controls="alHdrActs alDesk" title="Controale, KPI și rezumat bot">
+    Controale <span class="al-fold-caret" aria-hidden="true">▾</span>
+  </button>
+  <div class="al-hdr-acts" id="alHdrActs">
+    <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
+    <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
+    <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
+    <button class="icon-btn" id="tgBtn" title="Configurează Telegram pentru price alerts">📡</button>
+    <button class="icon-btn" id="btnNwSettings" title="Deschide Setări News Desk (digest, quiet hours, filtru)">⚙</button>
+    <button class="icon-btn" id="hdrMenuBtn" title="Mai multe acțiuni">⋯</button>
+    <a href="../" class="nav-link">Hub</a>
+  </div>
 </header>
 
-<div class="al-desk">
+<div class="al-desk" id="alDesk">
   <div class="al-kpis" id="alKpis" aria-label="Rezumat alerte">
     <div class="al-kpi"><span>Active</span><b id="kpiActive">0</b></div>
     <div class="al-kpi"><span>Crypto</span><b id="kpiCrypto">0</b></div>
@@ -1259,7 +1332,7 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=742"></script>
+<script src="../lib/suite-version.js?v=744"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
@@ -2419,6 +2492,11 @@ function renderPulse(activeRows) {
 function renderAlmostRail(activeRows) {
   const el = $('almostRail');
   if (!el) return;
+  if (window.matchMedia && window.matchMedia('(max-width:760px)').matches) {
+    el.classList.remove('show');
+    el.innerHTML = '';
+    return;
+  }
   // un chip per simbol (nu per alertă), sortat după Δ zi desc
   const bySym = {};
   activeRows.forEach(({ sym, a }) => {
@@ -2709,6 +2787,25 @@ hdrMenuBtn.addEventListener('click', e => {
   e.stopPropagation();
   hdrMenu.style.display === 'flex' ? closeHdrMenu() : openHdrMenu();
 });
+
+// Mobil: header extras + KPI/bot într-un dropdown (desktop ignoră clasa — CSS le ține vizibile)
+const alFoldBtn = $('alFoldBtn');
+const alTopbar = document.querySelector('header.al-topbar');
+const FOLD_KEY = 'pa_top_fold_open';
+function setTopFold(open) {
+  if (!alTopbar || !alFoldBtn) return;
+  alTopbar.classList.toggle('is-open', !!open);
+  alFoldBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  try { localStorage.setItem(FOLD_KEY, open ? '1' : '0'); } catch (e) {}
+  if (!open) closeHdrMenu();
+}
+if (alFoldBtn) {
+  try { setTopFold(localStorage.getItem(FOLD_KEY) === '1'); } catch (e) { setTopFold(false); }
+  alFoldBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    setTopFold(!alTopbar.classList.contains('is-open'));
+  });
+}
 // click pe rând (oriunde în afară de butonul propriu-zis) → declanșează butonul; apoi închide
 hdrMenu.querySelectorAll('.hm-item').forEach(it => it.addEventListener('click', e => {
   const btn = it.querySelector('button');
