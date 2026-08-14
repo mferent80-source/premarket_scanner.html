@@ -165,6 +165,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   border-bottom-color:var(--b1);
 }
 .af-title { display:flex; align-items:center; gap:8px; }
+.af-extra { display:flex; gap:6px; flex:0 0 auto; }
 .add-form[open] .trig-caret { transform:rotate(90deg); color:var(--accent); }
 .add-form > summary.add-form-head:hover .trig-caret { color:var(--accent); }
 .add-form-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:0; }
@@ -923,16 +924,46 @@ body.al-page input, body.al-page select { font-weight:400; }
     font-weight:600; color:var(--t1); font-size:14px;
   }
   .empty { font-weight:500; font-size:14.5px; color:var(--t2); }
-  .add-form h3 { font-size:15.5px; font-weight:700 !important; }
+  .add-form { margin-bottom:8px; }
+  .add-form h3 { font-size:14px !important; font-weight:700 !important; white-space:nowrap; }
+  .add-form > summary.add-form-head {
+    padding:6px 10px; min-height:36px; gap:8px; flex-wrap:nowrap;
+    font-weight:600;
+  }
+  .add-form:not([open]) .af-extra { display:none; }
+  .add-form[open] .af-extra { gap:4px; }
+  .add-form[open] #btnHint { display:none; }
+  .add-form .hint-btn { padding:4px 8px; font-size:11.5px; min-height:28px; }
+  .add-form > .add-row {
+    flex-wrap:nowrap; align-items:stretch; gap:6px;
+    margin:8px 8px 8px;
+  }
+  .add-form .add-row > div {
+    flex-direction:row; flex-wrap:nowrap; align-items:center;
+    padding:0; background:transparent; border:none; border-radius:0;
+    gap:4px;
+  }
+  .add-form .add-row label { display:none; }
+  .add-form .add-row .sym-input { width:7.2em; min-height:36px; font-size:13px; }
+  .add-form .add-row .price-input { width:4.6em; min-height:36px; font-size:13px; }
+  .add-form .add-row .search-btn { min-height:36px; padding:0 8px; margin:0; border-radius:8px; }
+  .add-form .add-row .dir-select { width:5.5em; min-height:36px; font-size:12px; }
+  .add-form .add-row > div:has(.note-input) { display:none; }
+  .add-form .add-row > .add-btn,
+  .add-form .add-row .add-btn {
+    min-height:36px; padding:0 12px; font-size:13px; border-radius:8px;
+    white-space:nowrap; align-self:stretch; margin:0;
+  }
+  .add-form > .add-opts { margin:0 8px 8px; }
+  .add-form > #symSearchResults { margin-left:8px; margin-right:8px; }
   .filter-bar #filterInp, .filter-bar .chip { font-size:14px; font-weight:600; }
-  .add-form > summary.add-form-head { font-weight:600; }
 }
 </style>
 </head>
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v83</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v84</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1007,7 +1038,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <details class="add-form" id="addForm">
   <summary class="add-form-head">
     <div class="af-title"><span class="trig-caret">▸</span><h3>Adaugă alertă</h3></div>
-    <div style="display:flex;gap:6px">
+    <div class="af-extra">
       <button type="button" id="btnAdv" class="hint-btn" title="Arată tipurile vechi de alertă (preț prag, mișcare %, ancoră). Default: doar Referință.">Avansat</button>
       <button type="button" id="btnHint" class="hint-btn">Cum funcționează</button>
     </div>
@@ -1332,7 +1363,7 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=744"></script>
+<script src="../lib/suite-version.js?v=745"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
