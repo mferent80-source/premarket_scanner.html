@@ -98,6 +98,9 @@ export default {
         SLEV_PDL_RECLAIM: 'pdl_reclaim',
         SLEV_OPEN_UP: 'open_up',
         SLEV_OPEN_DN: 'open_dn',
+        VP_VA_RECLAIM: 'va_reclaim',
+        VP_VA_LOST: 'va_lost',
+        VP_POC_CROSS: 'poc_cross',
       };
       if (event && tagMap[event]) body.journal_tag = tagMap[event];
 
