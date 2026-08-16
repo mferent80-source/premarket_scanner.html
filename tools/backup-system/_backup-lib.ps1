@@ -13,7 +13,28 @@ function Test-IsSecret {
 
 function Get-Sha256Hex {
   param([Parameter(Mandatory)][string]$Path)
-  return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+  # Un fisier blocat de alt program NU are voie sa rupa tot backup-ul.
+  #
+  # Pe 06.08.2026 serverul de gestiune a inceput sa tina deschise baza si
+  # jurnalele lui. Get-FileHash a esuat pe ele, a intors $null, iar `.Hash` pe
+  # $null arunca "The property 'Hash' cannot be found". Rezultatul: backup-ul
+  # proiectului depozit-gestiune a picat de 157 de ori la rand, timp de 10
+  # zile, si a scris esecul DOAR in log - unde nu se uita nimeni.
+  #
+  # Acum fisierul blocat intra in amprenta cu marimea si data lui. Se pierde
+  # precizia pe acel fisier, dar se salveaza restul proiectului - iar un
+  # backup partial e infinit mai bun decat niciunul.
+  try {
+    $h = Get-FileHash -LiteralPath $Path -Algorithm SHA256 -ErrorAction Stop
+    return $h.Hash
+  } catch {
+    try {
+      $fi = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+      return ("BLOCAT:{0}:{1}" -f $fi.Length, $fi.LastWriteTimeUtc.Ticks)
+    } catch {
+      return "INACCESIBIL"
+    }
+  }
 }
 
 function Get-IncludedFiles {

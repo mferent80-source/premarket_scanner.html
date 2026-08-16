@@ -26,6 +26,24 @@ Remove-Item $tf -Force
 Assert 'hash stabil'   ($h1 -eq $h2)
 Assert 'hash diferit'  ($h1 -ne $h3)
 
+# Un fisier BLOCAT de alt program nu are voie sa rupa tot backup-ul.
+#
+# Asa a picat backup-ul lui depozit-gestiune de 157 de ori intre 06 si 16.08.2026,
+# tacut: serverul tinea deschise baza si jurnalele, Get-FileHash intorcea $null,
+# iar `.Hash` pe $null arunca. Un singur fisier ocupat anula copia intregului
+# proiect - si scria esecul doar in log.
+$bl = Join-Path $env:TEMP ('blocat_' + [System.Guid]::NewGuid().ToString('N') + '.txt')
+Set-Content -LiteralPath $bl -Value 'continut' -NoNewline -Encoding UTF8
+$fs = [System.IO.File]::Open($bl, 'Open', 'Read', 'None')   # blocat exclusiv
+try {
+  $hb = Get-Sha256Hex $bl
+} finally {
+  $fs.Close()
+  Remove-Item $bl -Force -ErrorAction SilentlyContinue
+}
+Assert 'fisier blocat nu arunca'      ($null -ne $hb)
+Assert 'fisier blocat are marcaj'     ($hb -like 'BLOCAT:*')
+
 # Get-IncludedFiles + Get-FolderHash
 $src = Join-Path $env:TEMP ('src_' + [System.Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $src | Out-Null
