@@ -101,6 +101,8 @@ export default {
         VP_VA_RECLAIM: 'va_reclaim',
         VP_VA_LOST: 'va_lost',
         VP_POC_CROSS: 'poc_cross',
+        VP_CHASE: 'vp_chase',
+        VP_VALUE_OK: 'value_ok',
       };
       if (event && tagMap[event]) body.journal_tag = tagMap[event];
 
