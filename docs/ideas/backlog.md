@@ -2492,3 +2492,56 @@ User: „fa" (gap fill, stats PDH, automation).
 User: „urmatorul instrument".
 - **I-263 facut:** `Trend_Path_Desk_v1_8.pine` — rail VEL/DECAY/EXT pe leg + CITIRE VEL; REF MGMT foloseste decay/ext.
 - Retentie PATH: sters v1.5; raman v1.6/v1.7/v1.8. README actualizat.
+
+| I-326 | Chip JSON WAIT cand SETUP e verde dar dirClear e fals | Nav Complete Pine | S | P1 | propus | ideation | 2026-08-16 |
+| I-327 | STATS: episoade SETUP dash vs JSON dirClear + motiv blocaj | Nav Complete Pine | M | P1 | propus | ideation | 2026-08-16 |
+| I-328 | journal_tag + linie TG pentru NAVALL_SETUP (setup, nu entry) | Automation + Nav Complete | S | P1 | propus | ideation | 2026-08-16 |
+| I-329 | Heartbeat SETUP optional dupa N bare inca dirClear (default OFF) | Nav Complete Pine | S | P2 | propus | ideation | 2026-08-16 |
+| I-330 | Soft-mute NAVALL_VERDICT in CHOP, exceptie INV | Nav Complete Pine | S | P3 | propus | ideation | 2026-08-16 |
+| I-331 | Relay pe 2 canale: signal (SETUP) vs nav (VERDICT/FLIP) | Automation (deck-relay) | M | P2 | propus | ideation | 2026-08-16 |
+
+### Status update 2026-08-16 — ideation Nav Complete v1.7 JSON dirClear
+User: „FA IDEI" dupa v1.7 (JSON SETUP doar pe dirClear; dash neschimbat).
+- **I-326..I-331 propuse.** Nu repropuse: I-324 shell (facut), I-322 tag-uri AVWAP/SLEV (facut), I-018 expectancy entry (alta populatie), I-005 shadow macro (alt gate).
+
+#### I-326 · Chip JSON WAIT · [S] · P1
+- **Problema/golul:** In Permisiv, dash-ul poate arata `SETUP OK · SUS` 2–3 bare (sau in clash) in timp ce JSON-ul tace. Fara stare vizibila, pare defect.
+- **Solutia:** Chip/rand scurt `JSON WAIT` cand `setupOk` si nu `dirClear`, cu motivul (flip proaspat / CHOP / EMA≠HMA). Nu schimba SETUP OK. Nu e BUY.
+- **Impact:** Citesti de ce webhook-ul tace; nu fortezi entry pe fereastra de intoarcere.
+- **Riscuri:** Inca un chip pe dash compact (max ~7 randuri — ramane in chips, nu rand nou default).
+- **Fișiere atinse:** `pine-scripts/NAV-SUITE/Nav_Complete_Dash_v1_7.pine` (livrare v1.8), README, CHEATSHEET.
+
+#### I-327 · STATS SETUP dash vs JSON dirClear · [M] · P1
+- **Problema/golul:** „Un semnal pe an" e frica, nu masura. Nu stim cate episoade SETUP dash vs cate `NAVALL_SETUP` pe close, nici daca blocheaza flipFresh sau CHOP.
+- **Solutia:** Pagina STATS: n episoade `setupOk`, n JSON dirClear, delay median in bare, % blocate pe motiv. „—" sub n minim. Fara alerta pe aceste procente. Ipoteza OOS: judeci dupa lipirea v1.7, nu pe istoricul care a ales C.
+- **Impact:** Stii daca 2–3 bare e prea mult; ajustezi `freshFlipBars` pe date, nu pe senzatie.
+- **Riscuri:** n mic pe TF mare / Strict; in-sample daca tunezi pe acelasi chart.
+- **Fișiere atinse:** `pine-scripts/NAV-SUITE/Nav_Complete_Dash_v1_*.pine`, README.
+
+#### I-328 · journal_tag NAVALL_SETUP · [S] · P1
+- **Problema/golul:** `tagMap` din relay nu are `NAVALL_SETUP` / `NAVALL_VERDICT` / `NAVALL_FLIP`. Journal-ul poate inghiti SETUP ca entry sau il ignora.
+- **Solutia:** Mapare `NAVALL_SETUP` → tag de setup/navigare (nu fill). Linie TG umana: simbol + SUS/JOS + „nu e BUY". VERDICT/FLIP raman nav sau fara tag de trade.
+- **Impact:** Review-ul nu confunda semnalul de directie cu ordin executat.
+- **Riscuri:** schema payload trebuie sa ramana stabila (`dir_txt`, `dir_clear`); redeploy worker.
+- **Fișiere atinse:** `premarket_scanner/tools/cf-worker-deck-relay.js`, optional `lib/journal.js`.
+
+#### I-329 · Heartbeat SETUP optional · [S] · P2
+- **Problema/golul:** Un episod dirClear pe 4h poate tine zile — un singur JSON la start. Userul a cerut sa nu fie „un semnal pe an", fara sa slabeasca C.
+- **Solutia:** Input OFF: daca `dirClear`+`setupOk` tin N bare (ex. 20), re-emite `NAVALL_SETUP` cu `event` distinct (heartbeat), nu dubleaza front-ul. N din preset (Intra mai scurt).
+- **Impact:** Reminder pe TF mare, fara sa inmoi poarta C.
+- **Riscuri:** Spam daca N e mic; trebuie event separat ca journal-ul sa nu numere 2 entry-uri.
+- **Fișiere atinse:** `pine-scripts/NAV-SUITE/Nav_Complete_Dash_v1_*.pine`.
+
+#### I-330 · Soft-mute VERDICT in CHOP · [S] · P3
+- **Problema/golul:** v1.7 lasa `NAVALL_VERDICT` sa plece in CHOP (management). Pe crypto agitat umple TG cu chase/room, nu cu INV.
+- **Solutia:** Input default ON: in `isChop`, nu emite VERDICT decat pentru structura rupta/amenintata (P1). FLIP ramane (context). SETUP deja e oprit de C.
+- **Impact:** Atentie pe ce moare structura, nu pe zgomot de range.
+- **Riscuri:** Ratezi un chase real in CHOP — de aceea INV ramane; ipoteza OOS.
+- **Fișiere atinse:** `pine-scripts/NAV-SUITE/Nav_Complete_Dash_v1_*.pine`.
+
+#### I-331 · Relay 2 canale: signal vs nav · [M] · P2
+- **Problema/golul:** Un singur forward: SETUP, FLIP si VERDICT cad in acelasi TG/journal. Contrazice decizia „semnal doar pe directie clara".
+- **Solutia:** Canal `signal` = doar `NAVALL_SETUP` (+ heartbeat daca I-329). Canal `nav` = VERDICT/FLIP. Mute separat. Nu schimba Pine-ul daca payload-ul are deja `event`.
+- **Impact:** Botul/ochiul de semnal nu mai vede intoarceri HMA ca entry.
+- **Riscuri:** doua chat-uri/token-uri de configurat; KV `last` pe event ramane.
+- **Fișiere atinse:** `premarket_scanner/tools/cf-worker-deck-relay.js`.
