@@ -1126,7 +1126,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v89</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v90</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1524,12 +1524,12 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=750"></script>
+<script src="../lib/suite-version.js?v=751"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=750"></script>
+<script src="../lib/price-day.js?v=751"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2061,7 +2061,8 @@ async function fetchPrice(symbol) {
       for (const k of keys) {
         const hit = QB.get(k, 20000);
         if (hit && Number.isFinite(hit.price) && hit.price > 0
-            && typeof hit.chgPct === 'number' && Number.isFinite(hit.chgPct)) {
+            && typeof hit.chgPct === 'number' && Number.isFinite(hit.chgPct)
+            && (!window.PriceDay || !PriceDay.busOk || PriceDay.busOk(hit.src))) {
           const prev = Math.abs(hit.chgPct) > 1e-9
             ? hit.price / (1 + hit.chgPct / 100)
             : hit.price;
@@ -2549,7 +2550,7 @@ function rowHtml(sym, a) {
     <td class="al-tk" title="${escHtml([a.note || '', entryTip].filter(Boolean).join(' · '))}">
       ${cb}<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${cur != null ? sessTag(sym) : ''}${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}
     </td>
-    <td class="al-num ${dayCls}">${dayChg == null ? '—' : fmtPct(dayChg)}</td>
+    <td class="al-num ${dayCls}" title="Δ zi față de close ieri">${dayChg == null ? '—' : fmtPct(dayChg)}</td>
     <td class="al-now ${dayCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</td>
     <td class="al-trig" title="${escHtml(thrTip)}">
       <span class="al-tgt">${thrShort}</span>
@@ -2571,7 +2572,7 @@ function rowHtml(sym, a) {
 
 // Cap de tabel — listă 1-linie
 const AL_THEAD = `<thead><tr>
-  <th>Ticker</th><th>Δ zi</th><th>Acum</th><th>Prag</th><th></th>
+  <th>Ticker</th><th title="Variația zilei față de close ieri">Δ zi</th><th>Acum</th><th>Prag</th><th></th>
 </tr></thead>`;
 
 // Doar LISTĂ pe o linie (v74 — group scoasă)

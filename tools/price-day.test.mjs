@@ -38,3 +38,13 @@ test('premarket: prev = regularMarketPrice (close ieri)', () => {
   assert.equal(q.last, 96.10);
   assert.equal(q.prev, 95.56);
 });
+
+test('busOk: doar surse de zi (alerts/yahoo), nu nasdaq-ext/finnhub', () => {
+  assert.equal(PD.busOk('alerts'), true);
+  assert.equal(PD.busOk('yahoo-rth'), true);
+  assert.equal(PD.busOk('nasdaq-ext'), false);
+  assert.equal(PD.busOk('nasdaq-fh'), false);
+  assert.equal(PD.busOk('hub-market'), false);
+  assert.equal(PD.busOk(''), false);
+  assert.equal(PD.busOk(undefined), false);
+});
