@@ -1126,7 +1126,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v90</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v91</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1524,12 +1524,12 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=751"></script>
+<script src="../lib/suite-version.js?v=752"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=751"></script>
+<script src="../lib/price-day.js?v=752"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -1992,10 +1992,13 @@ function usSessionFine() {
 async function fetchPriceYahoo(symbol) {
   if (!window.D || !D.fetchJSON) return null;
   try {
-    // v44: interval=1m (nu 5m) → ultima bară e proaspătă la ≤1 min (verificat live pe ASTS: prețul
-    // premarket LIVE e DOAR în ultima bară; meta.preMarketPrice vine gol pe destule simboluri).
-    // v73: SWR + timeout 6s + cacheKey — poll-ul nu mai atârnă 9s×N pe proxy free hung.
-    // v76: ttl scurt 15s + fără SWR pe chg — un SWR vechi dădea 0% pe un device și 0.7% pe altul.
+    const ses = usSessionFine();
+    const isEU = /\./.test(symbol) && !isCrypto(String(symbol).toUpperCase());
+    if (window.PriceDay && PriceDay.fetchDay) {
+      return await PriceDay.fetchDay(symbol, {
+        fetchJSON: D.fetchJSON, session: ses, isEU, ttl: 15, timeout: 6000
+      });
+    }
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1m&range=1d&includePrePost=true`;
     const j = await D.fetchJSON(yahooUrl, {
       ttl: 15, timeout: 6000, swr: false,
@@ -2005,25 +2008,12 @@ async function fetchPriceYahoo(symbol) {
     const res = j?.chart?.result?.[0];
     if (!res) return null;
     const m = res.meta || {};
-    const ses = usSessionFine();
-    // EU (.DE/.PA/.L…) au sesiunea LOR, nu ora US: când e premarket în US, bursa europeană e în
-    // plină sesiune regular → meta.regularMarketPrice e prețul LIVE de AZI, nu close-ul de ieri.
-    const isEU = /\./.test(symbol) && !isCrypto(String(symbol).toUpperCase());
-    // PRIMAR = ultima bară non-null (cea mai proaspătă când există tranzacții, inclusiv extended).
     let last = null;
     const closes = res.indicators?.quote?.[0]?.close || [];
     for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { last = closes[i]; break; }
-    // fallback când NU sunt bare (ex. premarket f. devreme, fără tranzacții): meta extended → regular
     if (last == null) last = ses === 'pre' ? (m.preMarketPrice ?? null) : ses === 'after' ? (m.postMarketPrice ?? null) : null;
     if (last == null) last = m.regularMarketPrice ?? null;
     if (last == null || !Number.isFinite(last)) return null;
-
-    // Baseline variația zilei: close IERI. RTH folosește regularMarketPrice chiar
-    // dacă Yahoo nu trimite regularMarketChangePercent (altfel rămâne bara 1m
-    // întârziată și Δ zi nu bate cu Yahoo/TV).
-    if (window.PriceDay && PriceDay.yahooQuote) {
-      return PriceDay.yahooQuote(m, last, isEU ? 'rth' : ses, isEU);
-    }
     let prev = m.chartPreviousClose ?? m.previousClose ?? null;
     if (ses === 'rth' && Number.isFinite(m.regularMarketPrice)) last = m.regularMarketPrice;
     if (ses === 'pre') prev = m.regularMarketPrice ?? prev;

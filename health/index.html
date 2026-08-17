@@ -83,7 +83,7 @@ header h1{
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v6</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🩺 Suite Health <span class="ver-badge" id="verBadge">v7</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <button class="nav-link" id="btnRunAll">▶ Rulează toate testele</button>
   <button class="nav-link" id="btnReport" title="Copiază starea tuturor verificărilor ca raport text — lipește-l în Claude Code și el ia măsurile">📋 Raport pt Claude</button>
   <a class="nav-link" href="../">← Hub</a>
@@ -134,6 +134,11 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
     <div class="chk-body" id="bLS">—</div>
   </div>
 
+  <div class="chk" id="cQB">
+    <div class="chk-head"><span class="chk-dot" id="dQB"></span><h2>🚌 Quote-bus Δ zi</h2><button class="chk-btn" data-run="qbpurge" type="button" title="Scoate % din surse care nu sunt Yahoo/Alerts">Curăță otrava</button></div>
+    <div class="chk-body" id="bQB">—</div>
+  </div>
+
   <div class="chk" id="cEquity">
     <div class="chk-head"><span class="chk-dot" id="dEquity"></span><h2>📈 Equity / snapshot</h2></div>
     <div class="chk-body" id="bEquity">—</div>
@@ -157,7 +162,9 @@ cele care CONSUMĂ (ping proxy-uri, request Finnhub, GitHub API, mesaj Telegram 
 <script src="../lib/capital-desk.js?v=6"></script>
 <script src="../lib/ai.js"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/suite-version.js?v=673"></script>
+<script src="../lib/suite-version.js?v=752"></script>
+<script src="../lib/quote-bus.js?v=752"></script>
+<script src="../lib/price-day.js?v=752"></script>
 <script src="../lib/macro-context.js?v=619"></script>
 <script src="../lib/hub-state.js?v=626"></script>
 <script>
@@ -459,8 +466,61 @@ function checkLS(){
   } catch (e) { dot('dLS', 'warn'); $('bLS').textContent = 'necalculabil'; }
 }
 
+function loadQuotesMap() {
+  if (window.QB && QB.all) return QB.all(false);
+  try {
+    const raw = JSON.parse(localStorage.getItem('tt_quotes_v1') || 'null');
+    return (raw && raw.quotes) || {};
+  } catch (e) { return {}; }
+}
+
+function checkQB() {
+  const map = loadQuotesMap();
+  const s = (window.PriceDay && PriceDay.summarizeBus)
+    ? PriceDay.summarizeBus(map)
+    : { n: Object.keys(map).length, bySrc: {}, poisonN: 0, poison: [] };
+  const srcTxt = Object.keys(s.bySrc).sort().map(k => k + '×' + s.bySrc[k]).join(' · ') || 'gol';
+  const cls = s.n === 0 ? 'off' : (s.poisonN ? 'warn' : 'ok');
+  dot('dQB', cls);
+  let html = s.n === 0
+    ? 'bus gol pe acest device <span class="chk-sub">(se umple când deschizi Alerts / Hub / Nasdaq)</span>'
+    : '<b>' + s.n + ' simboluri</b> · surse: ' + esc(srcTxt);
+  if (s.poisonN) {
+    html += '<br><span class="warn">⚠ ' + s.poisonN + ' cu % din sursă străină</span> '
+      + '<span class="chk-sub">(' + esc(s.poison.slice(0, 8).join(', ')) + (s.poison.length > 8 ? '…' : '') + ')</span>'
+      + ' — astea făceau PC ≠ telefon';
+  } else if (s.n) {
+    html += '<br><span class="ok">niciun % străin</span> <span class="chk-sub">Δ zi doar din Yahoo/Alerts</span>';
+  }
+  $('bQB').innerHTML = html;
+}
+
+function purgeQbPoison() {
+  let n = 0;
+  try {
+    const raw = JSON.parse(localStorage.getItem('tt_quotes_v1') || 'null');
+    if (!raw || !raw.quotes) { checkQB(); return; }
+    Object.keys(raw.quotes).forEach(k => {
+      const q = raw.quotes[k];
+      if (!q) return;
+      const src = q.src || '';
+      const ok = window.PriceDay && PriceDay.busOk ? PriceDay.busOk(src) : false;
+      if (!ok && typeof q.chgPct === 'number') { delete q.chgPct; n++; }
+    });
+    localStorage.setItem('tt_quotes_v1', JSON.stringify(raw));
+  } catch (e) {}
+  toastQb(n ? ('Scoase ' + n + ' % străine — reîncarcă Alerts pe PC') : 'Nimic de curățat');
+  checkQB();
+}
+
+function toastQb(msg) {
+  const el = $('bQB');
+  if (!el) return;
+  el.insertAdjacentHTML('beforeend', '<br><span class="ok">' + esc(msg) + '</span>');
+}
+
 // ── Wiring ──
-const RUNNERS = { proxy: runProxy, finnhub: runFinnhub, tg: runTG, bot: runBot, gist: runGist };
+const RUNNERS = { proxy: runProxy, finnhub: runFinnhub, tg: runTG, bot: runBot, gist: runGist, qbpurge: async () => purgeQbPoison() };
 document.querySelectorAll('.chk-btn').forEach(b => b.addEventListener('click', async () => {
   b.disabled = true;
   try { await RUNNERS[b.dataset.run](); } finally { b.disabled = false; }
@@ -531,6 +591,7 @@ checkSW();
 checkEquity();
 checkHubStale();
 checkLS();
+checkQB();
 $('foot').textContent = 'verificările gratuite au rulat la deschidere · cele cu consum așteaptă butonul';
 })();
 </script>

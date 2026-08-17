@@ -48,3 +48,21 @@ test('busOk: doar surse de zi (alerts/yahoo), nu nasdaq-ext/finnhub', () => {
   assert.equal(PD.busOk(''), false);
   assert.equal(PD.busOk(undefined), false);
 });
+
+test('lastBarFromCloses: ultima bară non-null', () => {
+  assert.equal(PD.lastBarFromCloses([1, 2, null, 4, null]), 4);
+  assert.equal(PD.lastBarFromCloses([]), null);
+});
+
+test('summarizeBus: numără surse și otrava', () => {
+  const s = PD.summarizeBus({
+    HOOD: { src: 'nasdaq-ext', chgPct: -4, price: 95 },
+    ASTS: { src: 'yahoo-rth', chgPct: 1.2, price: 73 },
+    FIX: { src: 'alerts', chgPct: 0.5, price: 1800 }
+  });
+  assert.equal(s.n, 3);
+  assert.equal(s.bySrc['nasdaq-ext'], 1);
+  assert.equal(s.bySrc['yahoo-rth'], 1);
+  assert.equal(s.poisonN, 1);
+  assert.ok(s.poison[0].indexOf('HOOD') >= 0);
+});
