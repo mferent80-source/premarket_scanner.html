@@ -357,6 +357,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .al-table tbody tr:hover { background:color-mix(in srgb, var(--accent) 8%, transparent); }
 .al-row.snoozed { opacity:.72; }
 .al-table td.al-tk { text-align:left; vertical-align:middle; min-width:110px; padding-top:7px; padding-bottom:7px; }
+.al-more { display:none; }
 .al-tk a { font-family:var(--mono); font-weight:800; font-size:14px; letter-spacing:.2px; color:var(--accent); text-decoration:none; }
 .al-tk a:hover { text-decoration:underline; color:var(--t1); }
 .al-entry { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t2); }
@@ -880,13 +881,11 @@ body.al-page input, body.al-page select { font-weight:400; }
     font-size:13px; font-weight:700; color:var(--t1); order:2;
   }
   .al-fold-btn {
-    display:inline-flex; align-items:center; gap:6px; order:3;
-    min-height:36px; padding:6px 11px; font-size:13.5px; font-weight:700;
+    display:inline-flex; align-items:center; justify-content:center; order:3;
+    width:36px; min-height:36px; padding:0; font-size:16px; font-weight:700;
     color:var(--t1); background:var(--panel2); border:1px solid var(--b1);
   }
   header.al-topbar.is-open { padding-bottom:0; }
-  header.al-topbar.is-open .al-fold-caret { transform:rotate(180deg); }
-  .al-fold-caret { display:inline-block; transition:transform .15s var(--ease); }
   body.al-page header.al-topbar .desk-tabs {
     flex:1 1 100%; order:4;
   }
@@ -1016,19 +1015,30 @@ body.al-page input, body.al-page select { font-weight:400; }
   .al-table thead { display:none; }
   .al-table tbody tr.al-row {
     display:grid;
-    grid-template-columns:1fr auto;
-    grid-template-areas:
-      "tk now"
-      "day thr"
-      "act act";
-    gap:4px 10px;
+    grid-template-columns:minmax(0,1.2fr) auto auto 34px;
+    grid-template-areas:"tk day now more";
+    gap:6px 8px;
     align-items:center;
-    padding:12px 12px 10px;
-    margin:0 0 8px;
+    padding:11px 10px;
+    margin:0 0 6px;
     background:var(--panel);
     border:1px solid var(--b1);
     border-radius:10px;
     box-shadow:none;
+  }
+  .al-table tbody tr.al-row.tone-up {
+    background:color-mix(in srgb, var(--bull-s) 15%, var(--panel));
+    border-color:color-mix(in srgb, var(--bull-s) 32%, var(--b1));
+  }
+  .al-table tbody tr.al-row.tone-down {
+    background:color-mix(in srgb, var(--bear-s) 15%, var(--panel));
+    border-color:color-mix(in srgb, var(--bear-s) 32%, var(--b1));
+  }
+  .al-table tbody tr.al-row.open {
+    grid-template-areas:
+      "tk day now more"
+      "thr thr thr thr"
+      "act act act act";
   }
   .al-table tbody tr.al-row:last-child { margin-bottom:0; }
   .al-table th, .al-table td {
@@ -1036,25 +1046,74 @@ body.al-page input, body.al-page select { font-weight:400; }
     font-size:14px;
   }
   .al-table td.al-tk { grid-area:tk; min-width:0; }
-  .al-table td.al-tk a { font-size:16px; font-weight:700; color:var(--t1); }
+  .al-table td.al-tk a { font-size:16px; font-weight:800; color:var(--t1); }
+  .al-table td.al-tk .sess-badge,
+  .al-table td.al-tk .px-sess,
+  .al-table td.al-tk .ac-snz { display:none; }
   .al-table td:nth-child(2) { display:none !important; }
   .al-table td:nth-child(3) {
-    grid-area:day; font-size:13.5px; font-weight:700; text-align:left;
+    grid-area:day; font-size:15px; font-weight:800; text-align:right;
+    font-variant-numeric:tabular-nums;
   }
   .al-table td.al-now {
-    grid-area:now; font-size:16px; font-weight:700; text-align:right;
+    grid-area:now; font-size:15px; font-weight:800; text-align:right;
+    font-variant-numeric:tabular-nums; padding-left:8px; min-width:4.6em;
   }
+  .al-table td.al-num.up, .al-table td.al-now.up { color:var(--bull-s); }
+  .al-table td.al-num.down, .al-table td.al-now.down { color:var(--bear-s); }
   .al-table td.al-trig {
-    grid-area:thr; text-align:right; font-size:13px; color:var(--t2); font-weight:600;
+    display:none; grid-area:thr; text-align:left; font-size:13.5px;
+    color:var(--t1); font-weight:700; padding-top:6px;
   }
+  .al-table tbody tr.al-row.open td.al-trig { display:block; }
   .al-table td.al-act {
-    grid-area:act; display:flex; gap:6px; margin-top:6px;
+    display:none; grid-area:act; gap:6px; margin-top:6px;
     padding-top:8px; border-top:1px solid var(--b2);
   }
+  .al-table tbody tr.al-row.open td.al-act { display:flex; }
   .al-table td.al-act .icon-btn {
     flex:1; min-height:40px; padding:0; font-size:16px;
     border-radius:8px;
   }
+  .al-table td.al-more { display:block; grid-area:more; }
+  .al-more-btn {
+    width:32px; min-height:32px; padding:0; font-size:16px; font-weight:800;
+  }
+  tr.al-row.open .al-more-btn { transform:rotate(180deg); }
+  .alert-row .al-more-btn { display:none; }
+  .alert-row {
+    grid-template-columns:minmax(0,1fr) auto 34px;
+    gap:6px 8px; padding:11px 10px; margin:0 0 6px;
+    border:1px solid var(--b1); border-radius:10px;
+  }
+  .alert-row.tone-up {
+    background:color-mix(in srgb, var(--bull-s) 15%, var(--panel));
+    border-color:color-mix(in srgb, var(--bull-s) 32%, var(--b1));
+  }
+  .alert-row.tone-down {
+    background:color-mix(in srgb, var(--bear-s) 15%, var(--panel));
+    border-color:color-mix(in srgb, var(--bear-s) 32%, var(--b1));
+  }
+  .alert-row .alert-thr, .alert-row .alert-delta, .alert-row .alert-note,
+  .alert-row .alert-actions { display:none; }
+  .alert-row .al-more-btn { display:inline-flex; }
+  .alert-row.open .alert-thr, .alert-row.open .alert-delta,
+  .alert-row.open .alert-note, .alert-row.open .alert-actions { display:block; }
+  .alert-row.open .alert-actions { display:flex; gap:6px; }
+  .alert-sym a { font-weight:800; font-size:16px; color:var(--t1); }
+  .alert-current { font-weight:800; font-size:15px; }
+  .nw-card {
+    padding:11px 10px;
+  }
+  .nw-card-top { display:grid; grid-template-columns:minmax(0,1fr) auto 34px; gap:6px 8px; align-items:center; }
+  .nw-card .nw-meta, .nw-card .nw-actions, .nw-card .nw-kw,
+  .nw-card .nw-headlines { display:none; }
+  .nw-card .al-more-btn { display:inline-flex; }
+  .nw-card.open .nw-meta, .nw-card.open .nw-kw { display:block; }
+  .nw-card.open .nw-actions { display:flex; }
+  .nw-card.open .nw-headlines { display:flex; }
+  .nw-sym { font-size:16px; font-weight:800; color:var(--t1); }
+  body.al-page header.al-topbar button[title^="Temă"] { display:none; }
   #secCrypto .section-body, #secStocks .section-body { padding:4px 0 8px; }
   #secCrypto, #secStocks {
     border-radius:10px; margin-bottom:10px;
@@ -1065,16 +1124,14 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v87</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v88</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
     <button type="button" data-tab="hist">Istoric <span class="tab-cnt" id="tabCntHist">0</span></button>
   </nav>
   <span class="status-pill" id="pollStatus">—</span>
-  <button type="button" class="al-fold-btn" id="alFoldBtn" aria-expanded="false" aria-controls="alHdrActs alDesk" title="Controale, KPI și rezumat bot">
-    Controale <span class="al-fold-caret" aria-hidden="true">▾</span>
-  </button>
+  <button type="button" class="al-fold-btn" id="alFoldBtn" aria-expanded="false" aria-controls="alHdrActs alDesk" title="Controale">⚙</button>
   <div class="al-hdr-acts" id="alHdrActs">
     <button class="icon-btn" id="btnPause" title="Pauză polling">⏸</button>
     <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
@@ -1465,11 +1522,11 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=748"></script>
+<script src="../lib/suite-version.js?v=749"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/toast-stack.js?v=748"></script>
+<script src="../lib/toast-stack.js?v=749"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2494,7 +2551,8 @@ function rowHtml(sym, a) {
   const bk = bulkKey(sym, a.id);
   const checked = bulkSelected.has(bk) ? ' checked' : '';
   const cb = bulkMode ? `<input type="checkbox" class="bulk-cb" data-bulk="${escHtml(bk)}"${checked} title="Selectează">` : '';
-  return `<tr class="al-row${snoozed ? ' snoozed' : ''}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}" id="alrow-${escHtml(a.id)}">
+  const tone = dayChg == null ? '' : (dayChg >= 0 ? ' tone-up' : ' tone-down');
+  return `<tr class="al-row${snoozed ? ' snoozed' : ''}${tone}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}" id="alrow-${escHtml(a.id)}">
     <td class="al-tk" title="${escHtml([a.note || '', entryTip].filter(Boolean).join(' · '))}">
       ${cb}<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${cur != null ? sessTag(sym) : ''}${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}
     </td>
@@ -2511,6 +2569,9 @@ function rowHtml(sym, a) {
         : `<button class="icon-btn" data-action="rearm" title="${a.rearm ? '↻ Re-arm PORNIT' : 'One-shot → ↻ re-arm'}" style="${a.rearm ? 'color:var(--bull-s);border-color:var(--bull-s)' : 'opacity:.5'}">↻</button>`}
       <button class="icon-btn" data-action="edit" title="Editează">✎</button>
       <button class="icon-btn danger" data-action="delete" title="Șterge">🗑</button>
+    </td>
+    <td class="al-more">
+      <button type="button" class="icon-btn al-more-btn" data-action="more" aria-expanded="false" title="Detalii">▾</button>
     </td>
   </tr>`;
 }
@@ -2578,6 +2639,60 @@ function bindActiveActions(container) {
     const row = e.target.closest('[data-id]');
     showSnoozeMenu(btn, row.dataset.sym, row.dataset.id);
   }));
+  bindMoreToggles(container, '.al-row');
+  bindRowSwipe(container);
+}
+
+function bindMoreToggles(container, itemSel) {
+  if (!container) return;
+  container.querySelectorAll('[data-action="more"]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const row = e.target.closest(itemSel);
+      if (!row) return;
+      const open = !row.classList.contains('open');
+      container.querySelectorAll(itemSel + '.open').forEach(r => {
+        if (r !== row) {
+          r.classList.remove('open');
+          const b = r.querySelector('[data-action="more"]');
+          if (b) b.setAttribute('aria-expanded', 'false');
+        }
+      });
+      row.classList.toggle('open', open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+}
+
+function bindRowSwipe(container) {
+  const TS = window.ToastStack;
+  if (!TS || !TS.swipeIntent) return;
+  try { if (!window.matchMedia('(max-width:760px)').matches) return; } catch (e) {}
+  container.querySelectorAll('tr.al-row').forEach(row => {
+    let x0 = 0, y0 = 0, on = false;
+    row.addEventListener('touchstart', e => {
+      if (e.target.closest('a,button,input')) return;
+      const t = e.changedTouches[0];
+      x0 = t.clientX; y0 = t.clientY; on = true;
+    }, { passive: true });
+    row.addEventListener('touchend', e => {
+      if (!on) return;
+      on = false;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - x0, dy = t.clientY - y0;
+      const intent = TS.swipeIntent(dx, dy);
+      if (intent === 'delete') {
+        const btn = row.querySelector('[data-action="delete"]');
+        if (btn) btn.click();
+      } else if (intent === 'snooze') {
+        const btn = row.querySelector('[data-action="snooze"]');
+        if (btn) btn.click();
+      } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12) {
+        const more = row.querySelector('[data-action="more"]');
+        if (more) more.click();
+      }
+    }, { passive: true });
+  });
 }
 
 // ms până la următoarea deschidere 09:30 ET (azi dacă încă n-a fost, altfel mâine)
@@ -2867,7 +2982,7 @@ function render() {
       } else thrHist = isPct
         ? `±${h.pct}%<span class="dir">${dirIcon}${isFinite(h.moved) ? ' ' + fmtPct(h.moved) : ''}${h.rearm ? ' ↻' : ''}</span>`
         : `$${fmtPx(h.lvl, h.sym)}<span class="dir">${dirIcon}${h.rearm ? ' ↻' : ''}</span>`;
-      return `<div class="alert-row triggered ${cls}" data-idx="${idx}"${h._li != null ? ` data-li="${h._li}"` : ''}>
+      return `<div class="alert-row triggered ${cls} ${h.dir === 'above' ? 'tone-up' : 'tone-down'}" data-idx="${idx}"${h._li != null ? ` data-li="${h._li}"` : ''}>
         <div class="alert-sym"><a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(h.sym)}" target="_blank">${escHtml(h.sym)}</a>${h.cloud ? ' <span title="declanșat de botul server-side (GitHub Actions, la 15 min) — vizibil pe orice device; trăiește în tools/alerts.json, nu se șterge de aici">☁️</span>' : ''}</div>
         <div class="alert-thr">${thrHist}</div>
         <div class="alert-current ${h.dir === 'above' ? 'up' : 'down'}">$${fmtPx(h.price, h.sym)}</div>
@@ -2877,6 +2992,7 @@ function render() {
           <button class="icon-btn" data-action="reactivate" title="Re-creează alerta cu același nivel">↻</button>
           ${h._li != null ? '<button class="icon-btn danger" data-action="delete" title="Șterge din istoricul local">🗑</button>' : ''}
         </div>
+        <button type="button" class="icon-btn al-more-btn" data-action="more" aria-expanded="false" title="Detalii">▾</button>
       </div>`;
     }).join('');
     $('bodyTriggered').querySelectorAll('[data-action="delete"]').forEach(btn => btn.addEventListener('click', e => {
@@ -2920,6 +3036,7 @@ function render() {
       }
       autoSync(); // re-creare alertă din istoric = modificare → auto-sync ☁️
     }));
+    bindMoreToggles($('bodyTriggered'), '.alert-row');
   }
 
   $('pollStatus').className = 'status-pill ' + (pollPaused ? 'paused' : 'live');
@@ -3995,6 +4112,7 @@ function nwRender() {
         <span class="nw-sym">${escHtml(w.symbol)}</span>
         <span class="nw-kind ${w.kind === 'crypto' ? 'crypto' : 'stock'}">${w.kind === 'crypto' ? 'crypto' : 'stock'}</span>
         <span class="nw-meta">⏱ ${w.intervalMin || 15}m · seen ${(w.seen || []).length} · last ${escHtml(last)}${via}</span>
+        <button type="button" class="icon-btn al-more-btn" data-action="more" aria-expanded="false" title="Detalii">▾</button>
         <div class="nw-actions">
           <button type="button" data-nw-act="check" data-id="${escHtml(w.id)}" title="Check acum">🔄</button>
           <button type="button" data-nw-act="arm" data-id="${escHtml(w.id)}" title="Arm/pause auto">${w.armed === false ? '▶️' : '⏸'}</button>
@@ -4007,6 +4125,7 @@ function nwRender() {
     </div>`;
   }).join('');
   nwUpdateCalStrip();
+  bindMoreToggles(list, '.nw-card');
 }
 async function nwCheckOne(w, { quiet } = {}) {
   const arts = await nwFetchArticles(w);

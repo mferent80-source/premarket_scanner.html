@@ -64,3 +64,14 @@ test('alreadyShownToday: pas ref diferit e eveniment nou', () => {
   assert.equal(TS.alreadyShownToday({ sym: 'TSLA', kind: 'ref', step: 2 }, hist, NOW), false);
   assert.equal(TS.alreadyShownToday({ sym: 'TSLA', kind: 'ref', step: 1 }, hist, NOW), true);
 });
+
+test('swipeIntent: stanga = delete, dreapta = snooze', () => {
+  assert.equal(TS.swipeIntent(-80, 4), 'delete');
+  assert.equal(TS.swipeIntent(80, -3), 'snooze');
+});
+
+test('swipeIntent: tap sau vertical nu e swipe', () => {
+  assert.equal(TS.swipeIntent(-10, 2), null);
+  assert.equal(TS.swipeIntent(-80, 90), null);
+  assert.equal(TS.swipeIntent(0, 0), null);
+});
