@@ -378,8 +378,6 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   .al-table th, .al-table td { padding:7px 6px; font-size:12px; }
   .al-tk a { font-size:13px; }
   .al-num { font-size:12px; } .al-now { font-size:13px; }
-  .al-table th:nth-child(2),
-  .al-table td:nth-child(2) { display:none; } /* Evol% pe mobil: Δ zi + dist e destul */
   .al-act .icon-btn { padding:4px 6px; }
 }
 
@@ -858,6 +856,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 }
 .al-tk a { font-weight:600; font-size:13px; letter-spacing:0; }
 .al-now, .al-num, .al-entry, .al-tgt { font-weight:500; }
+.al-from { display:block; font-size:11.5px; font-weight:600; color:var(--t3); margin-top:2px; }
 .al-now { font-size:13px; }
 .empty { font-weight:400; font-size:13px; padding:22px 12px; }
 .empty .ico { display:none; }
@@ -1050,10 +1049,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   .al-table td.al-tk .sess-badge,
   .al-table td.al-tk .px-sess,
   .al-table td.al-tk .ac-snz { display:none; }
-  .al-table td:nth-child(2) { display:none !important; }
-  .al-table td:nth-child(3) {
+  .al-table td:nth-child(2) {
     grid-area:day; font-size:15px; font-weight:800; text-align:right;
     font-variant-numeric:tabular-nums;
+  }
+  .al-from { display:none; }
+  tr.al-row.open .al-from {
+    display:inline; margin-left:8px; color:var(--t2); font-weight:600; font-size:13px;
   }
   .al-table td.al-now {
     grid-area:now; font-size:15px; font-weight:800; text-align:right;
@@ -1124,7 +1126,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v88</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v89</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1522,11 +1524,12 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=749"></script>
+<script src="../lib/suite-version.js?v=750"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/toast-stack.js?v=749"></script>
+<script src="../lib/toast-stack.js?v=750"></script>
+<script src="../lib/price-day.js?v=750"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2015,25 +2018,15 @@ async function fetchPriceYahoo(symbol) {
     if (last == null) last = m.regularMarketPrice ?? null;
     if (last == null || !Number.isFinite(last)) return null;
 
-    // ── Baseline variația zilei (close IERI) ──
-    // Prefer meta.chartPreviousClose / previousClose — nu reconstrui din chg 0 fals.
-    // RTH: regularMarketChangePercent e sursa Yahoo oficială (evită last≈prev → 0% fals).
-    let prev = null;
-    if (isEU) {
-      prev = m.chartPreviousClose ?? m.previousClose ?? null;
-    } else if (ses === 'pre') {
-      // pre: regularMarketPrice = close ieri (bursa n-a deschis)
-      prev = m.regularMarketPrice ?? m.chartPreviousClose ?? m.previousClose ?? null;
-    } else if (ses === 'rth' && Number.isFinite(m.regularMarketChangePercent) && Number.isFinite(m.regularMarketPrice)) {
-      // RTH: folosește % oficial + preț regular (nu ultima bară 1m care poate fi zgomot)
-      last = m.regularMarketPrice;
-      const pct = m.regularMarketChangePercent;
-      prev = Math.abs(pct) > 1e-9 ? last / (1 + pct / 100) : (m.chartPreviousClose ?? m.previousClose ?? last);
-      return { last, prev, src: 'yahoo-rth' };
-    } else {
-      // after / closed: chartPreviousClose = close sesiunea anterioară
-      prev = m.chartPreviousClose ?? m.previousClose ?? m.regularMarketPrice ?? null;
+    // Baseline variația zilei: close IERI. RTH folosește regularMarketPrice chiar
+    // dacă Yahoo nu trimite regularMarketChangePercent (altfel rămâne bara 1m
+    // întârziată și Δ zi nu bate cu Yahoo/TV).
+    if (window.PriceDay && PriceDay.yahooQuote) {
+      return PriceDay.yahooQuote(m, last, isEU ? 'rth' : ses, isEU);
     }
+    let prev = m.chartPreviousClose ?? m.previousClose ?? null;
+    if (ses === 'rth' && Number.isFinite(m.regularMarketPrice)) last = m.regularMarketPrice;
+    if (ses === 'pre') prev = m.regularMarketPrice ?? prev;
     if (prev == null || !Number.isFinite(prev) || prev <= 0) prev = last;
     return { last, prev, src: 'yahoo' };
   } catch (e) { return null; }
@@ -2556,11 +2549,11 @@ function rowHtml(sym, a) {
     <td class="al-tk" title="${escHtml([a.note || '', entryTip].filter(Boolean).join(' · '))}">
       ${cb}<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${cur != null ? sessTag(sym) : ''}${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}
     </td>
-    <td class="al-num ${evCls}"${hiLoTip ? ` title="${hiLoTip}"` : ''}>${deltaCreate == null ? '—' : fmtPct(deltaCreate)}</td>
     <td class="al-num ${dayCls}">${dayChg == null ? '—' : fmtPct(dayChg)}</td>
     <td class="al-now ${dayCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</td>
     <td class="al-trig" title="${escHtml(thrTip)}">
       <span class="al-tgt">${thrShort}</span>
+      ${deltaCreate != null ? `<span class="al-from" title="${escHtml(hiLoTip || 'față de prețul de la alertă')}">de la alertă ${fmtPct(deltaCreate)}</span>` : ''}
     </td>
     <td class="al-act">
       <button class="icon-btn" data-action="snooze" title="😴 Amână alerta (1h / 4h / până la deschidere)" style="${snoozed ? 'color:var(--warn);border-color:rgba(212,137,44,.4)' : 'opacity:.6'}">😴</button>
@@ -2578,7 +2571,7 @@ function rowHtml(sym, a) {
 
 // Cap de tabel — listă 1-linie
 const AL_THEAD = `<thead><tr>
-  <th>Ticker</th><th>Evol. %</th><th>Δ zi</th><th>Acum</th><th>Prag</th><th></th>
+  <th>Ticker</th><th>Δ zi</th><th>Acum</th><th>Prag</th><th></th>
 </tr></thead>`;
 
 // Doar LISTĂ pe o linie (v74 — group scoasă)
