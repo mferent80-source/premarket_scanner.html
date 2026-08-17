@@ -31,3 +31,36 @@ test('pauseOnHover: doar pointer fin (mouse), nu touch', () => {
   assert.equal(TS.pauseOnHover(true), true);
   assert.equal(TS.pauseOnHover(false), false);
 });
+
+test('maxVisible: 1 pe mobil, 3 pe desktop', () => {
+  assert.equal(TS.maxVisible(true), 1);
+  assert.equal(TS.maxVisible(false), 3);
+});
+
+test('digestInstead pe mobil: 2+ devin un banner', () => {
+  assert.equal(TS.digestInstead(1, true), false);
+  assert.equal(TS.digestInstead(2, true), true);
+  assert.equal(TS.digestInstead(10, true), true);
+});
+
+const NOW = Date.parse('2026-08-17T15:00:00+03:00');
+
+test('alreadyShownToday: gol → nu e duplicat', () => {
+  assert.equal(TS.alreadyShownToday({ sym: 'ASTS', kind: 'pct', moved: 4 }, [], NOW), false);
+});
+
+test('alreadyShownToday: același simbol/kind/direcție azi → duplicat', () => {
+  const hist = [{ sym: 'ASTS', kind: 'pct', moved: 3.2, ts: NOW - 3600000 }];
+  assert.equal(TS.alreadyShownToday({ sym: 'ASTS', kind: 'pct', moved: 4.1 }, hist, NOW), true);
+});
+
+test('alreadyShownToday: ieri nu blochează azi', () => {
+  const hist = [{ sym: 'ASTS', kind: 'pct', moved: 3.2, ts: NOW - 86400000 * 1.2 }];
+  assert.equal(TS.alreadyShownToday({ sym: 'ASTS', kind: 'pct', moved: 4.1 }, hist, NOW), false);
+});
+
+test('alreadyShownToday: pas ref diferit e eveniment nou', () => {
+  const hist = [{ sym: 'TSLA', kind: 'ref', step: 1, ts: NOW - 1000 }];
+  assert.equal(TS.alreadyShownToday({ sym: 'TSLA', kind: 'ref', step: 2 }, hist, NOW), false);
+  assert.equal(TS.alreadyShownToday({ sym: 'TSLA', kind: 'ref', step: 1 }, hist, NOW), true);
+});

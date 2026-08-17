@@ -975,18 +975,97 @@ body.al-page input, body.al-page select { font-weight:400; }
   }
   .add-form > .add-opts { margin:0 10px 10px; }
   .add-form > #symSearchResults { margin-left:10px; margin-right:10px; }
-  .filter-bar #filterInp, .filter-bar .chip { font-size:14px; font-weight:600; }
-  #toasts {
-    left:10px; right:10px; bottom:72px; max-width:none; max-height:28vh;
+  .filter-bar {
+    display:flex; flex-direction:column; align-items:stretch; gap:8px;
+    margin:0 0 10px;
   }
-  .toast { max-width:none; }
+  .filter-bar #filterInp {
+    width:100%; min-width:0; min-height:40px; font-size:15px; font-weight:500;
+    border-radius:10px;
+  }
+  .filter-bar .chip {
+    font-size:13px; font-weight:600; min-height:34px; padding:6px 12px;
+  }
+  .filter-bar { flex-direction:row; flex-wrap:wrap; }
+  .filter-bar #filterInp { flex:1 1 100%; }
+  #toasts {
+    left:10px; right:10px;
+    bottom:calc(70px + env(safe-area-inset-bottom, 0px));
+    max-width:none; max-height:none; overflow:visible; gap:0;
+  }
+  .toast {
+    max-width:none; padding:10px 12px; font-size:13.5px; font-weight:600;
+    border-radius:10px;
+  }
+  .toast-all { display:none; }
+  body.al-page {
+    padding:8px 10px calc(84px + env(safe-area-inset-bottom, 0px));
+  }
+  body.al-page header.al-topbar .nav-link { display:none; }
+  body.al-page header.al-topbar .ver-badge,
+  body.al-page header.al-topbar .suite-badge {
+    font-size:10.5px; padding:2px 6px; margin-left:4px;
+  }
+  #viewTools { display:none; }
+  .refresh-info { font-size:11px; text-align:left; margin:8px 2px 0; color:var(--t3); }
+  .sync-banner {
+    padding:8px 10px; font-size:12px; border-radius:10px;
+  }
+  .al-wrap { overflow:visible; -webkit-overflow-scrolling:auto; margin:0; }
+  .al-table, .al-table tbody { display:block; width:100%; }
+  .al-table thead { display:none; }
+  .al-table tbody tr.al-row {
+    display:grid;
+    grid-template-columns:1fr auto;
+    grid-template-areas:
+      "tk now"
+      "day thr"
+      "act act";
+    gap:4px 10px;
+    align-items:center;
+    padding:12px 12px 10px;
+    margin:0 0 8px;
+    background:var(--panel);
+    border:1px solid var(--b1);
+    border-radius:10px;
+    box-shadow:none;
+  }
+  .al-table tbody tr.al-row:last-child { margin-bottom:0; }
+  .al-table th, .al-table td {
+    display:block; border:none; padding:0; background:transparent;
+    font-size:14px;
+  }
+  .al-table td.al-tk { grid-area:tk; min-width:0; }
+  .al-table td.al-tk a { font-size:16px; font-weight:700; color:var(--t1); }
+  .al-table td:nth-child(2) { display:none !important; }
+  .al-table td:nth-child(3) {
+    grid-area:day; font-size:13.5px; font-weight:700; text-align:left;
+  }
+  .al-table td.al-now {
+    grid-area:now; font-size:16px; font-weight:700; text-align:right;
+  }
+  .al-table td.al-trig {
+    grid-area:thr; text-align:right; font-size:13px; color:var(--t2); font-weight:600;
+  }
+  .al-table td.al-act {
+    grid-area:act; display:flex; gap:6px; margin-top:6px;
+    padding-top:8px; border-top:1px solid var(--b2);
+  }
+  .al-table td.al-act .icon-btn {
+    flex:1; min-height:40px; padding:0; font-size:16px;
+    border-radius:8px;
+  }
+  #secCrypto .section-body, #secStocks .section-body { padding:4px 0 8px; }
+  #secCrypto, #secStocks {
+    border-radius:10px; margin-bottom:10px;
+  }
 }
 </style>
 </head>
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v86</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v87</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1028,7 +1107,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <div id="syncBanner" class="sync-banner" role="status" aria-live="polite">
   <span id="syncBannerMsg"><b>📥 Citire publică</b> (GitHub Pages) · push ☁️ necesită token</span>
   <button type="button" id="syncBannerToken" title="Setează token GitHub pentru push">+ Token</button>
-  <button type="button" class="sb-x" id="syncBannerDismiss" title="Ascunde pe sesiunea asta">✕</button>
+  <button type="button" class="sb-x" id="syncBannerDismiss" title="Ascunde (rămâne ascuns pe dispozitiv)">✕</button>
 </div>
 
 <!-- Acțiuni secundare ale header-ului — popover „⋯" (recuperează spațiu, mai ales pe telefon).
@@ -1386,11 +1465,11 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=747"></script>
+<script src="../lib/suite-version.js?v=748"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
-<script src="../lib/toast-stack.js?v=747"></script>
+<script src="../lib/toast-stack.js?v=748"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -1762,7 +1841,9 @@ function toast(msg, kind='info', opts={}) {
   if (persist && !uiNotifyAllowed('toast', opts.sym)) return;
   const box = $('toasts');
   const TS = window.ToastStack;
-  const plan = TS && TS.plan ? TS.plan(box.querySelectorAll('.toast').length, TS.MAX) : { removeOldest: 0 };
+  const isMob = (() => { try { return window.matchMedia('(max-width:760px)').matches; } catch (e) { return false; } })();
+  const maxV = TS && TS.maxVisible ? TS.maxVisible(isMob) : (TS && TS.MAX) || 3;
+  const plan = TS && TS.plan ? TS.plan(box.querySelectorAll('.toast').length, maxV) : { removeOldest: 0 };
   const old = [...box.querySelectorAll('.toast')];
   for (let i = 0; i < (plan.removeOldest || 0); i++) { if (old[i]) old[i].remove(); }
   const el = document.createElement('div');
@@ -2212,9 +2293,30 @@ async function pollPrices() {
   if (changed) persistAlerts();
   if (fired.length) {
     // Notify combo + istoric local
-    // 3+ fire-uri deodată → un singur toast digest (altfel stiva acoperă pagina).
-    const _digest = window.ToastStack ? ToastStack.digestInstead(fired.length) : fired.length > 2;
-    fired.forEach(f => {
+    // Nu re-afișa ce e deja în Istoric azi (reopen / pull nu mai umple ecranul).
+    const histAll = HISTORY.concat(SERVER_HIST || []);
+    const isMob = (() => { try { return window.matchMedia('(max-width:760px)').matches; } catch (e) { return false; } })();
+    const fresh = window.ToastStack
+      ? fired.filter(f => !ToastStack.alreadyShownToday({
+          sym: f.sym,
+          kind: f.a.kind || 'price',
+          step: f.step,
+          moved: f.moved != null ? f.moved : f.dc,
+          dc: f.dc,
+          lvl: f.a.lvl,
+          dir: f.a.dir || ((f.moved != null ? f.moved : f.dc) >= 0 ? 'above' : 'below')
+        }, histAll))
+      : fired;
+    if (!fresh.length) {
+      render();
+      const rmsg0 = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · ${unique.length} simboluri${sessionNote}`;
+      $('refreshInfo').textContent = rmsg0;
+      if ($('refreshInfoPrice')) $('refreshInfoPrice').textContent = rmsg0;
+      return;
+    }
+    // 3+ fire-uri deodată (2+ pe mobil) → un singur toast digest.
+    const _digest = window.ToastStack ? ToastStack.digestInstead(fresh.length, isMob) : fresh.length > 2;
+    fresh.forEach(f => {
       if (f.a.kind === 'ref') {
         const a = f.a, px = fmtPx(f.price, f.sym);
         if (a.trail) {
@@ -2271,8 +2373,8 @@ async function pollPrices() {
     });
     HISTORY = HISTORY.slice(0, MAX_TRIGGERED_HISTORY);
     persistHistory();
-    if (_digest) toast(`🔔 ${fired.length} alerte declanșate — vezi Istoric`, 'warn', { persist: true });
-    playBeep(fired[0] && fired[0].sym);
+    if (_digest) toast(`🔔 ${fresh.length} alerte declanșate — vezi Istoric`, 'warn', { persist: true });
+    playBeep(fresh[0] && fresh[0].sym);
     const tgAnchorLine = f => {
       const a = f.a, px = fmtPx(f.price, f.sym);
       if (f.sub === 'target') return `🎯 <b>${tgEsc(f.sym)}</b> ȚINTĂ $${fmtPx(a.target, f.sym)} atinsă → $${px} (${fmtPct(f.moved)} de la $${fmtPx(a.base, f.sym)})`;
@@ -2291,14 +2393,14 @@ async function pollPrices() {
       : f.a.kind === 'pct'
       ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${fmtPct(f.moved)} → $${fmtPx(f.price, f.sym)} (de la $${fmtPx(f.a.base, f.sym)})${f.a.rearm ? ' · re-arm' : ''}`
       : `${f.a.dir === 'above' ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> $${fmtPx(f.price, f.sym)} (prag $${fmtPx(f.a.lvl, f.sym)})`;
-    if (fired.length === 1 && fired[0].a.kind !== 'anchor' && fired[0].a.kind !== 'ref' && fired[0].a.kind !== 'day') {
-      const f = fired[0];
+    if (fresh.length === 1 && fresh[0].a.kind !== 'anchor' && fresh[0].a.kind !== 'ref' && fresh[0].a.kind !== 'day') {
+      const f = fresh[0];
       const body = f.a.kind === 'pct'
         ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> s-a mișcat ${fmtPct(f.moved)}\nDe la $${fmtPx(f.a.base, f.sym)} la $${fmtPx(f.price, f.sym)}${f.a.rearm ? ' · re-arm' : ''}${f.a.note ? '\nNotă: ' + tgEsc(f.a.note) : ''}`
         : `${f.a.dir === 'above' ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> a atins $${fmtPx(f.price, f.sym)}\nPrag: $${fmtPx(f.a.lvl, f.sym)} (${f.a.dir})${f.a.rearm ? ' · re-arm' : ''}${f.a.note ? '\nNotă: ' + tgEsc(f.a.note) : ''}`;
       sendTelegram(`🔔 <b>Price Alert</b>\n${body}`);
     } else {
-      sendTelegram(`🔔 <b>${fired.length} ${fired.length === 1 ? 'Price Alert' : 'Price Alerts'} triggered</b>\n` + fired.map(tgLine).join('\n'));
+      sendTelegram(`🔔 <b>${fresh.length} ${fresh.length === 1 ? 'Price Alert' : 'Price Alerts'} triggered</b>\n` + fresh.map(tgLine).join('\n'));
     }
   }
   render();
@@ -3323,7 +3425,7 @@ function updateSyncBanner() {
   if (!el) return;
   const token = localStorage.getItem(GH_TOKEN_KEY) || '';
   let dismissed = false;
-  try { dismissed = sessionStorage.getItem(SYNC_BANNER_DISMISS_KEY) === '1'; } catch (e) {}
+  try { dismissed = localStorage.getItem(SYNC_BANNER_DISMISS_KEY) === '1'; } catch (e) {}
   if (token || dismissed) {
     el.classList.remove('show');
     return;
@@ -4441,7 +4543,7 @@ if (_pxHydrated) {
 updateSyncBanner();
 $('syncBannerToken')?.addEventListener('click', () => { ghAskToken(); });
 $('syncBannerDismiss')?.addEventListener('click', () => {
-  try { sessionStorage.setItem(SYNC_BANNER_DISMISS_KEY, '1'); } catch (e) {}
+  try { localStorage.setItem(SYNC_BANNER_DISMISS_KEY, '1'); } catch (e) {}
   updateSyncBanner();
 });
 schedulePoll();       // timerul recurent de poll — independent de pull (rulează chiar dacă pull-ul atârnă)
