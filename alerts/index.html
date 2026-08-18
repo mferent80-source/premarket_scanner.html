@@ -331,6 +331,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .px-sess.open { color:var(--bull-s); border-color:var(--bull-s); background:var(--bull-bg); }
 .px-sess.pre { color:var(--warn); border-color:var(--warn); background:var(--warn-bg); }
 .px-sess.closed { color:var(--t3); }
+.px-sess.eu { color:var(--t2); border-color:var(--b1); }
 .alert-delta { font-family:var(--mono); font-size:11.5px; color:var(--t2); }
 .alert-delta.close { color:var(--warn); font-weight:700; }
 .alert-note { font-size:12px; color:var(--t2); font-style:italic; }
@@ -363,6 +364,9 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .al-entry { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t2); }
 .al-num { font-family:var(--mono); font-size:16px; font-weight:800; color:var(--t2); min-width:5.6em; }
 .al-num.up { color:var(--bull-s); } .al-num.down { color:var(--bear-s); }
+.al-day-wrap { display:inline-flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+.al-day-wrap .px-sess { margin-left:0; font-size:10px; font-weight:700; }
+.al-from { display:block; font-size:11px; font-weight:600; color:var(--t3) !important; margin-top:2px; }
 .al-now { font-family:var(--mono); font-size:13.5px; font-weight:700; color:var(--t1); }
 .al-trig { text-align:right; white-space:nowrap; }
 .al-tgt { font-family:var(--mono); font-size:11.5px; font-weight:700; color:var(--t1); }
@@ -855,7 +859,6 @@ body.al-page input, body.al-page select { font-weight:400; }
 }
 .al-tk a { font-weight:600; font-size:13px; letter-spacing:0; }
 .al-now, .al-entry, .al-tgt { font-weight:500; }
-.al-from { display:none; }
 .al-now { font-size:13px; }
 .empty { font-weight:400; font-size:13px; padding:22px 12px; }
 .empty .ico { display:none; }
@@ -1057,7 +1060,8 @@ body.al-page input, body.al-page select { font-weight:400; }
     grid-area:day; font-size:22px; font-weight:800; text-align:left;
     font-variant-numeric:tabular-nums; line-height:1.1; min-width:0;
   }
-  .al-from { display:none !important; }
+  .al-table td.al-num .px-sess { font-size:10px; font-weight:700; }
+  .al-num .al-from { font-size:12px; font-weight:600; color:var(--t2); margin-top:3px; }
   .al-table td.al-now {
     grid-area:now; font-size:14px; font-weight:600; text-align:right;
     font-variant-numeric:tabular-nums; padding-left:8px; min-width:4.6em;
@@ -1128,7 +1132,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v92</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v93</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1277,6 +1281,7 @@ body.al-page input, body.al-page select { font-weight:400; }
   <button type="button" class="chip" data-fmode="up">Sus azi</button>
   <button type="button" class="chip" data-fmode="down">Jos azi</button>
   <button type="button" class="chip" data-fmode="near">Aproape</button>
+  <button type="button" class="chip" id="chipFrom" aria-pressed="false" title="Arată evoluția față de prețul de la alertă (opțional)">de la alertă</button>
 </div>
 
 <!-- Active alerts — crypto (24/7) -->
@@ -1526,12 +1531,12 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=753"></script>
+<script src="../lib/suite-version.js?v=754"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=753"></script>
+<script src="../lib/price-day.js?v=754"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -1651,6 +1656,17 @@ function sessTag(sym) {
   const txt = s.cls === 'open' ? '🟢 RTH' : s.cls === 'pre' ? (s.label.includes('after') ? '🟡 AFT' : '🟡 PRE') : '🌙 CLS';
   return `<span class="px-sess ${s.cls}" title="${s.label} · preț extended live (Yahoo includePrePost)&#10;${roSchedule()}">${txt}</span>`;
 }
+// Chip scurt lângă Δ azi: PRE/RTH/AFT/CLS (US) sau EU. Crypto = 24/7, fără chip.
+function daySessChip(sym) {
+  const u = String(sym || '').toUpperCase();
+  if (isCrypto(u)) return '';
+  if (u.includes('.')) {
+    return `<span class="px-sess eu" title="Bursă EU — Δ azi vs close-ul lor de ieri">EU</span>`;
+  }
+  const s = marketSession();
+  const code = s.cls === 'open' ? 'RTH' : s.cls === 'closed' ? 'CLS' : (s.label.includes('after') ? 'AFT' : 'PRE');
+  return `<span class="px-sess ${s.cls}" title="${escHtml(s.label)} · Δ azi vs close ieri&#10;${roSchedule()}">${code}</span>`;
+}
 let _lastStockPollTs = 0;
 let _warnedNoKey = false;
 let soundEnabled = localStorage.getItem(SOUND_KEY) === '1';
@@ -1665,6 +1681,7 @@ var _shellHidden = false;
 // ============ STATE ============
 function loadAlerts(){ try { const o = JSON.parse(localStorage.getItem(ALERTS_KEY) || '{}'); return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; } catch (e) { return {}; } }
 let priceAlerts = loadAlerts();
+let showFromAlert = localStorage.getItem('pa_show_from') === '1';
 // Quota plină: curăță cache ttd: (regenerabil) și reîncearcă — altfel lastStep/base
 // nu se salvează, loadAlerts() de la următorul poll reîncarcă starea veche și
 // TOATE alertele se re-declanșează la 30s (pagina „blocată" de toast-uri).
@@ -2539,9 +2556,12 @@ function rowHtml(sym, a) {
   const tone = dayChg == null ? '' : (dayChg >= 0 ? ' tone-up' : ' tone-down');
   return `<tr class="al-row${snoozed ? ' snoozed' : ''}${tone}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}" id="alrow-${escHtml(a.id)}">
     <td class="al-tk" title="${escHtml([a.note || '', entryTip, fromTip].filter(Boolean).join(' · '))}">
-      ${cb}<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${cur != null ? sessTag(sym) : ''}${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}
+      ${cb}<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}
     </td>
-    <td class="al-num ${dayCls}" title="Schimbarea de azi față de close-ul de ieri">${dayChg == null ? '—' : fmtPct(dayChg)}</td>
+    <td class="al-num ${dayCls}" title="Schimbarea de azi față de close-ul de ieri">
+      <span class="al-day-wrap"><span class="al-day">${dayChg == null ? '—' : fmtPct(dayChg)}</span>${daySessChip(sym)}</span>
+      ${showFromAlert && deltaCreate != null ? `<span class="al-from" title="${escHtml(fromTip)}">alertă ${fmtPct(deltaCreate)}</span>` : ''}
+    </td>
     <td class="al-now">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</td>
     <td class="al-trig" title="${escHtml(thrTip)}">
       <span class="al-tgt">${thrShort}</span>
@@ -2720,14 +2740,14 @@ function showSnoozeMenu(btn, sym, id) {
 // click în afara meniului (dar nu pe butonul 😴) → închide
 document.addEventListener('click', e => { const m = $('snoozeMenu'); if (m && !m.contains(e.target) && !e.target.closest('[data-action="snooze"]')) closeSnoozeMenu(); });
 
-// Sortare: 'growth' = după creștere (cea mai mare sus), 'prox' = proximitate de declanșare, 'abc' = alfabetic
+// Sortare: 'growth' = |Δ azi| (cine se mișcă azi sus), 'prox' = proximitate, 'abc' = alfabetic
 const _SORT_MODES = ['growth', 'prox', 'abc'];
 let sortMode = _SORT_MODES.includes(localStorage.getItem('pa_sort')) ? localStorage.getItem('pa_sort') : 'growth';
-// Scor creștere: variația ZILEI % (last vs închiderea de ieri). MAI MARE = mai sus.
-// Fără date de variație încă → -Infinity (la coadă).
+// Scor mișcare: |variația ZILEI %|. MAI MARE = mai sus (INTC −5% peste CSCO −1%).
+// Fără date → -Infinity (la coadă). Tie-break: semnul (plus înaintea minus).
 function growthScore(sym) {
   const c = _lastChange[sym];
-  return c == null ? -Infinity : c;
+  return c == null ? -Infinity : Math.abs(c);
 }
 // Scor proximitate: % până la cel mai apropiat eveniment de declanșare. MAI MIC = mai aproape.
 // Fără preț curent → Infinity (la coadă). Acoperă toate tipurile.
@@ -2759,7 +2779,9 @@ function sortRows(arr) {
   if (sortMode === 'abc') return arr;   // deja sortat alfabetic (din Object.keys().sort())
   if (sortMode === 'growth') return arr.sort((x, y) => {
     const gx = growthScore(x.sym), gy = growthScore(y.sym);
-    return gx === gy ? x.sym.localeCompare(y.sym) : gy - gx;   // DESC: variația zilei mare sus
+    if (gx !== gy) return gy - gx;                            // DESC: |Δ azi| mare sus
+    const sx = _lastChange[x.sym] || 0, sy = _lastChange[y.sym] || 0;
+    return sy === sx ? x.sym.localeCompare(y.sym) : sy - sx;  // la egalitate, plus înaintea minus
   });
   return arr.sort((x, y) => {
     const dx = proximityScore(x.sym, x.a), dy = proximityScore(y.sym, y.a);
@@ -3476,7 +3498,7 @@ $('testBtn').addEventListener('click', () => {
 });
 
 // Toggle sortare listă: 📈 creștere → 🎯 proximitate → 🔤 alfabetic → ...
-const _SORT_LABEL = { growth: '📈 după variația zilei (cele mai în plus sus)', prox: '🎯 proximitate de declanșare (gata să se miște sus)', abc: '🔤 alfabetic' };
+const _SORT_LABEL = { growth: '📈 |Δ azi| (cine se mișcă azi, sus)', prox: '🎯 proximitate de declanșare (gata să se miște sus)', abc: '🔤 alfabetic' };
 function applySortBtn() {
   $('btnSort').textContent = sortMode === 'growth' ? '📈' : sortMode === 'prox' ? '🎯' : '🔤';
   $('btnSort').title = 'Sortare listă: ' + _SORT_LABEL[sortMode] + ' — click pt schimbare';
@@ -3491,11 +3513,26 @@ applySortBtn();
 
 // Filtru rapid: căutare text + chips (toate / ▲azi / ▼azi / aproape)
 $('filterInp').addEventListener('input', e => { filterText = e.target.value.trim().toLowerCase(); render(); });
-document.querySelectorAll('#filterBar .chip').forEach(ch => ch.addEventListener('click', () => {
+document.querySelectorAll('#filterBar .chip[data-fmode]').forEach(ch => ch.addEventListener('click', () => {
   filterMode = ch.dataset.fmode;
-  document.querySelectorAll('#filterBar .chip').forEach(c => c.classList.toggle('active', c === ch));
+  document.querySelectorAll('#filterBar .chip[data-fmode]').forEach(c => c.classList.toggle('active', c === ch));
   render();
 }));
+function applyFromChip() {
+  const b = $('chipFrom');
+  if (!b) return;
+  b.classList.toggle('active', showFromAlert);
+  b.setAttribute('aria-pressed', showFromAlert ? 'true' : 'false');
+}
+if ($('chipFrom')) {
+  applyFromChip();
+  $('chipFrom').addEventListener('click', () => {
+    showFromAlert = !showFromAlert;
+    localStorage.setItem('pa_show_from', showFromAlert ? '1' : '0');
+    applyFromChip();
+    render();
+  });
+}
 
 // 📤 Export pentru alertele SERVER-SIDE: GitHub Actions le verifică la 15 min și
 // trimite pe Telegram cu laptopul ÎNCHIS. Lipești JSON-ul în tools/alerts.json pe GitHub.
