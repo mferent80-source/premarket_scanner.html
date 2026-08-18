@@ -1132,7 +1132,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v94</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v95</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1531,12 +1531,12 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=755"></script>
+<script src="../lib/suite-version.js?v=756"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=755"></script>
+<script src="../lib/price-day.js?v=756"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2730,14 +2730,16 @@ function showSnoozeMenu(btn, sym, id) {
 // click în afara meniului (dar nu pe butonul 😴) → închide
 document.addEventListener('click', e => { const m = $('snoozeMenu'); if (m && !m.contains(e.target) && !e.target.closest('[data-action="snooze"]')) closeSnoozeMenu(); });
 
-// Sortare: 'growth' = |Δ azi| (cine se mișcă azi sus), 'prox' = proximitate, 'abc' = alfabetic
+// Sortare: 'growth' = Δ azi cu semn (cele în creștere sus), 'prox' = proximitate, 'abc' = alfabetic
 const _SORT_MODES = ['growth', 'prox', 'abc'];
 let sortMode = _SORT_MODES.includes(localStorage.getItem('pa_sort')) ? localStorage.getItem('pa_sort') : 'growth';
-// Scor mișcare: |variația ZILEI %|. MAI MARE = mai sus (INTC −5% peste CSCO −1%).
-// Fără date → -Infinity (la coadă). Tie-break: semnul (plus înaintea minus).
+// Scor creștere: variația ZILEI % CU SEMN. MAI MARE = mai sus, deci lista curge de la
+// cel mai în plus la cel mai în minus (+3.9% NFLX … −6.9% WDC). NU |Δ| — scăderile mari
+// se duc la coadă, nu în capul listei.
+// Fără date de variație încă → -Infinity (la coadă, după cele în minus).
 function growthScore(sym) {
   const c = _lastChange[sym];
-  return c == null ? -Infinity : Math.abs(c);
+  return c == null ? -Infinity : c;
 }
 // Scor proximitate: % până la cel mai apropiat eveniment de declanșare. MAI MIC = mai aproape.
 // Fără preț curent → Infinity (la coadă). Acoperă toate tipurile.
@@ -2769,9 +2771,7 @@ function sortRows(arr) {
   if (sortMode === 'abc') return arr;   // deja sortat alfabetic (din Object.keys().sort())
   if (sortMode === 'growth') return arr.sort((x, y) => {
     const gx = growthScore(x.sym), gy = growthScore(y.sym);
-    if (gx !== gy) return gy - gx;                            // DESC: |Δ azi| mare sus
-    const sx = _lastChange[x.sym] || 0, sy = _lastChange[y.sym] || 0;
-    return sy === sx ? x.sym.localeCompare(y.sym) : sy - sx;  // la egalitate, plus înaintea minus
+    return gx === gy ? x.sym.localeCompare(y.sym) : gy - gx;  // DESC: cele în creștere sus
   });
   return arr.sort((x, y) => {
     const dx = proximityScore(x.sym, x.a), dy = proximityScore(y.sym, y.a);
@@ -3488,7 +3488,7 @@ $('testBtn').addEventListener('click', () => {
 });
 
 // Toggle sortare listă: 📈 creștere → 🎯 proximitate → 🔤 alfabetic → ...
-const _SORT_LABEL = { growth: '📈 |Δ azi| (cine se mișcă azi, sus)', prox: '🎯 proximitate de declanșare (gata să se miște sus)', abc: '🔤 alfabetic' };
+const _SORT_LABEL = { growth: '📈 după Δ azi (cele în creștere sus)', prox: '🎯 proximitate de declanșare (gata să se miște sus)', abc: '🔤 alfabetic' };
 function applySortBtn() {
   $('btnSort').textContent = sortMode === 'growth' ? '📈' : sortMode === 'prox' ? '🎯' : '🔤';
   $('btnSort').title = 'Sortare listă: ' + _SORT_LABEL[sortMode] + ' — click pt schimbare';
