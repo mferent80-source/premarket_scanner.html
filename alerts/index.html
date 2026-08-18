@@ -361,10 +361,9 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .al-tk a { font-family:var(--mono); font-weight:800; font-size:14px; letter-spacing:.2px; color:var(--accent); text-decoration:none; }
 .al-tk a:hover { text-decoration:underline; color:var(--t1); }
 .al-entry { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t2); }
-.al-num { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--t2); }
+.al-num { font-family:var(--mono); font-size:16px; font-weight:800; color:var(--t2); min-width:5.6em; }
 .al-num.up { color:var(--bull-s); } .al-num.down { color:var(--bear-s); }
-.al-now { font-family:var(--mono); font-size:13.5px; font-weight:800; color:var(--t1); }
-.al-now.up { color:var(--bull-s); } .al-now.down { color:var(--bear-s); }
+.al-now { font-family:var(--mono); font-size:13.5px; font-weight:700; color:var(--t1); }
 .al-trig { text-align:right; white-space:nowrap; }
 .al-tgt { font-family:var(--mono); font-size:11.5px; font-weight:700; color:var(--t1); }
 .al-dist { font-family:var(--mono); font-size:11px; color:var(--t2); font-weight:600; }
@@ -377,7 +376,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   .al-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0; }
   .al-table th, .al-table td { padding:7px 6px; font-size:12px; }
   .al-tk a { font-size:13px; }
-  .al-num { font-size:12px; } .al-now { font-size:13px; }
+  .al-num { font-size:16px; } .al-now { font-size:13px; }
   .al-act .icon-btn { padding:4px 6px; }
 }
 
@@ -855,8 +854,8 @@ body.al-page input, body.al-page select { font-weight:400; }
   color:var(--t3); text-transform:uppercase; padding:6px 8px 8px;
 }
 .al-tk a { font-weight:600; font-size:13px; letter-spacing:0; }
-.al-now, .al-num, .al-entry, .al-tgt { font-weight:500; }
-.al-from { display:block; font-size:11.5px; font-weight:600; color:var(--t3); margin-top:2px; }
+.al-now, .al-entry, .al-tgt { font-weight:500; }
+.al-from { display:none; }
 .al-now { font-size:13px; }
 .empty { font-weight:400; font-size:13px; padding:22px 12px; }
 .empty .ico { display:none; }
@@ -922,8 +921,9 @@ body.al-page input, body.al-page select { font-weight:400; }
   }
   .al-table th, .al-table td { padding:9px 7px; font-size:14px; }
   .al-table td.al-tk a { font-weight:700; font-size:15px; color:var(--t1); }
-  .al-table .al-now { font-weight:700; font-size:15px; }
-  .al-table .al-num, .al-table .al-tgt, .al-table .al-entry, .al-table .al-dist {
+  .al-table .al-now { font-weight:600; font-size:14px; color:var(--t1); }
+  .al-table .al-num { font-weight:800; font-size:20px; }
+  .al-table .al-tgt, .al-table .al-entry, .al-table .al-dist {
     font-weight:600; color:var(--t1); font-size:14px;
   }
   .empty { font-weight:500; font-size:14.5px; color:var(--t2); }
@@ -1014,11 +1014,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   .al-table thead { display:none; }
   .al-table tbody tr.al-row {
     display:grid;
-    grid-template-columns:minmax(0,1.2fr) auto auto 34px;
-    grid-template-areas:"tk day now more";
-    gap:6px 8px;
+    grid-template-columns:minmax(0,1fr) auto 34px;
+    grid-template-areas:
+      "tk tk more"
+      "day now now";
+    gap:4px 10px;
     align-items:center;
-    padding:11px 10px;
+    padding:11px 12px;
     margin:0 0 6px;
     background:var(--panel);
     border:1px solid var(--b1);
@@ -1035,9 +1037,10 @@ body.al-page input, body.al-page select { font-weight:400; }
   }
   .al-table tbody tr.al-row.open {
     grid-template-areas:
-      "tk day now more"
-      "thr thr thr thr"
-      "act act act act";
+      "tk tk more"
+      "day now now"
+      "thr thr thr"
+      "act act act";
   }
   .al-table tbody tr.al-row:last-child { margin-bottom:0; }
   .al-table th, .al-table td {
@@ -1045,24 +1048,23 @@ body.al-page input, body.al-page select { font-weight:400; }
     font-size:14px;
   }
   .al-table td.al-tk { grid-area:tk; min-width:0; }
-  .al-table td.al-tk a { font-size:16px; font-weight:800; color:var(--t1); }
+  .al-table td.al-tk a { font-size:15px; font-weight:700; color:var(--t1); }
   .al-table td.al-tk .sess-badge,
   .al-table td.al-tk .px-sess,
   .al-table td.al-tk .ac-snz { display:none; }
-  .al-table td:nth-child(2) {
-    grid-area:day; font-size:15px; font-weight:800; text-align:right;
-    font-variant-numeric:tabular-nums;
+  .al-table td:nth-child(2),
+  .al-table td.al-num {
+    grid-area:day; font-size:22px; font-weight:800; text-align:left;
+    font-variant-numeric:tabular-nums; line-height:1.1; min-width:0;
   }
-  .al-from { display:none; }
-  tr.al-row.open .al-from {
-    display:inline; margin-left:8px; color:var(--t2); font-weight:600; font-size:13px;
-  }
+  .al-from { display:none !important; }
   .al-table td.al-now {
-    grid-area:now; font-size:15px; font-weight:800; text-align:right;
+    grid-area:now; font-size:14px; font-weight:600; text-align:right;
     font-variant-numeric:tabular-nums; padding-left:8px; min-width:4.6em;
+    color:var(--t1);
   }
-  .al-table td.al-num.up, .al-table td.al-now.up { color:var(--bull-s); }
-  .al-table td.al-num.down, .al-table td.al-now.down { color:var(--bear-s); }
+  .al-table td.al-num.up { color:var(--bull-s); }
+  .al-table td.al-num.down { color:var(--bear-s); }
   .al-table td.al-trig {
     display:none; grid-area:thr; text-align:left; font-size:13.5px;
     color:var(--t1); font-weight:700; padding-top:6px;
@@ -1126,7 +1128,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v91</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v92</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1524,12 +1526,12 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=752"></script>
+<script src="../lib/suite-version.js?v=753"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=752"></script>
+<script src="../lib/price-day.js?v=753"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2494,23 +2496,22 @@ function triggerHint(sym, a, cur) {
   }
   return { score: proximityScore(sym, a), scale: 2, target: `prag $${fmtPx(a.lvl, sym)}`, ico: '🎯' };  // price
 }
-// HTML-ul unui rând de tabel pentru o alertă activă (model watchlist Smart Trade Long).
-// Coloane: Ticker (+ tip alertă + notă) | Preț intrare | Evol. de la început | Δ ult. zi | Preț acum | Prag · distanță | Acțiuni
+// HTML-ul unui rând: Ticker | Δ zi (singurul %) | Preț acum | Prag | Acțiuni
 function rowHtml(sym, a) {
   const cur = _lastPrice[sym];
   const k = a.kind || 'price';
   const isRef = k === 'ref', isAnchor = k === 'anchor', isPct = k === 'pct', isDay = k === 'day';
   const stateBadge = a.rearm ? (a.armed ? ' <span title="re-arm: se păstrează și se re-armează după declanșare">↻</span>' : ' <span style="opacity:.55" title="dezarmat — se re-armează când prețul revine 0.3% dincolo de nivel">↻💤</span>') : '';
 
-  // Preț intrare + evoluție de la început (față de prețul de la adăugare / ancoră)
   const baseCreate = a.base ?? a.addedPrice ?? (k === 'price' ? a.lvl : null);
   const deltaCreate = (cur != null && baseCreate) ? (cur - baseCreate) / baseCreate * 100 : null;
-  const evCls = deltaCreate == null ? '' : (deltaCreate >= 0 ? 'up' : 'down');
   const dayChg = _lastChange[sym];
   const dayCls = dayChg == null ? '' : (dayChg >= 0 ? 'up' : 'down');
-  const hiMark = isRef ? a.hi : a.cHi;   // markere max/min: ref are hi/lo propriu, restul cHi/cLo
+  const hiMark = isRef ? a.hi : a.cHi;
   const loMark = isRef ? a.lo : a.cLo;
-  const hiLoTip = (hiMark || loMark) ? `de la creare: max ${fmtPct(hiMark)} · min ${fmtPct(loMark)}` : '';
+  const fromTip = deltaCreate != null
+    ? `de la alertă ${fmtPct(deltaCreate)}${(hiMark || loMark) ? ` · max ${fmtPct(hiMark)} · min ${fmtPct(loMark)}` : ''}`
+    : '';
 
   // Prag scurt (fără „cât % până la fire" — inutil pe listă)
   const h = triggerHint(sym, a, cur);
@@ -2526,7 +2527,7 @@ function rowHtml(sym, a) {
   const bornStr = fmtBorn(a.addedAt);
   const ageStr = a.addedAt ? ' · activă ' + fmtAge(a.addedAt) : '';
   const entryTip = baseCreate != null ? `creat ${bornStr}${ageStr}` : '';
-  const thrTip = [h.target || '', a.note || '', entryTip].filter(Boolean).join(' · ');
+  const thrTip = [h.target || '', a.note || '', entryTip, fromTip].filter(Boolean).join(' · ');
 
   const snoozed = a.snoozeUntil && a.snoozeUntil > Date.now();
   const snzRem = snoozed ? Math.ceil((a.snoozeUntil - Date.now()) / 60000) : 0;
@@ -2537,14 +2538,13 @@ function rowHtml(sym, a) {
   const cb = bulkMode ? `<input type="checkbox" class="bulk-cb" data-bulk="${escHtml(bk)}"${checked} title="Selectează">` : '';
   const tone = dayChg == null ? '' : (dayChg >= 0 ? ' tone-up' : ' tone-down');
   return `<tr class="al-row${snoozed ? ' snoozed' : ''}${tone}" data-sym="${escHtml(sym)}" data-id="${escHtml(a.id)}" id="alrow-${escHtml(a.id)}">
-    <td class="al-tk" title="${escHtml([a.note || '', entryTip].filter(Boolean).join(' · '))}">
+    <td class="al-tk" title="${escHtml([a.note || '', entryTip, fromTip].filter(Boolean).join(' · '))}">
       ${cb}<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(sym)}" target="_blank">${escHtml(sym)}</a>${cur != null ? sessTag(sym) : ''}${snoozed ? `<span class="ac-snz" title="amânată (snooze)">😴${snzTxt}</span>` : ''}
     </td>
-    <td class="al-num ${dayCls}" title="Δ zi față de close ieri">${dayChg == null ? '—' : fmtPct(dayChg)}</td>
-    <td class="al-now ${dayCls}">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</td>
+    <td class="al-num ${dayCls}" title="Schimbarea de azi față de close-ul de ieri">${dayChg == null ? '—' : fmtPct(dayChg)}</td>
+    <td class="al-now">${cur != null ? '$' + fmtPx(cur, sym) : '⏳'}</td>
     <td class="al-trig" title="${escHtml(thrTip)}">
       <span class="al-tgt">${thrShort}</span>
-      ${deltaCreate != null ? `<span class="al-from" title="${escHtml(hiLoTip || 'față de prețul de la alertă')}">de la alertă ${fmtPct(deltaCreate)}</span>` : ''}
     </td>
     <td class="al-act">
       <button class="icon-btn" data-action="snooze" title="😴 Amână alerta (1h / 4h / până la deschidere)" style="${snoozed ? 'color:var(--warn);border-color:rgba(212,137,44,.4)' : 'opacity:.6'}">😴</button>
@@ -2562,7 +2562,7 @@ function rowHtml(sym, a) {
 
 // Cap de tabel — listă 1-linie
 const AL_THEAD = `<thead><tr>
-  <th>Ticker</th><th title="Variația zilei față de close ieri">Δ zi</th><th>Acum</th><th>Prag</th><th></th>
+  <th>Ticker</th><th title="Schimbarea de azi față de close-ul de ieri">Δ azi</th><th>Acum</th><th>Prag</th><th></th>
 </tr></thead>`;
 
 // Doar LISTĂ pe o linie (v74 — group scoasă)
@@ -2817,7 +2817,7 @@ function renderAlmostRail(activeRows) {
       chg: _lastChange[sym],
       px: _lastPrice[sym]
     }))
-    .filter(x => x.chg != null && isFinite(x.chg))
+    .filter(x => x.chg != null && isFinite(x.chg) && x.chg > 0)
     .sort((a, b) => b.chg - a.chg)
     .slice(0, 14);
   if (!cand.length) { el.classList.remove('show'); el.innerHTML = ''; return; }
