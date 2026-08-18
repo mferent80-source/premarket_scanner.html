@@ -54,6 +54,19 @@ test('lastBarFromCloses: ultima bară non-null', () => {
   assert.equal(PD.lastBarFromCloses([]), null);
 });
 
+test('RTH: changePercent stale (ieri) nu inversează Δ azi', () => {
+  // FISV marți $53.03, close luni $52.21 (+1.6%); Yahoo mai trimite −4.01% de luni
+  const q = PD.yahooQuote({
+    regularMarketPrice: 53.03,
+    regularMarketChangePercent: -4.01,
+    chartPreviousClose: 52.21,
+    previousClose: 52.21
+  }, 53.00, 'rth', false);
+  assert.equal(q.prev, 52.21);
+  const chg = (q.last - q.prev) / q.prev * 100;
+  assert.ok(chg > 1.4 && chg < 1.8, 'azi +1.6, nu −4 de ieri');
+});
+
 test('summarizeBus: numără surse și otrava', () => {
   const s = PD.summarizeBus({
     HOOD: { src: 'nasdaq-ext', chgPct: -4, price: 95 },

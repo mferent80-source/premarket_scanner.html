@@ -1132,7 +1132,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v93</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v94</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1531,12 +1531,12 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=754"></script>
+<script src="../lib/suite-version.js?v=755"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=754"></script>
+<script src="../lib/price-day.js?v=755"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -1605,6 +1605,12 @@ function nyseWeekend() {
   const wd = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short' }).format(new Date());
   return wd === 'Sat' || wd === 'Sun';
 }
+// Ziua calendaristică ET a unui timestamp. Δ azi din cache se refolosește DOAR dacă e din
+// ziua ET curentă — altfel la reload apărea procentul de IERI, cu semnul lui (FISV −4% de
+// luni lipit pe prețul de marți), până când intra primul poll.
+const _etDayFmt = new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit' });
+function etDayKey(ts) { try { return _etDayFmt.format(new Date(ts)); } catch (e) { return ''; } }
+function sameEtDay(ts) { const d = etDayKey(ts); return !!d && d === etDayKey(Date.now()); }
 // ── Orele bursei US afișate în ORA ROMÂNIEI ──
 // Logica de deschidere/închidere rămâne în ET (piața US operează după ora New York,
 // indiferent unde ești). Aici convertim DOAR pentru AFIȘARE, calculând dinamic decalajul
@@ -2061,25 +2067,8 @@ async function fetchPriceBinance(symbol) {
 }
 async function fetchPrice(symbol) {
   const s = symbol.toUpperCase();
-  // Quote bus: DOAR dacă are chgPct EXPLICIT (finite). Fără chgPct (journal/hub parțial)
-  // sau chgPct undefined → prev=price → Δ zi 0% FALS (incident COKE tel 0% vs desk 0.7%).
-  if (window.QB) {
-    try {
-      const busKey = s.replace(/-USD$/, '').replace(/USDT$/, '') || s;
-      const keys = [s, busKey, s === 'BTC-USD' || s === 'BTC' ? 'BTC' : null].filter(Boolean);
-      for (const k of keys) {
-        const hit = QB.get(k, 20000);
-        if (hit && Number.isFinite(hit.price) && hit.price > 0
-            && typeof hit.chgPct === 'number' && Number.isFinite(hit.chgPct)
-            && (!window.PriceDay || !PriceDay.busOk || PriceDay.busOk(hit.src))) {
-          const prev = Math.abs(hit.chgPct) > 1e-9
-            ? hit.price / (1 + hit.chgPct / 100)
-            : hit.price;
-          return { last: hit.price, prev, fromBus: true };
-        }
-      }
-    } catch (e) {}
-  }
+  // Quote-bus NU mai alimentează Δ azi: chgPct reconstruit din preț poate păstra
+  // semnul sesiunii trecute (FISV −4% luni pe prețul de marți). Preț+Δ vin din Yahoo.
   // Crypto cunoscute (BTC/ETH/SOL): v49 — Binance daily-kline ÎNTÂI (variația zilei = open
   // 00:00 UTC, consistent cu restul USDT) → Yahoo XXX-USD plasă (tot chartPreviousClose =
   // ziua) → CoinGecko ultim resort (rolling-24h: doar dacă pică AMBELE, prețul rămâne corect,
@@ -2146,7 +2135,8 @@ function hydratePricesFromCache() {
     const e = c[sym];
     if (!e || !Number.isFinite(e.last) || now - (e.ts || 0) > PX_CACHE_PAINT_MS) return;
     _lastPrice[sym] = e.last;
-    if (Number.isFinite(e.chg)) _lastChange[sym] = e.chg;
+    // Δ din cache doar dacă e din ziua ET curentă — altfel păstrăm semnul de ieri (FISV −4%)
+    if (Number.isFinite(e.chg) && sameEtDay(e.ts)) _lastChange[sym] = e.chg;
     n++;
   });
   return n;
