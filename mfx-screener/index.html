@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="../lib/theme-light.css?v=757">
-<script src="../lib/theme.js?v=757"></script>
+<link rel="stylesheet" href="../lib/theme-light.css?v=758">
+<script src="../lib/theme.js?v=758"></script>
 <title>🎯 MFX Screener — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=757">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=758">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#070b11;--panel:#171f30;--panel2:#222c44;--b1:#4a5874;--t1:#fafbfc;--t2:#aab4c6;--t3:#d0d8e6;
@@ -62,11 +62,13 @@ tbody tr:hover{background:rgba(45,212,168,.05)}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}.nav-link:hover{transform:none}}
 .stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-family:var(--mono);font-size:10px;color:var(--t2)}
 .stats span{background:var(--panel2);border:1px solid var(--b1);padding:4px 9px;border-radius:var(--rs)}
+.flash{background:rgba(240,167,90,.12);border:1px solid rgba(240,167,90,.4);color:var(--warn);padding:8px 12px;border-radius:var(--rs);font-family:var(--mono);font-size:11px;margin-bottom:10px}
 @media(max-width:550px){.grp{border-right:0;padding-right:0;width:100%}.miss{max-width:110px}}
 </style>
 </head>
 <body class="suite-page">
 <div id="capitalRail" data-cd-page="mfx"></div>
+<div id="flash" class="flash" hidden></div>
 
 <header class="suite-cockpit">
   <h1>🎯 MFX Screener <span class="ver-badge">v1</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
@@ -115,6 +117,16 @@ tbody tr:hover{background:rgba(45,212,168,.05)}
         <select id="veto"><option value="1">pornit</option><option value="0">oprit</option></select>
       </label>
     </div>
+    <div class="grp">
+      <label><span title="Trimite pe Telegram / notificare browser cand un simbol intra in STRONG. Fiecare semnal pleaca o singura data pe bara lui.">Alertă pe STRONG</span>
+        <select id="alertMode">
+          <option value="0">oprită</option>
+          <option value="tg">Telegram</option>
+          <option value="nt">notificare browser</option>
+          <option value="both">amândouă</option>
+        </select>
+      </label>
+    </div>
   </div>
   <textarea id="syms" spellcheck="false" placeholder="Simboluri separate prin virgulă sau spațiu"></textarea>
   <p class="note">Crypto = perechi Binance spot (<b>BTCUSDT</b>). Stocks = simboluri Yahoo (<b>AAPL</b>).
@@ -137,8 +149,10 @@ tbody tr:hover{background:rgba(45,212,168,.05)}
   Pragurile (75/50) și ponderile (30/30/25/15) sunt <b>ipoteze</b>, nu setări validate.
 </p>
 
-<script src="../lib/data.js?v=757"></script>
-<script src="../lib/mfx.js?v=757"></script>
+<script src="../lib/data.js?v=758"></script>
+<script src="../lib/telegram.js?v=758"></script>
+<script src="../lib/notifications.js?v=758"></script>
+<script src="../lib/mfx.js?v=758"></script>
 <script>
 (function(){
 'use strict';
@@ -169,13 +183,14 @@ function loadCfg(){
   $('brk').value = c.brk || 'close';
   $('filt').value = c.filt != null ? c.filt : '1';
   $('veto').value = c.veto != null ? c.veto : '1';
+  $('alertMode').value = c.alertMode || '0';
   $('syms').value = c.syms || DEF[$('mkt').value];
 }
 function saveCfg(){
   try {
     localStorage.setItem(KEY, JSON.stringify({
       mkt: $('mkt').value, tf: $('tf').value, preset: $('preset').value, brk: $('brk').value,
-      filt: $('filt').value, veto: $('veto').value, syms: $('syms').value
+      filt: $('filt').value, veto: $('veto').value, alertMode: $('alertMode').value, syms: $('syms').value
     }));
   } catch (e) { /* quota plina — setarile nu sunt critice */ }
 }
@@ -285,6 +300,75 @@ function render(){
   });
 }
 
+/* ── ALERTE ────────────────────────────────────────────────────────────────
+   Dedupe pe (simbol, stare, ora barei): acelasi STRONG nu pleaca de doua ori
+   pentru aceeasi bara, dar se retrimite cand apare o bara noua care il tine.
+   Fara asta, fiecare auto-scan ar re-alerta acelasi lucru. */
+const SEEN_KEY = 'tt_mfx_seen_v1';
+function seenLoad(){
+  try { return JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch (e) { return {}; }
+}
+function seenSave(o){
+  try {
+    const k = Object.keys(o);
+    if (k.length > 400){                       // pastreaza cele mai recente ~300
+      k.sort((a, b) => o[a] - o[b]).slice(0, k.length - 300).forEach(x => { delete o[x]; });
+    }
+    localStorage.setItem(SEEN_KEY, JSON.stringify(o));
+  } catch (e) { /* quota — dedupe-ul e best-effort, nu blocheaza scanarea */ }
+}
+
+async function notifyStrong(list){
+  const mode = $('alertMode').value;
+  if (mode === '0') return;
+  const fresh = [], seen = seenLoad(), now = Date.now();
+  list.forEach(r => {
+    const x = r.res;
+    if (!x || !x.ok || Math.abs(x.state) !== 2) return;
+    const key = r.sym + '|' + x.state + '|' + x.t;
+    if (seen[key]) return;
+    seen[key] = now; fresh.push(r);
+  });
+  if (!fresh.length) return;
+  seenSave(seen);
+
+  const tf = $('tf').value;
+  if (mode === 'tg' || mode === 'both'){
+    if (window.TG && TG.getConfig && TG.getConfig().token){
+      // parse_mode e HTML → orice text dinamic trebuie escapat
+      const body = fresh.map(r => {
+        const x = r.res;
+        return '<b>' + esc(r.sym) + '</b> — ' + esc(x.stateTxt) + '  (scor ' + x.score.toFixed(0) + ')\n' +
+               '   ctx ' + (x.ctxDir === 1 ? 'BULL' : x.ctxDir === -1 ? 'BEAR' : '—') +
+               ' · HTF ' + (x.htfDir === 1 ? 'BULL' : x.htfDir === -1 ? 'BEAR' : '—') +
+               ' · vol ' + (x.volRatio == null ? '—' : x.volRatio.toFixed(2) + 'x') +
+               ' · ' + fmtPx(x.price);
+      }).join('\n');
+      await TG.send('🎯 <b>MFX ' + esc(tf) + '</b> — ' + fresh.length + ' semnal(e) STRONG\n\n' + body, {});
+    } else {
+      flash('Telegram neconfigurat (token/chat lipsă) — semnalele au rămas doar în tabel.');
+    }
+  }
+  if (mode === 'nt' || mode === 'both'){
+    if (window.NT && NT.isOn && NT.isOn()){
+      NT.show('MFX ' + tf + ' — ' + fresh.length + ' STRONG',
+              { body: fresh.map(r => r.sym + ' ' + r.res.stateTxt + ' (' + r.res.score.toFixed(0) + ')').join(', ') });
+    } else if (window.NT && NT.enable){
+      const ok = await NT.enable();
+      if (ok) NT.show('MFX — alerte pornite', { body: 'Semnalele STRONG vor apărea aici.' });
+      else flash('Notificările browser sunt blocate din permisiuni.');
+    }
+  }
+}
+
+function flash(msg){
+  const el = $('flash');
+  if (!el) return;
+  el.textContent = msg; el.hidden = false;
+  clearTimeout(flash._t);
+  flash._t = setTimeout(() => { el.hidden = true; }, 6000);
+}
+
 async function scan(){
   if (busy) return;
   const syms = parseSyms();
@@ -308,6 +392,7 @@ async function scan(){
     }, (d, t) => { const p = $('prg'); if (p) p.textContent = d + '/' + t; });
     rows = rows.map((r, i) => r && r.sym ? r : { sym: syms[i], err: 'eroare necunoscută' });
     render();
+    await notifyStrong(rows);
   } catch (e){
     $('out').innerHTML = '<div class="state-box err"><b>Scanarea a eșuat</b>' + esc((e && e.message) || e) +
       '<br><button class="nav-link" id="btnRetry" style="margin-top:10px">↻ Încearcă din nou</button></div>';
@@ -333,19 +418,19 @@ $('btnWl').onclick = () => {
   saveCfg();
 };
 $('btnDef').onclick = () => { $('syms').value = DEF[$('mkt').value]; saveCfg(); };
-['tf','preset','brk','veto','syms'].forEach(id => $(id).addEventListener('change', saveCfg));
+['tf','preset','brk','veto','alertMode','syms'].forEach(id => $(id).addEventListener('change', saveCfg));
 $('filt').addEventListener('change', () => { saveCfg(); render(); });
 
 loadCfg();
 })();
 </script>
-<script src="../lib/suite-version.js?v=757"></script>
+<script src="../lib/suite-version.js?v=758"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v757';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v758';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
-<script src="../nav.js?v=757" data-nav-root="../"></script>
+<script src="../nav.js?v=758" data-nav-root="../"></script>
 </body>
 </html>
