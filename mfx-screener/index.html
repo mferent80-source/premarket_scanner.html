@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
+<link rel="stylesheet" href="../lib/theme-light.css?v=757">
+<script src="../lib/theme.js?v=757"></script>
+<title>🎯 MFX Screener — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=757">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#070b11;--panel:#171f30;--panel2:#222c44;--b1:#4a5874;--t1:#fafbfc;--t2:#aab4c6;--t3:#d0d8e6;
+      --accent:#2dd4a8;--bull:#22d66b;--bear:#ff4d4d;--warn:#f0a75a;--mut:#8b93a3;
+      --r:12px;--rs:8px;--gap:10px;--mono:'DM Mono',monospace;--head:'Sora',sans-serif;color-scheme:dark}
+body{font-family:var(--head);background:var(--bg);color:var(--t1);padding:12px;font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;gap:var(--gap);align-items:center;padding:10px 14px;border:1px solid var(--b1);border-radius:var(--r);margin:0 0 12px;background:var(--panel)}
+header h1{font-size:17px;font-weight:800;color:var(--accent);margin-right:auto;display:flex;align-items:center;gap:8px}
+header.suite-cockpit{position:sticky;top:0;z-index:60;background:var(--topbar-bg);box-shadow:var(--topbar-shadow)}
+.nav-link{background:var(--panel2);border:1px solid var(--b1);padding:7px 12px;border-radius:var(--rs);color:var(--t1);text-decoration:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:border-color .15s,transform .15s}
+.nav-link:hover{border-color:var(--accent);transform:translateY(-1px)}
+.nav-link.primary{background:var(--accent);color:#06231c;border-color:var(--accent)}
+.nav-link[disabled]{opacity:.5;cursor:progress}
+.panel{background:var(--panel);border:1px solid var(--b1);border-top:3px solid var(--accent);border-radius:var(--r);padding:12px;margin-bottom:12px;overflow-x:auto}
+.ver-badge{font-size:10px;padding:2px 7px;border-radius:5px;background:rgba(45,212,168,.15);color:var(--accent);border:1px solid rgba(45,212,168,.35);font-family:var(--mono)}
+
+/* controale grupate in clustere, nu insirate */
+.ctrls{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.grp{display:flex;gap:6px;align-items:flex-end;padding-right:14px;border-right:1px solid var(--b1)}
+.grp:last-child{border-right:0;padding-right:0}
+label{font-family:var(--mono);font-size:10px;color:var(--t2);display:flex;flex-direction:column;gap:3px}
+select,input{background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:7px;border-radius:var(--rs);font-family:var(--mono);font-size:12px}
+textarea{width:100%;min-height:56px;margin-top:8px;background:var(--panel2);border:1px solid var(--b1);color:var(--t1);padding:8px;border-radius:var(--rs);font-family:var(--mono);font-size:11px;resize:vertical}
+
+table{width:100%;border-collapse:collapse;font-size:11px;font-family:var(--mono)}
+th{color:var(--t2);text-align:right;padding:7px 6px;border-bottom:1px solid var(--b1);font-weight:500;white-space:nowrap;cursor:pointer;user-select:none}
+th.l,td.l{text-align:left}
+th:hover{color:var(--accent)}
+td{padding:7px 6px;border-bottom:1px solid rgba(74,88,116,.35);text-align:right;white-space:nowrap}
+tbody tr:hover{background:rgba(45,212,168,.05)}
+.sym{font-weight:700;font-size:12px;color:var(--t1)}
+/* badge DOAR pe verdict — restul metricilor raman text mono colorat */
+.st{padding:2px 7px;border-radius:5px;font-weight:700;font-size:10px;letter-spacing:.02em}
+.st.sl{background:rgba(34,214,107,.16);color:var(--bull);border:1px solid rgba(34,214,107,.4)}
+.st.el{background:rgba(34,214,107,.07);color:var(--bull);border:1px solid rgba(34,214,107,.2)}
+.st.ss{background:rgba(255,77,77,.16);color:var(--bear);border:1px solid rgba(255,77,77,.4)}
+.st.es{background:rgba(255,77,77,.07);color:var(--bear);border:1px solid rgba(255,77,77,.2)}
+.st.ex{background:rgba(240,167,90,.16);color:var(--warn);border:1px solid rgba(240,167,90,.4)}
+.st.nt{background:rgba(139,147,163,.12);color:var(--mut);border:1px solid rgba(139,147,163,.3)}
+.bar{display:inline-block;width:74px;height:7px;border-radius:4px;background:rgba(74,88,116,.4);overflow:hidden;vertical-align:middle;margin-right:6px}
+.bar i{display:block;height:100%;border-radius:4px}
+.up{color:var(--bull)}.dn{color:var(--bear)}.mu{color:var(--mut)}.wn{color:var(--warn)}
+.miss{font-size:10px;color:var(--warn);max-width:190px;overflow:hidden;text-overflow:ellipsis;display:inline-block;vertical-align:bottom}
+.note{font-family:var(--mono);font-size:10px;color:var(--t2);line-height:1.6;margin-top:10px}
+.state-box{padding:26px 14px;text-align:center;font-family:var(--mono);font-size:12px;color:var(--t2);line-height:1.7}
+.state-box b{color:var(--t1);display:block;margin-bottom:4px;font-size:13px}
+.state-box.err{color:var(--bear)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(45,212,168,.25);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}.nav-link:hover{transform:none}}
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-family:var(--mono);font-size:10px;color:var(--t2)}
+.stats span{background:var(--panel2);border:1px solid var(--b1);padding:4px 9px;border-radius:var(--rs)}
+@media(max-width:550px){.grp{border-right:0;padding-right:0;width:100%}.miss{max-width:110px}}
+</style>
+</head>
+<body class="suite-page">
+<div id="capitalRail" data-cd-page="mfx"></div>
+
+<header class="suite-cockpit">
+  <h1>🎯 MFX Screener <span class="ver-badge">v1</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <button class="nav-link primary" id="btnScan">🔍 Scanează</button>
+  <a class="nav-link" href="../">← Hub</a>
+</header>
+
+<div class="panel">
+  <div class="ctrls">
+    <div class="grp">
+      <label>Piață
+        <select id="mkt">
+          <option value="crypto">Crypto (Binance)</option>
+          <option value="stocks">Stocks (Yahoo)</option>
+        </select>
+      </label>
+      <label>TF intrare
+        <select id="tf"></select>
+      </label>
+    </div>
+    <div class="grp">
+      <label>Preset
+        <select id="preset">
+          <option value="Crypto">Crypto</option>
+          <option value="Nasdaq">Nasdaq</option>
+          <option value="Intraday">Intraday</option>
+        </select>
+      </label>
+      <label>Rupere
+        <select id="brk">
+          <option value="close">Corp (close)</option>
+          <option value="body">Corp întreg</option>
+          <option value="wick">Fitil</option>
+        </select>
+      </label>
+    </div>
+    <div class="grp">
+      <label>Arată
+        <select id="filt">
+          <option value="0">tot</option>
+          <option value="1" selected>fără NEUTRAL</option>
+          <option value="2">doar STRONG</option>
+        </select>
+      </label>
+      <label><span title="Structura de pe TF-ul de validare are drept de veto pe STRONG">Veto HTF</span>
+        <select id="veto"><option value="1">pornit</option><option value="0">oprit</option></select>
+      </label>
+    </div>
+  </div>
+  <textarea id="syms" spellcheck="false" placeholder="Simboluri separate prin virgulă sau spațiu"></textarea>
+  <p class="note">Crypto = perechi Binance spot (<b>BTCUSDT</b>). Stocks = simboluri Yahoo (<b>AAPL</b>).
+    Butonul „📋 Watchlist" încarcă lista salvată din suită (<code>wl_stocks</code>).
+    <button class="nav-link" id="btnWl" style="padding:3px 8px;font-size:10px;margin-left:4px">📋 Watchlist</button>
+    <button class="nav-link" id="btnDef" style="padding:3px 8px;font-size:10px">↩︎ lista implicită</button>
+  </p>
+</div>
+
+<div class="panel">
+  <div class="stats" id="stats" hidden></div>
+  <div id="out"><div class="state-box"><b>Niciun rezultat încă</b>apasă 🔍 Scanează</div></div>
+</div>
+
+<p class="note" style="padding:0 4px 20px">
+  Motor: <code>lib/mfx.js</code> — același EVC ca deck-ul Pine <b>Mentfx Deck v1.1</b>
+  (structură ruptă de corp · EMA 5/10/20 de pe TF×6 · Triple M · volum), cu veto de context.
+  <b>TF-ul de validare se obține agregând 6 bare</b>, aliniat la ultima bară, nu la ora de calendar —
+  pe serii cu goluri granițele pot diferi cu o bară față de TradingView.
+  Pragurile (75/50) și ponderile (30/30/25/15) sunt <b>ipoteze</b>, nu setări validate.
+</p>
+
+<script src="../lib/data.js?v=757"></script>
+<script src="../lib/mfx.js?v=757"></script>
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const KEY = 'tt_mfx_screener_v1';
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const DEF = {
+  crypto: 'BTCUSDT ETHUSDT SOLUSDT BNBUSDT XRPUSDT ADAUSDT DOGEUSDT AVAXUSDT LINKUSDT ONDOUSDT SUIUSDT NEARUSDT',
+  stocks: 'AAPL MSFT NVDA AMZN META GOOGL TSLA AMD AVGO NFLX'
+};
+// Yahoo limiteaza istoricul intraday: range-ul trebuie potrivit cu intervalul
+const TFS = {
+  crypto: [['15m','15m'],['1h','1h'],['4h','4h'],['1d','1d']],
+  stocks: [['15m','15m'],['1h','1h'],['1d','1d']]
+};
+const YRANGE = { '15m':'60d', '1h':'2y', '1d':'5y' };
+const LIMIT = 1000;
+
+let rows = [], sortKey = 'score', sortDir = -1, busy = false;
+
+function loadCfg(){
+  let c = {};
+  try { c = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { c = {}; }
+  $('mkt').value = c.mkt || 'crypto';
+  fillTf(c.tf);
+  $('preset').value = c.preset || (c.mkt === 'stocks' ? 'Nasdaq' : 'Crypto');
+  $('brk').value = c.brk || 'close';
+  $('filt').value = c.filt != null ? c.filt : '1';
+  $('veto').value = c.veto != null ? c.veto : '1';
+  $('syms').value = c.syms || DEF[$('mkt').value];
+}
+function saveCfg(){
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      mkt: $('mkt').value, tf: $('tf').value, preset: $('preset').value, brk: $('brk').value,
+      filt: $('filt').value, veto: $('veto').value, syms: $('syms').value
+    }));
+  } catch (e) { /* quota plina — setarile nu sunt critice */ }
+}
+function fillTf(want){
+  const list = TFS[$('mkt').value];
+  $('tf').innerHTML = list.map(t => '<option value="' + t[0] + '">' + t[1] + '</option>').join('');
+  $('tf').value = list.some(t => t[0] === want) ? want : (list.length > 2 ? list[1][0] : list[0][0]);
+}
+
+function parseSyms(){
+  return ($('syms').value || '').split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean).slice(0, 60);
+}
+
+async function fetchBars(sym, mkt, tf){
+  if (mkt === 'crypto') return await D.fetchCrypto(sym, tf, LIMIT);
+  return await D.fetchStock(sym, { range: YRANGE[tf] || '2y', interval: tf });
+}
+
+/* concurenta plafonata: 4 simboluri odata, ca sa nu lovim rate-limit-ul proxy-ului */
+async function pool(items, n, worker, onStep){
+  const out = new Array(items.length);
+  let idx = 0, done = 0;
+  async function run(){
+    while (idx < items.length){
+      const i = idx++;
+      try { out[i] = await worker(items[i], i); }
+      catch (e) { out[i] = { sym: items[i], err: (e && e.message) || 'eroare' }; }
+      onStep(++done, items.length);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, run));
+  return out;
+}
+
+function stCls(r){
+  if (!r.ok) return 'nt';
+  if (r.state === 2) return 'sl';
+  if (r.state === 1) return 'el';
+  if (r.state === -2) return r.longOnly ? 'ex' : 'ss';
+  if (r.state === -1) return r.longOnly ? 'ex' : 'es';
+  return 'nt';
+}
+const dirTxt = d => d === 1 ? '<span class="up">BULL</span>' : d === -1 ? '<span class="dn">BEAR</span>' : '<span class="mu">—</span>';
+const fmtPx = p => p == null ? '—' : p < 1 ? p.toFixed(4) : p.toFixed(2);
+const barCol = s => s >= 75 ? 'var(--bull)' : s >= 50 ? 'var(--warn)' : 'var(--mut)';
+
+function render(){
+  const box = $('out');
+  const min = +$('filt').value;
+  let list = rows.filter(r => r.res && r.res.ok);
+  if (min === 1) list = list.filter(r => r.res.state !== 0);
+  if (min === 2) list = list.filter(r => Math.abs(r.res.state) === 2);
+
+  const bad = rows.filter(r => r.err || (r.res && !r.res.ok));
+  const st = $('stats');
+  if (rows.length){
+    const strong = rows.filter(r => r.res && r.res.ok && Math.abs(r.res.state) === 2).length;
+    const veto = rows.filter(r => r.res && r.res.ok && r.res.htfConflict).length;
+    st.hidden = false;
+    st.innerHTML = '<span>' + rows.length + ' simboluri</span><span>' + strong + ' STRONG</span>' +
+      '<span>' + veto + ' cu veto HTF</span>' + (bad.length ? '<span class="wn">' + bad.length + ' fără date</span>' : '') +
+      '<span>' + esc($('tf').value) + ' → validare ' + esc($('tf').value) + '×6</span>';
+  } else st.hidden = true;
+
+  if (!list.length){
+    box.innerHTML = '<div class="state-box"><b>' + (rows.length ? 'Niciun simbol nu trece filtrul' : 'Niciun rezultat încă') + '</b>' +
+      (rows.length ? 'schimbă „Arată" pe <i>tot</i> ca să vezi și NEUTRAL' : 'apasă 🔍 Scanează') + '</div>' +
+      (bad.length ? '<p class="note">Fără date: ' + bad.map(b => esc(b.sym) + ' (' + esc(b.err || b.res.reason) + ')').join(', ') + '</p>' : '');
+    return;
+  }
+
+  const k = sortKey;
+  list.sort((a, b) => {
+    const va = k === 'sym' ? a.sym : k === 'price' ? a.res.price : k === 'vol' ? (a.res.volRatio || 0) : a.res.score;
+    const vb = k === 'sym' ? b.sym : k === 'price' ? b.res.price : k === 'vol' ? (b.res.volRatio || 0) : b.res.score;
+    if (k === 'sym') return sortDir * String(va).localeCompare(String(vb));
+    return sortDir * ((va || 0) - (vb || 0));
+  });
+
+  box.innerHTML = '<table><thead><tr>' +
+    '<th class="l" data-k="sym">Simbol</th><th class="l">Stare</th><th data-k="score">Scor</th>' +
+    '<th>Ctx</th><th>HTF</th><th>EMA</th><th>Entry</th><th data-k="vol">Vol</th>' +
+    '<th class="l">Lipsește</th><th data-k="price">Preț</th></tr></thead><tbody>' +
+    list.map(r => {
+      const x = r.res;
+      return '<tr><td class="l sym">' + esc(r.sym) + '</td>' +
+        '<td class="l"><span class="st ' + stCls(x) + '">' + esc(x.stateTxt) + '</span></td>' +
+        '<td><span class="bar"><i style="width:' + Math.round(x.score) + '%;background:' + barCol(x.score) + '"></i></span>' +
+          '<b style="color:' + barCol(x.score) + '">' + x.score.toFixed(0) + '</b></td>' +
+        '<td>' + dirTxt(x.ctxDir) + '</td>' +
+        '<td>' + (x.htfConflict ? '<span class="wn">VETO</span>' : dirTxt(x.htfDir)) + '</td>' +
+        '<td>' + dirTxt(x.emaDir) + '</td>' +
+        '<td>' + (x.entryAge == null ? '<span class="mu">—</span>' : x.entryAge + 'b') + '</td>' +
+        '<td>' + (x.volRatio == null ? '<span class="mu">—</span>' :
+          '<span class="' + (x.volRatio >= x.cfg.volMult ? 'up' : 'mu') + '">' + x.volRatio.toFixed(2) + 'x</span>') + '</td>' +
+        '<td class="l"><span class="miss" title="' + esc(x.lipsa.join(' · ')) + '">' + (x.lipsa.length ? esc(x.lipsa.join(' · ')) : '<span class="up">complet</span>') + '</span></td>' +
+        '<td>' + fmtPx(x.price) + '</td></tr>';
+    }).join('') + '</tbody></table>' +
+    (bad.length ? '<p class="note">Fără date: ' + bad.map(b => esc(b.sym) + ' (' + esc(b.err || b.res.reason) + ')').join(', ') + '</p>' : '');
+
+  box.querySelectorAll('th[data-k]').forEach(th => {
+    th.onclick = () => {
+      const nk = th.dataset.k;
+      if (sortKey === nk) sortDir = -sortDir; else { sortKey = nk; sortDir = nk === 'sym' ? 1 : -1; }
+      render();
+    };
+  });
+}
+
+async function scan(){
+  if (busy) return;
+  const syms = parseSyms();
+  if (!syms.length){ $('out').innerHTML = '<div class="state-box err"><b>Listă goală</b>scrie măcar un simbol</div>'; return; }
+  busy = true;
+  const btn = $('btnScan');
+  btn.disabled = true;
+  $('out').innerHTML = '<div class="state-box"><b><span class="spin"></span>Se scanează…</b><span id="prg">0/' + syms.length + '</span></div>';
+
+  const mkt = $('mkt').value, tf = $('tf').value;
+  const opts = {
+    preset: $('preset').value,
+    breakMode: $('brk').value,
+    useHtfStruct: $('veto').value === '1'
+  };
+
+  try {
+    rows = await pool(syms, 4, async (sym) => {
+      const bars = await fetchBars(sym, mkt, tf);
+      return { sym: sym, res: MFX.evaluate(bars, opts) };
+    }, (d, t) => { const p = $('prg'); if (p) p.textContent = d + '/' + t; });
+    rows = rows.map((r, i) => r && r.sym ? r : { sym: syms[i], err: 'eroare necunoscută' });
+    render();
+  } catch (e){
+    $('out').innerHTML = '<div class="state-box err"><b>Scanarea a eșuat</b>' + esc((e && e.message) || e) +
+      '<br><button class="nav-link" id="btnRetry" style="margin-top:10px">↻ Încearcă din nou</button></div>';
+    const rt = $('btnRetry'); if (rt) rt.onclick = scan;
+  } finally {
+    busy = false; btn.disabled = false;
+  }
+}
+
+$('btnScan').onclick = scan;
+$('mkt').onchange = () => {
+  fillTf($('tf').value);
+  $('preset').value = $('mkt').value === 'stocks' ? 'Nasdaq' : 'Crypto';
+  $('syms').value = DEF[$('mkt').value];
+  rows = []; render(); saveCfg();
+};
+$('btnWl').onclick = () => {
+  let wl = [];
+  try { wl = JSON.parse(localStorage.getItem('wl_stocks') || '[]') || []; } catch (e) { wl = []; }
+  if (!wl.length){ alert('Watchlist-ul suitei (wl_stocks) e gol.'); return; }
+  $('mkt').value = 'stocks'; fillTf('1d'); $('preset').value = 'Nasdaq';
+  $('syms').value = wl.map(w => typeof w === 'string' ? w : (w && w.sym) || '').filter(Boolean).join(' ');
+  saveCfg();
+};
+$('btnDef').onclick = () => { $('syms').value = DEF[$('mkt').value]; saveCfg(); };
+['tf','preset','brk','veto','syms'].forEach(id => $(id).addEventListener('change', saveCfg));
+$('filt').addEventListener('change', () => { saveCfg(); render(); });
+
+loadCfg();
+})();
+</script>
+<script src="../lib/suite-version.js?v=757"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v757';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
+</script>
+<script src="../nav.js?v=757" data-nav-root="../"></script>
+</body>
+</html>
