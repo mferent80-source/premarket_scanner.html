@@ -178,6 +178,7 @@ details.lab[open] summary::before{content:'▾ '}
     <div class="grp">
       <button class="nav-link" id="btnLab">▶ Backtest</button>
       <button class="nav-link" id="btnSweep">📐 Sweep praguri</button>
+      <button class="nav-link" id="btnTl">🕐 Cronologie</button>
     </div>
   </div>
   <div id="labOut"><div class="state-box">
@@ -555,6 +556,58 @@ async function runSweep(){
   } finally { btn.disabled = false; }
 }
 
+/* Cronologia semnalelor: CAND s-a aprins si ce a urmat, eveniment cu eveniment.
+   Media din backtest ascunde care semnale au mers — aici se vede distributia. */
+async function runTimeline(){
+  const sym = ($('labSym').value || '').trim().toUpperCase();
+  const out = $('labOut');
+  if (!sym){ out.innerHTML = '<div class="state-box err"><b>Fără simbol</b>scrie unul, ex. BTCUSDT</div>'; return; }
+  const btn = $('btnTl');
+  btn.disabled = true;
+  out.innerHTML = '<div class="state-box"><b><span class="spin"></span>Se reconstituie…</b>' + esc(sym) + '</div>';
+  try {
+    const bars = await fetchBars(sym, $('mkt').value, $('tf').value);
+    const opts = { preset: $('preset').value, breakMode: $('brk').value, useHtfStruct: $('veto').value === '1' };
+    const H = +$('labH').value;
+    const tl = MFX.timeline(bars, opts, { mode: $('labMode').value, horizon: H });
+    if (!tl.ok){ out.innerHTML = '<div class="state-box err"><b>Nu se poate</b>' + esc(tl.reason) + '</div>'; return; }
+    if (!tl.n){ out.innerHTML = '<div class="state-box"><b>Niciun semnal în istoric</b>relaxează modul sau ia un TF mai mic</div>'; return; }
+
+    const pct = x => x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2) + '%';
+    const dt = t => new Date(t).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const avgBars = tl.events.reduce((a, e) => a + (e.bars || 0), 0) / tl.n;
+    const rows = tl.events.slice(-50).reverse();
+
+    out.innerHTML =
+      '<div class="stats" style="margin-top:12px">' +
+        '<span><b>' + tl.n + '</b> aprinderi</span>' +
+        '<span>ține în medie <b>' + avgBars.toFixed(1) + '</b> bare</span>' +
+        '<span>hit ' + (tl.hitPct == null ? '—' : tl.hitPct.toFixed(0) + '%') + ' la ' + H + ' bare</span>' +
+        '<span>medie ' + pct(tl.avgPct) + '</span>' +
+        (tl.n > 50 ? '<span class="wn">se arată ultimele 50</span>' : '') +
+      '</div>' +
+      '<table><thead><tr><th class="l">Când</th><th class="l">Semnal</th><th>scor</th><th>preț</th>' +
+      '<th>a ținut</th><th>după ' + H + 'b</th><th>MFE</th><th>MAE</th><th class="l">context</th></tr></thead><tbody>' +
+      rows.map(e => '<tr>' +
+        '<td class="l">' + dt(e.t) + '</td>' +
+        '<td class="l"><span class="st ' + (e.dir > 0 ? 'sl' : 'ss') + '">' + esc(e.stateTxt) + '</span></td>' +
+        '<td>' + e.score.toFixed(0) + '</td><td>' + fmtPx(e.price) + '</td>' +
+        '<td>' + (e.bars == null ? '—' : e.bars + 'b') + '</td>' +
+        '<td class="' + (e.fwdPct > 0 ? 'up' : e.fwdPct < 0 ? 'dn' : 'mu') + '">' +
+          pct(e.fwdPct) + (e.complete ? '' : ' <span class="mu">(scurt)</span>') + '</td>' +
+        '<td class="up">' + pct(e.mfePct) + '</td><td class="dn">' + pct(e.maePct) + '</td>' +
+        '<td class="l mu">HTF ' + (e.htfDir === 1 ? 'BULL' : e.htfDir === -1 ? 'BEAR' : '—') +
+          ' · vol ' + (e.volRatio == null ? '—' : e.volRatio.toFixed(2) + 'x') + '</td></tr>').join('') +
+      '</tbody></table>' +
+      '<p class="note"><b>MFE/MAE contează mai mult decât rezultatul la ' + H + ' bare.</b> ' +
+      'Un semnal cu MFE mare și MAE mic a mers în direcția ta înainte să se întoarcă — orizontul fix ' +
+      'îl poate arăta negativ doar pentru că ai măsurat prea târziu. Invers, MAE mare înseamnă că ' +
+      'te-ar fi scos stopul înainte de câștig. Ultima aprindere poate fi încă deschisă (marcată „scurt").</p>';
+  } catch (e){
+    out.innerHTML = '<div class="state-box err"><b>A eșuat</b>' + esc((e && e.message) || e) + '</div>';
+  } finally { btn.disabled = false; }
+}
+
 /* ── AUTO-SCAN ─────────────────────────────────────────────────────────────
    Un singur interval de 1s tine si numaratoarea si declansarea, ca sa nu se
    acumuleze timere la fiecare schimbare de setare. Cand o scanare e in curs,
@@ -586,6 +639,7 @@ window.addEventListener('beforeunload', () => { if (tickT) clearInterval(tickT);
 $('auto').addEventListener('change', () => { saveCfg(); setAuto(); });
 $('btnLab').onclick = runLab;
 $('btnSweep').onclick = runSweep;
+$('btnTl').onclick = runTimeline;
 $('btnScan').onclick = scan;
 $('mkt').onchange = () => {
   fillTf($('tf').value);
