@@ -417,6 +417,34 @@ function perSymbol(data, rows){
   return { win, list };
 }
 
+function renderConfCurve(data, H){
+  const rows = FL.confCurve(data, H);
+  if (!rows.length) return '';
+  const best = rows.reduce((a,x)=> Math.abs(x.t) > Math.abs(a.t) ? x : a, rows[0]);
+  return '<details style="margin-top:10px"><summary style="cursor:pointer;font-family:var(--mono);font-size:11px;' +
+    'color:var(--accent);list-style:none">▸ Chiar ajută confluența? (măsurat pe datele astea)</summary>' +
+    '<table style="margin-top:8px"><thead><tr><th class="l">factori de acord</th><th>cazuri</th>' +
+    '<th>randament</th><th>hit</th><th>t</th><th class="l">citire</th></tr></thead><tbody>' +
+    rows.map(x=>{
+      const solid = x.n >= 500 && Math.abs(x.t) >= 2;
+      const cit = x.n < 100 ? 'prea puține cazuri — zgomot'
+        : Math.abs(x.t) < 2 ? 'randament fără acoperire statistică'
+        : x.avg > 0 ? 'zona utilizabilă' : 'sub baseline';
+      return '<tr' + (x === best ? ' class="pass"' : '') + '>' +
+        '<td class="l">' + x.c + ' din ' + x.tot + '</td>' +
+        '<td class="' + (x.n < 100 ? 'dn' : 'mu') + '">' + x.n.toLocaleString('ro-RO') + '</td>' +
+        '<td class="' + (x.avg > 0 ? 'up' : 'dn') + '">' + p(x.avg) + '</td>' +
+        '<td>' + x.hit.toFixed(0) + '%</td>' +
+        '<td class="' + (Math.abs(x.t) >= 3 ? 'up' : Math.abs(x.t) >= 2 ? 'wn' : 'mu') + '">' + x.t.toFixed(2) + '</td>' +
+        '<td class="l ' + (solid ? 'up' : 'mu') + '">' + cit + '</td></tr>';
+    }).join('') + '</tbody></table>' +
+    '<p class="note"><b>Mai multă confluență nu înseamnă mai sigur.</b> Randamentul urcă până pe la ' +
+    '4-5 factori și apoi scade, iar <code>t</code> scade constant după 3 — fiindcă acordul larg e tot mai rar, ' +
+    'deci tot mai puțin dovedibil. Și factorii de trend sunt corelați între ei (0,37–0,61): trei indicatori ' +
+    'care spun „trend” nu sunt trei confirmări, ci una numărată de trei ori. Zona cu adevărat utilizabilă ' +
+    'e acolo unde ai <b>și</b> randament peste baseline <b>și</b> destule cazuri.</p></details>';
+}
+
 function renderCoins(data, rows){
   const pn = $('coinPanel'), out = $('coinOut');
   const r = perSymbol(data, rows);
@@ -458,7 +486,8 @@ function renderCoins(data, rows){
     '<p class="note"><b>STRONG</b> = to\u021bi factorii valida\u021bi sunt de acord pe aceea\u0219i direc\u021bie. ' +
     '<b>Confluen\u021ba</b> num\u0103r\u0103 c\u00e2\u021bi din <i>to\u021bi</i> factorii testa\u021bi arat\u0103 la fel \u2014 e context, ' +
     'nu verdict: majoritatea au picat bateria, deci acordul lor nu dovede\u0219te nimic. ' +
-    'Click pe simbol sau pe \ud83d\udcc8 deschide graficul pe TradingView.</p>';
+    'Click pe simbol sau pe \ud83d\udcc8 deschide graficul pe TradingView.</p>' +
+    renderConfCurve(data, +$('hz').value);
 }
 
 function renderLive(good){
