@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="../lib/theme-light.css?v=764">
-<script src="../lib/theme.js?v=764"></script>
+<link rel="stylesheet" href="../lib/theme-light.css?v=765">
+<script src="../lib/theme.js?v=765"></script>
 <title>🧪 Factor Lab — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=764">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=765">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#070b11;--panel:#171f30;--panel2:#222c44;--b1:#4a5874;--t1:#fafbfc;--t2:#aab4c6;
@@ -58,6 +58,25 @@ tr.ctrl{opacity:.62}
 .det h3{font-family:var(--head);font-size:13px;color:var(--accent);margin-bottom:6px}
 .det .row{display:flex;gap:8px;padding:3px 0;border-bottom:1px solid rgba(74,88,116,.25)}
 .det .row b{min-width:150px;color:var(--t2);font-weight:500}
+.chip{display:inline-block;padding:3px 8px;margin:2px;border-radius:6px;background:var(--panel2);
+      border:1px solid var(--b1);font-family:var(--mono);font-size:11px;text-decoration:none;color:var(--t1);
+      transition:border-color .15s,transform .15s}
+a.chip:hover{border-color:var(--accent);transform:translateY(-1px)}
+a.tv{color:var(--t1);text-decoration:none;border-bottom:1px dotted var(--b1)}
+a.tv:hover{color:var(--accent);border-bottom-color:var(--accent)}
+/* bara in COLOANA EI — o culoare per celula, deci bara si cifra se coloreaza separat */
+.bar{font-family:var(--mono);letter-spacing:-1px;white-space:nowrap}
+td.barcell{text-align:left;padding-right:2px}
+/* hero de verdict: o singura informatie dominanta, ca in deck-uri */
+.hero{border-radius:var(--r);padding:12px 14px;margin-bottom:10px;font-family:var(--head)}
+.hero .big{font-size:19px;font-weight:800}
+.hero .sub{font-family:var(--mono);font-size:11px;margin-top:4px;opacity:.9}
+.hero.ok{background:linear-gradient(90deg,rgba(34,214,107,.18),rgba(34,214,107,.05));border:1px solid rgba(34,214,107,.5)}
+.hero.no{background:linear-gradient(90deg,rgba(139,147,163,.15),rgba(139,147,163,.04));border:1px solid rgba(139,147,163,.4)}
+.hero .do{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);font-family:var(--mono);font-size:11px}
+.hero .do b{color:var(--t1)}
+body.compact .detail-col{display:none}
+body.compact .note{display:none}
 details.doc summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--accent);list-style:none;user-select:none}
 details.doc summary::-webkit-details-marker{display:none}
 details.doc summary::before{content:'▸ ';font-size:11px}
@@ -71,7 +90,8 @@ details.doc[open] summary::before{content:'▾ '}
 <div id="flash" class="flash" hidden></div>
 
 <header class="suite-cockpit">
-  <h1>🧪 Factor Lab <span class="ver-badge">v2</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🧪 Factor Lab <span class="ver-badge">v4</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <button class="nav-link" id="btnCmp" title="Ascunde coloanele de detaliu si notele">◧ Compact</button>
   <button class="nav-link primary" id="btnRun">▶ Rulează bancul</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -107,6 +127,24 @@ details.doc[open] summary::before{content:'▾ '}
     acțiuni tokenizate și perechi fiat. Nu ai nimic de întreținut.</p>
 </div>
 
+<div class="panel" id="regPanel" hidden>
+  <h2 style="font-size:13px;margin-bottom:4px;color:var(--accent)">🌍 Ce fel de piață a fost în fereastra măsurată</h2>
+  <div id="regOut"></div>
+</div>
+
+<div class="panel" id="coinPanel" hidden>
+  <h2 style="font-size:13px;margin-bottom:4px;color:var(--accent)">📍 Coinuri — ce spun factorii validați</h2>
+  <label style="flex-direction:row;align-items:center;gap:8px;margin:8px 0">
+    <span style="font-family:var(--mono);font-size:10px;color:var(--t2)">Arată</span>
+    <select id="coinDir" style="padding:4px 7px">
+      <option value="tot">toate</option>
+      <option value="long">doar LONG</option>
+      <option value="short">doar SHORT</option>
+    </select>
+  </label>
+  <div id="coinOut"></div>
+</div>
+
 <div class="panel">
   <div class="stats" id="stats" hidden></div>
   <div id="out"><div class="state-box"><b>Bancul nu a rulat încă</b>apasă ▶ Rulează bancul</div></div>
@@ -115,7 +153,12 @@ details.doc[open] summary::before{content:'▾ '}
 <div class="panel" id="livePanel" hidden>
   <h2 style="font-size:13px;margin-bottom:4px;color:var(--accent)">📍 Unde e activ acum</h2>
   <p class="note" style="margin:0 0 8px">Doar pentru factorii care au trecut TOATE testele. Un factor picat nu apare aici,
-    oricât de bine ar arăta pe ultima bară.</p>
+    oricât de bine ar arăta pe ultima bară. Fiecare simbol e link către graficul lui pe TradingView.</p>
+  <label style="flex-direction:row;align-items:center;gap:6px;margin-bottom:8px;cursor:pointer">
+    <input type="checkbox" id="confOnly" style="width:auto;cursor:pointer">
+    <span title="Pastreaza doar simbolurile unde si ROC 30 e de acord cu directia">doar cele confirmate și de <b>ROC 30</b>
+    (singurul factor care a trecut toate testele)</span>
+  </label>
   <div id="liveOut"></div>
 </div>
 
@@ -169,8 +212,8 @@ details.doc[open] summary::before{content:'▾ '}
   Rezultatele se păstrează local (<code>tt_factor_lab_v1</code>) ca să le poți compara între rulări.
 </p>
 
-<script src="../lib/data.js?v=764"></script>
-<script src="../lib/factors.js?v=764"></script>
+<script src="../lib/data.js?v=765"></script>
+<script src="../lib/factors.js?v=765"></script>
 <script>
 (function(){
 'use strict';
@@ -179,6 +222,17 @@ const KEY = 'tt_factor_lab_v1';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const p = x => x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(3) + '%';
 const fmtPx = v => v == null ? '—' : v < 1 ? v.toFixed(4) : v.toFixed(2);
+// TradingView: perechile Binance spot se deschid ca BINANCE:BTCUSDT
+const tvUrl = sym => 'https://www.tradingview.com/chart/?symbol=BINANCE:' + encodeURIComponent(sym);
+const tvLink = (sym, txt, cls) => '<a class="' + (cls || 'tv') + '" href="' + tvUrl(sym) +
+  '" target="_blank" rel="noopener" title="Deschide ' + esc(sym) + ' pe TradingView">' + (txt || esc(sym)) + '</a>';
+/* Bara-text ca in dashboard-urile Pine: bloc plin + punct, in COLOANA EI. */
+function bar(v, max, len){
+  len = len || 10;
+  const k = Math.max(0, Math.min(len, Math.round(Math.abs(v) / max * len)));
+  let out = ''; for (let i = 0; i < len; i++) out += i < k ? '█' : '·';
+  return out;
+}
 
 // stablecoins, aur si perechi fiat — nu au ce cauta intr-un test de factori de pret
 const SKIP = new Set(['USDC','FDUSD','TUSD','BUSD','DAI','USD1','RLUSD','USDE','XUSD','PYUSD','USDP',
@@ -221,31 +275,67 @@ async function pool(items, n, worker, onStep){
   return out;
 }
 
+function renderRegime(data){
+  const g = FL.regime(data), pn = $('regPanel'), out = $('regOut');
+  if (!g){ pn.hidden = true; return; }
+  pn.hidden = false;
+  const cls = g.tip==='TREND' ? 'up' : g.tip==='SLAB DIRECTIONAL' ? 'wn' : 'dn';
+  out.innerHTML = '<div class="stats" style="margin-bottom:6px">' +
+    '<span>eficiență <b class="'+cls+'">'+g.eff.toFixed(1)+'%</b></span>' +
+    '<span class="'+cls+'">'+g.tip+'</span>' +
+    '<span>buy&hold mediu '+p(g.bh)+'</span>' +
+    '<span>'+g.up+'/'+g.n+' în creștere</span><span>'+g.lat+'/'+g.n+' laterale</span></div>' +
+    '<p class="note" style="margin-top:4px">Eficiență = cât din drumul parcurs s-a transformat în mișcare netă. ' +
+    (g.tip==='LATERAL'
+      ? '<b class="dn">Sub 3% = piață laterală.</b> Factorii de trend n-au ce prinde aici — dacă nu trece nimic, ' +
+        's-ar putea să fie vina ferestrei, nu a factorilor. Re-rulează când eficiența trece de 6%.'
+      : g.tip==='TREND'
+      ? '<b class="up">Peste 6% = trend real.</b> Aici un factor de trend care tot nu trece chiar nu funcționează.'
+      : 'Piața are direcție, dar slăbuță. Verdictele sunt utilizabile, cu rezervă.') + '</p>';
+}
+
 function render(r){
   const box = $('out'), st = $('stats');
   st.hidden = false;
   const passed = r.rows.filter(x=>x.trece).length;
+  const win = r.rows.filter(x=>x.trece);
+  const near = r.rows.filter(x=>!x.ctrl&&!x.trece&&Math.abs(x.t)>=3);
   st.innerHTML = '<span>' + r.syms + ' simboluri</span><span>' + r.obs.toLocaleString('ro-RO') + ' observații</span>' +
     '<span>orizont ' + r.horizon + ' bare</span><span>baseline ' + p(r.base.avg) + '</span>' +
     '<span class="' + (passed ? 'up' : 'mu') + '">' + passed + ' factori trec toate testele</span>';
 
-  box.innerHTML = '<table><thead><tr>' +
-    '<th class="l">Factor</th><th>n</th><th>edge</th><th>hit</th><th>t</th>' +
+  const hero = passed
+    ? '<div class="hero ok"><div class="big">✓ '+passed+' factor'+(passed>1?'i trec':' trece')+' toate testele</div>'+
+      '<div class="sub">'+win.map(x=>esc(x.k)+' (t='+x.t.toFixed(2)+', edge '+p(x.edge)+')').join(' · ')+'</div>'+
+      '<div class="do">CE FAC? <b>nimic încă.</b> „Trece” înseamnă că a avut edge pe datele astea — nu că merge mâine. '+
+      'Rulează din nou peste o săptămână și uită-te în <b>istoric</b>.</div></div>'
+    : '<div class="hero no"><div class="big">✗ Niciun factor nu trece</div>'+
+      '<div class="sub">'+(near.length ? near.length+' au |t|≥3 dar cad pe alt test' : 'niciunul nu ajunge la |t|≥3')+'</div>'+
+      '<div class="do">CE FAC? <b>nu construi nimic pe ele.</b> Încearcă alt TF sau alt orizont — '+
+      'pe 4h nu trecea nimic, pe 1d cu istoric lung a trecut unul.</div></div>';
+  box.innerHTML = hero + '<table><thead><tr>' +
+    '<th class="l">Factor</th><th class="detail-col">n</th><th>&nbsp;</th><th>edge</th>' +
+    '<th class="detail-col">hit</th><th>&nbsp;</th><th>t</th>' +
     '<th title="Edge de acelasi semn in toate treimile">stabil</th>' +
     '<th title="Pe cate simboluri e pozitiv">acoperire</th>' +
-    '<th title="t dupa ce se scot cele mai bune 3 simboluri">fără top3</th>' +
+    '<th class="detail-col" title="t dupa ce se scot cele mai bune 3 simboluri">fără top3</th>' +
     '<th class="l">verdict</th></tr></thead><tbody>' +
-    r.rows.map((x,i)=>'<tr class="'+(x.trece?'pass':x.ctrl?'ctrl':'')+'" data-i="'+i+'">' +
+    r.rows.map((x,i)=>{
+      const cE=x.edge>0?'up':x.edge<0?'dn':'mu';
+      const cT=Math.abs(x.t)>=3?'up':Math.abs(x.t)>=2?'wn':'mu';
+      return '<tr class="'+(x.trece?'pass':x.ctrl?'ctrl':'')+'" data-i="'+i+'">' +
       '<td class="l">' + esc(x.k) + '</td>' +
-      '<td>' + x.n.toLocaleString('ro-RO') + '</td>' +
-      '<td class="' + (x.edge>0?'up':x.edge<0?'dn':'mu') + '">' + p(x.edge) + '</td>' +
-      '<td>' + x.hit.toFixed(0) + '%</td>' +
-      '<td class="' + (Math.abs(x.t)>=3?'up':Math.abs(x.t)>=2?'wn':'mu') + '">' + x.t.toFixed(2) + '</td>' +
+      '<td class="detail-col">' + x.n.toLocaleString('ro-RO') + '</td>' +
+      '<td class="barcell ' + cE + '"><span class="bar">' + bar(x.edge,1.5) + '</span></td>' +
+      '<td class="' + cE + '">' + p(x.edge) + '</td>' +
+      '<td class="detail-col">' + x.hit.toFixed(0) + '%</td>' +
+      '<td class="barcell ' + cT + '"><span class="bar">' + bar(x.t,8) + '</span></td>' +
+      '<td class="' + cT + '">' + x.t.toFixed(2) + '</td>' +
       '<td class="chk">' + (x.stabil?'<span class="up">✓</span>':'<span class="mu">✗</span>') + '</td>' +
       '<td class="' + (x.cov>=0.6?'up':'mu') + '">' + x.posSyms + '/' + x.nSyms + '</td>' +
-      '<td class="' + (Math.abs(x.woT)>=2?'up':'mu') + '">' + x.woT.toFixed(2) + '</td>' +
+      '<td class="detail-col ' + (Math.abs(x.woT)>=2?'up':'mu') + '">' + x.woT.toFixed(2) + '</td>' +
       '<td class="l"><span class="vd ' + (x.ctrl?'ct':x.trece?'ok':'no') + '">' +
-        (x.ctrl?'control':x.trece?'TRECE':'picat') + '</span></td></tr>').join('') +
+        (x.ctrl?'control':x.trece?'TRECE':'picat') + '</span></td></tr>'; }).join('') +
     '</tbody></table><div id="det"></div>' +
     '<p class="note">Click pe un rând pentru detaliul pe treimi. Rândurile <span class="wn">control</span> ' +
     'sunt reperul: un factor care nu le bate n-a descoperit nimic.</p>';
@@ -273,7 +363,7 @@ function detail(x, r){
     '<div class="row"><b>acoperire</b><span class="' + (x.cov>=0.6?'up':'dn') + '">' + x.posSyms + ' din ' + x.nSyms +
       ' simboluri pozitive (' + (x.cov*100).toFixed(0) + '%)</span></div>' +
     '<div class="row"><b>fără cele mai bune 3</b><span class="' + (Math.abs(x.woT)>=2?'up':'dn') + '">t=' + x.woT.toFixed(2) +
-      ', medie ' + p(x.woAvg) + '  (scoase: ' + x.top3.map(s=>esc(s.replace('USDT',''))).join(', ') + ')</span></div>' +
+      ', medie ' + p(x.woAvg) + '  (scoase: ' + x.top3.map(s=>tvLink(s, esc(s.replace('USDT','')))).join(', ') + ')</span></div>' +
     '<div class="row"><b>verdict</b><span class="' + (x.ctrl?'wn':x.trece?'up':'dn') + '">' +
       (x.ctrl ? 'e un control, nu un candidat'
         : x.trece ? 'trece toate cele 5 teste'
@@ -282,16 +372,97 @@ function detail(x, r){
             .filter(Boolean).join(', ')) + '</span></div></div>';
 }
 
+
+/* ══ COINURI: ce spun factorii, simbol cu simbol ═════════════════════════════
+   Tabelul de factori raspunde la "ce merita crezut". Asta raspunde la "pe ce".
+   Sortare: STRONG sus. STRONG = toti factorii VALIDATI sunt de acord pe aceeasi
+   directie. Confluenta din ceilalti factori se arata separat, ca informatie de
+   context — nu intra in verdict, fiindca sunt factori care au PICAT testele. */
+function perSymbol(data, rows){
+  const win = rows.filter(x=>x.trece);
+  if (!win.length) return { win: [], list: [] };
+  const all = rows.filter(x=>!x.ctrl);
+  const sigW = {}, sigA = {};
+  win.forEach(f=>{ sigW[f.k] = {}; FL.live(data, f.k).forEach(x=>sigW[f.k][x.sym] = x.dir); });
+  all.forEach(f=>{ sigA[f.k] = {}; FL.live(data, f.k).forEach(x=>sigA[f.k][x.sym] = x.dir); });
+  const list = Object.keys(data).map(sym=>{
+    let up=0, dn=0;
+    win.forEach(f=>{ const d=sigW[f.k][sym]; if(d>0)up++; else if(d<0)dn++; });
+    if (!up && !dn) return null;
+    const dir = up && !dn ? 1 : dn && !up ? -1 : 0;   // 0 = factorii validati se contrazic
+    let cUp=0, cDn=0;
+    all.forEach(f=>{ const d=sigA[f.k][sym]; if(d>0)cUp++; else if(d<0)cDn++; });
+    const b = data[sym];
+    return { sym, dir, n: Math.max(up,dn), tot: win.length,
+             conf: dir>0?cUp:dir<0?cDn:0, confTot: all.length,
+             price: b[b.length-1].c,
+             chg: b.length>1 ? (b[b.length-1].c/b[b.length-2].c-1)*100 : null,
+             strong: dir!==0 && up+dn===win.length };
+  }).filter(Boolean);
+  // STRONG intai, apoi cei cu mai multe confirmari, apoi alfabetic
+  list.sort((a,b)=> (b.strong-a.strong) || (b.n-a.n) || (b.conf-a.conf) || a.sym.localeCompare(b.sym));
+  return { win, list };
+}
+
+function renderCoins(data, rows){
+  const pn = $('coinPanel'), out = $('coinOut');
+  const r = perSymbol(data, rows);
+  if (!r.win.length || !r.list.length){ pn.hidden = true; return; }
+  pn.hidden = false;
+  const L = r.list.filter(x=>x.dir>0), S = r.list.filter(x=>x.dir<0), X = r.list.filter(x=>!x.dir);
+  const onlyL = $('coinDir') && $('coinDir').value === 'long';
+  const onlyS = $('coinDir') && $('coinDir').value === 'short';
+  let show = r.list;
+  if (onlyL) show = L; else if (onlyS) show = S;
+  out.innerHTML =
+    '<div class="stats" style="margin-bottom:8px">' +
+      '<span class="up">' + L.length + ' LONG</span>' +
+      '<span class="dn">' + S.length + ' SHORT</span>' +
+      (X.length ? '<span class="mu">' + X.length + ' contradictorii</span>' : '') +
+      '<span>dup\u0103 ' + r.win.map(x=>esc(x.k)).join(' + ') + '</span>' +
+    '</div>' +
+    (show.length ?
+    '<table><thead><tr><th class="l">Simbol</th><th class="l">Semnal</th><th>factori</th>' +
+    '<th class="detail-col">&nbsp;</th><th class="detail-col">confluen\u021b\u0103</th>' +
+    '<th>pre\u021b</th><th class="detail-col">ultima bar\u0103</th><th class="l">grafic</th></tr></thead><tbody>' +
+    show.map(x=>{
+      const cls = x.dir>0?'up':x.dir<0?'dn':'mu';
+      const lbl = x.dir>0 ? (x.strong?'STRONG LONG':'LONG') : x.dir<0 ? (x.strong?'STRONG SHORT':'SHORT') : 'CONTRADICTORIU';
+      return '<tr class="' + (x.strong?'pass':'') + '">' +
+        '<td class="l sym">' + tvLink(x.sym, esc(x.sym.replace('USDT',''))) + '</td>' +
+        '<td class="l"><span class="vd ' + (x.dir>0?'ok':x.dir<0?'no':'ct') + '" style="' +
+          (x.dir<0?'background:rgba(255,77,77,.16);color:var(--bear);border-color:rgba(255,77,77,.45)':'') +
+          '">' + lbl + '</span></td>' +
+        '<td class="' + cls + '">' + x.n + '/' + x.tot + '</td>' +
+        '<td class="barcell detail-col ' + cls + '"><span class="bar">' + bar(x.conf, x.confTot) + '</span></td>' +
+        '<td class="detail-col mu">' + x.conf + '/' + x.confTot + '</td>' +
+        '<td>' + fmtPx(x.price) + '</td>' +
+        '<td class="detail-col ' + (x.chg>0?'up':x.chg<0?'dn':'mu') + '">' +
+          (x.chg==null?'\u2014':(x.chg>=0?'+':'')+x.chg.toFixed(2)+'%') + '</td>' +
+        '<td class="l">' + tvLink(x.sym, '\ud83d\udcc8 TradingView') + '</td></tr>';
+    }).join('') + '</tbody></table>'
+    : '<div class="state">nimic pe direc\u021bia asta</div>') +
+    '<p class="note"><b>STRONG</b> = to\u021bi factorii valida\u021bi sunt de acord pe aceea\u0219i direc\u021bie. ' +
+    '<b>Confluen\u021ba</b> num\u0103r\u0103 c\u00e2\u021bi din <i>to\u021bi</i> factorii testa\u021bi arat\u0103 la fel \u2014 e context, ' +
+    'nu verdict: majoritatea au picat bateria, deci acordul lor nu dovede\u0219te nimic. ' +
+    'Click pe simbol sau pe \ud83d\udcc8 deschide graficul pe TradingView.</p>';
+}
+
 function renderLive(good){
   const pn = $('livePanel'), out = $('liveOut');
   if (!good.length || !DATA){ pn.hidden = true; return; }
   pn.hidden = false;
+  /* Filtru de confirmare: doar simbolurile unde si ROC 30 e de acord — singurul
+     factor care a trecut toate cele 5 teste (50 cripto, 1d, 19.08.2026). */
+  const rocMap = {}; FL.live(DATA, 'ROC 30 pozitiv').forEach(x=>rocMap[x.sym]=x.dir);
+  const onlyConf = $('confOnly') && $('confOnly').checked;
   out.innerHTML = good.map(g=>{
-    const l = FL.live(DATA, g.k);
+    let l = FL.live(DATA, g.k);
+    if (onlyConf && g.k !== 'ROC 30 pozitiv') l = l.filter(x=>rocMap[x.sym] === x.dir);
     if (!l.length) return '<p class="note"><b>' + esc(g.k) + '</b> — niciun simbol activ acum.</p>';
     const L = l.filter(x=>x.dir>0), S = l.filter(x=>x.dir<0);
-    const chip = a => a.map(x=>'<span style="display:inline-block;padding:3px 8px;margin:2px;border-radius:6px;background:var(--panel2);border:1px solid var(--b1);font-family:var(--mono);font-size:11px">' +
-      esc(x.sym.replace('USDT','')) + ' <span class="mu">' + fmtPx(x.price) + '</span></span>').join('');
+    const chip = a => a.map(x=>tvLink(x.sym, esc(x.sym.replace('USDT','')) +
+      ' <span class="mu">' + fmtPx(x.price) + '</span>', 'chip')).join('');
     return '<div style="margin-bottom:10px"><b style="font-size:12px">' + esc(g.k) + '</b>' +
       (L.length ? '<div style="margin-top:5px"><span class="up" style="font-family:var(--mono);font-size:10px">LONG (' + L.length + ')</span><br>' + chip(L) + '</div>' : '') +
       (S.length ? '<div style="margin-top:5px"><span class="dn" style="font-family:var(--mono);font-size:10px">SHORT (' + S.length + ')</span><br>' + chip(S) + '</div>' : '') +
@@ -376,7 +547,10 @@ async function run(){
     const res = FL.run(DATA, { horizon: H });
     if (!res.ok) throw new Error(res.reason);
     LAST = res;
+    renderRegime(DATA);
     render(res);
+    window.__lastRun = res.rows;
+    renderCoins(DATA, res.rows);
     try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), tf, H, syms: n,
       rows: res.rows.map(x=>({k:x.k,t:x.t,edge:x.edge,trece:x.trece})) })); } catch(e){}
     renderHist(histAdd(res, tf, H, n));
@@ -389,6 +563,14 @@ async function run(){
   } finally { busy = false; btn.disabled = false; }
 }
 
+$('btnCmp').onclick = () => {
+  const on = document.body.classList.toggle('compact');
+  $('btnCmp').textContent = on ? '◨ Complet' : '◧ Compact';
+  try{ localStorage.setItem('tt_fl_compact', on?'1':'0'); }catch(e){}
+};
+try{ if(localStorage.getItem('tt_fl_compact')==='1'){ document.body.classList.add('compact');
+  $('btnCmp').textContent='◨ Complet'; } }catch(e){}
+$('coinDir').onchange = () => { if (window.__lastRun) renderCoins(DATA, window.__lastRun); };
 $('btnRun').onclick = run;
 $('btnHistClear').onclick = () => {
   if (!histLoad().length) return;
@@ -419,13 +601,13 @@ try {
 renderHist(histLoad());
 })();
 </script>
-<script src="../lib/suite-version.js?v=764"></script>
+<script src="../lib/suite-version.js?v=765"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v764';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v765';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
-<script src="../nav.js?v=764" data-nav-root="../"></script>
+<script src="../nav.js?v=765" data-nav-root="../"></script>
 </body>
 </html>
