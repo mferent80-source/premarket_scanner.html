@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="../lib/theme-light.css?v=768">
-<script src="../lib/theme.js?v=768"></script>
+<link rel="stylesheet" href="../lib/theme-light.css?v=769">
+<script src="../lib/theme.js?v=769"></script>
 <title>🧪 Factor Lab — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=768">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=769">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#070b11;--panel:#171f30;--panel2:#222c44;--b1:#4a5874;--t1:#fafbfc;--t2:#aab4c6;
@@ -58,6 +58,10 @@ tr.ctrl{opacity:.62}
 .det h3{font-family:var(--head);font-size:13px;color:var(--accent);margin-bottom:6px}
 .det .row{display:flex;gap:8px;padding:3px 0;border-bottom:1px solid rgba(74,88,116,.25)}
 .det .row b{min-width:150px;color:var(--t2);font-weight:500}
+.heat{padding:2px 6px;border-radius:5px;font-size:10px;font-weight:700;white-space:nowrap}
+.heat.l3{background:rgba(255,77,77,.18);color:var(--bear);border:1px solid rgba(255,77,77,.5)}
+.heat.l2{background:rgba(240,167,90,.16);color:var(--warn);border:1px solid rgba(240,167,90,.45)}
+.heat.l1{background:rgba(139,147,163,.12);color:var(--mut);border:1px solid rgba(139,147,163,.3)}
 .chip{display:inline-block;padding:3px 8px;margin:2px;border-radius:6px;background:var(--panel2);
       border:1px solid var(--b1);font-family:var(--mono);font-size:11px;text-decoration:none;color:var(--t1);
       transition:border-color .15s,transform .15s}
@@ -90,7 +94,7 @@ details.doc[open] summary::before{content:'▾ '}
 <div id="flash" class="flash" hidden></div>
 
 <header class="suite-cockpit">
-  <h1>🧪 Factor Lab <span class="ver-badge">v7</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🧪 Factor Lab <span class="ver-badge">v8</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <button class="nav-link" id="btnCsv" title="Descarca rezultatele ca CSV" hidden>⬇ CSV</button>
   <button class="nav-link" id="btnCmp" title="Ascunde coloanele de detaliu si notele">◧ Compact</button>
   <button class="nav-link primary" id="btnRun">▶ Rulează bancul</button>
@@ -180,6 +184,14 @@ details.doc[open] summary::before{content:'▾ '}
   <button class="nav-link" id="btnHistClear" style="margin-top:8px;padding:4px 9px;font-size:10px">🗑 Șterge istoricul</button>
 </div>
 
+<div class="panel" id="sigPanel" hidden>
+  <h2 style="font-size:13px;margin-bottom:4px;color:var(--accent)">📓 Jurnal de semnale — ce au făcut, de fapt</h2>
+  <p class="note" style="margin:0 0 8px">Se scriu automat semnalele factorilor <b>validați</b> și se cotează
+    singure la rulările următoare, din bare care nu existau când au fost scrise.</p>
+  <div id="sigOut"></div>
+  <button class="nav-link" id="btnSigClear" style="margin-top:8px;padding:4px 9px;font-size:10px">🗑 Șterge jurnalul</button>
+</div>
+
 <details class="panel doc">
   <summary>📖 Ce înseamnă fiecare test — și de ce sunt atât de severe</summary>
   <div class="note" style="line-height:1.8">
@@ -221,8 +233,8 @@ details.doc[open] summary::before{content:'▾ '}
   Rezultatele se păstrează local (<code>tt_factor_lab_v1</code>) ca să le poți compara între rulări.
 </p>
 
-<script src="../lib/data.js?v=768"></script>
-<script src="../lib/factors.js?v=768"></script>
+<script src="../lib/data.js?v=769"></script>
+<script src="../lib/factors.js?v=769"></script>
 <script>
 (function(){
 'use strict';
@@ -488,6 +500,157 @@ function renderConfCurve(data, H){
     'e acolo unde ai <b>și</b> randament peste baseline <b>și</b> destule cazuri.</p></details>';
 }
 
+
+/* ══ JURNAL DE SEMNALE ═══════════════════════════════════════════════════════
+   Istoricul de verdicte spune daca FACTORUL trece testele. Asta spune daca
+   SEMNALELE lui chiar au mers. Diferenta care conteaza: semnalul se scrie ACUM,
+   cu pretul de acum, si se evalueaza la o rulare VIITOARE, din bare care inca nu
+   existau. Evaluarea e automata — la fiecare rulare, seria proaspata contine
+   barele de dupa semnalele vechi, deci se pot cota fara sa faci nimic.
+   Se scriu doar semnalele factorilor VALIDATI: pe restul nu merita tinut evidenta. */
+const SKEY = 'fl_signals_v1';
+function sigLoad(){ try{ const a=JSON.parse(localStorage.getItem(SKEY)||'[]'); return Array.isArray(a)?a:[] }catch(e){ return [] } }
+function sigSave(a){
+  if (a.length > 800) a = a.slice(-800);
+  try{ localStorage.setItem(SKEY, JSON.stringify(a)); return true }
+  catch(e){ try{ localStorage.setItem(SKEY, JSON.stringify(a.slice(-300))); return true }catch(e2){ return false } }
+}
+function cfgTag(){
+  return [$('tf').value, 'H'+$('hz').value, 'cost'+costPct()].join('/');
+}
+/* Scrie semnalele active ale factorilor validati. Dedupe pe (simbol, factor, TF,
+   ora barei): re-rulezi de zece ori azi, semnalul intra o data. */
+function logSignals(data, rows){
+  const win = rows.filter(x=>x.trece);
+  if (!win.length) return 0;
+  const arr = sigLoad(), seen = {};
+  arr.forEach(x=>{ seen[x.k] = 1; });
+  const tf = $('tf').value, H = +$('hz').value, cfg = cfgTag();
+  let n = 0;
+  win.forEach(f=>{
+    FL.live(data, f.k).forEach(s=>{
+      const b = data[s.sym], bar = b[b.length-1];
+      const k = s.sym+'|'+f.k+'|'+tf+'|'+bar.t;
+      if (seen[k]) return;
+      seen[k] = 1;
+      arr.push({ k, sym:s.sym, f:f.k, tf, H, dir:s.dir, price:bar.c, barT:bar.t,
+                 at:Date.now(), cfg, fwd:null, mfe:null, mae:null });
+      n++;
+    });
+  });
+  if (n) sigSave(arr);
+  return n;
+}
+/* Coteaza semnalele care s-au copt. Foloseste barele aduse ACUM — deci nu poate
+   privi in viitor la momentul scrierii, dar poate privi in trecut la evaluare. */
+function evalSignals(data){
+  const arr = sigLoad();
+  let done = 0, pend = 0, gone = 0;
+  arr.forEach(e=>{
+    if (e.fwd != null) return;
+    const b = data[e.sym];
+    if (!b){ pend++; return; }
+    let idx = -1;
+    for (let i = b.length-1; i >= 0; i--){ if (b[i].t === e.barT){ idx = i; break; } if (b[i].t < e.barT) break; }
+    if (idx < 0){ gone++; return; }                 // bara a iesit din istoricul adus
+    if (idx + e.H >= b.length){ pend++; return; }   // inca se coace
+    const entry = b[idx].c;
+    let hi = -Infinity, lo = Infinity;
+    for (let k = 1; k <= e.H; k++){ const r = e.dir*(b[idx+k].c/entry-1); if(r>hi)hi=r; if(r<lo)lo=r; }
+    e.fwd = e.dir*(b[idx+e.H].c/entry-1)*100;
+    e.mfe = hi*100; e.mae = lo*100; e.evalAt = Date.now();
+    done++;
+  });
+  if (done) sigSave(arr);
+  return { done, pend, gone };
+}
+function renderSignals(){
+  const pn = $('sigPanel'), out = $('sigOut'), all = sigLoad();
+  if (!all.length){ pn.hidden = true; return; }
+  pn.hidden = false;
+  const cost = costPct();
+  const done = all.filter(x=>x.fwd != null);
+  const byF = {};
+  done.forEach(e=>{ const g = byF[e.f+' · '+e.cfg] = byF[e.f+' · '+e.cfg] || {n:0,win:0,sum:0,mfe:0,mae:0};
+    g.n++; if (e.fwd > 0) g.win++; g.sum += e.fwd; g.mfe += e.mfe; g.mae += e.mae; });
+  const dt = t => new Date(t).toLocaleString('ro-RO', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  out.innerHTML =
+    '<div class="stats" style="margin-bottom:8px">' +
+      '<span><b>'+all.length+'</b> semnale scrise</span>' +
+      '<span>'+done.length+' cotate</span>' +
+      '<span class="'+(all.length-done.length?'wn':'mu')+'">'+(all.length-done.length)+' se coc</span>' +
+    '</div>' +
+    (Object.keys(byF).length ?
+      '<table><thead><tr><th class="l">Factor · configurație</th><th>n</th><th>hit</th>' +
+      '<th>medie brut</th><th>net</th><th class="detail-col">MFE</th><th class="detail-col">MAE</th>' +
+      '<th class="l">verdict</th></tr></thead><tbody>' +
+      Object.keys(byF).map(k=>{ const g = byF[k], avg = g.sum/g.n, net = avg - cost;
+        const enough = g.n >= 10;
+        return '<tr><td class="l">'+esc(k)+'</td><td>'+g.n+'</td>' +
+          '<td>'+(g.win/g.n*100).toFixed(0)+'%</td>' +
+          '<td class="'+(avg>0?'up':'dn')+'">'+p(avg)+'</td>' +
+          '<td class="'+(net>0?'up':'dn')+'">'+p(net)+'</td>' +
+          '<td class="detail-col up">'+p(g.mfe/g.n)+'</td>' +
+          '<td class="detail-col dn">'+p(g.mae/g.n)+'</td>' +
+          '<td class="l '+(!enough?'wn':net>0?'up':'dn')+'">' +
+            (!enough ? 'eșantion insuficient (<10)' : net>0 ? 'ține, net' : 'nu acoperă costurile') +
+          '</td></tr>'; }).join('') + '</tbody></table>'
+      : '<div class="state">Niciun semnal cotat încă — se cotează singure la rulările următoare.</div>') +
+    '<table style="margin-top:10px"><thead><tr><th class="l">Scris</th><th class="l">Simbol</th>' +
+    '<th class="l">Factor</th><th class="l">Dir</th><th>preț</th><th>rezultat</th>' +
+    '<th class="detail-col">MFE</th><th class="detail-col">MAE</th></tr></thead><tbody>' +
+    all.slice(-30).reverse().map(e=>'<tr>' +
+      '<td class="l">'+dt(e.at)+'</td>' +
+      '<td class="l sym">'+tvLink(e.sym, esc(e.sym.replace('USDT','')))+'</td>' +
+      '<td class="l mu">'+esc(e.f)+'</td>' +
+      '<td class="l '+(e.dir>0?'up':'dn')+'">'+(e.dir>0?'LONG':'SHORT')+'</td>' +
+      '<td>'+fmtPx(e.price)+'</td>' +
+      '<td class="'+(e.fwd==null?'mu':e.fwd>0?'up':'dn')+'">'+(e.fwd==null?'se coace':p(e.fwd))+'</td>' +
+      '<td class="detail-col up">'+(e.mfe==null?'—':p(e.mfe))+'</td>' +
+      '<td class="detail-col dn">'+(e.mae==null?'—':p(e.mae))+'</td></tr>').join('') +
+    '</tbody></table>' +
+    '<p class="note"><b>Asta e proba care nu se poate contamina.</b> Semnalul e scris cu prețul de la ' +
+    'momentul lui și cotat din bare care nu existau atunci. Sub <b>10 cazuri per factor</b> nu se trage ' +
+    'nicio concluzie. Coloana <b>net</b> scade costul ales sus — un factor care ține brut dar nu net ' +
+    'nu e utilizabil. Schimbi TF-ul, orizontul sau costul → altă configurație, statistica începe de la zero.</p>';
+}
+
+
+/* CE SE COACE — pattern din deck-urile Pine (JMA: "FLIP IMINENT", "SLABESTE").
+   Nu doar ce s-a intamplat, ci cat de aproape e sa se intample. Un semnal care
+   apare brusc pe ecran e un semnal ratat; unul care se coace de doua bare se
+   poate pregati. Doar pentru factorii validati.
+   ATENTIE: starile NU sunt semnale. "IMINENT" nu inseamna "intra", inseamna
+   "uita-te" — factorul se declanseaza abia la ACUM. */
+function proximity(bars, factor){
+  const n = bars.length, x = bars[n-1];
+  if (factor === 'reversal după 3 roșii'){
+    let red = 0;
+    for (let i = n-1; i >= 0 && red < 6; i--){ if (bars[i].c < bars[i].o) red++; else break; }
+    if (red >= 3) return { s:'ACUM', lvl:3, d:red + ' bare roșii la rând — semnalul e activ' };
+    if (red === 2) return { s:'IMINENT', lvl:2, d:'2 roșii — a treia îl declanșează' };
+    if (red === 1) return { s:'SE FORMEAZĂ', lvl:1, d:'prima bară roșie' };
+    return { s:'', lvl:0, d:'' };
+  }
+  if (factor === 'ROC 30 pozitiv'){
+    if (n < 31) return { s:'', lvl:0, d:'' };
+    const ref = bars[n-31].c;
+    const gap = (x.c / ref - 1) * 100;
+    if (Math.abs(gap) < 1.5) return { s:'PE MUCHIE', lvl:2, d:'la ' + gap.toFixed(1) + '% de pragul de flip' };
+    if (Math.abs(gap) < 4)   return { s:'APROAPE', lvl:1, d:gap.toFixed(1) + '% față de prag' };
+    return { s:'', lvl:0, d:gap.toFixed(1) + '% față de prag' };
+  }
+  return { s:'', lvl:0, d:'' };
+}
+function heatOf(data, sym, win){
+  let best = { s:'', lvl:0, d:'', f:'' };
+  (win||[]).forEach(f=>{
+    const q = proximity(data[sym], f.k);
+    if (q.lvl > best.lvl) best = { s:q.s, lvl:q.lvl, d:q.d, f:f.k };
+  });
+  return best;
+}
+
 function renderCoins(data, rows){
   const pn = $('coinPanel'), out = $('coinOut');
   const r = perSymbol(data, rows);
@@ -508,7 +671,8 @@ function renderCoins(data, rows){
     (show.length ?
     '<table><thead><tr><th class="l">Simbol</th><th class="l">Semnal</th><th>factori</th>' +
     '<th class="detail-col">&nbsp;</th><th class="detail-col">confluen\u021b\u0103</th>' +
-    '<th>pre\u021b</th><th class="detail-col">ultima bar\u0103</th><th class="l">grafic</th></tr></thead><tbody>' +
+    '<th class="l">se coace</th><th>pre\u021b</th>' +
+    '<th class="detail-col">ultima bar\u0103</th><th class="l">grafic</th></tr></thead><tbody>' +
     show.map(x=>{
       const cls = x.dir>0?'up':x.dir<0?'dn':'mu';
       const lbl = x.dir>0 ? (x.strong?'STRONG LONG':'LONG') : x.dir<0 ? (x.strong?'STRONG SHORT':'SHORT') : 'CONTRADICTORIU';
@@ -520,6 +684,9 @@ function renderCoins(data, rows){
         '<td class="' + cls + '">' + x.n + '/' + x.tot + '</td>' +
         '<td class="barcell detail-col ' + cls + '"><span class="bar">' + bar(x.conf, x.confTot) + '</span></td>' +
         '<td class="detail-col mu">' + x.conf + '/' + x.confTot + '</td>' +
+        '<td class="l">' + (function(){ var h = heatOf(data, x.sym, r.win);
+          return h.s ? '<span class="heat l'+h.lvl+'" title="'+esc(h.f+' \u2014 '+h.d)+'">'+h.s+'</span>'
+                     : '<span class="mu">\u2014</span>'; })() + '</td>' +
         '<td>' + fmtPx(x.price) + '</td>' +
         '<td class="detail-col ' + (x.chg>0?'up':x.chg<0?'dn':'mu') + '">' +
           (x.chg==null?'\u2014':(x.chg>=0?'+':'')+x.chg.toFixed(2)+'%') + '</td>' +
@@ -636,6 +803,11 @@ async function run(){
     render(res);
     window.__lastRun = res.rows;
     renderCoins(DATA, res.rows);
+    const ev = evalSignals(DATA);
+    const nou = logSignals(DATA, res.rows);
+    renderSignals();
+    if (nou || ev.done) flash((nou ? nou + ' semnale noi scrise în jurnal. ' : '') +
+      (ev.done ? ev.done + ' semnale vechi cotate.' : ''));
     try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), tf, H, syms: n,
       rows: res.rows.map(x=>({k:x.k,t:x.t,edge:x.edge,trece:x.trece})) })); } catch(e){}
     renderHist(histAdd(res, tf, H, n));
@@ -657,6 +829,13 @@ try{ if(localStorage.getItem('tt_fl_compact')==='1'){ document.body.classList.ad
   $('btnCmp').textContent='◨ Complet'; } }catch(e){}
 $('coinDir').onchange = () => { if (window.__lastRun) renderCoins(DATA, window.__lastRun); };
 $('btnRun').onclick = run;
+$('btnSigClear').onclick = () => {
+  if (!sigLoad().length) return;
+  if (confirm('Ștergi jurnalul de semnale? Se pierde singura probă necontaminată pe care o ai.')){
+    try{ localStorage.removeItem(SKEY); }catch(e){}
+    renderSignals();
+  }
+};
 $('btnHistClear').onclick = () => {
   if (!histLoad().length) return;
   if (confirm('Ștergi istoricul de rulări? Se pierde singura probă out-of-sample pe care o ai.')){
@@ -684,15 +863,16 @@ try {
   }
 } catch(e){}
 renderHist(histLoad());
+renderSignals();
 })();
 </script>
-<script src="../lib/suite-version.js?v=768"></script>
+<script src="../lib/suite-version.js?v=769"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v768';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v769';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
-<script src="../nav.js?v=768" data-nav-root="../"></script>
+<script src="../nav.js?v=769" data-nav-root="../"></script>
 </body>
 </html>
