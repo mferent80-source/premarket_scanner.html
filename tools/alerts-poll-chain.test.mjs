@@ -110,3 +110,42 @@ test('pill-ul semnalează și „ciclul merge, dar N simboluri sunt înghețate"
   assert.match(HTML, /_staleSyms/, 'pill-ul trebuie să numere simbolurile vechi');
   assert.ok(/simbol\$\{_staleSyms\.length > 1 \? 'uri' : ''\} vechi/.test(HTML));
 });
+
+// ── v98: Δ-ul își declară ZIUA ───────────────────────────────────────────────
+// Două găuri prin care un Δ vechi ajungea pe ecran nemarcat, cu poll-ul funcțional:
+//  (a) prețul se actualiza dar `changes` nu se scria (prev invalid) => preț de azi lângă
+//      procent de ieri, pe care v97 îl considera proaspăt fiindcă prețul intrase;
+//  (b) cu piața US închisă, Yahoo întoarce legitim sesiunea PRECEDENTĂ — corect ca dată,
+//      dar afișat drept „Δ azi" lângă chip-ul de sesiune curentă.
+const PD = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'price-day.js'), 'utf8');
+
+test('price-day întoarce momentul real al cotației', () => {
+  assert.match(PD, /ts: ts/, 'yahooQuote trebuie să întoarcă ts');
+  assert.match(PD, /m\.regularMarketTime \* 1000/, 'ts vine din regularMarketTime');
+  assert.match(PD, /q\.ts = lt \* 1000/, 'fallback pe ultima bară când meta n-are ora');
+});
+
+test('Δ are prospețimea LUI, separată de a prețului', () => {
+  assert.match(HTML, /const _lastChgTs = \{\}/, 'trebuie să existe registrul de vechime a Δ');
+  assert.match(HTML, /_lastChgTs\[sym\] = quoteTs\[U\] \|\| Date\.now\(\)/,
+    'Δ se ștampilează cu momentul COTAȚIEI, nu al fetch-ului');
+});
+
+test('Δ dintr-o sesiune precedentă e marcat „IERI", nu prezentat ca Δ azi', () => {
+  assert.match(HTML, /function chgFromPrevDay\(sym\)/);
+  assert.ok(/chgFromPrevDay\(sym\)\)\s*\{[\s\S]{0,400}?>IERI</.test(HTML),
+    'chip-ul trebuie să scrie IERI când cotația nu e din ziua ET curentă');
+});
+
+test('cache-ul păstrează momentul cotației, nu doar pe cel al salvării', () => {
+  assert.match(HTML, /q: Number\.isFinite\(qts\) \? qts : now/, 'se salvează ts-ul cotației');
+  assert.match(HTML, /sameEtDay\(e\.q \|\| e\.ts\)/,
+    'la hidratare se compară ziua COTAȚIEI — altfel un Δ de ieri salvat azi trecea drept „azi"');
+});
+
+test('logica de zi: o cotație de ieri nu e „azi"', () => {
+  const etDayKey = ts => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(ts));
+  const sameEtDay = ts => etDayKey(ts) === etDayKey(Date.now());
+  assert.ok(sameEtDay(Date.now()), 'acum = ziua curentă');
+  assert.ok(!sameEtDay(Date.now() - 30 * 3600 * 1000), 'acum 30h = altă zi de bursă');
+});

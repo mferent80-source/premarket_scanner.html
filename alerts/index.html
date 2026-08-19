@@ -1132,7 +1132,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v97</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v98</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1677,6 +1677,11 @@ function daySessChip(sym) {
     const t = fmtAgeShort(a);
     return `<span class="px-sess closed" title="Cifra de alături e de acum ${t} — pentru ${escHtml(u)} nu a mai intrat niciun preț de atunci. Δ-ul afișat NU e de acum.">⏳ ${t}</span>`;
   }
+  // v98: cotația e proaspăt descărcată, dar e din sesiunea PRECEDENTĂ (tipic: stocks US
+  // înainte de 16:30 RO, când ziua lor n-a început). Nu e „Δ azi" și n-are voie să pară.
+  if (typeof chgFromPrevDay === 'function' && chgFromPrevDay(sym)) {
+    return `<span class="px-sess closed" title="Δ-ul e din sesiunea precedentă de bursă, nu din cea de azi — piața pentru ${escHtml(u)} nu a deschis încă azi.&#10;${roSchedule()}">IERI</span>`;
+  }
   if (isCrypto(u)) return '';   // crypto e 24/7 — chip doar la nivel de grup (dar vechimea de mai sus se arată)
   if (u.includes('.')) {
     return `<span class="px-sess eu" title="Bursă EU — Δ azi vs close-ul lor de ieri">EU</span>`;
@@ -2108,11 +2113,24 @@ const _lastChange = {}; // variația zilei % per simbol = (last - prevClose)/pre
 // la nesfârșit. Marcajul global de v96 nu prinde asta: ciclul se încheie „cu succes"
 // chiar dacă 7 din 12 simboluri au picat. Aici ținem minte ultima reușită FIECĂRUI simbol.
 const _lastOkTs = {};
+const _lastChgTs = {};   // v98: momentul COTAȚIEI din care vine Δ-ul afișat (nu al fetch-ului)
 function symAgeMs(sym) {
   try { const t = _lastOkTs[sym] || _lastOkTs[String(sym).toUpperCase()]; return t ? Date.now() - t : null; }
   catch (e) { return null; }
 }
 function symStale(sym) { const a = symAgeMs(sym); return a != null && a > POLL_INTERVAL_MS * 4; }
+// v98: Δ-ul e „de azi" doar dacă vine dintr-o cotație din ziua ET curentă. Cu piața US
+// închisă, Yahoo dă legitim sesiunea precedentă — corect ca dată, dar NU e „Δ azi".
+function chgAgeMs(sym) {
+  try { const t = _lastChgTs[sym] || _lastChgTs[String(sym).toUpperCase()]; return t ? Date.now() - t : null; }
+  catch (e) { return null; }
+}
+function chgFromPrevDay(sym) {
+  try {
+    const t = _lastChgTs[sym] || _lastChgTs[String(sym).toUpperCase()];
+    return !!t && !sameEtDay(t);
+  } catch (e) { return false; }
+}
 function fmtAgeShort(ms) {
   return ms < 90000 ? Math.round(ms / 1000) + 's'
     : ms < 5400000 ? Math.round(ms / 60000) + 'm' : Math.round(ms / 3600000) + 'h';
@@ -2135,7 +2153,7 @@ function savePxCache(map) {
     } catch (e2) {}
   }
 }
-function stashPxCache(prices, changes) {
+function stashPxCache(prices, changes, quoteTs) {
   const c = loadPxCache();
   const now = Date.now();
   Object.keys(prices).forEach(sym => {
@@ -2143,10 +2161,12 @@ function stashPxCache(prices, changes) {
     // v76: scrie chg DOAR din poll-ul curent — nu păstra chg vechi 0% lângă preț nou
     // (telefonul afișa 0% din cache/bus, desk 0.7% din Yahoo fresh).
     const chg = changes[u];
+    const qts = quoteTs && quoteTs[u];
     c[u] = {
       last: prices[sym],
       chg: (chg != null && Number.isFinite(chg)) ? chg : null,
-      ts: now
+      ts: now,
+      q: Number.isFinite(qts) ? qts : now   // v98: momentul cotației, ca reload-ul să nu-l piardă
     };
   });
   Object.keys(c).forEach(k => { if (now - (c[k]?.ts || 0) > PX_CACHE_PAINT_MS) delete c[k]; });
@@ -2162,8 +2182,13 @@ function hydratePricesFromCache() {
     if (!e || !Number.isFinite(e.last) || now - (e.ts || 0) > PX_CACHE_PAINT_MS) return;
     _lastPrice[sym] = e.last;
     _lastOkTs[sym] = e.ts || 0;   // v97: vechimea REALĂ a cifrei din cache, nu „acum"
-    // Δ din cache doar dacă e din ziua ET curentă — altfel păstrăm semnul de ieri (FISV −4%)
-    if (Number.isFinite(e.chg) && sameEtDay(e.ts)) _lastChange[sym] = e.chg;
+    // Δ din cache doar dacă e din ziua ET curentă — altfel păstrăm semnul de ieri (FISV −4%).
+    // v98: se judecă după momentul COTAȚIEI (`q`), nu după cel al salvării: un Δ din sesiunea
+    // de ieri salvat azi la 09:00 trecea de `sameEtDay(e.ts)` și se picta ca „Δ azi".
+    if (Number.isFinite(e.chg) && sameEtDay(e.q || e.ts)) {
+      _lastChange[sym] = e.chg;
+      _lastChgTs[sym] = e.q || e.ts;
+    }
     n++;
   });
   return n;
@@ -2213,6 +2238,7 @@ async function pollPrices() {
   }
   const prices = {};
   const changes = {};   // variația zilei % per simbol (din prevClose-ul fiecărui fetch)
+  const quoteTs = {};   // v98: momentul REAL al cotației din care s-a calculat Δ
   // Pool CONC=8 — Promise.all pe 40 sim ≠ 40×Yahoo simultan pe proxy (rate-limit/hang).
   // Throttle Finnhub e per-request; Yahoo merge prin D health-score.
   const CONC = 8;
@@ -2227,6 +2253,10 @@ async function pollPrices() {
           prices[sym] = p.last;
           if (p.prev > 0 && Number.isFinite(p.prev) && Number.isFinite(p.last)) {
             changes[sym] = (p.last - p.prev) / p.prev * 100;
+            // v98: ziua de bursă DIN CARE e cotația. Cu piața US închisă, Yahoo întoarce
+            // legitim sesiunea precedentă — asta NU e „Δ azi" și pagina n-are voie s-o
+            // prezinte așa. `ts` lipsă (Finnhub/Binance) = tratat ca „de acum".
+            quoteTs[sym] = Number.isFinite(p.ts) ? p.ts : Date.now();
           }
           // publică pe bus DOAR cu chg real (nu forța 0 — otrăvește alte tab-uri/device)
           if (window.QB && Number.isFinite(p.last) && changes[sym] != null) {
@@ -2256,7 +2286,7 @@ async function pollPrices() {
     _warnedNoKey = true;
     toast('⚠ Niciun preț live — verifică rețeaua / proxy (tt-proxy) sau cheia Finnhub', 'warn');
   }
-  if (priced) stashPxCache(prices, changes);
+  if (priced) stashPxCache(prices, changes, quoteTs);
   priceAlerts = loadAlerts(); // re-sync după await-uri (fetch-urile durează — alt tab putea scrie)
   const fired = [];
   let changed = false;
@@ -2265,7 +2295,15 @@ async function pollPrices() {
     if (p == null) continue;
     _lastPrice[sym] = p;
     _lastOkTs[sym] = Date.now();   // v97: acest simbol chiar a primit preț în ciclul ăsta
-    if (changes[sym.toUpperCase()] != null) _lastChange[sym] = changes[sym.toUpperCase()];
+    // v98: Δ are prospețimea LUI. Prețul se putea actualiza fără ca `changes` să se scrie
+    // (prev invalid) — rămânea preț de azi lângă procent de ieri, pe care v97 îl considera
+    // proaspăt fiindcă prețul intrase. Iar `_lastChgTs` e momentul COTAȚIEI, nu al fetch-ului:
+    // o cotație din sesiunea de ieri e veche chiar dacă tocmai am descărcat-o.
+    const U = sym.toUpperCase();
+    if (changes[U] != null) {
+      _lastChange[sym] = changes[U];
+      _lastChgTs[sym] = quoteTs[U] || Date.now();
+    }
     const list = priceAlerts[sym];
     for (let i = list.length - 1; i >= 0; i--) {
       const a = list[i];
