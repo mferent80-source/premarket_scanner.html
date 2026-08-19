@@ -176,11 +176,12 @@ details.lab[open] summary::before{content:'▾ '}
       </label>
     </div>
     <div class="grp">
-      <button class="nav-link" id="btnLab">▶ Rulează</button>
+      <button class="nav-link" id="btnLab">▶ Backtest</button>
+      <button class="nav-link" id="btnSweep">📐 Sweep praguri</button>
     </div>
   </div>
   <div id="labOut"><div class="state-box">
-    <b>Încă nerulat</b>scrie un simbol (sau apasă pe unul din tabel) și apasă ▶ Rulează
+    <b>Încă nerulat</b>scrie un simbol (sau apasă pe unul din tabel) și alege ce rulezi
   </div></div>
 </details>
 
@@ -504,6 +505,56 @@ async function runLab(){
   } finally { btn.disabled = false; }
 }
 
+/* Sweep de praguri: la ce se schimba efectiv rezultatul cand misti tăietura.
+   Daca frecventa nu se misca intre doua praguri, pragul nu filtreaza — filtreaza
+   altceva (la noi: gate-ul de componente). */
+async function runSweep(){
+  const sym = ($('labSym').value || '').trim().toUpperCase();
+  const out = $('labOut');
+  if (!sym){ out.innerHTML = '<div class="state-box err"><b>Fără simbol</b>scrie unul, ex. BTCUSDT</div>'; return; }
+  const btn = $('btnSweep');
+  btn.disabled = true;
+  out.innerHTML = '<div class="state-box"><b><span class="spin"></span>Se mătură pragurile…</b>' + esc(sym) + '</div>';
+  try {
+    const bars = await fetchBars(sym, $('mkt').value, $('tf').value);
+    const opts = { preset: $('preset').value, breakMode: $('brk').value, useHtfStruct: $('veto').value === '1' };
+    const mode = $('labMode').value;
+    const sw = MFX.thresholdSweep(bars, opts, { mode: mode, horizon: +$('labH').value });
+    if (!sw.ok){ out.innerHTML = '<div class="state-box err"><b>Nu se poate</b>' + esc(sw.reason) + '</div>'; return; }
+    const pct = x => x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2) + '%';
+    const cur = mode === 'strong' ? sw.cfg.thrStrong : sw.cfg.thrEarly;
+
+    // pragurile la care NIMIC nu se schimba fata de cel dinainte = tăieturi inerte
+    let inert = 0;
+    for (let i = 1; i < sw.rows.length; i++) if (sw.rows[i].fired === sw.rows[i - 1].fired) inert++;
+
+    out.innerHTML =
+      '<div class="vd ' + (inert >= sw.rows.length - 2 ? 'bad' : inert ? 'warn' : 'good') + '">' +
+        (inert ? '⚠️ ' + inert + ' din ' + (sw.rows.length - 1) + ' trepte nu schimbă NIMIC — pe acest simbol pragul ' +
+                 (mode === 'strong' ? 'STRONG' : 'EARLY') + ' e (aproape) inert, filtrarea o face gate-ul de componente. ' +
+                 'A muta tăietura nu repară un scor compus greșit.'
+               : '✅ Fiecare treaptă schimbă numărul de semnale — pragul chiar filtrează.') +
+      '</div>' +
+      '<table><thead><tr><th class="l">Prag</th><th>bare cu semnal</th><th>%</th><th>n</th>' +
+      '<th>edge vs baseline</th><th>hit</th><th>t</th></tr></thead><tbody>' +
+      sw.rows.map(r => {
+        const th = mode === 'strong' ? r.thrStrong : r.thrEarly;
+        return '<tr' + (th === cur ? ' style="background:rgba(45,212,168,.08)"' : '') + '>' +
+          '<td class="l">' + th + (th === cur ? ' <span class="up">(acum)</span>' : '') + '</td>' +
+          '<td>' + r.fired + '</td><td>' + r.firedPct.toFixed(1) + '%</td><td>' + r.n + '</td>' +
+          '<td class="' + (r.edgePct > 0 ? 'up' : r.edgePct < 0 ? 'dn' : 'mu') + '">' + pct(r.edgePct) + '</td>' +
+          '<td>' + (r.hitPct == null ? '—' : r.hitPct.toFixed(0) + '%') + '</td>' +
+          '<td class="' + (Math.abs(r.t) >= 2 ? 'up' : 'mu') + '">' + (r.t == null ? '—' : r.t.toFixed(2)) + '</td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<p class="note"><b>Nu alege pragul cu edge-ul cel mai mare de aici.</b> Ar fi curve-fitting curat: ' +
+      'ai privi aceleași date pe care apoi ai pretinde că le prezici. Tabelul răspunde la o singură întrebare cinstită — ' +
+      '<i>tăietura asta filtrează ceva?</i> Dacă frecvența nu se mișcă între trepte, problema e în compoziția scorului, ' +
+      'nu în prag. O schimbare de prag se judecă abia pe semnale de DUPĂ schimbare (jurnalul de mai jos).</p>';
+  } catch (e){
+    out.innerHTML = '<div class="state-box err"><b>A eșuat</b>' + esc((e && e.message) || e) + '</div>';
+  } finally { btn.disabled = false; }
+}
+
 /* ── AUTO-SCAN ─────────────────────────────────────────────────────────────
    Un singur interval de 1s tine si numaratoarea si declansarea, ca sa nu se
    acumuleze timere la fiecare schimbare de setare. Cand o scanare e in curs,
@@ -534,6 +585,7 @@ window.addEventListener('beforeunload', () => { if (tickT) clearInterval(tickT);
 
 $('auto').addEventListener('change', () => { saveCfg(); setAuto(); });
 $('btnLab').onclick = runLab;
+$('btnSweep').onclick = runSweep;
 $('btnScan').onclick = scan;
 $('mkt').onchange = () => {
   fillTf($('tf').value);
