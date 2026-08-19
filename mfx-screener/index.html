@@ -62,6 +62,14 @@ tbody tr:hover{background:rgba(45,212,168,.05)}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}.nav-link:hover{transform:none}}
 .stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-family:var(--mono);font-size:10px;color:var(--t2)}
 .stats span{background:var(--panel2);border:1px solid var(--b1);padding:4px 9px;border-radius:var(--rs)}
+details.lab summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--accent);list-style:none;user-select:none}
+details.lab summary::-webkit-details-marker{display:none}
+details.lab summary::before{content:'▸ ';font-size:11px}
+details.lab[open] summary::before{content:'▾ '}
+.vd{padding:10px 12px;border-radius:var(--rs);font-family:var(--mono);font-size:11px;line-height:1.6;margin:12px 0}
+.vd.good{background:rgba(34,214,107,.1);border:1px solid rgba(34,214,107,.35);color:var(--bull)}
+.vd.warn{background:rgba(240,167,90,.1);border:1px solid rgba(240,167,90,.35);color:var(--warn)}
+.vd.bad{background:rgba(255,77,77,.1);border:1px solid rgba(255,77,77,.35);color:var(--bear)}
 .auto-badge{font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(45,212,168,.1);border:1px solid rgba(45,212,168,.3);padding:4px 9px;border-radius:var(--rs)}
 .flash{background:rgba(240,167,90,.12);border:1px solid rgba(240,167,90,.4);color:var(--warn);padding:8px 12px;border-radius:var(--rs);font-family:var(--mono);font-size:11px;margin-bottom:10px}
 @media(max-width:550px){.grp{border-right:0;padding-right:0;width:100%}.miss{max-width:110px}}
@@ -152,6 +160,30 @@ tbody tr:hover{background:rgba(45,212,168,.05)}
   <div id="out"><div class="state-box"><b>Niciun rezultat încă</b>apasă 🔍 Scanează</div></div>
 </div>
 
+<details class="panel lab" id="lab">
+  <summary>🧪 Laborator — backtest pe scor și cât contează alinierea agregării</summary>
+  <div class="ctrls" style="margin-top:12px">
+    <div class="grp">
+      <label>Simbol <input id="labSym" size="10" spellcheck="false" placeholder="BTCUSDT"></label>
+      <label>Semnal
+        <select id="labMode">
+          <option value="strong">doar STRONG</option>
+          <option value="early">STRONG + EARLY</option>
+        </select>
+      </label>
+      <label>Orizont
+        <select id="labH"><option>3</option><option selected>5</option><option>10</option><option>20</option></select>
+      </label>
+    </div>
+    <div class="grp">
+      <button class="nav-link" id="btnLab">▶ Rulează</button>
+    </div>
+  </div>
+  <div id="labOut"><div class="state-box">
+    <b>Încă nerulat</b>scrie un simbol (sau apasă pe unul din tabel) și apasă ▶ Rulează
+  </div></div>
+</details>
+
 <p class="note" style="padding:0 4px 20px">
   Motor: <code>lib/mfx.js</code> — același EVC ca deck-ul Pine <b>Mentfx Deck v1.1</b>
   (structură ruptă de corp · EMA 5/10/20 de pe TF×6 · Triple M · volum), cu veto de context.
@@ -163,6 +195,7 @@ tbody tr:hover{background:rgba(45,212,168,.05)}
 <script src="../lib/data.js?v=758"></script>
 <script src="../lib/telegram.js?v=758"></script>
 <script src="../lib/notifications.js?v=758"></script>
+<script src="../lib/backtest.js?v=758"></script>
 <script src="../lib/mfx.js?v=758"></script>
 <script>
 (function(){
@@ -303,6 +336,11 @@ function render(){
     }).join('') + '</tbody></table>' +
     (bad.length ? '<p class="note">Fără date: ' + bad.map(b => esc(b.sym) + ' (' + esc(b.err || b.res.reason) + ')').join(', ') + '</p>' : '');
 
+  box.querySelectorAll('td.sym').forEach(td => {
+    td.style.cursor = 'pointer';
+    td.title = 'Trimite în laborator';
+    td.onclick = () => { $('labSym').value = td.textContent.trim(); $('lab').open = true; $('lab').scrollIntoView({ block: 'nearest' }); };
+  });
   box.querySelectorAll('th[data-k]').forEach(th => {
     th.onclick = () => {
       const nk = th.dataset.k;
@@ -415,6 +453,57 @@ async function scan(){
   }
 }
 
+/* ── LABORATOR: backtest + coerenta agregarii ──────────────────────────────
+   Backtestul e BRUT si IN-SAMPLE — pragurile 75/50 au fost alese privind
+   aceleasi date. BT.verdict sconteaza deja un cost round-trip; restul
+   avertismentului il scriem explicit sub tabel. */
+async function runLab(){
+  const sym = ($('labSym').value || '').trim().toUpperCase();
+  const out = $('labOut');
+  if (!sym){ out.innerHTML = '<div class="state-box err"><b>Fără simbol</b>scrie unul, ex. BTCUSDT</div>'; return; }
+  const btn = $('btnLab');
+  btn.disabled = true;
+  out.innerHTML = '<div class="state-box"><b><span class="spin"></span>Se calculează…</b>' + esc(sym) + '</div>';
+  try {
+    const bars = await fetchBars(sym, $('mkt').value, $('tf').value);
+    const opts = { preset: $('preset').value, breakMode: $('brk').value, useHtfStruct: $('veto').value === '1' };
+    const bt = MFX.backtest(bars, opts, { mode: $('labMode').value, horizon: +$('labH').value });
+    if (!bt.ok){ out.innerHTML = '<div class="state-box err"><b>Nu se poate</b>' + esc(bt.reason) + '</div>'; return; }
+    const ag = MFX.agreement(bars, opts);
+    const v = BT.verdict(bt.main);
+    const pct = x => x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2) + '%';
+
+    out.innerHTML =
+      '<div class="vd ' + v.cls + '">' + esc(v.text) + '</div>' +
+      '<table><thead><tr><th class="l">Orizont</th><th>n</th><th>medie</th><th>edge vs baseline</th><th>hit</th><th>t</th></tr></thead><tbody>' +
+      bt.sweep.map(r => '<tr><td class="l">' + r.horizon + ' bare</td><td>' + r.n + '</td>' +
+        '<td>' + pct(r.avgPct) + '</td>' +
+        '<td class="' + (r.edgePct > 0 ? 'up' : r.edgePct < 0 ? 'dn' : 'mu') + '">' + pct(r.edgePct) + '</td>' +
+        '<td>' + (r.hitPct == null ? '—' : r.hitPct.toFixed(0) + '%') + '</td>' +
+        '<td class="' + (Math.abs(r.t) >= 2 ? 'up' : 'mu') + '">' + (r.t == null ? '—' : r.t.toFixed(2)) + '</td></tr>').join('') +
+      '</tbody></table>' +
+      '<div class="stats" style="margin-top:10px">' +
+        '<span>' + bt.fired + ' bare cu semnal din ' + bt.evaluated + ' evaluate (' +
+          (bt.evaluated ? (bt.fired / bt.evaluated * 100).toFixed(0) : 0) + '%)</span>' +
+        '<span>MFE medie ' + pct(bt.main.avgMFE) + '</span>' +
+        '<span>MAE medie ' + pct(bt.main.avgMAE) + '</span>' +
+        '<span>baseline ' + pct(bt.main.baselineAvgPct) + '</span>' +
+      '</div>' +
+      (ag.ok ? '<div class="stats"><span>alinierea agregării schimbă verdictul pe <b class="' +
+          (ag.statePct > 10 ? 'wn' : 'up') + '">' + ag.statePct.toFixed(1) + '%</b> din bare</span>' +
+          '<span>direcția pe ' + ag.dirPct.toFixed(1) + '%</span>' +
+          '<span>STRONG pe ' + ag.strongPct.toFixed(1) + '%</span>' +
+          '<span>Δ scor mediu ' + ag.avgScoreDelta.toFixed(2) + '</span></div>' : '') +
+      '<p class="note"><b>Citește-l cu scepticism.</b> Cifrele sunt <b>in-sample</b>: pragurile 75/50 și ponderile ' +
+      '30/30/25/15 au fost alese privind exact acest gen de date, deci un edge pozitiv aici nu e o dovadă. ' +
+      'Ce contează e semnul pe mai multe orizonturi și |t| &gt; 2 pe un n decent (≥20 semnale). ' +
+      'Verdictul de mai sus scontează deja ~0,10% costuri round-trip; pe cripto ilichid, spread-ul real e mai mare. ' +
+      'Judecă-le abia pe semnale de DUPĂ o schimbare de prag, nu pe cele care au sugerat-o.</p>';
+  } catch (e){
+    out.innerHTML = '<div class="state-box err"><b>A eșuat</b>' + esc((e && e.message) || e) + '</div>';
+  } finally { btn.disabled = false; }
+}
+
 /* ── AUTO-SCAN ─────────────────────────────────────────────────────────────
    Un singur interval de 1s tine si numaratoarea si declansarea, ca sa nu se
    acumuleze timere la fiecare schimbare de setare. Cand o scanare e in curs,
@@ -444,6 +533,7 @@ function setAuto(){
 window.addEventListener('beforeunload', () => { if (tickT) clearInterval(tickT); });
 
 $('auto').addEventListener('change', () => { saveCfg(); setAuto(); });
+$('btnLab').onclick = runLab;
 $('btnScan').onclick = scan;
 $('mkt').onchange = () => {
   fillTf($('tf').value);
