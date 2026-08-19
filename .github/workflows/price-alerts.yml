@@ -15,9 +15,17 @@ name: Price Alerts → Telegram
 
 on:
   schedule:
-    # la 15 min, 24/7 — crypto non-stop; stocks în orele lor
-    # (cron GitHub = UTC; cost Actions mai mic decât */5)
-    - cron: '*/15 * * * *'
+    # la 30 min, 24/7 — crypto non-stop; stocks în orele lor
+    # (cron GitHub = UTC)
+    #
+    # DE CE 30 și nu 15 (19.08.2026): repo-ul e privat, deci Actions consumă din
+    # cota de 2.000 min/lună, iar GitHub facturează fiecare job ROTUNJIT LA MINUT
+    # ÎNTREG. La */15 ieșeau ~2.880 rulări/lună = ~2.880 minute facturate: toată
+    # cota mâncată de alerte, iar deploy-ul Pages rămânea fără minute și eșua.
+    # La */30: ~1.440 rulări = ~1.440 min, plus ~50 pentru Pages. Marjă ~25%.
+    # Dacă tot se atinge plafonul, treci pe '0 * * * *' (~720 min) sau mută
+    # alertele pe un Cloudflare Worker (gratis, vezi tools/cf-worker-proxy.js).
+    - cron: '*/30 * * * *'
   workflow_dispatch: {}
 
 permissions:
