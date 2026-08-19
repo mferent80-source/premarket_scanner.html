@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="../lib/theme-light.css?v=759">
-<script src="../lib/theme.js?v=759"></script>
+<link rel="stylesheet" href="../lib/theme-light.css?v=760">
+<script src="../lib/theme.js?v=760"></script>
 <title>🎯 MFX Screener — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=759">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=760">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#070b11;--panel:#171f30;--panel2:#222c44;--b1:#4a5874;--t1:#fafbfc;--t2:#aab4c6;--t3:#d0d8e6;
@@ -80,7 +80,7 @@ details.lab[open] summary::before{content:'▾ '}
 <div id="flash" class="flash" hidden></div>
 
 <header class="suite-cockpit">
-  <h1>🎯 MFX Screener <span class="ver-badge">v3</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🎯 MFX Screener <span class="ver-badge">v4</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="auto-badge" id="autoBadge" hidden></span>
   <button class="nav-link primary" id="btnScan">🔍 Scanează</button>
   <a class="nav-link" href="../">← Hub</a>
@@ -126,6 +126,14 @@ details.lab[open] summary::before{content:'▾ '}
       <label><span title="Structura de pe TF-ul de validare are drept de veto pe STRONG">Veto HTF</span>
         <select id="veto"><option value="1">pornit</option><option value="0">oprit</option></select>
       </label>
+      <label><span title="CE anume face STRONG. Masuratoarea arata ca pragul de scor abia filtreaza — gate-ul e cel care conteaza.">Gate STRONG</span>
+        <select id="gate">
+          <option value="classic">clasic: ctx+EMA+entry</option>
+          <option value="2">oricare 2 din 4</option>
+          <option value="3">oricare 3 din 4</option>
+          <option value="4">toate 4 (+volum)</option>
+        </select>
+      </label>
     </div>
     <div class="grp">
       <label><span title="Re-scaneaza singur la fiecare N secunde. Merge si cand fila e in fundal, ca alertele sa te prinda.">Auto-scan</span>
@@ -169,6 +177,7 @@ details.lab[open] summary::before{content:'▾ '}
         <select id="labMode">
           <option value="strong">doar STRONG</option>
           <option value="early">STRONG + EARLY</option>
+          <option value="gate">gate (doar la sweep)</option>
         </select>
       </label>
       <label>Orizont
@@ -216,12 +225,12 @@ details.lab[open] summary::before{content:'▾ '}
   Pragurile (75/50) și ponderile (30/30/25/15) sunt <b>ipoteze</b>, nu setări validate.
 </p>
 
-<script src="../lib/data.js?v=759"></script>
-<script src="../lib/telegram.js?v=759"></script>
-<script src="../lib/notifications.js?v=759"></script>
-<script src="../lib/backtest.js?v=759"></script>
-<script src="../lib/mfx.js?v=759"></script>
-<script src="../lib/mfx-journal.js?v=759"></script>
+<script src="../lib/data.js?v=760"></script>
+<script src="../lib/telegram.js?v=760"></script>
+<script src="../lib/notifications.js?v=760"></script>
+<script src="../lib/backtest.js?v=760"></script>
+<script src="../lib/mfx.js?v=760"></script>
+<script src="../lib/mfx-journal.js?v=760"></script>
 <script>
 (function(){
 'use strict';
@@ -252,6 +261,7 @@ function loadCfg(){
   $('brk').value = c.brk || 'close';
   $('filt').value = c.filt != null ? c.filt : '1';
   $('veto').value = c.veto != null ? c.veto : '1';
+  $('gate').value = c.gate || 'classic';
   $('alertMode').value = c.alertMode || '0';
   $('auto').value = c.auto || '0';
   $('jrnOn').value = c.jrnOn || '0';
@@ -262,7 +272,7 @@ function saveCfg(){
   try {
     localStorage.setItem(KEY, JSON.stringify({
       mkt: $('mkt').value, tf: $('tf').value, preset: $('preset').value, brk: $('brk').value,
-      filt: $('filt').value, veto: $('veto').value, alertMode: $('alertMode').value, auto: $('auto').value, jrnOn: $('jrnOn').value, jrnH: $('jrnH').value, syms: $('syms').value
+      filt: $('filt').value, veto: $('veto').value, gate: $('gate').value, alertMode: $('alertMode').value, auto: $('auto').value, jrnOn: $('jrnOn').value, jrnH: $('jrnH').value, syms: $('syms').value
     }));
   } catch (e) { /* quota plina — setarile nu sunt critice */ }
 }
@@ -283,6 +293,8 @@ function optsNow(){
     preset: $('preset').value,
     breakMode: $('brk').value,
     useHtfStruct: $('veto').value === '1',
+    gateMode: $('gate').value === 'classic' ? 'classic' : 'nof4',
+    gateNeed: $('gate').value === 'classic' ? 3 : +$('gate').value,
     aggMode: aggModeNow()
   };
 }
@@ -361,7 +373,7 @@ function render(){
 
   box.innerHTML = '<table><thead><tr>' +
     '<th class="l" data-k="sym">Simbol</th><th class="l">Stare</th><th data-k="score">Scor</th>' +
-    '<th>Ctx</th><th>HTF</th><th>EMA</th><th>Entry</th><th data-k="vol">Vol</th>' +
+    '<th>Ctx</th><th>HTF</th><th>EMA</th><th>Entry</th><th data-k="vol">Vol</th><th title="Cate componente din 4 sunt bifate">4?</th>' +
     '<th class="l">Lipsește</th><th data-k="price">Preț</th></tr></thead><tbody>' +
     list.map(r => {
       const x = r.res;
@@ -375,6 +387,8 @@ function render(){
         '<td>' + (x.entryAge == null ? '<span class="mu">—</span>' : x.entryAge + 'b') + '</td>' +
         '<td>' + (x.volRatio == null ? '<span class="mu">—</span>' :
           '<span class="' + (x.volRatio >= x.cfg.volMult ? 'up' : 'mu') + '">' + x.volRatio.toFixed(2) + 'x</span>') + '</td>' +
+        '<td title="' + (x.bits ? (['ctx','EMA','entry','vol'].filter((k, j) => [x.bits.ctx, x.bits.val, x.bits.ent, x.bits.vol][j]).join(' + ') || 'niciuna') : '') + '">' +
+          '<b class="' + (x.bitsN === 4 ? 'up' : x.bitsN >= 3 ? 'wn' : 'mu') + '">' + (x.bitsN == null ? '—' : x.bitsN) + '</b><span class="mu">/4</span></td>' +
         '<td class="l"><span class="miss" title="' + esc(x.lipsa.join(' · ')) + '">' + (x.lipsa.length ? esc(x.lipsa.join(' · ')) : '<span class="up">complet</span>') + '</span></td>' +
         '<td>' + fmtPx(x.price) + '</td></tr>';
     }).join('') + '</tbody></table>' +
@@ -575,17 +589,20 @@ async function runSweep(){
 
     out.innerHTML =
       '<div class="vd ' + (inert >= sw.rows.length - 2 ? 'bad' : inert ? 'warn' : 'good') + '">' +
-        (inert ? '⚠️ ' + inert + ' din ' + (sw.rows.length - 1) + ' trepte nu schimbă NIMIC — pe acest simbol pragul ' +
-                 (mode === 'strong' ? 'STRONG' : 'EARLY') + ' e (aproape) inert, filtrarea o face gate-ul de componente. ' +
-                 'A muta tăietura nu repară un scor compus greșit.'
+        (inert ? '⚠️ ' + inert + ' din ' + (sw.rows.length - 1) + ' trepte nu schimbă NIMIC — ' +
+                 (mode === 'gate' ? 'gate-ul e mascat de pragul de scor: relaxarea lui nu adaugă semnale, fiindcă scorul taie oricum.'
+                  : 'pe acest simbol pragul ' + (mode === 'strong' ? 'STRONG' : 'EARLY') + ' e (aproape) inert, filtrarea o face gate-ul de componente. ' +
+                    'A muta tăietura nu repară un scor compus greșit.')
                : '✅ Fiecare treaptă schimbă numărul de semnale — pragul chiar filtrează.') +
       '</div>' +
-      '<table><thead><tr><th class="l">Prag</th><th>bare cu semnal</th><th>%</th><th>n</th>' +
+      '<table><thead><tr><th class="l">' + (mode === 'gate' ? 'Gate' : 'Prag') + '</th><th>bare cu semnal</th><th>%</th><th>n</th>' +
       '<th>edge vs baseline</th><th>hit</th><th>t</th></tr></thead><tbody>' +
       sw.rows.map(r => {
-        const th = mode === 'strong' ? r.thrStrong : r.thrEarly;
-        return '<tr' + (th === cur ? ' style="background:rgba(45,212,168,.08)"' : '') + '>' +
-          '<td class="l">' + th + (th === cur ? ' <span class="up">(acum)</span>' : '') + '</td>' +
+        const isCur = mode === 'gate'
+          ? (r.gateMode === sw.cfg.gateMode && (r.gateMode === 'classic' || r.gateNeed === sw.cfg.gateNeed))
+          : ((mode === 'strong' ? r.thrStrong : r.thrEarly) === cur);
+        return '<tr' + (isCur ? ' style="background:rgba(45,212,168,.08)"' : '') + '>' +
+          '<td class="l">' + esc(r.label) + (isCur ? ' <span class="up">(acum)</span>' : '') + '</td>' +
           '<td>' + r.fired + '</td><td>' + r.firedPct.toFixed(1) + '%</td><td>' + r.n + '</td>' +
           '<td class="' + (r.edgePct > 0 ? 'up' : r.edgePct < 0 ? 'dn' : 'mu') + '">' + pct(r.edgePct) + '</td>' +
           '<td>' + (r.hitPct == null ? '—' : r.hitPct.toFixed(0) + '%') + '</td>' +
@@ -764,7 +781,7 @@ $('btnWl').onclick = () => {
   saveCfg();
 };
 $('btnDef').onclick = () => { $('syms').value = DEF[$('mkt').value]; saveCfg(); };
-['tf','preset','brk','veto','alertMode','syms'].forEach(id => $(id).addEventListener('change', saveCfg));
+['tf','preset','brk','veto','gate','alertMode','syms'].forEach(id => $(id).addEventListener('change', saveCfg));
 $('filt').addEventListener('change', () => { saveCfg(); render(); });
 
 loadCfg();
@@ -772,13 +789,13 @@ setAuto();
 renderJournal();
 })();
 </script>
-<script src="../lib/suite-version.js?v=759"></script>
+<script src="../lib/suite-version.js?v=760"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v759';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v760';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
-<script src="../nav.js?v=759" data-nav-root="../"></script>
+<script src="../nav.js?v=760" data-nav-root="../"></script>
 </body>
 </html>
