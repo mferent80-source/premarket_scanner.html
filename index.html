@@ -7,7 +7,7 @@
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
     if (window.self === window.top) return;
-    var SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','mfx-screener/','earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/','journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
+    var SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','mfx-screener/','factor-lab/','earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/','journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
     function seg(href){
       try {
         var p = new URL(href, location.href).pathname;
@@ -1037,6 +1037,24 @@ body.hub-page .hub-shell .hub-platform-strip{
       </div>
     </a>
 
+    <a href="./factor-lab/" data-phase="review" target="ttools-flab" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#8b7cf6,#5bb0ff); --glow:rgba(139,124,246,.18)">
+      <div class="card-icon" style="background:linear-gradient(135deg,#8b7cf6,#5bb0ff);box-shadow:0 4px 14px rgba(139,124,246,.3);color:#0b0714">🧪</div>
+      <span class="card-tag" style="background:rgba(139,124,246,.12);color:#8b7cf6;border:1px solid rgba(139,124,246,.35)">Factor Lab · v1</span>
+      <h2 class="card-title">Factor Lab</h2>
+      <p class="card-desc">Bancul de probă: măsoară dacă un factor are edge REAL, înainte să merite construit ceva pe el.
+        Univers auto de pe Binance, 5 teste severe, controale long/short. Nu dă semnale — dă verdicte.</p>
+      <div class="features">
+        <span class="feat tool">🧪 5 teste severe</span>
+        <span class="feat data">⚖️ Controale long/short</span>
+        <span class="feat auto">🌐 Univers auto 50</span>
+        <span class="feat alert">📍 Unde e activ acum</span>
+      </div>
+      <div class="card-cta" style="color:#8b7cf6">
+        <span>Deschide Factor Lab</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
     <a href="./mfx-screener/" data-phase="scan" target="ttools-mfx" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#2dd4a8,#5bb0ff); --glow:rgba(45,212,168,.18)">
       <div class="card-icon" style="background:linear-gradient(135deg,#2dd4a8,#5bb0ff);box-shadow:0 4px 14px rgba(45,212,168,.3);color:#06231c">🎯</div>
       <span class="card-tag" style="background:rgba(45,212,168,.12);color:#2dd4a8;border:1px solid rgba(45,212,168,.35)">MFX Screener · v6</span>
@@ -1672,7 +1690,7 @@ if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches
 // doar focus() — fără reload. Dacă fila a fost închisă, o redeschidem.
 (function(){
   const wins = {};
-  const SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','mfx-screener/',
+  const SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','mfx-screener/','factor-lab/',
     'earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/',
     'journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
   const segFromHref = href => {
