@@ -256,8 +256,13 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
 
   // isHubEntry acoperă deja navigate + *.html + accept: text/html
-  if (isHubEntry(url, req)) e.respondWith(htmlNetworkFirst(e, req, url));
-  else e.respondWith(assetSWR(e, req, url));
+  // suite-version.js e fișierul care DECIDE ce versiune de SW se înregistrează. Servit prin
+  // assetSWR (care face `ignoreSearch:true`, deci ignoră până și `?v=`), un SW vechi returna
+  // versiunea veche, paginile re-înregistrau exact acel SW și update-ul se bloca permanent.
+  // Fișierul care rupe bucla nu are voie să vină din bucla însăși → network-first.
+  if (isHubEntry(url, req) || /\/lib\/suite-version\.js$/.test(url.pathname)) {
+    e.respondWith(htmlNetworkFirst(e, req, url));
+  } else e.respondWith(assetSWR(e, req, url));
 });
 
 self.addEventListener('message', e => {

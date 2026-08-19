@@ -149,3 +149,41 @@ test('logica de zi: o cotație de ieri nu e „azi"', () => {
   assert.ok(sameEtDay(Date.now()), 'acum = ziua curentă');
   assert.ok(!sameEtDay(Date.now() - 30 * 3600 * 1000), 'acum 30h = altă zi de bursă');
 });
+
+// ── v98b: bucla de update a SW-ului ─────────────────────────────────────────
+// `sw-app.js` se inregistreaza ca `sw-app.js?v=<versiune>`, iar versiunea venea din
+// lib/suite-version.js — fisier din PRECACHE, servit de SW-ul VECHI prin assetSWR
+// (`ignoreSearch:true`, deci pana si `?v=` era ignorat). Versiunea veche decidea ce
+// versiune se instaleaza => SW-ul vechi se auto-perpetua. Simptom: pagina livrata la
+// tt-v773, dar badge-ul suitei ramanea tt-v771 si fix-urile nu ajungeau la om.
+const SWAPP = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'sw-app.js'), 'utf8');
+const SUITEV = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'suite-version.js'), 'utf8');
+const verOf = s => (s.match(/tt-v\d+-\d{4}-\d{2}-\d{2}/) || [])[0];
+
+test('sw-app.js si lib/suite-version.js sunt pe ACEEASI versiune', () => {
+  assert.ok(verOf(SWAPP), 'sw-app.js trebuie sa aiba CACHE_VERSION');
+  assert.strictEqual(verOf(SUITEV), verOf(SWAPP),
+    'desincronizate: badge-ul suitei si cheia de inregistrare a SW-ului ar arata versiuni diferite');
+});
+
+test('alerts inregistreaza SW-ul cu o versiune din HTML, nu din fisierul cache-uit', () => {
+  const m = HTML.match(/const SW_VER_INLINE = '(tt-v\d+)'/);
+  assert.ok(m, 'trebuie sa existe constanta inline (HTML-ul e network-first, deci mereu proaspat)');
+  assert.ok(verOf(SWAPP).startsWith(m[1] + '-'),
+    `SW_VER_INLINE (${m[1]}) trebuie sa fie versiunea curenta din sw-app.js (${verOf(SWAPP)})`);
+  assert.match(HTML, /SW_VER_INLINE \|\| window\.SUITE_VERSION_SHORT/,
+    'constanta inline trebuie sa aiba prioritate fata de fisierul din cache');
+});
+
+test('SW-ul nu mai serveste fisierul de versiune din cache', () => {
+  // prima aparitie e in PRECACHE; ne intereseaza cea din handler-ul fetch
+  const i = SWAPP.lastIndexOf('suite-version');
+  assert.ok(i > 0, 'sw-app.js trebuie sa trateze explicit suite-version.js');
+  assert.ok(SWAPP.slice(Math.max(0, i - 200), i + 200).includes('htmlNetworkFirst'),
+    'lib/suite-version.js trebuie servit network-first, nu prin assetSWR');
+});
+
+test('pagina cere predarea stafetei daca SW-ul activ e mai vechi', () => {
+  assert.match(HTML, /reg\.waiting\.postMessage\(\{ type: 'SKIP_WAITING' \}\)/);
+  assert.match(HTML, /reg\.update\(\)/);
+});

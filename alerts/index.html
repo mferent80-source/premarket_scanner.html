@@ -1531,7 +1531,7 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=756"></script>
+<script src="../lib/suite-version.js?v=773"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
@@ -4825,9 +4825,22 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 
 </script>
 <script>
+// v98: versiunea SW-ului se ia ÎNTÂI din constanta de mai jos, scrisă în HTML.
+// Motiv: `SUITE_VERSION_SHORT` vine din lib/suite-version.js, care e în PRECACHE și e servit
+// de SW-ul VECHI (assetSWR, `ignoreSearch:true` → până și `?v=` e ignorat). Deci versiunea
+// veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
+// auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
+// asta e mereu proaspătă și rupe bucla de la primul reload.
+const SW_VER_INLINE = 'tt-v773';
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v665';
+  const swVer = SW_VER_INLINE || window.SUITE_VERSION_SHORT || 'tt-v665';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+  // Dacă SW-ul activ e mai vechi decât pagina, cere-i explicit să predea ștafeta.
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if (!reg) return;
+    reg.update().catch(() => {});
+    if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+  }).catch(() => {});
 }
 </script>
 <script src="../nav.js?v=682" data-nav-root="../"></script>
