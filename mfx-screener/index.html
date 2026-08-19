@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="../lib/theme-light.css?v=758">
-<script src="../lib/theme.js?v=758"></script>
+<link rel="stylesheet" href="../lib/theme-light.css?v=759">
+<script src="../lib/theme.js?v=759"></script>
 <title>🎯 MFX Screener — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=758">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=759">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#070b11;--panel:#171f30;--panel2:#222c44;--b1:#4a5874;--t1:#fafbfc;--t2:#aab4c6;--t3:#d0d8e6;
@@ -80,7 +80,7 @@ details.lab[open] summary::before{content:'▾ '}
 <div id="flash" class="flash" hidden></div>
 
 <header class="suite-cockpit">
-  <h1>🎯 MFX Screener <span class="ver-badge">v2</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🎯 MFX Screener <span class="ver-badge">v3</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <span class="auto-badge" id="autoBadge" hidden></span>
   <button class="nav-link primary" id="btnScan">🔍 Scanează</button>
   <a class="nav-link" href="../">← Hub</a>
@@ -186,6 +186,28 @@ details.lab[open] summary::before{content:'▾ '}
   </div></div>
 </details>
 
+<details class="panel lab" id="jrn">
+  <summary>📓 Jurnal out-of-sample — singura probă care contează</summary>
+  <p class="note" style="margin-top:10px">Semnalele se scriu <b>acum</b>, cu pragurile care le-au produs, și se evaluează
+    <b>mai târziu</b>, din bare care încă nu existau când au fost scrise. Spre deosebire de laborator, aici nu poți trișa
+    privind înainte. Un semnal se numără abia după ce trec orizontul de bare — până atunci scrie „se coace".</p>
+  <div class="ctrls" style="margin-top:10px">
+    <div class="grp">
+      <label>Scrie semnalele
+        <select id="jrnOn"><option value="0">nu</option><option value="1">da, STRONG-urile</option></select>
+      </label>
+      <label>Orizont
+        <select id="jrnH"><option>3</option><option selected>5</option><option>10</option><option>20</option></select>
+      </label>
+    </div>
+    <div class="grp">
+      <button class="nav-link" id="btnJrnEval">⏱ Evaluează ce s-a copt</button>
+      <button class="nav-link" id="btnJrnClear">🗑 Golește</button>
+    </div>
+  </div>
+  <div id="jrnOut"></div>
+</details>
+
 <p class="note" style="padding:0 4px 20px">
   Motor: <code>lib/mfx.js</code> — același EVC ca deck-ul Pine <b>Mentfx Deck v1.1</b>
   (structură ruptă de corp · EMA 5/10/20 de pe TF×6 · Triple M · volum), cu veto de context.
@@ -194,11 +216,12 @@ details.lab[open] summary::before{content:'▾ '}
   Pragurile (75/50) și ponderile (30/30/25/15) sunt <b>ipoteze</b>, nu setări validate.
 </p>
 
-<script src="../lib/data.js?v=758"></script>
-<script src="../lib/telegram.js?v=758"></script>
-<script src="../lib/notifications.js?v=758"></script>
-<script src="../lib/backtest.js?v=758"></script>
-<script src="../lib/mfx.js?v=758"></script>
+<script src="../lib/data.js?v=759"></script>
+<script src="../lib/telegram.js?v=759"></script>
+<script src="../lib/notifications.js?v=759"></script>
+<script src="../lib/backtest.js?v=759"></script>
+<script src="../lib/mfx.js?v=759"></script>
+<script src="../lib/mfx-journal.js?v=759"></script>
 <script>
 (function(){
 'use strict';
@@ -231,13 +254,15 @@ function loadCfg(){
   $('veto').value = c.veto != null ? c.veto : '1';
   $('alertMode').value = c.alertMode || '0';
   $('auto').value = c.auto || '0';
+  $('jrnOn').value = c.jrnOn || '0';
+  $('jrnH').value = c.jrnH || '5';
   $('syms').value = c.syms || DEF[$('mkt').value];
 }
 function saveCfg(){
   try {
     localStorage.setItem(KEY, JSON.stringify({
       mkt: $('mkt').value, tf: $('tf').value, preset: $('preset').value, brk: $('brk').value,
-      filt: $('filt').value, veto: $('veto').value, alertMode: $('alertMode').value, auto: $('auto').value, syms: $('syms').value
+      filt: $('filt').value, veto: $('veto').value, alertMode: $('alertMode').value, auto: $('auto').value, jrnOn: $('jrnOn').value, jrnH: $('jrnH').value, syms: $('syms').value
     }));
   } catch (e) { /* quota plina — setarile nu sunt critice */ }
 }
@@ -458,6 +483,10 @@ async function scan(){
     rows = rows.map((r, i) => r && r.sym ? r : { sym: syms[i], err: 'eroare necunoscută' });
     render();
     await notifyStrong(rows);
+    if ($('jrnOn').value === '1'){
+      const n = MFXJ.logFromScan(rows, { tf: tf, mkt: mkt, horizon: +$('jrnH').value });
+      if (n){ flash(n + ' semnal(e) scrise în jurnalul out-of-sample.'); renderJournal(); }
+    }
   } catch (e){
     $('out').innerHTML = '<div class="state-box err"><b>Scanarea a eșuat</b>' + esc((e && e.message) || e) +
       '<br><button class="nav-link" id="btnRetry" style="margin-top:10px">↻ Încearcă din nou</button></div>';
@@ -623,6 +652,64 @@ async function runTimeline(){
   } finally { btn.disabled = false; }
 }
 
+/* ── JURNAL OUT-OF-SAMPLE ──────────────────────────────────────────────────*/
+function renderJournal(){
+  const out = $('jrnOut'), all = MFXJ.all();
+  if (!all.length){
+    out.innerHTML = '<div class="state-box"><b>Jurnal gol</b>pune „Scrie semnalele" pe <i>da</i> și scanează</div>';
+    return;
+  }
+  const pct = x => x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2) + '%';
+  const dt = t => new Date(t).toLocaleString('ro-RO', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const st = MFXJ.stats();
+  const pend = all.filter(e => e.fwdPct == null).length;
+
+  out.innerHTML =
+    '<div class="stats" style="margin-top:12px">' +
+      '<span><b>' + all.length + '</b> semnale scrise</span>' +
+      '<span>' + (all.length - pend) + ' evaluate</span>' +
+      '<span class="' + (pend ? 'wn' : 'mu') + '">' + pend + ' se coc</span>' +
+    '</div>' +
+    (st.length ? '<table><thead><tr><th class="l">Configurația care le-a produs</th><th>n</th><th>hit</th>' +
+      '<th>medie</th><th>MFE</th><th>MAE</th><th class="l">verdict</th></tr></thead><tbody>' +
+      st.map(g => '<tr><td class="l">' + esc(g.cfg) + '</td><td>' + g.n + '</td>' +
+        '<td>' + g.hitPct.toFixed(0) + '%</td>' +
+        '<td class="' + (g.avgPct > 0 ? 'up' : 'dn') + '">' + pct(g.avgPct) + '</td>' +
+        '<td class="up">' + pct(g.avgMfe) + '</td><td class="dn">' + pct(g.avgMae) + '</td>' +
+        '<td class="l ' + (g.enough ? (g.avgPct > 0 ? 'up' : 'dn') : 'wn') + '">' +
+          (g.enough ? (g.avgPct > 0 ? 'promițător' : 'nu ține') : 'eșantion insuficient (<10)') +
+        '</td></tr>').join('') + '</tbody></table>' : '') +
+    '<table style="margin-top:10px"><thead><tr><th class="l">Scris</th><th class="l">Simbol</th><th>TF</th>' +
+    '<th class="l">Dir</th><th>scor</th><th>preț</th><th>rezultat</th><th>MFE</th><th>MAE</th></tr></thead><tbody>' +
+    all.slice(-40).reverse().map(e => '<tr>' +
+      '<td class="l">' + dt(e.loggedAt) + '</td><td class="l sym">' + esc(e.sym) + '</td>' +
+      '<td>' + esc(e.tf) + '</td>' +
+      '<td class="l ' + (e.dir > 0 ? 'up' : 'dn') + '">' + (e.dir > 0 ? 'LONG' : 'SHORT') + '</td>' +
+      '<td>' + e.score.toFixed(0) + '</td><td>' + fmtPx(e.price) + '</td>' +
+      '<td class="' + (e.fwdPct == null ? 'mu' : e.fwdPct > 0 ? 'up' : 'dn') + '">' +
+        (e.fwdPct == null ? 'se coace' : pct(e.fwdPct)) + '</td>' +
+      '<td class="up">' + pct(e.mfePct) + '</td><td class="dn">' + pct(e.maePct) + '</td></tr>').join('') +
+    '</tbody></table>' +
+    '<p class="note">Sub <b>10 cazuri per configurație</b> nu se trage nicio concluzie — e zgomot, nu rezultat. ' +
+    'Și dacă schimbi pragurile, rândul de statistici se rupe în două: semnalele vechi rămân la vechea configurație, ' +
+    'cele noi încep de la zero. Așa și trebuie — altfel ai amesteca două experimente diferite.</p>';
+}
+
+async function jrnEval(){
+  const btn = $('btnJrnEval');
+  btn.disabled = true;
+  const old = btn.textContent;
+  try {
+    const r = await MFXJ.evaluateAll(
+      (sym, mkt, tf) => fetchBars(sym, mkt, tf),
+      (d, t) => { btn.textContent = d + '/' + t; });
+    flash(r.evaluated + ' semnale evaluate, ' + r.pending + ' încă se coc.');
+    renderJournal();
+  } catch (e){
+    flash('Evaluarea a eșuat: ' + ((e && e.message) || e));
+  } finally { btn.disabled = false; btn.textContent = old; }
+}
+
 /* ── AUTO-SCAN ─────────────────────────────────────────────────────────────
    Un singur interval de 1s tine si numaratoarea si declansarea, ca sa nu se
    acumuleze timere la fiecare schimbare de setare. Cand o scanare e in curs,
@@ -655,6 +742,12 @@ $('auto').addEventListener('change', () => { saveCfg(); setAuto(); });
 $('btnLab').onclick = runLab;
 $('btnSweep').onclick = runSweep;
 $('btnTl').onclick = runTimeline;
+$('btnJrnEval').onclick = jrnEval;
+$('btnJrnClear').onclick = () => {
+  if (!MFXJ.all().length) return;
+  if (confirm('Ștergi tot jurnalul? Semnalele deja coapte se pierd definitiv.')){ MFXJ.clear(); renderJournal(); }
+};
+['jrnOn','jrnH'].forEach(id => $(id).addEventListener('change', saveCfg));
 $('btnScan').onclick = scan;
 $('mkt').onchange = () => {
   fillTf($('tf').value);
@@ -676,15 +769,16 @@ $('filt').addEventListener('change', () => { saveCfg(); render(); });
 
 loadCfg();
 setAuto();
+renderJournal();
 })();
 </script>
-<script src="../lib/suite-version.js?v=758"></script>
+<script src="../lib/suite-version.js?v=759"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v758';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v759';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
-<script src="../nav.js?v=758" data-nav-root="../"></script>
+<script src="../nav.js?v=759" data-nav-root="../"></script>
 </body>
 </html>
