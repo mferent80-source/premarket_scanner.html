@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="../lib/theme-light.css?v=763">
-<script src="../lib/theme.js?v=763"></script>
+<link rel="stylesheet" href="../lib/theme-light.css?v=764">
+<script src="../lib/theme.js?v=764"></script>
 <title>🧪 Factor Lab — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=763">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=764">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#070b11;--panel:#171f30;--panel2:#222c44;--b1:#4a5874;--t1:#fafbfc;--t2:#aab4c6;
@@ -71,7 +71,7 @@ details.doc[open] summary::before{content:'▾ '}
 <div id="flash" class="flash" hidden></div>
 
 <header class="suite-cockpit">
-  <h1>🧪 Factor Lab <span class="ver-badge">v1</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🧪 Factor Lab <span class="ver-badge">v2</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <button class="nav-link primary" id="btnRun">▶ Rulează bancul</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -119,6 +119,15 @@ details.doc[open] summary::before{content:'▾ '}
   <div id="liveOut"></div>
 </div>
 
+<div class="panel" id="histPanel" hidden>
+  <h2 style="font-size:13px;margin-bottom:4px;color:var(--accent)">📜 Cum s-au ținut verdictele în timp</h2>
+  <p class="note" style="margin:0 0 8px">Fiecare rulare se păstrează. Un factor care trece azi și pică peste o lună
+    nu era factor — era o fereastră norocoasă. <b>Asta e singura probă out-of-sample pe care ți-o poate da bancul:
+    verdictul, urmărit pe date care nu existau la prima rulare.</b></p>
+  <div id="histOut"></div>
+  <button class="nav-link" id="btnHistClear" style="margin-top:8px;padding:4px 9px;font-size:10px">🗑 Șterge istoricul</button>
+</div>
+
 <details class="panel doc">
   <summary>📖 Ce înseamnă fiecare test — și de ce sunt atât de severe</summary>
   <div class="note" style="line-height:1.8">
@@ -160,8 +169,8 @@ details.doc[open] summary::before{content:'▾ '}
   Rezultatele se păstrează local (<code>tt_factor_lab_v1</code>) ca să le poți compara între rulări.
 </p>
 
-<script src="../lib/data.js?v=763"></script>
-<script src="../lib/factors.js?v=763"></script>
+<script src="../lib/data.js?v=764"></script>
+<script src="../lib/factors.js?v=764"></script>
 <script>
 (function(){
 'use strict';
@@ -290,6 +299,59 @@ function renderLive(good){
   }).join('');
 }
 
+/* ── ISTORIC DE RULARI ─────────────────────────────────────────────────────
+   Un factor care trece o data nu e dovedit. Retinem verdictul fiecarei rulari
+   si aratam cum s-a tinut: "3/3 treceri" inseamna altceva decat "1/4". */
+const HKEY = 'tt_factor_lab_hist_v1';
+function histLoad(){ try { const a = JSON.parse(localStorage.getItem(HKEY)||'[]'); return Array.isArray(a)?a:[]; } catch(e){ return []; } }
+function histSave(a){
+  try { localStorage.setItem(HKEY, JSON.stringify(a.slice(-40))); }
+  catch(e){ try { localStorage.setItem(HKEY, JSON.stringify(a.slice(-10))); } catch(e2){} }
+}
+function histAdd(res, tf, H, nSyms){
+  const h = histLoad();
+  h.push({ at: Date.now(), tf: tf, H: H, syms: nSyms,
+           rows: res.rows.filter(x=>!x.ctrl).map(x=>({ k: x.k, t: +x.t.toFixed(2),
+                  edge: +x.edge.toFixed(3), trece: !!x.trece })) });
+  histSave(h);
+  return h;
+}
+function renderHist(h){
+  const pn = $('histPanel'), out = $('histOut');
+  if (!h || h.length < 1){ pn.hidden = true; return; }
+  pn.hidden = false;
+  // agregam pe factor: de cate ori a trecut, din cate rulari cu ACEEASI setare
+  const byCfg = {};
+  h.forEach(r=>{ const c = r.tf + '/H' + r.H; (byCfg[c] = byCfg[c] || []).push(r); });
+  out.innerHTML = Object.keys(byCfg).map(c=>{
+    const runs = byCfg[c], names = {};
+    runs.forEach(r=>r.rows.forEach(x=>{ const g = names[x.k] = names[x.k] || {n:0,pass:0,tSum:0};
+      g.n++; if (x.trece) g.pass++; g.tSum += x.t; }));
+    const rows = Object.keys(names).map(k=>({k, ...names[k], tAvg: names[k].tSum/names[k].n}))
+      .sort((a,b)=>(b.pass/b.n)-(a.pass/a.n) || Math.abs(b.tAvg)-Math.abs(a.tAvg));
+    const first = new Date(runs[0].at), last = new Date(runs[runs.length-1].at);
+    const span = Math.round((last-first)/86400000);
+    return '<div style="margin-bottom:12px"><b style="font-size:12px">' + esc(c) + '</b> ' +
+      '<span class="mu" style="font-family:var(--mono);font-size:10px">— ' + runs.length + ' rulări' +
+      (span>0 ? ', pe ' + span + ' zile' : ', azi') + '</span>' +
+      '<table style="margin-top:6px"><thead><tr><th class="l">Factor</th><th>a trecut</th><th>t mediu</th><th class="l">citire</th></tr></thead><tbody>' +
+      rows.map(x=>{
+        const rate = x.pass/x.n;
+        const cit = x.n < 2 ? 'o singură rulare — încă nimic'
+          : rate === 1 ? 'a ținut de fiecare dată'
+          : rate === 0 ? 'nu a trecut niciodată'
+          : 'inconsecvent — a trecut ' + x.pass + ' din ' + x.n;
+        return '<tr><td class="l">' + esc(x.k) + '</td>' +
+          '<td class="' + (rate===1&&x.n>=2?'up':rate>0?'wn':'mu') + '">' + x.pass + '/' + x.n + '</td>' +
+          '<td class="' + (Math.abs(x.tAvg)>=3?'up':'mu') + '">' + x.tAvg.toFixed(2) + '</td>' +
+          '<td class="l ' + (rate===1&&x.n>=2?'up':x.n<2?'mu':'wn') + '">' + cit + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }).join('') +
+  '<p class="note">Rulările se grupează pe (TF / orizont) — altfel ai compara măsurători diferite. ' +
+  'Un „3/3" pe rulări făcute în aceeași zi nu înseamnă nimic: rulează din nou peste o săptămână, ' +
+  'pe date care încă nu existau, și abia atunci cifra are greutate.</p>';
+}
+
 async function run(){
   if (busy) return;
   busy = true;
@@ -317,6 +379,7 @@ async function run(){
     render(res);
     try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), tf, H, syms: n,
       rows: res.rows.map(x=>({k:x.k,t:x.t,edge:x.edge,trece:x.trece})) })); } catch(e){}
+    renderHist(histAdd(res, tf, H, n));
     const skipped = syms.length - n;
     if (skipped > 0) flash(skipped + ' simboluri sărite (istoric insuficient sau date indisponibile).');
   } catch(e){
@@ -327,6 +390,13 @@ async function run(){
 }
 
 $('btnRun').onclick = run;
+$('btnHistClear').onclick = () => {
+  if (!histLoad().length) return;
+  if (confirm('Ștergi istoricul de rulări? Se pierde singura probă out-of-sample pe care o ai.')){
+    try { localStorage.removeItem(HKEY); } catch(e){}
+    renderHist([]);
+  }
+};
 $('uni').onchange = () => {
   const lista = $('uni').value === 'lista';
   $('syms').hidden = !lista;
@@ -346,15 +416,16 @@ try {
       'Apasă ▶ Rulează bancul pentru date proaspete.</div>';
   }
 } catch(e){}
+renderHist(histLoad());
 })();
 </script>
-<script src="../lib/suite-version.js?v=763"></script>
+<script src="../lib/suite-version.js?v=764"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v763';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v764';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
-<script src="../nav.js?v=763" data-nav-root="../"></script>
+<script src="../nav.js?v=764" data-nav-root="../"></script>
 </body>
 </html>
