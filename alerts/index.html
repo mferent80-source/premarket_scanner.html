@@ -1132,7 +1132,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v95</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v96</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1666,6 +1666,14 @@ function sessTag(sym) {
 function daySessChip(sym) {
   const u = String(sym || '').toUpperCase();
   if (isCrypto(u)) return '';
+  // v96: chip-ul se recalcula la FIECARE render, deci arăta „RTH" (sesiunea de ACUM)
+  // lângă un Δ adus cu ore în urmă — exact așa părea live un ecran înghețat.
+  // Când datele sunt vechi, chip-ul spune vechimea, nu sesiunea.
+  if (typeof pollDataStale === 'function' && pollDataStale()) {
+    const a = pollDataAgeMs();
+    const t = a < 5400000 ? Math.round(a / 60000) + 'm' : Math.round(a / 3600000) + 'h';
+    return `<span class="px-sess closed" title="Cifra de alături e de acum ${t}, nu de acum — polling-ul nu a mai adus prețuri.">⏳ ${t}</span>`;
+  }
   if (u.includes('.')) {
     return `<span class="px-sess eu" title="Bursă EU — Δ azi vs close-ul lor de ieri">EU</span>`;
   }
@@ -2148,13 +2156,16 @@ function pxCacheAgeMs(sym) {
   } catch (e) { return null; }
 }
 let _pollBusy = false; // v41: latch anti re-entrancy — apelurile manuale (add/edit/pull/visibility) se pot suprapune peste cel programat → dublu fire/notificare
+let _pollBusyTs = 0;   // v96: de când e ridicat latch-ul (watchdog-ul îl eliberează dacă un await atârnă)
+let _lastPollOkTs = 0; // v96: ultimul ciclu DUS LA CAPĂT — baza watchdog-ului și a marcajului „date vechi"
 async function pollPrices() {
   if (pollPaused || _pollBusy) return;
   _pollBusy = true;
+  _pollBusyTs = Date.now();
   try {
   priceAlerts = loadAlerts(); // sync cross-tab înainte de check (wlm poate modifica între cicluri)
   const allSyms = Object.keys(priceAlerts).filter(s => (priceAlerts[s] || []).length);
-  if (!allSyms.length) { $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · niciun alert activ`; render(); return; }
+  if (!allSyms.length) { _lastPollOkTs = Date.now(); $('refreshInfo').textContent = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · niciun alert activ`; render(); return; }
   let unique = [...new Set(allSyms.map(s => s.toUpperCase()))];
   const stockSyms = unique.filter(s => !isCrypto(s));
   // v41: EU (.DE/.PA/.L…) au sesiunea LOR — nu le throttle-ăm pe ora US (la 09:30 CET = ~03:30 ET
@@ -2453,6 +2464,7 @@ async function pollPrices() {
       sendTelegram(`🔔 <b>${fresh.length} ${fresh.length === 1 ? 'Price Alert' : 'Price Alerts'} triggered</b>\n` + fresh.map(tgLine).join('\n'));
     }
   }
+  _lastPollOkTs = Date.now();   // v96: ciclu dus la capăt — abia acum datele de pe ecran sunt „de acum"
   render();
   const rmsg = `🔄 ultim check: ${new Date().toLocaleTimeString('ro-RO')} · ${unique.length} simboluri${fired.length ? ` · ${fired.length} triggered` : ''}${sessionNote}`;
   $('refreshInfo').textContent = rmsg;
@@ -2466,10 +2478,41 @@ function schedulePoll() {
   // Polling reluat la ttShellVisible:true. Plasă de siguranță: botul server-side (cron */5) prinde alertele oricum.
   if (_shellHidden) return;
   pollTimer = setTimeout(async () => {
-    await pollPrices();
+    // v96: try/catch OBLIGATORIU în jurul poll-ului. Fără el, o singură excepție
+    // din pollPrices (simbol fără date, Telegram, localStorage plin) lăsa
+    // `schedulePoll()` de mai jos NEEXECUTAT → lanțul de poll murea DEFINITIV și
+    // tăcut. Pagina rămânea cu prețurile ultimei runde bune — dimineața, când în
+    // ET era încă noapte, aia însemna close-ul de IERI și Δ-ul de IERI pe stocks
+    // US — în timp ce chip-ul RTH, recalculat la fiecare render, arăta „live".
+    try { await pollPrices(); } catch (e) { console.error('[poll] ciclu eșuat:', e); }
     schedulePoll();
   }, POLL_INTERVAL_MS);
 }
+
+// v96: WATCHDOG independent de lanțul de poll. Repornește polling-ul dacă niciun
+// ciclu nu s-a mai încheiat de POLL_STALE_MS — acoperă și cazurile în care timerul
+// moare din alte motive decât o excepție: tab suspendat de browser peste noapte,
+// revenire din sleep, throttling agresiv pe mobil.
+const POLL_STALE_MS = POLL_INTERVAL_MS * 3;
+// try/catch: funcțiile sunt hoisted și pot fi atinse de un render timpuriu, înainte
+// ca `let _lastPollOkTs` să fie inițializat (TDZ) — un ReferenceError aici ar rupe
+// exact ecranul pe care încearcă să-l facă onest.
+function pollDataAgeMs() {
+  try { return _lastPollOkTs ? Date.now() - _lastPollOkTs : null; } catch (e) { return null; }
+}
+function pollDataStale() {
+  const a = pollDataAgeMs();
+  return a != null && a > POLL_INTERVAL_MS * 3;
+}
+setInterval(() => {
+  if (pollPaused || _shellHidden || document.hidden) return;
+  // _pollBusy blocat (un await atârnat) ar face watchdog-ul inofensiv → îl eliberăm
+  if (_pollBusy && _pollBusyTs && Date.now() - _pollBusyTs > 120000) _pollBusy = false;
+  if (!pollDataStale()) return;
+  console.warn('[poll] lanț mort de', Math.round(pollDataAgeMs() / 1000), 's → repornit de watchdog');
+  schedulePoll();
+  pollPrices().catch(e => console.error('[poll] repornire eșuată:', e));
+}, POLL_INTERVAL_MS);
 
 // ============ RENDER ============
 // Format dată creării (ora RO) + vârstă alertă
@@ -3035,8 +3078,17 @@ function render() {
     bindMoreToggles($('bodyTriggered'), '.alert-row');
   }
 
-  $('pollStatus').className = 'status-pill ' + (pollPaused ? 'paused' : 'live');
-  $('pollStatus').textContent = pollPaused ? 'PAUZĂ' : `LIVE · ${POLL_INTERVAL_MS/1000}s`;
+  // v96: pill-ul nu mai scrie „LIVE" peste date înghețate. Dacă ultimul ciclu
+  // reușit e mai vechi decât pragul, spune RĂSPICAT de când sunt cifrele de pe ecran.
+  const _age = typeof pollDataAgeMs === 'function' ? pollDataAgeMs() : null;
+  const _stale = typeof pollDataStale === 'function' && pollDataStale();
+  const _ageTxt = _age == null ? '' : _age < 90000 ? Math.round(_age / 1000) + 's'
+    : _age < 5400000 ? Math.round(_age / 60000) + 'm' : Math.round(_age / 3600000) + 'h';
+  $('pollStatus').className = 'status-pill ' + (pollPaused ? 'paused' : _stale ? 'paused' : 'live');
+  $('pollStatus').textContent = pollPaused ? 'PAUZĂ' : _stale ? `⏳ DATE VECHI · ${_ageTxt}` : `LIVE · ${POLL_INTERVAL_MS/1000}s`;
+  $('pollStatus').title = _stale
+    ? `Ultimul preț adus acum ${_ageTxt}. Cifrele de mai jos NU sunt de acum — watchdog-ul încearcă să repornească polling-ul.`
+    : 'Polling activ';
   $('btnPause').textContent = pollPaused ? '▶' : '⏸';
   $('btnPause').title = pollPaused ? 'Reia polling' : 'Pauză polling';
   $('soundBtn').style.color = soundEnabled ? 'var(--bull-s)' : '';
@@ -3771,6 +3823,10 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     // optional: don't pause, just rely on browser throttling
   } else {
+    // v96: și RE-ARMEAZĂ lanțul. pollPrices() singur face un poll, dar dacă timerul
+    // murise (excepție / tab suspendat peste noapte) pagina rămânea iar înghețată
+    // după acel unic refresh.
+    schedulePoll();
     pollPrices();           // refresh preț imediat when tab e activ din nou
     pullFromGitHub(true);   // v56: și aduce lista proaspătă de pe alt device la revenire (sync cross-device fără refresh manual)
   }
