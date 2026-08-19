@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="../lib/theme-light.css?v=767">
-<script src="../lib/theme.js?v=767"></script>
+<link rel="stylesheet" href="../lib/theme-light.css?v=768">
+<script src="../lib/theme.js?v=768"></script>
 <title>🧪 Factor Lab — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=767">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=768">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#070b11;--panel:#171f30;--panel2:#222c44;--b1:#4a5874;--t1:#fafbfc;--t2:#aab4c6;
@@ -90,7 +90,8 @@ details.doc[open] summary::before{content:'▾ '}
 <div id="flash" class="flash" hidden></div>
 
 <header class="suite-cockpit">
-  <h1>🧪 Factor Lab <span class="ver-badge">v6</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🧪 Factor Lab <span class="ver-badge">v7</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <button class="nav-link" id="btnCsv" title="Descarca rezultatele ca CSV" hidden>⬇ CSV</button>
   <button class="nav-link" id="btnCmp" title="Ascunde coloanele de detaliu si notele">◧ Compact</button>
   <button class="nav-link primary" id="btnRun">▶ Rulează bancul</button>
   <a class="nav-link" href="../">← Hub</a>
@@ -116,6 +117,14 @@ details.doc[open] summary::before{content:'▾ '}
     <div class="grp">
       <label><span title="Cate bare aduce pentru fiecare simbol">Istoric</span>
         <select id="lim"><option>500</option><option selected>1000</option></select>
+      </label>
+      <label><span title="Comision + spread, dus-intors. Un edge sub cost nu exista in realitate.">Cost dus-întors</span>
+        <select id="cost">
+          <option value="0">fără (brut)</option>
+          <option value="0.1">0,10% (bursă lichidă)</option>
+          <option value="0.2" selected>0,20% (cripto tipic)</option>
+          <option value="0.4">0,40% (altcoin ilichid)</option>
+        </select>
       </label>
       <label><span title="Cate cereri simultane catre Binance">Paralel</span>
         <select id="par"><option>3</option><option selected>5</option><option>8</option></select>
@@ -212,8 +221,8 @@ details.doc[open] summary::before{content:'▾ '}
   Rezultatele se păstrează local (<code>tt_factor_lab_v1</code>) ca să le poți compara între rulări.
 </p>
 
-<script src="../lib/data.js?v=767"></script>
-<script src="../lib/factors.js?v=767"></script>
+<script src="../lib/data.js?v=768"></script>
+<script src="../lib/factors.js?v=768"></script>
 <script>
 (function(){
 'use strict';
@@ -294,6 +303,37 @@ function renderRegime(data){
       : 'Piața are direcție, dar slăbuță. Verdictele sunt utilizabile, cu rezervă.') + '</p>';
 }
 
+
+/* Edge NET. Un edge brut de +0,29% la un cost de 0,20% dus-intors inseamna
+   +0,09% real — si asta doar daca intri la pretul de pe grafic. Costul se
+   plateste O DATA per semnal, indiferent de orizont. */
+function costPct(){ const e = document.getElementById('cost'); return e ? +e.value : 0.2; }
+function netEdge(x){ return x.edge - (x.ctrl ? 0 : costPct()); }
+
+
+/* Export CSV — ca sa poti compara rulari facute la saptamani distanta, in afara
+   paginii. Separator ';' si BOM, ca Excel-ul romanesc sa nu strice diacriticele. */
+function toCSV(r){
+  const cost = costPct();
+  const head = ['factor','semnale','edge_brut_%','edge_net_%','hit_%','t','stabil',
+                'acoperire','fara_top3_t','robust','verdict'];
+  const rows = r.rows.map(x=>[
+    x.k, x.n, x.edge.toFixed(4), (x.edge-(x.ctrl?0:cost)).toFixed(4), x.hit.toFixed(1),
+    x.t.toFixed(3), x.stabil?'da':'nu', x.posSyms+'/'+x.nSyms, x.woT.toFixed(3),
+    (x.rob&&x.rob.has)?(x.rob.same+'/'+x.rob.tot+(x.rob.spike?' (varf)':'')):'-',
+    x.ctrl?'control':x.trece?'TRECE':'picat'
+  ]);
+  return '\ufeff' + [head].concat(rows).map(l=>l.join(';')).join('\r\n');
+}
+function downloadCSV(r){
+  const blob = new Blob([toCSV(r)], { type:'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'factor-lab_' + (r.tfLabel||'') + '_H' + r.horizon + '.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 100);
+}
+
 function render(r){
   const box = $('out'), st = $('stats');
   st.hidden = false;
@@ -329,6 +369,7 @@ function render(r){
       '<td class="detail-col">' + x.n.toLocaleString('ro-RO') + '</td>' +
       '<td class="barcell ' + cE + '"><span class="bar">' + bar(x.edge,1.5) + '</span></td>' +
       '<td class="' + cE + '">' + p(x.edge) + '</td>' +
+      '<td class="' + (netEdge(x)>0?'up':'dn') + '">' + p(netEdge(x)) + '</td>' +
       '<td class="detail-col">' + x.hit.toFixed(0) + '%</td>' +
       '<td class="barcell ' + cT + '"><span class="bar">' + bar(x.t,8) + '</span></td>' +
       '<td class="' + cT + '">' + x.t.toFixed(2) + '</td>' +
@@ -349,6 +390,8 @@ function render(r){
   });
   const good = r.rows.filter(x=>x.trece);
   if (good.length) detail(good[0], r); else $('det').innerHTML = '';
+  const csvBtn = document.getElementById('btnCsv');
+  if (csvBtn){ csvBtn.hidden = false; csvBtn.onclick = () => downloadCSV(r); }
   renderLive(good);
 }
 
@@ -643,13 +686,13 @@ try {
 renderHist(histLoad());
 })();
 </script>
-<script src="../lib/suite-version.js?v=767"></script>
+<script src="../lib/suite-version.js?v=768"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v767';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v768';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
-<script src="../nav.js?v=767" data-nav-root="../"></script>
+<script src="../nav.js?v=768" data-nav-root="../"></script>
 </body>
 </html>
