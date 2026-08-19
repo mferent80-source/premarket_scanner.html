@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="../lib/theme-light.css?v=769">
-<script src="../lib/theme.js?v=769"></script>
+<link rel="stylesheet" href="../lib/theme-light.css?v=770">
+<script src="../lib/theme.js?v=770"></script>
 <title>🧪 Factor Lab — Trading Tools</title>
 <meta name="theme-color" content="#0b0f17">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../lib/suite-ui.css?v=769">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=770">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#070b11;--panel:#171f30;--panel2:#222c44;--b1:#4a5874;--t1:#fafbfc;--t2:#aab4c6;
@@ -94,7 +94,7 @@ details.doc[open] summary::before{content:'▾ '}
 <div id="flash" class="flash" hidden></div>
 
 <header class="suite-cockpit">
-  <h1>🧪 Factor Lab <span class="ver-badge">v8</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🧪 Factor Lab <span class="ver-badge">v9</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <button class="nav-link" id="btnCsv" title="Descarca rezultatele ca CSV" hidden>⬇ CSV</button>
   <button class="nav-link" id="btnCmp" title="Ascunde coloanele de detaliu si notele">◧ Compact</button>
   <button class="nav-link primary" id="btnRun">▶ Rulează bancul</button>
@@ -233,8 +233,8 @@ details.doc[open] summary::before{content:'▾ '}
   Rezultatele se păstrează local (<code>tt_factor_lab_v1</code>) ca să le poți compara între rulări.
 </p>
 
-<script src="../lib/data.js?v=769"></script>
-<script src="../lib/factors.js?v=769"></script>
+<script src="../lib/data.js?v=770"></script>
+<script src="../lib/factors.js?v=770"></script>
 <script>
 (function(){
 'use strict';
@@ -458,10 +458,13 @@ function perSymbol(data, rows){
     win.forEach(f=>{ const d=sigW[f.k][sym]; if(d>0)up++; else if(d<0)dn++; });
     if (!up && !dn) return null;
     const dir = up && !dn ? 1 : dn && !up ? -1 : 0;   // 0 = factorii validati se contrazic
+    // cand se contrazic, retinem CINE zice ce — altfel "CONTRADICTORIU" nu e informatie
+    const says = [];
+    win.forEach(f=>{ const d = sigW[f.k][sym]; if (d) says.push({ f:f.k, d:d }); });
     let cUp=0, cDn=0;
     all.forEach(f=>{ const d=sigA[f.k][sym]; if(d>0)cUp++; else if(d<0)cDn++; });
     const b = data[sym];
-    return { sym, dir, n: Math.max(up,dn), tot: win.length,
+    return { sym, dir, says, n: Math.max(up,dn), tot: win.length,
              conf: dir>0?cUp:dir<0?cDn:0, confTot: all.length,
              price: b[b.length-1].c,
              chg: b.length>1 ? (b[b.length-1].c/b[b.length-2].c-1)*100 : null,
@@ -627,28 +630,43 @@ function proximity(bars, factor){
   if (factor === 'reversal după 3 roșii'){
     let red = 0;
     for (let i = n-1; i >= 0 && red < 6; i--){ if (bars[i].c < bars[i].o) red++; else break; }
-    if (red >= 3) return { s:'ACUM', lvl:3, d:red + ' bare roșii la rând — semnalul e activ' };
-    if (red === 2) return { s:'IMINENT', lvl:2, d:'2 roșii — a treia îl declanșează' };
-    if (red === 1) return { s:'SE FORMEAZĂ', lvl:1, d:'prima bară roșie' };
-    return { s:'', lvl:0, d:'' };
+    // factorul e contrarian: dupa scadere pariaza pe revenire, deci mereu LONG
+    if (red >= 3) return { s:'ACUM', lvl:3, dir:1, d:red + ' bare roșii la rând — semnalul LONG e activ' };
+    if (red === 2) return { s:'IMINENT', lvl:2, dir:1, d:'2 roșii — a treia declanșează un LONG' };
+    if (red === 1) return { s:'SE FORMEAZĂ', lvl:1, dir:1, d:'prima bară roșie; ar fi un LONG' };
+    return { s:'', lvl:0, dir:0, d:'' };
   }
   if (factor === 'ROC 30 pozitiv'){
     if (n < 31) return { s:'', lvl:0, d:'' };
     const ref = bars[n-31].c;
     const gap = (x.c / ref - 1) * 100;
-    if (Math.abs(gap) < 1.5) return { s:'PE MUCHIE', lvl:2, d:'la ' + gap.toFixed(1) + '% de pragul de flip' };
-    if (Math.abs(gap) < 4)   return { s:'APROAPE', lvl:1, d:gap.toFixed(1) + '% față de prag' };
-    return { s:'', lvl:0, d:gap.toFixed(1) + '% față de prag' };
+    /* Pe muchie inseamna aproape de SCHIMBARE de directie: daca acum e peste prag
+       (gap>0, deci LONG), flipul l-ar duce la SHORT — si invers. Directia afisata
+       e cea in care AR TRECE, nu cea in care e. */
+    const flipTo = gap > 0 ? -1 : 1;
+    if (Math.abs(gap) < 1.5) return { s:'PE MUCHIE', lvl:2, dir:flipTo,
+      d:'la ' + Math.abs(gap).toFixed(1) + '% de flip; ar trece pe ' + (flipTo > 0 ? 'LONG' : 'SHORT') };
+    if (Math.abs(gap) < 4)   return { s:'APROAPE', lvl:1, dir:flipTo,
+      d:Math.abs(gap).toFixed(1) + '% până la flip spre ' + (flipTo > 0 ? 'LONG' : 'SHORT') };
+    return { s:'', lvl:0, dir:0, d:Math.abs(gap).toFixed(1) + '% față de prag' };
   }
   return { s:'', lvl:0, d:'' };
 }
 function heatOf(data, sym, win){
-  let best = { s:'', lvl:0, d:'', f:'' };
+  let best = { s:'', lvl:0, dir:0, d:'', f:'' };
   (win||[]).forEach(f=>{
     const q = proximity(data[sym], f.k);
-    if (q.lvl > best.lvl) best = { s:q.s, lvl:q.lvl, d:q.d, f:f.k };
+    if (q.lvl > best.lvl) best = { s:q.s, lvl:q.lvl, dir:q.dir||0, d:q.d, f:f.k };
   });
   return best;
+}
+/* Eticheta de stare, CU directia. Fara ea, "IMINENT" nu spune nimic util:
+   nu stii daca te pregatesti de long sau de short. */
+function heatLabel(h){
+  if (!h.s) return '<span class="mu">—</span>';
+  const arrow = h.dir > 0 ? ' ↑ LONG' : h.dir < 0 ? ' ↓ SHORT' : '';
+  return '<span class="heat l' + h.lvl + '" title="' + esc(h.f + ' — ' + h.d) + '">' +
+         h.s + arrow + '</span>';
 }
 
 function renderCoins(data, rows){
@@ -665,7 +683,7 @@ function renderCoins(data, rows){
     '<div class="stats" style="margin-bottom:8px">' +
       '<span class="up">' + L.length + ' LONG</span>' +
       '<span class="dn">' + S.length + ' SHORT</span>' +
-      (X.length ? '<span class="mu">' + X.length + ' contradictorii</span>' : '') +
+      (X.length ? '<span class="mu">' + X.length + ' în conflict</span>' : '') +
       '<span>dup\u0103 ' + r.win.map(x=>esc(x.k)).join(' + ') + '</span>' +
     '</div>' +
     (show.length ?
@@ -675,18 +693,22 @@ function renderCoins(data, rows){
     '<th class="detail-col">ultima bar\u0103</th><th class="l">grafic</th></tr></thead><tbody>' +
     show.map(x=>{
       const cls = x.dir>0?'up':x.dir<0?'dn':'mu';
-      const lbl = x.dir>0 ? (x.strong?'STRONG LONG':'LONG') : x.dir<0 ? (x.strong?'STRONG SHORT':'SHORT') : 'CONTRADICTORIU';
+      const lbl = x.dir>0 ? (x.strong?'STRONG LONG':'LONG') : x.dir<0 ? (x.strong?'STRONG SHORT':'SHORT')
+        : 'ÎN CONFLICT';
+      // la conflict aratam exact cine trage in ce parte
+      const conflict = x.dir === 0 && x.says
+        ? '<br><span class="mu" style="font-size:10px">' + x.says.map(y=>esc(y.f.split(' ')[0]) +
+            (y.d>0?' <span class="up">↑</span>':' <span class="dn">↓</span>')).join(' vs ') + '</span>'
+        : '';
       return '<tr class="' + (x.strong?'pass':'') + '">' +
         '<td class="l sym">' + tvLink(x.sym, esc(x.sym.replace('USDT',''))) + '</td>' +
         '<td class="l"><span class="vd ' + (x.dir>0?'ok':x.dir<0?'no':'ct') + '" style="' +
           (x.dir<0?'background:rgba(255,77,77,.16);color:var(--bear);border-color:rgba(255,77,77,.45)':'') +
-          '">' + lbl + '</span></td>' +
+          '">' + lbl + '</span>' + conflict + '</td>' +
         '<td class="' + cls + '">' + x.n + '/' + x.tot + '</td>' +
         '<td class="barcell detail-col ' + cls + '"><span class="bar">' + bar(x.conf, x.confTot) + '</span></td>' +
         '<td class="detail-col mu">' + x.conf + '/' + x.confTot + '</td>' +
-        '<td class="l">' + (function(){ var h = heatOf(data, x.sym, r.win);
-          return h.s ? '<span class="heat l'+h.lvl+'" title="'+esc(h.f+' \u2014 '+h.d)+'">'+h.s+'</span>'
-                     : '<span class="mu">\u2014</span>'; })() + '</td>' +
+        '<td class="l">' + heatLabel(heatOf(data, x.sym, r.win)) + '</td>' +
         '<td>' + fmtPx(x.price) + '</td>' +
         '<td class="detail-col ' + (x.chg>0?'up':x.chg<0?'dn':'mu') + '">' +
           (x.chg==null?'\u2014':(x.chg>=0?'+':'')+x.chg.toFixed(2)+'%') + '</td>' +
@@ -866,13 +888,13 @@ renderHist(histLoad());
 renderSignals();
 })();
 </script>
-<script src="../lib/suite-version.js?v=769"></script>
+<script src="../lib/suite-version.js?v=770"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v769';
+  const swVer = window.SUITE_VERSION_SHORT || 'tt-v770';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
-<script src="../nav.js?v=769" data-nav-root="../"></script>
+<script src="../nav.js?v=770" data-nav-root="../"></script>
 </body>
 </html>
