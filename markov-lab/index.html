@@ -891,13 +891,45 @@ $('hmm').addEventListener('click', () => { saveCfg(); runHMM(); });
 restoreCfg();
 runHMM();
 </script>
-<script src="../lib/suite-version.js?v=673"></script>
+<script src="../lib/suite-version.js?v=774"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = window.SUITE_VERSION_SHORT || 'tt-v665';
+  const swVer = 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
 <script src="../nav.js?v=682" data-nav-root="../"></script>
+<!-- tt:sw-guard:start -->
+<script>
+/* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
+(function () {
+  var PAGE_VER = 'tt-v774';
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
+    .then(function (reg) {
+      try { reg.update(); } catch (e) {}
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }).catch(function () {});
+  var sw = navigator.serviceWorker.controller;
+  if (!sw) return;                       // prima vizită: nu există SW vechi de corectat
+  var ch = new MessageChannel();
+  ch.port1.onmessage = function (e) {
+    var v = (e.data && e.data.version) || '';
+    if (v.indexOf(PAGE_VER + '-') === 0 || v === PAGE_VER) return;   // la zi
+    var K = 'tt_swfix_' + PAGE_VER;      // o singură reîncărcare per versiune
+    if (sessionStorage.getItem(K)) { console.warn('[sw-guard] SW vechi persistent:', v, '!=', PAGE_VER); return; }
+    sessionStorage.setItem(K, '1');
+    console.warn('[sw-guard] SW ' + v + ' != pagina ' + PAGE_VER + ' - fortez actualizarea');
+    navigator.serviceWorker.addEventListener('controllerchange', function () { location.reload(); });
+    navigator.serviceWorker.getRegistration().then(function (reg) {
+      if (!reg) return;
+      try { reg.update(); } catch (e2) {}
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }).catch(function () {});
+  };
+  try { sw.postMessage({ type: 'GET_VERSION' }, [ch.port2]); } catch (e) {}
+})();
+</script>
+<!-- tt:sw-guard:end -->
 </body>
 </html>

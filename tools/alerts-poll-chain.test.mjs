@@ -8,9 +8,10 @@
 // pe stocks US), în timp ce chip-ul de sesiune, recalculat la fiecare render, arăta „RTH".
 import test from 'node:test';
 import assert from 'node:assert';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 
 const HTML = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'alerts', 'index.html'), 'utf8');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -171,8 +172,6 @@ test('alerts inregistreaza SW-ul cu o versiune din HTML, nu din fisierul cache-u
   assert.ok(m, 'trebuie sa existe constanta inline (HTML-ul e network-first, deci mereu proaspat)');
   assert.ok(verOf(SWAPP).startsWith(m[1] + '-'),
     `SW_VER_INLINE (${m[1]}) trebuie sa fie versiunea curenta din sw-app.js (${verOf(SWAPP)})`);
-  assert.match(HTML, /SW_VER_INLINE \|\| window\.SUITE_VERSION_SHORT/,
-    'constanta inline trebuie sa aiba prioritate fata de fisierul din cache');
 });
 
 test('SW-ul nu mai serveste fisierul de versiune din cache', () => {
@@ -186,4 +185,61 @@ test('SW-ul nu mai serveste fisierul de versiune din cache', () => {
 test('pagina cere predarea stafetei daca SW-ul activ e mai vechi', () => {
   assert.match(HTML, /reg\.waiting\.postMessage\(\{ type: 'SKIP_WAITING' \}\)/);
   assert.match(HTML, /reg\.update\(\)/);
+});
+
+// ── garda permanenta de versiune ────────────────────────────────────────────
+// tools/sync-suite-version.mjs --check pica daca vreo pagina a ramas in urma. Rulat aici,
+// desincronizarea devine un test rosu, nu un bug descoperit peste zile pe ecranul lui Marius.
+test('toata suita e pe aceeasi versiune (sync-suite-version --check)', () => {
+  const r = spawnSync('node', ['tools/sync-suite-version.mjs', '--check'],
+    { cwd: join(dirname(fileURLToPath(import.meta.url)), '..'), encoding: 'utf8' });
+  assert.strictEqual(r.status, 0,
+    'versiuni desincronizate — ruleaza `node tools/sync-suite-version.mjs`:\n' + (r.stderr || r.stdout));
+});
+
+test('fiecare pagina cu SW isi ia versiunea dintr-un LITERAL, nu din fisierul cache-uit', () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const guilty = [];
+  (function walk(dir) {
+    for (const name of readdirSync(dir)) {
+      if (name === '.git' || name === '.claude' || name === 'node_modules') continue;
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (name.endsWith('.html')) {
+        const h = readFileSync(p, 'utf8');
+        // variabila cu care se inregistreaza efectiv SW-ul
+        const reg = h.match(/register\((?:'|")[^'"]*sw-app\.js\?v=(?:'|")\s*\+\s*(\w+)/);
+        if (!reg) continue;
+        const v = reg[1];
+        // ...si cum e definita: daca vine din SUITE_VERSION_SHORT, e in bucla
+        const def = new RegExp('(?:const|var|let)\\s+' + v + '\\s*=\\s*([^;]+);');
+        const d = h.match(def);
+        if (d && /SUITE_VERSION_SHORT/.test(d[1]) && !/SW_VER_INLINE/.test(d[1])) {
+          guilty.push(relative(root, p).split(sep).join('/'));
+        }
+      }
+    }
+  })(root);
+  assert.deepStrictEqual(guilty, [],
+    'aceste pagini isi iau versiunea de inregistrare din lib/suite-version.js, servit din cache de SW-ul VECHI');
+});
+
+test('fiecare pagina cu SW are blocul de auto-vindecare', () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const missing = [];
+  (function walk(dir) {
+    for (const name of readdirSync(dir)) {
+      if (name === '.git' || name === '.claude' || name === 'node_modules') continue;
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (name.endsWith('.html')) {
+        const h = readFileSync(p, 'utf8');
+        if (/serviceWorker\.register\([^)]*sw-app\.js/.test(h) && !h.includes('tt:sw-guard:start')) {
+          missing.push(relative(root, p).split(sep).join('/'));
+        }
+      }
+    }
+  })(root);
+  assert.deepStrictEqual(missing, [],
+    'aceste pagini nu detecteaza un SW vechi si nu se pot repara singure');
 });
