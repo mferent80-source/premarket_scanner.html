@@ -71,5 +71,18 @@ jobs:
           fi
           if [ "$CHANGED" = "1" ]; then
             git commit -m 'chore(alerts): stare actualizata dupa verificare [skip ci]'
-            git push
+            # push-ul cadea cand remote-ul se misca intre checkout si push (alta
+            # rulare, sau un commit facut de mana): "! [rejected] main -> main
+            # (fetch first)". Reincercam cu rebase, de 3 ori, cu pauza scurta.
+            pushed=0
+            for i in 1 2 3; do
+              if git push; then pushed=1; break; fi
+              echo "push respins (incercarea $i) - fac rebase si reincerc"
+              git pull --rebase --autostash origin main || break
+              sleep 3
+            done
+            if [ "$pushed" != "1" ]; then
+              echo "::warning::Nu am putut salva starea alertelor dupa 3 incercari."
+              exit 0
+            fi
           fi
