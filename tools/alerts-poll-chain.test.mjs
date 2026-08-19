@@ -73,6 +73,40 @@ test('revenirea pe tab re-armează lanțul, nu doar un poll unic', () => {
 
 test('UI-ul nu mai scrie „LIVE" peste date vechi', () => {
   assert.match(HTML, /DATE VECHI/, 'pill-ul de status trebuie să semnaleze datele înghețate');
-  assert.ok(/pollDataStale\(\)\)\s*\{[\s\S]{0,400}?px-sess closed/.test(HTML),
+  assert.ok(/if \(stale\) \{[\s\S]{0,400}?px-sess closed/.test(HTML),
     'chip-ul de sesiune trebuie să arate vechimea în loc de RTH/PRE când datele sunt vechi');
+});
+
+// ── v97: prospețime PER SIMBOL ──────────────────────────────────────────────
+// Marcajul global din v96 nu prindea cazul „ciclul se încheie cu succes, dar fetch-ul
+// pică fix pe stocks-urile US": `_lastChange[sym]` păstra Δ-ul de ieri la nesfârșit,
+// iar chip-ul arăta „RTH". De aici „arată date de ieri, dar doar pe stocks".
+
+test('pagina ține minte ultima reușită a FIECĂRUI simbol', () => {
+  assert.match(HTML, /const _lastOkTs = \{\}/, 'trebuie să existe registrul per simbol');
+  assert.match(HTML, /_lastOkTs\[sym\] = Date\.now\(\)/, 'se scrie când simbolul chiar primește preț');
+  assert.match(HTML, /function symStale\(sym\)/, 'trebuie să existe verificarea per simbol');
+});
+
+test('chip-ul de sesiune se uită la vechimea simbolului, nu doar la cea globală', () => {
+  const fn = HTML.slice(HTML.indexOf('function daySessChip'));
+  const body = fn.slice(0, fn.indexOf('\n}'));
+  assert.ok(body.includes('symStale(sym)'), 'daySessChip trebuie să întrebe symStale');
+  assert.ok(body.indexOf('symStale') < body.indexOf('isCrypto(u)) return'),
+    'verificarea de vechime trebuie făcută ÎNAINTE de ieșirile scurte (crypto/EU)');
+});
+
+test('hidratarea din cache păstrează vechimea reală, nu „acum"', () => {
+  assert.match(HTML, /_lastOkTs\[sym\] = e\.ts \|\| 0/,
+    'un preț pictat din cache nu are voie să pară proaspăt');
+});
+
+test('bara de refresh spune CARE simboluri n-au primit preț', () => {
+  assert.match(HTML, /fără preț: \$\{det\}/, 'trebuie listate numele, nu doar numărul');
+  assert.ok(/const miss = unique\.filter\(s => prices\[s\] == null\)/.test(HTML));
+});
+
+test('pill-ul semnalează și „ciclul merge, dar N simboluri sunt înghețate"', () => {
+  assert.match(HTML, /_staleSyms/, 'pill-ul trebuie să numere simbolurile vechi');
+  assert.ok(/simbol\$\{_staleSyms\.length > 1 \? 'uri' : ''\} vechi/.test(HTML));
 });

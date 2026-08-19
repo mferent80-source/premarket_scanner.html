@@ -1132,7 +1132,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v96</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v97</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1665,15 +1665,19 @@ function sessTag(sym) {
 // Chip scurt lângă Δ azi: PRE/RTH/AFT/CLS (US) sau EU. Crypto = 24/7, fără chip.
 function daySessChip(sym) {
   const u = String(sym || '').toUpperCase();
-  if (isCrypto(u)) return '';
   // v96: chip-ul se recalcula la FIECARE render, deci arăta „RTH" (sesiunea de ACUM)
   // lângă un Δ adus cu ore în urmă — exact așa părea live un ecran înghețat.
-  // Când datele sunt vechi, chip-ul spune vechimea, nu sesiunea.
-  if (typeof pollDataStale === 'function' && pollDataStale()) {
-    const a = pollDataAgeMs();
-    const t = a < 5400000 ? Math.round(a / 60000) + 'm' : Math.round(a / 3600000) + 'h';
-    return `<span class="px-sess closed" title="Cifra de alături e de acum ${t}, nu de acum — polling-ul nu a mai adus prețuri.">⏳ ${t}</span>`;
+  // v97: vechimea se judecă PER SIMBOL. Global nu era destul: dacă ciclul reușește dar
+  // fetch-ul pică fix pe stocks-urile US, ecranul arăta „RTH" lângă Δ-ul lor de ieri,
+  // în timp ce EU/crypto se actualizau normal — „date de ieri, dar doar pe stocks".
+  const stale = (typeof symStale === 'function' && symStale(sym))
+    || (typeof pollDataStale === 'function' && pollDataStale());
+  if (stale) {
+    const a = (typeof symAgeMs === 'function' ? symAgeMs(sym) : null) ?? pollDataAgeMs() ?? 0;
+    const t = fmtAgeShort(a);
+    return `<span class="px-sess closed" title="Cifra de alături e de acum ${t} — pentru ${escHtml(u)} nu a mai intrat niciun preț de atunci. Δ-ul afișat NU e de acum.">⏳ ${t}</span>`;
   }
+  if (isCrypto(u)) return '';   // crypto e 24/7 — chip doar la nivel de grup (dar vechimea de mai sus se arată)
   if (u.includes('.')) {
     return `<span class="px-sess eu" title="Bursă EU — Δ azi vs close-ul lor de ieri">EU</span>`;
   }
@@ -2099,6 +2103,20 @@ async function fetchPrice(symbol) {
 // dispare la fire; re-arm → se dezarmează și se re-armează cu histerezis 0.3%.
 const _lastPrice = {}; // preț curent per simbol (UI; + cache localStorage 20s+ pt paint instant la reload)
 const _lastChange = {}; // variația zilei % per simbol = (last - prevClose)/prevClose (pt sortare după creștere)
+// v97: PROSPEȚIME PER SIMBOL. `_lastChange[sym]` nu se șterge niciodată când un fetch
+// eșuează — deci un simbol care nu mai primește preț rămâne pe ecran cu Δ-ul lui de ieri
+// la nesfârșit. Marcajul global de v96 nu prinde asta: ciclul se încheie „cu succes"
+// chiar dacă 7 din 12 simboluri au picat. Aici ținem minte ultima reușită FIECĂRUI simbol.
+const _lastOkTs = {};
+function symAgeMs(sym) {
+  try { const t = _lastOkTs[sym] || _lastOkTs[String(sym).toUpperCase()]; return t ? Date.now() - t : null; }
+  catch (e) { return null; }
+}
+function symStale(sym) { const a = symAgeMs(sym); return a != null && a > POLL_INTERVAL_MS * 4; }
+function fmtAgeShort(ms) {
+  return ms < 90000 ? Math.round(ms / 1000) + 's'
+    : ms < 5400000 ? Math.round(ms / 60000) + 'm' : Math.round(ms / 3600000) + 'h';
+}
 // Cache prețuri pe device — paint instant la reload; poll-ul rețea rămâne sursa de adevăr pt fire
 const PX_CACHE_KEY = 'pa_px_cache_v1';
 const PX_CACHE_TTL_MS = 20000;      // sub 20s = „proaspăt" (afişare fără 📦)
@@ -2143,6 +2161,7 @@ function hydratePricesFromCache() {
     const e = c[sym];
     if (!e || !Number.isFinite(e.last) || now - (e.ts || 0) > PX_CACHE_PAINT_MS) return;
     _lastPrice[sym] = e.last;
+    _lastOkTs[sym] = e.ts || 0;   // v97: vechimea REALĂ a cifrei din cache, nu „acum"
     // Δ din cache doar dacă e din ziua ET curentă — altfel păstrăm semnul de ieri (FISV −4%)
     if (Number.isFinite(e.chg) && sameEtDay(e.ts)) _lastChange[sym] = e.chg;
     n++;
@@ -2222,7 +2241,17 @@ async function pollPrices() {
   await Promise.all(Array.from({ length: Math.min(CONC, unique.length || 1) }, () => _pxWorker()));
   const priced = Object.keys(prices).length;
   const failedPx = unique.length - priced;
-  if (failedPx > 0) sessionNote += ` · ⚠ ${failedPx}/${unique.length} fără preț`;
+  // v97: NUMELE simbolurilor care au picat, nu doar numărul. „⚠ 7/12 fără preț" nu spunea
+  // pe care rânduri sunt cifre vechi — și fix asta trebuia să știm când Δ rămânea de ieri
+  // doar pe stocks US. Cu vechimea alături, se vede imediat de când durează.
+  if (failedPx > 0) {
+    const miss = unique.filter(s => prices[s] == null);
+    const det = miss.slice(0, 6).map(s => {
+      const a = symAgeMs(s);
+      return s + (a != null ? `(${fmtAgeShort(a)})` : '(niciodată)');
+    }).join(', ');
+    sessionNote += ` · ⚠ ${failedPx}/${unique.length} fără preț: ${det}${miss.length > 6 ? ` +${miss.length - 6}` : ''}`;
+  }
   if (unique.length && !priced && !_warnedNoKey) {
     _warnedNoKey = true;
     toast('⚠ Niciun preț live — verifică rețeaua / proxy (tt-proxy) sau cheia Finnhub', 'warn');
@@ -2235,6 +2264,7 @@ async function pollPrices() {
     const p = prices[sym.toUpperCase()];
     if (p == null) continue;
     _lastPrice[sym] = p;
+    _lastOkTs[sym] = Date.now();   // v97: acest simbol chiar a primit preț în ciclul ăsta
     if (changes[sym.toUpperCase()] != null) _lastChange[sym] = changes[sym.toUpperCase()];
     const list = priceAlerts[sym];
     for (let i = list.length - 1; i >= 0; i--) {
@@ -3084,10 +3114,18 @@ function render() {
   const _stale = typeof pollDataStale === 'function' && pollDataStale();
   const _ageTxt = _age == null ? '' : _age < 90000 ? Math.round(_age / 1000) + 's'
     : _age < 5400000 ? Math.round(_age / 60000) + 'm' : Math.round(_age / 3600000) + 'h';
-  $('pollStatus').className = 'status-pill ' + (pollPaused ? 'paused' : _stale ? 'paused' : 'live');
-  $('pollStatus').textContent = pollPaused ? 'PAUZĂ' : _stale ? `⏳ DATE VECHI · ${_ageTxt}` : `LIVE · ${POLL_INTERVAL_MS/1000}s`;
+  // v97: și cazul „ciclul merge, dar N simboluri nu mai primesc preț" — pill-ul zicea LIVE
+  // în timp ce stocks-urile US stăteau cu Δ-ul de ieri.
+  const _staleSyms = Object.keys(priceAlerts || {}).filter(s => (priceAlerts[s] || []).length && symStale(s));
+  $('pollStatus').className = 'status-pill ' + (pollPaused || _stale || _staleSyms.length ? 'paused' : 'live');
+  $('pollStatus').textContent = pollPaused ? 'PAUZĂ'
+    : _stale ? `⏳ DATE VECHI · ${_ageTxt}`
+    : _staleSyms.length ? `⏳ ${_staleSyms.length} simbol${_staleSyms.length > 1 ? 'uri' : ''} vechi`
+    : `LIVE · ${POLL_INTERVAL_MS/1000}s`;
   $('pollStatus').title = _stale
     ? `Ultimul preț adus acum ${_ageTxt}. Cifrele de mai jos NU sunt de acum — watchdog-ul încearcă să repornească polling-ul.`
+    : _staleSyms.length
+    ? `Polling activ, dar fără preț nou pentru: ${_staleSyms.join(', ')}. Δ-ul lor e vechi (vezi ⏳ pe rând).`
     : 'Polling activ';
   $('btnPause').textContent = pollPaused ? '▶' : '⏸';
   $('btnPause').title = pollPaused ? 'Reia polling' : 'Pauză polling';
