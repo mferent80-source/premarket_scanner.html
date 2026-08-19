@@ -62,6 +62,7 @@ tbody tr:hover{background:rgba(45,212,168,.05)}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}.nav-link:hover{transform:none}}
 .stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-family:var(--mono);font-size:10px;color:var(--t2)}
 .stats span{background:var(--panel2);border:1px solid var(--b1);padding:4px 9px;border-radius:var(--rs)}
+.auto-badge{font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(45,212,168,.1);border:1px solid rgba(45,212,168,.3);padding:4px 9px;border-radius:var(--rs)}
 .flash{background:rgba(240,167,90,.12);border:1px solid rgba(240,167,90,.4);color:var(--warn);padding:8px 12px;border-radius:var(--rs);font-family:var(--mono);font-size:11px;margin-bottom:10px}
 @media(max-width:550px){.grp{border-right:0;padding-right:0;width:100%}.miss{max-width:110px}}
 </style>
@@ -72,6 +73,7 @@ tbody tr:hover{background:rgba(45,212,168,.05)}
 
 <header class="suite-cockpit">
   <h1>🎯 MFX Screener <span class="ver-badge">v1</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <span class="auto-badge" id="autoBadge" hidden></span>
   <button class="nav-link primary" id="btnScan">🔍 Scanează</button>
   <a class="nav-link" href="../">← Hub</a>
 </header>
@@ -118,6 +120,15 @@ tbody tr:hover{background:rgba(45,212,168,.05)}
       </label>
     </div>
     <div class="grp">
+      <label><span title="Re-scaneaza singur la fiecare N secunde. Merge si cand fila e in fundal, ca alertele sa te prinda.">Auto-scan</span>
+        <select id="auto">
+          <option value="0">oprit</option>
+          <option value="60">60s</option>
+          <option value="120">120s</option>
+          <option value="300">5 min</option>
+          <option value="900">15 min</option>
+        </select>
+      </label>
       <label><span title="Trimite pe Telegram / notificare browser cand un simbol intra in STRONG. Fiecare semnal pleaca o singura data pe bara lui.">Alertă pe STRONG</span>
         <select id="alertMode">
           <option value="0">oprită</option>
@@ -184,13 +195,14 @@ function loadCfg(){
   $('filt').value = c.filt != null ? c.filt : '1';
   $('veto').value = c.veto != null ? c.veto : '1';
   $('alertMode').value = c.alertMode || '0';
+  $('auto').value = c.auto || '0';
   $('syms').value = c.syms || DEF[$('mkt').value];
 }
 function saveCfg(){
   try {
     localStorage.setItem(KEY, JSON.stringify({
       mkt: $('mkt').value, tf: $('tf').value, preset: $('preset').value, brk: $('brk').value,
-      filt: $('filt').value, veto: $('veto').value, alertMode: $('alertMode').value, syms: $('syms').value
+      filt: $('filt').value, veto: $('veto').value, alertMode: $('alertMode').value, auto: $('auto').value, syms: $('syms').value
     }));
   } catch (e) { /* quota plina — setarile nu sunt critice */ }
 }
@@ -399,9 +411,39 @@ async function scan(){
     const rt = $('btnRetry'); if (rt) rt.onclick = scan;
   } finally {
     busy = false; btn.disabled = false;
+    lastRun = Date.now(); renderAuto();
   }
 }
 
+/* ── AUTO-SCAN ─────────────────────────────────────────────────────────────
+   Un singur interval de 1s tine si numaratoarea si declansarea, ca sa nu se
+   acumuleze timere la fiecare schimbare de setare. Cand o scanare e in curs,
+   fereastra se amana — nu se suprapun doua rulari peste acelasi proxy. */
+let tickT = null, nextAt = 0, lastRun = 0;
+function renderAuto(){
+  const el = $('autoBadge'), s = +$('auto').value;
+  if (!s){ el.hidden = true; return; }
+  el.hidden = false;
+  const left = Math.max(0, Math.round((nextAt - Date.now()) / 1000));
+  el.textContent = busy ? '⏳ scanez…'
+    : '🔄 auto ' + (s >= 60 ? (s / 60) + 'm' : s + 's') + ' · ' + left + 's'
+      + (lastRun ? ' · ultima ' + new Date(lastRun).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' }) : '');
+}
+function setAuto(){
+  if (tickT){ clearInterval(tickT); tickT = null; }
+  const s = +$('auto').value;
+  if (!s){ nextAt = 0; renderAuto(); return; }
+  nextAt = Date.now() + s * 1000;
+  tickT = setInterval(() => {
+    if (busy){ nextAt = Date.now() + s * 1000; renderAuto(); return; }
+    if (Date.now() >= nextAt){ nextAt = Date.now() + s * 1000; scan(); }
+    renderAuto();
+  }, 1000);
+  renderAuto();
+}
+window.addEventListener('beforeunload', () => { if (tickT) clearInterval(tickT); });
+
+$('auto').addEventListener('change', () => { saveCfg(); setAuto(); });
 $('btnScan').onclick = scan;
 $('mkt').onchange = () => {
   fillTf($('tf').value);
@@ -422,6 +464,7 @@ $('btnDef').onclick = () => { $('syms').value = DEF[$('mkt').value]; saveCfg(); 
 $('filt').addEventListener('change', () => { saveCfg(); render(); });
 
 loadCfg();
+setAuto();
 })();
 </script>
 <script src="../lib/suite-version.js?v=758"></script>
