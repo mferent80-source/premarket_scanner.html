@@ -247,6 +247,21 @@ function fillTf(want){
   $('tf').value = list.some(t => t[0] === want) ? want : (list.length > 2 ? list[1][0] : list[0][0]);
 }
 
+/* Alinierea agregarii: pe stocks INTRADAY, TradingView reseteaza contorul la
+   fiecare sesiune, nu la 00:00 UTC — acolo folosim 'session'. Pe cripto (24/7)
+   si pe daily, granita de calendar e cea corecta. */
+function aggModeNow(){
+  return ($('mkt').value === 'stocks' && $('tf').value !== '1d') ? 'session' : 'time';
+}
+function optsNow(){
+  return {
+    preset: $('preset').value,
+    breakMode: $('brk').value,
+    useHtfStruct: $('veto').value === '1',
+    aggMode: aggModeNow()
+  };
+}
+
 function parseSyms(){
   return ($('syms').value || '').split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean).slice(0, 60);
 }
@@ -299,7 +314,9 @@ function render(){
     st.hidden = false;
     st.innerHTML = '<span>' + rows.length + ' simboluri</span><span>' + strong + ' STRONG</span>' +
       '<span>' + veto + ' cu veto HTF</span>' + (bad.length ? '<span class="wn">' + bad.length + ' fără date</span>' : '') +
-      '<span>' + esc($('tf').value) + ' → validare ' + esc($('tf').value) + '×6</span>';
+      '<span>' + esc($('tf').value) + ' → validare ' + esc($('tf').value) + '×6</span>' +
+      '<span title="Cum se grupeaza barele in TF-ul de validare">aliniere ' +
+        (aggModeNow() === 'session' ? 'pe sesiune (ET)' : 'pe calendar (UTC)') + '</span>';
   } else st.hidden = true;
 
   if (!list.length){
@@ -431,11 +448,7 @@ async function scan(){
   $('out').innerHTML = '<div class="state-box"><b><span class="spin"></span>Se scanează…</b><span id="prg">0/' + syms.length + '</span></div>';
 
   const mkt = $('mkt').value, tf = $('tf').value;
-  const opts = {
-    preset: $('preset').value,
-    breakMode: $('brk').value,
-    useHtfStruct: $('veto').value === '1'
-  };
+  const opts = optsNow();
 
   try {
     rows = await pool(syms, 4, async (sym) => {
@@ -468,10 +481,11 @@ async function runLab(){
   out.innerHTML = '<div class="state-box"><b><span class="spin"></span>Se calculează…</b>' + esc(sym) + '</div>';
   try {
     const bars = await fetchBars(sym, $('mkt').value, $('tf').value);
-    const opts = { preset: $('preset').value, breakMode: $('brk').value, useHtfStruct: $('veto').value === '1' };
+    const opts = optsNow();
     const bt = MFX.backtest(bars, opts, { mode: $('labMode').value, horizon: +$('labH').value });
     if (!bt.ok){ out.innerHTML = '<div class="state-box err"><b>Nu se poate</b>' + esc(bt.reason) + '</div>'; return; }
-    const ag = MFX.agreement(bars, opts);
+    // compara alinierea folosita cu cea veche (pe numar de bare)
+    const ag = MFX.agreement(bars, opts, [aggModeNow(), 'count']);
     const v = BT.verdict(bt.main);
     const pct = x => x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2) + '%';
 
@@ -491,7 +505,8 @@ async function runLab(){
         '<span>MAE medie ' + pct(bt.main.avgMAE) + '</span>' +
         '<span>baseline ' + pct(bt.main.baselineAvgPct) + '</span>' +
       '</div>' +
-      (ag.ok ? '<div class="stats"><span>alinierea agregării schimbă verdictul pe <b class="' +
+      (ag.ok ? '<div class="stats"><span>' + (aggModeNow() === 'session' ? 'sesiune' : 'calendar') +
+          ' vs. numărare de bare: verdict diferit pe <b class="' +
           (ag.statePct > 10 ? 'wn' : 'up') + '">' + ag.statePct.toFixed(1) + '%</b> din bare</span>' +
           '<span>direcția pe ' + ag.dirPct.toFixed(1) + '%</span>' +
           '<span>STRONG pe ' + ag.strongPct.toFixed(1) + '%</span>' +
@@ -518,7 +533,7 @@ async function runSweep(){
   out.innerHTML = '<div class="state-box"><b><span class="spin"></span>Se mătură pragurile…</b>' + esc(sym) + '</div>';
   try {
     const bars = await fetchBars(sym, $('mkt').value, $('tf').value);
-    const opts = { preset: $('preset').value, breakMode: $('brk').value, useHtfStruct: $('veto').value === '1' };
+    const opts = optsNow();
     const mode = $('labMode').value;
     const sw = MFX.thresholdSweep(bars, opts, { mode: mode, horizon: +$('labH').value });
     if (!sw.ok){ out.innerHTML = '<div class="state-box err"><b>Nu se poate</b>' + esc(sw.reason) + '</div>'; return; }
@@ -567,7 +582,7 @@ async function runTimeline(){
   out.innerHTML = '<div class="state-box"><b><span class="spin"></span>Se reconstituie…</b>' + esc(sym) + '</div>';
   try {
     const bars = await fetchBars(sym, $('mkt').value, $('tf').value);
-    const opts = { preset: $('preset').value, breakMode: $('brk').value, useHtfStruct: $('veto').value === '1' };
+    const opts = optsNow();
     const H = +$('labH').value;
     const tl = MFX.timeline(bars, opts, { mode: $('labMode').value, horizon: H });
     if (!tl.ok){ out.innerHTML = '<div class="state-box err"><b>Nu se poate</b>' + esc(tl.reason) + '</div>'; return; }
