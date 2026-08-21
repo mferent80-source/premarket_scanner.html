@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo Hub oțel — I-332…I-335</title>
+<meta name="theme-color" content="#14181f">
+<meta name="description" content="Demo vizual Acum vs după I-332–I-335. Hub-ul live nu e atins.">
+<link rel="stylesheet" href="../lib/plex.css?v=743">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#14181f;--bg-grad:linear-gradient(180deg,#181c24 0%,#14181f 28%);
+  --panel:#1b2028;--panel2:#222830;--panel3:#2a303a;
+  --b1:#3a4250;--b2:#2e3542;
+  --t1:#e6e8ec;--t2:#b4bac4;--t3:#8b929e;
+  --accent:#8a9aab;--acc-1:#6e8294;--on-accent:#14181f;
+  --green:#5f9a74;--red:#c46b6b;--warn:#c4a056;
+  --r:12px;--rs:8px;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --head:'IBM Plex Sans',system-ui,sans-serif;
+  --shadow:0 4px 14px rgba(10,12,16,.28);
+}
+html,body{min-height:100vh}
+body{
+  font-family:var(--head);background:var(--bg);background-image:var(--bg-grad);
+  color:var(--t1);padding:12px 14px 48px;font-size:13.5px;line-height:1.45;
+}
+.wrap{max-width:920px;margin:0 auto}
+a{color:var(--t1);text-decoration:none}
+
+.banner{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
+  background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);
+  padding:10px 12px;margin-bottom:10px;box-shadow:var(--shadow);
+}
+.banner .tag{
+  font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.06em;
+  padding:3px 8px;border-radius:5px;background:var(--panel3);color:var(--t2);border:1px solid var(--b1);
+}
+.banner b{font-weight:700}
+.muted{color:var(--t3)}
+.banner .links{margin-left:auto;display:flex;flex-wrap:wrap;gap:6px}
+.banner .links a{
+  font-size:12px;font-weight:700;padding:5px 10px;border-radius:var(--rs);
+  border:1px solid var(--b1);background:var(--panel2);
+}
+.banner .links a:hover{border-color:var(--accent)}
+
+.toggle{
+  display:flex;gap:4px;background:var(--panel2);border:1px solid var(--b1);
+  border-radius:10px;padding:4px;margin-bottom:12px;
+}
+.toggle button{
+  flex:1;font-family:var(--head);font-size:13px;font-weight:700;
+  padding:9px 10px;border-radius:8px;border:1px solid transparent;
+  background:transparent;color:var(--t2);cursor:pointer;
+}
+.toggle button.on{background:var(--acc-1);color:var(--on-accent);border-color:transparent}
+.toggle button:hover:not(.on){color:var(--t1);background:var(--panel3)}
+
+.note{
+  font-family:var(--mono);font-size:11px;color:var(--t3);
+  margin:-4px 0 12px;line-height:1.45;
+}
+.note b{color:var(--t2);font-weight:700}
+
+/* ── mock hub chrome ── */
+.hub{
+  background:transparent;
+}
+.head{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;
+  background:rgba(27,32,40,.96);border:1px solid var(--b1);border-radius:var(--r);
+  padding:9px 14px;margin-bottom:10px;box-shadow:var(--shadow);
+}
+.brand{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--t2);
+  background:var(--panel);border:1px solid var(--b1);border-radius:999px;padding:4px 11px;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+body[data-mode="now"] .dot{background:linear-gradient(135deg,#f7931a,#ffd86b);box-shadow:0 0 6px rgba(247,147,26,.5)}
+.ver{
+  font-size:9px;font-weight:700;padding:1px 6px;border-radius:5px;
+  color:var(--t3);border:1px solid var(--b1);background:var(--panel3);
+}
+body[data-mode="now"] .ver{color:#f7931a;border-color:rgba(247,147,26,.35);background:rgba(247,147,26,.1)}
+h1{font-size:18px;font-weight:700;letter-spacing:-.02em;margin:0}
+h1 .acc{color:var(--t3);font-weight:400}
+body[data-mode="now"] h1 .acc{
+  background:linear-gradient(135deg,#f7931a,#ffb854,#ffd86b);
+  -webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800;
+}
+.pill{
+  margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:700;
+  padding:4px 10px;border-radius:999px;border:1px solid var(--b1);background:var(--panel);color:var(--t2);
+}
+
+.ckb{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);
+  padding:8px 12px;margin-bottom:10px;min-height:52px;
+}
+body[data-mode="now"] .ckb{
+  background:#12161d;border-color:rgba(255,255,255,.08);color:#e6ebf3;
+}
+.ckb-lbl{font-size:8.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--t3);font-family:var(--mono)}
+.ckb-val{font-size:14px;font-weight:800}
+.ckb-sub{font-size:10.5px;color:var(--t3);font-family:var(--mono)}
+.ckb-dot{font-size:18px;line-height:1;color:var(--warn)}
+body[data-mode="now"] .ckb-dot{text-shadow:0 0 12px currentColor;color:#d4892c}
+.ckb-link{
+  margin-left:auto;font-size:11px;font-weight:700;padding:4px 9px;border-radius:7px;
+  border:1px solid var(--b1);background:var(--panel2);color:var(--t1);
+}
+body[data-mode="now"] .ckb-link{
+  color:#5bb0ff;border-color:rgba(91,176,255,.35);background:rgba(91,176,255,.08);
+}
+
+.sess{
+  display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;
+  margin:0 0 8px;padding:6px 8px;border-radius:10px;border:1px solid var(--b1);background:var(--panel);
+}
+.sess span{font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--t3);margin-right:4px}
+.sess button{
+  font-family:var(--mono);font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:7px;
+  border:1px solid var(--b2);background:var(--panel3);color:var(--t2);cursor:pointer;
+}
+.sess button.on{border-color:var(--accent);background:var(--panel3);color:var(--t1)}
+body[data-mode="now"] .sess button.on{border-color:rgba(247,147,26,.55);background:rgba(247,147,26,.14);color:#ffd86b}
+
+.na{
+  display:grid;grid-template-columns:1fr auto;gap:10px 14px;align-items:center;
+  margin:0 0 10px;padding:12px 14px;border-radius:var(--r);
+  border:1px solid var(--warn);background:rgba(196,160,86,.14);box-shadow:var(--shadow);
+}
+.na-k{font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--t3);margin-bottom:3px}
+.na-t{font-size:15px;font-weight:800}
+.na-w{font-size:12px;color:var(--t2);margin-top:4px}
+.na-cta{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:10px 14px;border-radius:9px;font-weight:800;font-size:12px;
+  background:var(--acc-1);color:var(--on-accent);border:none;white-space:nowrap;
+}
+body[data-mode="now"] .na{border-color:rgba(247,147,26,.4);background:linear-gradient(135deg,rgba(247,147,26,.12),rgba(20,26,40,.9))}
+body[data-mode="now"] .na-k{color:#f7931a}
+body[data-mode="now"] .na-cta{background:#f7931a;color:#0a0a0a}
+
+.lbl{font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--t3);margin:0 0 6px 2px}
+
+.grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;
+}
+@media(max-width:640px){.grid{grid-template-columns:repeat(2,1fr)}}
+.ht{
+  background:var(--panel);border:1px solid var(--b1);border-radius:8px;padding:6px 8px;min-height:42px;
+}
+body[data-mode="now"] .ht{
+  background:linear-gradient(180deg,#171f30,#121a28);border-color:#4a5874;
+  box-shadow:0 4px 14px rgba(91,176,255,.08);
+}
+.ht-k{font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:.08em;color:var(--t3)}
+.ht-v{font-size:13px;font-weight:800;line-height:1.2}
+.ht-s{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.dn{color:var(--red)}
+.up{color:var(--green)}
+body[data-mode="now"] .dn{color:#ff4d4d}
+body[data-mode="now"] .up{color:#22d66b}
+
+.launch{
+  display:flex;flex-wrap:wrap;align-items:center;gap:5px;
+  margin:0 0 8px;padding:8px 10px;border:1px solid var(--b1);border-radius:var(--r);background:var(--panel);
+  position:relative;
+}
+.chip{
+  display:inline-flex;align-items:center;gap:3px;
+  font-family:var(--mono);font-size:10.5px;font-weight:700;padding:5px 9px;border-radius:7px;
+  border:1px solid var(--b1);background:var(--panel2);color:var(--t1);
+}
+.chip[hidden],.more[hidden],.menu[hidden]{display:none!important}
+body[data-mode="now"] .chip.pri{border-color:rgba(247,147,26,.4);background:rgba(247,147,26,.1);color:#ffd86b}
+.more{
+  font-family:var(--mono);font-size:14px;font-weight:800;padding:4px 10px;min-width:36px;min-height:32px;
+  border-radius:7px;border:1px solid var(--b1);background:var(--panel2);color:var(--t1);cursor:pointer;
+}
+.menu{
+  display:none;position:absolute;right:8px;top:100%;z-index:20;margin-top:4px;
+  flex-direction:column;gap:1px;min-width:200px;
+  background:var(--panel);border:1px solid var(--b2);border-radius:var(--rs);
+  box-shadow:0 8px 28px rgba(0,0,0,.5);padding:5px;
+}
+.menu.open{display:flex}
+.menu a{display:flex;align-items:center;gap:10px;padding:7px 9px;border-radius:6px;font-size:12.5px;font-weight:600}
+.menu a:hover{background:var(--panel3)}
+.menu .ico{width:22px;text-align:center}
+
+.fold{
+  border:1px dashed var(--b1);border-radius:var(--r);background:var(--panel);overflow:hidden;margin-bottom:8px;
+}
+.fold>summary{
+  list-style:none;cursor:pointer;padding:9px 12px;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--t2);
+}
+.fold>summary::-webkit-details-marker{display:none}
+.fold>summary::before{content:"▸ ";color:var(--t3)}
+.fold[open]>summary::before{content:"▾ "}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;padding:0 12px 12px}
+.card{
+  background:var(--panel2);border:1px solid var(--b1);border-radius:var(--r);padding:12px;
+}
+body[data-mode="now"] .card{
+  background:linear-gradient(180deg,#171f30,#121a28);
+  box-shadow:0 8px 24px rgba(0,0,0,.35);
+}
+.card h3{font-size:14px;margin:0 0 4px}
+.card p{font-size:12px;color:var(--t2);margin:0}
+
+.diff{
+  display:none;margin-top:14px;padding:10px 12px;border-radius:var(--r);
+  border:1px solid var(--b1);background:var(--panel);font-size:12.5px;color:var(--t2);
+}
+body[data-mode="after"] .diff{display:block}
+.diff li{margin:4px 0 4px 16px}
+.diff b{color:var(--t1)}
+</style>
+</head>
+<body data-mode="after">
+<div class="wrap">
+
+  <div class="banner">
+    <span class="tag">DEMO</span>
+    <div>
+      <b>Hub după I-332…I-335</b> — catalog închis, 4 chips + ⋯, bandă oțel, tableau plat.
+      <span class="muted">Producția e neatinsă.</span>
+    </div>
+    <div class="links">
+      <a href="./">← Demo Next Action</a>
+      <a href="../">Hub live</a>
+    </div>
+  </div>
+
+  <div class="toggle" role="tablist" aria-label="Acum sau după">
+    <button type="button" id="btnNow">Acum (tt-v782)</button>
+    <button type="button" id="btnAfter" class="on">După I-332–I-335</button>
+  </div>
+  <p class="note" id="modeNote"></p>
+
+  <div class="hub">
+    <header class="head">
+      <div class="brand"><span class="dot"></span> Trading Tools <span class="ver">tt-v782</span></div>
+      <h1>Cockpit <span class="acc">stocks</span></h1>
+      <span class="pill">Overnight · Pre în ~1h 30m</span>
+    </header>
+
+    <div class="ckb">
+      <span class="ckb-dot">◆</span>
+      <div>
+        <div class="ckb-lbl">Regim</div>
+        <div class="ckb-val">MIXED</div>
+        <div class="ckb-sub">scor <b>−0.4</b> · date Macro</div>
+      </div>
+      <div>
+        <div class="ckb-lbl">Danger</div>
+        <div class="ckb-val">42<span style="font-size:10px;color:var(--t3)">/100</span></div>
+        <div class="ckb-sub">fără freeze</div>
+      </div>
+      <a class="ckb-link" href="../macro-dashboard/">→ Macro</a>
+    </div>
+
+    <div class="sess">
+      <span>LAYOUT</span>
+      <button type="button" class="on">⟳ Auto</button>
+      <button type="button">🌅 Pre</button>
+      <button type="button">📈 RTH</button>
+      <button type="button">🌙 AH</button>
+      <button type="button">🔬 Review</button>
+    </div>
+
+    <section class="na">
+      <div>
+        <div class="na-k">REVIEW · SESSION</div>
+        <div class="na-t">Închide ziua corect</div>
+        <div class="na-w">Sesiune closed. Execuții, PnL, greșeli — nu forța setup out-of-hours.</div>
+      </div>
+      <a class="na-cta" href="../journal/#exec">Journal / exec</a>
+    </section>
+
+    <div class="lbl">DATE LIVE</div>
+    <div class="grid">
+      <div class="ht"><div class="ht-k">GO</div><div class="ht-v">33*</div><div class="ht-s">NO-GO · ×0</div></div>
+      <div class="ht"><div class="ht-k">DESK</div><div class="ht-v">TRADE</div><div class="ht-s">Governor</div></div>
+      <div class="ht"><div class="ht-k">SPY</div><div class="ht-v dn">$762.88</div><div class="ht-s">−0.80%</div></div>
+      <div class="ht"><div class="ht-k">VIX</div><div class="ht-v up">16.01</div><div class="ht-s">+7.52%</div></div>
+    </div>
+
+    <nav class="launch" id="launch" aria-label="Launch">
+      <a class="chip pri" href="../journal/#desk">🛑 Desk</a>
+      <a class="chip pri" href="../router/">🧭 Router</a>
+      <a class="chip pri" href="../macro-dashboard/">🌍 Macro</a>
+      <a class="chip pri" href="../nasdaq-scanner/">📡 Nasdaq</a>
+      <a class="chip extra" href="../journal/#portfolio">🛡️ Portfolio</a>
+      <a class="chip extra" href="../journal/">📓 Journal</a>
+      <a class="chip extra" href="../watchlist-monitor/">👁 WL</a>
+      <a class="chip extra" href="../smart-trade-long/">🎯 STL</a>
+      <a class="chip extra" href="../market-events/">📅 Events</a>
+      <a class="chip extra" href="../alerts/">🔔 Alerts</a>
+      <a class="chip extra" href="../sector-rotation/">🔄 Sector</a>
+      <a class="chip extra" href="../weekly/">📅 Weekly</a>
+      <a class="chip extra" href="../health/">💚 Health</a>
+      <button type="button" class="more" id="moreBtn" title="Restul tool-urilor" hidden>⋯</button>
+      <div class="menu" id="moreMenu" hidden>
+        <a href="../journal/#portfolio"><span class="ico">🛡️</span> Portfolio</a>
+        <a href="../journal/"><span class="ico">📓</span> Journal</a>
+        <a href="../watchlist-monitor/"><span class="ico">👁</span> Watchlist</a>
+        <a href="../smart-trade-long/"><span class="ico">🎯</span> Smart Trade</a>
+        <a href="../market-events/"><span class="ico">📅</span> Events</a>
+        <a href="../alerts/"><span class="ico">🔔</span> Alerts</a>
+        <a href="../sector-rotation/"><span class="ico">🔄</span> Sector</a>
+        <a href="../weekly/"><span class="ico">📅</span> Weekly</a>
+        <a href="../health/"><span class="ico">💚</span> Health</a>
+      </div>
+    </nav>
+
+    <details class="fold" id="pre5">
+      <summary>🌅 5 min pre-market · 2/4 · 50% · nu e buy</summary>
+    </details>
+    <details class="fold" id="router">
+      <summary>🧭 Detalii Router · GO 33* NO-GO · ZLEMA Swing</summary>
+    </details>
+    <details class="fold" id="brief">
+      <summary>📋 Brief detaliat · Desk · Piață · Scan</summary>
+    </details>
+    <details class="fold" id="ledger">
+      <summary>📒 Signal Ledger · care scanner face bani?</summary>
+    </details>
+
+    <details class="fold" id="catalog">
+      <summary>🧰 Catalog tool-uri <span class="muted">carduri detaliate · expandă când cauți ceva rar</span></summary>
+      <div class="cards">
+        <div class="card"><h3>Journal &amp; Risk Desk</h3><p>Execuții, Desk, Portfolio, Capital.</p></div>
+        <div class="card"><h3>Regime Router</h3><p>GO 33 · NO-GO · playbook.</p></div>
+        <div class="card"><h3>Macro Dashboard</h3><p>Calendar + VIX + brief.</p></div>
+        <div class="card"><h3>Nasdaq Scanner</h3><p>Scaner + Early Buy + AI.</p></div>
+      </div>
+    </details>
+  </div>
+
+  <ul class="diff">
+    <li><b>I-332</b> — catalogul nu se mai deschide singur în Review.</li>
+    <li><b>I-333</b> — banda REGIM fără glow / albastru neon.</li>
+    <li><b>I-334</b> — 4 chips + ⋯ (apasă ⋯).</li>
+    <li><b>I-335</b> — DATE LIVE ca tabel, nu HUD.</li>
+    <li><b>I-336</b> — nu e în demo (tokeni pe toată suita, P3).</li>
+  </ul>
+</div>
+<script>
+(function () {
+  const $ = function (id) { return document.getElementById(id); };
+  const extras = document.querySelectorAll('.chip.extra');
+  const moreBtn = $('moreBtn');
+  const menu = $('moreMenu');
+  const catalog = $('catalog');
+  const note = $('modeNote');
+
+  function setMode(mode) {
+    document.body.setAttribute('data-mode', mode);
+    $('btnNow').classList.toggle('on', mode === 'now');
+    $('btnAfter').classList.toggle('on', mode === 'after');
+    const after = mode === 'after';
+    extras.forEach(function (el) { el.hidden = after; });
+    moreBtn.hidden = !after;
+    menu.hidden = !after;
+    menu.classList.remove('open');
+    catalog.open = !after;
+    note.textContent = after
+      ? 'După: first paint = header + Next Action + 4 chips. Catalogul e la un click.'
+      : 'Acum (live tt-v782): 13 chips, catalog deschis în Review, bandă cu glow, titlu auriu.';
+  }
+
+  $('btnNow').addEventListener('click', function () { setMode('now'); });
+  $('btnAfter').addEventListener('click', function () { setMode('after'); });
+  moreBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    menu.classList.toggle('open');
+  });
+  document.addEventListener('click', function () { menu.classList.remove('open'); });
+  setMode('after');
+})();
+</script>
+</body>
+</html>
