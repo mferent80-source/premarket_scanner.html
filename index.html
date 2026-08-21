@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=786"></script>
+<script src="lib/suite-version.js?v=787"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -49,7 +49,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link rel="stylesheet" href="lib/plex.css?v=743">
 <link rel="stylesheet" href="lib/suite-ui.css?v=712">
-<link rel="stylesheet" href="lib/hub-ui.css?v=787">
+<link rel="stylesheet" href="lib/hub-ui.css?v=788">
 <style>
 /* === Hub desk oțel — aceeași paletă ca Alerte (fără neon / auriu / glow) ── */
 :root{
@@ -471,8 +471,9 @@ footer a:hover{color:var(--t1);border-color:var(--accent)}
       aici doar fundalul solid al macro-ului, umbra mare și rândul unic. ── */
 body.hub-page .hub-head-compact{
   flex-wrap:nowrap;
-  gap:8px 12px;
+  gap:8px 10px;
   padding:9px 14px;
+  margin-bottom:8px;
   border-radius:var(--r);
   background:var(--topbar-bg)!important;
   box-shadow:var(--topbar-shadow);
@@ -482,13 +483,37 @@ body.hub-page .hub-head-compact .hub-head-title{
   min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 body.hub-page .hub-head-compact .hub-session-pill{margin-left:auto;flex:0 1 auto}
-body.hub-page .hub-head-ck{flex:1 1 auto;min-width:0;max-width:420px}
+body.hub-page .hub-head-compact .tt-theme-btn,
+body.hub-page .hub-head-compact #pwaInstallBtn{flex:0 0 auto}
 @media (max-width:700px){
-  /* mobil: rândul se rupe natural — brand+titlu sus, pill+REGIM dedesubt */
   body.hub-page .hub-head-compact{flex-wrap:wrap;padding:8px 10px}
   body.hub-page .hub-head-compact .hub-head-title{white-space:normal;overflow:visible}
   body.hub-page .hub-head-compact .hub-session-pill{margin-left:0;max-width:100%}
-  body.hub-page .hub-head-ck{max-width:100%;flex:1 1 100%}
+}
+/* Bandă cockpit sub header — instrument strip, nu înghesuită în topbar */
+body.hub-page #ckBand{margin:0 0 8px}
+body.hub-page #ckBand .ckb-band{
+  margin:0;
+  background:var(--panel);
+  border:1px solid var(--b1);
+  border-radius:var(--r);
+  box-shadow:none;
+  max-height:none;
+}
+body.hub-page #ckBand .ckb-dot{text-shadow:none}
+body.hub-page #ckBand .ckb-link{
+  border-color:var(--b1);
+  background:var(--panel2);
+  color:var(--t1);
+}
+@media (max-width:700px){
+  body.hub-page #ckBand .ckb-band{
+    flex-wrap:wrap;
+    overflow:visible;
+    max-height:none;
+    gap:10px 14px;
+  }
+  body.hub-page #ckBand .ckb-src{width:100%;justify-content:flex-end}
 }
 
 /* ── 2. HERO Next Action — forma hero-ului din macro (radius/umbră/padding).
@@ -573,6 +598,12 @@ body.hub-page .hub-na.prio-ok{
   border-color:var(--green);
 }
 #pwaInstallBtn{
+  position:static!important;
+  top:auto!important;right:auto!important;z-index:auto!important;
+  padding:4px 10px!important;
+  font-size:10px!important;
+  font-weight:700;
+  border-radius:8px;
   border-color:var(--b1)!important;
   background:var(--panel2)!important;
   color:var(--t1)!important;
@@ -583,8 +614,6 @@ body.hub-page .hub-na.prio-ok{
 <div id="govBanner" style="display:none;position:sticky;top:0;z-index:200;background:linear-gradient(90deg,#3a1010,#2a1520);border-bottom:2px solid #ff4d4d;color:#ffd0d0;padding:10px 16px;font-family:var(--head);font-size:13px;font-weight:700;text-align:center"></div>
 <div class="wrap hub-wrap">
 
-  <button id="pwaInstallBtn" onclick="installPWA()" style="display:none;position:fixed;top:12px;right:12px;z-index:220;padding:7px 14px;border-radius:8px;font-size:.7rem;font-weight:700;border:1px solid rgba(247,147,26,.4);background:rgba(247,147,26,.12);color:#f7931a;cursor:pointer;">📱 Instalează</button>
-
   <header class="hub-head-compact">
     <div class="hub-head-brand">
       <span class="brand-dot"></span>
@@ -594,9 +623,12 @@ body.hub-page .hub-na.prio-ok{
     </div>
     <h1 class="hub-head-title">Cockpit <span class="accent">stocks</span></h1>
     <span id="hubSessionPill" class="hub-session-pill" title="Sesiune NYSE (ET)">se încarcă…</span>
-    <!-- REGIM/DANGER compact în header (nu panou separat) -->
-    <div id="ckBand" class="hub-head-ck"></div>
+    <button id="pwaInstallBtn" onclick="installPWA()" style="display:none">Instalează</button>
   </header>
+
+  <!-- Bandă cockpit shared (lib/cockpit.js) — REGIM + gauge + DANGER, sub header.
+       În afara .hub-shell ca să nu intre în ordonarea pe sloturi. Auto-mount pe #ckBand. -->
+  <div id="ckBand"></div>
 
   <div class="hub-shell">
   <!-- I-215: layout bar — Auto urmează SES; lock forțează template-ul -->
@@ -1274,7 +1306,7 @@ body.hub-page .hub-na.prio-ok{
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <!-- CRITICAL path — first paint cockpit (GO / market / next action). Restul la idle. -->
-<script defer src="lib/data.js?v=786"></script>
+<script defer src="lib/data.js?v=787"></script>
 <script defer src="lib/quote-bus.js?v=712"></script>
 <script defer src="lib/finnhub-key.js?v=712"></script>
 <script defer src="lib/suite-sessions.js?v=712"></script>
@@ -1680,7 +1712,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = 'tt-v786';
+  const swVer = 'tt-v787';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1773,7 +1805,7 @@ window.addEventListener('DOMContentLoaded', function(){
   });
 
   // ── Secondary libs (~200KB) după first paint — capital/journal/health/search ──
-  const SEC_V = '786';
+  const SEC_V = '787';
   const SECONDARY = [
     'lib/suite-context.js?v=' + SEC_V,
     'lib/ledger.js?v=' + SEC_V,
@@ -1901,7 +1933,7 @@ window.addEventListener('DOMContentLoaded', function(){
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v786';
+  var PAGE_VER = 'tt-v787';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw-app.js?v=' + PAGE_VER, { scope: './', updateViaCache: 'none' })
     .then(function (reg) {

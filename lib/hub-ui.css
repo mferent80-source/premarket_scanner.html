@@ -1,4 +1,4 @@
-/* hub-ui.css v786 — badge-uri PLATFORM pe first paint + DATE LIVE comandă */
+/* hub-ui.css v787 — header un rând + cockpit strip + chrome oțel */
 
 .hub-shell {
   display: flex;
@@ -10,9 +10,9 @@
 /* ── I-215 Session layout bar + slot order ── */
 .hub-sess-bar{
   display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;
-  margin:0 0 8px;padding:6px 8px;
-  border-radius:10px;border:1px solid var(--b1);
-  background:linear-gradient(180deg,rgba(20,26,40,.75),rgba(12,16,24,.55));
+  margin:0 0 8px;padding:6px 10px;
+  border-radius:var(--r,12px);border:1px solid var(--b1);
+  background:var(--panel,var(--bg2));
   order:1;
 }
 .hub-sess-lbl{
@@ -25,16 +25,12 @@
   border:1px solid var(--b2,#3a4258);background:var(--bg3,#222c44);
   color:var(--t2);transition:border-color .12s,color .12s,background .12s;
 }
-.hub-sess-btn:hover{border-color:var(--accent,#8ac8ff);color:var(--t1)}
-.hub-sess-btn.on{
-  border-color:rgba(247,147,26,.55);
-  background:rgba(247,147,26,.14);
-  color:var(--crypto-2,#ffd86b);
-}
+.hub-sess-btn:hover{border-color:var(--accent,#8a9aab);color:var(--t1)}
+.hub-sess-btn.on,
 .hub-sess-btn[data-hub-mode-set="auto"].on{
-  border-color:rgba(91,176,255,.45);
-  background:rgba(91,176,255,.12);
-  color:#8ac8ff;
+  border-color:var(--accent,#8a9aab);
+  background:var(--panel3,var(--bg3));
+  color:var(--t1);
 }
 .hub-sess-pnl{
   margin-left:auto;
@@ -320,8 +316,8 @@ body[data-hub-mode="review"] .card[data-phase="execute"]{opacity:.5}
 /* ── I-216 Platform health badges (Trust / SPY / freeze / risc) ── */
 .hub-platform-strip{
   display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;
-  margin:0 0 8px;padding:6px 8px;
-  border-radius:10px;border:1px solid var(--b1);
+  margin:0 0 8px;padding:6px 10px;
+  border-radius:var(--r,12px);border:1px solid var(--b1);
   background:var(--panel,var(--bg2));
   font-family:var(--mono);font-size:10.5px;
 }
@@ -465,10 +461,10 @@ a.hps-chip:hover{border-color:var(--accent,#8ac8ff);color:var(--accent,#8ac8ff);
   flex-wrap: wrap;
   gap: 5px;
   margin: 0 0 8px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   border: 1px solid var(--b1);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(20, 37, 51, 0.55), rgba(20, 26, 40, 0.4));
+  border-radius: var(--r, 12px);
+  background: var(--panel, var(--bg2));
 }
 
 .hub-launch-chip {
@@ -678,35 +674,6 @@ a.hps-chip:hover{border-color:var(--accent,#8ac8ff);color:var(--accent,#8ac8ff);
   text-overflow: ellipsis;
 }
 
-/* REGIM / DANGER compact în header — fără gauge, sub, sursă */
-.hub-head-ck{
-  flex:1 1 auto;
-  min-width:0;
-  max-width:420px;
-}
-.hub-head-ck .ckb-band{
-  margin:0;
-  padding:0;
-  min-height:0;
-  max-height:none;
-  gap:10px;
-  border:none;
-  background:transparent;
-  border-radius:0;
-  overflow:visible;
-}
-.hub-head-ck .ckb-gauge,
-.hub-head-ck .ckb-sep,
-.hub-head-ck .ckb-spacer,
-.hub-head-ck .ckb-src{display:none!important}
-.hub-head-ck .ckb-dot{font-size:12px}
-.hub-head-ck .ckb-cell{gap:6px}
-.hub-head-ck .ckb-cell > span{
-  display:flex;align-items:baseline;gap:5px;white-space:nowrap;
-}
-.hub-head-ck .ckb-lbl{font-size:8px;letter-spacing:1.2px}
-.hub-head-ck .ckb-val{font-size:12px;font-weight:800}
-
 .hub-session-pill.rth {
   border-color: rgba(34, 214, 107, 0.35);
   color: var(--green);
@@ -719,14 +686,12 @@ a.hps-chip:hover{border-color:var(--accent,#8ac8ff);color:var(--accent,#8ac8ff);
 
 @media (max-width: 640px) {
   .hub-head-compact {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: wrap;
   }
   .hub-head-compact .hub-session-pill {
     margin-left: 0;
     max-width: 100%;
   }
-  .hub-head-ck{max-width:100%;flex:1 1 100%}
 }
 
 /* ── Hero compact (legacy) ── */
@@ -1103,12 +1068,12 @@ a.ht-card.ht-market:hover {
   display: flex;
   align-items: center;
   gap: 10px 14px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 190, 50, 0.55);
-  background: linear-gradient(135deg, rgba(255, 190, 50, 0.16) 0%, rgba(247, 147, 26, 0.1) 45%, rgba(255, 216, 107, 0.07) 100%);
-  box-shadow: 0 0 24px rgba(255, 190, 50, 0.14), inset 0 1px 0 rgba(255, 230, 140, 0.2);
-  min-height: 46px;
+  padding: 8px 12px;
+  border-radius: var(--r, 12px);
+  border: 1px solid var(--b1);
+  background: var(--panel, var(--bg2));
+  box-shadow: none;
+  min-height: 40px;
 }
 
 .ht-gold-act {
@@ -1116,7 +1081,7 @@ a.ht-card.ht-market:hover {
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 600;
-  color: #ffe08a;
+  color: var(--t2);
   line-height: 1.35;
   white-space: nowrap;
   max-width: min(42%, 320px);
@@ -1124,10 +1089,10 @@ a.ht-card.ht-market:hover {
   text-overflow: ellipsis;
 }
 
-.ht-gold-act strong { color: #fff4c8; font-weight: 800; }
+.ht-gold-act strong { color: var(--t1); font-weight: 800; }
 
 .ht-gold-arrow {
-  color: #f7931a;
+  color: var(--accent);
   font-weight: 800;
   margin-right: 2px;
 }
@@ -1139,7 +1104,7 @@ a.ht-card.ht-market:hover {
   gap: 8px;
   min-width: 0;
   padding-left: 10px;
-  border-left: 1px solid rgba(255, 190, 50, 0.35);
+  border-left: 1px solid var(--b1);
 }
 
 .ht-gold-ev-lbl {
@@ -1149,7 +1114,7 @@ a.ht-card.ht-market:hover {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 224, 138, 0.85);
+  color: var(--t3);
   white-space: nowrap;
 }
 
@@ -1166,13 +1131,13 @@ a.ht-card.ht-market:hover {
 }
 
 .ht-gold-bar .ht-ev {
-  background: rgba(11, 15, 23, 0.55);
-  border-color: rgba(255, 190, 50, 0.3);
+  background: var(--panel2, var(--bg3));
+  border-color: var(--b1);
 }
 
 .ht-gold-bar .ht-ev-empty {
   font-size: 10px;
-  color: rgba(255, 224, 138, 0.75);
+  color: var(--t3);
   padding: 4px 0;
   white-space: nowrap;
 }
@@ -1596,7 +1561,7 @@ a.ht-ev { text-decoration: none; color: inherit; } /* era .ht-ev a.ht-ev — sel
   .ht-nav-item { min-width: 46px; padding: 4px 6px; }
   .ht-gold-bar { flex-wrap: wrap; padding: 9px 11px; }
   .ht-gold-act { max-width: 100%; white-space: normal; }
-  .ht-gold-ev-wrap { flex: 1 1 100%; padding-left: 0; border-left: none; padding-top: 6px; border-top: 1px solid rgba(255, 190, 50, 0.25); }
+  .ht-gold-ev-wrap { flex: 1 1 100%; padding-left: 0; border-left: none; padding-top: 6px; border-top: 1px solid var(--b1); }
   .ht-gold-events { min-width: 0; }
   .ht-gappers-slot { margin-bottom: 6px; }
   .ht-gap-strip { flex-wrap: wrap; padding: 6px 8px; gap: 6px; }
