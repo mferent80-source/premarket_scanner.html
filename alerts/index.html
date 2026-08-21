@@ -1132,7 +1132,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v98</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v99</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1531,7 +1531,7 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=774"></script>
+<script src="../lib/suite-version.js?v=775"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
@@ -1665,22 +1665,21 @@ function sessTag(sym) {
 // Chip scurt lângă Δ azi: PRE/RTH/AFT/CLS (US) sau EU. Crypto = 24/7, fără chip.
 function daySessChip(sym) {
   const u = String(sym || '').toUpperCase();
-  // v96: chip-ul se recalcula la FIECARE render, deci arăta „RTH" (sesiunea de ACUM)
-  // lângă un Δ adus cu ore în urmă — exact așa părea live un ecran înghețat.
-  // v97: vechimea se judecă PER SIMBOL. Global nu era destul: dacă ciclul reușește dar
-  // fetch-ul pică fix pe stocks-urile US, ecranul arăta „RTH" lângă Δ-ul lor de ieri,
-  // în timp ce EU/crypto se actualizau normal — „date de ieri, dar doar pe stocks".
+  // v99: IERI ÎNAINTE de ⏳. Noaptea poll-ul US e la 10 min, iar stale e 4×30s = 2 min
+  // — după primul poll reușit, ⏳ acoperea IERI și procentele de joi păreau un fetch mort.
+  // v98: cotația e proaspăt descărcată, dar e din sesiunea PRECEDENTĂ (tipic: stocks US
+  // înainte de 16:30 RO, când ziua lor n-a început). Nu e „Δ azi" și n-are voie să pară.
+  if (typeof chgFromPrevDay === 'function' && chgFromPrevDay(sym)) {
+    return `<span class="px-sess closed" title="Δ-ul e din sesiunea precedentă de bursă, nu din cea de azi — piața pentru ${escHtml(u)} nu a deschis încă azi.&#10;${roSchedule()}">IERI</span>`;
+  }
+  // v96/v97: vechimea PER SIMBOL, înainte de ieșirile scurte crypto/EU — altfel un
+  // fetch mort pe stocks US arăta „RTH" lângă Δ-ul lor de ieri.
   const stale = (typeof symStale === 'function' && symStale(sym))
     || (typeof pollDataStale === 'function' && pollDataStale());
   if (stale) {
     const a = (typeof symAgeMs === 'function' ? symAgeMs(sym) : null) ?? pollDataAgeMs() ?? 0;
     const t = fmtAgeShort(a);
     return `<span class="px-sess closed" title="Cifra de alături e de acum ${t} — pentru ${escHtml(u)} nu a mai intrat niciun preț de atunci. Δ-ul afișat NU e de acum.">⏳ ${t}</span>`;
-  }
-  // v98: cotația e proaspăt descărcată, dar e din sesiunea PRECEDENTĂ (tipic: stocks US
-  // înainte de 16:30 RO, când ziua lor n-a început). Nu e „Δ azi" și n-are voie să pară.
-  if (typeof chgFromPrevDay === 'function' && chgFromPrevDay(sym)) {
-    return `<span class="px-sess closed" title="Δ-ul e din sesiunea precedentă de bursă, nu din cea de azi — piața pentru ${escHtml(u)} nu a deschis încă azi.&#10;${roSchedule()}">IERI</span>`;
   }
   if (isCrypto(u)) return '';   // crypto e 24/7 — chip doar la nivel de grup (dar vechimea de mai sus se arată)
   if (u.includes('.')) {
@@ -2118,7 +2117,17 @@ function symAgeMs(sym) {
   try { const t = _lastOkTs[sym] || _lastOkTs[String(sym).toUpperCase()]; return t ? Date.now() - t : null; }
   catch (e) { return null; }
 }
-function symStale(sym) { const a = symAgeMs(sym); return a != null && a > POLL_INTERVAL_MS * 4; }
+function symStale(sym) {
+  const a = symAgeMs(sym);
+  if (a == null) return false;
+  const u = String(sym || '').toUpperCase();
+  // v99: noaptea/weekend stocks US sunt poll-uite la 10 min by design — pragul de 2 min
+  // (4×30s) le marca pe toate „vechi" imediat după primul ciclu.
+  const closedUs = !isCrypto(u) && !u.includes('.')
+    && ((typeof nyseClosed === 'function' && nyseClosed())
+      || (typeof nyseWeekend === 'function' && nyseWeekend()));
+  return a > (closedUs ? 900000 : POLL_INTERVAL_MS * 4);
+}
 // v98: Δ-ul e „de azi" doar dacă vine dintr-o cotație din ziua ET curentă. Cu piața US
 // închisă, Yahoo dă legitim sesiunea precedentă — corect ca dată, dar NU e „Δ azi".
 function chgAgeMs(sym) {
@@ -2224,7 +2233,10 @@ async function pollPrices() {
     sessionNote = ' · 🌙 stocks US oprite (weekend)';
   } else if (usStocks.length && nyseClosed()) {
     if (Date.now() - _lastStockPollTs < 600000) {
-      unique = unique.filter(keepNonUS);
+      // v99: throttle-ul sare cine ARE deja preț, nu pe cine n-a primit niciodată
+      // (APLD/TE rămâneau „— CLS ⏳" până la 10 min, deși Yahoo răspundea în 200ms).
+      unique = unique.filter(s => keepNonUS(s)
+        || (_lastPrice[s] == null && _lastPrice[String(s).toUpperCase()] == null));
       sessionNote = ' · 🌙 stocks US la 10min (piață închisă)';
     } else { _lastStockPollTs = Date.now(); }
   } else if (usStocks.length) { _lastStockPollTs = Date.now(); }
@@ -4831,7 +4843,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v774';
+const SW_VER_INLINE = 'tt-v775';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -4848,7 +4860,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v774';
+  var PAGE_VER = 'tt-v775';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

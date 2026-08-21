@@ -138,6 +138,28 @@ test('Δ dintr-o sesiune precedentă e marcat „IERI", nu prezentat ca Δ azi',
     'chip-ul trebuie să scrie IERI când cotația nu e din ziua ET curentă');
 });
 
+// ── v99: noaptea, ⏳ de 2 min acoperă IERI ───────────────────────────────────
+// nyseClosed throttle = 10 min pe stocks US. symStale = 4×30s = 2 min.
+// După primul poll reușit, chip-ul trecea pe ⏳ 4m și IERI (cotația de ieri, legitimă)
+// dispărea — exact „procente de ieri pe stocks, EU/crypto par live".
+test('IERI bate vechimea: un Δ din sesiunea precedentă nu e marcat ⏳', () => {
+  const fn = HTML.slice(HTML.indexOf('function daySessChip'));
+  const body = fn.slice(0, fn.indexOf('\n}'));
+  const iieri = body.indexOf('chgFromPrevDay');
+  const istale = body.indexOf('symStale');
+  assert.ok(iieri >= 0 && istale >= 0, 'daySessChip trebuie să aibă și IERI și stale');
+  assert.ok(iieri < istale,
+    'IERI trebuie ÎNAINTE de ⏳: noaptea poll-ul US e la 10min, stale e 2min, altfel IERI dispare');
+});
+
+test('noaptea, stocks US fără preț rămân în poll (throttle-ul 10min nu le sare)', () => {
+  const i = HTML.indexOf('usStocks.length && nyseClosed()');
+  assert.ok(i > 0, 'trebuie să existe ramura nyseClosed');
+  const bloc = HTML.slice(i, i + 500);
+  assert.ok(/_lastPrice/.test(bloc),
+    'filter-ul de throttle trebuie să păstreze simbolurile US care n-au încă preț');
+});
+
 test('cache-ul păstrează momentul cotației, nu doar pe cel al salvării', () => {
   assert.match(HTML, /q: Number\.isFinite\(qts\) \? qts : now/, 'se salvează ts-ul cotației');
   assert.match(HTML, /sameEtDay\(e\.q \|\| e\.ts\)/,
