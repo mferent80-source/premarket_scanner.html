@@ -67,8 +67,8 @@ test('pagina are watchdog care repornește un lanț mort', () => {
 
 test('revenirea pe tab re-armează lanțul, nu doar un poll unic', () => {
   const vis = HTML.slice(HTML.indexOf("addEventListener('visibilitychange'"));
-  const bloc = vis.slice(0, 600);
-  assert.ok(bloc.includes('schedulePoll()'),
+  const bloc = vis.slice(0, 900);
+  assert.ok(bloc.includes('resumePolling(') || bloc.includes('schedulePoll()'),
     'la visibilitychange trebuie re-armat timerul (altfel pagina reîngheață după un singur refresh)');
 });
 
@@ -166,6 +166,34 @@ test('noaptea, stocks US fără preț rămân în poll (throttle-ul 10min nu le 
   const bloc = HTML.slice(i, i + 500);
   assert.ok(/_lastPrice/.test(bloc),
     'filter-ul de throttle trebuie să păstreze simbolurile US care n-au încă preț');
+});
+
+test('revenirea pe tab forțează trezirea poll-ului, nu un poll pe latch ocupat', () => {
+  assert.match(HTML, /function resumePolling\(/, 'trebuie un resumePolling care rupe latch-ul hung');
+  const vis = HTML.slice(HTML.indexOf("addEventListener('visibilitychange'"));
+  const bloc = vis.slice(0, 900);
+  assert.ok(bloc.includes('resumePolling('),
+    'visibilitychange trebuie să cheme resumePolling, nu pollPrices() pe _pollBusy stuck');
+  assert.match(HTML, /addEventListener\('pageshow'/,
+    'pageshow (bfcache după sleep) trebuie să repornească lanțul — visibilitychange nu e suficient');
+});
+
+test('watchdog-ul eliberează latch-ul hung și când tab-ul e hidden', () => {
+  const i = HTML.indexOf('setInterval(() => {');
+  const wd = HTML.slice(i, i + 900);
+  const busyRel = wd.indexOf('_pollBusy = false');
+  const hiddenRet = wd.indexOf('document.hidden');
+  assert.ok(busyRel >= 0, 'watchdog trebuie să elibereze _pollBusy');
+  assert.ok(hiddenRet < 0 || busyRel < hiddenRet,
+    'eliberarea latch-ului hung trebuie ÎNAINTE de return-ul pe document.hidden — altfel peste noapte latch-ul rămâne și dimineața poll-ul e no-op');
+});
+
+test('un ciclu cu fire-uri deja văzute tot marchează poll-ul ca reușit', () => {
+  const i = HTML.indexOf('if (!fresh.length)');
+  assert.ok(i > 0);
+  const bloc = HTML.slice(i, i + 450);
+  assert.ok(/_lastPollOkTs\s*=\s*Date\.now\(\)/.test(bloc),
+    'return-ul early pe alreadyShownToday nu are voie să lase watchdog-ul să creadă că lanțul e mort');
 });
 
 test('cache-ul păstrează momentul cotației, nu doar pe cel al salvării', () => {
