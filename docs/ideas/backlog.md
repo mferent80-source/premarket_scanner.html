@@ -2499,6 +2499,11 @@ User: „urmatorul instrument".
 | I-329 | Heartbeat SETUP optional dupa N bare inca dirClear (default OFF) | Nav Complete Pine | S | P2 | propus | ideation | 2026-08-16 |
 | I-330 | Soft-mute NAVALL_VERDICT in CHOP, exceptie INV | Nav Complete Pine | S | P3 | propus | ideation | 2026-08-16 |
 | I-331 | Relay pe 2 canale: signal (SETUP) vs nav (VERDICT/FLIP) | Automation (deck-relay) | M | P2 | propus | ideation | 2026-08-16 |
+| I-332 | Catalog Hub închis implicit pe toate sesiunile | hub (index + hub-brief.js) | S | P1 | propus | tcc-idei | 2026-08-21 |
+| I-333 | Banda REGIM/DANGER pe tokeni oțel (fără glow injectat) | lib/cockpit.js + hub | S | P1 | propus | tcc-idei | 2026-08-21 |
+| I-334 | Launch: 4 chips primare + meniu ⋯ ca Alerte | hub (index + hub-ui.css) | M | P1 | propus | tcc-idei | 2026-08-21 |
+| I-335 | Tableau DATE LIVE pe oțel (ht-card fără neon) | lib/hub-ui.css | S | P2 | propus | tcc-idei | 2026-08-21 |
+| I-336 | Tokeni oțel în suite-ui.css ca sursă, nu override pe Hub | lib/suite-ui.css + pagini | L | P3 | propus | tcc-idei | 2026-08-21 |
 
 ### Status update 2026-08-16 — ideation Nav Complete v1.7 JSON dirClear
 User: „FA IDEI" dupa v1.7 (JSON SETUP doar pe dirClear; dash neschimbat).
@@ -2545,3 +2550,42 @@ User: „FA IDEI" dupa v1.7 (JSON SETUP doar pe dirClear; dash neschimbat).
 - **Impact:** Botul/ochiul de semnal nu mai vede intoarceri HMA ca entry.
 - **Riscuri:** doua chat-uri/token-uri de configurat; KV `last` pe event ramane.
 - **Fișiere atinse:** `premarket_scanner/tools/cf-worker-deck-relay.js`.
+
+### Status update 2026-08-21 — ideation Hub după desk oțel (tt-v782)
+User: „propune și după aplicăm” (urmare la Hub aliniat Alerte).
+- **I-332..I-336 propuse.** Nu repropuse: I-138 cockpit UI (făcut), I-212 ecran de decizie (făcut), I-215 layout pe sesiune (făcut) — mecanismul e deja acolo; rămâne chrome-ul care încă strigă.
+
+#### I-332 · Catalog închis implicit · [S] · P1
+- **Problema/golul:** `#hubCatalogFold` e „expandă când cauți ceva rar”, dar `applyCatalogForMode` din `lib/hub-brief.js` deschide catalogul automat în modul Review (`want = mode === 'review' ? 1 : 0`) și persistă în `hub_catalog_open_v1`. Overnight/Review (starea reală noaptea) = jumătate de ecran de carduri, exact zgomotul pe care oțelul trebuia să-l taie.
+- **Soluția:** default `0` pe toate sesiunile, inclusiv Review. Persistă doar deschiderea explicită a userului. Search (`hub-search.js`) poate tot deschide catalogul când există rezultate.
+- **Impact:** first paint = header + Next Action + tableau + 4–13 chips, nu 20 de carduri. Catalogul rămâne la un click.
+- **Riscuri/dependențe:** cine avea catalogul deschis în LS îl păstrează până îl închide o dată; nu șterge cheia.
+- **Fișiere atinse:** `lib/hub-brief.js` (`applyCatalogForMode`), opțional `index.html` (hint-ul din summary).
+
+#### I-333 · Banda REGIM/DANGER pe oțel · [S] · P1
+- **Problema/golul:** `lib/cockpit.js` `injectCss()` scrie culori literale (`#12161d`, `#e6ebf3`, `#5bb0ff`, `text-shadow: 0 0 12px` pe `.ckb-dot`). Hub-ul oțel se oprește la `#ckBand` — banda arată ca un al doilea sistem, cu glow. Light theme e deja acoperit în `theme-light.css`; dark-ul nu.
+- **Soluția:** CSS-ul injectat folosește `var(--panel)` / `var(--t1)` / `var(--t3)` / `var(--accent)` în loc de hex; punctul fără glow; linkul „→ Macro” ca butonul Alerte (border `--b1`, fără albastru neon). Semantica up/down rămâne, pe `--green`/`--red` (deja mutați pe Hub).
+- **Impact:** first glance = un singur desk, nu „cockpit Macro lipit pe Alerte”.
+- **Riscuri/dependențe:** banda e shared (Journal/alte pagini care montează cockpit). Tokenii trebuie să aibă fallback hex ca să nu se strice paginile fără override oțel.
+- **Fișiere atinse:** `lib/cockpit.js` (`injectCss` + `col()`), opțional `index.html` override `body.hub-page .ckb-*`.
+
+#### I-334 · Launch 4 chips + ⋯ · [M] · P1
+- **Problema/golul:** `#hubLaunch` are 13 chips pe un rând care se rupe (4 `pri` aurii erau deja oțel, dar tot 13 ținte). Pe mobil e o tastatură, nu un launch. Alertele au rezolvat header-ul cu `.hdr-menu` (⋯). I-215 reordonează chips pe sesiune — păstrăm asta, nu o dublăm.
+- **Soluția:** vizibile mereu: Desk, Router, Macro, Nasdaq. Restul în buton ⋯ cu același meniu ca Alertele (WL, STL, Events, Alerts, Sector, Weekly, Health, Portfolio, Journal). Reordonarea pe sesiune mută un chip în cele 4 doar dacă e CTA-ul zilei (ex. Pre: Nasdaq rămâne; Review: Weekly urcă în cele 4, Nasdaq coboară).
+- **Impact:** scan în <2s către cele 4 locuri de execuție; restul nu competă vizual cu Next Action.
+- **Riscuri/dependențe:** `data-launch` + I-215 CSS pe chips trebuie să vizeze și itemii din meniu; hit-area ⋯ ≥36px pe mobil.
+- **Fișiere atinse:** `index.html` (`#hubLaunch`), `lib/hub-ui.css`, `lib/hub-brief.js` (doar dacă reordonarea e JS, nu CSS).
+
+#### I-335 · Tableau DATE LIVE pe oțel · [S] · P2
+- **Problema/golul:** după chrome oțel, grila `#hubTableau` / `.ht-card` din `hub-ui.css` rămâne pe contrast înalt, hover lift, accente vechi. E al doilea „ecran strident” above-the-fold, lângă Next Action.
+- **Soluția:** aceleași panouri plate ca Alertele: fundal `--panel`, border `--b1`, fără translateY, nivelurile ok/warn/bear doar pe culoarea valorii (nu pe tot cardul). Nu se schimbă ce date pune `hub-tableau.js`.
+- **Impact:** DATE LIVE se citește ca tabel, nu ca dashboard de joc.
+- **Riscuri/dependențe:** contrast pe `.ht-card.lvl-bear` trebuie să rămână lizibil (nu estompa halt-ul).
+- **Fișiere atinse:** `lib/hub-ui.css` (bloc `.ht-card` / `.hub-tableau`).
+
+#### I-336 · Tokeni oțel în suite-ui ca sursă · [L] · P3
+- **Problema/golul:** Hub-ul oțel e un override pe `body.hub-page` fiindcă `suite-ui.css` rescrie `--t1: var(--t1, #fafbfc)` pe body (self-ref → alb) și pune radial neon pe tot shell-ul. Macro/Nasdaq rămân pe paleta veche — Hub-ul e insulă.
+- **Soluția:** tokenii Alerte (`#14181f`, `--t1 #e6e8ec`, `--accent #8a9aab`) devin default în `suite-ui.css`; scoți circularul `--t1: var(--t1, alb)`. Pagini care vor neon (dacă mai vor) override local. Nu e primul pachet — cere acord, schimbă identitatea vizuală a suitei.
+- **Impact:** zero override-uri de Hub; Alerte și Hub nu mai diverg la următorul bump.
+- **Riscuri/dependențe:** I-140/I-141 au dat Scanner/Macro cockpit propriu — regresii pe contrast. Light theme din `theme-light.css` trebuie re-verificat.
+- **Fișiere atinse:** `lib/suite-ui.css`, `index.html` (curățare override), `alerts/index.html` (deja oțel), opțional Macro/Nasdaq.
