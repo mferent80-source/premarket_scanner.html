@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=781"></script>
+<script src="lib/suite-version.js?v=782"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -34,7 +34,7 @@
 <script>
   /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
   if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + ('tt-v774'));
+    location.replace('shell/?v=' + ('tt-v782'));
   }
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,34 +43,44 @@
 <script src="lib/theme.js?v=734"></script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0b0f17">
+<meta name="theme-color" content="#14181f">
 <title>Stocks Trading Tools — Nasdaq + Events</title>
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Market Events, Journal & Risk Desk, Macro Dashboard — cockpit decizional stocks-only">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link rel="stylesheet" href="lib/plex.css?v=743">
 <link rel="stylesheet" href="lib/suite-ui.css?v=712">
-<link rel="stylesheet" href="lib/hub-ui.css?v=715">
+<link rel="stylesheet" href="lib/hub-ui.css?v=782">
 <style>
-/* === Hub shell aliniat Macro (suite-ui.css) — full-bleed + tokeni canonic ── */
+/* === Hub desk oțel — aceeași paletă ca Alerte (fără neon / auriu / glow) ── */
 :root{
-  --bg:#070b11;
-  --bg-grad:radial-gradient(1200px 600px at 50% -200px, #142533 0%, #0b0f17 55%);
-  --bg2:#171f30; --bg3:#222c44; --bg4:#2c3854;
-  --panel:#171f30; --panel2:#222c44; --panel3:#222b40;
-  --b1:#4a5874; --b2:#3a4258;
-  --t1:#fafbfc; --t2:#eef2f8; --t3:#d0d8e6;
-  --crypto-1:#f7931a; --crypto-2:#ffd86b;
-  --indigo:#5bb0ff; --indigol:rgba(91,176,255,.12); --indigob:rgba(91,176,255,.4);
-  --blue:#5bb0ff;   --bluel:rgba(91,176,255,.12);   --blueb:rgba(91,176,255,.4);
-  --teal:#22d66b;   --teall:rgba(34,214,107,.12);   --tealb:rgba(34,214,107,.4);
-  --green:#22d66b;
-  --bull-s:var(--green);
-  --red:#ff4d4d; --warn:#d4892c;
-  --accent:#8ac8ff;
+  --bg:#14181f;
+  --bg-grad:linear-gradient(180deg, #181c24 0%, #14181f 28%);
+  --bg2:#1b2028; --bg3:#222830; --bg4:#2a303a;
+  --panel:#1b2028; --panel2:#222830; --panel3:#2a303a;
+  --b1:#3a4250; --b2:#2e3542;
+  --t1:#e6e8ec; --t2:#b4bac4; --t3:#8b929e;
+  --crypto-1:#8a9aab; --crypto-2:#b4bac4;
+  --indigo:#8a9aab; --indigol:rgba(138,154,171,.12); --indigob:rgba(138,154,171,.35);
+  --blue:#8a9aab;   --bluel:rgba(138,154,171,.12);   --blueb:rgba(138,154,171,.35);
+  --teal:#5f9a74;   --teall:rgba(95,154,116,.12);   --tealb:rgba(95,154,116,.35);
+  --green:#5f9a74;
+  --bull-s:#5f9a74;
+  --red:#c46b6b; --warn:#c4a056;
+  --accent:#8a9aab;
+  --acc-1:#6e8294;
+  --on-accent:#14181f;
+  --gold:#c4b08a;
+  --suite-bg:#14181f;
+  --suite-t1:#e6e8ec;
+  --suite-t2:#b4bac4;
+  --suite-t3:#8b929e;
+  --topbar-bg:rgba(27,32,40,.96);
+  --topbar-shadow:0 8px 22px rgba(10,12,16,.35);
+  --shadow:0 4px 14px rgba(10,12,16,.28),0 1px 0 rgba(255,255,255,.03) inset;
   --mono:'IBM Plex Mono',ui-monospace,monospace; --head:'IBM Plex Sans',system-ui,sans-serif;
-  --r:14px; --rs:8px;
-  --sh:0 1px 2px rgba(0,0,0,.3);
-  --shh:0 8px 24px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.2);
+  --r:12px; --rs:8px;
+  --sh:0 1px 2px rgba(10,12,16,.28);
+  --shh:0 4px 14px rgba(10,12,16,.28);
   --ease:cubic-bezier(.4,0,.2,1);
   color-scheme:dark;
 }
@@ -78,15 +88,22 @@
 html,body{min-height:100vh}
 body.hub-page{
   font-family:var(--head);
-  color:var(--t1);
+  color:#e6e8ec;
   line-height:1.5;
-  /* padding + bg vin din suite-ui (layout Macro) */
+  font-size:13.5px;
+  font-weight:400;
+  /* suite-ui rescrie --t1: var(--t1, alb) pe body (self-ref) → forțăm oțelul aici */
+  --t1:#e6e8ec; --t2:#b4bac4; --t3:#8b929e;
+  --text:#e6e8ec; --muted:#b4bac4; --text-dim:#8b929e;
+  --accent:#8a9aab; --green:#5f9a74; --red:#c46b6b; --warn:#c4a056;
+  --bg:#14181f; --bg2:#1b2028; --bg3:#222830; --bg4:#2a303a;
+  --panel:#1b2028; --panel2:#222830; --panel3:#2a303a;
+  --b1:#3a4250; --b2:#2e3542;
   padding-bottom:48px !important;
 }
 /* Hub anti-ceață: carduri/lead/meta */
 .lead,.brand,.card-desc,.card-tag,.feat,.pb-diff,.tt-stats span,.fl-item .fl-txt{color:var(--t2)!important;opacity:1!important}
 .card-title,.pb-mkt-val,.pb-hero-verdict,h1,h2,h3{color:var(--t1)!important;opacity:1!important}
-.card{background:linear-gradient(180deg,var(--bg2) 0%,#121a28 100%)!important}
 /* full-bleed Macro — fără max-width îngust */
 .wrap{width:100%;max-width:none;margin:0}
 
@@ -100,16 +117,14 @@ body.hub-page{
   padding:8px 16px;margin-bottom:24px;
   box-shadow:var(--sh);
 }
-.brand-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));box-shadow:0 0 8px rgba(247,147,26,.6)}
+.brand-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:none}
 h1{
-  font-size:36px;font-weight:800;letter-spacing:-.5px;
-  line-height:1.15;margin-bottom:12px;
+  font-size:18px;font-weight:700;letter-spacing:-.02em;
+  line-height:1.2;margin-bottom:0;
   color:var(--t1);
 }
-@media (min-width:1100px){ h1{ font-size:42px; } }
 h1 .accent{
-  background:linear-gradient(135deg,var(--crypto-1) 0%,#ffb854 50%,var(--crypto-2) 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
+  background:none;color:var(--t3);font-weight:400;
 }
 .lead{
   font-size:clamp(15px,2vw,18px);color:var(--t2);max-width:640px;margin:0 auto;
@@ -122,65 +137,43 @@ h1 .accent{
   margin-top:32px;
 }
 .card{
-  background:linear-gradient(180deg, var(--bg2) 0%, rgba(20,26,40,.6) 100%);
-  border:1px solid var(--b1);border-radius:18px;
-  padding:24px 22px 22px;text-decoration:none;color:inherit;
-  transition:transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
-  display:flex;flex-direction:column;gap:12px;
+  background:var(--panel)!important;
+  border:1px solid var(--b1);border-radius:var(--r);
+  padding:16px 16px 14px;text-decoration:none;color:inherit;
+  transition:border-color .15s var(--ease), background .15s var(--ease);
+  display:flex;flex-direction:column;gap:10px;
   position:relative;overflow:hidden;
-  box-shadow:var(--sh);
+  box-shadow:var(--shadow);
 }
-.card::before{
-  content:'';position:absolute;left:0;right:0;top:0;height:3px;
-  background:var(--accent,linear-gradient(90deg,var(--crypto-1),var(--crypto-2)));
-  transform:scaleX(0);transform-origin:left;transition:transform .3s var(--ease);
-}
-.card::after{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(400px 240px at 80% -80px,var(--glow,transparent),transparent 70%);
-  pointer-events:none;opacity:.6;
-}
-.card:hover{transform:translateY(-3px);box-shadow:var(--shh);border-color:var(--b2)}
-.card:hover::before{transform:scaleX(1)}
+.card::before,.card::after{content:none;display:none}
+.card:hover{transform:none;box-shadow:var(--shadow);border-color:var(--accent);background:var(--panel2)!important}
 
-/* Accent gradient + glow per card type — paleta unificată dark cu accente bull/warm */
-.card.crypto  {--accent:linear-gradient(90deg,#5bb0ff,#8b6fff); --glow:rgba(91,176,255,.18)}
-.card.nasdaq  {--accent:linear-gradient(90deg,var(--crypto-1),var(--crypto-2)); --glow:rgba(247,147,26,.18)}
-.card.events  {--accent:linear-gradient(90deg,#ff4d4d,#d4892c); --glow:rgba(255,77,77,.18)}
-.card.cryptoevents{--accent:linear-gradient(90deg,#ec4899,#a855f7); --glow:rgba(236,72,153,.18)}
-.card.legacy  {--accent:linear-gradient(90deg,#a16207,#ca8a04); --glow:rgba(202,138,4,.16); opacity:.92}
+.card.legacy{opacity:.92}
 .card.legacy:hover{opacity:1}
-.card.legacy .card-icon{background:rgba(255,216,107,.10);color:var(--crypto-2)}
-.card.legacy .card-tag{background:rgba(255,216,107,.10);color:var(--crypto-2);border:1px solid rgba(255,216,107,.3)}
-.card.legacy .card-cta{color:var(--crypto-2)}
 .legacy-badge{
-  position:absolute;top:14px;right:14px;z-index:2;
-  background:rgba(255,216,107,.15);color:var(--crypto-2);
-  border:1px solid rgba(255,216,107,.45);
+  position:absolute;top:12px;right:12px;z-index:2;
+  background:var(--panel3);color:var(--t3);
+  border:1px solid var(--b1);
   padding:2px 8px;border-radius:4px;
   font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.6px;
 }
 
 .card-icon{
-  width:42px;height:42px;border-radius:11px;
+  width:36px;height:36px;border-radius:var(--rs);
   display:flex;align-items:center;justify-content:center;
-  font-size:22px;flex-shrink:0;
+  font-size:18px;flex-shrink:0;
   position:relative;z-index:1;
+  background:var(--panel3)!important;box-shadow:none!important;color:var(--t1)!important;
 }
-.crypto  .card-icon{background:linear-gradient(135deg,#5bb0ff,#8b6fff); box-shadow:0 4px 14px rgba(91,176,255,.25); color:#fff}
-.nasdaq  .card-icon{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2)); box-shadow:0 4px 14px rgba(247,147,26,.3); color:#1a1a1a}
-.events  .card-icon{background:linear-gradient(135deg,#ff4d4d,#d4892c); box-shadow:0 4px 14px rgba(255,77,77,.25); color:#fff}
 
 .card-tag{
-  font-family:var(--mono);font-size:10px;font-weight:500;
-  letter-spacing:.15em;text-transform:uppercase;
-  padding:4px 10px;border-radius:999px;
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:3px 8px;border-radius:999px;
   display:inline-block;width:fit-content;
   position:relative;z-index:1;
+  background:var(--panel3)!important;color:var(--t3)!important;border:1px solid var(--b1)!important;
 }
-.crypto  .card-tag{background:rgba(91,176,255,.12);color:#5bb0ff;border:1px solid rgba(91,176,255,.3)}
-.nasdaq  .card-tag{background:rgba(247,147,26,.12);color:var(--crypto-1);border:1px solid rgba(247,147,26,.35)}
-.events  .card-tag{background:rgba(255,77,77,.12);color:#ff4d4d;border:1px solid rgba(255,77,77,.3)}
 
 .card-title{font-size:20px;font-weight:700;letter-spacing:-.3px;line-height:1.2;color:var(--t1);position:relative;z-index:1}
 .card-desc{font-size:13px;color:var(--t2);line-height:1.5;flex-grow:1;position:relative;z-index:1}
@@ -188,31 +181,24 @@ h1 .accent{
 .features{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;position:relative;z-index:1}
 .feat{
   font-family:var(--mono);font-size:10.5px;font-weight:500;
-  background:var(--bg3);color:var(--t2);
+  background:var(--panel3);color:var(--t2);
   padding:3px 8px;border-radius:5px;border:1px solid var(--b1);
   display:inline-flex;align-items:center;gap:3px;
 }
-/* Categorii badge color-coded pe carduri:
-   📊 data sources (blue) · 🛠️ tools (orange/gold) · 🔔 alerts (red) ·
-   🤖 automation (green) · 🧠 AI (purple) */
-.feat.data { background:rgba(91,176,255,.12); color:#5bb0ff; border-color:rgba(91,176,255,.3); }
-.feat.tool { background:rgba(247,147,26,.12); color:var(--crypto-1); border-color:rgba(247,147,26,.35); }
-.feat.alert { background:rgba(255,77,77,.12); color:#ff4d4d; border-color:rgba(255,77,77,.3); }
-.feat.auto { background:rgba(34,214,107,.12); color:var(--green); border-color:rgba(34,214,107,.35); }
-.feat.ai { background:rgba(139,111,255,.12); color:#a78bfa; border-color:rgba(139,111,255,.3); }
-.feat.viz { background:rgba(255,216,107,.12); color:var(--crypto-2); border-color:rgba(255,216,107,.35); }
-.feat.risk { background:rgba(212,137,44,.12); color:#d4892c; border-color:rgba(212,137,44,.35); } /* folosit de 6 chips (Risk Desk etc.), nu avea regula → gri generic */
+.feat.data,.feat.tool,.feat.alert,.feat.auto,.feat.ai,.feat.viz,.feat.risk{
+  background:var(--panel3);color:var(--t2);border-color:var(--b1);
+}
 
 /* Info button ℹ️ — top-right pe card, deschide modal cu lista completă */
 .card-info-btn{
-  position:absolute;top:14px;right:14px;z-index:3;
+  position:absolute;top:12px;right:12px;z-index:3;
   width:28px;height:28px;border-radius:50%;
-  background:rgba(91,176,255,.12);border:1px solid rgba(91,176,255,.35);
-  color:#5bb0ff;cursor:pointer;font-size:13px;font-weight:700;
+  background:var(--panel3);border:1px solid var(--b1);
+  color:var(--t2);cursor:pointer;font-size:13px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
-  transition:all .15s var(--ease);
+  transition:background .15s var(--ease), border-color .15s var(--ease);
 }
-.card-info-btn:hover{background:rgba(91,176,255,.28);transform:scale(1.1)}
+.card-info-btn:hover{background:var(--panel2);border-color:var(--accent);transform:none}
 .card.legacy .card-info-btn{display:none} /* legacy nu are info pentru că e link extern */
 
 /* Feature list modal */
@@ -242,7 +228,7 @@ h1 .accent{
 .fl-item.viz{border-left:3px solid var(--crypto-2)}
 .fl-cta{margin-top:14px;display:flex;gap:8px}
 .fl-cta a, .fl-cta button{flex:1;padding:10px 14px;border-radius:8px;font-weight:700;font-size:12px;text-align:center;text-decoration:none;cursor:pointer;border:1px solid var(--b1);background:var(--bg3);color:var(--t1);font-family:var(--head)}
-.fl-cta a.primary{background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));border-color:transparent;color:#1a1a1a}
+.fl-cta a.primary{background:var(--acc-1);border-color:transparent;color:var(--on-accent)}
 .fl-cta a.primary:hover{filter:brightness(1.08)}
 
 .card-cta{
@@ -252,9 +238,7 @@ h1 .accent{
   letter-spacing:.05em;text-transform:uppercase;
   position:relative;z-index:1;
 }
-.crypto  .card-cta{color:#5bb0ff}
-.nasdaq  .card-cta{color:var(--crypto-2)}
-.events  .card-cta{color:#ff7d6b}
+.card-cta,.crypto .card-cta,.nasdaq .card-cta,.events .card-cta,.card.legacy .card-cta{color:var(--t3)}
 .card-cta .arrow{font-size:18px;transition:transform .2s var(--ease)}
 .card:hover .card-cta .arrow{transform:translateX(4px)}
 
@@ -265,7 +249,7 @@ footer{
   font-family:var(--mono);
 }
 footer a{color:var(--t2);text-decoration:none;border-bottom:1px dotted var(--b2)}
-footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
+footer a:hover{color:var(--t1);border-color:var(--accent)}
 .foot-row{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:8px}
 /* În PWA standalone (homescreen instalat), ascunde footer-ul cu link-uri externe (GitHub, README) — nu se vrea ieșirea din PWA */
 @media all and (display-mode: standalone){
@@ -289,12 +273,12 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 
 
 /* (blocul CSS .hub-cmd* „HUB COCKPIT v542" șters — markup-ul nu mai e generat de niciun modul; audit 2026-07-22) */
-.hub-cockpit{background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(91,176,255,.07));border:1px solid rgba(247,147,26,.28);border-radius:12px;padding:14px 16px;margin:10px 0 14px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
-.hub-cockpit.stay{background:linear-gradient(135deg,rgba(255,77,77,.12),rgba(20,26,40,.5));border-color:rgba(255,77,77,.45)}
-.hub-cockpit-lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--crypto-1);margin-bottom:4px}
-.hub-cockpit.stay .hub-cockpit-lbl{color:#ff4d4d}
+.hub-cockpit{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin:10px 0 14px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
+.hub-cockpit.stay{background:var(--bear-bg,rgba(196,107,107,.14));border-color:var(--red)}
+.hub-cockpit-lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--t3);margin-bottom:4px}
+.hub-cockpit.stay .hub-cockpit-lbl{color:var(--red)}
 .hub-strat{font-size:24px;font-weight:900;line-height:1.1}
-.hub-rule{font-family:var(--mono);font-size:11px;color:#5bb0ff;margin-top:5px;font-weight:700}
+.hub-rule{font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:5px;font-weight:700}
 .hub-meta,.hub-plan{font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:6px;line-height:1.45}
 .hub-blockers{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .hub-block{font-family:var(--mono);font-size:9px;font-weight:800;padding:4px 8px;border-radius:5px;border:1px solid var(--b1)}
@@ -308,7 +292,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .hub-go-fill{height:100%;border-radius:4px;transition:width .35s}
 .hub-cockpit-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;grid-column:1/-1}
 .hub-cockpit-actions a{font-size:11px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid var(--b1);background:var(--bg3);color:var(--t1);text-decoration:none}
-.hub-cockpit-actions a.primary{border-color:rgba(91,176,255,.4);background:rgba(91,176,255,.12);color:#5bb0ff}
+.hub-cockpit-actions a.primary{border-color:var(--accent);background:var(--panel3);color:var(--t1)}
 .hub-freeze-top{display:none;border-radius:10px;padding:9px 12px;margin-bottom:8px;font-family:var(--mono);font-size:12px;font-weight:700}
 .hub-freeze-top.red{display:block;background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
 .hub-freeze-top.amber{display:block;background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:#d4892c}
@@ -323,7 +307,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .wf-head{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--b1)}
 .wf-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
 /* I-215: opacity slabă înlocuită de layout real în hub-ui.css (order/hide/promote) */
-.tt-fab.journal-fab{background:linear-gradient(135deg,#a78bfa,#22d66b);box-shadow:0 6px 20px rgba(167,139,250,.35)}
+.tt-fab.journal-fab{background:var(--panel2);box-shadow:var(--shadow);color:var(--t1);border:1px solid var(--b1)}
 
 /* === TODAY'S PLAYBOOK (absorbit din pagina playbook, retrasă 2026-06-11) === */
 .pb-wrap{margin:18px 0 6px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
@@ -339,7 +323,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-tabbar{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 10px;padding:5px;background:var(--bg3);border:1px solid var(--b1);border-radius:10px}
 .pb-tab{font-family:var(--mono);font-size:10.5px;font-weight:800;padding:6px 10px;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--t3);cursor:pointer;font-family:var(--mono)}
 .pb-tab:hover{color:var(--t1);border-color:var(--b1)}
-.pb-tab.on{background:rgba(247,147,26,.14);border-color:rgba(247,147,26,.4);color:var(--crypto-2)}
+.pb-tab.on{background:var(--panel3);border-color:var(--accent);color:var(--t1)}
 .pb-tab-panel{display:none}
 .pb-tab-panel.on{display:block}
 .pb-tab-panel[hidden]{display:none!important}
@@ -355,8 +339,8 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-empty{padding:16px;text-align:center;color:var(--t2);font-style:italic;font-size:12.5px}
 .pb-loading{padding:16px;text-align:center;color:var(--t2);font-size:12.5px}
 /* Brief de dimineață — rând-erou (verdictul zilei) */
-.pb-hero{background:linear-gradient(135deg,rgba(247,147,26,.10),rgba(91,176,255,.06));border:1px solid rgba(247,147,26,.30);border-radius:10px;padding:10px 12px;margin-bottom:8px}
-.pb-hero-label{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--crypto-1);margin-bottom:4px}
+.pb-hero{background:var(--panel2);border:1px solid var(--b1);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.pb-hero-label{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--t3);margin-bottom:4px}
 .pb-hero-verdict{font-family:var(--head);font-size:13.5px;font-weight:800;color:var(--t1);line-height:1.3;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .pb-hero-dot{color:var(--t3);font-weight:400}
 .pb-hero-danger{color:var(--t2);font-weight:700}
@@ -420,11 +404,11 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .pb-risk-sub{font-family:var(--mono);font-size:11.5px;color:var(--t2)}
 
 /* === Trade Tracker Modal === */
-.tt-fab{position:fixed;bottom:20px;right:20px;text-decoration:none;width:54px;height:54px;border-radius:50%;
-  background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));border:none;color:#1a1a1a;
-  font-size:24px;cursor:pointer;box-shadow:0 6px 20px rgba(247,147,26,.4);z-index:200;
-  display:flex;align-items:center;justify-content:center;transition:transform .15s var(--ease)}
-.tt-fab:hover{transform:scale(1.08)}
+.tt-fab{position:fixed;bottom:20px;right:20px;text-decoration:none;width:48px;height:48px;border-radius:50%;
+  background:var(--panel2);border:1px solid var(--b1);color:var(--t1);
+  font-size:20px;cursor:pointer;box-shadow:var(--shadow);z-index:200;
+  display:flex;align-items:center;justify-content:center;transition:border-color .15s var(--ease),background .15s var(--ease)}
+.tt-fab:hover{transform:none;border-color:var(--accent);background:var(--panel3)}
 .tt-overlay{position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;
   display:flex;align-items:center;justify-content:center;padding:16px;animation:tt-fade .2s ease}
 @keyframes tt-fade{from{opacity:0}to{opacity:1}}
@@ -432,9 +416,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
   width:100%;max-width:600px;max-height:90vh;overflow-y:auto;
   box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--t1);font-family:var(--head)}
 .tt-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px}
-.tt-head h3{font-size:16px;font-weight:800;margin:0;
-  background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));
-  -webkit-background-clip:text;background-clip:text;color:transparent}
+.tt-head h3{font-size:16px;font-weight:800;margin:0;color:var(--t1)}
 .tt-close{background:transparent;border:none;color:var(--t3);font-size:22px;cursor:pointer;line-height:1;padding:0 4px}
 .tt-close:hover{color:var(--t1)}
 .tt-form{background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -444,7 +426,7 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
 .tt-form label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-bottom:3px;display:block}
 .tt-form .col-full{grid-column:1/-1}
 .tt-form button{padding:8px 14px;border-radius:7px;border:none;cursor:pointer;font-weight:700;font-size:12px;
-  background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));color:#1a1a1a;font-family:var(--head)}
+  background:var(--acc-1);color:var(--on-accent);font-family:var(--head)}
 .tt-form button:hover{filter:brightness(1.08)}
 .tt-list{display:flex;flex-direction:column;gap:8px}
 .tt-empty{padding:30px;text-align:center;color:var(--t3);font-size:13px}
@@ -473,15 +455,15 @@ footer a:hover{color:var(--crypto-2);border-color:var(--crypto-2)}
    pe sticky, FĂRĂ blur (blur-ul strică randarea textului).
    ══════════════════════════════════════════════════════════════════════ */
 
-/* Accentele de bordură-sus, mapate ca --sec-* din macro (paleta paginii) */
+/* Bordură unică de oțel — fără curcubeu pe fiecare secțiune */
 :root{
-  --hub-sec-sess:#3b82f6;            /* layout / sesiune   */
-  --hub-sec-live:#a78bfa;            /* date live (tableau)*/
-  --hub-sec-pre:var(--warn);         /* checklist pre-mkt  */
-  --hub-sec-tools:#10b981;           /* catalog tool-uri   */
-  --hub-sec-router:var(--crypto-1);  /* router / GO detail */
-  --hub-sec-brief:#38bdf8;           /* brief detaliat     */
-  --hub-sec-ledger:#2dd4bf;          /* signal ledger      */
+  --hub-sec-sess:var(--b1);
+  --hub-sec-live:var(--b1);
+  --hub-sec-pre:var(--b1);
+  --hub-sec-tools:var(--b1);
+  --hub-sec-router:var(--b1);
+  --hub-sec-brief:var(--b1);
+  --hub-sec-ledger:var(--b1);
 }
 
 /* ── 1. TOPBAR: panou sticky pe UN singur rând (ca .macro-cockpit.topbar-sticky).
@@ -526,36 +508,21 @@ body.hub-page .hub-head-compact .hub-session-pill{margin-left:auto;flex:0 1 auto
 /* ── 3. Bordură colorată sus — semnătura secțiunilor de ziar (.sec din macro).
       Prefixul `body.hub-page .hub-shell` ridică specificitatea peste regulile
       pe sesiune (body[data-hub-mode="…"] .X) ca accentul să nu fie înlocuit. ── */
-body.hub-page .hub-shell .hub-sess-bar{
-  border-top:3px solid var(--hub-sec-sess);
-  border-radius:var(--r);
-}
-body.hub-page .hub-shell .hub-dash-panel{
-  border-top:3px solid var(--hub-sec-live);
-  border-radius:var(--r);
-  box-shadow:0 4px 18px rgba(0,0,0,.18);
-}
-body.hub-page .hub-shell .hub-pre5{
-  border-top:3px solid var(--hub-sec-pre);
-  border-radius:var(--r);
-}
+body.hub-page .hub-shell .hub-sess-bar,
+body.hub-page .hub-shell .hub-dash-panel,
+body.hub-page .hub-shell .hub-pre5,
 body.hub-page .hub-shell .hub-catalog-fold,
-body.hub-page .hub-shell .hub-catalog-fold[open]{
-  border-top:3px solid var(--hub-sec-tools);
-  border-radius:var(--r);
-  box-shadow:0 4px 18px rgba(0,0,0,.18);
-}
-body.hub-page .hub-shell .hub-cockpit-fold{
-  border-top:3px solid var(--hub-sec-router);
-  border-radius:var(--r);
-}
-.hub-shell #pbWrap{
-  border-top:3px solid var(--hub-sec-brief);
-  border-radius:var(--r);
-}
+body.hub-page .hub-shell .hub-catalog-fold[open],
+body.hub-page .hub-shell .hub-cockpit-fold,
+.hub-shell #pbWrap,
 .hub-shell #slWrap{
-  border-top:3px solid var(--hub-sec-ledger);
+  border-top:1px solid var(--b1);
   border-radius:var(--r);
+  box-shadow:none;
+}
+.hub-na:not(.prio-halt):not(.prio-warn):not(.prio-ok){
+  border-color:var(--b1);
+  background:var(--panel);
 }
 
 /* ── 4. Consecvență de formă — radius unic pe blocurile mari (pills/chips/butoane
@@ -564,6 +531,49 @@ body.hub-page .hub-shell .hub-launch,
 body.hub-page .hub-shell .hub-checklist-panel,
 body.hub-page .hub-shell .hub-platform-strip{
   border-radius:var(--r);
+}
+
+/* ── Desk oțel: chrome fără auriu / glow / double-sticky ── */
+body.hub-page .hub-head-title .accent,
+h1 .accent{
+  background:none!important;
+  -webkit-background-clip:unset!important;
+  background-clip:unset!important;
+  color:var(--t3)!important;
+  -webkit-text-fill-color:var(--t3)!important;
+  font-weight:400;
+}
+body.hub-page .hub-na{
+  position:relative;
+  top:auto;
+  z-index:auto;
+  border-width:1px;
+  box-shadow:var(--shadow);
+  background:var(--panel);
+}
+body.hub-page .hub-na-kicker{color:var(--t3)}
+body.hub-page .hub-na-cta{
+  background:var(--acc-1);
+  color:var(--on-accent);
+}
+body.hub-page .hub-na.prio-halt .hub-na-cta{background:var(--red);color:#fff}
+body.hub-page .hub-na.prio-ok .hub-na-cta{background:var(--green);color:var(--on-accent)}
+body.hub-page .hub-na.prio-halt{
+  background:rgba(196,107,107,.14);
+  border-color:var(--red);
+}
+body.hub-page .hub-na.prio-warn{
+  background:rgba(196,160,86,.14);
+  border-color:var(--warn);
+}
+body.hub-page .hub-na.prio-ok{
+  background:rgba(95,154,116,.14);
+  border-color:var(--green);
+}
+#pwaInstallBtn{
+  border-color:var(--b1)!important;
+  background:var(--panel2)!important;
+  color:var(--t1)!important;
 }
 </style>
 </head>
@@ -1264,7 +1274,7 @@ body.hub-page .hub-shell .hub-platform-strip{
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <!-- CRITICAL path — first paint cockpit (GO / market / next action). Restul la idle. -->
-<script defer src="lib/data.js?v=781"></script>
+<script defer src="lib/data.js?v=782"></script>
 <script defer src="lib/quote-bus.js?v=712"></script>
 <script defer src="lib/finnhub-key.js?v=712"></script>
 <script defer src="lib/suite-sessions.js?v=712"></script>
@@ -1670,7 +1680,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = 'tt-v781';
+  const swVer = 'tt-v782';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1891,7 +1901,7 @@ window.addEventListener('DOMContentLoaded', function(){
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v781';
+  var PAGE_VER = 'tt-v782';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw-app.js?v=' + PAGE_VER, { scope: './', updateViaCache: 'none' })
     .then(function (reg) {
