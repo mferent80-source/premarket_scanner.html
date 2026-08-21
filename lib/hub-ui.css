@@ -1,4 +1,4 @@
-/* hub-ui.css v784 — hub structurat: launch sub DATE LIVE, 4 chips + ⋯ */
+/* hub-ui.css v785 — header REGIM, fără Platform, DATE LIVE 4+Mai multe */
 
 .hub-shell {
   display: flex;
@@ -317,13 +317,10 @@ body[data-hub-mode="review"] .card[data-phase="execute"]{opacity:.5}
   font-size:11.5px !important;
 }
 
-/* ── I-216 Platform health strip ── */
-.hub-platform-strip{
-  display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;
-  margin:0 0 8px;padding:7px 10px;
-  border-radius:10px;border:1px solid var(--b1);
-  background:linear-gradient(180deg,rgba(20,37,51,.55),rgba(20,26,40,.4));
-  font-family:var(--mono);font-size:10.5px;
+/* ── I-216 Platform health strip — scoasă de pe Hub (Health e pill + /health/) ── */
+.hub-platform-strip,
+#hubPlatformStrip{
+  display:none!important;
 }
 .hub-platform-strip[hidden]{display:none!important}
 .hub-platform-strip .hps-lbl{
@@ -678,6 +675,36 @@ a.hps-chip:hover{border-color:var(--accent,#8ac8ff);color:var(--accent,#8ac8ff);
   text-overflow: ellipsis;
 }
 
+/* REGIM / DANGER compact în header — fără gauge, sub, sursă */
+.hub-head-ck{
+  flex:1 1 auto;
+  min-width:0;
+  max-width:420px;
+}
+.hub-head-ck .ckb-band{
+  margin:0;
+  padding:0;
+  min-height:0;
+  max-height:none;
+  gap:10px;
+  border:none;
+  background:transparent;
+  border-radius:0;
+  overflow:visible;
+}
+.hub-head-ck .ckb-gauge,
+.hub-head-ck .ckb-sep,
+.hub-head-ck .ckb-sub,
+.hub-head-ck .ckb-spacer,
+.hub-head-ck .ckb-src{display:none!important}
+.hub-head-ck .ckb-dot{font-size:12px}
+.hub-head-ck .ckb-cell{gap:6px}
+.hub-head-ck .ckb-cell > span{
+  display:flex;align-items:baseline;gap:5px;white-space:nowrap;
+}
+.hub-head-ck .ckb-lbl{font-size:8px;letter-spacing:1.2px}
+.hub-head-ck .ckb-val{font-size:12px;font-weight:800}
+
 .hub-session-pill.rth {
   border-color: rgba(34, 214, 107, 0.35);
   color: var(--green);
@@ -697,6 +724,7 @@ a.hps-chip:hover{border-color:var(--accent,#8ac8ff);color:var(--accent,#8ac8ff);
     margin-left: 0;
     max-width: 100%;
   }
+  .hub-head-ck{max-width:100%;flex:1 1 100%}
 }
 
 /* ── Hero compact (legacy) ── */
@@ -811,6 +839,38 @@ a.hps-chip:hover{border-color:var(--accent,#8ac8ff);color:var(--accent,#8ac8ff);
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 5px;
+}
+
+/* DATE LIVE first-paint: 4 carduri egale (GO / Desk / SPY / VIX) */
+#htCommandGrid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+#htCommandGrid .ht-card{grid-column:span 1!important}
+
+.ht-more{
+  margin:8px 0 0;
+  padding:0 8px 8px;
+  border:1px solid var(--b1);
+  border-radius:10px;
+  background:var(--panel,var(--bg2));
+}
+.ht-more > summary{
+  font-family:var(--mono);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.04em;
+  color:var(--t3);
+  cursor:pointer;
+  padding:8px 4px;
+  list-style:none;
+}
+.ht-more > summary::-webkit-details-marker{display:none}
+.ht-more > summary::before{content:'▸ ';color:var(--t3)}
+.ht-more[open] > summary::before{content:'▾ '}
+.ht-more[open] > summary{
+  color:var(--t2);
+  border-bottom:1px solid var(--b1);
+  margin-bottom:8px;
 }
 
 /* dens: mai puțin scroll pe tableau */
@@ -1528,6 +1588,10 @@ a.ht-ev { text-decoration: none; color: inherit; } /* era .ht-ev a.ht-ev — sel
   .ht-card.ht-hero { grid-column: span 3; min-height: 54px; }
   .ht-card.ht-core { grid-column: span 3; }
   .ht-card.ht-compact { grid-column: span 3; }
+}
+
+@media (max-width: 700px) {
+  #htCommandGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 520px) {

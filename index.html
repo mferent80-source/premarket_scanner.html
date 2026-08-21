@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=784"></script>
+<script src="lib/suite-version.js?v=785"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -49,7 +49,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
 <link rel="stylesheet" href="lib/plex.css?v=743">
 <link rel="stylesheet" href="lib/suite-ui.css?v=712">
-<link rel="stylesheet" href="lib/hub-ui.css?v=785">
+<link rel="stylesheet" href="lib/hub-ui.css?v=786">
 <style>
 /* === Hub desk oțel — aceeași paletă ca Alerte (fără neon / auriu / glow) ── */
 :root{
@@ -482,11 +482,13 @@ body.hub-page .hub-head-compact .hub-head-title{
   min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 body.hub-page .hub-head-compact .hub-session-pill{margin-left:auto;flex:0 1 auto}
+body.hub-page .hub-head-ck{flex:1 1 auto;min-width:0;max-width:420px}
 @media (max-width:700px){
-  /* mobil: rândul se rupe natural — brand+titlu sus, pill dedesubt */
+  /* mobil: rândul se rupe natural — brand+titlu sus, pill+REGIM dedesubt */
   body.hub-page .hub-head-compact{flex-wrap:wrap;padding:8px 10px}
   body.hub-page .hub-head-compact .hub-head-title{white-space:normal;overflow:visible}
   body.hub-page .hub-head-compact .hub-session-pill{margin-left:0;max-width:100%}
+  body.hub-page .hub-head-ck{max-width:100%;flex:1 1 100%}
 }
 
 /* ── 2. HERO Next Action — forma hero-ului din macro (radius/umbră/padding).
@@ -592,13 +594,9 @@ body.hub-page .hub-na.prio-ok{
     </div>
     <h1 class="hub-head-title">Cockpit <span class="accent">stocks</span></h1>
     <span id="hubSessionPill" class="hub-session-pill" title="Sesiune NYSE (ET)">se încarcă…</span>
+    <!-- REGIM/DANGER compact în header (nu panou separat) -->
+    <div id="ckBand" class="hub-head-ck"></div>
   </header>
-
-  <!-- Bandă cockpit shared (lib/cockpit.js) — semafor regim + gauge apetit + Danger +
-       prospețime. Complementară macro rail-ului textual din tableau, nu dublură: aici
-       e citirea „la prima privire", acolo detaliul + calendarul. În afara .hub-shell
-       ca să nu intre în ordonarea pe sloturi (data-hub-slot). Se auto-montează. -->
-  <div id="ckBand"></div>
 
   <div class="hub-shell">
   <!-- I-215: layout bar — Auto urmează SES; lock forțează template-ul -->
@@ -614,8 +612,8 @@ body.hub-page .hub-na.prio-ok{
 
   <!-- I-212 Decision surface: health → CTA → date live -->
   <div class="hub-decision" id="hubDecision" data-hub-slot="decision">
-  <!-- I-216 Platform health strip -->
-  <div class="hub-platform-strip" id="hubPlatformStrip" aria-label="Platform health" hidden></div>
+  <!-- I-216 Platform strip: scos de pe first paint — Health e în ⋯ / pagina Health -->
+  <div class="hub-platform-strip" id="hubPlatformStrip" hidden></div>
 
   <div id="hubFreezeTop" class="hub-freeze-top"></div>
   <div id="hubRiskBanner" class="hub-freeze-top" style="display:none"></div>
@@ -1276,7 +1274,7 @@ body.hub-page .hub-na.prio-ok{
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <!-- CRITICAL path — first paint cockpit (GO / market / next action). Restul la idle. -->
-<script defer src="lib/data.js?v=784"></script>
+<script defer src="lib/data.js?v=785"></script>
 <script defer src="lib/quote-bus.js?v=712"></script>
 <script defer src="lib/finnhub-key.js?v=712"></script>
 <script defer src="lib/suite-sessions.js?v=712"></script>
@@ -1284,7 +1282,7 @@ body.hub-page .hub-na.prio-ok{
 <script defer src="lib/router.js?v=712"></script>
 <script defer src="lib/hub-market.js?v=712"></script>
 <script defer src="lib/hub-state.js?v=712"></script>
-<script defer src="lib/hub-tableau.js?v=714"></script>
+<script defer src="lib/hub-tableau.js?v=785"></script>
 <script defer src="lib/hub-next-action.js?v=712"></script>
 <script defer src="lib/macro-context.js?v=712"></script>
 <script defer src="lib/cockpit.js?v=784"></script>
@@ -1682,7 +1680,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = 'tt-v784';
+  const swVer = 'tt-v785';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1775,7 +1773,7 @@ window.addEventListener('DOMContentLoaded', function(){
   });
 
   // ── Secondary libs (~200KB) după first paint — capital/journal/health/search ──
-  const SEC_V = '784';
+  const SEC_V = '785';
   const SECONDARY = [
     'lib/suite-context.js?v=' + SEC_V,
     'lib/ledger.js?v=' + SEC_V,
@@ -1833,7 +1831,7 @@ window.addEventListener('DOMContentLoaded', function(){
     if (_hbPromise) return _hbPromise;
     _hbPromise = new Promise(function (resolve, reject) {
       const s = document.createElement('script');
-      s.src = 'lib/hub-brief.js?v=784';
+      s.src = 'lib/hub-brief.js?v=785';
       s.async = true;
       s.onload = function () {
         try {
@@ -1903,7 +1901,7 @@ window.addEventListener('DOMContentLoaded', function(){
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v784';
+  var PAGE_VER = 'tt-v785';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw-app.js?v=' + PAGE_VER, { scope: './', updateViaCache: 'none' })
     .then(function (reg) {
