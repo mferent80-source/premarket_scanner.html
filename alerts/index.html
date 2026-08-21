@@ -1140,7 +1140,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v103</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v104</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1540,8 +1540,9 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=779"></script>
+<script src="../lib/suite-version.js?v=780"></script>
 <script src="../lib/data.js?v=779"></script>
+<script src="../lib/poll-wake.js?v=780"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
@@ -2581,15 +2582,7 @@ async function pollPrices() {
 }
 
 function resumePolling(why) {
-  // v103: trezire după sleep / tab hidden peste noapte. Fără asta, la deschiderea
-  // bursei pollPrices() e no-op pe _pollBusy stuck, iar inflight hung din D.fetchJSON
-  // ține TOATE fetch-urile noi pe o promisiune care nu se mai rezolvă.
-  try { console.warn('[poll] resume', why || ''); } catch (e) {}
-  _pollBusy = false;
-  _pollBusyTs = 0;
-  try { if (window.D && typeof D.dropInflight === 'function') D.dropInflight(); } catch (e) {}
-  schedulePoll();
-  pollPrices();
+  if (window._pollWake && typeof window._pollWake.resume === 'function') window._pollWake.resume(why);
 }
 
 function schedulePoll() {
@@ -2624,20 +2617,45 @@ function pollDataStale() {
   const a = pollDataAgeMs();
   return a != null && a > POLL_INTERVAL_MS * 3;
 }
-setInterval(() => {
-  if (pollPaused || _shellHidden) return;
-  // v103: eliberează latch-ul hung ȘI cu tabul în fundal. Altfel peste noapte
-  // _pollBusy rămâne true, watchdog-ul nu-l atinge, iar dimineața
-  // visibilitychange → pollPrices() e no-op = pagina „blocată" la open.
-  if (_pollBusy && _pollBusyTs && Date.now() - _pollBusyTs > 120000) {
-    _pollBusy = false;
-    try { if (window.D && typeof D.dropInflight === 'function') D.dropInflight(); } catch (e) {}
-  }
-  if (document.hidden) return;
-  if (!pollDataStale()) return;
-  console.warn('[poll] lanț mort de', Math.round(pollDataAgeMs() / 1000), 's → repornit de watchdog');
-  resumePolling('watchdog');
-}, POLL_INTERVAL_MS);
+function fmtPollAge(ms) {
+  if (ms == null) return '';
+  if (ms < 90000) return Math.round(ms / 1000) + 's';
+  if (ms < 5400000) return Math.round(ms / 60000) + 'm';
+  return Math.round(ms / 3600000) + 'h';
+}
+function paintPollHeartbeat() {
+  const el = $('pollStatus');
+  if (!el) return;
+  const age = typeof pollDataAgeMs === 'function' ? pollDataAgeMs() : null;
+  const stale = typeof pollDataStale === 'function' && pollDataStale();
+  const ageTxt = fmtPollAge(age);
+  const staleSyms = Object.keys(priceAlerts || {}).filter(s => (priceAlerts[s] || []).length && typeof symStale === 'function' && symStale(s));
+  el.className = 'status-pill ' + (pollPaused || stale || staleSyms.length ? 'paused' : 'live');
+  el.textContent = pollPaused ? 'PAUZĂ'
+    : stale ? ('⏳ DATE VECHI · ' + ageTxt)
+    : staleSyms.length ? ('⏳ ' + staleSyms.length + ' simbol' + (staleSyms.length > 1 ? 'uri' : '') + ' vechi')
+    : (age == null ? 'LIVE' : ('LIVE · ' + ageTxt));
+  el.title = stale
+    ? ('Ultimul preț adus acum ' + ageTxt + '. Cifrele de mai jos NU sunt de acum.')
+    : staleSyms.length
+    ? ('Polling activ, dar fără preț nou pentru: ' + staleSyms.join(', ') + '.')
+    : (age == null ? 'Polling pornește…' : ('Ultimul poll acum ' + ageTxt));
+}
+setInterval(function () { try { paintPollHeartbeat(); } catch (e) {} }, 1000);
+window._pollWake = (window.PollWake && PollWake.bind) ? PollWake.bind({
+  getBusy: function () { return _pollBusy; },
+  setBusy: function (v) { _pollBusy = !!v; },
+  getBusyTs: function () { return _pollBusyTs; },
+  setBusyTs: function (v) { _pollBusyTs = v || 0; },
+  poll: function () { return pollPrices(); },
+  schedule: function () { schedulePoll(); },
+  isPaused: function () { return !!pollPaused; },
+  isShellHidden: function () { return !!_shellHidden; },
+  isStale: function () { return typeof pollDataStale === 'function' && pollDataStale(); },
+  lastOkAgeMs: function () { return typeof pollDataAgeMs === 'function' ? pollDataAgeMs() : null; },
+  intervalMs: POLL_INTERVAL_MS,
+  onVisible: function () { if (typeof pullFromGitHub === 'function') pullFromGitHub(true); }
+}) : null;
 
 // ============ RENDER ============
 // Format dată creării (ora RO) + vârstă alertă
@@ -3204,25 +3222,7 @@ function render() {
     bindMoreToggles($('bodyTriggered'), '.alert-row');
   }
 
-  // v96: pill-ul nu mai scrie „LIVE" peste date înghețate. Dacă ultimul ciclu
-  // reușit e mai vechi decât pragul, spune RĂSPICAT de când sunt cifrele de pe ecran.
-  const _age = typeof pollDataAgeMs === 'function' ? pollDataAgeMs() : null;
-  const _stale = typeof pollDataStale === 'function' && pollDataStale();
-  const _ageTxt = _age == null ? '' : _age < 90000 ? Math.round(_age / 1000) + 's'
-    : _age < 5400000 ? Math.round(_age / 60000) + 'm' : Math.round(_age / 3600000) + 'h';
-  // v97: și cazul „ciclul merge, dar N simboluri nu mai primesc preț" — pill-ul zicea LIVE
-  // în timp ce stocks-urile US stăteau cu Δ-ul de ieri.
-  const _staleSyms = Object.keys(priceAlerts || {}).filter(s => (priceAlerts[s] || []).length && symStale(s));
-  $('pollStatus').className = 'status-pill ' + (pollPaused || _stale || _staleSyms.length ? 'paused' : 'live');
-  $('pollStatus').textContent = pollPaused ? 'PAUZĂ'
-    : _stale ? `⏳ DATE VECHI · ${_ageTxt}`
-    : _staleSyms.length ? `⏳ ${_staleSyms.length} simbol${_staleSyms.length > 1 ? 'uri' : ''} vechi`
-    : `LIVE · ${POLL_INTERVAL_MS/1000}s`;
-  $('pollStatus').title = _stale
-    ? `Ultimul preț adus acum ${_ageTxt}. Cifrele de mai jos NU sunt de acum — watchdog-ul încearcă să repornească polling-ul.`
-    : _staleSyms.length
-    ? `Polling activ, dar fără preț nou pentru: ${_staleSyms.join(', ')}. Δ-ul lor e vechi (vezi ⏳ pe rând).`
-    : 'Polling activ';
+  paintPollHeartbeat();
   $('btnPause').textContent = pollPaused ? '▶' : '⏸';
   $('btnPause').title = pollPaused ? 'Reia polling' : 'Pauză polling';
   $('soundBtn').style.color = soundEnabled ? 'var(--bull-s)' : '';
@@ -3949,19 +3949,7 @@ window.addEventListener('message', (e) => {
   }
 });
 
-// Pause polling when tab inactive
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return;
-  resumePolling('visibility');
-  pullFromGitHub(true);
-});
-// v103: după sleep/bfcache, visibilitychange NU e suficient — Chrome restaurează
-// pagina cu timerii morți și uneori fără hidden→visible. pageshow e semnalul.
-window.addEventListener('pageshow', (e) => {
-  if (e.persisted || (typeof pollDataStale === 'function' && pollDataStale())) {
-    resumePolling('pageshow');
-  }
-});
+// visibilitychange + pageshow + watchdog: PollWake.bind (lib/poll-wake.js)
 
 // ═══════════════════════════════════════════════════════════════════
 // NEWS WATCH (v66+) — pro desk: severity, digest settings, EU map, earnings
@@ -4886,7 +4874,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v779';
+const SW_VER_INLINE = 'tt-v780';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -4903,7 +4891,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v779';
+  var PAGE_VER = 'tt-v780';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

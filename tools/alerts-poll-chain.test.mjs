@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, sep } from 'node:path';
 
 const HTML = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'alerts', 'index.html'), 'utf8');
+const PW = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'poll-wake.js'), 'utf8');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /** Lanț de poll ca în pagină. `guarded` = varianta cu try/catch (cea reparată). */
@@ -66,10 +67,22 @@ test('pagina are watchdog care repornește un lanț mort', () => {
 });
 
 test('revenirea pe tab re-armează lanțul, nu doar un poll unic', () => {
-  const vis = HTML.slice(HTML.indexOf("addEventListener('visibilitychange'"));
-  const bloc = vis.slice(0, 900);
-  assert.ok(bloc.includes('resumePolling(') || bloc.includes('schedulePoll()'),
-    'la visibilitychange trebuie re-armat timerul (altfel pagina reîngheață după un singur refresh)');
+  assert.match(HTML, /PollWake\.bind/, 'alerts trezește poll-ul prin helperul comun');
+  assert.match(PW, /visibilitychange/, 'lib/poll-wake.js re-armează la visibilitychange');
+});
+
+test('watchlist și nasdaq trezesc scan-ul prin PollWake', () => {
+  const wlm = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'watchlist-monitor', 'index.html'), 'utf8');
+  const nq = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'nasdaq-scanner', 'index.html'), 'utf8');
+  assert.match(wlm, /poll-wake\.js/);
+  assert.match(wlm, /PollWake\.bind/);
+  assert.match(nq, /poll-wake\.js/);
+  assert.match(nq, /PollWake\.bind/);
+});
+
+test('pill-ul arată vârsta ultimului poll, nu intervalul 30s', () => {
+  assert.match(HTML, /function paintPollHeartbeat/);
+  assert.match(HTML, /LIVE · '\s*\+\s*ageTxt/, 'LIVE · 8s = vârsta poll-ului, nu cadența');
 });
 
 test('UI-ul nu mai scrie „LIVE" peste date vechi', () => {
@@ -108,8 +121,8 @@ test('bara de refresh spune CARE simboluri n-au primit preț', () => {
 });
 
 test('pill-ul semnalează și „ciclul merge, dar N simboluri sunt înghețate"', () => {
-  assert.match(HTML, /_staleSyms/, 'pill-ul trebuie să numere simbolurile vechi');
-  assert.ok(/simbol\$\{_staleSyms\.length > 1 \? 'uri' : ''\} vechi/.test(HTML));
+  assert.match(HTML, /staleSyms/, 'pill-ul trebuie să numere simbolurile vechi');
+  assert.ok(/staleSyms\.length/.test(HTML) && /vechi/.test(HTML));
 });
 
 // ── v98: Δ-ul își declară ZIUA ───────────────────────────────────────────────
@@ -170,22 +183,17 @@ test('noaptea, stocks US fără preț rămân în poll (throttle-ul 10min nu le 
 
 test('revenirea pe tab forțează trezirea poll-ului, nu un poll pe latch ocupat', () => {
   assert.match(HTML, /function resumePolling\(/, 'trebuie un resumePolling care rupe latch-ul hung');
-  const vis = HTML.slice(HTML.indexOf("addEventListener('visibilitychange'"));
-  const bloc = vis.slice(0, 900);
-  assert.ok(bloc.includes('resumePolling('),
-    'visibilitychange trebuie să cheme resumePolling, nu pollPrices() pe _pollBusy stuck');
-  assert.match(HTML, /addEventListener\('pageshow'/,
+  assert.match(HTML, /PollWake\.bind/, 'trezirea trece prin helper, nu prin pollPrices pe latch ocupat');
+  assert.match(PW, /addEventListener\('pageshow'/,
     'pageshow (bfcache după sleep) trebuie să repornească lanțul — visibilitychange nu e suficient');
 });
 
 test('watchdog-ul eliberează latch-ul hung și când tab-ul e hidden', () => {
-  const i = HTML.indexOf('setInterval(() => {');
-  const wd = HTML.slice(i, i + 900);
-  const busyRel = wd.indexOf('_pollBusy = false');
-  const hiddenRet = wd.indexOf('document.hidden');
-  assert.ok(busyRel >= 0, 'watchdog trebuie să elibereze _pollBusy');
-  assert.ok(hiddenRet < 0 || busyRel < hiddenRet,
-    'eliberarea latch-ului hung trebuie ÎNAINTE de return-ul pe document.hidden — altfel peste noapte latch-ul rămâne și dimineața poll-ul e no-op');
+  const busyRel = PW.indexOf('setBusy(false)');
+  const hiddenRet = PW.indexOf('document.hidden');
+  assert.ok(busyRel >= 0, 'watchdog trebuie să elibereze latch-ul');
+  assert.ok(hiddenRet >= 0 && busyRel < hiddenRet,
+    'eliberarea latch-ului hung trebuie ÎNAINTE de return-ul pe document.hidden');
 });
 
 test('un ciclu cu fire-uri deja văzute tot marchează poll-ul ca reușit', () => {

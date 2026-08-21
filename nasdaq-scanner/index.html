@@ -1012,7 +1012,7 @@ body.dark .control-panel, body.dark .log-panel{box-shadow:0 4px 18px rgba(0,0,0,
   <div class="brand">
     <div class="brand-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="14" width="3.5" height="7" rx="0.8" fill="#ffffff" fill-opacity="0.45"/><rect x="9" y="10" width="3.5" height="11" rx="0.8" fill="#ffffff" fill-opacity="0.6"/><rect x="15" y="5" width="3.5" height="16" rx="0.8" fill="#ffffff" fill-opacity="0.75"/><path d="M2.5 16 L8 12 L14 7 L19.5 3" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="19.5" cy="3" r="3" fill="none" stroke="#ffffff" stroke-width="0.8" opacity="0.5"/><circle cx="19.5" cy="3" r="1.7" fill="#ffffff"/></svg></div>
     <div>
-      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v135</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></div>
+      <div class="brand-name">Nasdaq <span>Scanner</span> <span class="ver-badge" title="Versiune build (crește la fiecare push)">v136</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></div>
       <div class="brand-sub">Oportunități live · Finnhub API · PWA instalabil</div>
     </div>
   </div>
@@ -1331,11 +1331,12 @@ body.dark .control-panel, body.dark .log-panel{box-shadow:0 4px 18px rgba(0,0,0,
 <div class="toast" id="toast"></div>
 </div>
 
-<script src="../lib/suite-version.js?v=779"></script>
+<script src="../lib/suite-version.js?v=780"></script>
 <script src="../lib/finnhub-key.js"></script>
 <!-- data/quote-bus ÎNAINTE de scriptul mare — altfel D/QB lipseau pe first paint/scan
      (erau la final de body, după ~600KB JS inline). -->
-<script src="../lib/data.js?v=705"></script>
+<script src="../lib/data.js?v=779"></script>
+<script src="../lib/poll-wake.js?v=780"></script>
 <script src="../lib/quote-bus.js?v=705"></script>
 <script src="../lib/suite-context.js?v=705"></script>
 <!-- MCTX (read-only cache Macro) + banda cockpit shared — MCTX obligatoriu ÎNAINTEA lui cockpit.js -->
@@ -1440,6 +1441,7 @@ const SECTORS = {
 
 // ── STATE ──
 let running=false, scanTimer=null, cdTimer=null, cdSec=0;
+let _scanBusy=false, _scanBusyTs=0, _lastScanOkTs=0;
 // ── SHELL VISIBILITY (PWA shell în iframe) ──
 // Iframe-urile ascunse (display:none) NU primesc visibilitychange, deci shell-ul
 // ne trimite explicit { ttShellVisible:true/false }. Default = vizibil → fără
@@ -1461,7 +1463,8 @@ window.addEventListener('message', e => {
     } else {
       // Pagina a redevenit activă → dacă scanner-ul era pornit, repornește loop-ul
       // OBLIGATORIU (altfel ar rămâne oprit definitiv) + un scan imediat.
-      if (running) { try{ runScan(); }catch(_){} }
+      if (window._nqWake) window._nqWake.resume('shell-visible');
+      else if (running) { try{ runScan(); }catch(_){} }
     }
   }
 });
@@ -5771,6 +5774,9 @@ async function fetchCandlesForSignals(candidates, key){
 // ── MAIN SCAN ──
 async function runScan(){
   if(!running) return;
+  if(_scanBusy) return;
+  _scanBusy=true; _scanBusyTs=Date.now();
+  try {
   _yahooDailyLoggedThisScan = false; // reset diagnostic log per scan
 
   const key=getApiKey();
@@ -6257,7 +6263,24 @@ async function runScan(){
       }
     }
   }, 1500);
+  _lastScanOkTs=Date.now();
+  } catch(e){ try{ console.error('[nasdaq scan]', e); }catch(_){} }
+  finally { _scanBusy=false; }
 }
+
+window._nqWake = (window.PollWake && PollWake.bind) ? PollWake.bind({
+  getBusy: function () { return _scanBusy; },
+  setBusy: function (v) { if (!v) _scanBusy = false; },
+  getBusyTs: function () { return _scanBusyTs; },
+  setBusyTs: function (v) { _scanBusyTs = v || 0; },
+  poll: function () { if (running) return runScan(); },
+  schedule: function () { if (running && !_shellHidden) startCountdown(); },
+  isPaused: function () { return !running; },
+  isShellHidden: function () { return !!_shellHidden; },
+  isStale: function () { return running && !!_lastScanOkTs && (Date.now() - _lastScanOkTs) > 180000; },
+  lastOkAgeMs: function () { return _lastScanOkTs ? Date.now() - _lastScanOkTs : null; },
+  intervalMs: 30000
+}) : null;
 
 // ── SIGNAL FACTORY ──
 function makeSignal(coin,type,title,desc,metrics,price,chg,strength,priority,suggestion,tradeDetail){
@@ -10525,7 +10548,7 @@ try{ paintFromLastScan(); }catch(e){}
 
 // Înregistrează service worker-ul (cache + offline) — scope: ../
 if('serviceWorker' in navigator){
-  const swVer = 'tt-v779';
+  const swVer = 'tt-v780';
   navigator.serviceWorker.register('../sw-app.js?v='+swVer,{scope:'../',updateViaCache:'none'}).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -11283,7 +11306,7 @@ setTimeout(_updateGistStatusN, 500);
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v779';
+  var PAGE_VER = 'tt-v780';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

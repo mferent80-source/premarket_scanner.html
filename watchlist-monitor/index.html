@@ -736,7 +736,7 @@ body.suite-page header.suite-cockpit select { flex:0 0 auto; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>👁️ Watchlist Monitor <span class="ver-badge">v166</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
+  <h1>👁️ Watchlist Monitor <span class="ver-badge">v167</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span> <span data-regime-badge="../macro-dashboard/"></span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=watchlist-monitor" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq Scanner</a>
@@ -879,6 +879,7 @@ body.suite-page header.suite-cockpit select { flex:0 0 auto; }
 
 <div class="toast-wrap" id="toastWrap"></div>
 
+<script src="../lib/poll-wake.js?v=780"></script>
 <script>
 "use strict";
 
@@ -979,6 +980,7 @@ const POPULAR_TICKERS = ['AAPL','MSFT','NVDA','TSLA','AMZN','GOOGL','META','AMD'
 let watchlist = [];
 let results = []; // [{ symbol, price, chg, vol, rsi, ma50, ma200, ma50abs, ma200abs, score, verdict, verdictTxt, spark, trend, flashDir, perf, ts }]
 let scanRunning = false;
+let _scanBusyTs = 0;
 let autoTimer = null;
 let notifEnabled = false;
 let soundEnabled = false;                // F7
@@ -1482,13 +1484,20 @@ function updateCountdown(){
   } else el.style.display = 'none';
 }
 setInterval(updateCountdown, 1000);
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden){ clearAutoTimer(); return; } // pauză — nu scana în background
-  if (autoSec > 0 && !scanRunning){
-    if (!nextScanAt || Date.now() >= nextScanAt) runScan(); // termenul a trecut → scan imediat
-    else { autoTimer = setTimeout(() => { if (!scanRunning) runScan(); else scheduleNextScan(); }, nextScanAt - Date.now()); updateCountdown(); }
-  }
-});
+window._wlmWake = (window.PollWake && PollWake.bind) ? PollWake.bind({
+  getBusy: function () { return scanRunning; },
+  setBusy: function (v) { if (!v) scanRunning = false; },
+  getBusyTs: function () { return _scanBusyTs; },
+  setBusyTs: function (v) { _scanBusyTs = v || 0; },
+  poll: function () { if (autoSec > 0) return runScan(); },
+  schedule: function () { scheduleNextScan(); },
+  isPaused: function () { return autoSec <= 0; },
+  isShellHidden: function () { return !!_shellHidden; },
+  isStale: function () { return autoSec > 0 && !!lastScanTs && (Date.now() - lastScanTs) > Math.max(autoSec, 60) * 3000; },
+  lastOkAgeMs: function () { return lastScanTs ? Date.now() - lastScanTs : null; },
+  intervalMs: 30000,
+  onVisible: function () {}
+}) : null;
 
 // Shell PWA → pauză/reluare auto-poll când iframe-ul devine fundal/activ.
 // Opt-in: doar la ttShellVisible:false oprim; revenirea (true) re-armă OBLIGATORIU
@@ -1499,12 +1508,9 @@ window.addEventListener('message', e => {
   const hidden = !e.data.ttShellVisible;
   if (hidden === _shellHidden) return; // fără schimbare reală
   _shellHidden = hidden;
-  if (_shellHidden){ clearAutoTimer(); return; } // fundal → oprește auto-poll-ul
-  // revenit activ → reia scheduler-ul + refresh imediat (dacă nu rulează deja un scan)
-  if (autoSec > 0 && !scanRunning){
-    if (!nextScanAt || Date.now() >= nextScanAt) runScan(); // termen depășit → scan acum
-    else { autoTimer = setTimeout(() => { if (!scanRunning) runScan(); else scheduleNextScan(); }, nextScanAt - Date.now()); updateCountdown(); }
-  } else scheduleNextScan();
+  if (_shellHidden){ clearAutoTimer(); return; }
+  if (window._wlmWake) window._wlmWake.resume('shell-visible');
+  else scheduleNextScan();
 });
 
 // ── Jurnal schimbări verdict + toasts (F6) ────────────────────────
@@ -2631,6 +2637,8 @@ async function runScan(){
   if (!watchlist.length){ setStatus('warn', 'watchlist gol — adaugă stocks'); if (autoSec > 0) scheduleNextScan(); return; }
 
   scanRunning = true;
+  _scanBusyTs = Date.now();
+  try {
   _deadProxies.clear(); // reîncearcă de la zero proxy-urile la fiecare scan nou
   $('scanBtn').disabled = true;
   setStatus('load', `scanez ${watchlist.length} stocks…`);
@@ -2773,6 +2781,8 @@ async function runScan(){
   loadProfileData(); // F — sector real per rând (cache 30z, max 30 fetch-uri/scan)
   maybeSendDigest(); // G — digest de închidere (dacă scanul a prins after-hours)
   if (autoSec > 0) scheduleNextScan();
+  } catch (e) { try { console.error('[wlm scan]', e); setStatus('err', 'scan eșuat'); } catch (_) {} }
+  finally { scanRunning = false; try { $('scanBtn').disabled = false; } catch (_) {} }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3850,10 +3860,10 @@ scheduleNextScan();
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/regime.js"></script>
-<script src="../lib/suite-version.js?v=779"></script>
+<script src="../lib/suite-version.js?v=780"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = 'tt-v779';
+  const swVer = 'tt-v780';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
@@ -3862,7 +3872,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v779';
+  var PAGE_VER = 'tt-v780';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
