@@ -1,4 +1,4 @@
-/* hub-ui.css v785 — header REGIM, fără Platform, DATE LIVE 4+Mai multe */
+/* hub-ui.css v786 — badge-uri PLATFORM pe first paint + DATE LIVE comandă */
 
 .hub-shell {
   display: flex;
@@ -317,10 +317,13 @@ body[data-hub-mode="review"] .card[data-phase="execute"]{opacity:.5}
   font-size:11.5px !important;
 }
 
-/* ── I-216 Platform health strip — scoasă de pe Hub (Health e pill + /health/) ── */
-.hub-platform-strip,
-#hubPlatformStrip{
-  display:none!important;
+/* ── I-216 Platform health badges (Trust / SPY / freeze / risc) ── */
+.hub-platform-strip{
+  display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;
+  margin:0 0 8px;padding:6px 8px;
+  border-radius:10px;border:1px solid var(--b1);
+  background:var(--panel,var(--bg2));
+  font-family:var(--mono);font-size:10.5px;
 }
 .hub-platform-strip[hidden]{display:none!important}
 .hub-platform-strip .hps-lbl{
@@ -694,7 +697,6 @@ a.hps-chip:hover{border-color:var(--accent,#8ac8ff);color:var(--accent,#8ac8ff);
 }
 .hub-head-ck .ckb-gauge,
 .hub-head-ck .ckb-sep,
-.hub-head-ck .ckb-sub,
 .hub-head-ck .ckb-spacer,
 .hub-head-ck .ckb-src{display:none!important}
 .hub-head-ck .ckb-dot{font-size:12px}
@@ -840,12 +842,6 @@ a.hps-chip:hover{border-color:var(--accent,#8ac8ff);color:var(--accent,#8ac8ff);
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 5px;
 }
-
-/* DATE LIVE first-paint: 4 carduri egale (GO / Desk / SPY / VIX) */
-#htCommandGrid{
-  grid-template-columns:repeat(4,minmax(0,1fr));
-}
-#htCommandGrid .ht-card{grid-column:span 1!important}
 
 .ht-more{
   margin:8px 0 0;
@@ -1588,10 +1584,6 @@ a.ht-ev { text-decoration: none; color: inherit; } /* era .ht-ev a.ht-ev — sel
   .ht-card.ht-hero { grid-column: span 3; min-height: 54px; }
   .ht-card.ht-core { grid-column: span 3; }
   .ht-card.ht-compact { grid-column: span 3; }
-}
-
-@media (max-width: 700px) {
-  #htCommandGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 520px) {
