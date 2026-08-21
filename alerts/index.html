@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="../lib/theme-light.css?v=791">
+<link rel="stylesheet" href="../lib/theme-light.css?v=792">
 <script src="../lib/theme.js?v=734"></script>
 <title>🔔 Price Alerts — Trading Tools</title>
 <meta name="theme-color" content="#14181f">
@@ -15,36 +15,36 @@
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
-  /* Desk institutional: oțel, fără neon / alb pur / auriu pe titlu */
-  --bg:#14181f;
-  --bg-grad:linear-gradient(180deg, #181c24 0%, #14181f 28%);
-  --panel:#1b2028;
-  --panel2:#222830;
-  --panel3:#2a303a;
-  --b1:#3a4250;
-  --b2:#2e3542;
-  --t1:#e6e8ec;
-  --t2:#b4bac4;
-  --t3:#8b929e;
-  --accent:#8a9aab;
-  --acc-1:#6e8294;
-  --acc-2:#6e8294;
-  --on-accent:#14181f;
-  --bull-s:#5f9a74;
-  --bull-bg:rgba(95,154,116,.14);
-  --bear-s:#c46b6b;
-  --bear-bg:rgba(196,107,107,.14);
-  --warn:#c4a056;
-  --warn-bg:rgba(196,160,86,.14);
-  --gold:#c4b08a;
-  --suite-bg:#14181f;
-  --suite-t1:#e6e8ec;
-  --suite-t2:#b4bac4;
-  --suite-t3:#8b929e;
-  --topbar-bg:rgba(27,32,40,.96);
-  --topbar-shadow:0 8px 22px rgba(10,12,16,.35);
-  --shadow:0 4px 14px rgba(10,12,16,.28),0 1px 0 rgba(255,255,255,.03) inset;
-  --r:12px; --rs:8px;
+  /* Model Gestiune (IBM Plex + Carbon), contrast +1, fără sticlă */
+  --bg:#161616;
+  --bg-grad:none;
+  --panel:#212121;
+  --panel2:#262626;
+  --panel3:#2c2c2c;
+  --b1:#525252;
+  --b2:#393939;
+  --t1:#f4f4f4;
+  --t2:#c6c6c6;
+  --t3:#a8a8a8;
+  --accent:#78a9ff;
+  --acc-1:#0f62fe;
+  --acc-2:#78a9ff;
+  --on-accent:#ffffff;
+  --bull-s:#42be65;
+  --bull-bg:rgba(66,190,101,.14);
+  --bear-s:#fa4d56;
+  --bear-bg:rgba(250,77,86,.14);
+  --warn:#f1c21b;
+  --warn-bg:rgba(241,194,27,.12);
+  --gold:#f1c21b;
+  --suite-bg:#161616;
+  --suite-t1:#f4f4f4;
+  --suite-t2:#c6c6c6;
+  --suite-t3:#a8a8a8;
+  --topbar-bg:#1c1c1c;
+  --topbar-shadow:none;
+  --shadow:0 8px 24px rgba(0,0,0,.4);
+  --r:8px; --rs:5px;
   --mono:'IBM Plex Mono',ui-monospace,monospace; --head:'IBM Plex Sans',system-ui,sans-serif;
   --ease:cubic-bezier(.4,0,.2,1);
   color-scheme:dark;
@@ -52,12 +52,42 @@
 :root[data-theme="light"] {
   --on-accent:#ffffff;
 }
+:root[data-theme="light"] body.al-page,
+:root[data-theme="light"] body.suite-page {
+  color:#111111;
+  --t1:#111111; --t2:#393939; --t3:#525252;
+  --text:#111111; --muted:#525252; --text-dim:#393939;
+  --accent:#0f62fe; --acc-1:#0f62fe; --acc-2:#0043ce; --on-accent:#ffffff;
+  --bull-s:#198038; --bull-bg:#defbe6;
+  --bear-s:#da1e28; --bear-bg:#fff1f1;
+  --warn:#8e6a00; --warn-bg:#fcf4d6; --gold:#8e6a00;
+  --bg:#f6f6f6; --bg-grad:none;
+  --panel:#ffffff; --panel2:#ffffff; --panel3:#f4f4f4;
+  --b1:#c6c6c6; --b2:#e0e0e0;
+  --topbar-bg:#ffffff; --topbar-shadow:none;
+  --shadow:0 4px 16px rgba(22,22,22,.08);
+  --suite-bg:#f6f6f6; --suite-t1:#111111; --suite-t2:#393939; --suite-t3:#525252;
+}
 html,body { min-height:100vh; }
 body, body.suite-page {
-  font-family:var(--head); background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
-  color:var(--t1); padding:12px; font-size:13.5px; line-height:1.5; font-weight:400;
+  font-family:var(--head); background:var(--bg); background-image:none;
+  color:var(--t1); padding:12px; font-size:13.5px; line-height:1.45; font-weight:400;
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
   text-rendering:optimizeLegibility; font-variant-numeric:tabular-nums;
+}
+body.al-page .desk-tabs,
+body.al-page header.al-topbar,
+body.al-page .al-desk,
+body.al-page .section {
+  background:var(--panel) !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  box-shadow:none;
+}
+body.al-page .al-table th,
+body.al-page .almost-lbl,
+body.al-page .al-kpi > span {
+  color:var(--t2) !important; opacity:1 !important; font-weight:600;
 }
 
 header {
@@ -110,6 +140,7 @@ input, select {
   padding:8px 12px; border-radius:var(--rs); font-size:13.5px; font-family:inherit; font-weight:600;
 }
 input::placeholder { color:var(--t3); opacity:1; }
+body.al-page input::placeholder { color:var(--t3) !important; }
 input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 28%, transparent); background:var(--panel2); }
 
 .nav-link {
@@ -863,7 +894,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 .al-table { font-size:13px; }
 .al-table th {
   font-size:11px; font-weight:600; letter-spacing:.03em;
-  color:var(--t3); text-transform:uppercase; padding:6px 8px 8px;
+  color:var(--t2); text-transform:uppercase; padding:6px 8px 8px;
 }
 .al-tk a { font-weight:600; font-size:13px; letter-spacing:0; }
 .al-now, .al-entry, .al-tgt { font-weight:500; }
@@ -1140,7 +1171,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v106</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v107</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1540,13 +1571,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=791"></script>
-<script src="../lib/data.js?v=791"></script>
-<script src="../lib/poll-wake.js?v=791"></script>
+<script src="../lib/suite-version.js?v=792"></script>
+<script src="../lib/data.js?v=792"></script>
+<script src="../lib/poll-wake.js?v=792"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=791"></script>
+<script src="../lib/price-day.js?v=792"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -4883,7 +4914,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v791';
+const SW_VER_INLINE = 'tt-v792';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -4900,7 +4931,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v791';
+  var PAGE_VER = 'tt-v792';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=791"></script>
+<script src="lib/suite-version.js?v=792"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -39,11 +39,11 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="lib/theme-light.css?v=791">
+<link rel="stylesheet" href="lib/theme-light.css?v=792">
 <script src="lib/theme.js?v=734"></script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#141a22">
+<meta name="theme-color" content="#161616">
 <title>Stocks Trading Tools — Nasdaq + Events</title>
 <meta name="description" content="Suite stocks trading: Nasdaq Scanner, Market Events, Journal & Risk Desk, Macro Dashboard — cockpit decizional stocks-only">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
@@ -53,36 +53,36 @@
 <link rel="preload" href="lib/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="lib/plex.css?v=743">
 <link rel="stylesheet" href="lib/suite-ui.css?v=712">
-<link rel="stylesheet" href="lib/hub-ui.css?v=790">
+<link rel="stylesheet" href="lib/hub-ui.css?v=792">
 <style>
-/* === Hub desk — navy cald, fără oțel mort / neon ── */
+/* === Hub — model Gestiune (IBM Plex + Carbon), contrast +1, fără sticlă ── */
 :root{
-  --bg:#141a22;
-  --bg-grad:linear-gradient(180deg, #1e2836 0%, #141a22 40%);
-  --bg2:#1e2733; --bg3:#253040; --bg4:#2c3848;
-  --panel:#1e2733; --panel2:#253040; --panel3:#2c3848;
-  --b1:#3d4a5c; --b2:#323d4c;
-  --t1:#eef2f6; --t2:#c5ccd6; --t3:#8b96a6;
-  --crypto-1:#d4a574; --crypto-2:#e0c9a4;
-  --indigo:#7eb8d8; --indigol:rgba(126,184,216,.12); --indigob:rgba(126,184,216,.35);
-  --blue:#7eb8d8;   --bluel:rgba(126,184,216,.12);   --blueb:rgba(126,184,216,.35);
-  --teal:#6cba8c;   --teall:rgba(108,186,140,.12);   --tealb:rgba(108,186,140,.35);
-  --green:#6cba8c;
-  --bull-s:#6cba8c;
-  --red:#d08080; --warn:#d0a85c;
-  --accent:#7eb8d8;
-  --acc-1:#5a9cc0;
-  --on-accent:#141a22;
-  --gold:#d4a574;
-  --suite-bg:#141a22;
-  --suite-t1:#eef2f6;
-  --suite-t2:#c5ccd6;
-  --suite-t3:#8b96a6;
-  --topbar-bg:rgba(30,39,51,.96);
-  --topbar-shadow:0 8px 22px rgba(8,12,20,.32);
-  --shadow:0 4px 14px rgba(8,12,20,.26),0 1px 0 rgba(255,255,255,.04) inset;
+  --bg:#161616;
+  --bg-grad:none;
+  --bg2:#1c1c1c; --bg3:#212121; --bg4:#262626;
+  --panel:#212121; --panel2:#262626; --panel3:#2c2c2c;
+  --b1:#525252; --b2:#393939;
+  --t1:#f4f4f4; --t2:#c6c6c6; --t3:#a8a8a8;
+  --crypto-1:#78a9ff; --crypto-2:#a6c8ff;
+  --indigo:#78a9ff; --indigol:rgba(120,169,255,.12); --indigob:rgba(120,169,255,.35);
+  --blue:#78a9ff;   --bluel:rgba(120,169,255,.12);   --blueb:rgba(120,169,255,.35);
+  --teal:#42be65;   --teall:rgba(66,190,101,.14);   --tealb:rgba(66,190,101,.35);
+  --green:#42be65;
+  --bull-s:#42be65;
+  --red:#fa4d56; --warn:#f1c21b;
+  --accent:#78a9ff;
+  --acc-1:#0f62fe;
+  --on-accent:#ffffff;
+  --gold:#f1c21b;
+  --suite-bg:#161616;
+  --suite-t1:#f4f4f4;
+  --suite-t2:#c6c6c6;
+  --suite-t3:#a8a8a8;
+  --topbar-bg:#1c1c1c;
+  --topbar-shadow:none;
+  --shadow:0 8px 24px rgba(0,0,0,.4);
   --mono:'IBM Plex Mono',ui-monospace,monospace; --head:'IBM Plex Sans',system-ui,sans-serif;
-  --r:12px; --rs:8px;
+  --r:8px; --rs:5px;
   --sh:0 1px 2px rgba(10,12,16,.28);
   --shh:0 4px 14px rgba(10,12,16,.28);
   --ease:cubic-bezier(.4,0,.2,1);
@@ -93,25 +93,63 @@ html,body{min-height:100vh}
 body.hub-page{
   font-family:var(--head);
   color:var(--t1);
-  line-height:1.5;
+  line-height:1.45;
   font-size:13.5px;
   font-weight:400;
-  --t1:#eef2f6; --t2:#c5ccd6; --t3:#8b96a6;
-  --text:#eef2f6; --muted:#c5ccd6; --text-dim:#8b96a6;
-  --accent:#7eb8d8; --green:#6cba8c; --red:#d08080; --warn:#d0a85c;
-  --bg:#141a22; --bg2:#1e2733; --bg3:#253040; --bg4:#2c3848;
-  --panel:#1e2733; --panel2:#253040; --panel3:#2c3848;
-  --b1:#3d4a5c; --b2:#323d4c;
+  -webkit-font-smoothing:antialiased !important;
+  -moz-osx-font-smoothing:grayscale;
+  background:var(--bg) !important;
+  background-image:none !important;
+  --t1:#f4f4f4; --t2:#c6c6c6; --t3:#a8a8a8;
+  --text:#f4f4f4; --muted:#a8a8a8; --text-dim:#c6c6c6;
+  --accent:#78a9ff; --green:#42be65; --red:#fa4d56; --warn:#f1c21b;
+  --bg:#161616; --bg2:#1c1c1c; --bg3:#212121; --bg4:#262626;
+  --panel:#212121; --panel2:#262626; --panel3:#2c2c2c;
+  --b1:#525252; --b2:#393939;
   padding-bottom:48px !important;
 }
 :root[data-theme="light"] body.hub-page{
-  /* suprafețe = lib/theme-light.css (--bg #fbfaf7); aici doar cerneală + accent Hub */
-  color:var(--t1);
-  --accent:#1d6a9a; --acc-1:#1d6a9a; --on-accent:#ffffff;
+  color:#111111;
+  --t1:#111111; --t2:#393939; --t3:#525252;
+  --text:#111111; --muted:#525252; --text-dim:#393939;
+  --accent:#0f62fe; --acc-1:#0f62fe; --on-accent:#ffffff;
+  --green:#198038; --bull-s:#198038;
+  --red:#da1e28; --warn:#8e6a00;
+  --crypto-1:#0f62fe; --crypto-2:#0043ce; --gold:#8e6a00;
+  --bg:#f6f6f6; --bg-grad:none;
+  --bg2:#ffffff; --bg3:#ffffff; --bg4:#f0f0f0;
+  --panel:#ffffff; --panel2:#ffffff; --panel3:#f4f4f4;
+  --b1:#c6c6c6; --b2:#e0e0e0;
+  --topbar-bg:#ffffff;
+  --topbar-shadow:none;
+  --shadow:0 4px 16px rgba(22,22,22,.08);
+  --suite-bg:#f6f6f6; --suite-t1:#111111; --suite-t2:#393939; --suite-t3:#525252;
 }
-/* Hub anti-ceață: carduri/lead/meta */
+/* anti-ceață: text opac, panouri solide (bate theme-light --tt-glass) */
 .lead,.brand,.card-desc,.card-tag,.feat,.pb-diff,.tt-stats span,.fl-item .fl-txt{color:var(--t2)!important;opacity:1!important}
 .card-title,.pb-mkt-val,.pb-hero-verdict,h1,h2,h3{color:var(--t1)!important;opacity:1!important}
+body.hub-page .hub-head-compact,
+body.hub-page .hub-sess-bar,
+body.hub-page .hub-launch,
+body.hub-page .hub-platform-strip,
+body.hub-page .hub-dash-panel,
+body.hub-page .hub-pre5,
+body.hub-page .ht-gold-bar,
+body.hub-page .ht-card,
+body.hub-page .ckb-band{
+  background:var(--panel)!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  opacity:1!important;
+  box-shadow:none;
+}
+body.hub-page .hub-head-compact{background:var(--topbar-bg)!important}
+body.hub-page .ht-m-lbl,
+body.hub-page .hps-lbl,
+body.hub-page .hub-sess-lbl,
+body.hub-page .hub-decision-lbl{
+  color:var(--t2)!important;opacity:1!important;font-weight:600;
+}
 /* full-bleed Macro — fără max-width îngust */
 .wrap{width:100%;max-width:none;margin:0}
 
@@ -1316,7 +1354,7 @@ body.hub-page .hub-na.prio-ok{
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <!-- CRITICAL path — first paint cockpit (GO / market / next action). Restul la idle. -->
-<script defer src="lib/data.js?v=791"></script>
+<script defer src="lib/data.js?v=792"></script>
 <script defer src="lib/quote-bus.js?v=712"></script>
 <script defer src="lib/finnhub-key.js?v=712"></script>
 <script defer src="lib/suite-sessions.js?v=712"></script>
@@ -1722,7 +1760,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = 'tt-v791';
+  const swVer = 'tt-v792';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1939,7 +1977,7 @@ window.addEventListener('DOMContentLoaded', function(){
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v791';
+  var PAGE_VER = 'tt-v792';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw-app.js?v=' + PAGE_VER, { scope: './', updateViaCache: 'none' })
     .then(function (reg) {
