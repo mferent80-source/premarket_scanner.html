@@ -129,6 +129,23 @@ for (const file of htmlFiles(ROOT)) {
   }
 }
 
+// ── 3. cache-bust pe lib-urile din PRECACHE (data / poll-wake / price-day) ──
+// Fără ?v= la CACHE_VERSION, SW-ul (ignoreSearch) ține data.js vechi — D.dropInflight
+// lipsea pe Pages după tt-v779 pentru că HTML-ul cerea încă data.js?v=710.
+const nnn = short.replace(/^tt-v/, '');
+const LIB_SRC_RE = /src=(["'])([^"']*lib\/(?:data|poll-wake|price-day)\.js)(\?v=\d+)?\1/g;
+for (const file of htmlFiles(ROOT)) {
+  const relPath = relative(ROOT, file).split(sep).join('/');
+  let html = read(file);
+  const before = html;
+  LIB_SRC_RE.lastIndex = 0;
+  html = html.replace(LIB_SRC_RE, (_, q, path) => `src=${q}${path}?v=${nnn}${q}`);
+  if (html !== before) {
+    if (CHECK) problems.push(`${relPath} lib ?v= nu e pe ${nnn}`);
+    else { writeFileSync(file, html); if (!fixed.includes(relPath)) fixed.push(relPath); }
+  }
+}
+
 // ── raport ─────────────────────────────────────────────────────────────────
 if (CHECK) {
   if (problems.length) {

@@ -409,7 +409,7 @@ body.suite-page header.suite-cockpit select{ flex:0 0 auto; }
 <body class="suite-page">
 
 <header class="suite-cockpit">
-  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v125</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v126</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../" class="nav-link">🏠 Hub</a>
   <a href="../guide/?page=pump-radar" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
@@ -513,6 +513,7 @@ body.suite-page header.suite-cockpit select{ flex:0 0 auto; }
 
 <div class="toast-wrap" id="toastWrap"></div>
 
+<script src="../lib/poll-wake.js?v=781"></script>
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
@@ -545,6 +546,7 @@ let results = [];          // [{ symbol, price, m5, chgDay, vol, volRatio, rsi, 
 let prevHeat = {};         // SYM -> heat anterior (pt flash)
 let seen = {};             // dedupe alerte notificate
 let scanRunning = false, autoTimer = null, nextScanAt = 0;
+let _scanBusyTs = 0, _lastScanOkTs = 0;
 let notifEnabled = false, soundEnabled = false;
 let tgConfig = { token: '', chatId: '', enabled: false };
 let watchlist = [];
@@ -1459,6 +1461,8 @@ setInterval(updateCountdown, 1000);
 async function runScan(){
   if (scanRunning) return;
   scanRunning = true;
+  _scanBusyTs = Date.now();
+  try {
   const seq = ++_scanSeq;
   clearAutoTimer();
   _deadProxies = new Set(); // resetăm „proxy mort" la fiecare scan nou
@@ -1527,8 +1531,10 @@ async function runScan(){
   else if (ok < UNIVERSE.length) setStatus('warn', `${alertN} alerte · ${ok}/${UNIVERSE.length} ok (${UNIVERSE.length - ok} ratate — proxy rate-limit; univers INCOMPLET)`);
   else setStatus('ok', `${alertN} alerte · ${ok}/${UNIVERSE.length} ok`);
   render();
-  scanRunning = false; $('scanBtn').disabled = false;
+  _lastScanOkTs = Date.now();
   scheduleNextScan();
+  } catch (e) { try { console.error('[pump scan]', e); } catch (_) {} }
+  finally { scanRunning = false; try { $('scanBtn').disabled = false; } catch (_) {} }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1899,7 +1905,19 @@ document.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('cl
   render();
 }));
 
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && cfg.autoSec > 0 && !scanRunning && nextScanAt && Date.now() > nextScanAt) runScan(); });
+window._prWake = (window.PollWake && PollWake.bind) ? PollWake.bind({
+  getBusy: function () { return scanRunning; },
+  setBusy: function (v) { if (!v) scanRunning = false; },
+  getBusyTs: function () { return _scanBusyTs; },
+  setBusyTs: function (v) { _scanBusyTs = v || 0; },
+  poll: function () { if (cfg.autoSec > 0) return runScan(); },
+  schedule: function () { scheduleNextScan(); },
+  isPaused: function () { return !(cfg.autoSec > 0); },
+  isShellHidden: function () { return !!_shellHidden; },
+  isStale: function () { return cfg.autoSec > 0 && !!_lastScanOkTs && (Date.now() - _lastScanOkTs) > Math.max(cfg.autoSec, 60) * 3000; },
+  lastOkAgeMs: function () { return _lastScanOkTs ? Date.now() - _lastScanOkTs : null; },
+  intervalMs: 30000
+}) : null;
 
 // Shell PWA: pauză polling în fundal (iframe inactiv nu primește visibilitychange).
 // Opt-in strict: doar la mesaj valid din același origin cu boolean ttShellVisible.
@@ -1914,8 +1932,11 @@ window.addEventListener('message', e => {
   } else {
     if (!_shellHidden) return; // deja vizibili → nimic de făcut
     _shellHidden = false;
-    scheduleNextScan();        // re-armăm OBLIGATORIU
-    if (cfg.autoSec > 0 && !scanRunning) runScan(); // scan imediat la revenire
+    if (window._prWake) window._prWake.resume('shell-visible');
+    else {
+      scheduleNextScan();
+      if (cfg.autoSec > 0 && !scanRunning) runScan();
+    }
   }
 });
 
@@ -1931,7 +1952,7 @@ render();
 if (cfg.autoSec > 0) window.addEventListener('load', function(){ runScan(); }); else scheduleNextScan();
 </script>
 <!-- Markov Lab: regim de volatilitate al pieței (HMM pe SPY daily) — context de risc global -->
-<script src="../lib/data.js"></script>
+<script src="../lib/data.js?v=781"></script>
 <script src="../lib/insider.js"></script>
 <script src="../lib/markov.js"></script>
 <script src="../lib/backtest.js"></script>
@@ -2005,10 +2026,10 @@ window.validatePumpSignal = async function(symbol, btn){
 <script src="../lib/telegram.js"></script>
 <script src="../lib/ai.js"></script>
 <script src="../lib/regime.js"></script>
-<script src="../lib/suite-version.js?v=780"></script>
+<script src="../lib/suite-version.js?v=781"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = 'tt-v780';
+  const swVer = 'tt-v781';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
@@ -2017,7 +2038,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v780';
+  var PAGE_VER = 'tt-v781';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

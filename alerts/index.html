@@ -1140,7 +1140,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v104</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v105</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1540,13 +1540,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=780"></script>
-<script src="../lib/data.js?v=779"></script>
-<script src="../lib/poll-wake.js?v=780"></script>
+<script src="../lib/suite-version.js?v=781"></script>
+<script src="../lib/data.js?v=781"></script>
+<script src="../lib/poll-wake.js?v=781"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=779"></script>
+<script src="../lib/price-day.js?v=781"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2238,6 +2238,7 @@ function pxCacheAgeMs(sym) {
 }
 let _pollBusy = false; // v41: latch anti re-entrancy — apelurile manuale (add/edit/pull/visibility) se pot suprapune peste cel programat → dublu fire/notificare
 let _pollBusyTs = 0;   // v96: de când e ridicat latch-ul (watchdog-ul îl eliberează dacă un await atârnă)
+let _staleBeeped = false; // v105: un singur beep când pill-ul trece pe DATE VECHI (>90s)
 let _lastPollOkTs = 0; // v96: ultimul ciclu DUS LA CAPĂT — baza watchdog-ului și a marcajului „date vechi"
 async function pollPrices() {
   if (pollPaused || _pollBusy) return;
@@ -2640,6 +2641,14 @@ function paintPollHeartbeat() {
     : staleSyms.length
     ? ('Polling activ, dar fără preț nou pentru: ' + staleSyms.join(', ') + '.')
     : (age == null ? 'Polling pornește…' : ('Ultimul poll acum ' + ageTxt));
+  if (stale && !pollPaused) {
+    if (!_staleBeeped) {
+      _staleBeeped = true;
+      try { playBeep(); } catch (e) {}
+    }
+  } else {
+    _staleBeeped = false;
+  }
 }
 setInterval(function () { try { paintPollHeartbeat(); } catch (e) {} }, 1000);
 window._pollWake = (window.PollWake && PollWake.bind) ? PollWake.bind({
@@ -4874,7 +4883,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v780';
+const SW_VER_INLINE = 'tt-v781';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -4891,7 +4900,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v780';
+  var PAGE_VER = 'tt-v781';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

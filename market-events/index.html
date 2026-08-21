@@ -1478,7 +1478,7 @@ body.suite-page .topbar.suite-cockpit .ai-autoscan-wrap{ flex:0 0 auto; }
 
 <!-- === Sticky topbar (înlocuiește hub-back + h1 + subtitle + global-config) === -->
 <div class="topbar suite-cockpit">
-  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v268</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>📊 Market Events <span class="ver-badge" title="Versiune build (crește la fiecare push)">v269</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <a href="../guide/?page=market-events" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
   <a href="../" class="nav-link hub-back">← Hub</a>
   <button class="nav-link" onclick="window.showMeFeatures()" style="background:rgba(91,176,255,.12);color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă completă funcționalități">ℹ Funcționalități</button>
@@ -1848,7 +1848,8 @@ body.suite-page .topbar.suite-cockpit .ai-autoscan-wrap{ flex:0 0 auto; }
 </section>
 </div><!-- /elPanelScan -->
 
-<script src="../lib/data.js"></script>
+<script src="../lib/data.js?v=781"></script>
+<script src="../lib/poll-wake.js?v=781"></script>
 <script src="../lib/insider.js"></script>
 <script src="../lib/ledger.js"></script>
 <script src="../lib/telegram.js"></script>
@@ -3059,10 +3060,12 @@ function wlSendAllToScanners(){
 }
 
 let wlRefreshing = false; // guard: împiedică suprapunerea cicluri de refresh (polling 15s + 60s)
+let _wlRefreshTs = 0, _lastWlOkTs = 0;
 async function wlRefresh(){
   if (!watchlist.length) return;
   if (wlRefreshing) return; // un refresh anterior încă rulează (proxy lent + watchlist mare) → nu acumula
   wlRefreshing = true;
+  _wlRefreshTs = Date.now();
   const btn = document.querySelector('.wl-refresh-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Refresh...'; }
   try {
@@ -3080,6 +3083,7 @@ async function wlRefresh(){
     // simbolurile noi/stale >10min); refresh-ul complet îl face intervalul dedicat de 10 min.
     // Înainte: force=true la fiecare 15s re-aducea istoric 3mo × tot watchlist-ul = retry storm.
     wlEnsureEarlyData(false).then(wlRender);
+    _lastWlOkTs = Date.now();
   } finally {
     wlRefreshing = false;
     if (btn) { btn.disabled = false; btn.textContent = '🔄 Refresh'; }
@@ -6742,6 +6746,24 @@ function applyLiveMode() {
 
 // Tranzițiile de sesiune sunt detectate direct în renderMarketSession (vezi sus) — fără monkey-patch.
 
+window._meWake = (window.PollWake && PollWake.bind) ? PollWake.bind({
+  getBusy: function () { return wlRefreshing; },
+  setBusy: function (v) { if (!v) wlRefreshing = false; },
+  getBusyTs: function () { return _wlRefreshTs; },
+  setBusyTs: function (v) { _wlRefreshTs = v || 0; },
+  poll: function () { if (watchlist.length) return wlRefresh(); },
+  schedule: function () {},
+  isPaused: function () { return !watchlist.length; },
+  isShellHidden: function () { return !!_shellHidden; },
+  isStale: function () {
+    if (!watchlist.length || !_lastWlOkTs) return false;
+    var maxAge = (currentSession === 'REGULAR' ? 15 : 60) * 3000;
+    return (Date.now() - _lastWlOkTs) > maxAge;
+  },
+  lastOkAgeMs: function () { return _lastWlOkTs ? Date.now() - _lastWlOkTs : null; },
+  intervalMs: 30000
+}) : null;
+
 // ============================================================
 // SHELL VISIBILITY — pauză polling de fundal când shell-ul PWA
 // ține pagina în iframe ascuns (display:none, fără visibilitychange).
@@ -6772,8 +6794,9 @@ function _shellResumePolling(){
     // Live 15s + autoscan: re-armate prin funcțiile lor (acum gate-uite pe !_shellHidden).
     if (typeof applyLiveMode === 'function') applyLiveMode();
     if (typeof autoScanApply === 'function' && typeof autoScanInterval !== 'undefined' && autoScanInterval > 0) autoScanApply();
-    // Refresh imediat la revenire (datele s-au învechit cât am stat ascunși).
-    if (typeof watchlist !== 'undefined' && watchlist.length && typeof wlRefresh === 'function') wlRefresh();
+    // Refresh imediat la revenire: PollWake rupe inflight hung + latch, apoi wlRefresh.
+    if (window._meWake) window._meWake.resume('shell-visible');
+    else if (typeof watchlist !== 'undefined' && watchlist.length && typeof wlRefresh === 'function') wlRefresh();
   } catch(e){ /* nu bloca pagina dacă un timer lipsește */ }
 }
 window.addEventListener('message', function(ev){
@@ -6873,10 +6896,10 @@ function renderSectorHeatmap() {
 // Heatmap-urile sunt randate direct din scanLosers (în finally) — fără monkey-patch.
 </script>
 
-<script src="../lib/suite-version.js?v=780"></script>
+<script src="../lib/suite-version.js?v=781"></script>
 <script>
 if ('serviceWorker' in navigator) {
-  const swVer = 'tt-v780';
+  const swVer = 'tt-v781';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 </script>
@@ -6885,7 +6908,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v780';
+  var PAGE_VER = 'tt-v781';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

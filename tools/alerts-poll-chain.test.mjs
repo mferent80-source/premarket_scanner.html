@@ -80,6 +80,23 @@ test('watchlist și nasdaq trezesc scan-ul prin PollWake', () => {
   assert.match(nq, /PollWake\.bind/);
 });
 
+test('pump-radar și market-events trezesc poll-ul prin PollWake', () => {
+  const pr = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'pump-radar', 'index.html'), 'utf8');
+  const me = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'market-events', 'index.html'), 'utf8');
+  assert.match(pr, /poll-wake\.js/);
+  assert.match(pr, /PollWake\.bind/);
+  assert.match(me, /poll-wake\.js/);
+  assert.match(me, /PollWake\.bind/);
+});
+
+test('DATE VECHI pe pill sună o dată, nu la fiecare tick', () => {
+  const fn = HTML.slice(HTML.indexOf('function paintPollHeartbeat'));
+  const body = fn.slice(0, fn.indexOf('\nsetInterval'));
+  assert.match(HTML, /let _staleBeeped/);
+  assert.match(body, /_staleBeeped/);
+  assert.match(body, /playBeep\(/);
+});
+
 test('pill-ul arată vârsta ultimului poll, nu intervalul 30s', () => {
   assert.match(HTML, /function paintPollHeartbeat/);
   assert.match(HTML, /LIVE · '\s*\+\s*ageTxt/, 'LIVE · 8s = vârsta poll-ului, nu cadența');
@@ -288,6 +305,38 @@ test('fiecare pagina cu SW isi ia versiunea dintr-un LITERAL, nu din fisierul ca
   })(root);
   assert.deepStrictEqual(guilty, [],
     'aceste pagini isi iau versiunea de inregistrare din lib/suite-version.js, servit din cache de SW-ul VECHI');
+});
+
+test('sync-suite-version bustuiește data.js, poll-wake.js și price-day.js', () => {
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'tools', 'sync-suite-version.mjs'), 'utf8');
+  assert.match(src, /data\|poll-wake\|price-day/,
+    'scriptul trebuie să rescrie ?v= pe data.js / poll-wake.js / price-day.js, nu doar pe suite-version.js');
+});
+
+test('toate src-urile lib/data.js|poll-wake.js|price-day.js au ?v= la CACHE_VERSION', () => {
+  const nnn = (verOf(SWAPP).match(/tt-v(\d+)/) || [])[1];
+  assert.ok(nnn, 'CACHE_VERSION trebuie să aibă număr');
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const bad = [];
+  (function walk(dir) {
+    for (const name of readdirSync(dir)) {
+      if (name === '.git' || name === '.claude' || name === 'node_modules') continue;
+      const p = join(dir, name);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (name.endsWith('.html')) {
+        const h = readFileSync(p, 'utf8');
+        const re = /src=["']([^"']*lib\/(?:data|poll-wake|price-day)\.js(?:\?v=\d+)?)["']/g;
+        let m;
+        while ((m = re.exec(h))) {
+          if (!m[1].includes('?v=' + nnn)) {
+            bad.push(relative(root, p).split(sep).join('/') + ' → ' + m[1]);
+          }
+        }
+      }
+    }
+  })(root);
+  assert.deepStrictEqual(bad, [],
+    'aceste pagini servesc un lib cu ?v= înghețat — SW-ul păstrează inflight-ul vechi:\n' + bad.join('\n'));
 });
 
 test('fiecare pagina cu SW are blocul de auto-vindecare', () => {
