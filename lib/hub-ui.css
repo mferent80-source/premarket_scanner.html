@@ -1,4 +1,4 @@
-/* hub-ui.css v787 — header un rând + cockpit strip + chrome oțel */
+/* hub-ui.css v790 — navy cald + gappers pe tokeni (și light) */
 
 .hub-shell {
   display: flex;
@@ -1060,7 +1060,7 @@ a.ht-card.ht-market:hover {
 .ht-card.lvl-bear .ht-m-val,
 .ht-cc-cell.lvl-bear .ht-m-val,
 .ht-tile-cell.lvl-bear .ht-m-val,
-.ht-metric.lvl-bear .ht-m-val { color: #ff4d4d; }
+.ht-metric.lvl-bear .ht-m-val { color: var(--red); }
 .ht-card.lvl-neut .ht-m-val,
 .ht-metric.lvl-neut .ht-m-val { color: #8ec5ff; }
 
@@ -1170,9 +1170,9 @@ body[data-hub-mode="after"] .ht-gappers-slot:empty {
   min-height: 0;
   padding: 6px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(247, 147, 26, 0.28);
-  border-left: 3px solid #f7931a;
-  background: rgba(14, 20, 32, 0.92);
+  border: 1px solid var(--b1);
+  border-left: 3px solid var(--accent);
+  background: var(--panel);
   box-shadow: none;
 }
 
@@ -1196,15 +1196,15 @@ body[data-hub-mode="after"] .ht-gappers-slot:empty {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 216, 107, 0.9);
+  color: var(--t2);
 }
 
 .ht-gap-count {
   font-family: var(--mono);
   font-size: 10px;
   font-weight: 800;
-  color: #0b0f17;
-  background: linear-gradient(135deg, #ffd86b, #f7931a);
+  color: var(--on-accent, #141a22);
+  background: var(--accent);
   border-radius: 999px;
   padding: 1px 7px;
   line-height: 1.4;
@@ -1230,7 +1230,7 @@ body[data-hub-mode="after"] .ht-gappers-slot:empty {
   overflow-x: auto;
   padding: 0;
   scrollbar-width: thin;
-  scrollbar-color: rgba(247, 147, 26, 0.35) transparent;
+  scrollbar-color: var(--b1) transparent;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1256,26 +1256,28 @@ body[data-hub-mode="after"] .ht-gappers-slot:empty {
   border-radius: 8px;
   text-decoration: none;
   color: inherit;
-  background: rgba(18, 26, 40, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--panel2, var(--bg3));
+  border: 1px solid var(--b1);
   transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
 .ht-gap-chip:hover {
-  border-color: rgba(247, 147, 26, 0.45);
-  background: rgba(24, 34, 52, 1);
+  border-color: var(--accent);
+  background: var(--panel3, var(--bg4));
   transform: translateY(-1px);
 }
 
 .ht-gap-chip.up {
-  border-color: rgba(34, 214, 107, 0.22);
-  background: linear-gradient(90deg, rgba(34, 214, 107, 0.1), rgba(18, 26, 40, 0.95) 55%);
+  border-color: rgba(108, 186, 140, 0.35);
+  background: var(--panel2, var(--bg3));
+  box-shadow: inset 3px 0 0 var(--green);
 }
 .ht-gap-chip.down {
-  border-color: rgba(255, 77, 77, 0.22);
-  background: linear-gradient(90deg, rgba(255, 77, 77, 0.1), rgba(18, 26, 40, 0.95) 55%);
+  border-color: rgba(208, 128, 128, 0.35);
+  background: var(--panel2, var(--bg3));
+  box-shadow: inset 3px 0 0 var(--red);
 }
 .ht-gap-chip.wl {
   box-shadow: inset 2px 0 0 #5bb0ff;
@@ -1296,8 +1298,8 @@ body[data-hub-mode="after"] .ht-gappers-slot:empty {
   letter-spacing: -0.02em;
   line-height: 1;
 }
-.ht-gap-pct.up { color: #2ee67a; }
-.ht-gap-pct.down { color: #ff6b6b; }
+.ht-gap-pct.up { color: var(--green); }
+.ht-gap-pct.down { color: var(--red); }
 
 .ht-gap-px {
   font-family: var(--mono);
