@@ -33,6 +33,9 @@
 // 0.3%; re-arm la mișcare-% se re-ancorează la prețul nou (alertă la fiecare pas de X%).
 // ═══════════════════════════════════════════════════════════════════
 import { readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const PD = require('../lib/price-day.js');
 
 const FILE = new URL('./alerts.json', import.meta.url);
 const REARM_HYST = 0.003;
@@ -49,16 +52,14 @@ if (!alerts.length) console.log('Niciun price alert în tools/alerts.json — ve
 const TOKEN = process.env.TELEGRAM_TOKEN || '';
 const CHAT = process.env.TELEGRAM_CHAT_ID || '';
 
-// Preț live: ultima bară 5m cu includePrePost (acoperă pre/after) — pattern-ul
-// validat în suite (regularMarketPrice e stale în extended hours).
+// Preț: aceeași formulă ca pagina /alerts/ (lib/price-day.js). Crypto rămâne pe
+// open 00:00 UTC (Yahoo chartPreviousClose e N−2 pe 24/7). Stocks: yahooQuote
+// alege last/prev după sesiunea ET — noaptea = close oficial, nu ultima bară AH.
 async function fetchPrice(sym){
   // Yahoo nu cunoaște perechile Binance USDT (ONDOUSDT) — convertim la forma lui (ONDO-USD).
   // Binance.com e geo-blocat pe runnerele GitHub (IP US → 451), deci server-side rămânem pe Yahoo.
   const ySym = /USDT$/.test(sym) ? sym.replace(/USDT$/, '-USD') : sym;
   const crypto = isCrypto(sym);
-  // Crypto e 24/7 → `chartPreviousClose` e ambiguu/stale (N−2 dovedit pe Yahoo). Pentru a alinia
-  // „variația zilei" cu paginile (baseline = open 00:00 UTC, ca daily-kline Binance), cerem 2 zile
-  // și luăm open-ul primei bare din ziua UTC curentă. Stocks rămân pe close-ul de ieri.
   const range = crypto ? '2d' : '1d';
   try {
     const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySym)}?interval=5m&range=${range}&includePrePost=true`,
@@ -71,20 +72,25 @@ async function fetchPrice(sym){
     const closes = q.close || [];
     const opens = q.open || [];
     const ts = res.timestamp || [];
-    let last = null;
-    for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { last = closes[i]; break; }
-    if (last == null) last = res.meta?.regularMarketPrice ?? null;
-    if (last == null) return null;
-    let prev;
+    let lastBar = null;
+    for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { lastBar = closes[i]; break; }
     if (crypto) {
-      const dayStart = Math.floor(Date.now() / 86400000) * 86400; // 00:00 UTC azi, în secunde
-      prev = null;
+      if (lastBar == null) lastBar = res.meta?.regularMarketPrice ?? null;
+      if (lastBar == null) return null;
+      const dayStart = Math.floor(Date.now() / 86400000) * 86400;
+      let prev = null;
       for (let i = 0; i < ts.length; i++) if (ts[i] >= dayStart && opens[i] != null) { prev = opens[i]; break; }
-      if (prev == null) prev = res.meta?.chartPreviousClose ?? null; // fallback dacă ziua n-are încă bare
-    } else {
-      prev = res.meta?.chartPreviousClose ?? null;   // stocks: închiderea de ieri
+      if (prev == null) prev = res.meta?.chartPreviousClose ?? null;
+      return { last: lastBar, prev };
     }
-    return { last, prev };
+    const isEU = /\./.test(ySym);
+    const ses = isEU ? 'rth' : PD.usSessionEt();
+    if (lastBar == null && ses === 'pre') lastBar = res.meta?.preMarketPrice ?? null;
+    if (lastBar == null && ses === 'after') lastBar = res.meta?.postMarketPrice ?? null;
+    if (lastBar == null) lastBar = res.meta?.regularMarketPrice ?? null;
+    const out = PD.yahooQuote(res.meta || {}, lastBar, ses, isEU);
+    if (!out || !Number.isFinite(out.last)) return null;
+    return { last: out.last, prev: out.prev };
   } catch (e) { return null; }
 }
 

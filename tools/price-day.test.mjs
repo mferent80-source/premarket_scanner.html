@@ -80,6 +80,13 @@ test('closed: last = regularMarketPrice (close oficial), nu bara 1m AH', () => {
   assert.ok(chg > -0.8 && chg < -0.6, 'Δ oficial ~−0.72, nu −0.95 din bara AH');
 });
 
+test('usSessionEt: noapte ET = closed, 15:00 ET = rth', () => {
+  assert.equal(PD.usSessionEt(Date.parse('2026-08-21T05:34:00Z')), 'closed'); // 01:34 EDT
+  assert.equal(PD.usSessionEt(Date.parse('2026-08-21T19:00:00Z')), 'rth');    // 15:00 EDT
+  assert.equal(PD.usSessionEt(Date.parse('2026-08-21T12:00:00Z')), 'pre');    // 08:00 EDT
+  assert.equal(PD.usSessionEt(Date.parse('2026-08-21T21:00:00Z')), 'after');  // 17:00 EDT
+});
+
 test('after: last rămâne bara AH (preț live), prev = close ieri', () => {
   const q = PD.yahooQuote({
     regularMarketPrice: 92.13,
@@ -87,6 +94,16 @@ test('after: last rămâne bara AH (preț live), prev = close ieri', () => {
   }, 91.92, 'after', false);
   assert.equal(q.last, 91.92);
   assert.equal(q.prev, 92.80);
+});
+
+test('botul folosește PriceDay.yahooQuote pe stocks (paritate overnight cu /alerts/)', () => {
+  const { readFileSync } = require('node:fs');
+  const { fileURLToPath } = require('node:url');
+  const { dirname, join } = require('node:path');
+  const bot = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'check-alerts.mjs'), 'utf8');
+  assert.match(bot, /lib\/price-day\.js/);
+  assert.match(bot, /yahooQuote/);
+  assert.match(bot, /usSessionEt/);
 });
 
 test('summarizeBus: numără surse și otrava', () => {
