@@ -67,6 +67,28 @@ test('RTH: changePercent stale (ieri) nu inversează Δ azi', () => {
   assert.ok(chg > 1.4 && chg < 1.8, 'azi +1.6, nu −4 de ieri');
 });
 
+test('closed: last = regularMarketPrice (close oficial), nu bara 1m AH', () => {
+  // INTC noaptea: ultima bară AH 91.92, close RTH 92.13, prev 92.80
+  const q = PD.yahooQuote({
+    regularMarketPrice: 92.13,
+    chartPreviousClose: 92.80,
+    previousClose: 92.80
+  }, 91.92, 'closed', false);
+  assert.equal(q.last, 92.13);
+  assert.equal(q.prev, 92.80);
+  const chg = (q.last - q.prev) / q.prev * 100;
+  assert.ok(chg > -0.8 && chg < -0.6, 'Δ oficial ~−0.72, nu −0.95 din bara AH');
+});
+
+test('after: last rămâne bara AH (preț live), prev = close ieri', () => {
+  const q = PD.yahooQuote({
+    regularMarketPrice: 92.13,
+    chartPreviousClose: 92.80
+  }, 91.92, 'after', false);
+  assert.equal(q.last, 91.92);
+  assert.equal(q.prev, 92.80);
+});
+
 test('summarizeBus: numără surse și otrava', () => {
   const s = PD.summarizeBus({
     HOOD: { src: 'nasdaq-ext', chgPct: -4, price: 95 },
