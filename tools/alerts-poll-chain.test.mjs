@@ -152,6 +152,14 @@ test('IERI bate vechimea: un Δ din sesiunea precedentă nu e marcat ⏳', () =>
     'IERI trebuie ÎNAINTE de ⏳: noaptea poll-ul US e la 10min, stale e 2min, altfel IERI dispare');
 });
 
+test('banner unic pentru Δ de ieri pe stocks US, nu IERI pe fiecare rând', () => {
+  assert.match(HTML, /id="usDayBanner"/, 'trebuie să existe bannerul deasupra listei Stocks');
+  assert.match(HTML, /function renderUsDayBanner/);
+  const fn = HTML.slice(HTML.indexOf('function daySessChip'), HTML.indexOf('function renderUsDayBanner'));
+  assert.ok(/!isCrypto\(u\) && !u\.includes\('\.'\)\) return ''/.test(fn),
+    'pe US, IERI se scoate de pe rând — rămâne bannerul');
+});
+
 test('noaptea, stocks US fără preț rămân în poll (throttle-ul 10min nu le sare)', () => {
   const i = HTML.indexOf('usStocks.length && nyseClosed()');
   assert.ok(i > 0, 'trebuie să existe ramura nyseClosed');

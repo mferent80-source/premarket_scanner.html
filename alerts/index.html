@@ -754,6 +754,14 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 .al-bot .al-bot-ico { font-size:16px; line-height:1.2; flex:0 0 auto; }
 .al-bot .al-bot-txt { flex:1 1 220px; min-width:0; }
 .al-bot .al-bot-act { display:flex; gap:6px; flex-wrap:wrap; }
+.us-day-banner {
+  display:none; margin:0 0 8px; padding:8px 12px;
+  background:var(--panel2); border:1px solid var(--b1); border-left:3px solid var(--warn);
+  border-radius:var(--rs); font-size:12.5px; line-height:1.4; color:var(--t2);
+  font-weight:600;
+}
+.us-day-banner.show { display:block; }
+.us-day-banner b { color:var(--t1); font-weight:800; }
 @media (max-width:550px) {
   .al-kpis { gap:8px 12px; padding:8px 10px; }
   .al-page-head h2 { font-size:14px; }
@@ -1132,7 +1140,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v100</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v101</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1303,6 +1311,7 @@ body.al-page input, body.al-page select { font-weight:400; }
     <span class="sess-badge" id="sessStocks" title="Sesiunea bursei US (ET)">⏳</span>
     <span class="count" id="cntStocks">0</span>
   </div>
+  <div class="us-day-banner" id="usDayBanner" hidden role="status"></div>
   <div class="section-body" id="bodyStocks">
     <div class="empty">Nicio alertă pe stocks. Adaugă una de mai sus (AAPL, NVDA).</div>
   </div>
@@ -1531,7 +1540,7 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=776"></script>
+<script src="../lib/suite-version.js?v=777"></script>
 <script src="../lib/data.js?v=710"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
@@ -1670,6 +1679,8 @@ function daySessChip(sym) {
   // v98: cotația e proaspăt descărcată, dar e din sesiunea PRECEDENTĂ (tipic: stocks US
   // înainte de 16:30 RO, când ziua lor n-a început). Nu e „Δ azi" și n-are voie să pară.
   if (typeof chgFromPrevDay === 'function' && chgFromPrevDay(sym)) {
+    // US: un singur banner deasupra listei (usDayBanner), nu IERI pe fiecare rând.
+    if (!isCrypto(u) && !u.includes('.')) return '';
     return `<span class="px-sess closed" title="Δ-ul e din sesiunea precedentă de bursă, nu din cea de azi — piața pentru ${escHtml(u)} nu a deschis încă azi.&#10;${roSchedule()}">IERI</span>`;
   }
   // v96/v97: vechimea PER SIMBOL, înainte de ieșirile scurte crypto/EU — altfel un
@@ -1688,6 +1699,22 @@ function daySessChip(sym) {
   const s = marketSession();
   const code = s.cls === 'open' ? 'RTH' : s.cls === 'closed' ? 'CLS' : (s.label.includes('after') ? 'AFT' : 'PRE');
   return `<span class="px-sess ${s.cls}" title="${escHtml(s.label)} · Δ azi vs close ieri&#10;${roSchedule()}">${code}</span>`;
+}
+function renderUsDayBanner() {
+  const el = $('usDayBanner');
+  if (!el) return;
+  let n = 0;
+  Object.keys(priceAlerts || {}).forEach(s => {
+    if (!(priceAlerts[s] || []).length) return;
+    const u = String(s).toUpperCase();
+    if (isCrypto(u) || u.includes('.')) return;
+    if (typeof chgFromPrevDay === 'function' && (chgFromPrevDay(s) || chgFromPrevDay(u))) n++;
+  });
+  if (!n) { el.hidden = true; el.classList.remove('show'); el.textContent = ''; return; }
+  el.hidden = false;
+  el.classList.add('show');
+  el.innerHTML = '<b>Sesiunea US n-a început</b> · Δ-urile sunt din close-ul de ieri · regular '
+    + etMinToRo(570) + ' RO';
 }
 let _lastStockPollTs = 0;
 let _warnedNoKey = false;
@@ -3048,6 +3075,7 @@ function render() {
   // Badge sesiune pe grupul Stocks (crypto rămâne 🟢 24/7 fix din HTML)
   const ss = marketSession();
   const sb = $('sessStocks'); sb.textContent = ss.label; sb.className = 'sess-badge ' + ss.cls; sb.title = roSchedule();
+  try { renderUsDayBanner(); } catch (e) {}
 
   const allActive = [...cryptoRows, ...stockRows];
   renderPulse(allActive);
@@ -4843,7 +4871,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v776';
+const SW_VER_INLINE = 'tt-v777';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -4860,7 +4888,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v776';
+  var PAGE_VER = 'tt-v777';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
