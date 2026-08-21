@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=790"></script>
+<script src="lib/suite-version.js?v=791"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -39,7 +39,7 @@
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="lib/theme-light.css?v=789">
+<link rel="stylesheet" href="lib/theme-light.css?v=791">
 <script src="lib/theme.js?v=734"></script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -105,21 +105,9 @@ body.hub-page{
   padding-bottom:48px !important;
 }
 :root[data-theme="light"] body.hub-page{
-  color:#1c1917;
-  --t1:#1c1917; --t2:#44403c; --t3:#78716c;
-  --text:#1c1917; --muted:#78716c; --text-dim:#a8a29e;
+  /* suprafețe = lib/theme-light.css (--bg #fbfaf7); aici doar cerneală + accent Hub */
+  color:var(--t1);
   --accent:#1d6a9a; --acc-1:#1d6a9a; --on-accent:#ffffff;
-  --green:#047857; --bull-s:#047857;
-  --red:#b91c1c; --warn:#b45309;
-  --crypto-1:#b45309; --crypto-2:#a16207; --gold:#b45309;
-  --bg:#fbfaf7; --bg-grad:linear-gradient(180deg,#ffffff 0%,#fbfaf7 55%);
-  --bg2:#ffffff; --bg3:#ffffff; --bg4:#f3f1ec;
-  --panel:#ffffff; --panel2:#ffffff; --panel3:#f7f6f2;
-  --b1:#ddd6cb; --b2:#ebe6dc;
-  --topbar-bg:rgba(255,255,255,.97);
-  --topbar-shadow:0 6px 18px rgba(48,36,20,.08);
-  --shadow:0 4px 14px rgba(48,36,20,.08),0 1px 0 rgba(255,255,255,.75) inset;
-  --suite-bg:#fbfaf7; --suite-t1:#1c1917; --suite-t2:#44403c; --suite-t3:#78716c;
 }
 /* Hub anti-ceață: carduri/lead/meta */
 .lead,.brand,.card-desc,.card-tag,.feat,.pb-diff,.tt-stats span,.fl-item .fl-txt{color:var(--t2)!important;opacity:1!important}
@@ -1328,7 +1316,7 @@ body.hub-page .hub-na.prio-ok{
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <!-- CRITICAL path — first paint cockpit (GO / market / next action). Restul la idle. -->
-<script defer src="lib/data.js?v=790"></script>
+<script defer src="lib/data.js?v=791"></script>
 <script defer src="lib/quote-bus.js?v=712"></script>
 <script defer src="lib/finnhub-key.js?v=712"></script>
 <script defer src="lib/suite-sessions.js?v=712"></script>
@@ -1734,7 +1722,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = 'tt-v790';
+  const swVer = 'tt-v791';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1951,7 +1939,7 @@ window.addEventListener('DOMContentLoaded', function(){
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v790';
+  var PAGE_VER = 'tt-v791';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw-app.js?v=' + PAGE_VER, { scope: './', updateViaCache: 'none' })
     .then(function (reg) {

@@ -7,8 +7,8 @@
  *   `:root[data-theme="light"]` = specificitate (0,1,1) > `:root` (0,1,0) din
  *   <style>-ul fiecărei pagini, deci bate indiferent de ordinea în cascadă.
  *
- * Paleta de referință (market-breadth dashboard):
- *   surface-0 #f4f4f2 · surface-1 #fcfcfb · surface-2 #ffffff
+ * Paleta de referință (Hub tt-v790, suita întreagă):
+ *   surface-0 #fbfaf7 · surface-1 #ffffff · surface-2 #ffffff
  *   ink #0b0b0b · ink2 #52514e · muted #8a8984 · border #e6e5e1
  */
 
@@ -24,16 +24,16 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  /* ── suprafețe ── */
-  --bg: #f4f4f2;
-  --bg-grad: radial-gradient(1200px 600px at 50% -200px, #ffffff 0%, #f4f4f2 58%);
-  --bg1: #fcfcfb;
-  --bg2: #fcfcfb;
+  /* ── suprafețe (o singură luminozitate pe toată suita) ── */
+  --bg: #fbfaf7;
+  --bg-grad: linear-gradient(180deg, #ffffff 0%, #fbfaf7 55%);
+  --bg1: #ffffff;
+  --bg2: #ffffff;
   --bg3: #ffffff;
-  --bg4: #efeeea;
-  --panel: #fcfcfb;
+  --bg4: #f3f1ec;
+  --panel: #ffffff;
   --panel2: #ffffff;
-  --panel3: #f7f6f3;
+  --panel3: #f7f6f2;
 
   /* ── borduri (b1 = mai vizibilă, b2 = fină; păstrăm ierarhia din dark) ── */
   --b1: #d8d7d1;
@@ -107,15 +107,15 @@
   --shadow: 0 4px 14px rgba(24, 22, 18, .10), 0 1px 2px rgba(24, 22, 18, .06);
 
   /* ── topbar sticky ── */
-  --topbar-bg: rgba(252, 252, 251, .94);
+  --topbar-bg: rgba(255, 255, 255, .97);
   --topbar-shadow: 0 6px 18px rgba(24, 22, 18, .10);
 
   /* ── lib/suite-ui.css ── */
-  --suite-bg: #f4f4f2;
-  --suite-bg-grad: radial-gradient(1200px 600px at 50% -200px, #ffffff 0%, #f4f4f2 58%);
-  --suite-panel: #fcfcfb;
+  --suite-bg: #fbfaf7;
+  --suite-bg-grad: linear-gradient(180deg, #ffffff 0%, #fbfaf7 55%);
+  --suite-panel: #ffffff;
   --suite-panel2: #ffffff;
-  --suite-panel3: #f7f6f3;
+  --suite-panel3: #f7f6f2;
   --suite-border: #d8d7d1;
   --suite-border2: #e6e5e1;
   --suite-t1: #0b0b0b;
@@ -143,10 +143,24 @@
 :root[data-theme="light"] body.suite-page,
 :root[data-theme="light"] body.hub-page,
 :root[data-theme="light"] body.cap-page,
-:root[data-theme="light"] body.macro-page {
+:root[data-theme="light"] body.macro-page,
+:root[data-theme="light"] body.al-page {
+  --bg: #fbfaf7;
+  --bg-grad: linear-gradient(180deg, #ffffff 0%, #fbfaf7 55%);
+  --bg2: #ffffff;
+  --bg3: #ffffff;
+  --bg4: #f3f1ec;
+  --panel: #ffffff;
+  --panel2: #ffffff;
+  --panel3: #f7f6f2;
+  --suite-bg: #fbfaf7;
+  --t1: #0b0b0b;
+  --t2: #3f3e3a;
+  --t3: #6b6a65;
   --text: #0b0b0b;
   --muted: #6b6a65;
   --text-dim: #8a8984;
+  --topbar-bg: rgba(255, 255, 255, .97);
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -212,7 +226,7 @@
 :root[data-theme="light"] .ckb-stale { color: #b45309 !important; }
 
 :root[data-theme="light"] .ht-gap-strip {
-  background: #faf8f3 !important;
+  background: var(--bg) !important;
   border-color: #ddd6cb !important;
   border-left-color: #1d6a9a !important;
 }
@@ -242,7 +256,7 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 :root[data-theme="light"] {
-  --tt-glass: linear-gradient(180deg, rgba(255, 255, 255, .95), rgba(248, 247, 244, .90));
+  --tt-glass: linear-gradient(180deg, rgba(255, 255, 255, .97), rgba(251, 250, 247, .94));
   --tt-glass-soft: rgba(255, 255, 255, .70);
 }
 
@@ -250,8 +264,8 @@
       (fallback dacă JS pică). Definițiile lui pe body ar bate :root, deci le
       re-suprascriem pe ACELAȘI element, cu specificitate mai mare. ── */
 :root[data-theme="light"] body.dark {
-  --bg: #f4f4f2; --bg2: #fcfcfb; --bg3: #ffffff; --bg4: #efeeea;
-  --panel: #fcfcfb; --panel2: #ffffff; --panel3: #f7f6f3;
+  --bg: #fbfaf7; --bg2: #ffffff; --bg3: #ffffff; --bg4: #f3f1ec;
+  --panel: #ffffff; --panel2: #ffffff; --panel3: #f7f6f2;
   --b1: #d8d7d1; --b2: #e6e5e1;
   --t1: #0b0b0b; --t2: #3f3e3a; --t3: #6b6a65;
   --acc: #2563eb; --accl: rgba(37, 99, 235, .08); --accb: rgba(37, 99, 235, .22);
@@ -265,7 +279,7 @@
   --crypto-1: #b45309; --crypto-2: #a16207;
   --sh: 0 1px 2px rgba(24, 22, 18, .08);
   --shh: 0 8px 24px rgba(24, 22, 18, .12), 0 1px 2px rgba(24, 22, 18, .06);
-  background-image: radial-gradient(1200px 600px at 50% -200px, #ffffff 0%, #f4f4f2 58%);
+  background-image: linear-gradient(180deg, #ffffff 0%, #fbfaf7 55%);
 }
 
 /* ── lib/suite-ui.css + macro-ui + scanner-ui + capital-ui: „glass" dark ── */
@@ -333,13 +347,13 @@
 }
 
 /* ── watchlist-monitor: panouri + tabel complet hardcodate dark ── */
-:root[data-theme="light"] .panel-box { background: #fcfcfb; border-color: var(--b1); }
-:root[data-theme="light"] .panel-head { background: #f4f4f2; border-bottom-color: var(--b1); }
+:root[data-theme="light"] .panel-box { background: var(--panel); border-color: var(--b1); }
+:root[data-theme="light"] .panel-head { background: var(--bg); border-bottom-color: var(--b1); }
 :root[data-theme="light"] .panel-head h3 { color: #0b0b0b !important; }
 :root[data-theme="light"] .panel-head .panel-sub { color: #52514e !important; }
 :root[data-theme="light"] .scanner-wrap,
 :root[data-theme="light"] #wlTable { background: #ffffff; }
-:root[data-theme="light"] #wlTable thead th { background: #f4f4f2; color: #0b0b0b; border-bottom-color: var(--b1); }
+:root[data-theme="light"] #wlTable thead th { background: var(--bg); color: #0b0b0b; border-bottom-color: var(--b1); }
 :root[data-theme="light"] #wlTable thead th:hover { background: #eceae5; color: #1d6fd0; }
 :root[data-theme="light"] #wlTable tbody tr,
 :root[data-theme="light"] #wlTable tbody tr.v-strong-buy,
