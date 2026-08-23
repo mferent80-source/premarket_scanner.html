@@ -358,3 +358,74 @@ test('fiecare pagina cu SW are blocul de auto-vindecare', () => {
   assert.deepStrictEqual(missing, [],
     'aceste pagini nu detecteaza un SW vechi si nu se pot repara singure');
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT 23.08.2026 — „feature scris, dar fără buton".
+// batchAddAlerts + listWlSyms + listOpenJournalSyms existau întregi și nu le chema
+// NIMIC: adăugarea în masă nu ajungea la om. Garda de mai jos cere ca fiecare funcție
+// de acțiune să aibă un drum real până la un buton din pagină — „există în cod" nu e
+// suficient, exact ca la butonul mort din feedback_buton_legat_inainte_sa_existe.
+// ─────────────────────────────────────────────────────────────────────────────
+const ALERTS_HTML = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '..', 'alerts', 'index.html'), 'utf8');
+
+test('adaugarea in masa are buton in pagina, nu doar functie', () => {
+  for (const id of ['btnBulkWl', 'btnBulkJournal']) {
+    assert.ok(new RegExp(`<button[^>]*id="${id}"`).test(ALERTS_HTML),
+      `${id} nu exista ca buton in HTML`);
+    assert.ok(ALERTS_HTML.includes(`$('${id}')?.addEventListener`)
+           || ALERTS_HTML.includes(`$('${id}').addEventListener`),
+      `${id} exista dar nu e legat de niciun handler — buton mort`);
+  }
+  assert.match(ALERTS_HTML, /btnBulkWl[\s\S]{0,400}listWlSyms/,
+    'butonul din watchlist trebuie sa cheme listWlSyms');
+  assert.match(ALERTS_HTML, /btnBulkJournal[\s\S]{0,400}listOpenJournalSyms/,
+    'butonul din jurnal trebuie sa cheme listOpenJournalSyms');
+});
+
+test('nicio functie de actiune nu ramane orfana in /alerts/', () => {
+  const funcs = [...ALERTS_HTML.matchAll(/(?:async )?function (\w+)\s*\(/g)].map(m => m[1]);
+  const orphans = [...new Set(funcs)].filter(f => {
+    const uses = ALERTS_HTML.match(new RegExp('\\b' + f + '\\b', 'g')) || [];
+    if (uses.length > 1) return false;
+    return !ALERTS_HTML.includes(`(function ${f}(`);   // IIFE = se auto-executa
+  });
+  assert.deepStrictEqual(orphans, [],
+    'functii definite si nechemate de nimeni (cod care nu ajunge la om):\n' + orphans.join('\n'));
+});
+
+test('adaugarea in masa nu raporteaza succes cand n-a adaugat nimic', () => {
+  const i = ALERTS_HTML.indexOf('function batchAddAlerts');
+  const body = ALERTS_HTML.slice(i, i + 1600);
+  assert.match(body, /if \(!n\)/, 'cazul „zero adaugate" trebuie tratat separat');
+  assert.ok(/if \(!n\)[\s\S]{0,300}return;/.test(body),
+    'la zero adaugate nu trebuie sa persiste si sa sincronizeze degeaba');
+  assert.ok(body.indexOf('if (!n)') < body.indexOf("'success'"),
+    'toast-ul de succes trebuie sa vina DUPA iesirea pe zero — altfel „✅ 0 alerte adaugate"');
+});
+
+test('adaugarea in masa nu dubleaza o alerta care exista deja', () => {
+  const i = ALERTS_HTML.indexOf('function bulkRefFactory');
+  const body = ALERTS_HTML.slice(i, i + 500);
+  assert.match(body, /kind === 'ref'/, 'factory trebuie sa se uite la referintele existente');
+  assert.match(body, /return null/, 'si sa refuze simbolul deja urmarit');
+});
+
+test('scrierile de preferinte nu pot rupe UI-ul cand localStorage e plin', () => {
+  const risky = [];
+  const lines = ALERTS_HTML.split('\n');
+  lines.forEach((l, i) => {
+    if (!/localStorage\.setItem/.test(l)) return;
+    if (/try\s*\{/.test(l)) return;                          // protejat pe aceeasi linie
+    // sau intr-un bloc try deschis mai sus si inca neinchis (retry dupa curatare de quota)
+    let open = false;
+    for (let k = Math.max(0, i - 6); k < i; k++) {
+      if (/try\s*\{/.test(lines[k])) open = true;
+      else if (/^\s*\}\s*catch/.test(lines[k])) open = false;
+    }
+    if (open) return;
+    risky.push(`L${i + 1}: ${l.trim().slice(0, 80)}`);
+  });
+  assert.deepStrictEqual(risky, [],
+    'QuotaExceededError aici sare peste render()/toast() si butonul pare mort:\n' + risky.join('\n'));
+});

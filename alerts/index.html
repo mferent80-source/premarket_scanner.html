@@ -1171,7 +1171,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v109</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v110</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1221,6 +1221,9 @@ body.al-page input, body.al-page select { font-weight:400; }
   <div class="hm-item"><button id="popupBtn" title="Popup-uri alerte: Auto (dispar în 6s) / Off (nu apar) / Stay (rămân până la ✕)">💬</button><span class="hm-lbl">Popup-uri alerte</span></div>
   <div class="hm-item"><button id="btnSort" title="Sortare listă: 🎯 după proximitatea de declanșare / 🔤 alfabetic">🎯</button><span class="hm-lbl">Sortare listă</span></div>
   <div class="hm-item"><button id="testBtn" title="Test alertă (demo)">🧪</button><span class="hm-lbl">Test alertă (demo)</span></div>
+  <div class="hm-sep"></div>
+  <div class="hm-item"><button id="btnBulkWl" title="Adaugă o alertă 📊 Referință (pas ±1%) pentru fiecare simbol din watchlist care nu are deja una">📋</button><span class="hm-lbl">Alerte din watchlist</span></div>
+  <div class="hm-item"><button id="btnBulkJournal" title="Adaugă o alertă 📊 Referință (pas ±1%) pentru fiecare poziție deschisă din jurnal care nu are deja una">📓</button><span class="hm-lbl">Alerte din pozițiile deschise</span></div>
   <div class="hm-sep"></div>
   <div class="hm-item"><button id="exportBtn" title="Export JSON pentru alertele server-side (GitHub Actions) — merg și cu laptopul închis">📤</button><span class="hm-lbl">Export JSON</span></div>
   <div class="hm-item"><button id="ghSyncBtn" title="☁️ URCĂ pe GitHub — comite alertele locale în tools/alerts.json (server-side + sync cross-device). Click-dreapta = setează/schimbă token-ul">☁️</button><span class="hm-lbl">Urcă pe GitHub</span></div>
@@ -1571,13 +1574,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=794"></script>
-<script src="../lib/data.js?v=794"></script>
-<script src="../lib/poll-wake.js?v=794"></script>
+<script src="../lib/suite-version.js?v=795"></script>
+<script src="../lib/data.js?v=795"></script>
+<script src="../lib/poll-wake.js?v=795"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=794"></script>
+<script src="../lib/price-day.js?v=795"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -1693,16 +1696,6 @@ const CRYPTO_BASES = new Set(['ONDO','PEPE','XRP','ADA','DOGE','SHIB','AVAX','LI
   'ARB','OP','SUI','SEI','TIA','INJ','RNDR','RENDER','FET','NEAR','APT','ATOM','UNI','AAVE','LTC',
   'BCH','TRX','XLM','ALGO','FIL','ICP','IMX','STX','RUNE','GRT','SAND','MANA','AXS','FTM','EGLD',
   'CRV','LDO','JUP','WIF','BONK','PYTH','JTO','STRK','ENA','ENS','GALA','TAO','TON','HBAR','VET']);
-// Badge sesiune lipit de prețul curent (doar stocks US listate, fără sufix de bursă):
-// confirmă vizual că prețul afișat e cel din pre-market / after-hours LIVE (Yahoo includePrePost),
-// nu close-ul regular înghețat. Crypto = 24/7 (badge la nivel de grup); EU (.DE etc) au altă sesiune.
-function sessTag(sym) {
-  const u = String(sym || '').toUpperCase();
-  if (isCrypto(u) || u.includes('.')) return '';
-  const s = marketSession();
-  const txt = s.cls === 'open' ? '🟢 RTH' : s.cls === 'pre' ? (s.label.includes('after') ? '🟡 AFT' : '🟡 PRE') : '🌙 CLS';
-  return `<span class="px-sess ${s.cls}" title="${s.label} · preț extended live (Yahoo includePrePost)&#10;${roSchedule()}">${txt}</span>`;
-}
 // Chip scurt lângă Δ azi: PRE/RTH/AFT/CLS (US) sau EU. Crypto = 24/7, fără chip.
 function daySessChip(sym) {
   const u = String(sym || '').toUpperCase();
@@ -2199,10 +2192,6 @@ function symStale(sym) {
 }
 // v98: Δ-ul e „de azi" doar dacă vine dintr-o cotație din ziua ET curentă. Cu piața US
 // închisă, Yahoo dă legitim sesiunea precedentă — corect ca dată, dar NU e „Δ azi".
-function chgAgeMs(sym) {
-  try { const t = _lastChgTs[sym] || _lastChgTs[String(sym).toUpperCase()]; return t ? Date.now() - t : null; }
-  catch (e) { return null; }
-}
 function chgFromPrevDay(sym) {
   try {
     const t = _lastChgTs[sym] || _lastChgTs[String(sym).toUpperCase()];
@@ -3323,7 +3312,7 @@ function applyAdvanced() {
 $('btnAdv').addEventListener('click', (e) => {
   e.stopPropagation(); e.preventDefault();   // buton în <summary> → nu toggla drill-down-ul
   advancedMode = !advancedMode;
-  localStorage.setItem(ADVANCED_KEY, advancedMode ? '1' : '0');
+  try { localStorage.setItem(ADVANCED_KEY, advancedMode ? '1' : '0'); } catch (e) {}   // quota plina nu are voie sa opreasca applyAdvanced() de mai jos
   applyAdvanced();
   toast(advancedMode ? '⚙️ Tipuri avansate afișate (preț prag · mișcare % · ancoră)' : '⚙️ Mod simplu — doar 📊 Referință', 'info');
 });
@@ -3635,7 +3624,7 @@ $('btnClearTriggered').addEventListener('click', (e) => {
   const d = $('trigSection');
   if (!d) return;
   if (localStorage.getItem('pa_trig_open') === '1') d.open = true;
-  d.addEventListener('toggle', () => localStorage.setItem('pa_trig_open', d.open ? '1' : '0'));
+  d.addEventListener('toggle', () => { try { localStorage.setItem('pa_trig_open', d.open ? '1' : '0'); } catch (e) {} });
 })();
 // Drill-down formular „Adaugă alertă": colapsat by default (nu ocupă spațiu cât nu adaugi),
 // reține starea între sesiuni — cine adaugă des îl lasă deschis o dată și rămâne așa.
@@ -3643,12 +3632,12 @@ $('btnClearTriggered').addEventListener('click', (e) => {
   const d = $('addForm');
   if (!d) return;
   if (localStorage.getItem('pa_addform_open') === '1') d.open = true;
-  d.addEventListener('toggle', () => localStorage.setItem('pa_addform_open', d.open ? '1' : '0'));
+  d.addEventListener('toggle', () => { try { localStorage.setItem('pa_addform_open', d.open ? '1' : '0'); } catch (e) {} });
 })();
 
 $('soundBtn').addEventListener('click', () => {
   soundEnabled = !soundEnabled;
-  localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0');
+  try { localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0'); } catch (e) {}   // idem: render() + toast trebuie sa se intample oricum
   render();
   toast(soundEnabled ? '🔊 Sunet ACTIVAT' : '🔇 Sunet DEZACTIVAT', 'info');
   if (soundEnabled) playBeep();
@@ -3693,13 +3682,13 @@ $('notifBtn').addEventListener('click', async () => {
   if (!('Notification' in window)) { toast('⚠ Browser-ul nu suportă notificări', 'warn'); return; }
   if (notifEnabled) {
     notifEnabled = false;
-    localStorage.setItem(NOTIF_KEY, '0');
+    try { localStorage.setItem(NOTIF_KEY, '0'); } catch (e) {}
     toast('🔕 Notificări DEZACTIVATE', 'info');
   } else {
     const perm = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
     if (perm === 'granted') {
       notifEnabled = true;
-      localStorage.setItem(NOTIF_KEY, '1');
+      try { localStorage.setItem(NOTIF_KEY, '1'); } catch (e) {}   // quota plina nu are voie sa ascunda toast-ul de mai jos
       toast('🔔 Notificări ACTIVATE', 'success');
       showBrowserNotif('🔔 Test Price Alerts', 'Notificările sunt active.');
     } else { toast('⚠ Permisiune notificări refuzată', 'warn'); }
@@ -3710,7 +3699,7 @@ $('notifBtn').addEventListener('click', async () => {
 // Popup alerte: cicleaza Auto -> Off -> Stay -> Auto
 $('popupBtn').addEventListener('click', () => {
   popupMode = popupMode === 'auto' ? 'off' : popupMode === 'off' ? 'stay' : 'auto';
-  localStorage.setItem(POPUP_KEY, popupMode);
+  try { localStorage.setItem(POPUP_KEY, popupMode); } catch (e) {}
   render();
   toast(popupMode === 'auto' ? '💬 Popup-uri: AUTO (dispar în 6s)'
       : popupMode === 'off' ? '🚫 Popup-uri: OFF (rămân doar în istoric + notificări)'
@@ -3731,7 +3720,7 @@ function applySortBtn() {
 }
 $('btnSort').addEventListener('click', () => {
   sortMode = sortMode === 'growth' ? 'prox' : sortMode === 'prox' ? 'abc' : 'growth';
-  localStorage.setItem('pa_sort', sortMode);
+  try { localStorage.setItem('pa_sort', sortMode); } catch (e) {}
   applySortBtn(); render();
   toast('Sortare: ' + _SORT_LABEL[sortMode], 'info');
 });
@@ -3754,7 +3743,7 @@ if ($('chipFrom')) {
   applyFromChip();
   $('chipFrom').addEventListener('click', () => {
     showFromAlert = !showFromAlert;
-    localStorage.setItem('pa_show_from', showFromAlert ? '1' : '0');
+    try { localStorage.setItem('pa_show_from', showFromAlert ? '1' : '0'); } catch (e) {}
     applyFromChip();
     render();
   });
@@ -3853,7 +3842,8 @@ async function syncPushGitHub(opts = {}) {
       if (p.status === 409) { lastErr = new Error('conflict 409 (botul a comis)'); continue; }
       if (!p.ok) throw new Error('GitHub PUT HTTP ' + p.status);
       const j = await p.json();
-      _lastServerSig = alertsSig(priceAlerts); localStorage.setItem(LASTSIG_KEY, _lastServerSig); // după push, local == server
+      _lastServerSig = alertsSig(priceAlerts);
+      try { localStorage.setItem(LASTSIG_KEY, _lastServerSig); } catch (e) {} // după push, local == server
       if (!silent) toast(`☁️ ${alerts.length} alerte live server-side — commit ${String((j.commit || {}).sha || '').slice(0, 7)} ✅`, 'success');
       else toast(`☁️ Auto-sync: ${alerts.length} alerte salvate pe GitHub`, 'info');
       return true;
@@ -3950,7 +3940,7 @@ async function pullFromGitHub(isAuto) {
     const localCount = Object.values(priceAlerts).reduce((n, l) => n + l.length, 0);
     const serverCount = (obj.alerts || []).length;
     if (serverSig === localSig) { // deja identice
-      _lastServerSig = serverSig; localStorage.setItem(LASTSIG_KEY, serverSig);
+      _lastServerSig = serverSig; try { localStorage.setItem(LASTSIG_KEY, serverSig); } catch (e) {}
       _autoPullWarned = false;     // listele coincid → resetăm avertismentul pt o eventuală divergență viitoare
       if (!isAuto) toast('✓ Deja sincronizat cu GitHub', 'info');
       return;
@@ -3970,7 +3960,7 @@ async function pullFromGitHub(isAuto) {
     }
     priceAlerts = next;
     persistAlerts();
-    _lastServerSig = serverSig; localStorage.setItem(LASTSIG_KEY, serverSig);
+    _lastServerSig = serverSig; try { localStorage.setItem(LASTSIG_KEY, serverSig); } catch (e) {}
     _autoPullWarned = false;
     render();
     toast(`⬇️ ${serverCount} alerte aduse de pe GitHub`, 'success');
@@ -4790,18 +4780,48 @@ function batchAddAlerts(syms, factory, label) {
   if (!uniq.length) { toast('📭 Niciun simbol pentru ' + label, 'warn'); return; }
   if (!confirm(`${label}\n\n${uniq.length} simboluri:\n${uniq.slice(0, 12).join(', ')}${uniq.length > 12 ? '…' : ''}\n\nContinui?`)) return;
   priceAlerts = loadAlerts();
-  let n = 0;
+  let n = 0, skipped = 0, bad = 0;
   uniq.forEach(sym => {
-    if (!/^[A-Z0-9.\-]{1,16}$/.test(sym)) return;
+    if (!/^[A-Z0-9.\-]{1,16}$/.test(sym)) { bad++; return; }
     const obj = factory(sym);
-    if (!obj) return;
+    if (!obj) { skipped++; return; }          // factory a refuzat (tipic: are deja alerta)
     (priceAlerts[sym] = priceAlerts[sym] || []).push(obj);
     n++;
   });
+  // v110: „✅ 0 alerte adăugate" era un succes mincinos — omul apăsa și nu se schimba nimic,
+  // fără să afle de ce. Spunem câte s-au sărit și câte simboluri au fost respinse.
+  if (!n) {
+    toast(`ℹ️ Nicio alertă nouă (${label}) · ${skipped} au deja una`
+      + (bad ? ` · ${bad} simbol${bad > 1 ? 'uri' : ''} invalid${bad > 1 ? 'e' : ''}` : ''), 'info');
+    return;                                    // nimic scris → nu persistăm și nu sincronizăm
+  }
   persistAlerts(); render(); autoSync();
-  toast(`✅ ${n} alerte adăugate (${label})`, 'success');
+  toast(`✅ ${n} alerte adăugate (${label})`
+    + (skipped ? ` · ${skipped} sărite (aveau deja)` : '')
+    + (bad ? ` · ${bad} invalide` : ''), 'success');
   pollPrices();
 }
+// v110: cele trei funcții de mai sus existau întregi, dar nu le chema NIMIC — feature scris
+// și neajuns niciodată la om (auditul 23.08). Aici e drumul lui: meniul ⋯ → două intrări.
+// Alerta creată e 📊 Referință cu pas ±1%, aceeași formă ca cea din formularul de adăugare
+// (modul simplu). Simbolurile care au deja o referință se sar, ca re-apăsarea să nu dubleze.
+const BULK_STEP_PCT = 1;
+function bulkRefFactory(sym) {
+  const has = (priceAlerts[sym] || []).some(a => a.kind === 'ref' && !a.trail);
+  if (has) return null;                      // deja urmărit — nu dublăm
+  return { id: uid(), kind: 'ref', pct: BULK_STEP_PCT, base: _lastPrice[sym] ?? null,
+           lastStep: 0, hi: 0, lo: 0, armed: true, lastFired: null, note: '' };
+}
+$('btnBulkWl')?.addEventListener('click', () => {
+  const syms = listWlSyms();
+  if (!syms.length) { toast('📭 Watchlist-ul e gol pe acest dispozitiv (cheia wl_stocks)', 'warn'); return; }
+  batchAddAlerts(syms, bulkRefFactory, `📋 Referință ±${BULK_STEP_PCT}% din watchlist`);
+});
+$('btnBulkJournal')?.addEventListener('click', () => {
+  const syms = listOpenJournalSyms();
+  if (!syms.length) { toast('📭 Nicio poziție deschisă în jurnal pe acest dispozitiv', 'warn'); return; }
+  batchAddAlerts(syms, bulkRefFactory, `📓 Referință ±${BULK_STEP_PCT}% din pozițiile deschise`);
+});
 function wireDesk() {
   // tabs
   $('deskTabs')?.querySelectorAll('[data-tab]').forEach(btn => {
@@ -4924,7 +4944,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v794';
+const SW_VER_INLINE = 'tt-v795';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -4941,7 +4961,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v794';
+  var PAGE_VER = 'tt-v795';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
