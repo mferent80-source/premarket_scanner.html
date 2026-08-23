@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=792"></script>
+<script src="lib/suite-version.js?v=794"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -53,7 +53,7 @@
 <link rel="preload" href="lib/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="lib/plex.css?v=743">
 <link rel="stylesheet" href="lib/suite-ui.css?v=712">
-<link rel="stylesheet" href="lib/hub-ui.css?v=792">
+<link rel="stylesheet" href="lib/hub-ui.css?v=793">
 <style>
 /* === Hub — model Gestiune (IBM Plex + Carbon), contrast +1, fără sticlă ── */
 :root{
@@ -94,7 +94,7 @@ body.hub-page{
   font-family:var(--head);
   color:var(--t1);
   line-height:1.45;
-  font-size:13.5px;
+  font-size:15px;
   font-weight:400;
   -webkit-font-smoothing:antialiased !important;
   -moz-osx-font-smoothing:grayscale;
@@ -157,7 +157,7 @@ body.hub-page .hub-decision-lbl{
 .hero{text-align:center;padding:32px 0 28px}
 .brand{
   display:inline-flex;align-items:center;gap:10px;
-  font-family:var(--mono);font-weight:500;font-size:12px;letter-spacing:.18em;
+  font-family:var(--mono);font-weight:500;font-size:13px;letter-spacing:.18em;
   color:var(--t2);text-transform:uppercase;
   background:var(--bg2);border:1px solid var(--b1);border-radius:999px;
   padding:8px 16px;margin-bottom:24px;
@@ -165,7 +165,7 @@ body.hub-page .hub-decision-lbl{
 }
 .brand-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:none}
 h1{
-  font-size:18px;font-weight:700;letter-spacing:-.02em;
+  font-size:20px;font-weight:700;letter-spacing:-.02em;
   line-height:1.2;margin-bottom:0;
   color:var(--t1);
 }
@@ -213,7 +213,7 @@ h1 .accent{
 }
 
 .card-tag{
-  font-family:var(--mono);font-size:10px;font-weight:600;
+  font-family:var(--mono);font-size:11px;font-weight:600;
   letter-spacing:.12em;text-transform:uppercase;
   padding:3px 8px;border-radius:999px;
   display:inline-block;width:fit-content;
@@ -221,12 +221,12 @@ h1 .accent{
   background:var(--panel3)!important;color:var(--t3)!important;border:1px solid var(--b1)!important;
 }
 
-.card-title{font-size:20px;font-weight:700;letter-spacing:-.3px;line-height:1.2;color:var(--t1);position:relative;z-index:1}
-.card-desc{font-size:13px;color:var(--t2);line-height:1.5;flex-grow:1;position:relative;z-index:1}
+.card-title{font-size:21px;font-weight:700;letter-spacing:-.3px;line-height:1.2;color:var(--t1);position:relative;z-index:1}
+.card-desc{font-size:14.5px;color:var(--t2);line-height:1.5;flex-grow:1;position:relative;z-index:1}
 
 .features{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;position:relative;z-index:1}
 .feat{
-  font-family:var(--mono);font-size:10.5px;font-weight:500;
+  font-family:var(--mono);font-size:12px;font-weight:500;
   background:var(--panel3);color:var(--t2);
   padding:3px 8px;border-radius:5px;border:1px solid var(--b1);
   display:inline-flex;align-items:center;gap:3px;
@@ -1354,7 +1354,7 @@ body.hub-page .hub-na.prio-ok{
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <!-- CRITICAL path — first paint cockpit (GO / market / next action). Restul la idle. -->
-<script defer src="lib/data.js?v=792"></script>
+<script defer src="lib/data.js?v=794"></script>
 <script defer src="lib/quote-bus.js?v=712"></script>
 <script defer src="lib/finnhub-key.js?v=712"></script>
 <script defer src="lib/suite-sessions.js?v=712"></script>
@@ -1760,7 +1760,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = 'tt-v792';
+  const swVer = 'tt-v794';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1977,7 +1977,7 @@ window.addEventListener('DOMContentLoaded', function(){
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v792';
+  var PAGE_VER = 'tt-v794';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw-app.js?v=' + PAGE_VER, { scope: './', updateViaCache: 'none' })
     .then(function (reg) {

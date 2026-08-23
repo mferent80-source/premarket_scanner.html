@@ -72,8 +72,10 @@ async function fetchPrice(sym){
     const closes = q.close || [];
     const opens = q.open || [];
     const ts = res.timestamp || [];
-    let lastBar = null;
-    for (let i = closes.length - 1; i >= 0; i--) if (closes[i] != null) { lastBar = closes[i]; break; }
+    let lastBar = null, lastBarTs = null;
+    for (let i = closes.length - 1; i >= 0; i--) {
+      if (closes[i] != null) { lastBar = closes[i]; lastBarTs = Number.isFinite(ts[i]) ? ts[i] * 1000 : null; break; }
+    }
     if (crypto) {
       if (lastBar == null) lastBar = res.meta?.regularMarketPrice ?? null;
       if (lastBar == null) return null;
@@ -85,10 +87,12 @@ async function fetchPrice(sym){
     }
     const isEU = /\./.test(ySym);
     const ses = isEU ? 'rth' : PD.usSessionEt();
-    if (lastBar == null && ses === 'pre') lastBar = res.meta?.preMarketPrice ?? null;
-    if (lastBar == null && ses === 'after') lastBar = res.meta?.postMarketPrice ?? null;
-    if (lastBar == null) lastBar = res.meta?.regularMarketPrice ?? null;
-    const out = PD.yahooQuote(res.meta || {}, lastBar, ses, isEU);
+    if (lastBar == null && ses === 'pre') { lastBar = res.meta?.preMarketPrice ?? null; lastBarTs = null; }
+    if (lastBar == null && ses === 'after') { lastBar = res.meta?.postMarketPrice ?? null; lastBarTs = null; }
+    if (lastBar == null) { lastBar = res.meta?.regularMarketPrice ?? null; lastBarTs = null; }
+    // lastBarTs: la open, meta Yahoo stă pe close-ul de IERI — fără ora barei, botul
+    // trimitea pe Telegram prețul de ieri ca și cum ar fi de azi (aceeași cauză ca în pagină).
+    const out = PD.yahooQuote(res.meta || {}, lastBar, ses, isEU, lastBarTs);
     if (!out || !Number.isFinite(out.last)) return null;
     return { last: out.last, prev: out.prev };
   } catch (e) { return null; }
