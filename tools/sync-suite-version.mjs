@@ -24,7 +24,15 @@ const CHECK = process.argv.includes('--check');
 const GUARD_START = '<!-- tt:sw-guard:start -->';
 const GUARD_END = '<!-- tt:sw-guard:end -->';
 
-const read = p => readFileSync(p, 'utf8');
+// Normalizare LF la citire ȘI la scriere. Pe Windows `core.autocrlf` pune CRLF pe disc,
+// dar în git fișierele sunt LF; blocul de gardă se genera din template-uri, iar comparația
+// „html !== before" ieșea mereu adevărată din simplă diferență de sfârșit de linie.
+// Efect: `--check` pica permanent local (verde doar pe CI) — adică exact garda care
+// trebuie să prindă „fix livrat, dar SW-ul vechi îl ține departe de om" devenea zgomot
+// ignorabil. Comparația trebuie să fie despre VERSIUNE, nu despre CRLF.
+const lf = s => s.replace(/\r\n/g, '\n');
+const read = p => lf(readFileSync(p, 'utf8'));
+const write = (p, s) => writeFileSync(p, lf(s));
 const problems = [];
 const fixed = [];
 
@@ -45,7 +53,7 @@ sv = sv.replace(/SUITE_VERSION\s*=\s*'[^']*'/, `SUITE_VERSION = '${full}'`)
        .replace(/SUITE_VERSION_SHORT\s*=\s*'[^']*'/, `SUITE_VERSION_SHORT = '${short}'`);
 if (sv !== svBefore) {
   if (CHECK) problems.push(`lib/suite-version.js nu e pe ${full}`);
-  else { writeFileSync(svPath, sv); fixed.push('lib/suite-version.js'); }
+  else { write(svPath, sv); fixed.push('lib/suite-version.js'); }
 }
 
 // ── 2. paginile care înregistrează SW-ul ───────────────────────────────────
@@ -125,7 +133,7 @@ for (const file of htmlFiles(ROOT)) {
 
   if (html !== before) {
     if (CHECK) problems.push(`${relPath} nu e pe ${short}`);
-    else { writeFileSync(file, html); fixed.push(relPath); }
+    else { write(file, html); fixed.push(relPath); }
   }
 }
 
@@ -142,7 +150,7 @@ for (const file of htmlFiles(ROOT)) {
   html = html.replace(LIB_SRC_RE, (_, q, path) => `src=${q}${path}?v=${nnn}${q}`);
   if (html !== before) {
     if (CHECK) problems.push(`${relPath} lib ?v= nu e pe ${nnn}`);
-    else { writeFileSync(file, html); if (!fixed.includes(relPath)) fixed.push(relPath); }
+    else { write(file, html); if (!fixed.includes(relPath)) fixed.push(relPath); }
   }
 }
 
