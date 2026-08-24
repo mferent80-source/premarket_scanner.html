@@ -1,5 +1,5 @@
 // Service Worker v2 — sw-app.js (SW unic pentru întreaga suită)
-const CACHE_VERSION = 'tt-v796-2026-08-24';
+const CACHE_VERSION = 'tt-v797-2026-08-24';
 const CACHE_NAME = `trading-tools-${CACHE_VERSION}`;
 
 const PRECACHE = [
@@ -183,9 +183,20 @@ self.addEventListener('activate', e => {
 // vii se împrospătează oricum din JS-ul paginii
 const HTML_NET_TIMEOUT_MS = 3500;
 
-// cheia de cache = pathname FĂRĂ query — paginile cer lib-urile cu ?v=NNN
-// (cache-busting), dar precache-ul e queryless; fără normalizare se
-// acumulau 2 copii/fișier și fallback-ul offline nu găsea varianta cerută
+// Un asset cerut cu `?v=NNN` e o cerere pentru ACEA VERSIUNE, nu pentru „orice
+// copie a fișierului cu numele ăsta". Cheia de cache trebuie deci să includă
+// versiunea. Fără asta (bug 24.08.2026): pagina cerea `lib/price-day.js?v=796`,
+// `ignoreSearch:true` îi dădea copia de ieri, iar HTML-ul nou (network-first,
+// deci la zi) rula peste biblioteci vechi — badge `tt-v796` corect lângă un
+// comportament de dinainte de fix, imposibil de diagnosticat de pe telefon.
+// Asset-urile fără `?v=` rămân queryless, ca precache-ul să le găsească.
+const VERSIONED_RE = /[?&]v=/;
+function isVersioned(url) { return VERSIONED_RE.test(url.search); }
+function cacheKeyFor(url) {
+  return url.origin + url.pathname + (isVersioned(url) ? url.search : '');
+}
+// Cele două chei (queryless din precache + una per `?v=`) coexistă în cadrul
+// aceleiași versiuni de suită; `activate` golește tot la bump, deci nu se acumulează.
 // Întoarce o promisiune care se încheie DUPĂ ce put-ul e persistat — cine
 // rulează în fundal trebuie s-o dea la e.waitUntil, altfel SW-ul poate fi
 // omorât înainte să se scrie cache-ul (refresh-ul nu s-ar aplica niciodată
@@ -194,7 +205,7 @@ function cachePut(url, res) {
   if (!(res && res.status === 200 && res.type === 'basic')) return Promise.resolve(res);
   const copy = res.clone();
   return caches.open(CACHE_NAME)
-    .then(c => c.put(new Request(url.origin + url.pathname), copy))
+    .then(c => c.put(new Request(cacheKeyFor(url)), copy))
     .catch(() => {})
     .then(() => res);
 }
@@ -235,16 +246,28 @@ function htmlNetworkFirst(e, req, url) {
 }
 
 // Assets (lib/*.js?v=, CSS, nav.js): stale-while-revalidate — servește
-// instant din cache, refresh-ul merge în fundal (vizita URMĂTOARE prinde
-// versiunea nouă). Compromis asumat: imediat după un update, o pagină
-// poate rula O dată lib-ul vechi; se auto-vindecă la refresh.
+// instant din cache, refresh-ul merge în fundal.
+// Potrivirea e EXACTĂ pe versiune pentru fișierele cerute cu `?v=`: dacă avem
+// exact versiunea cerută, o servim instant (SWR ca înainte); dacă nu o avem,
+// e o versiune NOUĂ și se ia de pe rețea — nu se mai servește tăcut cea veche.
+// Vechiul comportament („o pagină poate rula O dată lib-ul vechi, se
+// auto-vindecă la refresh") a ținut o zi întreagă pe un PWA lăsat deschis pe
+// telefon, unde refresh-ul salvator nu vine niciodată.
+// Offline rămâne acoperit: dacă rețeaua pică, cădem pe orice copie din cache.
 function assetSWR(e, req, url) {
-  return caches.match(req, { ignoreSearch: true }).then(hit => {
+  const exact = isVersioned(url)
+    ? caches.match(new Request(cacheKeyFor(url)))
+    : caches.match(req, { ignoreSearch: true });
+  return exact.then(hit => {
     // refresh-ul din fundal cu 'no-cache': revalidare ETag la origine, nu
     // HTTP cache-ul browserului — altfel cache-ul SW re-primea 10 min
     // același conținut vechi și suita rămânea mereu cu un deploy în urmă
     const net = fetch(req, { cache: 'no-cache' }).then(res => cachePut(url, res)).catch(() =>
-      hit || new Response('', { status: 504, statusText: 'offline' })
+      // Rețeaua a picat: mai bine o copie veche decât nimic — dar DOAR aici, ca
+      // ultimă soluție offline, nu ca răspuns normal la o versiune necunoscută.
+      hit || caches.match(req, { ignoreSearch: true }).then(any =>
+        any || new Response('', { status: 504, statusText: 'offline' })
+      )
     );
     if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
     return net;
