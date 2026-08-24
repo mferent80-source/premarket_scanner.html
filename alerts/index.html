@@ -1172,7 +1172,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v111</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v112</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1575,13 +1575,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=797"></script>
-<script src="../lib/data.js?v=797"></script>
-<script src="../lib/poll-wake.js?v=797"></script>
+<script src="../lib/suite-version.js?v=798"></script>
+<script src="../lib/data.js?v=798"></script>
+<script src="../lib/poll-wake.js?v=798"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=797"></script>
+<script src="../lib/price-day.js?v=798"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2392,7 +2392,12 @@ async function pollPrices() {
       const a = symAgeMs(s);
       return s + (a != null ? `(${fmtAgeShort(a)})` : '(niciodată)');
     }).join(', ');
-    sessionNote += ` · ⚠ ${failedPx}/${unique.length} fără preț: ${det}${miss.length > 6 ? ` +${miss.length - 6}` : ''}`;
+    // v112: „fără preț" nu mai e o constatare fără cauză. Când TOATE proxy-urile pică,
+    // pagina spune care și cu ce cod — 429 ≠ 403 ≠ timeout înseamnă trei reparații diferite,
+    // iar de pe telefon nu există consolă în care să le vezi. A ținut o seară întreagă:
+    // crypto curgea (Binance, CORS deschis), stocks US erau înghețate, iar ecranul zicea LIVE.
+    const why = (window.D && D.lastFailText) ? D.lastFailText() : '';
+    sessionNote += ` · ⚠ ${failedPx}/${unique.length} fără preț: ${det}${miss.length > 6 ? ` +${miss.length - 6}` : ''}${why ? ` · proxy → ${why}` : ''}`;
   }
   if (unique.length && !priced && !_warnedNoKey) {
     _warnedNoKey = true;
@@ -4995,7 +5000,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v797';
+const SW_VER_INLINE = 'tt-v798';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -5012,7 +5017,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v797';
+  var PAGE_VER = 'tt-v798';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
