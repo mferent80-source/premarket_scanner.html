@@ -1331,12 +1331,13 @@ body.dark .control-panel, body.dark .log-panel{box-shadow:0 4px 18px rgba(0,0,0,
 <div class="toast" id="toast"></div>
 </div>
 
-<script src="../lib/suite-version.js?v=796"></script>
+<script src="../lib/suite-version.js?v=797"></script>
 <script src="../lib/finnhub-key.js"></script>
 <!-- data/quote-bus ÎNAINTE de scriptul mare — altfel D/QB lipseau pe first paint/scan
      (erau la final de body, după ~600KB JS inline). -->
-<script src="../lib/data.js?v=796"></script>
-<script src="../lib/poll-wake.js?v=796"></script>
+<script src="../lib/data.js?v=797"></script>
+<script src="../lib/price-day.js?v=797"></script>
+<script src="../lib/poll-wake.js?v=797"></script>
 <script src="../lib/quote-bus.js?v=705"></script>
 <script src="../lib/suite-context.js?v=705"></script>
 <!-- MCTX (read-only cache Macro) + banda cockpit shared — MCTX obligatoriu ÎNAINTEA lui cockpit.js -->
@@ -2077,7 +2078,7 @@ function renderGapScanner(){
           <div class="sig-left">
             <div class="sig-coin">${s.coin}<span class="sig-type-badge ${isUp?'tb-gap-up':'tb-gap-down'}">${isUp?'↑ Gap Up':'↓ Gap Down'}</span></div>
             <div class="sig-sector">${SECTORS[s.coin]||'US Equity'}</div>
-            <div class="sig-price">$${s.price.toFixed(2)}</div>
+            <div class="sig-price">${money(s.price, s.coin)}</div>
           </div>
           <div class="sig-right">
             <div class="sig-chg ${isUp?'up':'down'}">${s.chg>=0?'+':''}${s.chg.toFixed(2)}%</div>
@@ -2303,7 +2304,53 @@ async function fhGet(url, retry=true){
   }
 }
 
+// ── MONEDA (v797) ────────────────────────────────────────────────────────────
+// Scannerul e gândit pentru Nasdaq, dar watchlist-ul poate conține orice — inclusiv
+// dublurile europene ale acțiunilor US (1QZ.DE = Coinbase pe XETRA, cotată în EUR).
+// Prețul lor era scris cu „$" în ~100 de locuri, adică o cifră care nu există pe nicio bursă.
+const _cur = {};   // simbol → cod ISO al monedei, alimentat din meta Yahoo
+function curCode(sym){
+  const u = String(sym || '').toUpperCase();
+  return _cur[u] || (window.PriceDay && PriceDay.curFromSuffix ? PriceDay.curFromSuffix(u) : 'USD');
+}
+// Preț CU moneda lui. Înlocuiește „$" + toFixed(2) peste tot în pagină.
+function money(v, sym, dec){
+  if (v == null || isNaN(v)) return '—';
+  const c = (window.PriceDay && PriceDay.curSymbol) ? PriceDay.curSymbol(curCode(sym)) : '$';
+  return c + Number(v).toFixed(dec == null ? 2 : dec);
+}
+// Simbol non-US = are sufix de bursă (.DE/.MU/.F/.L…). Finnhub free nu acoperă bursele
+// europene: quote-ul venea gol, `fhQuote` arunca „Date invalide" și rândul dispărea din
+// scan fără nicio explicație pe ecran.
+const isNonUS = sym => String(sym || '').indexOf('.') >= 0;
+
+// Yahoo pentru simbolurile pe care Finnhub free nu le are. Aceeași formulă ca pagina
+// /alerts/ (lib/price-day.js) → aceleași cifre în ambele pagini, plus moneda instrumentului.
+async function yhQuote(symbol){
+  if (!window.D || !D.fetchJSON || !window.PriceDay) return null;
+  const ses = PriceDay.usSessionEt();
+  const q = await PriceDay.fetchDay(symbol, {
+    fetchJSON: D.fetchJSON, session: ses, isEU: isNonUS(symbol),
+    ttl: 30, timeout: 7000, publish: false
+  });
+  if (!q || !Number.isFinite(q.last)) return null;
+  if (q.cur) _cur[String(symbol).toUpperCase()] = q.cur;
+  // Forma pe care o așteaptă restul scannerului (stil Finnhub /quote)
+  return {
+    c: q.last, pc: q.prev, d: q.last - q.prev,
+    dp: q.prev > 0 ? (q.last - q.prev) / q.prev * 100 : 0,
+    h: q.last, l: q.last, o: q.prev,
+    t: Math.floor((q.ts || Date.now()) / 1000), src: 'yahoo'
+  };
+}
+
 async function fhQuote(symbol,key){
+  // Simbol european → Yahoo direct. Finnhub free n-are bursele astea, arunca
+  // „Date invalide" și rândul dispărea din scan fără explicație.
+  if (isNonUS(symbol)) {
+    const y = await yhQuote(symbol);
+    if (y) return y;
+  }
   // I-214: bus cross-pagini (hub/journal) — Finnhub skip dacă quote <30s
   const sk = String(symbol || '').toUpperCase();
   if (window.QB && sk) {
@@ -2604,7 +2651,7 @@ function renderEarningsCalendar(){
       const tvUrl='https://www.tradingview.com/chart/?symbol=NASDAQ:'+e.symbol;
       const isWl=wlSet.has(e.symbol);
       const hourLbl=e.hour==='bmo'?'<span class="earn-row-hour bmo">BMO</span>':e.hour==='amc'?'<span class="earn-row-hour amc">AMC</span>':'';
-      const epsLbl=e.epsEst?`EPS $${e.epsEst.toFixed(2)}`:'';
+      const epsLbl=e.epsEst?`EPS ${money(e.epsEst, e.symbol)}`:'';
       return `<a href="${tvUrl}" target="_blank" class="earn-row" style="text-decoration:none;color:inherit">
         ${isWl?'<span class="earn-row-watch">⭐</span>':''}
         <span class="earn-row-sym">${e.symbol}</span>
@@ -2768,7 +2815,7 @@ function savePriceAlert(symbol, targetStr, currentPrice){
   priceAlerts[symbol]={target, dir: target>currentPrice?'above':'below', setPrice:currentPrice};
   localStorage.setItem('price_alerts', JSON.stringify(priceAlerts));
   renderSignals();
-  showToast(`⏰ Alert setat: ${symbol} @ $${target.toFixed(2)}`,'ok');
+  showToast(`⏰ Alert setat: ${symbol} @ ${money(target, symbol)}`,'ok');
   playSound('grid');
 }
 
@@ -2786,11 +2833,11 @@ function checkPriceAlerts(quotesData){
     if(!al||!q.c) continue;
     const hit=(al.dir==='above'&&q.c>=al.target)||(al.dir==='below'&&q.c<=al.target);
     if(hit){
-      sendNotif(`⏰ ALERT: ${symbol}`,`Prețul a atins $${q.c.toFixed(2)} (target: $${al.target.toFixed(2)})`);
+      sendNotif(`⏰ ALERT: ${symbol}`,`Prețul a atins ${money(q.c, symbol)} (target: ${money(al.target, symbol)})`);
       telegramNotifyPriceAlert(symbol, q.c, al.target, al.dir);
       playSound('breakout');
-      showToast(`⏰ ${symbol} a atins $${q.c.toFixed(2)}!`,'ok');
-      log(`⏰ ALERT DECLANȘAT: ${symbol} @ $${q.c.toFixed(2)} (target $${al.target.toFixed(2)})`,'ok');
+      showToast(`⏰ ${symbol} a atins ${money(q.c, symbol)}!`,'ok');
+      log(`⏰ ALERT DECLANȘAT: ${symbol} @ ${money(q.c, symbol)} (target ${money(al.target, symbol)})`,'ok');
       delete priceAlerts[symbol];
       localStorage.setItem('price_alerts', JSON.stringify(priceAlerts));
       triggered++;
@@ -2804,7 +2851,7 @@ function renderAlertSection(symbol, currentPrice){
   if(al){
     return`<div class="alert-section">
       <div class="alert-active">
-        <span>⏰ Alert activ: <strong>$${al.target.toFixed(2)}</strong> (${al.dir==='above'?'↑ dacă crește':'↓ dacă scade'})</span>
+        <span>⏰ Alert activ: <strong>${money(al.target, symbol)}</strong> (${al.dir==='above'?'↑ dacă crește':'↓ dacă scade'})</span>
         <button onclick="removePriceAlert('${symbol}')">✕</button>
       </div>
     </div>`;
@@ -5070,8 +5117,8 @@ function exportSignals(){
     txt+=`\n🟢 TOP OPORTUNITĂȚI CUMPĂRARE:\n`;
     buys.forEach((o,i)=>{
       txt+=`${i+1}. ${o.symbol} (${SECTORS[o.symbol]||'US'}) — Scor ${o.score}/100\n`;
-      txt+=`   Preț: $${o.price.toFixed(2)} | Zi: ${o.chg24>=0?'+':''}${o.chg24.toFixed(2)}% | RSI: ${o.rsi.toFixed(0)}\n`;
-      txt+=`   Entry: $${o.entry.toFixed(2)} | TP: $${o.tp.toFixed(2)} | SL: $${o.sl.toFixed(2)} | R:R ${o.rr}:1\n`;
+      txt+=`   Preț: ${money(o.price, o.symbol)} | Zi: ${o.chg24>=0?'+':''}${o.chg24.toFixed(2)}% | RSI: ${o.rsi.toFixed(0)}\n`;
+      txt+=`   Entry: ${money(o.entry, o.symbol)} | TP: ${money(o.tp, o.symbol)} | SL: ${money(o.sl, o.symbol)} | R:R ${o.rr}:1\n`;
       if(o.reasons[0]) txt+=`   → ${o.reasons[0].t}\n`;
     });
   }
@@ -5080,7 +5127,7 @@ function exportSignals(){
     txt+=`\n🔴 RISC / SHORT:\n`;
     sells.forEach((o,i)=>{
       txt+=`${i+1}. ${o.symbol} — Scor bearish ${o.score}/100\n`;
-      txt+=`   Preț: $${o.price.toFixed(2)} | Zi: ${o.chg24.toFixed(2)}% | RSI: ${o.rsi.toFixed(0)}\n`;
+      txt+=`   Preț: ${money(o.price, o.symbol)} | Zi: ${o.chg24.toFixed(2)}% | RSI: ${o.rsi.toFixed(0)}\n`;
     });
   }
 
@@ -5610,14 +5657,14 @@ window.runNasdaqQuickSetup=async function(symbol,btn){
   const spark=sparklineCache[symbol]||o.spark||[];
   const trendTxt=spark.length>=5?spark.slice(-5).map(v=>v.toFixed(2)).join(' → '):'N/A';
   const userPrompt=`Setup pentru ${symbol} (${o.isBuy?'LONG candidate':'SHORT/cautious candidate'}):
-- Preț curent: $${o.price?.toFixed(2)}
+- Preț curent: ${money(o.price, o.symbol)}
 - Δ% zi: ${o.chg24>=0?'+':''}${o.chg24?.toFixed(2)}%
 - Range zi: ${o.range24pct?.toFixed(1)}%
 - RSI(14): ${o.rsi?.toFixed(1) ?? 'N/A'}
 - Scanner score: ${o.score}/100 (${o.isBuy?'BUY':'SELL'} side)
-- Entry algoritmic propus: $${o.entry?.toFixed(2)}
-- TP algoritmic: $${o.tp?.toFixed(2)} (R:R ${o.rr}:1)
-- SL algoritmic: $${o.sl?.toFixed(2)}
+- Entry algoritmic propus: ${money(o.entry, o.symbol)}
+- TP algoritmic: ${money(o.tp, o.symbol)} (R:R ${o.rr}:1)
+- SL algoritmic: ${money(o.sl, o.symbol)}
 - Sector: ${SECTORS[symbol]||'US Equity'}
 - Trend ultimele 5 zile: ${trendTxt}
 - Reasons scanner: ${(o.reasons||[]).map(r=>r.t).join('; ')}
@@ -6046,10 +6093,10 @@ async function runScan(){
       const rsiCtx=rsi>=75?`<span class="warn">⚠️ RSI ${rsi.toFixed(0)} — supracumpărat puternic. Profiturile existente trebuie securizate. NU cumpăra la vârf.</span>`
         :rsi>=65?`<span class="warn">RSI ${rsi.toFixed(0)} — momentum ridicat. Entry nou cu risc crescut; așteaptă revenire la suport.</span>`
         :`<span class="good">RSI ${rsi.toFixed(0)} — spațiu tehnic disponibil. Rally cu potențial de continuare.</span>`;
-      const entryZone=rsi>=70?`$${(price*0.96).toFixed(2)}–$${(price*0.98).toFixed(2)}`:`$${(price*0.99).toFixed(2)}–$${price.toFixed(2)}`;
+      const entryZone=rsi>=70?`${money((price*0.96), symbol)}–${money((price*0.98), symbol)}`:`${money((price*0.99), symbol)}–${money(price, symbol)}`;
       const sugg=rsi>=75?'wait':chg24>=8?'scalp':'long';
-      const desc=`${_staleWarn}<strong>${symbol}</strong> a crescut <strong>+${chg24.toFixed(2)}%</strong> față de închiderea precedentă ($${prevClose.toFixed(2)} → $${price.toFixed(2)}). ${rsiCtx}`;
-      const td={entry:entryZone,tp:`$${(price*1.07).toFixed(2)} / $${(price*1.12).toFixed(2)}`,sl:`$${(price*(rsi>=70?0.94:0.96)).toFixed(2)}`,risc:rsi>=75?'RIDICAT':chg24>=6?'MEDIU':'SCĂZUT'};
+      const desc=`${_staleWarn}<strong>${symbol}</strong> a crescut <strong>+${chg24.toFixed(2)}%</strong> față de închiderea precedentă (${money(prevClose, symbol)} → ${money(price, symbol)}). ${rsiCtx}`;
+      const td={entry:entryZone,tp:`${money((price*1.07), symbol)} / ${money((price*1.12), symbol)}`,sl:`${money((price*(rsi>=70?0.94:0.96)), symbol)}`,risc:rsi>=75?'RIDICAT':chg24>=6?'MEDIU':'SCĂZUT'};
       newSignals.push(makeSignal(symbol,'pump','📈 Rally Puternic',desc,{chg24,rsi,range24pct},price,chg24,strength,priority,sugg,td));
     }
 
@@ -6062,8 +6109,8 @@ async function runScan(){
         :rsi<=45?`<span class="warn">RSI ${rsi.toFixed(0)} — momentum negativ. Stai lateral. Nicio intrare long fără confirmare.</span>`
         :`<span class="warn">RSI ${rsi.toFixed(0)} — vânzare cu RSI ridicat = distribuție sau reacție fundamentală. Risc de continuare.</span>`;
       const sugg=rsi<=30?'dca':'wait';
-      const desc=`${_staleWarn}<strong>${symbol}</strong> a scăzut <strong>${chg24.toFixed(2)}%</strong> față de închiderea precedentă. ${rsiCtx} <span class="muted">Suport imediat: $${low24.toFixed(2)}. Rezistența de recuperat: $${prevClose.toFixed(2)}.</span>`;
-      const td={entry:`$${(price*0.99).toFixed(2)}–$${low24.toFixed(2)}`,tp:`$${(price*1.05).toFixed(2)}`,sl:`$${(low24*0.97).toFixed(2)}`,risc:rsi>=45?'RIDICAT':'MEDIU'};
+      const desc=`${_staleWarn}<strong>${symbol}</strong> a scăzut <strong>${chg24.toFixed(2)}%</strong> față de închiderea precedentă. ${rsiCtx} <span class="muted">Suport imediat: ${money(low24, symbol)}. Rezistența de recuperat: ${money(prevClose, symbol)}.</span>`;
+      const td={entry:`${money((price*0.99), symbol)}–${money(low24, symbol)}`,tp:`${money((price*1.05), symbol)}`,sl:`${money((low24*0.97), symbol)}`,risc:rsi>=45?'RIDICAT':'MEDIU'};
       newSignals.push(makeSignal(symbol,'dump','📉 Scădere Bruscă',desc,{chg24,rsi,range24pct},price,chg24,strength,priority,sugg,td));
     }
 
@@ -6073,8 +6120,8 @@ async function runScan(){
       const trendCtx=chg24>=2?`Trend bullish (+${chg24.toFixed(1)}%) — ziua controlată de cumpărători.`
         :chg24<=-2?`Trend bearish (${chg24.toFixed(1)}%) — presiune de vânzare dominantă.`
         :`Ziua echilibrată (${chg24>=0?'+':''}${chg24.toFixed(1)}%) — range clar definit.`;
-      const desc=`Interval intraday: <strong>$${low24.toFixed(2)} → $${high24.toFixed(2)}</strong> (${range24pct.toFixed(1)}%). ${trendCtx} <span class="muted">Cumpără aproape de $${low24.toFixed(2)}, vinde aproape de $${high24.toFixed(2)}.</span>`;
-      const td={entry:`$${low24.toFixed(2)}–$${(low24*(1+range24pct/200)).toFixed(2)}`,tp:`$${(high24*0.97).toFixed(2)}`,sl:`$${(low24*0.99).toFixed(2)}`,risc:'SCĂZUT'};
+      const desc=`Interval intraday: <strong>${money(low24, symbol)} → ${money(high24, symbol)}</strong> (${range24pct.toFixed(1)}%). ${trendCtx} <span class="muted">Cumpără aproape de ${money(low24, symbol)}, vinde aproape de ${money(high24, symbol)}.</span>`;
+      const td={entry:`${money(low24, symbol)}–${money((low24*(1+range24pct/200)), symbol)}`,tp:`${money((high24*0.97), symbol)}`,sl:`${money((low24*0.99), symbol)}`,risc:'SCĂZUT'};
       newSignals.push(makeSignal(symbol,'volatility','⚡ Volatilitate Intraday',desc,{chg24,rsi,range24pct},price,chg24,strength,'med','scalp',td));
     }
 
@@ -6085,8 +6132,8 @@ async function runScan(){
       const deepCtx=rsi<=22?`<span class="good">RSI ${rsi.toFixed(0)} — supravânzare extremă. Bounceuri istorice de 8–20% posibile.</span>`
         :`<span class="good">RSI ${rsi.toFixed(0)} — supravânzare clasică. Zona de interes pentru traderii value.</span>`;
       const confCtx=chg24<=-5?` Scăderea de ${chg24.toFixed(1)}% azi poate reprezenta capitularea vânzătorilor.`:'';
-      const desc=`${deepCtx}${confCtx} <span class="muted">DCA: tranșă 1 la $${price.toFixed(2)}, tranșă 2 la $${(price*0.97).toFixed(2)} dacă scade mai mult. TP1: $${(price*1.06).toFixed(2)}, TP2: $${(price*1.12).toFixed(2)}. Stop: $${(low24*0.97).toFixed(2)}.</span>`;
-      const td={entry:`$${(price*0.99).toFixed(2)}–$${price.toFixed(2)}`,tp:`$${(price*1.06).toFixed(2)} / $${(price*1.12).toFixed(2)}`,sl:`$${(low24*0.97).toFixed(2)}`,risc:rsi<=22?'SCĂZUT':'MEDIU'};
+      const desc=`${deepCtx}${confCtx} <span class="muted">DCA: tranșă 1 la ${money(price, symbol)}, tranșă 2 la ${money((price*0.97), symbol)} dacă scade mai mult. TP1: ${money((price*1.06), symbol)}, TP2: ${money((price*1.12), symbol)}. Stop: ${money((low24*0.97), symbol)}.</span>`;
+      const td={entry:`${money((price*0.99), symbol)}–${money(price, symbol)}`,tp:`${money((price*1.06), symbol)} / ${money((price*1.12), symbol)}`,sl:`${money((low24*0.97), symbol)}`,risc:rsi<=22?'SCĂZUT':'MEDIU'};
       newSignals.push(makeSignal(symbol,'rsi-low','📊 RSI Oversold',desc,{chg24,rsi,range24pct},price,chg24,strength,priority,'dca',td));
     }
 
@@ -6096,8 +6143,8 @@ async function runScan(){
       const priority=rsi>=80?'high':'med';
       const extCtx=rsi>=80?`<span class="warn">RSI ${rsi.toFixed(0)} — supracumpărat extrem. Probabilitate ridicată de corecție.</span>`
         :`<span class="warn">RSI ${rsi.toFixed(0)} — momentum ridicat dar spațiu limitat. Evită entry long nou.</span>`;
-      const desc=`${extCtx} <span class="muted">Securizează 30–50% din poziție. Corecție normală: 3–8%. Re-entry după corecție: $${(price*0.94).toFixed(2)}–$${(price*0.97).toFixed(2)}. Short speculativ cu stop la $${(price*1.03).toFixed(2)}.</span>`;
-      const td={entry:`$${price.toFixed(2)}`,tp:`$${(price*0.93).toFixed(2)}`,sl:`$${(price*1.04).toFixed(2)}`,risc:rsi>=80?'MEDIU':'RIDICAT'};
+      const desc=`${extCtx} <span class="muted">Securizează 30–50% din poziție. Corecție normală: 3–8%. Re-entry după corecție: ${money((price*0.94), symbol)}–${money((price*0.97), symbol)}. Short speculativ cu stop la ${money((price*1.03), symbol)}.</span>`;
+      const td={entry:`${money(price, symbol)}`,tp:`${money((price*0.93), symbol)}`,sl:`${money((price*1.04), symbol)}`,risc:rsi>=80?'MEDIU':'RIDICAT'};
       newSignals.push(makeSignal(symbol,'rsi-high','📊 RSI Overbought',desc,{chg24,rsi,range24pct},price,chg24,strength,priority,'wait',td));
     }
 
@@ -6116,8 +6163,8 @@ async function runScan(){
         const swingLow=price*(1-range24pct/200);
         const swingHigh=price*(1+range24pct/125);
         const rrNum=price-swingLow>0?((swingHigh-price)/(price-swingLow)).toFixed(1):'?';
-        const desc=`Scor swing: <strong>${swingScore}/100</strong>. Range intraday ${range24pct.toFixed(1)}%, RSI ${rsi.toFixed(0)}.${rsiCtx} <span class="muted">VWAP estimat: $${vwapEst.toFixed(2)}. Target: $${swingHigh.toFixed(2)} (+${((swingHigh/price-1)*100).toFixed(1)}%). Stop: $${swingLow.toFixed(2)} (R:R=${rrNum}:1). Orizont: 2–5 zile.</span>`;
-        const td={entry:`$${price.toFixed(2)}`,tp:`$${swingHigh.toFixed(2)}`,sl:`$${swingLow.toFixed(2)}`,risc:swingScore>=85?'SCĂZUT':'MEDIU'};
+        const desc=`Scor swing: <strong>${swingScore}/100</strong>. Range intraday ${range24pct.toFixed(1)}%, RSI ${rsi.toFixed(0)}.${rsiCtx} <span class="muted">VWAP estimat: ${money(vwapEst, symbol)}. Target: ${money(swingHigh, symbol)} (+${((swingHigh/price-1)*100).toFixed(1)}%). Stop: ${money(swingLow, symbol)} (R:R=${rrNum}:1). Orizont: 2–5 zile.</span>`;
+        const td={entry:`${money(price, symbol)}`,tp:`${money(swingHigh, symbol)}`,sl:`${money(swingLow, symbol)}`,risc:swingScore>=85?'SCĂZUT':'MEDIU'};
         newSignals.push(makeSignal(symbol,'swing','🎯 Swing Setup',desc,{chg24,rsi,range24pct,swingScore},price,chg24,strength,'low','swing',td));
       }
     }
@@ -6131,12 +6178,12 @@ async function runScan(){
         const strength=Math.min(100,pctMove*25);
         const priority=pctMove>=4?'high':pctMove>=2.5?'med':'low';
         const confCtx=isBull
-          ?`<span class="good">Breakout BULLISH +${pctMove.toFixed(2)}% față de ultima scanare. Target: $${(price*1.03).toFixed(2)}.</span>`
+          ?`<span class="good">Breakout BULLISH +${pctMove.toFixed(2)}% față de ultima scanare. Target: ${money((price*1.03), symbol)}.</span>`
           :(rsi<=40?`<span class="good">Breakdown dar RSI supravânzat (${rsi.toFixed(0)}) — bounce tehnic iminent.</span>`
-            :`<span class="warn">Breakdown BEARISH –${pctMove.toFixed(2)}%. Evită long — support: $${(price*0.97).toFixed(2)}.</span>`);
+            :`<span class="warn">Breakdown BEARISH –${pctMove.toFixed(2)}%. Evită long — support: ${money((price*0.97), symbol)}.</span>`);
         const sugg=isBull?'scalp':rsi<=40?'dca':'wait';
-        const desc=`Mișcare de <strong>${pctMove.toFixed(2)}%</strong> față de ultima scanare (<strong>$${prev.toFixed(2)} → $${price.toFixed(2)}</strong>). ${confCtx} <span class="muted">RSI: ${rsi.toFixed(0)}.</span>`;
-        const td={entry:`$${price.toFixed(2)}`,tp:isBull?`$${(price*1.04).toFixed(2)}`:`$${(price*0.96).toFixed(2)}`,sl:isBull?`$${(price*0.97).toFixed(2)}`:`$${(price*1.03).toFixed(2)}`,risc:pctMove>=4?'RIDICAT':'MEDIU'};
+        const desc=`Mișcare de <strong>${pctMove.toFixed(2)}%</strong> față de ultima scanare (<strong>${money(prev, symbol)} → ${money(price, symbol)}</strong>). ${confCtx} <span class="muted">RSI: ${rsi.toFixed(0)}.</span>`;
+        const td={entry:`${money(price, symbol)}`,tp:isBull?`${money((price*1.04), symbol)}`:`${money((price*0.96), symbol)}`,sl:isBull?`${money((price*0.97), symbol)}`:`${money((price*1.03), symbol)}`,risc:pctMove>=4?'RIDICAT':'MEDIU'};
         newSignals.push(makeSignal(symbol,'breakout','💥 Breakout Intraday',desc,{chg24,rsi,range24pct,pctMove},price,chg24,strength,priority,sugg,td));
       }
     }
@@ -6593,9 +6640,9 @@ function renderRecommendations(){
       <div class="reco-stat"><div class="reco-stat-val" style="color:${parseFloat(o.rr)>=2?'var(--green)':parseFloat(o.rr)>=1.5?'var(--gold)':'var(--red)'}">${o.rr}:1</div><div class="reco-stat-lbl">R:R</div></div>
     </div>`;
     const entrySection=`<div class="trade-detail">
-      <div class="td-item"><div class="td-lbl">📍 Entry</div><div class="td-val">$${o.entry.toFixed(2)}</div></div>
-      <div class="td-item"><div class="td-lbl">🎯 Target</div><div class="td-val" style="color:var(--green)">$${o.tp.toFixed(2)}</div></div>
-      <div class="td-item"><div class="td-lbl">🛡️ Stop</div><div class="td-val" style="color:var(--red)">$${o.sl.toFixed(2)}</div></div>
+      <div class="td-item"><div class="td-lbl">📍 Entry</div><div class="td-val">${money(o.entry, o.symbol)}</div></div>
+      <div class="td-item"><div class="td-lbl">🎯 Target</div><div class="td-val" style="color:var(--green)">${money(o.tp, o.symbol)}</div></div>
+      <div class="td-item"><div class="td-lbl">🛡️ Stop</div><div class="td-val" style="color:var(--red)">${money(o.sl, o.symbol)}</div></div>
     </div>`;
     const reasonsHtml=o.reasons.map(r=>`<div class="reco-reason"><div class="rdot ${r.c}"></div><span>${r.t}</span></div>`).join('');
     const tvUrl=`https://www.tradingview.com/chart/?symbol=NASDAQ:${o.symbol}`;
@@ -6607,7 +6654,7 @@ function renderRecommendations(){
           <div class="reco-info">
             <div class="reco-ticker">${o.symbol}${earningsSet.has(o.symbol)?'<span class="earnings-badge">📅 Earnings</span>':''}${watchlist.includes(o.symbol)?'<span class="watchlist-star">⭐</span>':''}</div>
             <div class="reco-sector">${SECTORS[o.symbol]||'US Equity'}</div>
-            <div class="reco-price">$${o.price.toFixed(2)}</div>
+            <div class="reco-price">${money(o.price, o.symbol)}</div>
           </div>
           <div class="reco-score-wrap">
             <div class="reco-score ${isBuy?'buy':'sell'}">${o.score}</div>
@@ -6844,7 +6891,7 @@ function renderEarlyBuy(){
             </div>
             <div class="early-sector">${SECTORS[o.symbol]||'US Equity'}</div>
             <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
-              <span style="font-size:.88rem;font-weight:700;color:var(--t2);">$${o.price.toFixed(2)}</span>
+              <span style="font-size:.88rem;font-weight:700;color:var(--t2);">${money(o.price, o.symbol)}</span>
               <span style="font-family:var(--head);font-weight:800;font-size:.95rem;color:var(--green);">+${o.chg24.toFixed(2)}%</span>
             </div>
           </div>
@@ -6892,9 +6939,9 @@ function renderEarlyBuy(){
         <div class="reco-reasons" style="margin-bottom:8px;">${reasonsHtml}</div>
 
         <div class="trade-detail">
-          <div class="td-item"><div class="td-lbl">📍 Entry</div><div class="td-val">$${o.entry.toFixed(2)}</div></div>
-          <div class="td-item"><div class="td-lbl">🎯 Target</div><div class="td-val" style="color:var(--green)">$${o.tp.toFixed(2)}</div></div>
-          <div class="td-item"><div class="td-lbl">🛡️ Stop</div><div class="td-val" style="color:var(--red)">$${o.sl.toFixed(2)}</div></div>
+          <div class="td-item"><div class="td-lbl">📍 Entry</div><div class="td-val">${money(o.entry, o.symbol)}</div></div>
+          <div class="td-item"><div class="td-lbl">🎯 Target</div><div class="td-val" style="color:var(--green)">${money(o.tp, o.symbol)}</div></div>
+          <div class="td-item"><div class="td-lbl">🛡️ Stop</div><div class="td-val" style="color:var(--red)">${money(o.sl, o.symbol)}</div></div>
         </div>
 
         <div class="fund-row" id="fund_eb_${o.symbol}">
@@ -7016,7 +7063,7 @@ function renderMultiScan(){
       return `<a href="${tvUrl}" target="_blank" class="ms-row">
         <div class="ms-ticker">${s.coin}${isWL?' ⭐':''}${hasE?' 📅':''}${insIcon}</div>
         <div class="ms-info">
-          <div class="ms-price">$${(s.price||0).toFixed(2)}</div>
+          <div class="ms-price">${money((s.price||0), s.coin)}</div>
           <div class="ms-meta">${meta}</div>
         </div>
         <div class="ms-chg ${s.chg>=0?'up':'down'}">${chgStr}</div>
@@ -7139,7 +7186,7 @@ window.openMiniChartNasdaq = async function(symbol){
     for (let k = 0; k <= 4; k++) {
       const v = max - (range * k / 4);
       const y = padT + (chartH * k / 4);
-      yLabels += `<text x="${padL - 6}" y="${y + 3}" text-anchor="end" font-size="9" fill="#94a3b8">$${v.toFixed(2)}</text>`;
+      yLabels += `<text x="${padL - 6}" y="${y + 3}" text-anchor="end" font-size="9" fill="#94a3b8">${money(v, symbol)}</text>`;
       yLabels += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#e2e8f0" stroke-width="0.5" stroke-dasharray="2,3"/>`;
     }
     // Volume bars (semi-transparente jos)
@@ -7165,7 +7212,7 @@ window.openMiniChartNasdaq = async function(symbol){
         </svg>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:.62rem;color:var(--t2)">
-        <span>30d range: <b>$${min.toFixed(2)} – $${max.toFixed(2)}</b></span>
+        <span>30d range: <b>${money(min, symbol)} – ${money(max, symbol)}</b></span>
         <span>30d change: <b style="color:${chgCls}">${chgPct >= 0 ? '+' : ''}${chgPct}%</b></span>
       </div>`;
   } catch(e) {
@@ -7466,7 +7513,7 @@ function renderSignals(){
               <span class="sig-type-badge ${typeBadge[s.type]||'tb-volatility'}">${typeIcons[s.type]||'⚡'} ${s.title}</span>
             </div>
             <div class="sig-sector">${sector}</div>
-            <div class="sig-price">$${s.price>=100?s.price.toFixed(2):s.price.toFixed(3)}</div>
+            <div class="sig-price">${money(s.price, s.coin, s.price>=100?2:3)}</div>
           </div>
           <div class="sig-right">
             <div class="sig-chg ${s.chg>=0?'up':'down'}">${chgStr}</div>
@@ -8177,7 +8224,7 @@ async function runPumpRadarScan(){
       
       newAlerts.sort((a,b)=>b.score-a.score);
       newAlerts.slice(0,3).forEach(a=>{
-        const body=`${a.symbol} • $${a.price.toFixed(2)} • Score ${a.score} • ${check.label.replace(/[🌅🟢🌙]/g,'').trim()}`;
+        const body=`${a.symbol} • ${money(a.price, a.symbol)} • Score ${a.score} • ${check.label.replace(/[🌅🟢🌙]/g,'').trim()}`;
         sendNotif(a.title+' '+a.symbol, body);
       });
       
@@ -8435,7 +8482,7 @@ function renderPumpRadar(){
               <div style="font-weight:800;font-size:1.05rem;margin-top:2px">${a.symbol}${renderInsiderInline(a.symbol)}</div>
             </div>
             <div style="text-align:right">
-              <div style="font-family:var(--head);font-weight:800;font-size:.85rem">$${a.price.toFixed(2)}</div>
+              <div style="font-family:var(--head);font-weight:800;font-size:.85rem">${money(a.price, a.symbol)}</div>
               <div style="font-size:.6rem;color:#64748b;margin-top:2px">${ago}${sessionTag}</div>
             </div>
           </div>
@@ -8550,7 +8597,7 @@ function _tgFlushPumps(){
   msg += `━━━━━━━━━━━━━\n`;
   queue.slice(0, 12).forEach(a => {
     const cleanTitle = (a.title || '').replace(/[*_`]/g, '').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim();
-    msg += `• \`${a.symbol}\` ${cleanTitle} $${a.price.toFixed(2)} ⭐${a.score}\n`;
+    msg += `• \`${a.symbol}\` ${cleanTitle} ${money(a.price, a.symbol)} ⭐${a.score}\n`;
   });
   if (queue.length > 12) msg += `…și *${queue.length - 12} mai multe* (vezi app).\n`;
   msg += `━━━━━━━━━━━━━\nDeschide [Pump Radar](https://mferent80-source.github.io/premarket_scanner.html/nasdaq-scanner/#pumpradar) pentru detalii complete.`;
@@ -8564,7 +8611,7 @@ function _tgSendPumpDetailed(alert){
   const finvizUrl=`https://finviz.com/quote.ashx?t=${alert.symbol}`;
   const sessionMap={premarket:'🌅 Pre-market',regular:'🟢 Regular',afterhours:'🌙 After-hours'};
   let msg=`*${alert.title}* \`${alert.symbol}\`\n`;
-  msg+=`💰 Preț: *$${alert.price.toFixed(2)}*\n`;
+  msg+=`💰 Preț: *${money(alert.price, alert.symbol)}*\n`;
   msg+=`⭐ Score: *${alert.score}*/100\n`;
   if(alert.session) msg+=`🕐 ${sessionMap[alert.session]||alert.session}\n`;
   msg+=`━━━━━━━━━━━━━\n`;
@@ -8600,8 +8647,8 @@ async function telegramNotifyPriceAlert(symbol, price, target, dir){
   if(!telegramConfig.enabled || !telegramConfig.priceAlerts) return;
   const tvUrl=`https://www.tradingview.com/chart/?symbol=NASDAQ:${symbol}`;
   let msg=`⏰ *PRICE ALERT* \`${symbol}\`\n`;
-  msg+=`💰 Preț atins: *$${price.toFixed(2)}*\n`;
-  msg+=`🎯 Target: \`$${target.toFixed(2)}\` (${dir==='above'?'peste':'sub'})\n`;
+  msg+=`💰 Preț atins: *${money(price, symbol)}*\n`;
+  msg+=`🎯 Target: \`${money(target, symbol)}\` (${dir==='above'?'peste':'sub'})\n`;
   msg+=`[📊 Chart](${tvUrl})`;
   sendTelegram(msg);
 }
@@ -8614,7 +8661,7 @@ async function telegramNotifyMainSignal(signal){
   const cleanDesc=(signal.desc||'').replace(/<[^>]+>/g,'').substring(0,200);
   
   let msg=`${signal.title}\n`;
-  msg+=`*${signal.coin}* • $${(signal.price||0).toFixed(2)} `;
+  msg+=`*${signal.coin}* • ${money((signal.price||0), signal.coin)} `;
   msg+=`\`${signal.chg>0?'+':''}${(signal.chg||0).toFixed(2)}%\`\n`;
   msg+=`⭐ Strength: *${signal.strength||0}*/100\n`;
   if(cleanDesc) msg+=`\n📝 ${cleanDesc}\n`;
@@ -9150,7 +9197,7 @@ function openCompareModal(){
           return `<div style="background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:14px;font-size:.65rem">
             <div style="font-family:var(--head);font-size:1.2rem;font-weight:800;margin-bottom:4px">${c.sym} ${c.inWl?'⭐':''} ${c.earn?'📅':''}</div>
             <div style="font-size:.55rem;color:var(--t3);text-transform:uppercase;letter-spacing:.5px">${SECTORS[c.sym] || 'US Equity'}</div>
-            <div style="font-size:1.3rem;font-weight:800;font-family:var(--head);margin-top:8px">$${c.s.price.toFixed(2)} <span style="font-size:.75rem;color:${chgCls}">${c.s.chg>=0?'+':''}${c.s.chg.toFixed(2)}%</span></div>
+            <div style="font-size:1.3rem;font-weight:800;font-family:var(--head);margin-top:8px">${money(c.s.price, c.sym)} <span style="font-size:.75rem;color:${chgCls}">${c.s.chg>=0?'+':''}${c.s.chg.toFixed(2)}%</span></div>
             ${sparkSvg}
             <div style="display:grid;grid-template-columns:auto 1fr;gap:5px 10px;margin-top:8px">
               <div style="color:var(--t3)">Type</div><div><b>${c.s.type}</b></div>
@@ -9158,7 +9205,7 @@ function openCompareModal(){
               <div style="color:var(--t3)">Priority</div><div><b>${c.s.priority || '—'}</b></div>
               ${rsi != null ? `<div style="color:var(--t3)">RSI 14</div><div><b style="color:${rsiCls}">${rsi.toFixed(1)}</b></div>` : ''}
               ${c.w7 ? `<div style="color:var(--t3)">7d trend</div><div><b style="color:${c.w7>=0?'var(--green)':'var(--red)'}">${c.w7>=0?'+':''}${c.w7}%</b></div>` : ''}
-              ${c.an?.targetMean ? `<div style="color:var(--t3)">Target med</div><div><b>$${parseFloat(c.an.targetMean).toFixed(2)}</b></div>` : ''}
+              ${c.an?.targetMean ? `<div style="color:var(--t3)">Target med</div><div><b>${money(parseFloat(c.an.targetMean), c.sym)}</b></div>` : ''}
             </div>
             <div style="display:flex;gap:5px;margin-top:10px">
               <a href="https://www.tradingview.com/chart/?symbol=NASDAQ:${c.sym}" target="_blank" style="flex:1;padding:6px;background:var(--bg);border:1px solid var(--b1);border-radius:5px;color:var(--acc);text-decoration:none;text-align:center;font-size:.55rem">📈 TV</a>
@@ -9472,7 +9519,7 @@ function saveToJournal(payload){
     if (isFinite(entry)) q.set('prefill', encodeURIComponent(JSON.stringify({ sym, entry, slAtEntry: sl, size, source: 'nasdaq', notes: trade.notes })));
     const url = '../journal/?' + q.toString();
     if(typeof showToast==='function'){
-      showToast(`📓 ${sym} → Journal` + (estRisk ? ` (risc ~$${estRisk.toFixed(0)})` : ''), 'ok');
+      showToast(`📓 ${sym} → Journal` + (estRisk ? ` (risc ~${money(estRisk, sym, 0)})` : ''), 'ok');
     }
     try { window.open(url, 'ttools-journal'); } catch(e){ location.href = url; }
   }catch(e){
@@ -9972,7 +10019,7 @@ function _lvRenderEarnRows(results){
     const lowPct=s.intradayLowPct!=null?`<span class="${s.intradayLowPct<=-5?'neg':''}">${s.intradayLowPct.toFixed(2)}%</span>`:'-';
     const cc=s.changePct==null?'':(s.changePct<0?'neg':'pos');
     const cs=s.changePct!=null?`${s.changePct.toFixed(2)}%`:'-';
-    const ps=s.price!=null?`$${s.price.toFixed(2)}`:'-';
+    const ps=s.price!=null?`${money(s.price, s.symbol)}`:'-';
     const tr=document.createElement('tr');
     tr.innerHTML=`<td>${i+1}</td>${_lvSymCell(s)}<td>${U.escHtml((s.name||'').slice(0,26))}</td>`
       +`<td class="num"><span class="${earn.cls}">${earn.text}</span></td>`
@@ -9998,7 +10045,7 @@ function _lvRenderLoserRows(results){
     const earn=NasdaqLosersScanner.formatEarnings(s.daysToEarnings,s.earningsTimestamp);
     const tr=document.createElement('tr');
     tr.innerHTML=`<td>${i+1}</td>${_lvSymCell(s)}<td>${U.escHtml((s.name||'').slice(0,28))}</td>`
-      +`<td class="num">$${s.price?.toFixed(2)||'-'}</td>`
+      +`<td class="num">${money((s.price ?? null), s.symbol) ||'-'}</td>`
       +`<td class="num neg">${s.changePct?.toFixed(2)}%</td>`
       +`<td class="num">${NasdaqLosersScanner.formatVolume(s.volume)}</td>`
       +`<td class="num ${vr>=2?'vol-hot':''}">${vr?vr.toFixed(1)+'x':'-'}</td>`
@@ -10122,10 +10169,10 @@ async function _lvBatchAnalyze(kind){
   const lines=top5.map((s,i)=>{
     const earn=NasdaqLosersScanner.formatEarnings(s.daysToEarnings,s.earningsTimestamp).text;
     if(kind==='earn'){
-      return `${i+1}. ${s.symbol} (${s.sector||'N/A'}) | preț $${s.price?.toFixed(2)||'N/A'} | schimb ${s.changePct?.toFixed(2)||'N/A'}% | EPS est ${s.epsForecast||'N/A'} | earnings: ${earn} | sesiune: ${NasdaqLosersScanner.formatTime(s.time)||'N/A'}`;
+      return `${i+1}. ${s.symbol} (${s.sector||'N/A'}) | preț ${money((s.price ?? null), s.symbol) ||'N/A'} | schimb ${s.changePct?.toFixed(2)||'N/A'}% | EPS est ${s.epsForecast||'N/A'} | earnings: ${earn} | sesiune: ${NasdaqLosersScanner.formatTime(s.time)||'N/A'}`;
     } else {
       const vr=s.avgVolume?(s.volume/s.avgVolume).toFixed(1)+'x':'N/A';
-      return `${i+1}. ${s.symbol} (${s.sector||'N/A'}) | preț $${s.price?.toFixed(2)||'N/A'} | schimb ${s.changePct?.toFixed(2)||'N/A'}% | vol/avg ${vr} | mcap ${NasdaqLosersScanner.formatMcap(s.marketCap)} | earnings: ${earn}`;
+      return `${i+1}. ${s.symbol} (${s.sector||'N/A'}) | preț ${money((s.price ?? null), s.symbol) ||'N/A'} | schimb ${s.changePct?.toFixed(2)||'N/A'}% | vol/avg ${vr} | mcap ${NasdaqLosersScanner.formatMcap(s.marketCap)} | earnings: ${earn}`;
     }
   }).join('\n');
   const intro=kind==='earn'
@@ -10177,10 +10224,10 @@ async function _lvCompareAnalyze(kind){
     const d=_LV_ROW_DATA[kind][sym]||{symbol:sym};
     const earn=NasdaqLosersScanner.formatEarnings(d.daysToEarnings,d.earningsTimestamp).text;
     if(kind==='earn'){
-      return `${sym} (${d.sector||'N/A'}): preț $${d.price?.toFixed(2)||'N/A'} | schimb ${d.changePct?.toFixed(2)||'N/A'}% | EPS est ${d.epsForecast||'N/A'} | earnings: ${earn}`;
+      return `${sym} (${d.sector||'N/A'}): preț ${money((d.price ?? null), sym) ||'N/A'} | schimb ${d.changePct?.toFixed(2)||'N/A'}% | EPS est ${d.epsForecast||'N/A'} | earnings: ${earn}`;
     } else {
       const vr=d.avgVolume?(d.volume/d.avgVolume).toFixed(1)+'x':'N/A';
-      return `${sym} (${d.sector||'N/A'}): preț $${d.price?.toFixed(2)||'N/A'} | schimb ${d.changePct?.toFixed(2)||'N/A'}% | vol/avg ${vr} | mcap ${NasdaqLosersScanner.formatMcap(d.marketCap)} | earnings: ${earn}`;
+      return `${sym} (${d.sector||'N/A'}): preț ${money((d.price ?? null), sym) ||'N/A'} | schimb ${d.changePct?.toFixed(2)||'N/A'}% | vol/avg ${vr} | mcap ${NasdaqLosersScanner.formatMcap(d.marketCap)} | earnings: ${earn}`;
     }
   }).join('\n');
   const prompt='Compară pentru un trader român următoarele '+symbols.length+' stocks. Recomandă pe care merită să intri ACUM și de ce.\n'+lines+'\n\n'+
@@ -10548,7 +10595,7 @@ try{ paintFromLastScan(); }catch(e){}
 
 // Înregistrează service worker-ul (cache + offline) — scope: ../
 if('serviceWorker' in navigator){
-  const swVer = 'tt-v796';
+  const swVer = 'tt-v797';
   navigator.serviceWorker.register('../sw-app.js?v='+swVer,{scope:'../',updateViaCache:'none'}).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -11306,7 +11353,7 @@ setTimeout(_updateGistStatusN, 500);
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v796';
+  var PAGE_VER = 'tt-v797';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
