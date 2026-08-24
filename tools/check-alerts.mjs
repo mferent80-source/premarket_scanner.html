@@ -41,6 +41,11 @@ const FILE = new URL('./alerts.json', import.meta.url);
 const REARM_HYST = 0.003;
 // Perechile USDT (crypto, des sub 1$) → 4 zecimale: acolo se vede mișcarea reală. Restul → 2.
 const dec = sym => /USDT$/.test(String(sym || '').toUpperCase()) ? 4 : 2;
+// Semnul monedei per simbol (vezi lib/price-day.js). Până vine prima cotație se deduce
+// din sufixul bursei, ca alerta să nu plece pe Telegram cu „$" pe un preț în EUR.
+const cs = sym => PD.curSymbol(curs[sym] || PD.curFromSuffix(sym));
+// Preț formatat CU moneda lui — înlocuiește peste tot „$" + toFixed(dec(sym)).
+const money = (v, sym) => cs(sym) + Number(v).toFixed(dec(sym));
 
 let cfg;
 try { cfg = JSON.parse(readFileSync(FILE, 'utf8')); }
@@ -94,7 +99,9 @@ async function fetchPrice(sym){
     // trimitea pe Telegram prețul de ieri ca și cum ar fi de azi (aceeași cauză ca în pagină).
     const out = PD.yahooQuote(res.meta || {}, lastBar, ses, isEU, lastBarTs);
     if (!out || !Number.isFinite(out.last)) return null;
-    return { last: out.last, prev: out.prev };
+    // Moneda merge cu prețul: alerta pe 1QZ.DE (Coinbase pe XETRA) spunea „$161.34" pentru
+    // 161.34 EUR — 14% sub prețul COIN de pe Nasdaq, adică o cifră care nu există nicăieri.
+    return { last: out.last, prev: out.prev, cur: out.cur || 'USD' };
   } catch (e) { return null; }
 }
 
@@ -201,9 +208,11 @@ const uniq = [...new Set(alerts.map(a => String(a.symbol || '').toUpperCase()).f
 if (isWeekend) console.log('🌙 Weekend ET — stocks sărite (preț înghețat), verific doar crypto.');
 const prices = {};
 const changes = {};   // variația zilei % per simbol (din chartPreviousClose)
+const curs = {};      // moneda instrumentului — .DE/.MU/.F cotează în EUR, nu în dolari
 for (const sym of uniq){
   const q = await fetchPrice(sym);
   prices[sym] = q?.last ?? null;
+  if (q?.cur) curs[sym] = q.cur;
   if (q?.prev > 0 && q?.last != null) changes[sym] = (q.last - q.prev) / q.prev * 100;
   await new Promise(r => setTimeout(r, 300)); // menajează Yahoo
 }
@@ -369,18 +378,18 @@ if (fired.length){
   ].slice(0, 50);
   const lines = fired.map(f => f.kind === 'ref'
     ? (f.trail
-      ? `📉 <b>${tgEsc(f.sym)}</b> TRAILING −${f.dd.toFixed(2)}% din vârf $${Number(f.peak).toFixed(dec(f.sym))} → $${f.price.toFixed(dec(f.sym))}${f.note ? ' · ' + tgEsc(f.note) : ''}`
-      : `📊 <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '▲' : '▼'} ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% (pas ${f.step > 0 ? '+' : ''}${f.step}×${f.pct}%) → $${f.price.toFixed(dec(f.sym))} (de la $${Number(f.base).toFixed(dec(f.sym))})${f.note ? ' · ' + tgEsc(f.note) : ''}`)
+      ? `📉 <b>${tgEsc(f.sym)}</b> TRAILING −${f.dd.toFixed(2)}% din vârf ${money(f.peak, f.sym)} → ${money(f.price, f.sym)}${f.note ? ' · ' + tgEsc(f.note) : ''}`
+      : `📊 <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '▲' : '▼'} ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% (pas ${f.step > 0 ? '+' : ''}${f.step}×${f.pct}%) → ${money(f.price, f.sym)} (de la ${money(f.base, f.sym)})${f.note ? ' · ' + tgEsc(f.note) : ''}`)
     : f.kind === 'anchor'
-    ? (f.sub === 'target' ? `🎯 <b>${tgEsc(f.sym)}</b> ȚINTĂ $${Number(f.target).toFixed(dec(f.sym))} atinsă → $${f.price.toFixed(dec(f.sym))} (${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% de la $${Number(f.base).toFixed(dec(f.sym))})${f.note ? ' · ' + tgEsc(f.note) : ''}`
-      : f.sub === 'near' ? `🔔 <b>${tgEsc(f.sym)}</b> ${Number(f.prog).toFixed(0)}% spre țintă $${Number(f.target).toFixed(dec(f.sym))} → $${f.price.toFixed(dec(f.sym))}`
-      : f.sub === 'stop' ? `🛑 <b>${tgEsc(f.sym)}</b> STOP $${Number(f.stop).toFixed(dec(f.sym))} atins → $${f.price.toFixed(dec(f.sym))}${f.note ? ' · ' + tgEsc(f.note) : ''}`
-      : `🪜 <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% (pas ${f.step}×${f.pct}%) → $${f.price.toFixed(dec(f.sym))} (de la $${Number(f.base).toFixed(dec(f.sym))})`)
+    ? (f.sub === 'target' ? `🎯 <b>${tgEsc(f.sym)}</b> ȚINTĂ ${money(f.target, f.sym)} atinsă → ${money(f.price, f.sym)} (${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% de la ${money(f.base, f.sym)})${f.note ? ' · ' + tgEsc(f.note) : ''}`
+      : f.sub === 'near' ? `🔔 <b>${tgEsc(f.sym)}</b> ${Number(f.prog).toFixed(0)}% spre țintă ${money(f.target, f.sym)} → ${money(f.price, f.sym)}`
+      : f.sub === 'stop' ? `🛑 <b>${tgEsc(f.sym)}</b> STOP ${money(f.stop, f.sym)} atins → ${money(f.price, f.sym)}${f.note ? ' · ' + tgEsc(f.note) : ''}`
+      : `🪜 <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% (pas ${f.step}×${f.pct}%) → ${money(f.price, f.sym)} (de la ${money(f.base, f.sym)})`)
     : f.kind === 'pct'
-    ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% → $${f.price.toFixed(dec(f.sym))} (de la $${Number(f.base).toFixed(dec(f.sym))})${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
+    ? `${f.moved >= 0 ? '▲' : '▼'} <b>${tgEsc(f.sym)}</b> ${f.moved >= 0 ? '+' : ''}${f.moved.toFixed(2)}% → ${money(f.price, f.sym)} (de la ${money(f.base, f.sym)})${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
     : f.kind === 'day'
-    ? `📅 <b>${tgEsc(f.sym)}</b> variația zilei ${f.dc >= 0 ? '▲' : '▼'} ${f.dc >= 0 ? '+' : ''}${f.dc.toFixed(2)}% (prag ±${f.pct}%) → $${f.price.toFixed(dec(f.sym))}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
-    : `${f.dir === 'below' ? '▼' : '▲'} <b>${tgEsc(f.sym)}</b> $${f.price.toFixed(dec(f.sym))} — prag $${Number(f.lvl).toFixed(dec(f.sym))}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`);
+    ? `📅 <b>${tgEsc(f.sym)}</b> variația zilei ${f.dc >= 0 ? '▲' : '▼'} ${f.dc >= 0 ? '+' : ''}${f.dc.toFixed(2)}% (prag ±${f.pct}%) → ${money(f.price, f.sym)}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`
+    : `${f.dir === 'below' ? '▼' : '▲'} <b>${tgEsc(f.sym)}</b> ${money(f.price, f.sym)} — prag ${money(f.lvl, f.sym)}${f.rearm ? ' (re-arm)' : ''}${f.note ? ' · ' + tgEsc(f.note) : ''}`);
   const tg = await sendTelegram(`🔔 <b>Price Alert (server-side · ${fired.length})</b>\n${lines.join('\n')}`);
   cfg._bot = {
     lastCheck: new Date().toISOString(),

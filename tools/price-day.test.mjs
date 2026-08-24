@@ -208,3 +208,75 @@ test('botul pasează ora barei către yahooQuote (aceeași gardă ca pagina)', (
   assert.match(bot, /lastBarTs/, 'botul trebuie să afle ora barei');
   assert.match(bot, /yahooQuote\([^)]*lastBarTs\)/, 'și s-o paseze mai departe');
 });
+
+// ── MONEDA (v796) ────────────────────────────────────────────────────────────
+// Cauza „prețul nu e cel din Trading 212": 1QZ.DE (Coinbase pe XETRA) costă 161.34 EUR,
+// iar pagina scria „$161.34" — 13.6% sub prețul real al COIN de pe Nasdaq (186.79 USD).
+// Yahoo trimite moneda în `meta.currency`; până acum n-o citea nimeni.
+test('yahooQuote întoarce moneda din meta', () => {
+  const q = PD.yahooQuote({
+    regularMarketPrice: 161.34, chartPreviousClose: 161.20, currency: 'EUR',
+    fullExchangeName: 'XETRA'
+  }, 161.34, 'rth', true);
+  assert.equal(q.cur, 'EUR', 'moneda trebuie să iasă din yahooQuote');
+  assert.equal(q.exch, 'XETRA', 'și bursa, ca să se vadă că nu e Nasdaq');
+});
+
+test('yahooQuote fără currency în meta → USD implicit (comportament vechi)', () => {
+  const q = PD.yahooQuote({ regularMarketPrice: 86.07, chartPreviousClose: 90.07 }, 86.07, 'rth', false);
+  assert.equal(q.cur, 'USD');
+});
+
+test('curSymbol: simbolul grafic al monedei', () => {
+  assert.equal(PD.curSymbol('USD'), '$');
+  assert.equal(PD.curSymbol('EUR'), '€');
+  assert.equal(PD.curSymbol('GBp'), 'p', 'Londra cotează în pence, nu în lire');
+  assert.equal(PD.curSymbol('CHF'), 'CHF');
+  assert.equal(PD.curSymbol(null), '$', 'necunoscut → $, ca înainte');
+});
+
+test('curFromSuffix: moneda ghicită din sufixul bursei, cât timp n-avem meta', () => {
+  assert.equal(PD.curFromSuffix('1QZ.DE'), 'EUR');
+  assert.equal(PD.curFromSuffix('MIGA.MU'), 'EUR');
+  assert.equal(PD.curFromSuffix('NFC.F'), 'EUR');
+  assert.equal(PD.curFromSuffix('VOD.L'), 'GBp');
+  assert.equal(PD.curFromSuffix('NESN.SW'), 'CHF');
+  assert.equal(PD.curFromSuffix('INTC'), 'USD', 'fără sufix = bursă US');
+  assert.equal(PD.curFromSuffix('ONDOUSDT'), 'USD');
+});
+
+// ── VECHIMEA COTAȚIEI, NU A FETCH-ULUI (v796) ────────────────────────────────
+// MIGA.MU (MicroStrategy pe München) a avut 5 tranzacții într-o zi întreagă: ultima
+// la 12:06 UTC, adică acum 3 ore. Fetch-ul reușea la fiecare 30s, deci pagina o
+// considera „proaspătă" și picta un Δ de +0.88% lângă MSTR care făcea +5.43% pe Nasdaq.
+test('quoteAgeMs: vechimea se măsoară din ts-ul cotației', () => {
+  const acum = Date.UTC(2026, 7, 24, 15, 10, 0);
+  assert.equal(PD.quoteAgeMs({ ts: acum - 3 * 3600e3 }, acum), 3 * 3600e3);
+  assert.equal(PD.quoteAgeMs({ ts: null }, acum), null, 'fără ts nu inventăm vechime');
+  assert.equal(PD.quoteAgeMs(null, acum), null);
+});
+
+// Gărzi anti-regresie: „$" hardcodat lângă un preț a fost cauza reclamației „nu dă cote
+// reale" — 4 din 11 alerte sunt pe burse germane, în EUR. Dacă cineva îl scrie la loc,
+// testul cade aici, nu peste două săptămâni în fața lui Marius.
+test('pagina /alerts/ nu mai lipește „$" de niciun preț', () => {
+  const { readFileSync } = require('node:fs');
+  const { fileURLToPath } = require('node:url');
+  const { dirname, join } = require('node:path');
+  const root = dirname(dirname(fileURLToPath(import.meta.url)));
+  const html = readFileSync(join(root, 'alerts', 'index.html'), 'utf8');
+  assert.doesNotMatch(html, /\$\$\{fmtPx\(/, 'preț cu $ hardcodat în template');
+  assert.doesNotMatch(html, /'\$' \+ fmtPx\(/, 'preț cu $ hardcodat prin concatenare');
+  assert.match(html, /const fmtMoney = \(v, sym\) => curOf\(sym\)/, 'prețul se scrie cu fmtMoney');
+  assert.match(html, /if \(p\.cur\) curs\[sym\] = p\.cur;/, 'moneda trebuie luată din cotație');
+});
+
+test('botul Telegram trimite prețul cu moneda lui', () => {
+  const { readFileSync } = require('node:fs');
+  const { fileURLToPath } = require('node:url');
+  const { dirname, join } = require('node:path');
+  const bot = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'check-alerts.mjs'), 'utf8');
+  assert.doesNotMatch(bot, /\$\$\{[^}]*toFixed\(dec\(/, 'mesaj cu $ hardcodat pe un preț');
+  assert.match(bot, /const money = \(v, sym\) => cs\(sym\)/, 'botul are formatarea cu monedă');
+  assert.match(bot, /cur: out\.cur \|\| 'USD'/, 'moneda trebuie să iasă din fetchPrice');
+});
