@@ -116,3 +116,20 @@ test('pagina /alerts/ arată „închis" pe bursa închisă, nu doar o vechime c
   assert.match(html, /_lastMktOpen/, 'pagina trebuie să rețină dacă bursa simbolului e deschisă');
   assert.match(html, /ÎNCHIS|închis/, 'chip-ul trebuie să poată spune că bursa e închisă');
 });
+
+test('chip-ul numeste BURSA, nu continentul — „EU · ÎNCHIS" spunea ceva fals', () => {
+  const html = readFileSync(join(ROOT, 'alerts/index.html'), 'utf8');
+  assert.match(html, /exchShort/, 'chip-ul trebuie sa foloseasca numele bursei');
+  assert.doesNotMatch(html, />EU · ÎNCHIS</, 'nu mai scriem „EU · ÎNCHIS" fix: XETRA e inchis, Frankfurt nu');
+});
+
+test('cotatia poarta si ora de inchidere a bursei ei', () => {
+  const PD = require('../lib/price-day.js');
+  const acum = Math.floor(Date.now() / 1000);
+  const q = PD.yahooQuote({
+    regularMarketPrice: 100, previousClose: 99,
+    currentTradingPeriod: { regular: { start: acum - 3600, end: acum + 1800 } },
+  }, 100, 'rth', true);
+  assert.equal(q.mktEnd, (acum + 1800) * 1000, 'mktEnd = ora inchiderii, in ms');
+  assert.equal(PD.marketCloseMs({}), null, 'fara fereastra, nu inventam o ora');
+});
