@@ -10,7 +10,7 @@
     'nasdaq-scanner/', 'watchlist-monitor/', 'market-events/', 'smart-trade-long/', 'pump-radar/',
     'earnings-hub/', 'sector-rotation/', 'macro-dashboard/', 'markov-lab/', 'alerts/', 'guide/',
     'journal/', 'portfolio/', 'weekly/', 'health/', 'router/', 'equity/', 'shadow-book/', 'postmortem/',
-    'hub-demo/', 'governor/'
+    'hub-demo/', 'governor/', 'proxy/'
   ];
 
   // ── iframe: fără dock, link-uri interne → shell ──
@@ -96,6 +96,7 @@
         { u: 'postmortem/', n: 'Post-Mortem', e: '🔬' },
         { u: 'shadow-book/', n: 'Shadow Book', e: '👻' },
         { u: 'health/', n: 'Health', e: '💚' },
+        { u: 'proxy/', n: 'Transport', e: '🔌' },
         { u: 'guide/', n: 'Ghid', e: '📖' },
         { u: 'hub-demo/', n: 'Hub Demo', e: '🧪' }
       ]

@@ -152,6 +152,10 @@ export default {
     headers.set('Content-Type', upstream.headers.get('Content-Type') || 'application/json');
     headers.set('Access-Control-Allow-Origin', origin || '*');
     headers.set('Cache-Control', 'public, max-age=20');
+    // ACAO depinde de Origin-ul cererii, iar raspunsul e cache-abil 20s. Fara `Vary: Origin`,
+    // un cache intermediar poate servi altui origin raspunsul cu ACAO-ul primului → eroare
+    // CORS aparent aleatorie, exact genul de „merge la mine, nu merge la tine" greu de prins.
+    headers.set('Vary', 'Origin');
     return new Response(upstream.body, { status: upstream.status, headers });
   },
 

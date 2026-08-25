@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../lib/theme-light.css?v=791">
+<script src="../lib/theme.js?v=734"></script>
+<title>🔌 Transport — Trading Tools</title>
+<meta name="theme-color" content="#14181f">
+<meta name="description" content="Probează drumul spre date: care proxy răspunde, cu ce viteză și — mai ales — dacă dă cotații de ACUM. Aici se pune și rezerva proprie.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314181f'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔌</text></svg>">
+<link rel="stylesheet" href="../lib/plex.css?v=742">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=700">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#161616;--panel:#212121;--panel2:#262626;--panel3:#2c2c2c;
+  --b1:#525252;--b2:#393939;--t1:#f4f4f4;--t2:#c6c6c6;--t3:#a8a8a8;
+  --accent:#78a9ff;--acc-1:#0f62fe;--on-accent:#fff;
+  --bull-s:#42be65;--bull-bg:rgba(66,190,101,.14);
+  --bear-s:#fa4d56;--bear-bg:rgba(250,77,86,.14);
+  --warn:#f1c21b;--warn-bg:rgba(241,194,27,.12);
+  --r:8px;--rs:5px;--mono:'IBM Plex Mono',ui-monospace,monospace;--head:'IBM Plex Sans',system-ui,sans-serif;
+  color-scheme:dark;
+}
+:root[data-theme="light"] body{
+  --bg:#f6f6f6;--panel:#fff;--panel2:#fff;--panel3:#f4f4f4;--b1:#c6c6c6;--b2:#e0e0e0;
+  --t1:#111;--t2:#393939;--t3:#525252;--accent:#0f62fe;
+  --bull-s:#198038;--bull-bg:#defbe6;--bear-s:#da1e28;--bear-bg:#fff1f1;--warn:#8e6a00;--warn-bg:#fcf4d6;
+  color-scheme:light;
+}
+body{font-family:var(--head);background:var(--bg);color:var(--t1);padding:12px;font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--panel);padding:12px 16px;border-radius:var(--r);border:1px solid var(--b1);margin-bottom:12px}
+h1{font-size:19px;font-weight:700;margin-right:auto;letter-spacing:-.02em}
+.ver-badge{display:inline-block;padding:3px 8px;border-radius:6px;background:var(--panel3);color:var(--t3);border:1px solid var(--b1);font-size:11px;font-weight:700;font-family:var(--mono)}
+.card{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin-bottom:12px}
+.card h2{font-size:14px;font-weight:800;margin-bottom:4px}
+.card p.sub{font-size:12.5px;color:var(--t3);margin-bottom:12px}
+button{background:var(--panel2);color:var(--t1);border:1px solid var(--b1);padding:8px 14px;border-radius:var(--rs);font-size:14px;font-family:inherit;cursor:pointer;font-weight:700}
+button:hover{background:var(--panel3);border-color:var(--accent)}
+button.primary{background:var(--acc-1);border-color:transparent;color:var(--on-accent);font-weight:800}
+input{background:var(--panel3);color:var(--t1);border:1px solid var(--b1);padding:9px 12px;border-radius:var(--rs);font-size:14px;font-family:var(--mono);width:100%}
+input:focus{outline:none;border-color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-size:10.5px;color:var(--t3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:6px 8px;border-bottom:1px solid var(--b2)}
+td{padding:8px;border-bottom:1px solid var(--b2);font-family:var(--mono);font-size:13px}
+tr:last-child td{border-bottom:0}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:700;font-family:var(--mono)}
+.ok{background:var(--bull-bg);color:var(--bull-s)}
+.bad{background:var(--bear-bg);color:var(--bear-s)}
+.warn{background:var(--warn-bg);color:var(--warn)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row > input{flex:1;min-width:220px}
+.note{font-size:12.5px;color:var(--t3);margin-top:10px;line-height:1.5}
+.steps{font-size:13px;color:var(--t2);margin:10px 0 0;padding-left:20px}
+.steps li{margin:5px 0}
+code{background:var(--panel3);padding:1px 6px;border-radius:4px;font-family:var(--mono);font-size:12px}
+#rez td:first-child{font-weight:700}
+.muted{color:var(--t3)}
+</style>
+</head>
+<body class="suite-page">
+<header>
+  <h1>🔌 Transport <span class="ver-badge" id="verBadge">v1</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <button id="btnTest" class="primary">Probează drumul spre date</button>
+</header>
+
+<div class="card">
+  <h2>Care proxy răspunde — și dă cotații de ACUM?</h2>
+  <p class="sub">„Răspunde 200" nu înseamnă „date proaspete": pe 25.08.2026 un proxy a servit o oră și jumătate aceeași cotație înghețată, cu 200 OK, iar pagina scria LIVE peste ea. De-aia coloana care contează e ultima.</p>
+  <table>
+    <thead><tr><th>proxy</th><th>răspuns</th><th>viteză</th><th>vechimea cotației</th></tr></thead>
+    <tbody id="rez"><tr><td colspan="4" class="muted">— apasă „Probează drumul spre date" —</td></tr></tbody>
+  </table>
+  <p class="note" id="rezNota"></p>
+</div>
+
+<div class="card">
+  <h2>Rezerva ta proprie (al doilea worker)</h2>
+  <p class="sub">Proxy-urile publice gratuite pică fără preaviz — nu sunt ale tale. Al doilea Cloudflare Worker e singura rezervă pe care n-o poate strica altcineva. Free tier: 100.000 cereri/zi, de zeci de ori peste ce consumă suita.</p>
+  <div class="row">
+    <input id="inpProxy2" placeholder="https://tt-proxy-2.NUMELE-TĂU.workers.dev" spellcheck="false" autocapitalize="off">
+    <button id="btnSave" class="primary">Probează și salvează</button>
+  </div>
+  <p class="note" id="saveNota"></p>
+  <ol class="steps">
+    <li>Deschide <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">dash.cloudflare.com</a> → <b>Workers &amp; Pages</b> → <b>Create</b> → nume <code>tt-proxy-2</code> → Deploy</li>
+    <li><b>Edit code</b> → șterge tot → lipește codul workerului (butonul de mai jos ți-l pune în clipboard) → <b>Deploy</b></li>
+    <li>Copiază adresa lui <code>https://tt-proxy-2....workers.dev</code> în câmpul de sus și apasă <b>Probează și salvează</b></li>
+  </ol>
+  <div class="row" style="margin-top:10px">
+    <button id="btnCod">📋 Copiază codul workerului</button>
+    <span class="note" id="codNota" style="margin:0"></span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Ce e configurat acum</h2>
+  <table><tbody id="stare"></tbody></table>
+</div>
+
+<script src="../lib/suite-version.js?v=801"></script>
+<script src="../lib/data.js?v=802"></script>
+<script>
+const $ = id => document.getElementById(id);
+const YAHOO = 'https://query1.finance.yahoo.com/v8/finance/chart/AVGO?interval=1m&range=1d&includePrePost=true';
+
+const CANDIDATI = [
+  ['custom (al tău)',  () => (localStorage.getItem('tt_custom_proxy') || 'https://tt-proxy.mferent80.workers.dev'), u => p => p + '/?url=' + encodeURIComponent(u)],
+  ['custom2 (rezerva)',() => localStorage.getItem('tt_custom_proxy2') || '',                                        u => p => p + '/?url=' + encodeURIComponent(u)],
+  ['corssh',           () => 'https://proxy.cors.sh',      u => () => 'https://proxy.cors.sh/' + u],
+  ['corsproxy',        () => 'https://corsproxy.io',       u => () => 'https://corsproxy.io/?url=' + encodeURIComponent(u)],
+  ['codetabs',         () => 'https://api.codetabs.com',   u => () => 'https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(u)],
+  ['corslol',          () => 'https://api.cors.lol',       u => () => 'https://api.cors.lol/?url=' + encodeURIComponent(u)],
+];
+
+/** Probează un URL de proxy: răspunde? cât de repede? și — esențial — cât de veche e cotația? */
+async function proba(construieste) {
+  // marcaj anti-cache: fără el, un proxy poate servi la nesfârșit ce are în cache
+  const u = YAHOO + '&_t=' + Date.now();
+  const t0 = Date.now();
+  try {
+    const r = await fetch(construieste(u), { cache: 'no-store' });
+    const ms = Date.now() - t0;
+    if (!r.ok) return { ok: false, ms, raspuns: 'HTTP ' + r.status };
+    let j = null;
+    try { j = await r.json(); } catch (e) { return { ok: false, ms, raspuns: 'nu e JSON' }; }
+    const m = j && j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
+    if (!m || !Number.isFinite(m.regularMarketTime)) return { ok: false, ms, raspuns: '200, dar fără cotație' };
+    return { ok: true, ms, raspuns: '200', varsta: Math.round((Date.now() - m.regularMarketTime * 1000) / 60000), pret: m.regularMarketPrice };
+  } catch (e) {
+    return { ok: false, ms: Date.now() - t0, raspuns: 'blocat (' + (e.name || 'eroare') + ')' };
+  }
+}
+
+function rand(nume, r) {
+  const tr = document.createElement('tr');
+  if (!r) { tr.innerHTML = `<td>${nume}</td><td colspan="3" class="muted">nesetat</td>`; return tr; }
+  const stare = !r.ok ? `<span class="pill bad">${r.raspuns}</span>`
+    : r.varsta > 3 ? `<span class="pill warn">200 · VECHITURI</span>`
+    : `<span class="pill ok">200</span>`;
+  const varsta = !r.ok ? '—'
+    : r.varsta > 3 ? `<b style="color:var(--warn)">veche de ${r.varsta} min</b>`
+    : `de acum (${r.varsta} min)`;
+  tr.innerHTML = `<td>${nume}</td><td>${stare}</td><td>${r.ms} ms</td><td>${varsta}</td>`;
+  return tr;
+}
+
+async function ruleaza() {
+  const tb = $('rez'); tb.innerHTML = '';
+  $('rezNota').textContent = 'probez…';
+  let bune = 0, vechituri = 0;
+  for (const [nume, baza, mk] of CANDIDATI) {
+    const b = baza();
+    if (!b) { tb.appendChild(rand(nume, null)); continue; }
+    const r = await proba(u => mk(u)(b));
+    tb.appendChild(rand(nume, r));
+    if (r.ok && r.varsta <= 3) bune++;
+    if (r.ok && r.varsta > 3) vechituri++;
+  }
+  $('rezNota').innerHTML = bune === 0
+    ? '<b style="color:var(--bear-s)">Niciun drum bun spre date.</b> Suita nu poate lua prețuri acum.'
+    : bune === 1
+    ? '<b style="color:var(--warn)">Un singur drum bun.</b> Dacă pică, rămâi fără prețuri — pune-ți rezerva proprie de mai jos.'
+    : `<b style="color:var(--bull-s)">${bune} drumuri bune.</b> Suita are de unde lua prețuri.`
+    + (vechituri ? ` · ${vechituri} proxy servesc <b>vechituri</b> (200 OK peste date înghețate) — sunt ocolite automat.` : '');
+  arataStarea();
+}
+
+async function salveaza() {
+  const v = ($('inpProxy2').value || '').trim().replace(/\/+$/, '');
+  const n = $('saveNota');
+  if (!v) { n.innerHTML = '<span style="color:var(--warn)">Scrie mai întâi adresa workerului.</span>'; return; }
+  if (!/^https:\/\/[\w.-]+\.workers\.dev$/.test(v)) {
+    n.innerHTML = '<span style="color:var(--warn)">Adresa trebuie să arate ca <code>https://nume.contul-tău.workers.dev</code>, fără nimic după.</span>'; return;
+  }
+  if (v === (localStorage.getItem('tt_custom_proxy') || 'https://tt-proxy.mferent80.workers.dev')) {
+    n.innerHTML = '<span style="color:var(--warn)">Ăsta e workerul pe care îl ai deja. O rezervă trebuie să fie un worker DIFERIT.</span>'; return;
+  }
+  n.textContent = 'probez adresa…';
+  const r = await proba(u => v + '/?url=' + encodeURIComponent(u));
+  if (!r.ok) {
+    n.innerHTML = `<span style="color:var(--bear-s)">Nu merge: ${r.raspuns}.</span> Nu l-am salvat — verifică dacă ai apăsat <b>Deploy</b> și dacă ai lipit tot codul.`;
+    return;
+  }
+  if (r.varsta > 3) {
+    n.innerHTML = `<span style="color:var(--warn)">Răspunde, dar dă o cotație veche de ${r.varsta} min.</span> Nu l-am salvat — ar readuce exact boala din 25.08.`;
+    return;
+  }
+  localStorage.setItem('tt_custom_proxy2', v);
+  n.innerHTML = `<span style="color:var(--bull-s)"><b>Salvat.</b></span> Răspunde în ${r.ms} ms, cu cotație de acum. De-acum suita îl folosește automat dacă primul worker pică.`;
+  arataStarea();
+}
+
+function arataStarea() {
+  const p1 = localStorage.getItem('tt_custom_proxy') || '(implicit) https://tt-proxy.mferent80.workers.dev';
+  const p2 = localStorage.getItem('tt_custom_proxy2') || '';
+  const lant = (window.D && D.proxyIds) ? D.proxyIds().join(' → ') : '(data.js neîncărcat)';
+  $('stare').innerHTML =
+    `<tr><td>workerul tău</td><td>${p1}</td></tr>` +
+    `<tr><td>rezerva proprie</td><td>${p2 ? p2 : '<span class="muted">nesetată — vezi mai sus</span>'}</td></tr>` +
+    `<tr><td>ordinea în lanț</td><td>${lant}</td></tr>`;
+}
+
+const COD_URL = '../tools/cf-worker-proxy.js';
+$('btnCod').addEventListener('click', async () => {
+  const n = $('codNota');
+  try {
+    const t = await (await fetch(COD_URL + '?v=' + Date.now())).text();
+    await navigator.clipboard.writeText(t);
+    n.innerHTML = '<span style="color:var(--bull-s)">Codul e în clipboard — lipește-l în editorul workerului.</span>';
+  } catch (e) {
+    n.innerHTML = `Nu am putut copia. Deschide-l de aici: <a href="${COD_URL}" target="_blank" rel="noopener">cf-worker-proxy.js</a>`;
+  }
+});
+$('btnTest').addEventListener('click', ruleaza);
+$('btnSave').addEventListener('click', salveaza);
+$('inpProxy2').addEventListener('keypress', e => { if (e.key === 'Enter') salveaza(); });
+try { $('inpProxy2').value = localStorage.getItem('tt_custom_proxy2') || ''; } catch (e) {}
+try { $('suiteBadge').textContent = window.SUITE_VERSION_SHORT || '—'; } catch (e) {}
+arataStarea();
+ruleaza();
+</script>
+<script src="../nav.js?v=682" data-nav-root="../"></script>
+</body>
+</html>
