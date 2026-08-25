@@ -1172,7 +1172,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v113</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v114</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1575,13 +1575,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=799"></script>
-<script src="../lib/data.js?v=799"></script>
-<script src="../lib/poll-wake.js?v=799"></script>
+<script src="../lib/suite-version.js?v=800"></script>
+<script src="../lib/data.js?v=800"></script>
+<script src="../lib/poll-wake.js?v=800"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=799"></script>
+<script src="../lib/price-day.js?v=800"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -1629,6 +1629,12 @@ const fmtMoney = (v, sym) => curOf(sym) + fmtPx(v, sym);
 // picta ca live: +0.88% lângă MSTR care făcea +5.43% pe Nasdaq în același minut.
 const _lastExch = {};
 const _lastQuoteTs = {};
+// Bursa simbolului e deschisa ACUM? Vine din raspunsul Yahoo (currentTradingPeriod),
+// deci e corecta pentru orice bursa, fara sa ghicim orarul cu ceasul local. 25.08.2026:
+// dupa 18:30 RO cotatiile germane nu se mai misca — legitim, XETRA e inchis — dar ecranul
+// arata doar o vechime care creste, exact ca un fetch mort. „Inchis" si „oprit" trebuie
+// sa arate DIFERIT, altfel omul nu poate sti daca softul merge.
+const _lastMktOpen = {};
 const QUOTE_OLD_MS = 900000;   // >15 min fără nicio tranzacție = cifră de arhivă, se spune pe față
 function quoteAgeOf(sym) {
   const t = _lastQuoteTs[sym] || _lastQuoteTs[String(sym).toUpperCase()];
@@ -1752,7 +1758,13 @@ function daySessChip(sym) {
   }
   if (isCrypto(u)) return '';   // crypto e 24/7 — chip doar la nivel de grup (dar vechimea de mai sus se arată)
   if (u.includes('.')) {
-    return `<span class="px-sess eu" title="Bursă EU — Δ azi vs close-ul lor de ieri">EU</span>`;
+    // Bursa lor are alt orar decat cea americana: XETRA inchide la 17:30 CET = 18:30 RO.
+    // Fara marcajul asta, seara cifrele germane par „inghetate" desi sunt ultima tranzactie.
+    const desch = _lastMktOpen[sym] ?? _lastMktOpen[u];
+    if (desch === false) {
+      return `<span class="px-sess closed" title="Bursa pentru ${escHtml(u)} e ÎNCHISĂ acum — cifra e ultima tranzacție dinainte de închidere, nu un preț oprit.&#10;Δ azi vs close-ul lor de ieri">EU · ÎNCHIS</span>`;
+    }
+    return `<span class="px-sess eu" title="Bursă EU deschisă — Δ azi vs close-ul lor de ieri">EU</span>`;
   }
   const s = marketSession();
   const code = s.cls === 'open' ? 'RTH' : s.cls === 'closed' ? 'CLS' : (s.label.includes('after') ? 'AFT' : 'PRE');
@@ -2348,6 +2360,7 @@ async function pollPrices() {
   const curs = {};      // v796: moneda instrumentului (EUR pe XETRA/München/Frankfurt)
   const exchs = {};     // v796: bursa de pe care vine cotația (XETRA ≠ NasdaqGS)
   const qts = {};       // v796: ora cotației, chiar și când Δ n-a putut fi calculat
+  const mkts = {};      // v113: bursa simbolului era deschisă la momentul cotației
   // Pool CONC=8 — Promise.all pe 40 sim ≠ 40×Yahoo simultan pe proxy (rate-limit/hang).
   // Throttle Finnhub e per-request; Yahoo merge prin D health-score.
   const CONC = 8;
@@ -2372,6 +2385,7 @@ async function pollPrices() {
           if (p.cur) curs[sym] = p.cur;   // v796: moneda vine cu cotația, nu se ghicește
           if (p.exch) exchs[sym] = p.exch;
           if (Number.isFinite(p.ts)) qts[sym] = p.ts;
+          if (p.mktOpen != null) mkts[sym] = p.mktOpen;
           if (p.prev > 0 && Number.isFinite(p.prev) && Number.isFinite(p.last)) {
             changes[sym] = (p.last - p.prev) / p.prev * 100;
             // v98: ziua de bursă DIN CARE e cotația. Cu piața US închisă, Yahoo întoarce
@@ -2423,6 +2437,7 @@ async function pollPrices() {
     if (curs[sym.toUpperCase()]) _lastCur[sym] = curs[sym.toUpperCase()];   // v796: moneda vine cu cotatia
     if (exchs[sym.toUpperCase()]) _lastExch[sym] = exchs[sym.toUpperCase()];
     if (qts[sym.toUpperCase()]) _lastQuoteTs[sym] = qts[sym.toUpperCase()];
+    if (mkts[sym.toUpperCase()] != null) _lastMktOpen[sym] = mkts[sym.toUpperCase()];
     _lastOkTs[sym] = Date.now();   // v97: acest simbol chiar a primit preț în ciclul ăsta
     // v98: Δ are prospețimea LUI. Prețul se putea actualiza fără ca `changes` să se scrie
     // (prev invalid) — rămânea preț de azi lângă procent de ieri, pe care v97 îl considera
@@ -2825,8 +2840,12 @@ function rowHtml(sym, a) {
 
   // Cotație veche = preț de arhivă pe o bursă fără tranzacții, nu preț live.
   const qAge = quoteAgeOf(sym);
+  const mktDesch = _lastMktOpen[sym] ?? _lastMktOpen[String(sym).toUpperCase()];
   const oldChip = (qAge != null && qAge > QUOTE_OLD_MS && !isCrypto(String(sym).toUpperCase()))
-    ? `<span class="al-old" title="ultima tranzacție acum ${fmtAgeShort(qAge)} — bursă fără lichiditate, cifra nu e live">🕒${fmtAgeShort(qAge)}</span>` : '';
+    ? (mktDesch === false
+        ? `<span class="al-old" title="Bursa e închisă — ultima tranzacție acum ${fmtAgeShort(qAge)}, la închidere. Cifra e corectă, doar nu se mai mișcă până la deschidere.">🔒 închis</span>`
+        : `<span class="al-old" title="ultima tranzacție acum ${fmtAgeShort(qAge)} — bursă fără lichiditate, cifra nu e live">🕒${fmtAgeShort(qAge)}</span>`)
+    : '';
   const exN = exchOf(sym);
   const nowTip = [exN ? `bursa ${exN}` : '', `moneda ${curCodeOf(sym)}`,
     qAge != null ? `ultima tranzacție acum ${fmtAgeShort(qAge)}` : ''].filter(Boolean).join(' · ');
@@ -5009,7 +5028,7 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v799';
+const SW_VER_INLINE = 'tt-v800';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -5026,7 +5045,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v799';
+  var PAGE_VER = 'tt-v800';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
