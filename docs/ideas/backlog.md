@@ -2888,3 +2888,46 @@ pe TOATE variabilele. A trecut prin 4 runde de fals-pozitive pana a devenit de i
 variabile de bucla (`for w in`). **Probata pe ambele capete: verde pe toate 11 fisiere care
 ruleaza, rosie pe toate 3 stricaciunile refacute.**
 🔑 O garda se masoara pe AMBELE capete: sa nu sune pe cod bun SI sa sune pe cod stricat.
+
+### AUDIT SEVER 03.09.2026 — cele 11 scripturi ale setup-urilor A+B
+Metoda: masuratori pe fisierele reale + drumul omului (lansator -> fisier -> cutie -> backup),
+nu recitire de cod. Sectiunea „ce NU s-a probat" e mai jos si e obligatorie.
+
+**🔴 GASITE SI REPARATE (toate ale mele, din munca de azi):**
+1. **`nRows` nu tinea cont de `Mod simplu`** -> tabelul se aloca la dimensiunea din modul
+   COMPLET si se desena aproape gol. Masurat: SLEV 22 alocate / 7 desenate · INV 14/5 ·
+   RB 15/5 · **AVWAP 40/6**. Esec tacit clasic: nimic nu da eroare, doar arata prost.
+   Reparat: `nRows = modSimplu ? <n> : <vechi>`, iar la AVWAP incrementele pe grupuri
+   se anuleaza in modul simplu.
+2. **AL DOILEA badge din ZLHMA**, in ramura de layout Orizontal (`f_put(0, 0, "ZLHMA TOP
+   v3.4.0")`) — ratat cand am reparat badge-ul din ramura Verticala. **Al cincilea badge
+   care minte gasit intr-o zi.**
+3. **Payload JSON AVWAP ramas la `"ver":"1.8"`** intr-un fisier v1.9 — rupere laterala
+   catre relay/journal. Reparat.
+
+**✅ VERIFICAT, CURAT:**
+- lookahead: singurul `request.security` din PATH are `lookahead_off`; ZLHMA/ORB folosesc
+  `lookahead_on` cu `close[1]` (idiom anti-repaint deliberat, preexistent).
+- alerte: toate semnalarile „fara `freq_once_per_bar_close`" au fost FALSE POZITIVE —
+  erau etichete de input care contin textul `alert(`.
+- versiunea, in toate cele 4 locuri (nume fisier / titlu / badge dash / JSON ver):
+  **0 inconsecvente in cod** pe toate 7 fisierele atinse.
+- lansator: 11 cai .pine, 0 lipsa · 3 documente, 0 lipsa.
+- cutia: 11 .pine, identica cu ce cere lansatorul (nici in plus, nici in minus).
+- backup E:: verificat pe **hash**, nu pe nume — 0 fisiere diferite.
+- ordinea declararii: 11/11 verzi la `audit_ordine.py`, unealta probata prin stricare.
+
+**⚠️ PREEXISTENTE, NEATINSE (nu din munca de azi, deci nu le-am schimbat):**
+- `plot()` pe overlay: PATH 1 (conector), ZLHMA 1 (conector `FLIP LAB source`, cerut de
+  Flip Lab), **ORB 10** — abatere de la pine.md §9, dar ORB nu l-am atins.
+
+**⛔ CE NU S-A PROBAT (obligatoriu):**
+- **Nimic nu a fost compilat in TradingView** in afara de PATH v1.13, CROWD v1.7 si
+  partial SLEV/ZLHMA. **INV v1.4, RB v1.4 si AVWAP v1.9 nu au fost lipite niciodata.**
+- **Niciun dashboard in Mod simplu nu a fost VAZUT** pe ecran pentru INV/RB/AVWAP.
+  Reparatia `nRows` e corecta pe hartie; nu am vazut tabelul.
+- Traducerile (`HH/HL` -> „maxime tot mai sus" etc.) nu au fost verificate pe toate
+  valorile posibile ale variabilelor sursa — au fallback pe valoarea bruta.
+- Pragurile raman IPOTEZE: percentilele 75/25 din CROWD, p90/p97 pe OI, 2 bare pentru
+  „s-a intors". Se judeca out-of-sample.
+- `I-341` (prag de rentabilitate) si `I-344` (ce motor merita slotul 1) — NEMASURATE.
