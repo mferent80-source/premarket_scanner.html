@@ -2810,3 +2810,17 @@ User: „poti sa faci sa fie mai explicit dash-ul?"
   **Probata prin stricare pe AMBELE stiluri:**
   `stil cDir (PATH) -> PRINS: linia 1041` · `stil C_MUT (CROWD) -> PRINS: linia 238`.
   🔑 O garda scrisa dupa un singur exemplu acopera un singur exemplu.
+
+### Status update 2026-09-03 — CROWD v1.6: verdictul spune ACTIUNEA, nu o prognoza
+User: „cum adica AGLOMERAT SHORT presiune in SUS, nu e gen bear? ca eu inteleg ca e long".
+🔴 **Bug de formulare, nu de cod.** `presiune in SUS` suna a prognoza bullish; de fapt e
+directia in care s-ar produce ACCIDENTUL daca multimea e scoasa. Eticheta amesteca trei
+lucruri: (1) cine e acolo — multimea e SHORT, pozitionare bearish; (2) mecanismul — ca sa
+inchida un short CUMPERI, deci pretul urca; (3) actiunea — nu shorta, si NU e semnal de long.
+- `AGLOMERAT SHORT · presiune in SUS`  ->  **`AGLOMERAT SHORT · NU SHORTA ACUM`**
+- `AGLOMERAT LONG  · presiune in JOS`  ->  **`AGLOMERAT LONG · NU CUMPARA ACUM`**
+- `CE INSEAMNA` spune mecanismul SI neaga explicit cealalta directie: „…Daca e scoasa,
+  CUMPARA ca sa inchida si pretul urca. **NU e semnal de long** - e motiv sa nu shortezi."
+🔑 Lentila nu da niciodata o directie de INTRAT; spune pe ce parte sa NU intri. Directia
+vine din PATH. Un dashboard care descrie un MECANISM va fi citit ca PROGNOZA daca nu spune
+explicit ce sa faci.
