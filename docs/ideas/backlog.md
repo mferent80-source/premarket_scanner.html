@@ -2780,3 +2780,17 @@ User: „poti sa faci sa fie mai explicit dash-ul?"
 - **Riscuri/dependențe:** traducerea `bkt`/`decizie` acopera valorile cunoscute si cade inapoi pe valoarea bruta pentru orice altceva - de verificat daca apar tokeni noi. `pPricePct` poate fi plafonat la 999% (se afiseaza 10.0x).
 - **Fișiere atinse:** `pine-scripts/TREND-PATH-DESK/Trend_Path_Desk_v1_13.pine`, `SETUPS/CARTELA-CITIRE-A.md`.
 - **De extins:** acelasi pattern pe VolRegime, SVP, AVWAP, INV, RB, CVD - toate au acelasi tip de jargon.
+
+### Status update 2026-09-03 — CROWD v1.5 (culoare dupa cine plateste) + FIX compilare PATH
+- **CROWD v1.5**: culoare dupa partea aglomerata — **coral = multimea e pe LONG** (presiune in
+  JOS), **albastru = multimea e pe SHORT** (presiune in SUS). Albastrul e ales anume ca sa NU se
+  confunde cu verdele lui NEUTRU: „shortii platesc" nu inseamna „e bine".
+  Randul PREMIUM spune ce te costa pe TINE: `esti SHORT: platesti la 8h · LONG: incasezi`.
+  VERDICT primeste sufixul `· presiune in SUS/JOS`.
+- 🔴 **FIX PATH v1.13 — eroare de compilare gasita de user la lipire.** Blocul `Mod simplu`
+  fusese inserat imediat dupa header, iar `cDir` se declara 22 de linii mai jos. Pine cere
+  declarare inainte de folosire. Mutat dupa calculul lui `pathVal`; refoloseste `dirS`/`ageS`.
+- ✅ **`garda_pine.py` are acum o a 4-a verificare**: nicio culoare `c*` folosita intr-un
+  `f_row2`/`f_cell`/`table.cell` inainte de a fi declarata. **Probata prin stricare**: pe copia
+  cu bug-ul refacut da `linia 1042 foloseste cDir, declarat abia la 1047`.
+  🔑 A treia oara intr-o zi cand o insertie de bloc a folosit o variabila inexistenta inca.
