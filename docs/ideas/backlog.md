@@ -2589,3 +2589,81 @@ User: „propune și după aplicăm” (urmare la Hub aliniat Alerte).
 - **Impact:** zero override-uri de Hub; Alerte și Hub nu mai diverg la următorul bump.
 - **Riscuri/dependențe:** I-140/I-141 au dat Scanner/Macro cockpit propriu — regresii pe contrast. Light theme din `theme-light.css` trebuie re-verificat.
 - **Fișiere atinse:** `lib/suite-ui.css`, `index.html` (curățare override), `alerts/index.html` (deja oțel), opțional Macro/Nasdaq.
+
+| I-337 | Contract PERMISIUNE→TRIGGER între chart-ul lent și cel rapid | Setup A+B (Pine + relay) | M | P1 | propus | ideation | 2026-09-03 |
+| I-338 | Vocabular unic de preset pe scripturile celor 2 setup-uri | PATH + CVD Pro + ZLHMA | S | P2 | propus | ideation | 2026-09-03 |
+| I-339 | Fișa de setup pe disc (script/versiune/preset/TF/ordine de citire) | NOU: pine-scripts/SETUPS | S | P1 | propus | ideation | 2026-09-03 |
+| I-340 | Crowding Lens — OI + premium perp-vs-spot extras din Precision Sniper | NOU: Crowding Lens Pine | M | P1 | propus | ideation | 2026-09-03 |
+| I-341 | Prag rentabil pe chart-ul rapid (port conversie NET din TLAB) | Setup B (deck rapid) | S | P1 | propus | ideation | 2026-09-03 |
+| I-342 | Câmp `setup` în payload + scorecard separat A vs B | Automation + journal | M | P2 | propus | ideation | 2026-09-03 |
+| I-343 | Shadow-book pe triggerele blocate de permisiunea HTF | Setup A+B + shadow-book | M | P2 | propus | ideation | 2026-09-03 |
+| I-344 | Alegerea motorului rapid pe Flip Lab (ZLHMA vs JMA vs ST-LR pe 5m/1m) | Flip Lab Pine | S | P1 | propus | ideation | 2026-09-03 |
+
+### Status update 2026-09-03 — ideation: 2 setup-uri crypto (trend mare + scalping)
+User: „vreau să creăm 2 setup-uri de trade pe cripto — unul care să-mi arate trendul mare, unul pe rapid;
+tu recomanzi cele mai bune opțiuni din lista mea sau de pe net; îl facem împreună".
+Acoperire: citite integral `trader.md`, `pine.md`, `index_pine.md`, `project_gate_trend_confirmat.md`;
+citite prin grep/antet 30 de `.pine` din `pine-scripts/` (titluri `indicator()`, presete, funding/OI/liquidation).
+- **I-337..I-344 propuse.** Nu repropuse: I-282 „o singură linie decizie" (făcut, e deja pattern de casă),
+  I-268 conversie NET (făcut pe TLAB — I-341 e PORT pe chart-ul rapid, nu reinventare),
+  I-005/I-032 shadow pe semnale blocate (făcute pe alte gate-uri — I-343 e alt gate, contractul A→B),
+  I-303 comparator de motoare (făcut ca funcție în Flip Lab — I-344 e RULAREA lui, nu construcția).
+- Verificat pe disc înainte de a propune: `Precision_Sniper v6.6` **citește deja OI real**
+  (`{prefix}:{ticker}_OI`) și are proxy de crowding (premium perp-vs-spot); TLAB ia funding-ul ca
+  input manual (Pine nu-l poate citi). Deci I-340 e EXTRAGERE, nu capabilitate nouă.
+
+#### I-337 · Contract PERMISIUNE→TRIGGER · [M] · P1
+- **Problema/golul:** cele două chart-uri nu se vorbesc. Deck-ul lent (PATH/NAVALL) știe direcția, faza legului și cât mai are; deck-ul rapid (ZLHMA/JMA) nu știe nimic din asta și dă trigger la fel de tare contra trendului ca în direcția lui. Azi legătura se face în capul userului, iar la 1m capul nu ține pasul.
+- **Soluția:** deck-ul lent scrie în payload-ul JSON un câmp `permission` (dir HTF, regim, room rămas, ADD/HOLD/TRIM). Deck-ul rapid afișează un rând de dash `PERMISIUNE HTF: LONG / NONE / VETO · vechime Xm` și, opțional (default OFF), suprimă alertele contra permisiunii. Fallback manual: un `input.string` „Dir HTF" pe deck-ul rapid, pentru când relay-ul tace.
+- **Impact:** scalp-ul se face doar în direcția în care contextul plătește; se elimină categoria „am prins un trigger bun pe partea greșită".
+- **Riscuri/dependențe:** permisiunea poate fi stătută → vechimea e obligatorie pe ecran (pattern I-009). Depinde de `cf-worker-deck-relay.js`; fără relay rămâne inputul manual. Suprimarea alertelor e ipoteză, se măsoară cu I-343.
+- **Fișiere atinse:** `pine-scripts/TREND-PATH-DESK/Trend_Path_Desk_v1_10.pine`, `pine-scripts/NAV-SUITE/Nav_Complete_Dash_v1_8.pine`, `pine-scripts/ZLHMA-TOP/ZLHMA_TOP_Dashboard_v3_4_0.pine`, `premarket_scanner/tools/cf-worker-deck-relay.js`.
+
+#### I-338 · Vocabular unic de preset · [S] · P2
+- **Problema/golul:** pe cele două chart-uri, același concept are patru nume. `Trend_Path_Desk_v1_10` are Crypto/Nasdaq/Intraday/Custom (fără Scalping), `ZLHMA_TOP_v3_4_0` are Crypto/Nasdaq/Scalping/Custom (fără Intraday, contra `pine.md` §3), `CVD_Pro_v2_3` are „Crypto Intraday"/„Nasdaq Intraday"/Custom, iar `Nav_Complete_v1_8` și `Session_Levels_v1_3` au lista completă. Schimbi regimul de lucru și trebuie să traduci mental în 4 dialecte.
+- **Soluția:** aceeași listă pe toate scripturile din cele două setup-uri: Crypto · Nasdaq · Intraday · Swing · Scalping · Custom (Intraday nu dispare — e regula de casă). Valorile din spate rămân cele calibrate pentru fiecare script; se uniformizează doar eticheta.
+- **Impact:** o singură decizie („azi sunt pe Scalping") se aplică identic pe tot chart-ul, fără traduceri.
+- **Riscuri/dependențe:** schimbarea listei de `options` RESETEAZĂ inputul salvat în TV pe fiecare chart pe care e lipit scriptul — trebuie re-setat manual după lipire.
+- **Fișiere atinse:** `pine-scripts/TREND-PATH-DESK/Trend_Path_Desk_v1_*.pine`, `pine-scripts/ZLHMA-TOP/ZLHMA_TOP_Dashboard_v3_*.pine`, `pine-scripts/META-CONFLUENCE-SUITE/CVD_Pro_v2_*.pine`.
+
+#### I-339 · Fișa de setup pe disc · [S] · P1
+- **Problema/golul:** TradingView nu salvează într-un fișier citibil ce preset are fiecare script. După două săptămâni de pauză, „setup-ul" e o listă de indicatori pe ecran fără memoria motivului. Nu există azi niciun document de layout în `pine-scripts/` (verificat: zero fișiere SETUP/LAYOUT/CHART).
+- **Soluția:** `pine-scripts/SETUPS/SETUP-A-TREND.md` și `SETUP-B-SCALP.md`: simbol + TF, lista exactă script→versiune→preset, **ordinea de citire a dash-urilor** (ce se citește primul, ce e VETO, ce se ignoră), și „ce NU se pune pe chart și de ce" (laboratoarele). Plus un rând de reconciliere: cum verifici că ce e lipit în TV e versiunea de pe disc.
+- **Impact:** setup-ul se poate reconstrui de la zero în 10 minute pe orice cont/PC; discuțiile viitoare pornesc de la un document, nu de la amintiri.
+- **Riscuri/dependențe:** documentul putrezește dacă nu se actualizează la fiecare bump de versiune — regula de casă „README lângă fiecare .pine" se extinde aici.
+- **Fișiere atinse:** `pine-scripts/SETUPS/SETUP-A-TREND.md`, `pine-scripts/SETUPS/SETUP-B-SCALP.md` (noi).
+
+#### I-340 · Crowding Lens (OI + premium perp-vs-spot) · [M] · P1
+- **Problema/golul:** toate cele 24 de deck-uri citesc doar OHLCV. Pe perpetuals, un trend cu OI în creștere și premium extrem e o poziție aglomerată — exact configurația care produce lichidarea în cascadă pe care un scalper o mănâncă în plin. Capabilitatea EXISTĂ pe disc, dar e îngropată în `precision-sniper-v6.6.pine` (script greu de semnale, care nu-și are locul pe chart-ul de scalp) și în `liquidation-suite-v3.1` (proxy din lichidări).
+- **Soluția:** o lentilă mică `overlay = false`, extrasă din blocul deja validat al lui Precision Sniper: OI derivat automat (`syminfo.prefix + ":" + syminfo.ticker + "_OI"`), premium perp-vs-spot, percentila pe fereastră lungă → trei stări: `NEUTRU` / `AGLOMERAT LONG` / `AGLOMERAT SHORT`, plus direcția OI (crește/scade) pe legul curent. Un singur rând de dash, fără semnale.
+- **Impact:** răspunde la întrebarea pe care niciun deck n-o pune azi: „mișcarea asta e construită pe bani noi sau pe o mulțime care așteaptă să fie scoasă?".
+- **Riscuri/dependențe:** OI-ul e disponibil doar pe chart-uri perpetual `.P` cu simbol OI la exchange-ul respectiv — pe spot Pionex nu există; lentila trebuie să spună explicit „date indisponibile", nu să afișeze zero. Funding-ul REAL nu e citibil din Pine (rămâne proxy din premium sau input manual, ca în TLAB). Percentila e ipoteză de validat, nu prag adevărat.
+- **Fișiere atinse:** sursă `pine-scripts/precision-sniper-v6.6.pine` (liniile OI/crowding, ~489–520), livrare nouă `pine-scripts/CROWDING-LENS/`.
+
+#### I-341 · Prag rentabil pe chart-ul rapid · [S] · P1
+- **Problema/golul:** la scalping pe crypto costurile (comision, spread, funding pe perp) domină rezultatul, iar deck-urile rapide nu spun niciodată „mișcarea de pe TF-ul ăsta e prea mică ca trade-ul să merite". Conversia NET există (I-268, făcut) dar trăiește în Trend Anatomy Lab — laborator offline, nu pe chart-ul pe care se apasă butonul.
+- **Soluția:** PORT al calculului NET, un singur rând pe dash-ul rapid: `PRAG RENTABIL X% (= Y×ATR) · mișcarea tipică pe TF Z%` — verde dacă mișcarea tipică bate confortabil pragul, roșu dacă nu. Adică: verdict pe întrebarea „am voie să scalpez deloc pe TF-ul ăsta?", nu pe „intru acum?".
+- **Impact:** taie categoria de pierdere invizibilă în care win-rate-ul e bun și contul scade — cea care nu apare în niciun backtest fără costuri.
+- **Riscuri/dependențe:** e o MĂSURĂTOARE de fezabilitate, nu edge — nu trebuie citită ca semnal. Cere inputurile de cost (comision Pionex, spread tipic, funding 8h) introduse corect de user; cu zero acolo, rândul minte frumos.
+- **Fișiere atinse:** sursă `pine-scripts/TREND-ANATOMY-LAB/Trend_Anatomy_Lab_v2_5.pine` (bloc conversie NET), țintă = deck-ul rapid ales la I-344.
+
+#### I-342 · Câmp `setup` în payload + scorecard A vs B · [M] · P2
+- **Problema/golul:** journal-ul există (I-001) dar semnalele nu poartă din ce chart vin. După o lună nu poți răspunde la „care dintre cele două setup-uri îmi aduce banii" — și fără răspunsul ăsta le vei ține pe amândouă la nesfârșit, inclusiv pe cel care pierde.
+- **Soluția:** câmp `setup: "A" | "B"` în payload-urile JSON ale deck-urilor din fiecare chart, coloană în journal, scorecard separat: n trade-uri, expectancy NET (cu costuri), MAE tipic, per setup și per regim de volatilitate.
+- **Impact:** decizia de a tăia un setup se ia pe cifre, nu pe senzația de ultima săptămână.
+- **Riscuri/dependențe:** n crește lent — sub ~10 trade-uri per setup nu se compară nimic (regula de eșantion din `trader.md`); scorecard-ul trebuie să scrie „eșantion insuficient", nu un procent.
+- **Fișiere atinse:** deck-urile din ambele setup-uri, `premarket_scanner/tools/cf-worker-deck-relay.js`, `premarket_scanner/lib/journal.js`.
+
+#### I-343 · Shadow-book pe triggerele blocate de permisiune · [M] · P2
+- **Problema/golul:** dacă I-337 începe să blocheze scalp-uri contra trendului HTF, nu vei ști niciodată dacă filtrul a salvat bani sau i-a lăsat pe masă. Fără umbră, un gate e o credință.
+- **Soluția:** ledger de umbre pe contractul A→B: fiecare trigger suprimat se înregistrează (timp, direcție, motiv, preț) și i se urmărește rezultatul pe orizontul obișnuit de scalp. Scorecard: câte blocate, câte ar fi câștigat, câte ar fi pierdut, NET cu costuri.
+- **Impact:** permisiunea HTF se validează sau se aruncă pe date culese DUPĂ ce a fost pornită (out-of-sample), nu pe istoricul care a sugerat-o.
+- **Riscuri/dependențe:** rezultatul umbrei e ipotetic (fill idealizat, fără slippage) — trebuie marcat ca atare. Depinde de I-337.
+- **Fișiere atinse:** deck-ul rapid, `premarket_scanner/lib/` (shadow-book existent).
+
+#### I-344 · Motorul rapid ales pe Flip Lab, nu pe gust · [S] · P1
+- **Problema/golul:** pentru slotul de trigger există trei candidați serioși pe disc — `ZLHMA_TOP v3.4.0` (are deja preset Scalping, whipsaw cooldown și failed-cross), `JMA_Deck v2.6` (webhook LIVE) și `ST_LR_Deck v1.3` (webhook LIVE) — și zero măsurătoare care să spună care e mai bun pe 5m/1m crypto. Comparatorul de motoare pe 3 surse EXISTĂ (`Flip_Lab_v1_7`, I-303 făcut), dar n-a fost rulat pe combinația asta.
+- **Soluția:** o rulare de referință: BTC și ETH, 5m și 1m, cele trei motoare pe `input.source`, măsurate pe densitate de flip, failed flip, time-to-flip și conversie NET cu costurile reale de la Pionex. Rezultatul, cu data și parametrii, intră în fișa de setup (I-339).
+- **Impact:** slotul 1 din setup-ul rapid se ocupă pe dovadă. Costă o zi, nu o lună de tranzacționat cu motorul greșit.
+- **Riscuri/dependențe:** rezultatul plauzibil e „niciunul nu trece net de costuri pe 1m" — și acela e un rezultat util, nu un eșec (Factor Lab a dat deja 0 din 27). Măsurătoarea e in-sample pe istoricul ales; nu se tunează pragurile pe ea.
+- **Fișiere atinse:** `pine-scripts/FLIP-LAB/Flip_Lab_v1_7.pine` (rulare, nu modificare), rezultat în `pine-scripts/SETUPS/SETUP-B-SCALP.md`.
