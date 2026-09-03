@@ -2949,10 +2949,10 @@ tuplu, argumente cu nume). Ce a ramas e ingust si de incredere.
 refacute** (`f_px` linia 328, `cAmb` linia 342).
 
 | I-354 | Viata ramasa a miscarii — port din Trend Anatomy Lab in Paznic | Paznic (bot) | M | P1 | propus | ideation | 2026-09-03 |
-| I-355 | Delta REALA din taker buy/sell — filtrul de participare care lipseste | Paznic (bot) | M | P1 | propus | ideation | 2026-09-03 |
-| I-356 | Conturi mici vs conturi MARI — pozitionarea masurata, nu dedusa | Paznic (bot) | S | P1 | propus | ideation | 2026-09-03 |
-| I-357 | Latimea pietei, gratis: botul scaneaza deja 20 de simboluri | Paznic (bot) | S | P1 | propus | ideation | 2026-09-03 |
-| I-358 | Cooldown dupa flip + failed-cross — port din ZLHMA (I-033/I-034) | Paznic (bot) | S | P1 | propus | ideation | 2026-09-03 |
+| I-355 | Delta REALA din taker buy/sell — filtrul de participare care lipseste | Paznic (bot) | M | P1 | facut | ideation | 2026-09-03 |
+| I-356 | Conturi mici vs conturi MARI — pozitionarea masurata, nu dedusa | Paznic (bot) | S | P1 | facut | ideation | 2026-09-03 |
+| I-357 | Latimea pietei, gratis: botul scaneaza deja 20 de simboluri | Paznic (bot) | S | P1 | facut | ideation | 2026-09-03 |
+| I-358 | Cooldown dupa flip + failed-cross — port din ZLHMA (I-033/I-034) | Paznic (bot) | S | P1 | facut | ideation | 2026-09-03 |
 | I-359 | Stopul comparat cu MAE-ul istoric, nu doar cu swing-ul | Paznic (bot) | M | P2 | propus | ideation | 2026-09-03 |
 | I-360 | Botul se noteaza singur: calibrare pe jurnal (port din Flip Lab I-302) | Paznic (bot) | M | P2 | propus | ideation | 2026-09-03 |
 
@@ -3066,7 +3066,7 @@ pe un singur chart.
   pe date noi.
 - **Fișiere atinse:** `PAZNIC-CRYPTO/noteaza.mjs` (nou), `jurnal.csv`.
 
-| I-361 | Backtest pentru Paznic — ce au TOATE framework-urile serioase si botul n-are | Paznic (bot) | L | P1 | propus | ideation | 2026-09-03 |
+| I-361 | Backtest pentru Paznic — ce au TOATE framework-urile serioase si botul n-are | Paznic (bot) | L | P1 | facut | ideation | 2026-09-03 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3098,3 +3098,19 @@ si randul, plus rotirea fisierului cand schema se schimba.
   complet e posibil doar pe pret+volatilitate; restul se valideaza doar forward.
 - **Fișiere atinse:** `PAZNIC-CRYPTO/backtest.mjs` (nou), refactor minim in `paznic.mjs` ca
   functiile de decizie sa fie apelabile si din backtest.
+
+### Status update 2026-09-03 seara — I-361 FACUT: robotul are cele 3 moduri
+`PAZNIC-CRYPTO` v4. Un singur nucleu de decizie (`decizie.mjs`) folosit de backtest, hartie
+si live — tiparul NautilusTrader ("aceleasi semantici in cercetare si in productie").
+Modul live e construit dar INCUIAT in spatele unui fisier scris de om.
+
+🔴 **Ce a gasit backtestul in prima rulare:** un trade cu stopul la 0,001% de intrare =
+-108R. Marimea pozitiei se calculeaza IMPARTIND la distanta pana la stop, deci in live ar
+fi cerut o pozitie de sute de ori contul. Reparat cu `riscMinCost` / `riscMinATR` / `levierMax`.
+🔑 **Verdictul s-a rasturnat dupa reparatie** (-0,841R -> +0,166R): un singur trade stricat
+otravise concluzia despre tot filtrul.
+
+📉 **Rezultatul onest, 5 simboluri x 365 zile, 972 trades: R mediu -0,179, PF 0,79.**
+Strategia PIERDE. Senzitivitatea pragurilor 80->95 misca rezultatul cu 0,03R — deci
+problema NU e in praguri, e la intrare/iesire. Concordant cu Factor Lab (0 din 150).
+⚠ OI si delta nu se pot testa (Binance tine 30 zile) — raman validate doar forward.
