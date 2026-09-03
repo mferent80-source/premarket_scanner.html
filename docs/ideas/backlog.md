@@ -3065,3 +3065,36 @@ pe un singur chart.
   tuneaza pragurile pe aceleasi date pe care se masoara — se schimba o data, apoi se re-masoara
   pe date noi.
 - **Fișiere atinse:** `PAZNIC-CRYPTO/noteaza.mjs` (nou), `jurnal.csv`.
+
+| I-361 | Backtest pentru Paznic — ce au TOATE framework-urile serioase si botul n-are | Paznic (bot) | L | P1 | propus | ideation | 2026-09-03 |
+
+### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
+**Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
+MARI) · I-357 (latimea pietei) · I-358 (cooldown dupa flip, port ZLHMA I-033/I-034).
+Prima rulare cu ele: **17 SUS / 0 JOS · buget epuizat 15/20 · conturile MARI long pe 19/20**
+-> verdict de piata „ZIUA E EPUIZATA PE TOATA PIATA".
+🔴 **Bug de integritate gasit si reparat pe drum:** antetul `jurnal.csv` avea **14 coloane**,
+randurile **21**. Antetul se scria o singura data (la crearea fisierului) si ramasese de la v1,
+in timp ce randurile cresteau la fiecare versiune. **Jurnalul — tot rostul botului — devenise
+necitibil, in tacere.** Reparat structural: o SINGURA definitie `COL` din care ies si antetul
+si randul, plus rotirea fisierului cand schema se schimba.
+🔑 **Lectie: doua liste care trebuie sa corespunda si sunt scrise separat vor diverge.**
+
+#### I-361 · Backtest pentru Paznic · [L] · P1
+- **Problema/golul:** cercetare pe framework-urile de top (Freqtrade 53k stele, Jesse, Hummingbot,
+  NautilusTrader) — **toate au acelasi nucleu: backtest -> dry-run -> live**. Jesse isi face un
+  merit din „zero look-ahead bias". Paznicul nu are backtest deloc: calculeaza doar live, deci
+  validarea pragurilor depinde de 30 de zile de jurnal. Un backtest ar raspunde in minute.
+- **Soluția:** `backtest.mjs` — reia ACELEASI functii de decizie peste istoric (2 ani de 4h),
+  bara cu bara, fara sa vada viitorul (doar bare inchise, ca regula anti-repaint din TLAB).
+  Iese cu: rata de reusita a `PERM DA` vs rata de baza, contributia fiecarui blocaj, si
+  senzitivitatea pragurilor (90 vs 85 vs 95).
+- **Impact:** transforma pragurile din ipoteze in masuratori, in minute in loc de 30 de zile.
+- **Riscuri/dependențe:** ⚠️ **capcana pe care o semnaleaza chiar sursele**: un backtest pe care
+  apoi TUNEZI pragurile = curve-fitting. Freqtrade avertizeaza ca „orice valoare mai precisa de
+  3 zecimale in hyperopt duce de obicei la supra-optimizare". Deci: **backtest ca sa MASORI,
+  jurnal (I-360) ca sa VALIDEZI** — al doilea e out-of-sample prin constructie.
+  Datele de OI/funding/delta au istoric limitat pe Binance (~30 zile pe unele) -> backtest-ul
+  complet e posibil doar pe pret+volatilitate; restul se valideaza doar forward.
+- **Fișiere atinse:** `PAZNIC-CRYPTO/backtest.mjs` (nou), refactor minim in `paznic.mjs` ca
+  functiile de decizie sa fie apelabile si din backtest.
