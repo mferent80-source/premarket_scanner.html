@@ -2770,3 +2770,13 @@ User: „poti sa faci sa fie mai explicit dash-ul?"
   extremele sunt la AMBELE capete (<=10 sau >=90) si 34 e banal. Acum: `pctl 34 obisnuit` /
   `pctl 96 FOARTE RAR`. Acelasi tip de defect ca badge-urile de versiune de azi:
   **un nume de coloana poate minti la fel de tare ca o cifra gresita.**
+
+| I-353 | Mod simplu pe deck-uri: limba omului in loc de jargon | PATH (+ pattern pt restul) | M | P1 | facut | user | 2026-09-03 |
+
+#### I-353 · Mod simplu (limba omului) · [M] · P1 · FACUT pe PATH (v1.13)
+- **Problema/golul:** dashboard-ul PATH afisa **19 randuri** (regula de casa: ~7), aproape toate in jargon intern: `bkt PREA DEPARTE`, `EXT p99 (6xp75)`, `decay HL40`, `CONF LATE n=150`, `P 433%/290%`, `nDir=150`. Userul: „prea multe informatii, fa mai pe intelesul tuturor". Un dashboard care cere traducere e neterminat.
+- **Soluția:** input `Mod simplu` (default ON) -> 5 randuri in romana, din ACELEASI variabile, zero calcule schimbate: `CE FAC?` (REDU/NU MAI ADAUGA/TINE/POTI ADAUGA), `DIRECTIA` (SUS de N bare + bucket tradus), `CAT A MERS` (`a tinut 4.3x cat tine de obicei`), `CE URMEAZA` (`6 din 10 sanse sa se intoarca`), `DE CE`. Tot tabloul vechi ramane, cu Mod simplu = OFF.
+- **Impact:** dash-ul se citeste fara sa stii vocabularul intern. Cartela A rescrisa pe pragurile noi.
+- **Riscuri/dependențe:** traducerea `bkt`/`decizie` acopera valorile cunoscute si cade inapoi pe valoarea bruta pentru orice altceva - de verificat daca apar tokeni noi. `pPricePct` poate fi plafonat la 999% (se afiseaza 10.0x).
+- **Fișiere atinse:** `pine-scripts/TREND-PATH-DESK/Trend_Path_Desk_v1_13.pine`, `SETUPS/CARTELA-CITIRE-A.md`.
+- **De extins:** acelasi pattern pe VolRegime, SVP, AVWAP, INV, RB, CVD - toate au acelasi tip de jargon.
