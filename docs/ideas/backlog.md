@@ -2685,3 +2685,59 @@ citite prin grep/antet 30 de `.pine` din `pine-scripts/` (titluri `indicator()`,
 - **Impact:** dashboard-ul nu mai cere traducere. Cazul EGLD 03.09 ar fi citit `PERICOL - MULTIME CAPTIVA` + "longuri noi intrate IN RITM EXTREM, iar pretul s-a intors jos... Stopurile lor sunt VANZARI sub tine."
 - **Riscuri/dependențe:** `captiv*` se sprijina pe pxFall2/pxRise2 (2 bare) — pe TF mare o respingere de 2 bare e mult, pe TF mic e zgomot. Prag de 2 bare = IPOTEZA. Dashboard-ul ajunge la 7 randuri implicit (limita din design.md).
 - **Fișiere atinse:** `pine-scripts/CROWDING-LENS/Crowding_Lens_v1_2.pine`, `Crowding_Lens_README.md`, `SETUPS/CARTELA-CITIRE-B.md` (nou), `SETUPS/garda_pine.py`.
+
+| I-347 | CE ASTEPT calculat automat: deck-ul scrie singur conditia de deblocare | Setup A (PATH/VolRegime/CROWD) | M | P1 | propus | ideation | 2026-09-03 |
+| I-348 | Rand TRIGGER explicit pe ZLHMA (bias != semnal) | ZLHMA TOP Pine | S | P1 | propus | ideation | 2026-09-03 |
+| I-349 | Alerta „permisiunea s-a schimbat" pe Setup A → Telegram | Setup A + relay | M | P1 | propus | ideation | 2026-09-03 |
+| I-350 | Garda preset-vs-TF: avertisment cand presetul nu se potriveste cu chart-ul | toate deck-urile setup | S | P2 | propus | ideation | 2026-09-03 |
+| I-351 | Timeframe HTF derivat din TF-ul chart-ului (sau avertisment cand HTF <= chart) | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-09-03 |
+| I-352 | Amprenta de versiune verificabila in dashboard (badge care nu poate minti) | toate deck-urile | S | P3 | propus | ideation | 2026-09-03 |
+
+### Status update 2026-09-03 — ideation dupa prima zi de folosire a setup-urilor A+B
+User: „vreau sa stiu daca mai ai idei sau daca ii lipseste ceva?" (dupa ce cutia a fost facuta).
+Ideile de mai jos NU vin din citit cod, ci din **ce a mers prost in prima zi de folosire reala**
+(4 citiri pe BTC/EGLD, 3 re-lipiri, 2 TF-uri gresite, 1 intrare short evitata).
+- **I-347..I-352 propuse.** Nu repropuse: I-337 (contract A→B), I-341 (prag rentabilitate),
+  I-342/343/344 — raman P1 in backlog, nefacute; I-345/346 facute azi (Crowding v1.1/v1.2).
+
+#### I-347 · CE ASTEPT calculat automat · [M] · P1
+- **Problema/golul:** de 4 ori azi userul a primit „ce astepti" scris de mana in chat (ex. „iese din EXTREME + reclaim AVWAP 5.067"). Deck-urile stiu fiecare bucata — VolRegime stie ce prag il scoate din EXTREME, AVWAP stie nivelul, PATH stie ce reseteaza extensia — dar niciunul nu compune conditia. Fara ea, „PERM NU" e un zid fara usa: nu stii ce sa urmaresti si te intorci sa te uiti la fiecare 10 minute.
+- **Soluția:** un rand `CE ASTEPT` care listeaza conditiile de deblocare, cu valoarea-tinta concreta, in ordinea in care blocheaza: `iese din EXTREME (acum 83.8, prag 80)` · `reclaim AVWAP 5.067 (esti la -1.17xATR)`. Se compune din pragurile deja existente in fiecare deck; nicio cifra noua inventata. Cand nu mai e nimic de asteptat, randul dispare.
+- **Impact:** transforma refuzul in plan. Userul stie exact ce numar sa urmareasca si poate pleca de la ecran.
+- **Riscuri/dependențe:** conditia trebuie sa fie MASURABILA, nu narativa — daca un blocaj n-are prag numeric, randul scrie „—", nu inventeaza. Randul trebuie sa incapa in limita de ~7 randuri (candidat la toggle).
+- **Fișiere atinse:** `pine-scripts/META-CONFLUENCE-SUITE/Volatility_Regime_Pro_v1_*.pine`, `pine-scripts/AVWAP-DESK/AVWAP_Desk_v1_*.pine`, `pine-scripts/TREND-PATH-DESK/Trend_Path_Desk_v1_*.pine`, `pine-scripts/CROWDING-LENS/Crowding_Lens_v1_*.pine`.
+
+#### I-348 · Rand TRIGGER explicit (bias != semnal) · [S] · P1
+- **Problema/golul:** ZLHMA arata `SHORT 71%` cu o bara rosie de 100% si, separat, `Semnal: —`. Userul a citit bara de bias ca pe un semnal si a intrebat daca intra short. Cifra mare si colorata domina vizual campul gol care conteaza.
+- **Soluția:** rand `TRIGGER` cu doua stari, sus, deasupra biasului: `NU - doar bias` (gri) sau `DA - STRONG SHORT / PB BUY / ...` (colorat). Biasul ramane, dar coboara. Optional: cand `TRIGGER = NU`, bara de bias se estompeaza.
+- **Impact:** taie categoria de intrare „am vazut 71% rosu si am apasat". Cel mai ieftin fix din lista.
+- **Riscuri/dependențe:** nu schimba nicio logica de semnal, doar ierarhia vizuala. De verificat ca `Semnal` gol e chiar singura conditie de „fara trigger" (mai exista `Alert gate`, `Tier*`).
+- **Fișiere atinse:** `pine-scripts/ZLHMA-TOP/ZLHMA_TOP_Dashboard_v3_*.pine` (+ acelasi pattern pe JMA/ST-LR daca se valideaza).
+
+#### I-349 · Alerta „permisiunea s-a schimbat" · [M] · P1
+- **Problema/golul:** permisiunea de pe Setup A s-a schimbat de 4 ori intr-o zi si de fiecare data userul a aflat pentru ca se uita pe ecran. Cel mai important eveniment al setup-ului — `VolRegime EXTREME -> EXPANSION`, care a ridicat veto-ul la 18:05 — nu emite nimic. Suita are deja relay + `lib/telegram.js`.
+- **Soluția:** alerta pe bara inchisa, JSON cu schema familiei (`deck`, `ver`, `ticker`, `tf`, `event`), pe TREI evenimente: `PERM_UNLOCK` (ultimul blocaj a cazut), `PERM_LOCK` (a aparut un blocaj nou), `PERM_DIR_FLIP` (directia PATH s-a schimbat). Mesaj uman scurt + motivul.
+- **Impact:** userul nu mai trebuie sa stea pe ecran ca sa prinda momentul in care ziua devine tranzactionabila.
+- **Riscuri/dependențe:** ⚠️ **botul Telegram e oprit de billing GitHub** — alerta trebuie sa functioneze si doar ca notificare TradingView. Risc de spam daca un blocaj palpaie in jurul pragului → cere histerezis + cooldown. Depinde de I-347 (aceleasi conditii).
+- **Fișiere atinse:** deck-urile de pe Setup A, `premarket_scanner/tools/cf-worker-deck-relay.js`.
+
+#### I-350 · Garda preset-vs-TF · [S] · P2
+- **Problema/golul:** in aceeasi zi userul a avut: Setup B pe 4H cu preset `Crypto`, apoi pe 1H, apoi ZLHMA pe `Custom` (21/55) pe bare de 5m. De fiecare data scriptul a calculat linistit si a dat cifre plauzibile dar fara sens (invalidare la −31% de pret). Nimic nu a semnalat nepotrivirea. E capcana deja cunoscuta a casei (preset != TF de chart), dar netratata in cod.
+- **Soluția:** un rand/chip care se aprinde cand presetul nu se potriveste cu TF-ul chart-ului: `Scalping` pe TF ≥ 60m, `Swing` pe TF ≤ 15m, `Custom` cu lookback care depaseste orizontul. Text scurt: `PRESET ≠ TF (Scalping pe 4H)`. Nu blocheaza nimic, doar spune.
+- **Impact:** prinde in 2 secunde greseala care azi a costat trei re-lipiri si o citire complet gresita.
+- **Riscuri/dependențe:** pragurile de „ce TF se potriveste cu ce preset" sunt ipoteze — se scriu ca tabel vizibil in README, nu ascunse in cod. Fals-pozitive pe utilizari deliberate → chip discret, nu rosu alarmant.
+- **Fișiere atinse:** toate deck-urile din cele doua setup-uri (pattern comun).
+
+#### I-351 · Timeframe HTF derivat din chart · [S] · P2
+- **Problema/golul:** `htfTf = input.timeframe("60")` e FIX. Pe chart de 4H cere un TF **mai mic** (capcana `request.security` pe TF mai mic, din checklist), pe 1H se compara cu el insusi. Randul se numeste `HTF` si nu e HTF — a fost folosit ca argument intr-o citire, gresit.
+- **Soluția:** optiune `Auto` (implicita) care deriva HTF-ul din TF-ul chart-ului dupa o scara declarata (5m→1H, 15m→4H, 1H→4H, 4H→1D, 1D→1W); manual ramane posibil. Cand HTF-ul rezolvat e ≤ TF-ul chart-ului, randul scrie `HTF INVALID (<= chart)` in loc de o directie.
+- **Impact:** randul `HTF` inceteaza sa fie decorativ pe orice chart in afara de 1H.
+- **Riscuri/dependențe:** scara de mapare e o conventie, nu un adevar — se declara in README. De verificat ca `request.security` pe TF derivat pastreaza `lookahead_off`.
+- **Fișiere atinse:** `pine-scripts/TREND-PATH-DESK/Trend_Path_Desk_v1_*.pine` (+ orice alt deck cu input HTF fix).
+
+#### I-352 · Amprenta de versiune care nu poate minti · [S] · P3
+- **Problema/golul:** 4 din 10 deck-uri aveau antetul din dashboard ramas la o versiune veche, in timp ce titlul `indicator()` si payload-ul JSON erau corecte. Procedura de reconciliere „compara badge-ul cu numele fisierului" se sprijina exact pe celula care poate minti. Reparatia a fost manuala si poate reaparea la urmatorul bump.
+- **Soluția:** badge-ul se compune din **o singura sursa** — o constanta `VER` declarata o data si folosita in `indicator()`, in antetul de dashboard si in JSON. Plus o linie in `garda_pine.py` care verifica: versiunea din numele fisierului == cea din `indicator()` == cea din antet == cea din JSON.
+- **Impact:** clasa asta de bug dispare, in loc sa fie vanata manual la fiecare livrare.
+- **Riscuri/dependențe:** atinge 10 fisiere → 10 bump-uri si 10 re-lipiri in TV. Se face la o livrare in care oricum se re-lipeste, nu separat.
+- **Fișiere atinse:** toate deck-urile din setup, `pine-scripts/SETUPS/garda_pine.py`.
