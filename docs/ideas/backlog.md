@@ -2931,3 +2931,19 @@ nu recitire de cod. Sectiunea „ce NU s-a probat" e mai jos si e obligatorie.
 - Pragurile raman IPOTEZE: percentilele 75/25 din CROWD, p90/p97 pe OI, 2 bare pentru
   „s-a intors". Se judeca out-of-sample.
 - `I-341` (prag de rentabilitate) si `I-344` (ce motor merita slotul 1) — NEMASURATE.
+
+### 2026-09-03 — DOUA erori de compilare gasite de user la lipire (INV, RB)
+🔴 **`f_px(...)` in Invalidation_Clock v1.4** — helperul e din Session_Levels, NU exista in INV.
+   Reparat cu `str.tostring(invLevel, format.mintick)`, exact ca randul `Nivel INV` de dedesubt.
+🔴 **`cAmb` in Session_Range_Budget v1.4** — culoarea e din alt deck; RB are `cAcc` pentru
+   chihlimbariu. Reparat.
+🔑 **Ambele erau invizibile pentru uneltele existente:** `garda_pine.py` si `audit_ordine.py`
+cauta „declarat prea tarziu", nu „nu exista deloc". Un identificator copiat din alt deck trece
+prin amandoua.
+✅ **Unealta noua: `SETUPS/audit_identificatori.py`** — raporteaza identificatorii care apar
+DOAR in blocul nou si nicaieri altundeva in fisier (tiparul „copiat din alt deck").
+📌 **Varianta „scaneaza tot fisierul" a fost incercata si ARUNCATA** — dadea rosu pe cod care
+ruleaza (tipuri UDT, `timestamp()`, `lineExt`, calificatori, culori hex, destructurare de
+tuplu, argumente cu nume). Ce a ramas e ingust si de incredere.
+✅ Probata pe ambele capete: **verde pe cele 5 fisiere reparate, rosie pe ambele bug-uri
+refacute** (`f_px` linia 328, `cAmb` linia 342).
