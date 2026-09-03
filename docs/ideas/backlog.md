@@ -2794,3 +2794,19 @@ User: „poti sa faci sa fie mai explicit dash-ul?"
   `f_row2`/`f_cell`/`table.cell` inainte de a fi declarata. **Probata prin stricare**: pe copia
   cu bug-ul refacut da `linia 1042 foloseste cDir, declarat abia la 1047`.
   🔑 A treia oara intr-o zi cand o insertie de bloc a folosit o variabila inexistenta inca.
+
+### Status update 2026-09-03 — Session Levels v1.5 (Mod simplu) + a 2-a gaura in garda
+- **SLEV v1.5**: `Mod dashboard = Simplu` (default) — nivelurile au NUME in romana, nu coduri.
+  `SUS E: maximul de ieri 5.486` · `JOS E: minimul de ieri 3.982` ·
+  `DACA RUPE SUS: tine in 25% din cazuri (15 din 45) - restul se intorc` ·
+  `UNDE SUNT: esti in range-ul zilei de ieri`. `Complet` aduce inapoi cele 16 randuri.
+  🔴 Gasit pe drum: celula `(r,3)` scria **"v1.2"** intr-un fisier v1.4 — al DOILEA badge care
+  minte in acelasi deck (primul era antetul, reparat dimineata).
+- 🔴 **CROWD v1.5 nu compila** — `cSide` folosea `C_MUT`/`C_LONGP`, declarate 23 de linii mai
+  jos. Acelasi bug ca la PATH, gasit tot de user la lipire. Mutat langa `premCol`.
+- ✅ **Garda avea DOUA gauri** la verificarea 4: (1) cauta doar nume `cXxx`, deci rata
+  `C_MUT`/`C_LONGP`; (2) se uita doar pe liniile cu `f_cell`, deci rata `color cSide = ...`,
+  care nu deseneaza nimic. Ambele inchise; scanarea ignora comentariile.
+  **Probata prin stricare pe AMBELE stiluri:**
+  `stil cDir (PATH) -> PRINS: linia 1041` · `stil C_MUT (CROWD) -> PRINS: linia 238`.
+  🔑 O garda scrisa dupa un singur exemplu acopera un singur exemplu.
