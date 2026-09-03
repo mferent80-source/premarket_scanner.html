@@ -2835,3 +2835,21 @@ User: „nu inteleg ideea DACA RUPE SUS... daca rupe sus CE?"
 🔑 O eticheta care incepe cu „DACA" promite o consecinta. Daca valoarea nu o da, randul e
 o intrebare fara raspuns. **Eticheta + valoarea trebuie sa formeze o propozitie completa,
 citite impreuna.**
+
+### Status update 2026-09-03 — CROWD v1.7: „aglomerat" cere MARIME **si** RARITATE
+User: „AGLOMERAT SHORT / NU SHORTA ACUM cred ca e gresita formularea, esti sigur ca e ok?"
+**Avea dreptate, si nu doar la cuvinte. Doua defecte reale:**
+1. 🔴 **Contradictie cu propria capcana.** README-ul lentilei scrie „nu e semnal de
+   contrarian, e masura de RISC, nu de TEMPORIZARE", iar eu am pus pe ecran o instructiune
+   de temporizare. Aglomerat != gresit: intr-un downtrend real shorturile sunt aglomerate
+   si au dreptate saptamani.
+2. 🔴 **Pragul ABSOLUT se declansa permanent pe simboluri cu bazis structural.** Masurat pe
+   EGLDUSDT.P: la premium `-0,021%` percentila era **71** — perp-ul sta DE OBICEI sub spot.
+   `NU SHORTA ACUM` ar fi devenit un veto etern pe simbolul asta.
+**Reparat:** `crowdLong/crowdShort` cer acum prag **SI** percentila (>=75 / <=25), deci
+„neobisnuit PENTRU SIMBOLUL ASTA". Textul: `rar de atat - risc de squeeze pe short`, iar
+`CE INSEAMNA` zice „daca tot shortezi: pozitie mai mica", nu „nu shorta".
+🔑 **Costul de funding ramane pe randul PREMIUM chiar cand verdictul e NEUTRU.**
+Separarea: PREMIUM = ce te costa (mereu) · VERDICT = e neobisnuit? (rar).
+🔑 ***Cand un prag absolut se aplica pe o marime cu bazis specific simbolului, verdictul
+descrie SIMBOLUL, nu momentul.*** Percentila e cea care spune „acum e altfel".
