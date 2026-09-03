@@ -2592,7 +2592,7 @@ User: „propune și după aplicăm” (urmare la Hub aliniat Alerte).
 
 | I-337 | Contract PERMISIUNE→TRIGGER între chart-ul lent și cel rapid | Setup A+B (Pine + relay) | M | P1 | propus | ideation | 2026-09-03 |
 | I-338 | Vocabular unic de preset pe scripturile celor 2 setup-uri | PATH + CVD Pro + ZLHMA | S | P2 | propus | ideation | 2026-09-03 |
-| I-339 | Fișa de setup pe disc (script/versiune/preset/TF/ordine de citire) | NOU: pine-scripts/SETUPS | S | P1 | propus | ideation | 2026-09-03 |
+| I-339 | Fișa de setup pe disc (script/versiune/preset/TF/ordine de citire) | NOU: pine-scripts/SETUPS | S | P1 | facut | ideation | 2026-09-03 |
 | I-340 | Crowding Lens — OI + premium perp-vs-spot extras din Precision Sniper | NOU: Crowding Lens Pine | M | P1 | propus | ideation | 2026-09-03 |
 | I-341 | Prag rentabil pe chart-ul rapid (port conversie NET din TLAB) | Setup B (deck rapid) | S | P1 | propus | ideation | 2026-09-03 |
 | I-342 | Câmp `setup` în payload + scorecard separat A vs B | Automation + journal | M | P2 | propus | ideation | 2026-09-03 |
