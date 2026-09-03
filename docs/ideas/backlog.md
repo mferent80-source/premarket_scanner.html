@@ -2676,3 +2676,12 @@ citite prin grep/antet 30 de `.pine` din `pine-scripts/` (titluri `indicator()`,
 - **Impact:** verdictul nu mai tace exact la varf. Cazul EGLD ar fi citit `ATENTIE` in loc de `NEUTRU`.
 - **Riscuri/dependențe:** pragul p90/p97 e IPOTEZA, de validat out-of-sample. Percentila nu depinde de preset (se normalizeaza pe simbol) — presetul schimba doar fereastra.
 - **Fișiere atinse:** `pine-scripts/CROWDING-LENS/Crowding_Lens_v1_1.pine`, `Crowding_Lens_README.md`, `pine-scripts/SETUPS/garda_pine.py` (nou).
+
+| I-346 | Randul MULTIMEA in Crowding Lens: COMBUSTIBIL vs CAPTIVI | Crowding Lens Pine | S | P1 | facut | user | 2026-09-03 |
+
+#### I-346 · Randul MULTIMEA (combustibil vs captivi) · [S] · P1 · FACUT (v1.2)
+- **Problema/golul:** v1.1 afisa corect `OPEN INT. +22.66% · extrem 98%` si `FLUX BANI NOI LONG · PRET CADE 2b`, dar userul a trebuit sa ceara in chat explicatia ca sa inteleaga ce inseamna. Cifrele erau pe ecran, POVESTEA lor nu. Diferenta care conteaza nu e "OI creste", e pe ce fel de miscare creste.
+- **Soluția:** rand nou `MULTIMEA` cu 5 stari — `CAPTIVA PE LONG` / `CAPTIVA PE SHORT` (pozitii noi + pretul s-a intors: stopurile lor sunt ordine contra lor) · `INTRA PE LONG` / `INTRA PE SHORT` (pozitii noi, miscarea inca merge = combustibil) · `IESE`. Verdict nou `PERICOL - MULTIME CAPTIVA` cand captiva + OI in expansiune extrema (rosu). `CE INSEAMNA` scrie mecanismul intr-o fraza, nu doua etichete lipite. Scos `fluxNota` (declarat dar nefolosit dupa refactor).
+- **Impact:** dashboard-ul nu mai cere traducere. Cazul EGLD 03.09 ar fi citit `PERICOL - MULTIME CAPTIVA` + "longuri noi intrate IN RITM EXTREM, iar pretul s-a intors jos... Stopurile lor sunt VANZARI sub tine."
+- **Riscuri/dependențe:** `captiv*` se sprijina pe pxFall2/pxRise2 (2 bare) — pe TF mare o respingere de 2 bare e mult, pe TF mic e zgomot. Prag de 2 bare = IPOTEZA. Dashboard-ul ajunge la 7 randuri implicit (limita din design.md).
+- **Fișiere atinse:** `pine-scripts/CROWDING-LENS/Crowding_Lens_v1_2.pine`, `Crowding_Lens_README.md`, `SETUPS/CARTELA-CITIRE-B.md` (nou), `SETUPS/garda_pine.py`.
