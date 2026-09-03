@@ -2667,3 +2667,12 @@ citite prin grep/antet 30 de `.pine` din `pine-scripts/` (titluri `indicator()`,
 - **Impact:** slotul 1 din setup-ul rapid se ocupă pe dovadă. Costă o zi, nu o lună de tranzacționat cu motorul greșit.
 - **Riscuri/dependențe:** rezultatul plauzibil e „niciunul nu trece net de costuri pe 1m" — și acela e un rezultat util, nu un eșec (Factor Lab a dat deja 0 din 27). Măsurătoarea e in-sample pe istoricul ales; nu se tunează pragurile pe ea.
 - **Fișiere atinse:** `pine-scripts/FLIP-LAB/Flip_Lab_v1_7.pine` (rulare, nu modificare), rezultat în `pine-scripts/SETUPS/SETUP-B-SCALP.md`.
+
+| I-345 | Verdictul Crowding Lens escaladează pe explozie de OI (nu doar premium) | Crowding Lens Pine | S | P1 | facut | user | 2026-09-03 |
+
+#### I-345 · Verdict care vede si OI-ul · [S] · P1 · FACUT (v1.1)
+- **Problema/golul:** in `Crowding_Lens_v1_0` verdictul se calcula DOAR din premium. Pe EGLDUSDT.P 4H, 03.09, a scris `NEUTRU` in timp ce Open Interest sarea **+22,66%** pe o miscare verticala — exact momentul periculos, si exact ce lentila trebuia sa previna. Premiumul era banal (−0,021%, percentila 71); pericolul nu era in premium.
+- **Soluția:** stare noua `ATENTIE - OI IN EXPANSIUNE` cand percentila abaterii OI trece pragul (input, default p90), independent de premium; rosu peste p97. Randul `OPEN INT.` afiseaza percentila. Randul `FLUX` semnaleaza cand pretul contrazice directia neteda (`· PRET CADE 2b`, vocabularul AVWAP/SVP) — EMA-ul ramane in urma pe spike-uri.
+- **Impact:** verdictul nu mai tace exact la varf. Cazul EGLD ar fi citit `ATENTIE` in loc de `NEUTRU`.
+- **Riscuri/dependențe:** pragul p90/p97 e IPOTEZA, de validat out-of-sample. Percentila nu depinde de preset (se normalizeaza pe simbol) — presetul schimba doar fereastra.
+- **Fișiere atinse:** `pine-scripts/CROWDING-LENS/Crowding_Lens_v1_1.pine`, `Crowding_Lens_README.md`, `pine-scripts/SETUPS/garda_pine.py` (nou).
