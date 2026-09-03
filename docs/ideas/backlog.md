@@ -2853,3 +2853,20 @@ User: „AGLOMERAT SHORT / NU SHORTA ACUM cred ca e gresita formularea, esti sig
 Separarea: PREMIUM = ce te costa (mereu) · VERDICT = e neobisnuit? (rar).
 🔑 ***Cand un prag absolut se aplica pe o marime cu bazis specific simbolului, verdictul
 descrie SIMBOLUL, nu momentul.*** Percentila e cea care spune „acum e altfel".
+
+### Status update 2026-09-03 — SLEV v1.7: „unde poate merge" + FIX etichete care mint
+User: „la fel si pe session, explicit posibil sus sau jos etc".
+🔴 **Bug al meu din v1.5, gasit raspunzand:** randurile `SUS E` / `JOS E` afisau FIX maximul
+si minimul de ieri, **presupunand** ca unul e deasupra si celalalt dedesubt. Cand pretul
+sparge maximul, `SUS E: maximul de ieri` minte — nivelul e SUB tine.
+✅ Acum se **calculeaza** din toate cele 7 niveluri (open, PDH, PDL, PDC, MID, ONH, ONL) care
+e cel mai apropiat DEASUPRA si care DEDESUBT, cu numele si distanta in ATR:
+```
+DACA URCA      maximul de ieri 5.486        -3.27×
+DACA COBOARA   mijlocul zilei de ieri 4.734 +0.51×
+```
+Cazuri limita tratate: „nimic deasupra - pretul e peste toate nivelurile".
+📌 **NU e prognoza de directie** (aia vine din PATH). E o harta: daca urca, prima oprire e
+aici; daca coboara, aici. Nota pusa explicit in cartele, ca sa nu se nasca al doilea verdict
+de directie care sa-l contrazica pe PATH.
+🔑 ***O eticheta care descrie o pozitie relativa („SUS E") trebuie CALCULATA, nu presupusa.***
