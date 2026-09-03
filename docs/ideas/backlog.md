@@ -2947,3 +2947,121 @@ ruleaza (tipuri UDT, `timestamp()`, `lineExt`, calificatori, culori hex, destruc
 tuplu, argumente cu nume). Ce a ramas e ingust si de incredere.
 ✅ Probata pe ambele capete: **verde pe cele 5 fisiere reparate, rosie pe ambele bug-uri
 refacute** (`f_px` linia 328, `cAmb` linia 342).
+
+| I-354 | Viata ramasa a miscarii — port din Trend Anatomy Lab in Paznic | Paznic (bot) | M | P1 | propus | ideation | 2026-09-03 |
+| I-355 | Delta REALA din taker buy/sell — filtrul de participare care lipseste | Paznic (bot) | M | P1 | propus | ideation | 2026-09-03 |
+| I-356 | Conturi mici vs conturi MARI — pozitionarea masurata, nu dedusa | Paznic (bot) | S | P1 | propus | ideation | 2026-09-03 |
+| I-357 | Latimea pietei, gratis: botul scaneaza deja 20 de simboluri | Paznic (bot) | S | P1 | propus | ideation | 2026-09-03 |
+| I-358 | Cooldown dupa flip + failed-cross — port din ZLHMA (I-033/I-034) | Paznic (bot) | S | P1 | propus | ideation | 2026-09-03 |
+| I-359 | Stopul comparat cu MAE-ul istoric, nu doar cu swing-ul | Paznic (bot) | M | P2 | propus | ideation | 2026-09-03 |
+| I-360 | Botul se noteaza singur: calibrare pe jurnal (port din Flip Lab I-302) | Paznic (bot) | M | P2 | propus | ideation | 2026-09-03 |
+
+### Status update 2026-09-03 — ideation: ce se poate porta din Pine in Paznic
+User: „continua si vino cu idei si din pine scripturi".
+Sursa ideilor: cele 24 de deck-uri Pine + **datele Binance verificate ca functioneaza** in aceasta
+sesiune (`takerlongshortRatio`, `globalLongShortAccountRatio`, `topLongShortPositionRatio` —
+toate trei probate, intorc date).
+- **I-354..I-360 propuse.** Nu repropuse: I-337 (contract A→B), I-341 (prag rentabilitate),
+  I-344 (motor), I-349 (alerte) — raman P1 pe Pine, nu pe bot.
+🔑 **Avantajul unic al botului fata de ORICE chart TradingView: vede 20 de simboluri deodata.**
+Latimea pietei si divergenta conturi-mici/conturi-mari sunt gratuite pentru el si imposibile
+pe un singur chart.
+
+#### I-354 · Viata ramasa a miscarii · [M] · P1
+- **Problema/golul:** Paznicul spune „extensie pctl 84" — o pozitie pe o scara, nu un raspuns la
+  „cat mai are". `Trend_Anatomy_Lab_v2_5` masoara exact asta: viata ramasa MEDIANA conditionata
+  pe varsta atinsa (I-285), cu banda de incertitudine p25/p50/p75 (I-286) si **garda de onestitate
+  care stinge afisarea cand varsta nu prezice** (I-287). Botul are datele, nu are conceptul.
+- **Soluția:** ZigZag pe prag ATR peste barele INCHISE de 4H (regula anti-repaint a TLAB) →
+  duratele legurilor trecute → pentru varsta legului curent, mediana ramasa + banda. Se stinge
+  singura sub n=10 leguri sau cand hazardul e plat.
+- **Impact:** transforma „e extins" in „mai are tipic ~N bare, intre M si P". Schimba decizia de
+  a tine o pozitie, nu doar pe cea de a intra.
+- **Riscuri/dependențe:** cere destule leguri pe istoricul de 300 de bare de 4H; pe simboluri noi
+  n-o sa fie. Pragul ZigZag e un parametru — TLAB are deja calibratorul (I-266), se ia de acolo.
+- **Fișiere atinse:** `PAZNIC-CRYPTO/paznic.mjs`; referinta `pine-scripts/TREND-ANATOMY-LAB/Trend_Anatomy_Lab_v2_5.pine`.
+
+#### I-355 · Delta REALA din taker buy/sell · [M] · P1
+- **Problema/golul:** botului ii lipseste COMPLET filtrul de participare — slotul pe care in
+  Setup B il ocupa CVD Pro. Fara el, o ruptura de nivel pe volum subtire arata identic cu una
+  reala. Iar CVD-ul din chart *estimeaza* delta din bare intrabar.
+- **Soluția:** `/futures/data/takerlongshortRatio` (probat: intoarce `buyVol`/`sellVol` reale,
+  agresorul e cunoscut). Percentila raportului pe propriul istoric → „cumparare agresiva
+  neobisnuita" / „vanzare agresiva". Se cere alinierea cu directia inainte de a valida fisa.
+- **Impact:** botul capata masuratoarea pe care TradingView o aproximeaza. **Aici botul e mai
+  bun decat chart-ul**, nu doar mai comod.
+- **Riscuri/dependențe:** taker ratio nu e delta completa (nu vede ordinele pasive); e un
+  agregat pe perioada, nu pe bara. Pentru delta la nivel de tranzactie ar trebui `aggTrades`,
+  care e mult mai scump ca rate-limit — de lasat pe mai tarziu.
+- **Fișiere atinse:** `PAZNIC-CRYPTO/paznic.mjs`.
+
+#### I-356 · Conturi mici vs conturi MARI · [S] · P1
+- **Problema/golul:** botul deduce aglomerarea din funding. Binance o **masoara**: ce procent din
+  conturi e long, si separat ce fac conturile mari. Probat acum pe BTC 1h: conturile mici
+  **54,8% SHORT**, conturile mari **64,7% LONG** — o divergenta pe care nici Whale Detector,
+  nici Smart Money Structure n-o pot vedea, pentru ca ele o DEDUC din pret si volum.
+- **Soluția:** doua randuri noi: `% conturi long` (retail) si `% conturi mari long`, cu
+  percentile. Semnal de context: cand cele doua diverg puternic, se scrie explicit
+  („multimea e short, banii mari sunt long").
+- **Impact:** pozitionarea devine masurata, nu inferata. E exact ce incearca sa spuna
+  Crowding Lens, dar cu cifra reala in loc de proxy.
+- **Riscuri/dependențe:** „conturi mari" e definitia Binance (top 20% dupa marja), nu
+  „institutionali". Divergenta e context, **nu semnal de intrare** — aceeasi capcana ca la
+  Crowding Lens: masura de risc, nu de temporizare.
+- **Fișiere atinse:** `PAZNIC-CRYPTO/paznic.mjs`.
+
+#### I-357 · Latimea pietei, gratis · [S] · P1
+- **Problema/golul:** botul scaneaza 20 de simboluri si le raporteaza ca 20 de fapte separate.
+  Dar cand **17 din 20** au „bugetul zilei consumat", asta nu e 17 observatii — e UNA singura,
+  despre piata. `Breadth_Crypto_Pro_v1_0.pine` are conceptul; botul are deja datele si nu-l foloseste.
+- **Soluția:** un antet de piata, deasupra listei: cate sunt SUS / JOS, cate au permisiune, cate
+  au bugetul epuizat, cate au OI in expansiune. Plus o linie de verdict: „ziua e epuizata pe
+  toata piata" vs „un simbol e extins".
+- **Impact:** 🔑 **Ăsta e avantajul pe care niciun chart TradingView nu-l are.** Un chart vede un
+  simbol; botul vede piata. Iar „toata piata a consumat bugetul" e o informatie de alt ordin.
+- **Riscuri/dependențe:** 20 de simboluri corelate (toate cripto) nu sunt 20 de observatii
+  independente — latimea se citeste ca temperatura, nu ca statistica.
+- **Fișiere atinse:** `PAZNIC-CRYPTO/paznic.mjs`; referinta `pine-scripts/Breadth_Crypto_Pro_v1_0.pine`.
+
+#### I-358 · Cooldown dupa flip + failed-cross · [S] · P1
+- **Problema/golul:** botul nu are memorie intre rulari despre declansatoare. Poate propune un
+  PULLBACK long la 20:30 si, dupa doua rulari, un cross short — exact palparea care goleste
+  contul in chop. ZLHMA a rezolvat asta demult: **whipsaw cooldown (I-033)** si
+  **detector de failed-cross (I-034)**. Botul le ignora.
+- **Soluția:** `stare.json` pastreaza deja starea precedenta. Se tine istoricul directiei pe
+  ultimele N rulari; daca directia s-a schimbat in ultimele K, fisa se suprima cu motivul
+  „flip proaspat — asteapta confirmare". Failed-cross: un cross care se anuleaza in ≤2 bare
+  marcheaza simbolul ca „zona de whipsaw" pentru urmatoarele M bare.
+- **Impact:** taie categoria de pierdere cea mai des intalnita in regim de chop, si o taie
+  **automat** — exact locul unde un om ezita.
+- **Riscuri/dependențe:** cooldown-ul pierde intrari reale dupa un flip valid; N/K/M sunt
+  ipoteze, se valideaza din jurnal (I-360).
+- **Fișiere atinse:** `PAZNIC-CRYPTO/paznic.mjs`; referinta `pine-scripts/ZLHMA-TOP/ZLHMA_TOP_Dashboard_v3_5_0.pine`.
+
+#### I-359 · Stopul comparat cu MAE-ul istoric · [M] · P2
+- **Problema/golul:** stopul botului e ultimul swing opus. Corect ca structura — dar daca acel
+  swing e mai aproape decat **excursia adversa tipica** a unei miscari care pana la urma a mers,
+  vei fi scos pe zgomot avand dreptate pe fond. `Trend_Anatomy_Lab` masoara exact MAE-ul tipic
+  (I-281 pe Trend Path Desk: „STOP DIN ISTORIC").
+- **Soluția:** din legurile trecute care au atins tinta, distributia MAE. Daca stopul propus e
+  sub mediana MAE, fisa scrie: „stop mai strans decat excursia tipica (X×ATR) — te scoate
+  zgomotul". Nu blocheaza, avertizeaza.
+- **Impact:** prinde categoria „am avut dreptate si am pierdut", care nu apare in niciun R:R.
+- **Riscuri/dependențe:** cere segmentare pe regim (MAE-ul in volatilitate mare nu spune nimic
+  despre cel din liniste) — altfel mediana amesteca doua populatii.
+- **Fișiere atinse:** `PAZNIC-CRYPTO/paznic.mjs`.
+
+#### I-360 · Botul se noteaza singur · [M] · P2
+- **Problema/golul:** `jurnal.csv` aduna dovezi, dar nimic nu le citeste. Peste o luna vor fi
+  ~60.000 de randuri si zero raspunsuri. `Flip_Lab_v1_7` are deja unealta conceptuala:
+  **reliability + Brier score + skill score fata de rata de baza** (I-302).
+- **Soluția:** un al doilea script, `noteaza.mjs`, care citeste jurnalul, ataseaza fiecarui
+  verdict ce a facut pretul dupa N bare, si scoate: rata de reusita a `PERM DA` vs rata de baza ·
+  care blocaj a salvat cel mai des · daca pragul 90 bate pragul 85. **Out-of-sample prin
+  constructie** — datele sunt colectate dupa fixarea pragurilor.
+- **Impact:** 🔑 momentul in care botul inceteaza sa ruleze pe presupunerile mele. Fara asta,
+  jurnalul e doar un fisier care creste.
+- **Riscuri/dependențe:** sub ~30 de zile n-are ce spune (n mic pe fiecare bucket). Nu se
+  tuneaza pragurile pe aceleasi date pe care se masoara — se schimba o data, apoi se re-masoara
+  pe date noi.
+- **Fișiere atinse:** `PAZNIC-CRYPTO/noteaza.mjs` (nou), `jurnal.csv`.
