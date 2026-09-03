@@ -2824,3 +2824,14 @@ inchida un short CUMPERI, deci pretul urca; (3) actiunea — nu shorta, si NU e 
 🔑 Lentila nu da niciodata o directie de INTRAT; spune pe ce parte sa NU intri. Directia
 vine din PATH. Un dashboard care descrie un MECANISM va fi citit ca PROGNOZA daca nu spune
 explicit ce sa faci.
+
+### Status update 2026-09-03 — SLEV v1.6: randul de statistica, propozitie intreaga
+User: „nu inteleg ideea DACA RUPE SUS... daca rupe sus CE?"
+🔴 Eticheta era o **fraza taiata la jumatate**, iar valoarea nu spunea nici ce inseamna
+„tine" (= sta peste nivel H bare), nici pe cate spargeri s-a masurat.
+- `DACA RUPE SUS` / `tine in 25% din cazuri (15 din 45)`
+  -> **`SPARGE MAXIMUL?`** / **`ramane peste el 12 bare doar in 25% din cazuri
+     (15 din 45 spargeri) - restul se intorc sub`**
+🔑 O eticheta care incepe cu „DACA" promite o consecinta. Daca valoarea nu o da, randul e
+o intrebare fara raspuns. **Eticheta + valoarea trebuie sa formeze o propozitie completa,
+citite impreuna.**
