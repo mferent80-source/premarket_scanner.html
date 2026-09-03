@@ -2687,10 +2687,10 @@ citite prin grep/antet 30 de `.pine` din `pine-scripts/` (titluri `indicator()`,
 - **Fișiere atinse:** `pine-scripts/CROWDING-LENS/Crowding_Lens_v1_2.pine`, `Crowding_Lens_README.md`, `SETUPS/CARTELA-CITIRE-B.md` (nou), `SETUPS/garda_pine.py`.
 
 | I-347 | CE ASTEPT calculat automat: deck-ul scrie singur conditia de deblocare | Setup A (PATH/VolRegime/CROWD) | M | P1 | propus | ideation | 2026-09-03 |
-| I-348 | Rand TRIGGER explicit pe ZLHMA (bias != semnal) | ZLHMA TOP Pine | S | P1 | propus | ideation | 2026-09-03 |
+| I-348 | Rand TRIGGER explicit pe ZLHMA (bias != semnal) | ZLHMA TOP Pine | S | P1 | facut | ideation | 2026-09-03 |
 | I-349 | Alerta „permisiunea s-a schimbat" pe Setup A → Telegram | Setup A + relay | M | P1 | propus | ideation | 2026-09-03 |
 | I-350 | Garda preset-vs-TF: avertisment cand presetul nu se potriveste cu chart-ul | toate deck-urile setup | S | P2 | propus | ideation | 2026-09-03 |
-| I-351 | Timeframe HTF derivat din TF-ul chart-ului (sau avertisment cand HTF <= chart) | Trend Path Desk Pine | S | P2 | propus | ideation | 2026-09-03 |
+| I-351 | Timeframe HTF derivat din TF-ul chart-ului (sau avertisment cand HTF <= chart) | Trend Path Desk Pine | S | P2 | facut | ideation | 2026-09-03 |
 | I-352 | Amprenta de versiune verificabila in dashboard (badge care nu poate minti) | toate deck-urile | S | P3 | propus | ideation | 2026-09-03 |
 
 ### Status update 2026-09-03 — ideation dupa prima zi de folosire a setup-urilor A+B
@@ -2741,3 +2741,21 @@ Ideile de mai jos NU vin din citit cod, ci din **ce a mers prost in prima zi de 
 - **Impact:** clasa asta de bug dispare, in loc sa fie vanata manual la fiecare livrare.
 - **Riscuri/dependențe:** atinge 10 fisiere → 10 bump-uri si 10 re-lipiri in TV. Se face la o livrare in care oricum se re-lipeste, nu separat.
 - **Fișiere atinse:** toate deck-urile din setup, `pine-scripts/SETUPS/garda_pine.py`.
+
+### Status update 2026-09-03 (seara) — pachetul F1..F3 din „FA TOT"
+- **I-348 FACUT** (ZLHMA v3.5.0) — plus un 🔴 gasit pe drum: `lastSigTxt` se scria DOAR in
+  blocurile `if showSigLabels and ...`, iar `showSigLabels` e FALSE by default (regula de casa:
+  vizualele pornesc ascunse) => randul `Semnal` ramanea permanent gol pe setarile implicite.
+  Decuplat; randul `TRIGGER` foloseste `lastTrigTxt` propriu (imun la FAKEOUT).
+- **I-351 FACUT** (PATH v1.12) — `Mod HTF = Auto` deriva HTF-ul din TF-ul chart-ului;
+  cand HTF-ul rezolvat e <= chart, randul spune `INVALID` si `htfDir` devine 0.
+- **I-347 partial** (CROWD v1.3) — rand `CE ASTEPT` livrat pe Crowding Lens. Ramane pe
+  VolRegime / AVWAP / PATH.
+- **I-350 partial** (CROWD v1.3) — garda preset-vs-TF, afisata in celula presetului (zero
+  randuri noi). Ramane pe restul deck-urilor.
+- **I-349, I-352 neincepute.**
+- 🔑 Descoperit masurand: suita e **MIXTA** ca terminatii de linie (10 CRLF, 4 LF), iar
+  `ZLHMA_TOP_v3_4_0` era mixt in interiorul lui (1 CRLF + 1520 LF). `garda_pine.py` avea
+  aceeasi gaura (`split("\r\n")` pe fisier LF vede o singura linie) — reparata; garda cere
+  acum consecventa in fisier, nu un stil anume, si verifica versiunea din nume vs `indicator()`.
+- ⚠️ **Nimic din pachetul asta nu a fost compilat inca in TradingView.**
