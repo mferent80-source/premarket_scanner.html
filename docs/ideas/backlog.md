@@ -2759,3 +2759,14 @@ Ideile de mai jos NU vin din citit cod, ci din **ce a mers prost in prima zi de 
   aceeasi gaura (`split("\r\n")` pe fisier LF vede o singura linie) — reparata; garda cere
   acum consecventa in fisier, nu un stil anume, si verifica versiunea din nume vs `indicator()`.
 - ⚠️ **Nimic din pachetul asta nu a fost compilat inca in TradingView.**
+
+### Status update 2026-09-03 — Crowding Lens v1.4 (dashboard explicit)
+User: „poti sa faci sa fie mai explicit dash-ul?"
+- Zero randuri noi, doar cuvinte in loc de jargon: `OPEN INT.` -> `POZITII DESCHISE`,
+  `PREMIUM` -> `PREMIUM (~funding)`, premiumul spune CINE PLATESTE, OI spune
+  SE DESCHID / SE INCHID.
+- 🔴 **`extrem N%` era o eticheta care MINTE.** `ta.percentrank` intoarce procentul de citiri
+  MAI MICI, nu un grad de extremitate: `extrem 34%` se citea ca „34% extrem", cand de fapt
+  extremele sunt la AMBELE capete (<=10 sau >=90) si 34 e banal. Acum: `pctl 34 obisnuit` /
+  `pctl 96 FOARTE RAR`. Acelasi tip de defect ca badge-urile de versiune de azi:
+  **un nume de coloana poate minti la fel de tare ca o cifra gresita.**
