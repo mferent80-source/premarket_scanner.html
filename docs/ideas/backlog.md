@@ -2870,3 +2870,21 @@ Cazuri limita tratate: „nimic deasupra - pretul e peste toate nivelurile".
 aici; daca coboara, aici. Nota pusa explicit in cartele, ca sa nu se nasca al doilea verdict
 de directie care sa-l contrazica pe PATH.
 🔑 ***O eticheta care descrie o pozitie relativa („SUS E") trebuie CALCULATA, nu presupusa.***
+
+### Status update 2026-09-03 — ultimele 3 deck-uri pe Mod simplu + unealta de audit
+- **INV v1.4** — `HH / HL` si `LH / LL` erau jargon pur: devin `urcatoare - maxime si minime
+  tot mai SUS` / `coboratoare`. `Nivel INV` capata eticheta **`STOPUL E LA`**.
+- **RB v1.4** — `% ADR consumat` -> `din miscarea tipica a zilei` · `Pozitie in range` spune
+  de unde se masoara (`0% = la minim, 100% = la maxim`).
+- **AVWAP v1.9** — 32 de randuri -> 5. `AVWAP` -> `linia de valoare`. LOC != MISCARE ramane
+  pe doua randuri separate, deliberat.
+🔴 **Bug prins de mine, la timp:** la AVWAP, blocul de detaliu era INAUNTRUL unui `if pgN`.
+Prima taietura a lasat `if pgN` fara corp. Garda pusa in scriptul de patch: prima linie a
+regiunii trebuie sa fie la indentare 4; daca e mai adanc, taietura e gresita.
+🔴 **`gPreset` nu exista in INV/RB** (ele au `gP`) — copiasem numele grupului de la SLEV.
+✅ **`SETUPS/audit_ordine.py`** promovat ca unealta: verifica folosirea inainte de declarare
+pe TOATE variabilele. A trecut prin 4 runde de fals-pozitive pana a devenit de incredere:
+`type` blocks · corpuri de functii · argumente cu nume (`options =` din `input.string`) ·
+variabile de bucla (`for w in`). **Probata pe ambele capete: verde pe toate 11 fisiere care
+ruleaza, rosie pe toate 3 stricaciunile refacute.**
+🔑 O garda se masoara pe AMBELE capete: sa nu sune pe cod bun SI sa sune pe cod stricat.
