@@ -3084,6 +3084,12 @@ pe un singur chart.
 | I-376 | Harta pietei: 148 de simboluri ca grila de patrate, dupa distanta si directie | Paznic (panou) | M | P2 | facut | tcc-idei | 2026-09-04 |
 | I-377 | Jurnalul OMULUI: de ce am intrat / de ce n-am intrat, langa fisa | Paznic (panou) | S | P2 | facut | tcc-idei | 2026-09-04 |
 | I-378 | Filtru de cost mai STRANS — ipoteza aparuta din proba prin stricare | Paznic (bot) | M | P2 | respins | ideation | 2026-09-04 |
+| I-379 | Modul pande: lista scurta (pozitii + aproape), nu 148 de randuri | Paznic (panou) | M | P1 | propus | ideation | 2026-09-04 |
+| I-380 | Biletul in 3 straturi: verdict, plan, restul | Paznic (panou) | S | P1 | propus | ideation | 2026-09-04 |
+| I-381 | Pozitia deschisa iese din tab: chip pe randul „ce fac acum" | Paznic (panou) | S | P1 | propus | ideation | 2026-09-04 |
+| I-382 | Taburile de jos devin legaturi, nu 6 butoane | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
+| I-383 | „Intreaba" se lipeste de bilet, nu e fereastra peste tot | Paznic (panou) | M | P2 | propus | ideation | 2026-09-04 |
+| I-384 | Bara de sus: un cluster de stare, nu sase metrici insirate | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3367,3 +3373,81 @@ Excluse (deja facute): I-355..I-358, I-361. Raman propuse si neatinse: I-354, I-
   mai strans, ci din ALTA selectie. Sirul e nemonoton si isi schimba semnul = zgomot la
   extreme, pe esantioane care se prabusesc la n=16 si n=1.
   📌 Nu se repropune. Istoria respingerii e chiar ce impiedica sa fie reinventata.
+
+### Status update 2026-09-04 seara — ideatie UI/UX pe panou (I-379..I-384)
+Mod **tool**, tinta `PAZNIC-CRYPTO/panou.html`. Contract: **design intai ca DEMO**,
+codul de trade neatins (doar sugestii, nu id-uri de implementat). Demo:
+`PAZNIC-CRYPTO/demo-panou.html` (static, paleta neschimbata, comutator pande / Terminal).
+
+Excluse din backlog: I-354..I-377 (facut), I-378 (respins). Nu se repropun harta de
+patrate, ceasul de bara, „cine e aproape" ca metrica — exista. Ce e nou e CUM se
+aseaza, nu CE se masoara.
+
+#### I-379 · Modul pande: lista scurta, nu 148 de randuri · [M] · P1
+- Problema/golul: 95% din timp randul de sus zice „Nimic de facut", dar corpul arata
+  tot 148 de simboluri. Filtrele `toate` / `au voie` arata identic pe ecran (primele
+  20 de randuri sunt aceleasi). Omul deschide un terminal Bloomberg ca sa afle ca
+  n-are ce face.
+- Solutia: modul implicit **pande** listeaza doar pozitii deschise + aproape de
+  rupere + fixate. Modul **Terminal** (148, filtrele de azi) ramane la un click.
+  Implicitul e pande, fiindca asta e starea dominanta.
+- Impact: in 5 secunde vezi ce tii si ce pândesti. 148-ul nu mai concureaza cu
+  singura informatie care cere o decizie.
+- Riscuri/dependente: cine vrea sa scaneze toata piata trebuie sa gaseasca Terminalul
+  din prima (toggle in bara, nu meniu ascuns). Nu se sterge nicio metrica — se ascunde.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html` (dupa aprobarea demo-ului). `decizie.mjs`
+  neatins.
+
+#### I-380 · Biletul in 3 straturi: verdict, plan, restul · [S] · P1
+- Problema/golul: coloana din dreapta e un ziar: sfaturi, porti, plan, cont real,
+  note, „am intrat", avertisment MAE, dictionar. Verdictul (tine / nu intra / gata)
+  se pierde sub 6 sectiuni.
+- Solutia: trei straturi, in ordine. (1) o fraza de verdict. (2) patru cifre: stop,
+  tinta, R:R, pierdere $. (3) restul sub un `details` inchis. Nimic nu se sterge.
+- Impact: biletul raspunde in 2 secunde. Detaliul ramane, nu mai e in fata.
+- Riscuri/dependente: `details` pe telefon trebuie sa ramana utilizabil (I-373).
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+#### I-381 · Pozitia deschisa iese din tab · [S] · P1
+- Problema/golul: ca sa vezi STRK short trebuie tabul Poziții. Randul de sus zice
+  „nimic de facut" in timp ce tii o pozitie. Cele doua se contrazic.
+- Solutia: chip pe randul „ce fac acum": `STRK short −0.05R`. Click pe chip =
+  selecteaza simbolul. Tab-ul Poziții nu dispare, doar nu mai e locul UNIC.
+- Impact: nu mai poti deschide panoul si sa crezi ca n-ai nimic deschis.
+- Riscuri/dependente: 3 chip-uri incape; peste 3 (daca se ridica plafonul) se
+  numara, nu se insira.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+#### I-382 · Taburile de jos devin legaturi · [S] · P2
+- Problema/golul: 6 taburi (Pozitii, Garzi, Criterii, Jurnal, Ratate, Harta) pe
+  28% din inaltime, in starea dominanta goale sau cu un rand. Harta merita
+  inaltime; restul nu merita o bara permanenta.
+- Solutia: jos ramane **sesiunea** (N inchise, R total, verdict criterii) +
+  pastilele trade-urilor inchise azi. Criterii / ratate / harta / jurnal =
+  legaturi care deschid acelasi continut, nu o bara de 6.
+- Impact: graficul creste. Sesiunea (ce a facut hartia AZI) se citeste fara click.
+- Riscuri/dependente: harta pierde inaltimea dedicata (`jos.cuHarta`) daca nu se
+  deschide pe tot ecranul. De prevazut un overlay, nu un tab mic.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+#### I-383 · „Intreaba" se lipeste de bilet · [M] · P2
+- Problema/golul: AI-ul e o fereastra peste tot ecranul. Intrebi despre STRK si
+  nu mai vezi graficul STRK. De trei ori azi functia exista si nu se gasea.
+- Solutia: conversatia intra in coloana biletului, sub verdict, nu ca modal.
+  Graficul ramane vizibil. Aceeasi ruta `/ai`, aceleasi gărzi (omul apasa, modelul
+  nu decide).
+- Impact: intrebarea si pretul stau pe acelasi ecran.
+- Riscuri/dependente: coloana e 320px — firul lung se deruleaza in bilet, nu
+  acopera graficul. Nu se schimba instructiunile modelului.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+#### I-384 · Bara de sus: un cluster de stare · [S] · P2
+- Problema/golul: au voie, fise gata, cont, pozitii, ultima verificare, doua
+  ceasuri, trei butoane, badge-ul de mod. Peste 6 elemente negrupate (design.md).
+  In Panda, „au voie 24" si „fise 0" sunt zgomot: 0 fise e deja in randul de sus.
+- Solutia: in pande, bara tine: puls, cont, pozitii, aproape, ceasul barei,
+  Verifica, Intreaba, badge hartie. „Au voie" / „fise gata" / „ultima verificare"
+  se intorc in modul Terminal.
+- Impact: bara se citeste. Ceasul (singurul care se misca) nu mai e al saselea.
+- Riscuri/dependente: trebuie sa fie evident ca Terminalul le aduce inapoi.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
