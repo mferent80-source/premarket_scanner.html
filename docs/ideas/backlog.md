@@ -3067,6 +3067,12 @@ pe un singur chart.
 - **Fișiere atinse:** `PAZNIC-CRYPTO/noteaza.mjs` (nou), `jurnal.csv`.
 
 | I-361 | Backtest pentru Paznic — ce au TOATE framework-urile serioase si botul n-are | Paznic (bot) | L | P1 | facut | ideation | 2026-09-03 |
+| I-362 | Criterii de oprire scrise INAINTE — cand incetezi sa crezi botul | Paznic (bot) | S | P1 | propus | ideation | 2026-09-04 |
+| I-363 | Notificarea ajunge pe TELEFON, nu doar pe balonul Windows | Paznic (bot) | M | P1 | propus | ideation | 2026-09-04 |
+| I-364 | Plafon pe expunerea CORELATA — 3 pozitii in acelasi sens = un pariu | Paznic (bot) | M | P1 | propus | ideation | 2026-09-04 |
+| I-365 | Funding platit in socoteala de hartie (PnL fara costuri e fictiune) | Paznic (bot) | S | P2 | propus | ideation | 2026-09-04 |
+| I-366 | Jurnal de rulari + martor de viata — daca pica la 3 noaptea, nicio urma | Paznic (bot) | S | P2 | propus | ideation | 2026-09-04 |
+| I-367 | Curba contului in panou — forma spune ce nu spune media | Paznic (bot) | S | P3 | propus | ideation | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3114,3 +3120,73 @@ otravise concluzia despre tot filtrul.
 Strategia PIERDE. Senzitivitatea pragurilor 80->95 misca rezultatul cu 0,03R — deci
 problema NU e in praguri, e la intrare/iesire. Concordant cu Factor Lab (0 din 150).
 ⚠ OI si delta nu se pot testa (Binance tine 30 zile) — raman validate doar forward.
+
+### Status update 2026-09-04 — ideatie pe robotul PAZNIC-CRYPTO (I-362..I-367)
+Cerere: „ce mai poti imbunatati sau automatiza?". Robotul ruleaza de la 07:09 pe HARTIE,
+la 15 minute. Cele 4 goluri de mai jos au fost verificate PE DISC, nu presupuse.
+Excluse (deja facute): I-355..I-358, I-361. Raman propuse si neatinse: I-354, I-359, I-360.
+
+#### I-362 - Criterii de oprire scrise INAINTE - [S] - P1
+- Problema/golul: avantajul masurat nu se deosebeste de zero, iar hartia tocmai a pornit.
+  Peste 3 saptamani, cu 40 de trade-uri si un +3R intamplator, decizia „merita bani reali?"
+  se ia pe entuziasm. Nu exista nicaieri, scris, ce rezultat te-ar face sa RENUNTI.
+- Solutia: fisier `CRITERII-DE-OPRIRE.md` completat ACUM, inainte sa existe date: n minim,
+  R mediu sub care se opreste, scadere maxima, termen. Botul il citeste la fiecare rulare si
+  scrie in raport daca pragurile au fost atinse - verdict, nu opinie.
+- Impact: singura aparare impotriva propriei partiniri. Un criteriu scris DUPA ce vezi
+  cifrele nu mai e criteriu.
+- Riscuri/dependente: tentatia de a-l ajusta cand se apropie; fisierul pastreaza versiunile.
+  Se suprapune partial cu I-360 (acolo: calibrare automata; aici: hotarare umana precomisa).
+- Fisiere atinse: CRITERII-DE-OPRIRE.md (nou), executie.mjs, panou.html
+
+#### I-363 - Notificarea ajunge pe TELEFON - [M] - P1
+- Problema/golul: notifica.mjs scoate un balon Windows. Botul ruleaza la 15 minute non-stop;
+  userul e la calculator poate 3 ore pe zi. O fisa gata la 2 noaptea nu ajunge la el niciodata.
+- Solutia: al doilea canal in notifica.mjs - Telegram, direct din Node, FARA GitHub Actions
+  (deci neatins de blocajul de billing). Token si chat-id intr-un fisier local, ca cheile
+  Pionex. Se trimite doar ce cere decizie.
+- Impact: botul devine util cand userul NU e la birou - adica majoritatea timpului.
+- Riscuri/dependente: cere un bot de Telegram creat de el. Fara token, canalul tace fara sa
+  opreasca robotul.
+- Fisiere atinse: notifica.mjs, telegram.json (nou, neurmarit in git)
+
+#### I-364 - Plafon pe expunerea CORELATA - [M] - P1
+- Problema/golul: maxPozitii:3 numara POZITII, nu PARIURI. Verificat: zero mentiuni de
+  corelatie in executie.mjs. Botul calculeaza deja latimea pietei („103 sus / 42 jos") si
+  N-O FOLOSESTE in nicio garda. Trei short-uri pe alt-coini intr-o zi de risk-off sunt un
+  singur pariu cu risc triplu.
+- Solutia: garda care refuza a treia pozitie IN ACELASI SENS cand piata e larg
+  unidirectionala (~70%+ intr-un sens). Masuratoarea exista in latimea(); se leaga la deCeNu().
+- Impact: taie exact tipul de zi in care trei stopuri se declanseaza la aceeasi ora.
+- Riscuri/dependente: pragul de 70% e IPOTEZA, de validat pe jurnal out-of-sample, nu de
+  crezut. In trenduri puternice reduce numarul de trade-uri.
+- Fisiere atinse: decizie.mjs (pragul, langa celelalte garzi), executie.mjs
+
+#### I-365 - Funding platit in socoteala de hartie - [S] - P2
+- Problema/golul: zero mentiuni de funding in executie.mjs. Pe perpetuals platesti la fiecare
+  8 ore cat tii pozitia. Masurat: 0,0054R pe trade la o tinere mediana de 10 ore - mic, dar
+  avantajul masurat e +0,025R, deci costul nemodelat e o cincime din el.
+- Solutia: la inchidere se scade funding-ul platit intre deschidere si iesire, din rata reala
+  publicata de Binance. Se scrie separat in executii.csv, ca sa se vada cat a mancat.
+- Impact: socoteala de hartie devine comparabila cu cea reala. PnL fara costuri e fictiune.
+- Riscuri/dependente: o cerere in plus per inchidere; neglijabil.
+- Fisiere atinse: executie.mjs, panou.html
+
+#### I-366 - Jurnal de rulari + martor de viata - [S] - P2
+- Problema/golul: daca sarcina pica la 3 noaptea (internet cazut, Binance in mentenanta, Node
+  actualizat) NU RAMANE NICIO URMA. Task Scheduler tine doar ultimul rezultat. Dimineata vezi
+  cifre vechi si nu stii de cate ore.
+- Solutia: rulari.csv - o linie per rulare: ora, durata, cate simboluri, greutatea Binance,
+  erori. Panoul arata „ultima rulare acum N min" si devine rosu peste doua intervale ratate.
+- Impact: deosebesti „piata e linistita" de „robotul e mort de 6 ore". Azi arata la fel.
+- Riscuri/dependente: niciunul; fisier mic, rotit ca jurnalul.
+- Fisiere atinse: robot.mjs, panou.mjs, panou.html
+
+#### I-367 - Curba contului in panou - [S] - P3
+- Problema/golul: panoul arata 1000.00, o cifra. Nu vezi daca vine dintr-o linie plata sau
+  dintr-un dus-intors de 8%. stare-executie.json are deja tot istoricul in `inchise`.
+- Solutia: grafic mic in tabul Garzi, desenat pe canvas ca cel de pret, cu R cumulat in timp
+  si scaderea maxima marcata. Zero date noi.
+- Impact: forma contului spune ce nu spune media. Doua conturi la +3R pot arata complet diferit.
+- Riscuri/dependente: sub ~10 trade-uri nu spune nimic; se afiseaza doar peste pragul asta.
+- Fisiere atinse: panou.html
