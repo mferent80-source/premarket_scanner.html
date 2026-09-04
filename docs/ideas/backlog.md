@@ -3095,15 +3095,20 @@ pe un singur chart.
 | I-387 | Portile nu se mai copiază in bilet (sunt sub grafic) | Paznic (panou) | S | P2 | facut | panou | 2026-09-04 |
 | I-388 | Biletul: cap lipit + corp derulabil, fara details | Paznic (panou) | M | P2 | facut | panou | 2026-09-04 |
 | I-389 | Summary-ul spune CE e inauntru, nu o lista de sertare | Paznic (panou) | S | P2 | facut | panou | 2026-09-04 |
-| I-390 | Executia se muta pe Binance USD-M: STOP_MARKET pe bursa, aceleasi date ca deciziile | Paznic (bot) | L | P1 | propus | audit | 2026-09-04 |
-| I-391 | Marimea ordinului se rotunjeste la pasul bursei (37/37 fise ar fi respinse azi) | Paznic (bot) | S | P1 | propus | audit | 2026-09-04 |
-| I-392 | Iesirea se socoteste la INCHIDEREA barei care a rupt stopul, nu la pretul stopului | Paznic (bot) | M | P1 | propus | audit | 2026-09-04 |
-| I-393 | Paritate hartie/live la intrare: revalidarea pretului sa ruleze si pe hartie | Paznic (bot) | S | P1 | propus | audit | 2026-09-04 |
-| I-394 | Bara IN FORMARE: se taie, sau se declara ca declansatorul e intrabar | Paznic (bot) | S | P1 | propus | audit | 2026-09-04 |
-| I-395 | Costul din ADANCIMEA cartii, nu din varf (ALLO: 0,211% real vs 0,123% modelat) | Paznic (bot) | M | P2 | propus | audit | 2026-09-04 |
-| I-396 | Bugetul zilei pe ziua LOCALA, nu pe ziua UTC (se reseteaza la 03:00) | Paznic (bot) | S | P3 | propus | audit | 2026-09-04 |
-| I-397 | Intrerupator de urgenta: opreste TOT si inchide pozitiile, dintr-un loc | Paznic (bot+panou) | M | P2 | propus | audit | 2026-09-04 |
-| I-398 | Control de pe telefon prin Telegram: /stare /opreste /inchide (ca la Freqtrade) | Paznic (bot) | M | P2 | propus | audit | 2026-09-04 |
+| I-390 | Executia se muta pe Binance USD-M: STOP_MARKET pe bursa, aceleasi date ca deciziile | Paznic (bot) | L | P1 | respins | audit | 2026-09-04 |
+| I-391 | Marimea ordinului se rotunjeste la pasul bursei (37/37 fise ar fi respinse azi) | Paznic (bot) | S | P1 | facut | audit | 2026-09-04 |
+| I-392 | Iesirea se socoteste la INCHIDEREA barei care a rupt stopul, nu la pretul stopului | Paznic (bot) | M | P1 | facut | audit | 2026-09-04 |
+| I-393 | Paritate hartie/live la intrare: revalidarea pretului sa ruleze si pe hartie | Paznic (bot) | S | P1 | facut | audit | 2026-09-04 |
+| I-394 | Bara IN FORMARE: se taie, sau se declara ca declansatorul e intrabar | Paznic (bot) | S | P1 | facut | audit | 2026-09-04 |
+| I-395 | Costul din ADANCIMEA cartii, nu din varf (ALLO: 0,211% real vs 0,123% modelat) | Paznic (bot) | M | P2 | facut | audit | 2026-09-04 |
+| I-396 | Bugetul zilei pe ziua LOCALA, nu pe ziua UTC (se reseteaza la 03:00) | Paznic (bot) | S | P3 | facut | audit | 2026-09-04 |
+| I-397 | Intrerupator de urgenta: opreste TOT si inchide pozitiile, dintr-un loc | Paznic (bot+panou) | M | P2 | facut | audit | 2026-09-04 |
+| I-398 | Control de pe telefon prin Telegram: /stare /opreste /inchide (ca la Freqtrade) | Paznic (bot) | M | P2 | facut | audit | 2026-09-04 |
+| I-399 | Cadenta pazei pe pozitiile deschise: din minut in minut, nu din 15 in 15 | Paznic (bot) | M | P1 | propus | audit | 2026-09-04 |
+| I-400 | Vanatoarea automata de look-ahead, dupa lookahead-analysis din Freqtrade | Paznic (bot) | M | P1 | propus | audit | 2026-09-04 |
+| I-401 | Cate bare sunt DE AJUNS, masurat (dupa recursive-analysis din Freqtrade) | Paznic (bot) | S | P2 | propus | audit | 2026-09-04 |
+| I-402 | Derapajul la INTRARE in backtest (dupa FillModel din NautilusTrader) | Paznic (bot) | S | P2 | propus | audit | 2026-09-04 |
+| I-403 | /locks si /daily: ce simbol e blocat ACUM si de ce (dupa Freqtrade) | Paznic (panou+bot) | S | P3 | propus | audit | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3675,3 +3680,92 @@ panoul asculta pe 127.0.0.1 si compara jetonul in timp constant.
   legarea pe un singur `chat_id` si o confirmare — altfel cine ii ia telefonul iese din
   toate pozitiile.
 - Fisiere atinse: `PAZNIC-CRYPTO/notifica.mjs`, `executie.mjs`.
+
+### Status update 2026-09-04 noapte — I-391..I-398 FACUTE, I-390 RESPINS (cerere „fa tot")
+
+In `PAZNIC-CRYPTO`. Trei commit-uri: `75c9eef` (umplere, bara inchisa, paritate, marime),
+`bad7a38` (cost din carte, ziua locala, intrerupator), `e99d565` (Telegram, cartela).
+**368 de probe verzi**, de la 313.
+
+**I-390 RESPINS de el, si din motivul potrivit:** *„binance nu mai activeaza pe Europa, deci
+e mai bine sa ramai pe pionex"*. Adaptorul de bursa scris pentru asta a fost STERS, nu lasat
+in cod: o cale de executie catre o bursa pe care n-o poti folosi nu e o optiune, e cod mort
+care arata ca o optiune. A ramas doar `bursa.mjs` — capabilitati + reguli de instrument —
+care e util oricum si care TIPA daca `stopPeBursa` nu se potriveste cu bursa aleasa.
+📌 ***Decizia lui inchide problema ca sarcina de programare si o lasa deschisa ca risc:
+pe Pionex stopul NU va sta niciodata pe bursa.*** De aici vine I-399.
+
+**Ce a schimbat masuratoarea la cifra de performanta:** cu modelul de umplere onest,
+backtestul da `136 trades · R mediu +0,069 · PF 1,10 · DD 26,9R` (era +0,025 / 1,04).
+A crescut fiindca IPOTEZA era gresita, nu fiindca botul s-a imbunatatit — jumatate din
+atingerile de stop se inchid mai sus decat stopul. Concluzia NU s-a schimbat: intervalul
+de incredere 95% e `[-0,187 … 0,346]`, deci **cuprinde zero**; 24,4% din re-extrageri ies
+pe minus; pe felii de timp 4 din 6 pe plus, „amestecat — nu e stabil in timp".
+Monte Carlo re-masurat: scadere mediana 15,0R, sub 23,3R in 95% din cazuri ⇒ `riscPeTrade`
+0,35% ramane valid (10% / 23,3R = 0,43%). Lasat neschimbat INTENTIONAT.
+
+#### I-399 · Cadenta pazei pe pozitiile deschise · [M] · P1 · propus
+- Problema/golul: pe Pionex stopul nu poate sta pe bursa (I-390 respins), deci singura
+  parghie ramasa e CAT DE DES te uiti. Azi: din 15 in 15 minute, odata cu scanarea.
+- Masurat (20 de simboluri, ~16h de bare de 1m, 164 de atingeri de stop), pierderea
+  SUPLIMENTARA fata de pretul stopului:
+  | cadenta | medie | mediana | p90 | p95 | peste +1R |
+  |---|---|---|---|---|---|
+  | 15 min (azi) | +0,93R | -0,03 | **4,90R** | **12,13R** | 27,4% |
+  | 1 min | +0,62R | +0,03 | **1,49R** | **3,09R** | 20,1% |
+  Coada se micsoreaza de 3–4 ori. Mediana nu se misca — deci castigul e TOT in coada,
+  adica exact acolo unde traieste riscul de ruina.
+- Solutia: o bucla usoara in `panou.mjs` (procesul care oricum sta pornit) care se uita
+  DOAR la pozitiile deschise, din minut in minut, si cheama iesirea cand stopul e rupt.
+  Nu scaneaza nimic, nu deschide nimic: 1–3 preturi pe minut.
+- 🔴 Riscuri/dependente: **backtestul TREBUIE sa modeleze aceeasi cadenta**, altfel se
+  reface exact divergenta pe care a reparat-o I-392. Asta cere istoric de 1m (istoricul de
+  acum e 15m) — partea grea a lucrarii, si motivul pentru care e [M] si nu [S].
+  Iesirea din paza NU se marcheaza „MANA": e o iesire a BOTULUI, intra in criterii.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.mjs`, `executie.mjs`, `backtest.mjs`, `decizie.mjs`.
+
+#### I-400 · Vanatoarea automata de look-ahead (dupa Freqtrade) · [M] · P1 · propus
+- Problema/golul: I-394 (declansator judecat pe bara IN FORMARE) a fost gasit de mine
+  citind cod. Nicio proba nu-l prindea, si nici n-ar fi putut: probele verifica reguli,
+  nu scurgeri de viitor. Freqtrade are `lookahead-analysis`, o comanda care **inlantuie
+  backtesturi si impunge strategia** ca sa o provoace sa arate scurgerea — nu se uita la
+  cod, ci compara valorile indicatorilor si intrarile intre rularea completa si una taiata.
+- Solutia: acelasi lucru la noi. Se ruleaza `evalueaza()` pe seria intreaga, apoi pe serii
+  taiate la fiecare pas, si se cere ca verdictul pentru bara `i` sa fie IDENTIC in ambele.
+  Orice diferenta = o functie se uita in viitor.
+- Impact: garda generica peste tot nucleul, nu inca o proba pe un caz. Ar fi prins I-394
+  singura, si prinde urmatoarea scurgere pe care n-o banuiesc.
+- Riscuri/dependente: costa timp de rulare; se ruleaza pe cerere, nu la fiecare probe.
+- Fisiere atinse: `PAZNIC-CRYPTO/backtest.mjs` (sau o unealta separata).
+
+#### I-401 · Cate bare sunt DE AJUNS, masurat (dupa `recursive-analysis`) · [S] · P2 · propus
+- Problema/golul: `bare4hNecesare()` intoarce `tsmomBare + 60` — un numar ales de mine.
+  Dar `ema()` e RECURSIVA: valoarea ei de azi depinde de cat de departe incepe seria, si
+  nu converge niciodata complet. Deci „60 de bare in plus" e o presupunere, nu o masura.
+  Freqtrade are `recursive-analysis` fix pentru asta: rulezi cu istorii de lungimi diferite
+  si te uiti cand valoarea indicatorului nu se mai misca.
+- Solutia: o proba care cere aceeasi serie cu 300 / 600 / 900 de bare si masoara abaterea
+  ultimei valori de EMA/ATR/percentila. Marja se alege de la cifra la care abaterea scade
+  sub un prag, nu din burta.
+- Impact: ori confirma marja de acum, ori arata ca botul a decis pe indicatori neconvergenti.
+- Fisiere atinse: `PAZNIC-CRYPTO/probe.mjs`, `decizie.mjs` (doar comentariul cu motivul).
+
+#### I-402 · Derapajul la INTRARE, nu doar la iesire (dupa FillModel) · [S] · P2 · propus
+- Problema/golul: I-392 a reparat ipoteza de umplere la IESIRE. La INTRARE, backtestul
+  presupune inca umplere exacta la pretul din plan. NautilusTrader trateaza asta ca obiect
+  separat (`FillModel`, cu `prob_slippage`) tocmai fiindca e o ipoteza, nu un detaliu.
+- Solutia: un derapaj la intrare in backtest, in unitati de R (nu procent din pret), pus
+  langa `stopPeBursa` ca sa se vada ca sunt aceeasi familie de ipoteze.
+  ⚠️ Se alege din masuratoare (cartea de ordine, I-395), nu din intuitie.
+- Impact: hartia are deja `derapajMaxR` (I-393); backtestul nu. Deci cele doua nu masoara
+  inca acelasi bot — mai putin decat inainte, dar nu la fel.
+- Fisiere atinse: `PAZNIC-CRYPTO/backtest.mjs`, `decizie.mjs`.
+
+#### I-403 · `/locks` si `/daily`: ce e blocat ACUM si de ce (dupa Freqtrade) · [S] · P3 · propus
+- Problema/golul: `deCeNuSimbolul()` blocheaza simboluri (racire dupa iesire, 3 pierderi in
+  7 zile), dar nicaieri nu se vede LISTA celor blocate acum si pana cand. Freqtrade are
+  `/locks` de ani, si e printre cele mai folosite: „de ce n-a intrat pe X?" e intrebarea
+  care se pune cel mai des unui bot.
+- Solutia: lista in panou + comanda pe Telegram; si `/daily` — rezultatul pe fiecare zi.
+- Impact: raspunde la „de ce n-a facut nimic?" fara sa deschizi jurnalul.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.mjs`, `panou.html`, `telegram-comenzi.mjs`.
