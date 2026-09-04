@@ -3067,7 +3067,7 @@ pe un singur chart.
 - **Fișiere atinse:** `PAZNIC-CRYPTO/noteaza.mjs` (nou), `jurnal.csv`.
 
 | I-361 | Backtest pentru Paznic — ce au TOATE framework-urile serioase si botul n-are | Paznic (bot) | L | P1 | facut | ideation | 2026-09-03 |
-| I-362 | Criterii de oprire scrise INAINTE — cand incetezi sa crezi botul | Paznic (bot) | S | P1 | propus | ideation | 2026-09-04 |
+| I-362 | Criterii de oprire scrise INAINTE — cand incetezi sa crezi botul | Paznic (bot) | S | P1 | facut | ideation | 2026-09-04 |
 | I-363 | Notificarea ajunge pe TELEFON, nu doar pe balonul Windows | Paznic (bot) | M | P1 | propus | ideation | 2026-09-04 |
 | I-364 | Plafon pe expunerea CORELATA — 3 pozitii in acelasi sens = un pariu | Paznic (bot) | M | P1 | propus | ideation | 2026-09-04 |
 | I-365 | Funding platit in socoteala de hartie (PnL fara costuri e fictiune) | Paznic (bot) | S | P2 | propus | ideation | 2026-09-04 |
