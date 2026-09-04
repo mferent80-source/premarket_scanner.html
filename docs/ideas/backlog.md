@@ -3106,7 +3106,7 @@ pe un singur chart.
 | I-398 | Control de pe telefon prin Telegram: /stare /opreste /inchide (ca la Freqtrade) | Paznic (bot) | M | P2 | facut | audit | 2026-09-04 |
 | I-399 | Cadenta pazei pe pozitiile deschise: din minut in minut, nu din 15 in 15 | Paznic (bot) | M | P1 | propus | audit | 2026-09-04 |
 | I-400 | Vanatoarea automata de look-ahead, dupa lookahead-analysis din Freqtrade | Paznic (bot) | M | P1 | facut | audit | 2026-09-04 |
-| I-401 | Cate bare sunt DE AJUNS, masurat (dupa recursive-analysis din Freqtrade) | Paznic (bot) | S | P2 | propus | audit | 2026-09-04 |
+| I-401 | Cate bare sunt DE AJUNS, masurat (dupa recursive-analysis din Freqtrade) | Paznic (bot) | S | P2 | facut | audit | 2026-09-04 |
 | I-402 | Derapajul la INTRARE in backtest (dupa FillModel din NautilusTrader) | Paznic (bot) | S | P2 | propus | audit | 2026-09-04 |
 | I-403 | /locks si /daily: ce simbol e blocat ACUM si de ce (dupa Freqtrade) | Paznic (panou+bot) | S | P3 | propus | audit | 2026-09-04 |
 
@@ -3799,3 +3799,46 @@ taieturile astea nimic nu s-a uitat inainte".
 
 Colateral: `backtest.mjs` nu mai porneste singur la import (`PORNIT_DIRECT`), altfel
 orice unealta care vrea `replay` ar declansa un backtest intreg.
+
+### Status update 2026-09-04 noapte — I-401 FACUT (cate bare sunt de ajuns)
+
+`PAZNIC-CRYPTO` commit `b1b317e`. `cate-bare-ajung.mjs` + `CATE-BARE-AJUNG.bat`.
+**396 de probe verzi** (de la 391).
+
+**Masurat, 3 monede x 180 de puncte de verificare:**
+
+| lungime | EMA(55) | ATR(14) | percentila volatilitatii | verdicte identice |
+|---|---|---|---|---|
+| 505 bare | 1,9e-7% | identic la bit | ±31 pctl | 93,3% |
+| **564** (cat cerea) | 2,4e-8% | identic | **±28 pctl** | **93,3%** |
+| 904 bare | 1,8e-13% | identic | ±14 pctl | 96,7% |
+| 1604 (referinta) | 0 | 0 | 0 | 100% |
+
+**🔑 Concluzia nu e „mareste marja".** Convergenta nu era problema: EMA si ATR sunt
+asezate la 505 bare, deci marja „+60" nu apara nimic. Problema e ca **percentilele nu
+CONVERG — isi schimba intrebarea**. „Volatilitate extrema fata de ultimele 3 luni" si
+„fata de ultimul an" sunt doua strategii, nu doua aproximari ale aceleiasi strategii.
+Pragul de blocare e 90, iar fereastra muta percentila cu pana la 28 de puncte:
+**6,7% din verdicte depind doar de cate bare a primit functia.**
+
+📌 ***Fereastra era un parametru al strategiei ales ca efect secundar al altei socoteli,
+si nimeni nu-l alesese.*** De azi are nume: `PRAGURI.pctlBare`, cu valoarea de pana acum
+(564), ca botezul sa nu schimbe strategia pe ascuns. Cine o muta, o valideaza
+out-of-sample.
+
+**🔴 Divergenta latenta gasita pe drum:** `backtest.mjs` scria cu mana `tsmomBare + 60`
+in timp ce `paznic.mjs` cerea `bare4hNecesare(P)`. Azi dau acelasi numar, deci nimic nu
+se vedea — dar cu `tendinta: "ema"` live-ul ar fi primit 300 de bare si backtestul 564:
+alte percentile, alt bot, fara nicio eroare. Acum e un singur loc.
+`bare4hNecesare()` = max(cat cere directia, `pctlBare + atrLen + emaLent`) = 633.
+
+**Re-masurat dupa schimbare:** 134 trades · R mediu **+0,060** · PF 1,09 (era +0,069 /
+1,10). 📌 ***A iesit putin mai PROST, si asa trebuie: n-am reglat spre o cifra mai buna.
+O reparatie care imbunatateste mereu rezultatul e suspecta.*** Vanatoarea de look-ahead,
+re-rulata dupa schimbare: curata.
+
+**Garda veche a picat pe cod BUN, a doua oara in aceeasi zi:** proba cerea
+`bare4hNecesare(Pvechi) === 300` — o garda pe FORMA, care acoperea doar directia si
+trecea cu vederea percentilele. Rescrisa pe REGULA. Si fixture-ul probei prin stricare
+a fost inasprit: pe o serie neteda percentilele ies la fel pe orice fereastra, deci
+proba ar fi trecut si daca parametrul n-ar fi fost folosit nicaieri.
