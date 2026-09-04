@@ -3105,7 +3105,7 @@ pe un singur chart.
 | I-397 | Intrerupator de urgenta: opreste TOT si inchide pozitiile, dintr-un loc | Paznic (bot+panou) | M | P2 | facut | audit | 2026-09-04 |
 | I-398 | Control de pe telefon prin Telegram: /stare /opreste /inchide (ca la Freqtrade) | Paznic (bot) | M | P2 | facut | audit | 2026-09-04 |
 | I-399 | Cadenta pazei pe pozitiile deschise: din minut in minut, nu din 15 in 15 | Paznic (bot) | M | P1 | propus | audit | 2026-09-04 |
-| I-400 | Vanatoarea automata de look-ahead, dupa lookahead-analysis din Freqtrade | Paznic (bot) | M | P1 | propus | audit | 2026-09-04 |
+| I-400 | Vanatoarea automata de look-ahead, dupa lookahead-analysis din Freqtrade | Paznic (bot) | M | P1 | facut | audit | 2026-09-04 |
 | I-401 | Cate bare sunt DE AJUNS, masurat (dupa recursive-analysis din Freqtrade) | Paznic (bot) | S | P2 | propus | audit | 2026-09-04 |
 | I-402 | Derapajul la INTRARE in backtest (dupa FillModel din NautilusTrader) | Paznic (bot) | S | P2 | propus | audit | 2026-09-04 |
 | I-403 | /locks si /daily: ce simbol e blocat ACUM si de ce (dupa Freqtrade) | Paznic (panou+bot) | S | P3 | propus | audit | 2026-09-04 |
@@ -3769,3 +3769,33 @@ Monte Carlo re-masurat: scadere mediana 15,0R, sub 23,3R in 95% din cazuri ⇒ `
 - Solutia: lista in panou + comanda pe Telegram; si `/daily` — rezultatul pe fiecare zi.
 - Impact: raspunde la „de ce n-a facut nimic?" fara sa deschizi jurnalul.
 - Fisiere atinse: `PAZNIC-CRYPTO/panou.mjs`, `panou.html`, `telegram-comenzi.mjs`.
+
+### Status update 2026-09-04 noapte — I-400 FACUT (vanatoarea de look-ahead)
+
+`PAZNIC-CRYPTO` commit `f613cbb`. `vaneaza-viitorul.mjs` + `VANEAZA-VIITORUL.bat`.
+391 de probe verzi (de la 383), dintre care 8 pazesc chiar unealta.
+
+**Cum functioneaza:** ruleaza CHIAR bucla backtestului (`replay` importat, nu copiat) de
+doua ori pe acelasi simbol — o data pe date reale, o data cu viitorul inlocuit de gunoi
+verosimil — si compara FIECARE decizie de dinainte de taietura. Ce difera inseamna ca
+ceva de dupa a intrat in ce s-a hotarat inainte. Plus o treapta 1 pe indicatori:
+`f(S)[i]` trebuie sa fie identic cu `f(S[0..i])[i]`.
+
+**🔴 Lectia turei, si e despre garda, nu despre bot:**
+***prima versiune a spus VERDE pe cod stricat intentionat.*** Am pus o bara din viitor la
+`fisaDeTrade` (exact clasa lui I-394) si vanatoarea n-a clipit — fiindca compara doar
+TRADE-URILE, iar scurgerea atinge decizia de la un pas anume, unde sansa sa se deschida
+un trade e sub 1%. **35.040 de pasi, ~40 de trade-uri: se ratau 99,9% din decizii.**
+📌 ***O garda care se uita doar unde se intampla ceva nu vede ce se intampla in rest.***
+📌 ***O unealta de verificare se masoara PRIN STRICARE, ca orice garda — altfel e o
+   lumina verde care linisteste degeaba, adica mai rea decat lipsa ei.***
+
+Dupa rescriere (`replay` primeste `peFiecarePas`): prinde stricarea la ambele taieturi,
+exact la pasul unde intra bara din viitor, si iese cu cod 1.
+
+**Pe cod sanatos:** 3 monede x 4 taieturi, ~150.000 de decizii comparate, nicio scurgere.
+Verdictul spune explicit ce NU inseamna asta: nu „nu exista scurgeri", ci „pe datele si
+taieturile astea nimic nu s-a uitat inainte".
+
+Colateral: `backtest.mjs` nu mai porneste singur la import (`PORNIT_DIRECT`), altfel
+orice unealta care vrea `replay` ar declansa un backtest intreg.
