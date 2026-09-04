@@ -3073,6 +3073,12 @@ pe un singur chart.
 | I-365 | Funding platit in socoteala de hartie (PnL fara costuri e fictiune) | Paznic (bot) | S | P2 | propus | ideation | 2026-09-04 |
 | I-366 | Jurnal de rulari + martor de viata — daca pica la 3 noaptea, nicio urma | Paznic (bot) | S | P2 | propus | ideation | 2026-09-04 |
 | I-367 | Curba contului in panou — forma spune ce nu spune media | Paznic (bot) | S | P3 | propus | ideation | 2026-09-04 |
+| I-368 | Cine e APROAPE — distanta pana la declansator, live intre rulari | Paznic (bot+panou) | M | P1 | propus | ideation | 2026-09-04 |
+| I-369 | „Am intrat pe asta" — pozitia deschisa de MANA, urmarita de robot | Paznic (bot+panou) | M | P1 | propus | ideation | 2026-09-04 |
+| I-370 | Regimul pietei scris in jurnal + rezultate segmentate pe regim | Paznic (bot) | M | P2 | propus | ideation | 2026-09-04 |
+| I-371 | Contul REAL in panou — fisa spune cat pui pe banii TAI | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
+| I-372 | Ce am RATAT — fisele gata care dispar intre doua priviri | Paznic (bot+panou) | S | P2 | propus | ideation | 2026-09-04 |
+| I-373 | Panoul pe telefon, in reteaua casei | Paznic (panou) | M | P3 | propus | ideation | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3190,3 +3196,95 @@ Excluse (deja facute): I-355..I-358, I-361. Raman propuse si neatinse: I-354, I-
 - Impact: forma contului spune ce nu spune media. Doua conturi la +3R pot arata complet diferit.
 - Riscuri/dependente: sub ~10 trade-uri nu spune nimic; se afiseaza doar peste pragul asta.
 - Fisiere atinse: panou.html
+
+#### I-368 - Cine e APROAPE: distanta pana la declansator, live intre rulari - [M] - P1
+- Problema/golul: masurat acum pe stare.json - 0 fise gata din 148, 55 cu permisiune. Starea
+  DOMINANTA a ecranului e „Nimic de facut", si e corecta. Dar panoul trage deja preturile
+  la 8 secunde (/preturi), iar nicaieri nu se calculeaza CAT DE DEPARTE e un simbol de
+  declansatorul lui. Deci intre doua rulari omul nu poate deosebi „X e la 0,4% de rupere"
+  de „X e la 8%". Sunt doua lumi diferite si arata identic.
+- Solutia: paznic.mjs scrie in stare.json nivelul de declansare (marginea Donchian pe latura
+  relevanta) pentru fiecare simbol cu permisiune. Panoul calculeaza distanta live, in % si in
+  ATR, adauga un filtru „aproape" si sorteaza dupa el; randul „ce fac acum" spune „cel mai
+  aproape: X la 0,4%".
+- Impact: ecranul mort devine lista de pandit. Si e fix diferenta dintre a prinde ruperea si
+  a citi despre ea 15 minute mai tarziu - masuratoarea de cadenta a aratat 21 din 136.
+- Riscuri/dependente: 🔴 nivelul TREBUIE sa vina din decizie.mjs, nu recalculat in pagina -
+  altfel exista doua definitii ale declansatorului, exact ce interzice arhitectura. Distanta
+  mica NU e semnal: pretul poate sta la 0,2% o zi intreaga fara sa rupa.
+- Fisiere atinse: decizie.mjs (expune nivelul), paznic.mjs, panou.html
+
+#### I-369 - „Am intrat pe asta": pozitia deschisa de MANA, urmarita de robot - [M] - P1
+- Problema/golul: el tranzactioneaza cu mana pe Pionex; robotul lucreaza pe un cont de hartie
+  de 1000 USD care nu exista. Cand ia un trade real, robotul nu stie. Deci regula de iesire -
+  singurul lucru pe care backtestul chiar l-a masurat, si singurul in care Chandelier-ul a
+  fost reparat - nu se aplica NICIODATA pe banii adevarati. Stopul si trailing-ul raman in
+  capul lui.
+- Solutia: buton „am intrat" pe biletul de trade: cere pretul real de intrare si cantitatea,
+  scrie o pozitie marcata `manual` in fisier SEPARAT, iar executie.mjs ii aplica acelasi
+  pasIesire() la fiecare rulare si anunta cand se declanseaza stop/tinta/trailing. Nu trimite
+  niciun ordin - spune doar „iesi acum, motivul e X".
+- Impact: puntea care lipseste intre robot si ce face el de fapt. Fara ea, tot ce s-a masurat
+  se aplica doar pe bani inchipuiti.
+- Riscuri/dependente: 🔴 NU are voie sa intre in contAcum sau in numaratoarea criteriilor
+  (I-362) - ar otravi proba out-of-sample cu trade-uri alese de om. Fisier si sectiune
+  separate. Stopul ramane local: daca PC-ul moare, nimeni nu-l pazeste - aceeasi limita ca la
+  modul live. Cere prima ruta de SCRIERE pe panou.mjs, care pana acum doar citeste.
+- Fisiere atinse: panou.html, panou.mjs (ruta POST), executie.mjs, stare-manual.json (nou,
+  neurmarit in git)
+
+#### I-370 - Regimul pietei scris in jurnal + rezultate segmentate pe regim - [M] - P2
+- Problema/golul: stare.json.latime masoara la fiecare rulare starea intregii piete - acum
+  „103 sus / 41 jos, 141 din 148 cu conturile mari LONG". Nu apare in nicio garda si pe niciun
+  ecran. Iar jurnal.csv are 27 de coloane si NICIUNA nu e starea pietei: contextul e doar
+  per-simbol. trader.md cere segmentare pe regim, si azi e imposibila retroactiv, fiindca data
+  nu se scrie.
+- Solutia: instantaneul de latime devine coloane in jurnal.csv si camp pe fiecare trade inchis;
+  tabul Criterii imparte R-ul pe cosuri de regim (larg-sus / mixt / larg-jos).
+- Impact: raspunde la „avantajul exista doar cand urca tot?" - intrebarea care hotaraste daca
+  strategia supravietuieste unei schimbari de regim. Si 141 din 148 cu banii mari long e o
+  citire extrema pe care azi n-o vede nimeni.
+- Riscuri/dependente: ⚠️ e infrastructura de INREGISTRARE, nu o imbunatatire. Segmentarea nu
+  spune nimic sub ~10 trade-uri per cos, deci luni de zile. Pana atunci nu se trage nicio
+  concluzie din ea - altfel e curve-fitting pe zgomot.
+- Fisiere atinse: paznic.mjs, executie.mjs, criterii.mjs, panou.html
+
+#### I-371 - Contul REAL in panou: fisa spune cat pui pe banii TAI - [S] - P2
+- Problema/golul: fisa.marime / valoareUSD / levier se calculeaza pe contul de hartie de 1000
+  USD (masurat: „valoare 220,69 $, levier 0,22"). Daca contul lui real e alt numar, cifrele
+  cer socoteala in cap - exact in clipa in care nu trebuie facuta socoteala in cap.
+- Solutia: un camp in panou unde isi scrie contul real, tinut DOAR in localStorage (nu pleaca
+  nicaieri, nu se scrie in starea botului). Biletul arata o a doua coloana „pe contul tau":
+  marime, valoare, levier si - cel mai important - cati DOLARI pierde daca se atinge stopul.
+- Impact: scoate aritmetica din momentul deciziei. „Pierzi 14 $" nu e acelasi lucru cu „0,35%".
+- Riscuri/dependente: coloana trebuie sa se vada clar ca e a LUI, nu a botului, altfel cele
+  doua seturi de cifre se amesteca. Nu schimba nicio decizie a robotului.
+- Fisiere atinse: panou.html
+
+#### I-372 - Ce am RATAT: fisele gata care dispar intre doua priviri - [S] - P2
+- Problema/golul: stare.json se REscrie la fiecare 15 minute. O fisa care s-a facut gata la
+  03:00 si a disparut la 03:15 nu lasa nicio urma nicaieri - jurnal.csv scrie fiecare simbol
+  la fiecare rulare, dar nimic nu marcheaza „aici a existat un declansator". Deci nici el nu
+  poate sti ce a ratat, nici eu nu pot judeca daca filtrul e prea strans.
+- Solutia: fisier care doar CRESTE, cu evenimentele „fisa gata" (simbol, ora, nivelurile
+  planului), plus un tab „Ratate" care reia regula de iesire pe barele de dupa si arata ce
+  s-ar fi intamplat - marcat apasat ca ipotetic, nu ca PnL.
+- Impact: singurul mod onest de a raspunde la „filtrul e prea strans?" fara sa astepti luni.
+  Si face vizibila descoperirea despre cadenta, in loc s-o lase teorie.
+- Riscuri/dependente: 🔴 „ce s-ar fi intamplat" e o simulare cu aceleasi capcane de optimism
+  ca backtestul (bug-ul Chandelier a inventat profit exact asa). Se refoloseste pasIesire(),
+  niciodata o a doua implementare. Si nu se amesteca in socoteala reala.
+- Fisiere atinse: paznic.mjs, ratate.csv (nou), panou.html, foloseste decizie.mjs
+
+#### I-373 - Panoul pe telefon, in reteaua casei - [M] - P3
+- Problema/golul: panoul asculta pe 127.0.0.1, deci de pe telefon NU se poate ajunge deloc la
+  el; iar sub 1100px coloana dreapta (biletul) se ascunde si nu exista vedere de telefon. El
+  e des in magazin. Azi singurul lucru care ajunge la el e balonul Windows de pe un PC la care
+  nu sta.
+- Solutia: pornire optionala pe adresa din retea, cu jeton in adresa, plus o vedere de telefon
+  redusa la esential: randul „ce fac acum", lista fiselor gata si biletul.
+- Impact: raspunde la „ce face robotul acum?" fara sa fie la calculator.
+- Riscuri/dependente: ⚠️ deschide un port in retea si jetonul din adresa e o aparare slaba -
+  ramane in retea proprie, niciodata pe internet. 🔴 SE SUPRAPUNE cu I-363 (Telegram): daca
+  se face notificarea pe telefon, asta poate deveni inutila. Se alege UNA, nu amandoua.
+- Fisiere atinse: panou.mjs, panou.html
