@@ -3090,11 +3090,11 @@ pe un singur chart.
 | I-382 | Taburile de jos devin legaturi, nu 6 butoane | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
 | I-383 | „Intreaba" se lipeste de bilet, nu e fereastra peste tot | Paznic (panou) | M | P2 | propus | ideation | 2026-09-04 |
 | I-384 | Bara de sus: un cluster de stare, nu sase metrici insirate | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
-| I-385 | Pliul biletului isi tine minte daca e deschis | Paznic (panou) | S | P1 | propus | ideation | 2026-09-04 |
-| I-386 | Sfatul care OPRESTE ramane vizibil, restul se poate strange | Paznic (panou) | S | P1 | propus | ideation | 2026-09-04 |
-| I-387 | Portile nu se mai copiază in bilet (sunt sub grafic) | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
-| I-388 | Biletul: cap lipit + corp derulabil, fara details | Paznic (panou) | M | P2 | propus | ideation | 2026-09-04 |
-| I-389 | Summary-ul spune CE e inauntru, nu o lista de sertare | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
+| I-385 | Pliul biletului isi tine minte daca e deschis | Paznic (panou) | S | P1 | facut | panou | 2026-09-04 |
+| I-386 | Sfatul care OPRESTE ramane vizibil, restul se poate strange | Paznic (panou) | S | P1 | facut | panou | 2026-09-04 |
+| I-387 | Portile nu se mai copiază in bilet (sunt sub grafic) | Paznic (panou) | S | P2 | facut | panou | 2026-09-04 |
+| I-388 | Biletul: cap lipit + corp derulabil, fara details | Paznic (panou) | M | P2 | facut | panou | 2026-09-04 |
+| I-389 | Summary-ul spune CE e inauntru, nu o lista de sertare | Paznic (panou) | S | P2 | facut | panou | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3523,3 +3523,17 @@ desktop). Nu se repropune I-383.
 - Impact: stii daca merita click-ul. Se leaga de I-385/I-386.
 - Riscuri/dependente: daca I-388 inlocuieste details, I-389 cade (nu mai e summary).
 - Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+### Status update 2026-09-04 noapte — I-385..I-389 FACUTE (cerere „fa tot")
+In `PAZNIC-CRYPTO/panou.html` + garda in `probe.mjs`. 307 verzi, 0 rosii.
+Telefonul (max-width 760) neschimbat: `order:1`, copy vechi, lista `ce te opreste` ramane.
+
+- I-388 inlocuieste mecanismul I-380: nu mai exista `<details>`. Cap lipit
+  (stop/atentie + verdict + patru cifre), corp `overflow:auto`.
+- I-386: `pune(htmlSfaturi(stopSf), "cap")` — sfatul de STOP e pe ecran, nu in sertar.
+- I-387: pe desktop lista de porti din bilet e sarita; grila ramane sub grafic.
+- I-385: `BILET_SCROLL` se restaureaza dupa `iaPreturi` (8s), pe acelasi simbol.
+- I-389: eticheta de corp, ex. „1 sfat te opreste · mai jos detalii" (nu e summary
+  de details, e o capțiune deasupra corpului).
+- Verificat 1440x900 STRK: cap ramane, scrollTop 220 dupa refresh, fara details.
+  Verificat 390x844: biletul primul, pânda oprita, „Botul e in SHORT pe asta".
