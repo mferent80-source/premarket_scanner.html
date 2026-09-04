@@ -3073,12 +3073,12 @@ pe un singur chart.
 | I-365 | Funding platit in socoteala de hartie (PnL fara costuri e fictiune) | Paznic (bot) | S | P2 | propus | ideation | 2026-09-04 |
 | I-366 | Jurnal de rulari + martor de viata — daca pica la 3 noaptea, nicio urma | Paznic (bot) | S | P2 | propus | ideation | 2026-09-04 |
 | I-367 | Curba contului in panou — forma spune ce nu spune media | Paznic (bot) | S | P3 | propus | ideation | 2026-09-04 |
-| I-368 | Cine e APROAPE — distanta pana la declansator, live intre rulari | Paznic (bot+panou) | M | P1 | propus | ideation | 2026-09-04 |
-| I-369 | „Am intrat pe asta" — pozitia deschisa de MANA, urmarita de robot | Paznic (bot+panou) | M | P1 | propus | ideation | 2026-09-04 |
-| I-370 | Regimul pietei scris in jurnal + rezultate segmentate pe regim | Paznic (bot) | M | P2 | propus | ideation | 2026-09-04 |
-| I-371 | Contul REAL in panou — fisa spune cat pui pe banii TAI | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
-| I-372 | Ce am RATAT — fisele gata care dispar intre doua priviri | Paznic (bot+panou) | S | P2 | propus | ideation | 2026-09-04 |
-| I-373 | Panoul pe telefon, in reteaua casei | Paznic (panou) | M | P3 | propus | ideation | 2026-09-04 |
+| I-368 | Cine e APROAPE — distanta pana la declansator, live intre rulari | Paznic (bot+panou) | M | P1 | facut | ideation | 2026-09-04 |
+| I-369 | „Am intrat pe asta" — pozitia deschisa de MANA, urmarita de robot | Paznic (bot+panou) | M | P1 | facut | ideation | 2026-09-04 |
+| I-370 | Regimul pietei scris in jurnal + rezultate segmentate pe regim | Paznic (bot) | M | P2 | facut | ideation | 2026-09-04 |
+| I-371 | Contul REAL in panou — fisa spune cat pui pe banii TAI | Paznic (panou) | S | P2 | facut | ideation | 2026-09-04 |
+| I-372 | Ce am RATAT — fisele gata care dispar intre doua priviri | Paznic (bot+panou) | S | P2 | facut | ideation | 2026-09-04 |
+| I-373 | Panoul pe telefon, in reteaua casei | Paznic (panou) | M | P3 | facut | ideation | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
