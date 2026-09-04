@@ -3084,12 +3084,12 @@ pe un singur chart.
 | I-376 | Harta pietei: 148 de simboluri ca grila de patrate, dupa distanta si directie | Paznic (panou) | M | P2 | facut | tcc-idei | 2026-09-04 |
 | I-377 | Jurnalul OMULUI: de ce am intrat / de ce n-am intrat, langa fisa | Paznic (panou) | S | P2 | facut | tcc-idei | 2026-09-04 |
 | I-378 | Filtru de cost mai STRANS — ipoteza aparuta din proba prin stricare | Paznic (bot) | M | P2 | respins | ideation | 2026-09-04 |
-| I-379 | Modul pande: lista scurta (pozitii + aproape), nu 148 de randuri | Paznic (panou) | M | P1 | propus | ideation | 2026-09-04 |
-| I-380 | Biletul in 3 straturi: verdict, plan, restul | Paznic (panou) | S | P1 | propus | ideation | 2026-09-04 |
-| I-381 | Pozitia deschisa iese din tab: chip pe randul „ce fac acum" | Paznic (panou) | S | P1 | propus | ideation | 2026-09-04 |
+| I-379 | Modul pande: lista scurta (pozitii + aproape), nu 148 de randuri | Paznic (panou) | M | P1 | facut | ideation | 2026-09-04 |
+| I-380 | Biletul in 3 straturi: verdict, plan, restul | Paznic (panou) | S | P1 | facut | ideation | 2026-09-04 |
+| I-381 | Pozitia deschisa iese din tab: chip pe randul „ce fac acum" | Paznic (panou) | S | P1 | facut | ideation | 2026-09-04 |
 | I-382 | Taburile de jos devin legaturi, nu 6 butoane | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
-| I-383 | „Intreaba" se lipeste de bilet, nu e fereastra peste tot | Paznic (panou) | M | P2 | propus | ideation | 2026-09-04 |
-| I-384 | Bara de sus: un cluster de stare, nu sase metrici insirate | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
+| I-383 | „Intreaba" se lipeste de bilet, nu e fereastra peste tot | Paznic (panou) | M | P2 | facut | ideation | 2026-09-04 |
+| I-384 | Bara de sus: un cluster de stare, nu sase metrici insirate | Paznic (panou) | S | P2 | facut | ideation | 2026-09-04 |
 | I-385 | Pliul biletului isi tine minte daca e deschis | Paznic (panou) | S | P1 | facut | panou | 2026-09-04 |
 | I-386 | Sfatul care OPRESTE ramane vizibil, restul se poate strange | Paznic (panou) | S | P1 | facut | panou | 2026-09-04 |
 | I-387 | Portile nu se mai copiază in bilet (sunt sub grafic) | Paznic (panou) | S | P2 | facut | panou | 2026-09-04 |
@@ -3842,3 +3842,20 @@ re-rulata dupa schimbare: curata.
 trecea cu vederea percentilele. Rescrisa pe REGULA. Si fixture-ul probei prin stricare
 a fost inasprit: pe o serie neteda percentilele ies la fel pe orice fereastra, deci
 proba ar fi trecut si daca parametrul n-ar fi fost folosit nicaieri.
+
+### Corectie de status 2026-09-04 noapte — I-379..I-384 erau FACUTE, scria `propus`
+
+Verificat in `panou.html`, nu din memorie:
+- **I-379** `MOD = "pande"` + comutatorul `pandă | toate` — facut.
+- **I-380** biletul in straturi: **inlocuit de I-388** (cap lipit + corp derulabil, fara
+  `<details>`). Scopul e atins pe alt mecanism, deci `facut`, nu `respins`.
+- **I-381** chip pe randul „ce fac acum": `"Ții " + P.map(...)` — facut.
+- **I-383** „Intreaba" e o FILA in bilet (`["intreaba", "Întreabă"]`), nu o fereastra
+  peste tot ecranul — facut.
+- **I-384** bara de sus e un cluster, cu metricile de zgomot ascunse in modul panda
+  (`class="metric zgomot"`) — facut.
+- **I-382** (taburile de jos devin legaturi) ramane `propus`: sunt tot `<button data-t=…>`.
+
+📌 ***Un status vechi in backlog nu e o eroare inofensiva: trimite tura urmatoare sa
+refaca ce exista deja.*** Aproape s-a intamplat cu I-368, care era `facut` si a fost
+cerut din nou; acolo m-a salvat verificarea pe ecran, nu backlogul.
