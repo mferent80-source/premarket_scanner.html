@@ -3095,6 +3095,15 @@ pe un singur chart.
 | I-387 | Portile nu se mai copiază in bilet (sunt sub grafic) | Paznic (panou) | S | P2 | facut | panou | 2026-09-04 |
 | I-388 | Biletul: cap lipit + corp derulabil, fara details | Paznic (panou) | M | P2 | facut | panou | 2026-09-04 |
 | I-389 | Summary-ul spune CE e inauntru, nu o lista de sertare | Paznic (panou) | S | P2 | facut | panou | 2026-09-04 |
+| I-390 | Executia se muta pe Binance USD-M: STOP_MARKET pe bursa, aceleasi date ca deciziile | Paznic (bot) | L | P1 | propus | audit | 2026-09-04 |
+| I-391 | Marimea ordinului se rotunjeste la pasul bursei (37/37 fise ar fi respinse azi) | Paznic (bot) | S | P1 | propus | audit | 2026-09-04 |
+| I-392 | Iesirea se socoteste la INCHIDEREA barei care a rupt stopul, nu la pretul stopului | Paznic (bot) | M | P1 | propus | audit | 2026-09-04 |
+| I-393 | Paritate hartie/live la intrare: revalidarea pretului sa ruleze si pe hartie | Paznic (bot) | S | P1 | propus | audit | 2026-09-04 |
+| I-394 | Bara IN FORMARE: se taie, sau se declara ca declansatorul e intrabar | Paznic (bot) | S | P1 | propus | audit | 2026-09-04 |
+| I-395 | Costul din ADANCIMEA cartii, nu din varf (ALLO: 0,211% real vs 0,123% modelat) | Paznic (bot) | M | P2 | propus | audit | 2026-09-04 |
+| I-396 | Bugetul zilei pe ziua LOCALA, nu pe ziua UTC (se reseteaza la 03:00) | Paznic (bot) | S | P3 | propus | audit | 2026-09-04 |
+| I-397 | Intrerupator de urgenta: opreste TOT si inchide pozitiile, dintr-un loc | Paznic (bot+panou) | M | P2 | propus | audit | 2026-09-04 |
+| I-398 | Control de pe telefon prin Telegram: /stare /opreste /inchide (ca la Freqtrade) | Paznic (bot) | M | P2 | propus | audit | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3537,3 +3546,132 @@ Telefonul (max-width 760) neschimbat: `order:1`, copy vechi, lista `ce te oprest
   de details, e o capțiune deasupra corpului).
 - Verificat 1440x900 STRK: cap ramane, scrollTop 220 dupa refresh, fara details.
   Verificat 390x844: biletul primul, pânda oprita, „Botul e in SHORT pe asta".
+
+### Audit sever pe PAZNIC-CRYPTO — 2026-09-04 seara (I-390..I-398)
+
+Cerut: „fa un audit pe toate directiile si vino cu idei, uita-te pe net la alti roboti".
+Read-only: nimic reparat, totul masurat. Suita `probe.mjs` 313 verzi la momentul auditului.
+HEAD `a8472cb`, hartie 992.66 USD, 1 pozitie (STRK short), criterii ASTEPT 2/30.
+
+**Ce e deja la nivelul concurentei** (ca sa nu se repare ce nu e stricat): cele patru
+protectii din Freqtrade (StoplossGuard / MaxDrawdown / CooldownPeriod / LowProfitPairs)
+au corespondent exact in `PRAGURI.garzi` — `stopuriInFereastra`, `maxDDProcent`,
+`racireSimbolOre`, `pierderiPeSimbol`. Nucleul unic de decizie (tiparul NautilusTrader)
+e respectat: pagina importa CHIAR `decizie.mjs`, nu o copie. Secretele nu sunt in git,
+panoul asculta pe 127.0.0.1 si compara jetonul in timp constant.
+
+#### I-390 · Executia se muta pe Binance USD-M · [L] · P1
+- Problema/golul: TOATE datele vin de la Binance (`fapi.binance.com`) — lumanari, funding,
+  open interest, cartea din care se citeste costul. Ordinele ar pleca spre Pionex. Trei
+  consecinte masurate: (1) API-ul Pionex n-are ordine conditionate, deci stopul nu poate sta
+  pe bursa; (2) 14 din cele 148 de simboluri scanate NU exista pe Pionex PERP (5 din cele 42
+  cu fisa: 1000PEPE, 1000SHIB, DEXE, MORPHO, PROM); (3) pragul Donchian e calculat pe pretul
+  Binance si ar fi executat la pretul Pionex.
+- Solutia: `executie.mjs` sa vorbeasca cu Binance USD-M, unde exista `STOP_MARKET`
+  (`closePosition=true`) si unde simbolurile sunt exact cele scanate.
+- Impact: rezolva simultan stopul pe bursa, simbolurile lipsa si nepotrivirea de pret.
+  E cea mai mare imbunatatire posibila si NU e o sarcina de programare: e alegerea bursei.
+- Riscuri/dependente: cont nou, KYC, transfer de bani; disciplina lui e pe Pionex.
+  Semnatura Pionex oricum n-a fost confirmata niciodata pe un caz cunoscut.
+- Fisiere atinse: `PAZNIC-CRYPTO/executie.mjs`.
+
+#### I-391 · Marimea se rotunjeste la pasul bursei · [S] · P1
+- Problema/golul: botul trimite `size: String(poz.marime)` — un float brut, ex.
+  `3991.04052127885` (13 zecimale). Masurat pe cele 42 de fise de acum, fata de
+  `/api/v1/common/symbols?type=PERP`: **37 din 37** de fise cu pereche pe Pionex ar fi
+  RESPINSE, fiindca `basePrecision` e 0, 1 sau 2. Botul n-a trimis niciodata un ordin,
+  deci nimic nu putea sa scoata asta la iveala.
+- Solutia: rotunjire in JOS la `baseStep`/`basePrecision`, verificare `minSizeMarket` si
+  `minNotional`, si RECALCULAREA riscului dupa rotunjire (marimea rotunjita schimba R-ul).
+- Impact: fara asta, primul ordin real esueaza. Cu ea, riscul afisat e cel adevarat.
+- Riscuri/dependente: pe simboluri cu `basePrecision: 0` si pret mare, rotunjirea muta
+  riscul sensibil — trebuie respinsa fisa daca abaterea trece de un prag.
+- Fisiere atinse: `PAZNIC-CRYPTO/executie.mjs`, `decizie.mjs` (dimensionarea).
+
+#### I-392 · Iesirea la INCHIDEREA barei care a rupt stopul · [M] · P1
+- Problema/golul: `pasIesire()` intoarce `pret: stop` cand bara atinge stopul — adica
+  presupune umplere FIX la stop. Dar nu exista stop pe bursa si botul se uita din 15 in
+  15 minute, deci iesirea reala e la pretul de la urmatoarea privire. Masurat pe cele doua
+  trade-uri inchise ale contului de hartie: LINK ar fi iesit la **-2,19R**, nu la -1,06R
+  (bara care a rupt stopul a inchis la 11,651 fata de stopul 11,862); BICO ar fi iesit
+  mai bine, la -0,57R. Masurat larg (42 simboluri x 1000 bare de 15m, 6.598 atingeri):
+  mediana **-0,06R** (neutra), dar p90 **+2,25R**, p95 **+4,24R**, iar **18,7%** din
+  atingeri costa peste 1R in plus. Avantajul pretins al strategiei e +0,025R.
+- Solutia: in `decizie.mjs`, iesirea pe stop se socoteste la inchiderea barei care l-a rupt
+  (cum se face deja la TRAIL, unde comentariul spune exact lucrul asta). Apoi se RE-masoara
+  backtestul si se rescrie cifra de avantaj.
+- Impact: cifra pe care se ia hotararea „punem bani?" ar descrie botul care exista.
+  Coada, nu mediana, e problema: la 0,35% risc pe trade, o iesire de -10R inseamna -3,5%
+  din cont dintr-o data, iar garda de scadere opreste la -10%.
+- Riscuri/dependente: rezultatul masurat se va inrautati. Asta e scopul.
+- Fisiere atinse: `PAZNIC-CRYPTO/decizie.mjs`, `backtest.mjs`.
+
+#### I-393 · Paritate hartie/live la intrare · [S] · P1
+- Problema/golul: revalidarea la momentul executiei — pretul de acum, plafonul de derapaj
+  `derapajMaxR`, recalcularea riscului si a marimii pe pretul real, plafonul de levier —
+  ruleaza INTREAGA in `if (MOD === "live")`. Pe hartie botul intra la `f.intrare`, pretul
+  din plan, vechi de pana la 15 minute, si nu sare niciun trade pentru derapaj.
+- Solutia: aceleasi verificari pe hartie, cu pretul live; doar trimiterea ordinului ramane
+  sub `live`.
+- Impact: proba de 30 de trade-uri (I-362) masoara acum un bot care intra mereu la pretul
+  planificat. Cel real ar intra mai prost sau ar sari trade-ul.
+- Riscuri/dependente: numarul de trade-uri pe hartie va scadea; termenul din
+  `CRITERII-DE-OPRIRE.md` trebuie recitit.
+- Fisiere atinse: `PAZNIC-CRYPTO/executie.mjs`.
+
+#### I-394 · Bara IN FORMARE · [S] · P1
+- Problema/golul: antetul din `decizie.mjs` cere explicit serii care se termina la bara
+  curenta INCHISA („cine cheama trebuie sa taie seriile"). `paznic.mjs` nu taie nimic:
+  ultimul kline de la Binance e bara in formare. Deci declansatorul se judeca pe pretul
+  de moment, in timp ce backtestul il judeca pe inchidere. Masurat acum, pe 42 de simboluri:
+  verdict diferit la 1 (2,4%) — o singura fotografie, nu o rata.
+- Solutia: ori se taie bara neinchisa in `paznic.mjs` (si atunci live = backtest), ori se
+  declara ca declansatorul e intrabar SI backtestul se schimba la fel. Nu amandoua.
+- Impact: azi efectul e mic fiindca scanarea porneste la cateva secunde dupa inchidere.
+  Creste direct proportional cu cadenta: la o verificare din 5 in 5 minute, bara ar fi
+  veche de 10 minute.
+- Riscuri/dependente: taierea barei intarzie intrarea cu pana la un minut.
+- Fisiere atinse: `PAZNIC-CRYPTO/paznic.mjs`.
+
+#### I-395 · Costul din adancimea cartii · [M] · P2
+- Problema/golul: costul = comision + spread-ul de la VARFUL cartii (`bookTicker`).
+  Ordinul mananca mai multe niveluri. Masurat pe cartea reala, pentru cele 8 cele mai mari
+  ordine de acum: ALLO costa **0,211%** fata de 0,123% modelat (**+0,288R** pe trade, de
+  11 ori avantajul pretins), ACE +0,086R; restul de 6, zero. Deci nu e o eroare generala,
+  e o eroare pe alt-urile subtiri — exact acolo unde botul are voie sa intre.
+- Solutia: `/fapi/v1/depth` pentru simbolurile cu fisa, VWAP la marimea CHIAR ceruta;
+  filtrul `costMax` judeca cifra asta. Bonus: Pionex publica `maxImpactMarket`.
+- Impact: filtrul de cost ar respinge simbolurile pe care le poate misca singur.
+- Riscuri/dependente: o cerere in plus per simbol cu fisa (~40), nu per simbol scanat.
+- Fisiere atinse: `PAZNIC-CRYPTO/paznic.mjs`, `decizie.mjs`.
+
+#### I-396 · Bugetul zilei pe ziua LOCALA · [S] · P3
+- Problema/golul: `const azi = () => new Date().toISOString().slice(0, 10)` — ziua UTC.
+  Garda `pierdereZilnicaR` se reseteaza la 03:00 ora Romaniei, iar `peZi` are chei care
+  nu corespund calendarului lui.
+- Solutia: ziua locala, si fusul scris explicit langa functie.
+- Impact: „am pierdut azi" din raport inseamna acelasi lucru ca „azi" pentru om.
+- Riscuri/dependente: `peZi` existent are chei UTC — se pastreaza, nu se rescrie istoria.
+- Fisiere atinse: `PAZNIC-CRYPTO/executie.mjs`.
+
+#### I-397 · Intrerupator de urgenta · [M] · P2
+- Problema/golul: singurul mod de a opri robotul e sa dezactivezi sarcina din Windows;
+  singurul mod de a inchide o pozitie e sa astepti urmatoarea rulare sau sa intri pe bursa
+  cu mana. Freqtrade are `/forceexit` si `stopentry` de ani de zile.
+- Solutia: un buton in panou si un `.bat` — „nu mai deschide nimic" (bland) si „inchide tot
+  acum" (dur), amandoua scriind in `stare-executie.json` si confirmand ce s-a intamplat.
+- Impact: azi, intre doua rulari, omul nu are nicio parghie.
+- Riscuri/dependente: prima ruta de SCRIERE periculoasa din panou — se apara prin citire
+  (scrie simbolul), nu prin „esti sigur?".
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.mjs`, `panou.html`, `executie.mjs`.
+
+#### I-398 · Control de pe telefon prin Telegram · [M] · P2
+- Problema/golul: `telegram.json` nu exista, deci notificarile ies doar ca alerte pe
+  desktopul asta. Cand nu e la calculator, robotul e mut. Se suprapune cu I-363/I-373.
+- Solutia: bot de Telegram care si CITESTE comenzi: `/stare`, `/pozitii`, `/opreste`,
+  `/inchide SYM`. E functia cea mai folosita din Freqtrade.
+- Impact: robotul devine ceva ce poti supraveghea de oriunde, nu doar de pe scaunul asta.
+- Riscuri/dependente: o comanda care inchide o pozitie printr-un canal de chat cere
+  legarea pe un singur `chat_id` si o confirmare — altfel cine ii ia telefonul iese din
+  toate pozitiile.
+- Fisiere atinse: `PAZNIC-CRYPTO/notifica.mjs`, `executie.mjs`.
