@@ -3079,6 +3079,10 @@ pe un singur chart.
 | I-371 | Contul REAL in panou — fisa spune cat pui pe banii TAI | Paznic (panou) | S | P2 | facut | ideation | 2026-09-04 |
 | I-372 | Ce am RATAT — fisele gata care dispar intre doua priviri | Paznic (bot+panou) | S | P2 | facut | ideation | 2026-09-04 |
 | I-373 | Panoul pe telefon, in reteaua casei | Paznic (panou) | M | P3 | facut | ideation | 2026-09-04 |
+| I-374 | Ceasul de bara pe RANDUL de sus + alarma la 60s pe fisele aproape | Paznic (panou) | S | P1 | propus | tcc-idei | 2026-09-04 |
+| I-375 | Costul TOTAL al trade-ului: comision + spread + funding estimat, intr-o cifra | Paznic (bot) | M | P1 | propus | tcc-idei | 2026-09-04 |
+| I-376 | Harta pietei: 148 de simboluri ca grila de patrate, dupa distanta si directie | Paznic (panou) | M | P2 | propus | tcc-idei | 2026-09-04 |
+| I-377 | Jurnalul OMULUI: de ce am intrat / de ce n-am intrat, langa fisa | Paznic (panou) | S | P2 | propus | tcc-idei | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3288,3 +3292,54 @@ Excluse (deja facute): I-355..I-358, I-361. Raman propuse si neatinse: I-354, I-
   ramane in retea proprie, niciodata pe internet. 🔴 SE SUPRAPUNE cu I-363 (Telegram): daca
   se face notificarea pe telefon, asta poate deveni inutila. Se alege UNA, nu amandoua.
 - Fisiere atinse: panou.mjs, panou.html
+
+#### I-374 - Ceasul de bara pe RANDUL de sus + alarma la 60s - [S] - P1
+- Problema/golul: ceasul barei de 15m e in bara de metrici, iar randul „ce fac acum" —
+  singurul pe care il citesti cand deschizi pagina — nu-l pomeneste. Cand exista o fisa
+  la 0,15% de rupere, intrebarea nu e „cat de aproape", ci „cate secunde mai am".
+- Solutia: randul „ce fac acum" preia ceasul cand exista ceva de pandit („DEXE la 0,31%
+  · bara se inchide in 0:42"), iar alarma (clopotelul) suna si la trecerea sub 60s pe un
+  simbol aflat sub prag, nu doar la aparitia fisei.
+- Impact: prinde clipa in care se decide. Masuratoarea de cadenta a aratat ca declansatorul
+  e un eveniment de o secunda, nu o stare.
+- Riscuri/dependente: risc de zgomot — trebuie sa sune DOAR pe simboluri deja sub prag,
+  altfel bate la fiecare 15 minute si se inchide.
+- Fisiere atinse: panou.html
+
+#### I-375 - Costul TOTAL al trade-ului, intr-o singura cifra - [M] - P1
+- Problema/golul: costul se judeca pe comision + spread (`costPct`), iar funding-ul e
+  masurat separat si abia acum aratat. Dar un trade tinut 10 ore trece prin cel putin o
+  plata, deci pragul „drumul bate 2x costul" foloseste un cost INCOMPLET. Masurat anterior:
+  funding 0,0054R/trade la un avantaj de +0,025R — o cincime din el.
+- Solutia: `costTotalEstimat = comision + spread + funding x plati_asteptate`, unde
+  platile se estimeaza din durata mediana a trade-urilor si din intervalul REAL al
+  simbolului (deja in stare, `fundUrm`). Se foloseste in fisaDeTrade, nu doar la afisare.
+- Impact: pragul de rentabilitate devine adevarat. Azi lasa sa treaca planuri care nu
+  bat costul real.
+- Riscuri/dependente: ⚠️ SCHIMBA DECIZIILE — filtreaza mai mult. Se masoara pe backtest
+  inainte, si e o IPOTEZA de validat out-of-sample. Se suprapune partial cu I-365.
+- Fisiere atinse: decizie.mjs, paznic.mjs, backtest.mjs
+
+#### I-376 - Harta pietei: 148 de patrate in loc de o lista de 148 - [M] - P2
+- Problema/golul: lista deruleaza 148 de randuri; ca sa vezi „ce face piata" trebuie sa
+  o parcurgi. Latimea pietei e o cifra in coltul de jos („104 sus · 41 jos"), iar unde
+  anume sunt cele apropiate de rupere nu se vede deloc.
+- Solutia: un tab „Harta" cu o grila de patrate, unul per simbol: culoarea = directia,
+  intensitatea = cat de aproape e de declansator, chenar auriu = are permisiune. Click
+  pe patrat = selecteaza simbolul. Zero date noi.
+- Impact: raspunde dintr-o privire la „unde se aduna presiunea", intrebare la care lista
+  nu raspunde niciodata.
+- Riscuri/dependente: risc de decor — daca nu e citibila in 2 secunde, nu merita. Culorile
+  raman cele existente (verde/rosu = directie, aur = permisiune).
+- Fisiere atinse: panou.html
+
+#### I-377 - Jurnalul OMULUI: de ce am intrat, de ce n-am intrat - [S] - P2
+- Problema/golul: botul isi scrie fiecare hotarare in jurnal. Omul, nimic. Peste doua luni
+  se va putea raspunde la „botul are avantaj?", dar nu la „eu ma abat de la el, si cand?"
+  — desi asta hotaraste la fel de mult rezultatul.
+- Solutia: o casuta de note pe bilet, salvata cu simbolul si ora intr-un fisier al lui;
+  la fisele pe care le sare, un rand „de ce n-am intrat". Se arata langa fisele trecute.
+- Impact: singurul mod de a masura distanta dintre ce zice robotul si ce face el.
+- Riscuri/dependente: nimic tehnic; riscul e sa nu fie folosita — deci trebuie sa fie o
+  singura casuta, nu un formular.
+- Fisiere atinse: panou.html, panou.mjs, note.json (nou, neurmarit in git)
