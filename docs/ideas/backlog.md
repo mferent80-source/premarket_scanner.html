@@ -3079,10 +3079,11 @@ pe un singur chart.
 | I-371 | Contul REAL in panou — fisa spune cat pui pe banii TAI | Paznic (panou) | S | P2 | facut | ideation | 2026-09-04 |
 | I-372 | Ce am RATAT — fisele gata care dispar intre doua priviri | Paznic (bot+panou) | S | P2 | facut | ideation | 2026-09-04 |
 | I-373 | Panoul pe telefon, in reteaua casei | Paznic (panou) | M | P3 | facut | ideation | 2026-09-04 |
-| I-374 | Ceasul de bara pe RANDUL de sus + alarma la 60s pe fisele aproape | Paznic (panou) | S | P1 | propus | tcc-idei | 2026-09-04 |
-| I-375 | Costul TOTAL al trade-ului: comision + spread + funding estimat, intr-o cifra | Paznic (bot) | M | P1 | propus | tcc-idei | 2026-09-04 |
-| I-376 | Harta pietei: 148 de simboluri ca grila de patrate, dupa distanta si directie | Paznic (panou) | M | P2 | propus | tcc-idei | 2026-09-04 |
-| I-377 | Jurnalul OMULUI: de ce am intrat / de ce n-am intrat, langa fisa | Paznic (panou) | S | P2 | propus | tcc-idei | 2026-09-04 |
+| I-374 | Ceasul de bara pe RANDUL de sus + alarma la 60s pe fisele aproape | Paznic (panou) | S | P1 | facut | tcc-idei | 2026-09-04 |
+| I-375 | Costul TOTAL al trade-ului: comision + spread + funding estimat, intr-o cifra | Paznic (bot) | M | P1 | facut | tcc-idei | 2026-09-04 |
+| I-376 | Harta pietei: 148 de simboluri ca grila de patrate, dupa distanta si directie | Paznic (panou) | M | P2 | facut | tcc-idei | 2026-09-04 |
+| I-377 | Jurnalul OMULUI: de ce am intrat / de ce n-am intrat, langa fisa | Paznic (panou) | S | P2 | facut | tcc-idei | 2026-09-04 |
+| I-378 | Filtru de cost mai STRANS — ipoteza aparuta din proba prin stricare | Paznic (bot) | M | P2 | propus | ideation | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3343,3 +3344,17 @@ Excluse (deja facute): I-355..I-358, I-361. Raman propuse si neatinse: I-354, I-
 - Riscuri/dependente: nimic tehnic; riscul e sa nu fie folosita — deci trebuie sa fie o
   singura casuta, nu un formular.
 - Fisiere atinse: panou.html, panou.mjs, note.json (nou, neurmarit in git)
+
+#### I-378 - Filtru de cost mai STRANS: ipoteza aparuta dintr-o proba prin stricare - [M] - P2
+- Problema/golul: la I-375 am probat ca pragul de cost e viu urcand absurd tinerea mediana
+  la 5000 de ore. Backtestul a scazut de la 136 la 93 de trade-uri — dar R mediu a URCAT
+  de la +0,039 la +0,114, PF de la 1,06 la 1,17, iar scaderea maxima a coborat de la 28,9R
+  la 19,4R. Adica trade-urile taiate erau, in medie, cele proaste.
+- Solutia: se masoara `riscMinCost` si `costMultiplu` pe o grila (2,0 / 3,0 / 4,0 / 6,0)
+  cu `--senzitivitate`, apoi se REPLICA pe monedele nevazute, ca la schimbarea de strategie.
+- Impact: daca tine, e una dintre putinele parghii care au aratat vreodata o imbunatatire
+  de marime pe backtest.
+- Riscuri/dependente: 🔴 IPOTEZA, si inca una gasita IN-SAMPLE, cu un parametru absurd —
+  exact felul in care se face curve-fitting. Nu se schimba niciun prag inainte de replicare
+  out-of-sample. Si taie ~1/3 din trade-uri, deci si mai putine date pe an.
+- Fisiere atinse: decizie.mjs (praguri), backtest.mjs (grila de senzitivitate)
