@@ -3090,6 +3090,11 @@ pe un singur chart.
 | I-382 | Taburile de jos devin legaturi, nu 6 butoane | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
 | I-383 | „Intreaba" se lipeste de bilet, nu e fereastra peste tot | Paznic (panou) | M | P2 | propus | ideation | 2026-09-04 |
 | I-384 | Bara de sus: un cluster de stare, nu sase metrici insirate | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
+| I-385 | Pliul biletului isi tine minte daca e deschis | Paznic (panou) | S | P1 | propus | ideation | 2026-09-04 |
+| I-386 | Sfatul care OPRESTE ramane vizibil, restul se poate strange | Paznic (panou) | S | P1 | propus | ideation | 2026-09-04 |
+| I-387 | Portile nu se mai copiază in bilet (sunt sub grafic) | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
+| I-388 | Biletul: cap lipit + corp derulabil, fara details | Paznic (panou) | M | P2 | propus | ideation | 2026-09-04 |
+| I-389 | Summary-ul spune CE e inauntru, nu o lista de sertare | Paznic (panou) | S | P2 | propus | ideation | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3450,4 +3455,71 @@ aseaza, nu CE se masoara.
   se intorc in modul Terminal.
 - Impact: bara se citeste. Ceasul (singurul care se misca) nu mai e al saselea.
 - Riscuri/dependente: trebuie sa fie evident ca Terminalul le aduce inapoi.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+### Status update 2026-09-04 seara — de ce dispar porti/sfaturi (I-385..I-389)
+Mod **tool**, tinta `PAZNIC-CRYPTO/panou.html` (citire: `impacheteazaBiletDesktop`,
+`iaPreturi` la 8s, `.porti` sub grafic). Cod neatins.
+
+Bug, nu mister: I-380 strange tot dupa verdict+plan intr-un `<details>` inchis.
+`randBilet()` e chemat la fiecare `iaPreturi` (8s) si rescrie HTML-ul, deci pliul
+se naste din nou inchis. Ce ai deschis, dispare.
+
+Excluse: I-354..I-378 (facut/respins). I-379..I-384 raman propuse (unele deja pe
+desktop). Nu se repropune I-383.
+
+#### I-385 · Pliul isi tine minte daca e deschis · [S] · P1
+- Problema/golul: `impacheteazaBiletDesktop` creeaza un `<details>` fara `open`.
+  `iaPreturi` apeleaza `randBilet` din 8 in 8s. Omul deschide „porti, sfaturi, nota"
+  si peste 8s e iar inchis. Pare ca dispar. Nu dispar din date — se sterge DOM-ul.
+- Solutia: o variabila (si, daca vrea, localStorage) tine `deschis`. Dupa fiecare
+  rescriere, pliul se pune in starea aia. La schimbarea simbolului, se inchide
+  (alt bilet, alta intrebare).
+- Impact: ce ai deschis ramane deschis cat tii simbolul. Sfaturile nu mai „dispar".
+- Riscuri/dependente: daca UI-ul se schimba sub ochi (un sfat nou de STOP), trebuie
+  tot I-386, altfel tii un pliu deschis pe context si ratezi oprirea.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+#### I-386 · Sfatul care OPRESTE ramane vizibil · [S] · P1
+- Problema/golul: `sfaturi()` are nivel `stop` / `atentie` / `context`. I-380 le
+  baga pe toate in pliu. Un sfat rosu care spune „nu intra" e fix ce trebuie vazut
+  fara click. Ingropat, e un ziar pe care nimeni nu-l deschide.
+- Solutia: `stop` (si, optional, `atentie`) stau DEASUPRA pliului, langa verdict.
+  Inauntru raman context, anatomie, note, masuratori.
+- Impact: decizia e pe ecran. Detaliul ramane la cerere.
+- Riscuri/dependente: doua sfaturi stop + verdict = inca ierarhie. Nu se copiaza
+  textul verdictului in sfat (regula de azi: sfatul spune CE FACI, nu recita).
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+#### I-387 · Portile nu se mai copiaza in bilet · [S] · P2
+- Problema/golul: portile sunt DEJA sub grafic (`.porti`, `randPorti`). In bilet,
+  I-380 le strange sub acelasi pliu. Doua copii, una vizibila, una „disparuta".
+  design.md: informatia duplicata se unifica.
+- Solutia: in bilet nu mai intra grila de porti. Pliul se numeste dupa ce chiar
+  contine (sfaturi / nota / masuratori). Portile raman o data, sub lumânări.
+- Impact: pliul e mai scurt, deci merita deschis. Nu mai pare ca portile au plecat.
+- Riscuri/dependente: pe telefon biletul e primul si portile sunt la grafic, jos.
+  Acolo portile din bilet (daca exista inainte de I-380) trebuie verificate — sa
+  nu le tai pe telefon cand le scoti din pliul de desktop.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+#### I-388 · Cap lipit + corp derulabil, fara details · [M] · P2
+- Problema/golul: `<details>` e un sertar. Un sertar care se reconstruiește e un
+  sertar care minte. Chiar cu I-385, tot e un click in plus pe un bilet de 320px.
+- Solutia: verdict + patru cifre stau lipite sus. Sub ele, un corp `overflow:auto`
+  cu restul, mereu „deschis", derulezi daca e lung. Re-randarea inlocuieste
+  numerele, nu inchide nimic — nu mai exista stare de pliu.
+- Impact: zero „a disparut". Sfaturile sunt la un scroll, nu la un click.
+- Riscuri/dependente: un bilet foarte lung pe ecran scund. Minim de inaltime pe
+  `.bilet` ca sa nu striveasca graficul. Inlocuieste I-380 ca mecanism, nu ca intentie.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+#### I-389 · Summary-ul spune CE e inauntru · [S] · P2
+- Problema/golul: „porti, sfaturi, nota" e o lista de sertare. Nu spune daca
+  inauntru e un STOP sau trei masuratori inerte. Un pliu mut e unul pe care
+  inveti sa-l ignori.
+- Solutia: textul se schimba dupa continut. Ex.: „1 sfat te opreste" (rosu) /
+  „2 note" / „masuratori". Zero lucruri = nu se arata pliul.
+- Impact: stii daca merita click-ul. Se leaga de I-385/I-386.
+- Riscuri/dependente: daca I-388 inlocuieste details, I-389 cade (nu mai e summary).
 - Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
