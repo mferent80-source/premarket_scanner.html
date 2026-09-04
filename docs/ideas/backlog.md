@@ -2948,13 +2948,13 @@ tuplu, argumente cu nume). Ce a ramas e ingust si de incredere.
 ✅ Probata pe ambele capete: **verde pe cele 5 fisiere reparate, rosie pe ambele bug-uri
 refacute** (`f_px` linia 328, `cAmb` linia 342).
 
-| I-354 | Viata ramasa a miscarii — port din Trend Anatomy Lab in Paznic | Paznic (bot) | M | P1 | propus | ideation | 2026-09-03 |
+| I-354 | Viata ramasa a miscarii — port din Trend Anatomy Lab in Paznic | Paznic (bot) | M | P1 | facut | ideation | 2026-09-03 |
 | I-355 | Delta REALA din taker buy/sell — filtrul de participare care lipseste | Paznic (bot) | M | P1 | facut | ideation | 2026-09-03 |
 | I-356 | Conturi mici vs conturi MARI — pozitionarea masurata, nu dedusa | Paznic (bot) | S | P1 | facut | ideation | 2026-09-03 |
 | I-357 | Latimea pietei, gratis: botul scaneaza deja 20 de simboluri | Paznic (bot) | S | P1 | facut | ideation | 2026-09-03 |
 | I-358 | Cooldown dupa flip + failed-cross — port din ZLHMA (I-033/I-034) | Paznic (bot) | S | P1 | facut | ideation | 2026-09-03 |
-| I-359 | Stopul comparat cu MAE-ul istoric, nu doar cu swing-ul | Paznic (bot) | M | P2 | propus | ideation | 2026-09-03 |
-| I-360 | Botul se noteaza singur: calibrare pe jurnal (port din Flip Lab I-302) | Paznic (bot) | M | P2 | propus | ideation | 2026-09-03 |
+| I-359 | Stopul comparat cu MAE-ul istoric, nu doar cu swing-ul | Paznic (bot) | M | P2 | facut | ideation | 2026-09-03 |
+| I-360 | Botul se noteaza singur: calibrare pe jurnal (port din Flip Lab I-302) | Paznic (bot) | M | P2 | facut | ideation | 2026-09-03 |
 
 ### Status update 2026-09-03 — ideation: ce se poate porta din Pine in Paznic
 User: „continua si vino cu idei si din pine scripturi".
@@ -3068,11 +3068,11 @@ pe un singur chart.
 
 | I-361 | Backtest pentru Paznic — ce au TOATE framework-urile serioase si botul n-are | Paznic (bot) | L | P1 | facut | ideation | 2026-09-03 |
 | I-362 | Criterii de oprire scrise INAINTE — cand incetezi sa crezi botul | Paznic (bot) | S | P1 | facut | ideation | 2026-09-04 |
-| I-363 | Notificarea ajunge pe TELEFON, nu doar pe balonul Windows | Paznic (bot) | M | P1 | propus | ideation | 2026-09-04 |
-| I-364 | Plafon pe expunerea CORELATA — 3 pozitii in acelasi sens = un pariu | Paznic (bot) | M | P1 | propus | ideation | 2026-09-04 |
-| I-365 | Funding platit in socoteala de hartie (PnL fara costuri e fictiune) | Paznic (bot) | S | P2 | propus | ideation | 2026-09-04 |
-| I-366 | Jurnal de rulari + martor de viata — daca pica la 3 noaptea, nicio urma | Paznic (bot) | S | P2 | propus | ideation | 2026-09-04 |
-| I-367 | Curba contului in panou — forma spune ce nu spune media | Paznic (bot) | S | P3 | propus | ideation | 2026-09-04 |
+| I-363 | Notificarea ajunge pe TELEFON, nu doar pe balonul Windows | Paznic (bot) | M | P1 | facut | ideation | 2026-09-04 |
+| I-364 | Plafon pe expunerea CORELATA — 3 pozitii in acelasi sens = un pariu | Paznic (bot) | M | P1 | facut | ideation | 2026-09-04 |
+| I-365 | Funding platit in socoteala de hartie (PnL fara costuri e fictiune) | Paznic (bot) | S | P2 | facut | ideation | 2026-09-04 |
+| I-366 | Jurnal de rulari + martor de viata — daca pica la 3 noaptea, nicio urma | Paznic (bot) | S | P2 | facut | ideation | 2026-09-04 |
+| I-367 | Curba contului in panou — forma spune ce nu spune media | Paznic (bot) | S | P3 | facut | ideation | 2026-09-04 |
 | I-368 | Cine e APROAPE — distanta pana la declansator, live intre rulari | Paznic (bot+panou) | M | P1 | facut | ideation | 2026-09-04 |
 | I-369 | „Am intrat pe asta" — pozitia deschisa de MANA, urmarita de robot | Paznic (bot+panou) | M | P1 | facut | ideation | 2026-09-04 |
 | I-370 | Regimul pietei scris in jurnal + rezultate segmentate pe regim | Paznic (bot) | M | P2 | facut | ideation | 2026-09-04 |
@@ -3083,7 +3083,7 @@ pe un singur chart.
 | I-375 | Costul TOTAL al trade-ului: comision + spread + funding estimat, intr-o cifra | Paznic (bot) | M | P1 | facut | tcc-idei | 2026-09-04 |
 | I-376 | Harta pietei: 148 de simboluri ca grila de patrate, dupa distanta si directie | Paznic (panou) | M | P2 | facut | tcc-idei | 2026-09-04 |
 | I-377 | Jurnalul OMULUI: de ce am intrat / de ce n-am intrat, langa fisa | Paznic (panou) | S | P2 | facut | tcc-idei | 2026-09-04 |
-| I-378 | Filtru de cost mai STRANS — ipoteza aparuta din proba prin stricare | Paznic (bot) | M | P2 | propus | ideation | 2026-09-04 |
+| I-378 | Filtru de cost mai STRANS — ipoteza aparuta din proba prin stricare | Paznic (bot) | M | P2 | respins | ideation | 2026-09-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3358,3 +3358,12 @@ Excluse (deja facute): I-355..I-358, I-361. Raman propuse si neatinse: I-354, I-
   exact felul in care se face curve-fitting. Nu se schimba niciun prag inainte de replicare
   out-of-sample. Si taie ~1/3 din trade-uri, deci si mai putine date pe an.
 - Fisiere atinse: decizie.mjs (praguri), backtest.mjs (grila de senzitivitate)
+- ⛔ **RESPINS pe masuratoare, 04.09.2026.** Grila spune ca ipoteza nu se sustine:
+  `riscMinCost` 2 -> 136 trades / R mediu +0,039 · 6 -> 131 / +0,045 · **12 -> 93 / +0,025**
+  · 24 -> 16 / +0,277 · 48 -> 1 / -1,021. `costMultiplu` 2..8 -> nicio schimbare ·
+  16 -> 123 / +0,075 · 32 -> 55 / -0,147.
+  🔑 La 93 de trade-uri (exact cate daduse proba prin stricare) R mediu e +0,025, adica
+  MAI PROST decat referinta +0,039. Deci cele 93 „bune" nu veneau dintr-un prag de cost
+  mai strans, ci din ALTA selectie. Sirul e nemonoton si isi schimba semnul = zgomot la
+  extreme, pe esantioane care se prabusesc la n=16 si n=1.
+  📌 Nu se repropune. Istoria respingerii e chiar ce impiedica sa fie reinventata.
