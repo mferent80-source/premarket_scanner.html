@@ -3104,7 +3104,7 @@ pe un singur chart.
 | I-396 | Bugetul zilei pe ziua LOCALA, nu pe ziua UTC (se reseteaza la 03:00) | Paznic (bot) | S | P3 | facut | audit | 2026-09-04 |
 | I-397 | Intrerupator de urgenta: opreste TOT si inchide pozitiile, dintr-un loc | Paznic (bot+panou) | M | P2 | facut | audit | 2026-09-04 |
 | I-398 | Control de pe telefon prin Telegram: /stare /opreste /inchide (ca la Freqtrade) | Paznic (bot) | M | P2 | facut | audit | 2026-09-04 |
-| I-399 | Cadenta pazei pe pozitiile deschise: din minut in minut, nu din 15 in 15 | Paznic (bot) | M | P1 | propus | audit | 2026-09-04 |
+| I-399 | Cadenta pazei pe pozitiile deschise: din minut in minut, nu din 15 in 15 | Paznic (bot) | M | P1 | facut | audit | 2026-09-04 |
 | I-400 | Vanatoarea automata de look-ahead, dupa lookahead-analysis din Freqtrade | Paznic (bot) | M | P1 | facut | audit | 2026-09-04 |
 | I-401 | Cate bare sunt DE AJUNS, masurat (dupa recursive-analysis din Freqtrade) | Paznic (bot) | S | P2 | facut | audit | 2026-09-04 |
 | I-402 | Derapajul la INTRARE in backtest (dupa FillModel din NautilusTrader) | Paznic (bot) | S | P2 | propus | audit | 2026-09-04 |
@@ -3916,3 +3916,71 @@ I-390 (respins: Binance), I-399 (deja P1, cadenta 1 min), I-400/401 (facute), I-
   in somn.
 - Riscuri/dependente: nu inlocuieste un VPS. Capacul laptopului tot poate opri totul.
 - Fisiere atinse: `PAZNIC-CRYPTO/executie.mjs`, `robot.mjs`, `panou.html`.
+
+### Status update 2026-09-05 — I-399 FACUT (paza din minut in minut)
+`PAZNIC-CRYPTO` `1bf7091` + `a7dd343`, **443 probe verzi**. Local, fara remote.
+
+**Ce s-a livrat:** `paza.mjs` (sarcina Windows la 1 minut) cheama `executie.mjs --doar-paza`,
+care face NUMAI pasul pozitiilor deschise. Nu-si rescrie logica de inchidere — ar fi a doua
+definitie a regulilor. Fara pozitii deschise iese INAINTE de lacat si de orice cerere de
+retea: cazul obisnuit (95% din minute) trebuie sa coste zero.
+
+🔴 **Capcana principala, si aproape am calcat in ea:** trailing-ul Chandelier se calculeaza
+pe `trailBare` bare DE PE TF-UL DE INTRARE (22 x 15m = 5,5 ore). Daca dadeam barele de 1m
+aceleiasi functii, fereastra devenea 22 de MINUTE — alt stop, mult mai strans, iesiri false
+pe zgomot. Ar fi aratat ca o cadenta mai buna si ar fi fost ALTA STRATEGIE.
+📌 **Cand schimbi ceasul, orice fereastra numarata in BARE isi schimba intelesul.**
+Rezolvat cu `pazesteStopul()`, care trece o fereastra GOALA lui `pasIesire` — regula exista
+deja in nucleu (`trailingNou` intoarce stopul neatins sub 5 bare), deci nu s-a rescris nimic.
+
+🔴 **A doua capcana:** `pauzaRulari` numara RULARI. Paza ruleaza de 15 ori mai des, deci
+pauza de dupa 3 pierderi la rand (8 rulari, ~2 ore) s-ar fi consumat in 8 MINUTE, tacut.
+Acelasi motiv pentru care paza are jurnal separat (`paza.csv`): in `rulari.csv` ar fi stricat
+martorul I-366, care socoteste rularile ratate impartind la 15 minute.
+
+**Backtestul modeleaza aceeasi cadenta** (`--paza1m`): `simuleazaIesirea` primeste barele de
+1m si cheama CHIAR `pazesteStopul`, nu o copie. Fara asta, tot I-399 ar fi fost o minciuna
+masurata — divergenta I-392 refacuta cu mana. ⚠️ Backtestul cere ≥116 zile (warmup tsmom).
+
+🐞 **Bug prins pe COPIA starii, inainte de hartie:** prima versiune cerea o singura pagina de
+500 de bare de 1m = 8h20m. O pozitie se tine median 10,3 ore, deci fereastra se termina
+INAINTE de ruperea stopului si paza raporta „nimic" pe o pozitie de mult iesita — exact in
+cazul pentru care fusese scrisa. Reparat cu paginare (6 x 500 = 50 ore).
+📌 **O fereastra cu numar FIX de bare e o presupunere despre cat de des te uiti; cand gaura
+in privit e chiar problema pe care o repari, presupunerea aia se rupe prima.**
+
+**Masurat pe STRK, date reale de la bursa:** paza ar fi iesit la 04:17 cu −1,13R in loc de
+−1,61R la 06:34 (0,48R = 1,65 USD). Probat si pe copia starii, cu drumul complet.
+🔴 **Dar intarzierea reala a fost 137 de minute, nu 15** — deci vinovatul principal a fost
+SOMNUL PC-ului, nu cadenta. Vezi **I-407**, care ramane P1: `INSTALEAZA-PAZA.bat` intreaba
+acum daca sa trezeasca PC-ul (`WakeToRun`) si spune cinstit ca la 1 minut PC-ul practic nu
+va mai dormi. Solutia din I-407 (`SetThreadExecutionState` doar cat exista pozitii deschise)
+e mai buna si ramane de facut. Pana atunci, raportul arata cat de veche e ultima privire pe
+fiecare pozitie — gaura nu se mai pierde tacut.
+
+🔁 **Garda „o singura sarcina atinge starea" a picat pe cod BUN a DOUA oara** (prima la
+`Paznic Panou`, acum la `Paznic Paza`). Rescrisa pe intrebarea adevarata: *o singura sarcina
+DESCHIDE pozitii; ce atinge starea fara sa deschida trebuie sa treaca prin lacat.*
+📌 **Cand o garda pica pe o schimbare legitima, se rescrie INTREBAREA, nu se slabeste
+raspunsul.** Lacatul s-a mutat din `robot.mjs` in `lacat.mjs` (nucleu), fiindca il folosesc
+acum trei programe — iar panoul isi tinea propria copie a pragului de 20 de minute.
+
+### Status update 2026-09-05 — „fa tot la levier x3" FACUT
+`aa414d4`. Lamurit cu el: e vorba de **setarea de levier a POZITIEI** pe Pionex, nu de
+marimea pozitiei. `PRAGURI.levierBursa: 3`, setat per simbol inainte de fiecare ordin
+(`POST /uapi/v1/account/leverage` — verificat la sursa; ordinul nu accepta camp de levier).
+Setarea se CITESTE INAPOI, nu se crede confirmarea POST-ului.
+
+🔑 **Levierul de pe bursa nu schimba cat pierzi pe stop** (marimea vine din risc, nu din
+marja) — schimba **unde e lichidarea**. Pe un cont lasat pe 20x lichidarea vine pe la ~5%
+miscare adversa, iar BICO a avut stopul la 3,26%, cu gaura de paza de 8,5 ore peste el.
+La 3x lichidarea sta pe la ~33%. 📌 **Levierul nu schimba cat pierzi pe stop; schimba daca
+mai apuci sa AJUNGI la el.**
+
+🔴 **Era sa trag concluzia gresita dintr-o masuratoare corecta:** levierul maxim pe cele 315
+trade-uri din backtest e 1,02x, deci plafonul parea inofensiv. Dar alea sunt trade-urile care
+AU TRECUT filtrele — populatia din care levierul mare fusese deja scos. Pe fisele BRUTE
+exista 4,56x si 51,47x.
+📌 **Un plafon masurat pe rezultatele lui proprii pare mereu inofensiv.**
+`verificaLevier()` tine acum `levierMax` lipit de `levierBursa`, ca `verificaIpoteza` pentru
+stop — altfel botul ar accepta planuri pe care bursa le refuza din marja.
