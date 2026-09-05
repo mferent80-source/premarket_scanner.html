@@ -3109,6 +3109,10 @@ pe un singur chart.
 | I-401 | Cate bare sunt DE AJUNS, masurat (dupa recursive-analysis din Freqtrade) | Paznic (bot) | S | P2 | facut | audit | 2026-09-04 |
 | I-402 | Derapajul la INTRARE in backtest (dupa FillModel din NautilusTrader) | Paznic (bot) | S | P2 | propus | audit | 2026-09-04 |
 | I-403 | /locks si /daily: ce simbol e blocat ACUM si de ce (dupa Freqtrade) | Paznic (panou+bot) | S | P3 | propus | audit | 2026-09-04 |
+| I-404 | Garzile de capital si in backtest (dupa --enable-protections Freqtrade) | Paznic (bot) | M | P1 | propus | ideation | 2026-09-05 |
+| I-405 | AgeFilter: sare monedele listate de sub N zile (dupa Freqtrade) | Paznic (bot) | S | P2 | propus | ideation | 2026-09-05 |
+| I-406 | Martorul nu uita gaura si anunta pe Telegram (dupa heartbeat Freqtrade) | Paznic (bot+panou) | S | P1 | propus | ideation | 2026-09-05 |
+| I-407 | PC-ul nu adoarme cat tii o pozitie (Freqtrade: proces 24/7, nu cron) | Paznic (bot) | S | P1 | propus | ideation | 2026-09-05 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3859,3 +3863,56 @@ Verificat in `panou.html`, nu din memorie:
 📌 ***Un status vechi in backlog nu e o eroare inofensiva: trimite tura urmatoare sa
 refaca ce exista deja.*** Aproape s-a intamplat cu I-368, care era `facut` si a fost
 cerut din nou; acolo m-a salvat verificarea pe ecran, nu backlogul.
+
+### Ideatie 05.09.2026 — ce e de copiat de la Freqtrade/Nautilus (I-404..I-407)
+
+El a cerut: *„ce poti copia util de la ei?"*. Nu se implementeaza nimic. Nu se repropun
+I-390 (respins: Binance), I-399 (deja P1, cadenta 1 min), I-400/401 (facute), I-402/403
+(deja propuse). Nu se copiaza Hyperopt, FreqAI, tabel ROI, DCA.
+
+#### I-404 · Garzile si in backtest · [M] · P1 · propus
+- Problema/golul: Freqtrade are `--enable-protections` fiindca backtestul FARA gărzi
+  masoara alt bot. `backtest.mjs` n-are nicio referinta la `pauzaRulari`, `racireSimbolOre`,
+  `maxPozitii`, `pierderiPeSimbol`. Hartia s-a oprit azi dupa 3 stopuri; backtestul ar fi
+  deschis in continuare. Cifra +0,060R nu e despre botul care da ordine.
+- Solutia: aceeasi `deCeNu()` / gărzile din `decizie.mjs` intra in bucla de replay.
+  Raportul scrie cate trade-uri au fost blocate de fiecare garda, ca la Freqtrade.
+- Impact: backtestul si hartia masoara acelasi robot. Altfel 30 de trade-uri pe hartie
+  nu se pot compara cu 134 din backtest.
+- Riscuri/dependente: numarul de trade-uri scade; R mediu se poate misca. Nu se
+  retuneaza pragurile ca sa iasa cifra veche.
+- Fisiere atinse: `PAZNIC-CRYPTO/backtest.mjs`, `decizie.mjs`, `probe.mjs`.
+
+#### I-405 · AgeFilter · [S] · P2 · propus
+- Problema/golul: Freqtrade scoate perechile listate de sub `min_days_listed` (implicit 10).
+  Top 150 dupa volum include monede in price-discovery: dump-uri de 30-80% in primele zile.
+  Paznic n-are filtru de varsta, doar `doarCripto`.
+- Solutia: `onboardDate` din Binance futures. Sub N zile (ipoteza 10, de validat OOS) se
+  sare, cu motiv in fisa. Backtestul foloseste aceeasi data, nu „azi".
+- Impact: eviti o clasa de stopuri care nu tin de strategie.
+- Riscuri/dependente: N e ipoteza. Prea mare taie monede bune; prea mic nu taie nimic.
+- Fisiere atinse: `PAZNIC-CRYPTO/paznic.mjs`, `decizie.mjs`, `backtest.mjs`.
+
+#### I-406 · Martorul nu uita gaura · [S] · P1 · propus
+- Problema/golul: I-366 exista, dar numara cat e de tarziu *ultima* reusita. Dupa prima
+  rulare de dimineata, gaura 22:03→06:33 (~34 cadențe) a disparut din panou. Freqtrade
+  tine heartbeat in log si refuza intrarea pe lumanare expirata („Outdated history").
+- Solutia: `rulari.csv` pastreaza si intervalele RATATE (nu doar pornirile). Panoul arata
+  „34 ratate noaptea trecuta", nu doar „ultima acum 12 min". Telegram daca au trecut
+  2 cadențe fara rulare — cere `telegram.json`.
+- Impact: somnul / sarcina moarta nu mai arata ca „piata linistita".
+- Riscuri/dependente: fara `telegram.json` ramane doar in panou. Nu inchide pozitii singur.
+- Fisiere atinse: `PAZNIC-CRYPTO/robot.mjs`, `panou.mjs`, `panou.html`, `notifica.mjs`.
+
+#### I-407 · PC-ul nu adoarme cu pozitie deschisa · [S] · P1 · propus
+- Problema/golul: Freqtrade e un proces lung 24/7 (VPS), nu o sarcina la 15 min. Paznic
+  ruleaza pe un PC care doarme. STRK s-a rupt la 04:17; robotul a vazut la 06:33. Pe hartie
+  I-392 a reconstituit −1,65R; live Pionex ar fi fost −3,5…−4,5R. I-399 nu ajuta daca
+  procesul nu exista.
+- Solutia: cat `pozitii.length > 0`, Windows `SetThreadExecutionState` (sau echivalent)
+  opreste somnul. La 0 pozitii, se lasa. Optional: mesaj in panou „pazesc, nu inchide PC-ul".
+  Nu e VPS, e minimul onest pe masina de acasa.
+- Impact: I-399 are pe cine sa pazeasca noaptea. Fara asta, cadenta de 1 min e moarta
+  in somn.
+- Riscuri/dependente: nu inlocuieste un VPS. Capacul laptopului tot poate opri totul.
+- Fisiere atinse: `PAZNIC-CRYPTO/executie.mjs`, `robot.mjs`, `panou.html`.
