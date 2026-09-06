@@ -3121,14 +3121,14 @@ pe un singur chart.
 | I-413 | Randul de pozitie din pândă zice ții, nu voie | Paznic (panou) | S | P3 | facut | ideation | 2026-09-06 |
 | I-414 | Calitatea iesirilor: MFE/MAE/„ce-a fost dupa" pe fiecare trade inchis | Paznic (bot+panou) | M | P1 | facut | ideation | 2026-09-06 |
 | I-415 | Heat: cat risc e PE MASA acum, sus in cockpit (bot % + ale lui R) | Paznic (panou) | S | P1 | facut | ideation | 2026-09-06 |
-| I-416 | Bugetul de risc pe VAL: imparte riscul, nu refuza — masurat intai | Paznic (backtest→bot) | M | P2 | propus | ideation | 2026-09-06 |
-| I-417 | Intrare cu ordin LIMIT la nivelul ruperii (ataca derapajul din I-402) | Paznic (backtest→executie) | M | P2 | propus | ideation | 2026-09-06 |
-| I-418 | Reusita pe felii de timp (noapte/weekend) — doar masuratoare, cu IC | Paznic (unealta) | S | P3 | propus | ideation | 2026-09-06 |
+| I-416 | Bugetul de risc pe VAL: imparte riscul, nu refuza — masurat intai | Paznic (backtest→bot) | M | P2 | respins | ideation | 2026-09-06 |
+| I-417 | Intrare cu ordin LIMIT la nivelul ruperii (ataca derapajul din I-402) | Paznic (backtest→executie) | M | P2 | respins | ideation | 2026-09-06 |
+| I-418 | Reusita pe felii de timp (noapte/weekend) — doar masuratoare, cu IC | Paznic (unealta) | S | P3 | facut | ideation | 2026-09-06 |
 | I-419 | „Drumul pana la live": criteriile de descuiere, ca lista de bife in panou | Paznic (panou) | S | P1 | facut | ideation | 2026-09-06 |
-| I-420 | Factura penei: cat M-A COSTAT gaura cu pozitii deschise, nu doar ca a fost | Paznic (bot) | M | P2 | propus | ideation | 2026-09-06 |
-| I-421 | Jurnal de evenimente append-only al executiei; starea derivata din el | Paznic (executie) | L | P3 | propus | ideation | 2026-09-06 |
-| I-422 | Limitele OMULUI, scrise de el, oglindite pe ecran (nu-l opresc) | Paznic (panou) | S | P2 | propus | ideation | 2026-09-06 |
-| I-423 | Copia de siguranta zilnica a Paznicului pe E:, sarcina automata | Paznic (infra) | S | P2 | propus | ideation | 2026-09-06 |
+| I-420 | Factura penei: cat M-A COSTAT gaura cu pozitii deschise, nu doar ca a fost | Paznic (bot) | M | P2 | facut | ideation | 2026-09-06 |
+| I-421 | Jurnal de evenimente append-only al executiei; starea derivata din el | Paznic (executie) | L | P3 | facut | ideation | 2026-09-06 |
+| I-422 | Limitele OMULUI, scrise de el, oglindite pe ecran (nu-l opresc) | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
+| I-423 | Copia de siguranta zilnica a Paznicului pe E:, sarcina automata | Paznic (infra) | S | P2 | facut | ideation | 2026-09-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4240,3 +4240,28 @@ in aceeasi tura:
   (fisa doar rezerva); graficul se improspata deja la 30s.
 - 🔴 Prins de RULARE (nu de --check): scrierea soldului statea in TDZ deasupra
   `let S` si scria obiectul, nu numarul.
+
+### Status update 2026-09-06 noaptea II — TOATE ideile ramase inchise (I-416..I-423)
+
+`PAZNIC-CRYPTO` `2ddd17f`. **911 probe verzi** + interactiune 6/6. Drumul la live: **1/7**
+(bifa soldului s-a aprins singura — 538 USD vazuti pe Pionex).
+
+**MASURATE si RESPINSE** (directia se inchide, ca reversion-ul):
+- I-416 impartirea riscului pe val: taie randamentul +26,5% -> +0,55%, DD aproape
+  neschimbat. Tocmai valul ducea castigul.
+- I-417 intrare LIMIT la nivel: -0,019R / PF 0,97 vs +0,023 / 1,03 market. Selectie
+  adversa: te umpli pe intoarceri, ratezi fugarii. Flagul `--intrare-limit` ramane
+  in backtest pentru re-masurare.
+
+**FACUTE:**
+- I-418 MERITA-ORA.bat: 20-24 UTC = -0,31 [IC sub zero] · 00-04 = +0,30 [peste zero].
+  INDICII (12 felii = 12 zaruri), nu reguli.
+- I-420 factura penei: gaura >=30 min cu stop atins -> costul in R, in Garzi.
+- I-421 (temelia) evenimente.ndjson append-only cu sursa paza|scanare|mana; derivarea
+  starii ramane pentru cand botul e stabil (spus in fisa).
+- I-422 limite-om.json + banner rosu „TU ai scris-o"; fara fisier = tacere.
+- I-423 copia zilnica pe E: SUB LACAT, sarcina INSTALATA (03:30), prima copie 6,3 MB.
+
+Pe drum: garda sarcinilor rescrisa a 3-a oara pe REGULA (lacatul), nu pe nume;
+crash `rv` in ramura limit prins fiindca „rezultatul identic" era raportul VECHI de
+pe disc — raportul se citeste dupa `->` al procesului, nu dupa intoarcerea shellului.
