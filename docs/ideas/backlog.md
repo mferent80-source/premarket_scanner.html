@@ -3124,6 +3124,11 @@ pe un singur chart.
 | I-416 | Bugetul de risc pe VAL: imparte riscul, nu refuza — masurat intai | Paznic (backtest→bot) | M | P2 | propus | ideation | 2026-09-06 |
 | I-417 | Intrare cu ordin LIMIT la nivelul ruperii (ataca derapajul din I-402) | Paznic (backtest→executie) | M | P2 | propus | ideation | 2026-09-06 |
 | I-418 | Reusita pe felii de timp (noapte/weekend) — doar masuratoare, cu IC | Paznic (unealta) | S | P3 | propus | ideation | 2026-09-06 |
+| I-419 | „Drumul pana la live": criteriile de descuiere, ca lista de bife in panou | Paznic (panou) | S | P1 | propus | ideation | 2026-09-06 |
+| I-420 | Factura penei: cat M-A COSTAT gaura cu pozitii deschise, nu doar ca a fost | Paznic (bot) | M | P2 | propus | ideation | 2026-09-06 |
+| I-421 | Jurnal de evenimente append-only al executiei; starea derivata din el | Paznic (executie) | L | P3 | propus | ideation | 2026-09-06 |
+| I-422 | Limitele OMULUI, scrise de el, oglindite pe ecran (nu-l opresc) | Paznic (panou) | S | P2 | propus | ideation | 2026-09-06 |
+| I-423 | Copia de siguranta zilnica a Paznicului pe E:, sarcina automata | Paznic (infra) | S | P2 | propus | ideation | 2026-09-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4183,3 +4188,39 @@ in aceeasi tura:
 - Solutia: raport din cele 1.042 trade-uri simulate: R mediu pe ora UTC si zi-din-saptamana,
   cu IC si avertisment de esantion. FARA garda pana nu iese ceva stabil pe felii separate.
 - Fisiere: merita-ora.mjs + .bat (unealta noua).
+
+#### I-419 · „Drumul pana la live": bifele descuierii · [S] · P1 · propus
+- Problema: conditiile descuierii live traiesc in memorii si in capul nostru (30 trades,
+  IC, plafonul hotarat, telegram.json, ordin Pionex probat, sold >=25 USD). Nicio lista.
+- Solutia: panoul arata „live: N/7 bife", fiecare citita din DATE (nu bifata cu mana).
+  Nu descuie nimic — arata cat mai e. Criteriile de succes, facute vizibile.
+- Fisiere: panou.mjs (starea bifelor), panou.html.
+
+#### I-420 · Factura penei · [M] · P2 · propus
+- Problema: penele de curent sunt dese la el; I-406 ANUNTA gaura, nimeni nu masoara costul.
+- Solutia: la gaura >=30 min cu pozitii deschise: unde ar fi iesit stopul daca se uita
+  cineva vs unde a iesit efectiv; se scrie „pana te-a costat ±X R". Dupa 10 pene, cifra
+  spune daca merita UPS/VPS sau e zgomot.
+- Fisiere: executie.mjs, rapoarte.mjs, panou.html (Garzi).
+
+#### I-421 · Jurnal de evenimente append-only al executiei · [L] · P3 · propus
+- Problema: stare-executie.json e mutabil fara istoric — corectura MUBARAK (06.09) nu se
+  poate face auditabil; „doua ceasuri pe aceeasi pozitie" s-ar fi vazut instant in
+  evenimente (deschis/partial/stop-mutat/inchis, cu sursa: paza|scanare).
+- Solutia: evenimente append-only; starea derivata; corecturile = eveniment nou, nu
+  rescriere. Schimbare de temelie — DOAR cand botul e stabil.
+- Fisiere: executie.mjs, fisier nou de jurnal, unealta de reconstructie.
+
+#### I-422 · Limitele OMULUI, oglindite · [S] · P2 · propus
+- Problema: botul are criterii de oprire; EL n-are (−3,55R in 2 zile pe mana lui, 4
+  corelate, intrari noaptea). Regula scrisa ieri e mai greu de negociat decat impulsul.
+- Solutia: fisier al lui cu limite (max R/zi, max pozitii, ore); panoul le OGLINDESTE
+  (banner rosu „ti-ai atins limita — tu ai scris-o"). Nu opreste nimic.
+- Fisiere: limite-om.json, panou.mjs, panou.html.
+
+#### I-423 · Copia zilnica pe E: · [S] · P2 · propus
+- Problema: bundle-ul de azi s-a facut cu mana; jurnalele = 30 de zile de masuratori
+  care nu se pot reface; penele-s dese.
+- Solutia: sarcina Windows zilnica: git bundle + starile pe E:\PAZNIC-CRYPTO-backup\,
+  pastrare 14 zile, pe modelul sarcinilor existente (Paznic Panou/Paza/Robot).
+- Fisiere: script + .bat de instalare (ca INSTALEAZA-PAZA.bat).
