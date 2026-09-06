@@ -3113,6 +3113,10 @@ pe un singur chart.
 | I-405 | AgeFilter: sare monedele listate de sub N zile (dupa Freqtrade) | Paznic (bot) | S | P2 | propus | ideation | 2026-09-05 |
 | I-406 | Martorul nu uita gaura si anunta pe Telegram (dupa heartbeat Freqtrade) | Paznic (bot+panou) | S | P1 | propus | ideation | 2026-09-05 |
 | I-407 | PC-ul nu adoarme cat tii o pozitie (Freqtrade: proces 24/7, nu cron) | Paznic (bot) | S | P1 | propus | ideation | 2026-09-05 |
+| I-408 | Biletul, cand TII simbolul (si al tau, nu doar hartie), e cockpit de pozitie | Paznic (panou) | S | P1 | propus | ideation | 2026-09-06 |
+| I-409 | Randul de pozitie din pândă arata R-ul, nu doar pretul | Paznic (panou) | S | P2 | propus | ideation | 2026-09-06 |
+| I-410 | Cu pozitie deschisa, filea implicita a biletului e ce faci acum, nu Plan | Paznic (panou) | S | P2 | propus | ideation | 2026-09-06 |
+| I-411 | Click pe banda galbena de sub grafic deschide În curs | Paznic (panou) | S | P3 | propus | ideation | 2026-09-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3984,3 +3988,49 @@ exista 4,56x si 51,47x.
 📌 **Un plafon masurat pe rezultatele lui proprii pare mereu inofensiv.**
 `verificaLevier()` tine acum `levierMax` lipit de `levierBursa`, ca `verificaIpoteza` pentru
 stop — altfel botul ar accepta planuri pe care bursa le refuza din marja.
+
+### Ideatie 06.09.2026 — „daca ar fi dupa tine" (I-408..I-411)
+
+El a cerut ce as adauga/modifica la robot si la pagina. Nu se implementeaza. Nu se
+repropun I-390 (respins), I-399/400/401 (facute), Hyperopt/ROI/DCA, pândă pe telefon.
+Pe robot as face intai ce e deja pe lista: I-404, I-407, I-406. Mai jos doar ce e NOU,
+vazut pe captura de azi.
+
+#### I-408 · Biletul cand TII e cockpit, si pentru pozitia TA · [S] · P1 · propus
+- Problema/golul: `pozBot` se uita doar in `D.exec.pozitii`. ONDO era al LUI (`D.manual`).
+  Graficul desena stop/tinta de pozitie, biletul titluia „Ai voie · nu e momentul".
+  Comentariul de la 05.09 (rand ~3199) acopera hartia, nu pe om.
+  📌 Permisiunea e despre o INTRARE NOUA. Pozitia exista indiferent de ea.
+- Solutia: aceeasi ramura `capDesk` ca la `pozBot`, si pentru `D.manual.pozitii`.
+  Titlul: `ONDO LONG · ții · −0.04R`. Planul de a doua intrare ramane in filea De ce.
+- Impact: cele doua ecrane spun acelasi lucru despre acelasi simbol.
+- Riscuri/dependente: sa nu dispară `blocAmIntrat` (butonul „am iesit").
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`, `probe.mjs`.
+
+#### I-409 · R pe randul de pozitie din pândă · [S] · P2 · propus
+- Problema/golul: dupa podea, chipurile au disparut din bara. In lista, ALGO/TRX arata
+  pret si % pe zi, nu R-ul pozitiei. Ca sa vezi minusul, deschizi biletul.
+- Solutia: pe randurile din grupul „POZITIE DESCHISA", coloana din dreapta e R-ul
+  (`rDeLa`), nu variatia zilei. Verde/rosu = bani, nu miscarea de azi.
+- Impact: scanezi cele 2-3 pozitii fara sa comuti simbolul.
+- Riscuri/dependente: pe randurile „aproape de rupere" variatia zilei ramane — alt
+  inteles, nu se amesteca.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+#### I-410 · Filea implicita cand tii = ce faci, nu Plan · [S] · P2 · propus
+- Problema/golul: `BILET_TAB = "plan"` la fiecare schimbare de simbol. Pe ONDO, Plan
+  arata anatomia miscarii; „ce ai de facut acum" e sub fold. Intrebarea pe o pozitie
+  deschisa nu e planul de intrare.
+- Solutia: daca exista pozitie (hartie sau a lui) pe SEL, filea de start e cea care
+  contine `sfat-poz` / `blocAmIntrat`, nu `plan`. Fara pozitie, Plan ramane.
+- Impact: deschizi biletul si vezi hotararea, nu contextul.
+- Riscuri/dependente: sa nu se piarda `BILET_SCROLL` pe acelasi simbol.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+#### I-411 · Click pe banda galbena deschide În curs · [S] · P3 · propus
+- Problema/golul: `#alerta-podea` spune „un singur pariu" dar n-are unde sa duca.
+  MAE/MFE stau in jurnalul strâns.
+- Solutia: click pe banda = `comutaTab("live")`. Cursor pointer, title „vezi pozitiile".
+- Impact: din avertisment ajungi la dovezi, fara sa cauti tabul.
+- Riscuri/dependente: niciunul serios.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
