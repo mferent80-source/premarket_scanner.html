@@ -3108,7 +3108,7 @@ pe un singur chart.
 | I-400 | Vanatoarea automata de look-ahead, dupa lookahead-analysis din Freqtrade | Paznic (bot) | M | P1 | facut | audit | 2026-09-04 |
 | I-401 | Cate bare sunt DE AJUNS, masurat (dupa recursive-analysis din Freqtrade) | Paznic (bot) | S | P2 | facut | audit | 2026-09-04 |
 | I-402 | Derapajul la INTRARE in backtest (dupa FillModel din NautilusTrader) | Paznic (bot) | S | P2 | facut | audit | 2026-09-06 |
-| I-403 | /locks si /daily: ce simbol e blocat ACUM si de ce (dupa Freqtrade) | Paznic (panou+bot) | S | P3 | propus | audit | 2026-09-04 |
+| I-403 | /locks si /daily: ce simbol e blocat ACUM si de ce (dupa Freqtrade) | Paznic (panou+bot) | S | P3 | facut | audit | 2026-09-06 |
 | I-404 | Garzile de capital si in backtest (dupa --enable-protections Freqtrade) | Paznic (bot) | M | P1 | facut | ideation | 2026-09-06 |
 | I-405 | AgeFilter: sare monedele listate de sub N zile (dupa Freqtrade) | Paznic (bot) | S | P2 | facut | ideation | 2026-09-06 |
 | I-406 | Martorul nu uita gaura si anunta pe Telegram (dupa heartbeat Freqtrade) | Paznic (bot+panou) | S | P1 | facut | ideation | 2026-09-06 |
@@ -4081,3 +4081,35 @@ Desktop: overflow-y auto, pagina ~1523px pe 900, 7 dropdown-uri (lista + filele 
 Cockpit ramane in cap (I-388). Telefon neschimbat (0 drop, order 1, 4 chipuri).
 I-405 AgeFilter (ipoteza 10 zile) · I-406 gaura persistata · I-402/I-407 marcate facut.
 **807 probe.** Live incuiat. Nu s-au retunat pragurile.
+
+### Status update 2026-09-06 dimineata — I-403 FACUT, plus doua lucruri cerute de el
+
+`PAZNIC-CRYPTO` commit-uri `9ecb1fa` `d3760a3` `491f078` `60ca30a` (local, fara remote).
+**832 de probe verzi** (de la 814).
+
+**I-403** — panoul arata acum lista simbolurilor blocate pe simbol (racire dupa iesire,
+3 pierderi in 7 zile), cu motivul si cat mai tine, plus rezultatul pe fiecare zi. Partea
+globala („nu intra acum fiindca...") exista de la commit-ul de ieri; asta e partea
+per-simbol, adica exact `/locks` din Freqtrade.
+
+🔴 **Gasit masurand, nu citind:** tranzactiile OMULUI n-au campul `net` (nu declara
+marimea pozitiei), doar `R`. Regula numara pierderile cu `x.net < 0`, iar `undefined < 0`
+e `false` fara nicio eroare — deci pe pozitiile lui regula **nu s-ar fi aprins niciodata**
+si ecranul ar fi aratat mereu „liber". Reparat la citire, nu in regula botului.
+📌 ***Un camp care lipseste da `undefined`, iar `undefined` trece tacut prin orice
+comparatie numerica.*** A treia oara aceeasi clasa (barele fara `o`, stopInitial).
+
+**LISTA LUI DE MONEDE** (`coinuri.mjs` + tab „Monedele mele"): adauga peste topul automat
+si scoate din el. Din 567 de perpetuals cripto pe Binance, botul se uita la 150 — acum
+poate spune care. Sare DOAR selectia de lista, nimic din `permisiune()`, si ecranul o
+spune de fiecare data.
+
+**TRENDUL MARE PE GRAFIC**: EMA 21/55 de pe 4h peste barele de 15m, plus eticheta cu
+directia, randamentul pe 12 saptamani si de cand tine. A cerut mutarea definitiei
+directiei in nucleu (`directiaDeFond`) — prima varianta o calcula in pagina, adica un al
+doilea adevar gata sa se desparta de al botului. Refactorul e probat neutru: backtest pe
+134.200 de evaluari, cifre identice inainte si dupa.
+
+**BACKTESTUL PE UN AN, dupa I-404/I-405:** 116 trades, R mediu **+0,105**, PF 1,16 — dar
+IC 95% **[-0,137 … +0,420]**, adica **cuprinde zero**, si doar 3 din 6 felii de timp ies
+pe plus. ⚠️ Cifra veche (+8,0R) nu e comparabila: intre timp au intrat I-402 si I-399.
