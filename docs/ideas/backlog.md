@@ -3119,12 +3119,12 @@ pe un singur chart.
 | I-411 | Click pe banda galbena de sub grafic deschide În curs | Paznic (panou) | S | P3 | facut | ideation | 2026-09-06 |
 | I-412 | Cand TII, sfaturile de „nu e momentul” stau in De ce, nu in Plan | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
 | I-413 | Randul de pozitie din pândă zice ții, nu voie | Paznic (panou) | S | P3 | facut | ideation | 2026-09-06 |
-| I-414 | Calitatea iesirilor: MFE/MAE/„ce-a fost dupa" pe fiecare trade inchis | Paznic (bot+panou) | M | P1 | propus | ideation | 2026-09-06 |
-| I-415 | Heat: cat risc e PE MASA acum, sus in cockpit (bot % + ale lui R) | Paznic (panou) | S | P1 | propus | ideation | 2026-09-06 |
+| I-414 | Calitatea iesirilor: MFE/MAE/„ce-a fost dupa" pe fiecare trade inchis | Paznic (bot+panou) | M | P1 | facut | ideation | 2026-09-06 |
+| I-415 | Heat: cat risc e PE MASA acum, sus in cockpit (bot % + ale lui R) | Paznic (panou) | S | P1 | facut | ideation | 2026-09-06 |
 | I-416 | Bugetul de risc pe VAL: imparte riscul, nu refuza — masurat intai | Paznic (backtest→bot) | M | P2 | propus | ideation | 2026-09-06 |
 | I-417 | Intrare cu ordin LIMIT la nivelul ruperii (ataca derapajul din I-402) | Paznic (backtest→executie) | M | P2 | propus | ideation | 2026-09-06 |
 | I-418 | Reusita pe felii de timp (noapte/weekend) — doar masuratoare, cu IC | Paznic (unealta) | S | P3 | propus | ideation | 2026-09-06 |
-| I-419 | „Drumul pana la live": criteriile de descuiere, ca lista de bife in panou | Paznic (panou) | S | P1 | propus | ideation | 2026-09-06 |
+| I-419 | „Drumul pana la live": criteriile de descuiere, ca lista de bife in panou | Paznic (panou) | S | P1 | facut | ideation | 2026-09-06 |
 | I-420 | Factura penei: cat M-A COSTAT gaura cu pozitii deschise, nu doar ca a fost | Paznic (bot) | M | P2 | propus | ideation | 2026-09-06 |
 | I-421 | Jurnal de evenimente append-only al executiei; starea derivata din el | Paznic (executie) | L | P3 | propus | ideation | 2026-09-06 |
 | I-422 | Limitele OMULUI, scrise de el, oglindite pe ecran (nu-l opresc) | Paznic (panou) | S | P2 | propus | ideation | 2026-09-06 |
@@ -4224,3 +4224,19 @@ in aceeasi tura:
 - Solutia: sarcina Windows zilnica: git bundle + starile pe E:\PAZNIC-CRYPTO-backup\,
   pastrare 14 zile, pe modelul sarcinilor existente (Paznic Panou/Paza/Robot).
 - Fisiere: script + .bat de instalare (ca INSTALEAZA-PAZA.bat).
+
+### Status update 2026-09-06 seara — I-414, I-415, I-419 FACUTE + „am intrat" pe pretul live
+
+`PAZNIC-CRYPTO` `2778e36`. **895 probe verzi** + interactiune 6/6.
+- **I-415**: „pe masa X R · un pariu" in capul paginii — la fotografiere chiar arata
+  5,0R ROSU (peste plafonul gerzii de 3R), toate LONG.
+- **I-419**: „drumul pana la live" — 7 bife citite din DATE, in Garzi + pe badge.
+  Real acum: 0/7 (sold 538 USD vazut pe Pionex — bifa soldului se aprinde singura la
+  urmatoarea rulare). Plafonul curent (0,35%/10%) da 30,9% opriri false pe baza noua.
+- **I-414**: MFE/MAE/„dupa" pe fiecare trade inchis, completate de executie (3+2/rulare,
+  si pe ale lui); tabel in Rezultate cu „scos la fund". MUBARAK a primit pe viu
+  MFE +4,96 / MAE −1,88 — identic cu analiza manuala.
+- La cererea lui din mers: promptul „am intrat" porneste de la pretul LIVE al clipei
+  (fisa doar rezerva); graficul se improspata deja la 30s.
+- 🔴 Prins de RULARE (nu de --check): scrierea soldului statea in TDZ deasupra
+  `let S` si scria obiectul, nu numarul.
