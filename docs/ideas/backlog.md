@@ -3113,10 +3113,10 @@ pe un singur chart.
 | I-405 | AgeFilter: sare monedele listate de sub N zile (dupa Freqtrade) | Paznic (bot) | S | P2 | propus | ideation | 2026-09-05 |
 | I-406 | Martorul nu uita gaura si anunta pe Telegram (dupa heartbeat Freqtrade) | Paznic (bot+panou) | S | P1 | propus | ideation | 2026-09-05 |
 | I-407 | PC-ul nu adoarme cat tii o pozitie (Freqtrade: proces 24/7, nu cron) | Paznic (bot) | S | P1 | propus | ideation | 2026-09-05 |
-| I-408 | Biletul, cand TII simbolul (si al tau, nu doar hartie), e cockpit de pozitie | Paznic (panou) | S | P1 | propus | ideation | 2026-09-06 |
-| I-409 | Randul de pozitie din pândă arata R-ul, nu doar pretul | Paznic (panou) | S | P2 | propus | ideation | 2026-09-06 |
-| I-410 | Cu pozitie deschisa, filea implicita a biletului e ce faci acum, nu Plan | Paznic (panou) | S | P2 | propus | ideation | 2026-09-06 |
-| I-411 | Click pe banda galbena de sub grafic deschide În curs | Paznic (panou) | S | P3 | propus | ideation | 2026-09-06 |
+| I-408 | Biletul, cand TII simbolul (si al tau, nu doar hartie), e cockpit de pozitie | Paznic (panou) | S | P1 | facut | ideation | 2026-09-06 |
+| I-409 | Randul de pozitie din pândă arata R-ul, nu doar pretul | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
+| I-410 | Cu pozitie deschisa, filea implicita a biletului e ce faci acum, nu Plan | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
+| I-411 | Click pe banda galbena de sub grafic deschide În curs | Paznic (panou) | S | P3 | facut | ideation | 2026-09-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4034,3 +4034,10 @@ vazut pe captura de azi.
 - Impact: din avertisment ajungi la dovezi, fara sa cauti tabul.
 - Riscuri/dependente: niciunul serios.
 - Fisiere atinse: `PAZNIC-CRYPTO/panou.html`.
+
+### Status update 2026-09-06 — I-408..I-411 FACUTE (cerere „fa tot")
+
+`PAZNIC-CRYPTO` `67d44bb` local, fara remote. Trade neatins. **765 probe verzi.**
+Verificat in browser 1440×900: cockpit `ONDO LONG · ții · banii tăi · +0.03R`; lista are
+cele 6 pozitii cu R; click pe banda galbena deschide În curs (6 carduri). Telefon:
+biletul order 1, chipuri 4, titlu „Ești în LONG pe asta".
