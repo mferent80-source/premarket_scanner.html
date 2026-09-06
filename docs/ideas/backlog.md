@@ -4113,3 +4113,30 @@ doilea adevar gata sa se desparta de al botului. Refactorul e probat neutru: bac
 **BACKTESTUL PE UN AN, dupa I-404/I-405:** 116 trades, R mediu **+0,105**, PF 1,16 — dar
 IC 95% **[-0,137 … +0,420]**, adica **cuprinde zero**, si doar 3 din 6 felii de timp ies
 pe plus. ⚠️ Cifra veche (+8,0R) nu e comparabila: intre timp au intrat I-402 si I-399.
+
+### Status update 2026-09-06 pranz — auditul „din toate unghiurile" + cele 4 idei, FACUTE
+
+`PAZNIC-CRYPTO` `b154917` (local). **849 de probe verzi** + proba de interactiune 6/6.
+
+**Audit:** 1 regresie proprie reparata pe loc (butonul „Monede" calca „ultima verificare"
+pe telefon — gasita comparand poza cu/fara buton) si 3 gauri structurale, toate inchise
+in aceeasi tura:
+
+1. **Universul e UNUL** (`univers.mjs`): backtestul avea AL DOILEA `topSimboluri`, cu
+   lista alba de 44 scoasa din live pe 04.09 — **73% din cele 150 urmarite live erau
+   nemasurabile**. Acum paznic.mjs si backtest.mjs aleg cu aceeasi functie, cu lista
+   omului cu tot. Probat: top-20 backtest = 20/20 in lista live; robotul rulat complet.
+2. **Un singur adevar pe 3 canale** (`rapoarte.mjs`): `/locks` din Telegram nu chema
+   `deCeNuSimbolul` (racirea si „3 pierderi/7 zile" lipseau — chiar miezul I-403), iar
+   `/daily` avea a doua agregare. Acum panoul, Telegramul si probele cheama aceleasi
+   functii — si garda `undefined < 0` e pazita PRIN STRICARE in suita.
+3. **MERITA-PLAFON.bat**: la 0,35% risc, plafonul de 10% sare in **9,5% din ani** doar
+   din norocul ordinii (limita de JOS). Sub ~5% ies: 0,35%+12% · 0,30%+10% · 0,25%+10%.
+   Nimic retunat — hotararea e a lui.
+4. **PROBEAZA-INTERACTIUNEA.bat**: Edge + CDP nativ (zero dependinte) chiar APASA
+   butoanele. 🔴 Prima rulare a gasit un bug pe care poza si grep-ul nu-l vedeau:
+   derularea smooth a butonului „Monede" pierdea cursa cu `randBilet()` care restaura
+   pozitia paginii — butonul comuta tabul dar pagina ramanea sus. Reparat cu salt instant.
+
+📌 Lectia zilei, a treia oara: ***garda pe FORMA da rosu pe cod bun*** — garda pe
+`scrollIntoView` a picat cand fixul a devenit `scrollTo`; rescrisa pe REGULA.
