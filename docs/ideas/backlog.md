@@ -3107,12 +3107,12 @@ pe un singur chart.
 | I-399 | Cadenta pazei pe pozitiile deschise: din minut in minut, nu din 15 in 15 | Paznic (bot) | M | P1 | facut | audit | 2026-09-04 |
 | I-400 | Vanatoarea automata de look-ahead, dupa lookahead-analysis din Freqtrade | Paznic (bot) | M | P1 | facut | audit | 2026-09-04 |
 | I-401 | Cate bare sunt DE AJUNS, masurat (dupa recursive-analysis din Freqtrade) | Paznic (bot) | S | P2 | facut | audit | 2026-09-04 |
-| I-402 | Derapajul la INTRARE in backtest (dupa FillModel din NautilusTrader) | Paznic (bot) | S | P2 | propus | audit | 2026-09-04 |
+| I-402 | Derapajul la INTRARE in backtest (dupa FillModel din NautilusTrader) | Paznic (bot) | S | P2 | facut | audit | 2026-09-06 |
 | I-403 | /locks si /daily: ce simbol e blocat ACUM si de ce (dupa Freqtrade) | Paznic (panou+bot) | S | P3 | propus | audit | 2026-09-04 |
 | I-404 | Garzile de capital si in backtest (dupa --enable-protections Freqtrade) | Paznic (bot) | M | P1 | facut | ideation | 2026-09-06 |
-| I-405 | AgeFilter: sare monedele listate de sub N zile (dupa Freqtrade) | Paznic (bot) | S | P2 | propus | ideation | 2026-09-05 |
-| I-406 | Martorul nu uita gaura si anunta pe Telegram (dupa heartbeat Freqtrade) | Paznic (bot+panou) | S | P1 | propus | ideation | 2026-09-05 |
-| I-407 | PC-ul nu adoarme cat tii o pozitie (Freqtrade: proces 24/7, nu cron) | Paznic (bot) | S | P1 | propus | ideation | 2026-09-05 |
+| I-405 | AgeFilter: sare monedele listate de sub N zile (dupa Freqtrade) | Paznic (bot) | S | P2 | facut | ideation | 2026-09-06 |
+| I-406 | Martorul nu uita gaura si anunta pe Telegram (dupa heartbeat Freqtrade) | Paznic (bot+panou) | S | P1 | facut | ideation | 2026-09-06 |
+| I-407 | PC-ul nu adoarme cat tii o pozitie (Freqtrade: proces 24/7, nu cron) | Paznic (bot) | S | P1 | facut | ideation | 2026-09-06 |
 | I-408 | Biletul, cand TII simbolul (si al tau, nu doar hartie), e cockpit de pozitie | Paznic (panou) | S | P1 | facut | ideation | 2026-09-06 |
 | I-409 | Randul de pozitie din pândă arata R-ul, nu doar pretul | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
 | I-410 | Cu pozitie deschisa, filea implicita a biletului e ce faci acum, nu Plan | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
@@ -3892,7 +3892,9 @@ Nu s-au retunat pragurile. 789 probe.
   retuneaza pragurile ca sa iasa cifra veche.
 - Fisiere atinse: `PAZNIC-CRYPTO/backtest.mjs`, `decizie.mjs`, `probe.mjs`.
 
-#### I-405 · AgeFilter · [S] · P2 · propus
+#### I-405 · AgeFilter · [S] · P2 · facut (06.09.2026)
+`preaTanar(onboardMs, acumMs)` in nucleu. Ipoteza 10 zile. Live scoate din top 150;
+backtestul judeca pe ceasul barei. Fara data, nu se inventeaza blocaj.
 - Problema/golul: Freqtrade scoate perechile listate de sub `min_days_listed` (implicit 10).
   Top 150 dupa volum include monede in price-discovery: dump-uri de 30-80% in primele zile.
   Paznic n-are filtru de varsta, doar `doarCripto`.
@@ -3902,7 +3904,9 @@ Nu s-au retunat pragurile. 789 probe.
 - Riscuri/dependente: N e ipoteza. Prea mare taie monede bune; prea mic nu taie nimic.
 - Fisiere atinse: `PAZNIC-CRYPTO/paznic.mjs`, `decizie.mjs`, `backtest.mjs`.
 
-#### I-406 · Martorul nu uita gaura · [S] · P1 · propus
+#### I-406 · Martorul nu uita gaura · [S] · P1 · facut (06.09.2026)
+`noteazaGaura()` scrie `cod=8` in `rulari.csv` inainte de rularea de dimineata.
+Panoul arata gaura 36h. Telegram daca 2+ cadențe (tace fara `telegram.json`).
 - Problema/golul: I-366 exista, dar numara cat e de tarziu *ultima* reusita. Dupa prima
   rulare de dimineata, gaura 22:03→06:33 (~34 cadențe) a disparut din panou. Freqtrade
   tine heartbeat in log si refuza intrarea pe lumanare expirata („Outdated history").
@@ -3913,7 +3917,7 @@ Nu s-au retunat pragurile. 789 probe.
 - Riscuri/dependente: fara `telegram.json` ramane doar in panou. Nu inchide pozitii singur.
 - Fisiere atinse: `PAZNIC-CRYPTO/robot.mjs`, `panou.mjs`, `panou.html`, `notifica.mjs`.
 
-#### I-407 · PC-ul nu adoarme cu pozitie deschisa · [S] · P1 · propus
+#### I-407 · PC-ul nu adoarme cu pozitie deschisa · [S] · P1 · facut
 - Problema/golul: Freqtrade e un proces lung 24/7 (VPS), nu o sarcina la 15 min. Paznic
   ruleaza pe un PC care doarme. STRK s-a rupt la 04:17; robotul a vazut la 06:33. Pe hartie
   I-392 a reconstituit −1,65R; live Pionex ar fi fost −3,5…−4,5R. I-399 nu ajuta daca
@@ -4069,3 +4073,11 @@ Nu s-au retunat pragurile. Live incuiat.
   ai voie sa intri.
 - Solutia: daca `extraCls` contine `"poz"`, eticheta e `ții`.
 - Fisiere atinse: `PAZNIC-CRYPTO/panou.html`, `probe.mjs`.
+
+### Status update 2026-09-06 — idei + pagina nu mai e rigida
+
+Cerere: „fa idei si fa pagina sa urce si sa coboare si fa drop downuri".
+Desktop: overflow-y auto, pagina ~1523px pe 900, 7 dropdown-uri (lista + filele biletului).
+Cockpit ramane in cap (I-388). Telefon neschimbat (0 drop, order 1, 4 chipuri).
+I-405 AgeFilter (ipoteza 10 zile) · I-406 gaura persistata · I-402/I-407 marcate facut.
+**807 probe.** Live incuiat. Nu s-au retunat pragurile.
