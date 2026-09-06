@@ -3109,7 +3109,7 @@ pe un singur chart.
 | I-401 | Cate bare sunt DE AJUNS, masurat (dupa recursive-analysis din Freqtrade) | Paznic (bot) | S | P2 | facut | audit | 2026-09-04 |
 | I-402 | Derapajul la INTRARE in backtest (dupa FillModel din NautilusTrader) | Paznic (bot) | S | P2 | propus | audit | 2026-09-04 |
 | I-403 | /locks si /daily: ce simbol e blocat ACUM si de ce (dupa Freqtrade) | Paznic (panou+bot) | S | P3 | propus | audit | 2026-09-04 |
-| I-404 | Garzile de capital si in backtest (dupa --enable-protections Freqtrade) | Paznic (bot) | M | P1 | propus | ideation | 2026-09-05 |
+| I-404 | Garzile de capital si in backtest (dupa --enable-protections Freqtrade) | Paznic (bot) | M | P1 | facut | ideation | 2026-09-06 |
 | I-405 | AgeFilter: sare monedele listate de sub N zile (dupa Freqtrade) | Paznic (bot) | S | P2 | propus | ideation | 2026-09-05 |
 | I-406 | Martorul nu uita gaura si anunta pe Telegram (dupa heartbeat Freqtrade) | Paznic (bot+panou) | S | P1 | propus | ideation | 2026-09-05 |
 | I-407 | PC-ul nu adoarme cat tii o pozitie (Freqtrade: proces 24/7, nu cron) | Paznic (bot) | S | P1 | propus | ideation | 2026-09-05 |
@@ -3117,6 +3117,8 @@ pe un singur chart.
 | I-409 | Randul de pozitie din pândă arata R-ul, nu doar pretul | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
 | I-410 | Cu pozitie deschisa, filea implicita a biletului e ce faci acum, nu Plan | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
 | I-411 | Click pe banda galbena de sub grafic deschide În curs | Paznic (panou) | S | P3 | facut | ideation | 2026-09-06 |
+| I-412 | Cand TII, sfaturile de „nu e momentul” stau in De ce, nu in Plan | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
+| I-413 | Randul de pozitie din pândă zice ții, nu voie | Paznic (panou) | S | P3 | facut | ideation | 2026-09-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -3874,7 +3876,10 @@ El a cerut: *„ce poti copia util de la ei?"*. Nu se implementeaza nimic. Nu se
 I-390 (respins: Binance), I-399 (deja P1, cadenta 1 min), I-400/401 (facute), I-402/403
 (deja propuse). Nu se copiaza Hyperopt, FreqAI, tabel ROI, DCA.
 
-#### I-404 · Garzile si in backtest · [M] · P1 · propus
+#### I-404 · Garzile si in backtest · [M] · P1 · facut (06.09.2026)
+`deCeNu` / `deCeNuSimbolul` / `dupaInchidere` / `azi(acumMs)` in nucleu.
+`alegeCuGarzi` in backtest pe ceasul barei. Raportul numara opririle pe garda.
+Nu s-au retunat pragurile. 789 probe.
 - Problema/golul: Freqtrade are `--enable-protections` fiindca backtestul FARA gărzi
   masoara alt bot. `backtest.mjs` n-are nicio referinta la `pauzaRulari`, `racireSimbolOre`,
   `maxPozitii`, `pierderiPeSimbol`. Hartia s-a oprit azi dupa 3 stopuri; backtestul ar fi
@@ -4041,3 +4046,26 @@ vazut pe captura de azi.
 Verificat in browser 1440×900: cockpit `ONDO LONG · ții · banii tăi · +0.03R`; lista are
 cele 6 pozitii cu R; click pe banda galbena deschide În curs (6 carduri). Telefon:
 biletul order 1, chipuri 4, titlu „Ești în LONG pe asta".
+
+### Status update 2026-09-06 — I-404 + I-412 + I-413 FACUTE (cerere „da fa-le pe astea treia")
+
+`deCeNu`/`dupaInchidere`/`azi(acumMs)` in nucleu; `alegeCuGarzi` in backtest pe ceasul barei.
+Panou: sfaturile de context in De ce cand tii; eticheta `ții` pe randul de pozitie.
+**789 probe.** Browser: 6 randuri `ții`; Plan incepe cu „poziția TA", nu cu „nu e momentul".
+Telefon neschimbat (order 1, 4 chipuri, „Ești în LONG pe asta").
+Nu s-au retunat pragurile. Live incuiat.
+
+#### I-412 · Cand TII, sfaturile de context stau in De ce · [S] · P2 · facut
+- Problema/golul: dupa I-410, Plan incepea cu `blocAmIntrat`, dar sub el ramanea
+  „Ai voie pe simbolul asta, dar planul nu trece inca" / anatomia miscarii.
+  Titlul zicea „ții", corpul vorbea despre o intrare noua.
+- Solutia: `htmlSfaturi(ctxSf)` pe desktop intra in `"dece"` daca `pozitiaDeschisa(SEL)`,
+  altfel ramane in `"plan"`.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`, `probe.mjs`.
+
+#### I-413 · Randul de pozitie zice ții, nu voie · [S] · P3 · facut
+- Problema/golul: I-409 a schimbat coloana din dreapta in R, dar eticheta de langa
+  simbol ramanea `voie` / `N porți`. Un simbol pe care il TII arata ca unul pe care
+  ai voie sa intri.
+- Solutia: daca `extraCls` contine `"poz"`, eticheta e `ții`.
+- Fisiere atinse: `PAZNIC-CRYPTO/panou.html`, `probe.mjs`.
