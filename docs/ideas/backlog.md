@@ -3119,6 +3119,11 @@ pe un singur chart.
 | I-411 | Click pe banda galbena de sub grafic deschide În curs | Paznic (panou) | S | P3 | facut | ideation | 2026-09-06 |
 | I-412 | Cand TII, sfaturile de „nu e momentul” stau in De ce, nu in Plan | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
 | I-413 | Randul de pozitie din pândă zice ții, nu voie | Paznic (panou) | S | P3 | facut | ideation | 2026-09-06 |
+| I-414 | Calitatea iesirilor: MFE/MAE/„ce-a fost dupa" pe fiecare trade inchis | Paznic (bot+panou) | M | P1 | propus | ideation | 2026-09-06 |
+| I-415 | Heat: cat risc e PE MASA acum, sus in cockpit (bot % + ale lui R) | Paznic (panou) | S | P1 | propus | ideation | 2026-09-06 |
+| I-416 | Bugetul de risc pe VAL: imparte riscul, nu refuza — masurat intai | Paznic (backtest→bot) | M | P2 | propus | ideation | 2026-09-06 |
+| I-417 | Intrare cu ordin LIMIT la nivelul ruperii (ataca derapajul din I-402) | Paznic (backtest→executie) | M | P2 | propus | ideation | 2026-09-06 |
+| I-418 | Reusita pe felii de timp (noapte/weekend) — doar masuratoare, cu IC | Paznic (unealta) | S | P3 | propus | ideation | 2026-09-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4140,3 +4145,41 @@ in aceeasi tura:
 
 📌 Lectia zilei, a treia oara: ***garda pe FORMA da rosu pe cod bun*** — garda pe
 `scrollIntoView` a picat cand fixul a devenit `scrollTo`; rescrisa pe REGULA.
+
+#### I-414 · Calitatea iesirilor: MFE/MAE/„ce-a fost dupa" · [M] · P1 · propus
+- Problema: pe 06.09 s-a aflat DOAR manual ca HYPE/BOME/MUBARAK au urcat +2,6/+3,8/+9,1R
+  DUPA ce stopul i-a scos. „Stopul e sistematic prea strans sau ideea a fost proasta?"
+  n-are nicio cifra pe ecran — si e intrebarea nr. 1 la review.
+- Solutia: la inchidere se salveaza pe trade MFE, MAE si maximul in 24h dupa iesire (in R);
+  tabul Rezultate arata media pe ultimele 30, cu prag de esantion declarat.
+- Fisiere: executie.mjs, decizie.mjs (functie pura), panou.html.
+
+#### I-415 · Heat-ul: riscul PE MASA, in cockpit · [S] · P1 · propus
+- Problema: garda stie riscul deschis (deCeNu/riscDeschis), ecranul arata doar PnL. Pe
+  05.09 seara: 4 LONG = ~1,4% risc cumulat pe un singur pariu, nicio cifra la vedere.
+- Solutia: pastila permanenta sus: „risc pe masa: bot X% + ale tale N R · corelat LONG: tot";
+  rosie peste pragul garzii. Refoloseste socoteala gerzii, nu una noua.
+- Fisiere: decizie.mjs (expune socoteala), panou.mjs, panou.html.
+
+#### I-416 · Bugetul de risc pe VAL — masurat intai · [M] · P2 · propus
+- Problema: valul e categoria castigatoare (+0,33R, IC [0,10…0,59]) dar pozitiile din el cad
+  impreuna; refuzul costa, riscul plin inmultit doare (05.09 seara).
+- Solutia: varianta de backtest cu riscul/trade impartit la numarul semnalelor simultane pe
+  aceeasi directie. SE IMPLEMENTEAZA doar daca backtestul + robustetea o sustin; altfel
+  ramane masuratoare inchisa, ca reversion-ul. Ipoteza de sizing = teren de curve-fitting,
+  se judeca cu IC si pe felii de timp.
+- Fisiere: backtest.mjs (varianta), apoi eventual decizie.mjs.
+
+#### I-417 · Intrare cu ordin LIMIT la nivelul ruperii · [M] · P2 · propus
+- Problema: I-402 a masurat 58% din fise picate pe derapaj — pretul fuge in cele ~4 minute
+  pana la executie. Market dupa 4 minute inseamna sa alergi dupa pret.
+- Solutia: in backtest (modelul I-402 exista): fill doar daca pretul revine la nivel in N
+  bare, altfel ratat; compara rata de umplere x R mediu vs market. Daca iese, hartia adopta.
+- Fisiere: backtest.mjs, apoi executie.mjs/bursa.mjs.
+
+#### I-418 · Reusita pe felii de timp — doar masuratoare · [S] · P3 · propus
+- Problema: toate stopurile lui au sarit in aceeasi noapte; nimeni n-a masurat daca
+  semnalele de noapte/weekend merg altfel (lichiditate, spread).
+- Solutia: raport din cele 1.042 trade-uri simulate: R mediu pe ora UTC si zi-din-saptamana,
+  cu IC si avertisment de esantion. FARA garda pana nu iese ceva stabil pe felii separate.
+- Fisiere: merita-ora.mjs + .bat (unealta noua).
