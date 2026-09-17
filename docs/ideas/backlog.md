@@ -3135,6 +3135,9 @@ pe un singur chart.
 | I-427 | Se instalează pe telefon (manifest + service worker) cu bandă de vârstă a datelor | Busola (PWA) | S | P2 | facut | ideation | 2026-09-17 |
 | I-428 | Harta ține minte: rezultatul salvat cu ora lui, instant la deschidere, „ce s-a aprins de la ultima dată" | Busola (Harta) | S | P3 | facut | ideation | 2026-09-17 |
 | I-429 | Alți algoritmi prin ACEEAȘI moară: laborator cu rotație + fereastra „Ce mai zic celelalte algoritme” | Busola (motor+Măsura) | M | P1 | facut | user | 2026-09-17 |
+| I-430 | Găleata combinată stare × algoritm — măsurat: NU adaugă (×2,5 față de ×4,0 singuri) | Busola (motor+Măsura) | S | P2 | facut | ideation | 2026-09-17 |
+| I-431 | Scorul ca al doilea martor în fișa de grid (confirmă / contrazice / nu se pronunță) | Busola (Măsura) | M | P2 | facut | ideation | 2026-09-17 |
+| I-432 | STARE portat ca etichete (regim cu vârstă, z-score, locație); POSIT NU se poate (cere istoric perp) | Busola (motor) | M | P2 | facut | ideation | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4375,3 +4378,24 @@ manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in In
   Cu 12 rotații p-ul minim e 0,077 — proba nu putea spune „da” ⇒ rotațiile sunt argument (40).
 - Fișiere: src/motor/algoritmi.ts, reversal.ts, masuraAlgoritmi.ts, laborator.ts (generat),
   lucrator.ts, src/ui/Algoritmi.tsx, probe/algoritmi.ts, scrie-laborator.ts, masura-algoritmi.ts.
+
+#### I-430 · Găleata combinată stare × algoritm · [S] · P2 · facut
+- Problema: „informația se adună?” — dacă starea de bază și un algoritm spun același lucru, a le pune
+  împreună doar împarte aceleași bare mai fin (n mai mic, mai multe teste).
+- Soluția: `masuraAlgoritmi` calculează și găleata `stare|etichetă` pentru bara de acum (coloana
+  „împreună cu starea”); laboratorul măsoară fiecare `<cheie>+stare` cu rotație.
+- Rezultat (`6652089`): direcția — nimic, la toate 13 combinațiile; mișcarea — toate trec, dar raportul
+  median scade la ×2,5 față de ×4,0 singuri ⇒ NU adaugă informație. Concluzie scrisă pe ecran.
+
+#### I-431 · Scorul ca al doilea martor în fișa de grid · [M] · P2 · facut
+- Problema: fișa de grid se sprijinea pe o singură măsurătoare (găleata de bază).
+- Soluția: scorul indicatorilor, cel mai tare algoritm pe mișcare în laborator (×12,7), trecut prin
+  aceeași moară pe bara de acum: „confirmă liniștea / CONTRAZICE / nu se pronunță”, cu n și bază.
+- Probat pe XRP 1h: „nu se pronunță · 34% din 6050 (de obicei 36%)” — scrie și când nu ajută.
+
+#### I-432 · STARE portat ca etichete · [M] · P2 · facut
+- Soluția: din `Stare_Piata_v1_0.pine` — regimul cu vârstă (EMA50+pantă 5, tânăr <14 bare), deviația
+  z-score 200 (siguranță/întins/extrem cu semn), locația în canalul de 288 — ca 3 algoritmi în registru.
+- Rezultat: direcția — nimic; mișcarea — locația ×10, regimul ×4,2, deviația ×3,7 peste noroc (p=0,024).
+- ⛔ NU se pot porta: motorul funding+OI din STARE și tot POSIT-ul (premium, OI, prețul mulțimii) — cer
+  istoricul perpetualului pe ani; Binance dă OI doar 30 de zile. Scris în cod de ce.
