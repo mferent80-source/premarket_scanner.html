@@ -4369,7 +4369,9 @@ manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in In
   × {1h,4h} × 40 rotații, pe direcție și pe mișcare, scrie `rezultat-algoritmi.json` →
   `scrie-laborator.ts` → constanta `laborator.ts` din ecran. `masuraAlgoritmi.ts` + fereastra
   „Ce mai zic celelalte algoritme” (al doilea mesaj al lucrătorului, după verdict).
-- Rezultat (12 rotații, 17.09): direcția — nimic, la toți; mișcarea — randament ×8,5, ema200
-  ×6,3, stoch ×4,9, scor ×16,8 peste noroc, dar p-ul minim cu 12 rotații e 0,077 ⇒ reluat cu 40.
+- Rezultat (40 rotații, 17.09, `f84c13f`): DIRECȚIA — niciunul din 10 (cel mai bun EMA200 ×2,9,
+  p=0,10). MIȘCAREA — 7 din 10 bat norocul, p=0,024: scor ×14, stoch ×6,9, randament ×5,9,
+  ema200 ×5,6, volum ×4,0, volatilitate ×3,2, macd ×3,1. RPP (AlgoAlpha), Bollinger, ora: nu.
+  Cu 12 rotații p-ul minim e 0,077 — proba nu putea spune „da” ⇒ rotațiile sunt argument (40).
 - Fișiere: src/motor/algoritmi.ts, reversal.ts, masuraAlgoritmi.ts, laborator.ts (generat),
   lucrator.ts, src/ui/Algoritmi.tsx, probe/algoritmi.ts, scrie-laborator.ts, masura-algoritmi.ts.
