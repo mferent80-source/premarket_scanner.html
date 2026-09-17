@@ -3146,6 +3146,7 @@ pe un singur chart.
 | I-438 | Busola 1.2.0: se actualizează singură pe telefon, urcarea în KV cu 3 încercări + token, sarcina recuperează rulările, Factor Lab ține minte | Busola (infra) | M | P1 | facut | user | 2026-09-17 |
 | I-439 | Busola 1.3.0: Volume Delta [hapharmonic] portat exact, BUY/SELL pe grafic + „ce au valorat”; badge de versiune mereu vizibil | Busola (Măsura) | M | P2 | facut | user | 2026-09-17 |
 | I-440 | Busola 1.4.0: Confluence Scorer v1.4 PRO portat, fereastră cu dashboard-ul lui + ce au valorat semnalele și tracker-ul | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
+| I-441 | Busola 1.5.0: Trend Path Desk v1.7 auditat sever și portat, fereastră cu dashboard-ul lui + verificarea afirmațiilor (calibrare, ETA, STOP REF) | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4489,3 +4490,18 @@ motor × TF × H × univers, cu citirea din pagina lui.
 - Rezultat: după BUY/SELL trece 1 din 32 (noroc ~1,6); tracker 16/16 „n-am aflat” (pe 4h +0,04…+0,19R, IC cu
   zero); laborator: direcția ×3,2 p=0,17 (semnal), ×0,8 (Net Bias); mișcarea ×8,1 și ×5,8 (p=0,024).
 - Lipsesc intenționat: HTF filter (OFF implicit la el), gating Nasdaq (Busola e doar crypto).
+
+#### I-441 · Trend Path Desk v1.7: audit sever + integrare în Busola · [L] · P2 · facut
+- Cererea lui: „auditează sever scriptul ăsta și integrează în Busola". Textul lipit era v1.7 (tăiat la alerte);
+  canonic pe disc e v1.14 — fiecare problemă are starea ei față de v1.14.
+- Soluția (`8f61a7d`): port pe bare închise (`motor/trendPath.ts`) cu două reparații v1.14 aplicate și scrise pe
+  ecran (curDur și prețul pe același moment; ADD? doar cu HTF confirmat pozitiv), HTF agregat cauzal din aceeași
+  istorie. Fereastra `ui/TrendPath.tsx`: dashboard-ul lui (trend, CONF, REF MGMT, până la flip, rămas preț, STOP REF,
+  HTF, timp/preț, întoarceri, ce urmează) plus ce nu verifică el. Algoritmii `path-decizie` și `path-faza` în laborator,
+  card în „Măsurat", raport în `pine-scripts/TREND-PATH-DESK/AUDIT-2026-09-17-v1_7.md`.
+- Rezultat (8 monede × {1h, 4h}, walk-forward): „Continuă ~X%" nimerește mai prost decât rata de bază pe 15/16;
+  „peste medie / zonă rară" pe ~38% din bare, dar trendul a mai ținut în mediană 31–42 de bare; STOP REF (MAE mediu)
+  ar fi scos 38–48% din runurile bune; amplitudinea și MFE sunt aceeași cifră pe toate leg-urile. Prin moară trec
+  4 etichete din 256. Laborator: direcția ×0,9 și ×1,0 (noroc), mișcarea ×2,3 și ×2,0 (p = 0,024).
+- Propuneri pentru o v1.15 (în raport): ETA condiționată, STOP REF pe percentila 80–90, minim de runuri la risc,
+  MFE de la bara de după confirmare, `table.clear`, HTF cu `[1]` + `lookahead_on`.
