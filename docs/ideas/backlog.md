@@ -3140,11 +3140,12 @@ pe un singur chart.
 | I-432 | STARE portat ca etichete (regim cu vârstă, z-score, locație); POSIT NU se poate (cere istoric perp) | Busola (motor) | M | P2 | facut | ideation | 2026-09-17 |
 | I-433 | Factor Lab în Busola: motorul v10 portat formulă cu formulă (paritate 13/13), pe Pionex top 100, fila nouă | Busola (Factor Lab) | L | P1 | facut | user | 2026-09-17 |
 | I-434 | Factor Lab: lichiditatea Pionex lângă coin + AMBELE motoare (vechi din scurtătură, v10), bara în curs ca în pagină | Busola (Factor Lab) | M | P1 | facut | user | 2026-09-17 |
-| I-435 | Factor Lab: selector de univers ca în pagină (150 Pionex, top 50 automat, listă proprie) pe lângă Pionex top 100 | Busola (Factor Lab) | S | P2 | propus | ideation | 2026-09-17 |
-| I-436 | Factor Lab: rândul de sub verdict spune și CARE coinuri diferă între motoare, nu doar câte | Busola (Factor Lab) | S | P3 | propus | ideation | 2026-09-17 |
-| I-437 | Factor Lab: istoricul rulărilor grupat pe motor × TF × orizont (t-ul naiv nu se amestecă cu cel clusterizat) | Busola (Factor Lab) | M | P2 | propus | ideation | 2026-09-17 |
+| I-435 | Factor Lab: selector de univers ca în pagină (150 Pionex, top 50 automat, listă proprie) pe lângă Pionex top 100 | Busola (Factor Lab) | S | P2 | facut | ideation | 2026-09-17 |
+| I-436 | Factor Lab: rândul de sub verdict spune și CARE coinuri diferă între motoare, nu doar câte | Busola (Factor Lab) | S | P3 | facut | ideation | 2026-09-17 |
+| I-437 | Factor Lab: istoricul rulărilor grupat pe motor × TF × orizont (t-ul naiv nu se amestecă cu cel clusterizat) | Busola (Factor Lab) | M | P2 | facut | ideation | 2026-09-17 |
 | I-438 | Busola 1.2.0: se actualizează singură pe telefon, urcarea în KV cu 3 încercări + token, sarcina recuperează rulările, Factor Lab ține minte | Busola (infra) | M | P1 | facut | user | 2026-09-17 |
 | I-439 | Busola 1.3.0: Volume Delta [hapharmonic] portat exact, BUY/SELL pe grafic + „ce au valorat”; badge de versiune mereu vizibil | Busola (Măsura) | M | P2 | facut | user | 2026-09-17 |
+| I-440 | Busola 1.4.0: Confluence Scorer v1.4 PRO portat, fereastră cu dashboard-ul lui + ce au valorat semnalele și tracker-ul | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4436,19 +4437,19 @@ manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in In
 - Fișiere: src/motor/factorLab.ts, lucratorFactorLab.ts, pionexTop100.ts, src/depozit/factorLab.ts,
   src/ui/FactorLab.tsx, cron/pionex.ts, cron/masoara.ts, probe/factor-lab.ts (--vechi), factor-lab-coinuri.ts.
 
-#### I-435 · Factor Lab: selector de univers ca în pagină · [S] · P2 · propus
+#### I-435 · Factor Lab: selector de univers ca în pagină · [S] · P2 · facut
 - Problema: el vede 5 coinuri în pagina lui (univers top 50 automat / PIONEX150) și 3 în Busola (Pionex
   top 100); diferența e de univers, nu de motor, dar trebuie să se vadă în aceeași filă.
 - Soluția: selector „univers”: Pionex top 100 (implicit) · 150 Pionex (lista fixă din v10) · top 50/30
   automat după volum Binance ∩ Pionex · listă proprie. Universul intră în cheia rezultatului.
 - Fișiere: src/depozit/factorLab.ts, src/ui/FactorLab.tsx, src/motor/pionexTop100.ts (+ PIONEX150).
 
-#### I-436 · Care coinuri diferă între motoare · [S] · P3 · propus
+#### I-436 · Care coinuri diferă între motoare · [S] · P3 · facut
 - Problema: rândul de sub HERO spune „celălalt motor: X trece · N coinuri”, nu și CARE sunt.
 - Soluția: lucrătorul întoarce și lista celuilalt motor; rândul scrie „în plus la v10: …, în minus: …”.
 - Fișiere: src/motor/lucratorFactorLab.ts, src/ui/FactorLab.tsx.
 
-#### I-437 · Istoricul rulărilor pe motor × TF × orizont · [M] · P2 · propus
+#### I-437 · Istoricul rulărilor pe motor × TF × orizont · [M] · P2 · facut
 - Problema: pagina lui avea istoric de rulări (singura probă out-of-sample); Busola n-are încă, iar cu
   două motoare un „3/3” ar amesteca t-ul naiv cu cel clusterizat.
 - Soluția: raft în IndexedDB cu (la, motor, TF, H, univers, rows{k,t,edge,trece}); panou „Cum s-au
@@ -4473,3 +4474,18 @@ manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in In
   algoritmii vd-semnal și vd-delta în laborator. Semnalul nu intră în verdict.
 - Rezultat: după BUY/SELL ținta nu trece pe 0 din 16 (8 monede × 1h/4h); laborator: direcția ×0,9
   (noroc), mișcarea ×3,1 (p=0,024); „cumpărare/vânzare” nu vede nimic. Plus badge v1.3.0 mereu vizibil.
+
+### Status update 2026-09-17 seara — I-435, I-436, I-437 FACUTE (cerere „fa cele propuse”), Busola 1.4.0 `6297820`
+I-435 universul ca în pagina v10 (listele generate din fișierul lui: PIONEX set, PIONEX150, SKIP, NOT_STOCK) ·
+I-436 „doar la motorul vechi: AVA ↑, KSM ↑” pe ecran · I-437 istoricul rulărilor în IndexedDB, grupat pe
+motor × TF × H × univers, cu citirea din pagina lui.
+
+#### I-440 · Confluence Scorer v1.4 PRO în Busola · [L] · P2 · facut
+- Cererea lui: „integrează într-o fereastră și scriptul ăsta”.
+- Soluția (`6297820`): port din Pine cu primitivele documentate; probă: RSI și ADX identice cu motorul Busolei,
+  marginea / cooldown / clasele / tracker-ul verificate pe toată istoria, stricare pe prag. Fereastra pe Măsura:
+  dashboard-ul lui, ultimul semnal cu SL/TP, poziția tracker-ului cu R live, „după BUY/SELL”, pe clase, tracker-ul
+  pe istorie cu IC și comision; etichete B7/S10 pe grafic. Algoritmii cs-semnal și cs-net în laborator.
+- Rezultat: după BUY/SELL trece 1 din 32 (noroc ~1,6); tracker 16/16 „n-am aflat” (pe 4h +0,04…+0,19R, IC cu
+  zero); laborator: direcția ×3,2 p=0,17 (semnal), ×0,8 (Net Bias); mișcarea ×8,1 și ×5,8 (p=0,024).
+- Lipsesc intenționat: HTF filter (OFF implicit la el), gating Nasdaq (Busola e doar crypto).
