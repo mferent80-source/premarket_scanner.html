@@ -3144,6 +3144,7 @@ pe un singur chart.
 | I-436 | Factor Lab: rândul de sub verdict spune și CARE coinuri diferă între motoare, nu doar câte | Busola (Factor Lab) | S | P3 | propus | ideation | 2026-09-17 |
 | I-437 | Factor Lab: istoricul rulărilor grupat pe motor × TF × orizont (t-ul naiv nu se amestecă cu cel clusterizat) | Busola (Factor Lab) | M | P2 | propus | ideation | 2026-09-17 |
 | I-438 | Busola 1.2.0: se actualizează singură pe telefon, urcarea în KV cu 3 încercări + token, sarcina recuperează rulările, Factor Lab ține minte | Busola (infra) | M | P1 | facut | user | 2026-09-17 |
+| I-439 | Busola 1.3.0: Volume Delta [hapharmonic] portat exact, BUY/SELL pe grafic + „ce au valorat”; badge de versiune mereu vizibil | Busola (Măsura) | M | P2 | facut | user | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4464,3 +4465,11 @@ manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in In
   Factor Lab în IndexedDB (proaspăt 4 h). Măsurare rulată manual 18:56: KV cu lista Pionex și 119 linii.
 - Rămas la el: token API Cloudflare (opțional) · „Run as administrator” pe INSTALEAZA-MASURAREA.bat ca
   sarcina să ruleze și deconectat · alerta pe telefon închis cere push (server/Telegram) — nefăcut.
+
+#### I-439 · Volume Delta [hapharmonic] în Busola · [M] · P2 · facut
+- Cererea lui: „integrează și indicatorul ăsta, să dea semnale de buy sau sell, sau vezi tu cum ar merge”.
+- Soluția (`7c2bd9d`): port exact din Pine (replica naivă identică bară cu bară), fereastră pe Măsura cu
+  ultimul semnal și „după BUY / după SELL” (n, IC, bază, prag ⇒ AJUTĂ / NU AJUTĂ), triunghiuri pe grafic,
+  algoritmii vd-semnal și vd-delta în laborator. Semnalul nu intră în verdict.
+- Rezultat: după BUY/SELL ținta nu trece pe 0 din 16 (8 monede × 1h/4h); laborator: direcția ×0,9
+  (noroc), mișcarea ×3,1 (p=0,024); „cumpărare/vânzare” nu vede nimic. Plus badge v1.3.0 mereu vizibil.
