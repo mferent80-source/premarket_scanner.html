@@ -3129,11 +3129,11 @@ pe un singur chart.
 | I-421 | Jurnal de evenimente append-only al executiei; starea derivata din el | Paznic (executie) | L | P3 | facut | ideation | 2026-09-06 |
 | I-422 | Limitele OMULUI, scrise de el, oglindite pe ecran (nu-l opresc) | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
 | I-423 | Copia de siguranta zilnica a Paznicului pe E:, sarcina automata | Paznic (infra) | S | P2 | facut | ideation | 2026-09-06 |
-| I-424 | Jurnalul se umple și se închide pentru TOATE monedele urmărite, nu doar cea de pe ecran | Busola (jurnal) | M | P1 | propus | ideation | 2026-09-17 |
-| I-425 | Busola măsoară și când nimeni nu se uită: cron pe Worker + KV, hartă și jurnal comune pe toate dispozitivele | Busola (infra) | L | P1 | propus | ideation | 2026-09-17 |
-| I-426 | „Urmează liniște" tradus în fișă de grid: canal, pas, câte grile, cât ține | Busola (Măsura) | M | P2 | propus | ideation | 2026-09-17 |
-| I-427 | Se instalează pe telefon (manifest + service worker) cu bandă de vârstă a datelor | Busola (PWA) | S | P2 | propus | ideation | 2026-09-17 |
-| I-428 | Harta ține minte: rezultatul salvat cu ora lui, instant la deschidere, „ce s-a aprins de la ultima dată" | Busola (Harta) | S | P3 | propus | ideation | 2026-09-17 |
+| I-424 | Jurnalul se umple și se închide pentru TOATE monedele urmărite, nu doar cea de pe ecran | Busola (jurnal) | M | P1 | facut | ideation | 2026-09-17 |
+| I-425 | Busola măsoară și când nimeni nu se uită: cron pe Worker + KV, hartă și jurnal comune pe toate dispozitivele | Busola (infra) | L | P1 | facut | ideation | 2026-09-17 |
+| I-426 | „Urmează liniște" tradus în fișă de grid: canal, pas, câte grile, cât ține | Busola (Măsura) | M | P2 | facut | ideation | 2026-09-17 |
+| I-427 | Se instalează pe telefon (manifest + service worker) cu bandă de vârstă a datelor | Busola (PWA) | S | P2 | facut | ideation | 2026-09-17 |
+| I-428 | Harta ține minte: rezultatul salvat cu ora lui, instant la deschidere, „ce s-a aprins de la ultima dată" | Busola (Harta) | S | P3 | facut | ideation | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4277,7 +4277,7 @@ de făcut pe Pionex; Designer — verdictul e limpede, dar „când nu te uiți"
 Inginer — jurnalul și harta trăiesc doar în tabul deschis, în localStorage-ul unui singur
 dispozitiv; Automator — nimic nu rulează fără om, deși motorul e pur și merge în Node.
 
-#### I-424 · Jurnalul pentru TOATE monedele urmărite · [M] · P1 · propus
+#### I-424 · Jurnalul pentru TOATE monedele urmărite · [M] · P1 · facut
 - Problema: `scrieInJurnalDacaECazul` se cheamă doar din `App.tsx` pe (simbol, interval)
   de pe ecran, iar `inchideScadente` doar din `folosesteAnaliza` pe aceeași pereche. O linie
   pe SOL 1h se închide DOAR dacă el revine pe SOL 1h. Direcția aproape nu scrie nimic, deci
@@ -4292,7 +4292,7 @@ dispozitiv; Automator — nimic nu rulează fără om, deși motorul e pur și m
 - Fișiere: src/ui/scrieInJurnal.ts, src/depozit/jurnal.ts, src/ui/folosesteMtf.ts,
   src/motor/lucratorMtf.ts, src/ui/Jurnal.tsx.
 
-#### I-425 · Busola măsoară și când nimeni nu se uită · [L] · P1 · propus
+#### I-425 · Busola măsoară și când nimeni nu se uită · [L] · P1 · facut
 - Problema: totul rulează în browser cât e tabul deschis. Jurnalul e în localStorage
   (`busola-desk`) ⇒ telefonul și PC-ul au două jurnale diferite, harta se reface de la zero
   (30 monede × 200 bootstrap × 12 rotații) la fiecare deschidere.
@@ -4310,7 +4310,7 @@ dispozitiv; Automator — nimic nu rulează fără om, deși motorul e pur și m
 - Fișiere: wrangler.jsonc, src/motor/* (neatins), un `cron/masoara.ts` nou, src/ui/Harta.tsx,
   src/depozit/jurnal.ts.
 
-#### I-426 · „Urmează liniște" tradus în fișă de grid · [M] · P2 · propus
+#### I-426 · „Urmează liniște" tradus în fișă de grid · [M] · P2 · facut
 - Problema: singurul lucru dovedit (10/10, ×3–4 peste noroc, p=0,048 la orice bloc) e că
   prețul STĂ sau PLEACĂ din canalul ±2×ATR în 12 bare. Ecranul îl arată ca dreptunghi și
   propoziție; el tranzacționează pe Pionex cu boți de grid, și nu există puntea.
@@ -4325,7 +4325,7 @@ dispozitiv; Automator — nimic nu rulează fără om, deși motorul e pur și m
 - Fișiere: src/ui/FereastraMiscare.tsx, src/motor/pePamant.ts, src/depozit/magazin.ts
   (intrarea de jurnal), src/depozit/jurnal.ts.
 
-#### I-427 · Se instalează pe telefon · [S] · P2 · propus
+#### I-427 · Se instalează pe telefon · [S] · P2 · facut
 - Problema: `index.html` n-are manifest, nu există service worker ⇒ pe telefon e un tab,
   nu o aplicație; fără semnal nu se deschide deloc. Panoul lui Paznic se instalează și
   merge fără semnal — Busola, care a fost publicată tocmai ca să meargă de oriunde, nu.
@@ -4340,7 +4340,7 @@ dispozitiv; Automator — nimic nu rulează fără om, deși motorul e pur și m
 - Fișiere: index.html, public/manifest.webmanifest (nou), src/sw.ts (nou), vite.config.ts,
   PUBLICA-BUSOLA.bat.
 
-#### I-428 · Harta ține minte · [S] · P3 · propus
+#### I-428 · Harta ține minte · [S] · P3 · facut
 - Problema: `Harta.tsx` ține celulele în `useState`; la schimbarea filei sau la reîncărcare
   se pierd și se refac în minute. Nu există „ce s-a aprins de la ultima dată" — exact
   întrebarea de dimineață.
@@ -4350,3 +4350,10 @@ dispozitiv; Automator — nimic nu rulează fără om, deși motorul e pur și m
 - Impact: harta devine un ecran de revenit, nu un calcul de pornit.
 - Riscuri: dacă se face I-425, asta devine doar cache-ul local al KV-ului.
 - Fișiere: src/ui/Harta.tsx, src/depozit/istoric.ts (un raft nou), src/motor/lucratorHarta.ts.
+
+### Status update 2026-09-17 — I-424..I-428 FACUTE (cerere „fa tot”), Busola 1.1.0
+I-424 lucrator la 15 min pe watchlist x 4 intervale (+ bug: shortul se inchidea cu barierele
+longului, prins de probe/jurnal.ts) · I-425 masurat: Binance 403 de la marginea Cloudflare, CPU
+1102 => cron pe PC (sarcina „Busola Masoara”, 4h) + KV + /api/masurat.json; prima masurare 708 s,
+44 linii, 0 erori · I-426 fisa de grid (pas 0,5xATR IPOTEZA, comision 0,05%/umplere) · I-427
+manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in IndexedDB + diff.
