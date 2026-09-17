@@ -3129,6 +3129,11 @@ pe un singur chart.
 | I-421 | Jurnal de evenimente append-only al executiei; starea derivata din el | Paznic (executie) | L | P3 | facut | ideation | 2026-09-06 |
 | I-422 | Limitele OMULUI, scrise de el, oglindite pe ecran (nu-l opresc) | Paznic (panou) | S | P2 | facut | ideation | 2026-09-06 |
 | I-423 | Copia de siguranta zilnica a Paznicului pe E:, sarcina automata | Paznic (infra) | S | P2 | facut | ideation | 2026-09-06 |
+| I-424 | Jurnalul se umple și se închide pentru TOATE monedele urmărite, nu doar cea de pe ecran | Busola (jurnal) | M | P1 | propus | ideation | 2026-09-17 |
+| I-425 | Busola măsoară și când nimeni nu se uită: cron pe Worker + KV, hartă și jurnal comune pe toate dispozitivele | Busola (infra) | L | P1 | propus | ideation | 2026-09-17 |
+| I-426 | „Urmează liniște" tradus în fișă de grid: canal, pas, câte grile, cât ține | Busola (Măsura) | M | P2 | propus | ideation | 2026-09-17 |
+| I-427 | Se instalează pe telefon (manifest + service worker) cu bandă de vârstă a datelor | Busola (PWA) | S | P2 | propus | ideation | 2026-09-17 |
+| I-428 | Harta ține minte: rezultatul salvat cu ora lui, instant la deschidere, „ce s-a aprins de la ultima dată" | Busola (Harta) | S | P3 | propus | ideation | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4265,3 +4270,83 @@ in aceeasi tura:
 Pe drum: garda sarcinilor rescrisa a 3-a oara pe REGULA (lacatul), nu pe nume;
 crash `rv` in ramura limit prins fiindca „rezultatul identic" era raportul VECHI de
 pe disc — raportul se citeste dupa `->` al procesului, nu dupa intoarcerea shellului.
+
+### Ideation 2026-09-17 — Busola (tool): I-424..I-428
+Lentile: Trader — singurul semnal dovedit (mișcarea, ×3–4 peste noroc) nu e tradus în ceva
+de făcut pe Pionex; Designer — verdictul e limpede, dar „când nu te uiți" nu există nimic;
+Inginer — jurnalul și harta trăiesc doar în tabul deschis, în localStorage-ul unui singur
+dispozitiv; Automator — nimic nu rulează fără om, deși motorul e pur și merge în Node.
+
+#### I-424 · Jurnalul pentru TOATE monedele urmărite · [M] · P1 · propus
+- Problema: `scrieInJurnalDacaECazul` se cheamă doar din `App.tsx` pe (simbol, interval)
+  de pe ecran, iar `inchideScadente` doar din `folosesteAnaliza` pe aceeași pereche. O linie
+  pe SOL 1h se închide DOAR dacă el revine pe SOL 1h. Direcția aproape nu scrie nimic, deci
+  jurnalul se umple din „mișcare" pe o singură monedă: calibrarea (Brier, 20 linii minim)
+  nu ajunge niciodată la n.
+- Soluția: la fiecare lumânare închisă, lucrătorul MTF/hartă scrie liniile pentru watchlist
+  × cele 4 intervale și închide scadentele din istoricul deja în IndexedDB (fără cereri în
+  plus). Fila Jurnal arată „câte linii pe câte monede" ca să se vadă că se umple.
+- Impact: bucla „Busola se notează singură" devine reală; fără asta banda roșie de sus nu
+  se aprinde niciodată, oricât ar minți procentele.
+- Riscuri: pe 15m se scriu multe linii; plafon pe număr (ultimele 2.000) și pe monede.
+- Fișiere: src/ui/scrieInJurnal.ts, src/depozit/jurnal.ts, src/ui/folosesteMtf.ts,
+  src/motor/lucratorMtf.ts, src/ui/Jurnal.tsx.
+
+#### I-425 · Busola măsoară și când nimeni nu se uită · [L] · P1 · propus
+- Problema: totul rulează în browser cât e tabul deschis. Jurnalul e în localStorage
+  (`busola-desk`) ⇒ telefonul și PC-ul au două jurnale diferite, harta se reface de la zero
+  (30 monede × 200 bootstrap × 12 rotații) la fiecare deschidere.
+- Soluția: Worker-ul care găzduiește deja Busola primește `triggers.crons` (la fiecare 4h)
+  + un KV; rulează motorul pur (`analizeaza`, dovedit că merge în Node prin `probe/`) pe
+  30 monede × 4 intervale, scrie `harta.json` + liniile de jurnal + închiderile. Aplicația
+  citește KV-ul la deschidere și arată banda de vârstă („măsurat acum 2h"); dacă KV-ul tace,
+  socotește local ca acum.
+- Impact: jurnal UNIC pe toate dispozitivele, hartă instant, Busola se notează singură și
+  cu telefonul închis. Cuprinde I-424 și I-428 dacă se face.
+- Riscuri/dependențe: ⚠️ NEMĂSURAT dacă Binance răspunde de la marginea Cloudflare (cron-ul
+  nu rulează din România; `tt-proxy` NU atinge Binance, verificat 17.09). Pasul 0 e un worker
+  de 5 linii care face un fetch și tipărește codul. Dacă e blocat: cronul rulează de pe PC-ul
+  Paznicului (care oricum e pornit) și urcă în KV cu `wrangler kv`, cu bandă de vârstă.
+- Fișiere: wrangler.jsonc, src/motor/* (neatins), un `cron/masoara.ts` nou, src/ui/Harta.tsx,
+  src/depozit/jurnal.ts.
+
+#### I-426 · „Urmează liniște" tradus în fișă de grid · [M] · P2 · propus
+- Problema: singurul lucru dovedit (10/10, ×3–4 peste noroc, p=0,048 la orice bloc) e că
+  prețul STĂ sau PLEACĂ din canalul ±2×ATR în 12 bare. Ecranul îl arată ca dreptunghi și
+  propoziție; el tranzacționează pe Pionex cu boți de grid, și nu există puntea.
+- Soluția: la `liniste`, fereastra Mișcarea scrie fișa: canal jos–sus în dolari, cât ține
+  (12 bare = X ore), pasul de grilă propus (o fracție din ATR) și câte grile încap; la
+  `miscare`, scrie explicit „nu porni grid aici, oprește-l dacă rulează". Jurnalul notează
+  pentru fiecare linie de mișcare și „câte grile ar fi fost atinse" din barele de după.
+- Impact: semnalul dovedit devine o acțiune; jurnalul măsoară dacă acțiunea a meritat.
+- Riscuri: pasul de grilă e IPOTEZĂ — se validează pe liniile închise (n≥30 pe regim),
+  nu se livrează ca „optim". Costul per tranzacție pe grid domină la pas mic: fișa scrie
+  comisionul Pionex pe fiecare grilă lângă câștigul așteptat, altfel e ficțiune.
+- Fișiere: src/ui/FereastraMiscare.tsx, src/motor/pePamant.ts, src/depozit/magazin.ts
+  (intrarea de jurnal), src/depozit/jurnal.ts.
+
+#### I-427 · Se instalează pe telefon · [S] · P2 · propus
+- Problema: `index.html` n-are manifest, nu există service worker ⇒ pe telefon e un tab,
+  nu o aplicație; fără semnal nu se deschide deloc. Panoul lui Paznic se instalează și
+  merge fără semnal — Busola, care a fost publicată tocmai ca să meargă de oriunde, nu.
+- Soluția: manifest + service worker minimal (coaja aplicației în cache, datele nu);
+  fără rețea, ecranul arată ultima analiză din IndexedDB cu banda „socotit la HH:MM,
+  fără legătură acum". Alerta rămâne doar cu pagina deschisă (nu există server de push) —
+  se scrie asta pe ecran, nu se promite altceva.
+- Impact: o apăsare pe telefon, nu o adresă tastată; verdictul de dinainte de a pierde
+  semnalul rămâne vizibil.
+- Riscuri: capcana cunoscută a cheii de invalidare din bucla de update a SW (vezi memoria
+  `feedback_bucla_update_sw`) — versiunea în numele cache-ului, la fiecare publicare.
+- Fișiere: index.html, public/manifest.webmanifest (nou), src/sw.ts (nou), vite.config.ts,
+  PUBLICA-BUSOLA.bat.
+
+#### I-428 · Harta ține minte · [S] · P3 · propus
+- Problema: `Harta.tsx` ține celulele în `useState`; la schimbarea filei sau la reîncărcare
+  se pierd și se refac în minute. Nu există „ce s-a aprins de la ultima dată" — exact
+  întrebarea de dimineață.
+- Soluția: celulele + ora măsurării în IndexedDB, pe (interval, t ultimei bare); la
+  deschidere se arată instant cu banda de vârstă, iar deasupra grilei: „față de măsurarea
+  de la HH:MM: s-au aprins X, s-au stins Y". Butonul „Măsoară din nou" rămâne.
+- Impact: harta devine un ecran de revenit, nu un calcul de pornit.
+- Riscuri: dacă se face I-425, asta devine doar cache-ul local al KV-ului.
+- Fișiere: src/ui/Harta.tsx, src/depozit/istoric.ts (un raft nou), src/motor/lucratorHarta.ts.
