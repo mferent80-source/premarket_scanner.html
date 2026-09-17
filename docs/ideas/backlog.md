@@ -3139,6 +3139,7 @@ pe un singur chart.
 | I-431 | Scorul ca al doilea martor în fișa de grid (confirmă / contrazice / nu se pronunță) | Busola (Măsura) | M | P2 | facut | ideation | 2026-09-17 |
 | I-432 | STARE portat ca etichete (regim cu vârstă, z-score, locație); POSIT NU se poate (cere istoric perp) | Busola (motor) | M | P2 | facut | ideation | 2026-09-17 |
 | I-433 | Factor Lab în Busola: motorul v10 portat formulă cu formulă (paritate 13/13), pe Pionex top 100, fila nouă | Busola (Factor Lab) | L | P1 | facut | user | 2026-09-17 |
+| I-434 | Factor Lab: lichiditatea Pionex lângă coin + AMBELE motoare (vechi din scurtătură, v10), bara în curs ca în pagină | Busola (Factor Lab) | M | P1 | facut | user | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4415,3 +4416,17 @@ manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in In
   +2,04%) — capcana din 27.08, acum cu semnul corect; niciun coin activ pe ultima bară.
 - Fișiere: src/motor/factorLab.ts, lucratorFactorLab.ts, pionexTop100.ts, src/depozit/factorLab.ts,
   src/ui/FactorLab.tsx, cron/pionex.ts, probe/factor-lab.ts.
+
+#### I-434 · Factor Lab: lichiditatea Pionex + ambele motoare · [M] · P1 · facut
+- Cererea lui: ideea 3 (lichiditatea), apoi: „sunt 5 coinuri active acum pe Factor Lab… ți-am spus să
+  integrezi fără să modifici nimic”. Măsurat cu originalele lui rulate în Node pe același univers:
+  copia VECHE (19.08, scurtătura) validează „reversal după 3 roșii” cu t naiv 10,97 ⇒ coinuri; v10
+  (27.08) cu t clusterizat dă −0,66 pe același factor ⇒ 0 coinuri. Diferența e de VERSIUNE, nu de port.
+- Soluția: `runBankVechi` portat la fel de exact (ATR pe sma, treimi pe barele simbolului, t naiv,
+  robustețe pe stat plat) — paritate 13/13 cu copia din C:; comutator „motor” în filă, implicit
+  VECHI (cel din scurtătură), iar rândul de sub HERO scrie ce dă celălalt motor pe aceleași bare.
+  Bara ÎN CURS adăugată (pagina lui cere `klines?limit=1000` direct; Busola o arunca din istoric).
+  Lichiditate: `cron/pionex.ts` + snapshot dau volumul 24h Pionex; coloana „Pionex 24h” pe coinuri
+  cu regula lui pxLiq (sub 25k subțire, sub 100k moderat) și lista universului cu volumele.
+- Fișiere: src/motor/factorLab.ts, lucratorFactorLab.ts, pionexTop100.ts, src/depozit/factorLab.ts,
+  src/ui/FactorLab.tsx, cron/pionex.ts, cron/masoara.ts, probe/factor-lab.ts (--vechi), factor-lab-coinuri.ts.
