@@ -3138,6 +3138,7 @@ pe un singur chart.
 | I-430 | Găleata combinată stare × algoritm — măsurat: NU adaugă (×2,5 față de ×4,0 singuri) | Busola (motor+Măsura) | S | P2 | facut | ideation | 2026-09-17 |
 | I-431 | Scorul ca al doilea martor în fișa de grid (confirmă / contrazice / nu se pronunță) | Busola (Măsura) | M | P2 | facut | ideation | 2026-09-17 |
 | I-432 | STARE portat ca etichete (regim cu vârstă, z-score, locație); POSIT NU se poate (cere istoric perp) | Busola (motor) | M | P2 | facut | ideation | 2026-09-17 |
+| I-433 | Factor Lab în Busola: motorul v10 portat formulă cu formulă (paritate 13/13), pe Pionex top 100, fila nouă | Busola (Factor Lab) | L | P1 | facut | user | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4399,3 +4400,18 @@ manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in In
 - Rezultat: direcția — nimic; mișcarea — locația ×10, regimul ×4,2, deviația ×3,7 peste noroc (p=0,024).
 - ⛔ NU se pot porta: motorul funding+OI din STARE și tot POSIT-ul (premium, OI, prețul mulțimii) — cer
   istoricul perpetualului pe ani; Binance dă OI doar 30 de zile. Scris în cod de ce.
+
+#### I-433 · Factor Lab în Busola, pe Pionex top 100 · [L] · P1 · facut
+- Cererea lui: „integrezi logica de aici fără să schimbi nimic, doar Pionex top 100, o fereastră nouă”
+  (scurtătura Factor-Lab.lnk → C:\Users\Cimin\Factor-Lab.html din 19.08, copia VECHE cu t naiv).
+- Soluția: portat `G:\Contul meu Drive\Factor-Lab.html` (v10, 27.08 — cel reparat: t clusterizat
+  Newey-West, semnul care decide e cel clusterizat) în `motor/factorLab.ts`, formulă cu formulă, cu
+  indicatorii LUI (nu cei din Busola). `probe/factor-lab.ts` evaluează originalul în Node pe aceleași
+  bare și compară rând cu rând: 13/13 identice. Universul: Pionex tickers PERP+SPOT (volum 24h) ∩
+  Binance spot, top 100 — Pionex n-are CORS ⇒ snapshot `pionexTop100.ts` + lista vie din măsurarea
+  de pe PC (`cron/pionex.ts` → masurat.json). Fila „Factor Lab”: regim, HERO+CE FAC, tabel, coinuri,
+  de ce niciun coin, confluență; lucrător cu barele în memorie; TF/orizont/cost ca în pagină.
+- Rezultat 17.09 (1d, H=5, 98 monede): RSI<30 TRECE INVERSAT (t=−4,06, edge riguros −1,52% vs brut
+  +2,04%) — capcana din 27.08, acum cu semnul corect; niciun coin activ pe ultima bară.
+- Fișiere: src/motor/factorLab.ts, lucratorFactorLab.ts, pionexTop100.ts, src/depozit/factorLab.ts,
+  src/ui/FactorLab.tsx, cron/pionex.ts, probe/factor-lab.ts.
