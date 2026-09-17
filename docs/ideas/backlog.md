@@ -3143,6 +3143,7 @@ pe un singur chart.
 | I-435 | Factor Lab: selector de univers ca în pagină (150 Pionex, top 50 automat, listă proprie) pe lângă Pionex top 100 | Busola (Factor Lab) | S | P2 | propus | ideation | 2026-09-17 |
 | I-436 | Factor Lab: rândul de sub verdict spune și CARE coinuri diferă între motoare, nu doar câte | Busola (Factor Lab) | S | P3 | propus | ideation | 2026-09-17 |
 | I-437 | Factor Lab: istoricul rulărilor grupat pe motor × TF × orizont (t-ul naiv nu se amestecă cu cel clusterizat) | Busola (Factor Lab) | M | P2 | propus | ideation | 2026-09-17 |
+| I-438 | Busola 1.2.0: se actualizează singură pe telefon, urcarea în KV cu 3 încercări + token, sarcina recuperează rulările, Factor Lab ține minte | Busola (infra) | M | P1 | facut | user | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4452,3 +4453,14 @@ manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in In
 - Soluția: raft în IndexedDB cu (la, motor, TF, H, univers, rows{k,t,edge,trece}); panou „Cum s-au
   ținut verdictele în timp”, grupat pe (motor/TF/H), cu câte zile s-au întins rulările.
 - Fișiere: src/depozit/istoric.ts (raft nou), src/depozit/factorLab.ts, src/ui/FactorLab.tsx.
+
+#### I-438 · Busola 1.2.0 — „repară tot și publică varianta finală” · [M] · P1 · facut
+- Diagnostic (întrebarea lui „se updatează singură app? și pe telefon?”): pe telefon aplicația stă în
+  fundal și nu se reîncarcă; rularea programată de la 12:05 a picat la urcare (401 la refresh OAuth);
+  sarcina e „Interactive only”; Factor Lab uita rezultatul la reîncărcare; Safari șterge datele după 7 zile.
+- Făcut (`464b165`): verificare de versiune la revenirea pe ecran + reîncărcare singură / bandă
+  „Reîncarcă” (doar pentru SW mai NOU — „diferit” ar fi dat buclă); stocare persistentă; urcare cu 3
+  încercări și token API opțional (cron/stare/cloudflare-token.txt); StartWhenAvailable pe sarcină;
+  Factor Lab în IndexedDB (proaspăt 4 h). Măsurare rulată manual 18:56: KV cu lista Pionex și 119 linii.
+- Rămas la el: token API Cloudflare (opțional) · „Run as administrator” pe INSTALEAZA-MASURAREA.bat ca
+  sarcina să ruleze și deconectat · alerta pe telefon închis cere push (server/Telegram) — nefăcut.
