@@ -3148,6 +3148,7 @@ pe un singur chart.
 | I-440 | Busola 1.4.0: Confluence Scorer v1.4 PRO portat, fereastră cu dashboard-ul lui + ce au valorat semnalele și tracker-ul | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
 | I-441 | Busola 1.5.0: Trend Path Desk v1.7 auditat sever și portat, fereastră cu dashboard-ul lui + verificarea afirmațiilor (calibrare, ETA, STOP REF) | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
 | I-442 | Busola 1.6.0: Crowding Lens v1.9 portat (perp, Open Interest, funding real) + linia „direcția probabilă" în Trend Path și Crowding | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
+| I-443 | Busola 1.7.0: audit sever cu 5 agenți (motor, porturi, ecran, infrastructură, probe) + fereastra „Toate uneltele, la un loc" cu verdict din semnale vs verdict probabil | Busola (toate) | L | P1 | facut | user | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4521,3 +4522,21 @@ motor × TF × H × univers, cu citirea din pagina lui.
   pe EGLD 45–47% din bare tot ies „aglomerat"; „PARȚIAL — doar premium" a rămas galben în scara de culori.
   Prin moară: din 18 etichete trece 1. Open Interest-ul nu se poate măsura pe istorie (Binance ține ~30 de zile).
 - Raport: `pine-scripts/CROWDING-LENS/AUDIT-2026-09-17-v1_9.md`. Propuneri v1.10 în raport.
+
+#### I-443 · Audit sever din 5 unghiuri + fereastra de verdict · [L] · P1 · facut
+- Cererea lui: „audit sever și corect, fără să mă minți, să pui din toate unghiurile agenți, să vii cu raportul
+  și la final să faci o fereastră de verdict care să arate toți indicatorii ce zic, un verdict probabil și un
+  verdict real din semnale".
+- Soluția (`fbaa6eb`): 5 agenți în paralel, fiecare obligat să RULEZE codul. Raport pe disc:
+  `busola/AUDIT-SEVER-2026-09-17.md` (7 secțiuni, inclusiv „ce rămâne nereparat" și „ce NU s-a probat").
+  Fereastra `ui/Tablou.tsx` + `motor/tablou.ts` (pur) + `probe/tablou.ts`.
+- Ce a găsit, cu cifre: `directiaProbabila` dubla fals-pozitivele (5,04% în loc de 2,5% pe date rotite) ⇒ prag
+  Bonferroni; verdictul nu era păzit de nicio probă (18 din 29 de stricări treceau) ⇒ `probe/garzi.ts`;
+  service worker-ul punea pagina HTML în cache sub adresa unui `.js` după publicare; o bază IndexedDB
+  nedeschisibilă omora aplicația definitiv; 6 lucrători fără `onerror`; zero reîncercări la bursă; pe ecran:
+  mesaj englezesc care dă vina pe om, „LIVE" care minte când cade netul cu pagina deschisă, steaua care ștergea
+  moneda privită, căutarea care refuza „ADA".
+- Ce NU s-a adoptat: pragul de rentabilitate cu comision (41,9–47,8% în loc de 40%) — schimbă toate verdictele,
+  e hotărârea lui. Driftul de versiune al porturilor (Confluence v1.4 vs v1.7, Trend Path v1.7 vs v1.14) e
+  scris în antete, nu aplicat tăcut.
+- Probe noi: `garzi.ts` (22), `retea.ts` (6), `tablou.ts` (13), `vechime.ts`. 12 probe, toate verzi.
