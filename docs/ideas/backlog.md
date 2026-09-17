@@ -3140,6 +3140,9 @@ pe un singur chart.
 | I-432 | STARE portat ca etichete (regim cu vârstă, z-score, locație); POSIT NU se poate (cere istoric perp) | Busola (motor) | M | P2 | facut | ideation | 2026-09-17 |
 | I-433 | Factor Lab în Busola: motorul v10 portat formulă cu formulă (paritate 13/13), pe Pionex top 100, fila nouă | Busola (Factor Lab) | L | P1 | facut | user | 2026-09-17 |
 | I-434 | Factor Lab: lichiditatea Pionex lângă coin + AMBELE motoare (vechi din scurtătură, v10), bara în curs ca în pagină | Busola (Factor Lab) | M | P1 | facut | user | 2026-09-17 |
+| I-435 | Factor Lab: selector de univers ca în pagină (150 Pionex, top 50 automat, listă proprie) pe lângă Pionex top 100 | Busola (Factor Lab) | S | P2 | propus | ideation | 2026-09-17 |
+| I-436 | Factor Lab: rândul de sub verdict spune și CARE coinuri diferă între motoare, nu doar câte | Busola (Factor Lab) | S | P3 | propus | ideation | 2026-09-17 |
+| I-437 | Factor Lab: istoricul rulărilor grupat pe motor × TF × orizont (t-ul naiv nu se amestecă cu cel clusterizat) | Busola (Factor Lab) | M | P2 | propus | ideation | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4430,3 +4433,22 @@ manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in In
   cu regula lui pxLiq (sub 25k subțire, sub 100k moderat) și lista universului cu volumele.
 - Fișiere: src/motor/factorLab.ts, lucratorFactorLab.ts, pionexTop100.ts, src/depozit/factorLab.ts,
   src/ui/FactorLab.tsx, cron/pionex.ts, cron/masoara.ts, probe/factor-lab.ts (--vechi), factor-lab-coinuri.ts.
+
+#### I-435 · Factor Lab: selector de univers ca în pagină · [S] · P2 · propus
+- Problema: el vede 5 coinuri în pagina lui (univers top 50 automat / PIONEX150) și 3 în Busola (Pionex
+  top 100); diferența e de univers, nu de motor, dar trebuie să se vadă în aceeași filă.
+- Soluția: selector „univers”: Pionex top 100 (implicit) · 150 Pionex (lista fixă din v10) · top 50/30
+  automat după volum Binance ∩ Pionex · listă proprie. Universul intră în cheia rezultatului.
+- Fișiere: src/depozit/factorLab.ts, src/ui/FactorLab.tsx, src/motor/pionexTop100.ts (+ PIONEX150).
+
+#### I-436 · Care coinuri diferă între motoare · [S] · P3 · propus
+- Problema: rândul de sub HERO spune „celălalt motor: X trece · N coinuri”, nu și CARE sunt.
+- Soluția: lucrătorul întoarce și lista celuilalt motor; rândul scrie „în plus la v10: …, în minus: …”.
+- Fișiere: src/motor/lucratorFactorLab.ts, src/ui/FactorLab.tsx.
+
+#### I-437 · Istoricul rulărilor pe motor × TF × orizont · [M] · P2 · propus
+- Problema: pagina lui avea istoric de rulări (singura probă out-of-sample); Busola n-are încă, iar cu
+  două motoare un „3/3” ar amesteca t-ul naiv cu cel clusterizat.
+- Soluția: raft în IndexedDB cu (la, motor, TF, H, univers, rows{k,t,edge,trece}); panou „Cum s-au
+  ținut verdictele în timp”, grupat pe (motor/TF/H), cu câte zile s-au întins rulările.
+- Fișiere: src/depozit/istoric.ts (raft nou), src/depozit/factorLab.ts, src/ui/FactorLab.tsx.
