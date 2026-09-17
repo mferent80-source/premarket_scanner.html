@@ -3134,6 +3134,7 @@ pe un singur chart.
 | I-426 | „Urmează liniște" tradus în fișă de grid: canal, pas, câte grile, cât ține | Busola (Măsura) | M | P2 | facut | ideation | 2026-09-17 |
 | I-427 | Se instalează pe telefon (manifest + service worker) cu bandă de vârstă a datelor | Busola (PWA) | S | P2 | facut | ideation | 2026-09-17 |
 | I-428 | Harta ține minte: rezultatul salvat cu ora lui, instant la deschidere, „ce s-a aprins de la ultima dată" | Busola (Harta) | S | P3 | facut | ideation | 2026-09-17 |
+| I-429 | Alți algoritmi prin ACEEAȘI moară: laborator cu rotație + fereastra „Ce mai zic celelalte algoritme” | Busola (motor+Măsura) | M | P1 | facut | user | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4357,3 +4358,18 @@ longului, prins de probe/jurnal.ts) · I-425 masurat: Binance 403 de la marginea
 1102 => cron pe PC (sarcina „Busola Masoara”, 4h) + KV + /api/masurat.json; prima masurare 708 s,
 44 linii, 0 erori · I-426 fisa de grid (pas 0,5xATR IPOTEZA, comision 0,05%/umplere) · I-427
 manifest + SW cu versiunea in cheie + offline din IndexedDB · I-428 harta in IndexedDB + diff.
+
+#### I-429 · Alți algoritmi prin aceeași moară · [M] · P1 · facut
+- Problema: el a cerut „alți algoritmi și scripturi pentru o probabilitate mai bună”. Casa a
+  măsurat de 3 ori că un scor compus nu e probabilitate; un algoritm nou nu ADUNĂ procente,
+  pune o întrebare nouă care trebuie să treacă prin n · IC · bază · prag · rotație.
+- Soluția: `motor/algoritmi.ts` — registru de funcții care dau fiecărei bare o etichetă (RPP
+  AlgoAlpha portat din Busola Grok, Bollinger, MACD, Stoch, volum, EMA200, randament 24 bare,
+  regim de volatilitate, ora UTC, scorul ca MARTOR). `probe/algoritmi.ts` = laboratorul: 8 monede
+  × {1h,4h} × 40 rotații, pe direcție și pe mișcare, scrie `rezultat-algoritmi.json` →
+  `scrie-laborator.ts` → constanta `laborator.ts` din ecran. `masuraAlgoritmi.ts` + fereastra
+  „Ce mai zic celelalte algoritme” (al doilea mesaj al lucrătorului, după verdict).
+- Rezultat (12 rotații, 17.09): direcția — nimic, la toți; mișcarea — randament ×8,5, ema200
+  ×6,3, stoch ×4,9, scor ×16,8 peste noroc, dar p-ul minim cu 12 rotații e 0,077 ⇒ reluat cu 40.
+- Fișiere: src/motor/algoritmi.ts, reversal.ts, masuraAlgoritmi.ts, laborator.ts (generat),
+  lucrator.ts, src/ui/Algoritmi.tsx, probe/algoritmi.ts, scrie-laborator.ts, masura-algoritmi.ts.
