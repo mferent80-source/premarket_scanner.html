@@ -3147,6 +3147,7 @@ pe un singur chart.
 | I-439 | Busola 1.3.0: Volume Delta [hapharmonic] portat exact, BUY/SELL pe grafic + „ce au valorat”; badge de versiune mereu vizibil | Busola (Măsura) | M | P2 | facut | user | 2026-09-17 |
 | I-440 | Busola 1.4.0: Confluence Scorer v1.4 PRO portat, fereastră cu dashboard-ul lui + ce au valorat semnalele și tracker-ul | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
 | I-441 | Busola 1.5.0: Trend Path Desk v1.7 auditat sever și portat, fereastră cu dashboard-ul lui + verificarea afirmațiilor (calibrare, ETA, STOP REF) | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
+| I-442 | Busola 1.6.0: Crowding Lens v1.9 portat (perp, Open Interest, funding real) + linia „direcția probabilă" în Trend Path și Crowding | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4505,3 +4506,18 @@ motor × TF × H × univers, cu citirea din pagina lui.
   4 etichete din 256. Laborator: direcția ×0,9 și ×1,0 (noroc), mișcarea ×2,3 și ×2,0 (p = 0,024).
 - Propuneri pentru o v1.15 (în raport): ETA condiționată, STOP REF pe percentila 80–90, minim de runuri la risc,
   MFE de la bara de după confirmare, `table.clear`, HTF cu `[1]` + `lookahead_on`.
+
+#### I-442 · Crowding Lens v1.9 + direcția probabilă · [L] · P2 · facut
+- Cererea lui: „integrează și asta și la trend path dă o direcție probabilă, ceva, că nu spune nimic clar, verifică".
+- Soluția (`0fdfbb5`): port pe bare închise (`motor/crowding.ts`) cu lucrător propriu care aduce perpetuul de pe
+  `fapi`, Open Interest-ul și funding-ul REAL publicat; fereastra `ui/Crowding.tsx` cu dashboard-ul lui (verdict,
+  cine plătește, poziții deschise, flux, mulțimea, ce aștept) plus verificarea afirmației centrale din v1.9.
+  Pentru „nu spune nimic clar": modul comun `motor/etichete.ts` cu `directiaProbabila` și componenta
+  `ui/DirectieProbabila.tsx`, folosită și în Trend Path și în Crowding — partea cu avantajul mai mare față de rata
+  ei de bază, cu interval de încredere, n și eticheta DOVEDIT / N-AM AFLAT.
+- Rezultat: afirmația lui din v1.9 e CONFIRMATĂ cu funding-ul real (500 de plăți × 4 monede × 2 TF): semnul
+  premiumului brut nimerește cine plătește în 21–45% din cazuri, abaterea de la bazis în 52–64%. Slăbiciuni găsite:
+  raritatea se judecă pe brut deși mărimea s-a mutat pe abatere; percentila ≥75/≤25 e 25% din bare prin construcție;
+  pe EGLD 45–47% din bare tot ies „aglomerat"; „PARȚIAL — doar premium" a rămas galben în scara de culori.
+  Prin moară: din 18 etichete trece 1. Open Interest-ul nu se poate măsura pe istorie (Binance ține ~30 de zile).
+- Raport: `pine-scripts/CROWDING-LENS/AUDIT-2026-09-17-v1_9.md`. Propuneri v1.10 în raport.
