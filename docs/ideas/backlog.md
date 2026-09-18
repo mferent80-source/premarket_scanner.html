@@ -3152,6 +3152,12 @@ pe un singur chart.
 | I-444 | Busola 1.8.0: CM_MacD_Ult_MTF (ChrisMoody) portat + auditat: semnal SMA vs EMA, alt timeframe care vede în viitor, prin moară | Busola (Măsura) | M | P2 | facut | user | 2026-09-18 |
 | I-445 | Busola 1.9.1: Auto Range Detector [QuantAlgo] portat + auditat + dashboard ca în TradingView (approaching, CE FAC? cu prețul) | Busola (Măsura) | L | P2 | facut | user | 2026-09-18 |
 | I-446 | Busola 1.10.1: PPST Deck v1.8 auditat sever + integrat cu dashboard-ul lui rând cu rând | Busola (Măsura) | L | P2 | facut | user | 2026-09-18 |
+| I-447 | Busola: validare pe date NOI (walk-forward) pentru tot ce „bate norocul” — ține pe ultimele 30% din istorie? | Busola (laborator) | M | P1 | propus | ideation | 2026-09-18 |
+| I-448 | Busola: jurnal ÎNAINTE pentru „Verdictul complet” — din semnale vs probabil, notate la 4h pe 30 de monede și judecate după 24 de bare | Busola (jurnal + cron) | M | P1 | propus | ideation | 2026-09-18 |
+| I-449 | Busola: Session Range Budget portat — „cât mai are ziua de mers”, măsurat pe întrebarea care chiar funcționează (mișcarea) | Busola (Măsura) | M | P2 | propus | ideation | 2026-09-18 |
+| I-450 | Busola: POSIT (Perp Positioning Lens) devine posibil — istoricul de perpetuu și funding-ul real există acum | Busola (Măsura) | M | P2 | propus | ideation | 2026-09-18 |
+| I-451 | Busola: bifă „prag cu comision” — cele două verdicte alăturate, câte s-ar schimba; hotărârea rămâne a lui | Busola (verdict) | S | P1 | propus | ideation | 2026-09-18 |
+| I-452 | Busola: notificare pe telefon când apare un verdict REAL (rar) pe oricare din cele 30 de monede | Busola (cron → Telegram) | M | P2 | propus | ideation | 2026-09-18 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4577,3 +4583,66 @@ motor × TF × H × univers, cu citirea din pagina lui.
   din semnale (alertele SL/TP mint). FLIP IMINENT bate baza 16/16 (20–27% vs 7–8%); SLĂBEȘTE e SUB bază 16/16. Strategia
   flip la flip după fee: IC peste zero pe 1 din 16. Laborator: direcția noroc, mișcarea ×4,1 / ×3,8 (p = 0,024).
 - 6 propuneri pentru v1.9 în `pine-scripts/PPST-DECK/AUDIT-2026-09-18-v1_8.md`.
+
+### Ideation 2026-09-18 — mod Tool: Busola („ce merită adăugat din scripturile mele sau ce noutate?")
+Lentile — Trader: pe DIRECȚIE nu bate norocul niciunul din cei 25 de algoritmi; pe MIȘCARE bat 17 din 25, deci valoarea e
+acolo · Designer: „Verdictul complet” are 50 de rânduri, lungă pe telefon · Inginer: laboratorul e doar „în eșantion”
+(rotații pe toată istoria), niciun test pe date nevăzute · Automator: măsurarea rulează pe PC la 4h, dar nimeni nu află
+când apare un verdict rar. Excluse cu motiv: Hourly Volatility (ora zilei: mișcarea ×1,1, p = 0,44 — fără valoare pe
+întrebarea morii); scripturi direcționale noi (Liquidity Pools, SMS, AntiFOMO…) — adaugă rânduri, nu informație.
+
+#### I-447 · Validare pe date noi (walk-forward) pentru tot ce „bate norocul” · [M] · P1 · propus
+- Problema: toate rezultatele „bate norocul” (mișcarea ×2–8) sunt calculate pe TOATĂ istoria, cu rotații. Nimic n-a
+  fost testat pe o perioadă pe care n-a „văzut-o”. Poate fi descriere, nu predicție (regula casei „informația era
+  disponibilă atunci?”).
+- Soluția: laboratorul alege etichetele care trec pe primele 70% din istorie, apoi verifică dacă ACELEAȘI trec pe
+  ultimele 30%. Pe ecranul „Măsurat” și în laborator: „a ținut pe date noi: X din Y”.
+- Impact: singurul mod de a ști dacă avantajul pe mișcare e real — de el depind fișa de grid și verdictul de mișcare.
+- Riscuri: pe 30% din date, n scade; unele etichete rare nu mai au destule cazuri (se spune „prea puține”, nu „pică”).
+- Fișiere: `busola/probe/algoritmi.ts`, `busola/probe/scrie-laborator.ts`, `busola/src/motor/laborator.ts`, `busola/src/ui/Masurat*.tsx`.
+
+#### I-448 · Jurnal înainte pentru „Verdictul complet” · [M] · P1 · propus
+- Problema: „din semnale” (consensul uneltelor) n-a fost niciodată măsurat înainte, pe piața care vine — doar
+  verdictul Busolei are jurnal (I-424).
+- Soluția: la fiecare rulare de 4h de pe PC, se notează ambele verdicte pentru cele 30 de monede; după 24 de bare
+  se judecă. În fila „Jurnal”: „din semnale a nimerit X%, probabil Y%, pe N cazuri reale”.
+- Impact: răspunde cu date viitoare, nu cu istorie, la întrebarea „are consensul valoare?”.
+- Riscuri: durează săptămâni până la n util; cere ca rulările de pe PC să nu sară (sarcina rulează doar logat).
+- Fișiere: `busola/cron/masoara.ts`, `busola/src/motor/jurnalPur.ts`, `busola/src/motor/tablou.ts`, `busola/src/ui/Jurnal*.tsx`.
+
+#### I-449 · Session Range Budget portat — „cât mai are ziua de mers” · [M] · P2 · propus
+- Problema: Busola știe că MIȘCAREA se poate prezice, dar nu are o unealtă care să spună cât din mișcarea tipică a
+  zilei s-a consumat deja. Scriptul lui `pine-scripts/RANGE-BUDGET/Session_Range_Budget_v1_5.pine` face asta (ADR,
+  % consumat, loc rămas, TREND_DAY vs BALANCED).
+- Soluția: port pe bare închise, fereastră cu dashboard-ul lui, și măsurat prin moară: după ≥ 100% din ADR consumat,
+  mișcarea rămasă e mai mică? Leagă-l de fișa de grid.
+- Impact: o unealtă din singura categorie care a arătat valoare. Ipoteză, de validat pe date noi (I-447).
+- Riscuri: pe crypto „ziua” e UTC, convenție, nu sesiune reală.
+- Fișiere: `pine-scripts/RANGE-BUDGET/Session_Range_Budget_v1_5.pine`, nou `busola/src/motor/rangeBudget.ts`, fereastră nouă, probă nouă.
+
+#### I-450 · POSIT (Perp Positioning Lens) devine posibil · [M] · P2 · propus
+- Problema: I-432 a spus „POSIT NU se poate (cere istoric perp)”. De la 1.6.0, Busola aduce istoricul perpetuului,
+  funding-ul real (~333 de zile) și Open Interest-ul (30 de zile).
+- Soluția: port din `pine-scripts/PERP-POSITIONING-LENS/`, cu calibrarea lui de funding din 07.09; măsurat prin moară pe
+  ce are istorie (funding, premium); OI-ul doar afișat, declarat.
+- Impact: al doilea martor de poziționare lângă Crowding; ce trece se vede pe date reale de funding.
+- Riscuri: suprapunere mare cu Crowding Lens — de verificat întâi dacă măsoară altceva.
+- Fișiere: `pine-scripts/PERP-POSITIONING-LENS/*`, `busola/src/sursa/binance.ts`, nou `busola/src/motor/posit.ts`.
+
+#### I-451 · Bifă „prag cu comision” — hotărârea rămâne a lui · [S] · P1 · propus
+- Problema: la auditul din 17.09 s-a măsurat că pragul de 40% presupune comision zero; cu taxele reale e 41,9% (4h) și
+  43,9% (1h), cu alunecare 43,8% / 47,8%. Verdictele de la limită depind de asta. Nereparat, fiindcă e hotărârea lui.
+- Soluția: o bifă care arată, alăturate, verdictul cu prag fără comision și cu comision Pionex, plus câte verdicte din
+  hartă s-ar schimba. Implicit rămâne cum e acum.
+- Impact: el hotărăște pe cifre, nu pe o propoziție din raport.
+- Riscuri: niciunul pentru verdictul de azi (implicitul nu se schimbă).
+- Fișiere: `busola/src/motor/tipuri.ts` (`pragDeZero`), `busola/src/motor/verdict.ts`, `busola/src/ui/LinieVerdict.tsx`, `busola/src/ui/Tablou.tsx`.
+
+#### I-452 · Notificare pe telefon când apare un verdict REAL · [M] · P2 · propus
+- Problema: pe 30 de monede, verdictul e aproape mereu „AȘTEAPTĂ”; când apare unul real (înclinat, „urmează
+  liniște”), afli doar dacă deschizi aplicația. Backlogul notează deja: „alerta pe telefon închis cere push — nefăcut”.
+- Soluția: rularea de 4h de pe PC trimite un mesaj Telegram când o monedă trece din „așteaptă” într-un verdict
+  măsurat — cu cifra și cu intervalul, nu doar cu cuvântul.
+- Impact: prinde evenimentele rare pentru care există unealta, fără să stai cu aplicația deschisă.
+- Riscuri: un token de bot pe PC; mesajele trebuie să fie rare, altfel devin zgomot.
+- Fișiere: `busola/cron/masoara.ts`, configurare token în `busola/cron/stare/` (în afara git).
