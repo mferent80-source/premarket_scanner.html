@@ -3149,6 +3149,7 @@ pe un singur chart.
 | I-441 | Busola 1.5.0: Trend Path Desk v1.7 auditat sever și portat, fereastră cu dashboard-ul lui + verificarea afirmațiilor (calibrare, ETA, STOP REF) | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
 | I-442 | Busola 1.6.0: Crowding Lens v1.9 portat (perp, Open Interest, funding real) + linia „direcția probabilă" în Trend Path și Crowding | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
 | I-443 | Busola 1.7.0: audit sever cu 5 agenți (motor, porturi, ecran, infrastructură, probe) + fereastra „Toate uneltele, la un loc" cu verdict din semnale vs verdict probabil | Busola (toate) | L | P1 | facut | user | 2026-09-17 |
+| I-444 | Busola 1.8.0: CM_MacD_Ult_MTF (ChrisMoody) portat + auditat: semnal SMA vs EMA, alt timeframe care vede în viitor, prin moară | Busola (Măsura) | M | P2 | facut | user | 2026-09-18 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4540,3 +4541,13 @@ motor × TF × H × univers, cu citirea din pagina lui.
   e hotărârea lui. Driftul de versiune al porturilor (Confluence v1.4 vs v1.7, Trend Path v1.7 vs v1.14) e
   scris în antete, nu aplicat tăcut.
 - Probe noi: `garzi.ts` (22), `retea.ts` (6), `tablou.ts` (13), `vechime.ts`. 12 probe, toate verzi.
+
+#### I-444 · CM_MacD_Ult_MTF în Busola · [M] · P2 · facut
+- Cererea lui: „integrează și indicatorul ăsta" (MACD-ul lui ChrisMoody, Pine v1, 2014).
+- Soluția (`2c0296f`): port pe bare închise (`motor/cmMacd.ts`) potrivit cu un martor scris cu mâna (0 diferențe
+  pe 8.763 de bare), fereastra `ui/CmMacd.tsx`, rând în tabloul de verdicte, algoritmii `cm-cruce` și `cm-culoare`
+  în laborator, `probe/cm-macd.ts` verificată prin stricare (prinde toate 4, inclusiv la egalitate).
+- Rezultat: semnalul e SMA, nu EMA ⇒ 13% din bare au altă culoare decât MACD-ul clasic; opțiunea de alt timeframe
+  vede în viitor pe istorie (după bulina în sus 37% cinstit vs 64% „ca în v1" pe ETH 4h, 16 din 16 serii);
+  prin moară trece 1 din 96; laborator: direcția 0 treceri, mișcarea noroc (p = 0,12 / 0,07).
+- Raport: `pine-scripts/CM-MACD-ULT-MTF/AUDIT-2026-09-18.md`.
