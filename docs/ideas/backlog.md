@@ -3150,6 +3150,7 @@ pe un singur chart.
 | I-442 | Busola 1.6.0: Crowding Lens v1.9 portat (perp, Open Interest, funding real) + linia „direcția probabilă" în Trend Path și Crowding | Busola (Măsura) | L | P2 | facut | user | 2026-09-17 |
 | I-443 | Busola 1.7.0: audit sever cu 5 agenți (motor, porturi, ecran, infrastructură, probe) + fereastra „Toate uneltele, la un loc" cu verdict din semnale vs verdict probabil | Busola (toate) | L | P1 | facut | user | 2026-09-17 |
 | I-444 | Busola 1.8.0: CM_MacD_Ult_MTF (ChrisMoody) portat + auditat: semnal SMA vs EMA, alt timeframe care vede în viitor, prin moară | Busola (Măsura) | M | P2 | facut | user | 2026-09-18 |
+| I-445 | Busola 1.9.1: Auto Range Detector [QuantAlgo] portat + auditat + dashboard ca în TradingView (approaching, CE FAC? cu prețul) | Busola (Măsura) | L | P2 | facut | user | 2026-09-18 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4551,3 +4552,16 @@ motor × TF × H × univers, cu citirea din pagina lui.
   vede în viitor pe istorie (după bulina în sus 37% cinstit vs 64% „ca în v1" pe ETH 4h, 16 din 16 serii);
   prin moară trece 1 din 96; laborator: direcția 0 treceri, mișcarea noroc (p = 0,12 / 0,07).
 - Raport: `pine-scripts/CM-MACD-ULT-MTF/AUDIT-2026-09-18.md`.
+
+#### I-445 · Auto Range Detector [QuantAlgo] + dashboard ca în TV · [L] · P2 · facut
+- Cererea lui: „integrează și asta, la final auditezi, vii cu idei de îmbunătățire" + „aici aș vrea să faci un dash ca
+  la TV cu approaching etc".
+- Soluția: port pe bare închise (`motor/rangeDetector.ts`), probat cu martori scriși de mână; dashboard `ui/DashRange.tsx`
+  în stilul deck-urilor lui (verdict · CE FAC? cu prețul exact · rânduri ETICHETĂ | BARĂ | VALOARE · validarea dispare în
+  compact · pe telefon bara trece pe rândul ei); fereastra cu zonele măsurate; algoritmii `range-eveniment` și
+  `range-stare` în laborator. Licență CC BY-NC-SA 4.0, atribuire păstrată.
+- Rezultat: graficul lui șterge 61% din marcajele de spargere, deci istoria arată 58–74% la țintă față de 34–48% cât
+  vedeai atunci; „în range" nu prezice liniștea (0 din 16); pe direcție 2 din 64. Laborator: starea spune ceva despre
+  mișcare (×4,1, p = 0,024), dar INVERS față de nume — după range și spargere urmează mișcare, fără range prețul stă.
+- 9 idei în `pine-scripts/AUTO-RANGE-DETECTOR/AUDIT-2026-09-18.md` (fantome „RETRAS", alertă de retragere, spargere
+  provizorie, cutie în două nuanțe, folosire inversă ca detector de pre-expansiune — ipoteză de validat).
