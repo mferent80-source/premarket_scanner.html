@@ -3151,6 +3151,7 @@ pe un singur chart.
 | I-443 | Busola 1.7.0: audit sever cu 5 agenți (motor, porturi, ecran, infrastructură, probe) + fereastra „Toate uneltele, la un loc" cu verdict din semnale vs verdict probabil | Busola (toate) | L | P1 | facut | user | 2026-09-17 |
 | I-444 | Busola 1.8.0: CM_MacD_Ult_MTF (ChrisMoody) portat + auditat: semnal SMA vs EMA, alt timeframe care vede în viitor, prin moară | Busola (Măsura) | M | P2 | facut | user | 2026-09-18 |
 | I-445 | Busola 1.9.1: Auto Range Detector [QuantAlgo] portat + auditat + dashboard ca în TradingView (approaching, CE FAC? cu prețul) | Busola (Măsura) | L | P2 | facut | user | 2026-09-18 |
+| I-446 | Busola 1.10.1: PPST Deck v1.8 auditat sever + integrat cu dashboard-ul lui rând cu rând | Busola (Măsura) | L | P2 | facut | user | 2026-09-18 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4565,3 +4566,14 @@ motor × TF × H × univers, cu citirea din pagina lui.
   mișcare (×4,1, p = 0,024), dar INVERS față de nume — după range și spargere urmează mișcare, fără range prețul stă.
 - 9 idei în `pine-scripts/AUTO-RANGE-DETECTOR/AUDIT-2026-09-18.md` (fantome „RETRAS", alertă de retragere, spargere
   provizorie, cutie în două nuanțe, folosire inversă ca detector de pre-expansiune — ipoteză de validat).
+
+#### I-446 · PPST Deck v1.8: audit sever + integrare în Busola · [L] · P2 · facut
+- Cererea lui: „integrează cu fereastra proprie, cu dash și tot ce trebuie, dar după ce auditezi scriptul și vezi că e ok
+  din toate punctele de vedere".
+- Soluția (`03d9f0c`, `1.10.1`): port pe bare închise cu semantica nz/na din Pine; SuperTrend rescris separat în probă ⇒
+  0 diferențe pe 8.763 de bare; dashboard-ul lui rând cu rând (`ui/DashPPST.tsx`); 4 carduri de audit; algoritmii
+  `ppst-flip` și `ppst-stare` în laborator.
+- Rezultat: calculul e corect și cauzal. 🔴 SL-ul se „atinge" pe bara intrării cu minimul de dinaintea intrării la 59–73%
+  din semnale (alertele SL/TP mint). FLIP IMINENT bate baza 16/16 (20–27% vs 7–8%); SLĂBEȘTE e SUB bază 16/16. Strategia
+  flip la flip după fee: IC peste zero pe 1 din 16. Laborator: direcția noroc, mișcarea ×4,1 / ×3,8 (p = 0,024).
+- 6 propuneri pentru v1.9 în `pine-scripts/PPST-DECK/AUDIT-2026-09-18-v1_8.md`.
