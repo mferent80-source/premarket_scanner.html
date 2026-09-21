@@ -3158,6 +3158,12 @@ pe un singur chart.
 | I-450 | Busola: POSIT (Perp Positioning Lens) devine posibil — istoricul de perpetuu și funding-ul real există acum | Busola (Măsura) | M | P2 | facut 2026-09-18 | ideation | 2026-09-18 |
 | I-451 | Busola: bifă „prag cu comision” — cele două verdicte alăturate, câte s-ar schimba; hotărârea rămâne a lui | Busola (verdict) | S | P1 | facut 2026-09-18 | ideation | 2026-09-18 |
 | I-452 | Busola: notificare pe telefon când apare un verdict REAL (rar) pe oricare din cele 30 de monede | Busola (cron → Telegram) | M | P2 | facut 2026-09-18 | ideation | 2026-09-18 |
+| I-453 | Busola: expunerea CORELATA — 4 pozitii long pe alt-coins sunt UN pariu | Busola (registru) | S | P1 | propus | ideation | 2026-09-21 |
+| I-454 | Busola: martorul registrului — ai fi iesit mai bine intrand la intamplare? | Busola (registru) | M | P1 | propus | ideation | 2026-09-21 |
+| I-455 | Busola: alunecarea TA, masurata din preturile reale de intrare | Busola (fisa+registru) | S | P2 | propus | ideation | 2026-09-21 |
+| I-456 | Busola: galeata retinuta la intrare — in ce regim pierzi de fapt | Busola (registru) | M | P2 | propus | ideation | 2026-09-21 |
+| I-457 | Busola: de ce am intrat / de ce n-am intrat, langa pozitie | Busola (registru) | S | P3 | propus | ideation | 2026-09-21 |
+| I-458 | Busola: alerta de STOP APROPIAT, nu doar dupa ce s-a atins | Busola (urmarire) | S | P3 | propus | ideation | 2026-09-21 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4656,4 +4662,100 @@ când apare un verdict rar. Excluse cu motiv: Hourly Volatility (ora zilei: miș
 - **I-452** (cron): alertele pe telefon — doar trecerile „așteaptă → verdict” (direcție 1h/4h/1z, liniște 4h/1z, probabil tablou 4h), un mesaj pe rulare. Botul e al Paznicului: ⏳ **la el** — `PAZNIC-CRYPTO\PORNESTE-TELEGRAM.bat`, apoi `busola\PROBA-TELEGRAM.bat`.
 - **Extra, cerut pe drum (1.16.0):** lista „Ce zice fiecare unealtă” din „Verdictul complet” e pliată (dropdown), deschisă la cerere.
 - **Corectură la ideația din 18.09:** am exclus „Hourly Volatility” pe motiv că rotația nu-l poate măsura. Greșit ca verdict: pe date NOI, ora zilei ține pe 71% din găleți (I-447). Rotația e părtinitoare pentru etichete periodice, dar walk-forward-ul le măsoară corect. Hourly Volatility merită reconsiderat.
+
+### I-453..I-458 (2026-09-21) — Busola 1.24.0, dupa registrul banilor reali
+
+Context: Busola are de azi fisa de ordin, filtrul de grid si registrul pozitiilor REALE cu
+opritor de pierderi (1.23.0 + 1.24.0). Ideile de mai jos ataca golurile RAMASE dupa ele.
+
+#### I-453 · Expunerea CORELATA: 4 pozitii long sunt UN pariu · [S] · P1 · propus
+- **Problema:** `motor/opritor.ts` numara pierderile la rand si pierderea pe saptamana, dar
+  nu se uita NICIODATA la ce ai deschis in acelasi timp. Patru pozitii LONG pe patru
+  alt-coins diferite arata in registru ca patru riscuri de 1%, cand de fapt sunt un singur
+  pariu de 4% pe aceeasi piata — alt-coins cad impreuna. Exact situatia notata in memorie:
+  PAXG −2,08R cu 4 LONG deodata.
+- **Solutia:** in `bilant()` si in banda opritorului: cate pozitii deschise sunt in aceeasi
+  directie si cat risc TOTAL e pe masa acum, ca procent din capital. Cand depaseste un prag
+  al lui (ex. 3% cumulat), banda scrie cifra si spune ca e un pariu, nu patru.
+  **AVERTIZEAZA, NU REFUZA** — regula lui din memorie („pragul botului e un privilegiu").
+- **Impact:** risc prevenit. Singurul loc unde Busola poate vedea o pierdere de 4 ori mai
+  mare decat cea pe care ti-o promite fisa.
+- **Riscuri/dependente:** NU e I-416 (respins). Acela IMPARTEA riscul automat — sizing
+  automat = curve-fitting, si de aceea a picat. Asta doar ARATA cifra si te lasa pe tine sa
+  hotarasti. Corelatia nu se masoara (n-avem serii comune), se presupune din directie: e o
+  aproximare declarata, nu o masuratoare.
+- **Fisiere:** `src/motor/opritor.ts`, `src/motor/registru.ts`, `src/ui/Registru.tsx`
+
+#### I-454 · Martorul registrului: ai fi iesit mai bine la intamplare? · [M] · P1 · propus
+- **Problema:** Busola cere martor si interval de incredere pentru FIECARE verdict al ei
+  (`bilantVerdict`, `canalPeDateNoi`, `directiePeDateNoi`) — dar pentru banii tai reali nu
+  cere nimic. Registrul zice „+1,4 R total" si atat. Cu 10 pozitii, cifra aia nu deosebeste
+  o metoda care merge de noroc, si exact asta e lucrul pe care Busola stie sa-l faca.
+- **Solutia:** pentru fiecare pozitie inchisa, socoteste ce ar fi iesit dintr-o intrare pusa
+  la intamplare pe aceeasi moneda, acelasi interval, acelasi orizont si aceleasi bariere
+  (motorul exista: `bariere.ts` + `frecvente.ts`). Bilantul arata R-ul tau LANGA R-ul
+  martorului, cu IC pe momente independente — aceeasi unealta ca la verdicte.
+- **Impact:** decizie mai buna. Raspunde la singura intrebare care conteaza dupa 30 de
+  tranzactii: „metoda asta imi aduce ceva, sau as fi iesit la fel aruncand moneda?"
+- **Riscuri/dependente:** sub ~20 de pozitii inchise IC-ul va cuprinde zero aproape sigur —
+  fereastra TREBUIE sa scrie „n-am aflat inca", nu o cifra care pare verdict. Ipoteza de
+  martor (intrare uniforma pe bare) se declara pe ecran, nu se ascunde.
+- **Fisiere:** `src/motor/registru.ts`, motor nou `src/motor/martorRegistru.ts`,
+  `src/ui/Registru.tsx`, proba noua
+
+#### I-455 · Alunecarea TA, masurata din preturile reale · [S] · P2 · propus
+- **Problema:** fisa scrie „intri la 81.365,18" si tot pe pretul ala socoteste R-ul si
+  marimea. Tu intri la alt pret — cateva zecimi de procent mai sus sau mai jos. Diferenta
+  nu se masoara nicaieri, deci fisa ramane optimista la nesfarsit, iar registrul mosteneste
+  optimismul. trader.md §2: „PnL fara costuri e fictiune" — alunecarea e un cost.
+- **Solutia:** la „am intrat", un camp optional „pretul la care ai intrat DE FAPT". Cand e
+  completat, pozitia poarta amandoua preturile. Dupa N≥10 pozitii, mediana alunecarii (in %
+  si in ATR) se scrie in fisa: „pe ultimele 12 intrari ai intrat in medie cu 0,08% mai prost
+  decat scria aici".
+- **Impact:** cifra reala care face fisa sa nu mai minta. Se poate baga apoi in marimea
+  pozitiei, dar DOAR dupa ce exista masuratoarea.
+- **Riscuri/dependente:** NU e I-417 (respins) — acela schimba TIPUL ordinului (limit in loc
+  de market), aici nu se schimba nimic la executie, doar se masoara ce se intampla oricum.
+  Campul optional ramane gol la majoritatea intrarilor; fereastra spune cate au pret real.
+- **Fisiere:** `src/motor/registru.ts`, `src/motor/fisaOrdin.ts`, `src/ui/FisaOrdin.tsx`,
+  `src/ui/Registru.tsx`
+
+#### I-456 · Galeata retinuta la intrare: in ce regim pierzi de fapt · [M] · P2 · propus
+- **Problema:** Busola imparte piata in 24 de galeti (`stare.ts`: trend x RSI x ADX) si tot
+  sistemul ei de masurare sta pe ele. Registrul nu retine galeata la intrare, deci dupa 30
+  de pozitii nu poti afla daca pierderile tale sunt imprastiate sau adunate intr-un singur
+  regim.
+- **Solutia:** `Pozitie` poarta `galeata` (cheia starii la intrare, exista deja in `analiza`).
+  In fila „Banii mei", un rand pe galeata cu n si R mediu, ordonat, cu galetile sub n=5
+  strasse la „prea putine".
+- **Impact:** decizie mai buna: „in trend jos + RSI<35 ai pierdut 6 din 7" e o regula pe care
+  o poti tine minte, spre deosebire de „R mediu −0,3".
+- **Riscuri/dependente:** 24 de galeti impartite la 30 de pozitii = n≈1 pe galeata. Trebuie
+  grupat pe axa (doar trend, doar RSI) pana se aduna date, si scris explicit ca e descriere,
+  nu predictie — altfel devine curve-fitting pe propriul jurnal.
+- **Fisiere:** `src/motor/registru.ts`, `src/ui/Registru.tsx`
+
+#### I-457 · De ce am intrat / de ce n-am intrat · [S] · P3 · propus
+- **Problema:** cand apesi „am intrat" nu se retine NIMIC despre motiv. La postmortem nu poti
+  deosebi „metoda a gresit" de „eu n-am urmat-o" — si fara deosebirea asta bilantul din I-454
+  masoara un amestec.
+- **Solutia:** un camp scurt de text la deschidere si, separat, un buton „am sarit intrarea
+  asta" cu motiv, pe verdictele dovedite pe care NU le-ai luat. Precedent: I-377, facut la
+  Paznic si folosit.
+- **Impact:** timp castigat la review si o cifra noua: cate intrari dovedite ai sarit.
+- **Riscuri/dependente:** un camp de text pe care nu-l completeaza nimeni e mobila. Se pune
+  cu optiuni scurte de apasat, nu doar text liber.
+- **Fisiere:** `src/motor/registru.ts`, `src/ui/FisaOrdin.tsx`, `src/ui/Registru.tsx`
+
+#### I-458 · Alerta de STOP APROPIAT · [S] · P3 · propus
+- **Problema:** `folosesteRegistru` se uita la 5 minute si te anunta DUPA ce stopul a fost
+  atins — adica dupa ce ai pierdut. Nu exista niciun semn cand pretul e la o treime de ATR
+  de stop, singurul moment in care mai poti face ceva (sa muti stopul, sa inchizi jumatate).
+- **Solutia:** in aceeasi trecere, daca pretul e la mai putin de X (ex. 0,3 ATR) de stop sau
+  de tinta, o notificare in browser, o singura data per pozitie per prag.
+- **Impact:** risc prevenit, dar mic si nedovedit — nu se stie daca a reactiona la apropierea
+  de stop aduce sau pierde bani. Se livreaza ca INFORMATIE, nu ca indemn.
+- **Riscuri/dependente:** pe telefon cu ecranul stins nu ajunge (nu e push, e pagina
+  deschisa). Sa nu devina zgomot: un singur anunt per prag, si doar pe pozitii deschise.
+- **Fisiere:** `src/ui/folosesteRegistru.ts`, `src/ui/folosesteAlerteBrowser.ts`
 
