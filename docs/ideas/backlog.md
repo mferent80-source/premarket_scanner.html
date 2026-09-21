@@ -3158,12 +3158,12 @@ pe un singur chart.
 | I-450 | Busola: POSIT (Perp Positioning Lens) devine posibil — istoricul de perpetuu și funding-ul real există acum | Busola (Măsura) | M | P2 | facut 2026-09-18 | ideation | 2026-09-18 |
 | I-451 | Busola: bifă „prag cu comision” — cele două verdicte alăturate, câte s-ar schimba; hotărârea rămâne a lui | Busola (verdict) | S | P1 | facut 2026-09-18 | ideation | 2026-09-18 |
 | I-452 | Busola: notificare pe telefon când apare un verdict REAL (rar) pe oricare din cele 30 de monede | Busola (cron → Telegram) | M | P2 | facut 2026-09-18 | ideation | 2026-09-18 |
-| I-453 | Busola: expunerea CORELATA — 4 pozitii long pe alt-coins sunt UN pariu | Busola (registru) | S | P1 | propus | ideation | 2026-09-21 |
-| I-454 | Busola: martorul registrului — ai fi iesit mai bine intrand la intamplare? | Busola (registru) | M | P1 | propus | ideation | 2026-09-21 |
-| I-455 | Busola: alunecarea TA, masurata din preturile reale de intrare | Busola (fisa+registru) | S | P2 | propus | ideation | 2026-09-21 |
-| I-456 | Busola: galeata retinuta la intrare — in ce regim pierzi de fapt | Busola (registru) | M | P2 | propus | ideation | 2026-09-21 |
-| I-457 | Busola: de ce am intrat / de ce n-am intrat, langa pozitie | Busola (registru) | S | P3 | propus | ideation | 2026-09-21 |
-| I-458 | Busola: alerta de STOP APROPIAT, nu doar dupa ce s-a atins | Busola (urmarire) | S | P3 | propus | ideation | 2026-09-21 |
+| I-453 | Busola: expunerea CORELATA — 4 pozitii long pe alt-coins sunt UN pariu | Busola (registru) | S | P1 | facut 2026-09-21 | ideation | 2026-09-21 |
+| I-454 | Busola: martorul registrului — ai fi iesit mai bine intrand la intamplare? | Busola (registru) | M | P1 | facut 2026-09-21 | ideation | 2026-09-21 |
+| I-455 | Busola: alunecarea TA, masurata din preturile reale de intrare | Busola (fisa+registru) | S | P2 | facut 2026-09-21 | ideation | 2026-09-21 |
+| I-456 | Busola: galeata retinuta la intrare — in ce regim pierzi de fapt | Busola (registru) | M | P2 | facut 2026-09-21 | ideation | 2026-09-21 |
+| I-457 | Busola: de ce am intrat / de ce n-am intrat, langa pozitie | Busola (registru) | S | P3 | facut 2026-09-21 | ideation | 2026-09-21 |
+| I-458 | Busola: alerta de STOP APROPIAT, nu doar dupa ce s-a atins | Busola (urmarire) | S | P3 | facut 2026-09-21 | ideation | 2026-09-21 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
