@@ -1,0 +1,2070 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
+<link rel="stylesheet" href="../lib/theme-light.css?v=791">
+<script src="../lib/theme.js?v=734"></script>
+<title>Pump Radar clasic · 🚨 Pump Radar Stocks — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Auto-scan stocks pentru pump/dump/vol-spike/momentum 5m cu alerte browser + Telegram">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23ef4444'/><stop offset='1' stop-color='%23facc15'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='%230b0f17'/><circle cx='16' cy='16' r='10' fill='none' stroke='url(%23g)' stroke-width='2' opacity='.55'/><circle cx='16' cy='16' r='5.5' fill='none' stroke='url(%23g)' stroke-width='2'/><circle cx='16' cy='16' r='2' fill='%23facc15'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=678">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg:#070b11;
+  --bg-grad:radial-gradient(1200px 600px at 50% -200px, #1c1620 0%, #0b0f17 55%);
+  --panel:#171f30; --panel2:#222c44; --panel3:#222b40;
+  --b1:#4a5874; --b2:#3a4258;
+  --t1:#fafbfc; --t2:#eef2f8; --t3:#d0d8e6;
+  --crypto-1:#f7931a; --crypto-2:#ffd86b;
+  --gold:var(--crypto-1); /* alias: era folosit nedefinit (MED confidence + invalidare) */
+  --bull-s:#3aeb88; --bull:#1ba858; --bull-bg:rgba(34,214,107,.12);
+  --bear-s:#ff6b6b; --bear:#cc3434; --bear-bg:rgba(255,77,77,.12);
+  --warn:#d4892c; --warn-bg:rgba(212,137,44,.15);
+  --vol:#a78bfa; --vol-bg:rgba(167,139,250,.15);
+  --mom:#5bb0ff; --mom-bg:rgba(91,176,255,.15);
+  --accent:#8ac8ff;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+  --shadow:0 4px 14px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.2);
+  --r:12px; --rs:8px;
+  --mono:'DM Mono',monospace; --head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+html,body { min-height:100vh; }
+body {
+  font-family:var(--head);
+  background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
+  color:var(--t1); padding:12px; font-size:13px;
+  -webkit-font-smoothing:auto; font-variant-numeric:tabular-nums;
+}
+
+header {
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  background:linear-gradient(180deg,rgba(40,28,32,.85),rgba(20,26,40,.92));
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  padding:11px 14px; border-radius:var(--r);
+  border:1px solid var(--b1); margin-bottom:10px; box-shadow:var(--shadow);
+  position:sticky; top:8px; z-index:50;
+}
+header h1 {
+  font-size:14px; font-weight:700; letter-spacing:-.2px;
+  background:linear-gradient(90deg,#ef4444,#facc15);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  margin-right:auto; white-space:nowrap; font-family:var(--head);
+}
+.ver-badge {
+  display:inline-block; padding:2px 7px; margin-left:8px; border-radius:4px;
+  background:rgba(239,68,68,.15); color:#f87171; border:1px solid rgba(239,68,68,.4);
+  font-size:10px; font-weight:700; vertical-align:middle; letter-spacing:.3px;
+  -webkit-text-fill-color:#f87171; font-family:var(--mono);
+}
+.nav-link {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--panel2); border:1px solid var(--b1);
+  padding:6px 11px; border-radius:var(--rs);
+  color:var(--t1); text-decoration:none; font-size:11px; font-weight:600;
+  transition:all .15s var(--ease); font-family:var(--head);
+}
+.nav-link:hover { background:var(--accent); border-color:var(--accent); color:#000; transform:translateY(-1px); }
+
+button, input, select {
+  background:var(--panel2); color:var(--t1); border:1px solid var(--b1);
+  padding:5px 9px; border-radius:var(--rs); font-size:11px; font-family:inherit;
+  transition:all .15s var(--ease);
+}
+button { cursor:pointer; font-weight:600; }
+button:hover { background:var(--accent); border-color:var(--accent); color:#000; transform:translateY(-1px); }
+button.primary {
+  background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));
+  border-color:transparent; color:#1a1a1a; box-shadow:0 2px 8px rgba(247,147,26,.3);
+}
+button.primary:hover { filter:brightness(1.08); color:#1a1a1a; }
+button.danger { background:linear-gradient(135deg,#ef4444,#f97316); border-color:transparent; color:#fff; box-shadow:0 2px 8px rgba(239,68,68,.3); }
+button.danger:hover { filter:brightness(1.08); color:#fff; }
+button:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(91,176,255,.2); }
+
+.status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--t3); margin-right:5px; }
+.status-dot.ok { background:var(--bull-s); box-shadow:0 0 5px var(--bull-s); }
+.status-dot.load { background:var(--warn); animation:pulse 1s infinite; }
+.status-dot.err { background:var(--bear-s); }
+.status-dot.warn { background:var(--warn); }
+@keyframes pulse { 50% { opacity:.3; } }
+.status-pill { font-size:10px; padding:3px 8px; border-radius:999px; background:var(--panel2); border:1px solid var(--b1); color:var(--t2); font-family:var(--mono); }
+.status-pill.live { border-color:rgba(34,214,107,.4); color:var(--bull-s); }
+.status-pill.closed { border-color:rgba(212,137,44,.4); color:var(--warn); }
+
+/* Thresholds bar */
+.thr-bar { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:11px 16px; margin-bottom:10px; display:flex; gap:22px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow-sm); }
+.thr { display:flex; flex-direction:column; gap:4px; min-width:170px; }
+.thr label { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:700; font-family:var(--mono); display:flex; justify-content:space-between; gap:8px; }
+.thr label b { color:var(--t1); font-family:var(--head); }
+.thr input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:5px; border-radius:99px; background:var(--panel3); border:none; padding:0; cursor:pointer; }
+.thr input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:15px; height:15px; border-radius:50%; background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2)); border:2px solid var(--panel); box-shadow:var(--shadow-sm); cursor:pointer; }
+.thr input[type=range]::-moz-range-thumb { width:15px; height:15px; border-radius:50%; background:var(--crypto-2); border:2px solid var(--panel); cursor:pointer; }
+.thr-reset { font-size:10px; color:var(--accent); background:transparent; border:1px solid rgba(91,176,255,.35); padding:4px 9px; margin-left:auto; }
+.thr-reset:hover { background:var(--accent); color:#000; }
+
+/* Stats strip */
+.stats-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(135px,1fr)); gap:8px; margin-bottom:10px; }
+.stat-tile { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:10px 14px; display:flex; flex-direction:column; gap:2px; position:relative; overflow:hidden; box-shadow:var(--shadow-sm); }
+.stat-tile::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); }
+.stat-tile.bull::before { background:var(--bull-s); } .stat-tile.bear::before { background:var(--bear-s); }
+.stat-tile.vol::before { background:var(--vol); } .stat-tile.mom::before { background:var(--mom); }
+.stat-label { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:600; font-family:var(--mono); }
+.stat-value { font-size:19px; font-weight:800; letter-spacing:-.3px; font-family:var(--head); }
+.stat-sub { font-size:10px; color:var(--t3); font-family:var(--mono); }
+
+/* Hot strip */
+.hot-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(195px,1fr)); gap:8px; margin-bottom:10px; }
+.hot-strip:empty { display:none; }
+.hot-card { background:linear-gradient(135deg,rgba(239,68,68,.13),rgba(20,26,40,.62)); border:1px solid rgba(239,68,68,.42); border-radius:var(--r); padding:10px 13px; display:flex; flex-direction:column; gap:3px; cursor:pointer; transition:transform .15s var(--ease),box-shadow .15s var(--ease); box-shadow:var(--shadow-sm); }
+.hot-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.hot-card.hc-up { background:linear-gradient(135deg,rgba(34,214,107,.13),rgba(20,26,40,.62)); border-color:rgba(34,214,107,.42); }
+.hot-card.hc-vol { background:linear-gradient(135deg,rgba(167,139,250,.13),rgba(20,26,40,.62)); border-color:rgba(167,139,250,.42); }
+.hot-card .hc-top { display:flex; align-items:center; gap:6px; }
+.hot-card .hc-sym { font-family:var(--head); font-weight:800; font-size:14px; letter-spacing:-.2px; }
+.hot-card .hc-tag { margin-left:auto; font-family:var(--mono); font-weight:700; font-size:11px; }
+.hot-card .hc-mid { display:flex; align-items:baseline; gap:8px; font-family:var(--mono); margin-top:1px; }
+.hot-card .hc-price { font-size:13px; font-weight:700; color:var(--t1); }
+.hot-card .hc-alerts { font-size:9.5px; font-weight:700; font-family:var(--head); letter-spacing:.2px; margin-top:2px; color:var(--t2); }
+
+/* Filter bar */
+.filter-bar { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:9px 12px; margin-bottom:10px; display:flex; gap:9px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow-sm); }
+.fb-chips { display:flex; gap:5px; flex-wrap:wrap; }
+.fb-chip { background:var(--panel2); border:1px solid var(--b1); color:var(--t2); padding:4px 10px; border-radius:999px; font-size:10.5px; font-weight:700; font-family:var(--head); }
+.fb-chip:hover { border-color:var(--accent); color:var(--accent); background:rgba(91,176,255,.06); transform:none; }
+.fb-chip.active { background:var(--accent); border-color:var(--accent); color:#000; }
+.filter-bar input[type=text] { width:140px; text-transform:uppercase; font-family:var(--mono); padding:5px 9px; }
+.fb-toggle { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; color:var(--t3); font-weight:600; cursor:pointer; user-select:none; }
+.fb-toggle input { width:auto; }
+.fb-count { margin-left:auto; font-size:10.5px; color:var(--t3); font-family:var(--mono); white-space:nowrap; }
+
+/* Panel + table */
+.panel-box { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:10px; }
+.panel-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--b1); background:linear-gradient(180deg,rgba(40,28,32,.5),rgba(20,26,40,.4)); }
+.panel-head h3 { font-size:12px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--t1); font-family:var(--head); }
+.panel-head .panel-sub { font-size:10.5px; color:var(--t3); margin-left:auto; }
+.scanner-wrap { overflow:auto; max-height:calc(100vh - 360px); min-height:280px; }
+table { width:100%; border-collapse:collapse; font-size:11px; }
+thead { position:sticky; top:0; z-index:5; }
+thead th { padding:8px 6px; text-align:center; font-weight:700; font-size:10px; letter-spacing:.4px; text-transform:uppercase; cursor:pointer; user-select:none; border-bottom:1px solid var(--b1); color:var(--t3); font-family:var(--head); background:rgba(20,26,40,.97); }
+thead th:hover { color:var(--t1); }
+thead th.left { text-align:left; padding-left:14px; }
+tbody tr { border-bottom:1px solid var(--b1); border-left:3px solid transparent; transition:background .12s var(--ease); }
+tbody tr:hover { background:rgba(91,176,255,.05); }
+tbody tr:nth-child(even) { background:rgba(255,255,255,.012); }
+tbody tr.a-up { border-left-color:var(--bull-s); } tbody tr.a-down { border-left-color:var(--bear-s); }
+tbody tr.a-vol { border-left-color:var(--vol); } tbody tr.a-mom { border-left-color:var(--mom); }
+@keyframes flashUp { from { background:rgba(34,214,107,.30); } to { background:transparent; } }
+@keyframes flashDn { from { background:rgba(255,77,77,.30); } to { background:transparent; } }
+tbody tr.flash-up { animation:flashUp 1.6s var(--ease); }
+tbody tr.flash-dn { animation:flashDn 1.6s var(--ease); }
+td { padding:7px 6px; text-align:center; vertical-align:middle; font-family:var(--mono); }
+td.left { text-align:left; padding-left:14px; }
+.sym-name { font-weight:800; font-size:12px; letter-spacing:-.2px; font-family:var(--head); }
+.sym-sector { color:var(--t3); font-size:10px; font-family:var(--mono); }
+
+.badge { display:inline-block; padding:2px 7px; border-radius:4px; font-weight:700; font-size:10px; letter-spacing:.2px; }
+.badge.up { background:var(--bull-bg); color:var(--bull-s); border:1px solid rgba(34,214,107,.35); }
+.badge.down { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.35); }
+.badge.warn { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.35); }
+.badge.vol { background:var(--vol-bg); color:var(--vol); border:1px solid rgba(167,139,250,.35); }
+.badge.mom { background:var(--mom-bg); color:var(--mom); border:1px solid rgba(91,176,255,.35); }
+.badge.neut { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
+.alerts-cell { display:flex; gap:3px; flex-wrap:wrap; justify-content:center; }
+.al { font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:4px; font-family:var(--head); letter-spacing:.2px; }
+.al.up { background:var(--bull-bg); color:var(--bull-s); } .al.down { background:var(--bear-bg); color:var(--bear-s); }
+.al.vol { background:var(--vol-bg); color:var(--vol); } .al.mom { background:var(--mom-bg); color:var(--mom); }
+.ins { font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:4px; font-family:var(--head); }
+.ins.bull { background:var(--bull-bg); color:var(--bull-s); } .ins.bear { background:var(--bear-bg); color:var(--bear-s); }
+.ins.neut { background:var(--panel2); color:var(--t3); } .ins.na { color:var(--t3); }
+
+/* Sugestie acțiune (BUY/WATCH/WAIT/AVOID/SKIP) — derivată algoritmic din alerte + insider + RSI + heat */
+.act { font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:4px; font-family:var(--head); letter-spacing:.2px; white-space:nowrap; cursor:help; }
+.act.buy { background:var(--bull-bg); color:var(--bull-s); border:1px solid rgba(34,214,107,.45); }
+.act.watch { background:rgba(34,214,107,.10); color:var(--bull-s); border:1px solid rgba(34,214,107,.25); }
+.act.wait { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.35); }
+.act.avoid { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.45); }
+.act.skip { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
+
+/* Expand row pe click — 3 box-uri (detalii 5m + stats + insider) */
+tbody tr[data-sym]:not(.expanded-row) { cursor:pointer; }
+tbody tr[data-sym]:hover { background:rgba(255,255,255,.025) !important; }
+tr.expanded-row { background:rgba(20,26,40,.55) !important; border-left:3px solid var(--crypto-1); }
+tr.expanded-row td { padding:12px 14px !important; text-align:left !important; }
+tr.expanded-row:hover { background:rgba(20,26,40,.55) !important; }
+.exp-wrap { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:14px; }
+.exp-box { background:var(--panel); border:1px solid var(--b1); border-radius:6px; padding:10px 12px; min-height:140px; }
+.exp-title { font-size:11.5px; font-weight:800; color:var(--crypto-1); margin-bottom:8px; padding-bottom:6px; border-bottom:1px dashed var(--b1); font-family:var(--head); }
+.exp-loading { color:var(--t3); font-style:italic; font-size:11px; padding:8px; text-align:center; }
+.exp-spark { width:100%; height:60px; display:block; }
+.exp-spark path { fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.exp-spark .area { stroke:none; opacity:.18; }
+.exp-spark.up path:not(.area){ stroke:var(--bull-s); } .exp-spark.up .area{ fill:var(--bull-s); }
+.exp-spark.dn path:not(.area){ stroke:var(--bear-s); } .exp-spark.dn .area{ fill:var(--bear-s); }
+.exp-spark.flat path:not(.area){ stroke:var(--t3); } .exp-spark.flat .area{ fill:var(--t3); }
+.exp-bars { width:100%; border-collapse:collapse; font-size:10.5px; font-family:var(--mono); margin-top:6px; }
+.exp-bars th { padding:3px 5px; text-align:right; color:var(--t3); font-size:9.5px; font-weight:700; border-bottom:1px solid var(--b1); }
+.exp-bars th:first-child { text-align:left; }
+.exp-bars td { padding:3px 5px; text-align:right; border-bottom:1px solid rgba(42,50,71,.4); }
+.exp-bars td:first-child { text-align:left; color:var(--t2); font-weight:700; }
+.exp-bars td.up { color:var(--bull-s); font-weight:700; }
+.exp-bars td.dn { color:var(--bear-s); font-weight:700; }
+.exp-stat-row { display:flex; justify-content:space-between; gap:8px; padding:3px 0; font-size:11px; font-family:var(--mono); }
+.exp-stat-row span:first-child { color:var(--t3); }
+.exp-stat-row span:last-child { color:var(--t1); font-weight:700; }
+.exp-ins-list { font-size:10.5px; font-family:var(--mono); display:flex; flex-direction:column; gap:4px; max-height:200px; overflow-y:auto; }
+.exp-ins-row { display:flex; justify-content:space-between; gap:8px; padding:3px 5px; background:var(--panel2); border-radius:4px; }
+.exp-ins-row.buy { border-left:2px solid var(--bull-s); }
+.exp-ins-row.sell { border-left:2px solid var(--bear-s); }
+.exp-ins-name { color:var(--t2); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; }
+.exp-ins-meta { color:var(--t3); font-size:9.5px; }
+.exp-ins-summary { margin-bottom:6px; padding:5px 8px; background:var(--panel2); border-radius:4px; font-size:11px; font-weight:700; }
+@media(max-width:780px){ .exp-wrap { grid-template-columns:1fr; } }
+
+/* AI bubble (Claude streaming) */
+.exp-ai-bar { display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:10px; border-top:1px dashed var(--b1); flex-wrap:wrap; }
+.ai-btn { background:linear-gradient(135deg, #6366f1, #a855f7); border:none; color:#fff; padding:7px 14px; font-size:11.5px; font-weight:700; border-radius:6px; cursor:pointer; box-shadow:0 2px 8px rgba(168,85,247,.3); font-family:var(--head); }
+.ai-btn:hover { filter:brightness(1.1); transform:translateY(-1px); color:#fff; }
+.ai-btn:disabled { opacity:.55; cursor:wait; }
+.ai-hint { font-size:10.5px; color:var(--t3); font-family:var(--mono); }
+.exp-ai { margin-top:10px; }
+.exp-ai:empty { display:none; }
+.ai-bubble {
+  background:linear-gradient(180deg, rgba(168,85,247,.06), rgba(20,26,40,.4));
+  border:1px solid rgba(168,85,247,.35);
+  border-radius:8px; padding:12px 14px;
+  font-size:12.5px; line-height:1.55; color:var(--t1); font-family:var(--head);
+  white-space:pre-wrap; position:relative;
+}
+.ai-bubble::before { content:''; position:absolute; top:-1px; left:-1px; right:-1px; height:2px; background:linear-gradient(90deg, #6366f1, #a855f7); border-radius:8px 8px 0 0; }
+.ai-bubble .ai-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px dashed rgba(168,85,247,.3); }
+.ai-bubble .ai-head .ai-meta { font-size:10px; color:var(--t3); font-family:var(--mono); }
+.ai-bubble .ai-head .ai-rerun { background:transparent; border:1px solid var(--b1); color:var(--t2); padding:3px 8px; font-size:10px; border-radius:4px; cursor:pointer; }
+.ai-bubble .ai-head .ai-rerun:hover { border-color:var(--crypto-1); color:var(--crypto-1); }
+.ai-bubble.error { border-color:rgba(255,77,77,.5); background:linear-gradient(180deg, rgba(255,77,77,.07), rgba(20,26,40,.4)); }
+@keyframes pr_blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+.ai-cursor { display:inline-block; width:7px; height:13px; background:var(--crypto-1); animation:pr_blink 1s steps(2) infinite; vertical-align:middle; margin-left:2px; }
+
+.spark { width:62px; height:22px; display:block; margin:0 auto; }
+.spark path { fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.spark .area { stroke:none; opacity:.16; }
+.spark.up path { stroke:var(--bull-s); } .spark.up .area { fill:var(--bull-s); }
+.spark.dn path { stroke:var(--bear-s); } .spark.dn .area { fill:var(--bear-s); }
+.spark.flat path { stroke:var(--t3); } .spark.flat .area { fill:var(--t3); }
+
+.action-btn { background:transparent; border:1px solid var(--b1); color:var(--t2); padding:3px 9px; font-size:10px; font-weight:700; border-radius:4px; margin:0 2px; font-family:var(--head); text-decoration:none; display:inline-block; }
+.action-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(91,176,255,.06); }
+.star-btn { background:transparent; border:none; color:var(--t3); font-size:13px; padding:2px 4px; }
+.star-btn.on { color:var(--crypto-2); }
+.star-btn:hover { transform:scale(1.15); background:transparent; }
+
+.empty { padding:54px 20px; text-align:center; color:var(--t3); font-size:13px; font-family:var(--head); }
+.empty-icon { font-size:42px; margin-bottom:12px; opacity:.55; }
+.empty-title { font-size:15px; font-weight:700; color:var(--t2); margin-bottom:5px; }
+.empty-sub { font-size:11px; line-height:1.5; max-width:480px; margin:0 auto; font-family:var(--mono); }
+
+footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); font-size:11px; color:var(--t3); display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-family:var(--mono); }
+footer a { color:var(--accent); text-decoration:none; }
+
+/* Modals (shared fl-* + tg-*) */
+.fl-overlay { position:fixed; inset:0; background:rgba(5,8,15,.78); z-index:9999; display:flex; align-items:center; justify-content:center; padding:16px; }
+.fl-modal { background:var(--panel); border:1px solid var(--b1); border-radius:14px; padding:18px; width:100%; max-width:560px; max-height:85vh; overflow-y:auto; box-shadow:0 30px 80px rgba(0,0,0,.6); color:var(--t1); font-family:var(--head); }
+.fl-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; gap:10px; padding-bottom:10px; border-bottom:1px solid var(--b1); }
+.fl-head h3 { font-size:1rem; font-weight:800; margin:0; background:linear-gradient(135deg,#ef4444,#facc15); -webkit-background-clip:text; color:transparent; }
+.fl-head .sub { font-size:.62rem; color:var(--t3); margin-top:3px; font-family:var(--mono); }
+.fl-close { background:transparent; border:none; color:var(--t3); font-size:20px; cursor:pointer; padding:0 4px; }
+.fl-section { margin-bottom:12px; }
+.fl-section-title { font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--t3); margin-bottom:7px; font-family:var(--mono); }
+.fl-list { display:flex; flex-direction:column; gap:5px; }
+.fl-item { display:flex; gap:7px; padding:6px 9px; background:var(--panel2); border:1px solid var(--b1); border-radius:5px; font-size:.7rem; line-height:1.4; }
+.fl-item.data { border-left:3px solid var(--accent); } .fl-item.tool { border-left:3px solid var(--crypto-1); } .fl-item.auto { border-left:3px solid var(--bull-s); }
+.fl-item .fl-txt b { color:var(--t1); } .fl-item .fl-txt { color:var(--t2); }
+.tg-field { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+.tg-field label { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:700; font-family:var(--mono); }
+.tg-field input { padding:7px 10px; font-size:12px; font-family:var(--mono); }
+
+/* Toasts */
+.toast-wrap { position:fixed; right:14px; bottom:14px; z-index:9998; display:flex; flex-direction:column; gap:7px; max-width:300px; }
+.toast { background:var(--panel2); border:1px solid var(--b1); border-left:3px solid var(--accent); border-radius:var(--rs); padding:9px 12px; font-size:11px; font-family:var(--head); box-shadow:var(--shadow); cursor:pointer; animation:toastIn .25s var(--ease); }
+.toast.up { border-left-color:var(--bull-s); } .toast.dn { border-left-color:var(--bear-s); } .toast.vol { border-left-color:var(--vol); } .toast.mom { border-left-color:var(--mom); }
+.toast .tt-sym { font-weight:800; } .toast .tt-sub { color:var(--t3); font-size:10px; font-family:var(--mono); margin-top:1px; }
+@keyframes toastIn { from { opacity:0; transform:translateX(22px); } to { opacity:1; transform:translateX(0); } }
+.toast.fade-out { opacity:0; transition:opacity .4s var(--ease); }
+
+@media (max-width:760px) {
+  body { padding:8px; font-size:12px; }
+  header { padding:8px 11px; gap:6px; position:relative; top:0; }
+  header h1 { font-size:13px; width:100%; margin-right:0; }
+  .nav-link { font-size:10.5px; padding:4px 8px; }
+  th, td { padding:5px 4px; font-size:10px; }
+  .hide-mobile { display:none !important; }
+  .thr-bar { gap:14px; padding:9px 12px; } .thr { min-width:130px; }
+  .stats-strip { grid-template-columns:repeat(2,1fr); }
+  .hot-strip { grid-template-columns:1fr; }
+  .scanner-wrap { max-height:calc(100vh - 420px); }
+  .spark { width:46px; height:18px; }
+  .toast-wrap { right:8px; bottom:8px; left:8px; max-width:none; }
+}
+.pr-regime { border-radius:var(--r); padding:9px 13px; margin-bottom:10px; font-size:11.5px; line-height:1.5; border:1px solid var(--b1); background:var(--panel2); color:var(--t2); }
+.pr-regime b { color:var(--t1); }
+.pr-regime.rg-on { background:rgba(34,214,107,.09); border-color:rgba(34,214,107,.4); color:var(--bull-s); }
+.pr-regime.rg-on b { color:var(--bull-s); }
+.pr-regime.rg-off { background:rgba(255,77,77,.10); border-color:rgba(255,77,77,.45); color:var(--bear-s); }
+.pr-regime.rg-off b { color:var(--bear-s); }
+.pr-regime.rg-neu { color:var(--t2); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" v124 — limbajul de componente din macro-dashboard / hub
+   (topbar panou sticky · chip-uri glass · bordură colorată de secțiune)
+   CSS-only: HTML-ul și JS-ul rămân neatinse (data-f + clasa .active
+   funcționează exact ca înainte). Regula casei: fundal SOLID pe sticky,
+   FĂRĂ backdrop-filter (blur-ul strică randarea textului).
+   Pagina e dark-only (n-are toggle light) → fără scope pe temă.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --pr-sec-thr:#6ee7b7;         /* Praguri pump/dump/vol (configurare) */
+  --pr-sec-filter:var(--warn);  /* Bara de filtre                      */
+  --pr-sec-radar:#3b82f6;       /* Radar live — panoul principal       */
+  --pr-sec-bars:#a78bfa;        /* expand: Detalii 5m                  */
+  --pr-sec-stat:#6ee7b7;        /* expand: Statistici scan             */
+  --pr-sec-ins:#10b981;         /* expand: Insider 60z                 */
+  --pr-acc-1:#ef4444;           /* perechea de accent a paginii        */
+  --pr-acc-2:#f97316;           /* (identică cu butonul SCAN .danger)  */
+}
+
+/* ── 1. TOPBAR: panou sticky solid.
+      sticky/top/z-index/border + backdrop-filter:none vin din lib/suite-ui.css
+      (body.suite-page header.suite-cockpit); aici doar fundalul solid, umbra
+      mare și ritmul de padding. Specificitatea (0,2,1) o egalează pe cea din
+      suite-ui, dar <style>-ul paginii e după <link> → câștigă pe ordinea
+      cascadei (inclusiv peste background !important).
+      Rămâne flex-wrap:wrap DELIBERAT: headerul are 15 elemente (h1 + 4 nav +
+      ℹ + 3 status-pills + label/select Auto + SCAN + 3 icon-butoane);
+      nowrap le-ar strivi ilizibil. h1 are deja margin-right:auto → acțiunile
+      stau împinse la dreapta oricum. ── */
+body.suite-page header.suite-cockpit{
+  position:sticky; top:0; z-index:60;
+  flex-wrap:wrap; gap:8px 10px;
+  padding:10px 14px; margin:0 0 12px;
+  border-radius:var(--r);
+  background:var(--topbar-bg)!important;
+  box-shadow:var(--topbar-shadow);
+}
+body.suite-page header.suite-cockpit h1{ min-width:0; }
+body.suite-page header.suite-cockpit .status-pill,
+body.suite-page header.suite-cockpit .nav-link,
+body.suite-page header.suite-cockpit button,
+body.suite-page header.suite-cockpit select{ flex:0 0 auto; }
+@media (max-width:760px){
+  body.suite-page header.suite-cockpit{ padding:9px 11px; gap:7px 8px; }
+  body.suite-page header.suite-cockpit h1{ white-space:normal; }
+}
+
+/* ── 2. CHIP-URI de filtru: glass, activ = gradient acc-1→acc-2 al paginii
+      (roșu→portocaliu, aceeași pereche ca butonul SCAN).
+      Clasele și data-f rămân identice — se schimbă doar pielea. ── */
+.fb-chip{
+  background:rgba(255,255,255,.035);
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.fb-chip.active{
+  background:linear-gradient(135deg,var(--pr-acc-1),var(--pr-acc-2));
+  border-color:transparent; color:#fff;
+  box-shadow:0 2px 12px rgba(239,68,68,.32);
+}
+.fb-chip.active:hover{
+  background:linear-gradient(135deg,var(--pr-acc-1),var(--pr-acc-2));
+  border-color:transparent; color:#fff;
+}
+
+/* ── 3. Bordură colorată sus — semnătura secțiunilor de ziar.
+      Doar pe cardurile REALE (fundal + chenar propriu).
+      .stats-strip / .hot-strip sunt grid-uri transparente → NU primesc bordură
+      (ar fi orfană): .stat-tile are deja dunga de 3px pe stânga (::before), iar
+      .hot-card are chenar propriu colorat pe stare. #prRegimeBanner (.pr-regime)
+      e o bandă de avertizare cu chenar comandat de regim → rămâne neatinsă. ── */
+.thr-bar   { border-top:3px solid var(--pr-sec-thr); }
+.filter-bar{ border-top:3px solid var(--pr-sec-filter); }
+.panel-box { border-top:3px solid var(--pr-sec-radar); }
+/* Rândul expandat: cele 3 casete de detaliu primesc fiecare semnătura ei */
+.exp-wrap .exp-box:nth-child(1){ border-top:3px solid var(--pr-sec-bars); }
+.exp-wrap .exp-box:nth-child(2){ border-top:3px solid var(--pr-sec-stat); }
+.exp-wrap .exp-box:nth-child(3){ border-top:3px solid var(--pr-sec-ins); }
+
+/* ── 4. Consecvență de formă — radius unic + umbră pe blocurile mari.
+      .exp-box era singurul la 6px hardcodat. Elementele mici
+      (badges / .al / .act / .ins / butoane) rămân neatinse. ── */
+.exp-box  { border-radius:var(--rs); }
+.panel-box{ box-shadow:0 4px 18px rgba(0,0,0,.28); }
+</style>
+</head>
+<body class="suite-page">
+
+<header class="suite-cockpit">
+  <h1>🚨 Pump Radar <span style="font-weight:400;color:var(--t3)">Stocks</span> <span class="ver-badge">v126</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <a href="../" class="nav-link">🏠 Hub</a>
+  <a href="../guide/?page=pump-radar" class="nav-link" title="Ghid features pagina asta">📖 Ghid</a>
+  <a href="../nasdaq-scanner/" class="nav-link">📈 Nasdaq</a>
+  <a href="../watchlist-monitor/" class="nav-link">👁️ Watchlist</a>
+  <button onclick="window.showFeatures()" class="nav-link" style="color:var(--accent);border-color:rgba(91,176,255,.4)" title="Listă funcționalități">ℹ</button>
+  <span class="status-pill"><span class="status-dot" id="statusDot"></span><span id="statusTxt">Ready</span></span>
+  <span class="status-pill" id="sessionPill" title="Sesiune piață NYSE/Nasdaq">⏳ —</span>
+  <span class="status-pill" id="countdownPill" style="display:none" title="Timp până la următorul auto-scan">⏱ <span id="countdownTxt">—</span></span>
+  <div style="display:inline-flex;align-items:center;gap:5px"><label style="font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Auto:</label>
+    <select id="autoSel" title="Auto-scan continuu">
+      <option value="0">OFF</option>
+      <option value="30">30s</option>
+      <option value="60" selected>60s</option>
+      <option value="120">120s</option>
+    </select>
+  </div>
+  <button class="danger" id="scanBtn">🚨 SCAN</button>
+  <button id="notifBtn" title="Notificări browser la alertă nouă">🔔</button>
+  <button id="soundBtn" title="Sunet la alertă nouă">🔊</button>
+  <button id="tgBtn" title="Alerte Telegram la alertă nouă">📡</button>
+</header>
+
+<!-- Thresholds -->
+<div class="thr-bar">
+  <div class="thr">
+    <label>🟢🔴 Prag pump/dump 5m <b><span id="thrMoveVal">1.5</span>%</b></label>
+    <input type="range" id="thrMove" min="0.5" max="6" step="0.1" value="1.5">
+  </div>
+  <div class="thr">
+    <label>📊 Vol spike (× medie volum) <b><span id="thrVolVal">3.0</span>×</b></label>
+    <input type="range" id="thrVol" min="1.5" max="8" step="0.5" value="3">
+  </div>
+  <div class="thr">
+    <label>💰 Preț minim <b>$<span id="thrPriceVal">3</span></b></label>
+    <input type="range" id="thrPrice" min="1" max="50" step="1" value="3">
+  </div>
+  <button class="thr-reset" type="button" id="thrReset">↺ default</button>
+</div>
+
+<!-- Stats -->
+<div class="stats-strip">
+  <div class="stat-tile"><div class="stat-label">Scanate</div><div class="stat-value" id="stScan">—</div><div class="stat-sub" id="stUniverse">/ — universe</div></div>
+  <div class="stat-tile bull"><div class="stat-label">🟢 Pump up</div><div class="stat-value" id="stUp">—</div><div class="stat-sub">≥ prag 5m</div></div>
+  <div class="stat-tile bear"><div class="stat-label">🔴 Dump down</div><div class="stat-value" id="stDown">—</div><div class="stat-sub">≤ −prag 5m</div></div>
+  <div class="stat-tile vol"><div class="stat-label">📊 Vol spike</div><div class="stat-value" id="stVol">—</div><div class="stat-sub">volum anormal</div></div>
+  <div class="stat-tile mom"><div class="stat-label">⚡ Momentum</div><div class="stat-value" id="stMom">—</div><div class="stat-sub">schimbare direcție</div></div>
+  <div class="stat-tile vol" id="stRegimeTile" title="Regim de volatilitate al pieței (HMM gaussian pe SPY daily, din Markov Lab). Regim volatil → breakout-urile sunt mai puțin fiabile, redu sizing-ul."><div class="stat-label">🧠 Regim piață</div><div class="stat-value" id="stRegime">…</div><div class="stat-sub" id="stRegimeSub">SPY · HMM</div></div>
+</div>
+
+<div id="prRegimeBanner" class="pr-regime" style="display:none"></div>
+
+<!-- Hot strip -->
+<div class="hot-strip" id="hotStrip"></div>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <div class="fb-chips">
+    <button type="button" class="fb-chip active" data-f="all">Toate</button>
+    <button type="button" class="fb-chip" data-f="up">🟢 Pumps</button>
+    <button type="button" class="fb-chip" data-f="down">🔴 Dumps</button>
+    <button type="button" class="fb-chip" data-f="vol">📊 Vol spikes</button>
+    <button type="button" class="fb-chip" data-f="mom">⚡ Momentum</button>
+    <button type="button" class="fb-chip" data-f="alert">🚨 Cu alertă</button>
+    <button type="button" class="fb-chip" data-f="star">⭐ Watchlist</button>
+  </div>
+  <input type="text" id="fbSearch" placeholder="🔎 ticker…" maxlength="8" autocomplete="off">
+  <span class="fb-count" id="fbCount"></span>
+</div>
+
+<!-- Table -->
+<div class="panel-box scanner-wrap">
+  <div class="panel-head"><span style="font-size:14px">📡</span><h3>Radar live · barele de 5 minute (Yahoo)</h3><span class="panel-sub" id="lastScan">apasă SCAN</span></div>
+  <table>
+    <thead><tr>
+      <th data-sort="symbol" class="left">Ticker</th>
+      <th data-sort="price">Preț</th>
+      <th data-sort="m5">Δ 5m</th>
+      <th data-sort="chgDay">Δ Zi</th>
+      <th data-sort="volRatio">Vol ×avg</th>
+      <th data-sort="rsi" class="hide-mobile">RSI 5m</th>
+      <th class="hide-mobile">Intraday</th>
+      <th data-sort="heat">Alerte</th>
+      <th data-sort="action" class="hide-mobile">Sugestie</th>
+      <th class="hide-mobile">Insider</th>
+      <th>·</th>
+    </tr></thead>
+    <tbody id="resultsBody">
+      <tr><td colspan="11" class="empty">
+        <div class="empty-icon">🚨</div>
+        <div class="empty-title">Apasă <b>🚨 SCAN</b> ca să pornești radarul</div>
+        <div class="empty-sub">Scanează ~90 stocks lichide pe barele de 5 minute și marchează pump-uri / dump-uri / spike-uri de volum / schimbări de momentum. Activează Auto 60s pentru watchdog continuu + notificări browser / sunet / Telegram la fiecare alertă nouă.</div>
+      </td></tr>
+    </tbody>
+  </table>
+</div>
+
+<footer>
+  <span>Sursa: Yahoo Finance (free, fără cheie) · insider: Finnhub (cheie opțională) · alertele 5m sunt relevante în sesiune regulară</span>
+  <span><a href="../">← Înapoi la Hub</a></span>
+</footer>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="../lib/poll-wake.js?v=816"></script>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+
+// ═══════════════════════════════════════════════════════════════
+//  UNIVERSE — ~24 stocks: cele mai lichide + cele care chiar "pump-uiesc".
+//  Mic intenționat: 24 ≤ 25 → încape într-UN SINGUR request batch `spark` pe scan.
+//  Proxy-urile CORS gratuite sunt fragile/rate-limited — cu cât mai puține request-uri, cu atât mai robust.
+//  (Editezi lista aici dacă vrei alte simboluri; >25 → se face în 2 chunk-uri = 2 request-uri.)
+// ═══════════════════════════════════════════════════════════════
+const UNIVERSE = [
+  'AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','AMD','AVGO','NFLX','PLTR','SMCI','COIN','MSTR',
+  'HOOD','SOFI','RIVN','MARA','RIOT','ARM','UBER','SHOP','NET','CRWD',
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE + STORAGE
+// ═══════════════════════════════════════════════════════════════
+const CFG_KEY = 'pump_radar_cfg';   // { thrMove, thrVol, thrPrice, autoSec, notif }
+const SEEN_KEY = 'pump_radar_seen';  // { "SYM|type": ts } — alerte deja notificate (TTL 30min)
+const TG_KEY = 'tt_tg_config';       // shared cu watchlist-monitor — { token, chatId, enabled }
+const SOUND_KEY = 'wl_sound';        // shared cu watchlist-monitor
+const WL_KEY = 'wl_stocks';          // shared watchlist (⭐)
+const FINNHUB_KEY = 'finnhub_api_key';
+const FINNHUB_BASE = 'https://finnhub.io/api/v1';
+
+const cfg = { thrMove: 1.5, thrVol: 3, thrPrice: 3, autoSec: 60 };
+let results = [];          // [{ symbol, price, m5, chgDay, vol, volRatio, rsi, closes, alerts:[], heat, insider, flashDir, ts }]
+let prevHeat = {};         // SYM -> heat anterior (pt flash)
+let seen = {};             // dedupe alerte notificate
+let scanRunning = false, autoTimer = null, nextScanAt = 0;
+let _scanBusyTs = 0, _lastScanOkTs = 0;
+let notifEnabled = false, soundEnabled = false;
+let tgConfig = { token: '', chatId: '', enabled: false };
+let watchlist = [];
+let sortKey = 'heat', sortAsc = false;
+let filterMode = 'all', filterText = '';
+let _scanSeq = 0;          // sequence guard — ignoră rezultate de la scan-uri suprascrise
+
+const ALERT_META = {
+  up:   { icon:'🟢', label:'PUMP',  cls:'up'   },
+  down: { icon:'🔴', label:'DUMP',  cls:'down' },
+  vol:  { icon:'📊', label:'VOL',   cls:'vol'  },
+  mom:  { icon:'⚡', label:'MOM',   cls:'mom'  },
+};
+
+// Sugestie acțiune (BUY / WATCH / WAIT / AVOID / SKIP) — derivată algoritmic
+// din alerte 5m + insider verdict + RSI + chgDay + heat. NU înlocuiește un trade plan —
+// e doar un tag rapid pentru filtrare vizuală (trader long-only, conservator).
+const ACTION_META = {
+  'buy':   { icon:'🚀', label:'BUY',   tip:'Pump confirmat de volum + insider/momentum pozitiv. Setup BUY cu R:R favorabil.' },
+  'watch': { icon:'🟢', label:'WATCH', tip:'Momentum pozitiv dar singur — așteaptă confirmare (volum sau pullback la suport).' },
+  'wait':  { icon:'🟡', label:'WAIT',  tip:'Semnale mixte sau RSI overbought. Stai pe margine sau așteaptă cool-down.' },
+  'avoid': { icon:'🔴', label:'AVOID', tip:'Dump cu volum / insider bear. Risc continuare scădere.' },
+  'skip':  { icon:'⏭', label:'SKIP',  tip:'Niciun semnal activ, heat scăzut. Sari peste.' },
+};
+// Acțiunea brută (fără context de regim de piață)
+function _computeActionRaw(r){
+  const a = r.alerts || [];
+  const iv = (r.insider && r.insider.verdict) || 'na';
+  const rsi = r.rsi;
+  const heat = r.heat || 0;
+  const hasPump = a.includes('up');
+  const hasDump = a.includes('down');
+  const hasVol  = a.includes('vol');
+  const momDir = r.momDir; // 'up' | 'down' | null
+  const chgUp = (r.chgDay || 0) > 0;
+
+  // DUMP cu insider bear / volum mare / RSI extrem oversold → AVOID
+  if (hasDump && (iv === 'bear' || hasVol)) return 'avoid';
+  if (hasDump && rsi != null && rsi < 25) return 'avoid';
+
+  // PUMP cu RSI overbought sever → WAIT (pullback iminent)
+  if (hasPump && rsi != null && rsi >= 80) return 'wait';
+
+  // PUMP + VOL + (insider bull SAU chgDay+ cu RSI sub 70) → BUY
+  if (hasPump && hasVol && (iv === 'bull' || (chgUp && (rsi == null || rsi < 70)))) return 'buy';
+
+  // PUMP cu confirmare parțială (zi+ sau insider bull) → WATCH
+  if (hasPump && (chgUp || iv === 'bull') && (rsi == null || rsi < 75)) return 'watch';
+
+  // MOM up + chgUp → WATCH (early reversal / breakout incipient)
+  if (momDir === 'up' && chgUp) return 'watch';
+
+  // DUMP fără confirmare → WAIT (poate fi noise)
+  if (hasDump) return 'wait';
+
+  // niciun alert + heat mort → SKIP
+  if (a.length === 0 && heat < 30) return 'skip';
+
+  return 'wait';
+}
+// FILTRU DE REGIM (Markov Lab): în regim de piață VOLATIL, breakout-urile/continuările
+// bullish sunt statistic mai puțin fiabile (regimul volatil e mean-reverting, autocorr<0).
+// → retrogradăm un nivel semnalele de continuare. Validat în markov-lab.
+function computeActionPR(r){
+  const base = _computeActionRaw(r);
+  const reg = window.__marketRegime;
+  if (reg && reg.isVol){
+    if (base === 'buy')   return 'watch';
+    if (base === 'watch') return 'wait';
+  }
+  return base;
+}
+function actionCell(r){
+  const k = computeActionPR(r);
+  const m = ACTION_META[k];
+  return `<span class="act ${k}" title="${m.tip}">${m.icon} ${m.label}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  EXPAND ROW — click pe rând → 3 box-uri (detalii 5m / stats / insider)
+// ═══════════════════════════════════════════════════════════════
+let expandedSym = null;
+
+window.toggleExpand = function(sym){
+  const tr = document.getElementById('row-' + sym);
+  if (!tr) return;
+  if (expandedSym === sym){
+    const next = tr.nextElementSibling;
+    if (next && next.classList.contains('expanded-row')) next.remove();
+    expandedSym = null;
+    return;
+  }
+  document.querySelectorAll('tr.expanded-row').forEach(r => r.remove());
+  expandedSym = sym;
+  const r = results.find(x => x.symbol === sym);
+  if (!r) return;
+  injectExpandedRow(tr, r);
+};
+
+function injectExpandedRow(tr, r){
+  if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('expanded-row')) tr.nextElementSibling.remove();
+  const row = document.createElement('tr');
+  row.className = 'expanded-row'; row.dataset.expFor = r.symbol;
+  row.innerHTML = `<td colspan="11">
+    <div class="exp-wrap">
+      <div class="exp-box">
+        <div class="exp-title">📊 Detalii 5m · ${r.closes.length} bare azi</div>
+        <div id="exp-bars-${r.symbol}"></div>
+      </div>
+      <div class="exp-box">
+        <div class="exp-title">🧠 Statistici scan</div>
+        <div id="exp-stats-${r.symbol}"></div>
+      </div>
+      <div class="exp-box">
+        <div class="exp-title">👔 Insider 60z</div>
+        <div id="exp-ins-${r.symbol}"></div>
+      </div>
+    </div>
+    <div class="exp-ai-bar">
+      <button class="ai-btn" id="ai-btn-${r.symbol}" onclick="event.stopPropagation(); analyzePumpWithAI('${r.symbol}', this)">🤖 Analizează cu AI (Claude)</button>
+      <button class="ai-btn" id="qs-btn-${r.symbol}" onclick="event.stopPropagation(); runPRQuickSetup('${r.symbol}', this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">🎯 Quick Setup (Opus 5)</button>
+      <button class="ai-btn" id="bt-btn-${r.symbol}" onclick="event.stopPropagation(); validatePumpSignal('${r.symbol}', this)" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);border-color:transparent;color:#0a0a0a;font-weight:800" title="Backtest: pump-urile pe acest simbol chiar preced câștiguri pe 60z de bare 5m?">📊 Validează semnalul</button>
+      <span class="ai-hint">Cache 1h. AI = analiză ~600 cuvinte. Quick Setup = JSON Entry/SL/TP. Validează = backtest onest al semnalului de pump (t-stat vs hazard).</span>
+    </div>
+    <div class="exp-ai" id="ai-result-${r.symbol}" data-done="0"></div>
+    <div class="exp-ai" id="qs-result-${r.symbol}" data-done="0"></div>
+    <div class="exp-ai" id="bt-result-${r.symbol}"></div>
+  </td>`;
+  tr.parentNode.insertBefore(row, tr.nextSibling);
+  fillExpandedDetails(r);
+}
+
+function fillExpandedDetails(r){
+  const barsBox = $('exp-bars-' + r.symbol);
+  const statsBox = $('exp-stats-' + r.symbol);
+  const insBox = $('exp-ins-' + r.symbol);
+
+  // ── 📊 Sparkline mare + ultimele 8 bare ──
+  if (barsBox){
+    const closes = r.closes || [];
+    const n = closes.length;
+    if (n < 3){
+      barsBox.innerHTML = '<div class="exp-loading">Fără date.</div>';
+    } else {
+      const arr = closes.slice(-60);
+      const lo = Math.min(...arr), hi = Math.max(...arr), rng = (hi - lo) || 1;
+      const w = 100, h = 60, pad = 2;
+      const pts = arr.map((v, i) => [pad + (i / (arr.length - 1)) * (w - pad * 2), pad + (1 - (v - lo) / rng) * (h - pad * 2)]);
+      const line = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+      const f = pts[0], lst = pts[pts.length - 1];
+      const area = line + ` L${lst[0].toFixed(1)},${h - pad} L${f[0].toFixed(1)},${h - pad} Z`;
+      const dir = arr[arr.length - 1] > arr[0] ? 'up' : arr[arr.length - 1] < arr[0] ? 'dn' : 'flat';
+      // ultimele 8 bare cu Δ% și volum (dacă există vols)
+      const tail = closes.slice(-9); // 8 deltas
+      const vols = (r.vols && Array.isArray(r.vols)) ? r.vols.slice(-9) : null;
+      const barRows = [];
+      for (let i = 1; i < tail.length; i++){
+        const prev = tail[i-1], cur = tail[i];
+        const d = prev ? ((cur - prev) / prev) * 100 : 0;
+        const idx = closes.length - tail.length + i;
+        const lab = 'b' + idx;
+        const v = vols ? vols[i] : null;
+        barRows.push(`<tr><td>${lab}</td><td>${cur.toFixed(2)}</td><td class="${d >= 0 ? 'up' : 'dn'}">${(d >= 0 ? '+' : '') + d.toFixed(2)}%</td><td>${v != null ? fmtVol(v) : '—'}</td></tr>`);
+      }
+      barsBox.innerHTML = `
+        <svg class="exp-spark ${dir}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path class="area" d="${area}"/><path d="${line}"/></svg>
+        <table class="exp-bars"><thead><tr><th>Bar</th><th>Preț</th><th>Δ%</th><th>Vol</th></tr></thead><tbody>${barRows.join('')}</tbody></table>`;
+    }
+  }
+
+  // ── 🧠 Statistici ──
+  if (statsBox){
+    const closes = r.closes || [];
+    // ATR aproximativ pe barele 5m = media |Δ%| ultimele 14 bare
+    let atr = null;
+    if (closes.length >= 15){
+      let sum = 0, count = 0;
+      const tail = closes.slice(-15);
+      for (let i = 1; i < tail.length; i++){ const p = tail[i-1]; if (p) { sum += Math.abs((tail[i] - p) / p) * 100; count++; } }
+      atr = count ? sum / count : null;
+    }
+    const k = computeActionPR(r);
+    const m = ACTION_META[k];
+    const alertsTxt = r.alerts.length ? r.alerts.map(t => ALERT_META[t].icon + ALERT_META[t].label).join(' ') : '—';
+    statsBox.innerHTML = `
+      <div class="exp-stat-row"><span>Sugestie</span><span>${m.icon} ${m.label}</span></div>
+      <div class="exp-stat-row"><span>Heat</span><span style="color:${heatColor(r.heat)}">🔥 ${r.heat}/100</span></div>
+      <div class="exp-stat-row"><span>RSI(14) 5m</span><span>${r.rsi != null ? r.rsi.toFixed(0) : '—'}</span></div>
+      <div class="exp-stat-row"><span>ATR≈ 5m</span><span>${atr != null ? '±' + atr.toFixed(2) + '%' : '—'}</span></div>
+      <div class="exp-stat-row"><span>Δ 5m / Zi</span><span>${fmtPct(r.m5, 2)} · ${fmtPct(r.chgDay, 1)}</span></div>
+      <div class="exp-stat-row"><span>Vol ratio</span><span>${r.volRatio != null ? r.volRatio.toFixed(2) + '×' : '—'}</span></div>
+      <div class="exp-stat-row"><span>Alerte active</span><span>${alertsTxt}</span></div>
+      <div class="exp-stat-row"><span>Momentum 3-bar</span><span>${r.momDir === 'up' ? '⚡ up' : r.momDir === 'down' ? '⚡ down' : '—'}</span></div>
+    `;
+  }
+
+  // ── 👔 Insider list (dacă există date) ──
+  if (insBox){
+    const ins = r.insider;
+    if (!ins || !ins.ok){
+      let key = ''; try { key = localStorage.getItem(FINNHUB_KEY) || ''; } catch(e){}
+      insBox.innerHTML = key
+        ? '<div class="exp-loading">Fără tranzacții insider în 60z (sau ticker fără raportări recente).</div>'
+        : '<div class="exp-loading">Setează cheia Finnhub în nasdaq-scanner / smart-trade-long pentru insider data.</div>';
+    } else {
+      const verdictTxt = ins.verdict === 'bull' ? '🟢 Bullish' : ins.verdict === 'bear' ? '🔴 Bearish' : '⚪ Neutru';
+      const top = (ins.rows || []).slice(0, 12);
+      const list = top.length ? top.map(t => {
+        const v = (t.price || 0) * (t.qty || 0);
+        const nm = escHtml(t.name);  // numele vine din feed extern → escape obligatoriu
+        const meta = `${escHtml(t.code || '?')} · ${t.qty.toLocaleString('en-US')}@$${t.price.toFixed(2)} · $${Math.round(v).toLocaleString('en-US')} · ${escHtml(t.date)}`;
+        return `<div class="exp-ins-row ${t.kind || 'neut'}"><span class="exp-ins-name" title="${nm}">${nm}</span><span class="exp-ins-meta">${meta}</span></div>`;
+      }).join('') : '<div class="exp-loading">Fără tranzacții.</div>';
+      insBox.innerHTML = `
+        <div class="exp-ins-summary">${verdictTxt} · ${ins.buyN} buys / ${ins.sellN} sells · net ${(ins.netShares >= 0 ? '+' : '') + ins.netShares.toLocaleString('en-US')} share</div>
+        <div class="exp-ins-list">${list}</div>
+      `;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AI BUBBLE — Claude API (shared key cu nasdaq-scanner / earnings-hub)
+// ═══════════════════════════════════════════════════════════════
+const ANTHROPIC_KEY_LS = 'anthropic_api_key';
+const AI_CACHE_LS = 'pump_radar_ai_cache_v1';
+const AI_CACHE_TTL_MS = 60 * 60 * 1000;
+
+const AI_SYSTEM_PR = `Eşti analist tehnic român pentru un trader activ pe Nasdaq via Trade 212 (long-only stocks).
+Reguli stricte:
+- Răspunde DOAR în română.
+- Maxim 7 rânduri, fără introduceri ("Iată...", "Pe baza datelor...").
+- Recomandă explicit unul din: "BUY momentum cu entry $X / SL $Y / TP $Z" SAU "AŞTEAPTĂ pullback la suport $X" SAU "SKIP — risc asimetric" SAU "AVOID — semnal short, nu intra long".
+- Argumentează în maxim 2 propoziţii: alertele 5m (pump/dump/vol/momentum) + confirmarea/contradicţia insider + RSI.
+- Identifică UN risc principal într-o singură propoziţie (ex: overbought, vol slab, sub MA, ora aproape de close).
+- Fără markdown, fără emoji, fără bold. Text plat, scurt, direct.`;
+
+function getAnthropicKey(){ try { return localStorage.getItem(ANTHROPIC_KEY_LS) || ''; } catch(e){ return ''; } }
+
+function aiCacheGet(key){
+  try {
+    const o = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    const ent = o[key]; if (!ent) return null;
+    if (Date.now() - ent.ts > AI_CACHE_TTL_MS){ delete o[key]; localStorage.setItem(AI_CACHE_LS, JSON.stringify(o)); return null; }
+    return ent;
+  } catch(_){ return null; }
+}
+function aiCacheSet(key, text, model){
+  try {
+    const o = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    o[key] = { text, model, ts:Date.now() };
+    const cut = Date.now() - AI_CACHE_TTL_MS;
+    for (const k of Object.keys(o)) if (o[k].ts < cut) delete o[k];
+    localStorage.setItem(AI_CACHE_LS, JSON.stringify(o));
+  } catch(_){}
+}
+
+function buildAiPromptPR(r){
+  const sess = marketSession();
+  const actKey = computeActionPR(r);
+  const actM = ACTION_META[actKey];
+  const alertsTxt = r.alerts.length ? r.alerts.map(t => ALERT_META[t].label).join(' + ') : 'niciuna';
+  const inWl = watchlist.includes(r.symbol);
+  let insTxt = 'fără date sau lipsă tranzacţii înregistrate în 60z';
+  if (r.insider && r.insider.ok){
+    insTxt = `verdict ${r.insider.verdict} · ${r.insider.buyN} buys / ${r.insider.sellN} sells · net ${(r.insider.netShares >= 0 ? '+' : '') + r.insider.netShares.toLocaleString('en-US')} share`;
+  }
+  // ATR aproximativ
+  const closes = r.closes || [];
+  let atr = null;
+  if (closes.length >= 15){
+    let sum = 0, count = 0;
+    const tail = closes.slice(-15);
+    for (let i = 1; i < tail.length; i++){ const p = tail[i-1]; if (p) { sum += Math.abs((tail[i] - p) / p) * 100; count++; } }
+    atr = count ? sum / count : null;
+  }
+  const lastFew = closes.slice(-6);
+  const trendTxt = lastFew.length ? lastFew.map(v => v.toFixed(2)).join(' → ') : 'N/A';
+  return `Analiză tehnică rapidă pentru ${r.symbol} pe barele de 5 minute. Sesiune: ${sess.txt}.
+
+DATE STRUCTURATE:
+- Preţ curent: $${r.price.toFixed(2)} (Δ zi ${(r.chgDay >= 0 ? '+' : '') + r.chgDay.toFixed(2)}%, Δ ultima bară 5m ${(r.m5 >= 0 ? '+' : '') + r.m5.toFixed(2)}%)
+- Volum vs medie intraday: ${r.volRatio != null ? r.volRatio.toFixed(2) + '×' : 'N/A'}
+- RSI(14) 5m: ${r.rsi != null ? r.rsi.toFixed(0) : 'N/A'}
+- ATR aproximativ 5m (media |Δ%| 14 bare): ${atr != null ? '±' + atr.toFixed(2) + '%' : 'N/A'}
+- Heat radar (0-100): ${r.heat}
+- Alerte 5m active: ${alertsTxt}
+- Momentum 3-bar: ${r.momDir === 'up' ? 'reversal upward' : r.momDir === 'down' ? 'reversal downward' : 'niciun shift'}
+- Trend ultimele 6 bare: ${trendTxt}
+- Insider 60z: ${insTxt}
+- Tag derivat algoritmic: ${actM.icon} ${actM.label}
+
+CONTEXT: ${inWl ? 'tickerul ESTE pe watchlist-ul traderului.' : 'tickerul nu e pe watchlist.'} Trader long-only pe Trade 212, fonduri limitate — conservator.
+
+Întrebare: ce face traderul cu ${r.symbol} acum? Confirmă sau contestă tagul algoritmic ${actM.label}. Dă entry/SL/TP concrete în USD, sau spune AŞTEAPTĂ / SKIP / AVOID.`;
+}
+
+window.analyzePumpWithAI = async function(symbol, btn){
+  const r = results.find(x => x.symbol === symbol); if (!r) return;
+  const container = $('ai-result-' + symbol); if (!container) return;
+  if (container.dataset.done === '1'){
+    container.innerHTML = ''; container.dataset.done = '0';
+    if (btn) btn.textContent = '🤖 Analizează cu AI (Claude)';
+    return;
+  }
+  const key = getAnthropicKey();
+  if (!key){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>⚠ Lipsește cheia Anthropic</b></div>Adaugă cheia în earnings-hub → ⚙ Setări → câmpul „Anthropic API key", sau pune-o manual cu <code>localStorage.setItem('anthropic_api_key','sk-ant-...')</code> din Console. O obţii de la console.anthropic.com/settings/keys.</div>`;
+    container.dataset.done = '1'; return;
+  }
+  // cache key include alerte + heat + sugestie (analiza depinde de starea curentă)
+  const ck = `${symbol}_${r.alerts.sort().join('_') || 'none'}_h${Math.round(r.heat / 10)}_${computeActionPR(r)}`;
+  const cached = aiCacheGet(ck);
+  if (cached){
+    renderAiBubble(container, cached.text, cached.model + ' · cache');
+    container.dataset.done = '1';
+    if (btn) btn.textContent = '🤖 Ascunde analiză';
+    return;
+  }
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ Se generează…'; }
+  // Fără streaming vizual (obositor) — spinner + cronometru, răspunsul apare DEODATĂ cu fade-in.
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-5</span></div><div style="padding:10px;text-align:center;color:var(--t3)"><span style="font-size:20px;animation:pulse 1.4s infinite">🤖</span><div style="margin-top:6px;font-size:12.5px">Analizez… <span id="ai-timer-${symbol}">0.0s</span></div></div></div>`;
+  container.dataset.done = '1';
+
+  const prompt = buildAiPromptPR(r);
+  const t0 = Date.now();
+  const timer = setInterval(() => { const el = $('ai-timer-' + symbol); if (el) el.textContent = ((Date.now() - t0) / 1000).toFixed(1) + 's'; }, 100);
+  try {
+    // → lib/ai.js (AI.complete): non-streaming + timeout 180s built-in
+    const full = await AI.complete({ prompt, system: AI_SYSTEM_PR, model: 'claude-opus-5', maxTokens: 600 });
+    aiCacheSet(ck, full, 'claude-opus-5');
+    renderAiBubble(container, full, 'claude-opus-5 · ' + ((Date.now() - t0) / 1000).toFixed(1) + 's · ' + new Date().toLocaleTimeString('ro-RO'));
+    if (btn) btn.textContent = '🤖 Ascunde analiză';
+  } catch(err){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare AI</b><span class="ai-meta">${escHtml(err.message || 'unknown')}</span></div>Verifică cheia (sk-ant-…), creditul rămas în consolă sau încearcă peste 1 min.</div>`;
+    if (btn) btn.textContent = '🤖 Reîncearcă';
+  } finally {
+    clearInterval(timer);
+    if (btn) btn.disabled = false;
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  QUICK SETUP — JSON ready-to-execute (Opus 5, max 350 tok)
+// ═══════════════════════════════════════════════════════════════
+const PR_QS_CACHE_KEY = 'pr_qs_cache_v1';
+const PR_QS_TTL = 60*60*1000; // 1h
+function prQsCacheGet(sym){
+  try {
+    const c = JSON.parse(localStorage.getItem(PR_QS_CACHE_KEY) || '{}');
+    const it = c[sym]; if (!it) return null;
+    if (Date.now() - it.ts > PR_QS_TTL) return null;
+    return it.data;
+  } catch(_){ return null; }
+}
+function prQsCacheSet(sym, data){
+  try {
+    const c = JSON.parse(localStorage.getItem(PR_QS_CACHE_KEY) || '{}');
+    c[sym] = { ts:Date.now(), data };
+    for (const k of Object.keys(c)) if (Date.now() - c[k].ts > 3*24*3600*1000) delete c[k];
+    localStorage.setItem(PR_QS_CACHE_KEY, JSON.stringify(c));
+  } catch(_){}
+}
+
+window.runPRQuickSetup = async function(symbol, btn){
+  const r = results.find(x => x.symbol === symbol); if (!r) return;
+  const container = $('qs-result-' + symbol); if (!container) return;
+  if (container.dataset.done === '1'){
+    container.innerHTML = ''; container.dataset.done = '0';
+    if (btn) btn.textContent = '🎯 Quick Setup (Opus 5)';
+    return;
+  }
+  const key = getAnthropicKey();
+  if (!key){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>⚠ Lipsește cheia Anthropic</b></div>Adaugă cheia în earnings-hub / macro-dashboard → ⚙ Setări.</div>`;
+    container.dataset.done = '1'; return;
+  }
+  const cached = prQsCacheGet(symbol);
+  if (cached){
+    renderPRQuickSetup(container, cached, '💾 cache 1h');
+    container.dataset.done = '1';
+    if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
+    return;
+  }
+  if (btn){ btn.disabled = true; btn.textContent = '⏳ Opus 5 gândește (5-10s)…'; }
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">🎯 Quick Setup · Opus 5</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">🧠</span><div style="margin-top:6px;font-size:12.5px">Generez JSON ready-to-execute… <span id="qs-timer-${symbol}">0.0s</span></div></div></div>`;
+  container.dataset.done = '1';
+  const _qsT0 = Date.now();
+  const _qsTimer = setInterval(() => { const el = $('qs-timer-' + symbol); if (el) el.textContent = ((Date.now() - _qsT0) / 1000).toFixed(1) + 's'; }, 100);
+
+  // ATR aprox 5m (medie |Δ%| ultimele 14 bare)
+  let atr = null;
+  const closes = r.closes || [];
+  if (closes.length >= 15){
+    let sum = 0, count = 0;
+    const tail = closes.slice(-15);
+    for (let i = 1; i < tail.length; i++){ const p = tail[i-1]; if (p){ sum += Math.abs((tail[i] - p) / p) * 100; count++; } }
+    atr = count ? sum / count : null;
+  }
+  const sugestie = computeActionPR(r);
+  let insiderTxt = 'N/A';
+  if (r.insider && r.insider.ok){
+    insiderTxt = `${r.insider.verdict} · ${r.insider.buyN}B/${r.insider.sellN}S · net ${r.insider.netShares >= 0 ? '+' : ''}${r.insider.netShares}`;
+  }
+  const userPrompt = `Pump alert pentru ${symbol}:
+- Preț curent: $${r.price?.toFixed(2)}
+- Δ% ultima bară 5m: ${r.m5 != null ? r.m5.toFixed(2) + '%' : 'N/A'}
+- Δ% zi: ${r.chgDay != null ? r.chgDay.toFixed(2) + '%' : 'N/A'}
+- Heat: ${r.heat}/100
+- RSI(14) 5m: ${r.rsi != null ? r.rsi.toFixed(1) : 'N/A'}
+- ATR≈ 5m (medie |Δ%| 14 bare): ${atr != null ? atr.toFixed(2) + '%' : 'N/A'}
+- Vol ratio: ${r.volRatio != null ? r.volRatio.toFixed(2) + 'x' : 'N/A'}
+- Alerte active: ${r.alerts && r.alerts.length ? r.alerts.join(', ') : 'none'}
+- Sugestie algoritmică curentă: ${sugestie}
+- Insider 60z: ${insiderTxt}
+
+Output STRICT JSON (un singur obiect, niciun text înainte/după):
+{"entry":<număr>,"sl":<număr>,"tp1":<număr>,"tp2":<număr>,"sizing_pct":<număr 1-5>,"timeframe":"<intraday|swing 1-3z|skip>","risk":"<one-liner max 50 chars>","confidence":"<HIGH|MED|LOW>","reasoning":"<3-5 propoziții, max 400 chars, raționament EXPLICIT pump setup>","invalidation":"<trigger care anulează teza, max 120 chars>","catalysts":"<events/news pe scurt-term, max 120 chars>"}
+
+Reguli pentru PUMP setup:
+- entry = preț curent dacă RSI<70 + momentum bullish; pullback la VWAP/MA8 dacă RSI>75 (overextended)
+- SL strict: −1×ATR (cap loss intraday) sau sub low-ul ultimei bare verzi
+- TP1 = +1×ATR (quick scalp), TP2 = +2×ATR (extended)
+- sizing_pct mic la PUMP (vol mare): 1-2% (LOW), 2-3% (MED), max 3% (HIGH)
+- timeframe: "intraday" default pentru pump-uri; "skip" dacă setup-ul e proast
+- risk: cea mai mare amenințare în 50 chars
+- confidence: bazat pe heat + vol ratio + insider + alerts mix
+- reasoning: explică EXPLICIT logica pump-ului — ce alerte convergă (vol+pump+momentum?), unde e nivelul de continuare vs reversal, de ce acel entry/SL/TP exact, ce indicator e dominant. Vorbește direct trader-ului în română.
+- invalidation: condiție clară care anulează (ex: "break sub 175.20 cu vol mare = exit")
+- catalysts: events imediate (news/macro/earnings) sau structurale (RSI overextended, vol epuizat)
+
+Dacă sugestia e AVOID/SKIP sau RSI extreme overbought (>80) + heat>80, dă confidence:LOW și timeframe:"skip" cu sizing_pct:1, risk + reasoning explică de ce e setup prost.`;
+
+  try {
+    // → lib/ai.js: non-streaming + timeout 180s + extractJson robust
+    const text = await AI.complete({ prompt: userPrompt, model:'claude-opus-5', maxTokens: 800 });
+    const setup = AI.extractJson(text);
+    if (!setup) throw new Error('Format JSON invalid: ' + text.slice(0, 120));
+    // Validare anti-halucinare (LONG-only): numere pozitive + SL<entry<TP1<TP2 — altfel respinge.
+    for (const k of ['entry', 'sl', 'tp1', 'tp2']){
+      if (setup[k] != null){ setup[k] = +setup[k]; if (!isFinite(setup[k]) || setup[k] <= 0) setup[k] = null; }
+    }
+    if (setup.entry != null){
+      const bad = (setup.sl != null && setup.sl >= setup.entry)
+        || (setup.tp1 != null && setup.tp1 <= setup.entry)
+        || (setup.tp1 != null && setup.tp2 != null && setup.tp2 <= setup.tp1);
+      if (bad) throw new Error('Setup AI incoerent (LONG cere SL < entry < TP1 < TP2) — re-rulează');
+    }
+    setup.sizing_pct = (setup.sizing_pct != null && isFinite(+setup.sizing_pct)) ? Math.min(5, Math.max(0, +setup.sizing_pct)) : null;
+    prQsCacheSet(symbol, setup);
+    renderPRQuickSetup(container, setup, '✓ ' + new Date().toLocaleTimeString('ro-RO'));
+    if (btn) btn.textContent = '🎯 Ascunde Quick Setup';
+  } catch(err){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>❌ Eroare Quick Setup</b><span class="ai-meta">${escHtml(err.message || 'unknown')}</span></div>Verifică cheia, creditul sau încearcă peste 1 min.</div>`;
+    if (btn) btn.textContent = '🎯 Reîncearcă';
+  } finally {
+    clearInterval(_qsTimer);
+    if (btn) btn.disabled = false;
+  }
+};
+
+function renderPRQuickSetup(container, setup, sourceLabel){
+  const confColor = setup.confidence === 'HIGH' ? 'var(--bull-s)' : (setup.confidence === 'MED' ? 'var(--gold)' : 'var(--bear-s)');
+  const slPct = setup.entry && setup.sl ? ((setup.sl - setup.entry) / setup.entry * 100).toFixed(2) : '—';
+  const tp1Pct = setup.entry && setup.tp1 ? ((setup.tp1 - setup.entry) / setup.entry * 100).toFixed(2) : '—';
+  const tp2Pct = setup.entry && setup.tp2 ? ((setup.tp2 - setup.entry) / setup.entry * 100).toFixed(2) : '—';
+  // fără Math.abs — un SL inversat trebuie să se VADĂ (negativ), nu să fie mascat
+  const rr = (setup.entry && setup.sl && setup.tp2 && setup.entry > setup.sl) ? ((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '—';
+  const fmt$ = n => (n != null && !isNaN(n)) ? '$' + Number(n).toFixed(2) : '—';
+  const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  container.innerHTML = `<div class="ai-bubble" style="background:linear-gradient(180deg, rgba(247,147,26,.10), rgba(20,26,40,.4));border-color:rgba(247,147,26,.4)">
+    <div class="ai-head">
+      <span class="ai-meta">🎯 Quick Setup · Opus 5 · ${sourceLabel}</span>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunPRQuickSetup(this)">↻ Re-rulează</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px">
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Entry</div><div style="font-size:17px;font-weight:800;color:var(--t1)">${fmt$(setup.entry)}</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Stop Loss</div><div style="font-size:17px;font-weight:800;color:var(--bear-s)">${fmt$(setup.sl)} <span style="font-size:10.5px;font-weight:600">${slPct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP1</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp1)} <span style="font-size:10.5px;font-weight:600">+${tp1Pct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP2</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp2)} <span style="font-size:10.5px;font-weight:600">+${tp2Pct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Sizing</div><div style="font-size:17px;font-weight:800;color:var(--crypto-2)">${setup.sizing_pct != null ? setup.sizing_pct + '% cont' : '—'}</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">R:R</div><div style="font-size:17px;font-weight:800;color:var(--t1)">1 : ${rr}</div></div>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12.5px">
+      <div><span style="color:var(--t3)">Timeframe:</span> <strong>${esc(setup.timeframe || 'N/A')}</strong></div>
+      <div><span style="color:var(--t3)">Confidence:</span> <strong style="display:inline-block;padding:2px 11px;border-radius:999px;background:var(--panel2);color:${confColor};border:1.5px solid ${confColor};font-size:12px;font-weight:800;letter-spacing:.5px;vertical-align:middle">${esc(setup.confidence || 'N/A')}</strong></div>
+    </div>
+    ${setup.reasoning ? `<div style="margin-top:10px;padding:10px 12px;background:rgba(91,176,255,.08);border-left:3px solid var(--crypto-1);border-radius:0 6px 6px 0;font-size:12px;line-height:1.55">
+      <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">🧠 Raționament</div>
+      ${esc(setup.reasoning)}
+    </div>` : ''}
+    <div style="margin-top:8px;padding:8px 10px;background:rgba(255,77,77,.08);border-left:3px solid var(--bear-s);border-radius:0 6px 6px 0;font-size:12px">
+      <strong style="color:var(--bear-s)">⚠ Risc principal:</strong> ${esc(setup.risk || 'N/A')}
+    </div>
+    ${setup.invalidation ? `<div style="margin-top:7px;padding:7px 10px;background:rgba(247,147,26,.07);border-left:3px solid var(--gold);border-radius:0 6px 6px 0;font-size:11.5px">
+      <strong style="color:var(--gold)">🚫 Invalidare:</strong> ${esc(setup.invalidation)}
+    </div>` : ''}
+    ${setup.catalysts ? `<div style="margin-top:7px;padding:7px 10px;background:rgba(34,214,107,.07);border-left:3px solid var(--bull-s);border-radius:0 6px 6px 0;font-size:11.5px">
+      <strong style="color:var(--bull-s)">⚡ Catalist:</strong> ${esc(setup.catalysts)}
+    </div>` : ''}
+  </div>`;
+}
+
+window.rerunPRQuickSetup = function(btn){
+  const bubble = btn.closest('.exp-ai');
+  if (!bubble) return;
+  const sym = bubble.id.replace('qs-result-', '');
+  try {
+    const c = JSON.parse(localStorage.getItem(PR_QS_CACHE_KEY) || '{}');
+    delete c[sym];
+    localStorage.setItem(PR_QS_CACHE_KEY, JSON.stringify(c));
+  } catch(_){}
+  bubble.dataset.done = '0'; bubble.innerHTML = '';
+  const qsBtn = $('qs-btn-' + sym);
+  if (qsBtn) qsBtn.textContent = '🎯 Quick Setup (Opus 5)';
+  runPRQuickSetup(sym, qsBtn);
+};
+
+function renderAiBubble(container, text, meta){
+  const safe = (text || '(răspuns gol)').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  const metaSafe = (meta || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+  container.innerHTML = `<div class="ai-bubble">
+    <div class="ai-head">
+      <span class="ai-meta">${metaSafe}</span>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunPRAi(this)">↻ Rerun</button>
+    </div>${safe}</div>`;
+  // fade-in — răspunsul apare deodată, nu token-cu-token
+  const b = container.firstElementChild;
+  if (b){ b.style.opacity = '0'; b.style.transition = 'opacity .45s ease'; requestAnimationFrame(() => { b.style.opacity = '1'; }); }
+}
+window.rerunPRAi = function(btn){
+  const bubble = btn.closest('.exp-ai');
+  if (!bubble) return;
+  const sym = bubble.id.replace('ai-result-', '');
+  try {
+    const cachedRaw = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    for (const k of Object.keys(cachedRaw)) if (k.startsWith(sym + '_')) delete cachedRaw[k];
+    localStorage.setItem(AI_CACHE_LS, JSON.stringify(cachedRaw));
+  } catch(_){}
+  bubble.dataset.done = '0'; bubble.innerHTML = '';
+  const aiBtn = $('ai-btn-' + sym);
+  if (aiBtn) aiBtn.textContent = '🤖 Analizează cu AI (Claude)';
+  analyzePumpWithAI(sym, aiBtn);
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  CONFIG persist
+// ═══════════════════════════════════════════════════════════════
+function loadCfg(){
+  try {
+    const c = JSON.parse(localStorage.getItem(CFG_KEY) || '{}');
+    if (typeof c.thrMove === 'number') cfg.thrMove = c.thrMove;
+    if (typeof c.thrVol === 'number') cfg.thrVol = c.thrVol;
+    if (typeof c.thrPrice === 'number') cfg.thrPrice = c.thrPrice;
+    if (typeof c.autoSec === 'number') cfg.autoSec = c.autoSec;
+    notifEnabled = !!c.notif;
+  } catch(e){}
+  try { tgConfig = Object.assign(tgConfig, JSON.parse(localStorage.getItem(TG_KEY) || '{}')); } catch(e){}
+  try { soundEnabled = localStorage.getItem(SOUND_KEY) === '1'; } catch(e){}
+  try { watchlist = JSON.parse(localStorage.getItem(WL_KEY) || '[]'); if (!Array.isArray(watchlist)) watchlist = []; } catch(e){ watchlist = []; }
+  try { seen = JSON.parse(localStorage.getItem(SEEN_KEY) || '{}') || {}; } catch(e){ seen = {}; }
+}
+function saveCfg(){
+  try { localStorage.setItem(CFG_KEY, JSON.stringify({ thrMove: cfg.thrMove, thrVol: cfg.thrVol, thrPrice: cfg.thrPrice, autoSec: cfg.autoSec, notif: notifEnabled })); } catch(e){}
+}
+function saveSeen(){
+  // curăță intrări mai vechi de 30min
+  const cut = Date.now() - 30*60*1000;
+  for (const k in seen) if (seen[k] < cut) delete seen[k];
+  try { localStorage.setItem(SEEN_KEY, JSON.stringify(seen)); } catch(e){}
+}
+function saveWatchlist(){ try { localStorage.setItem(WL_KEY, JSON.stringify(watchlist)); } catch(e){} }
+
+// ═══════════════════════════════════════════════════════════════
+//  Market session (NYSE/Nasdaq, DST-aware via Intl)
+// ═══════════════════════════════════════════════════════════════
+// formatter reutilizat (instanțierea Intl.DateTimeFormat e scumpă; marketSession e chemat de zeci de ori/scan)
+let _nySessionFmt = null;
+function marketSession(){
+  let parts;
+  try {
+    if (!_nySessionFmt) _nySessionFmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', weekday:'short', hour:'2-digit', minute:'2-digit', hour12:false });
+    parts = _nySessionFmt.formatToParts(new Date());
+  }
+  catch(e){ return { state:'unknown', txt:'sesiune ?' }; }
+  const get = t => (parts.find(p => p.type === t) || {}).value;
+  const wd = get('weekday'); const h = +get('hour'); const m = +get('minute'); const mins = h*60 + m;
+  if (wd === 'Sat' || wd === 'Sun') return { state:'closed', txt:'închis (weekend)', mins };
+  if (mins >= 4*60 && mins < 9*60+30) return { state:'pre', txt:'pre-market', mins };
+  if (mins >= 9*60+30 && mins < 16*60) return { state:'open', txt:'sesiune regulară', mins };
+  if (mins >= 16*60 && mins < 20*60) return { state:'post', txt:'after-hours', mins };
+  return { state:'closed', txt:'închis', mins };
+}
+function updateSessionPill(){
+  const s = marketSession(); const el = $('sessionPill'); if (!el) return;
+  const ico = s.state === 'open' ? '🟢' : s.state === 'pre' ? '🌅' : s.state === 'post' ? '🌆' : '🌙';
+  el.textContent = ico + ' ' + s.txt;
+  el.className = 'status-pill ' + (s.state === 'open' ? 'live' : s.state === 'closed' ? 'closed' : '');
+}
+setInterval(updateSessionPill, 30000);
+
+// ═══════════════════════════════════════════════════════════════
+//  DATA — Yahoo (spark batch + chart 5m), lanț de proxy-uri CORS cu fallback.
+//  NB: din file:// origin-ul e `null` → multe proxy-uri îl resping (CORS). Funcționează
+//  de pe un origin real (GitHub Pages / localhost). Fiecare proxy: { build(url)→proxyURL, extract(text)→jsonStr }.
+//  Scos:
+//    - thingproxy.freeboard.io (DNS mort)
+//    - corsproxy.io (400 Bad Request — necesită domeniu înregistrat)
+//    - allorigins.win/raw + /get (CORS headers eliminate 2026-05-13 pentru origin github.io)
+// ═══════════════════════════════════════════════════════════════
+const CORS_PROXIES = [
+  { name:'codetabs',       build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: t => t },
+  { name:'corsproxy.io',   build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),               extract: t => t },
+  { name:'cors.lol',       build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u),               extract: t => t },
+];
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let _proxyIdx = 0;            // proxy preferat (cel care a mers ultima dată)
+let _deadProxies = new Set(); // proxy-uri care au dat rate-limit / CORS / eroare în scanul curent — sărite până la următorul scan
+
+// GET prin lanțul de proxy-uri; întoarce obiectul JSON parsat sau null.
+// Marchează „mort" la: 429/403/400, non-JSON, sau CORS/network error (TypeError în catch) —
+// CORS error e indistinct de „Failed to fetch", deci trebuie să abandonăm proxy-ul rapid.
+async function proxyGetJSON(targetUrl, startIdx, timeoutMs = 8000){
+  // strat de date comun (lib/data.js): proxy health per-host + dedup + cache scurt
+  if (window.D && D.fetchJSON) { const j = await D.fetchJSON(targetUrl, { ttl: 0, timeout: timeoutMs }); if (j != null) return j; }
+  const n = CORS_PROXIES.length;
+  for (let k = 0; k < n; k++){
+    const pi = ((startIdx == null ? _proxyIdx : startIdx) + k) % n;
+    if (_deadProxies.has(pi) && _deadProxies.size < n) continue; // sari proxy-urile moarte (dacă nu sunt toate moarte)
+    const px = CORS_PROXIES[pi];
+    try {
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), timeoutMs);
+      const r = await fetch(px.build(targetUrl), { signal: ctrl.signal });
+      clearTimeout(to);
+      if (!r.ok){ if (r.status === 429 || r.status === 403 || r.status === 400 || r.status === 408 || r.status === 502 || r.status === 504) _deadProxies.add(pi); continue; }
+      const raw = await r.text();
+      let d; try { d = JSON.parse(px.extract(raw)); } catch(_){ _deadProxies.add(pi); continue; } // pagină de eroare (rate-limit etc.)
+      _proxyIdx = pi; // promovează proxy-ul care a mers
+      return d;
+    } catch(e){ _deadProxies.add(pi); /* CORS / timeout / network — abandonăm proxy-ul rapid */ }
+  }
+  return null;
+}
+
+function parseYahooChart(symbol, d){
+  const r = d && d.chart && d.chart.result && d.chart.result[0];
+  if (!r || !r.indicators || !r.indicators.quote) return null;
+  const q = r.indicators.quote[0] || {};
+  const meta = r.meta || {};
+  const tsRaw = r.timestamp || [];
+  const closeRaw = q.close || [], volRaw = q.volume || [];
+  const closes = [], vols = [], tss = [];
+  for (let i = 0; i < closeRaw.length; i++){
+    // Sanity numeric: respinge bare cu preț absurd de la proxy terț (null/≤0/non-finit) — fără
+    // asta o valoare fabricată/coruptă produce un m5 uriaș = pump fals.
+    if (closeRaw[i] == null || !isFinite(closeRaw[i]) || closeRaw[i] <= 0) continue;
+    closes.push(closeRaw[i]); vols.push((volRaw[i] != null && isFinite(volRaw[i]) && volRaw[i] >= 0) ? volRaw[i] : 0); tss.push(tsRaw[i] || 0);
+  }
+  if (closes.length < 4) return null;
+  // Prețul LIVE = ultima bară (incl. pre/post) — meta.regularMarketPrice e STALE
+  // în pre-market (= close-ul de ieri) și în after-hours (= close-ul 16:00).
+  const livePrice = closes[closes.length - 1];
+  // Bara curentă e ÎN FORMARE (Yahoo o include mereu) → indicatori/alerte DOAR pe bare închise.
+  const lastTs = tss[tss.length - 1];
+  if (lastTs && (Date.now() / 1000 - lastTs) < 300){ closes.pop(); vols.pop(); tss.pop(); }
+  if (closes.length < 4) return null;
+  // Referința Δzi: în pre-market chartPreviousClose cu range=1d = close-ul zilei N−2 (regula v121)
+  // → corect e regularMarketPrice (= close-ul de ieri). În regular/post chartPreviousClose e ok.
+  const st = marketSession().state;
+  const prevClose = (st === 'pre')
+    ? (meta.regularMarketPrice != null ? meta.regularMarketPrice : null)
+    : (meta.chartPreviousClose != null ? meta.chartPreviousClose : (meta.previousClose != null ? meta.previousClose : null));
+  return { symbol, price: livePrice, prevClose, closes, vols, ts: Date.now() };
+}
+
+async function fetchChart5m(symbol){
+  const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d&includePrePost=true`);
+  return d ? parseYahooChart(symbol, d) : null;
+}
+
+function chunk(arr, size){ const out = []; for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; }
+
+// ── BATCH: spark — multe simboluri într-un singur request (barele de 5m) ──
+function parseSpark(d){
+  const arr = d && d.spark && Array.isArray(d.spark.result) ? d.spark.result : null;
+  if (!arr) return null;
+  const map = {};
+  arr.forEach(r => {
+    const sym = r && r.symbol; const resp = r && r.response && r.response[0];
+    if (!sym || !resp) return;
+    const meta = resp.meta || {};
+    const tsRaw = resp.timestamp || [];
+    const closeRaw = (resp.indicators && resp.indicators.quote && resp.indicators.quote[0] && resp.indicators.quote[0].close) || [];
+    const closes = [], tss = [];
+    for (let i = 0; i < closeRaw.length; i++){ if (closeRaw[i] == null) continue; closes.push(closeRaw[i]); tss.push(tsRaw[i] || 0); }
+    if (closes.length < 4) return;
+    // aceleași reguli ca parseYahooChart: preț live din bare, bara în formare scoasă, ref pre = regularMarketPrice
+    const livePrice = closes[closes.length - 1];
+    const lastTs = tss[tss.length - 1];
+    if (lastTs && (Date.now() / 1000 - lastTs) < 300) closes.pop();
+    if (closes.length < 4) return;
+    const st = marketSession().state;
+    map[sym] = {
+      symbol: sym,
+      price: livePrice,
+      prevClose: (st === 'pre')
+        ? (meta.regularMarketPrice != null ? meta.regularMarketPrice : null)
+        : (meta.chartPreviousClose != null ? meta.chartPreviousClose : (meta.previousClose != null ? meta.previousClose : null)),
+      closes, vols: null, ts: Date.now(),
+    };
+  });
+  return map;
+}
+async function fetchSparkChunk(symbols){
+  const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbols.join(',')}&range=1d&interval=5m`;
+  const d = await proxyGetJSON(url);
+  return d ? parseSpark(d) : null;
+}
+
+// ── BATCH: quote — volum azi vs media 10z (best-effort; poate cere crumb → 401 → ignorăm) ──
+function parseQuoteBatch(d){
+  const arr = d && d.quoteResponse && Array.isArray(d.quoteResponse.result) ? d.quoteResponse.result : null;
+  if (!arr) return null;
+  const map = {};
+  arr.forEach(q => { if (q && q.symbol && (q.regularMarketVolume != null)) map[q.symbol] = { volDay: q.regularMarketVolume, volAvg10: q.averageDailyVolume10Day || q.averageDailyVolume3Month || null }; });
+  return map;
+}
+async function fetchQuoteChunk(symbols){
+  const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols.join(',')}`, null, 7000);
+  return d ? parseQuoteBatch(d) : null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INDICATORS + SPARKLINE
+// ═══════════════════════════════════════════════════════════════
+function calcRSI(closes, period = 14){
+  if (!closes || closes.length < period + 1) return null;
+  let g = 0, l = 0;
+  for (let i = 1; i <= period; i++){ const c = closes[i] - closes[i - 1]; if (c >= 0) g += c; else l -= c; }
+  let ag = g / period, al = l / period;
+  for (let i = period + 1; i < closes.length; i++){
+    const c = closes[i] - closes[i - 1];
+    ag = (ag * (period - 1) + (c > 0 ? c : 0)) / period;
+    al = (al * (period - 1) + (c < 0 ? -c : 0)) / period;
+  }
+  if (al === 0) return 100;
+  return 100 - (100 / (1 + ag / al));
+}
+function mean(arr){ return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
+
+function buildSparkline(closes, n = 40){
+  if (!closes || closes.length < 3) return '<span style="color:var(--t3)">—</span>';
+  const arr = closes.slice(-n);
+  const lo = Math.min(...arr), hi = Math.max(...arr), rng = (hi - lo) || 1;
+  const w = 100, h = 30, pad = 2;
+  const pts = arr.map((v, i) => [pad + (i / (arr.length - 1)) * (w - pad * 2), pad + (1 - (v - lo) / rng) * (h - pad * 2)]);
+  const line = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const f = pts[0], lst = pts[pts.length - 1];
+  const area = line + ` L${lst[0].toFixed(1)},${h - pad} L${f[0].toFixed(1)},${h - pad} Z`;
+  const dir = arr[arr.length - 1] > arr[0] ? 'up' : arr[arr.length - 1] < arr[0] ? 'dn' : 'flat';
+  return `<svg class="spark ${dir}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><path class="area" d="${area}"/><path d="${line}"/></svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ALERT DETECTION — din barele de 5m
+// ═══════════════════════════════════════════════════════════════
+function volRatioOf(d){
+  const sess = marketSession();
+  // 1) volum azi vs media 10z (din batch quote) — volumul CUMULAT e parțial în timpul zilei →
+  //    proiecție liniară la 390 min (port watchlist-monitor F2); sub 45 min nu evaluăm (U-shaped);
+  //    în pre-market regularMarketVolume e 0/de ieri → irelevant, cădem pe path 2.
+  if (d.volDay != null && d.volAvg10){
+    if (sess.state === 'open'){
+      const elapsed = sess.mins - 570;
+      if (elapsed >= 45) return Math.min((d.volDay * 390 / elapsed) / d.volAvg10, 8);
+    } else if (sess.state === 'post' || sess.state === 'closed'){
+      return d.volDay / d.volAvg10; // zi completă — fără proiecție
+    }
+  }
+  // 2) altfel, dacă avem bare 5m cu volum (per-symbol chart): ultima bară ÎNCHISĂ vs media intraday
+  const vols = d.vols;
+  if (Array.isArray(vols) && vols.length > 1){
+    const now = vols[vols.length - 1] || 0;
+    const prior = vols.slice(0, vols.length - 1).filter(v => v > 0);
+    if (prior.length && now > 0) return now / mean(prior);
+  }
+  return null;
+}
+function computeHeat(m5, volRatio, mom){
+  const moveScore = Math.min(Math.abs(m5) / 5, 1) * 55;
+  const volScore = volRatio != null ? Math.min(Math.max(volRatio - 1, 0) / 5, 1) * 35 : 0;
+  const momScore = mom ? 10 : 0;
+  return Math.round(Math.min(moveScore + volScore + momScore, 100));
+}
+function computeAlerts(price, m5, volRatio, mom){
+  const a = [];
+  if (price >= cfg.thrPrice){
+    if (m5 >= cfg.thrMove) a.push('up');
+    if (m5 <= -cfg.thrMove) a.push('down');
+    if (volRatio != null && volRatio >= cfg.thrVol) a.push('vol');
+    if (mom === 'up' || mom === 'down') a.push('mom');
+  }
+  return a;
+}
+function analyze(d){
+  const closes = d.closes, n = closes.length;
+  const last = closes[n - 1], prev = closes[n - 2];
+  const m5 = prev ? ((last - prev) / prev) * 100 : 0;                    // mișcare ultima bară 5m ÎNCHISĂ (bara în formare e scoasă la parse)
+  const chgDay = d.prevClose ? ((d.price - d.prevClose) / d.prevClose) * 100 : 0;
+  const volRatio = volRatioOf(d);
+  const rsi = calcRSI(closes, 14);
+
+  // Momentum shift: ultimele 3 bare urcă (sau coboară) constant după ce cele 3 anterioare mergeau invers
+  let mom = null;
+  if (n >= 7){
+    const d1 = closes[n - 1] - closes[n - 4]; // panta ultimelor 3 segmente
+    const d2 = closes[n - 4] - closes[n - 7]; // panta segmentelor 4-6 anterioare
+    const up3 = closes[n - 1] > closes[n - 2] && closes[n - 2] > closes[n - 3];
+    const dn3 = closes[n - 1] < closes[n - 2] && closes[n - 2] < closes[n - 3];
+    if (d1 > 0 && d2 < 0 && up3) mom = 'up';
+    else if (d1 < 0 && d2 > 0 && dn3) mom = 'down';
+  }
+
+  return { ...d, m5, chgDay, volRatio, rsi, momDir: mom, alerts: computeAlerts(d.price, m5, volRatio, mom), heat: computeHeat(m5, volRatio, mom) };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INSIDER (Finnhub, opțional) — confirmare semnal
+// ═══════════════════════════════════════════════════════════════
+function isoDaysAgo(n){ const d = new Date(Date.now() - n*86400000); return d.toISOString().slice(0, 10); }
+const _insiderCache = {}; // SYM -> { ok, verdict, txt, ts }
+async function fetchInsider(symbol){
+  const cached = _insiderCache[symbol];
+  if (cached && Date.now() - cached.ts < 30*60*1000) return cached;
+  let key = '';
+  try { key = localStorage.getItem(FINNHUB_KEY) || ''; } catch(e){}
+  if (!key) return { ok:false, reason:'no-key' };
+  try {
+    const r = await fetch(`${FINNHUB_BASE}/stock/insider-transactions?symbol=${symbol}&from=${isoDaysAgo(60)}&to=${isoDaysAgo(0)}&token=${key}`);
+    if (r.status === 401 || r.status === 403) return { ok:false, reason:'auth' };
+    if (!r.ok) return { ok:false, reason:'http' };
+    const j = await r.json();
+    const data = (j && Array.isArray(j.data)) ? j.data : [];
+    let net = 0; // valoare $ netă (price*qty) — propriu pump-radar, nu există în INS.analyze
+    const rows = []; // top 30 recent, păstrate pentru box-ul expand
+    data.forEach(t => {
+      const code = (t.transactionCode || '').toUpperCase();
+      const chg = +t.change || 0;
+      const qty = Math.abs(chg || t.share || 0);
+      const val = (t.transactionPrice || 0) * qty;
+      // clasificarea vine din lib/insider.js — sursa unică pe toată suita
+      const kind = (window.INS && INS.classify) ? INS.classify(t) : null;
+      if (kind === 'buy') net += val;
+      else if (kind === 'sell') net -= val;
+      rows.push({ name: t.name || '—', code, qty, price: t.transactionPrice || 0, date: t.transactionDate || t.filingDate || '', kind });
+    });
+    rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    // verdictul + counts + netShares vin din INS.analyze (sursa unică pe suită):
+    // bull = ≥2 persoane DISTINCTE care cumpără + netShares>0 (cluster smart-money), nu doar buyN>sellN
+    const agg = (window.INS && INS.analyze) ? INS.analyze(data) : null;
+    const buyN = agg ? agg.buys : 0;
+    const sellN = agg ? agg.sells : 0;
+    const netShares = agg ? agg.netShares : 0;
+    const verdict = agg ? agg.verdict : 'neut';
+    let txt;
+    if (verdict === 'bull') txt = `${buyN} buy / ${sellN} sell`;
+    else if (verdict === 'bear') txt = `${sellN} sell / ${buyN} buy`;
+    else if (buyN === 0 && sellN === 0) txt = 'fără activitate 60z';
+    else txt = 'neutru';
+    const res = { ok:true, verdict, txt, buyN, sellN, net, netShares, rows: rows.slice(0, 30), ts: Date.now() };
+    _insiderCache[symbol] = res; return res;
+  } catch(e){ return { ok:false, reason:'network' }; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  STATUS + AUTO-SCAN scheduler
+// ═══════════════════════════════════════════════════════════════
+function setStatus(state, txt){ $('statusDot').className = 'status-dot' + (state ? ' ' + state : ''); $('statusTxt').textContent = txt; }
+function clearAutoTimer(){ if (autoTimer){ clearTimeout(autoTimer); autoTimer = null; } }
+let _schedClosed = false;
+// Shell PWA: când tab-ul e în fundal (iframe display:none, dar viu) shell-ul trimite
+// postMessage ttShellVisible:false → pauzăm polling-ul recurent. Default false = identic browser normal.
+var _shellHidden = false;
+function scheduleNextScan(){
+  clearAutoTimer();
+  // gate: dacă shell-ul ne-a marcat ascunși, NU re-armăm timerul de fundal (scan manual rămâne neatins)
+  if (cfg.autoSec > 0 && !_shellHidden){
+    // piață închisă → datele 5m sunt moarte; nu ardem proxy-urile la 30-60s — interval min 10 min
+    _schedClosed = marketSession().state === 'closed';
+    const sec = _schedClosed ? Math.max(cfg.autoSec, 600) : cfg.autoSec;
+    nextScanAt = Date.now() + sec * 1000;
+    autoTimer = setTimeout(() => { if (!scanRunning) runScan(); else scheduleNextScan(); }, sec * 1000);
+  } else nextScanAt = 0;
+  updateCountdown();
+}
+function updateCountdown(){
+  const el = $('countdownPill'); if (!el) return;
+  if (cfg.autoSec > 0 && nextScanAt){
+    const left = Math.max(0, Math.round((nextScanAt - Date.now()) / 1000));
+    const m = Math.floor(left / 60), s = left % 60;
+    $('countdownTxt').textContent = scanRunning ? 'scanez…' : ((_schedClosed ? '🌙 ' : '') + (m > 0 ? m + ':' + String(s).padStart(2, '0') : s + 's'));
+    el.style.display = '';
+  } else el.style.display = 'none';
+}
+setInterval(updateCountdown, 1000);
+
+// ═══════════════════════════════════════════════════════════════
+//  SCAN
+// ═══════════════════════════════════════════════════════════════
+async function runScan(){
+  if (scanRunning) return;
+  scanRunning = true;
+  _scanBusyTs = Date.now();
+  try {
+  const seq = ++_scanSeq;
+  clearAutoTimer();
+  _deadProxies = new Set(); // resetăm „proxy mort" la fiecare scan nou
+  $('scanBtn').disabled = true;
+  const aborted = () => seq !== _scanSeq;
+
+  // ── chart 5m per-symbol (Yahoo /v8) — endpoint robust, returnează inclusiv volum
+  // (path-ul cu /v7/spark batch a devenit fragil/limitat; earnings-hub + watchlist-monitor folosesc /v8 cu succes).
+  const byUni = {};
+  for (let i = 0; i < UNIVERSE.length && !aborted(); i++){
+    const sym = UNIVERSE[i];
+    setStatus('load', `scanez ${i + 1}/${UNIVERSE.length} (${sym})…`);
+    const d = await fetchChart5m(sym).catch(() => null);
+    if (d) byUni[sym] = d;
+    if (i < UNIVERSE.length - 1) await sleep(200);
+  }
+  if (aborted()){ scanRunning = false; $('scanBtn').disabled = false; return; }
+
+  const raw = Object.values(byUni);
+  const ok = raw.length;
+  const fresh = raw.map(analyze);
+
+  // flash: heat ±10 vs scan anterior
+  fresh.forEach(r => {
+    const p = prevHeat[r.symbol];
+    r.flashDir = (p != null && r.heat - p >= 10) ? 1 : (p != null && r.heat - p <= -10) ? -1 : 0;
+  });
+
+  // ── pre-load insider larg: toate watchlist + top după heat (max 20 simboluri/scan) ──
+  // Cache TTL 30min în _insiderCache → la scan-urile următoare se re-folosesc rezultate proaspete.
+  // Throttle 4 worker concurrent × 200ms sleep ≈ 20 req/s (sub 60/min limită Finnhub free tier).
+  let _finnKey = ''; try { _finnKey = localStorage.getItem(FINNHUB_KEY) || ''; } catch(e){}
+  if (_finnKey){
+    const insiderTargets = new Set();
+    fresh.filter(r => watchlist.includes(r.symbol)).forEach(r => insiderTargets.add(r.symbol));
+    const byHeatDesc = [...fresh].sort((a,b) => (b.heat||0) - (a.heat||0));
+    for (const r of byHeatDesc){ if (insiderTargets.size >= 20) break; insiderTargets.add(r.symbol); }
+    const cutTs = Date.now() - 30*60*1000;
+    const toFetch = [...insiderTargets].filter(sym => { const c = _insiderCache[sym]; return !c || c.ts < cutTs; });
+    if (toFetch.length){
+      setStatus('load', `verific insider (${toFetch.length} simboluri)…`);
+      let idx = 0;
+      const worker = async () => {
+        while (idx < toFetch.length && !aborted()){
+          const sym = toFetch[idx++];
+          await fetchInsider(sym).catch(() => null);
+          await sleep(200);
+        }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
+    }
+  }
+  // atribuie insider din cache (proaspăt pre-load + cele din scanurile anterioare)
+  fresh.forEach(r => { const c = _insiderCache[r.symbol]; r.insider = (c && c.ok) ? c : null; });
+
+  results = fresh;
+  prevHeat = {}; fresh.forEach(r => prevHeat[r.symbol] = r.heat);
+
+  // notificări + insider on-alert (pentru simboluri cu alertă care n-au prins pre-load)
+  await notifyNewAlerts(fresh);
+
+  const alertN = fresh.filter(r => r.alerts.length).length;
+  $('stScan').textContent = ok; $('stUniverse').textContent = '/ ' + UNIVERSE.length + ' universe';
+  $('lastScan').textContent = `${new Date().toLocaleTimeString('ro-RO')} · ${ok}/${UNIVERSE.length} ok`;
+  if (ok === 0) setStatus('err', 'eșec — toate proxy-urile CORS picate; reîncearcă în câteva minute');
+  else if (ok < UNIVERSE.length) setStatus('warn', `${alertN} alerte · ${ok}/${UNIVERSE.length} ok (${UNIVERSE.length - ok} ratate — proxy rate-limit; univers INCOMPLET)`);
+  else setStatus('ok', `${alertN} alerte · ${ok}/${UNIVERSE.length} ok`);
+  render();
+  _lastScanOkTs = Date.now();
+  scheduleNextScan();
+  } catch (e) { try { console.error('[pump scan]', e); } catch (_) {} }
+  finally { scanRunning = false; try { $('scanBtn').disabled = false; } catch (_) {} }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  NOTIFY — dedupe (pump_radar_seen, TTL 30min) + grouping + insider on-alert
+// ═══════════════════════════════════════════════════════════════
+async function notifyNewAlerts(list){
+  const now = Date.now();
+  const newOnes = []; // { r, type }
+  list.forEach(r => r.alerts.forEach(t => {
+    const k = r.symbol + '|' + t;
+    if (!seen[k] || now - seen[k] > 30*60*1000){ newOnes.push({ r, type: t }); seen[k] = now; }
+    else seen[k] = now; // refresh ttl
+  }));
+  saveSeen();
+  if (!newOnes.length) return;
+
+  // insider check pentru simbolurile cu alertă nouă (max 6 ca să nu epuizăm rate-limit Finnhub)
+  const symsToCheck = [...new Set(newOnes.map(x => x.r.symbol))].slice(0, 6);
+  for (const sym of symsToCheck){
+    const ins = await fetchInsider(sym);
+    if (ins && ins.ok){ const r = results.find(x => x.symbol === sym); if (r) r.insider = ins; }
+  }
+
+  // toasts (max 5 cele mai fierbinți)
+  const byHeat = [...newOnes].sort((a, b) => b.r.heat - a.r.heat);
+  byHeat.slice(0, 5).forEach(({ r, type }) => showToast(r, type));
+
+  // sunet + browser notif
+  if (soundEnabled) beep();
+  if (notifEnabled && 'Notification' in window && Notification.permission === 'granted'){
+    const top = byHeat.slice(0, 4).map(({ r, type }) => `${ALERT_META[type].icon}${r.symbol} ${fmtPct(r.m5, 1)}`).join('  ');
+    const more = newOnes.length > 4 ? ` +${newOnes.length - 4}` : '';
+    try { new Notification(`🚨 Pump Radar — ${newOnes.length} alerte 5m`, { body: top + more, tag: 'pump-radar' }); } catch(e){}
+  }
+
+  // Telegram — grupat (un singur mesaj per scan)
+  if (tgConfig.enabled && tgConfig.token && tgConfig.chatId){
+    const lines = byHeat.slice(0, 12).map(({ r, type }) => {
+      const ins = (r.insider && r.insider.ok) ? `  · insider ${r.insider.verdict === 'bull' ? '🟢' : r.insider.verdict === 'bear' ? '🔴' : '⚪'}` : '';
+      return `${ALERT_META[type].icon} <b>${r.symbol}</b> ${ALERT_META[type].label} · 5m ${fmtPct(r.m5, 1)} · zi ${fmtPct(r.chgDay, 1)}${r.volRatio != null ? ` · vol ${r.volRatio.toFixed(1)}×` : ''}${ins}`;
+    });
+    const more = newOnes.length > 12 ? `\n…+${newOnes.length - 12} alte alerte` : '';
+    sendTelegram(`<b>🚨 Pump Radar Stocks — ${newOnes.length} alerte 5m</b>\n${lines.join('\n')}${more}`);
+  }
+}
+
+function showToast(r, type){
+  const wrap = $('toastWrap'); if (!wrap) return;
+  const m = ALERT_META[type];
+  const el = document.createElement('div');
+  el.className = 'toast ' + m.cls;
+  el.innerHTML = `<div class="tt-sym">${m.icon} ${r.symbol} — ${m.label}</div><div class="tt-sub">5m ${fmtPct(r.m5, 1)} · zi ${fmtPct(r.chgDay, 1)}${r.volRatio != null ? ' · vol ' + r.volRatio.toFixed(1) + '×' : ''}</div>`;
+  el.addEventListener('click', () => { el.remove(); scrollToRow(r.symbol); });
+  wrap.appendChild(el);
+  while (wrap.children.length > 5) wrap.removeChild(wrap.firstChild);
+  setTimeout(() => { el.classList.add('fade-out'); setTimeout(() => el.remove(), 450); }, 7000);
+}
+window.scrollToRow = function(sym){ const el = $('row-' + sym); if (el){ el.scrollIntoView({ behavior:'smooth', block:'center' }); el.classList.remove('flash-up'); void el.offsetWidth; el.classList.add('flash-up'); } };
+
+// ═══════════════════════════════════════════════════════════════
+//  Sunet + Telegram
+// ═══════════════════════════════════════════════════════════════
+let _audioCtx = null;
+function beep(){
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx, t = ctx.currentTime;
+    [1046, 784].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+      const st = t + i * 0.14;
+      g.gain.setValueAtTime(0.0001, st);
+      g.gain.exponentialRampToValueAtTime(0.2, st + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + 0.18);
+      o.start(st); o.stop(st + 0.2);
+    });
+  } catch(e){}
+}
+async function sendTelegram(text){  // → lib/telegram.js (TG.*); config în memorie păstrat
+  if (typeof TG === 'undefined' || !TG.send) return false; // guard: lib/telegram.js poate să nu fi încărcat (script src eșuat)
+  return TG.send(text, { token: tgConfig.token, chatId: tgConfig.chatId, force: true });
+}
+function updateAlertBtns(){
+  $('soundBtn').style.opacity = soundEnabled ? '1' : '.45';
+  $('notifBtn').style.opacity = notifEnabled ? '1' : '.45';
+  $('tgBtn').style.opacity = (tgConfig.enabled && tgConfig.token && tgConfig.chatId) ? '1' : '.45';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FORMAT
+// ═══════════════════════════════════════════════════════════════
+function fmtUSD(n){ if (n == null || isNaN(n)) return '—'; return '$' + (n >= 1000 ? n.toLocaleString('en-US', { maximumFractionDigits:0 }) : n.toFixed(2)); }
+function fmtPct(n, d = 1){ if (n == null || isNaN(n)) return '—'; return (n >= 0 ? '+' : '') + n.toFixed(d) + '%'; }
+function fmtVol(n){ if (n == null || !n) return '—'; if (n >= 1e9) return (n/1e9).toFixed(1) + 'B'; if (n >= 1e6) return (n/1e6).toFixed(1) + 'M'; if (n >= 1e3) return (n/1e3).toFixed(0) + 'K'; return '' + n; }
+function heatColor(h){ if (h >= 70) return '#ef4444'; if (h >= 45) return 'var(--warn)'; if (h >= 20) return 'var(--crypto-2)'; return 'var(--t3)'; }
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════
+function alertChips(r){ return r.alerts.map(t => `<span class="al ${ALERT_META[t].cls}">${ALERT_META[t].icon}${ALERT_META[t].label}</span>`).join(''); }
+function insiderCell(r){
+  if (!r.insider){
+    let key = ''; try { key = localStorage.getItem(FINNHUB_KEY) || ''; } catch(e){}
+    return key ? '<span class="ins na">—</span>' : '<span class="ins na" title="Setează Finnhub key în nasdaq-scanner/smart-trade-long pentru insider">⚙</span>';
+  }
+  const v = r.insider.verdict;
+  const ic = v === 'bull' ? '🟢' : v === 'bear' ? '🔴' : '⚪';
+  return `<span class="ins ${v === 'bull' ? 'bull' : v === 'bear' ? 'bear' : 'neut'}" title="insider 60z: ${r.insider.txt}">${ic} ${r.insider.txt}</span>`;
+}
+
+function updateStats(){
+  $('stUp').textContent = results.filter(r => r.alerts.includes('up')).length;
+  $('stDown').textContent = results.filter(r => r.alerts.includes('down')).length;
+  $('stVol').textContent = results.filter(r => r.alerts.includes('vol')).length;
+  $('stMom').textContent = results.filter(r => r.alerts.includes('mom')).length;
+}
+// Handoff → Pre-Trade Setup Builder din Macro (dir din tipul semnalului: pump→long, dump→short)
+function prToSetup(sym, dir){
+  try{ localStorage.setItem('md_setup_prefill', JSON.stringify({ ticker: sym, dir: (dir==='short'?'short':'long'), ts: Date.now() })); }catch(e){}
+  window.open('../journal/#setup', '_blank');
+}
+window.prToSetup = prToSetup;
+// Banner aliniere cu regimul de RISC macro (md_risk_regime) — distinct de regimul HMM de volatilitate
+function updateRegimeBanner(){
+  const el = $('prRegimeBanner'); if (!el) return;
+  let rg = null; try{ rg = (window.Regime && Regime.get) ? Regime.get() : null; }catch(_){}
+  const c = (rg && typeof rg.composite === 'number') ? rg.composite : null;
+  if (c == null){ el.style.display = 'none'; return; }
+  const on = c >= 1, off = c <= -2;
+  const txt = on ? '✅ pump-urile long au vânt din spate (regim favorabil)' : off ? '⚠ regim advers — pump-urile long sunt riscante, favorizează calitate/short' : '➖ regim neutru';
+  const stale = rg.fresh ? '' : ` <span style="opacity:.6">(vechi ${rg.ageMin}m)</span>`;
+  el.className = 'pr-regime ' + (on ? 'rg-on' : off ? 'rg-off' : 'rg-neu');
+  el.style.display = '';
+  el.innerHTML = `🛡 Regim macro: <b>${escHtml(rg.label || '—')}</b> (score ${c >= 0 ? '+' : ''}${c})${stale} · ${txt}`;
+}
+function renderHotStrip(){
+  const box = $('hotStrip'); if (!box) return;
+  const hot = results.filter(r => r.alerts.length).sort((a, b) => b.heat - a.heat).slice(0, 6);
+  box.innerHTML = hot.map(r => {
+    const cls = r.alerts.includes('up') ? 'hc-up' : r.alerts.includes('vol') ? 'hc-vol' : '';
+    return `<div class="hot-card ${cls}" onclick="scrollToRow('${r.symbol}')">
+      <div class="hc-top"><span class="hc-sym">${r.symbol}</span><span class="hc-tag" style="color:${heatColor(r.heat)}">🔥${r.heat}</span></div>
+      <div class="hc-mid"><span class="hc-price">${fmtUSD(r.price)}</span><span class="badge ${r.m5 >= 0 ? 'up' : 'down'}">5m ${fmtPct(r.m5, 1)}</span><span style="font-size:10px;color:var(--t3)">zi ${fmtPct(r.chgDay, 1)}</span></div>
+      <div class="hc-alerts">${alertChips(r)}${r.insider && r.insider.ok ? ` · insider ${r.insider.verdict === 'bull' ? '🟢' : r.insider.verdict === 'bear' ? '🔴' : '⚪'}` : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function passFilter(r){
+  if (filterText && !r.symbol.includes(filterText)) return false;
+  if (filterMode === 'alert') return r.alerts.length > 0;
+  if (filterMode === 'star') return watchlist.includes(r.symbol);
+  if (filterMode !== 'all') return r.alerts.includes(filterMode);
+  return true;
+}
+
+function render(){
+  updateStats(); renderHotStrip(); updateRegimeBanner();
+  const tbody = $('resultsBody');
+  if (!results.length){
+    tbody.innerHTML = `<tr><td colspan="11" class="empty"><div class="empty-icon">🚨</div><div class="empty-title">Apasă <b>🚨 SCAN</b> ca să pornești radarul</div><div class="empty-sub">Scanează ~${UNIVERSE.length} stocks lichide pe barele de 5 minute. Auto 60s = watchdog continuu + alerte browser / sunet / Telegram la fiecare alertă nouă.</div></td></tr>`;
+    return;
+  }
+  const filtered = results.filter(passFilter);
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortKey === 'symbol') return sortAsc ? a.symbol.localeCompare(b.symbol) : b.symbol.localeCompare(a.symbol);
+    if (sortKey === 'action'){
+      const ord = { buy:4, watch:3, wait:2, avoid:1, skip:0 };
+      const va = ord[computeActionPR(a)] ?? 0, vb = ord[computeActionPR(b)] ?? 0;
+      return sortAsc ? va - vb : vb - va;
+    }
+    let va = a[sortKey], vb = b[sortKey];
+    if (va == null) va = -Infinity; if (vb == null) vb = -Infinity;
+    return sortAsc ? va - vb : vb - va;
+  });
+
+  const filterActive = filterMode !== 'all' || !!filterText;
+  const cEl = $('fbCount');
+  if (cEl){ cEl.textContent = filterActive ? `${sorted.length} / ${results.length} vizibile` : `${results.length} scanate`; cEl.style.color = (filterActive && !sorted.length) ? 'var(--warn)' : 'var(--t3)'; }
+
+  if (!sorted.length){
+    tbody.innerHTML = `<tr><td colspan="11" class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Nimic pe filtrul curent</div><div class="empty-sub">Schimbă chip-ul de mai sus sau golește căutarea. (E posibil să nu fie nicio alertă activă chiar acum — normal în afara sesiunii.)</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(r => {
+    const tvUrl = `https://www.tradingview.com/chart/?symbol=${r.symbol}`;
+    const yhUrl = `https://finance.yahoo.com/quote/${r.symbol}`;
+    const fvUrl = `https://finviz.com/quote.ashx?t=${r.symbol}`;
+    const rowCls = r.alerts.includes('up') ? 'a-up' : r.alerts.includes('down') ? 'a-down' : r.alerts.includes('vol') ? 'a-vol' : r.alerts.includes('mom') ? 'a-mom' : '';
+    const flashCls = r.flashDir > 0 ? ' flash-up' : r.flashDir < 0 ? ' flash-dn' : '';
+    const rsiCls = r.rsi == null ? 'neut' : r.rsi >= 75 ? 'down' : r.rsi <= 25 ? 'up' : r.rsi >= 65 ? 'warn' : 'neut';
+    const volCls = r.volRatio == null ? 'neut' : r.volRatio >= cfg.thrVol ? 'vol' : r.volRatio >= 1.5 ? 'warn' : 'neut';
+    const starOn = watchlist.includes(r.symbol);
+    return `<tr id="row-${r.symbol}" data-sym="${r.symbol}" class="${rowCls}${flashCls}">
+      <td class="left">
+        <button class="star-btn ${starOn ? 'on' : ''}" title="${starOn ? 'scoate din' : 'adaugă în'} watchlist (shared)" onclick="event.stopPropagation(); toggleStar('${r.symbol}')">${starOn ? '★' : '☆'}</button>
+        <span class="sym-name">${r.symbol}</span><div class="sym-sector">Stocks · 5m</div>
+      </td>
+      <td>${fmtUSD(r.price)}</td>
+      <td><span class="badge ${r.m5 >= 0 ? 'up' : 'down'}">${fmtPct(r.m5, 2)}</span></td>
+      <td><span class="badge ${r.chgDay >= 0 ? 'up' : 'down'}">${fmtPct(r.chgDay, 1)}</span></td>
+      <td><span class="badge ${volCls}">${r.volRatio != null ? r.volRatio.toFixed(1) + '×' : '—'}</span></td>
+      <td class="hide-mobile"><span class="badge ${rsiCls}">${r.rsi != null ? r.rsi.toFixed(0) : '—'}</span></td>
+      <td class="hide-mobile" title="${r.closes.length} bare de 5m">${buildSparkline(r.closes)}</td>
+      <td><div class="alerts-cell">${r.alerts.length ? alertChips(r) : '<span style="color:var(--t3);font-size:10px">—</span>'}</div><div style="font-size:9px;color:${heatColor(r.heat)};font-family:var(--mono);margin-top:1px">🔥${r.heat}</div></td>
+      <td class="hide-mobile">${actionCell(r)}</td>
+      <td class="hide-mobile">${insiderCell(r)}</td>
+      <td><a class="action-btn" href="${tvUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">TV</a><a class="action-btn hide-mobile" href="${fvUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">FV</a><a class="action-btn hide-mobile" href="${yhUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">YH</a><button class="action-btn hide-mobile" onclick="event.stopPropagation();prToSetup('${r.symbol}','${r.alerts.includes('down')?'short':'long'}')" title="Pre-Trade Setup Builder în Macro (Entry/SL/TP + sizing pe Danger Score)">📐</button></td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('th[data-sort]').forEach(th => { th.style.color = th.dataset.sort === sortKey ? 'var(--accent)' : ''; });
+
+  // bind click pe rânduri pentru expand toggle
+  tbody.querySelectorAll('tr[data-sym]').forEach(tr => {
+    tr.addEventListener('click', e => {
+      if (e.target.closest('button, a, .star-btn')) return;
+      toggleExpand(tr.dataset.sym);
+    });
+  });
+
+  // restore expand pentru rândul activ (re-render la fiecare scan)
+  if (expandedSym){
+    const tr = document.getElementById('row-' + expandedSym);
+    const r = results.find(x => x.symbol === expandedSym);
+    if (tr && r) injectExpandedRow(tr, r);
+    else expandedSym = null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ⭐ Watchlist (shared cu nasdaq-scanner / watchlist-monitor)
+// ═══════════════════════════════════════════════════════════════
+window.toggleStar = function(sym){
+  if (watchlist.includes(sym)) watchlist = watchlist.filter(s => s !== sym);
+  else { if (watchlist.length >= 100){ alert('Maxim 100 în watchlist'); return; } watchlist.push(sym); }
+  saveWatchlist(); render();
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  MODALS — features + Telegram config
+// ═══════════════════════════════════════════════════════════════
+// Esc închide overlay-ul; listenerul se auto-curăță când overlay-ul nu mai e în DOM.
+function bindEscClose(ov){
+  const onEsc = e => {
+    if (!document.body.contains(ov)){ document.removeEventListener('keydown', onEsc); return; }
+    if (e.key === 'Escape'){ ov.remove(); document.removeEventListener('keydown', onEsc); }
+  };
+  document.addEventListener('keydown', onEsc);
+}
+window.showFeatures = function(){
+  $('flOverlay') && $('flOverlay').remove();
+  const ov = document.createElement('div'); ov.id = 'flOverlay'; ov.className = 'fl-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  bindEscClose(ov);
+  const sections = [
+    { title:'📡 Date', cls:'data', items:[
+      { e:'📡', t:'<b>Yahoo Finance</b> bare de 5 minute (interval=5m, range=1d, includePrePost) — fără cheie; lanț de 4 proxy-uri CORS cu fallback round-robin' },
+      { e:'👔', t:'<b>Finnhub insider</b> 60z (cheie opțională, shared <code>finnhub_api_key</code>) — pre-load larg pe watchlist + top 20 după heat (throttle 4 concurrent × 200ms), plus on-alert max 6 pentru rest; cache 30min' },
+      { e:'🌐', t:'<b>~' + UNIVERSE.length + ' stocks</b> lichide, sectoare mixte (mega/large caps + retail favorites)' },
+    ]},
+    { title:'🚨 Alerte 5m', cls:'tool', items:[
+      { e:'🟢', t:'<b>Pump up</b> — Δ% pe ultima bară de 5m ≥ prag (slider)' },
+      { e:'🔴', t:'<b>Dump down</b> — Δ% ≤ −prag' },
+      { e:'📊', t:'<b>Vol spike</b> — volum bara curentă / media intraday ≥ multiplu (slider)' },
+      { e:'⚡', t:'<b>Momentum shift</b> — 3 bare consecutive într-un sens după ce mergeau invers' },
+      { e:'💰', t:'<b>Filtru preț minim</b> ca să sari peste penny stocks (slider)' },
+      { e:'🔥', t:'<b>Heat 0-100</b> per stock = |Δ5m| + exces volum + bonus momentum (sortabil, colorat)' },
+      { e:'🎯', t:'<b>Sugestie</b> 5 tier-uri (BUY / WATCH / WAIT / AVOID / SKIP) — derivată algoritmic din alerte + insider + RSI + zi; sortabilă' },
+      { e:'🔬', t:'<b>Click pe rând</b> → expand cu 3 box-uri: 📊 sparkline mare 60z + ultimele 8 bare 5m / 🧠 stats (heat, RSI, ATR, alerte, mom) / 👔 listă insider top 12 cu nume, code, qty, preț, dată' },
+      { e:'🤖', t:'<b>AI bubble (Claude opus-5)</b> pe expand — răspuns afișat deodată (cronometru pe loading, timeout 180s), prompt cu context complet (alerte + RSI + ATR + insider + sugestie), răspuns BUY/AŞTEAPTĂ/SKIP cu entry-SL-TP. Cheia <code>anthropic_api_key</code> shared cu earnings-hub. Cache LS 1h per simbol·state.' },
+    ]},
+    { title:'🤖 Automation & UI', cls:'auto', items:[
+      { e:'🔄', t:'<b>Auto-scan</b> 30s / 60s / 120s / OFF — watchdog cu self-reschedule' },
+      { e:'🔔🔊📡', t:'<b>Notificare browser + beep + Telegram</b> la fiecare alertă nouă (dedupe 30min, mesaj grupat per scan); Telegram config shared cu Watchlist Monitor' },
+      { e:'🔥', t:'<b>Hot strip</b> — top 6 alerte ca card-uri, click → scroll la rând + flash' },
+      { e:'🧰', t:'<b>Filtre</b> — chip-uri pe tip alertă / cu alertă / watchlist + căutare ticker; sortabil pe orice coloană; flash rând la Δheat ±10' },
+      { e:'⭐', t:'<b>Watchlist shared</b> — ☆/★ pe fiecare rând, sincron cu Nasdaq Scanner & Watchlist Monitor' },
+      { e:'⏱', t:'<b>Countdown</b> + indicator sesiune piață (pre/regular/after/closed, DST-aware)' },
+    ]},
+  ];
+  let html = `<div class="fl-modal"><div class="fl-head"><div><h3>🚨 Pump Radar Stocks</h3><div class="sub">v121 · auto-scan agresiv pe barele de 5m</div></div><button class="fl-close" type="button" data-close>×</button></div>`;
+  sections.forEach(s => { html += `<div class="fl-section"><div class="fl-section-title">${s.title}</div><div class="fl-list">${s.items.map(i => `<div class="fl-item ${s.cls}"><span>${i.e}</span><span class="fl-txt">${i.t}</span></div>`).join('')}</div></div>`; });
+  html += `<div style="font-size:10.5px;color:var(--t3);line-height:1.5;font-family:var(--mono);padding-top:6px;border-top:1px solid var(--b1)">⚠ Alertele 5m sunt relevante în <b>sesiunea regulară</b> (09:30-16:00 ET). În afara ei datele pot fi rare/lipsă; radarul tot afișează ce găsește.</div></div>`;
+  ov.innerHTML = html;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+};
+
+window.showTgConfig = function(){
+  $('tgOverlay') && $('tgOverlay').remove();
+  const ov = document.createElement('div'); ov.id = 'tgOverlay'; ov.className = 'fl-overlay';
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  bindEscClose(ov);
+  ov.innerHTML = `<div class="fl-modal" style="max-width:440px">
+    <div class="fl-head"><div><h3>📡 Alerte Telegram</h3><div class="sub">Mesaj grupat la fiecare alertă nouă · config shared cu Watchlist Monitor</div></div><button class="fl-close" type="button" data-close>×</button></div>
+    <div style="font-size:11px;color:var(--t3);line-height:1.55;margin-bottom:12px;font-family:var(--mono)">1. Creează un bot cu <b style="color:var(--t2)">@BotFather</b> → primești <i>token</i>.<br>2. Scrie-i botului orice mesaj, apoi deschide <span style="color:var(--accent);word-break:break-all">api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> → vezi <i>chat.id</i>.</div>
+    <div class="tg-field"><label>Bot token</label><input type="text" id="tgToken" placeholder="123456789:ABC-DEF..." value="${(tgConfig.token || '').replace(/"/g, '&quot;')}"></div>
+    <div class="tg-field"><label>Chat ID</label><input type="text" id="tgChatId" placeholder="123456789" value="${(tgConfig.chatId || '').replace(/"/g, '&quot;')}"></div>
+    <label class="fb-toggle" style="margin-bottom:13px"><input type="checkbox" id="tgEnabled" ${tgConfig.enabled ? 'checked' : ''}> activează alertele Telegram</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="primary" id="tgSave">💾 Salvează</button><button type="button" id="tgTest">🧪 Test</button><span id="tgMsg" style="font-size:11px;font-family:var(--mono)"></span></div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => ov.remove()));
+  const save = () => {
+    tgConfig.token = $('tgToken').value.trim(); tgConfig.chatId = $('tgChatId').value.trim(); tgConfig.enabled = $('tgEnabled').checked;
+    try { localStorage.setItem(TG_KEY, JSON.stringify(tgConfig)); } catch(e){}
+    updateAlertBtns();
+  };
+  $('tgSave').addEventListener('click', () => { save(); const m = $('tgMsg'); m.textContent = '✓ salvat'; m.style.color = 'var(--bull-s)'; });
+  $('tgTest').addEventListener('click', async () => {
+    save(); const m = $('tgMsg');
+    if (!tgConfig.token || !tgConfig.chatId){ m.textContent = '✗ completează token + chat id'; m.style.color = 'var(--bear-s)'; return; }
+    m.textContent = '⏳ trimit…'; m.style.color = 'var(--t3)';
+    const ok = await sendTelegram('🧪 <b>Test Pump Radar Stocks</b>\nAlertele Telegram funcționează ✅');
+    m.textContent = ok ? '✓ trimis — verifică Telegram!' : '✗ eșuat (token/chat id greșit sau CORS)';
+    m.style.color = ok ? 'var(--bull-s)' : 'var(--bear-s)';
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  EVENT WIRING + INIT
+// ═══════════════════════════════════════════════════════════════
+function syncThrUI(){
+  $('thrMove').value = cfg.thrMove; $('thrMoveVal').textContent = cfg.thrMove.toFixed(1);
+  $('thrVol').value = cfg.thrVol; $('thrVolVal').textContent = cfg.thrVol.toFixed(1);
+  $('thrPrice').value = cfg.thrPrice; $('thrPriceVal').textContent = cfg.thrPrice;
+  $('autoSel').value = String(cfg.autoSec);
+}
+function recomputeAlerts(){ // re-evaluează alertele pe datele existente după schimbarea pragurilor (fără re-fetch)
+  results = results.map(r => { const re = analyze(r); const c = _insiderCache[r.symbol]; re.insider = (c && c.ok) ? c : null; re.flashDir = 0; return re; });
+  render();
+}
+
+$('thrMove').addEventListener('input', e => { cfg.thrMove = +e.target.value; $('thrMoveVal').textContent = cfg.thrMove.toFixed(1); });
+$('thrMove').addEventListener('change', () => { saveCfg(); if (results.length) recomputeAlerts(); });
+$('thrVol').addEventListener('input', e => { cfg.thrVol = +e.target.value; $('thrVolVal').textContent = cfg.thrVol.toFixed(1); });
+$('thrVol').addEventListener('change', () => { saveCfg(); if (results.length) recomputeAlerts(); });
+$('thrPrice').addEventListener('input', e => { cfg.thrPrice = +e.target.value; $('thrPriceVal').textContent = cfg.thrPrice; });
+$('thrPrice').addEventListener('change', () => { saveCfg(); if (results.length) recomputeAlerts(); });
+$('thrReset').addEventListener('click', () => { cfg.thrMove = 1.5; cfg.thrVol = 3; cfg.thrPrice = 3; syncThrUI(); saveCfg(); if (results.length) recomputeAlerts(); });
+
+$('autoSel').addEventListener('change', e => { cfg.autoSec = +e.target.value; saveCfg(); scheduleNextScan(); });
+$('scanBtn').addEventListener('click', () => runScan());
+
+$('soundBtn').addEventListener('click', () => {
+  soundEnabled = !soundEnabled; try { localStorage.setItem(SOUND_KEY, soundEnabled ? '1' : '0'); } catch(e){}
+  updateAlertBtns(); if (soundEnabled) beep();
+});
+$('notifBtn').addEventListener('click', async () => {
+  if (!('Notification' in window)){ alert('Browserul nu suportă notificări'); return; }
+  if (Notification.permission === 'granted'){ notifEnabled = !notifEnabled; }
+  else { const p = await Notification.requestPermission(); notifEnabled = (p === 'granted'); }
+  saveCfg(); updateAlertBtns();
+  setStatus(notifEnabled ? 'ok' : '', notifEnabled ? 'notificări ON' : 'notificări OFF');
+});
+$('tgBtn').addEventListener('click', () => window.showTgConfig());
+
+document.querySelectorAll('.fb-chip').forEach(ch => ch.addEventListener('click', () => {
+  document.querySelectorAll('.fb-chip').forEach(c => c.classList.remove('active'));
+  ch.classList.add('active'); filterMode = ch.dataset.f; render();
+}));
+$('fbSearch').addEventListener('input', e => { filterText = e.target.value.trim().toUpperCase().replace(/[^A-Z.]/g, ''); render(); });
+document.querySelectorAll('th[data-sort]').forEach(th => th.addEventListener('click', () => {
+  const k = th.dataset.sort;
+  if (sortKey === k) sortAsc = !sortAsc; else { sortKey = k; sortAsc = (k === 'symbol'); }
+  render();
+}));
+
+window._prWake = (window.PollWake && PollWake.bind) ? PollWake.bind({
+  getBusy: function () { return scanRunning; },
+  setBusy: function (v) { if (!v) scanRunning = false; },
+  getBusyTs: function () { return _scanBusyTs; },
+  setBusyTs: function (v) { _scanBusyTs = v || 0; },
+  poll: function () { if (cfg.autoSec > 0) return runScan(); },
+  schedule: function () { scheduleNextScan(); },
+  isPaused: function () { return !(cfg.autoSec > 0); },
+  isShellHidden: function () { return !!_shellHidden; },
+  isStale: function () { return cfg.autoSec > 0 && !!_lastScanOkTs && (Date.now() - _lastScanOkTs) > Math.max(cfg.autoSec, 60) * 3000; },
+  lastOkAgeMs: function () { return _lastScanOkTs ? Date.now() - _lastScanOkTs : null; },
+  intervalMs: 30000
+}) : null;
+
+// Shell PWA: pauză polling în fundal (iframe inactiv nu primește visibilitychange).
+// Opt-in strict: doar la mesaj valid din același origin cu boolean ttShellVisible.
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin) return;
+  if (!e.data || typeof e.data.ttShellVisible !== 'boolean') return;
+  if (e.data.ttShellVisible === false){
+    _shellHidden = true;
+    clearAutoTimer();          // oprește timerul scanului de fundal (NU scanul manual)
+    nextScanAt = 0;
+    updateCountdown();
+  } else {
+    if (!_shellHidden) return; // deja vizibili → nimic de făcut
+    _shellHidden = false;
+    if (window._prWake) window._prWake.resume('shell-visible');
+    else {
+      scheduleNextScan();
+      if (cfg.autoSec > 0 && !scanRunning) runScan();
+    }
+  }
+});
+
+// init
+loadCfg();
+syncThrUI();
+updateAlertBtns();
+updateSessionPill();
+render();
+// auto-scan: pornește un scan inițial dacă auto e ON.
+// Amânăm până la `load` ca librăriile shared (data/insider/telegram/ai, incluse mai jos)
+// să fie gata — altfel primul scan auto rula fără TG.send / INS.classify / AI (alerte + insider rupți).
+if (cfg.autoSec > 0) window.addEventListener('load', function(){ runScan(); }); else scheduleNextScan();
+</script>
+<!-- Markov Lab: regim de volatilitate al pieței (HMM pe SPY daily) — context de risc global -->
+<script src="../lib/data.js?v=816"></script>
+<script src="../lib/insider.js"></script>
+<script src="../lib/markov.js"></script>
+<script src="../lib/backtest.js"></script>
+<script>
+// Validare ONESTĂ a semnalului de pump pe acest simbol: aduce ~60z de bare 5m și
+// măsoară randamentul forward după fiecare bară ≥ +pragul%. Răspunde la „pump-urile
+// chiar preced câștiguri, sau e zgomot?" — exact ca markov-lab pentru scannere.
+window.validatePumpSignal = async function(symbol, btn){
+  const box = document.getElementById('bt-result-' + symbol);
+  if (!box || !window.BT) { if(box) box.innerHTML = 'backtest.js indisponibil'; return; }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = '⏳ 60z 5m…';
+  box.innerHTML = '<div class="exp-loading">Validez semnalul pe ~60 zile de bare 5m…</div>';
+  try {
+    const d = await proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=60d`);
+    const parsed = d ? parseYahooChart(symbol, d) : null;
+    const closes = parsed && parsed.closes;
+    if (!closes || closes.length < 200) { box.innerHTML = `<div class="exp-loading">Date insuficiente (${closes ? closes.length : 0} bare 5m).</div>`; return; }
+    const ohlc = closes.map(c => ({ c }));   // BT.signal folosește doar close-ul
+    const thr = cfg.thrMove;
+    const sigFn = (b, i) => ((b[i].c / b[i-1].c - 1) * 100 >= thr) ? 1 : 0;
+    let html = `<div style="font-size:11px;color:var(--t3);margin-bottom:6px">Semnal: bară 5m ≥ <b>+${thr}%</b> · ${ohlc.length} bare · randament forward, BRUT (fără costuri/spread)</div>`;
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px"><tr style="color:var(--t3)"><th style="text-align:left">Orizont</th><th>n</th><th>avg</th><th>hit</th><th>t</th><th>edge vs piață</th></tr>';
+    let best = null;
+    for (const H of [3, 6, 12]) {   // 15m, 30m, 60m
+      const res = BT.signal(ohlc, sigFn, { horizon: H });
+      if (!best || Math.abs(res.t) > Math.abs(best.t)) best = res;
+      const ec = res.edgePct > 0 ? '#22d66b' : '#ff4d4d';
+      html += `<tr><td>${H*5}m</td><td style="text-align:center">${res.n}</td><td style="text-align:center;color:${res.avgPct>0?'#22d66b':'#ff4d4d'}">${res.avgPct>=0?'+':''}${res.avgPct.toFixed(2)}%</td><td style="text-align:center">${res.hitPct.toFixed(0)}%</td><td style="text-align:center">${res.t.toFixed(2)}</td><td style="text-align:center;color:${ec}">${res.edgePct>=0?'+':''}${res.edgePct.toFixed(2)}%</td></tr>`;
+    }
+    html += '</table>';
+    const v = BT.verdict(best);
+    const vcol = v.cls === 'good' ? '#22d66b' : (v.cls === 'bad' ? '#ff4d4d' : '#d4892c');
+    html += `<div style="margin-top:8px;padding:8px 10px;border-radius:6px;border:1px solid ${vcol};color:${vcol};font-size:11.5px;line-height:1.45">${v.text}</div>`;
+    box.innerHTML = html;
+  } catch (e) { box.innerHTML = '<div class="exp-loading">Eroare: ' + escHtml(e.message || e) + '</div>'; }
+  finally { btn.disabled = false; btn.textContent = old; }
+};
+</script>
+<script>
+(async function initMarketRegime(){
+  try{
+    var elV = document.getElementById('stRegime'), elS = document.getElementById('stRegimeSub');
+    var tile = document.getElementById('stRegimeTile');
+    if(!elV || !window.MK || typeof proxyGetJSON !== 'function') return;
+    var d = await proxyGetJSON('https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=2y');
+    var res = d && d.chart && d.chart.result && d.chart.result[0];
+    var q = res && res.indicators && res.indicators.quote && res.indicators.quote[0];
+    var closes = ((q && q.close) || []).filter(function(x){ return x != null && !isNaN(x); });
+    if(closes.length < 120){ elV.textContent = 'n/a'; return; }
+    var hmm = MK.fitHMM(MK.logReturns(closes), 2, { restarts: 5, iters: 100 });
+    var g = hmm.gamma[hmm.gamma.length - 1];
+    var cur = 0; for(var k = 1; k < hmm.K; k++) if(g[k] > g[cur]) cur = k;
+    var volState = hmm.order[hmm.order.length - 1];
+    var isVol = (cur === volState);
+    var rs = MK.regimeStats(MK.logReturns(closes), hmm);
+    var ac = rs[cur] && rs[cur].autocorr;
+    var volPct = (hmm.sigma[cur] * 100).toFixed(1);
+    // expune global → folosit de computeActionPR ca FILTRU (retrogradează BUY/WATCH în regim volatil)
+    window.__marketRegime = { isVol: isVol, state: isVol ? 'VOLATIL' : 'CALM', volPct: +volPct, autocorr: ac };
+    elV.textContent = isVol ? 'VOLATIL' : 'CALM';
+    elV.style.color = isVol ? 'var(--bear-s)' : 'var(--bull-s)';
+    if(tile){ tile.classList.remove('vol'); tile.classList.add(isVol ? 'bear' : 'bull'); }
+    elS.innerHTML = isVol
+      ? 'SPY ' + volPct + '%/zi · filtrez BUY→WATCH (mean-revert)'
+      : 'SPY ' + volPct + '%/zi · condiții normale';
+    // re-randează ca filtrul de regim să se aplice la acțiunile deja afișate
+    if (typeof render === 'function') { try { render(); } catch(_){} }
+  }catch(e){ var e2 = document.getElementById('stRegime'); if(e2) e2.textContent = '—'; }
+})();
+</script>
+<script src="../lib/telegram.js"></script>
+<script src="../lib/ai.js"></script>
+<script src="../lib/regime.js"></script>
+<script src="../lib/suite-version.js?v=816"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  const swVer = 'tt-v816';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
+</script>
+<script src="../nav.js?v=682" data-nav-root="../"></script>
+<!-- tt:sw-guard:start -->
+<script>
+/* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
+(function () {
+  var PAGE_VER = 'tt-v816';
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
+    .then(function (reg) {
+      try { reg.update(); } catch (e) {}
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }).catch(function () {});
+  var sw = navigator.serviceWorker.controller;
+  if (!sw) return;                       // prima vizită: nu există SW vechi de corectat
+  var ch = new MessageChannel();
+  ch.port1.onmessage = function (e) {
+    var v = (e.data && e.data.version) || '';
+    if (v.indexOf(PAGE_VER + '-') === 0 || v === PAGE_VER) return;   // la zi
+    var K = 'tt_swfix_' + PAGE_VER;      // o singură reîncărcare per versiune
+    if (sessionStorage.getItem(K)) { console.warn('[sw-guard] SW vechi persistent:', v, '!=', PAGE_VER); return; }
+    sessionStorage.setItem(K, '1');
+    console.warn('[sw-guard] SW ' + v + ' != pagina ' + PAGE_VER + ' - fortez actualizarea');
+    navigator.serviceWorker.addEventListener('controllerchange', function () { location.reload(); });
+    navigator.serviceWorker.getRegistration().then(function (reg) {
+      if (!reg) return;
+      try { reg.update(); } catch (e2) {}
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }).catch(function () {});
+  };
+  try { sw.postMessage({ type: 'GET_VERSION' }, [ch.port2]); } catch (e) {}
+})();
+</script>
+<!-- tt:sw-guard:end -->
+</body>
+</html>

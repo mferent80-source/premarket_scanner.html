@@ -8,7 +8,7 @@
 
   var SEGS = [
     'nasdaq-scanner/', 'watchlist-monitor/', 'market-events/', 'smart-trade-long/', 'pump-radar/',
-    'earnings-hub/', 'sector-rotation/', 'macro-dashboard/', 'alerts/', 'guide/', 'health/', 'router/'
+    'earnings-hub/', 'sector-rotation/', 'macro-dashboard/', 'alerts/', 'guide/', 'health/'
   ];
 
   // ── iframe: fără dock, link-uri interne → shell ──
@@ -59,7 +59,6 @@
       title: 'Hub & plan',
       items: [
         { u: '', n: 'Hub', e: '🏠' },
-        { u: 'router/', n: 'Router', e: '🧭' },
         { u: 'macro-dashboard/', n: 'Macro', e: '🌍' },
         { u: 'sector-rotation/', n: 'Sector', e: '🔄' }
       ]
@@ -93,7 +92,6 @@
   // Bara scurtă (mereu vizibilă) — restul e în panoul „Toate”
   var QUICK = [
     { u: '', n: 'Hub', e: '🏠' },
-    { u: 'router/', n: 'Router', e: '🧭' },
     { u: 'macro-dashboard/', n: 'Macro', e: '🌍' },
     { u: 'nasdaq-scanner/', n: 'Nasdaq', e: '📈' },
     { u: 'alerts/', n: 'Alerts', e: '🔔' },
@@ -276,7 +274,7 @@
   //
   // `/hub-clasic/` e scutit: acolo TREBUIE sa ramana tot ce era inainte.
   var RETRASE = [
-    'journal/', 'portfolio/', 'equity/', 'governor/', 'weekly/', 'shadow-book/',
+    'router/', 'journal/', 'portfolio/', 'equity/', 'governor/', 'weekly/', 'shadow-book/',
     'postmortem/', 'markov-lab/', 'factor-lab/', 'mfx-screener/', 'hub-demo/',
     'shell/', 'proxy/'
   ];

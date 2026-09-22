@@ -1,0 +1,2042 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
+<link rel="stylesheet" href="../lib/theme-light.css?v=791">
+<script src="../lib/theme.js?v=734"></script>
+<title>Earnings clasic · ⚡ Earnings Hub — Trading Tools</title>
+<meta name="theme-color" content="#0b0f17">
+<meta name="description" content="Calendar earnings 30 zile + EPS history + AI verdict + insider clusters + alerte -48h">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%23a855f7'/><stop offset='1' stop-color='%23ec4899'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='%230b0f17'/><rect x='8' y='10' width='16' height='14' rx='2' fill='none' stroke='url(%23g)' stroke-width='2'/><line x1='8' y1='15' x2='24' y2='15' stroke='url(%23g)' stroke-width='2'/><line x1='12' y1='8' x2='12' y2='12' stroke='url(%23g)' stroke-width='2' stroke-linecap='round'/><line x1='20' y1='8' x2='20' y2='12' stroke='url(%23g)' stroke-width='2' stroke-linecap='round'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=678">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg:#070b11;
+  --bg-grad:radial-gradient(1200px 600px at 50% -200px, #1a1426 0%, #0b0f17 55%);
+  --panel:#171f30; --panel2:#222c44; --panel3:#222b40;
+  --b1:#4a5874; --b2:#3a4258;
+  --t1:#fafbfc; --t2:#eef2f8; --t3:#d0d8e6;
+  --acc-1:#a855f7; --acc-2:#ec4899;
+  --bull-s:#3aeb88; --bull:#1ba858; --bull-bg:rgba(34,214,107,.12);
+  --bear-s:#ff6b6b; --bear:#cc3434; --bear-bg:rgba(255,77,77,.12);
+  --warn:#d4892c; --warn-bg:rgba(212,137,44,.15);
+  --gold:#ffd86b; --gold-bg:rgba(255,216,107,.12);
+  --accent:#8ac8ff;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+  --shadow:0 4px 14px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.2);
+  --r:12px; --rs:8px;
+  --mono:'DM Mono',monospace; --head:'Sora',sans-serif;
+  --ease:cubic-bezier(.4,0,.2,1);
+  color-scheme:dark;
+}
+html, body { min-height:100vh; }
+body {
+  font-family:var(--head);
+  background:var(--bg); background-image:var(--bg-grad); background-attachment:fixed;
+  color:var(--t1); padding:12px; font-size:13px;
+  -webkit-font-smoothing:auto; font-variant-numeric:tabular-nums;
+}
+
+header {
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+  background:linear-gradient(180deg, rgba(40,28,50,.85), rgba(20,26,40,.92));
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  padding:11px 14px; border-radius:var(--r);
+  border:1px solid var(--b1); margin-bottom:10px; box-shadow:var(--shadow);
+  position:sticky; top:8px; z-index:50;
+}
+header h1 {
+  font-size:14px; font-weight:700; letter-spacing:-.2px;
+  background:linear-gradient(90deg, var(--acc-1), var(--acc-2));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  margin-right:auto; white-space:nowrap; font-family:var(--head);
+}
+.ver-badge {
+  display:inline-block; padding:2px 7px; margin-left:8px; border-radius:4px;
+  background:rgba(168,85,247,.15); color:#c084fc; border:1px solid rgba(168,85,247,.4);
+  font-size:10px; font-weight:700; vertical-align:middle; letter-spacing:.3px;
+  -webkit-text-fill-color:#c084fc; font-family:var(--mono);
+}
+.nav-link {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--panel2); border:1px solid var(--b1);
+  padding:6px 11px; border-radius:var(--rs);
+  color:var(--t1); text-decoration:none; font-size:11px; font-weight:600;
+  transition:all .15s var(--ease); font-family:var(--head);
+}
+.nav-link:hover { background:var(--accent); border-color:var(--accent); color:#000; transform:translateY(-1px); }
+
+button, input, select {
+  background:var(--panel2); color:var(--t1); border:1px solid var(--b1);
+  padding:5px 9px; border-radius:var(--rs); font-size:11px; font-family:inherit;
+  transition:all .15s var(--ease);
+}
+button { cursor:pointer; font-weight:600; }
+button:hover { background:var(--accent); border-color:var(--accent); color:#000; transform:translateY(-1px); }
+button.primary {
+  background:linear-gradient(135deg, var(--acc-1), var(--acc-2));
+  border-color:transparent; color:#fff; box-shadow:0 2px 8px rgba(168,85,247,.3);
+}
+button.primary:hover { filter:brightness(1.08); color:#fff; }
+button.ghost { background:transparent; }
+button:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(91,176,255,.2); }
+
+.status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--t3); margin-right:5px; }
+.status-dot.ok { background:var(--bull-s); box-shadow:0 0 5px var(--bull-s); }
+.status-dot.load { background:var(--warn); animation:pulse 1s infinite; }
+.status-dot.err { background:var(--bear-s); }
+@keyframes pulse { 50% { opacity:.3; } }
+.status-pill { font-size:10px; padding:3px 8px; border-radius:999px; background:var(--panel2); border:1px solid var(--b1); color:var(--t2); font-family:var(--mono); }
+.status-pill.live { border-color:rgba(34,214,107,.4); color:var(--bull-s); }
+.status-pill.closed { border-color:rgba(212,137,44,.4); color:var(--warn); }
+
+/* Stats strip */
+.stats-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(135px, 1fr)); gap:8px; margin-bottom:10px; }
+.stat-tile { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:10px 14px; display:flex; flex-direction:column; gap:2px; position:relative; overflow:hidden; box-shadow:var(--shadow-sm); }
+.stat-tile::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--accent); }
+.stat-tile.bull::before { background:var(--bull-s); }
+.stat-tile.warn::before { background:var(--warn); }
+.stat-tile.gold::before { background:var(--gold); }
+.stat-label { font-size:10px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:600; font-family:var(--mono); }
+.stat-value { font-size:19px; font-weight:800; letter-spacing:-.3px; font-family:var(--head); }
+.stat-sub { font-size:10px; color:var(--t3); font-family:var(--mono); }
+
+/* Hot strip � top urgent watchlist earnings */
+.hot-strip { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:8px; margin-bottom:10px; }
+.hot-strip:empty { display:none; }
+.hot-card { background:linear-gradient(135deg, rgba(168,85,247,.13), rgba(20,26,40,.62)); border:1px solid rgba(168,85,247,.42); border-radius:var(--r); padding:10px 13px; display:flex; flex-direction:column; gap:3px; cursor:pointer; transition:transform .15s var(--ease), box-shadow .15s var(--ease); box-shadow:var(--shadow-sm); }
+.hot-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.hot-card.urgent { background:linear-gradient(135deg, rgba(239,68,68,.16), rgba(20,26,40,.62)); border-color:rgba(239,68,68,.5); }
+.hot-card .hc-top { display:flex; align-items:center; gap:6px; }
+.hot-card .hc-sym { font-family:var(--head); font-weight:800; font-size:14px; letter-spacing:-.2px; }
+.hot-card .hc-when { margin-left:auto; font-family:var(--mono); font-weight:700; font-size:11px; color:var(--gold); }
+.hot-card .hc-when.urgent { color:#fca5a5; }
+.hot-card .hc-mid { font-family:var(--mono); font-size:10.5px; color:var(--t2); margin-top:1px; }
+.hot-card .hc-verdict { font-size:10px; font-weight:700; font-family:var(--head); letter-spacing:.2px; margin-top:2px; color:var(--t2); }
+
+/* Filter bar */
+.filter-bar { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:9px 12px; margin-bottom:10px; display:flex; gap:9px; flex-wrap:wrap; align-items:center; box-shadow:var(--shadow-sm); }
+.fb-chips { display:flex; gap:5px; flex-wrap:wrap; }
+.fb-chip { background:var(--panel2); border:1px solid var(--b1); color:var(--t2); padding:4px 10px; border-radius:999px; font-size:10.5px; font-weight:700; font-family:var(--head); }
+.fb-chip:hover { border-color:var(--accent); color:var(--accent); background:rgba(91,176,255,.06); transform:none; }
+.fb-chip.active { background:var(--accent); border-color:var(--accent); color:#000; }
+.filter-bar input[type=text] { width:140px; text-transform:uppercase; font-family:var(--mono); padding:5px 9px; }
+.fb-count { margin-left:auto; font-size:10.5px; color:var(--t3); font-family:var(--mono); white-space:nowrap; }
+
+/* Panel + table */
+.panel-box { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); box-shadow:var(--shadow-sm); overflow:hidden; margin-bottom:10px; }
+.panel-head { display:flex; align-items:center; gap:8px; padding:10px 14px; border-bottom:1px solid var(--b1); background:linear-gradient(180deg, rgba(40,28,50,.5), rgba(20,26,40,.4)); }
+.panel-head h3 { font-size:12px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--t1); font-family:var(--head); }
+.panel-head .panel-sub { font-size:10.5px; color:var(--t3); margin-left:auto; }
+.scanner-wrap { overflow:auto; max-height:calc(100vh - 360px); min-height:280px; }
+table { width:100%; border-collapse:collapse; font-size:11px; }
+thead { position:sticky; top:0; z-index:5; }
+thead th { padding:8px 6px; text-align:center; font-weight:700; font-size:10px; letter-spacing:.4px; text-transform:uppercase; cursor:pointer; user-select:none; border-bottom:1px solid var(--b1); color:var(--t3); font-family:var(--head); background:rgba(20,26,40,.97); }
+thead th:hover { color:var(--t1); }
+thead th.left { text-align:left; padding-left:14px; }
+tbody tr { border-bottom:1px solid var(--b1); border-left:3px solid transparent; transition:background .12s var(--ease); }
+tbody tr:hover { background:rgba(91,176,255,.05); }
+tbody tr:nth-child(even):not(.expanded-row) { background:rgba(255,255,255,.012); }
+tbody tr.urgent { border-left-color:var(--bear-s); }
+tbody tr.soon { border-left-color:var(--warn); }
+tbody tr.week { border-left-color:var(--gold); }
+tbody tr.clickable { cursor:pointer; }
+td { padding:7px 6px; text-align:center; vertical-align:middle; font-family:var(--mono); }
+td.left { text-align:left; padding-left:14px; }
+.sym-name { font-weight:800; font-size:12px; letter-spacing:-.2px; font-family:var(--head); }
+.sym-sector { color:var(--t3); font-size:10px; font-family:var(--mono); }
+
+.badge { display:inline-block; padding:2px 7px; border-radius:4px; font-weight:700; font-size:10px; letter-spacing:.2px; }
+.badge.up { background:var(--bull-bg); color:var(--bull-s); border:1px solid rgba(34,214,107,.35); }
+.badge.down { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.35); }
+.badge.warn { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.35); }
+.badge.gold { background:var(--gold-bg); color:var(--gold); border:1px solid rgba(255,216,107,.35); }
+.badge.neut { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
+
+.when-cell { font-family:var(--mono); font-weight:700; font-size:11px; }
+.when-d { color:var(--t1); }
+.when-h { font-size:9.5px; color:var(--t3); display:block; margin-top:1px; }
+
+.verdict { display:inline-block; padding:2px 7px; border-radius:4px; font-weight:700; font-size:10px; font-family:var(--head); letter-spacing:.2px; }
+.verdict.high-beat { background:var(--bull-bg); color:var(--bull-s); border:1px solid rgba(34,214,107,.5); }
+.verdict.likely-beat { background:rgba(34,214,107,.07); color:var(--bull-s); border:1px solid rgba(34,214,107,.3); }
+.verdict.mixt { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.35); }
+.verdict.likely-miss { background:var(--bear-bg); color:var(--bear-s); border:1px solid rgba(255,77,77,.35); }
+.verdict.na { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
+
+.action { display:inline-block; padding:3px 9px; border-radius:6px; font-weight:800; font-size:10.5px; font-family:var(--head); letter-spacing:.4px; cursor:help; }
+.action.buy   { background:linear-gradient(135deg, rgba(34,214,107,.22), rgba(34,214,107,.10)); color:var(--bull-s); border:1px solid rgba(34,214,107,.5); }
+.action.watch { background:rgba(34,214,107,.08); color:var(--bull-s); border:1px solid rgba(34,214,107,.32); }
+.action.wait  { background:var(--warn-bg); color:var(--warn); border:1px solid rgba(212,137,44,.4); }
+.action.avoid { background:linear-gradient(135deg, rgba(255,77,77,.22), rgba(255,77,77,.10)); color:var(--bear-s); border:1px solid rgba(255,77,77,.5); }
+.action.skip  { background:var(--panel2); color:var(--t3); border:1px solid var(--b1); }
+
+.ins { font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:4px; font-family:var(--head); }
+.ins.bull { background:var(--bull-bg); color:var(--bull-s); }
+.ins.bear { background:var(--bear-bg); color:var(--bear-s); }
+.ins.neut { background:var(--panel2); color:var(--t3); }
+.ins.na { color:var(--t3); }
+
+.action-btn { background:transparent; border:1px solid var(--b1); color:var(--t2); padding:3px 9px; font-size:10px; font-weight:700; border-radius:4px; margin:0 2px; font-family:var(--head); text-decoration:none; display:inline-block; }
+.action-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(91,176,255,.06); }
+.star-btn { background:transparent; border:none; color:var(--t3); font-size:13px; padding:2px 4px; }
+.star-btn.on { color:var(--gold); }
+.star-btn:hover { transform:scale(1.15); background:transparent; }
+
+/* Expanded row */
+tr.expanded-row { background:rgba(20,26,40,.45) !important; border-left:3px solid var(--acc-1); }
+tr.expanded-row td { padding:12px 14px; font-family:var(--head); text-align:left; }
+.exp-wrap { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:14px; }
+.exp-box { background:var(--panel); border:1px solid var(--b1); border-radius:var(--rs); padding:10px 12px; }
+.exp-title { font-size:10.5px; color:var(--t3); text-transform:uppercase; letter-spacing:.4px; font-weight:700; font-family:var(--mono); margin-bottom:6px; }
+.exp-hist { width:100%; border-collapse:collapse; font-size:11px; font-family:var(--mono); }
+.exp-hist th { padding:4px 5px; text-align:right; color:var(--t3); font-size:9.5px; font-weight:700; border-bottom:1px solid var(--b1); }
+.exp-hist th:first-child { text-align:left; }
+.exp-hist td { padding:4px 5px; text-align:right; border-bottom:1px solid rgba(42,50,71,.4); }
+.exp-hist td:first-child { text-align:left; font-weight:700; color:var(--t2); }
+.exp-hist td.beat { color:var(--bull-s); }
+.exp-hist td.miss { color:var(--bear-s); }
+.exp-hist td.flat { color:var(--t3); }
+.exp-react.up { color:var(--bull-s); font-weight:700; }
+.exp-react.dn { color:var(--bear-s); font-weight:700; }
+.exp-react.flat { color:var(--t3); }
+.exp-stat-row { display:flex; justify-content:space-between; gap:6px; padding:2px 0; font-size:11px; font-family:var(--mono); }
+.exp-stat-row span:first-child { color:var(--t3); }
+.exp-stat-row span:last-child { color:var(--t1); font-weight:700; }
+.exp-ins-list { max-height:160px; overflow:auto; font-size:10.5px; font-family:var(--mono); }
+.exp-ins-row { display:grid; grid-template-columns:auto 1fr auto auto; gap:6px; padding:3px 0; border-bottom:1px solid rgba(42,50,71,.4); }
+.exp-ins-row .ti { font-weight:700; font-family:var(--head); }
+.exp-ins-row .nm { color:var(--t2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.exp-ins-row .qy { color:var(--t3); }
+.exp-ins-row .dt { color:var(--t3); }
+.exp-ins-row.buy .ti { color:var(--bull-s); }
+.exp-ins-row.sell .ti { color:var(--bear-s); }
+.exp-loading { color:var(--t3); font-style:italic; font-size:11px; padding:8px; text-align:center; }
+@media(max-width:780px){ .exp-wrap { grid-template-columns:1fr; } }
+
+.empty { padding:54px 20px; text-align:center; color:var(--t3); font-size:13px; font-family:var(--head); }
+.empty-icon { font-size:42px; margin-bottom:12px; opacity:.55; }
+.empty-title { font-size:15px; font-weight:700; color:var(--t2); margin-bottom:5px; }
+.empty-sub { font-size:11px; line-height:1.5; max-width:480px; margin:0 auto; font-family:var(--mono); }
+
+footer { margin-top:14px; padding:10px 14px; background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); font-size:11px; color:var(--t3); display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; font-family:var(--mono); }
+
+/* AI bubble (Claude) */
+.exp-ai-bar { display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:10px; border-top:1px dashed var(--b1); flex-wrap:wrap; }
+.ai-btn { background:linear-gradient(135deg, #6366f1, #a855f7); border:none; color:#fff; padding:7px 14px; font-size:11.5px; font-weight:700; border-radius:var(--rs); cursor:pointer; box-shadow:0 2px 8px rgba(168,85,247,.3); font-family:var(--head); }
+.ai-btn:hover { filter:brightness(1.1); transform:translateY(-1px); color:#fff; }
+.ai-btn:disabled { opacity:.55; cursor:wait; }
+.ai-hint { font-size:10.5px; color:var(--t3); font-family:var(--mono); }
+.exp-ai { margin-top:10px; }
+.exp-ai:empty { display:none; }
+.ai-bubble {
+  background:linear-gradient(180deg, rgba(99,102,241,.08), rgba(168,85,247,.05));
+  border:1px solid rgba(168,85,247,.4); border-radius:var(--r); padding:14px 16px;
+  font-size:12.5px; line-height:1.6; color:var(--t1); font-family:var(--head);
+  white-space:pre-wrap; position:relative;
+}
+.ai-bubble::before {
+  content:""; position:absolute; top:-8px; left:24px; width:14px; height:14px;
+  background:linear-gradient(135deg, #6366f1, #a855f7); border:1px solid rgba(168,85,247,.4);
+  border-right:none; border-bottom:none; transform:rotate(45deg);
+}
+.ai-bubble .ai-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; padding-bottom:6px; border-bottom:1px dashed rgba(168,85,247,.3); }
+.ai-bubble .ai-head .ai-meta { font-size:10px; color:var(--t3); font-family:var(--mono); }
+.ai-bubble .ai-head .ai-rerun { background:transparent; border:1px solid var(--b1); color:var(--t2); padding:3px 8px; font-size:10px; border-radius:4px; cursor:pointer; }
+.ai-bubble .ai-head .ai-rerun:hover { border-color:var(--accent); color:var(--accent); background:transparent; transform:none; }
+.ai-bubble.error { border-color:rgba(255,77,77,.5); background:linear-gradient(180deg, rgba(255,77,77,.07), rgba(20,26,40,.4)); }
+.ai-cursor { display:inline-block; width:7px; height:13px; background:var(--acc-1); animation:blink 1s steps(2) infinite; vertical-align:middle; margin-left:2px; }
+@keyframes blink { 0%, 50% { opacity:1; } 51%, 100% { opacity:0; } }
+
+/* Modal */
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.7); display:none; align-items:center; justify-content:center; z-index:1000; padding:14px; }
+.modal-bg.open { display:flex; }
+.modal { background:var(--panel); border:1px solid var(--b1); border-radius:var(--r); padding:18px 20px; max-width:520px; width:100%; max-height:90vh; overflow:auto; box-shadow:var(--shadow); }
+.modal h2 { font-size:15px; font-weight:700; margin-bottom:14px; background:linear-gradient(90deg, var(--acc-1), var(--acc-2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.modal .mod-row { display:flex; flex-direction:column; gap:5px; margin-bottom:13px; }
+.modal .mod-row label { font-size:11px; color:var(--t3); font-weight:600; font-family:var(--mono); text-transform:uppercase; letter-spacing:.3px; }
+.modal .mod-row input, .modal .mod-row select { padding:7px 10px; font-size:12px; }
+.modal .mod-row .hint { font-size:10.5px; color:var(--t3); font-family:var(--mono); margin-top:2px; }
+.modal .mod-toggle { display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer; padding:6px 0; }
+.modal .mod-toggle input { width:auto; cursor:pointer; }
+.modal .mod-foot { display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+
+/* Toasts */
+.toasts { position:fixed; bottom:14px; right:14px; display:flex; flex-direction:column; gap:7px; z-index:900; max-width:340px; }
+.toast { background:var(--panel); border:1px solid var(--b1); border-left:3px solid var(--acc-1); border-radius:var(--rs); padding:10px 13px; font-size:11.5px; box-shadow:var(--shadow); animation:slideIn .25s var(--ease); }
+.toast.urgent { border-left-color:var(--bear-s); }
+.toast.ok { border-left-color:var(--bull-s); }
+.toast .tt-sym { font-weight:800; font-size:12.5px; color:var(--t1); font-family:var(--head); }
+.toast .tt-sub { color:var(--t3); font-size:10.5px; font-family:var(--mono); margin-top:2px; }
+.toast.fade-out { opacity:0; transition:opacity .35s; }
+@keyframes slideIn { from { transform:translateX(20px); opacity:0; } to { transform:translateX(0); opacity:1; } }
+
+/* Small helpers */
+.icon-btn { background:var(--panel2); border:1px solid var(--b1); width:32px; height:30px; border-radius:var(--rs); font-size:13px; padding:0; display:inline-flex; align-items:center; justify-content:center; }
+.icon-btn.on { border-color:var(--bull); color:var(--bull-s); background:var(--bull-bg); }
+.icon-btn.off { opacity:.45; }
+.spark { width:80px; height:24px; display:block; margin:0 auto; }
+.spark path { fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; }
+.spark.up path { stroke:var(--bull-s); } .spark.dn path { stroke:var(--bear-s); } .spark.flat path { stroke:var(--t3); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALINIERE „ZIAR" v144 — limbajul de componente din macro-dashboard / hub
+   (topbar panou sticky · chip-uri glass · bordura colorata de sectiune)
+   CSS-only: HTML-ul si JS-ul raman neatinse (data-f + clasa .active
+   functioneaza exact ca inainte). Regula casei: fundal SOLID pe sticky,
+   FARA backdrop-filter (blur-ul strica randarea textului).
+   Pagina e dark-only (n-are toggle light) -> fara scope pe tema.
+   Comentariile din blocul asta sunt fara diacritice intentionat:
+   fisierul are mojibake preexistent, nu-l atingem.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root{
+  --eh-sec-panel:var(--acc-1);  /* Calendar earnings 30 zile — panoul principal */
+  --eh-sec-filter:var(--warn);  /* Bara de filtre                               */
+  --eh-sec-hist:#3b82f6;        /* expand: EPS history                          */
+  --eh-sec-stat:#6ee7b7;        /* expand: Statistici + reactie                 */
+  --eh-sec-ins:#10b981;         /* expand: Insider activity                     */
+}
+
+/* ── 1. TOPBAR: panou sticky solid, pe un singur rand.
+      sticky/top/z-index/border + backdrop-filter:none vin din lib/suite-ui.css
+      (body.suite-page header.suite-cockpit); aici doar fundalul solid, umbra
+      mare si ritmul de padding. Specificitatea (0,2,1) o egaleaza pe cea din
+      suite-ui, dar <style>-ul paginii e dupa <link> -> castiga pe ordinea
+      cascadei (inclusiv peste background !important).
+      h1 are deja margin-right:auto -> actiunile raman impinse la dreapta. ── */
+body.suite-page header.suite-cockpit{
+  position:sticky; top:0; z-index:60;
+  flex-wrap:nowrap; gap:8px 10px;
+  padding:10px 14px; margin:0 0 12px;
+  border-radius:var(--r);
+  background:var(--topbar-bg)!important;
+  box-shadow:var(--topbar-shadow);
+}
+body.suite-page header.suite-cockpit h1{
+  min-width:0; overflow:hidden; text-overflow:ellipsis;
+}
+body.suite-page header.suite-cockpit .status-pill,
+body.suite-page header.suite-cockpit .icon-btn,
+body.suite-page header.suite-cockpit .nav-link,
+body.suite-page header.suite-cockpit button{ flex:0 0 auto; }
+@media (max-width:760px){
+  /* mobil: randul se rupe natural — titlu + pills sus, actiunile dedesubt */
+  body.suite-page header.suite-cockpit{ flex-wrap:wrap; padding:9px 11px; }
+  body.suite-page header.suite-cockpit h1{ white-space:normal; overflow:visible; }
+}
+
+/* ── 2. CHIP-URI de filtru: glass, activ = gradient acc-1→acc-2 (violet→roz,
+      perechea de accent a paginii). Clasele si data-f raman identice. ── */
+.fb-chip{
+  background:rgba(255,255,255,.035);
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.fb-chip.active{
+  background:linear-gradient(135deg,var(--acc-1),var(--acc-2));
+  border-color:transparent; color:#fff;
+  box-shadow:0 2px 12px rgba(168,85,247,.32);
+}
+.fb-chip.active:hover{
+  background:linear-gradient(135deg,var(--acc-1),var(--acc-2));
+  border-color:transparent; color:#fff;
+}
+
+/* ── 3. Bordura colorata sus — semnatura sectiunilor de ziar.
+      Doar pe cardurile REALE (fundal + chenar propriu).
+      .stats-strip / .hot-strip sunt grid-uri transparente -> NU primesc bordura
+      (ar fi orfana): .stat-tile are deja dunga de 3px pe stanga (::before),
+      iar .hot-card are chenar violet/rosu propriu. ── */
+.panel-box  { border-top:3px solid var(--eh-sec-panel); }
+.filter-bar { border-top:3px solid var(--eh-sec-filter); }
+/* Randul expandat: cele 3 casete de detaliu primesc fiecare semnatura ei */
+.exp-wrap .exp-box:nth-child(1){ border-top:3px solid var(--eh-sec-hist); }
+.exp-wrap .exp-box:nth-child(2){ border-top:3px solid var(--eh-sec-stat); }
+.exp-wrap .exp-box:nth-child(3){ border-top:3px solid var(--eh-sec-ins); }
+
+/* ── 4. Consecventa de forma — umbra pe blocul mare (restul erau deja var(--r)).
+      Elementele mici (badges / verdict / action / butoane) raman neatinse. ── */
+.panel-box{ box-shadow:0 4px 18px rgba(0,0,0,.28); }
+</style>
+</head>
+<body class="suite-page">
+
+<header class="suite-cockpit">
+  <h1>⚡ Earnings Hub <span class="ver-badge" id="verBadge">v145</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <span class="status-pill" id="sessionPill">⏳ sesiune</span>
+  <span class="status-pill"><span class="status-dot" id="scanDot"></span><span id="scanState">idle</span></span>
+  <button class="icon-btn" id="soundBtn" title="Sunet alerte">🔊</button>
+  <button class="icon-btn" id="notifBtn" title="Notificări browser">🔔</button>
+  <button class="icon-btn" id="tgBtn" title="Telegram alerts">📡</button>
+  <button class="icon-btn" id="setBtn" title="Setări">⚙</button>
+  <button class="primary" id="scanBtn">🔄 Scanează</button>
+  <a class="nav-link" href="../guide/?page=earnings-hub" title="Ghid features pagina asta">📖</a>
+  <a class="nav-link" href="../">← Hub</a>
+</header>
+
+<div class="stats-strip">
+  <div class="stat-tile">
+    <div class="stat-label">Total 30 zile</div>
+    <div class="stat-value" id="stTotal">�</div>
+    <div class="stat-sub" id="stTotalSub">earnings programate</div>
+  </div>
+  <div class="stat-tile bull">
+    <div class="stat-label">? Watchlist</div>
+    <div class="stat-value" id="stWatch">�</div>
+    <div class="stat-sub" id="stWatchSub">din lista ta</div>
+  </div>
+  <div class="stat-tile warn">
+    <div class="stat-label">? Sub 48h</div>
+    <div class="stat-value" id="stSoon">�</div>
+    <div class="stat-sub" id="stSoonSub">iminente</div>
+  </div>
+  <div class="stat-tile gold">
+    <div class="stat-label">?? Bias bullish</div>
+    <div class="stat-value" id="stBull">�</div>
+    <div class="stat-sub" id="stBullSub">cu beat rate ?60%</div>
+  </div>
+</div>
+
+<div class="hot-strip" id="hotStrip"></div>
+
+<div class="filter-bar">
+  <div class="fb-chips" id="fbChips">
+    <span class="fb-chip active" data-f="all">?? Toate <b id="cnt-all">�</b></span>
+    <span class="fb-chip" data-f="watch">? Watchlist <b id="cnt-watch">�</b></span>
+    <span class="fb-chip" data-f="48h">? &lt;48h <b id="cnt-48h">�</b></span>
+    <span class="fb-chip" data-f="7d">?? 7 zile <b id="cnt-7d">�</b></span>
+    <span class="fb-chip" data-f="bmo">?? BMO <b id="cnt-bmo">�</b></span>
+    <span class="fb-chip" data-f="amc">?? AMC <b id="cnt-amc">�</b></span>
+    <span class="fb-chip" data-f="eu">???? EU ADR <b id="cnt-eu">�</b></span>
+    <span class="fb-chip" data-f="us-pure">???? US pur <b id="cnt-us">�</b></span>
+  </div>
+  <input type="search" id="searchInp" placeholder="Caut� ticker�" maxlength="6" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" name="eh_no_autofill">
+  <button id="searchClear" title="Gole?te search" style="display:none">?</button>
+  <span class="fb-count" id="fbCount">� / �</span>
+</div>
+
+<div class="panel-box">
+  <div class="panel-head">
+    <h3>?? Calendar earnings 30 zile</h3>
+    <span class="panel-sub" id="lastScan">Niciun scan �nc�</span>
+  </div>
+  <div class="scanner-wrap">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th style="width:32px"></th>
+          <th class="left" data-sort="symbol">Ticker</th>
+          <th data-sort="date">Data � Or�</th>
+          <th data-sort="zile">Zile</th>
+          <th data-sort="epsEst">EPS est</th>
+          <th data-sort="epsPrev">EPS prev act</th>
+          <th data-sort="surprise">Surprise %</th>
+          <th data-sort="beatRate">Beat rate</th>
+          <th data-sort="verdict">AI verdict</th>
+          <th data-sort="action">Sugestie</th>
+          <th>Insider 60z</th>
+          <th>Ac?iuni</th>
+        </tr>
+      </thead>
+      <tbody id="mainBody">
+        <tr><td colspan="12"><div class="empty">
+          <div class="empty-icon">??</div>
+          <div class="empty-title">Nu s-a f�cut �nc� scan</div>
+          <div class="empty-sub">Apas� <b>?? Scaneaz�</b> ca s� �ncarci calendarul earnings 30 zile.
+            Cere o cheie Finnhub gratuit� din <b>? Set�ri</b> dac� nu ai una (shared cu nasdaq-scanner/smart-trade-long/pump-radar).</div>
+        </div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  <span>Date: Finnhub /calendar/earnings, /stock/earnings, /stock/insider-transactions � reac?ii post-earnings via Yahoo charts</span>
+  <span>Earnings Hub � partea suite Trading Tools</span>
+</footer>
+
+<!-- Settings modal -->
+<div class="modal-bg" id="setModal">
+  <div class="modal">
+    <h2>? Set�ri Earnings Hub</h2>
+    <div class="mod-row">
+      <label>Finnhub API key (shared cu celelalte pagini)</label>
+      <input type="text" id="setFinnhub" placeholder="d�">
+      <span class="hint">Gratuit pe <a href="https://finnhub.io/register" target="_blank" style="color:var(--accent)">finnhub.io/register</a>. Limit� 60/min � suficient pentru earnings (cache local).</span>
+    </div>
+    <div class="mod-row">
+      <label>Anthropic API key (Claude � shared cu nasdaq-scanner)</label>
+      <input type="password" id="setAnthropic" placeholder="sk-ant-�">
+      <span class="hint">Pentru butonul ?? din expand row. Cheia de pe <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent)">console.anthropic.com</a>. ? $0.05�0.10 / analiz� (claude-opus-5).</span>
+    </div>
+    <div class="mod-row">
+      <label>Auto-refresh</label>
+      <select id="setAuto">
+        <option value="0">OFF (manual)</option>
+        <option value="900">La fiecare 15 min</option>
+        <option value="1800" selected>La fiecare 30 min</option>
+        <option value="3600">La fiecare 1 or�</option>
+      </select>
+      <span class="hint">Calendarul earnings nu se mi?c� des � 30 min e suficient.</span>
+    </div>
+    <div class="mod-row">
+      <label>Prag alerte (zile r�mase)</label>
+      <select id="setThr">
+        <option value="1">? 1 zi (24h)</option>
+        <option value="2" selected>? 2 zile (48h)</option>
+        <option value="3">? 3 zile (72h)</option>
+        <option value="7">? 7 zile (s�pt�m�n�)</option>
+      </select>
+      <span class="hint">Watchlist intersect � alert� dac� earnings sub pragul setat.</span>
+    </div>
+    <div class="mod-row">
+      <label>Telegram (shared cu watchlist-monitor + pump-radar)</label>
+      <input type="text" id="setTgToken" placeholder="Bot token (123456:ABC�)">
+      <input type="text" id="setTgChat" placeholder="Chat ID (numeric sau @canal)" style="margin-top:4px">
+      <label class="mod-toggle"><input type="checkbox" id="setTgOn"> Activeaz� alerte Telegram</label>
+      <span class="hint">Cum ob?ii bot token: scrie <b>@BotFather</b> pe Telegram � <code>/newbot</code>. Cum afli chat ID: scrie un mesaj botului � <code>https://api.telegram.org/bot[TOKEN]/getUpdates</code> � ia num�rul din <code>chat.id</code>.</span>
+      <button id="setTgTest" class="ghost" style="align-self:flex-start; margin-top:6px;">?? Trimite test</button>
+    </div>
+    <div class="mod-foot">
+      <button class="ghost" id="setCancel">Anuleaz�</button>
+      <button class="primary" id="setSave">?? Salveaz�</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script src="../lib/data.js?v=816"></script>
+<script src="../lib/insider.js"></script>
+<script>
+'use strict';
+
+// ===============================================================
+//  CONFIG + CONSTANTS
+// ===============================================================
+const VER = 'tt-v143-2026-08-01';
+const FINNHUB_KEY_LS = 'finnhub_api_key';      // shared cu nasdaq-scanner / smart-trade-long / pump-radar
+const TG_KEY_LS      = 'tt_tg_config';         // shared cu watchlist-monitor + pump-radar � { token, chatId, enabled }
+const WL_KEY_LS      = 'wl_stocks';            // shared watchlist stocks
+const CFG_KEY_LS     = 'eh_cfg';               // local: { auto, threshold, sound, notif }
+const SEEN_KEY_LS    = 'eh_seen';              // dedupe alerte: { "SYM_YYYY-MM-DD": ts }
+const HIST_CACHE_LS  = 'eh_hist_cache';        // cache local pentru EPS history (TTL 6h)
+const INS_CACHE_LS   = 'eh_insider_cache';     // cache insider 30z pre-earning (TTL 6h)
+const HIST_TTL_MS    = 6 * 3600 * 1000;
+
+// ADR-uri europene cunoscute listate pe NYSE/NASDAQ � pentru identificare tickere foreign in calendar.
+// Sursa: top ADR-uri active (UK, Germania, Olanda, Elve?ia, Fran?a, etc.). Nu exhaustiv�, dar acoper� majoritatea relevante.
+const EU_ADRS = new Set([
+  // UK
+  'AZN','GSK','BP','SHEL','UL','DEO','VOD','BTI','HSBC','BCS','NWG','LYG','LSXMA','PSO','RIO','BHP','RELX','ERJ','SMFG',
+  // Olanda
+  'ASML','NXPI','PHG','ING','STLA','ABN','HEIA','LYB','RDS',
+  // Germania
+  'SAP','DB','SIEGY','BAYRY','BMWYY','VWAGY','MBGYY','PSHG','ADDYY','HNNMY',
+  // Elve?ia
+  'NVS','RHHBY','NSRGY','UBS','CS','ABB','ZURVY',
+  // Fran?a
+  'SNY','LVMUY','TTE','BNPQY','SAN','ATEYY','ESLOY','AIQUY','MC','SU',
+  // Danemarca/Suedia/Finlanda
+  'NVO','ERIC','NOK','VLVLY','CARL','MAERSK',
+  // Italia/Spania
+  'E','STM','LUX','SAN','TEF','BBVA','REPYY','TIT',
+  // Belgia/Irlanda/Norvegia
+  // Scoase MDT/ACN/ABBV/MDLZ: NU sunt ADR-uri europene (Medtronic/Accenture incorporate �n Irlanda
+  // dar listare comun� direct� pe NYSE; AbbVie + Mondelez sunt companii US pure) � strica counts ????/us-pure.
+  'BUD','BFLY','EQNR','TEL','SDRL','RYAAY','ICLR','CRH',
+]);
+function isEuAdr(symbol){ return EU_ADRS.has(symbol); }
+const SEEN_TTL_MS    = 14 * 24 * 3600 * 1000;  // 14 zile � auto-cur�?are alerte vechi
+
+// ===============================================================
+//  STATE
+// ===============================================================
+let calendar = [];           // [{ symbol, name, date, hour, epsEst, epsPrev, ... }]
+let watchlist = [];          // ["AAPL", "MSFT", ...]
+let tgConfig = { token:'', chatId:'', enabled:false };
+let cfg = { auto:1800, threshold:2, sound:false, notif:false };
+let filterMode = 'all';
+let filterText = '';
+let sortBy = 'date';
+let sortAsc = true;
+let expandedSym = null;
+let scanInflight = false;
+let _autoTimer = null;
+var _shellHidden = false;  // shell PWA: true cand iframe-ul e in fundal (display:none dar viu). Default false = comportament IDENTIC in browser normal.
+
+const $ = id => document.getElementById(id);
+const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ===============================================================
+//  STORAGE I/O
+// ===============================================================
+function loadCfg(){
+  try { const v = JSON.parse(localStorage.getItem(CFG_KEY_LS) || '{}'); cfg = Object.assign(cfg, v); } catch(e){}
+  try { const v = JSON.parse(localStorage.getItem(TG_KEY_LS) || '{}'); tgConfig = Object.assign(tgConfig, v); } catch(e){}
+  try { const v = JSON.parse(localStorage.getItem(WL_KEY_LS) || '[]'); watchlist = Array.isArray(v) ? v.map(s => String(s).toUpperCase()) : []; } catch(e){}
+}
+function saveCfg(){ try { localStorage.setItem(CFG_KEY_LS, JSON.stringify(cfg)); } catch(e){} }
+function saveTg(){ try { localStorage.setItem(TG_KEY_LS, JSON.stringify(tgConfig)); } catch(e){} }
+function saveWatchlist(){ try { localStorage.setItem(WL_KEY_LS, JSON.stringify(watchlist)); } catch(e){} }
+function getFinnhubKey(){ try { return localStorage.getItem(FINNHUB_KEY_LS) || ''; } catch(e){ return ''; } }
+function setFinnhubKey(k){ try { localStorage.setItem(FINNHUB_KEY_LS, k || ''); } catch(e){} }
+
+function loadSeen(){
+  let m = {};
+  try { m = JSON.parse(localStorage.getItem(SEEN_KEY_LS) || '{}') || {}; } catch(e){ m = {}; }
+  // cur�?� intr�rile expirate
+  const cut = Date.now() - SEEN_TTL_MS;
+  let changed = false;
+  for (const k of Object.keys(m)) if (m[k] < cut) { delete m[k]; changed = true; }
+  if (changed) try { localStorage.setItem(SEEN_KEY_LS, JSON.stringify(m)); } catch(e){}
+  return m;
+}
+function markSeen(key){
+  const m = loadSeen(); m[key] = Date.now();
+  try { localStorage.setItem(SEEN_KEY_LS, JSON.stringify(m)); } catch(e){}
+}
+
+function loadCache(lsKey){
+  try { return JSON.parse(localStorage.getItem(lsKey) || '{}') || {}; } catch(e){ return {}; }
+}
+function saveCache(lsKey, obj){
+  try {
+    // prune la PERSIST (TTL-ul aplicat lazy doar la citire l�sa cheile vechi s� se acumuleze nelimitat) + cap 120
+    const cut = Date.now() - HIST_TTL_MS;
+    for (const k of Object.keys(obj)) if (obj[k] && obj[k].ts && obj[k].ts < cut) delete obj[k];
+    const sorted = Object.keys(obj).sort((a, b) => ((obj[a] && obj[a].ts) || 0) - ((obj[b] && obj[b].ts) || 0));
+    while (sorted.length > 120) delete obj[sorted.shift()];
+    localStorage.setItem(lsKey, JSON.stringify(obj));
+  } catch(e){}
+}
+
+// ===============================================================
+//  MARKET SESSION (NYSE DST-aware via Intl)
+// ===============================================================
+function nyDateParts(d = new Date()){
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone:'America/New_York', hour12:false, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', weekday:'short' });
+  const parts = Object.fromEntries(fmt.formatToParts(d).map(p => [p.type, p.value]));
+  return { y:+parts.year, m:+parts.month, d:+parts.day, h:+parts.hour, min:+parts.minute, dow:parts.weekday };
+}
+function updateSessionPill(){
+  const p = nyDateParts();
+  const minOfDay = p.h * 60 + p.min;
+  const weekend = p.dow === 'Sat' || p.dow === 'Sun';
+  let label = '', cls = '';
+  if (weekend) { label = '?? Weekend'; cls = 'closed'; }
+  else if (minOfDay < 240) { label = '?? Pre-open'; cls = 'closed'; }
+  else if (minOfDay < 570) { label = '?? Pre-market'; cls = 'closed'; }
+  else if (minOfDay < 960) { label = '?? Live � regular'; cls = 'live'; }
+  else if (minOfDay < 1200) { label = '?? After-hours'; cls = 'closed'; }
+  else { label = '?? �nchis'; cls = 'closed'; }
+  const el = $('sessionPill'); el.textContent = label; el.className = 'status-pill ' + cls;
+}
+setInterval(updateSessionPill, 30000);
+
+function todayISO(){ const p = nyDateParts(); return `${p.y}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`; }
+function isoPlus(days){
+  // aritmetic� pur calendaristic� ancorat� pe ziua ET de azi (aritmetica UTC pe `new Date()`
+  // d�dea off-by-one seara, c�nd data UTC ? data ET)
+  const t = new Date(todayISO() + 'T00:00:00Z');
+  t.setUTCDate(t.getUTCDate() + days);
+  return t.toISOString().slice(0, 10);
+}
+function daysBetween(isoFrom, isoTo){
+  // diferen?� �n zile calendaristice, ignor�nd ora
+  const a = new Date(isoFrom + 'T00:00:00Z').getTime();
+  const b = new Date(isoTo   + 'T00:00:00Z').getTime();
+  return Math.round((b - a) / 86400000);
+}
+
+// ===============================================================
+//  CORS proxy chain (Yahoo) � pentru reaction bias
+// ===============================================================
+// Lan? aliniat suite (market-events v220): allorigins NU trimite CORS pe github.io � scos.
+const CORS_PROXIES = [
+  { name:'codetabs',     build: u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u), extract: t => t },
+  { name:'corsproxy.io', build: u => 'https://corsproxy.io/?url=' + encodeURIComponent(u),               extract: t => t },
+  { name:'cors.lol',     build: u => 'https://api.cors.lol/?url=' + encodeURIComponent(u),               extract: t => t },
+];
+let _proxyIdx = 0;
+async function proxyGetJSON(targetUrl, timeoutMs = 8000, ttl = 0){
+  // strat de date comun (lib/data.js): proxy health per-host + dedup; ttl=0 = f�r� date stale
+  if (window.D && D.fetchJSON) return D.fetchJSON(targetUrl, { ttl, timeout: timeoutMs });
+  const n = CORS_PROXIES.length;
+  for (let k = 0; k < n; k++){
+    const pi = (_proxyIdx + k) % n;
+    const px = CORS_PROXIES[pi];
+    try {
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), timeoutMs);
+      const r = await fetch(px.build(targetUrl), { signal: ctrl.signal });
+      clearTimeout(to);
+      if (!r.ok) continue;
+      const raw = await r.text();
+      let d; try { d = JSON.parse(px.extract(raw)); } catch(_){ continue; }
+      _proxyIdx = pi; return d;
+    } catch(e){ /* next */ }
+  }
+  return null;
+}
+
+// ===============================================================
+//  FINNHUB API
+// ===============================================================
+async function finnhub(path, params = {}){
+  const key = getFinnhubKey();
+  if (!key) return { __noKey:true };
+  const q = new URLSearchParams(Object.assign({}, params, { token:key })).toString();
+  const url = `https://finnhub.io/api/v1${path}?${q}`;
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 12000);
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(to);
+    if (!r.ok) return { __err:r.status };
+    return await r.json();
+  } catch(e){ return { __err:'network', msg:e.message }; }
+}
+
+async function fetchEarningsCalendar(){
+  const from = todayISO(), to = isoPlus(30);
+  const d = await finnhub('/calendar/earnings', { from, to });
+  if (d.__noKey) return { ok:false, reason:'noKey' };
+  if (d.__err) return { ok:false, reason:'err:' + d.__err };
+  const arr = (d && Array.isArray(d.earningsCalendar)) ? d.earningsCalendar : [];
+  // filtru: US (Finnhub global returneaz� ?i BR/EU � p�str�m doar exchange-uri US sau tickere simple f�r� sufix)
+  // Finnhub /calendar/earnings nu pune `exchange` explicit, dar tickerul are sufix pt non-US (ex: "TICKER.HK")
+  // Filtru STRICT US: ticker 1-5 caractere, doar litere mari (eventual cifre), f�r� puncte/sufixe.
+  // Asta taie din 1400+ WW la ~300-400 entries pur americane (NYSE/NASDAQ).
+  // �n plus: trebuie s� aib� measurable data (epsEstimate SAU revenueEstimate).
+  const filtered = arr.filter(e => {
+    if (!e || !e.symbol) return false;
+    if (!/^[A-Z][A-Z0-9]{0,4}$/.test(e.symbol)) return false;
+    return (e.epsEstimate != null) || (e.revenueEstimate != null) || (e.epsActual != null);
+  });
+  return { ok:true, items:filtered };
+}
+
+async function fetchHistEarnings(symbol){
+  const cache = loadCache(HIST_CACHE_LS);
+  const c = cache[symbol];
+  if (c && c.ts && (Date.now() - c.ts) < HIST_TTL_MS) return c.data;
+  const d = await finnhub('/stock/earnings', { symbol });
+  if (d.__err || d.__noKey || !Array.isArray(d)) return null;
+  // sort desc by period (most recent first)
+  const sorted = d.slice().sort((a, b) => (a.period < b.period ? 1 : -1)).slice(0, 8);
+  cache[symbol] = { ts:Date.now(), data:sorted };
+  saveCache(HIST_CACHE_LS, cache);
+  return sorted;
+}
+
+// Fereastr� extins� la 60z � free tier Finnhub indexeaz� rar tranzac?ii �ntr-o singur� lun�,
+// 60z d� semnal mai consistent. Cache p�strat pe (symbol+earningsDate).
+async function fetchInsider30(symbol, earningsDate){
+  const key = `${symbol}_${earningsDate}`;
+  const cache = loadCache(INS_CACHE_LS);
+  const c = cache[key];
+  if (c && c.ts && (Date.now() - c.ts) < HIST_TTL_MS) return c.data;
+  const to = earningsDate;
+  const fromDate = new Date(earningsDate + 'T00:00:00Z'); fromDate.setUTCDate(fromDate.getUTCDate() - 60);
+  const from = fromDate.toISOString().slice(0, 10);
+  const d = await finnhub('/stock/insider-transactions', { symbol, from, to });
+  if (d.__noKey) return null;
+  if (d.__err){ console.warn('[eh] insider err', symbol, d.__err); return null; }
+  const arr = Array.isArray(d.data) ? d.data : (Array.isArray(d) ? d : []);
+  cache[key] = { ts:Date.now(), data:arr };
+  saveCache(INS_CACHE_LS, cache);
+  return arr;
+}
+
+// Helper temporar: ?terge cache insider � apelabil din Console dac� vrei s� for?ezi refetch
+window.clearInsiderCache = function(){ try { localStorage.removeItem(INS_CACHE_LS); console.log('[eh] insider cache ?ters � refresh pagina'); } catch(e){} };
+
+// ===============================================================
+//  EPS analytics � beat rate + AI verdict
+// ===============================================================
+function analyzeHist(hist){
+  // hist: array of { period, actual, estimate, surprise, surprisePrc }
+  if (!Array.isArray(hist) || hist.length === 0) return { n:0, beats:0, beatRate:null, avgSurpPct:null, lastSurpPct:null, lastActual:null, verdict:'na' };
+  let beats = 0, miss = 0, surpSum = 0, surpN = 0, last3Beat = 0;
+  for (let i = 0; i < hist.length; i++){
+    const h = hist[i];
+    if (h.actual == null || h.estimate == null) continue;
+    const beat = h.actual > h.estimate;
+    if (beat) beats++; else if (h.actual < h.estimate) miss++;
+    if (h.surprisePrc != null){ surpSum += h.surprisePrc; surpN++; }
+    if (i < 3 && beat) last3Beat++;
+  }
+  const n = beats + miss;
+  if (n === 0) return { n:0, beats:0, beatRate:null, avgSurpPct:null, lastSurpPct:null, lastActual:null, verdict:'na' };
+  const beatRate = beats / n;
+  const avgSurpPct = surpN > 0 ? surpSum / surpN : null;
+  const lastSurpPct = hist[0] && hist[0].surprisePrc != null ? hist[0].surprisePrc : null;
+  const lastActual = hist[0] && hist[0].actual != null ? hist[0].actual : null;
+  let verdict = 'na';
+  if (n >= 4){
+    if (beatRate >= 0.75 && (avgSurpPct || 0) >= 3 && last3Beat === 3) verdict = 'high-beat';
+    else if (beatRate >= 0.6) verdict = 'likely-beat';
+    else if (beatRate >= 0.4) verdict = 'mixt';
+    else verdict = 'likely-miss';
+  } else if (n >= 2){
+    if (beatRate >= 0.6) verdict = 'likely-beat';
+    else if (beatRate >= 0.4) verdict = 'mixt';
+    else verdict = 'likely-miss';
+  }
+  return { n, beats, beatRate, avgSurpPct, lastSurpPct, lastActual, verdict };
+}
+
+const VERDICT_META = {
+  'high-beat':   { icon:'??', label:'HIGH BEAT' },
+  'likely-beat': { icon:'??', label:'LIKELY BEAT' },
+  'mixt':        { icon:'??', label:'MIXT' },
+  'likely-miss': { icon:'??', label:'LIKELY MISS' },
+  'na':          { icon:'?', label:'N/A' },
+};
+
+// Sugestie ac?iune derivat� din EPS verdict + insider + reac?ie medie istoric� + zile r�mase.
+// NU �nlocuie?te un trade plan � e doar un tag rapid pentru filtrare vizual�.
+const ACTION_META = {
+  'buy':   { icon:'??', label:'BUY',   tip:'Pattern beat puternic + insider/reac?ie pozitiv�. Cump�rare pre-earnings cu R:R rezonabil.' },
+  'watch': { icon:'??', label:'WATCH', tip:'Setup pozitiv dar mai slab � a?teapt� confirmare (insider activ sau pullback la suport).' },
+  'wait':  { icon:'??', label:'WAIT',  tip:'Mix de semnale. Mai bine a?tep?i post-earnings (gap up/down) dec�t s� intri orb.' },
+  'avoid': { icon:'??', label:'AVOID', tip:'Pattern miss istoric + insider bear sau reac?ie negativ�. Risc asimetric.' },
+  'skip':  { icon:'?', label:'SKIP',  tip:'Date insuficiente pentru o opinie � sari peste.' },
+};
+function computeAction(e, avgReact){
+  const v = (e.ana && e.ana.verdict) || 'na';
+  const iv = (e.insider && e.insider.verdict) || 'na';
+  const beatRate = (e.ana && e.ana.beatRate != null) ? e.ana.beatRate : null;
+  const n = (e.ana && e.ana.n) || 0;
+  const ar = (avgReact != null) ? avgReact : null;
+  if (n < 2 && iv === 'na') return 'skip';
+  if (v === 'high-beat' && iv !== 'bear') return 'buy';
+  if (v === 'likely-beat' && (beatRate != null && beatRate >= 0.7) && (iv === 'bull' || (ar != null && ar > 0.5))) return 'buy';
+  if (v === 'likely-miss' && (iv === 'bear' || (ar != null && ar < -0.5))) return 'avoid';
+  if (iv === 'bear' && (ar != null && ar < -1)) return 'avoid';
+  if (v === 'likely-beat' || (v === 'high-beat' && iv === 'bear')) return 'watch';
+  if (v === 'mixt' || v === 'likely-miss') return 'wait';
+  return 'wait';
+}
+
+// Clasificare aliniat� cu suita (smart-trade-long/watchlist-monitor): P = buy real;
+// A = award/grant (ac?iuni GRATIS, nu decizie de cump�rare) � EXCLUS; S/D/F/G = sell-like.
+// Free tier Finnhub omite des codul � fallback pe semnul `change`.
+function analyzeInsider(rows){
+  if (!Array.isArray(rows) || rows.length === 0) return { ok:false, txt:'�', verdict:'na' };
+  let buys = 0, sells = 0, netShares = 0;
+  for (const r of rows){
+    const chg = +r.change || 0;
+    // clasificarea vine din lib/insider.js � sursa unic� pe toat� suita
+    const kind = (window.INS && INS.classify) ? INS.classify(r) : null;
+    const absQty = Math.abs(chg);
+    if (kind === 'buy'){ buys++; netShares += absQty; }
+    else if (kind === 'sell'){ sells++; netShares -= absQty; }
+  }
+  let verdict = 'neut';
+  if (buys >= 2 && netShares > 0 && buys >= sells) verdict = 'bull';
+  else if (sells >= 2 && netShares < 0 && sells >= buys) verdict = 'bear';
+  return { ok:true, txt:`${buys}B/${sells}S`, verdict, buys, sells, netShares, rows };
+}
+
+// ===============================================================
+//  SCAN
+// ===============================================================
+async function runScan(){
+  if (scanInflight) return;
+  scanInflight = true;
+  const dot = $('scanDot'), st = $('scanState'), btn = $('scanBtn');
+  dot.className = 'status-dot load'; st.textContent = '�ncarc calendar�'; btn.disabled = true;
+
+  const cal = await fetchEarningsCalendar();
+  if (!cal.ok){
+    if (cal.reason === 'noKey'){
+      dot.className = 'status-dot err'; st.textContent = 'lipse?te Finnhub key';
+      renderEmpty('Lipse?te cheia Finnhub', 'Apas� ? Set�ri � adaug� cheia (gratuit� pe finnhub.io). Shared cu nasdaq-scanner, smart-trade-long, pump-radar.');
+    } else {
+      dot.className = 'status-dot err'; st.textContent = 'eroare calendar (' + cal.reason + ')';
+      renderEmpty('Eroare la �nc�rcare', `Finnhub a returnat ${escHtml(cal.reason)}. Verific� cheia + rate-limit (60/min) sau �ncearc� peste 1 min.`);
+    }
+    scanInflight = false; btn.disabled = false; return;
+  }
+
+  const today = todayISO();
+  calendar = cal.items.map(e => {
+    const zile = daysBetween(today, e.date);
+    return {
+      symbol: e.symbol,
+      name: '',
+      date: e.date,
+      hour: (e.hour || '').toLowerCase(),   // 'bmo' | 'amc' | 'dmh' | ''
+      year: e.year, quarter: e.quarter,
+      epsEst: (e.epsEstimate != null ? +e.epsEstimate : null),
+      // epsAct scos: era �pt cele deja raportate" dar .filter(e=>e.zile>=0) de mai jos taie tot trecutul � niciodat� citit (cod mort).
+      revEst: (e.revenueEstimate != null ? +e.revenueEstimate : null),
+      zile,
+      // calc dupa hist:
+      hist:null, ana:{ verdict:'na' }, insider:null,
+    };
+  }).filter(e => e.zile >= 0); // doar viitoare (zile = 0 �nseamn� �azi" � p�str�m)
+
+  // Dedup pe symbol � Finnhub poate �ntoarce aceea?i companie de mai multe ori (quartere/intr�ri
+  // multiple). data-sym trebuie UNIC, altfel querySelector('tr[data-sym=X]') la expand/star/focus
+  // prinde mereu primul r�nd. P�str�m earnings-ul cel mai apropiat (zile minim).
+  const _bySym = new Map();
+  for (const e of calendar) { const p = _bySym.get(e.symbol); if (!p || e.zile < p.zile) _bySym.set(e.symbol, e); }
+  calendar = [..._bySym.values()];
+
+  // sort cronologic implicit
+  calendar.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.symbol.localeCompare(b.symbol)));
+
+  // 2: pentru watchlist intersect + top 30 dupa data � load hist EPS �n paralel cu un cap de concurency
+  const targets = pickHistTargets();
+  st.textContent = `EPS history (${targets.length})�`;
+  await throttledMap(targets, 4, async sym => {
+    const hist = await fetchHistEarnings(sym);
+    if (hist){
+      for (const it of calendar) if (it.symbol === sym){ it.hist = hist; it.ana = analyzeHist(hist); }
+    }
+  });
+
+  // 3: insider pre-load larg � toate watchlist ?21z + top 30 dup� proximitate (zile ?14).
+  // Limita 30 = cap pentru rate limit Finnhub free (60/min).
+  const insSet = new Set();
+  const insTargets = [];
+  for (const e of calendar) if (watchlist.includes(e.symbol) && e.zile >= 0 && e.zile <= 21){ if (!insSet.has(e.symbol)){ insSet.add(e.symbol); insTargets.push(e); } }
+  const upcoming = calendar.slice().sort((a, b) => a.zile - b.zile);
+  for (const e of upcoming){ if (insTargets.length >= 30) break; if (e.zile < 0 || e.zile > 14) continue; if (!insSet.has(e.symbol)){ insSet.add(e.symbol); insTargets.push(e); } }
+  if (insTargets.length){
+    st.textContent = `Insider (${insTargets.length})�`;
+    await throttledMap(insTargets, 3, async e => {
+      const rows = await fetchInsider30(e.symbol, e.date);
+      e.insider = analyzeInsider(rows);
+    });
+  }
+
+  // 4: alerte -48h
+  detectAndNotify();
+
+  // 5: render
+  dot.className = 'status-dot ok'; st.textContent = `${calendar.length} earnings`;
+  $('lastScan').textContent = 'Ultim scan: ' + new Date().toLocaleTimeString('ro-RO');
+  btn.disabled = false; scanInflight = false;
+  renderAll();
+}
+
+// Selecteaz� tickerele pt care merit� fetch hist EPS:
+// - toate cele din watchlist
+// - + primele ~25 dup� data (limit�m rate limit Finnhub 60/min)
+function pickHistTargets(){
+  const set = new Set();
+  for (const e of calendar) if (watchlist.includes(e.symbol)) set.add(e.symbol);
+  // adaug� maxim 25 dintre cele mai apropiate temporal
+  const upcoming = calendar.slice().sort((a, b) => a.zile - b.zile).map(e => e.symbol);
+  for (const s of upcoming){ if (set.size >= 30) break; set.add(s); }
+  return Array.from(set);
+}
+
+async function throttledMap(arr, concurrency, fn){
+  let i = 0; const queue = arr.slice();
+  const workers = Array.from({ length:Math.min(concurrency, queue.length) }, async () => {
+    while (queue.length){ const item = queue.shift(); try { await fn(item); } catch(e){} await sleep(150); }
+  });
+  await Promise.all(workers);
+}
+
+// ===============================================================
+//  ALERTS -48h
+// ===============================================================
+function detectAndNotify(){
+  const seen = loadSeen();
+  const newOnes = [];
+  for (const e of calendar){
+    if (!watchlist.includes(e.symbol)) continue;
+    if (e.zile < 0 || e.zile > cfg.threshold) continue;
+    const key = `${e.symbol}_${e.date}`;
+    if (seen[key]) continue;
+    newOnes.push(e);
+    markSeen(key);
+  }
+  if (!newOnes.length) return;
+
+  // 1) Toast
+  for (const e of newOnes){
+    toast({
+      cls:'urgent',
+      sym:`? ${e.symbol}`,
+      sub:`Raporteaz� �n ${e.zile} zile (${e.date}${e.hour ? ' � ' + e.hour.toUpperCase() : ''}) � ${verdictLabel(e.ana.verdict)}`,
+      onclick: () => focusRow(e.symbol),
+    });
+  }
+
+  // 2) Browser notification
+  if (cfg.notif && 'Notification' in window && Notification.permission === 'granted'){
+    const head = newOnes.length === 1 ? `?? ${newOnes[0].symbol} earnings �n ${newOnes[0].zile}z` : `?? ${newOnes.length} earnings iminente`;
+    const body = newOnes.map(e => `${e.symbol} � ${e.zile}z � ${e.date}`).join('\n');
+    try { new Notification(head, { body, icon:'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%230b0f17"/><text x="50%" y="60%" font-size="40" text-anchor="middle" fill="%23a855f7">??</text></svg>' }); } catch(e){}
+  }
+
+  // 3) Beep
+  if (cfg.sound) beep();
+
+  // 4) Telegram grouped
+  if (tgConfig.enabled && tgConfig.token && tgConfig.chatId){
+    const lines = newOnes.map(e => `� <b>${e.symbol}</b> � ${e.zile}z (${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''}) � EPS est ${fmtNum(e.epsEst)} � ${verdictLabel(e.ana.verdict)}`);
+    const msg = `<b>?? Earnings Hub � ${newOnes.length} alert�${newOnes.length > 1 ? 'e' : ''} ?${cfg.threshold}z</b>\n` + lines.join('\n');
+    sendTelegram(msg);
+  }
+}
+
+function fmtNum(n, d = 2){ if (n == null || isNaN(n)) return '�'; return (+n).toFixed(d); }
+function verdictLabel(v){ const m = VERDICT_META[v] || VERDICT_META.na; return `${m.icon} ${m.label}`; }
+
+// ===============================================================
+//  SOUND + TELEGRAM
+// ===============================================================
+let _audioCtx = null;
+function beep(){
+  try {
+    _audioCtx = _audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx, t = ctx.currentTime;
+    [880, 1320].forEach((f, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+      const st = t + i * 0.16;
+      g.gain.setValueAtTime(0.0001, st);
+      g.gain.exponentialRampToValueAtTime(0.18, st + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + 0.22);
+      o.start(st); o.stop(st + 0.24);
+    });
+  } catch(e){}
+}
+async function sendTelegram(text){  // � lib/telegram.js (TG.*); config �n memorie p�strat
+  return TG.send(text, { token: tgConfig.token, chatId: tgConfig.chatId, force: true });
+}
+
+// ===============================================================
+//  TOAST
+// ===============================================================
+function toast({ cls = '', sym = '', sub = '', onclick = null, ttl = 7000 } = {}){
+  const wrap = $('toasts'); if (!wrap) return;
+  const el = document.createElement('div'); el.className = 'toast ' + cls;
+  el.innerHTML = `<div class="tt-sym">${escHtml(sym)}</div><div class="tt-sub">${escHtml(sub)}</div>`;
+  if (onclick) el.addEventListener('click', () => { el.remove(); onclick(); });
+  wrap.appendChild(el);
+  while (wrap.children.length > 5) wrap.removeChild(wrap.firstChild);
+  setTimeout(() => { el.classList.add('fade-out'); setTimeout(() => el.remove(), 380); }, ttl);
+}
+function focusRow(sym){
+  const row = document.querySelector(`tr[data-sym="${sym}"]`);
+  if (row){ row.scrollIntoView({ behavior:'smooth', block:'center' }); row.style.background = 'rgba(168,85,247,.18)'; setTimeout(() => { row.style.background = ''; }, 1600); }
+}
+
+// ===============================================================
+//  RENDER
+// ===============================================================
+function renderAll(){
+  updateAlertBtns();
+  renderStats();
+  renderHotStrip();
+  renderTable();
+}
+
+function renderStats(){
+  $('stTotal').textContent = calendar.length || '0';
+  const wl = calendar.filter(e => watchlist.includes(e.symbol)).length;
+  const soon = calendar.filter(e => e.zile >= 0 && e.zile <= cfg.threshold).length;
+  const bull = calendar.filter(e => e.ana && (e.ana.verdict === 'high-beat' || e.ana.verdict === 'likely-beat')).length;
+  $('stWatch').textContent = wl;
+  $('stSoon').textContent = soon;
+  $('stBull').textContent = bull;
+  $('stSoonSub').textContent = `prag ?${cfg.threshold}z`;
+  // Counts pe chip-urile de filter � afi?eaz� direct (X)
+  const _48h = calendar.filter(e => e.zile >= 0 && e.zile <= 2).length;
+  const _7d = calendar.filter(e => e.zile >= 0 && e.zile <= 7).length;
+  const _bmo = calendar.filter(e => e.hour === 'bmo').length;
+  const _amc = calendar.filter(e => e.hour === 'amc').length;
+  const setCnt = (id, n) => { const el = $(id); if (el) el.textContent = '(' + n + ')'; };
+  const _eu = calendar.filter(e => isEuAdr(e.symbol)).length;
+  const _usPure = calendar.length - _eu;
+  setCnt('cnt-all', calendar.length); setCnt('cnt-watch', wl);
+  setCnt('cnt-48h', _48h); setCnt('cnt-7d', _7d);
+  setCnt('cnt-bmo', _bmo); setCnt('cnt-amc', _amc);
+  setCnt('cnt-eu', _eu); setCnt('cnt-us', _usPure);
+}
+
+function renderHotStrip(){
+  const hot = calendar
+    .filter(e => watchlist.includes(e.symbol) && e.zile >= 0 && e.zile <= 7)
+    .sort((a, b) => a.zile - b.zile)
+    .slice(0, 6);
+  const box = $('hotStrip');
+  box.innerHTML = hot.map(e => {
+    const urgent = e.zile <= cfg.threshold;
+    const v = VERDICT_META[(e.ana && e.ana.verdict) || 'na'];
+    return `<div class="hot-card ${urgent ? 'urgent' : ''}" onclick="focusRow('${e.symbol}')">
+      <div class="hc-top"><span class="hc-sym">${e.symbol}</span><span class="hc-when ${urgent ? 'urgent' : ''}">${e.zile === 0 ? 'AZI' : e.zile + 'z'}</span></div>
+      <div class="hc-mid">${e.date}${e.hour ? ' � ' + e.hour.toUpperCase() : ''} � EPS est ${fmtNum(e.epsEst)}</div>
+      <div class="hc-verdict">${v.icon} ${v.label}${e.insider && e.insider.ok ? ' � ?? ' + e.insider.txt : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+function passFilter(e){
+  if (filterText && !e.symbol.includes(filterText)) return false;
+  if (filterMode === 'watch')   return watchlist.includes(e.symbol);
+  if (filterMode === '48h')     return e.zile >= 0 && e.zile <= 2;
+  if (filterMode === '7d')      return e.zile >= 0 && e.zile <= 7;
+  if (filterMode === 'bmo')     return e.hour === 'bmo';
+  if (filterMode === 'amc')     return e.hour === 'amc';
+  if (filterMode === 'eu')      return isEuAdr(e.symbol);
+  if (filterMode === 'us-pure') return !isEuAdr(e.symbol);
+  return true;
+}
+
+function sortItems(arr){
+  const k = sortBy, mult = sortAsc ? 1 : -1;
+  return arr.slice().sort((a, b) => {
+    let va, vb;
+    switch(k){
+      case 'symbol': va = a.symbol; vb = b.symbol; return va.localeCompare(vb) * mult;
+      case 'date': return ((a.date < b.date ? -1 : a.date > b.date ? 1 : 0) || a.symbol.localeCompare(b.symbol)) * mult;
+      case 'zile': return (a.zile - b.zile) * mult;
+      case 'epsEst': va = a.epsEst == null ? -Infinity : a.epsEst; vb = b.epsEst == null ? -Infinity : b.epsEst; return (va - vb) * mult;
+      case 'epsPrev': va = (a.hist && a.hist[0] && a.hist[0].actual != null) ? a.hist[0].actual : -Infinity; vb = (b.hist && b.hist[0] && b.hist[0].actual != null) ? b.hist[0].actual : -Infinity; return (va - vb) * mult;
+      case 'surprise': va = (a.ana && a.ana.lastSurpPct != null) ? a.ana.lastSurpPct : -Infinity; vb = (b.ana && b.ana.lastSurpPct != null) ? b.ana.lastSurpPct : -Infinity; return (va - vb) * mult;
+      case 'beatRate': va = (a.ana && a.ana.beatRate != null) ? a.ana.beatRate : -1; vb = (b.ana && b.ana.beatRate != null) ? b.ana.beatRate : -1; return (va - vb) * mult;
+      case 'verdict': { const ord = { 'high-beat':4, 'likely-beat':3, 'mixt':2, 'likely-miss':1, 'na':0 }; return ((ord[a.ana?.verdict] || 0) - (ord[b.ana?.verdict] || 0)) * mult; }
+      case 'action': { const ord = { 'buy':4, 'watch':3, 'wait':2, 'avoid':1, 'skip':0 }; return ((ord[computeAction(a, a.avgReact)] || 0) - (ord[computeAction(b, b.avgReact)] || 0)) * mult; }
+    }
+    return 0;
+  });
+}
+
+function rowClass(e){
+  if (e.zile <= cfg.threshold) return 'urgent';
+  if (e.zile <= 7) return 'soon';
+  if (e.zile <= 14) return 'week';
+  return '';
+}
+
+function renderTable(){
+  const tbody = $('mainBody');
+  const filtered = calendar.filter(passFilter);
+  const sorted = sortItems(filtered);
+  $('fbCount').textContent = `${filtered.length} / ${calendar.length}`;
+
+  if (!sorted.length){
+    let title = 'Niciun rezultat', sub = 'Schimb� filtrele de mai sus.';
+    if (filterText){
+      title = `Niciun ticker con?ine "${escHtml(filterText)}"`;
+      sub = `Apas� ? l�ng� search ca s� cure?i filtrul, sau scrie alt ticker.`;
+    } else if (filterMode === 'watch' && !watchlist.length){
+      title = 'Watchlist gol'; sub = 'Adaug� tickere �n watchlist (? pe r�nd, sau din nasdaq-scanner / watchlist-monitor).';
+    } else if (filterMode === 'watch'){
+      title = 'Niciun ticker watchlist cu earnings'; sub = `Ai ${watchlist.length} tickere �n watchlist, dar niciunul nu raporteaz� �n 30 zile.`;
+    } else if (filterMode === '48h'){ title = 'Niciun ticker �n 48h'; sub = `Nu exist� tickere cu earnings ?2 zile din ${calendar.length} total.`; }
+    else if (filterMode === '7d'){ title = 'Niciun ticker �n 7 zile'; sub = `Nu exist� tickere cu earnings ?7 zile din ${calendar.length} total.`; }
+    else if (filterMode === 'bmo'){ title = 'Niciun BMO'; sub = `Finnhub nu marcheaz� cu �bmo" (before market open). Verific� cu ?? AMC sau ?? Toate.`; }
+    else if (filterMode === 'amc'){ title = 'Niciun AMC'; sub = `Finnhub nu marcheaz� cu �amc" (after market close). �ncearc� ?? BMO sau ?? Toate.`; }
+    else if (filterMode === 'eu'){ title = 'Niciun ADR european'; sub = `Niciun ticker din lista EU ADR (ASML, SAP, NVO, NVS, AZN, GSK, etc.) nu raporteaz� �n 30 zile.`; }
+    else if (filterMode === 'us-pure'){ title = 'Lista goal�'; sub = `Toate tickere din calendar sunt ADR-uri europene? Improbabil � verific� logica.`; }
+    tbody.innerHTML = `<tr><td colspan="12"><div class="empty">
+      <div class="empty-icon">??</div>
+      <div class="empty-title">${escHtml(title)}</div>
+      <div class="empty-sub">${sub}</div>
+    </div></td></tr>`;
+    return;
+  }
+
+  let html = '';
+  let firstErr = null;
+  for (let i = 0; i < sorted.length; i++){
+    try { html += renderRow(sorted[i]); }
+    catch(err){ if (!firstErr) firstErr = { sym:sorted[i] && sorted[i].symbol, msg:err.message, e:sorted[i] }; console.error('[render] eroare la ticker', sorted[i] && sorted[i].symbol, err); }
+  }
+  // Band� diagnostic DOAR la eroare de render (era permanent� � rest din sesiunea de debugging v108-110)
+  const debugBanner = firstErr ? `<tr style="background:#11161f"><td colspan="12" style="padding:6px 10px;font-family:var(--mono);font-size:10px;color:#f88;border-bottom:1px solid var(--b1)">? EROARE render pe ${escHtml(firstErr.sym || '?')}: ${escHtml(firstErr.msg || '?')} � filterMode=${filterMode} � sorted=${sorted.length}</td></tr>` : '';
+  tbody.innerHTML = debugBanner + html;
+  // expand state restore (in caz de re-render dup� sort)
+  if (expandedSym){
+    const e = calendar.find(x => x.symbol === expandedSym);
+    if (e){
+      const tr = document.querySelector(`tr[data-sym="${expandedSym}"]`);
+      if (tr) injectExpandedRow(tr, e);
+    }
+  }
+}
+
+function renderRow(e){
+  try {
+  const isW = watchlist.includes(e.symbol);
+  const verdict = VERDICT_META[(e.ana && e.ana.verdict) || 'na'];
+  const beatRate = (e.ana && e.ana.beatRate != null) ? Math.round(e.ana.beatRate * 100) + '%' : '�';
+  const lastSurp = (e.ana && e.ana.lastSurpPct != null) ? (e.ana.lastSurpPct >= 0 ? '+' : '') + e.ana.lastSurpPct.toFixed(1) + '%' : '�';
+  const surpCls = (e.ana && e.ana.lastSurpPct != null) ? (e.ana.lastSurpPct > 0 ? 'up' : e.ana.lastSurpPct < 0 ? 'down' : 'neut') : 'neut';
+  const epsPrev = (e.hist && e.hist[0] && e.hist[0].actual != null) ? e.hist[0].actual.toFixed(2) : '�';
+  const zile = e.zile === 0 ? '<span class="badge warn">AZI</span>' : `<b>${e.zile}z</b>`;
+  const hourCell = e.hour ? `<span class="when-h">${e.hour.toUpperCase()}</span>` : '';
+  const insiderHtml = insiderCell(e);
+  const verCls = e.ana ? e.ana.verdict : 'na';
+  const actKey = computeAction(e, e.avgReact != null ? e.avgReact : null);
+  const act = ACTION_META[actKey] || ACTION_META.skip;
+  return `<tr class="clickable ${rowClass(e)}" data-sym="${e.symbol}" onclick="toggleExpand('${e.symbol}')">
+    <td><button class="star-btn ${isW ? 'on' : ''}" onclick="event.stopPropagation(); toggleStar('${e.symbol}')">${isW ? '?' : '?'}</button></td>
+    <td class="left"><div class="sym-name">${e.symbol}</div><div class="sym-sector">Q${e.quarter || '?'} ${e.year || ''}</div></td>
+    <td><div class="when-cell"><span class="when-d">${e.date}</span>${hourCell}</div></td>
+    <td>${zile}</td>
+    <td>${fmtNum(e.epsEst)}</td>
+    <td>${epsPrev}</td>
+    <td><span class="badge ${surpCls}">${lastSurp}</span></td>
+    <td>${beatRate}</td>
+    <td><span class="verdict ${verCls}">${verdict.icon} ${verdict.label}</span></td>
+    <td data-col="action"><span class="action ${actKey}" title="${escHtml(act.tip)}">${act.icon} ${act.label}</span></td>
+    <td data-col="insider">${insiderHtml}</td>
+    <td>
+      <a class="action-btn" href="https://www.tradingview.com/chart/?symbol=${e.symbol}" target="_blank" rel="noopener" onclick="event.stopPropagation()">TV</a>
+      <a class="action-btn" href="https://finance.yahoo.com/quote/${e.symbol}" target="_blank" rel="noopener" onclick="event.stopPropagation()">YH</a>
+    </td>
+  </tr>`;
+  } catch(err){
+    console.error('[renderRow] e?uat pentru', e && e.symbol, '|', err.message, '|', e);
+    return `<tr><td colspan="12" style="background:rgba(255,77,77,.08);color:#f88;padding:8px;font-family:var(--mono);font-size:11px">? Eroare render <b>${escHtml((e && e.symbol) || '?')}</b>: ${escHtml(err.message || 'unknown')}</td></tr>`;
+  }
+}
+
+function insiderCell(e){
+  if (!e.insider){
+    const k = getFinnhubKey();
+    return k ? '<span class="ins na">�</span>' : '<span class="ins na" title="Configureaz� Finnhub key">?</span>';
+  }
+  const v = e.insider.verdict;
+  const ic = v === 'bull' ? '??' : v === 'bear' ? '??' : '?';
+  return `<span class="ins ${v === 'bull' ? 'bull' : v === 'bear' ? 'bear' : 'neut'}" title="insider 60z pre-earnings">${ic} ${e.insider.txt}</span>`;
+}
+
+function renderEmpty(title, sub){
+  $('mainBody').innerHTML = `<tr><td colspan="12"><div class="empty">
+    <div class="empty-icon">?</div>
+    <div class="empty-title">${escHtml(title)}</div>
+    <div class="empty-sub">${sub}</div>
+  </div></td></tr>`;
+}
+
+// ===============================================================
+//  EXPANDED ROW (lazy load: hist + insider + reaction bias)
+// ===============================================================
+window.toggleExpand = function(sym){
+  const tr = document.querySelector(`tr[data-sym="${sym}"]`);
+  if (!tr) return;
+  // dac� era deja expandat � colapsare
+  if (expandedSym === sym){
+    const next = tr.nextElementSibling;
+    if (next && next.classList.contains('expanded-row')) next.remove();
+    expandedSym = null; return;
+  }
+  // remove orice expand existent
+  document.querySelectorAll('tr.expanded-row').forEach(r => r.remove());
+  expandedSym = sym;
+  const e = calendar.find(x => x.symbol === sym); if (!e) return;
+  injectExpandedRow(tr, e);
+  loadExpandedDetails(e);
+};
+
+function injectExpandedRow(tr, e){
+  if (tr.nextElementSibling && tr.nextElementSibling.classList.contains('expanded-row')) return;
+  const row = document.createElement('tr');
+  row.className = 'expanded-row'; row.dataset.expFor = e.symbol;
+  row.innerHTML = `<td colspan="12">
+    <div class="exp-wrap">
+      <div class="exp-box">
+        <div class="exp-title">?? EPS history (ultimele 8 trim.)</div>
+        <div id="exp-hist-${e.symbol}"><div class="exp-loading">se �ncarc�</div></div>
+      </div>
+      <div class="exp-box">
+        <div class="exp-title">?? Statistici + reac?ie post-earnings</div>
+        <div id="exp-stats-${e.symbol}"><div class="exp-loading">�</div></div>
+      </div>
+      <div class="exp-box">
+        <div class="exp-title">?? Insider activity (60 zile pre-earnings)</div>
+        <div id="exp-ins-${e.symbol}"><div class="exp-loading">se �ncarc�</div></div>
+      </div>
+    </div>
+    <div class="exp-ai-bar">
+      <button class="ai-btn" id="ai-btn-${e.symbol}" onclick="event.stopPropagation(); analyzeEarningWithAI('${e.symbol}', this)">?? Analizeaz� cu AI (Claude)</button>
+      <button class="ai-btn" id="qs-btn-${e.symbol}" onclick="event.stopPropagation(); runEHQuickSetup('${e.symbol}', this)" style="background:linear-gradient(135deg,#f7931a,#22d66b);border-color:transparent;color:#0a0a0a;font-weight:800">?? Quick Setup (Opus 5)</button>
+      <span class="ai-hint">AI = analiz� narativ� pre-earnings. Quick Setup = JSON ready-to-execute pentru play pe data release.</span>
+    </div>
+    <div class="exp-ai" id="ai-result-${e.symbol}" data-done="0"></div>
+    <div class="exp-ai" id="qs-result-${e.symbol}" data-done="0"></div>
+  </td>`;
+  tr.parentNode.insertBefore(row, tr.nextSibling);
+}
+
+async function loadExpandedDetails(e){
+  // 1) hist
+  if (!e.hist) e.hist = await fetchHistEarnings(e.symbol);
+  if (e.hist) e.ana = analyzeHist(e.hist);
+  // 2) reaction bias � Yahoo chart 2y + data real� de raportare (Nasdaq) per trimestru
+  let reactions = null;
+  if (e.hist && e.hist.length){
+    reactions = await fetchReactionBias(e.symbol, e.hist, e.hour);
+  }
+  e.reactions = reactions;  // folosit ?i �n buildAiPrompt (istoric per trimestru)
+  // 3) insider � for?ez re-evaluare dac� pre-load a returnat ok:false (cache �ntre timp populat)
+  if (!e.insider || !e.insider.ok){
+    const rows = await fetchInsider30(e.symbol, e.date);
+    e.insider = analyzeInsider(rows);
+  }
+
+  const histBox = $('exp-hist-' + e.symbol);
+  const statsBox = $('exp-stats-' + e.symbol);
+  const insBox = $('exp-ins-' + e.symbol);
+
+  if (histBox){
+    if (!e.hist || !e.hist.length){
+      histBox.innerHTML = '<div class="exp-loading">F�r� date istorice.</div>';
+    } else {
+      const rows = e.hist.map(h => {
+        const beat = (h.actual != null && h.estimate != null) ? (h.actual > h.estimate ? 'beat' : h.actual < h.estimate ? 'miss' : 'flat') : 'flat';
+        const surp = h.surprisePrc != null ? (h.surprisePrc >= 0 ? '+' : '') + h.surprisePrc.toFixed(1) + '%' : '�';
+        const rk = h.period;
+        const re = (reactions && reactions[rk] != null) ? reactions[rk] : null;
+        const reCls = re == null ? 'flat' : (re > 0.5 ? 'up' : re < -0.5 ? 'dn' : 'flat');
+        const reTxt = re == null ? '�' : (re >= 0 ? '+' : '') + re.toFixed(1) + '%';
+        return `<tr>
+          <td>${escHtml(h.period)}</td>
+          <td>${h.estimate != null ? h.estimate.toFixed(2) : '�'}</td>
+          <td class="${beat}">${h.actual != null ? h.actual.toFixed(2) : '�'}</td>
+          <td class="${beat}">${surp}</td>
+          <td class="exp-react ${reCls}">${reTxt}</td>
+        </tr>`;
+      }).join('');
+      histBox.innerHTML = `<table class="exp-hist">
+        <thead><tr><th>Perioad�</th><th>Est</th><th>Act</th><th>Surp</th><th title="?% �n ziua raport�rii reale (Nasdaq dateReported); f�r� dat� confirmat� � �">Reac?ie 1z</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    }
+  }
+
+  if (statsBox){
+    const a = e.ana || {};
+    const rArr = reactions ? Object.values(reactions).filter(v => v != null) : [];
+    const avgReact = rArr.length ? (rArr.reduce((s, v) => s + v, 0) / rArr.length) : null;
+    e.avgReact = avgReact;  // pentru computeAction la update cells
+    const beatRate = a.beatRate != null ? (a.beatRate * 100).toFixed(0) + '%' : '�';
+    const v = VERDICT_META[a.verdict || 'na'];
+    statsBox.innerHTML = `
+      <div class="exp-stat-row"><span>AI verdict</span><span>${v.icon} ${v.label}</span></div>
+      <div class="exp-stat-row"><span>Beats / total</span><span>${(a.beats || 0)}/${(a.n || 0)}</span></div>
+      <div class="exp-stat-row"><span>Beat rate</span><span>${beatRate}</span></div>
+      <div class="exp-stat-row"><span>Surprise medie</span><span>${a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : '�'}</span></div>
+      <div class="exp-stat-row"><span>Reac?ie medie 1z</span><span class="${avgReact == null ? '' : avgReact > 0 ? 'exp-react up' : 'exp-react dn'}">${avgReact != null ? (avgReact >= 0 ? '+' : '') + avgReact.toFixed(2) + '% (n=' + rArr.length + ')' : '�'}</span></div>
+      <div class="exp-stat-row"><span>Surs�</span><span>Finnhub + Yahoo</span></div>
+    `;
+  }
+
+  if (insBox){
+    if (!e.insider || !e.insider.ok){
+      insBox.innerHTML = '<div class="exp-loading">F�r� date insider (sau cheie lips�).</div>';
+    } else {
+      const top = (e.insider.rows || []).slice(0, 12);
+      const verdictTxt = e.insider.verdict === 'bull' ? '?? Bullish' : e.insider.verdict === 'bear' ? '?? Bearish' : '? Neutru';
+      const list = top.map(t => {
+        const code = (t.transactionCode || '').toUpperCase();
+        const kind = (window.INS && INS.classify) ? INS.classify(t) : null; // lib/insider.js
+        const cls = kind === 'buy' ? 'buy' : kind === 'sell' ? 'sell' : '';
+        return `<div class="exp-ins-row ${cls}">
+          <span class="ti">${escHtml(code || '?')}</span>
+          <span class="nm">${escHtml(t.name || '�')}</span>
+          <span class="qy">${(t.change || 0).toLocaleString('en-US')}@${t.transactionPrice ? '$' + t.transactionPrice.toFixed(2) : '�'}</span>
+          <span class="dt">${escHtml(t.transactionDate || '�')}</span>
+        </div>`;
+      }).join('');
+      insBox.innerHTML = `
+        <div class="exp-stat-row"><span>Verdict</span><span>${verdictTxt}</span></div>
+        <div class="exp-stat-row"><span>Cump�r�ri / v�nz�ri</span><span>${e.insider.buys}B / ${e.insider.sells}S</span></div>
+        <div class="exp-stat-row"><span>Net ac?iuni</span><span>${e.insider.netShares.toLocaleString('en-US')}</span></div>
+        <div class="exp-ins-list" style="margin-top:6px;">${list || '<div class="exp-loading">F�r� tranzac?ii recente.</div>'}</div>
+      `;
+    }
+  }
+
+  // Update ?intit pe celulele Sugestie + Insider via data-col (robust la schimb�ri de coloane).
+  try {
+    const tr = document.querySelector(`tr[data-sym="${e.symbol}"]`);
+    if (tr){
+      const insCell = tr.querySelector('td[data-col="insider"]');
+      const actCell = tr.querySelector('td[data-col="action"]');
+      if (insCell) insCell.innerHTML = insiderCell(e);
+      if (actCell){
+        const actKey = computeAction(e, e.avgReact);
+        const act = ACTION_META[actKey] || ACTION_META.skip;
+        actCell.innerHTML = `<span class="action ${actKey}" title="${escHtml(act.tip)}">${act.icon} ${act.label}</span>`;
+      }
+    }
+  } catch(err){ console.warn('[eh] update cells failed:', err); }
+}
+
+// ===============================================================
+//  REACTION BIAS (Yahoo chart daily 2y + date REALE de raportare)
+// ===============================================================
+// h.period (Finnhub /stock/earnings) = sf�r?itul trimestrului FISCAL (ex: 2024-12-31),
+// NU data raport�rii � raportul vine la 3-6 s�pt�m�ni DUP�. Reac?ia se m�soar� pe ziua
+// raport�rii reale (Nasdaq earnings-surprise � dateReported, acoper� ~4 trimestre).
+// F�r� dat� real� � reac?ie absent� (onest), nu mi?carea de dup� quarter-end.
+const _MONTHS_EN = { Jan:1, Feb:2, Mar:3, Apr:4, May:5, Jun:6, Jul:7, Aug:8, Sep:9, Oct:10, Nov:11, Dec:12 };
+function _parseUSDate(s){
+  // "Jan 30, 2025" � "2025-01-30"
+  const m = /^([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})$/.exec(String(s || '').trim());
+  if (!m || !_MONTHS_EN[m[1].slice(0, 3)]) return null;
+  return `${m[3]}-${String(_MONTHS_EN[m[1].slice(0, 3)]).padStart(2, '0')}-${String(+m[2]).padStart(2, '0')}`;
+}
+function _parseFiscalQtr(s){
+  // "Dec/2024" � "2024-12"
+  const m = /^([A-Za-z]{3})[a-z]*\/(\d{4})$/.exec(String(s || '').trim());
+  if (!m || !_MONTHS_EN[m[1].slice(0, 3)]) return null;
+  return `${m[2]}-${String(_MONTHS_EN[m[1].slice(0, 3)]).padStart(2, '0')}`;
+}
+async function fetchReportDates(symbol){
+  const d = await proxyGetJSON(`https://api.nasdaq.com/api/company/${symbol}/earnings-surprise`, 9000, 6 * 3600 * 1000);
+  const rows = (d && d.data && d.data.earningsSurpriseTable && Array.isArray(d.data.earningsSurpriseTable.rows))
+    ? d.data.earningsSurpriseTable.rows : [];
+  const map = {};   // "YYYY-MM" (fiscal qtr end) � "YYYY-MM-DD" (data raport�rii)
+  for (const r of rows){
+    const fq = _parseFiscalQtr(r.fiscalQtrEnd);
+    const dr = _parseUSDate(r.dateReported);
+    if (fq && dr) map[fq] = dr;
+  }
+  return map;
+}
+async function fetchReactionBias(symbol, hist, hour){
+  const [d, repDates] = await Promise.all([
+    proxyGetJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2y`, 8000, 10 * 60 * 1000),
+    fetchReportDates(symbol),
+  ]);
+  const r = d && d.chart && d.chart.result && d.chart.result[0];
+  if (!r || !r.timestamp || !r.indicators || !r.indicators.quote) return null;
+  const ts = r.timestamp;
+  const closes = r.indicators.quote[0].close || [];
+  const dateToClose = {};   // ISO date � close
+  const datesSorted = [];
+  for (let i = 0; i < ts.length; i++){
+    if (closes[i] == null) continue;
+    const iso = new Date(ts[i] * 1000).toISOString().slice(0, 10);
+    dateToClose[iso] = closes[i];
+    datesSorted.push(iso);
+  }
+  const pct = (before, after) => (before > 0 && after > 0) ? ((after - before) / before) * 100 : null;
+  // Shift YYYY-MM cu n luni � pt companii cu an fiscal decalat (AAPL/NVDA), quarter-end-ul
+  // calendaristic de la Finnhub poate diferi cu o lun� de fiscalQtrEnd-ul Nasdaq � matchuim tolerant.
+  const shiftYM = (ym, n) => { const p = ym.split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 1 + n, 1)).toISOString().slice(0, 7); };
+  const map = {};
+  for (const h of hist){
+    if (!h.period) continue;
+    const pm = h.period.slice(0, 7);
+    const reported = repDates[pm] || repDates[shiftYM(pm, 1)] || repDates[shiftYM(pm, -1)];
+    if (!reported) continue;   // f�r� dat� real� de raportare (nici �1 lun�) � f�r� reac?ie
+    let idx = -1;
+    for (let i = 0; i < datesSorted.length; i++){
+      if (datesSorted[i] >= reported){ idx = i; break; }
+    }
+    if (idx < 1 || idx >= datesSorted.length) continue;
+    // Reac?ia post-raport pe ziua CORECT� �n func?ie de ora raport�rii:
+    //   m1 = close(D-1)�close(D)   � mi?carea din ziua raportului
+    //   m2 = close(D)�close(D+1)   � mi?carea din ziua urm�toare
+    // BMO (before market open): raportul iese diminea?a � reac?ia se vede �n ziua D  � m1.
+    // AMC (after market close):  raportul iese seara    � reac?ia se vede �n ziua D+1 � m2.
+    // Istoricul Finnhub /stock/earnings NU con?ine ora pe trimestru; folosim `hour` al
+    // evenimentului curent ca proxy (companiile raporteaz� de regul� consistent BMO/AMC).
+    // Dac� `hour` lipse?te, p�str�m euristica veche (ziua cu mi?carea mai mare �n |valoare|) �
+    // APROXIMARE: poate umfla optimist reac?ia prin alegerea zilei �mai spectaculoase".
+    const m1 = pct(dateToClose[datesSorted[idx - 1]], dateToClose[datesSorted[idx]]);
+    const m2 = (idx + 1 < datesSorted.length) ? pct(dateToClose[datesSorted[idx]], dateToClose[datesSorted[idx + 1]]) : null;
+    let re;
+    if (hour === 'bmo'){
+      re = m1;                                   // raport diminea?a � reac?ia �n ziua D
+    } else if (hour === 'amc' || hour === 'dmh'){
+      re = (m2 != null) ? m2 : m1;               // raport seara � reac?ia �n D+1 (fallback D)
+    } else {
+      // ora necunoscut� � euristic� (aproximare, vezi comentariul de mai sus)
+      re = (m1 == null) ? m2 : (m2 != null && Math.abs(m2) > Math.abs(m1)) ? m2 : m1;
+    }
+    if (re != null) map[h.period] = re;
+  }
+  return map;
+}
+
+// ===============================================================
+//  STAR / WATCHLIST
+// ===============================================================
+window.toggleStar = function(sym){
+  const idx = watchlist.indexOf(sym);
+  if (idx === -1) watchlist.push(sym); else watchlist.splice(idx, 1);
+  saveWatchlist();
+  renderAll();
+};
+
+// ===============================================================
+//  AI BUBBLE � Claude API (shared key cu nasdaq-scanner)
+// ===============================================================
+const ANTHROPIC_KEY_LS = 'anthropic_api_key';
+const AI_CACHE_LS = 'eh_ai_cache_v1';
+const AI_CACHE_TTL_MS = 60 * 60 * 1000;
+
+const AI_SYSTEM = `E�ti analist financiar rom�n pentru un trader activ pe Nasdaq via Trade 212 (long-only stocks).
+Reguli stricte:
+- R�spunde DOAR �n rom�n�.
+- Maxim 7 r�nduri, f�r� introduceri ("Iat�...", "Pe baza datelor...").
+- Recomand� explicit: "BUY pre-earnings cu entry $X / SL $Y / TP $Z" SAU "A�TEAPT� post-earnings (gap �n direc�ia X)" SAU "SKIP � risc asimetric".
+- Argumenteaz� �n maxim 2 propozi�ii: pattern beat/miss istoric + insider/reac�ie.
+- Identific� UN risc principal �ntr-o singur� propozi�ie.
+- F�r� markdown, f�r� emoji, f�r� bold. Text plat, scurt, direct.`;
+
+function getAnthropicKey(){ try { return localStorage.getItem(ANTHROPIC_KEY_LS) || ''; } catch(e){ return ''; } }
+function setAnthropicKey(k){ try { if (k) localStorage.setItem(ANTHROPIC_KEY_LS, k); else localStorage.removeItem(ANTHROPIC_KEY_LS); } catch(e){} }
+
+function aiCacheGet(key){
+  try {
+    const o = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    const ent = o[key]; if (!ent) return null;
+    if (Date.now() - ent.ts > AI_CACHE_TTL_MS){ delete o[key]; localStorage.setItem(AI_CACHE_LS, JSON.stringify(o)); return null; }
+    return ent;
+  } catch(_){ return null; }
+}
+function aiCacheSet(key, text, model){
+  try {
+    const o = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    o[key] = { text, model, ts:Date.now() };
+    const cut = Date.now() - AI_CACHE_TTL_MS;
+    for (const k of Object.keys(o)) if (o[k].ts < cut) delete o[k];
+    localStorage.setItem(AI_CACHE_LS, JSON.stringify(o));
+  } catch(_){}
+}
+
+function buildAiPrompt(e){
+  const today = todayISO();
+  const a = e.ana || {};
+  const beatRate = a.beatRate != null ? Math.round(a.beatRate * 100) + '%' : 'N/A';
+  const avgSurp = a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : 'N/A';
+  const lastSurp = a.lastSurpPct != null ? (a.lastSurpPct >= 0 ? '+' : '') + a.lastSurpPct.toFixed(1) + '%' : 'N/A';
+  const ar = e.avgReact != null ? (e.avgReact >= 0 ? '+' : '') + e.avgReact.toFixed(2) + '%' : 'N/A';
+  let histLines = '';
+  if (Array.isArray(e.hist) && e.hist.length){
+    histLines = '\nEPS ISTORIC (ultimele 8 trim. � perioad� / est / actual / surpriz�% / reac�ie 1z):\n' +
+      e.hist.map(h => {
+        const re = (e.reactions && e.reactions[h.period] != null) ? (e.reactions[h.period] >= 0 ? '+' : '') + e.reactions[h.period].toFixed(1) + '%' : 'N/A';
+        const surp = h.surprisePrc != null ? (h.surprisePrc >= 0 ? '+' : '') + h.surprisePrc.toFixed(1) + '%' : 'N/A';
+        return `  ${h.period}: est ${h.estimate != null ? h.estimate.toFixed(2) : 'N/A'} / act ${h.actual != null ? h.actual.toFixed(2) : 'N/A'} / ${surp} / reac�ie ${re}`;
+      }).join('\n');
+  }
+  let insLines = '';
+  if (e.insider && e.insider.ok){
+    insLines = `\nINSIDER 60 ZILE PRE-EARNINGS: ${e.insider.buys} cump�r�ri / ${e.insider.sells} v�nz�ri � net ac�iuni ${e.insider.netShares.toLocaleString('en-US')} � verdict ${e.insider.verdict}`;
+  } else {
+    insLines = '\nINSIDER: f�r� date sau lips� tranzac�ii �nregistrate �n 60z.';
+  }
+  const actNow = ACTION_META[computeAction(e, e.avgReact)] || ACTION_META.skip;
+  return `Analiz� rapid� pentru ${e.symbol} � earnings programat ${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''} (�n ${e.zile} zile de azi ${today}).
+
+DATE STRUCTURATE:
+- EPS estimate trim. curent: ${e.epsEst != null ? e.epsEst.toFixed(2) : 'N/A'} ${a.lastActual != null ? '(prev act ' + a.lastActual.toFixed(2) + ')' : ''}
+- Pattern istoric: ${a.beats || 0} beats / ${a.n || 0} (beat rate ${beatRate}), surpriz� medie ${avgSurp}, ultima surpriz� ${lastSurp}
+- Reac�ie medie 1z post-earnings (istoric): ${ar}
+- Tag derivat algoritmic: ${actNow.icon} ${actNow.label}${histLines}${insLines}
+
+CONTEXT: ${watchlist.includes(e.symbol) ? 'tickerul ESTE pe watchlist-ul traderului.' : 'tickerul nu e pe watchlist.'} Trader long-only, Trade 212, fonduri limitate � conservator.
+
+�ntrebare: ce face traderul cu ${e.symbol} acum (pre-earnings)? Confirm� sau contest� tagul algoritmic.`;
+}
+
+window.analyzeEarningWithAI = async function(symbol, btn){
+  const e = calendar.find(x => x.symbol === symbol); if (!e) return;
+  const container = $('ai-result-' + symbol); if (!container) return;
+  if (container.dataset.done === '1'){
+    container.innerHTML = ''; container.dataset.done = '0';
+    if (btn) btn.textContent = '?? Analizeaz� cu AI (Claude)';
+    return;
+  }
+  const key = getAnthropicKey();
+  if (!key){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>? Lipse?te cheia Anthropic</b></div>Adaug� cheia �n ? Set�ri � c�mpul �Anthropic API key". O ob�ii de la console.anthropic.com/settings/keys.</div>`;
+    container.dataset.done = '1'; return;
+  }
+  const ck = `${symbol}_${e.date}_${(e.ana && e.ana.verdict) || 'na'}`;
+  const cached = aiCacheGet(ck);
+  if (cached){
+    renderAiBubble(container, cached.text, cached.model + ' � cache');
+    container.dataset.done = '1';
+    if (btn) btn.textContent = '?? Ascunde analiz�';
+    return;
+  }
+  if (btn){ btn.disabled = true; btn.textContent = '? Se genereaz�'; }
+  // F�r� streaming vizual (obositor) � spinner + cronometru, r�spunsul apare DEODAT� cu fade-in.
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">claude-opus-5</span></div><div style="padding:10px;text-align:center;color:var(--t3)"><span style="font-size:20px;animation:pulse 1.4s infinite">??</span><div style="margin-top:6px;font-size:12.5px">Analizez� <span id="ai-timer-${symbol}">0.0s</span></div></div></div>`;
+  container.dataset.done = '1';
+
+  const prompt = buildAiPrompt(e);
+  const t0 = Date.now();
+  const timer = setInterval(() => { const el = $('ai-timer-' + symbol); if (el) el.textContent = ((Date.now() - t0) / 1000).toFixed(1) + 's'; }, 100);
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 180000);  // un request blocat nu ?ine bula la infinit
+    let resp;
+    try {
+      resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key':key,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true',
+        },
+        body: JSON.stringify({
+          model:'claude-opus-5',
+          max_tokens:600,
+          // Pe opus-5 omiterea lui `thinking` = adaptive ACTIV (nu ca pe opus-4-8). max_tokens
+          // plafonează thinking+text, iar content[0] ar deveni bloc `thinking` → parsarea pică.
+          thinking:{ type:'disabled' },
+          system:[{ type:'text', text:AI_SYSTEM, cache_control:{ type:'ephemeral' } }],
+          messages:[{ role:'user', content:prompt }],
+        }),
+        signal: ctrl.signal,
+      });
+    } finally { clearTimeout(to); }
+    if (!resp.ok){
+      const j = await resp.json().catch(() => ({ error:{ message:'HTTP ' + resp.status } }));
+      throw new Error(j.error?.message || ('HTTP ' + resp.status));
+    }
+    const data = await resp.json();
+    const full = data?.content?.[0]?.text || '';
+    aiCacheSet(ck, full, 'claude-opus-5');
+    renderAiBubble(container, full, 'claude-opus-5 � ' + ((Date.now() - t0) / 1000).toFixed(1) + 's � ' + new Date().toLocaleTimeString('ro-RO'));
+    if (btn) btn.textContent = '?? Ascunde analiz�';
+  } catch(err){
+    const msg = (err && err.name === 'AbortError') ? 'timeout 180s � re�ncearc�' : (err.message || 'unknown');
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>? Eroare AI</b><span class="ai-meta">${escHtml(msg)}</span></div>Verific� cheia (sk-ant-�), creditul r�mas �n consol� sau �ncearc� peste 1 min.</div>`;
+    if (btn) btn.textContent = '?? Re�ncearc�';
+  } finally {
+    clearInterval(timer);
+    if (btn) btn.disabled = false;
+  }
+};
+
+// ===============================================================
+//  QUICK SETUP � JSON ready-to-execute pentru earnings play (Opus 5)
+// ===============================================================
+const EH_QS_CACHE_KEY = 'eh_qs_cache_v1';
+const EH_QS_TTL = 60*60*1000; // 1h
+function ehQsCacheGet(sym){
+  try{ const c=JSON.parse(localStorage.getItem(EH_QS_CACHE_KEY)||'{}'); const it=c[sym]; if(!it) return null;
+    if(Date.now()-it.ts>EH_QS_TTL) return null; return it.data;}catch(_){return null;}
+}
+function ehQsCacheSet(sym,data){
+  try{const c=JSON.parse(localStorage.getItem(EH_QS_CACHE_KEY)||'{}'); c[sym]={ts:Date.now(),data};
+    for(const k of Object.keys(c)) if(Date.now()-c[k].ts>3*24*3600*1000) delete c[k];
+    localStorage.setItem(EH_QS_CACHE_KEY,JSON.stringify(c));}catch(_){}
+}
+
+window.runEHQuickSetup = async function(symbol, btn){
+  const e = calendar.find(x => x.symbol === symbol);
+  const container = $('qs-result-' + symbol); if (!container) return;
+  if (!e){ container.innerHTML = '<div class="ai-bubble error"><div class="ai-head"><b>? Date earnings lips�</b></div>Re-deschide expand row sau scan din nou.</div>'; return; }
+  if (container.dataset.done === '1'){
+    container.innerHTML = ''; container.dataset.done = '0';
+    if (btn) btn.textContent = '?? Quick Setup (Opus 5)';
+    return;
+  }
+  const key = getAnthropicKey();
+  if (!key){
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>? Lipse?te cheia Anthropic</b></div>Seteaz� �n ? Set�ri.</div>`;
+    container.dataset.done = '1'; return;
+  }
+  const cached = ehQsCacheGet(symbol);
+  if (cached){
+    renderEHQuickSetup(container, cached, '?? cache 1h', symbol);
+    container.dataset.done = '1';
+    if (btn) btn.textContent = '?? Ascunde Quick Setup';
+    return;
+  }
+  if (btn){ btn.disabled = true; btn.textContent = '? Opus 5 g�nde?te (5-15s)�'; }
+  container.innerHTML = `<div class="ai-bubble"><div class="ai-head"><span class="ai-meta">?? Quick Setup � Opus 5</span></div><div style="padding:14px;text-align:center;color:var(--t3)"><span style="font-size:24px;animation:pulse 1.4s infinite">??</span><div style="margin-top:6px;font-size:12.5px">Generez JSON pre-earnings setup� <span id="qs-timer-${symbol}">0.0s</span></div></div></div>`;
+  container.dataset.done = '1';
+  const _qsT0 = Date.now();
+  const _qsTimer = setInterval(() => { const el = $('qs-timer-' + symbol); if (el) el.textContent = ((Date.now() - _qsT0) / 1000).toFixed(1) + 's'; }, 100);
+
+  const a = analyzeHist(e.hist || []);
+  const beatRate = a.n ? ((a.beats / a.n) * 100).toFixed(0) + '%' : 'N/A';
+  const avgReact = e.avgReact != null ? (e.avgReact >= 0 ? '+' : '') + e.avgReact.toFixed(2) + '%' : 'N/A';
+  const insiderTxt = (e.insider && e.insider.ok)
+    ? `${e.insider.verdict} (${e.insider.buys}B/${e.insider.sells}S, net ${e.insider.netShares >= 0 ? '+' : ''}${e.insider.netShares})`
+    : 'N/A';
+
+  const userPrompt = `Earnings play setup pentru ${symbol} � raport �n ${e.zile} zile (${e.date}${e.hour ? ' ' + e.hour.toUpperCase() : ''}).
+- EPS estimate trim. curent: ${e.epsEst != null ? '$' + e.epsEst.toFixed(2) : 'N/A'}
+- Beat rate istoric: ${beatRate} (${a.beats}/${a.n})
+- Surpriz� medie istoric�: ${a.avgSurpPct != null ? (a.avgSurpPct >= 0 ? '+' : '') + a.avgSurpPct.toFixed(1) + '%' : 'N/A'}
+- Ultima surpriz�: ${a.lastSurpPct != null ? (a.lastSurpPct >= 0 ? '+' : '') + a.lastSurpPct.toFixed(1) + '%' : 'N/A'}
+- Reac�ie medie 1z post-earnings: ${avgReact}
+- Tag algoritmic: ${(ACTION_META[computeAction(e, e.avgReact)] || ACTION_META.skip).label}
+- Insider 60z pre-earnings: ${insiderTxt}
+- ? Watchlist: ${watchlist.includes(symbol) ? 'da' : 'nu'}
+
+Output STRICT JSON (un singur obiect, niciun text �nainte/dup�):
+{"entry":<num�r|null>,"sl":<num�r|null>,"tp1":<num�r|null>,"tp2":<num�r|null>,"sizing_pct":<num�r 1-3>,"timeframe":"<pre-earnings|post-earnings|skip>","risk":"<one-liner max 50 chars>","confidence":"<HIGH|MED|LOW>","reasoning":"<3-5 propozi?ii, max 400 chars, ra?ionament EXPLICIT earnings play>","invalidation":"<trigger care anuleaz�, max 120 chars>","catalysts":"<events imediate pre/post-earnings, max 120 chars>"}
+
+REGULI SPECIFICE EARNINGS:
+- Pre-earnings (entry �NAINTE de raport) e risc MAXIM � sizing MAX 2% cont, doar dac� beat rate>=70% ?i insider bullish ?i surpriz� medie pozitiv�. Altfel timeframe:"skip".
+- Post-earnings (entry DUP� raport) e mai sigur: pe IV crush + reac?ie ini?ial� clar�. Sizing 2-3%.
+- Dac� pretul curent NU e cunoscut (nu avem yet), pune entry/sl/tp1/tp2: null ?i explic� �n reasoning c� vei stabili la deschidere.
+- TP1: +1�reac�ie medie istoric�, TP2: +2� (sau target tehnic dac� exist�)
+- SL: -1.5� reac�ie medie istoric� sau lvl tehnic important
+- sizing_pct: MAX 3 (earnings = volatility extrem�, risc dublu)
+- timeframe: "pre-earnings" (long entry �nainte de release cu hold prin), "post-earnings" (entry pe reac?ia ini?ial�), "skip" (setup prost: miss pattern + insider bear)
+- risk: cea mai mare amenin?are (ex: "Miss EPS + sell-off pre-market 4%+")
+- confidence: HIGH = beat?80% + insider bull + surpriz� medie pozitiv�; MED = mixt; LOW = sub 50% sau date insuficiente
+- reasoning: explic� EXPLICIT � pattern istoric (beats vs misses), insider activity ca semnal, reac�ia 1z medie ca proxy de volatilitate a�teptat�, decizia pre/post-earnings. Sfat practic dac� s� intri sau s� a�tep�i.
+- invalidation: trigger clar (ex: "Earnings MISS sau guidance dezam�gitor � exit la deschidere")
+- catalysts: alte events relevante (analyst upgrades, macro events overlap, sector momentum)`;
+
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 180000);
+    let resp;
+    try {
+      resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        // thinking disabled: pe opus-5 omiterea = adaptive ACTIV → ar consuma din max_tokens
+        // și content[0] ar fi bloc `thinking`, nu `text`. Paritate cu opus-4-8.
+        body: JSON.stringify({ model: 'claude-opus-5', max_tokens: 800, thinking: { type: 'disabled' }, messages: [{ role: 'user', content: userPrompt }] }),
+        signal: ctrl.signal,
+      });
+    } finally { clearTimeout(to); }
+    if (!resp.ok){
+      const j = await resp.json().catch(() => ({ error: { message: 'HTTP ' + resp.status } }));
+      throw new Error(j.error?.message || ('HTTP ' + resp.status));
+    }
+    const data = await resp.json();
+    const text = data?.content?.[0]?.text || '';
+    const start = text.indexOf('{'); const end = text.lastIndexOf('}');
+    if (start < 0 || end < 0 || end <= start) throw new Error('Format JSON invalid: ' + text.slice(0, 120));
+    const setup = JSON.parse(text.slice(start, end + 1));
+    // Validare anti-halucinare (LONG-only): numere pozitive + SL<entry<TP1<TP2 � altfel respinge.
+    for (const k of ['entry', 'sl', 'tp1', 'tp2']){
+      if (setup[k] != null){ setup[k] = +setup[k]; if (!isFinite(setup[k]) || setup[k] <= 0) setup[k] = null; }
+    }
+    if (setup.entry != null){
+      const bad = (setup.sl != null && setup.sl >= setup.entry)
+        || (setup.tp1 != null && setup.tp1 <= setup.entry)
+        || (setup.tp1 != null && setup.tp2 != null && setup.tp2 <= setup.tp1);
+      if (bad) throw new Error('Setup AI incoerent (LONG cere SL < entry < TP1 < TP2) � re-ruleaz�');
+    }
+    setup.sizing_pct = (setup.sizing_pct != null && isFinite(+setup.sizing_pct)) ? Math.min(3, Math.max(0, +setup.sizing_pct)) : null;
+    ehQsCacheSet(symbol, setup);
+    renderEHQuickSetup(container, setup, '? ' + new Date().toLocaleTimeString('ro-RO'), symbol);
+    if (btn) btn.textContent = '?? Ascunde Quick Setup';
+  } catch (err){
+    const msg = (err && err.name === 'AbortError') ? 'timeout 180s � re�ncearc�' : (err.message || 'unknown');
+    container.innerHTML = `<div class="ai-bubble error"><div class="ai-head"><b>? Eroare Quick Setup</b><span class="ai-meta">${escHtml(msg)}</span></div>Verific� cheia, creditul sau �ncearc� peste 1 min.</div>`;
+    if (btn) btn.textContent = '?? Re�ncearc�';
+  } finally {
+    clearInterval(_qsTimer);
+    if (btn) btn.disabled = false;
+  }
+};
+
+function renderEHQuickSetup(container, setup, sourceLabel, symbol){
+  const confColor = setup.confidence === 'HIGH' ? 'var(--bull-s)' : (setup.confidence === 'MED' ? 'var(--gold)' : 'var(--bear-s)');
+  const fmt$ = n => (n != null && !isNaN(n)) ? '$' + Number(n).toFixed(2) : '�';
+  const pctOf = (a, b) => (a != null && b != null && b !== 0) ? ((a - b) / b * 100).toFixed(2) : '�';
+  const slPct = setup.entry && setup.sl ? pctOf(setup.sl, setup.entry) : '�';
+  const tp1Pct = setup.entry && setup.tp1 ? pctOf(setup.tp1, setup.entry) : '�';
+  const tp2Pct = setup.entry && setup.tp2 ? pctOf(setup.tp2, setup.entry) : '�';
+  // f�r� Math.abs � un SL inversat trebuie s� se VAD� (negativ), nu s� fie mascat
+  const rr = (setup.entry && setup.sl && setup.tp2 && setup.entry > setup.sl) ? ((setup.tp2 - setup.entry) / (setup.entry - setup.sl)).toFixed(2) : '�';
+  const tfLabel = setup.timeframe === 'skip' ? '? SKIP' : (setup.timeframe === 'pre-earnings' ? '? Pre-earnings' : '?? Post-earnings');
+  container.innerHTML = `<div class="ai-bubble" style="background:linear-gradient(180deg, rgba(247,147,26,.10), rgba(20,26,40,.4));border-color:rgba(247,147,26,.4)">
+    <div class="ai-head">
+      <span class="ai-meta">?? Quick Setup � Opus 5 � ${sourceLabel}</span>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunEHQuickSetup('${symbol}')">? Re-ruleaz�</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px">
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Entry</div><div style="font-size:17px;font-weight:800;color:var(--t1)">${fmt$(setup.entry)}</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Stop Loss</div><div style="font-size:17px;font-weight:800;color:var(--bear-s)">${fmt$(setup.sl)} <span style="font-size:10.5px;font-weight:600">${slPct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP1</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp1)} <span style="font-size:10.5px;font-weight:600">${tp1Pct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">TP2</div><div style="font-size:17px;font-weight:800;color:var(--bull-s)">${fmt$(setup.tp2)} <span style="font-size:10.5px;font-weight:600">${tp2Pct}%</span></div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">Sizing</div><div style="font-size:17px;font-weight:800;color:var(--accent)">${setup.sizing_pct != null ? setup.sizing_pct + '% cont' : '�'}</div></div>
+      <div><div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.3px;font-weight:700;font-family:var(--mono)">R:R</div><div style="font-size:17px;font-weight:800;color:var(--t1)">1 : ${rr}</div></div>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;padding:8px 0;border-top:1px solid rgba(255,255,255,.06);font-size:12.5px">
+      <div><span style="color:var(--t3)">Timeframe:</span> <strong>${tfLabel}</strong></div>
+      <div><span style="color:var(--t3)">Confidence:</span> <strong style="color:${confColor}">${escHtml(setup.confidence || 'N/A')}</strong></div>
+    </div>
+    ${setup.reasoning ? `<div style="margin-top:10px;padding:10px 12px;background:rgba(91,176,255,.08);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;font-size:12px;line-height:1.55">
+      <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">?? Ra?ionament</div>
+      ${escHtml(setup.reasoning)}
+    </div>` : ''}
+    <div style="margin-top:8px;padding:8px 10px;background:rgba(255,77,77,.08);border-left:3px solid var(--bear-s);border-radius:0 6px 6px 0;font-size:12px">
+      <strong style="color:var(--bear-s)">? Risc principal:</strong> ${escHtml(setup.risk || 'N/A')}
+    </div>
+    ${setup.invalidation ? `<div style="margin-top:7px;padding:7px 10px;background:rgba(247,147,26,.07);border-left:3px solid var(--warn);border-radius:0 6px 6px 0;font-size:11.5px">
+      <strong style="color:var(--warn)">?? Invalidare:</strong> ${escHtml(setup.invalidation)}
+    </div>` : ''}
+    ${setup.catalysts ? `<div style="margin-top:7px;padding:7px 10px;background:rgba(34,214,107,.07);border-left:3px solid var(--bull-s);border-radius:0 6px 6px 0;font-size:11.5px">
+      <strong style="color:var(--bull-s)">? Catalist:</strong> ${escHtml(setup.catalysts)}
+    </div>` : ''}
+  </div>`;
+}
+
+window.rerunEHQuickSetup = function(symbol){
+  try{const c=JSON.parse(localStorage.getItem(EH_QS_CACHE_KEY)||'{}'); delete c[symbol]; localStorage.setItem(EH_QS_CACHE_KEY,JSON.stringify(c));}catch(_){}
+  const container = $('qs-result-' + symbol);
+  if (container){ container.dataset.done = '0'; container.innerHTML = ''; }
+  const btn = $('qs-btn-' + symbol);
+  if (btn) btn.textContent = '?? Quick Setup (Opus 5)';
+  runEHQuickSetup(symbol, btn);
+};
+
+function renderAiBubble(container, text, meta){
+  const safe = escHtml(text || '(r�spuns gol)');
+  container.innerHTML = `<div class="ai-bubble">
+    <div class="ai-head">
+      <span class="ai-meta">${escHtml(meta)}</span>
+      <button class="ai-rerun" onclick="event.stopPropagation(); rerunAi(this)">? Rerun</button>
+    </div>${safe}</div>`;
+  // fade-in � r�spunsul apare deodat�, nu token-cu-token
+  const b = container.firstElementChild;
+  if (b){ b.style.opacity = '0'; b.style.transition = 'opacity .45s ease'; requestAnimationFrame(() => { b.style.opacity = '1'; }); }
+}
+window.rerunAi = function(btn){
+  const bubble = btn.closest('.exp-ai');
+  if (!bubble) return;
+  const sym = bubble.id.replace('ai-result-', '');
+  try {
+    const cachedRaw = JSON.parse(localStorage.getItem(AI_CACHE_LS) || '{}');
+    for (const k of Object.keys(cachedRaw)) if (k.startsWith(sym + '_')) delete cachedRaw[k];
+    localStorage.setItem(AI_CACHE_LS, JSON.stringify(cachedRaw));
+  } catch(_){}
+  bubble.dataset.done = '0'; bubble.innerHTML = '';
+  analyzeEarningWithAI(sym, $('ai-btn-' + sym));
+};
+
+// ===============================================================
+//  ALERT BUTTONS
+// ===============================================================
+function updateAlertBtns(){
+  $('soundBtn').className = 'icon-btn ' + (cfg.sound ? 'on' : 'off');
+  $('notifBtn').className = 'icon-btn ' + (cfg.notif ? 'on' : 'off');
+  $('tgBtn').className = 'icon-btn ' + ((tgConfig.enabled && tgConfig.token && tgConfig.chatId) ? 'on' : 'off');
+}
+
+$('soundBtn').addEventListener('click', () => {
+  cfg.sound = !cfg.sound; saveCfg(); updateAlertBtns();
+  if (cfg.sound) beep();
+});
+$('notifBtn').addEventListener('click', async () => {
+  if (!('Notification' in window)) { toast({ cls:'urgent', sym:'? Nesuportat', sub:'Browserul nu suport� notific�ri native.' }); return; }
+  if (Notification.permission === 'denied') { toast({ cls:'urgent', sym:'?? Refuzat', sub:'Notific�rile sunt blocate din set�rile browser-ului.' }); return; }
+  if (Notification.permission !== 'granted'){
+    const p = await Notification.requestPermission();
+    if (p !== 'granted'){ cfg.notif = false; saveCfg(); updateAlertBtns(); return; }
+  }
+  cfg.notif = !cfg.notif; saveCfg(); updateAlertBtns();
+  if (cfg.notif) try { new Notification('?? Earnings Hub', { body:'Notific�rile sunt active.' }); } catch(e){}
+});
+$('tgBtn').addEventListener('click', () => $('setBtn').click());
+
+// ===============================================================
+//  SETTINGS modal
+// ===============================================================
+function openSettings(){
+  $('setFinnhub').value = getFinnhubKey();
+  $('setAnthropic').value = getAnthropicKey();
+  $('setAuto').value = String(cfg.auto);
+  $('setThr').value = String(cfg.threshold);
+  $('setTgToken').value = tgConfig.token || '';
+  $('setTgChat').value = tgConfig.chatId || '';
+  $('setTgOn').checked = !!tgConfig.enabled;
+  $('setModal').classList.add('open');
+}
+function closeSettings(){ $('setModal').classList.remove('open'); }
+$('setBtn').addEventListener('click', openSettings);
+$('setCancel').addEventListener('click', closeSettings);
+$('setModal').addEventListener('click', e => { if (e.target.id === 'setModal') closeSettings(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('setModal').classList.contains('open')) closeSettings(); });
+$('setSave').addEventListener('click', () => {
+  setFinnhubKey($('setFinnhub').value.trim());
+  setAnthropicKey($('setAnthropic').value.trim());
+  cfg.auto = +$('setAuto').value || 0;
+  cfg.threshold = +$('setThr').value || 2;
+  tgConfig.token  = $('setTgToken').value.trim();
+  tgConfig.chatId = $('setTgChat').value.trim();
+  tgConfig.enabled = !!$('setTgOn').checked;
+  saveCfg(); saveTg(); updateAlertBtns();
+  closeSettings();
+  rescheduleAuto();
+  // For?eaz� re-render tabelul (workaround: la unele set�ri lista vizual� dispare � refresh manual era nevoie)
+  if (calendar.length) renderAll();
+  toast({ cls:'ok', sym:'?? Salvat', sub:'Set�rile au fost actualizate.' });
+});
+$('setTgTest').addEventListener('click', async () => {
+  const token = $('setTgToken').value.trim(), chat = $('setTgChat').value.trim();
+  if (!token || !chat){ toast({ cls:'urgent', sym:'? Lipsesc c�mpuri', sub:'Completeaz� Bot token + Chat ID �nt�i.' }); return; }
+  const prevToken = tgConfig.token, prevChat = tgConfig.chatId;
+  tgConfig.token = token; tgConfig.chatId = chat;
+  const ok = await sendTelegram('?? <b>Test Earnings Hub</b>\nAlertele Telegram func?ioneaz� ?');
+  tgConfig.token = prevToken; tgConfig.chatId = prevChat;
+  toast({ cls: ok ? 'ok' : 'urgent', sym: ok ? '? Test OK' : '? Test e?uat', sub: ok ? 'Mesajul a ajuns pe Telegram.' : 'Verific� Token + Chat ID. CORS/HTTPS oferite de Telegram.' });
+});
+
+// ===============================================================
+//  FILTERS + SORT bindings
+// ===============================================================
+$('fbChips').addEventListener('click', e => {
+  const chip = e.target.closest('.fb-chip'); if (!chip) return;
+  document.querySelectorAll('.fb-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  filterMode = chip.dataset.f;
+  renderTable();
+});
+$('searchInp').addEventListener('input', e => {
+  // Permite doar litere + cifre (ASCII). Strict � f�r� spa?iu, ghilimele, etc.
+  const cleaned = (e.target.value || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+  if (cleaned !== e.target.value) e.target.value = cleaned;
+  filterText = cleaned;
+  $('searchClear').style.display = cleaned ? 'inline-block' : 'none';
+  renderTable();
+});
+$('searchClear').addEventListener('click', () => {
+  $('searchInp').value = '';
+  filterText = '';
+  $('searchClear').style.display = 'none';
+  renderTable();
+});
+document.querySelectorAll('thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const k = th.dataset.sort;
+    if (sortBy === k) sortAsc = !sortAsc; else { sortBy = k; sortAsc = (k === 'date' || k === 'zile' || k === 'symbol'); }
+    renderTable();
+  });
+});
+
+$('scanBtn').addEventListener('click', runScan);
+
+// ===============================================================
+//  AUTO-SCAN scheduling (self-reschedule)
+// ===============================================================
+function rescheduleAuto(){
+  clearTimeout(_autoTimer);
+  if (!cfg.auto) return;
+  if (_shellHidden) return;  // pauza auto-refresh cat timp shell-ul PWA tine pagina in fundal (iframe inactiv)
+  _autoTimer = setTimeout(async () => {
+    if (!scanInflight) await runScan();
+    rescheduleAuto();
+  }, cfg.auto * 1000);
+}
+
+// ===============================================================
+//  SHELL VISIBILITY (PWA): pauza polling cand iframe-ul e in fundal
+//  Shell-ul trimite postMessage({ ttShellVisible:true|false }).
+//  FARA mesaj => _shellHidden ramane false => zero schimbare in browser normal.
+// ===============================================================
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin) return;
+  if (!e.data || typeof e.data.ttShellVisible !== 'boolean') return;
+  const hidden = !e.data.ttShellVisible;
+  if (hidden === _shellHidden) return;  // fara schimbare de stare
+  _shellHidden = hidden;
+  if (_shellHidden){
+    clearTimeout(_autoTimer);  // oprire timer auto-refresh (actiunile manuale raman neatinse)
+  } else {
+    rescheduleAuto();                 // reia scheduler-ul (gate-uit pe !_shellHidden)
+    if (cfg.auto && !scanInflight && getFinnhubKey()) runScan();  // refresh imediat la revenire
+  }
+});
+
+// ===============================================================
+//  INIT
+// ===============================================================
+function init(){
+  $('verBadge').textContent = VER.replace(/-\d{4}-\d{2}-\d{2}$/, '');
+  // For?eaz� golire search input � Chrome autofill �l populeaz� cu ultima valoare folosit�.
+  // Triplu trigger ca s� prindem ?i autofill �nt�rziat.
+  const _si = $('searchInp');
+  if (_si){
+    _si.value = ''; filterText = '';
+    setTimeout(() => { _si.value = ''; filterText = ''; }, 50);
+    setTimeout(() => { _si.value = ''; filterText = ''; renderTable && calendar.length && renderTable(); }, 500);
+  }
+  loadCfg();
+  updateAlertBtns();
+  updateSessionPill();
+  // listener cross-tab: dac� wl_stocks se schimb� (din nasdaq sau watchlist-monitor), re-render
+  window.addEventListener('storage', e => {
+    if (e.key === WL_KEY_LS){
+      try { watchlist = JSON.parse(e.newValue || '[]').map(s => String(s).toUpperCase()); } catch(_){ }
+      renderAll();
+    }
+  });
+  rescheduleAuto();
+  // primul scan automat dac� exist� cheia
+  if (getFinnhubKey()) runScan();
+  else renderEmpty('Lipse?te cheia Finnhub', 'Apas� ? Set�ri � adaug� cheia (gratuit� pe finnhub.io). Aceea?i cheie folosit� deja de nasdaq-scanner / smart-trade-long / pump-radar.');
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+// Service worker register (auto-update silent)
+if ('serviceWorker' in navigator){
+  const swVer = 'tt-v816';
+  navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
+}
+</script>
+<script src="../lib/suite-version.js?v=816"></script>
+<script src="../lib/telegram.js"></script>
+<script src="../nav.js?v=682" data-nav-root="../"></script>
+<!-- tt:sw-guard:start -->
+<script>
+/* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
+(function () {
+  var PAGE_VER = 'tt-v816';
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
+    .then(function (reg) {
+      try { reg.update(); } catch (e) {}
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }).catch(function () {});
+  var sw = navigator.serviceWorker.controller;
+  if (!sw) return;                       // prima vizită: nu există SW vechi de corectat
+  var ch = new MessageChannel();
+  ch.port1.onmessage = function (e) {
+    var v = (e.data && e.data.version) || '';
+    if (v.indexOf(PAGE_VER + '-') === 0 || v === PAGE_VER) return;   // la zi
+    var K = 'tt_swfix_' + PAGE_VER;      // o singură reîncărcare per versiune
+    if (sessionStorage.getItem(K)) { console.warn('[sw-guard] SW vechi persistent:', v, '!=', PAGE_VER); return; }
+    sessionStorage.setItem(K, '1');
+    console.warn('[sw-guard] SW ' + v + ' != pagina ' + PAGE_VER + ' - fortez actualizarea');
+    navigator.serviceWorker.addEventListener('controllerchange', function () { location.reload(); });
+    navigator.serviceWorker.getRegistration().then(function (reg) {
+      if (!reg) return;
+      try { reg.update(); } catch (e2) {}
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }).catch(function () {});
+  };
+  try { sw.postMessage({ type: 'GET_VERSION' }, [ch.port2]); } catch (e) {}
+})();
+</script>
+<!-- tt:sw-guard:end -->
+</body>
+</html>

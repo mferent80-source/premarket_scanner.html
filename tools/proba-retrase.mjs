@@ -46,8 +46,8 @@ const r2 = await ev(`(() => {
 console.log('  link injectat catre ../journal/?sym=AAPL#exec ->', JSON.stringify(r2));
 
 // si un link care NU e retras trebuie sa ramana vizibil
-await ev(`(() => { const a=document.createElement('a'); a.href='../router/'; a.id='proba-ok'; a.textContent='Router'; document.body.appendChild(a); })()`);
+await ev(`(() => { const a=document.createElement('a'); a.href='../watchlist-monitor/'; a.id='proba-ok'; a.textContent='Watchlist'; document.body.appendChild(a); })()`);
 await w(900);
-console.log('  link normal catre ../router/ ->', JSON.stringify(await ev(`(() => { const a=document.getElementById('proba-ok'); return { ascuns: a.hidden === true, display: getComputedStyle(a).display }; })()`)));
+console.log('  link normal catre ../watchlist-monitor/ ->', JSON.stringify(await ev(`(() => { const a=document.getElementById('proba-ok'); return { ascuns: a.hidden === true, display: getComputedStyle(a).display }; })()`)));
 
 ws.close(); b.kill(); await w(300); try{rmSync(profil,{recursive:true,force:true});}catch{} process.exit(0);

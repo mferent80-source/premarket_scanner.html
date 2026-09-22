@@ -32,8 +32,10 @@ const PAGINI = [
   // lipsa ei, asa ca aici stau semnele care exista pe ecran.
   { cale: '/macro-dashboard/', nume: 'macro-dashboard', apasa: ['📜', '📖', '⚙', '👁', '🇺🇸 US', '🟢 Bull'] },
   { cale: '/sector-rotation/', nume: 'sector-rotation', apasa: [] },
-  { cale: '/', nume: 'hub', apasa: ['Router', 'Watchlist', 'deschide', 'rotație', 'scanner', 'reîmprospătează', 'hub clasic'] },
+  { cale: '/', nume: 'hub', apasa: ['Watchlist', 'deschide', 'rotație', 'scanner', 'reîmprospătează', 'hub clasic'] },
   { cale: '/hub-clasic/', nume: 'hub-clasic', apasa: ['🌅 Pre', '🔬 Review'] },
+  { cale: '/pump-radar/', nume: 'pump-radar', apasa: ['scanează', 'varianta veche'] },
+  { cale: '/earnings-hub/', nume: 'earnings', apasa: ['7 zile', '30 zile', 'varianta veche'] },
 ];
 
 const asteapta = (ms) => new Promise((r) => setTimeout(r, ms));

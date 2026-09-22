@@ -196,7 +196,7 @@ a.rand:hover .ce { color: var(--acc); }
     <div class="kick" id="kick">se încarcă</div>
     <h2 id="verdict">…</h2>
     <p id="dece">Adun macro, sectoarele și piața.</p>
-    <a class="go" id="go" href="./router/">Deschide Router</a>
+    <a class="go" id="go" href="./pump-radar/">Vezi ce se mișcă</a>
     <div class="dovezi" id="dovezi"></div>
   </section>
 
@@ -226,6 +226,12 @@ a.rand:hover .ce { color: var(--acc); }
       <div id="pump"></div>
     </section>
 
+    <section class="f">
+      <div class="f-cap"><h3>Raportează</h3><span class="ago" id="earnAgo"></span>
+        <a class="deschide" href="./earnings-hub/">earnings →</a></div>
+      <div id="earn"></div>
+    </section>
+
     <section class="f lat">
       <div class="f-cap"><h3>Sectoare · forță relativă față de SPY</h3><span class="ago" id="secAgo"></span>
         <a class="deschide" href="./sector-rotation/">rotație →</a></div>
@@ -235,7 +241,6 @@ a.rand:hover .ce { color: var(--acc); }
     <section class="f">
       <div class="f-cap"><h3>Unelte</h3>
         <a class="deschide" href="./guide/">ghid →</a></div>
-      <a class="rand" href="./router/"><span class="ce">Router</span><span class="dr">GO / NO-GO</span></a>
       <a class="rand" href="./watchlist-monitor/"><span class="ce">Watchlist</span><span class="dr">ce urmăresc</span></a>
       <a class="rand" href="./pump-radar/"><span class="ce">Pump Radar</span><span class="dr">mișcări bruște</span></a>
       <a class="rand" href="./smart-trade-long/"><span class="ce">Smart Trade Long</span><span class="dr">intrări pe long</span></a>
@@ -255,11 +260,13 @@ a.rand:hover .ce { color: var(--acc); }
   </div>
 </div>
 
-<script src="lib/data.js?v=814"></script>
+<script src="lib/data.js?v=816"></script>
 <script src="lib/suite-sessions.js?v=812"></script>
 <script src="lib/macro-context.js?v=812"></script>
 <script src="lib/piata.js?v=812"></script>
 <script src="lib/pump.js?v=814"></script>
+<script src="lib/finnhub-key.js?v=815"></script>
+<script src="lib/earnings.js?v=815"></script>
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
@@ -276,7 +283,7 @@ const varsta = (ms) => {
   return h < 36 ? h + ' h' : Math.round(h / 24) + ' zile';
 };
 
-const S = { macro: null, sect: null, rot: null, piata: {}, pump: [], lipsa: [] };
+const S = { macro: null, sect: null, rot: null, piata: {}, pump: [], earn: null, lipsa: [] };
 
 function sesiune() {
   try {
@@ -307,7 +314,7 @@ function evenimente() {
 async function adu() {
   S.lipsa = [];
   $('kick').textContent = 'se încarcă';
-  const [mac, sec, spyqqq, pmp] = await Promise.all([
+  const [mac, sec, spyqqq, pmp, ern] = await Promise.all([
     PIATA.macro(),
     PIATA.sectoare(),
     Promise.all(['SPY', 'QQQ'].map(async (s) => {
@@ -320,8 +327,10 @@ async function adu() {
       } catch (e) { S.lipsa.push({ ce: s }); return [s, null]; }
     })),
     PUMP.scan(),
+    EARN.calendar({ zile: 14 }),
   ]);
   S.pump = pmp.lista;
+  S.earn = ern;
   S.lipsa = S.lipsa.concat(pmp.lipsa || []);
   S.macro = mac.val;
   S.lipsa = S.lipsa.concat(mac.lipsa || []).concat(sec.lipsa || []);
@@ -411,8 +420,8 @@ function deseneaza() {
   $('dece').textContent = inchis
     ? j.why + ' Dar piața nu e în ședință, deci nu e nimic de executat acum.'
     : j.why;
-  $('go').textContent = inchis ? 'Vezi rotația' : 'Deschide Router';
-  $('go').href = inchis ? './sector-rotation/' : './router/';
+  $('go').textContent = inchis ? 'Vezi rotația' : 'Vezi ce se mișcă';
+  $('go').href = inchis ? './sector-rotation/' : './pump-radar/';
   $('dovezi').innerHTML = j.dovezi.map((d) =>
     '<span class="pf ' + d.k + '"><b>' + esc(d.t) + '</b> ' + esc(d.v) + '</span>').join('');
 
@@ -481,6 +490,31 @@ function deseneaza() {
         : 'nu știu — scanul nu a răspuns') + '</div>';
   $('pumpAgo').textContent = (S.pump || []).length ? S.pump.length + ' simboluri' : '';
 
+  // ── fereastra RAPORTEAZĂ (earnings) ──
+  // Lipsa cheii NU e acelasi lucru cu „nu raporteaza nimeni": prima inseamna ca n-am
+  // intrebat, a doua ca am intrebat si n-a fost nimic. Se scriu diferit.
+  const er = S.earn;
+  if (!er || !er.ok) {
+    $('earn').innerHTML = '<div class="gol">nu știu — ' + esc((er && er.motiv) || 'nu am putut întreba')
+      + (er && er.motiv === 'fără cheie' ? '. Pune cheia Finnhub în <a href="./earnings-hub/" style="color:var(--acc)">Earnings</a>.' : '') + '</div>';
+    $('earnAgo').textContent = '';
+  } else if (!er.items.length) {
+    $('earn').innerHTML = '<div class="gol">Nicio raportare în următoarele 14 zile.</div>';
+    $('earnAgo').textContent = '14 zile';
+  } else {
+    $('earn').innerHTML = er.items.slice(0, 7).map((e) => {
+      let zi = e.date || '';
+      try {
+        const d = new Date(e.date + 'T12:00:00Z');
+        zi = new Intl.DateTimeFormat('ro-RO', { day: '2-digit', month: '2-digit' }).format(d);
+      } catch (err) {}
+      return '<div class="rand"><span class="when" style="min-width:46px">' + esc(zi) + '</span>'
+        + '<span class="ce" style="font-weight:500">' + esc(e.symbol) + '</span>'
+        + '<span class="dr">' + esc(EARN.cand(e)) + '</span></div>';
+    }).join('');
+    $('earnAgo').textContent = er.items.length + ' în 14 zile';
+  }
+
   // ── fereastra SECTOARE ──
   const s = (S.sect || []).slice().sort((a, b) => (b.chg1s ?? -99) - (a.chg1s ?? -99));
   if (!s.length) $('sectoare').innerHTML = '<div class="gol">nu știu — nu am putut aduce sectoarele</div>';
@@ -537,13 +571,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script src="lib/suite-version.js?v=814"></script>
+<script src="lib/suite-version.js?v=816"></script>
 <script src="nav.js?v=682" data-nav-root="./"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v814';
+  var PAGE_VER = 'tt-v816';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
