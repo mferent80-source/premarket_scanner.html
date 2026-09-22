@@ -94,6 +94,7 @@
     { u: '', n: 'Hub', e: '🏠' },
     { u: 'macro-dashboard/', n: 'Macro', e: '🌍' },
     { u: 'nasdaq-scanner/', n: 'Nasdaq', e: '📈' },
+    { u: 'market-events/', n: 'Events', e: '📊' },
     { u: 'alerts/', n: 'Alerts', e: '🔔' },
     { u: 'health/', n: 'Health', e: '💚' }
   ];
