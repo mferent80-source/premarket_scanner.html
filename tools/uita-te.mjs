@@ -3,6 +3,7 @@
 //   node tools/uita-te.mjs <url> <latime> <poza.png>
 
 import { spawn } from 'node:child_process';
+import { rmSync } from 'node:fs';
 import { writeFileSync } from 'node:fs';
 
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
@@ -11,9 +12,17 @@ const LAT = +(process.argv[3] ?? 1440);
 const POZA = process.argv[4];
 
 const asteapta = (ms) => new Promise((r) => setTimeout(r, ms));
+// Curata profilul pe care L-A CREAT proba. 15 rulari au lasat 922 MB in %TEMP%, iar in
+// alt proiect profilurile orfane ajunseseră la 7,5 GB cu discul la 10% liber. Stergerea
+// sta in `finally`: daca proba pica la jumatate, folderul dispare oricum.
+function curata(profil) {
+  try { rmSync(profil, { recursive: true, force: true, maxRetries: 3 }); } catch { /* ramane pe disc, nu e fatal */ }
+}
+
 const port = 9500 + Math.floor(Math.random() * 90);
+const profil = `C:/Users/Cimin/AppData/Local/Temp/tt-uita-${port}`;
 const browser = spawn(EDGE, ['--headless=new', '--disable-gpu', `--remote-debugging-port=${port}`,
-  `--user-data-dir=C:/Users/Cimin/AppData/Local/Temp/tt-uita-${port}`,
+  `--user-data-dir=${profil}`,
   `--window-size=${LAT},1200`, '--no-first-run', 'about:blank'], { stdio: 'ignore' });
 
 let tinta;
@@ -21,7 +30,7 @@ for (let i = 0; i < 60 && !tinta; i++) {
   try { tinta = (await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()).find((x) => x.type === 'page'); } catch {}
   if (!tinta) await asteapta(250);
 }
-if (!tinta) { console.error('browserul nu a pornit'); process.exit(2); }
+if (!tinta) { console.error('browserul nu a pornit'); curata(profil); process.exit(2); }
 
 const ws = new WebSocket(tinta.webSocketDebuggerUrl);
 let id = 0; const asteptari = new Map(); const picate = []; const cereri = new Map();
@@ -73,4 +82,6 @@ if (POZA) {
   console.log(`\npoză: ${POZA}`);
 }
 ws.close(); browser.kill();
+await asteapta(400);
+curata(profil);
 process.exit(0);

@@ -18,6 +18,7 @@
 //     node tools/proba-ecran.mjs http://127.0.0.1:8777 390     (telefon)
 
 import { spawn } from 'node:child_process';
+import { rmSync } from 'node:fs';
 
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const GAZDA = (process.argv[2] ?? 'http://127.0.0.1:8777').replace(/\/$/, '');
@@ -34,6 +35,13 @@ const PAGINI = [
 ];
 
 const asteapta = (ms) => new Promise((r) => setTimeout(r, ms));
+// Curata profilul pe care L-A CREAT proba. 15 rulari au lasat 922 MB in %TEMP%, iar in
+// alt proiect profilurile orfane ajunseseră la 7,5 GB cu discul la 10% liber. Stergerea
+// sta in `finally`: daca proba pica la jumatate, folderul dispare oricum.
+function curata(profil) {
+  try { rmSync(profil, { recursive: true, force: true, maxRetries: 3 }); } catch { /* ramane pe disc, nu e fatal */ }
+}
+
 
 const port = 9700 + Math.floor(Math.random() * 90);
 const profil = `C:/Users/Cimin/AppData/Local/Temp/tt-proba-${port}`;
@@ -51,7 +59,7 @@ for (let i = 0; i < 60 && !tinta; i++) {
   } catch { /* încă nu a pornit */ }
   if (!tinta) await asteapta(250);
 }
-if (!tinta) { console.error('browserul nu a pornit'); process.exit(2); }
+if (!tinta) { console.error('browserul nu a pornit'); curata(profil); process.exit(2); }
 
 const ws = new WebSocket(tinta.webSocketDebuggerUrl);
 let id = 0;
@@ -199,6 +207,8 @@ for (const p of PAGINI) {
 }
 
 ws.close(); browser.kill();
+await asteapta(400);
+curata(profil);
 
 if (probleme.length) {
   console.log(`  ${probleme.length} PROBLEME:\n`);
