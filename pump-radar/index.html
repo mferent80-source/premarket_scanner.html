@@ -88,6 +88,10 @@ table.t .r { text-align: right; }
 .act.watch { color: var(--sus); opacity: .78; }
 .act.avoid { color: var(--jos); font-weight: 600; }
 .act.wait, .act.skip { color: var(--ink-3); }
+.stea { width: 22px; color: var(--ink-3); cursor: pointer; user-select: none; font-size: 14px; }
+.stea.on { color: var(--acc); }
+.stea:hover { color: var(--acc); }
+.lnk[aria-pressed="true"] { color: var(--acc); border-bottom-color: var(--acc); }
 .gol { color: var(--ink-3); font-style: italic; padding: 18px 0; }
 .miss { border-left: 2px solid var(--acc); padding: 9px 0 9px 13px; margin-top: 14px; font-size: 13.5px; color: var(--ink-2); }
 /* randul care se desface: aici stau lucrurile de APROFUNDAT un simbol - backtest,
@@ -130,6 +134,10 @@ tr.desfacut td { background: var(--win); border-bottom: 1px solid var(--line); p
     <span class="v" id="ver">v1</span>
     <span class="v" id="laOra"></span>
     <span class="sp"></span>
+    <button class="lnk" id="auto" aria-pressed="false" title="Scanează singur la fiecare minut">auto</button>
+    <button class="lnk" id="sunet" aria-pressed="false" title="Sunet când apare un semnal nou">sunet</button>
+    <button class="lnk" id="notif" aria-pressed="false" title="Notificare în sistem când apare un semnal nou">notificări</button>
+    <button class="lnk" id="tg" aria-pressed="false" title="Trimite semnalele noi pe Telegram">telegram</button>
     <button class="lnk" id="reia">scanează</button>
     <a class="lnk" href="./clasic.html">varianta veche</a>
     <a class="lnk" href="../">← Hub</a>
@@ -154,12 +162,17 @@ tr.desfacut td { background: var(--win); border-bottom: 1px solid var(--line); p
   <p class="nota" id="nota"></p>
 </div>
 
-<script src="../lib/data.js?v=819"></script>
+<script src="../lib/data.js?v=822"></script>
 <script src="../lib/markov.js?v=819"></script>
 <script src="../lib/pump.js?v=815"></script>
 <script src="../lib/insider.js?v=816"></script>
 <script src="../lib/backtest.js?v=816"></script>
 <script src="../lib/ai.js?v=816"></script>
+<script src="../lib/watchlist.js?v=820"></script>
+<script src="../lib/sound.js?v=820"></script>
+<script src="../lib/notifications.js?v=820"></script>
+<script src="../lib/telegram.js?v=820"></script>
+<script src="../lib/poll-wake.js?v=822"></script>
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
@@ -197,11 +210,13 @@ function scrie() {
   if (!l.length) { $('tabel').innerHTML = '<div class="gol">nu știu</div>'; }
   else {
     $('tabel').innerHTML = '<table class="t"><thead><tr>'
-      + '<th>Simbol</th><th>Sugestie</th><th class="r">Preț</th>'
+      + '<th></th><th>Simbol</th><th>Sugestie</th><th class="r">Preț</th>'
       + '<th class="r">5 min</th><th class="r">Ziua</th>'
       + '<th class="r ascunde-tel">RSI</th><th class="r ascunde-tel">Intensitate</th>'
       + '</tr></thead><tbody>'
       + l.map((x) => '<tr id="r-' + esc(x.symbol) + '" data-sym="' + esc(x.symbol) + '" style="cursor:pointer" title="click pentru detalii">'
+          + '<td class="stea' + (inWl(x.symbol) ? ' on' : '') + '" data-wl="' + esc(x.symbol) + '" title="urmăresc / nu urmăresc">'
+            + (inWl(x.symbol) ? '★' : '☆') + '</td>'
           + '<td style="font-weight:600">' + esc(x.symbol) + '</td>'
           + '<td class="act ' + x.act + '">' + esc(ETICHETA[x.act] || x.act) + '</td>'
           + '<td class="r">' + ro(x.price, 2) + '</td>'
@@ -254,7 +269,7 @@ function desfa(sym) {
 
   const tr = document.createElement('tr');
   tr.className = 'desfacut';
-  tr.innerHTML = '<td colspan="7"><div class="det">'
+  tr.innerHTML = '<td colspan="8"><div class="det">'
     + '<div><h4>Semnalul a mers în trecut?</h4><div id="d-bt">se calculează…</div></div>'
     + '<div><h4>Ce fac cei din interior</h4><div id="d-ins">…</div></div>'
     + '<div><h4>Părerea AI</h4><div id="d-ai"></div></div>'
@@ -369,12 +384,168 @@ document.addEventListener('click', (e) => {
   if (tr) desfa(tr.dataset.sym);
 });
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  CE TE ANUNTA CAND NU ESTI PE PAGINA
+//
+//  Toate astea existau in varianta veche si au disparut la rescriere. Se intorc
+//  legate de modulele suitei (lib/watchlist, sound, notifications, telegram,
+//  poll-wake), nu rescrise aici: o alerta trimisa de doua ecrane diferite trebuie
+//  sa arate la fel si sa citeasca aceeasi configurare.
+//
+//  Se anunta DOAR semnalele NOI: un simbol care era deja `buy` la scanul trecut nu
+//  mai suna o data. Altfel, un auto-scan la un minut ar deveni o alarma continua,
+//  si primul lucru pe care l-ai face ar fi s-o inchizi.
+// ══════════════════════════════════════════════════════════════════════════════
+const VAZUTE_KEY = 'pump_radar_seen';
+const VAZUTE_TTL = 30 * 60000;   // dupa 30 de minute, acelasi semnal poate suna iar
+
+function vazuteCitite() {
+  try { return JSON.parse(localStorage.getItem(VAZUTE_KEY) || '{}'); } catch (e) { return {}; }
+}
+function vazuteScrise(v) {
+  try { localStorage.setItem(VAZUTE_KEY, JSON.stringify(v)); } catch (e) {}
+}
+
+function inWl(sym) {
+  try { return !!(window.WL && WL.has && WL.has(sym)); } catch (e) { return false; }
+}
+
+/** Semnalele care merita anuntate: buy / avoid, si doar daca nu le-am anuntat
+    recent. Intoarce lista lor si marcheaza-le ca vazute. */
+function semnaleNoi(lista) {
+  const v = vazuteCitite();
+  const acum = Date.now();
+  for (const k of Object.keys(v)) if (acum - v[k] > VAZUTE_TTL) delete v[k];
+  const noi = [];
+  for (const x of lista) {
+    if (x.act !== 'buy' && x.act !== 'avoid') continue;
+    const cheie = x.symbol + '|' + x.act;
+    if (v[cheie]) continue;
+    v[cheie] = acum;
+    noi.push(x);
+  }
+  vazuteScrise(v);
+  return noi;
+}
+
+async function anunta(noi) {
+  if (!noi.length) return;
+  const cuStea = noi.filter((x) => inWl(x.symbol));
+  // Sunetul suna o data pentru tot lotul, nu o data pe simbol.
+  try { if (window.SND && SND.isEnabled && SND.isEnabled()) SND.beep(); } catch (e) {}
+  try {
+    if (window.NT && NT.isOn && NT.isOn()) {
+      const t = noi.length === 1
+        ? noi[0].symbol + ' · ' + (ETICHETA[noi[0].act] || noi[0].act)
+        : noi.length + ' semnale noi';
+      NT.show('Pump Radar', {
+        body: noi.slice(0, 5).map((x) => x.symbol + ' ' + (ETICHETA[x.act] || '') + ' ' + pct(x.m5)).join('\n'),
+        tag: 'pump-radar',
+      });
+      void t;
+    }
+  } catch (e) {}
+  try {
+    if (window.TG && TG.send) {
+      const linii = noi.slice(0, 8).map((x) =>
+        (inWl(x.symbol) ? '⭐ ' : '') + x.symbol + ' · ' + (ETICHETA[x.act] || x.act)
+        + ' · 5min ' + pct(x.m5) + ' · zi ' + pct(x.chgDay));
+      await TG.send('<b>Pump Radar</b>\n' + linii.join('\n'));
+    }
+  } catch (e) {}
+  void cuStea;
+}
+
+// ── butoanele de sus ──────────────────────────────────────────────────────────
+function pictaButoane() {
+  const seteaza = (id, on) => {
+    const b = $(id);
+    if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  };
+  try { seteaza('sunet', window.SND && SND.isEnabled && SND.isEnabled()); } catch (e) {}
+  try { seteaza('notif', window.NT && NT.isOn && NT.isOn()); } catch (e) {}
+  try { seteaza('tg', window.TG && TG.getConfig && TG.getConfig().enabled); } catch (e) {}
+  seteaza('auto', !!autoId);
+}
+
+$('sunet').addEventListener('click', () => {
+  try { if (window.SND && SND.toggle) { SND.toggle(); SND.beep(); } } catch (e) {}
+  pictaButoane();
+});
+$('notif').addEventListener('click', async () => {
+  try {
+    if (!window.NT) return;
+    if (NT.isOn()) NT.disable(); else await NT.enable();
+  } catch (e) {}
+  pictaButoane();
+});
+$('tg').addEventListener('click', async () => {
+  if (!window.TG) return;
+  const c = TG.getConfig();
+  if (!c.token || !c.chatId) {
+    // Fara token nu are rost sa pornim nimic: pagina spune unde se pune.
+    alert('Telegram nu e configurat. Pune tokenul și chat ID-ul în pagina Alerte, apoi revino.');
+    return;
+  }
+  TG.setConfig({ ...c, enabled: !c.enabled });
+  pictaButoane();
+  if (!c.enabled) { try { await TG.test(); } catch (e) {} }
+});
+
+// ── auto-scan ─────────────────────────────────────────────────────────────────
+// La un minut: destul cat sa prinzi o miscare de 5 minute, dar nu atat de des incat
+// sa ceri aceleasi date de 60 de ori pe ora degeaba.
+const AUTO_MS = 60000;
+let autoId = null;
+
+function porneșteAuto() {
+  if (autoId) return;
+  autoId = setInterval(() => { if (!document.hidden) scaneaza(); }, AUTO_MS);
+  pictaButoane();
+}
+function opreșteAuto() {
+  if (autoId) clearInterval(autoId);
+  autoId = null;
+  pictaButoane();
+}
+$('auto').addEventListener('click', () => {
+  if (autoId) opreșteAuto(); else { porneșteAuto(); scaneaza(); }
+  try { localStorage.setItem('pump_auto', autoId ? '1' : '0'); } catch (e) {}
+});
+
+// Trezire dupa ce laptopul a dormit sau tabul a stat ascuns: fara asta,
+// `setInterval` poate ramane blocat si pagina arata cifre vechi fara sa spuna.
+try {
+  if (window.PollWake && PollWake.bind) {
+    PollWake.bind({
+      intervalMs: AUTO_MS,
+      getBusy: () => false,
+      setBusy: () => {},
+      poll: () => { if (autoId) scaneaza(); },
+      schedule: () => {},
+    });
+  }
+} catch (e) {}
+
+// ── steaua de watchlist ───────────────────────────────────────────────────────
+document.addEventListener('click', (e) => {
+  const st = e.target.closest && e.target.closest('[data-wl]');
+  if (!st) return;
+  e.stopPropagation();   // sa nu desfaca randul in acelasi timp
+  const sym = st.dataset.wl;
+  try { if (window.WL && WL.toggle) WL.toggle(sym); } catch (err) {}
+  st.classList.toggle('on', inWl(sym));
+  st.textContent = inWl(sym) ? '★' : '☆';
+}, true);
+
 async function scaneaza() {
   $('kick').textContent = 'scanez…';
   const r = await PUMP.scan();
-  S = { lista: r.lista, lipsa: r.lipsa };
+  S = { lista: r.lista, lipsa: r.lipsa, regim: r.regim };
   desfacut = null;   // datele de sub el s-au schimbat
   scrie();
+  try { await anunta(semnaleNoi(r.lista || [])); } catch (e) {}
 }
 
 function salveazaPraguri() {
@@ -399,6 +570,9 @@ try {
   const v = localStorage.getItem('tt_sw_version') || localStorage.getItem('tt_suite_version');
   if (v) $('ver').textContent = v;
 } catch (e) {}
+
+pictaButoane();
+try { if (localStorage.getItem('pump_auto') === '1') porneșteAuto(); } catch (e) {}
 
 scaneaza();
 </script>

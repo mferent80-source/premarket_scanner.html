@@ -86,6 +86,11 @@ a { color: inherit; }
 .rand .sym { font-family: var(--tt-mono); font-weight: 600; min-width: 62px; }
 .rand .cand { font-size: 12.5px; color: var(--ink-3); }
 .rand .est { margin-left: auto; font-family: var(--tt-mono); font-size: 12.5px; color: var(--ink-3); text-align: right; }
+.stea { color: var(--ink-3); cursor: pointer; user-select: none; font-size: 14px; width: 18px; }
+.stea.on { color: var(--acc); }
+.stea:hover { color: var(--acc); }
+.lnk[aria-pressed="true"] { color: var(--acc); border-bottom-color: var(--acc); }
+.det .col { margin-top: 14px; }
 .gol { color: var(--ink-3); font-style: italic; padding: 18px 0; }
 .gol a { color: var(--acc); }
 /* detaliile unui simbol: cum a mers data trecuta. Stau aici, nu pe lista, fiindca
@@ -117,6 +122,11 @@ a { color: inherit; }
   background: transparent; color: var(--ink); border: 0; border-bottom: 1px solid var(--line); padding: 5px 0;
 }
 .cheie input:focus { outline: none; border-bottom-color: var(--acc); }
+.mic {
+  font: inherit; font-size: 12px; color: var(--ink-2); background: transparent;
+  border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer;
+}
+.mic:hover { border-color: var(--acc); color: var(--acc); }
 .cheie button {
   font: inherit; font-size: 13px; font-weight: 600; color: var(--pl); background: var(--acc);
   border: 0; border-radius: 999px; padding: 7px 16px; cursor: pointer;
@@ -131,6 +141,10 @@ a { color: inherit; }
     <span class="v" id="ver">v1</span>
     <span class="v" id="laOra"></span>
     <span class="sp"></span>
+    <button class="lnk" id="doarWl" aria-pressed="false" title="Arată doar simbolurile pe care le urmăresc">doar ⭐</button>
+    <button class="lnk" id="notif" aria-pressed="false" title="Anunță-mă când raportează mâine ceva din watchlist">anunță-mă</button>
+    <button class="lnk" id="sunet" aria-pressed="false" title="Și un sunet, când anunțul se declanșează">sunet</button>
+    <button class="lnk" id="cheie-btn" title="Schimbă cheia Finnhub">cheie</button>
     <a class="lnk" href="./clasic.html">varianta veche</a>
     <a class="lnk" href="../">← Hub</a>
   </header>
@@ -152,14 +166,22 @@ a { color: inherit; }
   <p class="nota" id="nota"></p>
 </div>
 
-<script src="../lib/data.js?v=819"></script>
+<script src="../lib/data.js?v=822"></script>
 <script src="../lib/finnhub-key.js?v=815"></script>
 <script src="../lib/earnings.js?v=815"></script>
+<script src="../lib/watchlist.js?v=820"></script>
+<script src="../lib/insider.js?v=820"></script>
+<script src="../lib/ai.js?v=820"></script>
+<script src="../lib/notifications.js?v=820"></script>
+<script src="../lib/telegram.js?v=820"></script>
+<script src="../lib/sound.js?v=821"></script>
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 let ZILE = 14;
+let ULTIMUL = null;        // ultimul raspuns de la EARN.calendar
+let ULTIM_ISTORIC = [];    // istoricul simbolului desfacut, pentru intrebarea catre AI
 
 function ziLizibila(iso) {
   try {
@@ -222,7 +244,10 @@ function scrie(r) {
         const est = [];
         if (e.epsEstimate != null) est.push('EPS aşteptat ' + e.epsEstimate);
         if (e.revenueEstimate != null) est.push('venit ' + (e.revenueEstimate / 1e9).toFixed(2) + ' mld');
-        return '<div class="rand apasabil" data-sym="' + esc(e.symbol) + '"><span class="sym">' + esc(e.symbol) + '</span>'
+        return '<div class="rand apasabil" data-sym="' + esc(e.symbol) + '">'
+          + '<span class="stea' + (inWl(e.symbol) ? ' on' : '') + '" data-wl="' + esc(e.symbol) + '" title="urmăresc / nu urmăresc">'
+            + (inWl(e.symbol) ? '★' : '☆') + '</span>'
+          + '<span class="sym">' + esc(e.symbol) + '</span>'
           + '<span class="cand">' + esc(EARN.cand(e)) + '</span>'
           + '<span class="est">' + esc(est.join(' · ')) + '</span></div>';
       }).join('')
@@ -246,6 +271,129 @@ function scrie(r) {
 //  tinand cont daca a raportat inainte de deschidere (bmo) sau dupa inchidere (amc).
 //  Cand ziua nu se gaseste in istoricul de preturi, randul scrie „nu stiu" - nu zero.
 // ══════════════════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  WATCHLIST, INSIDER, AI, ANUNTURI
+//
+//  Toate existau in varianta veche si au disparut la rescriere. Se intorc legate de
+//  modulele suitei (lib/watchlist, insider, ai, notifications, telegram), nu
+//  rescrise aici: steaua pusa in Earnings trebuie sa se vada si in Pump Radar.
+//
+//  Anuntul e despre MAINE, nu despre azi: o raportare de azi nu mai e o decizie, e
+//  istorie. Si doar pentru simbolurile din watchlist - altfel ar suna pentru 40 de
+//  companii de care nu-ti pasa.
+// ══════════════════════════════════════════════════════════════════════════════
+function inWl(sym) {
+  try { return !!(window.WL && WL.has && WL.has(sym)); } catch (e) { return false; }
+}
+
+let doarWatchlist = false;
+
+document.addEventListener('click', (e) => {
+  const st = e.target.closest && e.target.closest('[data-wl]');
+  if (!st) return;
+  e.stopPropagation();   // sa nu desfaca randul in acelasi timp
+  const sym = st.dataset.wl;
+  try { if (window.WL && WL.toggle) WL.toggle(sym); } catch (err) {}
+  st.classList.toggle('on', inWl(sym));
+  st.textContent = inWl(sym) ? '★' : '☆';
+  if (doarWatchlist) adu();
+}, true);
+
+$('doarWl').addEventListener('click', () => {
+  doarWatchlist = !doarWatchlist;
+  $('doarWl').setAttribute('aria-pressed', doarWatchlist ? 'true' : 'false');
+  adu();
+});
+
+$('notif').addEventListener('click', async () => {
+  try {
+    if (!window.NT) return;
+    if (NT.isOn()) NT.disable(); else await NT.enable();
+    $('notif').setAttribute('aria-pressed', NT.isOn() ? 'true' : 'false');
+    if (NT.isOn()) anuntaMaine();
+  } catch (e) {}
+});
+
+/** Ce raporteaza MAINE din ce urmaresti. Trimite o data pe zi, nu la fiecare
+    incarcare: altfel ar deveni zgomot si l-ai opri. */
+async function anuntaMaine() {
+  const r = ULTIMUL;
+  if (!r || !r.ok || !r.items.length) return;
+  const maine = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  const ale_mele = r.items.filter((e) => e.date === maine && inWl(e.symbol));
+  if (!ale_mele.length) return;
+
+  const cheieZi = 'earn_anunt_' + maine;
+  try { if (localStorage.getItem(cheieZi)) return; localStorage.setItem(cheieZi, '1'); } catch (e) {}
+
+  const linii = ale_mele.map((x) => '⭐ ' + x.symbol + ' · ' + EARN.cand(x));
+  try { if (window.SND && SND.isEnabled && SND.isEnabled()) SND.beep(); } catch (e) {}
+  try {
+    if (window.NT && NT.isOn && NT.isOn()) {
+      NT.show('Mâine raportează', { body: linii.join('\n'), tag: 'earnings-maine' });
+    }
+  } catch (e) {}
+  try {
+    if (window.TG && TG.send) await TG.send('<b>Mâine raportează</b>\n' + linii.join('\n'));
+  } catch (e) {}
+}
+
+/** Insider + AI in randul desfacut, sub istoricul reactiilor. */
+async function detaliiExtra(sym, gazda) {
+  const d = document.createElement('div');
+  d.className = 'col';
+  d.innerHTML = '<h4>Ce fac cei din interior</h4><div id="e-ins">…</div>'
+    + '<h4 style="margin-top:14px">Părerea AI</h4><div id="e-ai"></div>';
+  gazda.append(d);
+
+  // insider
+  const el = document.getElementById('e-ins');
+  let cheie = '';
+  try { cheie = localStorage.getItem('finnhub_api_key') || ''; } catch (e) {}
+  if (!window.INS || !INS.fetchTx) el.innerHTML = '<span class="sub">modulul insider nu e încărcat</span>';
+  else if (!cheie) el.innerHTML = '<span class="sub">nu știu — cere cheia Finnhub</span>';
+  else {
+    try {
+      const rows = await INS.fetchTx(sym, { days: 90 });
+      const a = rows && rows.length ? INS.analyze(rows, { topN: 4 }) : null;
+      const et = { bull: 'CUMPĂRĂ', bear: 'VÂND', neut: 'echilibrat' };
+      el.innerHTML = a
+        ? '<div style="font-family:var(--tt-mono);font-size:13px" class="'
+            + (a.verdict === 'bull' ? 'up' : a.verdict === 'bear' ? 'dn' : '') + '">'
+            + (et[a.verdict] || a.verdict) + '</div>'
+          + '<div class="sub">' + a.buys + ' cumpărări · ' + a.sells + ' vânzări, 90 de zile</div>'
+        : '<span class="sub">nicio tranzacție raportată în 90 de zile</span>';
+    } catch (e) { el.innerHTML = '<span class="sub">nu am putut întreba</span>'; }
+  }
+
+  // AI, doar la buton
+  const ea = document.getElementById('e-ai');
+  if (!window.AI || !AI.hasKey || !AI.hasKey()) {
+    ea.innerHTML = '<span class="sub">nu știu — cere cheia Anthropic (⚙ în pagina Macro)</span>';
+    return;
+  }
+  ea.innerHTML = '<button class="mic" id="e-bai">întreabă despre ' + esc(sym) + '</button>'
+    + '<div class="sub">costă un apel; nu se cere singur</div>';
+  document.getElementById('e-bai').addEventListener('click', async () => {
+    const b = document.getElementById('e-bai');
+    b.disabled = true; b.textContent = 'întreb…';
+    const ist = (ULTIM_ISTORIC || []).slice(0, 4)
+      .map((x) => x.date + ' surpriză ' + (x.surpriza == null ? '?' : x.surpriza.toFixed(0) + '%')
+        + ', preţul ' + (x.reactie == null ? '?' : x.reactie.toFixed(1) + '%')).join('; ');
+    try {
+      const t = await AI.complete({
+        messages: [{ role: 'user', content:
+          'Ești un trader disciplinat. ' + sym + ' raportează în curând. Ultimele raportări: '
+          + (ist || 'nu am istoric') + '. În maximum 60 de cuvinte, în română: merită ținută o poziție '
+          + 'peste raportare sau nu, și ce ar schimba răspunsul? Nu inventa cifre pe care nu ți le-am dat.' }],
+        max_tokens: 300 });
+      ea.innerHTML = '<div class="sub" style="font-size:13px;color:var(--ink-2);white-space:pre-wrap">' + esc(t) + '</div>'
+        + '<div class="sub">scris de un model, pe cifrele de mai sus. Nu e sfat de investiții.</div>';
+    } catch (e) { ea.innerHTML = '<span class="sub">nu a răspuns</span>'; }
+  });
+}
+
 let desfacut = null;
 
 function inchideDet() {
@@ -264,8 +412,10 @@ async function desfa(sym, rand) {
   rand.after(d);
 
   const r = await EARN.istoric(sym, { ani: 2 });
+  ULTIM_ISTORIC = r.items || [];
   const el = document.getElementById('d-h');
   if (!el) return;
+  detaliiExtra(sym, d);
 
   if (!r.ok) { el.innerHTML = '<span class="sub">nu știu — ' + esc(r.motiv) + '</span>'; return; }
   if (!r.items.length) { el.innerHTML = '<span class="sub">nicio raportare găsită în ultimii 2 ani</span>'; return; }
@@ -302,9 +452,52 @@ document.addEventListener('click', (e) => {
   if (r) desfa(r.dataset.sym, r);
 });
 
+
+// ── sunet, reimprospatare, cheie ──────────────────────────────────────────────
+//
+// Sunetul insoteste anuntul „maine raporteaza X din watchlist" - nu se declanseaza
+// altfel: calendarul nu e un flux, e o lista care se schimba o data pe zi.
+//
+// De aceea nici reimprospatarea nu e la un minut ca la Pump, ci la o ORA: mai des ar
+// fi cerut aceleasi date de zeci de ori degeaba.
+$('sunet').addEventListener('click', () => {
+  try { if (window.SND && SND.toggle) { SND.toggle(); SND.beep(); } } catch (e) {}
+  try { $('sunet').setAttribute('aria-pressed', (window.SND && SND.isEnabled && SND.isEnabled()) ? 'true' : 'false'); } catch (e) {}
+});
+
+const REIMPROSPATARE_MS = 3600000;   // o ora
+setInterval(() => { if (!document.hidden) adu(); }, REIMPROSPATARE_MS);
+
+// Panoul de cheie, si cand cheia EXISTA deja: altfel, o cheie gresita sau expirata
+// nu se putea schimba din pagina - trebuia stearsa din localStorage pe alta cale.
+$('cheie-btn').addEventListener('click', () => {
+  let acum = '';
+  try { acum = localStorage.getItem('finnhub_api_key') || ''; } catch (e) {}
+  const noua = prompt('Cheia Finnhub (gratuită pe finnhub.io/register).\n'
+    + (acum ? 'Acum e pusă una; scrie alta ca s-o înlocuiești, sau lasă gol ca s-o ștergi.' : ''), '');
+  if (noua === null) return;
+  try {
+    if (noua.trim()) localStorage.setItem('finnhub_api_key', noua.trim());
+    else localStorage.removeItem('finnhub_api_key');
+  } catch (e) {}
+  adu();
+});
+
 async function adu() {
   $('kick').textContent = 'întreb…';
-  scrie(await EARN.calendar({ zile: ZILE }));
+  const r = await EARN.calendar({ zile: ZILE });
+  ULTIMUL = r;
+  // Filtrul „doar ⭐" nu schimba datele, doar ce se arata - si spune cand nu mai
+  // ramane nimic, ca sa nu para ca n-au venit raportari.
+  const afisat = (doarWatchlist && r.ok)
+    ? Object.assign({}, r, { items: r.items.filter((e) => inWl(e.symbol)) })
+    : r;
+  scrie(afisat);
+  if (doarWatchlist && r.ok && !afisat.items.length && r.items.length) {
+    $('lista').innerHTML = '<div class="gol">Niciunul dintre simbolurile pe care le urmărești nu raportează în '
+      + ZILE + ' de zile. (' + r.items.length + ' raportări în total)</div>';
+  }
+  try { await anuntaMaine(); } catch (e) {}
 }
 
 document.querySelectorAll('#zile button').forEach((b) => {
@@ -320,6 +513,9 @@ try {
   const v = localStorage.getItem('tt_sw_version') || localStorage.getItem('tt_suite_version');
   if (v) $('ver').textContent = v;
 } catch (e) {}
+
+try { if (window.NT && NT.isOn && NT.isOn()) $('notif').setAttribute('aria-pressed', 'true'); } catch (e) {}
+try { if (window.SND && SND.isEnabled && SND.isEnabled()) $('sunet').setAttribute('aria-pressed', 'true'); } catch (e) {}
 
 adu();
 </script>
