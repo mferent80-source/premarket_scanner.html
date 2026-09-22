@@ -1,0 +1,72 @@
+/* ──────────────────────────────────────────────────────────────────────────────
+   TOKENII SUITEI - o singura sursa pentru culoare si tipografie (22.09.2026)
+
+   De ce exista: masurat pe 24 de pagini, primul ecran avea intre 8 si 23 de marimi
+   de font si intre 11 si 40 de culori distincte. Nu pentru ca ar fi fost nevoie de
+   atatea, ci pentru ca fiecare pagina si-a ales ale ei. Un sistem inseamna ca rolul
+   („text principal", „in sus", „in jos") e scris o data, si toata suita il citeste.
+
+   Perechea sus/jos NU e aleasa din ochi: albastru/rosu e validata cu validatorul de
+   palete pe toate cele trei forme de daltonism. Prima varianta incercata (violet
+   langa albastru) a picat cu Delta E 3,6 la deutan, adica indistinctibile.
+
+   Conventia clasica de trader ramane la un click: `data-verde="1"` pe <html> pune
+   verde/rosu. Alegerea e a omului, nu a mea - dar implicit e cea care se citeste
+   de catre toata lumea.
+
+   Cum se foloseste intr-o pagina care are deja culorile ei: NU rescrii regulile,
+   ci remapezi variabilele vechi peste cele de aici. Vezi index.html (hub).
+   ────────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── suprafete si cerneala ── */
+  --tt-plane:      #0d0d0d;   /* fundalul paginii */
+  --tt-surface:    #1a1a19;   /* suprafata unui panou */
+  --tt-surface-2:  #222221;   /* suprafata ridicata (hover, antet de tabel) */
+  --tt-ink:        #ffffff;   /* text principal */
+  --tt-ink-2:      #c3c2b7;   /* text secundar */
+  --tt-ink-muted:  #898781;   /* etichete, unitati, vechime */
+  --tt-hair:       #2c2c2a;   /* linie de 1px care separa */
+  --tt-axis:       #383835;   /* linie mai apasata: axa, chenar activ */
+
+  /* ── directia: singura pereche cu sens de „bine/rau" ── */
+  --tt-pos:        #3987e5;
+  --tt-neg:        #e66767;
+
+  /* ── stare: rezervate, NU se folosesc pentru serii de date ── */
+  --tt-good:       #0ca30c;
+  --tt-warning:    #fab219;
+  --tt-serious:    #ec835a;
+  --tt-critical:   #d03b3b;
+
+  /* ── tipografie: CINCI trepte, nu optsprezece ── */
+  --tt-f1: 11px;    /* eticheta, unitate, vechime */
+  --tt-f2: 13px;    /* text de tabel, cifre secundare */
+  --tt-f3: 15px;    /* text curent */
+  --tt-f4: 19px;    /* cifra care conteaza */
+  --tt-f5: 30px;    /* verdictul, eroul ecranului */
+
+  --tt-mono: 'IBM Plex Mono', ui-monospace, 'DM Mono', monospace;
+  --tt-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+
+  --tt-r: 10px;     /* o singura raza de colt in toata suita */
+}
+
+/* Tema deschisa. Pastreaza aceleasi ROLURI, nu inverseaza doar luminozitatea:
+   perechea sus/jos e re-treptata pentru fundal deschis, ca sa treaca contrastul. */
+:root[data-theme="light"] {
+  --tt-plane:      #f4f3f0;
+  --tt-surface:    #fcfcfb;
+  --tt-surface-2:  #f0efec;
+  --tt-ink:        #101010;
+  --tt-ink-2:      #52514e;
+  --tt-ink-muted:  #6e6c67;
+  --tt-hair:       #e1e0d9;
+  --tt-axis:       #c3c2b7;
+  --tt-pos:        #2a78d6;
+  --tt-neg:        #d03b3b;
+}
+
+/* Conventia clasica de trader, la cerere. */
+:root[data-verde="1"] { --tt-pos: #0ca30c; --tt-neg: #d03b3b; }
+:root[data-theme="light"][data-verde="1"] { --tt-pos: #076807; --tt-neg: #b02a2a; }

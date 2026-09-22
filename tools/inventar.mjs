@@ -66,7 +66,8 @@ await trimite('Emulation.setDeviceMetricsOverride', { width: LAT, height: 1200, 
 const ev = async (x) => (await trimite('Runtime.evaluate', { expression: x, returnByValue: true, awaitPromise: true }))?.result?.value;
 
 const masoara = () => ev(`(() => {
-  const inRama = (e) => { const r = e.getBoundingClientRect(); return r.top < 1200 && r.bottom > 0 && e.offsetParent; };
+  const seVede = (e) => !!e.offsetParent && !e.closest('details:not([open])');
+  const inRama = (e) => { const r = e.getBoundingClientRect(); return r.top < 1200 && r.bottom > 0 && seVede(e); };
   const toate = [...document.querySelectorAll('body *')].filter(inRama);
   const text = toate.filter((e) => e.children.length === 0 && (e.textContent || '').trim());
   // Un buton fara litere si fara aria-label nu spune ce face. Asta numaram.

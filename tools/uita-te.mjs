@@ -53,14 +53,15 @@ await asteapta(15000);
 
 console.log('\n=== APĂSABILE VIZIBILE ===');
 const butoane = await ev(`(() => [...document.querySelectorAll('button,[role="tab"],a,summary,[data-tab],.tab')]
-  .filter((e) => e.offsetParent)
+  .filter((e) => e.offsetParent && !e.closest('details:not([open])'))
   .map((e) => e.tagName.toLowerCase() + (e.getAttribute('role') ? '[' + e.getAttribute('role') + ']' : '') + ' » ' + (e.innerText || e.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 48))
   .slice(0, 60))()`);
 for (const b of butoane ?? []) console.log('  ' + b);
 
 console.log('\n=== PRIMUL ECRAN (1200px) ===');
 const prim = await ev(`(() => {
-  const inRama = (e) => { const r = e.getBoundingClientRect(); return r.top < 1200 && r.bottom > 0 && e.offsetParent; };
+  const seVede = (e) => !!e.offsetParent && !e.closest('details:not([open])');
+  const inRama = (e) => { const r = e.getBoundingClientRect(); return r.top < 1200 && r.bottom > 0 && seVede(e); };
   const toate = [...document.querySelectorAll('body *')].filter(inRama);
   const text = toate.filter((e) => e.children.length === 0 && (e.textContent || '').trim());
   const cifre = text.filter((e) => /[0-9]/.test(e.textContent)).length;

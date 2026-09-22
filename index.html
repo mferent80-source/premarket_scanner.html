@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=807"></script>
+<script src="lib/suite-version.js?v=808"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
@@ -54,30 +54,37 @@
 <link rel="stylesheet" href="lib/plex.css?v=743">
 <link rel="stylesheet" href="lib/suite-ui.css?v=712">
 <link rel="stylesheet" href="lib/hub-ui.css?v=793">
+<link rel="stylesheet" href="lib/tokens.css?v=807">
 <style>
 /* === Hub — model Gestiune (IBM Plex + Carbon), contrast +1, fără sticlă ── */
 :root{
-  --bg:#161616;
+  /* 22.09.2026 - REMAPARE, nu rescriere.
+     Pagina avea 30 de culori distincte pe primul ecran, din variatii ale paletei
+     Carbon imprastiate prin 279 de reguli. In loc sa umblu la fiecare regula (si sa
+     ratez jumatate), leg numele pe care ele le folosesc deja la tokenii suitei din
+     lib/tokens.css. O singura modificare, si tot CSS-ul vechi se aliniaza singur -
+     inclusiv comutatorul verde/rosu, care acum merge si aici. */
+  --bg: var(--tt-plane);
   --bg-grad:none;
-  --bg2:#1c1c1c; --bg3:#212121; --bg4:#262626;
-  --panel:#212121; --panel2:#262626; --panel3:#2c2c2c;
-  --b1:#525252; --b2:#393939;
-  --t1:#f4f4f4; --t2:#c6c6c6; --t3:#a8a8a8;
-  --crypto-1:#78a9ff; --crypto-2:#a6c8ff;
-  --indigo:#78a9ff; --indigol:rgba(120,169,255,.12); --indigob:rgba(120,169,255,.35);
-  --blue:#78a9ff;   --bluel:rgba(120,169,255,.12);   --blueb:rgba(120,169,255,.35);
-  --teal:#42be65;   --teall:rgba(66,190,101,.14);   --tealb:rgba(66,190,101,.35);
-  --green:#42be65;
-  --bull-s:#42be65;
-  --red:#fa4d56; --warn:#f1c21b;
-  --accent:#78a9ff;
-  --acc-1:#0f62fe;
+  --bg2: var(--tt-plane); --bg3: var(--tt-surface); --bg4: var(--tt-surface-2);
+  --panel: var(--tt-surface); --panel2: var(--tt-surface-2); --panel3: var(--tt-surface-2);
+  --b1: var(--tt-axis); --b2: var(--tt-hair);
+  --t1: var(--tt-ink); --t2: var(--tt-ink-2); --t3: var(--tt-ink-muted);
+  --crypto-1: var(--tt-pos); --crypto-2: var(--tt-pos);
+  --indigo: var(--tt-pos); --indigol: color-mix(in srgb, var(--tt-pos) 12%, transparent); --indigob: color-mix(in srgb, var(--tt-pos) 35%, transparent);
+  --blue: var(--tt-pos);   --bluel: color-mix(in srgb, var(--tt-pos) 12%, transparent);   --blueb: color-mix(in srgb, var(--tt-pos) 35%, transparent);
+  --teal: var(--tt-pos);   --teall: color-mix(in srgb, var(--tt-pos) 14%, transparent);   --tealb: color-mix(in srgb, var(--tt-pos) 35%, transparent);
+  --green: var(--tt-pos);
+  --bull-s: var(--tt-pos);
+  --red: var(--tt-neg); --warn: var(--tt-warning);
+  --accent: var(--tt-pos);
+  --acc-1: var(--tt-pos);
   --on-accent:#ffffff;
-  --gold:#f1c21b;
-  --suite-bg:#161616;
-  --suite-t1:#f4f4f4;
-  --suite-t2:#c6c6c6;
-  --suite-t3:#a8a8a8;
+  --gold: var(--tt-warning);
+  --suite-bg: var(--tt-plane);
+  --suite-t1: var(--tt-ink);
+  --suite-t2: var(--tt-ink-2);
+  --suite-t3: var(--tt-ink-muted);
   --topbar-bg:#1c1c1c;
   --topbar-shadow:none;
   --shadow:0 8px 24px rgba(0,0,0,.4);
@@ -94,32 +101,34 @@ body.hub-page{
   font-family:var(--head);
   color:var(--t1);
   line-height:1.45;
-  font-size:15px;
+  font-size:var(--tt-f3);
   font-weight:400;
   -webkit-font-smoothing:antialiased !important;
   -moz-osx-font-smoothing:grayscale;
   background:var(--bg) !important;
   background-image:none !important;
-  --t1:#f4f4f4; --t2:#c6c6c6; --t3:#a8a8a8;
-  --text:#f4f4f4; --muted:#a8a8a8; --text-dim:#c6c6c6;
-  --accent:#78a9ff; --green:#42be65; --red:#fa4d56; --warn:#f1c21b;
-  --bg:#161616; --bg2:#1c1c1c; --bg3:#212121; --bg4:#262626;
-  --panel:#212121; --panel2:#262626; --panel3:#2c2c2c;
-  --b1:#525252; --b2:#393939;
+  /* Aceeasi remapare si aici: `body.hub-page` redefinea tokenii cu valori fixe,
+     deci ar fi batut legarea de pe :root si comutatorul verde/rosu n-ar fi mers. */
+  --t1: var(--tt-ink); --t2: var(--tt-ink-2); --t3: var(--tt-ink-muted);
+  --text: var(--tt-ink); --muted: var(--tt-ink-muted); --text-dim: var(--tt-ink-2);
+  --accent: var(--tt-pos); --green: var(--tt-pos); --red: var(--tt-neg); --warn: var(--tt-warning);
+  --bg: var(--tt-plane); --bg2: var(--tt-plane); --bg3: var(--tt-surface); --bg4: var(--tt-surface-2);
+  --panel: var(--tt-surface); --panel2: var(--tt-surface-2); --panel3: var(--tt-surface-2);
+  --b1: var(--tt-axis); --b2: var(--tt-hair);
   padding-bottom:48px !important;
 }
 :root[data-theme="light"] body.hub-page{
   color:#111111;
-  --t1:#111111; --t2:#393939; --t3:#525252;
-  --text:#111111; --muted:#525252; --text-dim:#393939;
-  --accent:#0f62fe; --acc-1:#0f62fe; --on-accent:#ffffff;
-  --green:#198038; --bull-s:#198038;
-  --red:#da1e28; --warn:#8e6a00;
-  --crypto-1:#0f62fe; --crypto-2:#0043ce; --gold:#8e6a00;
-  --bg:#f6f6f6; --bg-grad:none;
-  --bg2:#ffffff; --bg3:#ffffff; --bg4:#f0f0f0;
-  --panel:#ffffff; --panel2:#ffffff; --panel3:#f4f4f4;
-  --b1:#c6c6c6; --b2:#e0e0e0;
+  --t1: var(--tt-ink); --t2: var(--tt-ink-2); --t3: var(--tt-ink-muted);
+  --text: var(--tt-ink); --muted: var(--tt-ink-muted); --text-dim: var(--tt-ink-2);
+  --accent: var(--tt-pos); --acc-1: var(--tt-pos); --on-accent:#ffffff;
+  --green: var(--tt-pos); --bull-s: var(--tt-pos);
+  --red: var(--tt-neg); --warn: var(--tt-warning);
+  --crypto-1: var(--tt-pos); --crypto-2: var(--tt-pos); --gold: var(--tt-warning);
+  --bg: var(--tt-plane); --bg-grad:none;
+  --bg2: var(--tt-surface); --bg3: var(--tt-surface); --bg4: var(--tt-surface-2);
+  --panel: var(--tt-surface); --panel2: var(--tt-surface); --panel3: var(--tt-surface-2);
+  --b1: var(--tt-axis); --b2: var(--tt-hair);
   --topbar-bg:#ffffff;
   --topbar-shadow:none;
   --shadow:0 4px 16px rgba(22,22,22,.08);
@@ -157,7 +166,7 @@ body.hub-page .hub-decision-lbl{
 .hero{text-align:center;padding:32px 0 28px}
 .brand{
   display:inline-flex;align-items:center;gap:10px;
-  font-family:var(--mono);font-weight:500;font-size:13px;letter-spacing:.18em;
+  font-family:var(--mono);font-weight:500;font-size:var(--tt-f2);letter-spacing:.18em;
   color:var(--t2);text-transform:uppercase;
   background:var(--bg2);border:1px solid var(--b1);border-radius:999px;
   padding:8px 16px;margin-bottom:24px;
@@ -165,7 +174,7 @@ body.hub-page .hub-decision-lbl{
 }
 .brand-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:none}
 h1{
-  font-size:20px;font-weight:700;letter-spacing:-.02em;
+  font-size:var(--tt-f4);font-weight:700;letter-spacing:-.02em;
   line-height:1.2;margin-bottom:0;
   color:var(--t1);
 }
@@ -201,19 +210,19 @@ h1 .accent{
   background:var(--panel3);color:var(--t3);
   border:1px solid var(--b1);
   padding:2px 8px;border-radius:4px;
-  font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.6px;
+  font-family:var(--mono);font-size:var(--tt-f1);font-weight:700;letter-spacing:.6px;
 }
 
 .card-icon{
   width:36px;height:36px;border-radius:var(--rs);
   display:flex;align-items:center;justify-content:center;
-  font-size:18px;flex-shrink:0;
+  font-size:var(--tt-f4);flex-shrink:0;
   position:relative;z-index:1;
   background:var(--panel3)!important;box-shadow:none!important;color:var(--t1)!important;
 }
 
 .card-tag{
-  font-family:var(--mono);font-size:11px;font-weight:600;
+  font-family:var(--mono);font-size:var(--tt-f1);font-weight:600;
   letter-spacing:.12em;text-transform:uppercase;
   padding:3px 8px;border-radius:999px;
   display:inline-block;width:fit-content;
@@ -221,12 +230,12 @@ h1 .accent{
   background:var(--panel3)!important;color:var(--t3)!important;border:1px solid var(--b1)!important;
 }
 
-.card-title{font-size:21px;font-weight:700;letter-spacing:-.3px;line-height:1.2;color:var(--t1);position:relative;z-index:1}
-.card-desc{font-size:14.5px;color:var(--t2);line-height:1.5;flex-grow:1;position:relative;z-index:1}
+.card-title{font-size:var(--tt-f4);font-weight:700;letter-spacing:-.3px;line-height:1.2;color:var(--t1);position:relative;z-index:1}
+.card-desc{font-size:var(--tt-f3);color:var(--t2);line-height:1.5;flex-grow:1;position:relative;z-index:1}
 
 .features{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;position:relative;z-index:1}
 .feat{
-  font-family:var(--mono);font-size:12px;font-weight:500;
+  font-family:var(--mono);font-size:var(--tt-f2);font-weight:500;
   background:var(--panel3);color:var(--t2);
   padding:3px 8px;border-radius:5px;border:1px solid var(--b1);
   display:inline-flex;align-items:center;gap:3px;
@@ -240,7 +249,7 @@ h1 .accent{
   position:absolute;top:12px;right:12px;z-index:3;
   width:28px;height:28px;border-radius:50%;
   background:var(--panel3);border:1px solid var(--b1);
-  color:var(--t2);cursor:pointer;font-size:13px;font-weight:700;
+  color:var(--t2);cursor:pointer;font-size:var(--tt-f2);font-weight:700;
   display:flex;align-items:center;justify-content:center;
   transition:background .15s var(--ease), border-color .15s var(--ease);
 }
@@ -255,15 +264,15 @@ h1 .accent{
   padding:20px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;
   box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--t1);font-family:var(--head)}
 .fl-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--b1)}
-.fl-head h3{font-size:18px;font-weight:800;margin:0}
-.fl-head .sub{font-size:11px;color:var(--t3);margin-top:4px;font-family:var(--mono)}
-.fl-close{background:transparent;border:none;color:var(--t3);font-size:22px;cursor:pointer;padding:0 4px;line-height:1}
+.fl-head h3{font-size:var(--tt-f4);font-weight:800;margin:0}
+.fl-head .sub{font-size:var(--tt-f1);color:var(--t3);margin-top:4px;font-family:var(--mono)}
+.fl-close{background:transparent;border:none;color:var(--t3);font-size:var(--tt-f4);cursor:pointer;padding:0 4px;line-height:1}
 .fl-close:hover{color:var(--t1)}
 .fl-section{margin-bottom:14px}
-.fl-section-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;gap:6px;font-family:var(--mono)}
+.fl-section-title{font-size:var(--tt-f1);font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;gap:6px;font-family:var(--mono)}
 .fl-list{display:flex;flex-direction:column;gap:6px}
-.fl-item{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:6px;font-size:12px;line-height:1.4}
-.fl-item .fl-emoji{flex-shrink:0;font-size:14px;line-height:1.1}
+.fl-item{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:6px;font-size:var(--tt-f2);line-height:1.4}
+.fl-item .fl-emoji{flex-shrink:0;font-size:var(--tt-f3);line-height:1.1}
 .fl-item .fl-txt b{color:var(--t1)}
 .fl-item .fl-txt{color:var(--t2)}
 .fl-item.data{border-left:3px solid #5bb0ff}
@@ -273,25 +282,25 @@ h1 .accent{
 .fl-item.ai{border-left:3px solid #a78bfa}
 .fl-item.viz{border-left:3px solid var(--crypto-2)}
 .fl-cta{margin-top:14px;display:flex;gap:8px}
-.fl-cta a, .fl-cta button{flex:1;padding:10px 14px;border-radius:8px;font-weight:700;font-size:12px;text-align:center;text-decoration:none;cursor:pointer;border:1px solid var(--b1);background:var(--bg3);color:var(--t1);font-family:var(--head)}
+.fl-cta a, .fl-cta button{flex:1;padding:10px 14px;border-radius:8px;font-weight:700;font-size:var(--tt-f2);text-align:center;text-decoration:none;cursor:pointer;border:1px solid var(--b1);background:var(--bg3);color:var(--t1);font-family:var(--head)}
 .fl-cta a.primary{background:var(--acc-1);border-color:transparent;color:var(--on-accent)}
 .fl-cta a.primary:hover{filter:brightness(1.08)}
 
 .card-cta{
   display:flex;align-items:center;justify-content:space-between;
   padding-top:14px;margin-top:4px;border-top:1px solid var(--b1);
-  font-family:var(--mono);font-size:12px;font-weight:500;
+  font-family:var(--mono);font-size:var(--tt-f2);font-weight:500;
   letter-spacing:.05em;text-transform:uppercase;
   position:relative;z-index:1;
 }
 .card-cta,.crypto .card-cta,.nasdaq .card-cta,.events .card-cta,.card.legacy .card-cta{color:var(--t3)}
-.card-cta .arrow{font-size:18px;transition:transform .2s var(--ease)}
+.card-cta .arrow{font-size:var(--tt-f4);transition:transform .2s var(--ease)}
 .card:hover .card-cta .arrow{transform:translateX(4px)}
 
 /* Footer */
 footer{
   margin-top:64px;padding-top:32px;border-top:1px solid var(--b1);
-  text-align:center;font-size:13px;color:var(--t3);
+  text-align:center;font-size:var(--tt-f2);color:var(--t3);
   font-family:var(--mono);
 }
 footer a{color:var(--t2);text-decoration:none;border-bottom:1px dotted var(--b2)}
@@ -307,101 +316,101 @@ footer a:hover{color:var(--t1);border-color:var(--accent)}
   .hero{padding:32px 0 24px}
   .card{padding:22px}
   .grid{gap:14px;margin-top:32px}
-  .card-icon{width:42px;height:42px;font-size:22px;border-radius:10px}
-  .card-tag{font-size:9px;padding:3px 8px}
-  .lead{font-size:14px}
+  .card-icon{width:42px;height:42px;font-size:var(--tt-f4);border-radius:10px}
+  .card-tag{font-size:var(--tt-f1);padding:3px 8px}
+  .lead{font-size:var(--tt-f3)}
 }
 @media (max-width:380px){
   .hero{padding:24px 0 18px}
   .card{padding:18px}
-  h1{font-size:28px}
+  h1{font-size:var(--tt-f5)}
 }
 
 
 /* (blocul CSS .hub-cmd* „HUB COCKPIT v542" șters — markup-ul nu mai e generat de niciun modul; audit 2026-07-22) */
 .hub-cockpit{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin:10px 0 14px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
 .hub-cockpit.stay{background:var(--bear-bg,rgba(196,107,107,.14));border-color:var(--red)}
-.hub-cockpit-lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--t3);margin-bottom:4px}
+.hub-cockpit-lbl{font-family:var(--mono);font-size:var(--tt-f1);font-weight:700;letter-spacing:.08em;color:var(--t3);margin-bottom:4px}
 .hub-cockpit.stay .hub-cockpit-lbl{color:var(--red)}
-.hub-strat{font-size:24px;font-weight:900;line-height:1.1}
-.hub-rule{font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:5px;font-weight:700}
-.hub-meta,.hub-plan{font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:6px;line-height:1.45}
+.hub-strat{font-size:var(--tt-f4);font-weight:900;line-height:1.1}
+.hub-rule{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);margin-top:5px;font-weight:700}
+.hub-meta,.hub-plan{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);margin-top:6px;line-height:1.45}
 .hub-blockers{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.hub-block{font-family:var(--mono);font-size:9px;font-weight:800;padding:4px 8px;border-radius:5px;border:1px solid var(--b1)}
+.hub-block{font-family:var(--mono);font-size:var(--tt-f1);font-weight:800;padding:4px 8px;border-radius:5px;border:1px solid var(--b1)}
 .hub-block.bear{background:rgba(255,77,77,.12);color:#ff4d4d;border-color:rgba(255,77,77,.35)}
 .hub-block.warn{background:rgba(212,137,44,.1);color:#d4892c;border-color:rgba(212,137,44,.35)}
 .hub-go{text-align:right;min-width:100px}
-.hub-go-num{font-size:36px;font-weight:900;line-height:1}
+.hub-go-num{font-size:var(--tt-f5);font-weight:900;line-height:1}
 .hub-go-num.go{color:var(--green)}.hub-go-num.caution{color:#d4892c}.hub-go-num.nogo{color:#ff4d4d}
-.hub-go-lbl{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:4px}
+.hub-go-lbl{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t3);margin-top:4px}
 .hub-go-track{height:6px;background:var(--bg3);border-radius:4px;margin-top:8px;overflow:hidden;border:1px solid var(--b1)}
 .hub-go-fill{height:100%;border-radius:4px;transition:width .35s}
 .hub-cockpit-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;grid-column:1/-1}
-.hub-cockpit-actions a{font-size:11px;font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid var(--b1);background:var(--bg3);color:var(--t1);text-decoration:none}
+.hub-cockpit-actions a{font-size:var(--tt-f1);font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid var(--b1);background:var(--bg3);color:var(--t1);text-decoration:none}
 .hub-cockpit-actions a.primary{border-color:var(--accent);background:var(--panel3);color:var(--t1)}
-.hub-freeze-top{display:none;border-radius:10px;padding:9px 12px;margin-bottom:8px;font-family:var(--mono);font-size:12px;font-weight:700}
+.hub-freeze-top{display:none;border-radius:10px;padding:9px 12px;margin-bottom:8px;font-family:var(--mono);font-size:var(--tt-f2);font-weight:700}
 .hub-freeze-top.red{display:block;background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
 .hub-freeze-top.amber{display:block;background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:#d4892c}
-.pb-diff-hero{display:none;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-family:var(--mono);font-size:12px;background:rgba(212,137,44,.1);border:1px solid rgba(212,137,44,.35);color:#ffe8c8}
+.pb-diff-hero{display:none;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-family:var(--mono);font-size:var(--tt-f2);background:rgba(212,137,44,.1);border:1px solid rgba(212,137,44,.35);color:#ffe8c8}
 .hub-sl-mini{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px}
-.hub-sl-chip{font-family:var(--mono);font-size:9px;padding:3px 7px;border-radius:5px;background:var(--bg4);border:1px solid var(--b1);color:var(--t2)}
-.hub-sl-link{font-size:10px;color:#5bb0ff;margin-left:4px}
-.pb-tier2 summary.pb-tier-sum{cursor:pointer;list-style:none;padding:10px 14px;font-family:var(--mono);font-size:11px;font-weight:800;color:var(--t3);border:1px dashed var(--b1);border-radius:8px;margin-bottom:10px}
+.hub-sl-chip{font-family:var(--mono);font-size:var(--tt-f1);padding:3px 7px;border-radius:5px;background:var(--bg4);border:1px solid var(--b1);color:var(--t2)}
+.hub-sl-link{font-size:var(--tt-f1);color:#5bb0ff;margin-left:4px}
+.pb-tier2 summary.pb-tier-sum{cursor:pointer;list-style:none;padding:10px 14px;font-family:var(--mono);font-size:var(--tt-f1);font-weight:800;color:var(--t3);border:1px dashed var(--b1);border-radius:8px;margin-bottom:10px}
 .pb-tier2 summary.pb-tier-sum::-webkit-details-marker{display:none}
 .pb-tier2[open] summary.pb-tier-sum{color:var(--crypto-2);border-color:rgba(247,147,26,.35)}
 .wf-section{margin-top:28px}
-.wf-head{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--b1)}
+.wf-head{font-family:var(--mono);font-size:var(--tt-f1);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--b1)}
 .wf-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
 /* I-215: opacity slabă înlocuită de layout real în hub-ui.css (order/hide/promote) */
 .tt-fab.journal-fab{background:var(--panel2);box-shadow:var(--shadow);color:var(--t1);border:1px solid var(--b1)}
 
 /* === TODAY'S PLAYBOOK (absorbit din pagina playbook, retrasă 2026-06-11) === */
 .pb-wrap{margin:18px 0 6px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
-.pb-summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:13px 18px;font-family:var(--head);font-size:14px;font-weight:800;color:var(--t1);user-select:none}
+.pb-summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:13px 18px;font-family:var(--head);font-size:var(--tt-f3);font-weight:800;color:var(--t1);user-select:none}
 .pb-summary::-webkit-details-marker{display:none}
 .pb-summary::before{content:"▸";color:var(--crypto-1);transition:transform .15s var(--ease)}
 .pb-wrap[open] .pb-summary::before{transform:rotate(90deg)}
-.pb-sum-sub{font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--t3);flex:1}
-.pb-refresh-btn{background:var(--bg3);border:1px solid var(--b1);color:var(--t2);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:var(--head);font-weight:700}
+.pb-sum-sub{font-family:var(--mono);font-size:var(--tt-f1);font-weight:500;color:var(--t3);flex:1}
+.pb-refresh-btn{background:var(--bg3);border:1px solid var(--b1);color:var(--t2);padding:4px 10px;border-radius:6px;font-size:var(--tt-f1);cursor:pointer;font-family:var(--head);font-weight:700}
 .pb-refresh-btn:hover{color:var(--crypto-2);border-color:var(--crypto-1)}
 .pb-inner{padding:10px 12px;border-top:1px solid var(--b1)}
 /* Taburi Brief — mici, grupate (ca Macro tabs) */
 .pb-tabbar{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 10px;padding:5px;background:var(--bg3);border:1px solid var(--b1);border-radius:10px}
-.pb-tab{font-family:var(--mono);font-size:10.5px;font-weight:800;padding:6px 10px;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--t3);cursor:pointer;font-family:var(--mono)}
+.pb-tab{font-family:var(--mono);font-size:var(--tt-f1);font-weight:800;padding:6px 10px;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--t3);cursor:pointer;font-family:var(--mono)}
 .pb-tab:hover{color:var(--t1);border-color:var(--b1)}
 .pb-tab.on{background:var(--panel3);border-color:var(--accent);color:var(--t1)}
 .pb-tab-panel{display:none}
 .pb-tab-panel.on{display:block}
 .pb-tab-panel[hidden]{display:none!important}
 .pb-tab-panel.on[hidden]{display:block!important}
-.pb-foot-meta{font-family:var(--mono);font-size:10px;color:var(--t3);text-align:right;margin-top:6px}
+.pb-foot-meta{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t3);text-align:right;margin-top:6px}
 .pb-section{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;margin-bottom:8px;overflow:hidden}
 .pb-section-head{display:flex;align-items:center;gap:8px;padding:7px 11px;border-bottom:1px solid var(--b1)}
-.pb-section-head h3{font-family:var(--head);font-size:12px;font-weight:800;color:var(--t1);flex:1;margin:0}
-.pb-count{background:var(--bg4);color:var(--t1);padding:1px 9px;border-radius:999px;font-family:var(--mono);font-size:11px;font-weight:700;border:1px solid var(--b1)}
-.pb-go{border:1px solid var(--b1);color:var(--t2);padding:3px 10px;font-size:11px;border-radius:5px;font-family:var(--head);font-weight:700;text-decoration:none}
+.pb-section-head h3{font-family:var(--head);font-size:var(--tt-f2);font-weight:800;color:var(--t1);flex:1;margin:0}
+.pb-count{background:var(--bg4);color:var(--t1);padding:1px 9px;border-radius:999px;font-family:var(--mono);font-size:var(--tt-f1);font-weight:700;border:1px solid var(--b1)}
+.pb-go{border:1px solid var(--b1);color:var(--t2);padding:3px 10px;font-size:var(--tt-f1);border-radius:5px;font-family:var(--head);font-weight:700;text-decoration:none}
 .pb-go:hover{color:#5bb0ff;border-color:#5bb0ff}
 .pb-section-body{padding:8px 12px}
-.pb-empty{padding:16px;text-align:center;color:var(--t2);font-style:italic;font-size:12.5px}
-.pb-loading{padding:16px;text-align:center;color:var(--t2);font-size:12.5px}
+.pb-empty{padding:16px;text-align:center;color:var(--t2);font-style:italic;font-size:var(--tt-f2)}
+.pb-loading{padding:16px;text-align:center;color:var(--t2);font-size:var(--tt-f2)}
 /* Brief de dimineață — rând-erou (verdictul zilei) */
 .pb-hero{background:var(--panel2);border:1px solid var(--b1);border-radius:10px;padding:10px 12px;margin-bottom:8px}
-.pb-hero-label{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;color:var(--t3);margin-bottom:4px}
-.pb-hero-verdict{font-family:var(--head);font-size:13.5px;font-weight:800;color:var(--t1);line-height:1.3;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.pb-hero-label{font-family:var(--mono);font-size:var(--tt-f1);font-weight:700;letter-spacing:.08em;color:var(--t3);margin-bottom:4px}
+.pb-hero-verdict{font-family:var(--head);font-size:var(--tt-f2);font-weight:800;color:var(--t1);line-height:1.3;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .pb-hero-dot{color:var(--t3);font-weight:400}
 .pb-hero-danger{color:var(--t2);font-weight:700}
-.pb-hero-sub{font-family:var(--mono);font-size:11.5px;color:var(--t2);margin-top:6px}
-.pb-hero-track{font-family:var(--mono);font-size:10.5px;color:var(--t2);margin-top:7px;padding-top:6px;border-top:1px dashed rgba(91,176,255,.25)}
+.pb-hero-sub{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);margin-top:6px}
+.pb-hero-track{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);margin-top:7px;padding-top:6px;border-top:1px dashed rgba(91,176,255,.25)}
 /* Piața acum — SPY/QQQ/VIX compact în cockpit */
 .pb-mkt{display:flex;flex-wrap:wrap;gap:10px}
 .pb-mkt-cell{flex:1 1 90px;background:var(--bg4);border:1px solid var(--b1);border-radius:8px;padding:8px 11px}
-.pb-mkt-lbl{font-family:var(--mono);font-size:10px;color:var(--t3);font-weight:700}
-.pb-mkt-val{font-family:var(--head);font-size:16px;font-weight:800;color:var(--t1);line-height:1.2}
-.pb-mkt-chg{font-family:var(--mono);font-size:11px;font-weight:700}
+.pb-mkt-lbl{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t3);font-weight:700}
+.pb-mkt-val{font-family:var(--head);font-size:var(--tt-f3);font-weight:800;color:var(--t1);line-height:1.2}
+.pb-mkt-chg{font-family:var(--mono);font-size:var(--tt-f1);font-weight:700}
 .pb-mkt-chg.up{color:var(--green)}.pb-mkt-chg.down{color:var(--red)}
-.pb-mkt-tone{flex:1 1 100%;font-family:var(--mono);font-size:11.5px;color:var(--t2);padding-top:2px}
+.pb-mkt-tone{flex:1 1 100%;font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);padding-top:2px}
 /* Fereastră freeze — eveniment high-impact iminent */
-.pb-freeze{border-radius:10px;padding:10px 14px;margin-bottom:12px;font-family:var(--head);font-size:12.5px;font-weight:700;line-height:1.4}
+.pb-freeze{border-radius:10px;padding:10px 14px;margin-bottom:12px;font-family:var(--head);font-size:var(--tt-f2);font-weight:700;line-height:1.4}
 .pb-freeze.red{background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
 .pb-freeze.amber{background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:var(--warn)}
 /* Watchlist events — drill-down colapsat la coadă */
@@ -410,24 +419,24 @@ footer a:hover{color:var(--t1);border-color:var(--accent)}
 .pb-wl-sum::before{content:"▸";color:var(--crypto-1);transition:transform .15s var(--ease)}
 #pbWlEvDet[open] .pb-wl-sum::before{transform:rotate(90deg)}
 /* Peste noapte — diff-ul stării vs ziua precedentă */
-.pb-diff{background:var(--bg3);border:1px solid var(--b1);border-left:3px solid #5bb0ff;border-radius:8px;padding:8px 13px;margin-bottom:12px;font-family:var(--mono);font-size:11.5px;color:var(--t2);line-height:1.5}
+.pb-diff{background:var(--bg3);border:1px solid var(--b1);border-left:3px solid #5bb0ff;border-radius:8px;padding:8px 13px;margin-bottom:12px;font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);line-height:1.5}
 .pb-diff b{color:var(--t1)}
 /* Sector rotation — lideri/codași din sr_last_scan */
 .pb-sect-regime{margin-bottom:8px}
-.pb-sect-grp{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--t3);margin:6px 0 3px}
+.pb-sect-grp{font-family:var(--mono);font-size:var(--tt-f1);font-weight:700;color:var(--t3);margin:6px 0 3px}
 .pb-sect-row{display:flex;flex-wrap:wrap;gap:8px}
 .pb-sect-cell{display:flex;flex-direction:column;gap:1px;background:var(--bg4);border:1px solid var(--b1);border-radius:8px;padding:6px 10px;min-width:78px}
-.pb-sect-sym{font-family:var(--head);font-size:13px;font-weight:800;color:var(--t1);text-decoration:none}
+.pb-sect-sym{font-family:var(--head);font-size:var(--tt-f2);font-weight:800;color:var(--t1);text-decoration:none}
 .pb-sect-sym:hover{color:#5bb0ff}
-.pb-sect-rs{font-family:var(--mono);font-size:10px;color:var(--t3)}
+.pb-sect-rs{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t3)}
 /* Notă AI de dimineață */
-.pb-ai-note{font-size:12.5px;line-height:1.55;color:var(--t1);white-space:pre-wrap;animation:pbFade .5s var(--ease)}
-.pb-ai-empty{font-size:11.5px;color:var(--t2);font-style:italic;padding:4px 0}
-.pb-ai-meta{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:6px}
+.pb-ai-note{font-size:var(--tt-f2);line-height:1.55;color:var(--t1);white-space:pre-wrap;animation:pbFade .5s var(--ease)}
+.pb-ai-empty{font-size:var(--tt-f1);color:var(--t2);font-style:italic;padding:4px 0}
+.pb-ai-meta{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t3);margin-top:6px}
 @keyframes pbFade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
 .pb-loading::before{content:"⏳ "}
-.pb-table{width:100%;border-collapse:collapse;font-size:12px}
-.pb-table th{padding:6px 7px;text-align:left;font-weight:700;font-size:10.5px;color:var(--t2);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--b1);font-family:var(--mono)}
+.pb-table{width:100%;border-collapse:collapse;font-size:var(--tt-f2)}
+.pb-table th{padding:6px 7px;text-align:left;font-weight:700;font-size:var(--tt-f1);color:var(--t2);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--b1);font-family:var(--mono)}
 .pb-table td{padding:7px;border-bottom:1px solid rgba(42,50,71,.5);font-family:var(--head);color:var(--t1)}
 .pb-table tr:last-child td{border-bottom:none}
 .pb-table .sym{font-weight:800;font-family:var(--mono)}
@@ -435,24 +444,24 @@ footer a:hover{color:var(--t1);border-color:var(--accent)}
 .pb-table .sym a:hover{text-decoration:underline}
 .pb-table .pos{color:var(--green);font-weight:700}
 .pb-table .neg{color:#ff4d4d;font-weight:700}
-.pb-chip{display:inline-block;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:800}
+.pb-chip{display:inline-block;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:var(--tt-f1);font-weight:800}
 .pb-chip.high{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.4)}
 .pb-chip.med{background:rgba(245,158,11,.13);color:#f59e0b;border:1px solid rgba(245,158,11,.4)}
 .pb-chip.low{background:rgba(100,116,139,.13);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
 .pb-chip.bull{background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.4)}
 .pb-chip.bear{background:rgba(255,77,77,.12);color:#ff4d4d;border:1px solid rgba(255,77,77,.4)}
 .pb-chip.warn{background:rgba(212,137,44,.15);color:#d4892c;border:1px solid rgba(212,137,44,.4)}
-.pb-time{font-family:var(--mono);font-size:11px;color:var(--t2)}
-.pb-time .t-til{display:block;font-size:10px;color:var(--t3)}
+.pb-time{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2)}
+.pb-time .t-til{display:block;font-size:var(--tt-f1);color:var(--t3)}
 .pb-time .t-imm{color:#ff4d4d!important;font-weight:700}
 .pb-risk-row{display:flex;align-items:center;gap:12px;padding:10px 14px;flex-wrap:wrap}
-.pb-risk-val{font-family:var(--head);font-size:18px;font-weight:800}
-.pb-risk-sub{font-family:var(--mono);font-size:11.5px;color:var(--t2)}
+.pb-risk-val{font-family:var(--head);font-size:var(--tt-f4);font-weight:800}
+.pb-risk-sub{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2)}
 
 /* === Trade Tracker Modal === */
 .tt-fab{position:fixed;bottom:20px;right:20px;text-decoration:none;width:48px;height:48px;border-radius:50%;
   background:var(--panel2);border:1px solid var(--b1);color:var(--t1);
-  font-size:20px;cursor:pointer;box-shadow:var(--shadow);z-index:200;
+  font-size:var(--tt-f4);cursor:pointer;box-shadow:var(--shadow);z-index:200;
   display:flex;align-items:center;justify-content:center;transition:border-color .15s var(--ease),background .15s var(--ease)}
 .tt-fab:hover{transform:none;border-color:var(--accent);background:var(--panel3)}
 .tt-overlay{position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;
@@ -462,35 +471,35 @@ footer a:hover{color:var(--t1);border-color:var(--accent)}
   width:100%;max-width:600px;max-height:90vh;overflow-y:auto;
   box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--t1);font-family:var(--head)}
 .tt-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px}
-.tt-head h3{font-size:16px;font-weight:800;margin:0;color:var(--t1)}
-.tt-close{background:transparent;border:none;color:var(--t3);font-size:22px;cursor:pointer;line-height:1;padding:0 4px}
+.tt-head h3{font-size:var(--tt-f3);font-weight:800;margin:0;color:var(--t1)}
+.tt-close{background:transparent;border:none;color:var(--t3);font-size:var(--tt-f4);cursor:pointer;line-height:1;padding:0 4px}
 .tt-close:hover{color:var(--t1)}
 .tt-form{background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .tt-form input,.tt-form select{padding:7px 10px;background:var(--bg);color:var(--t1);
-  border:1px solid var(--b1);border-radius:6px;font-size:12px;font-family:var(--mono);width:100%}
+  border:1px solid var(--b1);border-radius:6px;font-size:var(--tt-f2);font-family:var(--mono);width:100%}
 .tt-form input:focus,.tt-form select:focus{outline:none;border-color:var(--crypto-1)}
-.tt-form label{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-bottom:3px;display:block}
+.tt-form label{font-size:var(--tt-f1);color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-bottom:3px;display:block}
 .tt-form .col-full{grid-column:1/-1}
-.tt-form button{padding:8px 14px;border-radius:7px;border:none;cursor:pointer;font-weight:700;font-size:12px;
+.tt-form button{padding:8px 14px;border-radius:7px;border:none;cursor:pointer;font-weight:700;font-size:var(--tt-f2);
   background:var(--acc-1);color:var(--on-accent);font-family:var(--head)}
 .tt-form button:hover{filter:brightness(1.08)}
 .tt-list{display:flex;flex-direction:column;gap:8px}
-.tt-empty{padding:30px;text-align:center;color:var(--t3);font-size:13px}
+.tt-empty{padding:30px;text-align:center;color:var(--t3);font-size:var(--tt-f2)}
 .tt-row{background:var(--bg3);border:1px solid var(--b1);border-left:3px solid var(--t3);
-  border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:12px;font-family:var(--mono)}
+  border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:var(--tt-f2);font-family:var(--mono)}
 .tt-row.s-open{border-left-color:#fbbf24}
 .tt-row.s-win{border-left-color:var(--green)}
 .tt-row.s-loss{border-left-color:#ff4d4d}
-.tt-row .tt-tk{font-family:var(--head);font-size:14px;font-weight:800;color:var(--t1);min-width:60px}
-.tt-row .tt-meta{font-size:10.5px;color:var(--t2);line-height:1.4}
+.tt-row .tt-tk{font-family:var(--head);font-size:var(--tt-f3);font-weight:800;color:var(--t1);min-width:60px}
+.tt-row .tt-meta{font-size:var(--tt-f1);color:var(--t2);line-height:1.4}
 .tt-row .tt-meta b{color:var(--t1)}
 .tt-row .tt-act{display:flex;gap:4px}
 .tt-row .tt-act button{padding:3px 8px;border-radius:4px;border:1px solid var(--b1);background:var(--bg);
-  color:var(--t2);cursor:pointer;font-size:10px;font-weight:700;font-family:inherit}
+  color:var(--t2);cursor:pointer;font-size:var(--tt-f1);font-weight:700;font-family:inherit}
 .tt-row .tt-act button:hover{border-color:var(--crypto-1);color:var(--crypto-1)}
 .tt-row .tt-act .tt-win{color:var(--green);border-color:rgba(34,214,107,.4)}
 .tt-row .tt-act .tt-loss{color:#ff4d4d;border-color:rgba(255,77,77,.4)}
-.tt-stats{display:flex;gap:12px;padding:10px 12px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;margin-bottom:12px;font-size:12px;font-family:var(--mono);flex-wrap:wrap}
+.tt-stats{display:flex;gap:12px;padding:10px 12px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;margin-bottom:12px;font-size:var(--tt-f2);font-family:var(--mono);flex-wrap:wrap}
 .tt-stats span{color:var(--t2)}.tt-stats b{color:var(--t1);font-weight:800}
 @media (max-width:560px){.tt-form{grid-template-columns:1fr}.tt-row{grid-template-columns:1fr;gap:6px}.tt-row .tt-act{justify-content:flex-end}}
 
@@ -649,13 +658,113 @@ body.hub-page .hub-na.prio-ok{
   position:static!important;
   top:auto!important;right:auto!important;z-index:auto!important;
   padding:4px 10px!important;
-  font-size:10px!important;
+  font-size:var(--tt-f1)!important;
   font-weight:700;
   border-radius:8px;
   border-color:var(--b1)!important;
   background:var(--panel2)!important;
   color:var(--t1)!important;
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   REASEZAREA HUB-ULUI (22.09.2026)
+
+   Masurat inainte: 89 de lucruri apasabile pe primul ecran, 20 de marimi de font,
+   30 de culori. Si, mai rau, CINCI benzi de stare inainte de orice lucru util:
+   regim+danger (gol, fiindca Macro nu fusese deschis), LAYOUT, PLATFORM,
+   REVIEW/SESSION, chips - abia dupa ele veneau cifrele.
+
+   Reasezarea se face prin `order`, NU mutand noduri in DOM: hub-ul are zeci de
+   puncte de montare pe care le umplu modulele din lib/hub-*.js, iar o mutare de
+   HTML le-ar fi rupt tacut. Ordinea vizuala se schimba, arborele ramane intact.
+
+   Ordinea noua: ce fac ACUM -> cifrele -> unde ma duc -> restul, pliat.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.wrap.hub-wrap{ display:flex; flex-direction:column; }
+.wrap.hub-wrap > header.hub-head-compact{ order:0 }
+.wrap.hub-wrap > .hub-shell{ order:1 }
+.wrap.hub-wrap > #ckBand{ order:2 }       /* banda de regim: sub decizie, nu peste ea */
+.wrap.hub-wrap > .hub-fabs{ order:8 }
+.wrap.hub-wrap > footer{ order:9 }
+
+.hub-shell{ display:flex; flex-direction:column; }
+#hubDecision   { order:1 }   /* NEXT ACTION - verdictul, primul lucru de pe ecran */
+#dashWidgets   { order:2 }   /* cifrele */
+#hubLaunch     { order:3 }   /* unde ma duc */
+#hubSessBar    { order:4 }   /* LAYOUT - unealta, nu titlu */
+#hubChecklist  { order:5 }
+#hubPre5       { order:6 }
+#hubSearchFold { order:7 }
+#hubCockpitWrap{ order:8 }
+#pbWrap        { order:9 }
+#slWrap        { order:10 }
+#hubCatalogFold{ order:11 }
+
+/* Verdictul primeste greutatea pe care o merita: era scris la aceeasi marime ca
+   restul benzilor, desi e singurul rand care spune ce ai de facut. */
+.hub-na-kicker{ font-size:var(--tt-f1); letter-spacing:.1em; color:var(--tt-ink-muted) }
+.hub-na-title { font-size:var(--tt-f5); line-height:1.1; letter-spacing:-.02em; font-weight:700 }
+.hub-na-why   { font-size:var(--tt-f3); color:var(--tt-ink-2); max-width:70ch }
+
+/* Benzile de unelte se retrag: fara chenar propriu, doar o linie de 1px. Erau
+   desenate ca panouri, deci cereau atentie ca si cum ar fi fost continut. */
+.hub-sess-bar{
+  background:transparent !important; border:0 !important;
+  border-top:1px solid var(--tt-hair) !important;
+  border-radius:0 !important; padding:8px 0 !important; margin-top:6px !important;
+}
+.hub-sess-btn{ background:transparent !important; border:1px solid var(--tt-hair) !important }
+.hub-platform-strip{
+  background:transparent !important; border:0 !important;
+  border-bottom:1px solid var(--tt-hair) !important;
+  border-radius:0 !important; padding:6px 0 !important;
+}
+
+/* Banda de regim, cand NU are date, nu mai ocupa cat una plina: un gol desenat
+   cu chenar arata ca informatie si nu e. */
+#ckBand:not(:has(.ckb-val)){ opacity:.65 }
+#ckBand{ margin:4px 0 !important }
+
+/* O singura raza de colt in toata pagina. */
+.hub-decision, .hub-dash-panel, .hub-na, .hub-launch,
+.hub-pre5, .pb-wrap, .hub-catalog-fold, .hub-search-fold{ border-radius:var(--tt-r) !important }
+
+
+/* PLATFORM era primul lucru de pe ecran, inaintea verdictului: sapte insigne de
+   diagnostic (Trust, SPY, Bus, freeze, Risc, Health, stale) pe care le citesti cand
+   ceva nu merge, nu cand vrei sa stii ce ai de facut. Sta inauntrul blocului de
+   decizie, deci ordinea de pe .hub-shell nu-l atingea - reasez si inauntru. */
+#hubDecision{ display:flex; flex-direction:column; }
+#hubNextAction     { order:1 }
+#hubFreezeTop      { order:2 }
+#hubRiskBanner     { order:3 }
+#hubPlatformStrip  { order:4; margin-top:8px }
+
+/* Cutiile care nu au ce arata nu mai ocupa un rand intreg. Un chenar gol arata ca
+   informatie si nu e - vezi „Niciun brief generat inca" de pe Macro, care manca
+   jumatate din primul ecran. */
+.hub-ev-row:not(:has(a, button, .hub-ev-item)),
+.hub-tab-card:has(.hub-tab-empty):not(:has(.hub-tab-val)){ display:none !important }
+
+
+/* Insigna „Health" aparea de DOUA ori pe primul ecran: o data in banda PLATFORM
+   (unde are si „detalii ->") si o data in DATE LIVE. Acelasi semnal, citit de doua
+   ori, ocupand loc si diluand atentia. Ramane cea din PLATFORM, care duce undeva. */
+#dashWidgets #htHealthPill{ display:none !important }
+
+/* Butoanele flotante se suprapuneau peste banda de regim de jos. */
+.hub-fabs{ gap:10px }
+.hub-fabs > *{ box-shadow:0 2px 10px rgba(0,0,0,.45) }
+
+
+/* Cardul „Macro" fara date: acum e compact, deci valoarea (emoji-ul) si subtitlul
+   nu mai incap pe acelasi rand. Subtitlul trece dedesubt, ca la orice alt card. */
+.ht-card.ht-macro-cta{ display:flex; flex-direction:column; justify-content:center }
+.ht-card.ht-macro-cta .ht-m-val{ font-size:var(--tt-f3) }
+.ht-card.ht-macro-cta .ht-m-sub{ white-space:normal; line-height:1.25 }
+
 </style>
 </head>
 <body class="hub-page">
@@ -669,7 +778,7 @@ body.hub-page .hub-na.prio-ok{
       <span id="suiteVerBadge" class="hub-ver-badge" title="Versiune suită">…</span>
       <a href="./health/" id="hubStaleNav" class="hub-stale-nav" hidden aria-hidden="true" title="Date învechite">📦</a>
     </div>
-    <h1 class="hub-head-title">Cockpit <span class="accent">stocks</span></h1>
+    <h1 class="hub-head-title">Hub <span class="accent">stocks</span></h1>
     <span id="hubSessionPill" class="hub-session-pill" title="Sesiune NYSE (ET)">se încarcă…</span>
     <button id="pwaInstallBtn" onclick="installPWA()" style="display:none">Instalează</button>
   </header>
@@ -1355,7 +1464,7 @@ body.hub-page .hub-na.prio-ok{
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <!-- CRITICAL path — first paint cockpit (GO / market / next action). Restul la idle. -->
-<script defer src="lib/data.js?v=807"></script>
+<script defer src="lib/data.js?v=808"></script>
 <script defer src="lib/quote-bus.js?v=712"></script>
 <script defer src="lib/finnhub-key.js?v=712"></script>
 <script defer src="lib/suite-sessions.js?v=712"></script>
@@ -1761,7 +1870,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = 'tt-v807';
+  const swVer = 'tt-v808';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1945,6 +2054,40 @@ window.addEventListener('DOMContentLoaded', function(){
       if (pbWrap.open) loadHubBrief('pb-open');
     }, true);
   }
+
+  // ── Butoanele LAYOUT (Auto / Pre / RTH / AH / Review) ──────────────────────
+  //
+  // 22.09.2026: erau MOARTE. Cinci butoane pe primul ecran al paginii principale,
+  // care nu faceau absolut nimic - probat apasand toate cele cinci moduri: 601
+  // elemente vizibile de fiecare data, identic, si niciun buton marcat ca activ.
+  //
+  // Cauza: logica lor (`wireSessBar` + `applyHubSessionMode`) traieste in
+  // hub-brief.js, care a fost trecut pe incarcare LENESA ca sa se deschida hub-ul
+  // mai repede (105 KB). Dar el se incarca doar cand deschizi pliul „Brief
+  // detaliat" - deci pana atunci butoanele de sus nu erau legate de nimic. O
+  // optimizare de viteza a lasat in urma cinci butoane fara fir.
+  //
+  // Reparatia pastreaza incarcarea lenesa: clicul scrie preferinta ACUM (asta e
+  // tot ce conteaza pentru starea aplicatiei), apoi cere modulul. Cand acesta se
+  // incarca, `HB.init()` cheama `applyHubSessionMode()`, care citeste preferinta
+  // si picteaza butonul activ. Al doilea clic merge deja pe drumul normal.
+  const sessBar = document.getElementById('hubSessBar');
+  if (sessBar) {
+    sessBar.addEventListener('click', function (e) {
+      const btn = e.target.closest('[data-hub-mode-set]');
+      if (!btn) return;
+      const v = btn.getAttribute('data-hub-mode-set');
+      if (!v) return;
+      try { localStorage.setItem('hub_session_mode', v); } catch (err) {}
+      // feedback imediat, ca omul sa vada ca butonul a facut ceva
+      sessBar.querySelectorAll('[data-hub-mode-set]').forEach(function (b) {
+        const on = b === btn;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+      loadHubBrief('sess-mode');
+    });
+  }
   const pbRefEarly = document.getElementById('pbRefreshBtn');
   if (pbRefEarly) {
     pbRefEarly.addEventListener('click', function (e) {
@@ -1978,7 +2121,7 @@ window.addEventListener('DOMContentLoaded', function(){
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v807';
+  var PAGE_VER = 'tt-v808';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw-app.js?v=' + PAGE_VER, { scope: './', updateViaCache: 'none' })
     .then(function (reg) {
