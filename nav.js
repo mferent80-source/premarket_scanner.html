@@ -289,6 +289,21 @@
     return false;
   }
 
+  // Un <a> catre o pagina retrasa poate fi doua lucruri foarte diferite:
+  //
+  //   NAVIGATIE  <a href="./journal/#desk">Risk Desk →</a>        doar text/emoji
+  //   DATE       <a href="./journal/#desk" class="cd-cell">       are copii-elemente
+  //                <div class="cd-lbl">R RAMAS AZI</div>
+  //                <div class="cd-val">2.0R</div> ... </a>
+  //
+  // Ascunzandu-le la fel, banda „Capital Desk" din smart-trade-long a ramas GOALA:
+  // 10 cifre de risc (equity, drawdown, R ramas azi, expunere, PnL) desenate corect si
+  // apoi ascunse, fiindca fiecare cartonas era infasurat intr-un link catre journal.
+  // Cifrele nu vin din journal - se socotesc local in lib/capital-desk.js - deci nu
+  // aveau de ce sa dispara odata cu el.
+  //
+  // Deosebirea se face pe STRUCTURA, nu pe text: textul cartonaselor se umple mai
+  // tarziu, deci o regula care cauta cifre ar ascunde definitiv un cartonas inca gol.
   function ascundeRetrase(radacina) {
     if (location.pathname.indexOf('/hub-clasic/') !== -1) return;
     var noduri = (radacina || document).querySelectorAll('a[href]');
@@ -297,8 +312,18 @@
       if (a.dataset.ttRetras) continue;
       if (!eRetras(a.getAttribute('href'))) continue;
       a.dataset.ttRetras = '1';
-      a.hidden = true;
-      a.style.display = 'none';   // `hidden` singur nu bate un `display` din CSS
+      if (a.querySelector('*')) {
+        // duce date pe ecran: ramane vizibil, dar nu mai duce nicaieri
+        a.dataset.ttRetrasMod = 'dezarmat';
+        a.removeAttribute('href');
+        a.style.pointerEvents = 'none';
+        a.style.cursor = 'default';
+        a.title = 'pagina de destinatie e retrasa din suita; cifra se vede in continuare';
+      } else {
+        a.dataset.ttRetrasMod = 'ascuns';
+        a.hidden = true;
+        a.style.display = 'none';   // `hidden` singur nu bate un `display` din CSS
+      }
     }
   }
 

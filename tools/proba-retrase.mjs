@@ -24,7 +24,17 @@ ws.onmessage=e=>{const d=JSON.parse(e.data); if(d.id&&m.has(d.id)){m.get(d.id)(d
 await new Promise(r=>{ws.onopen=r;}); await s('Page.enable'); await s('Runtime.enable');
 const ev=async(x)=>(await s('Runtime.evaluate',{expression:x,returnByValue:true}))?.result?.value;
 const RET=/journal\/|portfolio\/|equity\/|governor\/|weekly\/|shadow-book\/|postmortem\/|markov-lab\/|factor-lab\/|mfx-screener\/|hub-demo\/|shell\/|proxy\//;
-await s('Page.navigate',{url:'http://127.0.0.1:8777/nasdaq-scanner/'}); await w(7000);
+await s('Page.navigate',{url:'http://127.0.0.1:8777/nasdaq-scanner/'});
+// nav.js e la linia ~11351 dintr-un fisier de 11400: o pauza fixa de 7 s a raportat
+// „nimic ascuns" pur si simplu fiindca pagina nu apucase sa ajunga la el. Asteptam
+// DOVADA ca nav.js ruleaza (bara #tt-dock exista), nu ceasul.
+let gata = false;
+for (let i = 0; i < 60 && !gata; i++) {
+  gata = await ev(`!!document.getElementById('tt-dock')`);
+  if (!gata) await w(500);
+}
+if (!gata) { console.error('PICAT: nav.js nu a rulat in 30 s (bara #tt-dock lipseste)'); ws.close(); b.kill(); await w(300); try{rmSync(profil,{recursive:true,force:true});}catch{} process.exit(1); }
+await w(600);
 // PROBA PRIN STRICARE: injectez eu un link catre o pagina retrasa, exact cum l-ar
 // desena pagina la o actiune, si cer sa fie ascuns. Fara asta, un „0 vizibile" nu
 // dovedeste nimic - poate doar ca n-avea ce ascunde.
@@ -48,6 +58,38 @@ console.log('  link injectat catre ../journal/?sym=AAPL#exec ->', JSON.stringify
 // si un link care NU e retras trebuie sa ramana vizibil
 await ev(`(() => { const a=document.createElement('a'); a.href='../watchlist-monitor/'; a.id='proba-ok'; a.textContent='Watchlist'; document.body.appendChild(a); })()`);
 await w(900);
-console.log('  link normal catre ../watchlist-monitor/ ->', JSON.stringify(await ev(`(() => { const a=document.getElementById('proba-ok'); return { ascuns: a.hidden === true, display: getComputedStyle(a).display }; })()`)));
+const r3 = await ev(`(() => { const a=document.getElementById('proba-ok'); return { ascuns: a.hidden === true, display: getComputedStyle(a).display }; })()`);
+console.log('  link normal catre ../watchlist-monitor/ ->', JSON.stringify(r3));
 
-ws.close(); b.kill(); await w(300); try{rmSync(profil,{recursive:true,force:true});}catch{} process.exit(0);
+// CARTONAS CU DATE catre o pagina retrasa: cifra TREBUIE sa ramana pe ecran.
+// Banda „Capital Desk" din smart-trade-long a ramas goala exact aici: 10 cartonase
+// de risc, fiecare infasurat intr-un <a> catre journal, ascunse cu totul. Cifrele se
+// socotesc local (lib/capital-desk.js), deci n-aveau de ce sa plece odata cu pagina.
+await ev(`(() => {
+  const a = document.createElement('a');
+  a.href = '../journal/#desk';
+  a.id = 'proba-cartonas';
+  a.innerHTML = '<div class="cd-lbl">R RAMAS AZI</div><div class="cd-val">2.0R</div>';
+  document.body.appendChild(a);
+})()`);
+await w(900);
+const r4 = await ev(`(() => {
+  const a = document.getElementById('proba-cartonas');
+  if (!a) return 'cartonasul a disparut din DOM';
+  const st = getComputedStyle(a);
+  return { seVede: a.hidden !== true && st.display !== 'none', areHref: a.hasAttribute('href'),
+           mod: a.dataset.ttRetrasMod || '(nemarcat)', cifraPeEcran: /2\\.0R/.test(a.innerText || '') };
+})()`);
+console.log('  cartonas cu cifra catre ../journal/#desk ->', JSON.stringify(r4));
+
+const greseli = [];
+if (!(r2 && r2.ascuns === true && r2.display === 'none')) greseli.push('linkul de navigatie catre o pagina retrasa NU e ascuns');
+if (!(r3 && r3.ascuns === false && r3.display !== 'none')) greseli.push('un link normal a fost ascuns din greseala');
+if (!(r4 && r4.seVede === true)) greseli.push('cartonasul cu cifra a fost ASCUNS - exact regresia din smart-trade-long');
+if (r4 && r4.areHref === true) greseli.push('cartonasul inca duce la pagina retrasa (href nescos)');
+if (!(r4 && r4.cifraPeEcran === true)) greseli.push('cifra din cartonas nu mai e pe ecran');
+
+ws.close(); b.kill(); await w(300); try{rmSync(profil,{recursive:true,force:true});}catch{}
+if (greseli.length) { console.error('\nPICAT:'); for (const g of greseli) console.error('  - ' + g); process.exit(1); }
+console.log('\nOK - navigatia ascunsa, cifrele pastrate, linkurile normale neatinse.');
+process.exit(0);
