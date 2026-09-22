@@ -33,7 +33,8 @@ const PAGINI = [
   { cale: '/macro-dashboard/', nume: 'macro-dashboard', apasa: ['📜', '📖', '⚙', '👁', '🇺🇸 US', '🟢 Bull'] },
   { cale: '/sector-rotation/', nume: 'sector-rotation', apasa: [] },
   { cale: '/cockpit/', nume: 'cockpit', apasa: ['verde/roșu', 'reîmprospătează'] },
-  { cale: '/', nume: 'hub', apasa: ['Desk', 'Router', 'Macro', 'Nasdaq', '5 min pre-market', 'Caută tool-uri', 'Catalog', 'Auto', 'Review'] },
+  { cale: '/', nume: 'hub', apasa: ['Cockpit', 'Router', 'Nasdaq Scanner', 'Journal', 'hub clasic'] },
+  { cale: '/hub-clasic/', nume: 'hub-clasic', apasa: ['🌅 Pre', '🔬 Review'] },
 ];
 
 const asteapta = (ms) => new Promise((r) => setTimeout(r, ms));

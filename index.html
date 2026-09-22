@@ -2,2128 +2,368 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=808"></script>
-<script>
-  /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
-  (function(){
-    if (window.self === window.top) return;
-    var SEGS = ['cockpit/','nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','mfx-screener/','factor-lab/','earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/','journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
-    function seg(href){
-      try {
-        var p = new URL(href, location.href).pathname;
-        for (var i = 0; i < SEGS.length; i++) if (p.indexOf('/' + SEGS[i]) >= 0) return SEGS[i];
-        if (/\/premarket_scanner\.html\/?$/.test(p)) return '';
-      } catch(e){}
-      return null;
-    }
-    document.addEventListener('click', function(e){
-      var a = e.target.closest && e.target.closest('a[href]');
-      if (!a) return;
-      var h = a.getAttribute('href') || '';
-      if (/^(https?:|mailto:|tel:|javascript:)/i.test(h) || h.charAt(0) === '#') return;
-      var s = seg(h);
-      if (s === null) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      var hash = '';
-      try { hash = (new URL(h, location.href).hash || '').replace(/^#/, ''); } catch(e2){}
-      parent.postMessage({ ttOpen: s, ttHash: hash }, location.origin);
-    }, true);
-  })();
-</script>
-<script>
-  /* Aplicație instalată (standalone) → shell cu taburi (query bust ca să nu țină shell vechi fără Router) */
-  if (window.self === window.top && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true)) {
-    location.replace('shell/?v=' + ('tt-v782'));
-  }
-</script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- tema suite-wide (light/dark/auto) — sincron in <head>, inainte de CSS-ul paginii -->
-<link rel="stylesheet" href="lib/theme-light.css?v=792">
-<script src="lib/theme.js?v=734"></script>
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#161616">
-<title>Stocks Trading Tools — Nasdaq + Events</title>
-<meta name="description" content="Suite stocks trading: Nasdaq Scanner, Market Events, Journal & Risk Desk, Macro Dashboard — cockpit decizional stocks-only">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%234f46e5'/><stop offset='1' stop-color='%230d9488'/></linearGradient></defs><rect width='32' height='32' rx='7' fill='url(%23g)'/><g transform='translate(4 4)' fill='none'><rect x='3' y='14' width='3.5' height='7' rx='0.8' fill='%23ffffff' fill-opacity='0.45'/><rect x='9' y='10' width='3.5' height='11' rx='0.8' fill='%23ffffff' fill-opacity='0.6'/><rect x='15' y='5' width='3.5' height='16' rx='0.8' fill='%23ffffff' fill-opacity='0.75'/><path d='M2.5 16 L8 12 L14 7 L19.5 3' stroke='%23ffffff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/><circle cx='19.5' cy='3' r='3' fill='none' stroke='%23ffffff' stroke-width='0.8' opacity='0.5'/><circle cx='19.5' cy='3' r='1.7' fill='%23ffffff'/></g></svg>">
-<link rel="preload" href="lib/fonts/ibm-plex-sans-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="lib/fonts/ibm-plex-sans-400-ext.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="lib/fonts/ibm-plex-sans-600.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="lib/fonts/ibm-plex-mono-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="lib/plex.css?v=743">
-<link rel="stylesheet" href="lib/suite-ui.css?v=712">
-<link rel="stylesheet" href="lib/hub-ui.css?v=793">
-<link rel="stylesheet" href="lib/tokens.css?v=807">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<script src="lib/theme.js?v=809"></script>
+<meta name="theme-color" content="#17150f">
+<title>Trading Tools</title>
+<meta name="description" content="Hub-ul suitei de trading: ce ai de facut acum, cifrele zilei, uneltele.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="lib/plex.css?v=809">
+<link rel="stylesheet" href="lib/tokens.css?v=809">
 <style>
-/* === Hub — model Gestiune (IBM Plex + Carbon), contrast +1, fără sticlă ── */
-:root{
-  /* 22.09.2026 - REMAPARE, nu rescriere.
-     Pagina avea 30 de culori distincte pe primul ecran, din variatii ale paletei
-     Carbon imprastiate prin 279 de reguli. In loc sa umblu la fiecare regula (si sa
-     ratez jumatate), leg numele pe care ele le folosesc deja la tokenii suitei din
-     lib/tokens.css. O singura modificare, si tot CSS-ul vechi se aliniaza singur -
-     inclusiv comutatorul verde/rosu, care acum merge si aici. */
-  --bg: var(--tt-plane);
-  --bg-grad:none;
-  --bg2: var(--tt-plane); --bg3: var(--tt-surface); --bg4: var(--tt-surface-2);
-  --panel: var(--tt-surface); --panel2: var(--tt-surface-2); --panel3: var(--tt-surface-2);
-  --b1: var(--tt-axis); --b2: var(--tt-hair);
-  --t1: var(--tt-ink); --t2: var(--tt-ink-2); --t3: var(--tt-ink-muted);
-  --crypto-1: var(--tt-pos); --crypto-2: var(--tt-pos);
-  --indigo: var(--tt-pos); --indigol: color-mix(in srgb, var(--tt-pos) 12%, transparent); --indigob: color-mix(in srgb, var(--tt-pos) 35%, transparent);
-  --blue: var(--tt-pos);   --bluel: color-mix(in srgb, var(--tt-pos) 12%, transparent);   --blueb: color-mix(in srgb, var(--tt-pos) 35%, transparent);
-  --teal: var(--tt-pos);   --teall: color-mix(in srgb, var(--tt-pos) 14%, transparent);   --tealb: color-mix(in srgb, var(--tt-pos) 35%, transparent);
-  --green: var(--tt-pos);
-  --bull-s: var(--tt-pos);
-  --red: var(--tt-neg); --warn: var(--tt-warning);
-  --accent: var(--tt-pos);
-  --acc-1: var(--tt-pos);
-  --on-accent:#ffffff;
-  --gold: var(--tt-warning);
-  --suite-bg: var(--tt-plane);
-  --suite-t1: var(--tt-ink);
-  --suite-t2: var(--tt-ink-2);
-  --suite-t3: var(--tt-ink-muted);
-  --topbar-bg:#1c1c1c;
-  --topbar-shadow:none;
-  --shadow:0 8px 24px rgba(0,0,0,.4);
-  --mono:'IBM Plex Mono',ui-monospace,monospace; --head:'IBM Plex Sans',system-ui,sans-serif;
-  --r:8px; --rs:5px;
-  --sh:0 1px 2px rgba(10,12,16,.28);
-  --shh:0 4px 14px rgba(10,12,16,.28);
-  --ease:cubic-bezier(.4,0,.2,1);
-  color-scheme:dark;
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{min-height:100vh}
-body.hub-page{
-  font-family:var(--head);
-  color:var(--t1);
-  line-height:1.45;
-  font-size:var(--tt-f3);
-  font-weight:400;
-  -webkit-font-smoothing:antialiased !important;
-  -moz-osx-font-smoothing:grayscale;
-  background:var(--bg) !important;
-  background-image:none !important;
-  /* Aceeasi remapare si aici: `body.hub-page` redefinea tokenii cu valori fixe,
-     deci ar fi batut legarea de pe :root si comutatorul verde/rosu n-ar fi mers. */
-  --t1: var(--tt-ink); --t2: var(--tt-ink-2); --t3: var(--tt-ink-muted);
-  --text: var(--tt-ink); --muted: var(--tt-ink-muted); --text-dim: var(--tt-ink-2);
-  --accent: var(--tt-pos); --green: var(--tt-pos); --red: var(--tt-neg); --warn: var(--tt-warning);
-  --bg: var(--tt-plane); --bg2: var(--tt-plane); --bg3: var(--tt-surface); --bg4: var(--tt-surface-2);
-  --panel: var(--tt-surface); --panel2: var(--tt-surface-2); --panel3: var(--tt-surface-2);
-  --b1: var(--tt-axis); --b2: var(--tt-hair);
-  padding-bottom:48px !important;
-}
-:root[data-theme="light"] body.hub-page{
-  color:#111111;
-  --t1: var(--tt-ink); --t2: var(--tt-ink-2); --t3: var(--tt-ink-muted);
-  --text: var(--tt-ink); --muted: var(--tt-ink-muted); --text-dim: var(--tt-ink-2);
-  --accent: var(--tt-pos); --acc-1: var(--tt-pos); --on-accent:#ffffff;
-  --green: var(--tt-pos); --bull-s: var(--tt-pos);
-  --red: var(--tt-neg); --warn: var(--tt-warning);
-  --crypto-1: var(--tt-pos); --crypto-2: var(--tt-pos); --gold: var(--tt-warning);
-  --bg: var(--tt-plane); --bg-grad:none;
-  --bg2: var(--tt-surface); --bg3: var(--tt-surface); --bg4: var(--tt-surface-2);
-  --panel: var(--tt-surface); --panel2: var(--tt-surface); --panel3: var(--tt-surface-2);
-  --b1: var(--tt-axis); --b2: var(--tt-hair);
-  --topbar-bg:#ffffff;
-  --topbar-shadow:none;
-  --shadow:0 4px 16px rgba(22,22,22,.08);
-  --suite-bg:#f6f6f6; --suite-t1:#111111; --suite-t2:#393939; --suite-t3:#525252;
-}
-/* anti-ceață: text opac, panouri solide (bate theme-light --tt-glass) */
-.lead,.brand,.card-desc,.card-tag,.feat,.pb-diff,.tt-stats span,.fl-item .fl-txt{color:var(--t2)!important;opacity:1!important}
-.card-title,.pb-mkt-val,.pb-hero-verdict,h1,h2,h3{color:var(--t1)!important;opacity:1!important}
-body.hub-page .hub-head-compact,
-body.hub-page .hub-sess-bar,
-body.hub-page .hub-launch,
-body.hub-page .hub-platform-strip,
-body.hub-page .hub-dash-panel,
-body.hub-page .hub-pre5,
-body.hub-page .ht-gold-bar,
-body.hub-page .ht-card,
-body.hub-page .ckb-band{
-  background:var(--panel)!important;
-  backdrop-filter:none!important;
-  -webkit-backdrop-filter:none!important;
-  opacity:1!important;
-  box-shadow:none;
-}
-body.hub-page .hub-head-compact{background:var(--topbar-bg)!important}
-body.hub-page .ht-m-lbl,
-body.hub-page .hps-lbl,
-body.hub-page .hub-sess-lbl,
-body.hub-page .hub-decision-lbl{
-  color:var(--t2)!important;opacity:1!important;font-weight:600;
-}
-/* full-bleed Macro — fără max-width îngust */
-.wrap{width:100%;max-width:none;margin:0}
+/* ══════════════════════════════════════════════════════════════════════════════
+   HUB - reconstruit de la zero (22.09.2026)
 
-/* Header — aerisit, similar scanner-hub crypto */
-.hero{text-align:center;padding:32px 0 28px}
-.brand{
-  display:inline-flex;align-items:center;gap:10px;
-  font-family:var(--mono);font-weight:500;font-size:var(--tt-f2);letter-spacing:.18em;
-  color:var(--t2);text-transform:uppercase;
-  background:var(--bg2);border:1px solid var(--b1);border-radius:999px;
-  padding:8px 16px;margin-bottom:24px;
-  box-shadow:var(--sh);
+   Varianta dinainte e pastrata INTREAGA la /hub-clasic/ si se deschide dintr-un
+   link din josul paginii. Nimic nu s-a pierdut.
+
+   De ce de la zero si nu inca o reasezare: masurat, pagina veche avea 48 de lucruri
+   apasabile pe primul ecran, 16 marimi de font si 24 de culori. Reasezarea a mutat
+   verdictul sus si a legat culorile la tokeni, dar aglomeratia a ramas - pentru ca
+   ea nu vine din CSS, ci din CATE lucruri sunt pe ecran.
+
+   Ce s-a schimbat la culoare: fundalul nu mai e negru rece, ci gri CALD, si cifrele
+   nu mai stau in cutii cu chenar. Chenarele erau jumatate din aglomeratie: fiecare
+   numar era desenat ca un obiect separat, deci cerea atentie separat. Aici grupeaza
+   spatiul, nu rama. Un singur accent (chihlimbar) marcheaza ce ai de facut; perechea
+   sus/jos ramane cea validata pentru daltonism din lib/tokens.css.
+
+   Ce NU incarca pagina asta: hub-brief.js (105 KB), hub-tableau, hub-ledger,
+   hub-gappers, hub-market, hub-card-live, hub-health, hub-search, cockpit.js.
+   Datele vin din lib/data.js (preturi) si din starea scrisa de celelalte pagini
+   (MCTX pentru regim, SES pentru sesiune).
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --pl:    #17150f;   /* gri CALD, nu negru rece */
+  --pl-2:  #1f1c15;
+  --ink:   #f5f3ee;
+  --ink-2: #b8b3a6;
+  --ink-3: #85806f;
+  --line:  #2b271e;
+  --acc:   #e8a838;   /* chihlimbar: DOAR pentru ce ai de facut */
+  --sus:   var(--tt-pos);
+  --jos:   var(--tt-neg);
 }
-.brand-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:none}
-h1{
-  font-size:var(--tt-f4);font-weight:700;letter-spacing:-.02em;
-  line-height:1.2;margin-bottom:0;
-  color:var(--t1);
+:root[data-theme="light"] {
+  --pl:    #faf8f3;
+  --pl-2:  #f2efe7;
+  --ink:   #1b1813;
+  --ink-2: #57534a;
+  --ink-3: #7d7869;
+  --line:  #e4dfd3;
+  --acc:   #8a5a00;
 }
-h1 .accent{
-  background:none;color:var(--t3);font-weight:400;
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--pl);
+  color: var(--ink);
+  font-family: var(--tt-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  padding-bottom: 96px;
 }
-.lead{
-  font-size:clamp(15px,2vw,18px);color:var(--t2);max-width:640px;margin:0 auto;
+.w { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+a { color: inherit; }
+
+/* ── cap ── */
+.top { display: flex; align-items: baseline; gap: 12px; padding: 22px 0 0; flex-wrap: wrap; }
+.top h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+.top .v { font-family: var(--tt-mono); font-size: 11px; color: var(--ink-3); }
+.sp { margin-left: auto; }
+.lnk {
+  font: inherit; font-size: 13px; color: var(--ink-2); background: none;
+  border: 0; padding: 4px 0; cursor: pointer; text-decoration: none;
+  border-bottom: 1px solid transparent;
 }
-
-/* Tools grid */
-.grid{
-  display:grid;gap:16px;
-  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-  margin-top:32px;
+.lnk:hover { color: var(--ink); border-bottom-color: var(--line); }
+.top .tt-theme-btn {
+  background: none; border: 0; color: var(--ink-2); cursor: pointer;
+  font-size: 15px; line-height: 1; padding: 2px 4px; box-shadow: none;
 }
-.card{
-  background:var(--panel)!important;
-  border:1px solid var(--b1);border-radius:var(--r);
-  padding:16px 16px 14px;text-decoration:none;color:inherit;
-  transition:border-color .15s var(--ease), background .15s var(--ease);
-  display:flex;flex-direction:column;gap:10px;
-  position:relative;overflow:hidden;
-  box-shadow:var(--shadow);
+.top .tt-theme-btn:hover { color: var(--ink); transform: none; filter: none; }
+
+/* ── verdictul: singurul lucru mare de pe pagina ── */
+.verdict { padding: 34px 0 8px; }
+.verdict .kick {
+  font-family: var(--tt-mono); font-size: 11px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-3);
 }
-.card::before,.card::after{content:none;display:none}
-.card:hover{transform:none;box-shadow:var(--shadow);border-color:var(--accent);background:var(--panel2)!important}
-
-.card.legacy{opacity:.92}
-.card.legacy:hover{opacity:1}
-.legacy-badge{
-  position:absolute;top:12px;right:12px;z-index:2;
-  background:var(--panel3);color:var(--t3);
-  border:1px solid var(--b1);
-  padding:2px 8px;border-radius:4px;
-  font-family:var(--mono);font-size:var(--tt-f1);font-weight:700;letter-spacing:.6px;
+.verdict h2 {
+  font-size: clamp(30px, 5.4vw, 42px); line-height: 1.08; letter-spacing: -0.03em;
+  font-weight: 700; margin: 8px 0 10px; color: var(--acc);
 }
-
-.card-icon{
-  width:36px;height:36px;border-radius:var(--rs);
-  display:flex;align-items:center;justify-content:center;
-  font-size:var(--tt-f4);flex-shrink:0;
-  position:relative;z-index:1;
-  background:var(--panel3)!important;box-shadow:none!important;color:var(--t1)!important;
+.verdict p { color: var(--ink-2); font-size: 16px; margin: 0; max-width: 58ch; }
+.go {
+  display: inline-block; margin-top: 18px; font-size: 16px; font-weight: 600;
+  color: var(--pl); background: var(--acc); border-radius: 999px;
+  padding: 10px 20px; text-decoration: none;
 }
+.go:active { transform: translateY(1px); }
 
-.card-tag{
-  font-family:var(--mono);font-size:var(--tt-f1);font-weight:600;
-  letter-spacing:.12em;text-transform:uppercase;
-  padding:3px 8px;border-radius:999px;
-  display:inline-block;width:fit-content;
-  position:relative;z-index:1;
-  background:var(--panel3)!important;color:var(--t3)!important;border:1px solid var(--b1)!important;
+/* ── cifrele: FARA cutii. Spatiul grupeaza, nu rama. ── */
+.nums {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 22px 28px; padding: 26px 0; margin-top: 12px;
+  border-top: 1px solid var(--line);
 }
-
-.card-title{font-size:var(--tt-f4);font-weight:700;letter-spacing:-.3px;line-height:1.2;color:var(--t1);position:relative;z-index:1}
-.card-desc{font-size:var(--tt-f3);color:var(--t2);line-height:1.5;flex-grow:1;position:relative;z-index:1}
-
-.features{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;position:relative;z-index:1}
-.feat{
-  font-family:var(--mono);font-size:var(--tt-f2);font-weight:500;
-  background:var(--panel3);color:var(--t2);
-  padding:3px 8px;border-radius:5px;border:1px solid var(--b1);
-  display:inline-flex;align-items:center;gap:3px;
+.n .k {
+  font-family: var(--tt-mono); font-size: 11px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3);
 }
-.feat.data,.feat.tool,.feat.alert,.feat.auto,.feat.ai,.feat.viz,.feat.risk{
-  background:var(--panel3);color:var(--t2);border-color:var(--b1);
+.n .v {
+  font-family: var(--tt-mono); font-size: 24px; font-variant-numeric: tabular-nums;
+  line-height: 1.15; margin-top: 3px;
 }
+.n .d { font-family: var(--tt-mono); font-size: 12px; color: var(--ink-3); margin-top: 1px; }
+.up { color: var(--sus); } .dn { color: var(--jos); }
+.n .v.q { font-size: 17px; color: var(--ink-3); font-style: italic; }
 
-/* Info button ℹ️ — top-right pe card, deschide modal cu lista completă */
-.card-info-btn{
-  position:absolute;top:12px;right:12px;z-index:3;
-  width:28px;height:28px;border-radius:50%;
-  background:var(--panel3);border:1px solid var(--b1);
-  color:var(--t2);cursor:pointer;font-size:var(--tt-f2);font-weight:700;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .15s var(--ease), border-color .15s var(--ease);
+/* ── unelte: text, nu insigne colorate ── */
+.tools { border-top: 1px solid var(--line); padding: 24px 0 8px; }
+.tools h3 {
+  font-family: var(--tt-mono); font-size: 11px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin: 0 0 12px;
 }
-.card-info-btn:hover{background:var(--panel2);border-color:var(--accent);transform:none}
-.card.legacy .card-info-btn{display:none} /* legacy nu are info pentru că e link extern */
-
-/* Feature list modal */
-.fl-overlay{position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;
-  display:flex;align-items:center;justify-content:center;padding:16px;animation:fl-fade .2s ease}
-@keyframes fl-fade{from{opacity:0}to{opacity:1}}
-.fl-modal{background:var(--bg2);border:1px solid var(--b1);border-radius:14px;
-  padding:20px;width:100%;max-width:560px;max-height:85vh;overflow-y:auto;
-  box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--t1);font-family:var(--head)}
-.fl-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--b1)}
-.fl-head h3{font-size:var(--tt-f4);font-weight:800;margin:0}
-.fl-head .sub{font-size:var(--tt-f1);color:var(--t3);margin-top:4px;font-family:var(--mono)}
-.fl-close{background:transparent;border:none;color:var(--t3);font-size:var(--tt-f4);cursor:pointer;padding:0 4px;line-height:1}
-.fl-close:hover{color:var(--t1)}
-.fl-section{margin-bottom:14px}
-.fl-section-title{font-size:var(--tt-f1);font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;gap:6px;font-family:var(--mono)}
-.fl-list{display:flex;flex-direction:column;gap:6px}
-.fl-item{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:6px;font-size:var(--tt-f2);line-height:1.4}
-.fl-item .fl-emoji{flex-shrink:0;font-size:var(--tt-f3);line-height:1.1}
-.fl-item .fl-txt b{color:var(--t1)}
-.fl-item .fl-txt{color:var(--t2)}
-.fl-item.data{border-left:3px solid #5bb0ff}
-.fl-item.tool{border-left:3px solid var(--crypto-1)}
-.fl-item.alert{border-left:3px solid #ff4d4d}
-.fl-item.auto{border-left:3px solid var(--green)}
-.fl-item.ai{border-left:3px solid #a78bfa}
-.fl-item.viz{border-left:3px solid var(--crypto-2)}
-.fl-cta{margin-top:14px;display:flex;gap:8px}
-.fl-cta a, .fl-cta button{flex:1;padding:10px 14px;border-radius:8px;font-weight:700;font-size:var(--tt-f2);text-align:center;text-decoration:none;cursor:pointer;border:1px solid var(--b1);background:var(--bg3);color:var(--t1);font-family:var(--head)}
-.fl-cta a.primary{background:var(--acc-1);border-color:transparent;color:var(--on-accent)}
-.fl-cta a.primary:hover{filter:brightness(1.08)}
-
-.card-cta{
-  display:flex;align-items:center;justify-content:space-between;
-  padding-top:14px;margin-top:4px;border-top:1px solid var(--b1);
-  font-family:var(--mono);font-size:var(--tt-f2);font-weight:500;
-  letter-spacing:.05em;text-transform:uppercase;
-  position:relative;z-index:1;
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 2px 26px; }
+.t {
+  display: flex; align-items: baseline; gap: 10px; padding: 9px 0;
+  text-decoration: none; border-bottom: 1px solid transparent;
 }
-.card-cta,.crypto .card-cta,.nasdaq .card-cta,.events .card-cta,.card.legacy .card-cta{color:var(--t3)}
-.card-cta .arrow{font-size:var(--tt-f4);transition:transform .2s var(--ease)}
-.card:hover .card-cta .arrow{transform:translateX(4px)}
+.t:hover { border-bottom-color: var(--line); }
+.t b { font-weight: 500; font-size: 15px; }
+.t span { font-size: 13px; color: var(--ink-3); margin-left: auto; text-align: right; }
 
-/* Footer */
-footer{
-  margin-top:64px;padding-top:32px;border-top:1px solid var(--b1);
-  text-align:center;font-size:var(--tt-f2);color:var(--t3);
-  font-family:var(--mono);
+/* ── subsol ── */
+.foot {
+  border-top: 1px solid var(--line); margin-top: 26px; padding: 18px 0 0;
+  display: flex; gap: 18px; flex-wrap: wrap;
+  font-size: 13px; color: var(--ink-3);
 }
-footer a{color:var(--t2);text-decoration:none;border-bottom:1px dotted var(--b2)}
-footer a:hover{color:var(--t1);border-color:var(--accent)}
-.foot-row{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:8px}
-/* În PWA standalone (homescreen instalat), ascunde footer-ul cu link-uri externe (GitHub, README) — nu se vrea ieșirea din PWA */
-@media all and (display-mode: standalone){
-  footer{display:none}
+.foot a { color: var(--ink-3); text-decoration: none; border-bottom: 1px solid var(--line); }
+.foot a:hover { color: var(--ink); }
+.miss {
+  border-left: 2px solid var(--acc); padding: 10px 0 10px 14px; margin: 18px 0 0;
+  font-size: 14px; color: var(--ink-2);
 }
-
-@media (max-width:560px){
-  body{padding:16px 12px 60px}
-  .hero{padding:32px 0 24px}
-  .card{padding:22px}
-  .grid{gap:14px;margin-top:32px}
-  .card-icon{width:42px;height:42px;font-size:var(--tt-f4);border-radius:10px}
-  .card-tag{font-size:var(--tt-f1);padding:3px 8px}
-  .lead{font-size:var(--tt-f3)}
+@media (max-width: 560px) {
+  .w { padding: 0 16px; }
+  .nums { gap: 18px 20px; }
+  .n .v { font-size: 21px; }
 }
-@media (max-width:380px){
-  .hero{padding:24px 0 18px}
-  .card{padding:18px}
-  h1{font-size:var(--tt-f5)}
-}
-
-
-/* (blocul CSS .hub-cmd* „HUB COCKPIT v542" șters — markup-ul nu mai e generat de niciun modul; audit 2026-07-22) */
-.hub-cockpit{background:var(--panel);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin:10px 0 14px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:start}
-.hub-cockpit.stay{background:var(--bear-bg,rgba(196,107,107,.14));border-color:var(--red)}
-.hub-cockpit-lbl{font-family:var(--mono);font-size:var(--tt-f1);font-weight:700;letter-spacing:.08em;color:var(--t3);margin-bottom:4px}
-.hub-cockpit.stay .hub-cockpit-lbl{color:var(--red)}
-.hub-strat{font-size:var(--tt-f4);font-weight:900;line-height:1.1}
-.hub-rule{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);margin-top:5px;font-weight:700}
-.hub-meta,.hub-plan{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);margin-top:6px;line-height:1.45}
-.hub-blockers{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.hub-block{font-family:var(--mono);font-size:var(--tt-f1);font-weight:800;padding:4px 8px;border-radius:5px;border:1px solid var(--b1)}
-.hub-block.bear{background:rgba(255,77,77,.12);color:#ff4d4d;border-color:rgba(255,77,77,.35)}
-.hub-block.warn{background:rgba(212,137,44,.1);color:#d4892c;border-color:rgba(212,137,44,.35)}
-.hub-go{text-align:right;min-width:100px}
-.hub-go-num{font-size:var(--tt-f5);font-weight:900;line-height:1}
-.hub-go-num.go{color:var(--green)}.hub-go-num.caution{color:#d4892c}.hub-go-num.nogo{color:#ff4d4d}
-.hub-go-lbl{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t3);margin-top:4px}
-.hub-go-track{height:6px;background:var(--bg3);border-radius:4px;margin-top:8px;overflow:hidden;border:1px solid var(--b1)}
-.hub-go-fill{height:100%;border-radius:4px;transition:width .35s}
-.hub-cockpit-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;grid-column:1/-1}
-.hub-cockpit-actions a{font-size:var(--tt-f1);font-weight:800;padding:6px 11px;border-radius:8px;border:1px solid var(--b1);background:var(--bg3);color:var(--t1);text-decoration:none}
-.hub-cockpit-actions a.primary{border-color:var(--accent);background:var(--panel3);color:var(--t1)}
-.hub-freeze-top{display:none;border-radius:10px;padding:9px 12px;margin-bottom:8px;font-family:var(--mono);font-size:var(--tt-f2);font-weight:700}
-.hub-freeze-top.red{display:block;background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
-.hub-freeze-top.amber{display:block;background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:#d4892c}
-.pb-diff-hero{display:none;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-family:var(--mono);font-size:var(--tt-f2);background:rgba(212,137,44,.1);border:1px solid rgba(212,137,44,.35);color:#ffe8c8}
-.hub-sl-mini{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px}
-.hub-sl-chip{font-family:var(--mono);font-size:var(--tt-f1);padding:3px 7px;border-radius:5px;background:var(--bg4);border:1px solid var(--b1);color:var(--t2)}
-.hub-sl-link{font-size:var(--tt-f1);color:#5bb0ff;margin-left:4px}
-.pb-tier2 summary.pb-tier-sum{cursor:pointer;list-style:none;padding:10px 14px;font-family:var(--mono);font-size:var(--tt-f1);font-weight:800;color:var(--t3);border:1px dashed var(--b1);border-radius:8px;margin-bottom:10px}
-.pb-tier2 summary.pb-tier-sum::-webkit-details-marker{display:none}
-.pb-tier2[open] summary.pb-tier-sum{color:var(--crypto-2);border-color:rgba(247,147,26,.35)}
-.wf-section{margin-top:28px}
-.wf-head{font-family:var(--mono);font-size:var(--tt-f1);font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--b1)}
-.wf-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-/* I-215: opacity slabă înlocuită de layout real în hub-ui.css (order/hide/promote) */
-.tt-fab.journal-fab{background:var(--panel2);box-shadow:var(--shadow);color:var(--t1);border:1px solid var(--b1)}
-
-/* === TODAY'S PLAYBOOK (absorbit din pagina playbook, retrasă 2026-06-11) === */
-.pb-wrap{margin:18px 0 6px;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
-.pb-summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:13px 18px;font-family:var(--head);font-size:var(--tt-f3);font-weight:800;color:var(--t1);user-select:none}
-.pb-summary::-webkit-details-marker{display:none}
-.pb-summary::before{content:"▸";color:var(--crypto-1);transition:transform .15s var(--ease)}
-.pb-wrap[open] .pb-summary::before{transform:rotate(90deg)}
-.pb-sum-sub{font-family:var(--mono);font-size:var(--tt-f1);font-weight:500;color:var(--t3);flex:1}
-.pb-refresh-btn{background:var(--bg3);border:1px solid var(--b1);color:var(--t2);padding:4px 10px;border-radius:6px;font-size:var(--tt-f1);cursor:pointer;font-family:var(--head);font-weight:700}
-.pb-refresh-btn:hover{color:var(--crypto-2);border-color:var(--crypto-1)}
-.pb-inner{padding:10px 12px;border-top:1px solid var(--b1)}
-/* Taburi Brief — mici, grupate (ca Macro tabs) */
-.pb-tabbar{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 10px;padding:5px;background:var(--bg3);border:1px solid var(--b1);border-radius:10px}
-.pb-tab{font-family:var(--mono);font-size:var(--tt-f1);font-weight:800;padding:6px 10px;border-radius:7px;border:1px solid transparent;background:transparent;color:var(--t3);cursor:pointer;font-family:var(--mono)}
-.pb-tab:hover{color:var(--t1);border-color:var(--b1)}
-.pb-tab.on{background:var(--panel3);border-color:var(--accent);color:var(--t1)}
-.pb-tab-panel{display:none}
-.pb-tab-panel.on{display:block}
-.pb-tab-panel[hidden]{display:none!important}
-.pb-tab-panel.on[hidden]{display:block!important}
-.pb-foot-meta{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t3);text-align:right;margin-top:6px}
-.pb-section{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;margin-bottom:8px;overflow:hidden}
-.pb-section-head{display:flex;align-items:center;gap:8px;padding:7px 11px;border-bottom:1px solid var(--b1)}
-.pb-section-head h3{font-family:var(--head);font-size:var(--tt-f2);font-weight:800;color:var(--t1);flex:1;margin:0}
-.pb-count{background:var(--bg4);color:var(--t1);padding:1px 9px;border-radius:999px;font-family:var(--mono);font-size:var(--tt-f1);font-weight:700;border:1px solid var(--b1)}
-.pb-go{border:1px solid var(--b1);color:var(--t2);padding:3px 10px;font-size:var(--tt-f1);border-radius:5px;font-family:var(--head);font-weight:700;text-decoration:none}
-.pb-go:hover{color:#5bb0ff;border-color:#5bb0ff}
-.pb-section-body{padding:8px 12px}
-.pb-empty{padding:16px;text-align:center;color:var(--t2);font-style:italic;font-size:var(--tt-f2)}
-.pb-loading{padding:16px;text-align:center;color:var(--t2);font-size:var(--tt-f2)}
-/* Brief de dimineață — rând-erou (verdictul zilei) */
-.pb-hero{background:var(--panel2);border:1px solid var(--b1);border-radius:10px;padding:10px 12px;margin-bottom:8px}
-.pb-hero-label{font-family:var(--mono);font-size:var(--tt-f1);font-weight:700;letter-spacing:.08em;color:var(--t3);margin-bottom:4px}
-.pb-hero-verdict{font-family:var(--head);font-size:var(--tt-f2);font-weight:800;color:var(--t1);line-height:1.3;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
-.pb-hero-dot{color:var(--t3);font-weight:400}
-.pb-hero-danger{color:var(--t2);font-weight:700}
-.pb-hero-sub{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);margin-top:6px}
-.pb-hero-track{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);margin-top:7px;padding-top:6px;border-top:1px dashed rgba(91,176,255,.25)}
-/* Piața acum — SPY/QQQ/VIX compact în cockpit */
-.pb-mkt{display:flex;flex-wrap:wrap;gap:10px}
-.pb-mkt-cell{flex:1 1 90px;background:var(--bg4);border:1px solid var(--b1);border-radius:8px;padding:8px 11px}
-.pb-mkt-lbl{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t3);font-weight:700}
-.pb-mkt-val{font-family:var(--head);font-size:var(--tt-f3);font-weight:800;color:var(--t1);line-height:1.2}
-.pb-mkt-chg{font-family:var(--mono);font-size:var(--tt-f1);font-weight:700}
-.pb-mkt-chg.up{color:var(--green)}.pb-mkt-chg.down{color:var(--red)}
-.pb-mkt-tone{flex:1 1 100%;font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);padding-top:2px}
-/* Fereastră freeze — eveniment high-impact iminent */
-.pb-freeze{border-radius:10px;padding:10px 14px;margin-bottom:12px;font-family:var(--head);font-size:var(--tt-f2);font-weight:700;line-height:1.4}
-.pb-freeze.red{background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3}
-.pb-freeze.amber{background:rgba(212,137,44,.14);border:1px solid rgba(212,137,44,.5);color:var(--warn)}
-/* Watchlist events — drill-down colapsat la coadă */
-.pb-wl-sum{cursor:pointer;list-style:none;user-select:none}
-.pb-wl-sum::-webkit-details-marker{display:none}
-.pb-wl-sum::before{content:"▸";color:var(--crypto-1);transition:transform .15s var(--ease)}
-#pbWlEvDet[open] .pb-wl-sum::before{transform:rotate(90deg)}
-/* Peste noapte — diff-ul stării vs ziua precedentă */
-.pb-diff{background:var(--bg3);border:1px solid var(--b1);border-left:3px solid #5bb0ff;border-radius:8px;padding:8px 13px;margin-bottom:12px;font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2);line-height:1.5}
-.pb-diff b{color:var(--t1)}
-/* Sector rotation — lideri/codași din sr_last_scan */
-.pb-sect-regime{margin-bottom:8px}
-.pb-sect-grp{font-family:var(--mono);font-size:var(--tt-f1);font-weight:700;color:var(--t3);margin:6px 0 3px}
-.pb-sect-row{display:flex;flex-wrap:wrap;gap:8px}
-.pb-sect-cell{display:flex;flex-direction:column;gap:1px;background:var(--bg4);border:1px solid var(--b1);border-radius:8px;padding:6px 10px;min-width:78px}
-.pb-sect-sym{font-family:var(--head);font-size:var(--tt-f2);font-weight:800;color:var(--t1);text-decoration:none}
-.pb-sect-sym:hover{color:#5bb0ff}
-.pb-sect-rs{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t3)}
-/* Notă AI de dimineață */
-.pb-ai-note{font-size:var(--tt-f2);line-height:1.55;color:var(--t1);white-space:pre-wrap;animation:pbFade .5s var(--ease)}
-.pb-ai-empty{font-size:var(--tt-f1);color:var(--t2);font-style:italic;padding:4px 0}
-.pb-ai-meta{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t3);margin-top:6px}
-@keyframes pbFade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
-.pb-loading::before{content:"⏳ "}
-.pb-table{width:100%;border-collapse:collapse;font-size:var(--tt-f2)}
-.pb-table th{padding:6px 7px;text-align:left;font-weight:700;font-size:var(--tt-f1);color:var(--t2);text-transform:uppercase;letter-spacing:.3px;border-bottom:1px solid var(--b1);font-family:var(--mono)}
-.pb-table td{padding:7px;border-bottom:1px solid rgba(42,50,71,.5);font-family:var(--head);color:var(--t1)}
-.pb-table tr:last-child td{border-bottom:none}
-.pb-table .sym{font-weight:800;font-family:var(--mono)}
-.pb-table .sym a{color:#5bb0ff;text-decoration:none}
-.pb-table .sym a:hover{text-decoration:underline}
-.pb-table .pos{color:var(--green);font-weight:700}
-.pb-table .neg{color:#ff4d4d;font-weight:700}
-.pb-chip{display:inline-block;padding:2px 7px;border-radius:4px;font-family:var(--mono);font-size:var(--tt-f1);font-weight:800}
-.pb-chip.high{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.4)}
-.pb-chip.med{background:rgba(245,158,11,.13);color:#f59e0b;border:1px solid rgba(245,158,11,.4)}
-.pb-chip.low{background:rgba(100,116,139,.13);color:#94a3b8;border:1px solid rgba(100,116,139,.3)}
-.pb-chip.bull{background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.4)}
-.pb-chip.bear{background:rgba(255,77,77,.12);color:#ff4d4d;border:1px solid rgba(255,77,77,.4)}
-.pb-chip.warn{background:rgba(212,137,44,.15);color:#d4892c;border:1px solid rgba(212,137,44,.4)}
-.pb-time{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2)}
-.pb-time .t-til{display:block;font-size:var(--tt-f1);color:var(--t3)}
-.pb-time .t-imm{color:#ff4d4d!important;font-weight:700}
-.pb-risk-row{display:flex;align-items:center;gap:12px;padding:10px 14px;flex-wrap:wrap}
-.pb-risk-val{font-family:var(--head);font-size:var(--tt-f4);font-weight:800}
-.pb-risk-sub{font-family:var(--mono);font-size:var(--tt-f1);color:var(--t2)}
-
-/* === Trade Tracker Modal === */
-.tt-fab{position:fixed;bottom:20px;right:20px;text-decoration:none;width:48px;height:48px;border-radius:50%;
-  background:var(--panel2);border:1px solid var(--b1);color:var(--t1);
-  font-size:var(--tt-f4);cursor:pointer;box-shadow:var(--shadow);z-index:200;
-  display:flex;align-items:center;justify-content:center;transition:border-color .15s var(--ease),background .15s var(--ease)}
-.tt-fab:hover{transform:none;border-color:var(--accent);background:var(--panel3)}
-.tt-overlay{position:fixed;inset:0;background:rgba(5,8,15,.78);z-index:9999;
-  display:flex;align-items:center;justify-content:center;padding:16px;animation:tt-fade .2s ease}
-@keyframes tt-fade{from{opacity:0}to{opacity:1}}
-.tt-modal{background:var(--bg2);border:1px solid var(--b1);border-radius:14px;padding:18px;
-  width:100%;max-width:600px;max-height:90vh;overflow-y:auto;
-  box-shadow:0 30px 80px rgba(0,0,0,.6);color:var(--t1);font-family:var(--head)}
-.tt-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px}
-.tt-head h3{font-size:var(--tt-f3);font-weight:800;margin:0;color:var(--t1)}
-.tt-close{background:transparent;border:none;color:var(--t3);font-size:var(--tt-f4);cursor:pointer;line-height:1;padding:0 4px}
-.tt-close:hover{color:var(--t1)}
-.tt-form{background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.tt-form input,.tt-form select{padding:7px 10px;background:var(--bg);color:var(--t1);
-  border:1px solid var(--b1);border-radius:6px;font-size:var(--tt-f2);font-family:var(--mono);width:100%}
-.tt-form input:focus,.tt-form select:focus{outline:none;border-color:var(--crypto-1)}
-.tt-form label{font-size:var(--tt-f1);color:var(--t3);text-transform:uppercase;letter-spacing:.4px;font-weight:600;margin-bottom:3px;display:block}
-.tt-form .col-full{grid-column:1/-1}
-.tt-form button{padding:8px 14px;border-radius:7px;border:none;cursor:pointer;font-weight:700;font-size:var(--tt-f2);
-  background:var(--acc-1);color:var(--on-accent);font-family:var(--head)}
-.tt-form button:hover{filter:brightness(1.08)}
-.tt-list{display:flex;flex-direction:column;gap:8px}
-.tt-empty{padding:30px;text-align:center;color:var(--t3);font-size:var(--tt-f2)}
-.tt-row{background:var(--bg3);border:1px solid var(--b1);border-left:3px solid var(--t3);
-  border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:var(--tt-f2);font-family:var(--mono)}
-.tt-row.s-open{border-left-color:#fbbf24}
-.tt-row.s-win{border-left-color:var(--green)}
-.tt-row.s-loss{border-left-color:#ff4d4d}
-.tt-row .tt-tk{font-family:var(--head);font-size:var(--tt-f3);font-weight:800;color:var(--t1);min-width:60px}
-.tt-row .tt-meta{font-size:var(--tt-f1);color:var(--t2);line-height:1.4}
-.tt-row .tt-meta b{color:var(--t1)}
-.tt-row .tt-act{display:flex;gap:4px}
-.tt-row .tt-act button{padding:3px 8px;border-radius:4px;border:1px solid var(--b1);background:var(--bg);
-  color:var(--t2);cursor:pointer;font-size:var(--tt-f1);font-weight:700;font-family:inherit}
-.tt-row .tt-act button:hover{border-color:var(--crypto-1);color:var(--crypto-1)}
-.tt-row .tt-act .tt-win{color:var(--green);border-color:rgba(34,214,107,.4)}
-.tt-row .tt-act .tt-loss{color:#ff4d4d;border-color:rgba(255,77,77,.4)}
-.tt-stats{display:flex;gap:12px;padding:10px 12px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;margin-bottom:12px;font-size:var(--tt-f2);font-family:var(--mono);flex-wrap:wrap}
-.tt-stats span{color:var(--t2)}.tt-stats b{color:var(--t1);font-weight:800}
-@media (max-width:560px){.tt-form{grid-template-columns:1fr}.tt-row{grid-template-columns:1fr;gap:6px}.tt-row .tt-act{justify-content:flex-end}}
-
-/* ══════════════════════════════════════════════════════════════════════
-   ALINIERE „ZIAR" v238 — limbajul de componente din macro-dashboard
-   (topbar panou sticky · hero Next Action · bordură colorată de secțiune)
-   CSS-only: HTML-ul și JS-ul rămân neatinse. Regula casei: fundal SOLID
-   pe sticky, FĂRĂ blur (blur-ul strică randarea textului).
-   ══════════════════════════════════════════════════════════════════════ */
-
-/* Bordură unică de oțel — fără curcubeu pe fiecare secțiune */
-:root{
-  --hub-sec-sess:var(--b1);
-  --hub-sec-live:var(--b1);
-  --hub-sec-pre:var(--b1);
-  --hub-sec-tools:var(--b1);
-  --hub-sec-router:var(--b1);
-  --hub-sec-brief:var(--b1);
-  --hub-sec-ledger:var(--b1);
-}
-
-/* ── 1. TOPBAR: panou sticky pe UN singur rând (ca .macro-cockpit.topbar-sticky).
-      Sticky/z-index/border vin deja din suite-ui (body.hub-page .hub-head-compact);
-      aici doar fundalul solid al macro-ului, umbra mare și rândul unic. ── */
-body.hub-page .hub-head-compact{
-  flex-wrap:nowrap;
-  gap:8px 10px;
-  padding:9px 14px;
-  margin-bottom:8px;
-  border-radius:var(--r);
-  background:var(--topbar-bg)!important;
-  box-shadow:var(--topbar-shadow);
-}
-body.hub-page .hub-head-compact .hub-head-brand{flex:0 0 auto}
-body.hub-page .hub-head-compact .hub-head-title{
-  min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-body.hub-page .hub-head-compact .hub-session-pill{margin-left:auto;flex:0 1 auto}
-body.hub-page .hub-head-compact .tt-theme-btn,
-body.hub-page .hub-head-compact #pwaInstallBtn{flex:0 0 auto}
-@media (max-width:700px){
-  body.hub-page .hub-head-compact{flex-wrap:wrap;padding:8px 10px}
-  body.hub-page .hub-head-compact .hub-head-title{white-space:normal;overflow:visible}
-  body.hub-page .hub-head-compact .hub-session-pill{margin-left:0;max-width:100%}
-}
-/* Bandă cockpit sub header — instrument strip, nu înghesuită în topbar */
-body.hub-page #ckBand{margin:0 0 8px;min-height:64px}
-body.hub-page #hubNextAction{min-height:92px}
-body.hub-page #hubTableau{min-height:168px}
-body.hub-page #ckBand .ckb-band{
-  margin:0;
-  background:var(--panel);
-  border:1px solid var(--b1);
-  border-radius:var(--r);
-  box-shadow:none;
-  max-height:none;
-}
-body.hub-page #ckBand .ckb-dot{text-shadow:none}
-body.hub-page #ckBand .ckb-link{
-  border-color:var(--b1);
-  background:var(--panel2);
-  color:var(--t1);
-}
-@media (max-width:700px){
-  body.hub-page #ckBand .ckb-band{
-    flex-wrap:wrap;
-    overflow:visible;
-    max-height:none;
-    gap:10px 14px;
-  }
-  body.hub-page #ckBand .ckb-src{width:100%;justify-content:flex-end}
-}
-
-/* ── 2. HERO Next Action — forma hero-ului din macro (radius/umbră/padding).
-      Semantica priorităților rămâne intactă: .prio-halt/.prio-warn/.prio-ok
-      își păstrează culorile; gradientul albastru-verde e DOAR starea neutră.
-      Selectori fără prefix `body.hub-page` ca regulile pe sesiune
-      (body[data-hub-mode="rth"] .hub-na) să rămână mai specifice. ── */
-.hub-na{
-  border-radius:var(--r);
-  padding:14px 16px;
-  box-shadow:var(--topbar-shadow);
-}
-.hub-na:not(.prio-halt):not(.prio-warn):not(.prio-ok){
-  border-color:rgba(59,130,246,.30);
-  background:linear-gradient(170deg,rgba(59,130,246,.10),rgba(16,185,129,.045) 55%,transparent);
-}
-/* .hub-na-title rămâne alb: la 15px gradient-text-ul pierde din lizibilitate */
-
-/* ── 3. Bordură colorată sus — semnătura secțiunilor de ziar (.sec din macro).
-      Prefixul `body.hub-page .hub-shell` ridică specificitatea peste regulile
-      pe sesiune (body[data-hub-mode="…"] .X) ca accentul să nu fie înlocuit. ── */
-body.hub-page .hub-shell .hub-sess-bar,
-body.hub-page .hub-shell .hub-dash-panel,
-body.hub-page .hub-shell .hub-pre5,
-body.hub-page .hub-shell .hub-catalog-fold,
-body.hub-page .hub-shell .hub-catalog-fold[open],
-body.hub-page .hub-shell .hub-cockpit-fold,
-.hub-shell #pbWrap,
-.hub-shell #slWrap{
-  border-top:1px solid var(--b1);
-  border-radius:var(--r);
-  box-shadow:none;
-}
-.hub-na:not(.prio-halt):not(.prio-warn):not(.prio-ok){
-  border-color:var(--b1);
-  background:var(--panel);
-}
-
-/* ── 4. Consecvență de formă — radius unic pe blocurile mari (pills/chips/butoane
-      rămân neatinse). Banda #ckBand și interiorul tableau-ului nu se ating. ── */
-body.hub-page .hub-shell .hub-launch,
-body.hub-page .hub-shell .hub-checklist-panel,
-body.hub-page .hub-shell .hub-platform-strip{
-  border-radius:var(--r);
-}
-
-/* ── Desk oțel: chrome fără auriu / glow / double-sticky ── */
-body.hub-page .hub-head-title .accent,
-h1 .accent{
-  background:none!important;
-  -webkit-background-clip:unset!important;
-  background-clip:unset!important;
-  color:var(--t3)!important;
-  -webkit-text-fill-color:var(--t3)!important;
-  font-weight:400;
-}
-body.hub-page .hub-na{
-  position:relative;
-  top:auto;
-  z-index:auto;
-  border-width:1px;
-  box-shadow:var(--shadow);
-  background:var(--panel);
-}
-body.hub-page .hub-na-kicker{color:var(--t3)}
-body.hub-page .hub-na-cta{
-  background:var(--acc-1);
-  color:var(--on-accent);
-}
-body.hub-page .hub-na.prio-halt .hub-na-cta{background:var(--red);color:#fff}
-body.hub-page .hub-na.prio-ok .hub-na-cta{background:var(--green);color:var(--on-accent)}
-body.hub-page .hub-na.prio-halt{
-  background:rgba(196,107,107,.14);
-  border-color:var(--red);
-}
-body.hub-page .hub-na.prio-warn{
-  background:rgba(196,160,86,.14);
-  border-color:var(--warn);
-}
-body.hub-page .hub-na.prio-ok{
-  background:rgba(95,154,116,.14);
-  border-color:var(--green);
-}
-#pwaInstallBtn{
-  position:static!important;
-  top:auto!important;right:auto!important;z-index:auto!important;
-  padding:4px 10px!important;
-  font-size:var(--tt-f1)!important;
-  font-weight:700;
-  border-radius:8px;
-  border-color:var(--b1)!important;
-  background:var(--panel2)!important;
-  color:var(--t1)!important;
-}
-
-
-/* ══════════════════════════════════════════════════════════════════════════
-   REASEZAREA HUB-ULUI (22.09.2026)
-
-   Masurat inainte: 89 de lucruri apasabile pe primul ecran, 20 de marimi de font,
-   30 de culori. Si, mai rau, CINCI benzi de stare inainte de orice lucru util:
-   regim+danger (gol, fiindca Macro nu fusese deschis), LAYOUT, PLATFORM,
-   REVIEW/SESSION, chips - abia dupa ele veneau cifrele.
-
-   Reasezarea se face prin `order`, NU mutand noduri in DOM: hub-ul are zeci de
-   puncte de montare pe care le umplu modulele din lib/hub-*.js, iar o mutare de
-   HTML le-ar fi rupt tacut. Ordinea vizuala se schimba, arborele ramane intact.
-
-   Ordinea noua: ce fac ACUM -> cifrele -> unde ma duc -> restul, pliat.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-.wrap.hub-wrap{ display:flex; flex-direction:column; }
-.wrap.hub-wrap > header.hub-head-compact{ order:0 }
-.wrap.hub-wrap > .hub-shell{ order:1 }
-.wrap.hub-wrap > #ckBand{ order:2 }       /* banda de regim: sub decizie, nu peste ea */
-.wrap.hub-wrap > .hub-fabs{ order:8 }
-.wrap.hub-wrap > footer{ order:9 }
-
-.hub-shell{ display:flex; flex-direction:column; }
-#hubDecision   { order:1 }   /* NEXT ACTION - verdictul, primul lucru de pe ecran */
-#dashWidgets   { order:2 }   /* cifrele */
-#hubLaunch     { order:3 }   /* unde ma duc */
-#hubSessBar    { order:4 }   /* LAYOUT - unealta, nu titlu */
-#hubChecklist  { order:5 }
-#hubPre5       { order:6 }
-#hubSearchFold { order:7 }
-#hubCockpitWrap{ order:8 }
-#pbWrap        { order:9 }
-#slWrap        { order:10 }
-#hubCatalogFold{ order:11 }
-
-/* Verdictul primeste greutatea pe care o merita: era scris la aceeasi marime ca
-   restul benzilor, desi e singurul rand care spune ce ai de facut. */
-.hub-na-kicker{ font-size:var(--tt-f1); letter-spacing:.1em; color:var(--tt-ink-muted) }
-.hub-na-title { font-size:var(--tt-f5); line-height:1.1; letter-spacing:-.02em; font-weight:700 }
-.hub-na-why   { font-size:var(--tt-f3); color:var(--tt-ink-2); max-width:70ch }
-
-/* Benzile de unelte se retrag: fara chenar propriu, doar o linie de 1px. Erau
-   desenate ca panouri, deci cereau atentie ca si cum ar fi fost continut. */
-.hub-sess-bar{
-  background:transparent !important; border:0 !important;
-  border-top:1px solid var(--tt-hair) !important;
-  border-radius:0 !important; padding:8px 0 !important; margin-top:6px !important;
-}
-.hub-sess-btn{ background:transparent !important; border:1px solid var(--tt-hair) !important }
-.hub-platform-strip{
-  background:transparent !important; border:0 !important;
-  border-bottom:1px solid var(--tt-hair) !important;
-  border-radius:0 !important; padding:6px 0 !important;
-}
-
-/* Banda de regim, cand NU are date, nu mai ocupa cat una plina: un gol desenat
-   cu chenar arata ca informatie si nu e. */
-#ckBand:not(:has(.ckb-val)){ opacity:.65 }
-#ckBand{ margin:4px 0 !important }
-
-/* O singura raza de colt in toata pagina. */
-.hub-decision, .hub-dash-panel, .hub-na, .hub-launch,
-.hub-pre5, .pb-wrap, .hub-catalog-fold, .hub-search-fold{ border-radius:var(--tt-r) !important }
-
-
-/* PLATFORM era primul lucru de pe ecran, inaintea verdictului: sapte insigne de
-   diagnostic (Trust, SPY, Bus, freeze, Risc, Health, stale) pe care le citesti cand
-   ceva nu merge, nu cand vrei sa stii ce ai de facut. Sta inauntrul blocului de
-   decizie, deci ordinea de pe .hub-shell nu-l atingea - reasez si inauntru. */
-#hubDecision{ display:flex; flex-direction:column; }
-#hubNextAction     { order:1 }
-#hubFreezeTop      { order:2 }
-#hubRiskBanner     { order:3 }
-#hubPlatformStrip  { order:4; margin-top:8px }
-
-/* Cutiile care nu au ce arata nu mai ocupa un rand intreg. Un chenar gol arata ca
-   informatie si nu e - vezi „Niciun brief generat inca" de pe Macro, care manca
-   jumatate din primul ecran. */
-.hub-ev-row:not(:has(a, button, .hub-ev-item)),
-.hub-tab-card:has(.hub-tab-empty):not(:has(.hub-tab-val)){ display:none !important }
-
-
-/* Insigna „Health" aparea de DOUA ori pe primul ecran: o data in banda PLATFORM
-   (unde are si „detalii ->") si o data in DATE LIVE. Acelasi semnal, citit de doua
-   ori, ocupand loc si diluand atentia. Ramane cea din PLATFORM, care duce undeva. */
-#dashWidgets #htHealthPill{ display:none !important }
-
-/* Butoanele flotante se suprapuneau peste banda de regim de jos. */
-.hub-fabs{ gap:10px }
-.hub-fabs > *{ box-shadow:0 2px 10px rgba(0,0,0,.45) }
-
-
-/* Cardul „Macro" fara date: acum e compact, deci valoarea (emoji-ul) si subtitlul
-   nu mai incap pe acelasi rand. Subtitlul trece dedesubt, ca la orice alt card. */
-.ht-card.ht-macro-cta{ display:flex; flex-direction:column; justify-content:center }
-.ht-card.ht-macro-cta .ht-m-val{ font-size:var(--tt-f3) }
-.ht-card.ht-macro-cta .ht-m-sub{ white-space:normal; line-height:1.25 }
-
 </style>
 </head>
 <body class="hub-page">
-<div id="govBanner" style="display:none;position:sticky;top:0;z-index:200;background:linear-gradient(90deg,#3a1010,#2a1520);border-bottom:2px solid #ff4d4d;color:#ffd0d0;padding:10px 16px;font-family:var(--head);font-size:13px;font-weight:700;text-align:center"></div>
-<div class="wrap hub-wrap">
 
-  <header class="hub-head-compact">
-    <div class="hub-head-brand">
-      <span class="brand-dot"></span>
-      <span>Trading Tools</span>
-      <span id="suiteVerBadge" class="hub-ver-badge" title="Versiune suită">…</span>
-      <a href="./health/" id="hubStaleNav" class="hub-stale-nav" hidden aria-hidden="true" title="Date învechite">📦</a>
-    </div>
-    <h1 class="hub-head-title">Hub <span class="accent">stocks</span></h1>
-    <span id="hubSessionPill" class="hub-session-pill" title="Sesiune NYSE (ET)">se încarcă…</span>
-    <button id="pwaInstallBtn" onclick="installPWA()" style="display:none">Instalează</button>
+<div class="w">
+  <header class="top">
+    <h1>Trading Tools</h1>
+    <span class="v" id="ver">…</span>
+    <span class="sp"></span>
+    <a class="lnk" href="./hub-clasic/">hub clasic</a>
   </header>
 
-  <!-- Bandă cockpit shared (lib/cockpit.js) — REGIM + gauge + DANGER, sub header.
-       În afara .hub-shell ca să nu intre în ordonarea pe sloturi. Auto-mount pe #ckBand. -->
-  <div id="ckBand"></div>
-
-  <div class="hub-shell">
-  <!-- I-215: layout bar — Auto urmează SES; lock forțează template-ul -->
-  <div class="hub-sess-bar" id="hubSessBar" data-hub-slot="sess" role="group" aria-label="Layout pe sesiune">
-    <span class="hub-sess-lbl" id="hubSessLbl">LAYOUT</span>
-    <button type="button" class="hub-sess-btn" data-hub-mode-set="auto" title="Urmează sesiunea NYSE (SES)">⟳ Auto</button>
-    <button type="button" class="hub-sess-btn" data-hub-mode-set="pre" title="Pre-market: gappers + events + checklist">🌅 Pre</button>
-    <button type="button" class="hub-sess-btn" data-hub-mode-set="rth" title="RTH: risk open + GO + freeze">📈 RTH</button>
-    <button type="button" class="hub-sess-btn" data-hub-mode-set="after" title="After-hours: gappers AH + PnL zi">🌙 AH</button>
-    <button type="button" class="hub-sess-btn" data-hub-mode-set="review" title="Review: ledger + weekly + equity">🔬 Review</button>
-    <a href="./journal/#desk" class="hub-sess-pnl" id="hubSessPnl" title="PnL zi (Governor) — click Desk" hidden>—</a>
-  </div>
-
-  <!-- I-212 Decision surface: health → CTA → date live -->
-  <div class="hub-decision" id="hubDecision" data-hub-slot="decision">
-  <!-- I-216 Platform badges: Trust / SPY / freeze / risc — first paint -->
-  <div class="hub-platform-strip" id="hubPlatformStrip" hidden></div>
-
-  <div id="hubFreezeTop" class="hub-freeze-top"></div>
-  <div id="hubRiskBanner" class="hub-freeze-top" style="display:none"></div>
-
-  <!-- I-211 Next Action — verdictul acționabil (unic) -->
-  <section class="hub-na prio-warn" id="hubNextAction" aria-label="Next action">
-    <div class="hub-na-main">
-      <div class="hub-na-kicker">NEXT ACTION</div>
-      <div class="hub-na-title">se evaluează…</div>
-      <div class="hub-na-why">—</div>
-    </div>
-  </section>
-  </div><!-- /.hub-decision -->
-
-  <section class="hub-dash-panel" id="dashWidgets" data-hub-slot="live">
-    <div class="hub-decision-lbl">DATE LIVE</div>
-    <section class="hub-tableau" id="hubTableau" aria-label="Command tableau"></section>
+  <section class="verdict">
+    <div class="kick" id="kick">se încarcă</div>
+    <h2 id="verdict">…</h2>
+    <p id="dece">Adun sesiunea, prețurile și regimul.</p>
+    <a class="go" id="go" href="./cockpit/">Deschide Cockpit</a>
   </section>
 
-  <!-- 5 min pre-market — workflow fix pe hub (promovat pe layout Pre) -->
-  <details class="hub-pre5" id="hubPre5" data-hub-slot="pre5">
-    <summary class="hub-pre5-sum">
-      <span class="hub-pre5-ico">🌅</span>
-      <span class="hub-pre5-title">5 min pre-market</span>
-      <span class="hub-pre5-prog" id="hubPre5Prog">—</span>
-      <span class="hub-pre5-hint">checklist 5 min · nu e buy</span>
-    </summary>
-    <div class="hub-pre5-body" id="hubPre5Body">
-      <p class="hub-pre5-lead"><b>Ce face:</b> te oprește 5 min dimineața ca să verifici dacă ai voie să tradezi. <b>Nu cumpără nimic.</b> Roșu undeva → size 0.</p>
-      <ol class="hub-pre5-steps" id="hubPre5Steps"></ol>
-      <div class="hub-pre5-gate" id="hubPre5Gate" aria-live="polite"></div>
-      <div class="hub-pre5-acts">
-        <button type="button" class="hub-pre5-btn" id="hubPre5Refresh">🔄 Actualizează status</button>
-        <button type="button" class="hub-pre5-btn ghost" id="hubPre5Reset">Reset bifări azi</button>
-        <a class="hub-pre5-btn pri" href="./nasdaq-scanner/">📡 Nasdaq Pre/After</a>
-        <a class="hub-pre5-btn" href="./journal/#desk">🛑 Desk</a>
-      </div>
+  <div class="nums" id="nums"></div>
+
+  <div id="lipsa"></div>
+
+  <nav class="tools">
+    <h3>Decid</h3>
+    <div class="grid">
+      <a class="t" href="./cockpit/"><b>Cockpit</b><span>macro + sectoare</span></a>
+      <a class="t" href="./router/"><b>Router</b><span>GO / NO-GO</span></a>
+      <a class="t" href="./macro-dashboard/"><b>Macro</b><span>calendar, știri</span></a>
+      <a class="t" href="./journal/#desk"><b>Risk Desk</b><span>cât risc azi</span></a>
     </div>
-  </details>
-
-  <div id="hubChecklist" class="hub-checklist-panel" data-hub-slot="checklist" style="display:none" aria-label="Morning checklist"></div>
-
-  <!-- Launch pad — tool-uri cheie; I-215 reordonează chips pe sesiune -->
-  <nav class="hub-launch" id="hubLaunch" data-hub-slot="launch" aria-label="Launch rapid">
-    <a class="hub-launch-chip pri" data-launch="desk" href="./journal/#desk">🛑 Desk</a>
-    <a class="hub-launch-chip pri" data-launch="router" href="./router/">🧭 Router</a>
-    <a class="hub-launch-chip pri" data-launch="macro" href="./macro-dashboard/">🌍 Macro</a>
-    <a class="hub-launch-chip pri" data-launch="nasdaq" href="./nasdaq-scanner/">📡 Nasdaq</a>
-    <a class="hub-launch-chip" data-launch="portfolio" href="./journal/#portfolio">🛡️ Portfolio</a>
-    <a class="hub-launch-chip" data-launch="journal" href="./journal/">📓 Journal</a>
-    <a class="hub-launch-chip" data-launch="wl" href="./watchlist-monitor/">👁 WL</a>
-    <a class="hub-launch-chip" data-launch="stl" href="./smart-trade-long/">🎯 STL</a>
-    <a class="hub-launch-chip" data-launch="events" href="./market-events/">📅 Events</a>
-    <a class="hub-launch-chip" data-launch="alerts" href="./alerts/">🔔 Alerts</a>
-    <a class="hub-launch-chip" data-launch="cockpit" href="./cockpit/">🧭 Cockpit</a>
-    <a class="hub-launch-chip" data-launch="sector" href="./sector-rotation/">🔄 Sector</a>
-    <a class="hub-launch-chip" data-launch="weekly" href="./weekly/">📅 Weekly</a>
-    <a class="hub-launch-chip" data-launch="health" href="./health/">💚 Health</a>
-    <button type="button" class="hub-launch-more" id="hubLaunchMoreBtn" aria-expanded="false" title="Restul tool-urilor">⋯</button>
-    <div class="hub-launch-menu" id="hubLaunchMore" hidden></div>
   </nav>
 
-  <details class="hub-search-fold" id="hubSearchFold" data-hub-slot="search">
-    <summary class="hub-search-sum">🔍 Caută tool-uri</summary>
-    <div class="hub-search-body">
-      <div class="hub-search" id="hubSearchWrap">
-        <input type="text" id="hubSearch" placeholder="nasdaq, watchlist, journal, macro, scanner…" autocomplete="off">
-        <button class="hub-search-clear" id="hubSearchClear" type="button">×</button>
-      </div>
-      <div class="hub-no-results" id="hubNoResults">
-        🤷 Nimic nu corespunde căutării.
-      </div>
+  <nav class="tools">
+    <h3>Caut</h3>
+    <div class="grid">
+      <a class="t" href="./nasdaq-scanner/"><b>Nasdaq Scanner</b><span>gappers</span></a>
+      <a class="t" href="./watchlist-monitor/"><b>Watchlist</b><span>ce urmăresc</span></a>
+      <a class="t" href="./market-events/"><b>Evenimente</b><span>earnings, macro</span></a>
+      <a class="t" href="./pump-radar/"><b>Pump Radar</b><span>mișcări bruște</span></a>
     </div>
-  </details>
+  </nav>
 
-  <details class="hub-cockpit-fold hub-detail-fold" id="hubCockpitWrap" data-hub-slot="cockpit">
-    <summary class="hub-cockpit-sum" id="hubCockpitSum">🧭 Detalii Router / GO — se încarcă…</summary>
-  <section class="hub-cockpit hub-cockpit-inner" id="hubCockpit">
-    <div>
-      <div class="hub-cockpit-lbl">🧭 ROUTER DETAIL (expandat)</div>
-      <div class="hub-strat" id="hubStrat">se evaluează…</div>
-      <div class="hub-rule" id="hubRule">—</div>
-      <div class="hub-meta" id="hubMeta">—</div>
-      <div class="hub-meta" id="hubTrustRow" style="font-family:var(--mono);font-size:10.5px;margin-top:4px"></div>
-      <div class="hub-meta" id="hubEqPill" style="font-family:var(--mono);font-size:11px;margin-top:6px">—</div>
-      <div id="hubCdStrip"></div>
-      <div class="hub-plan" id="hubPlan">—</div>
-      <div class="hub-blockers" id="hubBlockers"></div>
-      <div class="hub-sl-mini" id="hubSlMini"></div>
+  <nav class="tools">
+    <h3>Închid ziua</h3>
+    <div class="grid">
+      <a class="t" href="./journal/"><b>Journal</b><span>execuții</span></a>
+      <a class="t" href="./portfolio/"><b>Portfolio</b><span>poziții deschise</span></a>
+      <a class="t" href="./weekly/"><b>Weekly</b><span>ce am învățat</span></a>
+      <a class="t" href="./equity/"><b>Equity</b><span>curba contului</span></a>
     </div>
-    <div class="hub-go">
-      <div class="hub-go-num caution" id="hubGoNum">—</div>
-      <div class="hub-go-lbl" id="hubGoLbl">GO score</div>
-      <div class="hub-go-track"><div class="hub-go-fill" id="hubGoFill" style="width:0"></div></div>
-    </div>
-    <div class="hub-cockpit-actions">
-      <a class="primary" href="./router/">🧭 Router Deep →</a>
-      <a href="./journal/#desk">🛑 Risk Desk</a>
-      <a href="./journal/#portfolio">🛡️ Portfolio</a>
-      <a href="./journal/">📓 Journal</a>
-    </div>
-  </section>
-  </details>
+  </nav>
 
-  <!-- Brief — taburi mici grupate (fără stivă lungă de secțiuni) -->
-  <details class="pb-wrap hub-detail-fold" id="pbWrap" data-hub-slot="brief">
-    <summary class="pb-summary">📋 Brief detaliat
-      <span class="pb-sum-sub">Desk · Piață · Scan · AI</span>
-      <button class="pb-refresh-btn" id="pbRefreshBtn" title="Reîncarcă toate secțiunile">🔄</button>
-    </summary>
-    <div class="pb-inner">
-      <div class="pb-diff-hero" id="pbDiffHero"></div>
-      <div class="pb-hero" id="pbHero">
-        <div class="pb-hero-label">☀️ VERDICTUL ZILEI</div>
-        <div class="pb-hero-verdict">se compune…</div>
-        <div class="pb-hero-sub">—</div>
-        <div class="pb-hero-track" id="pbHeroTrack" style="display:none"></div>
-      </div>
-      <div class="pb-diff" id="pbDiff" style="display:none"></div>
-      <div class="pb-freeze" id="pbFreeze" style="display:none"></div>
-
-      <div class="pb-tabbar" role="tablist" aria-label="Secțiuni brief">
-        <button type="button" class="pb-tab on" role="tab" data-pb-tab="desk" aria-selected="true">🎯 Desk</button>
-        <button type="button" class="pb-tab" role="tab" data-pb-tab="piata" aria-selected="false">📈 Piață</button>
-        <button type="button" class="pb-tab" role="tab" data-pb-tab="scan" aria-selected="false">🚀 Scan</button>
-        <button type="button" class="pb-tab" role="tab" data-pb-tab="ai" aria-selected="false">🤖 AI</button>
-      </div>
-
-      <!-- Tab Desk: Pro Desk + regim/danger -->
-      <div class="pb-tab-panel on" data-pb-panel="desk" role="tabpanel">
-        <div class="pb-section" id="pbProDesk" style="margin-top:0">
-          <div class="pb-section-head"><h3>🎯 Pro Desk — azi tradez?</h3>
-            <a class="pb-go" href="./router/">Router →</a>
-            <a class="pb-go" href="./journal/#desk" style="margin-left:6px">Risk Desk →</a>
-          </div>
-          <div class="pb-risk-row"><span class="pb-risk-val" id="pbRouteVal">⏳ …</span><span class="pb-risk-sub" id="pbRouteSub">Regime Router</span></div>
-          <div class="pb-risk-row"><span class="pb-risk-val" id="pbGovVal">⏳ …</span><span class="pb-risk-sub" id="pbGovSub">Risk Governor</span></div>
-        </div>
-        <div class="pb-section">
-          <div class="pb-section-head"><h3>🛡 Regim + Danger</h3><a class="pb-go" href="./macro-dashboard/">Macro →</a></div>
-          <div class="pb-risk-row"><span class="pb-risk-val" id="pbRiskVal">⏳ …</span><span class="pb-risk-sub" id="pbRiskSub">se calculează…</span></div>
-          <div class="pb-risk-row"><span class="pb-risk-val" id="pbDangerVal">⏳ …</span><span class="pb-risk-sub" id="pbDangerSub">se încarcă…</span></div>
-        </div>
-      </div>
-
-      <!-- Tab Piață: quotes + calendar -->
-      <div class="pb-tab-panel" data-pb-panel="piata" role="tabpanel" hidden>
-        <div class="pb-section" style="margin-top:0">
-          <div class="pb-section-head"><h3>📈 Piața acum</h3><span class="pb-count" id="pbMktSess">—</span><a class="pb-go" href="./nasdaq-scanner/">Scanner →</a></div>
-          <div class="pb-section-body"><div class="pb-mkt" id="pbBodyMkt"><div class="pb-loading">SPY · QQQ · VIX…</div></div></div>
-        </div>
-        <div class="pb-section">
-          <div class="pb-section-head"><h3>📅 Evenimente azi</h3><span class="pb-count" id="pbCntEvents">—</span><a class="pb-go" href="./macro-dashboard/">Macro →</a></div>
-          <div class="pb-section-body" id="pbBodyEvents"><div class="pb-loading">calendar economic…</div></div>
-        </div>
-      </div>
-
-      <!-- Tab Scan: earnings · sector · picks · STL · sugestii · WL -->
-      <div class="pb-tab-panel" data-pb-panel="scan" role="tabpanel" hidden>
-        <div class="pb-section" style="margin-top:0">
-          <div class="pb-section-head"><h3>📊 Earnings 7z</h3><span class="pb-count" id="pbCntEarnings">—</span><a class="pb-go" href="./earnings-hub/">Earnings →</a></div>
-          <div class="pb-section-body" id="pbBodyEarnings"><div class="pb-loading">calendar earnings…</div></div>
-        </div>
-        <div class="pb-section">
-          <div class="pb-section-head"><h3>🔄 Sector</h3><span class="pb-count" id="pbCntSector">—</span><a class="pb-go" href="./sector-rotation/">Sector →</a></div>
-          <div class="pb-section-body" id="pbBodySector"><div class="pb-loading">scan sectorial…</div></div>
-        </div>
-        <div class="pb-section">
-          <div class="pb-section-head"><h3>🚀 Top picks</h3><span class="pb-count" id="pbCntNasdaq">—</span><a class="pb-go" href="./nasdaq-scanner/">Scanner →</a></div>
-          <div class="pb-section-body" id="pbBodyNasdaq"><div class="pb-loading">semnale…</div></div>
-        </div>
-        <div class="pb-section">
-          <div class="pb-section-head"><h3>🎯 STL READY/OK</h3><span class="pb-count" id="pbCntSTL">—</span><a class="pb-go" href="./smart-trade-long/">STL →</a></div>
-          <div class="pb-section-body" id="pbBodySTL"><div class="pb-loading">scan listă…</div></div>
-        </div>
-        <div class="pb-section">
-          <div class="pb-section-head"><h3>🎯 Sugestii WL</h3><span class="pb-count" id="pbCntSuggestions">—</span><a class="pb-go" href="./macro-dashboard/">Macro →</a></div>
-          <div class="pb-section-body" id="pbBodySuggestions"><div class="pb-loading">sugestii…</div></div>
-        </div>
-        <div class="pb-section">
-          <details id="pbWlEvDet">
-            <summary class="pb-section-head pb-wl-sum"><h3>📌 WL events 14–30z</h3><span class="pb-count" id="pbCntWlEvents">—</span></summary>
-            <div class="pb-section-body" id="pbBodyWlEvents"><div class="pb-empty">expandează pentru Finnhub</div></div>
-          </details>
-        </div>
-      </div>
-
-      <!-- Tab AI -->
-      <div class="pb-tab-panel" data-pb-panel="ai" role="tabpanel" hidden>
-        <div class="pb-section" style="margin-top:0">
-          <div class="pb-section-head"><h3>🤖 Nota AI</h3><button class="pb-refresh-btn" id="pbAiBtn" type="button">✨ Generează</button></div>
-          <div class="pb-section-body" id="pbBodyAi"><div class="pb-ai-empty">Apasă „✨ Generează" — verdict scurt pe azi (cache 1×/zi).</div></div>
-        </div>
-      </div>
-
-      <!-- stub pt cod vechi care aștepta pbTier2 -->
-      <details class="pb-tier2" id="pbTier2" style="display:none" hidden aria-hidden="true"></details>
-
-      <div class="pb-foot-meta" id="pbRefreshInfo">—</div>
-    </div>
-  </details>
-
-  <!-- SIGNAL LEDGER — scorecard-ul scannerelor (lib/ledger.js); lazy la expand · I-215 Review promote -->
-  <details class="pb-wrap" id="slWrap" data-hub-slot="ledger">
-    <summary class="pb-summary">📒 Signal Ledger
-      <span class="pb-sum-sub">care scanner face bani? — semnale evaluate la +5/+20 zile de tranzacționare</span>
-      <button class="pb-refresh-btn" id="slRefreshBtn" title="Reevaluează semnalele">🔄 Refresh</button>
-    </summary>
-    <div class="pb-inner">
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>📊 Scorecard per sursă</h3><span class="pb-count" id="slCnt">—</span></div>
-        <div class="pb-section-body" id="slScorecard"><div class="pb-empty">Apasă pentru a deschide — evaluarea +5/+20z pornește la expand.</div></div>
-      </div>
-      <div class="pb-section">
-        <div class="pb-section-head"><h3>🕐 Ultimele semnale</h3><button class="pb-go" id="slClearBtn" style="cursor:pointer;background:transparent">🗑 Golește registrul</button></div>
-        <div class="pb-section-body" id="slRecent"><div class="pb-empty">—</div></div>
-      </div>
-    </div>
-  </details>
-
-  <!-- Catalog pliat: pe full-bleed nu mai forțează scroll de 3+ ecrane · I-215 filtre pe sesiune -->
-  <details class="hub-catalog-fold" id="hubCatalogFold" data-hub-slot="catalog">
-    <summary class="hub-catalog-sum">🧰 Catalog tool-uri <span class="hub-catalog-hint">carduri detaliate · expandă când cauți ceva rar</span></summary>
-  <main id="hubCards">
-
-  <section class="wf-section" data-wf="journal">
-    <div class="wf-head">📓 Journal & Risk — hub central</div>
-    <div class="wf-grid wf-grid-journal">
-    <a href="./journal/" data-phase="journal" target="ttools-journal" rel="noopener" class="card card-hero" style="--accent:linear-gradient(90deg,#a78bfa,#22d66b); --glow:rgba(167,139,250,.22)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#22d66b);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">📓</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Hub · v626</span>
-      <h2 class="card-title">Journal & Risk Desk</h2>
-      <p class="card-desc">Singurul loc pentru execuții reale: Desk (verdict GO/HALT), Execuții open/închise, Portfolio (risc @ SL, β), Capital (equity + drift). Workspace v2, leak report, export CSV.</p>
-      <div class="features">
-        <span class="feat risk">🛑 Risk Desk</span>
-        <span class="feat risk">🛡️ Portfolio live</span>
-        <span class="feat data">⚖ Capital & drift</span>
-        <span class="feat tool">📥 CSV + leak</span>
-      </div>
-      <div class="card-cta" style="color:#a78bfa">
-        <span>Deschide Journal</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-    <a href="./journal/#desk" data-phase="journal" class="card card-jtab" style="--accent:linear-gradient(90deg,#ff4d4d,#d4892c); --glow:rgba(255,77,77,.15)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#ff4d4d,#d4892c);box-shadow:0 4px 12px rgba(255,77,77,.25);color:#fff;font-size:16px">🛑</div>
-      <h2 class="card-title">Desk</h2>
-      <p class="card-desc">Verdict TRADE/CAUTION/HALTED, scorecard R, limite Governor.</p>
-      <div class="card-cta" style="color:#ff7d6b"><span>Risk Desk →</span></div>
-    </a>
-    <a href="./journal/#exec" data-phase="journal" class="card card-jtab" style="--accent:linear-gradient(90deg,#5bb0ff,#a78bfa); --glow:rgba(91,176,255,.15)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#a78bfa);box-shadow:0 4px 12px rgba(91,176,255,.25);color:#fff;font-size:16px">⚡</div>
-      <h2 class="card-title">Execuții</h2>
-      <p class="card-desc">Open/închise, închidere ritual, badge earnings ≤48h.</p>
-      <div class="card-cta" style="color:#5bb0ff"><span>Ledger →</span></div>
-    </a>
-    <a href="./journal/#portfolio" data-phase="journal" class="card card-jtab" style="--accent:linear-gradient(90deg,#22d66b,#5bdcb0); --glow:rgba(34,214,107,.15)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#22d66b,#5bdcb0);box-shadow:0 4px 12px rgba(34,214,107,.25);color:#000;font-size:16px">🛡️</div>
-      <h2 class="card-title">Portfolio</h2>
-      <p class="card-desc">Risc agregat @ SL, sector, β vs QQQ, prețuri live.</p>
-      <div class="card-cta" style="color:var(--green)"><span>Risc live →</span></div>
-    </a>
-    <a href="./journal/#capital" data-phase="journal" class="card card-jtab" style="--accent:linear-gradient(90deg,var(--crypto-1),var(--crypto-2)); --glow:rgba(247,147,26,.15)">
-      <div class="card-icon" style="background:linear-gradient(135deg,var(--crypto-1),var(--crypto-2));box-shadow:0 4px 12px rgba(247,147,26,.25);color:#1a1a1a;font-size:16px">⚖</div>
-      <h2 class="card-title">Capital</h2>
-      <p class="card-desc">Equity sim vs snapshot Trade212, drift, evenimente capital.</p>
-      <div class="card-cta" style="color:var(--crypto-2)"><span>Reconciliere →</span></div>
-    </a>
-    </div>
-  </section>
-
-  <section class="wf-section" data-wf="plan">
-    <div class="wf-head">📋 Plan — gate & context</div>
-    <div class="wf-grid">
-<a href="./router/" data-phase="plan" target="ttools-router" rel="noopener" class="card" id="hubCardRouter" style="--accent:linear-gradient(90deg,#5bb0ff,#ffd86b); --glow:rgba(91,176,255,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#ffd86b);box-shadow:0 4px 14px rgba(91,176,255,.3);color:#0a0a0a">🧭</div>
-      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Pro · v6</span>
-      <h2 class="card-title">Regime Router</h2>
-      <div class="hub-card-live lvl-neut" id="hubLiveRouter" aria-live="polite"></div>
-      <p class="card-desc">Pro Desk: Morning/Deep mode, blockers, timeline sesiune, action rail, counterfactual guards, danger sparkline, playbook sticky.</p>
-      <div class="features">
-        <span class="feat ai">📋 Playbook</span>
-        <span class="feat risk">🎯 GO Score</span>
-        <span class="feat data">📡 Context</span>
-      </div>
-      <div class="card-cta" style="color:#5bb0ff"><span>Deschide Router</span><span class="arrow">→</span></div>
-    </a>
-
-<a href="./macro-dashboard/" data-phase="plan" target="ttools-macro" rel="noopener" class="card" id="hubCardMacro" style="--accent:linear-gradient(90deg,var(--crypto-2),#5bb0ff); --glow:rgba(255,216,107,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,var(--crypto-2),#5bb0ff);box-shadow:0 4px 14px rgba(255,216,107,.3);color:#1a1a1a">🌍</div>
-      <span class="card-tag" style="background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.4)">Macro · v239</span>
-      <h2 class="card-title">Macro Dashboard</h2>
-      <div class="hub-card-live lvl-neut" id="hubLiveMacro" aria-live="polite"></div>
-      <p class="card-desc">Calendar economic 14 zile (FOMC/CPI/NFP) + știri macro &amp; crypto + AI Daily Brief —
-        context decizional pentru Nasdaq și piața crypto.</p>
-      <div class="features">
-        <span class="feat data">📅 Calendar economic</span>
-        <span class="feat data">📊 VIX + DXY + BTC live</span>
-        <span class="feat ai">🤖 AI Daily Brief</span>
-        <span class="feat viz">⏰ Alerte pre-event</span>
-      </div>
-      <div class="card-cta" style="color:var(--crypto-2)">
-        <span>Deschide Macro</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./sector-rotation/" data-phase="plan" target="ttools-sector" rel="noopener" class="card" id="hubCardSector" style="--accent:linear-gradient(90deg,#0891b2,#22d66b); --glow:rgba(8,145,178,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#0891b2,#22d66b);box-shadow:0 4px 14px rgba(8,145,178,.3);color:#fff">🌐</div>
-      <span class="card-tag" style="background:rgba(8,145,178,.12);color:#0891b2;border:1px solid rgba(8,145,178,.3)">Sector · v173</span>
-      <h2 class="card-title">Sector Rotation</h2>
-      <div class="hub-card-live lvl-neut" id="hubLiveSector" aria-live="polite"></div>
-      <p class="card-desc">11 ETFs sectoare (XLK/XLF/XLE/XLV/XLY etc.) cu heatmap rotație, momentum
-        1z/1săpt/1lună/3luni/YTD și risk-on vs risk-off auto-detect.</p>
-      <div class="features">
-        <span class="feat data">📊 11 ETFs sectoare</span>
-        <span class="feat viz">🗺️ Heatmap rotație</span>
-        <span class="feat tool">🔄 Momentum shifts</span>
-        <span class="feat alert">⚡ Alert rotație</span>
-      </div>
-      <div class="card-cta" style="color:#0891b2">
-        <span>Deschide Sector Rotation</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-        </div>
-  </section>
-  <section class="wf-section" data-wf="scan">
-    <div class="wf-head">🔍 Scan — setup & watchlist</div>
-    <div class="wf-grid">
-<a href="./nasdaq-scanner/" data-phase="scan" target="ttools-nasdaq" rel="noopener" class="card nasdaq">
-      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('nasdaq')" title="Vezi toate funcționalitățile">ℹ</button>
-      <div class="card-icon">📈</div>
-      <span class="card-tag">Stocks · v134</span>
-      <h2 class="card-title">Nasdaq Opportunity Scanner</h2>
-      <p class="card-desc">Scaner top Nasdaq + ETF-uri cu AI Briefing, Early Buy,
-        Multi-TF, Earnings Calendar, signal log + auto-scan.</p>
-      <div class="features">
-        <span class="feat data">📡 Yahoo + Finnhub</span>
-        <span class="feat tool">🎯 Custom Screener</span>
-        <span class="feat tool">⚖️ Compare 3 stocks</span>
-        <span class="feat ai">🧠 AI inline + Briefing</span>
-        <span class="feat alert">📱 Telegram smart batch</span>
-        <span class="feat viz">📊 Mini-chart 30d</span>
-        <span class="feat auto">🌅 PM gappers ≥3%</span>
-      </div>
-      <div class="card-cta">
-        <span>Deschide scanner</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./smart-trade-long/" data-phase="scan" target="ttools-smart" rel="noopener" class="card" style="--accent:linear-gradient(90deg,var(--crypto-1),#22c55e); --glow:rgba(247,147,26,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,var(--crypto-1),#22c55e);box-shadow:0 4px 14px rgba(247,147,26,.3);color:#fff">🎯</div>
-      <span class="card-tag" style="background:rgba(247,147,26,.12);color:var(--crypto-1);border:1px solid rgba(247,147,26,.35)">Smart Trade · v45</span>
-      <h2 class="card-title">Smart Trade Long</h2>
-      <p class="card-desc">Scoring 6 filtre (incl. RS vs SPY + max 52s) cu Entry/SL/TP auto din ATR + position sizing din % risc cont +
-        insider activity per stock — folosit înainte de fiecare trade.</p>
-      <div class="features">
-        <span class="feat tool">🎯 Score 0-100</span>
-        <span class="feat tool">📐 Entry/SL/TP1-3 auto</span>
-        <span class="feat tool">💰 Position sizer</span>
-        <span class="feat data">👔 Insider activity</span>
-        <span class="feat auto">🔄 Auto-scan 5min</span>
-        <span class="feat tool">📓 Plan → Hub tracker</span>
-      </div>
-      <div class="card-cta" style="color:var(--crypto-1)">
-        <span>Deschide Smart Trade</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./watchlist-monitor/" data-phase="scan" target="ttools-watchlist" rel="noopener" class="card" style="--accent:linear-gradient(90deg,var(--green),#5bdcb0); --glow:rgba(34,214,107,.18)">
-      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('watchlist')" title="Vezi toate funcționalitățile">ℹ</button>
-      <div class="card-icon" style="background:linear-gradient(135deg,var(--green),#5bdcb0);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#000">👁️</div>
-      <span class="card-tag" style="background:rgba(34,214,107,.12);color:var(--green);border:1px solid rgba(34,214,107,.35)">Watchlist · v165</span>
-      <h2 class="card-title">Watchlist Monitor</h2>
-      <p class="card-desc">Auto-scan 60s pe stocks-urile tale cu verdict instant 5-tier
-        STRONG BUY → AVOID din scoring multi-factor (MA50/MA200/RSI/momentum).</p>
-      <div class="features">
-        <span class="feat auto">🔄 Auto-scan 60s</span>
-        <span class="feat tool">🎯 Verdict 5-tier</span>
-        <span class="feat data">📊 MA50/200 + RSI</span>
-        <span class="feat alert">🔔 Browser alerts STRONG BUY</span>
-        <span class="feat data">📡 Yahoo Finance free</span>
-        <span class="feat auto">🔗 Sync wl_stocks cu nasdaq</span>
-      </div>
-      <div class="card-cta" style="color:var(--green)">
-        <span>Deschide watchlist</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./earnings-hub/" data-phase="scan" target="ttools-earnings" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a855f7,#ec4899); --glow:rgba(168,85,247,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a855f7,#ec4899);box-shadow:0 4px 14px rgba(168,85,247,.3);color:#fff">📅</div>
-      <span class="card-tag" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3)">Earnings · v145</span>
-      <h2 class="card-title">Earnings Hub</h2>
-      <p class="card-desc">Calendar earnings 30 zile cu EPS history (8 trim.), AI verdict beats/misses,
-        insider clusters pre-earnings + reaction bias istoric. Alerte -48h pe watchlist (notif/sunet/Telegram).</p>
-      <div class="features">
-        <span class="feat data">📅 Calendar 30d Finnhub</span>
-        <span class="feat data">📊 EPS history + reacții</span>
-        <span class="feat ai">🧠 AI verdict 5 tier-uri</span>
-        <span class="feat alert">⏰ Alerte ≤48h watchlist</span>
-        <span class="feat data">👔 Insider 30z pre-earnings</span>
-      </div>
-      <div class="card-cta" style="color:#a855f7">
-        <span>Deschide Earnings Hub</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./market-events/" data-phase="scan" target="ttools-events" rel="noopener" class="card events">
-      <button class="card-info-btn" onclick="event.preventDefault();event.stopPropagation();showFeaturesModal('market-events')" title="Vezi toate funcționalitățile">ℹ</button>
-      <div class="card-icon">📉</div>
-      <span class="card-tag">Events · v268</span>
-      <h2 class="card-title">Market Events</h2>
-      <p class="card-desc">Earnings calendar 7 zile + Top Losers Nasdaq + Volume Heatmap +
-        Sector Heatmap — evenimente cu impact pe preț.</p>
-      <div class="features">
-        <span class="feat data">📅 Earnings 7d EPS Est</span>
-        <span class="feat data">📉 Top Losers Nasdaq</span>
-        <span class="feat viz">🔥 Volume Heatmap</span>
-        <span class="feat viz">🗺️ Sector Heatmap</span>
-        <span class="feat auto">📡 Polling pseudo-live</span>
-        <span class="feat tool">🤖 Cross-AI inline</span>
-      </div>
-      <div class="card-cta">
-        <span>Deschide events</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./factor-lab/" data-phase="review" target="ttools-flab" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#8b7cf6,#5bb0ff); --glow:rgba(139,124,246,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#8b7cf6,#5bb0ff);box-shadow:0 4px 14px rgba(139,124,246,.3);color:#0b0714">🧪</div>
-      <span class="card-tag" style="background:rgba(139,124,246,.12);color:#8b7cf6;border:1px solid rgba(139,124,246,.35)">Factor Lab · v9</span>
-      <h2 class="card-title">Factor Lab</h2>
-      <p class="card-desc">Bancul de probă: măsoară dacă un factor are edge REAL, înainte să merite construit ceva pe el.
-        Univers auto de pe Binance, 5 teste severe, controale long/short. Nu dă semnale — dă verdicte.</p>
-      <div class="features">
-        <span class="feat tool">🧪 5 teste severe</span>
-        <span class="feat data">⚖️ Controale long/short</span>
-        <span class="feat auto">🌐 Univers auto 50</span>
-        <span class="feat alert">📍 Unde e activ acum</span>
-      </div>
-      <div class="card-cta" style="color:#8b7cf6">
-        <span>Deschide Factor Lab</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./mfx-screener/" data-phase="scan" target="ttools-mfx" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#2dd4a8,#5bb0ff); --glow:rgba(45,212,168,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#2dd4a8,#5bb0ff);box-shadow:0 4px 14px rgba(45,212,168,.3);color:#06231c">🎯</div>
-      <span class="card-tag" style="background:rgba(45,212,168,.12);color:#2dd4a8;border:1px solid rgba(45,212,168,.35)">MFX Screener · v6</span>
-      <h2 class="card-title">MFX Screener (EVC)</h2>
-      <p class="card-desc">Motorul deck-ului Pine Mentfx v1.1 rulat pe o listă întreagă: structură ruptă de corp,
-        EMA 5/10/20 de pe TF×6, Triple M și volum — cu veto de context pe TF-ul mare. Crypto și stocks.</p>
-      <div class="features">
-        <span class="feat tool">🎯 5 stări EVC</span>
-        <span class="feat data">⛓️ Veto HTF</span>
-        <span class="feat auto">📈 Crypto + stocks</span>
-        <span class="feat tool">🔎 Ce lipsește, pe rând</span>
-      </div>
-      <div class="card-cta" style="color:#2dd4a8">
-        <span>Deschide MFX Screener</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./pump-radar/" data-phase="scan" target="ttools-pump" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#ef4444,#facc15); --glow:rgba(239,68,68,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#ef4444,#facc15);box-shadow:0 4px 14px rgba(239,68,68,.3);color:#fff">🚨</div>
-      <span class="card-tag" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.35)">Pump Radar · v125</span>
-      <h2 class="card-title">Pump Radar Stocks</h2>
-      <p class="card-desc">Auto-scan 30s/60s/120s pe ~90 stocks lichide, pe barele de 5m: pump/dump/vol-spike/momentum,
-        sliders praguri, insider check on-alert + alerte browser/sunet/Telegram.</p>
-      <div class="features">
-        <span class="feat alert">🚨 4 alerte 5m</span>
-        <span class="feat auto">🔄 Auto-scan 60s</span>
-        <span class="feat tool">🎚️ Sliders + 🔥 heat</span>
-        <span class="feat data">👔 Insider check</span>
-        <span class="feat alert">🔔🔊📡 Notif/beep/Telegram</span>
-      </div>
-      <div class="card-cta" style="color:#ef4444">
-        <span>Deschide Pump Radar</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./markov-lab/" data-phase="scan" target="ttools-markov" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">🔗</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Markov · v3.13</span>
-      <h2 class="card-title">Markov Lab</h2>
-      <p class="card-desc">Model Markov + HMM gaussian de regim de volatilitate. Detectează regim
-        calm/volatil (bate EWMA OOS), cu validare onestă de edge (chi² + backtest walk-forward).</p>
-      <div class="features">
-        <span class="feat data">🧠 HMM regim (Baum-Welch)</span>
-        <span class="feat viz">🌡️ Auto-K via BIC</span>
-        <span class="feat tool">🔍 Sweep + batch edge</span>
-        <span class="feat alert">✅ Validare OOS</span>
-      </div>
-      <div class="card-cta" style="color:#a78bfa">
-        <span>Deschide Markov Lab</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-        </div>
-  </section>
-  <section class="wf-section" data-wf="execute">
-    <div class="wf-head">🔔 Alerte — în sesiune</div>
-    <div class="wf-grid">
-<a href="./alerts/" data-phase="execute" target="ttools-alerts" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#d4892c,#ffd86b); --glow:rgba(212,137,44,.20)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#d4892c,#ffd86b);box-shadow:0 4px 14px rgba(212,137,44,.3);color:#1a1a1a">🔔</div>
-      <span class="card-tag" style="background:rgba(212,137,44,.15);color:#d4892c;border:1px solid rgba(212,137,44,.4)">Alerts · v78</span>
-      <h2 class="card-title">Price Alerts</h2>
-      <p class="card-desc">Managerul universal de alerte preț (storage UNIFICAT cu Watchlist Monitor).
-        Orice ticker stocks/crypto, one-shot sau re-arm, polling 60s + notify combo.</p>
-      <div class="features">
-        <span class="feat data">📈 Stocks + Crypto</span>
-        <span class="feat ai">🔔 Notify combo</span>
-        <span class="feat viz">📡 Telegram sync</span>
-      </div>
-      <div class="card-cta" style="color:#d4892c">
-        <span>Deschide Alerts</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-        </div>
-  </section>
-  <section class="wf-section" data-wf="review">
-    <div class="wf-head">📊 Review — lecții & post-trade</div>
-    <div class="wf-grid">
-    <a href="./weekly/" data-phase="review" target="ttools-weekly" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#5bb0ff,#ffd86b); --glow:rgba(91,176,255,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#5bb0ff,#ffd86b);box-shadow:0 4px 14px rgba(91,176,255,.3);color:#0a0a0a">📅</div>
-      <span class="card-tag" style="background:rgba(91,176,255,.15);color:#5bb0ff;border:1px solid rgba(91,176,255,.4)">Weekly · v4</span>
-      <h2 class="card-title">Weekly Review</h2>
-      <p class="card-desc">Retrospectiva ultimelor 7 zile din datele suitei: semnale (ledger), verdictele brief-ului,
-        execuțiile din Journal, regim + danger — plus sinteză AI la buton (ce a mers / zgomot / de urmărit).</p>
-      <div class="features">
-        <span class="feat data">📡 Semnale 7z</span>
-        <span class="feat risk">📓 Execuții</span>
-        <span class="feat ai">🤖 Sinteză AI</span>
-      </div>
-      <div class="card-cta" style="color:#5bb0ff">
-        <span>Deschide Weekly</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./postmortem/" data-phase="review" target="ttools-postmortem" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#22d66b,#a78bfa); --glow:rgba(34,214,107,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#22d66b,#a78bfa);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#0a0a0a">🔬</div>
-      <span class="card-tag" style="background:rgba(34,214,107,.15);color:#22d66b;border:1px solid rgba(34,214,107,.4)">Pro · v5</span>
-      <h2 class="card-title">Trade Post-Mortem</h2>
-      <p class="card-desc">MAE/MFE în R pe execuții reale + context regim/danger/sursă. Sugestii pattern: SL prea strâns, ieșire târzie, intrări contra mișcării.</p>
-      <div class="features">
-        <span class="feat data">MAE/MFE</span>
-        <span class="feat risk">🎯 SL/TP</span>
-        <span class="feat ai">💡 Sugestii</span>
-      </div>
-      <div class="card-cta" style="color:#22d66b"><span>Deschide Post-Mortem</span><span class="arrow">→</span></div>
-    </a>
-
-    <a href="./shadow-book/" data-phase="review" target="ttools-shadow" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#6366f1);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#fff">👻</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Pro · v6</span>
-      <h2 class="card-title">Signal Shadow Book</h2>
-      <p class="card-desc">Semnale blocate/ratate (macro gate, minQual, earnings…): atribuire filtre — ce ți-a salvat sau costat edge-ul, evaluat pe close forward.</p>
-      <div class="features">
-        <span class="feat data">👻 Shadow</span>
-        <span class="feat ai">🔬 Filtre</span>
-        <span class="feat alert">📊 Atribuire</span>
-      </div>
-      <div class="card-cta" style="color:#a78bfa"><span>Deschide Shadow Book</span><span class="arrow">→</span></div>
-    </a>
-
-    <a href="./health/" data-phase="review" target="ttools-health" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#22d66b,#5bb0ff); --glow:rgba(34,214,107,.18)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#22d66b,#5bb0ff);box-shadow:0 4px 14px rgba(34,214,107,.3);color:#0a0a0a">🩺</div>
-      <span class="card-tag" style="background:rgba(34,214,107,.15);color:#22d66b;border:1px solid rgba(34,214,107,.4)">Health · v6</span>
-      <h2 class="card-title">Suite Health</h2>
-      <p class="card-desc">Starea infrastructurii: proxy-uri CORS cu timing, chei API (Finnhub/AI/Telegram),
-        bot alerte server-side (ultimul run), gist sync (prinde 401), Service Worker + localStorage. Verde/galben/roșu.</p>
-      <div class="features">
-        <span class="feat data">🌐 Proxy ping</span>
-        <span class="feat alert">☁️ Bot heartbeat</span>
-        <span class="feat risk">🔑 Chei API</span>
-      </div>
-      <div class="card-cta" style="color:#22d66b">
-        <span>Deschide Health</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-    <a href="./guide/" data-phase="review" target="ttools-guide" rel="noopener" class="card" style="--accent:linear-gradient(90deg,#a78bfa,#5bb0ff); --glow:rgba(167,139,250,.20)">
-      <div class="card-icon" style="background:linear-gradient(135deg,#a78bfa,#5bb0ff);box-shadow:0 4px 14px rgba(167,139,250,.3);color:#0a0a0a">📖</div>
-      <span class="card-tag" style="background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)">Guide · v8</span>
-      <h2 class="card-title">Ghid Features Complet</h2>
-      <p class="card-desc">Index cu toate features pe 10 pagini cu search live + 3 view-uri:
-        per pagină, pe categorii (AI/Alerts/Charts/Risk/etc), changelog timeline. Badge "NOU" pe features &lt;7 zile.</p>
-      <div class="features">
-        <span class="feat data">📄 By page</span>
-        <span class="feat ai">🏷 By category</span>
-        <span class="feat viz">🕐 Changelog</span>
-      </div>
-      <div class="card-cta" style="color:#a78bfa">
-        <span>Deschide Guide</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-        </div>
-  </section>
-  <section class="wf-section" data-wf="legacy">
-    <div class="wf-head">Legacy</div>
-    <div class="wf-grid">
-<a href="https://mferent80-source.github.io/scanner/scanner-stocks.html" target="ttools-legacy" rel="noopener" class="card legacy">
-      <span class="legacy-badge">LEGACY</span>
-      <div class="card-icon">📊</div>
-      <span class="card-tag">Stocks · v50</span>
-      <h2 class="card-title">Stocks Scanner Pro (Scanner Hub)</h2>
-      <p class="card-desc">Versiunea v50 din Scanner Hub cu detecții clasice de stock pattern —
-        feature-uri unice neportate încă în nasdaq-scanner.</p>
-      <div class="features">
-        <span class="feat tool">💎 Wyckoff Spring</span>
-        <span class="feat tool">✅ Stage 2 Weinstein</span>
-        <span class="feat tool">🏗️ Acumulare 6 săpt</span>
-        <span class="feat data">📊 MTF + divergențe</span>
-        <span class="feat auto">🎯 Auto-pick Top X</span>
-      </div>
-      <div class="card-cta">
-        <span>Deschide scanner legacy</span>
-        <span class="arrow">→</span>
-      </div>
-    </a>
-
-      </div>
-  </section>
-</main>
-  </details><!-- /.hub-catalog-fold -->
-  </div><!-- /.hub-shell -->
-
-  <div class="hub-fabs" aria-label="Acțiuni rapide">
-    <button type="button" class="tt-fab tt-fab-plans" onclick="openTradeTracker()" title="Trade Plans">📋</button>
-    <a class="tt-fab journal-fab" href="./journal/#desk" title="Journal & Risk Desk">📓</a>
+  <div class="foot">
+    <a href="./guide/">ghid</a>
+    <a href="./health/">sănătatea suitei</a>
+    <a href="./alerts/">alerte</a>
+    <a href="./hub-clasic/">hub clasic (tot ce era înainte)</a>
+    <span class="sp"></span>
+    <span id="suite">…</span>
   </div>
-
-  <footer>
-    <div>Bacău, România · <span id="suiteVerFoot" title="Versiune suită">…</span></div>
-    <div class="foot-row">
-      <a href="https://github.com/mferent80-source" target="_blank" rel="noopener">GitHub</a>
-      <span>·</span>
-      <a href="./README.md">README</a>
-      <span>·</span>
-      <span>© <span id="yr"></span></span>
-    </div>
-  </footer>
-
 </div>
-<script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
-<!-- CRITICAL path — first paint cockpit (GO / market / next action). Restul la idle. -->
-<script defer src="lib/data.js?v=808"></script>
-<script defer src="lib/quote-bus.js?v=712"></script>
-<script defer src="lib/finnhub-key.js?v=712"></script>
-<script defer src="lib/suite-sessions.js?v=712"></script>
-<script defer src="lib/governor.js?v=712"></script>
-<script defer src="lib/router.js?v=712"></script>
-<script defer src="lib/hub-market.js?v=788"></script>
-<script defer src="lib/hub-state.js?v=712"></script>
-<script defer src="lib/hub-tableau.js?v=786"></script>
-<script defer src="lib/hub-next-action.js?v=712"></script>
-<script defer src="lib/macro-context.js?v=712"></script>
-<script defer src="lib/cockpit.js?v=784"></script>
-<script defer src="lib/hub-gappers.js?v=788"></script>
+
+<script src="lib/data.js?v=809"></script>
+<script src="lib/suite-sessions.js?v=809"></script>
+<script src="lib/macro-context.js?v=809"></script>
 <script>
-// ═══════════════════════════════════════════════════════════════
-//  FEATURES MODAL — listă completă funcționalități per scanner
-//  Click ℹ pe orice card → modal cu toate features grupate pe categorii
-// ═══════════════════════════════════════════════════════════════
-const SCANNER_FEATURES = {
-  'nasdaq': {
-    title: '📈 Nasdaq Opportunity Scanner',
-    sub: 'Stocks scanner · 18 tab-uri · live `nasdaq-scanner/`',
-    url: './nasdaq-scanner/',
-    sections: [
-      { title: '📡 Surse de date', cls: 'data', items: [
-        { e: '📡', t: '<b>Yahoo Finance</b> — quote endpoint free, fără cheie' },
-        { e: '🔑', t: '<b>Finnhub</b> — candle data, news ticker, insider transactions, earnings calendar (necesită API key free)' },
-      ]},
-      { title: '🛠️ Tab-uri scanare (18)', cls: 'tool', items: [
-        { e: '🔴', t: '<b>Live</b> — semnale ultimele 2 minute' },
-        { e: '📋', t: '<b>Toate</b> — istoric semnale curente' },
-        { e: '🌱', t: '<b>Early Buy</b> — scoring multi-factor pentru fază incipientă' },
-        { e: '💡', t: '<b>Oportunități</b> — top BUY/SELL cu Trade Plan + jurnal' },
-        { e: '🎛️', t: '<b>Multi-Scan Dashboard</b> — pump/dump/swing/RSI/vol în coloane' },
-        { e: '🎯', t: '<b>Swing</b> — setup-uri multi-day' },
-        { e: '🔥', t: '<b>Squeeze Radar</b> — bollinger band squeeze detection' },
-        { e: '🚨', t: '<b>Pump Radar</b> — mutat pe pagina dedicată ⚡ pump-radar (HMM + insider + backtest)' },
-        { e: '🗺️', t: '<b>Heatmap</b> sectoare ETFs (XLK/XLF/XLV...)' },
-        { e: '🌐', t: '<b>Sector rotation</b> — momentum shifts hot/cold' },
-        { e: '🌅', t: '<b>Pre/After-hours</b> — gappers, refresh 60s în pre-market' },
-        { e: '📉', t: '<b>Top Losers</b> — Nasdaq scădere semnificativă' },
-        { e: '👔', t: '<b>Insider feed</b> — tranzacții insiders' },
-        { e: '↕️', t: '<b>Gap scanner</b> — gap up/down cu strength' },
-        { e: '🔗', t: '<b>Correlation</b> — corelații între stocks/ETFs' },
-        { e: '📜', t: '<b>History</b> — log semnale anterioare' },
-      ]},
-      { title: '🎯 Filtre & Tools', cls: 'tool', items: [
-        { e: '🎯', t: '<b>Custom Screener</b> — 5 reguli AND combinate (chg/RSI/strength/price)' },
-        { e: '⚖️', t: '<b>Compare mode</b> — 2-3 stocks side-by-side cu metrici complete' },
-        { e: '📊', t: '<b>Mini-chart popup</b> — candlestick 30d via Yahoo (free)' },
-        { e: '⌨️', t: '<b>Keyboard shortcuts</b> — `/` search, 1-9 tabs, r scan, t theme, ? help' },
-        { e: '⭐', t: '<b>Watchlist persistent</b> — sync cross-page cu wl_stocks' },
-      ]},
-      { title: '🤖 Automation & alerts', cls: 'auto', items: [
-        { e: '🔄', t: '<b>Auto-scan</b> configurabil 60s/180s/300s/OFF' },
-        { e: '📱', t: '<b>Telegram smart batch</b> — agregat 60s window pentru 2+ alerts' },
-        { e: '🔔', t: '<b>Browser notifications</b> — STRONG signals pe 4 categorii' },
-        { e: '⏰', t: '<b>Price alerts</b> per stock cu Telegram + browser' },
-      ]},
-      { title: '🧠 AI integration', cls: 'ai', items: [
-        { e: '🌅', t: '<b>AI Briefing</b> — analiză watchlist completă (Opus 5)' },
-        { e: '🤖', t: '<b>AI inline</b> per stock pe oportunități/squeeze/pump' },
-        { e: '🧠', t: '<b>AI Market Summary</b> — context macro după scan' },
-      ]},
-      { title: '💾 Backup & Sync', cls: 'auto', items: [
-        { e: '💾', t: '<b>Backup JSON</b> — export/import config + watchlist + alerts' },
-        { e: '🔄', t: '<b>Gist Sync</b> — cross-device prin GitHub Gist privat' },
-      ]},
-    ],
-  },
-  'watchlist': {
-    title: '👁️ Watchlist Monitor',
-    sub: 'Stocks dedicated watchlist · live `watchlist-monitor/`',
-    url: './watchlist-monitor/',
-    sections: [
-      { title: '📡 Date', cls: 'data', items: [
-        { e: '📡', t: '<b>Yahoo Finance</b> — fără cheie API, range 1y interval 1d' },
-        { e: '🔄', t: '<b>Storage shared</b> wl_stocks cu nasdaq-scanner — același watchlist ambele pagini' },
-      ]},
-      { title: '🎯 Scoring & Verdict', cls: 'tool', items: [
-        { e: '📊', t: '<b>MA50/MA200</b> distance + Golden Cross detection' },
-        { e: '📈', t: '<b>RSI 14</b> sweet spot 40-65 (+10 points), OB/OS penalty' },
-        { e: '⚡', t: '<b>Day momentum</b> — chg% scoring (+/-5 points)' },
-        { e: '🎯', t: '<b>Verdict 5-tier</b>: 🚀 STRONG BUY (≥75) / 📈 BUY (60-74) / 📊 HOLD / 📉 SELL / 🔴 AVOID' },
-      ]},
-      { title: '🤖 Automation', cls: 'auto', items: [
-        { e: '🔄', t: '<b>Auto-scan continuu</b> 60s/180s/300s/OFF' },
-        { e: '🔔', t: '<b>Browser notification</b> la STRONG BUY nou (last_seen tracking)' },
-        { e: '⚙️', t: '<b>Sortabil</b> pe orice coloană (ticker/preț/RSI/MA50/score/verdict)' },
-      ]},
-    ],
-  },
-  'market-events': {
-    title: '📉 Market Events',
-    sub: 'Earnings + Top Losers + Heatmaps · live `market-events/`',
-    url: './market-events/',
-    sections: [
-      { title: '📅 Earnings Calendar', cls: 'data', items: [
-        { e: '📅', t: '<b>Earnings 7 zile</b> cu EPS Estimate + BMO/AMC + sector + market cap' },
-        { e: '📊', t: '<b>EPS history widget</b> per stock (ultimele 4 quarters)' },
-      ]},
-      { title: '📉 Movers & Heatmaps', cls: 'viz', items: [
-        { e: '📉', t: '<b>Top Losers Nasdaq</b> — scădere semnificativă cu volume sanity' },
-        { e: '🔥', t: '<b>Volume Heatmap</b> — concentrare volum per stock' },
-        { e: '🗺️', t: '<b>Sector Heatmap</b> — performance sectoare (cu fallback industry/exchange)' },
-      ]},
-      { title: '🤖 Automation', cls: 'auto', items: [
-        { e: '📡', t: '<b>Polling pseudo-live</b> când Market Session=OPEN' },
-        { e: '🤖', t: '<b>Cross-AI inline</b> per stock pentru analiză rapidă' },
-      ]},
-    ],
-  },
-};
-// (intrările crypto-events/crypto-scanner eliminate — paginile locuiesc la Scanner Hub din mai 2026)
+'use strict';
+const $ = (id) => document.getElementById(id);
+const ro = (x, z) => (x == null || !isFinite(x)) ? '—'
+  : x.toLocaleString('ro-RO', { minimumFractionDigits: z, maximumFractionDigits: z });
+const pct = (x) => x == null ? '' : (x > 0 ? '+' : '') + ro(x, 2) + '%';
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 
-window.showFeaturesModal = function(scannerKey){
-  const data = SCANNER_FEATURES[scannerKey];
-  if (!data) return;
-  document.getElementById('flOverlay')?.remove();
-  const ov = document.createElement('div');
-  ov.id = 'flOverlay';
-  ov.className = 'fl-overlay';
-  const closeOv = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = e => { if (e.key === 'Escape') closeOv(); };
-  document.addEventListener('keydown', onKey);
-  ov.addEventListener('click', e => { if (e.target === ov) closeOv(); });
-  let html = `<div class="fl-modal" role="dialog" aria-modal="true" aria-label="Funcționalități scanner">
-    <div class="fl-head">
-      <div>
-        <h3>${data.title}</h3>
-        <div class="sub">${data.sub}</div>
-      </div>
-      <button class="fl-close" type="button" data-close>×</button>
-    </div>`;
-  data.sections.forEach(sec => {
-    html += `<div class="fl-section">
-      <div class="fl-section-title">${sec.title} <span style="margin-left:auto;color:var(--t3);font-weight:500">(${sec.items.length})</span></div>
-      <div class="fl-list">
-        ${sec.items.map(it => `<div class="fl-item ${sec.cls}"><span class="fl-emoji">${it.e}</span><span class="fl-txt">${it.t}</span></div>`).join('')}
-      </div>
-    </div>`;
-  });
-  html += `<div class="fl-cta">
-    <a href="${data.url}" class="primary" target="tt_${(data.url||'').replace(/[^a-zA-Z0-9]/g,'')||'blank'}" rel="noopener">🚀 Deschide scanner</a><!-- numele care incep cu _ sunt invalide ca browsing-context -> browserul le trata ca _blank si dedup-ul de file nu functiona -->
-    <button type="button" data-close>Închide</button>
-  </div></div>`;
-  ov.innerHTML = html;
-  document.body.appendChild(ov);
-  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeOv));
-};
+const CIFRE = [
+  { sym: 'SPY',  k: 'SPY' },
+  { sym: 'QQQ',  k: 'QQQ' },
+  { sym: '^VIX', k: 'VIX', fara: true },
+];
 
-// ═══════════════════════════════════════════════════════════════
-//  TRADE TRACKER — minim, replace pentru trading-journal eliminat
-//  Storage: Journal-first via lib/tracker.js (TT.*) — tt_journal_v1 = sursa unică
-//  Status: 'open' | 'win' | 'loss' (manual mark)
-// ═══════════════════════════════════════════════════════════════
-function ttLoad(){ return (window.TT && TT.all) ? TT.all() : []; }
-window.openTradeTracker = function(){
-  document.getElementById('ttOverlay')?.remove();
-  const ov = document.createElement('div');
-  ov.id = 'ttOverlay'; ov.className = 'tt-overlay';
-  const closeOv = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
-  const onKey = e => { if (e.key === 'Escape') closeOv(); };
-  document.addEventListener('keydown', onKey);
-  ov.addEventListener('click', e => { if (e.target === ov) closeOv(); });
+const S = { cifre: {}, lipsa: [] };
 
-  const trades = ttLoad();
-  const open = trades.filter(t => t.status === 'open');
-  const closed = trades.filter(t => t.status === 'win' || t.status === 'loss');
-  const wins = closed.filter(t => t.status === 'win').length;
-  const winRate = closed.length ? Math.round(wins / closed.length * 100) : 0;
-  const totalPnL = closed.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
-
-  ov.innerHTML = `
-    <div class="tt-modal" role="dialog" aria-modal="true" aria-label="Trade Plans">
-      <div class="tt-head">
-        <div>
-          <h3>📓 Trade Plans</h3>
-          <div style="font-size:11px;color:var(--t3);margin-top:3px">${open.length} open · ${closed.length} closed · win rate ${winRate}%</div>
-        </div>
-        <button class="tt-close" type="button" data-close>×</button>
-      </div>
-      <div class="tt-stats">
-        <span>Open: <b>${open.length}</b></span>
-        <span>Closed: <b>${closed.length}</b></span>
-        <span>Win rate: <b style="color:${winRate >= 50 ? 'var(--green)' : '#ff4d4d'}">${winRate}%</b></span>
-        <span>Total PnL: <b style="color:${totalPnL >= 0 ? 'var(--green)' : '#ff4d4d'}">${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)}</b></span>
-      </div>
-
-      <form class="tt-form" onsubmit="event.preventDefault();ttAddTrade();return false">
-        <div><label>Ticker</label><input id="ttTicker" placeholder="AAPL, NVDA…" required maxlength="10" style="text-transform:uppercase"></div>
-        <div><label>Size (shares)</label><input id="ttSize" type="number" step="any" placeholder="100" required></div>
-        <div><label>Entry $</label><input id="ttEntry" type="number" step="any" placeholder="150.50" required></div>
-        <div><label>Stop Loss $</label><input id="ttSL" type="number" step="any" placeholder="148.00"></div>
-        <div><label>Take Profit $</label><input id="ttTP" type="number" step="any" placeholder="155.00"></div>
-        <div><label>Direction</label>
-          <select id="ttDir">
-            <option value="long" selected>📈 Long</option>
-            <option value="short">📉 Short</option>
-          </select>
-        </div>
-        <div class="col-full" id="ttRiskRow" style="font-family:var(--mono);font-size:11px;color:var(--t3);line-height:1.5">Risc: — <span style="opacity:.7">(completează Entry + SL + Size)</span></div>
-        <div class="col-full"><label>Notes (opțional)</label><input id="ttNotes" placeholder="Setup descriere, motiv intrare…" maxlength="200"></div>
-        <div class="col-full"><button type="submit">+ Adaugă plan</button></div>
-      </form>
-
-      <div class="tt-list" id="ttList">
-        ${trades.length === 0 ? '<div class="tt-empty">📭 Niciun trade salvat. Adaugă primul plan din formularul de mai sus.</div>' : trades.map(t => ttRenderRow(t)).join('')}
-      </div>
-    </div>`;
-  document.body.appendChild(ov);
-  ov.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeOv));
-  // preview de risc live la fiecare tastă (I-207) — sizing vizibil ÎNAINTE de salvare
-  ['ttEntry', 'ttSL', 'ttTP', 'ttSize', 'ttDir'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.addEventListener('input', ttRiskPreview); el.addEventListener('change', ttRiskPreview); }
-  });
-  ttRiskPreview();
-  document.getElementById('ttTicker')?.focus();
-};
-
-// Coerența direcțională a planului: long = SL sub entry, TP peste; short invers.
-// Un SL pe partea greșită = plan FĂRĂ protecție, iar Math.abs din R:R îl masca.
-function ttPlanIssues(entry, sl, tp, dir){
-  const issues = [];
-  const short = dir === 'short';
-  if (Number.isFinite(sl)) {
-    if (!short && sl >= entry) issues.push('SL (' + sl + ') trebuie SUB entry la long');
-    if (short && sl <= entry) issues.push('SL (' + sl + ') trebuie PESTE entry la short');
-  }
-  if (Number.isFinite(tp)) {
-    if (!short && tp <= entry) issues.push('TP (' + tp + ') trebuie PESTE entry la long');
-    if (short && tp >= entry) issues.push('TP (' + tp + ') trebuie SUB entry la short');
-  }
-  return issues;
+/** Sesiunea NYSE, din modulul comun al suitei (nu reimplementez fusul orar). */
+function sesiune() {
+  try {
+    const i = window.SES && SES.info && SES.info();
+    if (!i) return null;
+    return {
+      stare: i.label || i.state || i.phase || '—',
+      pana: i.nextLabel || i.next || i.until || '',
+    };
+  } catch (e) { return null; }
 }
 
-window.ttRiskPreview = function(){
-  const row = document.getElementById('ttRiskRow');
-  if (!row) return;
-  const num = id => parseFloat((document.getElementById(id)?.value || '').trim());
-  const entry = num('ttEntry'), sl = num('ttSL'), size = num('ttSize');
-  const dir = document.getElementById('ttDir')?.value || 'long';
-  if (!Number.isFinite(entry) || !Number.isFinite(sl) || !Number.isFinite(size) || entry <= 0 || size <= 0) {
-    row.innerHTML = 'Risc: — <span style="opacity:.7">(completează Entry + SL + Size)</span>';
-    return;
-  }
-  const issues = ttPlanIssues(entry, sl, num('ttTP'), dir);
-  if (issues.length) {
-    row.innerHTML = '<span style="color:#ff4d4d;font-weight:700">⚠ ' + issues.join(' · ') + '</span>';
-    return;
-  }
-  const riskUsd = Math.abs(entry - sl) * size;
-  let html = 'Risc la SL: <b style="color:var(--t1)">$' + riskUsd.toFixed(2) + '</b>';
-  if (window.ACCT && ACCT.get) {
-    const acct = ACCT.get().value;
-    if (acct > 0) {
-      const pct = riskUsd / acct * 100;
-      html += ' <b style="color:' + (pct >= 2 ? '#ff4d4d' : pct >= 1 ? '#d4892c' : 'var(--green)') + '">(' + pct.toFixed(2) + '% cont)</b>';
-    }
-  }
-  if (window.CD && CD.canAddRisk) {
+/** Regimul scris de Macro Dashboard. Daca nu l-a deschis azi, NU inventam unul. */
+function regim() {
+  try {
+    const r = window.MCTX && MCTX.regime && MCTX.regime();
+    if (!r || !r.label) return null;
+    const curat = String(r.label).replace(/[^\p{L}\s-]/gu, '').trim();
+    return { label: curat || String(r.label), varsta: r.ageMin != null ? r.ageMin : null };
+  } catch (e) { return null; }
+}
+
+async function adu() {
+  S.lipsa = [];
+  await Promise.all(CIFRE.map(async (c) => {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/'
+      + encodeURIComponent(c.sym) + '?range=5d&interval=1d';
     try {
-      const g = CD.canAddRisk(riskUsd);
-      const b = CD.unified();
-      if (b.rBudget && b.rBudget.rLeft != null) html += ' · Buget R rămas azi: <b style="color:var(--t1)">' + b.rBudget.rLeft.toFixed(1) + 'R</b>';
-      if (g.halt) html += '<br><span style="color:#ff4d4d;font-weight:700">⛔ ' + g.reasons.join(' · ') + '</span>';
-      else if (g.caution) html += '<br><span style="color:#d4892c;font-weight:700">⚠ ' + g.reasons.join(' · ') + '</span>';
-    } catch (e) {}
-  }
-  row.innerHTML = html;
-};
-
-function ttRenderRow(t){
-  const r = (t.tp && t.entry && t.sl && t.entry !== t.sl)
-    ? Math.abs((t.tp - t.entry) / (t.entry - t.sl)).toFixed(2) + 'R'
-    : '—';
-  const dirIcon = t.dir === 'short' ? '📉' : '📈';
-  // planuri vechi salvate cu SL pe partea greșită (înainte de validare) — marcate vizibil
-  const slBad = ttPlanIssues(parseFloat(t.entry), parseFloat(t.sl), parseFloat(t.tp), t.dir).length
-    ? ' <b style="color:#ff4d4d">⚠ SL/TP invers</b>' : '';
-  const meta = t.status === 'open'
-    ? `<b>${dirIcon} $${parseFloat(t.entry).toFixed(2)}</b> · SL <b>$${t.sl ? parseFloat(t.sl).toFixed(2) : '—'}</b> · TP <b>$${t.tp ? parseFloat(t.tp).toFixed(2) : '—'}</b> · R:R ${r}${slBad}<br>Size ${t.size} · ${new Date(t.opened).toLocaleDateString('ro-RO')}`
-    : (() => {
-        // pnl null (JR.pnl necalculabil) trecea de `null >= 0` ca true -> "+$NaN" pe VERDE;
-        // un LOSS afisat verde induce in eroare la scanarea vizuala a listei
-        const pnlN = Number(t.pnl);
-        const pnlHtml = Number.isFinite(pnlN)
-          ? `<b style="color:${pnlN >= 0 ? 'var(--green)' : '#ff4d4d'}">${pnlN >= 0 ? '+' : ''}$${pnlN.toFixed(2)}</b>`
-          : '<b style="color:var(--t3)">—</b>';
-        const exitN = parseFloat(t.exit);
-        const exitTxt = Number.isFinite(exitN) ? '$' + exitN.toFixed(2) : '—';
-        return `<b>${t.status === 'win' ? '✅ WIN' : '❌ LOSS'}</b> · Entry <b>$${parseFloat(t.entry).toFixed(2)}</b> → Exit <b>${exitTxt}</b> · PnL ${pnlHtml}<br>Size ${t.size} · ${new Date(t.closed || t.opened).toLocaleDateString('ro-RO')}`;
-      })();
-  const actions = t.status === 'open'
-    ? `<button class="tt-win" onclick="ttCloseTrade('${t.id}','win')" title="Marcat WIN cu prețul TP">✅ Win</button>
-       <button class="tt-loss" onclick="ttCloseTrade('${t.id}','loss')" title="Marcat LOSS cu prețul SL">❌ Loss</button>
-       <button onclick="ttDeleteTrade('${t.id}')" title="Șterge">🗑</button>`
-    : `<button onclick="ttDeleteTrade('${t.id}')" title="Șterge">🗑</button>`;
-  return `<div class="tt-row s-${t.status}">
-    <div class="tt-tk">${String(t.ticker || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}</div>
-    <div class="tt-meta">${meta}${t.notes ? '<br><i style="color:var(--t3);font-size:10px">' + String(t.notes).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])) + '</i>' : ''}</div>
-    <div class="tt-act">${actions}</div>
-  </div>`;
-}
-
-window.ttAddTrade = function(){
-  const v = id => (document.getElementById(id)?.value || '').trim();
-  const ticker = v('ttTicker').toUpperCase();
-  const size = parseFloat(v('ttSize'));
-  const entry = parseFloat(v('ttEntry'));
-  if (!ticker || !size || !entry) { alert('Ticker, Size și Entry sunt obligatorii'); return; }
-  // valorile ≤0 treceau de check-ul de mai sus doar dacă erau exact 0
-  if (size <= 0 || entry <= 0) { alert('Size și Entry trebuie să fie pozitive'); return; }
-  const sl = parseFloat(v('ttSL'));
-  const tp = parseFloat(v('ttTP'));
-  const dir = v('ttDir') || 'long';
-  const issues = ttPlanIssues(entry, sl, tp, dir);
-  if (issues.length) { alert('⚠ Plan refuzat:\n· ' + issues.join('\n· ')); return; }
-  // pre-trade gate (CD): riscul planului vs riscul deja deschis + verdictul Desk
-  if (Number.isFinite(sl) && window.CD && CD.canAddRisk) {
-    try {
-      const g = CD.canAddRisk(Math.abs(entry - sl) * size);
-      if ((g.halt || g.caution) && !window.confirm((g.halt ? '⛔' : '⚠') + ' ' + g.reasons.join('\n') + '\n\nSalvezi planul oricum?')) return;
-    } catch (e) {}
-  }
-  const t = {
-    ticker, size, entry,
-    sl: Number.isFinite(sl) ? sl : null,
-    tp: Number.isFinite(tp) ? tp : null,
-    dir,
-    notes: v('ttNotes') || '',
-    opened: Date.now(),
-  };
-  // TT.add întoarce null când journal.js lipsește — planul NU e salvat; fără
-  // check-ul ăsta modalul se redeschidea gol și userul credea că a salvat
-  const saved = (window.TT && TT.add) ? TT.add(t) : null;
-  if (!saved) { alert('⚠ Tracker indisponibil (journal.js/tracker.js neîncărcat) — planul NU a fost salvat.'); return; }
-  openTradeTracker();
-};
-
-window.ttCloseTrade = function(id, status){
-  const arr = ttLoad();
-  const t = arr.find(x => x.id === id);
-  if (!t) return;
-  // Auto-fill exit price din TP/SL conform status
-  const defaultExit = status === 'win' ? (t.tp || t.entry) : (t.sl || t.entry);
-  const exitStr = window.prompt('Preț FILL real la ieșire (nu TP/SL plan — default: $' + parseFloat(defaultExit).toFixed(2) + '):', defaultExit);
-  if (exitStr === null) return; // cancel
-  const exitN = parseFloat(exitStr);
-  // input neparsabil ("abc") cădea tăcut pe default — acum refuză explicit
-  if (!Number.isFinite(exitN) || exitN <= 0) { alert('Preț de ieșire invalid — trade-ul NU a fost închis.'); return; }
-  const exit = exitN;
-  const feesStr = window.prompt('Fees totale USD (spread/FX, 0 dacă necunoscut):', '0');
-  if (feesStr === null) return;
-  const fees = parseFloat(feesStr) || 0;
-  if (window.TT && TT.close) TT.close(id, status, exit, fees);
-  openTradeTracker();
-};
-
-window.ttDeleteTrade = function(id){
-  if (!window.confirm('Ștergi acest trade din istoric?')) return;
-  if (window.TT && TT.remove) TT.remove(id);
-  openTradeTracker();
-};
-
-// ── PWA: manifest inline + install prompt ──
-(function(){
-  const mf = {
-    name: 'Trading Tools', short_name: 'Tools',
-    start_url: new URL('shell/', location.href).href, // aplicația instalată pornește în shell-ul cu taburi
-    scope: new URL('./', location.href).href,         // scope = rădăcina suite-ului
-    display: 'standalone',
-    background_color: '#0b0f17',
-    theme_color: '#f7931a',
-    icons: [
-      { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='38' fill='%23f7931a'/%3E%3Ctext y='128' x='96' text-anchor='middle' font-size='96'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E", sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-      { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='102' fill='%23f7931a'/%3E%3Ctext y='340' x='256' text-anchor='middle' font-size='256'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E", sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
-    ]
-  };
-  const ml = document.createElement('link');
-  ml.rel = 'manifest';
-  ml.href = URL.createObjectURL(new Blob([JSON.stringify(mf)], {type:'application/json'}));
-  document.head.appendChild(ml);
-
-  let _pe = null;
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    _pe = e;
-    const b = document.getElementById('pwaInstallBtn');
-    if(b){ b.style.display='inline-flex'; }
-  });
-  window.addEventListener('appinstalled', () => {
-    _pe = null;
-    const b = document.getElementById('pwaInstallBtn');
-    if(b) b.style.display='none';
-  });
-  window.installPWA = function(){
-    if(!_pe){ alert('ℹ️ Instalarea apare automat pe Chrome Android după ~30s. Pe iPhone: Share → "Add to Home Screen".'); return; }
-    _pe.prompt();
-    _pe.userChoice.then(() => { _pe = null; });
-  };
-})();
-
-// Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
-if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = 'tt-v808';
-  navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
-}
-
-// În PWA standalone, ascunde footer-ul cu link-uri externe (GitHub + README)
-// Fallback JS robust peste CSS, pentru cazuri când CSS-ul cache-uit nu are regula display:none
-if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
-  const f = document.querySelector('footer');
-  if (f) f.style.display = 'none';
-}
-</script>
-
-
-<script>
-// ── O SINGURĂ FILĂ per pagină ──
-// Cardurile au target numit (ttools-*). Default, re-click reîncarcă fila existentă
-// (pierde starea) și NU o aduce în față. Reținem handle-ul ferestrei și la re-click
-// doar focus() — fără reload. Dacă fila a fost închisă, o redeschidem.
-(function(){
-  const wins = {};
-  const SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','mfx-screener/','factor-lab/',
-    'earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/',
-    'journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
-  const segFromHref = href => {
-    try {
-      const p = new URL(href, location.href).pathname;
-      for (const s of SEGS) if (p.includes('/' + s)) return s;
-    } catch(e){}
-    return null;
-  };
-  const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  document.addEventListener('click', function(e){
-    if (e.target.closest('.card-info-btn')) return;
-    const a = e.target.closest('a.card[target]');
-    if (!a) return;
-    const name = a.getAttribute('target') || '';
-    if (!name.startsWith('ttools-')) return;
-    e.preventDefault();
-    const seg = segFromHref(a.href);
-    if (window.self !== window.top && seg !== null) {
-      try { parent.postMessage({ ttOpen: seg }, location.origin); } catch(_){}
-      return;
-    }
-    if (isStandalone()) { location.href = a.href; return; }
-    const existing = wins[name];
-    if (existing && !existing.closed) {
-      try { existing.focus(); return; } catch(_){}
-    }
-    const w = window.open(a.href, name);
-    if (!w) location.href = a.href;
-    else { wins[name] = w; try { w.focus(); } catch(_){} }
-  });
-})();
-</script>
-<script>
-// init-ul rulează la DOMContentLoaded — doar critical path e deja `defer`
-window.addEventListener('DOMContentLoaded', function(){
-  if (window.SUITE_VERSION_SHORT) {
-    const v = window.SUITE_VERSION_SHORT;
-    const b = document.getElementById('suiteVerBadge');
-    if (b) b.textContent = v;
-    const f = document.getElementById('suiteVerFoot');
-    if (f) f.textContent = v;
-  }
-  const bootFails = [];
-  const boot = (name, fn) => { try { fn(); } catch (e) { console.warn('init ' + name + ':', e); bootFails.push(name); } };
-  // Tableau ÎNAINTE de market (creează #spyVal…)
-  if (window.HT) boot('HT', () => HT.render());
-  if (window.HM) boot('HM', () => HM.init());
-  // Gappers: NU la boot — sweep Yahoo 30 sim bloca first paint 5–15s pe pre
-  // (HG.init e amânat după secondary load / idle)
-  if (window.HS) boot('HS', () => HS.renderStaleNav());
-  if (window.HNA) boot('HNA', () => HNA.init());
-  if (window.FH_KEY && FH_KEY.migrate) boot('FH_KEY', () => FH_KEY.migrate());
-
-  [['HM','hub-market'],['HT','hub-tableau'],['HS','hub-state']].forEach(([g, n]) => {
-    if (!window[g]) bootFails.push(n);
-  });
-  if (bootFails.length){
-    const b = document.createElement('div');
-    b.style.cssText = 'background:rgba(255,77,77,.14);border:1px solid rgba(255,77,77,.5);color:#ffb3b3;border-radius:10px;padding:9px 12px;margin:8px 0;font-family:var(--mono);font-size:12px;font-weight:700';
-    b.textContent = '⚠ Module hub picate: ' + bootFails.join(', ') + ' — reîncarcă cu Ctrl+F5; dacă persistă, vezi Health.';
-    const shell = document.querySelector('.hub-shell');
-    if (shell) shell.insertBefore(b, shell.firstChild);
-  }
-  window.addEventListener('hub:market', () => {
-    if (window.HS){ try { HS.patchMarketCards(); HS.renderStaleNav('hubStaleNav'); } catch (e) {} }
-    if (window.HNA){ try { HNA.render(); } catch (e) {} }
-    if (window.HUB_HEALTH && HUB_HEALTH.renderStrip){ try { HUB_HEALTH.renderStrip(); } catch (e) {} }
-    if (window.HB && HB.renderCockpit){ try { HB.renderCockpit(); } catch (e) {} }
-  });
-
-  // ── Secondary libs (~200KB) după first paint — capital/journal/health/search ──
-  const SEC_V = '789';
-  const SECONDARY = [
-    'lib/suite-context.js?v=' + SEC_V,
-    'lib/ledger.js?v=' + SEC_V,
-    'lib/journal.js?v=' + SEC_V,
-    'lib/account.js?v=' + SEC_V,
-    'lib/capital-time.js?v=' + SEC_V,
-    'lib/equity.js?v=' + SEC_V,
-    'lib/capital-desk.js?v=' + SEC_V,
-    'lib/event-tape.js?v=' + SEC_V,
-    'lib/hub-health.js?v=' + SEC_V,
-    'lib/hub-card-live.js?v=' + SEC_V,
-    'lib/hub-search.js?v=' + SEC_V,
-    'lib/hub-ledger.js?v=' + SEC_V,
-    'lib/telegram.js?v=' + SEC_V,
-    'lib/tracker.js?v=' + SEC_V,
-    'lib/morning-check.js?v=' + SEC_V,
-    'lib/regime.js?v=' + SEC_V
-  ];
-  function loadScript(src){
-    return new Promise(function(resolve, reject){
-      const s = document.createElement('script');
-      s.src = src;
-      s.async = true;
-      s.onload = function(){ resolve(); };
-      s.onerror = function(){ reject(new Error(src)); };
-      document.body.appendChild(s);
-    });
-  }
-  function loadSecondary(){
-    // paralel — browser limitează concurrent connections
-    return Promise.all(SECONDARY.map(function(src){
-      return loadScript(src).catch(function(e){ console.warn('secondary', e); });
-    })).then(function(){
-      if (window.HUB_HEALTH) boot('HUB_HEALTH', () => HUB_HEALTH.init());
-      if (window.HCL) boot('HCL', () => HCL.init());
-      if (window.HSEARCH) boot('HSEARCH', () => HSEARCH.init());
-      if (window.HB_LEDGER && HB_LEDGER.init) boot('HB_LEDGER', () => HB_LEDGER.init());
-      if (window.TT && TT.migrateLegacy) boot('TT', () => TT.migrateLegacy());
-      // gappers după secondary (D e deja ok; amână rețeaua grea)
-      if (window.HG) boot('HG', () => HG.init());
-      // re-render tableau cu CD/EQ dacă au apărut
-      if (window.HT && HT.render) try { HT.render(); } catch (e) {}
-      if (window.HNA && HNA.render) try { HNA.render(); } catch (e) {}
-    });
-  }
-
-  // ── hub-brief.js (~105KB) — lazy ──
-  let _hbPromise = null;
-  function loadHubBrief(reason) {
-    if (window.HB && window.HB.init && window.HB.refresh) return Promise.resolve(window.HB);
-    if (window.HB && window.HB.init && !_hbPromise) {
-      try { HB.init(); } catch (e) { console.warn('init HB (cached):', e); }
-      return Promise.resolve(window.HB);
-    }
-    if (_hbPromise) return _hbPromise;
-    _hbPromise = new Promise(function (resolve, reject) {
-      const s = document.createElement('script');
-      s.src = 'lib/hub-brief.js?v=786';
-      s.async = true;
-      s.onload = function () {
-        try {
-          if (window.HB && HB.init) HB.init();
-          if (window.HT && HT.render) HT.render();
-          const pb = document.getElementById('pbWrap');
-          if (pb && pb.open && window.HB && HB.refresh) HB.refresh();
-        } catch (e) { console.warn('init HB (lazy):', e); }
-        resolve(window.HB);
+      const j = await D.fetchJSON(url, { ttl: 300, cacheKey: 'hub:' + c.sym });
+      const m = j && j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
+      if (!m || m.regularMarketPrice == null) throw new Error('fara pret');
+      const inch = m.chartPreviousClose != null ? m.chartPreviousClose : m.previousClose;
+      S.cifre[c.k] = {
+        val: m.regularMarketPrice,
+        chg: (inch > 0) ? (m.regularMarketPrice / inch - 1) * 100 : null,
+        fara: c.fara,
       };
-      s.onerror = function () {
-        _hbPromise = null;
-        console.warn('hub-brief.js load failed', reason || '');
-        try {
-          const hero = document.querySelector('#pbHero .pb-hero-verdict');
-          if (hero && /compune|încarcă|se /i.test(hero.textContent || '')) {
-            hero.textContent = '⚠ brief.js nu s-a încărcat — Ctrl+F5';
-          }
-        } catch (e2) {}
-        reject(new Error('hub-brief load failed'));
-      };
-      document.body.appendChild(s);
-    });
-    return _hbPromise;
-  }
-  window.loadHubBrief = loadHubBrief;
-  const pbWrap = document.getElementById('pbWrap');
-  if (pbWrap) {
-    pbWrap.addEventListener('toggle', function () {
-      if (pbWrap.open) loadHubBrief('pb-open');
-    }, true);
-  }
+    } catch (e) {
+      S.cifre[c.k] = null;
+      S.lipsa.push(c.k);
+    }
+  }));
+  deseneaza();
+}
 
-  // ── Butoanele LAYOUT (Auto / Pre / RTH / AH / Review) ──────────────────────
-  //
-  // 22.09.2026: erau MOARTE. Cinci butoane pe primul ecran al paginii principale,
-  // care nu faceau absolut nimic - probat apasand toate cele cinci moduri: 601
-  // elemente vizibile de fiecare data, identic, si niciun buton marcat ca activ.
-  //
-  // Cauza: logica lor (`wireSessBar` + `applyHubSessionMode`) traieste in
-  // hub-brief.js, care a fost trecut pe incarcare LENESA ca sa se deschida hub-ul
-  // mai repede (105 KB). Dar el se incarca doar cand deschizi pliul „Brief
-  // detaliat" - deci pana atunci butoanele de sus nu erau legate de nimic. O
-  // optimizare de viteza a lasat in urma cinci butoane fara fir.
-  //
-  // Reparatia pastreaza incarcarea lenesa: clicul scrie preferinta ACUM (asta e
-  // tot ce conteaza pentru starea aplicatiei), apoi cere modulul. Cand acesta se
-  // incarca, `HB.init()` cheama `applyHubSessionMode()`, care citeste preferinta
-  // si picteaza butonul activ. Al doilea clic merge deja pe drumul normal.
-  const sessBar = document.getElementById('hubSessBar');
-  if (sessBar) {
-    sessBar.addEventListener('click', function (e) {
-      const btn = e.target.closest('[data-hub-mode-set]');
-      if (!btn) return;
-      const v = btn.getAttribute('data-hub-mode-set');
-      if (!v) return;
-      try { localStorage.setItem('hub_session_mode', v); } catch (err) {}
-      // feedback imediat, ca omul sa vada ca butonul a facut ceva
-      sessBar.querySelectorAll('[data-hub-mode-set]').forEach(function (b) {
-        const on = b === btn;
-        b.classList.toggle('on', on);
-        b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      });
-      loadHubBrief('sess-mode');
-    });
-  }
-  const pbRefEarly = document.getElementById('pbRefreshBtn');
-  if (pbRefEarly) {
-    pbRefEarly.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (pbWrap && !pbWrap.open) pbWrap.open = true;
-      loadHubBrief('refresh-btn').then(function (hb) {
-        if (hb && hb.refresh) hb.refresh();
-      }).catch(function () {});
-    }, true);
-  }
+function deseneaza() {
+  const ses = sesiune();
+  const reg = regim();
 
-  // Secondary + brief: după first paint (idle / 1.5s max) — nu blochează hero
-  function afterPaint(){
-    loadSecondary().then(function(){
-      let wantBriefSoon = false;
-      try { wantBriefSoon = localStorage.getItem('pb_open') === '1'; } catch (e) {}
-      // brief.js (~105KB + fetch-uri) DOAR dacă fold-ul e deschis — idle load bloca Hub-ul
-      if (wantBriefSoon) loadHubBrief('pb_pref');
-    });
-  }
-  if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(afterPaint, { timeout: 1500 });
+  // Verdictul: ce ai de facut ACUM. Cand nu stim destul, o spunem - nu umplem
+  // golul cu un indemn generic, care ar arata la fel si cand totul e in regula.
+  let kick, titlu, dece, buton, href;
+  const inchis = ses && /închis|inchis|closed|overnight|pre|after/i.test(String(ses.stare));
+  if (!reg) {
+    kick = 'nu am contextul';
+    titlu = 'Deschide întâi Cockpit';
+    dece = 'Regimul de risc nu a fost calculat azi, deci nu pot spune dacă e zi de tranzacționat. Cockpit îl află în câteva secunde.';
+    buton = 'Deschide Cockpit'; href = './cockpit/';
+  } else if (inchis) {
+    kick = 'piața nu e în ședință';
+    titlu = 'Închide ziua corect';
+    dece = 'Execuții, PnL, greșeli. Nu forța un setup în afara orelor: regimul de acum nu mai e cel de la deschidere.';
+    buton = 'Deschide Journal'; href = './journal/#desk';
   } else {
-    setTimeout(afterPaint, 400);
+    kick = 'regim ' + reg.label.toLowerCase();
+    titlu = 'Verifică planul, apoi caută';
+    dece = 'Regimul e calculat și piața e deschisă. Router spune dacă ai voie azi, Desk spune cât.';
+    buton = 'Deschide Router'; href = './router/';
   }
-});
+  $('kick').textContent = kick;
+  $('verdict').textContent = titlu;
+  $('dece').textContent = dece;
+  $('go').textContent = buton;
+  $('go').href = href;
+
+  const celule = [];
+  for (const c of CIFRE) {
+    const d = S.cifre[c.k];
+    if (!d) {
+      celule.push('<div class="n"><div class="k">' + esc(c.k) + '</div>'
+        + '<div class="v q">nu știu</div><div class="d">sursa n-a răspuns</div></div>');
+      continue;
+    }
+    // La VIX „in sus" inseamna frica mai mare, deci nu-l colorez ca pe un pret.
+    const cls = d.fara ? '' : (d.chg >= 0 ? ' up' : ' dn');
+    celule.push('<div class="n"><div class="k">' + esc(c.k) + '</div>'
+      + '<div class="v">' + ro(d.val, 2) + '</div>'
+      + '<div class="d' + cls + '">' + esc(pct(d.chg)) + '</div></div>');
+  }
+  if (ses) celule.push('<div class="n"><div class="k">Sesiune</div><div class="v">' + esc(ses.stare) + '</div>'
+    + '<div class="d">' + esc(ses.pana) + '</div></div>');
+  if (reg) celule.push('<div class="n"><div class="k">Regim</div><div class="v">' + esc(reg.label) + '</div>'
+    + '<div class="d">' + (reg.varsta != null ? 'acum ' + reg.varsta + ' min' : '') + '</div></div>');
+  else celule.push('<div class="n"><div class="k">Regim</div><div class="v q">nu știu</div>'
+    + '<div class="d">Macro nu a rulat azi</div></div>');
+  $('nums').innerHTML = celule.join('');
+
+  // Ce n-am putut afla se scrie, nu se ascunde.
+  const cauza = (window.D && D.lastFailText && D.lastFailText()) || '';
+  $('lipsa').innerHTML = S.lipsa.length
+    ? '<p class="miss"><b>Nu am putut afla ' + S.lipsa.length + (S.lipsa.length === 1 ? ' cifră' : ' cifre') + ':</b> '
+      + esc(S.lipsa.join(', ')) + '.'
+      + (cauza ? ' Ultimul eșec: <span style="font-family:var(--tt-mono)">' + esc(cauza) + '</span>.' : '')
+      + '</p>'
+    : '';
+}
+
+try {
+  const v = localStorage.getItem('tt_sw_version') || localStorage.getItem('tt_suite_version');
+  if (v) { $('ver').textContent = v; $('suite').textContent = v; }
+} catch (e) {}
+
+adu();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw-app.js?v=tt-v809').catch(() => {});
+  });
+}
 </script>
-<script defer src="nav.js?v=712" data-nav-root="./"></script>
+<script src="lib/suite-version.js?v=809"></script>
+<script src="nav.js?v=682" data-nav-root="./"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v808';
+  var PAGE_VER = 'tt-v809';
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register('./sw-app.js?v=' + PAGE_VER, { scope: './', updateViaCache: 'none' })
+  navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
       try { reg.update(); } catch (e) {}
       if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
