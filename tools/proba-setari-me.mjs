@@ -26,7 +26,13 @@ await s('Page.navigate', { url: 'http://127.0.0.1:8777/market-events/' });
 const ev = async (x) => (await s('Runtime.evaluate', { expression: x, returnByValue: true, awaitPromise: true }))?.result?.value;
 let gata = false;
 for (let i = 0; i < 60 && !gata; i++) { gata = await ev(`!!document.querySelector('details.setari')`); if (!gata) await w(500); }
-if (!gata) { console.error('PICAT: butonul ⚙ nu exista pe pagina'); ws.close(); b.kill(); process.exit(1); }
+if (!gata) {
+  // iesirea devreme lasa altfel profilul pe disc: 16 foldere orfane = 751 MB
+  console.error('PICAT: butonul ⚙ nu exista pe pagina');
+  ws.close(); b.kill(); await w(400);
+  try { rmSync(profil, { recursive: true, force: true, maxRetries: 3 }); } catch {}
+  process.exit(1);
+}
 
 const greseli = [];
 
