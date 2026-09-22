@@ -3,155 +3,180 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<script src="lib/theme.js?v=809"></script>
+<script src="lib/theme.js?v=812"></script>
 <meta name="theme-color" content="#17150f">
 <title>Trading Tools</title>
-<meta name="description" content="Hub-ul suitei de trading: ce ai de facut acum, cifrele zilei, uneltele.">
+<meta name="description" content="Hub: ce ai de facut acum, macro, sectoare si piata - toate pe un ecran.">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="lib/plex.css?v=809">
-<link rel="stylesheet" href="lib/tokens.css?v=809">
+<link rel="stylesheet" href="lib/plex.css?v=812">
+<link rel="stylesheet" href="lib/tokens.css?v=812">
 <style>
 /* ══════════════════════════════════════════════════════════════════════════════
-   HUB - reconstruit de la zero (22.09.2026)
+   HUB cu FERESTRE (22.09.2026)
 
-   Varianta dinainte e pastrata INTREAGA la /hub-clasic/ si se deschide dintr-un
-   link din josul paginii. Nimic nu s-a pierdut.
+   Cerut: „fa pe aproape toata lungimea ecranului si populeaza cu ferestre, pune
+   fereastra de macro sa pot vedea direct de aici macro tot, la fel si sector".
 
-   De ce de la zero si nu inca o reasezare: masurat, pagina veche avea 48 de lucruri
-   apasabile pe primul ecran, 16 marimi de font si 24 de culori. Reasezarea a mutat
-   verdictul sus si a legat culorile la tokeni, dar aglomeratia a ramas - pentru ca
-   ea nu vine din CSS, ci din CATE lucruri sunt pe ecran.
+   Ferestrele NU sunt iframe-uri cu paginile reale. Un iframe ar fi adus 424 KB
+   pentru Macro si inca 105 KB pentru Sector, cu propriile lor bare, meniuri si
+   benzi de stare inauntru - adica exact aglomeratia pe care tocmai am scos-o,
+   pusa la loc intr-o rama. Ferestrele isi aduc singure cifrele prin lib/piata.js,
+   aceleasi pe care le folosesc si paginile, si arata doar ce se citeste dintr-o
+   privire. Fiecare are in colt un link catre pagina intreaga.
 
-   Ce s-a schimbat la culoare: fundalul nu mai e negru rece, ci gri CALD, si cifrele
-   nu mai stau in cutii cu chenar. Chenarele erau jumatate din aglomeratie: fiecare
-   numar era desenat ca un obiect separat, deci cerea atentie separat. Aici grupeaza
-   spatiul, nu rama. Un singur accent (chihlimbar) marcheaza ce ai de facut; perechea
-   sus/jos ramane cea validata pentru daltonism din lib/tokens.css.
-
-   Ce NU incarca pagina asta: hub-brief.js (105 KB), hub-tableau, hub-ledger,
-   hub-gappers, hub-market, hub-card-live, hub-health, hub-search, cockpit.js.
-   Datele vin din lib/data.js (preturi) si din starea scrisa de celelalte pagini
-   (MCTX pentru regim, SES pentru sesiune).
+   Latimea: 1680px, cat sa incapa trei ferestre alaturi pe un monitor obisnuit,
+   dar nu atat cat sa ajunga randurile de text nelizibile. Pe telefon, una sub alta.
    ══════════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --pl:    #17150f;   /* gri CALD, nu negru rece */
-  --pl-2:  #1f1c15;
+  --pl:    #17150f;
+  --win:   #1e1b14;
+  --win-2: #262218;
   --ink:   #f5f3ee;
   --ink-2: #b8b3a6;
   --ink-3: #85806f;
-  --line:  #2b271e;
-  --acc:   #e8a838;   /* chihlimbar: DOAR pentru ce ai de facut */
+  --line:  #2f2a20;
+  --acc:   #e8a838;
   --sus:   var(--tt-pos);
   --jos:   var(--tt-neg);
 }
 :root[data-theme="light"] {
-  --pl:    #faf8f3;
-  --pl-2:  #f2efe7;
+  --pl:    #f4f1ea;
+  --win:   #fdfcf9;
+  --win-2: #f3f0e8;
   --ink:   #1b1813;
   --ink-2: #57534a;
   --ink-3: #7d7869;
-  --line:  #e4dfd3;
+  --line:  #e2ddd0;
   --acc:   #8a5a00;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
-  background: var(--pl);
-  color: var(--ink);
-  font-family: var(--tt-sans);
-  font-size: 16px;
-  line-height: 1.5;
-  -webkit-text-size-adjust: 100%;
-  padding-bottom: 96px;
+  background: var(--pl); color: var(--ink);
+  font-family: var(--tt-sans); font-size: 15px; line-height: 1.45;
+  -webkit-text-size-adjust: 100%; padding-bottom: 92px;
 }
-.w { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+.w { max-width: 1680px; margin: 0 auto; padding: 0 22px; }
 a { color: inherit; }
 
 /* ── cap ── */
-.top { display: flex; align-items: baseline; gap: 12px; padding: 22px 0 0; flex-wrap: wrap; }
+.top { display: flex; align-items: baseline; gap: 12px; padding: 18px 0 14px; flex-wrap: wrap; }
 .top h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 .top .v { font-family: var(--tt-mono); font-size: 11px; color: var(--ink-3); }
 .sp { margin-left: auto; }
 .lnk {
-  font: inherit; font-size: 13px; color: var(--ink-2); background: none;
-  border: 0; padding: 4px 0; cursor: pointer; text-decoration: none;
-  border-bottom: 1px solid transparent;
+  font: inherit; font-size: 13px; color: var(--ink-2); background: none; border: 0;
+  padding: 4px 0; cursor: pointer; text-decoration: none; border-bottom: 1px solid transparent;
 }
 .lnk:hover { color: var(--ink); border-bottom-color: var(--line); }
-.top .tt-theme-btn {
-  background: none; border: 0; color: var(--ink-2); cursor: pointer;
-  font-size: 15px; line-height: 1; padding: 2px 4px; box-shadow: none;
-}
-.top .tt-theme-btn:hover { color: var(--ink); transform: none; filter: none; }
 
-/* ── verdictul: singurul lucru mare de pe pagina ── */
-.verdict { padding: 34px 0 8px; }
+/* ── verdictul: lat cat tot ecranul, deasupra ferestrelor ── */
+.verdict {
+  background: var(--win); border-radius: var(--tt-r); border-left: 3px solid var(--acc);
+  padding: 20px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 26px;
+}
 .verdict .kick {
   font-family: var(--tt-mono); font-size: 11px; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--ink-3);
+  text-transform: uppercase; color: var(--ink-3); width: 100%;
 }
 .verdict h2 {
-  font-size: clamp(30px, 5.4vw, 42px); line-height: 1.08; letter-spacing: -0.03em;
-  font-weight: 700; margin: 8px 0 10px; color: var(--acc);
+  font-size: clamp(24px, 2.6vw, 32px); line-height: 1.1; letter-spacing: -0.025em;
+  font-weight: 700; margin: 0; color: var(--acc);
 }
-.verdict p { color: var(--ink-2); font-size: 16px; margin: 0; max-width: 58ch; }
+.verdict p { color: var(--ink-2); font-size: 15px; margin: 0; max-width: 62ch; flex: 1 1 320px; }
 .go {
-  display: inline-block; margin-top: 18px; font-size: 16px; font-weight: 600;
-  color: var(--pl); background: var(--acc); border-radius: 999px;
-  padding: 10px 20px; text-decoration: none;
+  font-size: 15px; font-weight: 600; color: var(--pl); background: var(--acc);
+  border-radius: 999px; padding: 9px 18px; text-decoration: none; white-space: nowrap;
 }
 .go:active { transform: translateY(1px); }
+/* dovezile din care se compune verdictul */
+.dovezi { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; margin-top: 2px; }
+.pf { font-family: var(--tt-mono); font-size: 11.5px; padding: 3px 9px;
+      border: 1px solid var(--line); border-radius: 999px; color: var(--ink-2); }
+.pf b { font-weight: 600; }
+.pf.da { border-color: color-mix(in srgb, var(--sus) 55%, transparent); }
+.pf.da b { color: var(--sus); }
+.pf.nu { border-color: color-mix(in srgb, var(--jos) 55%, transparent); }
+.pf.nu b { color: var(--jos); }
+.pf.hm { border-color: color-mix(in srgb, var(--acc) 55%, transparent); }
+.pf.hm b { color: var(--acc); }
+.pf.un { border-style: dashed; color: var(--ink-3); }
 
-/* ── cifrele: FARA cutii. Spatiul grupeaza, nu rama. ── */
-.nums {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 22px 28px; padding: 26px 0; margin-top: 12px;
-  border-top: 1px solid var(--line);
+/* ── ferestrele ── */
+.ferestre {
+  display: grid; gap: 16px; margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
 }
-.n .k {
-  font-family: var(--tt-mono); font-size: 11px; letter-spacing: .1em;
+.f {
+  background: var(--win); border-radius: var(--tt-r); padding: 16px 18px 18px;
+  display: flex; flex-direction: column; min-width: 0;
+}
+.f.lat { grid-column: span 2; }
+@media (max-width: 1100px) { .f.lat { grid-column: span 1; } }
+.f-cap { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+.f-cap h3 {
+  font-family: var(--tt-mono); font-size: 11px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin: 0;
+}
+.f-cap .ago { font-family: var(--tt-mono); font-size: 10.5px; color: var(--ink-3); }
+.f-cap a.deschide {
+  margin-left: auto; font-size: 12px; color: var(--ink-3); text-decoration: none;
+  border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.f-cap a.deschide:hover { color: var(--acc); border-bottom-color: var(--acc); }
+
+/* cifre in fereastra: fara cutii, doar spatiu */
+.cifre { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 14px 18px; }
+.c .k {
+  font-family: var(--tt-mono); font-size: 10.5px; letter-spacing: .08em;
   text-transform: uppercase; color: var(--ink-3);
 }
-.n .v {
-  font-family: var(--tt-mono); font-size: 24px; font-variant-numeric: tabular-nums;
-  line-height: 1.15; margin-top: 3px;
+.c .v {
+  font-family: var(--tt-mono); font-size: 20px; font-variant-numeric: tabular-nums;
+  line-height: 1.15; margin-top: 2px;
 }
-.n .d { font-family: var(--tt-mono); font-size: 12px; color: var(--ink-3); margin-top: 1px; }
+.c .d { font-family: var(--tt-mono); font-size: 11px; color: var(--ink-3); }
+.c .v.q { font-size: 15px; color: var(--ink-3); font-style: italic; }
 .up { color: var(--sus); } .dn { color: var(--jos); }
-.n .v.q { font-size: 17px; color: var(--ink-3); font-style: italic; }
 
-/* ── unelte: text, nu insigne colorate ── */
-.tools { border-top: 1px solid var(--line); padding: 24px 0 8px; }
-.tools h3 {
-  font-family: var(--tt-mono); font-size: 11px; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--ink-3); font-weight: 500; margin: 0 0 12px;
+/* tabel de sectoare */
+table.s { width: 100%; border-collapse: collapse; font-family: var(--tt-mono); font-size: 12.5px; }
+table.s th {
+  text-align: left; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 500; padding: 0 8px 6px 0; border-bottom: 1px solid var(--line);
 }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 2px 26px; }
-.t {
-  display: flex; align-items: baseline; gap: 10px; padding: 9px 0;
-  text-decoration: none; border-bottom: 1px solid transparent;
-}
-.t:hover { border-bottom-color: var(--line); }
-.t b { font-weight: 500; font-size: 15px; }
-.t span { font-size: 13px; color: var(--ink-3); margin-left: auto; text-align: right; }
+table.s td { padding: 5px 8px 5px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+table.s tr:last-child td { border-bottom: 0; }
+table.s tr:hover td { background: var(--win-2); }
+table.s .r { text-align: right; }
+.q { font-size: 10.5px; }
+.q.lead { color: var(--sus); } .q.impr { color: var(--sus); opacity: .72; }
+.q.weak { color: var(--acc); } .q.lag { color: var(--jos); }
 
-/* ── subsol ── */
+/* liste in fereastra (calendar, unelte) */
+.rand {
+  display: flex; align-items: baseline; gap: 10px; padding: 7px 0;
+  border-bottom: 1px solid var(--line); text-decoration: none; font-size: 14px;
+}
+.rand:last-child { border-bottom: 0; }
+.rand .when { font-family: var(--tt-mono); font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+.rand .ce { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rand .dr { margin-left: auto; font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+a.rand:hover .ce { color: var(--acc); }
+.gol { color: var(--ink-3); font-size: 13.5px; font-style: italic; padding: 6px 0; }
+.miss { border-left: 2px solid var(--acc); padding: 8px 0 8px 12px; margin-top: 12px; font-size: 13px; color: var(--ink-2); }
+
 .foot {
-  border-top: 1px solid var(--line); margin-top: 26px; padding: 18px 0 0;
-  display: flex; gap: 18px; flex-wrap: wrap;
-  font-size: 13px; color: var(--ink-3);
+  margin-top: 20px; padding: 16px 0 0; border-top: 1px solid var(--line);
+  display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--ink-3);
 }
 .foot a { color: var(--ink-3); text-decoration: none; border-bottom: 1px solid var(--line); }
 .foot a:hover { color: var(--ink); }
-.miss {
-  border-left: 2px solid var(--acc); padding: 10px 0 10px 14px; margin: 18px 0 0;
-  font-size: 14px; color: var(--ink-2);
-}
 @media (max-width: 560px) {
-  .w { padding: 0 16px; }
-  .nums { gap: 18px 20px; }
-  .n .v { font-size: 21px; }
+  .w { padding: 0 14px; }
+  .ferestre { grid-template-columns: 1fr; gap: 12px; }
+  .verdict { padding: 16px 18px; }
 }
 </style>
 </head>
@@ -162,55 +187,72 @@ a { color: inherit; }
     <h1>Trading Tools</h1>
     <span class="v" id="ver">…</span>
     <span class="sp"></span>
+    <span class="v" id="laOra"></span>
+    <button class="lnk" id="reia">reîmprospătează</button>
     <a class="lnk" href="./hub-clasic/">hub clasic</a>
   </header>
 
   <section class="verdict">
     <div class="kick" id="kick">se încarcă</div>
     <h2 id="verdict">…</h2>
-    <p id="dece">Adun sesiunea, prețurile și regimul.</p>
-    <a class="go" id="go" href="./cockpit/">Deschide Cockpit</a>
+    <p id="dece">Adun macro, sectoarele și piața.</p>
+    <a class="go" id="go" href="./router/">Deschide Router</a>
+    <div class="dovezi" id="dovezi"></div>
   </section>
 
-  <div class="nums" id="nums"></div>
+  <div class="ferestre">
+
+    <section class="f">
+      <div class="f-cap"><h3>Macro</h3><span class="ago" id="macroAgo"></span>
+        <a class="deschide" href="./macro-dashboard/">deschide →</a></div>
+      <div class="cifre" id="macroCifre"></div>
+    </section>
+
+    <section class="f">
+      <div class="f-cap"><h3>Piața</h3><span class="ago" id="piataAgo"></span>
+        <a class="deschide" href="./nasdaq-scanner/">scanner →</a></div>
+      <div class="cifre" id="piataCifre"></div>
+    </section>
+
+    <section class="f">
+      <div class="f-cap"><h3>Calendar</h3>
+        <a class="deschide" href="./market-events/">evenimente →</a></div>
+      <div id="calendar"></div>
+    </section>
+
+    <section class="f lat">
+      <div class="f-cap"><h3>Sectoare · forță relativă față de SPY</h3><span class="ago" id="secAgo"></span>
+        <a class="deschide" href="./sector-rotation/">rotație →</a></div>
+      <div id="sectoare"></div>
+    </section>
+
+    <section class="f">
+      <div class="f-cap"><h3>Unelte</h3>
+        <a class="deschide" href="./guide/">ghid →</a></div>
+      <a class="rand" href="./router/"><span class="ce">Router</span><span class="dr">GO / NO-GO</span></a>
+      <a class="rand" href="./watchlist-monitor/"><span class="ce">Watchlist</span><span class="dr">ce urmăresc</span></a>
+      <a class="rand" href="./pump-radar/"><span class="ce">Pump Radar</span><span class="dr">mișcări bruște</span></a>
+      <a class="rand" href="./smart-trade-long/"><span class="ce">Smart Trade Long</span><span class="dr">intrări pe long</span></a>
+      <a class="rand" href="./earnings-hub/"><span class="ce">Earnings</span><span class="dr">raportări</span></a>
+      <a class="rand" href="./alerts/"><span class="ce">Alerte</span><span class="dr">Telegram</span></a>
+      <a class="rand" href="./health/"><span class="ce">Sănătatea suitei</span><span class="dr">surse, chei</span></a>
+    </section>
+
+  </div>
 
   <div id="lipsa"></div>
 
-  <nav class="tools">
-    <h3>Decid</h3>
-    <div class="grid">
-      <a class="t" href="./cockpit/"><b>Cockpit</b><span>macro + sectoare</span></a>
-      <a class="t" href="./router/"><b>Router</b><span>GO / NO-GO</span></a>
-      <a class="t" href="./macro-dashboard/"><b>Macro</b><span>calendar, știri</span></a>
-    </div>
-  </nav>
-
-  <nav class="tools">
-    <h3>Caut</h3>
-    <div class="grid">
-      <a class="t" href="./nasdaq-scanner/"><b>Nasdaq Scanner</b><span>gappers</span></a>
-      <a class="t" href="./watchlist-monitor/"><b>Watchlist</b><span>ce urmăresc</span></a>
-      <a class="t" href="./market-events/"><b>Evenimente</b><span>earnings, macro</span></a>
-      <a class="t" href="./pump-radar/"><b>Pump Radar</b><span>mișcări bruște</span></a>
-      <a class="t" href="./smart-trade-long/"><b>Smart Trade Long</b><span>intrări pe long</span></a>
-      <a class="t" href="./earnings-hub/"><b>Earnings</b><span>raportări</span></a>
-    </div>
-  </nav>
-
-
   <div class="foot">
-    <a href="./guide/">ghid</a>
-    <a href="./health/">sănătatea suitei</a>
-    <a href="./alerts/">alerte</a>
     <a href="./hub-clasic/">hub clasic (tot ce era înainte)</a>
     <span class="sp"></span>
     <span id="suite">…</span>
   </div>
 </div>
 
-<script src="lib/data.js?v=811"></script>
-<script src="lib/suite-sessions.js?v=809"></script>
-<script src="lib/macro-context.js?v=809"></script>
+<script src="lib/data.js?v=813"></script>
+<script src="lib/suite-sessions.js?v=812"></script>
+<script src="lib/macro-context.js?v=812"></script>
+<script src="lib/piata.js?v=812"></script>
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
@@ -218,28 +260,24 @@ const ro = (x, z) => (x == null || !isFinite(x)) ? '—'
   : x.toLocaleString('ro-RO', { minimumFractionDigits: z, maximumFractionDigits: z });
 const pct = (x) => x == null ? '' : (x > 0 ? '+' : '') + ro(x, 2) + '%';
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+const varsta = (ms) => {
+  if (ms == null) return '';
+  const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 1) return 'acum';
+  if (m < 90) return m + ' min';
+  const h = Math.round(m / 60);
+  return h < 36 ? h + ' h' : Math.round(h / 24) + ' zile';
+};
 
-const CIFRE = [
-  { sym: 'SPY',  k: 'SPY' },
-  { sym: 'QQQ',  k: 'QQQ' },
-  { sym: '^VIX', k: 'VIX', fara: true },
-];
+const S = { macro: null, sect: null, rot: null, piata: {}, lipsa: [] };
 
-const S = { cifre: {}, lipsa: [] };
-
-/** Sesiunea NYSE, din modulul comun al suitei (nu reimplementez fusul orar). */
 function sesiune() {
   try {
     const i = window.SES && SES.info && SES.info();
     if (!i) return null;
-    return {
-      stare: i.label || i.state || i.phase || '—',
-      pana: i.nextLabel || i.next || i.until || '',
-    };
+    return { stare: i.label || i.state || i.phase || '—', pana: i.nextLabel || i.next || i.until || '' };
   } catch (e) { return null; }
 }
-
-/** Regimul scris de Macro Dashboard. Daca nu l-a deschis azi, NU inventam unul. */
 function regim() {
   try {
     const r = window.MCTX && MCTX.regime && MCTX.regime();
@@ -248,91 +286,215 @@ function regim() {
     return { label: curat || String(r.label), varsta: r.ageMin != null ? r.ageMin : null };
   } catch (e) { return null; }
 }
+function evenimente() {
+  try {
+    // `eventsUpcoming` ia un OBIECT, nu un numar, si implicit se uita doar 26 de ore
+    // inainte. Chemat gresit, calendarul parea gol cand de fapt nu fusese intrebat.
+    const e = window.MCTX && MCTX.eventsUpcoming && MCTX.eventsUpcoming({
+      limit: 7, winFutureMs: 14 * 24 * 3600000,
+    });
+    return Array.isArray(e) ? e : [];
+  } catch (err) { return []; }
+}
 
 async function adu() {
   S.lipsa = [];
-  await Promise.all(CIFRE.map(async (c) => {
-    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/'
-      + encodeURIComponent(c.sym) + '?range=5d&interval=1d';
-    try {
-      const j = await D.fetchJSON(url, { ttl: 300, cacheKey: 'hub:' + c.sym });
-      const m = j && j.chart && j.chart.result && j.chart.result[0] && j.chart.result[0].meta;
-      if (!m || m.regularMarketPrice == null) throw new Error('fara pret');
-      const inch = m.chartPreviousClose != null ? m.chartPreviousClose : m.previousClose;
-      S.cifre[c.k] = {
-        val: m.regularMarketPrice,
-        chg: (inch > 0) ? (m.regularMarketPrice / inch - 1) * 100 : null,
-        fara: c.fara,
-      };
-    } catch (e) {
-      S.cifre[c.k] = null;
-      S.lipsa.push(c.k);
-    }
-  }));
+  $('kick').textContent = 'se încarcă';
+  const [mac, sec, spyqqq] = await Promise.all([
+    PIATA.macro(),
+    PIATA.sectoare(),
+    Promise.all(['SPY', 'QQQ'].map(async (s) => {
+      const url = 'https://query1.finance.yahoo.com/v8/finance/chart/' + s + '?range=5d&interval=1d';
+      try {
+        const j = await D.fetchJSON(url, { ttl: 300, cacheKey: 'hub:' + s });
+        const m = j.chart.result[0].meta;
+        const inch = m.chartPreviousClose != null ? m.chartPreviousClose : m.previousClose;
+        return [s, { val: m.regularMarketPrice, chg: inch > 0 ? (m.regularMarketPrice / inch - 1) * 100 : null, la: m.regularMarketTime * 1000 }];
+      } catch (e) { S.lipsa.push({ ce: s }); return [s, null]; }
+    })),
+  ]);
+  S.macro = mac.val;
+  S.lipsa = S.lipsa.concat(mac.lipsa || []).concat(sec.lipsa || []);
+  S.sect = sec.lista;
+  S.rot = PIATA.rotatie(sec.lista);
+  S.piata = Object.fromEntries(spyqqq);
   deseneaza();
 }
 
+
+/** Verdictul din DOVEZI NUMARATE - mutat din pagina Cockpit, care se contopeste aici.
+    Se compune din patru dovezi si coboara singur la „se contrazic" cand ele nu se
+    potrivesc, in loc sa ia partea uneia. Cand prea multe lipsesc, spune „nu stiu". */
+function judeca() {
+  const s = (S.sect || []).filter((x) => x.chg1s != null);
+  const m = S.macro || {};
+  const dovezi = [];
+
+  const vix = m.VIX;
+  if (!vix) dovezi.push({ k: 'un', t: 'frica', v: 'nu știu' });
+  else if (vix.val < 20) dovezi.push({ k: 'da', t: 'frică joasă', v: 'VIX ' + ro(vix.val, 2) });
+  else if (vix.val > 26) dovezi.push({ k: 'nu', t: 'frică mare', v: 'VIX ' + ro(vix.val, 2) });
+  else dovezi.push({ k: 'hm', t: 'frică medie', v: 'VIX ' + ro(vix.val, 2) });
+
+  if (!s.length) dovezi.push({ k: 'un', t: 'participare', v: 'nu știu' });
+  else {
+    const sus = s.filter((x) => x.chg1s > 0).length;
+    dovezi.push({ k: sus >= 7 ? 'da' : sus <= 3 ? 'nu' : 'hm',
+      t: 'participare', v: sus + '/' + s.length + ' sectoare urcă' });
+  }
+
+  const cu = s.filter((x) => x.cadran);
+  if (!cu.length) dovezi.push({ k: 'un', t: 'lideri', v: 'nu știu' });
+  else {
+    const lead = cu.filter((x) => x.cadran.key === 'lead').length;
+    const lag = cu.filter((x) => x.cadran.key === 'lag').length;
+    dovezi.push({ k: lead >= 3 ? 'da' : lag >= 7 ? 'nu' : 'hm',
+      t: 'lideri', v: lead + ' LEADING · ' + lag + ' LAGGING' });
+  }
+
+  if (!S.rot) dovezi.push({ k: 'un', t: 'rotație', v: 'nu știu' });
+  else dovezi.push({
+    k: S.rot.spread > 0.5 && !S.rot.amandouaPierd ? 'da' : S.rot.spread < -0.5 ? 'nu' : 'hm',
+    t: 'rotație',
+    v: (S.rot.spread > 0 ? '+' : '') + ro(S.rot.spread, 2) + ' pp'
+       + (S.rot.amandouaPierd ? ' (dar ambele pierd)' : ''),
+  });
+
+  const da = dovezi.filter((d) => d.k === 'da').length;
+  const nu = dovezi.filter((d) => d.k === 'nu').length;
+  const un = dovezi.filter((d) => d.k === 'un').length;
+
+  let stare, why;
+  if (un >= 3) { stare = 'NU ȘTIU'; why = 'Prea puține date ca să spun ceva: ' + un + ' din 4 dovezi lipsesc.'; }
+  else if (da >= 3 && nu === 0) { stare = 'RISC PORNIT'; why = 'Cele ' + da + ' dovezi care contează arată în aceeași direcție.'; }
+  else if (nu >= 3 && da === 0) { stare = 'RISC OPRIT'; why = 'Cele ' + nu + ' dovezi care contează arată în aceeași direcție, în jos.'; }
+  else if (da > 0 && nu > 0) { stare = 'SE CONTRAZIC'; why = da + ' dovezi spun da, ' + nu + ' spun nu. Când nu se potrivesc, ziua nu merită mărimea întreagă.'; }
+  else { stare = 'NIMIC CLAR'; why = 'Nicio dovadă nu e destul de puternică într-o direcție sau alta.'; }
+
+  const lideri = s.filter((x) => x.cadran && x.cadran.key === 'lead').sort((a, b) => b.chg1s - a.chg1s);
+  let act;
+  if (stare === 'NU ȘTIU') act = 'nu tranzacționez pe ce nu văd';
+  else if (stare === 'RISC OPRIT') act = 'stau deoparte';
+  else if (!lideri.length) act = 'stau: niciun sector cu forță confirmată';
+  else if (stare === 'RISC PORNIT') act = 'mărime întreagă · ' + lideri.slice(0, 2).map((x) => x.sym).join(', ');
+  else act = 'jumătate de mărime · doar ' + lideri[0].sym;
+
+  return { stare, why, act, dovezi };
+}
+
+function celula(k, v, d, cls) {
+  if (v == null) return '<div class="c"><div class="k">' + esc(k) + '</div>'
+    + '<div class="v q">nu știu</div><div class="d">sursa n-a răspuns</div></div>';
+  return '<div class="c"><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>'
+    + '<div class="d' + (cls || '') + '">' + (d || '') + '</div></div>';
+}
+
 function deseneaza() {
-  const ses = sesiune();
-  const reg = regim();
+  const ses = sesiune(), reg = regim(), m = S.macro || {};
 
-  // Verdictul: ce ai de facut ACUM. Cand nu stim destul, o spunem - nu umplem
-  // golul cu un indemn generic, care ar arata la fel si cand totul e in regula.
-  let kick, titlu, dece, buton, href;
+  // ── verdictul ──
+  const j = judeca();
   const inchis = ses && /închis|inchis|closed|overnight|pre|after/i.test(String(ses.stare));
-  if (!reg) {
-    kick = 'nu am contextul';
-    titlu = 'Deschide întâi Cockpit';
-    dece = 'Regimul de risc nu a fost calculat azi, deci nu pot spune dacă e zi de tranzacționat. Cockpit îl află în câteva secunde.';
-    buton = 'Deschide Cockpit'; href = './cockpit/';
-  } else if (inchis) {
-    kick = 'piața nu e în ședință';
-    titlu = 'Nu e nimic de făcut acum';
-    dece = 'Regimul de acum nu mai e cel de la deschidere, deci un setup căutat în afara orelor se judecă pe date vechi. Cockpit arată unde au stat sectoarele la închidere.';
-    buton = 'Vezi unde am rămas'; href = './cockpit/';
-  } else {
-    kick = 'regim ' + reg.label.toLowerCase();
-    titlu = 'Verifică planul, apoi caută';
-    dece = 'Regimul e calculat și piața e deschisă. Router spune dacă ai voie azi, Desk spune cât.';
-    buton = 'Deschide Router'; href = './router/';
-  }
-  $('kick').textContent = kick;
-  $('verdict').textContent = titlu;
-  $('dece').textContent = dece;
-  $('go').textContent = buton;
-  $('go').href = href;
+  $('laOra').textContent = new Date().toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  $('kick').textContent = inchis ? 'piața nu e în ședință · ' + j.act : j.act;
+  $('verdict').textContent = inchis ? 'Piața e închisă' : j.stare;
+  $('dece').textContent = inchis
+    ? j.why + ' Dar piața nu e în ședință, deci nu e nimic de executat acum.'
+    : j.why;
+  $('go').textContent = inchis ? 'Vezi rotația' : 'Deschide Router';
+  $('go').href = inchis ? './sector-rotation/' : './router/';
+  $('dovezi').innerHTML = j.dovezi.map((d) =>
+    '<span class="pf ' + d.k + '"><b>' + esc(d.t) + '</b> ' + esc(d.v) + '</span>').join('');
 
-  const celule = [];
-  for (const c of CIFRE) {
-    const d = S.cifre[c.k];
-    if (!d) {
-      celule.push('<div class="n"><div class="k">' + esc(c.k) + '</div>'
-        + '<div class="v q">nu știu</div><div class="d">sursa n-a răspuns</div></div>');
-      continue;
-    }
-    // La VIX „in sus" inseamna frica mai mare, deci nu-l colorez ca pe un pret.
-    const cls = d.fara ? '' : (d.chg >= 0 ? ' up' : ' dn');
-    celule.push('<div class="n"><div class="k">' + esc(c.k) + '</div>'
-      + '<div class="v">' + ro(d.val, 2) + '</div>'
-      + '<div class="d' + cls + '">' + esc(pct(d.chg)) + '</div></div>');
-  }
-  if (ses) celule.push('<div class="n"><div class="k">Sesiune</div><div class="v">' + esc(ses.stare) + '</div>'
-    + '<div class="d">' + esc(ses.pana) + '</div></div>');
-  if (reg) celule.push('<div class="n"><div class="k">Regim</div><div class="v">' + esc(reg.label) + '</div>'
-    + '<div class="d">' + (reg.varsta != null ? 'acum ' + reg.varsta + ' min' : '') + '</div></div>');
-  else celule.push('<div class="n"><div class="k">Regim</div><div class="v q">nu știu</div>'
-    + '<div class="d">Macro nu a rulat azi</div></div>');
-  $('nums').innerHTML = celule.join('');
+  // ── fereastra MACRO ──
+  const curba = PIATA.curba(m);
+  const cm = [];
+  cm.push(reg
+    ? celula('Regim', esc(reg.label), reg.varsta != null ? 'acum ' + reg.varsta + ' min' : '')
+    : '<div class="c"><div class="k">Regim</div><div class="v q">nu știu</div>'
+      + '<div class="d">Macro nu a rulat azi</div></div>');
+  cm.push(m.VIX ? celula('VIX', ro(m.VIX.val, 2), pct(m.VIX.chg)) : celula('VIX', null));
+  cm.push(m.DXY ? celula('DXY', ro(m.DXY.val, 2), pct(m.DXY.chg), m.DXY.chg >= 0 ? ' up' : ' dn') : celula('DXY', null));
+  cm.push(m['10Y'] ? celula('10Y', ro(m['10Y'].val, 2) + '%', pct(m['10Y'].chg)) : celula('10Y', null));
+  cm.push(m['3M'] ? celula('3M', ro(m['3M'].val, 2) + '%', pct(m['3M'].chg)) : celula('3M', null));
+  cm.push(curba != null
+    ? celula('Curba 10Y−3M', '<span class="' + (curba >= 0 ? 'up' : 'dn') + '">' + (curba > 0 ? '+' : '') + ro(curba, 0) + ' bp</span>',
+        curba < 0 ? 'INVERSATĂ' : 'normală')
+    : celula('Curba 10Y−3M', null));
+  cm.push(m.BTC ? celula('BTC', (m.BTC.val / 1000).toFixed(1) + 'k', pct(m.BTC.chg), m.BTC.chg >= 0 ? ' up' : ' dn') : celula('BTC', null));
+  $('macroCifre').innerHTML = cm.join('');
+  $('macroAgo').textContent = m.VIX && m.VIX.la ? varsta(m.VIX.la) : '';
 
-  // Ce n-am putut afla se scrie, nu se ascunde.
+  // ── fereastra PIAȚA ──
+  const cp = [];
+  for (const k of ['SPY', 'QQQ']) {
+    const d = S.piata[k];
+    cp.push(d ? celula(k, ro(d.val, 2), pct(d.chg), d.chg >= 0 ? ' up' : ' dn') : celula(k, null));
+  }
+  if (ses) cp.push(celula('Sesiune', esc(ses.stare), esc(ses.pana)));
+  if (S.rot) cp.push(celula('Ciclice − defensive',
+    '<span class="' + (S.rot.spread >= 0 ? 'up' : 'dn') + '">' + (S.rot.spread > 0 ? '+' : '') + ro(S.rot.spread, 2) + ' pp</span>',
+    S.rot.amandouaPierd ? 'dar ambele pierd' : 'pe 1 săptămână'));
+  $('piataCifre').innerHTML = cp.join('');
+  $('piataAgo').textContent = S.piata.SPY && S.piata.SPY.la ? varsta(S.piata.SPY.la) : '';
+
+  // ── fereastra CALENDAR ──
+  const ev = evenimente();
+  $('calendar').innerHTML = ev.length
+    ? ev.slice(0, 6).map((e) => {
+        let cand = '';
+        try {
+          cand = new Intl.DateTimeFormat('ro-RO', { day: '2-digit', month: '2-digit', timeZone: 'Europe/Bucharest' }).format(e.d)
+            + ' ' + new Intl.DateTimeFormat('ro-RO', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Bucharest' }).format(e.d);
+        } catch (err) { cand = String(e.hm || ''); }
+        return '<div class="rand"><span class="when">' + esc(cand) + '</span>'
+          + '<span class="ce">' + esc(e.event || '—') + '</span>'
+          + '<span class="dr">' + (e.approx ? 'dată aproximativă' : esc(e.impact || '')) + '</span></div>';
+      }).join('')
+    : '<div class="gol">Niciun eveniment high-impact în perioada acoperită de calendar.</div>';
+
+  // ── fereastra SECTOARE ──
+  const s = (S.sect || []).slice().sort((a, b) => (b.chg1s ?? -99) - (a.chg1s ?? -99));
+  if (!s.length) $('sectoare').innerHTML = '<div class="gol">nu știu — nu am putut aduce sectoarele</div>';
+  else {
+    const maxAbs = Math.max(3, ...s.filter((x) => x.chg1s != null).map((x) => Math.abs(x.chg1s)));
+    $('sectoare').innerHTML = '<table class="s"><thead><tr>'
+      + '<th>Sector</th><th>Nume</th><th class="r" colspan="2">Δ 1 săpt</th>'
+      + '<th class="r">Δ 1 lună</th><th>Cadran</th><th>Mișcare</th></tr></thead><tbody>'
+      + s.map((x) => {
+          if (x.chg1s == null) return '<tr><td>' + esc(x.sym) + '</td><td>' + esc(x.nume) + '</td>'
+            + '<td class="r" colspan="2" style="color:var(--ink-3)">nu știu</td><td></td><td></td><td></td></tr>';
+          const w = (Math.abs(x.chg1s) / maxAbs) * 26;
+          const bara = '<svg width="56" height="12" viewBox="0 0 56 12" aria-hidden="true">'
+            + '<rect x="27.5" y="0" width="1" height="12" fill="var(--line)"/>'
+            + (x.chg1s >= 0
+              ? '<rect x="28" y="2" width="' + w.toFixed(1) + '" height="8" rx="3" fill="var(--sus)"/>'
+              : '<rect x="' + (28 - w).toFixed(1) + '" y="2" width="' + w.toFixed(1) + '" height="8" rx="3" fill="var(--jos)"/>')
+            + '</svg>';
+          return '<tr><td style="font-weight:600">' + esc(x.sym) + '</td>'
+            + '<td style="font-family:var(--tt-sans);color:var(--ink-2)">' + esc(x.nume) + '</td>'
+            + '<td class="r ' + (x.chg1s >= 0 ? 'up' : 'dn') + '">' + pct(x.chg1s) + '</td>'
+            + '<td class="r" style="width:60px">' + bara + '</td>'
+            + '<td class="r ' + (x.chg1l >= 0 ? 'up' : 'dn') + '">' + pct(x.chg1l) + '</td>'
+            + '<td class="q ' + (x.cadran ? x.cadran.key : '') + '">' + (x.cadran ? x.cadran.label : '—') + '</td>'
+            + '<td style="color:var(--ink-3);font-size:11px">' + esc(x.mv ? x.mv.txt : '') + '</td></tr>';
+        }).join('')
+      + '</tbody></table>';
+    const veche = s.filter((x) => x.la).map((x) => x.la).sort()[0];
+    $('secAgo').textContent = veche ? varsta(veche) : '';
+  }
+
+  // ── ce n-am putut afla ──
   const cauza = (window.D && D.lastFailText && D.lastFailText()) || '';
   $('lipsa').innerHTML = S.lipsa.length
-    ? '<p class="miss"><b>Nu am putut afla ' + S.lipsa.length + (S.lipsa.length === 1 ? ' cifră' : ' cifre') + ':</b> '
-      + esc(S.lipsa.join(', ')) + '.'
-      + (cauza ? ' Ultimul eșec: <span style="font-family:var(--tt-mono)">' + esc(cauza) + '</span>.' : '')
-      + '</p>'
+    ? '<p class="miss"><b>Nu am putut afla ' + S.lipsa.length + ' lucruri:</b> '
+      + esc(S.lipsa.map((l) => l.ce).join(' · '))
+      + (cauza ? '. Ultimul eșec: <span style="font-family:var(--tt-mono)">' + esc(cauza) + '</span>' : '')
+      + '. Verdictul e calculat pe ce a venit, nu pe zerouri puse în loc.</p>'
     : '';
 }
+
+$('reia').addEventListener('click', () => adu());
 
 try {
   const v = localStorage.getItem('tt_sw_version') || localStorage.getItem('tt_suite_version');
@@ -343,17 +505,17 @@ adu();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw-app.js?v=tt-v809').catch(() => {});
+    navigator.serviceWorker.register('sw-app.js?v=tt-v812').catch(() => {});
   });
 }
 </script>
-<script src="lib/suite-version.js?v=811"></script>
+<script src="lib/suite-version.js?v=813"></script>
 <script src="nav.js?v=682" data-nav-root="./"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v811';
+  var PAGE_VER = 'tt-v813';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

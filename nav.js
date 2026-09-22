@@ -7,7 +7,6 @@
   'use strict';
 
   var SEGS = [
-    'cockpit/',
     'nasdaq-scanner/', 'watchlist-monitor/', 'market-events/', 'smart-trade-long/', 'pump-radar/',
     'earnings-hub/', 'sector-rotation/', 'macro-dashboard/', 'alerts/', 'guide/', 'health/', 'router/'
   ];
@@ -62,7 +61,6 @@
         { u: '', n: 'Hub', e: '🏠' },
         { u: 'router/', n: 'Router', e: '🧭' },
         { u: 'macro-dashboard/', n: 'Macro', e: '🌍' },
-        { u: 'cockpit/', n: 'Cockpit', e: '🧭' },
         { u: 'sector-rotation/', n: 'Sector', e: '🔄' }
       ]
     },
