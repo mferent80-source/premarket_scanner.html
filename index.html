@@ -220,6 +220,12 @@ a.rand:hover .ce { color: var(--acc); }
       <div id="calendar"></div>
     </section>
 
+    <section class="f">
+      <div class="f-cap"><h3>Se mișcă acum</h3><span class="ago" id="pumpAgo"></span>
+        <a class="deschide" href="./pump-radar/">pump radar →</a></div>
+      <div id="pump"></div>
+    </section>
+
     <section class="f lat">
       <div class="f-cap"><h3>Sectoare · forță relativă față de SPY</h3><span class="ago" id="secAgo"></span>
         <a class="deschide" href="./sector-rotation/">rotație →</a></div>
@@ -249,10 +255,11 @@ a.rand:hover .ce { color: var(--acc); }
   </div>
 </div>
 
-<script src="lib/data.js?v=813"></script>
+<script src="lib/data.js?v=814"></script>
 <script src="lib/suite-sessions.js?v=812"></script>
 <script src="lib/macro-context.js?v=812"></script>
 <script src="lib/piata.js?v=812"></script>
+<script src="lib/pump.js?v=814"></script>
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
@@ -269,7 +276,7 @@ const varsta = (ms) => {
   return h < 36 ? h + ' h' : Math.round(h / 24) + ' zile';
 };
 
-const S = { macro: null, sect: null, rot: null, piata: {}, lipsa: [] };
+const S = { macro: null, sect: null, rot: null, piata: {}, pump: [], lipsa: [] };
 
 function sesiune() {
   try {
@@ -300,7 +307,7 @@ function evenimente() {
 async function adu() {
   S.lipsa = [];
   $('kick').textContent = 'se încarcă';
-  const [mac, sec, spyqqq] = await Promise.all([
+  const [mac, sec, spyqqq, pmp] = await Promise.all([
     PIATA.macro(),
     PIATA.sectoare(),
     Promise.all(['SPY', 'QQQ'].map(async (s) => {
@@ -312,7 +319,10 @@ async function adu() {
         return [s, { val: m.regularMarketPrice, chg: inch > 0 ? (m.regularMarketPrice / inch - 1) * 100 : null, la: m.regularMarketTime * 1000 }];
       } catch (e) { S.lipsa.push({ ce: s }); return [s, null]; }
     })),
+    PUMP.scan(),
   ]);
+  S.pump = pmp.lista;
+  S.lipsa = S.lipsa.concat(pmp.lipsa || []);
   S.macro = mac.val;
   S.lipsa = S.lipsa.concat(mac.lipsa || []).concat(sec.lipsa || []);
   S.sect = sec.lista;
@@ -453,6 +463,24 @@ function deseneaza() {
       }).join('')
     : '<div class="gol">Niciun eveniment high-impact în perioada acoperită de calendar.</div>';
 
+  // ── fereastra SE MIȘCĂ ACUM (Pump Radar) ──
+  // Aratam doar ce merita o privire: buy / watch / avoid. `skip` si `wait` sunt
+  // majoritatea simbolurilor in orice moment - o lista cu 24 de randuri din care 20
+  // spun „nimic" nu e informatie, e zgomot cu aspect de informatie.
+  const ACT = { buy: 'CUMPĂRĂ', watch: 'URMĂREȘTE', avoid: 'EVITĂ', wait: 'așteaptă', skip: '' };
+  const interesante = (S.pump || []).filter((x) => ['buy', 'watch', 'avoid'].includes(x.act));
+  $('pump').innerHTML = interesante.length
+    ? interesante.slice(0, 7).map((x) => {
+        const cls = x.act === 'avoid' ? 'dn' : 'up';
+        return '<div class="rand"><span class="when" style="min-width:52px">' + esc(x.symbol) + '</span>'
+          + '<span class="ce ' + cls + '" style="font-family:var(--tt-mono);font-size:12px">' + esc(ACT[x.act]) + '</span>'
+          + '<span class="dr">' + pct(x.m5) + ' / 5 min · zi ' + pct(x.chgDay) + '</span></div>';
+      }).join('')
+    : '<div class="gol">' + ((S.pump || []).length
+        ? 'Niciunul din cele ' + S.pump.length + ' simboluri nu se mișcă destul cât să merite o privire.'
+        : 'nu știu — scanul nu a răspuns') + '</div>';
+  $('pumpAgo').textContent = (S.pump || []).length ? S.pump.length + ' simboluri' : '';
+
   // ── fereastra SECTOARE ──
   const s = (S.sect || []).slice().sort((a, b) => (b.chg1s ?? -99) - (a.chg1s ?? -99));
   if (!s.length) $('sectoare').innerHTML = '<div class="gol">nu știu — nu am putut aduce sectoarele</div>';
@@ -509,13 +537,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script src="lib/suite-version.js?v=813"></script>
+<script src="lib/suite-version.js?v=814"></script>
 <script src="nav.js?v=682" data-nav-root="./"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v813';
+  var PAGE_VER = 'tt-v814';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
