@@ -32,6 +32,7 @@ const PAGINI = [
   // lipsa ei, asa ca aici stau semnele care exista pe ecran.
   { cale: '/macro-dashboard/', nume: 'macro-dashboard', apasa: ['📜', '📖', '⚙', '👁', '🇺🇸 US', '🟢 Bull'] },
   { cale: '/sector-rotation/', nume: 'sector-rotation', apasa: [] },
+  { cale: '/cockpit/', nume: 'cockpit', apasa: ['verde/roșu', 'reîmprospătează'] },
 ];
 
 const asteapta = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -134,12 +135,21 @@ const seIncarca = () => ev(`(() => {
 // caractere din `innerText` si raporta „ecranul NU s-a schimbat" pentru 📜 📖 ⚙ — butoane
 // care deschid un panou mai JOS, deci lasa capul paginii neatins. Un fals pozitiv intr-o
 // garda o face inutila: ori o crezi degeaba, ori te obisnuiesti sa o ignori.
+// A doua corectura, tot din fals pozitiv: butonul „verde/rosu" schimba DOAR culorile,
+// iar o amprenta facuta numai pe text si pe numarul de elemente e oarba exact acolo unde
+// pagina e vizuala. Acum intra in amprenta si culorile efectiv calculate ale primelor
+// elemente colorate, deci o schimbare de paleta se vede.
 const amprenta = () => ev(`(() => {
   const t = (document.body.innerText || '').replace(/\\s+/g, ' ');
-  const vizibile = [...document.querySelectorAll('body *')].filter((e) => e.offsetParent).length;
+  const toate = [...document.querySelectorAll('body *')].filter((e) => e.offsetParent);
+  const culori = toate.slice(0, 260).map((e) => {
+    const s = getComputedStyle(e);
+    return s.color + '|' + s.backgroundColor;
+  }).join(';');
+  const semnal = t + '##' + culori;
   let h = 0;
-  for (let i = 0; i < t.length; i++) { h = ((h << 5) - h + t.charCodeAt(i)) | 0; }
-  return { lung: t.length, vizibile, cheie: h + ':' + t.length + ':' + vizibile };
+  for (let i = 0; i < semnal.length; i++) { h = ((h << 5) - h + semnal.charCodeAt(i)) | 0; }
+  return { lung: t.length, vizibile: toate.length, cheie: h + ':' + t.length + ':' + toate.length };
 })()`);
 
 const apasa = (ce) => ev(`(() => {

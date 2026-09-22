@@ -2,12 +2,12 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<script src="lib/suite-version.js?v=803"></script>
+<script src="lib/suite-version.js?v=807"></script>
 <script>
   /* În shell (iframe): toate linkurile interne → postMessage, inclusiv Router/Equity din cockpit */
   (function(){
     if (window.self === window.top) return;
-    var SEGS = ['nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','mfx-screener/','factor-lab/','earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/','journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
+    var SEGS = ['cockpit/','nasdaq-scanner/','watchlist-monitor/','market-events/','smart-trade-long/','pump-radar/','mfx-screener/','factor-lab/','earnings-hub/','sector-rotation/','macro-dashboard/','markov-lab/','alerts/','guide/','journal/','portfolio/','weekly/','health/','router/','equity/','shadow-book/','postmortem/'];
     function seg(href){
       try {
         var p = new URL(href, location.href).pathname;
@@ -748,6 +748,7 @@ body.hub-page .hub-na.prio-ok{
     <a class="hub-launch-chip" data-launch="stl" href="./smart-trade-long/">🎯 STL</a>
     <a class="hub-launch-chip" data-launch="events" href="./market-events/">📅 Events</a>
     <a class="hub-launch-chip" data-launch="alerts" href="./alerts/">🔔 Alerts</a>
+    <a class="hub-launch-chip" data-launch="cockpit" href="./cockpit/">🧭 Cockpit</a>
     <a class="hub-launch-chip" data-launch="sector" href="./sector-rotation/">🔄 Sector</a>
     <a class="hub-launch-chip" data-launch="weekly" href="./weekly/">📅 Weekly</a>
     <a class="hub-launch-chip" data-launch="health" href="./health/">💚 Health</a>
@@ -1354,7 +1355,7 @@ body.hub-page .hub-na.prio-ok{
 </div>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 <!-- CRITICAL path — first paint cockpit (GO / market / next action). Restul la idle. -->
-<script defer src="lib/data.js?v=803"></script>
+<script defer src="lib/data.js?v=807"></script>
 <script defer src="lib/quote-bus.js?v=712"></script>
 <script defer src="lib/finnhub-key.js?v=712"></script>
 <script defer src="lib/suite-sessions.js?v=712"></script>
@@ -1760,7 +1761,7 @@ window.ttDeleteTrade = function(id){
 
 // Service worker — doar top-level (nu în iframe shell); fără auto-reload loop
 if ('serviceWorker' in navigator && window.self === window.top) {
-  const swVer = 'tt-v803';
+  const swVer = 'tt-v807';
   navigator.serviceWorker.register('./sw-app.js?v=' + swVer, { updateViaCache: 'none' }).catch(e => console.warn('SW register failed:', e));
 }
 
@@ -1977,7 +1978,7 @@ window.addEventListener('DOMContentLoaded', function(){
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v803';
+  var PAGE_VER = 'tt-v807';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw-app.js?v=' + PAGE_VER, { scope: './', updateViaCache: 'none' })
     .then(function (reg) {

@@ -1176,7 +1176,7 @@ h1.headline:empty { display:none; }
 <!-- v238: topbar pe UN singur rând (stil ziar) — logo + pills stânga, acțiuni dreapta.
      Toate id-urile vechi rămân (JS-ul le populează neschimbat). -->
 <header class="macro-cockpit topbar-sticky">
-  <h1>🌍 Macro <span class="ver-badge" id="verBadge">v240</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro <span class="ver-badge" id="verBadge">v242</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1769,8 +1769,8 @@ h1.headline:empty { display:none; }
 
 <div id="toasts"></div>
 
-<script src="../lib/suite-version.js?v=803"></script>
-<script src="../lib/data.js?v=803"></script>
+<script src="../lib/suite-version.js?v=807"></script>
+<script src="../lib/data.js?v=807"></script>
 <script src="../lib/quote-bus.js?v=704"></script>
 <script src="../lib/setup-levels.js?v=704"></script>
 <script>
@@ -2351,8 +2351,16 @@ async function fetchViaProxy(url, timeoutMs=6000) {
         continue;
       }
       const txt = await p.extract(r);
-      // Verifică dacă răspunsul nu e o pagină HTML de eroare în loc de JSON
-      if (typeof txt === 'string' && txt.trim().startsWith('<')) {
+      // Respinge o pagină HTML de eroare servită în locul datelor.
+      //
+      // 22.09.2026: garda de aici respingea ORICE răspuns care începe cu „<", iar un
+      // RSS începe cu `<?xml`. Deci feed-ul VALID al Cointelegraph (52 KB, HTTP 200) era
+      // citit ca eroare, iar proxy-ul care tocmai îl adusese corect era trecut în
+      // PROXY_DEAD pentru tot restul sesiunii - afectând și celelalte cereri ale paginii.
+      // Garda păzea FORMA („începe cu un tag"), nu REGULA („e o pagină HTML de eroare").
+      // Acum respinge doar HTML propriu-zis și lasă XML/RSS/Atom să treacă.
+      const esteHtml = (s) => /^\s*(<!doctype\s+html|<html[\s>])/i.test(s);
+      if (typeof txt === 'string' && esteHtml(txt)) {
         PROXY_DEAD.add(idx);
         lastError = `HTML response proxy ${idx}`;
         continue;
@@ -2579,11 +2587,11 @@ async function fetchYahooQuote(symbol) {
 }
 
 async function loadStatTiles() {
-  // Yahoo symbols: ^VIX, DX-Y.NYB, ^TNX (10Y yield ×10), BTC-USD, ETH-USD
+  // Yahoo symbols: ^VIX, DX-Y.NYB, ^TNX (10Y yield, in procente), BTC-USD, ETH-USD
   const tiles = [
     { id:'tile-vix', sym:'^VIX', label:'📊 VIX', sub:'Volatility Index', dec:2, suffix:'', invertedColor:true },
     { id:'tile-dxy', sym:'DX-Y.NYB', label:'💵 DXY', sub:'US Dollar Index', dec:2, suffix:'', invertedColor:false },
-    { id:'tile-10y', sym:'^TNX', label:'📈 10Y', sub:'Treasury Yield', dec:2, suffix:'%', invertedColor:false, divide:10 },
+    { id:'tile-10y', sym:'^TNX', label:'📈 10Y', sub:'Treasury Yield', dec:2, suffix:'%', invertedColor:false },  // ^TNX e deja in procente (4,963), nu in zecimi - vezi nota de la fetchYieldCurve
     { id:'tile-btc', sym:'BTC-USD', label:'₿ BTC', sub:'Bitcoin USD', dec:0, suffix:'$', invertedColor:false, prefix:true },
     { id:'tile-eth', sym:'ETH-USD', label:'Ξ ETH', sub:'Ethereum USD', dec:0, suffix:'$', invertedColor:false, prefix:true }
   ];
@@ -2676,12 +2684,18 @@ async function loadStatTiles() {
 // ============ COMMAND CENTER — overview pre-trade (Yield Curve + Danger Score + Cross-asset) ============
 let YIELD_CURVE = null; // { y10, y3m, spread, bp }
 
-// Curba 10Y-3M (^TNX 10Y, ^IRX 13w≈3M — ambele Yahoo ×10). Inversare = semnal clasic de recesiune.
+// Curba 10Y-3M (^TNX 10Y, ^IRX 13w≈3M). Inversare = semnal clasic de recesiune.
+//
+// 22.09.2026: ambele erau impartite la 10, dupa presupunerea ca Yahoo le da inmultite
+// cu 10. NU le da: probat din terminal, ^TNX = 4,963 si ^IRX = 3,982, adica procente
+// intregi. Curba reala era deci +98 puncte de baza, iar pagina scria „+10bp" - de zece
+// ori mai plata. Diferenta dintre o curba sanatoasa si una aproape inversata, adica
+// exact semnalul pentru care exista randul asta.
 async function fetchYieldCurve() {
   try {
     const [tnx, irx] = await Promise.all([fetchYahooQuote('^TNX'), fetchYahooQuote('^IRX')]);
-    const y10 = (tnx && tnx.last != null && !tnx.proxyEtf) ? tnx.last / 10 : null;
-    const y3m = (irx && irx.last != null && !irx.proxyEtf) ? irx.last / 10 : null;
+    const y10 = (tnx && tnx.last != null && !tnx.proxyEtf) ? tnx.last : null;
+    const y3m = (irx && irx.last != null && !irx.proxyEtf) ? irx.last : null;
     if (y10 == null || y3m == null || !Number.isFinite(y10) || !Number.isFinite(y3m)) { YIELD_CURVE = null; return null; }
     const spread = y10 - y3m;
     YIELD_CURVE = { y10, y3m, spread, bp: spread * 100 };
@@ -3173,7 +3187,7 @@ const TILE_DRILL_META = {
     ]
   },
   'tile-10y': {
-    sym:'^TNX', label:'📈 10Y Treasury Yield', divide:10,
+    sym:'^TNX', label:'📈 10Y Treasury Yield',  // fara divide: ^TNX e deja in procente
     interpret:(v) => {
       if (v < 2.5) return { tag:'EASY MONEY', text:'Sub 2.5% = monetary policy loose. Bullish tech/growth, REIT, utilities. Risk-on extrem.' };
       if (v < 3.5) return { tag:'ACCOMMODATIVE', text:'2.5-3.5% = încă accommodative. Growth sectors OK, REITs normale.' };
@@ -6131,7 +6145,12 @@ async function computeRiskDashboard() {
       }
     }
 
-    // 10Y: ^TNX returnează valoarea ×10 (ex: 4.5% = 45). Δ30z în bp.
+    // 10Y: ^TNX returneaza PROCENTE (probat 22.09.2026: 4,963 = 4,963%), nu zecimi.
+    //
+    // Impartirea la 10 de aici facea din 4,96% un 0,50%, care cadea in bucketul
+    // „EASY MONEY - sub 2,5% = risk-on extrem" al interpretarii de mai sus. Adica un
+    // randament RESTRICTIV era citit ca stimulativ, si impingea scorul de regim spre
+    // RISK-ON. Un verdict construit pe o cifra de zece ori mai mica.
     let tenYVal = null, tenYDelta30 = null;
     if (tnxChart?.points?.length > 10) {
       const last = tnxChart.points[tnxChart.points.length-1].close;
@@ -6139,12 +6158,12 @@ async function computeRiskDashboard() {
       // Găurile din chart-ul Yahoo pot livra close=null la capete → NaN. Validăm înainte
       // să evităm ca un NaN să treacă de guard-ul `!= null` și să injecteze fals „🟢 Stabil".
       if (Number.isFinite(last) && Number.isFinite(first)) {
-        tenYVal = last / 10;
-        tenYDelta30 = (last - first) / 10 * 100; // bp
+        tenYVal = last;
+        tenYDelta30 = (last - first) * 100; // pp -> bp
       }
     } else if (tnxQ && !tnxQ.proxyEtf) {
       // Avem doar quote ^TNX, fără chart. Folosim Δ% zilnic ca proxy aprox pentru Δ30z.
-      tenYVal = tnxQ.last / 10;
+      tenYVal = tnxQ.last;
       tenYDelta30 = tnxQ.chgPct * 5; // factor proxy (rough — preferăm chart real)
     } else if (tnxQ?.proxyEtf) {
       // IEF proxy: factorul magic ×10 e zgomot, nu semnal de regim. Mai bine N/A → tenYScore
@@ -7655,7 +7674,7 @@ if (window.SUITE_VERSION_SHORT) {
 
 // Register service worker
 if ('serviceWorker' in navigator) {
-  const swVer = 'tt-v803';
+  const swVer = 'tt-v807';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 
@@ -7666,7 +7685,7 @@ init();
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v803';
+  var PAGE_VER = 'tt-v807';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link rel="stylesheet" href="../lib/theme-light.css?v=804">
+<script src="../lib/theme.js?v=804"></script>
+<meta name="theme-color" content="#0d0d0d">
+<title>Cockpit · Trading Tools</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="stylesheet" href="../lib/plex.css?v=804">
+<link rel="stylesheet" href="../lib/suite-ui.css?v=804">
+<style>
+/* ──────────────────────────────────────────────────────────────────────────
+   COCKPIT - macro si sectoare pe UN ecran (22.09.2026)
+
+   NU confunda cu `lib/cockpit.js`: acela e banda orizontala slim de pe hub si de pe
+   nasdaq-scanner (semafor + gauge + danger), care citeste doar ce a scris Macro in
+   localStorage. Pagina asta isi aduce singura datele si e un ecran intreg.
+
+   Paleta: nu e aleasa din ochi. Perechea albastru/rosu e cea validata cu
+   validatorul de palete (separare la deuteranopie / protanopie / tritanopie);
+   prima varianta incercata, cu violet langa albastru, a picat cu Delta E 3,6
+   la deutan. Butonul "verde/rosu" de sus pune conventia clasica de trader,
+   pentru cine o prefera - alegerea ramane a omului, nu a mea.
+
+   Densitate mare, dar cu sistem: 5 trepte de font (nu 18), 6 culori cu rol fix
+   (nu 19), cifrele monospatiate si aliniate, ZERO carduri - liniile de 1px
+   separa, spatiul grupeaza.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --plane:      #0d0d0d;
+  --surface:    #1a1a19;
+  --surface-2:  #222221;
+  --ink:        #ffffff;
+  --ink-2:      #c3c2b7;
+  --ink-muted:  #898781;
+  --hair:       #2c2c2a;
+  --axis:       #383835;
+  --pos:        #3987e5;
+  --neg:        #e66767;
+  --warning:    #fab219;
+  --good:       #0ca30c;
+  --critical:   #d03b3b;
+  --mono: 'IBM Plex Mono', ui-monospace, 'DM Mono', monospace;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+}
+:root[data-theme="light"] {
+  --plane:      #f4f3f0;
+  --surface:    #fcfcfb;
+  --surface-2:  #f0efec;
+  --ink:        #101010;
+  --ink-2:      #52514e;
+  --ink-muted:  #6e6c67;
+  --hair:       #e1e0d9;
+  --axis:       #c3c2b7;
+  --pos:        #2a78d6;
+  --neg:        #d03b3b;
+}
+:root[data-verde="1"] { --pos: #0ca30c; --neg: #d03b3b; }
+:root[data-theme="light"][data-verde="1"] { --pos: #076807; --neg: #b02a2a; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--plane); color: var(--ink);
+  font-family: var(--sans); font-size: 15px; line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+  padding-bottom: 90px;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px; }
+
+/* ── capul paginii ── */
+header.top {
+  border-bottom: 1px solid var(--hair); background: var(--surface);
+  padding: 10px 0; margin-bottom: 18px;
+}
+.top-in { max-width: 1240px; margin: 0 auto; padding: 0 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.brand { font-weight: 600; letter-spacing: -0.01em; }
+.badge {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-muted);
+  border: 1px solid var(--hair); border-radius: 999px; padding: 2px 8px;
+}
+.top .sp { margin-left: auto; }
+button.act {
+  font: inherit; font-size: 13px; font-weight: 500; color: var(--ink-2);
+  background: transparent; border: 1px solid var(--hair); border-radius: 999px;
+  padding: 6px 13px; cursor: pointer;
+}
+button.act:hover { border-color: var(--axis); color: var(--ink); }
+button.act:active { transform: translateY(1px); }
+
+/* ── verdictul: eroul ecranului ── */
+.hero { border-bottom: 1px solid var(--axis); padding-bottom: 14px; }
+.hero-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 18px; }
+.verdict { font-size: 30px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
+.verdict.mixt { color: var(--warning); }
+.verdict.on   { color: var(--pos); }
+.verdict.off  { color: var(--neg); }
+.verdict.nimic { color: var(--ink-muted); }
+.do { font-size: 15px; font-weight: 500; }
+.ages { font-family: var(--mono); font-size: 11px; color: var(--ink-muted); margin-left: auto; text-align: right; }
+.why { color: var(--ink-2); font-size: 13.5px; margin: 8px 0 0; max-width: 78ch; }
+
+/* ── dovezile ── */
+.proof { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pf {
+  font-family: var(--mono); font-size: 12px; padding: 3px 9px;
+  border: 1px solid var(--hair); border-radius: 999px; color: var(--ink-2);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.pf b { font-weight: 600; letter-spacing: .02em; }
+.pf.da { border-color: color-mix(in srgb, var(--pos) 55%, transparent); }
+.pf.da b { color: var(--pos); }
+.pf.nu { border-color: color-mix(in srgb, var(--neg) 55%, transparent); }
+.pf.nu b { color: var(--neg); }
+.pf.hm { border-color: color-mix(in srgb, var(--warning) 55%, transparent); }
+.pf.hm b { color: var(--warning); }
+.pf.un { border-style: dashed; color: var(--ink-muted); }
+
+/* ── cifrele macro ── */
+.nums { display: grid; grid-template-columns: repeat(auto-fit, minmax(122px, 1fr)); margin-top: 4px; }
+.cell { padding: 11px 14px 11px 0; border-bottom: 1px solid var(--hair); }
+.k { font-size: 10.5px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .08em; }
+.v { font-family: var(--mono); font-size: 19px; font-variant-numeric: tabular-nums; margin-top: 1px; }
+.v.nu-stiu { color: var(--ink-muted); font-size: 15px; font-style: italic; }
+.age { font-family: var(--mono); font-size: 10px; color: var(--ink-muted); }
+
+/* ── tabelul de sectoare ── */
+h2.sec {
+  font-size: 11px; color: var(--ink-muted); text-transform: uppercase;
+  letter-spacing: .1em; font-weight: 500; margin: 26px 0 6px;
+}
+table.t { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; }
+table.t th {
+  text-align: left; font-size: 10.5px; color: var(--ink-muted); text-transform: uppercase;
+  letter-spacing: .08em; font-weight: 500; padding: 8px 10px 8px 0;
+  border-bottom: 1px solid var(--axis); white-space: nowrap;
+}
+table.t td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--hair); font-variant-numeric: tabular-nums; }
+table.t tr:hover td { background: var(--surface-2); }
+table.t .r { text-align: right; }
+table.t .nume { font-family: var(--sans); color: var(--ink-2); }
+table.t .tick { font-weight: 600; }
+.p { color: var(--pos); } .n { color: var(--neg); }
+.q { font-size: 11.5px; }
+.q.lead { color: var(--pos); } .q.impr { color: var(--pos); opacity: .75; }
+.q.weak { color: var(--warning); } .q.lag { color: var(--neg); }
+.mv { font-size: 11.5px; color: var(--ink-muted); }
+.mv.intra { color: var(--pos); } .mv.iese { color: var(--neg); }
+svg.spark { display: block; }
+
+/* ── stari ── */
+.stare { padding: 26px 0; color: var(--ink-muted); font-family: var(--mono); font-size: 13px; }
+.nu-stiu-box {
+  border: 1px solid var(--hair); border-left: 3px solid var(--warning);
+  border-radius: 8px; padding: 12px 14px; margin-top: 16px;
+  font-size: 13px; color: var(--ink-2); background: var(--surface);
+}
+.nu-stiu-box b { color: var(--ink); }
+footer.note { margin-top: 26px; padding-top: 14px; border-top: 1px solid var(--hair); color: var(--ink-muted); font-size: 12px; }
+@media (max-width: 720px) {
+  .verdict { font-size: 24px; }
+  .ages { margin-left: 0; text-align: left; width: 100%; }
+  table.t .nume, table.t .colmv { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <span class="brand">Cockpit</span>
+    <span class="badge" id="verBadge">v1</span>
+    <span class="badge" id="suiteBadge">&mdash;</span>
+    <span class="sp"></span>
+    <button class="act" id="btnVerde" title="Comuta intre albastru/rosu (validat pentru daltonism) si verde/rosu clasic">verde/roșu</button>
+    <button class="act" id="btnReload">reîmprospătează</button>
+    <a class="act" href="../" style="text-decoration:none">← Hub</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <div class="hero-line">
+      <span class="verdict nimic" id="verdict">se încarcă…</span>
+      <span class="do" id="do"></span>
+      <span class="ages" id="ages"></span>
+    </div>
+    <p class="why" id="why">Aduc prețurile pentru SPY, cele 11 sectoare și cifrele macro.</p>
+    <div class="proof" id="proof"></div>
+  </section>
+
+  <div class="nums" id="nums"></div>
+
+  <h2 class="sec">Sectoare &middot; forță relativă față de SPY</h2>
+  <table class="t">
+    <thead><tr>
+      <th>Sector</th><th class="nume">Nume</th>
+      <th class="r" colspan="2">Δ 1 săpt</th>
+      <th class="r">Δ 1 lună</th>
+      <th>Cadran</th><th class="colmv">Mișcare</th>
+    </tr></thead>
+    <tbody id="tbody"><tr><td colspan="7" class="stare">se încarcă…</td></tr></tbody>
+  </table>
+
+  <div id="nustiu"></div>
+
+  <footer class="note">
+    <span id="formula">Cadranul: RS-Ratio = abaterea raportului sector/SPY față de media lui pe 21 de zile; RS-Momentum = cât s-a schimbat asta în ultimele 5 zile. Aceeași formulă ca în Sector Rotation, ca să nu existe două adevăruri.</span>
+  </footer>
+</div>
+
+<script src="../lib/data.js?v=807"></script>
+<script>
+'use strict';
+const VER = 'v3';
+const $ = (id) => document.getElementById(id);
+
+// Aceleasi constante ca in sector-rotation: un singur adevar pe toata suita.
+const RRG_LB = 21;   // fereastra de trend relativ (~1 luna de tranzactionare)
+const RRG_MOM = 5;   // fereastra de momentum (~1 saptamana)
+
+const SECTOARE = [
+  { sym:'XLK',  nume:'Technology',          grup:'ciclic'    },
+  { sym:'XLY',  nume:'Consumer Disc.',      grup:'ciclic'    },
+  { sym:'XLC',  nume:'Communication Serv.', grup:'ciclic'    },
+  { sym:'XLF',  nume:'Financials',          grup:'ciclic'    },
+  { sym:'XLI',  nume:'Industrials',         grup:'ciclic'    },
+  { sym:'XLB',  nume:'Materials',           grup:'ciclic'    },
+  { sym:'XLE',  nume:'Energy',              grup:'ciclic'    },
+  { sym:'XLRE', nume:'Real Estate',         grup:'dobanda'   },
+  { sym:'XLV',  nume:'Health Care',         grup:'defensiv'  },
+  { sym:'XLP',  nume:'Consumer Staples',    grup:'defensiv'  },
+  { sym:'XLU',  nume:'Utilities',           grup:'defensiv'  },
+];
+
+// Cifrele macro.
+//
+// ^TNX e in PROCENTE INTREGI (4,963 = 4,963%), nu in zecimi. Prima versiune a paginii
+// il impartea la 10 si afisa „0,50%" - aceeasi presupunere gresita pe care o avea si
+// Macro Dashboard in patru locuri, inclusiv in scorul de regim, unde un randament
+// RESTRICTIV de 4,96% era citit ca „EASY MONEY, risk-on extrem".
+const MACRO = [
+  { sym:'^VIX',       k:'VIX',  fmt:(x)=>ro(x,2) },
+  { sym:'DX-Y.NYB',   k:'DXY',  fmt:(x)=>ro(x,2) },
+  { sym:'^TNX',       k:'10Y',  fmt:(x)=>ro(x,2)+'%' },
+  { sym:'^IRX',       k:'3M',   fmt:(x)=>ro(x,2)+'%' },
+  { sym:'BTC-USD',    k:'BTC',  fmt:(x)=>(x>=1000? (x/1000).toFixed(1)+'k' : ro(x,0)) },
+];
+
+const ro = (x, z) => (x == null || !isFinite(x)) ? '—'
+  : x.toLocaleString('ro-RO', { minimumFractionDigits: z, maximumFractionDigits: z });
+const pct = (x) => x == null ? '—' : (x > 0 ? '+' : '') + ro(x, 2) + '%';
+const varsta = (ms) => {
+  if (ms == null) return '';
+  const m = Math.round((Date.now() - ms) / 60000);
+  if (m < 1) return 'acum';
+  if (m < 90) return m + ' min';
+  const h = Math.round(m / 60);
+  return h < 36 ? h + ' h' : Math.round(h / 24) + ' zile';
+};
+
+/** Variatia procentuala pe `n` bare de tranzactionare. */
+function chg(bare, n) {
+  if (!bare || bare.length < n + 1) return null;
+  const a = bare[bare.length - 1 - n].c, b = bare[bare.length - 1].c;
+  return (a > 0) ? (b / a - 1) * 100 : null;
+}
+
+/** RS-Ratio / RS-Momentum, exact ca in sector-rotation. */
+function rrg(inchideriSector, inchideriSPY) {
+  if (!inchideriSector || !inchideriSPY) return { rsRatio: null, rsMom: null };
+  const n = Math.min(inchideriSector.length, inchideriSPY.length);
+  if (n < RRG_LB + RRG_MOM + 1) return { rsRatio: null, rsMom: null };
+  const sc = inchideriSector.slice(-n), sp = inchideriSPY.slice(-n);
+  const rs = new Array(n);
+  for (let i = 0; i < n; i++) rs[i] = sp[i] > 0 ? sc[i] / sp[i] : null;
+  const ratioAt = (j) => {
+    if (j < RRG_LB - 1) return null;
+    let s = 0, c = 0;
+    for (let k = j - RRG_LB + 1; k <= j; k++) if (rs[k] != null) { s += rs[k]; c++; }
+    if (!c || rs[j] == null) return null;
+    const sma = s / c;
+    return sma > 0 ? (rs[j] / sma - 1) * 100 : null;
+  };
+  const last = n - 1;
+  const rsRatio = ratioAt(last);
+  const prev = ratioAt(last - RRG_MOM);
+  const rsMom = (rsRatio != null && prev != null) ? rsRatio - prev : null;
+  // cadranul de acum o saptamana, ca sa putem numi MISCAREA, nu doar starea
+  const rrPrev = ratioAt(last - RRG_MOM);
+  const rpPrev = ratioAt(last - 2 * RRG_MOM);
+  const momPrev = (rrPrev != null && rpPrev != null) ? rrPrev - rpPrev : null;
+  return { rsRatio, rsMom, cadranAnterior: cadran(rrPrev, momPrev) };
+}
+
+function cadran(rsRatio, rsMom) {
+  if (rsRatio == null || rsMom == null) return null;
+  if (rsRatio >= 0 && rsMom >= 0) return { key:'lead', label:'LEADING' };
+  if (rsRatio >= 0 && rsMom <  0) return { key:'weak', label:'WEAKENING' };
+  if (rsRatio <  0 && rsMom <  0) return { key:'lag',  label:'LAGGING' };
+  return                                { key:'impr', label:'IMPROVING' };
+}
+
+/** Miscarea intre cadrane, in cuvintele traderului. */
+function miscare(dinC, inC) {
+  if (!dinC || !inC || dinC.key === inC.key) return { txt:'stă', cls:'' };
+  if (inC.key === 'lead') return { txt:'intră în LEADING', cls:'intra' };
+  if (inC.key === 'impr') return { txt:'începe să urce', cls:'intra' };
+  if (inC.key === 'weak') return { txt:'slăbește', cls:'iese' };
+  return { txt:'cade în LAGGING', cls:'iese' };
+}
+
+const STARE = { sectoare: [], macro: {}, lipsa: [], laOra: null };
+
+async function adu() {
+  $('verdict').className = 'verdict nimic';
+  $('verdict').textContent = 'se încarcă…';
+  STARE.lipsa = [];
+
+  // SPY e reperul: fara el nu exista forta relativa, deci nu inventam una.
+  let spy = null;
+  try { spy = await D.fetchStock('SPY', { range: '6mo', interval: '1d', ttl: 900 }); }
+  catch (e) { STARE.lipsa.push({ ce: 'SPY (reperul pentru forța relativă)', dece: e.message }); }
+  const spyCloses = spy ? spy.map(b => b.c) : null;
+
+  // sectoarele
+  const rez = await Promise.all(SECTOARE.map(async (s) => {
+    try {
+      const bare = await D.fetchStock(s.sym, { range: '6mo', interval: '1d', ttl: 900 });
+      const closes = bare.map(b => b.c);
+      const r = rrg(closes, spyCloses);
+      const c = cadran(r.rsRatio, r.rsMom);
+      return Object.assign({}, s, {
+        pret: closes[closes.length - 1],
+        chg1s: chg(bare, 5), chg1l: chg(bare, 21),
+        rsRatio: r.rsRatio, rsMom: r.rsMom, cadran: c,
+        mv: miscare(r.cadranAnterior, c),
+        laOra: bare[bare.length - 1].t,
+      });
+    } catch (e) {
+      STARE.lipsa.push({ ce: s.sym + ' (' + s.nume + ')', dece: e.message });
+      return Object.assign({}, s, { pret: null, chg1s: null, cadran: null });
+    }
+  }));
+  STARE.sectoare = rez;
+
+  // Cifrele macro se iau din `meta` (pretul CURENT + ora lui), nu din ultima bara.
+  //
+  // De ce: verificarea de integritate din lib/data.js arunca barele carora le lipseste
+  // `open` - iar indicii (^VIX, ^TNX) au adesea open null pe bara zilei in curs. Prima
+  // versiune a paginii lua asa bara de VINERI si scria cu seninatate „VIX 14,81 · 4 zile",
+  // cand valoarea de luni era 14,87. Pretul din meta vine cu propriul timestamp, deci si
+  // varsta afisata devine adevarata.
+  const m = {};
+  await Promise.all(MACRO.map(async (x) => {
+    const url = 'https://query1.finance.yahoo.com/v8/finance/chart/'
+      + encodeURIComponent(x.sym) + '?range=5d&interval=1d';
+    try {
+      const j = await D.fetchJSON(url, { ttl: 300, cacheKey: 'ck:' + x.sym });
+      const r = j && j.chart && j.chart.result && j.chart.result[0];
+      const meta = r && r.meta;
+      if (!meta || meta.regularMarketPrice == null) throw new Error('Yahoo nu a dat preț pentru ' + x.sym);
+      const inchis = meta.chartPreviousClose != null ? meta.chartPreviousClose : meta.previousClose;
+      m[x.k] = {
+        val: meta.regularMarketPrice,
+        la: meta.regularMarketTime ? meta.regularMarketTime * 1000 : null,
+        chg: (inchis > 0) ? (meta.regularMarketPrice / inchis - 1) * 100 : null,
+      };
+    } catch (e) {
+      m[x.k] = null;
+      STARE.lipsa.push({ ce: x.k, dece: e.message });
+    }
+  }));
+  STARE.macro = m;
+  STARE.laOra = Date.now();
+
+  deseneaza();
+}
+
+/** Verdictul: se compune din dovezi NUMARATE si scade singur cand ele se contrazic. */
+function judeca() {
+  const s = STARE.sectoare.filter(x => x.chg1s != null);
+  const dovezi = [];
+
+  // 1. frica
+  const vix = STARE.macro.VIX;
+  if (!vix) dovezi.push({ k:'un', t:'frica', v:'nu știu' });
+  else if (vix.val < 20) dovezi.push({ k:'da', t:'frica joasă', v:'VIX ' + ro(vix.val,2) });
+  else if (vix.val > 26) dovezi.push({ k:'nu', t:'frică mare', v:'VIX ' + ro(vix.val,2) });
+  else dovezi.push({ k:'hm', t:'frică medie', v:'VIX ' + ro(vix.val,2) });
+
+  // 2. cate sectoare urca
+  if (!s.length) dovezi.push({ k:'un', t:'participare', v:'nu știu' });
+  else {
+    const sus = s.filter(x => x.chg1s > 0).length;
+    dovezi.push({ k: sus >= 7 ? 'da' : sus <= 3 ? 'nu' : 'hm',
+      t:'participare', v: sus + '/' + s.length + ' sectoare urcă' });
+  }
+
+  // 3. cate au forta confirmata
+  const cu = s.filter(x => x.cadran);
+  if (!cu.length) dovezi.push({ k:'un', t:'lideri', v:'nu știu' });
+  else {
+    const lead = cu.filter(x => x.cadran.key === 'lead').length;
+    const lag = cu.filter(x => x.cadran.key === 'lag').length;
+    dovezi.push({ k: lead >= 3 ? 'da' : lag >= 7 ? 'nu' : 'hm',
+      t:'lideri', v: lead + ' LEADING · ' + lag + ' LAGGING' });
+  }
+
+  // 4. rotatia: ciclice vs defensive
+  const cic = s.filter(x => x.grup === 'ciclic');
+  const def = s.filter(x => x.grup === 'defensiv');
+  let spread = null;
+  if (cic.length && def.length) {
+    const mc = cic.reduce((a, x) => a + x.chg1s, 0) / cic.length;
+    const md = def.reduce((a, x) => a + x.chg1s, 0) / def.length;
+    spread = mc - md;
+    // Un spread pozitiv pentru ca defensivele pierd MAI MULT nu e apetit de risc:
+    // banii nu intra nicaieri, doar ies mai repede de undeva. Se spune pe fata.
+    const amandoua = mc < 0 && md < 0;
+    dovezi.push({ k: spread > 0.5 && !amandoua ? 'da' : spread < -0.5 ? 'nu' : 'hm',
+      t:'rotație', v: (spread > 0 ? '+' : '') + ro(spread,2) + ' pp' + (amandoua ? ' (dar ambele pierd)' : '') });
+  } else dovezi.push({ k:'un', t:'rotație', v:'nu știu' });
+
+  const da = dovezi.filter(d => d.k === 'da').length;
+  const nu = dovezi.filter(d => d.k === 'nu').length;
+  const un = dovezi.filter(d => d.k === 'un').length;
+
+  let stare, cls, why;
+  if (un >= 3) { stare = 'NU ȘTIU'; cls = 'nimic'; why = 'Prea puține date ca să spun ceva. ' + un + ' din 4 dovezi lipsesc.'; }
+  else if (da >= 3 && nu === 0) { stare = 'RISC PORNIT'; cls = 'on'; why = 'Cele ' + da + ' dovezi care contează arată în aceeași direcție.'; }
+  else if (nu >= 3 && da === 0) { stare = 'RISC OPRIT'; cls = 'off'; why = 'Cele ' + nu + ' dovezi care contează arată în aceeași direcție, în jos.'; }
+  else if (da > 0 && nu > 0) { stare = 'SE CONTRAZIC'; cls = 'mixt'; why = da + ' dovezi spun da, ' + nu + ' spun nu. Când nu se potrivesc, ziua nu merită mărimea întreagă.'; }
+  else { stare = 'NIMIC CLAR'; cls = 'mixt'; why = 'Nicio dovadă nu e destul de puternică într-o direcție sau alta.'; }
+
+  // ce fac acum: instrumentul se alege din date, nu din impresie
+  const lideri = s.filter(x => x.cadran && x.cadran.key === 'lead').sort((a,b) => b.chg1s - a.chg1s);
+  let act;
+  if (stare === 'NU ȘTIU') act = 'nu tranzacționez pe ce nu văd';
+  else if (stare === 'RISC OPRIT') act = 'stau deoparte';
+  else if (!lideri.length) act = 'stau: niciun sector cu forță confirmată';
+  else if (stare === 'RISC PORNIT') act = 'mărime întreagă · ' + lideri.slice(0,2).map(x=>x.sym).join(', ');
+  else act = 'jumătate de mărime · doar ' + lideri[0].sym;
+
+  return { stare, cls, why, act, dovezi, spread };
+}
+
+function deseneaza() {
+  const j = judeca();
+  $('verdict').className = 'verdict ' + j.cls;
+  $('verdict').textContent = j.stare;
+  $('do').textContent = j.act;
+  $('why').textContent = j.why;
+
+  $('proof').innerHTML = j.dovezi.map(d =>
+    '<span class="pf ' + d.k + '"><b>' + esc(d.t) + '</b> ' + esc(d.v) + '</span>').join('');
+
+  // cifrele macro, fiecare cu varsta ei
+  $('nums').innerHTML = MACRO.map(x => {
+    const m = STARE.macro[x.k];
+    if (!m) return '<div class="cell"><div class="k">' + esc(x.k) + '</div>'
+      + '<div class="v nu-stiu">nu știu</div><div class="age">sursa n-a răspuns</div></div>';
+    const dz = m.chg == null ? '' : '<span class="' + (m.chg >= 0 ? 'p' : 'n') + '">' + pct(m.chg) + '</span>';
+    return '<div class="cell"><div class="k">' + esc(x.k) + '</div>'
+      + '<div class="v">' + x.fmt(m.val) + '</div>'
+      + '<div class="age">' + varsta(m.la) + ' · ' + dz + '</div></div>';
+  }).join('')
+  // Curba 10Y-3M, calculata din cele doua randamente de mai sus. O curba inversata
+  // (negativa) e semnalul clasic de recesiune, deci merita sa fie vizibila, nu dedusa.
+  + (function () {
+      const a = STARE.macro['10Y'], b = STARE.macro['3M'];
+      if (!a || !b) return '<div class="cell"><div class="k">Curba 10Y−3M</div>'
+        + '<div class="v nu-stiu">nu știu</div><div class="age">lipsește un randament</div></div>';
+      const bp = (a.val - b.val) * 100;
+      return '<div class="cell"><div class="k">Curba 10Y−3M</div>'
+        + '<div class="v ' + (bp >= 0 ? 'p' : 'n') + '">' + (bp > 0 ? '+' : '') + ro(bp, 0) + ' bp</div>'
+        + '<div class="age">' + (bp < 0 ? 'INVERSATĂ' : 'normală') + '</div></div>';
+    })()
+  + (j.spread == null ? '' :
+    '<div class="cell"><div class="k">Ciclice − defensive</div><div class="v ' + (j.spread >= 0 ? 'p' : 'n') + '">'
+    + (j.spread > 0 ? '+' : '') + ro(j.spread,2) + ' pp</div><div class="age">pe 1 săptămână</div></div>');
+
+  // tabelul
+  const s = STARE.sectoare.slice().sort((a, b) => (b.chg1s ?? -99) - (a.chg1s ?? -99));
+  const maxAbs = Math.max(3, ...s.filter(x=>x.chg1s!=null).map(x => Math.abs(x.chg1s)));
+  $('tbody').innerHTML = s.map(x => {
+    if (x.chg1s == null) return '<tr><td class="tick">' + esc(x.sym) + '</td><td class="nume">' + esc(x.nume) + '</td>'
+      + '<td class="r" colspan="2" style="color:var(--ink-muted)">nu știu</td><td class="r" style="color:var(--ink-muted)">—</td>'
+      + '<td style="color:var(--ink-muted)">—</td><td class="colmv mv">sursa n-a răspuns</td></tr>';
+    const w = (Math.abs(x.chg1s) / maxAbs) * 26;
+    const cl = x.chg1s >= 0 ? 'p' : 'n';
+    const bara = '<svg class="spark" width="56" height="13" viewBox="0 0 56 13" aria-hidden="true">'
+      + '<rect x="27.5" y="0" width="1" height="13" fill="var(--axis)"/>'
+      + (x.chg1s >= 0
+        ? '<rect x="28" y="2.5" width="' + w.toFixed(1) + '" height="8" rx="3" fill="var(--pos)"/>'
+        : '<rect x="' + (28 - w).toFixed(1) + '" y="2.5" width="' + w.toFixed(1) + '" height="8" rx="3" fill="var(--neg)"/>')
+      + '</svg>';
+    return '<tr>'
+      + '<td class="tick">' + esc(x.sym) + '</td>'
+      + '<td class="nume">' + esc(x.nume) + '</td>'
+      + '<td class="r ' + cl + '">' + pct(x.chg1s) + '</td>'
+      + '<td class="r" style="width:60px">' + bara + '</td>'
+      + '<td class="r ' + (x.chg1l >= 0 ? 'p' : 'n') + '">' + pct(x.chg1l) + '</td>'
+      + '<td class="q ' + (x.cadran ? x.cadran.key : '') + '">' + (x.cadran ? x.cadran.label : '—') + '</td>'
+      + '<td class="colmv mv ' + (x.mv ? x.mv.cls : '') + '">' + (x.mv ? esc(x.mv.txt) : '—') + '</td>'
+      + '</tr>';
+  }).join('');
+
+  // ce NU am putut afla - scris, nu ascuns
+  if (STARE.lipsa.length) {
+    const cauza = (D.lastFailText && D.lastFailText()) || '';
+    $('nustiu').innerHTML = '<div class="nu-stiu-box"><b>Nu am putut afla ' + STARE.lipsa.length + ' lucruri.</b> '
+      + esc(STARE.lipsa.map(l => l.ce).join(' · '))
+      + (cauza ? '<br>Ultimul eșec de rețea: <span style="font-family:var(--mono)">' + esc(cauza) + '</span>' : '')
+      + '<br>Verdictul de sus e calculat pe ce a venit, nu pe zerouri puse în loc.</div>';
+  } else $('nustiu').innerHTML = '';
+
+  const vechi = STARE.sectoare.filter(x => x.laOra).map(x => x.laOra).sort()[0];
+  // Ora cu SECUNDE, nu doar cu minute: altfel o reimprospatare care ia datele din cache
+  // nu schimba nimic pe ecran, si nu poti sti daca butonul a facut ceva sau nu.
+  $('ages').textContent = 'prețuri: ' + (vechi ? varsta(vechi) : '—')
+    + ' · încărcat ' + new Date(STARE.laOra).toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit', second:'2-digit' })
+    + (STARE.lipsa.length ? ' · ' + STARE.lipsa.length + ' lipsă' : '');
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+}
+
+$('verBadge').textContent = VER;
+try {
+  const sv = localStorage.getItem('tt_suite_version');
+  if (sv) $('suiteBadge').textContent = sv;
+} catch (e) { /* fara localStorage: badge-ul suitei ramane gol */ }
+
+$('btnReload').addEventListener('click', () => adu());
+$('btnVerde').addEventListener('click', () => {
+  const pe = document.documentElement.getAttribute('data-verde') === '1';
+  if (pe) document.documentElement.removeAttribute('data-verde');
+  else document.documentElement.setAttribute('data-verde', '1');
+  try { localStorage.setItem('tt_cockpit_verde', pe ? '0' : '1'); } catch (e) {}
+});
+try { if (localStorage.getItem('tt_cockpit_verde') === '1') document.documentElement.setAttribute('data-verde', '1'); } catch (e) {}
+
+adu();
+</script>
+<script src="../lib/suite-version.js?v=804"></script>
+<script src="../nav.js?v=682" data-nav-root="../"></script>
+</body>
+</html>
