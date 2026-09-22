@@ -26,19 +26,27 @@ const PERECHI = [
 // pagina veche - si raporta „LIPSESTE" dupa ce paginile noi au trecut pe modulele
 // suitei (NT., SND., TG., WL.). O rigla care cauta o singura forma masoara forma,
 // nu capabilitatea.
+//
+// A TREIA capcana, in directia CEALALTA: tiparele pe cuvinte („insider", „backtest")
+// numarau si TEXTUL descriptiv. hub-clasic avea 12 astfel de aparitii - toate in
+// catalogul de tool-uri, inclusiv randul „Pump Radar - MUTAT pe pagina dedicata (HMM
+// + insider + backtest)" - dar ZERO apeluri si zero <script src> catre module. Rigla
+// raporta „LIPSESTE" pentru ceva ce nu existase niciodata acolo.
+// De aceea tiparele cauta acum APELURI (`INS.fetchTx`) si INCARCARI (`lib/insider.js`),
+// nu cuvinte.
 const CAPABILITATI = [
   { ce: 'auto-scan la interval',      re: /setInterval|autoSec|autoSel|porne\u0219teAuto|AUTO_MS/gi },
   { ce: 'notificări browser',         re: /new Notification|Notification\.requestPermission|notifBtn|NT\.(show|isOn|enable|disable|toggle)/gi },
   { ce: 'sunet la alertă',            re: /soundBtn|wl_sound|SOUND_KEY|playBeep|AudioContext|SND\.(beep|isEnabled|toggle)/gi },
   { ce: 'alerte Telegram',            re: /telegram|tgSave|tgChatId|TG_KEY|TG\.(send|getConfig|setConfig|test)/gi },
   { ce: 'watchlist (⭐)',              re: /wl_stocks|watchlist|toggleWl|WL\.(has|toggle|add|remove|get)|data-wl/gi },
-  { ce: 'verdict insider',            re: /INS\.|insider/gi },
-  { ce: 'backtest semnal',            re: /BT\.signal|backtest/gi },
-  { ce: 'notă AI',                    re: /AI\.complete|AI\.stream|anthropic/gi },
+  { ce: 'verdict insider',            re: /INS\.(fetchTx|analyze|classify)|lib\/insider\.js/gi },
+  { ce: 'backtest semnal',            re: /BT\.(signal|verdict|horizonSweep)|lib\/backtest\.js/gi },
+  { ce: 'notă AI',                    re: /AI\.(complete|stream|hasKey)|lib\/ai\.js/gi },
   { ce: 'filtru de regim (Markov)',   re: /__marketRegime|MK\.fitHMM|isVol/gi },
   { ce: 'praguri reglabile',          re: /thrMove|thrVol|thrPrice/gi },
   { ce: 'rând care se desface',       re: /toggleExpand|expanded-row|desfacut|\.det\b/gi },
-  { ce: 'istoric reacții earnings',   re: /fetchReactionBias|EARN\.istoric|reactie|reactia/gi },
+  { ce: 'istoric reacții earnings',   re: /fetchReactionBias|EARN\.istoric/gi },
   { ce: 'filtre pe listă',            re: /filterBy|applyFilter|\bfiltru\b|data-filter/gi },
   { ce: 'trezire la poll (wake)',     re: /poll-wake|pollWake|PW\./gi },
   { ce: 'export / copiere',           re: /toCSV|download|clipboard/gi },
