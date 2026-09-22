@@ -90,6 +90,32 @@ table.t .r { text-align: right; }
 .act.wait, .act.skip { color: var(--ink-3); }
 .gol { color: var(--ink-3); font-style: italic; padding: 18px 0; }
 .miss { border-left: 2px solid var(--acc); padding: 9px 0 9px 13px; margin-top: 14px; font-size: 13.5px; color: var(--ink-2); }
+/* randul care se desface: aici stau lucrurile de APROFUNDAT un simbol - backtest,
+   insider, nota AI. Nu pe lista, ca sa ramana citibila dintr-o privire. */
+tr.desfacut td { background: var(--win); border-bottom: 1px solid var(--line); padding: 0; }
+.det { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 18px 26px; padding: 16px 0 20px; }
+.det h4 {
+  font-family: var(--tt-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 500; margin: 0 0 8px;
+}
+.det table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: var(--tt-mono); }
+.det table td, .det table th {
+  padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line);
+  text-align: left; font-weight: 400; font-variant-numeric: tabular-nums;
+}
+.det table th { color: var(--ink-3); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+.det .r { text-align: right; }
+.verdict-bt { font-size: 12.5px; line-height: 1.4; margin-top: 8px; color: var(--ink-2); }
+.verdict-bt.good { color: var(--sus); } .verdict-bt.bad { color: var(--jos); } .verdict-bt.warn { color: var(--acc); }
+.ins-v { font-family: var(--tt-mono); font-size: 13px; }
+.ins-v.bull { color: var(--sus); } .ins-v.bear { color: var(--jos); } .ins-v.neut { color: var(--ink-3); }
+.mic {
+  font: inherit; font-size: 12px; color: var(--ink-2); background: transparent;
+  border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer;
+}
+.mic:hover { border-color: var(--acc); color: var(--acc); }
+.ai-text { font-size: 13px; color: var(--ink-2); line-height: 1.5; white-space: pre-wrap; margin-top: 8px; }
+.sub { font-size: 11.5px; color: var(--ink-3); margin-top: 6px; }
 .nota { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 12.5px; max-width: 78ch; }
 @media (max-width: 620px) {
   .w { padding: 0 14px; }
@@ -128,8 +154,11 @@ table.t .r { text-align: right; }
   <p class="nota" id="nota"></p>
 </div>
 
-<script src="../lib/data.js?v=816"></script>
+<script src="../lib/data.js?v=818"></script>
 <script src="../lib/pump.js?v=815"></script>
+<script src="../lib/insider.js?v=816"></script>
+<script src="../lib/backtest.js?v=816"></script>
+<script src="../lib/ai.js?v=816"></script>
 <script>
 'use strict';
 const $ = (id) => document.getElementById(id);
@@ -171,7 +200,7 @@ function scrie() {
       + '<th class="r">5 min</th><th class="r">Ziua</th>'
       + '<th class="r ascunde-tel">RSI</th><th class="r ascunde-tel">Intensitate</th>'
       + '</tr></thead><tbody>'
-      + l.map((x) => '<tr>'
+      + l.map((x) => '<tr id="r-' + esc(x.symbol) + '" data-sym="' + esc(x.symbol) + '" style="cursor:pointer" title="click pentru detalii">'
           + '<td style="font-weight:600">' + esc(x.symbol) + '</td>'
           + '<td class="act ' + x.act + '">' + esc(ETICHETA[x.act] || x.act) + '</td>'
           + '<td class="r">' + ro(x.price, 2) + '</td>'
@@ -191,13 +220,159 @@ function scrie() {
   $('nota').textContent = 'Sugestia se compune din: mișcarea ultimei bare de 5 minute închise (prag '
     + ro(p.thrMove, 1) + '%), variația zilei și RSI. Bara în formare e scoasă, altfel cifra ar sări '
     + 'la fiecare reîmprospătare. Volumul nu vine în acest tip de cerere, deci semnalele care cer '
-    + 'confirmare de volum nu pot apărea aici — pentru ele e nevoie de o cerere per simbol.';
+    + 'confirmare de volum nu pot apărea aici — pentru ele e nevoie de o cerere per simbol. '
+    + 'Click pe un rând: backtest-ul semnalului, ce fac cei din interior și, la buton, părerea AI.';
 }
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  RANDUL CARE SE DESFACE
+//
+//  Aici s-au intors lucrurile scoase la rescriere: backtest-ul semnalului, verdictul
+//  insider si nota AI. Locul lor e AICI, nu pe lista: sunt raspunsuri la „de ce" si
+//  „merita?", pe care le pui despre UN simbol, dupa ce l-ai gasit. Pe lista ar fi
+//  transformat 24 de randuri in 24 de dosare.
+//
+//  Nimic nu se cere pana nu apesi: backtest-ul foloseste barele deja aduse de scan,
+//  insider-ul e o cerere per simbol, iar AI costa bani - deci sta in spatele unui buton.
+// ══════════════════════════════════════════════════════════════════════════════
+let desfacut = null;
+
+function inchideDesfacut() {
+  document.querySelectorAll('tr.desfacut').forEach((t) => t.remove());
+  desfacut = null;
+}
+
+function desfa(sym) {
+  if (desfacut === sym) { inchideDesfacut(); return; }
+  inchideDesfacut();
+  const rand = document.getElementById('r-' + sym);
+  const x = (S.lista || []).find((r) => r.symbol === sym);
+  if (!rand || !x) return;
+  desfacut = sym;
+
+  const tr = document.createElement('tr');
+  tr.className = 'desfacut';
+  tr.innerHTML = '<td colspan="7"><div class="det">'
+    + '<div><h4>Semnalul a mers în trecut?</h4><div id="d-bt">se calculează…</div></div>'
+    + '<div><h4>Ce fac cei din interior</h4><div id="d-ins">…</div></div>'
+    + '<div><h4>Părerea AI</h4><div id="d-ai"></div></div>'
+    + '</div></td>';
+  rand.after(tr);
+
+  deseneazaBacktest(x);
+  deseneazaInsider(x);
+  deseneazaAI(x);
+}
+
+/** Backtest pe barele de 5 minute deja aduse de scan. Semnalul e EXACT pragul din
+    pagina. Randamentul e BRUT si in-sample - scris pe ecran, ca cifra sa nu para
+    mai buna decat e. */
+function deseneazaBacktest(x) {
+  const el = $('d-bt');
+  if (!el) return;
+  if (!window.BT || !BT.signal) { el.innerHTML = '<span class="sub">modulul de backtest nu e încărcat</span>'; return; }
+  const closes = x.closes || [];
+  if (closes.length < 40) {
+    el.innerHTML = '<span class="sub">prea puține bare (' + closes.length + ') ca să însemne ceva</span>';
+    return;
+  }
+  const ohlc = closes.map((c) => ({ c }));
+  const thr = PUMP.praguri().thrMove;
+  const sigFn = (b, i) => ((b[i].c / b[i - 1].c - 1) * 100 >= thr) ? 1 : 0;
+  let best = null;
+  let rows = '';
+  for (const H of [3, 6, 12]) {
+    const res = BT.signal(ohlc, sigFn, { horizon: H });
+    if (!best || Math.abs(res.t) > Math.abs(best.t)) best = res;
+    rows += '<tr><td>' + (H * 5) + ' min</td>'
+      + '<td class="r">' + res.n + '</td>'
+      + '<td class="r ' + (res.avgPct > 0 ? 'up' : 'dn') + '">' + (res.avgPct >= 0 ? '+' : '') + res.avgPct.toFixed(2) + '%</td>'
+      + '<td class="r">' + res.hitPct.toFixed(0) + '%</td>'
+      + '<td class="r">' + res.t.toFixed(2) + '</td>'
+      + '<td class="r ' + (res.edgePct > 0 ? 'up' : 'dn') + '">' + (res.edgePct >= 0 ? '+' : '') + res.edgePct.toFixed(2) + '%</td></tr>';
+  }
+  const v = BT.verdict(best);
+  el.innerHTML = '<div class="sub">Semnal: bară 5 min ≥ +' + ro(thr, 1) + '% · ' + closes.length + ' bare · randament BRUT, in-sample</div>'
+    + '<table><thead><tr><th>Orizont</th><th class="r">n</th><th class="r">medie</th>'
+    + '<th class="r">hit</th><th class="r">t</th><th class="r">față de piață</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody></table>'
+    + '<div class="verdict-bt ' + v.cls + '">' + esc(v.text) + '</div>';
+}
+
+/** Verdictul insider: tranzactiile raportate de conducere, ultimele 90 de zile.
+    Cere cheie Finnhub - fara ea spunem ca n-am intrebat, nu ca nu e nimic. */
+async function deseneazaInsider(x) {
+  const el = $('d-ins');
+  if (!el) return;
+  if (!window.INS || !INS.fetchTx) { el.innerHTML = '<span class="sub">modulul insider nu e încărcat</span>'; return; }
+  let cheie = '';
+  try { cheie = localStorage.getItem('finnhub_api_key') || ''; } catch (e) {}
+  if (!cheie) {
+    el.innerHTML = '<span class="sub">nu știu — cere cheia Finnhub, pusă în <a href="../earnings-hub/" style="color:var(--acc)">Earnings</a></span>';
+    return;
+  }
+  el.textContent = 'întreb…';
+  try {
+    const rows = await INS.fetchTx(x.symbol, { days: 90 });
+    if (!rows || !rows.length) { el.innerHTML = '<span class="sub">nicio tranzacție raportată în 90 de zile</span>'; return; }
+    const a = INS.analyze(rows, { topN: 5 });
+    if (!a) { el.innerHTML = '<span class="sub">nu am putut citi răspunsul</span>'; return; }
+    const et = { bull: 'CUMPĂRĂ', bear: 'VÂND', neut: 'echilibrat' };
+    el.innerHTML = '<div class="ins-v ' + a.verdict + '">' + (et[a.verdict] || a.verdict) + '</div>'
+      + '<div class="sub">' + a.buys + ' cumpărări · ' + a.sells + ' vânzări, ultimele 90 de zile</div>'
+      + (a.top && a.top.length
+        ? '<table><tbody>' + a.top.slice(0, 5).map((t) =>
+            '<tr><td>' + esc((t.name || '?').slice(0, 22)) + '</td>'
+            + '<td class="r ' + (t.buy ? 'up' : 'dn') + '">' + (t.buy ? '+' : '') + (t.change || 0).toLocaleString('ro-RO') + '</td>'
+            + '<td class="r" style="color:var(--ink-3)">' + esc(t.date || '') + '</td></tr>').join('')
+          + '</tbody></table>'
+        : '');
+  } catch (e) {
+    el.innerHTML = '<span class="sub">nu am putut întreba: ' + esc(e.message || e) + '</span>';
+  }
+}
+
+/** Nota AI, DOAR la buton: fiecare apasare costa bani, deci nu se cere singura. */
+function deseneazaAI(x) {
+  const el = $('d-ai');
+  if (!el) return;
+  if (!window.AI || !AI.complete) { el.innerHTML = '<span class="sub">modulul AI nu e încărcat</span>'; return; }
+  if (!AI.hasKey || !AI.hasKey()) {
+    el.innerHTML = '<span class="sub">nu știu — cere cheia Anthropic (⚙ în pagina Macro)</span>';
+    return;
+  }
+  el.innerHTML = '<button class="mic" id="b-ai">întreabă despre ' + esc(x.symbol) + '</button>'
+    + '<div class="sub">costă un apel; nu se cere singur</div>';
+  $('b-ai').addEventListener('click', async () => {
+    $('b-ai').disabled = true;
+    $('b-ai').textContent = 'întreb…';
+    const p = PUMP.praguri();
+    const intrebare = 'Ești un trader disciplinat. Date reale ACUM pentru ' + x.symbol + ': '
+      + 'ultima bară de 5 minute ' + x.m5.toFixed(2) + '%, variația zilei ' + x.chgDay.toFixed(2) + '%, '
+      + 'RSI ' + (x.rsi != null ? x.rsi.toFixed(0) : 'necunoscut') + ', preț ' + x.price.toFixed(2) + ' USD. '
+      + 'Pragul de detecție e ' + p.thrMove + '%. În maximum 60 de cuvinte, în română: merită urmărit acum '
+      + 'sau e zgomot, și ce ar invalida ideea? Nu inventa cifre pe care nu ți le-am dat.';
+    try {
+      const t = await AI.complete({ messages: [{ role: 'user', content: intrebare }], max_tokens: 300 });
+      el.innerHTML = '<div class="ai-text">' + esc(t) + '</div>'
+        + '<div class="sub">scris de un model, pe cifrele de mai sus. Nu e sfat de investiții.</div>';
+    } catch (e) {
+      el.innerHTML = '<span class="sub">nu a răspuns: ' + esc(e.message || e) + '</span>';
+    }
+  });
+}
+
+document.addEventListener('click', (e) => {
+  const tr = e.target.closest && e.target.closest('tr[data-sym]');
+  if (tr) desfa(tr.dataset.sym);
+});
 
 async function scaneaza() {
   $('kick').textContent = 'scanez…';
   const r = await PUMP.scan();
   S = { lista: r.lista, lipsa: r.lipsa };
+  desfacut = null;   // datele de sub el s-au schimbat
   scrie();
 }
 

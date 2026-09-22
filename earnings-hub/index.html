@@ -88,6 +88,28 @@ a { color: inherit; }
 .rand .est { margin-left: auto; font-family: var(--tt-mono); font-size: 12.5px; color: var(--ink-3); text-align: right; }
 .gol { color: var(--ink-3); font-style: italic; padding: 18px 0; }
 .gol a { color: var(--acc); }
+/* detaliile unui simbol: cum a mers data trecuta. Stau aici, nu pe lista, fiindca
+   raspund la „merita sa stau peste raportare?" - o intrebare pe care o pui despre UN
+   simbol, dupa ce l-ai gasit in calendar. */
+.rand.apasabil { cursor: pointer; }
+.rand.apasabil:hover .sym { color: var(--acc); }
+.det {
+  padding: 4px 0 16px 0; margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.det h4 {
+  font-family: var(--tt-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 500; margin: 0 0 8px;
+}
+.det table { width: 100%; border-collapse: collapse; font-family: var(--tt-mono); font-size: 12.5px; max-width: 620px; }
+.det table th {
+  text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink-3); font-weight: 400; padding: 4px 10px 5px 0; border-bottom: 1px solid var(--line);
+}
+.det table td { padding: 5px 10px 5px 0; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.det table .r { text-align: right; }
+.det .sub { font-size: 11.5px; color: var(--ink-3); margin-top: 8px; max-width: 70ch; }
+.up { color: var(--sus); } .dn { color: var(--jos); }
 .nota { margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 12.5px; max-width: 78ch; }
 .cheie { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
 .cheie input {
@@ -130,7 +152,7 @@ a { color: inherit; }
   <p class="nota" id="nota"></p>
 </div>
 
-<script src="../lib/data.js?v=816"></script>
+<script src="../lib/data.js?v=818"></script>
 <script src="../lib/finnhub-key.js?v=815"></script>
 <script src="../lib/earnings.js?v=815"></script>
 <script>
@@ -200,7 +222,7 @@ function scrie(r) {
         const est = [];
         if (e.epsEstimate != null) est.push('EPS aşteptat ' + e.epsEstimate);
         if (e.revenueEstimate != null) est.push('venit ' + (e.revenueEstimate / 1e9).toFixed(2) + ' mld');
-        return '<div class="rand"><span class="sym">' + esc(e.symbol) + '</span>'
+        return '<div class="rand apasabil" data-sym="' + esc(e.symbol) + '"><span class="sym">' + esc(e.symbol) + '</span>'
           + '<span class="cand">' + esc(EARN.cand(e)) + '</span>'
           + '<span class="est">' + esc(est.join(' · ')) + '</span></div>';
       }).join('')
@@ -208,8 +230,77 @@ function scrie(r) {
 
   $('nota').textContent = 'Sursa: Finnhub /calendar/earnings. Lista e filtrată la simboluri americane '
     + '(1-5 litere, fără sufix de bursă) care au cel puțin o estimare publicată — altfel ar veni peste o mie '
-    + 'de raportări din toată lumea, între care nu găsești ce te interesează.';
+    + 'de raportări din toată lumea, între care nu găsești ce te interesează. '
+    + 'Click pe un simbol: cum a mers la ultimele 8 raportări şi cât s-a mişcat preţul atunci.';
 }
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  CUM A MERS DATA TRECUTA (click pe un simbol)
+//
+//  Istoricul reactiilor post-earnings, intors dupa rescriere. Locul lui e aici, la
+//  cerere: raspunde la „merita sa stau peste raportare?", intrebare pe care o pui
+//  despre UN simbol, nu despre toata lista.
+//
+//  Reactia se masoara intre inchiderea de DINAINTE si cea de DUPA ziua raportarii,
+//  tinand cont daca a raportat inainte de deschidere (bmo) sau dupa inchidere (amc).
+//  Cand ziua nu se gaseste in istoricul de preturi, randul scrie „nu stiu" - nu zero.
+// ══════════════════════════════════════════════════════════════════════════════
+let desfacut = null;
+
+function inchideDet() {
+  document.querySelectorAll('.det').forEach((d) => d.remove());
+  desfacut = null;
+}
+
+async function desfa(sym, rand) {
+  if (desfacut === sym) { inchideDet(); return; }
+  inchideDet();
+  desfacut = sym;
+
+  const d = document.createElement('div');
+  d.className = 'det';
+  d.innerHTML = '<h4>' + esc(sym) + ' · cum a mers data trecută</h4><div id="d-h">întreb…</div>';
+  rand.after(d);
+
+  const r = await EARN.istoric(sym, { ani: 2 });
+  const el = document.getElementById('d-h');
+  if (!el) return;
+
+  if (!r.ok) { el.innerHTML = '<span class="sub">nu știu — ' + esc(r.motiv) + '</span>'; return; }
+  if (!r.items.length) { el.innerHTML = '<span class="sub">nicio raportare găsită în ultimii 2 ani</span>'; return; }
+
+  const cuReactie = r.items.filter((x) => x.reactie != null);
+  const medie = cuReactie.length
+    ? cuReactie.reduce((a, x) => a + Math.abs(x.reactie), 0) / cuReactie.length : null;
+
+  el.innerHTML = '<table><thead><tr><th>Când</th><th>Ora</th>'
+    + '<th class="r">EPS aşteptat</th><th class="r">EPS real</th>'
+    + '<th class="r">Surpriză</th><th class="r">Reacţia preţului</th></tr></thead><tbody>'
+    + r.items.map((x) => '<tr>'
+        + '<td>' + esc(x.date) + '</td>'
+        + '<td style="color:var(--ink-3)">' + esc(x.hour === 'amc' ? 'după închidere' : x.hour === 'bmo' ? 'înainte' : (x.hour || '—')) + '</td>'
+        + '<td class="r">' + (x.epsEstimate != null ? x.epsEstimate : '—') + '</td>'
+        + '<td class="r">' + (x.epsActual != null ? x.epsActual : '—') + '</td>'
+        + '<td class="r ' + (x.surpriza == null ? '' : x.surpriza >= 0 ? 'up' : 'dn') + '">'
+          + (x.surpriza == null ? '—' : (x.surpriza > 0 ? '+' : '') + x.surpriza.toFixed(0) + '%') + '</td>'
+        + '<td class="r ' + (x.reactie == null ? '' : x.reactie >= 0 ? 'up' : 'dn') + '">'
+          + (x.reactie == null ? 'nu ştiu' : (x.reactie > 0 ? '+' : '') + x.reactie.toFixed(2) + '%') + '</td>'
+        + '</tr>').join('')
+    + '</tbody></table>'
+    + '<div class="sub">'
+    + (medie != null
+        ? 'În medie, preţul s-a mişcat <b>' + medie.toFixed(1) + '%</b> în ziua raportării (indiferent de direcţie), pe '
+          + cuReactie.length + ' din ' + r.items.length + ' raportări. '
+        : '')
+    + 'Reacţia e măsurată între închiderea dinainte şi cea de după ziua raportării, ţinând cont dacă a raportat '
+    + 'înainte de deschidere sau după închidere. O poziţie ţinută peste o astfel de zi riscă exact atât.</div>';
+}
+
+document.addEventListener('click', (e) => {
+  const r = e.target.closest && e.target.closest('.rand[data-sym]');
+  if (r) desfa(r.dataset.sym, r);
+});
 
 async function adu() {
   $('kick').textContent = 'întreb…';
@@ -219,6 +310,7 @@ async function adu() {
 document.querySelectorAll('#zile button').forEach((b) => {
   b.addEventListener('click', () => {
     ZILE = +b.dataset.z;
+    desfacut = null;
     document.querySelectorAll('#zile button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     adu();
   });
