@@ -35,7 +35,11 @@
 // Securitate proxy: acceptă DOAR host-urile din ALLOW (Yahoo + CoinGecko) și DOAR
 // origin-ul GitHub Pages al suitei (sau lipsă origin — ex. test din terminal).
 // ═══════════════════════════════════════════════════════════════════
-const ALLOW_HOSTS = /^(query1|query2)\.finance\.yahoo\.com$|^api\.coingecko\.com$|^nfs\.faireconomy\.media$/;
+// 22.09.2026: + cointelegraph.com. Feed-ul RSS TRAIESTE (200, 52 KB, probat din terminal),
+// dar pagina il cerea prin proxy si primea `host not allowed` (403) -> secțiunea „Crypto
+// news" nu putea functiona DELOC. Reddit NU se adauga: `r/CryptoCurrency/new.json` da 403
+// la sursa pentru orice acces anonim, deci ar fi o gaura deschisa degeaba.
+const ALLOW_HOSTS = /^(query1|query2)\.finance\.yahoo\.com$|^api\.coingecko\.com$|^nfs\.faireconomy\.media$|^cointelegraph\.com$/;
 const ALLOW_ORIGIN = 'https://mferent80-source.github.io';
 function isAllowedOrigin(origin) {
   if (!origin) return true; // file://, curl, cron — fără header Origin
@@ -109,6 +113,22 @@ async function handleJournalIngest(request, env) {
   }
 }
 
+// Raspuns de eroare pe care PAGINA il poate citi. Fara `Access-Control-Allow-Origin`,
+// browserul blocheaza raspunsul inainte ca JS-ul sa vada statusul sau textul: un 403
+// „host not allowed" ajunge in pagina doar ca „Failed to fetch". Masurat 22.09: ecranul
+// spunea „proxy-ul nu raspunde" cand de fapt proxy-ul raspundea foarte clar de ce refuza.
+// Un motiv care nu trece CORS nu ajuta pe nimeni.
+function eroare(text, status, origin) {
+  return new Response(text, {
+    status,
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Access-Control-Allow-Origin': origin || '*',
+      'Vary': 'Origin'
+    }
+  });
+}
+
 export default {
   async fetch(request, env) {
     const u = new URL(request.url);
@@ -125,12 +145,12 @@ export default {
       res.headers.set('Access-Control-Allow-Origin', origin || ALLOW_ORIGIN);
       return res;
     }
-    if (origin && !isAllowedOrigin(origin)) return new Response('forbidden origin', { status: 403 });
+    if (origin && !isAllowedOrigin(origin)) return eroare('forbidden origin: ' + origin, 403, origin);
 
     const target = u.searchParams.get('url');
     let t;
-    try { t = new URL(target); } catch (e) { return new Response('bad url', { status: 400 }); }
-    if (t.protocol !== 'https:' || !ALLOW_HOSTS.test(t.host)) return new Response('host not allowed', { status: 403 });
+    try { t = new URL(target); } catch (e) { return eroare('bad url: parametrul ?url= lipseste sau nu e o adresa valida', 400, origin); }
+    if (t.protocol !== 'https:' || !ALLOW_HOSTS.test(t.host)) return eroare('host not allowed: ' + t.host, 403, origin);
 
     // faireconomy (ForexFactory) e în spatele Cloudflare și refuză UA-uri non-browser →
     // pentru host-ul ăsta trimitem un UA complet de Chrome; restul rămân pe UA-ul intern.

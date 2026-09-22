@@ -1176,7 +1176,7 @@ h1.headline:empty { display:none; }
 <!-- v238: topbar pe UN singur rând (stil ziar) — logo + pills stânga, acțiuni dreapta.
      Toate id-urile vechi rămân (JS-ul le populează neschimbat). -->
 <header class="macro-cockpit topbar-sticky">
-  <h1>🌍 Macro <span class="ver-badge" id="verBadge">v239</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>🌍 Macro <span class="ver-badge" id="verBadge">v240</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <div class="macro-toolbar">
     <div class="macro-status-row">
       <span class="mood-pill" id="moodPill" title="Market mood (auto-detect din VIX/DXY/F&G)">⚪ —</span>
@@ -1281,7 +1281,7 @@ h1.headline:empty { display:none; }
 
   <div class="panel-box">
     <div class="panel-head">
-      <h3>📅 Calendar Economic — următoarele 14 zile</h3>
+      <h3>📅 Calendar Economic — săptămâna curentă (tot ce dă ForexFactory)</h3>
       <span class="panel-sub" id="calStatus">Se încarcă...</span>
     </div>
     <div class="scanner-wrap">
@@ -1769,8 +1769,8 @@ h1.headline:empty { display:none; }
 
 <div id="toasts"></div>
 
-<script src="../lib/suite-version.js?v=802"></script>
-<script src="../lib/data.js?v=802"></script>
+<script src="../lib/suite-version.js?v=803"></script>
+<script src="../lib/data.js?v=803"></script>
 <script src="../lib/quote-bus.js?v=704"></script>
 <script src="../lib/setup-levels.js?v=704"></script>
 <script>
@@ -2264,9 +2264,11 @@ function mapFfEvents(events) {
 }
 async function fetchForexFactory() {
   const proxy = getCustomProxyUrl();
-  // Doar thisweek + nextweek EXISTĂ (lastweek dă 404). thisweek acoperă și rezultatele
-  // publicate mai devreme în săptămână → fereastra de retenție 72h e ok.
-  const feeds = ['ff_calendar_thisweek.json', 'ff_calendar_nextweek.json'];
+  // 22.09.2026: ForexFactory a RETRAS tot în afară de `thisweek`. Probat prin proxy:
+  // thisweek 200 · nextweek 404 · lastweek 404 · tomorrow 404 · today 404. Cerând
+  // `nextweek` luam un 404 la fiecare încărcare, iar titlul promitea 14 zile de
+  // evenimente când sursa dă DOAR săptămâna curentă. Mai bine puțin și adevărat.
+  const feeds = ['ff_calendar_thisweek.json'];
   let all = [], anyOk = false, needsDeploy = false, challenged = false;
   for (const f of feeds) {
     // 2 încercări: dacă Cloudflare dă un challenge HTML (intermitent), reîncercăm o dată
@@ -2411,15 +2413,25 @@ async function fetchBtcChartFromCoinGecko() { return fetchCryptoChartFromCoinGec
 async function fetchEthChartFromCoinGecko() { return fetchCryptoChartFromCoinGecko('ethereum'); }
 
 // Crypto -USD → Binance USDT (fără proxy, CORS ok) + CoinGecko ca plasă
+//
+// 22.09.2026: MATIC → POL, în toate cele trei mapări. Polygon a migrat tokenul în 2024, iar
+// simbolurile vechi nu doar au dispărut, MINT:
+//   · Yahoo `MATIC-USD`      → 404
+//   · Binance `MATICUSDT`    → 200, dar cu bid/ask 0.00000000 (carte de ordine GOALĂ,
+//     simbol delistat) și `lastPrice` ÎNGHEȚAT la 0,3794, adică de 3,4 ori peste realitate
+//   · CoinGecko `matic-network` → 0,126156, tot altceva
+// Simbolurile vii, probate azi din terminal: Yahoo `POL28321-USD` (200 - Yahoo pune sufix
+// numeric fiindcă tickerul POL e ambiguu), Binance `POLUSDT` (0,11012 cu bid/ask reale),
+// CoinGecko `polygon-ecosystem-token` (0,110202, se potrivește cu Binance).
 const CRYPTO_BINANCE_MAP = {
   'BTC-USD':'BTCUSDT','ETH-USD':'ETHUSDT','SOL-USD':'SOLUSDT','BNB-USD':'BNBUSDT',
   'XRP-USD':'XRPUSDT','ADA-USD':'ADAUSDT','DOGE-USD':'DOGEUSDT','AVAX-USD':'AVAXUSDT',
-  'LINK-USD':'LINKUSDT','DOT-USD':'DOTUSDT','LTC-USD':'LTCUSDT','MATIC-USD':'MATICUSDT'
+  'LINK-USD':'LINKUSDT','DOT-USD':'DOTUSDT','LTC-USD':'LTCUSDT','POL28321-USD':'POLUSDT'
 };
 const CRYPTO_COINGECKO_MAP = {
   'BTC-USD':'bitcoin','ETH-USD':'ethereum','SOL-USD':'solana','BNB-USD':'binancecoin',
   'XRP-USD':'ripple','ADA-USD':'cardano','DOGE-USD':'dogecoin','AVAX-USD':'avalanche-2',
-  'LINK-USD':'chainlink','DOT-USD':'polkadot','LTC-USD':'litecoin','MATIC-USD':'matic-network'
+  'LINK-USD':'chainlink','DOT-USD':'polkadot','LTC-USD':'litecoin','POL28321-USD':'polygon-ecosystem-token'
 };
 async function fetchCryptoChartFromBinance(pair, days = 90) {
   try {
@@ -3472,7 +3484,7 @@ const TICKER_LIB = new Set([
   // Health
   'JNJ','PFE','MRK','UNH','LLY','ABBV','BMY',
   // Crypto (Yahoo format)
-  'BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD','ADA-USD','DOGE-USD','LINK-USD','MATIC-USD','AVAX-USD',
+  'BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD','ADA-USD','DOGE-USD','LINK-USD','POL28321-USD','AVAX-USD',
   // Index/futures
   'ES=F','NQ=F','YM=F','RTY=F','GC=F','SI=F','CL=F','BZ=F','HG=F','^GSPC','^IXIC','^DJI','^RUT','^VIX','^TNX','^FVX'
 ]);
@@ -3480,7 +3492,7 @@ const TICKER_LIB = new Set([
 // Coinuri scrise SCURT în brief (AI le pune ca **SOL**, nu **SOL-USD**) → simbol Yahoo (-USD).
 // Necesar ca picks-urile crypto să fie clickable (chart-ul Yahoo cere forma -USD).
 const COIN_TICKERS = new Set([
-  'BTC','ETH','SOL','BNB','XRP','ADA','DOGE','LINK','MATIC','AVAX','DOT','TRX','LTC','BCH',
+  'BTC','ETH','SOL','BNB','XRP','ADA','DOGE','LINK','POL','AVAX','DOT','TRX','LTC','BCH',
   'SHIB','PEPE','ATOM','UNI','NEAR','APT','ARB','OP','SUI','INJ','TIA','SEI','RNDR','FET',
   'FTM','ALGO','XLM','HBAR','IMX','RUNE','AAVE','MKR','GRT','LDO','STX','WIF','BONK','JUP','ONDO','ENA','TON','FIL'
 ]);
@@ -4132,10 +4144,31 @@ async function fetchMacroNews(force = false) {
   }
 }
 
+// De ce n-au venit știri: întreabă proxy-ul o singură dată, DOAR când lista e goală.
+// Costă o cerere, dar scapă de „✅ 0 știri" — o bifă verde pe un eșec total. Vezi
+// diagnosticul din 22.09: cointelegraph.com lipsea din allowlist-ul worker-ului, deci
+// secțiunea nu putea funcționa deloc, și ecranul nu spunea nimic.
+async function deCeNuVinStiriCrypto() {
+  const proxy = getCustomProxyUrl();
+  try {
+    const r = await fetch(proxy + '/?url=' + encodeURIComponent('https://cointelegraph.com/rss'), { signal: AbortSignal.timeout(8000) });
+    const txt = await r.text();
+    if (r.status === 403 && /host not allowed/i.test(txt)) {
+      return 'proxy-ul tău nu are cointelegraph.com în listă — redeployează worker-ul (tools/cf-worker-proxy.js) în Cloudflare';
+    }
+    if (r.status === 404) return 'feedul Cointelegraph a fost mutat sau retras (404)';
+    if (!r.ok) return `proxy-ul a răspuns HTTP ${r.status}`;
+    if (txt.length < 100) return 'proxy-ul a răspuns gol';
+    return 'sursa răspunde, dar nicio știre nu a trecut filtrele';
+  } catch (e) {
+    return 'proxy-ul nu răspunde: ' + (e && e.message || e);
+  }
+}
+
 async function fetchCryptoNews(force = false) {
   if (!force && _newsLoadedAt.crypto && Date.now() - _newsLoadedAt.crypto < NEWS_CACHE_TTL) return;
   $('cnStatus').textContent = '⏳ Se încarcă...';
-  $('cnList').innerHTML = '<div class="news-loading">⏳ Aduc știri crypto (Finnhub + Reddit + Cointelegraph)...</div>';
+  $('cnList').innerHTML = '<div class="news-loading">⏳ Aduc știri crypto (Finnhub + Cointelegraph)...</div>';
   const fhKey = getFinnhubKey();
   const usedSources = [];
 
@@ -4164,8 +4197,14 @@ async function fetchCryptoNews(force = false) {
     );
   }
 
-  // 2. Reddit r/CryptoCurrency JSON (free, no key, CORS allowed)
-  tasks.push(
+  // 2. Reddit r/CryptoCurrency JSON — SCOS 22.09.2026.
+  // Probat din terminal cu UA complet de Chrome: `r/CryptoCurrency/new.json` întoarce
+  // HTTP 403 (Reddit a închis accesul anonim la .json). Nu e o problemă de CORS și nu o
+  // rezolvă niciun proxy: cere OAuth. Cât era în lanț, pagina anunța „Finnhub + Reddit +
+  // Cointelegraph" și aștepta degeaba o sursă care nu mai răspunde nimănui.
+  // Ca să revină, are nevoie de un client_id Reddit + token în worker, nu de proxy.
+  const REDDIT_SCOS = true;
+  if (!REDDIT_SCOS) tasks.push(
     fetch('https://www.reddit.com/r/CryptoCurrency/new.json?limit=30')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -4230,7 +4269,13 @@ async function fetchCryptoNews(force = false) {
   );
 
   try {
-    const results = await Promise.all(tasks);
+    // Plafon de 12 secunde pe TOT blocul de știri. Fără el, lanțul de proxy încearcă pe
+    // rând 4 gazde cu timeout progresiv (una dintre ele, codetabs, atârnă 15 s singură,
+    // măsurat 22.09), deci ecranul putea sta peste 40 de secunde pe „⏳ Aduc știri" fără
+    // să spună nimic. Ce a venit până la plafon se folosește; restul se declară necunoscut.
+    const results = await Promise.all(
+      tasks.map((t) => Promise.race([t, new Promise((res) => setTimeout(() => res([]), 12000))]))
+    );
     const all = results.flat();
     const seen = new Set();
     CRYPTO_NEWS = all.filter(n => {
@@ -4241,8 +4286,19 @@ async function fetchCryptoNews(force = false) {
       return true;
     }).sort((a, b) => b.ts - a.ts).slice(0, 80);
     _newsLoadedAt.crypto = Date.now();
-    const srcLabel = usedSources.length ? usedSources.join(' + ') : '(nicio sursă)';
-    $('cnStatus').textContent = `✅ ${CRYPTO_NEWS.length} știri · ${srcLabel} · ${new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}`;
+    const ora = new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'});
+    if (!CRYPTO_NEWS.length) {
+      // Nicio știre = un eșec, nu un succes cu zero. Spunem de ce, și nu marcăm ora
+      // încărcării ca reușită, ca reîncercarea următoare să nu fie blocată de cache.
+      _newsLoadedAt.crypto = 0;
+      $('cnStatus').textContent = '⚠️ nicio știre · verific de ce...';
+      const motiv = await deCeNuVinStiriCrypto();
+      $('cnStatus').textContent = `⚠️ nicio știre · ${ora}`;
+      $('cnList').innerHTML = `<div class="news-empty">⚠️ <b>Nu știu ce se întâmplă în crypto acum.</b><br>${escHtml(motiv)}.${getFinnhubKey() ? '' : '<br>Finnhub nu are cheie pusă în ⚙ Setări, deci rămâne doar Cointelegraph.'}</div>`;
+      return;
+    }
+    const srcLabel = usedSources.join(' + ');
+    $('cnStatus').textContent = `✅ ${CRYPTO_NEWS.length} știri · ${srcLabel} · ${ora}`;
     renderCryptoNews();
   } catch (e) {
     $('cnStatus').textContent = '❌ Eroare';
@@ -4253,7 +4309,7 @@ async function fetchCryptoNews(force = false) {
 function detectCryptoTags(text) {
   const t = (text || '').toUpperCase();
   const out = [];
-  const coins = ['BTC','BITCOIN','ETH','ETHEREUM','SOL','SOLANA','XRP','DOGE','ADA','BNB','MATIC','LINK','MARA','RIOT','COIN','MSTR'];
+  const coins = ['BTC','BITCOIN','ETH','ETHEREUM','SOL','SOLANA','XRP','DOGE','ADA','BNB','POL','LINK','MARA','RIOT','COIN','MSTR'];
   for (const c of coins) {
     if (t.includes(c) && !out.includes(c.slice(0,4))) out.push(c.replace('BITCOIN','BTC').replace('ETHEREUM','ETH').replace('SOLANA','SOL').slice(0,4));
     if (out.length >= 4) break;
@@ -6860,7 +6916,7 @@ function renderCockpit() {
 // Gate de calitate intrinsec: listăm DOAR setupuri clare, susținute de FAPTE de preț reale azi —
 // breakout peste maximul de 20 zile sau breakdown sub minim, confirmat de o mișcare semnificativă,
 // + poziție față de MA50/MA200. Fără setup clar → coinul nu apare (calitate > cantitate).
-const CRYPTO_MOMO_SYMS = ['BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD','ADA-USD','DOGE-USD','AVAX-USD','LINK-USD','DOT-USD','LTC-USD','MATIC-USD'];
+const CRYPTO_MOMO_SYMS = ['BTC-USD','ETH-USD','SOL-USD','BNB-USD','XRP-USD','ADA-USD','DOGE-USD','AVAX-USD','LINK-USD','DOT-USD','LTC-USD','POL28321-USD'];
 const MOMO_MIN_MOVE = 2.5; // |Δ% azi| minim ca un coin să fie considerat un setup momentum
 let _cryptoMomoSeq = 0;
 
@@ -7599,7 +7655,7 @@ if (window.SUITE_VERSION_SHORT) {
 
 // Register service worker
 if ('serviceWorker' in navigator) {
-  const swVer = 'tt-v802';
+  const swVer = 'tt-v803';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
 }
 
@@ -7610,7 +7666,7 @@ init();
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v802';
+  var PAGE_VER = 'tt-v803';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

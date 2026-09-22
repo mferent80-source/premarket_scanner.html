@@ -40,7 +40,7 @@ await trimite('Emulation.setDeviceMetricsOverride', { width: LAT, height: 1200, 
 const ev = async (expr) => (await trimite('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true }))?.result?.value;
 
 await trimite('Page.navigate', { url: URL0 });
-await asteapta(9000);
+await asteapta(15000);
 
 console.log('\n=== APĂSABILE VIZIBILE ===');
 const butoane = await ev(`(() => [...document.querySelectorAll('button,[role="tab"],a,summary,[data-tab],.tab')]

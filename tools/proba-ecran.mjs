@@ -25,7 +25,11 @@ const LAT = +(process.argv[3] ?? 1440);
 
 /** Paginile probate, cu ce trebuie apăsat pe fiecare. */
 const PAGINI = [
-  { cale: '/macro-dashboard/', nume: 'macro-dashboard', apasa: ['Calendar', 'Macro news', 'Crypto news', 'Oportunități', 'Watchlist', 'Jurnal', 'Ghid', 'Setări'] },
+  // Etichetele sunt EXACT ce scrie pe buton. Prima versiune a probei a cautat
+  // „Calendar" / „Setari" si a raportat 6 butoane inexistente: taburile paginii sunt
+  // etichetate DOAR cu emoji (📜 📖 ⚙). Un fals pozitiv intr-o garda e mai rau decat
+  // lipsa ei, asa ca aici stau semnele care exista pe ecran.
+  { cale: '/macro-dashboard/', nume: 'macro-dashboard', apasa: ['📜', '📖', '⚙', '👁', '🇺🇸 US', '🟢 Bull'] },
   { cale: '/sector-rotation/', nume: 'sector-rotation', apasa: [] },
 ];
 
@@ -76,10 +80,10 @@ ws.onmessage = (e) => {
   }
   if (m.method === 'Network.loadingFailed') {
     const u = cereri.get(m.params.requestId);
-    if (u && !u.startsWith('data:')) retea.push({ url: u, cum: m.params.errorText || 'a picat' });
+    if (u && !u.startsWith('data:') && !/favicon\.(ico|png)$/.test(u)) retea.push({ url: u, cum: m.params.errorText || 'a picat' });
   }
   if (m.method === 'Network.responseReceived' && m.params.response.status >= 400) {
-    retea.push({ url: m.params.response.url, cum: `HTTP ${m.params.response.status}` });
+    if (!/favicon\.(ico|png)$/.test(m.params.response.url)) retea.push({ url: m.params.response.url, cum: `HTTP ${m.params.response.status}` });
   }
 };
 
@@ -118,9 +122,16 @@ const seIncarca = () => ev(`(() => {
   ).map((e) => (e.textContent || '').trim().slice(0, 50)).slice(0, 8);
 })()`);
 
+// Amprenta trebuie sa vada TOATA pagina. Prima versiune compara doar primele 400 de
+// caractere din `innerText` si raporta „ecranul NU s-a schimbat" pentru 📜 📖 ⚙ — butoane
+// care deschid un panou mai JOS, deci lasa capul paginii neatins. Un fals pozitiv intr-o
+// garda o face inutila: ori o crezi degeaba, ori te obisnuiesti sa o ignori.
 const amprenta = () => ev(`(() => {
-  const t = document.body.innerText || '';
-  return { lung: t.length, cheie: t.replace(/\\s+/g, ' ').slice(0, 400) };
+  const t = (document.body.innerText || '').replace(/\\s+/g, ' ');
+  const vizibile = [...document.querySelectorAll('body *')].filter((e) => e.offsetParent).length;
+  let h = 0;
+  for (let i = 0; i < t.length; i++) { h = ((h << 5) - h + t.charCodeAt(i)) | 0; }
+  return { lung: t.length, vizibile, cheie: h + ':' + t.length + ':' + vizibile };
 })()`);
 
 const apasa = (ce) => ev(`(() => {
@@ -141,7 +152,10 @@ for (const p of PAGINI) {
   consola = []; retea = []; cereri.clear();
   console.log(`  ── ${p.nume}`);
   await trimite('Page.navigate', { url: GAZDA + p.cale });
-  await asteapta(9000); // paginile își cer datele (Finnhub, proxy, Yahoo)
+  // 14 s, nu 9: `fetchCryptoNews` are un plafon propriu de 12 s pe lantul de proxy. Masurand
+  // la 9 s, proba prindea pagina INAINTE de plafon si raporta „agatat pe «Aduc stiri»" -
+  // adica raporta propria ei nerabdare ca bug al paginii.
+  await asteapta(14000);
 
   const badge = await ev(`document.body.innerText.match(/tt-v\\d+|v\\d+\\.\\d+\\.\\d+/)?.[0] ?? '—'`);
   const titlu = await ev('document.title');
@@ -165,6 +179,10 @@ for (const p of PAGINI) {
 
   // butoanele/taburile: apasă și cere schimbare
   for (const ce of p.apasa) {
+    // Reincarcare inainte de fiecare apasare: altfel primul buton (care deschide un panou)
+    // ascunde butoanele cautate mai tarziu, si proba le raporteaza „inexistente".
+    await trimite('Page.navigate', { url: GAZDA + p.cale });
+    await asteapta(4000);
     consola = [];
     const inainte = (await amprenta())?.cheie ?? '';
     const ce_a_apasat = await apasa(ce);
