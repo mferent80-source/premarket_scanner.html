@@ -182,7 +182,6 @@ a { color: inherit; }
       <a class="t" href="./cockpit/"><b>Cockpit</b><span>macro + sectoare</span></a>
       <a class="t" href="./router/"><b>Router</b><span>GO / NO-GO</span></a>
       <a class="t" href="./macro-dashboard/"><b>Macro</b><span>calendar, știri</span></a>
-      <a class="t" href="./journal/#desk"><b>Risk Desk</b><span>cât risc azi</span></a>
     </div>
   </nav>
 
@@ -193,18 +192,11 @@ a { color: inherit; }
       <a class="t" href="./watchlist-monitor/"><b>Watchlist</b><span>ce urmăresc</span></a>
       <a class="t" href="./market-events/"><b>Evenimente</b><span>earnings, macro</span></a>
       <a class="t" href="./pump-radar/"><b>Pump Radar</b><span>mișcări bruște</span></a>
+      <a class="t" href="./smart-trade-long/"><b>Smart Trade Long</b><span>intrări pe long</span></a>
+      <a class="t" href="./earnings-hub/"><b>Earnings</b><span>raportări</span></a>
     </div>
   </nav>
 
-  <nav class="tools">
-    <h3>Închid ziua</h3>
-    <div class="grid">
-      <a class="t" href="./journal/"><b>Journal</b><span>execuții</span></a>
-      <a class="t" href="./portfolio/"><b>Portfolio</b><span>poziții deschise</span></a>
-      <a class="t" href="./weekly/"><b>Weekly</b><span>ce am învățat</span></a>
-      <a class="t" href="./equity/"><b>Equity</b><span>curba contului</span></a>
-    </div>
-  </nav>
 
   <div class="foot">
     <a href="./guide/">ghid</a>
@@ -216,7 +208,7 @@ a { color: inherit; }
   </div>
 </div>
 
-<script src="lib/data.js?v=809"></script>
+<script src="lib/data.js?v=810"></script>
 <script src="lib/suite-sessions.js?v=809"></script>
 <script src="lib/macro-context.js?v=809"></script>
 <script>
@@ -295,9 +287,9 @@ function deseneaza() {
     buton = 'Deschide Cockpit'; href = './cockpit/';
   } else if (inchis) {
     kick = 'piața nu e în ședință';
-    titlu = 'Închide ziua corect';
-    dece = 'Execuții, PnL, greșeli. Nu forța un setup în afara orelor: regimul de acum nu mai e cel de la deschidere.';
-    buton = 'Deschide Journal'; href = './journal/#desk';
+    titlu = 'Nu e nimic de făcut acum';
+    dece = 'Regimul de acum nu mai e cel de la deschidere, deci un setup căutat în afara orelor se judecă pe date vechi. Cockpit arată unde au stat sectoarele la închidere.';
+    buton = 'Vezi unde am rămas'; href = './cockpit/';
   } else {
     kick = 'regim ' + reg.label.toLowerCase();
     titlu = 'Verifică planul, apoi caută';
@@ -355,13 +347,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script src="lib/suite-version.js?v=809"></script>
+<script src="lib/suite-version.js?v=810"></script>
 <script src="nav.js?v=682" data-nav-root="./"></script>
 <!-- tt:sw-guard:start -->
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v809';
+  var PAGE_VER = 'tt-v810';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

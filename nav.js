@@ -9,9 +9,7 @@
   var SEGS = [
     'cockpit/',
     'nasdaq-scanner/', 'watchlist-monitor/', 'market-events/', 'smart-trade-long/', 'pump-radar/',
-    'earnings-hub/', 'sector-rotation/', 'macro-dashboard/', 'markov-lab/', 'alerts/', 'guide/',
-    'journal/', 'portfolio/', 'weekly/', 'health/', 'router/', 'equity/', 'shadow-book/', 'postmortem/',
-    'hub-demo/', 'governor/', 'proxy/'
+    'earnings-hub/', 'sector-rotation/', 'macro-dashboard/', 'alerts/', 'guide/', 'health/', 'router/'
   ];
 
   // ── iframe: fără dock, link-uri interne → shell ──
@@ -77,30 +75,19 @@
         { u: 'market-events/', n: 'Events', e: '📊' },
         { u: 'pump-radar/', n: 'Pump Radar', e: '🔥' },
         { u: 'earnings-hub/', n: 'Earnings', e: '📅' },
-        { u: 'markov-lab/', n: 'Markov', e: '🔗' },
         { u: 'alerts/', n: 'Alerts', e: '🔔' }
       ]
     },
     {
       title: 'Capital & exec',
       items: [
-        { u: 'journal/', n: 'Journal', e: '📓' },
-        { u: 'journal/#desk', n: 'Risk Desk', e: '🛑' },
-        { u: 'journal/#exec', n: 'Execuții', e: '⚡' },
-        { u: 'journal/#portfolio', n: 'Portfolio', e: '🛡' },
-        { u: 'journal/#capital', n: 'Capital', e: '⚖' }
       ]
     },
     {
       title: 'Review',
       items: [
-        { u: 'weekly/', n: 'Weekly', e: '🗓' },
-        { u: 'postmortem/', n: 'Post-Mortem', e: '🔬' },
-        { u: 'shadow-book/', n: 'Shadow Book', e: '👻' },
         { u: 'health/', n: 'Health', e: '💚' },
-        { u: 'proxy/', n: 'Transport', e: '🔌' },
-        { u: 'guide/', n: 'Ghid', e: '📖' },
-        { u: 'hub-demo/', n: 'Hub Demo', e: '🧪' }
+        { u: 'guide/', n: 'Ghid', e: '📖' }
       ]
     }
   ];
@@ -111,8 +98,6 @@
     { u: 'router/', n: 'Router', e: '🧭' },
     { u: 'macro-dashboard/', n: 'Macro', e: '🌍' },
     { u: 'nasdaq-scanner/', n: 'Nasdaq', e: '📈' },
-    { u: 'journal/', n: 'Journal', e: '📓' },
-    { u: 'journal/#desk', n: 'Desk', e: '🛑' },
     { u: 'alerts/', n: 'Alerts', e: '🔔' },
     { u: 'health/', n: 'Health', e: '💚' }
   ];

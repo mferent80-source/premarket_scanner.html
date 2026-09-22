@@ -33,7 +33,7 @@ const PAGINI = [
   { cale: '/macro-dashboard/', nume: 'macro-dashboard', apasa: ['📜', '📖', '⚙', '👁', '🇺🇸 US', '🟢 Bull'] },
   { cale: '/sector-rotation/', nume: 'sector-rotation', apasa: [] },
   { cale: '/cockpit/', nume: 'cockpit', apasa: ['verde/roșu', 'reîmprospătează'] },
-  { cale: '/', nume: 'hub', apasa: ['Cockpit', 'Router', 'Nasdaq Scanner', 'Journal', 'hub clasic'] },
+  { cale: '/', nume: 'hub', apasa: ['Cockpit', 'Router', 'Nasdaq Scanner', 'Watchlist', 'hub clasic'] },
   { cale: '/hub-clasic/', nume: 'hub-clasic', apasa: ['🌅 Pre', '🔬 Review'] },
 ];
 
