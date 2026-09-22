@@ -264,6 +264,59 @@
     if (a) setTimeout(function () { setOpen(false); }, 50);
   });
 
+
+  // ── PAGINI RETRASE (22.09.2026) ──────────────────────────────────────────────
+  //
+  // Marius a scos din suita jurnalul/retrospectiva, laboratoarele si cele tehnice.
+  // Paginile RAMAN pe disc (se intorc stergand lista de mai jos), dar nu se mai
+  // navigheaza catre ele - iar celelalte pagini aveau 21 de linkuri intr-acolo.
+  //
+  // De ce aici si nu prin 16 fisiere: linkurile sunt si in HTML static, si generate
+  // din JS (`../journal/?sym=AAPL#exec` - „trimite simbolul in jurnal"). Un regex
+  // prin fisiere mari le-ar fi ratat pe unele si ar fi riscat sintaxa pe celelalte;
+  // aici e un singur loc, reversibil, si prinde si ce se deseneaza mai tarziu.
+  //
+  // `/hub-clasic/` e scutit: acolo TREBUIE sa ramana tot ce era inainte.
+  var RETRASE = [
+    'journal/', 'portfolio/', 'equity/', 'governor/', 'weekly/', 'shadow-book/',
+    'postmortem/', 'markov-lab/', 'factor-lab/', 'mfx-screener/', 'hub-demo/',
+    'shell/', 'proxy/'
+  ];
+
+  function eRetras(href) {
+    if (!href) return false;
+    for (var i = 0; i < RETRASE.length; i++) {
+      // prinde si `../journal/`, si `./journal/#desk`, si `../journal/?sym=X#exec`
+      if (href.indexOf(RETRASE[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  function ascundeRetrase(radacina) {
+    if (location.pathname.indexOf('/hub-clasic/') !== -1) return;
+    var noduri = (radacina || document).querySelectorAll('a[href]');
+    for (var i = 0; i < noduri.length; i++) {
+      var a = noduri[i];
+      if (a.dataset.ttRetras) continue;
+      if (!eRetras(a.getAttribute('href'))) continue;
+      a.dataset.ttRetras = '1';
+      a.hidden = true;
+      a.style.display = 'none';   // `hidden` singur nu bate un `display` din CSS
+    }
+  }
+
+  ascundeRetrase(document);
+  try {
+    new MutationObserver(function (m) {
+      for (var i = 0; i < m.length; i++) {
+        for (var j = 0; j < m[i].addedNodes.length; j++) {
+          var n = m[i].addedNodes[j];
+          if (n.nodeType === 1) ascundeRetrase(n.parentNode || document);
+        }
+      }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  } catch (e) { /* fara observer: ce se deseneaza mai tarziu ramane vizibil */ }
+
   window.addEventListener('hashchange', function () {
     paintActive(detectActive());
   });
