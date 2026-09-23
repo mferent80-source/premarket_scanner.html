@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Candidate Engine — Trading Tools</title>
+<link rel="stylesheet" href="../lib/tokens.css?v=825">
+<link rel="stylesheet" href="../lib/plex.css?v=825">
+<script src="../lib/theme.js?v=825"></script>
+<style>
+:root{--ce-bg:#080c11;--ce-panel:#0e141b;--ce-panel2:#141c25;--ce-line:#222d38;--ce-line2:#303c48;--ce-text:#e9eef1;--ce-muted:#7b8995;--ce-faint:#566573;--ce-green:#49d3aa;--ce-amber:#edb65d;--ce-blue:#6fb9ef;--ce-red:#ff6e80;--ce-max:1880px}
+:root[data-theme="light"]{--ce-bg:#e8edf0;--ce-panel:#fff;--ce-panel2:#f0f3f5;--ce-line:#d7dee4;--ce-line2:#c6cfd6;--ce-text:#121a21;--ce-muted:#64727e;--ce-faint:#89949e;--ce-green:#087e5d;--ce-amber:#956100;--ce-blue:#216b9c;--ce-red:#bd3147}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--ce-bg);color:var(--ce-text);font-family:var(--tt-sans,Inter,system-ui,sans-serif)}button,input,select{font:inherit;color:inherit}.ce-app{width:min(calc(100% - 24px),var(--ce-max));margin:12px auto 78px;background:var(--ce-panel);border:1px solid var(--ce-line);border-radius:14px;overflow:hidden;box-shadow:0 28px 90px rgba(0,0,0,.35)}
+.ce-head{min-height:76px;display:grid;grid-template-columns:minmax(260px,1fr) auto auto auto;gap:14px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--ce-line)}.ce-kicker,.ce-label{font-family:var(--tt-mono,ui-monospace,monospace);font-size:9px;letter-spacing:.11em;color:var(--ce-faint);font-weight:700}.ce-title h1{font-family:Georgia,serif;font-size:24px;font-weight:400;margin:4px 0 2px}.ce-title p{font-size:11px;color:var(--ce-muted);margin:0}.ce-live{display:flex;align-items:center;gap:9px}.ce-live>i{width:7px;height:7px;border-radius:50%;background:var(--ce-green);box-shadow:0 0 12px color-mix(in srgb,var(--ce-green) 60%,transparent)}.ce-live.off>i{background:var(--ce-red);box-shadow:none}.ce-live b,.ce-live small{display:block}.ce-live b{font-size:10px}.ce-live small{font-size:9px;color:var(--ce-muted);margin-top:2px}.ce-head select{height:34px;background:var(--ce-panel2);border:1px solid var(--ce-line);padding:0 10px;font-size:10px}.ce-refresh{height:34px;border:0;background:var(--ce-text);color:var(--ce-bg);padding:0 14px;font-size:9px;font-weight:800;letter-spacing:.04em}.ce-refresh:disabled{opacity:.45}
+.ce-context{display:grid;grid-template-columns:repeat(6,minmax(110px,1fr));background:var(--ce-panel2);border-bottom:1px solid var(--ce-line)}.ce-context>div{padding:10px 14px;border-right:1px solid var(--ce-line)}.ce-context small,.ce-context b{display:block}.ce-context small{font-size:8px;color:var(--ce-faint);letter-spacing:.07em}.ce-context b{font-size:11px;margin-top:3px}.ce-progress{height:3px;background:var(--ce-line)}.ce-progress>i{display:block;width:0;height:100%;background:var(--ce-green);transition:width .25s ease}
+.ce-alert{margin:12px 14px 0;padding:10px 12px;border-left:2px solid var(--ce-amber);background:color-mix(in srgb,var(--ce-amber) 7%,var(--ce-panel2));font-size:10px;color:var(--ce-muted)}.ce-alert[hidden]{display:none}.ce-alert.error{border-left-color:var(--ce-red);background:color-mix(in srgb,var(--ce-red) 7%,var(--ce-panel2))}
+.ce-toolbar{height:50px;display:flex;align-items:center;gap:7px;padding:0 14px;border-bottom:1px solid var(--ce-line)}.ce-mode{height:30px;border:0;background:transparent;color:var(--ce-muted);padding:0 11px;font-size:9px}.ce-mode.active{background:var(--ce-panel2);color:var(--ce-text)}.ce-mode b{margin-left:4px}.ce-toolbar .spacer{flex:1}.ce-toolbar input{width:190px;height:30px;background:var(--ce-panel2);border:1px solid var(--ce-line);padding:0 9px;font-size:10px}.ce-toolbar label{font-size:9px;color:var(--ce-muted);display:flex;align-items:center;gap:5px}.ce-toolbar .fresh{font-size:9px;color:var(--ce-faint);white-space:nowrap}
+.ce-work{display:grid;grid-template-columns:minmax(0,1fr) 340px;min-height:622px}.ce-list{min-width:0;border-right:1px solid var(--ce-line)}.ce-th,.ce-row{display:grid;grid-template-columns:34px minmax(135px,1.25fr) minmax(100px,.9fr) 58px 58px 65px 62px 58px 58px;align-items:center;gap:7px;padding:0 12px}.ce-th{height:31px;background:var(--ce-panel2);font-size:7px;color:var(--ce-faint);letter-spacing:.05em}.ce-row{width:100%;height:55px;border:0;border-bottom:1px solid var(--ce-line);background:transparent;text-align:left}.ce-row:hover,.ce-row.selected{background:color-mix(in srgb,var(--ce-green) 5%,var(--ce-panel2))}.ce-row.selected{box-shadow:inset 2px 0 var(--ce-green)}.ce-rank{font-size:9px;color:var(--ce-faint)}.ce-symbol b,.ce-symbol small{display:block}.ce-symbol b{font-size:11px}.ce-symbol b em{font-size:7px;font-style:normal;color:var(--ce-muted);border:1px solid var(--ce-line);padding:1px 3px;margin-left:4px}.ce-symbol small{font-size:8px;color:var(--ce-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ce-cell{font-size:9px}.ce-up{color:var(--ce-green)}.ce-down{color:var(--ce-red)}.ce-score{font-size:13px;text-align:center}.ce-state{font-size:7px;font-weight:800;text-align:right}.ce-state.fire{color:var(--ce-green)}.ce-state.armed{color:var(--ce-amber)}.ce-state.early{color:var(--ce-blue)}.ce-state.blocked{color:var(--ce-red)}.ce-empty{padding:70px 20px;text-align:center;color:var(--ce-muted);font-size:12px}.ce-empty b{display:block;color:var(--ce-text);font-size:15px;margin-bottom:7px}
+.ce-detail{padding:18px;background:var(--ce-panel)}.ce-detail-head{display:flex;justify-content:space-between}.ce-detail h2{font-family:Georgia,serif;font-size:28px;font-weight:400;margin:5px 0 0}.ce-detail-head p{font-size:10px;color:var(--ce-muted);margin:2px 0}.ce-quality{text-align:right}.ce-quality small,.ce-quality b{display:block}.ce-quality small{font-size:8px;color:var(--ce-faint)}.ce-quality b{font-family:Georgia,serif;font-size:28px;color:var(--ce-green)}.ce-spark{height:118px;margin:14px 0 8px;background:var(--ce-panel2)}.ce-spark svg{width:100%;height:100%;display:block}.ce-spark .grid{stroke:var(--ce-line);stroke-width:1}.ce-spark .line{fill:none;stroke:var(--ce-green);stroke-width:2}.ce-spark .area{fill:color-mix(in srgb,var(--ce-green) 10%,transparent)}.ce-facts{display:grid;grid-template-columns:repeat(3,1fr);padding:10px 0;border-bottom:1px solid var(--ce-line)}.ce-facts>div{padding-left:8px;border-right:1px solid var(--ce-line)}.ce-facts small,.ce-facts b{display:block}.ce-facts small{font-size:7px;color:var(--ce-faint)}.ce-facts b{font-size:10px;margin-top:4px}.ce-section{padding:11px 0;border-bottom:1px solid var(--ce-line)}.ce-section span{font-size:8px;color:var(--ce-faint);letter-spacing:.07em}.ce-section p{font-size:10px;line-height:1.5;color:var(--ce-muted);margin:5px 0 0}.ce-levels{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:11px 0}.ce-levels>div{padding:9px;background:var(--ce-panel2)}.ce-levels small,.ce-levels b{display:block}.ce-levels small{font-size:7px;color:var(--ce-faint)}.ce-levels b{font-size:10px;margin-top:4px}.ce-governor{display:grid;grid-template-columns:24px 1fr;gap:8px;padding:10px;background:color-mix(in srgb,var(--ce-green) 7%,var(--ce-panel2));border-left:2px solid var(--ce-green)}.ce-governor.caution{border-left-color:var(--ce-amber);background:color-mix(in srgb,var(--ce-amber) 7%,var(--ce-panel2))}.ce-governor.halted{border-left-color:var(--ce-red);background:color-mix(in srgb,var(--ce-red) 7%,var(--ce-panel2))}.ce-governor b,.ce-governor small{display:block}.ce-governor b{font-size:9px}.ce-governor small{font-size:8px;color:var(--ce-muted);margin-top:3px}.ce-detail-action{width:100%;height:36px;margin-top:12px;border:0;background:var(--ce-text);color:var(--ce-bg);font-size:9px;font-weight:800}.ce-detail-action:disabled{opacity:.4}.ce-note{display:block;font-size:8px;line-height:1.45;color:var(--ce-faint);margin-top:9px}
+.ce-status{height:28px;display:flex;align-items:center;gap:18px;padding:0 12px;border-top:1px solid var(--ce-line);background:var(--ce-panel2);font-size:8px;color:var(--ce-faint)}.ce-status b{color:var(--ce-muted)}.ce-status .ok{color:var(--ce-green)}.ce-status .fail{color:var(--ce-red)}
+@media(max-width:1050px){.ce-app{width:calc(100% - 12px);margin:6px auto 72px}.ce-context{grid-template-columns:repeat(3,1fr)}.ce-work{grid-template-columns:1fr 310px}.ce-th,.ce-row{grid-template-columns:30px minmax(125px,1.3fr) minmax(90px,1fr) 54px 54px 58px 48px}.ce-th>*:nth-child(7),.ce-th>*:nth-child(8),.ce-row>*:nth-child(7),.ce-row>*:nth-child(8){display:none}}
+@media(max-width:760px){.ce-head{grid-template-columns:1fr 120px}.ce-head select{grid-column:1}.ce-refresh{grid-column:2}.ce-live{justify-self:end}.ce-context{grid-template-columns:repeat(2,1fr)}.ce-context>div:nth-child(n+5){display:none}.ce-toolbar{overflow-x:auto}.ce-toolbar input,.ce-toolbar label{display:none}.ce-work{grid-template-columns:1fr}.ce-list{border-right:0}.ce-detail{border-top:1px solid var(--ce-line)}.ce-th,.ce-row{grid-template-columns:26px minmax(120px,1fr) 55px 50px 45px}.ce-th>*:nth-child(3),.ce-th>*:nth-child(6),.ce-th>*:nth-child(7),.ce-th>*:nth-child(8),.ce-row>*:nth-child(3),.ce-row>*:nth-child(6),.ce-row>*:nth-child(7),.ce-row>*:nth-child(8){display:none}}
+</style>
+</head>
+<body>
+<div class="ce-app">
+  <header class="ce-head">
+    <div class="ce-title"><span class="ce-kicker">CANDIDATE ENGINE · SUA + EUROPA</span><h1>Market Opportunity Desk</h1><p>Două clasamente live, construite din motoarele existente ale suitei.</p></div>
+    <div class="ce-live" id="liveState"><i></i><div><b id="scanState">PREGĂTIT</b><small id="nextScan">scan automat la 5 min</small></div></div>
+    <select id="universe" aria-label="Univers scanat"><option value="core">Core lichid + Watchlist</option><option value="watchlist">Doar Watchlist</option><option value="us">Doar SUA</option><option value="eu">Doar Europa</option></select>
+    <button class="ce-refresh" id="scanBtn">SCANEAZĂ ACUM</button>
+  </header>
+  <section class="ce-context">
+    <div><small>UNIVERS</small><b id="ctxUniverse">—</b></div><div><small>SCANATE</small><b id="ctxScanned">0</b></div><div><small>ELIGIBILE</small><b id="ctxEligible">0</b></div><div><small>TOP SECTOARE</small><b id="ctxSectors">—</b></div><div><small>GOVERNOR</small><b id="ctxGovernor">—</b></div><div><small>DATE</small><b id="ctxFreshness">—</b></div>
+  </section>
+  <div class="ce-progress"><i id="progress"></i></div>
+  <div class="ce-alert" id="alert" hidden></div>
+  <div class="ce-toolbar">
+    <button class="ce-mode active" data-mode="momentum">TOP LONG <b id="countMomentum">0</b></button>
+    <button class="ce-mode" data-mode="reversal">EARLY REVERSAL <b id="countReversal">0</b></button>
+    <span class="spacer"></span>
+    <input id="search" type="search" placeholder="Caută simbol sau sector">
+    <label><input id="onlyActionable" type="checkbox" checked> doar acționabile</label>
+    <span class="fresh" id="updatedAt">nescanat</span>
+  </div>
+  <main class="ce-work">
+    <section class="ce-list">
+      <div class="ce-th" id="tableHead"></div>
+      <div id="rows"><div class="ce-empty"><b>Candidate Engine este pregătit.</b>Apasă „Scanează acum”.</div></div>
+    </section>
+    <aside class="ce-detail" id="detail" aria-live="polite">
+      <div class="ce-detail-head"><div><span class="ce-label">CANDIDAT SELECTAT</span><h2 id="dSymbol">—</h2><p id="dName">Selectează un rând</p></div><div class="ce-quality"><small>SCOR</small><b id="dScore">—</b></div></div>
+      <div class="ce-spark" id="spark"></div>
+      <div class="ce-facts"><div><small>SECTOR</small><b id="dSector">—</b></div><div><small>STARE</small><b id="dState">—</b></div><div><small>PROSPEȚIME</small><b id="dFresh">—</b></div></div>
+      <div class="ce-section"><span>DE CE ESTE ÎN TOP</span><p id="dReason">—</p></div>
+      <div class="ce-levels"><div><small>INTRARE</small><b id="dEntry">—</b></div><div><small>STOP</small><b id="dStop">—</b></div><div><small>ȚINTĂ</small><b id="dTarget">—</b></div></div>
+      <div class="ce-governor" id="governorBox"><div>🛡</div><div><b id="dGovernor">—</b><small id="dGovernorWhy">—</small></div></div>
+      <button class="ce-detail-action" id="setupBtn" disabled>DESCHIDE SETUP BUILDER</button>
+      <small class="ce-note">Candidat pentru analiză, nu ordin automat. Datele incomplete sunt marcate explicit și nu primesc scor maxim.</small>
+    </aside>
+  </main>
+  <footer class="ce-status"><span>D.fetchStock <b id="sData">—</b></span><span>TI indicators <b id="sTi">—</b></span><span>MEB reversal <b id="sMeb">—</b></span><span>Risk Governor <b id="sGov">—</b></span><span>Watchlist <b id="sWl">—</b></span></footer>
+</div>
+<script src="../lib/data.js?v=825"></script>
+<script src="../lib/indicators.js?v=825"></script>
+<script src="../lib/me-early-bird.js?v=825"></script>
+<script src="../lib/early-long.js?v=825"></script>
+<script src="../lib/watchlist.js?v=825"></script>
+<script src="../lib/governor.js?v=825"></script>
+<script src="../lib/earnings.js?v=825"></script>
+<script src="engine.js?v=1"></script>
+</body>
+</html>
