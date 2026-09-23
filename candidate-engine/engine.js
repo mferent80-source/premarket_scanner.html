@@ -2,12 +2,13 @@
   'use strict';
 
   var SCAN_MS = 5 * 60 * 1000;
-  var CACHE_KEY = 'ce_results_v1';
+  var CACHE_KEY = 'ce_results_v2';
   var US_CORE = [
     'AAPL','MSFT','NVDA','AVGO','AMD','MU','INTC','WDC','AMAT','LRCX','KLAC','QCOM','TSM',
     'PLTR','CRWD','PANW','SNOW','AMZN','META','GOOGL','NFLX','TSLA','COIN','HOOD','SOFI',
     'JPM','BAC','XOM','CVX','CAT','BA','GE','RTX','UNH','LLY','PFE','NVO','PYPL','EL','WBA',
-    'UPS','APLD','CIFR','MARA','RIOT'
+    'UPS','APLD','CIFR','MARA','RIOT','NKE','SBUX','DG','TGT','DIS','RIVN','LCID','ROKU',
+    'ENPH','SEDG','ON','SMCI','MRVL','CRM','ADBE','PATH','U','DKNG','CHWY','ETSY','JD','BABA','PDD'
   ];
   var EU_CORE = [
     'ASML.AS','SAP.DE','RHM.DE','VOW3.DE','MBG.DE','BAYN.DE','SIE.DE','AIR.PA','SU.PA',
@@ -161,18 +162,27 @@
     var momentum = {
       symbol: sym, name: sym, region: f.region, sector: sector, mode: 'momentum', score: mScore,
       state: momentumState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
-      metricA: f.ret20, metricB: f.ext21, eligible: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 55,
+      metricA: f.ret20, metricB: f.ext21,
+      eligible: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 55,
+      actionable: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 68,
       reason: 'Trend ' + (price > ema21 && ema21 > ema50 ? 'aliniat' : 'în formare') + ' · RS vs benchmark ' + signed(f.rs20, 1) + ' · RVOL ' + fmt(f.rvol, 2) + '× · ' + earn.text,
       entryLow: entryLow, entryHigh: entryHigh, stop: stop, target: target, spark: f.spark,
       governor: gov, earnings: earn.text, ts: Date.now()
     };
-    var reversalOkay = eb && !eb.isWilting && !eb.isRanBlocked && (eb.isEarly || eb.isConfirmed || (eb.signals && eb.signals.stabilized && eb.signals.rsiRising));
+    var reversalSafe = eb && !eb.isWilting && !eb.isRanBlocked;
+    var reversalConfirmed = reversalSafe && (eb.isEarly || eb.isConfirmed || (eb.signals && eb.signals.stabilized && eb.signals.rsiRising));
+    var reversalWatch = reversalSafe && f.drawdown <= -12 && f.bounce60 >= 1 && f.bounce60 <= 35
+      && (eb.isEarly || eb.isConfirmed || (eb.signals && (eb.signals.stabilized || eb.signals.rsiRising || eb.signals.higherLow)) || price > ema21);
+    var reversalActionable = !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.drawdown <= -20
+      && f.bounce60 >= 2 && f.bounce60 <= 30 && reversalConfirmed && rScore >= 50;
+    if (!blocked && !reversalActionable && reversalWatch) reversalState = 'WATCH';
     var reversal = {
       symbol: sym, name: sym, region: f.region, sector: sector, mode: 'reversal', score: rScore,
       state: reversalState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
       metricA: f.drawdown, metricB: f.bounce60, baseDays: f.baseDays,
-      eligible: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.drawdown <= -20 && f.bounce60 >= 2 && f.bounce60 <= 30 && reversalOkay && rScore >= 50,
-      reason: (eb && MEB.ebSignalText ? MEB.ebSignalText(eb) : 'structură reversal') + ' · scădere ' + signed(f.drawdown, 1) + ' · revenire ' + signed(f.bounce60, 1) + ' · ' + earn.text,
+      eligible: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && reversalWatch && rScore >= 32,
+      actionable: reversalActionable,
+      reason: (reversalActionable ? 'Confirmat · ' : 'Monitorizare · ') + (eb && MEB.ebSignalText ? MEB.ebSignalText(eb) : 'structură reversal') + ' · scădere ' + signed(f.drawdown, 1) + ' · revenire ' + signed(f.bounce60, 1) + ' · ' + earn.text,
       entryLow: entryLow, entryHigh: entryHigh, stop: stop, target: target, spark: f.spark,
       governor: gov, earnings: earn.text, ts: Date.now()
     };
@@ -261,7 +271,7 @@
     var q = $('search').value.trim().toUpperCase();
     var only = $('onlyActionable').checked;
     return state[state.mode].filter(function (x) {
-      if (only && x.state === 'BLOCKED') return false;
+      if (only && !x.actionable) return false;
       return !q || x.symbol.indexOf(q) >= 0 || String(x.sector).toUpperCase().indexOf(q) >= 0;
     });
   }
@@ -325,7 +335,7 @@
     $('dGovernor').textContent = 'Governor: ' + g.verdict;
     $('dGovernorWhy').textContent = (g.reasons && g.reasons[0]) || (x.earnings + ' · R:R țintă 2.0');
     $('governorBox').className = 'ce-governor ' + (g.verdict === 'HALTED' ? 'halted' : (g.verdict === 'CAUTION' ? 'caution' : ''));
-    $('setupBtn').disabled = x.state === 'BLOCKED';
+    $('setupBtn').disabled = x.state === 'BLOCKED' || !x.actionable;
   }
 
   function loadCache() {
