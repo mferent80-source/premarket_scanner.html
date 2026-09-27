@@ -101,7 +101,7 @@ try {
   });
   await test("bara suitei e neschimbata: header.suite-cockpit.al-topbar, 3 file, badge v116; fara praguri in formular", async () => {
     const r = await pc.ev(`[!!document.querySelector('header.suite-cockpit.al-topbar'), document.querySelectorAll('.desk-tabs [data-tab]').length, document.getElementById('verBadge').textContent, !!document.getElementById('inpThr'), !!document.getElementById('inpKind'), !!document.querySelector('#rad #radAdaugaSlot #addForm'), document.querySelectorAll('.refresh-info').length]`);
-    if (!r[0] || r[1] !== 3 || r[2] !== 'v117' || r[3] || r[4]) throw new Error(JSON.stringify(r));
+    if (!r[0] || r[1] !== 3 || r[2] !== 'v118' || r[3] || r[4]) throw new Error(JSON.stringify(r));
     if (!r[5]) throw new Error("formularul de adaugare nu e in panoul Simbolurile tale: " + JSON.stringify(r));
     if (r[6] !== 1) throw new Error("linia 'ultim check' trebuie sa apara o singura data, gasit " + r[6]);
   });

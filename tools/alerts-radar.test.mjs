@@ -32,11 +32,18 @@ test('polling-ul ramane (gardile vechi) dar nu mai evalueaza praguri', () => {
   assert.ok(!/function evaluateAlert\(|function checkTrigger\(|fireAlert\(/.test(HTML), 'evaluarea pragurilor a fost scoasa');
 });
 test('versiunea paginii e v116; workflow-ul nu mai verifica praguri, dar News Watch isi pastreaza cronul', () => {
-  assert.match(HTML, /id="verBadge">v117</);
+  assert.match(HTML, /id="verBadge">v118</);
   const wf = readFileSync(join(ROOT, '.github/workflows/price-alerts.yml'), 'utf8');
   assert.ok(/^\s*schedule:/m.test(wf) && /cron:/.test(wf), 'cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis)');
   assert.ok(!/run:\s*node tools\/check-alerts\.mjs/.test(wf), 'pasul cu pragurile de pret a disparut (comentariul de sus poate sa-l mai pomeneasca)');
   assert.ok(/run:\s*node tools\/check-news-watch\.mjs/.test(wf), 'News Watch ramane');
+});
+test('I-464: curatenia dupa praguri - fara bara de selectie in lot, fara modalul de editare, fara CSS-ul listei vechi', () => {
+  for (const id of ['bulkBar', 'editModal', 'viewTools', 'pulseBar', 'almostRail']) assert.ok(!HTML.includes('id="' + id + '"'), id + ' trebuie sa dispara');
+  for (const fn of ['function updateBulkBar(', 'function closeEditModal(', 'function saveEditModal(', 'function bulkSnooze', 'function bulkDelete']) assert.ok(!HTML.includes(fn), fn + ' trebuie sa dispara');
+  const style = HTML.slice(HTML.indexOf('<style>'), HTML.indexOf('</style>'));
+  for (const sel of ['.almost-rail', '.pulse-bar', '.filter-bar', '.al-desk', '.al-kpi', '.view-tools', '.add-opts', '.al-bot', '.bulk-bar', '.edit-modal', '.bulk-cb']) assert.ok(!style.includes(sel), 'CSS mort: ' + sel);
+  assert.ok(style.includes('.alert-row'), 'Istoricul foloseste inca .alert-row - ramane');
 });
 test('sincronizarea cu GitHub vorbeste limba noua: lista de pe server se migreaza, semnatura e pe forma watch, alerts.json e migrat', () => {
   const i = HTML.indexOf('function serverToMap');

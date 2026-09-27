@@ -10,6 +10,43 @@ const src = (f) => readFileSync(join(ROOT, f), 'utf8');
 const RadarEcran = new Function(src('lib/radar-ecran.js') + '; return RadarEcran;')();
 const RadarPoza = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')({}, { getItem() { return null; }, setItem() {}, removeItem() {} }, () => Promise.reject(new Error('fara retea')), { hidden: false, addEventListener() {} });
 
+const ACUM = Date.UTC(2026, 8, 27, 13, 20);
+const POZ_AVGO = { s: 'AVGO', t212: 'AVGO_US_EQ', buc: 2.8187, mediu: 399.96, pret: 352.81, prev: 350.36, la: ACUM - 2 * 60000, closes30: [392.99, 352.81], pplLei: -615, pctLei: -0.118, pctPret: -0.1179, plan: { trailPct: 15, tinta: 413.47, stop: 350.63, max: 412.5 }, trend: 'jos', pondere: 0.157, niv: 'iesi', motive: ['a coborât sub stopul din plan'], sfat: 'aș ieși' };
+const POZA_BAZA = () => ({ la: ACUM, t212: [JSON.parse(JSON.stringify(POZ_AVGO))], boti: [], simboluri: [], gol: { boti: 'niciun bot activ', t212: null } });
+const O = (poza, extra) => Object.assign({ simboluri: [], preturiLive: {}, acum: ACUM, cheie: true, prospetime: RadarPoza.prospetime(poza, ACUM) }, extra || {});
+
+test('I-459: pe randurile T212 castiga pretul T212 (chip T212) cat e proaspat (<10 min), chiar daca Yahoo e mai nou; vechi -> Yahoo', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA();
+  RadarEcran.randeaza(el, poza, O(poza, { preturiLive: { AVGO: { pret: 355.0, prev: 350.36, la: ACUM, chip: '<span class="px-sess">RTH</span>' } } }));
+  assert.match(el.innerHTML, /\$352,81/, 'pretul T212 (poza)'); assert.match(el.innerHTML, /T212<\/span>/, 'chip-ul T212');
+  poza.t212[0].la = ACUM - 20 * 60000;
+  RadarEcran.randeaza(el, poza, O(poza, { preturiLive: { AVGO: { pret: 355.0, prev: 350.36, la: ACUM, chip: '<span class="px-sess">RTH</span>' } } }));
+  assert.match(el.innerHTML, /\$355,00/, 'T212 vechi de 20 min -> Yahoo'); assert.match(el.innerHTML, /px-sess/);
+});
+test('I-460: „Ce ai de facut acum" - stopul depasit / IESI rosu, peste 20% din cont galben, botul cu semnal; nimic urgent cand e liniste', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA();
+  poza.t212.push({ s: 'APLD', pret: 26.25, prev: 27.06, mediu: 29.55, closes30: [31.2, 26.25], pplLei: -813, plan: { stop: 26.09, tinta: 34.44, max: 30.69, trailPct: 15 }, trend: 'jos', pondere: 0.23, niv: 'atentie', motive: ['23% din cont'], sfat: 'nu adaug' });
+  poza.boti = [{ id: '1', s: 'JTO', dir: 'long', lev: 5, investit: 98, jos: 0.57, sus: 0.66, pret: 0.60, total: -1, perechi: 0, gridBrut: 0, pozitie: -0.9, comisioane: -0.1, zero: 0.6048, plan: null, niv: 'atentie', motive: ['costurile pe zi depășesc ce aduc grilele'], sfat: 'levier mai mic', pret30: [0.6, 0.6] }];
+  RadarEcran.randeaza(el, poza, O(poza));
+  const todo = el.innerHTML.slice(el.innerHTML.indexOf('Ce ai de făcut acum'), el.innerHTML.indexOf('💼 Trading 212'));   // pana la capul panoului T212 (sumarul de sus are si el „Trading 212 ·")
+  assert.ok(todo.length > 0, 'panoul exista inainte de tabele');
+  assert.match(todo, /AVGO/); assert.match(todo, /APLD[^<]*23%|23%[^<]*APLD/, 'APLD peste plafon'); assert.match(todo, /JTO/); assert.match(todo, /fără plan/i, 'botul fara plan');
+  assert.ok(todo.indexOf('AVGO') < todo.indexOf('JTO'), 'rosul (IESI) inaintea galbenului');
+  assert.match(todo, /data-fac="vezi" data-s="AVGO"/, 'butonul duce la rand');
+  const linistit = POZA_BAZA(); linistit.t212[0].niv = 'tine'; linistit.t212[0].pret = 360; linistit.t212[0].plan.stop = 300; linistit.t212[0].pondere = 0.1;
+  RadarEcran.randeaza(el, linistit, O(linistit));
+  assert.match(el.innerHTML, /Nimic urgent/);
+});
+test('I-462: cu adresa tunelului in poza, „Deschide in Radar" duce la tunel (si de pe telefon); fara ea, la 127.0.0.1 „doar acasa"', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA(); poza.radarUrl = 'https://abc-def.trycloudflare.com';
+  RadarEcran.randeaza(el, poza, O(poza));
+  assert.match(el.innerHTML, /href="https:\/\/abc-def\.trycloudflare\.com\/"/); assert.match(el.innerHTML, /și de pe telefon/); assert.doesNotMatch(el.innerHTML, /127\.0\.0\.1/);
+  const fara = POZA_BAZA(); RadarEcran.randeaza(el, fara, O(fara));
+  assert.match(el.innerHTML, /href="http:\/\/127\.0\.0\.1:8788\/"/); assert.match(el.innerHTML, /doar acasă/);
+});
 test('cheia din link (#cheie=… sau ?cheie=…) se salveaza o data si dispare din adresa', () => {
   const scris = {}, istoric = [];
   const loc = { href: 'https://mferent80-source.github.io/premarket_scanner.html/alerts/?x=1#cheie=aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam', pathname: '/premarket_scanner.html/alerts/' };
@@ -22,7 +59,6 @@ test('cheia din link (#cheie=… sau ?cheie=…) se salveaza o data si dispare d
   loc.href = 'https://mferent80-source.github.io/premarket_scanner.html/alerts/';
   assert.strictEqual(RP.cheieDinUrl(), null, 'fara cheie in link: nimic');
 });
-const ACUM = Date.UTC(2026, 8, 27, 13, 20);
 
 test('judecaT212: stop din plan, depasit / aproape / tine, procent in lei cand exista cost', () => {
   const p = { s: 'AVGO', pret: 352.81, prev: 350.36, mediu: 399.96, pplLei: -615, pctLei: -0.118, pctPret: -0.1179, plan: { trailPct: 15, tinta: 413.47, stop: 350.63, max: 412.5 }, trend: 'jos', niv: 'atentie', closes30: [392.99, 352.81] };

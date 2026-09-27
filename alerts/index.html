@@ -12,9 +12,9 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314181f'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link rel="stylesheet" href="../lib/plex.css?v=742">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
-<link rel="stylesheet" href="../lib/radar-ui.css?v=827">
-<script src="../lib/radar-poza.js?v=827"></script>
-<script src="../lib/radar-ecran.js?v=827"></script>
+<link rel="stylesheet" href="../lib/radar-ui.css?v=828">
+<script src="../lib/radar-poza.js?v=828"></script>
+<script src="../lib/radar-ecran.js?v=828"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -78,19 +78,11 @@ body, body.suite-page {
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
   text-rendering:optimizeLegibility; font-variant-numeric:tabular-nums;
 }
-body.al-page .desk-tabs,
-body.al-page header.al-topbar,
-body.al-page .al-desk,
-body.al-page .section {
+body.al-page .desk-tabs, body.al-page header.al-topbar, body.al-page .section{
   background:var(--panel) !important;
   backdrop-filter:none !important;
   -webkit-backdrop-filter:none !important;
   box-shadow:none;
-}
-body.al-page .al-table th,
-body.al-page .almost-lbl,
-body.al-page .al-kpi > span {
-  color:var(--t2) !important; opacity:1 !important; font-weight:600;
 }
 
 header {
@@ -199,26 +191,14 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   border-bottom-color:var(--b1);
 }
 .af-title { display:flex; align-items:center; gap:8px; }
-.af-extra { display:flex; gap:6px; flex:0 0 auto; }
 .add-form[open] .trig-caret { transform:rotate(90deg); color:var(--accent); }
 .add-form > summary.add-form-head:hover .trig-caret { color:var(--accent); }
 .add-form-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:0; }
 /* corp form: padding + grilă câmpuri rotunjite */
-.add-form > .add-row,
-.add-form > .add-opts,
-.add-form > #symSearchResults,
-.add-form > .add-hint {
+.add-form > .add-row, .add-form > #symSearchResults{
   margin-left:14px; margin-right:14px;
 }
 .add-form > .add-row { margin-top:14px; }
-.add-form > .add-opts { margin-bottom:12px; }
-.add-form > .add-hint { margin-bottom:14px; }
-.hint-btn {
-  padding:6px 12px; font-size:12px; font-family:var(--head); cursor:pointer; font-weight:700;
-  background:var(--panel3); color:var(--t1); border:1px solid var(--b1); border-radius:999px;
-  white-space:nowrap; transition:background .15s,color .15s,border-color .15s;
-}
-.hint-btn:hover { background:var(--panel3); color:var(--accent); border-color:var(--accent); transform:none; }
 .add-row { display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; }
 /* fiecare câmp = „tab" rotunjit încadrat */
 .add-row > div {
@@ -246,8 +226,6 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   flex-direction:row; flex-wrap:wrap; align-items:flex-end; gap:6px;
 }
 .add-row > div:has(.search-btn) label { width:100%; }
-.add-row .price-input { width:120px; font-family:var(--mono); font-weight:700; }
-.add-row .dir-select { width:128px; font-weight:700; }
 .add-row .note-input { flex:1; min-width:160px; width:100%; }
 .add-row .add-btn {
   padding:0 20px; font-size:13.5px; border-radius:12px; min-height:52px;
@@ -258,47 +236,6 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   background:var(--acc-1);
   border:none; color:var(--on-accent); box-shadow:none;
 }
-.add-hint {
-  font-size:12px; color:var(--t2); margin-top:10px; font-family:var(--mono); line-height:1.5;
-  background:var(--panel2); border:1px solid var(--b1); border-radius:12px; padding:10px 12px;
-}
-.add-hint b { color:var(--t1); }
-.add-opts {
-  display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px;
-}
-.add-opts > div {
-  display:flex; flex-direction:row; align-items:center; gap:8px;
-  background:var(--panel2); border:1px solid var(--b1); border-radius:999px;
-  padding:6px 12px 6px 10px;
-}
-.add-opts label {
-  font-size:12.5px; color:var(--t1); font-family:var(--head); font-weight:700;
-  text-transform:none; letter-spacing:0; cursor:pointer;
-}
-.add-opts input[type=checkbox] { width:18px; height:18px; margin:0; cursor:pointer; accent-color:var(--accent); }
-
-/* Pulse bar — rezumat rapid al stării alertelor */
-.pulse-bar {
-  display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px;
-  background:var(--panel2);
-  border:1px solid var(--b1); border-radius:var(--r); padding:10px 16px; margin-bottom:12px;
-  font-family:var(--mono); font-size:12.5px; color:var(--t1); box-shadow:var(--shadow); font-weight:600;
-}
-.pulse-bar b { color:var(--t1); font-weight:800; }
-.pulse-seg { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
-.pulse-seg.up { color:var(--bull-s); }
-.pulse-seg.down { color:var(--bear-s); }
-.pulse-seg.near { color:var(--warn); font-weight:800; }
-
-/* Filtru rapid */
-.filter-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px; }
-.filter-bar #filterInp { flex:1; min-width:160px; border-radius:999px; }
-.filter-bar .chip {
-  padding:7px 14px; font-size:12.5px; font-weight:700; border-radius:999px;
-  background:var(--panel2); color:var(--t1); border:1px solid var(--b1); cursor:pointer; transition:all .15s var(--ease);
-}
-.filter-bar .chip:hover { color:var(--t1); border-color:var(--accent); background:var(--panel3); transform:none; }
-.filter-bar .chip.active { background:var(--acc-1); color:var(--on-accent); border-color:var(--acc-1); font-weight:800; }
 
 /* Sections */
 .section {
@@ -335,18 +272,6 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 }
 .alert-row:last-child { border-bottom:none; }
 .alert-row:hover { background:color-mix(in srgb, var(--accent) 6%, transparent); }
-.alert-row.snoozed { opacity:.5; }
-.snz-badge { font-size:10px; color:var(--warn); font-family:var(--mono); font-weight:700; margin-left:4px; }
-/* Meniu snooze (popover lângă butonul 😴) */
-.snooze-menu {
-  position:fixed; z-index:3500; display:flex; flex-direction:column; gap:2px;
-  background:var(--panel); border:1px solid var(--b2); border-radius:var(--rs);
-  box-shadow:0 8px 28px rgba(0,0,0,.5); padding:5px; min-width:180px;
-}
-.snooze-menu button { text-align:left; background:transparent; border:none; padding:8px 10px; border-radius:6px; font-size:12.5px; font-weight:600; color:var(--t1); }
-.snooze-menu button:hover { background:var(--panel3); color:var(--t1); transform:none; }
-.snooze-menu button.danger { color:var(--bear-s); }
-.snooze-menu button.danger:hover { background:var(--bear-bg); color:var(--bear-s); }
 .alert-row.triggered { background:var(--bull-bg); border-left:3px solid var(--bull-s); padding-left:9px; }
 .alert-row.triggered.bear { background:var(--bear-bg); border-left-color:var(--bear-s); }
 
@@ -370,53 +295,9 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .alert-delta.close { color:var(--warn); font-weight:700; }
 .alert-note { font-size:12px; color:var(--t2); font-style:italic; }
 .alert-actions { display:flex; gap:4px; }
-
-/* badge snooze lipit de ticker (😴Xm) — folosit în tabelul de alerte active */
-.ac-snz { font-size:10px; color:var(--warn); font-family:var(--mono); font-weight:700; margin-left:5px; }
-
-/* ===== Tabel alerte active (model watchlist Smart Trade Long) ===== */
-.al-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -4px; }
-.al-table { width:100%; border-collapse:collapse; font-family:var(--head); }
-.al-table th {
-  font-family:var(--mono); font-size:10px; color:var(--t2); text-transform:uppercase;
-  letter-spacing:.04em; text-align:right; padding:4px 10px 10px; white-space:nowrap;
-  border-bottom:1px solid var(--b1); font-weight:800;
-}
-.al-table th:first-child { text-align:left; }
-.al-table td {
-  padding:12px 10px; border-bottom:1px solid var(--b2); text-align:right;
-  font-variant-numeric:tabular-nums; white-space:nowrap; vertical-align:middle;
-}
-.al-table tbody tr:last-child td { border-bottom:none; }
-.al-table tbody tr { transition:background .12s; }
-.al-table tbody tr:hover { background:color-mix(in srgb, var(--accent) 8%, transparent); }
-.al-row.snoozed { opacity:.72; }
-.al-old { margin-left:5px; font-size:.72em; opacity:.75; color:var(--warn); white-space:nowrap; }
-.al-table td.al-tk { text-align:left; vertical-align:middle; min-width:110px; padding-top:7px; padding-bottom:7px; }
 .al-more { display:none; }
-.al-tk a { font-family:var(--mono); font-weight:800; font-size:15.5px; letter-spacing:.2px; color:var(--accent); text-decoration:none; }
-.al-tk a:hover { text-decoration:underline; color:var(--t1); }
-.al-entry { font-family:var(--mono); font-size:14px; font-weight:700; color:var(--t2); }
-.al-num { font-family:var(--mono); font-size:17.5px; font-weight:800; color:var(--t2); min-width:5.6em; }
-.al-num.up { color:var(--bull-s); } .al-num.down { color:var(--bear-s); }
-.al-day-wrap { display:inline-flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
-.al-day-wrap .px-sess { margin-left:0; font-size:10px; font-weight:700; }
-.al-from { display:block; font-size:11px; font-weight:600; color:var(--t3) !important; margin-top:2px; }
-.al-now { font-family:var(--mono); font-size:15px; font-weight:700; color:var(--t1); }
-.al-trig { text-align:right; white-space:nowrap; }
-.al-tgt { font-family:var(--mono); font-size:13px; font-weight:700; color:var(--t1); }
-.al-dist { font-family:var(--mono); font-size:12.5px; color:var(--t2); font-weight:600; }
-.al-dist.warn { color:var(--warn); font-weight:800; }
-.al-table td { padding:7px 8px; }
-.al-act { white-space:nowrap; text-align:right; }
-.al-act .icon-btn { padding:3px 5px; font-size:12px; }
 /* Comfort 1-linie pe mobil: tabel orizontal (scroll dacă e nevoie), NU card multi-rând */
 @media (max-width:768px) {
-  .al-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0; }
-  .al-table th, .al-table td { padding:7px 6px; font-size:13.5px; }
-  .al-tk a { font-size:14.5px; }
-  .al-num { font-size:17.5px; } .al-now { font-size:14.5px; }
-  .al-act .icon-btn { padding:4px 6px; }
 }
 
 /* Badge sesiune per grup (crypto 24/7 vs stocks cu sesiune) */
@@ -502,7 +383,7 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
   display:flex; align-items:center; justify-content:center; padding:16px;
   animation:fadeIn .15s var(--ease);
 }
-@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; }} 
 .modal {
   background:var(--panel); border:1px solid var(--b2); border-radius:var(--r);
   box-shadow:0 12px 48px rgba(0,0,0,.5); width:100%; max-width:420px; overflow:hidden;
@@ -522,12 +403,6 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 .modal-check input { width:18px; height:18px; }
 .modal-check label { text-transform:none; letter-spacing:0; color:var(--t1); font-family:var(--head); font-size:12.5px; }
 .modal-foot { display:flex; gap:8px; justify-content:flex-end; padding:12px 16px; border-top:1px solid var(--b1); }
-
-.alert-trigger-info {
-  grid-column:1/-1; font-size:11.5px; color:var(--bull-s); font-family:var(--mono);
-  background:var(--bull-bg); padding:4px 8px; border-radius:4px; margin-top:5px;
-}
-.alert-row.bear .alert-trigger-info { color:var(--bear-s); background:var(--bear-bg); }
 
 .refresh-info { font-family:var(--mono); font-size:12px; color:var(--t2); margin-top:8px; text-align:right; font-weight:600; }
 
@@ -571,57 +446,12 @@ input:focus, select:focus { outline:none; border-color:var(--accent); box-shadow
 }
 .desk-tabs button.on .tab-cnt { background:var(--acc-1); color:var(--on-accent); }
 .desk-panel[hidden] { display:none !important; }
-.view-tools {
-  display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:8px;
-}
-.view-tools .vt-group {
-  display:inline-flex; gap:2px; padding:2px; background:var(--panel); border:1px solid var(--b1); border-radius:8px;
-}
-.view-tools .vt-group button {
-  padding:5px 10px; font-size:11.5px; border:none; background:transparent; color:var(--t2); border-radius:6px;
-}
-.view-tools .vt-group button.on { background:var(--panel3); color:var(--t1); box-shadow:inset 0 0 0 1px var(--b2); }
-.view-tools .vt-group button:hover { transform:none; background:var(--panel2); color:var(--t1); }
-/* Almost / top movers — o linie de chip-uri mici (ca top gainers), scroll pe mobil */
-.almost-rail {
+/* Almost / top movers — o linie de chip-uri mici (ca top gainers){
   display:none; align-items:center; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch;
   padding:6px 0 10px; margin-bottom:2px; scrollbar-width:thin; flex-wrap:nowrap;
 }
-.almost-rail.show { display:flex; }
-.almost-lbl {
-  flex:0 0 auto; font-family:var(--mono); font-size:10px; font-weight:800; color:var(--bull-s);
-  text-transform:uppercase; letter-spacing:.04em; padding:0 4px 0 2px; white-space:nowrap;
-}
-.almost-chip {
-  flex:0 0 auto; display:inline-flex; align-items:center; gap:5px;
-  padding:5px 10px; border-radius:999px; cursor:pointer; white-space:nowrap;
-  background:var(--panel2); border:1px solid var(--b1); color:var(--t1);
-  font-family:var(--mono); font-size:11.5px; font-weight:700; line-height:1.2;
-  transition:border-color .12s, background .12s;
-}
-.almost-chip:hover { border-color:var(--accent); background:var(--panel3); transform:none; }
-.almost-chip.up { border-color:var(--bull-s); }
-.almost-chip.down { border-color:var(--bear-s); background:var(--bear-bg); }
-.almost-chip b { font-weight:800; color:inherit; }
-.almost-chip .ac-d.up { color:var(--bull-s); font-weight:800; }
-.almost-chip .ac-d.down { color:var(--bear-s); font-weight:800; }
-.almost-chip .ac-px { color:var(--t3); font-weight:600; font-size:10.5px; }
 /* Listă 1-linie — fără etichetă tip „±1% de la ancoră" pe rând */
 .al-note { display:none; }
-.al-tgt { display:inline; }
-.al-dist { display:inline; margin-left:5px; }
-.al-table td.al-tk { vertical-align:middle; padding-top:8px; padding-bottom:8px; }
-body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
-.bulk-cb { width:16px; height:16px; margin-right:6px; vertical-align:middle; cursor:pointer; accent-color:var(--accent); }
-.bulk-bar {
-  display:none; position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:1800;
-  align-items:center; gap:8px; flex-wrap:wrap; max-width:min(96vw, 520px);
-  padding:10px 14px; background:var(--panel); border:1px solid var(--accent);
-  border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.5); font-size:12.5px; font-weight:700;
-}
-.bulk-bar.show { display:flex; }
-.bulk-bar .bb-n { font-family:var(--mono); color:var(--accent); }
-.bulk-bar button { padding:6px 10px; font-size:12px; }
 
 /* Toasts */
 #toasts { position:fixed; bottom:14px; right:14px; display:flex; flex-direction:column; gap:6px; z-index:2000; max-width:400px; max-height:min(36vh, 260px); overflow-y:auto; pointer-events:none; }
@@ -645,8 +475,8 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
 .toast-msg { flex:1; }
 .toast-close { background:transparent; border:none; color:var(--t3); cursor:pointer; padding:0 2px; font-size:14px; line-height:1; font-weight:700; flex-shrink:0; }
 .toast-close:hover { color:var(--bear-s); }
-@keyframes slideIn { from { transform:translateX(20px); opacity:0; } to { transform:translateX(0); opacity:1; } }
-@keyframes slideOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(20px); } }
+@keyframes slideIn { from { transform:translateX(20px); opacity:0; } to { transform:translateX(0); opacity:1; }} 
+@keyframes slideOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(20px); }} 
 
 @media (max-width:768px) {
   /* Compact 2 rânduri: simbol+prag+acțiuni sus, preț+Δ% jos, notă mică dedesubt. */
@@ -667,8 +497,7 @@ body.desk-selecting .al-act { opacity:.35; pointer-events:none; }
   .alert-note { grid-area:note; font-size:11px; }
   .alert-note:empty { display:none; }                      /* fără rând gol când nu există notă */
   .icon-btn { padding:4px 7px; }                            /* butoane puțin mai mici pe telefon */
-  .px-sess { font-size:8px; padding:1px 4px; margin-left:4px; }
-}
+  .px-sess { font-size:8px; padding:1px 4px; margin-left:4px; }}
 
 /* ══════════════════════════════════════════════════════════════════════
    ALINIERE „ZIAR" v77 — limbajul de componente din macro-dashboard / hub
@@ -711,8 +540,7 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 @media (max-width:760px) {
   /* mobil: rândul se rupe natural — titlu + pill sus, acțiunile dedesubt */
   body.suite-page header.suite-cockpit { flex-wrap:wrap; padding:9px 11px; }
-  body.suite-page header.suite-cockpit h1 { font-size:16px; white-space:normal; overflow:visible; }
-}
+  body.suite-page header.suite-cockpit h1 { font-size:16px; white-space:normal; overflow:visible; }}
 
 /* ── 2. TABURI: pill-uri pe fundal glass. Activ = gradient acc-1→acc-2, text alb.
       Clasele rămân identice (.desk-tabs button.on) — doar pielea se schimbă. ── */
@@ -744,51 +572,12 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
   border-top:3px solid var(--al-sec-add);
   border-radius:var(--r);
 }
-/* rail-ul „aproape de prag" nu e un card (fundal transparent) → accent lateral subtil */
-.almost-rail.show { border-left:3px solid var(--al-sec-rail); padding-left:9px; }
 
 /* ── 4. Consecvență de formă — radius unic pe blocurile mari.
       Chips / pills / butoane / inputs rămân exact cum sunt. ── */
-.sync-banner, .bulk-bar { border-radius:var(--r); }
+.sync-banner{ border-radius:var(--r); }
 
-/* ── 5. Desk (gestiune: page-head + totaluri) — ierarhie, nu paletă nouă ── */
-.al-desk { margin:0 0 12px; }
-.al-page-head {
-  display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
-  gap:8px 14px; margin-bottom:8px;
-}
-.al-page-head h2 {
-  margin:0; font-size:16.5px; font-weight:750; letter-spacing:-.02em; color:var(--t1);
-}
-.al-page-head p {
-  margin:3px 0 0; font-size:13.5px; color:var(--t3); font-weight:500; max-width:52ch;
-}
-.al-kpis {
-  display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px;
-  padding:8px 12px; margin-bottom:8px;
-  background:var(--panel2); border:1px solid var(--b1); border-radius:var(--r);
-  font-size:13.5px;
-}
-.al-kpi { display:flex; align-items:baseline; gap:6px; white-space:nowrap; }
-.al-kpi > span { color:var(--t3); font-weight:600; }
-.al-kpi > b { font-family:var(--mono); font-weight:800; color:var(--t1); font-variant-numeric:tabular-nums; }
-.al-kpi.ok > b { color:var(--bull-s); }
-.al-kpi.warn > b { color:var(--warn); }
-.al-kpi.bad > b { color:var(--bear-s); }
-.al-bot {
-  display:none; align-items:flex-start; gap:10px; flex-wrap:wrap;
-  padding:9px 12px; margin-bottom:10px;
-  background:var(--panel); border:1px solid var(--b1); border-left:4px solid var(--accent);
-  border-radius:var(--r); font-size:12.5px; line-height:1.45; color:var(--t2);
-}
-.al-bot.show { display:flex; }
-.al-bot.ok { border-left-color:var(--bull-s); }
-.al-bot.warn { border-left-color:var(--warn); }
-.al-bot.bad { border-left-color:var(--bear-s); }
-.al-bot b { color:var(--t1); }
-.al-bot .al-bot-ico { font-size:16px; line-height:1.2; flex:0 0 auto; }
-.al-bot .al-bot-txt { flex:1 1 220px; min-width:0; }
-.al-bot .al-bot-act { display:flex; gap:6px; flex-wrap:wrap; }
+/* ── 5. Desk (gestiune: page-head + totaluri) — ierarhie{ margin:0 0 12px; }
 .us-day-banner {
   display:none; margin:0 0 8px; padding:8px 12px;
   background:var(--panel2); border:1px solid var(--b1); border-left:3px solid var(--warn);
@@ -797,13 +586,10 @@ body.suite-page header.suite-cockpit .status-pill { flex:0 0 auto; }
 }
 .us-day-banner.show { display:block; }
 .us-day-banner b { color:var(--t1); font-weight:800; }
-@media (max-width:550px) {
-  .al-kpis { gap:8px 12px; padding:8px 10px; }
-  .al-page-head h2 { font-size:14px; }
-}
+@media (max-width:550px) {}
+
 @media (prefers-reduced-motion: reduce) {
-  button, .card, .almost-chip { transition:none !important; }
-}
+  button, .card{ transition:none !important; }}
 
 /* ── 6. Structură gestiune: o bară, text liniștit, fără 800 / emoji / card-uri teanc ── */
 body.al-page {
@@ -856,24 +642,8 @@ body.al-page header.al-topbar .desk-tabs button.on .tab-cnt { color:var(--t2); }
 .al-hdr-acts {
   display:flex; align-items:center; gap:8px; flex:0 0 auto;
 }
-.al-desk { margin:0; padding:0.85rem 1.15rem 0; }
-.al-kpis {
-  background:transparent; border:none; border-bottom:1px solid var(--b1);
-  border-radius:0; padding:0.35rem 0 0.7rem; margin:0 0 0.85rem;
-  gap:0.85rem 1.15rem; box-shadow:none;
-}
-.al-kpi > span { font-weight:400; color:var(--t3); font-size:14px; }
-.al-kpi > b { font-weight:600; font-size:14.5px; }
-.al-bot {
-  border-left-width:3px; font-size:14.5px; font-weight:400; line-height:1.45;
-  padding:8px 10px; margin-bottom:10px;
-}
-.al-bot b { font-weight:600; }
 #pulseBar { display:none !important; }
-body.al-page button,
-body.al-page .nav-link,
-body.al-page .hint-btn,
-body.al-page .filter-bar .chip {
+body.al-page button, body.al-page .nav-link{
   font-weight:600;
 }
 body.al-page button.primary { font-weight:600; }
@@ -895,18 +665,8 @@ body.al-page input, body.al-page select { font-weight:400; }
   padding:10px 12px 8px;
 }
 .section-body { padding:4px 10px 10px; }
-.al-table { font-size:14.5px; }
-.al-table th {
-  font-size:12.5px; font-weight:600; letter-spacing:.03em;
-  color:var(--t2); text-transform:uppercase; padding:6px 8px 8px;
-}
-.al-tk a { font-weight:600; font-size:14.5px; letter-spacing:0; }
-.al-now, .al-entry, .al-tgt { font-weight:500; }
-.al-now { font-size:14.5px; }
 .empty { font-weight:400; font-size:14.5px; padding:22px 12px; }
 .empty .ico { display:none; }
-.almost-lbl { font-weight:600; letter-spacing:.04em; color:var(--t3); }
-.filter-bar #filterInp { font-weight:400; }
 @media (max-width:760px) {
   body.al-page {
     font-size:16px; font-weight:500; color:var(--t1);
@@ -946,32 +706,10 @@ body.al-page input, body.al-page select { font-weight:400; }
     border-radius:var(--rs) var(--rs) 0 0;
   }
   header.al-topbar.is-open .al-hdr-acts { display:flex; }
-  .al-desk {
-    display:none; padding:8px 10px 10px; margin:0 12px 10px;
-    background:var(--panel); border:1px solid var(--b1); border-top:none;
-    border-radius:0 0 var(--rs) var(--rs);
-  }
-  header.al-topbar.is-open ~ .al-desk { display:block; }
-  .al-kpis { gap:8px 14px; padding:0.2rem 0 0.55rem; }
-  .al-kpi > span { font-weight:600; color:var(--t2); font-size:14.5px; }
-  .al-kpi > b { font-weight:700; font-size:16px; color:var(--t1); }
-  .al-bot { font-size:15.5px; font-weight:500; color:var(--t1); }
-  .al-bot b { font-weight:700; }
-  #almostRail, .almost-rail { display:none !important; }
+  #almostRail{ display:none !important; }
   .section-head h3 { font-size:16.5px; font-weight:700 !important; color:var(--t1); }
   .section-head .count { font-size:14px; font-weight:800; color:var(--t1); }
   .sess-badge { font-size:13px; font-weight:700; }
-  .al-table { font-size:15.5px; }
-  .al-table th {
-    font-size:13px; font-weight:700; color:var(--t2); letter-spacing:.02em;
-  }
-  .al-table th, .al-table td { padding:9px 7px; font-size:15.5px; }
-  .al-table td.al-tk a { font-weight:700; font-size:16.5px; color:var(--t1); }
-  .al-table .al-now { font-weight:600; font-size:15.5px; color:var(--t1); }
-  .al-table .al-num { font-weight:800; font-size:21px; }
-  .al-table .al-tgt, .al-table .al-entry, .al-table .al-dist {
-    font-weight:600; color:var(--t1); font-size:15.5px;
-  }
   .empty { font-weight:500; font-size:16px; color:var(--t2); }
   .add-form { margin-bottom:8px; }
   .add-form h3 { font-size:14px !important; font-weight:700 !important; white-space:nowrap; }
@@ -979,10 +717,7 @@ body.al-page input, body.al-page select { font-weight:400; }
     padding:6px 10px; min-height:36px; gap:8px; flex-wrap:nowrap;
     font-weight:600;
   }
-  .add-form:not([open]) .af-extra { display:none; }
-  .add-form[open] .af-extra { gap:4px; }
   .add-form[open] #btnHint { display:none; }
-  .add-form .hint-btn { padding:4px 8px; font-size:11.5px; min-height:28px; }
   .add-form > .add-row {
     display:grid; grid-template-columns:1fr auto; align-items:end;
     gap:10px; margin:10px; flex-wrap:unset;
@@ -1004,34 +739,16 @@ body.al-page input, body.al-page select { font-weight:400; }
   .add-form .add-row .sym-input {
     width:100%; min-width:0; min-height:40px; font-size:15px;
   }
-  .add-form .add-row .price-input {
-    width:100%; min-width:0; min-height:40px; font-size:15px;
-  }
   .add-form .add-row .search-btn {
     min-height:40px; padding:0 12px; margin:0; border-radius:8px; flex:0 0 auto;
   }
-  .add-form .add-row .dir-select { width:100%; min-height:40px; font-size:14px; }
   .add-form .add-row > div:has(.note-input) { display:none; }
   .add-form .add-row > .add-btn,
   .add-form .add-row .add-btn {
     min-height:40px; padding:0 16px; font-size:14px; border-radius:10px;
     white-space:nowrap; align-self:end; margin:0;
   }
-  .add-form > .add-opts { margin:0 10px 10px; }
   .add-form > #symSearchResults { margin-left:10px; margin-right:10px; }
-  .filter-bar {
-    display:flex; flex-direction:column; align-items:stretch; gap:8px;
-    margin:0 0 10px;
-  }
-  .filter-bar #filterInp {
-    width:100%; min-width:0; min-height:40px; font-size:15px; font-weight:500;
-    border-radius:10px;
-  }
-  .filter-bar .chip {
-    font-size:13px; font-weight:600; min-height:34px; padding:6px 12px;
-  }
-  .filter-bar { flex-direction:row; flex-wrap:wrap; }
-  .filter-bar #filterInp { flex:1 1 100%; }
   #toasts {
     left:10px; right:10px;
     bottom:calc(70px + env(safe-area-inset-bottom, 0px));
@@ -1055,78 +772,6 @@ body.al-page input, body.al-page select { font-weight:400; }
   .sync-banner {
     padding:8px 10px; font-size:12px; border-radius:10px;
   }
-  .al-wrap { overflow:visible; -webkit-overflow-scrolling:auto; margin:0; }
-  .al-table, .al-table tbody { display:block; width:100%; }
-  .al-table thead { display:none; }
-  .al-table tbody tr.al-row {
-    display:grid;
-    grid-template-columns:minmax(0,1fr) auto 34px;
-    grid-template-areas:
-      "tk tk more"
-      "day now now";
-    gap:4px 10px;
-    align-items:center;
-    padding:11px 12px;
-    margin:0 0 6px;
-    background:var(--panel);
-    border:1px solid var(--b1);
-    border-radius:10px;
-    box-shadow:none;
-  }
-  .al-table tbody tr.al-row.tone-up {
-    background:color-mix(in srgb, var(--bull-s) 15%, var(--panel));
-    border-color:color-mix(in srgb, var(--bull-s) 32%, var(--b1));
-  }
-  .al-table tbody tr.al-row.tone-down {
-    background:color-mix(in srgb, var(--bear-s) 15%, var(--panel));
-    border-color:color-mix(in srgb, var(--bear-s) 32%, var(--b1));
-  }
-  .al-table tbody tr.al-row.open {
-    grid-template-areas:
-      "tk tk more"
-      "day now now"
-      "thr thr thr"
-      "act act act";
-  }
-  .al-table tbody tr.al-row:last-child { margin-bottom:0; }
-  .al-table th, .al-table td {
-    display:block; border:none; padding:0; background:transparent;
-    font-size:14px;
-  }
-  .al-table td.al-tk { grid-area:tk; min-width:0; }
-  .al-table td.al-tk a { font-size:15px; font-weight:700; color:var(--t1); }
-  .al-table td.al-tk .sess-badge,
-  .al-table td.al-tk .px-sess,
-  .al-table td.al-tk .ac-snz { display:none; }
-  .al-table td:nth-child(2),
-  .al-table td.al-num {
-    grid-area:day; font-size:22px; font-weight:800; text-align:left;
-    font-variant-numeric:tabular-nums; line-height:1.1; min-width:0;
-  }
-  .al-table td.al-num .px-sess { font-size:10px; font-weight:700; }
-  .al-num .al-from { font-size:12px; font-weight:600; color:var(--t2); margin-top:3px; }
-  .al-table td.al-now {
-    grid-area:now; font-size:14px; font-weight:600; text-align:right;
-    font-variant-numeric:tabular-nums; padding-left:8px; min-width:4.6em;
-    color:var(--t1);
-  }
-  .al-table td.al-num.up { color:var(--bull-s); }
-  .al-table td.al-num.down { color:var(--bear-s); }
-  .al-table td.al-trig {
-    display:none; grid-area:thr; text-align:left; font-size:13.5px;
-    color:var(--t1); font-weight:700; padding-top:6px;
-  }
-  .al-table tbody tr.al-row.open td.al-trig { display:block; }
-  .al-table td.al-act {
-    display:none; grid-area:act; gap:6px; margin-top:6px;
-    padding-top:8px; border-top:1px solid var(--b2);
-  }
-  .al-table tbody tr.al-row.open td.al-act { display:flex; }
-  .al-table td.al-act .icon-btn {
-    flex:1; min-height:40px; padding:0; font-size:16px;
-    border-radius:8px;
-  }
-  .al-table td.al-more { display:block; grid-area:more; }
   .al-more-btn {
     width:32px; min-height:32px; padding:0; font-size:16px; font-weight:800;
   }
@@ -1168,14 +813,12 @@ body.al-page input, body.al-page select { font-weight:400; }
   #secCrypto .section-body, #secStocks .section-body { padding:4px 0 8px; }
   #secCrypto, #secStocks {
     border-radius:10px; margin-bottom:10px;
-  }
-}
-</style>
+  }}</style>
 </head>
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v117</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v118</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1373,71 +1016,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 </div><!-- /#tabHist -->
 
 <div class="refresh-info" id="refreshInfo">—</div>
-<div class="bulk-bar" id="bulkBar" role="toolbar" aria-label="Acțiuni bulk">
-  <span><span class="bb-n" id="bulkCount">0</span> selectate</span>
-  <button type="button" id="bulkSnooze">😴 1h</button>
-  <button type="button" id="bulkDisarm">⏸ Disarm</button>
-  <button type="button" id="bulkArm">▶ Arm</button>
-  <button type="button" class="danger" id="bulkDelete">🗑 Șterge</button>
-  <button type="button" id="bulkCancel">✕</button>
-</div>
 <div id="toasts"></div>
-
-<!-- Modal editare alertă -->
-<div class="modal-ov" id="editModal" style="display:none">
-  <div class="modal">
-    <div class="modal-head"><h3 id="editTitle">✏️ Editează alertă</h3><button class="icon-btn" id="editClose" title="Închide">✕</button></div>
-    <div class="modal-body">
-      <div class="modal-field">
-        <label>Tip alertă</label>
-        <select id="editKind">
-          <option value="ref">📊 Referință (pași ±%)</option>
-          <option value="day">📅 Variația zilei ±%</option>
-          <option value="price">$ Preț prag</option>
-          <option value="pct">% Mișcare ±</option>
-          <option value="anchor">⚓ Ancoră (pas+țintă)</option>
-        </select>
-      </div>
-      <div class="modal-row">
-        <div class="modal-field">
-          <label id="editLblThr">Preț prag $</label>
-          <input type="number" id="editThr" step="0.01">
-        </div>
-        <div class="modal-field" id="editWrapDir">
-          <label>Direcție</label>
-          <select id="editDir">
-            <option value="above">▲ Sus / peste</option>
-            <option value="below">▼ Jos / sub</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-row" id="editWrapAnchor" style="display:none">
-        <div class="modal-field"><label>🎯 Țintă $</label><input type="number" id="editTarget" step="0.01"></div>
-        <div class="modal-field"><label>🛑 Stop $ (opț)</label><input type="number" id="editStop" step="0.01"></div>
-      </div>
-      <div class="modal-field">
-        <label>Notă</label>
-        <input type="text" id="editNote" maxlength="80" placeholder="ex: target TP1 după ATR x2">
-      </div>
-      <div class="modal-check">
-        <input type="checkbox" id="editRearm">
-        <label for="editRearm">↻ Re-arm (rămâne și se re-armează după declanșare)</label>
-      </div>
-      <div class="modal-check" id="editWrapTrail" style="display:none">
-        <input type="checkbox" id="editTrail">
-        <label for="editTrail">📉 Trailing din vârf (alertă când scade X% din maximul atins)</label>
-      </div>
-      <div class="modal-check" id="editWrapReanchor" style="display:none">
-        <input type="checkbox" id="editReanchor">
-        <label for="editReanchor">⚓ Re-ancorează la prețul curent (la intrarea în trade)</label>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button id="editCancel">Anulează</button>
-      <button class="primary" id="editSave">💾 Salvează</button>
-    </div>
-  </div>
-</div>
 
 <!-- Modal Telegram -->
 <div class="modal-ov" id="tgModal" style="display:none">
@@ -1470,13 +1049,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=827"></script>
-<script src="../lib/data.js?v=827"></script>
-<script src="../lib/poll-wake.js?v=827"></script>
+<script src="../lib/suite-version.js?v=828"></script>
+<script src="../lib/data.js?v=828"></script>
+<script src="../lib/poll-wake.js?v=828"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=827"></script>
+<script src="../lib/price-day.js?v=828"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -1744,73 +1323,6 @@ let SERVER_HIST = [];
 let SERVER_BOT = null;     // tools/alerts.json → `_bot` (scris de check-alerts.mjs)
 let SERVER_ALERT_N = null; // câte alerte are botul pe GitHub
 let _histView = []; // lista combinată local+☁️ exact cum e randată (referință pt acțiuni)
-function relAge(ts) {
-  if (!ts) return '—';
-  const t = typeof ts === 'number' ? ts : Date.parse(ts);
-  if (!Number.isFinite(t)) return '—';
-  const m = Math.max(0, Math.round((Date.now() - t) / 60000));
-  if (m < 1) return 'acum';
-  if (m < 60) return m + ' min';
-  if (m < 1440) return Math.round(m / 60) + 'h';
-  return Math.round(m / 1440) + 'z';
-}
-function renderBotDesk() {
-  const kT = $('kpiCloudToday'), kB = $('kpiBot'), kG = $('kpiTg');
-  const wrapB = $('kpiBotWrap'), wrapG = $('kpiTgWrap');
-  const bar = $('alBotBar'), txt = $('alBotTxt'), ico = $('alBotIco');
-  const cloudToday = SERVER_HIST.filter(h => h.ts && (Date.now() - h.ts) < 86400000).length;
-  if (kT) kT.textContent = SERVER_HIST.length ? String(cloudToday) : '—';
-  const kpiTwrap = kT && kT.parentElement;
-  if (kpiTwrap) {
-    kpiTwrap.classList.toggle('ok', cloudToday > 0);
-    kpiTwrap.classList.toggle('warn', SERVER_HIST.length > 0 && cloudToday === 0);
-  }
-  if (kB) {
-    if (SERVER_BOT && SERVER_BOT.lastCheck) {
-      const age = (Date.now() - Date.parse(SERVER_BOT.lastCheck)) / 60000;
-      kB.textContent = relAge(SERVER_BOT.lastCheck);
-      if (wrapB) { wrapB.classList.toggle('ok', age < 20); wrapB.classList.toggle('warn', age >= 20 && age < 90); wrapB.classList.toggle('bad', age >= 90); }
-    } else if (SERVER_HIST.length) {
-      const last = SERVER_HIST[0] && SERVER_HIST[0].ts;
-      kB.textContent = last ? ('fire ' + relAge(last)) : 'live';
-      if (wrapB) { wrapB.classList.add('ok'); wrapB.classList.remove('warn', 'bad'); }
-    } else {
-      kB.textContent = '…';
-    }
-  }
-  if (kG) {
-    if (SERVER_BOT && SERVER_BOT.lastTelegramOk === true) {
-      kG.textContent = 'OK';
-      if (wrapG) { wrapG.classList.add('ok'); wrapG.classList.remove('warn', 'bad'); }
-    } else if (SERVER_BOT && SERVER_BOT.lastTelegramOk === false) {
-      kG.textContent = 'FAIL';
-      if (wrapG) { wrapG.classList.add('bad'); wrapG.classList.remove('ok', 'warn'); }
-    } else if (cloudToday > 0) {
-      kG.textContent = 'trimis';
-      if (wrapG) { wrapG.classList.add('ok'); wrapG.classList.remove('warn', 'bad'); }
-    } else {
-      kG.textContent = '—';
-    }
-  }
-  if (!bar || !txt) return;
-  const lastFire = (SERVER_BOT && SERVER_BOT.lastFire) || (SERVER_HIST[0] && SERVER_HIST[0].ts);
-  const lastSym = SERVER_HIST[0] ? SERVER_HIST[0].sym : '';
-  if (SERVER_BOT && SERVER_BOT.lastTelegramOk === false) {
-    bar.className = 'al-bot show bad';
-    if (ico) ico.textContent = '⚠';
-    txt.innerHTML = '<b>Botul a declanșat, Telegram a eșuat.</b> ' +
-      (SERVER_BOT.lastTelegramErr ? ('Eroare: ' + String(SERVER_BOT.lastTelegramErr).slice(0, 120) + '. ') : '') +
-      'Verifică TELEGRAM_TOKEN / CHAT_ID în GitHub Secrets. Alertele sunt în tab-ul Istoric (☁️).';
-    return;
-  }
-  if (lastFire) {
-    bar.className = 'al-bot';
-    if (ico) ico.textContent = '';
-    return;
-  }
-  bar.className = 'al-bot';
-  if (ico) ico.textContent = '';
-}
 async function loadServerHist(){
   try {
     const j = await fetchAlertsJsonPublic();
@@ -1874,8 +1386,6 @@ function deskSave(partial) {
   return d;
 }
 let desk = deskLoad();
-let bulkMode = false;
-const bulkSelected = new Set(); // keys "SYM|id"
 function getNotifyPolicy() {
   try { return localStorage.getItem(NOTIFY_POLICY_KEY) || 'always'; } catch (e) { return 'always'; }
 }
@@ -2589,16 +2099,6 @@ function updateTabCounts(nPrice, nNews, nHist) {
   if (c) c.textContent = nHist;
 }
 
-function updateBulkBar() {
-  const bar = $('bulkBar');
-  if (!bar) return;
-  const n = bulkSelected.size;
-  if ($('bulkCount')) $('bulkCount').textContent = n;
-  if (bulkMode && n > 0) bar.classList.add('show');
-  else bar.classList.remove('show');
-  document.body.classList.toggle('desk-selecting', !!bulkMode);
-}
-
 function applyDensity() {
   // v74: mereu comfort 1-linie — fără compact multi-mod
   document.body.classList.remove('desk-compact');
@@ -2621,13 +2121,8 @@ function applyDeskTab(tab) {
 
 function applyDeskChrome() {
   desk = deskLoad();
-  if ($('btnBulkMode')) {
-    $('btnBulkMode').classList.toggle('on', bulkMode);
-    $('btnBulkMode').textContent = bulkMode ? '☑ Select' : '☐ Select';
-  }
   applyDensity();
   applyDeskTab(desk.tab || 'price');
-  if (!bulkMode) { bulkSelected.clear(); updateBulkBar(); }
 }
 
 function render() {
@@ -2647,13 +2142,11 @@ function render() {
   // v116: lista e randata de RadarEcran (simbolurile tale + pozitiile din poza Radarului)
   const allActive = rows;
   try { renderUsDayBanner(); } catch (e) {}
-  try { renderBotDesk(); } catch (e) {}
   if (typeof radRandeaza === 'function') radRandeaza();
   // tab counts
   let nwN = 0;
   try { const st = JSON.parse(localStorage.getItem('tt_news_watch_v1') || '{}'); nwN = Array.isArray(st.watches) ? st.watches.length : 0; } catch (e) {}
   updateTabCounts(allActive.length, nwN, triggered.length);
-  updateBulkBar();
   // mirror refresh line into price tab
   try {
     const ri = $('refreshInfo'), rp = $('refreshInfoPrice');
@@ -2778,77 +2271,6 @@ document.addEventListener('click', e => {
   if (hdrMenu.style.display === 'flex' && !hdrMenu.contains(e.target) && !hdrMenuBtn.contains(e.target)) closeHdrMenu();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHdrMenu(); });
-
-// ============ MODAL EDITARE ============
-let _editing = null; // { sym, id } al alertei în curs de editare
-function updateEditMode() {
-  const k = $('editKind').value;
-  const pct = k === 'pct', anchor = k === 'anchor', ref = k === 'ref', day = k === 'day';
-  const stepLike = pct || anchor || ref || day;
-  const trail = ref && $('editTrail').checked;
-  $('editLblThr').textContent = trail ? 'Scădere din vârf %' : day ? 'Variația zilei ±%' : (anchor || ref) ? 'Pas alertă ±%' : (pct ? 'Mișcare ±%' : 'Preț prag $');
-  $('editThr').step = stepLike ? '0.1' : '0.01';
-  $('editWrapDir').style.display = stepLike ? 'none' : '';
-  $('editWrapAnchor').style.display = anchor ? '' : 'none';
-  $('editWrapTrail').style.display = ref ? '' : 'none';
-  $('editWrapReanchor').style.display = (anchor || ref) ? '' : 'none';
-}
-function closeEditModal() { $('editModal').style.display = 'none'; _editing = null; }
-function saveEditModal() {
-  if (!_editing) return;
-  const { sym, id } = _editing;
-  priceAlerts = loadAlerts(); // sync înainte de write (alt tab / wlm poate fi modificat)
-  const a = (priceAlerts[sym] || []).find(x => x.id === id);
-  if (!a) { toast('⚠ Alerta nu mai există (modificată în alt tab)', 'warn'); closeEditModal(); render(); return; }
-  const kind = $('editKind').value;
-  const thr = parseFloat($('editThr').value);
-  if (isNaN(thr) || thr <= 0) { toast(kind === 'price' ? '⚠ Preț prag invalid (> 0)' : '⚠ Valoare ±% invalidă (> 0)', 'error'); return; }
-  a.note = $('editNote').value.trim();
-  a.rearm = $('editRearm').checked;
-  a.armed = true;
-  if (kind === 'ref') {
-    a.kind = 'ref'; a.pct = thr;
-    const reanchor = $('editReanchor').checked || a.base == null;
-    if ($('editTrail').checked) {
-      a.trail = true;
-      if (reanchor || a.peak == null) { a.base = _lastPrice[sym] ?? a.base ?? null; a.peak = _lastPrice[sym] ?? a.base ?? null; a.trailFired = false; }
-      delete a.lastStep; delete a.hi; delete a.lo;
-    } else {
-      delete a.trail; delete a.peak; delete a.trailFired;
-      if (reanchor) { a.base = _lastPrice[sym] ?? a.base ?? null; a.lastStep = 0; a.hi = 0; a.lo = 0; }
-      else { if (a.lastStep == null) a.lastStep = 0; if (a.hi == null) a.hi = 0; if (a.lo == null) a.lo = 0; }
-    }
-    delete a.rearm; delete a.lvl; delete a.dir; delete a.target; delete a.stop; delete a.tgtHit; delete a.nearHit; delete a.slHit;
-  } else if (kind === 'anchor') {
-    const target = parseFloat($('editTarget').value);
-    const stopV = parseFloat($('editStop').value);
-    if (isNaN(target) || target <= 0) { toast('⚠ Ținta 🎯 e obligatorie pentru ancoră (> 0)', 'error'); return; }
-    a.kind = 'anchor'; a.pct = thr; a.target = target; a.stop = (stopV > 0) ? stopV : null;
-    if (a.base == null || $('editReanchor').checked) a.base = _lastPrice[sym] ?? a.base ?? null; // re-ancorare la cerere / dacă lipsește
-    a.lastStep = 0; a.tgtHit = false; a.nearHit = false; a.slHit = false;                        // resetăm stările de declanșare
-    delete a.lvl; delete a.dir; delete a.trail; delete a.peak; delete a.trailFired; delete a.hi; delete a.lo;
-  } else if (kind === 'pct') {
-    a.kind = 'pct'; a.pct = thr;
-    if (a.base == null) a.base = _lastPrice[sym] ?? null;
-    delete a.lvl; delete a.dir; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit; delete a.hi; delete a.lo; delete a.trail; delete a.peak; delete a.trailFired;
-  } else if (kind === 'day') {
-    a.kind = 'day'; a.pct = thr;
-    delete a.lvl; delete a.dir; delete a.base; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit; delete a.hi; delete a.lo; delete a.trail; delete a.peak; delete a.trailFired;
-  } else {
-    delete a.kind; a.lvl = thr; a.dir = $('editDir').value;                                       // price = fără câmpul kind
-    delete a.pct; delete a.base; delete a.target; delete a.stop; delete a.lastStep; delete a.tgtHit; delete a.nearHit; delete a.slHit; delete a.hi; delete a.lo; delete a.trail; delete a.peak; delete a.trailFired;
-  }
-  persistAlerts(); closeEditModal(); render(); autoSync();
-  toast(`✏️ ${sym} actualizat`, 'success');
-  pollPrices();
-}
-$('editKind').addEventListener('change', updateEditMode);
-$('editTrail').addEventListener('change', updateEditMode);
-$('editClose').addEventListener('click', closeEditModal);
-$('editCancel').addEventListener('click', closeEditModal);
-$('editSave').addEventListener('click', saveEditModal);
-$('editModal').addEventListener('click', e => { if (e.target === $('editModal')) closeEditModal(); }); // click pe overlay
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('editModal').style.display !== 'none') closeEditModal(); });
 
 // ── Search ticker pe burse (US + EU/NYSE) — model portat din Watchlist Monitor ──
 // Selecția DOAR completează tickerul în #inpSym; parametrii alertei se setează apoi manual.
@@ -4133,59 +3555,6 @@ function wireDesk() {
   $('deskTabs')?.querySelectorAll('[data-tab]').forEach(btn => {
     btn.addEventListener('click', () => applyDeskTab(btn.getAttribute('data-tab')));
   });
-  // bulk only (listă + comfort 1-linie sunt fixe v74)
-  $('btnBulkMode')?.addEventListener('click', () => {
-    bulkMode = !bulkMode;
-    if (!bulkMode) bulkSelected.clear();
-    applyDeskChrome(); render();
-  });
-  // bulk actions
-  $('bulkSnooze')?.addEventListener('click', () => {
-    if (!bulkSelected.size) return;
-    priceAlerts = loadAlerts();
-    bulkSelected.forEach(k => {
-      const [sym, id] = k.split('|');
-      const a = (priceAlerts[sym] || []).find(x => x.id === id);
-      if (a) a.snoozeUntil = Date.now() + 3600000;
-    });
-    persistAlerts(); bulkSelected.clear(); bulkMode = false; applyDeskChrome(); render(); autoSync();
-    toast('😴 Snooze 1h pe selecție', 'info');
-  });
-  $('bulkDisarm')?.addEventListener('click', () => {
-    priceAlerts = loadAlerts();
-    bulkSelected.forEach(k => {
-      const [sym, id] = k.split('|');
-      const a = (priceAlerts[sym] || []).find(x => x.id === id);
-      if (a) { a.armed = false; a.rearm = true; }
-    });
-    persistAlerts(); bulkSelected.clear(); bulkMode = false; applyDeskChrome(); render(); autoSync();
-    toast('⏸ Disarm pe selecție', 'info');
-  });
-  $('bulkArm')?.addEventListener('click', () => {
-    priceAlerts = loadAlerts();
-    bulkSelected.forEach(k => {
-      const [sym, id] = k.split('|');
-      const a = (priceAlerts[sym] || []).find(x => x.id === id);
-      if (a) a.armed = true;
-    });
-    persistAlerts(); bulkSelected.clear(); bulkMode = false; applyDeskChrome(); render(); autoSync();
-    toast('▶ Arm pe selecție', 'success');
-  });
-  $('bulkDelete')?.addEventListener('click', () => {
-    if (!bulkSelected.size) return;
-    if (!confirm('Ștergi ' + bulkSelected.size + ' alerte?')) return;
-    priceAlerts = loadAlerts();
-    bulkSelected.forEach(k => {
-      const [sym, id] = k.split('|');
-      priceAlerts[sym] = (priceAlerts[sym] || []).filter(a => a.id !== id);
-      if (!(priceAlerts[sym] || []).length) delete priceAlerts[sym];
-    });
-    persistAlerts(); bulkSelected.clear(); bulkMode = false; applyDeskChrome(); render(); autoSync();
-    toast('🗑 Șterse', 'info');
-  });
-  $('bulkCancel')?.addEventListener('click', () => {
-    bulkMode = false; bulkSelected.clear(); applyDeskChrome(); render();
-  });
   // notify policy
   $('notifyPolicyBtn')?.addEventListener('click', () => {
     const cur = getNotifyPolicy();
@@ -4287,7 +3656,7 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v827';
+const SW_VER_INLINE = 'tt-v828';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -4304,7 +3673,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v827';
+  var PAGE_VER = 'tt-v828';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
