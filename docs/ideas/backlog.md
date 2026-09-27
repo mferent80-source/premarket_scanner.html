@@ -3164,6 +3164,12 @@ pe un singur chart.
 | I-456 | Busola: galeata retinuta la intrare — in ce regim pierzi de fapt | Busola (registru) | M | P2 | facut 2026-09-21 | ideation | 2026-09-21 |
 | I-457 | Busola: de ce am intrat / de ce n-am intrat, langa pozitie | Busola (registru) | S | P3 | facut 2026-09-21 | ideation | 2026-09-21 |
 | I-458 | Busola: alerta de STOP APROPIAT, nu doar dupa ce s-a atins | Busola (urmarire) | S | P3 | facut 2026-09-21 | ideation | 2026-09-21 |
+| I-459 | Alerts: pretul T212 pe randurile pozitiilor (chip „T212”), nu Yahoo | alerts/ + lib/radar-ecran.js + crypto/scripts/colector.mjs | S | P1 | propus | ideation | 2026-09-27 |
+| I-460 | Alerts: „Ce ai de facut acum” deasupra tabelelor (din poza) | lib/radar-ecran.js | M | P1 | propus | ideation | 2026-09-27 |
+| I-461 | Radar: poza la 1 minut cat piata e deschisa (5 min in rest) | crypto/scripts/colector.mjs | S | P2 | propus | ideation | 2026-09-27 |
+| I-462 | Alerts: adresa tunelului in poza — „Deschide in Radar” merge si de pe telefon | crypto/scripts/colector.mjs + lib/radar-ecran.js | S | P2 | propus | ideation | 2026-09-27 |
+| I-463 | Radar: alerta Discord pe simbolurile paginii (miscare peste ATR-ul lor, insider nou) | crypto/scripts/colector.mjs + scripts/lib/poza.mjs | M | P2 | propus | ideation | 2026-09-27 |
+| I-464 | Alerts: curatenia dupa praguri (bulk bar, modal editare, CSS mort, meniul ⋯) | alerts/index.html | M | P3 | propus | ideation | 2026-09-27 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4759,3 +4765,52 @@ opritor de pierderi (1.23.0 + 1.24.0). Ideile de mai jos ataca golurile RAMASE d
   deschisa). Sa nu devina zgomot: un singur anunt per prag, si doar pe pozitii deschise.
 - **Fisiere:** `src/ui/folosesteRegistru.ts`, `src/ui/folosesteAlerteBrowser.ts`
 
+#### I-459 · Pretul T212 pe randurile pozitiilor · [S] · P1 · propus
+- **Problema:** pe randurile Trading 212 din pagina alerts, „acum" e cifra Yahoo cand e mai proaspata decat poza;
+  in pre/after si la actiunile ilichide, Yahoo si T212 difera cu zecimi de procent, iar omul compara cu aplicatia T212.
+- **Solutia:** poza duce si ora citirii pretului T212 (`t212La` exista deja); randul arata pretul T212 cu chip „T212"
+  si, doar daca T212 tace de peste 10 minute, cade pe Yahoo cu chip-ul de sesiune. Simbolurile tale raman pe Yahoo (T212 n-are cotatii pentru orice simbol).
+- **Impact:** aceeasi cifra ca in aplicatia lor, deci deciziile de iesire se iau pe pretul la care chiar se executa.
+- **Riscuri/dependente:** poza e la 5 min (vezi I-461); pretul T212 la o citire limitata (429) e cel vechi — chip-ul cu ora il spune.
+- **Fisiere:** `lib/radar-ecran.js` (acumDin, randT212), `crypto/scripts/colector.mjs` (pozitiiPentruPoza)
+
+#### I-460 · „Ce ai de facut acum" deasupra tabelelor · [M] · P1 · propus
+- **Problema:** pagina arata 7 pozitii + boti + 9 simboluri, dar omul trebuie sa scaneze tot ca sa vada ce ARDE: stopul
+  depasit (AVGO, APLD pe IESI), 22% din cont pe o actiune, botul pe zero, rezultate in 3 zile. Poza are deja niv/motive/sfat.
+- **Solutia:** un panou scurt sub sumar, in ordinea urgentei (rosu → galben), un rand pe problema, cu butonul care
+  desface randul respectiv — aceeasi lista ca pe pagina T212 din Radar (TabloExtra.ceAiDeFacut / Consilier), refolosita din poza.
+- **Impact:** decizia mai buna pe cel mai scump caz (iesirea intarziata) — pe datele lui, pozitiile tinute pe minus au costat cel mai mult.
+- **Riscuri/dependente:** sa nu repete ce e in pill-uri; maxim 5 randuri, restul pliat.
+- **Fisiere:** `lib/radar-ecran.js`, `lib/radar-ui.css`
+
+#### I-461 · Poza la 1 minut cat piata e deschisa · [S] · P2 · propus
+- **Problema:** botii Pionex se misca in secunde; poza vine la 5 minute, deci „iese pe zero" si totalul botului sunt vechi cand contează.
+- **Solutia:** cadenta adaptiva in turaPoza: 1 minut cat e un bot activ SAU bursa US e deschisa (pre/RTH/after), 5 minute noaptea si in weekend.
+  Pagina citeste deja cu ETag/304, deci costul e mic; KV-ul scrie o cheie pe poza (bugetul zilnic de scrieri: ~1.000 pe Free — de socotit).
+- **Impact:** boti si pozitii aproape live, fara alta sursa.
+- **Riscuri/dependente:** limita de scrieri KV (1 min × 16 h = 960/zi doar poza) — sau upgrade Workers Paid; T212 limiteaza cererile (pastreaza cache-ul de pozitii).
+- **Fisiere:** `crypto/scripts/colector.mjs` (POZA_MS → functie), `crypto/paznic/worker.mjs` (nimic sau contor de scrieri)
+
+#### I-462 · Adresa tunelului in poza · [S] · P2 · propus
+- **Problema:** „Deschide in Radar" duce la 127.0.0.1:8788 — de pe telefon nu duce nicaieri, desi Radarul are tunel (PORNESTE-SI-PE-TELEFON.bat, adresa in %TEMP%\crypto-radar-tunel.log; Consilier.adresaTunel o citeste deja pentru rezumat).
+- **Solutia:** colectorul pune in poza `radarUrl` (adresa tunelului cand exista, altfel null); pagina foloseste adresa aia pentru butoane, iar fara ea scrie „doar acasa".
+- **Impact:** de pe telefon, de la randul pozitiei ajungi direct in Tabloul botului / pagina T212 din Radar.
+- **Riscuri/dependente:** adresa tunelului se schimba la fiecare pornire (poza o aduce la 5 min); proiectul lansatorului telefonului (urmatorul) trebuie intai sa nu mai lase tunele vechi.
+- **Fisiere:** `crypto/scripts/colector.mjs`, `crypto/scripts/lib/poza.mjs`, `lib/radar-ecran.js`
+
+#### I-463 · Alerta Discord pe simbolurile paginii · [M] · P2 · propus
+- **Problema:** pragurile au disparut din pagina (decizia lui), dar cu ele a disparut si singura notificare pe simbolurile urmarite.
+  Colectorul are acum lista lor, inchiderile pe 30 z si insiderii — poate judeca mai bine decat „±1%".
+- **Solutia:** o regula in colector, o data pe zi per simbol: miscarea zilei peste 2× ATR-ul propriu (din closes30) sau o cumparare noua de insider
+  (verdict bull/bull1 aparut fata de poza anterioara) ⇒ mesaj pe Discord (canalul existent), cu linkul paginii.
+- **Impact:** te anunta cand se intampla ceva NEOBISNUIT pentru actiunea aia, nu la fiecare procent.
+- **Riscuri/dependente:** pragul 2×ATR e o ipoteza — de validat out-of-sample pe minim 10 cazuri inainte sa fie considerat „bun"; o singura alerta pe zi per simbol ca sa nu devina zgomot.
+- **Fisiere:** `crypto/scripts/colector.mjs` (turaPoza → Alerte), `crypto/scripts/lib/poza.mjs` (functie pura de judecata)
+
+#### I-464 · Curatenia dupa praguri · [M] · P3 · propus
+- **Problema:** dupa v116 au ramas in alerts/index.html bucati fara drum: bara de selectie in lot (#bulkBar + updateBulkBar), modalul de editare a pragului
+  (markup + closeEditModal/saveEditModal), CSS-ul listei vechi (.alert-row, .almost-rail, .pulse-bar, filter-bar), „Sortare"/„Test alerta" din meniul ⋯; pagina are 222 KB.
+- **Solutia:** o trecere cu inventar: se scot markup + CSS + JS fara apelant (garda „nicio functie orfana" exista deja), meniul ⋯ ramane cu ce mai face ceva.
+- **Impact:** pagina mai usoara si mai putin de citit la urmatoarea schimbare; scorul din tools/inventar.mjs scade sub 84.
+- **Riscuri/dependente:** gardile vechi (alerts-poll-chain.test.mjs) cer anumite tipare — se pastreaza; poza reala langa demo inainte de „gata".
+- **Fisiere:** `alerts/index.html`, `tools/inventar.mjs` (doar masurare)
