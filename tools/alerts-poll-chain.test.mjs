@@ -213,12 +213,13 @@ test('watchdog-ul eliberează latch-ul hung și când tab-ul e hidden', () => {
     'eliberarea latch-ului hung trebuie ÎNAINTE de return-ul pe document.hidden');
 });
 
-test('un ciclu cu fire-uri deja văzute tot marchează poll-ul ca reușit', () => {
-  const i = HTML.indexOf('if (!fresh.length)');
-  assert.ok(i > 0);
-  const bloc = HTML.slice(i, i + 450);
+test('v116: fără praguri, poll-ul dus la capăt se marchează mereu ca reușit (niciun return early)', () => {
+  const i = HTML.indexOf('// v116: fara praguri');
+  assert.ok(i > 0, 'evaluarea pragurilor a fost înlocuită cu marcajul v116');
+  const bloc = HTML.slice(i, i + 200);
   assert.ok(/_lastPollOkTs\s*=\s*Date\.now\(\)/.test(bloc),
-    'return-ul early pe alreadyShownToday nu are voie să lase watchdog-ul să creadă că lanțul e mort');
+    'imediat după bucla de prețuri, ciclul e marcat reușit — watchdog-ul nu are voie să creadă că lanțul e mort');
+  assert.ok(!/if \(!fresh\.length\)/.test(HTML), 'drumul vechi cu fire-uri (alreadyShownToday) a dispărut odată cu pragurile');
 });
 
 test('cache-ul păstrează momentul cotației, nu doar pe cel al salvării', () => {
@@ -404,11 +405,12 @@ test('adaugarea in masa nu raporteaza succes cand n-a adaugat nimic', () => {
     'toast-ul de succes trebuie sa vina DUPA iesirea pe zero — altfel „✅ 0 alerte adaugate"');
 });
 
-test('adaugarea in masa nu dubleaza o alerta care exista deja', () => {
+test('adaugarea in masa nu dubleaza un simbol care e deja in lista (v116: lista e de simboluri, fara praguri)', () => {
   const i = ALERTS_HTML.indexOf('function bulkRefFactory');
   const body = ALERTS_HTML.slice(i, i + 500);
-  assert.match(body, /kind === 'ref'/, 'factory trebuie sa se uite la referintele existente');
+  assert.match(body, /\(priceAlerts\[sym\] \|\| \[\]\)\.length/, 'factory trebuie sa se uite daca simbolul e deja in lista');
   assert.match(body, /return null/, 'si sa refuze simbolul deja urmarit');
+  assert.match(body, /kind: 'watch'/, 'ce adauga e o intrare de urmarire, nu un prag');
 });
 
 test('scrierile de preferinte nu pot rupe UI-ul cand localStorage e plin', () => {
