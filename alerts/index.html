@@ -1224,6 +1224,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <div class="us-day-banner" id="usDayBanner" hidden role="status"></div>
 <!-- v116: pozitiile din Radar (Trading 212, boti) si simbolurile tale, randate de lib/radar-ecran.js din poza colectorului -->
 <div class="rad" id="rad"><p class="sub">Aduc poza Radarului…</p></div>
+<div id="radPastrator" hidden></div>
 
 <!-- Adauga un simbol in lista ta (fara praguri: mișcarea reală + insiderii, rezultatele, analiștii vin din poză) -->
 <details class="add-form" id="addForm">
@@ -1247,7 +1248,6 @@ body.al-page input, body.al-page select { font-weight:400; }
   <div id="symSearchResults" style="display:none;flex-direction:column;gap:3px;margin:8px 0 0"></div>
 </details>
 
-<div class="refresh-info" id="refreshInfoPrice">—</div>
 </div><!-- /#tabPrice -->
 
 <div id="tabNews" class="desk-panel" hidden>
@@ -4259,7 +4259,12 @@ function radRandeaza(r) {
   if (r) _radUltima = r;
   const el = $('rad'); if (!el || typeof RadarEcran === 'undefined' || typeof RadarPoza === 'undefined') return;
   const p = _radUltima ? _radUltima.poza : RadarPoza.cache(), acum = Date.now();
+  const af0 = $('addForm'), pastr = $('radPastrator');
+  if (af0 && pastr && el.contains(af0)) pastr.appendChild(af0);   // scos din #rad inainte ca innerHTML sa-l distruga
   RadarEcran.randeaza(el, p, { simboluri: radSimboluri(), preturiLive: radPreturiLive(), acum, cheie: !!RadarPoza.cheie(), prospetime: RadarPoza.prospetime(p, acum), eroare: _radUltima ? _radUltima.eroare : null });
+  // formularul de adaugare intra in panoul „Simbolurile tale" (nodul e mutat, nu copiat: butoanele isi pastreaza ascultatorii)
+  const slot = $('radAdaugaSlot'), af = $('addForm');
+  if (slot && af && af.parentNode !== slot) { slot.appendChild(af); af.open = true; }
 }
 var _radSimTimer = null;
 function radTrimiteSimboluri() { if (typeof RadarPoza === 'undefined') return; clearTimeout(_radSimTimer); _radSimTimer = setTimeout(() => RadarPoza.trimiteSimboluri(radSimboluri()), 1500); }

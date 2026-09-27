@@ -1,0 +1,64 @@
+# -*- coding: utf-8 -*-
+# Genereaza tools/fixtures/poza-radar.json — poza de proba pentru proba de ecran a paginii alerts (v116).
+# Datele: cele din demo-ul v4 aprobat (27.09.2026): 7 pozitii T212 (inchiderile de vineri 25.09, Yahoo), botul JTO
+# (poza reala din 27.09 21:52), 9 simboluri cu insiderii pe 60 z, rezultatele si analistii (Yahoo, 27.09).
+import json, os, io
+AICI = os.path.dirname(os.path.abspath(__file__))
+LA = 1790531547502  # 27.09.2026 21:52 RO
+C = {
+ "AVGO": [392.99,392.43,380.0,362.48,364.03,368.45,358.76,356.74,355.59,371.54,368.79,370.34,369.68,367.24,357.16,357.9,368.56,364.38,360.83,361.99,344.72,339.27,339.51,347.3,357.61,362.66,364.54,354.99,350.36,352.81],
+ "APLD": [31.2,31.18,28.51,28.23,28.65,27.21,26.89,28.85,26.87,27.44,25.34,25.41,24.29,24.91,25.91,26.37,28.31,27.14,25.78,26.42,24.58,23.42,24.39,26.38,28.12,28.19,28.54,27.23,27.06,26.25],
+ "MPC": [355.42,358.18,366.21,360.75,358.23,360.72,362.52,354.88,362.27,363.54,368.83,373.32,383.0,387.0,387.71,388.9,397.77,399.44,392.42,395.93,396.45,410.84,413.92,421.96,424.89,402.38,389.68,388.38,390.95,393.52],
+ "ECHO": [91.89,92.51,90.0,88.44,86.92,86.81,85.32,86.52,85.61,86.47,86.84,86.44,86.04,86.69,89.79,89.8,93.42,91.32,91.85,93.14,93.89,92.1,93.46,94.08,93.46,95.36,95.46,92.72,90.38,90.11],
+ "ISRG": [394.51,390.33,391.18,397.72,374.48,378.81,373.57,371.84,370.42,367.07,372.6,376.86,369.25,371.88,369.83,366.7,350.16,353.24,360.46,369.15,377.94,377.16,382.29,383.54,393.33,401.65,402.09,398.3,399.52,405.18],
+ "NWSA": [29.16,28.7,29.39,29.45,29.65,30.38,30.76,30.92,30.96,31.19,30.97,30.71,30.63,30.65,30.95,30.39,29.82,29.61,29.38,29.44,30.56,30.44,30.19,30.18,29.78,29.7,29.25,28.12,28.44,28.49],
+ "UHS": [170.02,170.53,173.09,172.33,172.87,177.26,176.4,175.76,178.69,172.58,171.66,170.33,170.75,167.49,169.21,169.65,171.89,175.78,172.72,174.83,173.25,176.85,181.21,180.75,176.69,174.74,179.29,181.39,176.99,178.86],
+ "INTC": [102.5,103.49,96.69,92.8,92.13,90.07,87.26,87.48,88.24,92.09,89.47,89.51,88.97,90.05,91.67,95.8,104.47,106.24,100.32,102.94,97.19,97.14,101.05,108.8,108.6,121.78,123.86,122.6,127.39,123.0],
+ "CSCO": [111.68,112.9,111.61,110.55,109.59,111.04,110.23,111.11,112.36,112.15,109.93,110.49,109.74,109.46,108.61,109.2,109.17,109.43,107.44,112.13,110.06,110.07,107.74,110.24,109.51,111.46,106.44,106.43,106.97,106.7],
+ "WDC": [508.8,536.01,496.16,462.09,469.05,459.44,435.38,450.75,468.88,462.0,459.45,450.55,450.44,448.9,441.57,467.46,477.3,482.28,460.93,447.18,426.94,411.96,416.97,423.87,441.36,448.17,464.6,473.69,450.31,456.81],
+ "RHM.DE": [1214.0,1213.8,1178.8,1162.2,1155.4,1125.2,1118.2,1138.8,1173.2,1154.6,1110.8,1079.8,1090.4,1070.2,1034.0,1020.8,1051.8,1012.4,1016.4,990.6,996.7,1028.6,1013.0,1016.2,1011.8,1010.6,991.4,1025.0,990.0,982.4],
+ "1QZ.DE": [129.72,127.68,139.58,147.56,161.2,160.46,159.04,155.54,164.62,158.28,156.5,155.44,152.18,165.84,159.64,158.92,155.78,152.72,149.2,155.7,162.18,156.38,143.16,146.54,167.78,178.24,174.64,175.98,172.54,170.12],
+ "MIGA.MU": [83.58,80.47,88.87,98.99,102.2,105.0,109.26,107.4,119.06,109.9,113.54,113.5,106.26,122.04,123.5,122.52,118.62,114.62,111.44,115.64,116.84,115.12,111.86,111.86,117.86,136.04,142.2,147.38,140.84,142.02],
+ "NFC.F": [65.7,68.3,69.39,69.5,67.8,69.27,70.93,70.93,68.22,70.23,69.67,70.95,71.28,70.76,67.15,68.18,65.6,65.0,64.91,66.31,69.22,68.36,66.16,65.5,62.08,63.45,62.42,62.23,62.71,62.1],
+}
+FX = 4.6269
+def poz(s, buc, med, mx, tinta, trend, pond, motive, sfat, niv):
+    c = C[s]; pret = c[-1]; prev = c[-2]; mx2 = max(mx or 0, pret, prev) if mx else max(c)
+    ppl = buc * (pret - med) * FX; cost = buc * med * FX
+    return {"s": s, "t212": ("SATS" if s == "ECHO" else s) + "_US_EQ", "buc": buc, "mediu": med, "costLei": round(cost, 2), "pret": pret, "prev": prev, "la": 1790343000000,
+            "closes30": c, "pplLei": round(ppl, 2), "pctLei": round(ppl / cost, 6), "pctPret": round(pret / med - 1, 6),
+            "plan": {"trailPct": 15, "tinta": tinta, "stop": round(mx2 * 0.85, 2), "max": round(mx2, 2), "stopFix": None},
+            "trend": trend, "pondere": pond, "niv": niv, "motive": motive, "sfat": sfat}
+t212 = [
+    poz("AVGO", 2.8187, 399.96, 412.50, 413.47, "jos", .157, ["trend în jos pe zilnice", "−14,5% de la maximul de după cumpărare: la 0,6% de stopul din plan"], "Aș ieși, măcar jumătate, și n-aș recumpăra AVGO azi.", "atentie"),
+    poz("APLD", 53.2594, 29.55, 30.69, 34.437, "jos", .23, ["trend în jos pe zilnice", "23% din cont: peste plafonul de 20%"], "Nu cumpăr în plus; la următoarea creștere aș vinde o parte.", "atentie"),
+    poz("MPC", 2.8, 400.95, 400.72, 481.72, "sus", .17, ["trend în sus pe zilnice"], "Trendul e bun; o las să meargă, cu planul pus.", "tine"),
+    poz("ECHO", 7, 93.15, 94.99, 108.39, "jos", .10, ["trend în jos pe zilnice", "T212 o arată ca SATS (EchoStar)"], "Nu adaug. Stopul doar limitează pierderea.", "tine"),
+    poz("ISRG", 2, 398.00, 404.44, 433.01, "jos", .125, ["a făcut maxim nou vineri (405,18): stopul din plan urcă odată cu el"], "O las; planul o urmărește singur.", "tine"),
+    poz("NWSA", 21.8589, 29.21, 29.11, 31.219, "sus", .098, ["trend în sus pe zilnice", "o săptămână slabă: −4,1% în 5 zile"], "Aștept să se liniștească; nu adaug.", "tine"),
+    poz("UHS", 3.6, 184.51, None, 210.4, "sus", .10, ["trend în sus pe zilnice"], "O las să meargă, cu planul pus.", "tine"),
+]
+boti = [{"id": "2386", "s": "JTO", "dir": "long", "lev": 5, "investit": 98.14, "jos": 0.5722, "sus": 0.6572, "pret": 0.6024, "inGrid": 0.3553, "lichidarePct": 21.31, "total": -1.04, "perechi": 0, "gridBrut": 0, "pozitie": -0.89, "comisioane": -0.15, "zero": 0.604805, "plan": {"plus": 5.2, "minus": 14.9, "afaraOre": 12}, "niv": "atentie", "motive": ["costurile pe zi depășesc ce aduc grilele"], "sfat": "La următorul bot: levier mai mic sau grile mai rare.", "pret30": [0.6031, 0.6028, 0.6035, 0.6019, 0.6024, 0.6027, 0.6021, 0.6018, 0.6024], "la": LA}]
+INS = json.load(io.open(os.path.join(AICI, "..", "..", "..", "AppData", "Local", "Temp", "claude", "C--Users-Cimin", "51967c6b-c0cc-4881-a3ea-768bc3c029c8", "scratchpad", "insideri-60z.json"), encoding="utf-8")) if False else None
+# insiderii/rezultatele/analistii: agregatele din 27.09 (Yahoo), scrise aici ca fixture stabila
+EXTRA = {
+ "AVGO":   {"insideri": {"form4": True, "buys": 0, "sells": 0, "bp": 0, "sp": 0, "net": 0, "verdict": "neut", "top": [], "n60": 0}, "rezultate": {"data": "2026-12-09", "zile": 73, "eps": 3.83}, "analisti": {"tinta": 531.85, "recom": "strong_buy", "n": 40}, "shortFloat": 0.0111},
+ "APLD":   {"insideri": {"form4": True, "buys": 0, "sells": 1, "bp": 0, "sp": 1, "net": -75000, "verdict": "neut", "top": [{"d": "08-04", "cine": "Nottenburg Richard N", "rol": "Director", "f": "sell", "act": 75000, "val": 2336250}], "n60": 1}, "rezultate": {"data": "2026-10-08", "zile": 11, "eps": -0.30}, "analisti": {"tinta": 66.43, "recom": "strong_buy", "n": 12}, "shortFloat": 0.221},
+ "INTC":   {"insideri": {"form4": True, "buys": 1, "sells": 0, "bp": 1, "sp": 0, "net": 105263, "verdict": "bull1", "top": [{"d": "08-11", "cine": "Tan Lip-Bu", "rol": "Chief Executive Officer", "f": "buy", "act": 105263, "val": 9999985}], "n60": 1}, "rezultate": {"data": "2026-10-22", "zile": 25, "eps": 0.39}, "analisti": {"tinta": 116.37, "recom": "buy", "n": 43}, "shortFloat": 0.0301},
+ "CSCO":   {"insideri": {"form4": True, "buys": 0, "sells": 10, "bp": 0, "sp": 7, "net": -54130, "verdict": "bear", "top": [{"d": "08-14", "cine": "Robbins Charles H", "rol": "Chief Executive Officer", "f": "sell", "act": 21628, "val": 2412346}, {"d": "08-14", "cine": "Patel Jeetendra I", "rol": "President", "f": "sell", "act": 7170, "val": 799928}, {"d": "08-14", "cine": "Stahlkopf Deborah L", "rol": "Officer", "f": "sell", "act": 6487, "val": 723494}], "n60": 10}, "rezultate": {"data": "2026-11-12", "zile": 46, "eps": 1.32}, "analisti": {"tinta": 137.25, "recom": "buy", "n": 30}, "shortFloat": 0.0146},
+ "WDC":    {"insideri": {"form4": True, "buys": 0, "sells": 7, "bp": 0, "sp": 4, "net": -142729, "verdict": "bear", "top": [{"d": "08-11", "cine": "Tan Irving", "rol": "Chief Executive Officer", "f": "sell", "act": 20000, "val": 8899329}, {"d": "09-01", "cine": "Streeter Stephanie A", "rol": "Director", "f": "sell", "act": 5600, "val": 2519280}, {"d": "09-04", "cine": "Gubbi Vidyadhara K", "rol": "Officer", "f": "sell", "act": 1795, "val": 825472}], "n60": 7}, "rezultate": {"data": "2026-11-05", "zile": 39, "eps": 4.04}, "analisti": {"tinta": 664.92, "recom": "none", "n": 24}, "shortFloat": 0.0538},
+ "RHM.DE": {"insideri": {"form4": False, "buys": 0, "sells": 0, "bp": 0, "sp": 0, "net": 0, "verdict": "neut", "top": [], "n60": 0}, "rezultate": {"data": "2026-11-05", "zile": 39, "eps": 6.66}, "analisti": {"tinta": 1641.29, "recom": "strong_buy", "n": 20}, "shortFloat": None},
+ "1QZ.DE": {"sursa": "COIN", "insideri": {"form4": True, "buys": 0, "sells": 6, "bp": 0, "sp": 4, "net": -106674, "verdict": "bear", "top": [{"d": "09-21", "cine": "Haas Alesia J", "rol": "Chief Financial Officer", "f": "sell", "act": 39030, "val": 8010634}, {"d": "08-03", "cine": "Wilson Frederick R", "rol": "Director", "f": "sell", "act": 35068, "val": 5060841}, {"d": "09-08", "cine": "Andreessen Marc L", "rol": "Director", "f": "sell", "act": 13676, "val": 2477260}], "n60": 6}, "rezultate": {"data": "2026-10-29", "zile": 32, "eps": -0.22}, "analisti": {"tinta": 203.60, "recom": "buy", "n": 30}, "shortFloat": 0.1147},
+ "MIGA.MU": {"sursa": "MSTR", "insideri": {"form4": True, "buys": 0, "sells": 5, "bp": 0, "sp": 1, "net": -11250, "verdict": "bear", "top": [{"d": "08-25", "cine": "Patten Jarrod Michael", "rol": "Director", "f": "sell", "act": 3700, "val": 460964}, {"d": "08-07", "cine": "Patten Jarrod Michael", "rol": "Director", "f": "sell", "act": 3800, "val": 389146}, {"d": "08-27", "cine": "Patten Jarrod Michael", "rol": "Director", "f": "sell", "act": 1850, "val": 240500}], "n60": 5}, "rezultate": {"data": "2026-10-29", "zile": 32, "eps": 12.63}, "analisti": {"tinta": 229.87, "recom": "strong_buy", "n": 13}, "shortFloat": 0.0815},
+ "NFC.F":  {"sursa": "NFLX", "insideri": {"form4": True, "buys": 0, "sells": 7, "bp": 0, "sp": 5, "net": -179765, "verdict": "bear", "top": [{"d": "08-04", "cine": "Sarandos Theodore Anthony Jr.", "rol": "Chief Executive Officer", "f": "sell", "act": 133162, "val": 9733584}, {"d": "08-06", "cine": "Peters Gregory K.", "rol": "Chief Executive Officer", "f": "sell", "act": 27312, "val": 2008606}, {"d": "08-10", "cine": "Neumann Spencer Adam", "rol": "Chief Financial Officer", "f": "sell", "act": 9248, "val": 700907}], "n60": 7}, "rezultate": {"data": "2026-10-20", "zile": 23, "eps": 0.82}, "analisti": {"tinta": 92.93, "recom": "buy", "n": 45}, "shortFloat": 0.0228},
+}
+NOTE = {"1QZ.DE": "dublura germană a COIN", "MIGA.MU": "dublura germană a MSTR", "NFC.F": "dublura germană a NFLX", "RHM.DE": "Rheinmetall"}
+simboluri = []
+for s in ["AVGO", "APLD", "INTC", "CSCO", "WDC", "RHM.DE", "1QZ.DE", "MIGA.MU", "NFC.F"]:
+    e = EXTRA[s]; c = C[s]
+    simboluri.append({"s": s, "nota": NOTE.get(s, ""), "sursa": e.get("sursa"), "moneda": "€" if s.endswith((".DE", ".MU", ".F")) else "$", "pret": c[-1], "prev": c[-2], "closes30": c,
+                      "insideri": e["insideri"], "rezultate": e["rezultate"], "analisti": e["analisti"], "shortFloat": e["shortFloat"]})
+poza = {"la": LA, "versiune": "v98.0", "colector": {"pid": 8540, "tura": 3}, "t212": t212, "t212La": LA, "t212Eroare": None, "boti": boti, "simboluri": simboluri, "gol": {"boti": None, "t212": None}}
+out = os.path.join(AICI, "poza-radar.json")
+io.open(out, "w", encoding="utf-8", newline="\n").write(json.dumps(poza, ensure_ascii=False, indent=1) + "\n")
+print("scris", out, "·", len(t212), "pozitii,", len(boti), "boti,", len(simboluri), "simboluri")
