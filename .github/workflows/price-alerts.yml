@@ -17,7 +17,9 @@ name: Price Alerts → Telegram
 # Cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis).
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    # 27.09.2026: la ORA, nu la 30 min - pe depozit privat fiecare rulare e un minut facturat; cronul de 5 min
+    # de pe worker-ul tt-proxy (dispatch) a fost sters in aceeasi zi: el manca toata cota lunara in ~6 zile.
+    - cron: '0 * * * *'
   workflow_dispatch: {}
 
 permissions:
