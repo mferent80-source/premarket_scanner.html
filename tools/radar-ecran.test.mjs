@@ -46,6 +46,8 @@ test('I-462: cu adresa tunelului in poza, „Deschide in Radar" duce la tunel (s
   assert.match(el.innerHTML, /href="https:\/\/abc-def\.trycloudflare\.com\/"/); assert.match(el.innerHTML, /și de pe telefon/); assert.doesNotMatch(el.innerHTML, /127\.0\.0\.1/);
   const fara = POZA_BAZA(); RadarEcran.randeaza(el, fara, O(fara));
   assert.match(el.innerHTML, /href="http:\/\/127\.0\.0\.1:8788\/"/); assert.match(el.innerHTML, /doar acasă/);
+  // o adresa care nu e http/https (javascript:, data:) nu ajunge niciodata in href - cade pe adresa de acasa
+  for (const rau of ['javascript:alert(1)', 'data:text/html,x', 'ftp://x', 'abc']) { const p = POZA_BAZA(); p.radarUrl = rau; RadarEcran.randeaza(el, p, O(p)); assert.match(el.innerHTML, /href="http:\/\/127\.0\.0\.1:8788\/"/, 'refuzat: ' + rau); assert.doesNotMatch(el.innerHTML, /javascript:|data:text/); }
 });
 test('cheia din link (#cheie=… sau ?cheie=…) se salveaza o data si dispare din adresa', () => {
   const scris = {}, istoric = [];
