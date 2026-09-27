@@ -1,6 +1,6 @@
 # Backlog de idei Ă˘â‚¬â€ť trading suite
 
-Ä‚Ĺ˝ntreÄŚâ€şinut de skill-ul `trading-ideation`. Statusuri: `propus` Ă‚Â· `aprobat` Ă‚Â· `fĂ„Âcut` Ă‚Â· `respins`.
+Ä‚Ĺ˝ntreÄŚâ€şinut de skill-ul `trading-ideation`. Statusuri: `facut 2026-09-27` Ă‚Â· `aprobat` Ă‚Â· `fĂ„Âcut` Ă‚Â· `respins`.
 SursĂ„Â: `ideation` (generat de skill) Ă‚Â· `tcc-idei` (din secÄŚâ€şiunile Ă˘â‚¬ĹľIdei" ale trading-code-craft) Ă‚Â· `user`.
 RegulĂ„Â: ideile `respins`/`fĂ„Âcut` NU se repropun (nici reformulate).
 
@@ -184,11 +184,11 @@ RegulĂ„Â: ideile `respins`/`fĂ„Âcut` NU se repropun (nici reformulat
 | I-176 | Setup: banner galben R:R marginal (1Ă˘â‚¬â€ś2:1) | lib/setup-builder.js + journal/index.html | S | P2 | fĂ„Âcut | ideation | 2026-07-12 |
 | I-177 | Setup: persistĂ„Â rrStruct + pierdere SL Ä‚Â®n draft | lib/setup-builder.js + md_signal_journal | S | P2 | fĂ„Âcut | ideation | 2026-07-12 |
 | I-178 | Setup: mini hartĂ„Â entry/SL/TP vs hi20/lo20 | lib/setup-builder.js + journal/index.html | M | P2 | fĂ„Âcut | ideation | 2026-07-12 |
-| I-179 | Expected move pre-event inline (miÄŚâ„˘carea tipicĂ„Â din istoric) | macro-dashboard/index.html | M | P1 | propus | ideation | 2026-07-15 |
-| I-180 | ReacÄŚâ€şia REALĂ„â€š azi vs tipic (post-event, intraday) | macro-dashboard/index.html | M | P1 | propus | ideation | 2026-07-15 |
-| I-181 | Calibrare surprise-magnitude Ă˘â€ â€™ mĂ„Ârime reacÄŚâ€şie (bucketing) | macro-dashboard/index.html | M | P2 | propus | ideation | 2026-07-15 |
-| I-182 | Alerte gate pe z-score surprise (peste zgomotul propriu) | macro-dashboard/ + tools/check-alerts.mjs | M | P2 | propus | ideation | 2026-07-15 |
-| I-183 | InfluenÄŚâ€şĂ„Â regime-aware (marketInfluence Ä‚â€” md_risk_regime) | macro-dashboard/index.html | S | P3 | propus | ideation | 2026-07-15 |
+| I-179 | Expected move pre-event inline (miÄŚâ„˘carea tipicĂ„Â din istoric) | macro-dashboard/index.html | M | P1 | facut 2026-09-27 | ideation | 2026-07-15 |
+| I-180 | ReacÄŚâ€şia REALĂ„â€š azi vs tipic (post-event, intraday) | macro-dashboard/index.html | M | P1 | facut 2026-09-27 | ideation | 2026-07-15 |
+| I-181 | Calibrare surprise-magnitude Ă˘â€ â€™ mĂ„Ârime reacÄŚâ€şie (bucketing) | macro-dashboard/index.html | M | P2 | facut 2026-09-27 | ideation | 2026-07-15 |
+| I-182 | Alerte gate pe z-score surprise (peste zgomotul propriu) | macro-dashboard/ + tools/check-alerts.mjs | M | P2 | facut 2026-09-27 | ideation | 2026-07-15 |
+| I-183 | InfluenÄŚâ€şĂ„Â regime-aware (marketInfluence Ä‚â€” md_risk_regime) | macro-dashboard/index.html | S | P3 | facut 2026-09-27 | ideation | 2026-07-15 |
 | I-184 | EXPECT net de fee (input fee round-trip) | PPST Deck Pine | S | P1 | propus | ideation | 2026-07-22 |
 | I-185 | VERIF lead-time (avansul mediu Ä‚Â®n bare al avertismentelor) | PPST Deck Pine | S | P1 | fĂ„Âcut | ideation | 2026-07-22 |
 | I-186 | RÄ‚Ënd CE FAC? (acÄŚâ€şiune pe stare, pattern VolRegime) | PPST Deck Pine | S | P2 | fĂ„Âcut | ideation | 2026-07-22 |
@@ -4765,7 +4765,7 @@ opritor de pierderi (1.23.0 + 1.24.0). Ideile de mai jos ataca golurile RAMASE d
   deschisa). Sa nu devina zgomot: un singur anunt per prag, si doar pe pozitii deschise.
 - **Fisiere:** `src/ui/folosesteRegistru.ts`, `src/ui/folosesteAlerteBrowser.ts`
 
-#### I-459 · Pretul T212 pe randurile pozitiilor · [S] · P1 · propus
+#### I-459 · Pretul T212 pe randurile pozitiilor · [S] · P1 · facut
 - **Problema:** pe randurile Trading 212 din pagina alerts, „acum" e cifra Yahoo cand e mai proaspata decat poza;
   in pre/after si la actiunile ilichide, Yahoo si T212 difera cu zecimi de procent, iar omul compara cu aplicatia T212.
 - **Solutia:** poza duce si ora citirii pretului T212 (`t212La` exista deja); randul arata pretul T212 cu chip „T212"
@@ -4774,7 +4774,7 @@ opritor de pierderi (1.23.0 + 1.24.0). Ideile de mai jos ataca golurile RAMASE d
 - **Riscuri/dependente:** poza e la 5 min (vezi I-461); pretul T212 la o citire limitata (429) e cel vechi — chip-ul cu ora il spune.
 - **Fisiere:** `lib/radar-ecran.js` (acumDin, randT212), `crypto/scripts/colector.mjs` (pozitiiPentruPoza)
 
-#### I-460 · „Ce ai de facut acum" deasupra tabelelor · [M] · P1 · propus
+#### I-460 · „Ce ai de facut acum" deasupra tabelelor · [M] · P1 · facut
 - **Problema:** pagina arata 7 pozitii + boti + 9 simboluri, dar omul trebuie sa scaneze tot ca sa vada ce ARDE: stopul
   depasit (AVGO, APLD pe IESI), 22% din cont pe o actiune, botul pe zero, rezultate in 3 zile. Poza are deja niv/motive/sfat.
 - **Solutia:** un panou scurt sub sumar, in ordinea urgentei (rosu → galben), un rand pe problema, cu butonul care
@@ -4783,7 +4783,7 @@ opritor de pierderi (1.23.0 + 1.24.0). Ideile de mai jos ataca golurile RAMASE d
 - **Riscuri/dependente:** sa nu repete ce e in pill-uri; maxim 5 randuri, restul pliat.
 - **Fisiere:** `lib/radar-ecran.js`, `lib/radar-ui.css`
 
-#### I-461 · Poza la 1 minut cat piata e deschisa · [S] · P2 · propus
+#### I-461 · Poza la 1 minut cat piata e deschisa · [S] · P2 · facut
 - **Problema:** botii Pionex se misca in secunde; poza vine la 5 minute, deci „iese pe zero" si totalul botului sunt vechi cand contează.
 - **Solutia:** cadenta adaptiva in turaPoza: 1 minut cat e un bot activ SAU bursa US e deschisa (pre/RTH/after), 5 minute noaptea si in weekend.
   Pagina citeste deja cu ETag/304, deci costul e mic; KV-ul scrie o cheie pe poza (bugetul zilnic de scrieri: ~1.000 pe Free — de socotit).
@@ -4791,14 +4791,14 @@ opritor de pierderi (1.23.0 + 1.24.0). Ideile de mai jos ataca golurile RAMASE d
 - **Riscuri/dependente:** limita de scrieri KV (1 min × 16 h = 960/zi doar poza) — sau upgrade Workers Paid; T212 limiteaza cererile (pastreaza cache-ul de pozitii).
 - **Fisiere:** `crypto/scripts/colector.mjs` (POZA_MS → functie), `crypto/paznic/worker.mjs` (nimic sau contor de scrieri)
 
-#### I-462 · Adresa tunelului in poza · [S] · P2 · propus
+#### I-462 · Adresa tunelului in poza · [S] · P2 · facut
 - **Problema:** „Deschide in Radar" duce la 127.0.0.1:8788 — de pe telefon nu duce nicaieri, desi Radarul are tunel (PORNESTE-SI-PE-TELEFON.bat, adresa in %TEMP%\crypto-radar-tunel.log; Consilier.adresaTunel o citeste deja pentru rezumat).
 - **Solutia:** colectorul pune in poza `radarUrl` (adresa tunelului cand exista, altfel null); pagina foloseste adresa aia pentru butoane, iar fara ea scrie „doar acasa".
 - **Impact:** de pe telefon, de la randul pozitiei ajungi direct in Tabloul botului / pagina T212 din Radar.
 - **Riscuri/dependente:** adresa tunelului se schimba la fiecare pornire (poza o aduce la 5 min); proiectul lansatorului telefonului (urmatorul) trebuie intai sa nu mai lase tunele vechi.
 - **Fisiere:** `crypto/scripts/colector.mjs`, `crypto/scripts/lib/poza.mjs`, `lib/radar-ecran.js`
 
-#### I-463 · Alerta Discord pe simbolurile paginii · [M] · P2 · propus
+#### I-463 · Alerta Discord pe simbolurile paginii · [M] · P2 · facut
 - **Problema:** pragurile au disparut din pagina (decizia lui), dar cu ele a disparut si singura notificare pe simbolurile urmarite.
   Colectorul are acum lista lor, inchiderile pe 30 z si insiderii — poate judeca mai bine decat „±1%".
 - **Solutia:** o regula in colector, o data pe zi per simbol: miscarea zilei peste 2× ATR-ul propriu (din closes30) sau o cumparare noua de insider
@@ -4807,7 +4807,7 @@ opritor de pierderi (1.23.0 + 1.24.0). Ideile de mai jos ataca golurile RAMASE d
 - **Riscuri/dependente:** pragul 2×ATR e o ipoteza — de validat out-of-sample pe minim 10 cazuri inainte sa fie considerat „bun"; o singura alerta pe zi per simbol ca sa nu devina zgomot.
 - **Fisiere:** `crypto/scripts/colector.mjs` (turaPoza → Alerte), `crypto/scripts/lib/poza.mjs` (functie pura de judecata)
 
-#### I-464 · Curatenia dupa praguri · [M] · P3 · propus
+#### I-464 · Curatenia dupa praguri · [M] · P3 · facut
 - **Problema:** dupa v116 au ramas in alerts/index.html bucati fara drum: bara de selectie in lot (#bulkBar + updateBulkBar), modalul de editare a pragului
   (markup + closeEditModal/saveEditModal), CSS-ul listei vechi (.alert-row, .almost-rail, .pulse-bar, filter-bar), „Sortare"/„Test alerta" din meniul ⋯; pagina are 222 KB.
 - **Solutia:** o trecere cu inventar: se scot markup + CSS + JS fara apelant (garda „nicio functie orfana" exista deja), meniul ⋯ ramane cu ce mai face ceva.
