@@ -31,8 +31,19 @@ test('polling-ul ramane (gardile vechi) dar nu mai evalueaza praguri', () => {
   assert.match(HTML, /function pollPrices\(/); assert.match(HTML, /try\s*\{\s*await pollPrices\(\);\s*\}\s*catch/);
   assert.ok(!/function evaluateAlert\(|function checkTrigger\(|fireAlert\(/.test(HTML), 'evaluarea pragurilor a fost scoasa');
 });
-test('versiunea paginii e v116 si workflow-ul pragurilor e oprit', () => {
+test('versiunea paginii e v116; workflow-ul nu mai verifica praguri, dar News Watch isi pastreaza cronul', () => {
   assert.match(HTML, /id="verBadge">v116</);
   const wf = readFileSync(join(ROOT, '.github/workflows/price-alerts.yml'), 'utf8');
-  assert.ok(!/^\s*schedule:/m.test(wf) && /workflow_dispatch/.test(wf), 'price-alerts.yml: fara cron, doar pornire manuala');
+  assert.ok(/^\s*schedule:/m.test(wf) && /cron:/.test(wf), 'cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis)');
+  assert.ok(!/run:\s*node tools\/check-alerts\.mjs/.test(wf), 'pasul cu pragurile de pret a disparut (comentariul de sus poate sa-l mai pomeneasca)');
+  assert.ok(/run:\s*node tools\/check-news-watch\.mjs/.test(wf), 'News Watch ramane');
+});
+test('sincronizarea cu GitHub vorbeste limba noua: lista de pe server se migreaza, semnatura e pe forma watch, alerts.json e migrat', () => {
+  const i = HTML.indexOf('function serverToMap');
+  assert.match(HTML.slice(i, i + 400), /migreazaListaLaSimboluri\(/, 'serverToMap trece prin migrare (altfel ⬇️ manual readuce praguri)');
+  const j = HTML.indexOf('function alertsSig');
+  const sig = HTML.slice(j, j + 500);
+  assert.ok(!/ref\|/.test(sig) && /watch/.test(sig), 'semnatura e pe forma watch (simbol + notita), nu pe praguri');
+  const json = JSON.parse(readFileSync(join(ROOT, 'tools/alerts.json'), 'utf8'));
+  assert.ok(Array.isArray(json.alerts) && json.alerts.length > 0 && json.alerts.every(a => a.kind === 'watch' && !('level' in a) && !('pct' in a)), 'tools/alerts.json e in forma watch');
 });

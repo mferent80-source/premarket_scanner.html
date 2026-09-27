@@ -3197,11 +3197,9 @@ let _syncBusy = false;             // v57: latch partajat push↔pull — anti-r
 
 // Semnătură normalizată a unei liste (ignoră id/lastFired/stările volatile de declanșare)
 function alertsSig(map) {
+  // v116: lista e de simboluri (kind watch): semnatura = simbol + notita, pe aceeasi forma pe care o scrie alertToJson
   const items = [];
-  Object.keys(map || {}).forEach(sym => (map[sym] || []).forEach(a => {
-    const k = a.kind === 'ref' ? `ref|${a.pct}|${a.trail ? 't' : ''}` : a.kind === 'anchor' ? `anchor|${a.pct}|${a.target}|${a.stop}` : a.kind === 'day' ? `day|${a.pct}` : (a.kind === 'pct' ? `pct|${a.pct}` : `price|${a.lvl}|${a.dir}`);
-    items.push(`${sym.toUpperCase()}|${k}|${a.rearm ? 1 : 0}|${(a.note || '').trim()}`);
-  }));
+  Object.keys(map || {}).forEach(sym => (map[sym] || []).forEach(a => items.push(`${sym.toUpperCase()}|watch|${(a.note || '').trim()}`)));
   return items.sort().join('\n');
 }
 // O alertă din formatul server (tools/alerts.json) → formatul local (wl_price_alerts)
@@ -3218,7 +3216,7 @@ function serverAlertToLocal(s) {
 function serverToMap(arr) {
   const m = {};
   (arr || []).forEach(s => { const sym = String(s.symbol || '').toUpperCase(); if (!sym) return; (m[sym] = m[sym] || []).push(serverAlertToLocal(s)); });
-  return m;
+  return migreazaListaLaSimboluri(m);   // v116: orice forma veche de pe server devine simbol urmarit
 }
 // Citește tools/alerts.json: Contents API (token, fresh) → GitHub Pages (public) → raw
 async function fetchServerAlertsObj() {
@@ -4258,6 +4256,7 @@ function radPreturiLive() {
 function radRandeaza(r) {
   if (r) _radUltima = r;
   const el = $('rad'); if (!el || typeof RadarEcran === 'undefined' || typeof RadarPoza === 'undefined') return;
+  const afF = $('addForm'); if (afF && document.activeElement && afF.contains(document.activeElement)) return;   // scrie in formular: nu-i luam focusul (randarea urmatoare vine la poll)
   const p = _radUltima ? _radUltima.poza : RadarPoza.cache(), acum = Date.now();
   const af0 = $('addForm'), pastr = $('radPastrator');
   if (af0 && pastr && el.contains(af0)) pastr.appendChild(af0);   // scos din #rad inainte ca innerHTML sa-l distruga
@@ -4267,7 +4266,11 @@ function radRandeaza(r) {
   if (slot && af && af.parentNode !== slot) { slot.appendChild(af); af.open = true; }
 }
 var _radSimTimer = null;
-function radTrimiteSimboluri() { if (typeof RadarPoza === 'undefined') return; clearTimeout(_radSimTimer); _radSimTimer = setTimeout(() => RadarPoza.trimiteSimboluri(radSimboluri()), 1500); }
+var _radSimUltima = '';
+function radTrimiteSimboluri() {
+  if (typeof RadarPoza === 'undefined') return; clearTimeout(_radSimTimer);
+  _radSimTimer = setTimeout(() => { const l = radSimboluri(), semn = JSON.stringify(l); if (semn === _radSimUltima) return; RadarPoza.trimiteSimboluri(l).then(ok => { if (ok) _radSimUltima = semn; }); }, 1500);
+}
 if ($('rad') && typeof RadarPoza !== 'undefined') {
   $('rad').addEventListener('radar:scoate', e => { const s = e.detail.s; if (!s || !confirm(`Scot ${s} din lista ta?`)) return; priceAlerts = loadAlerts(); delete priceAlerts[s]; persistAlerts(); render(); autoSync(); toast(`${s} a ieșit din listă`, 'info'); });
   $('rad').addEventListener('radar:nota', e => { const s = e.detail.s; priceAlerts = loadAlerts(); const a = (priceAlerts[s] || [])[0]; if (!a) return; const n = prompt('Notiță pentru ' + s, a.note || ''); if (n === null) return; a.note = n.trim().slice(0, 80); persistAlerts(); render(); autoSync(); });

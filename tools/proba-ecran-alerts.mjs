@@ -105,6 +105,13 @@ try {
     if (!r[5]) throw new Error("formularul de adaugare nu e in panoul Simbolurile tale: " + JSON.stringify(r));
     if (r[6] !== 1) throw new Error("linia 'ultim check' trebuie sa apara o singura data, gasit " + r[6]);
   });
+  await test("cat scrii in formular, re-randarea nu-ti ia focusul si nu-ti sterge textul", async () => {
+    await pc.ev(`document.getElementById('inpSym').focus(); document.getElementById('inpSym').value = 'NV'`);
+    await pc.ev(`render(); radRandeaza();`);
+    const r = await pc.ev(`[document.activeElement && document.activeElement.id, document.getElementById('inpSym').value]`);
+    if (r[0] !== 'inpSym' || r[1] !== 'NV') throw new Error("dupa render: " + JSON.stringify(r));
+    await pc.ev(`document.getElementById('inpSym').value = ''; document.getElementById('inpSym').blur()`);
+  });
   await test("poza la 1920", async () => { await pc.poza(path.join(POZE, "alerts-1920.png")); });
 } finally { pc.inchide(); }
 

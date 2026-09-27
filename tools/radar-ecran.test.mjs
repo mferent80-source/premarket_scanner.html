@@ -24,11 +24,28 @@ test('baraAzi: ±4% umple jumatatea; semnul alege partea; 0 = nimic', () => {
 test('spark: 2 puncte sau mai multe -> svg cu polyline si punctul de la capat; sub 2 -> gol', () => {
   assert.match(RadarEcran.spark([1, 2, 3]), /<polyline/); assert.match(RadarEcran.spark([1, 2, 3]), /<circle/); assert.strictEqual(RadarEcran.spark([1]), ''); assert.strictEqual(RadarEcran.spark(null), '');
 });
-test('insText: verdictele si "fara Form 4"; lipsa = cere cheia', () => {
+test('insText: verdictele si "fara Form 4"; lipsa fara cheie = cere cheia; lipsa CU cheie = vine cu poza urmatoare', () => {
   assert.match(RadarEcran.insText({ form4: false }).t, /fără Form 4/);
   assert.match(RadarEcran.insText({ form4: true, verdict: 'bull1', bp: 1, net: 105263 }).m, /105 k/);
   assert.match(RadarEcran.insText({ form4: true, verdict: 'bear', sells: 10, sp: 7, net: -54130 }).t, /vând/);
-  assert.match(RadarEcran.insText(null).t, /cere cheia/);
+  assert.match(RadarEcran.insText(null, false).t, /cere cheia/);
+  assert.match(RadarEcran.insText(null, true).t, /încă nimic/);
+  assert.match(RadarEcran.insText(null, true).m, /poza următoare/);
+});
+test('cheia gresita nu tace: caseta se deschide si scrie "nu e buna" cu cheia pusa', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  RadarEcran.randeaza(el, null, { simboluri: [], preturiLive: {}, acum: ACUM, cheie: true, prospetime: RadarPoza.prospetime(null, ACUM), eroare: 'cheia nu e bună' });
+  assert.match(el.innerHTML, /nu e bună/);
+  assert.match(el.innerHTML, /id="radCaseta">/, 'caseta cheii e deschisa (fara hidden)');
+  assert.doesNotMatch(el.innerHTML, /Aștept prima poză/, 'nu da vina pe colector cand cheia e gresita');
+});
+test('T212 n-a raspuns: pozitiile vechi raman, cu ora lor si cu eroarea la vedere in panou', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = { la: ACUM, t212La: ACUM - 3600000, t212Eroare: 'Trading 212 a limitat cererile', t212: [{ s: 'UHS', pret: 178.86, prev: 176.99, mediu: 184.51, closes30: [170, 178.86], pplLei: -94, plan: null, niv: 'tine', motive: [], sfat: '' }], boti: [], simboluri: [], gol: { boti: 'niciun bot activ', t212: null } };
+  RadarEcran.randeaza(el, poza, { simboluri: [], preturiLive: {}, acum: ACUM, cheie: true, prospetime: RadarPoza.prospetime(poza, ACUM) });
+  assert.match(el.innerHTML, /UHS/);
+  assert.match(el.innerHTML, /n-a răspuns/);
+  assert.match(el.innerHTML, /pozițiile de la 15:20/, 'ora pozitiilor (Bucuresti) langa avertisment');
 });
 test('mii: 9.999.985 -> 10,0 mil.; 105263 -> 105 k; 500 -> 500', () => {
   assert.strictEqual(RadarEcran.mii(9999985), '10,0 mil.'); assert.strictEqual(RadarEcran.mii(105263), '105 k'); assert.strictEqual(RadarEcran.mii(500), '500');

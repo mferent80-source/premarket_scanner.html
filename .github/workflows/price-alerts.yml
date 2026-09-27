@@ -13,9 +13,11 @@
 # ═══════════════════════════════════════════════════════════════════
 name: Price Alerts → Telegram
 
-# 27.09.2026 (alerts v116): pragurile au fost scoase din pagina alerts, deci verificarea lor de aici s-a oprit.
-# Fara cron; rulare doar manuala (tab-ul Actions), pentru News Watch.
+# 27.09.2026 (alerts v116): pragurile au fost scoase din pagina alerts, deci pasul lor a disparut de aici.
+# Cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis).
 on:
+  schedule:
+    - cron: '*/30 * * * *'
   workflow_dispatch: {}
 
 permissions:
@@ -34,12 +36,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Verifică alertele de preț
-        env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: node tools/check-alerts.mjs
 
       - name: Verifică News Watch
         env:
