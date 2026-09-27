@@ -9,6 +9,19 @@ const src = (f) => readFileSync(join(ROOT, f), 'utf8');
 // modulele sunt scripturi de browser (global var); le incarcam ca in colectorul Radarului
 const RadarEcran = new Function(src('lib/radar-ecran.js') + '; return RadarEcran;')();
 const RadarPoza = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')({}, { getItem() { return null; }, setItem() {}, removeItem() {} }, () => Promise.reject(new Error('fara retea')), { hidden: false, addEventListener() {} });
+
+test('cheia din link (#cheie=… sau ?cheie=…) se salveaza o data si dispare din adresa', () => {
+  const scris = {}, istoric = [];
+  const loc = { href: 'https://mferent80-source.github.io/premarket_scanner.html/alerts/?x=1#cheie=aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam', pathname: '/premarket_scanner.html/alerts/' };
+  const RP = new Function('window', 'localStorage', 'fetch', 'document', 'location', 'history', src('lib/radar-poza.js') + '; return RadarPoza;')(
+    {}, { getItem(k) { return scris[k] ?? null; }, setItem(k, v) { scris[k] = v; }, removeItem(k) { delete scris[k]; } }, () => Promise.reject(new Error('fara retea')), { hidden: false, addEventListener() {} },
+    loc, { replaceState(a, b, u) { istoric.push(u); } });
+  assert.strictEqual(RP.cheieDinUrl(), 'aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam');
+  assert.strictEqual(scris.radar_cheie, 'aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam', 'cheia e salvata in browser');
+  assert.strictEqual(istoric[0], 'https://mferent80-source.github.io/premarket_scanner.html/alerts/?x=1', 'adresa ramane fara cheie (istoricul browserului nu o tine)');
+  loc.href = 'https://mferent80-source.github.io/premarket_scanner.html/alerts/';
+  assert.strictEqual(RP.cheieDinUrl(), null, 'fara cheie in link: nimic');
+});
 const ACUM = Date.UTC(2026, 8, 27, 13, 20);
 
 test('judecaT212: stop din plan, depasit / aproape / tine, procent in lei cand exista cost', () => {
