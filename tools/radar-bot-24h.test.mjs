@@ -32,6 +32,29 @@ test('poza veche (colector fara d24): nu inventeaza un procent - ramane doar tex
   const h = randeaza(BOT());
   assert.doesNotMatch(h, /class="d24/); assert.doesNotMatch(h, /pe 24 h/); assert.match(h, /pe ultimele 4 poze/);
 });
+// v122 (el, 28.09: „vreau ca procentul de crestere sau scadere sa fie LIVE acelasi cu cel din TradingView”)
+const randeazaLive = (bot, botiLive) => { const el = { innerHTML: '', addEventListener() {}, dataset: {} }; const p = poza(bot); RadarEcran.randeaza(el, p, Object.assign(O(p), { botiLive })); return el.innerHTML; };
+test('v122: cu lumanarea zilnica live (Binance) procentul e ca in TradingView - pretul de acum fata de inchiderea de ieri (deschiderea zilei), „azi”, si pretul afisat e cel live', () => {
+  const h = randeazaLive(Object.assign(BOT(), { d24: -0.062, d24Ore: 14 }), { JTO: { deschidere: 0.5961, pret: 0.5582, la: ACUM - 3000, sursa: 'Binance' } });
+  const rand = h.slice(h.indexOf('data-s="JTO"'), h.indexOf('class="det"'));
+  assert.match(rand, /<b class="d24 bad">▼ −6,4%<\/b>/, '0.5582 / 0.5961 − 1 = −6,36%: ' + rand.slice(0, 700));
+  assert.match(rand, /azi · ca în TradingView/); assert.doesNotMatch(rand, /pe 14 h/, 'nu mai e procentul de la pornirea botului');
+  assert.match(rand, /0,5582/, 'pretul live'); assert.match(rand, /class="px-sess live"/, 'chip „live”');
+});
+test('v122: fara Binance (moneda doar pe Pionex), procentul zilei vine din poza (lumanarea zilnica Pionex), cu sursa spusa; fara nimic -> ramane cel vechi', () => {
+  const h = randeazaLive(Object.assign(BOT(), { d24: -0.062, d24Ore: 14, zi: { deschidere: 0.596, pct: -0.0433 } }), {});
+  assert.match(h, /<b class="d24 bad">▼ −4,3%<\/b>/); assert.match(h, /azi · Pionex, la 2 min/);
+  const vechi = randeazaLive(Object.assign(BOT(), { d24: -0.062, d24Ore: 14 }), {});
+  assert.match(vechi, /▼ −6,2%<\/b>[\s\S]*?pe 14 h/);
+  const stale = randeazaLive(Object.assign(BOT(), { zi: { deschidere: 0.596, pct: -0.0433 } }), { JTO: { deschidere: 0.5961, pret: 0.5582, la: ACUM - 5 * 60000, sursa: 'Binance' } });
+  assert.match(stale, /▼ −4,3%/, 'citirea live veche de 5 minute nu bate poza');
+});
+test('v122: pagina aduce lumanarea zilnica a botilor de la Binance futures la 10 s si o da randarii (botiLive); simbolul care nu exista pe Binance nu se mai cere la fiecare tura', () => {
+  const html = src('alerts/index.html');
+  assert.match(html, /fapi\.binance\.com\/fapi\/v1\/klines\?symbol=/); assert.match(html, /interval=1d&limit=1/);
+  assert.match(html, /botiLive:\s*radBotiLive\(\)/); assert.match(html, /setInterval\(radAduBotiLive,\s*10000\)/);
+  assert.match(html, /_radBotiFara/, 'tine minte ce nu exista pe Binance');
+});
 test('pe telefon randul botului nu ascunde pretul: celula c-acum e marcata pe rand (tr.rand.bot), iar CSS-ul o afiseaza sub 640px', () => {
   const h = randeaza(Object.assign(BOT(), { d24: -0.0312, d24Ore: 24 }));
   assert.match(h, /<tr class="rand bot" [^>]*data-s="JTO"/);
