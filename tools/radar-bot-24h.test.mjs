@@ -74,6 +74,9 @@ test('v124: coloana „Din grid” arată GROS profitul doar din grid, colorat, 
   const fara = randeaza(Object.assign(BOT(), { gridBrut: 2.15, perechi: 10 }));
   assert.match(fara, /<b class="good">\+2,15 USDT<\/b><span class="mic">10 perechi<\/span>/, 'poza veche fara grila: doar perechile');
   assert.match(src('lib/radar-ui.css'), /tr\.rand\.bot td\.c-grile\{display:block/, 'pe telefon coloana din grid se vede la boti');
+  // v125: pe telefon textul lung din grid lărgea coloana „auto” și strivea numele botului -> rând propriu, sub Total | Poziția
+  assert.match(src('lib/radar-ui.css'), /tr\.rand\.bot td\.c-grile\{display:block;grid-column:1\/-1;order:1\}/, 'din grid pe rândul lui, după Total și Poziția');
+  assert.match(src('lib/radar-ui.css'), /tr\.rand\.bot td\.c-prag\{grid-column:1\/-1;order:2\}/, 'pragul după rândul din grid');
 });
 test('pe telefon randul botului nu ascunde pretul: celula c-acum e marcata pe rand (tr.rand.bot), iar CSS-ul o afiseaza sub 640px', () => {
   const h = randeaza(Object.assign(BOT(), { d24: -0.0312, d24Ore: 24 }));
