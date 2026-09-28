@@ -198,7 +198,7 @@ test('v129: baraSLTP - procentele, punctul, SUB STOP / ȚINTĂ ATINSĂ, ultimul 
   assert.match(RadarEcran.baraSLTP(o, 88, '$'), /SUB STOP/); assert.match(RadarEcran.baraSLTP(o, 88, '$'), /sub SL cu 2,3%/);
   assert.match(RadarEcran.baraSLTP(o, 131, '$'), /ȚINTĂ ATINSĂ/);
   assert.match(RadarEcran.baraSLTP(o, 92, '$'), /class="punct r"/, 'ultimul sfert spre SL = rosu'); assert.match(RadarEcran.baraSLTP(o, 125, '$'), /class="punct v"/);
-  assert.strictEqual(RadarEcran.baraSLTP({ sl: 100, tp: 100 }, 100, '$'), '', 'SL = TP: nimic'); assert.strictEqual(RadarEcran.baraSLTP({ sl: 90, tp: null }, 100, '$'), '');
+  assert.doesNotMatch(RadarEcran.baraSLTP({ sl: 100, tp: 100 }, 100, '$'), /NaN|Infinity|până la/, 'SL = TP: doar text, fără împărțire la zero (revizia finală)'); assert.strictEqual(RadarEcran.baraSLTP({ sl: 90, tp: null }, 100, '$'), '');
   assert.doesNotMatch(RadarEcran.baraSLTP(o, 110, '$'), /NaN|undefined|Infinity/);
 });
 test('v129: la T212 coloana „SL ← acum → TP” inlocuieste Stop + Tinta; eticheta PLANUL TĂU / SUGERAT; dovada; regula care pierde spusa pe fata', () => {
@@ -230,4 +230,38 @@ test('v129: Simbolurile tale - „SL ← intrare → TP” + „Pe istoric”; t
   assert.match(el.innerHTML, /Pe istoricul RHM\.DE regula asta a pierdut în medie/); assert.match(el.innerHTML, /Trend în jos pe zilnice/);
   assert.match(el.innerHTML, /colspan="10"/, 'rândul desfăcut al simbolului acoperă și cele două coloane noi');
   assert.doesNotMatch(el.innerHTML, /NaN|undefined/);
+});
+
+test('v129: prețul la mai puțin de 0,05% de SL scrie „chiar la SL”, nu „sub SL cu 0,0%” (AVGO, 28.09: $350,62 cu SL $350,63)', () => {
+  const o = { sl: 350.63, tp: 413.47, intr: 399.96, intrEt: 'prețul tău mediu' };
+  const sub = RadarEcran.baraSLTP(o, 350.62, '$'), peste = RadarEcran.baraSLTP(o, 350.70, '$');
+  assert.match(sub, /chiar la SL/); assert.match(sub, /SUB STOP/, 'tot sub stop e'); assert.doesNotMatch(sub, /0,0%/);
+  assert.match(peste, /chiar la SL/); assert.doesNotMatch(peste, /−0,0%/);
+  assert.match(RadarEcran.baraSLTP(o, 340, '$'), /sub SL cu 3,1%/, 'mai departe: procentul, ca înainte (350,63 / 340 − 1 = 3,1%)');
+});
+
+// revizia finala (28.09): trei constatari Important, fiecare cu testul ei
+test('revizie 1: stopul urcat PESTE ținta (poziție câștigătoare) sau prețul lipsă - SL și TP rămân la vedere, ca text, nu celulă goală', () => {
+  const peste = RadarEcran.baraSLTP({ sl: 140.25, tp: 120, intr: 100, intrEt: 'prețul tău mediu' }, 160, '$');
+  assert.match(peste, /SL <b>\$140,25<\/b>/); assert.match(peste, /TP <b>\$120,00<\/b>/); assert.match(peste, /ȚINTĂ ATINSĂ/); assert.doesNotMatch(peste, /NaN|undefined|Infinity/);
+  const faraPret = RadarEcran.baraSLTP({ sl: 90, tp: 130 }, null, '$');
+  assert.match(faraPret, /SL <b>\$90,00<\/b>/); assert.match(faraPret, /TP <b>\$130,00<\/b>/); assert.doesNotMatch(faraPret, /NaN|undefined|Infinity|până la/);
+  assert.strictEqual(RadarEcran.baraSLTP({ sl: 90, tp: null }, 100, '$'), '', 'fără TP deloc: nimic de arătat');
+});
+test('revizie 2: marca „prețul tău mediu” nu iese din bară (mediu în afara intervalului SL-TP)', () => {
+  const stanga = RadarEcran.baraSLTP({ sl: 110.5, tp: 150, intr: 100, intrEt: 'prețul tău mediu' }, 128, '$');
+  const dreapta = RadarEcran.baraSLTP({ sl: 80, tp: 110, intr: 140, intrEt: 'prețul tău mediu' }, 95, '$');
+  assert.match(stanga, /class="intr" style="left:0\.0%"/); assert.match(dreapta, /class="intr" style="left:100\.0%"/);
+  assert.match(stanga, /prețul tău mediu \$100,00/, 'textul din mijloc rămâne cu valoarea reală');
+});
+test('revizie 3: la poziții dovada spune regula reală a SL-ului (−15 % de la maxim, verificată 25.09) și de unde vine ținta', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA();
+  poza.t212[0].plan = null;
+  poza.t212[0].sugestie = { stop: 157.15, tinta: 197.47, k: 1.5, riscPct: 0.052, trend: 'lateral', proba: { n: 42, pePlus: 0.262, medie: -0.0241 } };
+  RadarEcran.randeaza(el, poza, O(poza));
+  assert.match(el.innerHTML, /−15 % de la maximul de după cumpărare \(\$184,88\)/, 'maximul = stopul / 0,85');
+  assert.match(el.innerHTML, /\+1\.001 lei/); assert.match(el.innerHTML, /Ținta: 2 × 1,5 × volatilitatea zilnică/);
+  assert.doesNotMatch(el.innerHTML, /≈ −5,2% de la intrare/, 'nu mai pretinde că stopul poziției e k × volatilitatea');
+  assert.match(el.innerHTML, /regula asta a pierdut în medie/);
 });
