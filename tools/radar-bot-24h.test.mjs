@@ -20,7 +20,7 @@ test('botul cu d24 in poza: sub pret apare GROS mișcarea pe 24 h, cu săgeată 
   const h = randeaza(Object.assign(BOT(), { d24: -0.0312, d24Ore: 24 }));
   const rand = h.slice(h.indexOf('data-s="JTO"'), h.indexOf('class="det"'));
   assert.match(rand, /class="c-acum"[\s\S]*?<b class="d24 bad">▼ −3,1%<\/b>[\s\S]*?pe 24 h/, 'procentul pe 24 h, gros si rosu, sub pret: ' + rand.slice(0, 600));
-  assert.match(rand, /−0,1% pe ultimele 4 poze/, 'textul mic de sub linie ramane');
+  assert.match(rand, /−0,1% pe ultimele 4 min/, 'textul mic de sub linie ramane');
   const h2 = randeaza(Object.assign(BOT(), { d24: 0.0212, d24Ore: 24 }));
   assert.match(h2, /<b class="d24 good">▲ \+2,1%<\/b>/);
 });
@@ -30,7 +30,16 @@ test('botul mai tanar de 24 h: procentul e de la pornire, cu orele spuse („pe 
 });
 test('poza veche (colector fara d24): nu inventeaza un procent - ramane doar textul mic de sub linie, fara „pe 24 h"', () => {
   const h = randeaza(BOT());
-  assert.doesNotMatch(h, /class="d24/); assert.doesNotMatch(h, /pe 24 h/); assert.match(h, /pe ultimele 4 poze/);
+  assert.doesNotMatch(h, /class="d24/); assert.doesNotMatch(h, /pe 24 h/); assert.match(h, /pe ultimele 4 min/);
+});
+// v123 (el, 28.09: „ce înseamnă ultimele 30 de poze?” -> „OK” la „pe ultimele 30 min”): colectorul citeste pretul botului o data
+// pe minut (PAS_MS = 60 s), deci cele 30 de preturi sunt ultima jumatate de ora; „poze” se confunda cu poza trimisa la 2 min.
+test('v123: linia botului spune minutele, nu „poze” - capul coloanei „Ultimele 30 min”, textul „pe ultimele N min”, la inceput „puține citiri încă”', () => {
+  const h = randeaza(BOT());
+  assert.match(h, /<th class="c-spark">Ultimele 30 min<\/th>/, 'capul coloanei');
+  assert.doesNotMatch(h, /poze/i, 'nicaieri „poze” in panoul botului');
+  const scurt = randeaza(Object.assign(BOT(), { pret30: [0.57] }));
+  assert.match(scurt, /puține citiri încă/);
 });
 // v122 (el, 28.09: „vreau ca procentul de crestere sau scadere sa fie LIVE acelasi cu cel din TradingView”)
 const randeazaLive = (bot, botiLive) => { const el = { innerHTML: '', addEventListener() {}, dataset: {} }; const p = poza(bot); RadarEcran.randeaza(el, p, Object.assign(O(p), { botiLive })); return el.innerHTML; };
