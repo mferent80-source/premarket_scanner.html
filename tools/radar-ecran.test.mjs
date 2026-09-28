@@ -24,20 +24,24 @@ test('I-459: pe randurile T212 castiga pretul T212 (chip T212) cat e proaspat (<
   RadarEcran.randeaza(el, poza, O(poza, { preturiLive: { AVGO: { pret: 355.0, prev: 350.36, la: ACUM, chip: '<span class="px-sess">RTH</span>' } } }));
   assert.match(el.innerHTML, /\$355,00/, 'T212 vechi de 20 min -> Yahoo'); assert.match(el.innerHTML, /px-sess/);
 });
-test('I-460: „Ce ai de facut acum" - stopul depasit / IESI rosu, peste 20% din cont galben, botul cu semnal; nimic urgent cand e liniste', () => {
+test('I-460 / v127: ce are de făcut stă pe rândul poziției / botului (roșu IEȘI, galben atenție / peste 20% / fără plan); panoul separat nu mai există', () => {
   const el = { innerHTML: '', addEventListener() {}, dataset: {} };
   const poza = POZA_BAZA();
   poza.t212.push({ s: 'APLD', pret: 26.25, prev: 27.06, mediu: 29.55, closes30: [31.2, 26.25], pplLei: -813, plan: { stop: 26.09, tinta: 34.44, max: 30.69, trailPct: 15 }, trend: 'jos', pondere: 0.23, niv: 'atentie', motive: ['23% din cont'], sfat: 'nu adaug' });
   poza.boti = [{ id: '1', s: 'JTO', dir: 'long', lev: 5, investit: 98, jos: 0.57, sus: 0.66, pret: 0.60, total: -1, perechi: 0, gridBrut: 0, pozitie: -0.9, comisioane: -0.1, zero: 0.6048, plan: null, niv: 'atentie', motive: ['costurile pe zi depășesc ce aduc grilele'], sfat: 'levier mai mic', pret30: [0.6, 0.6] }];
   RadarEcran.randeaza(el, poza, O(poza));
-  const todo = el.innerHTML.slice(el.innerHTML.indexOf('Ce ai de făcut acum'), el.innerHTML.indexOf('💼 Trading 212'));   // pana la capul panoului T212 (sumarul de sus are si el „Trading 212 ·")
-  assert.ok(todo.length > 0, 'panoul exista inainte de tabele');
-  assert.match(todo, /AVGO/); assert.match(todo, /APLD[^<]*23%|23%[^<]*APLD/, 'APLD peste plafon'); assert.match(todo, /JTO/); assert.match(todo, /fără plan/i, 'botul fara plan');
-  assert.ok(todo.indexOf('AVGO') < todo.indexOf('JTO'), 'rosul (IESI) inaintea galbenului');
-  assert.match(todo, /data-fac="vezi" data-s="AVGO"/, 'butonul duce la rand');
+  assert.doesNotMatch(el.innerHTML, /Ce ai de făcut acum/, 'panoul a ieșit din pagină');
+  assert.doesNotMatch(el.innerHTML, /data-fac="vezi"/);
+  const rand = (s) => { const i = el.innerHTML.indexOf('<tr class="rand' + (s === 'JTO' ? ' bot' : '') + '" tabindex="0" aria-expanded="false" data-s="' + s + '"'); return el.innerHTML.slice(i, el.innerHTML.indexOf('</tr>', i)); };
+  assert.match(rand('APLD'), /class="faRand g"[^>]*>e 23% din cont/, 'APLD peste plafon, pe rândul lui, fără numele repetat');
+  assert.match(rand('APLD'), /class="faRand g"[^>]*>23% din cont <span class="faP">· 👉 nu adaug/, 'motivul + ce aș face');
+  assert.match(rand('JTO'), /class="faRand g"[^>]*>costurile pe zi/); assert.match(rand('JTO'), /e fără plan/);
+  assert.match(rand('AVGO'), /class="faRand /, 'AVGO (atenție în fixture) are rândul lui de făcut');
   const linistit = POZA_BAZA(); linistit.t212[0].niv = 'tine'; linistit.t212[0].pret = 360; linistit.t212[0].plan.stop = 300; linistit.t212[0].pondere = 0.1;
   RadarEcran.randeaza(el, linistit, O(linistit));
-  assert.match(el.innerHTML, /Nimic urgent/);
+  assert.doesNotMatch(el.innerHTML, /class="faRand/, 'liniște: niciun rând în plus');
+  RadarEcran.randeaza(el, poza, O(poza, { cheie: false }));
+  assert.doesNotMatch(el.innerHTML, /class="faRand/, 'fără cheie nu se arată nimic din poză');
 });
 test('I-462: cu adresa tunelului in poza, „Deschide in Radar" duce la tunel (si de pe telefon); fara ea, la 127.0.0.1 „doar acasa"', () => {
   const el = { innerHTML: '', addEventListener() {}, dataset: {} };
