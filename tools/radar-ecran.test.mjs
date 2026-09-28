@@ -166,3 +166,19 @@ test('v126: parola Radarului din linkul paginii (#parola=…) se ține minte și
   assert.strictEqual(istoric[0], 'https://mferent80-source.github.io/premarket_scanner.html/alerts/', 'nici cheia, nici parola nu rămân în adresă');
   assert.strictEqual(RP.parolaRadar(), 'x/y'); RP.puneParolaRadar(''); assert.strictEqual(scris.radar_parola, undefined);
 });
+
+// v128 (el, 28.09: „nu mai apare evoluția zilei pe pagina alerts, fă cu verde creșterea și roșu scăderea” + „verifică și pe telefon”)
+test('v128: la Trading 212 evoluția zilei e GROASĂ și colorată (verde sus, roșu jos), ca la bot; pe telefon coloana „Acum” se vede', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA();   // AVGO: 352,81 față de 350,36 = +0,7%
+  RadarEcran.randeaza(el, poza, O(poza));
+  assert.match(el.innerHTML, /<b class="d24 good">▲ \+0,7%<\/b><span class="mic">azi <span class="px-sess t212"/);
+  const jos = POZA_BAZA(); jos.t212[0].prev = 360; RadarEcran.randeaza(el, jos, O(jos));
+  assert.match(el.innerHTML, /<b class="d24 bad">▼ −2,0%<\/b>/);
+  assert.doesNotMatch(el.innerHTML, /<span class="mic (good|bad)">/, 'nu mai e procent gri în .mic');
+  const css = src('lib/radar-ui.css');
+  assert.match(css, /\.rad \.d24\.good\{color:var\(--good\)\}/); assert.match(css, /\.rad \.d24\.bad\{color:var\(--bad\)\}/);
+  assert.match(css, /td\.c-azi b\.good\{color:var\(--good\)\}/, 'și coloana Azi din Simbolurile tale');
+  const tel = css.slice(css.indexOf('@media (max-width:640px){\nbody.al-page .rad .poz thead'));
+  assert.match(tel, /#radT212 tr\.rand td\.c-acum\{display:block/, 'pe telefon, la T212, prețul și ziua se văd');
+});
