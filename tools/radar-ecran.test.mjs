@@ -265,3 +265,25 @@ test('revizie 3: la poziții dovada spune regula reală a SL-ului (−15 % de la
   assert.doesNotMatch(el.innerHTML, /≈ −5,2% de la intrare/, 'nu mai pretinde că stopul poziției e k × volatilitatea');
   assert.match(el.innerHTML, /regula asta a pierdut în medie/);
 });
+
+// v131 (el, 28.09: ideile 4 „câte bucăți” si 6 „Păstrează ca plan”)
+test('v131: la simbolul urmărit cu intrare sugerată, rândul desfăcut spune câte bucăți (1 % risc din cont, plafon 20 %)', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA();
+  poza.simboluri = [
+    { s: 'INTC', pret: 115.31, prev: 116, closes30: [], sugestie: { intrare: { pret: 111.91, motiv: 'retragere' }, stop: 94.68, tinta: 146.61, k: 3, riscPct: 0.15, trend: 'sus', proba: { n: 140, pePlus: 0.571, medie: 0.0703 }, marime: { bucati: 16.6547, suma: 8570, risc: 1316, plafonat: false } } },
+    { s: 'WDC', pret: 455, prev: 450, closes30: [], sugestie: { intrare: { pret: 413.3, motiv: 'lateral' }, stop: 345.1, tinta: 549.7, k: 3, riscPct: 0.165, trend: 'lateral', proba: { n: 171, pePlus: 0.66, medie: 0.125 }, marime: { bucati: 4.6, suma: 8800, risc: 1450, plafonat: true } } },
+    { s: 'RHM.DE', moneda: '€', pret: 966.3, closes30: [], sugestie: { intrare: null, stop: 917.3, tinta: 1064.29, k: 1.5, riscPct: 0.051, trend: 'jos', proba: { n: 141, pePlus: 0.25, medie: -0.025 } } }];
+  RadarEcran.randeaza(el, poza, O(poza, { simboluri: poza.simboluri.map(function (x) { return { s: x.s }; }) }));
+  assert.match(el.innerHTML, /Cât cumpăr/); assert.match(el.innerHTML, /16,65 buc la \$111,91/); assert.match(el.innerHTML, /~8\.570 lei/); assert.match(el.innerHTML, /pierzi ~1\.316 lei/);
+  assert.match(el.innerHTML, /plafonat la 20 % din cont/, 'WDC plafonat: se spune');
+  const rhm = el.innerHTML.slice(el.innerHTML.indexOf('data-det="RHM.DE"')); assert.doesNotMatch(rhm.slice(0, rhm.indexOf('</tr>')), /Cât cumpăr/, 'trend în jos: fără bucăți');
+});
+test('v131: poziție SUGERAT (fără plan) -> butonul „Păstrează ca plan” deschide Radarul pe poziție; cu plan nu apare', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA(); poza.radarUrl = 'https://abc-def.trycloudflare.com';
+  poza.t212[0].plan = null; poza.t212[0].sugestie = { stop: 350.6, tinta: 412, k: 3, riscPct: 0.08, trend: 'jos', proba: { n: 105, pePlus: 0.41, medie: 0.02 } };
+  RadarEcran.randeaza(el, poza, O(poza, { parolaRadar: 'p1' }));
+  assert.match(el.innerHTML, /href="https:\/\/abc-def\.trycloudflare\.com\/#parola=p1&amp;ecran=t212&amp;poz=AVGO_US_EQ"[^>]*>Păstrează ca plan</);
+  const cuPlan = POZA_BAZA(); RadarEcran.randeaza(el, cuPlan, O(cuPlan)); assert.doesNotMatch(el.innerHTML, /Păstrează ca plan/);
+});
