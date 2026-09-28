@@ -55,12 +55,12 @@ test('I-462: cu adresa tunelului in poza, „Deschide in Radar" duce la tunel (s
 });
 test('cheia din link (#cheie=… sau ?cheie=…) se salveaza o data si dispare din adresa', () => {
   const scris = {}, istoric = [];
-  const loc = { href: 'https://mferent80-source.github.io/premarket_scanner.html/alerts/?x=1#cheie=aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam', pathname: '/premarket_scanner.html/alerts/' };
+  const loc = { href: 'https://mferent80-source.github.io/premarket_scanner.html/alerts/?x=1#cheie=CheieFalsaDeProba0123456789abcdef', pathname: '/premarket_scanner.html/alerts/' };
   const RP = new Function('window', 'localStorage', 'fetch', 'document', 'location', 'history', src('lib/radar-poza.js') + '; return RadarPoza;')(
     {}, { getItem(k) { return scris[k] ?? null; }, setItem(k, v) { scris[k] = v; }, removeItem(k) { delete scris[k]; } }, () => Promise.reject(new Error('fara retea')), { hidden: false, addEventListener() {} },
     loc, { replaceState(a, b, u) { istoric.push(u); } });
-  assert.strictEqual(RP.cheieDinUrl(), 'aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam');
-  assert.strictEqual(scris.radar_cheie, 'aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam', 'cheia e salvata in browser');
+  assert.strictEqual(RP.cheieDinUrl(), 'CheieFalsaDeProba0123456789abcdef');
+  assert.strictEqual(scris.radar_cheie, 'CheieFalsaDeProba0123456789abcdef', 'cheia e salvata in browser');
   assert.strictEqual(istoric[0], 'https://mferent80-source.github.io/premarket_scanner.html/alerts/?x=1', 'adresa ramane fara cheie (istoricul browserului nu o tine)');
   loc.href = 'https://mferent80-source.github.io/premarket_scanner.html/alerts/';
   assert.strictEqual(RP.cheieDinUrl(), null, 'fara cheie in link: nimic');
@@ -157,12 +157,12 @@ test('v126: cu parola Radarului pusă, „Deschide în Radar” o duce DUPĂ # (
 });
 test('v126: parola Radarului din linkul paginii (#parola=…) se ține minte și dispare din adresă, împreună cu cheia', () => {
   const scris = {}, istoric = [];
-  const loc = { href: 'https://mferent80-source.github.io/premarket_scanner.html/alerts/#cheie=aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam&parola=x%2Fy' };
+  const loc = { href: 'https://mferent80-source.github.io/premarket_scanner.html/alerts/#cheie=CheieFalsaDeProba0123456789abcdef&parola=x%2Fy' };
   const RP = new Function('window', 'localStorage', 'fetch', 'document', 'location', 'history', src('lib/radar-poza.js') + '; return RadarPoza;')(
     {}, { getItem(k) { return scris[k] ?? null; }, setItem(k, v) { scris[k] = v; }, removeItem(k) { delete scris[k]; } }, () => Promise.reject(new Error('fara retea')), { hidden: false, addEventListener() {} },
     loc, { replaceState(a, b, u) { istoric.push(u); } });
   RP.cheieDinUrl();
-  assert.strictEqual(scris.radar_parola, 'x/y'); assert.strictEqual(scris.radar_cheie, 'aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam');
+  assert.strictEqual(scris.radar_parola, 'x/y'); assert.strictEqual(scris.radar_cheie, 'CheieFalsaDeProba0123456789abcdef');
   assert.strictEqual(istoric[0], 'https://mferent80-source.github.io/premarket_scanner.html/alerts/', 'nici cheia, nici parola nu rămân în adresă');
   assert.strictEqual(RP.parolaRadar(), 'x/y'); RP.puneParolaRadar(''); assert.strictEqual(scris.radar_parola, undefined);
 });
