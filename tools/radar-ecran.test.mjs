@@ -139,7 +139,7 @@ test('v126: pozițiile T212 au coloana „Insideri · 60 z” și tranzacțiile 
   assert.match(el.innerHTML, /<th>Insideri · 60 z<\/th>/);
   assert.match(el.innerHTML, /🔴 vând/); assert.match(el.innerHTML, /Hock Tan/); assert.match(el.innerHTML, /▼ vinde 10 k/);
   assert.match(el.innerHTML, /vine cu poza următoare/, 'Yahoo n-a dat nimic încă: se spune, nu „liniște”');
-  assert.match(el.innerHTML, /colspan="10"/, 'rândul desfăcut acoperă și coloana nouă');
+  assert.match(el.innerHTML, /colspan="9"/, "rândul desfăcut acoperă toate coloanele (v129: Stop + Țintă au devenit o coloană)");
   RadarEcran.randeaza(el, poza, O(poza, { cheie: false }));
   assert.doesNotMatch(el.innerHTML, /Hock Tan/, 'fără cheie nu se arată nimic din poză');
 });
@@ -181,4 +181,35 @@ test('v128: la Trading 212 evoluția zilei e GROASĂ și colorată (verde sus, r
   assert.match(css, /td\.c-azi b\.good\{color:var\(--good\)\}/, 'și coloana Azi din Simbolurile tale');
   const tel = css.slice(css.indexOf('@media (max-width:640px){\nbody.al-page .rad .poz thead'));
   assert.match(tel, /#radT212 tr\.rand td\.c-acum\{display:block/, 'pe telefon, la T212, prețul și ziua se văd');
+});
+
+// v129 (spec 2026-09-28-sl-tp-pe-alerts): SL / TP pe pagina alerts
+test('v129: sltpT212 - planul bate sugestia; fara plan = sugerat; fara nimic = null (poza veche)', () => {
+  const sg = { stop: 90, tinta: 130, k: 2, riscPct: 0.1, trend: 'sus', proba: { n: 100, pePlus: 0.55, medie: 0.02 } };
+  assert.deepStrictEqual(RadarEcran.sltpT212({ mediu: 100, plan: { stop: 85, tinta: 120 }, sugestie: sg }), { sl: 85, tp: 120, intr: 100, intrEt: 'prețul tău mediu', sursa: 'plan', orient: false });
+  assert.strictEqual(RadarEcran.sltpT212({ mediu: 100, plan: null, sugestie: sg }).sursa, 'sugerat');
+  assert.strictEqual(RadarEcran.sltpT212({ mediu: 100, plan: { stop: 85, tinta: null }, sugestie: sg }).tp, 130, 'plan fara tinta: tinta sugerata');
+  assert.strictEqual(RadarEcran.sltpT212({ mediu: 100, plan: null }), null);
+});
+test('v129: baraSLTP - procentele, punctul, SUB STOP / ȚINTĂ ATINSĂ, ultimul sfert colorat, fara impartire la zero', () => {
+  const o = { sl: 90, tp: 130, intr: 100, intrEt: 'prețul tău mediu' };
+  const h = RadarEcran.baraSLTP(o, 110, '$');
+  assert.match(h, /SL <b>\$90,00<\/b>/); assert.match(h, /TP <b>\$130,00<\/b>/); assert.match(h, /−18,2% până la SL/); assert.match(h, /\+18,2% până la TP/); assert.match(h, /prețul tău mediu \$100,00/);
+  assert.match(RadarEcran.baraSLTP(o, 88, '$'), /SUB STOP/); assert.match(RadarEcran.baraSLTP(o, 88, '$'), /sub SL cu 2,3%/);
+  assert.match(RadarEcran.baraSLTP(o, 131, '$'), /ȚINTĂ ATINSĂ/);
+  assert.match(RadarEcran.baraSLTP(o, 92, '$'), /class="punct r"/, 'ultimul sfert spre SL = rosu'); assert.match(RadarEcran.baraSLTP(o, 125, '$'), /class="punct v"/);
+  assert.strictEqual(RadarEcran.baraSLTP({ sl: 100, tp: 100 }, 100, '$'), '', 'SL = TP: nimic'); assert.strictEqual(RadarEcran.baraSLTP({ sl: 90, tp: null }, 100, '$'), '');
+  assert.doesNotMatch(RadarEcran.baraSLTP(o, 110, '$'), /NaN|undefined|Infinity/);
+});
+test('v129: la T212 coloana „SL ← acum → TP” inlocuieste Stop + Tinta; eticheta PLANUL TĂU / SUGERAT; dovada; regula care pierde spusa pe fata', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA();
+  poza.t212[0].sugestie = { stop: 320, tinta: 409, k: 3, riscPct: 0.083, trend: 'jos', proba: { n: 105, pePlus: 0.41, medie: 0.0202 } };
+  poza.t212.push(Object.assign(JSON.parse(JSON.stringify(POZ_AVGO)), { s: 'UHS', plan: null, mediu: 184.51, pret: 178.8, sugestie: { stop: 157.15, tinta: 197.47, k: 1.5, riscPct: 0.052, trend: 'lateral', proba: { n: 42, pePlus: 0.262, medie: -0.0241 } } }));
+  RadarEcran.randeaza(el, poza, O(poza));
+  assert.match(el.innerHTML, /<th>SL ← acum → TP<\/th>/); assert.doesNotMatch(el.innerHTML, /<th>Stop din plan<\/th>|<th>Țintă<\/th>/);
+  assert.match(el.innerHTML, /class="slEt plan">PLANUL TĂU/); assert.match(el.innerHTML, /class="slEt sug">SUGERAT/);
+  assert.match(el.innerHTML, /Pe istoricul UHS regula asta a pierdut în medie/); assert.match(el.innerHTML, /colspan="9"/);
+  const vechi = POZA_BAZA(); delete vechi.t212[0].sugestie; vechi.t212[0].plan = null; RadarEcran.randeaza(el, vechi, O(vechi));
+  assert.match(el.innerHTML, /fără plan/, 'poza veche fara sugestie: „fără plan” ca inainte');
 });
