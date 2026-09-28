@@ -9,6 +9,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// badge-ul asteptat = cel scris in pagina (proba nu mai ramane in urma la fiecare versiune: pica pe v119 de la v120 incoace)
+const VER_PAGINA = (readFileSync(path.join(path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."), "alerts", "index.html"), "utf8").match(/id="verBadge">(v\d+)</) || [])[1];
 const GAZDA = (process.argv[2] || "http://127.0.0.1:8777").replace(/\/+$/, "");
 const URL_P = GAZDA + "/alerts/";
 const POZE = path.join(ROOT, "tools", "poze"); mkdirSync(POZE, { recursive: true });
@@ -101,7 +103,7 @@ try {
   });
   await test("bara suitei e neschimbata: header.suite-cockpit.al-topbar, 3 file, badge v116; fara praguri in formular", async () => {
     const r = await pc.ev(`[!!document.querySelector('header.suite-cockpit.al-topbar'), document.querySelectorAll('.desk-tabs [data-tab]').length, document.getElementById('verBadge').textContent, !!document.getElementById('inpThr'), !!document.getElementById('inpKind'), !!document.querySelector('#rad #radAdaugaSlot #addForm'), document.querySelectorAll('.refresh-info').length]`);
-    if (!r[0] || r[1] !== 3 || r[2] !== 'v119' || r[3] || r[4]) throw new Error(JSON.stringify(r));
+    if (!r[0] || r[1] !== 3 || r[2] !== VER_PAGINA || r[3] || r[4]) throw new Error(JSON.stringify(r));
     if (!r[5]) throw new Error("formularul de adaugare nu e in panoul Simbolurile tale: " + JSON.stringify(r));
     if (r[6] !== 1) throw new Error("linia 'ultim check' trebuie sa apara o singura data, gasit " + r[6]);
   });

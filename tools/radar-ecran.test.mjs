@@ -43,11 +43,11 @@ test('I-462: cu adresa tunelului in poza, „Deschide in Radar" duce la tunel (s
   const el = { innerHTML: '', addEventListener() {}, dataset: {} };
   const poza = POZA_BAZA(); poza.radarUrl = 'https://abc-def.trycloudflare.com';
   RadarEcran.randeaza(el, poza, O(poza));
-  assert.match(el.innerHTML, /href="https:\/\/abc-def\.trycloudflare\.com\/"/); assert.match(el.innerHTML, /și de pe telefon/); assert.doesNotMatch(el.innerHTML, /127\.0\.0\.1/);
+  assert.match(el.innerHTML, /href="https:\/\/abc-def\.trycloudflare\.com\/#ecran=t212"/); assert.match(el.innerHTML, /și de pe telefon/); assert.doesNotMatch(el.innerHTML, /127\.0\.0\.1/);
   const fara = POZA_BAZA(); RadarEcran.randeaza(el, fara, O(fara));
-  assert.match(el.innerHTML, /href="http:\/\/127\.0\.0\.1:8788\/"/); assert.match(el.innerHTML, /doar acasă/);
+  assert.match(el.innerHTML, /href="http:\/\/127\.0\.0\.1:8788\/#ecran=t212"/); assert.match(el.innerHTML, /doar acasă/);
   // o adresa care nu e http/https (javascript:, data:) nu ajunge niciodata in href - cade pe adresa de acasa
-  for (const rau of ['javascript:alert(1)', 'data:text/html,x', 'ftp://x', 'abc']) { const p = POZA_BAZA(); p.radarUrl = rau; RadarEcran.randeaza(el, p, O(p)); assert.match(el.innerHTML, /href="http:\/\/127\.0\.0\.1:8788\/"/, 'refuzat: ' + rau); assert.doesNotMatch(el.innerHTML, /javascript:|data:text/); }
+  for (const rau of ['javascript:alert(1)', 'data:text/html,x', 'ftp://x', 'abc']) { const p = POZA_BAZA(); p.radarUrl = rau; RadarEcran.randeaza(el, p, O(p)); assert.match(el.innerHTML, /href="http:\/\/127\.0\.0\.1:8788\/#ecran=t212"/, 'refuzat: ' + rau); assert.doesNotMatch(el.innerHTML, /javascript:|data:text/); }
 });
 test('cheia din link (#cheie=… sau ?cheie=…) se salveaza o data si dispare din adresa', () => {
   const scris = {}, istoric = [];
@@ -123,4 +123,42 @@ test('randeaza (DOM minimal): poza goala -> textele de gol; poza cu date -> rand
   RadarEcran.randeaza(el, poza, { simboluri: [{ s: 'INTC', nota: '' }], preturiLive: {}, acum: ACUM, cheie: true, prospetime: RadarPoza.prospetime(poza, ACUM) });
   assert.match(el.innerHTML, /ATENȚIE/); assert.match(el.innerHTML, /\$350,63/); assert.match(el.innerHTML, /VVV/); assert.match(el.innerHTML, /pe zero la 30,1548/); assert.match(el.innerHTML, /cumpără/); assert.match(el.innerHTML, /22 oct/); assert.match(el.innerHTML, /Tan Lip-Bu/);
   assert.doesNotMatch(el.innerHTML, /NaN|undefined/);
+});
+
+// v126 (el, 28.09: „la Trading 212 de ce nu apar și aici insiderii” + „când dau clic Deschide în Radar îmi dă erori”)
+test('v126: pozițiile T212 au coloana „Insideri · 60 z” și tranzacțiile în rândul desfăcut; fără date = „vine cu poza următoare”', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA();
+  poza.t212[0].insideri = { form4: true, verdict: 'bear', n60: 4, buys: 0, sells: 4, bp: 0, sp: 3, net: -12000, top: [{ d: '09-12', cine: 'Hock Tan', rol: 'CEO', f: 'sell', act: 10000, val: 3500000 }] };
+  poza.t212.push(Object.assign(JSON.parse(JSON.stringify(POZ_AVGO)), { s: 'UHS', t212: 'UHS_US_EQ', insideri: null }));
+  RadarEcran.randeaza(el, poza, O(poza));
+  assert.match(el.innerHTML, /<th>Insideri · 60 z<\/th>/);
+  assert.match(el.innerHTML, /🔴 vând/); assert.match(el.innerHTML, /Hock Tan/); assert.match(el.innerHTML, /▼ vinde 10 k/);
+  assert.match(el.innerHTML, /vine cu poza următoare/, 'Yahoo n-a dat nimic încă: se spune, nu „liniște”');
+  assert.match(el.innerHTML, /colspan="10"/, 'rândul desfăcut acoperă și coloana nouă');
+  RadarEcran.randeaza(el, poza, O(poza, { cheie: false }));
+  assert.doesNotMatch(el.innerHTML, /Hock Tan/, 'fără cheie nu se arată nimic din poză');
+});
+test('v126: cu parola Radarului pusă, „Deschide în Radar” o duce DUPĂ # (+ ecranul); fără ea, doar ecranul și îndemnul să o pui', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA(); poza.radarUrl = 'https://abc-def.trycloudflare.com';
+  poza.boti = [{ id: '2386', s: 'JTO', dir: 'long', lev: 5, investit: 98.14, jos: 0.55, sus: 0.565, pret: 0.5577, total: -14.7, niv: 'atentie', motive: [], plan: null }];
+  RadarEcran.randeaza(el, poza, O(poza, { parolaRadar: 'a/b c' }));
+  assert.match(el.innerHTML, /href="https:\/\/abc-def\.trycloudflare\.com\/#parola=a%2Fb%20c&amp;ecran=t212"/);
+  assert.match(el.innerHTML, /href="https:\/\/abc-def\.trycloudflare\.com\/#parola=a%2Fb%20c&amp;ecran=tabloubot"/);
+  assert.match(el.innerHTML, /🔐 parola Radarului: pusă/); assert.doesNotMatch(el.innerHTML, /pune parola Radarului sus/);
+  RadarEcran.randeaza(el, poza, O(poza));
+  assert.match(el.innerHTML, /href="https:\/\/abc-def\.trycloudflare\.com\/#ecran=tabloubot"/); assert.match(el.innerHTML, /pune parola Radarului sus/);
+  assert.match(el.innerHTML, /parola Radarului: <b class="warn">lipsește<\/b>/); assert.match(el.innerHTML, /id="radParola" type="password"/);
+});
+test('v126: parola Radarului din linkul paginii (#parola=…) se ține minte și dispare din adresă, împreună cu cheia', () => {
+  const scris = {}, istoric = [];
+  const loc = { href: 'https://mferent80-source.github.io/premarket_scanner.html/alerts/#cheie=aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam&parola=x%2Fy' };
+  const RP = new Function('window', 'localStorage', 'fetch', 'document', 'location', 'history', src('lib/radar-poza.js') + '; return RadarPoza;')(
+    {}, { getItem(k) { return scris[k] ?? null; }, setItem(k, v) { scris[k] = v; }, removeItem(k) { delete scris[k]; } }, () => Promise.reject(new Error('fara retea')), { hidden: false, addEventListener() {} },
+    loc, { replaceState(a, b, u) { istoric.push(u); } });
+  RP.cheieDinUrl();
+  assert.strictEqual(scris.radar_parola, 'x/y'); assert.strictEqual(scris.radar_cheie, 'aPKhvxRbDOU1YNCDQoYbD81v8dJnaLam');
+  assert.strictEqual(istoric[0], 'https://mferent80-source.github.io/premarket_scanner.html/alerts/', 'nici cheia, nici parola nu rămân în adresă');
+  assert.strictEqual(RP.parolaRadar(), 'x/y'); RP.puneParolaRadar(''); assert.strictEqual(scris.radar_parola, undefined);
 });
