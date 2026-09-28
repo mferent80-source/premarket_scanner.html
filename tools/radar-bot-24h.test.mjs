@@ -64,6 +64,17 @@ test('v122: pagina aduce lumanarea zilnica a botilor de la Binance futures la 10
   assert.match(html, /botiLive:\s*radBotiLive\(\)/); assert.match(html, /setInterval\(radAduBotiLive,\s*10000\)/);
   assert.match(html, /_radBotiFara/, 'tine minte ce nu exista pe Binance');
 });
+// v124 (el, 28.09: „atât în pagina alerts cât și în pagina botului lipsește profit per grilă, adică doar din grid”): Pionex arata
+// „Grid profit” (tot ce a adus gridul, fara pozitie) si „Profit/grid” (cat aduce O grila dupa comision) - amandoua la vedere.
+test('v124: coloana „Din grid” arată GROS profitul doar din grid, colorat, și dedesubt perechile + cât aduce o grilă după comision; pe telefon se vede', () => {
+  const h = randeaza(Object.assign(BOT(), { gridBrut: 12.32, perechi: 27, grila: { pct: 0.00196, usdt: 0.0801, grile: 12 } }));
+  const rand = h.slice(h.indexOf('data-s="JTO"'), h.indexOf('class="det"'));
+  assert.match(h, /<th class="c-grile">Din grid<\/th>/, 'capul coloanei');
+  assert.match(rand, /<td class="c-grile" data-et="Din grid"><b class="good">\+12,32 USDT<\/b><span class="mic">27 perechi · pe grilă 0,20% ≈ 0,080 USDT<\/span><\/td>/, rand.slice(0, 1400));
+  const fara = randeaza(Object.assign(BOT(), { gridBrut: 2.15, perechi: 10 }));
+  assert.match(fara, /<b class="good">\+2,15 USDT<\/b><span class="mic">10 perechi<\/span>/, 'poza veche fara grila: doar perechile');
+  assert.match(src('lib/radar-ui.css'), /tr\.rand\.bot td\.c-grile\{display:block/, 'pe telefon coloana din grid se vede la boti');
+});
 test('pe telefon randul botului nu ascunde pretul: celula c-acum e marcata pe rand (tr.rand.bot), iar CSS-ul o afiseaza sub 640px', () => {
   const h = randeaza(Object.assign(BOT(), { d24: -0.0312, d24Ore: 24 }));
   assert.match(h, /<tr class="rand bot" [^>]*data-s="JTO"/);
