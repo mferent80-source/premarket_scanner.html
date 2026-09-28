@@ -140,6 +140,12 @@ try {
     if (r[0] > 390 || r[1] !== 'grid' || !r[2]) throw new Error(JSON.stringify(r));
     if (tel.exceptii.length) throw new Error("exceptii: " + tel.exceptii.join(" | "));
   });
+  // v129 (spec 2026-09-28-sl-tp-pe-alerts): bara SL <- acum -> TP la fiecare pozitie cu plan / sugestie si la simbolurile cu sugestie;
+  // pe telefon bara ia tot randul si nu impinge pagina lateral
+  await test("v129: bara SL ← acum → TP la T212 (7) si la simboluri; pe telefon pe tot randul, fara derulare laterala", async () => {
+    const r = await tel.ev(`[document.querySelectorAll('#radT212 .slBara').length, document.querySelectorAll('#radSimboluri .slBara').length, document.querySelectorAll('#radSimboluri .slBara.orient').length, (function(){var c=document.querySelector('#radT212 td.c-sltp');return c?Math.round(c.getBoundingClientRect().width):0})(), document.documentElement.scrollWidth]`);
+    if (r[0] !== 7 || r[1] < 5 || r[2] < 1 || r[3] < 300 || r[4] > 390) throw new Error(JSON.stringify(r));
+  });
   await test("poza la 390", async () => { await tel.poza(path.join(POZE, "alerts-390.png")); });
 } finally { tel.inchide(); }
 

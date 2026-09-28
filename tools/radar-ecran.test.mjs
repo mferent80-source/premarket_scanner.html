@@ -213,3 +213,21 @@ test('v129: la T212 coloana „SL ← acum → TP” inlocuieste Stop + Tinta; e
   const vechi = POZA_BAZA(); delete vechi.t212[0].sugestie; vechi.t212[0].plan = null; RadarEcran.randeaza(el, vechi, O(vechi));
   assert.match(el.innerHTML, /fără plan/, 'poza veche fara sugestie: „fără plan” ca inainte');
 });
+
+test('v129: Simbolurile tale - „SL ← intrare → TP” + „Pe istoric”; trend in jos = ORIENTATIV; fara-date = motivul; fara sugestie = gol, fara exceptie', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA();
+  poza.simboluri = [
+    { s: 'INTC', pret: 115.46, prev: 116, closes30: [100, 115.46], sugestie: { intrare: { pret: 112.05, motiv: 'retragere spre media pe 20 de zile (ordin limită), nu după mișcare' }, stop: 94.73, tinta: 146.69, k: 3, riscPct: 0.15, trend: 'sus', proba: { n: 140, pePlus: 0.571, medie: 0.0703 } } },
+    { s: 'RHM.DE', moneda: '€', pret: 966.3, prev: 980, closes30: [], sugestie: { intrare: null, stop: 917.3, tinta: 1064.29, k: 1.5, riscPct: 0.051, trend: 'jos', proba: { n: 141, pePlus: 0.248, medie: -0.0255 } } },
+    { s: 'NOU', pret: 10, closes30: [], sugestie: { nivel: 'fara-date', motiv: 'prea puține zile de prețuri (60 din 120)' } },
+    { s: 'VECHI', pret: 10, closes30: [] }];
+  RadarEcran.randeaza(el, poza, O(poza, { simboluri: poza.simboluri.map(function (x) { return { s: x.s }; }) }));
+  assert.match(el.innerHTML, /<th>SL ← intrare → TP<\/th><th>Pe istoric<\/th>/);
+  assert.match(el.innerHTML, /intrare sugerată \$112,05/); assert.match(el.innerHTML, /class="slEt orient">ORIENTATIV · TREND ÎN JOS/); assert.match(el.innerHTML, /slBara orient/);
+  assert.match(el.innerHTML, /prea puține zile de prețuri \(60 din 120\)/);
+  assert.match(el.innerHTML, /<b class="bad">−2,5%<\/b><span class="mic">25 % pe plus · 141 intrări/, 'pe istoric: rosu cand pierde');
+  assert.match(el.innerHTML, /Pe istoricul RHM\.DE regula asta a pierdut în medie/); assert.match(el.innerHTML, /Trend în jos pe zilnice/);
+  assert.match(el.innerHTML, /colspan="10"/, 'rândul desfăcut al simbolului acoperă și cele două coloane noi');
+  assert.doesNotMatch(el.innerHTML, /NaN|undefined/);
+});
