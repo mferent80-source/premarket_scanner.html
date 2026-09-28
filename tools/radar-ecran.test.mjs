@@ -287,3 +287,16 @@ test('v131: poziție SUGERAT (fără plan) -> butonul „Păstrează ca plan” 
   assert.match(el.innerHTML, /href="https:\/\/abc-def\.trycloudflare\.com\/#parola=p1&amp;ecran=t212&amp;poz=AVGO_US_EQ"[^>]*>Păstrează ca plan</);
   const cuPlan = POZA_BAZA(); RadarEcran.randeaza(el, cuPlan, O(cuPlan)); assert.doesNotMatch(el.innerHTML, /Păstrează ca plan/);
 });
+
+// v132 (el, 28.09: „da” - eticheta „LA INTRARE” cand bulina atinge linia; aceeasi regula ca alerta de pe Discord: pret <= intrare + 0,5 %)
+test('v132: eticheta „LA INTRARE” lângă nume când prețul a ajuns la intrarea sugerată (+0,5 %); departe sau trend în jos - nu', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA();
+  const sg = (pret, intrare) => ({ intrare: intrare === null ? null : { pret: intrare, motiv: 'retragere' }, stop: 94, tinta: 146, k: 3, riscPct: 0.15, trend: intrare === null ? 'jos' : 'sus', proba: { n: 140, pePlus: 0.57, medie: 0.07 } });
+  poza.simboluri = [{ s: 'INTC', pret: 112.4, closes30: [], sugestie: sg(112.4, 112.0) }, { s: 'CSCO', pret: 106.93, closes30: [], sugestie: sg(106.93, 105.22) }, { s: 'RHM.DE', moneda: '€', pret: 900, closes30: [], sugestie: sg(900, null) }];
+  RadarEcran.randeaza(el, poza, O(poza, { simboluri: poza.simboluri.map(function (x) { return { s: x.s }; }) }));
+  const rand = (s) => { const i = el.innerHTML.indexOf('<tr class="rand" tabindex="0" aria-expanded="false" data-s="' + s + '"'); return el.innerHTML.slice(i, el.innerHTML.indexOf('</tr>', i)); };
+  assert.match(rand('INTC'), /class="slEt laIntrare">LA INTRARE</, 'INTC la 0,4 % peste intrare');
+  assert.doesNotMatch(rand('CSCO'), /LA INTRARE/, 'CSCO la 1,6 % peste intrare: încă nu');
+  assert.doesNotMatch(rand('RHM.DE'), /LA INTRARE/, 'trend în jos: niciodată');
+});
