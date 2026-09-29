@@ -32,7 +32,7 @@ test('polling-ul ramane (gardile vechi) dar nu mai evalueaza praguri', () => {
   assert.ok(!/function evaluateAlert\(|function checkTrigger\(|fireAlert\(/.test(HTML), 'evaluarea pragurilor a fost scoasa');
 });
 test('versiunea paginii e v116; workflow-ul nu mai verifica praguri, dar News Watch isi pastreaza cronul', () => {
-  assert.match(HTML, /id="verBadge">v135</);
+  assert.match(HTML, /id="verBadge">v136</);
   const wf = readFileSync(join(ROOT, '.github/workflows/price-alerts.yml'), 'utf8');
   assert.ok(/^\s*schedule:/m.test(wf) && /cron:/.test(wf), 'cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis)');
   assert.ok(!/run:\s*node tools\/check-alerts\.mjs/.test(wf), 'pasul cu pragurile de pret a disparut (comentariul de sus poate sa-l mai pomeneasca)');
@@ -63,4 +63,12 @@ test('v134: prețul live al botului se cere de la Binance după moneda reală a 
 test('v135: urcarea refuzată spune că tokenul n-are drept de scriere, iar auto-sync-ul eșuat se vede pe ecran (o dată), nu doar în consolă', () => {
   assert.match(HTML, /if \(p\.status === 401 \|\| p\.status === 403 \|\| p\.status === 404\) throw new Error\('tokenul poate citi, dar nu are voie să scrie/);
   assert.match(HTML, /if \(!_syncAvertizat\) \{ _syncAvertizat = true; toast\('☁️ Alertele NU se mai salvează pe GitHub: ' \+ e\.message, 'error'/);
+});
+// v136 (el, 29.09: „nu găsesc” - tokenul se punea DOAR prin click-dreapta pe ☁️, în meniul ⋯; pe telefon click-dreapta nu există)
+test('v136: meniul ⋯ are butonul vizibil „Pune tokenul GitHub”, care deschide pagina GitHub precompletată și apoi urcă lista', () => {
+  assert.match(HTML, /<button id="ghTokenBtn"[^>]*>🔑<\/button><span class="hm-lbl">Pune tokenul GitHub<\/span>/);
+  assert.match(HTML, /const GH_TOKEN_NOU = 'https:\/\/github\.com\/settings\/personal-access-tokens\/new\?[^']*contents=write/);
+  assert.match(HTML, /\$\('ghTokenBtn'\)\.addEventListener\('click'/);
+  assert.doesNotMatch(HTML, /click-dreapta pe ☁️'\)/, 'mesajele de eroare nu mai trimit la click-dreapta');
+  assert.match(HTML, /⋯ → 🔑 Pune tokenul GitHub/);
 });

@@ -12,9 +12,9 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314181f'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link rel="stylesheet" href="../lib/plex.css?v=742">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
-<link rel="stylesheet" href="../lib/radar-ui.css?v=845">
-<script src="../lib/radar-poza.js?v=845"></script>
-<script src="../lib/radar-ecran.js?v=845"></script>
+<link rel="stylesheet" href="../lib/radar-ui.css?v=846">
+<script src="../lib/radar-poza.js?v=846"></script>
+<script src="../lib/radar-ecran.js?v=846"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -818,7 +818,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v135</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v136</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -855,6 +855,7 @@ body.al-page input, body.al-page select { font-weight:400; }
   <div class="hm-sep"></div>
   <div class="hm-item"><button id="exportBtn" title="Export JSON pentru alertele server-side (GitHub Actions) — merg și cu laptopul închis">📤</button><span class="hm-lbl">Export JSON</span></div>
   <div class="hm-item"><button id="ghSyncBtn" title="☁️ URCĂ pe GitHub — comite alertele locale în tools/alerts.json (server-side + sync cross-device). Click-dreapta = setează/schimbă token-ul">☁️</button><span class="hm-lbl">Urcă pe GitHub</span></div>
+  <div class="hm-item"><button id="ghTokenBtn" title="Deschide pagina GitHub de creare a tokenului (precompletată) și îl pune aici; apoi urcă lista">🔑</button><span class="hm-lbl">Pune tokenul GitHub</span></div>
   <div class="hm-item"><button id="pullBtn" title="⬇️ ADU de pe GitHub — trage lista de pe alt device (laptop↔telefon). GitHub = sursa de adevăr; se face și automat la deschidere">⬇️</button><span class="hm-lbl">Adu de pe GitHub</span></div>
   <div class="hm-sep"></div>
   <div class="hm-item"><button id="btnNwSettingsMenu" title="Setări News Desk">⚙</button><span class="hm-lbl">Setări News Desk</span></div>
@@ -1049,13 +1050,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=845"></script>
-<script src="../lib/data.js?v=845"></script>
-<script src="../lib/poll-wake.js?v=845"></script>
+<script src="../lib/suite-version.js?v=846"></script>
+<script src="../lib/data.js?v=846"></script>
+<script src="../lib/poll-wake.js?v=846"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=845"></script>
+<script src="../lib/price-day.js?v=846"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2577,7 +2578,7 @@ async function syncPushGitHub(opts = {}) {
       if (p.status === 409) { lastErr = new Error('conflict 409 (botul a comis)'); continue; }
       // v135 (29.09): repo-ul e public, deci GET merge si cu un token fara drept de scriere (el avea unul doar „gist”); PUT-ul refuzat
       // venea ca „GitHub PUT HTTP 404”, fara niciun sens pentru el
-      if (p.status === 401 || p.status === 403 || p.status === 404) throw new Error('tokenul poate citi, dar nu are voie să scrie în repo — fă unul nou (fine-grained, repo premarket_scanner.html, Contents: Read and write) și pune-l din ⋯ → click-dreapta pe ☁️');
+      if (p.status === 401 || p.status === 403 || p.status === 404) throw new Error('tokenul poate citi, dar nu are voie să scrie în repo — fă unul nou (fine-grained, repo premarket_scanner.html, Contents: Read and write) și pune-l din ⋯ → 🔑 Pune tokenul GitHub');
       if (!p.ok) throw new Error('GitHub PUT HTTP ' + p.status);
       const j = await p.json();
       _lastServerSig = alertsSig(priceAlerts);
@@ -2607,6 +2608,16 @@ function autoSync() {
   if (_autoSyncTimer) clearTimeout(_autoSyncTimer);
   _autoSyncTimer = setTimeout(() => { _autoSyncTimer = null; syncPushGitHub({ silent: true }); }, 2000);
 }
+// v136 (el, 29.09: „nu găsesc”): tokenul se punea DOAR prin click-dreapta pe ☁️ (ascuns în ⋯; pe telefon nu există click-dreapta).
+// Butonul 🔑 deschide pagina GitHub de creare, precompletată (nume, Contents: Read and write, fără expirare - repo-ul se alege acolo),
+// apoi cere tokenul și urcă lista imediat, ca să vadă pe loc că merge.
+const GH_TOKEN_NOU = 'https://github.com/settings/personal-access-tokens/new?name=alerts-sync&description=Pagina%20alerts%20urca%20tools%2Falerts.json&target_name=mferent80-source&expires_in=none&contents=write';
+$('ghTokenBtn').addEventListener('click', () => {
+  try { closeHdrMenu(); } catch (e) {}
+  try { window.open(GH_TOKEN_NOU, '_blank', 'noopener'); } catch (e) {}
+  const t = ghAskToken();
+  if (t) syncPushGitHub({ silent: false });
+});
 // click-dreapta pe ☁️ = setează/schimbă/șterge token-ul
 $('ghSyncBtn').addEventListener('contextmenu', e => {
   e.preventDefault();
@@ -3687,7 +3698,7 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v845';
+const SW_VER_INLINE = 'tt-v846';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -3704,7 +3715,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v845';
+  var PAGE_VER = 'tt-v846';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
