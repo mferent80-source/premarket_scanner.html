@@ -12,9 +12,9 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314181f'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link rel="stylesheet" href="../lib/plex.css?v=742">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
-<link rel="stylesheet" href="../lib/radar-ui.css?v=851">
-<script src="../lib/radar-poza.js?v=851"></script>
-<script src="../lib/radar-ecran.js?v=851"></script>
+<link rel="stylesheet" href="../lib/radar-ui.css?v=852">
+<script src="../lib/radar-poza.js?v=852"></script>
+<script src="../lib/radar-ecran.js?v=852"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -825,7 +825,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v141</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v142</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1068,13 +1068,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=851"></script>
-<script src="../lib/data.js?v=851"></script>
-<script src="../lib/poll-wake.js?v=851"></script>
+<script src="../lib/suite-version.js?v=852"></script>
+<script src="../lib/data.js?v=852"></script>
+<script src="../lib/poll-wake.js?v=852"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=851"></script>
+<script src="../lib/price-day.js?v=852"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -3680,7 +3680,7 @@ function radRandeaza(r) {
   const p = _radUltima ? _radUltima.poza : RadarPoza.cache(), acum = Date.now();
   const af0 = $('addForm'), pastr = $('radPastrator');
   if (af0 && pastr && el.contains(af0)) pastr.appendChild(af0);   // scos din #rad inainte ca innerHTML sa-l distruga
-  RadarEcran.randeaza(el, p, { simboluri: radSimboluri(), preturiLive: radPreturiLive(), botiLive: radBotiLive(), acum, cheie: !!RadarPoza.cheie(), parolaRadar: RadarPoza.parolaRadar(), prospetime: RadarPoza.prospetime(p, acum), eroare: _radUltima ? _radUltima.eroare : null });
+  RadarEcran.randeaza(el, p, { simboluri: radSimboluri(), preturiLive: radPreturiLive(), botiLive: radBotiLive(), acum, cheie: !!RadarPoza.cheie(), parolaRadar: RadarPoza.parolaRadar(), adresa: RadarPoza.adresaAltfel(), prospetime: RadarPoza.prospetime(p, acum), eroare: _radUltima ? _radUltima.eroare : null });
   // formularul de adaugare intra in panoul „Simbolurile tale" (nodul e mutat, nu copiat: butoanele isi pastreaza ascultatorii)
   const slot = $('radAdaugaSlot'), af = $('addForm');
   if (slot && af && af.parentNode !== slot) { slot.appendChild(af); af.open = true; }
@@ -3719,6 +3719,7 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
   $('rad').addEventListener('radar:scoate', e => { const s = e.detail.s; if (!s || !confirm(`Scot ${s} din lista ta?`)) return; priceAlerts = loadAlerts(); delete priceAlerts[s]; persistAlerts(); render(); autoSync(); toast(`${s} a ieșit din listă`, 'info'); });
   $('rad').addEventListener('radar:nota', e => { const s = e.detail.s; priceAlerts = loadAlerts(); const a = (priceAlerts[s] || [])[0]; if (!a) return; const n = prompt('Notiță pentru ' + s, a.note || ''); if (n === null) return; a.note = n.trim().slice(0, 80); persistAlerts(); render(); autoSync(); });
   // v126: parola Radarului se pune din aceeași casetă; cheia goală + parola completată = doar parola (NU șterge cheia)
+  $('rad').addEventListener('radar:adresa', () => { RadarPoza.puneUrl(null); toast('🌐 Citesc iar de la worker-ul obișnuit', 'info'); RadarPoza.citeste({ fortat: true }).then(radRandeaza); });   // v142
   $('rad').addEventListener('radar:cheie', e => { const d = e.detail || {}; if (d.parola) RadarPoza.puneParolaRadar(d.parola); if (d.parola && !d.cheie) { toast('🔐 Parola Radarului e pusă · „Deschide în Radar” intră direct', 'info'); radRandeaza(); return; } RadarPoza.puneCheie(d.cheie); if (d.url) RadarPoza.puneUrl(d.url); toast(d.cheie ? '🔑 Cheia e pusă · aduc poza' : 'Cheia a fost ștearsă', 'info'); RadarPoza.citeste({ fortat: true }).then(radRandeaza); radTrimiteSimboluri(); });
   RadarPoza.porneste({ laSchimbare: radRandeaza });
   radTrimiteSimboluri();
@@ -3732,7 +3733,7 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v851';
+const SW_VER_INLINE = 'tt-v852';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -3749,7 +3750,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v851';
+  var PAGE_VER = 'tt-v852';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {

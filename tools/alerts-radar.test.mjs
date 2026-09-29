@@ -32,7 +32,7 @@ test('polling-ul ramane (gardile vechi) dar nu mai evalueaza praguri', () => {
   assert.ok(!/function evaluateAlert\(|function checkTrigger\(|fireAlert\(/.test(HTML), 'evaluarea pragurilor a fost scoasa');
 });
 test('versiunea paginii e v116; workflow-ul nu mai verifica praguri, dar News Watch isi pastreaza cronul', () => {
-  assert.match(HTML, /id="verBadge">v141</);
+  assert.match(HTML, /id="verBadge">v142</);
   const wf = readFileSync(join(ROOT, '.github/workflows/price-alerts.yml'), 'utf8');
   assert.ok(/^\s*schedule:/m.test(wf) && /cron:/.test(wf), 'cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis)');
   assert.ok(!/run:\s*node tools\/check-alerts\.mjs/.test(wf), 'pasul cu pragurile de pret a disparut (comentariul de sus poate sa-l mai pomeneasca)');
@@ -100,4 +100,10 @@ test('v137: tokenul GitHub se pune într-o casetă din pagină (nu prompt), desc
   assert.match(HTML, /\$\('syncBannerToken'\)\?\.addEventListener\('click', \(\) => \{ ghTokArata\(/);
   const h = HTML.slice(HTML.indexOf("$('ghTokenBtn').addEventListener('click'"), HTML.indexOf("$('ghTokenBtn').addEventListener('click'") + 400);
   assert.doesNotMatch(h, /ghAskToken\(/, '🔑 nu mai folosește prompt()');
+});
+
+// v142 (29.09): adresa neobișnuită a worker-ului se vede pe ecran și se poate readuce la cea obișnuită dintr-un buton
+test('v142: pagina dă ecranului adresa neobișnuită și ascultă butonul ↺ (radar:adresa)', () => {
+  assert.match(HTML, /adresa: RadarPoza\.adresaAltfel\(\)/, 'randeaza primește adresa');
+  assert.match(HTML, /addEventListener\('radar:adresa'[^\n]*RadarPoza\.puneUrl\(null\)[^\n]*citeste\(\{ fortat: true \}\)/, '↺ șterge adresa salvată și citește iar');
 });

@@ -367,9 +367,31 @@ test('v141: adresa worker-ului salvată greșit (nu e https://) nu mai strică c
   RP.puneUrl('http://altceva.example'); assert.strictEqual(RP.url(), 'https://paznic-radar.mferent80.workers.dev', 'doar https');
   RP.puneUrl('https://alt-worker.example.workers.dev/'); assert.strictEqual(RP.url(), 'https://alt-worker.example.workers.dev', 'o adresă https bună rămâne');
 });
-test('v141: caseta cheii nu mai lasă managerul de parole să completeze adresa worker-ului', () => {
+test('v141/v142: caseta cheii nu mai are câmpul adresei (managerul de parole îl umplea), iar parola nu se completează automat', () => {
   const h = src('lib/radar-ecran.js');
-  const u = /<input id="radUrl"[^>]*>/.exec(h)[0], p = /<input id="radParola"[^>]*>/.exec(h)[0];
-  assert.match(u, /type="url"/); assert.match(u, /autocomplete="off"/); assert.match(u, /data-1p-ignore|data-lpignore|data-protonpass-ignore/);
+  assert.ok(!/id="radUrl"/.test(h), 'v142: câmpul „adresa worker-ului” a ieșit din casetă');
+  const p = /<input id="radParola"[^>]*>/.exec(h)[0];
   assert.match(p, /autocomplete="new-password"/, 'parola Radarului nu e o parolă de site salvată: fără completare automată');
+});
+
+// v142 (el, 29.09: „ok, fă” pe ideile de după v141)
+const faraRetea = () => Promise.reject(new Error('fara retea')), docProba = { hidden: false, addEventListener() {} };
+const lsProba = (scris, arunca) => ({ getItem(k) { return scris[k] ?? null; }, setItem(k, v) { if (arunca && arunca(k, v)) throw new Error('QuotaExceededError'); scris[k] = v; }, removeItem(k) { delete scris[k]; } });
+test('v142: adresa neobișnuită se vede lângă cheie, cu buton înapoi la cea obișnuită; cea obișnuită nu se afișează', () => {
+  const scris = { radar_url: 'https://alt-worker.example.workers.dev' };
+  const RP = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')({}, lsProba(scris), faraRetea, docProba);
+  assert.strictEqual(RP.adresaAltfel(), 'https://alt-worker.example.workers.dev');
+  RP.puneUrl(null); assert.strictEqual(RP.adresaAltfel(), '', 'după ↺ rămâne cea obișnuită'); assert.ok(!('radar_url' in scris));
+  const poza = POZA_BAZA(), el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  RadarEcran.randeaza(el, poza, O(poza, { adresa: 'https://alt-worker.example.workers.dev' }));
+  assert.match(el.innerHTML, /citesc de la/); assert.match(el.innerHTML, /alt-worker\.example\.workers\.dev/); assert.match(el.innerHTML, /data-fac="adresa"/);
+  RadarEcran.randeaza(el, poza, O(poza));
+  assert.doesNotMatch(el.innerHTML, /citesc de la/);
+});
+test('v142: poza Radarului își face loc când stocarea e plină - cere cache-ului de prețuri (D.cacheTrim) să se strângă, apoi scrie', () => {
+  const scris = {}, strans = []; let plin = true;
+  const win = { D: { cacheTrim(b) { strans.push(b); plin = false; return 5; } } };
+  const RP = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')(win, lsProba(scris, () => plin), faraRetea, docProba);
+  RP.puneParolaRadar('parola-de-proba');
+  assert.strictEqual(strans.length, 1, 'a cerut o singură strângere'); assert.strictEqual(scris.radar_parola, 'parola-de-proba', 'a scris după strângere');
 });
