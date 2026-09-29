@@ -32,7 +32,7 @@ test('polling-ul ramane (gardile vechi) dar nu mai evalueaza praguri', () => {
   assert.ok(!/function evaluateAlert\(|function checkTrigger\(|fireAlert\(/.test(HTML), 'evaluarea pragurilor a fost scoasa');
 });
 test('versiunea paginii e v116; workflow-ul nu mai verifica praguri, dar News Watch isi pastreaza cronul', () => {
-  assert.match(HTML, /id="verBadge">v139</);
+  assert.match(HTML, /id="verBadge">v140</);
   const wf = readFileSync(join(ROOT, '.github/workflows/price-alerts.yml'), 'utf8');
   assert.ok(/^\s*schedule:/m.test(wf) && /cron:/.test(wf), 'cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis)');
   assert.ok(!/run:\s*node tools\/check-alerts\.mjs/.test(wf), 'pasul cu pragurile de pret a disparut (comentariul de sus poate sa-l mai pomeneasca)');
@@ -57,6 +57,23 @@ test('sincronizarea cu GitHub vorbeste limba noua: lista de pe server se migreaz
 // v134 (29.09, botul PUMPFUN): Binance nu cunoaște PUMPFUNUSDT (400), tickerul real e PUMP -> lumânarea zilnică se cere după b.m (poza v101.5)
 test('v134: prețul live al botului se cere de la Binance după moneda reală a bursei (b.m), cu rezerva numele botului', () => {
   assert.match(HTML, /String\(b\.m \|\| b\.s \|\| ''\)\.toUpperCase\(\)\.replace\(\/\[\^A-Z0-9\]\/g, ''\)/);
+});
+// v140 (29.09): in v134 comentariul „// v134: b.m = …” a inghitit pe acelasi rand garda `if (!s || (_radBotiFara[s] …)) return;`
+// -> moneda care nu e pe Binance (VVV) se cerea la fiecare 10 s in loc de o data la 30 min. Proba ruleaza functia REALA din pagina.
+test('v140: moneda care nu e pe Binance nu se mai cere 30 de minute; botul fără nume nu se cere deloc', async () => {
+  const a = HTML.indexOf('async function radAduBotiLive'), z = HTML.indexOf('setInterval(radAduBotiLive');
+  assert.ok(a > 0 && z > a, 'radAduBotiLive lipseste din pagina');
+  let cereri = [], randari = 0;
+  const poza = { boti: [{ s: 'VVV', m: 'VVV' }, { s: '', m: '' }, { s: 'LIGHTER', m: 'LIT' }] };
+  const fetch = async (u) => { cereri.push(u); if (/VVVUSDT/.test(u)) return { ok: false, status: 400 }; return { ok: true, json: async () => [[0, '4.44', '0', '0', '4.41']] }; };
+  const run = new Function('document', 'RadarPoza', 'fetch', 'radRandeaza', 'var _radUltima = { poza: arguments[4] }; var _radBotiLiveMap = {}, _radBotiFara = {};\n' + HTML.slice(a, z) + '\nreturn { radAduBotiLive, harta: () => _radBotiLiveMap };');
+  const f = run({ hidden: false }, {}, fetch, () => { randari++; }, poza);
+  await f.radAduBotiLive();
+  assert.deepStrictEqual(cereri.map((u) => u.match(/symbol=([A-Z0-9]*)USDT/)[1]).sort(), ['LIT', 'VVV'], 'prima tura: LIT si VVV, niciodata simbolul gol');
+  assert.strictEqual(f.harta().LIGHTER.pret, 4.41);
+  cereri = [];
+  await f.radAduBotiLive();
+  assert.deepStrictEqual(cereri.map((u) => u.match(/symbol=([A-Z0-9]*)USDT/)[1]), ['LIT'], 'a doua tura (10 s mai tarziu): VVV sta pe pauza de 30 min');
 });
 // v135 (el, 29.09: „de ce nu se sincronizează pagina alerts cu GitHub?”): tokenul salvat avea doar dreptul „gist” -> GET merge (repo
 // public), PUT e refuzat (404/403); auto-sync-ul scria doar in consola, deci ultima urcare reusita era din 08.09 si nimeni nu stia
