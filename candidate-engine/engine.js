@@ -236,35 +236,43 @@
     if (state.scanning || !state.shellVisible) return;
     if (!validateDeps()) { showAlert('Lipsesc biblioteci critice din lib/. Scanarea a fost oprită.', true); return; }
     setScanning(true); showAlert(''); progress(0, 1); state.failures = [];
-    var list = universe(); $('ctxUniverse').textContent = list.length + ' simboluri';
-    await earningsGate();
-    var bench = await benchmarkReturns();
-    var all = [], q = list.slice(), done = 0, concurrency = 5;
-    async function worker() {
-      while (q.length) {
-        var sym = q.shift();
-        try { all.push(await analyze(sym, bench[regionOf(sym)])); }
-        catch (e) { state.failures.push({ symbol: sym, reason: e && e.message || 'eroare' }); }
-        done++; progress(done, list.length);
+    try {
+      var list = universe(); $('ctxUniverse').textContent = list.length + ' simboluri';
+      await earningsGate();
+      var bench = await benchmarkReturns();
+      var all = [], q = list.slice(), done = 0, concurrency = 5;
+      async function worker() {
+        while (q.length) {
+          var sym = q.shift();
+          try { all.push(await analyze(sym, bench[regionOf(sym)])); }
+          catch (e) { state.failures.push({ symbol: sym, reason: e && e.message || 'eroare' }); }
+          done++; progress(done, list.length);
+        }
       }
+      await Promise.all(Array.from({ length: concurrency }, function () { return worker(); }));
+      var combined = [];
+      all.forEach(function (x) { combined.push(x.momentum, x.reversal); });
+      await updateSectors(combined);
+      state.momentum = capSectors(combined.filter(function (x) { return x.mode === 'momentum' && x.eligible; }));
+      state.reversal = capSectors(combined.filter(function (x) { return x.mode === 'reversal' && x.eligible; }));
+      state.updatedAt = Date.now();
+      var cache = { momentum: state.momentum, reversal: state.reversal, updatedAt: state.updatedAt, scannedCount: list.length, failureCount: state.failures.length };
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (_) {}
+      $('countMomentum').textContent = state.momentum.length; $('countReversal').textContent = state.reversal.length;
+      $('ctxEligible').textContent = (state.momentum.length + state.reversal.length) + ' top';
+      $('ctxSectors').textContent = topSectors(state[state.mode]);
+      var gs = window.GV && GV.status ? GV.status() : null;
+      $('ctxGovernor').textContent = gs ? gs.verdict : 'indisponibil';
+      $('ctxFreshness').textContent = 'live · ' + ageText(state.updatedAt);
+      $('updatedAt').textContent = 'actualizat acum';
+      if (state.failures.length) showAlert(state.failures.length + ' simboluri nu au răspuns; au fost excluse, nu înlocuite cu date vechi.');
+      render();
+    } catch (e) {
+      showAlert('Scanarea nu s-a finalizat: ' + ((e && e.message) || 'eroare neașteptată') + '. Rezultatele anterioare nu au fost suprascrise.', true);
+    } finally {
+      setScanning(false);
+      schedule();
     }
-    await Promise.all(Array.from({ length: concurrency }, function () { return worker(); }));
-    var combined = [];
-    all.forEach(function (x) { combined.push(x.momentum, x.reversal); });
-    await updateSectors(combined);
-    state.momentum = capSectors(combined.filter(function (x) { return x.mode === 'momentum' && x.eligible; }));
-    state.reversal = capSectors(combined.filter(function (x) { return x.mode === 'reversal' && x.eligible; }));
-    state.updatedAt = Date.now();
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ momentum: state.momentum, reversal: state.reversal, updatedAt: state.updatedAt })); } catch (_) {}
-    $('countMomentum').textContent = state.momentum.length; $('countReversal').textContent = state.reversal.length;
-    $('ctxEligible').textContent = (state.momentum.length + state.reversal.length) + ' top';
-    $('ctxSectors').textContent = topSectors(state[state.mode]);
-    var gs = window.GV && GV.status ? GV.status() : null;
-    $('ctxGovernor').textContent = gs ? gs.verdict : 'indisponibil';
-    $('ctxFreshness').textContent = 'live · ' + ageText(state.updatedAt);
-    $('updatedAt').textContent = 'actualizat acum';
-    if (state.failures.length) showAlert(state.failures.length + ' simboluri nu au răspuns; au fost excluse, nu înlocuite cu date vechi.');
-    render(); setScanning(false); schedule();
   }
 
   function currentItems() {
@@ -342,8 +350,15 @@
     try {
       var c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
       if (!c || !c.updatedAt || Date.now() - c.updatedAt > 30 * 60 * 1000) return;
-      state.momentum = c.momentum || []; state.reversal = c.reversal || []; state.updatedAt = c.updatedAt;
+      state.momentum = Array.isArray(c.momentum) ? c.momentum : []; state.reversal = Array.isArray(c.reversal) ? c.reversal : []; state.updatedAt = Number(c.updatedAt) || 0;
       $('countMomentum').textContent = state.momentum.length; $('countReversal').textContent = state.reversal.length;
+      $('ctxUniverse').textContent = (Number(c.scannedCount) || '—') + ' simboluri';
+      $('ctxScanned').textContent = (Number(c.scannedCount) || '—') + (c.failureCount ? ' · ' + c.failureCount + ' excluse' : '');
+      $('ctxEligible').textContent = (state.momentum.length + state.reversal.length) + ' top';
+      $('ctxSectors').textContent = topSectors(state[state.mode]);
+      var gs = window.GV && GV.status ? GV.status() : null;
+      $('ctxGovernor').textContent = gs ? gs.verdict : 'indisponibil';
+      $('ctxFreshness').textContent = 'cache · ' + ageText(c.updatedAt);
       $('updatedAt').textContent = 'cache · ' + ageText(c.updatedAt); render();
     } catch (_) {}
   }
@@ -357,7 +372,9 @@
     $('search').oninput = render; $('onlyActionable').onchange = render;
     $('setupBtn').onclick = function () {
       if (!state.selected || state.selected.state === 'BLOCKED') return;
-      location.href = '../smart-trade-long/?symbol=' + encodeURIComponent(state.selected.symbol);
+      var query = 'symbol=' + encodeURIComponent(state.selected.symbol);
+      if (window.parent !== window) window.parent.postMessage({ ttOpenModule: 'smart-trade-long/', ttQuery: query }, location.origin);
+      else location.href = '../smart-trade-long/?' + query;
     };
     Array.prototype.forEach.call(document.querySelectorAll('.ce-mode'), function (btn) {
       btn.onclick = function () {
