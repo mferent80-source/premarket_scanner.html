@@ -155,6 +155,21 @@ test('v126: cu parola Radarului pusă, „Deschide în Radar” o duce DUPĂ # (
   assert.match(el.innerHTML, /href="https:\/\/abc-def\.trycloudflare\.com\/#ecran=tabloubot"/); assert.match(el.innerHTML, /pune parola Radarului sus/);
   assert.match(el.innerHTML, /parola Radarului: <b class="warn">lipsește<\/b>/); assert.match(el.innerHTML, /id="radParola" type="password"/);
 });
+test('v138: adresa FIXĂ prin Tailscale (*.ts.net) în poză ⇒ butoanele duc acolo și spun „adresă fixă”; tunelul păstrează textul vechi', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA(); poza.radarUrl = 'https://pc.tailabc.ts.net:8443';
+  poza.boti = [{ id: '2386', s: 'JTO', dir: 'long', lev: 5, investit: 98.14, jos: 0.55, sus: 0.565, pret: 0.5577, total: -14.7, niv: 'atentie', motive: [], plan: null }];
+  RadarEcran.randeaza(el, poza, O(poza));
+  assert.match(el.innerHTML, /href="https:\/\/pc\.tailabc\.ts\.net:8443\/#ecran=tabloubot"/);
+  assert.match(el.innerHTML, /href="https:\/\/pc\.tailabc\.ts\.net:8443\/#ecran=t212"/);
+  assert.match(el.innerHTML, /adresă fixă · merge și de pe telefon, cu Tailscale pornit/); assert.match(el.innerHTML, /ți-o cere o dată/);
+  assert.doesNotMatch(el.innerHTML, /prin tunelul Radarului|adresă nouă a tunelului/);
+  poza.radarUrl = 'https://abc-def.trycloudflare.com';
+  RadarEcran.randeaza(el, poza, O(poza));
+  assert.match(el.innerHTML, /prin tunelul Radarului/); assert.doesNotMatch(el.innerHTML, /adresă fixă/);
+  poza.radarUrl = 'https://ts.net.rau.com'; RadarEcran.randeaza(el, poza, O(poza));
+  assert.doesNotMatch(el.innerHTML, /adresă fixă/, 'doar gazda care SE TERMINĂ în .ts.net');
+});
 test('v126: parola Radarului din linkul paginii (#parola=…) se ține minte și dispare din adresă, împreună cu cheia', () => {
   const scris = {}, istoric = [];
   const loc = { href: 'https://mferent80-source.github.io/premarket_scanner.html/alerts/#cheie=CheieFalsaDeProba0123456789abcdef&parola=x%2Fy' };
