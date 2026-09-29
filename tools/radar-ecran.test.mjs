@@ -300,3 +300,17 @@ test('v132: eticheta „LA INTRARE” lângă nume când prețul a ajuns la intr
   assert.doesNotMatch(rand('CSCO'), /LA INTRARE/, 'CSCO la 1,6 % peste intrare: încă nu');
   assert.doesNotMatch(rand('RHM.DE'), /LA INTRARE/, 'trend în jos: niciodată');
 });
+// v133 (el, 29.09: „pagina alerts nu deschide nimic când dau Radar sau Tabloul botului” - „se deschide, dar gol/eroare”, pe PC):
+// alerts stă în iframe-ul shell-ului; linkul fără țintă încărca Radarul ÎN iframe, iar Radarul refuză ramele
+// (X-Frame-Options: DENY + frame-ancestors 'none') => ecran gri cu 🚫. Toate linkurile spre Radar pleacă într-o filă nouă.
+test('v133: „Deschide în Radar”, „Deschide Tabloul botului” și „Păstrează ca plan” se deschid în filă nouă (nu în iframe-ul shell-ului)', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA(); poza.radarUrl = 'https://abc-def.trycloudflare.com';
+  poza.t212[0].plan = null; poza.t212[0].sugestie = { stop: 350.6, tinta: 412, k: 3, riscPct: 0.08, trend: 'jos', proba: { n: 105, pePlus: 0.41, medie: 0.02 } };
+  poza.boti = [{ id: '2386', s: 'JTO', dir: 'long', lev: 5, investit: 98.14, jos: 0.55, sus: 0.565, pret: 0.5577, total: -14.7, niv: 'atentie', motive: [], plan: null }];
+  RadarEcran.randeaza(el, poza, O(poza, { parolaRadar: 'p1' }));
+  const linkuri = el.innerHTML.match(/<a [^>]*href="https:\/\/abc-def\.trycloudflare\.com\/[^"]*"[^>]*>[^<]*/g) || [];
+  const texte = linkuri.map((a) => a.replace(/^.*>/, ''));
+  for (const t of ['Deschide în Radar', 'Deschide Tabloul botului', 'Păstrează ca plan']) assert.ok(texte.includes(t), 'lipsește linkul „' + t + '”: ' + texte.join(' | '));
+  for (const a of linkuri) { assert.match(a, /target="_blank"/, 'fără filă nouă: ' + a); assert.match(a, /rel="noopener"/, 'fără noopener: ' + a); }
+});
