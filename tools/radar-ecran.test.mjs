@@ -5,7 +5,8 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const src = (f) => readFileSync(join(ROOT, f), 'utf8');
+// CRLF -> LF: cu core.autocrlf=true, un checkout/rebase scrie CSS-ul cu CRLF pe disc si cautarile pe „{\nbody” picau (29.09)
+const src = (f) => readFileSync(join(ROOT, f), 'utf8').replace(/\r\n/g, '\n');
 // modulele sunt scripturi de browser (global var); le incarcam ca in colectorul Radarului
 const RadarEcran = new Function(src('lib/radar-ecran.js') + '; return RadarEcran;')();
 const RadarPoza = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')({}, { getItem() { return null; }, setItem() {}, removeItem() {} }, () => Promise.reject(new Error('fara retea')), { hidden: false, addEventListener() {} });
