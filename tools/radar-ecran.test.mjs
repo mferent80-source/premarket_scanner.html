@@ -314,3 +314,14 @@ test('v133: „Deschide în Radar”, „Deschide Tabloul botului” și „Păs
   for (const t of ['Deschide în Radar', 'Deschide Tabloul botului', 'Păstrează ca plan']) assert.ok(texte.includes(t), 'lipsește linkul „' + t + '”: ' + texte.join(' | '));
   for (const a of linkuri) { assert.match(a, /target="_blank"/, 'fără filă nouă: ' + a); assert.match(a, /rel="noopener"/, 'fără noopener: ' + a); }
 });
+// v134 (el, 29.09: „în pagina alerts PUMP arată greșit”): planul botului e în USDT (Radarul: {plus: USDT, minus: USDT, afaraOre}),
+// pagina îl scria cu % („plan +4.6 % / −13 %”, în Tablou „ținta de +4.6 USDT”)
+test('v134: planul botului se scrie în USDT (rândul și detaliul), nu în %', () => {
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA();
+  poza.boti = [{ id: '2388', s: 'PUMPFUN', m: 'PUMP', dir: 'long', lev: 4, investit: 85.94, jos: 0.004598, sus: 0.005374, pret: 0.004919, total: 3.27, niv: 'atentie', motive: [], zero: 0.004825, plan: { plus: 4.6, minus: 13, afaraOre: 12 } }];
+  RadarEcran.randeaza(el, poza, O(poza));
+  assert.match(el.innerHTML, /plan \+4,6 USDT \/ −13 USDT \/ 12 h/);
+  assert.match(el.innerHTML, /\+4,6 USDT \/ −13 USDT \/ afară 12 h/);
+  assert.doesNotMatch(el.innerHTML, /plan \+4\.6 %|\+4\.6% \//, 'fără procente la plan');
+});

@@ -32,7 +32,7 @@ test('polling-ul ramane (gardile vechi) dar nu mai evalueaza praguri', () => {
   assert.ok(!/function evaluateAlert\(|function checkTrigger\(|fireAlert\(/.test(HTML), 'evaluarea pragurilor a fost scoasa');
 });
 test('versiunea paginii e v116; workflow-ul nu mai verifica praguri, dar News Watch isi pastreaza cronul', () => {
-  assert.match(HTML, /id="verBadge">v133</);
+  assert.match(HTML, /id="verBadge">v134</);
   const wf = readFileSync(join(ROOT, '.github/workflows/price-alerts.yml'), 'utf8');
   assert.ok(/^\s*schedule:/m.test(wf) && /cron:/.test(wf), 'cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis)');
   assert.ok(!/run:\s*node tools\/check-alerts\.mjs/.test(wf), 'pasul cu pragurile de pret a disparut (comentariul de sus poate sa-l mai pomeneasca)');
@@ -53,4 +53,8 @@ test('sincronizarea cu GitHub vorbeste limba noua: lista de pe server se migreaz
   assert.ok(!/ref\|/.test(sig) && /watch/.test(sig), 'semnatura e pe forma watch (simbol + notita), nu pe praguri');
   const json = JSON.parse(readFileSync(join(ROOT, 'tools/alerts.json'), 'utf8'));
   assert.ok(Array.isArray(json.alerts) && json.alerts.length > 0 && json.alerts.every(a => a.kind === 'watch' && !('level' in a) && !('pct' in a)), 'tools/alerts.json e in forma watch');
+});
+// v134 (29.09, botul PUMPFUN): Binance nu cunoaște PUMPFUNUSDT (400), tickerul real e PUMP -> lumânarea zilnică se cere după b.m (poza v101.5)
+test('v134: prețul live al botului se cere de la Binance după moneda reală a bursei (b.m), cu rezerva numele botului', () => {
+  assert.match(HTML, /String\(b\.m \|\| b\.s \|\| ''\)\.toUpperCase\(\)\.replace\(\/\[\^A-Z0-9\]\/g, ''\)/);
 });
