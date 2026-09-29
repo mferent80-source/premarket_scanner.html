@@ -32,7 +32,7 @@ test('polling-ul ramane (gardile vechi) dar nu mai evalueaza praguri', () => {
   assert.ok(!/function evaluateAlert\(|function checkTrigger\(|fireAlert\(/.test(HTML), 'evaluarea pragurilor a fost scoasa');
 });
 test('versiunea paginii e v116; workflow-ul nu mai verifica praguri, dar News Watch isi pastreaza cronul', () => {
-  assert.match(HTML, /id="verBadge">v136</);
+  assert.match(HTML, /id="verBadge">v137</);
   const wf = readFileSync(join(ROOT, '.github/workflows/price-alerts.yml'), 'utf8');
   assert.ok(/^\s*schedule:/m.test(wf) && /cron:/.test(wf), 'cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis)');
   assert.ok(!/run:\s*node tools\/check-alerts\.mjs/.test(wf), 'pasul cu pragurile de pret a disparut (comentariul de sus poate sa-l mai pomeneasca)');
@@ -71,4 +71,16 @@ test('v136: meniul ⋯ are butonul vizibil „Pune tokenul GitHub”, care desch
   assert.match(HTML, /\$\('ghTokenBtn'\)\.addEventListener\('click'/);
   assert.doesNotMatch(HTML, /click-dreapta pe ☁️'\)/, 'mesajele de eroare nu mai trimit la click-dreapta');
   assert.match(HTML, /⋯ → 🔑 Pune tokenul GitHub/);
+});
+// v137 (el, 29.09: „am făcut dar nu văd caseta”): tokenul se cerea cu prompt() chiar când GitHub se deschidea în altă filă -
+// browserul închide singur dialogul unei file din fundal (prompt -> null). Acum caseta e ÎN pagină și rămâne până la Salvează.
+test('v137: tokenul GitHub se pune într-o casetă din pagină (nu prompt), deschisă de 🔑 și de „+ Token”; Salvează urcă lista', () => {
+  assert.match(HTML, /<div id="ghTokBox" class="gh-tok-box" hidden>/);
+  assert.match(HTML, /<input id="ghTokInput" type="password"/);
+  assert.match(HTML, /<button type="button" id="ghTokSave">Salvează și urcă lista<\/button>/);
+  assert.match(HTML, /\.gh-tok-box\[hidden\] *\{ *display: *none/, 'hidden nu e bătut de display din CSS');
+  assert.match(HTML, /\$\('ghTokenBtn'\)\.addEventListener\('click', \(\) => \{[\s\S]{0,120}ghTokArata\(true\)/);
+  assert.match(HTML, /\$\('syncBannerToken'\)\?\.addEventListener\('click', \(\) => \{ ghTokArata\(/);
+  const h = HTML.slice(HTML.indexOf("$('ghTokenBtn').addEventListener('click'"), HTML.indexOf("$('ghTokenBtn').addEventListener('click'") + 400);
+  assert.doesNotMatch(h, /ghAskToken\(/, '🔑 nu mai folosește prompt()');
 });
