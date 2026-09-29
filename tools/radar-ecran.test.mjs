@@ -197,6 +197,20 @@ test('v128: la Trading 212 evoluția zilei e GROASĂ și colorată (verde sus, r
   const tel = css.slice(css.indexOf('@media (max-width:640px){\nbody.al-page .rad .poz thead'));
   assert.match(tel, /#radT212 tr\.rand td\.c-acum\{display:block/, 'pe telefon, la T212, prețul și ziua se văd');
 });
+// v139 (el, 29.09: „pe pagina alerts nu văd eu sau nu se afișează prețul live?” + „și la stocks?”): pe telefon regula care ascunde
+// td.c-acum pe TOATE randurile era desfacuta doar la boti si la T212 - la Simbolurile tale ramanea doar „Azi %”, fara pret
+test('v139: pe telefon, Simbolurile tale își arată prețul (c-acum), ca pozițiile T212 și boții', () => {
+  const css = src('lib/radar-ui.css');
+  const tel = css.slice(css.indexOf('@media (max-width:640px){\nbody.al-page .rad .poz thead'));
+  const ascunde = tel.indexOf('td.c-acum, body.al-page .rad .poz tr.rand td.c-trend'), arata = tel.search(/#radSimboluri tr\.rand td\.c-acum\{display:block/);
+  assert.ok(ascunde >= 0, 'regula care ascunde c-acum pe telefon');
+  assert.ok(arata > ascunde, 'regula care o arată la Simbolurile tale vine DUPĂ cea care o ascunde (altfel pierde)');
+  const el = { innerHTML: '', addEventListener() {}, dataset: {} };
+  const poza = POZA_BAZA(); poza.simboluri = [{ s: 'APLD', closes30: [31.2, 26.25], prev: 24.5 }];
+  RadarEcran.randeaza(el, poza, O(poza, { simboluri: [{ s: 'APLD', nota: '' }], preturiLive: { APLD: { pret: 24.96, prev: 24.5, la: ACUM, chip: '' } } }));
+  const sim = el.innerHTML.slice(el.innerHTML.indexOf('id="radSimboluri"'));
+  assert.match(sim, /<td class="c-acum">\$24,96/, 'prețul live e în celula c-acum a simbolului');
+});
 
 // v129 (spec 2026-09-28-sl-tp-pe-alerts): SL / TP pe pagina alerts
 test('v129: sltpT212 - planul bate sugestia; fara plan = sugerat; fara nimic = null (poza veche)', () => {
