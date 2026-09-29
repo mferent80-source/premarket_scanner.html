@@ -32,7 +32,7 @@ test('polling-ul ramane (gardile vechi) dar nu mai evalueaza praguri', () => {
   assert.ok(!/function evaluateAlert\(|function checkTrigger\(|fireAlert\(/.test(HTML), 'evaluarea pragurilor a fost scoasa');
 });
 test('versiunea paginii e v116; workflow-ul nu mai verifica praguri, dar News Watch isi pastreaza cronul', () => {
-  assert.match(HTML, /id="verBadge">v134</);
+  assert.match(HTML, /id="verBadge">v135</);
   const wf = readFileSync(join(ROOT, '.github/workflows/price-alerts.yml'), 'utf8');
   assert.ok(/^\s*schedule:/m.test(wf) && /cron:/.test(wf), 'cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis)');
   assert.ok(!/run:\s*node tools\/check-alerts\.mjs/.test(wf), 'pasul cu pragurile de pret a disparut (comentariul de sus poate sa-l mai pomeneasca)');
@@ -57,4 +57,10 @@ test('sincronizarea cu GitHub vorbeste limba noua: lista de pe server se migreaz
 // v134 (29.09, botul PUMPFUN): Binance nu cunoaște PUMPFUNUSDT (400), tickerul real e PUMP -> lumânarea zilnică se cere după b.m (poza v101.5)
 test('v134: prețul live al botului se cere de la Binance după moneda reală a bursei (b.m), cu rezerva numele botului', () => {
   assert.match(HTML, /String\(b\.m \|\| b\.s \|\| ''\)\.toUpperCase\(\)\.replace\(\/\[\^A-Z0-9\]\/g, ''\)/);
+});
+// v135 (el, 29.09: „de ce nu se sincronizează pagina alerts cu GitHub?”): tokenul salvat avea doar dreptul „gist” -> GET merge (repo
+// public), PUT e refuzat (404/403); auto-sync-ul scria doar in consola, deci ultima urcare reusita era din 08.09 si nimeni nu stia
+test('v135: urcarea refuzată spune că tokenul n-are drept de scriere, iar auto-sync-ul eșuat se vede pe ecran (o dată), nu doar în consolă', () => {
+  assert.match(HTML, /if \(p\.status === 401 \|\| p\.status === 403 \|\| p\.status === 404\) throw new Error\('tokenul poate citi, dar nu are voie să scrie/);
+  assert.match(HTML, /if \(!_syncAvertizat\) \{ _syncAvertizat = true; toast\('☁️ Alertele NU se mai salvează pe GitHub: ' \+ e\.message, 'error'/);
 });

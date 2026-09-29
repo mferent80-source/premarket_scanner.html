@@ -12,9 +12,9 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314181f'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link rel="stylesheet" href="../lib/plex.css?v=742">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
-<link rel="stylesheet" href="../lib/radar-ui.css?v=844">
-<script src="../lib/radar-poza.js?v=844"></script>
-<script src="../lib/radar-ecran.js?v=844"></script>
+<link rel="stylesheet" href="../lib/radar-ui.css?v=845">
+<script src="../lib/radar-poza.js?v=845"></script>
+<script src="../lib/radar-ecran.js?v=845"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -818,7 +818,7 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v134</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v135</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
     <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
@@ -1049,13 +1049,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=844"></script>
-<script src="../lib/data.js?v=844"></script>
-<script src="../lib/poll-wake.js?v=844"></script>
+<script src="../lib/suite-version.js?v=845"></script>
+<script src="../lib/data.js?v=845"></script>
+<script src="../lib/poll-wake.js?v=845"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=844"></script>
+<script src="../lib/price-day.js?v=845"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -2539,6 +2539,7 @@ function b64deutf8(s) { const bin = atob(s); const arr = new Uint8Array(bin.leng
 // Push local→GitHub (tools/alerts.json). Reutilizat de butonul ☁️ (silent:false) ȘI de
 // auto-sync (silent:true, fără confirmări/toast-uri de succes, fără prompt de token).
 // Păstrează istoricul `triggered` scris de bot; o reîncercare la conflict 409 (botul tocmai a comis).
+var _syncAvertizat = false;   // v135: eșecul auto-sync-ului se arată o singură dată pe încărcare
 async function syncPushGitHub(opts = {}) {
   const silent = !!opts.silent;
   let token = localStorage.getItem(GH_TOKEN_KEY) || '';
@@ -2574,6 +2575,9 @@ async function syncPushGitHub(opts = {}) {
         body: JSON.stringify({ message: `chore(alerts): ${silent ? 'auto-sync' : 'sync'} din pagina /alerts/ (${alerts.length} alerte)`, content: b64utf8(JSON.stringify(out, null, 2) + '\n'), sha: cur.sha, branch: 'main' })
       });
       if (p.status === 409) { lastErr = new Error('conflict 409 (botul a comis)'); continue; }
+      // v135 (29.09): repo-ul e public, deci GET merge si cu un token fara drept de scriere (el avea unul doar „gist”); PUT-ul refuzat
+      // venea ca „GitHub PUT HTTP 404”, fara niciun sens pentru el
+      if (p.status === 401 || p.status === 403 || p.status === 404) throw new Error('tokenul poate citi, dar nu are voie să scrie în repo — fă unul nou (fine-grained, repo premarket_scanner.html, Contents: Read and write) și pune-l din ⋯ → click-dreapta pe ☁️');
       if (!p.ok) throw new Error('GitHub PUT HTTP ' + p.status);
       const j = await p.json();
       _lastServerSig = alertsSig(priceAlerts);
@@ -2585,7 +2589,11 @@ async function syncPushGitHub(opts = {}) {
     throw lastErr || new Error('conflict persistent');
   } catch (e) {
     if (!silent) toast('❌ Sync GitHub eșuat: ' + e.message, 'error');
-    else console.warn('☁️ auto-sync eșuat:', e.message);   // auto-sync nu spamează erori — log în consolă
+    else {
+      console.warn('☁️ auto-sync eșuat:', e.message);
+      // v135: auto-sync-ul esuat era TACUT (doar consola) - 3 saptamani fara nicio urcare; acum se spune o data pe incarcare
+      if (!_syncAvertizat) { _syncAvertizat = true; toast('☁️ Alertele NU se mai salvează pe GitHub: ' + e.message, 'error'); }
+    }
     return false;
   } finally { btn.disabled = false; btn.textContent = prevTxt; _syncBusy = false; }
 }
@@ -3679,7 +3687,7 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v844';
+const SW_VER_INLINE = 'tt-v845';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -3696,7 +3704,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v844';
+  var PAGE_VER = 'tt-v845';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
