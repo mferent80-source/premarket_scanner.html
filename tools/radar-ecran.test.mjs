@@ -355,3 +355,21 @@ test('v134: planul botului se scrie în USDT (rândul și detaliul), nu în %', 
   assert.match(el.innerHTML, /\+4,6 USDT \/ −13 USDT \/ afară 12 h/);
   assert.doesNotMatch(el.innerHTML, /plan \+4\.6 %|\+4\.6% \//, 'fără procente la plan');
 });
+
+// v141 (el, 29.09: „pagina alerts nu încarcă Trade 212 și botul pe PC”): managerul de parole din Edge a completat câmpul
+// „adresa worker-ului” (textul de dinaintea parolei) cu „1000” -> radar_url=1000 -> fetch pe alerts/1000/poza = 404, „nicio poză”
+test('v141: adresa worker-ului salvată greșit (nu e https://) nu mai strică citirea - se folosește adresa implicită', () => {
+  const scris = { radar_url: '1000' };
+  const RP = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')(
+    {}, { getItem(k) { return scris[k] ?? null; }, setItem(k, v) { scris[k] = v; }, removeItem(k) { delete scris[k]; } }, () => Promise.reject(new Error('fara retea')), { hidden: false, addEventListener() {} });
+  assert.strictEqual(RP.url(), 'https://paznic-radar.mferent80.workers.dev', 'valoarea stricată deja salvată e ignorată');
+  RP.puneUrl('admin'); assert.strictEqual(RP.url(), 'https://paznic-radar.mferent80.workers.dev', 'un nume de utilizator nu devine adresă');
+  RP.puneUrl('http://altceva.example'); assert.strictEqual(RP.url(), 'https://paznic-radar.mferent80.workers.dev', 'doar https');
+  RP.puneUrl('https://alt-worker.example.workers.dev/'); assert.strictEqual(RP.url(), 'https://alt-worker.example.workers.dev', 'o adresă https bună rămâne');
+});
+test('v141: caseta cheii nu mai lasă managerul de parole să completeze adresa worker-ului', () => {
+  const h = src('lib/radar-ecran.js');
+  const u = /<input id="radUrl"[^>]*>/.exec(h)[0], p = /<input id="radParola"[^>]*>/.exec(h)[0];
+  assert.match(u, /type="url"/); assert.match(u, /autocomplete="off"/); assert.match(u, /data-1p-ignore|data-lpignore|data-protonpass-ignore/);
+  assert.match(p, /autocomplete="new-password"/, 'parola Radarului nu e o parolă de site salvată: fără completare automată');
+});
