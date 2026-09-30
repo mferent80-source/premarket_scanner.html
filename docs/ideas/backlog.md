@@ -3170,6 +3170,15 @@ pe un singur chart.
 | I-462 | Alerts: adresa tunelului in poza — „Deschide in Radar” merge si de pe telefon | crypto/scripts/colector.mjs + lib/radar-ecran.js | S | P2 | propus | ideation | 2026-09-27 |
 | I-463 | Radar: alerta Discord pe simbolurile paginii (miscare peste ATR-ul lor, insider nou) | crypto/scripts/colector.mjs + scripts/lib/poza.mjs | M | P2 | propus | ideation | 2026-09-27 |
 | I-464 | Alerts: curatenia dupa praguri (bulk bar, modal editare, CSS mort, meniul ⋯) | alerts/index.html | M | P3 | propus | ideation | 2026-09-27 |
+| I-465 | Radar: UN singur Consilier pe Tablou (verdict + 3 motive + o actiune), in locul celor 8 surse | crypto/public/app.js + lib/semnale-bot.js, sfaturi.js, consilier.js, tablou-extra.js, indicatori-bot.js | L | P1 | propus | ideation | 2026-09-30 |
+| I-466 | Radar: increderea fiecarui sfat, masurata pe TOTI botii (socoteala adunata) + sfaturile care nu bat hazardul tac | crypto/scripts/colector.mjs + lib/semnale-bot.js + functions/api/istoric-bot.js | M | P1 | propus | ideation | 2026-09-30 |
+| I-467 | Radar: „Ce as face eu” cu banii pe masa — fiecare actiune cu cat castigi/pierzi in USDT si ce cedezi | crypto/public/lib/semnale-bot.js, tablou-extra.js, sfaturi.js | M | P1 | propus | ideation | 2026-09-30 |
+| I-468 | Radar: frana contului pe zi/saptamana pentru botii reali (+ rand rosu in poarta) | crypto/public/lib/obiceiuri.js + scripts/colector.mjs + lib/alerte.js | M | P1 | propus | ideation | 2026-09-30 |
+| I-469 | Radar: situatii asemanatoare pe BOTI — vecinii din arhiva de ~2.256 si rezultatul LUI in ele | crypto/public/lib/obiceiuri.js (sau modul nou) + app.js (Tablou, poarta) | M | P2 | propus | ideation | 2026-09-30 |
+| I-470 | Radar: citirea graficului pentru grid — zona de valoare (profil de volum) si suport/rezistenta confirmate, fata de gridul botului | crypto/public/lib/grafic-bot.js + grid-calcul.js + grid-laborator.js | M | P2 | propus | ideation | 2026-09-30 |
+| I-471 | Radar: indicatorii cu dovada — langa fiecare celula „ce a urmat” pe moneda asta + „nedovedit” din laborator | crypto/public/lib/indicatori-bot.js + grid-laborator.js + app.js | M | P2 | propus | ideation | 2026-09-30 |
+| I-472 | Radar: jurnalul deciziilor — „am facut / n-am facut” la fiecare sfat, apoi ce sfaturi te-au ajutat pe TINE | crypto/public/app.js + functions/api/istoric-bot.js + lib/semnale-bot.js | S | P2 | propus | ideation | 2026-09-30 |
+| I-473 | Radar: „de ce s-a schimbat verdictul” — ce cifra a trecut ce prag, in Tablou si pe Discord | crypto/public/lib/semnale-bot.js + lib/alerte.js + app.js | S | P3 | propus | ideation | 2026-09-30 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4814,3 +4823,98 @@ opritor de pierderi (1.23.0 + 1.24.0). Ideile de mai jos ataca golurile RAMASE d
 - **Impact:** pagina mai usoara si mai putin de citit la urmatoarea schimbare; scorul din tools/inventar.mjs scade sub 84.
 - **Riscuri/dependente:** gardile vechi (alerts-poll-chain.test.mjs) cer anumite tipare — se pastreaza; poza reala langa demo inainte de „gata".
 - **Fisiere:** `alerts/index.html`, `tools/inventar.mjs` (doar masurare)
+
+### Ideation 2026-09-30 — Crypto Radar: sfaturi, consiliere, citirea graficului, indicatori (I-465..I-473)
+Context masurat inainte: Radarul are 8 surse de sfaturi (semafor, sfaturi.js, consilier.js, „Acum, concret”, „Ce spun indicatorii”,
+directie.js, poarta, TabloBot.verdict ascuns) care pot spune lucruri diferite (auditul 30.09: doua definitii de „trend” pe acelasi
+ecran); fiecare semnal isi tine socoteala pe bot (noteaza/judeca dupa 24 h), dar nimeni n-o aduna; laboratorul n-a dovedit nimic
+(2 „n-am aflat”, 1 „contrazis”); directia viitoare s-a cautat de 6 ori si nu ajuta botul. Excluse: „AI care citeste graficul din
+poza” (nivelurile unui LLM nu sunt niveluri reale — trader.md) si orice „predictie de directie”.
+
+#### I-465 · Un singur Consilier pe Tablou · [L] · P1 · propus
+- **Problema/golul:** 8 surse de sfaturi pe acelasi ecran, cu praguri diferite (TabloBot.verdict: margine 15%, ATR 5m; semaforul:
+  alte praguri; fisa „long, tare” langa „Direcția pieței: lateral”). Omul trebuie sa le impace singur — exact ce nu vrea.
+- **Solutia:** un modul pur care primeste toate semnalele si scoate UN verdict (TINE / ATENTIE / IESI), cele 3 motive care
+  cantaresc cel mai mult (dupa bani in joc si dupa increderea masurata — I-466) si O actiune „ce as face eu” cu cifre. Restul
+  (sfaturile marunte, indicatorii) sub „de ce” pliat. O singura definitie de trend pe Tablou. TabloBot.verdict scos.
+- **Impact:** decizie mai rapida si fara contradictii; mai putine „ATENTIE” care se bat cap in cap.
+- **Riscuri/dependente:** e o reasezare de ecran — inventar „nimic pierdut” inainte/dupa, poza langa demo; depinde de I-466 pentru ordonare.
+- **Fisiere:** `crypto/public/app.js` (tbRender*), `public/lib/semnale-bot.js`, `sfaturi.js`, `consilier.js`, `tablou-extra.js`, `indicatori-bot.js`, `tablou-bot.js`
+
+#### I-466 · Increderea fiecarui sfat, masurata pe toti botii · [M] · P1 · propus
+- **Problema/golul:** „socoteala” judeca fiecare semnal dupa 24 h, dar pe un singur bot si nu se vede nicaieri adunat. Nu stim
+  care sfat chiar a salvat bani si care e zgomot — deci toate cantaresc la fel.
+- **Solutia:** colectorul aduna socoteala tuturor botilor (KV `semnale:*`) intr-un tabel pe tip de sfat: de cate ori, cate au avut
+  dreptate, USDT salvati/pierduti daca-l urmai, intervalul de incredere (Wilson). Langa fiecare sfat pe Tablou: „a avut dreptate
+  14 din 22 (64%), a salvat ~31 USDT”. Sub 10 cazuri: „inca nu stim”. Un sfat care dupa ≥30 de cazuri nu bate hazardul
+  trece pe „liniste” (se vede doar in „de ce”), nu mai suna pe Discord. In raportul de duminica: cel mai util / cel mai inutil sfat.
+- **Impact:** increderea vine din cifre, nu din ton; mai putine alerte care nu ajuta.
+- **Riscuri/dependente:** judecata „24 h, 0,5% din investitie” e ea insasi o ipoteza — se spune; out-of-sample: se judeca doar
+  cazurile de DUPA pornirea masuratorii.
+- **Fisiere:** `crypto/scripts/colector.mjs`, `public/lib/semnale-bot.js` (socoteala), `functions/api/istoric-bot.js` (actiune noua), `public/app.js`
+
+#### I-467 · „Ce as face eu” cu banii pe masa · [M] · P1 · propus
+- **Problema/golul:** sfaturile spun ce sa faci („muta stopul”, „aș rări grilele”, „încasează”), rar cat te costa sau cat castigi.
+  La LIGHTER stopul costa ~60 USDT fata de −15,7 din plan — cifra a venit abia dupa.
+- **Solutia:** fiecare actiune propusa poarta doua cifre: ce schimba in cel mai rau caz (pierderea maxima inainte/dupa) si ce
+  cedezi (ex. „iesi mai devreme in ~22% din ferestre”, din simularea pe istoric sau din totalCuGridLa). Actiunile se ordoneaza dupa
+  pierderea maxima evitata pe USDT de castig cedat.
+- **Impact:** decizii pe bani, nu pe cuvinte; prinde din timp situatii ca LIGHTER.
+- **Riscuri/dependente:** simularea are limite (lumanari de 15M, drumul O-L-H-C) — se scrie langa cifra.
+- **Fisiere:** `crypto/public/lib/semnale-bot.js` (acumConcret), `tablou-extra.js` (totalCuGridLa, planStare), `sfaturi.js`
+
+#### I-468 · Frana contului pentru botii reali · [M] · P1 · propus
+- **Problema/golul:** 2026: −5.169,75 USDT pe 1.770 de boti; inchisi in prima ora: −2.065 USDT. Frana exista doar pe hartie
+  (paperCircuitBreaker); poarta nu intreaba cat ai pierdut azi / saptamana asta.
+- **Solutia:** netul botilor inchisi azi (ora Romaniei) + pierderea celor deschisi, fata de praguri puse de el (ex. −20/zi, −60/saptamana,
+  3 inchideri pe minus la rand). Peste prag: o alerta critica o data („gata pe azi”) si rand rosu in poarta. Avertizeaza, nu blocheaza.
+  Pe arhiva: cat ar fi salvat regula in 2026 (spus ca ipoteza, nu ca promisiune).
+- **Impact:** opreste seria de reporniri pe minus (tiparul cel mai scump din jurnalul lui).
+- **Riscuri/dependente:** pragurile sunt ale lui (setare cu buton); contrafactualul pe arhiva e in-sample.
+- **Fisiere:** `crypto/public/lib/obiceiuri.js` (poarta), `scripts/colector.mjs`, `public/lib/alerte.js`, `public/app.js` (setare)
+
+#### I-469 · Situatii asemanatoare pe BOTI · [M] · P2 · propus
+- **Problema/golul:** consilierul are „situatii asemanatoare” doar pe actiuni T212; la boti, istoricul e doar pe moneda
+  (Obiceiuri.istoricMoneda) — nu pe tipul de situatie.
+- **Solutia:** pentru botul de acum (sau cel pe care-l pornesti): cei mai apropiati boti ai LUI din arhiva de ~2.256, dupa regim,
+  latimea si pasul gridului, levier, directie, ora pornirii, trendul 4h. Se arata distributia lor: „in 38 de situatii ca asta: median
+  −1,2 USDT, 61% pe plus, cel mai rau −14”. Sub 10 vecini: „prea putine”.
+- **Impact:** sfatul vine din comportamentul LUI, nu din reguli generale.
+- **Riscuri/dependente:** vecinii se aleg doar pe ce se stia la pornire (fara informatie din viitor); fereastra de invatare refacuta.
+- **Fisiere:** `crypto/public/lib/obiceiuri.js` sau modul nou, `public/app.js` (Tablou + poarta), `public/lib/jurnal-trade.js`
+
+#### I-470 · Citirea graficului pentru grid: zona de valoare si nivelurile confirmate · [M] · P2 · propus
+- **Problema/golul:** intervalul gridului vine din percentila latimii pe 2 zile; graficul arata EMA/Bollinger/RSI/profil de volum,
+  dar nimeni nu le leaga de grid („marginea de jos e sub suport?”, „gridul acopera zona unde s-a tranzactionat?”).
+- **Solutia:** din profilul de volum pe 7 zile (deja desenat): POC si zona de valoare (70%); din pivotii CONFIRMATI (nu ultima bara):
+  suport/rezistenta. Pe Tablou si in fisa: „gridul acopera 82% din zona de valoare; marginea de jos e cu 1,4% sub suportul X”.
+  Varianta de interval ancorata pe zona de valoare intra in laborator ca intrebare noua (ipoteza, nu regula).
+- **Impact:** o citire a graficului legata direct de setarile botului.
+- **Riscuri/dependente:** fara repaint (doar pivoti inchisi); se valideaza in laborator inainte sa schimbe propunerea.
+- **Fisiere:** `crypto/public/lib/grafic-bot.js`, `grid-calcul.js`, `grid-laborator.js`, `public/app.js`
+
+#### I-471 · Indicatorii cu dovada · [M] · P2 · propus
+- **Problema/golul:** „Ce spun indicatorii” traduce RSI, EMA, MACD etc. in celule, dar fara sa spuna daca starea respectiva a
+  insemnat ceva pe moneda asta; laboratorul spune „n-am aflat”, dar Tabloul nu.
+- **Solutia:** langa fiecare celula, frecventa din istoricul monedei a ce a urmat (ex. „RSI peste 70 in liniste: in 12 h pretul a
+  iesit din grid in 9 din 31 de cazuri”), cu numarul de cazuri; celulele fara informatie (fata de hazard) se pliaza sub „fara semn”.
+  Marcaj „nedovedit” pentru ce laboratorul n-a confirmat.
+- **Impact:** mai putin zgomot, mai multa incredere unde chiar exista.
+- **Riscuri/dependente:** frecvente, nu predictii; atentie la ferestre suprapuse (cazuri independente).
+- **Fisiere:** `crypto/public/lib/indicatori-bot.js`, `grid-laborator.js`, `public/app.js`
+
+#### I-472 · Jurnalul deciziilor · [S] · P2 · propus
+- **Problema/golul:** socoteala judeca sfatul, dar nu stie daca l-a URMAT. Nu se poate spune „cand m-ai ascultat, ai castigat X”.
+- **Solutia:** la fiecare sfat de actiune doua butoane mici „am făcut” / „n-am făcut” (tinute in KV cu ora si cifrele de atunci);
+  dupa 30 de cazuri: rezultatul cand a urmat vs cand n-a urmat, pe tip de sfat.
+- **Impact:** masoara valoarea sfaturilor pe comportamentul lui real.
+- **Riscuri/dependente:** depinde de apasarea butoanelor; fara ele cifra ramane goala, nu inventata.
+- **Fisiere:** `crypto/public/app.js`, `functions/api/istoric-bot.js`, `public/lib/semnale-bot.js`
+
+#### I-473 · „De ce s-a schimbat verdictul” · [S] · P3 · propus
+- **Problema/golul:** cand semaforul trece din TINE in ATENTIE sau IESI, se vede noul motiv, nu ce s-a schimbat.
+- **Solutia:** la fiecare trecere, diferenta: ce cifra a trecut ce prag (ex. „lichidarea 16,2% -> 14,8%, pragul 15%”), in Tablou
+  (sub verdict) si in alerta Discord.
+- **Impact:** intelegi pe loc daca e o schimbare reala sau o oscilatie la prag.
+- **Riscuri/dependente:** mic; foloseste starea tinuta deja de noteaza().
+- **Fisiere:** `crypto/public/lib/semnale-bot.js`, `public/lib/alerte.js`, `public/app.js`
