@@ -24,18 +24,28 @@ function incarca(cuCache) {
 }
 const T = (s) => Date.parse(s);
 
-test('citireMs: 1 minut 16:30–23:00 RO, nimic 23:00–08:00, 5 minute in rest (si iarna, UTC+2)', () => {
+test('citireMs (el, 01.10): 08–16 la 3 min, 16–17 la 30 s, 17–23 la 1,5 min, 23–08 nimic (ora Romaniei, si iarna)', () => {
   const { RP } = incarca(true);
   assert.equal(typeof RP.citireMs, 'function', 'lipseste RadarPoza.citireMs');
-  assert.equal(RP.citireMs(T('2026-10-01T14:00:00Z')), 60000, '17:00 RO');
-  assert.equal(RP.citireMs(T('2026-10-01T09:00:00Z')), 300000, '12:00 RO');
+  assert.equal(RP.citireMs(T('2026-10-01T09:00:00Z')), 180000, '12:00 RO');
+  assert.equal(RP.citireMs(T('2026-10-01T13:00:00Z')), 30000, '16:00 RO');
+  assert.equal(RP.citireMs(T('2026-10-01T14:00:00Z')), 90000, '17:00 RO');
   assert.equal(RP.citireMs(T('2026-10-01T20:00:00Z')), null, '23:00 RO');
   assert.equal(RP.citireMs(T('2026-10-02T04:59:00Z')), null, '07:59 RO');
-  assert.equal(RP.citireMs(T('2026-12-01T15:00:00Z')), 60000, 'iarna 17:00 RO');
+  assert.equal(RP.citireMs(T('2026-12-01T14:30:00Z')), 30000, 'iarna 16:30 RO');
+  assert.match(readFileSync(join(ROOT, 'lib', 'radar-poza.js'), 'utf8'), /setInterval\(function \(\) \{ f\(false\); \}, 30000\)/, 'ceasul paginii la 30 s');
 });
 test('noaptea nu citeste (nici la revenirea pe pagina) cand are deja o poza; fara nicio poza citeste o data', async () => {
   const noapte = T('2026-10-02T00:00:00Z');
   const a = incarca(true); await a.RP.citeste({ acum: noapte, vizibil: true, fortat: true }); assert.equal(a.apeluri.length, 0, 'noaptea, cu poza in cache: nicio cerere');
   const b = incarca(false); await b.RP.citeste({ acum: noapte }); assert.equal(b.apeluri.length, 1, 'fara poza: o citire');
   const c = incarca(true); await c.RP.citeste({ acum: T('2026-10-01T14:00:00Z') }); assert.equal(c.apeluri.length, 1, 'ziua: citeste');
+});
+test('noaptea pagina nu zice „tace / oprit”: pauza de noapte (23:00–08:00 si primele 10 minute dupa 08:00); ziua ramane ca inainte', () => {
+  const { RP } = incarca(true);
+  const p = RP.prospetime({ la: T('2026-10-01T19:59:00Z') }, T('2026-10-01T23:00:00Z'));   // poza 22:59 RO, acum 02:00 RO
+  assert.equal(p.stare, 'noapte', JSON.stringify(p)); assert.match(p.text, /pauză de noapte/);
+  assert.equal(RP.prospetime({ la: T('2026-10-01T19:59:00Z') }, T('2026-10-02T05:05:00Z')).stare, 'noapte', '08:05 RO: colectorul abia porneste');
+  assert.equal(RP.prospetime({ la: T('2026-10-02T07:00:00Z') }, T('2026-10-02T09:00:00Z')).stare, 'oprit', '12:00 RO, poza de la 10:00: oprit, ca inainte');
+  assert.match(readFileSync(join(ROOT, 'lib', 'radar-ecran.js'), 'utf8'), /stare === 'noapte'/, 'ecranul stie starea noapte');
 });
