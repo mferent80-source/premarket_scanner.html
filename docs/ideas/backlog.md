@@ -3179,6 +3179,12 @@ pe un singur chart.
 | I-471 | Radar: indicatorii cu dovada — langa fiecare celula „ce a urmat” pe moneda asta + „nedovedit” din laborator | crypto/public/lib/indicatori-bot.js + grid-laborator.js + app.js | M | P2 | propus | ideation | 2026-09-30 |
 | I-472 | Radar: jurnalul deciziilor — „am facut / n-am facut” la fiecare sfat, apoi ce sfaturi te-au ajutat pe TINE | crypto/public/app.js + functions/api/istoric-bot.js + lib/semnale-bot.js | S | P2 | propus | ideation | 2026-09-30 |
 | I-473 | Radar: „de ce s-a schimbat verdictul” — ce cifra a trecut ce prag, in Tablou si pe Discord | crypto/public/lib/semnale-bot.js + lib/alerte.js + app.js | S | P3 | propus | ideation | 2026-09-30 |
+| I-474 | Radar: O singura voce peste tot - verdictul si actiunea Consilierului si pe pagina alerts (poza) si in alertele Discord | crypto/scripts/colector.mjs + scripts/lib/poza.mjs + public/lib/consiliu.js + premarket_scanner/lib/radar-ecran.js | M | P1 | propus | ideation | 2026-10-01 |
+| I-475 | Radar: planul potrivit monedei - la scrierea planului, cat de des o zi obisnuita atinge stopul si pragul propus (ex. atins in cel mult 1 zi din 4) | crypto/public/lib/tablou-extra.js + app.js (Planul tau, poarta) | S | P1 | propus | ideation | 2026-10-01 |
+| I-476 | Radar: pe grafic, banda „zilei obisnuite” de la pretul de acum + liniile Consilierului (stopul de acum, stopul planului, marginea) | crypto/public/lib/grafic-bot.js + app.js | M | P2 | propus | ideation | 2026-10-01 |
+| I-477 | Radar: ritmul promis vs real - perechile pe zi ale botului fata de estimarea fisei; sub jumatate -> semnal si calibrarea probei pe moneda | crypto/public/lib/tablou-extra.js + semnale-bot.js + grid-proba.js | M | P2 | propus | ideation | 2026-10-01 |
+| I-478 | Radar: autopsia sfaturilor gresite - in raportul de duminica, cele mai scumpe 2-3 cazuri in care un sfat a gresit, cu ce a urmat | crypto/scripts/colector.mjs + public/lib/obiceiuri.js | M | P2 | propus | ideation | 2026-10-01 |
+| I-479 | Radar: ordinea motivelor dupa banii MASURATI (socoteala >=10 cazuri), nu dupa lista fixa | crypto/public/lib/consiliu.js | S | P3 | propus | ideation | 2026-10-01 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4918,3 +4924,66 @@ poza” (nivelurile unui LLM nu sunt niveluri reale — trader.md) si orice „p
 - **Impact:** intelegi pe loc daca e o schimbare reala sau o oscilatie la prag.
 - **Riscuri/dependente:** mic; foloseste starea tinuta deja de noteaza().
 - **Fisiere:** `crypto/public/lib/semnale-bot.js`, `public/lib/alerte.js`, `public/app.js`
+
+### Ideation 2026-10-01 — a doua runda pe sfaturi / consiliere / grafic (I-474..I-479)
+Context: dupa v100.43-v100.44 (increderea sfaturilor, frana, banii pe cartela Stopul, Consilierul unic). Cifre de pornire: pe CRV stopul
+planului (0.3837) e atins de o zi obisnuita in ~58% din zile; „Ține-l” 10 din 21 (~−126 USDT); frana ar fi oprit 1.248 din 1.722 porniri
+in 2026. Inca propuse din runda trecuta: I-469..I-473 (nerepropuse aici).
+
+#### I-474 · O singura voce peste tot · [M] · P1 · propus
+- **Problema/golul:** Tabloul are acum Consilierul (un verdict, o actiune cu bani), dar pagina alerts de pe telefon si alertele Discord
+  vin din regulile vechi (semaforul). Acelasi bot poate fi „ATENȚIE, las stopul si trec planul la −10” pe PC si „ȚINE” pe telefon.
+- **Solutia:** colectorul calculeaza Consiliu.alcatuieste la fiecare tura (are deja semaforul, cartelele, socoteala) si il pune in poza
+  (nivel, titlu, faCe, bani). Pagina alerts arata verdictul si actiunea pe randul botului; alerta Discord de schimbare de verdict poarta
+  actiunea Consilierului si banii.
+- **Impact:** aceeasi recomandare oriunde te uiti; noaptea, pe telefon, vezi actiunea, nu doar starea.
+- **Riscuri/dependente:** colectorul n-are lumanarile de 15M ale Tabloului pentru „ce cedezi” - fie le aduce o data pe ora, fie lasa
+  rândul fara frecventa. Scrierile KV raman aceleasi (poza e deja o scriere).
+- **Fisiere:** `crypto/scripts/colector.mjs`, `scripts/lib/poza.mjs`, `public/lib/consiliu.js`, `premarket_scanner/lib/radar-ecran.js`
+
+#### I-475 · Planul potrivit monedei · [S] · P1 · propus
+- **Problema/golul:** planurile lui pe minus sunt scrise la rece, dar fara sa stie cat de des le atinge piata. Pe CRV stopul planului
+  e atins in ~58% din zile - un plan asa iese pe minus din zgomot, nu din greseala botului. „Încape planul?” verifica doar levierul.
+- **Solutia:** in „Planul tău” si in poarta, langa pragul pe minus: „o zi obișnuită ajunge la stopul ăsta în N% din zile”
+  (TabloExtra.frecventaAtingere pe lumanarile fisei) si un prag propus pentru cel mult 1 zi din 4, cu ce inseamna in USDT. Avertizeaza
+  cand planul e atins in peste jumatate din zile.
+- **Impact:** planuri care nu se inchid din zgomot; mai putine iesiri pe minus „cum am hotarat”, dar prost hotarat.
+- **Riscuri/dependente:** frecventa e pe ultimele 30 de zile - se spune; pragul „1 zi din 4” e o ipoteza (de urmarit in socoteala).
+- **Fisiere:** `crypto/public/lib/tablou-extra.js` (frecventaAtingere, incapePlanul), `public/app.js` (tbPlan*, grPoartaHtml)
+
+#### I-476 · Pe grafic: banda zilei obisnuite si liniile Consilierului · [M] · P2 · propus
+- **Problema/golul:** graficul arata gridul, zero-ul, planul, stopul, lichidarea - dar nu cat de departe merge pretul intr-o zi
+  obisnuita. „Ce cedezi: 58% din zile” e o cifra; pe grafic ar fi evident.
+- **Solutia:** o banda discreta de la pretul de acum pana la miscarea tipica pe o zi (percentila 50 si 75, din lumanarile de 15M) si
+  liniile pe care le compara Consilierul (stopul de acum vs al planului) evidentiate cand Consilierul vorbeste de ele.
+- **Impact:** citirea graficului legata direct de sfat - vezi dintr-o privire ca stopul sta in interiorul unei zile obisnuite.
+- **Riscuri/dependente:** fara aglomerare pe grafic (comutator ca la Bollinger/EMA); culorile trec validatorul dataviz.
+- **Fisiere:** `crypto/public/lib/grafic-bot.js`, `public/app.js`
+
+#### I-477 · Ritmul promis vs real · [M] · P2 · propus
+- **Problema/golul:** fisa promite „~N perechi încheiate pe zi” (din simularea pe lumanari de 15M, care nu prinde drumul din
+  interiorul lumanarii); botul real face altceva (CRV: 21 de umpleri in 24 h). Nimeni nu compara - iar proba e baza verdictului.
+- **Solutia:** pentru botul care ruleaza: perechile reale pe zi (ordinePerechi / zile) fata de estimarea fisei la pornire; sub 50%
+  -> semnal in Consilier („gridul lucrează de 2× mai rar decât promitea fișa”). Pe toti botii inchisi: raportul real/estimat pe
+  moneda, folosit ca factor de corectie al probei (cu numarul de cazuri).
+- **Impact:** fisa devine mai cinstita pe moneda lui; propunerile de grid des se judeca pe ce face Pionex, nu pe model.
+- **Riscuri/dependente:** factorul de corectie e in-sample - se aplica doar de la 10 boti pe moneda; estimarea de la pornire trebuie
+  salvata (jurnalul gridurilor o are pentru botii porniti din fisa).
+- **Fisiere:** `crypto/public/lib/tablou-extra.js`, `semnale-bot.js`, `grid-proba.js`, `grid-jurnal.js`
+
+#### I-478 · Autopsia sfaturilor gresite · [M] · P2 · propus
+- **Problema/golul:** socoteala spune CAT de des a gresit un sfat („Ține-l” 11 din 21, ~−126 USDT), nu CAND si DE CE.
+- **Solutia:** in raportul de duminica (si o pagina mica in Jurnal): cele 2-3 cazuri in care un sfat a costat cel mai mult, cu starea
+  de atunci (pretul in grid, miscarea, trendul) si ce a urmat (graficul mic al botului). Daca un tipar se repeta (ex. „Ține-l” la
+  sub 10% din interval), se propune o regula noua - ca ipoteza, de urmarit in socoteala.
+- **Impact:** sfaturile se repara pe cazurile lui reale, nu pe intuitie.
+- **Riscuri/dependente:** cazurile sunt putine o vreme; nu se schimba nicio regula fara cererea lui.
+- **Fisiere:** `crypto/scripts/colector.mjs` (turaRaport), `public/lib/obiceiuri.js`, `public/lib/semnale-bot.js`
+
+#### I-479 · Ordinea motivelor dupa banii masurati · [S] · P3 · propus
+- **Problema/golul:** Consilierul ordoneaza motivele de acelasi nivel dupa o lista fixa (lichidare, stop, margine, costuri...).
+- **Solutia:** cand un sfat are cel putin 10 cazuri judecate, conteaza si cati bani a salvat urmat - sfaturile dovedite urca, cele care
+  au costat coboara (fara sa tie vreodata lichidarea si planul lui).
+- **Impact:** primul motiv e cel care, pe botii lui, a contat cel mai mult.
+- **Riscuri/dependente:** depinde de I-466 (socoteala) - pana la 10 cazuri ramane ordinea fixa.
+- **Fisiere:** `crypto/public/lib/consiliu.js`
