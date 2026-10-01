@@ -3185,6 +3185,16 @@ pe un singur chart.
 | I-477 | Radar: ritmul promis vs real - perechile pe zi ale botului fata de estimarea fisei; sub jumatate -> semnal si calibrarea probei pe moneda | crypto/public/lib/tablou-extra.js + semnale-bot.js + grid-proba.js | M | P2 | propus | ideation | 2026-10-01 |
 | I-478 | Radar: autopsia sfaturilor gresite - in raportul de duminica, cele mai scumpe 2-3 cazuri in care un sfat a gresit, cu ce a urmat | crypto/scripts/colector.mjs + public/lib/obiceiuri.js | M | P2 | propus | ideation | 2026-10-01 |
 | I-479 | Radar: ordinea motivelor dupa banii MASURATI (socoteala >=10 cazuri), nu dupa lista fixa | crypto/public/lib/consiliu.js | S | P3 | propus | ideation | 2026-10-01 |
+| I-480 | Radar: gridul ingust urmarit INAINTE - fiecare propunere notata si judecata dupa H ore pe preturile reale | crypto/public/lib/grid-proba.js, scripts/lib/tura-ingust.mjs | M | P1 | propus | ideation | 2026-10-01 |
+| I-481 | Radar: ceasul gridului ingust - botul pornit cu setarile ingustei primeste alerta la H ore (inchide-l) si la iesirea din interval | crypto/scripts/colector.mjs, public/lib/consiliu.js | S | P1 | propus | ideation | 2026-10-01 |
+| I-482 | Radar: funding-ul in proba gridului - rata reala pe 8 h din istoric intra in net (long plateste cand e pozitiva) | crypto/public/lib/grid-proba.js, functions/api/market.js | M | P1 | propus | ideation | 2026-10-01 |
+| I-483 | Radar: comisionul REAL pe moneda, din umplerile tale (maker/taker), in locul lui 0,02 % / 0,05 % fix | crypto/public/lib/grid-calcul.js, public/lib/grid-umpleri.js | M | P2 | propus | ideation | 2026-10-01 |
+| I-484 | Radar: proba gridului pe 3 taieturi in timp (walk-forward), verdict doar daca tine in majoritatea lor | crypto/public/lib/grid-proba.js | M | P2 | propus | ideation | 2026-10-01 |
+| I-485 | T212: sectorul actiunilor (Yahoo, o data pe luna) - „acelasi sector” in situatii ca asta + concentrarea pe sector | crypto/functions/api/t212.js, public/lib/actiuni-semnale.js, public/lib/t212-ecran.js | M | P2 | propus | ideation | 2026-10-01 |
+| I-486 | Radar: probele de ecran rulate singure noaptea, cu Discord la picare (azi le rulez de mana) | crypto/scripts/colector.mjs, scripts/proba-ecran-*.mjs | S | P2 | propus | ideation | 2026-10-01 |
+| I-487 | Radar: stresul comun crypto + actiuni - ce pierzi daca Nasdaq si BTC scad 10 % in aceeasi zi (lichidari incluse) | crypto/public/lib/acasa.js, public/lib/tablou-extra.js | M | P2 | propus | ideation | 2026-10-01 |
+| I-488 | Radar: ideile de BOTI urmarite - ce-ar fi facut fiecare idee (fisa din ziua ei) vs botii pe care i-ai pornit | crypto/public/lib/idei.js, scripts/colector.mjs | M | P3 | propus | ideation | 2026-10-01 |
+| I-489 | Radar: fisa gridului scoasa din app.js (6.788 randuri) intr-un lib/grid-ecran.js, probata fara Chrome | crypto/public/app.js, public/lib/grid-ecran.js | L | P3 | propus | ideation | 2026-10-01 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -4987,3 +4997,77 @@ in 2026. Inca propuse din runda trecuta: I-469..I-473 (nerepropuse aici).
 - **Impact:** primul motiv e cel care, pe botii lui, a contat cel mai mult.
 - **Riscuri/dependente:** depinde de I-466 (socoteala) - pana la 10 cazuri ramane ordinea fixa.
 - **Fisiere:** `crypto/public/lib/consiliu.js`
+
+### Ideation 2026-10-01 seara — imagine de ansamblu dupa ziua de azi (Crypto Radar: boti + actiuni T212 + gridul ingust)
+Excluse: I-223, I-378, I-390, I-391, I-416, I-417 (respinse) si I-465..I-479 (facute azi in cod, inca marcate „propus” - statusurile se schimba doar la cererea lui).
+Ideile cu semnal/prag sunt IPOTEZE: se valideaza out-of-sample (cazuri de DUPA schimbare), pe minim ~10 cazuri pe categorie, separat pe regim.
+
+#### I-480 · Gridul ingust urmarit INAINTE · [M] · P1 · propus
+- **Problema:** gridul ingust se alege pe 2/3 din istoric si se judeca pe 1/3 - tot trecut. Prima rulare (01.10): 0 din 5 propuse, 3 la limita (57-60 % ferestre pe plus). Nu stim cum se comporta pe preturi pe care proba nu le-a vazut deloc.
+- **Solutia:** colectorul noteaza fiecare rezultat (propus sau nu) cu setarea si pretul de atunci; dupa H ore il judeca pe barele reale de 15 min cu acelasi simulator (net dupa comisioane). In idei si in fisa: „din N propuneri urmarite: X pe plus, median Y” - si, separat, ce ar fi facut cele NEpropuse.
+- **Impact:** singura proba fara privit in viitor; spune daca pragul (Wilson > 50 %) e prea strict sau prea larg.
+- **Riscuri/dependente:** sub ~30 de cazuri judecate e zgomot (se spune pe fata); KV local.
+- **Fisiere:** `crypto/public/lib/grid-proba.js`, `crypto/scripts/lib/tura-ingust.mjs`, `crypto/functions/api/istoric-bot.js`
+
+#### I-481 · Ceasul gridului ingust · [S] · P1 · propus
+- **Problema:** gridul ingust a fost probat cu inchidere la H ore; daca el il lasa sa mearga, rezultatul nu mai seamana cu proba (si un interval ingust iese repede din pret).
+- **Solutia:** cand un bot activ are intervalul si liniile variantei ingusta a monedei (tolerant la rotunjiri), Tabloul il marcheaza „grid ingust · inchide-l la HH:MM” si colectorul trimite o alerta la H ore si la iesirea din interval (o singura data).
+- **Impact:** executia urmeaza proba; previne „las-o ca-si revine” pe un interval de 2 %.
+- **Riscuri/dependente:** recunoasterea botului dupa setari poate da fals pozitiv - doar cand se potrivesc jos/sus/linii.
+- **Fisiere:** `crypto/scripts/colector.mjs`, `crypto/public/lib/consiliu.js`, `crypto/public/lib/grid-proba.js`
+
+#### I-482 · Funding-ul in proba gridului · [M] · P1 · propus
+- **Problema:** `GridProba.simuleaza` nu socoteste funding-ul (grep: 0 aparitii in grid-proba/grid-calcul); pe perpetuu, un long tinut 2 zile pe o moneda cu funding mare plateste de 6 ori. Proba poate da long „pe plus” care in realitate pierde.
+- **Solutia:** istoricul ratei de funding (8 h) al monedei intra in simulare: la fiecare decontare, pozitia deschisa plateste/primeste rata × valoarea ei. In fisa: „din care funding: −X %”.
+- **Impact:** verdicte long/short mai cinstite pe monedele cu funding extrem (exact cele „la moda”).
+- **Riscuri/dependente:** sursa istoricului de funding pe Pionex (sau Binance ca aproximare - spus pe fata); probele vechi (v78) trebuie sa ramana verzi cu funding 0.
+- **Fisiere:** `crypto/public/lib/grid-proba.js`, `crypto/functions/api/market.js`
+
+#### I-483 · Comisionul REAL pe moneda · [M] · P2 · propus
+- **Problema:** proba foloseste 0,02 % maker / 0,05 % taker fix (masurat pe CRV). Pe un grid ingust cu 0,30 % pe treapta, 0,01 % in plus pe umplere muta rezultatul.
+- **Solutia:** din umplerile reale ale botilor lui (istoria Pionex, deja stransa) se masoara comisionul pe moneda si tip de ordin; proba il foloseste cand exista >= 30 de umpleri, altfel ramane cel fix.
+- **Impact:** gridurile dese/ingust judecate pe costul lui real.
+- **Riscuri/dependente:** umplerile partiale; monede fara boti -> fix.
+- **Fisiere:** `crypto/public/lib/grid-calcul.js`, `crypto/public/lib/grid-umpleri.js`
+
+#### I-484 · Proba gridului pe 3 taieturi in timp · [M] · P2 · propus
+- **Problema:** o singura taietura 2/3 / 1/3 - o saptamana neobisnuita in ultima treime decide totul.
+- **Solutia:** walk-forward: alege pe [0, 50 %] -> testeaza pe [50, 67 %], alege pe [0, 67 %] -> testeaza pe [67, 83 %], alege pe [0, 83 %] -> testeaza pe [83, 100 %]; verdictul „dovedit” doar daca tine in cel putin 2 din 3. In fisa: cele 3 rezultate unul langa altul.
+- **Impact:** mai putine propuneri norocoase; spune cand o setare „tine” in regimuri diferite.
+- **Riscuri/dependente:** timp de calcul ×3 (pe pagina - de masurat; altfel doar in colector).
+- **Fisiere:** `crypto/public/lib/grid-proba.js`
+
+#### I-485 · Sectorul actiunilor · [M] · P2 · propus
+- **Problema:** pachetul 4 n-a putut face „acelasi sector” (n-avem sectorul); portofoliul (7 pozitii) poate fi un singur pariu pe acelasi sector fara sa se vada.
+- **Solutia:** sectorul si industria din Yahoo (o data pe luna pe ticker, KV local); „in situatii ca asta” adauga „acelasi sector, aceeasi stare”; portofoliul arata concentrarea pe sector (> 40 % ⇒ avertisment).
+- **Impact:** riscul ascuns de corelatie pe actiuni devine vizibil.
+- **Riscuri/dependente:** Yahoo limiteaza cererile; sectorul lipsa ⇒ „necunoscut”, nu ghicit.
+- **Fisiere:** `crypto/functions/api/t212.js`, `crypto/public/lib/actiuni-semnale.js`, `crypto/public/lib/t212-ecran.js`
+
+#### I-486 · Probele de ecran rulate singure noaptea · [S] · P2 · propus
+- **Problema:** `proba-ecran-t212/grid/tablou` nu intra in `npm test` si se ruleaza de mana; azi (01.10) au prins RATE_LIMITED si un rand care nu aparea - doar fiindca le-am rulat.
+- **Solutia:** o data pe noapte (in pauza pozei, 23-08), colectorul ruleaza cele 3 probe de ecran; la o picare trimite pe Discord ce test a picat si poza.
+- **Impact:** o pagina stricata se afla dimineata, nu cand o deschide el.
+- **Riscuri/dependente:** Chrome pe PC-ul de acasa; nu ruleaza peste clasament/laborator.
+- **Fisiere:** `crypto/scripts/colector.mjs`, `crypto/scripts/proba-ecran-*.mjs`
+
+#### I-487 · Stresul comun crypto + actiuni · [M] · P2 · propus
+- **Problema:** „Daca Nasdaq scade 10 %” e doar pe actiuni; lichidarile botilor sunt separat. In zilele de panica scad amandoua.
+- **Solutia:** pe Acasa, un rand: „Nasdaq −10 % si BTC −10 % in aceeasi zi: actiunile −X lei (beta), botii −Y USDT, Z boti ajung la lichidare” - din beta-urile existente si niveluriBot.
+- **Impact:** riscul total, nu pe bucati.
+- **Riscuri/dependente:** beta-ul altcoinurilor fata de BTC (masurat, nu presupus 1).
+- **Fisiere:** `crypto/public/lib/acasa.js`, `crypto/public/lib/tablou-extra.js`
+
+#### I-488 · Ideile de BOTI urmarite · [M] · P3 · propus
+- **Problema:** ideile de actiuni se urmaresc (Idei.urmarire), ideile de boti nu: nu stim daca „Pe ce as porni un bot acum” bate ce porneste el.
+- **Solutia:** zilnic, fisa fiecarei idei de bot se noteaza (setare + pret); dupa 2 zile se judeca pe 15 min cu simulatorul; alaturi, botii lui reali din aceeasi perioada.
+- **Impact:** dovada daca ideile merita urmate.
+- **Riscuri/dependente:** ~30 de idei pana la o concluzie (~1-2 saptamani).
+- **Fisiere:** `crypto/public/lib/idei.js`, `crypto/scripts/colector.mjs`
+
+#### I-489 · Fisa gridului scoasa din app.js · [L] · P3 · propus
+- **Problema:** `public/app.js` are 6.788 de randuri; fisa gridului (renderGrid, grRand, grIngustHtml…) se poate proba doar cu Chrome, cum s-a vazut azi (textul dublat, prins doar pe poza).
+- **Solutia:** ca la `t212-ecran.js`: un `lib/grid-ecran.js` cu functii care intorc HTML, probate in Node pe fise reale salvate.
+- **Impact:** buguri de afisare prinse in `npm test`.
+- **Riscuri/dependente:** mutare mare; pas cu pas, cu inventar inainte/dupa (regula „nu se pierde nimic pe drum”).
+- **Fisiere:** `crypto/public/app.js`, `crypto/public/lib/grid-ecran.js`
