@@ -66,7 +66,7 @@
   frame.onload=function(){loading.hidden=true;try{
       var doc=frame.contentDocument;var css=doc.createElement('style');css.textContent='#btnWsRevert{display:none!important}';doc.head.appendChild(css);
       function route(href){var x=new URL(href,frame.src),base=new URL('../',location.href).pathname;if(x.origin!==location.origin)return null;var u=x.pathname.replace(base,'').replace(/index\.html$/,'');if(!u||u==='shell/'||u==='hub-clasic/'||u==='command-center/')return 'desk/';if(x.hash&&all.some(function(m){return m.u===u+x.hash;}))u+=x.hash;return all.some(function(m){return m.u===u;})?u:false;}
-      doc.querySelectorAll('a[href]').forEach(function(a){var href=a.getAttribute('href');if(!href||href[0]==='#')return;var u=route(href);if(u===false){a.hidden=true;a.style.display='none';return;}if(u!==null){a.addEventListener('click',function(e){e.preventDefault();openModule(u);});if(/Hub|Shell|Clasic/i.test(a.textContent))a.textContent='← Decision Desk';}});
+      doc.querySelectorAll('a[href]').forEach(function(a){var href=a.getAttribute('href');if(!href||href[0]==='#')return;var u=route(href);if(u===false){a.hidden=true;a.style.display='none';return;}if(u!==null){a.href=new URL('../app/?module='+encodeURIComponent(u),location.href).href;a.addEventListener('click',function(e){e.preventDefault();openModule(u);});if(/Hub|Shell|Clasic/i.test(a.textContent))a.textContent='← Decision Desk';}});
       frame.contentWindow.postMessage({ttShellVisible:true},location.origin);
     }catch(e){loading.hidden=true;}};
   search.onfocus=function(){renderPalette(search.value);};search.oninput=function(){renderPalette(search.value);};
