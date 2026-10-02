@@ -446,6 +446,7 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <div id="jpaneExec" class="jr-pane" data-jpane="exec">
 
 <div id="haltRail" class="jr-halt-rail"></div>
+<div id="fxWarning" class="jr-fees-banner"></div>
 <div id="feesImportBanner" class="jr-fees-banner"></div>
 
 <div class="panel open-panel" id="openPanel">
@@ -475,12 +476,15 @@ tr.openrow{background:rgba(91,176,255,.06)}
     <input type="hidden" id="fSetupDraftId" value="">
     <label>Ticker <input id="fSym" placeholder="NVDA" autocapitalize="characters"></label>
     <label>Direcție <select id="fDir"><option value="long">LONG</option><option value="short">SHORT</option></select></label>
-    <label>Entry $ <input id="fEntry" type="number" step="0.0001" min="0"></label>
-    <label>Exit $ (gol = ÎN CURS) <input id="fExit" type="number" step="0.0001" min="0" placeholder="gol = deschisă"></label>
+    <label>Entry (moneda acțiunii) <input id="fEntry" type="number" step="0.0001" min="0"></label>
+    <label>Exit (moneda acțiunii, gol = ÎN CURS) <input id="fExit" type="number" step="0.0001" min="0" placeholder="gol = deschisă"></label>
+    <label>Moneda prețului <input id="fCurrency" placeholder="automat / USD, EUR, DKK, GBX" maxlength="7"></label>
+    <label>FX intrare (USD / 1 unitate) <input id="fFxEntry" type="number" min="0" step="0.000001" placeholder="obligatoriu pentru PnL non-USD"></label>
+    <label>FX ieșire (USD / 1 unitate) <input id="fFxExit" type="number" min="0" step="0.000001" placeholder="cursul de la închidere"></label>
     <label>Size (acțiuni) <input id="fSize" type="number" step="1" min="0"></label>
     <label>Fees $ total <input id="fFees" type="number" step="0.01" min="0" value="0" title="Trade212 e «zero comision» dar are spread + FX — estimează onest"></label>
-    <label>SL la intrare $ <input id="fSl" type="number" step="0.0001" min="0" title="Pentru R-multiple; gol = R necalculabil"></label>
-    <label id="fMarkLbl" style="display:none">Mark $ (manual, PnL nerealizat) <input id="fMark" type="number" step="0.0001" min="0" placeholder="opțional — grid/API down"></label>
+    <label>SL (moneda acțiunii) <input id="fSl" type="number" step="0.0001" min="0" title="Pentru R-multiple; gol = R necalculabil"></label>
+    <label id="fMarkLbl" style="display:none">Mark (moneda acțiunii, manual, PnL nerealizat) <input id="fMark" type="number" step="0.0001" min="0" placeholder="opțional — grid/API down"></label>
     <label>Sursa semnalului <select id="fSrc">
       <option value="manual">manual / altele</option>
       <option value="stl">🎯 Smart Trade Long</option>
@@ -625,22 +629,22 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/account.js?v=625"></script>
 <script src="../lib/finnhub-key.js?v=625"></script>
 <script src="../lib/suite-context.js?v=686"></script>
-<script src="../lib/journal.js?v=686"></script>
+<script src="../lib/journal.js?v=fx-20261002"></script>
 <script src="../lib/suite-version.js?v=854"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
 <script src="../lib/tracker.js?v=625"></script>
 <script src="../lib/telegram.js?v=625"></script>
-<script src="../lib/governor.js?v=630"></script>
+<script src="../lib/governor.js?v=fx-20261002"></script>
 <script src="../lib/macro-context.js?v=625"></script>
 <script src="../lib/desk-macro-rail.js?v=628"></script>
-<script src="../lib/equity.js?v=625"></script>
-<script src="../lib/capital-desk.js?v=625"></script>
+<script src="../lib/equity.js?v=fx-20261002"></script>
+<script src="../lib/capital-desk.js?v=fx-20261002"></script>
 <script src="../lib/data.js?v=854"></script>
 <script src="../lib/quote-bus.js?v=707"></script>
 <script src="../lib/setup-levels.js?v=625"></script>
 <script src="../lib/setup-builder.js?v=625"></script>
-<script src="../lib/portfolio-risk.js?v=697"></script>
-<script src="../lib/journal-workspace.js?v=625"></script>
+<script src="../lib/portfolio-risk.js?v=fx-20261002"></script>
+<script src="../lib/journal-workspace.js?v=fx-20261002"></script>
 <script>
 // Diagnostic vizibil: orice eroare JS apare PE PAGINĂ (nu doar în consolă) — debug fără F12
 window.onerror = function(msg, src, line){
@@ -940,7 +944,7 @@ function selectedTags(){
 }
 function resetForm(){
   editId = null;
-  ['fSym','fEntry','fExit','fSize','fSl','fNotes','fMark','fSetupDraftId'].forEach(id => { if ($(id)) $(id).value = ''; });
+  ['fSym','fEntry','fExit','fSize','fSl','fNotes','fMark','fSetupDraftId','fCurrency','fFxEntry','fFxExit'].forEach(id => { if ($(id)) $(id).value = ''; });
   $('fFees').value = '0';
   $('fDir').value = 'long'; $('fSrc').value = 'manual';
   $('fDate').value = new Date().toISOString().slice(0, 10);
@@ -954,6 +958,7 @@ function fillForm(e){
   editId = e.id;
   $('fSym').value = e.sym; $('fDir').value = e.dir;
   $('fEntry').value = e.entry; $('fExit').value = e.exit != null ? e.exit : ''; $('fSize').value = e.size;
+  $('fCurrency').value = JR.quoteCurrency(e); $('fFxEntry').value = e.fxEntryUsd || ''; $('fFxExit').value = e.fxExitUsd || '';
   $('fFees').value = e.fees || 0; $('fSl').value = e.slAtEntry != null ? e.slAtEntry : '';
   if ($('fMark')) $('fMark').value = e.markPrice != null ? e.markPrice : '';
   $('fSrc').value = e.source || 'manual'; $('fNotes').value = e.notes || '';
@@ -972,6 +977,7 @@ $('btnSave').addEventListener('click', () => {
   const num = v => { const n = parseFloat(v); return isFinite(n) ? n : null; };
   const payload = {
     sym: $('fSym').value, dir: $('fDir').value,
+    quoteCurrency: $('fCurrency').value || null, fxEntryUsd: num($('fFxEntry').value), fxExitUsd: num($('fFxExit').value),
     entry: $('fEntry').value, exit: $('fExit').value, size: $('fSize').value,
     fees: $('fFees').value, slAtEntry: $('fSl').value || null,
     source: $('fSrc').value, tags: selectedTags(), notes: $('fNotes').value, closeTs
@@ -981,7 +987,7 @@ $('btnSave').addEventListener('click', () => {
     const v = JR.validateEntry({
       sym: String(payload.sym).trim().toUpperCase(), dir: payload.dir,
       entry: num(payload.entry), exit: exitN, size: num(payload.size),
-      slAtEntry: num(payload.slAtEntry)
+      slAtEntry: num(payload.slAtEntry), ...JR.fxFields(payload)
     });
     if (!v.ok) { alert(v.msg); return; }
   }
@@ -990,7 +996,7 @@ $('btnSave').addEventListener('click', () => {
     if (!JR.update(editId, {
       sym: String(payload.sym).trim().toUpperCase(), dir: payload.dir,
       entry: num(payload.entry), exit: exitN, size: num(payload.size),
-      fees: num(payload.fees) || 0, slAtEntry: num(payload.slAtEntry),
+      fees: num(payload.fees) || 0, slAtEntry: num(payload.slAtEntry), ...JR.fxFields(payload),
       source: payload.source, tags: payload.tags, notes: payload.notes,
       status: exitN != null ? 'closed' : 'open',
       closeTs: exitN != null ? closeTs : null,
@@ -1024,7 +1030,9 @@ $('btnSave').addEventListener('click', () => {
     if (isFinite(slN) && slN > 0) {
       est = dir === 'short' ? Math.max(0, (slN - entryN) * sizeN) : Math.max(0, (entryN - slN) * sizeN);
     }
-    const gate = CD.canAddRisk(est);
+    const fx = JR.fxRate(payload, 'Entry');
+    if (fx == null) { alert('Completează moneda și cursul FX de intrare pentru verificarea riscului USD.'); return; }
+    const gate = CD.canAddRisk(est * fx);
     if (gate.halt && !confirm('Capital Desk STOP:\n' + gate.reasons.join('\n') + '\n\nSalvezi execuția oricum?')) return;
   }
   const markRaw = $('fMark')?.value;
@@ -1059,7 +1067,7 @@ if (btnExportCd && window.CD) btnExportCd.addEventListener('click', () => CD.dow
 
 // ── Scorecard ──
 function scHtml(s){
-  if (!s || !s.n) return '<div class="empty">încă nimic</div>';
+  if (!s || !s.n) return '<div class="empty">' + (s && s.missingFx ? 'FX incomplet: ' + s.missingFx + ' execuții nu pot fi evaluate în USD.' : 'încă nimic') + '</div>';
   const eCls = s.expectancyR == null ? '' : s.expectancyR >= 0 ? 'pos' : 'neg';
   return `
     <div class="scard"><div class="lbl">EXECUȚII</div><div class="val">${s.n}${s.small ? ' <span class="wrn" style="font-size:11px">⚠ n&lt;10</span>' : ''}</div></div>
@@ -1091,7 +1099,7 @@ function segDetailHtml(list){
     return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 9px;margin:3px 0;border-radius:6px;font-size:10.5px;background:${win ? 'rgba(34,214,107,.10)' : 'rgba(255,77,77,.10)'}">
       <span style="color:var(--t3)">${e.closeTs ? new Date(e.closeTs).toLocaleDateString('ro-RO') : '—'}</span>
       <b class="sym">${esc(e.sym)}</b><span>${e.dir === 'short' ? '🔻S' : '🔺L'}</span>
-      <span>${fmt$(e.entry)}→${fmt$(e.exit)}</span>
+      <span>${JR.quotePrice(e, e.entry)}→${JR.quotePrice(e, e.exit)}</span>
       <span class="${win ? 'pos' : 'neg'}">${p != null ? (p >= 0 ? '+' : '') + fmt$(p).replace('$-','-$') : '—'}</span>${r != null ? `<span class="${r >= 0 ? 'pos' : 'neg'}">${(r >= 0 ? '+' : '') + r.toFixed(2)}R</span>` : ''}${seg !== 'source' && e.source ? `<span style="color:var(--t3)">${esc(e.source)}</span>` : ''}
       ${e.maeR!=null?`<span style="color:var(--t3)">MAE ${e.maeR.toFixed(1)}R</span>`:''}${e.mfeR!=null?`<span style="color:var(--t3)">MFE ${e.mfeR.toFixed(1)}R</span>`:''}
       <span style="margin-left:auto;white-space:nowrap"><a class="act" href="../postmortem/?id=${encodeURIComponent(e.id)}" title="Post-mortem MAE/MFE">🔬</a> <button class="act" data-edit="${esc(e.id)}">✏</button> <button class="act" data-del="${esc(e.id)}">🗑</button></span>
@@ -1199,17 +1207,17 @@ function renderTable(){
       const unrealCell = unreal != null
         ? `<span class="badge-unreal">${unreal >= 0 ? '+' : ''}${fmt$(unreal).replace('$-','-$')}</span>${mk.manual ? '<span class="badge-mark">MARK</span>' : ''}`
         : '<span style="color:var(--t3)">—</span>';
-      const markCell = mk ? fmt$(mk.price) + (mk.manual ? '<span class="badge-mark">M</span>' : '') : (e.markPrice ? fmt$(e.markPrice) : '—');
+      const markCell = mk ? JR.quotePrice(e, mk.price) + (mk.manual ? '<span class="badge-mark">M</span>' : '') : (e.markPrice ? JR.quotePrice(e, e.markPrice) : '—');
       return `<tr class="openrow">
         <td class="l"><span class="badge-open">⏳ ÎN CURS</span><br><button class="act" data-close="${esc(e.id)}" style="margin-top:4px;font-weight:800;background:rgba(34,214,107,.15);border-color:var(--bull-s);color:var(--bull-s)" title="Închide execuția — cere prețul de ieșire">✓ ÎNCHIDE</button></td>
         <td class="l">${e.openTs ? new Date(e.openTs).toLocaleDateString('ro-RO') : '—'}</td>
         <td class="sym l"><a href="#portfolio" data-jtab-link="portfolio" data-pf-sym="${esc(e.sym)}" style="color:var(--accent);text-decoration:none" title="Risc agregat în Portfolio">${esc(e.sym)}</a>${window.JI && JI.earningsBadgeHtml ? JI.earningsBadgeHtml(e.sym) : ''}</td>
         <td>${e.dir === 'short' ? '🔻S' : '🔺L'}</td>
-        <td>${fmt$(e.entry)}</td>
+        <td>${JR.quotePrice(e, e.entry)}</td>
         <td>${markCell}</td>
         <td>${unrealCell}</td>
         <td>${e.size}</td>
-        <td>${e.slAtEntry != null ? fmt$(e.slAtEntry) : '<span class="wrn" title="fără SL la intrare — R necalculabil la închidere">—⚠</span>'}</td>
+        <td>${e.slAtEntry != null ? JR.quotePrice(e, e.slAtEntry) : '<span class="wrn" title="fără SL la intrare — R necalculabil la închidere">—⚠</span>'}</td>
         <td class="l" style="font-size:10px">${esc(e.source)}</td>
         <td class="l">${(e.tags || []).map(t => `<span class="mini">${esc(t)}</span>`).join('') || '—'}</td>
         <td>
@@ -1225,6 +1233,7 @@ function renderTable(){
   $('tblWrap').querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => {
     const e = JR.all().find(x => x.id === b.dataset.close);
     if (!e) return;
+    if (JR.quoteCurrency(e) !== 'USD') { fillForm(e); alert('Completează Exit și FX ieșire în formular, apoi salvează.'); return; }
     const v = prompt(`Preț de ieșire pentru ${e.sym} (entry ${e.entry}):`);
     if (v == null || v === '') return;
     const feesStr = prompt('Fees totale USD (spread/FX, 0 dacă necunoscut):', String(e.fees || '0'));
@@ -1502,7 +1511,9 @@ function showPrefillGate(force){
   if (entryN > 0 && sizeN > 0 && slN > 0) {
     est = dir === 'short' ? Math.max(0, (slN - entryN) * sizeN) : Math.max(0, (entryN - slN) * sizeN);
   }
-  const gate = CD.canAddRisk(est);
+  const fx = JR.fxRate({sym: $('fSym').value, quoteCurrency: $('fCurrency').value || null, fxEntryUsd: $('fFxEntry').value}, 'Entry');
+  if (fx == null) { el.textContent = 'FX de intrare lipsește — riscul USD nu poate fi verificat.'; return; }
+  const gate = CD.canAddRisk(est * fx);
   el.innerHTML = CD.gateBannerHtml(gate);
 }
 
@@ -1518,6 +1529,14 @@ function renderHaltRail(){
 }
 
 function renderFeesBanner(){
+  const fxEl = $('fxWarning');
+  const unresolved = JR.valuationIssues ? JR.valuationIssues() : [];
+  const foreignOpen = JR.all().filter(e => isOpenE(e) && JR.quoteCurrency(e) !== 'USD');
+  if (fxEl) {
+    fxEl.style.display = unresolved.length || foreignOpen.length ? '' : 'none';
+    fxEl.innerHTML = '⚠ <b>Evaluare USD parțială</b>: ' + unresolved.length + ' execuții cu monedă/FX incomplet. Completează cursurile istorice din formular. ' + foreignOpen.length + ' poziții non-USD au PnL live indisponibil până la conectarea unei surse FX sincronizate.';
+  }
+
   const el = $('feesImportBanner');
   if (!el || !window.JR || !JR.countZeroFeeImports) { if (el) el.style.display = 'none'; return; }
   const n = JR.countZeroFeeImports();

@@ -74,28 +74,29 @@ td{padding:6px;border-bottom:1px solid rgba(42,50,71,.5);text-align:right}
 
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">📈 Atribuire shadow vs realizat (30z)</h2><div id="shadowAttr"></div></div>
 <div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Verdict filtre (ipoteze OOS)</h2><div id="edgeTbl"></div></div>
-<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Ultimele intrări</h2><div id="tbl"></div></div>
+<div class="panel"><h2 style="font-size:13px;margin-bottom:8px">Istoric complet</h2><div id="tbl"></div><button class="btn" id="btnMore" hidden>Arată încă 40</button></div>
 
 <script src="../lib/capital-time.js?v=630"></script>
 <script src="../lib/account.js?v=575"></script>
 <script src="../lib/ledger.js"></script>
-<script src="../lib/journal.js?v=7"></script>
-<script src="../lib/governor.js?v=630"></script>
+<script src="../lib/journal.js?v=fx-20261002"></script>
+<script src="../lib/governor.js?v=fx-20261002"></script>
 <script src="../lib/data.js?v=854"></script>
-<script src="../lib/shadow.js?v=3"></script>
-<script src="../lib/equity.js?v=7"></script>
-<script src="../lib/capital-desk.js?v=6"></script>
+<script src="../lib/shadow.js?v=4"></script>
+<script src="../lib/equity.js?v=fx-20261002"></script>
+<script src="../lib/capital-desk.js?v=fx-20261002"></script>
 <script>
 (function(){
 const $ = id => document.getElementById(id);
 const esc = s => String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+let visibleRows = 40;
 function renderShadowAttr(){
   if (!window.EQ || !EQ.shadowAttribution) { $('shadowAttr').innerHTML = '<p class="note">Equity.js nu e încărcat.</p>'; return; }
   const sh = EQ.shadowAttribution(30);
   $('shadowAttr').innerHTML = sh.n
     ? '<p class="note">Journal 30z: <span class="' + (sh.journalPnl >= 0 ? 'useful' : 'costly') + '">' + (sh.journalPnl >= 0 ? '+' : '') + '$' + sh.journalPnl.toFixed(0) + '</span> · shadow eval n=' + sh.n + '</p>' +
-      Object.entries(sh.filters).map(([f, v]) => '<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;padding:4px 0;border-bottom:1px solid rgba(42,50,71,.4)"><span>' + esc(f) + '</span><span>' + v.toFixed(1) + ' R·est</span></div>').join('') +
-      '<p class="note">Estimări pe close forward — nu garanție de edge.</p>'
+      Object.entries(sh.filters).map(([f, v]) => '<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;padding:4px 0;border-bottom:1px solid rgba(42,50,71,.4)"><span>' + esc(f) + '</span><span>' + v.toFixed(1) + ' R simulate</span></div>').join('') +
+      '<p class="note">Simulare pe sesiuni închise, cu stop și gap. R nu este P&amp;L în USD.</p>'
     : '<p class="note">Fără shadow evaluat — loghează semnale blocate și apasă „Evaluează pending".</p>';
 }
 function renderCdGate(){
@@ -111,19 +112,23 @@ function render(){
   renderCdGate();
   renderShadowAttr();
   const edge = SH.filterEdge();
-  $('edgeTbl').innerHTML = edge.length ? '<table><tr><th class="l">Filtru</th><th>n</th><th>avg%</th><th>vs base</th><th>verdict</th></tr>' +
-    edge.map(e => '<tr><td class="l">' + esc(e.filter) + (e.small?' ⚠':'') + '</td><td>' + e.n + '</td><td>' + (e.avgPct!=null?e.avgPct.toFixed(2)+'%':'—') + '</td><td>' + (e.vsBaseline!=null?(e.vsBaseline>=0?'+':'')+e.vsBaseline.toFixed(2)+'%':'—') + '</td><td class="' + (e.verdict.includes('util')?'useful':'costly') + '">' + esc(e.verdict) + '</td></tr>').join('') + '</table><p class="note">Ipoteze pe close forward — nu garanție de edge.</p>' : '<p class="note">Loghează semnale blocate, apoi evaluează.</p>';
-  const rows = SH.all().slice(0, 40);
+  $('edgeTbl').innerHTML = edge.length ? '<table><tr><th class="l">Filtru</th><th>evaluate / total</th><th>avg%</th><th>vs base</th><th>verdict</th></tr>' +
+    edge.map(e => '<tr><td class="l">' + esc(e.filter) + (e.small?' ⚠':'') + '</td><td>' + e.nEval + ' / ' + e.n + '</td><td>' + (e.avgPct!=null?e.avgPct.toFixed(2)+'%':'—') + '</td><td>' + (e.vsBaseline!=null?(e.vsBaseline>=0?'+':'')+e.vsBaseline.toFixed(2)+'%':'—') + '</td><td class="' + (e.verdict.includes('util')?'useful':'costly') + '">' + esc(e.verdict) + '</td></tr>').join('') + '</table><p class="note">Simulare zilnică, fără comisioane/slippage. Rezultatele vechi se recalculează înainte de includerea în statistici.</p>' : '<p class="note">Loghează semnale blocate, apoi evaluează.</p>';
+  const history = SH.all();
+  const rows = history.slice(0, visibleRows);
+  $('btnMore').hidden = visibleRows >= history.length;
   $('tbl').innerHTML = rows.length ? '<table><tr><th class="l">Zi</th><th>Sym</th><th>Filtru</th><th>eval%</th><th>R</th></tr>' +
-    rows.map(e => '<tr><td class="l">' + esc(e.day) + '</td><td>' + esc(e.sym) + '</td><td>' + esc(e.blockedBy) + '</td><td>' + (e.evalPct!=null?e.evalPct.toFixed(2)+'%':'—') + '</td><td>' + (e.evalR!=null?e.evalR.toFixed(2):'—') + '</td></tr>').join('') + '</table>' : '<p class="note">Gol.</p>';
+    rows.map(e => '<tr><td class="l">' + esc(e.day) + '</td><td>' + esc(e.sym) + '</td><td>' + esc(e.blockedBy) + '</td><td>' + (SH.evaluated(e)?e.evalPct.toFixed(2)+'%':'—') + '</td><td>' + (SH.evaluated(e) && Number.isFinite(e.evalR)?e.evalR.toFixed(2):'—') + '</td></tr>').join('') + '</table>' : '<p class="note">Gol.</p>';
 }
-$('btnLog').onclick = () => { SH.log({ sym:$('fSym').value, price:$('fPx').value, sl:$('fSl').value||null, blockedBy:$('fBlk').value, src:$('fSrc').value, reason:$('fWhy').value }); render(); };
+$('btnMore').onclick = () => { visibleRows += 40; render(); };
+$('btnLog').onclick = () => { const saved = SH.log({ sym:$('fSym').value, price:$('fPx').value, sl:$('fSl').value||null, blockedBy:$('fBlk').value, src:$('fSrc').value, reason:$('fWhy').value }); if (!saved) alert('Intrarea nu a fost salvată: verifică prețul/stopul și spațiul disponibil.'); render(); };
 $('btnPaste').onclick = () => { const n = SH.ingestText($('pasteJson').value); alert(n + ' intrări importate'); $('pasteJson').value=''; render(); };
 $('btnEval').onclick = async () => {
   $('btnEval').disabled = true;
   const n = await SH.evaluateAll((sym, opts) => D.fetchStock(sym, opts), (d,t) => { $('btnEval').textContent = d+'/'+t; });
   $('btnEval').disabled = false; $('btnEval').textContent = '📊 Evaluează pending';
   render();
+  alert(n + ' evaluări finalizate; cele fără suficiente sesiuni închise rămân pending.');
 };
 render();
 })();
