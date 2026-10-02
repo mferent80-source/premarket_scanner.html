@@ -65,6 +65,7 @@
   <div style="display:flex;align-items:stretch;min-width:0">
     <div id="tabbar" aria-label="Taburi deschise" style="flex:1;min-width:0"></div>
     <a href="../health/" id="shellStaleNav" hidden aria-hidden="true" title="Date învechite">📦</a>
+    <a href="../command-center/" style="align-self:center;padding:8px;color:inherit;text-decoration:none;font-size:12px;font-weight:700">APLICAȚIA COMPLETĂ ↗</a>
     <span id="suiteVerShell" title="Versiune cache suită">…</span>
   </div>
   <div id="frames"></div>
@@ -73,7 +74,11 @@
 <script>
 (function(){
   var PAGES = [
+    { u:'desk/',              n:'Decision Desk', e:'◫' },
+    { u:'candidate-engine/',  n:'Long & Reversal', e:'🎯' },
+    { u:'market-breadth/',    n:'Breadth', e:'◉' },
     { u:'',                   n:'Hub',      e:'🏠' },
+    { u:'hub-clasic/',        n:'Hub clasic', e:'🏠' },
     { u:'macro-dashboard/',   n:'Macro',    e:'🌍' },
     { u:'sector-rotation/',   n:'Sector',   e:'🔄' },
     { u:'nasdaq-scanner/',    n:'Nasdaq',   e:'📈' },
@@ -87,7 +92,10 @@
     { u:'guide/',             n:'Ghid',     e:'📖' },
     { u:'journal/',           n:'Journal',  e:'📓' },
     { u:'journal/#portfolio', n:'Portof.',  e:'🛡️' },
-    { u:'router/',            n:'Router',   e:'🧭' },
+    { u:'journal/#desk',      n:'Risk Desk', e:'🧭' },
+    { u:'governor/',          n:'Governor', e:'🛑' },
+    { u:'equity/',            n:'Equity', e:'📊' },
+    { u:'factor-lab/',        n:'Factors', e:'⌁' },
     { u:'shadow-book/',       n:'Shadow',   e:'👻' },
     { u:'postmortem/',        n:'PM',       e:'🔬' },
     { u:'weekly/',            n:'Weekly',   e:'📅' },
@@ -99,8 +107,9 @@
   var open = [];
   try { open = JSON.parse(localStorage.getItem('tt_open_tabs') || '[]'); } catch(e){ open = []; }
   open = open.filter(function(u){ return byU[u] !== undefined; });
-  if (!open.length) open = ['']; // implicit: Hub
-  var active = localStorage.getItem('tt_active_tab');
+  if (!open.length) open = ['desk/']; // implicit: Decision Desk
+  var active = null; try { active = localStorage.getItem('tt_active_tab'); } catch(_) {}
+  try { if (!localStorage.getItem('tt_desk_entry_v1')) { if (open.indexOf('desk/') < 0) open.unshift('desk/'); active = 'desk/'; localStorage.setItem('tt_desk_entry_v1', '1'); } } catch(_) {}
   if (active === null || byU[active] === undefined || open.indexOf(active) < 0) active = open[0];
 
   var frames = {}; // u -> iframe
@@ -136,7 +145,7 @@
     var i = open.indexOf(u); if (i < 0) return;
     open.splice(i, 1);
     if (frames[u]){ frames[u].remove(); delete frames[u]; }
-    if (!open.length){ open = ['']; ensureFrame(''); }
+    if (!open.length){ open = ['desk/']; ensureFrame('desk/'); }
     if (active === u) active = open[Math.min(i, open.length - 1)] || open[0];
     setActive(active);
   }
@@ -192,10 +201,14 @@
   window.addEventListener('message', function(e){
     if (e.origin !== location.origin) return;
     var d = e.data;
-    if (!d || d.ttOpen === undefined) return;
-    ensurePage(d.ttOpen);
-    setActive(d.ttOpen);
-    if (d.ttHash) applyFrameHash(d.ttOpen, d.ttHash);
+    if (!d) return;
+    var u = d.ttOpenModule !== undefined ? d.ttOpenModule : d.ttOpen;
+    if (typeof u !== 'string') return;
+    if (d.ttOpenModule !== undefined && byU[u] === undefined) return;
+    ensurePage(u);
+    setActive(u);
+    if (d.ttQuery) { var parts = u.split('#'); frames[u].src = ROOT + parts[0] + '?' + String(d.ttQuery).replace(/^\?+/, '') + (parts[1] ? '#' + parts[1] : ''); }
+    if (d.ttHash) applyFrameHash(u, d.ttHash);
   });
 
   // init: creează iframe-urile pentru taburile salvate, activează ultimul activ
