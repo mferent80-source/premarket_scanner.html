@@ -3205,7 +3205,8 @@ pe un singur chart.
 | I-497 | Discord: moneda unui BOT DESCHIS trece in „mai agitata ca de obicei” pe 4h - GATA LINISTEA tintit pe botii care chiar ruleaza | crypto/scripts/colector.mjs, public/lib/busola.js | S | P1 | propus | ideation | 2026-10-02 |
 | I-498 | Testul tau personal: botii tai, dupa starea Busolei la pornire - pe „mai agitat” vs „mai calm”, cat ai castigat/pierdut de fapt | crypto/public/lib/obiceiuri.js, busola/cron/stare/jurnal.json | M | P1 | propus | ideation | 2026-10-02 |
 | I-499 | Harta Busolei cu pozitionarea: unde e multimea ingramadita / captiva acum, pe toate monedele (Crowding + POSIT pe un rand) | busola/src/ui/Harta.tsx, motor/crowding.ts, motor/posit.ts | M | P3 | propus | ideation | 2026-10-02 |
-| I-500 | Retea neuronala (TensorFlow.js) pe miscare — MASURAT 02.10: NU trece pe 1h, trece pe 4h; castigul vine din INTRARI (un model liniar ia ~85%) | busola/probe (proba in scratchpad\retea) | M | P2 | masurat-nu | user | 2026-10-02 |
+| I-500 | Retea neuronala (TensorFlow.js) pe miscare — MASURAT 02.10 de doua ori: NU intra (1h nu trece; 4h fara galeata nu trece in bani; pe 22 de monede nevazute gridul la „calm” al retelei pierde MAI MULT decat la LINISTE) | busola/probe (proba in scratchpad\retea) | M | P2 | masurat-nu | user | 2026-10-02 |
+| I-502 | Reteaua invatata DIRECT pe banii gridului (net pe episod), nu pe „sta in canal”: ultima proba, aceleasi praguri, monede nevazute obligatoriu | busola/probe | M | P3 | propus | ideation | 2026-10-02 |
 | I-501 | Miscarea din structura volatilitatii (ATR fata de mediana lui, range-ul pe 20 de bare, cat a stat in canal recent) — model LINIAR, walk-forward pe mai multe felii si 30 de monede, inainte de orice retea | busola/src/motor, probe/ | M | P1 | propus | ideation | 2026-10-02 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
@@ -5161,6 +5162,15 @@ Ideile cu semnal/prag sunt IPOTEZE: se valideaza out-of-sample (cazuri de DUPA s
 - **Rezultat:** 4h TRECE toate trei (Brier REȚEA − GĂLEATA −0,0137 [−0,0172; −0,0103]; REȚEA − LINIAR −0,0020 [−0,0034; −0,0007]; grid +0,097%/episod [+0,036; +0,147] pe 7 serii). 1h NU (Brier −0,0048 [−0,0136; +0,0030]; față de LINIAR −0,0002; grid n-am aflat) ⇒ după regula fixată: NU intră.
 - **Ce contează:** câștigul vine din INTRĂRI, nu din rețea (LINIAR − GĂLEATA −0,0118 pe 4h). Și chiar la „calm” după rețea, gridul rămâne pe MINUS pe episod pe aproape toate seriile — pierde mai puțin, nu câștigă.
 - **Fișiere:** proba în scratchpad (de aruncat); nimic în Busola.
+- **Proba 2 (aceeași zi, după „lasă găleata și adaugă extra rețeaua”, aprobat cu 4 condiții):** rețeaua FĂRĂ găleată, 4h, învățată pe 8 monede, judecată și pe 22 NEVĂZUTE. Învățate: Brier ✅ (−0,0155 față de găleată), placebo ✅, bani ❌ (+0,065% [−0,016; +0,145]). Nevăzute: Brier față de găleată ✅ (−0,0070) dar față de liniar ❌ (−0,0011 [−0,0024; +0,0001]), bani ❌ **MAI PROST** (−0,102% [−0,191; −0,022] pe 15 serii). ⇒ nu se montează (condiția 2: monede nevăzute).
+- 🔑 **De ce:** „stă în canal” NU e ținta banilor. Barele alese de rețea stau mai des în canal (INJ 50% vs 47%, FET 52% vs 42%), dar gridul pornit acolo pierde mai mult (INJ −0,460% vs +0,054% pe episod; FET −0,271% vs +0,100%) — un canal liniștit face puține umpleri, iar ieșirea lovește oricum.
+
+#### I-502 · Rețeaua pe banii gridului · [M] · P3 · propus
+- **Problema:** I-500 a arătat că a prezice „stă în canal” nu se traduce în bani de grid pe monede nevăzute.
+- **Soluția:** o singură probă, fixată dinainte: rețea (și model liniar, ca martor) învățată direct pe netul pe episod al gridului (aceeași simulare ca `probe/grid-pe-date-noi.ts`, comision Pionex, „cu marfa în mână”), 4h, judecată pe monede nevăzute. Intră doar dacă bate LINIȘTE în bani pe monedele nevăzute, cu IC > 0. Dacă nu trece, se închide subiectul rețelei — fără a treia încercare (altfel căutăm până iese din noroc).
+- **Impact:** singura formă în care o rețea ar ajuta direct decizia „pornesc gridul acum?”.
+- **Riscuri/dependente:** ținta e zgomotoasă (net mic, coadă grea) ⇒ mai multe date necesare; multiple încercări umflă noroc-ul — de aceea e ultima.
+- **Fisiere:** `busola/probe/` (proba), nimic în aplicație până nu trece.
 
 #### I-501 · Mișcarea din structura volatilității, model liniar · [M] · P1 · propus
 - **Problema:** pe datele nevăzute ale probei I-500, găleata Busolei (trend × RSI × regim) ca probabilitate a ieșit mai PROASTĂ decât rata de bază pe aproape toate seriile; barele de „LINIȘTE” au stat în canal 25–45%, pe ETH 4h sub bază.
