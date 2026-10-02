@@ -3195,6 +3195,11 @@ pe un singur chart.
 | I-487 | Radar: stresul comun crypto + actiuni - ce pierzi daca Nasdaq si BTC scad 10 % in aceeasi zi (lichidari incluse) | crypto/public/lib/acasa.js, public/lib/tablou-extra.js | M | P2 | propus | ideation | 2026-10-01 |
 | I-488 | Radar: ideile de BOTI urmarite - ce-ar fi facut fiecare idee (fisa din ziua ei) vs botii pe care i-ai pornit | crypto/public/lib/idei.js, scripts/colector.mjs | M | P3 | propus | ideation | 2026-10-01 |
 | I-489 | Radar: fisa gridului scoasa din app.js (6.788 randuri) intr-un lib/grid-ecran.js, probata fara Chrome | crypto/public/app.js, public/lib/grid-ecran.js | L | P3 | propus | ideation | 2026-10-01 |
+| I-490 | Busola: „ASTEAPTA pana cand?” - cea mai apropiata stare in care Busola ARE verdict pe moneda asta si ce trebuie sa se schimbe | busola/src/motor/harta.ts, frecvente.ts, ui/LinieVerdict.tsx | M | P1 | propus | ideation | 2026-10-02 |
+| I-491 | Radar citeste Busola: „nu porni grid dupa miscare” si „GATA LINISTEA” in fisa gridului Radarului (singurul avantaj dovedit al Busolei) | crypto/public/lib/grid-calcul.js, consiliu.js; busola /api/masurat.json | M | P1 | propus | ideation | 2026-10-02 |
+| I-492 | Busola: data la care se afla adevarul - pe fiecare verdict, cand ajunge bilantul live la 10 momente (4h: ~09.10) | busola/src/ui/BilantVerdict.tsx, motor/bilantVerdict.ts | S | P2 | propus | ideation | 2026-10-02 |
+| I-493 | Busola: miscarea din 3 surse intr-o probabilitate (galeata + spread DVOL + bugetul zilei ADR), intra doar daca bate fiecare sursa singura pe date noi | busola/probe/, motor/optiuni.ts, rangeBudget.ts | L | P2 | propus | ideation | 2026-10-02 |
+| I-494 | Busola: rezumatul de dimineata pe Discord - ce a zis ieri, ce s-a adeverit, fata de martor | busola/cron/masoara.ts, cron/discord.ts | S | P3 | propus | ideation | 2026-10-02 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5071,3 +5076,38 @@ Ideile cu semnal/prag sunt IPOTEZE: se valideaza out-of-sample (cazuri de DUPA s
 - **Impact:** buguri de afisare prinse in `npm test`.
 - **Riscuri/dependente:** mutare mare; pas cu pas, cu inventar inainte/dupa (regula „nu se pierde nimic pe drum”).
 - **Fisiere:** `crypto/public/app.js`, `crypto/public/lib/grid-ecran.js`
+
+#### I-490 · „ASTEAPTA pana cand?” · [M] · P1 · propus
+- **Problema:** pe 02.10, la 4h, 19 din 30 de monede scriu „AȘTEAPTĂ / NIMIC DE FĂCUT” fara sa spuna ce ar schimba asta; omul revine la intamplare.
+- **Solutia:** pentru moneda si intervalul de pe ecran, cele mai apropiate stari (galeti) in care Busola ARE verdict dovedit pe istoria monedei, si ce le desparte de starea de acum (ex. „RSI trece de 65 pe 4h ⇒ «mai agitat ca de obicei», 74 din 100”). Fara prezicere a momentului - doar conditia.
+- **Impact:** „nimic de facut” devine „pandeste X”; o alerta poate pleca exact la trecere (exista deja pe Discord).
+- **Riscuri/dependente:** galetile vecine au n mai mic; se arata doar cele cu n ≥ 30 si IC care trece. Ipoteza de folos, nu de profit.
+- **Fisiere:** `busola/src/motor/frecvente.ts`, `motor/harta.ts`, `ui/LinieVerdict.tsx`
+
+#### I-491 · Radar citeste Busola · [M] · P1 · propus
+- **Problema:** singurul avantaj dovedit al Busolei e defensiv pe grid („dupa miscare gridul pierde cel mai mult”, „GATA LINISTEA”), dar fisa gridului din Radar nu-l vede: nimic din `crypto/` nu citeste Busola (verificat cu grep pe 02.10).
+- **Solutia:** Radarul citeste `busola.mferent80.workers.dev/api/masurat.json` (harta 4h/1z, gridTop100) si pune in fisa gridului un rand: „Busola: mai agitat ca de obicei pe 4h - aici gridul a pierdut cel mai mult (−0,214% pe episod)” / „mai calm - pierde cel mai putin”. Avertizeaza, nu refuza (regula: pragul botului e un privilegiu).
+- **Impact:** o pierdere tipica de grid evitata in clipa in care el porneste botul, nu dupa.
+- **Riscuri/dependente:** spot vs futures (1000BONK etc. - traducerea `spotDinFutures` exista); masurarea Busolei e la 4 ore - se scrie varsta.
+- **Fisiere:** `crypto/public/lib/grid-calcul.js`, `crypto/public/lib/consiliu.js`
+
+#### I-492 · Data la care se afla adevarul · [S] · P2 · propus
+- **Problema:** bilantul live scrie „prea devreme (7 momente)” fara sa spuna cand nu va mai fi; pe 4h un moment = 48 h.
+- **Solutia:** langa „live: prea devreme”, data estimata la care ajunge la 10 momente independente (ritmul de pana acum), pe fiecare verdict.
+- **Impact:** omul stie cand sa se uite din nou, in loc sa ghiceasca.
+- **Riscuri/dependente:** estimarea depinde de cat de des apare verdictul; se scrie „cel mai devreme”.
+- **Fisiere:** `busola/src/ui/BilantVerdict.tsx`, `busola/src/motor/bilantVerdict.ts`
+
+#### I-493 · Miscarea din 3 surse intr-o probabilitate · [L] · P2 · propus
+- **Problema:** galeata Busolei, spread-ul DVOL (+10…+12 pp pe date noi, doar BTC/ETH) si bugetul zilei („peste ADR ⇒ sta”, 8/8 pe 1h) spun fiecare ceva despre miscare, dar ecranul le arata separat, iar I-430 a aratat ca stare × algoritm NU adauga.
+- **Solutia:** un model mic (logistic) pe cele 3 surse, invatat pe 70% si judecat pe 30% nevazut, cu rotatie; intra in verdict DOAR daca bate fiecare sursa singura, cu IC peste zero.
+- **Impact:** posibil un verdict de miscare mai des si mai precis; daca nu bate, se scrie si asta.
+- **Riscuri/dependente:** curve-fitting (de aceea rotatia si datele nevazute); DVOL doar pe BTC/ETH. Ipoteza, nu imbunatatire garantata.
+- **Fisiere:** `busola/probe/` (proba noua), `motor/optiuni.ts`, `motor/rangeBudget.ts`
+
+#### I-494 · Rezumatul de dimineata pe Discord · [S] · P3 · propus
+- **Problema:** alertele (de pe 02.10 pe Discord) anunta doar trecerile; ce s-a adeverit din ele nu ajunge la om decat daca deschide fila Jurnal.
+- **Solutia:** la rularea de 08:05, un mesaj scurt: verdictele inchise ieri pe 4h/1z, cate s-au adeverit, fata de martor, si starea calibrarii.
+- **Impact:** increderea in Busola se construieste (sau se pierde) pe cifre, zilnic, fara efort.
+- **Riscuri/dependente:** sa nu devina zgomot - un singur mesaj pe zi, doar daca s-a inchis ceva.
+- **Fisiere:** `busola/cron/masoara.ts`, `busola/cron/discord.ts`
