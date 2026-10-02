@@ -630,8 +630,8 @@ def _vcp(it):
 def _earn_cell(it):
     """Celula Earnings: rosie cand raportarea e in <=7 zile (risc de gap)."""
     if it.get("earnings_warn"):
-        return f"<td style='color:var(--critical)'>⚠ {it.get('earnings')} ({it.get('days_to_earnings')}z)</td>"
-    return f"<td>{it.get('earnings') or '—'}</td>"
+        return f"<td style='color:var(--critical)'>⚠ {it.get('earnings')} ({it.get('days_to_earnings')}z; estimare provider)</td>"
+    return f"<td>{it.get('earnings') or 'NEVERIFICAT'}{' (estimare provider)' if it.get('earnings') else ''}</td>"
 
 
 def aplus_list(ideas):
@@ -1003,7 +1003,7 @@ def render_cockpit(mv, data, ideas, conf, mt, detail):
             f'<div class="sicon">{icon}</div>'
             f'<div><div class="slabel">VERDICT MASTER</div>'
             f'<div class="sstance">{mv.get("stance","—")}</div>'
-            f'<div class="ssub">scor {mv.get("score",0):+d} · incredere {("SCAZUTA" if mv.get("conflict") else "OK")} · {mv.get("action","")}</div></div></div>'
+            f'<div class="ssub">scor {mv.get("score",0):+d} · incredere {(mv.get("confidence", "NEVERIFICAT").split(" - ")[0])} · {mv.get("action","")}</div></div></div>'
             f'<div class="gaugebox">{svg_gauge(mv.get("net_ceiling"), label="plafon expunere")}</div>'
             f'<div class="kpis">{tiles}</div></div>')
 
@@ -1511,6 +1511,8 @@ def render_backtest_rotation_stocks_html(brs):
 
 
 def render_calendar_html(cal, act):
+    if not cal or not cal.get("verified_at"):
+        return '<h3>Calendar macro: NEVERIFICAT</h3><p>Nu exista un calendar macro verificat aici. Absenta datelor nu inseamna absenta FOMC/CPI sau a altor catalizatori.</p>'
     today = datetime.now().date()
     items = []
     for e in (cal or {}).get("events", []):
@@ -1720,6 +1722,9 @@ def main():
     prev_snap = heatmap_snapshot(ideas, args.output_dir)
 
     mv = master_verdict(data, analysis, detail, ideas, conf, mt, im)
+    if mv.get("net_ceiling") is not None:
+        detail["net_ceiling"] = mv["net_ceiling"]
+        detail["playbook"] = [f'Plafonul combinat de context este {mv["net_ceiling"]}%; riscul personal se verifica separat in Guardrail.'] + [p for p in detail.get("playbook", [])[1:] if "expunere" not in p.lower()]
     atomic_json_dump({"data":data, "master":mv, "analysis":analysis, "detail":detail}, os.path.join(args.output_dir, "engine.json"))
 
     hist_path = os.path.join(args.output_dir, "dashboard_history.json")
