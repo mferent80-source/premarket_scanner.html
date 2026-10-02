@@ -3,6 +3,9 @@
 
   var SCAN_MS = 5 * 60 * 1000;
   var CACHE_KEY = 'ce_results_v2';
+  var requested = new URLSearchParams(location.search).get('symbol');
+  requested = /^[A-Z0-9][A-Z0-9.-]{0,14}$/.test(requested||'')?requested:null;
+  var requestedMode = new URLSearchParams(location.search).get('mode') === 'reversal'?'reversal':'momentum';
   var US_CORE = [
     'AAPL','MSFT','NVDA','AVGO','AMD','MU','INTC','WDC','AMAT','LRCX','KLAC','QCOM','TSM',
     'PLTR','CRWD','PANW','SNOW','AMZN','META','GOOGL','NFLX','TSLA','COIN','HOOD','SOFI',
@@ -15,7 +18,7 @@
     'MC.PA','TTE.PA','OR.PA','NOVO-B.CO','MIGA.MU','IFX.DE','ADS.DE','ALV.DE','DTE.DE'
   ];
   var state = {
-    mode: 'momentum', scanning: false, shellVisible: true,
+    mode: requested?requestedMode:'momentum', analyses: [], scanning: false, shellVisible: true,
     momentum: [], reversal: [], selected: null, updatedAt: 0,
     failures: [], earningsOk: false, earningsMap: {}, timer: null
   };
@@ -39,6 +42,7 @@
   function universe() {
     var kind = $('universe').value;
     var wl = window.WL ? WL.get() : [];
+    if(requested)wl=wl.concat([requested]);
     if (kind === 'watchlist') return unique(wl);
     if (kind === 'us') return unique(US_CORE.concat(wl.filter(function (s) { return regionOf(s) === 'US'; })));
     if (kind === 'eu') return unique(EU_CORE.concat(wl.filter(function (s) { return regionOf(s) === 'EU'; })));
@@ -253,10 +257,11 @@
       var combined = [];
       all.forEach(function (x) { combined.push(x.momentum, x.reversal); });
       await updateSectors(combined);
+      state.analyses=requested?combined.filter(function(x){return x.symbol===requested;}):[];
       state.momentum = capSectors(combined.filter(function (x) { return x.mode === 'momentum' && x.eligible; }));
       state.reversal = capSectors(combined.filter(function (x) { return x.mode === 'reversal' && x.eligible; }));
       state.updatedAt = Date.now();
-      var cache = { momentum: state.momentum, reversal: state.reversal, updatedAt: state.updatedAt, scannedCount: list.length, failureCount: state.failures.length };
+      var cache = { analyses:state.analyses, momentum: state.momentum, reversal: state.reversal, updatedAt: state.updatedAt, scannedCount: list.length, failureCount: state.failures.length };
       try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (_) {}
       $('countMomentum').textContent = state.momentum.length; $('countReversal').textContent = state.reversal.length;
       $('ctxEligible').textContent = (state.momentum.length + state.reversal.length) + ' top';
@@ -278,7 +283,9 @@
   function currentItems() {
     var q = $('search').value.trim().toUpperCase();
     var only = $('onlyActionable').checked;
-    return state[state.mode].filter(function (x) {
+    var source=requested&&q===requested?state.analyses:state[state.mode];
+    return source.filter(function (x) {
+      if(x.mode!==state.mode)return false;
       if (only && !x.actionable) return false;
       return !q || x.symbol.indexOf(q) >= 0 || String(x.sector).toUpperCase().indexOf(q) >= 0;
     });
@@ -315,7 +322,7 @@
     $('rows').innerHTML = items.map(rowHtml).join('');
     Array.prototype.forEach.call(document.querySelectorAll('.ce-row'), function (btn) {
       btn.onclick = function () {
-        state.selected = state[btn.dataset.mode].find(function (x) { return x.symbol === btn.dataset.symbol; }); render();
+        state.selected = state[btn.dataset.mode].concat(state.analyses).find(function (x) { return x.symbol === btn.dataset.symbol; }); render();
       };
     });
     $('ctxSectors').textContent = topSectors(items); renderDetail(state.selected);
@@ -350,6 +357,7 @@
     try {
       var c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
       if (!c || !c.updatedAt || Date.now() - c.updatedAt > 30 * 60 * 1000) return;
+      state.analyses = Array.isArray(c.analyses) ? c.analyses : [];
       state.momentum = Array.isArray(c.momentum) ? c.momentum : []; state.reversal = Array.isArray(c.reversal) ? c.reversal : []; state.updatedAt = Number(c.updatedAt) || 0;
       $('countMomentum').textContent = state.momentum.length; $('countReversal').textContent = state.reversal.length;
       $('ctxUniverse').textContent = (Number(c.scannedCount) || '—') + ' simboluri';
@@ -390,6 +398,8 @@
     document.addEventListener('visibilitychange', function () { if (!document.hidden && state.shellVisible && Date.now() - state.updatedAt > SCAN_MS) scan(); });
   }
 
-  validateDeps(); bind(); loadCache(); schedule();
+  validateDeps(); bind(); loadCache();
+  if(requested){$('search').value=requested;document.querySelectorAll('.ce-mode').forEach(function(b){b.classList.toggle('active',b.dataset.mode===state.mode);});showAlert('Validare intraday pentru '+requested+' · rulăm universul curent și tickerul solicitat. Ideea EOD nu este o intrare confirmată.');}
+  schedule();
   setTimeout(scan, 400);
 })();

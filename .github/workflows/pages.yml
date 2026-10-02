@@ -1,9 +1,15 @@
 name: Deploy GitHub Pages
+run-name: "Breadth ${{ inputs.request_id || github.event_name }}"
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      request_id:
+        description: Scan request identifier (optional)
+        required: false
+        type: string
   schedule:
     # UTC; before US trading and after the close, weekdays.
     - cron: '20 12,22 * * 1-5'
@@ -20,6 +26,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -32,18 +39,29 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s tools/market-breadth -p 'test_*.py'
-      - run: python tools/market-breadth/update.py
+      - run: pip install requests pyyaml tzdata jsonschema
+      - run: python -m unittest discover -s tools/breadth-suite -p 'test_*.py'
+      - run: python tools/breadth-suite/market-breadth-analyzer/tests_core.py
+      - name: Complete Breadth scan
+        env:
+          BREADTH_REQUEST_ID: ${{ inputs.request_id || github.run_id }}
+          BREADTH_CACHE_DIR: ${{ runner.temp }}/breadth-cache
+        run: python tools/breadth-suite/run.py --backtests auto
       - name: Save dated Breadth observations
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add market-breadth/data/latest.json
+          git add market-breadth/data/latest.json market-breadth/generated
           if ! git diff --cached --quiet; then
             git commit -m 'data(breadth): refresh public EOD observations'
             git pull --rebase origin main
             git push origin HEAD:main
           fi
       # GITHUB_TOKEN commits do not trigger another push; deploy this snapshot here.
+      - name: Remove Python runtime files from published site
+        run: |
+          rm -rf tools/breadth-suite/market-breadth-analyzer/dashboard tools/breadth-suite/market-breadth-analyzer/reports tools/breadth-suite/uptrend-analyzer/reports tools/breadth-suite/market-breadth-analyzer/nasdaq100/reports tools/breadth-suite/market-breadth-analyzer/russell2000/reports
+          find tools/breadth-suite -type d -name __pycache__ -prune -exec rm -rf {} +
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
