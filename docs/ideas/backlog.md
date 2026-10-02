@@ -3207,6 +3207,9 @@ pe un singur chart.
 | I-499 | Harta Busolei cu pozitionarea: unde e multimea ingramadita / captiva acum, pe toate monedele (Crowding + POSIT pe un rand) | busola/src/ui/Harta.tsx, motor/crowding.ts, motor/posit.ts | M | P3 | propus | ideation | 2026-10-02 |
 | I-500 | Retea neuronala (TensorFlow.js) pe miscare — MASURAT 02.10 de doua ori: NU intra (1h nu trece; 4h fara galeata nu trece in bani; pe 22 de monede nevazute gridul la „calm” al retelei pierde MAI MULT decat la LINISTE) | busola/probe (proba in scratchpad\retea) | M | P2 | masurat-nu | user | 2026-10-02 |
 | I-502 | Reteaua invatata DIRECT pe banii gridului — MASURAT 02.10: NU trece (nevazute +0,028%/episod [−0,108; +0,146]; pe invatate castigul ≈ placebo-ul) ⇒ subiectul retelei INCHIS | busola/probe | M | P3 | masurat-nu | ideation | 2026-10-02 |
+| I-503 | Reteaua v2 (intervalul gridului pe 4h, 162 de monede, cutie sigilata) — MASURAT 02.10: NU TRECE (nu bate modelul LINIAR la precizie; in bani +0,048%/episod fata de un interval fix pe 36 de monede sigilate, n-am aflat pe cele cunoscute) | busola/probe/retea (ramura retea-v2) | L | P2 | masurat-nu | user | 2026-10-02 |
+| I-504 | Refacerea masurarii gridului in Busola (GRID_MASURAT, „Pornesc grid acum?”) cu simulatorul ordin cu ordin, marfa evaluata la final — socoteala de azi e optimista | busola/src/motor/gridMasurat.ts, probe/grid-pe-date-noi.ts, probe/retea/modele.ts (episodGridMtm) | M | P1 | propus | ideation | 2026-10-02 |
+| I-505 | Latimea gridului pe 4h: canalul ±2×ATR pierde cel mai mult; un interval fix ~+4,3/−3,9 ATR pierde cu ~0,25–0,3%/episod mai putin (cutia sigilata, 36+120 de monede) — de dus in sfatul de grid al Busolei / fisa Radarului | busola/src/motor/grid.ts, crypto/public (fisa grid) | S | P1 | propus | ideation | 2026-10-02 |
 | I-501 | Miscarea din structura volatilitatii (ATR fata de mediana lui, range-ul pe 20 de bare, cat a stat in canal recent) — model LINIAR, walk-forward pe mai multe felii si 30 de monede, inainte de orice retea | busola/src/motor, probe/ | M | P1 | propus | ideation | 2026-10-02 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
@@ -5179,3 +5182,20 @@ Ideile cu semnal/prag sunt IPOTEZE: se valideaza out-of-sample (cazuri de DUPA s
 - **Impact:** verdictul de mișcare (singurul dovedit) ar putea deveni mult mai precis; util mai ales ca „când NU porni un grid”.
 - **Riscuri/dependente:** o singură tăietură poate minți (regim); trebuie felii. Gridul rămâne pe minus în medie — de spus pe față, nu „gridul câștigă”.
 - **Fisiere:** `busola/src/motor/` (un model nou de mișcare), `busola/probe/` (proba walk-forward), `busola/cron/masoara.ts` (reînvățarea periodică, dacă trece)
+
+#### I-503 · Rețeaua v2 — intervalul gridului pe 4h · [L] · P2 · măsurat-nu
+- **Cerut de el (02.10):** după I-502 — „poate că nu ai gândit-o destul de bine” ⇒ variantă făcută cum trebuie, cu cutie sigilată. Spec + amendament + plan în `busola/docs/superpowers/`, cod pe ramura `retea-v2` (`probe/retea/`, `src/motor/retea.ts`).
+- **Proba:** 162 de monede pe 4h; ținta = percentila 90 a urcării/coborârii în 12 bare (intervalul gridului); rețea densă pe WebAssembly (secvența pe 7 scări — convoluția nu se poate antrena pe PC); etaloane CONST (interval fix), CLASIC (HAR), LINIAR; revizie independentă ÎNAINTE de cutie (a prins că banii măsurau lățimea și că socoteala gridului era optimistă ⇒ simulator ordin cu ordin, marcat la piață); repetiție generală pe cutie falsă; cutia (de la 01.04.2026 + 41 de monede sigilate) deschisă o singură dată.
+- **Rezultat:** sigilate neatinse (36): acoperire 83,2% ✅; pinball sub CONST (−0,042) și CLASIC (−0,032) ✅, dar NU sub LINIAR (−0,009 [−0,024; +0,005]) ❌; bani față de CONST +0,048%/episod [+0,003; +0,097] ✅. Cunoscute (120): pinball față de LINIAR ❌, bani +0,038% [−0,006; +0,086] ❌ ⇒ **NU TRECE**. Rețeaua e cea mai bună dintre metode, dar nu se dovedește peste un model liniar simplu.
+- **Mai important decât rețeaua:** marcat la piață, TOATE gridurile pe 4h au fost pe minus în perioada sigilată (rețeaua −0,44%, CANAL ±2×ATR −0,74% pe episod de 2 zile, pe monedele sigilate) ⇒ I-504, I-505.
+
+#### I-504 · Măsurarea gridului în Busola, refăcută corect · [M] · P1 · propus
+- **Problema:** `probe/grid-pe-date-noi.ts` (de unde vine `GRID_MASURAT`, folosit de „Pornesc grid acum?” și de rândul „de ce” din capurile ferestrelor) numără o grilă câștigată la orice zvâcnire de un pas pe închideri, chiar fără ordin umplut, și taxează marfa doar la ieșirea pe jos. Pe un drum care coboară 9% ÎN interval dă +11%, iar gridul real −5,75%.
+- **Soluția:** refacerea măsurării cu `episodGridMtm` (ordin cu ordin, comision la fiecare umplere, marfa evaluată la final; 3 cazuri verificate de mână), regenerarea `GRID_MASURAT`, apoi textele care îl citează.
+- **Impact:** cifrele de grid pe care le vede (și după care pornește boți) devin cinstite — probabil mai negative.
+- **Fișiere:** `busola/probe/grid-pe-date-noi.ts`, `busola/src/motor/gridMasurat.ts`, `busola/probe/retea/modele.ts`
+
+#### I-505 · Lățimea gridului pe 4h · [S] · P1 · propus
+- **Ce s-a măsurat (cutia sigilată, marcat la piață, aceleași momente):** CANAL ±2×ATR −0,739%/episod față de un interval fix ~+4,3/−3,9 ATR −0,484% pe 36 de monede sigilate (IC al diferenței cu rețeaua față de CANAL +0,22…+0,39%); la fel pe 120 de cunoscute (−0,553% vs −0,316%).
+- **Soluția:** în sfatul de grid al Busolei (și, după probă, în fișa Radarului) intervalul implicit pe 4h nu mai e ±2×ATR, ci ~+4,3/−3,9 ATR — cu avertismentul că și așa gridul a fost pe minus în medie.
+- **Riscuri:** orizontul probei e 12 bare (2 zile); boții lui țin mai mult — de măsurat și pe orizontul lor înainte de schimbat fișa Radarului.
