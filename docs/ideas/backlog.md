@@ -3195,11 +3195,16 @@ pe un singur chart.
 | I-487 | Radar: stresul comun crypto + actiuni - ce pierzi daca Nasdaq si BTC scad 10 % in aceeasi zi (lichidari incluse) | crypto/public/lib/acasa.js, public/lib/tablou-extra.js | M | P2 | propus | ideation | 2026-10-01 |
 | I-488 | Radar: ideile de BOTI urmarite - ce-ar fi facut fiecare idee (fisa din ziua ei) vs botii pe care i-ai pornit | crypto/public/lib/idei.js, scripts/colector.mjs | M | P3 | propus | ideation | 2026-10-01 |
 | I-489 | Radar: fisa gridului scoasa din app.js (6.788 randuri) intr-un lib/grid-ecran.js, probata fara Chrome | crypto/public/app.js, public/lib/grid-ecran.js | L | P3 | propus | ideation | 2026-10-01 |
-| I-490 | Busola: „ASTEAPTA pana cand?” - cea mai apropiata stare in care Busola ARE verdict pe moneda asta si ce trebuie sa se schimbe | busola/src/motor/harta.ts, frecvente.ts, ui/LinieVerdict.tsx | M | P1 | propus | ideation | 2026-10-02 |
-| I-491 | Radar citeste Busola: „nu porni grid dupa miscare” si „GATA LINISTEA” in fisa gridului Radarului (singurul avantaj dovedit al Busolei) | crypto/public/lib/grid-calcul.js, consiliu.js; busola /api/masurat.json | M | P1 | propus | ideation | 2026-10-02 |
-| I-492 | Busola: data la care se afla adevarul - pe fiecare verdict, cand ajunge bilantul live la 10 momente (4h: ~09.10) | busola/src/ui/BilantVerdict.tsx, motor/bilantVerdict.ts | S | P2 | propus | ideation | 2026-10-02 |
-| I-493 | Busola: miscarea din 3 surse intr-o probabilitate (galeata + spread DVOL + bugetul zilei ADR), intra doar daca bate fiecare sursa singura pe date noi | busola/probe/, motor/optiuni.ts, rangeBudget.ts | L | P2 | propus | ideation | 2026-10-02 |
-| I-494 | Busola: rezumatul de dimineata pe Discord - ce a zis ieri, ce s-a adeverit, fata de martor | busola/cron/masoara.ts, cron/discord.ts | S | P3 | propus | ideation | 2026-10-02 |
+| I-490 | Busola: „ASTEAPTA pana cand?” - cea mai apropiata stare in care Busola ARE verdict pe moneda asta si ce trebuie sa se schimbe | busola/src/motor/harta.ts, frecvente.ts, ui/LinieVerdict.tsx | M | P1 | facut 2026-10-02 | ideation | 2026-10-02 |
+| I-491 | Radar citeste Busola: „nu porni grid dupa miscare” si „GATA LINISTEA” in fisa gridului Radarului (singurul avantaj dovedit al Busolei) | crypto/public/lib/grid-calcul.js, consiliu.js; busola /api/masurat.json | M | P1 | facut 2026-10-02 | ideation | 2026-10-02 |
+| I-492 | Busola: data la care se afla adevarul - pe fiecare verdict, cand ajunge bilantul live la 10 momente (4h: ~09.10) | busola/src/ui/BilantVerdict.tsx, motor/bilantVerdict.ts | S | P2 | facut 2026-10-02 | ideation | 2026-10-02 |
+| I-493 | Busola: miscarea din 3 surse intr-o probabilitate (galeata + spread DVOL + bugetul zilei ADR), intra doar daca bate fiecare sursa singura pe date noi | busola/probe/, motor/optiuni.ts, rangeBudget.ts | L | P2 | facut 2026-10-02 (masurat: NU intra - DVOL singur e mai bun) | ideation | 2026-10-02 |
+| I-494 | Busola: rezumatul de dimineata pe Discord - ce a zis ieri, ce s-a adeverit, fata de martor | busola/cron/masoara.ts, cron/discord.ts | S | P3 | facut 2026-10-02 | ideation | 2026-10-02 |
+| I-495 | Busola: pe BTC/ETH, piata de optiuni INTAI - DVOL singur a batut galeata si combinatia (I-493); de probat la nivel de verdict, pe date noi | busola/src/motor/optiuni.ts, probe/ | M | P1 | propus | ideation | 2026-10-02 |
+| I-496 | Busola masoara si monedele BOTILOR (futures PERP Pionex), nu doar topul spot - JTO & co. lipsesc azi din rezumatul pentru Radar | busola/cron/pionex.ts, cron/masoara.ts, motor/rezumatRadar.ts | M | P2 | propus | ideation | 2026-10-02 |
+| I-497 | Discord: moneda unui BOT DESCHIS trece in „mai agitata ca de obicei” pe 4h - GATA LINISTEA tintit pe botii care chiar ruleaza | crypto/scripts/colector.mjs, public/lib/busola.js | S | P1 | propus | ideation | 2026-10-02 |
+| I-498 | Testul tau personal: botii tai, dupa starea Busolei la pornire - pe „mai agitat” vs „mai calm”, cat ai castigat/pierdut de fapt | crypto/public/lib/obiceiuri.js, busola/cron/stare/jurnal.json | M | P1 | propus | ideation | 2026-10-02 |
+| I-499 | Harta Busolei cu pozitionarea: unde e multimea ingramadita / captiva acum, pe toate monedele (Crowding + POSIT pe un rand) | busola/src/ui/Harta.tsx, motor/crowding.ts, motor/posit.ts | M | P3 | propus | ideation | 2026-10-02 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5077,37 +5082,72 @@ Ideile cu semnal/prag sunt IPOTEZE: se valideaza out-of-sample (cazuri de DUPA s
 - **Riscuri/dependente:** mutare mare; pas cu pas, cu inventar inainte/dupa (regula „nu se pierde nimic pe drum”).
 - **Fisiere:** `crypto/public/app.js`, `crypto/public/lib/grid-ecran.js`
 
-#### I-490 · „ASTEAPTA pana cand?” · [M] · P1 · propus
+#### I-490 · „ASTEAPTA pana cand?” · [M] · P1 · facut 2026-10-02
 - **Problema:** pe 02.10, la 4h, 19 din 30 de monede scriu „AȘTEAPTĂ / NIMIC DE FĂCUT” fara sa spuna ce ar schimba asta; omul revine la intamplare.
 - **Solutia:** pentru moneda si intervalul de pe ecran, cele mai apropiate stari (galeti) in care Busola ARE verdict dovedit pe istoria monedei, si ce le desparte de starea de acum (ex. „RSI trece de 65 pe 4h ⇒ «mai agitat ca de obicei», 74 din 100”). Fara prezicere a momentului - doar conditia.
 - **Impact:** „nimic de facut” devine „pandeste X”; o alerta poate pleca exact la trecere (exista deja pe Discord).
 - **Riscuri/dependente:** galetile vecine au n mai mic; se arata doar cele cu n ≥ 30 si IC care trece. Ipoteza de folos, nu de profit.
 - **Fisiere:** `busola/src/motor/frecvente.ts`, `motor/harta.ts`, `ui/LinieVerdict.tsx`
 
-#### I-491 · Radar citeste Busola · [M] · P1 · propus
+#### I-491 · Radar citeste Busola · [M] · P1 · facut 2026-10-02
 - **Problema:** singurul avantaj dovedit al Busolei e defensiv pe grid („dupa miscare gridul pierde cel mai mult”, „GATA LINISTEA”), dar fisa gridului din Radar nu-l vede: nimic din `crypto/` nu citeste Busola (verificat cu grep pe 02.10).
 - **Solutia:** Radarul citeste `busola.mferent80.workers.dev/api/masurat.json` (harta 4h/1z, gridTop100) si pune in fisa gridului un rand: „Busola: mai agitat ca de obicei pe 4h - aici gridul a pierdut cel mai mult (−0,214% pe episod)” / „mai calm - pierde cel mai putin”. Avertizeaza, nu refuza (regula: pragul botului e un privilegiu).
 - **Impact:** o pierdere tipica de grid evitata in clipa in care el porneste botul, nu dupa.
 - **Riscuri/dependente:** spot vs futures (1000BONK etc. - traducerea `spotDinFutures` exista); masurarea Busolei e la 4 ore - se scrie varsta.
 - **Fisiere:** `crypto/public/lib/grid-calcul.js`, `crypto/public/lib/consiliu.js`
 
-#### I-492 · Data la care se afla adevarul · [S] · P2 · propus
+#### I-492 · Data la care se afla adevarul · [S] · P2 · facut 2026-10-02
 - **Problema:** bilantul live scrie „prea devreme (7 momente)” fara sa spuna cand nu va mai fi; pe 4h un moment = 48 h.
 - **Solutia:** langa „live: prea devreme”, data estimata la care ajunge la 10 momente independente (ritmul de pana acum), pe fiecare verdict.
 - **Impact:** omul stie cand sa se uite din nou, in loc sa ghiceasca.
 - **Riscuri/dependente:** estimarea depinde de cat de des apare verdictul; se scrie „cel mai devreme”.
 - **Fisiere:** `busola/src/ui/BilantVerdict.tsx`, `busola/src/motor/bilantVerdict.ts`
 
-#### I-493 · Miscarea din 3 surse intr-o probabilitate · [L] · P2 · propus
+#### I-493 · Miscarea din 3 surse intr-o probabilitate · [L] · P2 · facut 2026-10-02
 - **Problema:** galeata Busolei, spread-ul DVOL (+10…+12 pp pe date noi, doar BTC/ETH) si bugetul zilei („peste ADR ⇒ sta”, 8/8 pe 1h) spun fiecare ceva despre miscare, dar ecranul le arata separat, iar I-430 a aratat ca stare × algoritm NU adauga.
 - **Solutia:** un model mic (logistic) pe cele 3 surse, invatat pe 70% si judecat pe 30% nevazut, cu rotatie; intra in verdict DOAR daca bate fiecare sursa singura, cu IC peste zero.
 - **Impact:** posibil un verdict de miscare mai des si mai precis; daca nu bate, se scrie si asta.
 - **Riscuri/dependente:** curve-fitting (de aceea rotatia si datele nevazute); DVOL doar pe BTC/ETH. Ipoteza, nu imbunatatire garantata.
 - **Fisiere:** `busola/probe/` (proba noua), `motor/optiuni.ts`, `motor/rangeBudget.ts`
 
-#### I-494 · Rezumatul de dimineata pe Discord · [S] · P3 · propus
+#### I-494 · Rezumatul de dimineata pe Discord · [S] · P3 · facut 2026-10-02
 - **Problema:** alertele (de pe 02.10 pe Discord) anunta doar trecerile; ce s-a adeverit din ele nu ajunge la om decat daca deschide fila Jurnal.
 - **Solutia:** la rularea de 08:05, un mesaj scurt: verdictele inchise ieri pe 4h/1z, cate s-au adeverit, fata de martor, si starea calibrarii.
 - **Impact:** increderea in Busola se construieste (sau se pierde) pe cifre, zilnic, fara efort.
 - **Riscuri/dependente:** sa nu devina zgomot - un singur mesaj pe zi, doar daca s-a inchis ceva.
 - **Fisiere:** `busola/cron/masoara.ts`, `busola/cron/discord.ts`
+
+#### I-495 · Pe BTC/ETH, piața de opțiuni ÎNTÂI · [M] · P1 · propus
+- **Problema:** azi Busola vorbește întâi și opțiunile doar când ea tace (`miscareCuOptiuni`). I-493 (02.10) a arătat pe date nevăzute că pe BTC/ETH spread-ul DVOL singur prezice mișcarea mai bine decât găleata și decât combinația (Brier, 40 de luni-serie, placebo).
+- **Soluția:** o probă la nivel de VERDICT (nu de probabilitate): pe 30% nevăzut, când găleata și sfertul DVOL nu sunt de acord, care a nimerit mai des față de martor; dacă DVOL câștigă cu IC peste zero, pe BTC/ETH ordinea se inversează și ecranul o spune.
+- **Impact:** verdictul de mișcare pe cele mai tranzacționate două monede vine din sursa care chiar prezice mai bine.
+- **Riscuri/dependente:** doar 2 monede ⇒ dovada pe luni, nu pe serii; Deribit poate schimba API-ul. Ipoteză — de validat out-of-sample, nu îmbunătățire garantată.
+- **Fisiere:** `busola/src/motor/optiuni.ts`, `busola/probe/` (proba nouă), `busola/src/ui/LinieVerdict.tsx`
+
+#### I-496 · Busola măsoară și monedele boților (futures) · [M] · P2 · propus
+- **Problema:** rezumatul pentru Radar (I-491) acoperă topul SPOT Pionex; boții lui sunt pe FUTURES ⇒ pe JTO și altele fișa gridului scrie „Busola n-a măsurat”.
+- **Soluția:** cronul Busolei adaugă la gridTop100 monedele PERP din topul Pionex (sau lista boților activi, dacă Radarul o publică), cu lumânări aduse de PC (Pionex refuză marginea Cloudflare).
+- **Impact:** avertismentul „mai agitată — aici gridul a pierdut cel mai mult” ajunge exact pe monedele pe care pornește boți.
+- **Riscuri/dependente:** +timp de rulare (de măsurat; rularea de 12:05 a durat deja 12 min); perpetuul ≠ spot (bazis), dar întrebarea e despre mișcare, nu despre preț.
+- **Fisiere:** `busola/cron/pionex.ts`, `busola/cron/masoara.ts`, `busola/src/motor/rezumatRadar.ts`
+
+#### I-497 · Discord: botul tău intră pe o monedă „mai agitată” · [S] · P1 · propus
+- **Problema:** „GATA LINIȘTEA — oprește gridul” vine din Busola pe TOATE monedele, iar Radarul arată avertismentul doar când deschizi fișa; un bot deja pornit nu primește nimic când moneda lui trece în „mai agitată”.
+- **Soluția:** colectorul Radarului (știe boții activi) citește `/api/rezumat.json` la fiecare tură de 4 h și trimite pe Discord o singură dată pe trecere: „botul JTO: moneda a trecut în «mai agitată ca de obicei» pe 4h — aici gridul a pierdut cel mai mult”.
+- **Impact:** o pierdere tipică de grid prinsă când se întâmplă, nu când te uiți.
+- **Riscuri/dependente:** depinde de I-496 pentru monedele de futures; colectorul e lucrat în paralel de altă sesiune (coordonare la versiuni).
+- **Fisiere:** `crypto/scripts/colector.mjs`, `crypto/public/lib/busola.js`
+
+#### I-498 · Testul tău personal: boții tăi față de starea Busolei · [M] · P1 · propus
+- **Problema:** avantajul Busolei pe grid e măsurat pe un grid-model (±2 ATR, 12 bare), nu pe boții LUI. Nu știm dacă „mai calm” chiar i-a adus mai puțin minus.
+- **Soluția:** din istoria boților din Radar (start, monedă, rezultat) și jurnalul Busolei (starea de mișcare pe 4h la ora pornirii), un tabel: boți porniți pe „mai agitat” / „mai calm” / „nimic neobișnuit” — câți, cât net, cu IC pe săptămâni; sub 10 boți pe grupă scrie „prea puțin”.
+- **Impact:** singura dovadă care contează pentru bani: regula Busolei pe boții reali.
+- **Riscuri/dependente:** puțini boți pe grupă; corelația cu piața (aceeași săptămână) — martorul se face pe aceleași zile.
+- **Fisiere:** `crypto/public/lib/obiceiuri.js`, `crypto/scripts/colector.mjs`, `busola/cron/stare/jurnal.json`
+
+#### I-499 · Harta Busolei cu poziționarea · [M] · P3 · propus
+- **Problema:** Crowding și POSIT se văd doar pe moneda deschisă; nu se vede pe ce monede mulțimea e îngrămădită sau captivă ACUM.
+- **Soluția:** o coloană în Harta (și în rezumatul pentru Radar) cu starea de poziționare pe perpetuu (îngrămădit long/short, captivi, OI exploziv), aceleași cuvinte ca în capurile din 02.10.
+- **Impact:** riscul de scoatere se vede dintr-o privire, înainte să deschizi moneda.
+- **Riscuri/dependente:** perpetuul + OI pe 30 de monede la fiecare rulare (Binance OI ține ~30 de zile); lentilă de RISC, nu de direcție — scris pe coloană.
+- **Fisiere:** `busola/src/ui/Harta.tsx`, `busola/src/motor/crowding.ts`, `busola/src/motor/posit.ts`, `busola/cron/masoara.ts`
