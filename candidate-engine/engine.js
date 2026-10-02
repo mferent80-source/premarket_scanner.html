@@ -372,7 +372,7 @@
     $('search').oninput = render; $('onlyActionable').onchange = render;
     $('setupBtn').onclick = function () {
       if (!state.selected || state.selected.state === 'BLOCKED') return;
-      var query = 'symbol=' + encodeURIComponent(state.selected.symbol);
+      var query = 'symbol=' + encodeURIComponent(state.selected.symbol) + '&mode=' + encodeURIComponent(state.selected.mode);
       if (window.parent !== window) window.parent.postMessage({ ttOpenModule: 'smart-trade-long/', ttQuery: query }, location.origin);
       else location.href = '../smart-trade-long/?' + query;
     };

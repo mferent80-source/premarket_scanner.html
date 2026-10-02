@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090d12">
+<title>Trading Tools — Decision App</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="../lib/plex.css?v=825">
+<script src="../lib/theme.js?v=825"></script>
+<style>
+:root{--bg:#090d12;--rail:#0c1117;--panel:#10171f;--panel2:#151e27;--line:#222e39;--text:#e8edf0;--muted:#7f8d98;--faint:#54626e;--green:#49d3aa;--amber:#edb65d;--red:#ff6e80;--blue:#6fb9ef}
+:root[data-theme="light"]{--bg:#e9edf0;--rail:#fff;--panel:#f7f9fa;--panel2:#eef2f4;--line:#d6dde2;--text:#121a20;--muted:#667580;--faint:#8a969f;--green:#087e5d;--amber:#956100;--red:#bd3147;--blue:#216b9c}
+*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--tt-sans,Inter,system-ui,sans-serif)}button,input{font:inherit}.app{height:100%;display:grid;grid-template-columns:214px minmax(0,1fr)}
+.rail{display:flex;flex-direction:column;min-height:0;background:var(--rail);border-right:1px solid var(--line)}.brand{height:72px;display:flex;align-items:center;gap:11px;padding:0 16px;border-bottom:1px solid var(--line)}.mark{width:29px;height:29px;display:grid;place-items:center;background:var(--text);color:var(--bg);font:800 12px var(--tt-mono,monospace)}.brand b,.brand small{display:block}.brand b{font-size:12px;letter-spacing:.04em}.brand small{margin-top:3px;color:var(--muted);font-size:8px;letter-spacing:.08em}
+.nav{min-height:0;overflow:auto;padding:10px 8px 18px;scrollbar-width:thin}.group{margin:12px 8px 6px;color:var(--faint);font:700 8px var(--tt-mono,monospace);letter-spacing:.12em}.nav button{width:100%;height:34px;display:grid;grid-template-columns:23px 1fr auto;align-items:center;border:0;border-radius:6px;padding:0 9px;background:transparent;color:var(--muted);text-align:left;font-size:10px;cursor:pointer}.nav button:hover{background:var(--panel2);color:var(--text)}.nav button.active{background:color-mix(in srgb,var(--green) 8%,var(--panel2));color:var(--text);box-shadow:inset 2px 0 var(--green)}.nav .ico{font-size:12px}.nav .tag{font:700 7px var(--tt-mono,monospace);color:var(--green)}
+.rail-foot{padding:10px 13px;border-top:1px solid var(--line)}.system{display:flex;align-items:center;gap:7px;font:700 8px var(--tt-mono,monospace);color:var(--muted)}.system i{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 9px color-mix(in srgb,var(--green) 65%,transparent)}.rail-foot small{display:block;margin-top:5px;color:var(--faint);font-size:8px}
+.workspace{min-width:0;min-height:0;display:grid;grid-template-rows:49px minmax(0,1fr)}.topbar{display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}.crumb{min-width:0}.crumb small,.crumb b{display:block}.crumb small{font:700 7px var(--tt-mono,monospace);color:var(--faint);letter-spacing:.1em}.crumb b{margin-top:2px;font-size:11px}.spacer{flex:1}.search{width:min(320px,32vw);height:29px;padding:0 10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:9px;outline:0}.search:focus{border-color:var(--green)}.top-stat{padding-left:12px;border-left:1px solid var(--line);white-space:nowrap}.top-stat small,.top-stat b{display:block}.top-stat small{font-size:7px;color:var(--faint)}.top-stat b{margin-top:2px;font-size:9px}.old-shell{height:29px;border:1px solid var(--line);background:transparent;color:var(--muted);padding:0 10px;font-size:8px;cursor:pointer}
+.stage{position:relative;min-width:0;min-height:0}.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg)}.loading{position:absolute;inset:0;display:grid;place-items:center;background:var(--bg);z-index:2;color:var(--muted);font:700 9px var(--tt-mono,monospace);letter-spacing:.09em}.loading[hidden]{display:none}
+.palette{position:fixed;z-index:10;top:58px;right:14px;width:min(390px,calc(100vw - 28px));max-height:70vh;overflow:auto;padding:7px;background:var(--panel);border:1px solid var(--line);box-shadow:0 24px 70px rgba(0,0,0,.45)}.palette[hidden]{display:none}.palette button{width:100%;height:38px;display:flex;align-items:center;gap:9px;border:0;background:transparent;color:var(--muted);padding:0 10px;text-align:left;font-size:10px}.palette button:hover{background:var(--panel2);color:var(--text)}.palette button span:last-child{margin-left:auto;color:var(--faint);font-size:8px}
+@media(max-width:900px){.app{grid-template-columns:64px minmax(0,1fr)}.brand{padding:0;justify-content:center}.brand>div:last-child,.nav button span:nth-child(2),.nav .tag,.group,.rail-foot small{display:none}.nav button{grid-template-columns:1fr;padding:0;text-align:center}.nav .ico{font-size:15px}.rail-foot{padding:10px 0}.system{justify-content:center}.search{width:160px}.top-stat{display:none}}
+@media(max-width:600px){.app{grid-template-columns:52px minmax(0,1fr)}.topbar{padding:0 8px;gap:7px}.search{width:110px}.old-shell{display:none}.crumb small{display:none}}
+/* Typography lift */
+.brand b{font-size:13px}.brand small{font-size:9px}.group{font-size:9px}.nav button{height:36px;font-size:11px}.nav .ico{font-size:13px}.nav .tag{font-size:8px}.system,.rail-foot small{font-size:9px}.crumb small{font-size:8px}.crumb b{font-size:12px}.search{font-size:10px}.top-stat small{font-size:8px}.top-stat b{font-size:10px}.old-shell{font-size:9px}.loading{font-size:10px}.palette button{font-size:11px}.palette button span:last-child{font-size:9px}
+/* readable app controls */
+.brand b{font-size:15px}.brand small,.group{font-size:11px}.nav button{height:42px;font-size:13px}.crumb b{font-size:14px}.search{font-size:13px}.old-shell{font-size:11px}.loading{pointer-events:none}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="brand"><div class="mark">TT</div><div><b>TRADING TOOLS</b><small>DECISION APP</small></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="rail-foot"><div class="system"><i></i><span>DECISION WORKSPACE</span></div><small>Long · Reversal · Risc · Jurnal</small></div>
+  </aside>
+  <section class="workspace">
+    <header class="topbar">
+      <div class="crumb"><small>TRADING TOOLS / MODUL</small><b id="pageName">Candidates</b></div>
+      <div class="spacer"></div>
+      <input class="search" id="search" aria-label="Caută în aplicație" placeholder="Caută · Ctrl K" autocomplete="off">
+      <div class="top-stat"><small>SESIUNE</small><b id="session">—</b></div>
+      <button class="old-shell" id="reloadModule" aria-label="Reîncarcă modulul">REÎNCARCĂ</button>
+    </header>
+    <main class="stage"><div class="loading" id="loading">SE ÎNCARCĂ MODULUL…</div><iframe id="frame" title="Trading Tools module"></iframe></main>
+  </section>
+</div>
+<div class="palette" id="palette" hidden></div>
+<script>
+(function(){
+  'use strict';
+  var GROUPS=[
+    {name:'PIAȚĂ & DECIZIE',items:[{u:'desk/',n:'Decision Desk',i:'◫'},{u:'candidate-engine/',n:'Long & Reversal',i:'🎯'},{u:'market-breadth/',n:'Market Breadth',i:'◉'}]},
+    {name:'PLAN & CAPITAL',items:[{u:'journal/#desk',n:'Risc & Capital',i:'🛡️'},{u:'journal/#portfolio',n:'Portofoliu',i:'▦'},{u:'journal/',n:'Jurnal',i:'▤'},{u:'shadow-book/',n:'Shadow',i:'◈'}]},
+    {name:'SUPORT',items:[{u:'guide/',n:'Coach',i:'◇'},{u:'health/',n:'Starea datelor',i:'✚'}]}
+  ];
+  var all=[];GROUPS.forEach(function(g){g.items.forEach(function(x){x.group=g.name;all.push(x);});});
+  var nav=document.getElementById('nav'),frame=document.getElementById('frame'),loading=document.getElementById('loading');
+  var pageName=document.getElementById('pageName'),search=document.getElementById('search'),palette=document.getElementById('palette');
+  var active='desk/';
+  var requested=new URLSearchParams(location.search).get('module');if(requested!==null&&all.some(function(x){return x.u===requested;}))active=requested;
+  if(!all.some(function(x){return x.u===active;}))active='desk/';
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
+  function renderNav(){nav.innerHTML=GROUPS.map(function(g){return '<div class="group">'+esc(g.name)+'</div>'+g.items.map(function(x){return '<button data-u="'+esc(x.u)+'" class="'+(x.u===active?'active':'')+'" title="'+esc(x.n)+'" aria-label="'+esc(x.n)+'"><span class="ico">'+x.i+'</span><span>'+esc(x.n)+'</span>'+(x.tag?'<span class="tag">'+x.tag+'</span>':'<span></span>')+'</button>';}).join('');}).join('');nav.querySelectorAll('button').forEach(function(b){b.onclick=function(){openModule(b.dataset.u);};});}
+  function openModule(u,query){if(u==='smart-trade-long/'){u='desk/';query=(query?query+'&':'')+'ticket=1';}if(u==='')u='desk/';var x=all.find(function(a){return a.u===u;});if(!x)return;active=u;try{localStorage.setItem('tt_app_active_v1',u);}catch(_){}pageName.textContent=x.n;loading.hidden=false;var parts=u.split('#');frame.src='../'+parts[0]+'?app=decision-v1'+(query?'&'+String(query).replace(/^\?+/,''):'')+(parts[1]?'#'+parts[1]:'');renderNav();palette.hidden=true;search.value='';}
+  function renderPalette(q){q=String(q||'').trim().toLowerCase();var rows=all.filter(function(x){return !q||x.n.toLowerCase().indexOf(q)>=0||x.group.toLowerCase().indexOf(q)>=0;});palette.innerHTML=rows.map(function(x){return '<button data-u="'+esc(x.u)+'"><span>'+x.i+'</span><b>'+esc(x.n)+'</b><span>'+esc(x.group)+'</span></button>';}).join('')||'<button disabled>Niciun modul găsit</button>';palette.hidden=false;palette.querySelectorAll('button[data-u]').forEach(function(b){b.onclick=function(){openModule(b.dataset.u);};});}
+  frame.onload=function(){loading.hidden=true;try{
+      var doc=frame.contentDocument;var css=doc.createElement('style');css.textContent='#btnWsRevert{display:none!important}';doc.head.appendChild(css);
+      function route(href){var x=new URL(href,frame.src),base=new URL('../',location.href).pathname;if(x.origin!==location.origin)return null;var u=x.pathname.replace(base,'').replace(/index\.html$/,'');if(!u||u==='shell/'||u==='hub-clasic/'||u==='command-center/')return 'desk/';if(x.hash&&all.some(function(m){return m.u===u+x.hash;}))u+=x.hash;return all.some(function(m){return m.u===u;})?u:false;}
+      doc.querySelectorAll('a[href]').forEach(function(a){var href=a.getAttribute('href');if(!href||href[0]==='#')return;var u=route(href);if(u===false){a.hidden=true;a.style.display='none';return;}if(u!==null){a.addEventListener('click',function(e){e.preventDefault();openModule(u);});if(/Hub|Shell|Clasic/i.test(a.textContent))a.textContent='← Decision Desk';}});
+      frame.contentWindow.postMessage({ttShellVisible:true},location.origin);
+    }catch(e){loading.hidden=true;}};
+  search.onfocus=function(){renderPalette(search.value);};search.oninput=function(){renderPalette(search.value);};
+  document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();search.focus();renderPalette(search.value);}if(e.key==='Escape'){palette.hidden=true;search.blur();}});
+  document.addEventListener('click',function(e){if(e.target!==search&&!palette.contains(e.target))palette.hidden=true;});
+  window.addEventListener('message',function(e){if(e.origin!==location.origin||!e.data)return;if(e.source!==frame.contentWindow)return;var d=e.data,u=d.ttOpenModule!==undefined?d.ttOpenModule:d.ttOpen;if(typeof u!=='string')return;if(d.ttHash&&all.some(function(x){return x.u===u+(d.ttHash[0]==='#'?d.ttHash:'#'+d.ttHash);}))u+=d.ttHash[0]==='#'?d.ttHash:'#'+d.ttHash;openModule(u,d.ttQuery);});
+  document.getElementById('reloadModule').onclick=function(){openModule(active);};
+  document.getElementById('session').textContent=new Intl.DateTimeFormat('ro-RO',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Bucharest'}).format(new Date())+' RO';
+  renderNav();openModule(active);
+})();
+</script>
+</body>
+</html>
