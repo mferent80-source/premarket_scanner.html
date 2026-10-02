@@ -305,8 +305,8 @@
     return '<button class="ce-row' + (state.selected && state.selected.symbol === x.symbol && state.selected.mode === x.mode ? ' selected' : '') + '" data-mode="' + escapeHtml(x.mode) + '" data-symbol="' + escapeHtml(x.symbol) + '">'
       + '<span class="ce-rank">' + String(i + 1).padStart(2, '0') + '</span>'
       + '<div class="ce-symbol"><b>' + escapeHtml(x.symbol) + ' <em>' + escapeHtml(x.region) + '</em></b><small>' + escapeHtml(x.reason) + '</small></div>'
-      + '<span class="ce-cell">' + escapeHtml(x.sector) + '</span><b class="ce-cell ' + clsA + '">' + a + '</b>'
-      + '<span class="ce-cell ' + clsB + '">' + b + '</span><span class="ce-cell">' + c + '</span><span class="ce-cell">' + d + '</span>'
+      + '<span class="ce-cell" data-label="Sector">' + escapeHtml(x.sector) + '</span><b class="ce-cell ' + clsA + '" data-label="'+(state.mode==='momentum'?'Δ zi':'De la maxim')+'">' + a + '</b>'
+      + '<span class="ce-cell ' + clsB + '" data-label="'+(state.mode==='momentum'?'RVOL':'Din minim')+'">' + b + '</span><span class="ce-cell" data-label="'+(state.mode==='momentum'?'RS 20z':'Bază')+'">' + c + '</span><span class="ce-cell" data-label="'+(state.mode==='momentum'?'Ret. 20z':'RVOL')+'">' + d + '</span>'
       + '<strong class="ce-score">' + x.score + '</strong><i class="ce-state ' + x.state.toLowerCase() + '">' + x.state + '</i></button>';
   }
   function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]; }); }
@@ -323,6 +323,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('.ce-row'), function (btn) {
       btn.onclick = function () {
         state.selected = state[btn.dataset.mode].concat(state.analyses).find(function (x) { return x.symbol === btn.dataset.symbol; }); render();
+        if(window.matchMedia('(max-width:760px)').matches)$('detail').scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});
       };
     });
     $('ctxSectors').textContent = topSectors(items); renderDetail(state.selected);

@@ -21,6 +21,7 @@
 @media(max-width:1050px){.ce-app{width:calc(100% - 12px);margin:6px auto 72px}.ce-context{grid-template-columns:repeat(3,1fr)}.ce-work{grid-template-columns:1fr 310px}.ce-th,.ce-row{grid-template-columns:30px minmax(125px,1.3fr) minmax(90px,1fr) 54px 54px 58px 48px}.ce-th>*:nth-child(7),.ce-th>*:nth-child(8),.ce-row>*:nth-child(7),.ce-row>*:nth-child(8){display:none}}
 @media(max-width:760px){.ce-head{grid-template-columns:1fr 120px}.ce-head select{grid-column:1}.ce-refresh{grid-column:2}.ce-live{justify-self:end}.ce-context{grid-template-columns:repeat(2,1fr)}.ce-context>div:nth-child(n+5){display:none}.ce-toolbar{overflow-x:auto}.ce-toolbar input,.ce-toolbar label{display:none}.ce-work{grid-template-columns:1fr}.ce-list{border-right:0}.ce-detail{border-top:1px solid var(--ce-line)}.ce-th,.ce-row{grid-template-columns:26px minmax(120px,1fr) 55px 50px 45px}.ce-th>*:nth-child(3),.ce-th>*:nth-child(6),.ce-th>*:nth-child(7),.ce-th>*:nth-child(8),.ce-row>*:nth-child(3),.ce-row>*:nth-child(6),.ce-row>*:nth-child(7),.ce-row>*:nth-child(8){display:none}}
 </style>
+<link rel="stylesheet" href="../lib/mobile-ui.css?v=20261002m1">
 </head>
 <body>
 <div class="ce-app">
@@ -49,7 +50,7 @@
       <div id="rows"><div class="ce-empty"><b>Candidate Engine este pregătit.</b>Apasă „Scanează acum”.</div></div>
     </section>
     <aside class="ce-detail" id="detail" aria-live="polite">
-      <div class="ce-detail-head"><div><span class="ce-label">CANDIDAT SELECTAT</span><h2 id="dSymbol">—</h2><p id="dName">Selectează un rând</p></div><div class="ce-quality"><small>SCOR</small><b id="dScore">—</b></div></div>
+      <button class="ce-back" id="backToList">↑ ÎNAPOI LA CLASAMENT</button><div class="ce-detail-head"><div><span class="ce-label">CANDIDAT SELECTAT</span><h2 id="dSymbol">—</h2><p id="dName">Selectează un rând</p></div><div class="ce-quality"><small>SCOR</small><b id="dScore">—</b></div></div>
       <div class="ce-spark" id="spark"></div>
       <div class="ce-facts"><div><small>SECTOR</small><b id="dSector">—</b></div><div><small>STARE</small><b id="dState">—</b></div><div><small>PROSPEȚIME</small><b id="dFresh">—</b></div></div>
       <div class="ce-section"><span>DE CE ESTE ÎN TOP</span><p id="dReason">—</p></div>
@@ -68,6 +69,7 @@
 <script src="../lib/watchlist.js?v=825"></script>
 <script src="../lib/governor.js?v=fx-20261002"></script>
 <script src="../lib/earnings.js?v=825"></script>
-<script src="engine.js?v=breadth-20261002c"></script>
+<script src="engine.js?v=mobile-20261002m1"></script>
+<script>document.getElementById("backToList").onclick=function(){document.getElementById("rows").scrollIntoView({block:"start",behavior:window.matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth"});};</script>
 </body>
 </html>
