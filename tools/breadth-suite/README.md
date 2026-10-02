@@ -25,8 +25,10 @@ remain visible. These research results are not live entry confirmations.
 
 The Pages workflow runs before the US session and after its close on weekdays;
 manual `workflow_dispatch` runs the same calculation. The website supports
-GitHub's authenticated Run workflow UI and an optional Actions-write token
-sent only to api.github.com. The token is never persisted or published.
+GitHub's authenticated Run workflow UI only. The scan link opens GitHub in
+a new tab; sign in as the repository owner and select Run workflow. The
+website has no token field and never collects credentials. The connected
+GitHub account authorizes calculation; opening the link alone does not run it.
 Workflow reference: https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event
 
 Data integrity:
