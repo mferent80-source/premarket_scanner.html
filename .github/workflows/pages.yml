@@ -4,15 +4,18 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    # UTC; before US trading and after the close, weekdays.
+    - cron: '20 12,22 * * 1-5'
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -22,6 +25,25 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tools/market-breadth -p 'test_*.py'
+      - run: python tools/market-breadth/update.py
+      - name: Save dated Breadth observations
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add market-breadth/data/latest.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data(breadth): refresh public EOD observations'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+      # GITHUB_TOKEN commits do not trigger another push; deploy this snapshot here.
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
