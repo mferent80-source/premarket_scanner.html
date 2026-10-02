@@ -3205,6 +3205,8 @@ pe un singur chart.
 | I-497 | Discord: moneda unui BOT DESCHIS trece in „mai agitata ca de obicei” pe 4h - GATA LINISTEA tintit pe botii care chiar ruleaza | crypto/scripts/colector.mjs, public/lib/busola.js | S | P1 | propus | ideation | 2026-10-02 |
 | I-498 | Testul tau personal: botii tai, dupa starea Busolei la pornire - pe „mai agitat” vs „mai calm”, cat ai castigat/pierdut de fapt | crypto/public/lib/obiceiuri.js, busola/cron/stare/jurnal.json | M | P1 | propus | ideation | 2026-10-02 |
 | I-499 | Harta Busolei cu pozitionarea: unde e multimea ingramadita / captiva acum, pe toate monedele (Crowding + POSIT pe un rand) | busola/src/ui/Harta.tsx, motor/crowding.ts, motor/posit.ts | M | P3 | propus | ideation | 2026-10-02 |
+| I-500 | Retea neuronala (TensorFlow.js) pe miscare — MASURAT 02.10: NU trece pe 1h, trece pe 4h; castigul vine din INTRARI (un model liniar ia ~85%) | busola/probe (proba in scratchpad\retea) | M | P2 | masurat-nu | user | 2026-10-02 |
+| I-501 | Miscarea din structura volatilitatii (ATR fata de mediana lui, range-ul pe 20 de bare, cat a stat in canal recent) — model LINIAR, walk-forward pe mai multe felii si 30 de monede, inainte de orice retea | busola/src/motor, probe/ | M | P1 | propus | ideation | 2026-10-02 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5151,3 +5153,18 @@ Ideile cu semnal/prag sunt IPOTEZE: se valideaza out-of-sample (cazuri de DUPA s
 - **Impact:** riscul de scoatere se vede dintr-o privire, înainte să deschizi moneda.
 - **Riscuri/dependente:** perpetuul + OI pe 30 de monede la fiecare rulare (Binance OI ține ~30 de zile); lentilă de RISC, nu de direcție — scris pe coloană.
 - **Fisiere:** `busola/src/ui/Harta.tsx`, `busola/src/motor/crowding.ts`, `busola/src/motor/posit.ts`, `busola/cron/masoara.ts`
+
+
+#### I-500 · Rețea neuronală (TensorFlow.js) pe mișcare · [M] · P2 · măsurat-nu
+- **Cerut de el (02.10):** „o rețea neuronală (TensorFlow) poți implementa aici?” — a ales MIȘCAREA / gridul (direcția: 36 de variante, 25 de algoritmi, 0 din 45 pe date noi ⇒ exclusă din start).
+- **Proba** (`scratchpad\retea\proba.ts`, `@tensorflow/tfjs` 4.22 doar acolo): 8 monede × 1h/4h, învățare 70% (−12 bare tampon), verificare 30% nevăzut; GĂLEATA vs LINIAR (logistic pe aceleași 21 de intrări) vs REȚEA (32-16, dropout, L2, oprire timpurie). Pragurile fixate ÎNAINTE: Brier cu IC pe luni×serie, 3 placebo, bani de grid la aceeași acoperire ca LINIȘTE.
+- **Rezultat:** 4h TRECE toate trei (Brier REȚEA − GĂLEATA −0,0137 [−0,0172; −0,0103]; REȚEA − LINIAR −0,0020 [−0,0034; −0,0007]; grid +0,097%/episod [+0,036; +0,147] pe 7 serii). 1h NU (Brier −0,0048 [−0,0136; +0,0030]; față de LINIAR −0,0002; grid n-am aflat) ⇒ după regula fixată: NU intră.
+- **Ce contează:** câștigul vine din INTRĂRI, nu din rețea (LINIAR − GĂLEATA −0,0118 pe 4h). Și chiar la „calm” după rețea, gridul rămâne pe MINUS pe episod pe aproape toate seriile — pierde mai puțin, nu câștigă.
+- **Fișiere:** proba în scratchpad (de aruncat); nimic în Busola.
+
+#### I-501 · Mișcarea din structura volatilității, model liniar · [M] · P1 · propus
+- **Problema:** pe datele nevăzute ale probei I-500, găleata Busolei (trend × RSI × regim) ca probabilitate a ieșit mai PROASTĂ decât rata de bază pe aproape toate seriile; barele de „LINIȘTE” au stat în canal 25–45%, pe ETH 4h sub bază.
+- **Soluția:** o probă cu reguli fixate dinainte: model LINIAR (logistic, transparent, fără TensorFlow) pe structura volatilității — ATR față de mediana lui pe 100 de bare, range-ul pe 20 de bare în ATR, deplasarea pe 12 bare, cât a stat prețul în canal în ferestrele deja încheiate. Walk-forward pe mai multe felii (nu o singură tăietură), 30 de monede × 15m/1h/4h, cu eliminarea intrărilor una câte una, ca să se vadă care duce greul. Intră în verdict doar dacă bate găleata pe fiecare felie și în bani de grid.
+- **Impact:** verdictul de mișcare (singurul dovedit) ar putea deveni mult mai precis; util mai ales ca „când NU porni un grid”.
+- **Riscuri/dependente:** o singură tăietură poate minți (regim); trebuie felii. Gridul rămâne pe minus în medie — de spus pe față, nu „gridul câștigă”.
+- **Fisiere:** `busola/src/motor/` (un model nou de mișcare), `busola/probe/` (proba walk-forward), `busola/cron/masoara.ts` (reînvățarea periodică, dacă trece)
