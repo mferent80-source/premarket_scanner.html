@@ -1,0 +1,22 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+function setup(){const store=new Map();const ctx={console,Date,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)}};ctx.window=ctx;vm.createContext(ctx);for(const f of ['journal','equity','governor','capital-desk'])vm.runInContext(readFileSync('lib/'+f+'.js','utf8'),ctx);return ctx;}
+const usd={sym:'AAPL',entry:100,exit:110,size:10,fees:2,slAtEntry:95,closeTs:Date.now()};
+const eur={...usd,sym:'SU.PA',quoteCurrency:'EUR',fxEntryUsd:1.1,fxExitUsd:1.2};
+const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,`${a} != ${b}`);
+test('legacy US executions retain net USD behavior',()=>{const {JR}=setup();near(JR.pnl(usd),98);near(JR.rMult(usd),1.96);});
+test('long converts both cash-flow legs at their historical rates',()=>{const {JR}=setup();near(JR.pnl(eur),218);near(JR.rMult(eur),218/55);});
+test('short conversion reverses gross cash-flow direction; fees stay USD',()=>{const {JR}=setup();near(JR.pnl({...eur,dir:'short',slAtEntry:105}),-222);});
+test('foreign symbol with no rates remains unvalued',()=>{const {JR}=setup();assert.equal(JR.pnl({...usd,sym:'SU.PA'}),null);assert.equal(JR.rMult({...usd,sym:'SU.PA'}),null);});
+test('same native price can have a USD loss from FX',()=>{const {JR}=setup();near(JR.pnl({...eur,exit:100,fxEntryUsd:1.2,fxExitUsd:1.1}),-102);});
+test('rates survive add, update, export via all and webhook close',()=>{const {JR}=setup();const e=JR.add({...eur,exit:null});assert.equal(e.quoteCurrency,'EUR');JR.ingestPayload({sym:'SU.PA',entry:100,exit:110,size:10,fxExitUsd:1.2});near(JR.pnl(JR.all()[0]),218);});
+test('open capital and risk convert at entry',()=>{const {JR,EQ,CD}=setup();JR.add({...eur,exit:null});near(EQ.openDeployed().total,1100);near(JR.riskUsd(JR.all()[0]),55);near(CD.portfolioStatic().totRisk,55);});
+test('missing open FX cannot be mistaken for zero risk',()=>{const {JR,GV,CD}=setup();JR.add({...usd,sym:'SU.PA',exit:null});assert.equal(GV.status().verdict,'HALTED');assert.equal(CD.canAddRisk(20).ok,false);});
+test('statistics exclude missing-FX trades and disclose incomplete coverage',()=>{const {JR}=setup();const s=JR.stats([usd,eur,{...usd,sym:'SU.PA'}]);assert.equal(s.n,2);assert.equal(s.nAll,3);assert.equal(s.missingFx,1);near(s.pnlNet,316);});
+test('all-unvalued sample does not create a zero win rate',()=>{const {JR}=setup();const s=JR.stats([{...usd,sym:'SU.PA'}]);assert.equal(s.n,0);assert.equal(s.missingFx,1);assert.equal(s.winPct,undefined);});
+test('live foreign PnL requires synchronized FX, never an entry-rate fallback',()=>{const {JR,EQ}=setup();const e={...eur,exit:null};assert.equal(JR.unrealizedPnl(e,110),null);assert.equal(EQ.unrealizedOf(e,110),null);});
+test('invalid FX cannot be saved',()=>{const {JR}=setup();for(const rate of [-1,0,'oops',Infinity])assert.equal(JR.add({...eur,fxEntryUsd:rate}),null);});
+test('GBp is pence (GBX), not pounds',()=>{const {JR}=setup();const e={...usd,quoteCurrency:'GBp',fxEntryUsd:.012,fxExitUsd:.012};assert.equal(JR.quoteCurrency(e),'GBX');near(JR.pnl(e),-.8);});
+test('tracker synchronization preserves historical rates already supplied',()=>{const {JR}=setup();const e=JR.add({...eur,exit:null,srcId:'p1'});JR.syncPlan({id:'p1',ticker:'SU.PA',dir:'long',entry:100,size:10,sl:95,status:'open'});assert.equal(JR.all()[0].fxEntryUsd,1.1);assert.equal(JR.all()[0].id,e.id);});
