@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#090d12">
 <title>Trading Tools — Decision App</title>
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="../lib/plex.css?v=825">
 <script src="../lib/theme.js?v=825"></script>
 <style>
@@ -34,6 +36,7 @@
 @media(min-width:761px) and (max-width:900px){.rail-foot .system span{display:none}}
 @media(max-width:359px){.search{width:78px}.topbar{gap:5px;padding-inline:7px}.crumb b{font-size:13px}}
 .breadth-daily{grid-row:2;font-size:13px;line-height:1.5;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--amber);background:var(--panel)}.breadth-daily[hidden]{display:none}
+.install-app{min-height:44px;padding:10px 12px;border:1px solid var(--green);border-radius:9px;background:var(--panel2);color:var(--text);font:inherit;cursor:pointer}.rail-foot .install-app{width:100%;margin-top:10px}.install-help{max-width:460px;line-height:1.6}.install-help p{font-size:16px}.install-help a{color:var(--green)}[data-install][hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -41,7 +44,7 @@
   <aside class="rail">
     <div class="brand"><div class="mark">TT</div><div><b>TRADING TOOLS</b><small>DECISION APP</small></div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="rail-foot"><div class="system"><i></i><span>DECISION WORKSPACE</span></div><small>Long · Reversal · Risc · Jurnal</small></div>
+    <div class="rail-foot"><div class="system"><i></i><span>DECISION WORKSPACE</span></div><small>Long · Reversal · Risc · Jurnal</small><button class="install-app" data-install>Instalează aplicația ↓</button></div>
   </aside>
   <section class="workspace">
     <header class="topbar">
@@ -56,7 +59,8 @@
   </section>
   <nav class="mobile-nav" id="mobileNav" aria-label="Navigare principală"></nav>
 </div>
-<dialog class="mobile-menu" id="mobileMenu" aria-labelledby="mobileMenuTitle"><div class="mobile-menu-head"><h2 id="mobileMenuTitle">Toate modulele</h2><button class="mobile-menu-close" id="closeMobileMenu" aria-label="Închide meniul">×</button></div><div class="mobile-menu-list" id="mobileMenuList"></div></dialog>
+<dialog class="mobile-menu" id="mobileMenu" aria-labelledby="mobileMenuTitle"><div class="mobile-menu-head"><h2 id="mobileMenuTitle">Toate modulele</h2><button class="mobile-menu-close" id="closeMobileMenu" aria-label="Închide meniul">×</button></div><button class="install-app" data-install>Instalează pe telefon ↓</button><div class="mobile-menu-list" id="mobileMenuList"></div></dialog>
+<dialog id="installHelp" class="mobile-menu install-help" aria-labelledby="installTitle"><div class="mobile-menu-head"><h2 id="installTitle">Instalează Trading Tools</h2><button class="mobile-menu-close" id="closeInstallHelp" aria-label="Închide instrucțiunile">×</button></div><p>Pe Android, deschide aplicația în <b>Chrome</b> sau <b>Samsung Internet</b>, apoi alege din meniul browserului <b>Instalează aplicația</b> sau <b>Adaugă la ecranul de pornire</b>.</p><p>Pe iPhone: Safari → Partajează → Adaugă pe ecranul principal.</p><p>Dacă ai deschis linkul în ChatGPT, alege mai întâi deschiderea în browser.</p><p>Scanările și datele actualizate necesită internet.</p></dialog>
 <div class="palette" id="palette" hidden></div>
 <script>
 (function(){
@@ -97,5 +101,6 @@
 </script>
 <script src="../lib/breadth-daily.js?v=daily-scan-20261003"></script>
 <script>document.addEventListener('tt-breadth-daily',function(e){var s=e.detail,n=document.getElementById('breadthDailyState');n.hidden=s.status==='disabled';n.textContent=TTBreadthDaily.message(s);});TTBreadthDaily.start();</script>
+<script src="install.js?v=phone-20261003"></script>
 </body>
 </html>
