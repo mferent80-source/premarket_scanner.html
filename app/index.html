@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ro" data-app-version="26.10.03.1939">
+<html lang="ro" data-app-version="26.10.03.1943">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -50,7 +50,7 @@
   </aside>
   <section class="workspace">
     <header class="topbar">
-      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.03.1939</span></small><b id="pageName">Candidates</b></div>
+      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.03.1943</span></small><b id="pageName">Candidates</b></div>
       <div class="spacer"></div><button class="app-update" data-update hidden>Actualizează</button>
       <input class="search" id="search" aria-label="Caută în aplicație" placeholder="Caută · Ctrl K" autocomplete="off">
       <div class="top-stat"><small>SESIUNE</small><b id="session">—</b></div>
@@ -85,7 +85,7 @@
   document.getElementById('closeMobileMenu').onclick=function(){mobileMenu.close();};
   mobileMenu.onclick=function(e){if(e.target===mobileMenu)mobileMenu.close();};
   function renderNav(){renderMobileNav();nav.innerHTML=GROUPS.map(function(g){return '<div class="group">'+esc(g.name)+'</div>'+g.items.map(function(x){return '<button data-u="'+esc(x.u)+'" class="'+(x.u===active?'active':'')+'" title="'+esc(x.n)+'" aria-label="'+esc(x.n)+'"><span class="ico">'+x.i+'</span><span>'+esc(x.n)+'</span>'+(x.tag?'<span class="tag">'+x.tag+'</span>':'<span></span>')+'</button>';}).join('');}).join('');nav.querySelectorAll('button').forEach(function(b){b.onclick=function(){openModule(b.dataset.u);};});}
-  function openModule(u,query){if(u==='guide/')u='app/coach/';if(u==='health/')u='app/status/';if(u==='journal/')u='journal/#exec';if(u==='smart-trade-long/'){u='desk/';query=(query?query+'&':'')+'ticket=1';}if(u==='')u='desk/';var x=all.find(function(a){return a.u===u;});if(!x)return;active=u;if(mobileMenu.open)mobileMenu.close();try{localStorage.setItem('tt_app_active_v1',u);}catch(_){}pageName.textContent=x.n;frame=u==='broker/'?brokerFrame:normalFrame;normalFrame.hidden=frame!==normalFrame;brokerFrame.hidden=frame!==brokerFrame;loading.hidden=frame===brokerFrame&&!!brokerFrame.src;var parts=u.split('#');if(frame!==brokerFrame||!brokerFrame.src)frame.src='../'+parts[0]+'?app=decision-mobile-v2'+(query?'&'+String(query).replace(/^\?+/,''):'')+(parts[1]?'#'+parts[1]:'');renderNav();palette.hidden=true;search.value='';}
+  function openModule(u,query){if(u==='guide/')u='app/coach/';if(u==='health/')u='app/status/';if(u==='journal/')u='journal/#exec';if(u==='smart-trade-long/'){u='desk/';query=(query?query+'&':'')+'ticket=1';}if(u==='')u='desk/';var x=all.find(function(a){return a.u===u;});if(!x)return;active=u;if(mobileMenu.open)mobileMenu.close();try{localStorage.setItem('tt_app_active_v1',u);}catch(_){}pageName.textContent=x.n;frame=u==='broker/'?brokerFrame:normalFrame;normalFrame.hidden=frame!==normalFrame;brokerFrame.hidden=frame!==brokerFrame;loading.hidden=frame===brokerFrame&&!!brokerFrame.src;var parts=u.split('#');if(frame!==brokerFrame||!brokerFrame.src)frame.src='../'+parts[0]+'?app=decision-mobile-v2&v='+encodeURIComponent(document.documentElement.dataset.appVersion)+(query?'&'+String(query).replace(/^\?+/,''):'')+(parts[1]?'#'+parts[1]:'');renderNav();palette.hidden=true;search.value='';}
   function renderPalette(q){q=String(q||'').trim().toLowerCase();var rows=all.filter(function(x){return !q||x.n.toLowerCase().indexOf(q)>=0||x.group.toLowerCase().indexOf(q)>=0;});palette.innerHTML=rows.map(function(x){return '<button data-u="'+esc(x.u)+'"><span>'+x.i+'</span><b>'+esc(x.n)+'</b><span>'+esc(x.group)+'</span></button>';}).join('')||'<button disabled>Niciun modul găsit</button>';palette.hidden=false;palette.querySelectorAll('button[data-u]').forEach(function(b){b.onclick=function(){openModule(b.dataset.u);};});}
   function moduleLoaded(){var loaded=this;if(loaded===frame)loading.hidden=true;if(window.TTBreadthDaily&&TTBreadthDaily.state)loaded.contentWindow.postMessage({ttBreadthDaily:TTBreadthDaily.state},location.origin);try{
       var doc=loaded.contentDocument;var css=doc.createElement('style');css.textContent='#btnWsRevert{display:none!important}@media(max-width:760px){#ttThemeBtn{display:none!important}}';doc.head.appendChild(css);
@@ -99,7 +99,7 @@
   document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();search.focus();renderPalette(search.value);}if(e.key==='Escape'){palette.hidden=true;search.blur();}});
   document.addEventListener('click',function(e){if(e.target!==search&&!palette.contains(e.target))palette.hidden=true;});
   window.addEventListener('message',function(e){if(e.origin!==location.origin||!e.data)return;if(e.source!==frame.contentWindow)return;var d=e.data,u=d.ttOpenModule!==undefined?d.ttOpenModule:d.ttOpen;if(typeof u!=='string')return;if(d.ttHash&&all.some(function(x){return x.u===u+(d.ttHash[0]==='#'?d.ttHash:'#'+d.ttHash);}))u+=d.ttHash[0]==='#'?d.ttHash:'#'+d.ttHash;openModule(u,d.ttQuery);});
-  document.getElementById('reloadModule').onclick=function(){if(active==='broker/')brokerFrame.src='../broker/?app=decision-mobile-v2&reload='+Date.now();else openModule(active);};
+  document.getElementById('reloadModule').onclick=function(){if(active==='broker/')brokerFrame.src='../broker/?app=decision-mobile-v2&reload='+Date.now();else openModule(active,'reload='+Date.now());};
   document.getElementById('session').textContent=new Intl.DateTimeFormat('ro-RO',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Bucharest'}).format(new Date())+' RO';
   renderNav();openModule(active);
 })();
@@ -107,7 +107,7 @@
 <script src="../lib/breadth-daily.js?v=daily-scan-20261003"></script>
 <script>document.addEventListener('tt-breadth-daily',function(e){var s=e.detail,n=document.getElementById('breadthDailyState');n.hidden=s.status==='disabled';n.textContent=TTBreadthDaily.message(s);});TTBreadthDaily.start();</script>
 <script src="install.js?v=phone-20261003"></script>
-<script src="version.js?v=26.10.03.1939"></script>
+<script src="version.js?v=26.10.03.1943"></script>
 <script src="../lib/trading212-vault.js?v=remember-20261003"></script><script src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=audit-20261003"></script>
 </body>
 </html>
