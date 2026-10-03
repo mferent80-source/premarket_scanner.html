@@ -4,7 +4,7 @@
 
 Aplicație → Mai multe → Trading 212 Invest → API Key + API Secret → Conectează Trading 212. Selectează Invest real sau Demo pentru cheia respectivă. Folosește o cheie Trading 212 cu permisiuni **numai de citire** pentru cont, portofoliu și istorice.
 
-Nu mai sunt cerute adresa backendului sau un cod separat. Cheia nu se introduce în chat, GitHub sau fișiere publice. Nu se salvează în localStorage, sessionStorage, cookie-uri sau IndexedDB. Formularul este golit după conectare, iar credențialele sunt ținute doar în memoria paginii până la deconectare/închidere. Sunt transmise prin HTTPS către releul integrării și Trading 212 la fiecare citire. Infrastructura furnizorilor poate păstra metadate potrivit propriilor politici.
+Nu mai sunt cerute adresa backendului sau un cod separat. Cheia nu se introduce în chat, GitHub sau fișiere publice. După conectarea reușită, credențialele sunt salvate criptat AES-GCM în IndexedDB pe dispozitiv, împreună cu o CryptoKey neexportabilă; nu sunt salvate în localStorage sau în fișiere publice. Formularul este golit după conectare. La redeschidere sunt decriptate local pentru reconectare. Criptarea nu protejează împotriva scripturilor malicioase care rulează pe aceeași origine sau a accesului la sesiunea de browser. Butonul Șterge conexiunea salvată elimină cheia locală și credențialele. Transferul pe alt dispozitiv este voluntar, cu cod criptat AES-GCM și parolă PBKDF2-SHA256/600000 iterații; nu există cloud sync sau cont de autentificare. Sunt transmise prin HTTPS către releul integrării și Trading 212 la fiecare citire. Infrastructura furnizorilor poate păstra metadate potrivit propriilor politici.
 
 ## Stare actuală
 
@@ -41,6 +41,8 @@ Folosește numai URL-ul exact al Workerului publicat și verificat. Nu activa un
 - P&L realizat vine numai din câmpurile oficiale ale sumarului/execuției. Nu se presupune că fiecare vânzare închide o poziție. Datele brokerului nu modifică planurile Shadow sau jurnalul manual.
 - După 5 minute ecranul marchează datele neactualizate. Sincronizarea este manuală.
 - API-ul este beta; Invest și Stocks ISA sunt suportate, CFD nu.
+
+App shell păstrează un iframe broker separat pentru sincronizare cât timp aplicația este deschisă și tab-ul vizibil. Browserul poate suspenda aplicația pe telefon în fundal; aceasta nu este sincronizare server 24/7.
 
 Modul vechi compatibil: fără `T212_AUTH_MODE=session`, Workerul poate utiliza perechea de secrete server și T212_CLIENT_TOKEN pentru citire. Interfața simplă folosește exclusiv modul session.
 
