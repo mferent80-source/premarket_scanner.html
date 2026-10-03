@@ -635,20 +635,22 @@ tr.openrow{background:rgba(91,176,255,.06)}
 <script src="../lib/suite-context.js?v=686"></script>
 <script src="../lib/trading212-snapshot.js?v=26.10.03.2316"></script><script src="../lib/trading212-context.js?v=26.10.03.2316"></script>
 <script src="../lib/execution-review.js?v=26.10.03.2316"></script><script src="../lib/trading212-journal.js?v=26.10.03.2316"></script>
-<script src="../lib/journal.js?v=fx-20261002"></script>
+<script src="../lib/journal.js?v=26.10.04.0102"></script>
 <script src="../lib/suite-version.js?v=854"></script>
 <script src="../lib/journal-insights.js?v=625"></script>
-<script src="../lib/tracker.js?v=625"></script>
+<script src="../lib/tracker.js?v=26.10.04.0102"></script>
 <script src="../lib/telegram.js?v=625"></script>
-<script src="../lib/governor.js?v=fx-20261002"></script>
+<script src="../lib/governor.js?v=26.10.04.0102"></script>
 <script src="../lib/macro-context.js?v=625"></script>
 <script src="../lib/desk-macro-rail.js?v=628"></script>
 <script src="../lib/equity.js?v=fx-20261002"></script>
 <script src="../lib/capital-desk.js?v=fx-20261002"></script>
 <script src="../lib/data.js?v=854"></script>
 <script src="../lib/quote-bus.js?v=707"></script>
-<script src="../lib/setup-levels.js?v=625"></script>
-<script src="../lib/setup-builder.js?v=625"></script>
+<script src="../lib/daily-series.js?v=plans-audit"></script>
+<script src="../lib/indicators.js?v=plans-audit"></script>
+<script src="../lib/setup-levels.js?v=26.10.04.0102"></script>
+<script src="../lib/setup-builder.js?v=26.10.04.0102"></script>
 <script src="../lib/portfolio-risk.js?v=fx-20261002"></script>
 <script src="../lib/journal-workspace.js?v=fx-20261002"></script>
 <script>
@@ -990,11 +992,7 @@ $('btnSave').addEventListener('click', () => {
   };
   const exitN = payload.exit === '' || payload.exit == null ? null : num(payload.exit);
   if (window.JR && JR.validateEntry) {
-    const v = JR.validateEntry({
-      sym: String(payload.sym).trim().toUpperCase(), dir: payload.dir,
-      entry: num(payload.entry), exit: exitN, size: num(payload.size),
-      slAtEntry: num(payload.slAtEntry), ...JR.fxFields(payload)
-    });
+    const v = JR.validateEntry(payload);
     if (!v.ok) { alert(v.msg); return; }
   }
   if (editId){
@@ -1315,14 +1313,14 @@ function loadGovCfg(){
 }
 $('btnGovSave') && $('btnGovSave').addEventListener('click', () => {
   const acct = +$('cAcct').value;
-  GV.saveCfg({
+  const saved = GV.saveCfg({
     accountSize: acct, maxLossPctDay: +$('cLoss').value, maxTradesDay: +$('cTrades').value,
     maxOpenPositions: +$('cOpen').value, cooldownAfterLosses: +$('cCool').value,
     maxDdPctRolling: +$('cDdRoll').value, maxLossPctWeek: +$('cWeekLoss').value,
     ddRollingOn: $('cDdOn').checked, tgOnHalt: $('cTg').checked,
     tgOnRiskHalt: $('cTgRisk') ? $('cTgRisk').checked : true
   });
-  if (window.ACCT) ACCT.syncAll(acct, 'governor');
+  if (!saved) { alert('Limite invalide sau salvare nereușită. Folosește capital și praguri pozitive, iar numărul de trade-uri/poziții trebuie întreg.'); return; }
   renderDesk();
 });
 function fmtUsd0(v){ return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('en-US', { maximumFractionDigits: 0 }); }

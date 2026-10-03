@@ -48,11 +48,13 @@ jobs:
       - run: python -m unittest discover -s tools/breadth-suite -p 'test_*.py'
       - run: python tools/breadth-suite/market-breadth-analyzer/tests_core.py
       - name: Complete Breadth scan
+        if: github.event_name != 'push'
         env:
           BREADTH_REQUEST_ID: ${{ inputs.request_id || github.run_id }}
           BREADTH_CACHE_DIR: ${{ runner.temp }}/breadth-cache
         run: python tools/breadth-suite/run.py --backtests auto
       - name: Save dated Breadth observations
+        if: github.event_name != 'push'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

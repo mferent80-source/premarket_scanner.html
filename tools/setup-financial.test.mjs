@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
+const c={Date,console,localStorage:{getItem:()=>null}};vm.createContext(c);vm.runInContext(readFileSync('lib/setup-builder.js','utf8'),c);
+test('setup sizing caps cash even with a very tight stop',()=>{const s=c.SB.sizing(100,99.999,10000,.5);assert.equal(s.shares,100);assert.equal(s.value,10000);});
+test('setup sizing refuses zero risk, invalid prices and a quantity below one stock',()=>{assert.equal(c.SB.sizing(100,95,10000,0),null);assert.equal(c.SB.sizing(100,-1,10000,.5),null);assert.equal(c.SB.sizing(1000,900,100,.5),null);assert.equal(c.SB.sizing(Infinity,95,10000,.5),null);});
+test('crypto fractions stay below the budget and are not increased to one by prefill',()=>{const s=c.SB.sizing(60000,55000,1000,.5,1,true);assert.equal(s.shares,.001);const nodes={fSize:{}};c.document={getElementById:k=>nodes[k]};c.SB.prefillExecForm({shares:s.shares});assert.equal(nodes.fSize.value,.001);});
+test('close-only movement is not labelled as true-range ATR',()=>{vm.runInContext(readFileSync('lib/setup-levels.js','utf8'),c);const m=c.SL.levelsFromPoints('FICTIV',Array.from({length:40},(_,i)=>({ts:1700000000+i*86400,close:100+i})));assert.equal(m.atrPct,null);assert.ok(m.closeMovePct>0);});
