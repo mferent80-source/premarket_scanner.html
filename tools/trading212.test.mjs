@@ -20,3 +20,12 @@ test('malformed and dangerous broker responses fail safely',async()=>{for(const 
 test('direct app credentials use session memory relay without server secrets',async()=>{let forwarded;const authorization='Basic '+btoa('ephemeral-key:ephemeral-secret');const r=await handle(req('summary',{headers:{Origin:'https://mferent80-source.github.io',Authorization:authorization,'X-T212-Environment':'live'}}),{T212_AUTH_MODE:'session'},async(url,options)=>{forwarded={url,options};return response({currency:'EUR',totalValue:12})});assert.equal(r.status,200);assert.equal(forwarded.url,'https://live.trading212.com'+ROUTES.summary);assert.equal(forwarded.options.headers.Authorization,authorization);assert.equal(forwarded.options.method,'GET');const body=await r.text();assert.equal(body.includes('ephemeral'),false)});
 test('session relay rejects absent malformed credentials and environment',async()=>{for(const [auth,environment] of [['Basic invalid','live'],['Basic '+btoa('key:'),'live'],['Basic '+btoa('key:secret\n'),'live'],['Basic '+btoa('key:secret'),'bad'],['Bearer unrelated','live']]){let called=false;const r=await handle(req('summary',{headers:{Origin:'https://mferent80-source.github.io',Authorization:auth,'X-T212-Environment':environment}}),{T212_AUTH_MODE:'session'},()=>{called=true});assert.ok(r.status>=400);assert.equal(called,false)}});
 test('session relay never forwards credentials on a write or arbitrary target',async()=>{let called=false;const r=await handle(req('orders',{method:'POST',headers:{Origin:'https://mferent80-source.github.io',Authorization:'Basic '+btoa('key:secret'),'X-T212-Environment':'live'}}),{T212_AUTH_MODE:'session'},()=>{called=true});assert.equal(r.status,405);assert.equal(called,false)});
+
+test('upstream failures expose only safe stage codes, never response bodies or credentials',async()=>{
+ for(const [upstream,code] of [
+ [async()=>{throw new DOMException('private','TimeoutError')},'broker_timeout'],
+ [async()=>{throw new Error('private')},'broker_network_error'],
+ [async()=>new Response('<html>private</html>'),'broker_non_json_response'],
+ [async()=>response([]),'broker_schema_mismatch']
+ ]){const r=await handle(req(),env,upstream);assert.equal(r.status,502);assert.deepEqual(await r.json(),{error:code});}
+});

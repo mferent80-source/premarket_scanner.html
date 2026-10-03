@@ -43,17 +43,23 @@ export async function handle(request,env,upstream=fetch) {
   const historical=['orders','dividends','transactions'].includes(kind);
   for(const key of url.searchParams.keys())if(key!=='cursor'||!historical)return reply({error:'invalid_query'},400);
   if(historical){target.searchParams.set('limit','50');const c=url.searchParams.get('cursor');if(c){if(c.length>256||!/^[-\w:.]+$/.test(c))return reply({error:'invalid_cursor'},400);target.searchParams.set('cursor',c);}}
+  let stage='connect';
   try {
     const raw=await upstream(target.href,{method:'GET',redirect:'error',signal:AbortSignal.timeout(20000),headers:{Authorization:brokerAuthorization,Accept:'application/json'}});
     if(!raw.ok){
       if(raw.status===429){const h=raw.headers.get('x-ratelimit-reset');const reset=h?Number(h):NaN;const retry=Math.min(300,Math.max(10,Number.isFinite(reset)?Math.ceil(reset-Date.now()/1000):60));return reply({error:'rate_limited',retryAfter:retry},429);}
       return reply({error:raw.status===401?'broker_credentials_invalid':raw.status===403?'broker_permission_missing':'broker_unavailable'},502);
     }
+    stage='decode';
     const data=await raw.json();let output;
+    stage='schema';
     if(kind==='summary')output=summary(data);
     else if(kind==='positions'){if(!Array.isArray(data))throw new Error('schema');output=data.map(position);}
     else {if(!Array.isArray(data.items))throw new Error('schema');output={items:data.items.map(item=>historyItem(item,kind)),nextCursor:nextCursor(data.nextPagePath,ROUTES[kind],base)};}
     return reply({source:'Trading 212',environment,fetchedAt:new Date().toISOString(),data:output});
-  }catch(_){return reply({error:'broker_response_unavailable'},502);}
+  }catch(error){
+    const code=stage==='connect'?(error?.name==='TimeoutError'||error?.name==='AbortError'?'broker_timeout':'broker_network_error'):stage==='decode'?'broker_non_json_response':'broker_schema_mismatch';
+    return reply({error:code},502);
+  }
 }
 export default {fetch(request,env){return handle(request,env);}};
