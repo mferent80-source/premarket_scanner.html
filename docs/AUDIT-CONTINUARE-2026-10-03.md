@@ -42,7 +42,8 @@ Arhivele conturilor, jurnalul, planurile și setările nu sunt șterse. Schimbar
 - **395 teste JavaScript/Node trec**, inclusiv scenarii de concurență, pagini următoare după fill cunoscut, răspunsuri broker greșite, monede incompatibile și date istorice deteriorate.
 - **7 teste Market Breadth**, **8 teste ale suitei Breadth** și **22 verificări core Breadth** trec.
 - `git diff --check` fără erori. Un test verifică egalitatea versiunii din HTML, badge, script și `version.json`.
-- Verificările vizuale sunt efectuate pe interfața publicată, cu date fictive în demo. Rezultatul publicării și dovada vizuală sunt raportate la livrare.
+- Versiunea 26.10.03.2316 este confirmată în browserul public. Health arată 8/8 fișiere accesibile și starea cloud neactivată; jurnalul execuțiilor este vizibil; brokerul, graficele și rapoartele se încarcă. Meniul mobil „Mai multe” deschide toate modulele și ajunge la dețineri pe 360 px. Verificările folosesc demo cu date fictive, fără autentificarea unui cont broker real.
+- Publicarea GitHub Pages și fluxul Breadth au încheiat cu succes. Nu au fost observate erori ale aplicației în consola verificată; erorile extensiei browserului au fost excluse explicit.
 
 Aceste verificări nu certifică profitabilitatea, execuția unei intrări live, convenția fiscală a brokerului sau securitatea absolută a aplicației.
 
@@ -56,6 +57,9 @@ Aceste verificări nu certifică profitabilitatea, execuția unei intrări live,
 6. **P2 — Întreținere și performanță.** Logică inline în pagini mari, randări complete, stări distribuite și cuplarea scanării cu deploy-ul. Nu există încă o măsurare de performanță pe un portofoliu real mare.
 7. **P2 — Calibrarea scorurilor.** Scorurile sunt descriptive. Pragul vizual de cinci trades nu este un eșantion robust pentru afirmarea unui edge. Sunt necesare rezultate pe regim, costuri, intervale de incertitudine și validare în afara eșantionului.
 8. **P2 — Sincronizare la final.** Înainte de activare: revocarea tuturor dispozitivelor, restaurare server verificată, conflicte de chei și test efectiv PC–telefon. Configurația cloud rămâne dezactivată.
+
+9. **P1 — Scanare Breadth la deschidere.** Verificarea interfeței publicate și `app/breadth-daily-config.json` confirmă că declanșarea completă la deschidere este dezactivată (`enabled:false`, endpoint gol). Raportul EOD se încarcă și joburile GitHub îl actualizează; acestea nu echivalează cu rularea completă, o dată pe zi, la deschiderea aplicației. Lipsesc activarea/configurarea releului de declanșare. Nu s-a cerut un token utilizatorului și nu a fost introdus un token în frontend.
+10. **P2 — Coerență vizuală între module.** Jurnalul afișează încă badge-uri interne `tt-v854`, inclusiv unul duplicat, deși badge-ul aplicației este actual. Stilul și densitatea jurnalului trebuie aliniate cu deținerile, păstrând funcțiile și datele.
 
 ## Idei noi și criterii de acceptare
 
