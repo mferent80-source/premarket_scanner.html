@@ -1,4 +1,4 @@
-let journalScope='',journalCursor=null,journalStarted=false,journalDone=false,journalRunning=false;
+let journalScope='',journalCursor=null,journalStarted=false,journalDone=false,journalRunning=false,journalIncremental=false;
 const $=id=>document.getElementById(id),esc=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const numeric=v=>typeof v==='number'&&Number.isFinite(v);
 const fmt=(v,c)=>numeric(v)?new Intl.NumberFormat('ro-RO',{maximumFractionDigits:6}).format(v)+(c?' '+c:''):'—';
@@ -6,7 +6,7 @@ const stamp=v=>{const d=new Date(v);return Number.isFinite(d.getTime())?d.toLoca
 let configuredBase='',ready=false,base='',token='',brokerEnvironment='live',session=0,busy=false,kind='orders',cursor=null,rows=[],seen=new Set(),controller=new AbortController(),times={},lastFetched=0,environment='';
 const errors={broker_redirected:'API-ul Trading 212 redirecționează cererea; conexiunea a fost oprită pentru protejarea cheilor.',broker_timeout:'Trading 212 nu a răspuns în 20 de secunde.',broker_network_error:'Worker-ul nu poate deschide conexiunea către Trading 212.',broker_non_json_response:'Trading 212 a răspuns cu o pagină sau un format incompatibil, nu cu date API.',broker_schema_mismatch:'Datele Trading 212 au un format diferit de cel așteptat.',backend_not_configured:'Backendul nu are încă secretele configurate.',environment_not_configured:'Mediul Invest nu este configurat.',session_unauthorized:'Codul de acces la integrare este incorect.',broker_credentials_invalid:'Cheia Trading 212 nu este validă pentru mediul configurat.',broker_permission_missing:'Cheia Trading 212 nu are permisiunea de citire necesară.',broker_unavailable:'Trading 212 nu răspunde momentan.',broker_response_unavailable:'Răspunsul Trading 212 nu a putut fi verificat.',origin_forbidden:'Această origine nu este autorizată de backend.'};
 function validEndpoint(value){const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||u.pathname!=='/'||!u.hostname.endsWith('.workers.dev'))throw Error('Introdu adresa HTTPS a Workerului privat (workers.dev), fără cale sau parametri.');return u.origin;}
-function reset(){$('connectionSettings').open=true;journalScope='';journalCursor=null;journalStarted=false;journalDone=false;journalRunning=false;session++;controller.abort();controller=new AbortController();token='';base='';rows=[];seen.clear();cursor=null;times={};lastFetched=0;busy=false;$('apiKey').value='';$('apiSecret').value='';$('account').hidden=true;$('metrics').replaceChildren();$('positions').replaceChildren();$('history').replaceChildren();$('more').hidden=true;$('refresh').hidden=true;$('disconnect').hidden=true;$('connectButton').disabled=!ready;$('status').textContent='Neconectat · datele contului au fost eliminate din ecran.';}
+function reset(){$('connectionSettings').open=true;journalScope='';journalCursor=null;journalStarted=false;journalDone=false;journalRunning=false;journalIncremental=false;session++;controller.abort();controller=new AbortController();token='';base='';rows=[];seen.clear();cursor=null;times={};lastFetched=0;busy=false;$('apiKey').value='';$('apiSecret').value='';$('account').hidden=true;$('metrics').replaceChildren();$('positions').replaceChildren();$('history').replaceChildren();$('more').hidden=true;$('refresh').hidden=true;$('disconnect').hidden=true;$('connectButton').disabled=!ready;$('status').textContent='Neconectat · datele contului au fost eliminate din ecran.';}
 async function api(name,next){
  const wait=(times[name]||0)-Date.now();if(wait>0)throw Error(`Așteaptă ${Math.ceil(wait/1000)} secunde înainte de următoarea citire.`);
  times[name]=Date.now()+(name==='summary'?6000:['orders','dividends','transactions'].includes(name)?11000:1500);
@@ -46,9 +46,10 @@ async function importJournalPage(){
  if(!token||busy||journalRunning||!journalScope||!window.T212J)return;
  if((times.orders||0)>Date.now())return;
  const id=session,scope=journalScope;journalRunning=true;
- try{const page=await api('orders',journalDone?null:journalCursor);if(id!==session)return;
- const result=window.T212J.merge(scope,brokerEnvironment,page.data.items,page.data.nextCursor,page.fetchedAt);
- journalStarted=true;journalCursor=page.data.nextCursor;journalDone=!journalCursor;
+ try{if(journalDone)journalIncremental=true;const known=new Set((window.T212J.read().accounts[scope]?.items||[]).map(x=>x.id));const page=await api('orders',journalDone?null:journalCursor);if(id!==session)return;
+ const next=journalIncremental&&page.data.items.some(x=>known.has(x.id))?null:page.data.nextCursor;
+ const result=window.T212J.merge(scope,brokerEnvironment,page.data.items,next,page.fetchedAt);
+ journalStarted=true;journalCursor=next;journalDone=!journalCursor;
  $('journalState').textContent=`${result.count} execuții în jurnal · ${journalDone?'istoric parcurs integral':'import în curs, urmează pagina următoare'}${result.skipped?' · '+result.skipped+' rânduri fără execuție validă excluse':''}`;
  }catch(e){if(id===session&&e.name!=='AbortError')$('journalState').textContent='Import parțial / întrerupt: '+e.message;}
  finally{if(id===session)journalRunning=false;}
