@@ -4,11 +4,11 @@
 
 Aplicație → Mai multe → Trading 212 Invest → API Key + API Secret → Conectează Trading 212. Selectează Invest real sau Demo pentru cheia respectivă. Folosește o cheie Trading 212 cu permisiuni **numai de citire** pentru cont, portofoliu și istorice.
 
-Nu mai sunt cerute adresa backendului sau un cod separat. Cheia nu se introduce în chat, GitHub sau fișiere publice. După conectarea reușită, credențialele sunt salvate criptat AES-GCM în IndexedDB pe dispozitiv, împreună cu o CryptoKey neexportabilă; nu sunt salvate în localStorage sau în fișiere publice. Formularul este golit după conectare. La redeschidere sunt decriptate local pentru reconectare. Criptarea nu protejează împotriva scripturilor malicioase care rulează pe aceeași origine sau a accesului la sesiunea de browser. Butonul Șterge conexiunea salvată elimină cheia locală și credențialele. Transferul pe alt dispozitiv este voluntar, cu cod criptat AES-GCM și parolă PBKDF2-SHA256/600000 iterații; nu există cloud sync sau cont de autentificare. Sunt transmise prin HTTPS către releul integrării și Trading 212 la fiecare citire. Infrastructura furnizorilor poate păstra metadate potrivit propriilor politici.
+Nu mai sunt cerute adresa backendului sau un cod separat. Cheia nu se introduce în chat, GitHub sau fișiere publice. După conectarea reușită, credențialele sunt salvate criptat AES-GCM în IndexedDB pe dispozitiv, împreună cu o CryptoKey neexportabilă; nu sunt salvate în localStorage sau în fișiere publice. Formularul este golit după conectare. La redeschidere sunt decriptate local pentru reconectare. Criptarea nu protejează împotriva scripturilor malicioase care rulează pe aceeași origine sau a accesului la sesiunea de browser. Butonul Șterge conexiunea salvată elimină cheia locală și credențialele. Transferul pe alt dispozitiv este voluntar, cu cod criptat AES-GCM și parolă PBKDF2-SHA256/600000 iterații; Sincronizarea Google PC/telefon este implementată separat, dar necesită activarea infrastructurii descrise în `tools/cloud-sync-README.md`; până atunci transferul manual rămâne disponibil. Sunt transmise prin HTTPS către releul integrării și Trading 212 la fiecare citire. Infrastructura furnizorilor poate păstra metadate potrivit propriilor politici.
 
 ## Stare actuală
 
-Formularul și releul sunt implementate și testate cu răspunsuri simulate. Releul online nu este încă publicat. `app/trading212-config.json` rămâne dezactivat, iar câmpurile sunt blocate până la activare. Nu introduce cheia deocamdată. Nu au fost importate date reale.
+Formularul și releul Trading 212 sunt publicate; `app/trading212-config.json` este activat pe Workerul `premarket-scanner-html.mferent80.workers.dev`. Utilizatorul a confirmat conectarea. Sincronizarea Google între dispozitive este încă neactivată; vezi `tools/cloud-sync-README.md`.
 
 Trading 212 nu permite conectarea directă de pe originea GitHub Pages verificată: cererea OPTIONS pentru Authorization a răspuns 405 fără antete CORS. Un releu HTTPS este necesar, dar rămâne în afara pașilor utilizatorului.
 
@@ -39,7 +39,7 @@ Folosește numai URL-ul exact al Workerului publicat și verificat. Nu activa un
 - Pagini de cel mult 50 înregistrări, încărcate la cerere. 429 afișează timpul de așteptare. Alte aplicații împart limitele aceluiași cont.
 - Monedele prețurilor instrumentelor și ale sumelor din cont sunt afișate separat. Valorile lipsă rămân `—`; nu sunt transformate în zero.
 - P&L realizat vine numai din câmpurile oficiale ale sumarului/execuției. Nu se presupune că fiecare vânzare închide o poziție. Datele brokerului nu modifică planurile Shadow sau jurnalul manual.
-- După 5 minute ecranul marchează datele neactualizate. Sincronizarea este manuală.
+- După 5 minute ecranul marchează datele neactualizate. Sincronizarea contului și pozițiilor este automată la 60 secunde, cât timp aplicația este activă.
 - API-ul este beta; Invest și Stocks ISA sunt suportate, CFD nu.
 
 App shell păstrează un iframe broker separat pentru sincronizare cât timp aplicația este deschisă și tab-ul vizibil. Browserul poate suspenda aplicația pe telefon în fundal; aceasta nu este sincronizare server 24/7.
