@@ -9,8 +9,8 @@ function setup(){
  ids.holdingManagement.hidden=true;
  const cards=['A','B'].map(ticker=>{const card=element({ticker}),tabs=['summary','plan'].map(k=>element({holdingTab:k})),panels=['summary','plan'].map(k=>element({holdingPanel:k}));card.querySelectorAll=q=>q==='[data-holding-tab]'?tabs:q==='[data-holding-panel]'?panels:[];card.tabs=tabs;card.panels=panels;card.unsavedNote='Draft intact';return card;});
  const document={body:{dataset:{holdingsView:'full'}},getElementById:k=>ids[k],querySelectorAll:q=>q==='.holding[data-ticker]'?cards:[],querySelector:()=>null};
- const sandbox={document,localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},addEventListener(){},matchMedia:()=>({matches:false})};vm.runInNewContext(script,sandbox);
- const row=ticker=>({p:{ticker,name:ticker,value:20,unrealized:2,currency:'USD'},m:null}),ctx=scope=>({scope,demo:false,symbol:p=>p.ticker,positions:cards.map(c=>row(c.dataset.ticker).p)});
+ const sandbox={Intl,Date,HoldingsEvents:{fresh:()=>false,validDate:()=>false},document,localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},addEventListener(){},matchMedia:()=>({matches:false})};vm.runInNewContext(readFileSync('lib/holdings-review.js','utf8'),sandbox);vm.runInNewContext(script,sandbox);
+ const row=ticker=>({p:{ticker,name:ticker,value:20,unrealized:2,currency:'USD'},m:null}),ctx=scope=>({scope,demo:false,symbol:p=>p.ticker,model:()=>null,note:()=>({}),events:()=>null,positions:cards.map(c=>row(c.dataset.ticker).p)});
  return {layout:sandbox.HoldingsLayout,cards,ctx,row,ids,saved,document};
 }
 test('selected holding follows its ticker through sorting, filtering and account changes',()=>{
@@ -36,4 +36,13 @@ test('reports move as live nodes and retain disclosure state after their control
  layout.organize();assert.equal(ids.managementReports.children[0],reports[0]);ids.managementReports.children[0].open=true;
  reports=[element(),element()];layout.organize();assert.equal(ids.managementReports.children[0],reports[0]);assert.equal(reports[0].open,true);
  ids.holdingManagement.hidden=true;layout.organize();assert.equal(ids.managementReports.hidden,true);assert.equal(ids.managementReports.children.length,0);
+});
+
+test('previous and next follow only filtered rows and stop at list boundaries',()=>{
+ const {layout,cards,ctx,row}=setup();layout.render(ctx('a'),[row('A'),row('B')]);layout.step(1);assert.equal(cards[1].hidden,false);layout.step(1);assert.equal(cards[1].hidden,false);layout.step(-1);assert.equal(cards[0].hidden,false);
+ layout.render(ctx('a'),[row('B')]);layout.step(-1);assert.equal(cards[1].hidden,false);layout.step(1);assert.equal(cards[1].hidden,false);
+});
+test('returning from demo strips simulated preferences from persistent real accounts',()=>{
+ const {layout,ctx,row,saved}=setup();layout.render({...ctx('educational-demo'),demo:true},[row('A'),row('B')]);layout.pick('B');layout.render(ctx('real-account'),[row('A')]);
+ assert.equal(Object.hasOwn(JSON.parse(saved.get('tt_holdings_layout_v1')).accounts,'educational-demo'),false);
 });
