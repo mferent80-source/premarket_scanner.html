@@ -3216,6 +3216,12 @@ pe un singur chart.
 | I-508 | Test „inainte” lunar al latimii (I-505) pe barele de dupa 02.10.2026 + data masurarii pe fila Grid | busola/probe/latime-grid.ts, src/motor/masurat.ts, src/ui/FiltruGrid.tsx | M | P2 | propus | ideation | 2026-10-03 |
 | I-509 | Paznicul Busolei: mesaj pe Discord cand cron-ul de pe PC tace (rezumat mai vechi de 5 h — PC oprit la pana de curent) | busola/cron/worker.ts, wrangler.jsonc | M | P3 | propus | ideation | 2026-10-03 |
 | I-510 | Latimea gridului si pe 1z, cu aceeasi regula ca pe 15m/1h/4h | busola/probe/latime-grid.ts, src/motor/grid.ts | S | P4 | propus | ideation | 2026-10-03 |
+| I-511 | Gridul Busolei masurat si cu comisionul de FUTURES masurat de Radar pe umplerile tale (0,02% maker), nu doar cu 0,05% de spot | busola/probe/grid-pe-date-noi.ts, src/motor/grid.ts, src/motor/gridMasurat.ts, src/motor/rezumatRadar.ts; crypto/public/lib/grid-calcul.js (sursa) | M | P1 | propus | ideation | 2026-10-03 |
+| I-512 | Bilantul pazei pe date noi: dupa fiecare „mai agitat” pe futures, gridul chiar a pierdut mai mult? (toate monedele, nu doar botii) | busola/cron/masoara.ts, src/motor/perpPionex.ts, src/motor/rezumatRadar.ts, src/ui | M | P1 | propus | ideation | 2026-10-03 |
+| I-513 | Starea Busolei pe fiecare bot deschis: in tabloul botului din Radar si in rezumatul de dimineata al colectorului | crypto/public/lib/tablou-bot.js, public/lib/busola.js, scripts/colector.mjs | S | P2 | propus | ideation | 2026-10-03 |
+| I-514 | Latimea masurata de Busola (+4,2/−3,9 ATR pe 4h) si „Ce scrii in Pionex” langa propunerea Radarului in fisa de grid | busola/src/motor/rezumatRadar.ts, src/motor/grid.ts; crypto/public/lib/busola.js, public/app.js | M | P2 | propus | ideation | 2026-10-03 |
+| I-515 | Reteaua Radarului sub arbitrul Busolei: predictiile ei (atinge-24, liniste) notate in jurnalul Busolei si judecate fata de martor | crypto/public/lib/retea.js, scripts/colector.mjs; busola/cron/masoara.ts, src/motor/bilantVerdict.ts | M | P3 | propus | ideation | 2026-10-03 |
+| I-516 | Contractul rezumatului cu versiune si un exemplu comun, verificat in ambele aplicatii | busola/src/motor/rezumatRadar.ts, probe/; crypto/public/lib/busola.js, scripts/proba-busola.mjs | S | P3 | propus | ideation | 2026-10-03 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5241,3 +5247,50 @@ Ideile cu semnal/prag sunt IPOTEZE: se valideaza out-of-sample (cazuri de DUPA s
 - **Impact:** consecvență; mic — boții lui țin ore → ~2 zile, nu 12 zile.
 - **Riscuri:** istoric zilnic scurt ⇒ n mic, probabil „nedovedit”.
 - **Fișiere:** probe/latime-grid.ts, src/motor/grid.ts (`CANAL_GRID`).
+
+### Ideation 2026-10-03 — colaborarea Busola ↔ Crypto Radar (mod Suită, țintit)
+Lentile — Trader: alertele pazei spun „gridul a pierdut cel mai mult după agitație”, dar cifra e de pe spot, cu comision de spot · Designer: Busola apare în Radar într-un singur loc (fișa de grid, app.js:5476), nu și pe boții deschiși · Inginer: formatul rezumatului a alunecat azi tăcut (busola.js citea doar grid4h; reparat de sesiunea crypto în 0eef06c) · Automator: verdictele pazei și predicțiile rețelei Radarului se notează nicăieri — nimeni nu le judecă pe date noi.
+Excluse: I-496 (făcut de fapt prin paza boților, 1.36.0 — statusul doar la cererea lui), I-497 (în lucru la sesiunea crypto), I-498 (propus — nu-l repropun), I-500/I-502/I-503 (subiectul rețelei Busolei închis), direcția pe futures (nedovedită pe date noi nicăieri).
+Fluxul azi e într-un singur sens (Busola → Radar, JSON public). Radar → Busola (I-515, I-498) cere ca Radarul să publice un JSON public fără secrete (doar agregate), nu ca Busola să țină cheia aplicației.
+
+#### I-511 · Gridul Busolei cu comisionul de futures măsurat de Radar · [M] · P1 · propus
+- **Problema:** Busola socotește gridul cu `COMISION_UMPLERE` = 0,05% la fiecare umplere (tariful de spot). Boții lui sunt pe futures, unde Radarul a măsurat pe umplerile reale 0,02% maker la grilă (CRV 2393/2394, `GridCalcul.C.COMISION_GRILA`). Cifrele „gridul pierde X%” — și cele trimise Radarului în `grid.liniste/oricand/miscare` — sunt deci prea pesimiste pentru boții lui; nu se știe nici măcar dacă semnul rămâne.
+- **Soluția:** aceeași probă `grid-pe-date-noi` rulată și cu comisionul de futures (0,02% maker la grile, 0,05% la intrarea și ieșirea la piață), ca rând separat, socotit LA COADA ordinii RNG (IC-urile publicate nu se mișcă). Regula scrisă înainte: compararea liniște / oricând / mișcare rămâne aceeași; se schimbă doar comisionul. Rezumatul primește `grid.futures` alături de rândul de spot; alerta și fișa folosesc rândul potrivit botului.
+- **Impact:** decizie mai bună pe bani reali — știe cât pierde (sau câștigă) un grid de futures după fiecare stare, nu cât ar pierde unul de spot.
+- **Riscuri:** comisionul vine de pe umplerile unei singure monede (CRV) — I-483 (Radar) l-ar da pe fiecare monedă; funding-ul (I-482) nu e în socoteală; poate ieși că diferența liniște − oricând nu mai e dovedită.
+- **Fișiere:** busola/probe/grid-pe-date-noi.ts, src/motor/grid.ts, src/motor/gridMasurat.ts (generat), src/motor/rezumatRadar.ts; sursa: crypto/public/lib/grid-calcul.js.
+
+#### I-512 · Bilanțul pazei pe date noi · [M] · P1 · propus
+- **Problema:** alerta pazei (colectorul) se sprijină pe „după «mai agitat» gridul a pierdut cel mai mult” — măsurat pe spot, pe 30 de monede, 4 ani. Pe cele ~130 de monede futures (1 an de istoric) e o extrapolare: nimeni nu verifică dacă ține.
+- **Soluția:** la fiecare rulare, cron-ul notează verdictul `perp4h` al fiecărei monede (jurnal, ca `jurnalTablou`); după 12 bare (2 zile, episodul gridului) simulează gridul pe barele perp care au urmat (simulatorul ordin cu ordin, I-504; comisionul de futures, I-511) și ține bilanțul „după mai agitat” față de „oricând”, cu IC pe blocuri. Busola îl arată; rezumatul îl trimite (`perp.bilant`), ca alerta să poată spune „pe futures, de la 03.10: N episoade, a pierdut X față de Y”.
+- **Impact:** alerta devine dovedită pe datele boților — sau se vede repede că nu ține pe futures. n crește repede (~130 de monede × 6 rulări pe zi), spre deosebire de I-498 (doar boții lui).
+- **Riscuri:** episoadele se suprapun (bootstrap pe blocuri); acțiunile tokenizate au weekend „mort” (de separat); primul verdict util abia după câteva săptămâni.
+- **Fișiere:** busola/cron/masoara.ts, src/motor/perpPionex.ts, src/motor/rezumatRadar.ts, un ecran nou sau fila Grid.
+
+#### I-513 · Starea Busolei pe fiecare bot deschis · [S] · P2 · propus
+- **Problema:** Busola apare în Radar doar în fișa de grid (app.js:5476); tabloul botului (tablou-bot.js) nu spune nimic, iar colectorul (I-497) va anunța doar TRECEREA în „mai agitat”. Ce stare are acum moneda fiecărui bot deschis se află doar deschizând fișa.
+- **Soluția:** pe fiecare rând de bot deschis, o etichetă mică: „Busola 4h: mai agitat · de 8 h · măsurat acum 1 h” (perp4h ?? grid4h ?? 4h, aceeași regulă ca fișa și colectorul); aceeași listă, pe scurt, în rezumatul de dimineață al colectorului.
+- **Impact:** vede dintr-o privire care boți stau pe o monedă agitată — fără să aștepte o trecere.
+- **Riscuri:** zgomot vizual (eticheta doar la „mai agitat” / „mai calm”, nu la „nimic neobișnuit”); rezumat vechi ⇒ eticheta spune vârsta.
+- **Fișiere:** crypto/public/lib/tablou-bot.js, public/lib/busola.js, scripts/colector.mjs (partea sesiunii crypto).
+
+#### I-514 · Lățimea măsurată de Busola în fișa de grid a Radarului · [M] · P2 · propus
+- **Problema:** Radarul își alege intervalul din percentilele range-ului pe 15m (`GridCalcul.C.PERCENTILE`); Busola a măsurat pe 4h că un canal fix +4,2/−3,9 ATR pierde cu ~0,28 pp pe episod mai puțin decât ±2×ATR (I-505) și știe să-l scrie în câmpurile Pionex (I-507). Cele două nu se văd una lângă alta.
+- **Soluția:** rezumatul trimite, pe fiecare monedă măsurată, prețul și ATR-ul de 4h (le are deja celula) și multiplicatorii canalului pe interval; fișa Radarului pune sub propunerea ei un rând „Busola, măsurat: jos X · sus Y · N+1 linii” — pentru comparație, nu în locul ei (grid-proba.js își judecă singur propunerea).
+- **Impact:** două păreri independente despre interval, pe aceeași monedă, înainte de pornire.
+- **Riscuri:** orizonturi diferite (episodul Busolei = 2 zile, spot); rezumatul crește (~150 de monede × 2 numere); lățimea e măsurată pe spot.
+- **Fișiere:** busola/src/motor/rezumatRadar.ts, src/motor/grid.ts; crypto/public/lib/busola.js, public/app.js.
+
+#### I-515 · Rețeaua Radarului sub arbitrul Busolei · [M] · P3 · propus
+- **Problema:** rețeaua din Radar (retea.js: atinge-24/72/168, cursa, liniste, directie) își dă singură „dovedită” (antrenorul ei). Busola are deja mașinăria de judecat pe date noi (jurnal + martor + bilanț), dar n-o folosește nimeni pentru Radar.
+- **Soluția:** Radarul publică un JSON public mic cu predicțiile curente (fără secrete); cron-ul Busolei le notează și le judecă după orizont față de rata de bază, ca pe verdictele ei; bilanțul se vede în ambele aplicații. Bonus: „liniste” din rețea față de verdictul de mișcare al Busolei — o combinație intră doar dacă bate fiecare singură pe date noi (regula I-493).
+- **Impact:** un arbitru independent pentru „a doua părere” din Radar; se vede la timp dacă rețeaua își pierde avantajul.
+- **Riscuri:** flux nou Radar → Busola (de publicat de sesiunea crypto); nu e o rețea a Busolei (subiectul acela e închis, I-500/502/503) — doar arbitrajul.
+- **Fișiere:** crypto/public/lib/retea.js, scripts/colector.mjs; busola/cron/masoara.ts, src/motor/bilantVerdict.ts.
+
+#### I-516 · Contractul rezumatului, cu versiune · [S] · P3 · propus
+- **Problema:** azi formatul a alunecat tăcut: Busola a pus `perp4h`, iar fișa Radarului (citea doar grid4h) ar fi dat un motiv fals pe ~150 de monede — prins doar de revizie, reparat în 0eef06c.
+- **Soluția:** rezumatul primește `schema` (număr) și un exemplu comun (`exemplu-rezumat.json`), pe care îl verifică și `verificaRezumat` (Busola), și `proba-busola.mjs` (Radar); dacă Radarul primește o schemă pe care n-o cunoaște, fișa o spune într-un rând gri.
+- **Impact:** o schimbare de format pică o probă în ambele aplicații, nu ajunge tăcut la el.
+- **Riscuri:** exemplul trebuie ținut la zi în ambele repo-uri (două sesiuni); mic.
+- **Fișiere:** busola/src/motor/rezumatRadar.ts, probe/; crypto/public/lib/busola.js, scripts/proba-busola.mjs.
