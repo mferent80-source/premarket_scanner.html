@@ -3211,6 +3211,11 @@ pe un singur chart.
 | I-504 | Refacerea masurarii gridului in Busola (GRID_MASURAT, „Pornesc grid acum?”) cu simulatorul ordin cu ordin, marfa evaluata la final — socoteala de azi e optimista | busola/src/motor/gridMasurat.ts, probe/grid-pe-date-noi.ts, probe/retea/modele.ts (episodGridMtm) | M | P1 | facut | ideation | 2026-10-02 |
 | I-505 | Latimea gridului pe 4h: canalul ±2×ATR pierde cel mai mult; un interval fix ~+4,3/−3,9 ATR pierde cu ~0,25–0,3%/episod mai putin (cutia sigilata, 36+120 de monede) — de dus in sfatul de grid al Busolei / fisa Radarului | busola/src/motor/grid.ts, crypto/public (fisa grid) | S | P1 | facut | ideation | 2026-10-02 |
 | I-501 | Miscarea din structura volatilitatii (ATR fata de mediana lui, range-ul pe 20 de bare, cat a stat in canal recent) — model LINIAR, walk-forward pe mai multe felii si 30 de monede, inainte de orice retea | busola/src/motor, probe/ | M | P1 | propus | ideation | 2026-10-02 |
+| I-506 | „NU PORNI” dovedit sau doar media? Diferenta miscare − oricand cu IC, pe fiecare interval (azi s-a testat doar liniste − oricand) | busola/probe/grid-pe-date-noi.ts, probe/scrie-grid-masurat.ts, src/motor/filtruGrid.ts, src/motor/gridSpus.ts | S | P1 | propus | ideation | 2026-10-03 |
+| I-507 | „Ce scrii in Pionex”: fisa de grid tradusa in campurile aplicatiei (jos, sus, grile = N+1, aritmetic), cu buton de copiat | busola/src/motor/grid.ts, src/motor/pePamant.ts, src/ui/FiltruGrid.tsx, src/ui/FereastraMiscare.tsx | S | P2 | propus | ideation | 2026-10-03 |
+| I-508 | Test „inainte” lunar al latimii (I-505) pe barele de dupa 02.10.2026 + data masurarii pe fila Grid | busola/probe/latime-grid.ts, src/motor/masurat.ts, src/ui/FiltruGrid.tsx | M | P2 | propus | ideation | 2026-10-03 |
+| I-509 | Paznicul Busolei: mesaj pe Discord cand cron-ul de pe PC tace (rezumat mai vechi de 5 h — PC oprit la pana de curent) | busola/cron/worker.ts, wrangler.jsonc | M | P3 | propus | ideation | 2026-10-03 |
+| I-510 | Latimea gridului si pe 1z, cu aceeasi regula ca pe 15m/1h/4h | busola/probe/latime-grid.ts, src/motor/grid.ts | S | P4 | propus | ideation | 2026-10-03 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5201,3 +5206,38 @@ Ideile cu semnal/prag sunt IPOTEZE: se valideaza out-of-sample (cazuri de DUPA s
 - **Ce s-a măsurat (cutia sigilată, marcat la piață, aceleași momente):** CANAL ±2×ATR −0,739%/episod față de un interval fix ~+4,3/−3,9 ATR −0,484% pe 36 de monede sigilate (IC al diferenței cu rețeaua față de CANAL +0,22…+0,39%); la fel pe 120 de cunoscute (−0,553% vs −0,316%).
 - **Soluția:** în sfatul de grid al Busolei (și, după probă, în fișa Radarului) intervalul implicit pe 4h nu mai e ±2×ATR, ci ~+4,3/−3,9 ATR — cu avertismentul că și așa gridul a fost pe minus în medie.
 - **Riscuri:** orizontul probei e 12 bare (2 zile); boții lui țin mai mult — de măsurat și pe orizontul lor înainte de schimbat fișa Radarului.
+
+#### I-506 · „NU PORNI” dovedit sau doar media? · [S] · P1 · propus
+- **Problema:** fila Grid pune „NU PORNI” sus, ca informația care ține banii în buzunar, dar s-a testat doar liniște − oricând; mișcare − oricând n-a avut niciodată interval de încredere (semnalat și de revizorul lui 1.30.0). Pe canalele noi, mediile: 4h −0,795% față de −0,666% oricând, 1h −0,308% față de −0,258%, 15m −0,164% față de −0,127% — diferențe mici, pot fi zgomot.
+- **Soluția:** `grid-pe-date-noi.ts` calculează și mișcare − oricând (perechi pe serie, IC pe serii, la coada ordinii de calcul ca IC-urile publicate să nu se miște); `gridMasurat` ia diferența; eticheta „NU PORNI” și „aici gridul a pierdut cel mai mult” devin condiționate de IC, ca liniștea (ieri); „Ce s-a măsurat” spune rezultatul. Regula scrisă înainte de rulare.
+- **Impact:** filtrul de evitare primește dovadă proprie — sau încetează să fie vândut drept cel mai valoros semnal.
+- **Riscuri:** poate ieși „nedovedit” pe 4h ⇒ fila pierde și al doilea semnal pe 4h; e rezultatul cinstit.
+- **Fișiere:** probe/grid-pe-date-noi.ts, probe/scrie-grid-masurat.ts, src/motor/gridMasurat.ts (generat), src/motor/filtruGrid.ts (`eticheteSemafor`), src/motor/gridSpus.ts, probe/filtru-grid.ts.
+
+#### I-507 · „Ce scrii în Pionex” · [S] · P2 · propus
+- **Problema:** fișa de grid spune jos / sus / pas / „16 grile”, dar Pionex numără LINIILE: intervale = rânduri − 1 ⇒ în Pionex se scrie N+1 (lecția LIGHTER, 30.09). Cine copiază „16” primește 15 intervale, alt pas, alt câștig pe grilă după comision.
+- **Soluția:** sub fișă (fila Grid și fereastra Mișcare), un bloc „În Pionex: limita de jos X · de sus Y · grile N+1 · aritmetic” cu buton „copiază”; pasul efectiv recalculat cum îl face Pionex; avertisment când netul pe grilă iese sub zero după comision.
+- **Impact:** previne o setare greșită de bot — risc direct de bani.
+- **Riscuri:** semantica „Grid number” din Pionex SPOT de verificat o dată în aplicație (regula N+1 vine din futures, LIGHTER); zecimalele prețului pe monedele mici.
+- **Fișiere:** src/motor/grid.ts (`fisaGrid`), src/motor/pePamant.ts (`gridPeInteles`), src/ui/FiltruGrid.tsx, src/ui/FereastraMiscare.tsx, probe/filtru-grid.ts.
+
+#### I-508 · Test „înainte” lunar al lățimii + data măsurării pe fila Grid · [M] · P2 · propus
+- **Problema:** lățimea +4,2/−3,9 (I-505) e verificată pe 30% care se suprapun cu perioada sigilată a cutiei; cifrele filei sunt fixate la 02.10.2026, iar fila nu spune asta. Peste câteva luni piața se schimbă și nimic nu re-verifică.
+- **Soluția:** o probă pe barele DE DUPĂ 02.10.2026 13:00 UTC (`PANA_LA`), aceeași regulă (canal larg față de ±2×ATR, aceleași momente), rulată lunar, cu rezultatul CUMULAT pe lunile noi — verificarea curată, din viitor. Rezultatul în „Ce s-a măsurat” și sub capul filei („măsurat pe istoria până la 02.10.2026 · pe lunile de după: +x pp, n=…”).
+- **Impact:** lățimea devine dovedită pe date nevăzute de nimeni — sau se vede la timp că nu mai ține.
+- **Riscuri:** o lună dă puține episoade (IC larg) ⇒ se raportează cumulat; rulare lunară separată, nu în cron-ul de 4 ore.
+- **Fișiere:** probe/latime-grid.ts (sau o probă „înainte” nouă), src/motor/masurat.ts, src/motor/filtruGrid.ts, src/ui/FiltruGrid.tsx.
+
+#### I-509 · Paznicul Busolei: cron-ul tace ⇒ mesaj pe Discord · [M] · P3 · propus
+- **Problema:** la pană de curent PC-ul se oprește; Busola nu mai măsoară, iar Radarul arată date vechi doar cu „măsurat acum N ore”, mărunt. Verificarea de după urcare (1.32.1) nu poate prinde un cron care nu pornește.
+- **Soluția:** worker-ul Busolei primește un cron Cloudflare (o dată pe oră) care citește `la` din rezumatul din KV; peste 5 h ⇒ un mesaj pe Discord („Busola n-a mai măsurat de 6 ore — PC oprit?”), o singură dată pe pauză, plus unul la revenire.
+- **Impact:** afli de oprire în câteva ore, nu când observi cifre vechi în Radar.
+- **Riscuri:** `wrangler deploy` fără `triggers.crons` în config șterge cron-ul (capcană cunoscută) ⇒ crons în `wrangler.jsonc`; webhook-ul ca secret al worker-ului (`wrangler secret put`), niciodată în cod sau memorie; starea „deja anunțat” în KV, fără spam.
+- **Fișiere:** cron/worker.ts, wrangler.jsonc.
+
+#### I-510 · Lățimea gridului și pe 1z · [S] · P4 · propus
+- **Problema:** pe 1z canalul a rămas ±2×ATR doar fiindcă n-a fost măsurat; pe 15m, 1h și 4h, ±2×ATR a pierdut clar față de canalul larg.
+- **Soluția:** proba lățimii rulată și pe 1z (istoricul zilnic există pe disc), aceeași regulă scrisă dinainte; se schimbă doar dacă trece.
+- **Impact:** consecvență; mic — boții lui țin ore → ~2 zile, nu 12 zile.
+- **Riscuri:** istoric zilnic scurt ⇒ n mic, probabil „nedovedit”.
+- **Fișiere:** probe/latime-grid.ts, src/motor/grid.ts (`CANAL_GRID`).
