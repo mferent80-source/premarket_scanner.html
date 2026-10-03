@@ -44,3 +44,19 @@ test('server rejects foreign origins, missing binding and unsupported methods',a
  assert.equal((await worker.fetch(new Request('https://worker.example/daily',{method:'POST',headers:{Origin:ORIGIN}}),{})).status,503);
  assert.equal((await worker.fetch(new Request('https://worker.example/daily',{headers:{Origin:ORIGIN}}),{})).status,405);
 });
+test('local endpoint is allowed only on the same loopback origin',()=>{
+ assert.equal(client.endpoint('/api/breadth/daily','http://127.0.0.1:8765/app/').href,'http://127.0.0.1:8765/api/breadth/daily');
+ assert.throws(()=>client.endpoint('http://127.0.0.1:8765/api/breadth/daily','https://mferent80-source.github.io/app/'));
+ assert.throws(()=>client.endpoint('http://other.example/daily','http://127.0.0.1:8765/app/'));
+});
+test('manual scan is separate from daily storage and accepts a reused running scan',async()=>{
+ let calls=0;const s=await client.requestScan({config:{manualEndpoint:'/api/breadth/scan'},baseUrl:'http://127.0.0.1:8765/app/',fetch:async()=>{calls++;return Response.json({status:'running',requestId:'open-2026-10-03'},{status:202});}});
+ assert.equal(calls,1);assert.equal(s.manual,true);assert.equal(s.status,'queued');
+});
+test('only the matching completed manifest confirms publication',()=>{
+ assert.equal(client.resultStatus({requestId:'test',status:'COMPLETE'},'test'),'complete');
+ assert.equal(client.resultStatus({requestId:'test',status:'PARTIAL'},'test'),'complete');
+ assert.equal(client.resultStatus({requestId:'test',status:'ERROR'},'test'),'failed');
+ assert.equal(client.resultStatus({requestId:'old',status:'COMPLETE'},'test'),null);
+ assert.equal(client.resultStatus({requestId:'test',status:'QUEUED'},'test'),null);
+});
