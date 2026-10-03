@@ -51,7 +51,8 @@ function proxyIds() {
 
 test('lanțul implicit începe cu rezervele dovedite bune, nu cu una care atârnă', () => {
   const ids = proxyIds();
-  const bune = ['corssh', 'corsproxy'];
+  const bune = ['custom','corsproxy'];
+  assert.ok(!ids.includes('corssh'),'rezerva eliminată în septembrie nu trebuie reintrodusă doar pentru un test din august');
   for (const b of bune) assert.ok(ids.includes(b), `${b} trebuie să fie în lanț (probat bun)`);
   const iCodetabs = ids.indexOf('codetabs');
   if (iCodetabs >= 0) {

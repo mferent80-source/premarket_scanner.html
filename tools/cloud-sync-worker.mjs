@@ -1,7 +1,7 @@
 import {KEYS,validateValue} from '../lib/cloud-sync-model.mjs';
 import {handle as brokerHandle} from './trading212-worker.mjs';
 const ORIGIN='https://mferent80-source.github.io',E=new TextEncoder(),D=new TextDecoder();
-const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64=b=>{const bytes=new Uint8Array(b);let text='';for(let i=0;i<bytes.length;i+=32768)text+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(text).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
 const bytes=s=>{if(typeof s!=='string'||s.length>2000000||!/^[A-Za-z0-9_-]+$/.test(s))throw Error('invalid_encoding');return Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));};
 const random=()=>b64(crypto.getRandomValues(new Uint8Array(32)));
 const hash=async s=>b64(await crypto.subtle.digest('SHA-256',E.encode(s)));

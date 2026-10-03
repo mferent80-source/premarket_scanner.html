@@ -58,7 +58,7 @@
     Object.keys(deps).forEach(function (id) {
       var el = $(id); el.textContent = deps[id] ? 'OK' : 'LIPSĂ'; el.className = deps[id] ? 'ok' : 'fail';
     });
-    return deps.sData && deps.sTi && deps.sMeb;
+    return deps.sData && deps.sTi && deps.sMeb && deps.sGov && !!window.DailySeries;
   }
 
   function closes(bars) { return bars.map(function (b) { return +b.c; }); }
@@ -132,22 +132,23 @@
     return Math.round(clamp(s - earn.penalty, 0, 100));
   }
 
-  async function analyze(sym, benchmarkRet20) {
-    var bars = await D.fetchStock(sym, { range: '1y', interval: '1d', ttl: 1800 });
+  async function analyze(sym, benchmark) {
+    var source=DailySeries.read(await D.fetchStock(sym, { range: '1y', interval: '1d', ttl: 1800 }),sym);
+    var bars=source.bars,benchmarkRet20=benchmark&&benchmark.asOf===source.asOf?benchmark.ret20:null;
     if (!bars || bars.length < 80) throw new Error('istoric insuficient');
     var c = closes(bars), h = highs(bars), l = lows(bars), v = volumes(bars);
     var price = c[c.length - 1], ema21 = lastValue(TI.calcEMA(c, 21)), ema50 = lastValue(TI.calcEMA(c, 50));
     var rsi = lastValue(TI.calcRSI(c, 14)), atr = lastValue(TI.calcATR(h, l, c, 14));
-    if (ema21 == null || ema50 == null || rsi == null) throw new Error('indicatori incompleți');
+    if (ema21 == null || ema50 == null || rsi == null || !(atr>0)) throw new Error('indicatori incompleți');
     var avgVol20 = mean(v.slice(-21, -1)) || mean(v.slice(-20)) || 0;
     var rvol = avgVol20 > 0 ? v[v.length - 1] / avgVol20 : 0;
     var max252 = Math.max.apply(null, h.slice(-252));
     var min60 = Math.min.apply(null, l.slice(-60));
     var f = {
       symbol: sym, region: regionOf(sym), bars: bars, spark: sparkValues(c), price: price,
-      ema21: ema21, ema50: ema50, rsi: rsi, atr: atr || price * .025, rvol: rvol,
+      ema21: ema21, ema50: ema50, rsi: rsi, atr: atr, rvol: rvol,
       ret5: retAt(c, 5) || 0, ret20: retAt(c, 20) || 0, dayChg: retAt(c, 1) || 0,
-      rs20: (retAt(c, 20) || 0) - (benchmarkRet20 || 0), ext21: ema21 ? pct(ema21, price) : 99,
+      rs20: benchmarkRet20===null?null:retAt(c,20)-benchmarkRet20, ext21: ema21 ? pct(ema21, price) : 99,
       drawdown: max252 > 0 ? pct(max252, price) : 0, bounce60: min60 > 0 ? pct(min60, price) : 0,
       baseDays: daysSinceLow(l, 60), avgDollarVol: avgDollarVol(bars)
     };
@@ -156,37 +157,38 @@
     var eb = MEB.computeEarlyBird(hist, 4, null);
     var mScore = momentumScore(f, earn);
     var rScore = reversalScore(f, eb, earn);
-    var gov = window.GV && GV.status ? GV.status() : { verdict: 'TRADE', reasons: [] };
-    var blocked = earn.blocked || gov.verdict === 'HALTED';
+    var gov = window.GV && GV.status ? GV.status() : { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
+    var blocked = earn.blocked || !['TRADE','CAUTION'].includes(gov.verdict);
     var sector = window.EL && EL.sectorOf ? EL.sectorOf(sym) : 'Necunoscut';
     var mid = price, entryLow = price * .997, entryHigh = price * 1.003;
     var stop = price - f.atr * 1.25, target = mid + Math.max(.01, mid - stop) * 2;
     var momentumState = blocked ? 'BLOCKED' : (mScore >= 80 && rvol >= 1.15 ? 'FIRE' : (mScore >= 68 ? 'ARMED' : 'EARLY'));
     var reversalState = blocked ? 'BLOCKED' : (eb && eb.isConfirmed && rScore >= 82 ? 'FIRE' : (eb && eb.isConfirmed ? 'ARMED' : 'EARLY'));
     var momentum = {
-      symbol: sym, name: sym, region: f.region, sector: sector, mode: 'momentum', score: mScore,
+      symbol: sym, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, region: f.region, sector: sector, mode: 'momentum', score: mScore,
       state: momentumState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
       metricA: f.ret20, metricB: f.ext21,
       eligible: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 55,
-      actionable: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 68,
-      reason: 'Trend ' + (price > ema21 && ema21 > ema50 ? 'aliniat' : 'în formare') + ' · RS vs benchmark ' + signed(f.rs20, 1) + ' · RVOL ' + fmt(f.rvol, 2) + '× · ' + earn.text,
+      actionable: !!source.currency && benchmarkRet20!==null && !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 68,
+      reason: 'EOD '+source.asOf+' · Trend ' + (price > ema21 && ema21 > ema50 ? 'aliniat' : 'în formare') + ' · RS vs benchmark ' + signed(f.rs20, 1) + ' · RVOL ' + fmt(f.rvol, 2) + '× · ' + earn.text,
       entryLow: entryLow, entryHigh: entryHigh, stop: stop, target: target, spark: f.spark,
       governor: gov, earnings: earn.text, ts: Date.now()
     };
+    if(!source.currency||benchmarkRet20===null){momentum.state=blocked?'BLOCKED':'WATCH';momentum.reason+=' · benchmark sau monedă neverificate';}
     var reversalSafe = eb && !eb.isWilting && !eb.isRanBlocked;
     var reversalConfirmed = reversalSafe && (eb.isEarly || eb.isConfirmed || (eb.signals && eb.signals.stabilized && eb.signals.rsiRising));
     var reversalWatch = reversalSafe && f.drawdown <= -12 && f.bounce60 >= 1 && f.bounce60 <= 35
       && (eb.isEarly || eb.isConfirmed || (eb.signals && (eb.signals.stabilized || eb.signals.rsiRising || eb.signals.higherLow)) || price > ema21);
-    var reversalActionable = !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.drawdown <= -20
+    var reversalActionable = !!source.currency && benchmarkRet20!==null && !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.drawdown <= -20
       && f.bounce60 >= 2 && f.bounce60 <= 30 && reversalConfirmed && rScore >= 50;
     if (!blocked && !reversalActionable && reversalWatch) reversalState = 'WATCH';
     var reversal = {
-      symbol: sym, name: sym, region: f.region, sector: sector, mode: 'reversal', score: rScore,
+      symbol: sym, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, region: f.region, sector: sector, mode: 'reversal', score: rScore,
       state: reversalState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
       metricA: f.drawdown, metricB: f.bounce60, baseDays: f.baseDays,
       eligible: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && reversalWatch && rScore >= 32,
       actionable: reversalActionable,
-      reason: (reversalActionable ? 'Confirmat · ' : 'Monitorizare · ') + (eb && MEB.ebSignalText ? MEB.ebSignalText(eb) : 'structură reversal') + ' · scădere ' + signed(f.drawdown, 1) + ' · revenire ' + signed(f.bounce60, 1) + ' · ' + earn.text,
+      reason: 'EOD '+source.asOf+' · '+(reversalActionable ? 'Confirmare tehnică zilnică · ' : 'Monitorizare · ') + (eb && MEB.ebSignalText ? MEB.ebSignalText(eb) : 'structură reversal') + ' · scădere ' + signed(f.drawdown, 1) + ' · revenire ' + signed(f.bounce60, 1) + ' · ' + earn.text,
       entryLow: entryLow, entryHigh: entryHigh, stop: stop, target: target, spark: f.spark,
       governor: gov, earnings: earn.text, ts: Date.now()
     };
@@ -204,9 +206,8 @@
     return out.slice(0, 10);
   }
   async function benchmarkReturns() {
-    var out = { US: 0, EU: 0 };
-    try { var s = closes(await D.fetchStock('SPY', { range: '6mo', interval: '1d', ttl: 1800 })); out.US = retAt(s, 20) || 0; } catch (_) {}
-    try { var e = closes(await D.fetchStock('^STOXX50E', { range: '6mo', interval: '1d', ttl: 1800 })); out.EU = retAt(e, 20) || 0; } catch (_) {}
+    var out = { US:null,EU:null };
+    for(var pair of [['US','SPY'],['EU','^STOXX50E']]){try{var source=DailySeries.read(await D.fetchStock(pair[1],{range:'6mo',interval:'1d',ttl:1800}),pair[1]),ret=retAt(closes(source.bars),20);if(ret!==null)out[pair[0]]={asOf:source.asOf,ret20:ret};}catch(_){}}
     return out;
   }
   async function updateSectors(items) {
@@ -268,7 +269,7 @@
       $('ctxSectors').textContent = topSectors(state[state.mode]);
       var gs = window.GV && GV.status ? GV.status() : null;
       $('ctxGovernor').textContent = gs ? gs.verdict : 'indisponibil';
-      $('ctxFreshness').textContent = 'live · ' + ageText(state.updatedAt);
+      $('ctxFreshness').textContent = 'EOD verificat · scan ' + ageText(state.updatedAt);
       $('updatedAt').textContent = 'actualizat acum';
       if (state.failures.length) showAlert(state.failures.length + ' simboluri nu au răspuns; au fost excluse, nu înlocuite cu date vechi.');
       render();
@@ -341,13 +342,13 @@
       ['dSymbol','dName','dScore','dSector','dState','dFresh','dReason','dEntry','dStop','dTarget','dGovernor','dGovernorWhy'].forEach(function (id) { $(id).textContent = '—'; });
       $('spark').innerHTML = ''; $('setupBtn').disabled = true; return;
     }
-    $('dSymbol').textContent = x.symbol; $('dName').textContent = x.mode === 'momentum' ? 'Long momentum' : 'Early reversal';
+    $('dSymbol').textContent = x.symbol; $('dName').textContent = (x.mode === 'momentum' ? 'Long momentum' : 'Early reversal')+' · '+(x.currency||'monedă neverificată');
     $('dScore').textContent = x.score; $('dSector').textContent = x.sector; $('dState').textContent = x.state;
     $('dFresh').textContent = ageText(x.ts); $('dReason').textContent = x.reason + (window.T212C && T212C.held(x.symbol).length ? ' · DEȚII DEJA în snapshot Invest; verifică expunerea cumulată înainte de o nouă intrare.' : '');
     $('dEntry').textContent = fmt(x.entryLow, 2) + '–' + fmt(x.entryHigh, 2);
     $('dStop').textContent = fmt(x.stop, 2); $('dTarget').textContent = fmt(x.target, 2);
     $('spark').innerHTML = sparkSvg(x.spark);
-    var g = x.governor || { verdict: 'TRADE', reasons: [] };
+    var g = x.governor || { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
     $('dGovernor').textContent = 'Governor: ' + g.verdict;
     $('dGovernorWhy').textContent = (g.reasons && g.reasons[0]) || (x.earnings + ' · R:R țintă 2.0');
     $('governorBox').className = 'ce-governor ' + (g.verdict === 'HALTED' ? 'halted' : (g.verdict === 'CAUTION' ? 'caution' : ''));
@@ -357,7 +358,7 @@
   function loadCache() {
     try {
       var c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-      if (!c || !c.updatedAt || Date.now() - c.updatedAt > 30 * 60 * 1000) return;
+      if (!c || !c.updatedAt || c.updatedAt>Date.now()+60000 || Date.now() - c.updatedAt > 30 * 60 * 1000 || (c.momentum||[]).concat(c.reversal||[]).some(function(x){return !DailySeries.usable(x);})) return;
       state.analyses = Array.isArray(c.analyses) ? c.analyses : [];
       state.momentum = Array.isArray(c.momentum) ? c.momentum : []; state.reversal = Array.isArray(c.reversal) ? c.reversal : []; state.updatedAt = Number(c.updatedAt) || 0;
       $('countMomentum').textContent = state.momentum.length; $('countReversal').textContent = state.reversal.length;
@@ -380,7 +381,7 @@
     $('scanBtn').onclick = scan; $('universe').onchange = function () { scan(); };
     $('search').oninput = render; $('onlyActionable').onchange = render;
     $('setupBtn').onclick = function () {
-      if (!state.selected || state.selected.state === 'BLOCKED') return;
+      if (!state.selected || state.selected.state === 'BLOCKED' || !state.selected.actionable || !DailySeries.usable(state.selected)) return;
       var query = 'symbol=' + encodeURIComponent(state.selected.symbol) + '&mode=' + encodeURIComponent(state.selected.mode);
       if (window.parent !== window) window.parent.postMessage({ ttOpenModule: 'smart-trade-long/', ttQuery: query }, location.origin);
       else location.href = '../smart-trade-long/?' + query;

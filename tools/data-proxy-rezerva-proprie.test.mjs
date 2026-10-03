@@ -90,11 +90,12 @@ test('workerul declară Vary: Origin — altfel un cache poate da ACAO-ul altui 
     'raspunsul cache-abil cu ACAO per-origin trebuie sa poarte Vary: Origin');
 });
 
-test('pagina /proxy/ există și e legată în navigație — nu o funcție fără buton', () => {
+test('configurarea proxy legacy rămâne independentă de aplicația nouă', () => {
   const pag = readFileSync(join(ROOT, 'proxy/index.html'), 'utf8');
   assert.match(pag, /tt_custom_proxy2/, 'pagina trebuie să poată seta rezerva proprie');
   assert.match(pag, /_t=/, 'proba trebuie să ceară date NOI, cu marcaj anti-cache');
-  const nav = readFileSync(join(ROOT, 'nav.js'), 'utf8');
-  assert.match(nav, /u:\s*'proxy\/'/, 'pagina trebuie să aibă buton în navigație');
-  assert.match(nav, /'proxy\/'/, 'segmentul trebuie cunoscut de shell');
+  const app=readFileSync(join(ROOT,'app/index.html'),'utf8');
+  assert.doesNotMatch(app,/u:\s*'proxy\/'/,'aplicația nouă nu reintroduce navigația legacy eliminată la cererea utilizatorului');
+  const data=readFileSync(join(ROOT,'lib/data.js'),'utf8');
+  assert.match(data,/tt_custom_proxy2/,'configurarea independentă este încă citită de stratul de date');
 });

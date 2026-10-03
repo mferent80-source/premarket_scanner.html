@@ -35,6 +35,11 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: App regression checks before publishing
+        run: node --test tools/*.test.mjs tools/*.test.cjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
