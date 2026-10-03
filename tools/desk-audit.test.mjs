@@ -4,3 +4,7 @@ function build({region='US',actionable=true,inResults=true,usable=true}={}){cons
 test('plan requires actionable selection still present in current verified results',()=>{assert.equal(build({actionable:false}),null);assert.equal(build({inResults:false}),null);assert.equal(build({usable:false}),null);assert.ok(build());});
 test('EU currency cannot be sized from a USD capital budget',()=>{assert.equal(build({region:'EU'}),null);assert.equal(build().currency,'USD');});
 test('flat prices do not falsely produce overbought RSI100',()=>{const c={};vm.createContext(c);vm.runInContext(readFileSync('lib/indicators.js','utf8'),c);assert.equal(c.TI.calcRSI(Array(40).fill(100),14),50);});
+
+test('daily context is not labelled live or a calibrated probability and Governor coverage is explicit',()=>{
+ assert.doesNotMatch(html,/DATE LIVE DIN SUITĂ|<span>ÎNCREDERE<\/span>/);assert.match(html,/SCOR CONTEXT/);assert.match(html,/nu este probabilitatea unui profit/);assert.match(html,/conf\?conf\+'\/100'/);assert.match(html,/Execuțiile și pozițiile Trading 212 nu sunt reconciliate automat/);
+});
