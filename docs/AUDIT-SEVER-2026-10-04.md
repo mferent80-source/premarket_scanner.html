@@ -65,6 +65,8 @@ Pe versiunea 26.10.04.0113, browserul de audit a confirmat:
 
 Această verificare a descoperit și resetarea câmpurilor la refresh: ieșire 111 și costuri 2 au revenit la gol/0 înainte de salvare. Trei regresii noi au eșuat pe versiunea inițială. Corecția păstrează drafturile per plan și acțiune, evită înlocuirea câmpului cu focus și blochează randarea cozii în timpul unei comenzi. Patru teste de refresh/editare trec pe versiunea finală.
 
+Pe versiunea finală **26.10.04.0128**, verificarea publică a confirmat badge-ul nou și următorul ciclu complet: intrarea 101 a rămas în câmp, cu focus păstrat, după 31 secunde; simularea a folosit 101, nu intrarea planificată 102. Ieșirea 111 și costurile 2 s-au păstrat după un alt ciclu de 31 secunde, inclusiv după mutarea focusului. Închiderea celor 7 unități a afișat exact **68 USD net și 1,62R**, calculat față de riscul la intrarea simulată. Ambele workflow-uri de publicare ale commitului `fe0883b311b4f94a4266a82e4afd84bb87eeda0f` s-au încheiat cu succes.
+
 Datele demo sunt fictive, separate de registrele reale. Verificarea nu a utilizat chei broker, ordine reale sau un telefon fizic. Capturile arată variantele interfeței, nu portofoliul utilizatorului.
 
 ## Idei prioritizate, cu criterii de acceptare
