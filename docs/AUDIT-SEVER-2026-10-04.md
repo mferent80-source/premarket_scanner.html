@@ -2,7 +2,7 @@
 
 Verdict: aplicația are funcții utile de analiză și registre păstrate separat, dar bugetul real al contului Invest nu este încă reconciliat. Un verdict verde în Governor nu certifică expunerea brokerului. Problemele de pierdere de istoric și de matematică financiară găsite în această rundă au primit corecții și teste; activarea cloud rămâne amânată.
 
-Versiune livrată: **26.10.04.0113**. Auditul examinează versiunea din Git, regulile executabile și interfața publicată. „Reparat” înseamnă corecție demonstrată în scenariile de regresie descrise. Nu certifică securitatea absolută, profitabilitatea sau comportamentul unui cont autentic la care browserul de audit nu are acces.
+Versiune livrată: **26.10.04.0128**. Auditul examinează versiunea din Git, regulile executabile și interfața publicată. „Reparat” înseamnă corecție demonstrată în scenariile de regresie descrise. Nu certifică securitatea absolută, profitabilitatea sau comportamentul unui cont autentic la care browserul de audit nu are acces.
 
 ## Defecte confirmate și corectate
 
@@ -18,7 +18,7 @@ Versiune livrată: **26.10.04.0113**. Auditul examinează versiunea din Git, reg
 | P1 — Governor | P&L zilnic urmărea și data deschiderii; săptămâna putea include profit din viitor. Configurațiile invalide nu erau respinse | P&L realizat după data închiderii; fereastră săptămânală limitată până la prezent. Trade-uri noi numărate la deschidere. Configurație/jurnal neverificate → HALTED |
 | P1 — persistență | Tracker/syncPlan puteau raporta succes după eșecul salvării. Un observer care arunca eroare putea raporta jurnal salvat ca eșuat | Rezultatul persistenței este verificat; notificarea UI are loc separat, după scriere |
 | P1 — teze | Salvarea unei teze folosea copia din memorie și putea suprascrie alte note sau un registru ilizibil | Citire și verificare înainte de scriere; conturile sunt păstrate. Editare concurentă a aceleiași teze produce conflict explicit. Eșecul stocării păstrează nota inițială |
-| P1 — interacțiune | O salvare aflată în coadă putea folosi simbolul/capitalul sau prețurile editate după click | Comanda capturează valorile la apăsare; controalele sunt dezactivate până la terminare. Test de regresie pentru salvare amânată |
+| P1 — interacțiune | O salvare aflată în coadă putea folosi simbolul/capitalul sau prețurile editate după click; refresh-ul periodic ștergea prețurile și costurile aflate în editare | Comanda capturează valorile la apăsare; controalele sunt dezactivate până la terminare. Test de regresie pentru salvare amânată |
 | P1 — rezultate | Închiderea Shadow folosea intrarea planificată, fără costuri, și admitea tranzitii repetate | Intrare simulată explicită, costuri USD, tranziții validate și recomputarea rezultatului. Rezultatele contradictorii sunt excluse, rândurile rămân păstrate |
 | P2 — interpretare | Simulările erau numite „LIVE”; cinci rezultate puteau afișa „edge pozitiv” | Etichete pentru simulări, rezultate descriptive și explicații privind acoperirea |
 | P2 — mobil/accesibilitate | Coada era un tabel de peste 1000 px; ticketul avea dialog improvizat și probleme de spațiu vertical | Carduri pe telefon, controale de 44 px, dialog nativ, scroll în ticket și focus returnat la închidere |
@@ -47,9 +47,25 @@ Registrele vechi deteriorate nu sunt șterse și nu sunt inventate valori pentru
 ## Dovezi de verificare
 
 - Cele **11 scenarii noi pentru Journal/Governor/Tracker au eșuat pe codul inițial**, apoi au trecut după corecții. Cazurile includ pierdere de sursă, date viitoare, costuri malformate, stare contradictorie și salvare eșuată.
-- **432 teste Node/JavaScript trec** în runda completă, inclusiv 36 de teste noi pentru integritatea financiară, planuri, dimensionare și teze.
-- **7 teste Market Breadth trec**. **8 teste ale suitei Breadth și 22 verificări core trec**. Verificarea publică este consemnată după publicare.
+- **436 teste Node/JavaScript trec** în runda completă, inclusiv 40 de teste noi pentru integritatea financiară, planuri, dimensionare și teze.
+- **7 teste Market Breadth trec**. **8 teste ale suitei Breadth și 22 verificări core trec**. Verificarea publică este consemnată mai jos.
 - Demo-ul utilizează chiar pagina Desk, cu FICTIV-A/FICTIV-B și storage în memorie. Are variante desktop și 360 px; nu scrie date simulate în registrele utilizatorului.
+
+## Verificarea interfeței publice
+
+Pe versiunea 26.10.04.0113, browserul de audit a confirmat:
+
+- capital 100 USD insuficient pentru exemplul 100–102 USD → dimensionare blocată și salvare dezactivată;
+- plan duplicat → mesaj de respingere și registru păstrat;
+- intrare simulată 103 USD peste intervalul 100–102 → respingere, fără schimbarea stării PLANNED;
+- salvare de teză în modul explicativ al deținerilor → „Plan salvat în demo.”;
+- coada mobilă la 360 px → carduri, fără depășirea lățimii documentului;
+- ticket desktop/telefon → text vizibil și scroll intern; eroarea inițială de contrast a fost corectată;
+- badge-ul public 26.10.04.0113 și nicio eroare a aplicației în consola sesiunii testate, după excluderea mesajelor extensiei browserului.
+
+Această verificare a descoperit și resetarea câmpurilor la refresh: ieșire 111 și costuri 2 au revenit la gol/0 înainte de salvare. Trei regresii noi au eșuat pe versiunea inițială. Corecția păstrează drafturile per plan și acțiune, evită înlocuirea câmpului cu focus și blochează randarea cozii în timpul unei comenzi. Patru teste de refresh/editare trec pe versiunea finală.
+
+Datele demo sunt fictive, separate de registrele reale. Verificarea nu a utilizat chei broker, ordine reale sau un telefon fizic. Capturile arată variantele interfeței, nu portofoliul utilizatorului.
 
 ## Idei prioritizate, cu criterii de acceptare
 

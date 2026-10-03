@@ -11,6 +11,16 @@ test('queued save keeps the symbol and capital the user submitted',async()=>{
 });
 test('flat prices do not falsely produce overbought RSI100',()=>{const c={};vm.createContext(c);vm.runInContext(readFileSync('lib/indicators.js','utf8'),c);assert.equal(c.TI.calcRSI(Array(40).fill(100),14),50);});
 
+function refreshedQueue(status,values,busy=false,editing=false){
+ const plan={id:'plan-a',symbol:'TEST',status,mode:'momentum',entry:102,stop:95,target:116,shares:7,risk:49,rr:2,createdAt:Date.now()},action=status==='PLANNED'?'trigger':'close';
+ const group={querySelector:()=>({dataset:{[action]:plan.id}}),querySelectorAll:()=>values.map(value=>({value}))},nodes={queueRows:{innerHTML:'ORIGINAL',querySelectorAll:()=>[group],contains:()=>editing},queueCount:{},queueStatus:{},queueMore:{}},context={plans:[plan],queueLimit:8,queueError:'',queueBusy:busy,queueDrafts:new Map(),document:{activeElement:{}},TradePlans:{validate:()=>({ok:true})},$:k=>nodes[k],fmt:(v)=>String(v),esc:v=>String(v??''),Date,Number,Map,Array};
+ vm.createContext(context);vm.runInContext(html.match(/function renderQueue\([^)]*\)\{[\s\S]*?(?=\n  function openTicket)/)[0],context);context.renderQueue();return nodes.queueRows.innerHTML;
+}
+test('periodic queue refresh preserves a typed simulated entry',()=>{assert.match(refreshedQueue('PLANNED',['101']),/aria-label="Intrare simulată TEST" value="101"/);});
+test('periodic queue refresh preserves exit and costs without filling a blank exit',()=>{const output=refreshedQueue('TRIGGERED',['111','2']);assert.match(output,/aria-label="Ieșire simulată TEST"[^>]*value="111"/);assert.match(output,/aria-label="Costuri USD TEST"[^>]*value="2"/);assert.match(refreshedQueue('TRIGGERED',['','0']),/aria-label="Ieșire simulată TEST"[^>]*value=""/);});
+test('periodic refresh cannot replace controls while a queue command is pending',()=>{assert.equal(refreshedQueue('PLANNED',['101'],true),'ORIGINAL');});
+test('periodic refresh keeps the active queue field and keyboard focus',()=>{assert.equal(refreshedQueue('PLANNED',['101'],false,true),'ORIGINAL');});
+
 test('daily context is not labelled live or a calibrated probability and Governor coverage is explicit',()=>{
  assert.doesNotMatch(html,/DATE LIVE DIN SUITĂ|<span>ÎNCREDERE<\/span>/);assert.match(html,/SCOR CONTEXT/);assert.match(html,/nu este probabilitatea unui profit/);assert.match(html,/conf\?conf\+'\/100'/);assert.match(html,/Execuțiile și pozițiile Trading 212 nu sunt reconciliate automat/);
 });
