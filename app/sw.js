@@ -1,5 +1,5 @@
 // Cache only the application shell. Market data and scans always require network.
-const CACHE = 'tt-decision-phone-20261003-v1';
+const CACHE = 'tt-decision-phone-20261003-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './install.js?v=phone-20261003', './icons/icon-192.png', './icons/icon-512.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -14,7 +14,10 @@ self.addEventListener('fetch', event => {
   const allowed = SHELL.some(path => new URL(path, self.registration.scope).href === url.href);
   if (!allowed) return;
   event.respondWith(fetch(request, { cache: 'no-cache' }).then(response => {
-    if (response.ok) event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, response.clone())));
+    if (response.ok) {
+      const cachedResponse = response.clone();
+      event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, cachedResponse)).catch(() => {}));
+    }
     return response;
   }).catch(async () => {
     // Never present an offline trading screen as a current scan.

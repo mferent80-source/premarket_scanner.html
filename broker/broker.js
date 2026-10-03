@@ -11,7 +11,7 @@ async function api(name,next){
  times[name]=Date.now()+(name==='summary'?6000:['orders','dividends','transactions'].includes(name)?11000:1500);
  const u=new URL(base+'/api/trading212/'+name);if(next)u.searchParams.set('cursor',next);
  const r=await fetch(u,{headers:{Authorization:'Basic '+token,'X-T212-Environment':brokerEnvironment},cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal});
- const b=await r.json();if(!r.ok){if(r.status===429){const seconds=Math.max(10,Math.min(300,Number(b.retryAfter)||60));times[name]=Date.now()+seconds*1000;throw Error(`Limita Trading 212: reîncearcă peste ${seconds} secunde.`);}throw Error(errors[b.error]||'Conectarea nu a putut fi verificată.');}
+ const b=await r.json();if(!r.ok){if(r.status===429){const seconds=Math.max(10,Math.min(300,Number(b.retryAfter)||60));times[name]=Date.now()+seconds*1000;throw Error(`Limita Trading 212: reîncearcă peste ${seconds} secunde.`);}const code=Object.hasOwn(errors,b.error)?b.error:'connection_failed';throw Error((errors[b.error]||'Conectarea nu a putut fi verificată.')+` [HTTP ${r.status} · ${code}]`);}
  if(b.source!=='Trading 212'||!['live','demo'].includes(b.environment)||!Number.isFinite(new Date(b.fetchedAt).getTime()))throw Error('Răspuns incompatibil cu integrarea.');return b;
 }
 function metrics(s){const c=s.currency;$('metrics').innerHTML=[['Valoare raportată de cont',s.totalValue],['Disponibil pentru investiții',s.available],['Investiții',s.invested],['P&L nerealizat',s.unrealized],['P&L realizat · total cont',s.realized],['Cost poziții curente',s.cost],['Rezervat pentru ordine',s.reserved]].map(([label,v])=>`<div class="metric"><small>${esc(label)}</small><b>${esc(fmt(v,c))}</b></div>`).join('');}
