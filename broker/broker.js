@@ -1,0 +1,41 @@
+const $=id=>document.getElementById(id),esc=v=>String(v??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const numeric=v=>typeof v==='number'&&Number.isFinite(v);
+const fmt=(v,c)=>numeric(v)?new Intl.NumberFormat('ro-RO',{maximumFractionDigits:6}).format(v)+(c?' '+c:''):'—';
+const stamp=v=>{const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString('ro-RO'):'—';};
+let base='',token='',session=0,busy=false,kind='orders',cursor=null,rows=[],seen=new Set(),controller=new AbortController(),times={},lastFetched=0,environment='';
+const errors={backend_not_configured:'Backendul nu are încă secretele configurate.',environment_not_configured:'Mediul Invest nu este configurat.',session_unauthorized:'Codul de acces la integrare este incorect.',broker_credentials_invalid:'Cheia Trading 212 nu este validă pentru mediul configurat.',broker_permission_missing:'Cheia Trading 212 nu are permisiunea de citire necesară.',broker_unavailable:'Trading 212 nu răspunde momentan.',broker_response_unavailable:'Răspunsul Trading 212 nu a putut fi verificat.',origin_forbidden:'Această origine nu este autorizată de backend.'};
+function validEndpoint(value){const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||u.pathname!=='/'||!u.hostname.endsWith('.workers.dev'))throw Error('Introdu adresa HTTPS a Workerului privat (workers.dev), fără cale sau parametri.');return u.origin;}
+function reset(){session++;controller.abort();controller=new AbortController();token='';base='';rows=[];seen.clear();cursor=null;times={};lastFetched=0;busy=false;$('access').value='';$('account').hidden=true;$('metrics').replaceChildren();$('positions').replaceChildren();$('history').replaceChildren();$('more').hidden=true;$('refresh').hidden=true;$('disconnect').hidden=true;$('connectButton').disabled=false;$('status').textContent='Neconectat · datele contului au fost eliminate din ecran.';}
+async function api(name,next){
+ const wait=(times[name]||0)-Date.now();if(wait>0)throw Error(`Așteaptă ${Math.ceil(wait/1000)} secunde înainte de următoarea citire.`);
+ times[name]=Date.now()+(name==='summary'?6000:['orders','dividends','transactions'].includes(name)?11000:1500);
+ const u=new URL(base+'/api/trading212/'+name);if(next)u.searchParams.set('cursor',next);
+ const r=await fetch(u,{headers:{Authorization:'Bearer '+token},cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal});
+ const b=await r.json();if(!r.ok){if(r.status===429){const seconds=Math.max(10,Math.min(300,Number(b.retryAfter)||60));times[name]=Date.now()+seconds*1000;throw Error(`Limita Trading 212: reîncearcă peste ${seconds} secunde.`);}throw Error(errors[b.error]||'Conectarea nu a putut fi verificată.');}
+ if(b.source!=='Trading 212'||!['live','demo'].includes(b.environment)||!Number.isFinite(new Date(b.fetchedAt).getTime()))throw Error('Răspuns incompatibil cu integrarea.');return b;
+}
+function metrics(s){const c=s.currency;$('metrics').innerHTML=[['Valoare raportată de cont',s.totalValue],['Disponibil pentru investiții',s.available],['Investiții',s.invested],['P&L nerealizat',s.unrealized],['P&L realizat · total cont',s.realized],['Cost poziții curente',s.cost],['Rezervat pentru ordine',s.reserved]].map(([label,v])=>`<div class="metric"><small>${esc(label)}</small><b>${esc(fmt(v,c))}</b></div>`).join('');}
+const pair=(name,value)=>`<dt>${esc(name)}</dt><dd>${esc(value)}</dd>`;
+function positions(xs){$('positions').innerHTML=xs.length?xs.map(p=>`<article class="card"><h3>${esc(p.ticker)}</h3><p>${esc(p.name)}</p><dl>${pair('Cantitate',fmt(p.quantity))}${pair('Preț mediu',fmt(p.averagePrice,p.instrumentCurrency))}${pair('Preț raportat',fmt(p.currentPrice,p.instrumentCurrency))}${pair('Valoare în cont',fmt(p.value,p.currency))}${pair('P&L nerealizat',fmt(p.unrealized,p.currency))}</dl></article>`).join(''):'<p>Nicio poziție deschisă raportată de broker.</p>';}
+function history(){const orders=kind==='orders';$('history').innerHTML=rows.map(r=>`<article class="card"><h3>${esc(r.ticker||r.type)}</h3><p>${esc(stamp(r.date))}</p><p>${esc(orders?(r.side||'Sens indisponibil')+' · '+(r.status||'Stare indisponibilă'):r.type)}</p><dl>${orders?pair('Cantitate executată',fmt(r.quantity))+pair('Preț execuție',fmt(r.price,r.priceCurrency)):''}${pair(orders?'Valoare netă':'Sumă',fmt(r.amount,r.currency))}${orders?pair('P&L realizat raportat',fmt(r.realized,r.currency)):''}</dl></article>`).join('');}
+async function loadHistory(append=false){if(!token||busy)return;const id=session,selected=kind;busy=true;$('more').disabled=true;document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=true);$('historyState').textContent='Încarc istoricul…';
+ try{const b=await api(selected,append?cursor:null);if(id!==session||selected!==kind)return;if(!Array.isArray(b.data?.items))throw Error('Istoric incompatibil.');if(!append){rows=[];seen.clear();}
+ for(const item of b.data.items){const key=item.id?selected+':'+item.id:JSON.stringify(item);if(!seen.has(key)){seen.add(key);rows.push(item);}}
+ cursor=b.data.nextCursor;history();$('more').hidden=!cursor;$('historyState').textContent=`${rows.length} înregistrări · ${cursor?'istoric parțial, mai există pagini':'toate paginile disponibile au fost încărcate'} · ${stamp(b.fetchedAt)}`;
+ }catch(e){if(id===session&&e.name!=='AbortError')$('historyState').textContent='Istoric neactualizat: '+e.message;}
+ finally{if(id===session){busy=false;$('more').disabled=false;document.querySelectorAll('[data-kind]').forEach(b=>b.disabled=false);}}
+}
+async function sync(){if(busy)return;const id=session;busy=true;$('metrics').replaceChildren();$('positions').replaceChildren();$('account').hidden=true;$('refresh').disabled=true;$('connectButton').disabled=true;$('status').textContent='Sincronizez contul și pozițiile…';
+ const results=await Promise.allSettled([api('summary'),api('positions')]);if(id!==session)return;
+ const warnings=[];let success=false;
+ for(let i=0;i<results.length;i++){const r=results[i];if(r.status==='fulfilled'){if(i===0)metrics(r.value.data);else positions(r.value.data);lastFetched=Date.parse(r.value.fetchedAt);environment=r.value.environment;success=true;}else warnings.push((i===0?'Sold':'Poziții')+': '+r.reason.message);}
+ $('account').hidden=!success;$('refresh').hidden=false;$('disconnect').hidden=false;$('status').textContent=success?`${environment==='demo'?'DEMO · bani virtuali':'INVEST LIVE'} · citire ${stamp(lastFetched)}${warnings.length?' · PARȚIAL: '+warnings.join(' / '):''}`:'Conectare nereușită: '+warnings.join(' / ');
+ busy=false;$('refresh').disabled=false;$('connectButton').disabled=false;if(success&&!rows.length)await loadHistory();
+}
+$('connect').addEventListener('submit',async e=>{e.preventDefault();try{const endpoint=validEndpoint($('endpoint').value.trim()),code=$('access').value;if(!code)throw Error('Introdu codul de acces al backendului.');reset();base=endpoint;token=code;await sync();}catch(error){$('status').textContent=error.message;}});
+$('disconnect').onclick=reset;$('refresh').onclick=sync;$('more').onclick=()=>loadHistory(true);
+document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{if(busy)return;kind=b.dataset.kind;rows=[];seen.clear();cursor=null;$('history').replaceChildren();$('more').hidden=true;document.querySelectorAll('[data-kind]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));loadHistory();});
+setInterval(()=>{if(lastFetched&&Date.now()-lastFetched>300000)$('status').textContent=`DATE NEACTUALIZATE · ultima citire ${stamp(lastFetched)} · apasă Sincronizează.`;},30000);
+window.addEventListener('offline',()=>{$('status').textContent='OFFLINE · datele afișate nu se actualizează.';});
+window.addEventListener('pagehide',reset);
+try{const c=await fetch('../app/trading212-config.json',{cache:'no-store'}).then(r=>r.json());if(c.enabled){$('endpoint').value=validEndpoint(c.endpoint);$('configState').textContent='Backend configurat. Introdu codul tău privat pentru citire.';}else $('configState').textContent='Integrarea este pregătită. Backendul privat nu este încă activat.';}catch(_){$('configState').textContent='Configurația online nu este disponibilă. Conectarea necesită backendul privat.';}
