@@ -30,6 +30,7 @@ async function sync(){if(busy)return;const id=session;busy=true;$('metrics').rep
  const results=await Promise.allSettled([api('summary'),api('positions')]);if(id!==session)return;
  const warnings=[];let success=false;
  for(let i=0;i<results.length;i++){const r=results[i];if(r.status==='fulfilled'){if(i===0)metrics(r.value.data);else positions(r.value.data);lastFetched=Date.parse(r.value.fetchedAt);environment=r.value.environment;success=true;}else warnings.push((i===0?'Sold':'Poziții')+': '+r.reason.message);}
+ if(success&&journalScope&&window.T212J){try{window.T212J.saveSnapshot(journalScope,brokerEnvironment,results[0].status==='fulfilled'?results[0].value.data:null,results[1].status==='fulfilled'?results[1].value.data:null,new Date(lastFetched).toISOString());}catch(e){warnings.push('Portofoliu nesalvat: '+e.message);}}
  $('account').hidden=!success;$('refresh').hidden=false;$('disconnect').hidden=false;$('status').textContent=success?`${environment==='demo'?'DEMO · bani virtuali':'INVEST LIVE'} · citire ${stamp(lastFetched)}${warnings.length?' · PARȚIAL: '+warnings.join(' / '):''}`:'Conectare nereușită: '+warnings.join(' / ');
  busy=false;$('refresh').disabled=false;$('connectButton').disabled=!ready;if(success&&!rows.length)await loadHistory();if(success){$('connectionSettings').open=false;await importJournalPage();}
 }
