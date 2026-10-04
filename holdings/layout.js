@@ -1,6 +1,6 @@
 (function(g){'use strict';
 const $=id=>document.getElementById(id),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=v=>Number.isFinite(v)?v.toLocaleString('ro-RO',{maximumFractionDigits:2}):'—';
-const KEY='tt_holdings_layout_v1',TOP=['holdings','regimes','reports','control'],DETAIL=['summary','technical','scenarios','news','plan'];let state={accounts:{}},ctx=null,rows=[],page='holdings',detailsOpen=new Map(),reportOpen=[],rosterExpanded=true;
+const KEY='tt_holdings_layout_v1',TOP=['holdings','regimes','reports','control'],DETAIL=['summary','technical','scenarios','news','neural','plan'];let state={accounts:{}},ctx=null,rows=[],page='holdings',detailsOpen=new Map(),reportOpen=[],rosterExpanded=true;
 try{const saved=JSON.parse(localStorage.getItem(KEY)||'{}');if(saved.accounts&&typeof saved.accounts==='object')state=saved;}catch{}
 function choose(list,ticker){return list.some(x=>x.p.ticker===ticker)?ticker:list[0]?.p.ticker||null;}
 function prefs(){return state.accounts[ctx?.scope||'']||{};}
