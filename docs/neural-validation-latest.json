@@ -1,15 +1,17 @@
 {
   "schema": "neural-public-validation-v1",
-  "generatedAt": "2026-10-04T07:13:33.976Z",
+  "generatedAt": "2026-10-04T07:40:36.032Z",
   "networkVersion": "holdings-mlp-v3",
   "protocol": "walk-forward-v1",
+  "boostingVersion": "holdings-gbt-v1",
+  "comparisonVersion": "holdings-comparison-v1",
   "source": "Yahoo Finance OHLCV · fluxul public existent",
   "scope": "Patru instrumente alese înainte de evaluare; eșantion nereprezentativ. Modele separate per instrument.",
   "limits": [
     "OHLCV și ajustările providerului nu sunt certificate independent.",
     "Nu sunt incluse dividende, costuri, slippage, știri sau earnings.",
     "Temperatura se selectează pe validare separată; calibrarea pe piață și profitul nu sunt demonstrate.",
-    "Comparația V2–V3 este retrospectivă pe intervale deja examinate, nu un test prospectiv.",
+    "Comparațiile V2–V3 și Neural–Boosting sunt retrospective pe intervale deja examinate, nu teste prospective.",
     "Orizonturile fără suprapunere pot rămâne corelate."
   ],
   "results": [
@@ -17,7 +19,7 @@
       "symbol": "MSFT",
       "sector": "Tehnologie",
       "status": "evaluated",
-      "retrievedAt": "2026-10-04T07:14:04.476Z",
+      "retrievedAt": "2026-10-04T07:41:04.106Z",
       "asOf": "2026-10-02",
       "currency": "USD",
       "timezone": "America/New_York",
@@ -1001,6 +1003,930 @@
           "spread": 0.045497324451529736
         }
       },
+      "comparison": {
+        "status": "evaluated",
+        "verdict": {
+          "state": "no-edge",
+          "message": "Neconcludent · avantajul repetat nu este demonstrat de ambele modele."
+        },
+        "boosting": {
+          "version": "holdings-gbt-v1",
+          "rounds": 20,
+          "selection": {
+            "from": 1737642600000,
+            "to": 1752499800000,
+            "lastLabel": 1753104600000,
+            "n": 118
+          },
+          "walk": {
+            "version": "walk-forward-v1",
+            "planned": 3,
+            "status": "complete",
+            "reason": null,
+            "folds": [
+              {
+                "id": 1,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1708093800000,
+                    "lastLabel": 1708957800000,
+                    "n": 398
+                  },
+                  "validation": {
+                    "from": 1709044200000,
+                    "to": 1724938200000,
+                    "lastLabel": 1725629400000,
+                    "n": 129
+                  },
+                  "test": {
+                    "from": 1725888600000,
+                    "to": 1742218200000,
+                    "lastLabel": 1742823000000,
+                    "n": 130
+                  }
+                },
+                "epochs": 5,
+                "metrics": {
+                  "test": {
+                    "n": 130,
+                    "loss": 1.0694056437287374,
+                    "accuracy": 0.49230769230769234,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6407430396037281,
+                    "confusion": [
+                      [
+                        0,
+                        35,
+                        0
+                      ],
+                      [
+                        0,
+                        64,
+                        0
+                      ],
+                      [
+                        0,
+                        31,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 130,
+                    "loss": 1.1169408660309648,
+                    "accuracy": 0.3153846153846154,
+                    "balanced": 0.31888440860215056,
+                    "brier": 0.6789373702048921,
+                    "confusion": [
+                      [
+                        0,
+                        11,
+                        24
+                      ],
+                      [
+                        1,
+                        22,
+                        41
+                      ],
+                      [
+                        0,
+                        12,
+                        19
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 130,
+                    "loss": 1.0664810714247086,
+                    "accuracy": 0.49230769230769234,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6396590530196674,
+                    "confusion": [
+                      [
+                        0,
+                        35,
+                        0
+                      ],
+                      [
+                        0,
+                        64,
+                        0
+                      ],
+                      [
+                        0,
+                        31,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 26,
+                    "loss": 1.0974303442013194,
+                    "accuracy": 0.4230769230769231,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6621612608367944,
+                    "confusion": [
+                      [
+                        0,
+                        7,
+                        0
+                      ],
+                      [
+                        0,
+                        11,
+                        0
+                      ],
+                      [
+                        0,
+                        8,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 26,
+                    "loss": 1.0827261414499623,
+                    "accuracy": 0.4230769230769231,
+                    "balanced": 0.4128787878787879,
+                    "brier": 0.6541240479707598,
+                    "confusion": [
+                      [
+                        0,
+                        0,
+                        7
+                      ],
+                      [
+                        0,
+                        4,
+                        7
+                      ],
+                      [
+                        0,
+                        1,
+                        7
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 26,
+                    "loss": 1.0961680887242962,
+                    "accuracy": 0.4230769230769231,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.663138815152795,
+                    "confusion": [
+                      [
+                        0,
+                        7,
+                        0
+                      ],
+                      [
+                        0,
+                        11,
+                        0
+                      ],
+                      [
+                        0,
+                        8,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              },
+              {
+                "id": 2,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1721050200000,
+                    "lastLabel": 1721655000000,
+                    "n": 499
+                  },
+                  "validation": {
+                    "from": 1721741400000,
+                    "to": 1742218200000,
+                    "lastLabel": 1742823000000,
+                    "n": 163
+                  },
+                  "test": {
+                    "from": 1742909400000,
+                    "to": 1763044200000,
+                    "lastLabel": 1763649000000,
+                    "n": 163
+                  }
+                },
+                "epochs": 5,
+                "metrics": {
+                  "test": {
+                    "n": 163,
+                    "loss": 1.0324696277155077,
+                    "accuracy": 0.4539877300613497,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6262835605434757,
+                    "confusion": [
+                      [
+                        0,
+                        30,
+                        0
+                      ],
+                      [
+                        0,
+                        74,
+                        0
+                      ],
+                      [
+                        0,
+                        59,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 163,
+                    "loss": 1.0903079214527893,
+                    "accuracy": 0.36809815950920244,
+                    "balanced": 0.29837125260854075,
+                    "brier": 0.6611187509511348,
+                    "confusion": [
+                      [
+                        2,
+                        17,
+                        11
+                      ],
+                      [
+                        10,
+                        45,
+                        19
+                      ],
+                      [
+                        8,
+                        38,
+                        13
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 163,
+                    "loss": 1.0414215790360204,
+                    "accuracy": 0.4539877300613497,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6313273535535471,
+                    "confusion": [
+                      [
+                        0,
+                        30,
+                        0
+                      ],
+                      [
+                        0,
+                        74,
+                        0
+                      ],
+                      [
+                        0,
+                        59,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 33,
+                    "loss": 1.059723114406254,
+                    "accuracy": 0.42424242424242425,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6446313625443937,
+                    "confusion": [
+                      [
+                        0,
+                        7,
+                        0
+                      ],
+                      [
+                        0,
+                        14,
+                        0
+                      ],
+                      [
+                        0,
+                        12,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 33,
+                    "loss": 1.0883083626522987,
+                    "accuracy": 0.42424242424242425,
+                    "balanced": 0.3452380952380952,
+                    "brier": 0.6593133315664538,
+                    "confusion": [
+                      [
+                        0,
+                        5,
+                        2
+                      ],
+                      [
+                        1,
+                        11,
+                        2
+                      ],
+                      [
+                        1,
+                        8,
+                        3
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 33,
+                    "loss": 1.0662519570335909,
+                    "accuracy": 0.42424242424242425,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6472747185831106,
+                    "confusion": [
+                      [
+                        0,
+                        7,
+                        0
+                      ],
+                      [
+                        0,
+                        14,
+                        0
+                      ],
+                      [
+                        0,
+                        12,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              },
+              {
+                "id": 3,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1736865000000,
+                    "lastLabel": 1737556200000,
+                    "n": 625
+                  },
+                  "validation": {
+                    "from": 1737642600000,
+                    "to": 1763044200000,
+                    "lastLabel": 1763649000000,
+                    "n": 205
+                  },
+                  "test": {
+                    "from": 1763735400000,
+                    "to": 1790343000000,
+                    "lastLabel": 1790947800000,
+                    "n": 211
+                  }
+                },
+                "epochs": 20,
+                "metrics": {
+                  "test": {
+                    "n": 211,
+                    "loss": 1.0516592771126057,
+                    "accuracy": 0.4976303317535545,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6324545002688619,
+                    "confusion": [
+                      [
+                        0,
+                        55,
+                        0
+                      ],
+                      [
+                        0,
+                        105,
+                        0
+                      ],
+                      [
+                        0,
+                        51,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 211,
+                    "loss": 1.0734709610194184,
+                    "accuracy": 0.38388625592417064,
+                    "balanced": 0.3522451404804346,
+                    "brier": 0.6492256526048248,
+                    "confusion": [
+                      [
+                        5,
+                        23,
+                        27
+                      ],
+                      [
+                        10,
+                        52,
+                        43
+                      ],
+                      [
+                        4,
+                        23,
+                        24
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 211,
+                    "loss": 1.0560442646172474,
+                    "accuracy": 0.4976303317535545,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6348489186279648,
+                    "confusion": [
+                      [
+                        0,
+                        55,
+                        0
+                      ],
+                      [
+                        0,
+                        105,
+                        0
+                      ],
+                      [
+                        0,
+                        51,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 43,
+                    "loss": 1.104414106036204,
+                    "accuracy": 0.37209302325581395,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6687854259857318,
+                    "confusion": [
+                      [
+                        0,
+                        13,
+                        0
+                      ],
+                      [
+                        0,
+                        16,
+                        0
+                      ],
+                      [
+                        0,
+                        14,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 43,
+                    "loss": 1.0637257049397622,
+                    "accuracy": 0.4418604651162791,
+                    "balanced": 0.4292582417582418,
+                    "brier": 0.6420500851722291,
+                    "confusion": [
+                      [
+                        2,
+                        5,
+                        6
+                      ],
+                      [
+                        1,
+                        9,
+                        6
+                      ],
+                      [
+                        1,
+                        5,
+                        8
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 43,
+                    "loss": 1.1181486360866995,
+                    "accuracy": 0.37209302325581395,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6790572191711157,
+                    "confusion": [
+                      [
+                        0,
+                        13,
+                        0
+                      ],
+                      [
+                        0,
+                        16,
+                        0
+                      ],
+                      [
+                        0,
+                        14,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              }
+            ],
+            "summary": {
+              "daily": {
+                "test": {
+                  "n": 504,
+                  "loss": 1.0500305366530227,
+                  "accuracy": 0.48214285714285715,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.6325966568924624,
+                  "confusion": [
+                    [
+                      0,
+                      120,
+                      0
+                    ],
+                    [
+                      0,
+                      243,
+                      0
+                    ],
+                    [
+                      0,
+                      141,
+                      0
+                    ]
+                  ]
+                },
+                "linear": {
+                  "n": 504,
+                  "loss": 1.0901287233252526,
+                  "accuracy": 0.3611111111111111,
+                  "balanced": 0.31506946268569597,
+                  "brier": 0.6607357683160496,
+                  "confusion": [
+                    [
+                      7,
+                      51,
+                      62
+                    ],
+                    [
+                      21,
+                      119,
+                      103
+                    ],
+                    [
+                      12,
+                      73,
+                      56
+                    ]
+                  ]
+                },
+                "constant": {
+                  "n": 504,
+                  "loss": 1.0540071359173069,
+                  "accuracy": 0.48214285714285715,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.6349507090323125,
+                  "confusion": [
+                    [
+                      0,
+                      120,
+                      0
+                    ],
+                    [
+                      0,
+                      243,
+                      0
+                    ],
+                    [
+                      0,
+                      141,
+                      0
+                    ]
+                  ]
+                }
+              },
+              "nonOverlap": {
+                "test": {
+                  "n": 102,
+                  "loss": 1.0881750812176223,
+                  "accuracy": 0.4019607843137255,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.659282363363805,
+                  "confusion": [
+                    [
+                      0,
+                      27,
+                      0
+                    ],
+                    [
+                      0,
+                      41,
+                      0
+                    ],
+                    [
+                      0,
+                      34,
+                      0
+                    ]
+                  ]
+                },
+                "linear": {
+                  "n": 102,
+                  "loss": 1.07652216625132,
+                  "accuracy": 0.43137254901960786,
+                  "balanced": 0.3962838974794976,
+                  "brier": 0.6507129299150842,
+                  "confusion": [
+                    [
+                      2,
+                      10,
+                      15
+                    ],
+                    [
+                      2,
+                      24,
+                      15
+                    ],
+                    [
+                      2,
+                      14,
+                      18
+                    ]
+                  ]
+                },
+                "constant": {
+                  "n": 102,
+                  "loss": 1.0957556494183165,
+                  "accuracy": 0.4019607843137255,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.6647170130546401,
+                  "confusion": [
+                    [
+                      0,
+                      27,
+                      0
+                    ],
+                    [
+                      0,
+                      41,
+                      0
+                    ],
+                    [
+                      0,
+                      34,
+                      0
+                    ]
+                  ]
+                }
+              },
+              "wins": 0,
+              "pooledAdvantage": false,
+              "nonOverlapAdvantage": false,
+              "blockEnough": true
+            },
+            "consistent": false
+          },
+          "report": {
+            "train": {
+              "n": 625,
+              "loss": 1.0147538987675746,
+              "accuracy": 0.4688,
+              "balanced": 0.340033500837521,
+              "brier": 0.610869425287074,
+              "confusion": [
+                [
+                  0,
+                  137,
+                  0
+                ],
+                [
+                  0,
+                  289,
+                  0
+                ],
+                [
+                  0,
+                  195,
+                  4
+                ]
+              ]
+            },
+            "validation": {
+              "n": 205,
+              "loss": 1.0403711719309519,
+              "accuracy": 0.4926829268292683,
+              "balanced": 0.3522222222222222,
+              "brier": 0.6288466208672467,
+              "confusion": [
+                [
+                  0,
+                  45,
+                  0
+                ],
+                [
+                  0,
+                  94,
+                  6
+                ],
+                [
+                  0,
+                  53,
+                  7
+                ]
+              ]
+            },
+            "test": {
+              "n": 211,
+              "loss": 1.0516592771126057,
+              "accuracy": 0.4976303317535545,
+              "balanced": 0.3333333333333333,
+              "brier": 0.6324545002688619,
+              "confusion": [
+                [
+                  0,
+                  55,
+                  0
+                ],
+                [
+                  0,
+                  105,
+                  0
+                ],
+                [
+                  0,
+                  51,
+                  0
+                ]
+              ]
+            },
+            "linear": {
+              "n": 211,
+              "loss": 1.0734709610194184,
+              "accuracy": 0.38388625592417064,
+              "balanced": 0.3522451404804346,
+              "brier": 0.6492256526048248,
+              "confusion": [
+                [
+                  5,
+                  23,
+                  27
+                ],
+                [
+                  10,
+                  52,
+                  43
+                ],
+                [
+                  4,
+                  23,
+                  24
+                ]
+              ]
+            },
+            "constant": {
+              "n": 211,
+              "loss": 1.0560442646172474,
+              "accuracy": 0.4976303317535545,
+              "balanced": 0.3333333333333333,
+              "brier": 0.6348489186279648,
+              "confusion": [
+                [
+                  0,
+                  55,
+                  0
+                ],
+                [
+                  0,
+                  105,
+                  0
+                ],
+                [
+                  0,
+                  51,
+                  0
+                ]
+              ]
+            },
+            "nonOverlap": {
+              "test": {
+                "n": 43,
+                "loss": 1.104414106036204,
+                "accuracy": 0.37209302325581395,
+                "balanced": 0.3333333333333333,
+                "brier": 0.6687854259857318,
+                "confusion": [
+                  [
+                    0,
+                    13,
+                    0
+                  ],
+                  [
+                    0,
+                    16,
+                    0
+                  ],
+                  [
+                    0,
+                    14,
+                    0
+                  ]
+                ]
+              },
+              "linear": {
+                "n": 43,
+                "loss": 1.0637257049397622,
+                "accuracy": 0.4418604651162791,
+                "balanced": 0.4292582417582418,
+                "brier": 0.6420500851722291,
+                "confusion": [
+                  [
+                    2,
+                    5,
+                    6
+                  ],
+                  [
+                    1,
+                    9,
+                    6
+                  ],
+                  [
+                    1,
+                    5,
+                    8
+                  ]
+                ]
+              },
+              "constant": {
+                "n": 43,
+                "loss": 1.1181486360866995,
+                "accuracy": 0.37209302325581395,
+                "balanced": 0.3333333333333333,
+                "brier": 0.6790572191711157,
+                "confusion": [
+                  [
+                    0,
+                    13,
+                    0
+                  ],
+                  [
+                    0,
+                    16,
+                    0
+                  ],
+                  [
+                    0,
+                    14,
+                    0
+                  ]
+                ]
+              },
+              "period": {
+                "from": 1763735400000,
+                "to": 1790343000000,
+                "lastLabel": 1790947800000,
+                "n": 43
+              }
+            },
+            "periods": {
+              "train": {
+                "from": 1658323800000,
+                "to": 1736865000000,
+                "lastLabel": 1737556200000,
+                "n": 625
+              },
+              "validation": {
+                "from": 1737642600000,
+                "to": 1763044200000,
+                "lastLabel": 1763649000000,
+                "n": 205
+              },
+              "test": {
+                "from": 1763735400000,
+                "to": 1790343000000,
+                "lastLabel": 1790947800000,
+                "n": 211
+              }
+            }
+          }
+        }
+      },
       "verdict": "Fără robustețe demonstrată",
       "previous": {
         "networkVersion": "holdings-mlp-v2",
@@ -1063,7 +1989,7 @@
       "symbol": "JPM",
       "sector": "Financiare",
       "status": "evaluated",
-      "retrievedAt": "2026-10-04T07:14:08.146Z",
+      "retrievedAt": "2026-10-04T07:41:07.594Z",
       "asOf": "2026-10-02",
       "currency": "USD",
       "timezone": "America/New_York",
@@ -2047,6 +2973,930 @@
           "spread": 0.07297079389502584
         }
       },
+      "comparison": {
+        "status": "evaluated",
+        "verdict": {
+          "state": "disagreement",
+          "message": "Neconcludent · modelele estimează clase diferite."
+        },
+        "boosting": {
+          "version": "holdings-gbt-v1",
+          "rounds": 5,
+          "selection": {
+            "from": 1737642600000,
+            "to": 1752499800000,
+            "lastLabel": 1753104600000,
+            "n": 118
+          },
+          "walk": {
+            "version": "walk-forward-v1",
+            "planned": 3,
+            "status": "complete",
+            "reason": null,
+            "folds": [
+              {
+                "id": 1,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1708093800000,
+                    "lastLabel": 1708957800000,
+                    "n": 398
+                  },
+                  "validation": {
+                    "from": 1709044200000,
+                    "to": 1724938200000,
+                    "lastLabel": 1725629400000,
+                    "n": 129
+                  },
+                  "test": {
+                    "from": 1725888600000,
+                    "to": 1742218200000,
+                    "lastLabel": 1742823000000,
+                    "n": 130
+                  }
+                },
+                "epochs": 5,
+                "metrics": {
+                  "test": {
+                    "n": 130,
+                    "loss": 1.013126055219322,
+                    "accuracy": 0.5307692307692308,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6081461600512362,
+                    "confusion": [
+                      [
+                        0,
+                        25,
+                        0
+                      ],
+                      [
+                        0,
+                        69,
+                        0
+                      ],
+                      [
+                        0,
+                        36,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 130,
+                    "loss": 1.0372946098230778,
+                    "accuracy": 0.5307692307692308,
+                    "balanced": 0.3588405797101449,
+                    "brier": 0.6271340361076045,
+                    "confusion": [
+                      [
+                        3,
+                        22,
+                        0
+                      ],
+                      [
+                        3,
+                        66,
+                        0
+                      ],
+                      [
+                        0,
+                        36,
+                        0
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 130,
+                    "loss": 1.0171185022903049,
+                    "accuracy": 0.5307692307692308,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6110765671663928,
+                    "confusion": [
+                      [
+                        0,
+                        25,
+                        0
+                      ],
+                      [
+                        0,
+                        69,
+                        0
+                      ],
+                      [
+                        0,
+                        36,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 26,
+                    "loss": 1.0080842761446198,
+                    "accuracy": 0.5769230769230769,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6005563168085692,
+                    "confusion": [
+                      [
+                        0,
+                        6,
+                        0
+                      ],
+                      [
+                        0,
+                        15,
+                        0
+                      ],
+                      [
+                        0,
+                        5,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 26,
+                    "loss": 0.9792016720995762,
+                    "accuracy": 0.5769230769230769,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.5847861473417931,
+                    "confusion": [
+                      [
+                        0,
+                        6,
+                        0
+                      ],
+                      [
+                        0,
+                        15,
+                        0
+                      ],
+                      [
+                        0,
+                        5,
+                        0
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 26,
+                    "loss": 1.0184640603050106,
+                    "accuracy": 0.5769230769230769,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6073551015995403,
+                    "confusion": [
+                      [
+                        0,
+                        6,
+                        0
+                      ],
+                      [
+                        0,
+                        15,
+                        0
+                      ],
+                      [
+                        0,
+                        5,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              },
+              {
+                "id": 2,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1721050200000,
+                    "lastLabel": 1721655000000,
+                    "n": 499
+                  },
+                  "validation": {
+                    "from": 1721741400000,
+                    "to": 1742218200000,
+                    "lastLabel": 1742823000000,
+                    "n": 163
+                  },
+                  "test": {
+                    "from": 1742909400000,
+                    "to": 1763044200000,
+                    "lastLabel": 1763649000000,
+                    "n": 163
+                  }
+                },
+                "epochs": 25,
+                "metrics": {
+                  "test": {
+                    "n": 163,
+                    "loss": 1.0094813685460715,
+                    "accuracy": 0.5214723926380368,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.607178678445439,
+                    "confusion": [
+                      [
+                        0,
+                        31,
+                        0
+                      ],
+                      [
+                        0,
+                        85,
+                        0
+                      ],
+                      [
+                        0,
+                        47,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 163,
+                    "loss": 1.0202973217937839,
+                    "accuracy": 0.5153374233128835,
+                    "balanced": 0.3394135142045837,
+                    "brier": 0.6155708985853328,
+                    "confusion": [
+                      [
+                        1,
+                        29,
+                        1
+                      ],
+                      [
+                        3,
+                        82,
+                        0
+                      ],
+                      [
+                        2,
+                        44,
+                        1
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 163,
+                    "loss": 1.0220423967429175,
+                    "accuracy": 0.5214723926380368,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6152458579146123,
+                    "confusion": [
+                      [
+                        0,
+                        31,
+                        0
+                      ],
+                      [
+                        0,
+                        85,
+                        0
+                      ],
+                      [
+                        0,
+                        47,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 33,
+                    "loss": 0.9717410752947511,
+                    "accuracy": 0.5757575757575758,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.583269930293666,
+                    "confusion": [
+                      [
+                        0,
+                        5,
+                        0
+                      ],
+                      [
+                        0,
+                        19,
+                        0
+                      ],
+                      [
+                        0,
+                        9,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 33,
+                    "loss": 1.000687296280524,
+                    "accuracy": 0.5757575757575758,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6005374609743521,
+                    "confusion": [
+                      [
+                        0,
+                        4,
+                        1
+                      ],
+                      [
+                        0,
+                        19,
+                        0
+                      ],
+                      [
+                        2,
+                        7,
+                        0
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 33,
+                    "loss": 0.9840456425300985,
+                    "accuracy": 0.5757575757575758,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.5908689280064338,
+                    "confusion": [
+                      [
+                        0,
+                        5,
+                        0
+                      ],
+                      [
+                        0,
+                        19,
+                        0
+                      ],
+                      [
+                        0,
+                        9,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              },
+              {
+                "id": 3,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1736865000000,
+                    "lastLabel": 1737556200000,
+                    "n": 625
+                  },
+                  "validation": {
+                    "from": 1737642600000,
+                    "to": 1763044200000,
+                    "lastLabel": 1763649000000,
+                    "n": 205
+                  },
+                  "test": {
+                    "from": 1763735400000,
+                    "to": 1790343000000,
+                    "lastLabel": 1790947800000,
+                    "n": 211
+                  }
+                },
+                "epochs": 5,
+                "metrics": {
+                  "test": {
+                    "n": 211,
+                    "loss": 0.9885249799874088,
+                    "accuracy": 0.5924170616113744,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.5886845018899836,
+                    "confusion": [
+                      [
+                        0,
+                        40,
+                        0
+                      ],
+                      [
+                        0,
+                        125,
+                        0
+                      ],
+                      [
+                        0,
+                        46,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 211,
+                    "loss": 1.0213071404491292,
+                    "accuracy": 0.5592417061611374,
+                    "balanced": 0.385536231884058,
+                    "brier": 0.6137220546272263,
+                    "confusion": [
+                      [
+                        2,
+                        32,
+                        6
+                      ],
+                      [
+                        5,
+                        103,
+                        17
+                      ],
+                      [
+                        1,
+                        32,
+                        13
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 211,
+                    "loss": 0.9951389285463091,
+                    "accuracy": 0.5924170616113744,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.5937740040788805,
+                    "confusion": [
+                      [
+                        0,
+                        40,
+                        0
+                      ],
+                      [
+                        0,
+                        125,
+                        0
+                      ],
+                      [
+                        0,
+                        46,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 43,
+                    "loss": 0.9659792308074814,
+                    "accuracy": 0.6511627906976745,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.5711408461845183,
+                    "confusion": [
+                      [
+                        0,
+                        8,
+                        0
+                      ],
+                      [
+                        0,
+                        28,
+                        0
+                      ],
+                      [
+                        0,
+                        7,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 43,
+                    "loss": 1.0251881184579161,
+                    "accuracy": 0.5813953488372093,
+                    "balanced": 0.36904761904761907,
+                    "brier": 0.6156680468158857,
+                    "confusion": [
+                      [
+                        0,
+                        5,
+                        3
+                      ],
+                      [
+                        2,
+                        23,
+                        3
+                      ],
+                      [
+                        0,
+                        5,
+                        2
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 43,
+                    "loss": 0.9730647998853051,
+                    "accuracy": 0.6511627906976745,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.576662268482046,
+                    "confusion": [
+                      [
+                        0,
+                        8,
+                        0
+                      ],
+                      [
+                        0,
+                        28,
+                        0
+                      ],
+                      [
+                        0,
+                        7,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              }
+            ],
+            "summary": {
+              "daily": {
+                "test": {
+                  "n": 504,
+                  "loss": 1.001648057596954,
+                  "accuracy": 0.5535714285714286,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.5996856255794719,
+                  "confusion": [
+                    [
+                      0,
+                      96,
+                      0
+                    ],
+                    [
+                      0,
+                      279,
+                      0
+                    ],
+                    [
+                      0,
+                      129,
+                      0
+                    ]
+                  ]
+                },
+                "linear": {
+                  "n": 504,
+                  "loss": 1.0251043042939547,
+                  "accuracy": 0.5376984126984127,
+                  "balanced": 0.3568895696146259,
+                  "brier": 0.6177794339082193,
+                  "confusion": [
+                    [
+                      6,
+                      83,
+                      7
+                    ],
+                    [
+                      11,
+                      251,
+                      17
+                    ],
+                    [
+                      3,
+                      112,
+                      14
+                    ]
+                  ]
+                },
+                "constant": {
+                  "n": 504,
+                  "loss": 1.0095091862898935,
+                  "accuracy": 0.5535714285714286,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.6051812369689615,
+                  "confusion": [
+                    [
+                      0,
+                      96,
+                      0
+                    ],
+                    [
+                      0,
+                      279,
+                      0
+                    ],
+                    [
+                      0,
+                      129,
+                      0
+                    ]
+                  ]
+                }
+              },
+              "nonOverlap": {
+                "test": {
+                  "n": 102,
+                  "loss": 0.9785760155804766,
+                  "accuracy": 0.6078431372549019,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.5825630227710595,
+                  "confusion": [
+                    [
+                      0,
+                      19,
+                      0
+                    ],
+                    [
+                      0,
+                      62,
+                      0
+                    ],
+                    [
+                      0,
+                      21,
+                      0
+                    ]
+                  ]
+                },
+                "linear": {
+                  "n": 102,
+                  "loss": 1.0055393465248692,
+                  "accuracy": 0.5784313725490197,
+                  "balanced": 0.33819764464925756,
+                  "brier": 0.6029010005502287,
+                  "confusion": [
+                    [
+                      0,
+                      15,
+                      4
+                    ],
+                    [
+                      2,
+                      57,
+                      3
+                    ],
+                    [
+                      2,
+                      17,
+                      2
+                    ]
+                  ]
+                },
+                "constant": {
+                  "n": 102,
+                  "loss": 0.9881897859459965,
+                  "accuracy": 0.6078431372549019,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.5890822040247877,
+                  "confusion": [
+                    [
+                      0,
+                      19,
+                      0
+                    ],
+                    [
+                      0,
+                      62,
+                      0
+                    ],
+                    [
+                      0,
+                      21,
+                      0
+                    ]
+                  ]
+                }
+              },
+              "wins": 0,
+              "pooledAdvantage": false,
+              "nonOverlapAdvantage": false,
+              "blockEnough": true
+            },
+            "consistent": false
+          },
+          "report": {
+            "train": {
+              "n": 625,
+              "loss": 1.0234520290041755,
+              "accuracy": 0.4736,
+              "balanced": 0.3333333333333333,
+              "brier": 0.6177707716259215,
+              "confusion": [
+                [
+                  0,
+                  119,
+                  0
+                ],
+                [
+                  0,
+                  296,
+                  0
+                ],
+                [
+                  0,
+                  210,
+                  0
+                ]
+              ]
+            },
+            "validation": {
+              "n": 205,
+              "loss": 1.0503375854000954,
+              "accuracy": 0.4878048780487805,
+              "balanced": 0.3333333333333333,
+              "brier": 0.6320219951239008,
+              "confusion": [
+                [
+                  0,
+                  46,
+                  0
+                ],
+                [
+                  0,
+                  100,
+                  0
+                ],
+                [
+                  0,
+                  59,
+                  0
+                ]
+              ]
+            },
+            "test": {
+              "n": 211,
+              "loss": 0.9885249799874088,
+              "accuracy": 0.5924170616113744,
+              "balanced": 0.3333333333333333,
+              "brier": 0.5886845018899836,
+              "confusion": [
+                [
+                  0,
+                  40,
+                  0
+                ],
+                [
+                  0,
+                  125,
+                  0
+                ],
+                [
+                  0,
+                  46,
+                  0
+                ]
+              ]
+            },
+            "linear": {
+              "n": 211,
+              "loss": 1.0213071404491292,
+              "accuracy": 0.5592417061611374,
+              "balanced": 0.385536231884058,
+              "brier": 0.6137220546272263,
+              "confusion": [
+                [
+                  2,
+                  32,
+                  6
+                ],
+                [
+                  5,
+                  103,
+                  17
+                ],
+                [
+                  1,
+                  32,
+                  13
+                ]
+              ]
+            },
+            "constant": {
+              "n": 211,
+              "loss": 0.9951389285463091,
+              "accuracy": 0.5924170616113744,
+              "balanced": 0.3333333333333333,
+              "brier": 0.5937740040788805,
+              "confusion": [
+                [
+                  0,
+                  40,
+                  0
+                ],
+                [
+                  0,
+                  125,
+                  0
+                ],
+                [
+                  0,
+                  46,
+                  0
+                ]
+              ]
+            },
+            "nonOverlap": {
+              "test": {
+                "n": 43,
+                "loss": 0.9659792308074814,
+                "accuracy": 0.6511627906976745,
+                "balanced": 0.3333333333333333,
+                "brier": 0.5711408461845183,
+                "confusion": [
+                  [
+                    0,
+                    8,
+                    0
+                  ],
+                  [
+                    0,
+                    28,
+                    0
+                  ],
+                  [
+                    0,
+                    7,
+                    0
+                  ]
+                ]
+              },
+              "linear": {
+                "n": 43,
+                "loss": 1.0251881184579161,
+                "accuracy": 0.5813953488372093,
+                "balanced": 0.36904761904761907,
+                "brier": 0.6156680468158857,
+                "confusion": [
+                  [
+                    0,
+                    5,
+                    3
+                  ],
+                  [
+                    2,
+                    23,
+                    3
+                  ],
+                  [
+                    0,
+                    5,
+                    2
+                  ]
+                ]
+              },
+              "constant": {
+                "n": 43,
+                "loss": 0.9730647998853051,
+                "accuracy": 0.6511627906976745,
+                "balanced": 0.3333333333333333,
+                "brier": 0.576662268482046,
+                "confusion": [
+                  [
+                    0,
+                    8,
+                    0
+                  ],
+                  [
+                    0,
+                    28,
+                    0
+                  ],
+                  [
+                    0,
+                    7,
+                    0
+                  ]
+                ]
+              },
+              "period": {
+                "from": 1763735400000,
+                "to": 1790343000000,
+                "lastLabel": 1790947800000,
+                "n": 43
+              }
+            },
+            "periods": {
+              "train": {
+                "from": 1658323800000,
+                "to": 1736865000000,
+                "lastLabel": 1737556200000,
+                "n": 625
+              },
+              "validation": {
+                "from": 1737642600000,
+                "to": 1763044200000,
+                "lastLabel": 1763649000000,
+                "n": 205
+              },
+              "test": {
+                "from": 1763735400000,
+                "to": 1790343000000,
+                "lastLabel": 1790947800000,
+                "n": 211
+              }
+            }
+          }
+        }
+      },
       "verdict": "Fără robustețe demonstrată",
       "previous": {
         "networkVersion": "holdings-mlp-v2",
@@ -2109,7 +3959,7 @@
       "symbol": "XOM",
       "sector": "Energie",
       "status": "evaluated",
-      "retrievedAt": "2026-10-04T07:14:10.784Z",
+      "retrievedAt": "2026-10-04T07:41:10.842Z",
       "asOf": "2026-10-02",
       "currency": "USD",
       "timezone": "America/New_York",
@@ -3093,6 +4943,930 @@
           "spread": 0.04547012631106767
         }
       },
+      "comparison": {
+        "status": "evaluated",
+        "verdict": {
+          "state": "no-edge",
+          "message": "Neconcludent · avantajul repetat nu este demonstrat de ambele modele."
+        },
+        "boosting": {
+          "version": "holdings-gbt-v1",
+          "rounds": 10,
+          "selection": {
+            "from": 1737642600000,
+            "to": 1752499800000,
+            "lastLabel": 1753104600000,
+            "n": 118
+          },
+          "walk": {
+            "version": "walk-forward-v1",
+            "planned": 3,
+            "status": "complete",
+            "reason": null,
+            "folds": [
+              {
+                "id": 1,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1708093800000,
+                    "lastLabel": 1708957800000,
+                    "n": 398
+                  },
+                  "validation": {
+                    "from": 1709044200000,
+                    "to": 1724938200000,
+                    "lastLabel": 1725629400000,
+                    "n": 129
+                  },
+                  "test": {
+                    "from": 1725888600000,
+                    "to": 1742218200000,
+                    "lastLabel": 1742823000000,
+                    "n": 130
+                  }
+                },
+                "epochs": 5,
+                "metrics": {
+                  "test": {
+                    "n": 130,
+                    "loss": 1.0491184454563083,
+                    "accuracy": 0.49230769230769234,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.631239517983925,
+                    "confusion": [
+                      [
+                        0,
+                        35,
+                        0
+                      ],
+                      [
+                        0,
+                        64,
+                        0
+                      ],
+                      [
+                        0,
+                        31,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 130,
+                    "loss": 1.0646629244995685,
+                    "accuracy": 0.4846153846153846,
+                    "balanced": 0.4322388632872504,
+                    "brier": 0.6451057061375889,
+                    "confusion": [
+                      [
+                        1,
+                        25,
+                        9
+                      ],
+                      [
+                        4,
+                        44,
+                        16
+                      ],
+                      [
+                        2,
+                        11,
+                        18
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 130,
+                    "loss": 1.048328595859682,
+                    "accuracy": 0.49230769230769234,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6308221389744502,
+                    "confusion": [
+                      [
+                        0,
+                        35,
+                        0
+                      ],
+                      [
+                        0,
+                        64,
+                        0
+                      ],
+                      [
+                        0,
+                        31,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 26,
+                    "loss": 0.9806333501958211,
+                    "accuracy": 0.5769230769230769,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.5825629221440418,
+                    "confusion": [
+                      [
+                        0,
+                        6,
+                        0
+                      ],
+                      [
+                        0,
+                        15,
+                        0
+                      ],
+                      [
+                        0,
+                        5,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 26,
+                    "loss": 1.053708883047744,
+                    "accuracy": 0.5769230769230769,
+                    "balanced": 0.5444444444444444,
+                    "brier": 0.6382925964891066,
+                    "confusion": [
+                      [
+                        1,
+                        4,
+                        1
+                      ],
+                      [
+                        1,
+                        10,
+                        4
+                      ],
+                      [
+                        0,
+                        1,
+                        4
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 26,
+                    "loss": 0.9827461899332286,
+                    "accuracy": 0.5769230769230769,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.5832871303421859,
+                    "confusion": [
+                      [
+                        0,
+                        6,
+                        0
+                      ],
+                      [
+                        0,
+                        15,
+                        0
+                      ],
+                      [
+                        0,
+                        5,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              },
+              {
+                "id": 2,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1721050200000,
+                    "lastLabel": 1721655000000,
+                    "n": 499
+                  },
+                  "validation": {
+                    "from": 1721741400000,
+                    "to": 1742218200000,
+                    "lastLabel": 1742823000000,
+                    "n": 163
+                  },
+                  "test": {
+                    "from": 1742909400000,
+                    "to": 1763044200000,
+                    "lastLabel": 1763649000000,
+                    "n": 163
+                  }
+                },
+                "epochs": 65,
+                "metrics": {
+                  "test": {
+                    "n": 163,
+                    "loss": 1.097720678517843,
+                    "accuracy": 0.4049079754601227,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6688973816550926,
+                    "confusion": [
+                      [
+                        0,
+                        31,
+                        9
+                      ],
+                      [
+                        0,
+                        50,
+                        25
+                      ],
+                      [
+                        0,
+                        32,
+                        16
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 163,
+                    "loss": 1.0937847834611494,
+                    "accuracy": 0.43558282208588955,
+                    "balanced": 0.34805555555555556,
+                    "brier": 0.6643364322600329,
+                    "confusion": [
+                      [
+                        0,
+                        32,
+                        8
+                      ],
+                      [
+                        0,
+                        58,
+                        17
+                      ],
+                      [
+                        0,
+                        35,
+                        13
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 163,
+                    "loss": 1.064592044424286,
+                    "accuracy": 0.4601226993865031,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.643292496184938,
+                    "confusion": [
+                      [
+                        0,
+                        40,
+                        0
+                      ],
+                      [
+                        0,
+                        75,
+                        0
+                      ],
+                      [
+                        0,
+                        48,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 33,
+                    "loss": 1.084151194341753,
+                    "accuracy": 0.3939393939393939,
+                    "balanced": 0.29924242424242425,
+                    "brier": 0.6577829837814686,
+                    "confusion": [
+                      [
+                        0,
+                        5,
+                        1
+                      ],
+                      [
+                        0,
+                        10,
+                        6
+                      ],
+                      [
+                        0,
+                        8,
+                        3
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 33,
+                    "loss": 1.0490008862541667,
+                    "accuracy": 0.48484848484848486,
+                    "balanced": 0.36174242424242425,
+                    "brier": 0.6357799792575085,
+                    "confusion": [
+                      [
+                        0,
+                        4,
+                        2
+                      ],
+                      [
+                        0,
+                        13,
+                        3
+                      ],
+                      [
+                        0,
+                        8,
+                        3
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 33,
+                    "loss": 1.0367322438004654,
+                    "accuracy": 0.48484848484848486,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.62571565723103,
+                    "confusion": [
+                      [
+                        0,
+                        6,
+                        0
+                      ],
+                      [
+                        0,
+                        16,
+                        0
+                      ],
+                      [
+                        0,
+                        11,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              },
+              {
+                "id": 3,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1736865000000,
+                    "lastLabel": 1737556200000,
+                    "n": 625
+                  },
+                  "validation": {
+                    "from": 1737642600000,
+                    "to": 1763044200000,
+                    "lastLabel": 1763649000000,
+                    "n": 205
+                  },
+                  "test": {
+                    "from": 1763735400000,
+                    "to": 1790343000000,
+                    "lastLabel": 1790947800000,
+                    "n": 211
+                  }
+                },
+                "epochs": 10,
+                "metrics": {
+                  "test": {
+                    "n": 211,
+                    "loss": 1.0936776575013556,
+                    "accuracy": 0.4218009478672986,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6654999577351279,
+                    "confusion": [
+                      [
+                        0,
+                        37,
+                        0
+                      ],
+                      [
+                        0,
+                        89,
+                        0
+                      ],
+                      [
+                        0,
+                        85,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 211,
+                    "loss": 1.1157727280182506,
+                    "accuracy": 0.35545023696682465,
+                    "balanced": 0.29195500854456574,
+                    "brier": 0.676673915554964,
+                    "confusion": [
+                      [
+                        2,
+                        33,
+                        2
+                      ],
+                      [
+                        14,
+                        70,
+                        5
+                      ],
+                      [
+                        8,
+                        74,
+                        3
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 211,
+                    "loss": 1.0806795462025203,
+                    "accuracy": 0.4218009478672986,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6565225769808095,
+                    "confusion": [
+                      [
+                        0,
+                        37,
+                        0
+                      ],
+                      [
+                        0,
+                        89,
+                        0
+                      ],
+                      [
+                        0,
+                        85,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 43,
+                    "loss": 1.063629343016682,
+                    "accuracy": 0.46511627906976744,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6428491138807446,
+                    "confusion": [
+                      [
+                        0,
+                        7,
+                        0
+                      ],
+                      [
+                        0,
+                        20,
+                        0
+                      ],
+                      [
+                        0,
+                        16,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 43,
+                    "loss": 1.1073745716267607,
+                    "accuracy": 0.37209302325581395,
+                    "balanced": 0.2976190476190476,
+                    "brier": 0.6713198173604086,
+                    "confusion": [
+                      [
+                        1,
+                        6,
+                        0
+                      ],
+                      [
+                        4,
+                        15,
+                        1
+                      ],
+                      [
+                        0,
+                        16,
+                        0
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 43,
+                    "loss": 1.0533903043299861,
+                    "accuracy": 0.46511627906976744,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6367477288101694,
+                    "confusion": [
+                      [
+                        0,
+                        7,
+                        0
+                      ],
+                      [
+                        0,
+                        20,
+                        0
+                      ],
+                      [
+                        0,
+                        16,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              }
+            ],
+            "summary": {
+              "daily": {
+                "test": {
+                  "n": 504,
+                  "loss": 1.0834917742867354,
+                  "accuracy": 0.43452380952380953,
+                  "balanced": 0.3293039509342462,
+                  "brier": 0.6577617095829411,
+                  "confusion": [
+                    [
+                      0,
+                      103,
+                      9
+                    ],
+                    [
+                      0,
+                      203,
+                      25
+                    ],
+                    [
+                      0,
+                      148,
+                      16
+                    ]
+                  ]
+                },
+                "linear": {
+                  "n": 504,
+                  "loss": 1.0954784632955599,
+                  "accuracy": 0.4146825396825397,
+                  "balanced": 0.32949625078957556,
+                  "brier": 0.6645412230920027,
+                  "confusion": [
+                    [
+                      3,
+                      90,
+                      19
+                    ],
+                    [
+                      18,
+                      172,
+                      38
+                    ],
+                    [
+                      10,
+                      120,
+                      34
+                    ]
+                  ]
+                },
+                "constant": {
+                  "n": 504,
+                  "loss": 1.0671321526818436,
+                  "accuracy": 0.4523809523809524,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.6456147196185996,
+                  "confusion": [
+                    [
+                      0,
+                      112,
+                      0
+                    ],
+                    [
+                      0,
+                      228,
+                      0
+                    ],
+                    [
+                      0,
+                      164,
+                      0
+                    ]
+                  ]
+                }
+              },
+              "nonOverlap": {
+                "test": {
+                  "n": 102,
+                  "loss": 1.0491129241969268,
+                  "accuracy": 0.47058823529411764,
+                  "balanced": 0.32536764705882354,
+                  "brier": 0.6323135915431919,
+                  "confusion": [
+                    [
+                      0,
+                      18,
+                      1
+                    ],
+                    [
+                      0,
+                      45,
+                      6
+                    ],
+                    [
+                      0,
+                      29,
+                      3
+                    ]
+                  ]
+                },
+                "linear": {
+                  "n": 102,
+                  "loss": 1.0748094782899957,
+                  "accuracy": 0.46078431372549017,
+                  "balanced": 0.3563703990368077,
+                  "brier": 0.651402931085413,
+                  "confusion": [
+                    [
+                      2,
+                      14,
+                      3
+                    ],
+                    [
+                      5,
+                      38,
+                      8
+                    ],
+                    [
+                      0,
+                      25,
+                      7
+                    ]
+                  ]
+                },
+                "constant": {
+                  "n": 102,
+                  "loss": 1.0299936085281245,
+                  "accuracy": 0.5,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.6195513178074324,
+                  "confusion": [
+                    [
+                      0,
+                      19,
+                      0
+                    ],
+                    [
+                      0,
+                      51,
+                      0
+                    ],
+                    [
+                      0,
+                      32,
+                      0
+                    ]
+                  ]
+                }
+              },
+              "wins": 0,
+              "pooledAdvantage": false,
+              "nonOverlapAdvantage": false,
+              "blockEnough": true
+            },
+            "consistent": false
+          },
+          "report": {
+            "train": {
+              "n": 625,
+              "loss": 1.0180757112267944,
+              "accuracy": 0.4896,
+              "balanced": 0.3333333333333333,
+              "brier": 0.6112211924634892,
+              "confusion": [
+                [
+                  0,
+                  152,
+                  0
+                ],
+                [
+                  0,
+                  306,
+                  0
+                ],
+                [
+                  0,
+                  167,
+                  0
+                ]
+              ]
+            },
+            "validation": {
+              "n": 205,
+              "loss": 1.0563921236648253,
+              "accuracy": 0.47317073170731705,
+              "balanced": 0.3333333333333333,
+              "brier": 0.6375332922158535,
+              "confusion": [
+                [
+                  0,
+                  46,
+                  0
+                ],
+                [
+                  0,
+                  97,
+                  0
+                ],
+                [
+                  0,
+                  62,
+                  0
+                ]
+              ]
+            },
+            "test": {
+              "n": 211,
+              "loss": 1.0936776575013556,
+              "accuracy": 0.4218009478672986,
+              "balanced": 0.3333333333333333,
+              "brier": 0.6654999577351279,
+              "confusion": [
+                [
+                  0,
+                  37,
+                  0
+                ],
+                [
+                  0,
+                  89,
+                  0
+                ],
+                [
+                  0,
+                  85,
+                  0
+                ]
+              ]
+            },
+            "linear": {
+              "n": 211,
+              "loss": 1.1157727280182506,
+              "accuracy": 0.35545023696682465,
+              "balanced": 0.29195500854456574,
+              "brier": 0.676673915554964,
+              "confusion": [
+                [
+                  2,
+                  33,
+                  2
+                ],
+                [
+                  14,
+                  70,
+                  5
+                ],
+                [
+                  8,
+                  74,
+                  3
+                ]
+              ]
+            },
+            "constant": {
+              "n": 211,
+              "loss": 1.0806795462025203,
+              "accuracy": 0.4218009478672986,
+              "balanced": 0.3333333333333333,
+              "brier": 0.6565225769808095,
+              "confusion": [
+                [
+                  0,
+                  37,
+                  0
+                ],
+                [
+                  0,
+                  89,
+                  0
+                ],
+                [
+                  0,
+                  85,
+                  0
+                ]
+              ]
+            },
+            "nonOverlap": {
+              "test": {
+                "n": 43,
+                "loss": 1.063629343016682,
+                "accuracy": 0.46511627906976744,
+                "balanced": 0.3333333333333333,
+                "brier": 0.6428491138807446,
+                "confusion": [
+                  [
+                    0,
+                    7,
+                    0
+                  ],
+                  [
+                    0,
+                    20,
+                    0
+                  ],
+                  [
+                    0,
+                    16,
+                    0
+                  ]
+                ]
+              },
+              "linear": {
+                "n": 43,
+                "loss": 1.1073745716267607,
+                "accuracy": 0.37209302325581395,
+                "balanced": 0.2976190476190476,
+                "brier": 0.6713198173604086,
+                "confusion": [
+                  [
+                    1,
+                    6,
+                    0
+                  ],
+                  [
+                    4,
+                    15,
+                    1
+                  ],
+                  [
+                    0,
+                    16,
+                    0
+                  ]
+                ]
+              },
+              "constant": {
+                "n": 43,
+                "loss": 1.0533903043299861,
+                "accuracy": 0.46511627906976744,
+                "balanced": 0.3333333333333333,
+                "brier": 0.6367477288101694,
+                "confusion": [
+                  [
+                    0,
+                    7,
+                    0
+                  ],
+                  [
+                    0,
+                    20,
+                    0
+                  ],
+                  [
+                    0,
+                    16,
+                    0
+                  ]
+                ]
+              },
+              "period": {
+                "from": 1763735400000,
+                "to": 1790343000000,
+                "lastLabel": 1790947800000,
+                "n": 43
+              }
+            },
+            "periods": {
+              "train": {
+                "from": 1658323800000,
+                "to": 1736865000000,
+                "lastLabel": 1737556200000,
+                "n": 625
+              },
+              "validation": {
+                "from": 1737642600000,
+                "to": 1763044200000,
+                "lastLabel": 1763649000000,
+                "n": 205
+              },
+              "test": {
+                "from": 1763735400000,
+                "to": 1790343000000,
+                "lastLabel": 1790947800000,
+                "n": 211
+              }
+            }
+          }
+        }
+      },
       "verdict": "Fără robustețe demonstrată",
       "previous": {
         "networkVersion": "holdings-mlp-v2",
@@ -3155,7 +5929,7 @@
       "symbol": "SPY",
       "sector": "ETF · piață largă",
       "status": "evaluated",
-      "retrievedAt": "2026-10-04T07:14:13.411Z",
+      "retrievedAt": "2026-10-04T07:43:11.754Z",
       "asOf": "2026-10-02",
       "currency": "USD",
       "timezone": "America/New_York",
@@ -4139,6 +6913,930 @@
           "spread": 0.06378291586799067
         }
       },
+      "comparison": {
+        "status": "evaluated",
+        "verdict": {
+          "state": "no-edge",
+          "message": "Neconcludent · avantajul repetat nu este demonstrat de ambele modele."
+        },
+        "boosting": {
+          "version": "holdings-gbt-v1",
+          "rounds": 45,
+          "selection": {
+            "from": 1737642600000,
+            "to": 1752499800000,
+            "lastLabel": 1753104600000,
+            "n": 118
+          },
+          "walk": {
+            "version": "walk-forward-v1",
+            "planned": 3,
+            "status": "complete",
+            "reason": null,
+            "folds": [
+              {
+                "id": 1,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1708093800000,
+                    "lastLabel": 1708957800000,
+                    "n": 398
+                  },
+                  "validation": {
+                    "from": 1709044200000,
+                    "to": 1724938200000,
+                    "lastLabel": 1725629400000,
+                    "n": 129
+                  },
+                  "test": {
+                    "from": 1725888600000,
+                    "to": 1742218200000,
+                    "lastLabel": 1742823000000,
+                    "n": 130
+                  }
+                },
+                "epochs": 20,
+                "metrics": {
+                  "test": {
+                    "n": 130,
+                    "loss": 1.0820870319796259,
+                    "accuracy": 0.45384615384615384,
+                    "balanced": 0.3172043010752688,
+                    "brier": 0.6527867225114685,
+                    "confusion": [
+                      [
+                        0,
+                        30,
+                        2
+                      ],
+                      [
+                        0,
+                        59,
+                        3
+                      ],
+                      [
+                        0,
+                        36,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 130,
+                    "loss": 1.0685629684251907,
+                    "accuracy": 0.46923076923076923,
+                    "balanced": 0.3279569892473118,
+                    "brier": 0.6410393047605641,
+                    "confusion": [
+                      [
+                        0,
+                        31,
+                        1
+                      ],
+                      [
+                        1,
+                        61,
+                        0
+                      ],
+                      [
+                        2,
+                        34,
+                        0
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 130,
+                    "loss": 1.0603288574057173,
+                    "accuracy": 0.47692307692307695,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6390731400924111,
+                    "confusion": [
+                      [
+                        0,
+                        32,
+                        0
+                      ],
+                      [
+                        0,
+                        62,
+                        0
+                      ],
+                      [
+                        0,
+                        36,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 26,
+                    "loss": 1.0648558938537909,
+                    "accuracy": 0.46153846153846156,
+                    "balanced": 0.2857142857142857,
+                    "brier": 0.6422152682114844,
+                    "confusion": [
+                      [
+                        0,
+                        6,
+                        0
+                      ],
+                      [
+                        0,
+                        12,
+                        2
+                      ],
+                      [
+                        0,
+                        6,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 26,
+                    "loss": 1.0185794765644482,
+                    "accuracy": 0.5384615384615384,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6040324990986227,
+                    "confusion": [
+                      [
+                        0,
+                        6,
+                        0
+                      ],
+                      [
+                        0,
+                        14,
+                        0
+                      ],
+                      [
+                        0,
+                        6,
+                        0
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 26,
+                    "loss": 1.0329472610275787,
+                    "accuracy": 0.5384615384615384,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6193532091505362,
+                    "confusion": [
+                      [
+                        0,
+                        6,
+                        0
+                      ],
+                      [
+                        0,
+                        14,
+                        0
+                      ],
+                      [
+                        0,
+                        6,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              },
+              {
+                "id": 2,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1721050200000,
+                    "lastLabel": 1721655000000,
+                    "n": 499
+                  },
+                  "validation": {
+                    "from": 1721741400000,
+                    "to": 1742218200000,
+                    "lastLabel": 1742823000000,
+                    "n": 163
+                  },
+                  "test": {
+                    "from": 1742909400000,
+                    "to": 1763044200000,
+                    "lastLabel": 1763649000000,
+                    "n": 163
+                  }
+                },
+                "epochs": 10,
+                "metrics": {
+                  "test": {
+                    "n": 163,
+                    "loss": 1.0241283113739457,
+                    "accuracy": 0.44171779141104295,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6196734975863083,
+                    "confusion": [
+                      [
+                        0,
+                        29,
+                        0
+                      ],
+                      [
+                        0,
+                        72,
+                        0
+                      ],
+                      [
+                        0,
+                        62,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 163,
+                    "loss": 1.0456641057432838,
+                    "accuracy": 0.4601226993865031,
+                    "balanced": 0.3517025089605735,
+                    "brier": 0.6264390127659208,
+                    "confusion": [
+                      [
+                        0,
+                        23,
+                        6
+                      ],
+                      [
+                        2,
+                        69,
+                        1
+                      ],
+                      [
+                        5,
+                        51,
+                        6
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 163,
+                    "loss": 1.0384586041360635,
+                    "accuracy": 0.44171779141104295,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6301238474839664,
+                    "confusion": [
+                      [
+                        0,
+                        29,
+                        0
+                      ],
+                      [
+                        0,
+                        72,
+                        0
+                      ],
+                      [
+                        0,
+                        62,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 33,
+                    "loss": 1.049261324030596,
+                    "accuracy": 0.42424242424242425,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6348066662124376,
+                    "confusion": [
+                      [
+                        0,
+                        7,
+                        0
+                      ],
+                      [
+                        0,
+                        14,
+                        0
+                      ],
+                      [
+                        0,
+                        12,
+                        0
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 33,
+                    "loss": 1.0670255745573807,
+                    "accuracy": 0.42424242424242425,
+                    "balanced": 0.33730158730158727,
+                    "brier": 0.638257881523632,
+                    "confusion": [
+                      [
+                        0,
+                        6,
+                        1
+                      ],
+                      [
+                        1,
+                        13,
+                        0
+                      ],
+                      [
+                        0,
+                        11,
+                        1
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 33,
+                    "loss": 1.0621479004875334,
+                    "accuracy": 0.42424242424242425,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6439654878013001,
+                    "confusion": [
+                      [
+                        0,
+                        7,
+                        0
+                      ],
+                      [
+                        0,
+                        14,
+                        0
+                      ],
+                      [
+                        0,
+                        12,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              },
+              {
+                "id": 3,
+                "status": "evaluated",
+                "periods": {
+                  "train": {
+                    "from": 1658323800000,
+                    "to": 1736865000000,
+                    "lastLabel": 1737556200000,
+                    "n": 625
+                  },
+                  "validation": {
+                    "from": 1737642600000,
+                    "to": 1763044200000,
+                    "lastLabel": 1763649000000,
+                    "n": 205
+                  },
+                  "test": {
+                    "from": 1763735400000,
+                    "to": 1790343000000,
+                    "lastLabel": 1790947800000,
+                    "n": 211
+                  }
+                },
+                "epochs": 45,
+                "metrics": {
+                  "test": {
+                    "n": 211,
+                    "loss": 1.0714070317312934,
+                    "accuracy": 0.33175355450236965,
+                    "balanced": 0.28319205905412803,
+                    "brier": 0.6509524306447874,
+                    "confusion": [
+                      [
+                        2,
+                        23,
+                        17
+                      ],
+                      [
+                        5,
+                        45,
+                        61
+                      ],
+                      [
+                        6,
+                        29,
+                        23
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 211,
+                    "loss": 1.0790610458575938,
+                    "accuracy": 0.35071090047393366,
+                    "balanced": 0.31166881166881166,
+                    "brier": 0.6538689320852257,
+                    "confusion": [
+                      [
+                        2,
+                        15,
+                        25
+                      ],
+                      [
+                        5,
+                        43,
+                        63
+                      ],
+                      [
+                        4,
+                        25,
+                        29
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 211,
+                    "loss": 1.0287701458705898,
+                    "accuracy": 0.5260663507109005,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.6194000737174584,
+                    "confusion": [
+                      [
+                        0,
+                        42,
+                        0
+                      ],
+                      [
+                        0,
+                        111,
+                        0
+                      ],
+                      [
+                        0,
+                        58,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "nonOverlap": {
+                  "test": {
+                    "n": 43,
+                    "loss": 1.1071129967690652,
+                    "accuracy": 0.27906976744186046,
+                    "balanced": 0.25256410256410255,
+                    "brier": 0.67604015860253,
+                    "confusion": [
+                      [
+                        1,
+                        6,
+                        3
+                      ],
+                      [
+                        1,
+                        7,
+                        12
+                      ],
+                      [
+                        2,
+                        7,
+                        4
+                      ]
+                    ]
+                  },
+                  "linear": {
+                    "n": 43,
+                    "loss": 1.0818643647159094,
+                    "accuracy": 0.3023255813953488,
+                    "balanced": 0.27820512820512816,
+                    "brier": 0.6573397480170581,
+                    "confusion": [
+                      [
+                        1,
+                        2,
+                        7
+                      ],
+                      [
+                        0,
+                        7,
+                        13
+                      ],
+                      [
+                        2,
+                        6,
+                        5
+                      ]
+                    ]
+                  },
+                  "constant": {
+                    "n": 43,
+                    "loss": 1.0610882923020857,
+                    "accuracy": 0.46511627906976744,
+                    "balanced": 0.3333333333333333,
+                    "brier": 0.640786408618869,
+                    "confusion": [
+                      [
+                        0,
+                        10,
+                        0
+                      ],
+                      [
+                        0,
+                        20,
+                        0
+                      ],
+                      [
+                        0,
+                        13,
+                        0
+                      ]
+                    ]
+                  }
+                },
+                "advantage": false
+              }
+            ],
+            "summary": {
+              "daily": {
+                "test": {
+                  "n": 504,
+                  "loss": 1.05887125517184,
+                  "accuracy": 0.39880952380952384,
+                  "balanced": 0.2950735733676094,
+                  "brier": 0.6413095573395026,
+                  "confusion": [
+                    [
+                      2,
+                      82,
+                      19
+                    ],
+                    [
+                      5,
+                      176,
+                      64
+                    ],
+                    [
+                      6,
+                      127,
+                      23
+                    ]
+                  ]
+                },
+                "linear": {
+                  "n": 504,
+                  "loss": 1.0655522139035363,
+                  "accuracy": 0.4166666666666667,
+                  "balanced": 0.31663296635557386,
+                  "brier": 0.6416885185906767,
+                  "confusion": [
+                    [
+                      2,
+                      69,
+                      32
+                    ],
+                    [
+                      8,
+                      173,
+                      64
+                    ],
+                    [
+                      11,
+                      110,
+                      35
+                    ]
+                  ]
+                },
+                "constant": {
+                  "n": 504,
+                  "loss": 1.040043660150032,
+                  "accuracy": 0.4861111111111111,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.6279426803696107,
+                  "confusion": [
+                    [
+                      0,
+                      103,
+                      0
+                    ],
+                    [
+                      0,
+                      245,
+                      0
+                    ],
+                    [
+                      0,
+                      156,
+                      0
+                    ]
+                  ]
+                }
+              },
+              "nonOverlap": {
+                "test": {
+                  "n": 102,
+                  "loss": 1.077624860728216,
+                  "accuracy": 0.37254901960784315,
+                  "balanced": 0.2866701729780271,
+                  "brier": 0.6540778801805669,
+                  "confusion": [
+                    [
+                      1,
+                      19,
+                      3
+                    ],
+                    [
+                      1,
+                      33,
+                      14
+                    ],
+                    [
+                      2,
+                      25,
+                      4
+                    ]
+                  ]
+                },
+                "linear": {
+                  "n": 102,
+                  "loss": 1.0609321375867973,
+                  "accuracy": 0.4019607843137255,
+                  "balanced": 0.3151199937665576,
+                  "brier": 0.6375780807017407,
+                  "confusion": [
+                    [
+                      1,
+                      14,
+                      8
+                    ],
+                    [
+                      1,
+                      34,
+                      13
+                    ],
+                    [
+                      2,
+                      23,
+                      6
+                    ]
+                  ]
+                },
+                "constant": {
+                  "n": 102,
+                  "loss": 1.0542579026646601,
+                  "accuracy": 0.47058823529411764,
+                  "balanced": 0.3333333333333333,
+                  "brier": 0.636351569666355,
+                  "confusion": [
+                    [
+                      0,
+                      23,
+                      0
+                    ],
+                    [
+                      0,
+                      48,
+                      0
+                    ],
+                    [
+                      0,
+                      31,
+                      0
+                    ]
+                  ]
+                }
+              },
+              "wins": 0,
+              "pooledAdvantage": false,
+              "nonOverlapAdvantage": false,
+              "blockEnough": true
+            },
+            "consistent": false
+          },
+          "report": {
+            "train": {
+              "n": 625,
+              "loss": 0.9590283100029836,
+              "accuracy": 0.5488,
+              "balanced": 0.4651069043766454,
+              "brier": 0.5753668570131112,
+              "confusion": [
+                [
+                  17,
+                  71,
+                  43
+                ],
+                [
+                  1,
+                  235,
+                  43
+                ],
+                [
+                  5,
+                  119,
+                  91
+                ]
+              ]
+            },
+            "validation": {
+              "n": 205,
+              "loss": 1.0363316886626637,
+              "accuracy": 0.48292682926829267,
+              "balanced": 0.3882201893757021,
+              "brier": 0.623018061924877,
+              "confusion": [
+                [
+                  0,
+                  34,
+                  11
+                ],
+                [
+                  0,
+                  75,
+                  18
+                ],
+                [
+                  2,
+                  41,
+                  24
+                ]
+              ]
+            },
+            "test": {
+              "n": 211,
+              "loss": 1.0714070317312934,
+              "accuracy": 0.33175355450236965,
+              "balanced": 0.28319205905412803,
+              "brier": 0.6509524306447874,
+              "confusion": [
+                [
+                  2,
+                  23,
+                  17
+                ],
+                [
+                  5,
+                  45,
+                  61
+                ],
+                [
+                  6,
+                  29,
+                  23
+                ]
+              ]
+            },
+            "linear": {
+              "n": 211,
+              "loss": 1.0790610458575938,
+              "accuracy": 0.35071090047393366,
+              "balanced": 0.31166881166881166,
+              "brier": 0.6538689320852257,
+              "confusion": [
+                [
+                  2,
+                  15,
+                  25
+                ],
+                [
+                  5,
+                  43,
+                  63
+                ],
+                [
+                  4,
+                  25,
+                  29
+                ]
+              ]
+            },
+            "constant": {
+              "n": 211,
+              "loss": 1.0287701458705898,
+              "accuracy": 0.5260663507109005,
+              "balanced": 0.3333333333333333,
+              "brier": 0.6194000737174584,
+              "confusion": [
+                [
+                  0,
+                  42,
+                  0
+                ],
+                [
+                  0,
+                  111,
+                  0
+                ],
+                [
+                  0,
+                  58,
+                  0
+                ]
+              ]
+            },
+            "nonOverlap": {
+              "test": {
+                "n": 43,
+                "loss": 1.1071129967690652,
+                "accuracy": 0.27906976744186046,
+                "balanced": 0.25256410256410255,
+                "brier": 0.67604015860253,
+                "confusion": [
+                  [
+                    1,
+                    6,
+                    3
+                  ],
+                  [
+                    1,
+                    7,
+                    12
+                  ],
+                  [
+                    2,
+                    7,
+                    4
+                  ]
+                ]
+              },
+              "linear": {
+                "n": 43,
+                "loss": 1.0818643647159094,
+                "accuracy": 0.3023255813953488,
+                "balanced": 0.27820512820512816,
+                "brier": 0.6573397480170581,
+                "confusion": [
+                  [
+                    1,
+                    2,
+                    7
+                  ],
+                  [
+                    0,
+                    7,
+                    13
+                  ],
+                  [
+                    2,
+                    6,
+                    5
+                  ]
+                ]
+              },
+              "constant": {
+                "n": 43,
+                "loss": 1.0610882923020857,
+                "accuracy": 0.46511627906976744,
+                "balanced": 0.3333333333333333,
+                "brier": 0.640786408618869,
+                "confusion": [
+                  [
+                    0,
+                    10,
+                    0
+                  ],
+                  [
+                    0,
+                    20,
+                    0
+                  ],
+                  [
+                    0,
+                    13,
+                    0
+                  ]
+                ]
+              },
+              "period": {
+                "from": 1763735400000,
+                "to": 1790343000000,
+                "lastLabel": 1790947800000,
+                "n": 43
+              }
+            },
+            "periods": {
+              "train": {
+                "from": 1658323800000,
+                "to": 1736865000000,
+                "lastLabel": 1737556200000,
+                "n": 625
+              },
+              "validation": {
+                "from": 1737642600000,
+                "to": 1763044200000,
+                "lastLabel": 1763649000000,
+                "n": 205
+              },
+              "test": {
+                "from": 1763735400000,
+                "to": 1790343000000,
+                "lastLabel": 1790947800000,
+                "n": 211
+              }
+            }
+          }
+        }
+      },
       "verdict": "Fără robustețe demonstrată",
       "previous": {
         "networkVersion": "holdings-mlp-v2",
@@ -4197,5 +7895,6 @@
         "wins": 0
       }
     }
-  ]
+  ],
+  "updatedAt": "2026-10-04T07:43:15.632Z"
 }
