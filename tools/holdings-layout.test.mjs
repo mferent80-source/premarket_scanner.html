@@ -7,7 +7,7 @@ function element(dataset={}){return {dataset,hidden:false,children:[],attrs:{},i
 function setup(){
  const saved=new Map(),ids=Object.fromEntries(['managementReports','holdingManagement','status','holdingQuickList','selectedHoldingLabel','selectedAnalysis','rosterBody','toggleHoldingRoster'].map(k=>[k,element()]));
  ids.holdingManagement.hidden=true;
- const cards=['A','B'].map(ticker=>{const card=element({ticker}),tabs=['summary','plan'].map(k=>element({holdingTab:k})),panels=['summary','plan'].map(k=>element({holdingPanel:k}));card.disclosure=element();card.disclosure.open=false;card.querySelectorAll=q=>q==='details'?[card.disclosure]:q==='[data-holding-tab]'?tabs:q==='[data-holding-panel]'?panels:[];card.tabs=tabs;card.panels=panels;card.unsavedNote='Draft intact';return card;});
+ const cards=['A','B'].map(ticker=>{const card=element({ticker}),tabs=['summary','plan','neural'].map(k=>element({holdingTab:k})),panels=['summary','plan','neural'].map(k=>element({holdingPanel:k}));card.disclosure=element();card.disclosure.open=false;card.querySelectorAll=q=>q==='details'?[card.disclosure]:q==='[data-holding-tab]'?tabs:q==='[data-holding-panel]'?panels:[];card.tabs=tabs;card.panels=panels;card.unsavedNote='Draft intact';return card;});
  const document={body:{dataset:{holdingsView:'full'}},getElementById:k=>ids[k],querySelectorAll:q=>q==='.holding[data-ticker]'?cards:[],querySelector:()=>null};
  const sandbox={Intl,Date,HoldingsEvents:{fresh:()=>false,validDate:()=>false},document,localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},addEventListener(){},matchMedia:()=>({matches:false})};vm.runInNewContext(readFileSync('lib/holdings-review.js','utf8'),sandbox);vm.runInNewContext(script,sandbox);
  const row=ticker=>({p:{ticker,name:ticker,value:20,unrealized:2,currency:'USD'},m:null}),ctx=scope=>({scope,demo:false,symbol:p=>p.ticker,model:()=>null,note:()=>({}),events:()=>null,positions:cards.map(c=>row(c.dataset.ticker).p)});
@@ -49,4 +49,9 @@ test('returning from demo strips simulated preferences from persistent real acco
 
 test('switching holdings does not fold a disclosure the user has just opened',()=>{
  const {layout,cards,ctx,row}=setup();layout.render(ctx('a'),[row('A'),row('B')]);cards[0].disclosure.open=true;layout.pick('B');layout.pick('A');assert.equal(cards[0].disclosure.open,true);
+});
+
+ test('model report opens its exact holding, clears blocking filters and preserves drafts',()=>{
+ const {layout,cards,ctx,row,ids}=setup();layout.render(ctx('a'),[row('A')]);ids.holdingReset=element();ids.holdingReset.onclick=()=>layout.render(ctx('a'),[row('A'),row('B')]);ids.holdingReset.click=()=>ids.holdingReset.onclick();
+ assert.equal(layout.openModelLedger('B'),true);assert.equal(cards[1].hidden,false);assert.equal(cards[1].panels[2].hidden,false);assert.equal(cards[1].panels[0].hidden,true);assert.equal(cards[1].unsavedNote,'Draft intact');assert.equal(layout.openModelLedger('SOLD'),false);
 });

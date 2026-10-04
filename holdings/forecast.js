@@ -1,11 +1,12 @@
 (function(g){
 'use strict';
-const F=g.HoldingsForecast,memory=new Map(),messages=new Map(),choices=new Map(),attempted=new Set(),running=new Set();let context=null,generation=0;
+const F=g.HoldingsForecast,memory=new Map(),messages=new Map(),choices=new Map(),attempted=new Set(),running=new Set(),checks=new Map();let context=null,generation=0;
 const real=F.createStore({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)}),demo=F.createStore({getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)});
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(v,d=1)=>Number.isFinite(v)?v.toLocaleString('ro-RO',{maximumFractionDigits:d,minimumFractionDigits:d}):'—';
 const NAMES={neural:'Neural · MLP',boosting:'Gradient Boosting',quantile:'Regresie cu cuantile',hmm:'HMM · regimuri',isolation:'Isolation Forest'},CLASSES=['Declin','Mixt','Avans'];
 const store=()=>context.demo?demo:real;
-function identity(p){const m=context.model(p);return {scope:context.scope,ticker:p.ticker,symbol:context.symbol(p),currency:m?.currency||p.instrumentCurrency||p.currency,kind:context.demo?'synthetic':'market'};}
+function identity(p){const m=context.model(p);return {scope:context.scope,ticker:p.ticker,symbol:context.symbol(p),currency:m?.currency||p.instrumentCurrency,kind:context.demo?'synthetic':'market'};}
+function snapshot(p){const e=identity(p);return {identity:e,asOf:context.model(p)?.asOf||null,ledger:store().read(e),check:checks.get(F.key(e))||null};}
 function same(e,p){const now=identity(p);return F.key(e)===F.key(now);}
 function refresh(){g.HoldingsNeuralUI?.refresh();}
 function source(p,r,atr){const m=context.model(p),b=m?.bars?.at(-1);if(!b)return null;return {t:r.sourceTime,asOf:r.asOf,timezone:r.timezone,closeMinutes:r.closeMinutes??m.closeMinutes??960,close:r.sourceClose??(r.result?.current?.close||b.c),atrPct:atr};}
@@ -26,17 +27,17 @@ function capture(p){
  if(!inputs.length){messages.set(F.key(e),'Nu există estimări actuale eligibile. Calculează modelele pe sesiunea EOD verificată.');return;}let saved=0,errors=[];for(const input of inputs){const out=store().save(input,e);if(out.saved)saved++;if(!out.ok)errors.push(out.error);}
  if(errors.length)messages.set(F.key(e),[...new Set(errors)].join(' '));else if(saved)messages.set(F.key(e),saved+' estimări noi păstrate. Prima estimare pe model și sesiune rămâne fixă.');
 }
-function setContext(c){if(!context||context.scope!==c.scope||context.demo!==c.demo)generation++;context=c;}
+function setContext(c){if(!context||context.scope!==c.scope||context.demo!==c.demo)generation++;context=c;g.HoldingsForecastMonitorUI?.setContext(c);}
 async function check(p,manual=false){
- if(!context||!p)return;const e=identity(p),k=F.key(e),m=context.model(p),data=store().read(e);
- if(!k||!data.ok||!data.entries.length||running.has(k))return;
- if(context.demo){if(!manual)return;messages.set(k,'Verificarea demo folosește numai închiderile fictive. Încarcă simularea pentru exemple finalizate.');refresh();return;}
- const stamp=k+'|'+(m?.asOf||'unknown');if(!manual&&(!m||attempted.has(stamp)||!data.entries.some(r=>r.source.asOf<m.asOf)))return;
- attempted.add(stamp);running.add(k);const token=generation,expected=m?.asOf;messages.set(k,'Verific închiderile zilnice din sursa publică…');refresh();
+ if(!context||!p)return {state:'ignored'};const e=identity(p),k=F.key(e),m=context.model(p),data=store().read(e);
+ if(!k||!data.ok)return {state:'blocked'};if(!data.entries.length)return {state:'empty'};if(running.has(k))return {state:'busy'};
+ if(context.demo){if(manual){messages.set(k,'Verificarea demo folosește numai închiderile fictive. Încarcă simularea pentru exemple finalizate.');refresh();}return {state:'demo'};}
+ const stamp=k+'|'+(m?.asOf||'unknown');if(!manual&&(!m||attempted.has(stamp)||!data.entries.some(r=>r.source.asOf<m.asOf)))return {state:'ignored'};
+ attempted.add(stamp);running.add(k);const token=generation,expected=m?.asOf;checks.set(k,{state:'checking',at:Date.now()});messages.set(k,'Verific închiderile zilnice din sursa publică…');refresh();
  try{const raw=await g.D.fetchStock(e.symbol,{range:'5y',interval:'1d',ttl:0}),source=g.DailySeries.read(raw,e.symbol),now=Date.now();
-  const position=context.positions.find(x=>x.ticker===e.ticker);if(token!==generation||!position||!same(e,position)||context.model(position)?.asOf!==expected)return;
-  const out=real.check(e,{...source,symbol:e.symbol,retrievedAt:now},now);messages.set(k,out.ok?'Verificare încheiată. Estimările originale au rămas fixe.':out.error);
- }catch(err){if(token===generation)messages.set(k,'Verificare indisponibilă: '+err.message+'. Rezultatele existente sunt păstrate; poți reîncerca.');}
+  const position=context.positions.find(x=>x.ticker===e.ticker);if(token!==generation||!position||!same(e,position)||context.model(position)?.asOf!==expected){checks.set(k,{state:'ignored',at:now});return {state:'ignored'};}
+  const out=real.check(e,{...source,symbol:e.symbol,retrievedAt:now},now),state=out.ok?'checked':'error';checks.set(k,{state,at:now});messages.set(k,out.ok?'Verificare încheiată. Estimările originale au rămas fixe.':out.error);return {state};
+ }catch(err){const position=context.positions.find(x=>x.ticker===e.ticker);if(token===generation&&position&&same(e,position)){checks.set(k,{state:'error',at:Date.now()});messages.set(k,'Verificare indisponibilă: '+err.message+'. Rezultatele existente sunt păstrate; poți reîncerca.');return {state:'error'};}checks.set(k,{state:'ignored',at:Date.now()});return {state:'ignored'};}
  finally{running.delete(k);if(token===generation)refresh();}
 }
 function overview(x){
@@ -51,7 +52,7 @@ function markup(p,i){
  const e=identity(p),k=F.key(e),d=store().read(e),reports=F.report(d.entries),model=choices.get(k)||'quantile',rows=d.entries.filter(r=>model==='all'||r.model===model).slice(-12).reverse();
  return '<section class="forecast-card" id="model-lab-'+i+'-forecast" tabindex="-1" aria-label="Predicții vs. realitate"><div class="hmm-heading"><div><span class="eyebrow">ESTIMARE FIXĂ · REZULTAT OBSERVAT</span><h4>Predicții vs. realitate</h4><p>Ce au estimat modelele și unde a închis prețul după cinci sesiuni?</p></div><span class="tag">'+(context.demo?'Simulare':'Registru local')+'</span></div>'+(context.demo?'<p class="forecast-demo">DEMO · estimările din simularea verificării sunt ilustrative, distincte de rezultatele modelelor antrenate. Nu sunt dovezi prospective reale.</p>':'')+'<div class="hmm-controls"><button data-forecast-save="'+i+'" '+(!d.ok?'disabled':'')+'>Păstrează estimările actuale</button><button data-forecast-check="'+i+'" '+(!d.ok||!d.entries.length||running.has(k)?'disabled':'')+'>Verifică rezultatele</button><button data-forecast-export="'+i+'" '+(!d.ok||!d.entries.length?'disabled':'')+'>Exportă registrul</button>'+(context.demo?'<button data-forecast-demo="'+i+'">Încarcă simularea verificării</button>':'')+'</div><p class="meta" role="status" aria-live="polite">'+esc(d.error||messages.get(k)||'Estimările noi se păstrează automat după calculul modelului. Verificarea pornește când deschizi analiza, o dată pe sesiunea EOD disponibilă, și la cerere.')+'</p><div class="forecast-report-grid">'+reports.map(x=>'<article><small>'+esc(NAMES[x.model])+'</small><b>'+x.n+' orizonturi separate</b><p>'+esc(overview(x))+'</p><small>'+x.all+' finalizate · '+x.pending+' în așteptare · '+x.unverifiable+' excluse</small><p class="meta '+(x.n>=20&&!x.descriptive?'warn':'')+'">'+esc(x.warning)+'</p></article>').join('')+'</div><details class="neural-details" open><summary>Registrul estimărilor · '+d.entries.length+'</summary><label class="forecast-filter">Model afișat<select aria-label="Model afișat" data-forecast-model="'+i+'">'+Object.entries({...NAMES,all:'Toate modelele'}).map(([id,name])=>'<option value="'+id+'" '+(id===model?'selected':'')+'>'+esc(name)+'</option>').join('')+'</select></label>'+(rows.length?'<div class="neural-table-wrap"><table class="forecast-table"><thead><tr><th>Origine / model</th><th>Estimare păstrată</th><th>Închidere +5 sesiuni</th><th>Rezultat</th></tr></thead><tbody>'+rows.map(r=>'<tr><td><b>'+esc(r.source.asOf)+'</b><small>'+esc(NAMES[r.model])+'</small><small>'+esc(r.modelVersion)+'</small></td><td>'+esc(prediction(r))+'<small>Salvat '+esc(new Date(r.capturedAt).toLocaleString('ro-RO'))+'</small></td><td>'+(r.outcome?fmt(r.outcome.close,2)+' '+esc(r.currency)+'<small>'+esc(r.outcome.asOf)+'</small>':'—')+'</td><td>'+esc(resultText(r))+'<small>'+esc(r.verification.reason)+'</small></td></tr>').join('')+'</tbody></table></div><p class="meta">Ultimele '+rows.length+' estimări din filtrul selectat. Exportul conține întregul registru.</p>':'<p class="meta">Nicio estimare păstrată pentru acest model.</p>')+'</details><details class="neural-details"><summary>Reguli de urmărire și limite</summary><p>Prima estimare a fiecărui model pe sesiune rămâne fixă, inclusiv dacă reantrenezi sau actualizezi versiunea. Înregistrarea se închide la începutul următoarei zile lucrătoare în fusul bursei; această regulă conservatoare poate refuza zile de sărbătoare sau premarket. Nu importăm testele istorice ca predicții reale.</p><p>Rezultatul cere cinci închideri efective după origine. Orizonturile care se ating sau se suprapun sunt excluse din agregatele principale. Direcția folosește pragurile ±1 ATR inițial; reperul este clasa majoritară din antrenare. Cuantilele folosesc reperul simplu fixat la estimare și scorul de interval 80%, în ATR inițial. Acoperirea nu măsoară probabilitatea profitului.</p><p>Sub 20 observații: dovezi insuficiente. Acoperire sub 70%, performanță sub reper sau deteriorare între două blocuri de 20 sunt semnale descriptive, nu teste statistice. HMM și Isolation păstrează contextul și mișcarea ulterioară a prețului; nu au etichete externe pentru acuratețe sau cauzalitate. Retrainingul poate schimba semantica stărilor HMM.</p><p>Schimbările monedei, revizuirea prețurilor, salturile peste 25% și golurile mari blochează evaluarea. Ajustările mici sau barele omise de furnizor pot rămâne nedetectate. Date locale pe acest dispozitiv, maximum 500 estimări pe instrument; fără cantități, sold sau chei API.</p></details><a class="model-back" data-model-jump="summary" href="#model-lab-'+i+'-summary">Sinteză ↑</a></section>';
 }
-function simulation(p){
+function simulation(p,{update=true}={}){
  const e=identity(p),m=context.model(p);if(!context.demo||!m)return;
  const bars=g.HoldingsNeural.demoBars(p.ticker==='FICTIVB_US_EQ'?2:0,Date.parse(m.asOf+'T23:59:00Z')),entries=[];
  for(let i=0;i<24;i++){
@@ -60,7 +61,7 @@ function simulation(p){
   for(const [model,estimate] of Object.entries(samples)){const r=F.project({...base,model,modelVersion:F.VERSIONS[model],estimate},e,t);if(r)entries.push(F.verify(r,{symbol:e.symbol,currency:e.currency,timezone:'America/New_York',bars:bars.slice(bars.length-150+i*6,bars.length-150+i*6+6),retrievedAt:Date.now()},Date.now()));}
  }
  const d=demo.read(e);if(!d.ok){messages.set(F.key(e),d.error);return;}
- const ids=new Set(d.entries.map(r=>r.id));memory.set(F.key(e),JSON.stringify({version:F.VERSION,entries:[...d.entries,...entries.filter(r=>!ids.has(r.id))].sort((a,b)=>a.source.t-b.source.t)}));messages.set(F.key(e),'Simulare încărcată: 24 orizonturi separate pentru fiecare model. Estimări ilustrative, fără cont sau cotații reale.');refresh();
+ const ids=new Set(d.entries.map(r=>r.id));memory.set(F.key(e),JSON.stringify({version:F.VERSION,entries:[...d.entries,...entries.filter(r=>!ids.has(r.id))].sort((a,b)=>a.source.t-b.source.t)}));messages.set(F.key(e),'Simulare încărcată: 24 orizonturi separate pentru fiecare model. Estimări ilustrative, fără cont sau cotații reale.');if(update)refresh();return {state:'demo',entries:entries.length};
 }
 function bind(){
  const position=b=>context.positions[Number(b.dataset[Object.keys(b.dataset).find(k=>k.startsWith('forecast'))])];
@@ -71,5 +72,5 @@ function bind(){
  for(const b of document.querySelectorAll('[data-forecast-export]'))b.onclick=()=>{const p=position(b);if(!p)return;const e=identity(p),d=store().read(e);if(d.ok)g.HoldingsNeuralUI.exportReport({symbol:e.symbol,currency:e.currency,kind:e.kind,asOf:context.model(p)?.asOf||'registru',result:{version:F.VERSION,reviewOnly:true,entries:d.entries,reports:F.report(d.entries)}});};
  for(const host of document.querySelectorAll('[data-neural-host]')){const p=context.positions[Number(host.dataset.neuralHost)];if(p&&!host.closest('[data-holding-panel]')?.hidden&&!host.closest('.holding')?.hidden)void check(p);}
 }
-g.HoldingsForecastUI={setContext,capture,markup,bind,check,simulation};
+g.HoldingsForecastUI={setContext,capture,markup,bind,check,simulation,snapshot,overview,NAMES};
 })(typeof window!=='undefined'?window:globalThis);
