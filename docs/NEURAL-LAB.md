@@ -1,6 +1,6 @@
 # Neural Lab — Analiza deținerilor
 
-Versiune aplicație: **26.10.04.1016**.
+Versiune aplicație: **26.10.04.1020**.
 
 Implementare de cercetare, per instrument: un ansamblu de trei rețele MLP 10 → 12 → 3 antrenată efectiv prin backpropagation în Web Worker. Nu este o regulă de tranzacționare, o probabilitate calibrată de profit sau un model validat pentru utilizare automată.
 
