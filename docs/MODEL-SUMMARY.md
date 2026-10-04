@@ -1,6 +1,6 @@
 # Sinteza modelelor — v1
 
-Versiunea aplicației: **26.10.04.1543**. Acces: Analiza deținerilor → o deținere → Modele AI → Sinteza modelelor.
+Versiunea aplicației: **26.10.04.1646**. Acces: Analiza deținerilor → o deținere → Modele AI → Sinteza modelelor.
 
 Sinteza afișează patru rezultate cu obiective diferite: Neural și Gradient Boosting estimează clasa la cinci sesiuni; HMM descrie regimul; Isolation Forest semnalează sesiuni neobișnuite. Nu este un al cincilea model, un ansamblu predictiv sau un scor de încredere.
 
@@ -30,3 +30,7 @@ Scurtăturile deschid analiza corespunzătoare și mută focusul. Exportul `hold
 Testele sintezei acoperă prioritățile, conflictele, interpretările blocate, identitatea și vechimea, datele EOD imposibile/viitoare, separarea demo, starea în curs și proiecția exportată. În plus, testul de lifecycle Neural verifică anularea la schimbări în același cont.
 
 Verificare: 522 de teste în suita completă au trecut; verificările UI/logică relevante au fost repetate după ajustarea păstrării focusului și a secțiunilor deschise. Algoritmii și rapoartele publice existente nu au fost reantrenate sau modificate.
+
+## Istoric local și comparație
+
+„Păstrează sinteza” salvează explicit o proiecție compactă în istoricul local. „Istoric și comparație” compară analiza afișată cu o sinteză aleasă. Vezi [MODEL-HISTORY.md](MODEL-HISTORY.md) pentru separarea conturilor, limite și interpretare.
