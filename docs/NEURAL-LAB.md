@@ -1,6 +1,6 @@
 # Model Lab — Analiza deținerilor
 
-Versiune aplicație: **26.10.04.1057**.
+Versiune aplicație: **26.10.04.1143**.
 
 Implementare de cercetare, per instrument: un ansamblu de trei rețele MLP 10 → 12 → 3 antrenate efectiv prin backpropagation în Web Worker. Nu este o regulă de tranzacționare, o probabilitate calibrată de profit sau un model validat pentru utilizare automată.
 
@@ -24,7 +24,7 @@ Sunt necesare minimum 510 bare și 300 exemple după warm-up/etichetare, cu mini
 
 ## Verificări ale livrării
 
-**474 de teste JavaScript trec**, inclusiv 28 pentru mecanismul neuronal și integrarea lui: eliminarea contaminării temporale, normalizare exclusiv pe antrenare, învățarea unei relații neliniare fictive, blocarea istoricului invalid, integritatea ponderilor/procentelor, expirare, anulare și schimbarea contului. Alte verificări acoperă ferestrele în expansiune, excluderea etichetelor peste granițele testelor, agregarea corectă pe clase, intervalele blocate și integritatea verdictului de robustețe. Rezultatul fictiv de învățare nu constituie performanță verificată pe instrumente reale.
+**491 de teste JavaScript trec**, inclusiv 28 pentru mecanismul neuronal și integrarea lui: eliminarea contaminării temporale, normalizare exclusiv pe antrenare, învățarea unei relații neliniare fictive, blocarea istoricului invalid, integritatea ponderilor/procentelor, expirare, anulare și schimbarea contului. Alte verificări acoperă ferestrele în expansiune, excluderea etichetelor peste granițele testelor, agregarea corectă pe clase, intervalele blocate și integritatea verdictului de robustețe. Rezultatul fictiv de învățare nu constituie performanță verificată pe instrumente reale.
 
 
 ## Protocol temporal: trei ferestre în timp
@@ -74,6 +74,10 @@ Aceleași patru instrumente publice, 1.255 bare fiecare, EOD 2 octombrie 2026. T
 | SPY | 1.0651 | 1.0589 | 0/3 / 0/3 |
 
 Boosting are loss mai mic decât Neural pe toate cele patru instrumente, dar **0/4 demonstrează avantaj repetat** pentru oricare dintre modele. Parametrii nu au fost schimbați după rezultate. Istoricul fusese deja examinat; aceasta este o comparație retrospectivă, fără holdout prospectiv nou și fără profit verificat. Raportul Neural V3 anterior comparației este păstrat în [arhiva V3](neural-validation-mlp-v3.json), iar V2 rămâne disponibil.
+
+## Al treilea model: regimuri HMM
+
+Fila Modele AI include acum un HMM separat, cu butonul **Analizează regimul HMM**. Acesta folosește același istoric verificat, cu alt obiectiv: densitatea indicatorilor și stările de regim, nu clasa schimbării prețului în cinci sesiuni. Nu modifică verdictul comun Neural / Boosting. [Metodologie și rezultate HMM](HMM-LAB.md).
 
 ## Confidențialitate și stocare
 

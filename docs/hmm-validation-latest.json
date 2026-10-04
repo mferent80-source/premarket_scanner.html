@@ -1,0 +1,635 @@
+{
+  "schema": "hmm-public-validation-v1",
+  "version": "holdings-hmm-v1",
+  "generatedAt": "2026-10-04T08:33:36.790Z",
+  "source": "Yahoo Finance OHLCV · fluxul public existent",
+  "scope": "Patru instrumente publice fixe, separate de contul brokerului.",
+  "limits": [
+    "Comparație retrospectivă pe istoric deja examinat; fără holdout prospectiv nou.",
+    "NLL descrie densitatea indicatorilor, nu randamente sau probabilități de profit.",
+    "Indicatori corelați și distribuții diagonale: concentrația modelului poate supraestima certitudinea.",
+    "OHLCV și ajustările furnizorului nu sunt certificate independent."
+  ],
+  "results": [
+    {
+      "symbol": "MSFT",
+      "sector": "Tehnologie",
+      "retrievedAt": "2026-10-04T08:33:36.790Z",
+      "status": "evaluated",
+      "asOf": "2026-10-02",
+      "bars": 1255,
+      "observations": 1056,
+      "currency": "USD",
+      "result": {
+        "version": "holdings-hmm-v1",
+        "config": {
+          "states": 3,
+          "features": 3,
+          "maxIterations": 80,
+          "initializations": 3,
+          "varianceFloor": 0.05,
+          "transitionPrior": 0.1,
+          "persistencePrior": 2,
+          "minimumTrain": 180,
+          "confirmation": 3,
+          "concentration": 0.65,
+          "maxZ": 6,
+          "advantage": 0.02,
+          "gapDays": 7
+        },
+        "reviewOnly": true,
+        "selection": {
+          "iteration": 5,
+          "initialization": 2,
+          "validation": {
+            "from": 1738074600000,
+            "to": 1764167400000,
+            "n": 211
+          }
+        },
+        "profiles": [
+          {
+            "state": 0,
+            "means": [
+              -2.7321592994009167,
+              -2.8441140677131713,
+              2.4377608258264756
+            ],
+            "label": "Deteriorare",
+            "effective": 170.19886414495141,
+            "volatility": "Obișnuită",
+            "persistence": 9.557819587264778
+          },
+          {
+            "state": 1,
+            "means": [
+              0.890986801358863,
+              1.5011417243914822,
+              1.763586012768245
+            ],
+            "label": "Ascendent",
+            "effective": 314.6237492017715,
+            "volatility": "Obișnuită",
+            "persistence": 22.276851725565354
+          },
+          {
+            "state": 2,
+            "means": [
+              3.5253303886913017,
+              3.748312195623064,
+              2.4820382627306365
+            ],
+            "label": "Ascendent",
+            "effective": 148.17738665327707,
+            "volatility": "Obișnuită",
+            "persistence": 9.005437705680052
+          }
+        ],
+        "quality": {
+          "represented": true,
+          "separation": 1.0426311315103929,
+          "informative": true
+        },
+        "report": {
+          "periods": {
+            "train": {
+              "from": 1658323800000,
+              "to": 1737988200000,
+              "n": 633
+            },
+            "validation": {
+              "from": 1738074600000,
+              "to": 1764167400000,
+              "n": 211
+            },
+            "test": {
+              "from": 1764340200000,
+              "to": 1790947800000,
+              "n": 212
+            }
+          },
+          "test": {
+            "n": 212,
+            "hmm": 5.846810114755189,
+            "independent": 6.602558324103578,
+            "gaussian": 6.510884772302692
+          },
+          "advantage": true
+        },
+        "walk": {
+          "status": "complete",
+          "folds": [
+            {
+              "id": 1,
+              "status": "evaluated",
+              "periods": {
+                "train": {
+                  "from": 1658323800000,
+                  "to": 1709130600000,
+                  "n": 405
+                },
+                "validation": {
+                  "from": 1709217000000,
+                  "to": 1726061400000,
+                  "n": 135
+                },
+                "test": {
+                  "from": 1726147800000,
+                  "to": 1743082200000,
+                  "n": 135
+                }
+              },
+              "test": {
+                "n": 135,
+                "hmm": 2.909455351312003,
+                "independent": 3.4046287152577324,
+                "gaussian": 3.7902732671843724
+              },
+              "advantage": true
+            },
+            {
+              "id": 2,
+              "status": "evaluated",
+              "periods": {
+                "train": {
+                  "from": 1658323800000,
+                  "to": 1721827800000,
+                  "n": 506
+                },
+                "validation": {
+                  "from": 1721914200000,
+                  "to": 1743082200000,
+                  "n": 169
+                },
+                "test": {
+                  "from": 1743168600000,
+                  "to": 1764167400000,
+                  "n": 169
+                }
+              },
+              "test": {
+                "n": 169,
+                "hmm": 3.4532495687992415,
+                "independent": 4.103540440701784,
+                "gaussian": 4.692039624314538
+              },
+              "advantage": true
+            },
+            {
+              "id": 3,
+              "status": "evaluated",
+              "periods": {
+                "train": {
+                  "from": 1658323800000,
+                  "to": 1737988200000,
+                  "n": 633
+                },
+                "validation": {
+                  "from": 1738074600000,
+                  "to": 1764167400000,
+                  "n": 211
+                },
+                "test": {
+                  "from": 1764340200000,
+                  "to": 1790947800000,
+                  "n": 212
+                }
+              },
+              "test": {
+                "n": 212,
+                "hmm": 5.846810114755189,
+                "independent": 6.602558324103578,
+                "gaussian": 6.510884772302692
+              },
+              "advantage": true
+            }
+          ],
+          "summary": {
+            "n": 516,
+            "hmm": 4.29437867031452,
+            "independent": 4.947413906489058,
+            "gaussian": 5.203389843618639,
+            "wins": 3
+          },
+          "consistent": true
+        }
+      }
+    },
+    {
+      "symbol": "JPM",
+      "sector": "Financiare",
+      "retrievedAt": "2026-10-04T08:34:11.471Z",
+      "status": "evaluated",
+      "asOf": "2026-10-02",
+      "bars": 1255,
+      "observations": 1056,
+      "currency": "USD",
+      "result": {
+        "version": "holdings-hmm-v1",
+        "config": {
+          "states": 3,
+          "features": 3,
+          "maxIterations": 80,
+          "initializations": 3,
+          "varianceFloor": 0.05,
+          "transitionPrior": 0.1,
+          "persistencePrior": 2,
+          "minimumTrain": 180,
+          "confirmation": 3,
+          "concentration": 0.65,
+          "maxZ": 6,
+          "advantage": 0.02,
+          "gapDays": 7
+        },
+        "reviewOnly": true,
+        "selection": {
+          "iteration": 5,
+          "initialization": 2,
+          "validation": {
+            "from": 1738074600000,
+            "to": 1764167400000,
+            "n": 211
+          }
+        },
+        "profiles": [
+          {
+            "state": 0,
+            "means": [
+              -1.6728205016416378,
+              -0.8862832706746866,
+              1.9388126218925388
+            ],
+            "label": "Deteriorare",
+            "effective": 193.017080998825,
+            "volatility": "Obișnuită",
+            "persistence": 7.928387402272598
+          },
+          {
+            "state": 1,
+            "means": [
+              1.1674751352588584,
+              0.7467342133947829,
+              2.6535801894667435
+            ],
+            "label": "Ascendent",
+            "effective": 124.78109762428062,
+            "volatility": "Ridicată",
+            "persistence": 16.74472261617891
+          },
+          {
+            "state": 2,
+            "means": [
+              1.9600021780984778,
+              2.6473974223543113,
+              1.6741454032203131
+            ],
+            "label": "Ascendent",
+            "effective": 315.2018213768946,
+            "volatility": "Obișnuită",
+            "persistence": 14.810759209026548
+          }
+        ],
+        "quality": {
+          "represented": true,
+          "separation": 1.017277930964459,
+          "informative": true
+        },
+        "report": {
+          "periods": {
+            "train": {
+              "from": 1658323800000,
+              "to": 1737988200000,
+              "n": 633
+            },
+            "validation": {
+              "from": 1738074600000,
+              "to": 1764167400000,
+              "n": 211
+            },
+            "test": {
+              "from": 1764340200000,
+              "to": 1790947800000,
+              "n": 212
+            }
+          },
+          "test": {
+            "n": 212,
+            "hmm": 3.3797864472344887,
+            "independent": 3.8601730237154066,
+            "gaussian": 3.8846524634884667
+          },
+          "advantage": true
+        },
+        "walk": {
+          "status": "complete",
+          "folds": [
+            {
+              "id": 1,
+              "status": "evaluated",
+              "periods": {
+                "train": {
+                  "from": 1658323800000,
+                  "to": 1709130600000,
+                  "n": 405
+                },
+                "validation": {
+                  "from": 1709217000000,
+                  "to": 1726061400000,
+                  "n": 135
+                },
+                "test": {
+                  "from": 1726147800000,
+                  "to": 1743082200000,
+                  "n": 135
+                }
+              },
+              "test": {
+                "n": 135,
+                "hmm": 3.5120961911212882,
+                "independent": 4.038009421300316,
+                "gaussian": 4.382166301294808
+              },
+              "advantage": true
+            },
+            {
+              "id": 2,
+              "status": "evaluated",
+              "periods": {
+                "train": {
+                  "from": 1658323800000,
+                  "to": 1721827800000,
+                  "n": 506
+                },
+                "validation": {
+                  "from": 1721914200000,
+                  "to": 1743082200000,
+                  "n": 169
+                },
+                "test": {
+                  "from": 1743168600000,
+                  "to": 1764167400000,
+                  "n": 169
+                }
+              },
+              "test": {
+                "n": 169,
+                "hmm": 3.8352495961379383,
+                "independent": 4.4182151772408575,
+                "gaussian": 5.001359023512224
+              },
+              "advantage": true
+            },
+            {
+              "id": 3,
+              "status": "evaluated",
+              "periods": {
+                "train": {
+                  "from": 1658323800000,
+                  "to": 1737988200000,
+                  "n": 633
+                },
+                "validation": {
+                  "from": 1738074600000,
+                  "to": 1764167400000,
+                  "n": 211
+                },
+                "test": {
+                  "from": 1764340200000,
+                  "to": 1790947800000,
+                  "n": 212
+                }
+              },
+              "test": {
+                "n": 212,
+                "hmm": 3.3797864472344887,
+                "independent": 3.8601730237154066,
+                "gaussian": 3.8846524634884667
+              },
+              "advantage": true
+            }
+          ],
+          "summary": {
+            "n": 516,
+            "hmm": 3.563575376671312,
+            "independent": 4.089469608249833,
+            "gaussian": 4.380559007573488,
+            "wins": 3
+          },
+          "consistent": true
+        }
+      }
+    },
+    {
+      "symbol": "XOM",
+      "sector": "Energie",
+      "retrievedAt": "2026-10-04T08:37:50.304Z",
+      "status": "evaluated",
+      "asOf": "2026-10-02",
+      "bars": 1255,
+      "observations": 1056,
+      "currency": "USD",
+      "result": {
+        "version": "holdings-hmm-v1",
+        "config": {
+          "states": 3,
+          "features": 3,
+          "maxIterations": 80,
+          "initializations": 3,
+          "varianceFloor": 0.05,
+          "transitionPrior": 0.1,
+          "persistencePrior": 2,
+          "minimumTrain": 180,
+          "confirmation": 3,
+          "concentration": 0.65,
+          "maxZ": 6,
+          "advantage": 0.02,
+          "gapDays": 7
+        },
+        "reviewOnly": true,
+        "selection": {
+          "iteration": 15,
+          "initialization": 2,
+          "validation": {
+            "from": 1738074600000,
+            "to": 1764167400000,
+            "n": 211
+          }
+        },
+        "profiles": [
+          {
+            "state": 0,
+            "means": [
+              -1.9824596272681536,
+              -1.968960651634465,
+              2.013420682596333
+            ],
+            "label": "Deteriorare",
+            "effective": 179.07048351340651,
+            "volatility": "Obișnuită",
+            "persistence": 8.982608784694614
+          },
+          {
+            "state": 1,
+            "means": [
+              0.4633388965988493,
+              0.6087911413046434,
+              2.7803112333397455
+            ],
+            "label": "Ascendent",
+            "effective": 228.06559525387448,
+            "volatility": "Obișnuită",
+            "persistence": 71.29950836955992
+          },
+          {
+            "state": 2,
+            "means": [
+              1.8279837178591785,
+              1.9433204580294143,
+              1.870162020277867
+            ],
+            "label": "Ascendent",
+            "effective": 225.8639212327194,
+            "volatility": "Obișnuită",
+            "persistence": 11.451648606819695
+          }
+        ],
+        "quality": {
+          "represented": true,
+          "separation": 1.0014062046423622,
+          "informative": true
+        },
+        "report": {
+          "periods": {
+            "train": {
+              "from": 1658323800000,
+              "to": 1737988200000,
+              "n": 633
+            },
+            "validation": {
+              "from": 1738074600000,
+              "to": 1764167400000,
+              "n": 211
+            },
+            "test": {
+              "from": 1764340200000,
+              "to": 1790947800000,
+              "n": 212
+            }
+          },
+          "test": {
+            "n": 212,
+            "hmm": 4.134828964379765,
+            "independent": 4.812969080452772,
+            "gaussian": 4.650617121243839
+          },
+          "advantage": true
+        },
+        "walk": {
+          "status": "complete",
+          "folds": [
+            {
+              "id": 1,
+              "status": "evaluated",
+              "periods": {
+                "train": {
+                  "from": 1658323800000,
+                  "to": 1709130600000,
+                  "n": 405
+                },
+                "validation": {
+                  "from": 1709217000000,
+                  "to": 1726061400000,
+                  "n": 135
+                },
+                "test": {
+                  "from": 1726147800000,
+                  "to": 1743082200000,
+                  "n": 135
+                }
+              },
+              "test": {
+                "n": 135,
+                "hmm": 2.9295786905771193,
+                "independent": 3.6280322190969065,
+                "gaussian": 4.0610956295366805
+              },
+              "advantage": true
+            },
+            {
+              "id": 2,
+              "status": "evaluated",
+              "periods": {
+                "train": {
+                  "from": 1658323800000,
+                  "to": 1721827800000,
+                  "n": 506
+                },
+                "validation": {
+                  "from": 1721914200000,
+                  "to": 1743082200000,
+                  "n": 169
+                },
+                "test": {
+                  "from": 1743168600000,
+                  "to": 1764167400000,
+                  "n": 169
+                }
+              },
+              "test": {
+                "n": 169,
+                "hmm": 3.4491158826987673,
+                "independent": 3.966824737236189,
+                "gaussian": 4.418635272868829
+              },
+              "advantage": true
+            },
+            {
+              "id": 3,
+              "status": "evaluated",
+              "periods": {
+                "train": {
+                  "from": 1658323800000,
+                  "to": 1737988200000,
+                  "n": 633
+                },
+                "validation": {
+                  "from": 1738074600000,
+                  "to": 1764167400000,
+                  "n": 211
+                },
+                "test": {
+                  "from": 1764340200000,
+                  "to": 1790947800000,
+                  "n": 212
+                }
+              },
+              "test": {
+                "n": 212,
+                "hmm": 4.134828964379765,
+                "independent": 4.812969080452772,
+                "gaussian": 4.650617121243839
+              },
+              "advantage": true
+            }
+          ],
+          "summary": {
+            "n": 516,
+            "hmm": 3.594917534597893,
+            "independent": 4.225827858967027,
+            "gaussian": 4.420403296135616,
+            "wins": 3
+          },
+          "consistent": true
+        }
+      }
+    },
+    {
+      "symbol": "SPY",
+      "sector": "ETF · piață largă",
+      "retrievedAt": "2026-10-04T08:38:19.995Z",
+      "status": "blocked",
+      "error": "Yahoo: simbol invalid sau indisponibil — SPY"
+    }
+  ],
+  "updatedAt": "2026-10-04T08:38:26.497Z"
+}
