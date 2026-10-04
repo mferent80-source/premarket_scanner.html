@@ -9,3 +9,7 @@ test('explicit cancellation frees the worker and does not write a model',()=>{co
 test('changes to EOD, currency, symbol or the positions in the same account cancel Neural jobs',()=>{
  for(const change of ['eod','currency','symbol','removed']){const s=setup();s.button.onclick();const w=s.workers[0],c=s.context('account-a');if(change==='eod')c.model=()=>({currency:'USD',asOf:'2026-10-03'});if(change==='currency')c.model=()=>({currency:'EUR',asOf:'2026-10-02'});if(change==='symbol')c.symbol=()=> 'OTHER';if(change==='removed')c.positions=[];s.ui.setContext(c);assert.equal(w.terminated,true,change);assert.equal(s.ui.busy(),false);w.onmessage({data:{id:w.payload.id,result:{invalid:true}}});assert.equal(s.writes.size,0);}
 });
+test('a revised real EOD close cancels pending Neural training before a result is saved',async()=>{
+ const s=setup(),c=s.context('account-a',false);c.model=()=>({currency:'USD',asOf:'2026-10-02',price:100});s.ui.setContext(c);s.button.onclick();s.resolve();await new Promise(setImmediate);assert.equal(s.workers.length,1);
+ const next={...c,model:()=>({currency:'USD',asOf:'2026-10-02',price:101})};s.ui.setContext(next);assert.equal(s.workers[0].terminated,true);assert.equal(s.ui.busy(),false);assert.equal(s.writes.size,0);
+});
