@@ -12,7 +12,7 @@ Reantrenarea nu suprascrie primul rezultat, nici dacă aplicația schimbă versi
 
 ## Verificare
 
-La deschiderea filei Modele AI pentru o deținere cu estimări mai vechi decât EOD disponibil, verificarea solicită o singură dată pe sesiune o serie publică de până la cinci ani, fără cache. Butonul **Verifică rezultatele** permite reîncercarea. Nu există monitorizare când aplicația este închisă. Schimbarea contului, monedei, instrumentului sau EOD pe durata cererii anulează folosirea răspunsului.
+La deschiderea filei Modele AI pentru o deținere cu estimări care necesită actualizare, verificarea solicită o singură dată pe EOD așteptat o serie publică de până la cinci ani, fără cache. Programul salvat în registru stabilește EOD-ul, independent de o analiză curentă veche sau absentă. Dacă ultima verificare păstrată acoperă deja sesiunea așteptată, cererea automată este omisă și după redeschiderea paginii. Butonul **Verifică rezultatele** permite reîncercarea. Nu există monitorizare când aplicația este închisă. Schimbarea contului, monedei, instrumentului sau EOD al analizei pe durata cererii anulează folosirea răspunsului.
 
 `DailySeries.read` verifică identitatea, moneda, programul și sesiunea încheiată. Rezultatul este a cincea bară zilnică după timestampul de origine, nu cinci zile calendaristice și nu închiderea cea mai recentă. Înainte de cinci bare: pending. Dacă sursa nu poate confirma originea, a revizuit prețurile, are bare duplicate, un salt zilnic peste 25% sau un gol de peste șapte zile: neverificabil, exclus din agregate.
 

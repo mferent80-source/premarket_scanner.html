@@ -22,3 +22,35 @@ test('filters and search affect visible rows, while totals and full report keep 
 test('descriptive models never present predictive accuracy, and an anomaly demands review',()=>{for(const model of ['hmm','isolation']){const r=build([item('AAA',{model})],{model}),row=r.rows[0];assert.equal(row.report.accuracy,undefined);assert.equal(row.report.descriptive,true);assert.equal(row.state,model==='hmm'?'context':'review');}});
 test('structured coverage flags only activate after sufficient separated observations',()=>{const x=item('AAA',{model:'quantile'});for(const row of x.ledger.entries)row.estimate.prices=[row.source.close*.7,row.source.close*.71,row.source.close*.72];const r=build([x],{model:'quantile'});assert.equal(r.rows[0].report.flags.enough,true);assert.equal(r.rows[0].report.flags.underCoverage,true);assert.equal(r.rows[0].state,'review');x.ledger.entries=x.ledger.entries.slice(0,19);const s=build([x],{model:'quantile'});assert.equal(s.rows[0].report.flags.underCoverage,false);assert.equal(s.rows[0].state,'limited');});
 test('a deterioration between two complete twenty-observation blocks has its own flag',()=>{const x=item('AAA',{n:40});x.ledger.entries.forEach((r,i)=>{const outcome=r.outcome.close,ret=(outcome/r.source.close-1)*100,actual=ret<=-2?0:ret>=2?2:1;r.estimate.classIndex=i<20?actual:(actual+1)%3;});const report=build([x]).rows[0].report;assert.equal(report.n,40);assert.equal(report.flags.degraded,true);assert.match(report.warning,/Degradare/);});
+test('a new completed EOD marks historical results due without dropping evidence or changing forecasts',()=>{
+ const x=item('AAA',{kind:'market',model:'hmm'}),before=JSON.stringify(x),later=Date.parse('2026-10-05T21:00:00Z');
+ const r=build([x],{kind:'market',model:'hmm',now:later}),row=r.rows[0];
+ assert.equal(row.state,'stale');assert.equal(row.freshness.expectedAsOf,'2026-10-05');assert.equal(row.freshness.checkedAsOf,'2026-10-02');assert.equal(row.freshness.needsCheck,true);
+ assert.equal(row.report.n,24);assert.equal(r.totals.due,1);assert.equal(JSON.stringify(x),before);
+});
+test('weekends and the next unfinished session do not create false overdue checks',()=>{
+ const x=item('AAA',{kind:'market',model:'hmm'});
+ for(const time of [now,Date.parse('2026-10-05T17:00:00Z'),Date.parse('2026-10-05T20:14:00Z')]){
+  const row=build([x],{kind:'market',model:'hmm',now:time}).rows[0];assert.equal(row.state,'context');assert.equal(row.freshness.needsCheck,false);
+ }
+ const row=build([x],{kind:'market',model:'hmm',now:Date.parse('2026-10-05T20:15:00Z')}).rows[0];assert.equal(row.freshness.needsCheck,true);
+});
+test('a current saved forecast waits normally, while an older unchecked forecast needs review of its progress',()=>{
+ const x=item('AAA',{kind:'market',pending:true,n:1}),r=build([x],{kind:'market'});assert.equal(r.rows[0].state,'stale');assert.equal(r.rows[0].report.pending,1);
+ const sourceTime=Date.parse('2026-10-02T13:30:00Z'),capture=Date.parse('2026-10-02T21:00:00Z'),record=x.ledger.entries[0];record.source={...record.source,t:sourceTime,asOf:'2026-10-02'};record.id='neural|2026-10-02';record.capturedAt=capture;record.trainedAt=capture-60000;
+ const fresh=build([x],{kind:'market'}).rows[0];assert.equal(fresh.state,'waiting');assert.equal(fresh.freshness.needsCheck,false);assert.equal(fresh.freshness.checkedAsOf,null);
+});
+test('refreshing all saved verifications clears the due filter while keeping source EOD separate',()=>{
+ const x=item('AAA',{kind:'market',model:'hmm'}),later=Date.parse('2026-10-05T21:00:00Z');
+ assert.equal(build([x],{kind:'market',model:'hmm',now:later,filter:'due'}).visible.length,1);
+ x.ledger.entries.forEach(r=>r.verification.checkedAt=later);
+ const r=build([x],{kind:'market',model:'hmm',now:later,filter:'due'});assert.equal(r.visible.length,0);assert.equal(r.rows[0].state,'context');assert.equal(r.rows[0].asOf,'2026-10-02');assert.equal(r.rows[0].freshness.expectedAsOf,'2026-10-05');assert.equal(r.rows[0].freshness.checkedAsOf,'2026-10-05');
+});
+test('due counts cover all positions and remain independent of visible filters and review priority',()=>{
+ const a=item('AAA',{kind:'market',model:'hmm'}),b=item('BBB',{kind:'market',model:'hmm'}),later=Date.parse('2026-10-05T21:00:00Z');a.check={state:'error',at:later};
+ const r=build([a,b],{kind:'market',model:'hmm',now:later,filter:'due',query:'AAA'});assert.equal(r.visible.length,1);assert.equal(r.rows[0].state,'blocked');assert.equal(r.totals.due,2);
+ const simulation=build([item()],{now:later});assert.equal(simulation.totals.due,0);assert.equal(simulation.rows[0].freshness.state,'simulation');
+});
+test('a missing selected model does not hide another model registry from batch checking',()=>{
+ const row=build([item()],{model:'quantile'}).rows[0];assert.equal(row.state,'missing');assert.equal(row.entries,0);assert.equal(row.hasRegistry,true);
+});

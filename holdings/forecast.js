@@ -32,7 +32,8 @@ async function check(p,manual=false){
  if(!context||!p)return {state:'ignored'};const e=identity(p),k=F.key(e),m=context.model(p),data=store().read(e);
  if(!k||!data.ok)return {state:'blocked'};if(!data.entries.length)return {state:'empty'};if(running.has(k))return {state:'busy'};
  if(context.demo){if(manual){messages.set(k,'Verificarea demo folosește numai închiderile fictive. Încarcă simularea pentru exemple finalizate.');refresh();}return {state:'demo'};}
- const stamp=k+'|'+(m?.asOf||'unknown');if(!manual&&(!m||attempted.has(stamp)||!data.entries.some(r=>r.source.asOf<m.asOf)))return {state:'ignored'};
+ let expectedEod;try{const s=data.entries.at(-1).source;expectedEod=g.DailySeries.expected(Date.now(),s.timezone,s.closeMinutes);}catch{if(!manual)return {state:'blocked'};}
+ const stamp=k+'|'+(expectedEod||'unknown');if(!manual&&(attempted.has(stamp)||!data.entries.some(r=>r.source.asOf<expectedEod&&(r.verification.checkedAt===null||g.DailySeries.expected(r.verification.checkedAt,r.source.timezone,r.source.closeMinutes)<expectedEod))))return {state:'ignored'};
  attempted.add(stamp);running.add(k);const token=generation,expected=m?.asOf;checks.set(k,{state:'checking',at:Date.now()});messages.set(k,'Verific închiderile zilnice din sursa publică…');refresh();
  try{const raw=await g.D.fetchStock(e.symbol,{range:'5y',interval:'1d',ttl:0}),source=g.DailySeries.read(raw,e.symbol),now=Date.now();
   const position=context.positions.find(x=>x.ticker===e.ticker);if(token!==generation||!position||!same(e,position)||context.model(position)?.asOf!==expected){checks.set(k,{state:'ignored',at:now});return {state:'ignored'};}
