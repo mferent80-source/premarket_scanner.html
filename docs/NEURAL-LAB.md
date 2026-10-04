@@ -1,6 +1,6 @@
 # Model Lab — Analiza deținerilor
 
-Versiune aplicație: **26.10.04.1052**.
+Versiune aplicație: **26.10.04.1057**.
 
 Implementare de cercetare, per instrument: un ansamblu de trei rețele MLP 10 → 12 → 3 antrenate efectiv prin backpropagation în Web Worker. Nu este o regulă de tranzacționare, o probabilitate calibrată de profit sau un model validat pentru utilizare automată.
 
@@ -58,7 +58,7 @@ Un singur buton din fila **Modele AI** antrenează Neural V3 și Gradient Boosti
 
 Arbori CART de regresie, trei per rundă, adaptați reziduurilor multiclasă `one-hot − softmax`. Adâncime maximum 2, minimum 20 exemple per frunză, rată 0,08 și maximum 80 runde, fixate înaintea experimentului. Primii 60% din validare selectează numărul de runde după loss, verificat la fiecare cinci runde. Ultima parte a validării și testul nu selectează arborii. Numărul selectat este diferit per instrument/fereastră; aceasta este selecție pe validare, nu modificare a regulilor după test. Scorurile Boosting sunt necalibrate.
 
-Comparația arată clasa estimată de fiecare model, loss-ul recent, acuratețea echilibrată și ferestrele cu avantaj. Acordul claselor nu este suficient: verdictul comun rămâne „Neconcludent” dacă unul dintre modele nu demonstrează avantaj repetat. Dezacordul modelelor, dezacordul intern al rețelelor și intrările în afara domeniului blochează interpretarea. Niciun rezultat nu activează ordine, Governor sau modificări de plan. Indicatorii folosiți în arbori sunt ordonați după reducerea erorii la împărțiri pe antrenare; acele ponderi nu sunt explicații cauzale sau utilitate viitoare demonstrată.
+Pe telefon, comparația principală folosește carduri pentru fiecare model; detaliile istorice rămân în tabele. Fila selectată este adusă în zona vizibilă a navigării. Comparația arată clasa estimată de fiecare model, loss-ul recent, acuratețea echilibrată și ferestrele cu avantaj. Acordul claselor nu este suficient: verdictul comun rămâne „Neconcludent” dacă unul dintre modele nu demonstrează avantaj repetat. Dezacordul modelelor, dezacordul intern al rețelelor și intrările în afara domeniului blochează interpretarea. Niciun rezultat nu activează ordine, Governor sau modificări de plan. Indicatorii folosiți în arbori sunt ordonați după reducerea erorii la împărțiri pe antrenare; acele ponderi nu sunt explicații cauzale sau utilitate viitoare demonstrată.
 
 Modelele Neural V3 salvate anterior rămân valide; reantrenarea adaugă comparația. Eșecul Boosting păstrează Neural cu un mesaj explicit de indisponibilitate. Ponderile și rapoartele rămân locale. Formatul salvat și raportul public sunt verificate; teste suplimentare acoperă învățarea neliniară, separarea selecției de test și validarea perechilor de perioade/repere.
 
