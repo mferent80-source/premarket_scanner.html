@@ -57,3 +57,5 @@ Workerul primește exclusiv bare, ora și un ID temporar. Nu primește cheia Tra
 491 teste JavaScript verificate, dintre care 17 pentru HMM și integrarea lui: comparație cu enumerarea exactă a traseelor ascunse, statistici forward–backward, indicatori cauzali, invarianta filtrului la adăugarea viitorului, izolarea testului de selecție, învățare pe stări fictive, resetare la gol, stări colapsate, integritatea metricilor și posteriorilor, ferestre disjuncte, anulare, identitate EOD și erori de stocare. Scorurile recente HMM și reperele sunt recalculate din observațiile de test și parametrii salvați, nu doar acceptate din JSON.
 
 Metodologie: [hmmlearn — HMM, Baum–Welch și limitările inițializării](https://hmmlearn.readthedocs.io/en/stable/tutorial.html). Implementarea este proprie și nu folosește biblioteca hmmlearn.
+
+Modelul descriptiv de anomalii este documentat separat în [Isolation Forest](ISOLATION-LAB.md); nu modifică verdictul de mai sus.

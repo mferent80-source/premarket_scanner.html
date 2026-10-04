@@ -1,6 +1,6 @@
 # Model Lab — Analiza deținerilor
 
-Versiune aplicație: **26.10.04.1143**.
+Versiune aplicație: **26.10.04.1212**.
 
 Implementare de cercetare, per instrument: un ansamblu de trei rețele MLP 10 → 12 → 3 antrenate efectiv prin backpropagation în Web Worker. Nu este o regulă de tranzacționare, o probabilitate calibrată de profit sau un model validat pentru utilizare automată.
 
@@ -94,3 +94,5 @@ Pentru trecerea la un model validat: istoric cu ajustări și proveniență veri
 Surse de metodologie: [Calibrare și temperatură — scikit-learn](https://scikit-learn.org/stable/modules/calibration.html), [MLP și backpropagation — documentația scikit-learn](https://scikit-learn.org/stable/modules/neural_networks_supervised.html), [Separare temporală și gap — TimeSeriesSplit](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html). [Gradient boosting și gradient negativ — scikit-learn](https://scikit-learn.org/stable/modules/ensemble.html). Implementarea din aplicație este JavaScript propriu, fără dependență de scikit-learn.
 
 Demo: https://mferent80-source.github.io/premarket_scanner.html/tools/holdings-neural-demo.html
+
+Modelul descriptiv de anomalii este documentat separat în [Isolation Forest](ISOLATION-LAB.md); nu modifică verdictul de mai sus.
