@@ -24,3 +24,7 @@ Acuratețea privește etichetele istorice, nu tranzacții. NLL HMM și loss-ul c
 13 teste noi acoperă proiecțiile celor patru modele, indisponibilitatea, identitatea și vechimea, metricele lipsă, lipsa câmpurilor private, interpretările blocate, deschiderea/comutarea și închiderea la schimbări de context. Algoritmii și rapoartele publice anterioare nu sunt modificate.
 
 Verificare automată: 555 de teste trecute în suita completă.
+
+## Extensie: al cincilea model
+
+Regresia cu cuantile adaugă intervalul și mediana închiderii la cinci sesiuni, acoperirea observată și comparația cu un reper simplu. Are fereastră proprie, fără vot comun sau scor agregat. Sinteza curentă folosește `holdings-lab-summary-v2` cu cinci modele; istoricul păstrează și citește formatul v1 cu patru modele, fără ștergere sau rescriere la deschidere. La comparația între versiuni, cuantilele sunt „model nou”, nu o schimbare a pieței. [Metodologie și limite](HOLDINGS-QUANTILE.md).

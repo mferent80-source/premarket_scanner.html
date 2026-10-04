@@ -34,3 +34,7 @@ Aceeași sesiune EOD este etichetată „reanalizare, fără o sesiune nouă de 
 20 de teste noi acoperă separarea identităților, proiecția fără date private, duplicatele, limitele, imutabilitatea, ceasul/datele, disponibilitatea, scenariile de corupere și quota, interpretarea reantrenării și comportamentul UI la schimbarea contului. Algoritmii și rapoartele publice existente rămân neschimbate.
 
 Verificare automată: 542 de teste trecute în suita completă, inclusiv cele 20 de teste noi de istoric.
+
+## Extensie: al cincilea model
+
+Regresia cu cuantile adaugă intervalul și mediana închiderii la cinci sesiuni, acoperirea observată și comparația cu un reper simplu. Are fereastră proprie, fără vot comun sau scor agregat. Sinteza curentă folosește `holdings-lab-summary-v2` cu cinci modele; istoricul păstrează și citește formatul v1 cu patru modele, fără ștergere sau rescriere la deschidere. La comparația între versiuni, cuantilele sunt „model nou”, nu o schimbare a pieței. [Metodologie și limite](HOLDINGS-QUANTILE.md).
