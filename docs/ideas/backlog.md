@@ -3222,6 +3222,16 @@ pe un singur chart.
 | I-514 | Latimea masurata de Busola (+4,2/−3,9 ATR pe 4h) si „Ce scrii in Pionex” langa propunerea Radarului in fisa de grid | busola/src/motor/rezumatRadar.ts, src/motor/grid.ts; crypto/public/lib/busola.js, public/app.js | M | P2 | propus | ideation | 2026-10-03 |
 | I-515 | Reteaua Radarului sub arbitrul Busolei: predictiile ei (atinge-24, liniste) notate in jurnalul Busolei si judecate fata de martor | crypto/public/lib/retea.js, scripts/colector.mjs; busola/cron/masoara.ts, src/motor/bilantVerdict.ts | M | P3 | propus | ideation | 2026-10-03 |
 | I-516 | Contractul rezumatului cu versiune si un exemplu comun, verificat in ambele aplicatii | busola/src/motor/rezumatRadar.ts, probe/; crypto/public/lib/busola.js, scripts/proba-busola.mjs | S | P3 | propus | ideation | 2026-10-03 |
+| I-517 | Tablou: blocul „Pe zi, la inchidere, ce stim” (14 randuri) spart in 3 cartele - Azi / Daca inchizi / Contextul (Busola, laboratorul, jurnalul) | crypto/public/app.js (tbDeseneazaExtra), public/app.css | M | P2 | propus | ideation | 2026-10-04 |
+| I-518 | O singura cartela „Busola” pe toate paginile (fisa, Tablou, Acasa, dimineata): starea, intervalul masurat, bilantul - un singur producator, nu 4 formate | crypto/public/lib/busola.js, public/app.js, public/lib/acasa-ecran.js, scripts/colector.mjs | M | P2 | propus | ideation | 2026-10-04 |
+| I-519 | Fisa de grid: antet lipicios cu verdictul + 3 motive, cele 8 sectiuni pliate implicit pe telefon (azi 2 ecrane pana la setari) | crypto/public/app.js (renderGrid), public/app.css | M | P2 | propus | ideation | 2026-10-04 |
+| I-520 | Trading 212: cele 3 tabele (idei, pe revenire, socoteala sfaturilor) in file cu numarul in titlu („Idei 23 · Pe revenire 9 · Socoteala”) | crypto/public/lib/t212-ecran.js, public/index.html, public/app.css | S | P3 | propus | ideation | 2026-10-04 |
+| I-521 | Acasa: „Ce as cumpara azi” ca o cartela cu 3 coloane (actiuni / boti / revenire-short) in locul a doua randuri lungi | crypto/public/lib/acasa-ecran.js, public/app.css | S | P3 | propus | ideation | 2026-10-04 |
+| I-522 | Verdict unic pe bot cand Radarul si Busola nu sunt de acord: „Radarul: liniste · Busola: mai agitata - de ce” (doua definitii ale agitatiei, azi una langa alta fara explicatie) | crypto/public/lib/consiliu.js, public/lib/tablou-bot.js, scripts/lib/garda-alerte.mjs | M | P2 | propus | ideation | 2026-10-04 |
+| I-523 | Semaforul ia in calcul bilantul pazei: „mai agitata” + bilant „dovedit” => motiv de ATENTIE (nu IESI); „pe dos” => motivul dispare - ipoteza, DOAR dupa verdict (>= 20 monede) | crypto/public/lib/semnale-bot.js, public/lib/consiliu.js, scripts/colector.mjs | M | P2 | propus | ideation | 2026-10-04 |
+| I-524 | Fisa: cat de departe e propunerea Radarului de intervalul Busolei („cu 35% mai ingust decat al Busolei - pe 4h cel mai larg a pierdut cel mai putin”, I-505) | crypto/public/lib/busola.js (randFisa), public/app.js (grBusolaFisaHtml), scripts/proba-busola.mjs | S | P2 | propus | ideation | 2026-10-04 |
+| I-525 | Listele „Pe revenire” / „Pentru short”: dunga rosie si dupa istoricul TAU pe moneda (>= 5 boti pe minus), nu doar dupa istoricul pietei | crypto/public/lib/t212-ecran.js (tbSugestiiCorp), public/lib/idei.js | S | P3 | propus | ideation | 2026-10-04 |
+| I-526 | Rezumatul de dimineata cu un verdict-titlu inaintea randurilor („Azi: 1 bot pe agitatie dovedita, 2 pe calm; 9 actiuni pe revenire, istoricul cam la fel”) | crypto/scripts/colector.mjs (dateDimineata), public/lib/consilier.js (rezumatDimineata), scripts/lib/garda-alerte.mjs | S | P3 | propus | ideation | 2026-10-04 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5294,3 +5304,73 @@ Fluxul azi e într-un singur sens (Busola → Radar, JSON public). Radar → Bus
 - **Impact:** o schimbare de format pică o probă în ambele aplicații, nu ajunge tăcut la el.
 - **Riscuri:** exemplul trebuie ținut la zi în ambele repo-uri (două sesiuni); mic.
 - **Fișiere:** busola/src/motor/rezumatRadar.ts, probe/; crypto/public/lib/busola.js, scripts/proba-busola.mjs.
+
+#### I-517 · Tablou: blocul „Pe zi, la închidere, ce știm” spart în 3 cartele · [M] · P2 · propus
+- **Problema:** blocul are 14 rânduri într-o singură listă: banii de azi, ce iei dacă închizi, apoi Busola, laboratorul, jurnalul - rândul Busolei (v100.90) stă printre grile și comisioane, iar pe telefon lista e un perete.
+- **Soluția:** aceleași rânduri, în trei grupuri cu titlu: „Azi” (grile, comisioane, funding, net), „Dacă închizi acum” (iei, comisionul, prețul pe zero), „Contextul” (Busola, liniștea fișei, laboratorul, un long simplu, jurnalul). Același `linie()`, un titlu `tbEt2` pe grup, nimic nou în CSS în afară de spațiul dintre grupuri.
+- **Impact:** citești în 3 secunde ce e al banilor și ce e al contextului; eticheta Busolei nu se mai pierde printre cifre.
+- **Riscuri:** pozele probelor de ecran (proba-ecran-tablou) caută rândurile după text, nu după poziție - de verificat.
+- **Fișiere:** crypto/public/app.js (tbDeseneazaExtra), public/app.css.
+
+#### I-518 · O singură cartelă „Busola” pe toate paginile · [M] · P2 · propus
+- **Problema:** Busola apare în 4 formate făcute în 4 locuri: rândul din fișă (randGrid), eticheta de pe cartela botului (eticheta), rândul din portofoliu și rândul de dimineață (liniaBoti), plus intervalul (randFisa). Un text se schimbă într-un loc și rămâne vechi în altul (s-a întâmplat cu „nemăsurat” în v100.67 / v100.91).
+- **Soluția:** un singur producător `Busola.cartela(rez, cheie, kv)` → { stare, nota, interval, bilant } și un singur desen (3 rânduri, aceleași cuvinte) folosit de fișă, Tablou, Acasă (rândul „Ce aș cumpăra azi” pentru boții pe revenire) și de rezumatul de dimineață (varianta pe un rând).
+- **Impact:** Busola spune același lucru oriunde; o schimbare de contract (I-516) se repară într-un singur loc.
+- **Riscuri:** mutarea textelor cere mutarea situațiilor din gardă; probele vechi (proba-busola, v10086, v10090, v10091) rămân verzi doar dacă funcțiile vechi rămân ca învelișuri.
+- **Fișiere:** crypto/public/lib/busola.js, public/app.js, public/lib/acasa-ecran.js, scripts/colector.mjs, scripts/lib/garda-alerte.mjs.
+
+#### I-519 · Fișa de grid: antet lipicios cu verdictul, secțiunile pliate pe telefon · [M] · P2 · propus
+- **Problema:** fișa are 8 secțiuni (verdictul, istoricul tău, Busola, direcția, setările, varianta îngustă, „ce s-a întâmplat în trecut”, probabilitățile); pe telefon setările de pus în Pionex sunt la al doilea ecran, iar verdictul dispare când derulezi.
+- **Soluția:** un antet lipicios cu verdictul (culoarea semaforului) și cele 3 motive, apoi secțiunile pliate implicit sub 600 px, cu „Setările de pus în Pionex” deschise mereu; pe PC nimic nu se pliază.
+- **Impact:** pe telefon vezi verdictul și setările fără derulare; restul la un clic.
+- **Riscuri:** `details` pliate schimbă pozele probelor de ecran; CSS-ul fișei e în app.css lângă Tablou (specificitate - vezi capcana `#tabloubot .tbTodoRand p` din v100.88).
+- **Fișiere:** crypto/public/app.js (renderGrid), public/app.css, scripts/proba-ecran-grid.mjs.
+
+#### I-520 · Trading 212: cele 3 tabele în file · [S] · P3 · propus
+- **Problema:** pagina pune unul sub altul tabelul ideilor (5 + 18 pliate), tabelul de revenire (9) și socoteala sfaturilor; pe telefon sunt 3 tabele late derulabile la rând.
+- **Soluția:** trei file în același panou, cu numărul în titlu („Idei 23 · Pe revenire 9 · Socoteala sfaturilor”), fila aleasă ținută în localStorage; notele de sub tabele rămân la fila lor.
+- **Impact:** o singură lățime de derulat o dată, nu trei; numărul din titlu spune dacă e ceva de văzut.
+- **Riscuri:** butoanele de pe Acasă („Idei de cumpărare”) duc la panou - trebuie să deschidă fila potrivită.
+- **Fișiere:** crypto/public/lib/t212-ecran.js, public/index.html, public/app.css, public/lib/acasa-ecran.js (acasaMergiLa).
+
+#### I-521 · Acasă: „Ce aș cumpăra azi” pe 3 coloane · [S] · P3 · propus
+- **Problema:** rândul întâi (acțiuni + boți) și rândul al doilea (revenire + short + nota „aș sări peste”) sunt două fraze lungi cu „·” între ele; pe telefon se rup în 4 rânduri.
+- **Soluția:** o cartelă cu 3 coloane (acțiuni / boți / revenire-short), fiecare cu numele în bold, eticheta istoricului sub ele și butonul ei; nota de semnale opuse sub coloana cu pricina.
+- **Impact:** scanezi în loc să citești; același conținut, nimic ascuns.
+- **Riscuri:** garda „acasa” are situațiile pe textul de azi - se mută pe coloane.
+- **Fișiere:** crypto/public/lib/acasa-ecran.js (acasaCumpar, acasaCumpar2Corp), public/app.css, scripts/lib/garda-acasa.mjs.
+
+#### I-522 · Verdict unic când Radarul și Busola nu sunt de acord · [M] · P2 · propus
+- **Problema:** pe cartela botului stau două definiții ale agitației: „Mediul botului: mișcare” (regimul Radarului, r4h/r24h față de mediana lui) și „Busola: mai agitată ca de obicei” (găleata ATR pe 4h față de un an). Când se contrazic (azi AAVE: Radarul „liniște”, Busola „mai agitată”), nimic nu spune de ce.
+- **Soluția:** în Consiliu, un rând doar când se contrazic: „Radarul: liniște (ultimele 4 h față de mediana lui) · Busola: mai agitată (găleata ATR pe 4h față de un an) - orizonturi diferite, nu greșeală”; semaforul neatins.
+- **Impact:** el nu mai alege între două „adevăruri” fără explicație; scade încrederea oarbă în oricare.
+- **Riscuri:** textul trebuie să rămână sub 110 (garda „consiliu”); nu e un prag nou, e o explicație.
+- **Fișiere:** crypto/public/lib/consiliu.js, public/lib/tablou-bot.js, scripts/lib/garda-alerte.mjs.
+
+#### I-523 · Semaforul ia în calcul bilanțul pazei · [M] · P2 · propus
+- **Problema:** „mai agitată” de la Busola e azi doar un avertisment pe cartelă; semaforul nu știe de el. Busola măsoară însă pe date noi (I-512, `perp.bilant`) dacă după „mai agitat” gridul chiar pierde mai mult.
+- **Soluția:** când `perp.bilant.verdict` = „dovedit” și moneda botului e „mai agitată”, semaforul primește un motiv de ATENȚIE cu cifra („după agitație gridul a pierdut −0,17 pp pe episod, pe date noi”); „pe dos” ⇒ motivul dispare; „prea puține” / „n-am aflat” ⇒ nimic. Niciodată IEȘI de la Busola singură.
+- **Impact:** avertismentul devine parte din verdict abia când e dovedit pe date noi - regula lui „se avertizează, nu se refuză” rămâne.
+- **Riscuri:** ipoteză, de validat pe semnalele de după (trader.md): se notează în socoteala semaforului ca motiv separat, ca să se vadă dacă a avut dreptate; cere verdictul Busolei (≥ 20 de monede, ~2 zile).
+- **Fișiere:** crypto/public/lib/semnale-bot.js, public/lib/consiliu.js, scripts/colector.mjs, scripts/lib/garda-alerte.mjs.
+
+#### I-524 · Fișa: cât de departe e propunerea de intervalul Busolei · [S] · P2 · propus
+- **Problema:** rândul „Busola, măsurat (4h): jos · sus · N linii” stă sub propunere, dar comparația o face el din cap (LIT: Radarul 3.177–3.962, Busola 3.009–4.224).
+- **Soluția:** o frază după rând: „intervalul tău e cu 35% mai îngust decât al Busolei; pe 4h, intervalul cel mai larg a pierdut cel mai puțin (I-505)” sau „cam la fel de larg”; pragul de „cam la fel” ±10%.
+- **Impact:** o cifră în loc de două intervale de comparat; leagă fișa de singura măsurare a lățimii pe date nevăzute.
+- **Riscuri:** lățimea Busolei e pe spot (I-511: pe futures pierde la fel); textul ≤ 110 (garda).
+- **Fișiere:** crypto/public/lib/busola.js (randFisa), public/app.js (grBusolaFisaHtml), scripts/proba-busola.mjs, scripts/proba-v10090.mjs.
+
+#### I-525 · Listele de revenire / short: dunga și după istoricul tău · [S] · P3 · propus
+- **Problema:** dunga din stânga rândului e verde sau galbenă doar după istoricul pieței („mai slab”); istoricul tău pe monedă (POWER: 17 boți, 10 pe plus, −173,55 USDT) e doar text gri.
+- **Soluția:** cu ≥ 5 boți ai tăi pe monedă și totalul pe minus, dunga devine roșie și textul istoricului tău iese pe roșu, ca la candidați (`x.istoric.n >= 3 && total < 0` există deja la lista de candidați - aceeași regulă).
+- **Impact:** monedele pe care tu pierzi se văd de departe, în toate listele la fel.
+- **Riscuri:** niciunul de date; o regulă deja folosită.
+- **Fișiere:** crypto/public/lib/t212-ecran.js (tbSugestiiCorp), public/lib/idei.js.
+
+#### I-526 · Rezumatul de dimineață cu un verdict-titlu · [S] · P3 · propus
+- **Problema:** rezumatul e o listă de rânduri egale (piața, de ieșit, rezultate, plafon, boți, Busola); nu spune în prima frază ce contează azi.
+- **Soluția:** un rând întâi, sintetic, din aceleași date: „Azi: 1 bot pe agitație dovedită, 2 pe calm · 9 acțiuni pe revenire, istoricul cam la fel · nimic de ieșit”; restul rândurilor sub el.
+- **Impact:** pe telefon citești un rând și știi dacă deschizi Radarul.
+- **Riscuri:** rândul ≤ 160 (garda „raport”); se construiește din aceleași surse, fără cifre noi.
+- **Fișiere:** crypto/scripts/colector.mjs (dateDimineata), public/lib/consilier.js (rezumatDimineata), scripts/lib/garda-alerte.mjs.
