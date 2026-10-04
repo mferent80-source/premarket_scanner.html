@@ -49,14 +49,18 @@ test('model analysis controls expose each model explicitly in the summary',()=>{
  assert.ok(html.includes('data-model-analysis-index="2"'));assert.ok(html.includes('Vezi analiza Gradient Boosting'));
 });
 function uiSetup(){
- const elements=()=>({dataset:{},setAttribute(){},focus(){},innerHTML:'',textContent:''}),nodes=new Map(),tabs=['neural','boosting','hmm','isolation'].map(id=>({...elements(),dataset:{modelAnalysisTab:id}}));let closed=0,removed=0,calls=0;
+ const elements=()=>({dataset:{},setAttribute(){},focus(){},innerHTML:'',textContent:''}),nodes=new Map(),tabs=['neural','boosting','hmm','isolation'].map(id=>({...elements(),dataset:{modelAnalysisTab:id}}));let closed=0,removed=0,calls=0;const queries=[];
  const d={setAttribute(){},querySelector:q=>{if(!nodes.has(q))nodes.set(q,elements());return nodes.get(q);},querySelectorAll:()=>tabs,showModal(){this.open=true;},close(){closed++;this.open=false;this.onclose?.();},remove(){removed++;}};
  const opener={dataset:{modelAnalysisIndex:'0',modelAnalysisOpen:'neural'},isConnected:true,focus(){}},context=scope=>({scope,demo:false,positions:[{ticker:'TEST_US_EQ'}],symbol:()=> 'TEST',model:()=>({currency:'USD',asOf:'2026-10-02'})});
- const sandbox={document:{querySelectorAll:()=>[opener],querySelector:()=>opener,createElement:()=>d,body:{appendChild(){}}}};vm.createContext(sandbox);vm.runInContext(readFileSync('holdings/model-analysis.js','utf8'),sandbox);const ui=sandbox.HoldingsModelAnalysisUI;ui.setContext(context('a'));ui.bind(()=>{calls++;return A.build(fixture());});return {ui,opener,d,nodes,tabs,context,stats:()=>({closed,removed,calls})};
+ const sandbox={document:{querySelectorAll:()=>[opener],querySelector:q=>{queries.push(q);return opener;},createElement:()=>d,body:{appendChild(){}}}};vm.createContext(sandbox);vm.runInContext(readFileSync('holdings/model-analysis.js','utf8'),sandbox);const ui=sandbox.HoldingsModelAnalysisUI;ui.setContext(context('a'));ui.bind(()=>{calls++;return A.build(fixture());});return {ui,opener,d,nodes,tabs,context,queries,stats:()=>({closed,removed,calls})};
 }
 test('analysis window rebuilds current results on opening and tab changes',()=>{
  const s=uiSetup();s.opener.onclick();assert.equal(s.d.open,true);assert.ok(s.stats().calls>=2);assert.match(s.nodes.get('#model-analysis-title').textContent,/Rețea neuronală/);s.tabs[2].onclick();assert.match(s.nodes.get('#model-analysis-title').textContent,/Hidden Markov Model/);assert.match(s.nodes.get('[data-model-analysis-body]').innerHTML,/NLL HMM/);s.nodes.get('[data-model-analysis-refresh]').onclick();assert.ok(s.stats().calls>=4);
 });
 test('account or instrument context changes close the open analysis window',()=>{
  for(const change of ['account','symbol','currency','eod','removed']){const s=uiSetup();s.opener.onclick();const c=s.context('a');if(change==='account')c.scope='b';if(change==='symbol')c.symbol=()=> 'OTHER';if(change==='currency')c.model=()=>({currency:'EUR',asOf:'2026-10-02'});if(change==='eod')c.model=()=>({currency:'USD',asOf:'2026-10-03'});if(change==='removed')c.positions=[];s.ui.setContext(c);assert.equal(s.d.open,false,change);assert.equal(s.stats().removed,1);}
+});
+
+test('closing after a tab change and a rerender restores the original opener, not the last model tab',()=>{
+ const s=uiSetup();s.opener.onclick();s.opener.isConnected=false;s.tabs[2].onclick();s.nodes.get('[data-model-analysis-close]').onclick();assert.ok(s.queries[0].includes('data-model-analysis-open="neural"'));assert.equal(s.d.open,false);
 });

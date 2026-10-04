@@ -1,6 +1,6 @@
 # Sinteza modelelor — v1
 
-Versiunea aplicației: **26.10.04.1702**. Acces: Analiza deținerilor → o deținere → Modele AI → Sinteza modelelor.
+Versiunea aplicației: **26.10.04.1708**. Acces: Analiza deținerilor → o deținere → Modele AI → Sinteza modelelor.
 
 Sinteza afișează patru rezultate cu obiective diferite: Neural și Gradient Boosting estimează clasa la cinci sesiuni; HMM descrie regimul; Isolation Forest semnalează sesiuni neobișnuite. Nu este un al cincilea model, un ansamblu predictiv sau un scor de încredere.
 

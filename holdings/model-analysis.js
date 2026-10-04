@@ -23,14 +23,14 @@ function open(index,id,opener){
  close();const payload=build(index);if(!payload?.models.some(m=>m.id===id))return;
  const d=document.createElement('dialog');d.className='model-analysis-dialog';d.setAttribute('aria-labelledby','model-analysis-title');
  d.innerHTML='<header><div><span class="eyebrow">ANALIZA MODELULUI · '+esc(payload.symbol||'Instrument')+'</span><h3 id="model-analysis-title"></h3></div><button type="button" data-model-analysis-close>Închide</button></header><div class="model-analysis-tabs" role="tablist" aria-label="Modele disponibile">'+payload.models.map(m=>'<button type="button" role="tab" id="model-analysis-tab-'+m.id+'" aria-controls="model-analysis-panel" data-model-analysis-tab="'+m.id+'">'+esc(m.short)+'</button>').join('')+'</div><div id="model-analysis-panel" role="tabpanel" tabindex="0" data-model-analysis-body></div><footer><button type="button" data-model-analysis-refresh>Actualizează fereastra</button><button type="button" data-model-analysis-page>Analiza completă în pagină</button></footer>';
- current={dialog:d,index,id,identity:identity(context,index),opener,restoreFocus:true};const owned=current;
+ current={dialog:d,index,id,identity:identity(context,index),opener,openerId:id,restoreFocus:true};const owned=current;
  d.querySelector('[data-model-analysis-close]').onclick=close;d.querySelector('[data-model-analysis-refresh]').onclick=refresh;
  d.querySelector('[data-model-analysis-page]').onclick=()=>{const c=current,target=['neural','boosting'].includes(c.id)?'direction':c.id;c.restoreFocus=false;close();const dest=document.getElementById('model-lab-'+c.index+'-'+target);dest?.focus({preventScroll:true});dest?.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});};
  for(const tab of d.querySelectorAll('[data-model-analysis-tab]')){
   tab.onclick=()=>{current.id=tab.dataset.modelAnalysisTab;refresh();};
   tab.onkeydown=e=>{const tabs=[...d.querySelectorAll('[data-model-analysis-tab]')],i=tabs.indexOf(tab),k={ArrowRight:(i+1)%4,ArrowLeft:(i+3)%4,Home:0,End:3}[e.key];if(k===undefined)return;e.preventDefault();tabs[k].click();tabs[k].focus();};
  }
- d.onclose=()=>{if(current===owned)current=null;d.remove();if(!current&&owned.restoreFocus&&identity(context,owned.index)===owned.identity){const opener=owned.opener?.isConnected?owned.opener:document.querySelector('[data-model-analysis-index="'+owned.index+'"][data-model-analysis-open="'+owned.id+'"]');opener?.focus({preventScroll:true});}};
+ d.onclose=()=>{if(current===owned)current=null;d.remove();if(!current&&owned.restoreFocus&&identity(context,owned.index)===owned.identity){const opener=owned.opener?.isConnected?owned.opener:document.querySelector('[data-model-analysis-index="'+owned.index+'"][data-model-analysis-open="'+owned.openerId+'"]');opener?.focus({preventScroll:true});}};
  document.body.appendChild(d);refresh();d.showModal();
 }
 function bind(builder){build=builder;for(const b of document.querySelectorAll('[data-model-analysis-open]'))b.onclick=()=>open(Number(b.dataset.modelAnalysisIndex),b.dataset.modelAnalysisOpen,b);}

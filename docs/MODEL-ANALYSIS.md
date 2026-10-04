@@ -21,6 +21,6 @@ Acuratețea privește etichetele istorice, nu tranzacții. NLL HMM și loss-ul c
 
 ## Verificare
 
-12 teste noi acoperă proiecțiile celor patru modele, indisponibilitatea, identitatea și vechimea, metricele lipsă, lipsa câmpurilor private, interpretările blocate, deschiderea/comutarea și închiderea la schimbări de context. Algoritmii și rapoartele publice anterioare nu sunt modificate.
+13 teste noi acoperă proiecțiile celor patru modele, indisponibilitatea, identitatea și vechimea, metricele lipsă, lipsa câmpurilor private, interpretările blocate, deschiderea/comutarea și închiderea la schimbări de context. Algoritmii și rapoartele publice anterioare nu sunt modificate.
 
-Verificare automată: 554 de teste trecute în suita completă.
+Verificare automată: 555 de teste trecute în suita completă.
