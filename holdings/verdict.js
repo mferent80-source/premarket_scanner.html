@@ -17,7 +17,7 @@ function progressText(run){
  if(run?.phase==='loading')return 'Verific istoricul comun și ultima închidere EOD…';
  if(run?.phase==='error')return run.error;
  if(run?.phase==='done')return 'Analiză terminată · rezultatele fiecărui model sunt mai jos.';
- if(!run)return 'Analiză oprită. Poți relua toate modelele.';
+ if(!run||run.phase==='stopped')return 'Analiză oprită. Poți relua toate modelele.';
  const id=V.IDS.find(id=>run.statuses[id]?.state==='running'),p=run.progress;
  return (V.NAMES[id]||'Modele')+' · '+(p?'fereastra '+(p.stage||1)+' / '+(p.stages||1)+' · pasul '+p.epoch+' / '+(p.total||p.epoch):'analizez istoricul…');
 }
@@ -27,7 +27,7 @@ function refresh(){
  final.innerHTML=`<span class="eyebrow">VERDICT FINAL CUMULAT · ${r.available} / ${r.total} MODELE</span><h3>${esc(r.title)}</h3>${r.reasons.map(x=>'<p>'+esc(x)+'</p>').join('')}`;
  dialog.querySelector('[data-verdict-source]').textContent=source?(source.kind==='synthetic'?'SIMULARE · date fictive · ':'')+'EOD '+source.asOf+' · '+source.currency+' · orizont +5 sesiuni · același istoric pentru toate modelele':'Un singur istoric pentru toate modelele · orizont +5 sesiuni';
  dialog.querySelector('[data-verdict-status]').textContent=progressText(run);
- dialog.querySelector('[data-verdict-models]').innerHTML=r.cards.map(c=>`<article class="verdict-model" data-verdict-model="${c.id}"><div><h4>${esc(c.name)}</h4><span class="tag">${c.available?'Verificat':c.state==='running'?'În curs':c.state==='error'?'Eroare':'În așteptare'}</span></div><b>${esc(c.available?c.value:c.state==='running'?'Analiză în curs…':'Rezultat indisponibil')}</b><p>${esc(c.detail)}</p>${c.available?`<small>${esc(labels[c.state]||'Interpretare neconcludentă')} · ${new Date(c.trainedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}${run?.statuses[c.id]?.state==='cached'?' · rezultat recent reutilizat':''}</small>`:''}</article>`).join('');
+ dialog.querySelector('[data-verdict-models]').innerHTML=r.cards.map(c=>`<article class="verdict-model" data-verdict-model="${c.id}"><div><h4>${esc(c.name)}</h4><span class="tag">${c.available?'Verificat':c.state==='running'?'În curs':c.state==='error'?'Eroare':c.state==='cancelled'?'Oprit':'În așteptare'}</span></div><b>${esc(c.available?c.value:c.state==='running'?'Analiză în curs…':'Rezultat indisponibil')}</b><p>${esc(c.detail)}</p>${c.available?`<small>${esc(labels[c.state]||'Interpretare neconcludentă')} · ${new Date(c.trainedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}${run?.statuses[c.id]?.state==='cached'?' · rezultat recent reutilizat':''}</small>`:''}</article>`).join('');
  dialog.querySelector('[data-verdict-limits]').textContent=r.limits;
  const busy=['loading','running'].includes(run?.phase);dialog.querySelector('[data-verdict-retry]').disabled=busy;dialog.querySelector('[data-verdict-stop]').hidden=!busy;
 }
