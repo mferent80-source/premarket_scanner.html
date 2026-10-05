@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
 const core={HoldingsNeural:{valid:()=>true},HoldingsModelComparison:{valid:()=>true},HoldingsHMM:{valid:()=>true},HoldingsIsolation:{valid:()=>true},HoldingsQuantile:{valid:()=>true},HoldingsGarch:{valid:()=>true,CONFIG:{elevatedRatio:1.5}}};
 vm.createContext(core);vm.runInContext(readFileSync('lib/holdings-verdict.js','utf8'),core);const V=core.HoldingsVerdict,now=Date.parse('2026-10-05T08:00:00Z');
+vm.runInContext(readFileSync('lib/holdings-verdict-diagnostics.js','utf8'),core);const explain=(r,options)=>core.HoldingsVerdictDiagnostics.build(r,options);
 function fixture(){
  const expected={symbol:'TEST',currency:'USD',asOf:'2026-10-02',kind:'market',t:now-3*86400000,close:100,timezone:'America/New_York',closeMinutes:960,fingerprint:'fixture'};
  const record=result=>({...expected,sourceTime:expected.t,sourceFingerprint:expected.fingerprint,sourceClose:100,trainedAt:now-1000,result,quantity:999,apiKey:'SECRET',accountId:'PRIVATE'});
@@ -33,3 +34,44 @@ test('expired, changed and invalid completed reports explain why reanalysis is n
  const f=fixture();f.snapshots.isolation.usable=false;f.statuses={isolation:{state:'ready'}};assert.equal(V.build(f).cards[3].state,'unavailable');assert.match(V.build(f).cards[3].detail,/verific/);
 });
 test('report diagnostics preserve worker failures and hide internal exceptions',()=>{const f=fixture();f.snapshots.isolation.record.sourceClose++;f.statuses={isolation:{state:'error',error:'Mesaj worker'}};assert.equal(V.build(f).cards[3].detail,'Mesaj worker');const old=core.HoldingsIsolation.valid;try{core.HoldingsIsolation.valid=()=>{throw Error('SECRET INTERNAL');};const x=fixture();assert.equal(V.build(x).cards[3].state,'unavailable');assert.ok(!JSON.stringify(V.build(x)).includes('SECRET'));}finally{core.HoldingsIsolation.valid=old;}});
+
+test('a one-of-six technical failure diagnoses every missing model and preserves the one usable result',()=>{
+ const f=fixture();f.statuses=Object.fromEntries(['neural','boosting','hmm','quantile','garch'].map(id=>[id,{state:'error',error:'Calcul nereușit.'}]));
+ const r=V.build(f),before=JSON.stringify(r),d=explain(r,{phase:'done'});
+ assert.equal(r.available,1);assert.equal(r.direction,null);assert.equal(d.title,'Rezultate de recalculat');assert.equal(d.blockers.length,5);assert.ok(d.blockers.every(x=>x.code==='error'&&x.remedy==='recalculate'));
+ assert.deepEqual(Array.from(d.retryIds),['neural','boosting','hmm','quantile','garch']);assert.equal(d.panels[1].rows[1].value,'În tiparul modelului');assert.ok(d.panels[0].rows.every(x=>x.value==='Indisponibil'));assert.equal(JSON.stringify(r),before);
+});
+test('complete reports with weak validation explain evidence limits without suggesting another same-history calculation',()=>{
+ const f=fixture();f.snapshots.neural.assessment.state='no-edge';f.snapshots.neural.comparison.state='no-edge';f.snapshots.quantile.assessment.state='limited';
+ const r=V.build(f),d=explain(r,{phase:'done'});assert.equal(r.state,'weak');assert.equal(d.available,6);assert.equal(d.title,'Dovezi istorice insuficiente');assert.equal(d.retryIds.length,0);
+ assert.deepEqual(Array.from(d.blockers,x=>x.code),['no-edge','no-edge','limited']);assert.deepEqual(Array.from(d.actions,x=>x.id),['evidence']);assert.match(d.actions[0].text,/același istoric.*nu adaugă dovezi/);
+ assert.equal(d.panels[0].rows[0].value,'Avans');assert.equal(d.panels[0].rows[0].validation,'Avantaj istoric neconfirmat');assert.equal(r.direction,null);
+});
+test('available direction estimates remain separate when a context report is missing',()=>{
+ const f=fixture();delete f.snapshots.garch;const r=V.build(f),d=explain(r,{phase:'done'});
+ assert.equal(r.state,'incomplete');assert.equal(r.direction,null);assert.ok(d.panels[0].rows.every(x=>x.available));assert.equal(d.panels[1].rows[2].value,'Indisponibil');assert.deepEqual(Array.from(d.retryIds),['garch']);assert.equal(d.direction,undefined);
+});
+test('expiry, identity, historical revisions and malformed results carry distinct diagnostic codes and hide the rejected values',()=>{
+ for(const [mutate,code] of [[r=>r.trainedAt=now-1800001,'expired'],[r=>r.symbol='OTHER','identity'],[r=>r.currency='EUR','identity'],[r=>r.sourceFingerprint='other','history'],[r=>r.sourceClose++,'close'],[r=>r.asOf='2026-10-01','session'],[r=>r.result.version='unknown','version']]){
+  const f=fixture();mutate(f.snapshots.quantile.record);const r=V.build(f),d=explain(r);assert.equal(r.cards[4].rejectionCode,code);assert.equal(d.blockers[0].code,code);assert.equal(d.panels[0].rows[2].value,'Indisponibil');assert.equal(d.blockers[0].remedy,'recalculate');
+ }
+});
+test('direction and regime conflicts call for review while context models never become new price votes',()=>{
+ for(const mutate of [f=>f.snapshots.neural.record.result.comparison.boosting.classIndex=0,f=>f.snapshots.quantile.record.result.current.prices=[94,98,101],f=>f.snapshots.hmm.record.result.profiles[0].label='Deteriorare']){
+  const f=fixture();mutate(f);const r=V.build(f),d=explain(r);assert.equal(r.state,'conflict');assert.ok(d.blockers.some(x=>x.code==='conflict'));assert.equal(d.title,'Estimări de revizuit');assert.equal(d.retryIds.length,0);assert.match(d.panels[1].note,/fără voturi de preț/);
+ }
+});
+test('anomalies, drift and uncertain classification explain review rather than a technical retry',()=>{
+ for(const state of ['anomaly','uncertain']){const f=fixture();f.snapshots.isolation.assessment.state=state;const r=V.build(f),d=explain(r);assert.equal(d.blockers[0].code,state);assert.equal(d.blockers[0].remedy,'review');assert.equal(d.retryIds.length,0);assert.equal(r.direction,null);}
+ const f=fixture();f.snapshots.neural.assessment.state='drift';const r=V.build(f),d=explain(r);assert.equal(d.panels[0].rows[0].value,'Interpretare neconcludentă');assert.equal(d.blockers[0].remedy,'review');
+});
+test('exploratory GARCH and temporary retention remain notes and cannot create a blocker for an otherwise validated direction',()=>{
+ const f=fixture();f.snapshots.garch.assessment.state='no-edge';for(const s of Object.values(f.snapshots))s.persistence={state:'session'};
+ const r=V.build(f),d=explain(r);assert.equal(r.state,'up');assert.equal(d.blockers.length,0);assert.equal(d.retryIds.length,0);assert.equal(d.title,'Verificări încheiate');assert.deepEqual(Array.from(d.notes,x=>x.code),['exploratory','retention']);assert.match(d.notes[1].detail,/doar în această sesiune/);
+ f.snapshots.garch.persistence={state:'pending'};assert.match(explain(V.build(f)).notes[1].detail,/în curs/);
+});
+test('source failure and running analysis have explicit global actions rather than six invented model failures',()=>{
+ const f=fixture();f.expected=null;const r=V.build(f),d=explain(r,{phase:'error',sourceVerified:false,error:'Sesiunea EOD nu este verificată.'});assert.equal(d.title,'Date EOD necesare');assert.equal(d.blockers.length,1);assert.equal(d.blockers[0].code,'source-error');assert.match(d.blockers[0].detail,/EOD/);assert.ok(d.panels.every(p=>p.rows.every(r=>!r.available)));
+ f.running=true;const busy=explain(V.build(f),{phase:'loading',sourceVerified:false});assert.equal(busy.busy,true);assert.equal(busy.blockers.length,0);assert.equal(busy.retryIds.length,0);assert.deepEqual(Array.from(busy.actions,x=>x.id),['wait']);
+});
+test('diagnostic output projects out portfolio data, credentials and private model parameters',()=>{const f=fixture();f.snapshots.neural.record.result.weights='PRIVATE-WEIGHTS';const d=explain(V.build(f));assert.ok(!/SECRET|PRIVATE|quantity|apiKey|weights|accountId/.test(JSON.stringify(d)));});

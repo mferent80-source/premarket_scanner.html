@@ -13,9 +13,9 @@ function setup({available=6,capture=()=>({ok:true,saved:true}),phase='done'}={})
   HoldingsForecastUI:{captureVerdict(...args){calls.push(args);return capture(...args);}}
  };
  for(const name of ['Neural','HMM','Isolation','Quantile','Garch'])sandbox['Holdings'+name+'UI']={inspect:()=>({record:{symbol:'TEST',currency:'USD',asOf:'2026-10-02',trainedAt:Date.now(),result:{version:'test-result'},scope:'PRIVATE',quantity:999,apiKey:'SECRET'}}),exportReport:r=>exports.push(r),busy:()=>false,cancelManaged(){},run(){}};
- vm.createContext(sandbox);vm.runInContext(readFileSync('holdings/verdict.js','utf8'),sandbox);const ui=sandbox.HoldingsVerdictUI;
+ vm.createContext(sandbox);vm.runInContext(readFileSync('lib/holdings-verdict-diagnostics.js','utf8'),sandbox);vm.runInContext(readFileSync('holdings/verdict.js','utf8'),sandbox);const ui=sandbox.HoldingsVerdictUI;
  ui.setContext({scope:'demo',demo:true,positions:[p],symbol:()=>source.symbol,model:()=>({asOf:source.asOf,currency:source.currency,price:source.close}),loadVerdict:async()=>source,refresh(){}});ui.open(p.ticker);
- return {ui,calls,report,source,p,elements,exports,sandbox,update:r=>config.update(r),load:(...args)=>config.load(...args)};
+ return {ui,calls,report,source,p,elements,exports,sandbox,update:r=>config.update(r),load:(...args)=>config.load(...args),reusable:(step,run)=>config.reusable(step,run)};
 }
 test('completed six-model verdict is captured once despite repaint, and retry captures again',()=>{const s=setup();assert.equal(s.calls.length,1);assert.equal(s.calls[0][0],s.p);assert.equal(s.calls[0][1],s.report);assert.equal(s.calls[0][2],s.source);s.ui.refresh();assert.equal(s.calls.length,1);assert.match(s.elements.get('[data-verdict-status]').textContent,/Verdictul final a fost păstrat/);s.elements.get('[data-verdict-retry]').onclick();assert.equal(s.calls.length,2);});
 test('unfinished and incomplete runs never store a final conclusion',()=>{for(const options of [{available:5},{phase:'running'},{phase:'stopped'}]){const s=setup(options);assert.equal(s.calls.length,0);assert.doesNotMatch(s.elements.get('[data-verdict-status]').textContent,/a fost păstrat/);}});
@@ -40,4 +40,31 @@ test('common source loading waits for every report restore and cancels before fe
 });
 test('analysis cache refusal is visible independently of saving the final verdict',()=>{
  const s=setup();s.source.cacheWarning='Analiza EOD este disponibilă în această pagină; browserul nu a putut salva copia locală.';s.ui.refresh();assert.match(s.elements.get('[data-verdict-status]').textContent,/nu a putut salva copia locală/);assert.match(s.elements.get('[data-verdict-status]').textContent,/Verdictul final a fost păstrat/);
+});
+
+test('selective repair forces the failed model and reuses only still-accepted reports on the new common source',()=>{
+ const s=setup({available:5});s.sandbox.HoldingsVerdict.accepted=()=>true;assert.equal(s.elements.get('[data-verdict-repair]').hidden,false);s.elements.get('[data-verdict-repair]').onclick();
+ assert.equal(s.reusable({models:['garch']},{source:s.source}),false);assert.equal(s.reusable({models:['neural','boosting']},{source:s.source}),true);assert.equal(s.reusable({models:['hmm']},{source:s.source}),true);
+ s.sandbox.HoldingsVerdict.accepted=()=>false;assert.equal(s.reusable({models:['hmm']},{source:s.source}),false);
+});
+test('a missing Boosting result forces its shared Neural worker without redoing valid context reports',()=>{
+ const s=setup();s.report.cards[1].available=false;s.report.available=5;s.ui.refresh();s.sandbox.HoldingsVerdict.accepted=()=>true;s.elements.get('[data-verdict-repair]').onclick();
+ assert.equal(s.reusable({models:['neural','boosting']},{source:s.source}),false);assert.equal(s.reusable({models:['garch']},{source:s.source}),true);
+});
+test('complete weak reports do not offer selective repair and distinguish current reports from historical evidence',()=>{
+ const s=setup(),html=s.elements.get('[data-verdict-diagnostic]').innerHTML;assert.equal(s.elements.get('[data-verdict-repair]').hidden,true);assert.match(html,/6 \/ 6 rapoarte actuale/);assert.match(html,/Dovezi istorice insuficiente/);assert.match(html,/același istoric nu adaugă dovezi/);assert.match(html,/Direcție și interval/);assert.match(html,/fără voturi de preț/);
+ assert.match(s.elements.get('[data-verdict-models]').innerHTML,/Raport actual/);
+});
+test('diagnostics and selective repair remain in progress until the active run has completed',()=>{
+ const s=setup({available:5,phase:'running'});assert.equal(s.elements.get('[data-verdict-repair]').hidden,true);assert.equal(s.elements.get('[data-verdict-repair]').disabled,true);assert.match(s.elements.get('[data-verdict-diagnostic]').innerHTML,/Verificări în curs/);
+});
+test('global source errors are visible and all diagnostic values are escaped as text',()=>{
+ const s=setup();s.report.cards[0].value='<script>value</script>';s.report.cards[0].detail='<img src=x onerror=evil()>';s.ui.refresh();const html=s.elements.get('[data-verdict-diagnostic]').innerHTML;assert.match(html,/&lt;script&gt;value/);assert.match(html,/&lt;img/);assert.doesNotMatch(html,/<script>|<img/);
+ s.update({phase:'error',source:null,statuses:{},error:'Istoric EOD & monedă <invalid>'});assert.match(s.elements.get('[data-verdict-diagnostic]').innerHTML,/Istoric EOD &amp; monedă &lt;invalid&gt;/);assert.match(s.elements.get('[data-verdict-diagnostic]').innerHTML,/Date EOD necesare/);
+});
+test('download contains the diagnostic explanation alongside the unchanged final verdict',()=>{
+ const s=setup();s.sandbox.HoldingsVerdict.accepted=()=>true;s.elements.get('[data-verdict-export]').onclick();const r=s.exports[0].result.verdict;assert.equal(r.state,s.report.state);assert.equal(r.title,s.report.title);assert.equal(r.diagnostics.available,6);assert.equal(r.diagnostics.title,'Dovezi istorice insuficiente');assert.ok(!/PRIVATE|SECRET|apiKey|quantity|scope/.test(JSON.stringify(r.diagnostics)));
+});
+test('a separate running model is diagnosed as busy rather than a failed EOD source',()=>{
+ const s=setup();s.sandbox.HoldingsNeuralUI.busy=()=>true;s.elements.get('[data-verdict-retry]').onclick();const html=s.elements.get('[data-verdict-diagnostic]').innerHTML;assert.match(html,/rulează deja separat/);assert.match(html,/Verificări în curs/);assert.doesNotMatch(html,/Date EOD necesare/);assert.equal(s.elements.get('[data-verdict-repair]').hidden,true);
 });
