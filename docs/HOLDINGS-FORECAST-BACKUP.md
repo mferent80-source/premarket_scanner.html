@@ -36,3 +36,5 @@ HMM și Isolation rămân context descriptiv. GARCH, cuantilele, direcțiile și
 `tools/holdings-forecast-backup.test.mjs` verifică manifestul, formatul anterior, identitatea, duplicate/conflicte, selectarea orizonturilor, excluderea rezultatelor importate, cote, arhivarea înaintea scrierii, schimbări concurente, păstrarea copiilor și anularea selectivă după reîncărcare.
 
 `tools/holdings-forecast-backup-ui.test.mjs` verifică handler-ele de citire/previzualizare/selecție/restaurare/anulare, schimbări de cont/listing, fișiere întârziate, starea modificată după previzualizare, exportul arhivei și ordinea încărcării modulelor.
+
+În verificarea publică din 5 octombrie 2026, exportul demo a avut un manifest cu 192 înregistrări și opt grupuri distincte de model/orizont. Fișierul fictiv de verificare cu patru rânduri a afișat două estimări noi, un duplicat și un conflict. Selectarea numai a GARCH la 20 sesiuni a adăugat o estimare în așteptare: 193 înregistrări, cu aceleași 24 rezultate finalizate la acel orizont. Anularea a readus registrul la cele 192 originale și a păstrat arhiva. Verificarea nu a folosit contul brokerului sau estimări reale.
