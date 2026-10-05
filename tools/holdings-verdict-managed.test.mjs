@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
 const now=Date.parse('2026-10-05T08:00:00Z');
-const core={Date:class extends Date{static now(){return now;}}};vm.createContext(core);for(const file of ['holdings-neural','holdings-neural-evaluation','holdings-boosting','holdings-model-comparison','holdings-hmm','holdings-isolation','holdings-quantile','holdings-garch','holdings-verdict','holdings-model-runner'])vm.runInContext(readFileSync('lib/'+file+'.js','utf8'),core);
+const core={Date:class extends Date{static now(){return now;}}};vm.createContext(core);for(const file of ['holdings-model-storage','holdings-neural','holdings-neural-evaluation','holdings-boosting','holdings-model-comparison','holdings-hmm','holdings-isolation','holdings-quantile','holdings-garch','holdings-verdict','holdings-model-runner'])vm.runInContext(readFileSync('lib/'+file+'.js','utf8'),core);
 const bars=core.HoldingsNeural.demoBars(0,Date.parse('2026-10-02T23:59:00Z'));
 const source={bars,fingerprint:core.HoldingsVerdict.fingerprint(bars),symbol:'TEST',currency:'USD',kind:'synthetic',asOf:'2026-10-02',timezone:'America/New_York',closeMinutes:960,t:bars.at(-1).t,close:bars.at(-1).c};
 function setup(name,{demo=true,quota=false,capture}={}){
@@ -31,21 +31,25 @@ test('GARCH context changes settle owned work and discard delayed results',async
 test('GARCH worker failure and invalid payload settle without persisting a report',async()=>{for(const kind of ['worker','invalid']){const s=setup('garch'),pending=s.api.run(s.c.positions[0],{source}),worker=s.workers[0];if(kind==='worker')worker.onerror();else worker.onmessage({data:{id:worker.payload.id,result:{}}});assert.equal((await pending).state,'error');assert.equal(s.api.inspect(s.c.positions[0]).usable,false);assert.equal(worker.terminated,true);}});
 test('GARCH rejects a nonnumeric close before starting a worker',async()=>{const s=setup('garch'),r=await s.api.run(s.c.positions[0],{source:{...source,bars:[{...bars.at(-1),c:NaN}]}});assert.equal(r.state,'error');assert.equal(s.workers.length,0);});
 
-test('a full browser store cannot turn a verified Forest into a failed six-model verdict',async()=>{
+test('a full browser store keeps all six verified models ready for the combined verdict',async()=>{
  const results=examples(),expected={...source,kind:'market'},snapshots={};
  for(const name of Object.keys(results)){
-  const s=setup(name,{demo:false,quota:name==='isolation'}),pending=s.api.run(s.c.positions[0],{source:expected}),worker=s.workers[0];
+  const s=setup(name,{demo:false,quota:true}),pending=s.api.run(s.c.positions[0],{source:expected}),worker=s.workers[0];
   worker.onmessage({data:{id:worker.payload.id,result:results[name]}});const out=await pending;assert.equal(out.state,'ready',name);
   snapshots[name]=s.api.inspect(s.c.positions[0]);assert.equal(snapshots[name].usable,true,name);
+  assert.equal(out.persistence,'session',name);assert.equal(s.writes.length,0);assert.equal(snapshots[name].record.retention,'session');assert.match(snapshots[name].persistence.message,/Spațiul local.*plin/);
+  if(name==='hmm'||name==='quantile'||name==='garch'){const markup=name==='hmm'?s.api.markup(s.c.positions[0],0,null,snapshots[name]):s.api.markup(s.c.positions[0],0,snapshots[name]);assert.match(markup,/model-storage-note/);assert.match(markup,/Descarcă raportul pentru păstrare/);}
   if(name==='isolation'){assert.equal(out.persistence,'session');assert.equal(s.writes.length,0);assert.match(snapshots[name].persistence.message,/Spațiul local.*plin/);const markup=s.api.markup(s.c.positions[0],0,snapshots[name]);assert.match(markup,/isolation-storage-note/);assert.match(markup,/Descarcă raportul pentru păstrare/);assert.match(markup,/data-isolation-export/);}
  }
- const r=core.HoldingsVerdict.build({expected,snapshots,now});assert.equal(r.available,6);assert.notEqual(r.state,'incomplete');assert.equal(r.cards[3].state,snapshots.isolation.assessment.state);assert.match(r.cards[3].detail,/disponibil doar în această sesiune/);
+ const r=core.HoldingsVerdict.build({expected,snapshots,now});assert.equal(r.available,6);assert.notEqual(r.state,'incomplete');assert.ok(r.cards.every(c=>c.persistence==='session'&&/disponibil doar în această sesiune/.test(c.detail)));assert.equal(r.cards[3].state,snapshots.isolation.assessment.state);assert.match(r.cards[3].detail,/disponibil doar în această sesiune/);
  let loads=0,retrains=0;const runner=core.HoldingsModelRunner.create({load:async()=>{loads++;return expected;},steps:Object.keys(results).map(id=>({models:id==='neural'?['neural','boosting']:[id],run:()=>{retrains++;throw Error('Unexpected reanalysis');},cancel(){}})),current:()=>true,reusable:(step,run)=>step.models.every(id=>core.HoldingsVerdict.accepted(id,snapshots[id==='boosting'?'neural':id],run.source,now)),update(){}});
  const reused=await runner.start({key:'test-account|TEST_US_EQ'});assert.equal(loads,1);assert.equal(retrains,0);assert.equal(reused.statuses.isolation.state,'cached');const cached=core.HoldingsVerdict.build({expected,snapshots,statuses:reused.statuses,now});assert.equal(cached.available,6);assert.match(cached.cards[3].detail,/disponibil doar în această sesiune/);
 });
-test('a failed prediction registry hook cannot undo a valid Forest report',async()=>{
- const s=setup('isolation',{demo:false,capture:()=>{throw Error('Registry failure');}}),pending=s.api.run(s.c.positions[0],{source:{...source,kind:'market'}}),worker=s.workers[0];worker.onmessage({data:{id:worker.payload.id,result:examples().isolation}});
- assert.equal((await pending).state,'ready');const snapshot=s.api.inspect(s.c.positions[0]);assert.equal(snapshot.usable,true);assert.equal(snapshot.persistence.state,'local');assert.equal(s.writes.length,1);assert.match(snapshot.persistence.message,/Registrul estimărilor nu a putut fi actualizat/);
+test('a failed prediction registry hook cannot undo any valid calculated model',async()=>{
+ for(const name of Object.keys(examples())){
+  const s=setup(name,{demo:false,capture:()=>{throw Error('Registry failure');}}),pending=s.api.run(s.c.positions[0],{source:{...source,kind:'market'}}),worker=s.workers[0];worker.onmessage({data:{id:worker.payload.id,result:examples()[name]}});
+  assert.equal((await pending).state,'ready',name);const snapshot=s.api.inspect(s.c.positions[0]);assert.equal(snapshot.usable,true);assert.equal(snapshot.persistence.state,'local');assert.equal(s.writes.length,1);assert.match(snapshot.persistence.message,/Registrul estimărilor nu a putut fi actualizat/);
+ }
 });
 
 test('Forest and HMM invalidate a saved report when the real EOD close changes',async()=>{
@@ -59,4 +63,26 @@ test('Forest and HMM cancel a running report when the real EOD close changes',as
 
 test('manual Forest and HMM reject a different or nonnumeric historical close before a worker',async()=>{
  for(const name of ['isolation','hmm'])for(const close of [source.close+1,NaN]){const s=setup(name,{demo:false});s.sandbox.D.fetchStock=async()=>bars;s.sandbox.DailySeries.read=()=>({...source,bars:[{...bars.at(-1),c:close}]});const out=await s.api.run(s.c.positions[0]);assert.equal(out.state,'error',name);assert.match(out.error,/Închiderea modelului diferă/);assert.equal(s.workers.length,0);assert.equal(s.writes.length,0);}
+});
+
+
+test('every temporary report still rejects another account, demo, currency, EOD, close and expired time',async()=>{
+ for(const name of Object.keys(examples())){
+  const s=setup(name,{demo:false,quota:true}),p=s.c.positions[0],expected={...source,kind:'market'},pending=s.api.run(p,{source:expected}),worker=s.workers[0];worker.onmessage({data:{id:worker.payload.id,result:examples()[name]}});assert.equal((await pending).state,'ready');assert.equal(s.api.inspect(p).usable,true);
+  for(const patch of [{scope:'another-account'},{demo:true},{model:()=>({asOf:source.asOf,currency:'EUR',price:source.close})},{model:()=>({asOf:'2026-10-01',currency:'USD',price:source.close})},{model:()=>({asOf:source.asOf,currency:'USD',price:source.close+1})}]){
+   s.api.setContext({...s.c,...patch});assert.equal(s.api.inspect(p).usable,false,name+': '+JSON.stringify(patch));s.api.setContext(s.c);assert.equal(s.api.inspect(p).usable,true,name);
+  }
+  s.sandbox.Date.now=()=>now+1800001;assert.equal(s.api.inspect(p).usable,false,name+': expired');assert.equal(core.HoldingsVerdict.accepted(name,s.api.inspect(p),expected,now+1800001),false);assert.equal(s.writes.length,0);
+ }
+});
+test('a full store never promotes an invalid worker payload into a current report',async()=>{
+ for(const name of Object.keys(examples())){
+  const s=setup(name,{demo:false,quota:true}),pending=s.api.run(s.c.positions[0],{source:{...source,kind:'market'}}),worker=s.workers[0];worker.onmessage({data:{id:worker.payload.id,result:{}}});
+  assert.equal((await pending).state,'error',name);assert.equal(s.api.inspect(s.c.positions[0]).usable,false,name);assert.equal(s.writes.length,0);
+ }
+});
+test('the Neural and Boosting analysis shows a temporary retention warning and keeps its report download',async()=>{
+ const s=setup('neural',{demo:false,quota:true}),pending=s.api.run(s.c.positions[0],{source:{...source,kind:'market'}}),w=s.workers[0];w.onmessage({data:{id:w.payload.id,result:examples().neural}});assert.equal((await pending).state,'ready');
+ const host={dataset:{neuralHost:'0'},innerHTML:'',closest:()=>null,querySelectorAll:()=>[],contains:()=>false,querySelector:()=>null};s.sandbox.document.querySelectorAll=q=>q==='[data-neural-host]'?[host]:[];s.api.refresh();
+ assert.match(host.innerHTML,/model-storage-note/);assert.match(host.innerHTML,/Spațiul local.*plin/);assert.match(host.innerHTML,/data-neural-export/);assert.match(host.innerHTML,/Descarcă raportul modelelor/);assert.doesNotMatch(host.innerHTML,/QuotaExceededError|PRIVATE/);
 });

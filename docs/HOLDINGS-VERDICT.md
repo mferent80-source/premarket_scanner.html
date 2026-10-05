@@ -18,10 +18,20 @@ Datele lipsă sau erorile produc verdict incomplet. Lipsa avantajului, validarea
 
 Demo funcțional cu verificare desktop/390 px: `tools/holdings-verdict-demo.html`. Teste: `holdings-verdict`, `holdings-model-runner`, `holdings-verdict-managed` și suitele existente pentru UI/model.
 
-Rapoartele finalizate sau reutilizate care nu mai trec verificarea apar cu „Reanalizează”, nu „În așteptare”. Cardul precizează motivul: expirare, istoric schimbat, alt EOD, instrument, monedă, închidere, versiune sau verificare eșuată. Mesajul real al unui Worker eșuat este păstrat; excepțiile interne ale validării nu sunt afișate. Un status de succes nu conține un mesaj generic de eroare. Reutilizarea unui Forest temporar păstrează avertismentul despre retenția numai în sesiunea curentă.
+Rapoartele finalizate sau reutilizate care nu mai trec verificarea apar cu „Reanalizează”, nu „În așteptare”. Cardul precizează motivul: expirare, istoric schimbat, alt EOD, instrument, monedă, închidere, versiune sau verificare eșuată. Mesajul real al unui Worker eșuat este păstrat; excepțiile interne ale validării nu sunt afișate. Un status de succes nu conține un mesaj generic de eroare. Reutilizarea unui raport temporar, pentru oricare dintre modele, păstrează avertismentul despre retenția numai în sesiunea curentă.
 
 ## Urmărirea concluziei finale
 
 După încheierea analizei cu 6/6 rezultate acceptate, dialogul păstrează automat primul verdict pe instrument și EOD în Predicții vs. realitate: titlu, clasă sau abținere, motive, șase rezumate și amprenta sursei comune. Reafișarea și reanalizarea nu înlocuiesc prima concluzie. Un verdict incomplet sau o analiză oprită nu se salvează. Captura respectă limita prospectivă conservatoare și verificarea identității/EOD; o eroare de stocare rămâne explicită și nu invalidează rezultatul calculat.
 
 La +5 închideri efective, clasa se compară cu mișcarea normalizată prin ATR inițial. Concluziile weak, conflict și caution sunt abțineri, excluse din acuratețe și numărate separat. Nu sunt convertite retroactiv în predicții. Registrul și monitorul cer minimum 20 concluzii evaluate pe orizonturi separate pentru pragul de dovezi. Detalii: [HOLDINGS-FORECAST.md](HOLDINGS-FORECAST.md).
+
+## Stocare plină sau refuzată
+
+Un raport calculat care trece validarea nu devine o eroare de model când `localStorage.setItem` este refuzat. Neural și Boosting (un singur raport), HMM, cuantile și GARCH folosesc `lib/holdings-model-storage.js`; Isolation Forest păstrează același mecanism de retenție temporară. Raportul nou rămâne în memoria paginii, separat pe cont și instrument, și are `retention: session`. Raportul local anterior, jurnalul, registrul predicțiilor și arhivele nu sunt șterse sau trunchiate pentru a elibera spațiu.
+
+Verdictul acceptă raportul temporar numai cu aceleași verificări de rezultat, versiune, sursă comună, sesiune, monedă, închidere și vârstă de maximum 30 minute. Fiecare card din verdict și fiecare analiză a modelului afișează mesajul despre păstrarea numai în pagina deschisă și descărcarea raportului JSON. O salvare ulterioară reușită înlocuiește numai raportul acelui model și elimină avertismentul. Reîncărcarea paginii pierde rapoartele temporare; nu pretinde salvare persistentă. Butonul „Descarcă rapoartele AI” din verdict exportă într-un singur JSON verdictul și rapoartele actuale acceptate, fără cantități, chei, sold sau identificatorul contului. Exportul nu pretinde că a salvat registrul predicțiilor.
+
+Capturarea în Predicții vs. realitate rămâne separată: dacă registrul nu poate fi scris, verdictul calculat este disponibil și mesajul spune explicit că nu a fost salvat. Erorile de stocare din registru sunt explicate fără cheia privată a contului. Excepțiile unui hook al registrului nu invalidează raportul modelului. Payloadurile invalide, calculele eșuate și mesajele întârziate după schimbarea contextului rămân respinse.
+
+Regresii: toate cele șase carduri cu scriere refuzată, reutilizare fără reantrenare, fiecare hook al registrului refuzat, rezultate invalide, expirare, izolare între conturi/demo și păstrarea datelor existente. `tools/holdings-model-storage.test.mjs` și `tools/holdings-verdict-managed.test.mjs`.

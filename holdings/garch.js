@@ -1,12 +1,12 @@
 (function(g){
 'use strict';
-const G=g.HoldingsGarch,memory=new Map(),errors=new Map();let context=null,job=null,serial=0;
+const G=g.HoldingsGarch,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)}),errors=new Map();let context=null,job=null,serial=0;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(v,d=2)=>Number.isFinite(v)?v.toLocaleString('ro-RO',{maximumFractionDigits:d,minimumFractionDigits:d}):'—',day=t=>new Date(t).toISOString().slice(0,10);
 const key=p=>'tt_holdings_garch_v1:'+encodeURIComponent(context.scope)+'|'+encodeURIComponent(p.ticker);
 const blocked=()=>!!job||['HoldingsNeuralUI','HoldingsHMMUI','HoldingsIsolationUI','HoldingsQuantileUI'].some(name=>g[name]?.busy());
-function read(p){try{const raw=context.demo?memory.get(key(p)):localStorage.getItem(key(p));return raw?JSON.parse(raw):null;}catch{return null;}}
+function read(p){try{return reports.read(key(p),context.demo);}catch{return null;}}
 function usable(r,p,m,now=Date.now()){try{return !!r&&r.symbol===context.symbol(p)&&r.currency===m?.currency&&r.asOf===m?.asOf&&r.kind===(context.demo?'synthetic':'market')&&r.result?.current?.t===r.sourceTime&&g.DailySeries.date(r.sourceTime,r.timezone)===r.asOf&&Number.isFinite(r.sourceClose)&&Math.abs(r.sourceClose-m.price)<=1e-6*Math.max(1,m.price)&&Math.abs(r.result.current.close-m.price)<=1e-6*Math.max(1,m.price)&&Number.isFinite(r.trainedAt)&&r.trainedAt<=now&&now-r.trainedAt<=1800000&&G.valid(r.result,now);}catch{return false;}}
-function inspect(p){const record=read(p),ok=usable(record,p,context.model(p));return {record,usable:ok,assessment:ok?G.assess(record.result):null};}
+function inspect(p){const record=read(p),ok=usable(record,p,context.model(p));return {record,usable:ok,assessment:ok?G.assess(record.result):null,persistence:reports.inspect(key(p),context.demo,ok)};}
 function refresh(){g.HoldingsNeuralUI?.refresh();}
 function cancel(update=true){if(job){if(update)errors.set(job.key,'Analiză GARCH anulată. Raportul anterior este păstrat.');job.worker?.terminate();clearTimeout(job.timeout);job.resolve({state:'cancelled'});job=null;serial++;}if(update)refresh();}
 function setContext(c){if(context&&(context.scope!==c.scope||context.demo!==c.demo))cancel(false);if(job){const p=c.positions.find(p=>p.ticker===job.ticker),m=p?c.model(p):null;if(!p||c.symbol(p)!==job.symbol||m?.currency!==job.currency||m?.asOf!==job.asOf||m?.price!==job.price)cancel(false);}context=c;}
@@ -14,6 +14,7 @@ function markup(p,i,inspection=inspect(p)){
  const {record:r,usable:ok,assessment:a}=inspection,result=ok?r.result:null,m=context.model(p),active=job?.ticker===p.ticker,busy=blocked();
  const number=(label,value)=>'<div><small>'+label+'</small><b>'+value+'</b></div>';
  let html=`<section class="garch-card" id="model-lab-${i}-garch" data-garch-host="${i}" tabindex="-1"><div class="hmm-heading"><div><span class="eyebrow">AL ȘASELEA MODEL · VOLATILITATE</span><h4>GARCH(1,1)</h4><p>Amplitudinea estimată a fluctuațiilor la 5 și 20 de sesiuni, comparată cu nivelul istoric al stockului.</p></div><span class="tag">${context.demo?'Date fictive':'Experimental'}</span></div><div class="hmm-controls"><button class="primary" data-garch-train="${i}" ${busy||!m||!context.symbol(p)?'disabled':''}>${r?'Reestimează volatilitatea':'Estimează volatilitatea'}</button>${active?'<button data-garch-cancel>Oprește GARCH</button><progress data-garch-progress max="'+G.CONFIG.iterations+'" value="0"></progress>':''}</div><p class="meta" role="status" aria-live="polite" data-garch-status>${esc(errors.get(key(p))||(active?'Calculez volatilitatea în fundal…':busy?'Aștept finalizarea modelului activ.':!m?'Rulează mai întâi analiza EOD.':r&&!ok?'Raport expirat sau incompatibil. Reestimează pe sesiunea curentă.':'Trei ferestre de test, varianță constantă și EWMA ca repere.'))}</p>`;
+ if(ok&&inspection.persistence?.message)html+='<p class="model-storage-note" role="status">'+esc(inspection.persistence?.message)+'</p>';
  if(result){
   html+=`<div class="hmm-verdict ${a.state==='descriptive'?'':'warn'}"><b>${a.state==='drift'?'Estimare ascunsă':a.state==='descriptive'?'Volatilitate · '+esc(G.level(result)):'Volatilitate exploratorie'}</b><p>${esc(a.message)}</p><small>EOD ${esc(r.asOf)} · procente ale randamentului logaritmic · fără direcție de preț</small></div>`;
   if(a.state!=='drift')html+='<div class="garch-metrics">'+result.current.horizons.map(h=>number('Fluctuație cumulată · '+h.horizon+' sesiuni',fmt(h.cumulativePct)+'%')+number('Medie zilnică echivalentă · '+h.horizon+' sesiuni',fmt(h.dailyEquivalentPct)+'% · '+fmt(h.ratio)+'× istoric')).join('')+'</div><p class="meta">Nivel istoric zilnic în antrenare: '+fmt(result.current.usualDailyPct)+'%. Fluctuația cumulată este rădăcina sumei varianțelor condiționale. Nu este pierdere maximă, limită de preț, interval de încredere sau probabilitate de profit.</p>';
@@ -23,13 +24,16 @@ function markup(p,i,inspection=inspect(p)){
 }
 function finish(current,error,result){
  if(job!==current||context.scope!==current.scope||context.demo!==current.demo)return;
- current.worker?.terminate();clearTimeout(current.timeout);job=null;
+ current.worker?.terminate();clearTimeout(current.timeout);job=null;const reportKey=current.key;let persistence=current.demo?'demo':'local';
  if(!error)try{
   if(!G.valid(result)||result.current.t!==current.sourceTime||Math.abs(result.current.close-current.price)>1e-6*Math.max(1,current.price))throw Error('Raport neverificabil sau închidere EOD diferită.');
   const record={symbol:current.symbol,currency:current.currency,asOf:current.asOf,kind:current.demo?'synthetic':'market',sourceTime:current.sourceTime,sourceClose:current.price,sourceFingerprint:current.sourceFingerprint,timezone:current.timezone,closeMinutes:current.closeMinutes,trainedAt:Date.now(),result};
-  if(current.demo)memory.set(current.key,JSON.stringify(record));else localStorage.setItem(current.key,JSON.stringify(record));errors.delete(current.key);
- }catch(e){error='Raportul GARCH nu a fost salvat: '+e.message;}
- if(error)errors.set(current.key,error);else try{g.HoldingsForecastUI?.capture(context.positions.find(p=>p.ticker===current.ticker));}catch{errors.set(current.key,'Raportul GARCH este calculat; registrul estimărilor nu a putut fi actualizat.');}current.resolve({state:error?'error':'ready',error:error||null});refresh();
+  persistence=reports.save(reportKey,record,current.demo);errors.delete(reportKey);
+ }catch(e){error='Raport GARCH respins: '+e.message;}
+ if(error)errors.set(reportKey,error);
+ else try{g.HoldingsForecastUI?.capture(context.positions.find(p=>p.ticker===current.ticker));}catch{reports.captureFailed(reportKey,current.demo);}
+ current.resolve?.({state:error?'error':'ready',error:error||null,persistence:error?null:persistence});refresh();
+
 }
 async function train(p,options={}){
  if(!p||blocked())return {state:'error',error:'Un alt model rulează deja.'};const m=context.model(p),symbol=context.symbol(p);if(!m||!symbol)return {state:'error',error:'Este necesară analiza EOD și identitatea instrumentului.'};

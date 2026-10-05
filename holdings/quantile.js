@@ -1,14 +1,14 @@
 (function(g){
 'use strict';
-const Q=g.HoldingsQuantile,N=g.HoldingsNeural,memory=new Map(),errors=new Map(),demoStarted=new Set();let context=null,job=null,serial=0;
+const Q=g.HoldingsQuantile,N=g.HoldingsNeural,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)}),errors=new Map(),demoStarted=new Set();let context=null,job=null,serial=0;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(v,d=2)=>Number.isFinite(v)?v.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—',day=t=>new Date(t).toISOString().slice(0,10);
 const key=p=>'tt_holdings_quantile_v1:'+encodeURIComponent(context.scope)+'|'+encodeURIComponent(p.ticker);
-function read(p){try{const raw=context.demo?memory.get(key(p)):localStorage.getItem(key(p));return raw?JSON.parse(raw):null;}catch{return null;}}
+function read(p){try{return reports.read(key(p),context.demo);}catch{return null;}}
 function usable(r,p,m,now=Date.now()){try{return !!r&&Number.isFinite(r.sourceTime)&&r.symbol===context.symbol(p)&&r.currency===m?.currency&&r.asOf===m?.asOf&&r.result?.current?.t===r.sourceTime&&g.DailySeries?.date(r.sourceTime,r.timezone)===r.asOf&&(context.demo||!Number.isFinite(m?.price)||Math.abs(r.result.current.close-m.price)<=1e-6*Math.max(1,m.price))&&r.kind===(context.demo?'synthetic':'market')&&Number.isFinite(r.trainedAt)&&r.trainedAt<=now&&now-r.trainedAt<=1800000&&Q.valid(r.result);}catch{return false;}}
 function cancel(update=true){if(job){if(update)errors.set(job.key,'Estimare anulată. Raportul anterior este păstrat.');job.worker?.terminate();clearTimeout(job.timeout);job.resolve?.({state:'cancelled'});job=null;serial++;}if(update)refresh();}
 function setContext(c){if(context&&(context.scope!==c.scope||context.demo!==c.demo))cancel(false);if(job){const p=c.positions.find(p=>p.ticker===job.ticker),m=p?c.model(p):null;if(!p||c.symbol(p)!==job.symbol||m?.currency!==job.currency||m?.asOf!==job.asOf||!c.demo&&m?.price!==job.price)cancel(false);}context=c;}
 function refresh(){g.HoldingsNeuralUI?.refresh();}
-function inspect(p){const r=read(p),ok=usable(r,p,context.model(p));return {record:r,usable:ok,assessment:ok?Q.assess(r.result):null};}
+function inspect(p){const r=read(p),ok=usable(r,p,context.model(p));return {record:r,usable:ok,assessment:ok?Q.assess(r.result):null,persistence:reports.inspect(key(p),context.demo,ok)};}
 function chart(c,currency){
  if(!c||![c.close,...(c.prices||[])].every(Number.isFinite)||c.prices?.length!==3||c.prices.some(v=>v<=0)||c.prices[0]>c.prices[1]||c.prices[1]>c.prices[2])return '';
  const values=[c.close,...c.prices],lo=Math.min(...values),hi=Math.max(...values),pad=Math.max((hi-lo)*.25,hi*.003),y=v=>175-(v-lo+pad)/(hi-lo+2*pad)*140;
@@ -18,6 +18,7 @@ function markup(p,i,inspection=inspect(p)){
  const m=context.model(p),{record:r,usable:ok,assessment:a}=inspection,result=ok?r.result:null,active=job?.ticker===p.ticker,busy=!!job||g.HoldingsNeuralUI?.busy()||g.HoldingsGarchUI?.busy()||g.HoldingsHMMUI?.busy()||g.HoldingsIsolationUI?.busy();
  const metric=(label,value)=>'<div><small>'+label+'</small><b>'+value+'</b></div>';
  let html='<section class="quantile-card" data-quantile-host="'+i+'" id="model-lab-'+i+'-quantile" tabindex="-1"><div class="hmm-heading"><div><span class="eyebrow">AL CINCILEA MODEL · INTERVALE</span><h4>Regresie cu cuantile</h4><p>Unde ar putea închide prețul peste cinci sesiuni și cât de larg este intervalul estimat?</p></div><span class="tag">'+(context.demo?'Date fictive':'Experimental')+'</span></div><div class="hmm-controls"><button class="primary" data-quantile-train="'+i+'" '+(busy||!m||!context.symbol(p)?'disabled':'')+'>'+(r?'Reestimează intervalul':'Estimează intervalul')+'</button>'+(active?'<button data-quantile-cancel>Anulează estimarea</button><progress data-quantile-progress max="180" value="0"></progress>':'')+'</div><p class="meta" role="status" aria-live="polite" data-quantile-status>'+esc(errors.get(key(p))||(active?'Calculez intervalele în fundal…':busy?'Aștept finalizarea modelului activ.':!m?'Rulează mai întâi analiza EOD.':r&&!ok?'Raport expirat sau incompatibil. Reestimează pe sesiunea curentă.':'Estimare separată de modelele de direcție, calculată pe dispozitiv.'))+'</p>';
+ if(ok&&inspection.persistence?.message)html+='<p class="model-storage-note" role="status">'+esc(inspection.persistence?.message)+'</p>';
  if(result){const c=result.current,t=result.report.test,b=result.report.baseline;
   html+='<div class="hmm-verdict '+(a.state==='descriptive'?'':'warn')+'"><b>'+esc(a.state==='drift'?'Estimare ascunsă':a.state==='descriptive'?'Interval experimental':'Interval de monitorizat')+'</b><p>'+esc(a.message)+'</p><small>EOD '+esc(r.asOf)+' · închidere la +5 sesiuni · acoperire urmărită 80%</small></div>';
   if(a.state!=='drift')html+=chart(c,r.currency)+'<div class="hmm-test-grid">'+metric('Limită inferioară estimată',fmt(c.prices[0])+' '+esc(r.currency))+metric('Mediană estimată',fmt(c.prices[1])+' '+esc(r.currency))+metric('Limită superioară estimată',fmt(c.prices[2])+' '+esc(r.currency))+'</div><p class="meta">Lățime '+fmt(c.widthPct)+'% din prețul EOD. Acoperirea nominală de 80% nu este probabilitatea unui profit sau o garanție pentru această deținere.</p>';
@@ -29,8 +30,17 @@ function markup(p,i,inspection=inspect(p)){
  return html+'<details class="neural-details"><summary>Metodă și limite ale cuantilelor</summary><p>Trei regresii liniare cu loss pinball estimează cuantilele 10%, 50% și 90% ale randamentului la cinci sesiuni, exprimat în ATR curent. Normalizarea și coeficienții folosesc numai antrenarea; validarea selectează iterația. Limitele sunt ordonate înaintea ajustării pe o referință separată și apoi evaluate pe test.</p><p>Regimurile financiare nu sunt interschimbabile: ajustarea pe trecut nu oferă o garanție de acoperire în viitor. Nu sunt incluse știri, earnings, FX, costuri sau riscul întregului portofoliu. Datele insuficiente și ieșirea din domeniul învățat sunt semnalate. Acest model nu votează în verdictul Neural / Boosting.</p><p><a href="../tools/holdings-quantile-validation.html" target="_blank" rel="noopener">Verificarea publică și metodologia cuantilelor</a></p></details><a class="model-back" data-model-jump="summary" href="#model-lab-'+i+'-summary">Sinteză ↑</a></section>';
 }
 function finish(current,error,result){
- if(job!==current||context.scope!==current.scope||context.demo!==current.demo)return;current.worker?.terminate();clearTimeout(current.timeout);job=null;
- if(error)errors.set(current.key,error);else try{if(!Q.valid(result)||result.current.t!==current.sourceTime)throw Error('Raport neverificabil sau sesiune diferită.');const record={symbol:current.symbol,currency:current.currency,kind:current.demo?'synthetic':'market',asOf:current.asOf,sourceTime:current.sourceTime,sourceFingerprint:current.sourceFingerprint,timezone:current.timezone,sourceClose:current.sourceClose,closeMinutes:current.closeMinutes,trainedAt:Date.now(),result};if(current.demo)memory.set(current.key,JSON.stringify(record));else localStorage.setItem(current.key,JSON.stringify(record));errors.delete(current.key);g.HoldingsForecastUI?.capture(context.positions.find(p=>p.ticker===current.ticker));}catch(e){error='Intervalul nu a fost salvat: '+e.message;errors.set(current.key,error);}current.resolve?.({state:error?'error':'ready',error:error||null});refresh();
+ if(job!==current||context.scope!==current.scope||context.demo!==current.demo)return;
+ current.worker?.terminate();clearTimeout(current.timeout);job=null;const reportKey=current.key;let persistence=current.demo?'demo':'local';
+ if(!error)try{
+  if(!Q.valid(result)||result.current.t!==current.sourceTime)throw Error('Raport neverificabil sau sesiune diferită.');
+  const record={symbol:current.symbol,currency:current.currency,kind:current.demo?'synthetic':'market',asOf:current.asOf,sourceTime:current.sourceTime,sourceFingerprint:current.sourceFingerprint,timezone:current.timezone,sourceClose:current.sourceClose,closeMinutes:current.closeMinutes,trainedAt:Date.now(),result};
+  persistence=reports.save(reportKey,record,current.demo);errors.delete(reportKey);
+ }catch(e){error='Raport cuantile respins: '+e.message;}
+ if(error)errors.set(reportKey,error);
+ else try{g.HoldingsForecastUI?.capture(context.positions.find(p=>p.ticker===current.ticker));}catch{reports.captureFailed(reportKey,current.demo);}
+ current.resolve?.({state:error?'error':'ready',error:error||null,persistence:error?null:persistence});refresh();
+
 }
 async function train(p,options={}){
  if(!p||job||g.HoldingsNeuralUI?.busy()||g.HoldingsGarchUI?.busy()||g.HoldingsHMMUI?.busy()||g.HoldingsIsolationUI?.busy())return;const m=context.model(p),symbol=context.symbol(p);if(!m||!symbol)return;
