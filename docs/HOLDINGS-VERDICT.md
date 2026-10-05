@@ -2,13 +2,15 @@
 
 Selectarea explicită a unei poziții, inclusiv navigarea anterior/următor, deschide dialogul Verdict AI și pornește analiza. Cardul păstrează un buton Verdict AI. Încărcarea portofoliului nu antrenează automat toate deținerile. Legăturile către registrele predicțiilor păstrează accesul direct la registru.
 
-Dialogul verifică o singură sursă OHLC EOD de maximum cinci ani, instrumentul, moneda, sesiunea și închiderea. Actualizează analiza tehnică a acelei poziții. Aceleași observații ajung succesiv la Neural + Gradient Boosting, HMM, Isolation Forest și Regresie cu cuantile. Workers primesc numai barele publice, momentul și ID-ul temporar; nu primesc date broker, cantități, chei sau identificatorul contului. Un eșec individual este afișat și permite celorlalte modele să termine.
+Dialogul verifică o singură sursă OHLC EOD de maximum cinci ani, instrumentul, moneda, sesiunea și închiderea. Actualizează analiza tehnică a acelei poziții. Aceleași observații ajung succesiv la Neural + Gradient Boosting, HMM, Isolation Forest, Regresie cu cuantile și GARCH(1,1). Workers primesc numai barele publice, momentul și ID-ul temporar; nu primesc date broker, cantități, chei sau identificatorul contului. Un eșec individual este afișat și permite celorlalte modele să termine.
 
 Rezultatele recente pot fi reutilizate numai după verificarea versiunii, raportului valid, instrumentului, monedei, sesiunii, ultimei observații, închiderii și programului bursei și amprentei întregului istoric OHLCV. Limita este 30 de minute; Reanalizează toate ocolește reutilizarea. Demo rulează pe un singur istoric fictiv comun, inclusiv Isolation Forest, și păstrează rezultatele în memorie.
 
 ## Concluzie
 
-Sunt necesare cinci rezultate actuale. Neural și Gradient Boosting trebuie să aibă avantaj istoric repetat și clase compatibile. Mediana cuantilelor trebuie să aibă validare descriptivă și aceeași clasă: mișcare de cel puțin +1 ATR = avans, cel mult −1 ATR = declin, altfel mixt. HMM trebuie să aibă un regim descriptiv care nu contrazice direcția; Isolation trebuie să descrie o observație obișnuită. Aceste două modele oferă context și nu votează prețul.
+Sunt necesare șase rezultate actuale. Neural și Gradient Boosting trebuie să aibă avantaj istoric repetat și clase compatibile. Mediana cuantilelor trebuie să aibă validare descriptivă și aceeași clasă: mișcare de cel puțin +1 ATR = avans, cel mult −1 ATR = declin, altfel mixt. HMM trebuie să aibă un regim descriptiv care nu contrazice direcția; Isolation trebuie să descrie o observație obișnuită. Aceste două modele oferă context și nu votează prețul.
+
+GARCH estimează volatilitatea cumulată la 5 și 20 de sesiuni. Nu votează direcția. Numai după avantaj istoric repetat față de varianța constantă și EWMA, volatilitatea ridicată adaugă prudență, păstrând clasa direcției. Rezultatul GARCH exploratoriu, limitat sau în drift este explicat fără să modifice concluzia celorlalte modele. Lipsa sau invaliditatea raportului GARCH păstrează verdictul incomplet. Protocol: `docs/HOLDINGS-GARCH.md`.
 
 Datele lipsă sau erorile produc verdict incomplet. Lipsa avantajului, validarea slabă sau drift produc verdict neconcludent. Estimările incompatibile produc semnale contradictorii; o anomalie sau clasificare de graniță cere prudență. Nu se însumează probabilități sau voturi și nu se calculează încredere de profit. Orizontul este închiderea la +5 sesiuni, iar știrile, earnings, costurile și riscul portofoliului sunt evaluate separat. Nu se execută ordine.
 
