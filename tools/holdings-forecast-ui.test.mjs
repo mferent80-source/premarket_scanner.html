@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
 const now=Date.parse('2026-10-04T17:00:00Z'),t=Date.parse('2026-10-02T13:30:00Z'),plain=x=>JSON.parse(JSON.stringify(x));
 function setup({demo=false,corrupt=false}={}){
- let clock=now;const writes=new Map(),buttons={},core={Date:class extends Date{static now(){return clock;}}};vm.createContext(core);for(const path of ['lib/daily-series.js','lib/holdings-neural.js','lib/holdings-forecast.js'])vm.runInContext(readFileSync(path,'utf8'),core);
+ let clock=now;const writes=new Map(),buttons={},core={Date:class extends Date{static now(){return clock;}}};vm.createContext(core);for(const path of ['lib/daily-series.js','lib/holdings-neural.js','lib/holdings-forecast.js','lib/holdings-forecast-backup.js'])vm.runInContext(readFileSync(path,'utf8'),core);
  let exports=null,refreshes=0,fetches=0,resolveFetch,rejectFetch;
  const bar={t,o:100,h:102,l:99,c:100,v:10000},p={ticker:'TEST_US_EQ',instrumentCurrency:'USD',apiKey:'SECRET',quantity:999};
  const record={symbol:'TEST',currency:'USD',kind:demo?'synthetic':'market',asOf:'2026-10-02',sourceTime:t,sourceClose:100,timezone:'America/New_York',closeMinutes:960,trainedAt:now-1000};

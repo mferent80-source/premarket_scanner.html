@@ -34,7 +34,7 @@ Butonul **Încarcă simularea verificării** construiește 24 orizonturi separat
 
 Protocolul și cheia `holdings-forecast-v1` rămân compatibile cu cele cinci tipuri vechi; acestea nu se rescriu când se adaugă noile tipuri. ID-ul GARCH include orizontul; toate celelalte modele păstrează ID-ul `model|EOD`.
 
-Maximum 500 înregistrări și 1,5 milioane caractere pe instrument. La limită sau la registru ilizibil, scrierea se oprește păstrând datele existente. Exportul JSON conține întregul registru și agregatele. Nu există import, ștergere automată, migrare a istoricului vechi sau sincronizare între dispozitive. Stocarea browserului nu constituie dovadă criptografică împotriva modificării locale a datelor.
+Maximum 500 înregistrări și 1,5 milioane caractere pe instrument. La limită sau la registru ilizibil, scrierea se oprește păstrând datele existente. Exportul JSON conține întregul registru, agregatele și un manifest verificat. **Backup și restaurare** permite import selectiv cu previzualizare, duplicate și conflicte, arhivarea copiei anterioare și anularea numai a estimărilor adăugate. Rezultatele importate cer reverificare publică înainte să intre în scoruri. Detalii: [HOLDINGS-FORECAST-BACKUP.md](HOLDINGS-FORECAST-BACKUP.md). Nu există ștergere automată, migrare a istoricului vechi sau sincronizare automată între dispozitive. Stocarea browserului și fișierele nu constituie dovadă criptografică a momentului predicției sau împotriva modificării locale a datelor.
 
 ## Validare
 
