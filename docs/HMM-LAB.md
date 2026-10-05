@@ -59,3 +59,5 @@ Workerul primește exclusiv bare, ora și un ID temporar. Nu primește cheia Tra
 Metodologie: [hmmlearn — HMM, Baum–Welch și limitările inițializării](https://hmmlearn.readthedocs.io/en/stable/tutorial.html). Implementarea este proprie și nu folosește biblioteca hmmlearn.
 
 Modelul descriptiv de anomalii este documentat separat în [Isolation Forest](ISOLATION-LAB.md); nu modifică verdictul de mai sus.
+
+Corecție de consistență EOD (5 octombrie 2026): în rularea pe piață, un raport salvat nu mai este utilizabil dacă închiderea EOD a fost corectată. Schimbarea prețului în același cont, instrument și aceeași zi anulează și Workerul activ; mesajele întârziate sunt ignorate. În analiza manuală, o închidere diferită sau nenumerică este respinsă înainte de pornirea Workerului.

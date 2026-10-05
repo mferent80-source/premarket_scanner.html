@@ -1,12 +1,12 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
 const now=Date.parse('2026-10-05T08:00:00Z');
-const core={Date:class extends Date{static now(){return now;}}};vm.createContext(core);for(const file of ['holdings-neural','holdings-neural-evaluation','holdings-boosting','holdings-model-comparison','holdings-hmm','holdings-isolation','holdings-quantile','holdings-garch','holdings-verdict'])vm.runInContext(readFileSync('lib/'+file+'.js','utf8'),core);
+const core={Date:class extends Date{static now(){return now;}}};vm.createContext(core);for(const file of ['holdings-neural','holdings-neural-evaluation','holdings-boosting','holdings-model-comparison','holdings-hmm','holdings-isolation','holdings-quantile','holdings-garch','holdings-verdict','holdings-model-runner'])vm.runInContext(readFileSync('lib/'+file+'.js','utf8'),core);
 const bars=core.HoldingsNeural.demoBars(0,Date.parse('2026-10-02T23:59:00Z'));
 const source={bars,fingerprint:core.HoldingsVerdict.fingerprint(bars),symbol:'TEST',currency:'USD',kind:'synthetic',asOf:'2026-10-02',timezone:'America/New_York',closeMinutes:960,t:bars.at(-1).t,close:bars.at(-1).c};
 function setup(name,{demo=true,quota=false,capture}={}){
  const button={dataset:{[name+'Train']:'0'}},workers=[],writes=[],saved=new Map(),c={scope:demo?'demo':'test-account',demo,positions:[{ticker:'TEST_US_EQ',quantity:123,apiKey:'SECRET'}],symbol:()=> 'TEST',model:()=>({asOf:source.asOf,currency:source.currency,price:source.close}),demoBars:()=>bars};
  const sandbox={...core,Date:class extends Date{static now(){return now;}},document:{querySelectorAll:q=>q==='[data-'+name+'-train]'?[button]:[],querySelector:()=>null,addEventListener(){}},location:{search:''},URLSearchParams,localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>{if(quota)throw Object.assign(new Error('Quota exceeded'),{name:'QuotaExceededError'});writes.push([k,v]);saved.set(k,v);}},HoldingsForecastUI:{setContext(){},bind(){},markup:()=>'',capture:capture||(()=>{})},DailySeries:{date:()=>source.asOf},D:{fetchStock(){throw Error('Duplicate fetch');}},setTimeout:()=>1,setInterval:()=>1,clearTimeout(){},Worker:class{constructor(){workers.push(this);}postMessage(payload){this.payload=payload;}terminate(){this.terminated=true;}}};
- vm.createContext(sandbox);vm.runInContext(readFileSync('holdings/'+name+'.js','utf8'),sandbox);const api=sandbox['Holdings'+(name==='hmm'?'HMM':name[0].toUpperCase()+name.slice(1))+'UI'];api.setContext(c);return {api,c,workers,writes,button};
+ vm.createContext(sandbox);vm.runInContext(readFileSync('holdings/'+name+'.js','utf8'),sandbox);const api=sandbox['Holdings'+(name==='hmm'?'HMM':name[0].toUpperCase()+name.slice(1))+'UI'];api.setContext(c);return {api,c,workers,writes,button,sandbox};
 }
 let computedResults;
 function examples(){if(computedResults)return computedResults;
@@ -40,8 +40,23 @@ test('a full browser store cannot turn a verified Forest into a failed six-model
   if(name==='isolation'){assert.equal(out.persistence,'session');assert.equal(s.writes.length,0);assert.match(snapshots[name].persistence.message,/Spațiul local.*plin/);const markup=s.api.markup(s.c.positions[0],0,snapshots[name]);assert.match(markup,/isolation-storage-note/);assert.match(markup,/Descarcă raportul pentru păstrare/);assert.match(markup,/data-isolation-export/);}
  }
  const r=core.HoldingsVerdict.build({expected,snapshots,now});assert.equal(r.available,6);assert.notEqual(r.state,'incomplete');assert.equal(r.cards[3].state,snapshots.isolation.assessment.state);assert.match(r.cards[3].detail,/disponibil doar în această sesiune/);
+ let loads=0,retrains=0;const runner=core.HoldingsModelRunner.create({load:async()=>{loads++;return expected;},steps:Object.keys(results).map(id=>({models:id==='neural'?['neural','boosting']:[id],run:()=>{retrains++;throw Error('Unexpected reanalysis');},cancel(){}})),current:()=>true,reusable:(step,run)=>step.models.every(id=>core.HoldingsVerdict.accepted(id,snapshots[id==='boosting'?'neural':id],run.source,now)),update(){}});
+ const reused=await runner.start({key:'test-account|TEST_US_EQ'});assert.equal(loads,1);assert.equal(retrains,0);assert.equal(reused.statuses.isolation.state,'cached');const cached=core.HoldingsVerdict.build({expected,snapshots,statuses:reused.statuses,now});assert.equal(cached.available,6);assert.match(cached.cards[3].detail,/disponibil doar în această sesiune/);
 });
 test('a failed prediction registry hook cannot undo a valid Forest report',async()=>{
  const s=setup('isolation',{demo:false,capture:()=>{throw Error('Registry failure');}}),pending=s.api.run(s.c.positions[0],{source:{...source,kind:'market'}}),worker=s.workers[0];worker.onmessage({data:{id:worker.payload.id,result:examples().isolation}});
  assert.equal((await pending).state,'ready');const snapshot=s.api.inspect(s.c.positions[0]);assert.equal(snapshot.usable,true);assert.equal(snapshot.persistence.state,'local');assert.equal(s.writes.length,1);assert.match(snapshot.persistence.message,/Registrul estimărilor nu a putut fi actualizat/);
+});
+
+test('Forest and HMM invalidate a saved report when the real EOD close changes',async()=>{
+ for(const name of ['isolation','hmm']){const s=setup(name,{demo:false}),p=s.c.positions[0],pending=s.api.run(p,{source:{...source,kind:'market'}}),w=s.workers[0];w.onmessage({data:{id:w.payload.id,result:examples()[name]}});assert.equal((await pending).state,'ready');assert.equal(s.api.inspect(p).usable,true);
+  s.api.setContext({...s.c,model:()=>({asOf:source.asOf,currency:source.currency,price:source.close+1})});assert.equal(s.api.inspect(p).usable,false,name);assert.equal(s.writes.length,1);
+ }
+});
+test('Forest and HMM cancel a running report when the real EOD close changes',async()=>{
+ for(const name of ['isolation','hmm']){const s=setup(name,{demo:false}),pending=s.api.run(s.c.positions[0],{source:{...source,kind:'market'}}),w=s.workers[0];s.api.setContext({...s.c,model:()=>({asOf:source.asOf,currency:source.currency,price:source.close+1})});assert.equal(w.terminated,true,name);assert.equal((await pending).state,'cancelled');w.onmessage({data:{id:w.payload.id,result:examples()[name]}});assert.equal(s.writes.length,0);assert.equal(s.api.busy(),false);}
+});
+
+test('manual Forest and HMM reject a different or nonnumeric historical close before a worker',async()=>{
+ for(const name of ['isolation','hmm'])for(const close of [source.close+1,NaN]){const s=setup(name,{demo:false});s.sandbox.D.fetchStock=async()=>bars;s.sandbox.DailySeries.read=()=>({...source,bars:[{...bars.at(-1),c:close}]});const out=await s.api.run(s.c.positions[0]);assert.equal(out.state,'error',name);assert.match(out.error,/Închiderea modelului diferă/);assert.equal(s.workers.length,0);assert.equal(s.writes.length,0);}
 });

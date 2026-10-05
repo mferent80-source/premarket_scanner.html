@@ -57,3 +57,5 @@ Validarea locală verifică structura tuturor arborilor, profilurile, pragurile 
 17 teste noi acoperă corecția traseelor, cauzalitatea indicatorilor, reproductibilitatea și invarianta afină, izolarea observațiilor extreme, separarea testului de arbori/prag, istorii constante, rezultate alterate, ferestre disjuncte, confidențialitatea Workerului, anulare, cont/EOD și excluderea reciprocă a joburilor. Verificarea completă a aplicației: 508 teste.
 
 Metodologie primară: [Liu, Ting, Zhou — Isolation Forest, 2008](https://cs.nju.edu.cn/zhouzh/zhouzh.files/publication/icdm08b.pdf), [documentația scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html). Implementarea este proprie și nu folosește scikit-learn.
+
+Corecție de consistență EOD (5 octombrie 2026): în rularea pe piață, un raport salvat nu mai este utilizabil dacă închiderea EOD a fost corectată. Schimbarea prețului în același cont, instrument și aceeași zi anulează și Workerul activ; mesajele întârziate sunt ignorate. În analiza manuală, o închidere diferită sau nenumerică este respinsă înainte de pornirea Workerului.

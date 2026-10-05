@@ -17,3 +17,5 @@ Datele lipsă sau erorile produc verdict incomplet. Lipsa avantajului, validarea
 Închiderea, Escape, Oprește analiza și schimbarea contului, simbolului, monedei, sesiunii sau prețului EOD anulează lucrul deținut de dialog. Mesajele întârziate nu pot actualiza alt context. O analiză manuală deja activă nu este oprită de dialog; este cerută reluarea după finalizarea ei.
 
 Demo funcțional cu verificare desktop/390 px: `tools/holdings-verdict-demo.html`. Teste: `holdings-verdict`, `holdings-model-runner`, `holdings-verdict-managed` și suitele existente pentru UI/model.
+
+Rapoartele finalizate sau reutilizate care nu mai trec verificarea apar cu „Reanalizează”, nu „În așteptare”. Cardul precizează motivul: expirare, istoric schimbat, alt EOD, instrument, monedă, închidere, versiune sau verificare eșuată. Mesajul real al unui Worker eșuat este păstrat; excepțiile interne ale validării nu sunt afișate. Un status de succes nu conține un mesaj generic de eroare. Reutilizarea unui Forest temporar păstrează avertismentul despre retenția numai în sesiunea curentă.
