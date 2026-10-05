@@ -3232,6 +3232,12 @@ pe un singur chart.
 | I-524 | Fisa: cat de departe e propunerea Radarului de intervalul Busolei („cu 35% mai ingust decat al Busolei - pe 4h cel mai larg a pierdut cel mai putin”, I-505) | crypto/public/lib/busola.js (randFisa), public/app.js (grBusolaFisaHtml), scripts/proba-busola.mjs | S | P2 | propus | ideation | 2026-10-04 |
 | I-525 | Listele „Pe revenire” / „Pentru short”: dunga rosie si dupa istoricul TAU pe moneda (>= 5 boti pe minus), nu doar dupa istoricul pietei | crypto/public/lib/t212-ecran.js (tbSugestiiCorp), public/lib/idei.js | S | P3 | propus | ideation | 2026-10-04 |
 | I-526 | Rezumatul de dimineata cu un verdict-titlu inaintea randurilor („Azi: 1 bot pe agitatie dovedita, 2 pe calm; 9 actiuni pe revenire, istoricul cam la fel”) | crypto/scripts/colector.mjs (dateDimineata), public/lib/consilier.js (rezumatDimineata), scripts/lib/garda-alerte.mjs | S | P3 | propus | ideation | 2026-10-04 |
+| I-527 | Tablou: rândul „Stopul vs planul” mereu în citirea graficului - la stop pierzi −7,4, planul zice −6,5 (+0,9) | crypto/public/lib/grafic-bot.js (citire), public/app.js (tbDeseneazaCitire) | S | P1 | propus | ideation | 2026-10-05 |
+| I-528 | Graficul botului: șansele măsurate lângă linii (stopul mâine, marginile în 24 h, lichidarea în 7 zile, ținta înaintea stopului) | crypto/public/lib/grafic-bot.js, public/app.js (renderTabloGrafic), public/lib/probabilitati.js | M | P2 | propus | ideation | 2026-10-05 |
+| I-529 | Graficul botului: mută stopul pe grafic (simulat) - pierderea la stop cu gridul, șansa măsurată, prețul de copiat în Pionex | crypto/public/lib/grafic-bot.js, public/app.js, public/lib/tablou-extra.js, public/lib/probabilitati.js | M | P2 | propus | ideation | 2026-10-05 |
+| I-530 | ADX măsurat pe boții TĂI - boții porniți la ADX sub 20 vs peste 25: câți pe plus, rezultatul median (ipoteză, de validat) | crypto/scripts/lib (tură nouă), public/lib/obiceiuri.js, public/lib/grafic-bot.js (citire) | M | P2 | propus | ideation | 2026-10-05 |
+| I-531 | Pe telefon, „Ce spune graficul acum” imediat sub grafic (azi vine după „Ce ai de făcut”) | crypto/public/app.css, public/index.html | S | P3 | propus | ideation | 2026-10-05 |
+| I-532 | Intrarea graficului ca funcție pură testabilă (în loc de 3 gărzi pe textul lui renderTabloGrafic) | crypto/public/lib/grafic-bot.js, public/app.js, scripts/proba-v10038.mjs, proba-v10051.mjs, proba-v10098.mjs | M | P3 | propus | ideation | 2026-10-05 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5374,3 +5380,46 @@ Fluxul azi e într-un singur sens (Busola → Radar, JSON public). Radar → Bus
 - **Impact:** pe telefon citești un rând și știi dacă deschizi Radarul.
 - **Riscuri:** rândul ≤ 160 (garda „raport”); se construiește din aceleași surse, fără cifre noi.
 - **Fișiere:** crypto/scripts/colector.mjs (dateDimineata), public/lib/consilier.js (rezumatDimineata), scripts/lib/garda-alerte.mjs.
+
+
+#### I-527 · Tablou: „Stopul vs planul” mereu în citire · [S] · P1 · propus
+- **Problema:** pe TAKE (05.10) stopul din Pionex e la 0.06097 (−6,2%), iar planul −6,5 USDT, socotit cu gridul, vine la 0.06147 (−5,4%), adică ÎNAINTEA stopului. La stop botul pierde ~−7,4 USDT, nu −6,5. Alerta „plan-stop” există, dar se aprinde doar peste 1,2× și 2 USDT, așa că diferența de 0,9 USDT (1,14×) nu se vede nicăieri.
+- **Soluția:** în citirea graficului, rândul „Stopul” devine „Stopul vs planul”: „la stop pierzi −7,4 USDT · planul −6,5 · +0,9 peste plan” (galben peste plan, verde la plan sau sub). Cifra vine din `TabloExtra.totalLaOpritor` / `totalCuGridLa` la prețul stopului, deja folosite de alertă. Alerta rămâne cu toleranța ei.
+- **Impact:** vezi mereu cât te costă stopul pus față de ce ți-ai propus, nu doar când diferența e mare.
+- **Riscuri:** stopul în procente („raport”) are altă socoteală (o are deja alerta); fără plan ⇒ rândul rămâne „Stopul: la −6,2%”.
+- **Fișiere:** crypto/public/lib/grafic-bot.js (citire), public/app.js (tbDeseneazaCitire), scripts/proba-v10098.mjs.
+
+#### I-528 · Graficul botului: șansele măsurate lângă linii · [M] · P2 · propus
+- **Problema:** Radarul măsoară deja șansele („Atinge stopul mâine”, marginile gridului în 24 h și 3 zile, lichidarea în 7 zile, ținta planului înaintea stopului în 7 zile, `Probabilitati`), dar ele stau în altă cartelă; pe grafic liniile au doar prețul.
+- **Soluția:** etichetele stopului, marginilor, lichidării și planului + primesc șansa măsurată, scurt: „stopul tău 0.06097 · mâine 14%”; la eșantion mic, marcajul „(puține cazuri)” existent; doar ce s-a măsurat, nimic estimat pe loc.
+- **Impact:** citești pe aceeași linie unde e nivelul și cât de des a fost atins în situații ca asta.
+- **Riscuri:** eticheta crește (gutter-ul de 176 px); pe telefon doar procentul. Ipoteze măsurate, nu promisiuni (trader.md).
+- **Fișiere:** crypto/public/lib/grafic-bot.js (etichetele), public/app.js (renderTabloGrafic, tbProb), public/lib/probabilitati.js.
+
+#### I-529 · Mută stopul pe grafic (simulat) · [M] · P2 · propus
+- **Problema:** ca să alegi stopul, socotești acum în cap: unde e, cât pierzi acolo cu gridul care cumpără pe drum și cât de des ar fi atins.
+- **Soluția:** o linie de stop „de probă” care se trage cu mouse-ul sau degetul pe grafic: arată în timp real pierderea la acel preț (`totalCuGridLa`), distanța în % și, unde există, șansa măsurată de atingere; buton „copiază prețul” pentru Pionex. Nu trimite nimic la Pionex (Radarul e doar citire).
+- **Impact:** alegi stopul pe cifre (−6,5 USDT exact = 0.06147), nu din ochi; leagă „dacă închizi la” de decizia reală.
+- **Riscuri:** șansa la un nivel arbitrar poate să nu fie măsurată (doar nivelurile fixe din `Probabilitati`) ⇒ atunci doar pierderea și distanța; tragerea pe telefon nu trebuie să blocheze derularea.
+- **Fișiere:** crypto/public/lib/grafic-bot.js, public/app.js (renderTabloGrafic), public/lib/tablou-extra.js, public/lib/probabilitati.js.
+
+#### I-530 · ADX măsurat pe boții tăi · [M] · P2 · propus
+- **Problema:** ADX-ul din grafic (v100.98) e descriptiv: „sub 20 stă pe loc, bun pentru grid” e regula din manual, nedovedită pe boții tăi.
+- **Soluția:** o tură de noapte care ia arhiva boților închiși (~2.256), ADX 14 pe 1h la ora pornirii fiecăruia (doar bare de dinainte, fără privit în viitor) și compară: porniți sub 20 vs peste 25 — câți pe plus, rezultatul median, cu interval de încredere și verdict „dovedit / nedovedit / pe dos”. Rândul ADX din citire spune verdictul („la tine: 61% pe plus sub 20, 44% peste 25 · dovedit” sau „nedovedit pe boții tăi”).
+- **Impact:** indicatorul devine măsurat pe banii tăi sau se spune pe față că nu ajută.
+- **Riscuri:** ipoteză, de validat out-of-sample (trader.md); cere lumânările de la pornire (cache-ul colectorului); confundă monedele (o monedă cu mulți boți trage media) ⇒ IC pe monede.
+- **Fișiere:** crypto/scripts/lib (tură nouă), public/lib/obiceiuri.js, public/lib/grafic-bot.js (citire), functions/api/istoric-bot.js (ruta).
+
+#### I-531 · Pe telefon, citirea imediat sub grafic · [S] · P3 · propus
+- **Problema:** pe telefon coloana din dreapta se stivuiește după toată coloana stângă, așa că „Ce spune graficul acum” apare după „Ce ai de făcut” (~2.000 px mai jos de grafic).
+- **Soluția:** sub 1180 px, cartela citirii se mută (ordine CSS sau un al doilea loc de randare) imediat sub grafic; pe PC rămâne în dreapta.
+- **Impact:** graficul și explicația lui se văd împreună și pe telefon.
+- **Riscuri:** un nod mutat în alt container își pierde ascultătorii (capcana din 25.09) ⇒ randare în locul potrivit, nu mutare.
+- **Fișiere:** crypto/public/app.css, public/index.html, public/app.js (tbDeseneazaCitire).
+
+#### I-532 · Intrarea graficului ca funcție pură testabilă · [M] · P3 · propus
+- **Problema:** obiectul trimis graficului se construiește în `renderTabloGrafic` (app.js) și e păzit de 3 probe care citesc TEXTUL codului (`var oG={simplu:`, `var d={bb:…}`, `linii:botiNr(xo.row)`); la v100.98 două au picat doar din cauza formei.
+- **Soluția:** `GraficBot.intrareBot(b, brut, extra, plan, …)` pur în lib, care întoarce obiectul; probele verifică ce întoarce pe un bot de probă (liniile Pionex, umplerile, planul cu gridul), nu forma textului din app.js.
+- **Impact:** refactorizările nu mai rup probe care păzesc comportament; mai puține „gărzi pe formă”.
+- **Riscuri:** mutare de cod fără schimbare de comportament ⇒ poza înainte/după identică.
+- **Fișiere:** crypto/public/lib/grafic-bot.js, public/app.js, scripts/proba-v10038.mjs, proba-v10051.mjs, proba-v10098.mjs.
