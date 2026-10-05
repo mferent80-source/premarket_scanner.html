@@ -16,7 +16,7 @@ Selectăm ponderea Neural din `{0.5, 0.25, 0.75}` și temperatura din `{1, 1.5, 
 
 Pe aceleași observații de test raportăm log loss, Brier multiclasă (suma erorilor celor trei clase, fără împărțire la 3), acuratețe, acuratețe echilibrată și matrice de confuzie. Repere: Neural, Boosting, media 50/50 păstrată și frecvențele claselor calibrării cu o pseudo-observație pe clasă. Eticheta „Avantaj observat pe test” cere log loss cu peste 0.02 și Brier cu peste 0.01 mai mici decât fiecare reper. Marjele sunt descriptive; nu reprezintă semnificație statistică, confirmare de calibrare perfectă sau validare pentru tranzacționare.
 
-La adăugarea observațiilor împărțirea se recalculează. Evaluarea este retrospectivă pe estimări păstrate prospectiv; combinația nu este un nou model urmărit prospectiv. Versiunile Neural / Boosting sunt verificate; reantrenarea în aceeași versiune poate schimba distribuția probabilităților. Registrul are în continuare limita de 500 estimări pe instrument și nu șterge istoricul pentru a face loc.
+La adăugarea observațiilor împărțirea se recalculează. Evaluarea este retrospectivă pe estimări păstrate prospectiv; combinația nu este un nou model urmărit prospectiv. Versiunile Neural / Boosting sunt verificate; reantrenarea în aceeași versiune poate schimba distribuția probabilităților. Registrul acceptă acum până la 20.000 estimări pe instrument, cu IndexedDB și migrare care păstrează copiile vechi. Nu șterge istoricul pentru a face loc. Checkpoint-urile operaționale sunt documentate separat în holdings-learning-README.md.
 
 ## Demo și verificare
 

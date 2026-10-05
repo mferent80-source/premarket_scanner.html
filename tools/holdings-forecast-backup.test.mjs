@@ -97,10 +97,12 @@ test('a concurrent write during archival prevents the restore from replacing the
  s.storage.setItem=(k,v)=>{s.data.set(k,v);if(k===B.archiveKey(e))s.data.set(F.key(e),newer);};
  assert.equal(s.r.restore(plan,e,[row('quantile').id],now).ok,false);assert.equal(s.data.get(F.key(e)),newer);
 });
-test('a full registry refuses additions without truncating; a smaller selection can fit the remaining capacity',()=>{
+test('backup respects the advertised capacity without truncating; a smaller selection can fit',()=>{
+ const actualMax=F.MAX;F.MAX=500;try{
  const simulated={...e,kind:'synthetic'},rows=[];let day=Date.parse('2023-01-02T00:00:00Z');
  for(let i=0;i<499;i++){while([0,6].includes(new Date(day).getUTCDay()))day+=86400000;rows.push(row('neural',new Date(day).toISOString().slice(0,10),5,simulated));day+=86400000;}
  const s=setup();s.data.set(F.key(simulated),JSON.stringify({version:F.VERSION,entries:rows}));const incoming=[row('quantile',undefined,5,simulated),row('garch',undefined,20,simulated)],plan=s.r.preview(backup(incoming,simulated),simulated,now),before=s.data.get(F.key(simulated));
  assert.equal(plan.ok,true);assert.equal(s.r.restore(plan,simulated,incoming.map(r=>r.id),now).ok,false);assert.equal(s.data.get(F.key(simulated)),before);assert.equal(s.data.has(B.archiveKey(simulated)),false);
  assert.equal(s.r.restore(plan,simulated,[incoming[0].id],now).saved,1);assert.equal(JSON.parse(s.data.get(F.key(simulated))).entries.length,500);
+ }finally{F.MAX=actualMax;}
 });
