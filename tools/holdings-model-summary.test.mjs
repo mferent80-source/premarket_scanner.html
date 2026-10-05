@@ -52,6 +52,7 @@ test('demo fixture separation prevents a combined market interpretation',()=>{
  const f=fixture(true);f.hmm.record.result.profiles[0].label='Deteriorare';f.isolation.assessment.state='anomaly';f.isolation.record.result.current={score:.8,votes:3};
  const r=S.build(f);assert.equal(r.state,'demo');assert.equal(r.kind,'synthetic');assert.ok(!r.notes.some(n=>n.id==='regime-conflict'));assert.match(r.limits,/altul, cu anomalie introdusă/);
 });
+test('demo source explanation follows verified shared fingerprints without relabelling manual fixtures',()=>{const f=fixture(true);for(const id of ['neural','hmm','isolation'])f[id].record.sourceFingerprint='ohlcv-v1:1100:shared';assert.match(S.build(f).limits,/același istoric fictiv/);f.isolation.record.sourceFingerprint='ohlcv-v1:1100:other';assert.match(S.build(f).limits,/altul, cu anomalie introdusă/);});
 test('running refresh cannot present a completed joint interpretation',()=>{
  const f=fixture();f.busy=true;const r=S.build(f);assert.equal(r.state,'running');assert.equal(r.available,4);assert.equal(r.busy,true);
 });
