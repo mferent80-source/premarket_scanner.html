@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';
 const now=Date.parse('2026-10-04T17:00:00Z'),t=Date.parse('2026-10-02T13:30:00Z'),plain=x=>JSON.parse(JSON.stringify(x));
 function setup({demo=false,corrupt=false}={}){
- let clock=now;const writes=new Map(),buttons={},core={Date:class extends Date{static now(){return clock;}}};vm.createContext(core);for(const path of ['lib/daily-series.js','lib/holdings-neural.js','lib/holdings-forecast.js','lib/holdings-forecast-backup.js'])vm.runInContext(readFileSync(path,'utf8'),core);
+ let clock=now;const writes=new Map(),buttons={},core={Date:class extends Date{static now(){return clock;}}};vm.createContext(core);for(const path of ['lib/daily-series.js','lib/holdings-neural.js','lib/holdings-forecast.js','lib/holdings-forecast-backup.js','lib/holdings-calibration.js','holdings/calibration.js'])vm.runInContext(readFileSync(path,'utf8'),core);
  let exports=null,refreshes=0,fetches=0,resolveFetch,rejectFetch;
  const bar={t,o:100,h:102,l:99,c:100,v:10000},p={ticker:'TEST_US_EQ',instrumentCurrency:'USD',apiKey:'SECRET',quantity:999};
  const record={symbol:'TEST',currency:'USD',kind:demo?'synthetic':'market',asOf:'2026-10-02',sourceTime:t,sourceClose:100,timezone:'America/New_York',closeMinutes:960,trainedAt:now-1000};
@@ -16,6 +16,20 @@ function setup({demo=false,corrupt=false}={}){
  return {ui,c,p,e,writes,core,sandbox,neural,quantile,hmm,isolation,button,setNow:t=>clock=t,exports:()=>exports,refreshes:()=>refreshes,fetches:()=>fetches,resolve:()=>resolveFetch?.([]),reject:()=>rejectFetch?.(Error('offline'))};
 }
 test('successful model inspections produce five separate first forecasts without account fields',()=>{const s=setup();s.ui.capture(s.p);const d=s.core.HoldingsForecast.createStore({getItem:k=>s.writes.get(k)}).read(s.e);assert.equal(d.ok,true);assert.equal(d.entries.length,5);assert.ok(!/SECRET|apiKey|quantity/.test(JSON.stringify(d)));assert.equal(d.entries.find(r=>r.model==='neural').estimate.baselineClass,1);});
+test('real model support vectors are captured independently without reconstructing old estimates',()=>{
+ const s=setup();s.neural.record.result.support=[.1,.2,.7];s.neural.record.result.comparison.boosting.support=[.7,.2,.1];s.ui.capture(s.p);const rows=s.ui.snapshot(s.p).ledger.entries;assert.deepEqual(plain(rows.find(r=>r.model==='neural').estimate.probabilities),[.1,.2,.7]);assert.deepEqual(plain(rows.find(r=>r.model==='boosting').estimate.probabilities),[.7,.2,.1]);s.neural.record.result.support[2]=.6;assert.equal(rows.find(r=>r.model==='neural').estimate.probabilities[2],.7);
+ const legacy=setup();legacy.ui.capture(legacy.p);const before=legacy.writes.get(legacy.core.HoldingsForecast.key(legacy.e));legacy.neural.record.result.support=[.1,.2,.7];legacy.ui.capture(legacy.p);assert.equal(legacy.writes.get(legacy.core.HoldingsForecast.key(legacy.e)),before);
+});
+test('calibration illustration runs through its control only in demo, remains immutable and stays out of account storage',()=>{
+ const s=setup({demo:true}),b=s.button('forecast-calibration-demo');b.onclick();const rows=s.ui.snapshot(s.p).ledger.entries,r=s.ui.calibration(s.p);assert.equal(rows.length,80);assert.equal(r.available,40);assert.equal(r.split.fit.n,20);assert.equal(r.split.test.n,20);assert.ok(r.scores);assert.equal(s.writes.size,0);const before=JSON.stringify(rows);b.onclick();assert.equal(JSON.stringify(s.ui.snapshot(s.p).ledger.entries),before);assert.match(s.ui.markup(s.p,0),/viitoare fictive/);
+ s.ui.setContext({...s.c,demo:false});b.onclick();assert.equal(s.writes.size,0);assert.equal(s.ui.calibration(s.p).available,0);
+});
+test('calibration export contains the experiment and held-out comparisons without the account or raw registry',()=>{
+ const s=setup({demo:true});s.ui.simulationCalibration(s.p);s.button('forecast-calibration-export').onclick();const out=s.exports();assert.equal(out.result.version,'holdings-calibration-v1');assert.equal(out.result.reviewOnly,true);assert.ok(out.result.scores.calibrated);assert.ok(!/SECRET|apiKey|quantity|scope|capturedAt|entries/.test(JSON.stringify(out)));const empty=setup();empty.button('forecast-calibration-export').onclick();assert.equal(empty.exports(),null);
+});
+test('the calibration panel appears beside the original registry metrics in real and demo contexts',()=>{
+ const s=setup();assert.match(s.ui.markup(s.p,0),/Calibrarea combinației AI/);assert.match(s.ui.markup(s.p,0),/0 \/ minimum 40/);assert.doesNotMatch(s.ui.markup(s.p,0),/data-forecast-calibration-demo/);const demo=setup({demo:true});assert.match(demo.ui.markup(demo.p,0),/data-forecast-calibration-demo/);
+});
 test('reanalyzing the same EOD cannot replace the original direction or interval',()=>{const s=setup();s.ui.capture(s.p);s.neural.record.result.classIndex=0;s.quantile.record.result.current.prices=[95,100,108];s.ui.capture(s.p);const d=JSON.parse(s.writes.get(s.core.HoldingsForecast.key(s.e)));assert.equal(d.entries.length,5);assert.equal(d.entries.find(r=>r.model==='neural').estimate.classIndex,2);assert.deepEqual(d.entries.find(r=>r.model==='quantile').estimate.prices,[98,101,104]);});
 test('drifted forecasts remain absent from the performance registry',()=>{const s=setup();s.neural.assessment.state='drift';s.quantile.assessment.state='drift';s.ui.capture(s.p);const d=JSON.parse(s.writes.get(s.core.HoldingsForecast.key(s.e)));assert.deepEqual(d.entries.map(r=>r.model),['hmm','isolation']);});
 test('legacy Neural results lacking verified close metadata are not backfilled',()=>{const s=setup();delete s.neural.record.sourceTime;s.ui.capture(s.p);const d=JSON.parse(s.writes.get(s.core.HoldingsForecast.key(s.e)));assert.ok(!d.entries.some(r=>r.model==='neural'||r.model==='boosting'));});

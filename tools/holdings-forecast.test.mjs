@@ -8,6 +8,15 @@ function forecast(model='neural'){return F.project(input(model),e,captured);}
 function source(xs=bars()){return {symbol:'TEST',currency:'USD',timezone:'America/New_York',closeMinutes:960,asOf:dates.at(-1),retrievedAt:now,bars:xs};}
 function setup(){const writes=new Map(),storage={getItem:k=>writes.get(k)||null,setItem:(k,v)=>writes.set(k,v)};return {writes,store:F.createStore(storage)};}
 test('snapshots contain only the immutable forecast protocol, source and simple estimates',()=>{const i=input();i.apiKey='SECRET';i.quantity=99;i.estimate.apiKey='SECRET';const r=forecast();assert.ok(F.validEntry(r,e,now));const saved=F.project(i,e,captured);assert.ok(!/SECRET|quantity|apiKey|scope/.test(JSON.stringify(saved)));});
+test('new class forecasts freeze probability vectors while legacy estimates remain valid and unchanged',()=>{
+ const old=forecast(),before=JSON.stringify(old),i=input();i.estimate.probabilities=[.1,.2,.7];const r=F.project(i,e,captured);assert.deepEqual(plain(r.estimate.probabilities),[.1,.2,.7]);assert.ok(F.validEntry(r,e,now));i.estimate.probabilities[2]=.1;assert.equal(r.estimate.probabilities[2],.7);assert.ok(F.validEntry(old,e,now));assert.equal(Object.hasOwn(old.estimate,'probabilities'),false);assert.equal(JSON.stringify(old),before);
+});
+test('invalid, missing-mass and class-inconsistent probability vectors fail closed',()=>{
+ for(const probabilities of [[.1,.2,.6],[.1,.2,NaN],[-.1,.3,.8],[.8,.1,.1],[.1,.2,.7,0],null]){const i=input();i.estimate.probabilities=probabilities;assert.equal(F.project(i,e,captured),null);const r=forecast();r.estimate.probabilities=probabilities;assert.equal(F.validEntry(r,e,now),false);}
+});
+test('later probabilities never overwrite the first class-only forecast of the same session',()=>{
+ const {store,writes}=setup();store.save(input(),e,captured);const before=writes.get(F.key(e)),i=input();i.estimate.probabilities=[.1,.2,.7];assert.equal(store.save(i,e,captured+1000).duplicate,true);assert.equal(writes.get(F.key(e)),before);assert.equal(store.read(e).entries[0].estimate.probabilities,undefined);
+});
 test('forecasts recorded after the next local weekday begins are refused',()=>{assert.equal(F.project(input(),e,Date.parse('2026-09-28T04:01:00Z')),null);assert.equal(F.timely(input().source,Date.parse('2026-09-27T17:00:00Z')),true);});
 test('unfinished market session cannot be captured even if its date matches',()=>{const i=input();i.trainedAt=Date.parse('2026-09-25T14:00:00Z');assert.equal(F.project(i,e,i.trainedAt),null);});
 test('old training, future training and a mismatched model version fail closed',()=>{for(const change of [i=>i.trainedAt=captured-1800001,i=>i.trainedAt=captured+1,i=>i.modelVersion='other',i=>i.source.asOf='2026-09-24',i=>i.estimate.classIndex=9]){const i=input();change(i);assert.equal(F.project(i,e,captured),null);}});

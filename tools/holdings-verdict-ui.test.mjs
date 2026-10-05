@@ -68,3 +68,8 @@ test('download contains the diagnostic explanation alongside the unchanged final
 test('a separate running model is diagnosed as busy rather than a failed EOD source',()=>{
  const s=setup();s.sandbox.HoldingsNeuralUI.busy=()=>true;s.elements.get('[data-verdict-retry]').onclick();const html=s.elements.get('[data-verdict-diagnostic]').innerHTML;assert.match(html,/rulează deja separat/);assert.match(html,/Verificări în curs/);assert.doesNotMatch(html,/Date EOD necesare/);assert.equal(s.elements.get('[data-verdict-repair]').hidden,true);
 });
+test('experimental calibration renders and exports alongside the final verdict without modifying its decision',()=>{
+ const s=setup(),original=JSON.stringify(s.report),experiment={version:'holdings-calibration-v1',reviewOnly:true,available:40,state:'advantage'};let demoCalls=0;
+ s.sandbox.HoldingsForecastUI.calibration=()=>experiment;s.sandbox.HoldingsForecastUI.simulationCalibration=()=>demoCalls++;s.sandbox.HoldingsCalibrationUI={markup:(r,{compact})=>{assert.equal(r,experiment);assert.equal(compact,true);return '<section>Calibrare experimentală</section>';}};
+ s.ui.refresh();assert.match(s.elements.get('[data-verdict-calibration]').innerHTML,/experimentală/);assert.match(s.elements.get('[data-verdict-calibration]').innerHTML,/date fictive/);assert.equal(JSON.stringify(s.report),original);s.elements.get('[data-verdict-calibration-demo]').onclick();assert.equal(demoCalls,1);s.sandbox.HoldingsVerdict.accepted=()=>true;s.elements.get('[data-verdict-export]').onclick();assert.equal(s.exports[0].result.calibration,experiment);assert.equal(s.exports[0].result.verdict.state,s.report.state);
+});

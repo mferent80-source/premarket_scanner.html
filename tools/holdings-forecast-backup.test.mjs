@@ -24,6 +24,9 @@ test('the original registry export without a manifest or broker ticker remains i
  const b=B.create(e,[row()],now);delete b.ticker;delete b.exportedAt;delete b.result.manifest;
  assert.equal(B.parse(JSON.stringify(b),e,now).length,1);
 });
+test('probabilities round-trip through backup and restore without backfilling or replacing a legacy forecast',()=>{
+ const r=row();r.estimate.probabilities=[.1,.2,.7];const b=B.create(e,[r],now),parsed=B.parse(JSON.stringify(b),e,now);assert.deepEqual(plain(parsed[0].estimate.probabilities),[.1,.2,.7]);const s=setup(),plan=s.r.preview(JSON.stringify(b),e,now);assert.equal(s.r.restore(plan,e,[r.id],now).ok,true);assert.deepEqual(s.entries()[0].estimate.probabilities,[.1,.2,.7]);const old=setup([row()]),before=old.data.get(F.key(e)),conflict=old.r.preview(JSON.stringify(b),e,now);assert.equal(conflict.conflicts.length,1);assert.equal(conflict.additions.length,0);assert.equal(old.data.get(F.key(e)),before);
+});
 test('preview is read-only and identifies new forecasts, duplicates and immutable conflicts',()=>{
  const old=row(),changed=plain(old);changed.estimate.classIndex=0;const s=setup([old,row('quantile')]),before=new Map(s.data),plan=s.r.preview(backup([changed,row('quantile'),row('garch')]),e,now);
  assert.equal(plan.ok,true);assert.equal(plan.duplicates,1);assert.equal(plan.conflicts.length,1);assert.equal(plan.additions.length,1);assert.deepEqual(s.data,before);
