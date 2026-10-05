@@ -3242,10 +3242,10 @@ pe un singur chart.
 | I-534 | Regula „gridul încape în pragul de pierdere” în lista ✓/✗ a porții (azi e un rând separat) | crypto/public/lib/obiceiuri.js (poarta), public/app.js (gridPoarta) | S | P2 | facut 2026-10-05 (v100.103) | ideation | 2026-10-05 |
 | I-535 | ÎNGUST vs LARG pe boții tăi reali: recunoaștere la pornire + bilanț la închidere (dovedit / nedovedit) | crypto/public/lib/grid-proba.js, public/lib/asemanatoare.js, scripts/colector.mjs, public/app.js | M | P2 | facut 2026-10-05 (v100.103) | ideation | 2026-10-05 |
 | I-536 | Pragul de pierdere ca % din sumă, setat o dată (cu buton), în loc de împrumutat de la ultimul bot | crypto/public/lib/tablou-extra.js (propunePlan), public/app.js (poarta, grPlanPentruVariante), functions/api/istoric-bot.js | S | P3 | facut 2026-10-05 (v100.103) | ideation | 2026-10-05 |
-| I-537 | „Pragul meu” propus din planurile tale scrise (mediana în % din sumă), cu un buton „ia-l din istoria mea” | crypto/functions/api/istoric-bot.js (planurile „plan:<id>”), public/lib/tablou-extra.js, public/app.js (poarta) | S | P2 | propus | ideation | 2026-10-05 |
-| I-538 | Ferestrele oferite ținute pe server (nu în browser): recunoașterea merge de pe PC și de pe telefon, iar colectorul spune pe Discord „pornit ca LARG” | crypto/functions/api/istoric-bot.js, public/app.js (grFerestreTine), scripts/lib/tura-pornire.mjs, public/lib/grid-jurnal.js | M | P2 | propus | ideation | 2026-10-05 |
-| I-539 | A avut dreptate „Ce aș alege eu”? La apăsare se ține și recomandarea; bilanțul spune „când ai urmat-o” vs „când n-ai urmat-o” | crypto/public/lib/grid-jurnal.js, public/app.js (gridJurnalAdauga, renderGridJurnal) | S | P3 | propus | ideation | 2026-10-05 |
-| I-540 | Ceasul ferestrei LARG: bot LARG încă în grid după durata tipică ×2 ⇒ o notă (banii stau), ca ceasul gridului îngust | crypto/scripts/colector.mjs, scripts/lib/mesaje-colector.mjs, public/lib/grid-jurnal.js | S | P3 | propus | ideation | 2026-10-05 |
+| I-537 | „Pragul meu” propus din planurile tale scrise (mediana în % din sumă), cu un buton „ia-l din istoria mea” | crypto/functions/api/istoric-bot.js (planurile „plan:<id>”), public/lib/tablou-extra.js, public/app.js (poarta) | S | P2 | facut 2026-10-05 (v100.104, revizia v100.105) | ideation | 2026-10-05 |
+| I-538 | Ferestrele oferite ținute pe server (nu în browser): recunoașterea merge de pe PC și de pe telefon, iar colectorul spune pe Discord „pornit ca LARG” | crypto/functions/api/istoric-bot.js, public/app.js (grFerestreTine), scripts/lib/tura-pornire.mjs, public/lib/grid-jurnal.js | M | P2 | facut 2026-10-05 (v100.104, revizia v100.105) | ideation | 2026-10-05 |
+| I-539 | A avut dreptate „Ce aș alege eu”? La apăsare se ține și recomandarea; bilanțul spune „când ai urmat-o” vs „când n-ai urmat-o” | crypto/public/lib/grid-jurnal.js, public/app.js (gridJurnalAdauga, renderGridJurnal) | S | P3 | facut 2026-10-05 (v100.104, revizia v100.105) | ideation | 2026-10-05 |
+| I-540 | Ceasul ferestrei LARG: bot LARG încă în grid după durata tipică ×2 ⇒ o notă (banii stau), ca ceasul gridului îngust | crypto/scripts/colector.mjs, scripts/lib/mesaje-colector.mjs, public/lib/grid-jurnal.js | S | P3 | facut 2026-10-05 (v100.104, revizia v100.105) | ideation | 2026-10-05 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5460,28 +5460,28 @@ Fluxul azi e într-un singur sens (Busola → Radar, JSON public). Radar → Bus
 - **Riscuri:** o setare fără buton nu există (regula lui) ⇒ butonul în poartă + rândul „Planul de ieșire folosit” spune „pragul tău: 15% din sumă”.
 - **Fișiere:** crypto/public/lib/tablou-extra.js (propunePlan), public/app.js (poarta, grPlanPentruVariante), functions/api/istoric-bot.js.
 
-#### I-537 · „Pragul meu” propus din planurile tale scrise · [S] · P2
+#### I-537 · „Pragul meu” propus din planurile tale scrise · [S] · P2 · făcut 2026-10-05 (v100.104)
 - **Problema:** câmpurile „Pragul meu” (v100.103) sunt goale până le completează el; cifrele de pus le-am dedus de mână (TAKE: −6,5 / +2,2 pe 42,5 = 15,3% / 5,2%), iar propunerea mea implicită (+3%) nu seamănă cu obiceiul lui.
 - **Soluția:** serverul are planurile lui pe bot (`plan:<id>`); cu investiția fiecărui bot (lista Pionex) se socotește mediana pierderii, a țintei (în % din sumă) și a orelor. În poartă, sub câmpuri: „Din planurile tale (N boți): −15% / +5% / 12 h” + butonul „Ia-l din istoria mea” (completează câmpurile; salvarea rămâne la el).
 - **Impact:** pragul pornește din ce face el, nu dintr-o cifră a mea; mai puțin de socotit.
 - **Riscuri:** puține planuri (< 5) ⇒ se spune și nu se propune; planurile de probă (`proba`) se sar.
 - **Fișiere:** crypto/functions/api/istoric-bot.js, public/lib/tablou-extra.js, public/app.js (grPoartaHtml, grPragSalveaza).
 
-#### I-538 · Ferestrele oferite pe server; Discord: „pornit ca LARG” · [M] · P2
+#### I-538 · Ferestrele oferite pe server; Discord: „pornit ca LARG” · [M] · P2 · făcut 2026-10-05 (v100.104)
 - **Problema:** ferestrele arătate de fișă se țin în localStorage (`grFerestre`) ⇒ recunoașterea boților (I-535) merge doar în browserul care a deschis fișa; colectorul nu le vede, deci mesajul de pornire nu spune ce fereastră a ales.
 - **Soluția:** fișa trimite oferta pe server (`istoric-bot?action=ferestre`, ultimele 60, curățate); jurnalul și colectorul citesc de acolo. La pornire, `tura-pornire` adaugă un rând: „Seamănă cu LARG din fișa de la 14:20 (stop 17 din 109 în probă)” sau „nu seamănă cu nicio fereastră”.
 - **Impact:** recunoașterea nu mai depinde de aparat; pe Discord vede imediat dacă a pornit ce i s-a propus.
 - **Riscuri:** regula „doar oferte de dinainte de pornire” rămâne; depozit public ⇒ nimic personal în fixturi.
 - **Fișiere:** crypto/functions/api/istoric-bot.js, public/app.js (grFerestreTine, grFerestreCitite), scripts/lib/tura-pornire.mjs, public/lib/grid-jurnal.js.
 
-#### I-539 · A avut dreptate „Ce aș alege eu”? · [S] · P3
+#### I-539 · A avut dreptate „Ce aș alege eu”? · [S] · P3 · făcut 2026-10-05 (v100.104)
 - **Problema:** bilanțul ÎNGUST vs LARG (I-535) compară ferestrele, nu și recomandarea mea; nu știm dacă „Ce aș alege eu acum” a ajutat.
 - **Soluția:** la „Am pornit-o” se ține și ce recomandam atunci (`GridPlan.alege`); bilanțul are un rând în plus: „când ai urmat recomandarea: N boți, media X% · când n-ai urmat-o: …”, cu aceeași regulă fixată dinainte și același verdict (puține / nedovedit / dovedit).
 - **Impact:** recomandarea se judecă pe banii lui, nu pe proba de 30 de zile.
 - **Riscuri:** puține cazuri multă vreme; ipoteză de verificat, nu garanție (trader.md).
 - **Fișiere:** crypto/public/lib/grid-jurnal.js, public/app.js (gridJurnalAdauga, renderGridJurnal).
 
-#### I-540 · Ceasul ferestrei LARG · [S] · P3
+#### I-540 · Ceasul ferestrei LARG · [S] · P3 · făcut 2026-10-05 (v100.104)
 - **Problema:** LARG e propus ca „banii stau mai mult: tipic 24 h”, dar nimic nu spune când un bot LARG a stat mult peste asta (ÎNGUST are ceasul lui, I-481).
 - **Soluția:** botul recunoscut ca LARG, încă în grid după 2× durata tipică din proba ferestrei ⇒ o notă pe Discord / Tablou: „stă de 50 h (tipic 24 h): banii sunt blocați; închide dacă nu mai are rost”. O singură dată pe bot.
 - **Impact:** banii nu rămân uitați într-un grid care nu mai lucrează.
