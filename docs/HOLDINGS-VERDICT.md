@@ -19,3 +19,9 @@ Datele lipsă sau erorile produc verdict incomplet. Lipsa avantajului, validarea
 Demo funcțional cu verificare desktop/390 px: `tools/holdings-verdict-demo.html`. Teste: `holdings-verdict`, `holdings-model-runner`, `holdings-verdict-managed` și suitele existente pentru UI/model.
 
 Rapoartele finalizate sau reutilizate care nu mai trec verificarea apar cu „Reanalizează”, nu „În așteptare”. Cardul precizează motivul: expirare, istoric schimbat, alt EOD, instrument, monedă, închidere, versiune sau verificare eșuată. Mesajul real al unui Worker eșuat este păstrat; excepțiile interne ale validării nu sunt afișate. Un status de succes nu conține un mesaj generic de eroare. Reutilizarea unui Forest temporar păstrează avertismentul despre retenția numai în sesiunea curentă.
+
+## Urmărirea concluziei finale
+
+După încheierea analizei cu 6/6 rezultate acceptate, dialogul păstrează automat primul verdict pe instrument și EOD în Predicții vs. realitate: titlu, clasă sau abținere, motive, șase rezumate și amprenta sursei comune. Reafișarea și reanalizarea nu înlocuiesc prima concluzie. Un verdict incomplet sau o analiză oprită nu se salvează. Captura respectă limita prospectivă conservatoare și verificarea identității/EOD; o eroare de stocare rămâne explicită și nu invalidează rezultatul calculat.
+
+La +5 închideri efective, clasa se compară cu mișcarea normalizată prin ATR inițial. Concluziile weak, conflict și caution sunt abțineri, excluse din acuratețe și numărate separat. Nu sunt convertite retroactiv în predicții. Registrul și monitorul cer minimum 20 concluzii evaluate pe orizonturi separate pentru pragul de dovezi. Detalii: [HOLDINGS-FORECAST.md](HOLDINGS-FORECAST.md).

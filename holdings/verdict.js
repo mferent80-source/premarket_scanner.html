@@ -22,11 +22,11 @@ function progressText(run){
  return (V.NAMES[id]||'Modele')+' · '+(p?'fereastra '+(p.stage||1)+' / '+(p.stages||1)+' · pasul '+p.epoch+' / '+(p.total||p.epoch):'analizez istoricul…');
 }
 function refresh(){
- if(!view)return;const {dialog,run,source}=view,r=V.build({expected:source,snapshots:snapshots(),statuses:run?.statuses||{},running:['loading','running'].includes(run?.phase)});view.report=r;
+ if(!view)return;const {dialog,run,source}=view,r=V.build({expected:source,snapshots:snapshots(),statuses:run?.statuses||{},running:['loading','running'].includes(run?.phase)});view.report=r;if(run?.phase==='done'&&r.available===6&&!view.captureAttempted){view.captureAttempted=true;try{view.capture=g.HoldingsForecastUI?.captureVerdict?.(position(view.target),r,source);}catch{view.capture={ok:false,error:'Registrul estimărilor nu a putut fi actualizat. Verdictul calculat rămâne disponibil.'};}}
  const final=dialog.querySelector('[data-verdict-final]');final.dataset.state=r.state;
  final.innerHTML=`<span class="eyebrow">VERDICT FINAL CUMULAT · ${r.available} / ${r.total} MODELE</span><h3>${esc(r.title)}</h3>${r.reasons.map(x=>'<p>'+esc(x)+'</p>').join('')}`;
  dialog.querySelector('[data-verdict-source]').textContent=source?(source.kind==='synthetic'?'SIMULARE · date fictive · ':'')+'EOD '+source.asOf+' · '+source.currency+' · direcție +5 · volatilitate 5 / 20 sesiuni · același istoric pentru toate modelele':'Un singur istoric pentru toate modelele · direcție +5 · volatilitate 5 / 20 sesiuni';
- dialog.querySelector('[data-verdict-status]').textContent=progressText(run);
+ dialog.querySelector('[data-verdict-status]').textContent=progressText(run)+(run?.phase==='done'&&view.capture?(view.capture.ok?(view.capture.duplicate?' Verdictul primei analize pe această sesiune rămâne păstrat.':' Verdictul final a fost păstrat în Predicții vs. realitate.'):' Verdictul nu a fost salvat în registru: '+view.capture.error):'');
  dialog.querySelector('[data-verdict-models]').innerHTML=r.cards.map(c=>`<article class="verdict-model" data-verdict-model="${c.id}"><div><h4>${esc(c.name)}</h4><span class="tag">${c.available?'Verificat':c.state==='running'?'În curs':c.state==='error'?'Eroare':c.state==='cancelled'?'Oprit':c.state==='unavailable'?'Reanalizează':'În așteptare'}</span></div><b>${esc(c.available?c.value:c.state==='running'?'Analiză în curs…':'Rezultat indisponibil')}</b><p>${esc(c.detail)}</p>${c.available?`<small>${esc(labels[c.state]||'Interpretare neconcludentă')} · ${new Date(c.trainedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})}${run?.statuses[c.id]?.state==='cached'?' · rezultat recent reutilizat':''}</small>`:''}</article>`).join('');
  dialog.querySelector('[data-verdict-limits]').textContent=r.limits;
  const busy=['loading','running'].includes(run?.phase);dialog.querySelector('[data-verdict-retry]').disabled=busy;dialog.querySelector('[data-verdict-stop]').hidden=!busy;
@@ -52,7 +52,7 @@ function open(ticker){
  view={dialog,target:{key:context.scope+'|'+ticker,scope:context.scope,demo:context.demo,ticker,symbol:context.symbol(p)},source:null,run:null};
  dialog.querySelector('[data-verdict-close]').onclick=close;dialog.oncancel=e=>{e.preventDefault();close();};
  dialog.querySelector('[data-verdict-stop]').onclick=()=>{runner?.stop();view.run={phase:'stopped',statuses:Object.fromEntries(V.IDS.map(id=>[id,{state:'cancelled',error:'Analiză oprită. Reia calculul pentru un verdict final.'}]))};refresh();};
- dialog.querySelector('[data-verdict-retry]').onclick=()=>{view.source=null;start(true);};
+ dialog.querySelector('[data-verdict-retry]').onclick=()=>{view.source=null;view.captureAttempted=false;view.capture=null;start(true);};
  document.body.append(dialog);dialog.showModal();refresh();start();return true;
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-verdict-open]');if(b)open(b.dataset.verdictOpen);});

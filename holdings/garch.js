@@ -29,7 +29,7 @@ function finish(current,error,result){
   const record={symbol:current.symbol,currency:current.currency,asOf:current.asOf,kind:current.demo?'synthetic':'market',sourceTime:current.sourceTime,sourceClose:current.price,sourceFingerprint:current.sourceFingerprint,timezone:current.timezone,closeMinutes:current.closeMinutes,trainedAt:Date.now(),result};
   if(current.demo)memory.set(current.key,JSON.stringify(record));else localStorage.setItem(current.key,JSON.stringify(record));errors.delete(current.key);
  }catch(e){error='Raportul GARCH nu a fost salvat: '+e.message;}
- if(error)errors.set(current.key,error);current.resolve({state:error?'error':'ready',error:error||null});refresh();
+ if(error)errors.set(current.key,error);else try{g.HoldingsForecastUI?.capture(context.positions.find(p=>p.ticker===current.ticker));}catch{errors.set(current.key,'Raportul GARCH este calculat; registrul estimărilor nu a putut fi actualizat.');}current.resolve({state:error?'error':'ready',error:error||null});refresh();
 }
 async function train(p,options={}){
  if(!p||blocked())return {state:'error',error:'Un alt model rulează deja.'};const m=context.model(p),symbol=context.symbol(p);if(!m||!symbol)return {state:'error',error:'Este necesară analiza EOD și identitatea instrumentului.'};

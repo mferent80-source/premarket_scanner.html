@@ -4,18 +4,18 @@
 
 ## Utilizare
 
-- Alege unul dintre cele cinci modele și filtrează starea, tickerul sau ordinea. Numărătorile rezultatelor și verificărilor restante privesc modelul ales, pe toate deținerile; filtrele schimbă numai lista vizibilă. Filtrul **Verificare restantă** include și instrumentele care au simultan un semnal de revizuire sau o eroare de rețea.
+- Alege unul dintre cele șase modele sau verdictul final și filtrează starea, tickerul sau ordinea. Numărătorile rezultatelor și verificărilor restante privesc modelul și orizontul ales, pe toate deținerile; filtrele schimbă numai lista vizibilă. Filtrul **Verificare restantă** include și instrumentele care au simultan un semnal de revizuire sau o eroare de rețea.
 - **Vezi registrul** deschide instrumentul exact în **Modele AI → Predicții vs. realitate**. Dacă filtrele listei deținerilor îl ascund, se resetează filtrele. Notele și planurile nu sunt reconstruite.
 - **Verifică portofoliul** procesează toate registrele eligibile în serie, inclusiv cele ascunse de filtre. Rămâne disponibil și dacă modelul selectat nu are estimări, dar alte modele au registre. Oprirea anulează cererile următoare; cererea în curs poate termina. Verificările individuale deja pornite sunt omise, fără cereri duplicate.
 - Deschiderea filei Rapoarte solicită verificarea automată. Modulul individual limitează încercările la una per instrument și EOD așteptat în vizita curentă; butonul permite reîncercarea. EOD-ul este stabilit din programul bursei salvat în registru, chiar dacă analiza curentă este veche sau lipsește. Nu rulează când aplicația este închisă.
-- **Exportă raportul** exportă toate deținerile și rezultatele celor cinci modele, fără observațiile brute, filtrele text introduse sau informații private despre cont. Data generării este distinctă de EOD-ul fiecărui instrument.
+- **Exportă raportul** exportă toate deținerile și rezultatele celor șase modele, ambele orizonturi GARCH și verdictul final, fără observațiile brute, filtrele text introduse sau informații private despre cont. Data generării este distinctă de EOD-ul fiecărui instrument.
 
 ## Interpretare
 
-Rezultatele rămân separate pe instrument și model. Nu există acuratețe, scor de încredere sau probabilitate de câștig pentru întregul portofoliu. Orizonturile de acțiuni diferite pot fi corelate și nu sunt cumulate drept observații independente.
+Rezultatele rămân separate pe instrument, model și orizont. La GARCH apare selectorul 5 / 20 sesiuni; numărătorile, scorurile QLIKE și reperele se schimbă împreună. Verdictul afișează separat concluziile evaluate și abținerile, fără a include abținerile în acuratețe. Nu există acuratețe, scor de încredere sau probabilitate de câștig pentru întregul portofoliu. Orizonturile de acțiuni diferite pot fi corelate și nu sunt cumulate drept observații independente.
 
 - Fără estimări: modelul ales nu are înregistrări eligibile.
-- În așteptare: există estimări, dar nu încă rezultate finalizate la +5 sesiuni.
+- În așteptare: există estimări, dar nu încă rezultate finalizate la +5 sesiuni, respectiv +20 pentru GARCH la acel orizont.
 - Verificare restantă: există o sesiune EOD așteptată mai nouă decât cea a ultimei verificări. Raportul istoric și predicțiile originale se păstrează. Pentru o estimare încă neverificată se compară sesiunea de origine cu EOD-ul așteptat; o estimare din EOD-ul curent rămâne normal în așteptare.
 - Eșantion mic: mai puțin de 20 orizonturi separate finalizate.
 - De revizuit: rezultate neverificabile, lipsa avantajului față de reper, acoperire slabă, degradare descriptivă, anomalie Isolation sau context HMM neconcludent.
@@ -29,7 +29,7 @@ Pragurile și protocolul rămân în [HOLDINGS-FORECAST.md](HOLDINGS-FORECAST.md
 
 ## Demo și verificare
 
-`tools/holdings-forecast-monitor-demo.html` oferă Desktop și Telefon, cu trei dețineri fictive și 24 orizonturi ilustrative per model și instrument. Registrele demo sunt în memorie și nu scriu în stocarea contului real. Reîncărcarea simulării nu dublează estimările.
+`tools/holdings-forecast-monitor-demo.html` oferă Desktop și Telefon, cu trei dețineri fictive și 24 orizonturi ilustrative per model, orizont și instrument, inclusiv GARCH 5 / 20 și verdict cu abțineri. Registrele demo sunt în memorie și nu scriu în stocarea contului real. Reîncărcarea simulării nu dublează estimările.
 
 Testele acoperă separarea rezultatelor, identități incompatibile, observații în așteptare, coruperea registrelor, filtre, export, coadă în serie, oprire, schimbarea contului, eliminarea/redenumirea pozițiilor, monedă listing vs. portofel și navigarea către instrumentul filtrat. Suita completă: `node --test tools/*.test.mjs tools/*.test.cjs`.
 
