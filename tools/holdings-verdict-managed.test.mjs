@@ -3,9 +3,10 @@ const now=Date.parse('2026-10-05T08:00:00Z');
 const core={Date:class extends Date{static now(){return now;}}};vm.createContext(core);for(const file of ['holdings-model-storage','holdings-neural','holdings-neural-evaluation','holdings-boosting','holdings-model-comparison','holdings-hmm','holdings-isolation','holdings-quantile','holdings-garch','holdings-verdict','holdings-model-runner'])vm.runInContext(readFileSync('lib/'+file+'.js','utf8'),core);
 const bars=core.HoldingsNeural.demoBars(0,Date.parse('2026-10-02T23:59:00Z'));
 const source={bars,fingerprint:core.HoldingsVerdict.fingerprint(bars),symbol:'TEST',currency:'USD',kind:'synthetic',asOf:'2026-10-02',timezone:'America/New_York',closeMinutes:960,t:bars.at(-1).t,close:bars.at(-1).c};
-function setup(name,{demo=true,quota=false,capture}={}){
+function setup(name,{demo=true,quota=false,capture,durable}={}){
  const button={dataset:{[name+'Train']:'0'}},workers=[],writes=[],saved=new Map(),c={scope:demo?'demo':'test-account',demo,positions:[{ticker:'TEST_US_EQ',quantity:123,apiKey:'SECRET'}],symbol:()=> 'TEST',model:()=>({asOf:source.asOf,currency:source.currency,price:source.close}),demoBars:()=>bars};
  const sandbox={...core,Date:class extends Date{static now(){return now;}},document:{querySelectorAll:q=>q==='[data-'+name+'-train]'?[button]:[],querySelector:()=>null,addEventListener(){}},location:{search:''},URLSearchParams,localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>{if(quota)throw Object.assign(new Error('Quota exceeded'),{name:'QuotaExceededError'});writes.push([k,v]);saved.set(k,v);}},HoldingsForecastUI:{setContext(){},bind(){},markup:()=>'',capture:capture||(()=>{})},DailySeries:{date:()=>source.asOf},D:{fetchStock(){throw Error('Duplicate fetch');}},setTimeout:()=>1,setInterval:()=>1,clearTimeout(){},Worker:class{constructor(){workers.push(this);}postMessage(payload){this.payload=payload;}terminate(){this.terminated=true;}}};
+ if(durable)sandbox.HoldingsModelStorage={create:(storage,options)=>core.HoldingsModelStorage.create(storage,{...options,durable})};
  vm.createContext(sandbox);vm.runInContext(readFileSync('holdings/'+name+'.js','utf8'),sandbox);const api=sandbox['Holdings'+(name==='hmm'?'HMM':name[0].toUpperCase()+name.slice(1))+'UI'];api.setContext(c);return {api,c,workers,writes,button,sandbox};
 }
 let computedResults;
@@ -49,6 +50,26 @@ test('a failed prediction registry hook cannot undo any valid calculated model',
  for(const name of Object.keys(examples())){
   const s=setup(name,{demo:false,capture:()=>{throw Error('Registry failure');}}),pending=s.api.run(s.c.positions[0],{source:{...source,kind:'market'}}),worker=s.workers[0];worker.onmessage({data:{id:worker.payload.id,result:examples()[name]}});
   assert.equal((await pending).state,'ready',name);const snapshot=s.api.inspect(s.c.positions[0]);assert.equal(snapshot.usable,true);assert.equal(snapshot.persistence.state,'local');assert.equal(s.writes.length,1);assert.match(snapshot.persistence.message,/Registrul estimărilor nu a putut fi actualizat/);
+ }
+});
+
+test('all six valid reports survive a fresh page with full localStorage and keep every acceptance check',async()=>{
+ const records=new Map(),durable={get:async k=>records.get(k)||null,set:async(k,v)=>{records.set(k,v);}},expected={...source,kind:'market'},snapshots={};
+ for(const [name,result] of Object.entries(examples())){
+  const s=setup(name,{demo:false,quota:true,durable}),p=s.c.positions[0],pending=s.api.run(p,{source:expected}),w=s.workers[0];
+  w.onmessage({data:{id:w.payload.id,result}});assert.equal((await pending).state,'ready');await new Promise(r=>setImmediate(r));
+  assert.equal(s.api.inspect(p).persistence.state,'indexeddb',name);assert.equal(s.writes.length,0);
+  const fresh=setup(name,{demo:false,quota:true,durable});await fresh.api.restore(fresh.c.positions[0]);snapshots[name]=fresh.api.inspect(fresh.c.positions[0]);
+  assert.equal(snapshots[name].usable,true,name);assert.equal(snapshots[name].record.trainedAt,now);assert.equal(snapshots[name].persistence.state,'indexeddb');
+  for(const patch of [{scope:'other-account'},{demo:true},{symbol:()=> 'OTHER'},{model:()=>({asOf:'2026-10-01',currency:'USD',price:source.close})},{model:()=>({asOf:source.asOf,currency:'EUR',price:source.close})},{model:()=>({asOf:source.asOf,currency:'USD',price:source.close+1})}]){
+   fresh.api.setContext({...fresh.c,...patch});await fresh.api.restore(fresh.c.positions[0]);assert.equal(fresh.api.inspect(fresh.c.positions[0]).usable,false,name+': '+JSON.stringify(patch));
+  }
+  assert.equal(core.HoldingsVerdict.accepted(name,snapshots[name],{...expected,fingerprint:'changed-history'},now),false);assert.equal(core.HoldingsVerdict.accepted(name,{...snapshots[name],record:{...snapshots[name].record,trainedAt:now+1}},expected,now),false);
+ }
+ const r=core.HoldingsVerdict.build({expected,snapshots,now});assert.equal(r.available,6);assert.ok(r.cards.every(c=>c.persistence==='indexeddb'&&/păstrat în browser/.test(c.detail)));
+ for(const patch of [{trainedAt:now-1800001},{trainedAt:now+60001},{result:{version:'invalid'}}]){
+  const altered={get:async k=>JSON.stringify({...JSON.parse(records.get(k)||'null'),...patch}),set:durable.set};
+  for(const name of Object.keys(examples())){const fresh=setup(name,{demo:false,quota:true,durable:altered});await fresh.api.restore(fresh.c.positions[0]);const s=fresh.api.inspect(fresh.c.positions[0]);assert.equal(s.usable,false,name);assert.equal(core.HoldingsVerdict.accepted(name,s,expected,now),false);}
  }
 });
 

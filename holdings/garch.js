@@ -1,15 +1,16 @@
 (function(g){
 'use strict';
-const G=g.HoldingsGarch,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)}),errors=new Map();let context=null,job=null,serial=0;
+const G=g.HoldingsGarch,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)},{onChange:refresh}),errors=new Map();let context=null,job=null,serial=0;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(v,d=2)=>Number.isFinite(v)?v.toLocaleString('ro-RO',{maximumFractionDigits:d,minimumFractionDigits:d}):'—',day=t=>new Date(t).toISOString().slice(0,10);
 const key=p=>'tt_holdings_garch_v1:'+encodeURIComponent(context.scope)+'|'+encodeURIComponent(p.ticker);
 const blocked=()=>!!job||['HoldingsNeuralUI','HoldingsHMMUI','HoldingsIsolationUI','HoldingsQuantileUI'].some(name=>g[name]?.busy());
+function restore(p){return context&&p?reports.restore(key(p),context.demo):Promise.resolve();}
 function read(p){try{return reports.read(key(p),context.demo);}catch{return null;}}
 function usable(r,p,m,now=Date.now()){try{return !!r&&r.symbol===context.symbol(p)&&r.currency===m?.currency&&r.asOf===m?.asOf&&r.kind===(context.demo?'synthetic':'market')&&r.result?.current?.t===r.sourceTime&&g.DailySeries.date(r.sourceTime,r.timezone)===r.asOf&&Number.isFinite(r.sourceClose)&&Math.abs(r.sourceClose-m.price)<=1e-6*Math.max(1,m.price)&&Math.abs(r.result.current.close-m.price)<=1e-6*Math.max(1,m.price)&&Number.isFinite(r.trainedAt)&&r.trainedAt<=now&&now-r.trainedAt<=1800000&&G.valid(r.result,now);}catch{return false;}}
 function inspect(p){const record=read(p),ok=usable(record,p,context.model(p));return {record,usable:ok,assessment:ok?G.assess(record.result):null,persistence:reports.inspect(key(p),context.demo,ok)};}
 function refresh(){g.HoldingsNeuralUI?.refresh();}
 function cancel(update=true){if(job){if(update)errors.set(job.key,'Analiză GARCH anulată. Raportul anterior este păstrat.');job.worker?.terminate();clearTimeout(job.timeout);job.resolve({state:'cancelled'});job=null;serial++;}if(update)refresh();}
-function setContext(c){if(context&&(context.scope!==c.scope||context.demo!==c.demo))cancel(false);if(job){const p=c.positions.find(p=>p.ticker===job.ticker),m=p?c.model(p):null;if(!p||c.symbol(p)!==job.symbol||m?.currency!==job.currency||m?.asOf!==job.asOf||m?.price!==job.price)cancel(false);}context=c;}
+function setContext(c){if(context&&(context.scope!==c.scope||context.demo!==c.demo))cancel(false);if(job){const p=c.positions.find(p=>p.ticker===job.ticker),m=p?c.model(p):null;if(!p||c.symbol(p)!==job.symbol||m?.currency!==job.currency||m?.asOf!==job.asOf||m?.price!==job.price)cancel(false);}context=c;if(!c.demo)for(const p of c.positions)restore(p);}
 function markup(p,i,inspection=inspect(p)){
  const {record:r,usable:ok,assessment:a}=inspection,result=ok?r.result:null,m=context.model(p),active=job?.ticker===p.ticker,busy=blocked();
  const number=(label,value)=>'<div><small>'+label+'</small><b>'+value+'</b></div>';
@@ -50,5 +51,5 @@ async function train(p,options={}){
  }catch(e){finish(current,e.message);}return current.completion;
 }
 function bind(){for(const b of document.querySelectorAll('[data-garch-train]'))b.onclick=()=>train(context.positions[Number(b.dataset.garchTrain)]);for(const b of document.querySelectorAll('[data-garch-cancel]'))b.onclick=()=>cancel();for(const b of document.querySelectorAll('[data-garch-export]'))b.onclick=()=>{const p=context.positions[Number(b.dataset.garchExport)],r=read(p);if(usable(r,p,context.model(p)))g.HoldingsNeuralUI.exportReport(r);};}
-g.HoldingsGarchUI={setContext,inspect,markup,bind,cancel,run:(p,options)=>train(p,{...options,managed:true}),cancelManaged:()=>{if(job?.managed)cancel(false);},busy:()=>!!job};
+g.HoldingsGarchUI={setContext,restore,inspect,markup,bind,cancel,run:(p,options)=>train(p,{...options,managed:true}),cancelManaged:()=>{if(job?.managed)cancel(false);},busy:()=>!!job};
 })(typeof window!=='undefined'?window:globalThis);

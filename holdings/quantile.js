@@ -1,12 +1,13 @@
 (function(g){
 'use strict';
-const Q=g.HoldingsQuantile,N=g.HoldingsNeural,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)}),errors=new Map(),demoStarted=new Set();let context=null,job=null,serial=0;
+const Q=g.HoldingsQuantile,N=g.HoldingsNeural,reports=g.HoldingsModelStorage.create({getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v)},{onChange:refresh}),errors=new Map(),demoStarted=new Set();let context=null,job=null,serial=0;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fmt=(v,d=2)=>Number.isFinite(v)?v.toLocaleString('ro-RO',{minimumFractionDigits:d,maximumFractionDigits:d}):'—',day=t=>new Date(t).toISOString().slice(0,10);
 const key=p=>'tt_holdings_quantile_v1:'+encodeURIComponent(context.scope)+'|'+encodeURIComponent(p.ticker);
+function restore(p){return context&&p?reports.restore(key(p),context.demo):Promise.resolve();}
 function read(p){try{return reports.read(key(p),context.demo);}catch{return null;}}
 function usable(r,p,m,now=Date.now()){try{return !!r&&Number.isFinite(r.sourceTime)&&r.symbol===context.symbol(p)&&r.currency===m?.currency&&r.asOf===m?.asOf&&r.result?.current?.t===r.sourceTime&&g.DailySeries?.date(r.sourceTime,r.timezone)===r.asOf&&(context.demo||!Number.isFinite(m?.price)||Math.abs(r.result.current.close-m.price)<=1e-6*Math.max(1,m.price))&&r.kind===(context.demo?'synthetic':'market')&&Number.isFinite(r.trainedAt)&&r.trainedAt<=now&&now-r.trainedAt<=1800000&&Q.valid(r.result);}catch{return false;}}
 function cancel(update=true){if(job){if(update)errors.set(job.key,'Estimare anulată. Raportul anterior este păstrat.');job.worker?.terminate();clearTimeout(job.timeout);job.resolve?.({state:'cancelled'});job=null;serial++;}if(update)refresh();}
-function setContext(c){if(context&&(context.scope!==c.scope||context.demo!==c.demo))cancel(false);if(job){const p=c.positions.find(p=>p.ticker===job.ticker),m=p?c.model(p):null;if(!p||c.symbol(p)!==job.symbol||m?.currency!==job.currency||m?.asOf!==job.asOf||!c.demo&&m?.price!==job.price)cancel(false);}context=c;}
+function setContext(c){if(context&&(context.scope!==c.scope||context.demo!==c.demo))cancel(false);if(job){const p=c.positions.find(p=>p.ticker===job.ticker),m=p?c.model(p):null;if(!p||c.symbol(p)!==job.symbol||m?.currency!==job.currency||m?.asOf!==job.asOf||!c.demo&&m?.price!==job.price)cancel(false);}context=c;if(!c.demo)for(const p of c.positions)restore(p);}
 function refresh(){g.HoldingsNeuralUI?.refresh();}
 function inspect(p){const r=read(p),ok=usable(r,p,context.model(p));return {record:r,usable:ok,assessment:ok?Q.assess(r.result):null,persistence:reports.inspect(key(p),context.demo,ok)};}
 function chart(c,currency){
@@ -53,5 +54,5 @@ async function train(p,options={}){
 return current.completion;}
 function demo(p){if(!context?.demo||!p||demoStarted.has(key(p)))return;demoStarted.add(key(p));train(p);}
 function bind(){for(const b of document.querySelectorAll('[data-quantile-train]'))b.onclick=()=>train(context.positions[Number(b.dataset.quantileTrain)]);for(const b of document.querySelectorAll('[data-quantile-cancel]'))b.onclick=()=>cancel();for(const b of document.querySelectorAll('[data-quantile-export]'))b.onclick=()=>{const p=context.positions[Number(b.dataset.quantileExport)],r=read(p);if(usable(r,p,context.model(p)))g.HoldingsNeuralUI.exportReport(r);};}
-g.HoldingsQuantileUI={setContext,inspect,markup,chart,bind,cancel,demo,run:(p,options)=>train(p,{...options,managed:true}),cancelManaged:()=>{if(job?.managed)cancel(false);},busy:()=>!!job};
+g.HoldingsQuantileUI={setContext,restore,inspect,markup,chart,bind,cancel,demo,run:(p,options)=>train(p,{...options,managed:true}),cancelManaged:()=>{if(job?.managed)cancel(false);},busy:()=>!!job};
 })(typeof window!=='undefined'?window:globalThis);

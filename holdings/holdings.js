@@ -52,8 +52,9 @@ async function loadVerdict(p,{isCurrent}){
  const previous=compatible&&old.model&&old.model.asOf<model.asOf?Object.fromEntries(['asOf','price','short','medium','long','support','resistance','rsi','rvol','rs20'].map(k=>[k,old.model[k]])):compatible?old.previous||null:null;
  const history=compatible&&Array.isArray(old?.history)?old.history:[],observation={asOf:model.asOf,symbol:s,price:model.price,medium:model.medium,regime:model.regime?.confirmed||null,currency:source.currency};
  cache[entry]={symbol:s,model,previous,history:history.some(x=>x.asOf===model.asOf)?history:[...history,observation],currency:source.currency,benchmark:bench,sectorBenchmark:sector,fetchedAt:Date.now()};
- if(!demo)localStorage.setItem('tt_holdings_analysis_v1',JSON.stringify(Object.fromEntries(Object.entries(cache).filter(([k])=>!k.startsWith('educational-demo|')))));
- return {...source,fingerprint:HoldingsVerdict.fingerprint(source.bars),symbol:s,kind:demo?'synthetic':'market',t:last.t,close:last.c};
+ let cacheWarning=null;
+ if(!demo)try{localStorage.setItem('tt_holdings_analysis_v1',JSON.stringify(Object.fromEntries(Object.entries(cache).filter(([k])=>!k.startsWith('educational-demo|')))));}catch{cacheWarning='Analiza EOD este disponibilă în această pagină; browserul nu a putut salva copia locală.';}
+ return {...source,fingerprint:HoldingsVerdict.fingerprint(source.bars),symbol:s,kind:demo?'synthetic':'market',t:last.t,close:last.c,cacheWarning};
 }
 async function scan(){if(busy)return;loadPositions();if(!positions.length){render();$('status').textContent=snapshotStatus();return;}busy=true;const id=++generation,account=scope,demo=isDemo,list=positions.slice();$('scan').disabled=true;$('demo').disabled=true;$('status').textContent='Verific istoricul și datele pentru '+list.length+' poziții…';let index=0,done=0;const benchmarks={};
  async function benchmark(sym){if(!benchmarks[sym])benchmarks[sym]=demo?Promise.resolve(demoBars(1)):D.fetchStock(sym,{range:'1y',interval:'1d',ttl:1800}).catch(()=>null);return benchmarks[sym];}
