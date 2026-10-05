@@ -3,6 +3,7 @@
 
   var SCAN_MS = 5 * 60 * 1000;
   var CACHE_KEY = 'ce_results_v2';
+  var demoMode = new URLSearchParams(location.search).get('demo') === '1';
   var requested = new URLSearchParams(location.search).get('symbol');
   requested = /^[A-Z0-9][A-Z0-9.-]{0,14}$/.test(requested||'')?requested:null;
   var requestedMode = new URLSearchParams(location.search).get('mode') === 'reversal'?'reversal':'momentum';
@@ -238,6 +239,7 @@
   }
 
   async function scan() {
+    if (demoMode) return;
     if (state.scanning || !state.shellVisible) return;
     if (!validateDeps()) { showAlert('Lipsesc biblioteci critice din lib/. Scanarea a fost oprită.', true); return; }
     setScanning(true); showAlert(''); progress(0, 1); state.failures = [];
@@ -263,7 +265,8 @@
       state.reversal = capSectors(combined.filter(function (x) { return x.mode === 'reversal' && x.eligible; }));
       state.updatedAt = Date.now();
       var cache = { analyses:state.analyses, momentum: state.momentum, reversal: state.reversal, updatedAt: state.updatedAt, scannedCount: list.length, failureCount: state.failures.length };
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (_) {}
+      var cacheSaved = true;
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(cache)); } catch (_) { cacheSaved = false; }
       $('countMomentum').textContent = state.momentum.length; $('countReversal').textContent = state.reversal.length;
       $('ctxEligible').textContent = (state.momentum.length + state.reversal.length) + ' top';
       $('ctxSectors').textContent = topSectors(state[state.mode]);
@@ -272,6 +275,7 @@
       $('ctxFreshness').textContent = 'EOD verificat · scan ' + ageText(state.updatedAt);
       $('updatedAt').textContent = 'actualizat acum';
       if (state.failures.length) showAlert(state.failures.length + ' simboluri nu au răspuns; au fost excluse, nu înlocuite cu date vechi.');
+      if (!cacheSaved) showAlert('Copia locală a scanării nu a putut fi salvată. Candidații sunt disponibili în această sesiune; Construiește planul transmite direct analiza selectată.');
       render();
     } catch (e) {
       showAlert('Scanarea nu s-a finalizat: ' + ((e && e.message) || 'eroare neașteptată') + '. Rezultatele anterioare nu au fost suprascrise.', true);
@@ -353,6 +357,7 @@
     $('dGovernorWhy').textContent = (g.reasons && g.reasons[0]) || (x.earnings + ' · R:R țintă 2.0');
     $('governorBox').className = 'ce-governor ' + (g.verdict === 'HALTED' ? 'halted' : (g.verdict === 'CAUTION' ? 'caution' : ''));
     $('setupBtn').disabled = x.state === 'BLOCKED' || !x.actionable;
+    $('setupBtn').title = $('setupBtn').disabled ? 'Plan indisponibil: ' + x.reason : 'Deschide dimensionarea pentru ' + x.symbol;
   }
 
   function loadCache() {
@@ -381,10 +386,12 @@
     $('scanBtn').onclick = scan; $('universe').onchange = function () { scan(); };
     $('search').oninput = render; $('onlyActionable').onchange = render;
     $('setupBtn').onclick = function () {
-      if (!state.selected || state.selected.state === 'BLOCKED' || !state.selected.actionable || !DailySeries.usable(state.selected)) return;
-      var query = 'symbol=' + encodeURIComponent(state.selected.symbol) + '&mode=' + encodeURIComponent(state.selected.mode);
-      if (window.parent !== window) window.parent.postMessage({ ttOpenModule: 'smart-trade-long/', ttQuery: query }, location.origin);
-      else location.href = '../smart-trade-long/?' + query;
+      var result = window.CandidatePlanHandoff ? CandidatePlanHandoff.read(state.selected) : {ok:false,message:'Modulul planului nu s-a încărcat. Reîncarcă aplicația.'};
+      if (!result.ok) { showAlert(result.message, true); return; }
+      var candidate = result.candidate;
+      var query = 'symbol=' + encodeURIComponent(candidate.symbol) + '&mode=' + encodeURIComponent(candidate.mode) + '&ticket=1&handoff=1' + (demoMode ? '&demo=1' : '');
+      if (window.parent !== window) window.parent.postMessage({ ttOpenModule: 'desk/', ttQuery: query, ttPlanCandidate: candidate }, location.origin);
+      else location.href = '../desk/?' + query + '#plan=' + encodeURIComponent(JSON.stringify(candidate));
     };
     Array.prototype.forEach.call(document.querySelectorAll('.ce-mode'), function (btn) {
       btn.onclick = function () {
@@ -400,7 +407,15 @@
     document.addEventListener('visibilitychange', function () { if (!document.hidden && state.shellVisible && Date.now() - state.updatedAt > SCAN_MS) scan(); });
   }
 
-  validateDeps(); bind(); loadCache();
+  validateDeps(); bind();
+  if (demoMode) {
+    var demoNow=Date.now(),demoCandidate={symbol:'FICTIV-C',mode:'momentum',region:'US',currency:'USD',actionable:true,state:'ARMED',ts:demoNow,sourceDate:DailySeries.expected(demoNow,'America/New_York',960),sourceTimezone:'America/New_York',sourceCloseMinutes:960,entryLow:100,entryHigh:102,stop:95,target:116,price:101,score:80,dayChg:2,rvol:1.4,rs:3,metricA:8,metricB:2,sector:'Sector fictiv',reason:'DEMO FICTIV · candidat transmis direct, fără salvarea scanării.',earnings:'Exemplu inventat',spark:[96,98,97,100,101],governor:{verdict:'TRADE',reasons:['DEMO FICTIV · fără ordine sau acces la cont.']}};
+    state.momentum=[demoCandidate];state.updatedAt=demoNow;state.selected=demoCandidate;render();
+    $('scanBtn').disabled=true;$('universe').disabled=true;$('nextScan').textContent='DEMO · fără scanări de piață';
+    showAlert('DEMO FICTIV · scanarea nu este salvată. Apasă Construiește planul pentru a verifica transferul direct. Date inventate; planurile demo rămân în memorie.');
+    return;
+  }
+  loadCache();
   if(requested){$('search').value=requested;document.querySelectorAll('.ce-mode').forEach(function(b){b.classList.toggle('active',b.dataset.mode===state.mode);});showAlert('Validare intraday pentru '+requested+' · rulăm universul curent și tickerul solicitat. Ideea EOD nu este o intrare confirmată.');}
   schedule();
   setTimeout(scan, 400);
