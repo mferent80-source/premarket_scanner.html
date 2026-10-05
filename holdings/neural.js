@@ -30,7 +30,7 @@ function markup(p,i){const m=context.model(p),inspection=inspect(p),{record,asse
 function card(p,i){return `<div data-neural-host="${i}"></div>`;}
 function refresh(){
  if(!context)return;
- const attrs=['data-neural-train','data-neural-cancel','data-neural-export','data-hmm-train','data-hmm-cancel','data-hmm-export','data-isolation-train','data-isolation-cancel','data-isolation-export','data-quantile-train','data-quantile-cancel','data-quantile-export','data-garch-train','data-garch-cancel','data-garch-export','data-model-summary-export','data-model-history-save','data-model-history-choice','data-model-analysis-open','data-forecast-save','data-forecast-check','data-forecast-export','data-forecast-demo','data-forecast-model'];
+ const attrs=['data-neural-train','data-neural-cancel','data-neural-export','data-hmm-train','data-hmm-cancel','data-hmm-export','data-isolation-train','data-isolation-cancel','data-isolation-export','data-quantile-train','data-quantile-cancel','data-quantile-export','data-garch-train','data-garch-cancel','data-garch-export','data-model-summary-export','data-model-history-save','data-model-history-choice','data-model-analysis-open','data-forecast-save','data-forecast-check','data-forecast-export','data-forecast-demo','data-forecast-model','data-forecast-calibration-demo','data-forecast-calibration-export'];
  for(const host of document.querySelectorAll('[data-neural-host]')){
   if(host.closest('.holding')?.hidden||host.closest('[data-holding-panel]')?.hidden)continue;
   const i=Number(host.dataset.neuralHost),p=context.positions[i];if(!p)continue;
