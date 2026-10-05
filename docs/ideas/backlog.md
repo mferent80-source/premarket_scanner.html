@@ -3238,10 +3238,10 @@ pe un singur chart.
 | I-530 | ADX măsurat pe boții TĂI - boții porniți la ADX sub 20 vs peste 25: câți pe plus, rezultatul median (ipoteză, de validat) | crypto/scripts/lib (tură nouă), public/lib/obiceiuri.js, public/lib/grafic-bot.js (citire) | M | P2 | facut 2026-10-05 (v100.100 · nedovedit) | ideation | 2026-10-05 |
 | I-531 | Pe telefon, „Ce spune graficul acum” imediat sub grafic (azi vine după „Ce ai de făcut”) | crypto/public/app.css, public/index.html | S | P3 | facut 2026-10-05 (v100.99) | ideation | 2026-10-05 |
 | I-532 | Intrarea graficului ca funcție pură testabilă (în loc de 3 gărzi pe textul lui renderTabloGrafic) | crypto/public/lib/grafic-bot.js, public/app.js, scripts/proba-v10038.mjs, proba-v10051.mjs, proba-v10098.mjs | M | P3 | facut 2026-10-05 (v100.99) | ideation | 2026-10-05 |
-| I-533 | Hârtia și jurnalul pornesc fereastra aleasă (ÎNGUST / LARG), nu gridul des pliat la „Alte setări” | crypto/public/app.js (gridHartiePorneste, gridAmPornit/GridJurnal.adauga, grPlanVarHtml), public/lib/grid-jurnal.js | S | P1 | propus | ideation | 2026-10-05 |
-| I-534 | Regula „gridul încape în pragul de pierdere” în lista ✓/✗ a porții (azi e un rând separat) | crypto/public/lib/obiceiuri.js (poarta), public/app.js (gridPoarta) | S | P2 | propus | ideation | 2026-10-05 |
-| I-535 | ÎNGUST vs LARG pe boții tăi reali: recunoaștere la pornire + bilanț la închidere (dovedit / nedovedit) | crypto/public/lib/grid-proba.js, public/lib/asemanatoare.js, scripts/colector.mjs, public/app.js | M | P2 | propus | ideation | 2026-10-05 |
-| I-536 | Pragul de pierdere ca % din sumă, setat o dată (cu buton), în loc de împrumutat de la ultimul bot | crypto/public/lib/tablou-extra.js (propunePlan), public/app.js (poarta, grPlanPentruVariante), functions/api/istoric-bot.js | S | P3 | propus | ideation | 2026-10-05 |
+| I-533 | Hârtia și jurnalul pornesc fereastra aleasă (ÎNGUST / LARG), nu gridul des pliat la „Alte setări” | crypto/public/app.js (gridHartiePorneste, gridAmPornit/GridJurnal.adauga, grPlanVarHtml), public/lib/grid-jurnal.js | S | P1 | facut 2026-10-05 (v100.103) | ideation | 2026-10-05 |
+| I-534 | Regula „gridul încape în pragul de pierdere” în lista ✓/✗ a porții (azi e un rând separat) | crypto/public/lib/obiceiuri.js (poarta), public/app.js (gridPoarta) | S | P2 | facut 2026-10-05 (v100.103) | ideation | 2026-10-05 |
+| I-535 | ÎNGUST vs LARG pe boții tăi reali: recunoaștere la pornire + bilanț la închidere (dovedit / nedovedit) | crypto/public/lib/grid-proba.js, public/lib/asemanatoare.js, scripts/colector.mjs, public/app.js | M | P2 | facut 2026-10-05 (v100.103) | ideation | 2026-10-05 |
+| I-536 | Pragul de pierdere ca % din sumă, setat o dată (cu buton), în loc de împrumutat de la ultimul bot | crypto/public/lib/tablou-extra.js (propunePlan), public/app.js (poarta, grPlanPentruVariante), functions/api/istoric-bot.js | S | P3 | facut 2026-10-05 (v100.103) | ideation | 2026-10-05 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5428,28 +5428,28 @@ Fluxul azi e într-un singur sens (Busola → Radar, JSON public). Radar → Bus
 - **Riscuri:** mutare de cod fără schimbare de comportament ⇒ poza înainte/după identică.
 - **Fișiere:** crypto/public/lib/grafic-bot.js, public/app.js, scripts/proba-v10038.mjs, proba-v10051.mjs, proba-v10098.mjs.
 
-#### I-533 · Hârtia și jurnalul pornesc fereastra aleasă · [S] · P1
+#### I-533 · Hârtia și jurnalul pornesc fereastra aleasă · [S] · P1 · făcut 2026-10-05 (v100.103)
 - **Problema:** după v100.101 capul fișei e ÎNGUST / LARG, dar „🧾 Pornește pe hârtie” (`gridHartiePorneste`) și „am pornit botul” (`GridJurnal.adauga(…, f, …)`) salvează tot `f.setare` = gridul des, pliat la „Alte setări”, cel care NU ține cont de pragul de pierdere (TAKE 05.10: 100 USDT la 4× pierdea −24 la stop).
 - **Soluția:** câte un buton „pe hârtie” și „am pornit-o” pe fiecare fereastră (ÎNGUST, LARG, Alte setări); se salvează setarea ferestrei + eticheta ei („îngust” / „larg” / „alte”).
 - **Impact:** hârtia și jurnalul măsoară ce recomandă fișa acum, nu ce a ascuns; baza pentru I-535.
 - **Riscuri:** jurnalul vechi n-are eticheta ⇒ „alte” implicit; păstrează formatul din localStorage.
 - **Fișiere:** crypto/public/app.js (gridHartiePorneste, butonul jurnalului, grPlanVarHtml), public/lib/grid-jurnal.js.
 
-#### I-534 · Regula „gridul încape în pragul de pierdere” în lista porții · [S] · P2
+#### I-534 · Regula „gridul încape în pragul de pierdere” în lista porții · [S] · P2 · făcut 2026-10-05 (v100.103)
 - **Problema:** rândul roșu „gridul e prea larg pentru levier” stă separat de lista ✓/✗ a porții (`Obiceiuri.poarta`: verde, levier, plan, monedă…); rezumatul porții poate ieși „trecut” deși gridul nu încape în prag.
 - **Soluția:** o regulă nouă `grid-prag` în `Obiceiuri.poarta`, cu `GridPlan.potrivire` pe câmpurile grPg*; ✗ când la margine pierzi peste 1,2× pragul, cu cifrele. Poarta tot doar avertizează (pragul botului e privilegiul lui).
 - **Impact:** o singură listă de citit înainte de pornire; situația TAKE apare ca ✗ printre celelalte.
 - **Riscuri:** probele vechi ale porții numără regulile ⇒ lărgite; fără câmpurile completate regula tace (nu ✗ fals).
 - **Fișiere:** crypto/public/lib/obiceiuri.js, public/app.js (gridPoarta, grPoartaHtml).
 
-#### I-535 · ÎNGUST vs LARG pe boții tăi reali · [M] · P2
+#### I-535 · ÎNGUST vs LARG pe boții tăi reali · [M] · P2 · făcut 2026-10-05 (v100.103)
 - **Problema:** „Ce aș alege eu acum” se sprijină pe proba pe 30 de zile (~10 cazuri independente, „nedovedit”); nu știm dacă alegerea ține pe boții LUI reali.
 - **Soluția:** la pornire colectorul recunoaște fereastra din setările botului (ca `GridProba.potrivireIngust`, extins la LARG; altfel „alt grid”); la închidere bilanț pe fereastră: câți boți, net, de câte ori a ieșit pe stop; verdict cu regula fixată dinainte și bootstrap pe monede (ca I-530): dovedit / pe dos / nedovedit / puține.
 - **Impact:** validare out-of-sample a recomandării; dacă LARG nu ține pe banii lui, se vede.
 - **Riscuri:** puțini boți la început ⇒ „puține” săptămâni întregi; ipoteză, nu îmbunătățire garantată (trader.md).
 - **Fișiere:** crypto/public/lib/grid-proba.js, public/lib/asemanatoare.js, scripts/colector.mjs, public/app.js (rândul pe fișă).
 
-#### I-536 · Pragul de pierdere ca % din sumă, setat o dată · [S] · P3
+#### I-536 · Pragul de pierdere ca % din sumă, setat o dată · [S] · P3 · făcut 2026-10-05 (v100.103)
 - **Problema:** planul se împrumută de la ultimul bot și se scalează (v100.102); dacă ultimul bot a fost o excepție, toată fișa moștenește excepția; sursa e mereu „altceva”.
 - **Soluția:** în poartă, „pragul meu de pierdere = X% din sumă” (și ținta), cu buton de salvare pe server; fișa, Tabloul și Discordul îl folosesc înaintea planului împrumutat. Planul scris pe un bot rămâne mai tare.
 - **Impact:** o regulă a lui, la vedere, în loc de o cifră moștenită; dispare ambiguitatea „de unde vine”.
