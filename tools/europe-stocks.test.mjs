@@ -5,9 +5,9 @@ import {readFileSync,existsSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 
 function setup(signal={isEarly:false,isConfirmed:false,signals:{}}){
-  const c={console,Intl,Date,Map,Set,Math,Number,Array,Object,Error};c.window=c;
+  const c={console,Intl,Date,Map,Set,Math,Number,Array,Object,Error,AbortController};c.window=c;
   vm.createContext(c);
-  for(const file of ['lib/indicators.js','europe-stocks/salt-list.js','europe-stocks/universe.js','europe-stocks/model.js'])vm.runInContext(readFileSync(file,'utf8'),c,{filename:file});
+  for(const file of ['lib/indicators.js','europe-stocks/salt-list.js','europe-stocks/universe.js','europe-stocks/decision.js','europe-stocks/model.js','europe-stocks/finance.js','europe-stocks/history.js','europe-stocks/view.js'])vm.runInContext(readFileSync(file,'utf8'),c,{filename:file});
   c.MEB={computeEarlyBird:()=>signal,ebSignalText:()=> 'Structure test'};
   return c;
 }
@@ -112,18 +112,19 @@ test('Salt membership applies to Watchlist and cache identity without mutating p
 });
 function bootCache(c,cache,watchlist=[],watchlistOnly=false){
   const nodes=new Map(),node=id=>{
-    if(!nodes.has(id))nodes.set(id,{value:id==='market'?'all':id==='universe'?(watchlistOnly?'watchlist':'core'):'',textContent:'',innerHTML:'',dataset:{},style:{},setAttribute(){},appendChild(){},querySelectorAll(){return []}});
+    if(!nodes.has(id))nodes.set(id,{value:['market','sectorFilter','stateFilter'].includes(id)?'all':id==='sortBy'?'score':id==='universe'?(watchlistOnly?'watchlist':'core'):'',textContent:'',innerHTML:'',dataset:{},style:{},setAttribute(){},appendChild(){},querySelector(){return null;},querySelectorAll(){return []}});
     return nodes.get(id);
   };
   c.document={hidden:true,getElementById:node,createElement:()=>({}),querySelectorAll:()=>[],addEventListener(){}};
-  c.localStorage={getItem:()=>JSON.stringify(cache)};c.WL={get:()=>watchlist,has:()=>false};
-  c.DailySeries={usable:()=>true};c.addEventListener=()=>{};c.setTimeout=()=>1;c.clearTimeout=()=>{};
+  c.localStorage={getItem:key=>key==='tt_europe_scan_v3'?JSON.stringify(cache):null};c.WL={get:()=>watchlist,has:()=>false};
+  c.DailySeries={usable:()=>true,date:t=>new Date(t).toISOString().slice(0,10)};c.addEventListener=()=>{};c.setTimeout=()=>1;c.clearTimeout=()=>{};
+  c.matchMedia=()=>({matches:false,addEventListener(){}});c.fetch=async()=>{throw Error('Offline test');};
   c.location={origin:'https://example.test'};
   vm.runInContext(readFileSync('europe-stocks/engine.js','utf8'),c,{filename:'engine.js'});
   return nodes;
 }
 test('cached results cannot escape Salt source, ISIN or Watchlist membership',()=>{
-  function cache(c,item){return {schema:2,filter:c.EuropeUniverse.cacheIdentity(),items:[item],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]};}
+  function cache(c,item){return {schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity(),items:[item],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]};}
   const valid=setup(),candidate=build(valid),ok=bootCache(valid,cache(valid,candidate));
   assert.equal(ok.get('candidateCount').textContent,1);
   for(const change of [x=>({...x,symbol:'UNKNOWN.L',isin:undefined}),x=>({...x,isin:'DE0007664039'})]){
