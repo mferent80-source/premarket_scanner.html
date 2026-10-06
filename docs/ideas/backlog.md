@@ -3263,9 +3263,9 @@ pe un singur chart.
 | I-555 | Radar pe telefon: bara de jos = Tablou · Grid · T212 · Alerte · ⋯ (azi Home · Scan · Signals · Market - pagini pe care nu le folosește) | crypto/public/index.html (mobileNav) + app.js | S | P1 | propus | ideation | 2026-10-06 |
 | I-556 | Radar: numărătoarea deschiderilor pe tab (local, fără server) + rând în Health „neatinse de 30 de zile” - decizia de scoatere pe date, nu pe impresie | crypto/public/app.js (navTo) + Health | S | P2 | propus | ideation | 2026-10-06 |
 | I-557 | Radar: laboratoarele vechi nu se mai desenează / pornesc la încărcare (renderValidation, renderForwardLab, renderProfitReadiness, renderReplayLab, renderEdgePro, renderV65…, initV67Operations cu timer), ci doar la deschiderea lor - măsurat înainte / după | crypto/public/app.js (pornirea, L~7098) | M | P2 | propus | ideation | 2026-10-06 |
-| I-558 | Monte Carlo pe arhiva boților (nu pe jurnalul de semnale gol): „cu N boți deodată, într-o lună proastă (5%) pierzi X USDT” - bootstrap pe monede/blocuri | crypto/public/app.js (runMonteCarlo) + /api/istoric-bot (arhiva) | M | P1 | propus | ideation | 2026-10-06 |
-| I-559 | Riscul tuturor boților deodată (din Risk Manager + Portfolio): marja totală, pierderea la stop însumată față de sold, cel mai apropiat de lichidare, monede corelate | crypto/public/app.js (riskmgr, portfolio) + Tablou | M | P1 | propus | ideation | 2026-10-06 |
-| I-560 | Corelația între boții deschiși (și cu BTC) - doi boți pe monede care se mișcă împreună = un singur pariu mai mare | crypto/public/app.js (loadCorrelation) + colector (alertă la ≥ 0,8) | S | P2 | propus | ideation | 2026-10-06 |
+| I-558 | Monte Carlo pe arhiva boților (nu pe jurnalul de semnale gol): „cu N boți deodată, într-o lună proastă (5%) pierzi X USDT” - bootstrap pe monede/blocuri | crypto/public/app.js (runMonteCarlo) + /api/istoric-bot (arhiva) | M | P1 | făcut | ideation | 2026-10-06 |
+| I-559 | Riscul tuturor boților deodată (din Risk Manager + Portfolio): marja totală, pierderea la stop însumată față de sold, cel mai apropiat de lichidare, monede corelate | crypto/public/app.js (riskmgr, portfolio) + Tablou | M | P1 | făcut | ideation | 2026-10-06 |
+| I-560 | Corelația între boții deschiși (și cu BTC) - doi boți pe monede care se mișcă împreună = un singur pariu mai mare | crypto/public/app.js (loadCorrelation) + colector (alertă la ≥ 0,8) | S | P2 | făcut | ideation | 2026-10-06 |
 | I-561 | Carnetul Radarului: Validation / Forward / Calibration pe deciziile pentru boți (fișa LARG/ÎNGUST, Consilierul Ține/Ieși, becurile) în loc de semnale - forward-only, cu bilanțul dovedit / nedovedit | crypto/public/app.js (renderValidation, renderForwardLab, renderCalibration) + istoric-bot (cazuri, decizii) | L | P2 | propus | ideation | 2026-10-06 |
 | I-562 | Ipoteză de testat: marginile gridului la VAL / VAH / nodurile de volum (Volume / Market Profile) ies mai rar pe stop decât banda din fișă - proba pe istoric ÎNAINTE de orice schimbare a fișei | crypto/public/lib/grid-proba.js + renderVolumeProfile | M | P3 | propus | ideation | 2026-10-06 |
 
@@ -5659,21 +5659,21 @@ Constatarea de bază: lanțul de validare (Validation, Forward, Calibration, Mon
 Fără potențial pentru felul lui de tranzacționare (semnale direcționale long/short cu stop / țintă): Quant Engine, Signals, Opportunity, Decision Center, Trading Desk, Paper v3, Strategy Analytics, Edge Pro, Scenario, Structure & Sessions, Backtest; înlocuite: Multi-TF (tabelul „Trendul pe TF-uri”), Nasdaq desk (pagina T212). Potențial mic, acoperit deja: Futures (funding în Tablou și Busola), Volatility (lățimea din fișă și Busola), Decision Core / Flow & Regime (regimul din Busola), Order Book / Microstructure (un rând de lichiditate în fișă ar ajunge), Context Intel.
 Notă: I-556 (numărătoarea deschiderilor) pornea de la folosire - el a spus că nu e criteriul; statusul rămâne până o respinge el.
 
-#### I-558 · Monte Carlo pe arhiva boților · [M] · P1 · propus
+#### I-558 · Monte Carlo pe arhiva boților · [M] · P1 · făcut (v100.113 `903e191`)
 - **Problema:** nu știe cât poate pierde într-o lună proastă cu 2–3 boți deodată; Monte Carlo există, dar pe jurnalul de semnale gol.
 - **Soluția:** bootstrap pe rezultatele boților din arhivă (blocuri pe monedă și pe timp, ca să păstreze seriile), N boți deodată ⇒ mediana lunii, percentila 5%, cea mai lungă serie pe minus; scris pe suma lui.
 - **Impact:** câți boți și cât pe fiecare, pe date proprii.
 - **Riscuri:** trecutul nu se repetă; boții vechi aveau alte reguli (fișa s-a schimbat) - se spune pe ecran, cu perioada.
 - **Fișiere:** crypto/public/app.js (runMonteCarlo), /api/istoric-bot.
 
-#### I-559 · Riscul tuturor boților deodată · [M] · P1 · propus
+#### I-559 · Riscul tuturor boților deodată · [M] · P1 · făcut (v100.113 `903e191`)
 - **Problema:** Tabloul judecă un bot o dată; Risk Manager e un calculator pentru o poziție, Portfolio citește paper-ul.
 - **Soluția:** un rând / o cartelă: marja totală, pierderea la stop însumată față de sold, botul cel mai aproape de lichidare, boții pe monede corelate (I-560).
 - **Impact:** previne trei boți „în plan” fiecare care împreună depășesc pragul lui.
 - **Riscuri:** soldul Pionex vine o dată la câteva minute; stopurile nepuse = pierdere necunoscută (se spune).
 - **Fișiere:** crypto/public/app.js (riskmgr, portfolio, Tablou).
 
-#### I-560 · Corelația între boții deschiși · [S] · P2 · propus
+#### I-560 · Corelația între boții deschiși · [S] · P2 · făcut (v100.113 `903e191`)
 - **Problema:** Correlation compară o monedă cu BTC / ETH / SOL, nu boții între ei.
 - **Soluția:** matricea pe randamentele de 1 h (30 de zile) între monedele boților deschiși + BTC; alertă când doi boți au ≥ 0,8.
 - **Impact:** riscul concentrat se vede înainte să cadă amândoi.
