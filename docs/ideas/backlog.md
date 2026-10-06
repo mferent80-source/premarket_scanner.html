@@ -3271,6 +3271,11 @@ pe un singur chart.
 | I-563 | Discord: „botul stă de 24 h și e pe minus” cu cifrele tale (din boții care au ajuns la 24 h: câți pe plus, câți au pierdut peste 5%) - o dată pe bot | crypto/scripts/colector.mjs + lib/mesaje-colector.mjs + RiscLuna (raportul de noapte) | S | P1 | făcut (v100.115 `0399578`) | ideation | 2026-10-06 |
 | I-564 | Raportul de duminică: comisioanele săptămânii față de câștigul grilelor + câți boți au stat sub 15 minute | crypto/scripts/colector.mjs (raportul) + RiscLuna.descBoti | S | P2 | propus | ideation | 2026-10-06 |
 | I-565 | Frâna T212 de „cumpărat în jos” (v87) primește cifra ta din raportul de risc (pozițiile mediate: 32% pierderi mari față de 9%, la limită) | crypto/public/lib/actiuni-semnale.js (alertaFrana) + colector | S | P2 | făcut (v100.115 `0399578`) | ideation | 2026-10-06 |
+| I-566 | „Pornit la” din codul botului: Tabloul trimite momentul pornirii (câmpul 19), GRID-FISA îl folosește cât inputul e gol - altfel un bot care rulează apare „ÎNAINTE DE PORNIRE” și alertele botului tac (PONS 06.10) | crypto/public/lib/tablou-extra.js (codTVBot) + pine-scripts/GRID-FISA (citirea codului) | S | P1 | propus | ideation | 2026-10-06 |
+| I-567 | GRID-FISA: garda „botul pare pornit, «Pornit la» lipsește” - cod din Tablou (verdictul fișei gol) fără „Pornit la” ⇒ verdict galben + motivul pe față, nu „🟢 GRAFICUL E LINIȘTIT · poți porni” | pine-scripts/GRID-FISA (verdictul, codul 31) | S | P1 | propus | ideation | 2026-10-06 |
+| I-568 | GRID-FISA: după stop / take-profit zona botului se oprește la bara opririi (grilele, umbra, fundalul) + eticheta „oprit aici” | pine-scripts/GRID-FISA (DESEN) | S | P3 | propus | ideation | 2026-10-06 |
+| I-569 | GRID-FISA: grilele dese mai lizibile - „toate / din 5 în 5 / doar ±10 în jurul prețului” și atingerile mutate în dreapta ultimei bare | pine-scripts/GRID-FISA (DESEN, atingeri) | S | P3 | propus | ideation | 2026-10-06 |
+| I-570 | GRID-FISA: ultima umplere estimată pe grafic (cumpărare / vânzare, la nivelul ei, cu ora) - vezi unde a lucrat botul ultima dată | pine-scripts/GRID-FISA (urmărirea celulelor + DESEN) | M | P4 | propus | ideation | 2026-10-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5725,3 +5730,35 @@ Verificat pe disc: frâna T212 de „cumpărat în jos” EXISTĂ (colector, v87
 - Măsurat în Chrome headless, pe o copie cu cronometre la fiecare pas al pornirii (3 rulări, 1920×1080): toate laboratoarele vechi la un loc costă ~10–12 ms (renderPaper ~5 ms, renderEdgePro ~3,5 ms, renderV66EdgeValidation ~3 ms, renderV65DecisionOS ~1,6 ms, initV67Operations ~1,5 ms; restul sub 1 ms).
 - initV67Operations nu e doar desenul unui laborator: pornește watchdog-ul de 30 s (WS, furnizori, repornire) ⇒ nu se mută.
 - Concluzia mea: câștigul (~10 ms) nu merită riscul; propun „respins - măsurat, nu se simte” dacă el e de acord.
+
+#### I-566 · „Pornit la” din codul botului · [S] · P1 · propus
+- **Problema:** 06.10, PONS short 3× pornit la 18:48 (botul 2408); la 18:54 GRID-FISA scria „ÎNAINTE DE PORNIRE · 🟢 GRAFICUL E LINIȘTIT”. Codul copiat din Tablou are verdictul fișei gol (botul rulează), dar fără „Pornit la” pus de mână Pine nu știe că botul merge: `botMerge` = fals ⇒ tac alertele de lichidare, stop, plan, ieșire din grid, „mută gridul”.
+- **Soluția:** codTVBot adaugă momentul pornirii (`b.pornitLa`, ms) ca al 19-lea câmp; GRID-FISA acceptă 9–19 câmpuri și, cât inputul „Pornit la” e pe 01.01.2000, ia pornirea din cod (bara care o conține). Inputul pus de mână are prioritate.
+- **Impact:** risc prevenit - alertele botului pornesc singure din momentul în care lipești codul; fără pasul manual uitat.
+- **Riscuri/dependențe:** GRID-FISA v2.2/v2.3 refuză 19 câmpuri ⇒ întâi Pine nou în TV, apoi Radarul (ca la v100.48). Prețul de pornire rămâne deschiderea barei (estimat).
+- **Fișiere:** crypto/public/lib/tablou-extra.js (codTVBot), pine-scripts/GRID-FISA/Grid_Fisa_v2_x.pine + README.
+
+#### I-567 · Garda „botul pare pornit, «Pornit la» lipsește” · [S] · P1 · propus
+- **Problema:** același caz ca I-566, cu coduri vechi (fără câmpul 19): verdictul 31 îi spune „poți porni” unui bot deja pornit.
+- **Soluția:** în GRID-FISA, cod cu câmpurile 15–16 prezente, verdictul fișei gol și „Pornit la” nepus ⇒ verdict galben „BOTUL RULEAZĂ? pune «Pornit la» - altfel alertele botului tac”, cu „ce aș face eu” = unde se pune.
+- **Impact:** nimic nu mai tace pe tăcute; funcționează și cu Radarul de azi.
+- **Riscuri/dependențe:** codul fișei fără verdict (rar) ar primi și el avertismentul - textul spune „pare”.
+- **Fișiere:** pine-scripts/GRID-FISA (codV, f_verdict, f_faCe).
+
+#### I-568 · Zona botului se oprește la stop · [S] · P3 · propus
+- **Problema:** v2.3 desenează grilele până la ultima bară și după ce stopul / take-profit-ul a închis botul.
+- **Soluția:** după oprire, zona (grile, umbră, fundal) se termină la bara opririi, cu eticheta „oprit aici”.
+- **Impact:** graficul nu mai arată un bot care nu mai există.
+- **Fișiere:** pine-scripts/GRID-FISA (DESEN).
+
+#### I-569 · Grilele dese mai lizibile · [S] · P3 · propus
+- **Problema:** la 90+ grile liniile stau la câțiva pixeli; atingerile (după pornire) stau peste ultimele lumânări.
+- **Soluția:** input „Grilele: toate / din 5 în 5 / doar ±10 în jurul prețului”; atingerile în dreapta ultimei bare.
+- **Impact:** citire mai rapidă; nicio cifră nu se schimbă.
+- **Fișiere:** pine-scripts/GRID-FISA (DESEN, atingeri).
+
+#### I-570 · Ultima umplere estimată pe grafic · [M] · P4 · propus
+- **Problema:** nu vezi unde a lucrat botul ultima dată (Pionex nu dă umplerile pe futures: `trade/fills` refuză PERP).
+- **Soluția:** marcajul ultimei umpleri estimate (cumpărare / vânzare, nivelul, ora) din urmărirea celulelor.
+- **Impact:** context la decizia „mut gridul / îl las”; e ESTIMAT (pe închideri de bare), spus pe etichetă.
+- **Fișiere:** pine-scripts/GRID-FISA (urmărirea celulelor + DESEN).
