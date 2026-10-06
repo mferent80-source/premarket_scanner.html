@@ -3247,15 +3247,15 @@ pe un singur chart.
 | I-539 | A avut dreptate „Ce aș alege eu”? La apăsare se ține și recomandarea; bilanțul spune „când ai urmat-o” vs „când n-ai urmat-o” | crypto/public/lib/grid-jurnal.js, public/app.js (gridJurnalAdauga, renderGridJurnal) | S | P3 | facut 2026-10-05 (v100.104, revizia v100.105) | ideation | 2026-10-05 |
 | I-540 | Ceasul ferestrei LARG: bot LARG încă în grid după durata tipică ×2 ⇒ o notă (banii stau), ca ceasul gridului îngust | crypto/scripts/colector.mjs, scripts/lib/mesaje-colector.mjs, public/lib/grid-jurnal.js | S | P3 | facut 2026-10-05 (v100.104, revizia v100.105) | ideation | 2026-10-05 |
 | I-541 | Colectorul vede trendul pe aceleași intervale ca Tabloul (semaforul 4h + 1z în verdict) ⇒ Discord = Tablou, fără „📣 Pe Discord: Atenție” | crypto/scripts/colector.mjs + public/lib/grafic-bot.js (semafor) + lib/consiliu.js (altaVoce) | M | P1 | făcut | ideation | 2026-10-06 |
-| I-542 | Tablou: UN tabel „Trendul pe TF-uri” în locul a trei (rândurile TF din citire + „Direcția pieței” + „Ce spun indicatorii”) | crypto/public/app.js (renderTabloDirectia, renderTabloIndicatori, tbDeseneazaCitire) + index.html + app.css | M | P2 | aprobat | ideation | 2026-10-06 |
+| I-542 | Tablou: UN tabel „Trendul pe TF-uri” în locul a trei (rândurile TF din citire + „Direcția pieței” + „Ce spun indicatorii”) | crypto/public/app.js (renderTabloDirectia, renderTabloIndicatori, tbDeseneazaCitire) + index.html + app.css | M | P2 | făcut | ideation | 2026-10-06 |
 | I-543 | „Ce ai de făcut acum”: rândurile pe care verdictul de acum le contrazice se estompează cu „nu mai e valabil (acum: 🟢 Ține)” | crypto/public/app.js (lista „Ce ai de făcut”) + lib/tablou-extra.js | S | P2 | făcut | ideation | 2026-10-06 |
 | I-544 | Clic pe un bec al semaforului ⇒ graficul trece pe perioada TF-ului (5m → 24 h, 15m → 3 zile, 1h → 7 zile) | crypto/public/lib/grafic-bot.js (gbSem) + app.js (tbAlegeInterval) | S | P3 | făcut | ideation | 2026-10-06 |
 | I-545 | Semaforul pe boții TĂI: starea celor 6 becuri la pornire, pe arhiva de ~2.214 boți ⇒ bilanț dovedit / nedovedit (ca ADX, I-530) | crypto/public/lib/asemanatoare.js + grafic-bot.js + scripts/colector.mjs (tura cazurilor) | M | P2 | făcut | ideation | 2026-10-06 |
 | I-546 | T212: coloana TREND din tabelul pozițiilor pe aceeași regulă ca becul 1z, sau ambele când diferă („↓ jos · 1z lateral”) | crypto/public/lib/t212-ecran.js (c-trend) + actiuni-semnale.js | S | P2 | făcut | ideation | 2026-10-06 |
 | I-547 | T212: Discord când becul 1z (și 4h) al unei poziții trece împotriva ei - o dată pe schimbare, din barele zilnice pe care colectorul le are deja | crypto/scripts/colector.mjs (dateDimineata / tura T212) + lib/mesaje-colector.mjs + grafic-bot.js | M | P2 | făcut | ideation | 2026-10-06 |
 | I-548 | Becurile se aprind pe rând, cum vin lumânările, iar cererea picată se reia în 30 s („5 min: reîncerc…”), pe ambele pagini | crypto/public/app.js (tbAduDirectie, TB_SEM_EXTRA) + lib/t212-ecran.js (t212AduTf) | S | P2 | făcut | ideation | 2026-10-06 |
-| I-549 | Fișa: fereastra cu stopul atins în peste jumătate din porniri (NIL: ÎNGUST 77 din 109) primește „aș sări peste ea”, iar „Am pornit-o” cere o confirmare | crypto/public/lib/grid-plan.js (motive, alege) + app.js (grPlanVarHtml, grFereastraAleasa) | S | P1 | propus | ideation | 2026-10-06 |
-| I-550 | Tablou: „Ai pornit ÎNGUST · fișa recomanda LARG” cu proba de atunci (stop X din N, ieșirea tipică), din oferta salvată - nu doar pe Discord | crypto/public/app.js (Tablou) + lib/grid-plan.js (fereastraBotului) + /api/istoric-bot?action=ferestre | S | P2 | propus | ideation | 2026-10-06 |
+| I-549 | Fișa: fereastra cu stopul atins în peste jumătate din porniri (NIL: ÎNGUST 77 din 109) primește „aș sări peste ea”, iar „Am pornit-o” cere o confirmare | crypto/public/lib/grid-plan.js (motive, alege) + app.js (grPlanVarHtml, grFereastraAleasa) | S | P1 | făcut | ideation | 2026-10-06 |
+| I-550 | Tablou: „Ai pornit ÎNGUST · fișa recomanda LARG” cu proba de atunci (stop X din N, ieșirea tipică), din oferta salvată - nu doar pe Discord | crypto/public/app.js (Tablou) + lib/grid-plan.js (fereastraBotului) + /api/istoric-bot?action=ferestre | S | P2 | făcut | ideation | 2026-10-06 |
 | I-551 | „Ce ai de făcut acum”: butonul „copiază” lângă prețul propus (take-profit la zero, stopul), ca în fișă | crypto/public/app.js (tbRenderTodo) + lib/tablou-extra.js | S | P3 | propus | ideation | 2026-10-06 |
 | I-552 | Dimineața pe Discord: becurile 4 h / 1 zi pe fiecare bot și poziție + ce s-a schimbat peste noapte | crypto/scripts/lib/tura-dimineata.mjs + colector.mjs (dateDimineata) + grafic-bot.js (semafor, semZi) | M | P2 | propus | ideation | 2026-10-06 |
 | I-553 | Semaforul Tabloului (6 TF, reluarea, „becurile pe rând”) scos din app.js într-un modul pur cu probe pe comportament, nu pe text | crypto/public/app.js (tbAduDirectie, tbReiaLipsa, tbSemaforTf) ⇒ public/lib/tablou-trend.js nou | M | P3 | propus | ideation | 2026-10-06 |
@@ -5572,14 +5572,14 @@ Statusuri schimbate la cererea lui: I-541, I-543..I-548 `făcut` (v100.110 / col
 Excluse: deschise deja I-459, I-485, I-487, I-513, I-517, I-518, I-520, I-522, I-523, I-525; semaforul măsurat pe trade-urile T212 (ar dubla statisticile pe situații ale paginii T212).
 Acoperire: lecția zilei pe NIL (oferta din KV `ferestre`, botul real, fișa pe 8788); grep: Tabloul n-are „pornit ca” (doar MesajeColector.pornitCa + fișa), tura-dimineata.mjs n-are becuri, tbRenderTodo n-are „copiază”.
 
-#### I-549 · Fereastra cu stopul în peste jumătate din porniri: „aș sări peste ea” · [S] · P1 · propus
+#### I-549 · Fereastra cu stopul în peste jumătate din porniri: „aș sări peste ea” · [S] · P1 · făcut (v100.111 `c3b5559`)
 - **Problema:** azi pe NIL fișa a pus ÎNGUST lângă LARG cu butoanele lui de pornire, deși proba lui spunea „stop 77 din 109 porniri” (71%); el l-a pornit. Recomandarea „LARG” era doar un rând.
 - **Soluția:** când stopul a fost atins în peste jumătate din porniri, fereastra primește eticheta „aș sări peste ea: stopul vine în X din N porniri”, iar „📒 Am pornit-o în Pionex” cere un clic de confirmare (nu refuză - pragul e un privilegiu, se avertizează).
 - **Impact:** mai puține porniri pe fereastra care pierde de obicei.
 - **Riscuri:** pragul 50% e ipoteză de casă; nu ascunde fereastra.
 - **Fișiere:** crypto/public/lib/grid-plan.js, public/app.js.
 
-#### I-550 · Tablou: „Ai pornit ÎNGUST · fișa recomanda LARG” · [S] · P2 · propus
+#### I-550 · Tablou: „Ai pornit ÎNGUST · fișa recomanda LARG” · [S] · P2 · făcut (v100.111 `c3b5559`)
 - **Problema:** Tabloul nu știe ce fereastră a pornit el; mesajul „pornit ca …” merge doar pe Discord, o dată.
 - **Soluția:** rândul în cartela verdictului (sau în „Ce ai de făcut acum”), din oferta salvată de dinainte de pornire (GridPlan.fereastraBotului): ce a pornit, ce recomanda fișa, proba ferestrei (stop X din N, ieșirea tipică, media pe pornire).
 - **Impact:** când Tabloul avertizează („marginea la 2%”), se vede de unde vine (banda ÎNGUST) și ce zicea fișa.
