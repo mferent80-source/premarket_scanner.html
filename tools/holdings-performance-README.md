@@ -6,6 +6,11 @@ model cores, with their original train/validation/reference/test rules and
 blocked windows. `Recalculează testele istorice` invokes the shared-source
 six-model runner, preserving the first forecast for each model/EOD.
 
+The shared source loader records `model.sourceFingerprint` only after verifying
+the full history and its EOD close. The dashboard uses this provenance instead
+of hashing the 90 chart bars. Missing or revised full-history provenance blocks
+historical results; it is never inferred from the model report being checked.
+
 Historical Neural/Boosting log loss, Brier and balanced accuracy are compared
 with their linear/class-frequency baselines. HMM uses held-out density NLL;
 Isolation reports signal rates without external anomaly labels. Quantiles use

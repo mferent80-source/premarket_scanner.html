@@ -57,7 +57,7 @@ test('historical performance and proper scores never promote an unvalidated prob
 });
 test('performance UI requests the shared six-model runner and exports only the projected report',async()=>{
  c.Date=class extends Date{static now(){return now;}};
- let run,checked,exported,paints=0;const position={ticker:e.ticker},model={...expected,price:expected.close,bars},controls={};
+ let run,checked,exported,paints=0;const position={ticker:e.ticker},model={...expected,sourceFingerprint:expected.fingerprint,price:expected.close,bars:bars.slice(-90)},controls={};
  c.document={querySelectorAll:selector=>controls[selector]||[]};c.HoldingsForecastUI={snapshot:()=>item(),probabilistic:()=>null,check:async(...args)=>checked=args};
  for(const [id,name] of [['neural','Neural'],['hmm','HMM'],['isolation','Isolation'],['quantile','Quantile'],['garch','Garch']])c['Holdings'+name+'UI']={inspect:()=>snapshots[id],busy:()=>false};
  c.HoldingsNeuralUI.refresh=()=>paints++;c.HoldingsNeuralUI.exportReport=r=>exported=r;c.HoldingsAutoLearningUI={busy:()=>false,tick:async(...args)=>run=args};c.HoldingsVerdictUI={busy:()=>false};
@@ -66,4 +66,7 @@ test('performance UI requests the shared six-model runner and exports only the p
  controls['[data-performance-run]']=[train];controls['[data-performance-check]']=[check];controls['[data-performance-export]']=[save];controls['[data-performance-class]']=[select];c.HoldingsPerformanceUI.bind();train.onclick();check.onclick();save.onclick();select.onchange();await Promise.resolve();
  assert.deepEqual(run,[true,e.ticker]);assert.equal(checked[0],position);assert.equal(checked[1],true);assert.equal(exported.result.version,'holdings-performance-v1');assert.equal(paints,1);assert.ok(!/SECRET|PRIVATE|private-account/.test(JSON.stringify(exported)));
  const html=c.HoldingsPerformanceUI.markup(position,0);assert.match(html,/Performanța AI/);assert.match(html,/DEMO · date fictive/);assert.match(html,/value="0" selected/);assert.match(html,/predicțiile urmărite/i);
+ assert.equal(c.HoldingsPerformanceUI.report(position).historical.available,6);assert.notEqual(c.HoldingsVerdict.fingerprint(model.bars),expected.fingerprint);
+ delete model.sourceFingerprint;assert.equal(c.HoldingsPerformanceUI.report(position).historical.available,0);
+ model.sourceFingerprint='revised-full-history';assert.equal(c.HoldingsPerformanceUI.report(position).historical.available,0);
 });
