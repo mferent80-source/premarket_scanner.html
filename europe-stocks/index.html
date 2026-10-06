@@ -6,17 +6,17 @@
 <meta name="theme-color" content="#090d12">
 <title>Acțiuni Europa — Trading Tools</title>
 <link rel="stylesheet" href="../lib/plex.css?v=825">
-<link rel="stylesheet" href="style.css?v=26.10.06.2142">
+<link rel="stylesheet" href="style.css?v=26.10.06.2224">
 <script src="../lib/theme.js?v=825"></script>
 </head>
 <body>
 <main>
   <header class="page-head">
-    <div><a class="back-link" href="../app/">← Trading Tools</a><span class="kicker">SCANNER EUROPEAN · SESIUNI ÎNCHEIATE</span><h1>Acțiuni Europa <span>EU</span></h1><p>Creștere, început de trend și reveniri — într-un spațiu separat.</p></div>
+    <div><a class="back-link" href="../app/">← Trading Tools</a><span class="kicker">SCANNER EUROPEAN · SESIUNI ÎNCHEIATE</span><h1>Acțiuni Europa <span>EU</span></h1><p>Creștere, Early Long, Reversal și Early Reversal · acțiuni din lista Salt Bank.</p></div>
     <div class="scan-actions"><span class="scan-state" id="scanState" role="status" aria-live="polite">Pregătit de scanare</span><button class="primary" id="scanBtn">Scanează Europa</button></div>
   </header>
   <section class="market-strip" aria-label="Rezumatul scanării">
-    <div><small>UNIVERS EUROPEAN</small><b id="universeCount">—</b></div>
+    <div><small>UNIVERS SALT BANK</small><b id="universeCount">—</b></div>
     <div><small>DATE VERIFICATE</small><b id="verifiedCount">0</b></div>
     <div><small>CANDIDAȚI</small><b id="candidateCount">0</b></div>
     <div><small>ULTIMA SCANARE</small><b id="scanTime">Nescanat</b></div>
@@ -24,8 +24,8 @@
   <div class="progress" role="progressbar" aria-label="Progres scanare" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="scanProgress"><i id="progressFill"></i></div>
   <section class="filters" aria-label="Filtre Europa">
     <label>Bursa<select id="market"><option value="all">Toată Europa</option></select></label>
-    <label>Univers<select id="universe"><option value="core">Selecție Europa + Watchlist</option><option value="watchlist">Doar Watchlist Europa</option></select></label>
-    <label class="search-label">Caută acțiune<input id="search" type="search" placeholder="Simbol, companie sau sector" autocomplete="off"></label>
+    <label>Univers<select id="universe"><option value="core">Lista Salt Bank · Europa</option><option value="watchlist">Watchlist · Salt Europa</option></select></label>
+    <label class="search-label">Caută acțiune<input id="search" type="search" placeholder="Simbol, companie, ISIN sau sector" autocomplete="off"></label>
   </section>
   <div id="scanAlert" class="notice" role="status" aria-live="polite" hidden></div>
   <section class="category-tabs" role="tablist" aria-label="Strategii europene">
@@ -39,7 +39,7 @@
     <div class="results" id="results"><div class="empty"><h3>Pregătit pentru Europa</h3><p>Scanarea pornește automat la deschiderea paginii. Sunt folosite numai sesiuni încheiate și date cu identitate verificată.</p></div></div>
     <aside class="detail" id="detail" aria-label="Analiza acțiunii selectate" aria-live="polite"><h2>Analiza acțiunii</h2><p>Selectează un candidat pentru trend, volum, riscuri și niveluri tehnice.</p></aside>
   </section>
-  <details class="scan-details" id="scanDetails"><summary id="scanDetailsTitle">Acoperire și verificări</summary><div id="scanDetailsBody"><p>Universul inițial este o selecție de companii, nu toate acțiunile europene. Disponibilitatea în Trading 212 se verifică în broker.</p></div></details>
+  <details class="scan-details" id="scanDetails"><summary id="scanDetailsTitle">Acoperire și verificări</summary><div id="scanDetailsBody"><p>Sursa este lista de instrumente Salt Bank. Acoperirea include acțiunile cu listare europeană și corespondență ISIN; celelalte tipuri de instrumente sunt excluse.</p></div></details>
   <footer><p>Scorul ordonează criterii tehnice; nu reprezintă probabilitatea de câștig. Maximum trei acțiuni din același sector în fiecare top.</p><p>Prețurile sunt în moneda listării. Londra: cotațiile în pence sunt convertite în GBP. Calendarul earnings și sărbătorile bursiere necesită verificare.</p><span id="nextScan">Actualizare automată la 5 minute când pagina este vizibilă.</span></footer>
 </main>
 <script src="../lib/data.js?v=audit-20261003"></script>
@@ -49,8 +49,9 @@
 <script src="../lib/watchlist.js?v=825"></script>
 <script src="../lib/journal.js?v=26.10.04.0102"></script>
 <script src="../lib/governor.js?v=26.10.04.0102"></script>
-<script src="universe.js?v=26.10.06.2142"></script>
-<script src="model.js?v=26.10.06.2142"></script>
-<script src="engine.js?v=26.10.06.2142"></script>
+<script src="salt-list.js?v=26.10.06.2224"></script>
+<script src="universe.js?v=26.10.06.2224"></script>
+<script src="model.js?v=26.10.06.2224"></script>
+<script src="engine.js?v=26.10.06.2224"></script>
 </body>
 </html>

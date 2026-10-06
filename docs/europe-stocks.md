@@ -3,11 +3,28 @@
 Pagina `europe-stocks/` apare separat în meniul aplicației, inclusiv în „Mai multe” pe telefon.
 Pornește automat scanarea la deschidere și verifică din nou la cinci minute când este vizibilă.
 
-Universul inițial conține 72 listări din 11 piețe: Germania, Franța, Olanda, Italia,
-Spania, Regatul Unit, Elveția, Danemarca, Suedia, Finlanda și Belgia. Este o selecție
-de companii; nu pretinde acoperirea tuturor acțiunilor sau disponibilitatea în broker.
-Se adaugă listările europene recunoscute din Watchlist. Filtre: bursă, doar Watchlist,
-simbol, companie și sector. Fiecare top are maximum zece rezultate și trei din același sector.
+Universul folosește PDF-ul Salt Bank furnizat de utilizator, consultat la 6 octombrie 2026:
+https://salt.bank/storage/app/efsfiles/media/investitii/Lista%20intrumente%20disponibile%20pentru%20tranzactionare.pdf
+
+Documentul are 17 pagini și 572 de ISIN-uri distincte: 370 Common Stock, 166 ETF,
+10 ETN și 26 ETC. Cele 208 acțiuni cu jurisdicție europeană sunt păstrate în
+`salt-list.js`, cu ISIN, denumirea sursei, tip, jurisdicție și pagina PDF. Numai
+rândurile cu o listare europeană mapată sunt scanate (204 acțiuni pe 10 piețe); excluderile au motiv explicit
+în „Acoperire”. Identitatea sursei include hash-ul PDF-ului și al corespondențelor.
+PDF-ul nu indică bursa de execuție sau moneda disponibilă în Salt Bank. Același
+ISIN se poate tranzacționa pe mai multe burse; cotația scannerului reprezintă bursa
+mapată și trebuie comparată cu instrumentul din aplicația băncii după ISIN.
+
+Corespondențele provin din căutarea Yahoo Finance după ISIN; cazurile în care
+rezultatul indică altă piață sunt verificate separat în sursele emitentului sau
+bursei. Sectorul provine din metadatele Yahoo și este tradus. Jurisdicția emitentului
+și țara bursei sunt câmpuri distincte, de exemplu Airbus: NL / Paris. Clasele
+ordinare și preferențiale rămân instrumente distincte, fără deduplicare pe companie.
+
+Filtre: bursă, Watchlist ∩ Salt Europa, simbol, companie, ISIN și sector. Watchlist-ul
+personal nu este modificat de filtrare. Simbolurile arbitrare și acțiunile din afara
+PDF-ului nu extind universul. Fiecare top are maximum zece rezultate și trei din
+același sector.
 
 Cele patru categorii sunt distincte:
 
@@ -32,9 +49,12 @@ CHF 3m, DKK 22m, SEK 30m. Prețurile europene nu sunt introduse în planul USD d
 Nivelurile ATR afișate sunt repere tehnice; earnings nu este verificat automat.
 Governor și lipsa indicelui sunt afișate separat. Scorul nu este o probabilitate.
 
-Rezultatele folosesc o cheie locală separată (`tt_europe_scan_v1`), fără suprascrierea
-scanărilor comune, jurnalului sau setărilor de sincronizare. Pe pagina Europa se poate
+Rezultatele folosesc o cheie locală separată (`tt_europe_scan_v2`), fără suprascrierea
+scanărilor comune, jurnalului sau setărilor de sincronizare. Cache-ul include
+identitatea documentului, lista filtrată și ISIN-ul fiecărui rezultat; rezultatele
+anterioare selecției Salt nu sunt reutilizate. Pe pagina Europa se poate
 adăuga sau elimina o acțiune din Watchlist și deschide graficul sursei.
 
 Validare: teste pentru monede/GBX, indice și dată, separarea categoriilor, lipsa datelor,
-Governor, diversificarea topurilor, navigare și active locale; verificare vizuală pe telefon și PC.
+Governor, diversificarea topurilor, integritatea ISIN-urilor, clasele de acțiuni,
+apartenența Watchlist și izolarea cache-ului, navigare și active locale; verificare vizuală pe telefon și PC.

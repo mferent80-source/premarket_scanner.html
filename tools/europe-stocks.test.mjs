@@ -7,7 +7,7 @@ import {resolve,dirname} from 'node:path';
 function setup(signal={isEarly:false,isConfirmed:false,signals:{}}){
   const c={console,Intl,Date,Map,Set,Math,Number,Array,Object,Error};c.window=c;
   vm.createContext(c);
-  for(const file of ['lib/indicators.js','europe-stocks/universe.js','europe-stocks/model.js'])vm.runInContext(readFileSync(file,'utf8'),c,{filename:file});
+  for(const file of ['lib/indicators.js','europe-stocks/salt-list.js','europe-stocks/universe.js','europe-stocks/model.js'])vm.runInContext(readFileSync(file,'utf8'),c,{filename:file});
   c.MEB={computeEarlyBird:()=>signal,ebSignalText:()=> 'Structure test'};
   return c;
 }
@@ -23,10 +23,11 @@ function build(c,sym='SAP.DE',source=series(),overrides={}){
 }
 test('Europe is separate: only recognized European listings, company identity and market benchmark preserved',()=>{
   const c=setup(),u=c.EuropeUniverse;
-  assert.ok(u.stocks.length>=70);assert.equal(Object.keys(u.markets).length,11);
-  assert.equal(u.describe('SAP.DE').name,'SAP');assert.equal(u.describe('SAP.DE').country,'Germania');
+  assert.equal(u.stocks.length,204);assert.equal(Object.keys(u.markets).length,10);
+  assert.match(u.describe('SAP.DE').name,/SAP/);assert.equal(u.describe('SAP.DE').country,'Germania');
   assert.equal(u.describe('SHEL.L').benchmark,'^FTSE');assert.equal(u.describe('NOVO-B.CO').currency,'DKK');
   assert.equal(u.describe('AAPL'),null);assert.equal(u.describe('SAP.DE<script>'),null);
+  assert.equal(u.describe('ABC.L'),null);assert.equal(u.describe('ROP.SW'),null);assert.equal(u.describe('SAAB-B.ST'),null);
   assert.ok(u.list('UK',['AAPL','SHEL.L','ABC.L']).every(x=>x.market==='UK'));
   assert.deepEqual(Array.from(u.list('all',['AAPL','SAP.DE'],true),x=>x.symbol),['SAP.DE']);
 });
@@ -76,4 +77,60 @@ test('European module is reachable in the app and local scripts/styles resolve',
   assert.ok(readFileSync('app/index.html','utf8').includes("u:'europe-stocks/',n:'Acțiuni Europa'"));
   for(const m of html.matchAll(/<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"/g))assert.ok(existsSync(resolve(dirname(path),m[1].split('?')[0])),m[1]);
   for(const cat of ['growth','earlyLong','reversal','earlyReversal'])assert.ok(html.includes('data-category="'+cat+'"'));
+});
+
+test('Salt dataset accounts for every European issuer stock and preserves instrument classes',()=>{
+  const c=setup(),u=c.EuropeUniverse,d=c.SaltEuropeData;
+  assert.equal(d.source.totalInstruments,572);
+  assert.equal(d.source.assetCounts['Common Stock'],370);assert.equal(d.source.assetCounts.ETF,166);
+  assert.equal(d.rows.length,208);assert.equal(u.stocks.length+u.excluded.length,d.rows.length);
+  assert.equal(new Set(d.rows.map(x=>x.isin)).size,d.rows.length);
+  assert.equal(new Set(u.stocks.map(x=>x.symbol)).size,u.stocks.length);
+  for(const row of d.rows){
+    assert.equal(row.assetType,'Common Stock');assert.ok(row.page>=1&&row.page<=17);
+    const digits=row.isin.replace(/[A-Z]/g,x=>String(x.charCodeAt(0)-55)).split('').map(Number).reverse();
+    assert.equal(digits.reduce((sum,n,i)=>sum+(i%2?Math.floor(n*2/10)+n*2%10:n),0)%10,0,row.isin);
+  }
+  assert.equal(u.describe('HEN.DE').isin,'DE0006048408');assert.equal(u.describe('HEN3.DE').isin,'DE0006048432');
+  assert.equal(u.describe('VOW.DE').isin,'DE0007664005');assert.equal(u.describe('VOW3.DE').isin,'DE0007664039');
+  assert.equal(u.describe('ACT0.DE').isin,'DE000A41YHG1');assert.equal(u.describe('ACT.DE'),null);
+  assert.equal(u.describe('AIR.PA').jurisdiction,'NL');assert.equal(u.describe('AIR.PA').country,'Franța');
+  assert.equal(u.describe('RACE.MI').jurisdiction,'NL');assert.equal(u.describe('RACE.MI').currency,'EUR');
+  assert.ok(u.excluded.every(x=>x.reason));assert.equal(u.excluded.length,4);
+  assert.deepEqual(Array.from(u.excluded,x=>x.identifiedSymbol).sort(),['ACN','LIN','NXPI','SPOT']);
+});
+test('Salt membership applies to Watchlist and cache identity without mutating personal symbols',()=>{
+  const c=setup(),u=c.EuropeUniverse,wl=['SAP.DE','SAP.DE','ABC.L','AAPL','ROP.SW','VOW3.DE'];
+  const before=wl.slice();
+  assert.deepEqual(Array.from(u.list('all',wl,true),x=>x.symbol),['SAP.DE','VOW3.DE']);
+  assert.deepEqual(wl,before);assert.equal(u.list('all',wl).length,u.stocks.length);
+  assert.equal(u.cacheIdentity('all',wl),u.cacheIdentity('all',[]));
+  assert.notEqual(u.cacheIdentity('all',['SAP.DE'],true),u.cacheIdentity('all',['VOW3.DE'],true));
+  assert.notEqual(u.cacheIdentity('all',wl,true),u.cacheIdentity('DE',wl,true));
+  assert.equal(u.cacheIdentity('all',wl,true),u.cacheIdentity('all',wl.slice().reverse(),true));
+  const candidate=build(c);assert.equal(candidate.isin,'DE0007164600');assert.equal(candidate.jurisdiction,'DE');
+});
+function bootCache(c,cache,watchlist=[],watchlistOnly=false){
+  const nodes=new Map(),node=id=>{
+    if(!nodes.has(id))nodes.set(id,{value:id==='market'?'all':id==='universe'?(watchlistOnly?'watchlist':'core'):'',textContent:'',innerHTML:'',dataset:{},style:{},setAttribute(){},appendChild(){},querySelectorAll(){return []}});
+    return nodes.get(id);
+  };
+  c.document={hidden:true,getElementById:node,createElement:()=>({}),querySelectorAll:()=>[],addEventListener(){}};
+  c.localStorage={getItem:()=>JSON.stringify(cache)};c.WL={get:()=>watchlist,has:()=>false};
+  c.DailySeries={usable:()=>true};c.addEventListener=()=>{};c.setTimeout=()=>1;c.clearTimeout=()=>{};
+  c.location={origin:'https://example.test'};
+  vm.runInContext(readFileSync('europe-stocks/engine.js','utf8'),c,{filename:'engine.js'});
+  return nodes;
+}
+test('cached results cannot escape Salt source, ISIN or Watchlist membership',()=>{
+  function cache(c,item){return {schema:2,filter:c.EuropeUniverse.cacheIdentity(),items:[item],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]};}
+  const valid=setup(),candidate=build(valid),ok=bootCache(valid,cache(valid,candidate));
+  assert.equal(ok.get('candidateCount').textContent,1);
+  for(const change of [x=>({...x,symbol:'UNKNOWN.L',isin:undefined}),x=>({...x,isin:'DE0007664039'})]){
+    const c=setup(),nodes=bootCache(c,cache(c,change(build(c))));assert.notEqual(nodes.get('candidateCount')?.textContent,1);
+  }
+  const old=setup(),prior=cache(old,build(old));prior.filter='previous-source';
+  assert.notEqual(bootCache(old,prior).get('candidateCount')?.textContent,1);
+  const only=setup(),wrong=cache(only,build(only));wrong.filter=only.EuropeUniverse.cacheIdentity('all',['VOW3.DE'],true);
+  assert.notEqual(bootCache(only,wrong,['VOW3.DE'],true).get('candidateCount')?.textContent,1);
 });

@@ -65,6 +65,7 @@
     return {
       symbol:instrument.symbol,name:instrument.name,sector:instrument.sector,market:instrument.market,
       exchange:instrument.exchange,country:instrument.country,
+      isin:instrument.isin,jurisdiction:instrument.jurisdiction,sourcePage:instrument.page,
       region:'EU',currency:source.currency,normalizedPence:source.normalizedPence,
       category,mode:categories[category].mode,state,actionable:false,
       score:categories[category].mode==='momentum'?growthScore:reversalScore,

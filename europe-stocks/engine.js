@@ -1,6 +1,6 @@
 (function (g) {
   'use strict';
-  const CACHE='tt_europe_scan_v1',SCAN_MS=5*60000,MAX_AGE=30*60000;
+  const CACHE='tt_europe_scan_v2',SCAN_MS=5*60000,MAX_AGE=30*60000;
   const state={category:'growth',items:[],selected:null,scanning:false,updatedAt:0,verified:0,
     failures:[],benchmarks:[],timer:null,shellVisible:true,hasScan:false};
   const $=id=>document.getElementById(id);
@@ -10,7 +10,7 @@
   const money=x=>fmt(x.price)+' '+x.currency;
   function visible(){return !document.hidden&&state.shellVisible&&!g.frameElement?.hidden;}
   function universe(){return EuropeUniverse.list($('market').value,g.WL?.get()||[],$('universe').value==='watchlist');}
-  function filterKey(){return $('market').value+':'+$('universe').value;}
+  function filterKey(){return EuropeUniverse.cacheIdentity($('market').value,g.WL?.get()||[],$('universe').value==='watchlist');}
   function showAlert(text){$('scanAlert').textContent=text;$('scanAlert').hidden=!text;}
   function governor(){try{return g.GV?.status()||null;}catch(_){return null;}}
   function setBusy(on){
@@ -36,7 +36,7 @@
     $('categoryDescription').textContent=definition.description;
     $('resultsPanel').setAttribute('aria-labelledby','tab-'+state.category);
     const query=$('search').value.trim().toLocaleLowerCase('ro-RO');
-    const items=EuropeModel.rank(state.items.filter(x=>!query||[x.symbol,x.name,x.sector,x.country].join(' ').toLocaleLowerCase('ro-RO').includes(query)),state.category);
+    const items=EuropeModel.rank(state.items.filter(x=>!query||[x.symbol,x.name,x.isin,x.sector,x.country].join(' ').toLocaleLowerCase('ro-RO').includes(query)),state.category);
     $('resultCount').textContent=items.length+' rezultate';
     if(!items.length){
       state.selected=null;
@@ -65,7 +65,7 @@
   function renderDetail(x){
     if(!x){$('detail').innerHTML='<h2>Analiza acțiunii</h2><p>Selectează un candidat pentru trend, volum și niveluri tehnice.</p>';return;}
     const stale=!g.DailySeries.usable(x)||Date.now()-x.ts>MAX_AGE;
-    $('detail').innerHTML='<span class="kicker">'+esc(EuropeModel.categories[x.category].name)+'</span><h2>'+esc(x.symbol)+'</h2><p>'+esc(x.name)+' · '+esc(x.exchange)+'</p><p class="price">'+esc(money(x))+'</p><p>EOD '+esc(x.sourceDate)+' · '+esc(x.sourceTimezone)+'</p>'
+    $('detail').innerHTML='<span class="kicker">'+esc(EuropeModel.categories[x.category].name)+'</span><h2>'+esc(x.symbol)+'</h2><p>'+esc(x.name)+' · '+esc(x.exchange)+'</p><p>ISIN '+esc(x.isin)+' · jurisdicție '+esc(x.jurisdiction)+' · Salt Bank, pagina '+esc(x.sourcePage)+'</p><p class="price">'+esc(money(x))+'</p><p>EOD '+esc(x.sourceDate)+' · '+esc(x.sourceTimezone)+'</p>'
       +'<p class="score-label">Scor tehnic '+x.score+'/100 · '+esc(stale?'SCANARE EXPIRATĂ':x.state)+'</p>'+spark(x.spark)
       +'<div class="detail-grid">'+metric('RS vs '+x.index,signed(x.rs))+metric('RSI 14',fmt(x.rsi,1))+metric('Față de EMA21',signed(x.ext))+metric('Revenire din minim 60z',signed(x.bounce))+metric('Rulaj mediu 20z',fmt(x.turnover,0)+' '+x.currency)+metric('Minim rulaj · filtru',fmt(x.minTurnover,0)+' '+x.currency)+'</div>'
       +'<h3>De ce apare în listă</h3><p>'+esc(x.reason)+'</p><h3>Niveluri tehnice · '+esc(x.currency)+'</h3>'
@@ -83,12 +83,17 @@
     };
   }
   function coverage(){
+    const source=EuropeUniverse.source;
+    const outside=[...new Set(g.WL?.get()||[])].filter(s=>!EuropeUniverse.describe(s));
     $('scanDetailsTitle').textContent='Acoperire · '+state.verified+' serii verificate · '+state.failures.length+' excluse';
-    $('scanDetailsBody').innerHTML='<p>Univers inițial: '+EuropeUniverse.stocks.length+' listări din '+Object.keys(EuropeUniverse.markets).length+' piețe, plus simbolurile europene din Watchlist. Se verifică data, simbolul, moneda și programul sursei.</p>'
+    $('scanDetailsBody').innerHTML='<p><a href="'+esc(source.url)+'" target="_blank" rel="noopener noreferrer">Lista de instrumente Salt Bank ↗</a> · consultată '+esc(source.checkedAt)+'. '+source.totalInstruments+' instrumente: '+source.assetCounts['Common Stock']+' acțiuni, '+source.assetCounts.ETF+' ETF-uri, '+source.assetCounts.ETN+' ETN-uri și '+source.assetCounts.ETC+' ETC-uri.</p>'
+      +'<p>Europa: '+EuropeUniverse.stocks.length+' listări mapate după ISIN în '+Object.keys(EuropeUniverse.markets).length+' piețe. Jurisdicția emitentului și bursa sunt păstrate separat. Sunt scanate exclusiv acțiunile din document; ETF-urile, ETN-urile și ETC-urile sunt excluse.</p>'
+      +'<p>Watchlist: '+outside.length+' simboluri din afara universului Salt Europa nu sunt scanate aici. Lista personală rămâne salvată.</p>'
+      +'<div><b>Acțiuni cu jurisdicție europeană neincluse</b><ul>'+EuropeUniverse.excluded.map(x=>'<li>'+esc(x.name||x.sourceName)+' · '+esc(x.isin)+' · '+esc(x.reason)+'</li>').join('')+'</ul></div>'
       +'<p>Rulajul minim este un prag de filtrare separat pentru fiecare monedă, nu un curs valutar. Scorurile folosesc variații procentuale, RVOL și indicele bursei.</p>'
       +'<div class="checks-grid"><div><b>Indici de comparație</b><ul>'+state.benchmarks.map(x=>'<li>'+esc(x.name)+' · '+esc(x.index)+' · '+esc(x.asOf||x.reason||'indisponibil')+'</li>').join('')+'</ul></div><div><b>Simboluri excluse</b><ul>'
       +state.failures.map(x=>'<li>'+esc(x.symbol)+' · '+esc(x.reason)+'</li>').join('')+'</ul>'+(state.failures.length?'':'<p>Nicio eroare de date în scanarea curentă.</p>')+'</div></div>'
-      +'<p>Calendarul sărbătorilor nu este confirmat; o serie cu sesiunea așteptată absentă este exclusă. Lista nu garantează disponibilitatea instrumentelor în broker.</p>';
+      +'<p>Calendarul sărbătorilor nu este confirmat; o serie cu sesiunea așteptată absentă este exclusă. PDF-ul nu precizează bursa de execuție și moneda din Salt Bank; verifică instrumentul după ISIN în aplicația băncii. Lista este o copie consultată la data indicată, nu o verificare în timp real a disponibilității.</p>';
   }
   async function readBenchmark(market){
     try{
@@ -122,12 +127,12 @@
       await Promise.all([worker(),worker(),worker()]);
       state.items=items;state.selected=null;state.updatedAt=Date.now();state.hasScan=true;
       const warnings=[];
-      if(!list.length)warnings.push('Watchlist-ul nu conține simboluri europene pentru bursa selectată.');
+      if(!list.length)warnings.push('Nicio acțiune din lista Salt Bank Europa nu corespunde filtrului sau Watchlist-ului.');
       else if(!state.verified)warnings.push('Nicio serie nu a putut fi verificată. Vezi erorile din Acoperire și reîncearcă.');
       else if(state.failures.length)warnings.push(state.failures.length+' simboluri excluse din cauza datelor; vezi Acoperire.');
       const noBench=state.benchmarks.filter(x=>!x.asOf).length;
       if(noBench)warnings.push(noBench+' indici indisponibili; candidații fără RS verificat rămân în monitorizare.');
-      try{localStorage.setItem(CACHE,JSON.stringify({schema:1,filter:filterKey(),items,updatedAt:state.updatedAt,verified:state.verified,scanned:list.length,failures:state.failures,benchmarks:state.benchmarks}));}
+      try{localStorage.setItem(CACHE,JSON.stringify({schema:2,filter:filterKey(),items,updatedAt:state.updatedAt,verified:state.verified,scanned:list.length,failures:state.failures,benchmarks:state.benchmarks}));}
       catch(_){warnings.push('Scanarea este disponibilă în această sesiune; copia locală nu a putut fi salvată.');}
       showAlert(warnings.join(' '));coverage();displayLists();
     }catch(error){
@@ -138,8 +143,9 @@
   function loadCache(){
     try{
       const cache=JSON.parse(localStorage.getItem(CACHE)||'null');
-      if(!cache||cache.schema!==1||cache.filter!==filterKey()||!Number.isFinite(cache.updatedAt)||cache.updatedAt>Date.now()+60000||Date.now()-cache.updatedAt>MAX_AGE||!Array.isArray(cache.items))return;
-      if(cache.items.some(x=>!EuropeUniverse.describe(x.symbol)||!EuropeModel.categories[x.category]||!DailySeries.usable(x)||!Array.isArray(x.spark)||!Array.isArray(x.checks)||!Number.isFinite(x.price)))return;
+      if(!cache||cache.schema!==2||cache.filter!==filterKey()||!Number.isFinite(cache.updatedAt)||cache.updatedAt>Date.now()+60000||Date.now()-cache.updatedAt>MAX_AGE||!Array.isArray(cache.items))return;
+      const allowed=new Map(universe().map(x=>[x.symbol,x.isin]));
+      if(cache.items.some(x=>!allowed.has(x.symbol)||allowed.get(x.symbol)!==x.isin||!EuropeModel.categories[x.category]||!DailySeries.usable(x)||!Array.isArray(x.spark)||!Array.isArray(x.checks)||!Number.isFinite(x.price)))return;
       Object.assign(state,{items:cache.items,updatedAt:cache.updatedAt,verified:cache.verified,failures:cache.failures||[],benchmarks:cache.benchmarks||[],hasScan:true});
       $('universeCount').textContent=cache.scanned+' acțiuni';progress(cache.scanned,cache.scanned);coverage();displayLists();
       showAlert('Ultima scanare locală · '+new Date(cache.updatedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})+'. Se verifică din nou datele.');
@@ -163,5 +169,5 @@
   g.addEventListener('message',event=>{if(event.origin!==location.origin||typeof event.data?.ttShellVisible!=='boolean')return;state.shellVisible=event.data.ttShellVisible;if(visible()&&!state.updatedAt)scan();});
   document.addEventListener('visibilitychange',()=>{if(visible()&&Date.now()-state.updatedAt>SCAN_MS)scan();});
   g.addEventListener('storage',event=>{if(event.key===g.WL?.KEY&&state.selected)renderDetail(state.selected);});
-  $('universeCount').textContent=universe().length+' acțiuni';loadCache();schedule();setTimeout(scan,400);
+  $('universeCount').textContent=universe().length+' acțiuni';coverage();loadCache();schedule();setTimeout(scan,400);
 })(window);
