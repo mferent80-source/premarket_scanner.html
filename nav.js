@@ -8,7 +8,7 @@
 
   var SEGS = [
     'nasdaq-scanner/', 'watchlist-monitor/', 'market-events/', 'smart-trade-long/', 'pump-radar/',
-    'earnings-hub/', 'sector-rotation/', 'macro-dashboard/', 'alerts/', 'guide/', 'health/'
+    'earnings-hub/', 'sector-rotation/', 'macro-dashboard/', 'alerts/', 'guide/', 'health/', 'europe-stocks/'
   ];
 
   // ── iframe: fără dock, link-uri interne → shell ──
@@ -67,6 +67,7 @@
       title: 'Scan',
       items: [
         { u: 'nasdaq-scanner/', n: 'Nasdaq', e: '📈' },
+        { u: 'europe-stocks/', n: 'Acțiuni Europa', e: '🇪🇺' },
         { u: 'smart-trade-long/', n: 'Smart Long', e: '🚀' },
         { u: 'watchlist-monitor/', n: 'Watchlist', e: '👁' },
         { u: 'market-events/', n: 'Events', e: '📊' },
