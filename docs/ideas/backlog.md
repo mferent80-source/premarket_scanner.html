@@ -3263,6 +3263,11 @@ pe un singur chart.
 | I-555 | Radar pe telefon: bara de jos = Tablou · Grid · T212 · Alerte · ⋯ (azi Home · Scan · Signals · Market - pagini pe care nu le folosește) | crypto/public/index.html (mobileNav) + app.js | S | P1 | propus | ideation | 2026-10-06 |
 | I-556 | Radar: numărătoarea deschiderilor pe tab (local, fără server) + rând în Health „neatinse de 30 de zile” - decizia de scoatere pe date, nu pe impresie | crypto/public/app.js (navTo) + Health | S | P2 | propus | ideation | 2026-10-06 |
 | I-557 | Radar: laboratoarele vechi nu se mai desenează / pornesc la încărcare (renderValidation, renderForwardLab, renderProfitReadiness, renderReplayLab, renderEdgePro, renderV65…, initV67Operations cu timer), ci doar la deschiderea lor - măsurat înainte / după | crypto/public/app.js (pornirea, L~7098) | M | P2 | propus | ideation | 2026-10-06 |
+| I-558 | Monte Carlo pe arhiva boților (nu pe jurnalul de semnale gol): „cu N boți deodată, într-o lună proastă (5%) pierzi X USDT” - bootstrap pe monede/blocuri | crypto/public/app.js (runMonteCarlo) + /api/istoric-bot (arhiva) | M | P1 | propus | ideation | 2026-10-06 |
+| I-559 | Riscul tuturor boților deodată (din Risk Manager + Portfolio): marja totală, pierderea la stop însumată față de sold, cel mai apropiat de lichidare, monede corelate | crypto/public/app.js (riskmgr, portfolio) + Tablou | M | P1 | propus | ideation | 2026-10-06 |
+| I-560 | Corelația între boții deschiși (și cu BTC) - doi boți pe monede care se mișcă împreună = un singur pariu mai mare | crypto/public/app.js (loadCorrelation) + colector (alertă la ≥ 0,8) | S | P2 | propus | ideation | 2026-10-06 |
+| I-561 | Carnetul Radarului: Validation / Forward / Calibration pe deciziile pentru boți (fișa LARG/ÎNGUST, Consilierul Ține/Ieși, becurile) în loc de semnale - forward-only, cu bilanțul dovedit / nedovedit | crypto/public/app.js (renderValidation, renderForwardLab, renderCalibration) + istoric-bot (cazuri, decizii) | L | P2 | propus | ideation | 2026-10-06 |
+| I-562 | Ipoteză de testat: marginile gridului la VAL / VAH / nodurile de volum (Volume / Market Profile) ies mai rar pe stop decât banda din fișă - proba pe istoric ÎNAINTE de orice schimbare a fișei | crypto/public/lib/grid-proba.js + renderVolumeProfile | M | P3 | propus | ideation | 2026-10-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5645,3 +5650,46 @@ Fără idei respinse / făcute pe același mecanism (căutat „meniu”, „tab
 - **Impact:** pornire mai rapidă pe telefon, dacă măsurătoarea arată un cost.
 - **Riscuri:** unele laboratoare citesc starea altora la pornire (v66 / v67) - de urmărit cu probele existente.
 - **Fișiere:** crypto/public/app.js (pornirea ~L7098, navTo).
+
+
+## I-558..I-562 · Laboratoarele Radarului care au potențial pentru boții lui · 2026-10-06
+
+El (06.10, după I-554..I-557): „faptul că nu le-am deschis nu e relevant, motivul e că am lucrat pe altele; ideea e: au potențial, merită să lucrăm pe ele?”.
+Constatarea de bază: lanțul de validare (Validation, Forward, Calibration, Monte Carlo, Profit Readiness, Research ML, Edge Pro) are metoda bună (costuri, OOS, forward-only, micșorare spre medie, Brier), dar citește `signalJournal` (semnalele salvate de mână din Signal Lab) - el tranzacționează boți grid, deci jurnalul e gol și laboratoarele stau pe „NOT ENOUGH DATA” / „NOT STARTED”. Arhiva boților (440 cu rezultat, 52 de monede, I-545) e materialul care le lipsește.
+Fără potențial pentru felul lui de tranzacționare (semnale direcționale long/short cu stop / țintă): Quant Engine, Signals, Opportunity, Decision Center, Trading Desk, Paper v3, Strategy Analytics, Edge Pro, Scenario, Structure & Sessions, Backtest; înlocuite: Multi-TF (tabelul „Trendul pe TF-uri”), Nasdaq desk (pagina T212). Potențial mic, acoperit deja: Futures (funding în Tablou și Busola), Volatility (lățimea din fișă și Busola), Decision Core / Flow & Regime (regimul din Busola), Order Book / Microstructure (un rând de lichiditate în fișă ar ajunge), Context Intel.
+Notă: I-556 (numărătoarea deschiderilor) pornea de la folosire - el a spus că nu e criteriul; statusul rămâne până o respinge el.
+
+#### I-558 · Monte Carlo pe arhiva boților · [M] · P1 · propus
+- **Problema:** nu știe cât poate pierde într-o lună proastă cu 2–3 boți deodată; Monte Carlo există, dar pe jurnalul de semnale gol.
+- **Soluția:** bootstrap pe rezultatele boților din arhivă (blocuri pe monedă și pe timp, ca să păstreze seriile), N boți deodată ⇒ mediana lunii, percentila 5%, cea mai lungă serie pe minus; scris pe suma lui.
+- **Impact:** câți boți și cât pe fiecare, pe date proprii.
+- **Riscuri:** trecutul nu se repetă; boții vechi aveau alte reguli (fișa s-a schimbat) - se spune pe ecran, cu perioada.
+- **Fișiere:** crypto/public/app.js (runMonteCarlo), /api/istoric-bot.
+
+#### I-559 · Riscul tuturor boților deodată · [M] · P1 · propus
+- **Problema:** Tabloul judecă un bot o dată; Risk Manager e un calculator pentru o poziție, Portfolio citește paper-ul.
+- **Soluția:** un rând / o cartelă: marja totală, pierderea la stop însumată față de sold, botul cel mai aproape de lichidare, boții pe monede corelate (I-560).
+- **Impact:** previne trei boți „în plan” fiecare care împreună depășesc pragul lui.
+- **Riscuri:** soldul Pionex vine o dată la câteva minute; stopurile nepuse = pierdere necunoscută (se spune).
+- **Fișiere:** crypto/public/app.js (riskmgr, portfolio, Tablou).
+
+#### I-560 · Corelația între boții deschiși · [S] · P2 · propus
+- **Problema:** Correlation compară o monedă cu BTC / ETH / SOL, nu boții între ei.
+- **Soluția:** matricea pe randamentele de 1 h (30 de zile) între monedele boților deschiși + BTC; alertă când doi boți au ≥ 0,8.
+- **Impact:** riscul concentrat se vede înainte să cadă amândoi.
+- **Riscuri:** monede noi cu puține bare - „prea puțin istoric”.
+- **Fișiere:** crypto/public/app.js (loadCorrelation), scripts/colector.mjs.
+
+#### I-561 · Carnetul Radarului (validare pe deciziile pentru boți) · [L] · P2 · propus
+- **Problema:** se măsoară deja bucăți (deciziile tale 12 din 30, „Mută gridul” 11 din 19, becurile, ADX), dar risipit; lanțul de validare stă gol.
+- **Soluția:** Validation / Forward / Calibration hrănite cu deciziile Radarului pentru boți (recomandarea fișei, verdictul Consilierului, sfaturile), forward-only de la o dată fixă, cu dovedit / nedovedit (regula fixată înainte, ca I-530 / I-545).
+- **Impact:** știe care voce a Radarului merită ascultată.
+- **Riscuri:** volum mic (zeci de boți pe lună) ⇒ verdicte „nedovedit” multă vreme - se spune cinstit.
+- **Fișiere:** crypto/public/app.js (renderValidation, renderForwardLab, renderCalibration), functions/api/istoric-bot.js.
+
+#### I-562 · Marginile gridului la nodurile de volum (ipoteză) · [M] · P3 · propus
+- **Problema:** banda fișei vine din „o zi obișnuită” și pragul de pierdere, nu din unde a stat prețul.
+- **Soluția:** proba pe istoric (GridProba, aceleași porniri la 6 h): marginile mutate la VAL / VAH / nod față de banda de acum - stop / țintă / media; doar dacă iese dovedit, intră în fișă.
+- **Impact:** posibil mai puține stopuri; nimic garantat.
+- **Riscuri:** profilul din OHLCV e aproximat; tentația de a alege parametrii după rezultat (de fixat înainte).
+- **Fișiere:** crypto/public/lib/grid-proba.js, app.js (renderVolumeProfile).
