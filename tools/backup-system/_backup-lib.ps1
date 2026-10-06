@@ -49,7 +49,10 @@ function Get-IncludedFiles {
     foreach($e in $entries){
       if($e.PSIsContainer){
         $childRel = $e.FullName.Substring($rootFull.Length).TrimStart('\')
-        $excluded = $false
+        # Orice folder cu "secret" in nume (secret, secrete, Secrets) sta afara,
+        # chiar daca lista nu-l numeste: 06.10.2026 cheia Firebase din
+        # `data\secrete` a trecut de excluderea `data\secret` si a urcat in Drive.
+        $excluded = ($e.Name -like '*secret*')
         foreach($ex in $Exclude){ if($e.Name -ieq $ex -or $childRel -ieq $ex){ $excluded=$true; break } }
         if(-not $excluded){ $stack.Push($e.FullName) }
       } else {

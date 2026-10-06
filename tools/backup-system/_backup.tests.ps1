@@ -251,5 +251,20 @@ Assert 'interval: schimbat dar prea devreme = tot 1' ($iv1 -eq 1)
 Assert 'interval: log spune prea devreme'            ($ivLog -like '*prea devreme*')
 Assert 'interval: dupa 25 h face copia = 2'          ($iv2 -eq 2)
 
+# Un FOLDER cu "secret" in nume nu intra niciodata in copie, chiar daca lista
+# de excluderi nu-l numeste. 06.10.2026: gestiunea are `data\secret` exclus, dar
+# cheia Firebase sta in `data\secrete` (alt nume) - a intrat in zip si a urcat
+# in Drive. Numele fisierului (firebase-gestiune.json) nu are cum s-o tradeze.
+$sk = Join-Path $env:TEMP ('sk_' + [System.Guid]::NewGuid().ToString('N'))
+foreach($dd in 'data\secrete','data\Secrets','cod'){ New-Item -ItemType Directory -Force -Path (Join-Path $sk $dd) | Out-Null }
+Set-Content -LiteralPath (Join-Path $sk 'data\secrete\firebase-gestiune.json') -Value '{"k":1}' -Encoding UTF8
+Set-Content -LiteralPath (Join-Path $sk 'data\Secrets\cont.json') -Value '{"k":2}' -Encoding UTF8
+Set-Content -LiteralPath (Join-Path $sk 'cod\app.py') -Value 'x=1' -Encoding UTF8
+$skNames = (@(Get-IncludedFiles -Root $sk -Exclude @('data\secret')) | ForEach-Object { $_.Name }) -join ','
+Remove-Item $sk -Recurse -Force
+Assert 'folder secrete: cheia NU intra'   (-not ($skNames -like '*firebase-gestiune*'))
+Assert 'folder Secrets: NU intra'         (-not ($skNames -like '*cont.json*'))
+Assert 'folder secrete: codul intra'      ($skNames -like '*app.py*')
+
 Write-Host "`nSUMMARY $script:pass PASS / $script:fail FAIL"
 if($script:fail -gt 0){ exit 1 } else { exit 0 }
