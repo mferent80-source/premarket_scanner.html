@@ -3266,7 +3266,7 @@ pe un singur chart.
 | I-558 | Monte Carlo pe arhiva boților (nu pe jurnalul de semnale gol): „cu N boți deodată, într-o lună proastă (5%) pierzi X USDT” - bootstrap pe monede/blocuri | crypto/public/app.js (runMonteCarlo) + /api/istoric-bot (arhiva) | M | P1 | făcut | ideation | 2026-10-06 |
 | I-559 | Riscul tuturor boților deodată (din Risk Manager + Portfolio): marja totală, pierderea la stop însumată față de sold, cel mai apropiat de lichidare, monede corelate | crypto/public/app.js (riskmgr, portfolio) + Tablou | M | P1 | făcut | ideation | 2026-10-06 |
 | I-560 | Corelația între boții deschiși (și cu BTC) - doi boți pe monede care se mișcă împreună = un singur pariu mai mare | crypto/public/app.js (loadCorrelation) + colector (alertă la ≥ 0,8) | S | P2 | făcut | ideation | 2026-10-06 |
-| I-561 | Carnetul Radarului: Validation / Forward / Calibration pe deciziile pentru boți (fișa LARG/ÎNGUST, Consilierul Ține/Ieși, becurile) în loc de semnale - forward-only, cu bilanțul dovedit / nedovedit | crypto/public/app.js (renderValidation, renderForwardLab, renderCalibration) + istoric-bot (cazuri, decizii) | L | P2 | propus | ideation | 2026-10-06 |
+| I-561 | Carnetul Radarului: Validation / Forward / Calibration pe deciziile pentru boți (fișa LARG/ÎNGUST, Consilierul Ține/Ieși, becurile) în loc de semnale - forward-only, cu bilanțul dovedit / nedovedit | crypto/public/app.js (renderValidation, renderForwardLab, renderCalibration) + istoric-bot (cazuri, decizii) | L | P2 | făcut (v100.117 `5a5c26a`, partea „fișa”) | ideation | 2026-10-06 |
 | I-562 | Ipoteză de testat: marginile gridului la VAL / VAH / nodurile de volum (Volume / Market Profile) ies mai rar pe stop decât banda din fișă - proba pe istoric ÎNAINTE de orice schimbare a fișei | crypto/public/lib/grid-proba.js + renderVolumeProfile | M | P3 | propus | ideation | 2026-10-06 |
 | I-563 | Discord: „botul stă de 24 h și e pe minus” cu cifrele tale (din boții care au ajuns la 24 h: câți pe plus, câți au pierdut peste 5%) - o dată pe bot | crypto/scripts/colector.mjs + lib/mesaje-colector.mjs + RiscLuna (raportul de noapte) | S | P1 | făcut (v100.115 `0399578`) | ideation | 2026-10-06 |
 | I-564 | Raportul de duminică: comisioanele săptămânii față de câștigul grilelor + câți boți au stat sub 15 minute | crypto/scripts/colector.mjs (raportul) + RiscLuna.descBoti | S | P2 | propus | ideation | 2026-10-06 |
@@ -5762,3 +5762,9 @@ Verificat pe disc: frâna T212 de „cumpărat în jos” EXISTĂ (colector, v87
 - **Soluția:** marcajul ultimei umpleri estimate (cumpărare / vânzare, nivelul, ora) din urmărirea celulelor.
 - **Impact:** context la decizia „mut gridul / îl las”; e ESTIMAT (pe închideri de bare), spus pe etichetă.
 - **Fișiere:** pine-scripts/GRID-FISA (urmărirea celulelor + DESEN).
+
+
+#### I-561 · făcut 06.10 (v100.117 / colector v101.80, `5a5c26a`) - doar „fișa are dreptate?” (alegerea lui)
+- Pagina „Carnetul fișei” (Zilnic) + rândul sub „Ce aș alege eu”: re-joc pe istoric în laboratorul de noapte + ofertele de acum înainte.
+- Primul rezultat (06.10, 20 de monede, 1200 de cazuri): alegerea ÎNGUST/LARG +0,25 pp NEDOVEDIT; „aștept” −0,5 pp NEDOVEDIT; stopul promis 22% a venit în 31%.
+- Rămase (necerute încă): Consilierul Ține/Ieși și becurile în același carnet; Validation / Forward / Calibration au rămas neatinse în „Laborator vechi”.
