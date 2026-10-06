@@ -1,5 +1,6 @@
 import unittest
-from datetime import date
+from datetime import date, datetime, timezone
+from eod_cutoff import latest_completed_day
 from unittest.mock import patch
 import update
 
@@ -25,6 +26,23 @@ class SourceContractTests(unittest.TestCase):
     def test_future_data_rejected(self):
         with self.assertRaises(ValueError):
             update.parse_uptrend(self.CSV.replace('2026-10-01', '2026-10-03'), self.TODAY)
+
+    def test_future_append_keeps_latest_completed_rows(self):
+        x = update.parse_uptrend(self.CSV + 'all,2026-10-03,30,100,0.3,0.3,0,up\n', self.TODAY)
+        self.assertEqual(x['asOf'], '2026-10-01')
+        self.assertEqual(x['excludedUncompleted'], 1)
+        self.assertEqual(len(x['history']), 1)
+
+    def test_intraday_cutoff_and_utc_midnight_keep_completed_session(self):
+        self.assertEqual(latest_completed_day(datetime(2026, 10, 6, 3, tzinfo=timezone.utc)), date(2026, 10, 5))
+        self.assertEqual(latest_completed_day(datetime(2026, 10, 5, 19, tzinfo=timezone.utc)), date(2026, 10, 2))
+        self.assertEqual(latest_completed_day(datetime(2026, 10, 5, 20, 15, tzinfo=timezone.utc)), date(2026, 10, 5))
+
+    def test_sp_future_append_does_not_invalidate_completed_history(self):
+        csv = 'Date,Breadth_Index_Raw,Breadth_50_Index_Raw,Breadth_Index_8MA,Breadth_Index_200MA,Bearish_Signal\n2026-10-01,0.47,0.26,0.52,0.63,True\n2026-10-03,0.5,0.3,0.5,0.6,False\n'
+        x = update.parse_sp500(csv, self.TODAY)
+        self.assertEqual(x['asOf'], '2026-10-01')
+        self.assertEqual(x['excludedUncompleted'], 1)
 
     def test_nonfinite_rejected(self):
         with self.assertRaises(ValueError):

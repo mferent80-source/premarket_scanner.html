@@ -15,6 +15,17 @@ def chart(days):
     return {'timestamp':stamps,'indicators':{'quote':[{'close':[100+i for i in range(len(days))],'high':[102]*len(days),'low':[98]*len(days),'volume':[123]*len(days)}],'adjclose':[{'adjclose':[99]*len(days)}]}}
 
 class Integrity(unittest.TestCase):
+    def test_uptrend_future_append_keeps_all_and_sector_rows_on_completed_day(self):
+        spec=importlib.util.spec_from_file_location('completed_uptrend',Path(__file__).parent/'uptrend-analyzer/scripts/data_fetcher.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        f=module.UptrendDataFetcher(datetime(2026,10,6,3,tzinfo=timezone.utc))
+        response=type('Response',(),{'text':'worksheet,date,count,total,ratio,ma_10,slope,trend\nall,2026-10-05,20,100,0.2,0.2,0,up\nall,2026-10-06,40,100,0.4,0.4,0,up\nsec_technology,2026-10-05,2,10,0.2,0.2,0,up\nsec_technology,2026-10-06,4,10,0.4,0.4,0,up\n','raise_for_status':lambda self:None})()
+        with patch.object(f.session,'get',return_value=response):
+            self.assertEqual(f.get_latest_all()['date'],'2026-10-05')
+            self.assertEqual(f.get_all_sector_latest()['sec_technology']['ratio'],.2)
+            self.assertEqual(f.excluded_uncompleted,2)
+            self.assertEqual(len(f.fetch_timeseries()),2)
+
     def test_sector_summary_uses_only_same_day_eleven_sectors(self):
         spec=importlib.util.spec_from_file_location('dated_uptrend',Path(__file__).parent/'uptrend-analyzer/scripts/data_fetcher.py')
         m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)

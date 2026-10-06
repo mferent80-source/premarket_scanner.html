@@ -210,6 +210,8 @@ def main():
             "data_source": "Monty's Uptrend Ratio Dashboard (GitHub CSV)",
             "api_key_required": False,
             "latest_data_date": latest_all.get("date", "N/A") if latest_all else "N/A",
+            "excluded_uncompleted": fetcher.excluded_uncompleted,
+            "completed_cutoff": fetcher.completed_cutoff,
             "timeseries_rows": len(timeseries),
             "sectors_available": len(sector_summary),
         },

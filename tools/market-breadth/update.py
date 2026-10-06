@@ -13,6 +13,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
+from eod_cutoff import latest_completed_day
 
 ROOT = Path(__file__).resolve().parents[2]
 UPTREND = "https://raw.githubusercontent.com/tradermonty/uptrend-dashboard/main/data/uptrend_ratio_timeseries.csv"
@@ -50,11 +51,15 @@ def ratio(value):
 def parse_uptrend(text, today):
     latest = {}
     groups = {}
+    excluded = 0
     for r in csv.DictReader(io.StringIO(text)):
         key = r["worksheet"]
         if key != "all" and key not in {"sec_" + k for k in SECTORS}:
             continue
-        d = observation_date(r["date"], today)
+        d = date.fromisoformat(r["date"]).isoformat()
+        if date.fromisoformat(d) > today:
+            excluded += 1
+            continue
         count, total = int(r["count"]), int(r["total"])
         if total <= 0 or not 0 <= count <= total:
             raise ValueError("Invalid coverage counts")
@@ -74,13 +79,18 @@ def parse_uptrend(text, today):
     sectors = [{"name": SECTORS[k[4:]], **v} for k, v in latest.items() if k.startswith("sec_")]
     sectors.sort(key=lambda s: s["ratio"], reverse=True)
     history = [groups["all"][d] for d in sorted(groups["all"])[-60:]]
-    return {"asOf": market["date"], "market": market, "sectors": sectors, "history": history}
+    return {"asOf": market["date"], "market": market, "sectors": sectors, "history": history,
+            "excludedUncompleted": excluded, "completedCutoff": today.isoformat()}
 
 
 def parse_sp500(text, today):
     rows = []
+    excluded = 0
     for r in csv.DictReader(io.StringIO(text)):
-        d = observation_date(r["Date"], today)
+        d = date.fromisoformat(r["Date"]).isoformat()
+        if date.fromisoformat(d) > today:
+            excluded += 1
+            continue
         rows.append({"date": d, "above200": ratio(r["Breadth_Index_Raw"]),
                      "above50": ratio(r["Breadth_50_Index_Raw"]) if r.get("Breadth_50_Index_Raw") else None,
                      "ma8": ratio(r["Breadth_Index_8MA"]), "ma200": ratio(r["Breadth_Index_200MA"]),
@@ -88,7 +98,8 @@ def parse_sp500(text, today):
     if not rows:
         raise ValueError("Empty S&P500 CSV")
     rows.sort(key=lambda r: r["date"])
-    return {"asOf": rows[-1]["date"], "latest": rows[-1], "history": rows[-60:]}
+    return {"asOf": rows[-1]["date"], "latest": rows[-1], "history": rows[-60:],
+            "excludedUncompleted": excluded, "completedCutoff": today.isoformat()}
 
 
 def fetch_source(key, url, parser, today, previous):
@@ -112,7 +123,7 @@ def main():
     target = ROOT / "market-breadth/data/latest.json"
     previous = json.loads(target.read_text()) if target.exists() else {}
     now = datetime.now(timezone.utc)
-    today = now.astimezone(ZoneInfo("America/New_York")).date()
+    today = latest_completed_day(now)
     specs = [("uptrend", UPTREND, parse_uptrend), ("sp500", SP500, parse_sp500)]
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures = [pool.submit(fetch_source, k, u, p, today, previous) for k, u, p in specs]

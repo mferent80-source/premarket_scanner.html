@@ -1,5 +1,5 @@
-name: Deploy GitHub Pages
-run-name: "Breadth ${{ inputs.request_id || github.event_name }}"
+name: Trading Tools publication and Breadth
+run-name: "${{ github.event_name == 'push' && 'App publication' || 'Breadth' }} ${{ inputs.request_id || github.event_name }}"
 
 on:
   push:
@@ -19,27 +19,20 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
-  deploy:
+  scan:
+    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # A queued app publication must never hold the EOD scan's reservation.
+    concurrency:
+      group: trading-tools-breadth-eod-v2
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: App regression checks before publishing
-        run: node --test tools/*.test.mjs tools/*.test.cjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -48,13 +41,24 @@ jobs:
       - run: python -m unittest discover -s tools/breadth-suite -p 'test_*.py'
       - run: python tools/breadth-suite/market-breadth-analyzer/tests_core.py
       - name: Complete Breadth scan
-        if: github.event_name != 'push'
+        id: breadth
+        continue-on-error: true
         env:
           BREADTH_REQUEST_ID: ${{ inputs.request_id || github.run_id }}
           BREADTH_CACHE_DIR: ${{ runner.temp }}/breadth-cache
         run: python tools/breadth-suite/run.py --backtests auto
+      - name: Require this scan's completed public manifest
+        env:
+          BREADTH_REQUEST_ID: ${{ inputs.request_id || github.run_id }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          result = json.loads(Path('market-breadth/generated/run-status.json').read_text())
+          assert result['requestId'] == os.environ['BREADTH_REQUEST_ID'], 'Scan did not publish its own result'
+          assert result['status'] in ('COMPLETE', 'PARTIAL', 'ERROR') and result.get('finishedAt'), 'Scan did not finish'
+          PY
       - name: Save dated Breadth observations
-        if: github.event_name != 'push'
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -64,6 +68,28 @@ jobs:
             git pull --rebase origin main
             git push origin HEAD:main
           fi
+
+  deploy:
+    needs: scan
+    if: always() && (needs.scan.result == 'success' || needs.scan.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: trading-tools-pages-deploy-v2
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Read main again after the scan's data commit and any concurrent app update.
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: App regression checks before publishing
+        run: node --test tools/*.test.mjs tools/*.test.cjs
       # GITHUB_TOKEN commits do not trigger another push; deploy this snapshot here.
       - name: Remove Python runtime files from published site
         run: |

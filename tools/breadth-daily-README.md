@@ -33,6 +33,15 @@ The underlying original engine and source freshness rules are preserved.
 Until activation, the existing scheduled scans stay available. The app does not
 claim that merely loading the published report executes a new scan.
 
+Scan and publication now have separate job reservations. A queued publication
+cannot block the scheduled/manual EOD scan. After a scan, publication checks out
+main again, including the completed data commit and concurrent app changes.
+An engine ERROR is published explicitly only when that request's own finished
+manifest exists; an unexpected crash cannot reuse an older successful manifest.
+Public CSV rows after the last completed US weekday (16:15 New York cutoff)
+are excluded with their count recorded. This does not assume an exchange holiday
+calendar or relabel an observation date.
+
 ## Checks
 
 `node --test tools/breadth-daily.test.mjs tools/decision-app-navigation.test.mjs`

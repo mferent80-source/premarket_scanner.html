@@ -88,8 +88,12 @@ def dated_report(directory, prefix, field):
     data = read(files[-1])
     asof = field(data)
     usable = yahoo_cache.business_age(asof) <= 2
-    return {'fetchStatus':'OK','asOf':asof,'usable':usable,'data':data,
-            'freshness':('FRESH' if yahoo_cache.business_age(asof)<=1 else 'AGED') if usable else 'STALE'}
+    result = {'fetchStatus':'OK','asOf':asof,'usable':usable,'data':data,
+              'freshness':('FRESH' if yahoo_cache.business_age(asof)<=1 else 'AGED') if usable else 'STALE'}
+    if 'excluded_uncompleted' in data.get('metadata', {}):
+        result['excludedUncompleted'] = data['metadata']['excluded_uncompleted']
+        result['completedCutoff'] = data['metadata']['completed_cutoff']
+    return result
 
 def main():
     parser = argparse.ArgumentParser()

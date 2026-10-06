@@ -13,6 +13,8 @@ Data Sources:
 import csv
 import io
 import sys
+from datetime import date
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -87,7 +89,11 @@ def build_summary_from_timeseries(sector_timeseries: dict[str, dict]) -> list[di
 class UptrendDataFetcher:
     """Client for Monty's Uptrend Ratio Dashboard CSV data"""
 
-    def __init__(self):
+    def __init__(self, now=None):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'market-breadth'))
+        from eod_cutoff import latest_completed_day
+        self.completed_cutoff = latest_completed_day(now).isoformat()
+        self.excluded_uncompleted = 0
         self.session = requests.Session()
         self._timeseries_cache: Optional[list[dict]] = None
         self._sector_summary_cache: Optional[list[dict]] = None
@@ -114,6 +120,9 @@ class UptrendDataFetcher:
         for row in reader:
             parsed = _parse_timeseries_row(row)
             if parsed:
+                if date.fromisoformat(parsed['date']).isoformat() > self.completed_cutoff:
+                    self.excluded_uncompleted += 1
+                    continue
                 rows.append(parsed)
 
         self._timeseries_cache = rows
