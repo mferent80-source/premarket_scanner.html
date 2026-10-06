@@ -3256,9 +3256,9 @@ pe un singur chart.
 | I-548 | Becurile se aprind pe rând, cum vin lumânările, iar cererea picată se reia în 30 s („5 min: reîncerc…”), pe ambele pagini | crypto/public/app.js (tbAduDirectie, TB_SEM_EXTRA) + lib/t212-ecran.js (t212AduTf) | S | P2 | făcut | ideation | 2026-10-06 |
 | I-549 | Fișa: fereastra cu stopul atins în peste jumătate din porniri (NIL: ÎNGUST 77 din 109) primește „aș sări peste ea”, iar „Am pornit-o” cere o confirmare | crypto/public/lib/grid-plan.js (motive, alege) + app.js (grPlanVarHtml, grFereastraAleasa) | S | P1 | făcut | ideation | 2026-10-06 |
 | I-550 | Tablou: „Ai pornit ÎNGUST · fișa recomanda LARG” cu proba de atunci (stop X din N, ieșirea tipică), din oferta salvată - nu doar pe Discord | crypto/public/app.js (Tablou) + lib/grid-plan.js (fereastraBotului) + /api/istoric-bot?action=ferestre | S | P2 | făcut | ideation | 2026-10-06 |
-| I-551 | „Ce ai de făcut acum”: butonul „copiază” lângă prețul propus (take-profit la zero, stopul), ca în fișă | crypto/public/app.js (tbRenderTodo) + lib/tablou-extra.js | S | P3 | propus | ideation | 2026-10-06 |
-| I-552 | Dimineața pe Discord: becurile 4 h / 1 zi pe fiecare bot și poziție + ce s-a schimbat peste noapte | crypto/scripts/lib/tura-dimineata.mjs + colector.mjs (dateDimineata) + grafic-bot.js (semafor, semZi) | M | P2 | propus | ideation | 2026-10-06 |
-| I-553 | Semaforul Tabloului (6 TF, reluarea, „becurile pe rând”) scos din app.js într-un modul pur cu probe pe comportament, nu pe text | crypto/public/app.js (tbAduDirectie, tbReiaLipsa, tbSemaforTf) ⇒ public/lib/tablou-trend.js nou | M | P3 | propus | ideation | 2026-10-06 |
+| I-551 | „Ce ai de făcut acum”: butonul „copiază” lângă prețul propus (take-profit la zero, stopul), ca în fișă | crypto/public/app.js (tbRenderTodo) + lib/tablou-extra.js | S | P3 | făcut | ideation | 2026-10-06 |
+| I-552 | Dimineața pe Discord: becurile 4 h / 1 zi pe fiecare bot și poziție + ce s-a schimbat peste noapte | crypto/scripts/lib/tura-dimineata.mjs + colector.mjs (dateDimineata) + grafic-bot.js (semafor, semZi) | M | P2 | făcut | ideation | 2026-10-06 |
+| I-553 | Semaforul Tabloului (6 TF, reluarea, „becurile pe rând”) scos din app.js într-un modul pur cu probe pe comportament, nu pe text | crypto/public/app.js (tbAduDirectie, tbReiaLipsa, tbSemaforTf) ⇒ public/lib/tablou-trend.js nou | M | P3 | făcut | ideation | 2026-10-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5586,21 +5586,21 @@ Acoperire: lecția zilei pe NIL (oferta din KV `ferestre`, botul real, fișa pe 
 - **Riscuri:** ofertele țin 12 h; după aceea rândul tace.
 - **Fișiere:** crypto/public/app.js, public/lib/grid-plan.js, functions/api/istoric-bot.js (ferestre).
 
-#### I-551 · „Ce ai de făcut acum”: „copiază” lângă prețul propus · [S] · P3 · propus
+#### I-551 · „Ce ai de făcut acum”: „copiază” lângă prețul propus · [S] · P3 · făcut (v100.112 `6348516`)
 - **Problema:** azi rândul zicea „Aș pune take-profit-ul botului la 0.1008”; prețul se copiază de mână, în fișă există butonul.
 - **Soluția:** prețurile din rândurile cu acțiune (take-profit la zero, stopul propus) primesc „copiază”, ca în fișă.
 - **Impact:** mai puține greșeli la copierea în Pionex.
 - **Riscuri:** prețul vine din textul sfatului ⇒ se ia din câmpul lui (nu din text), altfel se strică la reformulare.
 - **Fișiere:** crypto/public/app.js, public/lib/tablou-extra.js, sfaturi.js.
 
-#### I-552 · Dimineața pe Discord: becurile 4 h / 1 zi pe fiecare bot și poziție · [M] · P2 · propus
+#### I-552 · Dimineața pe Discord: becurile 4 h / 1 zi pe fiecare bot și poziție · [M] · P2 · făcut (v100.112 `6348516`)
 - **Problema:** becurile se văd doar pe pagină; peste noapte trendul se poate întoarce pe 1 zi fără să știe.
 - **Soluția:** rezumatul de dimineață primește un rând pe bot / poziție: becurile 4 h și 1 zi + ce s-a schimbat față de ieri („NIL: 1z a trecut în jos”).
 - **Impact:** o privire dimineața, fără să deschidă Radarul.
 - **Riscuri:** lungimea mesajului (rândurile ≤ 160, garda); fără dubluri cu alerta I-547.
 - **Fișiere:** crypto/scripts/lib/tura-dimineata.mjs, scripts/colector.mjs, public/lib/grafic-bot.js.
 
-#### I-553 · Semaforul Tabloului într-un modul pur · [M] · P3 · propus
+#### I-553 · Semaforul Tabloului într-un modul pur · [M] · P3 · făcut (v100.112 `6348516`)
 - **Problema:** tbAduDirectie a crescut (4 TF + 2 extra + reluare + peLucru + reaprinderea pe rând); probele de azi l-au verificat prin regex pe text, iar două regresii (R1 v100.106, `else` mutat în v100.110) au fost prinse doar indirect.
 - **Soluția:** starea „ce TF-uri am, ce lipsește, ce se reia” într-un modul pur (fără DOM, fără rețea), cu probe pe comportament (secvențe de răspunsuri / erori).
 - **Impact:** schimbările viitoare ale semaforului nu mai rup Tabloul pe tăcute.
