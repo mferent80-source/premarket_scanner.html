@@ -4,6 +4,12 @@ const ORIGIN='https://mferent80-source.github.io',E=new TextEncoder(),D=new Text
 const b64=b=>{const bytes=new Uint8Array(b);let text='';for(let i=0;i<bytes.length;i+=32768)text+=String.fromCharCode(...bytes.subarray(i,i+32768));return btoa(text).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
 const bytes=s=>{if(typeof s!=='string'||s.length>2000000||!/^[A-Za-z0-9_-]+$/.test(s))throw Error('invalid_encoding');return Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));};
 const random=()=>b64(crypto.getRandomValues(new Uint8Array(32)));
+export const PROTOCOL='tt-cloud-sync-v1';
+export async function readiness(env){
+ const checks={database:!!env.CLOUD_DB,google:/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(env.GOOGLE_CLIENT_ID||''),encryption:/^[A-Za-z0-9_-]{43}$/.test(env.CLOUD_ENCRYPTION_KEY||''),schema:false};
+ if(checks.database)try{await env.CLOUD_DB.prepare('SELECT s.hash,s.subject,s.email,s.expires,c.nonce,c.expires,r.subject,r.key,r.revision,r.packet,r.updated,l.key,l.bucket,l.count FROM cloud_sessions s,cloud_challenges c,cloud_records r,cloud_limits l WHERE 0').first();checks.schema=true;}catch{}
+ const enabled=Object.values(checks).every(v=>v===true);return {enabled,protocol:PROTOCOL,clientId:enabled?env.GOOGLE_CLIENT_ID:null,checks};
+}
 const hash=async s=>b64(await crypto.subtle.digest('SHA-256',E.encode(s)));
 export async function seal(value,secret,aad){const raw=bytes(secret);if(raw.length!==32)throw Error('encryption_key_invalid');const key=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt']),iv=crypto.getRandomValues(new Uint8Array(12));return JSON.stringify({v:1,iv:b64(iv),cipher:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:E.encode(aad)},key,E.encode(JSON.stringify(value))))});}
 export async function unseal(packet,secret,aad){const p=JSON.parse(packet);if(p.v!==1)throw Error('invalid_packet');const key=await crypto.subtle.importKey('raw',bytes(secret),'AES-GCM',false,['decrypt']);return JSON.parse(D.decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:bytes(p.iv),additionalData:E.encode(aad)},key,bytes(p.cipher))));}
@@ -21,8 +27,8 @@ export async function handleCloud(request,env,upstream=fetch){
  const reply=(b,s=200)=>new Response(JSON.stringify(b),{status:s,headers});
  if(request.headers.get('Origin')!==ORIGIN)return reply({error:'origin_forbidden'},403);headers['Access-Control-Allow-Origin']=ORIGIN;
  if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{...headers,'Access-Control-Allow-Methods':'GET, POST, PUT, DELETE, OPTIONS','Access-Control-Allow-Headers':'Authorization, Content-Type'}});
- const configured=!!env.CLOUD_DB&&/\.apps\.googleusercontent\.com$/.test(env.GOOGLE_CLIENT_ID||'')&&/^[A-Za-z0-9_-]{43}$/.test(env.CLOUD_ENCRYPTION_KEY||'');
- if(url.pathname==='/api/cloud/status'&&request.method==='GET')return reply({enabled:configured,clientId:configured?env.GOOGLE_CLIENT_ID:null});
+ const configured=!!env.CLOUD_DB&&/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(env.GOOGLE_CLIENT_ID||'')&&/^[A-Za-z0-9_-]{43}$/.test(env.CLOUD_ENCRYPTION_KEY||'');
+ if(url.pathname==='/api/cloud/status'&&request.method==='GET')return reply(await readiness(env));
  if(!configured)return reply({error:'cloud_not_configured'},503);
  const db=env.CLOUD_DB,now=Math.floor(Date.now()/1000);
  async function limited(key,max){const bucket=Math.floor(now/60);const row=await db.prepare('INSERT INTO cloud_limits(key,bucket,count) VALUES(?,?,1) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN bucket=excluded.bucket THEN count+1 ELSE 1 END,bucket=excluded.bucket RETURNING count').bind(key,bucket).first();return row.count>max;}

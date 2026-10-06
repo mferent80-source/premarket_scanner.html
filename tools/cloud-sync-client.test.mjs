@@ -1,9 +1,9 @@
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';import {createRequire} from 'node:module';import {KEYS,mergeRecord,validateValue} from '../lib/cloud-sync-model.mjs';
 const {create:planStore}=createRequire(import.meta.url)('../lib/trade-plan-store.js');
 const source=readFileSync(new URL('../app/cloud-sync.js',import.meta.url),'utf8').replace(/^import .*;\n/,'');
-async function setup({local={},remote={},baseline={},vault=null,enabled=true,onPut,onRecords,planBackup,missingPlanModule=false}={}){
- const storage=new Map(Object.entries(local)),privateStore=new Map([['session',{token:'token',subject:'123',email:'me@example.test'}],['baseline:123',baseline]]),calls=[];let currentVault=vault;const records=structuredClone(remote),window={addEventListener(){},dispatchEvent(){},T212Vault:{read:async()=>currentVault,save:async v=>{currentVault=v;},clear:async()=>{currentVault=null;}},TTCloudStore:{get:async k=>structuredClone(privateStore.get(k)||null),put:async(k,v)=>{privateStore.set(k,structuredClone(v));},remove:async k=>{privateStore.delete(k);}}};
- const c={KEYS,mergeRecord,validateValue,window,localStorage:{getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},document:{hidden:false,addEventListener(){},querySelectorAll:()=>[],getElementById:()=>null},navigator:{onLine:true},location:{origin:'https://mferent80-source.github.io',href:'https://mferent80-source.github.io/app/'},URL,Date,AbortController,CustomEvent:class{},StorageEvent:class{},setTimeout,clearTimeout,setInterval:()=>{},fetch:async(url,opts)=>{calls.push({url,opts});let data;if(url==='cloud-sync-config.json')data={enabled,endpoint:'https://premarket-scanner-html.mferent80.workers.dev'};else if(url.endsWith('/status'))data={enabled:true,clientId:'test.apps.googleusercontent.com'};else if(url.endsWith('/session'))data={subject:'123'};else if(url.endsWith('/records')){if(onRecords)await onRecords();data={records:structuredClone(records)};}else if(url.endsWith('/record')){const b=JSON.parse(opts.body);if(onPut)onPut(storage,b);assert.equal(b.revision,records[b.key]?.revision||0);records[b.key]={revision:b.revision+1,value:b.value,updated:10};data={revision:b.revision+1,updated:10};}else throw Error(url);return {ok:true,json:async()=>data};}};
+async function setup({local={},remote={},baseline={},vault=null,cloudOwner=null,failOwnerMirror=false,enabled=true,autoActivate=false,status={enabled:true,protocol:'tt-cloud-sync-v1',clientId:'test.apps.googleusercontent.com',checks:{database:true,google:true,encryption:true,schema:true}},statusHttp=200,sessionHttp=200,endpoint='https://premarket-scanner-html.mferent80.workers.dev',onPut,onRecords,planBackup,missingPlanModule=false}={}){
+ const storage=new Map(Object.entries(local)),privateStore=new Map([['session',{token:'token',subject:'123',email:'me@example.test'}],['baseline:123',baseline],['owner',cloudOwner]]),calls=[];let currentVault=vault;const records=structuredClone(remote),window={addEventListener(){},dispatchEvent(){},T212Vault:{read:async()=>currentVault,save:async v=>{currentVault=v;},clear:async()=>{currentVault=null;}},TTCloudStore:{get:async k=>structuredClone(privateStore.get(k)||null),put:async(k,v)=>{privateStore.set(k,structuredClone(v));},remove:async k=>{privateStore.delete(k);}}};
+ const c={KEYS,mergeRecord,validateValue,window,localStorage:{getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>{if(failOwnerMirror&&k==='tt_cloud_owner')throw Error('QuotaExceededError');storage.set(k,String(v));},removeItem:k=>storage.delete(k)},document:{hidden:false,addEventListener(){},querySelectorAll:()=>[],getElementById:()=>null},navigator:{onLine:true},location:{origin:'https://mferent80-source.github.io',href:'https://mferent80-source.github.io/app/'},URL,Date,AbortController,CustomEvent:class{},StorageEvent:class{},setTimeout,clearTimeout,setInterval:()=>{},fetch:async(url,opts)=>{calls.push({url,opts});let data,http=200;if(url==='cloud-sync-config.json')data={enabled,autoActivate,endpoint};else if(url.endsWith('/status')){data=typeof status==='function'?status():status;http=statusHttp;}else if(url.endsWith('/session')){data=sessionHttp===200?{subject:'123'}:{error:'session_expired'};http=sessionHttp;}else if(url.endsWith('/records')){if(onRecords)await onRecords();data={records:structuredClone(records)};}else if(url.endsWith('/record')){const b=JSON.parse(opts.body);if(onPut)onPut(storage,b);assert.equal(b.revision,records[b.key]?.revision||0);records[b.key]={revision:b.revision+1,value:b.value,updated:10};data={revision:b.revision+1,updated:10};}else throw Error(url);return {ok:http===200,status:http,json:async()=>data};}};
  let planLedger;if(!missingPlanModule){planLedger=planStore(c.localStorage,{durable:planBackup||null,notify:false});window.TTPlanStore={create:()=>planLedger};}vm.createContext(c);vm.runInContext(source,c);for(let i=0;i<15;i++)await new Promise(r=>setImmediate(r));return {api:window.TTCloud,storage,privateStore,records,calls,planLedger,vault:()=>currentVault};
 }
 test('first phone receives cloud data without pushing empty replacement',async()=>{const s=await setup({remote:{tt_journal_v1:{revision:3,updated:9,value:[{id:'trade'}]}}});assert.equal(JSON.parse(s.storage.get('tt_journal_v1'))[0].id,'trade');assert.equal(s.calls.filter(c=>c.opts?.method==='PUT').length,0);assert.equal(s.api.state().connected,true);});
@@ -35,4 +35,44 @@ test('unreadable plan backup stops synchronization without uploading stale local
 });
 test('an unloaded plan module cannot make cloud synchronization publish the old local copy',async()=>{
  const s=await setup({local:{tt_trade_plans_v1:'[{"id":"old"}]'},missingPlanModule:true});assert.match(s.api.state().error,/Modulul planurilor nu s-a încărcat/);assert.equal(s.calls.filter(c=>c.opts?.method==='PUT').length,0);assert.equal(s.records.tt_trade_plans_v1,undefined);
+});
+test('automatic availability check cannot transmit any private record to an unpublished Worker',async()=>{
+ const s=await setup({enabled:false,autoActivate:true,statusHttp:404,status:{error:'not_found'},local:{tt_journal_v1:'[{"id":"private"}]'},vault:{environment:'live',key:'private-key',secret:'private-secret'}});
+ assert.equal(s.api.state().ready,false);assert.equal(s.api.state().error,'cloud_worker_missing');assert.equal(s.calls.length,2);
+ const probe=s.calls[1];assert.equal(probe.opts.method,'GET');assert.equal(probe.opts.credentials,'omit');assert.equal(probe.opts.headers.Authorization,undefined);assert.equal(probe.opts.body,undefined);
+ assert.equal(s.privateStore.get('baseline:123')&&Object.keys(s.privateStore.get('baseline:123')).length,0);assert.equal(s.privateStore.get('backups:123'),undefined);
+});
+test('incomplete provisioning blocks session restoration and broker credential upload',async()=>{
+ const checks={database:true,google:true,encryption:true,schema:false},s=await setup({enabled:false,autoActivate:true,status:{enabled:false,protocol:'tt-cloud-sync-v1',clientId:null,checks},vault:{environment:'live',key:'key',secret:'secret'}});
+ assert.equal(s.api.state().ready,false);assert.deepEqual(JSON.parse(JSON.stringify(s.api.state().setup)),checks);assert.equal(s.calls.length,2);assert.equal(s.api.state().connected,false);
+});
+test('completed provisioning activates a waiting app after recheck without a new frontend release',async()=>{
+ let configured=false;const s=await setup({enabled:false,autoActivate:true,status:()=>({enabled:configured,protocol:'tt-cloud-sync-v1',clientId:configured?'test.apps.googleusercontent.com':null,checks:{database:configured,google:configured,encryption:configured,schema:configured}}),remote:{tt_journal_v1:{revision:1,value:[{id:'phone'}]}}});
+ assert.equal(s.calls.length,2);assert.equal(s.storage.get('tt_journal_v1'),undefined);configured=true;await s.api.recheck();
+ assert.equal(s.api.state().ready,true);assert.equal(s.api.state().connected,true);assert.equal(JSON.parse(s.storage.get('tt_journal_v1'))[0].id,'phone');assert.ok(s.api.state().lastSync);
+ const probes=s.calls.filter(c=>c.url.endsWith('/status'));assert.equal(probes.length,2);assert.ok(probes.every(c=>!c.opts.headers.Authorization&&!c.opts.body));
+ await s.api.recheck();assert.equal(s.calls.filter(c=>c.url.endsWith('/status')).at(-1).opts.headers.Authorization,undefined);
+});
+test('a different protocol or a truthy readiness value cannot enable private synchronization',async()=>{
+ for(const status of [{enabled:true,protocol:'different',clientId:'test.apps.googleusercontent.com',checks:{database:true,google:true,encryption:true,schema:true}},{enabled:'true',protocol:'tt-cloud-sync-v1',clientId:'test.apps.googleusercontent.com',checks:{database:true,google:true,encryption:true,schema:true}},{enabled:true,protocol:'tt-cloud-sync-v1',clientId:'not-a-google-client',checks:{database:true,google:true,encryption:true,schema:true}}]){
+  const s=await setup({autoActivate:true,status});assert.equal(s.api.state().ready,false);assert.equal(s.calls.length,2);
+ }
+});
+test('expired stored session leaves a verified service available for Google reconnection',async()=>{
+ const s=await setup({sessionHttp:401});assert.equal(s.api.state().ready,true);assert.equal(s.api.state().connected,false);assert.equal(s.api.state().error,'session_expired');assert.equal(s.privateStore.get('session'),undefined);assert.ok(!s.calls.some(c=>c.url.endsWith('/records')));
+});
+test('availability check rejects endpoint userinfo before any outgoing cloud request',async()=>{
+ const s=await setup({endpoint:'https://injected@premarket-scanner-html.mferent80.workers.dev'});assert.equal(s.api.state().ready,false);assert.equal(s.calls.length,1);
+});
+test('a full legacy browser store cannot prevent durable account binding or a confirmed sync',async()=>{
+ const s=await setup({failOwnerMirror:true,local:{tt_journal_v1:'[{"id":"PC"}]'}});
+ assert.equal(s.api.state().error,'');assert.ok(s.api.state().lastSync);assert.equal(s.privateStore.get('owner'),'123');assert.equal(s.storage.get('tt_cloud_owner'),undefined);assert.equal(s.records.tt_journal_v1.value[0].id,'PC');
+ await s.api.sync();assert.equal(s.api.state().error,'');assert.equal(s.privateStore.get('owner'),'123');
+});
+test('durable ownership blocks another account even when no localStorage mirror could be written',async()=>{
+ const s=await setup({cloudOwner:'different',local:{tt_journal_v1:'[{"id":"private"}]'}});
+ assert.equal(s.api.state().error,'account_mismatch');assert.equal(s.privateStore.get('owner'),'different');assert.ok(!s.calls.some(c=>c.url.endsWith('/records')||c.opts?.method==='PUT'));
+});
+test('disagreement between legacy and durable owners stops synchronization before record retrieval',async()=>{
+ const s=await setup({cloudOwner:'123',local:{tt_cloud_owner:'different'}});assert.equal(s.api.state().error,'account_mismatch');assert.ok(!s.calls.some(c=>c.url.endsWith('/records')));
 });
