@@ -3268,6 +3268,9 @@ pe un singur chart.
 | I-560 | Corelația între boții deschiși (și cu BTC) - doi boți pe monede care se mișcă împreună = un singur pariu mai mare | crypto/public/app.js (loadCorrelation) + colector (alertă la ≥ 0,8) | S | P2 | făcut | ideation | 2026-10-06 |
 | I-561 | Carnetul Radarului: Validation / Forward / Calibration pe deciziile pentru boți (fișa LARG/ÎNGUST, Consilierul Ține/Ieși, becurile) în loc de semnale - forward-only, cu bilanțul dovedit / nedovedit | crypto/public/app.js (renderValidation, renderForwardLab, renderCalibration) + istoric-bot (cazuri, decizii) | L | P2 | propus | ideation | 2026-10-06 |
 | I-562 | Ipoteză de testat: marginile gridului la VAL / VAH / nodurile de volum (Volume / Market Profile) ies mai rar pe stop decât banda din fișă - proba pe istoric ÎNAINTE de orice schimbare a fișei | crypto/public/lib/grid-proba.js + renderVolumeProfile | M | P3 | propus | ideation | 2026-10-06 |
+| I-563 | Discord: „botul stă de 24 h și e pe minus” cu cifrele tale (din boții care au ajuns la 24 h: câți pe plus, câți au pierdut peste 5%) - o dată pe bot | crypto/scripts/colector.mjs + lib/mesaje-colector.mjs + RiscLuna (raportul de noapte) | S | P1 | propus | ideation | 2026-10-06 |
+| I-564 | Raportul de duminică: comisioanele săptămânii față de câștigul grilelor + câți boți au stat sub 15 minute | crypto/scripts/colector.mjs (raportul) + RiscLuna.descBoti | S | P2 | propus | ideation | 2026-10-06 |
+| I-565 | Frâna T212 de „cumpărat în jos” (v87) primește cifra ta din raportul de risc (pozițiile mediate: 32% pierderi mari față de 9%, la limită) | crypto/public/lib/actiuni-semnale.js (alertaFrana) + colector | S | P2 | propus | ideation | 2026-10-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5693,3 +5696,26 @@ Notă: I-556 (numărătoarea deschiderilor) pornea de la folosire - el a spus c�
 - **Impact:** posibil mai puține stopuri; nimic garantat.
 - **Riscuri:** profilul din OHLCV e aproximat; tentația de a alege parametrii după rezultat (de fixat înainte).
 - **Fișiere:** crypto/public/lib/grid-proba.js, app.js (renderVolumeProfile).
+
+
+## I-563..I-565 · După „Monte Carlo · riscul tău” (v100.113–114) · 2026-10-06
+
+El (06.10): „mai departe?”. Pornesc din ce au arătat datele lui azi: pierderea vine din coadă (cei mai răi 10%), din boții ținuți mult și din comisioane; la acțiuni, medierea pe minus e „la limită (rău)”.
+Verificat pe disc: frâna T212 de „cumpărat în jos” EXISTĂ (colector, v87, ActiuniSemnale.alertaFrana) ⇒ I-565 doar o completează; alertă pe vârsta botului pe minus NU există (doar „afară din grid X h” din plan).
+
+#### I-563 · „Botul stă de 24 h și e pe minus” · [S] · P1 · propus
+- **Problema:** boții ținuți peste o zi au adus −1.540 USDT la suma de acum (76 de boți); nimic nu te anunță când un bot ajunge acolo.
+- **Soluția:** o dată pe bot, la 24 h pe minus: mesajul cu RiscLuna.textBot (din boții tăi care au ajuns la 24 h: X% pe plus, Y% pierdere peste 5%) + „ce aș face eu”.
+- **Impact:** decizia la momentul în care, la tine, coada începe să se strângă.
+- **Riscuri:** durata e și urmare (ții ce merge prost) - mesajul informează, nu ordonă; fără dublură cu alerta „afară din grid”.
+- **Fișiere:** crypto/scripts/colector.mjs, scripts/lib/mesaje-colector.mjs.
+
+#### I-564 · Comisioanele săptămânii în raportul de duminică · [S] · P2 · propus
+- **Problema:** comisioanele au luat 56% din câștigul grilelor; 635 de boți au stat sub 15 minute; nu le vezi pe săptămână.
+- **Soluția:** un rând în raportul de duminică: grilele vs comisioanele săptămânii, câți boți sub 15 minute și cât au costat.
+- **Fișiere:** crypto/scripts/colector.mjs, public/lib/risc-luna.js.
+
+#### I-565 · Frâna „cumpărat în jos” cu cifra ta · [S] · P2 · propus
+- **Problema:** alerta existentă spune că ai cumpărat în jos, dar nu și ce a însemnat asta la tine.
+- **Soluția:** rândul RiscLuna.textMediere (cu verdictul la zi: la limită / dovedit) în mesajul frânei.
+- **Fișiere:** crypto/public/lib/actiuni-semnale.js, scripts/colector.mjs.
