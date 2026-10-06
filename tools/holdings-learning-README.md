@@ -28,6 +28,16 @@ Fără checkpoint eligibil se afișează media 50/50 exploratorie și rezultatel
 
 Verificarea automată rulează o dată pe minut numai când pagina este vizibilă și există dețineri. Un EOD nou pornește aceiași workeri existenți, secvențial, pe un singur istoric comun. Un EOD finalizat se reutilizează; eșecurile au pauză de 15 minute, iar cererea manuală poate relua. O schimbare de cont, instrument sau închidere anulează lucrarea anterioară. Analiza manuală preia prioritatea și marchează sesiunea completă pentru a evita reantrenarea dublă.
 
+La trecerea la o sesiune nouă, analiza tehnică expirată rămâne inutilizabilă pentru verdict. Pentru programarea recuperării putem folosi numai metadatele ultimei listări verificate: simbol, monedă, fus și ora închiderii. Aceste metadate nu oferă un preț actual. Sursa EOD nouă se recuperează și se verifică înaintea oricărui calcul. Lipsa metadatelor, o listare schimbată sau un fus necunoscut nu autorizează presupunerea monedei ori a bursei.
+
+Verificarea predicțiilor păstrate continuă independent când reantrenarea este oprită, când sesiunea este deja antrenată sau în pauza de după un eșec. O verificare automată reușită nu se repetă pentru același EOD; eșecurile pot fi reluate după 15 minute sau manual. O verificare anulată prin schimbarea contului poate fi reluată la revenire. Primele estimări pe sesiune nu sunt înlocuite prin verificare.
+
+## Progres către verdict
+
+Panoul operațional afișează perechile disponibile, cele în așteptare, progresul către prima evaluare de 40 rezultate sau următorul bloc de 20 rezultate noi și clasele din perioadele efective. Refolosește exact eșantionul și separarea temporală din `HoldingsLearning`, nu separarea retrospectivă din `HoldingsCalibration`. După o evaluare, tabelul arată perioadele și scorurile acelui candidat, iar bara urmărește colectarea următorului bloc. Clasele insuficiente și estimările restaurate nu pot completa dovezile lipsă.
+
+Scorurile ultimului candidat apar numai după reverificarea checkpoint-ului față de registrul original. Log loss și Brier compară combinația, Neural, Boosting și frecvențele din calibrare pe aceleași 20 observații de test. Proiecția de progres nu se persistă, nu modifică selecția, marjele ori adoptarea și nu oferă un vot de direcție. Erorile sursei și dovezile revizuite sunt afișate explicit.
+
 Acesta este un circuit de reantrenare pe istoric actualizat și de validare a combinației pe rezultate observate. Nu este actualizare incrementală a ponderilor MLP după fiecare tranzacție și nu rulează cu pagina închisă. Nimic nu transmite ordine la broker. Modelele și registrele rămân în browser.
 
 Metoda de ajustare prin temperatură: [Guo și col., ICML 2017](https://proceedings.mlr.press/v70/guo17a.html). Grila, marjele, limitele și protocolul temporal sunt reguli ale aplicației, fără pretenție de semnificație statistică.

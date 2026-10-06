@@ -40,11 +40,26 @@ test('private account data and fitted weights never enter exported registry',()=
 test('corrupt registry survives save and export actions without fabricated results',()=>{const s=setup({corrupt:true});s.ui.capture(s.p);s.button('forecast-export').onclick();assert.equal(s.exports(),null);assert.equal(s.writes.get(s.core.HoldingsForecast.key(s.e)),'{broken');assert.match(s.ui.markup(s.p,0),/Registru ilizibil/);});
 test('selected model filter changes the ledger rows through actual control handlers',()=>{const s=setup({demo:true});s.ui.simulation(s.p);const b=s.button('forecast-model');b.value='hmm';b.onchange();const html=s.ui.markup(s.p,0);assert.match(html,/value="hmm" selected/);assert.match(html,/observație de preț/);});
 test('an account change during public fetch cannot write the prior or next account',async()=>{const s=setup();s.ui.capture(s.p);const before=s.writes.get(s.core.HoldingsForecast.key(s.e)),pending=s.ui.check(s.p,true);s.ui.setContext({...s.c,scope:'b'});s.resolve();await pending;assert.equal(s.writes.get(s.core.HoldingsForecast.key(s.e)),before);assert.equal(s.writes.has(s.core.HoldingsForecast.key({...s.e,scope:'b'})),false);});
+test('a cancelled account check can resume automatically on the same EOD after returning to that account',async()=>{
+ const s=setup();s.ui.capture(s.p);s.setNow(Date.parse('2026-10-09T21:00:00Z'));const original=s.writes.get(s.core.HoldingsForecast.key(s.e)),pending=s.ui.check(s.p);
+ s.ui.setContext({...s.c,scope:'b'});s.resolve();assert.equal((await pending).state,'ignored');assert.equal(s.writes.get(s.core.HoldingsForecast.key(s.e)),original);
+ s.ui.setContext(s.c);const resumed=s.ui.check(s.p);assert.equal(s.fetches(),2);s.resolve();await resumed;
+});
 test('one automatic attempt per expected EOD works even with a stale analysis; manual retry remains possible',async()=>{const s=setup();s.ui.capture(s.p);s.setNow(Date.parse('2026-10-05T21:00:00Z'));let pending=s.ui.check(s.p);assert.equal(s.fetches(),1);s.resolve();await pending;await s.ui.check(s.p);assert.equal(s.fetches(),1);pending=s.ui.check(s.p,true);assert.equal(s.fetches(),2);s.resolve();await pending;s.setNow(Date.parse('2026-10-06T21:00:00Z'));pending=s.ui.check(s.p);assert.equal(s.fetches(),3);s.resolve();await pending;});
 test('model completion hooks record snapshots and the module loads before Neural UI',()=>{for(const file of ['neural','hmm','isolation','quantile','garch'])assert.match(readFileSync('holdings/'+file+'.js','utf8'),/HoldingsForecastUI\?\.capture/);const html=readFileSync('holdings/index.html','utf8');assert.ok(html.indexOf('src="forecast.js')<html.indexOf('src="neural.js'));});
 
 test('listing currency never falls back to the account wallet currency',()=>{const s=setup();s.c.model=()=>null;delete s.p.instrumentCurrency;s.p.currency='EUR';const snapshot=s.ui.snapshot(s.p);assert.equal(snapshot.identity.currency,undefined);assert.equal(snapshot.ledger.ok,false);assert.equal(s.writes.size,0);});
 test('portfolio snapshot reports an unsuccessful verification without deleting saved forecasts',async()=>{const s=setup();s.ui.capture(s.p);const before=s.ui.snapshot(s.p).ledger.entries.length,pending=s.ui.check(s.p,true);assert.equal(s.ui.snapshot(s.p).check.state,'checking');s.reject();const result=await pending;assert.equal(result.state,'error');const snapshot=s.ui.snapshot(s.p);assert.equal(snapshot.ledger.entries.length,before);assert.ok(snapshot.ledger.entries.every(r=>r.verification.state==='pending'));assert.equal(snapshot.check.state,'error');});
+test('failed automatic verification retries after fifteen minutes and resolves actual five-session outcomes without replacing estimates',async()=>{
+ const s=setup();s.ui.capture(s.p);const estimates=JSON.stringify(s.ui.snapshot(s.p).ledger.entries.map(r=>r.estimate));let clock=Date.parse('2026-10-09T21:00:00Z');s.setNow(clock);
+ const days=['2026-10-02','2026-10-05','2026-10-06','2026-10-07','2026-10-08','2026-10-09'];
+ s.sandbox.DailySeries.read=()=>({symbol:'TEST',currency:'USD',asOf:'2026-10-09',timezone:'America/New_York',closeMinutes:960,bars:days.map((d,i)=>({t:Date.parse(d+'T13:30:00Z'),o:100+i,h:102+i,l:99+i,c:100+i,v:10000}))});
+ let pending=s.ui.check(s.p);s.reject();assert.equal((await pending).state,'error');assert.equal(s.fetches(),1);
+ s.setNow(clock+899999);await s.ui.check(s.p);assert.equal(s.fetches(),1);
+ s.setNow(clock+900000);pending=s.ui.check(s.p);assert.equal(s.fetches(),2);s.resolve();assert.equal((await pending).state,'checked');
+ const rows=s.ui.snapshot(s.p).ledger.entries;assert.ok(rows.every(r=>r.verification.state==='resolved'&&r.verification.sessions===5));assert.equal(JSON.stringify(rows.map(r=>r.estimate)),estimates);
+ await s.ui.check(s.p);assert.equal(s.fetches(),2);
+});
 test('automatic checks can update saved forecasts without a current model analysis',async()=>{const s=setup();s.ui.capture(s.p);s.c.model=()=>null;s.setNow(Date.parse('2026-10-05T21:00:00Z'));const pending=s.ui.check(s.p);assert.equal(s.fetches(),1);s.resolve();await pending;assert.equal(s.ui.snapshot(s.p).ledger.entries.length,5);});
 test('an unfinished session and a current saved EOD do not trigger needless automatic requests',async()=>{const s=setup();s.ui.capture(s.p);await s.ui.check(s.p);s.setNow(Date.parse('2026-10-05T20:14:00Z'));await s.ui.check(s.p);assert.equal(s.fetches(),0);});
 

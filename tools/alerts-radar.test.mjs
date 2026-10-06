@@ -45,14 +45,32 @@ test('I-464: curatenia dupa praguri - fara bara de selectie in lot, fara modalul
   for (const sel of ['.almost-rail', '.pulse-bar', '.filter-bar', '.al-desk', '.al-kpi', '.view-tools', '.add-opts', '.al-bot', '.bulk-bar', '.edit-modal', '.bulk-cb']) assert.ok(!style.includes(sel), 'CSS mort: ' + sel);
   assert.ok(style.includes('.alert-row'), 'Istoricul foloseste inca .alert-row - ramane');
 });
-test('sincronizarea cu GitHub vorbeste limba noua: lista de pe server se migreaza, semnatura e pe forma watch, alerts.json e migrat', () => {
+test('sincronizarea migreaza lista actuala de pe server, inclusiv intrarile botului, la forma watch fara praguri', () => {
   const i = HTML.indexOf('function serverToMap');
   assert.match(HTML.slice(i, i + 400), /migreazaListaLaSimboluri\(/, 'serverToMap trece prin migrare (altfel ⬇️ manual readuce praguri)');
   const j = HTML.indexOf('function alertsSig');
   const sig = HTML.slice(j, j + 500);
   assert.ok(!/ref\|/.test(sig) && /watch/.test(sig), 'semnatura e pe forma watch (simbol + notita), nu pe praguri');
   const json = JSON.parse(readFileSync(join(ROOT, 'tools/alerts.json'), 'utf8'));
-  assert.ok(Array.isArray(json.alerts) && json.alerts.length > 0 && json.alerts.every(a => a.kind === 'watch' && !('level' in a) && !('pct' in a)), 'tools/alerts.json e in forma watch');
+  assert.ok(Array.isArray(json.alerts) && json.alerts.length > 0, 'lista actuala a serverului exista');
+  const migration = HTML.slice(HTML.indexOf('function migreazaListaLaSimboluri('), HTML.indexOf('function loadAlerts()'));
+  const serverStart = HTML.indexOf('function serverAlertToLocal(');
+  const server = HTML.slice(serverStart, HTML.indexOf('async function fetchServerAlertsObj()', serverStart));
+  const serialize = HTML.slice(HTML.indexOf('function alertToJson('), HTML.indexOf('function getFinnhubKey('));
+  const run = new Function('uid', migration + server + serialize + '\nreturn {serverToMap, alertToJson};');
+  let id = 0; const api = run(() => 'test-' + (++id)), before = JSON.stringify(json);
+  const examples = [{symbol:'LEGACY_DAY',kind:'day',pct:3,note:'notita pastrata'}, {symbol:'LEGACY_PRICE',level:100,dir:'above',note:'prag vechi'}];
+  const original = json.alerts.concat(examples), map = api.serverToMap(original);
+  for (const a of original) {
+    const rows = map[a.symbol.toUpperCase()];
+    assert.equal(rows.length, 1); assert.equal(rows[0].kind, 'watch');
+    const note = original.find(x => x.symbol.toUpperCase() === a.symbol.toUpperCase() && x.note)?.note || '';
+    assert.equal(rows[0].note, note.slice(0, 80));
+    const exported = api.alertToJson(a.symbol.toUpperCase(), rows[0]);
+    assert.deepStrictEqual(exported, {symbol:a.symbol.toUpperCase(),kind:'watch',note:rows[0].note});
+    assert.ok(!('level' in rows[0]) && !('pct' in rows[0]), 'pragurile nu ajung in lista migrata');
+  }
+  assert.equal(JSON.stringify(json), before, 'verificarea nu rescrie alertele botului');
 });
 // v134 (29.09, botul PUMPFUN): Binance nu cunoaște PUMPFUNUSDT (400), tickerul real e PUMP -> lumânarea zilnică se cere după b.m (poza v101.5)
 test('v134: prețul live al botului se cere de la Binance după moneda reală a bursei (b.m), cu rezerva numele botului', () => {
