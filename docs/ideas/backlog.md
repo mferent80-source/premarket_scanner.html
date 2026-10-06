@@ -3259,8 +3259,8 @@ pe un singur chart.
 | I-551 | „Ce ai de făcut acum”: butonul „copiază” lângă prețul propus (take-profit la zero, stopul), ca în fișă | crypto/public/app.js (tbRenderTodo) + lib/tablou-extra.js | S | P3 | făcut | ideation | 2026-10-06 |
 | I-552 | Dimineața pe Discord: becurile 4 h / 1 zi pe fiecare bot și poziție + ce s-a schimbat peste noapte | crypto/scripts/lib/tura-dimineata.mjs + colector.mjs (dateDimineata) + grafic-bot.js (semafor, semZi) | M | P2 | făcut | ideation | 2026-10-06 |
 | I-553 | Semaforul Tabloului (6 TF, reluarea, „becurile pe rând”) scos din app.js într-un modul pur cu probe pe comportament, nu pe text | crypto/public/app.js (tbAduDirectie, tbReiaLipsa, tbSemaforTf) ⇒ public/lib/tablou-trend.js nou | M | P3 | făcut | ideation | 2026-10-06 |
-| I-554 | Radar: meniul în 3 grupe - „Zilnic” (Tablou, Grid, Jurnal, T212, Alerte, Scanner) sus, „Unelte” (piața, futures, Nasdaq, cont Pionex, Cloud, Setări, Health), „Laborator vechi” (~33 de tab-uri) pliat; nimic șters | crypto/public/index.html (nav) + app.css | S | P1 | propus | ideation | 2026-10-06 |
-| I-555 | Radar pe telefon: bara de jos = Tablou · Grid · T212 · Alerte · ⋯ (azi Home · Scan · Signals · Market - pagini pe care nu le folosește) | crypto/public/index.html (mobileNav) + app.js | S | P1 | propus | ideation | 2026-10-06 |
+| I-554 | Radar: meniul în 3 grupe - „Zilnic” (Tablou, Grid, Jurnal, T212, Alerte, Scanner) sus, „Unelte” (piața, futures, Nasdaq, cont Pionex, Cloud, Setări, Health), „Laborator vechi” (~33 de tab-uri) pliat; nimic șters | crypto/public/index.html (nav) + app.css | S | P1 | făcut (v100.115 `0399578`) | ideation | 2026-10-06 |
+| I-555 | Radar pe telefon: bara de jos = Tablou · Grid · T212 · Alerte · ⋯ (azi Home · Scan · Signals · Market - pagini pe care nu le folosește) | crypto/public/index.html (mobileNav) + app.js | S | P1 | făcut (v100.115 `0399578`) | ideation | 2026-10-06 |
 | I-556 | Radar: numărătoarea deschiderilor pe tab (local, fără server) + rând în Health „neatinse de 30 de zile” - decizia de scoatere pe date, nu pe impresie | crypto/public/app.js (navTo) + Health | S | P2 | propus | ideation | 2026-10-06 |
 | I-557 | Radar: laboratoarele vechi nu se mai desenează / pornesc la încărcare (renderValidation, renderForwardLab, renderProfitReadiness, renderReplayLab, renderEdgePro, renderV65…, initV67Operations cu timer), ci doar la deschiderea lor - măsurat înainte / după | crypto/public/app.js (pornirea, L~7098) | M | P2 | propus | ideation | 2026-10-06 |
 | I-558 | Monte Carlo pe arhiva boților (nu pe jurnalul de semnale gol): „cu N boți deodată, într-o lună proastă (5%) pierzi X USDT” - bootstrap pe monede/blocuri | crypto/public/app.js (runMonteCarlo) + /api/istoric-bot (arhiva) | M | P1 | făcut | ideation | 2026-10-06 |
@@ -3268,9 +3268,9 @@ pe un singur chart.
 | I-560 | Corelația între boții deschiși (și cu BTC) - doi boți pe monede care se mișcă împreună = un singur pariu mai mare | crypto/public/app.js (loadCorrelation) + colector (alertă la ≥ 0,8) | S | P2 | făcut | ideation | 2026-10-06 |
 | I-561 | Carnetul Radarului: Validation / Forward / Calibration pe deciziile pentru boți (fișa LARG/ÎNGUST, Consilierul Ține/Ieși, becurile) în loc de semnale - forward-only, cu bilanțul dovedit / nedovedit | crypto/public/app.js (renderValidation, renderForwardLab, renderCalibration) + istoric-bot (cazuri, decizii) | L | P2 | propus | ideation | 2026-10-06 |
 | I-562 | Ipoteză de testat: marginile gridului la VAL / VAH / nodurile de volum (Volume / Market Profile) ies mai rar pe stop decât banda din fișă - proba pe istoric ÎNAINTE de orice schimbare a fișei | crypto/public/lib/grid-proba.js + renderVolumeProfile | M | P3 | propus | ideation | 2026-10-06 |
-| I-563 | Discord: „botul stă de 24 h și e pe minus” cu cifrele tale (din boții care au ajuns la 24 h: câți pe plus, câți au pierdut peste 5%) - o dată pe bot | crypto/scripts/colector.mjs + lib/mesaje-colector.mjs + RiscLuna (raportul de noapte) | S | P1 | propus | ideation | 2026-10-06 |
+| I-563 | Discord: „botul stă de 24 h și e pe minus” cu cifrele tale (din boții care au ajuns la 24 h: câți pe plus, câți au pierdut peste 5%) - o dată pe bot | crypto/scripts/colector.mjs + lib/mesaje-colector.mjs + RiscLuna (raportul de noapte) | S | P1 | făcut (v100.115 `0399578`) | ideation | 2026-10-06 |
 | I-564 | Raportul de duminică: comisioanele săptămânii față de câștigul grilelor + câți boți au stat sub 15 minute | crypto/scripts/colector.mjs (raportul) + RiscLuna.descBoti | S | P2 | propus | ideation | 2026-10-06 |
-| I-565 | Frâna T212 de „cumpărat în jos” (v87) primește cifra ta din raportul de risc (pozițiile mediate: 32% pierderi mari față de 9%, la limită) | crypto/public/lib/actiuni-semnale.js (alertaFrana) + colector | S | P2 | propus | ideation | 2026-10-06 |
+| I-565 | Frâna T212 de „cumpărat în jos” (v87) primește cifra ta din raportul de risc (pozițiile mediate: 32% pierderi mari față de 9%, la limită) | crypto/public/lib/actiuni-semnale.js (alertaFrana) + colector | S | P2 | făcut (v100.115 `0399578`) | ideation | 2026-10-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5719,3 +5719,9 @@ Verificat pe disc: frâna T212 de „cumpărat în jos” EXISTĂ (colector, v87
 - **Problema:** alerta existentă spune că ai cumpărat în jos, dar nu și ce a însemnat asta la tine.
 - **Soluția:** rândul RiscLuna.textMediere (cu verdictul la zi: la limită / dovedit) în mesajul frânei.
 - **Fișiere:** crypto/public/lib/actiuni-semnale.js, scripts/colector.mjs.
+
+
+#### I-557 · măsurătoarea (06.10, după v100.115) - statusul rămâne „propus”, îl schimbă doar el
+- Măsurat în Chrome headless, pe o copie cu cronometre la fiecare pas al pornirii (3 rulări, 1920×1080): toate laboratoarele vechi la un loc costă ~10–12 ms (renderPaper ~5 ms, renderEdgePro ~3,5 ms, renderV66EdgeValidation ~3 ms, renderV65DecisionOS ~1,6 ms, initV67Operations ~1,5 ms; restul sub 1 ms).
+- initV67Operations nu e doar desenul unui laborator: pornește watchdog-ul de 30 s (WS, furnizori, repornire) ⇒ nu se mută.
+- Concluzia mea: câștigul (~10 ms) nu merită riscul; propun „respins - măsurat, nu se simte” dacă el e de acord.
