@@ -116,6 +116,14 @@ test('history storage is isolated; malformed existing data is reported and never
   assert.notEqual(c.EuropeHistory.KEY,'tt_journal_v1');
   assert.match(c.EuropeHistory.save({setItem(){throw Error('quota');}},c.EuropeHistory.empty()),/nu a putut fi salvat/);
 });
+test('simultaneous tabs preserve independently observed markets and re-read under the shared lock',async()=>{
+  const c=setup(),values=new Map(),storage={getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)};
+  let tail=Promise.resolve(),calls=0;const locks={request:(key,fn)=>{assert.equal(key,c.EuropeHistory.KEY);calls++;tail=tail.then(fn);return tail;}};
+  const a=observation(c),b=observation(c);b.instrument=c.EuropeUniverse.describe('SHEL.L');b.series.currency='GBP';b.candidate={...b.candidate,symbol:b.instrument.symbol,isin:b.instrument.isin};
+  await Promise.all([c.EuropeHistory.record(storage,c.EuropeUniverse,[a],now,locks,c.EuropeHistory.empty()),c.EuropeHistory.record(storage,c.EuropeUniverse,[b],now,locks,c.EuropeHistory.empty())]);
+  const latest=c.EuropeHistory.read(storage,c.EuropeUniverse);assert.equal(latest.error,null);assert.equal(latest.document.entries.length,2);assert.equal(calls,2);
+  const next=await c.EuropeHistory.record(storage,c.EuropeUniverse,[observation(c,2,'growth',101)],now,locks,c.EuropeHistory.empty());assert.equal(next.document.entries.length,2);assert.equal(next.document.entries.find(e=>e.symbol==='SAP.DE').currentCategory,'growth');
+});
 test('published calendar rows all use exact Salt identities and explicit provenance',()=>{
   const c=setup(),data=JSON.parse(readFileSync('europe-stocks/calendar.json','utf8')),stamp=Date.parse(data.generatedAt)+1000;
   const parsed=c.EuropeFinance.parseCalendar(data,c.EuropeUniverse,stamp);assert.equal(parsed.items.size,204);

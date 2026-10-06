@@ -98,6 +98,9 @@ O revizie de peste 1% a prețului primei sesiuni suspendă rezultatele pentru re
 Sunt păstrate maximum 1.500 observații, cele închise cele mai vechi fiind eliminate
 primele. Un document invalid nu este suprascris; erorile de salvare sunt afișate.
 Istoricul este local pe dispozitiv; sincronizarea rămâne un task separat.
+Salvarea recitește documentul după scanare și folosește Web Locks când este
+disponibil, astfel încât două file ale aceleiași origini să păstreze observațiile
+făcute pe piețe diferite. Fără Web Locks se recitește documentul înainte de scriere.
 
 Rezultatele folosesc o cheie locală separată (`tt_europe_scan_v3`), fără suprascrierea
 scanărilor comune, jurnalului sau setărilor de sincronizare. Cache-ul include

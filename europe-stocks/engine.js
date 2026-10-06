@@ -156,7 +156,7 @@
       await Promise.all([worker(),worker(),worker()]);
       state.items=items;state.selected=null;state.updatedAt=Date.now();state.hasScan=true;
       state.context=EuropeDecision.breadth(summaries,list.length);
-      if(!historyRead.error){const observation=EuropeHistory.update(state.history,observations,state.updatedAt);state.history=observation.document;state.historyError=EuropeHistory.save(localStorage,state.history);}
+      if(!historyRead.error){const observation=await EuropeHistory.record(localStorage,EuropeUniverse,observations,state.updatedAt,g.navigator?.locks,state.history);state.history=observation.document;state.historyError=observation.error;}
       const warnings=[];
       if(!list.length)warnings.push('Nicio acțiune din lista Salt Bank Europa nu corespunde filtrului sau Watchlist-ului.');
       else if(!state.verified)warnings.push('Nicio serie nu a putut fi verificată. Vezi erorile din Acoperire și reîncearcă.');

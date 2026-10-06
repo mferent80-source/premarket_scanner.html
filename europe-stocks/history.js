@@ -72,6 +72,19 @@
     return {document:next,changes};
   }
   function save(storage,document){try{storage.setItem(KEY,JSON.stringify(document));return null;}catch(_){return 'Istoricul nu a putut fi salvat local; observațiile curente rămân în această sesiune.';}}
+  async function record(storage,universe,observations,now=Date.now(),locks=null,pending=null){
+    function write(){
+      // Read under the shared lock, after the scan finishes. A second tab may
+      // have recorded another market while this tab was fetching its bars.
+      const latest=read(storage,universe);
+      if(latest.error)return {document:pending||latest.document,error:latest.error};
+      const ids=new Set(latest.document.entries.map(e=>e.id));
+      if(pending)latest.document.entries.push(...pending.entries.filter(e=>!ids.has(e.id)));
+      const result=update(latest.document,observations,now);
+      return {...result,error:save(storage,result.document)};
+    }
+    return locks?.request?locks.request(KEY,write):write();
+  }
   function badge(document,candidate){
     const e=document.entries.find(e=>e.isin===candidate.isin&&e.active);
     if(!e)return null;
@@ -86,5 +99,5 @@
       return {category,count:matching.length,outcomes};
     });
   }
-  g.EuropeHistory={KEY,SCHEMA,LIMIT,empty,read,update,save,badge,stats};
+  g.EuropeHistory={KEY,SCHEMA,LIMIT,empty,read,update,save,record,badge,stats};
 })(typeof window!=='undefined'?window:globalThis);
