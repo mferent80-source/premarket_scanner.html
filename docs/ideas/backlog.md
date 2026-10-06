@@ -3246,6 +3246,14 @@ pe un singur chart.
 | I-538 | Ferestrele oferite ținute pe server (nu în browser): recunoașterea merge de pe PC și de pe telefon, iar colectorul spune pe Discord „pornit ca LARG” | crypto/functions/api/istoric-bot.js, public/app.js (grFerestreTine), scripts/lib/tura-pornire.mjs, public/lib/grid-jurnal.js | M | P2 | facut 2026-10-05 (v100.104, revizia v100.105) | ideation | 2026-10-05 |
 | I-539 | A avut dreptate „Ce aș alege eu”? La apăsare se ține și recomandarea; bilanțul spune „când ai urmat-o” vs „când n-ai urmat-o” | crypto/public/lib/grid-jurnal.js, public/app.js (gridJurnalAdauga, renderGridJurnal) | S | P3 | facut 2026-10-05 (v100.104, revizia v100.105) | ideation | 2026-10-05 |
 | I-540 | Ceasul ferestrei LARG: bot LARG încă în grid după durata tipică ×2 ⇒ o notă (banii stau), ca ceasul gridului îngust | crypto/scripts/colector.mjs, scripts/lib/mesaje-colector.mjs, public/lib/grid-jurnal.js | S | P3 | facut 2026-10-05 (v100.104, revizia v100.105) | ideation | 2026-10-05 |
+| I-541 | Colectorul vede trendul pe aceleași intervale ca Tabloul (semaforul 4h + 1z în verdict) ⇒ Discord = Tablou, fără „📣 Pe Discord: Atenție” | crypto/scripts/colector.mjs + public/lib/grafic-bot.js (semafor) + lib/consiliu.js (altaVoce) | M | P1 | propus | ideation | 2026-10-06 |
+| I-542 | Tablou: UN tabel „Trendul pe TF-uri” în locul a trei (rândurile TF din citire + „Direcția pieței” + „Ce spun indicatorii”) | crypto/public/app.js (renderTabloDirectia, renderTabloIndicatori, tbDeseneazaCitire) + index.html + app.css | M | P2 | propus | ideation | 2026-10-06 |
+| I-543 | „Ce ai de făcut acum”: rândurile pe care verdictul de acum le contrazice se estompează cu „nu mai e valabil (acum: 🟢 Ține)” | crypto/public/app.js (lista „Ce ai de făcut”) + lib/tablou-extra.js | S | P2 | propus | ideation | 2026-10-06 |
+| I-544 | Clic pe un bec al semaforului ⇒ graficul trece pe perioada TF-ului (5m → 24 h, 15m → 3 zile, 1h → 7 zile) | crypto/public/lib/grafic-bot.js (gbSem) + app.js (tbAlegeInterval) | S | P3 | propus | ideation | 2026-10-06 |
+| I-545 | Semaforul pe boții TĂI: starea celor 6 becuri la pornire, pe arhiva de ~2.214 boți ⇒ bilanț dovedit / nedovedit (ca ADX, I-530) | crypto/public/lib/asemanatoare.js + grafic-bot.js + scripts/colector.mjs (tura cazurilor) | M | P2 | propus | ideation | 2026-10-06 |
+| I-546 | T212: coloana TREND din tabelul pozițiilor pe aceeași regulă ca becul 1z, sau ambele când diferă („↓ jos · 1z lateral”) | crypto/public/lib/t212-ecran.js (c-trend) + actiuni-semnale.js | S | P2 | propus | ideation | 2026-10-06 |
+| I-547 | T212: Discord când becul 1z (și 4h) al unei poziții trece împotriva ei - o dată pe schimbare, din barele zilnice pe care colectorul le are deja | crypto/scripts/colector.mjs (dateDimineata / tura T212) + lib/mesaje-colector.mjs + grafic-bot.js | M | P2 | propus | ideation | 2026-10-06 |
+| I-548 | Becurile se aprind pe rând, cum vin lumânările, iar cererea picată se reia în 30 s („5 min: reîncerc…”), pe ambele pagini | crypto/public/app.js (tbAduDirectie, TB_SEM_EXTRA) + lib/t212-ecran.js (t212AduTf) | S | P2 | propus | ideation | 2026-10-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5487,3 +5495,67 @@ Fluxul azi e într-un singur sens (Busola → Radar, JSON public). Radar → Bus
 - **Impact:** banii nu rămân uitați într-un grid care nu mai lucrează.
 - **Riscuri:** depinde de I-538 (colectorul să știe fereastra); fără ea, doar pe Tablou.
 - **Fișiere:** crypto/scripts/colector.mjs, scripts/lib/mesaje-colector.mjs, public/lib/grid-jurnal.js.
+
+
+## I-541..I-548 · Tabloul botului + Trading 212, după semaforul trendului (v100.106–v100.109) · 2026-10-06
+
+Excluse (deja în backlog, deschise): I-459, I-485, I-487, I-513, I-517, I-518, I-520, I-522, I-523, I-525. Respinse/făcute nerepropuse.
+Acoperire: citite integral azi grafic-bot.js, directie.js, consiliu.js (alcatuieste, alcatuiesteActiune, schimbare), t212-ecran.js (pozițiile, graficul, „Ce ai de făcut”), functions/api/t212.js; prin grep colector.mjs (Directie la rândul 272: doar 4 h) și coloana TREND din t212-ecran.js (542). Poze pe 8788 la 1920 / 390.
+
+#### I-541 · Colectorul vede trendul pe aceleași intervale ca Tabloul · [M] · P1 · propus
+- **Problema:** azi Tabloul zicea 🟢 Ține, iar cardul arăta „📣 Pe Discord și pe pagina alerts: 🟡 Atenție; colectorul nu vede direcția pe mai multe intervale”. Colectorul analizează doar 4 h (colector.mjs:272), Tabloul 4 h + 1 zi + acum semaforul pe 6.
+- **Soluția:** colectorul aduce aceleași lumânări (15M/60M/4H/1D, cache-ul serverului le are deja) și cheamă aceeași funcție (GraficBot.semafor / Directie.rezumat) ⇒ verdictul de pe Discord e calculat ca pe Tablou; rândul „altă voce” rămâne doar ca plasă.
+- **Impact:** o singură voce — nu mai primești pe telefon „Atenție” cât Tabloul zice „Ține”.
+- **Riscuri:** 2–3 cereri Pionex în plus pe bot la tura colectorului (limita e pe server, cu cache); ipoteza de comportament nu se schimbă, doar sursa.
+- **Fișiere:** crypto/scripts/colector.mjs, public/lib/grafic-bot.js, public/lib/consiliu.js.
+
+#### I-542 · Un tabel „Trendul pe TF-uri” în locul a trei · [M] · P2 · propus
+- **Problema:** pe Tablou trendul pe interval apare de 4 ori: becurile de pe grafic, rândurile din citire, cartela „Direcția pieței” (15m/1h/4h/1z, „s-a schimbat în 32% din 25 de cazuri”) și „Ce spun indicatorii” (Verdict ↑70 / Medii EMA / Supertrend…). Trei liste de TF-uri, cu reguli diferite, una sub alta.
+- **Soluția:** un singur tabel: rânduri = 5m…1z, coloane = becul (aceeași regulă), de câte bare, ADX/RSI, cât de des s-a întors în trecut (din „Direcția”), verdictul indicatorilor; citirea păstrează doar un rând-rezumat („4 din 6 cu botul”).
+- **Impact:** mai puțin de citit, nicio contrazicere între cartele; pagina mai scurtă (golul de azi venea din coloana asta).
+- **Riscuri:** „Piața” de sus și Consilierul citesc din renderTabloDirectia / Directie.rezumat — producătorul rămâne, se schimbă doar desenul.
+- **Fișiere:** crypto/public/app.js, public/index.html, public/app.css.
+
+#### I-543 · „Ce ai de făcut acum”: rândurile depășite se estompează · [S] · P2 · propus
+- **Problema:** azi lista arăta „TAKE · Atenție: prețul e lângă marginea de jos (ieri 18:26)” sub un verdict 🟢 Ține și cu textul vechi. Rândul e ultima alertă de fiecare fel, dar nu spune că situația s-a schimbat.
+- **Soluția:** când codul rândului nu mai e printre motivele verdictului de acum (sau nivelul a scăzut), rândul se estompează și primește „nu mai e valabil · acum: 🟢 Ține”.
+- **Impact:** nu mai acționezi după o alertă care nu mai ține.
+- **Riscuri:** potrivirea pe cod (CHEI din consiliu.js), nu pe titlu — altfel se strică la orice reformulare (lecția de azi, R1 din revizia v100.108).
+- **Fișiere:** crypto/public/app.js, public/lib/tablou-extra.js.
+
+#### I-544 · Clic pe bec ⇒ graficul pe perioada lui · [S] · P3 · propus
+- **Problema:** becul încercuit e doar al graficului de dedesubt; ca să vezi trendul de 1 h pe lumânări trebuie să știi că „7 zile” = bare de 1 h.
+- **Soluția:** becurile 5m/15m/1h devin butoane (24 h / 3 zile / 7 zile); 30m/4h/1z rămân doar cu explicația.
+- **Impact:** din semafor direct la graficul care l-a aprins.
+- **Riscuri:** pe telefon becurile sunt mici (26–38 px) — ținta de atingere trebuie lărgită.
+- **Fișiere:** crypto/public/lib/grafic-bot.js, public/app.js.
+
+#### I-545 · Semaforul pe boții tăi (dovedit / nedovedit) · [M] · P2 · propus
+- **Problema:** semaforul descrie piața; nu știm dacă „verde pe 4 h + 1z la pornire” a însemnat boți mai buni pentru TINE.
+- **Soluția:** la fiecare bot din arhivă, starea becurilor din lumânările dinainte de pornire (aceeași regulă ca I-530 pentru ADX: fixată înainte, bootstrap pe monede, dovedit = IC fără 0 + același semn pe 70/30); un rând „pe boții tăi: …” lângă semafor, care tace până e dovedit.
+- **Impact:** știi dacă merită să aștepți becurile verzi înainte de pornire.
+- **Riscuri:** IPOTEZĂ, de validat out-of-sample; arhiva de 1 h începe din aprilie / nov. 2025 (I-530 a fost NEDOVEDIT).
+- **Fișiere:** crypto/public/lib/asemanatoare.js, grafic-bot.js, scripts/colector.mjs.
+
+#### I-546 · T212: coloana TREND pe aceeași regulă ca becul 1z · [S] · P2 · propus
+- **Problema:** pe AVGO tabelul pozițiilor scrie „↓ jos” (mediile), iar becul 1z din detaliu „lateral” — două voci în același ecran (cardul o explică, tabelul nu).
+- **Soluția:** coloana arată ambele când diferă („↓ jos · 1z lateral”) sau trece pe regula semaforului (de hotărât de el); legenda coloanei spune regula.
+- **Impact:** tabelul nu mai contrazice detaliul.
+- **Riscuri:** sfaturile și socoteala T212 sunt măsurate pe regula mediilor — ea nu se schimbă, doar afișarea.
+- **Fișiere:** crypto/public/lib/t212-ecran.js, public/lib/actiuni-semnale.js.
+
+#### I-547 · T212: Discord când becul 1z / 4h trece împotriva poziției · [M] · P2 · propus
+- **Problema:** semaforul T212 se vede doar când deschizi poziția; o întoarcere pe 1 zi poate trece neobservată până la verdict.
+- **Soluția:** colectorul are barele zilnice ale pozițiilor (dateDimineata, date-t212); o alertă o dată pe schimbare când 1z (și 4h, unde sunt bare) trece pe roșu, cu „de câte zile” și ce zice planul.
+- **Impact:** afli de întoarcere fără să deschizi pagina.
+- **Riscuri:** zgomot — doar 1z la început, 4h după ce se vede cât de des sună; dedublare cu alertele de trend existente (CHEI).
+- **Fișiere:** crypto/scripts/colector.mjs, scripts/lib/mesaje-colector.mjs, public/lib/grafic-bot.js.
+
+#### I-548 · Becurile se aprind pe rând; cererea picată se reia în 30 s · [S] · P2 · propus
+- **Problema:** azi becul de 5 min a stat pe „Pionex n-a dat lumânările la ultima cerere” până la următoarea tură (5 min); la T212 becurile apar abia după toate cele 5 cereri.
+- **Soluția:** redesen după fiecare TF venit; TF-ul picat se reia după 30 s (ca TB_DIR_REINCERCARE_MS), cu „reîncerc…” în bec.
+- **Impact:** semaforul complet mai repede, fără găuri lungi.
+- **Riscuri:** mai multe redesenări ale graficului (ieftine); limita Pionex / Twelve Data — reluarea doar pentru TF-ul picat.
+- **Fișiere:** crypto/public/app.js, public/lib/t212-ecran.js.
+
+Bug semnalat (nu e idee, merge la trading-code-craft): cu cheia Twelve Data, barele zilnice T212 au ora 00:00Z (ziua precedentă la New York), deci `bareBursa` nu scoate bara de azi în formare, iar becul 1z / banda o tratează ca închisă.
