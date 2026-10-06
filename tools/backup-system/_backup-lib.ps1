@@ -144,7 +144,59 @@ function Write-BackupLog {
   } catch { }
 }
 
+function Get-BackupLockName {
+  # Numele lacatului depinde de Root, ca testele (Root in TEMP) sa nu se calce
+  # cu backup-ul adevarat de pe E:.
+  param([Parameter(Mandatory)][string]$Root)
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($Root.ToLowerInvariant().TrimEnd('\'))
+  $sha = [System.Security.Cryptography.SHA256]::Create()
+  $h = (($sha.ComputeHash($bytes) | Select-Object -First 8 | ForEach-Object { $_.ToString('x2') }) -join '')
+  return ('Local\BackupClaude_' + $h)
+}
+
+function Save-BackupState {
+  param([Parameter(Mandatory)][string]$StatePath,[Parameter(Mandatory)][hashtable]$State)
+  try{
+    New-Item -ItemType Directory -Force -Path (Split-Path $StatePath -Parent) | Out-Null
+    ($State | ConvertTo-Json) | Set-Content -LiteralPath $StatePath -Encoding UTF8
+  } catch {}
+}
+
+function Test-IntervalNotElapsed {
+  # $true = itemul are `minIntervalHours` si ultima lui copie e mai noua de atat.
+  param([Parameter(Mandatory)]$Item,[Parameter(Mandatory)][string]$Root)
+  if(-not ($Item.PSObject.Properties.Name -contains 'minIntervalHours') -or -not $Item.minIntervalHours){ return $false }
+  $catDir = Join-Path $Root $Item.category
+  if(-not (Test-Path -LiteralPath $catDir)){ return $false }
+  $rx = '^' + [regex]::Escape($Item.name) + '_\d{4}-\d{2}-\d{2}_\d{6}(\.|$)'
+  $last = @(Get-ChildItem -LiteralPath $catDir -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match $rx } | Sort-Object LastWriteTime -Descending | Select-Object -First 1)
+  if($last.Count -eq 0){ return $false }
+  return (((Get-Date) - $last[0].LastWriteTime).TotalHours -lt [double]$Item.minIntervalHours)
+}
+
 function Invoke-Backup {
+  param([string]$Root = 'E:\Backup-Claude')
+  # Semafor cu nume, nu Mutex: un Mutex e reintrant pe acelasi fir, deci n-ar
+  # opri o a doua rulare din acelasi proces. Daca procesul moare, Windows
+  # inchide handle-ul si semaforul dispare - nu ramane un lacat agatat.
+  $sem = $null; $areLacat = $false
+  try{
+    $sem = New-Object System.Threading.Semaphore(1, 1, (Get-BackupLockName -Root $Root))
+    $areLacat = $sem.WaitOne(0)
+  } catch { $areLacat = $true }
+  if(-not $areLacat){
+    Write-BackupLog $Root "sărit: o rulare anterioară încă rulează (deja rulează)"
+    if($sem){ $sem.Dispose() }
+    return
+  }
+  try{
+    Invoke-BackupCore -Root $Root
+  } finally {
+    if($sem){ try{ [void]$sem.Release() }catch{}; $sem.Dispose() }
+  }
+}
+
+function Invoke-BackupCore {
   param([string]$Root = 'E:\Backup-Claude')
   try{
     if(-not (Test-Path -LiteralPath $Root)){ try{ New-Item -ItemType Directory -Force -Path $Root | Out-Null }catch{ return } }
@@ -169,6 +221,7 @@ function Invoke-Backup {
     $stamp = Get-Date -Format 'yyyy-MM-dd_HHmmss'
     foreach($item in $items){
       try{
+        if(Test-IntervalNotElapsed -Item $item -Root $Root){ Write-BackupLog $Root ("prea devreme: {0} (o copie la {1} h)" -f $item.name,$item.minIntervalHours); continue }
         $h = Get-ItemHash $item
         if($null -eq $h){ Write-BackupLog $Root ("LIPSĂ: {0} ({1})" -f $item.name,$item.path); continue }
         $prev = if($state.ContainsKey($item.name)){ $state[$item.name] } else { $null }
@@ -176,16 +229,16 @@ function Invoke-Backup {
         $snap = New-Snapshot -Item $item -Root $Root -Stamp $stamp
         if($null -eq $snap){ Write-BackupLog $Root ("GOL: {0} (niciun fișier de salvat)" -f $item.name); continue }
         $state[$item.name] = $h
+        # Scrisa dupa FIECARE item: daca rularea e oprita la jumatate, ce s-a
+        # salvat deja nu se reia de la zero data viitoare.
+        Save-BackupState -StatePath $statePath -State $state
         $del = Invoke-Rotation -CategoryDir (Join-Path $Root $item.category) -Name $item.name -Keep 3
         Write-BackupLog $Root ("snapshot: {0} -> {1} (șterse {2})" -f $item.name,(Split-Path $snap -Leaf),$del)
       } catch {
         Write-BackupLog $Root ("EROARE la {0}: {1}" -f $item.name, $_.Exception.Message)
       }
     }
-    try{
-      New-Item -ItemType Directory -Force -Path (Split-Path $statePath -Parent) | Out-Null
-      ($state | ConvertTo-Json) | Set-Content -LiteralPath $statePath -Encoding UTF8
-    } catch {}
+    Save-BackupState -StatePath $statePath -State $state
   } catch {
     try{ Write-BackupLog $Root ("EROARE globală: {0}" -f $_.Exception.Message) }catch{}
   }

@@ -175,5 +175,81 @@ Assert 'rotație scan a șters 1'     ($delCol -eq 1)
 Assert 'scan rămâne 3'             ($scanLeft -eq 3)
 Assert 'scan_v2 neatins (4)'       ($v2Left -eq 4)
 
+# Starea se scrie dupa FIECARE item, nu doar la final.
+#
+# 17.08-06.10.2026: hook-ul Stop are timeout 30 s si omora rularea dupa primele
+# 5-6 iteme; hashes.json se scria abia la final, deci nu se scria niciodata.
+# Fiecare rulare relua premarket+pine de la zero si nu ajungea la memorie,
+# gestiune, DatorieTrack. Aici: cand ajunge la al doilea item, primul e deja in stare.
+$sRoot = Join-Path $env:TEMP ('st_' + [System.Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Force -Path (Join-Path $sRoot '_config') | Out-Null
+$sfA = Join-Path $env:TEMP ('sa_' + [System.Guid]::NewGuid().ToString('N') + '.txt'); Set-Content -LiteralPath $sfA -Value 'A' -Encoding UTF8
+$sfB = Join-Path $env:TEMP ('sb_' + [System.Guid]::NewGuid().ToString('N') + '.txt'); Set-Content -LiteralPath $sfB -Value 'B' -Encoding UTF8
+$sjson = (@(
+  @{ name='primul'; category='c1'; path=$sfA; type='file'; exclude=@() },
+  @{ name='alDoilea'; category='c2'; path=$sfB; type='file'; exclude=@() }
+) | ConvertTo-Json -Depth 4)
+Set-Content -LiteralPath (Join-Path $sRoot '_config\watchlist.json') -Value $sjson -Encoding UTF8
+$script:stareLaB = $null
+$origHash = ${function:Get-ItemHash}
+function Get-ItemHash { param($Item)
+  if($Item.name -eq 'alDoilea'){
+    $sp = Join-Path $sRoot '_state\hashes.json'
+    $script:stareLaB = if(Test-Path $sp){ Get-Content -LiteralPath $sp -Raw } else { '' }
+  }
+  & $origHash -Item $Item
+}
+Invoke-Backup -Root $sRoot
+${function:Get-ItemHash} = $origHash
+Remove-Item $sfA,$sfB,$sRoot -Recurse -Force -ErrorAction SilentlyContinue
+Assert 'stare: primul item salvat inainte de al doilea' ($null -ne $script:stareLaB -and $script:stareLaB -like '*primul*')
+
+# Doua rulari NU se suprapun: hook-ul Stop porneste la fiecare raspuns, o rulare
+# lunga ar fi calcata de urmatoarea (acelasi zip, acelasi hashes.json).
+$lRoot = Join-Path $env:TEMP ('lk_' + [System.Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Force -Path (Join-Path $lRoot '_config') | Out-Null
+$lf = Join-Path $env:TEMP ('lf_' + [System.Guid]::NewGuid().ToString('N') + '.txt'); Set-Content -LiteralPath $lf -Value 'L' -Encoding UTF8
+Set-Content -LiteralPath (Join-Path $lRoot '_config\watchlist.json') -Value (@(@{ name='lk'; category='lk'; path=$lf; type='file'; exclude=@() }) | ConvertTo-Json -Depth 4 | ForEach-Object { "[$_]" }) -Encoding UTF8
+$sem = New-Object System.Threading.Semaphore(1, 1, (Get-BackupLockName -Root $lRoot))
+[void]$sem.WaitOne()
+try { Invoke-Backup -Root $lRoot } finally { [void]$sem.Release(); $sem.Dispose() }
+$lkCnt = @(Get-ChildItem -LiteralPath (Join-Path $lRoot 'lk') -File -ErrorAction SilentlyContinue).Count
+$lkLog = Get-Content -LiteralPath (Join-Path $lRoot '_log\backup-log.txt') -Raw -ErrorAction SilentlyContinue
+Invoke-Backup -Root $lRoot
+$lkCnt2 = @(Get-ChildItem -LiteralPath (Join-Path $lRoot 'lk') -File -ErrorAction SilentlyContinue).Count
+Remove-Item $lf,$lRoot -Recurse -Force -ErrorAction SilentlyContinue
+Assert 'lacat: a doua rulare nu face nimic'  ($lkCnt -eq 0)
+Assert 'lacat: scrie de ce a sarit'          ($lkLog -like '*deja ruleaz*')
+Assert 'lacat: eliberat, rularea merge'      ($lkCnt2 -eq 1)
+
+# minIntervalHours: un item mare care se schimba des (crypto/data, la 2 min)
+# primeste o copie cel mult o data la N ore, nu la fiecare raspuns.
+$iRoot = Join-Path $env:TEMP ('iv_' + [System.Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Force -Path (Join-Path $iRoot '_config') | Out-Null
+$if1 = Join-Path $env:TEMP ('if_' + [System.Guid]::NewGuid().ToString('N') + '.txt'); Set-Content -LiteralPath $if1 -Value 'v1' -Encoding UTF8
+Set-Content -LiteralPath (Join-Path $iRoot '_config\watchlist.json') -Value (@(@{ name='mare'; category='mare'; path=$if1; type='file'; exclude=@(); minIntervalHours=24 }) | ConvertTo-Json -Depth 4 | ForEach-Object { "[$_]" }) -Encoding UTF8
+Invoke-Backup -Root $iRoot
+# nume vechi, data proaspata: intervalul se judeca dupa data fisierului, iar o
+# copie noua n-ar mai putea suprascrie-o pe asta din greseala (alt stamp)
+Get-ChildItem -LiteralPath (Join-Path $iRoot 'mare') -File | ForEach-Object { Rename-Item -LiteralPath $_.FullName -NewName ('mare_2026-01-02_000000' + $_.Extension) }
+Set-Content -LiteralPath $if1 -Value 'v2' -Encoding UTF8
+Invoke-Backup -Root $iRoot
+$iv1 = @(Get-ChildItem -LiteralPath (Join-Path $iRoot 'mare') -File).Count
+# Copia "veche" primeste si un nume vechi: doua rulari in aceeasi secunda ar
+# avea acelasi stamp, iar a doua ar suprascrie-o pe prima (test instabil).
+$k = 0
+Get-ChildItem -LiteralPath (Join-Path $iRoot 'mare') -File | ForEach-Object {
+  $_.LastWriteTime = (Get-Date).AddHours(-25)
+  $k++
+  Rename-Item -LiteralPath $_.FullName -NewName (('mare_2026-01-01_00000{0}' -f $k) + $_.Extension)
+}
+Invoke-Backup -Root $iRoot
+$iv2 = @(Get-ChildItem -LiteralPath (Join-Path $iRoot 'mare') -File).Count
+$ivLog = Get-Content -LiteralPath (Join-Path $iRoot '_log\backup-log.txt') -Raw
+Remove-Item $if1,$iRoot -Recurse -Force -ErrorAction SilentlyContinue
+Assert 'interval: schimbat dar prea devreme = tot 1' ($iv1 -eq 1)
+Assert 'interval: log spune prea devreme'            ($ivLog -like '*prea devreme*')
+Assert 'interval: dupa 25 h face copia = 2'          ($iv2 -eq 2)
+
 Write-Host "`nSUMMARY $script:pass PASS / $script:fail FAIL"
 if($script:fail -gt 0){ exit 1 } else { exit 0 }
