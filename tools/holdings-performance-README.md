@@ -10,6 +10,9 @@ The shared source loader records `model.sourceFingerprint` only after verifying
 the full history and its EOD close. The dashboard uses this provenance instead
 of hashing the 90 chart bars. Missing or revised full-history provenance blocks
 historical results; it is never inferred from the model report being checked.
+An overlapping technical chart refresh may retain this provenance for at most
+30 minutes only when symbol, currency, EOD, close, session settings and all
+displayed OHLCV bars are unchanged. A revision invalidates it.
 
 Historical Neural/Boosting log loss, Brier and balanced accuracy are compared
 with their linear/class-frequency baselines. HMM uses held-out density NLL;

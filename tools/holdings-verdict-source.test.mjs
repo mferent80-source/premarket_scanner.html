@@ -13,6 +13,16 @@ test('the cached chart model retains provenance of the full verified history whe
  assert.equal(model.sourceFingerprint,source.fingerprint);assert.notEqual(model.sourceFingerprint,s.c.HoldingsVerdict.fingerprint(model.bars));
  assert.equal(JSON.parse(s.writes[0][1])['account-a|TEST_US_EQ'].model.sourceFingerprint,source.fingerprint);
 });
+test('a simultaneous chart refresh preserves only recent full-source provenance for unchanged chart data and identity',()=>{
+ const now=Date.parse('2026-10-06T03:40:00Z'),bars=[{t:1,o:99,h:101,l:98,c:100,v:1000}],prior={asOf:'2026-10-05',price:100,timezone:'America/New_York',closeMinutes:960,bars,sourceFingerprint:'full-five-year-history',sourceVerifiedAt:now-1000},old={symbol:'TEST',currency:'USD',model:prior};
+ const c={HoldingsVerdict:{fingerprint:bars=>JSON.stringify(bars)}};vm.createContext(c);vm.runInContext(code.slice(code.indexOf('function retainVerifiedSource('),code.indexOf('async function loadVerdict(')),c);
+ for(const change of ['none','symbol','currency','session','history','expired','future']){
+  const model=structuredClone(prior);delete model.sourceFingerprint;delete model.sourceVerifiedAt;const previous=structuredClone(old);
+  if(change==='symbol')previous.symbol='OTHER';if(change==='currency')previous.currency='EUR';if(change==='session')model.asOf='2026-10-02';if(change==='history')model.bars[0].o=98;if(change==='expired')previous.model.sourceVerifiedAt=now-1800001;if(change==='future')previous.model.sourceVerifiedAt=now+1;
+  assert.equal(c.retainVerifiedSource(model,previous,'TEST','USD',now),change==='none',change);assert.equal(model.sourceFingerprint,change==='none'?prior.sourceFingerprint:undefined,change);
+ }
+ assert.match(code,/retainVerifiedSource\(model,old,s,currency==='GBp'\?'GBX':currency\);cache\[entry\]/);
+});
 test('closing, account or mapping changes and position removal prevent delayed cache writes',async()=>{for(const change of ['close','account','mapping','removed','sector']){const s=setup();let active=true;const pending=s.c.loadVerdict(s.c.positions[0],{isCurrent:()=>active});if(change==='close')active=false;if(change==='account')s.c.scope='account-b';if(change==='mapping')s.c.symbol=()=> 'OTHER';if(change==='removed')s.c.positions=[];if(change==='sector')s.c.sectorPrefs.TEST_US_EQ='XLK';s.resolve();await assert.rejects(pending,/anulată/);assert.equal(s.writes.length,0);assert.equal(Object.keys(s.c.cache).length,0);}});
 test('wrong listing, missing currency or mismatched technical close fail before persistence',async()=>{for(const change of ['symbol','currency','price']){const s=setup(),pending=s.c.loadVerdict(s.c.positions[0],{isCurrent:()=>true});if(change==='symbol')s.raw.meta.symbol='OTHER';if(change==='currency')s.raw.meta.currency=null;if(change==='price')s.c.HoldingsAnalysis.analyze=()=>({asOf:'2026-10-02',price:105});s.resolve();await assert.rejects(pending);assert.equal(s.writes.length,0);assert.equal(Object.keys(s.c.cache).length,0);}});
 test('a full analysis cache cannot block a validated common source or overwrite the previous stored data',async()=>{
