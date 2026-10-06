@@ -2,6 +2,8 @@
 
 `holdings-strategy-v1` urmărește decizii noi, nu reconstruiește tranzacții din teste istorice. Este disponibilă în Analiza deținerilor → Modele AI → Strategie simulată și în Shadow Book. Nu trimite ordine și nu utilizează soldul sau cantitatea deținerii.
 
+Secțiunea separată [Risc în cont](ai-account-risk.md) verifică estimativ suplimentarea de 1.000 USD față de snapshot-ul Invest, stopurile manuale și limitele utilizatorului. Păstrează prima verificare la deciziile noi și afișează separat datele citite acum. Această verificare nu modifică politica fixă sau rezultatele simulării.
+
 Captura pornește numai după salvarea unei estimări originale a Verdictului final, cu 6/6 rapoarte actuale verificate. Reanalizarea aceleiași sesiuni, restaurarea unui registru și schimbarea costurilor nu adaugă o decizie retrospectivă. Rămâne în vigoare cutoff-ul conservator al registrului predicțiilor: după începutul următoarei zile lucrătoare în fusul bursei, o estimare nouă pentru EOD-ul anterior este refuzată. O strategie se fixează în cel mult 60 de secunde de la captură, înaintea deschiderii utilizate ca intrare.
 
 Regula inițială, pentru instrumente USD / New York / închidere regulată la 16:00:
