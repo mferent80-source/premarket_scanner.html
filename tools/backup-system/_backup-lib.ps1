@@ -3,7 +3,9 @@ Set-StrictMode -Version Latest
 
 # Tipare secrete. `sk-ant-*`/`ghp_*` prind cheile reale Anthropic/GitHub; am scos `sk-*`/`pk-*`
 # bare (false-positives pe fișiere legitime de cod, iar backup-ul e local deci riscul de leak e mic).
-$script:SecretPatterns = @('*.key','*.pem','.env','*token*','*secret*','*apikey*','*api*key*','sk-ant-*','sk-proj-*','ghp_*','gho_*','github_pat_*')
+$script:SecretPatterns = @('*.key','*.pem','.env','*token*','*secret*','*apikey*','*api*key*','sk-ant-*','sk-proj-*','ghp_*','gho_*','github_pat_*',
+  # numele romanesti din PAZNIC-CRYPTO (06.10.2026): jeton.txt, .parola-panou, chei-pionex.json
+  '*jeton*','*parola*','chei-*','chei_*','.dev.vars*')
 
 function Test-IsSecret {
   param([Parameter(Mandatory)][string]$Name)
@@ -37,8 +39,17 @@ function Get-Sha256Hex {
   }
 }
 
+function Get-ItemExcludes {
+  # ($exclude pe foldere, $excludeFiles pe nume de fisier) - ambele optionale in watchlist
+  param([Parameter(Mandatory)]$Item)
+  $ex = @(); $exf = @()
+  if(($Item.PSObject.Properties.Name -contains 'exclude') -and $Item.exclude){ $ex = @($Item.exclude) }
+  if(($Item.PSObject.Properties.Name -contains 'excludeFiles') -and $Item.excludeFiles){ $exf = @($Item.excludeFiles) }
+  return @{ Folders = $ex; Files = $exf }
+}
+
 function Get-IncludedFiles {
-  param([Parameter(Mandatory)][string]$Root,[string[]]$Exclude=@())
+  param([Parameter(Mandatory)][string]$Root,[string[]]$Exclude=@(),[string[]]$ExcludeFiles=@())
   $rootFull = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\')
   $result = New-Object System.Collections.Generic.List[System.IO.FileInfo]
   $stack = New-Object System.Collections.Stack
@@ -56,7 +67,9 @@ function Get-IncludedFiles {
         foreach($ex in $Exclude){ if($e.Name -ieq $ex -or $childRel -ieq $ex){ $excluded=$true; break } }
         if(-not $excluded){ $stack.Push($e.FullName) }
       } else {
-        if(-not (Test-IsSecret $e.Name)){ $result.Add($e) }
+        $skip = Test-IsSecret $e.Name
+        if(-not $skip){ foreach($p in $ExcludeFiles){ if($e.Name -like $p){ $skip = $true; break } } }
+        if(-not $skip){ $result.Add($e) }
       }
     }
   }
@@ -67,9 +80,9 @@ function Get-IncludedFiles {
 }
 
 function Get-FolderHash {
-  param([Parameter(Mandatory)][string]$Root,[string[]]$Exclude=@())
+  param([Parameter(Mandatory)][string]$Root,[string[]]$Exclude=@(),[string[]]$ExcludeFiles=@())
   $rootFull = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\')
-  $files = @(Get-IncludedFiles -Root $rootFull -Exclude $Exclude) | Sort-Object FullName
+  $files = @(Get-IncludedFiles -Root $rootFull -Exclude $Exclude -ExcludeFiles $ExcludeFiles) | Sort-Object FullName
   $sb = New-Object System.Text.StringBuilder
   foreach($f in $files){
     $rel = $f.FullName.Substring($rootFull.Length).TrimStart('\')
@@ -91,9 +104,8 @@ function New-Snapshot {
     Copy-Item -LiteralPath $Item.path -Destination $dest -Force
     return $dest
   }
-  $ex = @()
-  if(($Item.PSObject.Properties.Name -contains 'exclude') -and $Item.exclude){ $ex = @($Item.exclude) }
-  $files = @(Get-IncludedFiles -Root $Item.path -Exclude $ex)
+  $x = Get-ItemExcludes -Item $Item
+  $files = @(Get-IncludedFiles -Root $Item.path -Exclude $x.Folders -ExcludeFiles $x.Files)
   if($files.Count -eq 0){ return $null }
   $rootFull = (Resolve-Path -LiteralPath $Item.path).Path.TrimEnd('\')
   $stage = Join-Path ([System.IO.Path]::GetTempPath()) ('bkp_' + [System.Guid]::NewGuid().ToString('N'))
@@ -132,9 +144,8 @@ function Get-ItemHash {
   param([Parameter(Mandatory)]$Item)
   if(-not (Test-Path -LiteralPath $Item.path)){ return $null }
   if($Item.type -eq 'file'){ return Get-Sha256Hex $Item.path }
-  $ex = @()
-  if(($Item.PSObject.Properties.Name -contains 'exclude') -and $Item.exclude){ $ex = @($Item.exclude) }
-  return Get-FolderHash -Root $Item.path -Exclude $ex
+  $x = Get-ItemExcludes -Item $Item
+  return Get-FolderHash -Root $Item.path -Exclude $x.Folders -ExcludeFiles $x.Files
 }
 
 function Write-BackupLog {

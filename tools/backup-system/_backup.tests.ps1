@@ -266,5 +266,35 @@ Assert 'folder secrete: cheia NU intra'   (-not ($skNames -like '*firebase-gesti
 Assert 'folder Secrets: NU intra'         (-not ($skNames -like '*cont.json*'))
 Assert 'folder secrete: codul intra'      ($skNames -like '*app.py*')
 
+# Numele romanesti ale secretelor din PAZNIC-CRYPTO (06.10.2026): `jeton.txt`
+# nu e prins de `*token*`, iar `chei-pionex.json` / `.parola-panou` de nimic.
+Assert 'secret jeton.txt'          (Test-IsSecret 'jeton.txt')
+Assert 'secret .parola-panou'      (Test-IsSecret '.parola-panou')
+Assert 'secret chei-pionex.json'   (Test-IsSecret 'chei-pionex.json')
+Assert 'secret chei-ai.json'       (Test-IsSecret 'chei-ai.json')
+Assert 'secret .dev.vars'          (Test-IsSecret '.dev.vars')
+Assert 'nu e secret jurnal.csv'    (-not (Test-IsSecret 'jurnal.csv'))
+Assert 'nu e secret cheltuieli'    (-not (Test-IsSecret 'cheltuieli.json'))
+
+# excludeFiles: tipare pe NUMELE fisierului, per item (lista `exclude` stie doar foldere).
+$xf = Join-Path $env:TEMP ('xf_' + [System.Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Force -Path (Join-Path $xf 'sub') | Out-Null
+Set-Content -LiteralPath (Join-Path $xf 'jurnal.csv') -Value 'j' -Encoding UTF8
+Set-Content -LiteralPath (Join-Path $xf 'vechi.mjs.bak') -Value 'b' -Encoding UTF8
+Set-Content -LiteralPath (Join-Path $xf 'sub\alt.bak') -Value 'b' -Encoding UTF8
+$xRoot = Join-Path $env:TEMP ('xr_' + [System.Guid]::NewGuid().ToString('N'))
+$xItem = [pscustomobject]@{ name='xf'; category='xf'; path=$xf; type='folder'; exclude=@(); excludeFiles=@('*.bak') }
+$xSnap = New-Snapshot -Item $xItem -Root $xRoot -Stamp '2026-10-06_120000'
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$xz = [System.IO.Compression.ZipFile]::OpenRead($xSnap); $xEnt = ($xz.Entries | ForEach-Object { $_.FullName }) -join ','; $xz.Dispose()
+$xh1 = Get-ItemHash $xItem
+Set-Content -LiteralPath (Join-Path $xf 'vechi.mjs.bak') -Value 'altceva' -Encoding UTF8
+$xh2 = Get-ItemHash $xItem
+Remove-Item $xf,$xRoot -Recurse -Force -ErrorAction SilentlyContinue
+Assert 'excludeFiles: jurnal.csv intra'        ($xEnt -like '*jurnal.csv*')
+Assert 'excludeFiles: .bak NU intra'           (-not ($xEnt -like '*.bak*'))
+Assert 'excludeFiles: nici in subfolder'       (-not ($xEnt -like '*alt.bak*'))
+Assert 'excludeFiles: .bak nu schimba hash-ul' ($xh1 -eq $xh2)
+
 Write-Host "`nSUMMARY $script:pass PASS / $script:fail FAIL"
 if($script:fail -gt 0){ exit 1 } else { exit 0 }
