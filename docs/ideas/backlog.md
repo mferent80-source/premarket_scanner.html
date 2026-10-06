@@ -3259,6 +3259,10 @@ pe un singur chart.
 | I-551 | „Ce ai de făcut acum”: butonul „copiază” lângă prețul propus (take-profit la zero, stopul), ca în fișă | crypto/public/app.js (tbRenderTodo) + lib/tablou-extra.js | S | P3 | făcut | ideation | 2026-10-06 |
 | I-552 | Dimineața pe Discord: becurile 4 h / 1 zi pe fiecare bot și poziție + ce s-a schimbat peste noapte | crypto/scripts/lib/tura-dimineata.mjs + colector.mjs (dateDimineata) + grafic-bot.js (semafor, semZi) | M | P2 | făcut | ideation | 2026-10-06 |
 | I-553 | Semaforul Tabloului (6 TF, reluarea, „becurile pe rând”) scos din app.js într-un modul pur cu probe pe comportament, nu pe text | crypto/public/app.js (tbAduDirectie, tbReiaLipsa, tbSemaforTf) ⇒ public/lib/tablou-trend.js nou | M | P3 | făcut | ideation | 2026-10-06 |
+| I-554 | Radar: meniul în 3 grupe - „Zilnic” (Tablou, Grid, Jurnal, T212, Alerte, Scanner) sus, „Unelte” (piața, futures, Nasdaq, cont Pionex, Cloud, Setări, Health), „Laborator vechi” (~33 de tab-uri) pliat; nimic șters | crypto/public/index.html (nav) + app.css | S | P1 | propus | ideation | 2026-10-06 |
+| I-555 | Radar pe telefon: bara de jos = Tablou · Grid · T212 · Alerte · ⋯ (azi Home · Scan · Signals · Market - pagini pe care nu le folosește) | crypto/public/index.html (mobileNav) + app.js | S | P1 | propus | ideation | 2026-10-06 |
+| I-556 | Radar: numărătoarea deschiderilor pe tab (local, fără server) + rând în Health „neatinse de 30 de zile” - decizia de scoatere pe date, nu pe impresie | crypto/public/app.js (navTo) + Health | S | P2 | propus | ideation | 2026-10-06 |
+| I-557 | Radar: laboratoarele vechi nu se mai desenează / pornesc la încărcare (renderValidation, renderForwardLab, renderProfitReadiness, renderReplayLab, renderEdgePro, renderV65…, initV67Operations cu timer), ci doar la deschiderea lor - măsurat înainte / după | crypto/public/app.js (pornirea, L~7098) | M | P2 | propus | ideation | 2026-10-06 |
 
 ### Status update 2026-09-03 — I-355..I-358 FACUTE + cercetare pe roboti de top
 **Facute in Paznic v3:** I-355 (delta reala din takerlongshortRatio) · I-356 (conturi mici vs
@@ -5606,3 +5610,38 @@ Acoperire: lecția zilei pe NIL (oferta din KV `ferestre`, botul real, fișa pe 
 - **Impact:** schimbările viitoare ale semaforului nu mai rup Tabloul pe tăcute.
 - **Riscuri:** refactor fără schimbare de comportament - de făcut cu poza înainte / după.
 - **Fișiere:** crypto/public/app.js ⇒ public/lib/tablou-trend.js (nou), scripts/proba nouă.
+
+
+## I-554..I-557 · Crypto Radar: ce tab-uri rămân · 2026-10-06
+
+El (06.10): „la crypto sunt atâtea taburi, cu care continuăm și care e de real folos?”. 46 de tab-uri în meniu.
+Dovezi: commit-urile din crypto de la 01.09 (530): grid/fișa 273, Tablou 232, T212 133, jurnal 107, piața 43, futures 36, Nasdaq 35, Scanner 34, alerte 31, cloud 20, cont/sold 19; ~25 de tab-uri cu 0–3 (Quant Engine, Multi-TF, Opportunity, Volume Profile, Volatility, Microstructure, Risk Manager, Decision Center, Correlation, Paper, Strategy Analytics, Robustness, Portfolio, Calibration, Validation, Forward, Edge Pro, Profit Readiness, Replay, Monte Carlo, Scenario, Order Book, Signals, Backtest, Watchlist, Market Profile, Structure, Context, Decision Core, Local Data, Desk, Dashboard). Limita: commit-urile arată ce a cerut să se schimbe, nu ce deschide ⇒ I-556.
+Fără idei respinse / făcute pe același mecanism (căutat „meniu”, „tab”, „ascun” în backlog).
+
+#### I-554 · Meniul în 3 grupe · [S] · P1 · propus
+- **Problema:** 46 de intrări la același nivel; cele 5–6 pe care lucrează zilnic se pierd printre laboratoare scrise înainte de Tablou (multe dublate acum de Tablou: Multi-TF ≈ tabelul „Trendul pe TF-uri”, Risk Manager ≈ Consilierul, Order Book / Microstructure).
+- **Soluția:** „Zilnic” sus, „Unelte” la mijloc, „Laborator vechi” pliat (se deschide la clic, starea ținută local). Nimic nu se șterge; navTo și legăturile rămân.
+- **Impact:** găsește din prima ce folosește; nu mai deschide din greșeală un laborator vechi care pare la fel de important.
+- **Riscuri:** probele de ecran care caută butoane din meniu (proba-ecran-*); ordinea din „Zilnic” - de confirmat cu el.
+- **Fișiere:** crypto/public/index.html, public/app.css.
+
+#### I-555 · Bara de jos pe telefon · [S] · P1 · propus
+- **Problema:** pe telefon bara are Home (Dashboard), Scan, Signals, Market - niciuna nu e Tabloul, Grid sau T212.
+- **Soluția:** Tablou · Grid · T212 · Alerte · ⋯ (restul).
+- **Impact:** de pe telefon (Tailscale) ajunge într-un clic la bot.
+- **Riscuri:** lățimea la 400 px (5 butoane), proba de ecran a barei.
+- **Fișiere:** crypto/public/index.html, public/app.js.
+
+#### I-556 · Câte deschideri are fiecare tab · [S] · P2 · propus
+- **Problema:** nu știm ce deschide de fapt; commit-urile măsoară cererile, nu folosirea.
+- **Soluția:** navTo numără local (localStorage) deschiderile și ziua ultimei deschideri; Health arată „neatinse de 30 de zile”. Fără server, fără trimitere.
+- **Impact:** după 30 de zile, scoaterea se face pe date.
+- **Riscuri:** pe fiecare aparat separat (PC / telefon) - se spune pe ecran.
+- **Fișiere:** crypto/public/app.js (navTo, Health).
+
+#### I-557 · Laboratoarele vechi nu mai pornesc la încărcare · [M] · P2 · propus
+- **Problema:** la pornire se desenează Validation, Forward, Profit Readiness, Replay, Edge Pro, Decision OS și pornește bucla „Operations” (v67), chiar dacă el deschide Tabloul. Costul nu e măsurat.
+- **Soluția:** întâi măsurătoarea (timpul până la Tablou gata, pe 8788, profil curat); apoi desenul acestora mutat în navTo (la prima deschidere).
+- **Impact:** pornire mai rapidă pe telefon, dacă măsurătoarea arată un cost.
+- **Riscuri:** unele laboratoare citesc starea altora la pornire (v66 / v67) - de urmărit cu probele existente.
+- **Fișiere:** crypto/public/app.js (pornirea ~L7098, navTo).
