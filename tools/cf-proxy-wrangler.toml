@@ -1,0 +1,37 @@
+# Deploy pentru CORS proxy-ul suitei (tools/cf-worker-proxy.js).
+#
+# Pana pe 22.09.2026 worker-ul se actualiza LIPIND fisierul in dashboard-ul Cloudflare.
+# Asta inseamna ca o reparatie comisa aici nu ajungea la el pana cand cineva nu deschidea
+# browserul si nu apasa Deploy - si nimic din repo nu spunea daca s-a facut sau nu.
+#
+#   npx wrangler deploy --config tools/cf-proxy-wrangler.toml --keep-vars
+#
+# ATENTIE, cele doua lucruri care se pot PIERDE la un deploy:
+#
+#  1. CRON TRIGGER-ul. Worker-ul loveste la fiecare 5 minute `workflow_dispatch` pe
+#     GitHub, ceea ce PORNESTE verificarea de alerte (GitHub singur nu tine cadenta).
+#     Un deploy fara sectiunea [triggers] de mai jos STERGE cron-ul, iar alertele se
+#     opresc in tacere. Cron-ul exista din 2026-06-14 si e declarat aici ca sa
+#     supravietuiasca fiecarui deploy.
+#
+#  2. VARIABILELE. `--keep-vars` pastreaza ce e setat in dashboard. Secretul
+#     GH_DISPATCH_TOKEN (singurul, la 22.09.2026) e gestionat separat prin
+#     `wrangler secret` si nu se pierde la deploy - dar `--keep-vars` ramane
+#     obligatoriu cat timp configul de aici nu declara [vars].
+#
+# `compatibility_date` e EXACT cea cu care ruleaza worker-ul acum (citita din API).
+# Nu o urca fara motiv: schimba comportamentul runtime-ului sub un cod care merge.
+
+name = "tt-proxy"
+main = "cf-worker-proxy.js"
+compatibility_date = "2026-06-12"
+workers_dev = true
+
+# Worker-ul avea `previews_enabled: false` inainte de primul deploy prin wrangler
+# (citit din API). Wrangler le ACTIVEAZA implicit cand `workers.dev` e pornit si
+# setarea lipseste din config, ceea ce ar expune URL-uri de preview care pana acum
+# nu existau. Declarat explicit ca sa ramana cum era.
+preview_urls = false
+
+[triggers]
+crons = ["*/5 * * * *"]

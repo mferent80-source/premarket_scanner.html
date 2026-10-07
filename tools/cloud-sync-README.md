@@ -2,7 +2,15 @@
 
 ## Stare la publicare
 
-Codul, interfața și testele sunt implementate. **Serviciul nu este activat online.** Verificarea din 6 octombrie 2026 a primit `not_found` de la `/api/cloud/status`: Workerul public nu include încă rutele cloud. Configurația păstrează `enabled:false`, cu `autoActivate:true` pentru o verificare anonimă de disponibilitate. Nicio sesiune, înregistrare sau cheie Trading 212 nu este trimisă în această verificare. Protocolul actual include și istoricul semnalelor Europa și setările de risc. Workerul public încă trebuie activat. Sincronizarea devine disponibilă numai după ce serverul confirmă protocolul, Google, criptarea, bindingul și schema D1. Publicarea GitHub Pages nu creează aceste resurse.
+Codul, interfața și testele sunt implementate. Configurația aplicației păstrează `enabled:false`, cu `autoActivate:true`: sincronizarea devine disponibilă când `/api/cloud/status` confirmă protocolul, Google, criptarea, bindingul și schema D1. Nicio sesiune, înregistrare sau cheie Trading 212 nu este trimisă în această verificare. Protocolul actual include și istoricul semnalelor Europa și setările de risc.
+
+### Publicare automată din GitHub
+
+`wrangler.toml` din rădăcină publică `tools/cloud-sync-worker.mjs` în Workerul **premarket-scanner-html**, cu rutele Google și releul Trading 212 împreună. În Cloudflare → Worker → Settings → Build, rădăcina proiectului este rădăcina repo, iar comanda de deploy este `npx wrangler deploy`. Configurația păstrează bindingul D1, variabilele și secretele deja configurate în dashboard prin `unsafe.metadata.keep_bindings`. Lista include explicit `d1`, `plain_text`, `json`, `secret_text` și `secret_key`, deoarece metadata înlocuiește lista generată de Wrangler. Nu creează o altă bază și nu schimbă cheia de criptare.
+
+`tools/cloud-sync-wrangler.jsonc` oferă aceeași configurație pentru deploy explicit cu `--config`. La prima instalare trebuie configurate în dashboard `CLOUD_DB` → baza existentă `trading-tools-sync`, schema SQL, `GOOGLE_CLIENT_ID`, `CLOUD_ENCRYPTION_KEY` și modul Trading 212. Păstrarea bindingurilor nu creează resurse lipsă. Dacă un deploy anterior a eliminat `CLOUD_DB`, reatașează aceeași bază; înregistrările existente rămân acolo.
+
+Configurația veche a proxy-ului de piață **tt-proxy**, inclusiv data de compatibilitate și triggerul declarat, este păstrată separat în `tools/cf-proxy-wrangler.toml`. Publicarea lui este explicită: `npx wrangler deploy --config tools/cf-proxy-wrangler.toml --keep-vars`. Deploy-ul implicit al serviciului Google nu publică proxy-ul de piață.
 
 ### Pachet pregătit pentru Cloudflare Dashboard
 
@@ -24,20 +32,14 @@ node tools/cloud-sync-bundle.mjs --check
 ## Configurare unică de administrator
 
 1. În Google Cloud → Google Auth Platform, configurează branding/audience și creează un client **Web application**. Authorized JavaScript origins: `https://mferent80-source.github.io`. Se folosește Google Identity Services cu callback JavaScript, nu redirect OAuth server; nu este necesar un client secret Google. În modul Testing, adaugă contul folosit pe PC și telefon la test users. Permisiuni: identitate Google (`openid`, email), fără Drive/Gmail.
-2. În mediul tău autentificat Cloudflare, din rădăcina repo:
+2. În Cloudflare Dashboard creează `trading-tools-sync` numai dacă nu există deja. Aplică `tools/cloud-sync-schema.sql` în consola bazei și leagă baza la Worker prin bindingul **CLOUD_DB**. La o republicare păstrează baza existentă.
+3. Numele Workerului din ambele configurații este `premarket-scanner-html`. Modul releului existent trebuie păstrat; pentru credențiale furnizate de aplicație, configurează `T212_AUTH_MODE=session` în dashboard.
+4. Configurează Client ID Google și cheia de criptare **ca secrete ale Workerului**, nu în GitHub. Comenzile următoare sunt pentru prima configurare; la o republicare execută numai deploy, fără a regenera cheia:
 
 ```sh
-npx wrangler d1 create trading-tools-sync
-```
-
-3. Copiază ID-ul bazei create în `tools/cloud-sync-wrangler.jsonc` în locul `REPLACE_WITH_CREATED_DATABASE_ID`. Numele Workerului este cel deja folosit pentru Trading 212: `premarket-scanner-html`.
-4. Aplică schema, apoi configurează Client ID Google și cheia de criptare **ca secrete ale Workerului**, nu în GitHub:
-
-```sh
-npx wrangler d1 execute trading-tools-sync --remote --file tools/cloud-sync-schema.sql --config tools/cloud-sync-wrangler.jsonc
-npx wrangler secret put GOOGLE_CLIENT_ID --config tools/cloud-sync-wrangler.jsonc
-node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('base64url'))" | npx wrangler secret put CLOUD_ENCRYPTION_KEY --config tools/cloud-sync-wrangler.jsonc
-npx wrangler deploy --config tools/cloud-sync-wrangler.jsonc --keep-vars
+npx wrangler secret put GOOGLE_CLIENT_ID
+node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('base64url'))" | npx wrangler secret put CLOUD_ENCRYPTION_KEY
+npx wrangler deploy
 ```
 
 **Generează cheia de criptare o singură dată.** Păstrează o copie în managerul tău de secrete; schimbarea ei face înregistrările existente imposibil de decriptat fără migrare. Nu introduce API Key/Secret Trading 212 în comenzi sau fișiere. Acestea sunt preluate din conexiunea salvată numai după autentificarea în aplicație.
