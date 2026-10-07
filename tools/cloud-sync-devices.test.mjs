@@ -27,7 +27,7 @@ async function device(server,{local={},vault=null}={}){
  const window={addEventListener(){},dispatchEvent(){},TTPlanStore:{create:()=>planStore(localStorage,{durable:null,notify:false})},TTCloudStore:{get:async k=>structuredClone(privateStore.get(k)??null),put:async(k,v)=>privateStore.set(k,structuredClone(v)),remove:async k=>privateStore.delete(k)},T212Vault:{read:async()=>connection,save:async value=>{connection=structuredClone(value);},clear:async()=>{connection=null;}}};
  const context={window,localStorage,KEYS,mergeRecord,validateValue,location:{origin,href:origin+'/app/'},document:{hidden:false,querySelectorAll:()=>[],getElementById:()=>null,addEventListener(){}},navigator:{onLine:true},CustomEvent:class{},StorageEvent:class{},AbortController,URL,Date,setTimeout,clearTimeout,setInterval:()=>{},fetch:async(url,options)=>{calls.push({url,method:options?.method||'GET'});if(url==='cloud-sync-config.json')return Response.json({enabled:false,autoActivate:true,endpoint});return server.fetcher(url,options);}};
  vm.createContext(context);vm.runInContext(source,context);const api=window.TTCloud;await api.recheck();assert.equal(api.state().ready,true);assert.equal(api.state().connected,false);
- return {api,storage,privateStore,calls,vault:()=>connection,signIn:async(subject='123')=>{const {nonce}=await api.challenge();await api.login(await server.identity(nonce,subject),nonce);}};
+ return {api,storage,privateStore,calls,vault:()=>connection,forgetConnection:()=>window.T212Vault.clear(),signIn:async(subject='123')=>{const {nonce}=await api.challenge();await api.login(await server.identity(nonce,subject),nonce);}};
 }
 test('PC and new phone reconcile through real JWT verification, encrypted D1 records and device sessions',async()=>{
  const server=await service();try{
@@ -40,6 +40,19 @@ test('PC and new phone reconcile through real JWT verification, encrypted D1 rec
   assert.equal(JSON.parse(phone.storage.get('tt_journal_v1'))[0].note,'PC edit');assert.equal(phone.api.state().conflicts.length,0);assert.equal(phone.privateStore.get('backups:123')[0].snapshot.tt_journal_v1[0].note,'phone edit');
   const stranger=await device(server);await stranger.signIn('456');assert.equal(stranger.storage.get('tt_journal_v1'),undefined);assert.equal(stranger.vault(),null);
   await pc.api.logout();const before=pc.calls.filter(c=>c.url.endsWith('/records')).length;await assert.rejects(pc.signIn('456'),/account_mismatch/);assert.equal(pc.calls.filter(c=>c.url.endsWith('/records')).length,before);assert.equal(pc.privateStore.get('owner'),'123');
+ }finally{server.sqlite.close();}
+});
+
+test('explicit cloud save and retrieval restore a forgotten phone connection through authenticated encrypted D1',async()=>{
+ const server=await service();try{
+  const credentials={environment:'demo',key:'fixture-api-key',secret:'fixture-api-secret'},pc=await device(server,{vault:credentials});await pc.signIn();
+  await pc.api.publishCredentials();assert.equal(pc.api.state().trading212.synced,true);assert.match(pc.api.state().trading212.message,/verificată/);
+  const phone=await device(server);await phone.signIn();assert.deepEqual(phone.vault(),credentials);
+  await phone.forgetConnection();await phone.api.sync();assert.equal(phone.vault(),null);assert.equal(phone.api.state().trading212.cloud,true);assert.equal(phone.api.state().trading212.synced,false);
+  const writes=phone.calls.filter(c=>c.method==='PUT').length;await phone.api.restoreCredentials();
+  assert.deepEqual(phone.vault(),credentials);assert.equal(phone.calls.filter(c=>c.method==='PUT').length,writes);assert.equal(phone.api.state().trading212.synced,true);assert.match(phone.api.state().trading212.message,/preluată/);
+  for(const api of [pc.api,phone.api])for(const sensitive of [credentials.key,credentials.secret])assert.ok(!JSON.stringify(api.state()).includes(sensitive));
+  const stranger=await device(server);await stranger.signIn('456');await assert.rejects(stranger.api.restoreCredentials(),/cloud_credentials_missing/);assert.equal(stranger.vault(),null);
  }finally{server.sqlite.close();}
 });
 test('Europa histories and risk settings reconcile between signed-in PC and phone through encrypted D1',async()=>{
