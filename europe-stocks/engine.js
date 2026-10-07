@@ -13,7 +13,7 @@
   function filterKey(){return EuropeUniverse.cacheIdentity($('market').value,g.WL?.get()||[],$('universe').value==='watchlist');}
   function showAlert(text){$('scanAlert').textContent=text;$('scanAlert').hidden=!text;}
   function governor(){try{return g.GV?.status()||null;}catch(_){return null;}}
-  const historyRead=EuropeHistory.read(localStorage,EuropeUniverse);
+  let historyRead=EuropeHistory.read(localStorage,EuropeUniverse);let cloudState=null;try{cloudState=g.parent?.TTCloud?.state()||null;}catch{}
   state.history=historyRead.document;state.historyError=historyRead.error;
   function riskSettings(){try{const s=JSON.parse(localStorage.getItem(RISK_SETTINGS)||'null');return s&&EuropeFinance.codes.includes(s.currency)?s:{};}catch(_){return {};}}
   function refreshCalendar(){
@@ -42,7 +42,8 @@
     render();renderContext();renderHistory();
   }
   function renderContext(){const market=$('market').value,scope=($('universe').value==='watchlist'?'Watchlist ∩ Salt Europa':'Lista Salt Bank')+(market!=='all'?' · '+EuropeUniverse.markets[market].name:' · toate piețele mapate');$('marketContext').innerHTML=EuropeView.context(state.context,scope);}
-  function renderHistory(){$('signalHistory').innerHTML=EuropeView.history(state.history,state.historyError,$('market').value,$('sectorFilter').value);}
+  function renderHistory(){$('signalHistory').innerHTML=EuropeView.history(state.history,state.historyError,$('market').value,$('sectorFilter').value);renderSyncState();}
+  function renderSyncState(){const node=$('europeSyncState');if(!node)return;const s=cloudState;node.textContent=!s?.ready?'Istoricul și setările de risc sunt salvate local. Sincronizarea PC ↔ telefon așteaptă activarea serviciului.':!s.supportedKeys?.includes(EuropeHistory.KEY)||!s.supportedKeys?.includes(RISK_SETTINGS)?'Istoricul și setările Europa rămân local: serviciul trebuie actualizat.':!s.connected?'Conectează același cont Google în Cont & sincronizare pentru istoricul și setările Europa.':s.conflicts?.some(k=>k===EuropeHistory.KEY||k===RISK_SETTINGS)?'Datele Europa au diferențe care cer alegerea ta în Cont & sincronizare.':s.error?'Sincronizarea nu s-a finalizat. Datele Europa rămân local; verifică Cont & sincronizare.':s.busy?'Se reconciliază istoricul și setările Europa…':s.lastSync?'Datele Europa sunt incluse în sincronizare · ultima reconciliere '+new Date(s.lastSync).toLocaleString('ro-RO')+'.':'Cont conectat. Se așteaptă prima reconciliere a datelor Europa.';}
   function placeDetail(){
     const mobile=g.matchMedia('(max-width:760px)').matches,detail=$('detail'),workspace=$('resultsPanel');
     detail.hidden=mobile&&!state.mobileDetailOpen;
@@ -156,7 +157,7 @@
       await Promise.all([worker(),worker(),worker()]);
       state.items=items;state.selected=null;state.updatedAt=Date.now();state.hasScan=true;
       state.context=EuropeDecision.breadth(summaries,list.length);
-      if(!historyRead.error){const observation=await EuropeHistory.record(localStorage,EuropeUniverse,observations,state.updatedAt,g.navigator?.locks,state.history);state.history=observation.document;state.historyError=observation.error;}
+      if(!state.historyError){const observation=await EuropeHistory.record(localStorage,EuropeUniverse,observations,state.updatedAt,g.navigator?.locks,state.history);state.history=observation.document;state.historyError=observation.error;}
       const warnings=[];
       if(!list.length)warnings.push('Nicio acțiune din lista Salt Bank Europa nu corespunde filtrului sau Watchlist-ului.');
       else if(!state.verified)warnings.push('Nicio serie nu a putut fi verificată. Vezi erorile din Acoperire și reîncearcă.');
@@ -201,7 +202,15 @@
   });
   g.addEventListener('message',event=>{if(event.origin!==location.origin||typeof event.data?.ttShellVisible!=='boolean')return;state.shellVisible=event.data.ttShellVisible;if(visible()&&!state.updatedAt)scan();});
   document.addEventListener('visibilitychange',()=>{if(visible()&&Date.now()-state.updatedAt>SCAN_MS)scan();});
-  g.addEventListener('storage',event=>{if(event.key===g.WL?.KEY){if($('universe').value==='watchlist')scan();else if(state.selected)renderDetail(state.selected);}});
+  g.addEventListener('storage',event=>{
+    if(event.key===EuropeHistory.KEY){historyRead=EuropeHistory.read(localStorage,EuropeUniverse);state.history=historyRead.document;state.historyError=historyRead.error;renderHistory();}
+    if(event.key===RISK_SETTINGS&&state.selected&&!$('riskForm')?.contains(document.activeElement)){
+      const s=riskSettings();for(const [id,key] of [['riskCurrency','currency'],['riskBudget','budget'],['riskLoss','loss'],['riskFees','fees']])if($(id))$(id).value=s[key]??(key==='currency'?'EUR':'');
+      if($('riskStep'))$('riskStep').value=s.fractional?'fractional':'whole';if($('riskResult'))$('riskResult').textContent='Setările de risc au fost actualizate. Recalculează planul înainte de a folosi cantitatea.';
+    }
+    if(event.key===g.WL?.KEY){if($('universe').value==='watchlist')scan();else if(state.selected)renderDetail(state.selected);}
+  });
+  g.addEventListener('message',event=>{if(event.source===g.parent&&event.origin===location.origin&&event.data?.ttCloudState){cloudState=event.data.ttCloudState;renderSyncState();}});
   g.matchMedia('(max-width:760px)').addEventListener('change',placeDetail);
   $('advancedFilters').open=!g.matchMedia('(max-width:760px)').matches;
   refreshCalendar();

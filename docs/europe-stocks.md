@@ -97,7 +97,7 @@ moneda listării, fără FX și costuri, numai după suficiente sesiuni ulterioa
 O revizie de peste 1% a prețului primei sesiuni suspendă rezultatele pentru review.
 Sunt păstrate maximum 1.500 observații, cele închise cele mai vechi fiind eliminate
 primele. Un document invalid nu este suprascris; erorile de salvare sunt afișate.
-Istoricul este local pe dispozitiv; sincronizarea rămâne un task separat.
+Istoricul și setările de risc sunt incluse în protocolul PC ↔ telefon după activarea Google și publicarea Workerului actual. Până atunci rămân locale; starea se vede pe pagina Europa și în Cont & sincronizare. Observațiile independente se unesc după ID, păstrează datele primei sesiuni și rezultatele mature; episoadele suprapuse sau valorile incompatibile cer alegere. Bugetul și limita de pierdere nu se combină din două politici diferite. Cotațiile, cache-ul scanărilor și datele FX se recalculează local.
 Salvarea recitește documentul după scanare și folosește Web Locks când este
 disponibil, astfel încât două file ale aceleiași origini să păstreze observațiile
 făcute pe piețe diferite. Fără Web Locks se recitește documentul înainte de scriere.

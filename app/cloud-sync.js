@@ -1,20 +1,21 @@
-import {KEYS,mergeRecord,validateValue} from '../lib/cloud-sync-model.mjs?v=audit-20261003';
+import {KEYS,mergeRecord,validateValue} from '../lib/cloud-sync-model.mjs?v=europe-sync-20261007';
 const PlanStore=window.TTPlanStore?.create(localStorage);
 const Store=window.TTCloudStore,LOCAL_KEYS=KEYS.filter(k=>k!=='cloud_credentials'),rawKeys=['tt_theme','tt_pf_account','tt_ticket_capital'];
+const EUROPE_KEYS=['tt_europe_signals_v1','tt_europe_risk_settings_v1'];let activeKeys=[];
 let endpoint='',ready=false,session=null,busy=false,baseline={},conflicts={},lastSync=null,error='',timer=null,checking=false,setup=null,initialization=null,poll=null;
-const state=()=>({ready,connected:!!session,email:session?.email||null,busy,checking,setup,lastSync,error,conflicts:Object.keys(conflicts)});
+const state=()=>({ready,connected:!!session,email:session?.email||null,busy,checking,setup,lastSync,error,conflicts:Object.keys(conflicts),supportedKeys:[...activeKeys]});
 function broadcast(){window.dispatchEvent(new CustomEvent('tt-cloud-state',{detail:state()}));document.querySelectorAll('iframe').forEach(f=>f.contentWindow?.postMessage({ttCloudState:state()},location.origin));}
 function local(key){const raw=localStorage.getItem(key);if(raw===null)return undefined;if(rawKeys.includes(key))return raw;try{return JSON.parse(raw);}catch(_){throw Error('Date locale incompatibile: '+key);}}
 async function deviceOwner(){const stored=await Store.get('owner'),legacy=localStorage.getItem('tt_cloud_owner');if(stored!==null&&typeof stored!=='string')throw Error('account_mismatch');if(stored&&legacy&&stored!==legacy)throw Error('account_mismatch');return stored||legacy;}
 async function value(key){if(key==='tt_trade_plans_v1'){if(!PlanStore)throw Error('Modulul planurilor nu s-a încărcat. Reîncarcă aplicația înainte de sincronizare.');const record=await PlanStore.read();return record.raw===null?undefined:record.plans;}return key==='cloud_credentials'?(await window.T212Vault.read()||undefined):local(key);}
 async function api(path,method='GET',data,anonymous=false){const c=new AbortController(),t=setTimeout(()=>c.abort(),20000);try{const r=await fetch(endpoint+'/api/cloud/'+path,{method,cache:'no-store',credentials:'omit',redirect:'error',signal:c.signal,headers:{...(data?{'Content-Type':'application/json'}:{}),...(!anonymous&&session?{Authorization:'Bearer '+session.token}:{})},...(data?{body:JSON.stringify(data)}:{})});let b;try{b=await r.json();}catch{b={error:'cloud_unavailable'};}if(!r.ok){if(r.status===401&&path!=='auth'&&!anonymous){session=null;await Store.remove('session');}const e=Error(path==='status'&&r.status===404?'cloud_worker_missing':b.error||'cloud_unavailable');e.status=r.status;throw e;}return b;}finally{clearTimeout(t);}}
 function notifyStorage(key,oldValue,newValue){document.querySelectorAll('iframe').forEach(f=>{try{f.contentWindow.dispatchEvent(new StorageEvent('storage',{key,oldValue,newValue,url:location.href,storageArea:localStorage}));}catch(_){}});window.dispatchEvent(new StorageEvent('storage',{key,oldValue,newValue,url:location.href,storageArea:localStorage}));}
-async function apply(key,next,expected){if(JSON.stringify(await value(key))!==JSON.stringify(expected))return false;if(key==='cloud_credentials'){if(next){await window.T212Vault.save(next);const broker=document.getElementById('brokerFrame');if(broker)broker.src='../broker/?app=decision-mobile-v2&cloud='+Date.now();}return true;}if(key==='tt_trade_plans_v1'&&PlanStore){const saved=await PlanStore.replace(expected,next===null?undefined:next);if(saved)notifyStorage(key,JSON.stringify(expected)||null,JSON.stringify(next)||null);return saved;}const oldValue=localStorage.getItem(key);if(next===undefined||next===null)localStorage.removeItem(key);else localStorage.setItem(key,rawKeys.includes(key)?String(next):JSON.stringify(next));notifyStorage(key,oldValue,localStorage.getItem(key));return true;}
+async function apply(key,next,expected,locked=false){if(key==='tt_europe_signals_v1'&&!locked&&navigator.locks?.request)return navigator.locks.request(key,()=>apply(key,next,expected,true));if(next!==undefined&&next!==null)validateValue(key,next);if(JSON.stringify(await value(key))!==JSON.stringify(expected))return false;if(key==='cloud_credentials'){if(next){await window.T212Vault.save(next);const broker=document.getElementById('brokerFrame');if(broker)broker.src='../broker/?app=decision-mobile-v2&cloud='+Date.now();}return true;}if(key==='tt_trade_plans_v1'&&PlanStore){const saved=await PlanStore.replace(expected,next===null?undefined:next);if(saved)notifyStorage(key,JSON.stringify(expected)||null,JSON.stringify(next)||null);return saved;}const oldValue=localStorage.getItem(key);if(next===undefined||next===null)localStorage.removeItem(key);else localStorage.setItem(key,rawKeys.includes(key)?String(next):JSON.stringify(next));notifyStorage(key,oldValue,localStorage.getItem(key));return true;}
 async function backup(){const list=await Store.get('backups:'+session.subject)||[],snapshot={};for(const k of LOCAL_KEYS){const v=await value(k);if(v!==undefined)snapshot[k]=v;}list.unshift({at:Date.now(),snapshot});await Store.put('backups:'+session.subject,list.slice(0,5));}
 async function performSync(){if(!ready||!session||busy||checking||navigator.onLine===false)return;busy=true;error='';broadcast();try{
  const owner=await deviceOwner();if(owner&&owner!==session.subject)throw Error('account_mismatch');await Store.put('owner',session.subject);
  const remote=(await api('records')).records;let backedUp=false;
- for(const key of KEYS){
+ for(const key of activeKeys){
   if(conflicts[key])continue;const current=await value(key),record=remote[key],base=baseline[key];
   // Forgetting a local connection is not an instruction to erase the cloud key.
   if(key==='cloud_credentials'&&current===undefined&&base?.value){continue;}
@@ -51,13 +52,14 @@ window.addEventListener('storage',e=>{if(KEYS.includes(e.key)&&!busy){clearTimeo
 function plansChanged(){if(!busy){clearTimeout(timer);timer=setTimeout(sync,2500);}}
 window.addEventListener('tt-plan-store-changed',plansChanged);PlanStore?.subscribe(plansChanged);
 window.addEventListener('online',()=>ready?sync():recheck());document.addEventListener('visibilitychange',()=>{if(!document.hidden)(ready?sync():recheck());});
-async function initialize(){let available=false;checking=true;error='';setup=null;broadcast();try{
+async function initialize(){let available=false;checking=true;error='';setup=null;activeKeys=[];broadcast();try{
  const cfg=await fetch('cloud-sync-config.json',{cache:'no-store'}).then(r=>r.json());if(cfg.enabled!==true&&cfg.autoActivate!==true)throw Error('cloud_not_configured');
  const u=new URL(cfg.endpoint);if(u.origin!=='https://premarket-scanner-html.mferent80.workers.dev'||u.pathname!=='/'||u.search||u.hash||u.username||u.password)throw Error('Endpoint cloud incompatibil.');endpoint=u.origin;
  // Readiness is public: no session, journal or broker credentials accompany this request.
  const status=await api('status','GET',undefined,true);if(status.protocol!=='tt-cloud-sync-v1')throw Error('cloud_protocol_mismatch');
  setup=Object.fromEntries(['database','google','encryption','schema'].map(k=>[k,status.checks?.[k]===true]));
  if(status.enabled!==true||Object.values(setup).some(v=>!v))throw Error('cloud_not_configured');if(!/^[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(status.clientId||''))throw Error('cloud_not_configured');
+ activeKeys=KEYS.filter(k=>!EUROPE_KEYS.includes(k)||Array.isArray(status.supportedKeys)&&status.supportedKeys.includes(k));
  ready=true;available=true;window.TTCloud.clientId=status.clientId;
  if(poll===null)poll=setInterval(()=>{if(!document.hidden)sync();},30000);
  session=await Store.get('session');if(session){const verified=await api('session');if(verified.subject!==session.subject){session=null;await Store.remove('session');throw Error('session_expired');}baseline=await Store.get('baseline:'+session.subject)||{};}

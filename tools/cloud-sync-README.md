@@ -2,7 +2,7 @@
 
 ## Stare la publicare
 
-Codul, interfața și testele sunt implementate. **Serviciul nu este activat online.** Verificarea din 6 octombrie 2026 a primit `not_found` de la `/api/cloud/status`: Workerul public nu include încă rutele cloud. Configurația păstrează `enabled:false`, cu `autoActivate:true` pentru o verificare anonimă de disponibilitate. Nicio sesiune, înregistrare sau cheie Trading 212 nu este trimisă în această verificare. Sincronizarea devine disponibilă numai după ce serverul confirmă protocolul, Google, criptarea, bindingul și schema D1. Publicarea GitHub Pages nu creează aceste resurse.
+Codul, interfața și testele sunt implementate. **Serviciul nu este activat online.** Verificarea din 6 octombrie 2026 a primit `not_found` de la `/api/cloud/status`: Workerul public nu include încă rutele cloud. Configurația păstrează `enabled:false`, cu `autoActivate:true` pentru o verificare anonimă de disponibilitate. Nicio sesiune, înregistrare sau cheie Trading 212 nu este trimisă în această verificare. Protocolul actual include și istoricul semnalelor Europa și setările de risc. Workerul public încă trebuie activat. Sincronizarea devine disponibilă numai după ce serverul confirmă protocolul, Google, criptarea, bindingul și schema D1. Publicarea GitHub Pages nu creează aceste resurse.
 
 ### Pachet pregătit pentru Cloudflare Dashboard
 
@@ -54,8 +54,10 @@ Rezultatul trebuie să aibă `enabled:true` și Client ID-ul corect. Testează �
 
 ## Modelul de sincronizare
 
-- Doar o listă explicită de chei: jurnal manual/setări, execuții și snapshot broker, teze/tickere/benchmark, watchlist, temă, selecție cont și conexiune broker. Nu se trimit toate datele localStorage, alte API keys sau cache-uri de piață.
+- Doar o listă explicită de chei: jurnal manual/setări, execuții și snapshot broker, teze/tickere/benchmark, watchlist, temă, selecție cont, conexiune broker, istoric semnale Europa și setări calculator risc Europa. Nu se trimit toate datele localStorage, alte API keys sau cache-uri de piață.
 - Registrele și modelele AI stocate separat în IndexedDB nu sunt incluse în acest protocol. Exporturile lor rămân disponibile în Analiza deținerilor; transferul lor cloud cere integrarea registrelor cu păstrarea estimărilor originale și a verificărilor.
+- Europa: observațiile distincte se unesc după ID; aceeași primă sesiune păstrează prețul, categoria și suportul originale. Actualizările folosesc data sesiunii, nu ora dispozitivului; randamentele deja calculate se păstrează. Reviziile prețului suspendă randamentele. Episoadele suprapuse, valori diferite pentru același rezultat sau depășirea limitei de 1.500 cer alegere. Setările de risc se aleg ca un pachet, fără a combina bugetul unui dispozitiv cu limita celuilalt.
+- Serverul anunță `supportedKeys`; un Worker anterior nu primește noile chei Europa, iar datele rămân locale. După publicarea pachetului actual, **Reverifică serviciul** activează și aceste chei.
 - Trei variante pentru reconciliere: ultima variantă acceptată, dispozitivul curent, serverul. Editările independente se combină; editările incompatibile sunt oprite și prezentate cu previzualizări și alegere explicită.
 - Revizia serverului este verificată atomic în D1. 409 amână reconcilierea; nu folosește un overwrite forțat.
 - Snapshot-urile brokerului folosesc `fetchedAt` al sursei. Listele de execuții se unesc după ID; valori diferite ale aceleiași execuții cer revizuire. Cheia și secretul nu se combină separat din două versiuni diferite.
@@ -76,7 +78,7 @@ Rezultatul trebuie să aibă `enabled:true` și Client ID-ul corect. Testează �
 ## Teste
 
 ```sh
-node --test tools/cloud-sync.test.mjs tools/cloud-sync-client.test.mjs tools/cloud-sync-bundle.test.mjs tools/cloud-sync-devices.test.mjs tools/trading212.test.mjs tools/trading212-vault.test.mjs tools/app-version.test.mjs tools/decision-app-navigation.test.mjs
+node --test tools/cloud-sync.test.mjs tools/cloud-sync-client.test.mjs tools/cloud-sync-bundle.test.mjs tools/cloud-sync-devices.test.mjs tools/cloud-sync-europe.test.mjs tools/trading212.test.mjs tools/trading212-vault.test.mjs tools/app-version.test.mjs tools/decision-app-navigation.test.mjs
 ```
 
 Surse oficiale folosite pentru implementare:

@@ -42,3 +42,17 @@ test('PC and new phone reconcile through real JWT verification, encrypted D1 rec
   await pc.api.logout();const before=pc.calls.filter(c=>c.url.endsWith('/records')).length;await assert.rejects(pc.signIn('456'),/account_mismatch/);assert.equal(pc.calls.filter(c=>c.url.endsWith('/records')).length,before);assert.equal(pc.privateStore.get('owner'),'123');
  }finally{server.sqlite.close();}
 });
+test('Europa histories and risk settings reconcile between signed-in PC and phone through encrypted D1',async()=>{
+ const server=await service();try{
+  const first={id:'DE0007164600:2026-10-01:earlyLong',symbol:'SAP.DE',isin:'DE0007164600',name:'SAP',market:'DE',sector:'Tech',currency:'EUR',category:'earlyLong',currentCategory:'earlyLong',firstDate:'2026-10-01',lastDate:'2026-10-01',firstPrice:100,lastPrice:100,firstStop:90,support:92,createdAt:1790866800000,policy:1,active:true,status:'ACTIVE',transitions:[{date:'2026-10-01',category:'earlyLong'}],outcomes:{}};
+  const second={...first,id:'GB00BP6MXD84:2026-10-01:earlyLong',symbol:'SHEL.L',isin:'GB00BP6MXD84',name:'Shell',market:'GB',currency:'GBP'};
+  const risk={currency:'RON',budget:'1000',loss:'30',fees:'5',entry:'100',fractional:false},key='tt_europe_signals_v1',riskKey='tt_europe_risk_settings_v1';
+  const pc=await device(server,{local:{[key]:JSON.stringify({schema:1,entries:[first]}),[riskKey]:JSON.stringify(risk)}});await pc.signIn();assert.equal(pc.api.state().error,'');
+  const phone=await device(server,{local:{[key]:JSON.stringify({schema:1,entries:[second]})}});await phone.signIn();assert.equal(phone.api.state().error,'');assert.equal(phone.api.state().conflicts.length,0);
+  await pc.api.sync();for(const d of [pc,phone]){assert.equal(JSON.parse(d.storage.get(key)).entries.length,2);assert.deepEqual(JSON.parse(d.storage.get(riskKey)),risk);assert.ok(d.api.state().supportedKeys.includes(key));}
+  const third=await device(server);await third.signIn();assert.equal(JSON.parse(third.storage.get(key)).entries[0].firstPrice,100);assert.deepEqual(JSON.parse(third.storage.get(riskKey)),risk);
+  assert.ok(!server.sqlite.prepare('SELECT packet FROM cloud_records').all().map(r=>r.packet).join('').includes('DE0007164600'));
+  pc.storage.set(riskKey,JSON.stringify({...risk,budget:'2000'}));phone.storage.set(riskKey,JSON.stringify({...risk,loss:'50'}));await pc.api.sync();await phone.api.sync();assert.ok(phone.api.state().conflicts.includes(riskKey));assert.equal(JSON.parse(phone.storage.get(riskKey)).budget,'1000');
+  await phone.api.resolve(riskKey,'remote');assert.deepEqual(JSON.parse(phone.storage.get(riskKey)),{...risk,budget:'2000'});
+ }finally{server.sqlite.close();}
+});

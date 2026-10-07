@@ -116,8 +116,8 @@ function bootCache(c,cache,watchlist=[],watchlistOnly=false){
     return nodes.get(id);
   };
   c.document={hidden:true,getElementById:node,createElement:()=>({}),querySelectorAll:()=>[],addEventListener(){}};
-  c.localStorage={getItem:key=>key==='tt_europe_scan_v3'?JSON.stringify(cache):null};c.WL={get:()=>watchlist,has:()=>false};
-  c.DailySeries={usable:()=>true,date:t=>new Date(t).toISOString().slice(0,10)};c.addEventListener=()=>{};c.setTimeout=()=>1;c.clearTimeout=()=>{};
+  c.storage=new Map([['tt_europe_scan_v3',JSON.stringify(cache)]]);c.localStorage={getItem:key=>c.storage.get(key)||null};c.WL={get:()=>watchlist,has:()=>false};
+  c.DailySeries={usable:()=>true,date:t=>new Date(t).toISOString().slice(0,10)};c.events={};c.addEventListener=(type,fn)=>(c.events[type]??=[]).push(fn);c.setTimeout=()=>1;c.clearTimeout=()=>{};
   c.matchMedia=()=>({matches:false,addEventListener(){}});c.fetch=async()=>{throw Error('Offline test');};
   c.location={origin:'https://example.test'};
   vm.runInContext(readFileSync('europe-stocks/engine.js','utf8'),c,{filename:'engine.js'});
@@ -134,4 +134,22 @@ test('cached results cannot escape Salt source, ISIN or Watchlist membership',()
   assert.notEqual(bootCache(old,prior).get('candidateCount')?.textContent,1);
   const only=setup(),wrong=cache(only,build(only));wrong.filter=only.EuropeUniverse.cacheIdentity('all',['VOW3.DE'],true);
   assert.notEqual(bootCache(only,wrong,['VOW3.DE'],true).get('candidateCount')?.textContent,1);
+});
+
+test('Europa updates imported history immediately and accepts cloud status only from its own shell',()=>{
+ const c=setup(),candidate=build(c),cache={schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity(),items:[candidate],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]},nodes=bootCache(c,cache);
+ const e={id:'DE0007164600:2026-10-01:earlyLong',symbol:'SAP.DE',isin:'DE0007164600',category:'earlyLong',currentCategory:'earlyLong',firstDate:'2026-10-01',lastDate:'2026-10-01',firstPrice:100,firstStop:90,support:92,createdAt:1790866800000,active:true,status:'ACTIVE',transitions:[{date:'2026-10-01',category:'earlyLong'}],outcomes:{}};
+ c.storage.set(c.EuropeHistory.KEY,JSON.stringify({schema:1,entries:[e]}));c.events.storage.forEach(fn=>fn({key:c.EuropeHistory.KEY}));assert.match(nodes.get('signalHistory').innerHTML,/1 observații urmărite/);
+ c.parent={};const event={source:c.parent,origin:c.location.origin,data:{ttCloudState:{ready:true,connected:true,conflicts:[],supportedKeys:[c.EuropeHistory.KEY,'tt_europe_risk_settings_v1'],lastSync:Date.now()}}};
+ c.events.message.forEach(fn=>fn({...event,source:{}}));assert.match(nodes.get('europeSyncState').textContent,/salvate local/);
+ c.events.message.forEach(fn=>fn(event));assert.match(nodes.get('europeSyncState').textContent,/ultima reconciliere/);
+ event.data.ttCloudState.supportedKeys=[];c.events.message.forEach(fn=>fn(event));assert.match(nodes.get('europeSyncState').textContent,/rămân local/);
+});
+test('incoming risk settings preserve an active draft and invalidate an old quantity after applying',()=>{
+ const c=setup(),candidate=build(c),cache={schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity(),items:[candidate],updatedAt:Date.now(),verified:1,scanned:1,failures:[],benchmarks:[]},nodes=bootCache(c,cache);
+ for(const id of ['riskBudget','riskLoss','riskFees','riskCurrency','riskStep','riskResult'])c.document.getElementById(id);
+ const form=nodes.get('riskForm');form.contains=x=>x===nodes.get('riskBudget');nodes.get('riskBudget').value='777';c.document.activeElement=nodes.get('riskBudget');
+ c.storage.set('tt_europe_risk_settings_v1',JSON.stringify({currency:'RON',budget:'1500',loss:'50',fees:'5',fractional:true}));
+ c.events.storage.forEach(fn=>fn({key:'tt_europe_risk_settings_v1'}));assert.equal(nodes.get('riskBudget').value,'777');
+ c.document.activeElement=null;c.events.storage.forEach(fn=>fn({key:'tt_europe_risk_settings_v1'}));assert.equal(nodes.get('riskBudget').value,'1500');assert.equal(nodes.get('riskCurrency').value,'RON');assert.match(nodes.get('riskResult').textContent,/Recalculează/);
 });
