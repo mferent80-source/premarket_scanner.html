@@ -14,8 +14,9 @@ test('alerts v144: filele „Ce dețin” / „Ce urmăresc” în locul lui „
   const h = src('alerts/index.html');
   assert.match(h, /data-tab="det"[^>]*>💼 Ce dețin/); assert.match(h, /data-tab="urm"[^>]*>👀 Ce urmăresc/); assert.doesNotMatch(h, /data-tab="price"/);
   assert.match(h, /fila: radFila\(\)/); assert.match(h, /addEventListener\('radar:salt'/); assert.match(h, /addEventListener\('radar:salt-scoate'/); assert.match(h, /addEventListener\('radar:refa'/);
-  assert.match(h, /id="verBadge">v144</);
-  assert.match(src('sw-app.js'), /CACHE_VERSION = 'tt-v855-2026-10-07'/);
+  // cel puțin v144 / tt-v855 (o versiune EXACTĂ pica la fiecare livrare nouă)
+  assert.ok(Number((/id="verBadge">v(\d+)</.exec(h) || [])[1]) >= 144, 'badge-ul alerts cel puțin v144');
+  assert.ok(Number((/CACHE_VERSION = 'tt-v(\d+)-/.exec(src('sw-app.js')) || [])[1]) >= 855, 'suita cel puțin tt-v855');
 });
 
 test('pragurile au disparut din formular si din randuri', () => {
@@ -43,7 +44,7 @@ test('polling-ul ramane (gardile vechi) dar nu mai evalueaza praguri', () => {
   assert.ok(!/function evaluateAlert\(|function checkTrigger\(|fireAlert\(/.test(HTML), 'evaluarea pragurilor a fost scoasa');
 });
 test('versiunea paginii e v116; workflow-ul nu mai verifica praguri, dar News Watch isi pastreaza cronul', () => {
-  assert.match(HTML, /id="verBadge">v144</);
+  assert.ok(Number((/id="verBadge">v(\d+)</.exec(HTML) || [])[1]) >= 144, 'badge-ul alerts cel puțin v144');
   const wf = readFileSync(join(ROOT, '.github/workflows/price-alerts.yml'), 'utf8');
   assert.ok(/^\s*schedule:/m.test(wf) && /cron:/.test(wf), 'cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis)');
   assert.ok(!/run:\s*node tools\/check-alerts\.mjs/.test(wf), 'pasul cu pragurile de pret a disparut (comentariul de sus poate sa-l mai pomeneasca)');

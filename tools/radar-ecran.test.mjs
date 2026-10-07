@@ -561,3 +561,9 @@ test('M12: după clicul pe € / $ butonul pierde focusul (altfel re-randările 
   asc.click({ target: mo });
   assert.strictEqual(blur, 1); assert.strictEqual(trimise.find((e) => e.type === 'radar:salt-moneda').detail.moneda, 'USD');
 });
+
+test('v145 (el, 07.10: „DA LA TOT”): la „Ce urmăresc” sunt trei reguli, a treia = rezultatele vin mâine (alerta nouă din colectorul v101.87)', () => {
+  const h = RadarEcran.panouAlerte({ la: ACUM, alerte: [] }, 'urm', { tot: false, sim: null, mai: false });
+  assert.match(h, /Mișcare neobișnuită/); assert.match(h, /Cumpără un insider/); assert.match(h, /<b>Rezultatele vin mâine<\/b>/);
+  assert.doesNotMatch(h, /propunere/, 'nu mai e propunere: există');
+});
