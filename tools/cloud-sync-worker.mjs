@@ -17,8 +17,13 @@ export async function verifyGoogle(token,audience,nonce,upstream=fetch,now=Date.
  if(typeof token!=='string'||token.length>16000)throw Error('invalid_google_token');const parts=token.split('.');if(parts.length!==3)throw Error('invalid_google_token');
  const head=JSON.parse(D.decode(bytes(parts[0]))),p=JSON.parse(D.decode(bytes(parts[1])));
  if(head.alg!=='RS256'||typeof head.kid!=='string'||head.kid.length>200||p.aud!==audience||!['accounts.google.com','https://accounts.google.com'].includes(p.iss)||!Number.isFinite(p.exp)||p.exp<=now/1000||!Number.isFinite(p.iat)||p.iat>now/1000+60||p.iat<now/1000-600||p.nonce!==nonce||typeof p.sub!=='string'||!/^\d{1,128}$/.test(p.sub)||p.email_verified!==true||typeof p.email!=='string'||p.email.length>254)throw Error('invalid_google_token');
- const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);let r;try{r=await upstream('https://www.googleapis.com/oauth2/v3/certs',{redirect:'error',signal:controller.signal});}finally{clearTimeout(timer);}if(!r.ok)throw Error('google_unavailable');const jwks=await r.json(),jwk=jwks.keys?.find(k=>k.kid===head.kid&&k.kty==='RSA'&&k.alg==='RS256');if(!jwk)throw Error('invalid_google_token');
- const key=await crypto.subtle.importKey('jwk',jwk,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);if(!await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,bytes(parts[2]),E.encode(parts[0]+'.'+parts[1])))throw Error('invalid_google_token');return {subject:p.sub,email:p.email};
+ const unavailable=stage=>{const error=Error('google_unavailable');error.stage=stage;throw error;};
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);let jwks;
+ // Workers supports manual redirects; reject every non-success response without following it.
+ try{let r;try{r=await upstream('https://www.googleapis.com/oauth2/v3/certs',{redirect:'manual',signal:controller.signal});}catch{unavailable('keys_fetch');}if(!r.ok)unavailable('keys_fetch');try{jwks=await r.json();}catch{unavailable('keys_decode');}}finally{clearTimeout(timer);}
+ if(!Array.isArray(jwks?.keys))unavailable('keys_decode');const jwk=jwks.keys.find(k=>k?.kid===head.kid&&k.kty==='RSA'&&k.alg==='RS256');if(!jwk)throw Error('invalid_google_token');
+ let key;try{key=await crypto.subtle.importKey('jwk',jwk,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);}catch{unavailable('key_import');}
+ const signature=bytes(parts[2]);let verified;try{verified=await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,signature,E.encode(parts[0]+'.'+parts[1]));}catch{unavailable('signature_verify');}if(!verified)throw Error('invalid_google_token');return {subject:p.sub,email:p.email};
 }
 async function body(request,max=1100000){if(!request.headers.get('Content-Type')?.startsWith('application/json'))throw Error('json_required');if(Number(request.headers.get('Content-Length'))>max)throw Error('body_too_large');const reader=request.body?.getReader();if(!reader)throw Error('invalid_body');let size=0,chunks=[];try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>max){await reader.cancel();throw Error('body_too_large');}chunks.push(value);}}finally{reader.releaseLock();}const joined=new Uint8Array(size);let offset=0;for(const c of chunks){joined.set(c,offset);offset+=c.length;}return JSON.parse(D.decode(joined));}
 export async function handleCloud(request,env,upstream=fetch){
@@ -59,6 +64,6 @@ export async function handleCloud(request,env,upstream=fetch){
    if(result.meta.changes!==1)return reply({error:'revision_conflict'},409);return reply({revision,updated:now});
   }
   return reply({error:'not_found'},404);
- }catch(error){const safe=['invalid_google_token','google_unavailable','invalid_encoding','invalid_key','invalid_value','invalid_credentials','record_too_large','body_too_large','json_required','invalid_body'];const code=safe.includes(error.message)?error.message:'cloud_unavailable';return reply({error:code},code==='invalid_google_token'?401:code==='google_unavailable'||code==='cloud_unavailable'?503:400);}
+ }catch(error){const safe=['invalid_google_token','google_unavailable','invalid_encoding','invalid_key','invalid_value','invalid_credentials','record_too_large','body_too_large','json_required','invalid_body'];const code=safe.includes(error.message)?error.message:'cloud_unavailable';const stage=code==='google_unavailable'&&['keys_fetch','keys_decode','key_import','signature_verify'].includes(error.stage)?error.stage:null;return reply({error:code,...(stage?{stage}:{})},code==='invalid_google_token'?401:code==='google_unavailable'||code==='cloud_unavailable'?503:400);}
 }
 export default {fetch(request,env){return handleCloud(request,env);}};

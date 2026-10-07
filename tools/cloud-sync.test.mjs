@@ -12,6 +12,26 @@ test('unknown keys, oversized data and prototype properties are rejected',()=>{a
 test('encrypted records authenticate subject, key and revision',async()=>{const key=Buffer.alloc(32,42).toString('base64url'),p=await seal({secret:'sensitive'},key,'u|cloud_credentials|1');assert.ok(!p.includes('sensitive'));assert.deepEqual(await unseal(p,key,'u|cloud_credentials|1'),{secret:'sensitive'});await assert.rejects(unseal(p,key,'other|cloud_credentials|1'));await assert.rejects(unseal(p,key,'u|cloud_credentials|2'));});
 test('Google tokens need valid signature, audience, nonce and unexpired claims',async()=>{const kp=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);const jwk=await crypto.subtle.exportKey('jwk',kp.publicKey);Object.assign(jwk,{kid:'test',alg:'RS256'});const now=Date.now(),claims={aud:'client',iss:'https://accounts.google.com',sub:'12345',email:'example@gmail.com',email_verified:true,nonce:'nonce',iat:Math.floor(now/1000),exp:Math.floor(now/1000)+3600};async function token(p){const parts=enc({alg:'RS256',kid:'test'})+'.'+enc(p),signature=await crypto.subtle.sign('RSASSA-PKCS1-v1_5',kp.privateKey,new TextEncoder().encode(parts));return parts+'.'+Buffer.from(signature).toString('base64url');}const fetcher=async()=>Response.json({keys:[jwk]}),good=await token(claims);assert.equal((await verifyGoogle(good,'client','nonce',fetcher,now)).subject,'12345');await assert.rejects(verifyGoogle(good,'wrong','nonce',fetcher,now));await assert.rejects(verifyGoogle(good,'client','wrong',fetcher,now));await assert.rejects(verifyGoogle(await token({...claims,exp:0}),'client','nonce',fetcher,now));await assert.rejects(verifyGoogle(good.slice(0,-10)+'aaaaaaaaaa','client','nonce',fetcher,now));});
 test('unconfigured cloud advertises disabled and does not accept credentials',async()=>{const origin='https://mferent80-source.github.io';const status=await handleCloud(new Request('https://worker/api/cloud/status',{headers:{Origin:origin}}),{});assert.equal((await status.json()).enabled,false);const auth=await handleCloud(new Request('https://worker/api/cloud/auth',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:'{}'}),{});assert.equal(auth.status,503);});
+test('Google verification failures identify only a safe stage, never token or upstream details',async()=>{
+ const pair=await crypto.subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
+ const jwk=await crypto.subtle.exportKey('jwk',pair.publicKey);Object.assign(jwk,{kid:'diagnostic-test',alg:'RS256'});
+ const db=database(),env={CLOUD_DB:db,GOOGLE_CLIENT_ID:'test.apps.googleusercontent.com',CLOUD_ENCRYPTION_KEY:Buffer.alloc(32,23).toString('base64url')};
+ try{for(const [stage,upstream] of [
+  ['keys_fetch',async()=>{throw Error('PRIVATE NETWORK DETAIL');}],
+  ['keys_fetch',async()=>new Response('PRIVATE UPSTREAM BODY',{status:503})],
+  ...[301,302,307,308].map(status=>['keys_fetch',async(url,options)=>{assert.equal(options.redirect,'manual');return new Response(null,{status,headers:{Location:'https://unexpected.example/keys'}});}]),
+  ['keys_decode',async()=>new Response('PRIVATE NON-JSON BODY')],
+  ['keys_decode',async()=>Response.json({private:'detail'})],
+  ['key_import',async()=>Response.json({keys:[{...jwk,n:undefined}]})]
+ ]){
+  const {nonce}=await (await handleCloud(request('challenge','POST','',{}),env)).json(),now=Math.floor(Date.now()/1000);
+  const unsigned=enc({alg:'RS256',kid:jwk.kid})+'.'+enc({aud:env.GOOGLE_CLIENT_ID,iss:'https://accounts.google.com',sub:'123',email:'fixture@example.test',email_verified:true,nonce,iat:now,exp:now+60});
+  const credential=unsigned+'.'+Buffer.from(await crypto.subtle.sign('RSASSA-PKCS1-v1_5',pair.privateKey,new TextEncoder().encode(unsigned))).toString('base64url');
+  const response=await handleCloud(request('auth','POST','',{nonce,credential}),env,upstream);
+  assert.equal(response.status,503,stage);assert.deepEqual(await response.json(),{error:'google_unavailable',stage});
+  assert.equal(db.sqlite.prepare('SELECT count(*) AS n FROM cloud_sessions').get().n,0);
+ }}finally{db.sqlite.close();}
+});
 test('foreign origin blocked before any database or Google request',async()=>{const r=await handleCloud(new Request('https://worker/api/cloud/records',{headers:{Origin:'https://evil.example'}}),{},()=>{throw Error('must not fetch');});assert.equal(r.status,403);assert.equal(r.headers.get('Access-Control-Allow-Origin'),null);});
 function database(){const sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync(new URL('./cloud-sync-schema.sql',import.meta.url),'utf8'));return {sqlite,prepare(sql){return {async first(){return sqlite.prepare(sql).get()||null;},bind(...args){return {async first(){return sqlite.prepare(sql).get(...args)||null;},async all(){return {results:sqlite.prepare(sql).all(...args)};},async run(){const r=sqlite.prepare(sql).run(...args);return {meta:{changes:Number(r.changes)}};}};}};}};}
 const ORIGIN='https://mferent80-source.github.io';

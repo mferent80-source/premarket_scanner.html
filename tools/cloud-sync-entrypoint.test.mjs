@@ -19,6 +19,7 @@ for(const [name,worker] of [['source',sourceWorker],['dashboard bundle',bundledW
   const authorization='Basic '+btoa('fixture-key:fixture-secret'),calls=[];
   t.mock.method(globalThis,'fetch',async(url,options)=>{
    calls.push(url);
+   assert.equal(options.redirect,'manual','outbound requests must use a Workers-supported redirect mode without following redirects');
    if(url==='https://www.googleapis.com/oauth2/v3/certs')return Response.json({keys:[jwk]});
    assert.equal(url,'https://demo.trading212.com/api/v0/equity/account/summary');
    assert.equal(options.method,'GET');assert.equal(options.headers.Authorization,authorization);
