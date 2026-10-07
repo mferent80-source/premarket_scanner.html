@@ -473,3 +473,91 @@ test('Salt: cererea pleacă la worker (/salt-cereri, cu cheia) și rămâne „�
   assert.strictEqual(JSON.parse(cereri[0].o.body).simbol, 'NFLX');
   const ast = RP.saltInAsteptare(); assert.strictEqual(ast.length, 1); assert.strictEqual(ast[0].id, 'c1'); assert.strictEqual(ast[0].simbol, 'NFLX'); assert.strictEqual(ast[0].op, 'pune');
 });
+
+// ---------- revizia finală a v144 (07.10) ----------
+// un #rad de probă pentru leaga(): ascultătorii prinși, evenimentele trimise, câmpurile formularului Salt după id
+const elLegat = (campuri, moneda) => {
+  const asc = {}, trimise = [];
+  const el = { innerHTML: '', dataset: {}, addEventListener(t, f) { asc[t] = f; }, dispatchEvent(e) { trimise.push(e); },
+    querySelector(s) { if (s === '.moneda [aria-pressed="true"]') return { getAttribute: () => moneda || 'EUR' }; const m = /^#(\w+)$/.exec(s); return m && m[1] in campuri ? { value: campuri[m[1]] } : null; },
+    querySelectorAll() { return []; } };
+  return { el, asc, trimise };
+};
+const AZI_0700 = Date.UTC(2026, 9, 7, 4, 0), IERI_2230 = Date.UTC(2026, 9, 6, 19, 30), IERI_2255 = Date.UTC(2026, 9, 6, 19, 55);   // ora României = UTC+3 în octombrie
+test('I1: între 00:00 și 08:00 alertele de ieri NU sunt „Alertele de azi” - lista goală, mesajul spune de când e poza, contorul 0', () => {
+  const ieri = ALERTE.map((a) => Object.assign({}, a, { t: IERI_2230 }));
+  const poza = Object.assign(POZA_BAZA(), { la: IERI_2255, alerte: ieri });
+  const h = RadarEcran.panouAlerte(poza, 'det', { tot: false, sim: null, mai: false }, { acum: AZI_0700, cheie: true });
+  assert.doesNotMatch(h, /APLD: −15%/); assert.doesNotMatch(h, /class="al"/);
+  assert.match(h, /Nicio alertă azi · ultimele sunt de ieri \(poza de la 22:55\)/);
+  assert.strictEqual(RadarEcran.grupeazaAlerte(ieri, 'det', AZI_0700).imp.length, 0, 'clopoțelul filei: 0');
+  assert.strictEqual(RadarEcran.grupeazaAlerte(ieri.concat([Object.assign({}, ALERTE[0], { t: AZI_0700 - 60000 })]), 'det', AZI_0700).imp.length, 1, 'cea de azi rămâne');
+  const el = { innerHTML: '', addEventListener() {}, dataset: {}, querySelectorAll() { return []; } };
+  RadarEcran.randeaza(el, poza, O(poza, { acum: AZI_0700, fila: 'det' }));
+  assert.doesNotMatch(el.innerHTML, /APLD: −15%/, 'randeaza filtrează după o.acum');
+});
+test('I1: contoarele filelor din pagină numără doar alertele de azi (grupeazaAlerte cu ora de acum)', () => {
+  const h = src('alerts/index.html'), i = h.indexOf('function radContoare(');
+  assert.match(h.slice(i, i + 900), /grupeazaAlerte\(p\.alerte, g, Date\.now\(\)\)/);
+});
+test('I2: formularul Salt are „Cumpărat pe” (opțional); radar:salt trimite de: YYYY-MM-DD, iar fără dată nu trimite nimic', () => {
+  const h = RadarEcran.panouSalt(POZA_BAZA(), { cheie: true });
+  assert.match(h, /<input id="spDe" type="date"/); assert.match(h, /Cu data cumpărării, Radarul socotește stopul care urcă de la maximul de după ea/); assert.doesNotMatch(h, /la cursul din ziua cumpărării/);
+  const { el, asc, trimise } = elLegat({ spSim: 'nflx', spQty: '14,43', spPret: '79,84', spDe: '2026-04-21' }, 'EUR');
+  RadarEcran.randeaza(el, POZA_BAZA(), O(POZA_BAZA()));
+  asc.submit({ target: { id: 'spForm' }, preventDefault() {} });
+  const d = trimise.find((e) => e.type === 'radar:salt').detail;
+  assert.deepStrictEqual(d, { op: 'pune', simbol: 'NFLX', qty: 14.43, pretMediu: 79.84, moneda: 'EUR', de: '2026-04-21' });
+  const b = elLegat({ spSim: 'NFLX', spQty: '1', spPret: '2', spDe: '' }); RadarEcran.randeaza(b.el, POZA_BAZA(), O(POZA_BAZA()));
+  b.asc.submit({ target: { id: 'spForm' }, preventDefault() {} });
+  assert.ok(!('de' in b.trimise.find((e) => e.type === 'radar:salt').detail), 'fără dată: colectorul păstrează data veche');
+});
+test('I2: „Editează” pune data cumpărării (r.de) în câmpul „Cumpărat pe”', () => {
+  const h = src('alerts/index.html'), i = h.indexOf("addEventListener('radar:salt-editeaza'");
+  assert.ok(i > 0); assert.match(h.slice(i, i + 900), /\$\('spDe'\)\.value = r\.de \|\| ''/);
+});
+test('I5: răspunsul colectorului se notează în browser; după o repornire (saltCereri: []) se vede tot „NFLX adăugat”, nu „în așteptare”', async () => {
+  const scris = {};
+  const RP = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')({}, lsProba(scris), async () => ({ ok: true, status: 200, json: async () => ({ id: 'c1' }) }), docProba);
+  RP.puneCheie('CheieDeProba0123456789');
+  await RP.saltCerere({ op: 'pune', simbol: 'NFLX', qty: 1, pretMediu: 2, moneda: 'EUR' });
+  RP.saltNoteazaRaspunsuri([{ id: 'c1', stare: 'ok', motiv: 'NFLX adăugat' }, { id: 'altul', stare: 'ok', motiv: 'x' }]);
+  const ast = RP.saltInAsteptare(); assert.strictEqual(ast.length, 1); assert.strictEqual(ast[0].stare, 'ok'); assert.strictEqual(ast[0].motiv, 'NFLX adăugat');
+  const poza = Object.assign(POZA_BAZA(), { salt: { la: ACUM, randuri: [] }, saltCereri: [] });
+  const h = RadarEcran.panouSalt(poza, { cheie: true, saltAsteptare: ast });
+  assert.match(h, /NFLX adăugat/); assert.doesNotMatch(h, /în așteptare/);
+});
+test('I5: în browser, cererile cu răspuns se șterg după 1 zi, cele fără răspuns după 2 zile', () => {
+  const zi = 86400000, acum = Date.now();
+  const scris = { radar_salt_astept: JSON.stringify([
+    { id: 'a', simbol: 'A', op: 'pune', la: acum - 1.5 * zi, stare: 'ok', motiv: 'A adăugat', raspLa: acum - 1.2 * zi },
+    { id: 'b', simbol: 'B', op: 'pune', la: acum - 1.5 * zi },
+    { id: 'c', simbol: 'C', op: 'pune', la: acum - 0.5 * zi, stare: 'respins', motiv: 'nu e în lista Salt', raspLa: acum - 0.4 * zi },
+    { id: 'd', simbol: 'D', op: 'pune', la: acum - 2.5 * zi }]) };
+  const RP = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')({}, lsProba(scris), faraRetea, docProba);
+  assert.deepStrictEqual(RP.saltInAsteptare().map((x) => x.id), ['b', 'c']);
+});
+test('M4: simbolul ales la „Pe simbol” care nu mai e în lista de azi nu blochează filtrul - se arată restul', () => {
+  const al = [{ t: ACUM - 1000, nivel: 'info', titlu: 'NXPI: −1% azi', mesaj: '', grup: 'det', zgomot: false, sim: 'NXPI', src: 't212' }];
+  const f = { tot: false, sim: 'APLD', mai: false };
+  const h = RadarEcran.panouAlerte(Object.assign(POZA_BAZA(), { alerte: al }), 'det', f, { acum: ACUM, cheie: true });
+  assert.match(h, /NXPI: −1% azi/); assert.strictEqual(f.sim, null);
+});
+test('M11: fără cheia de citire panoul alertelor cere cheia, nu „colectorul nou”', () => {
+  const h = RadarEcran.panouAlerte(null, 'det', { tot: false, sim: null, mai: false }, { acum: ACUM, cheie: false });
+  assert.match(h, /Alertele de azi vin cu poza Radarului\. Pune cheia de citire\./); assert.doesNotMatch(h, /colectorul nou/);
+});
+test('M10: eroarea cererii Salt are codul HTTP în față și mesajul worker-ului', async () => {
+  const RP = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')({}, lsProba({}), async () => ({ ok: false, status: 429, json: async () => ({ error: 'prea multe cereri azi' }) }), docProba);
+  RP.puneCheie('CheieDeProba0123456789');
+  const r = await RP.saltCerere({ op: 'pune', simbol: 'NFLX', qty: 1, pretMediu: 2, moneda: 'EUR' });
+  assert.deepStrictEqual(r, { ok: false, eroare: 'worker: HTTP 429 · prea multe cereri azi' });
+});
+test('M12: după clicul pe € / $ butonul pierde focusul (altfel re-randările se opresc)', () => {
+  const { el, asc, trimise } = elLegat({});
+  RadarEcran.randeaza(el, POZA_BAZA(), O(POZA_BAZA()));
+  let blur = 0; const fr = { setAttribute() {} };
+  const mo = { getAttribute: () => 'USD', blur() { blur++; }, parentNode: { querySelectorAll: () => [fr] }, closest: (s) => (s === '[data-moneda]' ? mo : null) };
+  asc.click({ target: mo });
+  assert.strictEqual(blur, 1); assert.strictEqual(trimise.find((e) => e.type === 'radar:salt-moneda').detail.moneda, 'USD');
+});

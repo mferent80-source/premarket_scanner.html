@@ -3703,7 +3703,8 @@ function radContoare(p) {
   if (cd) cd.textContent = nDet;
   [['det', 'tabClopDet'], ['urm', 'tabClopUrm']].forEach(([g, id]) => {
     const c = $(id); if (!c) return;
-    const imp = Array.isArray(p && p.alerte) ? RadarEcran.grupeazaAlerte(p.alerte, g).imp : [];
+    // revizia v144 (I1): doar alertele de azi (ora României) - noaptea poza din cache are alertele de ieri, clopoțelul nu le mai arată
+    const imp = Array.isArray(p && p.alerte) && RadarPoza.cheie() ? RadarEcran.grupeazaAlerte(p.alerte, g, Date.now()).imp : [];
     c.hidden = !imp.length; c.textContent = '🔔 ' + imp.length; c.classList.toggle('crit', imp.some(a => a.nivel === 'critic'));
     c.title = imp.length + ' alerte importante azi' + (imp.some(a => a.nivel === 'critic') ? ', printre ele una URGENTĂ' : '');
   });
@@ -3722,6 +3723,7 @@ function radRandeaza(r) {
   radContoare(p);
   const af0 = $('addForm'), pastr = $('radPastrator');
   if (af0 && pastr && el.contains(af0)) pastr.appendChild(af0);   // scos din #rad inainte ca innerHTML sa-l distruga
+  RadarPoza.saltNoteazaRaspunsuri(p && p.saltCereri);   // revizia v144 (I5): răspunsul colectorului rămâne și după o repornire a lui
   RadarEcran.randeaza(el, p, { fila: radFila(), saltAsteptare: RadarPoza.saltInAsteptare(), saltMoneda: _radSaltMoneda, simboluri: radSimboluri(), preturiLive: radPreturiLive(), botiLive: radBotiLive(), acum, cheie: !!RadarPoza.cheie(), parolaRadar: RadarPoza.parolaRadar(), adresa: RadarPoza.adresaAltfel(), prospetime: RadarPoza.prospetime(p, acum), eroare: _radUltima ? _radUltima.eroare : null });
   // formularul de adaugare intra in panoul „Simbolurile tale" (nodul e mutat, nu copiat: butoanele isi pastreaza ascultatorii)
   const slot = $('radAdaugaSlot'), af = $('addForm');
@@ -3770,11 +3772,12 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
   $('rad').addEventListener('radar:salt-moneda', e => { _radSaltMoneda = (e.detail && e.detail.moneda) === 'USD' ? 'USD' : 'EUR'; });
   $('rad').addEventListener('radar:salt', async e => { const d = e.detail || {}; if (!d.simbol || !(d.qty > 0) || !(d.pretMediu > 0)) { toast('Scrie simbolul, bucățile și prețul mediu (mai mari ca zero)', 'warn'); return; }
     const r = await RadarPoza.saltCerere(d); toast(r.ok ? `🧂 ${d.simbol}: cererea a plecat · o pune colectorul la poza următoare` : `🧂 ${d.simbol}: ${r.eroare}`, r.ok ? 'info' : 'warn');
-    if (r.ok) { ['spSim', 'spQty', 'spPret'].forEach(id => { const i = $(id); if (i) i.value = ''; }); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+    if (r.ok) { ['spSim', 'spQty', 'spPret', 'spDe'].forEach(id => { const i = $(id); if (i) i.value = ''; }); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
     radRandeaza(); });
   $('rad').addEventListener('radar:salt-scoate', async e => { const isin = e.detail.s; if (!isin || !confirm('Scot poziția din lista Salt? (și de pe pagina Salt din Radar)')) return; const r = await RadarPoza.saltCerere({ op: 'scoate', isin }); toast(r.ok ? '🧂 Cererea de scoatere a plecat' : '🧂 ' + r.eroare, r.ok ? 'info' : 'warn'); radRandeaza(); });
   $('rad').addEventListener('radar:salt-editeaza', e => { const p = (_radUltima && _radUltima.poza) || RadarPoza.cache(), r = ((p && p.salt && p.salt.randuri) || []).find(x => x.simbol === e.detail.s); if (!r) return;
     $('spSim').value = r.isin; $('spQty').value = String(r.qty).replace('.', ','); $('spPret').value = String(r.pretMediu).replace('.', ',');
+    if ($('spDe')) $('spDe').value = r.de || '';   // revizia v144 (I2): data cumpărării
     _radSaltMoneda = r.plata === 'EUR' || r.moneda === 'EUR' ? 'EUR' : 'USD';   // plătit în moneda acțiunii (USD) ⇒ butonul $ USD
     document.querySelectorAll('#spForm .moneda [data-moneda]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-moneda') === _radSaltMoneda)));
     $('spSim').focus(); });
