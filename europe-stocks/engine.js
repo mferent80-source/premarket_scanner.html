@@ -18,8 +18,8 @@
   state.history=historyRead.document;state.historyError=historyRead.error;
   function riskSettings(){try{const s=JSON.parse(localStorage.getItem(RISK_SETTINGS)||'null');return s&&EuropeFinance.codes.includes(s.currency)?s:{};}catch(_){return {};}}
   function refreshCalendar(){
-    EuropeFinance.loadCalendar(EuropeUniverse).then(calendar=>{state.calendar=calendar;state.calendarError=null;coverage();if(state.selected&&$('earningsPanel'))$('earningsPanel').outerHTML=EuropeView.earnings(EuropeFinance.earnings(calendar,state.selected),state.selected);})
-      .catch(error=>{state.calendarError=error.message;if(state.selected&&$('earningsPanel')){const e=EuropeFinance.earnings(state.calendar,state.selected);if(!state.calendar)e.reason=error.message;$('earningsPanel').outerHTML=EuropeView.earnings(e,state.selected);}});
+    EuropeFinance.loadCalendar(EuropeUniverse).then(calendar=>{state.calendar=calendar;state.calendarError=null;coverage();refreshVerdict(state.selected);if(state.selected&&$('earningsPanel'))$('earningsPanel').outerHTML=EuropeView.earnings(EuropeFinance.earnings(calendar,state.selected),state.selected);})
+      .catch(error=>{state.calendarError=error.message;refreshVerdict(state.selected);if(state.selected&&$('earningsPanel')){const e=EuropeFinance.earnings(state.calendar,state.selected);if(!state.calendar)e.reason=error.message;$('earningsPanel').outerHTML=EuropeView.earnings(e,state.selected);}});
   }
   function filtered(){
     const query=$('search').value.trim().toLocaleLowerCase('ro-RO'),sector=$('sectorFilter').value,status=$('stateFilter').value;
@@ -79,10 +79,14 @@
     renderDetail(state.selected);
     placeDetail();
   }
+  function refreshVerdict(x){if(!x)return;const e=EuropeFinance.earnings(state.calendar,x);
+    g.TTDecisionPanel?.set({purpose:'entry',executionMode:'native',candidate:x,risk:g.GV?.status?.()||x.governor,earnings:{known:['confirmed','estimated','reported'].includes(e.status),blocked:Number.isFinite(e.days)&&e.days<=1}});
+  }
   function renderDetail(x){
-    if(!x){$('detail').innerHTML='<h2>Analiza acțiunii</h2><p>Selectează un candidat pentru trend, volum și niveluri tehnice.</p>';return;}
+    if(!x){g.TTDecisionPanel?.set({purpose:'entry'});$('detail').innerHTML='<h2>Analiza acțiunii</h2><p>Selectează un candidat pentru trend, volum și niveluri tehnice.</p>';return;}
     const stale=!g.DailySeries.usable(x)||Date.now()-x.ts>MAX_AGE;
     const e=EuropeFinance.earnings(state.calendar,x);if(state.calendarError&&!state.calendar)e.reason=state.calendarError;
+    refreshVerdict(x);
     $('detail').innerHTML=EuropeView.detail(x,{stale,earnings:e,settings:riskSettings()});
     $('closeDetail').onclick=()=>{state.mobileDetailOpen=false;placeDetail();$('results').querySelector('[data-symbol="'+x.symbol+'"]')?.scrollIntoView({block:'nearest'});};
     $('chartCursor').oninput=event=>{

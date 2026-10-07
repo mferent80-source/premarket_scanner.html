@@ -77,7 +77,7 @@
       category,mode:categories[category].mode,state,actionable:false,
       score:categories[category].mode==='momentum'?growthScore:reversalScore,
       scoreParts:categories[category].mode==='momentum'?growthParts:reversalParts,scoreAdjustment:-5,
-      price,ema21,ema50,rsi,atr,rvol,rs,ret5,ret20,dayChg,drawdown,bounce,ext,turnover,
+      trend:g.TTDecisionVerdict?.trend(bars)||null,price,ema21,ema50,rsi,atr,rvol,rs,ret5,ret20,dayChg,drawdown,bounce,ext,turnover,
       minTurnover:liquidity[source.currency],benchmark:instrument.benchmark,index:instrument.index,
       plan,entryLow:plan.entryLow,entryHigh:plan.entryHigh,stop:plan.stop,target:plan.target,
       sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,ts:now,

@@ -22,5 +22,5 @@ test('periodic refresh cannot replace controls while a queue command is pending'
 test('periodic refresh keeps the active queue field and keyboard focus',()=>{assert.equal(refreshedQueue('PLANNED',['101'],false,true),'ORIGINAL');});
 
 test('daily context is not labelled live or a calibrated probability and Governor coverage is explicit',()=>{
- assert.doesNotMatch(html,/DATE LIVE DIN SUITĂ|<span>ÎNCREDERE<\/span>/);assert.match(html,/SCOR CONTEXT/);assert.match(html,/nu este probabilitatea unui profit/);assert.match(html,/conf\?conf\+'\/100'/);assert.match(html,/Execuțiile și pozițiile Trading 212 nu sunt reconciliate automat/);
+ assert.doesNotMatch(html,/DATE LIVE DIN SUITĂ|<span>ÎNCREDERE<\/span>/);assert.match(html,/SCOR TEHNIC/);assert.match(html,/nu este probabilitatea unui profit/);assert.match(html,/conf\?conf\+'\/100'/);assert.match(html,/Execuțiile și pozițiile Trading 212 nu sunt reconciliate automat/);
 });

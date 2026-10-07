@@ -161,30 +161,31 @@
     var gov = window.GV && GV.status ? GV.status() : { verdict: 'NEVERIFICAT', reasons: ['Governor indisponibil'] };
     var blocked = earn.blocked || !['TRADE','CAUTION'].includes(gov.verdict);
     var sector = window.EL && EL.sectorOf ? EL.sectorOf(sym) : 'Necunoscut';
+    var trend=window.TTDecisionVerdict?.trend(bars);
     var mid = price, entryLow = price * .997, entryHigh = price * 1.003;
-    var stop = price - f.atr * 1.25, target = mid + Math.max(.01, mid - stop) * 2;
+    var stop = price - f.atr * 1.25, target = entryHigh + Math.max(.01, entryHigh - stop) * 2;
     var momentumState = blocked ? 'BLOCKED' : (mScore >= 80 && rvol >= 1.15 ? 'FIRE' : (mScore >= 68 ? 'ARMED' : 'EARLY'));
     var reversalState = blocked ? 'BLOCKED' : (eb && eb.isConfirmed && rScore >= 82 ? 'FIRE' : (eb && eb.isConfirmed ? 'ARMED' : 'EARLY'));
+    var trendAligned=trend?trend.short==='up'&&trend.medium==='up':price>ema21&&ema21>ema50;
     var momentum = {
-      symbol: sym, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, region: f.region, sector: sector, mode: 'momentum', score: mScore,
+      symbol: sym, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, trend:trend, atr:atr, region: f.region, sector: sector, mode: 'momentum', score: mScore,
       state: momentumState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
       metricA: f.ret20, metricB: f.ext21,
       eligible: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 55,
-      actionable: !!source.currency && benchmarkRet20!==null && !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 68,
-      reason: 'EOD '+source.asOf+' · Trend ' + (price > ema21 && ema21 > ema50 ? 'aliniat' : 'în formare') + ' · RS vs benchmark ' + signed(f.rs20, 1) + ' · RVOL ' + fmt(f.rvol, 2) + '× · ' + earn.text,
+      actionable: !!source.currency && benchmarkRet20!==null && !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.ext21 <= 8 && f.dayChg < 10 && mScore >= 68 && trendAligned && f.rs20>=0 && f.rvol>=1,
+      reason: 'EOD '+source.asOf+' · Trend ' + (price > ema21 && ema21 > ema50 ? 'aliniat' : 'în formare') + ' · RS vs benchmark ' + signed(f.rs20, 1) + ' · RVOL ' + fmt(f.rvol, 2) + '× · ' + earn.text+' · țintă 2R calculată la limita intrării, nu rezistență confirmată',
       entryLow: entryLow, entryHigh: entryHigh, stop: stop, target: target, spark: f.spark,
       governor: gov, earnings: earn.text, ts: Date.now()
     };
-    if(!source.currency||benchmarkRet20===null){momentum.state=blocked?'BLOCKED':'WATCH';momentum.reason+=' · benchmark sau monedă neverificate';}
+    if(!momentum.actionable&&!blocked){momentum.state='WATCH';momentum.reason+=' · confirmarea completă nu este îndeplinită';}
     var reversalSafe = eb && !eb.isWilting && !eb.isRanBlocked;
-    var reversalConfirmed = reversalSafe && (eb.isEarly || eb.isConfirmed || (eb.signals && eb.signals.stabilized && eb.signals.rsiRising));
     var reversalWatch = reversalSafe && f.drawdown <= -12 && f.bounce60 >= 1 && f.bounce60 <= 35
       && (eb.isEarly || eb.isConfirmed || (eb.signals && (eb.signals.stabilized || eb.signals.rsiRising || eb.signals.higherLow)) || price > ema21);
     var reversalActionable = !!source.currency && benchmarkRet20!==null && !blocked && price >= 5 && f.avgDollarVol >= 3000000 && f.drawdown <= -20
-      && f.bounce60 >= 2 && f.bounce60 <= 30 && reversalConfirmed && rScore >= 50;
+      && f.bounce60 >= 2 && f.bounce60 <= 30 && reversalSafe && eb.isConfirmed && rScore >= 50;
     if (!blocked && !reversalActionable && reversalWatch) reversalState = 'WATCH';
     var reversal = {
-      symbol: sym, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, region: f.region, sector: sector, mode: 'reversal', score: rScore,
+      symbol: sym, sourceDate:source.asOf,sourceTimezone:source.timezone,sourceCloseMinutes:source.closeMinutes,currency:source.currency,name: sym, trend:trend, atr:atr, region: f.region, sector: sector, mode: 'reversal', score: rScore,
       state: reversalState, price: price, dayChg: f.dayChg, rvol: f.rvol, rs: f.rs20,
       metricA: f.drawdown, metricB: f.bounce60, baseDays: f.baseDays,
       eligible: !blocked && price >= 5 && f.avgDollarVol >= 3000000 && reversalWatch && rScore >= 32,
@@ -193,6 +194,7 @@
       entryLow: entryLow, entryHigh: entryHigh, stop: stop, target: target, spark: f.spark,
       governor: gov, earnings: earn.text, ts: Date.now()
     };
+    if(window.TTDecisionVerdict){for(const item of [momentum,reversal]){const verdict=TTDecisionVerdict.build({purpose:'entry',candidate:item,risk:gov});if(!verdict.canPlan){item.actionable=false;item.state=verdict.code==='BLOCKED'?'BLOCKED':'WATCH';item.reason+=' · '+(verdict.blockers[0]?.text||verdict.cautions[0]?.text||verdict.title);}}}
     return { momentum: momentum, reversal: reversal };
   }
 
@@ -342,6 +344,7 @@
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="Evoluția ultimelor 45 sesiuni"><path class="grid" d="M0 30H320M0 59H320M0 88H320"/><polygon class="area" points="' + area + '"/><polyline class="line" points="' + pts + '"/></svg>';
   }
   function renderDetail(x) {
+    window.TTDecisionPanel?.set({purpose:'entry',simulation:x?.kind==='synthetic',candidate:x,risk:x?.kind==='synthetic'?x.governor:window.GV?.status?.()||x?.governor});
     if (!x) {
       ['dSymbol','dName','dScore','dSector','dState','dFresh','dReason','dEntry','dStop','dTarget','dGovernor','dGovernorWhy'].forEach(function (id) { $(id).textContent = '—'; });
       $('spark').innerHTML = ''; $('setupBtn').disabled = true; return;
@@ -410,6 +413,7 @@
   validateDeps(); bind();
   if (demoMode) {
     var demoNow=Date.now(),demoCandidate={symbol:'FICTIV-C',mode:'momentum',region:'US',currency:'USD',actionable:true,state:'ARMED',ts:demoNow,sourceDate:DailySeries.expected(demoNow,'America/New_York',960),sourceTimezone:'America/New_York',sourceCloseMinutes:960,entryLow:100,entryHigh:102,stop:95,target:116,price:101,score:80,dayChg:2,rvol:1.4,rs:3,metricA:8,metricB:2,sector:'Sector fictiv',reason:'DEMO FICTIV · candidat transmis direct, fără salvarea scanării.',earnings:'Exemplu inventat',spark:[96,98,97,100,101],governor:{verdict:'TRADE',reasons:['DEMO FICTIV · fără ordine sau acces la cont.']}};
+    demoCandidate.kind='synthetic';demoCandidate.atr=2;demoCandidate.trend=TTDecisionVerdict.trend(Array.from({length:240},(_,i)=>({t:i+1,o:89.05+i*.05,h:89.35+i*.05,l:88.85+i*.05,c:89.05+i*.05,v:1000000})));
     state.momentum=[demoCandidate];state.updatedAt=demoNow;state.selected=demoCandidate;render();
     $('scanBtn').disabled=true;$('universe').disabled=true;$('nextScan').textContent='DEMO · fără scanări de piață';
     showAlert('DEMO FICTIV · scanarea nu este salvată. Apasă Construiește planul pentru a verifica transferul direct. Date inventate; planurile demo rămân în memorie.');
