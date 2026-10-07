@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ro">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Verificarea salvării scanării Europa</title>
+<style>body{background:#0c1319;color:#dce6ed;font:17px/1.6 system-ui;max-width:820px;margin:70px auto;padding:24px}h1{line-height:1.2}button{background:#56bca6;color:#0c1319;border:0;border-radius:8px;padding:14px 22px;font:inherit;cursor:pointer}section{border:1px solid #2c424b;border-radius:12px;padding:24px;margin:24px 0}#status{color:#70dfb6}small{color:#9caeb7}</style>
+<h1>Salvarea scanării Europa</h1>
+<p>Verificare izolată cu un rezultat de probă. Datele aplicației rămân în bazele lor existente.</p>
+<section><button id="check">Verifică salvarea cu localStorage plin</button><p id="status" role="status">Se verifică ultima copie de probă…</p><p id="restored"></p></section>
+<small>Testul refuză intenționat scrierea în localStorage și folosește o bază IndexedDB separată, numai pentru această verificare.</small>
+<script src="../europe-stocks/cache.js?v=26.10.07.2032"></script>
+<script>
+const status=document.getElementById('status'),restored=document.getElementById('restored');
+let writes=0;
+const storage={setItem(){writes++;throw new DOMException('Refuz simulat pentru verificarea izolată.','QuotaExceededError');}};
+const store=()=>EuropeScanCache.create(storage,{factory:window.indexedDB,database:'tt_europe_scan_cache_validation_v1'});
+store().read().then(copy=>{status.textContent=copy?'Copie recuperată după deschiderea paginii.':'Pregătit pentru verificarea salvării.';restored.textContent=copy?'Rezultat recuperat: '+copy.items[0].symbol+' · '+new Date(copy.updatedAt).toLocaleString('ro-RO'):'';}).catch(()=>{status.textContent='Browserul a refuzat accesul la baza de probă.';});
+document.getElementById('check').onclick=async()=>{
+ status.textContent='Se salvează copia de probă…';
+ try{
+  let quota=false;try{storage.setItem(EuropeScanCache.KEY,'probe');}catch(error){quota=error.name==='QuotaExceededError';}writes=0;
+  const copy={schema:3,updatedAt:Date.now(),items:[{symbol:'CACHE-PROBE',chart:[{t:1,c:100},{t:2,c:101}]}]};
+  const saved=await store().save(copy),read=await store().read();
+  if(!quota||saved!=='indexeddb'||writes!==0||JSON.stringify(copy)!==JSON.stringify(read))throw Error('Verificarea nu a fost confirmată.');
+  status.textContent='Salvare confirmată, chiar cu localStorage plin.';
+  restored.textContent='Copia completă a fost recitită din baza browserului. Reîncărcarea paginii verifică recuperarea într-o sesiune nouă.';
+ }catch(error){status.textContent='Verificare nereușită: '+error.message;}
+};
+</script>
+</html>

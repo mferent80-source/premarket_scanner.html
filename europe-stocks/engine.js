@@ -1,6 +1,7 @@
 (function (g) {
   'use strict';
   const CACHE='tt_europe_scan_v3',RISK_SETTINGS='tt_europe_risk_settings_v1',SCAN_MS=5*60000,MAX_AGE=30*60000;
+  const scanCache=g.EuropeScanCache?.create(localStorage);
   const state={category:'growth',items:[],selected:null,scanning:false,updatedAt:0,verified:0,
     failures:[],benchmarks:[],timer:null,shellVisible:true,hasScan:false,context:null,calendar:null,calendarError:null,mobileDetailOpen:false};
   const $=id=>document.getElementById(id);
@@ -164,7 +165,7 @@
       else if(state.failures.length)warnings.push(state.failures.length+' simboluri excluse din cauza datelor; vezi Acoperire.');
       const noBench=state.benchmarks.filter(x=>!x.asOf).length;
       if(noBench)warnings.push(noBench+' indici indisponibili; candidații fără RS verificat rămân în monitorizare.');
-      try{localStorage.setItem(CACHE,JSON.stringify({schema:3,policy:EuropeDecision.VERSION,filter:filterKey(),items,context:state.context,updatedAt:state.updatedAt,verified:state.verified,scanned:list.length,failures:state.failures,benchmarks:state.benchmarks}));}
+      try{const snapshot={schema:3,policy:EuropeDecision.VERSION,filter:filterKey(),items,context:state.context,updatedAt:state.updatedAt,verified:state.verified,scanned:list.length,failures:state.failures,benchmarks:state.benchmarks};if(scanCache)await scanCache.save(snapshot);else localStorage.setItem(CACHE,JSON.stringify(snapshot));}
       catch(_){warnings.push('Scanarea este disponibilă în această sesiune; copia locală nu a putut fi salvată.');}
       showAlert(warnings.join(' '));coverage();displayLists();
     }catch(error){
@@ -172,9 +173,8 @@
       showAlert('Scanarea nu s-a finalizat: '+(error.message||'eroare neașteptată')+'. Rulează din nou.');displayLists();coverage();
     }finally{setBusy(false);schedule();}
   }
-  function loadCache(){
+  function applyCache(cache){
     try{
-      const cache=JSON.parse(localStorage.getItem(CACHE)||'null');
       if(!cache||cache.schema!==3||cache.policy!==EuropeDecision.VERSION||cache.filter!==filterKey()||!Number.isFinite(cache.updatedAt)||cache.updatedAt>Date.now()+60000||Date.now()-cache.updatedAt>MAX_AGE||!Array.isArray(cache.items))return;
       const allowed=new Map(universe().map(x=>[x.symbol,x.isin]));
       if(cache.items.some(x=>!allowed.has(x.symbol)||allowed.get(x.symbol)!==x.isin||!EuropeModel.categories[x.category]||!DailySeries.usable(x)||!Array.isArray(x.chart)||x.chart.length<2||x.chart.length>90||x.chart.some(b=>![b.t,b.c].every(Number.isFinite)||b.c<=0||[b.ema21,b.ema50].some(v=>v!=null&&!Number.isFinite(v)))||![x.chart.at(-1).ema21,x.chart.at(-1).ema50].every(Number.isFinite)||!Array.isArray(x.checks)||!Number.isFinite(x.price)||x.price<=0||x.plan?.version!==EuropeDecision.VERSION||!['WAIT','CONFIRMED','EXTENDED','INVALID'].includes(x.plan.state)||![x.plan.trigger,x.plan.entryHigh,x.plan.support,x.plan.stop].every(Number.isFinite)||!Array.isArray(x.scoreParts)))return;
@@ -182,6 +182,11 @@
       $('universeCount').textContent=cache.scanned+' acțiuni';progress(cache.scanned,cache.scanned);coverage();displayLists();
       showAlert('Ultima scanare locală · '+new Date(cache.updatedAt).toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'})+'. Se verifică din nou datele.');
     }catch(_){}
+  }
+  function loadCache(){
+    try{applyCache(JSON.parse(localStorage.getItem(CACHE)||'null'));}catch{}
+    const initial=state.updatedAt,filter=filterKey();
+    scanCache?.read().then(cache=>{if(!state.scanning&&state.updatedAt===initial&&filterKey()===filter&&cache?.updatedAt>initial)applyCache(cache);}).catch(()=>{});
   }
   function schedule(){clearTimeout(state.timer);state.timer=setTimeout(()=>{if(visible())scan();else schedule();},SCAN_MS);}
   function switchCategory(category){

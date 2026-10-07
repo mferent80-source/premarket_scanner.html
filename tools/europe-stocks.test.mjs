@@ -7,7 +7,7 @@ import {resolve,dirname} from 'node:path';
 function setup(signal={isEarly:false,isConfirmed:false,signals:{}}){
   const c={console,Intl,Date,Map,Set,Math,Number,Array,Object,Error,AbortController};c.window=c;
   vm.createContext(c);
-  for(const file of ['lib/indicators.js','europe-stocks/salt-list.js','europe-stocks/universe.js','europe-stocks/decision.js','europe-stocks/model.js','europe-stocks/finance.js','europe-stocks/history.js','europe-stocks/view.js'])vm.runInContext(readFileSync(file,'utf8'),c,{filename:file});
+  for(const file of ['lib/indicators.js','europe-stocks/salt-list.js','europe-stocks/universe.js','europe-stocks/decision.js','europe-stocks/model.js','europe-stocks/finance.js','europe-stocks/history.js','europe-stocks/view.js','europe-stocks/cache.js'])vm.runInContext(readFileSync(file,'utf8'),c,{filename:file});
   c.MEB={computeEarlyBird:()=>signal,ebSignalText:()=> 'Structure test'};
   return c;
 }
@@ -120,6 +120,7 @@ function bootCache(c,cache,watchlist=[],watchlistOnly=false){
   c.DailySeries={usable:()=>true,date:t=>new Date(t).toISOString().slice(0,10)};c.events={};c.addEventListener=(type,fn)=>(c.events[type]??=[]).push(fn);c.setTimeout=()=>1;c.clearTimeout=()=>{};
   c.matchMedia=()=>({matches:false,addEventListener(){}});c.fetch=async()=>{throw Error('Offline test');};
   c.location={origin:'https://example.test'};
+  if(c.cacheDurable){const create=c.EuropeScanCache.create;c.EuropeScanCache.create=storage=>create(storage,{durable:c.cacheDurable});}
   vm.runInContext(readFileSync('europe-stocks/engine.js','utf8'),c,{filename:'engine.js'});
   return nodes;
 }
@@ -152,4 +153,34 @@ test('incoming risk settings preserve an active draft and invalidate an old quan
  c.storage.set('tt_europe_risk_settings_v1',JSON.stringify({currency:'RON',budget:'1500',loss:'50',fees:'5',fractional:true}));
  c.events.storage.forEach(fn=>fn({key:'tt_europe_risk_settings_v1'}));assert.equal(nodes.get('riskBudget').value,'777');
  c.document.activeElement=null;c.events.storage.forEach(fn=>fn({key:'tt_europe_risk_settings_v1'}));assert.equal(nodes.get('riskBudget').value,'1500');assert.equal(nodes.get('riskCurrency').value,'RON');assert.match(nodes.get('riskResult').textContent,/Recalculează/);
+});
+
+const cacheTick=()=>new Promise(resolve=>setImmediate(resolve));
+function cacheSnapshot(c,candidate,updatedAt=Date.now()){
+ return {schema:3,policy:c.EuropeDecision.VERSION,filter:c.EuropeUniverse.cacheIdentity('all',['SAP.DE'],true),items:[candidate],updatedAt,verified:1,scanned:1,failures:[],benchmarks:[]};
+}
+test('Europe scanning saves through quota refusal and a fresh module restores the complete candidate',async()=>{
+ let raw=null;const durable={read:async()=>raw,write:async value=>{raw=value;}},c=setup();c.cacheDurable=durable;
+ const nodes=bootCache(c,null,['SAP.DE'],true),before=[...c.storage];c.localStorage.setItem=()=>{throw Object.assign(Error('full'),{name:'QuotaExceededError'});};
+ c.D={fetchStock:async()=>series()};c.DailySeries.read=value=>value;c.document.hidden=false;
+ await nodes.get('scanBtn').onclick();assert.equal(nodes.get('candidateCount').textContent,1);assert.doesNotMatch(nodes.get('scanAlert').textContent,/copia locală nu a putut fi salvată/);
+ const saved=JSON.parse(raw);assert.equal(saved.items[0].symbol,'SAP.DE');assert.equal(saved.items[0].chart.length,90);assert.deepEqual([...c.storage],before);
+ const fresh=setup();fresh.cacheDurable=durable;const restored=bootCache(fresh,null,['SAP.DE'],true);await cacheTick();assert.equal(restored.get('candidateCount').textContent,1);assert.match(restored.get('scanAlert').textContent,/Ultima scanare locală/);
+});
+test('restored database scans retain source, freshness and filter validation',async()=>{
+ for(const invalid of ['isin','filter','stale','policy']){
+  const c=setup(),candidate=build(c),cache=cacheSnapshot(c,candidate);
+  if(invalid==='isin')candidate.isin='wrong';if(invalid==='filter')cache.filter='wrong';if(invalid==='stale')cache.updatedAt=Date.now()-31*60000;if(invalid==='policy')cache.policy='old';
+  c.cacheDurable={read:async()=>JSON.stringify(cache)};const nodes=bootCache(c,null,['SAP.DE'],true);await cacheTick();assert.notEqual(nodes.get('candidateCount')?.textContent,1,invalid);
+ }
+});
+test('a late database read cannot overwrite a fresh scan or a changed market filter',async()=>{
+ for(const startScan of [true,false]){
+  const c=setup(),cache=cacheSnapshot(c,build(c));let resolveRead,resolveMarket;
+  c.cacheDurable={read:()=>new Promise(resolve=>{resolveRead=resolve;})};const nodes=bootCache(c,null,['SAP.DE'],true);
+  let scan;if(startScan){c.document.hidden=false;c.DailySeries.read=value=>value;c.D={fetchStock:()=>new Promise(resolve=>{resolveMarket=resolve;})};scan=nodes.get('scanBtn').onclick();}
+  else nodes.get('market').value='UK';
+  resolveRead(JSON.stringify(cache));await cacheTick();assert.notEqual(nodes.get('candidateCount')?.textContent,1);
+  if(scan){c.D.fetchStock=async()=>series();resolveMarket(series());await scan;}
+ }
 });
