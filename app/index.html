@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ro" data-app-version="26.10.07.0939">
+<html lang="ro" data-app-version="26.10.07.1005">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -39,6 +39,7 @@
 .breadth-daily{grid-row:2;font-size:13px;line-height:1.5;padding:8px 12px;border-bottom:1px solid var(--line);color:var(--amber);background:var(--panel)}.breadth-daily[hidden]{display:none}
 .install-app{min-height:44px;padding:10px 12px;border:1px solid var(--green);border-radius:9px;background:var(--panel2);color:var(--text);font:inherit;cursor:pointer}.rail-foot .install-app{width:100%;margin-top:10px}.install-help{max-width:460px;line-height:1.6}.install-help p{font-size:16px}.install-help a{color:var(--green)}[data-install][hidden]{display:none!important}
 [data-version]{display:inline-flex;padding:2px 6px;border:1px solid var(--green);border-radius:5px;color:var(--green);font-size:11px;letter-spacing:0;white-space:nowrap}.app-update{min-height:32px;padding:6px 10px;border:1px solid var(--green);border-radius:7px;background:var(--panel2);color:var(--green);font-size:12px;font-weight:700;cursor:pointer}.app-update[hidden]{display:none}@media(max-width:760px){.topbar:has(.app-update:not([hidden])) .search{display:none}.crumb small{font-size:9px}}
+.crumb-main{display:flex;align-items:center;gap:12px}.google-account{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;min-height:28px;padding:4px 8px;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--muted);font-size:11px;line-height:1.2;white-space:nowrap;cursor:pointer}.google-account i{width:6px;height:6px;flex-shrink:0;border-radius:50%;background:currentColor}.google-account[data-state="connected"]{color:var(--green);border-color:color-mix(in srgb,var(--green) 35%,var(--line))}.google-account:focus-visible{outline:2px solid var(--green);outline-offset:2px}@media(max-width:760px){.crumb-main{align-items:flex-start;flex-direction:column;gap:3px;min-width:0}.crumb-main b{width:100%;margin-top:0}.google-account{min-height:22px;padding:3px 5px;font-size:10px;gap:4px}}
 </style>
 </head>
 <body>
@@ -50,7 +51,7 @@
   </aside>
   <section class="workspace">
     <header class="topbar">
-      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.07.0939</span></small><b id="pageName">Candidates</b></div>
+      <div class="crumb"><small>TRADING TOOLS · <span data-version>v26.10.07.1005</span></small><div class="crumb-main"><b id="pageName">Candidates</b><button class="google-account" id="googleAccount" data-state="checking" title="Deschide Cont & sincronizare"><i aria-hidden="true"></i><span id="googleAccountLabel" aria-live="polite">Verific Google…</span></button></div></div>
       <div class="spacer"></div><button class="app-update" data-update hidden>Actualizează</button>
       <input class="search" id="search" aria-label="Caută în aplicație" placeholder="Caută · Ctrl K" autocomplete="off">
       <div class="top-stat"><small>SESIUNE</small><b id="session">—</b></div>
@@ -80,6 +81,17 @@
   var normalFrame=frame,brokerFrame=document.getElementById('brokerFrame');
   var pageName=document.getElementById('pageName'),search=document.getElementById('search'),palette=document.getElementById('palette');
   var active='desk/',pendingPlanCandidate=null;
+  var googleAccount=document.getElementById('googleAccount'),googleAccountLabel=document.getElementById('googleAccountLabel');
+  function renderGoogleAccount(s){
+    var connected=!!s.connected,label=s.checking?'Verific Google…':connected?'Google conectat':'Google neconectat';
+    googleAccountLabel.textContent=label;googleAccount.dataset.state=s.checking?'checking':connected?'connected':'disconnected';
+    var detail=label+(connected&&s.email?' · '+s.email:'');
+    if(connected&&(!s.ready||s.error))detail+=' · Sincronizarea necesită atenție';
+    googleAccount.title=detail+' · Deschide Cont & sincronizare';googleAccount.setAttribute('aria-label',googleAccount.title);
+  }
+  googleAccount.onclick=function(){openModule('app/sync/');};
+  window.addEventListener('tt-cloud-state',function(e){renderGoogleAccount(e.detail);});
+  if(window.TTCloud)renderGoogleAccount(window.TTCloud.state());
   var requested=new URLSearchParams(location.search).get('module');if(requested!==null&&all.some(function(x){return x.u===requested;}))active=requested;
   if(!all.some(function(x){return x.u===active;}))active='desk/';
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];});}
@@ -110,7 +122,7 @@
 <script src="../lib/breadth-daily.js?v=daily-scan-20261003"></script>
 <script>document.addEventListener('tt-breadth-daily',function(e){var s=e.detail,n=document.getElementById('breadthDailyState');n.hidden=s.status==='disabled';n.textContent=TTBreadthDaily.message(s);});TTBreadthDaily.start();</script>
 <script src="install.js?v=phone-20261003"></script>
-<script src="version.js?v=26.10.07.0939"></script>
-<script src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.07.0939"></script>
+<script src="version.js?v=26.10.07.1005"></script>
+<script src="../lib/trading212-vault.js?v=26.10.05.2201"></script><script src="../lib/cloud-sync-store.js?v=20261003"></script><script type="module" src="cloud-sync.js?v=26.10.07.1005"></script>
 </body>
 </html>
