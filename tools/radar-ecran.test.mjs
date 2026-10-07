@@ -118,7 +118,7 @@ test('randeaza (DOM minimal): poza goala -> textele de gol; poza cu date -> rand
   const el = { innerHTML: '', addEventListener() {}, dataset: {} };
   RadarEcran.randeaza(el, { la: ACUM, t212: [], boti: [], simboluri: [], gol: { boti: 'niciun bot activ', t212: 'nicio poziție deschisă' } }, { simboluri: [], preturiLive: {}, acum: ACUM, cheie: true, prospetime: RadarPoza.prospetime({ la: ACUM }, ACUM) });
   assert.match(el.innerHTML, /niciun bot activ/); assert.match(el.innerHTML, /nicio poziție deschisă/);
-  RadarEcran.randeaza(el, null, { simboluri: [{ s: 'AVGO', nota: '' }], preturiLive: { AVGO: { pret: 352.81, prev: 350.36 } }, acum: ACUM, cheie: false, prospetime: RadarPoza.prospetime(null, ACUM) });
+  RadarEcran.randeaza(el, null, { fila: 'urm', simboluri: [{ s: 'AVGO', nota: '' }], preturiLive: { AVGO: { pret: 352.81, prev: 350.36 } }, acum: ACUM, cheie: false, prospetime: RadarPoza.prospetime(null, ACUM) });   // v144: simbolurile stau pe fila „urm”
   assert.match(el.innerHTML, /Pune cheia de citire/); assert.match(el.innerHTML, /AVGO/); assert.match(el.innerHTML, /cere cheia/);
   assert.doesNotMatch(el.innerHTML, /NaN|undefined/);
   const poza = { la: ACUM, t212: [{ s: 'AVGO', t212: 'AVGO_US_EQ', buc: 2.8187, mediu: 399.96, pret: 352.81, prev: 350.36, closes30: [392.99, 352.81], pplLei: -615, pctLei: -0.118, pctPret: -0.1179, plan: { trailPct: 15, tinta: 413.47, stop: 350.63, max: 412.5 }, trend: 'jos', pondere: 0.157, niv: 'atentie', motive: ['trend în jos'], sfat: 'aș ieși' }],
@@ -126,7 +126,11 @@ test('randeaza (DOM minimal): poza goala -> textele de gol; poza cu date -> rand
     simboluri: [{ s: 'INTC', nota: '', sursa: null, moneda: '$', pret: 123, prev: 127.39, closes30: [100, 123], insideri: { form4: true, buys: 1, sells: 0, bp: 1, sp: 0, net: 105263, verdict: 'bull1', top: [{ d: '08-11', cine: 'Tan Lip-Bu', rol: 'Chief Executive Officer', f: 'buy', act: 105263, val: 9999985 }], n60: 1 }, rezultate: { data: '2026-10-22', zile: 25, eps: 0.39 }, analisti: { tinta: 116.37, recom: 'buy', n: 43 }, shortFloat: 0.03 }],
     gol: { boti: null, t212: null } };
   RadarEcran.randeaza(el, poza, { simboluri: [{ s: 'INTC', nota: '' }], preturiLive: {}, acum: ACUM, cheie: true, prospetime: RadarPoza.prospetime(poza, ACUM) });
-  assert.match(el.innerHTML, /ATENȚIE/); assert.match(el.innerHTML, /\$350,63/); assert.match(el.innerHTML, /VVV/); assert.match(el.innerHTML, /pe zero la 30,1548/); assert.match(el.innerHTML, /cumpără/); assert.match(el.innerHTML, /22 oct/); assert.match(el.innerHTML, /Tan Lip-Bu/);
+  assert.match(el.innerHTML, /ATENȚIE/); assert.match(el.innerHTML, /\$350,63/); assert.match(el.innerHTML, /VVV/); assert.match(el.innerHTML, /pe zero la 30,1548/);
+  assert.doesNotMatch(el.innerHTML, /NaN|undefined/);
+  // v144: simbolurile stau pe fila „urm” - aceleași aserțiuni, pe fila lor
+  RadarEcran.randeaza(el, poza, { fila: 'urm', simboluri: [{ s: 'INTC', nota: '' }], preturiLive: {}, acum: ACUM, cheie: true, prospetime: RadarPoza.prospetime(poza, ACUM) });
+  assert.match(el.innerHTML, /cumpără/); assert.match(el.innerHTML, /22 oct/); assert.match(el.innerHTML, /Tan Lip-Bu/);
   assert.doesNotMatch(el.innerHTML, /NaN|undefined/);
 });
 
@@ -208,7 +212,7 @@ test('v139: pe telefon, Simbolurile tale își arată prețul (c-acum), ca pozi�
   assert.ok(arata > ascunde, 'regula care o arată la Simbolurile tale vine DUPĂ cea care o ascunde (altfel pierde)');
   const el = { innerHTML: '', addEventListener() {}, dataset: {} };
   const poza = POZA_BAZA(); poza.simboluri = [{ s: 'APLD', closes30: [31.2, 26.25], prev: 24.5 }];
-  RadarEcran.randeaza(el, poza, O(poza, { simboluri: [{ s: 'APLD', nota: '' }], preturiLive: { APLD: { pret: 24.96, prev: 24.5, la: ACUM, chip: '' } } }));
+  RadarEcran.randeaza(el, poza, O(poza, { fila: 'urm', simboluri: [{ s: 'APLD', nota: '' }], preturiLive: { APLD: { pret: 24.96, prev: 24.5, la: ACUM, chip: '' } } }));   // v144: simbolurile stau pe fila „urm”
   const sim = el.innerHTML.slice(el.innerHTML.indexOf('id="radSimboluri"'));
   assert.match(sim, /<td class="c-acum">\$24,96/, 'prețul live e în celula c-acum a simbolului');
 });
@@ -252,7 +256,7 @@ test('v129: Simbolurile tale - „SL ← intrare → TP” + „Pe istoric”; t
     { s: 'RHM.DE', moneda: '€', pret: 966.3, prev: 980, closes30: [], sugestie: { intrare: null, stop: 917.3, tinta: 1064.29, k: 1.5, riscPct: 0.051, trend: 'jos', proba: { n: 141, pePlus: 0.248, medie: -0.0255 } } },
     { s: 'NOU', pret: 10, closes30: [], sugestie: { nivel: 'fara-date', motiv: 'prea puține zile de prețuri (60 din 120)' } },
     { s: 'VECHI', pret: 10, closes30: [] }];
-  RadarEcran.randeaza(el, poza, O(poza, { simboluri: poza.simboluri.map(function (x) { return { s: x.s }; }) }));
+  RadarEcran.randeaza(el, poza, O(poza, { fila: 'urm', simboluri: poza.simboluri.map(function (x) { return { s: x.s }; }) }));   // v144: simbolurile stau pe fila „urm”
   assert.match(el.innerHTML, /<th>SL ← intrare → TP<\/th><th>Pe istoric<\/th>/);
   assert.match(el.innerHTML, /intrare sugerată \$112,05/); assert.match(el.innerHTML, /class="slEt orient">ORIENTATIV · TREND ÎN JOS/); assert.match(el.innerHTML, /slBara orient/);
   assert.match(el.innerHTML, /prea puține zile de prețuri \(60 din 120\)/);
@@ -304,7 +308,7 @@ test('v131: la simbolul urmărit cu intrare sugerată, rândul desfăcut spune c
     { s: 'INTC', pret: 115.31, prev: 116, closes30: [], sugestie: { intrare: { pret: 111.91, motiv: 'retragere' }, stop: 94.68, tinta: 146.61, k: 3, riscPct: 0.15, trend: 'sus', proba: { n: 140, pePlus: 0.571, medie: 0.0703 }, marime: { bucati: 16.6547, suma: 8570, risc: 1316, plafonat: false } } },
     { s: 'WDC', pret: 455, prev: 450, closes30: [], sugestie: { intrare: { pret: 413.3, motiv: 'lateral' }, stop: 345.1, tinta: 549.7, k: 3, riscPct: 0.165, trend: 'lateral', proba: { n: 171, pePlus: 0.66, medie: 0.125 }, marime: { bucati: 4.6, suma: 8800, risc: 1450, plafonat: true } } },
     { s: 'RHM.DE', moneda: '€', pret: 966.3, closes30: [], sugestie: { intrare: null, stop: 917.3, tinta: 1064.29, k: 1.5, riscPct: 0.051, trend: 'jos', proba: { n: 141, pePlus: 0.25, medie: -0.025 } } }];
-  RadarEcran.randeaza(el, poza, O(poza, { simboluri: poza.simboluri.map(function (x) { return { s: x.s }; }) }));
+  RadarEcran.randeaza(el, poza, O(poza, { fila: 'urm', simboluri: poza.simboluri.map(function (x) { return { s: x.s }; }) }));   // v144: simbolurile stau pe fila „urm”
   assert.match(el.innerHTML, /Cât cumpăr/); assert.match(el.innerHTML, /16,65 buc la \$111,91/); assert.match(el.innerHTML, /~8\.570 lei/); assert.match(el.innerHTML, /pierzi ~1\.316 lei/);
   assert.match(el.innerHTML, /plafonat la 20 % din cont/, 'WDC plafonat: se spune');
   const rhm = el.innerHTML.slice(el.innerHTML.indexOf('data-det="RHM.DE"')); assert.doesNotMatch(rhm.slice(0, rhm.indexOf('</tr>')), /Cât cumpăr/, 'trend în jos: fără bucăți');
@@ -324,7 +328,7 @@ test('v132: eticheta „LA INTRARE” lângă nume când prețul a ajuns la intr
   const poza = POZA_BAZA();
   const sg = (pret, intrare) => ({ intrare: intrare === null ? null : { pret: intrare, motiv: 'retragere' }, stop: 94, tinta: 146, k: 3, riscPct: 0.15, trend: intrare === null ? 'jos' : 'sus', proba: { n: 140, pePlus: 0.57, medie: 0.07 } });
   poza.simboluri = [{ s: 'INTC', pret: 112.4, closes30: [], sugestie: sg(112.4, 112.0) }, { s: 'CSCO', pret: 106.93, closes30: [], sugestie: sg(106.93, 105.22) }, { s: 'RHM.DE', moneda: '€', pret: 900, closes30: [], sugestie: sg(900, null) }];
-  RadarEcran.randeaza(el, poza, O(poza, { simboluri: poza.simboluri.map(function (x) { return { s: x.s }; }) }));
+  RadarEcran.randeaza(el, poza, O(poza, { fila: 'urm', simboluri: poza.simboluri.map(function (x) { return { s: x.s }; }) }));   // v144: simbolurile stau pe fila „urm”
   const rand = (s) => { const i = el.innerHTML.indexOf('<tr class="rand" tabindex="0" aria-expanded="false" data-s="' + s + '"'); return el.innerHTML.slice(i, el.innerHTML.indexOf('</tr>', i)); };
   assert.match(rand('INTC'), /class="slEt laIntrare">LA INTRARE</, 'INTC la 0,4 % peste intrare');
   assert.doesNotMatch(rand('CSCO'), /LA INTRARE/, 'CSCO la 1,6 % peste intrare: încă nu');
@@ -394,4 +398,78 @@ test('v142: poza Radarului își face loc când stocarea e plină - cere cache-u
   const RP = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')(win, lsProba(scris, () => plin), faraRetea, docProba);
   RP.puneParolaRadar('parola-de-proba');
   assert.strictEqual(strans.length, 1, 'a cerut o singură strângere'); assert.strictEqual(scris.radar_parola, 'parola-de-proba', 'a scris după strângere');
+});
+
+// v144 (el, 07.10: „pagina alerts să fie în două: alerte la boții și stocks pe care îi dețin, și alerte la cei pe care îi urmăresc”)
+const ALERTE = [
+  { t: ACUM - 1000, nivel: 'critic', titlu: 'APLD: −15% de la maxim, pragul din planul tău', mesaj: 'A coborât 15,1%.\n👉 Aș ieși, măcar cu jumătate.', grup: 'det', zgomot: false, sim: 'APLD', src: 't212' },
+  { t: ACUM - 2000, nivel: 'info', titlu: 'PONS: grilă atinsă — a vândut la ~0.40970', mesaj: '', grup: 'det', zgomot: true, sim: 'PONS', src: 'bot' },
+  { t: ACUM - 3000, nivel: 'atentie', titlu: 'WKL.AS: +2,8% azi, de 2,1× mișcarea lui obișnuită', mesaj: 'Peste 2× ATR.\n👉 M-aș uita la știri.', grup: 'urm', zgomot: false, sim: 'WKL.AS', src: 'urm' }];
+test('alerts în două: fila det arată T212 + boți + alertele det; fila urm arată simbolurile + alertele urm', () => {
+  const poza = Object.assign(POZA_BAZA(), { alerte: ALERTE });
+  const el = { innerHTML: '', addEventListener() {}, dataset: {}, querySelectorAll() { return []; } };
+  RadarEcran.randeaza(el, poza, O(poza, { fila: 'det' }));
+  assert.match(el.innerHTML, /Alertele de azi/); assert.match(el.innerHTML, /aria-label="Trading 212"/); assert.doesNotMatch(el.innerHTML, /aria-label="Simbolurile tale"/);
+  assert.match(el.innerHTML, /APLD: −15%/); assert.doesNotMatch(el.innerHTML, /WKL\.AS: \+2,8%/); assert.doesNotMatch(el.innerHTML, /grilă atinsă/, 'zgomotul ascuns din start');
+  assert.match(el.innerHTML, /URGENT/); assert.match(el.innerHTML, /👉 Aș ieși/);
+  RadarEcran.randeaza(el, poza, O(poza, { fila: 'urm' }));
+  assert.match(el.innerHTML, /aria-label="Simbolurile tale"/); assert.doesNotMatch(el.innerHTML, /aria-label="Trading 212"/); assert.match(el.innerHTML, /WKL\.AS: \+2,8%/);
+});
+test('alerts în două: „Toate, cu grilele” și filtrul pe simbol', () => {
+  const poza = Object.assign(POZA_BAZA(), { alerte: ALERTE });
+  RadarEcran.filtre.det = { tot: true, sim: null, mai: false };
+  assert.match(RadarEcran.panouAlerte(poza, 'det', RadarEcran.filtre.det), /grilă atinsă/);
+  RadarEcran.filtre.det = { tot: true, sim: 'APLD', mai: false };
+  const h = RadarEcran.panouAlerte(poza, 'det', RadarEcran.filtre.det);
+  assert.match(h, /APLD: −15%/); assert.doesNotMatch(h, /grilă atinsă/);
+  RadarEcran.filtre.det = { tot: false, sim: null, mai: false };
+});
+test('alerts în două: poza fără „alerte” (colector vechi) NU spune „nicio alertă azi”', () => {
+  const h = RadarEcran.panouAlerte(POZA_BAZA(), 'det', { tot: false, sim: null, mai: false });
+  assert.match(h, /vin cu colectorul nou \(v101\.86\)/); assert.doesNotMatch(h, /Nicio alertă azi/);
+});
+
+// v144 (el, 07.10: „la dețineri să pot adăuga și manual cu preț în euro și USD” + „fă și la Salt sugestia de SL și TP la fel ca la restul”)
+const SALT_RHM = { isin: 'DE0007030009', simbol: 'RHM.DE', nume: 'Rheinmetall', qty: 1.0456, pretMediu: 1349.6, plata: 'EUR', de: '2026-05-11', moneda: 'EUR', pret: 937.4, prev: 953, closes30: [1050, 937.4],
+  val: 980.2, cost: 1411.1, rez: -430.94, niv: 'iesi', motive: ['sub stopul care urcă'], sfat: 'Aș ieși', sugestie: { stop: 1109.08, tinta: 1436.49 }, max: 1304.8, mediuSimbol: 1349.6 };
+test('Salt: rândul are pastila, SUGERAT, rezultatul în EUR cu o zecimală, bara SL/TP cu SUB STOP, plătit în EUR', () => {
+  const h = RadarEcran.randSalt(SALT_RHM);
+  assert.match(h, /pill iesi/); assert.match(h, /SUGERAT/); assert.match(h, /−430,9 €/); assert.match(h, /SL <b>€1109,08<\/b>/); assert.match(h, /SUB STOP/); assert.match(h, /class="platit">EUR/);
+});
+test('Salt: NFLX plătit în EUR, acțiune în USD - prețul în $, rezultatul în €, „acțiune în USD”', () => {
+  const h = RadarEcran.randSalt(Object.assign({}, SALT_RHM, { simbol: 'NFLX', moneda: 'USD', pret: 68.69, prev: 67.5, sugestie: { stop: 80.49, tinta: 100.08 }, rez: -265.7 }));
+  assert.match(h, /\$68,69/); assert.match(h, /−265,7 €/); assert.match(h, /acțiune în USD/);
+});
+test('Salt: fără prețuri ⇒ „fără prețuri”; poza fără „salt” ⇒ „vin cu poza următoare”, formularul rămâne', () => {
+  assert.match(RadarEcran.randSalt({ isin: 'X', simbol: 'ABC', qty: 1, pretMediu: 2, plata: 'EUR', pret: null, motivFara: 'bare' }), /fără prețuri/);
+  const h = RadarEcran.panouSalt(POZA_BAZA(), { cheie: true });
+  assert.match(h, /Pozițiile Salt vin cu poza următoare/); assert.match(h, /id="spForm"/);
+});
+test('Salt: cererile în așteptare și răspunsul colectorului se văd sub formular', () => {
+  const poza = Object.assign(POZA_BAZA(), { salt: { la: ACUM, randuri: [SALT_RHM] }, saltCereri: [{ id: 'z9', stare: 'respins', motiv: 'RHM.DE se tranzacționează în EUR, nu în USD: scrie prețul în EUR' }] });
+  const h = RadarEcran.panouSalt(poza, { cheie: true, saltAsteptare: [{ id: 'a1', simbol: 'NFLX', op: 'pune' }, { id: 'z9', simbol: 'RHM.DE', op: 'pune' }] });
+  assert.match(h, /NFLX.*în așteptare/); assert.match(h, /respinsă: RHM\.DE se tranzacționează în EUR/);
+});
+test('Salt: panoul stă pe fila „Ce dețin”, după boți; pe „Ce urmăresc” nu apare', () => {
+  const poza = Object.assign(POZA_BAZA(), { salt: { la: ACUM, randuri: [SALT_RHM] } });
+  const el = { innerHTML: '', addEventListener() {}, dataset: {}, querySelectorAll() { return []; } };
+  RadarEcran.randeaza(el, poza, O(poza, { fila: 'det' }));
+  assert.ok(el.innerHTML.indexOf('aria-label="Salt Bank"') > el.innerHTML.indexOf('aria-label="Boți Pionex"'), 'Salt după boți');
+  assert.match(el.innerHTML, /🧂 Salt Bank · 1 poziție/); assert.match(el.innerHTML, /pe ansamblu <b class="bad">−430,9 €/);
+  RadarEcran.randeaza(el, poza, O(poza, { fila: 'urm' }));
+  assert.doesNotMatch(el.innerHTML, /aria-label="Salt Bank"/);
+});
+test('Salt: cererea pleacă la worker (/salt-cereri, cu cheia) și rămâne „în așteptare” în browser; fără cheie nu pleacă', async () => {
+  const scris = {}, cereri = [];
+  const ls = { getItem(k) { return k in scris ? scris[k] : null; }, setItem(k, v) { scris[k] = String(v); }, removeItem(k) { delete scris[k]; } };
+  const fetchProba = async (u, o) => { cereri.push({ u, o }); return { ok: true, status: 200, json: async () => ({ id: 'c1' }) }; };
+  const RP = new Function('window', 'localStorage', 'fetch', 'document', src('lib/radar-poza.js') + '; return RadarPoza;')({}, ls, fetchProba, { hidden: false, addEventListener() {} });
+  const fara = await RP.saltCerere({ op: 'pune', simbol: 'NFLX', qty: 1, pretMediu: 2, moneda: 'EUR' });
+  assert.strictEqual(fara.ok, false); assert.match(fara.eroare, /cheia/); assert.strictEqual(cereri.length, 0);
+  RP.puneCheie('CheieDeProba0123456789');
+  const r = await RP.saltCerere({ op: 'pune', simbol: 'NFLX', qty: 1, pretMediu: 2, moneda: 'EUR' });
+  assert.deepStrictEqual(r, { ok: true, id: 'c1' });
+  assert.match(cereri[0].u, /\/salt-cereri$/); assert.strictEqual(cereri[0].o.method, 'POST'); assert.strictEqual(cereri[0].o.headers.authorization, 'Bearer CheieDeProba0123456789');
+  assert.strictEqual(JSON.parse(cereri[0].o.body).simbol, 'NFLX');
+  const ast = RP.saltInAsteptare(); assert.strictEqual(ast.length, 1); assert.strictEqual(ast[0].id, 'c1'); assert.strictEqual(ast[0].simbol, 'NFLX'); assert.strictEqual(ast[0].op, 'pune');
 });

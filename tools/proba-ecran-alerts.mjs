@@ -74,9 +74,14 @@ try {
     if (pc.exceptii.length) throw new Error("exceptii: " + pc.exceptii.join(" | "));
     if (/NaN|undefined/.test(txt)) throw new Error("NaN/undefined in text");
   });
-  await test("#rad are 3 sectiuni: Trading 212 (7 randuri), Boti (1 rand JTO), Simbolurile tale (9 randuri)", async () => {
-    const n = await pc.ev(`[document.querySelectorAll('#radT212 tr.rand').length, document.querySelectorAll('#radBoti tr.rand').length, document.querySelectorAll('#radSimboluri tr.rand').length, document.querySelector('#rad').innerText.includes('JTO')]`);
-    if (n[0] !== 7 || n[1] !== 1 || n[2] !== 9 || !n[3]) throw new Error("gasit: " + JSON.stringify(n));
+  // v144: două file - „Ce dețin” (T212, boți) și „Ce urmăresc” (simbolurile tale)
+  await test("#rad are 3 sectiuni: Trading 212 (7 randuri), Boti (1 rand JTO) pe „Ce dețin”, Simbolurile tale (9 randuri) pe „Ce urmăresc”", async () => {
+    await pc.ev(`applyDeskTab('det')`);
+    const n = await pc.ev(`[document.querySelectorAll('#radT212 tr.rand').length, document.querySelectorAll('#radBoti tr.rand').length, document.querySelector('#rad').innerText.includes('JTO')]`);
+    await pc.ev(`applyDeskTab('urm')`);
+    n.push(await pc.ev(`document.querySelectorAll('#radSimboluri tr.rand').length`));
+    await pc.ev(`applyDeskTab('det')`);
+    if (n[0] !== 7 || n[1] !== 1 || !n[2] || n[3] !== 9) throw new Error("gasit: " + JSON.stringify(n));
   });
   await test("clic pe randul AVGO desface detaliul (motive, sfat, plan); inca un clic il inchide", async () => {
     await pc.ev(`document.querySelector('#radT212 tr.rand[data-s="AVGO"]').click()`);
@@ -87,6 +92,7 @@ try {
     if (!(await pc.ev(`document.querySelector('#radT212 tr.det[data-det="AVGO"]').hidden`))) throw new Error("nu s-a inchis");
   });
   await test("Adauga NVDA -> apare in Simbolurile tale (fara poza inca) si in localStorage cu kind 'watch'", async () => {
+    await pc.ev(`applyDeskTab('urm')`);   // v144: formularul și simbolurile stau pe fila „Ce urmăresc”
     await pc.ev(`document.getElementById('inpSym').value = 'NVDA'; document.getElementById('inpNote').value = 'proba'; document.getElementById('btnAdd').click()`);
     await panaCand(pc, `!!document.querySelector('#radSimboluri tr.rand[data-s="NVDA"]')`, 5000, "NVDA nu a aparut");
     const st = await pc.ev(`JSON.parse(localStorage.getItem('wl_price_alerts'))`);
@@ -101,9 +107,10 @@ try {
     const st = await pc.ev(`JSON.parse(localStorage.getItem('wl_price_alerts'))`);
     if (st.NVDA) throw new Error("a ramas in localStorage");
   });
-  await test("bara suitei e neschimbata: header.suite-cockpit.al-topbar, 3 file, badge v116; fara praguri in formular", async () => {
+  // v144: 4 file („Preț” s-a împărțit în „Ce dețin” și „Ce urmăresc”)
+  await test("bara suitei e neschimbata: header.suite-cockpit.al-topbar, 4 file, badge-ul paginii; fara praguri in formular", async () => {
     const r = await pc.ev(`[!!document.querySelector('header.suite-cockpit.al-topbar'), document.querySelectorAll('.desk-tabs [data-tab]').length, document.getElementById('verBadge').textContent, !!document.getElementById('inpThr'), !!document.getElementById('inpKind'), !!document.querySelector('#rad #radAdaugaSlot #addForm'), document.querySelectorAll('.refresh-info').length]`);
-    if (!r[0] || r[1] !== 3 || r[2] !== VER_PAGINA || r[3] || r[4]) throw new Error(JSON.stringify(r));
+    if (!r[0] || r[1] !== 4 || r[2] !== VER_PAGINA || r[3] || r[4]) throw new Error(JSON.stringify(r));
     if (!r[5]) throw new Error("formularul de adaugare nu e in panoul Simbolurile tale: " + JSON.stringify(r));
     if (r[6] !== 1) throw new Error("linia 'ultim check' trebuie sa apara o singura data, gasit " + r[6]);
   });
@@ -114,7 +121,7 @@ try {
     if (r[0] !== 'inpSym' || r[1] !== 'NV') throw new Error("dupa render: " + JSON.stringify(r));
     await pc.ev(`document.getElementById('inpSym').value = ''; document.getElementById('inpSym').blur()`);
   });
-  await test("poza la 1920", async () => { await pc.poza(path.join(POZE, "alerts-1920.png")); });
+  await test("poza la 1920", async () => { await pc.ev(`applyDeskTab('det')`); await pc.poza(path.join(POZE, "alerts-1920.png")); });
 } finally { pc.inchide(); }
 
 // ---------- 1920, fara poza si fara cheie ----------
@@ -143,7 +150,13 @@ try {
   // v129 (spec 2026-09-28-sl-tp-pe-alerts): bara SL <- acum -> TP la fiecare pozitie cu plan / sugestie si la simbolurile cu sugestie;
   // pe telefon bara ia tot randul si nu impinge pagina lateral
   await test("v129: bara SL ← acum → TP la T212 (7) si la simboluri; pe telefon pe tot randul, fara derulare laterala", async () => {
-    const r = await tel.ev(`[document.querySelectorAll('#radT212 .slBara').length, document.querySelectorAll('#radSimboluri .slBara').length, document.querySelectorAll('#radSimboluri .slBara.orient').length, (function(){var c=document.querySelector('#radT212 td.c-sltp');return c?Math.round(c.getBoundingClientRect().width):0})(), document.documentElement.scrollWidth]`);
+    // v144: T212 pe fila „Ce dețin”, simbolurile pe „Ce urmăresc” - aceleași cifre, citite pe fila lor
+    await tel.ev(`applyDeskTab('det')`);
+    const d = await tel.ev(`[document.querySelectorAll('#radT212 .slBara').length, (function(){var c=document.querySelector('#radT212 td.c-sltp');return c?Math.round(c.getBoundingClientRect().width):0})(), document.documentElement.scrollWidth]`);
+    await tel.ev(`applyDeskTab('urm')`);
+    const u = await tel.ev(`[document.querySelectorAll('#radSimboluri .slBara').length, document.querySelectorAll('#radSimboluri .slBara.orient').length, document.documentElement.scrollWidth]`);
+    await tel.ev(`applyDeskTab('det')`);
+    const r = [d[0], u[0], u[1], d[1], Math.max(d[2], u[2])];
     if (r[0] !== 7 || r[1] < 5 || r[2] < 1 || r[3] < 300 || r[4] > 390) throw new Error(JSON.stringify(r));
   });
   await test("poza la 390", async () => { await tel.poza(path.join(POZE, "alerts-390.png")); });

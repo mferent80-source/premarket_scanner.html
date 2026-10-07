@@ -191,3 +191,55 @@ body.al-page .rad .slText{padding-top:0}
 body.al-page .rad .slCapText{font-size:12px;color:var(--muted)}
 body.al-page .rad .slCapText .slSL b{color:var(--bad)}body.al-page .rad .slCapText .slTP b{color:var(--good)}
 @media (max-width:640px){body.al-page .rad .poz tr.rand td.c-sltp{grid-column:1/-1;min-width:0;width:auto;margin-top:4px}body.al-page .rad .slJos .slMij{display:none}body.al-page .rad .poz tr.rand td.c-ist{text-align:left}}
+/* v144 (el, 07.10: „pagina alerts să fie în două”): panoul „Alertele de azi”, din demo-ul aprobat (v3) */
+body.al-page .rad{--crit:#dc283c}
+body.al-page .rad .panou.alNou{border-color:var(--accent)}
+body.al-page .rad .filtre{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+body.al-page .rad .filtre button{font:inherit;font-size:12px;cursor:pointer;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted)}
+body.al-page .rad .filtre button[aria-pressed="true"]{border-color:var(--accent);color:var(--text);background:rgba(79,209,197,.1)}
+body.al-page .rad .filtre button.crit{border-color:var(--crit)}
+body.al-page .rad .peSim{display:flex;gap:6px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line2)}
+body.al-page .rad .peSim .et{align-self:center;margin-right:2px}
+body.al-page .rad .al{list-style:none;margin:0;padding:0}
+body.al-page .rad .al li{display:grid;grid-template-columns:4px 46px 78px minmax(0,1fr);gap:0 12px;padding:9px 14px 9px 0;border-bottom:1px solid var(--line2);align-items:start}
+body.al-page .rad .al li:last-child{border-bottom:0}
+body.al-page .rad .al .dunga{align-self:stretch;border-radius:0 3px 3px 0;background:var(--line)}
+body.al-page .rad .al li.critic .dunga{background:var(--crit)}body.al-page .rad .al li.atentie .dunga{background:var(--warn)}
+body.al-page .rad .al .ora{color:var(--muted);font-size:12.5px;padding-top:1px}
+body.al-page .rad .niv{display:inline-block;text-align:center;padding:2px 7px;border-radius:999px;font-size:10.5px;font-weight:900;letter-spacing:.03em;white-space:nowrap}
+body.al-page .rad .niv.critic{background:var(--crit);color:#fff}body.al-page .rad .niv.atentie{background:#b38700;color:#fff}body.al-page .rad .niv.info{background:#2b3f57;color:#cfe0f5}
+body.al-page .rad .al .tx{min-width:0}
+body.al-page .rad .al .tx b{display:block;font-size:14px}
+body.al-page .rad .al .tx .m{color:var(--muted);font-size:12.5px;margin-top:2px}
+body.al-page .rad .al .tx .fa{margin-top:4px;font-size:12.5px;padding:5px 9px;border-radius:7px;background:rgba(79,209,197,.08);border:1px solid rgba(79,209,197,.22);display:inline-block}
+body.al-page .rad .src{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 6px;margin-left:6px;font-weight:500;vertical-align:1px}
+body.al-page .rad .mai{display:block;width:100%;font:inherit;font-size:12.5px;cursor:pointer;padding:9px;border:0;border-top:1px solid var(--line2);background:transparent;color:var(--accent)}
+body.al-page .rad .golAl{padding:14px;color:var(--muted);font-size:13px;margin:0}
+body.al-page .rad .reguli{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:10px 14px 12px;border-top:1px solid var(--line2)}
+body.al-page .rad .regula{border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:12.5px;color:var(--muted)}
+body.al-page .rad .regula b{display:block;color:var(--text);font-size:13px;margin-bottom:2px}
+@media (max-width:900px){body.al-page .rad .reguli{grid-template-columns:1fr}}
+@media (max-width:640px){
+body.al-page .rad .al li{grid-template-columns:4px auto minmax(0,1fr);gap:4px 10px}
+body.al-page .rad .al .dunga{grid-column:1;grid-row:1/span 2}
+body.al-page .rad .al .ora{grid-column:2;grid-row:1}
+/* pe telefon nivelul (URGENT / ATENȚIE / INFO) rămâne lângă oră: culoarea dungii nu stă singură */
+body.al-page .rad .al .nv{grid-column:3;grid-row:1}
+body.al-page .rad .al .tx{grid-column:2/-1;grid-row:2}
+}
+/* v144 (el, 07.10: „la dețineri să pot adăuga și manual cu preț în euro și USD”): Salt Bank, din demo-ul aprobat (v3) */
+body.al-page .rad .adPoz{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.8fr) minmax(0,1fr) auto auto;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line2);align-items:end}
+body.al-page .rad .adPoz label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted);min-width:0}
+body.al-page .rad .adPoz input{width:100%;padding:7px 9px;border-radius:7px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;min-width:0}
+body.al-page .rad .adPoz input#spSim{text-transform:uppercase;font-weight:800}
+body.al-page .rad .adPoz .btn{padding:7px 12px}
+body.al-page .rad .moneda{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+body.al-page .rad .moneda button{font:inherit;font-weight:800;padding:7px 12px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+body.al-page .rad .moneda button[aria-pressed="true"]{background:var(--accent);color:#06101a}
+body.al-page .rad .adNota{grid-column:1/-1;font-size:12px;color:var(--muted)}
+body.al-page .rad ul.adNota{margin:0;padding:0;list-style:none}
+body.al-page .rad .platit{display:inline-block;font-size:11px;font-weight:800;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--text)}
+body.al-page .rad td.c-plata{text-align:right}
+body.al-page .rad td.c-plata .mic{display:block}
+@media (max-width:900px){body.al-page .rad .adPoz{grid-template-columns:1fr 1fr}}
+@media (max-width:640px){body.al-page .rad #radSalt tr.rand td.c-acum{display:block;grid-column:2;grid-row:1;text-align:right}}

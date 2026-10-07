@@ -6,6 +6,17 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const HTML = readFileSync(join(ROOT, 'alerts/index.html'), 'utf8'), SW = readFileSync(join(ROOT, 'sw-app.js'), 'utf8');
+// CRLF -> LF (core.autocrlf=true scrie CRLF pe disc), ca in radar-ecran.test.mjs
+const src = (f) => readFileSync(join(ROOT, f), 'utf8').replace(/\r\n/g, '\n');
+
+// v144 (el, 07.10: „pagina alerts să fie în două: alerte la boții și stocks pe care îi dețin, și alerte la cei pe care îi urmăresc”)
+test('alerts v144: filele „Ce dețin” / „Ce urmăresc” în locul lui „Preț”, fila ajunge în randeaza, cererile Salt legate', () => {
+  const h = src('alerts/index.html');
+  assert.match(h, /data-tab="det"[^>]*>💼 Ce dețin/); assert.match(h, /data-tab="urm"[^>]*>👀 Ce urmăresc/); assert.doesNotMatch(h, /data-tab="price"/);
+  assert.match(h, /fila: radFila\(\)/); assert.match(h, /addEventListener\('radar:salt'/); assert.match(h, /addEventListener\('radar:salt-scoate'/); assert.match(h, /addEventListener\('radar:refa'/);
+  assert.match(h, /id="verBadge">v144</);
+  assert.match(src('sw-app.js'), /CACHE_VERSION = 'tt-v855-2026-10-07'/);
+});
 
 test('pragurile au disparut din formular si din randuri', () => {
   for (const id of ['inpThr', 'inpKind', 'inpTarget', 'inpStop', 'inpDir', 'btnAdv', 'wrapKind', 'wrapDir']) assert.ok(!HTML.includes('id="' + id + '"'), id + ' trebuie sa dispara');
@@ -32,7 +43,7 @@ test('polling-ul ramane (gardile vechi) dar nu mai evalueaza praguri', () => {
   assert.ok(!/function evaluateAlert\(|function checkTrigger\(|fireAlert\(/.test(HTML), 'evaluarea pragurilor a fost scoasa');
 });
 test('versiunea paginii e v116; workflow-ul nu mai verifica praguri, dar News Watch isi pastreaza cronul', () => {
-  assert.match(HTML, /id="verBadge">v143</);
+  assert.match(HTML, /id="verBadge">v144</);
   const wf = readFileSync(join(ROOT, '.github/workflows/price-alerts.yml'), 'utf8');
   assert.ok(/^\s*schedule:/m.test(wf) && /cron:/.test(wf), 'cronul ramane pentru News Watch (alertele de stiri cu laptopul inchis)');
   assert.ok(!/run:\s*node tools\/check-alerts\.mjs/.test(wf), 'pasul cu pragurile de pret a disparut (comentariul de sus poate sa-l mai pomeneasca)');

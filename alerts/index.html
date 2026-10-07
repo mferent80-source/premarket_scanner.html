@@ -12,9 +12,9 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2314181f'/><text x='16' y='22' font-size='20' text-anchor='middle'>🔔</text></svg>">
 <link rel="stylesheet" href="../lib/plex.css?v=742">
 <link rel="stylesheet" href="../lib/suite-ui.css?v=700">
-<link rel="stylesheet" href="../lib/radar-ui.css?v=854">
-<script src="../lib/radar-poza.js?v=854"></script>
-<script src="../lib/radar-ecran.js?v=854"></script>
+<link rel="stylesheet" href="../lib/radar-ui.css?v=855">
+<script src="../lib/radar-poza.js?v=855"></script>
+<script src="../lib/radar-ecran.js?v=855"></script>
 <style>
 * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -645,6 +645,25 @@ body.al-page header.al-topbar .desk-tabs .tab-cnt {
   background:transparent; color:var(--t3); font-weight:500; padding:0 0 0 4px;
 }
 body.al-page header.al-topbar .desk-tabs button.on .tab-cnt { color:var(--t2); }
+/* v144: clopoțelul alertelor importante de azi pe filele „Ce dețin” / „Ce urmăresc”; roșu când e una URGENTĂ */
+body.al-page header.al-topbar .desk-tabs .tab-clop {
+  display:inline-flex; align-items:center; gap:4px; margin-left:6px; padding:1px 7px; border-radius:999px;
+  font-size:11.5px; font-weight:800; background:var(--panel3); color:var(--t1);
+}
+body.al-page header.al-topbar .desk-tabs .tab-clop.crit { background:#dc283c; color:#fff; }
+body.al-page header.al-topbar .desk-tabs .tab-clop[hidden] { display:none; }
+/* v144: pe telefon cele 4 file încap pe un rând (ca în demo): „Ce dețin” / „Ce urmăresc” se strâng și se rup pe două rânduri, fără numărul de poziții */
+@media (max-width:640px) {
+  body.al-page header.al-topbar nav.desk-tabs { gap:4px; }
+  body.al-page header.al-topbar nav.desk-tabs button {
+    flex:0 1 auto; min-width:0; padding:5px 7px; font-size:13.5px; line-height:1.2; white-space:normal; text-align:center;
+  }
+  body.al-page header.al-topbar nav.desk-tabs button[data-tab="det"],
+  body.al-page header.al-topbar nav.desk-tabs button[data-tab="urm"] { flex:1 1 0; }
+  body.al-page header.al-topbar nav.desk-tabs #tabCntDet,
+  body.al-page header.al-topbar nav.desk-tabs #tabCntUrm { display:none; }
+  body.al-page header.al-topbar nav.desk-tabs .tab-clop { margin-left:4px; }
+}
 .al-fold-btn { display:none; }
 .al-hdr-acts {
   display:flex; align-items:center; gap:8px; flex:0 0 auto;
@@ -825,9 +844,10 @@ body.al-page input, body.al-page select { font-weight:400; }
 <body class="suite-page al-page">
 
 <header class="suite-cockpit al-topbar">
-  <h1>Alerte <span class="ver-badge" id="verBadge">v143</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
+  <h1>Alerte <span class="ver-badge" id="verBadge">v144</span> <span class="suite-badge" id="suiteBadge" title="Versiune suită PWA">—</span></h1>
   <nav class="desk-tabs" id="deskTabs" aria-label="Secțiuni">
-    <button type="button" data-tab="price" class="on">Preț <span class="tab-cnt" id="tabCntPrice">0</span></button>
+    <button type="button" data-tab="det" class="on">💼 Ce dețin <span class="tab-cnt" id="tabCntDet">0</span><span class="tab-clop" id="tabClopDet" hidden></span></button>
+    <button type="button" data-tab="urm">👀 Ce urmăresc <span class="tab-cnt" id="tabCntUrm">0</span><span class="tab-clop" id="tabClopUrm" hidden></span></button>
     <button type="button" data-tab="news">News <span class="tab-cnt" id="tabCntNews">0</span></button>
     <button type="button" data-tab="hist">Istoric <span class="tab-cnt" id="tabCntHist">0</span></button>
   </nav>
@@ -1068,13 +1088,13 @@ body.al-page input, body.al-page select { font-weight:400; }
   </div>
 </div>
 
-<script src="../lib/suite-version.js?v=854"></script>
-<script src="../lib/data.js?v=854"></script>
-<script src="../lib/poll-wake.js?v=854"></script>
+<script src="../lib/suite-version.js?v=855"></script>
+<script src="../lib/data.js?v=855"></script>
+<script src="../lib/poll-wake.js?v=855"></script>
 <script src="../lib/quote-bus.js?v=710"></script>
 <script src="../lib/telegram.js"></script>
 <script src="../lib/toast-stack.js?v=750"></script>
-<script src="../lib/price-day.js?v=854"></script>
+<script src="../lib/price-day.js?v=855"></script>
 <script>
 // ============ CONFIG ============
 // Storage UNIFICAT cu watchlist-monitor (alertele ⏰ din detaliile de rând):
@@ -1384,12 +1404,13 @@ const DESK_KEY = 'pa_desk_v1';
 const NOTIFY_POLICY_KEY = 'pa_notify_policy_v1'; // always | quiet | rth
 function deskLoad() {
   // v74: doar LISTĂ pe o linie (comfort) — group/compact scoase din UI
-  const d = { layout: 'list', density: 'comfort', tab: 'price' };
+  const d = { layout: 'list', density: 'comfort', tab: 'det' };   // v144: „Preț” -> „Ce dețin” / „Ce urmăresc”
   try {
     const raw = localStorage.getItem(DESK_KEY) || localStorage.getItem('pa_desk_demo_v1') || '{}';
     const o = JSON.parse(raw);
     if (o && typeof o === 'object') {
-      if (o.tab === 'price' || o.tab === 'news' || o.tab === 'hist') d.tab = o.tab;
+      if (o.tab === 'det' || o.tab === 'urm' || o.tab === 'news' || o.tab === 'hist') d.tab = o.tab;
+      else if (o.tab === 'price') d.tab = 'det';
     }
   } catch (e) {}
   return d;
@@ -2112,7 +2133,8 @@ function bindMoreToggles(container, itemSel) {
 }
 
 function updateTabCounts(nPrice, nNews, nHist) {
-  const a = $('tabCntPrice'), b = $('tabCntNews'), c = $('tabCntHist');
+  // v144: „Preț” s-a împărțit în „Ce dețin” (numărul îl pune radRandeaza, din poză) și „Ce urmăresc” (simbolurile tale)
+  const a = $('tabCntUrm'), b = $('tabCntNews'), c = $('tabCntHist');
   if (a) a.textContent = nPrice;
   if (b) b.textContent = nNews;
   if (c) c.textContent = nHist;
@@ -2124,11 +2146,12 @@ function applyDensity() {
 }
 
 function applyDeskTab(tab) {
-  desk = deskSave({ tab: tab || 'price' });
+  if (tab === 'price') tab = 'det';   // v144: fila veche ținută minte
+  desk = deskSave({ tab: tab || 'det' });
   const t = desk.tab;
   const tabsEl = $('deskTabs');
   const tp = $('tabPrice'), tn = $('tabNews'), th = $('tabHist');
-  if (tp) tp.hidden = t !== 'price';
+  if (tp) tp.hidden = t !== 'det' && t !== 'urm';
   if (tn) tn.hidden = t !== 'news';
   if (th) th.hidden = t !== 'hist';
   if (tabsEl) {
@@ -2136,12 +2159,13 @@ function applyDeskTab(tab) {
       btn.classList.toggle('on', btn.getAttribute('data-tab') === t);
     });
   }
+  if ((t === 'det' || t === 'urm') && typeof radRandeaza === 'function') radRandeaza();
 }
 
 function applyDeskChrome() {
   desk = deskLoad();
   applyDensity();
-  applyDeskTab(desk.tab || 'price');
+  applyDeskTab(desk.tab || 'det');
 }
 
 function render() {
@@ -3620,7 +3644,8 @@ function wireDesk() {
   // deep link ?tab=
   try {
     const t = new URLSearchParams(location.search).get('tab');
-    if (t === 'news' || t === 'hist' || t === 'price') desk = deskSave({ tab: t });
+    if (t === 'news' || t === 'hist' || t === 'det' || t === 'urm') desk = deskSave({ tab: t });
+    else if (t === 'price') desk = deskSave({ tab: 'det' });   // v144: linkurile vechi ?tab=price
   } catch (e) {}
   applyDeskChrome();
 }
@@ -3667,7 +3692,22 @@ setInterval(() => { if (!document.hidden) loadServerHist(); }, 120000);
 // Paznicului cu cheia de citire (lib/radar-poza.js); lista de simboluri a paginii pleaca la worker la orice schimbare,
 // ca s-o imbogateasca colectorul. Randarea: lib/radar-ecran.js, in containerul #rad, sub bara suitei.
 var _radUltima = null;   // var, nu let: render() ruleaza inainte de blocul asta (TDZ)
+var _radSaltMoneda = 'EUR';   // v144: „Plătit în” din formularul Salt, ținut peste re-randări
 function radSimboluri() { return Object.keys(priceAlerts).sort().map(s => ({ s, nota: ((priceAlerts[s] || [])[0] || {}).note || '' })); }
+// v144 (el, 07.10: „pagina alerts să fie în două”): fila „Ce dețin” (det) sau „Ce urmăresc” (urm)
+function radFila() { try { return desk && desk.tab === 'urm' ? 'urm' : 'det'; } catch (e) { return 'det'; } }   // try: „let desk” poate fi încă în TDZ la prima randare
+// contoarele filelor: câte deții / câte urmărești + clopoțelul alertelor importante de azi (roșu cu una URGENTĂ)
+function radContoare(p) {
+  if (typeof RadarEcran === 'undefined' || !RadarEcran.grupeazaAlerte) return;
+  const nDet = p ? ((p.t212 || []).length + (p.boti || []).length + ((p.salt && p.salt.randuri) || []).length) : 0, cd = $('tabCntDet');
+  if (cd) cd.textContent = nDet;
+  [['det', 'tabClopDet'], ['urm', 'tabClopUrm']].forEach(([g, id]) => {
+    const c = $(id); if (!c) return;
+    const imp = Array.isArray(p && p.alerte) ? RadarEcran.grupeazaAlerte(p.alerte, g).imp : [];
+    c.hidden = !imp.length; c.textContent = '🔔 ' + imp.length; c.classList.toggle('crit', imp.some(a => a.nivel === 'critic'));
+    c.title = imp.length + ' alerte importante azi' + (imp.some(a => a.nivel === 'critic') ? ', printre ele una URGENTĂ' : '');
+  });
+}
 function radPreturiLive() {
   const o = {};
   Object.keys(_lastPrice).forEach(s => { const p = _lastPrice[s]; if (p == null) return; const ch = _lastChange[s]; o[s.toUpperCase()] = { pret: p, prev: ch != null ? p / (1 + ch / 100) : null, la: _lastOkTs[s] || null, chip: (typeof daySessChip === 'function' ? daySessChip(s) : '') }; });
@@ -3677,13 +3717,16 @@ function radRandeaza(r) {
   if (r) _radUltima = r;
   const el = $('rad'); if (!el || typeof RadarEcran === 'undefined' || typeof RadarPoza === 'undefined') return;
   const afF = $('addForm'); if (afF && document.activeElement && afF.contains(document.activeElement)) return;   // scrie in formular: nu-i luam focusul (randarea urmatoare vine la poll)
+  const sf = $('spForm'); if (sf && document.activeElement && sf.contains(document.activeElement)) return;   // v144: la fel la formularul Salt
   const p = _radUltima ? _radUltima.poza : RadarPoza.cache(), acum = Date.now();
+  radContoare(p);
   const af0 = $('addForm'), pastr = $('radPastrator');
   if (af0 && pastr && el.contains(af0)) pastr.appendChild(af0);   // scos din #rad inainte ca innerHTML sa-l distruga
-  RadarEcran.randeaza(el, p, { simboluri: radSimboluri(), preturiLive: radPreturiLive(), botiLive: radBotiLive(), acum, cheie: !!RadarPoza.cheie(), parolaRadar: RadarPoza.parolaRadar(), adresa: RadarPoza.adresaAltfel(), prospetime: RadarPoza.prospetime(p, acum), eroare: _radUltima ? _radUltima.eroare : null });
+  RadarEcran.randeaza(el, p, { fila: radFila(), saltAsteptare: RadarPoza.saltInAsteptare(), saltMoneda: _radSaltMoneda, simboluri: radSimboluri(), preturiLive: radPreturiLive(), botiLive: radBotiLive(), acum, cheie: !!RadarPoza.cheie(), parolaRadar: RadarPoza.parolaRadar(), adresa: RadarPoza.adresaAltfel(), prospetime: RadarPoza.prospetime(p, acum), eroare: _radUltima ? _radUltima.eroare : null });
   // formularul de adaugare intra in panoul „Simbolurile tale" (nodul e mutat, nu copiat: butoanele isi pastreaza ascultatorii)
   const slot = $('radAdaugaSlot'), af = $('addForm');
   if (slot && af && af.parentNode !== slot) { slot.appendChild(af); af.open = true; }
+  else if (!slot && af && pastr && af.parentNode !== pastr) pastr.appendChild(af);   // v144: pe fila „Ce dețin” formularul de simboluri nu se vede
 }
 // v122 (el, 28.09: „procentul LIVE, acelasi cu cel din TradingView”): lumanarea zilnica a fiecarui bot de la Binance futures,
 // la 10 s. Deschiderea zilei (00:00 UTC) = inchiderea de ieri, fata de care TradingView socoteste procentul. Monedele care nu
@@ -3721,6 +3764,20 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
   // v126: parola Radarului se pune din aceeași casetă; cheia goală + parola completată = doar parola (NU șterge cheia)
   $('rad').addEventListener('radar:adresa', () => { RadarPoza.puneUrl(null); toast('🌐 Citesc iar de la worker-ul obișnuit', 'info'); RadarPoza.citeste({ fortat: true }).then(radRandeaza); });   // v142
   $('rad').addEventListener('radar:cheie', e => { const d = e.detail || {}; if (d.parola) RadarPoza.puneParolaRadar(d.parola); if (d.parola && !d.cheie) { toast('🔐 Parola Radarului e pusă · „Deschide în Radar” intră direct', 'info'); radRandeaza(); return; } RadarPoza.puneCheie(d.cheie); if (d.url) RadarPoza.puneUrl(d.url); toast(d.cheie ? '🔑 Cheia e pusă · aduc poza' : 'Cheia a fost ștearsă', 'info'); RadarPoza.citeste({ fortat: true }).then(radRandeaza); radTrimiteSimboluri(); });
+  // v144 (el, 07.10: „pagina alerts să fie în două” + „la dețineri să pot adăuga și manual cu preț în euro și USD”):
+  // filtrele panoului „Alertele de azi” re-randează; cererile Salt pleacă la worker, colectorul le pune în lista Salt din Radar
+  $('rad').addEventListener('radar:refa', () => radRandeaza());
+  $('rad').addEventListener('radar:salt-moneda', e => { _radSaltMoneda = (e.detail && e.detail.moneda) === 'USD' ? 'USD' : 'EUR'; });
+  $('rad').addEventListener('radar:salt', async e => { const d = e.detail || {}; if (!d.simbol || !(d.qty > 0) || !(d.pretMediu > 0)) { toast('Scrie simbolul, bucățile și prețul mediu (mai mari ca zero)', 'warn'); return; }
+    const r = await RadarPoza.saltCerere(d); toast(r.ok ? `🧂 ${d.simbol}: cererea a plecat · o pune colectorul la poza următoare` : `🧂 ${d.simbol}: ${r.eroare}`, r.ok ? 'info' : 'warn');
+    if (r.ok) { ['spSim', 'spQty', 'spPret'].forEach(id => { const i = $(id); if (i) i.value = ''; }); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+    radRandeaza(); });
+  $('rad').addEventListener('radar:salt-scoate', async e => { const isin = e.detail.s; if (!isin || !confirm('Scot poziția din lista Salt? (și de pe pagina Salt din Radar)')) return; const r = await RadarPoza.saltCerere({ op: 'scoate', isin }); toast(r.ok ? '🧂 Cererea de scoatere a plecat' : '🧂 ' + r.eroare, r.ok ? 'info' : 'warn'); radRandeaza(); });
+  $('rad').addEventListener('radar:salt-editeaza', e => { const p = (_radUltima && _radUltima.poza) || RadarPoza.cache(), r = ((p && p.salt && p.salt.randuri) || []).find(x => x.simbol === e.detail.s); if (!r) return;
+    $('spSim').value = r.isin; $('spQty').value = String(r.qty).replace('.', ','); $('spPret').value = String(r.pretMediu).replace('.', ',');
+    _radSaltMoneda = r.plata === 'EUR' || r.moneda === 'EUR' ? 'EUR' : 'USD';   // plătit în moneda acțiunii (USD) ⇒ butonul $ USD
+    document.querySelectorAll('#spForm .moneda [data-moneda]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-moneda') === _radSaltMoneda)));
+    $('spSim').focus(); });
   RadarPoza.porneste({ laSchimbare: radRandeaza });
   radTrimiteSimboluri();
 }
@@ -3733,7 +3790,7 @@ if ($('rad') && typeof RadarPoza !== 'undefined') {
 // veche decidea ce versiune se înregistrează — `sw-app.js?v=tt-v771` — și SW-ul vechi se
 // auto-perpetua la infinit. HTML-ul, în schimb, e network-first la orice SW, deci constanta
 // asta e mereu proaspătă și rupe bucla de la primul reload.
-const SW_VER_INLINE = 'tt-v854';
+const SW_VER_INLINE = 'tt-v855';
 if ('serviceWorker' in navigator) {
   const swVer = SW_VER_INLINE || 'tt-v774';
   navigator.serviceWorker.register('../sw-app.js?v=' + swVer, { scope: '../', updateViaCache: 'none' }).catch(() => {});
@@ -3750,7 +3807,7 @@ if ('serviceWorker' in navigator) {
 <script>
 /* GENERAT de tools/sync-suite-version.mjs — nu edita manual. */
 (function () {
-  var PAGE_VER = 'tt-v854';
+  var PAGE_VER = 'tt-v855';
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('../sw-app.js?v=' + PAGE_VER, { scope: '../', updateViaCache: 'none' })
     .then(function (reg) {
