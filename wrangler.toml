@@ -12,9 +12,8 @@ keep_vars = true
 [observability]
 enabled = false
 
-# CLOUD_DB este legat in dashboard la baza EXISTENTA trading-tools-sync.
-# Pastram legatura D1, variabilele si secretele la fiecare deploy automat.
-# Nu cream o alta baza si nu regeneram CLOUD_ENCRYPTION_KEY.
-# metadata suprascrie lista Wrangler: include si tipurile vars/secrets.
-[unsafe.metadata]
-keep_bindings = ["d1", "plain_text", "json", "secret_text", "secret_key"]
+# Baza existenta, declarata explicit ca legatura sa ramana la fiecare deploy.
+[[d1_databases]]
+binding = "CLOUD_DB"
+database_name = "trading-tools-sync"
+database_id = "e3c26a28-a937-4b13-baa4-4b9befdd202c"
