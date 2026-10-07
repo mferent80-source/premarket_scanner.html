@@ -61,4 +61,4 @@ export async function handleCloud(request,env,upstream=fetch){
   return reply({error:'not_found'},404);
  }catch(error){const safe=['invalid_google_token','google_unavailable','invalid_encoding','invalid_key','invalid_value','invalid_credentials','record_too_large','body_too_large','json_required','invalid_body'];const code=safe.includes(error.message)?error.message:'cloud_unavailable';return reply({error:code},code==='invalid_google_token'?401:code==='google_unavailable'||code==='cloud_unavailable'?503:400);}
 }
-export default {fetch:handleCloud};
+export default {fetch(request,env){return handleCloud(request,env);}};

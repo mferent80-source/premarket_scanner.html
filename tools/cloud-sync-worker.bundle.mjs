@@ -257,4 +257,4 @@ async function handleCloud(request,env,upstream=fetch){
 return {PROTOCOL,readiness,seal,unseal,verifyGoogle,handleCloud};
 })();
 export const {PROTOCOL,readiness,seal,unseal,verifyGoogle,handleCloud}=TTCloudWorker;
-export default {fetch:handleCloud};
+export default {fetch(request,env){return handleCloud(request,env);}};

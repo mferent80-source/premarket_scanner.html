@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {DatabaseSync} from 'node:sqlite';
 import {KEYS,mergeRecord,validateValue} from '../lib/cloud-sync-model.mjs';
-import worker from './cloud-sync-worker.bundle.mjs';
+import {handleCloud} from './cloud-sync-worker.bundle.mjs';
 
 const source=readFileSync(new URL('../app/cloud-sync.js',import.meta.url),'utf8').replace(/^import .*;\n/,'');
 const {create:planStore}=createRequire(import.meta.url)('../lib/trade-plan-store.js');
@@ -18,7 +18,7 @@ async function service(){
   const encode=v=>Buffer.from(JSON.stringify(v)).toString('base64url'),now=Math.floor(Date.now()/1000),unsigned=encode({alg:'RS256',kid:'test'})+'.'+encode({aud:clientId,iss:'https://accounts.google.com',sub:subject,email:subject+'@example.test',email_verified:true,nonce,iat:now,exp:now+3600});
   const signature=await crypto.subtle.sign('RSASSA-PKCS1-v1_5',pair.privateKey,new TextEncoder().encode(unsigned));return unsigned+'.'+Buffer.from(signature).toString('base64url');
  }
- async function fetcher(url,options){assert.ok(url.startsWith(endpoint+'/api/cloud/'));return worker.fetch(new Request(url,{...options,headers:{...options.headers,Origin:origin,'CF-Connecting-IP':'192.0.2.1'}}),env,async url=>{assert.equal(url,'https://www.googleapis.com/oauth2/v3/certs');return Response.json({keys:[jwk]});});}
+ async function fetcher(url,options){assert.ok(url.startsWith(endpoint+'/api/cloud/'));return handleCloud(new Request(url,{...options,headers:{...options.headers,Origin:origin,'CF-Connecting-IP':'192.0.2.1'}}),env,async url=>{assert.equal(url,'https://www.googleapis.com/oauth2/v3/certs');return Response.json({keys:[jwk]});});}
  return {sqlite,identity,fetcher};
 }
 async function device(server,{local={},vault=null}={}){
