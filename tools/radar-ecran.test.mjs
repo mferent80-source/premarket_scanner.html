@@ -567,3 +567,16 @@ test('v145 (el, 07.10: „DA LA TOT”): la „Ce urmăresc” sunt trei reguli,
   assert.match(h, /Mișcare neobișnuită/); assert.match(h, /Cumpără un insider/); assert.match(h, /<b>Rezultatele vin mâine<\/b>/);
   assert.doesNotMatch(h, /propunere/, 'nu mai e propunere: există');
 });
+
+test('v146 (el, 07.10: „la boți Pionex pune totalul, suma, și cât are botul sau boții”): suma pe toți boții, în card și în antetul tabelului', () => {
+  const b = (s, investit, total) => ({ id: s, s, dir: 'long', lev: 2, investit, total, pret: 1, jos: 0.9, sus: 1.1 });
+  const t = RadarEcran.totalBoti([b('PONS', 48.9, 1.01), b('ABC', 100, -3.46)]);
+  assert.strictEqual(t.n, 2); assert.strictEqual(Math.round(t.investit * 100), 14890); assert.strictEqual(Math.round(t.acum * 100), 14645);
+  assert.strictEqual(RadarEcran.totalBoti([]).n, 0); assert.strictEqual(RadarEcran.totalBoti([{ s: 'X' }]).investit, 0, 'fără investit: nu NaN');
+  const poza = { la: ACUM, t212: [], boti: [b('PONS', 48.9, 1.01)], simboluri: [], gol: {} };
+  const el = { innerHTML: '', addEventListener() {}, dataset: {}, querySelectorAll() { return []; } };
+  RadarEcran.randeaza(el, poza, O(poza, { fila: 'det' }));
+  assert.match(el.innerHTML, /<span class="big">49,9 USDT<\/span>/, 'cardul: cât au boții acum');
+  assert.match(el.innerHTML, /investit 48,9 USDT/); assert.match(el.innerHTML, /▲ \+1,0 USDT \(\+2,1%\)/);
+  assert.match(el.innerHTML, /Investit <b>48,9 USDT<\/b> · acum <b>49,9 USDT<\/b>/, 'antetul tabelului');
+});
