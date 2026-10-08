@@ -32,9 +32,14 @@ const pair=(name,value)=>`<dt>${esc(name)}</dt><dd>${esc(value)}</dd>`;
 function clearPortfolio(){
  portfolioReport=null;portfolioSummary=null;portfolioPositions=null;portfolioAt=null;summaryAt=null;
  ['portfolioSummary','positions','realizedSummary'].forEach(id=>$(id).replaceChildren());
- $('positionSearch').value='';$('positionFilter').value='all';$('positionSort').value='loss';$('positionAttention').value='all';$('portfolioCurrency').value='';$('realizedPeriod').value='all';$('positionCoverage').textContent='';
+ $('positionSearch').value='';$('positionFilter').value='all';$('positionSort').value='loss';$('positionAttention').value='all';$('positionEvolution').value='all';$('portfolioCurrency').value='';$('realizedPeriod').value='all';$('positionCoverage').textContent='';
 }
-function portfolioOptions(){const daily={},stops={};let notes={};try{notes=JSON.parse(localStorage.getItem('tt_holdings_theses_v1')||'{}')||{};}catch{}for(const p of portfolioPositions||[]){daily[p.ticker]=window.T212Daily.compare(dailyHistory,{scope:journalScope,environment:previewMode?'demo':brokerEnvironment,position:p,at:portfolioAt});stops[p.ticker]=window.HoldingsPulse.stop(p,previewMode&&p.ticker===portfolioPositions[0]?.ticker?{stop:p.currentPrice/1.02,stopCurrency:p.instrumentCurrency,stopAlertPct:3}:notes[journalScope+'|'+p.ticker],null,{at:portfolioAt});}return {history:portfolioPositions?{data:dailyHistory,scope:journalScope,environment:previewMode?'demo':brokerEnvironment,at:portfolioAt}:null,analysis:true,preview:previewMode,currency:$('portfolioCurrency').value,filter:$('positionFilter').value||'all',search:$('positionSearch').value,sort:$('positionSort').value||'loss',attention:$('positionAttention').value||'all',daily,stops};}
+function portfolioOptions(){const daily={},stops={},evolution={};let notes={},cache={},maps={},benchmarks={},sectors={};const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'{}')||{};}catch{return {};}};if(!previewMode){notes=read('tt_holdings_theses_v1');cache=read('tt_holdings_analysis_v1');maps=read('tt_holdings_symbols_v1');benchmarks=read('tt_holdings_benchmarks_v1');sectors=read('tt_holdings_sector_benchmarks_v1');}
+ for(const p of portfolioPositions||[]){daily[p.ticker]=window.T212Daily.compare(dailyHistory,{scope:journalScope,environment:previewMode?'demo':brokerEnvironment,position:p,at:portfolioAt});const symbol=maps[p.ticker]||(/^[A-Z0-9.-]+_US_EQ$/.test(p.ticker)?p.ticker.replace(/_US_EQ$/,''):null),benchmark=Object.hasOwn(benchmarks,p.ticker)?benchmarks[p.ticker]:/_US_EQ$/.test(p.ticker)?'SPY':null,sectorBenchmark=sectors[p.ticker]||null;
+ const m=previewMode?{currency:p.instrumentCurrency,asOf:window.DailySeries.expected(Date.now(),'America/New_York',960),short:p.ticker==='FICTIV_B_US_EQ'?'Descendent':'Ascendent',medium:p.ticker==='FICTIV_B_US_EQ'?'Descendent':'Ascendent'}:window.HoldingEvolution.resolve(p,cache[journalScope+'|'+p.ticker],{symbol,benchmark,sectorBenchmark});
+ stops[p.ticker]=window.HoldingsPulse.stop(p,previewMode&&p.ticker===portfolioPositions[0]?.ticker?{stop:p.currentPrice/1.02,stopCurrency:p.instrumentCurrency,stopAlertPct:3}:notes[journalScope+'|'+p.ticker],m,{at:portfolioAt});evolution[p.ticker]=window.HoldingEvolution.joint(p,m,daily[p.ticker],{at:portfolioAt});}
+ return {history:portfolioPositions?{data:dailyHistory,scope:journalScope,environment:previewMode?'demo':brokerEnvironment,at:portfolioAt}:null,analysis:true,preview:previewMode,currency:$('portfolioCurrency').value,filter:$('positionFilter').value||'all',search:$('positionSearch').value,sort:$('positionSort').value||'loss',attention:$('positionAttention').value||'all',evolutionFilter:$('positionEvolution').value||'all',daily,stops,evolution};}
+
 function renderPositions(){
  if(!portfolioReport)return;
  const options=portfolioOptions(),result=window.T212Portfolio.positionsMarkup(portfolioReport,options);
@@ -79,16 +84,16 @@ $('positions').addEventListener('click',e=>{
   if(window.parent!==window)window.parent.postMessage({ttOpenModule:'holdings/',ttQuery:query},location.origin);else location.assign('../holdings/?'+query);
  }catch(error){$('positionCoverage').textContent=error.message;}
 });
-['positionFilter','positionSort','positionAttention'].forEach(id=>$(id).addEventListener('change',renderPositions));
+['positionFilter','positionSort','positionAttention','positionEvolution'].forEach(id=>$(id).addEventListener('change',renderPositions));
 $('positionSearch').addEventListener('input',renderPositions);
 $('portfolioCurrency').addEventListener('change',()=>{renderPositions();renderRealized();});
 $('realizedPeriod').addEventListener('change',renderRealized);
-window.addEventListener('storage',e=>{if(!previewMode&&['tt_holdings_theses_v1',window.T212Daily.KEY].includes(e.key)&&portfolioReport){dailyHistory=window.T212Daily.read(localStorage);renderPositions();}});
+window.addEventListener('storage',e=>{if(!previewMode&&['tt_holdings_theses_v1','tt_holdings_analysis_v1','tt_holdings_symbols_v1','tt_holdings_benchmarks_v1','tt_holdings_sector_benchmarks_v1',window.T212Daily.KEY].includes(e.key)&&portfolioReport){dailyHistory=window.T212Daily.read(localStorage);renderPositions();}});
 $('portfolioSummary').addEventListener('click',e=>{
  const button=e.target.closest('[data-position]');if(!button)return;
- $('positionFilter').value='all';$('positionSearch').value=button.dataset.position;renderPositions();$('positions').scrollIntoView({behavior:'smooth',block:'start'});
+ $('positionFilter').value='all';$('positionAttention').value='all';$('positionEvolution').value='all';$('positionSearch').value=button.dataset.position;renderPositions();$('positions').scrollIntoView({behavior:'smooth',block:'start'});
 });
-$('clearPositionFilters').addEventListener('click',()=>{$('positionSearch').value='';$('positionFilter').value='all';$('positionSort').value='loss';$('positionAttention').value='all';renderPositions();});
+$('clearPositionFilters').addEventListener('click',()=>{$('positionSearch').value='';$('positionFilter').value='all';$('positionSort').value='loss';$('positionAttention').value='all';$('positionEvolution').value='all';renderPositions();});
 window.addEventListener('storage',e=>{if(e.key===window.T212Performance?.KEY)renderRealized();});
 
 function history(){const orders=kind==='orders';$('history').innerHTML=rows.map(r=>`<article class="card"><h3>${esc(r.ticker||r.type)}</h3><p>${esc(stamp(r.date))}</p><p>${esc(orders?(r.side||'Sens indisponibil')+' · '+(r.status||'Stare indisponibilă'):r.type)}</p><dl>${orders?pair('Cantitate executată',fmt(r.quantity))+pair('Preț execuție',fmt(r.price,r.priceCurrency)):''}${pair(orders?'Valoare netă':'Sumă',fmt(r.amount,r.currency))}${orders?pair('P&L realizat raportat',fmt(r.realized,r.currency)):''}</dl></article>`).join('');}
@@ -126,7 +131,7 @@ $('copyConnection').onclick=async()=>{try{if(!$('transferCode').value)throw Erro
 $('importConnection').onclick=async()=>{try{if(!ready)throw Error('Releul nu este activ.');const payload=await window.T212Vault.unpack($('transferCode').value.trim(),$('transferPassword').value);await startConnection(payload,true);$('transferState').textContent='Transfer preluat. Verifică starea conexiunii de mai sus.';}catch(e){$('transferState').textContent=e.message;}finally{$('transferPassword').value='';$('transferCode').value='';}};
 $('disconnect').onclick=reset;$('refresh').onclick=sync;$('more').onclick=()=>loadHistory(true);
 document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{if(busy)return;kind=b.dataset.kind;rows=[];seen.clear();cursor=null;$('history').replaceChildren();$('more').hidden=true;document.querySelectorAll('[data-kind]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));loadHistory();});
-setInterval(()=>{updatePortfolioTime();if(lastFetched&&Date.now()-lastFetched>300000)$('status').textContent=`DATE NEACTUALIZATE · ultima citire ${stamp(lastFetched)} · apasă Sincronizează.`;},30000);
+setInterval(()=>{if(portfolioReport&&document.visibilityState!=='hidden')renderPositions();else updatePortfolioTime();if(lastFetched&&Date.now()-lastFetched>300000)$('status').textContent=`DATE NEACTUALIZATE · ultima citire ${stamp(lastFetched)} · apasă Sincronizează.`;},30000);
 window.addEventListener('offline',()=>{$('status').textContent='OFFLINE · datele afișate nu se actualizează.';});
 window.addEventListener('pagehide',reset);
 function connectionReady(value){ready=value;['apiKey','apiSecret','brokerEnvironment','connectButton'].forEach(id=>$(id).disabled=!value);}
