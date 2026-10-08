@@ -29,3 +29,5 @@ test('reselecting an open module preserves its document, while explicit reload n
  Object.defineProperty(b.elements.frame,'src',{get:()=>src,set:v=>{writes++;src=v;}});
  b.send({ttOpenModule:'holdings/'});assert.equal(writes,0);b.elements.reloadModule.onclick();assert.equal(writes,1);assert.match(src,/reload=/);
 });
+
+test('fragment navigation reuses a loaded journal document and dismisses the spinner',()=>{const b=boot();b.send({ttOpenModule:'journal/#desk'});b.elements.frame.onload.call(b.elements.frame);assert.equal(b.elements.loading.hidden,true);b.send({ttOpenModule:'journal/#portfolio'});assert.match(b.elements.frame.src,/#portfolio$/);assert.equal(b.elements.loading.hidden,true);b.send({ttOpenModule:'journal/#exec'});assert.equal(b.elements.loading.hidden,true);b.elements.reloadModule.onclick();assert.equal(b.elements.loading.hidden,false);});
