@@ -35,6 +35,12 @@ test('snapshot is stable across time checks but changes when evidence or source 
 
 test('initial empty selection produces a verification result without crashing',()=>{const r=V.build({purpose:'entry'},now);assert.equal(r.code,'VERIFY');assert.equal(r.canPlan,false);assert.equal(r.symbol,null);});
 
+function validation(extra={}){return {ok:true,readAt:now,identity:{scope:'account-a',symbol:'TEST',currency:'USD',kind:'market'},rows:[{model:'knn',horizon:5,canSupport:false,freshness:{needsCheck:false},report:{n:25,flags:{enough:true,noEdge:true},warning:'Acuratețe fără avantaj față de reper.'}}],...extra};}
+test('prospective baseline failure changes a matching current AI plan to explicit monitoring',()=>{const r=build({}, {ai:model(),validation:validation(),validationScope:'account-a'});assert.equal(r.code,'WATCH');assert.equal(r.canPlan,false);assert.match(r.cautions.find(x=>x.id==='ai-validation').text,/KNN \/ 5 sesiuni.*reper/);assert.equal(r.evidence.find(x=>x.id==='ai').role,'attention');});
+test('small samples stay contextual and cannot alone deny a valid technical plan',()=>{const v=validation();v.rows[0].report.flags.enough=false;v.rows[0].report.n=2;const r=build({}, {ai:model(),validation:v,validationScope:'account-a'});assert.equal(r.code,'PLAN');assert.ok(!r.cautions.some(x=>x.id==='ai-validation'));assert.equal(r.evidence.find(x=>x.id==='ai-prospective').role,'unknown');});
+test('foreign, stale, synthetic and incompatible prospective evidence cannot be borrowed by an instrument',()=>{for(const change of [{readAt:now-60001},{readAt:now+1},{simulation:true},{identity:{scope:'b',symbol:'TEST',currency:'USD',kind:'market'}},{identity:{scope:'account-a',symbol:'OTHER',currency:'USD',kind:'market'}}]){const r=build({}, {ai:model(),validation:validation(change),validationScope:'account-a'});assert.equal(r.code,'PLAN');assert.match(r.evidence.find(x=>x.id==='ai-prospective').value,/nu este încă disponibil/);}});
+test('private per-account prospective metrics and actions are excluded from external AI facts',()=>{const r=build({}, {ai:model(),validation:validation(),validationScope:'account-a'}),facts=JSON.stringify(V.publicFacts(r));assert.doesNotMatch(facts,/account-a|ai-prospective|ai-validation|Acuratețe fără avantaj/);assert.match(facts,/WATCH/);});
+
 test('a monitored bullish candidate explains its structure and the actual missing confirmation',()=>{
  const r=build({actionable:false,state:'WATCH'});
  assert.equal(r.canPlan,false);assert.match(r.briefing.summary,/trend ascendent aliniat/);
