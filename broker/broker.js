@@ -156,7 +156,7 @@ setInterval(()=>{if(token&&$('autoSync').checked&&navigator.onLine!==false&&docu
 
 if(previewMode){
  previewFixture=window.T212Portfolio.demo();journalScope=previewFixture.scope;portfolioSummary=previewFixture.summary;portfolioAt=summaryAt=new Date().toISOString();
- $('previewBanner').hidden=false;$('connectionSettings').hidden=true;$('syncPanel').hidden=true;$('autoSync').checked=false;$('account').hidden=false;
+ $('previewBanner').hidden=false;$('brokerVerification').hidden=true;$('connectionSettings').hidden=true;$('syncPanel').hidden=true;$('autoSync').checked=false;$('account').hidden=false;
  $('status').textContent='DEMO FICTIV · date simulate; nu citesc brokerul și nu salvez aceste rezultate.';
  metrics(portfolioSummary);positions(previewFixture.positions);renderRealized();
  $('historyState').textContent='DEMO FICTIV · vânzări simulate';rows=previewFixture.account.items;history();

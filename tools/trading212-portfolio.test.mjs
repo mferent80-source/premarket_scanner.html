@@ -25,7 +25,7 @@ test('currency groups never combine wallet sums, and foreign balances cannot bec
 });
 test('GBp prices keep their denomination; ratios do not convert pence to pounds or to wallet currency',()=>{
  const {P}=setup(),row=P.build([p('GBp',-2,{instrumentCurrency:'GBp',averagePrice:100,currentPrice:80,value:9})],wallet).rows[0];
- assert.ok(Math.abs(row.priceReturn+20)<1e-10);assert.equal(row.recovery,25);assert.equal(row.pnl,-2);assert.equal(row.weight,.8999999999999999);
+ assert.ok(Math.abs(row.priceReturn+20)<1e-10);assert.equal(row.recovery,25);assert.equal(row.pnl,-2);assert.ok(Math.abs(row.weight-.9)<1e-10);
 });
 test('missing prices, currency and account equity leave percentages unavailable',()=>{
  const {P}=setup();for(const extra of [{averagePrice:null},{averagePrice:0},{currentPrice:null},{instrumentCurrency:null},{averagePrice:'100'},{currentPrice:Infinity}])assert.equal(P.build([p('A',-20,extra)],wallet).rows[0].priceReturn,null);

@@ -67,3 +67,5 @@ Pozițiile fără rezultat ori monedă nu devin automat zero. Dublurile aceluia�
 `broker/?demo=1` previzualizează numai date fictive în memorie: nu citește credențialele salvate, nu accesează releul și nu scrie snapshot-uri sau execuții. Modul Demo al brokerului conectat este distinct de acest preview. Metodologia folosește [definițiile oficiale ale pozițiilor](https://docs.trading212.com/api/positions); valorile lipsă din schema normalizată existentă nu sunt reconstruite prin schimbarea releului.
 
 Verificare suplimentară: `tools/trading212-portfolio.test.mjs` și testele clientului verifică FX, GBp, recuperarea după −20%, monedele distincte, lipsurile, dublurile, acoperirea, izolarea contului și preview-ul fără credențiale.
+
+Verificarea generică a contului se deschide separat, în secțiunea pliabilă „Starea verificărilor contului”, fără a împinge clasamentele sub un bloc de verdict. Preview-ul fictiv nu afișează această evaluare a contului real.
